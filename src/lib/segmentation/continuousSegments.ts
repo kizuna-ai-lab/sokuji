@@ -119,6 +119,8 @@ export interface ContinuousSegmentsOptions {
   holdMidSentence?: boolean;
   /** Each cut, for the Logs (choice 14). */
   cut?: (summary: CutSummary) => void;
+  /** How many sentences a closing source owes its translation, as the adapter cut it; the module's own count otherwise (Stage 2 OpenAI Live, choice 7). */
+  countSource?: (text: string) => number;
 }
 
 interface OpenSource {
@@ -336,7 +338,7 @@ export class ContinuousSegments {
     this.source = null;
     this.lastClosed = s.origin;
     this.o.sink.segmentClosed({ ref: s.ref });
-    this.owed.push({ origin: s.origin, n: Math.max(1, countSentenceEnds(this.show(s.text))), lastAt: s.lastAt });
+    this.owed.push({ origin: s.origin, n: Math.max(1, (this.o.countSource ?? countSentenceEnds)(this.show(s.text))), lastAt: s.lastAt });
     // No translation open: it has its pause to begin (choice 8). One waiting for this source: its pause starts now (choice 7).
     if (!this.translation) {
       this.beginning = true;

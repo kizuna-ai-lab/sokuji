@@ -8,12 +8,12 @@ import { RECORDINGS, replay, type RecordedEvent, type Recording } from './record
 
 const SILENCE: ContinuousSegmentsOptions['silence'] = { sourceMs: 1500, translationMs: 1500, deferMidSentence: false };
 
-function segments(silence = SILENCE, showSource?: (text: string) => string, holdMidSentence?: boolean) {
+function segments(silence = SILENCE, showSource?: (text: string) => string, holdMidSentence?: boolean, countSource?: (text: string) => number) {
   // `timers()` counts what has neither fired nor been cancelled: the clock rule's proof that no timer outlives what should end it.
   const { clock, timers } = trackedClock();
   const { events, log } = recordEvents();
   const cuts: CutSummary[] = [];
-  const s = new ContinuousSegments({ clock, silence, sink: events, showSource, holdMidSentence, cut: (c) => cuts.push(c) });
+  const s = new ContinuousSegments({ clock, silence, sink: events, showSource, holdMidSentence, countSource, cut: (c) => cuts.push(c) });
   const of = <K extends AdapterEvent['kind']>(k: K) => log.filter((e): e is Extract<AdapterEvent, { kind: K }> => e.kind === k);
   const texts = (ref: number) => of('segmentText').filter((e) => e.payload.ref === ref).map((e) => e.payload.text);
   const opened = () => of('segmentOpened').map((e) => e.payload);
@@ -167,6 +167,17 @@ describe("the translation: cut at the source's cuts (translation cuts, rulings 1
     s.translationText(' Five');
     expect(closed()).toEqual([{ ref: 1 }, { ref: 2 }, { ref: 3 }, { ref: 4 }]);
     expect(texts(4)).toEqual([' Three', ' Three four.']);
+  });
+
+  it("a closing source owes the count `countSource` gives for its text, not the module's own count", () => {
+    // The module's own count would read two Latin ends in 'Mr. Smith.'; the option says one, so the translation's first sentence end — confirmed by the delta after it — cuts it at once, with no quiet needed.
+    const { s, at, closed } = segments(SILENCE, undefined, undefined, () => 1);
+    s.sourceText('Mr. Smith.');
+    at(1_500);
+    expect(closed()).toEqual([{ ref: 1 }]);
+    s.translationText('A.');
+    s.translationText(' B');
+    expect(closed()).toEqual([{ ref: 1 }, { ref: 2 }]);
   });
 
   it("counts only the sentence ends that arrived after the source's last delta, strictly (the guard), each at its own delta's arrival", () => {

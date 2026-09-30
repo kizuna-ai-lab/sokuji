@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
 import { trackedClock } from '../../lib/contract/testing/trackedClock';
 import type { CutSummary } from '../../lib/segmentation/continuousSegments';
+import { replay, type Recording } from '../../lib/segmentation/recordings/replay.testing';
 import type { LiveConfig } from './config';
 import { computeRms, FLOOR_RMS, LiveSegments, SOURCE_CAP_MS, SOURCE_CLAUSE_MS } from './segments';
 
@@ -228,6 +229,38 @@ describe("OpenAI Live's karaoke on the output's sample clock (ruling 2; choices 
     const h = live();
     h.s.audio(frame(), VOICED);
     expect(h.audio()).toEqual([[1, null]]);
+  });
+});
+
+describe("OpenAI Live's translation pairs an English source cut by pause, abbreviations and ellipses included (I1)", () => {
+  /** Plays a recording through a real `LiveSegments` in pause mode (`sentencesPerSegment: 1`), and reads back its exchanges through L1 and L2 (the probe's own harness). */
+  const runLive = (recording: Recording) => replay(recording, (clock, events) => {
+    const s = new LiveSegments({ clock, silence: PAUSE, sentencesPerSegment: 1, sink: events });
+    return {
+      input: (d, st) => s.input(d, st.startMs, st.endMs),
+      output: (d, st) => s.output(d, st.startMs, st.endMs),
+      audio: (pcm) => s.audio(pcm, { voiced: true, play: true }),
+    };
+  });
+
+  /** Three sentences in continuous speech, each cut by its own pause, each followed by its translation delta. */
+  const threeSentences = (first: string): Recording['events'] => [
+    [0, 's', first, 0, 1_800],
+    [300, 't', 'スミスさんは正午に到着しました。', 0, 1_500],
+    [900, 's', ' He sat down.', 1_900, 2_600],
+    [1_200, 't', '彼は座りました。', 1_600, 2_400],
+    [1_800, 's', ' Then he left.', 2_700, 3_300],
+    [2_100, 't', 'それから彼は去りました。', 2_500, 3_400],
+  ];
+
+  it('pairs every sentence with its own translation, an abbreviation in the source included', () => {
+    const result = runLive({ run: 'abbrev', events: threeSentences('Mr. Smith arrived at noon.') });
+    expect({ sources: result.sources, paired: result.paired, orphans: result.orphans }).toEqual({ sources: 3, paired: 3, orphans: 0 });
+  });
+
+  it('an ellipsis in the source pairs the same way', () => {
+    const result = runLive({ run: 'ellipsis', events: threeSentences('Well... Smith arrived at noon.') });
+    expect({ sources: result.sources, paired: result.paired, orphans: result.orphans }).toEqual({ sources: 3, paired: 3, orphans: 0 });
   });
 });
 

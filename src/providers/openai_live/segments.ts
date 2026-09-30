@@ -139,7 +139,8 @@ export class LiveSegments {
       // The module plays nothing: every frame is placed here, by the timeline.
       audio: () => {},
     };
-    this.core = new ContinuousSegments({ clock: o.clock, silence: o.silence, sink, cut: o.cut });
+    // The translation owes what `sentenceEnds` read the source by (ruling 4; choice 7), not the module's own any-Latin-dot count (I1).
+    this.core = new ContinuousSegments({ clock: o.clock, silence: o.silence, sink, cut: o.cut, countSource: (t) => sentenceEnds(t).length });
   }
 
   /** A source transcript delta and its stamps on the session's timeline. */
