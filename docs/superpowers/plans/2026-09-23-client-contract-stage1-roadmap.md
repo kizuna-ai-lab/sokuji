@@ -6942,7 +6942,15 @@ is this record; the final whole-branch review follows it.
   `atSentenceEnd`; `SilenceDeferral` moved into it unchanged. Each closed
   source owes the translation a cut of `n = max(1, its sentence ends)`, taken
   at the translation's n-th sentence end arriving after the source's last
-  delta; the next delta opens the next translation. The four recordings
+  delta; the next delta opens the next translation. **Changed by the owner's
+  rule C** (2026-09-30; `f93f0b9c`, its review's fixes `388d1c00`):
+  `endsSentence(mark, next)` became `endsSentenceAt(text, i)` — a
+  capitalised title before a name, "vs.", "cf.", "e.g.", "i.e.", German "z."
+  or a single capital initial never ends a sentence; any other abbreviation of
+  the shared list, or an ellipsis, ends one only before a capitalised word,
+  opening marks aside; every other period reads as before — and a
+  translation's ends are read on its whole text again at each delta, each
+  still stamped with its own delta's arrival. The four recordings
   (`src/lib/segmentation/recordings/`, arrival times, types, text deltas,
   frame lengths and RMS — no pcm, no key, 32 KB), their generator
   (`scripts/dev/wire-probe/translation-cuts-fixtures.mts`) and
@@ -7226,6 +7234,24 @@ taken (and where), or left (and why).
   counted: the mark is followed by the quote, not whitespace, as ruling 1
   (iii) reads; a cut there comes one sentence late, and the next quiet settles
   it. A text that ends so reads as at a sentence end (choice 3).
+- **Added with the owner's rule C** (2026-09-30; `f93f0b9c`, `388d1c00`): none of
+  the recordings holds any of these, and the next quiet settles each.
+  - A sentence that ends in a single capital letter or a title is not cut
+    there: "I chose plan B.", "vitamin C.", "on Main St.". English "John Smith
+    Sr." reads as the Spanish and Portuguese title "Sr.", the commoner use.
+  - "U.S. Army", "10 a.m. Monday" and "J.R.R. Tolkien" still end after the
+    period, as before; so do German "d. h." at both its periods (the list
+    holds "d.h" unspaced, and taking "d" and "h" alone would miss "um 10 h."
+    at a sentence's end), and an abbreviation joined to a number ("2020г. мы",
+    where "2020 г. мы" does not end) — each as before, none a regression (the
+    re-review of `388d1c00`).
+  - The single-character ellipsis "…" is still no ellipsis and no end, as
+    before: reading it as "..." is read would change Chinese "……".
+  - A translation cut inside a word (a cut is taken at the next delta) reads
+    the new segment's first word alone ("st." from "fa|st.").
+  - Each delta reads its segment's whole text again: quadratic in a
+    segment's length, which a segment's quiet and its cuts keep to a few
+    hundred deltas (1 k deltas: 77 ms in all; 10 k: 7 s).
 - **Scripts beyond the widened set**: a mark not in `ANYWHERE_ENDS` or `.?!` —
   Tibetan's `།`, Greek's `;` question mark — is not counted. A Greek question
   reads as mid-sentence, its cut one sentence late until the next `.` or real
@@ -7890,29 +7916,88 @@ Start; each item names what settles it):
     noon.", "Well... he left.") in both directions: an English source row
     keeps its own translation and the next row is not a sentence late (the
     final review's I1, fixed); a Chinese source whose English translation
-    holds "Mr." — record whether the row is cut after "Mr." (the open
-    question above).
+    holds "Mr." — it is not cut after "Mr." (rule C, the open question
+    above, ruled).
 16. **Optional, U13:** close the app abruptly mid-session (kill it); later,
     compare the account's usage dashboard with the session's last
     `session.usage.updated`.
 17. **Optional, the expiry** (ruling 8): a session left running two hours
     ends with `session.closed` (`expired`) and the run's end, no reconnect.
 
-**Open questions for the owner:** one, from the final review. The survey's
-nine are ruled, and the plan review's two by rulings 10 and 11; what the live
-test finds (the rows' length and the run-over above all) may raise new ones.
-1. **Should the translation cuts module read abbreviations and ellipses as
-   mid-sentence when it counts a translation's sentences?** The module counts
+**Open questions for the owner:** none. The survey's nine are ruled, the plan
+review's two by rulings 10 and 11, and the final review's one below; what the
+live test finds (the rows' length and the run-over above all) may raise new
+ones.
+1. **Ruled — rule C** (the owner, 2026-09-30, 「采用C」; landed in `f93f0b9c`). The
+   question: **should the translation cuts module read abbreviations and
+   ellipses as mid-sentence when it counts a translation's sentences?** The
+   module counted
    any Latin `.?!` before whitespace (the translation cuts' ruling 1 (iii)),
-   so a translation "Mr. Smith arrived today." is cut after "Mr." when its
+   so a translation "Mr. Smith arrived today." was cut after "Mr." when its
    source owes one sentence: the final review's probe, zh → en, made the rows
    `…"Mr."` | `"Smith arrived today. He sat down."`. It is the module's own
    rule, shared with OpenAI Translate and Gemini Live Translate, and changing
    it changes all three; on OpenAI Translate a source that closes at its
    arrival pause and the translation's quiet usually hide it. The source side
    is fixed for Live (the fix round below): a Live source owes the sentences
-   it was cut by. Live-test item 15 now records abbreviations and ellipses in
-   both directions.
+   it was cut by.
+
+   The comparison the owner asked for, rule A (ruling 1 (iii)), rule B (the
+   shared `sentenceEnds`: no abbreviation, initial or ellipsis ends a
+   sentence) and rule C, each on both sides' counts:
+   - **the seven recorded sessions** (OpenAI Translate's three, Gemini Live
+     Translate's, OpenAI Live's three), every configuration their replays
+     run, twenty in all: identical under all three rules — the recordings
+     hold no abbreviation, initial, ellipsis or lowercase word after a
+     period;
+   - **synthetic zh → en sessions**, as the interpreter delivers them (each
+     source closed by its pause before its translation arrives), paused and
+     continuous, on OpenAI Translate's and Gemini Live Translate's segments
+     alike: A cuts after "Mr.", "Dr.", "J." and a mid-sentence "Well...",
+     each later row then a clause behind until a pause; B cuts none of them,
+     but merges "…etc. Then we left." and "He just left... We were…" into one
+     row and leaves the last row with no translation when the interpreter
+     does not pause; C gets all fourteen right.
+
+   Rule C, as landed (`f93f0b9c`, then `388d1c00`), reads a period by the word
+   before it; every other mark reads as ruling 1 (iii) says.
+   - **Never an end:**
+     - a capitalised title before a name: "Mr.", "Mrs.", "Ms.", "Dr.",
+       "Prof.", "St.", "Mt.", and the French, Spanish, Portuguese and
+       Italian ones, "Sr." among them;
+     - "vs.", "cf.", "e.g.", "i.e." and German "z.";
+     - a single capital initial in any script, not the pronoun "I".
+   - **An end only when the next word is capitalised**, opening marks such
+     as "¿" "«" "„" aside: any other abbreviation of the shared list ("etc.",
+     "Jr.", "U.S.", "a.m.") and an ellipsis.
+   - **Every other period reads as before:** a plain word ("no. then" still
+     ends), and a word joined to a number ("1st.", "300ms.", "5A.").
+
+   Live-test item 15 checks abbreviations and ellipses in both directions.
+
+   **The change's review** (opus, on `f93f0b9c`: With fixes, 0 Critical / 5
+   Important / 8 Minor; 2,999 of 3,000 randomised plain-text sessions
+   byte-identical before and after — the one difference a word fragment) and
+   the controller's rulings, fixed in `388d1c00`:
+   - **I1:** the pronoun "I" read as an initial ("So do I. Then") — no
+     longer.
+   - **I2:** "1st." and "300ms." read as the titles "St." and "Ms." — titles
+     now need a capital, and a word joined to a number reads as before.
+   - **I3:** "¿", "¡", "«" and "„" stopped the look for the next word — any
+     opening mark is skipped.
+   - **I4:** Spanish "Sr." still ended before the name — "Sr." is a title
+     again, as in the comparison's rule C. The first commit had moved it to
+     the next-word rule for English "Senior".
+   - **I5:** the shared `periodIsNotSentenceEnd` also read a plain word before
+     a lowercase one as no end ("no. then"), beyond the ruling's "everything
+     else as before", and let the reading hang on the segment's casing and
+     its deltas' split. The three kinds of word are now tested directly, and
+     a plain period reads as ruling 1 (iii) says. This also brought
+     non-ASCII initials in, and a never-end word no longer needs to be in
+     the shared list.
+   - **Minors:** "e.g.", "i.e." and "z." joined "vs." and "cf."; each part of
+     the rule is pinned by a case (sixteen mutants, all killed); the rest are
+     recorded under "What it leaves" in the translation cuts section.
 
 **The deletion inventory**, for the plan after the live test (the old code
 stays compiled and unreachable until then):
@@ -8128,7 +8213,8 @@ real `replay()`, L1 and L2; the controller's rulings):
   direction and mode. The module now takes the count as an option
   (`countSource`), and Live gives its own; an English-source pairing case
   pins it. The same disagreement on the translation side is the module's
-  own rule and is the owner's question above.
+  own rule; the owner ruled it after an A/B/C comparison (rule C, the open
+  question above), landed in `f93f0b9c`.
 - **Minor 1** (`cae9f252`): a refused registration was never cleared, and on
   the extension a refusal can follow an installed rule (a worker that died
   before answering); it is cleared like any other now.
