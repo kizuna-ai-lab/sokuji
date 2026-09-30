@@ -90,10 +90,11 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      `src/lib/provider/types.ts`), and `adapter.ts`, the L0 client of one leg: it speaks
      the provider's wire and emits segments, audio and lifecycle through `AdapterEvents`
      (`src/lib/contract/adapter.ts`); every adapter passes `src/lib/contract/conformance.ts`
-   - `src/providers/registry.ts` lists them in UI order; `src/lib/provider/presence.ts`
-     decides what a build and platform offer: flagged providers by `VITE_ENABLED_PROVIDERS`,
-     the managed one by `VITE_ENABLE_KIZUNA_AI`, the `fake` providers in development builds
-     only (D24)
+   - `src/providers/registry.ts` lists them in UI order and compiles the `fake` providers
+     into development builds only (D24); `src/lib/provider/presence.ts` (`isPresent`)
+     decides what a build and platform offer: a definition's `platforms`, a flagged one by
+     `VITE_ENABLED_PROVIDERS` (every one in a development build, or by its tester switch),
+     the managed one by `VITE_ENABLE_KIZUNA_AI` (on in every development build)
    - `src/stores/providerStore.ts` holds each provider's settings, credentials and pair,
      stored under `settings.<key>.*` (older keys through the definition's `legacyKeys` and
      `migrate`); a load never writes
@@ -104,7 +105,11 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      `LocalNativeProviderConfig` in `ProviderConfigFactory`, built through `ClientFactory`,
      and set up in the old settings shell (`ProviderSection`, `LanguageSection`,
      `ProviderSpecificSettings`), which nothing mounts;
-     `src/providers/oldPath.consistency.test.ts` keeps every other file off that path
+     `src/providers/oldPath.consistency.test.ts` keeps every other file off that path.
+     Its folders (`src/services/{clients,providers,interfaces}/`) also hold four shared
+     leaves the new code takes — `ProviderConfig` (`LanguageOption`, `VoiceOption`),
+     `astGuard`, `tutorialUrls` and `ISettingsService`, the guard's `SHARED` set — which
+     stay or move when #578 lands; they are not Local Native's to delete
 
 3. **Audio Processing Pipeline**
    ```
@@ -130,8 +135,9 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
    - Backend-managed API key integration for authenticated providers
 
 5. **Audio** (`src/lib/audio/`)
-   - The runner's sources (`capture/`): the microphone (`mic.ts`, over `ModernAudioRecorder`),
-     system audio, a tab — each following its device during a run
+   - The runner's sources (`capture/`): the microphone (`mic.ts`, over `ModernAudioRecorder`)
+     and system audio, each following its device or source during a run; a tab, fixed
+     when it opens
    - The page's playback (`appAudio.ts`, `playback.ts`), the routing read live from
      `audioStore`, `routingStore` and `turnModeStore`
 
@@ -246,7 +252,9 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
 - `src/lib/contract/`, `src/lib/provider/`, `src/lib/session/` - The client contract, the
   definition's types, the runner
 - `src/services/` - The settings service; Local Native's old client and descriptor
-  (`clients/`, `providers/`) until kizuna-ai-lab/sokuji#578
+  (`clients/`, `providers/`, `interfaces/`) until kizuna-ai-lab/sokuji#578, beside four
+  shared leaves the new code takes (`ProviderConfig`, `astGuard`, `tutorialUrls`,
+  `ISettingsService`), which stay or move when #578 lands
 - `src/lib/audio/` - The runner's sources (`capture/`) and the page's playback
 - `src/lib/modern-audio/` - The recorders (`ModernAudioRecorder`, the participant recorders)
   and the echo monitor
@@ -294,18 +302,20 @@ reportWarning('AudioStore', 'No real microphone available', { dedupeKey: 'mic.mi
   - `events.failed({ message, code?, cause? })` — the session is broken. L1 files
     an error notice on the leg, the run ends, and the runner tracks `api_error`.
   - `events.degraded({ code, message, cause? })` — the session continues,
-    degraded: a frame that would not parse, a cleanup step that threw, TTS falling
-    back. `code` comes from `CLIENT_DIAGNOSTICS`
+    degraded: a frame that would not parse, one utterance that could not be
+    transcribed, TTS falling back. `code` comes from `CLIENT_DIAGNOSTICS`
     (`src/lib/diagnostics/clientDiagnostics.ts`), which also decides the notice's
     severity, so an adapter never picks one; L1 files it once per window, and the
     runner tracks `api_error`.
   - `events.frame(...)` — wire traffic for the Logs panel, not a failure.
   - a `start()` that rejects (an `AdapterStartError` carries a notice code) — the
     session never started; the runner reports it once, for whichever leg it was.
-  `src/providers/sessionSide.consistency.test.ts` holds every adapter to this.
-  Local Native's old `IClient` (until kizuna-ai-lab/sokuji#578) keeps the same
-  rule through `handlers.onError`, `handlers.onDiagnostic` and
-  `handlers.onRealtimeEvent`.
+  `src/providers/sessionSide.consistency.test.ts` holds every adapter's session side
+  off the stores and the reporter, and its timers on the request's clock;
+  `src/lib/diagnostics/consoleLedger.consistency.test.ts` holds `src/providers` to no
+  `console.error` / `console.warn`. Local Native's old `IClient` (until
+  kizuna-ai-lab/sokuji#578) keeps the same rule through `handlers.onError`,
+  `handlers.onDiagnostic` and `handlers.onRealtimeEvent`.
 - **Hot paths** (per-audio-chunk, per-frame, per-poll-tick) never log per
   occurrence: return silently, or report the ok → failing transition. Bursts pass
   `dedupeKey`; the panel throttles per key on a 5s window while the console still
@@ -389,6 +399,10 @@ useSettingsStore.subscribe(
 ### Environment Variables
 - `VITE_BACKEND_URL`: Backend API URL (default: `https://sokuji.kizuna.ai`)
 - `VITE_ENABLE_KIZUNA_AI`: Enable Kizuna AI provider in production (`true`/`false`)
+- `VITE_ENABLED_PROVIDERS`: the comma-separated ids of the `flagged` providers a release
+  offers (`enabledProviderIds` in `src/utils/environment.ts`, read by `isPresent`);
+  development builds offer every flagged provider regardless, and a definition's tester
+  switch offers it on one device. No provider is flagged today
 - `VITE_ENABLE_LOCAL_NATIVE`: Register the Local Native (Electron sidecar) provider in
   production builds; unset in releases. Temporary run-time alternative for testers on a
   packaged Electron build: DevTools → `localStorage.setItem('debug:local-native', '1')` →
@@ -423,7 +437,7 @@ useSettingsStore.subscribe(
 - **ws**: WebSocket client for the development wire probes (`scripts/dev/wire-probe/`)
 
 ### Internationalization
-- Complete translations for 35+ languages
+- Complete translations in 30 locale catalogs (`src/locales/*/translation.json`)
 - English fallback for missing translations
 - Language detection via i18next-browser-languagedetector
 - **UI Language Quick Access**: 12 most common languages directly available
@@ -704,7 +718,8 @@ are still manual.
 3. At Start its lease (`src/providers/soniox/lease.ts`) buys the session's keys from the
    backend, one per stream; the run ends when the grant does, and the lease tells the
    backend when the session is over
-4. It is offered only in builds with `VITE_ENABLE_KIZUNA_AI`
+4. It is offered where `isKizunaAIEnabled()` holds: every development build, and a release
+   built with `VITE_ENABLE_KIZUNA_AI=true`
 
 ### Key Services
 - **Lease** (`src/providers/soniox/lease.ts`): the managed session's keys, per run
