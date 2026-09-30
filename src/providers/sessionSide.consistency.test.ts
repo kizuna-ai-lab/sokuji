@@ -264,6 +264,14 @@ describe('a provider session side', () => {
       'src/providers/palabraai/items.ts',
       'src/providers/palabraai/wire.ts',
     ]);
+
+    // OpenAI Live's sockets come from the contract's header seam (Stage 2 OpenAI Live, choice 1): no `socket.ts` of its own. The builder, the check, the settings, the view, the definition and the fixtures are not the session's.
+    const live = sessionSide(REPO_ROOT, 'src/providers/openai_live');
+    expect(live).toEqual([
+      'src/providers/openai_live/adapter.ts',
+      'src/providers/openai_live/segments.ts',
+      'src/providers/openai_live/wire.ts',
+    ]);
   });
 
   it('reads imports the way the compiler does', () => {
