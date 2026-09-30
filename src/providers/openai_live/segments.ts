@@ -139,7 +139,7 @@ export class LiveSegments {
       // The module plays nothing: every frame is placed here, by the timeline.
       audio: () => {},
     };
-    // The translation owes what `sentenceEnds` read the source by (ruling 4; choice 7), not the module's own count, which takes any Latin `.` before a space for an end.
+    // The translation owes what `sentenceEnds` read the source by (ruling 4; choice 7), not the module's own count, which reads an abbreviation or an ellipsis before a capital as an end (its rule C) where `sentenceEnds` never does.
     this.core = new ContinuousSegments({ clock: o.clock, silence: o.silence, sink, cut: o.cut, countSource: (t) => sentenceEnds(t).length });
   }
 

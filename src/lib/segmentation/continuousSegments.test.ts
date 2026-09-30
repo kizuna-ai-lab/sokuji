@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { recordEvents, type AdapterEvent } from '../contract/events';
 import { trackedClock } from '../contract/testing/trackedClock';
 import {
-  atSentenceEnd, ContinuousSegments, countSentenceEnds, endsSentence, MID_SENTENCE_HOLD_MS, type ContinuousSegmentsOptions, type CutSummary,
+  atSentenceEnd, ContinuousSegments, countSentenceEnds, endsSentenceAt, MID_SENTENCE_HOLD_MS, type ContinuousSegmentsOptions, type CutSummary,
 } from './continuousSegments';
 import { RECORDINGS, replay, type RecordedEvent, type Recording } from './recordings/replay.testing';
 
@@ -37,7 +37,8 @@ describe('sentence ends (translation cuts, ruling 1; choice 3)', () => {
     expect(countSentenceEnds('「行こう。」と言った。')).toBe(2);
     expect(countSentenceEnds('It costs 1.5 dollars.')).toBe(1);
     expect(countSentenceEnds('The U.S economy grew.')).toBe(1);
-    expect(countSentenceEnds('Really?! Yes... fine')).toBe(2);
+    // "?!" ends once, at its last mark; the ellipsis before a lowercase word ends nothing (rule C).
+    expect(countSentenceEnds('Really?! Yes... fine')).toBe(1);
     expect(countSentenceEnds('No end here')).toBe(0);
     expect(countSentenceEnds('')).toBe(0);
   });
@@ -56,13 +57,35 @@ describe('sentence ends (translation cuts, ruling 1; choice 3)', () => {
     expect(countSentenceEnds('ประโยคแรก ประโยคที่สอง')).toBe(0);
   });
 
-  it('is one rule: a mark with the character after it — an end, none, or, for a Latin mark with nothing after it yet, what follows decides', () => {
-    expect(endsSentence('。', 'x')).toBe(true);
-    expect(endsSentence('।', undefined)).toBe(true);
-    expect(endsSentence('.', ' ')).toBe(true);
-    expect(endsSentence('.', '5')).toBe(false);
-    expect(endsSentence('.', undefined)).toBe(undefined);
-    expect(endsSentence(',', undefined)).toBe(false);
+  it('is one rule: the mark at a place in a text — an end, none, or, for a Latin mark with nothing after it yet, what follows decides', () => {
+    expect(endsSentenceAt('今天。x', 2)).toBe(true);
+    expect(endsSentenceAt('ठीक।', 3)).toBe(true);
+    expect(endsSentenceAt('Done. Now', 4)).toBe(true);
+    expect(endsSentenceAt('It is 1.5', 7)).toBe(false);
+    expect(endsSentenceAt('Done.', 4)).toBe(undefined);
+    expect(endsSentenceAt('Well,', 4)).toBe(false);
+  });
+
+  it("reads abbreviations, initials and ellipses by the owner's rule C: a title or an initial never ends a sentence; another abbreviation or an ellipsis ends one when the next word is capitalised", () => {
+    // Titles before a name, "vs." and "cf.", and single capital initials: never an end.
+    expect(countSentenceEnds('Mr. Smith arrived at noon.')).toBe(1);
+    expect(countSentenceEnds('I went to see Dr. Wang today.')).toBe(1);
+    expect(countSentenceEnds("We met on St. Patrick's Day.")).toBe(1);
+    expect(countSentenceEnds('Apple vs. Google won.')).toBe(1);
+    expect(countSentenceEnds('J. K. Rowling wrote it.')).toBe(1);
+    // Another abbreviation, or an ellipsis: an end before a capital, none before a lowercase word.
+    expect(countSentenceEnds('I bought apples, pears, etc. Then we left.')).toBe(2);
+    expect(countSentenceEnds('He just left... We were surprised.')).toBe(2);
+    expect(countSentenceEnds('Martin Luther King Jr. He spoke.')).toBe(2);
+    expect(countSentenceEnds('Well... he arrived.')).toBe(1);
+    expect(countSentenceEnds('We use tools, e.g. hammers.')).toBe(1);
+    // With no next word yet, the next word decides; a title does not wait.
+    expect(endsSentenceAt('apples, etc.', 11)).toBe(undefined);
+    expect(endsSentenceAt('apples, etc. ', 11)).toBe(undefined);
+    expect(endsSentenceAt('apples, etc. Then', 11)).toBe(true);
+    expect(endsSentenceAt('apples, etc. then', 11)).toBe(false);
+    expect(endsSentenceAt('apples, etc. "Then', 11)).toBe(true);
+    expect(endsSentenceAt('I met Mr.', 8)).toBe(false);
   });
 
   it('reads a text as ending at a sentence end when its last mark, trailing whitespace and closing quotes aside, is one', () => {
@@ -74,6 +97,10 @@ describe('sentence ends (translation cuts, ruling 1; choice 3)', () => {
     expect(atSentenceEnd('यह ठीक है।')).toBe(true);
     expect(atSentenceEnd('Waiting for')).toBe(false);
     expect(atSentenceEnd('Well,')).toBe(false);
+    // Rule C: a title is mid-sentence; another abbreviation or an ellipsis at the end may be one, as a Latin mark at the end is.
+    expect(atSentenceEnd('I met Mr.')).toBe(false);
+    expect(atSentenceEnd('apples, pears, etc.')).toBe(true);
+    expect(atSentenceEnd('He just left...')).toBe(true);
     expect(atSentenceEnd('"')).toBe(false);
     expect(atSentenceEnd('')).toBe(false);
   });
@@ -170,13 +197,13 @@ describe("the translation: cut at the source's cuts (translation cuts, rulings 1
   });
 
   it("a closing source owes the count `countSource` gives for its text, not the module's own count", () => {
-    // The module's own count would read two Latin ends in 'Mr. Smith.'; the option says one, so the translation's first sentence end — confirmed by the delta after it — cuts it at once, with no quiet needed.
+    // The module's own count reads two ends in 'One. Two.'; the option says one, so the translation's first sentence end — confirmed by the delta after it — cuts it at once, with no quiet needed.
     const { s, at, closed } = segments(SILENCE, undefined, undefined, () => 1);
-    s.sourceText('Mr. Smith.');
+    s.sourceText('One. Two.');
     at(1_500);
     expect(closed()).toEqual([{ ref: 1 }]);
-    s.translationText('A.');
-    s.translationText(' B');
+    s.translationText('First.');
+    s.translationText(' Next');
     expect(closed()).toEqual([{ ref: 1 }, { ref: 2 }]);
   });
 
@@ -825,6 +852,47 @@ describe("an adapter's own source rules and a lost connection (Stage 2 OpenAI Li
     idle.s.closeAll();
     expect(idle.cuts).toEqual([{ reason: 'idle', origin: null, sentences: 0, owed: 0, dropped: 1 }]);
     expect(idle.timers()).toBe(0);
+  });
+});
+
+describe("abbreviations, initials and ellipses in an English translation (the owner's rule C, 2026-09-30)", () => {
+  /**
+   * Three zh → en sentences as a continuous interpreter delivers them, each
+   * source said whole: `paused`, a sentence every 3.5 s, its translation 2 s
+   * behind in deltas 300 ms apart; `continuous`, a sentence every 1.8 s, its
+   * translation 1.6 s behind in deltas 800 ms apart, so the interpreter never
+   * pauses its 1.5 s.
+   */
+  const session = (timing: 'paused' | 'continuous', sentences: Array<[string, string[]]>): Recording => {
+    const [every, lag, step] = timing === 'paused' ? [3_500, 2_000, 300] : [1_800, 1_600, 800];
+    const events: RecordedEvent[] = [];
+    sentences.forEach(([source, deltas], k) => {
+      events.push([k * every, 's', source]);
+      deltas.forEach((d, j) => events.push([k * every + lag + j * step, 't', d]));
+    });
+    return { run: timing, events: events.sort((a, b) => a[0] - b[0]) };
+  };
+  const exchanges = (rec: Recording) => replay(rec, (clock, sink) => {
+    const s = new ContinuousSegments({ clock, silence: SILENCE, sink });
+    return { input: (d) => s.sourceText(d), output: (d) => s.translationText(d), audio: (p) => s.audio(p, INACTIVE) };
+  }).exchanges;
+
+  it.each(['paused', 'continuous'] as const)("a title, an initial or an ellipsis inside a sentence ends nothing, though the source has closed before it arrives — %s", (timing) => {
+    expect(exchanges(session(timing, [['史密斯先生今天到了。', ['Mr.', ' Smith arrived today.']], ['他坐下了。', [' He sat', ' down.']], ['然后他走了。', [' Then he', ' left.']]])))
+      .toEqual([['史密斯先生今天到了。', 'Mr. Smith arrived today.'], ['他坐下了。', 'He sat down.'], ['然后他走了。', 'Then he left.']]);
+    expect(exchanges(session(timing, [['我去看了医生。', ['I went to see', ' Dr.', ' Wang today.']], ['他说没事。', [' He said', " it's fine."]], ['然后我回家了。', [' Then I', ' went home.']]])))
+      .toEqual([['我去看了医生。', 'I went to see Dr. Wang today.'], ['他说没事。', "He said it's fine."], ['然后我回家了。', 'Then I went home.']]);
+    expect(exchanges(session(timing, [['这本书是罗琳写的。', ['J.', ' K.', ' Rowling wrote this book.']], ['我很喜欢。', [' I', ' love it.']], ['你读过吗？', [' Have you', ' read it?']]])))
+      .toEqual([['这本书是罗琳写的。', 'J. K. Rowling wrote this book.'], ['我很喜欢。', 'I love it.'], ['你读过吗？', 'Have you read it?']]);
+    expect(exchanges(session(timing, [['嗯，他到了。', ['Well...', ' he arrived.']], ['他坐下了。', [' He sat', ' down.']], ['然后他走了。', [' Then he', ' left.']]])))
+      .toEqual([['嗯，他到了。', 'Well... he arrived.'], ['他坐下了。', 'He sat down.'], ['然后他走了。', 'Then he left.']]);
+  });
+
+  it.each(['paused', 'continuous'] as const)('another abbreviation or an ellipsis at a real sentence end still ends it, the next sentence following at once — %s', (timing) => {
+    expect(exchanges(session(timing, [['我买了苹果、梨等等。', ['I bought apples, pears,', ' etc.']], ['然后我们走了。', [' Then we', ' left.']], ['天气很好。', [' The weather', ' was nice.']]])))
+      .toEqual([['我买了苹果、梨等等。', 'I bought apples, pears, etc.'], ['然后我们走了。', 'Then we left.'], ['天气很好。', 'The weather was nice.']]);
+    expect(exchanges(session(timing, [['他就这么走了……', ['He just', ' left...']], ['我们都很惊讶。', [' We were all', ' surprised.']], ['天气很好。', [' The weather', ' was nice.']]])))
+      .toEqual([['他就这么走了……', 'He just left...'], ['我们都很惊讶。', 'We were all surprised.'], ['天气很好。', 'The weather was nice.']]);
   });
 });
 

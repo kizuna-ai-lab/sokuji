@@ -37,7 +37,7 @@
  */
 import type { AdapterEvents, Ref } from '../contract/adapter';
 import type { Clock } from '../contract/clock';
-import { SENTENCE_CLOSERS } from './sentenceEnd';
+import { periodIsNotSentenceEnd, SENTENCE_CLOSERS } from './sentenceEnd';
 import { SilenceDeferral } from './silenceDeferral';
 
 /** A translation that stops mid-sentence closes this long after its last activity, not at its pause (translation cuts, ruling 1; choice 6). */
@@ -54,22 +54,58 @@ const ANYWHERE_ENDS = '。？！।॥۔؟။։።។៕．｡';
 const LATIN_ENDS = '.?!';
 const SPACE = /\s/;
 
+const UPPER = /\p{Lu}/u;
 /**
- * The one sentence-end rule (ruling 1 (iii); choice 3): whether `mark`, with
- * `next` the character after it, ends a sentence — `true`, `false`, or
- * `undefined` for a Latin mark with nothing after it yet, which what follows
- * settles, and which ends the text if nothing does.
+ * Abbreviations that never end a sentence: a title before a name, "vs." and
+ * "cf." (the owner's rule C, 2026-09-30). "Jr." and "Sr." are not among them:
+ * they follow a name, and often end its sentence.
  */
-export function endsSentence(mark: string, next: string | undefined): boolean | undefined {
-  if (ANYWHERE_ENDS.includes(mark)) return true;
-  if (!LATIN_ENDS.includes(mark)) return false;
-  return next === undefined ? undefined : SPACE.test(next);
+const NEVER_ENDS = new Set(['mr', 'mrs', 'ms', 'dr', 'prof', 'st', 'mt', 'mme', 'mlle', 'sra', 'srta', 'dra', 'sig', 'dott', 'ing', 'avv', 'vs', 'cf']);
+/** What may stand between a period and the word it waits for. */
+const OPENERS = '"\'“‘(「『[';
+
+/** The word a period closes: its letters and inner dots (`e.g`, `Mr`, `J`). */
+function wordBefore(text: string, dot: number): string {
+  let start = dot;
+  while (start > 0 && /[\p{L}.]/u.test(text[start - 1])) start--;
+  return text.slice(start, dot).replace(/^\.+/, '');
 }
 
-/** The sentence ends a text holds: a Latin mark at its end counts (choice 3). */
+/**
+ * The one sentence-end rule (ruling 1 (iii), with the owner's rule C,
+ * 2026-09-30; choice 3): whether the mark at `i` in `text` ends a sentence —
+ * `true`, `false`, or `undefined` when what has not arrived yet decides, and
+ * which ends the text if nothing follows.
+ * - A mark of `ANYWHERE_ENDS` ends one wherever it stands.
+ * - A Latin `.?!` ends one only before whitespace or at the end: not "1.5", not "U.S".
+ * - A period the shared rule reads as no end (`periodIsNotSentenceEnd`: an
+ *   abbreviation, an initial, an ellipsis, a lowercase word after it) is read
+ *   by rule C: a title, "vs.", "cf." or a capital initial never ends one; any
+ *   other abbreviation, or an ellipsis, ends one when the next word is
+ *   capitalised — "etc. Then", "left... We" — and none before a lowercase one.
+ */
+export function endsSentenceAt(text: string, i: number, cased = UPPER.test(text)): boolean | undefined {
+  const mark = text[i];
+  if (ANYWHERE_ENDS.includes(mark)) return true;
+  if (!LATIN_ENDS.includes(mark)) return false;
+  const next = text[i + 1];
+  if (next !== undefined && !SPACE.test(next)) return false;
+  if (mark === '.' && periodIsNotSentenceEnd(text, i, cased)) {
+    const word = wordBefore(text, i);
+    // An ellipsis's word keeps its dots ("Mr.."), so it is never taken for a title or an initial.
+    if (NEVER_ENDS.has(word.toLowerCase()) || (word.length === 1 && UPPER.test(word))) return false;
+    let j = i + 1;
+    while (j < text.length && (SPACE.test(text[j]) || OPENERS.includes(text[j]))) j++;
+    return j < text.length ? UPPER.test(text[j]) : undefined;
+  }
+  return next === undefined ? undefined : true;
+}
+
+/** The sentence ends a text holds: a mark whose end is still open at the text's end counts (choice 3). */
 export function countSentenceEnds(text: string): number {
+  const cased = UPPER.test(text);
   let n = 0;
-  for (let i = 0; i < text.length; i++) if (endsSentence(text[i], text[i + 1]) !== false) n += 1;
+  for (let i = 0; i < text.length; i++) if (endsSentenceAt(text, i, cased) !== false) n += 1;
   return n;
 }
 
@@ -77,7 +113,30 @@ export function countSentenceEnds(text: string): number {
 export function atSentenceEnd(text: string): boolean {
   let i = text.trimEnd().length - 1;
   while (i >= 0 && SENTENCE_CLOSERS.includes(text[i])) i--;
-  return i >= 0 && endsSentence(text[i], undefined) !== false;
+  return i >= 0 && endsSentenceAt(text.slice(0, i + 1), i, UPPER.test(text)) !== false;
+}
+
+/** When the character at `at` of a translation's text arrived: its delta's arrival. */
+function arrivalOf(tr: { arrivals: Array<[number, number]> }, at: number): number {
+  let when = -Infinity;
+  for (const [from, arrived] of tr.arrivals) {
+    if (from > at) break;
+    when = arrived;
+  }
+  return when;
+}
+
+/** The settled sentence ends before `limit` in `text`, and the marks there that what follows has yet to settle (choice 3). */
+function sentenceEndsIn(text: string, limit: number): { settled: number[]; pending: number } {
+  const cased = UPPER.test(text);
+  const settled: number[] = [];
+  let pending = 0;
+  for (let i = 0; i < limit; i++) {
+    const ends = endsSentenceAt(text, i, cased);
+    if (ends === true) settled.push(i);
+    else if (ends === undefined) pending += 1;
+  }
+  return { settled, pending };
 }
 
 export type SegmentSink = Pick<AdapterEvents, 'segmentOpened' | 'segmentText' | 'segmentClosed' | 'audio'>;
@@ -138,11 +197,12 @@ interface OpenTranslation {
   text: string;
   /** Where the last played frame's range ended: ranges by arrival. */
   spoken: number;
-  /** Its sentence ends so far, and when the latest arrived (choice 3). */
+  /** Each delta's offset in `text` and its arrival: a sentence end is stamped with its own delta's (choice 3). */
+  arrivals: Array<[number, number]>;
+  /** Its settled sentence ends so far, for the Logs (choice 3). */
   ends: number;
-  lastEndAt: number;
-  /** A Latin mark that ends the text so far, and when it arrived: what follows settles it (choice 3). */
-  trailing: { mark: string; at: number } | null;
+  /** Marks at its end that what follows has yet to settle: a Latin mark, or an abbreviation or an ellipsis waiting for its next word (choice 3). */
+  pending: number;
 }
 
 /** A closed source's claim on the translation (ruling 2). */
@@ -357,7 +417,7 @@ export class ContinuousSegments {
     // Known now (choice 5): the cut owed first, else the source still open, whose cut is owed next.
     const origin = this.owed[0]?.origin ?? this.source?.origin;
     this.o.sink.segmentOpened(origin !== undefined ? { ref, side: 'translation', origin } : { ref, side: 'translation' });
-    const tr: OpenTranslation = { ref, origin, text: '', spoken: 0, ends: 0, lastEndAt: -Infinity, trailing: null };
+    const tr: OpenTranslation = { ref, origin, text: '', spoken: 0, arrivals: [], ends: 0, pending: 0 };
     this.translation = tr;
     return tr;
   }
@@ -366,35 +426,24 @@ export class ContinuousSegments {
   private cutDue(tr: OpenTranslation, next: string): boolean {
     const head = this.owed[0];
     if (!head) return false;
-    let ends = tr.ends;
-    let lastEndAt = tr.lastEndAt;
-    if (tr.trailing && endsSentence(tr.trailing.mark, next[0])) {
-      ends += 1;
-      lastEndAt = tr.trailing.at;
-    }
-    return ends >= head.n && lastEndAt > head.lastAt;
+    // `next` settles the marks at the text's end that wait for it: the ones it makes ends are counted, as its own marks are not.
+    const { settled } = sentenceEndsIn(tr.text + next, tr.text.length);
+    return settled.length >= head.n && arrivalOf(tr, settled[settled.length - 1]) > head.lastAt;
   }
 
-  /** Counts the sentence ends `delta` brings, each at its own delta's arrival; a Latin one ending the text waits for what follows (choice 3). */
+  /**
+   * Records when `delta` arrived — a sentence end is stamped with its own
+   * delta's arrival (choice 3) — and reads the sentence ends of the text with
+   * it added, for the Logs and the hold; a mark at the end waits for what
+   * follows. The whole text is read again, since a period's word and the word
+   * after it may lie in other deltas (rule C).
+   */
   private readEnds(tr: OpenTranslation, delta: string): void {
-    const at = this.o.clock.now();
-    if (tr.trailing) {
-      if (endsSentence(tr.trailing.mark, delta[0])) this.countEnd(tr, tr.trailing.at);
-      tr.trailing = null;
-    }
-    for (let i = 0; i < delta.length; i++) {
-      const ends = endsSentence(delta[i], delta[i + 1]);
-      if (ends === undefined) {
-        tr.trailing = { mark: delta[i], at };
-        this.shownEnd = true;
-      } else if (ends) this.countEnd(tr, at);
-    }
-  }
-
-  private countEnd(tr: OpenTranslation, at: number): void {
-    tr.ends += 1;
-    tr.lastEndAt = at;
-    this.shownEnd = true;
+    tr.arrivals.push([tr.text.length, this.o.clock.now()]);
+    const { settled, pending } = sentenceEndsIn(tr.text + delta, tr.text.length + delta.length);
+    tr.ends = settled.length;
+    tr.pending = pending;
+    if (settled.length > 0 || pending > 0) this.shownEnd = true;
   }
 
   /** A delta, or audio that counts: the translation's pause starts again, its hold and its wait end (choice 6). */
@@ -466,7 +515,7 @@ export class ContinuousSegments {
     const origin = tr.origin ?? head?.origin ?? this.lastClosed;
     this.translation = null;
     this.o.sink.segmentClosed(tr.origin === undefined && origin !== undefined ? { ref: tr.ref, origin } : { ref: tr.ref });
-    this.o.cut?.({ reason, origin: origin ?? null, sentences: tr.ends + (tr.trailing ? 1 : 0), owed: this.owed.length, dropped });
+    this.o.cut?.({ reason, origin: origin ?? null, sentences: tr.ends + tr.pending, owed: this.owed.length, dropped });
   }
 
   private cancelSource(): void {
