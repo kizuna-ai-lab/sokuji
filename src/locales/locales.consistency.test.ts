@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import en from './en/translation.json';
-import { SEMANTIC_EAGERNESSES } from '../providers/openai/settings';
+import { SEMANTIC_EAGERNESSES, TURN_DETECTION_MODES } from '../providers/openai/settings';
 import {
   SONIOX_VOICE_ROSTER,
   SONIOX_ACCENTS,
@@ -57,12 +57,12 @@ describe('locale catalogs stay in lockstep with en', () => {
 
 describe('dynamically-built i18n keys resolve in en', () => {
   // RealtimeTurnDetection derives a label key from each mode and eagerness it
-  // offers (`settings.${x.toLowerCase()}`); a value whose key is absent renders
-  // the raw key as the button text. The old registry's turn-detection modes,
-  // which this walked before, left with its providers (Stage 2 deletion,
-  // ruling 2).
+  // offers (`settings.${x.toLowerCase()}`), rendering them from these two
+  // tuples; a value whose key is absent renders the raw key as the button
+  // text. The old registry's turn-detection modes, which this walked before,
+  // left with its providers (Stage 2 deletion, ruling 2).
   it('every Realtime turn-detection mode and eagerness maps to a key that exists', () => {
-    const missing = ['Normal', 'Semantic', ...SEMANTIC_EAGERNESSES]
+    const missing = [...TURN_DETECTION_MODES, ...SEMANTIC_EAGERNESSES]
       .map((value) => `settings.${value.toLowerCase()}`)
       .filter((key) => EN[key] === undefined);
     expect(missing).toEqual([]);

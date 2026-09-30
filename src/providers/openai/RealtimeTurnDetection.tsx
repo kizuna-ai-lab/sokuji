@@ -3,8 +3,8 @@ import { useTranslation } from 'react-i18next';
 import Tooltip from '../../components/Tooltip/Tooltip';
 import type { SettingsProps } from '../../lib/provider/types';
 import {
-  REALTIME_PREFIX_RANGE, REALTIME_SILENCE_RANGE, REALTIME_THRESHOLD_RANGE, SEMANTIC_EAGERNESSES, type RealtimeSettings as S, type SemanticEagerness,
-  type TurnDetectionMode,
+  REALTIME_PREFIX_RANGE, REALTIME_SILENCE_RANGE, REALTIME_THRESHOLD_RANGE, SEMANTIC_EAGERNESSES, TURN_DETECTION_MODES, type RealtimeSettings as S,
+  type SemanticEagerness,
 } from './settings';
 
 const helpIcon = <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />;
@@ -60,7 +60,7 @@ export function RealtimeTurnDetectionControls({ settings, update, disabled = fal
       </h2>
       <div className="setting-item">
         <div className="turn-detection-options">
-          {(['Normal', 'Semantic'] as const satisfies readonly TurnDetectionMode[]).map((mode) => (
+          {TURN_DETECTION_MODES.map((mode) => (
             <button
               key={mode}
               type="button"

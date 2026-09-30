@@ -24,6 +24,9 @@ export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
 export const SEMANTIC_EAGERNESSES = ['Auto', 'Low', 'Medium', 'High'] as const;
 export type SemanticEagerness = (typeof SEMANTIC_EAGERNESSES)[number];
 
+/** The turn-detection mechanisms (`TurnDetectionMode`), in the order the controls offer them. */
+export const TURN_DETECTION_MODES = ['Normal', 'Semantic'] as const;
+
 export type NoiseReduction = 'None' | 'Near field' | 'Far field';
 /** The old select's modes, in its order (`OpenAIProviderConfig.ts:288`). */
 export const NOISE_REDUCTIONS: readonly NoiseReduction[] = ['None', 'Near field', 'Far field'];
@@ -35,7 +38,7 @@ export const NOISE_REDUCTIONS: readonly NoiseReduction[] = ['None', 'Near field'
  * `'Push-to-Translate'`), which the global turn mode owns now; read back,
  * they are not a mechanism, and the field falls to its default.
  */
-export type TurnDetectionMode = 'Normal' | 'Semantic';
+export type TurnDetectionMode = (typeof TURN_DETECTION_MODES)[number];
 
 export interface RealtimeSettings extends InstructionsSettings {
   /** The saved model; `effectiveRealtimeModel` decides at use, and nothing writes it back. */
@@ -119,7 +122,7 @@ export function migrateRealtimeSettings(stored: Readonly<Record<string, unknown>
     ...migrateInstructions(stored, inputs.legacy),
     model: text('model'),
     voice: text('voice'),
-    turnDetectionMode: oneOf<TurnDetectionMode>(['Normal', 'Semantic'], stored.turnDetectionMode, REALTIME_DEFAULTS.turnDetectionMode),
+    turnDetectionMode: oneOf(TURN_DETECTION_MODES, stored.turnDetectionMode, REALTIME_DEFAULTS.turnDetectionMode),
     threshold: numberOf(stored.threshold, REALTIME_DEFAULTS.threshold),
     prefixPadding: numberOf(stored.prefixPadding, REALTIME_DEFAULTS.prefixPadding),
     silenceDuration: numberOf(stored.silenceDuration, REALTIME_DEFAULTS.silenceDuration),

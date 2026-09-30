@@ -94,6 +94,10 @@ describe('settingsStore', () => {
 
       // Provider should be updated
       expect(useSettingsStore.getState().provider).toBe(Provider.LOCAL_NATIVE);
+
+      // zustand copies the state's properties into every next state, so an
+      // unrestored spy would answer for validateApiKey in every later test.
+      validateSpy.mockRestore();
     });
 
     it('should clear cache when switching providers', async () => {
@@ -139,6 +143,43 @@ describe('settingsStore', () => {
       const state = useSettingsStore.getState();
       expect(state.availableModels).toEqual([]);
       expect(state.isApiKeyValid).toBeNull();
+    });
+  });
+
+  describe('validateApiKey', () => {
+    // Every provider but Local Native validates in the new registry (its
+    // definition's `check`); this store holds only Local Native's old path
+    // (Stage 2 deletion, ruling 1), so for any other provider there is nothing
+    // to ask: no request, no readiness check, and the last verdict is cleared.
+    it('answers not valid for a provider other than Local Native, asking nothing, and resets the validation state', async () => {
+      const fetchSpy = vi.fn(async () => new Response('{}'));
+      vi.stubGlobal('fetch', fetchSpy);
+      const { useNativeModelStore } = await import('./nativeModelStore');
+      const readySpy = vi.spyOn(useNativeModelStore.getState(), 'ensureSelectionReady')
+        .mockResolvedValue({ ready: true, reason: 'ready', notes: [] });
+      try {
+        useSettingsStore.setState({
+          provider: Provider.OPENAI,
+          isApiKeyValid: true,
+          availableModels: [{ id: 'test', type: 'realtime' as const, created: 0 }],
+          validationMessage: 'stale',
+          isValidating: true,
+        });
+
+        const result = await useSettingsStore.getState().validateApiKey();
+
+        expect(result).toEqual({ valid: false, message: '', validating: false });
+        const state = useSettingsStore.getState();
+        expect(state.isApiKeyValid).toBeNull();
+        expect(state.availableModels).toEqual([]);
+        expect(state.validationMessage).toBe('');
+        expect(state.isValidating).toBe(false);
+        expect(fetchSpy).not.toHaveBeenCalled();
+        expect(readySpy).not.toHaveBeenCalled();
+      } finally {
+        readySpy.mockRestore();
+        vi.unstubAllGlobals();
+      }
     });
   });
 

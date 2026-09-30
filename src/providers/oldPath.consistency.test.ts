@@ -18,8 +18,8 @@ import ts from 'typescript';
 
 const REPO_ROOT = resolve(__dirname, '../..');
 
-/** The old path's modules: every file of these three folders. */
-const OLD_PATH = /^src\/services\/(clients|providers|interfaces)\//;
+/** The old path's modules: every file of these three folders, and a folder itself (a bare folder specifier, which resolves once a barrel exists). */
+const OLD_PATH = /^src\/services\/(clients|providers|interfaces)(\/|$)/;
 
 /** Modules of those folders that are not the old path's: shared leaves the new code imports. */
 const SHARED = new Set([
@@ -116,6 +116,15 @@ describe('the old provider path', () => {
       '../../services/providers/LocalNativeProviderConfig',
       '../../services/clients/punctuateDefinite',
     ]);
+  });
+
+  it('counts a bare folder specifier as the old path, and not a folder that only shares its prefix', () => {
+    const from = 'src/providers/soniox/adapter.ts';
+    const inOldPath = (spec: string) => OLD_PATH.test(moduleOf(from, spec) ?? '');
+    expect(inOldPath('../../services/clients')).toBe(true);
+    expect(inOldPath('../../services/interfaces/')).toBe(true);
+    expect(inOldPath('../../services/providers/LocalNativeProviderConfig')).toBe(true);
+    expect(inOldPath('../../services/clientsOld/x')).toBe(false);
   });
 
   it('names only files that exist', () => {

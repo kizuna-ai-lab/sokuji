@@ -1,7 +1,18 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { createVirtualClock } from '../contract/clock';
 import type { AdapterEvent } from '../contract/events';
+import type { ClientDiagnosticCode } from '../diagnostics/clientDiagnostics';
 import { Conversation, DEGRADED_DEDUPE_MS, MARK_COMPACT_MS, type ConversationDiagnostic } from './Conversation';
+
+// The real rows, plus one test-only row whose severity is 'error': every real
+// row is a warning, as is the fallback for an unknown code, so without this row
+// no case could tell the table's severity from the fallback.
+vi.mock('../diagnostics/clientDiagnostics', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../diagnostics/clientDiagnostics')>();
+  return { ...actual, CLIENT_DIAGNOSTICS: { ...actual.CLIENT_DIAGNOSTICS, test_error_row: { severity: 'error' } } };
+});
+/** The test-only row above; not a real code, hence the cast. */
+const TEST_ERROR_ROW = 'test_error_row' as ClientDiagnosticCode;
 
 const pcm = (n: number) => new Int16Array(n);
 
@@ -167,10 +178,12 @@ describe('Conversation — notices and closing', () => {
     apply({ kind: 'failed', payload: { message: 'socket died', code: 'E1' } });
     apply({ kind: 'degraded', payload: { code: 'parse_error', message: 'bad frame' } });
     apply({ kind: 'degraded', payload: { code: 'tts_degraded', message: 'no voice' } });
+    apply({ kind: 'degraded', payload: { code: TEST_ERROR_ROW, message: 'an error row' } });
     expect(conv.snapshot().notices.map((n) => [n.severity, n.message, n.code])).toEqual([
       ['error', 'socket died', 'E1'],
       ['warning', 'bad frame', 'parse_error'],
       ['warning', 'no voice', 'tts_degraded'],
+      ['error', 'an error row', 'test_error_row'],
     ]);
     expect(conv.snapshot().notices[0].id).toBe('s1:speaker:n1');
   });
