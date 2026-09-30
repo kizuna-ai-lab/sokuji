@@ -37,7 +37,7 @@
  */
 import type { AdapterEvents, Ref } from '../contract/adapter';
 import type { Clock } from '../contract/clock';
-import { periodIsNotSentenceEnd, SENTENCE_CLOSERS } from './sentenceEnd';
+import { ABBREVIATIONS, SENTENCE_CLOSERS } from './sentenceEnd';
 import { SilenceDeferral } from './silenceDeferral';
 
 /** A translation that stops mid-sentence closes this long after its last activity, not at its pause (translation cuts, ruling 1; choice 6). */
@@ -56,19 +56,23 @@ const SPACE = /\s/;
 
 const UPPER = /\p{Lu}/u;
 /**
- * Abbreviations that never end a sentence: a title before a name, "vs." and
- * "cf." (the owner's rule C, 2026-09-30). "Jr." and "Sr." are not among them:
- * they follow a name, and often end its sentence.
+ * Titles before a name: never a sentence end when capitalised ("Mr.", "Sr.",
+ * "St.") — the owner's rule C, 2026-09-30, in English, French, Spanish,
+ * Portuguese and Italian. "Sr." is the Spanish and Portuguese title here, not
+ * English "Senior", whose sentence-final use is the rarer; "Jr." follows a
+ * name and often ends its sentence, so the next word decides it.
  */
-const NEVER_ENDS = new Set(['mr', 'mrs', 'ms', 'dr', 'prof', 'st', 'mt', 'mme', 'mlle', 'sra', 'srta', 'dra', 'sig', 'dott', 'ing', 'avv', 'vs', 'cf']);
-/** What may stand between a period and the word it waits for. */
-const OPENERS = '"\'“‘(「『[';
+const TITLES = new Set(['mr', 'mrs', 'ms', 'dr', 'prof', 'st', 'mt', 'mme', 'mlle', 'sr', 'sra', 'srta', 'dra', 'sig', 'dott', 'ing', 'avv']);
+/** Abbreviations always followed by more of their sentence, in any case: "vs.", "cf.", "e.g.", "i.e." and German "z. B.". */
+const NEVER_ENDS = new Set(['vs', 'cf', 'e.g', 'i.e', 'z']);
+/** What may stand between a period and the word it waits for: whitespace, and any opening mark ("(", "“", "«", "„", "¿", "¡"). */
+const BEFORE_WORD = /[\s\p{Ps}\p{Pi}"'¿¡]/u;
 
-/** The word a period closes: its letters and inner dots (`e.g`, `Mr`, `J`). */
-function wordBefore(text: string, dot: number): string {
+/** The word a period closes — its letters and inner dots (`e.g`, `Mr`, `J`) — and whether a digit joins it ("1st", "300ms"). */
+function wordBefore(text: string, dot: number): { word: string; afterDigit: boolean } {
   let start = dot;
   while (start > 0 && /[\p{L}.]/u.test(text[start - 1])) start--;
-  return text.slice(start, dot).replace(/^\.+/, '');
+  return { word: text.slice(start, dot).replace(/^\.+/, ''), afterDigit: start > 0 && /\p{N}/u.test(text[start - 1]) };
 }
 
 /**
@@ -78,34 +82,39 @@ function wordBefore(text: string, dot: number): string {
  * which ends the text if nothing follows.
  * - A mark of `ANYWHERE_ENDS` ends one wherever it stands.
  * - A Latin `.?!` ends one only before whitespace or at the end: not "1.5", not "U.S".
- * - A period the shared rule reads as no end (`periodIsNotSentenceEnd`: an
- *   abbreviation, an initial, an ellipsis, a lowercase word after it) is read
- *   by rule C: a title, "vs.", "cf." or a capital initial never ends one; any
- *   other abbreviation, or an ellipsis, ends one when the next word is
- *   capitalised — "etc. Then", "left... We" — and none before a lowercase one.
+ * - Rule C, for a period after three kinds of word only: a capitalised title,
+ *   an abbreviation that is always followed by more ("vs.", "e.g."), or a
+ *   single capital initial ("J.", not the pronoun "I") never ends one; any
+ *   other abbreviation of the shared list (`ABBREVIATIONS`), or an ellipsis,
+ *   ends one when the next word is capitalised — "etc. Then", "left... We",
+ *   "Se fue... ¿Por" — and none before a lowercase one. Every other period —
+ *   a plain word, a word joined to a number — reads as before.
  */
-export function endsSentenceAt(text: string, i: number, cased = UPPER.test(text)): boolean | undefined {
+export function endsSentenceAt(text: string, i: number): boolean | undefined {
   const mark = text[i];
   if (ANYWHERE_ENDS.includes(mark)) return true;
   if (!LATIN_ENDS.includes(mark)) return false;
   const next = text[i + 1];
   if (next !== undefined && !SPACE.test(next)) return false;
-  if (mark === '.' && periodIsNotSentenceEnd(text, i, cased)) {
-    const word = wordBefore(text, i);
-    // An ellipsis's word keeps its dots ("Mr.."), so it is never taken for a title or an initial.
-    if (NEVER_ENDS.has(word.toLowerCase()) || (word.length === 1 && UPPER.test(word))) return false;
-    let j = i + 1;
-    while (j < text.length && (SPACE.test(text[j]) || OPENERS.includes(text[j]))) j++;
-    return j < text.length ? UPPER.test(text[j]) : undefined;
+  if (mark !== '.') return next === undefined ? undefined : true;
+  const ellipsis = text[i - 1] === '.';
+  if (!ellipsis) {
+    const { word, afterDigit } = wordBefore(text, i);
+    const lower = word.toLowerCase();
+    if (!afterDigit && UPPER.test(word[0] ?? '') && TITLES.has(lower)) return false;
+    if (NEVER_ENDS.has(lower)) return false;
+    if (!afterDigit && word.length === 1 && UPPER.test(word) && word !== 'I') return false;
+    if (afterDigit || !ABBREVIATIONS.has(lower)) return next === undefined ? undefined : true;
   }
-  return next === undefined ? undefined : true;
+  let j = i + 1;
+  while (j < text.length && BEFORE_WORD.test(text[j])) j++;
+  return j < text.length ? UPPER.test(text[j]) : undefined;
 }
 
 /** The sentence ends a text holds: a mark whose end is still open at the text's end counts (choice 3). */
 export function countSentenceEnds(text: string): number {
-  const cased = UPPER.test(text);
   let n = 0;
-  for (let i = 0; i < text.length; i++) if (endsSentenceAt(text, i, cased) !== false) n += 1;
+  for (let i = 0; i < text.length; i++) if (endsSentenceAt(text, i) !== false) n += 1;
   return n;
 }
 
@@ -113,7 +122,7 @@ export function countSentenceEnds(text: string): number {
 export function atSentenceEnd(text: string): boolean {
   let i = text.trimEnd().length - 1;
   while (i >= 0 && SENTENCE_CLOSERS.includes(text[i])) i--;
-  return i >= 0 && endsSentenceAt(text.slice(0, i + 1), i, UPPER.test(text)) !== false;
+  return i >= 0 && endsSentenceAt(text.slice(0, i + 1), i) !== false;
 }
 
 /** When the character at `at` of a translation's text arrived: its delta's arrival. */
@@ -128,11 +137,10 @@ function arrivalOf(tr: { arrivals: Array<[number, number]> }, at: number): numbe
 
 /** The settled sentence ends before `limit` in `text`, and the marks there that what follows has yet to settle (choice 3). */
 function sentenceEndsIn(text: string, limit: number): { settled: number[]; pending: number } {
-  const cased = UPPER.test(text);
   const settled: number[] = [];
   let pending = 0;
   for (let i = 0; i < limit; i++) {
-    const ends = endsSentenceAt(text, i, cased);
+    const ends = endsSentenceAt(text, i);
     if (ends === true) settled.push(i);
     else if (ends === undefined) pending += 1;
   }

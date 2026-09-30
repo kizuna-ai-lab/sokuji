@@ -86,6 +86,36 @@ describe('sentence ends (translation cuts, ruling 1; choice 3)', () => {
     expect(endsSentenceAt('apples, etc. then', 11)).toBe(false);
     expect(endsSentenceAt('apples, etc. "Then', 11)).toBe(true);
     expect(endsSentenceAt('I met Mr.', 8)).toBe(false);
+    // Titles in the other languages, the Spanish "Sr." among them, and the words that are always followed by more of their sentence.
+    expect(countSentenceEnds('El Sr. García llegó.')).toBe(1);
+    expect(countSentenceEnds('La Sra. García llegó.')).toBe(1);
+    expect(countSentenceEnds('Cf. The paper.')).toBe(1);
+    expect(countSentenceEnds('e.g. Paris is big.')).toBe(1);
+    expect(countSentenceEnds('Sie mögen Obst, z. B. Äpfel.')).toBe(1);
+    // Any script's single capital initial; an ellipsis after a title is an ellipsis.
+    expect(countSentenceEnds('А. С. Пушкин написал.')).toBe(1);
+    expect(endsSentenceAt('Mr... We', 4)).toBe(true);
+  });
+
+  it('leaves every other period as it was: a plain word, the pronoun "I", a word joined to a number, and any opening mark before the next word', () => {
+    // A plain word ends a sentence before whitespace whatever follows, as ruling 1 (iii) reads.
+    expect(countSentenceEnds('He said no. then he left.')).toBe(2);
+    expect(countSentenceEnds('I bought an iPhone. iPhones are great.')).toBe(2);
+    expect(endsSentenceAt('He said no. ', 10)).toBe(true);
+    // The pronoun is no initial.
+    expect(countSentenceEnds('So do I. Then we left.')).toBe(2);
+    expect(countSentenceEnds('It ended in World War I. Then peace came.')).toBe(2);
+    // Letters joined to a number are no title.
+    expect(countSentenceEnds('The event is on October 1st. Tickets are cheap.')).toBe(2);
+    expect(countSentenceEnds('It took 300ms. Then it stopped.')).toBe(2);
+    expect(countSentenceEnds('It took 5 ms. Then it stopped.')).toBe(2);
+    expect(countSentenceEnds('It took 300ms. then it stopped.')).toBe(2);
+    expect(countSentenceEnds('We met in Room 5A. Then we left.')).toBe(2);
+    // Any opening mark may stand before the next word.
+    expect(countSentenceEnds('Se fue... ¿Por qué?')).toBe(2);
+    expect(countSentenceEnds('Compré peras, etc. ¡Qué bien!')).toBe(2);
+    expect(countSentenceEnds('Il est parti... « Alors ».')).toBe(2);
+    expect(countSentenceEnds('Er ging... „Warum?“')).toBe(1);
   });
 
   it('reads a text as ending at a sentence end when its last mark, trailing whitespace and closing quotes aside, is one', () => {
@@ -893,6 +923,11 @@ describe("abbreviations, initials and ellipses in an English translation (the ow
       .toEqual([['我买了苹果、梨等等。', 'I bought apples, pears, etc.'], ['然后我们走了。', 'Then we left.'], ['天气很好。', 'The weather was nice.']]);
     expect(exchanges(session(timing, [['他就这么走了……', ['He just', ' left...']], ['我们都很惊讶。', [' We were all', ' surprised.']], ['天气很好。', [' The weather', ' was nice.']]])))
       .toEqual([['他就这么走了……', 'He just left...'], ['我们都很惊讶。', 'We were all surprised.'], ['天气很好。', 'The weather was nice.']]);
+    // The pronoun, and a date, end their sentences as before.
+    expect(exchanges(session(timing, [['我也是。', ['So do', ' I.']], ['然后他们走了。', [' Then they', ' left.']], ['天气很好。', [' The weather', ' was nice.']]])))
+      .toEqual([['我也是。', 'So do I.'], ['然后他们走了。', 'Then they left.'], ['天气很好。', 'The weather was nice.']]);
+    expect(exchanges(session(timing, [['活动在十月一日。', ['The event is on', ' October 1st.']], ['票很便宜。', [' Tickets are', ' cheap.']], ['天气很好。', [' The weather', ' was nice.']]])))
+      .toEqual([['活动在十月一日。', 'The event is on October 1st.'], ['票很便宜。', 'Tickets are cheap.'], ['天气很好。', 'The weather was nice.']]);
   });
 });
 
