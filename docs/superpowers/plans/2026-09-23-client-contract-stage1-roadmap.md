@@ -1749,8 +1749,8 @@ What it leaves, for the plans that meet it (the plan's own list, as written):
 - The `sonioxService*` and `sonioxVoice*` aliases, `insufficient_balance` and the other lease words; a Settings target for `sign_in_required`.
 - The wizard's managed path (`managedProvider`, `managedOption` still read the old factory); `selectionFromStored` for `'kizunaai'` and unported managed ids. `providerFits` now reads the registry, so it answers `false` for a managed id until Plan B registers one — `StepScenario.tsx:49` reads it, which matters once the managed path is offered again (Task 12, the review's M10).
 - The registry's final order and the release flags (roadmap, "Before any release from the branch").
-- **Deleting both providers' old code** after Plan B's paid live test: `SonioxClient` and its tests, both descriptors, `sonioxBothMode.ts`, `ManagedSonioxSession`, the old settings UI's Soniox branches in `ProviderSpecificSettings.tsx`, the settings-store slices' readers, the managed-Soniox MainPanel chips — and the six re-export stubs of Task 1 once nothing imports them.
-- **What that deletion must keep** (the review's M14) — the new provider uses these after this plan, so "the old settings UI's Soniox branches" does not cover them: `SonioxVoiceSection.tsx`, `voiceLibrarySource.ts`, `VoiceLibrarySection.tsx`, `VoicePicker.tsx`, `VoiceCreateModal.tsx`, `SonioxCloneReviewStep.tsx`, and the moved `src/providers/soniox/ttsRest.ts` and `voicesClient.ts` (with their tests). Deleting the stubs means first re-pointing the imports that still go through them — `voiceLibrarySource.ts` and `SonioxVoiceSection.tsx` import `SonioxVoicesClient` / `SonioxTtsRest` from `src/services/clients/` (`voiceLibrarySource.ts:15-18`, `SonioxVoiceSection.tsx:44`) — at `src/providers/soniox/`.
+- **Deleting both providers' old code** after Plan B's paid live test: `SonioxClient` and its tests, both descriptors, `sonioxBothMode.ts`, `ManagedSonioxSession`, the old settings UI's Soniox branches in `ProviderSpecificSettings.tsx`, the settings-store slices' readers, the managed-Soniox MainPanel chips — and the six re-export stubs of Task 1 once nothing imports them. **Done** by the Stage 2 deletion plan (Task 6, `e802a26a`; the shell's Soniox branches in its Task 1, `be2b1b78`): the clients, descriptors, `sonioxBothMode.ts`, `ManagedSonioxSession`, the slices' readers, the MainPanel chips and the stubs — eight by then.
+- **What that deletion must keep** (the review's M14) — the new provider uses these after this plan, so "the old settings UI's Soniox branches" does not cover them: `SonioxVoiceSection.tsx`, `voiceLibrarySource.ts`, `VoiceLibrarySection.tsx`, `VoicePicker.tsx`, `VoiceCreateModal.tsx`, `SonioxCloneReviewStep.tsx`, and the moved `src/providers/soniox/ttsRest.ts` and `voicesClient.ts` (with their tests). Deleting the stubs means first re-pointing the imports that still go through them — `voiceLibrarySource.ts` and `SonioxVoiceSection.tsx` import `SonioxVoicesClient` / `SonioxTtsRest` from `src/services/clients/` (`voiceLibrarySource.ts:15-18`, `SonioxVoiceSection.tsx:44`) — at `src/providers/soniox/`. **Kept** by the Stage 2 deletion plan: every file named here is untouched but for the two re-points, done first (Task 6, `e802a26a`).
 
 **Found here, for the owner or a later plan:**
 - **Readiness re-probes on every Soniox settings edit** (survey §3.6): the kept answer is keyed on the whole `S`, so a vocabulary keystroke or a voice pick mints a temporary key 800 ms later. Harmless (free, per region), chatty; a provider-declared "check inputs" narrowing is a generic change, not a provider's.
@@ -2168,7 +2168,7 @@ pass at its last code commit.
 
 **Stated departures from today** (the plan's list, and three execution added;
 old-code line numbers at `a63c366b`):
-- Kizuna Soniox runs on the new session; its old client, descriptor, helpers, settings UI and store slices stay compiled and unreachable until Plan B2.
+- Kizuna Soniox runs on the new session; its old client, descriptor, helpers, settings UI and store slices stay compiled and unreachable until Plan B2. **Done** by the Stage 2 deletion plan (Task 6, `e802a26a`; the old settings UI's branches in its Task 1, `be2b1b78`): each deleted, the slices as their readers — the stored keys stay, read by the new provider.
 - **The registry offers Kizuna Soniox first** (ruling 6): a fresh install outside the wizard lands on it, signed out, Start off with the sign-in words. It is unflagged, present wherever the Kizuna umbrella is on.
 - **Sources before the lease** (ruling 9): a source that fails mints no key, so it no longer leaves a never-started lease that 409-locks the next Start for 75 s (195 s with `par_stt`). A refused lease, or a source failing before it, leaves the last conversation on screen; **own-key Soniox in Both mode** now hands its legs over after both sources opened too, so a failing participant source no longer clears the last conversation (choice 3).
 - **A lease's end is recorded once, on the first leg** (ruling 7), where every leg recorded it.
@@ -2239,8 +2239,8 @@ From Plan A's "What it leaves → Kizuna Soniox" (`:1728-1738` above):
 | The `sonioxService*` / `sonioxVoice*` aliases, `insufficient_balance` and the other lease words, `sign_in_required`'s target | taken — Task 8 (the lease words were aliased by the foundation plan) |
 | The wizard's managed path; `providerFits` for a managed id | taken — Task 11 (`providerFits` answers once Kizuna Soniox is registered, Task 8) |
 | The registry's order and the release flags | ruling 6 — Task 8; "Before any release" below |
-| Deleting both providers' old code | Plan B2, after the paid live test (D11 as amended) |
-| The keep-list and its re-points | Plan B2's inventory (below), with the re-point the list missed (`SonioxVoiceSection.tsx:47`) |
+| Deleting both providers' old code | Plan B2, after the paid live test (D11 as amended). **Done** by the Stage 2 deletion plan (Task 6, `e802a26a`) |
+| The keep-list and its re-points | Plan B2's inventory (below), with the re-point the list missed (`SonioxVoiceSection.tsx:47`). **Done** by the Stage 2 deletion plan (Task 6): the list kept, the re-points made first |
 
 Plan A's "Found here", "Before any release" and open questions (`:1740-1775`
 above):
@@ -2354,9 +2354,15 @@ c), in order:
   - the cleanup at Stage 2's end: the per-provider `VITE_ENABLE_*` lines out of
     `.github/workflows/build.yml` (five env blocks today), the matching repo
     variables deleted by the owner; `VITE_ENABLE_KIZUNA_AI` stays, so a build
-    without Kizuna's backend offers no managed provider.
+    without Kizuna's backend offers no managed provider. **Taken** by the
+    Stage 2 deletion plan (ruling 6; Tasks 3, 4, 6 and 8): the five flags
+    leave the code and CI; the five repository variables are the owner's to
+    delete (that plan's record, below). `VITE_ENABLE_KIZUNA_AI` stays, with
+    `VITE_ENABLE_LOCAL_NATIVE` and `VITE_ENABLED_PROVIDERS`.
 - **The owner's paid live test below**, before Plan B2 deletes the old code and
-  before any release that carries Kizuna Soniox.
+  before any release that carries Kizuna Soniox. **Met** before the Stage 2
+  deletion plan: 18 of 18 (the owner's checklist, "Stage 2 without Local
+  Native: what remains", below).
 - **The one key's native-speaker check** (the table above), with Plan A's two.
 
 **The owner's paid live test** (survey §5.2's list, adjusted to the rulings;
@@ -2493,11 +2499,19 @@ changed in it; the lines cited here are re-read at `0a7b903e`:
   and `descriptorRegistry.test.ts`), leaving about 114.
   `SonioxVoiceSection.test.tsx` keeps its 7 (stale props and an unused
   `React`), which the re-point could fix.
+- **Taken whole** by the Stage 2 deletion plan (Task 6, `e802a26a`): the
+  re-points first, then the clients, descriptors, helpers, split chips,
+  stubs, `ClientOptions.sonioxManaged` and `IClient`'s Soniox config; the
+  three shell tests in its Task 1 (`be2b1b78`). The typecheck note held: the
+  full tree went from 247 to 104 lines at Task 6, and the gate's old-client
+  alternatives, matching nothing after it, were trimmed at that plan's group
+  check (its choice 11). **Left:** `SonioxVoiceSection.test.tsx`'s seven lines,
+  which the re-point did not touch — not that plan's.
 
 What it leaves, for the plans that meet it (the plan's own list, as written,
 with what execution and this record found added to "Found here"):
 
-**Plan B2 — deleting both Soniox providers' old code**, written after this plan lands and the owner's paid live test passes: survey §3 is its inventory (Task 13 records it, with this plan's two stubs and the old `managedVoicePrep.ts`). Its order (survey §3.3): re-point the kept importers, unregister, delete the clients, descriptors, helpers and their tests in one commit, delete the MainPanel split chips and `participantErrorOrdering.test.ts`, delete the stubs; gates, builds, a bundle grep for a string only the old client carried.
+**Plan B2 — deleting both Soniox providers' old code**, written after this plan lands and the owner's paid live test passes: survey §3 is its inventory (Task 13 records it, with this plan's two stubs and the old `managedVoicePrep.ts`). Its order (survey §3.3): re-point the kept importers, unregister, delete the clients, descriptors, helpers and their tests in one commit, delete the MainPanel split chips and `participantErrorOrdering.test.ts`, delete the stubs; gates, builds, a bundle grep for a string only the old client carried. **Done** by the Stage 2 deletion plan (Task 6, `e802a26a`), in one task with the other groups rather than a plan of its own; the bundle grep is that plan's group check (`SonioxClient` and `ManagedSonioxSession` absent from both bundles).
 
 **Found here, for the owner or a later plan:**
 - **The voice pin's 75 s** (`BE:config/soniox.ts:685`): the claim runs before the sources (ruling 9), so the one prompt that can wait at Start — a first-time microphone prompt, the speaker's leg in every mode — left unanswered for more than about a minute can let the pin lapse before `session-started` extends it. Eviction happens only under pool pressure; the live test's item 7 watches for it.
@@ -3048,7 +3062,7 @@ execution added is marked):
 - The detection knobs on 3.x (item 4): the summary line promises an effect the server does not give.
 - 3.1 flash live drops speech made during its answer (item 4b, found by the owner on `main`): whether another `realtimeInputConfig` (e.g. `turnCoverage`) lets it accept that speech without interrupting the translation, or whether 3.1 should carry a warning in the model list. Not guessed at here; the live test records the behaviour first. **Changed by the Stage 2 Gemini/AST2 follow-up plan** (its ruling 5): every dialogue model of family 3.0 or later, 3.1 included, now barges in; whether that keeps the speech is its live test's (items 7 and 13).
 - A cancelled turn's late `turnComplete` closes the next press's segments early (choice 16); item 6 says whether it happens.
-- `@google/genai` at G2: kept as a dev dependency (the wire's type imports and the oracle test), or its server types copied into `wire.ts` and the oracle retired.
+- `@google/genai` at G2: kept as a dev dependency (the wire's type imports and the oracle test), or its server types copied into `wire.ts` and the oracle retired. **Decided** by the Stage 2 deletion plan (ruling C2): kept as a dev dependency.
 - The orphan locale key `settings.geminiParticipantTokenWarning` (30 catalogs).
 - Analytics for `degraded` (Plan A's open question, unchanged): Gemini's foreign-rate `tts_degraded` is its first user.
 - **Name the leg in `SessionContext`** (execution: Task 7's review, m2) when a later provider with per-leg prompts (OpenAI, Compatible) needs it: today a same-language pair makes both legs read Other's prompt (the stated departure above), for Gemini and LocalInference alike.
@@ -3070,6 +3084,12 @@ execution added is marked):
 - `@google/genai`: no value import remains once the old client goes but `wire.oracle.test.ts`'s; the wire imports its server types (`import type`) — the open question above decides;
 - the stale comments (survey §1.16.15): `GeminiClient.ts:618`, `geminiTranslateModel.ts:58` (its warning that `languageCodeShort()` turns `cmn-CN` into `CM` is now false: the subtitle bar reads the base language since Task 3), `sanitizeEvent.ts:136`;
 - the orphan key `settings.geminiParticipantTokenWarning` (owner's call).
+- **Taken** by the Stage 2 deletion plan (Task 5, `5f84030c`; the old settings
+  UI's branches and `tutorialUrls.ts`' entry in its Task 1, `be2b1b78`):
+  `@google/genai` stays a development dependency (ruling C2); the stale
+  comments went with their files or were corrected (`sanitizeEvent.ts`).
+  **Left:** `settings.geminiParticipantTokenWarning`, unreferenced before that
+  plan — among the 51 such keys it leaves as a follow-up (ruling C16).
 
 **The roadmap's inheritance, item by item** (the plan's tables, as landed):
 taken (and where), deferred (and why), or already done.
@@ -3118,8 +3138,8 @@ the Kizuna Soniox plan's "Found here" (`:2494` above):
 
 What it leaves, for the plans that meet it (the plan's own list, as written;
 the three items the task reviews parked are done, last below):
-- **G2**, the deletion of the old Gemini code, after the owner's live test (Task 14's inventory).
-- **`@google/genai`** stays in `package.json` until G2 decides its fate (open question).
+- **G2**, the deletion of the old Gemini code, after the owner's live test (Task 14's inventory). **Done** by the Stage 2 deletion plan (Task 5, `5f84030c`).
+- **`@google/genai`** stays in `package.json` until G2 decides its fate (open question). **Decided** by the Stage 2 deletion plan (ruling C2): it stays a development dependency, read by the wire's type imports and `wire.oracle.test.ts`.
 - **F14**: Gemini's `socket.ts` and Soniox's move to `src/lib/contract/` with AST2's header seam. **Superseded by the Stage 2 Volcengine AST2 record below:** AST2 needs no header; the seam is OpenAI Live's, and Doubao's own `socket.ts` moves with the other two.
 - **Inferred pairing in the preview:** no fake script states no origins; one belongs with AST2, the next provider whose origins L2 infers. **Done** by the Stage 2 Volcengine AST2 plan (Task 5, `1ea6855b`): the fake's `proximity` script, seen paired in the preview at its group check A.
 - **`trackedClock`** has two copies (Soniox's and Gemini's `testing.ts`); a third user promotes it to the kit. **Done** by the Stage 2 Volcengine AST2 plan (Task 12, `e4ec0d34`): `src/lib/contract/testing/trackedClock.ts`, re-exported by Soniox's fixtures and imported by Gemini's.
@@ -3751,11 +3771,16 @@ self-review.
   still hold rules 2000–2003, which set no `initiatorDomains`, outlive a browser
   restart, and inject its old `X-Api-App-Key` / `X-Api-Access-Key` into every
   socket to `openspeech.bytedance.com`, the new query-authenticated one
-  included (the plan's review, M7; live-test item 20).
+  included (the plan's review, M7; live-test item 20). **Taken** by the Stage 2
+  deletion plan, shaped by its ruling C3 (Task 4, `3054aaf8`): no separate
+  clear — the extension's start-up sweep (`wsHeaderRule.js`' `sweepIds`, at
+  `onStartup` and `onInstalled`) takes the range 2000–2009 beside the old
+  Live rule 4000 (`OLD_AST2_RULE_ID_MIN` / `_MAX`).
 - **At Stage 2's end**, `VITE_ENABLE_VOLCENGINE_AST2` and
   `VITE_ENABLE_KIZUNA_VOLCENGINE_AST2` join the release-flag cleanup
   (`build.yml:219,224,273,278,313,318,415,420,517,522`,
-  `extension/vite.config.ts:176-184`).
+  `extension/vite.config.ts:176-184`). **Taken** by the Stage 2 deletion plan
+  (Task 4, `3054aaf8`; ruling 6); the repository variables are the owner's.
 
 **The owner's live test** (survey §2.13's list, adjusted to the rulings; what
 execution added is marked). Each item names what to record in the Logs
@@ -3809,6 +3834,13 @@ two stubs):
 - the extension's AST2 DNR block and its two messages (`extension/background/background.js:254-317, 544-563`), and **in their place a start-up clear of dynamic rules 2000–2009**, so a browser that ran the old client drops what it left installed;
 - `providers.kizunaai_volcengine_ast2.*` in 30 catalogs; `logStore.ts`' old AST2 event names and grouping alternatives, once no old client emits them;
 - **keep:** `LEGACY_SLICE_KEYS.kizunaai_volcengine_ast2` and `MANAGED_LEGACY_IDS` (a stored selection of the twin falls back, the Kizuna Soniox plan's choice 13), `getRelayWsUrl` and the `sokuji-auth.` redaction rule (shared with the Kizuna OpenAI Translate twin), `electron/main.js`' generic `ws-headers-set/clear` (OpenAI Live's seam will use it). **Changed by the Stage 2 OpenAI Live plan** (choices 1, 2): done — the seam's Electron registrar speaks it, with a path now added, in `src/lib/contract/headerSocket.ts` beside the plain seam.
+- **Taken whole** by the Stage 2 deletion plan (Task 4, `3054aaf8`; the old
+  UI's branches, `KIZUNA_HOSTED_ICONS` and `TUTORIAL_URLS`' entry in its Task
+  1, `be2b1b78`). The "keep" list: `LEGACY_SLICE_KEYS` and
+  `MANAGED_LEGACY_IDS` kept; `getRelayWsUrl` deleted here, since OpenAI
+  Translate's twin, its other user, went first (Task 3); the `sokuji-auth.`
+  rule kept as a net (its choice 6); `electron/main.js`' `ws-headers-set` /
+  `ws-headers-clear` kept.
 
 **The roadmap's inheritance, item by item** (the plan's tables, as landed):
 taken (and where), deferred (and why), or already done.
@@ -3852,8 +3884,8 @@ section was written after this plan):
 the Kizuna Soniox plan's "Found here" (`:2494` above):
 - The registry's order: extended by ruling 5 (Doubao fourth), pinned in `registry.test.ts`.
 - The wizard's own-key description: its "Doubao" became true with Task 16; "OpenAI" still waits for its port.
-- The relay twin: deleted, not ported (`:2334`) — V2's inventory takes it with the own-key code.
-- The release-flag cleanup at Stage 2's end: the two AST2 flags join it (this record's "Before any release").
+- The relay twin: deleted, not ported (`:2334`) — V2's inventory takes it with the own-key code. **Done** by the Stage 2 deletion plan (Task 4, `3054aaf8`).
+- The release-flag cleanup at Stage 2's end: the two AST2 flags join it (this record's "Before any release"). **Taken** by the Stage 2 deletion plan (Task 4, `3054aaf8`; ruling 6).
 - The native-speaker checks: one key in 30 catalogs and two language names (Task 6).
 
 **Stage 2 items from the roadmap this plan does not take:** the kit's parked items (`{ flush: true }` after an awaited answer, `FakeSocket`'s close codes, the virtual clock's `pending()` count, manual-end's segment check); the account's compile-time narrowing; `RunnerDeps.replayAudio`'s guard; the notice-code namespace.
@@ -3861,15 +3893,15 @@ the Kizuna Soniox plan's "Found here" (`:2494` above):
 What it leaves, for the plans that meet it (the plan's own list, as written;
 then the whole-plan review's note for later ports; the three items the task
 reviews parked for this plan's final fix wave are done, last below):
-- **V2**, the deletion of the old AST2 code with the relay twin, the AST2 background block (replaced by a start-up clear of rules 2000–2009) and the dead flags, after the owner's live test (this record's inventory).
+- **V2**, the deletion of the old AST2 code with the relay twin, the AST2 background block (replaced by a start-up clear of rules 2000–2009) and the dead flags, after the owner's live test (this record's inventory). **Done** by the Stage 2 deletion plan (Task 4, `3054aaf8`), the clear as the start-up sweep's range (its ruling C3).
 - **F14**, the header seam, for OpenAI Live; Soniox's, Gemini's and Doubao's plain `socket.ts` move to `src/lib/contract/` with it. **Changed by the Stage 2 Palabra plan** (choice 1; `0e9ccff0`): the plain seam moved without F14, at its fifth user — Gemini's, Doubao's, OpenAI Translate's and OpenAI Realtime's copies re-export `src/lib/contract/socket.ts`; Soniox's stays its own. F14 joins it there. **Changed by the Stage 2 OpenAI Live plan** (choice 1): done — `src/lib/contract/headerSocket.ts`, opening its sockets through the plain seam's `nativeSocket`.
 - **Palabra's use of F4:** its toggle as a `credentials.choice`.
 - **Stated origins for Doubao,** if the live test shows `Sequence` or the times state the pair (choice 3). **Changed by the Stage 2 Gemini/AST2 follow-up plan:** the owner's probe shows every source subtitle carrying its translation's server times — the evidence; still not taken (that record's open questions).
 - **The legacy mode's own idle words** — an open question.
-- **The start-up clear of DNR rules 2000–2009** — V2's, before any release that carries Doubao in the extension.
+- **The start-up clear of DNR rules 2000–2009** — V2's, before any release that carries Doubao in the extension. **Done** by the Stage 2 deletion plan (Task 4, `3054aaf8`; its ruling C3): the start-up sweep takes the range.
 - **`session.closed` on Stop** is not emitted (the kit forbids emissions after stop), as for Soniox and Gemini. **Changed by the Stage 2 session-end and wizard plan** (its ruling 2 (i), (ii); choices 1, 3, 10): the runner's `session.stopped` is each leg's line now, Doubao frames its `FinishSession` as `session.finish`, and the kit lets an ending frame itself until `stop()` has returned.
 - **The owner's open questions** in this record, each with the live-test item that settles it.
-- **Generic frame names grouped under Doubao's Logs keys** (the whole-plan review, M6): `logStore.ts` groups `subtitle.source`, `subtitle.translation`, `tts.sentence_start`, `tts.sentence_end`, `tts.ended`, `session.usage` and `session.audio_muted` — generic `domain.event` names — under the old client's `volcengine_*` keys (choice 9). No other provider emits them today; a later port that names a frame `session.usage` or `tts.ended` would find its rows grouped under Doubao's key, silently. The effect is cosmetic, in the Logs only. That port should give its frames names of its own, or narrow Doubao's rows (V2 is a natural moment, once the old client's names go), or pin in `logStore.test.ts` that these rows are Doubao's only while no other provider emits the names.
+- **Generic frame names grouped under Doubao's Logs keys** (the whole-plan review, M6): `logStore.ts` groups `subtitle.source`, `subtitle.translation`, `tts.sentence_start`, `tts.sentence_end`, `tts.ended`, `session.usage` and `session.audio_muted` — generic `domain.event` names — under the old client's `volcengine_*` keys (choice 9). No other provider emits them today; a later port that names a frame `session.usage` or `tts.ended` would find its rows grouped under Doubao's key, silently. The effect is cosmetic, in the Logs only. That port should give its frames names of its own, or narrow Doubao's rows (V2 is a natural moment, once the old client's names go), or pin in `logStore.test.ts` that these rows are Doubao's only while no other provider emits the names. **Left** by the Stage 2 deletion plan: the grouping stays. The new adapter (`volcengine_ast2/adapter.ts`) is the only emitter of those names today (checked), so the rows are Doubao's alone; narrowing them is a Logs change, not a deletion's. Its Task 4 removed only the old client's names.
 - **To the final fix wave, done** (`7f3dded6`, "The final fix wave" above): `nativeSocket` in `volcengine_ast2/socket.ts` and `gemini/socket.ts` rethrows in fixed words — `The browser would not open the socket (<error name>).` — dropping the browser's message, which can quote the URL; one place each covers the adapter, Doubao's check and Gemini (Task 15's review, M3b). The error keeps the browser's error name ("Found during execution", item 10).
 - **To the final fix wave, done** (`45e49a6e`): review and task IDs stripped from production comments, plan-wide — "(Stage 2 Volcengine AST2, I2)", "F4", "Task N" — citing rulings and choices as the other files do, Task 1's two codec stubs among them, to cite F18 rather than a task (Task 17's review, m1; the ruling on Task 1's note). F4, an F item the codebase cites, stays.
 - **To the final fix wave, done** (`7f3dded6`): an `invocationCallOrder` pin that Finish writes the credential choice before the credentials. The order is not load-bearing today — both writes are synchronous and the readiness driver schedules its check — and nothing would catch a refactor that made it so (Task 17's review, m2). A scratch copy that swaps the two writes fails only the new case.
@@ -4324,7 +4356,9 @@ self-review.
   Live are not.
 - **At Stage 2's end**, `VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE` joins the
   release-flag cleanup (`build.yml:223, 277, 317, 419, 521`,
-  `extension/vite.config.ts:173-174`), with T2.
+  `extension/vite.config.ts:173-174`), with T2. **Taken** by the Stage 2
+  deletion plan (Task 3, `a7cc8772`; ruling 6); the repository variable is
+  the owner's.
 - **The Text only tooltip** (`simpleConfig.textOnlyDesc`; en "Translate to text
   only — no spoken audio output") is true of Translate's playback control in 28
   catalogs; zh_CN's "不生成语音" and zh_TW's "不產生語音" ("no speech
@@ -4397,6 +4431,11 @@ changed through `426251e1`):
 - the old test tables naming it (`descriptorRegistry`, `kizunaProviderGating`, `providerOrder`, `participantConfig`, `speechMode`, `sessionResourcesWiring`, `voicePrepWiring`, `prepareToStart.{local,kizunaSoniox}`, `localNativeGating`, `ClientFactory`, `ClientOperations`, `settingsStore.{test,sliceRegistry,kizunaAuth}`, `kizunaProviders`, `ProviderIcons`, `SetupWizard`, `StepCredentials`, `providerPath(s)`, `Provider.test` — survey §3.5);
 - once both twins are gone (AST2's goes with V2): `getRelayWsUrl` (`src/utils/environment.ts:144`, its test and some fifteen test mocks) and the `sokuji-auth.` redaction rule have no producer left — delete, or keep the rule as a net;
 - **keep:** `LEGACY_SLICE_KEYS.kizunaai_openai_translate` and `MANAGED_LEGACY_IDS` (`src/lib/session/storedSettings.ts:38, 64`): a stored selection of the twin falls back to Kizuna Soniox. The GA client's `relay` argument and `sokuji-auth.` branch go with T3.
+- **Taken whole** by the Stage 2 deletion plan (Task 3, `a7cc8772`;
+  `KIZUNA_HOSTED_ICONS`' entry and the old UI's twin branches in its Task 1,
+  `be2b1b78`). "Once both twins are gone": `getRelayWsUrl` deleted with AST2's
+  twin (Task 4, `3054aaf8`), the `sokuji-auth.` rule kept as a net (its choice
+  6).
 
 **T3's inventory** — the own-key old code of both transports, **after the
 WebRTC step's live test**, since the WebRTC client imports the GA client
@@ -4409,6 +4448,11 @@ WebRTC step's live test**, since the WebRTC client imports the GA client
 - the old UI's Translate branches: `ProviderSpecificSettings.tsx:129-184, 384-467, 722-954, 2173-2187, 2274-2280`; `LanguageSection.tsx:99, 154-160, 249-254, 331-364, 587, 673-678`; `ProviderSection.tsx:73, 478-479`;
 - `ProviderConfigFactory.ts:6, 63`; `OpenAIClient.isTranslateRealtimeModel` once the OpenAI port has replaced `OpenAIClient`; `openaiModelMigration.test.ts:50-74`;
 - the orphan keys: `settings.translateModelAvailable`, `settings.translateSourceParticipantWarning`, and `settings.userTranscriptModel` / `settings.transcriptModelTooltip` only if OpenAI Realtime's port does not reuse them. It does (its `TranscriptionField`): those two stay (the Stage 2 OpenAI Realtime record, below).
+- **Taken** by the Stage 2 deletion plan, in the merged deletion (Task 7,
+  `27c77e20`); its orphan keys: `settings.translateModelAvailable` (Task 7),
+  `settings.translateSourceParticipantWarning` (Task 1, `be2b1b78`, with the
+  old shell's last reader); `settings.userTranscriptModel` and
+  `settings.transcriptModelTooltip` kept.
 
 **The roadmap's inheritance, item by item** (the plan's tables, as landed):
 taken (and where), deferred (and why), or already done.
@@ -4463,8 +4507,8 @@ From "Scheduled by the Stage 2 Volcengine AST2 plan" (`:3744-3835` above):
 above):
 - The registry's order: extended by ruling 11, pinned in `registry.test.ts`.
 - The wizard's own-key description: its "OpenAI" is partly true now (Translate); OpenAI Realtime and OpenAI Live wait for their ports. **Changed by the Stage 2 OpenAI Live plan:** "OpenAI" is true for all three OpenAI providers now, on the desktop app and the extension.
-- The relay twins: `kizunaai_openai_translate` deleted, not ported — T2 (ruling 14).
-- The release-flag cleanup at Stage 2's end: `VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE` joins it, with T2.
+- The relay twins: `kizunaai_openai_translate` deleted, not ported — T2 (ruling 14). **Done** by the Stage 2 deletion plan (Task 3, `a7cc8772`).
+- The release-flag cleanup at Stage 2's end: `VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE` joins it, with T2. **Taken** by the Stage 2 deletion plan (Task 3, `a7cc8772`; ruling 6).
 - The native-speaker checks: none (no new key).
 
 **Stage 2 items from the roadmap this plan does not take:** the kit's parked items (`{ flush: true }` after an awaited answer, `FakeSocket`'s close codes, the virtual clock's `pending()` count, manual-end's segment check); the account's compile-time narrowing; `RunnerDeps.replayAudio`'s guard; the notice-code namespace.
@@ -4472,8 +4516,8 @@ above):
 What it leaves, for the plans that meet it (the plan's own list, as written,
 its references to Task 11's record read as this record; then the one item a
 task review routed to it, last below):
-- **T2**, the relay twin's deletion, after this port's live test (this record's inventory).
-- **T3**, the own-key old code's deletion — both transports' clients, the descriptor, the translation mint, the slice's readers, the old UI's branches — after the WebRTC step's live test (this record's inventory). **Merged** by the Stage 2 OpenAI Realtime plan with OpenAI Realtime's and OpenAI Compatible's deletion (its ruling 20; its record's inventory, below). **2026-09-29:** after the two WebSocket live tests, the WebRTC step abandoned (owner).
+- **T2**, the relay twin's deletion, after this port's live test (this record's inventory). **Done** by the Stage 2 deletion plan (Task 3, `a7cc8772`).
+- **T3**, the own-key old code's deletion — both transports' clients, the descriptor, the translation mint, the slice's readers, the old UI's branches — after the WebRTC step's live test (this record's inventory). **Merged** by the Stage 2 OpenAI Realtime plan with OpenAI Realtime's and OpenAI Compatible's deletion (its ruling 20; its record's inventory, below). **2026-09-29:** after the two WebSocket live tests, the WebRTC step abandoned (owner). **Done** by the Stage 2 deletion plan, in the merged deletion (Task 7, `27c77e20`).
 - **The WebRTC step** — **abandoned 2026-09-29 (owner)**: none of what follows is built; the kit-level scenario is reassigned (the Stage 2 OpenAI Realtime record, "The owner's WebRTC decision"). As planned: a transport and a dispatch in `start`, its fallback the same request handed to the WebSocket adapter (spec "The session request"), `C.transport` widened from `S.transportType`, the transport control; `segments.ts`, `tail.ts`'s grid and `wire.ts`' session update stay as they are. **The final fix wave (Recommendation 3):** a kit-level seeded lifecycle scenario, in `src/lib/contract/testing/`, modelled on the final review's fuzz of this adapter — driving random lifecycles over `FakeSocket` on a tracked virtual clock the way `run.ts` drives an adapter (presses and releases under manual turns, streamed audio under automatic turns; every opening path — success, a drop, the 30 s bound, an abort, an `error`, `session.closed`, a close; live steps mixing chunk sizes, input/output/audio deltas, heartbeats, bad base64, `.done` and unknown types, unparsable frames, mid-session errors and clock advances) — and asserting across every run: every `turn.tail` on the 4,800-sample grid; `turn.tail_end` timed to `silenceMs + 200` ms; `silenceMs` never past 3,000; append-only text with none on a closed ref; audio ranges starting at the previous end; at most one `failed` or `closed`, nothing after it; no timer or socket handler left after any ending; and no key or subprotocol in any payload. It would pin the WebRTC transport to the same cross-module guarantees this port's own adapter suite pins one at a time, and a mutant with `this.tail.cancel()` dropped from `shutDown` shows it bites at once.
 - **The timing follow-up** (ruling 6): if the live log shows one aligned timeline, set `timing` once, at segment close, and extend F16's window to timed pairs (by `startMs`), and consider karaoke by `elapsed_ms`; if the values are emission-time, first let L2 fall back to proximity when no timed candidate clears `minOverlap` (research Q3). **Narrowed by the Stage 2 translation cuts plan** (its ruling 2): pairing no longer needs it — the translation states its source; what stays is karaoke by `elapsed_ms`.
 - **The tail's constants** tuned from the live test, and **a keepalive** only if it shows a dropped session or a stuck tail (ruling 2).
@@ -5106,7 +5150,11 @@ from it, as the controller ruled and the final fix wave applied:
   both WebRTC old clients, `OpenAIClient`'s statics, `openAIRealtimeSession`,
   `EphemeralTokenService` (only the two WebRTC clients import it), the
   Compatible code and the `openai-realtime-api` fork (this record's
-  inventory). The relay twin's T2 stays as it was.
+  inventory). The relay twin's T2 stays as it was. **Met** by the owner's
+  ruling 2 of the Stage 2 deletion plan, given after his live tests
+  (2026-09-30; OpenAI Realtime 25 of 25 — the checklist snapshot in "Stage 2
+  without Local Native: what remains" was taken earlier that day); the
+  deletion is that plan's Task 7 (`27c77e20`).
 - **What existed only for the WebRTC step**, each checked:
   - F15, the processed track (the foundation plan's inheritance, 1c-3's
     `Source.track` item and Stage 2's processed-track item above): closed. No
@@ -5187,7 +5235,8 @@ self-review.
 
 **Before any release from the branch**
 - **The owner's live test below**, before the merged deletion and before any
-  release that carries OpenAI Realtime.
+  release that carries OpenAI Realtime. **Met** before the merged deletion:
+  25 of 25 (the Stage 2 deletion plan's ruling 2 followed it).
 - **The registry's order** is now `['kizunaai_soniox', 'localInference',
   'gemini', 'volcengine_ast2', 'openai', 'openai_translate', 'soniox']` (ruling
   18; `src/providers/registry.ts:20`, pinned at `registry.test.ts:301`), OpenAI
@@ -5277,6 +5326,15 @@ above), less its last item's condition — `settings.userTranscriptModel` and
 - the old tests of the old code naming either id (`command grep -rln "Provider.OPENAI\b\|OPENAI_COMPATIBLE" src`, less the tests of live code: `providerPaths`, `setupDraft`, `lib/setup/providerPath`, `Tour/steps`, `tourContext`, `kizunaProviders`, `useApplySetup`);
 - `providers.openaiCompatible.*` in 30 catalogs, and T3's orphans `settings.translateModelAvailable` and `settings.translateSourceParticipantWarning`; `openai-realtime-api` in `package.json` (`:189`) and the lockfile;
 - **keep:** `LEGACY_SLICE_KEYS` (`src/lib/session/storedSettings.ts:61, 67`, and Translate's `:68`), so a stored selection of either still resolves; `settings.userTranscriptModel` and `settings.transcriptModelTooltip`.
+- **Taken whole** by the Stage 2 deletion plan (Task 7, `27c77e20`; the old
+  UI's branches, `tutorialUrls.ts`' Compatible entry and
+  `providers.openaiCompatible.customEndpointPlaceholder` in its Task 1,
+  `be2b1b78`; `providers.openaiCompatible.{name,description}` in Task 7), with
+  `evals/` and its own dependencies (its ruling 4; choice 8). The diagnostics'
+  comments that cite `EphemeralTokenService.ts` lines as their example
+  (`describeCause.ts`, `report.ts`, `redact.ts` and three tests) **keep** the
+  citation: it names where the rule came from (its choice 3). Its keep list
+  kept.
 
 **The roadmap's inheritance, item by item** (the plan's tables, as landed):
 taken (and where), deferred (and why), or already done.
@@ -5354,13 +5412,13 @@ From "Scheduled by the Stage 2 OpenAI Translate plan" (`:4321-4340`,
 
 What it leaves, for the plans that meet it (the plan's own list, as written;
 then the items the reviews routed here, last below):
-- **The merged deletion plan** — OpenAI Translate's T3, OpenAI Realtime's and OpenAI Compatible's old code, `textUtils.ts`, `openaiTranscriptionContext`, the `openai-realtime-api` dependency — after the WebRTC step's live test (ruling 20; this record's inventory). **2026-09-29:** after the two WebSocket live tests instead ("The owner's WebRTC decision").
+- **The merged deletion plan** — OpenAI Translate's T3, OpenAI Realtime's and OpenAI Compatible's old code, `textUtils.ts`, `openaiTranscriptionContext`, the `openai-realtime-api` dependency — after the WebRTC step's live test (ruling 20; this record's inventory). **2026-09-29:** after the two WebSocket live tests instead ("The owner's WebRTC decision"). **Done** by the Stage 2 deletion plan (Task 7, `27c77e20`), as one task of one plan.
 - **The WebRTC step, for both OpenAI providers:** Realtime's transport and its dispatch in `start`, `C.transport` widened from `S.transportType`, D25's `turns(s)` and the participant's transport, the transport control, the ephemeral token, and the kit-level seeded lifecycle scenario (choice 21). **Removed 2026-09-29 (owner):** abandoned; each part closed, the ephemeral token deleted with the old code, and the kit-level scenario reassigned to the next port that wants it ("The owner's WebRTC decision").
 - **Comments that still promise a WebRTC step**, in files the final fix wave did not touch: `src/providers/openai/provider.ts:23, 57` (the latter citing D25), `RealtimeSettings.tsx:23`, `RealtimeTurnDetection.tsx:32-33`; `src/providers/openai_translate/provider.ts:21`, `TranslateSettings.tsx:12`, `segments.ts:8`, `adapter.ts:4, 105`. Restate them WebSocket only, citing the owner's decision. **Done** in the commit after `b384ec59`.
 - **Readiness narrowing for the other ported providers:** each declares its `checkReads` in its own change, with a case like Task 12's.
 - **The copies to lift:** `socket.ts` with F14; `decodeServerEvent`, `errorCode` and `errorWords` at a third user, or after OpenAI Translate's live test. **`socket.ts` done** by the Stage 2 Palabra plan, without F14 (choice 1; `0e9ccff0`). **Changed by the Stage 2 OpenAI Live plan** (choice 4): the decoder and words **done** at their third user, with the model-list check — `src/lib/provider/openaiWire.ts` and `openaiModels.ts`.
 - **The owner's open questions** in this record, each with the live-test item that settles it.
-- **Nothing on the old code:** the old descriptors, clients and slices stay compiled and unreachable, as the protocol documentation.
+- **Nothing on the old code:** the old descriptors, clients and slices stay compiled and unreachable, as the protocol documentation. **Changed** by the Stage 2 deletion plan (Task 7, `27c77e20`): deleted.
 - **OpenAI Translate's error window** (Task 11's review, I1): its adapter suite pins `ERROR_WORDS_MS` only past the window (`openai_translate/adapter.test.ts:467`, at `+ 1`) — the gap this plan closed for OpenAI Realtime, at its inclusive edge and its value.
 - **`gemini/config.ts:70`** cites "fix round 1" in a production comment, against the rule that production comments cite rulings, never a review or a round (Task 5's review, m1).
 - **`checkReads`' unenforced obligation** (Task 3's review, m3): "every field that decides the credential fields must be listed" (`src/lib/provider/types.ts`) is checked nowhere; no provider is affected — OpenAI Realtime's credential fields are fixed. **Met by the Stage 2 Palabra plan**, whose provider is the first it reaches: Palabra's fields follow `authMode`, which its `checkReads` lists (choice 16); the obligation is still checked nowhere.
@@ -6304,7 +6362,7 @@ unless marked, each with its cost):
 - **The registry's order**, pinned (ruling 14).
 - **The release notes:** a stored `ba`, `eo` or `ia` source now reads Auto-detect (the first source), which also refuses Both, and a stored `vn`, `zh`, `en-au`, `en-ca`, `bn`, `mr` or `fa` target Arabic; a pre-July profile opens in the platform mode (one click back); timbre detection is off.
 - **No new locale key**, so no native-speaker check.
-- **`VITE_ENABLE_PALABRA_AI`** no longer gates anything the user sees; it goes with the old code.
+- **`VITE_ENABLE_PALABRA_AI`** no longer gates anything the user sees; it goes with the old code. **Taken** by the Stage 2 deletion plan (Task 8, `d1092fc2`; ruling 6); the repository variable is the owner's.
 - **The owner's live test below**, before any release that carries Palabra.
 
 **The owner's live test** (own credentials, real Palabra; switch diagnostic
@@ -6354,6 +6412,12 @@ during this plan):
 - `livekit-client` in `package.json:184` and the lockfile, with CLAUDE.md's pin text (`:390`, `:395-415`);
 - `src/lib/modern-audio/WebRTCAudioBridge.ts:14` (`import type { RemoteAudioTrack } from 'livekit-client'`), coordinated with the OpenAI deletion, which orphans the bridge and its pcm worklet copy (`extension/vite.config.ts:76`): whichever plan runs second deletes the bridge;
 - **keep:** `Provider.PALABRA_AI` and `LEGACY_SLICE_KEYS.palabraai` (the live id; a stored selection still resolves), `PalabraAIIcon`, the locale keys the new definition reads, the credential-choice styles.
+- **Taken whole** by the Stage 2 deletion plan (Task 8, `d1092fc2`; the old
+  UI's branches, the credentials block and its styles, and `tutorialUrls.ts`'
+  entry in its Task 1, `be2b1b78`); `CLAUDE.md`'s pin text in its Task 11
+  (`968043c5`). `WebRTCAudioBridge`, its test and the pcm worklet with the
+  extension build's copy went here, the second deletion to reach them. Its
+  keep list kept.
 
 **Amended in place** by this record, each marked "**Done**", "**Closed**",
 "**Changed**", "**Settled**", "**Met**", "**Not taken**" or "**Widened**" by
@@ -6384,7 +6448,7 @@ From "Scheduled by the Stage 2 foundation plan":
 | Palabra → `deleteSession` with a timeout (`:1301`) | **taken** for the app pair's session: 5 s (**changed by the Stage 2 session-end and wizard plan**, its choice 5: 4 s, inside the runner's own bound), `keepalive`, its own only, a create the leg outlives included (choice 9); as landed, a transport failure tried again without `keepalive` ("Found during execution", item 7); moot for the platform key |
 | Palabra → the G3 latency a stall leaves (`:1196-1201`, `:1302`) | mostly moot [inf]: a sentence's audio is a faster-than-real-time burst, so the clip queue has lead within it; live-test item 4 listens for gaps |
 | The kit's parked items (`:1321-1325`) | **taken** (ruling 15; Task 5; choice 4); as landed, the unflushed server-close drive and 1005 / 1006 (item 3) |
-| "Before any release": the release flags and the registry order (`:1352-1363`) | unflagged (ruling 14): nothing added to `VITE_ENABLED_PROVIDERS`; `VITE_ENABLE_PALABRA_AI` goes with the deletion |
+| "Before any release": the release flags and the registry order (`:1352-1363`) | unflagged (ruling 14): nothing added to `VITE_ENABLED_PROVIDERS`; `VITE_ENABLE_PALABRA_AI` goes with the deletion. **Taken** by the Stage 2 deletion plan (Task 8, `d1092fc2`) |
 
 From the Soniox plan's "Found here" (`:1740-1750`):
 
@@ -6425,7 +6489,7 @@ From "Scheduled by the Stage 2 OpenAI Translate plan" and "… OpenAI Realtime p
 | The orphaned socket on an unreachable path (`:5336`) | applied from the start: the bound and the abort are armed before anything opens |
 | The kit-level seeded lifecycle scenario, "reassigned … Palabra next" (`:5098-5104`, `:5308`) | **built** (ruling 15; Task 7, hardened over three review rounds — "Found during execution", item 2), first run over Palabra (choice 19) |
 | The kit's parked items (`:5322`) | taken (Task 5) |
-| The merged OpenAI deletion (`:5077-5083`) | coordinated: it orphans `WebRTCAudioBridge` (a `livekit-client` type import) and the pcm worklet copy — recorded in this record's inventory |
+| The merged OpenAI deletion (`:5077-5083`) | coordinated: it orphans `WebRTCAudioBridge` (a `livekit-client` type import) and the pcm worklet copy — recorded in this record's inventory. **Done** by the Stage 2 deletion plan: the merged deletion (Task 7, `27c77e20`), then Palabra's with the bridge (Task 8, `d1092fc2`) |
 | F15, the processed track (`:5085-5089`, "closed … the items wait for an adapter that would") | closed for good: the seam is deleted (ruling 16) |
 
 From "Scheduled by the Stage 2 Gemini/AST2 follow-up plan", its "What it leaves" (`:5714-5731`):
@@ -6442,7 +6506,7 @@ Stage 2 items no plan took and this one does not either: `RunnerDeps.replayAudio
 
 What it leaves, for the plans that meet it (the plan's own list, as written;
 then the items the reviews and this record routed here, last below):
-- **The Palabra deletion plan** (ruling 17; this record's inventory), after the owner's live test — coordinated with the OpenAI deletion over `WebRTCAudioBridge`.
+- **The Palabra deletion plan** (ruling 17; this record's inventory), after the owner's live test — coordinated with the OpenAI deletion over `WebRTCAudioBridge`. **Done** by the Stage 2 deletion plan (Task 8, `d1092fc2`), after the merged OpenAI deletion (Task 7), so the bridge went here.
 - **The setup guide** (ruling 18): the definition links today's page.
 - **Silence on the audio clock** (an open question for the owner, above): zeros that rode the audio — the capture delivering them while muted (`core.ts:85`), and the runner forwarding them between presses, where its turn gate drops the capture's audio (`run.ts:450-453`) — would keep every provider's session alive on a throttled page; not built — the rule's timer is Palabra's, Soniox's and Doubao's alike.
 - **The shared `SliderField` and on/off field** (choice 15): Palabra's view is the sixth copy of the slider markup; the lift rewrites five providers' views, each with its own render check.
@@ -6453,7 +6517,7 @@ then the items the reviews and this record routed here, last below):
 - **Typed text through `tts_task`:** not proposed; `textInput: false` stays at parity.
 - **Karaoke with Adaptive Speech Speed on** (the owner's live test, 2026-09-30): with `auto_tempo` on, Palabra streams a sentence's speech in real time, in 480-sample chunks, so its burst — and `last_chunk`, where the text is tiled over the chunks (choice 12) — ends only as the sentence finishes playing, and karaoke lights it only then. The setting is off by default (ruling 10); the owner ruled no change (「既然默认是关闭的，那么问题不大 不用改」).
 - **The owner's open questions,** each with the live-test item that settles it.
-- **Nothing on the old code:** the old client, descriptor, slice readers and UI branches stay compiled and unreachable, as the protocol documentation.
+- **Nothing on the old code:** the old client, descriptor, slice readers and UI branches stay compiled and unreachable, as the protocol documentation. **Changed** by the Stage 2 deletion plan (Task 8, `d1092fc2`; the UI branches in its Task 1): deleted.
 - **For the final review:** the items under "Accepted as they stand" above.
 - **Production comments that cite a review or a task** (this record's reading of the landed code), against the plan's rule that production comments cite rulings, choices, D rulings and F items only: `src/lib/session/shape.ts:129` ("review N3"), `src/providers/palabraai/audioIn.ts:18` ("fix round 1, I1"), `:42` ("fix round 1, N3") and `:43` ("Task 13's adapter"). The test-only kit and fixtures do the same (`src/lib/contract/testing/fakeSocket.ts:99`, `scenarios.ts:34, 36, 131`; `src/providers/palabraai/testing.ts:157, 169, 181, 217`), which the rule does not cover. Wording only; the OpenAI Realtime record's `gemini/config.ts:70` is the same kind.
 
@@ -7582,7 +7646,9 @@ taken (and where), or left (and why).
   more field.
 - **The old clients' `session.closed`** (`src/services/clients/**`) no longer
   draws a separator; they do not run in the app, and go with the deletion
-  plan.
+  plan. **Done** by the Stage 2 deletion plan: every old client that sent it
+  is deleted (Tasks 2 and 4–8); Local Native's, kept whole (ruling 1), sends
+  its own `local.native.session.closed` and stays unreachable until #578.
 - **The kit's virtual clock fires same-due timers in one call:** a case that
   depends on which of two bounds wins must step the clock to each alone, as
   Task 7's runner-level case does (choice 3). The other adapters' bounds were
@@ -8030,6 +8096,12 @@ build may still hold the rule; ruling 11), `scripts/dev/wire-probe/live.mts`
 (a research instrument), and the `openai_live` enum value while any old code
 reads it.
 
+**Taken** by the Stage 2 deletion plan (Task 2, `e6f31151`; the old settings
+UI's Live branches in its Task 1, `be2b1b78`), with one **departure**:
+`providerPath.test.ts`' `OPENAI_LIVE` row stays (its ruling C1) — it pins the
+live id's path, not the old code. The Kept list kept: `main.js`' pair, the
+sweep of 4000, `live.mts`, the enum value.
+
 **Amended in place**, each marked as changed by this plan:
 - the foundation section's "**OpenAI Live:** F14 (reused)" — F14 built
   here, its first user; the `connection_lost` alias consumed;
@@ -8175,7 +8247,8 @@ re-check's two carried Nits):
   Live at once share one rule, one gate per renderer. Only Live uses the
   seam today.
 - **The old `OPENAI_LIVE_*` pair and the old code** stay until the deletion
-  plan (the inventory above).
+  plan (the inventory above). **Done** by the Stage 2 deletion plan (Task 2,
+  `e6f31151`).
 - **Stamps are kept 60 s behind the audio:** a voiced frame more than a
   minute behind its text would play rangeless. No recording comes near it.
 - **The locale description** `providers.openai_live.description` says
@@ -8258,7 +8331,9 @@ Local Native, so it is not offered, even behind its tester switch; its old
 path (`LocalNativeClient`, `LocalNativeProviderConfig` and its factory
 registrations, the old settings UI's Local Native branches, the `localNative`
 slice, the native UI it reuses) stays compiled and unreachable, and every
-deletion plan below keeps those pieces. #578 lists them.
+deletion plan below keeps those pieces. #578 lists them. **Kept** by the
+Stage 2 deletion plan (its ruling 1): every task's gates ran their tests, and
+the shell and the old store were reduced *to* them (below).
 
 **What remains before the branch can merge**, all of it closing work:
 1. **The owner's live tests**, as the owner's checklist page records them on
@@ -8275,12 +8350,448 @@ deletion plan below keeps those pieces. #578 lists them.
    `livekit-client` and its pin), OpenAI Realtime with OpenAI Compatible, the
    `openai-realtime-api` fork and OpenAI Translate's T3 (merged), OpenAI
    Translate (T2), Gemini (G2), OpenAI Live. Each section's inventory names what goes; none
-   names Local Native's pieces, and each plan re-checks that.
+   names Local Native's pieces, and each plan re-checks that. **Changed** by
+   the owner's ruling 2 of the Stage 2 deletion plan (and its ruling C7): one
+   plan, a task per group, each task re-checking that nothing of Local
+   Native's goes — below.
 3. **The release flags at Stage 2's end:** the per-provider `VITE_ENABLE_*`
    lines out of `.github/workflows/build.yml` and the matching repository
    variables (the owner's), once each flag's old client is deleted;
    `VITE_ENABLE_KIZUNA_AI` stays, and so does `VITE_ENABLE_LOCAL_NATIVE` with
-   the old path it gates.
+   the old path it gates. **Taken** by the Stage 2 deletion plan (Tasks 3, 4,
+   6 and 8; its ruling 6); the five repository variables are the owner's
+   (below).
 
 **Left for after the merge:** the deferred OpenAI Translate English → Chinese
 item; Doubao AST 2.0's fixed voice (#577, built from main once #571 merges).
+
+## Scheduled by the Stage 2 deletion plan
+
+The Stage 2 deletion plan
+(`docs/superpowers/plans/2026-09-30-client-contract-stage2-deletion.md`, plan
+commit `bb39151e`, Revision 1 `c0adb85f`, Revision 2 `0e6532ff`, Revision 3
+`f8a09956`, written over `fa301e9a`) landed as the eleven task commits
+`be2b1b78` through `968043c5` and the controller's `700bd998`, on
+`worktree-client-contract-stage2` (`f8a09956..968043c5`: **+1 310 / −52 571
+lines across 291 files**, `git diff --shortstat`; 142 files deleted and one
+created, the import guard `src/providers/oldPath.consistency.test.ts`). Then
+this record with the spec's amendments. It deletes every old provider client,
+descriptor, store slice and settings branch the new structure replaced, with
+the dependencies, release flags, extension rules and CSP origins only they
+used, under the owner's rulings 1–11 and the controller's C1–C17, and keeps
+Local Native's old path whole until kizuna-ai-lab/sokuji#578 ports it (ruling
+1). Nothing a user can reach changes (the render comparison, below).
+
+The plan's own total was +1 308 / −52 569 (Revision 3's file-structure
+table); `700bd998`'s two comment lines are the difference. The total the
+plan's Task 12 quoted, +1 305 / −52 566, is Revision 2's, superseded.
+
+**The plan's way to execution.** The first version's independent review
+reproduced every number it quoted and found it Ready after fixes (0 Critical /
+1 Important / 6 Minor / 5 Nit). Revision 1 answered it with the controller's
+rulings C8–C17 and the owner's rulings 9 and 10: the applier proves what it
+removes (a hash on every shortened run; a hunk whose old side repeats names
+its occurrence), a pre-flight, the typecheck gated as a set, the import guard
+as a test. The scoped re-check found Revision 1 Ready to execute with three
+Nits, which Revision 2 took. The owner approved execution on 2026-10-01 and
+added ruling 11 (`CONTEXT.md`'s native model resolution entries), which
+Revision 3 took into Task 11 alone. Each revision was replayed from its own
+blocks on a fresh copy of `fa301e9a`.
+
+**The pre-flight** (the controller, at `0e6532ff`): the tools' self-test 11 of
+11, the review's two mutants (`run-edited`, `dup-unnamed`) refusing; every
+file the plan names equal to `fa301e9a`'s (exit 0, no output); the plan's own
+gate baseline written, 20 lines, equal to the plan's; the full tree at 259.
+Revision 3 was committed while Task 1 ran — the plan file only, Tasks 1–10's
+blocks byte-identical — so the range starts at `f8a09956`.
+
+**The waves as run.** The plan's waves are review checkpoints over tasks run
+strictly one after another: Wave 1 Tasks 1–5, Wave 2 Tasks 6–8, Wave 3 Tasks
+9–11. The controller ruled to dispatch each task's implementer while the task
+before's review ran: every task's blocks are generated on the exact tree the
+task before leaves, so a fix to that task would make the next applier refuse
+rather than misapply — a redo at worst, which never came. The controller's
+wave checks ran after Tasks 5, 8 and 11. An API rate limit cut off Task 10's
+implementer after its commit and before its report — the controller verified
+the commit against the plan's row and the saved outputs, and wrote the
+report — and Task 9's first reviewer mid-gates, before it had written
+anything; that review was run again, fresh.
+
+**Each task had one review.** Every review rebuilt its task from the base with
+the plan's own blocks and tools, found the commit's tree identical, and re-ran
+the gates on a clean archive:
+- **Tasks 1–4, 6 and 8:** Spec ✅, Quality Approved, 0 findings. Task 1's
+  implementer had seen one transient `src` failure on an unofficial re-run,
+  with no detail kept; its review ran the suite three times, exact each time.
+- **Task 5:** Spec ✅, Quality Needs fixes, 0 Critical / 1 Important: the
+  Gemini adapter's header still called the old client "still compiled and
+  unreachable" — plan-mandated (Tasks 2, 4 and 8 rewrite the same line in
+  their own adapters; Task 5's Files list left it out). The controller fixed
+  it in its own commit before Task 8 (`700bd998`, two comment lines, "deleted
+  since" as the others word it), having checked that Task 11's hunk in the
+  same file still applied (`t11: 11 files would change`); no separate
+  re-review — the final whole-branch review covers it.
+- **Task 7:** Approved, one Nit — `LocalInferenceClient.ts` named a deleted
+  client in the present tense — moot: Task 9 deleted the file.
+- **Tasks 9, 10 and 11,** parked for the final fix wave. Task 9's review (the
+  fresh one): Approved, 0 / 0 / 2 Minor / 2 Nit. Task 10's: Approved,
+  0 / 0 / 4 Minor / 3 Nit and an observation. Task 11's, on the most capable
+  model (the prose future sessions rely on, every claim checked against the
+  tree): Needs fixes, 0 Critical / 1 Important / 5 Minor / 3 Nit, every one
+  plan-mandated — the commit is the plan's block byte for byte. The
+  controller ruled on each and put them all in the **one fix dispatch after
+  the final whole-branch review**: comments, tests and prose, none
+  interacting with a later task, where a round per task would triple the
+  rounds — at the cost that the final review sees the pre-fix tree for these
+  points. They are: comments in six surviving files that name Task 9's
+  deleted modules as present, tests pinning the AST cross-stage guard on
+  `src/providers/localInference/`, and "deleted since" in that adapter's
+  header (Task 9's); a `Conversation.test.ts` severity case that no longer
+  pins table → severity, a test of `validateApiKey()`'s new fall-through, six
+  stale comments and two mis-indented braces (Task 10's; its third Nit, the
+  guard reading `export { type X } from …` as a value import, left — no such
+  export exists, and a false positive fails loudly); and `CONTEXT.md`'s
+  Loader, which does not download weights (`native_models.download` does),
+  five more `CLAUDE.md` / `CONTEXT.md` statements (the fakes' registration, a
+  tab source and its device, the session-side guard's scope, Kizuna AI in
+  development builds, what presence reads) and three nits (Task 11's). That
+  wave adds its own line to this section when it lands.
+
+**What landed, by task** (each commit's `git diff --shortstat` and the files
+it deleted; then its gates: `src` files passed + skipped and tests passed +
+skipped, Local Native's old path in files / tests, the full tree's count;
+every gate at 0 failed, Electron 34 files / 477 tests throughout):
+- **The old settings shell, reduced to Local Native** (`be2b1b78`, Task 1;
+  58 files, +542 −5 344, 10 deleted; 582 + 1, 7 635 + 2; 80 / 1 499; 259 →
+  255; the gate's baseline 20 → 18 lines): `ProviderSection`,
+  `LanguageSection` and `ProviderSpecificSettings` keep their Local Native
+  branches and the generic scaffolding, still unmounted (choice 1), and
+  tolerate a stored provider the old registry does not hold (ruling C4;
+  choice 4). `PoweredBy` and its tests (ruling C6), `KIZUNA_HOSTED_ICONS`,
+  `OPENAI_COMPATIBLE_PROVIDERS` / `isOpenAICompatible` / `kizunaBaseProvider`,
+  the clients barrel, the other providers' old-shell tests, the unused styles,
+  `sessionStore.ts`' unread initializing flag and 17 locale keys go.
+- **OpenAI Live's old code** (`e6f31151`, Task 2; 48 files, +49 −3 920, 6
+  deleted; 579 + 1, 7 520 + 2; 77 / 1 385; 255; the extension 9 / 55): the
+  client, the descriptor, the `openaiLive` slice and its key prefill, the
+  extension's old `OPENAI_LIVE_*` pair, the old event names, and
+  `speechMode.ts` (ruling C5); the sweep of rule 4000 stays.
+- **OpenAI Translate's relay twin** (`a7cc8772`, Task 3; 58 files, +31 −391,
+  1 deleted; 579 + 1, 7 512 + 2; 77 / 1 378; 255; the extension 9 / 55): the
+  descriptor, its registration, `Provider.KIZUNA_AI_OPENAI_TRANSLATE`, its
+  slice, its release flag and forwarding, two locale keys.
+- **Doubao AST 2.0's old code and its relay twin** (`3054aaf8`, Task 4; 81
+  files, +105 −2 664, 10 deleted; 575 + 1, 7 467 + 2; 73 / 1 338; 255; the
+  extension 9 / 56): the client, the codec stubs, both descriptors, the
+  language sync, both slices, `Provider.KIZUNA_AI_VOLCENGINE_AST2`; the
+  relay's `getRelayWsUrl` and the CSP's seven dead entries — the relay's three
+  `wss` origins and OpenAI Compatible's two presets (ruling 5; choice 7) —
+  pinned by a new manifest case; both AST2 release flags; `uuid` and
+  `@types/uuid`; the extension's AST2 header block, its rule ids 2000–2009
+  now swept at start (ruling C3).
+- **Gemini's old code** (`5f84030c`, Task 5; 21 files, +40 −3 901, 5
+  deleted; 573 + 1, 7 391 + 2; 71 / 1 262; 247): the client, the descriptor,
+  the model mapping, `IClient.ts`' Gemini members, the slice and the old event
+  names; `@google/genai` stays a development dependency (ruling C2). Then the
+  controller's `700bd998` (above).
+- **Soniox's and Kizuna Soniox's old code** (`e802a26a`, Task 6; 109 files —
+  44 removed, 35 edited, the 30 catalogs — +117 −13 130; 550 + 1, 6 955 + 2;
+  53 / 872; 104): the kept voice modules re-pointed from the stubs first, then
+  both clients, the managed session, both descriptors, the split and budget
+  helpers, MainPanel's split chips, the eight stubs, the old store's managed
+  arm, `VITE_ENABLE_KIZUNA_SONIOX`, `sttStream.ts`' `onTick` (choice 5) and
+  six locale keys.
+- **OpenAI Realtime, OpenAI Translate and OpenAI Compatible — the merged
+  deletion** (`27c77e20`, Task 7; 107 files, +53 −14 613, 49 deleted, `evals/`
+  among them; 541 + 1, 6 783 + 2; 45 / 710; 103): both WebSocket and both
+  WebRTC clients, the session builder, `EphemeralTokenService`, the
+  descriptors, slices and migrations, `Provider.OPENAI_COMPATIBLE`,
+  `textUtils.ts`, the `openai-realtime-api` fork in both `package.json`s and
+  lockfiles, and `evals/` with its scripts, its `.gitignore` lines and its own
+  `ajv` and `ajv-formats` (ruling 4; choice 8); seven locale keys; the
+  `sokuji-auth.` rule stays as a net (choice 6).
+- **Palabra's old LiveKit client** (`d1092fc2`, Task 8; 64 files, +21 −3 660,
+  10 deleted; 535 + 1, 6 732 + 2; 42 / 674; 99): the client, the descriptor,
+  the slice and its two load migrations, `WebRTCAudioBridge` with its test and
+  the pcm worklet with the extension build's copy (the second deletion to
+  reach them), `livekit-client` with its eight dependencies and its pin,
+  `VITE_ENABLE_PALABRA_AI`.
+- **LocalInference's old leftovers** (`74e78663`, Task 9; 61 files, +223
+  −4 397, 6 deleted; 531 + 1, 6 653 + 2; 39 / 615; 98): the three shared
+  components take `override` / `settings` / `pair` as required props, then the
+  old client, descriptor, `validateApiKey` arm, the `localInference` slice and
+  the participant config go (ruling 3); Local Native's half of the shared
+  files stays.
+- **The shared old code, trimmed to Local Native** (`250a8057`, Task 10; 46
+  files, +181 −628, 1 deleted, 1 created; 532 + 1, 6 656 + 2; 39 / 615; 95;
+  the gate's baseline 18 → 16 lines): `ClientOperations.ts`, the key-validation
+  service call, the global instruction fields and
+  `getProcessedSystemInstructions`, the validation cache and model list, the
+  generic slice readers (choice 5); the four client diagnostic codes no sender uses,
+  with their notices and five locale keys (ruling C17); the import guard
+  (ruling C11), 1 file and 3 tests, failing each of the review's mutants.
+- **`CLAUDE.md` and `CONTEXT.md`** (`968043c5`, Task 11; 11 files, +146 −121;
+  532 + 1, 6 656 + 2; 39 / 615; 95): the provider architecture, adding a
+  provider, the adapters' error-handling heading and its citations, without
+  the old clients, `openai-realtime-api` or the `livekit-client` pin;
+  `CONTEXT.md`'s provider and session glossary and its native model
+  resolution entries for the ggml-only sidecar (rulings 7, 9, 11). Both say
+  Local Native runs the old path until #578.
+
+In all, 44 locale keys left the 30 catalogs; `src/services/` went from 115
+files to 27, `settingsStore.ts` from 1 672 lines to 857 and `IClient.ts` from
+524 to 216.
+
+**Gates after each wave** (the controller's; 0 failed and no unhandled errors,
+`git status --short` empty):
+- the base `fa301e9a` (the plan's measure): 590 + 1 files, 7 696 + 2 tests;
+  Electron 34 / 477, the extension 9 / 56; Local Native's old path 80 / 1 499;
+  the gate at 20 lines, the full tree at 259;
+- Wave 1 (`5f84030c`): 573 + 1, 7 391 + 2; 34 / 477, 9 / 56; the gate at 18
+  lines; `tscdiff.py` from `fa301e9a`: before 259 after 247; new 0; gone 12;
+- Wave 2 (`d1092fc2`): 535 + 1, 6 732 + 2; 34 / 477, 9 / 56; 18 lines; before
+  259 after 99; new 0; gone 160;
+- Wave 3 (`968043c5`): 532 + 1, 6 656 + 2; 34 / 477, 9 / 56; 16 lines; before
+  259 after 95; new 0; gone 164.
+
+Every task's typecheck, compared with the task before's as a set, printed
+`new 0`. Every suite and typecheck count matched the plan's replay exactly.
+
+**Checked — the group check** (the controller, at `968043c5`; outputs under
+`/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-sdd/wave3/` and
+`…/deletion-sdd/group/`):
+1. The full gates, as Wave 3's above.
+2. **Local Native's old path** with the import guard: 40 files / 618 tests
+   (39 / 615, and the guard's 1 / 3), 0 failed. The shell is still not
+   mounted: the grep for `<ProviderSection`, `<LanguageSection` or
+   `<ProviderSpecificSettings` outside tests prints nothing.
+3. `npm run build` and `npm run extension:build` exit 0. The three D24 greps
+   print nothing.
+4. **The deleted code is gone from both bundles:** the old clients' names
+   (`OpenAIGAClient`, `SonioxClient`, `PalabraAIClient`, `GeminiClient`,
+   `VolcengineAST2Client`, `OpenAILiveClient`, `LocalInferenceClient`,
+   `ManagedSonioxSession`, `EphemeralTokenService`), the old header pairs
+   (`OPENAI_LIVE_SET_HEADERS`, `VOLCENGINE_AST2_SET_HEADERS`),
+   `openai-realtime-api` and `cometapi` — every one in both bundles at
+   `fa301e9a` — are in neither, and neither is `livekit`. What stays shipped
+   still ships: `session.headers` in `build/static/index-*.js` and
+   `extension/dist/fullpage.js`; `WS_HEADERS_SET` in those two and in
+   `extension/dist/background.js` and `wsHeaderRule.js`.
+5. **The bundle sizes** (bytes; `fa301e9a`'s measured by the plan on a copy
+   of it):
+
+   | | `fa301e9a` | `968043c5` | change |
+   |---|---|---|---|
+   | `build/` JavaScript | 10 842 039 | 9 478 758 | −1 363 281 (−12.6 %) |
+   | `build/` source maps | 26 459 933 | 21 285 422 | −5 174 511 |
+   | `build/` whole | 147 727 129 | 141 186 233 | −6 540 896 |
+   | `extension/dist/` JavaScript | 12 343 872 | 10 912 377 | −1 431 495 (−11.6 %) |
+   | `extension/dist/` whole | 114 683 547 | 113 249 027 | −1 434 520 |
+
+   The web build's `audioStore-*.js` (1 612 653 bytes, which carried the old
+   clients) is gone and `index-*.js` grows from 1 222 236 to 1 723 323; the
+   extension's `assets/settingsStore-*.js` shrinks from 1 852 148 to 341 813
+   and `fullpage.js` grows from 881 498 to 1 081 968. The JavaScript is within
+   61 bytes of the plan's replay; the maps are 24 KB lighter (path strings;
+   nothing ships them).
+6. **Every provider's Settings, rendered before and after** (headless
+   Chromium over two vites, one on a copy of `fa301e9a`, one on the worktree;
+   the desktop fake injected before load, then the web preview without it; no
+   key typed, Start never pressed): **PASS — 42 of 42 text pairs
+   byte-identical**: the plan's 34 (nine providers × the simple and the
+   advanced layout on the desktop fake; eight on the web preview, where
+   OpenAI Live is not offered) and 8 for the development-only `fake` and
+   `fake_leased`. The picker's list, the wizard's own-key list and the desktop
+   channels invoked are identical. Of 63 screenshot pairs 34 are byte-identical
+   and 29 differ in pixels only: 24 by sub-pixel anti-aliasing (at most 7
+   pixels), 5 by the "Checking…" spinner's angle. No request reached a
+   provider's host; both runs made the same signed-out session check to
+   `sokuji.kizuna.ai` and the same four Edge voice-list calls (Local
+   Inference's panel); 0 console errors. The report:
+   `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-group/render-report.md`;
+   the texts, screenshots, request and option lists:
+   `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-group/out/`.
+7. **The gate's regex, trimmed** (choice 11): its `services/(clients|…)`
+   alternative, which matched no file after Task 6, left the shared
+   `oar-gate.sh` (the old script kept as
+   `…/deletion-sdd/group/oar-gate.before-trim.sh`); the trimmed gate prints
+   the same 16 lines as the plan's baseline.
+
+**For the next group check — a vite trap:** `SOKUJI_DEV_NO_ELECTRON=1` guards
+only the main-process entry of `vite-plugin-electron`. The preload entry has
+no `onstart`, so the plugin started a real Electron, which ran for about a
+minute — creating and removing its PulseAudio virtual devices — before it was
+killed. Starting each vite with `ELECTRON_OVERRIDE_DIST_PATH` pointing at a
+dummy `electron` script (`…/deletion-group/fake-electron-dist`) starts no
+Electron; afterwards `pactl` listed only the HDMI sink and its monitor.
+
+**Departures, stated:**
+- **One deletion plan for every provider** (ruling 2; ruling C7), a task per
+  group, where the roadmap scheduled one per provider (B2, V2, G2, T2, the
+  merged OpenAI deletion, Palabra's, OpenAI Live's).
+- **Local Native's old path kept whole** (ruling 1), the shell and the old
+  store reduced *to* it; its default provider stays `Provider.OPENAI`, an id
+  the old registry no longer holds (ruling C4; choice 4).
+- **The shell reduced first** (choice 1), not group by group.
+- **`getRelayWsUrl` deleted, the `sokuji-auth.` redaction kept as a net**
+  (choice 6), where T2's inventory left the choice open.
+- **The old AST2 rules swept by `sweepIds`** at `onStartup` / `onInstalled`
+  (ruling C3), rather than a separate start-up clear.
+- **`providerPath.test.ts`' `OPENAI_LIVE` row kept** (ruling C1), where Live's
+  inventory listed it: it pins the live id's path.
+- **`providers.openaiCompatible.{name,description}` deleted** (research note
+  7) although `ProviderPicker`'s dynamic lookup matches them — no registry
+  offers the id; `settings.{low,medium,high}` kept, read by
+  `RealtimeTurnDetection`.
+- **The four client diagnostic codes no sender uses** — `cleanup_failed`,
+  `input_pipeline_failed`, `send_dropped`, `lease_notify_failed` — deleted
+  from the contract's catalogue (ruling C17).
+- **`CONTEXT.md` rewritten with `CLAUDE.md`** (ruling 9), its native model
+  resolution entries too (ruling 11).
+- **One commit outside the plan's blocks:** `700bd998`, Task 5's review.
+
+**The owner's follow-ups:**
+- **Delete the five repository variables** no workflow reads now — Settings →
+  Secrets and variables → Actions → Variables on `kizuna-ai-lab/sokuji`:
+  `VITE_ENABLE_VOLCENGINE_AST2`, `VITE_ENABLE_PALABRA_AI`,
+  `VITE_ENABLE_KIZUNA_SONIOX`, `VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE`,
+  `VITE_ENABLE_KIZUNA_VOLCENGINE_AST2`. `VITE_ENABLE_KIZUNA_AI`,
+  `VITE_ENABLE_LOCAL_NATIVE` and `VITE_ENABLED_PROVIDERS` stay.
+- **The 51 locale keys already unreferenced at `fa301e9a`,**
+  `settings.geminiParticipantTokenWarning` among them: a follow-up, out of
+  this plan (ruling C16).
+
+**For the release that carries Stage 2** (ruling 10; choice 12): `README.md`'s
+provider table (its OpenAI Compatible row included), `docs/*.html` and
+`docs/tutorials/*` (`docs/supported-ai-providers.html`,
+`docs/tutorials/cometapi-setup.html` and the rest that name the retired or
+deleted paths), `CHANGELOG.md`'s entry, and
+`.github/ISSUE_TEMPLATE/bug_report.yml`'s OpenAI Compatible block. They
+describe the app users run, which has OpenAI Compatible and Palabra's LiveKit
+path until then.
+
+**Before any release from the branch:** nothing new — the deletion changes no
+behaviour a user reaches (the render comparison above).
+
+**Amended in place:** every earlier item the inheritance table below settles
+is marked at its item — "**Done**", "**Taken**", "**Kept**", "**Met**",
+"**Changed**", "**Decided**" or "**Left**" by the Stage 2 deletion plan — the
+plan's rows, and ten items this record marked beyond them (the table says
+which).
+
+**The spec's amendments** (this record's commit), each marked "(Stage 2
+deletion, …)":
+1. "Decisions" → "Deleted with no behaviour change": **landed** — every client
+   that carried them is deleted but Local Native's, whose `IClient.ts` keeps
+   the members it uses, the dead ones among them, until #578.
+2. "Persisted settings that move": the system instructions' global copy is
+   written by no one since the old instruction fields went (choice 5), and
+   stays on disk as the legacy source; the old store's readers are deleted, no
+   storage key removed or rewritten, and what only the old slices read stays on
+   disk unread (rulings 2, 3).
+3. "What adding a provider then touches": the old path's five steps are gone
+   (ruling 7); Local Native is the exception until #578.
+4. "Migration", the old-code paragraph: **done**, in one change (rulings 2,
+   C7), with what went and where.
+5. "Migration", item 10: Local Native's old path is what the deletion kept
+   whole (ruling 1).
+6. "Migration", the relay twins: both **deleted**; a stored selection of
+   either still falls to Kizuna Soniox where it is offered.
+7. "Risks": the old path kept for Local Native, compiled and tested, working
+   but unreachable but for `nativeModelStore`'s revalidation (ruling 1;
+   choice 4).
+
+**The roadmap's inheritance, item by item** (the plan's table, as landed;
+anchors are the roadmap's at `fa301e9a`): taken (and where), or left (and
+why).
+
+| Item | Disposition |
+|---|---|
+| Soniox, "Deleting both providers' old code" after Plan B's paid live test (`:1752`) | **Done**: Task 6 (`e802a26a`) — the clients, descriptors, `sonioxBothMode.ts`, `ManagedSonioxSession`, the slices' readers, the MainPanel chips, the stubs (eight by then); the shell's Soniox branches in Task 1 (`be2b1b78`) |
+| Soniox, "What that deletion must keep" (`:1753`) | **Kept**: every file it names is untouched but for the two re-points (Task 6) |
+| Kizuna Soniox, stated departure: "its old client, descriptor, helpers, settings UI and store slices stay compiled and unreachable until Plan B2" (`:2171`) | **Done**: Task 6 (the shell's branches in Task 1); the stored keys stay |
+| Kizuna Soniox, the inheritance rows "Deleting both providers' old code" and "The keep-list and its re-points" (`:2242-2243`) — added by this record | **Done**: Task 6 |
+| Kizuna Soniox, the release-flag cleanup at Stage 2's end (`:2354-2357`) | **Taken**: the five flags leave the code and CI (Tasks 3, 4, 6, 8; ruling 6); the repository variables are the owner's (above). `VITE_ENABLE_KIZUNA_AI` stays |
+| Kizuna Soniox, "The owner's paid live test … before Plan B2" (`:2358`) | **Met**: 18 of 18 (the last section) |
+| Kizuna Soniox, "Plan B2's inventory" (`:2406-2498`) | **Taken whole**: Task 6 — re-points, then the clients, descriptors, helpers, split chips, stubs, `ClientOptions.sonioxManaged` and `IClient`'s Soniox config; the three shell tests in Task 1. Its typecheck note: the gate's old-client alternatives matched nothing after Task 6 and were trimmed at the group check (choice 11). **Left:** `SonioxVoiceSection.test.tsx`'s seven full-tree lines (stale props, an unused `React`), which the re-point did not touch — not this plan's |
+| Kizuna Soniox, "Plan B2 — deleting both Soniox providers' old code" (`:2500`) | **Done**: Task 6; the bundle grep for strings only the old code carried is the group check's (`SonioxClient`, `ManagedSonioxSession`: absent) |
+| Gemini, the open question and the "What it leaves" item on `@google/genai` at G2 (`:3051`, `:3122`) — added by this record | **Decided**: kept as a development dependency (ruling C2) |
+| Gemini, "G2's inventory" (`:3061-3072`) | **Taken**: Task 5 (`5f84030c`; the shell's branches and `tutorialUrls.ts`' entry in Task 1); `@google/genai` stays (ruling C2); the stale comments go with their files or are corrected (`sanitizeEvent.ts`). **Left:** `settings.geminiParticipantTokenWarning`, unreferenced before this plan — a follow-up (ruling C16) |
+| Gemini, "G2" (`:3121`) | **Done**: Task 5 |
+| Volcengine AST2, "V2's start-up clear of DNR rules 2000–2009" (`:3749-3754`) and "What it leaves"' "The start-up clear" (`:3869`) — the second added by this record | **Taken**, shaped by ruling C3: `sweepIds` takes the range at `onStartup` / `onInstalled` (Task 4, `3054aaf8`) |
+| Volcengine AST2, "At Stage 2's end" (`:3755-3757`) and the flag cleanup (`:3856`) | **Taken**: Task 4 |
+| Volcengine AST2, "V2's inventory" (`:3800-3814`) | **Taken whole**: Task 4 (the shell's branches, `KIZUNA_HOSTED_ICONS` and `TUTORIAL_URLS`' entry in Task 1). Its "keep" list: `LEGACY_SLICE_KEYS` and `MANAGED_LEGACY_IDS` kept; `getRelayWsUrl` kept only while the OpenAI Translate twin used it — Task 3 deleted that twin first, so it went here; the `sokuji-auth.` rule kept as a net (choice 6); `electron/main.js`' `ws-headers-set` / `ws-headers-clear` kept |
+| Volcengine AST2, the relay twin in the inheritance list (`:3855`) — added by this record | **Done**: Task 4 |
+| Volcengine AST2, "V2" (`:3864`) | **Done**: Task 4 |
+| Volcengine AST2, "Generic frame names grouped under Doubao's Logs keys" (`:3872`), which names V2 as a natural moment to narrow Doubao's rows | **Left**: the grouping stays. The new adapter (`volcengine_ast2/adapter.ts`) is the only emitter of those names today (checked again at `968043c5`), so the rows are Doubao's alone; narrowing them is a Logs change, not this deletion's. Task 4 removed only the old client's names |
+| OpenAI Translate, "At Stage 2's end" (`:4325`) and the flag cleanup (`:4467`) | **Taken**: Task 3 (`a7cc8772`) |
+| OpenAI Translate, "T2's inventory" (`:4386-4399`) | **Taken whole**: Task 3 (`KIZUNA_HOSTED_ICONS`' entry and the shell's twin branches in Task 1). "Once both twins are gone: `getRelayWsUrl` … delete, or keep the rule as a net": `getRelayWsUrl` deleted (Task 4), the rule kept (choice 6) |
+| OpenAI Translate, the relay twins in the inheritance list (`:4466`) — added by this record | **Done**: Task 3 |
+| OpenAI Translate, "T3's inventory" (`:4401-4413`) | **Taken** in the merged deletion, Task 7 (`27c77e20`); its orphan keys: `settings.translateModelAvailable` (Task 7), `settings.translateSourceParticipantWarning` (Task 1); `settings.userTranscriptModel` / `settings.transcriptModelTooltip` kept (OpenAI Realtime reads them) |
+| OpenAI Translate, "T2" and "T3" (`:4475-4476`) | **Done**: Tasks 3 and 7 |
+| OpenAI Realtime, "The old code's deletion waits only for the two WebSocket live tests" (`:5103-5107`) and "The owner's live test below, before the merged deletion" (`:5189`) | **Met** by the owner's ruling 2, given after his live tests (2026-09-30): OpenAI Realtime 25 of 25; the checklist snapshot the last section quotes (`:8264-8271`) was taken earlier that day |
+| OpenAI Realtime, "The merged deletion inventory" (`:5259-5279`) | **Taken whole**: Task 7 (the shell's branches and `tutorialUrls.ts`' Compatible entry in Task 1; `providers.openaiCompatible.customEndpointPlaceholder` in Task 1, its name and description in Task 7). The diagnostics' comments that cite `EphemeralTokenService.ts` lines as their example (`describeCause.ts:24`, `report.ts:47`, `redact.ts:67` and three tests) **keep** the citation: it names where the rule came from (choice 3) |
+| OpenAI Realtime, "The merged deletion plan" (`:5357`) | **Done**: Task 7 |
+| OpenAI Realtime, "Nothing on the old code" in "What it leaves" (`:5363`) — added by this record | **Changed**: deleted (Task 7) |
+| Palabra, "`VITE_ENABLE_PALABRA_AI` … goes with the old code" (`:6307`), and its inheritance row (`:6387`) — the second added by this record | **Taken**: Task 8 (`d1092fc2`) |
+| Palabra, "The deletion inventory" (`:6345-6356`) | **Taken whole**: Task 8 (the shell's branches, the credentials block and its styles, and `tutorialUrls.ts`' entry in Task 1; `CLAUDE.md`'s pin text in Task 11); `WebRTCAudioBridge` and the worklet copy here, the second deletion to reach them (research note 8); its "keep" list kept |
+| Palabra, the merged OpenAI deletion's coordination (`:6428`) and "The Palabra deletion plan" (`:6445`) | **Done**: Tasks 7 and 8, in that order |
+| Palabra, "Nothing on the old code" in "What it leaves" (`:6456`) — added by this record | **Changed**: deleted (Task 8; the UI branches in Task 1) |
+| Session end, "The old clients' `session.closed` no longer draws a separator … go with the deletion plan" (`:7584-7586`) | **Done**: every old client that sent it is deleted (Tasks 2, 4–8); Local Native's, kept (ruling 1), sends its own `local.native.session.closed` |
+| OpenAI Live, "The deletion inventory" (`:8006-8027`) | **Taken**: Task 2 (`e6f31151`; the shell's branches in Task 1), with one **departure**: `providerPath.test.ts`' `OPENAI_LIVE` row stays (ruling C1) — it pins the live id's path, not the old code. Its "Kept" list kept: `main.js`' pair, the sweep of 4000, `live.mts`, the enum value |
+| OpenAI Live, "The old `OPENAI_LIVE_*` pair and the old code stay until the deletion plan" (`:8177`) | **Done**: Task 2 |
+| "Stage 2 without Local Native", what it means for Local Native until #578 (`:8257-8261`) | **Kept**: ruling 1; every task's gates ran its tests |
+| "Stage 2 without Local Native", item 1, the owner's live tests (`:8263-8271`) | Not this plan's: the owner released the deletion after his tests (ruling 2) |
+| "Stage 2 without Local Native", item 2, one deletion plan per provider (`:8273-8278`) | **Changed**: one plan, a task per group (ruling 2; ruling C7). Each task re-checked that nothing of Local Native's goes |
+| "Stage 2 without Local Native", item 3, the release flags (`:8279-8282`) | **Taken**: Tasks 3, 4, 6, 8; the variables are the owner's |
+| "Left for after the merge" (`:8284-8285`) | Not this plan's |
+
+**What this plan leaves** (the plan's own list, as landed):
+- **Local Native's old path**, compiled, tested and unreachable but for
+  `nativeModelStore`'s revalidation, until kizuna-ai-lab/sokuji#578 ports it
+  (ruling 1): the survivors under `src/services/{clients,providers,interfaces}/`,
+  the unmounted shell, the `localNative` slice, `settingsStore.validateApiKey`'s
+  arm. #578 deletes them; its port also retires `descriptorRegistry.test.ts`
+  (whose tables now hold Local Native alone), `participantConfig.test.ts` and
+  `prepareToStart.local.test.ts`.
+- **Comments in the keep set that name the deleted code** (choice 3; ruling 1
+  keeps those files unedited): e.g. `punctuateDefinite.ts`' header and
+  `LocalNativeProviderConfig.ts`' notes on the other descriptors;
+  `ClientFactory.ts`' note that production runs `extractCredentials` first
+  (Task 10's review) — #578's. And provenance citations in new code —
+  `volcengine_ast2/settings.ts` citing `VolcengineAST2ProviderConfig.ts:8-31` —
+  which name history at `fa301e9a`. The ones outside the keep set are the
+  final fix wave's (above).
+- **Readers of old state that is now always its reset value**, harmless:
+  `useStartBasicsTour` reads `settingsStore.isApiKeyValid`, which only Local
+  Native's arm sets (as at `fa301e9a`, where only the unmounted shell called
+  the others); `useCreateSessionConfig` has no caller.
+- **The released app's descriptions**, for the release that carries Stage 2
+  (above); and `.gitignore`'s `/palabra-probe/` entry (the owner's local
+  harness for the deleted LiveKit client, never committed).
+- **`CLAUDE.md` outside the passages Task 11 rewrote:** its "Audio Handling"
+  and "Modifying Audio Pipeline" guidance beyond the class names, the
+  passthrough line and the `modern-audio` line, and the "virtual audio device
+  management (Linux only)" statements under "Dual Platform Architecture" and
+  "Platform Requirements", were not audited. The false statements Task 11's
+  review found inside the rewritten passages, of `CLAUDE.md` and `CONTEXT.md`
+  both, are the final fix wave's (above).
+- **The diagnostics design's table**
+  (`docs/superpowers/specs/2026-08-25-diagnostics-reporting-design.md:109-115`)
+  still lists the four deleted codes: a record of #441 as designed, not a
+  statement of the code.
+- **Values on disk** no reader reads (the plan's "Stored keys"; the spec's
+  "Persisted settings that move"): nothing deletes a stored value (the
+  owner's rule).
+- **51 locale keys unreferenced before this plan**,
+  `settings.geminiParticipantTokenWarning` among them — the owner's follow-up
+  (ruling C16).
+- **`SonioxVoiceSection.test.tsx`'s seven full-tree lines**, untouched.
+- **The typecheck's remainder:** the full tree at 95 errors and the gate at
+  16 lines, all older than this plan, which fixed none by rule.
+
+**Open questions for the owner:** none. The first version's four were ruled
+(Revision 1: rulings C16, 9, 10, C17), and Revision 2's one — `CONTEXT.md`'s
+native model resolution entries — by the owner's ruling 11 (Revision 3, Task
+11). The final whole-branch review follows this record; its one fix wave takes
+its own findings with those parked above.

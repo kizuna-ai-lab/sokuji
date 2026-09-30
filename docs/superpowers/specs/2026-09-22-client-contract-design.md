@@ -117,6 +117,15 @@ line) · `onConversationInterrupted` (the consumer's body is commented out) ·
 copy) · `status: 'incomplete' | 'cancelled'` (**never set anywhere**, yet
 `MainPanel.tsx:4621` tests for `'incomplete'`).
 
+**Landed** (Stage 2 deletion, rulings 1, 2): every client that carried these
+is deleted with its provider's old code, but Local Native's; `IClient.ts`
+keeps only what Local Native's old client uses (`ConversationItem`,
+`BaseSessionConfig`, `LocalNativeSessionConfig` with
+`isLocalNativeSessionConfig`, `SessionConfig` — now that one type —
+`ResponseConfig`, `ClientEventHandlers`, `FilteredModel`, `IClient`), the
+dead members above still declared there, until kizuna-ai-lab/sokuji#578
+retires it.
+
 ---
 
 ## Architecture
@@ -1843,10 +1852,21 @@ exception: it is migrated once from the old slices and written to its own key,
 | credentials | fields inside each slice (`apiKey`, `appId`, `accessToken`, `clientId`, `clientSecret`, region keys) | the same keys, read into the credential record instead of `S` |
 | `keepReplayAudio` | a client option every client is handed | L1's retention switch (D26) |
 | transport | `transportType` in the OpenAI slices, with `forceWebrtcTurnDetectionOff` rewriting the turn mode | not read: the owner abandoned OpenAI's WebRTC (2026-09-29), so neither `S` has the field and the rewrite has nothing to do (D25 closed); every session runs over WebSocket, as a stored `webrtc` already did (Stage 2 OpenAI Translate, ruling 1; Stage 2 OpenAI Realtime, ruling 12). The first design kept it in `S` and made the rewrite `turns(s)` |
-| system instructions | one global copy, `settings.common.useTemplateMode` / `systemInstructions` / `participantSystemInstructions` | each provider's own three fields, each read from the provider's key once written and otherwise from the global key (a `legacyKeys` entry naming the whole key); nothing moves, and the global copy stays for the providers not yet ported |
+| system instructions | one global copy, `settings.common.useTemplateMode` / `systemInstructions` / `participantSystemInstructions` | each provider's own three fields, each read from the provider's key once written and otherwise from the global key (a `legacyKeys` entry naming the whole key); nothing moves; the global copy is no longer written by anyone since the old store's instruction fields went (Stage 2 deletion, choice 5), and stays on disk as the legacy source |
 
 `bothModeSharedSession`, the segmentation settings and the display settings do
 not move.
+
+**The old store's readers are deleted** (Stage 2 deletion, rulings 2, 3):
+every slice but Local Native's, with their migrations, which ran in memory
+only. No storage key is removed or rewritten; the keys each provider reads are
+the Stage 2 deletion plan's table
+(`docs/superpowers/plans/2026-09-30-client-contract-stage2-deletion.md`,
+"Stored keys"). What only the old slices read stays on disk, unread (OpenAI's
+`transportType` and `temperature`, OpenAI Translate's `transcriptModel` and
+`transportType`, Palabra's `subscriberCount` and `publisherCanSubscribe`,
+Soniox's `model`, `settings.common.templateSystemInstructions`, and the three
+retired providers' slices).
 
 OpenAI's temperature leaves its `S` (Stage 2 OpenAI Realtime, ruling 6): the
 GA session takes none, so it is neither shown nor sent, and its stored value
@@ -1894,6 +1914,12 @@ provider's cost: F14 (the seam and its fake, Electron's rules, the extension's
 pair), the OpenAI helpers lifted at their third user, three members of the
 translation cuts module and the replay harness's stamps (Stage 2 OpenAI Live,
 choices 1–5, 18).
+
+The old path's five steps (a client implementing `IClient`, an
+`XProviderConfig`, its registration in `ProviderConfigFactory`, an enum value
+with a store slice, locale keys) are gone with it (Stage 2 deletion, ruling
+7); `CLAUDE.md`'s "Adding a New AI Provider" states the list above. Local
+Native is the exception until #578.
 
 ---
 
@@ -2492,6 +2518,16 @@ later plan (Stage 2 Palabra, ruling 17; the roadmap's Palabra record holds
 the inventory). It meets the OpenAI deletion at `WebRTCAudioBridge`, whose
 `livekit-client` type import that deletion orphans: whichever runs second
 deletes the bridge.
+**Done** by the Stage 2 deletion plan (the owner's rulings of 2026-09-30,
+landed 2026-10-01), after the owner's live tests, in one change rather than
+one per provider (rulings 2, C7): every provider's old code but Local
+Native's (ruling 1), the relay twins, OpenAI Compatible, `openai-realtime-api`
+and `evals/` (ruling 4), `livekit-client` and its pin, `WebRTCAudioBridge`
+(deleted with Palabra's old code, the second deletion to reach it), and
+LocalInference's old leftovers (ruling 3). The extension's AST2 header block
+went, its rule ids swept at start (ruling C3); the relay's CSP origins went,
+with OpenAI Compatible's presets (ruling 5); the per-provider release flags
+went (ruling 6).
 
 **Stage 2 — one provider per change**, after a vendor-free foundation plan
 (`docs/superpowers/plans/2026-09-26-client-contract-stage2-foundation.md`).
@@ -2559,7 +2595,11 @@ The order (the owner may overrule it):
     kizuna-ai-lab/sokuji#578: the Stage 2 registry lists no Local Native, so it
     is not offered, even behind its tester switch, until that port lands; its
     old path stays compiled and unreachable, and the Stage 2 deletions keep
-    what it uses (#578 names the pieces).
+    what it uses (#578 names the pieces). Its old path is what the Stage 2
+    deletion kept whole (ruling 1): `LocalNativeClient`,
+    `LocalNativeProviderConfig` alone in `ProviderConfigFactory`, the old
+    settings shell reduced to its branches, the `localNative` slice, and the
+    old store's `validateApiKey` arm `nativeModelStore` still runs.
 
 **The relay twins** (`kizunaai_openai_translate`, `kizunaai_volcengine_ast2`)
 are not ported onto the relay: the owner ruled on 2026-08-30 that the user's
@@ -2572,6 +2612,11 @@ ported (item 4 above); `kizunaai_openai_translate` stays held until OpenAI
 Translate's turn.
 **Amended by the Stage 2 OpenAI Translate plan:** the owner has decided that one
 too: it is deleted, not ported, after the own-key port's live test (plan T2).
+Both twins' old code is **deleted** by the Stage 2 deletion plan (ruling 2),
+OpenAI Translate's first, then AST2's with the relay's URL and CSP origins
+(ruling 5); a stored selection of either still falls to Kizuna Soniox
+where it is offered (`MANAGED_LEGACY_IDS`), else to the first provider
+offered.
 
 That is twelve providers: nine ported in nine steps — the tenth, OpenAI
 Translate's WebRTC transport with OpenAI Realtime's, removed when the owner
@@ -2754,5 +2799,12 @@ From the Stage 2 foundation survey's §3.4:
   question, now Palabra's too): no frame, error, notice or log
   line of ours carries one (the kit's `frame-url`; `redact()`'s query rule),
   but DevTools' own console prints a failed socket's URL, outside our sinks.
+- **The old path kept for Local Native** (Stage 2 deletion, ruling 1):
+  `src/services/`, the unmounted settings shell and the `localNative` slice
+  stay compiled and tested, working but unreachable but for
+  `nativeModelStore`'s revalidation, until #578 ports Local Native; a change
+  to a shared file must keep their tests green. The shell tolerates a stored
+  provider its registry does not hold, and the old store's default stays an
+  id that registry does not hold (Stage 2 deletion, choice 4).
 - **A long-lived branch that outlives its welcome.** Mitigated only by Stage 1
   landing quickly enough that Stage 2 can proceed provider by provider.
