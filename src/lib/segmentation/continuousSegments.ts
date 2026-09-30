@@ -26,6 +26,12 @@
  *   its pause to begin; if none begins, every owed cut is dropped, and one that
  *   begins while a newer source is already open follows that source (choice
  *   8).
+ * - An adapter with source rules of its own — OpenAI Live's timeline pause,
+ *   sentence count and caps — cuts the source itself (`cutSource`), and ends
+ *   the open translation's text with a delta's leading marks before a due cut
+ *   (`translationContinues`); a lost connection closes both sides as they
+ *   stand (`closeAll`). The cuts owed, and the translation that follows
+ *   them, are the same (Stage 2 OpenAI Live, choice 5).
  *
  * Pure: every timer on the clock it is handed, every time from its `now()`.
  */
@@ -79,10 +85,11 @@ export type SegmentSink = Pick<AdapterEvents, 'segmentOpened' | 'segmentText' | 
 /**
  * Why a translation closed (choice 14): `sentences`, the cut owed first was
  * due; `quiet`, its own pause; `done`, the endpoint's `.done`; `turn`, a turn
- * end on a stream with none. `idle`: owed cuts dropped with no translation
- * to close — none began within its pause, or one began for a newer source.
+ * end on a stream with none; `lost`, the connection (Stage 2 OpenAI Live,
+ * choice 5). `idle`: owed cuts dropped with no translation to close — none
+ * began within its pause, or one began for a newer source.
  */
-export type CutReason = 'sentences' | 'quiet' | 'done' | 'turn' | 'idle';
+export type CutReason = 'sentences' | 'quiet' | 'done' | 'turn' | 'lost' | 'idle';
 
 /** One cut, for the Logs (`translation.cut`; choice 14): never text. */
 export interface CutSummary {
@@ -201,6 +208,21 @@ export class ContinuousSegments {
   }
 
   /**
+   * Text that continues the open translation whatever cut is due: OpenAI
+   * Live's leading marks, which end the text before them (Stage 2 OpenAI
+   * Live, choice 8). Counted, shown and its activity as a delta is; with no
+   * translation open, nothing.
+   */
+  translationContinues(text: string): void {
+    const tr = this.translation;
+    if (this.stopped || !text || !tr) return;
+    this.readEnds(tr, text);
+    tr.text += text;
+    this.o.sink.segmentText({ ref: tr.ref, text: tr.text });
+    this.active();
+  }
+
+  /**
    * The translation's audio. `active`: it opens a translation when none is
    * open and is the translation's activity, as a delta is (OpenAI Translate's
    * frames above its noise floor); otherwise it does neither (Gemini's, and
@@ -251,6 +273,33 @@ export class ContinuousSegments {
     if (this.stopped) return;
     this.closeSource();
     if (this.translation) this.settle('turn');
+  }
+
+  /** The adapter's own source cut (Stage 2 OpenAI Live, choice 5): the open source closes now, owing its cut, as its pause would close it. */
+  cutSource(): void {
+    if (this.stopped) return;
+    this.closeSource();
+  }
+
+  /**
+   * The connection is gone (Stage 2 OpenAI Live, choice 5): the source and
+   * the translation close as they stand, every cut still owed is dropped,
+   * and no timer is left. The refs keep counting — a ref is never reused in
+   * one session — and the next translation follows no source of the old
+   * connection.
+   */
+  closeAll(): void {
+    if (this.stopped) return;
+    this.closeSource();
+    if (this.translation) this.closeTranslation('lost');
+    else this.dropOwed();
+    this.cancelSource();
+    this.cancelTranslation();
+    this.deferral.reset();
+    this.beginning = false;
+    this.held = false;
+    this.waiting = false;
+    this.lastClosed = undefined;
   }
 
   /** No timer is left, and nothing is said after it: L1 finalizes what is open. */

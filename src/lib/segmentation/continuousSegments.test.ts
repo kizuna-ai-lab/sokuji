@@ -753,10 +753,67 @@ describe('typed text, .done, a turn end, stop (translation cuts, choices 12, 13)
       s.typed('late');
       s.done('source');
       s.endTurn();
+      s.cutSource();
+      s.translationContinues('.');
+      s.closeAll();
       expect(timers()).toBe(0);
       expect(log.length).toBe(n);
       expect(cuts.length).toBe(c);
     }
+  });
+});
+
+describe("an adapter's own source rules and a lost connection (Stage 2 OpenAI Live, choice 5)", () => {
+  it('cutSource closes the open source now, owing its cut as its pause would; with none open it does nothing', () => {
+    const { s, closed, opened, timers } = segments();
+    s.cutSource();
+    expect(closed()).toEqual([]);
+    s.sourceText('今天我吃了');
+    s.cutSource();
+    expect(closed()).toEqual([{ ref: 1 }]);
+    // Owed: the translation that begins now states that source; its pause to begin runs.
+    expect(timers()).toBe(1);
+    s.translationText('Today I ate');
+    expect(opened()[1]).toEqual({ ref: 2, side: 'translation', origin: 's1' });
+  });
+
+  it('translationContinues ends the open translation with its marks before a cut due is taken — counted, shown, its activity — and with none open does nothing', () => {
+    const { s, at, texts, closed, opened } = segments();
+    s.sourceText('你好');
+    s.cutSource();
+    at(100);
+    s.translationText('Hello there');
+    s.translationContinues('.');
+    expect(texts(2)).toEqual(['Hello there', 'Hello there.']);
+    s.translationText(' Bye');
+    expect(closed()).toEqual([{ ref: 1 }, { ref: 2 }]);
+    expect(opened()[2]).toEqual({ ref: 3, side: 'translation' });
+    const none = segments();
+    none.s.translationContinues('.');
+    expect(none.log).toEqual([]);
+  });
+
+  it('closeAll closes both sides as they stand, drops every cut owed, leaves no timer; the refs count on, and the next translation follows no source before it', () => {
+    const { s, at, closed, opened, cuts, timers } = segments();
+    s.sourceText('一。');
+    s.cutSource();
+    at(100);
+    s.translationText('One');
+    s.sourceText('二');
+    s.closeAll();
+    expect(closed()).toEqual([{ ref: 1 }, { ref: 3 }, { ref: 2 }]);
+    expect(cuts).toEqual([{ reason: 'lost', origin: 's1', sentences: 0, owed: 0, dropped: 1 }]);
+    expect(timers()).toBe(0);
+    s.translationText('Again.');
+    expect(opened()[3]).toEqual({ ref: 4, side: 'translation' });
+    at(1_600);
+    expect(closed()[3]).toEqual({ ref: 4 });
+    // With no translation open, what is owed is dropped as idle.
+    const idle = segments();
+    idle.s.sourceText('你好');
+    idle.s.closeAll();
+    expect(idle.cuts).toEqual([{ reason: 'idle', origin: null, sentences: 0, owed: 0, dropped: 1 }]);
+    expect(idle.timers()).toBe(0);
   });
 });
 
