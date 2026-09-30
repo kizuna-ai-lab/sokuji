@@ -85,7 +85,6 @@
     "realtimeModelAvailable": "Le modèle en temps réel est disponible",
     "realtimeModelNotAvailable": "Le modèle en temps réel n'est pas disponible",
     "modelsFound": "{{count}} modèles disponibles",
-    "invalidApiKeyFormat": "Format de clé API invalide",
     "volcengineAST2Info": "Informations Doubao AST 2.0",
     "volcengineAST2InfoText": "Doubao AST 2.0 fournit une traduction vocale avec clonage automatique de la voix. L'audio traduit préserve les caractéristiques vocales du locuteur d'origine.",
     "volcengineAST2TurnDetectionTooltip": "Auto: détection d'activité vocale côté serveur. \nAppuyer pour parler: maintenez la barre d'espace ou le bouton du microphone pour envoyer l'audio manuellement. \nAppuyer pour traduire: comme Appuyer pour parler, mais achemine votre micro brut vers le micro virtuel en veille pour que vous puissiez parler directement sans traduction.",
@@ -420,9 +419,7 @@
     "backToSignIn": "Retour à la connexion",
     "forgotPasswordError": "Échec de l'envoi du code de vérification. Veuillez réessayer.",
     "resetPasswordError": "Échec de la réinitialisation du mot de passe. Veuillez réessayer.",
-    "signedOut": "Connectez-vous pour utiliser le service de traduction intégré de Kizuna AI.",
-    "sessionUnavailable": "Votre session n'est plus valide. Veuillez vous reconnecter.",
-    "unknown": "Impossible de vérifier votre compte. Veuillez réessayer."
+    "signedOut": "Connectez-vous pour utiliser le service de traduction intégré de Kizuna AI."
   },
   "simpleConfig": {
     "interfaceLanguage": "Langue de l'Interface",
@@ -611,9 +608,6 @@
     "waveformMicTooltip": "Votre microphone — votre voix captée pour la traduction",
     "waveformSystemTooltip": "Audio de l'autre capté pour la traduction (onglet du navigateur / audio système)",
     "allChannelsFailed": "Échec du démarrage des canaux audio. Vérifiez les autorisations des périphériques et réessayez.",
-    "participantChannelFailed": "Échec du démarrage du canal audio de l'autre.",
-    "splitDegradedLabel": "Sens unique uniquement",
-    "splitDegradedTooltip": "L'audio de l'autre n'est pas traduit, cette session fonctionne donc dans un seul sens. Vérifiez les autorisations de l'audio de l'autre, puis lancez une nouvelle session.",
     "sonioxInsufficientBalance": "Solde insuffisant pour démarrer une session. Veuillez recharger votre solde et réessayer.",
     "sonioxSessionConflict": "Une autre session est déjà en cours sur votre compte. Veuillez réessayer dans un instant.",
     "sonioxServiceUnavailable": "Soniox est temporairement indisponible. Veuillez réessayer dans un instant.",

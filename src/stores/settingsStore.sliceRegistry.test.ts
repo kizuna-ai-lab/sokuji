@@ -32,7 +32,6 @@ const PLAIN: Array<[string, string, Record<string, unknown>]> = [
   ['updateOpenAITranslate', 'openaiTranslate', { apiKey: 'k2' }],
   ['updateLocalInference', 'localInference', { ttsSpeed: 1.5 }],
   ['updateLocalNative', 'localNative', { sourceLanguage: 'ja' }],
-  ['updateSoniox', 'soniox', { apiKey: 's1' }],
 ];
 
 beforeEach(() => {
@@ -78,17 +77,6 @@ describe('provider settings update actions (behavior lock)', () => {
       expect((useSettingsStore.getState() as any)[sliceKey].turnDetectionMode, action).toBe('Normal');
       expect(setSetting, action).not.toHaveBeenCalledWith(`settings.${sliceKey}.turnDetectionMode`, expect.anything());
     }
-  });
-
-  it('the kizuna twin: credentials update in-memory state but are never persisted', async () => {
-    await useSettingsStore.getState().updateKizunaSoniox({ apiKey: 'a', apiKeyEu: 'e', sourceLanguage: 'zh' } as any);
-    // Credentials land in state...
-    expect((useSettingsStore.getState() as any).kizunaSoniox.apiKey).toBe('a');
-    expect((useSettingsStore.getState() as any).kizunaSoniox.apiKeyEu).toBe('e');
-    // ...but are never persisted.
-    expect(setSetting).not.toHaveBeenCalledWith('settings.kizunaSoniox.apiKey', expect.anything());
-    expect(setSetting).not.toHaveBeenCalledWith('settings.kizunaSoniox.apiKeyEu', expect.anything());
-    expect(setSetting).toHaveBeenCalledWith('settings.kizunaSoniox.sourceLanguage', 'zh');
   });
 
   // The registry used to carry `persistErrors: 'throw' | 'swallow'`, split 6/6,

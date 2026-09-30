@@ -179,35 +179,6 @@ export function isKizunaAIEnabled(): boolean {
 }
 
 /**
- * Whether each Kizuna-managed provider should be offered.
- *
- * One gate per provider, all NARROWER than `isKizunaAIEnabled`. The master gate
- * cannot hold an individual provider back: it also drives the account UI and
- * onboarding, which are "is this a Kizuna build" concerns rather than
- * per-provider ones.
- *
- * They are separate because the managed providers are released independently.
- * They also bill differently from one another — the relay twins charge per
- * second of session time, Soniox on reported usage — and the wallet page states
- * one set of rates, so offering a provider before its rates are published shows
- * a user a price that is not theirs.
- *
- * These gates only decide REGISTRATION. Nothing downstream may infer "gate on
- * implies provider registered": callers ask ProviderConfigFactory
- * (isProviderSupported / getDefaultManagedProvider) instead, which is what lets
- * any combination of these be safe.
- *
- * Development keeps all of them on, so nothing changes while working locally.
- */
-export function isKizunaSonioxEnabled(): boolean {
-  if (isDevelopmentMode()) {
-    return true;
-  }
-
-  return import.meta.env.VITE_ENABLE_KIZUNA_SONIOX === 'true';
-}
-
-/**
  * Check if Palabra AI features should be enabled
  * @returns true if Palabra AI features should be shown
  *

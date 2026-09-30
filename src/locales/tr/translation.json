@@ -85,7 +85,6 @@
     "realtimeModelAvailable": "Gerçek zamanlı model kullanılabilir",
     "realtimeModelNotAvailable": "Gerçek zamanlı model kullanılamıyor",
     "modelsFound": "{{count}} model mevcut",
-    "invalidApiKeyFormat": "Geçersiz API anahtarı formatı",
     "volcengineAST2Info": "Doubao AST 2.0 Bilgileri",
     "volcengineAST2InfoText": "Doubao AST 2.0, otomatik ses klonlama ile konuşmadan konuşmaya çeviri sağlar. Çevrilen ses, orijinal konuşmacının ses özelliklerini korur.",
     "volcengineAST2TurnDetectionTooltip": "Otomatik: sunucu taraflı ses etkinliği algılama. \nBas-Konuş: ses göndermek için boşluk tuşunu veya mikrofon düğmesini basılı tutun. \nBas-Çevir: Bas-Konuş gibi ancak boştayken ham mikrofonunuzu sanal mikrofona yönlendirir, böylece çeviri olmadan doğrudan konuşabilirsiniz.",
@@ -420,9 +419,7 @@
     "backToSignIn": "Giriş Yap'a Dön",
     "forgotPasswordError": "Doğrulama kodu gönderilemedi. Lütfen tekrar deneyin.",
     "resetPasswordError": "Şifre sıfırlanamadı. Lütfen tekrar deneyin.",
-    "signedOut": "Kizuna AI'nin yerleşik çeviri hizmetini kullanmak için giriş yapın.",
-    "sessionUnavailable": "Oturumunuz artık geçerli değil. Lütfen tekrar giriş yapın.",
-    "unknown": "Hesabınız doğrulanamadı. Lütfen tekrar deneyin."
+    "signedOut": "Kizuna AI'nin yerleşik çeviri hizmetini kullanmak için giriş yapın."
   },
   "simpleConfig": {
     "interfaceLanguage": "Arayüz Dili",
@@ -611,9 +608,6 @@
     "waveformMicTooltip": "Mikrofonunuz — sesiniz çeviri için kaydediliyor",
     "waveformSystemTooltip": "Çeviri için yakalanan karşı tarafın sesi (tarayıcı sekmesi / sistem sesi)",
     "allChannelsFailed": "Hiçbir ses kanalı başlatılamadı. Cihaz izinlerini kontrol edip tekrar deneyin.",
-    "participantChannelFailed": "Karşı tarafın ses kanalı başlatılamadı.",
-    "splitDegradedLabel": "Yalnızca tek yönlü",
-    "splitDegradedTooltip": "Karşı tarafın sesi çevrilmiyor, bu nedenle bu oturum yalnızca tek yönlü çalışıyor. Karşı tarafın sesi izinlerini kontrol edin, ardından yeni bir oturum başlatın.",
     "sonioxInsufficientBalance": "Oturum başlatmak için bakiye yetersiz. Lütfen bakiyenizi yükleyip tekrar deneyin.",
     "sonioxSessionConflict": "Hesabınızda zaten başka bir oturum çalışıyor. Lütfen biraz sonra tekrar deneyin.",
     "sonioxServiceUnavailable": "Soniox geçici olarak kullanılamıyor. Lütfen biraz sonra tekrar deneyin.",

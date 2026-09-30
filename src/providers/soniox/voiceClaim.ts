@@ -4,7 +4,7 @@
  * in — the backend runs Soniox's voice quota as an LRU cache, so a voice
  * chosen days ago may be gone — rebuilding it from this device's clip when
  * it must. Ported from `KizunaAISonioxProviderConfig.prepareToStart`
- * (read-only until Plan B2). It never refuses a start: a claim that fails
+ * (deleted since). It never refuses a start: a claim that fails
  * runs this session on the built-in voice, says why once the session is up,
  * and leaves the stored choice alone. The routine's sleeps run on the real
  * clock, injectable for tests (ruling 10).

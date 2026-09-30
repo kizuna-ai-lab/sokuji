@@ -85,7 +85,6 @@
     "realtimeModelAvailable": "Realtidsmodell tillgänglig",
     "realtimeModelNotAvailable": "Realtidsmodell ej tillgänglig",
     "modelsFound": "{{count}} modeller tillgängliga",
-    "invalidApiKeyFormat": "Ogiltigt API-nyckelformat",
     "volcengineAST2Info": "Doubao AST 2.0-information",
     "volcengineAST2InfoText": "Doubao AST 2.0 erbjuder röst-till-röst-översättning med automatisk röstkloning. Det översatta ljudet bevarar den ursprungliga talarens röstegenskaper.",
     "volcengineAST2TurnDetectionTooltip": "Auto: röstaktivitetsdetektering på serversidan. \nPush-to-Talk: håll ned mellanslag eller mikrofonknappen för att skicka ljud manuellt. \nPush-to-Translate: som Push-to-Talk, men dirigerar din råa mikrofon till den virtuella mikrofonen när inaktiv så att du kan tala direkt utan översättning.",
@@ -420,9 +419,7 @@
     "backToSignIn": "Tillbaka till inloggning",
     "forgotPasswordError": "Kunde inte skicka verifieringskod. Försök igen.",
     "resetPasswordError": "Kunde inte återställa lösenord. Försök igen.",
-    "signedOut": "Logga in för att använda Kizuna AI:s inbyggda översättningstjänst.",
-    "sessionUnavailable": "Din session är inte längre giltig. Logga in igen.",
-    "unknown": "Kunde inte verifiera ditt konto. Försök igen."
+    "signedOut": "Logga in för att använda Kizuna AI:s inbyggda översättningstjänst."
   },
   "simpleConfig": {
     "interfaceLanguage": "Gränssnittsspråk",
@@ -611,9 +608,6 @@
     "waveformMicTooltip": "Din mikrofon — din röst som fångas för översättning",
     "waveformSystemTooltip": "Den andras ljud som fångas för översättning (webbläsarflik / systemljud)",
     "allChannelsFailed": "Kunde inte starta någon ljudkanal. Kontrollera enhetsbehörigheterna och försök igen.",
-    "participantChannelFailed": "Det gick inte att starta den andras ljudkanal.",
-    "splitDegradedLabel": "Endast en riktning",
-    "splitDegradedTooltip": "Den andras ljud översätts inte, så den här sessionen körs bara åt ett håll. Kontrollera behörigheterna för den andras ljud och kör sedan en ny session.",
     "sonioxInsufficientBalance": "Otillräckligt saldo för att starta en session. Fyll på ditt saldo och försök igen.",
     "sonioxSessionConflict": "En annan session pågår redan på ditt konto. Försök igen om en liten stund.",
     "sonioxServiceUnavailable": "Soniox är tillfälligt otillgängligt. Försök igen om en liten stund.",

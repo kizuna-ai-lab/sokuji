@@ -85,7 +85,6 @@
     "realtimeModelAvailable": "Mô hình thời gian thực có sẵn",
     "realtimeModelNotAvailable": "Mô hình thời gian thực không có sẵn",
     "modelsFound": "{{count}} mô hình có sẵn",
-    "invalidApiKeyFormat": "Định dạng khóa API không hợp lệ",
     "volcengineAST2Info": "Thông tin Doubao AST 2.0",
     "volcengineAST2InfoText": "Doubao AST 2.0 cung cấp dịch giọng nói sang giọng nói với nhân bản giọng nói tự động. Âm thanh đã dịch giữ nguyên đặc điểm giọng nói của người nói gốc.",
     "volcengineAST2TurnDetectionTooltip": "Tự động: phát hiện hoạt động giọng nói phía máy chủ. \nNhấn để nói: giữ phím cách hoặc nút micrô để gửi âm thanh thủ công. \nNhấn để dịch: giống như Nhấn để nói, nhưng định tuyến micrô gốc của bạn đến micrô ảo khi không hoạt động để bạn có thể nói trực tiếp mà không cần dịch.",
@@ -420,9 +419,7 @@
     "backToSignIn": "Quay lại đăng nhập",
     "forgotPasswordError": "Không thể gửi mã xác minh. Vui lòng thử lại.",
     "resetPasswordError": "Không thể đặt lại mật khẩu. Vui lòng thử lại.",
-    "signedOut": "Đăng nhập để sử dụng dịch vụ dịch thuật tích hợp của Kizuna AI.",
-    "sessionUnavailable": "Phiên của bạn không còn hiệu lực. Vui lòng đăng nhập lại.",
-    "unknown": "Không thể xác minh tài khoản của bạn. Vui lòng thử lại."
+    "signedOut": "Đăng nhập để sử dụng dịch vụ dịch thuật tích hợp của Kizuna AI."
   },
   "simpleConfig": {
     "interfaceLanguage": "Ngôn Ngữ Giao Diện",
@@ -611,9 +608,6 @@
     "waveformMicTooltip": "Microphone của bạn — giọng nói của bạn đang được thu để dịch",
     "waveformSystemTooltip": "Âm thanh đối phương được thu để dịch (tab trình duyệt / âm thanh hệ thống)",
     "allChannelsFailed": "Không thể khởi động bất kỳ kênh âm thanh nào. Kiểm tra quyền thiết bị và thử lại.",
-    "participantChannelFailed": "Không thể khởi động kênh âm thanh đối phương.",
-    "splitDegradedLabel": "Chỉ một chiều",
-    "splitDegradedTooltip": "Âm thanh đối phương không được dịch, nên phiên này chỉ chạy một chiều. Hãy kiểm tra quyền của âm thanh đối phương, rồi chạy một phiên mới.",
     "sonioxInsufficientBalance": "Số dư không đủ để bắt đầu phiên. Vui lòng nạp thêm số dư và thử lại.",
     "sonioxSessionConflict": "Một phiên khác đã đang chạy trên tài khoản của bạn. Vui lòng thử lại sau giây lát.",
     "sonioxServiceUnavailable": "Soniox tạm thời không khả dụng. Vui lòng thử lại sau giây lát.",

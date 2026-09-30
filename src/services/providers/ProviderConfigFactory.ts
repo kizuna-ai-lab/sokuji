@@ -4,12 +4,10 @@ import { OpenAIProviderConfig } from './OpenAIProviderConfig';
 import { OpenAICompatibleProviderConfig } from './OpenAICompatibleProviderConfig';
 import { OpenAITranslateProviderConfig } from './OpenAITranslateProviderConfig';
 import { PalabraAIProviderConfig } from './PalabraAIProviderConfig';
-import { KizunaAISonioxProviderConfig } from './KizunaAISonioxProviderConfig';
 import { LocalInferenceProviderConfig } from './LocalInferenceProviderConfig';
 import { LocalNativeProviderConfig } from './LocalNativeProviderConfig';
-import { SonioxProviderConfig } from './SonioxProviderConfig';
 import { Provider, ProviderType } from '../../types/Provider';
-import { isKizunaAIEnabled, isKizunaSonioxEnabled, isPalabraAIEnabled, isLocalNativeEnabled, isElectron } from '../../utils/environment';
+import { isPalabraAIEnabled, isLocalNativeEnabled, isElectron } from '../../utils/environment';
 
 export class ProviderConfigFactory {
   private static configs: Map<ProviderType, ProviderDescriptor> = new Map();
@@ -22,27 +20,12 @@ export class ProviderConfigFactory {
     // AST 2.0, the three OpenAI providers, Soniox, OpenAI Compatible, Palabra,
     // then everything else.
 
-    // 1. Kizuna-managed providers — behind the master Kizuna gate plus their
-    //    own gates. Each managed provider carries its OWN gate: they are
-    //    released independently, and they bill on different models whose
-    //    rates the wallet page publishes one at a time. A shared gate could
-    //    not express "ship this one alone", which is what independent release
-    //    means. Same order as getDefaultManagedProvider's preference list.
-    if (isKizunaAIEnabled()) {
-      if (isKizunaSonioxEnabled()) {
-        ProviderConfigFactory.configs.set(Provider.KIZUNA_AI_SONIOX, new KizunaAISonioxProviderConfig());
-      }
-    }
-
     // 2. Free (local inference) — always available, no API key or flag.
     ProviderConfigFactory.configs.set(Provider.LOCAL_INFERENCE, new LocalInferenceProviderConfig());
 
     // 5. The OpenAI providers: Realtime, Translate.
     ProviderConfigFactory.configs.set(Provider.OPENAI, new OpenAIProviderConfig());
     ProviderConfigFactory.configs.set(Provider.OPENAI_TRANSLATE, new OpenAITranslateProviderConfig());
-
-    // 6. Soniox speech-to-speech translation — always available (BYOK).
-    ProviderConfigFactory.configs.set(Provider.SONIOX, new SonioxProviderConfig());
 
     // 7. OpenAI Compatible — Electron only.
     if (isElectron()) {
@@ -115,25 +98,6 @@ export class ProviderConfigFactory {
    * @param providerId - The provider identifier
    * @returns ProviderDescriptor instance
    */
-  /**
-   * The Kizuna-managed provider to put a Basic-mode user on when they sign
-   * in, or null when this build offers none.
-   *
-   * Derived from what is REGISTERED rather than from a feature flag. The
-   * managed providers are gated independently, so `isKizunaAIEnabled()` no
-   * longer implies any particular one exists — a caller that hardcoded the
-   * Translate twin would set a provider `getDescriptor` then throws on.
-   *
-   * Soniox first: it is the only managed provider open in production, and
-   * the wallet page states its rates.
-   */
-  static getDefaultManagedProvider(): ProviderType | null {
-    const preferred = [
-      Provider.KIZUNA_AI_SONIOX,
-    ];
-    return preferred.find((p) => this.configs.has(p)) ?? null;
-  }
-
   static getDescriptor(providerId: ProviderType): ProviderDescriptor {
     const d = this.configs.get(providerId);
     if (!d) throw new Error(`Unsupported provider: ${providerId}`);

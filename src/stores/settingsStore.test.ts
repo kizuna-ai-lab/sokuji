@@ -12,9 +12,6 @@ import useLogStore from './logStore';
 vi.mock('../utils/environment', async (orig) => ({
   ...(await orig<any>()),
   isKizunaAIEnabled: () => true,
-  // Explicit: each managed provider is gated on its own now, and this mock's
-  // promise is that EVERY provider gate is forced on.
-  isKizunaSonioxEnabled: () => true,
   isPalabraAIEnabled: () => true,
   isElectron: () => true,
   isExtension: () => false,
@@ -745,16 +742,16 @@ describe('updateProviderSlice (public generic action)', () => {
   // module-level ServiceFactory mock already in effect for the whole file.
 
   it('merges a patch into the named slice', async () => {
-    await useSettingsStore.getState().updateProviderSlice('soniox', { targetLanguage: 'ja' });
-    expect((useSettingsStore.getState().soniox as { targetLanguage: string }).targetLanguage).toBe('ja');
+    await useSettingsStore.getState().updateProviderSlice('localNative', { targetLanguage: 'ja' });
+    expect(useSettingsStore.getState().localNative.targetLanguage).toBe('ja');
   });
 
   it('does not bleed into other slices or drop unpatched fields', async () => {
-    const nativeBefore = useSettingsStore.getState().localNative;
-    const sourceBefore = (useSettingsStore.getState().soniox as { sourceLanguage: string }).sourceLanguage;
-    await useSettingsStore.getState().updateProviderSlice('soniox', { targetLanguage: 'ko' });
-    expect(useSettingsStore.getState().localNative).toBe(nativeBefore);
-    expect((useSettingsStore.getState().soniox as { sourceLanguage: string }).sourceLanguage).toBe(sourceBefore);
+    const inferenceBefore = useSettingsStore.getState().localInference;
+    const sourceBefore = useSettingsStore.getState().localNative.sourceLanguage;
+    await useSettingsStore.getState().updateProviderSlice('localNative', { targetLanguage: 'ko' });
+    expect(useSettingsStore.getState().localInference).toBe(inferenceBefore);
+    expect(useSettingsStore.getState().localNative.sourceLanguage).toBe(sourceBefore);
   });
 
   it('applies the same registry transform the named action applies', async () => {
@@ -778,10 +775,10 @@ describe('updateProviderSlice (public generic action)', () => {
   });
 
   it('behaves identically to the named per-provider action', async () => {
-    await useSettingsStore.getState().updateProviderSlice('soniox', { voice: 'Daniel' });
-    const viaGeneric = useSettingsStore.getState().soniox;
-    await useSettingsStore.getState().updateSoniox({ voice: 'Daniel' });
-    expect(useSettingsStore.getState().soniox).toEqual(viaGeneric);
+    await useSettingsStore.getState().updateProviderSlice('localNative', { targetLanguage: 'de' });
+    const viaGeneric = useSettingsStore.getState().localNative;
+    await useSettingsStore.getState().updateLocalNative({ targetLanguage: 'de' });
+    expect(useSettingsStore.getState().localNative).toEqual(viaGeneric);
   });
 });
 

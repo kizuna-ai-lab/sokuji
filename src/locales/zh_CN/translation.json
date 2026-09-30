@@ -85,7 +85,6 @@
     "realtimeModelAvailable": "实时模型可用",
     "realtimeModelNotAvailable": "实时模型不可用",
     "modelsFound": "找到{{count}}个模型",
-    "invalidApiKeyFormat": "API密钥格式无效",
     "volcengineAST2Info": "豆包同声传译 2.0 信息",
     "volcengineAST2InfoText": "豆包同声传译 2.0 提供语音到语音的同声传译，支持自动声音克隆。翻译后的音频保留原始说话者的声音特征。",
     "volcengineAST2TurnDetectionTooltip": "自动：服务器端语音活动检测。\n按住说话：按住空格键或麦克风按钮手动发送音频。\n按住翻译：与按住说话类似，但空闲时将原始麦克风音频直通到虚拟麦克风，您可以直接讲话而不进行翻译。",
@@ -420,9 +419,7 @@
     "backToSignIn": "返回登录",
     "forgotPasswordError": "发送验证码失败。请重试。",
     "resetPasswordError": "重置密码失败。请重试。",
-    "signedOut": "登录后即可使用 Kizuna AI 自带的翻译服务。",
-    "sessionUnavailable": "登录状态已失效，请重新登录。",
-    "unknown": "无法验证您的账户，请重试。"
+    "signedOut": "登录后即可使用 Kizuna AI 自带的翻译服务。"
   },
   "simpleConfig": {
     "interfaceLanguage": "界面语言",
@@ -611,9 +608,6 @@
     "waveformMicTooltip": "您的麦克风 —— 正在捕获您的声音用于翻译",
     "waveformSystemTooltip": "捕获对方音频用于翻译（浏览器标签页 / 系统音频）",
     "allChannelsFailed": "无法启动任何音频通道。请检查设备权限后重试。",
-    "participantChannelFailed": "无法启动对方音频通道。",
-    "splitDegradedLabel": "仅单向",
-    "splitDegradedTooltip": "对方音频未被翻译，因此本次会话仅单向运行。请检查对方音频权限，然后开始新的会话。",
     "sonioxInsufficientBalance": "余额不足,无法开始会话。请充值后重试。",
     "sonioxSessionConflict": "您的账户中已有另一个会话正在进行。请稍后重试。",
     "sonioxServiceUnavailable": "Soniox 暂时不可用。请稍后重试。",

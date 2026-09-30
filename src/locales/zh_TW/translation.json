@@ -85,7 +85,6 @@
     "realtimeModelAvailable": "即時模型可用",
     "realtimeModelNotAvailable": "即時模型不可用",
     "modelsFound": "找到 {{count}} 個模型",
-    "invalidApiKeyFormat": "API 金鑰格式無效",
     "volcengineAST2Info": "豆包同聲傳譯 2.0 資訊",
     "volcengineAST2InfoText": "豆包同聲傳譯 2.0 提供語音到語音的同聲傳譯，支援自動聲音複製。翻譯後的音訊保留原始說話者的聲音特徵。",
     "volcengineAST2TurnDetectionTooltip": "自動：伺服器端語音活動偵測。\n按住說話：按住空白鍵或麥克風按鈕手動發送音訊。\n按住翻譯：與按住說話類似，但閒置時將原始麥克風音訊直通到虛擬麥克風，您可以直接說話而不進行翻譯。",
@@ -420,9 +419,7 @@
     "backToSignIn": "返回登入",
     "forgotPasswordError": "發送驗證碼失敗。請再試一次。",
     "resetPasswordError": "重設密碼失敗。請再試一次。",
-    "signedOut": "登入後即可使用 Kizuna AI 內建的翻譯服務。",
-    "sessionUnavailable": "登入狀態已失效，請重新登入。",
-    "unknown": "無法驗證您的帳戶，請再試一次。"
+    "signedOut": "登入後即可使用 Kizuna AI 內建的翻譯服務。"
   },
   "simpleConfig": {
     "interfaceLanguage": "介面語言",
@@ -611,9 +608,6 @@
     "waveformMicTooltip": "您的麥克風 —— 正在擷取您的聲音用於翻譯",
     "waveformSystemTooltip": "擷取對方音訊用於翻譯（瀏覽器分頁 / 系統音訊）",
     "allChannelsFailed": "無法啟動任何音訊通道。請檢查裝置權限後再試一次。",
-    "participantChannelFailed": "無法啟動對方音訊通道。",
-    "splitDegradedLabel": "僅單向",
-    "splitDegradedTooltip": "對方音訊未被翻譯，因此本次工作階段僅單向運作。請檢查對方音訊權限，然後開始新的工作階段。",
     "sonioxInsufficientBalance": "餘額不足,無法開始工作階段。請儲值後再試一次。",
     "sonioxSessionConflict": "您的帳戶中已有另一個工作階段正在進行。請稍後再試一次。",
     "sonioxServiceUnavailable": "Soniox 暫時無法使用。請稍後再試一次。",

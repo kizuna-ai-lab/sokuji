@@ -85,7 +85,6 @@
     "realtimeModelAvailable": "Model w czasie rzeczywistym jest dostępny",
     "realtimeModelNotAvailable": "Model w czasie rzeczywistym nie jest dostępny",
     "modelsFound": "{{count}} modeli dostępnych",
-    "invalidApiKeyFormat": "Nieprawidłowy format klucza API",
     "volcengineAST2Info": "Informacje o Doubao AST 2.0",
     "volcengineAST2InfoText": "Doubao AST 2.0 zapewnia tłumaczenie mowy na mowę z automatycznym klonowaniem głosu. Przetłumaczony dźwięk zachowuje cechy głosowe oryginalnego mówcy.",
     "volcengineAST2TurnDetectionTooltip": "Auto: wykrywanie aktywności głosowej po stronie serwera. \nNaciśnij i mów: przytrzymaj spację lub przycisk mikrofonu, aby ręcznie wysłać dźwięk. \nNaciśnij i tłumacz: jak Naciśnij i mów, ale w stanie bezczynności kieruje surowy mikrofon do wirtualnego mikrofonu, dzięki czemu możesz mówić bezpośrednio bez tłumaczenia.",
@@ -420,9 +419,7 @@
     "backToSignIn": "Powrót do logowania",
     "forgotPasswordError": "Nie udało się wysłać kodu weryfikacyjnego. Spróbuj ponownie.",
     "resetPasswordError": "Nie udało się zresetować hasła. Spróbuj ponownie.",
-    "signedOut": "Zaloguj się, aby korzystać z wbudowanej usługi tłumaczenia Kizuna AI.",
-    "sessionUnavailable": "Twoja sesja nie jest już ważna. Zaloguj się ponownie.",
-    "unknown": "Nie udało się zweryfikować Twojego konta. Spróbuj ponownie."
+    "signedOut": "Zaloguj się, aby korzystać z wbudowanej usługi tłumaczenia Kizuna AI."
   },
   "simpleConfig": {
     "interfaceLanguage": "Język Interfejsu",
@@ -611,9 +608,6 @@
     "waveformMicTooltip": "Twój mikrofon — Twój głos przechwytywany do tłumaczenia",
     "waveformSystemTooltip": "Dźwięk rozmówcy przechwytywany do tłumaczenia (karta przeglądarki / dźwięk systemowy)",
     "allChannelsFailed": "Nie udało się uruchomić żadnego kanału audio. Sprawdź uprawnienia urządzeń i spróbuj ponownie.",
-    "participantChannelFailed": "Nie udało się uruchomić kanału dźwiękowego rozmówcy.",
-    "splitDegradedLabel": "Tylko w jedną stronę",
-    "splitDegradedTooltip": "Dźwięk rozmówcy nie jest tłumaczony, więc ta sesja działa tylko w jedną stronę. Sprawdź uprawnienia dźwięku rozmówcy, a następnie uruchom nową sesję.",
     "sonioxInsufficientBalance": "Niewystarczające saldo, aby rozpocząć sesję. Doładuj saldo i spróbuj ponownie.",
     "sonioxSessionConflict": "Na Twoim koncie trwa już inna sesja. Spróbuj ponownie za chwilę.",
     "sonioxServiceUnavailable": "Soniox jest tymczasowo niedostępny. Spróbuj ponownie za chwilę.",

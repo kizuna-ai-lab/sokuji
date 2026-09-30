@@ -2,7 +2,7 @@
  * Soniox real-time STT+translation WebSocket wire component.
  *
  * Protocol-only: this class knows the Soniox STT wire protocol and nothing
- * about IClient or Sokuji conversation semantics (that is SonioxClient's job).
+ * about IClient or Sokuji conversation semantics (that is `adapter.ts`'s job).
  *
  * Live-verified protocol facts (2026-07-18):
  * - The first frame after open MUST be a JSON config message.
@@ -82,11 +82,6 @@ export interface SonioxSttStreamHandlers {
   onFinished?: () => void;
   onError?: (code: string, message: string) => void;
   onClose?: (event: { code?: number; reason?: string }) => void;
-  // Fires on every keepalive-check tick (see KEEPALIVE_CHECK_INTERVAL_MS),
-  // independent of whether a keepalive frame was actually sent. Managed-mode
-  // SonioxClient drives its SonioxCostMeter off this — it is the "existing
-  // interval" the meter is meant to reuse rather than starting a second timer.
-  onTick?: () => void;
   /** A frame that would not parse: the caller decides what an episode of them is worth (choice 7). */
   onUnreadable?: (error: unknown) => void;
 }
@@ -248,9 +243,6 @@ export class SonioxSttStream {
         this.ws!.send(JSON.stringify({ type: 'keepalive' }));
         this.lastAudioAt = this.clock.now();
       }
-      // Runs every tick regardless of whether a keepalive frame was actually
-      // sent — see onTick's docstring.
-      this.handlers.onTick?.();
     });
   }
 

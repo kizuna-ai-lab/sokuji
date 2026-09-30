@@ -28,7 +28,7 @@ import { getSubtitleSurface } from '../components/Subtitle/surfaces';
 import { canEnterSubtitleMode } from '../components/Subtitle/subtitleEnterGate';
 import { currentRunPhase } from '../app/runPhase';
 import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
-import {Provider, ProviderType, isKizunaManagedProvider} from '../types/Provider';
+import {Provider, ProviderType} from '../types/Provider';
 import {ClientOperations} from '../services/ClientOperations';
 import i18n from '../locales';
 import {
@@ -50,12 +50,8 @@ import {
 import {
   LocalNativeProviderConfig, LocalNativeSettings, defaultLocalNativeSettings,
 } from '../services/providers/LocalNativeProviderConfig';
-import { defaultKizunaSonioxSettings } from '../services/providers/KizunaAISonioxProviderConfig';
 import { reportError, reportWarning, describeCause } from '../lib/diagnostics/report';
 import { persistSetting } from '../services/persistSetting';
-import {
-  SonioxSettings, defaultSonioxSettings,
-} from '../services/providers/SonioxProviderConfig';
 
 /** Map a native readiness reason to its user-facing message. Verbatim port of
  * the messages the inline LOCAL_NATIVE gate produced. */
@@ -75,7 +71,7 @@ function msgForNativeReason(reason: NativeReadinessReason): string {
 export type {
   OpenAISettings, OpenAICompatibleSettings, OpenAICompatibleSettingsBase,
   OpenAITranslateSettings, PalabraAISettings,
-  LocalInferenceSettings, LocalNativeSettings, SonioxSettings,
+  LocalInferenceSettings, LocalNativeSettings,
 };
 
 // Union of every provider's settings slice — the return type of
@@ -83,7 +79,7 @@ export type {
 export type ProviderSettingsUnion =
   | OpenAISettings | OpenAICompatibleSettings | PalabraAISettings
   | OpenAITranslateSettings
-  | LocalInferenceSettings | LocalNativeSettings | SonioxSettings;
+  | LocalInferenceSettings | LocalNativeSettings;
 
 // ==================== Type Definitions ====================
 
@@ -274,8 +270,6 @@ export interface SettingsStore {
   openaiCompatible: OpenAICompatibleSettings;
   palabraai: PalabraAISettings;
   openaiTranslate: OpenAITranslateSettings;
-  soniox: SonioxSettings;
-  kizunaSoniox: SonioxSettings;
   localInference: LocalInferenceSettings;
   localNative: LocalNativeSettings;
 
@@ -288,10 +282,6 @@ export interface SettingsStore {
   // Models state
   availableModels: FilteredModel[];
   loadingModels: boolean;
-
-  // Kizuna AI state
-  isKizunaKeyFetching: boolean;
-  kizunaKeyError: string | null;
 
   // Navigation state
   settingsNavigationTarget: string | null;
@@ -399,8 +389,6 @@ export interface SettingsStore {
   updateOpenAICompatible: (settings: Partial<OpenAICompatibleSettings>) => void;
   updatePalabraAI: (settings: Partial<PalabraAISettings>) => void;
   updateOpenAITranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
-  updateSoniox: (settings: Partial<SonioxSettings>) => void;
-  updateKizunaSoniox: (settings: Partial<SonioxSettings>) => void;
   updateLocalInference: (settings: Partial<LocalInferenceSettings>) => void;
   updateLocalNative: (settings: Partial<LocalNativeSettings>) => void;
   /** Generic slice update keyed by descriptor.settingsSliceKey — the write
@@ -411,13 +399,8 @@ export interface SettingsStore {
   updateProviderSlice: (sliceKey: string, patch: Record<string, unknown>) => Promise<void>;
 
   // Async actions
-  /** `isSignedIn` is the caller's real auth state, not a guess. It defaults to
-   *  `true` so the token probe stays the authority for callers that don't know
-   *  (nothing but a signed-in caller hands over a `getAuthToken` today); pass
-   *  it explicitly wherever `useAuth()` is in scope. */
-  validateApiKey: (getAuthToken?: () => Promise<string | null>, isSignedIn?: boolean) => Promise<ApiKeyValidationResult>;
-  fetchAvailableModels: (getAuthToken?: () => Promise<string | null>, isSignedIn?: boolean) => Promise<void>;
-  ensureKizunaApiKey: (getToken: () => Promise<string | null>, isSignedIn: boolean) => Promise<boolean>;
+  validateApiKey: (getAuthToken?: () => Promise<string | null>) => Promise<ApiKeyValidationResult>;
+  fetchAvailableModels: (getAuthToken?: () => Promise<string | null>) => Promise<void>;
   loadSettings: () => Promise<void>;
   clearCache: () => void;
 
@@ -434,46 +417,6 @@ export interface SettingsStore {
 }
 
 // ==================== Helper Functions ====================
-
-/**
- * Redirect a persisted Kizuna-managed provider this build does not offer.
- *
- * Two inputs need it, and the second is the likelier one. The legacy realtime
- * 'kizunaai' value, replaced long ago by the relay twins; and a twin the user
- * ACTUALLY SELECTED in an earlier build, which a later build may no longer
- * register now that the managed providers are gated independently. Both end at
- * the same place: `loadSettings` runs the result through
- * `isProviderSupported`, and anything unregistered silently becomes BYOK
- * OpenAI — a managed user dropped to one who must supply their own API key,
- * with nothing downstream to correct it in Advanced mode.
- *
- * A registered managed provider is left exactly as the user chose it. The
- * target is whichever managed provider this build REGISTERED, not a fixed one:
- * the twins are gated independently, so a build that ships Soniox alone does
- * not offer the Translate twin, and naming it would fail `isProviderSupported`
- * in `loadSettings` and drop the user to BYOK OpenAI — the opposite of what
- * this migration exists for, and silent. Advanced-mode users are not rescued
- * by the Basic-mode sign-in switch either, so nothing downstream would correct
- * it.
- *
- * Falls back to the Translate twin when no managed provider is registered at
- * all, which preserves the previous behaviour: `loadSettings` rejects it and
- * lands on OpenAI, the only sensible answer for a build with no managed
- * providers.
- */
-export function migrateLegacyKizunaProvider(p: Provider | string): Provider {
-  const isLegacy = (p as string) === 'kizunaai';
-  const isManaged = isLegacy || isKizunaManagedProvider(p as Provider);
-  if (!isManaged) return p as Provider;
-
-  // A managed provider THIS build registered is already fine — keep the user's
-  // actual choice. Only a gated-out one needs redirecting.
-  if (!isLegacy && ProviderConfigFactory.isProviderSupported(p as Provider)) {
-    return p as Provider;
-  }
-
-  return ProviderConfigFactory.getDefaultManagedProvider() ?? Provider.KIZUNA_AI_SONIOX;
-}
 
 /** Migrate persisted PalabraAI language codes that the API rejects.
  *  Palabra validates source_language and target_language against two separate
@@ -600,8 +543,8 @@ export function createLocalNativeSessionConfig(
 // ─── Provider settings slice registry ────────────────────────────────────────
 // One row per persisted provider slice. This table is the single home for the
 // knowledge the twelve hand-written update actions used to re-encode: the
-// slice's defaults (for loading), its patch transform, its never-persist
-// keys, and its persistence-error policy. Persist keys are always
+// slice's defaults (for loading), its patch transform, and its
+// persistence-error policy. Persist keys are always
 // `settings.<sliceKey>.<field>` — the sliceKey doubles as the storage prefix.
 
 type SliceUpdateSpec = {
@@ -614,8 +557,6 @@ type SliceUpdateSpec = {
   defaults: object;
   /** Transform an incoming patch before it is merged AND persisted. */
   transformPatch?: (patch: Record<string, unknown>) => Record<string, unknown>;
-  /** Fields applied to in-memory state but never written to settings storage. */
-  neverPersist?: readonly string[];
 };
 
 // WebRTC transport: the server truncates audio on user speech (API design),
@@ -630,11 +571,6 @@ const PROVIDER_SLICE_REGISTRY = {
   openaiCompatible: { defaults: defaultOpenAICompatibleSettings, transformPatch: forceWebrtcTurnDetectionOff },
   palabraai: { defaults: defaultPalabraAISettings },
   openaiTranslate: { defaults: defaultOpenAITranslateSettings },
-  soniox: { defaults: defaultSonioxSettings },
-  // Relay twins authenticate through the relay with a short-lived Better Auth
-  // session token; the user-managed credential fields must never be persisted
-  // (stale/sensitive values). See each descriptor's extractCredentials.
-  kizunaSoniox: { defaults: defaultKizunaSonioxSettings, neverPersist: ['apiKey', 'apiKeyEu', 'apiKeyJp'] },
   localInference: { defaults: defaultLocalInferenceSettings },
   localNative: { defaults: defaultLocalNativeSettings },
 } satisfies Record<string, SliceUpdateSpec>;
@@ -661,7 +597,6 @@ async function updateProviderSlice(
   // user, and which slice got which was arbitrary. `persistSetting` reports
   // the failure once per key instead.
   for (const [key, value] of Object.entries(effective)) {
-    if (spec.neverPersist?.includes(key)) continue;
     await persistSetting(`settings.${sliceKey}.${key}`, value);
   }
 }
@@ -674,8 +609,6 @@ const useSettingsStore = create<SettingsStore>()(
     openaiCompatible: defaultOpenAICompatibleSettings,
     palabraai: defaultPalabraAISettings,
     openaiTranslate: defaultOpenAITranslateSettings,
-    soniox: defaultSonioxSettings,
-    kizunaSoniox: defaultKizunaSonioxSettings,
     localInference: defaultLocalInferenceSettings,
     localNative: defaultLocalNativeSettings,
 
@@ -686,9 +619,6 @@ const useSettingsStore = create<SettingsStore>()(
 
     availableModels: [],
     loadingModels: false,
-
-    isKizunaKeyFetching: false,
-    kizunaKeyError: null,
 
     settingsNavigationTarget: null,
     engineSlotTarget: null,
@@ -935,8 +865,6 @@ const useSettingsStore = create<SettingsStore>()(
     updateOpenAICompatible: (settings) => updateProviderSlice(set, 'openaiCompatible', settings),
     updatePalabraAI: (settings) => updateProviderSlice(set, 'palabraai', settings),
     updateOpenAITranslate: (settings) => updateProviderSlice(set, 'openaiTranslate', settings),
-    updateSoniox: (settings) => updateProviderSlice(set, 'soniox', settings),
-    updateKizunaSoniox: (settings) => updateProviderSlice(set, 'kizunaSoniox', settings),
     updateLocalInference: (settings) => updateProviderSlice(set, 'localInference', settings),
     updateLocalNative: (settings) => updateProviderSlice(set, 'localNative', settings),
     updateProviderSlice: (sliceKey, patch) => {
@@ -955,7 +883,6 @@ const useSettingsStore = create<SettingsStore>()(
     // added this line for the before/after numbers.
     validateApiKey: async (
       getAuthToken?: () => Promise<string | null>,
-      isSignedIn: boolean = true,
     ): Promise<ApiKeyValidationResult> => {
       const state = get();
       const provider = state.provider;
@@ -1022,50 +949,6 @@ const useSettingsStore = create<SettingsStore>()(
           isValidating: false,
         });
         return { valid: ready, message, validating: false };
-      }
-
-      // For KizunaAI, ensure we have an API key first
-      if (isKizunaManagedProvider(provider)) {
-        // Was hardcoded `true`, which made ensureKizunaApiKey's own signed-out
-        // guard unreachable from this call site. `useAuth().getToken` is ALWAYS
-        // a function — signed out it merely resolves to `null` — so
-        // `getAuthToken` is always truthy and every signed-out user fell
-        // through to the generic session-unavailable branch, indistinguishable
-        // from a signed-in user whose session had expired.
-        const hasKey = getAuthToken
-          ? await state.ensureKizunaApiKey(getAuthToken, isSignedIn)
-          : false;
-        if (!hasKey) {
-          // Read the code FRESH: `state` is the snapshot taken before
-          // ensureKizunaApiKey ran, so it still holds the previous attempt's
-          // value (null on a first run), not the one just written.
-          const errorKey: string = get().kizunaKeyError || 'auth.signedOut';
-          // kizunaKeyError is a translation key; validationMessage is rendered
-          // verbatim, so it has to be resolved here.
-          const message: string = i18n.t(errorKey);
-          // ProviderSection renders its own signed-out notice — the clickable
-          // one that opens the account popover — under exactly this condition.
-          // Setting validationMessage too stacks two sentences saying the same
-          // thing, and the duplicate is the one that cannot be clicked. A
-          // broken session is the opposite case: that notice is gated on being
-          // signed OUT, so for a signed-in user with a dead token this message
-          // is the only thing that explains anything.
-          const displayMessage: string = errorKey === 'auth.signedOut' ? '' : message;
-          // Signed out or token unavailable: clear any stale validity so a
-          // previously-valid signed-in state can't keep Start enabled. Without
-          // this reset the UI would only discover the missing auth at connect time.
-          set({
-            isApiKeyValid: false,
-            availableModels: [],
-            validationMessage: displayMessage,
-            isValidating: false,
-          });
-          return {
-            valid: false,
-            message,
-            validating: false
-          };
-        }
       }
 
       // Get normalized credentials from the provider's descriptor — replaces
@@ -1172,62 +1055,10 @@ const useSettingsStore = create<SettingsStore>()(
       }
     },
 
-    fetchAvailableModels: async (getAuthToken, isSignedIn) => {
+    fetchAvailableModels: async (getAuthToken) => {
       set({loadingModels: true});
-      // Forwarded, not defaulted. validateApiKey's optimistic default exists
-      // for the callers that pass no token at all; a caller that DOES pass one
-      // knows the auth state and has to say so, or a signed-out user's null
-      // token is misread as an expired session.
-      await get().validateApiKey(getAuthToken, isSignedIn);
+      await get().validateApiKey(getAuthToken);
       set({loadingModels: false});
-    },
-
-    ensureKizunaApiKey: async (getToken, isSignedIn) => {
-      const state = get();
-
-      // The relay-managed providers fetch a fresh session token from Better Auth
-      // at validation/session time, so there is no persisted key to short-circuit
-      // on. This verifies a token is currently obtainable and surfaces errors.
-      if (state.isKizunaKeyFetching) {
-        console.log('[SettingsStore] Token fetch already in progress');
-        return false;
-      }
-
-      // kizunaKeyError reaches the UI (ProviderSection renders it), so it holds
-      // a TRANSLATION KEY from here on, never prose. The engineering detail
-      // stays in the console, where it was always the more useful half.
-      if (!isSignedIn || !getToken) {
-        console.log('[SettingsStore] Cannot get token - user not signed in');
-        set({kizunaKeyError: 'auth.signedOut'});
-        return false;
-      }
-
-      set({isKizunaKeyFetching: true, kizunaKeyError: null});
-
-      try {
-        console.log('[SettingsStore] Getting auth session for Kizuna AI...');
-        const authToken = await getToken();
-
-        if (authToken) {
-          console.log('[SettingsStore] Successfully got auth session for Kizuna AI');
-          set({isKizunaKeyFetching: false});
-          return true;
-        } else {
-          // `kizunaKeyError` is the user-facing half (rendered as a localized
-          // message by the provider section); this is the diagnostic half.
-          reportWarning('SettingsStore', 'No auth session available for Kizuna AI');
-          set({kizunaKeyError: 'auth.sessionUnavailable', isKizunaKeyFetching: false});
-          return false;
-        }
-      } catch (error) {
-        reportError(
-          'SettingsStore',
-          `Failed to get auth session for Kizuna AI: ${describeCause(error)}`,
-          { cause: error },
-        );
-        set({kizunaKeyError: 'auth.unknown', isKizunaKeyFetching: false});
-        return false;
-      }
     },
 
     loadSettings: async () => {
@@ -1242,10 +1073,7 @@ const useSettingsStore = create<SettingsStore>()(
         useLogStore.getState().setEnabled(diagnosticLogs);
 
         // Load common settings
-        const persistedProvider = await service.getSetting('settings.common.provider', defaultCommonSettings.provider);
-        // Migrate legacy realtime 'kizunaai' to the relay-managed Translate twin
-        // before validation, so stranded users land on a supported provider.
-        const provider = migrateLegacyKizunaProvider(persistedProvider);
+        const provider = await service.getSetting('settings.common.provider', defaultCommonSettings.provider);
         const uiLanguage = await service.getSetting('settings.common.uiLanguage', defaultCommonSettings.uiLanguage);
         const uiMode = await service.getSetting('settings.common.uiMode', defaultCommonSettings.uiMode);
         const systemInstructions = await service.getSetting('settings.common.systemInstructions', defaultCommonSettings.systemInstructions);
@@ -1488,8 +1316,6 @@ export const useOpenAISettings = () => useSettingsStore((state) => state.openai)
 export const useOpenAICompatibleSettings = () => useSettingsStore((state) => state.openaiCompatible);
 export const usePalabraAISettings = () => useSettingsStore((state) => state.palabraai);
 export const useOpenAITranslateSettings = () => useSettingsStore((state) => state.openaiTranslate);
-export const useSonioxSettings = () => useSettingsStore((state) => state.soniox);
-export const useKizunaSonioxSettings = () => useSettingsStore((state) => state.kizunaSoniox);
 export const useLocalInferenceSettings = () => useSettingsStore((state) => state.localInference);
 export const useLocalNativeSettings = () => useSettingsStore((state) => state.localNative);
 
@@ -1511,10 +1337,6 @@ export const useValidationMessage = () => useSettingsStore((state) => state.vali
 // Models state
 export const useAvailableModels = () => useSettingsStore((state) => state.availableModels);
 export const useLoadingModels = () => useSettingsStore((state) => state.loadingModels);
-
-// Kizuna state
-export const useIsKizunaKeyFetching = () => useSettingsStore((state) => state.isKizunaKeyFetching);
-export const useKizunaKeyError = () => useSettingsStore((state) => state.kizunaKeyError);
 
 // Navigation
 export const useSettingsNavigationTarget = () => useSettingsStore((state) => state.settingsNavigationTarget);
@@ -1567,14 +1389,11 @@ export const useUpdateOpenAI = () => useSettingsStore((state) => state.updateOpe
 export const useUpdateOpenAICompatible = () => useSettingsStore((state) => state.updateOpenAICompatible);
 export const useUpdatePalabraAI = () => useSettingsStore((state) => state.updatePalabraAI);
 export const useUpdateOpenAITranslate = () => useSettingsStore((state) => state.updateOpenAITranslate);
-export const useUpdateSoniox = () => useSettingsStore((state) => state.updateSoniox);
-export const useUpdateKizunaSoniox = () => useSettingsStore((state) => state.updateKizunaSoniox);
 export const useUpdateLocalInference = () => useSettingsStore((state) => state.updateLocalInference);
 export const useUpdateLocalNative = () => useSettingsStore((state) => state.updateLocalNative);
 
 export const useValidateApiKey = () => useSettingsStore((state) => state.validateApiKey);
 export const useFetchAvailableModels = () => useSettingsStore((state) => state.fetchAvailableModels);
-export const useEnsureKizunaApiKey = () => useSettingsStore((state) => state.ensureKizunaApiKey);
 export const useLoadSettings = () => useSettingsStore((state) => state.loadSettings);
 export const useClearCache = () => useSettingsStore((state) => state.clearCache);
 

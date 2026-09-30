@@ -8,7 +8,7 @@ import type { Clock } from '../../lib/contract/clock';
 
 export type OpenSocket = (url: string) => WebSocket;
 
-/** Read at call time, so an old test's `vi.stubGlobal('WebSocket')` still reaches the old client's streams. */
+/** Read at call time, so a test's `vi.stubGlobal('WebSocket')` reaches it. */
 export const nativeSocket: OpenSocket = (url) => new WebSocket(url);
 
 /** `WebSocket.OPEN`, read as the constant it is: the socket may be an injected one, whatever the global says. */

@@ -2,7 +2,8 @@
  * Soniox's `C`, `build` and `describe` (survey §2.7). `build` never
  * refuses: an auto source with the participant leg is the gate's (D20).
  * The vocabulary helpers are copied from `SonioxProviderConfig.ts:73-165`
- * (ruling 1): the old descriptor keeps its own until Plan B deletes it.
+ * (ruling 1), deleted since with the old descriptor (Stage 2 deletion,
+ * ruling 2).
  */
 import type { SessionContext } from '../../lib/contract/adapter';
 import { reportWarning } from '../../lib/diagnostics/report';

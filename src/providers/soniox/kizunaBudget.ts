@@ -2,8 +2,8 @@
  * What Kizuna AI's backend charges a managed Soniox session to start, and
  * how long it grants one — mirrored so the start gate and the grant-end
  * words can be right before the backend says so (Stage 2 Kizuna Soniox,
- * rulings 3 and 6). Ported from `sonioxManagedMinBalance.ts` (read-only
- * until Plan B2). KEEP IN SYNC with sokuji-backend
+ * rulings 3 and 6). Ported from `sonioxManagedMinBalance.ts` (deleted
+ * since). KEEP IN SYNC with sokuji-backend
  * `src/services/soniox-budget.ts` (the conservative rates) and
  * `src/config/soniox.ts` (`MIN_SESSION_S`, `MAX_TRANSCRIPTION_SESSION_S`,
  * `TTS_KEY_MAX_TTL_S`, `MAX_SYNTHESIS_SESSION_S`); `kizunaBudget.test.ts`

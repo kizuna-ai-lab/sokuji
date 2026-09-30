@@ -160,17 +160,14 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.VITE_BACKEND_URL': JSON.stringify(
         envVal('VITE_BACKEND_URL', '')
       ),
+      // Every gate is forwarded explicitly, like every key above: Vite's
+      // automatic loading reads the EXTENSION directory, so a flag documented
+      // in the root .env reaches this build only by appearing in this list.
+      // Omitted, the gate reads false in extension builds no matter how it is
+      // configured — which makes the switch unturnable-on.
+      // `featureGateForwarding.consistency.test.ts` fails when one is missing.
       'import.meta.env.VITE_ENABLE_KIZUNA_AI': JSON.stringify(
         envVal('VITE_ENABLE_KIZUNA_AI', 'false', 'true')
-      ),
-      // One gate per managed provider, forwarded explicitly like every key
-      // above: Vite's automatic loading reads the EXTENSION directory, so a
-      // flag documented in the root .env reaches this build only by appearing
-      // in this list. Omitted, the gate reads false in extension builds no
-      // matter how it is configured — which makes the switch unturnable-on.
-      // `featureGateForwarding.consistency.test.ts` fails when one is missing.
-      'import.meta.env.VITE_ENABLE_KIZUNA_SONIOX': JSON.stringify(
-        envVal('VITE_ENABLE_KIZUNA_SONIOX', 'false', 'true')
       ),
       'import.meta.env.VITE_ENABLE_PALABRA_AI': JSON.stringify(
         envVal('VITE_ENABLE_PALABRA_AI', 'false')

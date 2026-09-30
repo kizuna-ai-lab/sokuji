@@ -85,7 +85,6 @@
     "realtimeModelAvailable": "Model real-time tersedia",
     "realtimeModelNotAvailable": "Model real-time tidak tersedia",
     "modelsFound": "{{count}} model tersedia",
-    "invalidApiKeyFormat": "Format kunci API tidak valid",
     "volcengineAST2Info": "Informasi Doubao AST 2.0",
     "volcengineAST2InfoText": "Doubao AST 2.0 menyediakan terjemahan ucapan ke ucapan dengan kloning suara otomatis. Audio yang diterjemahkan mempertahankan karakteristik suara pembicara asli.",
     "volcengineAST2TurnDetectionTooltip": "Otomatis: deteksi aktivitas suara sisi server. \nTekan untuk Bicara: tahan tombol Spasi atau tombol mikrofon untuk mengirim audio secara manual. \nTekan untuk Terjemahkan: seperti Tekan untuk Bicara, tetapi merutekan mikrofon mentah Anda ke mikrofon virtual saat tidak aktif sehingga Anda dapat berbicara langsung tanpa terjemahan.",
@@ -420,9 +419,7 @@
     "backToSignIn": "Kembali ke Masuk",
     "forgotPasswordError": "Gagal mengirim kode verifikasi. Silakan coba lagi.",
     "resetPasswordError": "Gagal mengatur ulang kata sandi. Silakan coba lagi.",
-    "signedOut": "Masuk untuk menggunakan layanan terjemahan bawaan Kizuna AI.",
-    "sessionUnavailable": "Sesi Anda tidak lagi valid. Silakan masuk kembali.",
-    "unknown": "Tidak dapat memverifikasi akun Anda. Silakan coba lagi."
+    "signedOut": "Masuk untuk menggunakan layanan terjemahan bawaan Kizuna AI."
   },
   "simpleConfig": {
     "interfaceLanguage": "Bahasa Antarmuka",
@@ -611,9 +608,6 @@
     "waveformMicTooltip": "Mikrofon Anda — suara Anda yang ditangkap untuk diterjemahkan",
     "waveformSystemTooltip": "Audio lawan bicara yang ditangkap untuk terjemahan (tab browser / audio sistem)",
     "allChannelsFailed": "Gagal memulai saluran audio mana pun. Periksa izin perangkat dan coba lagi.",
-    "participantChannelFailed": "Gagal memulai saluran audio lawan bicara.",
-    "splitDegradedLabel": "Hanya satu arah",
-    "splitDegradedTooltip": "Audio lawan bicara tidak diterjemahkan, sehingga sesi ini hanya berjalan satu arah. Periksa izin audio lawan bicara, lalu jalankan sesi baru.",
     "sonioxInsufficientBalance": "Saldo tidak mencukupi untuk memulai sesi. Silakan isi ulang saldo Anda dan coba lagi.",
     "sonioxSessionConflict": "Sesi lain sudah berjalan di akun Anda. Silakan coba lagi sebentar lagi.",
     "sonioxServiceUnavailable": "Soniox untuk sementara tidak tersedia. Silakan coba lagi sebentar lagi.",

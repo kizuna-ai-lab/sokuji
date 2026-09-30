@@ -4,9 +4,6 @@ import { describe, it, expect, vi } from 'vitest';
 vi.mock('../utils/environment', async (orig) => ({
   ...(await orig<any>()),
   isKizunaAIEnabled: () => true,
-  // Explicit: each managed provider is gated on its own now, and this mock's
-  // promise is that EVERY provider gate is forced on.
-  isKizunaSonioxEnabled: () => true,
   isPalabraAIEnabled: () => true,
   isLocalNativeEnabled: () => true,
   isElectron: () => true,

@@ -85,7 +85,6 @@
     "realtimeModelAvailable": "Echtzeitmodell ist verfügbar",
     "realtimeModelNotAvailable": "Echtzeitmodell ist nicht verfügbar",
     "modelsFound": "{{count}} Modelle verfügbar",
-    "invalidApiKeyFormat": "Ungültiges API-Schlüsselformat",
     "volcengineAST2Info": "Doubao AST 2.0-Informationen",
     "volcengineAST2InfoText": "Doubao AST 2.0 bietet Sprache-zu-Sprache-Übersetzung mit automatischer Stimmklonung. Das übersetzte Audio behält die Stimmcharakteristiken des ursprünglichen Sprechers bei.",
     "volcengineAST2TurnDetectionTooltip": "Auto: serverseitige Sprachaktivitätserkennung. \nPush-to-Talk: Halten Sie die Leertaste oder die Mikrofontaste, um Audio manuell zu senden. \nPush-to-Translate: Wie Push-to-Talk, leitet aber Ihr Roh-Mikrofon im Leerlauf an das virtuelle Mikrofon weiter, sodass Sie ohne Übersetzung direkt sprechen können.",
@@ -420,9 +419,7 @@
     "backToSignIn": "Zurück zur Anmeldung",
     "forgotPasswordError": "Bestätigungscode konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
     "resetPasswordError": "Passwort konnte nicht zurückgesetzt werden. Bitte versuchen Sie es erneut.",
-    "signedOut": "Melden Sie sich an, um den integrierten Übersetzungsdienst von Kizuna AI zu nutzen.",
-    "sessionUnavailable": "Ihre Sitzung ist nicht mehr gültig. Bitte melden Sie sich erneut an.",
-    "unknown": "Ihr Konto konnte nicht überprüft werden. Bitte versuchen Sie es erneut."
+    "signedOut": "Melden Sie sich an, um den integrierten Übersetzungsdienst von Kizuna AI zu nutzen."
   },
   "simpleConfig": {
     "interfaceLanguage": "Sprache der Benutzeroberfläche",
@@ -611,9 +608,6 @@
     "waveformMicTooltip": "Ihr Mikrofon — Ihre Stimme, die zur Übersetzung erfasst wird",
     "waveformSystemTooltip": "Audio des Gegenübers, das zur Übersetzung erfasst wird (Browser-Tab / System-Audio)",
     "allChannelsFailed": "Kein Audiokanal konnte gestartet werden. Prüfen Sie die Geräteberechtigungen und versuchen Sie es erneut.",
-    "participantChannelFailed": "Der Audiokanal des Gegenübers konnte nicht gestartet werden.",
-    "splitDegradedLabel": "Nur eine Richtung",
-    "splitDegradedTooltip": "Das Audio des Gegenübers wird nicht übersetzt, diese Sitzung läuft daher nur in eine Richtung. Prüfen Sie die Berechtigungen für das Audio des Gegenübers und starten Sie dann eine neue Sitzung.",
     "sonioxInsufficientBalance": "Unzureichendes Guthaben, um eine Sitzung zu starten. Bitte laden Sie Ihr Guthaben auf und versuchen Sie es erneut.",
     "sonioxSessionConflict": "In Ihrem Konto läuft bereits eine andere Sitzung. Bitte versuchen Sie es in Kürze erneut.",
     "sonioxServiceUnavailable": "Soniox ist vorübergehend nicht verfügbar. Bitte versuchen Sie es in Kürze erneut.",

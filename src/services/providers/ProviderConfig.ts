@@ -58,7 +58,7 @@ export interface ProviderCapabilities {
 
   // ── S1 capability flags (spec: 2026-08-13-mainpanel-provider-seams) ──
   // Optional: only descriptors that deviate from the default declare them.
-  // Kizuna twins and OpenAI-Compatible inherit via their `...base` spread.
+  // OpenAI-Compatible inherits via its `...base` spread.
 
   /** Speech-mode names from THIS provider's settings vocabulary that send
    *  audio only while the user holds Space. Encodes that 'Disabled' is

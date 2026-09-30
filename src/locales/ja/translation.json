@@ -85,7 +85,6 @@
     "realtimeModelAvailable": "リアルタイムモデルが利用可能です",
     "realtimeModelNotAvailable": "リアルタイムモデルは利用できません",
     "modelsFound": "{{count}}個のモデルが利用可能",
-    "invalidApiKeyFormat": "APIキーの形式が無効です",
     "volcengineAST2Info": "Doubao AST 2.0 について",
     "volcengineAST2InfoText": "Doubao AST 2.0は、自動音声クローニングによる音声対音声翻訳を提供します。翻訳された音声は、元の話者の声の特徴を保持します。",
     "volcengineAST2TurnDetectionTooltip": "自動：サーバー側の音声活動検出。\nプッシュトゥトーク：スペースまたはマイクボタンを押して音声を手動で送信します。\nプッシュトゥトランスレート：プッシュトゥトークと同様ですが、アイドル時に生のマイク音声を仮想マイクへパススルーするので、翻訳せずに直接話せます。",
@@ -420,9 +419,7 @@
     "backToSignIn": "サインインに戻る",
     "forgotPasswordError": "認証コードの送信に失敗しました。もう一度お試しください。",
     "resetPasswordError": "パスワードのリセットに失敗しました。もう一度お試しください。",
-    "signedOut": "Kizuna AIの内蔵翻訳サービスを利用するにはサインインしてください。",
-    "sessionUnavailable": "セッションが無効になりました。もう一度サインインしてください。",
-    "unknown": "アカウントを確認できませんでした。もう一度お試しください。"
+    "signedOut": "Kizuna AIの内蔵翻訳サービスを利用するにはサインインしてください。"
   },
   "simpleConfig": {
     "interfaceLanguage": "インターフェース言語",
@@ -611,9 +608,6 @@
     "waveformMicTooltip": "あなたのマイク — 翻訳のためにキャプチャされるあなたの声",
     "waveformSystemTooltip": "翻訳のためにキャプチャされる相手の音声（ブラウザタブ / システム音声）",
     "allChannelsFailed": "オーディオチャンネルを開始できませんでした。デバイスの権限を確認してもう一度お試しください。",
-    "participantChannelFailed": "相手の音声チャンネルを開始できませんでした。",
-    "splitDegradedLabel": "片方向のみ",
-    "splitDegradedTooltip": "相手の音声が翻訳されていないため、このセッションは片方向のみで動作しています。相手の音声の権限を確認してから、新しいセッションを実行してください。",
     "sonioxInsufficientBalance": "セッションを開始するには残高が不足しています。残高をチャージしてもう一度お試しください。",
     "sonioxSessionConflict": "このアカウントでは既に別のセッションが実行中です。しばらくしてからもう一度お試しください。",
     "sonioxServiceUnavailable": "Sonioxは一時的に利用できません。しばらくしてからもう一度お試しください。",

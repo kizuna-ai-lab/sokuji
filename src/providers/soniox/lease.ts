@@ -6,7 +6,7 @@
  * own `SonioxCredentials`; it ends the run when the grant does, and
  * `release` tells the backend the session is over. Ported from
  * `ManagedSonioxSession` (`src/services/clients/ManagedSonioxSession.ts`,
- * read-only until Plan B2), with every timer on the run's clock and every
+ * deleted since), with every timer on the run's clock and every
  * wait abortable. Not Soniox's session side: `adapter.ts` never reaches
  * this module. The participant's speech key is mapped only while the
  * participant-speech flag is on (ruling 2). Each STT role's

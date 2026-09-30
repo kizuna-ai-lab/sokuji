@@ -1,7 +1,7 @@
 /**
  * Soniox on the new contract (spec: "L0 — the client contract"), ported
- * from `SonioxClient` (`src/services/clients/SonioxClient.ts`, still
- * compiled for the managed twin) without its display bookkeeping: items,
+ * from `SonioxClient` (`src/services/clients/SonioxClient.ts`, deleted
+ * since) without its display bookkeeping: items,
  * ids, the punctuation lane and the notices are L1's and L2's now.
  * `SonioxCore` runs one STT socket; each speaking leg has its own
  * `LegSpeech`. Both mode (`startBoth`, D23) is two single-leg cores, or one

@@ -5,9 +5,9 @@ import { resolve } from 'node:path';
 import { compile } from 'sass';
 import type { VoiceLibrarySource } from './voiceLibrarySource';
 import { managedVoiceSource } from './voiceLibrarySource';
-import type { ManagedVoicesClient } from '../../../services/clients/ManagedVoicesClient';
+import type { ManagedVoicesClient } from '../../../providers/soniox/managedVoicesClient';
 import { SONIOX_TTS_MODEL, SONIOX_DEFAULT_VOICE } from '../../../lib/soniox/ttsCatalog';
-import { synthesizeOnce } from '../../../services/clients/SonioxTtsRest';
+import { synthesizeOnce } from '../../../providers/soniox/ttsRest';
 import { clearPreviewCache } from '../../../lib/tts/previewCache';
 
 vi.mock('react-i18next', async (importOriginal) => {
@@ -97,7 +97,7 @@ function fakeManagedClient(over: Partial<ManagedVoicesClient> = {}): ManagedVoic
 // managedVoiceSource's `synthesize` dependency (see the "auditions a preset"
 // test below) without an `as any` at the call site.
 const synthesizeMock = vi.fn<typeof synthesizeOnce>();
-vi.mock('../../../services/clients/SonioxTtsRest', () => ({
+vi.mock('../../../providers/soniox/ttsRest', () => ({
   synthesizeOnce: (...args: Parameters<typeof synthesizeOnce>) => synthesizeMock(...args),
 }));
 
@@ -114,7 +114,7 @@ vi.mock('../../../lib/soniox/sonioxVoiceRoster', async (importOriginal) => {
 });
 
 const { default: SonioxVoiceSection } = await import('./SonioxVoiceSection');
-const { SonioxVoicesError } = await import('../../../services/clients/SonioxVoicesClient');
+const { SonioxVoicesError } = await import('../../../providers/soniox/voicesClient');
 
 const READY = { model: SONIOX_TTS_MODEL, status: 'ready', error_type: null, error_message: null };
 const cloned = (over: object = {}) => ({ id: 'uuid-1', name: 'Me', models: [READY], ...over });

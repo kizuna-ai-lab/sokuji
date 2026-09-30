@@ -3,9 +3,6 @@ import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 vi.mock('../../utils/environment', async (orig) => ({
   ...(await orig<any>()),
   isKizunaAIEnabled: () => true,
-  // Explicit: each managed provider is gated on its own now, and this mock's
-  // promise is that EVERY provider gate is forced on.
-  isKizunaSonioxEnabled: () => true,
   isPalabraAIEnabled: () => true,
   isLocalNativeEnabled: () => true,
   isElectron: () => true,
@@ -19,7 +16,6 @@ vi.mock('./localParticipantConfig', () => ({
 
 import { ProviderConfigFactory } from './ProviderConfigFactory';
 import { Provider } from '../../types/Provider';
-import { defaultSonioxSettings } from './SonioxProviderConfig';
 import { defaultPalabraAISettings } from './PalabraAIProviderConfig';
 import { defaultOpenAISettings } from './OpenAIProviderConfig';
 import { defaultOpenAICompatibleSettings } from './OpenAICompatibleProviderConfig';
@@ -74,20 +70,6 @@ const BASE = {
 } as unknown as LocalNativeSessionConfig;
 
 describe('participant config: direction lives in config fields', () => {
-  it('soniox swaps sourceLanguage/targetLanguage (twin inherits)', () => {
-    for (const id of [Provider.SONIOX, Provider.KIZUNA_AI_SONIOX]) {
-      const d = ProviderConfigFactory.getDescriptor(id);
-      const slice = { ...defaultSonioxSettings, sourceLanguage: 'zh', targetLanguage: 'en' };
-      const base = d.buildSessionConfig(slice, 'i') as { sourceLanguage?: string; targetLanguage?: string };
-      const { config, notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
-      const c = config as { sourceLanguage?: string; targetLanguage?: string; textOnly?: boolean };
-      expect(c.sourceLanguage, `swap for ${id}`).toBe(base.targetLanguage);
-      expect(c.targetLanguage, `swap for ${id}`).toBe(base.sourceLanguage);
-      expect(c.textOnly, `textOnly for ${id}`).toBe(true);
-      expect(notices, `notices for ${id}`).toEqual([]);
-    }
-  });
-
   it('palabraai swaps sourceLanguage/targetLanguage', () => {
     const d = ProviderConfigFactory.getDescriptor(Provider.PALABRA_AI);
     const slice = { ...defaultPalabraAISettings, sourceLanguage: 'en', targetLanguage: 'es-mx' };

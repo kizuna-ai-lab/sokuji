@@ -155,36 +155,6 @@ export interface PalabraAISessionConfig extends BaseSessionConfig {
 }
 
 /**
- * Soniox speech-to-speech translation session configuration.
- * `voice` comes from BaseSessionConfig. When `bidirectional` is true the
- * client sends a two_way translation block (source ↔ target); sourceLanguage
- * must then be a concrete language ('auto' is only valid for one_way, where
- * it means "no language_hints").
- */
-export interface SonioxSessionConfig extends BaseSessionConfig {
-  provider: 'soniox';
-  sourceLanguage: string; // 'auto' | ISO code
-  targetLanguage: string; // ISO code
-  /** True only for Both mode with a shared single session (set by MainPanel). Drives two_way vs one_way. */
-  bidirectional: boolean;
-  /** Custom vocabulary parsed from settings; absent when all three parts are empty. */
-  context?: {
-    terms?: string[];
-    translationTerms?: Array<{ source: string; target: string }>;
-    /** Free-form background text (wire: context.text); absent when empty. */
-    text?: string;
-  };
-  /** Clamped -1.0..1.0; 0 (default) is omitted from the wire. */
-  endpointSensitivity?: number;
-  /** Clamped integer 0..3; 0 (default) is omitted from the wire. */
-  endpointLatencyAdjustmentLevel?: number;
-  /** Clamped integer 500..3000; 2000 (server default) is omitted from the wire. */
-  endpointMaxDelayMs?: number;
-  /** Clamped 0.7..1.3; 1.0 (default) is omitted from the wire. */
-  ttsSpeed?: number;
-}
-
-/**
  * Local inference session configuration
  */
 export interface LocalInferenceSessionConfig extends BaseSessionConfig {
@@ -247,7 +217,7 @@ export interface LocalNativeSessionConfig extends BaseSessionConfig {
 /**
  * Union type for all possible session configurations
  */
-export type SessionConfig = OpenAISessionConfig | OpenAITranslateSessionConfig | PalabraAISessionConfig | SonioxSessionConfig | LocalInferenceSessionConfig | LocalNativeSessionConfig;
+export type SessionConfig = OpenAISessionConfig | OpenAITranslateSessionConfig | PalabraAISessionConfig | LocalInferenceSessionConfig | LocalNativeSessionConfig;
 
 /**
  * Type guards for session configurations
@@ -265,10 +235,6 @@ export function isOpenAITranslateSessionConfig(config: SessionConfig): config is
 
 export function isPalabraAISessionConfig(config: SessionConfig): config is PalabraAISessionConfig {
   return config.provider === 'palabraai';
-}
-
-export function isSonioxSessionConfig(config: SessionConfig): config is SonioxSessionConfig {
-  return config.provider === 'soniox';
 }
 
 export function isLocalInferenceSessionConfig(config: SessionConfig): config is LocalInferenceSessionConfig {
@@ -398,21 +364,4 @@ export interface IClient {
    * owns its own capture (WebRTC bridge analyser). Absent on clients fed by the
    * shared recorder. */
   getInputFrequencies?(): { values: Float32Array } | null;
-
-  // Optional Both single-session (Soniox) mixer methods
-  /** Feed the second audio channel (Both single-session mixer). SonioxClient only. */
-  appendParticipantAudio?(audioData: Int16Array): void;
-  /** Return a second IClient reference bound to this same core (Both single-session). SonioxClient only. */
-  createSecondaryPort?(): IClient;
-
-  /**
-   * Managed-mode Soniox only: the running session's fixed ALLOWANCE parameters
-   * (grant, conservative rate, start time), for the status footer's
-   * remaining-time countdown — see SonioxClient.getManagedBudgetInfo. Null for
-   * BYOK sessions or before the managed session-key exchange has completed.
-   *
-   * `rateUsdPerHour` is the rate the allowance was budgeted at, not a price:
-   * the countdown says when the session stops, never what it cost.
-   */
-  getManagedBudgetInfo?(): { budgetMicroUsd: number; rateUsdPerHour: number; startedAtMs: number } | null;
 }

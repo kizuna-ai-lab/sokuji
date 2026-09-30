@@ -104,7 +104,7 @@ export interface SonioxTtsStreamHandlers {
   // hadActiveStream: whether a stream carrying utterance text (active or still
   // draining its final audio) existed at the moment of this error/close, as
   // opposed to a socket that was genuinely idle. The caller
-  // (SonioxClient.handleTtsError) uses it to decide whether a drop cost any
+  // (`speech.ts`'s `failure`) uses it to decide whether a drop cost any
   // spoken output at all, and `scope` to say how much.
   onError?: (code: string, message: string, hadActiveStream: boolean, scope: SonioxTtsErrorScope) => void;
   /** A frame that would not parse: the caller decides what an episode of them is worth (choice 7). */

@@ -3,7 +3,7 @@ import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/re
 
 vi.mock('../../../utils/environment', async (orig) => ({
   ...(await orig<any>()),
-  isKizunaAIEnabled: () => true, isKizunaSonioxEnabled: () => true,
+  isKizunaAIEnabled: () => true,
   isPalabraAIEnabled: () => true, isLocalNativeEnabled: () => true,
   isElectron: () => true, isExtension: () => false,
 }));

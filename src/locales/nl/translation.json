@@ -85,7 +85,6 @@
     "realtimeModelAvailable": "Realtime model is beschikbaar",
     "realtimeModelNotAvailable": "Realtime model is niet beschikbaar",
     "modelsFound": "{{count}} modellen beschikbaar",
-    "invalidApiKeyFormat": "Ongeldig API-sleutelformaat",
     "volcengineAST2Info": "Doubao AST 2.0-informatie",
     "volcengineAST2InfoText": "Doubao AST 2.0 biedt spraak-naar-spraakvertaling met automatische stemkloning. De vertaalde audio behoudt de stemkenmerken van de oorspronkelijke spreker.",
     "volcengineAST2TurnDetectionTooltip": "Auto: servergestuurde spraakactiviteitsdetectie. \nPush-to-Talk: houd de spatiebalk of microfoonknop ingedrukt om audio handmatig te verzenden. \nPush-to-Translate: zoals Push-to-Talk, maar leidt uw onbewerkte microfoon door naar de virtuele microfoon wanneer inactief, zodat u direct kunt spreken zonder vertaling.",
@@ -420,9 +419,7 @@
     "backToSignIn": "Terug naar inloggen",
     "forgotPasswordError": "Kon verificatiecode niet verzenden. Probeer het opnieuw.",
     "resetPasswordError": "Kon wachtwoord niet resetten. Probeer het opnieuw.",
-    "signedOut": "Log in om de ingebouwde vertaalservice van Kizuna AI te gebruiken.",
-    "sessionUnavailable": "Uw sessie is niet langer geldig. Log opnieuw in.",
-    "unknown": "Uw account kon niet worden geverifieerd. Probeer het opnieuw."
+    "signedOut": "Log in om de ingebouwde vertaalservice van Kizuna AI te gebruiken."
   },
   "simpleConfig": {
     "interfaceLanguage": "Interface Taal",
@@ -611,9 +608,6 @@
     "waveformMicTooltip": "Uw microfoon — uw stem die wordt vastgelegd voor vertaling",
     "waveformSystemTooltip": "Audio van de ander vastgelegd voor vertaling (browsertabblad / systeemaudio)",
     "allChannelsFailed": "Kon geen enkel audiokanaal starten. Controleer de apparaatmachtigingen en probeer het opnieuw.",
-    "participantChannelFailed": "Het audiokanaal van de ander kon niet worden gestart.",
-    "splitDegradedLabel": "Alleen één richting",
-    "splitDegradedTooltip": "Audio van de ander wordt niet vertaald, dus deze sessie loopt maar één kant op. Controleer de machtigingen voor Audio van de ander en start daarna een nieuwe sessie.",
     "sonioxInsufficientBalance": "Onvoldoende saldo om een sessie te starten. Laad uw saldo op en probeer het opnieuw.",
     "sonioxSessionConflict": "Er loopt al een andere sessie op uw account. Probeer het over een moment opnieuw.",
     "sonioxServiceUnavailable": "Soniox is tijdelijk niet beschikbaar. Probeer het over een moment opnieuw.",

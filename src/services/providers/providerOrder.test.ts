@@ -9,7 +9,6 @@ async function allProviders(): Promise<Provider[]> {
   vi.doMock('../../utils/environment', async (orig) => ({
     ...(await orig<any>()),
     isKizunaAIEnabled: () => true,
-    isKizunaSonioxEnabled: () => true,
     isPalabraAIEnabled: () => true,
     isLocalNativeEnabled: () => true,
     isElectron: () => true,
@@ -32,11 +31,9 @@ describe('provider list order', () => {
     const ids = await allProviders();
 
     expect(ids).toEqual([
-      Provider.KIZUNA_AI_SONIOX,
       Provider.LOCAL_INFERENCE,
       Provider.OPENAI,
       Provider.OPENAI_TRANSLATE,
-      Provider.SONIOX,
       Provider.OPENAI_COMPATIBLE,
       Provider.PALABRA_AI,
       Provider.LOCAL_NATIVE,
@@ -51,7 +48,6 @@ describe('provider list order', () => {
     vi.doMock('../../utils/environment', async (orig) => ({
       ...(await orig<any>()),
       isKizunaAIEnabled: () => false,
-      isKizunaSonioxEnabled: () => false,
       isPalabraAIEnabled: () => false,
       isLocalNativeEnabled: () => false,
       isElectron: () => false,
@@ -64,7 +60,6 @@ describe('provider list order', () => {
       Provider.LOCAL_INFERENCE,
       Provider.OPENAI,
       Provider.OPENAI_TRANSLATE,
-      Provider.SONIOX,
     ]);
   });
 });

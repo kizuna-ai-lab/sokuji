@@ -1,9 +1,6 @@
 import { ProviderConfig, LanguageOption } from './ProviderConfig';
 import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
-// Type-only, so this adds no runtime edge from the shared descriptor module to
-// SonioxClient's dependency graph (i18n, the wire components).
-import type { ManagedSonioxSession, SonioxCredentialBundle, SonioxSttRole } from '../clients/ManagedSonioxSession';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
 
 /** Transport for realtime providers. Moved here from settingsStore so the
@@ -36,40 +33,6 @@ export interface CredentialField {
 export type ClientOptions = {
   transport: TransportType;
   webrtcOptions?: { inputDeviceId?: string; outputDeviceId?: string };
-  /**
-   * Managed Soniox only. The lease is acquired by MainPanel BEFORE any client
-   * exists (an awaited round trip with a 409 retry), so the keys arrive here
-   * rather than being minted inside the client. Keeping this optional is what
-   * lets createClient stay synchronous and return exactly one IClient for all
-   * eleven providers.
-   */
-  sonioxManaged?: {
-    credentials: SonioxCredentialBundle;
-    session: ManagedSonioxSession;
-    /**
-     * WHICH leg this client is — the role its bundle was taken with. Required,
-     * not optional: it is how the leg names itself when it reports that Soniox
-     * accepted its stream, and on a two-stream lease `session-started` refuses
-     * a roleless body (400 `role_required`) and another leg's role
-     * (`role_not_issued`), leaving the lease at its start window either way.
-     */
-    role: SonioxSttRole;
-    /**
-     * Whether THIS client speaks for the session when it ends for a
-     * session-level reason — the balance running out, or Soniox dropping the
-     * session at its granted duration. Defaults to true.
-     *
-     * Exactly one client per session may say yes; it is the primacy bit, and
-     * this is its single source (ManagedSonioxSession reads it back off the leg
-     * rather than being told a second time). Every leg is still ENDED by such
-     * an outcome — saying no only means "not the one who says the sentence".
-     *
-     * It has to be the speaker whenever there is one, because MainPanel's
-     * teardown renders `speakerClient.getConversationItems()`: a notice emitted
-     * on the participant leg is not merely misplaced, it is never displayed.
-     */
-    announcesSessionOutcome?: boolean;
-  };
   /**
    * The sentence segmentation stage, shared by both legs and every provider.
    *
@@ -176,76 +139,6 @@ export type InitPhase =
   | { phase: 'loading-native-asr' }
   | { phase: 'preparing-voice' };
 
-/** Provider-neutral view of a metered session budget. The soniox descriptor
- *  adapts its SonioxBudgetSnapshot behind this; nothing provider-shaped
- *  crosses the seam. */
-export interface BudgetSnapshot {
-  remainingMs: number;
-  totalMs: number;
-}
-
-/**
- * Session-scoped resources a provider acquires before any client exists and
- * releases after every client is down. MainPanel holds exactly one,
- * provider-agnostically, in sessionResourcesRef.
- */
-export interface SessionResources {
-  /** Per-leg additions to ClientOptions (today: the sonioxManaged bundle).
-   *  Empty object when this leg gets nothing. A non-empty result means the
-   *  acquire already produced this leg's credentials, so createAIClient
-   *  skips extractCredentials for it. */
-  legClientOptions(role: 'speaker' | 'participant'): Partial<ClientOptions>;
-  /** Present iff the session runs on a metered budget. Drives the countdown
-   *  generically — a data condition, not a provider condition. Returns null
-   *  while the budget is not yet known. Implementations must not rely on `this`:
-   *  callers may extract the function and call it bare. */
-  budget?: () => BudgetSnapshot | null;
-  /** Idempotent. 'aborted' = Start did not reach an active session after
-   *  acquire — either it failed (the no-channel guard) or it was cancelled
-   *  (the post-acquire check, or the pre-activation check that catches a
-   *  cancel racing client construction); 'disconnect' = normal teardown,
-   *  including the init-failure unwind that routes through
-   *  disconnectConversation. The no-channel guard, the pre-activation bail,
-   *  and normal teardown all call this from afterBothLegs, strictly after
-   *  both legs are down. The post-acquire check is the one exception: it
-   *  calls release() directly, deliberately not routed through
-   *  teardownSessionLegs, because acquire has just returned and no leg has
-   *  been created yet — there is nothing for that teardown to wait on.
-   *  Never called for a failed acquire (see acquireSessionResources). */
-  release(reason: 'disconnect' | 'aborted'): void;
-}
-
-export interface AcquireSessionResourcesContext {
-  getAuthToken: () => Promise<string | null>;
-  /** The active provider slice's Soniox region, resolved by the caller so the
-   *  descriptor never reaches into the store. Ignored by every provider that
-   *  has no regions. */
-  region?: string;
-  /** The session's channel matrix, resolved by MainPanel. `textOnly` is the
-   *  EFFECTIVE session text-only-ness — `speakerWillStart ? <store snapshot>
-   *  : true` — resolved at the call site; the rule and its rationale live at
-   *  the MainPanel computation, the descriptor consumes the value. `splitBoth`
-   *  feeds the resolver's both-split decision; `sharedBoth` is carried for
-   *  call-shape symmetry and deliberately NOT read — the soniox resolver
-   *  derives roles from the acquire body instead (resolveManagedSonioxWiring
-   *  documents why). */
-  wiring: {
-    speakerWillStart: boolean;
-    participantWillStart: boolean;
-    sharedBoth: boolean;
-    splitBoth: boolean;
-    textOnly: boolean;
-  };
-  /** Session-lifecycle events for the realtime log. Closed vocabulary — the
-   *  managed lease emits 'session.retry' (409 on acquire) and
-   *  'session.started_refused' (a refused session-started report) and
- *  'session.notify_failed' (a lease notification that never reached the
- *  backend). MainPanel
-   *  forwards these to addRealtimeEvent; the log renders unknown types
-   *  generically. */
-  onEvent: (type: 'session.retry' | 'session.started_refused' | 'session.notify_failed', data: unknown) => void;
-}
-
 /**
  * The deep module for one provider. Everything the app needs to know about a
  * provider is answered here; callers dispatch via
@@ -323,10 +216,9 @@ export interface ProviderDescriptor {
    * indifferent to an `auto` source, because nothing has to be swapped.
    * Base: false — most providers carry direction in the system instruction.
    *
-   * The one here is not:
-   * - **Soniox** reverses `sourceLanguage`/`targetLanguage` directly.
-   *
-   * For it, an `auto` source would reverse into the literal `auto` as the
+   * No descriptor left overrides it (Stage 2 deletion, ruling 2). One that
+   * reversed `sourceLanguage`/`targetLanguage` directly, as Soniox's did,
+   * would reverse an `auto` source into the literal `auto` as the
    * participant's translate target, which is not a language. Callers require a
    * concrete source language whenever a participant channel is in scope; see
    * `computeStartGate`'s `autoSourceParticipantBlocked`.
@@ -341,23 +233,6 @@ export interface ProviderDescriptor {
    * logs); once ports.signal fires the result is discarded silently.
    */
   prepareToStart?(slice: unknown, ports: PreparePorts): Promise<PrepareOutcome>;
-
-  /**
-   * Acquire session-scoped resources (a lease, metered credentials) before
-   * any client is constructed. Undefined on providers whose clients carry
-   * their own key — MainPanel treats undefined as null resources.
-   *
-   * Deliberately separate from createClient: acquiring is an awaited network
-   * round trip, createClient is synchronous and per-leg, and the resources
-   * outlive any one client.
-   *
-   * Error path (normative): either return resources or throw AFTER cleaning
-   * up your own partial state (ManagedSonioxSession.end() is idempotent and
-   * no-ops without a lease, so a wrapper's catch may always call it).
-   * MainPanel catches the throw, unwinds Start through the existing abort
-   * path, and NEVER calls release() for a failed acquire.
-   */
-  acquireSessionResources?(ctx: AcquireSessionResourcesContext): Promise<SessionResources | null>;
 }
 
 /** Shared defaults. Subclasses override only what differs from the common case

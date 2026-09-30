@@ -3,7 +3,7 @@
  * starts.
  *
  * Ported from `src/services/providers/managedVoicePrep.ts` (Stage 2 Kizuna
- * Soniox, ruling 1; the old copy stays for the old descriptor until Plan B2):
+ * Soniox, ruling 1; the old copy is deleted since):
  * the routine is unchanged; a failure now answers a notice **code** worded
  * through `NOTICE_ALIASES` (choice 17).
  *
@@ -41,7 +41,7 @@ export interface PrepareManagedVoiceDeps {
   sleep?: (ms: number) => Promise<void>;
   now?: () => number;
   /** Caller cancellation — e.g. MainPanel's start-scoped aborter, threaded in
-   *  as `ports.signal` by `KizunaAISonioxProviderConfig.prepareToStart`.
+   *  as `signal` by `voiceClaim.ts`.
    *  Threaded into every `ensure`/`mine` call so a cancel reaches the network
    *  (not just gates the NEXT attempt), and additionally checked at every
    *  loop boundary below the deadline already is. Optional: a caller with no
@@ -68,8 +68,8 @@ export interface PrepareManagedVoiceDeps {
    *  own deadline at the catch site — see SonioxTtsRest.synthesizeOnce, the
    *  precedent for that shape), and a cancel observed at a loop boundary
    *  resolves through the same degrade path deadline exhaustion already
-   *  does. `KizunaAISonioxProviderConfig.prepareToStart` always supplies one
-   *  (`ports.signal`), so 135 s is a bound this codebase's only caller no
+   *  does. `voiceClaim.ts` always supplies one (`signal`), so 135 s is a
+   *  bound this codebase's only caller no
    *  longer hits in practice. */
   timeoutMs?: number;
   /** Wait before readiness poll number `attempt` (0-based). Defaults to the
@@ -236,7 +236,7 @@ export interface VoicePrepOutcome {
 
 /**
  * Turn a `prepareManagedVoice()` result into the three decisions
- * `KizunaAISonioxProviderConfig.prepareToStart` actually needs to make: what
+ * `voiceClaim.ts` actually needs to make: what
  * voice this session uses, whether to persist a changed id, and what (if
  * anything) to tell the user afterwards.
  *

@@ -85,7 +85,6 @@
     "realtimeModelAvailable": "Realtime model is available",
     "realtimeModelNotAvailable": "Realtime model is not available",
     "modelsFound": "{{count}} models available",
-    "invalidApiKeyFormat": "Invalid API key format",
     "volcengineAST2Info": "Doubao AST 2.0 Info",
     "volcengineAST2InfoText": "Doubao AST 2.0 provides speech-to-speech translation with automatic voice cloning. The translated audio preserves the original speaker's voice characteristics.",
     "volcengineAST2TurnDetectionTooltip": "Auto: server-side voice activity detection. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.",
@@ -420,9 +419,7 @@
     "backToSignIn": "Back to Sign In",
     "forgotPasswordError": "Failed to send verification code. Please try again.",
     "resetPasswordError": "Failed to reset password. Please try again.",
-    "signedOut": "Sign in to use Kizuna AI's built-in translation service.",
-    "sessionUnavailable": "Your session is no longer valid. Please sign in again.",
-    "unknown": "Could not verify your account. Please try again."
+    "signedOut": "Sign in to use Kizuna AI's built-in translation service."
   },
   "simpleConfig": {
     "interfaceLanguage": "Interface Language",
@@ -611,9 +608,6 @@
     "waveformMicTooltip": "Your microphone — your voice being captured for translation",
     "waveformSystemTooltip": "Other's audio captured for translation (browser tab / system audio)",
     "allChannelsFailed": "Failed to start any audio channel. Check device permissions and try again.",
-    "participantChannelFailed": "Failed to start Other's audio channel.",
-    "splitDegradedLabel": "One-way only",
-    "splitDegradedTooltip": "Other's audio isn't being translated, so this session is running one way only. Check Other's audio permissions, then run a new session.",
     "sonioxInsufficientBalance": "Insufficient balance to start a session. Please top up your balance and try again.",
     "sonioxSessionConflict": "Another session is already running on your account. Please try again in a moment.",
     "sonioxServiceUnavailable": "Soniox is temporarily unavailable. Please try again in a moment.",

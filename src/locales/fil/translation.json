@@ -85,7 +85,6 @@
     "realtimeModelAvailable": "Available ang realtime model",
     "realtimeModelNotAvailable": "Hindi available ang realtime model",
     "modelsFound": "{{count}} na mga model ang available",
-    "invalidApiKeyFormat": "Hindi wastong format ng API key",
     "volcengineAST2Info": "Impormasyon ng Doubao AST 2.0",
     "volcengineAST2InfoText": "Ang Doubao AST 2.0 ay nagbibigay ng pagsasalin ng pananalita-sa-pananalita na may awtomatikong voice cloning. Pinapanatili ng naisaling audio ang mga katangian ng boses ng orihinal na nagsasalita.",
     "volcengineAST2TurnDetectionTooltip": "Auto: server-side voice activity detection. \nPush-to-Talk: pindutin nang matagal ang Space o ang mic button para magpadala ng audio nang manual. \nPush-to-Translate: tulad ng Push-to-Talk, ngunit ipinapadala ang iyong raw mic sa virtual mic kapag idle para makapagsalita ka nang direkta nang walang pagsasalin.",
@@ -420,9 +419,7 @@
     "backToSignIn": "Bumalik sa Pag-sign In",
     "forgotPasswordError": "Hindi naipadala ang verification code. Pakisubukang muli.",
     "resetPasswordError": "Hindi na-reset ang password. Pakisubukang muli.",
-    "signedOut": "Mag-sign in para gamitin ang built-in na serbisyo ng pagsasalin ng Kizuna AI.",
-    "sessionUnavailable": "Hindi na wasto ang iyong session. Mangyaring mag-sign in muli.",
-    "unknown": "Hindi ma-verify ang iyong account. Subukang muli."
+    "signedOut": "Mag-sign in para gamitin ang built-in na serbisyo ng pagsasalin ng Kizuna AI."
   },
   "simpleConfig": {
     "interfaceLanguage": "Wika ng Interface",
@@ -611,9 +608,6 @@
     "waveformMicTooltip": "Ang inyong mikropono — ang boses ninyong kinukuha para isalin",
     "waveformSystemTooltip": "Audio ng kausap na nakuha para sa pagsasalin (tab ng browser / system audio)",
     "allChannelsFailed": "Hindi nagsimula ang anumang audio channel. Suriin ang mga pahintulot ng device at subukang muli.",
-    "participantChannelFailed": "Hindi nasimulan ang audio channel ng kausap.",
-    "splitDegradedLabel": "Isang direksyon lamang",
-    "splitDegradedTooltip": "Hindi isinasalin ang audio ng kausap, kaya isang direksyon lang ang takbo ng session na ito. Suriin ang mga pahintulot ng audio ng kausap, pagkatapos ay magpatakbo ng bagong session.",
     "sonioxInsufficientBalance": "Hindi sapat ang balanse para simulan ang session. Mangyaring mag-top up ng iyong balanse at subukang muli.",
     "sonioxSessionConflict": "May isa nang aktibong session sa iyong account. Pakisubukang muli sa ilang sandali.",
     "sonioxServiceUnavailable": "Pansamantalang hindi available ang Soniox. Pakisubukang muli sa ilang sandali.",

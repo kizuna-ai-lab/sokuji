@@ -5,9 +5,6 @@ import { describe, it, expect, vi } from 'vitest';
 vi.mock('../../utils/environment', async (orig) => ({
   ...(await orig<any>()),
   isKizunaAIEnabled: () => true,
-  // Explicit: each managed provider is gated on its own now, and this mock's
-  // promise is that EVERY provider gate is forced on.
-  isKizunaSonioxEnabled: () => true,
   isPalabraAIEnabled: () => true,
   isLocalNativeEnabled: () => true,
   isElectron: () => true,
@@ -24,10 +21,6 @@ import { defaultOpenAITranslateSettings } from './OpenAITranslateProviderConfig'
 import { defaultPalabraAISettings } from './PalabraAIProviderConfig';
 import { defaultLocalNativeSettings } from './LocalNativeProviderConfig';
 import { defaultLocalInferenceSettings } from './LocalInferenceProviderConfig';
-import { defaultKizunaSonioxSettings } from './KizunaAISonioxProviderConfig';
-import { defaultSonioxSettings } from './SonioxProviderConfig';
-import { ManagedSonioxSession } from '../clients/ManagedSonioxSession';
-import type { ClientOptions } from './ProviderDescriptor';
 import en from '../../locales/en/translation.json';
 
 // Map each provider's settingsSliceKey to its per-module default settings slice,
@@ -39,14 +32,12 @@ const DEFAULTS_BY_SLICE: Record<string, unknown> = {
   palabraai: defaultPalabraAISettings,
   localInference: defaultLocalInferenceSettings,
   localNative: defaultLocalNativeSettings,
-  kizunaSoniox: defaultKizunaSonioxSettings,
-  soniox: defaultSonioxSettings,
 };
 
 describe('provider registry descriptors', () => {
   it('returns a descriptor for every available provider', () => {
     const ids = ProviderConfigFactory.getAvailableProviders();
-    expect(ids.length).toBe(8);
+    expect(ids.length).toBe(6);
     for (const id of ids) {
       const d = ProviderConfigFactory.getDescriptor(id);
       expect(d.getConfig().id).toBe(id);
@@ -64,45 +55,12 @@ describe('provider registry descriptors', () => {
 describe('descriptor.createClient', () => {
   const creds = { ok: true as const, primary: 'k', secret: 's', endpoint: 'https://e.example' };
   const ws = { transport: 'websocket' as const };
-  // The managed Soniox twin is the one descriptor whose client cannot be built
-  // from credentials alone: its keys come from a ManagedSonioxSession acquired
-  // before any client exists. Supplied unacquired here — createClient only
-  // stores it.
-  // `role` is required, and required for a reason: it is how the leg names
-  // itself when it reports that Soniox accepted its stream, and a leg with no
-  // role sets no started bit at all. Typed as ClientOptions['sonioxManaged'] so
-  // the fixture cannot quietly drop a field the option gains later — this
-  // fixture had already lost `role`, and only tsc noticed.
-  const sonioxManaged: ClientOptions['sonioxManaged'] = {
-    credentials: { stt: 'stt-k', tts: 'tts-k', clientReferenceId: 'sokuji1:acct:lease:mix_stt' },
-    session: new ManagedSonioxSession({ sessionToken: 'sess_TOKEN' }),
-    // Matches the four-segment reference above: shared Both's single mixed stream.
-    role: 'mix_stt',
-  };
-  const optionsFor = (id: unknown) => (id === Provider.KIZUNA_AI_SONIOX ? { ...ws, sonioxManaged } : ws);
 
   it('constructs a client for every available provider', () => {
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
-      const client = ProviderConfigFactory.getDescriptor(id).createClient(creds, optionsFor(id));
-      expect(client.getProvider()).toBe(id === Provider.KIZUNA_AI_SONIOX ? Provider.SONIOX
-        : id === Provider.OPENAI_COMPATIBLE ? Provider.OPENAI
-        : id);
+      const client = ProviderConfigFactory.getDescriptor(id).createClient(creds, ws);
+      expect(client.getProvider()).toBe(id === Provider.OPENAI_COMPATIBLE ? Provider.OPENAI : id);
     }
-  });
-
-  it('kizuna soniox twin routes to a managed-mode SonioxClient built from the session', async () => {
-    const { SonioxClient } = await import('../clients/SonioxClient');
-    const c = ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_SONIOX)
-      .createClient({ ok: true, primary: 'sess_TOKEN' }, { ...ws, sonioxManaged });
-    expect(c).toBeInstanceOf(SonioxClient);
-    expect(c.getProvider()).toBe(Provider.SONIOX);
-  });
-
-  it('refuses to build the managed twin without a session rather than minting a second lease', () => {
-    expect(() =>
-      ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_SONIOX)
-        .createClient({ ok: true, primary: 'sess_TOKEN' }, ws),
-    ).toThrow(/ManagedSonioxSession/);
   });
 });
 
@@ -115,14 +73,6 @@ describe('descriptor.validateAndFetchModels', () => {
     expect(r.models).toEqual([]);
   });
 
-  it('kizuna soniox twin validates statically from a non-empty token', async () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_SONIOX);
-    const ok = await d.validateAndFetchModels({ ok: true, primary: 'sess_TOKEN' });
-    expect(ok.validation.valid).toBe(true);
-    expect(ok.models[0].id).toBe('stt-rt-v5');
-    const bad = await d.validateAndFetchModels({ ok: false, missing: 'Sign in is required for Kizuna providers' });
-    expect(bad.validation.valid).toBe(false);
-  });
 });
 
 describe('descriptor.extractCredentials', () => {
@@ -144,14 +94,6 @@ describe('descriptor.extractCredentials', () => {
     expect(r).toEqual({ ok: false, missing: 'Both Client ID and Client Secret are required for Palabra AI' });
   });
 
-  it('kizuna soniox twin resolves the auth token from ctx', async () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_SONIOX);
-    expect(await d.extractCredentials({}, { getAuthToken: async () => 'sess_T' }))
-      .toEqual({ ok: true, primary: 'sess_T' });
-    expect((await d.extractCredentials({}, {})).ok).toBe(false);
-    expect((await d.extractCredentials({}, { getAuthToken: async () => null })).ok).toBe(false);
-  });
-
   it('local inference needs no credentials', async () => {
     expect(await ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE).extractCredentials({}, {}))
       .toEqual({ ok: true, primary: '' });
@@ -166,7 +108,6 @@ describe('descriptor.buildSessionConfig', () => {
       palabraai: 'palabraai',
       local_inference: 'local_inference',
       local_native: 'local_native',
-      soniox: 'soniox', kizunaai_soniox: 'soniox',
     };
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
       const d = ProviderConfigFactory.getDescriptor(id);
@@ -221,8 +162,6 @@ describe('registry invariants', () => {
     // Registered only under Electron with its gate on — both forced on by
     // this file's environment mock.
     [Provider.LOCAL_NATIVE]: 'localNative',
-    [Provider.KIZUNA_AI_SONIOX]: 'kizunaSoniox',
-    [Provider.SONIOX]: 'soniox',
   };
 
   it('settingsSliceKey matches the exact expected value per provider', () => {
@@ -241,8 +180,6 @@ describe('registry invariants', () => {
     [Provider.PALABRA_AI]: false,
     [Provider.LOCAL_INFERENCE]: false,
     [Provider.LOCAL_NATIVE]: false,
-    [Provider.KIZUNA_AI_SONIOX]: false,
-    [Provider.SONIOX]: false,
   };
 
   it('supportsWebRTC matches the exact expected value per provider', () => {
@@ -278,8 +215,6 @@ describe('S1 capability flags', () => {
     [Provider.LOCAL_INFERENCE]: ['Push-to-Talk', 'Push-to-Translate'],
     [Provider.LOCAL_NATIVE]: ['Push-to-Talk', 'Push-to-Translate'],
     [Provider.OPENAI_TRANSLATE]: undefined,
-    [Provider.SONIOX]: undefined,
-    [Provider.KIZUNA_AI_SONIOX]: undefined,
     [Provider.PALABRA_AI]: undefined,
   };
 
@@ -289,8 +224,6 @@ describe('S1 capability flags', () => {
     [Provider.LOCAL_INFERENCE]: true,
     [Provider.LOCAL_NATIVE]: true,
     [Provider.OPENAI_TRANSLATE]: undefined,
-    [Provider.SONIOX]: undefined,
-    [Provider.KIZUNA_AI_SONIOX]: undefined,
     [Provider.PALABRA_AI]: undefined,
   };
 
@@ -303,8 +236,6 @@ describe('S1 capability flags', () => {
     [Provider.OPENAI]: undefined,
     [Provider.OPENAI_COMPATIBLE]: undefined,
     [Provider.OPENAI_TRANSLATE]: undefined,
-    [Provider.SONIOX]: undefined,
-    [Provider.KIZUNA_AI_SONIOX]: undefined,
     [Provider.PALABRA_AI]: undefined,
   };
 
@@ -323,13 +254,8 @@ describe('S1 capability flags', () => {
     [Provider.LOCAL_NATIVE]: { pause: false, auto: true, sizes: true },
 
     // A server decides the outer boundary, and phase 2 can cut inside it.
-    // Soniox DOES attach audio to an item — its `formatted.audio` — and the
-    // ruling is that it stays on the FIRST piece: it is the whole segment's
-    // audio, there is no per-sentence timing to cut it on, and the first
-    // bubble is where a user reaches for the replay button. Palabra writes
-    // text only. Auto stays what it always was — keep the server's segment.
-    [Provider.SONIOX]: { pause: false, auto: true, sizes: true },
-    [Provider.KIZUNA_AI_SONIOX]: { pause: false, auto: true, sizes: true }, // twin spread
+    // Palabra writes text only. Auto stays what it always was — keep the
+    // server's segment.
     [Provider.PALABRA_AI]: { pause: false, auto: true, sizes: true },
 
     // Also the default, and it stays there: the GA client attaches audio to
@@ -352,8 +278,6 @@ describe('S1 capability flags', () => {
     [Provider.OPENAI_COMPATIBLE]: true, // inherited via ...base
     [Provider.OPENAI_TRANSLATE]: false,
     [Provider.PALABRA_AI]: false,
-    [Provider.SONIOX]: false,
-    [Provider.KIZUNA_AI_SONIOX]: false,
     [Provider.LOCAL_INFERENCE]: false,
     [Provider.LOCAL_NATIVE]: false,
   };
@@ -481,19 +405,10 @@ describe('S1 capability flags', () => {
   // the single exported constant: change it, and any client still on a
   // literal 3 fails here.
   it('a client built with no size runs on the one chunk default', () => {
-    // The managed Soniox twin is the one descriptor that cannot be built from
-    // credentials alone; same fixture as `descriptor.createClient` above.
-    const sonioxManaged: ClientOptions['sonioxManaged'] = {
-      credentials: { stt: 'stt-k', tts: 'tts-k', clientReferenceId: 'sokuji1:acct:lease:mix_stt', region: 'us' },
-      session: new ManagedSonioxSession({ sessionToken: 'sess_TOKEN' }),
-      role: 'mix_stt',
-    };
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
       const client = ProviderConfigFactory.getDescriptor(id).createClient(
         { ok: true, primary: 'k', secret: 's', endpoint: 'https://e.example' },
-        id === Provider.KIZUNA_AI_SONIOX
-          ? { transport: 'websocket', sonioxManaged }
-          : { transport: 'websocket' },
+        { transport: 'websocket' },
       );
       expect((client as any).sentencesPerChunk, `chunk default for ${id}`)
         .toBe(DEFAULT_CHUNK_SENTENCES);
@@ -616,14 +531,8 @@ describe('legacy façade credential guards (deprecated ClientOperations/ClientFa
 describe('S3 reversesDirectionViaSourceLanguage', () => {
   const TRANSLATE = 'gemini-3.5-live-translate-preview';
 
-  it('true for Soniox and its managed twin regardless of model', () => {
-    expect(ProviderConfigFactory.getDescriptor(Provider.SONIOX).reversesDirectionViaSourceLanguage(undefined)).toBe(true);
-    expect(ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_SONIOX).reversesDirectionViaSourceLanguage(undefined)).toBe(true);
-  });
-
-  it('false for every other descriptor, any model', () => {
+  it('false for every descriptor, any model', () => {
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
-      if ([Provider.SONIOX, Provider.KIZUNA_AI_SONIOX].includes(id)) continue;
       const d = ProviderConfigFactory.getDescriptor(id);
       expect(d.reversesDirectionViaSourceLanguage(TRANSLATE), `${id}`).toBe(false);
       expect(d.reversesDirectionViaSourceLanguage(undefined), `${id}`).toBe(false);
@@ -632,9 +541,8 @@ describe('S3 reversesDirectionViaSourceLanguage', () => {
 });
 
 describe('S3 planBothMode', () => {
-  it('is inert for every non-Soniox descriptor in every mode', () => {
+  it('is inert for every descriptor in every mode', () => {
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
-      if (id === Provider.SONIOX || id === Provider.KIZUNA_AI_SONIOX) continue;
       const d = ProviderConfigFactory.getDescriptor(id);
       for (const mode of ['speaker', 'participant', 'both']) {
         expect(d.planBothMode(DEFAULTS_BY_SLICE[d.settingsSliceKey], mode), `${id}/${mode}`)
@@ -642,62 +550,16 @@ describe('S3 planBothMode', () => {
       }
     }
   });
-
-  it('the managed twin answers exactly like BYOK Soniox (the 409 twin bug, pinned at this layer)', () => {
-    // Historically a raw `provider === Provider.SONIOX` dispatch was always
-    // false for the twin, which opened two independent managed sessions and
-    // had the second refused with a 409. Dispatch now lives in the registry:
-    // the twin inherits the override by class extension, pinned here.
-    const byok = ProviderConfigFactory.getDescriptor(Provider.SONIOX);
-    const twin = ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_SONIOX);
-    for (const settings of [
-      { bothModeSharedSession: true, sourceLanguage: 'en' },
-      { bothModeSharedSession: true, sourceLanguage: 'auto' },
-      { bothModeSharedSession: false, sourceLanguage: 'en' },
-      undefined,
-    ]) {
-      for (const mode of ['speaker', 'both']) {
-        expect(twin.planBothMode(settings, mode), `${JSON.stringify(settings)}/${mode}`)
-          .toEqual(byok.planBothMode(settings, mode));
-      }
-    }
-  });
-
-  it('Soniox Both mode: shared needs the toggle AND a concrete source; split is the toggle off', () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.SONIOX);
-    expect(d.planBothMode({ bothModeSharedSession: true, sourceLanguage: 'en' }, 'both')).toEqual({ shared: true, split: false });
-    expect(d.planBothMode({ bothModeSharedSession: true, sourceLanguage: 'auto' }, 'both')).toEqual({ shared: false, split: false });
-    expect(d.planBothMode({ bothModeSharedSession: false, sourceLanguage: 'en' }, 'both')).toEqual({ shared: false, split: true });
-    expect(d.planBothMode({ bothModeSharedSession: true, sourceLanguage: 'en' }, 'speaker')).toEqual({ shared: false, split: false });
-  });
 });
 
 describe('S4 prepareToStart', () => {
-  it('is declared only where a provider has pre-start work (locals, kizuna-soniox)', () => {
-    const WITH_HOOK = [Provider.LOCAL_INFERENCE, Provider.LOCAL_NATIVE, Provider.KIZUNA_AI_SONIOX];
+  it('is declared only where a provider has pre-start work (the locals)', () => {
+    const WITH_HOOK = [Provider.LOCAL_INFERENCE, Provider.LOCAL_NATIVE];
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
       const d = ProviderConfigFactory.getDescriptor(id);
       expect(typeof d.prepareToStart === 'function', `hook presence for ${id}`)
         .toBe(WITH_HOOK.includes(id));
     }
-    // BYOK Soniox is explicitly hookless: the managed voice-prep flow must
-    // never run for a user's own Soniox key.
-    expect(ProviderConfigFactory.getDescriptor(Provider.SONIOX).prepareToStart).toBeUndefined();
-  });
-});
-
-describe('S6 acquireSessionResources', () => {
-  it('is declared only where a session leases resources (kizuna-soniox)', () => {
-    const WITH_RESOURCES: Provider[] = [Provider.KIZUNA_AI_SONIOX];
-    for (const id of ProviderConfigFactory.getAvailableProviders()) {
-      const d = ProviderConfigFactory.getDescriptor(id);
-      expect(typeof d.acquireSessionResources === 'function', `resource hook presence for ${id}`)
-        .toBe(WITH_RESOURCES.includes(id));
-    }
-    // BYOK Soniox is explicitly resource-less: a user's own key never
-    // exchanges a lease, mints no metered budget, and must not POST
-    // session-end to the managed backend.
-    expect(ProviderConfigFactory.getDescriptor(Provider.SONIOX).acquireSessionResources).toBeUndefined();
   });
 });
 

@@ -85,7 +85,6 @@
     "realtimeModelAvailable": "Reaaliaikamalli on saatavilla",
     "realtimeModelNotAvailable": "Reaaliaikamalli ei ole saatavilla",
     "modelsFound": "{{count}} mallia saatavilla",
-    "invalidApiKeyFormat": "Virheellinen API-avaimen muoto",
     "volcengineAST2Info": "Doubao AST 2.0 -tiedot",
     "volcengineAST2InfoText": "Doubao AST 2.0 tarjoaa puheesta puheeseen -kääntämisen automaattisella äänikloonauksella. Käännetty ääni säilyttää alkuperäisen puhujan ääniominaisuudet.",
     "volcengineAST2TurnDetectionTooltip": "Auto: palvelinpuolen ääniaktiivisuuden tunnistus. \nPaina ja puhu: pidä välilyöntiä tai mikrofonipainiketta painettuna lähettääksesi ääntä manuaalisesti. \nPaina ja käännä: kuten Paina ja puhu, mutta ohjaa raakamikrofonisi virtuaalimikrofoniin tyhjäkäynnillä, jotta voit puhua suoraan ilman käännöstä.",
@@ -420,9 +419,7 @@
     "backToSignIn": "Takaisin kirjautumiseen",
     "forgotPasswordError": "Vahvistuskoodin lähetys epäonnistui. Yritä uudelleen.",
     "resetPasswordError": "Salasanan palautus epäonnistui. Yritä uudelleen.",
-    "signedOut": "Kirjaudu sisään käyttääksesi Kizuna AI:n sisäänrakennettua käännöspalvelua.",
-    "sessionUnavailable": "Istuntosi ei ole enää voimassa. Kirjaudu sisään uudelleen.",
-    "unknown": "Tiliäsi ei voitu vahvistaa. Yritä uudelleen."
+    "signedOut": "Kirjaudu sisään käyttääksesi Kizuna AI:n sisäänrakennettua käännöspalvelua."
   },
   "simpleConfig": {
     "interfaceLanguage": "Käyttöliittymän kieli",
@@ -611,9 +608,6 @@
     "waveformMicTooltip": "Mikrofonisi — äänesi, joka kaapataan käännöstä varten",
     "waveformSystemTooltip": "Toisen ääni, joka kaapataan käännöstä varten (selainvälilehti / järjestelmän ääni)",
     "allChannelsFailed": "Yhdenkään äänikanavan käynnistys ei onnistunut. Tarkista laitteiden käyttöoikeudet ja yritä uudelleen.",
-    "participantChannelFailed": "Toisen äänikanavan käynnistys epäonnistui.",
-    "splitDegradedLabel": "Vain yhteen suuntaan",
-    "splitDegradedTooltip": "Toisen ääntä ei käännetä, joten tämä istunto toimii vain yhteen suuntaan. Tarkista toisen äänen käyttöoikeudet ja aloita sitten uusi istunto.",
     "sonioxInsufficientBalance": "Saldo ei riitä istunnon aloittamiseen. Lataa saldoasi ja yritä uudelleen.",
     "sonioxSessionConflict": "Tililläsi on jo käynnissä toinen istunto. Yritä uudelleen hetken kuluttua.",
     "sonioxServiceUnavailable": "Soniox ei ole tilapäisesti käytettävissä. Yritä uudelleen hetken kuluttua.",

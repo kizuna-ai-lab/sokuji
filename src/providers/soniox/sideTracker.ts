@@ -2,7 +2,7 @@
  * Speaker-label → conversation-side attribution for the Both single-session
  * path (see docs/superpowers/specs/2026-07-30-soniox-diarization-attribution-design.md).
  *
- * Pure bookkeeping — no timers, no I/O. SonioxClient records one energy
+ * Pure bookkeeping — no timers, no I/O. The adapter records one energy
  * sample per 100 ms mixer frame ACTUALLY SENT to the STT socket (dropped
  * frames don't advance the server's audio clock), so frame index × frameMs
  * lines up with token start_ms/end_ms. Channel A is the mic ('speaker'

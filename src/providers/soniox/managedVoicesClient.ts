@@ -50,7 +50,7 @@ export interface ManagedPreviewSessionKey {
   ttsApiKey: string;
   /** The region THESE KEYS belong to, echoed back by the backend rather than
    *  assumed to be the request's own `region` — same reasoning as
-   *  `ManagedSonioxSession.fileBundles`'s use of the response's region. A
+   *  `lease.ts` filing a grant's keys under the response's region. A
    *  missing or unrecognised value narrows to THIS CLIENT's own `region`
    *  (see `sessionKey` below), never to the global US default: for a eu/jp
    *  account that default is the one value guaranteed to disagree with both
