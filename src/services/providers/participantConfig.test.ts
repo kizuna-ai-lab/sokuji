@@ -6,12 +6,10 @@ vi.mock('../../utils/environment', async (orig) => ({
   // Explicit: each managed provider is gated on its own now, and this mock's
   // promise is that EVERY provider gate is forced on.
   isKizunaSonioxEnabled: () => true,
-  isKizunaVolcengineAST2Enabled: () => true,
   isPalabraAIEnabled: () => true,
   isLocalNativeEnabled: () => true,
   isElectron: () => true,
   isExtension: () => false,
-  getRelayWsUrl: () => 'wss://r.example/v1',
 }));
 
 vi.mock('./localParticipantConfig', () => ({
@@ -22,7 +20,6 @@ vi.mock('./localParticipantConfig', () => ({
 import { ProviderConfigFactory } from './ProviderConfigFactory';
 import { Provider } from '../../types/Provider';
 import { defaultSonioxSettings } from './SonioxProviderConfig';
-import { defaultVolcengineAST2Settings } from './VolcengineAST2ProviderConfig';
 import { defaultPalabraAISettings } from './PalabraAIProviderConfig';
 import { defaultGeminiSettings } from './GeminiProviderConfig';
 import { defaultOpenAISettings } from './OpenAIProviderConfig';
@@ -91,17 +88,6 @@ describe('participant config: direction lives in config fields', () => {
       expect(c.targetLanguage, `swap for ${id}`).toBe(base.sourceLanguage);
       expect(c.textOnly, `textOnly for ${id}`).toBe(true);
       expect(notices, `notices for ${id}`).toEqual([]);
-    }
-  });
-
-  it('volcengine_ast2 swaps sourceLanguage/targetLanguage (twin inherits)', () => {
-    for (const id of [Provider.VOLCENGINE_AST2, Provider.KIZUNA_AI_VOLCENGINE_AST2]) {
-      const d = ProviderConfigFactory.getDescriptor(id);
-      const slice = { ...defaultVolcengineAST2Settings, sourceLanguage: 'ja', targetLanguage: 'ko' };
-      const base = d.buildSessionConfig(slice, 'i') as { sourceLanguage?: string; targetLanguage?: string };
-      const c = d.buildParticipantSessionConfig(slice, 'i', shell).config as { sourceLanguage?: string; targetLanguage?: string };
-      expect(c.sourceLanguage, `swap for ${id}`).toBe(base.targetLanguage);
-      expect(c.targetLanguage, `swap for ${id}`).toBe(base.sourceLanguage);
     }
   });
 

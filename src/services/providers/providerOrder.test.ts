@@ -10,12 +10,10 @@ async function allProviders(): Promise<Provider[]> {
     ...(await orig<any>()),
     isKizunaAIEnabled: () => true,
     isKizunaSonioxEnabled: () => true,
-    isKizunaVolcengineAST2Enabled: () => true,
     isPalabraAIEnabled: () => true,
     isLocalNativeEnabled: () => true,
     isElectron: () => true,
     isExtension: () => false,
-    getRelayWsUrl: () => 'wss://r.example/v1',
   }));
   const { ProviderConfigFactory } = await import('./ProviderConfigFactory');
   return ProviderConfigFactory.getAvailableProviders();
@@ -35,10 +33,8 @@ describe('provider list order', () => {
 
     expect(ids).toEqual([
       Provider.KIZUNA_AI_SONIOX,
-      Provider.KIZUNA_AI_VOLCENGINE_AST2,
       Provider.LOCAL_INFERENCE,
       Provider.GEMINI,
-      Provider.VOLCENGINE_AST2,
       Provider.OPENAI,
       Provider.OPENAI_TRANSLATE,
       Provider.SONIOX,
@@ -57,12 +53,10 @@ describe('provider list order', () => {
       ...(await orig<any>()),
       isKizunaAIEnabled: () => false,
       isKizunaSonioxEnabled: () => false,
-        isKizunaVolcengineAST2Enabled: () => false,
       isPalabraAIEnabled: () => false,
       isLocalNativeEnabled: () => false,
       isElectron: () => false,
       isExtension: () => false,
-      getRelayWsUrl: () => 'wss://r.example/v1',
     }));
     const { ProviderConfigFactory } = await import('./ProviderConfigFactory');
     const ids = ProviderConfigFactory.getAvailableProviders();

@@ -48,15 +48,11 @@ import {
   PalabraAISettings, defaultPalabraAISettings,
 } from '../services/providers/PalabraAIProviderConfig';
 import {
-  VolcengineAST2Settings, defaultVolcengineAST2Settings,
-} from '../services/providers/VolcengineAST2ProviderConfig';
-import {
   LocalInferenceSettings, defaultLocalInferenceSettings,
 } from '../services/providers/LocalInferenceProviderConfig';
 import {
   LocalNativeProviderConfig, LocalNativeSettings, defaultLocalNativeSettings,
 } from '../services/providers/LocalNativeProviderConfig';
-import { defaultKizunaVolcengineAst2Settings } from '../services/providers/KizunaAIVolcengineAST2ProviderConfig';
 import { defaultKizunaSonioxSettings } from '../services/providers/KizunaAISonioxProviderConfig';
 import { reportError, reportWarning, describeCause } from '../lib/diagnostics/report';
 import { persistSetting } from '../services/persistSetting';
@@ -82,8 +78,7 @@ function msgForNativeReason(reason: NativeReadinessReason): string {
 export type {
   OpenAISettings, OpenAICompatibleSettings, OpenAICompatibleSettingsBase,
   OpenAITranslateSettings, GeminiSettings, PalabraAISettings,
-  VolcengineAST2Settings, LocalInferenceSettings,
-  LocalNativeSettings, SonioxSettings,
+  LocalInferenceSettings, LocalNativeSettings, SonioxSettings,
 };
 
 // Union of every provider's settings slice — the return type of
@@ -91,7 +86,7 @@ export type {
 export type ProviderSettingsUnion =
   | OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings
   | OpenAITranslateSettings
-  | VolcengineAST2Settings | LocalInferenceSettings | LocalNativeSettings | SonioxSettings;
+  | LocalInferenceSettings | LocalNativeSettings | SonioxSettings;
 
 // ==================== Type Definitions ====================
 
@@ -283,9 +278,7 @@ export interface SettingsStore {
   openaiCompatible: OpenAICompatibleSettings;
   palabraai: PalabraAISettings;
   openaiTranslate: OpenAITranslateSettings;
-  volcengineAST2: VolcengineAST2Settings;
   soniox: SonioxSettings;
-  kizunaVolcengineAst2: VolcengineAST2Settings;
   kizunaSoniox: SonioxSettings;
   localInference: LocalInferenceSettings;
   localNative: LocalNativeSettings;
@@ -411,9 +404,7 @@ export interface SettingsStore {
   updateOpenAICompatible: (settings: Partial<OpenAICompatibleSettings>) => void;
   updatePalabraAI: (settings: Partial<PalabraAISettings>) => void;
   updateOpenAITranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
-  updateVolcengineAST2: (settings: Partial<VolcengineAST2Settings>) => void;
   updateSoniox: (settings: Partial<SonioxSettings>) => void;
-  updateKizunaVolcengineAst2: (settings: Partial<VolcengineAST2Settings>) => void;
   updateKizunaSoniox: (settings: Partial<SonioxSettings>) => void;
   updateLocalInference: (settings: Partial<LocalInferenceSettings>) => void;
   updateLocalNative: (settings: Partial<LocalNativeSettings>) => void;
@@ -645,12 +636,10 @@ const PROVIDER_SLICE_REGISTRY = {
   openaiCompatible: { defaults: defaultOpenAICompatibleSettings, transformPatch: forceWebrtcTurnDetectionOff },
   palabraai: { defaults: defaultPalabraAISettings },
   openaiTranslate: { defaults: defaultOpenAITranslateSettings },
-  volcengineAST2: { defaults: defaultVolcengineAST2Settings },
   soniox: { defaults: defaultSonioxSettings },
   // Relay twins authenticate through the relay with a short-lived Better Auth
   // session token; the user-managed credential fields must never be persisted
   // (stale/sensitive values). See each descriptor's extractCredentials.
-  kizunaVolcengineAst2: { defaults: defaultKizunaVolcengineAst2Settings, neverPersist: ['appId', 'accessToken'] },
   kizunaSoniox: { defaults: defaultKizunaSonioxSettings, neverPersist: ['apiKey', 'apiKeyEu', 'apiKeyJp'] },
   localInference: { defaults: defaultLocalInferenceSettings },
   localNative: { defaults: defaultLocalNativeSettings },
@@ -692,9 +681,7 @@ const useSettingsStore = create<SettingsStore>()(
     openaiCompatible: defaultOpenAICompatibleSettings,
     palabraai: defaultPalabraAISettings,
     openaiTranslate: defaultOpenAITranslateSettings,
-    volcengineAST2: defaultVolcengineAST2Settings,
     soniox: defaultSonioxSettings,
-    kizunaVolcengineAst2: defaultKizunaVolcengineAst2Settings,
     kizunaSoniox: defaultKizunaSonioxSettings,
     localInference: defaultLocalInferenceSettings,
     localNative: defaultLocalNativeSettings,
@@ -956,9 +943,7 @@ const useSettingsStore = create<SettingsStore>()(
     updateOpenAICompatible: (settings) => updateProviderSlice(set, 'openaiCompatible', settings),
     updatePalabraAI: (settings) => updateProviderSlice(set, 'palabraai', settings),
     updateOpenAITranslate: (settings) => updateProviderSlice(set, 'openaiTranslate', settings),
-    updateVolcengineAST2: (settings) => updateProviderSlice(set, 'volcengineAST2', settings),
     updateSoniox: (settings) => updateProviderSlice(set, 'soniox', settings),
-    updateKizunaVolcengineAst2: (settings) => updateProviderSlice(set, 'kizunaVolcengineAst2', settings),
     updateKizunaSoniox: (settings) => updateProviderSlice(set, 'kizunaSoniox', settings),
     updateLocalInference: (settings) => updateProviderSlice(set, 'localInference', settings),
     updateLocalNative: (settings) => updateProviderSlice(set, 'localNative', settings),
@@ -1515,9 +1500,7 @@ export const useGeminiSettings = () => useSettingsStore((state) => state.gemini)
 export const useOpenAICompatibleSettings = () => useSettingsStore((state) => state.openaiCompatible);
 export const usePalabraAISettings = () => useSettingsStore((state) => state.palabraai);
 export const useOpenAITranslateSettings = () => useSettingsStore((state) => state.openaiTranslate);
-export const useVolcengineAST2Settings = () => useSettingsStore((state) => state.volcengineAST2);
 export const useSonioxSettings = () => useSettingsStore((state) => state.soniox);
-export const useKizunaVolcengineAst2Settings = () => useSettingsStore((state) => state.kizunaVolcengineAst2);
 export const useKizunaSonioxSettings = () => useSettingsStore((state) => state.kizunaSoniox);
 export const useLocalInferenceSettings = () => useSettingsStore((state) => state.localInference);
 export const useLocalNativeSettings = () => useSettingsStore((state) => state.localNative);
@@ -1597,9 +1580,7 @@ export const useUpdateGemini = () => useSettingsStore((state) => state.updateGem
 export const useUpdateOpenAICompatible = () => useSettingsStore((state) => state.updateOpenAICompatible);
 export const useUpdatePalabraAI = () => useSettingsStore((state) => state.updatePalabraAI);
 export const useUpdateOpenAITranslate = () => useSettingsStore((state) => state.updateOpenAITranslate);
-export const useUpdateVolcengineAST2 = () => useSettingsStore((state) => state.updateVolcengineAST2);
 export const useUpdateSoniox = () => useSettingsStore((state) => state.updateSoniox);
-export const useUpdateKizunaVolcengineAst2 = () => useSettingsStore((state) => state.updateKizunaVolcengineAst2);
 export const useUpdateKizunaSoniox = () => useSettingsStore((state) => state.updateKizunaSoniox);
 export const useUpdateLocalInference = () => useSettingsStore((state) => state.updateLocalInference);
 export const useUpdateLocalNative = () => useSettingsStore((state) => state.updateLocalNative);

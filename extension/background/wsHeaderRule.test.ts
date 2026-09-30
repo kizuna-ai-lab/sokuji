@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildRule, isExtensionPage, OLD_LIVE_RULE_ID, ruleIdsFor, ruleProblem, sweepIds, urlFilterFor, WS_RULE_ID_MAX, WS_RULE_ID_MIN } from './wsHeaderRule.js';
+import { buildRule, isExtensionPage, OLD_AST2_RULE_ID_MAX, OLD_AST2_RULE_ID_MIN, OLD_LIVE_RULE_ID, ruleIdsFor, ruleProblem, sweepIds, urlFilterFor, WS_RULE_ID_MAX, WS_RULE_ID_MIN } from './wsHeaderRule.js';
 
 const RUNTIME = 'abcdefghijklmnopabcdefghijklmnop';
 /** What `chrome.runtime.getURL('')` answers in Chrome. */
@@ -35,13 +35,15 @@ describe("the extension's generic upgrade header rules (Stage 2 OpenAI Live, rul
     expect(buildRule(full, LIVE, RUNTIME)).toBeNull();
   });
 
-  it("finds a host and path's rules to clear, and sweeps every generic rule and the old Live rule — never another provider's (ruling 11)", () => {
+  it("finds a host and path's rules to clear, and sweeps every generic rule and the old Live and AST2 rules — never another provider's (Stage 2 OpenAI Live, ruling 11; Stage 2 deletion, ruling C3)", () => {
     const rules = [...OLD, { id: 5000, condition: { urlFilter: '||api.openai.com/v1/live/' } }, { id: 5001, condition: { urlFilter: '||h.example/' } }];
     expect(ruleIdsFor(rules, 'api.openai.com', '/v1/live/')).toEqual([5000]);
     expect(ruleIdsFor(rules, 'api.openai.com', '/v1/')).toEqual([]);
     expect(OLD_LIVE_RULE_ID).toBe(4000);
-    expect(sweepIds(rules)).toEqual([4000, 5000, 5001]);
-    expect(sweepIds(OLD.filter((r) => r.id !== 4000))).toEqual([]);
+    expect([OLD_AST2_RULE_ID_MIN, OLD_AST2_RULE_ID_MAX]).toEqual([2000, 2009]);
+    expect(sweepIds(rules)).toEqual([2000, 4000, 5000, 5001]);
+    expect(sweepIds([{ id: 1999 }, { id: 2003 }, { id: 2009 }, { id: 2010 }])).toEqual([2003, 2009]);
+    expect(sweepIds(OLD.filter((r) => r.id !== 2000 && r.id !== 4000))).toEqual([]);
   });
 
   it('refuses a message that names no rule it would install', () => {

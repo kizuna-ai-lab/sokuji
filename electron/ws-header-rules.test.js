@@ -10,7 +10,7 @@ const upgrade = () => ({ Origin: 'file://', 'User-Agent': 'Chrome', 'Sec-WebSock
 const LIVE = { host: 'api.openai.com', path: '/v1/live/', headers: { Authorization: 'Bearer sk-live' }, removeHeaders: ['Origin'] };
 
 describe('the WebSocket upgrade header rules (Stage 2 OpenAI Live, ruling 7; choice 2)', () => {
-  it("a host-wide rule — Edge TTS's, the old AST2 client's — applies to any path on its host, once, as every rule did before", () => {
+  it("a host-wide rule — Edge TTS's — applies to any path on its host, once, as every rule did before", () => {
     const rules = createWsHeaderRules();
     expect(rules.set({ host: 'speech.platform.bing.com', headers: { 'User-Agent': 'Edg/143' } })).toEqual({ success: true });
     const h = upgrade();

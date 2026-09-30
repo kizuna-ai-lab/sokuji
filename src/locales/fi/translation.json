@@ -446,10 +446,6 @@
     "keepReplayAudioDesc": "Säilytä käännetty ääni muistissa, jotta voit toistaa sen myöhemmin jokaisesta viestistä. Oletuksena pois päältä, jotta muistinkäyttö pysyy pienenä pitkissä istunnoissa."
   },
   "providers": {
-    "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI",
-      "description": "8 kieltä + kiina–englanti kaksisuuntaisesti · säilyttää äänesi"
-    },
     "kizunaai_soniox": {
       "name": "KizunaAI",
       "description": "60 kieltä, 3600 kieliparia · kloonaa oma äänesi"

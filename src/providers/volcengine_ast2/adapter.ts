@@ -1,7 +1,7 @@
 /**
  * Doubao AST 2.0 on the new contract (spec: "L0 — the client contract"),
- * ported from `VolcengineAST2Client` (`src/services/clients/`, still
- * compiled until the deletion plan) without its display bookkeeping: items,
+ * ported from `VolcengineAST2Client` (`src/services/clients/`, deleted
+ * since: Stage 2 deletion, ruling 2) without its display bookkeeping: items,
  * ids and the punctuation lane are L1's and L2's now. One protobuf socket
  * per leg, its credentials in the URL's query (ruling 2); subtitles become
  * segments (`segments.ts`), spoken sentences audio (`speech.ts`) — each

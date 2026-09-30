@@ -446,10 +446,6 @@
     "keepReplayAudioDesc": "Spara översatt ljud i minnet så att du kan spela upp det senare från varje meddelande. Av som standard för att minska minnesanvändningen under långa sessioner."
   },
   "providers": {
-    "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI",
-      "description": "8 språk + kinesiska–engelska dubbelriktat · behåller din röst"
-    },
     "kizunaai_soniox": {
       "name": "KizunaAI",
       "description": "60 språk, 3600 språkpar · klona din egen röst"

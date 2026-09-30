@@ -4,9 +4,8 @@ import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/re
 vi.mock('../../utils/environment', async (orig) => ({
   ...(await orig<any>()),
   isKizunaAIEnabled: () => true, isKizunaSonioxEnabled: () => true,
-  isKizunaVolcengineAST2Enabled: () => false,
   isPalabraAIEnabled: () => true, isLocalNativeEnabled: () => true,
-  isElectron: () => true, isExtension: () => false, getRelayWsUrl: () => 'wss://r.example/v1',
+  isElectron: () => true, isExtension: () => false,
 }));
 // The detected interface language, as i18next reports it. Mutable so a test can
 // render the wizard "in Japanese" the way a first-run user in Japan gets it.

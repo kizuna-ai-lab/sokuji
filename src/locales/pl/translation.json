@@ -446,10 +446,6 @@
     "keepReplayAudioDesc": "Przechowuj przetłumaczony dźwięk w pamięci, abyś mógł go później odtworzyć z każdej wiadomości. Domyślnie wyłączone, aby zmniejszyć zużycie pamięci podczas długich sesji."
   },
   "providers": {
-    "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI",
-      "description": "8 języków + chiński–angielski dwukierunkowo · zachowuje Twój głos"
-    },
     "kizunaai_soniox": {
       "name": "KizunaAI",
       "description": "60 języków, 3600 par językowych · sklonuj własny głos"

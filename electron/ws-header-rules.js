@@ -3,14 +3,14 @@
 // The WebSocket upgrade header rules the renderer registers over IPC
 // ('ws-headers-set' / 'ws-headers-clear') and main's one onBeforeSendHeaders
 // listener applies to the next upgrade they match. A browser cannot set an
-// upgrade's headers itself: Edge TTS needs a User-Agent, the old Doubao AST 2.0
-// client its credentials, and OpenAI Live a real Authorization and no Origin.
+// upgrade's headers itself: Edge TTS needs a User-Agent, and OpenAI Live a
+// real Authorization and no Origin.
 //
 // A rule is keyed by host and path (Stage 2 OpenAI Live, ruling 7; choice 2):
 // it applies to an upgrade to its host whose path starts with the rule's path,
 // the longest such path winning, and a rule with no path applies to every path
-// on its host, as every rule did before — so Edge TTS and the old AST2 client
-// keep working unchanged. A Live rule under /v1/live/ therefore never reaches
+// on its host, as every rule did before — so Edge TTS keeps working
+// unchanged. A Live rule under /v1/live/ therefore never reaches
 // OpenAI Realtime's /v1/realtime or Translate's /v1/realtime/translations on
 // the same host. A rule is one-shot: the upgrade it applies to consumes it.
 

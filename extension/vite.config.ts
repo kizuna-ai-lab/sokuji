@@ -172,14 +172,8 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.VITE_ENABLE_KIZUNA_SONIOX': JSON.stringify(
         envVal('VITE_ENABLE_KIZUNA_SONIOX', 'false', 'true')
       ),
-      'import.meta.env.VITE_ENABLE_KIZUNA_VOLCENGINE_AST2': JSON.stringify(
-        envVal('VITE_ENABLE_KIZUNA_VOLCENGINE_AST2', 'false', 'true')
-      ),
       'import.meta.env.VITE_ENABLE_PALABRA_AI': JSON.stringify(
         envVal('VITE_ENABLE_PALABRA_AI', 'false')
-      ),
-      'import.meta.env.VITE_ENABLE_VOLCENGINE_AST2': JSON.stringify(
-        envVal('VITE_ENABLE_VOLCENGINE_AST2', 'false', 'true')
       ),
       // The flagged providers a release offers (D19), one comma-separated
       // list. Dev builds offer every flagged provider in code, so there is no

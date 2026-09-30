@@ -15,8 +15,7 @@ import { OFFLINE_PROVIDERS, providerPathFor } from './providerPath';
  *  compile with a member missing, and the count check below refuses to run with
  *  a row for a member the enum no longer has. */
 const EXPECTED: Record<Provider, ProviderPath> = {
-  // Backend-managed twins: Kizuna AI holds the key, the user signs in.
-  [Provider.KIZUNA_AI_VOLCENGINE_AST2]: 'managed',
+  // Backend-managed: Kizuna AI holds the key, the user signs in.
   [Provider.KIZUNA_AI_SONIOX]: 'managed',
   // Local engines: nothing leaves the machine, models download instead.
   [Provider.LOCAL_INFERENCE]: 'offline',

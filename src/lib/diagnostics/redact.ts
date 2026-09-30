@@ -48,8 +48,8 @@ const PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
   ],
   // `Authorization: Bearer <token>` on every provider fetch.
   [/(\bBearer\s+)[A-Za-z0-9._~+/=-]{8,}/g, `$1${REDACTED}`],
-  // `sokuji-auth.${this.apiKey}` WebSocket subprotocol — OpenAITranslateGAClient.ts:707,
-  // VolcengineAST2Client (relay auth).
+  // `sokuji-auth.${this.apiKey}` WebSocket subprotocol — OpenAITranslateGAClient.ts:707
+  // (relay auth).
   [/(\bsokuji-auth\.)[A-Za-z0-9._~+/=-]+/g, `$1${REDACTED}`],
   // `openai-insecure-api-key.${apiKey}` WebSocket subprotocol — OpenAI
   // Translate's own key (`openai_translate/wire.ts` `translateProtocols`,

@@ -446,10 +446,6 @@
     "keepReplayAudioDesc": "Vertaalde audio in het geheugen bewaren zodat u deze later vanuit elk bericht opnieuw kunt afspelen. Standaard uitgeschakeld om geheugengebruik tijdens lange sessies te beperken."
   },
   "providers": {
-    "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI",
-      "description": "8 talen + Chinees–Engels tweerichtings · behoudt je stem"
-    },
     "kizunaai_soniox": {
       "name": "KizunaAI",
       "description": "60 talen, 3.600 taalparen · kloon je eigen stem"

@@ -7,7 +7,8 @@
 // makes (`initiatorDomains`), in an id range of their own (Stage 2 OpenAI
 // Live, ruling 7; choice 3). OpenAI Live is the first user: a real
 // Authorization and no Origin, which every browser adds and its endpoint
-// answers with 403. The old per-provider pairs stay until their clients go.
+// answers with 403. The old per-provider pairs went with their clients (Stage
+// 2 deletion, ruling 2).
 // No chrome.* here: background.js reads the rules, hands in the extension's id
 // and its pages' base URL, and applies what these return.
 
@@ -47,7 +48,18 @@ export function ruleProblem(message) {
  */
 export const OLD_LIVE_RULE_ID = 4000;
 
+/**
+ * The old Doubao AST 2.0 client's rule ids, gone from background.js with that
+ * client (Stage 2 deletion, ruling 2): one `set` rule per credential header at
+ * `||openspeech.bytedance.com`, with no initiator, so one a crash left behind
+ * would hand the user's credentials to any page opening a socket there. The
+ * sweep takes the old range whole (Stage 2 deletion, ruling C3).
+ */
+export const OLD_AST2_RULE_ID_MIN = 2000;
+export const OLD_AST2_RULE_ID_MAX = 2009;
+
 const inRange = (rule) => rule.id >= WS_RULE_ID_MIN && rule.id <= WS_RULE_ID_MAX;
+const isOldRule = (rule) => rule.id === OLD_LIVE_RULE_ID || (rule.id >= OLD_AST2_RULE_ID_MIN && rule.id <= OLD_AST2_RULE_ID_MAX);
 
 /** The generic rules' ids for this host and path: what a clear removes. */
 export function ruleIdsFor(existing, host, path) {
@@ -55,9 +67,9 @@ export function ruleIdsFor(existing, host, path) {
   return existing.filter((r) => inRange(r) && r.condition?.urlFilter === filter).map((r) => r.id);
 }
 
-/** Every generic rule's id, and the old Live rule's: what the sweep at a start removes. */
+/** Every generic rule's id, and the old Live and AST2 rules': what the sweep at a start removes. */
 export function sweepIds(existing) {
-  return existing.filter((r) => inRange(r) || r.id === OLD_LIVE_RULE_ID).map((r) => r.id);
+  return existing.filter((r) => inRange(r) || isOldRule(r)).map((r) => r.id);
 }
 
 /**

@@ -5,14 +5,12 @@ import { GeminiProviderConfig } from './GeminiProviderConfig';
 import { OpenAICompatibleProviderConfig } from './OpenAICompatibleProviderConfig';
 import { OpenAITranslateProviderConfig } from './OpenAITranslateProviderConfig';
 import { PalabraAIProviderConfig } from './PalabraAIProviderConfig';
-import { KizunaAIVolcengineAST2ProviderConfig } from './KizunaAIVolcengineAST2ProviderConfig';
 import { KizunaAISonioxProviderConfig } from './KizunaAISonioxProviderConfig';
-import { VolcengineAST2ProviderConfig } from './VolcengineAST2ProviderConfig';
 import { LocalInferenceProviderConfig } from './LocalInferenceProviderConfig';
 import { LocalNativeProviderConfig } from './LocalNativeProviderConfig';
 import { SonioxProviderConfig } from './SonioxProviderConfig';
 import { Provider, ProviderType } from '../../types/Provider';
-import { isKizunaAIEnabled, isKizunaSonioxEnabled, isKizunaVolcengineAST2Enabled, isPalabraAIEnabled, isLocalNativeEnabled, isElectron, isExtension } from '../../utils/environment';
+import { isKizunaAIEnabled, isKizunaSonioxEnabled, isPalabraAIEnabled, isLocalNativeEnabled, isElectron } from '../../utils/environment';
 
 export class ProviderConfigFactory {
   private static configs: Map<ProviderType, ProviderDescriptor> = new Map();
@@ -35,9 +33,6 @@ export class ProviderConfigFactory {
       if (isKizunaSonioxEnabled()) {
         ProviderConfigFactory.configs.set(Provider.KIZUNA_AI_SONIOX, new KizunaAISonioxProviderConfig());
       }
-      if (isKizunaVolcengineAST2Enabled()) {
-        ProviderConfigFactory.configs.set(Provider.KIZUNA_AI_VOLCENGINE_AST2, new KizunaAIVolcengineAST2ProviderConfig());
-      }
     }
 
     // 2. Free (local inference) — always available, no API key or flag.
@@ -45,13 +40,6 @@ export class ProviderConfigFactory {
 
     // 3. Gemini
     ProviderConfigFactory.configs.set(Provider.GEMINI, new GeminiProviderConfig());
-
-    // 4. Doubao AST 2.0 — always available, but only in Electron (IPC proxy) and
-    //    the extension (declarativeNetRequest header injection), which it
-    //    technically requires.
-    if (isElectron() || isExtension()) {
-      ProviderConfigFactory.configs.set(Provider.VOLCENGINE_AST2, new VolcengineAST2ProviderConfig());
-    }
 
     // 5. The OpenAI providers: Realtime, Translate.
     ProviderConfigFactory.configs.set(Provider.OPENAI, new OpenAIProviderConfig());
@@ -141,13 +129,11 @@ export class ProviderConfigFactory {
    * Translate twin would set a provider `getDescriptor` then throws on.
    *
    * Soniox first: it is the only managed provider open in production, and
-   * the wallet page states its rates. The twins stay as fallbacks for
-   * builds that register them alone.
+   * the wallet page states its rates.
    */
   static getDefaultManagedProvider(): ProviderType | null {
     const preferred = [
       Provider.KIZUNA_AI_SONIOX,
-      Provider.KIZUNA_AI_VOLCENGINE_AST2,
     ];
     return preferred.find((p) => this.configs.has(p)) ?? null;
   }

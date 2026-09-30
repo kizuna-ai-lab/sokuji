@@ -4,9 +4,8 @@ import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/re
 vi.mock('../../../utils/environment', async (orig) => ({
   ...(await orig<any>()),
   isKizunaAIEnabled: () => true, isKizunaSonioxEnabled: () => true,
-  isKizunaVolcengineAST2Enabled: () => false,
   isPalabraAIEnabled: () => true, isLocalNativeEnabled: () => true,
-  isElectron: () => true, isExtension: () => false, getRelayWsUrl: () => 'wss://r.example/v1',
+  isElectron: () => true, isExtension: () => false,
 }));
 // Keys, not defaults: the field label's default is the slice key itself, which
 // is the very thing these tests vary.

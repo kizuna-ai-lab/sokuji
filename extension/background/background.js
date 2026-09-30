@@ -253,71 +253,6 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   }
 });
 
-// ─── Volcengine AST2 declarativeNetRequest header injection ───────────────
-// Browser WebSocket API cannot send custom headers. We use declarativeNetRequest
-// dynamic rules to inject auth headers into the WebSocket upgrade request.
-const VOLCENGINE_DNR_RULE_ID_BASE = 2000;
-const VOLCENGINE_WS_HOST = 'openspeech.bytedance.com';
-
-let dnrUpdatePromise = Promise.resolve();
-
-async function volcengineSetDNRHeaders(credentials) {
-  dnrUpdatePromise = dnrUpdatePromise.then(async () => {
-    const { appKey, accessKey, resourceId, connectId } = credentials;
-
-    const headers = [
-      { header: 'X-Api-App-Key', value: appKey },
-      { header: 'X-Api-Access-Key', value: accessKey },
-      { header: 'X-Api-Resource-Id', value: resourceId },
-      { header: 'X-Api-Connect-Id', value: connectId },
-    ];
-
-    const rules = headers.map((h, i) => ({
-      id: VOLCENGINE_DNR_RULE_ID_BASE + i,
-      priority: 1,
-      action: {
-        type: 'modifyHeaders',
-        requestHeaders: [
-          { header: h.header, operation: 'set', value: h.value },
-        ],
-      },
-      condition: {
-        urlFilter: `||${VOLCENGINE_WS_HOST}`,
-        resourceTypes: ['websocket'],
-      },
-    }));
-
-    // Remove any existing Volcengine rules first
-    const existingRuleIds = (await chrome.declarativeNetRequest.getDynamicRules())
-      .filter(r => r.id >= VOLCENGINE_DNR_RULE_ID_BASE && r.id < VOLCENGINE_DNR_RULE_ID_BASE + 10)
-      .map(r => r.id);
-
-    await chrome.declarativeNetRequest.updateDynamicRules({
-      removeRuleIds: existingRuleIds,
-      addRules: rules,
-    });
-
-    console.debug('[Sokuji] [Background] Volcengine AST2 DNR rules registered:', rules.length);
-  });
-  return dnrUpdatePromise;
-}
-
-async function volgengineClearDNRHeaders() {
-  dnrUpdatePromise = dnrUpdatePromise.then(async () => {
-    const existingRuleIds = (await chrome.declarativeNetRequest.getDynamicRules())
-      .filter(r => r.id >= VOLCENGINE_DNR_RULE_ID_BASE && r.id < VOLCENGINE_DNR_RULE_ID_BASE + 10)
-      .map(r => r.id);
-
-    if (existingRuleIds.length > 0) {
-      await chrome.declarativeNetRequest.updateDynamicRules({
-        removeRuleIds: existingRuleIds,
-      });
-      console.debug('[Sokuji] [Background] Volcengine AST2 DNR rules cleared');
-    }
-  });
-  return dnrUpdatePromise;
-}
-
 // ─── Edge TTS declarativeNetRequest header injection ──────────────────────
 // Edge TTS requires specific headers to connect to Bing's TTS WebSocket endpoint.
 // We use declarativeNetRequest to inject these headers for the extension context.
@@ -388,8 +323,11 @@ async function edgeTtsClearDNRHeaders() {
 // One message pair for every provider whose upgrade needs a header a browser
 // cannot set (wsHeaderRule.js): a rule per host and path, scoped to the
 // extension's own pages, removed as soon as the upgrade is made (Stage 2
-// OpenAI Live, ruling 7; choice 3). Chained on the shared dnrUpdatePromise and
-// never left rejected. The per-provider pairs above go with their old clients.
+// OpenAI Live, ruling 7; choice 3). Chained on one promise and never left
+// rejected; the old per-provider pairs that shared it went with their clients
+// (Stage 2 deletion, ruling 2).
+let dnrUpdatePromise = Promise.resolve();
+
 async function wsHeadersSet(message) {
   // Validate before touching the shared chain.
   const problem = ruleProblem(message);
@@ -416,7 +354,8 @@ async function wsHeadersClear(message) {
 }
 
 // Dynamic rules outlive a browser restart: one a crash left installed goes when the browser or the extension next starts,
-// and so does the old OpenAI Live client's, which nothing else will clear once that client is gone (ruling 11).
+// and so do the old OpenAI Live and AST2 clients', which nothing else clears now those clients are gone (Stage 2
+// OpenAI Live, ruling 11; Stage 2 deletion, ruling C3).
 function wsHeadersSweep() {
   const run = dnrUpdatePromise.then(async () => {
     const ids = sweepIds(await chrome.declarativeNetRequest.getDynamicRules());
@@ -522,27 +461,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
     }
     return true; // Indicates async response
-  }
-
-  // Handle Volcengine AST2 DNR header injection
-  if (message.type === 'VOLCENGINE_AST2_SET_HEADERS') {
-    volcengineSetDNRHeaders(message.credentials)
-      .then(() => sendResponse({ success: true }))
-      .catch((error) => {
-        console.error('[Sokuji] [Background] Failed to set Volcengine DNR headers:', error);
-        sendResponse({ success: false, error: error.message });
-      });
-    return true;
-  }
-
-  if (message.type === 'VOLCENGINE_AST2_CLEAR_HEADERS') {
-    volgengineClearDNRHeaders()
-      .then(() => sendResponse({ success: true }))
-      .catch((error) => {
-        console.error('[Sokuji] [Background] Failed to clear Volcengine DNR headers:', error);
-        sendResponse({ success: false, error: error.message });
-      });
-    return true;
   }
 
   // Handle Edge TTS DNR header injection

@@ -446,10 +446,6 @@
     "keepReplayAudioDesc": "Simpan audio terjemahan dalam memori supaya anda boleh memainkannya semula kemudian daripada setiap mesej. Dimatikan secara lalai untuk mengurangkan penggunaan memori semasa sesi panjang."
   },
   "providers": {
-    "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI",
-      "description": "8 bahasa + Cina–Inggeris dua hala · mengekalkan suara anda"
-    },
     "kizunaai_soniox": {
       "name": "KizunaAI",
       "description": "60 bahasa, 3,600 pasangan · klon suara anda sendiri"

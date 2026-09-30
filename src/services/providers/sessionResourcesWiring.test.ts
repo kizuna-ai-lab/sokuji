@@ -9,12 +9,10 @@ vi.mock('../../utils/environment', async (orig) => ({
   // Explicit: each managed provider is gated on its own now, and this mock's
   // promise is that EVERY provider gate is forced on.
   isKizunaSonioxEnabled: () => true,
-  isKizunaVolcengineAST2Enabled: () => true,
   isPalabraAIEnabled: () => true,
   isLocalNativeEnabled: () => true,
   isElectron: () => true,
   isExtension: () => false,
-  getRelayWsUrl: () => 'wss://r.example/v1',
 }));
 
 // vi.hoisted: the mock factory below runs before these consts would otherwise

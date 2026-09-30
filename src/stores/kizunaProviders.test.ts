@@ -1,14 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { useSettingsStore, migrateLegacyKizunaProvider } from "./settingsStore";
+import { migrateLegacyKizunaProvider } from "./settingsStore";
 import { Provider } from "../types/Provider";
-
-describe("KizunaAI relay providers — session config", () => {
-  it("doubao twin builds a volcengine_ast2 config from its own slice", () => {
-    useSettingsStore.setState({ provider: Provider.KIZUNA_AI_VOLCENGINE_AST2 } as any);
-    const cfg: any = useSettingsStore.getState().createSessionConfig("instr");
-    expect(cfg.provider).toBe("volcengine_ast2");
-  });
-});
 
 describe("legacy kizunaai provider migration", () => {
   it("migrates a legacy 'kizunaai' provider to managed Soniox", () => {
@@ -16,6 +8,6 @@ describe("legacy kizunaai provider migration", () => {
   });
   it("leaves other providers unchanged", () => {
     expect(migrateLegacyKizunaProvider(Provider.OPENAI)).toBe(Provider.OPENAI);
-    expect(migrateLegacyKizunaProvider(Provider.KIZUNA_AI_VOLCENGINE_AST2)).toBe(Provider.KIZUNA_AI_VOLCENGINE_AST2);
+    expect(migrateLegacyKizunaProvider(Provider.KIZUNA_AI_SONIOX)).toBe(Provider.KIZUNA_AI_SONIOX);
   });
 });

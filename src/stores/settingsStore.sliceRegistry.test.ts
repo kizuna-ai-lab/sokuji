@@ -31,7 +31,6 @@ const PLAIN: Array<[string, string, Record<string, unknown>]> = [
   ['updateGemini', 'gemini', { apiKey: 'k1' }],
   ['updatePalabraAI', 'palabraai', { clientId: 'c1' }],
   ['updateOpenAITranslate', 'openaiTranslate', { apiKey: 'k2' }],
-  ['updateVolcengineAST2', 'volcengineAST2', { appId: 'p1' }],
   ['updateLocalInference', 'localInference', { ttsSpeed: 1.5 }],
   ['updateLocalNative', 'localNative', { sourceLanguage: 'ja' }],
   ['updateSoniox', 'soniox', { apiKey: 's1' }],
@@ -82,15 +81,15 @@ describe('provider settings update actions (behavior lock)', () => {
     }
   });
 
-  it('kizuna twins: credentials update in-memory state but are never persisted', async () => {
-    await useSettingsStore.getState().updateKizunaVolcengineAst2({ appId: 'a', accessToken: 't', sourceLanguage: 'zh' } as any);
+  it('the kizuna twin: credentials update in-memory state but are never persisted', async () => {
+    await useSettingsStore.getState().updateKizunaSoniox({ apiKey: 'a', apiKeyEu: 'e', sourceLanguage: 'zh' } as any);
     // Credentials land in state...
-    expect((useSettingsStore.getState() as any).kizunaVolcengineAst2.appId).toBe('a');
-    expect((useSettingsStore.getState() as any).kizunaVolcengineAst2.accessToken).toBe('t');
+    expect((useSettingsStore.getState() as any).kizunaSoniox.apiKey).toBe('a');
+    expect((useSettingsStore.getState() as any).kizunaSoniox.apiKeyEu).toBe('e');
     // ...but are never persisted.
-    expect(setSetting).not.toHaveBeenCalledWith('settings.kizunaVolcengineAst2.appId', expect.anything());
-    expect(setSetting).not.toHaveBeenCalledWith('settings.kizunaVolcengineAst2.accessToken', expect.anything());
-    expect(setSetting).toHaveBeenCalledWith('settings.kizunaVolcengineAst2.sourceLanguage', 'zh');
+    expect(setSetting).not.toHaveBeenCalledWith('settings.kizunaSoniox.apiKey', expect.anything());
+    expect(setSetting).not.toHaveBeenCalledWith('settings.kizunaSoniox.apiKeyEu', expect.anything());
+    expect(setSetting).toHaveBeenCalledWith('settings.kizunaSoniox.sourceLanguage', 'zh');
   });
 
   // The registry used to carry `persistErrors: 'throw' | 'swallow'`, split 6/6,
@@ -112,8 +111,6 @@ describe('provider settings update actions (behavior lock)', () => {
     ['updateOpenAICompatible', 'openaiCompatible', { apiKey: 'x' }],
     ['updatePalabraAI', 'palabraai', { clientId: 'x' }],
     ['updateOpenAITranslate', 'openaiTranslate', { apiKey: 'x' }],
-    ['updateVolcengineAST2', 'volcengineAST2', { appId: 'x' }],
-    ['updateKizunaVolcengineAst2', 'kizunaVolcengineAst2', { sourceLanguage: 'zh' }],
     ['updateLocalInference', 'localInference', { ttsSpeed: 1.5 }],
     ['updateLocalNative', 'localNative', { sourceLanguage: 'ja' }],
   ];
@@ -166,8 +163,7 @@ describe('provider settings update actions (behavior lock)', () => {
     // Spot every slice key is a populated object after load.
     for (const sliceKey of [
       'openai', 'gemini', 'openaiCompatible', 'palabraai', 'openaiTranslate',
-      'volcengineAST2',
-      'kizunaVolcengineAst2', 'localInference', 'localNative',
+      'localInference', 'localNative',
     ]) {
       expect(s[sliceKey], sliceKey).toBeTypeOf('object');
       expect(Object.keys(s[sliceKey]).length, sliceKey).toBeGreaterThan(0);

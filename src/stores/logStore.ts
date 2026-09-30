@@ -96,14 +96,6 @@ export interface EventData {
     | 'translated_transcription'
     | 'output_audio_data'
     | 'current_task'
-    // Volcengine AST2. One client event, then whatever the server sent: the
-    // name is read out of the proto's `EventType` enum, so the exact set lives
-    // in the generated code rather than here, and an event the enum does not
-    // name arrives as `message.<number>`. The twelve the grouping switch below
-    // treats specially (SourceSubtitle*, TranslationSubtitle*, TTS*,
-    // UsageResponse, Audio{Muted,Unmuted}) are among them.
-    | 'start_session.sent'
-    | `message.${number}`
     // Sentence segmentation stage — diagnostics only, counts and durations,
     // never transcript text. They ride the events stream (which LogsPanel shows
     // and 'copy logs' exports) rather than the plain error/warning entries
@@ -468,25 +460,22 @@ const useLogStore = create<LogStore>(
         // Group PalabraAI current task response events together
         groupingKey = 'palabraai_current_task';
       }
-      // Volcengine AST2-specific grouping: the old client's names and the new
-      // adapter's `domain.event` frames (Stage 2 Volcengine AST2, choice 9);
-      // the old names go with the old client.
-      else if (eventType === 'SourceSubtitleResponse' || eventType === 'SourceSubtitleStart' || eventType === 'SourceSubtitleEnd'
-          || eventType === 'subtitle.source') {
+      // Doubao AST 2.0's grouping: the adapter's `domain.event` frames, under
+      // the keys its old client's names had (Stage 2 Volcengine AST2,
+      // choice 9).
+      else if (eventType === 'subtitle.source') {
         groupingKey = 'volcengine_source_subtitle';
       }
-      else if (eventType === 'TranslationSubtitleResponse' || eventType === 'TranslationSubtitleStart' || eventType === 'TranslationSubtitleEnd'
-          || eventType === 'subtitle.translation') {
+      else if (eventType === 'subtitle.translation') {
         groupingKey = 'volcengine_translation_subtitle';
       }
-      else if (eventType === 'TTSResponse' || eventType === 'TTSSentenceStart' || eventType === 'TTSSentenceEnd'
-          || eventType === 'tts.sentence_start' || eventType === 'tts.sentence_end' || eventType === 'tts.ended') {
+      else if (eventType === 'tts.sentence_start' || eventType === 'tts.sentence_end' || eventType === 'tts.ended') {
         groupingKey = 'volcengine_tts';
       }
-      else if (eventType === 'UsageResponse' || eventType === 'session.usage') {
+      else if (eventType === 'session.usage') {
         groupingKey = 'volcengine_usage';
       }
-      else if (eventType === 'AudioMuted' || eventType === 'AudioUnmuted' || eventType === 'session.audio_muted') {
+      else if (eventType === 'session.audio_muted') {
         groupingKey = 'volcengine_audio_mute';
       }
       // For other events, extract item_id if it exists (OpenAI)

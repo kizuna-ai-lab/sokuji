@@ -5,18 +5,16 @@ import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
 import { directionKey } from '../lib/local-inference/selection/types';
 import useLogStore from './logStore';
 
-// Force platform detection so environment-gated providers (notably Volcengine
-// AST 2.0, which requires Electron/Extension) are present in the descriptor
-// registry. createSessionConfig now dispatches through
-// ProviderConfigFactory.getDescriptor, which throws for unregistered providers;
-// these tests exercise VOLCENGINE_AST2 directly. Mirrors descriptorRegistry.test.ts.
+// Force platform detection so environment-gated providers are present in the
+// descriptor registry. createSessionConfig now dispatches through
+// ProviderConfigFactory.getDescriptor, which throws for unregistered
+// providers. Mirrors descriptorRegistry.test.ts.
 vi.mock('../utils/environment', async (orig) => ({
   ...(await orig<any>()),
   isKizunaAIEnabled: () => true,
   // Explicit: each managed provider is gated on its own now, and this mock's
   // promise is that EVERY provider gate is forced on.
   isKizunaSonioxEnabled: () => true,
-  isKizunaVolcengineAST2Enabled: () => true,
   isPalabraAIEnabled: () => true,
   isElectron: () => true,
   isExtension: () => false,
@@ -167,85 +165,6 @@ describe('settingsStore', () => {
     });
   });
 
-  describe('Volcengine AST 2.0 custom vocabulary', () => {
-    const volcBase = {
-      appId: 'app-id',
-      accessToken: 'token',
-      sourceLanguage: 'zh' as const,
-      targetLanguage: 'en' as const,
-      turnDetectionMode: 'Auto' as const,
-    };
-
-    it('omits all three corpus fields when values are empty strings', () => {
-      useSettingsStore.setState({
-        provider: Provider.VOLCENGINE_AST2,
-        volcengineAST2: {
-          ...volcBase,
-          hotWordTableId: '',
-          replacementTableId: '',
-          glossaryTableId: '',
-        },
-      } as any);
-
-      const config = useSettingsStore.getState().createSessionConfig('sys');
-      expect(config.provider).toBe('volcengine_ast2');
-      expect((config as any).hotWordTableId).toBeUndefined();
-      expect((config as any).replacementTableId).toBeUndefined();
-      expect((config as any).glossaryTableId).toBeUndefined();
-    });
-
-    it('omits fields that contain only whitespace', () => {
-      useSettingsStore.setState({
-        provider: Provider.VOLCENGINE_AST2,
-        volcengineAST2: {
-          ...volcBase,
-          hotWordTableId: '   ',
-          replacementTableId: '\t\n',
-          glossaryTableId: ' ',
-        },
-      } as any);
-
-      const config = useSettingsStore.getState().createSessionConfig('sys');
-      expect((config as any).hotWordTableId).toBeUndefined();
-      expect((config as any).replacementTableId).toBeUndefined();
-      expect((config as any).glossaryTableId).toBeUndefined();
-    });
-
-    it('trims and passes through set IDs; leaves others undefined', () => {
-      useSettingsStore.setState({
-        provider: Provider.VOLCENGINE_AST2,
-        volcengineAST2: {
-          ...volcBase,
-          hotWordTableId: '  hot-abc  ',
-          replacementTableId: '',
-          glossaryTableId: 'gloss-1',
-        },
-      } as any);
-
-      const config = useSettingsStore.getState().createSessionConfig('sys');
-      expect((config as any).hotWordTableId).toBe('hot-abc');
-      expect((config as any).replacementTableId).toBeUndefined();
-      expect((config as any).glossaryTableId).toBe('gloss-1');
-    });
-
-    it('trims all three when all are set', () => {
-      useSettingsStore.setState({
-        provider: Provider.VOLCENGINE_AST2,
-        volcengineAST2: {
-          ...volcBase,
-          hotWordTableId: '\thot-1\t',
-          replacementTableId: ' rep-2 ',
-          glossaryTableId: 'gloss-3',
-        },
-      } as any);
-
-      const config = useSettingsStore.getState().createSessionConfig('sys');
-      expect((config as any).hotWordTableId).toBe('hot-1');
-      expect((config as any).replacementTableId).toBe('rep-2');
-      expect((config as any).glossaryTableId).toBe('gloss-3');
-    });
-  });
-
   describe('Push-to-Translate persistence', () => {
     it('persists Push-to-Translate for Gemini', async () => {
       const store = useSettingsStore.getState();
@@ -254,17 +173,6 @@ describe('settingsStore', () => {
       expect(useSettingsStore.getState().gemini.turnDetectionMode).toBe('Push-to-Translate');
       expect(mockSetSetting).toHaveBeenCalledWith(
         'settings.gemini.turnDetectionMode',
-        'Push-to-Translate'
-      );
-    });
-
-    it('persists Push-to-Translate for Volcengine AST2', async () => {
-      const store = useSettingsStore.getState();
-      await store.updateVolcengineAST2({ turnDetectionMode: 'Push-to-Translate' });
-
-      expect(useSettingsStore.getState().volcengineAST2.turnDetectionMode).toBe('Push-to-Translate');
-      expect(mockSetSetting).toHaveBeenCalledWith(
-        'settings.volcengineAST2.turnDetectionMode',
         'Push-to-Translate'
       );
     });

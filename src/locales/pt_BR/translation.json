@@ -446,10 +446,6 @@
     "keepReplayAudioDesc": "Armazenar o áudio traduzido na memória para que você possa reproduzi-lo depois a partir de cada mensagem. Desativado por padrão para reduzir o uso de memória em sessões longas."
   },
   "providers": {
-    "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI",
-      "description": "8 idiomas + chinês–inglês bidirecional · mantém sua voz"
-    },
     "kizunaai_soniox": {
       "name": "KizunaAI",
       "description": "60 idiomas, 3.600 pares · clone sua própria voz"

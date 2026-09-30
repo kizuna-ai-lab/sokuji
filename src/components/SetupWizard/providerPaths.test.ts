@@ -4,12 +4,10 @@ vi.mock('../../utils/environment', async (orig) => ({
   ...(await orig<any>()),
   isKizunaAIEnabled: () => true,
   isKizunaSonioxEnabled: () => true,
-  isKizunaVolcengineAST2Enabled: () => true,
   isPalabraAIEnabled: () => true,
   isLocalNativeEnabled: () => true,
   isElectron: () => true,
   isExtension: () => false,
-  getRelayWsUrl: () => 'wss://r.example/v1',
 }));
 import { Provider } from '../../types/Provider';
 import {

@@ -446,10 +446,6 @@
     "keepReplayAudioDesc": "Mag-imbak ng isinaling audio sa memorya upang maaari mong patugtugin muli mamaya mula sa bawat mensahe. Naka-off bilang default upang mabawasan ang paggamit ng memorya sa mahahabang sesyon."
   },
   "providers": {
-    "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI",
-      "description": "8 wika + Chinese–English two-way · pinapanatili ang boses mo"
-    },
     "kizunaai_soniox": {
       "name": "KizunaAI",
       "description": "60 na wika, 3,600 pares · i-clone ang sarili mong boses"

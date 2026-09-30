@@ -1,21 +1,14 @@
 /**
- * The generated protobuf codec in its new home (F18): one module, reached
- * from the old path through a re-export, and the messages this provider
- * speaks round-trip through it. The old path is read here only, as the
- * stub's pin: new code imports nothing from `src/services`.
+ * The generated protobuf codec in its home (F18): the messages this provider
+ * speaks round-trip through it.
  */
 import { describe, it, expect } from 'vitest';
 import { data as moved } from './proto/ast2-proto.js';
-import { data as old } from '../../services/clients/volcengine-ast2/ast2-proto.js';
 
 const { TranslateRequest, TranslateResponse } = moved.speech.ast;
 const Type = moved.speech.event.Type;
 
 describe("Doubao AST 2.0's codec (F18)", () => {
-  it('is one module: the old path re-exports the moved one', () => {
-    expect(old).toBe(moved);
-  });
-
   it('names its events both ways', () => {
     expect(Type.StartSession).toBe(100);
     expect(Type.SessionStarted).toBe(150);

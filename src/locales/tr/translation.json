@@ -446,10 +446,6 @@
     "keepReplayAudioDesc": "Çevrilen sesi bellekte saklayın, böylece her mesajdan daha sonra yeniden oynatabilirsiniz. Uzun oturumlarda bellek kullanımını azaltmak için varsayılan olarak kapalıdır."
   },
   "providers": {
-    "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI",
-      "description": "8 dil + Çince–İngilizce çift yönlü · sesinizi korur"
-    },
     "kizunaai_soniox": {
       "name": "KizunaAI",
       "description": "60 dil, 3.600 dil çifti · kendi sesinizi klonlayın"

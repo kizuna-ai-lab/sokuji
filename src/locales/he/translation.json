@@ -446,10 +446,6 @@
     "keepReplayAudioDesc": "שמירת האודיו המתורגם בזיכרון כדי שתוכל להפעיל אותו שוב מאוחר יותר מכל הודעה. כבוי כברירת מחדל כדי לצמצם את השימוש בזיכרון בסשנים ארוכים."
   },
   "providers": {
-    "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI",
-      "description": "8 שפות + סינית–אנגלית דו-כיווני · שומר על הקול שלך"
-    },
     "kizunaai_soniox": {
       "name": "KizunaAI",
       "description": "60 שפות, 3,600 צמדים · שכפול הקול שלך"

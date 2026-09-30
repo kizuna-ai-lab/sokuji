@@ -196,22 +196,6 @@ export interface PalabraAISessionConfig extends BaseSessionConfig {
 }
 
 /**
- * Volcengine AST 2.0 session configuration (s2s mode)
- */
-export interface VolcengineAST2SessionConfig extends BaseSessionConfig {
-  provider: 'volcengine_ast2';
-  sourceLanguage: string;
-  targetLanguage: string;
-  turnDetectionMode?: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
-  /** Boost recognition of specific terms (Volcengine self-learning platform: Hot Words). Library ID only; empty string or undefined = not set. */
-  hotWordTableId?: string;
-  /** Post-transcription text substitution (Volcengine self-learning platform: Replacement). Library ID only; empty string or undefined = not set. */
-  replacementTableId?: string;
-  /** Source-to-target bilingual term pairs (Volcengine self-learning platform: Glossary). Library ID only; empty string or undefined = not set. */
-  glossaryTableId?: string;
-}
-
-/**
  * Soniox speech-to-speech translation session configuration.
  * `voice` comes from BaseSessionConfig. When `bidirectional` is true the
  * client sends a two_way translation block (source ↔ target); sourceLanguage
@@ -304,7 +288,7 @@ export interface LocalNativeSessionConfig extends BaseSessionConfig {
 /**
  * Union type for all possible session configurations
  */
-export type SessionConfig = OpenAISessionConfig | OpenAITranslateSessionConfig | GeminiSessionConfig | PalabraAISessionConfig | VolcengineAST2SessionConfig | SonioxSessionConfig | LocalInferenceSessionConfig | LocalNativeSessionConfig;
+export type SessionConfig = OpenAISessionConfig | OpenAITranslateSessionConfig | GeminiSessionConfig | PalabraAISessionConfig | SonioxSessionConfig | LocalInferenceSessionConfig | LocalNativeSessionConfig;
 
 /**
  * Type guards for session configurations
@@ -326,10 +310,6 @@ export function isGeminiSessionConfig(config: SessionConfig): config is GeminiSe
 
 export function isPalabraAISessionConfig(config: SessionConfig): config is PalabraAISessionConfig {
   return config.provider === 'palabraai';
-}
-
-export function isVolcengineAST2SessionConfig(config: SessionConfig): config is VolcengineAST2SessionConfig {
-  return config.provider === 'volcengine_ast2';
 }
 
 export function isSonioxSessionConfig(config: SessionConfig): config is SonioxSessionConfig {

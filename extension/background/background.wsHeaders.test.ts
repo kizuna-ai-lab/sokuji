@@ -49,7 +49,7 @@ describe('the background worker: the generic upgrade header rules', () => {
     expect(fn('wsHeadersSweep')).toContain('sweepIds(');
   });
 
-  it('sweeps the generic rules and the old Live rule when the browser or the extension starts, since dynamic rules outlive both (ruling 11)', () => {
+  it('sweeps the generic rules and the old Live and AST2 rules when the browser or the extension starts, since dynamic rules outlive both (Stage 2 OpenAI Live, ruling 11; Stage 2 deletion, ruling C3)', () => {
     expect(background).toContain('chrome.runtime.onStartup.addListener(() => { void wsHeadersSweep(); });');
     expect(background).toContain('chrome.runtime.onInstalled.addListener(() => { void wsHeadersSweep(); });');
   });
