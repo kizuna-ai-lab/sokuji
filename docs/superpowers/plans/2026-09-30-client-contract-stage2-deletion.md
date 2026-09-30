@@ -2,25 +2,29 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **Standing of the rulings below.** Rulings 1–8 are **the owner's decisions** (2026-09-30, in conversation), after his live tests: every other provider's old code goes in this one plan — 「其他的几个Provider可以开始清理计划了」 — with Local Native's old path kept whole (「LocalNative完全保留 因为我们还有后续工作」), LocalInference's leftovers deleted (「删」), `evals/` with `openai-realtime-api` (「删 evals相关的也可以删了，已经用不到了」), the extension's CSP and the release flags cleaned (「清理」), and this repository's `CLAUDE.md` rewritten (「改」). Rulings C1–C7 are **the controller's**, on the survey's questions (`/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-plan-brief.md`). Where a ruling left a sub-decision to this plan, the answer is a numbered *choice*; the self-review lists each. Nothing here is the owner's to decide before execution but the four questions at the end, none of which blocks a task.
+> **Standing of the rulings below.** Rulings 1–8 are **the owner's decisions** (2026-09-30, in conversation), after his live tests: every other provider's old code goes in this one plan — 「其他的几个Provider可以开始清理计划了」 — with Local Native's old path kept whole (「LocalNative完全保留 因为我们还有后续工作」), LocalInference's leftovers deleted (「删」), `evals/` with `openai-realtime-api` (「删 evals相关的也可以删了，已经用不到了」), the extension's CSP and the release flags cleaned (「清理」), and this repository's `CLAUDE.md` rewritten (「改」). Rulings C1–C7 are **the controller's**, on the survey's questions (`/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-plan-brief.md`). Where a ruling left a sub-decision to this plan, the answer is a numbered *choice*; the self-review lists each.
+
+> **Revision 1** (this version) answers the independent review of the first version (`bb39151e`; `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-plan-review.md`: Ready after fixes, 0 Critical, 1 Important, 6 Minor, 5 Nit; it reproduced every number the first version quoted) with the controller's rulings in `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-plan-revision1.md` (rulings C8–C17 below), and takes the owner's rulings 9 and 10, added to the brief on 2026-10-01: `CONTEXT.md` is rewritten with `CLAUDE.md` (「CONTEXT.md 一起改」), and `README.md`, `docs/`, `CHANGELOG.md` and `bug_report.yml` wait for the release that carries Stage 2 (「README 那些等发布再改」). The first version's four open questions are ruled; none is left open but one new question for the owner that blocks nothing. The applier now proves what it removes (a hash on every shortened run; a hunk whose old side occurs twice names its occurrence), a pre-flight runs its self-test and checks the files are `fa301e9a`'s, the typecheck is gated as a set, the import guard is a test in the suite, and Tasks 2, 4, 6, 8, 9, 10 and 11 gain the comment, diagnostics, guard and glossary changes the rulings add. "Found in review" (research notes) lists each with where it lands; the whole plan was replayed again on a fresh copy of `fa301e9a`, and every count below is Revision 1's.
 
 **Goal:** Delete every old provider client, descriptor, store slice and settings branch the new provider structure (`src/providers/<id>/`, the runner, L1 and L2) has replaced, with the dependencies, release flags, extension rules and CSP origins only they used — and change nothing a user can reach. Concretely:
 - **Deleted, by provider** (ruling 2): OpenAI Live's old client and descriptor; OpenAI Translate's relay twin; Doubao AST 2.0's client, descriptor, relay twin, language sync and the extension's AST2 header block; Gemini's client, descriptor and model mapping; Soniox's and Kizuna Soniox's clients, descriptors, managed session, split and budget helpers, MainPanel's split chips and the eight re-export stubs; OpenAI Realtime's, OpenAI Translate's and OpenAI Compatible's WebSocket and WebRTC clients, descriptors, session builder, ephemeral-token service, transcription context and `textUtils.ts`; Palabra's LiveKit client, descriptor and `WebRTCAudioBridge` with its worklet; and LocalInference's old client, descriptor and slice (ruling 3). 142 files, 42 724 lines as they stand at `fa301e9a`.
 - **Dependencies:** `livekit-client` with its pin, the `openai-realtime-api` fork (root and extension), `uuid` and `@types/uuid`, and `evals/`'s own `ajv` and `ajv-formats`, with the `eval*` scripts and `evals/` itself (rulings 2, 4; choice 8). `@google/genai` stays a development dependency (ruling C2).
 - **Shared old code shrinks to Local Native** (ruling 1): `IClient.ts` keeps Local Native's session config; `ProviderConfigFactory` registers Local Native alone; `ProviderDescriptor.ts` loses the managed-session and relay members; `settingsStore.ts` keeps the common settings and the `localNative` slice (1 672 → 857 lines); the old settings shell (`ProviderSection`, `LanguageSection`, `ProviderSpecificSettings`) keeps its Local Native branches only, still unmounted; `PoweredBy` goes (ruling C6); `speechMode.ts` goes (ruling C5).
 - **The platform edges:** the extension's CSP drops the relay's three `wss` origins and the two dead OpenAI Compatible presets (ruling 5); the old AST2 and OpenAI Live DNR handlers go, their rule ids swept at start (ruling C3); the per-provider `VITE_ENABLE_*` gates of the deleted providers leave `environment.ts`, `build.yml`, `extension/vite.config.ts` and `.env.example` (ruling 6).
-- **The words:** 40 locale keys that only the deleted code read, in all 30 catalogs; the project `CLAUDE.md` rewritten for the new structure (ruling 7).
+- **The words:** 44 locale keys that only the deleted code read, in all 30 catalogs; the project `CLAUDE.md` and `CONTEXT.md` rewritten for the new structure (rulings 7, 9); comments that still spoke of the old code as present corrected (choice 3; ruling C9).
+- **The contract's catalogue:** the four client diagnostic codes no sender uses any more — `cleanup_failed`, `input_pipeline_failed`, `send_dropped`, `lease_notify_failed` — with their notice texts and keys (ruling C17).
+- **A guard in the suite:** `src/providers/oldPath.consistency.test.ts` holds every file outside the old path off it — static, side-effect, dynamic and `require` imports alike (ruling C11).
 - **Kept, and proven kept:** Local Native's old path whole — its client, descriptor, registrations, shell branches, slice, native UI and tests (ruling 1); every storage key a new provider reads (the table below); the `fake` providers (ruling 8); the `Provider` enum's live ids (ruling C1).
 
-It ends with the controller's group check — both builds, the extension and Electron suites, the D24 greps, the deleted clients' strings absent from both bundles, `livekit` absent, the bundle sizes, Local Native's old tests, a headless render of every provider's Settings compared with `fa301e9a`'s — and the controller's docs task (Task 12).
+It begins with the controller's pre-flight — the tools' self-test, the named files checked against `fa301e9a`, this plan's gate baseline and the typecheck's starting set — and ends with the controller's group check — both builds, the extension and Electron suites, the D24 greps, the deleted clients' strings absent from both bundles, `livekit` absent, the bundle sizes, Local Native's old tests, a headless render of every provider's Settings compared with `fa301e9a`'s — and the controller's docs task (Task 12).
 
 **Architecture:**
 - **One task per group** (ruling C7), in the survey's §5 order but for one move: the old settings shell is reduced to Local Native **first** (choice 1), because every later group's old UI branch sits in it. Then OpenAI Live, OpenAI Translate's relay twin, Doubao AST 2.0 with its twin, Gemini, the two Soniox providers, the merged OpenAI deletion, Palabra, LocalInference's leftovers, the shared old code's last trim, and `CLAUDE.md` (choice 2). Old files import across groups — the OpenAI Translate relay twin extends the own-key descriptor, the managed Soniox session serves the relay twins' `ClientOptions`, `ClientOperations` names the twins — so each task deletes exactly what its group's last importer leaves orphaned, and the tree compiles and every suite passes after each.
 - **What survives in `src/services/`:** `clients/{ClientFactory,LocalNativeClient,createNativeVadWorker,punctuateDefinite}.ts`, `providers/{ProviderConfig,ProviderConfigFactory,ProviderDescriptor,LocalNativeProviderConfig,localParticipantConfig,astGuard,tutorialUrls}.ts`, `interfaces/`, `SettingsService.ts`, `ServiceFactory.ts`, `persistSetting.ts`, `worklets/` and their tests — Local Native's old path and the shared types the new code imports (`LanguageOption`, `VoiceOption`, `guardAstCrossStage`, `AI_PROVIDERS_DOCS_URL`).
-- **The new structure is read, not changed**, but for: comments that described the old code as present (choice 3); the three LocalInference components' `override` / `settings` / `pair` made required (ruling 3); the managed voice modules' importers re-pointed from the stubs to `src/providers/soniox/` (the B2 re-points); `sttStream.ts`' `onTick`, the old managed session's hook (choice 5); `logStore.ts`' old event names; `redact.ts`' and `sanitizeEvent.ts`' comments; `wsHeaderRule.js`' sweep of the old AST2 range (ruling C3).
-- **No behaviour a user can reach changes.** The old path has had no runtime caller since the switch (the settings shell is unmounted; `ClientFactory` has no caller outside its tests); the one old code path the app still runs — `nativeModelStore`'s revalidation into `settingsStore.validateApiKey`'s Local Native arm — is kept whole. The group check proves it three ways: the builds, a grep that every surviving import of `src/services/{clients,providers}/` names the kept set, and a render of every provider's Settings compared with `fa301e9a`'s.
+- **The new structure is read, not changed**, but for: comments that described the old code as present (choice 3); the three LocalInference components' `override` / `settings` / `pair` made required (ruling 3); the managed voice modules' importers re-pointed from the stubs to `src/providers/soniox/` (the B2 re-points); `sttStream.ts`' `onTick`, the old managed session's hook (choice 5); `logStore.ts`' old event names; `redact.ts`', `sanitizeEvent.ts`', `report.ts`', `storedSettings.ts`', `environment.ts`' and `languageName.ts`' comments; `wsHeaderRule.js`' sweep of the old AST2 range (ruling C3); the four diagnostic codes' rows in `clientDiagnostics.ts` and `noticeText.ts` (ruling C17); and one new test, the import guard (ruling C11).
+- **No behaviour a user can reach changes.** The old path has had no runtime caller since the switch (the settings shell is unmounted; `ClientFactory` has no caller outside its tests); the one old code path the app still runs — `nativeModelStore`'s revalidation into `settingsStore.validateApiKey`'s Local Native arm — is kept whole. Three things prove it: the builds; the import guard in the suite (`src/providers/oldPath.consistency.test.ts`, from Task 10): no file outside the old path imports it by value, dynamic imports included; and the group check's render of every provider's Settings compared with `fa301e9a`'s. The four diagnostic codes had no sender left, so no notice a user could see goes with them.
 
-**Tech Stack:** TypeScript (strict), React 19, zustand, i18next, Vitest + @testing-library/react (jsdom), the extension's MV3 background (`declarativeNetRequest`), npm lockfiles (v3), Python 3 and Node for this plan's two tools (below), headless Chromium over the DevTools protocol (`scripts/dev/headless.mjs`) at the group check.
+**Tech Stack:** TypeScript (strict), React 19, zustand, i18next, Vitest + @testing-library/react (jsdom), the extension's MV3 background (`declarativeNetRequest`), npm lockfiles (v3), Python 3 and Node for this plan's four tools (below), headless Chromium over the DevTools protocol (`scripts/dev/headless.mjs`) at the group check.
 
 **Spec:** `docs/superpowers/specs/2026-09-22-client-contract-design.md` — the binding authority, as amended through the Stage 2 OpenAI Live plan's record and the owner's taking Local Native out of Stage 2 (`fa301e9a`). The parts this plan meets: "Decisions" → "Deleted with no behaviour change"; "The provider definition" → "Persisted settings that move" (nothing moves; the old readers go) and "What adding a provider then touches"; "Migration" (the old code "stays until each port is live-tested", its items 1–9 and the relay twins' paragraph); "Risks". Task 12 amends them.
 
@@ -35,44 +39,56 @@ It ends with the controller's group check — both builds, the extension and Ele
   4. **The old AST2 rules** (ruling C3): `background.js`' AST2 block sets rules 2000–2009 with no `initiatorDomains`, so one a crash left behind would hand the user's credentials to any page opening a socket to `openspeech.bytedance.com`. `wsHeaderRule.js`' `sweepIds` already takes the old Live rule 4000 at `onStartup` / `onInstalled`; it takes the AST2 range too (`OLD_AST2_RULE_ID_MIN` / `_MAX`). `let dnrUpdatePromise` was declared inside the AST2 block (`background.js:262`) and chains the generic pair's updates: it moves above the generic section.
   5. **`uuid` had one user,** the old AST2 client (`VolcengineAST2Client.ts`); `ajv` and `ajv-formats` only `evals/` (choice 8). The lockfiles lose `uuid` and `@types/uuid` (Task 4), `ajv-formats`, the fork and its `nanoid` (Task 7, both lockfiles; `ajv` itself stays, another package's dependency), and `livekit-client` with its eight dependencies (Task 8).
   6. **The old-shell tests that pinned other providers** re-point to Local Native where the behaviour they pin survives — the language section's sentence labels, the text-only capability arms (stubbed onto Local Native's config, since no provider declares `'always'` or `'never'` now), the select's unregistered-value placeholder — and go where it does not (choice 9).
-  7. **Keys that look read but are not:** `settings.{low,medium,high}` were read by the old shell's OpenAI branch and are read now by `RealtimeTurnDetection.tsx:13` (`settings.${eagerness.toLowerCase()}`): they stay. `providers.openaiCompatible.{name,description}` match `ProviderPicker`'s dynamic `providers.${key}.name`, but no registry offers OpenAI Compatible: they go (Task 7). 51 keys were unreferenced before this plan (`settings.geminiParticipantTokenWarning` among them); they are not this deletion's (open question 1).
+  7. **Keys that look read but are not:** `settings.{low,medium,high}` were read by the old shell's OpenAI branch and are read now by `RealtimeTurnDetection.tsx:13` (`settings.${eagerness.toLowerCase()}`): they stay. `providers.openaiCompatible.{name,description}` match `ProviderPicker`'s dynamic `providers.${key}.name`, but no registry offers OpenAI Compatible: they go (Task 7). 51 keys were unreferenced before this plan (`settings.geminiParticipantTokenWarning` among them); they are not this deletion's — Task 12 records them as a follow-up (ruling C16).
   8. **The Palabra and OpenAI deletions meet at `WebRTCAudioBridge`** (spec "Migration"): the merged OpenAI deletion orphans nothing of it — Palabra's client still imports it — so Palabra's task, the second, deletes the bridge, its test and `pcm-audio-worklet-processor.js`, with the extension build's copy of the worklet.
   9. **The typecheck gate's baseline drops twice.** Task 1 deletes the two `ProviderSpecificSettings.tsx` lines (the template instructions the reduced shell no longer destructures); Task 10 the two `settingsStore.ts` `TS2353` lines (the `cacheTimestamp` the store no longer sets). The gate's regex alternative for `src/services/(clients|providers)/…` names only files Tasks 4 and 6 delete: after Task 6 it matches nothing (the group check trims it).
-  10. **The old clients shipped, unreached.** `settingsStore` imports `ProviderConfigFactory`, which registers every old descriptor, each importing its client: at `fa301e9a` every old client is in both bundles (`build/static/audioStore-*.js`, `extension/dist/assets/settingsStore-*.js`), with `livekit-client` and the `openai-realtime-api` fork. Nothing runs them (the shell is unmounted, `ClientFactory` has no caller). The deletion takes 1.35 MB of JavaScript out of the web build and 1.42 MB out of the extension (the group check's table).
+  10. **The old clients shipped, unreached.** `settingsStore` imports `ProviderConfigFactory`, which registers every old descriptor, each importing its client: at `fa301e9a` every old client is in both bundles (`build/static/audioStore-*.js`, `extension/dist/assets/settingsStore-*.js`), with `livekit-client` and the `openai-realtime-api` fork. Nothing runs them (the shell is unmounted, `ClientFactory` has no caller). The deletion takes 1.36 MB of JavaScript out of the web build and 1.43 MB out of the extension (the group check's table; Revision 1's measure).
   11. **The survey's slips, corrected here:** §2.9 counts `providerOrder.test.ts` among LocalInference's leftovers, but after Task 8 it pins Local Native's position alone and goes in Task 9 with its last old peer; §6 item 10's CLAUDE.md lines were read before the OpenAI Live record grew the file — Task 11 anchors by content; §1.10 lists `providers.openaiCompatible.{name,description}` as orphaned by the merged deletion (right) but `settings.{low,medium,high}` too (wrong, note 7).
-- **A scratch copy of the tree** at `fa301e9a` (a `git archive`, `node_modules` and `extension/node_modules` linked from the worktree, outside the repository, 2026-09-30) ran every task below before it was written down; every diff and deletion list is generated from its history. Then the plan was replayed task by task, **from this document's own blocks**, on a fresh copy of `fa301e9a`: each task's `git rm` list removed, its diff blocks applied by the plan's applier (every hunk at its header's line: no offset, no search), its locale keys dropped by the plan's key tool, the result compared file by file with the scratch history's tree (identical after every task), and every gate run after every task — the counts in each task and in the table under "Gates" are that replay's.
+- **Found in review** (Revision 1; each the controller's ruling in `deletion-plan-revision1.md`, or the owner's):
+  1. **I1, the applier's refusal guarantee was false** (ruling C8): a shortened run was removed unread, so an edit inside it with the line count kept went silently; and a hunk was tried at its header's line first, so a duplicated anchor that moved was edited at the wrong copy. Now each `~ N more removed lines` carries the SHA-256 of the lines it stands for, every hunk's old side is matched against the whole file and must occur once — or name its occurrence (`occurrence K of N`: the fifteen `build.yml` env-block hunks of Tasks 3, 4, 6 and 8, whose blocks are identical) — and the pre-flight runs the tools' self-test, the review's two mutants among its cases, and checks every named file is `fa301e9a`'s.
+  2. **M1 and N4, stale comments** (ruling C9): `soniox/config.ts` and `soniox/socket.ts` (Task 6), `environment.ts`' two (Task 8), `languageName.ts` (Task 9), `storedSettings.ts` (Task 10, a comment-only exception to the read-only `src/lib/session`), `report.ts` (Task 11); and, found while writing them, `wsHeaderRule.js`' note on the generic Live rule's priority (Task 2) and `astGuard.ts`' header (Task 9, already in the first version's result).
+  3. **M2, three inheritance rows** (ruling C10): the Soniox section's `:1752`, the Volcengine AST2 section's `:3872`, the Kizuna Soniox departure `:2171`.
+  4. **M3, the import guard** (ruling C11): the group check's grep missed dynamic and side-effect imports. It is a test now, placed in Task 10 where the old set is final; the review's dynamic-import mutant fails it.
+  5. **M4 and N2, `CLAUDE.md`** (ruling C12): the three false passages (`IAudioService`, `ModernBrowserAudioService`, `SimpleConfigPanel`) and step 2's `sessionSide` sentence; found while verifying them, `ModernAudioPlayer`, `OnboardingContext`, `sessionStore`'s description and two "Code Organization" lines, corrected the same way (Task 11).
+  6. **M5, the typecheck as a set** (ruling C13): a count could hide a swapped error. Each task's tsc output is kept and compared with the task before it by `tscdiff.py` (file, code, the message's first 60 characters; a multiset); no task adds an error, and the count is the second check.
+  7. **M6 and ruling 10:** the released app's descriptions are the release's follow-ups (Task 12 lists them).
+  8. **N1, N3, N5** (ruling C15): the sweep's citations name the OpenAI Live plan (Task 4); the key tool refuses a namespace key; Tasks 1 and 10 write this plan's own baseline file, `deletion-gate-baseline.txt`.
+  9. **The open questions** (rulings C16, C17, 9, 10): the 51 already-unused keys are a follow-up; `CONTEXT.md` is rewritten in Task 11; the release docs wait; the four diagnostic codes are deleted in Task 10.
+  10. **Found while revising:** `MANAGED_LEGACY_IDS` lives in `src/lib/session/storedSettings.ts`, not `loadStores.ts` as the first version's stored-keys note said (corrected there).
+- **A scratch copy of the tree** at `fa301e9a` (a `git archive`, `node_modules` and `extension/node_modules` linked from the worktree, outside the repository, 2026-09-30, and again for Revision 1 on 2026-10-01) ran every task below before it was written down; every diff and deletion list is generated from its history. Then the plan was replayed task by task, **from this document's own blocks**, on a fresh copy of `fa301e9a`: each task's `git rm` list removed, its diff blocks applied by the plan's applier (every hunk's old side matched once, or at the occurrence it names, every shortened run's hash matching, and every hunk at its header's line: the applier printed only `tNN: N files changed`), its locale keys dropped by the plan's key tool, the result compared file by file with the scratch history's tree (identical after every task), and every gate run after every task, the typecheck's set compared with the task before's — the counts in each task are that replay's.
 
 ## Global Constraints
 
-- **Starting point.** HEAD `fa301e9a` on `worktree-client-contract-stage2`. The diff blocks' hunk headers count the lines at `fa301e9a` as each earlier task of this plan leaves them. The applier anchors each hunk at its header's line first and by content otherwise, exactly once, with no fuzz: another commit landing first moves a hunk, never breaks it, unless it touches the same lines — then the applier refuses the whole task and writes nothing (report it; the controller decides).
-- **Edits shown as diff blocks, applied by the plan's applier.** Each task's edits to existing files are unified diffs (three lines of context) in fenced blocks opened with five backticks and `diff tNN` (`t01` … `t11`), one block per file. A run of twelve or more removed lines is printed as its first three and last two, with a line `~ N more removed lines` standing for the rest; the applier removes those lines unread, and the removed lines printed around them — and the hunk's context — must match. Apply a task's blocks with one command from the worktree root:
+- **Starting point.** HEAD `fa301e9a` on `worktree-client-contract-stage2`, plus this plan's own documents. The diff blocks' hunk headers count the lines at `fa301e9a` as each earlier task of this plan leaves them. **Every file a task names must be `fa301e9a`'s when the plan starts**: the pre-flight checks it, and stops the plan if not (the blocks are then regenerated from a fresh scratch replay).
+- **Edits shown as diff blocks, applied by the plan's applier.** Each task's edits are unified diffs (three lines of context) in fenced blocks opened with five backticks and `diff tNN` (`t01` … `t11`), one block per file; the one new file (Task 10) is a diff from `/dev/null`. A run of twelve or more removed lines is printed as its first three and last two, with a line `~ N more removed lines sha256:H` standing for the rest, H the first 12 hex digits of the SHA-256 of those lines joined by newlines. **What the applier guarantees:** every hunk's old side — its context, its removed lines and the hashed runs — is matched byte for byte against the whole file as it stands; it must occur exactly once, or, where the hunk header ends `occurrence K of N` (the fifteen identical `build.yml` env-block hunks), exactly N times, the K-th taken. A shortened run whose lines do not hash to H matches nowhere. Anything else — no match, a second match, a different number of copies, a match above the hunk before, a file to create that exists, a file named twice — refuses the whole task, and nothing is written. The header's line number decides nothing: a hunk that matched elsewhere is reported (`…: hunk at N applied at M`), its content exact. Apply a task's blocks with one command from the worktree root:
 
   ```
   python3 /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/plan-apply.py docs/superpowers/plans/2026-09-30-client-contract-stage2-deletion.md t06
   ```
 
-  It prints `t06: 33 files changed` (the count each task gives) and nothing else when every hunk sits at its line; a line `…: hunk at N applied at M` says one moved (legal: report it). With `--check` it applies nothing. **Never apply a block by hand, and never edit a file a task's blocks do not name.** A new file: none. Binary files: none.
+  It prints `t06: 35 files changed` (the count each task gives) and nothing else when every hunk sits at its line; a line `…: hunk at N applied at M` says lines above one moved — impossible after the pre-flight's check, so report it. With `--check` it applies nothing. **Never apply a block by hand, and never edit a file a task's blocks do not name.** Binary files: none.
 - **Deleted files are removed with `git rm`**, one command per task, its list given in full in the task; `evals/` is removed whole (Task 7).
-- **Locale keys are removed by the plan's key tool**, one command per task, from the worktree root:
+- **Locale keys are removed by the plan's key tool**, one command per task, from the worktree root (only string leaves: a key naming a namespace refuses):
 
   ```
   node /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/drop-locale-keys.mjs . <key> …
   ```
 
-  It removes each named dotted key from all 30 `src/locales/*/translation.json`, and any object a removal leaves empty, and writes each catalog back as `JSON.stringify(…, null, 2)` plus a newline — the form every catalog is in (checked: each round-trips byte for byte at `fa301e9a`). It refuses, writing nothing, if a key is missing from any catalog. It prints `N keys removed from 30 catalogs`.
-- **The two tools** live at `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/` (outside the repository). If either is missing, write it from the appendix "The plan's two tools" at the end of this document, byte for byte, before Task 1.
+  It removes each named dotted key from all 30 `src/locales/*/translation.json`, and any object a removal leaves empty, and writes each catalog back as `JSON.stringify(…, null, 2)` plus a newline — the form every catalog is in (checked: each round-trips byte for byte at `fa301e9a`). It refuses, writing nothing, if a key is missing from any catalog or is not a string leaf. It prints `N keys removed from 30 catalogs`.
+- **The plan's four tools** live at `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/` (outside the repository): `plan-apply.py` (the applier), `drop-locale-keys.mjs` (the key tool), `tscdiff.py` (the typecheck's set gate) and `selftest.py` (the first two, tested against the cases that must refuse). If any is missing, write it from the appendix "The plan's four tools" at the end of this document, byte for byte, before the pre-flight.
 - **The lockfiles are edited by their diff blocks, never regenerated.** `package-lock.json` (Tasks 4, 7, 8) and `extension/package-lock.json` (Task 7) change only by their blocks — which are exactly what `npm install --package-lock-only --ignore-scripts` produced in a separate copy of the tree. **Never run `npm install`, `npm ci` or `npm uninstall` in the worktree**: its `node_modules` is shared with the main checkout. A removed package left in `node_modules` imports nowhere and is harmless.
 - **What this plan touches** (each task's Files list is exact):
   - the old code under `src/services/`, the old settings shell under `src/components/Settings/sections/`, `src/stores/settingsStore.ts` and the old stores' tests — Tasks 1–10;
   - `src/types/Provider.ts`, `src/utils/environment.ts`, `src/stores/logStore.ts`, `src/stores/sanitizeEvent.ts`, `src/lib/diagnostics/{redact,consoleLedger.consistency}`, the MainPanel split chips — as each group goes;
   - the new structure only where the Architecture bullet names it: comments in `src/providers/{openai,openai_translate,openai_live,gemini,soniox,palabraai,volcengine_ast2}/`, the LocalInference components under `src/components/Settings/{engine,sections}/`, the Soniox voice section's imports, `src/lib/tts/previewSample.test.ts`, the wizard's tests;
   - the extension (`background/background.js`, `background/wsHeaderRule.js`, their tests, `manifest.json`, its consistency test, `vite.config.ts`, `package.json`, its lockfile), `electron/ws-header-rules.js` and its test (comments), `.github/workflows/build.yml`, `.env.example`, `.gitignore`, `package.json`, `package-lock.json`, `evals/` — as each group goes;
-  - the 30 locale catalogs, by the key tool; `CLAUDE.md` — Task 11; the spec and the roadmap — Task 12.
-- **Read only.** `src/app/**`, `src/lib/{session,conversation,projection,contract,provider,audio,view,subtitle,transcript,export}/**` but `src/lib/provider/instructions.test.ts` (Task 10 restates its parity pin), `src/stores/{providerStore,turnModeStore,routingStore,accountStore,nativeModelStore,modelStore}.ts` but where Task 9 names `modelStore.ts`, `src/providers/registry.ts` and every `provider.ts` / `adapter.ts` / `Settings` view but for the comment lines the blocks name; `electron/main.js`; `scripts/**`. **Local Native's own modules are read only in every task** (ruling 1): `src/services/clients/{LocalNativeClient,createNativeVadWorker,punctuateDefinite}.ts`, `src/services/providers/LocalNativeProviderConfig.ts`, `src/lib/local-inference/native/**`, `src/lib/local-inference/workers/native-vad.worker.ts`, `src/stores/nativeModelStore.ts`, `src/stores/licenseConsentStore.ts`, the native UI (`NativeModelManagementSection`, `NativeVoiceSection`, `NativeDeviceControl`, `TierIcon`, `EngineStatusLine`, `EngineSection`, `engine/{useNativeEngineAdapter,SlotDeviceBadge}`, `shared/LicenseConsentModal`) and their tests — not even a comment changes in them. Four files it shares with the deleted code lose only the deleted half: `localNativeGating.test.ts` its other providers' rows (Task 2); `ClientFactory.ts` its `LOCAL_INFERENCE` exemption, `localParticipantConfig.ts` `createParticipantLocalInferenceConfig` and its memory budget, and `nativeModelStore.test.ts` one assertion on the deleted `localInference` slice (Task 9, ruling 3). `ClientFactory.localnative.test.ts` is untouched; the generic `ClientFactory.test.ts`, whose every case named a relay twin, goes in Task 4.
-- **Import rules:** nothing new is imported anywhere; a task only removes imports, or re-points one from a deleted re-export stub to the module it re-exported (Task 6). After every task, every non-test import of `src/services/clients/` or `src/services/providers/` from outside `src/services/` names the kept set (the group check's grep).
+  - the diagnostics catalogue (`src/lib/diagnostics/clientDiagnostics.ts`, `src/lib/view/noticeText.ts`, `src/lib/conversation/Conversation.test.ts`) and the new import guard (`src/providers/oldPath.consistency.test.ts`) — Task 10;
+  - the 30 locale catalogs, by the key tool; `CLAUDE.md`, `CONTEXT.md` and `src/lib/diagnostics/report.ts`' comment — Task 11; the spec and the roadmap — Task 12.
+- **Read only.** `src/app/**`, `src/lib/{session,conversation,projection,contract,provider,audio,view,subtitle,transcript,export}/**` but `src/lib/provider/instructions.test.ts` (Task 10 restates its parity pin), `src/lib/session/storedSettings.ts` (Task 10, one comment only), and `src/lib/view/noticeText.ts` with `src/lib/conversation/Conversation.test.ts` (Task 10, the four diagnostic codes), `src/stores/{providerStore,turnModeStore,routingStore,accountStore,nativeModelStore,modelStore}.ts` but where Task 9 names `modelStore.ts`, `src/providers/registry.ts` and every `provider.ts` / `adapter.ts` / `Settings` view but for the comment lines the blocks name; `electron/main.js`; `scripts/**`. **Local Native's own modules are read only in every task** (ruling 1): `src/services/clients/{LocalNativeClient,createNativeVadWorker,punctuateDefinite}.ts`, `src/services/providers/LocalNativeProviderConfig.ts`, `src/lib/local-inference/native/**`, `src/lib/local-inference/workers/native-vad.worker.ts`, `src/stores/nativeModelStore.ts`, `src/stores/licenseConsentStore.ts`, the native UI (`NativeModelManagementSection`, `NativeVoiceSection`, `NativeDeviceControl`, `TierIcon`, `EngineStatusLine`, `EngineSection`, `engine/{useNativeEngineAdapter,SlotDeviceBadge}`, `shared/LicenseConsentModal`) and their tests — not even a comment changes in them. Four files it shares with the deleted code lose only the deleted half: `localNativeGating.test.ts` its other providers' rows (Task 2); `ClientFactory.ts` its `LOCAL_INFERENCE` exemption, `localParticipantConfig.ts` `createParticipantLocalInferenceConfig` and its memory budget, and `nativeModelStore.test.ts` one assertion on the deleted `localInference` slice (Task 9, ruling 3). `ClientFactory.localnative.test.ts` is untouched; the generic `ClientFactory.test.ts`, whose every case named a relay twin, goes in Task 4.
+- **Import rules:** nothing new is imported anywhere; a task only removes imports, or re-points one from a deleted re-export stub to the module it re-exported (Task 6). From Task 10 on, `src/providers/oldPath.consistency.test.ts` holds every file outside the old path off it, dynamic imports included; before it, each task's check step and the build keep the deleted modules unreached.
 - **No migration code, no stored value touched** (the owner's rule). Deleting a slice removes a reader, never a storage key and never a write: the new providers read the same keys (the table under "Stored keys"). No task adds a load-time conversion, a write-back, or a one-time rename.
 - **No new locale key.** Keys go only where their last reader goes, by the key tool.
-- **Diagnostics** (CLAUDE.md, "Error Handling"): no `console.error` / `console.warn` is added; `consoleLedger.consistency.test.ts`' rows fall with the files they counted (Tasks 1 and 8).
+- **Diagnostics** (CLAUDE.md, "Error Handling"): no `console.error` / `console.warn` is added; `consoleLedger.consistency.test.ts`' rows fall with the files they counted (Tasks 1 and 8); `CLIENT_DIAGNOSTICS` loses the four codes no sender uses (Task 10, ruling C17), and gains none.
 - **Gates for every task:**
   - **The suites.** `npx vitest run src` shows 0 failed and no unhandled errors; `npx vitest run electron` and `npx vitest run extension` show 0 failed. Measured at `fa301e9a` on 2026-09-30, in a scratch copy: **`src` 590 test files passed and 1 skipped (591); 7 696 tests passed and 2 skipped (7 698); no unhandled errors. `electron` 34 files, 477 tests. `extension` 9 files, 56 tests.** Each task states its own numbers after it — the replay's; a task that deletes tests lowers them, and that is the gate only through "0 failed". (The `Not implemented: window.open` stderr lines are pre-existing, `ChildWindowPopover`'s.)
   - **The typecheck.** The gate prints exactly the current baseline. The shell's `grep` is a ugrep wrapper that mis-parses this regex, so use `command grep` exactly as written:
@@ -81,7 +97,7 @@ It ends with the controller's group check — both builds, the extension and Ele
     npx tsc --noEmit -p tsconfig.json 2>&1 | command grep 'error TS' | command grep -E '^(src/(app/|lib/(session|audio|provider|conversation|projection|export|contract|view|subtitle|transcript|analytics\.ts|diagnostics/(consoleLedger|clientDiagnostics|redact))|lib/modern-audio/BaseAudioRecorder|providers|services/(clients/(SonioxSttStream|SonioxTtsStream|PcmMixer|SonioxSideTracker|SonioxTtsRest|SonioxVoicesClient|SonioxClient|ManagedVoicesClient|managedVoicePolling|VolcengineAST2Client|volcengine-ast2/ast2-proto\.d)|providers/(SonioxProviderConfig|KizunaAISonioxProviderConfig|managedVoicePrep|managedVoicePrep\.test|prepareToStart\.kizunaSoniox\.test))\.ts|components/(providers|Conversation|Subtitle|EchoNotice/useEchoNotice\.ts|MainPanel/(ExportButton|MainPanel\.|panel/|SessionCountdown)|MainLayout/(MainLayout|useSignInProviderSwitch)|Settings/(Settings\.tsx|ProviderArea|SimpleSettings/SimpleSettings\.tsx|AdvancedSettings/AdvancedSettings\.tsx|sections/((SpeechSection|VoiceLibrarySection)(\.test)?\.tsx|(ParticipantSpeechSwitch(\.test)?|SentenceSegmentationSection|SystemAudioSection|SonioxVoiceSection|ProviderSpecificSettings)\.tsx|voiceLibrarySource(\.test)?\.ts))|SettingsInitializer/|SetupWizard/(SetupWizard(\.test)?\.tsx|(setupDraft|applySetup|useApplySetup)(\.test)?\.ts|providerPaths(\.test|\.managedFit\.test)?\.ts|steps/(StepLanguagePair|StepLanguagePair\.test|StepCredentials|StepCredentials\.test|StepFinish|StepProviderPath|StepScenario)\.tsx)|TitleBar/(AccountButton(\.test)?\.tsx|useBalanceShortfall)|Tour/useStartBasicsTour\.ts|dev/(SpinePreview|SessionControls|OverlayPreview|wireTally|gapCounter))|contexts/UserProfileContext|locales/(index\.ts|showLanguageUncached)|routes/Home\.tsx|stores/(providerStore|turnModeStore|routingStore|accountStore|logStore|settingsStore\.ts)|utils/(environment|conversationExport)|subtitle-overlay-entry|App\.tsx))' | sed -E 's/\([0-9]+,[0-9]+\)//' | cut -c1-90
     ```
 
-    The same command is `zsh /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh`; its output must equal `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate-baseline.txt`. **The baseline changes twice, and the task that changes it rewrites that file** (its step says so, with the exact content): **20** lines at `fa301e9a`, **18** after Task 1 (the two `ProviderSpecificSettings.tsx` lines gone), **16** after Task 10 (the two `settingsStore.ts` `TS2353` lines gone). At `fa301e9a` the 20 lines are:
+    The same command is `zsh /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh`; its output must equal **this plan's own baseline file**, `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-gate-baseline.txt` — written by the pre-flight, never the shared `oar-gate-baseline.txt`, which other work reads (ruling C15). **The baseline changes twice, and the task that changes it rewrites that file** (its step says so, with the exact content): **20** lines at `fa301e9a`, **18** after Task 1 (the two `ProviderSpecificSettings.tsx` lines gone), **16** after Task 10 (the two `settingsStore.ts` `TS2353` lines gone). At `fa301e9a` the 20 lines are:
 
     ```
     src/App.tsx: error TS6133: 'React' is declared but its value is never read.
@@ -107,7 +123,7 @@ It ends with the controller's group check — both builds, the extension and Ele
     ```
 
     Do not fix any of them; do not add to them.
-  - **The full tree.** `npx tsc --noEmit -p tsconfig.json 2>&1 | command grep -c 'error TS'` prints the task's number, never more: **259** at `fa301e9a`, then 255, 255, 255, 255, 247, 104, 103, 99, 98, 95, 95 after Tasks 1–11 (the deleted old tests carried most of them). The Electron and extension files lie outside `tsconfig.json`'s `include`; their suites are their gate.
+  - **The full tree, as a set** (ruling C13). The pre-flight keeps `fa301e9a`'s errors in `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t00.txt`; each task writes its own (`npx tsc --noEmit -p tsconfig.json > /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/tNN.txt`) and runs `python3 /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/tscdiff.py <the task before's file> <its own>`, which must print exactly the line the task quotes — `before B after A; new 0; gone G` — and exit 0: no error, by file, code and the message's first 60 characters (positions dropped; counted as a multiset, so a second copy of a known error is new), that the task before did not have. The count `A` is the second check: **259** at `fa301e9a`, then 255, 255, 255, 255, 247, 104, 103, 99, 98, 95, 95 after Tasks 1–11 (the deleted old tests carried most of them). The Electron and extension files lie outside `tsconfig.json`'s `include`; their suites are their gate.
   - **Local Native's old tests** run in every task's `src` suite; after each task this command also shows 0 failed — 80 files and 1 499 tests at `fa301e9a`, each task's own number in its gates step: `npx vitest run src/services src/lib/local-inference/native src/components/Settings/sections/Native src/components/Settings/engine/useNativeEngineAdapter src/stores/nativeModelStore src/stores/settingsStore` (the old path's tests, with the old shell's and the old store's that still run beside them; the filters are vitest's path substrings).
   - **One task at a time.** The tasks run strictly in order (each wave's tasks one after another): every task's blocks are generated on the tree the task before it leaves, and most tasks edit `descriptorRegistry.test.ts`, `settingsStore.ts` or the catalogs.
   - **A task edits only the files in its Files list**, and commits exactly those. If a gate fails, the implementer stops, reports the failure with its output, and changes nothing further: the controller decides.
@@ -134,6 +150,8 @@ Cited as *ruling N* (in code, "Stage 2 deletion, ruling N"). Each is restated wi
 6. **The release flags are cleaned:** `VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE` (Task 3), `VITE_ENABLE_VOLCENGINE_AST2` and `VITE_ENABLE_KIZUNA_VOLCENGINE_AST2` (Task 4), `VITE_ENABLE_KIZUNA_SONIOX` (Task 6), `VITE_ENABLE_PALABRA_AI` (Task 8) leave `src/utils/environment.ts` (their `is…Enabled` readers), `.github/workflows/build.yml` (five env blocks each), `extension/vite.config.ts` (the forwarding), `.env.example`, and every test mock of them; `featureGateForwarding.consistency.test.ts` expects at least three gates, `VITE_ENABLE_KIZUNA_AI` and `VITE_ENABLED_PROVIDERS` among them (Task 8). `src/vite-env.d.ts` declared none of them (checked): it keeps `VITE_ENABLE_KIZUNA_AI` and `VITE_ENABLE_LOCAL_NATIVE`. `VITE_ENABLE_KIZUNA_AI`, `VITE_ENABLE_LOCAL_NATIVE` and `VITE_ENABLED_PROVIDERS` stay. The owner deletes the five repository variables afterwards (Task 12 lists them).
 7. **The project `CLAUDE.md` is rewritten** for the new structure: the Project Overview's provider list; "AI Client Architecture" becomes "Provider Architecture"; the `settingsStore` bullet and "Code Organization"; the Zustand example (it used the old `useProvider`); "Error Handling"'s "Inside an `IClient` session" becomes "Inside an adapter session" — with the seven adapters' and the session-side guard's citations of that heading; "Key Libraries" without `openai-realtime-api` and the `livekit-client` pin section; "Adding a New AI Provider" per the spec's "What adding a provider then touches" as the ports landed; the CSP's provider list; the user-managed keys; and "Authentication Flow for Kizuna AI" / "Key Services", which described an `ApiKeyService` that no longer exists. Every other section stays; it says Local Native runs the old path until #578. Lands in: Task 11.
 8. **`fake` and `fake_leased` stay:** the development and test providers, registered in development builds only (D24), driving about forty test files and `SpinePreview`. No task touches `src/providers/fake/`; the group check's D24 greps prove neither reaches a release bundle.
+9. **`CONTEXT.md` is rewritten too** (the owner, 2026-10-01: 「CONTEXT.md 一起改」): its glossary entries for the old registry, descriptors and `IClient` follow the new structure, in the same task as `CLAUDE.md`, keeping every entry still true and saying Local Native still runs the old path until #578. Lands in: Task 11.
+10. **`README.md`, `docs/`, `CHANGELOG.md` and `bug_report.yml`'s OpenAI Compatible block wait for the release that carries Stage 2** (the owner, 2026-10-01: 「README 那些等发布再改」): out of this plan; Task 12's roadmap record lists them for that release (choice 12).
 
 **The controller's:**
 
@@ -144,6 +162,19 @@ Cited as *ruling N* (in code, "Stage 2 deletion, ruling N"). Each is restated wi
 - **C5:** `speechMode.ts` and its test are deleted — no importer since 1e-3c; its test iterated every old descriptor (Task 2, the first task that shrinks the old registry).
 - **C6:** `PoweredBy` and its two tests leave the kept shell, with `providers.{kizunaai_soniox,kizunaai_openai_translate,kizunaai_volcengine_ast2}.vendor` — nothing else reads them; `providers.poweredBy`, the new picker's credit, stays (Task 1).
 - **C7:** one plan, a task per group, the tree compiling and every suite green after each (the order under Architecture).
+
+**The controller's, Revision 1** (on the independent review; `deletion-plan-revision1.md`):
+
+- **C8, the applier proves what it removes** (the review's I1): a hash on every shortened run; a hunk whose old side occurs more than once names its occurrence, and any other ambiguity refuses; a pre-flight checks every named file is `fa301e9a`'s; the tools' self-test — the review's two mutants among its cases — runs before Task 1 and shows they refuse. Lands in: Global Constraints, the pre-flight, the appendix.
+- **C9, the stale comments** (M1, N4): each rewritten to what is true after the plan, citing rulings or choices only. Lands in: Tasks 6, 8, 9, 10, 11 (and Task 2's, found while writing them).
+- **C10, three more inheritance rows** (M2), marked in Task 12's in-place list.
+- **C11, the import guard is a test** (M3), `src/providers/oldPath.consistency.test.ts`, in Task 10, where the old set is final.
+- **C12, `CLAUDE.md`'s false passages** (M4, N2), corrected in Task 11 against the result.
+- **C13, the typecheck as a set** (M5): `tscdiff.py` against the task before; the count kept as a second check.
+- **C14, the release docs** (M6; ruling 10): Task 12 lists them as the release's follow-ups.
+- **C15, the nits** (N1, N3, N5): the sweep's citations name the OpenAI Live plan; the key tool refuses a namespace; this plan's own gate baseline file.
+- **C16, open question 1:** the 51 locale keys already unused at `fa301e9a` are out of this plan; Task 12 records them as a follow-up, `settings.geminiParticipantTokenWarning` named.
+- **C17, open question 4:** the four client diagnostic codes with no sender — `cleanup_failed`, `input_pipeline_failed`, `send_dropped`, `lease_notify_failed` — are deleted from `clientDiagnostics.ts`, `noticeText.ts`, the 30 catalogs and `Conversation.test.ts`. Lands in: Task 10.
 
 ## Choices this plan makes inside the rulings
 
@@ -158,9 +189,9 @@ Cited as *choice N* (in code, "Stage 2 deletion, choice N").
 7. **The CSP's five origins go together with the last relay twin** (Task 4), not spread over the tasks: the manifest test pins all seven entries in one case.
 8. **`evals/`' own dependencies go with it:** `ajv` and `ajv-formats` (only `evals/runner/core/{ResultWriter,TestCaseLoader}.ts` imported them). `tsx`, `ws` and `@types/ws` stay (the wire probes use them).
 9. **Old tests:** a test of old code that pins behaviour the kept shell or Local Native still has is re-pointed to Local Native (research note 6); one that pins only deleted behaviour goes with it, file or case; a table test keyed by every old provider (`descriptorRegistry.test.ts`, `participantConfig.test.ts`, `settingsStore.sliceRegistry.test.ts`) loses the deleted rows task by task, its tables made `Partial` where the enum keeps ids the old registry no longer registers (ruling C1).
-10. **Locale keys go with the task that orphans them** — the key's last reader — and never before; a key a surviving dynamic lookup still reads stays (research note 7). The 51 keys unreferenced before this plan are not its (open question 1).
+10. **Locale keys go with the task that orphans them** — the key's last reader — and never before; a key a surviving dynamic lookup still reads stays (research note 7). The four diagnostic codes' `notices.*` keys go with the codes (Task 10, ruling C17). The 51 keys unreferenced before this plan are not its (ruling C16).
 11. **The gate's regex is trimmed at the group check,** not by a task: `oar-gate.sh` is outside the repository and shared by the controller's other work; after Task 6 its `services/(clients|providers)/…` alternative matches no file, and the trimmed command prints the same lines.
-12. **Where the owner's released app is described, not the code,** this plan changes nothing: `README.md`, `docs/*.html`, `docs/tutorials/*`, `CHANGELOG.md` and `.github/ISSUE_TEMPLATE/bug_report.yml` (its OpenAI Compatible block) describe the app users run, which still has OpenAI Compatible and Palabra's LiveKit path until a release carries Stage 2 (What this plan leaves).
+12. **Where the owner's released app is described, not the code,** this plan changes nothing (ruling 10): `README.md`, `docs/*.html`, `docs/tutorials/*`, `CHANGELOG.md` and `.github/ISSUE_TEMPLATE/bug_report.yml` (its OpenAI Compatible block) describe the app users run, which still has OpenAI Compatible and Palabra's LiveKit path until a release carries Stage 2; Task 12 lists them for that release.
 
 ## Stored keys: what each new provider reads after the deletion
 
@@ -180,26 +211,26 @@ Ruling 3 and the owner's rule (no one-time migration code) require it: deleting 
 | Local Native (old path, kept) | `settings.localNative.*` | its slice's fields and the pair | — | `settingsStore.loadSettings` (the one slice it still loads) and `nativeModelStore.applyPrunes`' write through `updateLocalNative`, both kept (ruling 1) |
 | the common settings | `settings.common.*` | uiLanguage, uiMode, textOnly, keepReplayAudio, autoSaveOnStop, diagnosticLogs, the segmentation and display settings | — | `settingsStore.loadSettings`, unchanged. `settings.common.{useTemplateMode,systemInstructions,participantSystemInstructions}` lose their old reader and writer (Task 10) and stay on disk, read only as the legacy keys above |
 
-What becomes an orphan on disk — stored, never read, never deleted (nothing deletes a stored value): OpenAI's `transportType` and `temperature`; OpenAI Translate's `transcriptModel` and `transportType`; Palabra's `subscriberCount` and `publisherCanSubscribe`; Soniox's `model`; `settings.common.templateSystemInstructions`; all of `settings.openaiCompatible.*`, `settings.kizunaOpenaiTranslate.*` and `settings.kizunaVolcengineAst2.*`. A stored selection of a deleted id (`settings.common.provider` = `openai_compatible`, `kizunaai_openai_translate` or `kizunaai_volcengine_ast2`) keeps resolving as it does at `fa301e9a`: `loadStores.ts`' `MANAGED_LEGACY_IDS` and the registry's first offer (`src/app/loadStores.test.ts` pins both, unchanged).
+What becomes an orphan on disk — stored, never read, never deleted (nothing deletes a stored value): OpenAI's `transportType` and `temperature`; OpenAI Translate's `transcriptModel` and `transportType`; Palabra's `subscriberCount` and `publisherCanSubscribe`; Soniox's `model`; `settings.common.templateSystemInstructions`; all of `settings.openaiCompatible.*`, `settings.kizunaOpenaiTranslate.*` and `settings.kizunaVolcengineAst2.*`. A stored selection of a deleted id (`settings.common.provider` = `openai_compatible`, `kizunaai_openai_translate` or `kizunaai_volcengine_ast2`) keeps resolving as it does at `fa301e9a`: `MANAGED_LEGACY_IDS` and the registry's first offer (`selectionFromStored`, `src/lib/session/storedSettings.ts`; `src/app/loadStores.test.ts` pins both, unchanged).
 
 ## File structure
 
-Nothing is created. What each task deletes, as files (every line of them) — the rest of its change is edits:
+One file is created: the import guard, `src/providers/oldPath.consistency.test.ts` (Task 10). What each task deletes, as files (every line of them) — the rest of its change is edits:
 
 | Task | Group | Files deleted | Their lines, as the task finds them | The task's `git diff --shortstat` |
 |---|---|---|---|---|
 | 1 | the old settings shell | 10 | 1 156 | 57 files, +537 −5 330 |
-| 2 | OpenAI Live | 6 | 3 658 | 48 files, +47 −3 918 |
+| 2 | OpenAI Live | 6 | 3 658 | 48 files, +49 −3 920 |
 | 3 | OpenAI Translate's relay twin | 1 | 92 | 58 files, +31 −391 |
 | 4 | Doubao AST 2.0 and its relay twin | 10 | 1 961 | 81 files, +105 −2 664 |
 | 5 | Gemini | 5 | 3 653 | 21 files, +40 −3 901 |
-| 6 | Soniox and Kizuna Soniox | 44 | 12 197 | 107 files, +114 −13 128 |
+| 6 | Soniox and Kizuna Soniox | 44 | 12 197 | 109 files, +117 −13 130 |
 | 7 | OpenAI Realtime, OpenAI Translate, OpenAI Compatible, `evals/` | 49 | 13 598 | 107 files, +53 −14 613 |
-| 8 | Palabra | 10 | 3 159 | 64 files, +15 −3 656 |
-| 9 | LocalInference's leftovers | 6 | 3 021 | 60 files, +210 −4 382 |
-| 10 | the shared old code | 1 | 36 | 41 files, +50 −491 |
-| 11 | `CLAUDE.md` | 0 | 0 | 9 files, +96 −83 |
-| | **total** | **142** | **42 531** (42 724 as they stand at `fa301e9a`: ten old tests are trimmed by an earlier task before theirs deletes them) | **280 files, +1 098 −52 357** |
+| 8 | Palabra | 10 | 3 159 | 64 files, +21 −3 660 |
+| 9 | LocalInference's leftovers | 6 | 3 021 | 61 files, +223 −4 397 |
+| 10 | the shared old code, the four diagnostic codes, the import guard | 1 | 36 | 46 files, +179 −628 |
+| 11 | `CLAUDE.md`, `CONTEXT.md` | 0 | 0 | 11 files, +141 −116 |
+| | **total** | **142** | **42 531** (42 724 as they stand at `fa301e9a`: ten old tests are trimmed by an earlier task before theirs deletes them) | **290 files, +1 296 −52 550** |
 
 After Task 11, `src/services/` holds 27 files (from 115 at `fa301e9a`): the survivors under Architecture and their tests.
 
@@ -215,9 +246,47 @@ The tasks run **one at a time, in order** (Global Constraints): the waves are re
 ## Note for the controller
 
 - **Dispatch one task at a time**, with the Global Constraints and that task's section (its blocks included); review it before the next. The implementer's work is mechanical — `git rm`, the applier, the key tool, the check, the gates, the commit — so the review is of the result: `git show --stat HEAD` lists exactly the task's Files (its deletions, its modified files, and the 30 catalogs when it drops keys), and each gate reads as the task says.
-- **The applier refuses rather than guesses.** If it prints "matches 0 places" or "matches 2 places", a commit that landed after `fa301e9a` touched the same lines: stop, rebase the plan's blocks on it (regenerate them from a scratch replay), and re-dispatch. A line "hunk at N applied at M" means an earlier commit moved lines above the hunk; the result is still exact.
-- **Tasks 1 and 10 rewrite the gate's baseline file**, outside the repository; no other task touches it. The group check trims the gate's regex (choice 11).
-- **The pre-flight replay, if the branch has moved:** `git archive HEAD | tar -x -C <scratch>` with `node_modules` and `extension/node_modules` linked, then each task's Steps 1–3 in the scratch copy and its gates; the counts should read as each task quotes, or differ only by what the new commits added.
+- **The applier refuses rather than guesses** (Global Constraints states exactly what it checks). A refusal after a clean pre-flight means the tree moved under the plan: stop, regenerate the blocks from a fresh scratch replay on the new base, and re-dispatch. A line "hunk at N applied at M" cannot happen after a clean pre-flight; if it does, the content it matched is still exact (every line and hashed run), but report it.
+- **Tasks 1 and 10 rewrite this plan's gate baseline file** (`deletion-gate-baseline.txt`), outside the repository; no other task touches it, and the shared `oar-gate-baseline.txt` is never written. The group check may trim the gate's regex (choice 11).
+- **The typecheck's files** (`/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t00.txt` … `t11.txt`) are the gate's memory: keep them until Task 12.
+- **If the branch has moved before the plan starts,** the pre-flight's second step fails: regenerate the blocks by replaying this plan's history on the new base in a scratch copy (`git archive HEAD | tar -x -C <scratch>`, `node_modules` and `extension/node_modules` linked), and quote the new counts.
+
+## Pre-flight (controller, before Task 1)
+
+Nothing in the repository changes. Each command is its own call, from the worktree root.
+
+- [ ] **Step 1: The tools' self-test.**
+
+  ```
+  python3 /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/selftest.py /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-selftest
+  ```
+
+  Expected, exactly (the review's two mutants are `run-edited` and `dup-unnamed`):
+
+  ```
+  ok   run-intact: a shortened run whose lines hash as printed is removed
+  ok   run-edited: an edited line inside the run, the count kept, refuses and writes nothing (run.txt: the hunk at line 7 matches nowhere (a line, or a shortened run's hash, differs))
+  ok   run-grown: a line inserted into the run refuses
+  ok   dup-unnamed: a duplicated anchor that moved, with no occurrence named, refuses (dup.txt: the hunk at line 13 matches 2 places, and names no occurrence)
+  ok   dup-named: the same hunk naming "occurrence 2 of 2" edits the second copy, and says it moved
+  ok   dup-third-copy: a third copy makes "occurrence 2 of 2" refuse
+  ok   create: a new file is created from its additions
+  ok   create-exists: creating a file that exists refuses
+  ok   all-or-nothing: a failing second file leaves the first unwritten
+  ok   key-namespace: a namespace key refuses and writes nothing (src/locales/en/translation.json: not a string leaf: x)
+  ok   key-leaf: a leaf is removed from every catalog
+  selftest: 11 of 11 passed
+  ```
+
+- [ ] **Step 2: Every file the plan names is `fa301e9a`'s** (in the index and the working tree alike):
+
+  ```
+  git diff --quiet fa301e9a -- evals .env.example .github/workflows/build.yml .gitignore CLAUDE.md CONTEXT.md electron/ws-header-rules.js electron/ws-header-rules.test.js extension/background/background.js extension/background/background.wsHeaders.test.ts extension/background/wsHeaderRule.js extension/background/wsHeaderRule.test.ts extension/manifest.consistency.test.ts extension/manifest.json extension/package-lock.json extension/package.json extension/vite.config.ts package-lock.json package.json src/components/Icons/ProviderIcons.test.tsx src/components/Icons/ProviderIcons.tsx src/components/MainPanel/SplitDegradedChip.scss src/components/MainPanel/SplitDegradedChip.test.tsx src/components/MainPanel/SplitDegradedChip.tsx src/components/MainPanel/participantErrorOrdering.test.ts src/components/MainPanel/splitDegraded.test.ts src/components/MainPanel/splitDegraded.ts src/components/MainPanel/splitDegradedWiring.test.ts src/components/Settings/Settings.scss src/components/Settings/engine/StoragePage.test.tsx src/components/Settings/engine/StoragePage.tsx src/components/Settings/engine/languageName.ts src/components/Settings/engine/useWasmEngineAdapter.test.ts src/components/Settings/engine/useWasmEngineAdapter.ts src/components/Settings/sections/LanguageSection.sentence.test.tsx src/components/Settings/sections/LanguageSection.soniox.test.tsx src/components/Settings/sections/LanguageSection.textOnly.test.tsx src/components/Settings/sections/LanguageSection.tsx src/components/Settings/sections/ModelManagementSection.test.tsx src/components/Settings/sections/ModelManagementSection.tsx src/components/Settings/sections/PoweredBy.test.tsx src/components/Settings/sections/PoweredBy.tsx src/components/Settings/sections/ProviderSection.chips.test.tsx src/components/Settings/sections/ProviderSection.palabraai.test.tsx src/components/Settings/sections/ProviderSection.poweredBy.test.tsx src/components/Settings/sections/ProviderSection.recommended.test.tsx src/components/Settings/sections/ProviderSection.select.test.tsx src/components/Settings/sections/ProviderSection.signIn.test.tsx src/components/Settings/sections/ProviderSection.soniox.test.tsx src/components/Settings/sections/ProviderSection.tsx src/components/Settings/sections/ProviderSpecificSettings.engine.test.tsx src/components/Settings/sections/ProviderSpecificSettings.soniox.test.tsx src/components/Settings/sections/ProviderSpecificSettings.tsx src/components/Settings/sections/SonioxVoiceSection.test.tsx src/components/Settings/sections/SonioxVoiceSection.tsx src/components/Settings/sections/voiceLibrarySource.test.ts src/components/Settings/sections/voiceLibrarySource.ts src/components/SettingsInitializer/SettingsInitializer.test.tsx src/components/SetupWizard/SetupWizard.test.tsx src/components/SetupWizard/providerPaths.test.ts src/components/SetupWizard/steps/StepCredentials.test.tsx src/components/SetupWizard/useApplySetup.test.ts src/components/TitleBar/AccountButton.test.tsx src/components/Tour/useStartBasicsTour.test.tsx src/components/providers/ProviderPicker.test.tsx src/lib/conversation/Conversation.test.ts src/lib/diagnostics/clientDiagnostics.ts src/lib/diagnostics/consoleLedger.consistency.test.ts src/lib/diagnostics/redact.test.ts src/lib/diagnostics/redact.ts src/lib/diagnostics/report.ts src/lib/modern-audio/WebRTCAudioBridge.test.ts src/lib/modern-audio/WebRTCAudioBridge.ts src/lib/provider/instructions.test.ts src/lib/session/storedSettings.ts src/lib/setup/providerPath.test.ts src/lib/tts/previewSample.test.ts src/lib/view/noticeText.ts src/locales/locales.consistency.test.ts src/providers/gemini/adapter.ts src/providers/gemini/settings.ts src/providers/gemini/wire.oracle.test.ts src/providers/openai/adapter.ts src/providers/openai/transcription.ts src/providers/openai/wire.oracle.test.ts src/providers/openai/wire.ts src/providers/openai_live/adapter.ts src/providers/openai_translate/adapter.ts src/providers/palabraai/adapter.ts src/providers/palabraai/provider.ts src/providers/palabraai/settings.test.ts src/providers/sessionSide.consistency.test.ts src/providers/soniox/adapter.ts src/providers/soniox/config.ts src/providers/soniox/kizunaBudget.ts src/providers/soniox/lease.ts src/providers/soniox/managedVoicesClient.ts src/providers/soniox/sideTracker.ts src/providers/soniox/socket.ts src/providers/soniox/sttStream.ts src/providers/soniox/ttsStream.ts src/providers/soniox/voiceClaim.ts src/providers/soniox/voicePrep.ts src/providers/volcengine_ast2/adapter.ts src/providers/volcengine_ast2/codec.test.ts src/services/ClientOperations.test.ts src/services/ClientOperations.ts src/services/EphemeralTokenService.test.ts src/services/EphemeralTokenService.ts src/services/SettingsService.ts src/services/clients/ClientFactory.test.ts src/services/clients/ClientFactory.ts src/services/clients/GeminiClient.test.ts src/services/clients/GeminiClient.ts src/services/clients/LocalInferenceClient.test.ts src/services/clients/LocalInferenceClient.ts src/services/clients/ManagedSonioxSession.outcome.test.ts src/services/clients/ManagedSonioxSession.test.ts src/services/clients/ManagedSonioxSession.ts src/services/clients/ManagedVoicesClient.ts src/services/clients/OpenAIClient.test.ts src/services/clients/OpenAIClient.ts src/services/clients/OpenAIGAClient.test.ts src/services/clients/OpenAIGAClient.ts src/services/clients/OpenAILiveClient.test.ts src/services/clients/OpenAILiveClient.ts src/services/clients/OpenAITranslateGAClient.test.ts src/services/clients/OpenAITranslateGAClient.ts src/services/clients/OpenAITranslateWebRTCClient.test.ts src/services/clients/OpenAITranslateWebRTCClient.ts src/services/clients/OpenAIWebRTCClient.test.ts src/services/clients/OpenAIWebRTCClient.ts src/services/clients/PalabraAIClient.test.ts src/services/clients/PalabraAIClient.ts src/services/clients/PcmMixer.ts src/services/clients/SonioxClient.managed.test.ts src/services/clients/SonioxClient.test.ts src/services/clients/SonioxClient.ts src/services/clients/SonioxCostMeter.test.ts src/services/clients/SonioxCostMeter.ts src/services/clients/SonioxSessionOutcome.test.ts src/services/clients/SonioxSessionOutcome.ts src/services/clients/SonioxSideTracker.ts src/services/clients/SonioxSttStream.ts src/services/clients/SonioxTtsRest.ts src/services/clients/SonioxTtsStream.ts src/services/clients/SonioxVoicesClient.ts src/services/clients/VolcengineAST2Client.test.ts src/services/clients/VolcengineAST2Client.ts src/services/clients/index.ts src/services/clients/managedVoicePolling.ts src/services/clients/openAIRealtimeSession.test.ts src/services/clients/openAIRealtimeSession.ts src/services/clients/volcengine-ast2/ast2-proto.d.ts src/services/clients/volcengine-ast2/ast2-proto.js src/services/interfaces/IClient.ts src/services/interfaces/ISettingsService.ts src/services/providers/GeminiProviderConfig.ts src/services/providers/KizunaAIOpenAITranslateProviderConfig.ts src/services/providers/KizunaAISonioxProviderConfig.ts src/services/providers/KizunaAIVolcengineAST2ProviderConfig.ts src/services/providers/LocalInferenceProviderConfig.ts src/services/providers/OpenAICompatibleProviderConfig.ts src/services/providers/OpenAILiveProviderConfig.test.ts src/services/providers/OpenAILiveProviderConfig.ts src/services/providers/OpenAIProviderConfig.ts src/services/providers/OpenAITranslateProviderConfig.ts src/services/providers/PalabraAIProviderConfig.test.ts src/services/providers/PalabraAIProviderConfig.ts src/services/providers/ProviderConfig.ts src/services/providers/ProviderConfigFactory.ts src/services/providers/ProviderDescriptor.ts src/services/providers/SonioxProviderConfig.test.ts src/services/providers/SonioxProviderConfig.ts src/services/providers/VolcengineAST2ProviderConfig.ts src/services/providers/acquireSessionResources.kizunaSoniox.test.ts src/services/providers/astGuard.test.ts src/services/providers/astGuard.ts src/services/providers/descriptorRegistry.test.ts src/services/providers/geminiTranslateModel.test.ts src/services/providers/geminiTranslateModel.ts src/services/providers/kizunaProviderGating.test.ts src/services/providers/localNativeGating.test.ts src/services/providers/localParticipantConfig.ts src/services/providers/managedSonioxSplit.test.ts src/services/providers/managedSonioxSplit.ts src/services/providers/managedVoicePrep.test.ts src/services/providers/managedVoicePrep.ts src/services/providers/openaiTranscriptionContext.test.ts src/services/providers/openaiTranscriptionContext.ts src/services/providers/palabraLanguageCodes.test.ts src/services/providers/participantConfig.test.ts src/services/providers/prepareToStart.kizunaSoniox.test.ts src/services/providers/prepareToStart.local.test.ts src/services/providers/providerOrder.test.ts src/services/providers/sessionResourcesWiring.test.ts src/services/providers/sonioxBothMode.test.ts src/services/providers/sonioxBothMode.ts src/services/providers/sonioxManagedMinBalance.test.ts src/services/providers/sonioxManagedMinBalance.ts src/services/providers/sonioxSharedBothSession.test.ts src/services/providers/speechMode.test.ts src/services/providers/speechMode.ts src/services/providers/tutorialUrls.ts src/services/providers/voicePrepWiring.test.ts src/services/providers/volcengineAST2LanguageSync.test.ts src/services/providers/volcengineAST2LanguageSync.ts src/services/worklets/pcm-audio-worklet-processor.js src/stores/ensureSelectionReady.test.ts src/stores/kizunaProviders.test.ts src/stores/logStore.test.ts src/stores/logStore.ts src/stores/modelStore.test.ts src/stores/modelStore.ts src/stores/nativeModelStore.test.ts src/stores/openaiModelMigration.test.ts src/stores/palabraAuthModeMigration.test.ts src/stores/palabraLanguageMigration.test.ts src/stores/sanitizeEvent.test.ts src/stores/sanitizeEvent.ts src/stores/settingsStore.kizunaAuth.test.ts src/stores/settingsStore.providerSettings.test.tsx src/stores/settingsStore.selections.test.ts src/stores/settingsStore.sliceRegistry.test.ts src/stores/settingsStore.test.ts src/stores/settingsStore.ts src/types/Provider.test.ts src/types/Provider.ts src/utils/environment.test.ts src/utils/environment.ts src/utils/featureGateForwarding.consistency.test.ts src/utils/textUtils.ts 'src/locales/*/translation.json'
+  ```
+
+  Expected: exit status 0 and no output. Anything else: stop (the Note for the controller).
+- [ ] **Step 3: This plan's gate baseline.** `zsh /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh` prints exactly the 20 lines under Global Constraints; write them, and nothing else, to `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-gate-baseline.txt` (the Write tool).
+- [ ] **Step 4: The typecheck's starting set.** `mkdir -p /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc`, then `npx tsc --noEmit -p tsconfig.json > /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t00.txt`, then `command grep -c 'error TS' /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t00.txt` prints **259**.
 
 ## What this plan consumes from the earlier plans
 
@@ -225,7 +294,7 @@ Named as landed at `fa301e9a`; none of it changes.
 
 | From | What it is | Why it matters here |
 |---|---|---|
-| Stage 1 and the foundation plan: `providerStore.load`, `LEGACY_SLICE_KEYS` (`src/lib/session/storedSettings.ts`), `MANAGED_LEGACY_IDS` and the first-offer fallback (`src/app/loadStores.ts`) | every provider reads its stored keys through them; a stored deleted id resolves through them | the stored keys stay readable with no migration code (the table above) |
+| Stage 1 and the foundation plan: `providerStore.load`, `LEGACY_SLICE_KEYS`, `MANAGED_LEGACY_IDS` and the first-offer fallback (`selectionFromStored`; all `src/lib/session/storedSettings.ts`), applied by `src/app/loadStores.ts` | every provider reads its stored keys through them; a stored deleted id resolves through them | the stored keys stay readable with no migration code (the table above) |
 | The Stage 2 OpenAI Live plan: `wsHeaderRule.js`' `sweepIds`, `OLD_LIVE_RULE_ID`, the start-up sweep in `background.js`; `electron/ws-header-rules.js`; `background.wsHeaders.test.ts` | the sweep the old AST2 range joins, the listener whose comments lose the old AST2 client | Tasks 2, 4 (ruling C3) |
 | The Stage 2 plans' definitions: `src/providers/<id>/provider.ts`, `settings.ts` (`legacyKeys`, `migrate`), `registry.ts` | what replaced each old descriptor and slice | every task's "reader after the deletion" |
 | The Kizuna Soniox plan's moves: `src/providers/soniox/{voicesClient,ttsRest,managedVoicesClient,managedVoicePolling,config,settings}.ts` | what the eight stubs re-exported | Task 6's re-points |
@@ -287,8 +356,8 @@ The old settings shell — `ProviderSection.tsx`, `LanguageSection.tsx`, `Provid
   - `npx vitest run src`: **582 files passed and 1 skipped (583); 7 635 tests passed and 2 skipped (7 637)**; 0 failed, no unhandled errors.
   - `npx vitest run electron`: 34 files, 477 tests passed. `npx vitest run extension`: 9 files, 56 tests passed.
   - Local Native's old path: `npx vitest run src/services src/lib/local-inference/native src/components/Settings/sections/Native src/components/Settings/engine/useNativeEngineAdapter src/stores/nativeModelStore src/stores/settingsStore` — 80 files, 1 499 tests passed.
-  - `npx tsc --noEmit -p tsconfig.json 2>&1 | command grep -c 'error TS'` prints **255**.
-  - **The baseline drops to 18 lines.** First check the gate prints exactly these lines —
+  - The typecheck, as a set: `npx tsc --noEmit -p tsconfig.json > /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t01.txt`, then `python3 /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/tscdiff.py /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t00.txt /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t01.txt` prints exactly `before 259 after 255; new 0; gone 4` and exits 0 — no error the task before did not have; `after 255` is the full tree's count.
+  - **The gate's baseline drops to 18 lines.** First check `zsh /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh` prints exactly these lines —
 
     ```
     src/App.tsx: error TS6133: 'React' is declared but its value is never read.
@@ -311,7 +380,7 @@ The old settings shell — `ProviderSection.tsx`, `LanguageSection.tsx`, `Provid
     src/utils/environment.ts: error TS2339: Property 'create' does not exist on type '{ query(
     ```
 
-    — with `zsh /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh`, then write them, and nothing else, to `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate-baseline.txt` (outside the repository; the Write tool). From here on the gate is that file.
+    — then write them, and nothing else, to `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-gate-baseline.txt` (this plan's own baseline file, outside the repository; the Write tool). From here on the gate is that file.
 
 - [ ] **Step 6: Commit.**
 
@@ -511,7 +580,7 @@ diff --git a/src/components/Settings/Settings.scss b/src/components/Settings/Set
 -
 -      .refresh-models-button {
 -        display: flex;
-~ 37 more removed lines
+~ 37 more removed lines sha256:093ccdd466f8
 -        }
 -      }
      }
@@ -542,7 +611,7 @@ diff --git a/src/components/Settings/Settings.scss b/src/components/Settings/Set
 -// Endpoint input styles
 -.endpoint-input-group {
 -  margin-bottom: 12px;
-~ 31 more removed lines
+~ 31 more removed lines sha256:48cfcdbcb493
 -// credential choice (F4; `CredentialForm`), which reuses it.
 -.palabraai-credentials-group,
 +// A provider's credential choice (F4; `CredentialForm`).
@@ -677,7 +746,7 @@ diff --git a/src/components/Settings/sections/LanguageSection.sentence.test.tsx 
 -});
 -
 -describe('LanguageSection — the sentence labels apply to EVERY provider', () => {
-~ 20 more removed lines
+~ 20 more removed lines sha256:05f83819ff5d
 -    expect(screen.getByText('they speak')).toBeInTheDocument();
 -  });
  
@@ -714,7 +783,7 @@ diff --git a/src/components/Settings/sections/LanguageSection.sentence.test.tsx 
 -    // The subject is a provider that never synthesizes audio, so the toggle is
 -    // irrelevant to it. Both providers that declared textOnlyCapability
 -    // 'always' have now been removed (Zoom AI, then Volcengine ST, on
-~ 7 more removed lines
+~ 7 more removed lines sha256:2c38bb5a305c
 -      capabilities: { ...gemini.capabilities, textOnlyCapability: 'always' },
 -    });
 +    // No registered provider declares textOnlyCapability 'always' any more
@@ -915,7 +984,7 @@ diff --git a/src/components/Settings/sections/LanguageSection.sentence.test.tsx 
 -    render(<LanguageSection isSessionActive={false} showTranslationLanguages={true} />);
 -    expect(screen.queryByTestId('language-resolution-notes')).not.toBeInTheDocument();
 -  });
-~ 7 more removed lines
+~ 7 more removed lines sha256:12427eabb3ff
 -    });
 -    render(<LanguageSection isSessionActive={false} showTranslationLanguages={true} />);
 +    renderSection();
@@ -979,7 +1048,7 @@ diff --git a/src/components/Settings/sections/LanguageSection.sentence.test.tsx 
 -
 -describe('LanguageSection — the mirror line needs a pinned source language', () => {
 -  // Reachable only since the sentence went provider-wide: 'auto' is an option
-~ 34 more removed lines
+~ 34 more removed lines sha256:8063e3536c0e
 -  });
 -});
 `````
@@ -1114,7 +1183,7 @@ diff --git a/src/components/Settings/sections/LanguageSection.tsx b/src/componen
 -  const updateSonioxSettings = useUpdateSoniox();
 -
 -  // Kizuna-managed relay twins reuse their base provider's language controls but
-~ 19 more removed lines
+~ 19 more removed lines sha256:7a9ef4496bbd
 -    }
 -  }, [provider]);
  
@@ -1143,7 +1212,7 @@ diff --git a/src/components/Settings/sections/LanguageSection.tsx b/src/componen
 -    switch (provider) {
 -      case Provider.OPENAI:
 -        updateOpenAISettings({ sourceLanguage: value });
-~ 81 more removed lines
+~ 81 more removed lines sha256:c29310036bca
 -        updateKizunaSonioxSettings({ sourceLanguage: value });
 -        break;
 +    const availableTargets = getTranslationTargetLanguages(value);
@@ -1166,7 +1235,7 @@ diff --git a/src/components/Settings/sections/LanguageSection.tsx b/src/componen
 -    switch (provider) {
 -      case Provider.OPENAI:
 -        updateOpenAISettings({ targetLanguage: value });
-~ 61 more removed lines
+~ 61 more removed lines sha256:7f5c419aded2
 -        break;
 -    }
 +    // Stale-TTS reset + directional translation reconciliation is handled by
@@ -1182,7 +1251,7 @@ diff --git a/src/components/Settings/sections/LanguageSection.tsx b/src/componen
 -
 -    if (provider === Provider.LOCAL_INFERENCE) {
 -      const availableTargets = getTranslationTargetLanguages(tgt);
-~ 60 more removed lines
+~ 60 more removed lines sha256:9ca246f34da3
 -
 -  // Simplified interface language list (12 most common languages)
 +    updateSourceLanguage(tgt);
@@ -1368,7 +1437,7 @@ diff --git a/src/components/Settings/sections/LanguageSection.tsx b/src/componen
 -          {showTranslateParticipantWarning && (
 -            <div className="language-warning">
 -              <AlertTriangle size={12} />
-~ 9 more removed lines
+~ 9 more removed lines sha256:3c897945ea20
 -          )}
 -
            {/* Interactive only while a speaker leg is in scope. A participant-only
@@ -1719,7 +1788,7 @@ diff --git a/src/components/Settings/sections/ProviderSection.tsx b/src/componen
 -  [Provider.OPENAI]: OpenAIIcon,
 -  [Provider.GEMINI]: GeminiIcon,
 -  [Provider.OPENAI_COMPATIBLE]: Zap,
-~ 8 more removed lines
+~ 8 more removed lines sha256:91b5f51b2656
 -  ...KIZUNA_HOSTED_ICONS,
 -  [Provider.LOCAL_INFERENCE]: KizunaAIIcon,
    [Provider.LOCAL_NATIVE]: KizunaAIIcon,
@@ -1812,7 +1881,7 @@ diff --git a/src/components/Settings/sections/ProviderSection.tsx b/src/componen
 -  // Read model download statuses reactively so participant status updates when models are downloaded
 -  const modelStatuses = useModelStore(state => state.modelStatuses);
 -  // Live, resolved view of the WASM speaker (src→tgt) direction — same
-~ 34 more removed lines
+~ 34 more removed lines sha256:630895ef227f
 -    return estimateModelMemoryByDevice([...mainIds, ...participantIds], deviceFeatures);
 -  }, [provider, deviceFeatures, isParticipantChannelInScope, participantResolved, speakerResolved]);
  
@@ -1856,7 +1925,7 @@ diff --git a/src/components/Settings/sections/ProviderSection.tsx b/src/componen
 -  // LOCAL_INFERENCE's chip row: reads the static WASM manifest directly.
 -  const renderInferenceChips = (resolved: DirectionResult | null, src: string, tgt: string, includeTts: boolean): React.ReactNode => {
 -    const dir = directionKey(src, tgt);
-~ 36 more removed lines
+~ 36 more removed lines sha256:5bb6f9be504b
 -  };
 -
    // Get all available providers
@@ -1879,7 +1948,7 @@ diff --git a/src/components/Settings/sections/ProviderSection.tsx b/src/componen
 -  // Get current API key based on provider — delegates to the descriptor's
 -  // peekPrimaryCredential so the per-provider credential shape lives in one
 -  // place instead of being hand-copied here (see also settingsStore.validateApiKey).
-~ 64 more removed lines
+~ 64 more removed lines sha256:2f8cf8cb9d65
 -  };
 -
    // Handle provider switching
@@ -1934,7 +2003,7 @@ diff --git a/src/components/Settings/sections/ProviderSection.tsx b/src/componen
 -      {/* API Endpoint Input - Only for OpenAI Compatible */}
 -      {provider === Provider.OPENAI_COMPATIBLE && (
 -        <div className="endpoint-input-group">
-~ 11 more removed lines
+~ 11 more removed lines sha256:11c16bc20ad3
 -      {/* API Key Input or Kizuna AI Status or Local Inference (no key needed) */}
 -      {provider === Provider.LOCAL_NATIVE ? (
 +      {provider === Provider.LOCAL_NATIVE && (
@@ -1948,7 +2017,7 @@ diff --git a/src/components/Settings/sections/ProviderSection.tsx b/src/componen
 -      ) : provider === Provider.LOCAL_INFERENCE ? (
 -        // Same anchor placement as the native branch above, for the same reason.
 -        <div className="local-inference-info" data-tour="engine-chips">
-~ 207 more removed lines
+~ 207 more removed lines sha256:361ed144f45b
 -          </div>
 -        )
        )}
@@ -2135,7 +2204,7 @@ diff --git a/src/components/Settings/sections/ProviderSpecificSettings.tsx b/src
 -  useSystemInstructions,
 -  useTemplateSystemInstructions,
 -  useUseTemplateMode,
-~ 11 more removed lines
+~ 11 more removed lines sha256:d219d479f324
 -  useKizunaSonioxSettings,
 -  useLocalInferenceSettings,
    useLocalNativeSettings,
@@ -2145,7 +2214,7 @@ diff --git a/src/components/Settings/sections/ProviderSpecificSettings.tsx b/src
 -  useSetSystemInstructions,
 -  useSetTemplateSystemInstructions,
 -  useSetUseTemplateMode,
-~ 16 more removed lines
+~ 16 more removed lines sha256:ae6ca4ee25c8
 -  useLocalParticipantSystemPrompt,
 -  useLocalUseTemplateMode,
    useGetProcessedLocalPrompt,
@@ -2189,7 +2258,7 @@ diff --git a/src/components/Settings/sections/ProviderSpecificSettings.tsx b/src
 -import { useAuth } from '../../../lib/auth/hooks';
 -
 -interface ProviderSpecificSettingsProps {
-~ 7 more removed lines
+~ 7 more removed lines sha256:7aed3281ef88
 -  fetchAvailableModels: (getAuthToken?: () => Promise<string | null>, isSignedIn?: boolean) => Promise<void>;
 -}
  
@@ -2224,7 +2293,7 @@ diff --git a/src/components/Settings/sections/ProviderSpecificSettings.tsx b/src
 -  const systemInstructions = useSystemInstructions();
 -  const templateSystemInstructions = useTemplateSystemInstructions();
 -  const useTemplateMode = useUseTemplateMode();
-~ 7 more removed lines
+~ 7 more removed lines sha256:26573e526492
 -  const volcengineAST2Settings = useVolcengineAST2Settings();
 -  const sonioxSettings = useSonioxSettings();
    const mode = useMode();
@@ -2239,7 +2308,7 @@ diff --git a/src/components/Settings/sections/ProviderSpecificSettings.tsx b/src
 -  const modelStatuses = useModelStatuses();
 -
 -  // Actions from store
-~ 18 more removed lines
+~ 18 more removed lines sha256:82addd9a17d2
 -  const localParticipantSystemPrompt = useLocalParticipantSystemPrompt();
 -  const localUseTemplateMode = useLocalUseTemplateMode();
    const getProcessedLocalPrompt = useGetProcessedLocalPrompt();
@@ -2249,7 +2318,7 @@ diff --git a/src/components/Settings/sections/ProviderSpecificSettings.tsx b/src
 -  // Kizuna-managed relay twins reuse their base provider's controls. The
 -  // sections below gate on `effectiveProvider` so the OPENAI_TRANSLATE /
 -  // VOLCENGINE_AST2 UI renders for the twins, but read/write the kizuna slices
-~ 141 more removed lines
+~ 141 more removed lines sha256:c8710076773f
 -  const selectedAsr = speakerResolved.asr?.modelId ?? '';
 -
    // LOCAL_NATIVE's resolved direction. The custom-prompt control needs to know
@@ -2300,7 +2369,7 @@ diff --git a/src/components/Settings/sections/ProviderSpecificSettings.tsx b/src
 -  // Custom prompt is supported when EITHER the speaker's or the participant's
 -  // translation worker is Qwen-family. The participant direction (tgt→src) is
 -  // a peer of the speaker direction, not a reversal of it: its worker type is
-~ 79 more removed lines
+~ 79 more removed lines sha256:e9b48ae6d89b
 -      return openAILiveSettings;
 -    }
 +  if (provider !== Provider.LOCAL_NATIVE) {
@@ -2308,7 +2377,7 @@ diff --git a/src/components/Settings/sections/ProviderSpecificSettings.tsx b/src
 -  };
 -
 -  const updateOpenAICompatibleSettingsHelper = (updates: any) => {
-~ 79 more removed lines
+~ 79 more removed lines sha256:d862f7bd92cf
 -    // Check if WebRTC mode is active - server VAD causes audio truncation in WebRTC
 -    const isWebRTCMode = compatibleSettings?.transportType === 'webrtc';
 +  }
@@ -2324,7 +2393,7 @@ diff --git a/src/components/Settings/sections/ProviderSpecificSettings.tsx b/src
 -    return (
 -      <div className="settings-section turn-detection-section" id="turn-detection-section">
 -        <h2>
-~ 691 more removed lines
+~ 691 more removed lines sha256:cd51fce0a1b6
 -          </>
 -          </div>
 +  return (
@@ -2344,7 +2413,7 @@ diff --git a/src/components/Settings/sections/ProviderSpecificSettings.tsx b/src
 -      </>
 -    );
 -  };
-~ 579 more removed lines
+~ 579 more removed lines sha256:4fe83ca9caab
 -          isSessionActive={isSessionActive}
 -        />
 +        renderStorage={() => <StoragePage provider="native" isSessionActive={isSessionActive} />}
@@ -2366,7 +2435,7 @@ diff --git a/src/components/Settings/sections/ProviderSpecificSettings.tsx b/src
 -        <div className="settings-section" id="soniox-vocabulary-section">
 -          <h2>
 -            {t('settings.sonioxVocabulary', 'Custom Vocabulary')}
-~ 244 more removed lines
+~ 244 more removed lines sha256:bf1182a01889
 -            trackEvent('speech_mode_changed', { provider, from_mode: fromMode, to_mode: turnDetectionMode });
 -            updateLocalNativeSettings({ turnDetectionMode });
 +      <SpeechModeControl
@@ -2412,7 +2481,7 @@ diff --git a/src/components/Settings/sections/ProviderSpecificSettings.tsx b/src
 -        />
 -
 -        {localNativeSettings.turnDetectionMode === 'Auto' && (
-~ 36 more removed lines
+~ 36 more removed lines sha256:6b901ba63510
 -          value={localInferenceSettings.ttsSpeed}
 -          onChange={(ttsSpeed) => updateLocalInferenceSettings({ ttsSpeed })}
            disabled={isSessionActive}
@@ -2420,14 +2489,14 @@ diff --git a/src/components/Settings/sections/ProviderSpecificSettings.tsx b/src
 -
 -        <SpeechModeControl
 -          value={localInferenceSettings.turnDetectionMode}
-~ 145 more removed lines
+~ 145 more removed lines sha256:a1c26f46d361
 -          )}
 -        </div>
        )}
 -
 -      {/* Provider-specific settings */}
 -      {renderVoiceSettings()}
-~ 12 more removed lines
+~ 12 more removed lines sha256:fba8b456f4b8
 -      {renderLocalNativeSettings()}
 -    </Fragment>
 +    </>
@@ -2569,7 +2638,7 @@ diff --git a/src/types/Provider.ts b/src/types/Provider.ts
 -/**
 - * OpenAI-compatible providers (providers that use OpenAI-compatible APIs)
 - */
-~ 10 more removed lines
+~ 10 more removed lines sha256:67cab5e5520d
 -}
 -
  /** The backend-managed twins: Kizuna AI's own service running on a third-party
@@ -2604,7 +2673,7 @@ OpenAI Live runs on its own definition and adapter since the Stage 2 OpenAI Live
 - The extension's `OPENAI_LIVE_SET_HEADERS` / `OPENAI_LIVE_CLEAR_HEADERS` handlers and `openaiLive{Set,Clear}DNRHeaders` (`background.js`), with the case of `background.wsHeaders.test.ts` that pinned them as left alone. `wsHeaderRule.js`' sweep of the old rule id 4000 stays (Stage 2 OpenAI Live, ruling 11): a profile upgraded from an old build may still hold it; its comment now says the rule's owner is gone.
 - `logStore.ts`' old Live event names; `logStore.test.ts`' case for them. The old test tables lose Live's rows (`descriptorRegistry`, `providerOrder`, `localNativeGating`, now Local Native's alone); `providerPath.test.ts`' `OPENAI_LIVE` row stays (ruling C1).
 - `mainPanel.openaiLiveConnectionLost`, read only by the old client.
-- `src/providers/openai_live/adapter.ts`' header: the old client is "deleted since" (choice 3).
+- `src/providers/openai_live/adapter.ts`' header: the old client is "deleted since" (choice 3); `wsHeaderRule.js`' note on the generic Live rule's priority names the client that could leave rule 4000 behind as "the old client, deleted since" (choice 3).
 
 **Files:**
 - Delete (6): `src/services/clients/OpenAILiveClient.test.ts`, `src/services/clients/OpenAILiveClient.ts`, `src/services/providers/OpenAILiveProviderConfig.test.ts`, `src/services/providers/OpenAILiveProviderConfig.ts`, `src/services/providers/speechMode.test.ts`, `src/services/providers/speechMode.ts`
@@ -2640,7 +2709,7 @@ OpenAI Live runs on its own definition and adapter since the Stage 2 OpenAI Live
 - [ ] **Step 4: Check that nothing reaches what went.**
 
   ```
-  git grep -nE "from '[^']*/(OpenAILiveClient|OpenAILiveProviderConfig|speechMode)'|OPENAI_LIVE_(SET|CLEAR)_HEADERS|openaiLive(Set|Clear)DNRHeaders" -- src extension electron
+  git grep -nE "from '[^']*/(OpenAILiveClient|OpenAILiveProviderConfig|speechMode)'|OPENAI_LIVE_(SET|CLEAR)_HEADERS|openaiLive(Set|Clear)DNRHeaders|now unreachable" -- src extension electron
   ```
 
   Expected: nothing (exit status 1).
@@ -2650,8 +2719,8 @@ OpenAI Live runs on its own definition and adapter since the Stage 2 OpenAI Live
   - `npx vitest run src`: **579 files passed and 1 skipped (580); 7 520 tests passed and 2 skipped (7 522)**; 0 failed, no unhandled errors.
   - `npx vitest run electron`: 34 files, 477 tests passed. `npx vitest run extension`: 9 files, 55 tests passed.
   - Local Native's old path: `npx vitest run src/services src/lib/local-inference/native src/components/Settings/sections/Native src/components/Settings/engine/useNativeEngineAdapter src/stores/nativeModelStore src/stores/settingsStore` — 77 files, 1 385 tests passed.
-  - `npx tsc --noEmit -p tsconfig.json 2>&1 | command grep -c 'error TS'` prints **255**.
-  - `zsh /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh | diff - /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate-baseline.txt` prints nothing: the baseline's 18 lines, unchanged.
+  - The typecheck, as a set: `npx tsc --noEmit -p tsconfig.json > /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t02.txt`, then `python3 /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/tscdiff.py /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t01.txt /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t02.txt` prints exactly `before 255 after 255; new 0; gone 0` and exits 0 — no error the task before did not have; `after 255` is the full tree's count.
+  - `zsh /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh | diff - /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-gate-baseline.txt` prints nothing: the baseline's 18 lines, unchanged.
 
 - [ ] **Step 6: Commit.**
 
@@ -2689,7 +2758,7 @@ diff --git a/extension/background/background.js b/extension/background/backgroun
 -// ─── OpenAI Live declarativeNetRequest header injection ────────────────────
 -// Like the Volcengine functions, these chain through the shared dnrUpdatePromise
 -// to serialize updates. The rule is scoped to the Live path so it never touches
-~ 58 more removed lines
+~ 58 more removed lines sha256:34684ea30239
 -}
 -
  // ─── Generic WebSocket upgrade header rules ─────────────────────────────────
@@ -2702,7 +2771,7 @@ diff --git a/extension/background/background.js b/extension/background/backgroun
 -  // Handle OpenAI Live DNR header injection
 -  if (message.type === 'OPENAI_LIVE_SET_HEADERS') {
 -    openaiLiveSetDNRHeaders(message.apiKey)
-~ 16 more removed lines
+~ 16 more removed lines sha256:0b0dd49e1aeb
 -  }
 -
    // Generic WebSocket upgrade header rules: from the extension's own pages alone.
@@ -2751,6 +2820,17 @@ diff --git a/extension/background/wsHeaderRule.js b/extension/background/wsHeade
   */
  export const OLD_LIVE_RULE_ID = 4000;
  
+@@ -81,8 +82,8 @@
+   if (id === undefined) return null;
+   return {
+     id,
+-    // Above the old Live rule (4000) at the same filter (`||api.openai.com/v1/live/`), so a leftover of it — left by a client
+-    // now unreachable — never supplies the key; nothing else competes at this filter (Stage 2 OpenAI Live, ruling 11).
++    // Above the old Live rule (4000) at the same filter (`||api.openai.com/v1/live/`), so a leftover of it — left by the old
++    // client, deleted since — never supplies the key; nothing else competes at this filter (Stage 2 OpenAI Live, ruling 11).
+     priority: 2,
+     action: {
+       type: 'modifyHeaders',
 `````
 
 `src/providers/openai_live/adapter.ts`
@@ -2784,7 +2864,7 @@ diff --git a/src/services/interfaces/IClient.ts b/src/services/interfaces/IClien
 -/**
 - * GPT-Live-1 interpreter session (Live API primary WebSocket). Every field is
 - * fixed at session.start; `instructions` is the rendered interpreter template
-~ 9 more removed lines
+~ 9 more removed lines sha256:bd24fa218e8b
 -}
 -
  /**
@@ -3122,7 +3202,7 @@ diff --git a/src/stores/logStore.test.ts b/src/stores/logStore.test.ts
 -  // The Live API names the same microphone stream `session.input_audio.append`
 -  // (no `_buffer`); one entry per frame drowned the panel in a real session.
 -  it('collapses the Live wire name for mic appends under the same key', () => {
-~ 12 more removed lines
+~ 12 more removed lines sha256:ca299da4bc6d
 -  });
 -
    // A session nobody speaks in sends nothing but mic appends, and they all
@@ -3343,8 +3423,8 @@ diff --git a/src/stores/settingsStore.ts b/src/stores/settingsStore.ts
   - `npx vitest run src`: **579 files passed and 1 skipped (580); 7 512 tests passed and 2 skipped (7 514)**; 0 failed, no unhandled errors.
   - `npx vitest run electron`: 34 files, 477 tests passed. `npx vitest run extension`: 9 files, 55 tests passed.
   - Local Native's old path: `npx vitest run src/services src/lib/local-inference/native src/components/Settings/sections/Native src/components/Settings/engine/useNativeEngineAdapter src/stores/nativeModelStore src/stores/settingsStore` — 77 files, 1 378 tests passed.
-  - `npx tsc --noEmit -p tsconfig.json 2>&1 | command grep -c 'error TS'` prints **255**.
-  - `zsh /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh | diff - /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate-baseline.txt` prints nothing: the baseline's 18 lines, unchanged.
+  - The typecheck, as a set: `npx tsc --noEmit -p tsconfig.json > /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t03.txt`, then `python3 /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/tscdiff.py /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t02.txt /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t03.txt` prints exactly `before 255 after 255; new 0; gone 0` and exits 0 — no error the task before did not have; `after 255` is the full tree's count.
+  - `zsh /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh | diff - /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-gate-baseline.txt` prints nothing: the baseline's 18 lines, unchanged.
 
 - [ ] **Step 6: Commit.**
 
@@ -3390,7 +3470,7 @@ diff --git a/.env.example b/.env.example
 diff --git a/.github/workflows/build.yml b/.github/workflows/build.yml
 --- a/.github/workflows/build.yml
 +++ b/.github/workflows/build.yml
-@@ -220,7 +220,6 @@
+@@ -220,7 +220,6 @@ occurrence 1 of 5
            VITE_ENABLE_PALABRA_AI: ${{ vars.VITE_ENABLE_PALABRA_AI }}
            VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
            VITE_ENABLE_KIZUNA_SONIOX: ${{ vars.VITE_ENABLE_KIZUNA_SONIOX }}
@@ -3398,7 +3478,7 @@ diff --git a/.github/workflows/build.yml b/.github/workflows/build.yml
            VITE_ENABLE_KIZUNA_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_KIZUNA_VOLCENGINE_AST2 }}
            VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
            VITE_ENABLED_PROVIDERS: ${{ vars.VITE_ENABLED_PROVIDERS }}
-@@ -274,7 +273,6 @@
+@@ -274,7 +273,6 @@ occurrence 2 of 5
            VITE_ENABLE_PALABRA_AI: ${{ vars.VITE_ENABLE_PALABRA_AI }}
            VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
            VITE_ENABLE_KIZUNA_SONIOX: ${{ vars.VITE_ENABLE_KIZUNA_SONIOX }}
@@ -3406,7 +3486,7 @@ diff --git a/.github/workflows/build.yml b/.github/workflows/build.yml
            VITE_ENABLE_KIZUNA_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_KIZUNA_VOLCENGINE_AST2 }}
            VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
            VITE_ENABLED_PROVIDERS: ${{ vars.VITE_ENABLED_PROVIDERS }}
-@@ -314,7 +312,6 @@
+@@ -314,7 +312,6 @@ occurrence 3 of 5
            VITE_ENABLE_PALABRA_AI: ${{ vars.VITE_ENABLE_PALABRA_AI }}
            VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
            VITE_ENABLE_KIZUNA_SONIOX: ${{ vars.VITE_ENABLE_KIZUNA_SONIOX }}
@@ -3414,7 +3494,7 @@ diff --git a/.github/workflows/build.yml b/.github/workflows/build.yml
            VITE_ENABLE_KIZUNA_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_KIZUNA_VOLCENGINE_AST2 }}
            VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
            VITE_ENABLED_PROVIDERS: ${{ vars.VITE_ENABLED_PROVIDERS }}
-@@ -416,7 +413,6 @@
+@@ -416,7 +413,6 @@ occurrence 4 of 5
            VITE_ENABLE_PALABRA_AI: ${{ vars.VITE_ENABLE_PALABRA_AI }}
            VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
            VITE_ENABLE_KIZUNA_SONIOX: ${{ vars.VITE_ENABLE_KIZUNA_SONIOX }}
@@ -3422,7 +3502,7 @@ diff --git a/.github/workflows/build.yml b/.github/workflows/build.yml
            VITE_ENABLE_KIZUNA_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_KIZUNA_VOLCENGINE_AST2 }}
            VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
            VITE_ENABLED_PROVIDERS: ${{ vars.VITE_ENABLED_PROVIDERS }}
-@@ -518,7 +514,6 @@
+@@ -518,7 +514,6 @@ occurrence 5 of 5
            VITE_ENABLE_PALABRA_AI: ${{ vars.VITE_ENABLE_PALABRA_AI }}
            VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
            VITE_ENABLE_KIZUNA_SONIOX: ${{ vars.VITE_ENABLE_KIZUNA_SONIOX }}
@@ -4399,6 +4479,7 @@ Doubao AST 2.0 runs on its own definition since the Stage 2 Volcengine AST2 plan
 - The CSP (ruling 5): the seven entries leave `manifest.json`'s `connect-src`; `manifest.consistency.test.ts` gains "allows no origin only a deleted provider connected to".
 - `logStore.ts`' old AST2 event names (the adapter's frames keep their grouping); `redact.ts`' comment; `volcengine_ast2/adapter.ts`' and `codec.test.ts`' headers (choice 3); the old test tables' AST2 and twin rows; the wizard tests' mocks.
 - `providers.kizunaai_volcengine_ast2.{name,description}`.
+- The sweep's citations name their plan (Revision 1): "Stage 2 OpenAI Live, ruling 11; Stage 2 deletion, ruling C3" in `background.js`' sweep comment and in the case titles of `wsHeaderRule.test.ts` and `background.wsHeaders.test.ts`, where a bare "ruling 11" beside this plan's citation read as this plan's.
 
 **Files:**
 - Delete (10): `src/services/ClientOperations.test.ts`, `src/services/clients/ClientFactory.test.ts`, `src/services/clients/VolcengineAST2Client.test.ts`, `src/services/clients/VolcengineAST2Client.ts`, `src/services/clients/volcengine-ast2/ast2-proto.d.ts`, `src/services/clients/volcengine-ast2/ast2-proto.js`, `src/services/providers/KizunaAIVolcengineAST2ProviderConfig.ts`, `src/services/providers/VolcengineAST2ProviderConfig.ts`, `src/services/providers/volcengineAST2LanguageSync.test.ts`, `src/services/providers/volcengineAST2LanguageSync.ts`
@@ -4434,7 +4515,7 @@ Doubao AST 2.0 runs on its own definition since the Stage 2 Volcengine AST2 plan
 - [ ] **Step 4: Check that nothing reaches what went.**
 
   ```
-  git grep -nE "from '[^']*/(VolcengineAST2Client|VolcengineAST2ProviderConfig|KizunaAIVolcengineAST2ProviderConfig|volcengineAST2LanguageSync)'|KIZUNA_AI_VOLCENGINE_AST2|is(Kizuna)?VolcengineAST2Enabled|getRelayWsUrl|VOLCENGINE_AST2_(SET|CLEAR)|VITE_ENABLE_(KIZUNA_)?VOLCENGINE_AST2|from 'uuid'" -- src extension electron .github .env.example
+  git grep -nE "from '[^']*/(VolcengineAST2Client|VolcengineAST2ProviderConfig|KizunaAIVolcengineAST2ProviderConfig|volcengineAST2LanguageSync)'|KIZUNA_AI_VOLCENGINE_AST2|is(Kizuna)?VolcengineAST2Enabled|getRelayWsUrl|VOLCENGINE_AST2_(SET|CLEAR)|VITE_ENABLE_(KIZUNA_)?VOLCENGINE_AST2|from 'uuid'|\(ruling 11;" -- src extension electron .github .env.example
   ```
 
   Expected: exactly this line, a comment that says the flag is gone —
@@ -4454,8 +4535,8 @@ Doubao AST 2.0 runs on its own definition since the Stage 2 Volcengine AST2 plan
   - `npx vitest run src`: **575 files passed and 1 skipped (576); 7 467 tests passed and 2 skipped (7 469)**; 0 failed, no unhandled errors.
   - `npx vitest run electron`: 34 files, 477 tests passed. `npx vitest run extension`: 9 files, 56 tests passed.
   - Local Native's old path: `npx vitest run src/services src/lib/local-inference/native src/components/Settings/sections/Native src/components/Settings/engine/useNativeEngineAdapter src/stores/nativeModelStore src/stores/settingsStore` — 73 files, 1 338 tests passed.
-  - `npx tsc --noEmit -p tsconfig.json 2>&1 | command grep -c 'error TS'` prints **255**.
-  - `zsh /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh | diff - /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate-baseline.txt` prints nothing: the baseline's 18 lines, unchanged.
+  - The typecheck, as a set: `npx tsc --noEmit -p tsconfig.json > /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t04.txt`, then `python3 /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/tscdiff.py /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t03.txt /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t04.txt` prints exactly `before 255 after 255; new 0; gone 0` and exits 0 — no error the task before did not have; `after 255` is the full tree's count.
+  - `zsh /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh | diff - /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-gate-baseline.txt` prints nothing: the baseline's 18 lines, unchanged.
 
 - [ ] **Step 6: Commit.**
 
@@ -4514,7 +4595,7 @@ diff --git a/.github/workflows/build.yml b/.github/workflows/build.yml
            VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
            VITE_ENABLED_PROVIDERS: ${{ vars.VITE_ENABLED_PROVIDERS }}
            # Additional variables only for releases
-@@ -269,11 +267,9 @@
+@@ -269,11 +267,9 @@ occurrence 1 of 3
            VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai' }}
            VITE_ENVIRONMENT: production
            VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
@@ -4526,7 +4607,7 @@ diff --git a/.github/workflows/build.yml b/.github/workflows/build.yml
            VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
            VITE_ENABLED_PROVIDERS: ${{ vars.VITE_ENABLED_PROVIDERS }}
  
-@@ -308,11 +304,9 @@
+@@ -308,11 +304,9 @@ occurrence 2 of 3
            VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai' }}
            VITE_ENVIRONMENT: production
            VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
@@ -4538,7 +4619,7 @@ diff --git a/.github/workflows/build.yml b/.github/workflows/build.yml
            VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
            VITE_ENABLED_PROVIDERS: ${{ vars.VITE_ENABLED_PROVIDERS }}
  
-@@ -409,11 +403,9 @@
+@@ -409,11 +403,9 @@ occurrence 3 of 3
            VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai' }}
            VITE_ENVIRONMENT: production
            VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
@@ -4621,7 +4702,7 @@ diff --git a/extension/background/background.js b/extension/background/backgroun
 -// ─── Volcengine AST2 declarativeNetRequest header injection ───────────────
 -// Browser WebSocket API cannot send custom headers. We use declarativeNetRequest
 -// dynamic rules to inject auth headers into the WebSocket upgrade request.
-~ 60 more removed lines
+~ 60 more removed lines sha256:b78169b3f0f9
 -}
 -
  // ─── Edge TTS declarativeNetRequest header injection ──────────────────────
@@ -4646,8 +4727,8 @@ diff --git a/extension/background/background.js b/extension/background/backgroun
  
  // Dynamic rules outlive a browser restart: one a crash left installed goes when the browser or the extension next starts,
 -// and so does the old OpenAI Live client's, which nothing else will clear once that client is gone (ruling 11).
-+// and so do the old OpenAI Live and AST2 clients', which nothing else clears now those clients are gone (ruling 11;
-+// Stage 2 deletion, ruling C3).
++// and so do the old OpenAI Live and AST2 clients', which nothing else clears now those clients are gone (Stage 2
++// OpenAI Live, ruling 11; Stage 2 deletion, ruling C3).
  function wsHeadersSweep() {
    const run = dnrUpdatePromise.then(async () => {
      const ids = sweepIds(await chrome.declarativeNetRequest.getDynamicRules());
@@ -4658,7 +4739,7 @@ diff --git a/extension/background/background.js b/extension/background/backgroun
 -  // Handle Volcengine AST2 DNR header injection
 -  if (message.type === 'VOLCENGINE_AST2_SET_HEADERS') {
 -    volcengineSetDNRHeaders(message.credentials)
-~ 16 more removed lines
+~ 16 more removed lines sha256:b109cf464d86
 -  }
 -
    // Handle Edge TTS DNR header injection
@@ -4677,7 +4758,7 @@ diff --git a/extension/background/background.wsHeaders.test.ts b/extension/backg
    });
  
 -  it('sweeps the generic rules and the old Live rule when the browser or the extension starts, since dynamic rules outlive both (ruling 11)', () => {
-+  it('sweeps the generic rules and the old Live and AST2 rules when the browser or the extension starts, since dynamic rules outlive both (ruling 11; Stage 2 deletion, ruling C3)', () => {
++  it('sweeps the generic rules and the old Live and AST2 rules when the browser or the extension starts, since dynamic rules outlive both (Stage 2 OpenAI Live, ruling 11; Stage 2 deletion, ruling C3)', () => {
      expect(background).toContain('chrome.runtime.onStartup.addListener(() => { void wsHeadersSweep(); });');
      expect(background).toContain('chrome.runtime.onInstalled.addListener(() => { void wsHeadersSweep(); });');
    });
@@ -4750,7 +4831,7 @@ diff --git a/extension/background/wsHeaderRule.test.ts b/extension/background/ws
    });
  
 -  it("finds a host and path's rules to clear, and sweeps every generic rule and the old Live rule — never another provider's (ruling 11)", () => {
-+  it("finds a host and path's rules to clear, and sweeps every generic rule and the old Live and AST2 rules — never another provider's (ruling 11; Stage 2 deletion, ruling C3)", () => {
++  it("finds a host and path's rules to clear, and sweeps every generic rule and the old Live and AST2 rules — never another provider's (Stage 2 OpenAI Live, ruling 11; Stage 2 deletion, ruling C3)", () => {
      const rules = [...OLD, { id: 5000, condition: { urlFilter: '||api.openai.com/v1/live/' } }, { id: 5001, condition: { urlFilter: '||h.example/' } }];
      expect(ruleIdsFor(rules, 'api.openai.com', '/v1/live/')).toEqual([5000]);
      expect(ruleIdsFor(rules, 'api.openai.com', '/v1/')).toEqual([]);
@@ -4880,7 +4961,7 @@ diff --git a/package-lock.json b/package-lock.json
 -    "node_modules/uuid": {
 -      "version": "11.1.1",
 -      "resolved": "https://registry.npmjs.org/uuid/-/uuid-11.1.1.tgz",
-~ 9 more removed lines
+~ 9 more removed lines sha256:73b6e01d0485
 -      }
 -    },
      "node_modules/validate-npm-package-license": {
@@ -5092,7 +5173,7 @@ diff --git a/src/services/interfaces/IClient.ts b/src/services/interfaces/IClien
 -/**
 - * Volcengine AST 2.0 session configuration (s2s mode)
 - */
-~ 11 more removed lines
+~ 11 more removed lines sha256:054cd75b1424
 -}
 -
  /**
@@ -5388,7 +5469,7 @@ diff --git a/src/services/providers/descriptorRegistry.test.ts b/src/services/pr
 -  it('two-field providers reject a filled primary with a missing secret', async () => {
 -    const { ClientOperations } = await import('../ClientOperations');
 -    const cases: Array<[Provider, RegExp]> = [
-~ 8 more removed lines
+~ 8 more removed lines sha256:991a59957df3
 -  });
 -
    // PalabraAI is no longer a synchronous two-field guard: a missing `secret` is
@@ -5435,7 +5516,7 @@ diff --git a/src/services/providers/kizunaProviderGating.test.ts b/src/services/
 -    expect(providers).not.toContain(Provider.KIZUNA_AI_VOLCENGINE_AST2);
 -  });
 -
-~ 16 more removed lines
+~ 16 more removed lines sha256:2e6d5d5fb1de
 -      expect(providers).toContain(p);
 -    }
    });
@@ -5456,7 +5537,7 @@ diff --git a/src/services/providers/kizunaProviderGating.test.ts b/src/services/
 -  it('prefers managed Soniox where it is registered alongside the twin', async () => {
 -    const factory = await factoryWith({
 -      soniox: true,
-~ 17 more removed lines
+~ 17 more removed lines sha256:007fc9aab94a
 -  });
 -
    it('returns null rather than an unusable provider when none is registered', async () => {
@@ -5469,7 +5550,7 @@ diff --git a/src/services/providers/kizunaProviderGating.test.ts b/src/services/
 -  it('sends a legacy user to managed Soniox even where the twins are registered', async () => {
 -    const { migrateLegacyKizunaProvider, ProviderConfigFactory } = await migrateWith({
 -      soniox: true,
-~ 27 more removed lines
+~ 27 more removed lines sha256:d5542dcc4126
 -  });
 -
    // Redirecting is only for providers this build cannot offer. A registered
@@ -5860,7 +5941,7 @@ diff --git a/src/stores/settingsStore.test.ts b/src/stores/settingsStore.test.ts
 -  describe('Volcengine AST 2.0 custom vocabulary', () => {
 -    const volcBase = {
 -      appId: 'app-id',
-~ 74 more removed lines
+~ 74 more removed lines sha256:cdfac4cbb001
 -  });
 -
    describe('Push-to-Translate persistence', () => {
@@ -6080,7 +6161,7 @@ diff --git a/src/utils/environment.test.ts b/src/utils/environment.test.ts
 -describe("getRelayWsUrl", () => {
 -  it("derives a wss /v1 URL from the default backend", () => {
 -    vi.stubEnv("VITE_BACKEND_URL", "");
-~ 10 more removed lines
+~ 10 more removed lines sha256:2553cd324399
 -});
 -
  describe("enabledProviderIds", () => {
@@ -6101,7 +6182,7 @@ diff --git a/src/utils/environment.ts b/src/utils/environment.ts
 -/**
 - * Get the WebSocket base URL for the KizunaAI relay
 - * @returns The WebSocket URL with /v1 suffix (e.g., wss://sokuji.kizuna.ai/v1)
-~ 7 more removed lines
+~ 7 more removed lines sha256:17e907d22a7e
 -}
 -
  /**
@@ -6128,7 +6209,7 @@ diff --git a/src/utils/environment.ts b/src/utils/environment.ts
 
 ### Task 5: Gemini's old code (Wave 1)
 
-Gemini runs on its own definition since the Stage 2 Gemini plan and its two follow-ups. The roadmap's G2 inventory (`:3061-3072`) is taken whole but for its last item, the pre-existing orphan key (open question 1).
+Gemini runs on its own definition since the Stage 2 Gemini plan and its two follow-ups. The roadmap's G2 inventory (`:3061-3072`) is taken whole but for its last item, the pre-existing orphan key, a follow-up (ruling C16).
 
 **What goes, and what changes:**
 - `GeminiClient.ts` and its test, `GeminiProviderConfig.ts`, `geminiTranslateModel.ts` and its test; the registration; `IClient.ts`' `GeminiSessionConfig`, its guard, `cancelPttTurn` and `IClientStatic`; `ProviderDescriptor.ts`' `reversesDirection` note; the `gemini` slice and its model auto-select case. The common instruction fields stay here: the unported Local Native still reads them until Task 10.
@@ -6171,8 +6252,8 @@ Gemini runs on its own definition since the Stage 2 Gemini plan and its two foll
   - `npx vitest run src`: **573 files passed and 1 skipped (574); 7 391 tests passed and 2 skipped (7 393)**; 0 failed, no unhandled errors.
   - `npx vitest run electron`: 34 files, 477 tests passed. `npx vitest run extension`: 9 files, 56 tests passed.
   - Local Native's old path: `npx vitest run src/services src/lib/local-inference/native src/components/Settings/sections/Native src/components/Settings/engine/useNativeEngineAdapter src/stores/nativeModelStore src/stores/settingsStore` — 71 files, 1 262 tests passed.
-  - `npx tsc --noEmit -p tsconfig.json 2>&1 | command grep -c 'error TS'` prints **247**.
-  - `zsh /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh | diff - /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate-baseline.txt` prints nothing: the baseline's 18 lines, unchanged.
+  - The typecheck, as a set: `npx tsc --noEmit -p tsconfig.json > /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t05.txt`, then `python3 /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/tscdiff.py /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t04.txt /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t05.txt` prints exactly `before 255 after 247; new 0; gone 8` and exits 0 — no error the task before did not have; `after 247` is the full tree's count.
+  - `zsh /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh | diff - /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-gate-baseline.txt` prints nothing: the baseline's 18 lines, unchanged.
 
 - [ ] **Step 5: Commit.**
 
@@ -6281,7 +6362,7 @@ diff --git a/src/services/interfaces/IClient.ts b/src/services/interfaces/IClien
 -/**
 - * Gemini-specific session configuration
 - */
-~ 36 more removed lines
+~ 36 more removed lines sha256:6b8ade2c9a63
 -}
 -
  /**
@@ -6325,7 +6406,7 @@ diff --git a/src/services/interfaces/IClient.ts b/src/services/interfaces/IClien
 -
 -/**
 - * Static methods interface for client classes
-~ 14 more removed lines
+~ 14 more removed lines sha256:a34e97fcef84
 -  getLatestRealtimeModel(models: FilteredModel[]): string;
 -}
 `````
@@ -6571,7 +6652,7 @@ diff --git a/src/services/providers/participantConfig.test.ts b/src/services/pro
 -  it('gemini forces turnDetectionMode Auto and reverses translationConfig when present', () => {
 -    const d = ProviderConfigFactory.getDescriptor(Provider.GEMINI);
 -    // Non-Auto so the assertion below discriminates the override's forcing
-~ 54 more removed lines
+~ 54 more removed lines sha256:e266e70d0cbe
 -  });
 -
    it('openai and openai_compatible rebuild the transcription hint for the reversed direction', () => {
@@ -6616,7 +6697,7 @@ diff --git a/src/stores/logStore.ts b/src/stores/logStore.ts
 -    // Gemini-specific top-level message types
 -    | 'setupComplete'
 -    | 'usageMetadata'
-~ 10 more removed lines
+~ 10 more removed lines sha256:14b5cf0429b3
 -    | 'serverContent.outputTranscription'
 -    | 'serverContent.inputTranscription'
      // OpenAI server events (shared between beta and GA)
@@ -6929,7 +7010,7 @@ diff --git a/src/stores/settingsStore.ts b/src/stores/settingsStore.ts
 
 ### Wave 1 check (controller)
 
-After Task 5: the full gates — `npx vitest run src` at 573 + 1 files and 7 391 + 2 tests, 0 failed, no unhandled errors; `npx vitest run electron` 34 / 477; `npx vitest run extension` 9 / 56; the gate equal to the baseline file (18 lines); the full tree at 247. Then `git log --oneline -5` shows the wave's commits, one per task, and `git status --short` shows nothing of this plan's.
+After Task 5: the full gates — `npx vitest run src` at 573 + 1 files and 7 391 + 2 tests, 0 failed, no unhandled errors; `npx vitest run electron` 34 / 477; `npx vitest run extension` 9 / 56; the gate equal to `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-gate-baseline.txt` (18 lines); `python3 /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/tscdiff.py /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t00.txt /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t05.txt` reports `new 0` and `after 247`. Then `git log --oneline -5` shows the wave's commits, one per task, and `git status --short` shows nothing of this plan's.
 
 ---
 
@@ -6941,14 +7022,14 @@ Soniox and Kizuna Soniox run on their own definitions since the Stage 2 Soniox a
 - **Re-points** (B2.1), from the stubs to `src/providers/soniox/`: `voiceLibrarySource.ts` and its test (`voicesClient`, `ttsRest`, `managedVoicesClient`, `managedVoicePolling`), `SonioxVoiceSection.tsx` and its test (`voicesClient`, `clampNumber` from `config`, the `ttsRest` mock), `lib/tts/previewSample.test.ts` (`SONIOX_LANGUAGES`).
 - **The old code:** `SonioxClient.ts` and its two tests, `ManagedSonioxSession.ts` and its two tests, `SonioxSessionOutcome.ts`, `SonioxCostMeter.ts` (with tests), `SonioxProviderConfig.ts` (and test), `KizunaAISonioxProviderConfig.ts`, `managedSonioxSplit.ts`, `sonioxManagedMinBalance.ts`, `sonioxBothMode.ts` (each with its test), `sonioxSharedBothSession.test.ts`, `managedVoicePrep.ts` (and test); the wiring tests `acquireSessionResources.kizunaSoniox`, `prepareToStart.kizunaSoniox`, `sessionResourcesWiring`, `voicePrepWiring`, `kizunaProviderGating`; `kizunaProviders.test.ts`, `settingsStore.kizunaAuth.test.ts`; MainPanel's `splitDegraded.ts`, `SplitDegradedChip.{tsx,scss}` with their three tests, and `participantErrorOrdering.test.ts`; the eight stubs (`SonioxSttStream`, `SonioxTtsStream`, `PcmMixer`, `SonioxSideTracker`, `SonioxTtsRest`, `SonioxVoicesClient`, `ManagedVoicesClient`, `managedVoicePolling`).
 - **The shared old code's managed arm** (choice 5): `ProviderDescriptor.ts`' `ClientOptions.sonioxManaged`, `BudgetSnapshot`, `SessionResources`, `AcquireSessionResourcesContext` and `acquireSessionResources`; `ProviderConfigFactory.ts`' two registrations and `getDefaultManagedProvider`; `IClient.ts`' Soniox config; `settingsStore.ts`' `soniox` and `kizunaSoniox` slices, `neverPersist`, `ensureKizunaApiKey`, `kizunaKeyError`, `migrateLegacyKizunaProvider` and `validateApiKey`'s `isSignedIn` parameter.
-- **New code, comments and one hook:** `sttStream.ts`' `onTick` (the old managed session's; the adapter never passed it); the "deleted since" headers of `adapter.ts`, `kizunaBudget.ts`, `lease.ts`, `managedVoicesClient.ts`, `sideTracker.ts`, `ttsStream.ts`, `voiceClaim.ts`, `voicePrep.ts` (choice 3).
+- **New code, comments and one hook:** `sttStream.ts`' `onTick` (the old managed session's; the adapter never passed it); the "deleted since" headers of `adapter.ts`, `kizunaBudget.ts`, `lease.ts`, `managedVoicesClient.ts`, `sideTracker.ts`, `ttsStream.ts`, `voiceClaim.ts`, `voicePrep.ts`, and two comments that still spoke of the old code as present: `config.ts`' ("until Plan B deletes it") and `socket.ts`' ("still reaches the old client's streams") (choice 3).
 - `isKizunaSonioxEnabled` and `VITE_ENABLE_KIZUNA_SONIOX` (ruling 6): `environment.ts`, `build.yml`, `extension/vite.config.ts` (its forwarding note moves above `VITE_ENABLE_KIZUNA_AI`), `.env.example` (its general paragraphs move under `VITE_ENABLED_PROVIDERS`); the wizard tests' mocks.
 - Six keys only the deleted code read: `auth.sessionUnavailable`, `auth.unknown`, `mainPanel.participantChannelFailed`, `mainPanel.splitDegradedLabel`, `mainPanel.splitDegradedTooltip`, `settings.invalidApiKeyFormat`.
 - **Kept** (the roadmap's `:1753`, `:2436-2441`): `SonioxVoiceSection.tsx`, `voiceLibrarySource.ts`, `VoiceLibrarySection.tsx`, `VoicePicker.tsx`, `VoiceCreateModal.tsx`, `SonioxCloneReviewStep.tsx`, `VoiceDeleteModal.tsx`, `src/providers/soniox/**`, `src/lib/soniox/**`, `effectiveTextOnly.ts`, `SessionCountdown.tsx`.
 
 **Files:**
 - Delete (44): `src/components/MainPanel/SplitDegradedChip.scss`, `src/components/MainPanel/SplitDegradedChip.test.tsx`, `src/components/MainPanel/SplitDegradedChip.tsx`, `src/components/MainPanel/participantErrorOrdering.test.ts`, `src/components/MainPanel/splitDegraded.test.ts`, `src/components/MainPanel/splitDegraded.ts`, `src/components/MainPanel/splitDegradedWiring.test.ts`, `src/services/clients/ManagedSonioxSession.outcome.test.ts`, `src/services/clients/ManagedSonioxSession.test.ts`, `src/services/clients/ManagedSonioxSession.ts`, `src/services/clients/ManagedVoicesClient.ts`, `src/services/clients/PcmMixer.ts`, `src/services/clients/SonioxClient.managed.test.ts`, `src/services/clients/SonioxClient.test.ts`, `src/services/clients/SonioxClient.ts`, `src/services/clients/SonioxCostMeter.test.ts`, `src/services/clients/SonioxCostMeter.ts`, `src/services/clients/SonioxSessionOutcome.test.ts`, `src/services/clients/SonioxSessionOutcome.ts`, `src/services/clients/SonioxSideTracker.ts`, `src/services/clients/SonioxSttStream.ts`, `src/services/clients/SonioxTtsRest.ts`, `src/services/clients/SonioxTtsStream.ts`, `src/services/clients/SonioxVoicesClient.ts`, `src/services/clients/managedVoicePolling.ts`, `src/services/providers/KizunaAISonioxProviderConfig.ts`, `src/services/providers/SonioxProviderConfig.test.ts`, `src/services/providers/SonioxProviderConfig.ts`, `src/services/providers/acquireSessionResources.kizunaSoniox.test.ts`, `src/services/providers/kizunaProviderGating.test.ts`, `src/services/providers/managedSonioxSplit.test.ts`, `src/services/providers/managedSonioxSplit.ts`, `src/services/providers/managedVoicePrep.test.ts`, `src/services/providers/managedVoicePrep.ts`, `src/services/providers/prepareToStart.kizunaSoniox.test.ts`, `src/services/providers/sessionResourcesWiring.test.ts`, `src/services/providers/sonioxBothMode.test.ts`, `src/services/providers/sonioxBothMode.ts`, `src/services/providers/sonioxManagedMinBalance.test.ts`, `src/services/providers/sonioxManagedMinBalance.ts`, `src/services/providers/sonioxSharedBothSession.test.ts`, `src/services/providers/voicePrepWiring.test.ts`, `src/stores/kizunaProviders.test.ts`, `src/stores/settingsStore.kizunaAuth.test.ts`
-- Modify (33, by the blocks below): `.env.example`, `.github/workflows/build.yml`, `extension/vite.config.ts`, `src/components/Settings/sections/SonioxVoiceSection.test.tsx`, `src/components/Settings/sections/SonioxVoiceSection.tsx`, `src/components/Settings/sections/voiceLibrarySource.test.ts`, `src/components/Settings/sections/voiceLibrarySource.ts`, `src/components/SetupWizard/SetupWizard.test.tsx`, `src/components/SetupWizard/providerPaths.test.ts`, `src/components/SetupWizard/steps/StepCredentials.test.tsx`, `src/lib/tts/previewSample.test.ts`, `src/locales/locales.consistency.test.ts`, `src/providers/soniox/adapter.ts`, `src/providers/soniox/kizunaBudget.ts`, `src/providers/soniox/lease.ts`, `src/providers/soniox/managedVoicesClient.ts`, `src/providers/soniox/sideTracker.ts`, `src/providers/soniox/sttStream.ts`, `src/providers/soniox/ttsStream.ts`, `src/providers/soniox/voiceClaim.ts`, `src/providers/soniox/voicePrep.ts`, `src/services/interfaces/IClient.ts`, `src/services/providers/ProviderConfig.ts`, `src/services/providers/ProviderConfigFactory.ts`, `src/services/providers/ProviderDescriptor.ts`, `src/services/providers/descriptorRegistry.test.ts`, `src/services/providers/participantConfig.test.ts`, `src/services/providers/prepareToStart.local.test.ts`, `src/services/providers/providerOrder.test.ts`, `src/stores/settingsStore.sliceRegistry.test.ts`, `src/stores/settingsStore.test.ts`, `src/stores/settingsStore.ts`, `src/utils/environment.ts`
+- Modify (35, by the blocks below): `.env.example`, `.github/workflows/build.yml`, `extension/vite.config.ts`, `src/components/Settings/sections/SonioxVoiceSection.test.tsx`, `src/components/Settings/sections/SonioxVoiceSection.tsx`, `src/components/Settings/sections/voiceLibrarySource.test.ts`, `src/components/Settings/sections/voiceLibrarySource.ts`, `src/components/SetupWizard/SetupWizard.test.tsx`, `src/components/SetupWizard/providerPaths.test.ts`, `src/components/SetupWizard/steps/StepCredentials.test.tsx`, `src/lib/tts/previewSample.test.ts`, `src/locales/locales.consistency.test.ts`, `src/providers/soniox/adapter.ts`, `src/providers/soniox/config.ts`, `src/providers/soniox/kizunaBudget.ts`, `src/providers/soniox/lease.ts`, `src/providers/soniox/managedVoicesClient.ts`, `src/providers/soniox/sideTracker.ts`, `src/providers/soniox/socket.ts`, `src/providers/soniox/sttStream.ts`, `src/providers/soniox/ttsStream.ts`, `src/providers/soniox/voiceClaim.ts`, `src/providers/soniox/voicePrep.ts`, `src/services/interfaces/IClient.ts`, `src/services/providers/ProviderConfig.ts`, `src/services/providers/ProviderConfigFactory.ts`, `src/services/providers/ProviderDescriptor.ts`, `src/services/providers/descriptorRegistry.test.ts`, `src/services/providers/participantConfig.test.ts`, `src/services/providers/prepareToStart.local.test.ts`, `src/services/providers/providerOrder.test.ts`, `src/stores/settingsStore.sliceRegistry.test.ts`, `src/stores/settingsStore.test.ts`, `src/stores/settingsStore.ts`, `src/utils/environment.ts`
 - The 30 locale catalogs `src/locales/*/translation.json`, by the key tool (6 keys)
 
 **Interfaces:**
@@ -6967,7 +7048,7 @@ Soniox and Kizuna Soniox run on their own definitions since the Stage 2 Soniox a
   python3 /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/plan-apply.py docs/superpowers/plans/2026-09-30-client-contract-stage2-deletion.md t06
   ```
 
-  Expected: `t06: 33 files changed`, and no other line.
+  Expected: `t06: 35 files changed`, and no other line.
 
 - [ ] **Step 3: Remove the locale keys only the deleted code read.**
 
@@ -6980,7 +7061,7 @@ Soniox and Kizuna Soniox run on their own definitions since the Stage 2 Soniox a
 - [ ] **Step 4: Check that nothing reaches what went.**
 
   ```
-  git grep -nE "from '[^']*/(SonioxClient|ManagedSonioxSession|SonioxSessionOutcome|SonioxCostMeter|SonioxProviderConfig|KizunaAISonioxProviderConfig|managedSonioxSplit|managedVoicePrep|sonioxBothMode|sonioxManagedMinBalance|splitDegraded|SplitDegradedChip)'|services/clients/(SonioxSttStream|SonioxTtsStream|PcmMixer|SonioxSideTracker|SonioxTtsRest|SonioxVoicesClient|ManagedVoicesClient|managedVoicePolling)'|isKizunaSonioxEnabled|VITE_ENABLE_KIZUNA_SONIOX|sonioxManaged[?:]" -- src extension .github .env.example
+  git grep -nE "from '[^']*/(SonioxClient|ManagedSonioxSession|SonioxSessionOutcome|SonioxCostMeter|SonioxProviderConfig|KizunaAISonioxProviderConfig|managedSonioxSplit|managedVoicePrep|sonioxBothMode|sonioxManagedMinBalance|splitDegraded|SplitDegradedChip)'|services/clients/(SonioxSttStream|SonioxTtsStream|PcmMixer|SonioxSideTracker|SonioxTtsRest|SonioxVoicesClient|ManagedVoicesClient|managedVoicePolling)'|isKizunaSonioxEnabled|VITE_ENABLE_KIZUNA_SONIOX|sonioxManaged[?:]|Plan B deletes it|still reaches the old client" -- src extension .github .env.example
   ```
 
   Expected: nothing (exit status 1).
@@ -6990,17 +7071,17 @@ Soniox and Kizuna Soniox run on their own definitions since the Stage 2 Soniox a
   - `npx vitest run src`: **550 files passed and 1 skipped (551); 6 955 tests passed and 2 skipped (6 957)**; 0 failed, no unhandled errors.
   - `npx vitest run electron`: 34 files, 477 tests passed. `npx vitest run extension`: 9 files, 56 tests passed.
   - Local Native's old path: `npx vitest run src/services src/lib/local-inference/native src/components/Settings/sections/Native src/components/Settings/engine/useNativeEngineAdapter src/stores/nativeModelStore src/stores/settingsStore` — 53 files, 872 tests passed.
-  - `npx tsc --noEmit -p tsconfig.json 2>&1 | command grep -c 'error TS'` prints **104**.
-  - `zsh /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh | diff - /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate-baseline.txt` prints nothing: the baseline's 18 lines, unchanged.
+  - The typecheck, as a set: `npx tsc --noEmit -p tsconfig.json > /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t06.txt`, then `python3 /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/tscdiff.py /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t05.txt /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t06.txt` prints exactly `before 247 after 104; new 0; gone 143` and exits 0 — no error the task before did not have; `after 104` is the full tree's count.
+  - `zsh /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh | diff - /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-gate-baseline.txt` prints nothing: the baseline's 18 lines, unchanged.
 
 - [ ] **Step 6: Commit.**
 
 ```bash
-git add -- .env.example .github/workflows/build.yml extension/vite.config.ts src/components/Settings/sections/SonioxVoiceSection.test.tsx src/components/Settings/sections/SonioxVoiceSection.tsx src/components/Settings/sections/voiceLibrarySource.test.ts src/components/Settings/sections/voiceLibrarySource.ts src/components/SetupWizard/SetupWizard.test.tsx src/components/SetupWizard/providerPaths.test.ts src/components/SetupWizard/steps/StepCredentials.test.tsx src/lib/tts/previewSample.test.ts src/locales/locales.consistency.test.ts src/providers/soniox/adapter.ts src/providers/soniox/kizunaBudget.ts src/providers/soniox/lease.ts src/providers/soniox/managedVoicesClient.ts src/providers/soniox/sideTracker.ts src/providers/soniox/sttStream.ts src/providers/soniox/ttsStream.ts src/providers/soniox/voiceClaim.ts src/providers/soniox/voicePrep.ts src/services/interfaces/IClient.ts src/services/providers/ProviderConfig.ts src/services/providers/ProviderConfigFactory.ts src/services/providers/ProviderDescriptor.ts src/services/providers/descriptorRegistry.test.ts src/services/providers/participantConfig.test.ts src/services/providers/prepareToStart.local.test.ts src/services/providers/providerOrder.test.ts src/stores/settingsStore.sliceRegistry.test.ts src/stores/settingsStore.test.ts src/stores/settingsStore.ts src/utils/environment.ts 'src/locales/*/translation.json'
+git add -- .env.example .github/workflows/build.yml extension/vite.config.ts src/components/Settings/sections/SonioxVoiceSection.test.tsx src/components/Settings/sections/SonioxVoiceSection.tsx src/components/Settings/sections/voiceLibrarySource.test.ts src/components/Settings/sections/voiceLibrarySource.ts src/components/SetupWizard/SetupWizard.test.tsx src/components/SetupWizard/providerPaths.test.ts src/components/SetupWizard/steps/StepCredentials.test.tsx src/lib/tts/previewSample.test.ts src/locales/locales.consistency.test.ts src/providers/soniox/adapter.ts src/providers/soniox/config.ts src/providers/soniox/kizunaBudget.ts src/providers/soniox/lease.ts src/providers/soniox/managedVoicesClient.ts src/providers/soniox/sideTracker.ts src/providers/soniox/socket.ts src/providers/soniox/sttStream.ts src/providers/soniox/ttsStream.ts src/providers/soniox/voiceClaim.ts src/providers/soniox/voicePrep.ts src/services/interfaces/IClient.ts src/services/providers/ProviderConfig.ts src/services/providers/ProviderConfigFactory.ts src/services/providers/ProviderDescriptor.ts src/services/providers/descriptorRegistry.test.ts src/services/providers/participantConfig.test.ts src/services/providers/prepareToStart.local.test.ts src/services/providers/providerOrder.test.ts src/stores/settingsStore.sliceRegistry.test.ts src/stores/settingsStore.test.ts src/stores/settingsStore.ts src/utils/environment.ts 'src/locales/*/translation.json'
 ```
 
 ```bash
-git commit -q -F - -- src/components/MainPanel/SplitDegradedChip.scss src/components/MainPanel/SplitDegradedChip.test.tsx src/components/MainPanel/SplitDegradedChip.tsx src/components/MainPanel/participantErrorOrdering.test.ts src/components/MainPanel/splitDegraded.test.ts src/components/MainPanel/splitDegraded.ts src/components/MainPanel/splitDegradedWiring.test.ts src/services/clients/ManagedSonioxSession.outcome.test.ts src/services/clients/ManagedSonioxSession.test.ts src/services/clients/ManagedSonioxSession.ts src/services/clients/ManagedVoicesClient.ts src/services/clients/PcmMixer.ts src/services/clients/SonioxClient.managed.test.ts src/services/clients/SonioxClient.test.ts src/services/clients/SonioxClient.ts src/services/clients/SonioxCostMeter.test.ts src/services/clients/SonioxCostMeter.ts src/services/clients/SonioxSessionOutcome.test.ts src/services/clients/SonioxSessionOutcome.ts src/services/clients/SonioxSideTracker.ts src/services/clients/SonioxSttStream.ts src/services/clients/SonioxTtsRest.ts src/services/clients/SonioxTtsStream.ts src/services/clients/SonioxVoicesClient.ts src/services/clients/managedVoicePolling.ts src/services/providers/KizunaAISonioxProviderConfig.ts src/services/providers/SonioxProviderConfig.test.ts src/services/providers/SonioxProviderConfig.ts src/services/providers/acquireSessionResources.kizunaSoniox.test.ts src/services/providers/kizunaProviderGating.test.ts src/services/providers/managedSonioxSplit.test.ts src/services/providers/managedSonioxSplit.ts src/services/providers/managedVoicePrep.test.ts src/services/providers/managedVoicePrep.ts src/services/providers/prepareToStart.kizunaSoniox.test.ts src/services/providers/sessionResourcesWiring.test.ts src/services/providers/sonioxBothMode.test.ts src/services/providers/sonioxBothMode.ts src/services/providers/sonioxManagedMinBalance.test.ts src/services/providers/sonioxManagedMinBalance.ts src/services/providers/sonioxSharedBothSession.test.ts src/services/providers/voicePrepWiring.test.ts src/stores/kizunaProviders.test.ts src/stores/settingsStore.kizunaAuth.test.ts .env.example .github/workflows/build.yml extension/vite.config.ts src/components/Settings/sections/SonioxVoiceSection.test.tsx src/components/Settings/sections/SonioxVoiceSection.tsx src/components/Settings/sections/voiceLibrarySource.test.ts src/components/Settings/sections/voiceLibrarySource.ts src/components/SetupWizard/SetupWizard.test.tsx src/components/SetupWizard/providerPaths.test.ts src/components/SetupWizard/steps/StepCredentials.test.tsx src/lib/tts/previewSample.test.ts src/locales/locales.consistency.test.ts src/providers/soniox/adapter.ts src/providers/soniox/kizunaBudget.ts src/providers/soniox/lease.ts src/providers/soniox/managedVoicesClient.ts src/providers/soniox/sideTracker.ts src/providers/soniox/sttStream.ts src/providers/soniox/ttsStream.ts src/providers/soniox/voiceClaim.ts src/providers/soniox/voicePrep.ts src/services/interfaces/IClient.ts src/services/providers/ProviderConfig.ts src/services/providers/ProviderConfigFactory.ts src/services/providers/ProviderDescriptor.ts src/services/providers/descriptorRegistry.test.ts src/services/providers/participantConfig.test.ts src/services/providers/prepareToStart.local.test.ts src/services/providers/providerOrder.test.ts src/stores/settingsStore.sliceRegistry.test.ts src/stores/settingsStore.test.ts src/stores/settingsStore.ts src/utils/environment.ts 'src/locales/*/translation.json' <<'EOF'
+git commit -q -F - -- src/components/MainPanel/SplitDegradedChip.scss src/components/MainPanel/SplitDegradedChip.test.tsx src/components/MainPanel/SplitDegradedChip.tsx src/components/MainPanel/participantErrorOrdering.test.ts src/components/MainPanel/splitDegraded.test.ts src/components/MainPanel/splitDegraded.ts src/components/MainPanel/splitDegradedWiring.test.ts src/services/clients/ManagedSonioxSession.outcome.test.ts src/services/clients/ManagedSonioxSession.test.ts src/services/clients/ManagedSonioxSession.ts src/services/clients/ManagedVoicesClient.ts src/services/clients/PcmMixer.ts src/services/clients/SonioxClient.managed.test.ts src/services/clients/SonioxClient.test.ts src/services/clients/SonioxClient.ts src/services/clients/SonioxCostMeter.test.ts src/services/clients/SonioxCostMeter.ts src/services/clients/SonioxSessionOutcome.test.ts src/services/clients/SonioxSessionOutcome.ts src/services/clients/SonioxSideTracker.ts src/services/clients/SonioxSttStream.ts src/services/clients/SonioxTtsRest.ts src/services/clients/SonioxTtsStream.ts src/services/clients/SonioxVoicesClient.ts src/services/clients/managedVoicePolling.ts src/services/providers/KizunaAISonioxProviderConfig.ts src/services/providers/SonioxProviderConfig.test.ts src/services/providers/SonioxProviderConfig.ts src/services/providers/acquireSessionResources.kizunaSoniox.test.ts src/services/providers/kizunaProviderGating.test.ts src/services/providers/managedSonioxSplit.test.ts src/services/providers/managedSonioxSplit.ts src/services/providers/managedVoicePrep.test.ts src/services/providers/managedVoicePrep.ts src/services/providers/prepareToStart.kizunaSoniox.test.ts src/services/providers/sessionResourcesWiring.test.ts src/services/providers/sonioxBothMode.test.ts src/services/providers/sonioxBothMode.ts src/services/providers/sonioxManagedMinBalance.test.ts src/services/providers/sonioxManagedMinBalance.ts src/services/providers/sonioxSharedBothSession.test.ts src/services/providers/voicePrepWiring.test.ts src/stores/kizunaProviders.test.ts src/stores/settingsStore.kizunaAuth.test.ts .env.example .github/workflows/build.yml extension/vite.config.ts src/components/Settings/sections/SonioxVoiceSection.test.tsx src/components/Settings/sections/SonioxVoiceSection.tsx src/components/Settings/sections/voiceLibrarySource.test.ts src/components/Settings/sections/voiceLibrarySource.ts src/components/SetupWizard/SetupWizard.test.tsx src/components/SetupWizard/providerPaths.test.ts src/components/SetupWizard/steps/StepCredentials.test.tsx src/lib/tts/previewSample.test.ts src/locales/locales.consistency.test.ts src/providers/soniox/adapter.ts src/providers/soniox/config.ts src/providers/soniox/kizunaBudget.ts src/providers/soniox/lease.ts src/providers/soniox/managedVoicesClient.ts src/providers/soniox/sideTracker.ts src/providers/soniox/socket.ts src/providers/soniox/sttStream.ts src/providers/soniox/ttsStream.ts src/providers/soniox/voiceClaim.ts src/providers/soniox/voicePrep.ts src/services/interfaces/IClient.ts src/services/providers/ProviderConfig.ts src/services/providers/ProviderConfigFactory.ts src/services/providers/ProviderDescriptor.ts src/services/providers/descriptorRegistry.test.ts src/services/providers/participantConfig.test.ts src/services/providers/prepareToStart.local.test.ts src/services/providers/providerOrder.test.ts src/stores/settingsStore.sliceRegistry.test.ts src/stores/settingsStore.test.ts src/stores/settingsStore.ts src/utils/environment.ts 'src/locales/*/translation.json' <<'EOF'
 refactor(soniox): delete the old Soniox and Kizuna Soniox code
 
 Both run on their own definitions and have passed their live tests.
@@ -7030,7 +7111,7 @@ diff --git a/.env.example b/.env.example
 -# One gate per Kizuna-managed provider, because they are released
 -# independently. Each is ANDed with the master gate above.
 -#
-~ 7 more removed lines
+~ 7 more removed lines sha256:bb7225256ab7
 -# configuration these gates exist to prevent. Development ignores the values
 -# anyway: each helper returns true whenever DEV is set.
 +# Flagged providers in the new provider registry that a release offers, by id,
@@ -7065,7 +7146,7 @@ diff --git a/.github/workflows/build.yml b/.github/workflows/build.yml
            VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
            VITE_ENABLED_PROVIDERS: ${{ vars.VITE_ENABLED_PROVIDERS }}
            # Additional variables only for releases
-@@ -269,7 +268,6 @@
+@@ -269,7 +268,6 @@ occurrence 1 of 3
            VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
            VITE_ENABLE_PALABRA_AI: ${{ vars.VITE_ENABLE_PALABRA_AI }}
            VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
@@ -7073,7 +7154,7 @@ diff --git a/.github/workflows/build.yml b/.github/workflows/build.yml
            VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
            VITE_ENABLED_PROVIDERS: ${{ vars.VITE_ENABLED_PROVIDERS }}
  
-@@ -306,7 +304,6 @@
+@@ -306,7 +304,6 @@ occurrence 2 of 3
            VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
            VITE_ENABLE_PALABRA_AI: ${{ vars.VITE_ENABLE_PALABRA_AI }}
            VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
@@ -7081,7 +7162,7 @@ diff --git a/.github/workflows/build.yml b/.github/workflows/build.yml
            VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
            VITE_ENABLED_PROVIDERS: ${{ vars.VITE_ENABLED_PROVIDERS }}
  
-@@ -405,7 +402,6 @@
+@@ -405,7 +402,6 @@ occurrence 3 of 3
            VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
            VITE_ENABLE_PALABRA_AI: ${{ vars.VITE_ENABLE_PALABRA_AI }}
            VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
@@ -7389,6 +7470,24 @@ diff --git a/src/providers/soniox/adapter.ts b/src/providers/soniox/adapter.ts
   * `LegSpeech`. Both mode (`startBoth`, D23) is two single-leg cores, or one
 `````
 
+`src/providers/soniox/config.ts`
+
+`````diff t06
+diff --git a/src/providers/soniox/config.ts b/src/providers/soniox/config.ts
+--- a/src/providers/soniox/config.ts
++++ b/src/providers/soniox/config.ts
+@@ -2,7 +2,8 @@
+  * Soniox's `C`, `build` and `describe` (survey §2.7). `build` never
+  * refuses: an auto source with the participant leg is the gate's (D20).
+  * The vocabulary helpers are copied from `SonioxProviderConfig.ts:73-165`
+- * (ruling 1): the old descriptor keeps its own until Plan B deletes it.
++ * (ruling 1), deleted since with the old descriptor (Stage 2 deletion,
++ * ruling 2).
+  */
+ import type { SessionContext } from '../../lib/contract/adapter';
+ import { reportWarning } from '../../lib/diagnostics/report';
+`````
+
 `src/providers/soniox/kizunaBudget.ts`
 
 `````diff t06
@@ -7457,6 +7556,23 @@ diff --git a/src/providers/soniox/sideTracker.ts b/src/providers/soniox/sideTrac
   * sample per 100 ms mixer frame ACTUALLY SENT to the STT socket (dropped
   * frames don't advance the server's audio clock), so frame index × frameMs
   * lines up with token start_ms/end_ms. Channel A is the mic ('speaker'
+`````
+
+`src/providers/soniox/socket.ts`
+
+`````diff t06
+diff --git a/src/providers/soniox/socket.ts b/src/providers/soniox/socket.ts
+--- a/src/providers/soniox/socket.ts
++++ b/src/providers/soniox/socket.ts
+@@ -8,7 +8,7 @@
+ 
+ export type OpenSocket = (url: string) => WebSocket;
+ 
+-/** Read at call time, so an old test's `vi.stubGlobal('WebSocket')` still reaches the old client's streams. */
++/** Read at call time, so a test's `vi.stubGlobal('WebSocket')` reaches it. */
+ export const nativeSocket: OpenSocket = (url) => new WebSocket(url);
+ 
+ /** `WebSocket.OPEN`, read as the constant it is: the socket may be an injected one, whatever the global says. */
 `````
 
 `src/providers/soniox/sttStream.ts`
@@ -7591,7 +7707,7 @@ diff --git a/src/services/interfaces/IClient.ts b/src/services/interfaces/IClien
 -/**
 - * Soniox speech-to-speech translation session configuration.
 - * `voice` comes from BaseSessionConfig. When `bidirectional` is true the
-~ 25 more removed lines
+~ 25 more removed lines sha256:77feb67ed611
 -}
 -
  /**
@@ -7624,7 +7740,7 @@ diff --git a/src/services/interfaces/IClient.ts b/src/services/interfaces/IClien
 -
 -  // Optional Both single-session (Soniox) mixer methods
 -  /** Feed the second audio channel (Both single-session mixer). SonioxClient only. */
-~ 12 more removed lines
+~ 12 more removed lines sha256:0af344713dff
 -   */
 -  getManagedBudgetInfo?(): { budgetMicroUsd: number; rateUsdPerHour: number; startedAtMs: number } | null;
  }
@@ -7674,7 +7790,7 @@ diff --git a/src/services/providers/ProviderConfigFactory.ts b/src/services/prov
 -    // 1. Kizuna-managed providers — behind the master Kizuna gate plus their
 -    //    own gates. Each managed provider carries its OWN gate: they are
 -    //    released independently, and they bill on different models whose
-~ 7 more removed lines
+~ 7 more removed lines sha256:a030a094d14d
 -    }
 -
      // 2. Free (local inference) — always available, no API key or flag.
@@ -7697,7 +7813,7 @@ diff --git a/src/services/providers/ProviderConfigFactory.ts b/src/services/prov
 -  /**
 -   * The Kizuna-managed provider to put a Basic-mode user on when they sign
 -   * in, or null when this build offers none.
-~ 14 more removed lines
+~ 14 more removed lines sha256:d2b6b120c4cf
 -  }
 -
    static getDescriptor(providerId: ProviderType): ProviderDescriptor {
@@ -7728,7 +7844,7 @@ diff --git a/src/services/providers/ProviderDescriptor.ts b/src/services/provide
 -  /**
 -   * Managed Soniox only. The lease is acquired by MainPanel BEFORE any client
 -   * exists (an awaited round trip with a 409 retry), so the keys arrive here
-~ 29 more removed lines
+~ 29 more removed lines sha256:93c0886e41c1
 -    announcesSessionOutcome?: boolean;
 -  };
    /**
@@ -7741,7 +7857,7 @@ diff --git a/src/services/providers/ProviderDescriptor.ts b/src/services/provide
 -/** Provider-neutral view of a metered session budget. The soniox descriptor
 - *  adapts its SonioxBudgetSnapshot behind this; nothing provider-shaped
 - *  crosses the seam. */
-~ 65 more removed lines
+~ 65 more removed lines sha256:abf31ea9d5a8
 -}
 -
  /**
@@ -7768,7 +7884,7 @@ diff --git a/src/services/providers/ProviderDescriptor.ts b/src/services/provide
 -
 -  /**
 -   * Acquire session-scoped resources (a lease, metered credentials) before
-~ 12 more removed lines
+~ 12 more removed lines sha256:2c6ea16d6592
 -   */
 -  acquireSessionResources?(ctx: AcquireSessionResourcesContext): Promise<SessionResources | null>;
  }
@@ -7826,7 +7942,7 @@ diff --git a/src/services/providers/descriptorRegistry.test.ts b/src/services/pr
 -  // The managed Soniox twin is the one descriptor whose client cannot be built
 -  // from credentials alone: its keys come from a ManagedSonioxSession acquired
 -  // before any client exists. Supplied unacquired here — createClient only
-~ 11 more removed lines
+~ 11 more removed lines sha256:eb3d47aea36d
 -  };
 -  const optionsFor = (id: unknown) => (id === Provider.KIZUNA_AI_SONIOX ? { ...ws, sonioxManaged } : ws);
  
@@ -7843,7 +7959,7 @@ diff --git a/src/services/providers/descriptorRegistry.test.ts b/src/services/pr
 -
 -  it('kizuna soniox twin routes to a managed-mode SonioxClient built from the session', async () => {
 -    const { SonioxClient } = await import('../clients/SonioxClient');
-~ 10 more removed lines
+~ 10 more removed lines sha256:cd3a224ac7d5
 -    ).toThrow(/ManagedSonioxSession/);
 -  });
  });
@@ -8012,7 +8128,7 @@ diff --git a/src/services/providers/descriptorRegistry.test.ts b/src/services/pr
 -
 -  it('the managed twin answers exactly like BYOK Soniox (the 409 twin bug, pinned at this layer)', () => {
 -    // Historically a raw `provider === Provider.SONIOX` dispatch was always
-~ 23 more removed lines
+~ 23 more removed lines sha256:c87501498d0b
 -    expect(d.planBothMode({ bothModeSharedSession: true, sourceLanguage: 'en' }, 'speaker')).toEqual({ shared: false, split: false });
 -  });
  });
@@ -8030,7 +8146,7 @@ diff --git a/src/services/providers/descriptorRegistry.test.ts b/src/services/pr
 -    // BYOK Soniox is explicitly hookless: the managed voice-prep flow must
 -    // never run for a user's own Soniox key.
 -    expect(ProviderConfigFactory.getDescriptor(Provider.SONIOX).prepareToStart).toBeUndefined();
-~ 13 more removed lines
+~ 13 more removed lines sha256:40c37127949c
 -    // session-end to the managed backend.
 -    expect(ProviderConfigFactory.getDescriptor(Provider.SONIOX).acquireSessionResources).toBeUndefined();
    });
@@ -8069,7 +8185,7 @@ diff --git a/src/services/providers/participantConfig.test.ts b/src/services/pro
 -  it('soniox swaps sourceLanguage/targetLanguage (twin inherits)', () => {
 -    for (const id of [Provider.SONIOX, Provider.KIZUNA_AI_SONIOX]) {
 -      const d = ProviderConfigFactory.getDescriptor(id);
-~ 9 more removed lines
+~ 9 more removed lines sha256:1ce05d90b0d0
 -  });
 -
    it('palabraai swaps sourceLanguage/targetLanguage', () => {
@@ -8328,7 +8444,7 @@ diff --git a/src/stores/settingsStore.ts b/src/stores/settingsStore.ts
 -/**
 - * Redirect a persisted Kizuna-managed provider this build does not offer.
 - *
-~ 35 more removed lines
+~ 35 more removed lines sha256:3c42ff0ff86d
 -}
 -
  /** Migrate persisted PalabraAI language codes that the API rejects.
@@ -8417,7 +8533,7 @@ diff --git a/src/stores/settingsStore.ts b/src/stores/settingsStore.ts
 -      // For KizunaAI, ensure we have an API key first
 -      if (isKizunaManagedProvider(provider)) {
 -        // Was hardcoded `true`, which made ensureKizunaApiKey's own signed-out
-~ 39 more removed lines
+~ 39 more removed lines sha256:3dc337c50527
 -      }
 -
        // Get normalized credentials from the provider's descriptor — replaces
@@ -8442,7 +8558,7 @@ diff --git a/src/stores/settingsStore.ts b/src/stores/settingsStore.ts
 -    ensureKizunaApiKey: async (getToken, isSignedIn) => {
 -      const state = get();
 -
-~ 43 more removed lines
+~ 43 more removed lines sha256:8deac7842e62
 -    },
 -
      loadSettings: async () => {
@@ -8510,7 +8626,7 @@ diff --git a/src/utils/environment.ts b/src/utils/environment.ts
 -/**
 - * Whether each Kizuna-managed provider should be offered.
 - *
-~ 24 more removed lines
+~ 24 more removed lines sha256:56bb55af6002
 -}
 -
  /**
@@ -8576,8 +8692,8 @@ OpenAI Realtime (25 of 25) and OpenAI Translate run on their own definitions ove
   - `npx vitest run src`: **541 files passed and 1 skipped (542); 6 783 tests passed and 2 skipped (6 785)**; 0 failed, no unhandled errors.
   - `npx vitest run electron`: 34 files, 477 tests passed. `npx vitest run extension`: 9 files, 56 tests passed.
   - Local Native's old path: `npx vitest run src/services src/lib/local-inference/native src/components/Settings/sections/Native src/components/Settings/engine/useNativeEngineAdapter src/stores/nativeModelStore src/stores/settingsStore` — 45 files, 710 tests passed.
-  - `npx tsc --noEmit -p tsconfig.json 2>&1 | command grep -c 'error TS'` prints **103**.
-  - `zsh /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh | diff - /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate-baseline.txt` prints nothing: the baseline's 18 lines, unchanged.
+  - The typecheck, as a set: `npx tsc --noEmit -p tsconfig.json > /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t07.txt`, then `python3 /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/tscdiff.py /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t06.txt /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t07.txt` prints exactly `before 104 after 103; new 0; gone 1` and exits 0 — no error the task before did not have; `after 103` is the full tree's count.
+  - `zsh /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh | diff - /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-gate-baseline.txt` prints nothing: the baseline's 18 lines, unchanged.
 
 - [ ] **Step 6: Commit.**
 
@@ -8644,7 +8760,7 @@ diff --git a/extension/package-lock.json b/extension/package-lock.json
 -    "node_modules/nanoid": {
 -      "version": "5.1.11",
 -      "resolved": "https://registry.npmjs.org/nanoid/-/nanoid-5.1.11.tgz",
-~ 13 more removed lines
+~ 13 more removed lines sha256:88e621eacbf7
 -      }
 -    },
      "node_modules/natural-compare": {
@@ -8657,7 +8773,7 @@ diff --git a/extension/package-lock.json b/extension/package-lock.json
 -    "node_modules/openai-realtime-api": {
 -      "version": "1.0.8",
 -      "resolved": "https://registry.npmjs.org/openai-realtime-api/-/openai-realtime-api-1.0.8.tgz",
-~ 8 more removed lines
+~ 8 more removed lines sha256:7f1750c7ec58
 -      }
 -    },
      "node_modules/optionator": {
@@ -8720,7 +8836,7 @@ diff --git a/package-lock.json b/package-lock.json
 -    "node_modules/ajv-formats": {
 -      "version": "3.0.1",
 -      "resolved": "https://registry.npmjs.org/ajv-formats/-/ajv-formats-3.0.1.tgz",
-~ 13 more removed lines
+~ 13 more removed lines sha256:88791f7a94b9
 -      }
 -    },
      "node_modules/ansi-escapes": {
@@ -8733,7 +8849,7 @@ diff --git a/package-lock.json b/package-lock.json
 -    "node_modules/nanoid": {
 -      "version": "5.1.11",
 -      "resolved": "https://registry.npmjs.org/nanoid/-/nanoid-5.1.11.tgz",
-~ 14 more removed lines
+~ 14 more removed lines sha256:b8713dd831e5
 -      }
 -    },
      "node_modules/nanostores": {
@@ -8746,7 +8862,7 @@ diff --git a/package-lock.json b/package-lock.json
 -    "node_modules/openai-realtime-api": {
 -      "version": "1.0.8",
 -      "resolved": "https://registry.npmjs.org/openai-realtime-api/-/openai-realtime-api-1.0.8.tgz",
-~ 9 more removed lines
+~ 9 more removed lines sha256:2f44ee2927bc
 -      }
 -    },
      "node_modules/os-tmpdir": {
@@ -9014,7 +9130,7 @@ diff --git a/src/services/interfaces/IClient.ts b/src/services/interfaces/IClien
 -/**
 - * OpenAI-specific session configuration
 - */
-~ 60 more removed lines
+~ 60 more removed lines sha256:3d44f25dd6e0
 -}
 -
  /**
@@ -9326,7 +9442,7 @@ diff --git a/src/services/providers/descriptorRegistry.test.ts b/src/services/pr
 -  // The private fields each pause client keeps its two timers in. The
 -  // providers that offer By pause name the pair differently — this map is the
 -  // only place that knows, so the invariant below can be a loop rather than a
-~ 21 more removed lines
+~ 21 more removed lines sha256:329bcd5dc934
 -  });
 -
    // Eleven clients each write `options.sentencesPerChunk ?? 3`, and the
@@ -9339,7 +9455,7 @@ diff --git a/src/services/providers/descriptorRegistry.test.ts b/src/services/pr
 -  it('a client built with no pause runs on the default the store shares with it', () => {
 -    for (const id of ProviderConfigFactory.getAvailableProviders()) {
 -      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
-~ 40 more removed lines
+~ 40 more removed lines sha256:8eafbe6ad840
 -  });
 -
    it('forcedTransport only on PalabraAI, and it names a real transport', () => {
@@ -9422,7 +9538,7 @@ diff --git a/src/services/providers/participantConfig.test.ts b/src/services/pro
 -describe('participant config: helper-based reversals', () => {
 -  it('openai and openai_compatible rebuild the transcription hint for the reversed direction', () => {
 -    for (const id of [Provider.OPENAI, Provider.OPENAI_COMPATIBLE]) {
-~ 24 more removed lines
+~ 24 more removed lines sha256:e00b78f1fd57
 -});
 -
  describe('participant config: local providers (mocked helpers)', () => {
@@ -9522,7 +9638,7 @@ diff --git a/src/stores/settingsStore.providerSettings.test.tsx b/src/stores/set
 -
 -  it('re-renders when the provider itself switches', () => {
 -    const { getByTestId } = render(<Probe />);
-~ 7 more removed lines
+~ 7 more removed lines sha256:d474b16efe62
 -    expect(getByTestId('src').textContent).toBe('en');
 -  });
  });
@@ -9549,7 +9665,7 @@ diff --git a/src/stores/settingsStore.sliceRegistry.test.ts b/src/stores/setting
 -  it('openai/openaiCompatible: switching to webrtc forces turnDetectionMode Disabled in state AND persistence', async () => {
 -    for (const [action, sliceKey] of [['updateOpenAI', 'openai'], ['updateOpenAICompatible', 'openaiCompatible']] as const) {
 -      setSetting.mockClear();
-~ 24 more removed lines
+~ 24 more removed lines sha256:d0a24566553b
 -  });
 -
    // The registry used to carry `persistErrors: 'throw' | 'swallow'`, split 6/6,
@@ -9620,7 +9736,7 @@ diff --git a/src/stores/settingsStore.test.ts b/src/stores/settingsStore.test.ts
 -
 -    it('persists Push-to-Translate for OpenAI on WebSocket', async () => {
 -      const store = useSettingsStore.getState();
-~ 45 more removed lines
+~ 45 more removed lines sha256:d9c25c592e8e
 -    // was removed in favor of the WS-only relay-managed twins, so its
 -    // webrtc-demotion test no longer applies.
    });
@@ -9633,7 +9749,7 @@ diff --git a/src/stores/settingsStore.test.ts b/src/stores/settingsStore.test.ts
 -
 -  describe('useTransportType', () => {
 -    it('resolves the active provider slice, not a hardcoded openai slice (bug repro: OpenAI Translate reads its own websocket choice, not OpenAI leftover webrtc)', async () => {
-~ 27 more removed lines
+~ 27 more removed lines sha256:af54dda46b34
 -  });
 -
  });
@@ -9750,7 +9866,7 @@ diff --git a/src/stores/settingsStore.ts b/src/stores/settingsStore.ts
 -/** Move a persisted OpenAI-Translate transcript model off the legacy
 - *  `gpt-realtime-whisper`. OpenAI reclassified it as legacy on 2026-07-31 and
 - *  names `gpt-live-transcribe` as the replacement: identical $0.017/min, lower
-~ 45 more removed lines
+~ 45 more removed lines sha256:bac99dc38135
 -}
 -
  /**
@@ -9853,7 +9969,7 @@ diff --git a/src/stores/settingsStore.ts b/src/stores/settingsStore.ts
 -
 -      // Silent prefill: when first switching to OPENAI_TRANSLATE and its key
 -      // is empty while the OpenAI provider already has one, copy it across so
-~ 16 more removed lines
+~ 16 more removed lines sha256:c20948a1cc79
 -        void get().validateApiKey();
 -      }
      },
@@ -9877,7 +9993,7 @@ diff --git a/src/stores/settingsStore.ts b/src/stores/settingsStore.ts
 -        // Auto-select model if current selection is empty or not in available list
 -        if (result.models.length > 0) {
 -          const currentModel = (state.getCurrentProviderSettings() as any)?.model;
-~ 21 more removed lines
+~ 21 more removed lines sha256:388e00752a69
 -        }
 -
          return result.validation;
@@ -9890,7 +10006,7 @@ diff --git a/src/stores/settingsStore.ts b/src/stores/settingsStore.ts
 -        // Migrate a persisted deprecated OpenAI realtime model (pre-2.1 family,
 -        // removed from the API 2027-01-20) to its current replacement so
 -        // existing users don't reconnect onto a dead model.
-~ 7 more removed lines
+~ 7 more removed lines sha256:006d81fa9328
 -        if (translateSlice) Object.assign(translateSlice, migrateLegacyTranslateTranscriptModel(translateSlice));
 -
          // Drop persisted PalabraAI language codes the API rejects, so an existing
@@ -9970,6 +10086,7 @@ Palabra runs on a WebSocket client written from scratch since the Stage 2 Palabr
 - `livekit-client` and its exact pin, with LiveKit's lockfile entries (ruling 2); CLAUDE.md's pin text goes in Task 11.
 - `isPalabraAIEnabled` and `VITE_ENABLE_PALABRA_AI` (ruling 6): `environment.ts`, `build.yml`, `extension/vite.config.ts`, every test mock; `featureGateForwarding.consistency.test.ts` expects at least three gates now. `consoleLedger.consistency.test.ts` drops the client's row. The new provider's comments (`palabraai/{adapter,provider}.ts`, `settings.test.ts`) say the old code is gone (choice 3).
 - Three keys: `settings.apiKeyValidated`, `settings.errorValidatingApiKey`, `settings.realtimeTranslationAvailable`.
+- `environment.ts`' two comments that still described the old registry's per-provider gates — `isDevelopmentMode`'s ("vanishes from ProviderConfigFactory's registry") and `enabledProviderIds`' ("the per-provider gates above keep gating `ProviderConfigFactory`"): with Palabra's gone, the old registry's one gate left is Local Native's (choice 3).
 - Kept: `Provider.PALABRA_AI`, `LEGACY_SLICE_KEYS.palabraai`, `PalabraAIIcon`, the keys the new definition reads, the credential-choice styles.
 
 **Files:**
@@ -10006,7 +10123,7 @@ Palabra runs on a WebSocket client written from scratch since the Stage 2 Palabr
 - [ ] **Step 4: Check that nothing reaches what went.**
 
   ```
-  git grep -nE "from '[^']*/(PalabraAIClient|PalabraAIProviderConfig|WebRTCAudioBridge)'|isPalabraAIEnabled|VITE_ENABLE_PALABRA_AI|livekit-client|pcm-audio-worklet-processor" -- src extension electron .github .env.example package.json
+  git grep -nE "from '[^']*/(PalabraAIClient|PalabraAIProviderConfig|WebRTCAudioBridge)'|isPalabraAIEnabled|VITE_ENABLE_PALABRA_AI|livekit-client|pcm-audio-worklet-processor|until those providers move over|from ProviderConfigFactory's registry" -- src extension electron .github .env.example package.json
   ```
 
   Expected: exactly this line, a comment that says the flag is gone —
@@ -10020,8 +10137,8 @@ Palabra runs on a WebSocket client written from scratch since the Stage 2 Palabr
   - `npx vitest run src`: **535 files passed and 1 skipped (536); 6 732 tests passed and 2 skipped (6 734)**; 0 failed, no unhandled errors.
   - `npx vitest run electron`: 34 files, 477 tests passed. `npx vitest run extension`: 9 files, 56 tests passed.
   - Local Native's old path: `npx vitest run src/services src/lib/local-inference/native src/components/Settings/sections/Native src/components/Settings/engine/useNativeEngineAdapter src/stores/nativeModelStore src/stores/settingsStore` — 42 files, 674 tests passed.
-  - `npx tsc --noEmit -p tsconfig.json 2>&1 | command grep -c 'error TS'` prints **99**.
-  - `zsh /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh | diff - /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate-baseline.txt` prints nothing: the baseline's 18 lines, unchanged.
+  - The typecheck, as a set: `npx tsc --noEmit -p tsconfig.json > /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t08.txt`, then `python3 /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/tscdiff.py /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t07.txt /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t08.txt` prints exactly `before 103 after 99; new 0; gone 4` and exits 0 — no error the task before did not have; `after 99` is the full tree's count.
+  - `zsh /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh | diff - /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-gate-baseline.txt` prints nothing: the baseline's 18 lines, unchanged.
 
 - [ ] **Step 6: Commit.**
 
@@ -10052,7 +10169,7 @@ EOF
 diff --git a/.github/workflows/build.yml b/.github/workflows/build.yml
 --- a/.github/workflows/build.yml
 +++ b/.github/workflows/build.yml
-@@ -216,7 +216,6 @@
+@@ -216,7 +216,6 @@ occurrence 1 of 4
            VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai' }}
            VITE_ENVIRONMENT: production
            VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
@@ -10060,7 +10177,7 @@ diff --git a/.github/workflows/build.yml b/.github/workflows/build.yml
            VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
            VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
            VITE_ENABLED_PROVIDERS: ${{ vars.VITE_ENABLED_PROVIDERS }}
-@@ -266,7 +265,6 @@
+@@ -266,7 +265,6 @@ occurrence 2 of 4
            VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai' }}
            VITE_ENVIRONMENT: production
            VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
@@ -10068,7 +10185,7 @@ diff --git a/.github/workflows/build.yml b/.github/workflows/build.yml
            VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
            VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
            VITE_ENABLED_PROVIDERS: ${{ vars.VITE_ENABLED_PROVIDERS }}
-@@ -302,7 +300,6 @@
+@@ -302,7 +300,6 @@ occurrence 3 of 4
            VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai' }}
            VITE_ENVIRONMENT: production
            VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
@@ -10076,7 +10193,7 @@ diff --git a/.github/workflows/build.yml b/.github/workflows/build.yml
            VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
            VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
            VITE_ENABLED_PROVIDERS: ${{ vars.VITE_ENABLED_PROVIDERS }}
-@@ -400,7 +397,6 @@
+@@ -400,7 +397,6 @@ occurrence 4 of 4
            VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai' }}
            VITE_ENVIRONMENT: production
            VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
@@ -10158,7 +10275,7 @@ diff --git a/package-lock.json b/package-lock.json
 -    "node_modules/@livekit/mutex": {
 -      "version": "1.1.1",
 -      "resolved": "https://registry.npmjs.org/@livekit/mutex/-/mutex-1.1.1.tgz",
-~ 12 more removed lines
+~ 12 more removed lines sha256:61b2089dbb6d
 -      }
 -    },
      "node_modules/@malept/cross-spawn-promise": {
@@ -10171,7 +10288,7 @@ diff --git a/package-lock.json b/package-lock.json
 -    "node_modules/livekit-client": {
 -      "version": "2.18.7",
 -      "resolved": "https://registry.npmjs.org/livekit-client/-/livekit-client-2.18.7.tgz",
-~ 16 more removed lines
+~ 16 more removed lines sha256:ea3dd2546c90
 -      }
 -    },
      "node_modules/load-json-file": {
@@ -10184,7 +10301,7 @@ diff --git a/package-lock.json b/package-lock.json
 -    "node_modules/loglevel": {
 -      "version": "1.9.2",
 -      "resolved": "https://registry.npmjs.org/loglevel/-/loglevel-1.9.2.tgz",
-~ 9 more removed lines
+~ 9 more removed lines sha256:d531e7dc6c93
 -      }
 -    },
      "node_modules/long": {
@@ -10197,7 +10314,7 @@ diff --git a/package-lock.json b/package-lock.json
 -    "node_modules/sdp": {
 -      "version": "3.2.2",
 -      "resolved": "https://registry.npmjs.org/sdp/-/sdp-3.2.2.tgz",
-~ 12 more removed lines
+~ 12 more removed lines sha256:fef4930ce40d
 -      }
 -    },
      "node_modules/semver": {
@@ -10227,7 +10344,7 @@ diff --git a/package-lock.json b/package-lock.json
 -    "node_modules/webrtc-adapter": {
 -      "version": "9.0.5",
 -      "resolved": "https://registry.npmjs.org/webrtc-adapter/-/webrtc-adapter-9.0.5.tgz",
-~ 9 more removed lines
+~ 9 more removed lines sha256:66f130b0592e
 -      }
 -    },
      "node_modules/whatwg-encoding": {
@@ -10399,7 +10516,7 @@ diff --git a/src/services/interfaces/IClient.ts b/src/services/interfaces/IClien
 -/**
 - * PalabraAI-specific session configuration
 - */
-~ 11 more removed lines
+~ 11 more removed lines sha256:2352f81a1834
 -}
 -
  /**
@@ -10520,7 +10637,7 @@ diff --git a/src/services/providers/descriptorRegistry.test.ts b/src/services/pr
 -  it('normalizes each provider credential shape', async () => {
 -    const cases: Array<[Provider, object, { primary: string; secret?: string; endpoint?: string }]> = [
 -      [Provider.PALABRA_AI, { clientId: 'id', clientSecret: 'sec' }, { primary: 'id', secret: 'sec' }],
-~ 11 more removed lines
+~ 11 more removed lines sha256:1c0846747eed
 -  });
 -
    it('local inference needs no credentials', async () => {
@@ -10616,7 +10733,7 @@ diff --git a/src/services/providers/descriptorRegistry.test.ts b/src/services/pr
 -  // PalabraAI is no longer a synchronous two-field guard: a missing `secret` is
 -  // the documented signal for platform-mode (API key) credentials (see
 -  // PalabraAIProviderConfig.toPalabraCredentials), so a legacy caller passing
-~ 22 more removed lines
+~ 22 more removed lines sha256:7821fa37dd14
 -  });
 -
    it('ClientFactory.createClient rejects an empty apiKey for credentialed providers', async () => {
@@ -10653,7 +10770,7 @@ diff --git a/src/services/providers/participantConfig.test.ts b/src/services/pro
 -describe('participant config: direction lives in config fields', () => {
 -  it('palabraai swaps sourceLanguage/targetLanguage', () => {
 -    const d = ProviderConfigFactory.getDescriptor(Provider.PALABRA_AI);
-~ 33 more removed lines
+~ 33 more removed lines sha256:954d3d496025
 -});
 -
  describe('participant config: local providers (mocked helpers)', () => {
@@ -10722,7 +10839,7 @@ diff --git a/src/stores/logStore.ts b/src/stores/logStore.ts
 -    // PalabraAI-specific request types (client → server)
 -    | 'set_task'
 -    | 'end_task'
-~ 9 more removed lines
+~ 9 more removed lines sha256:9173733b86e5
 -    | 'output_audio_data'
 -    | 'current_task'
      // Sentence segmentation stage — diagnostics only, counts and durations,
@@ -10735,7 +10852,7 @@ diff --git a/src/stores/logStore.ts b/src/stores/logStore.ts
 -      // PalabraAI-specific grouping (the old client's names; they go with it)
 -      else if (eventType === 'partial_transcription') {
 -        // Group PalabraAI partial transcription events together
-~ 28 more removed lines
+~ 28 more removed lines sha256:672b4d864c4a
 -        groupingKey = 'palabraai_current_task';
 -      }
        // Doubao AST 2.0's grouping: the adapter's `domain.event` frames, under
@@ -10846,7 +10963,7 @@ diff --git a/src/stores/settingsStore.ts b/src/stores/settingsStore.ts
 -/** Migrate persisted PalabraAI language codes that the API rejects.
 - *  Palabra validates source_language and target_language against two separate
 - *  enums, and a code outside them fails the whole set_task — the session connects
-~ 35 more removed lines
+~ 35 more removed lines sha256:706d9b620a9e
 -}
 -
  /**
@@ -10918,19 +11035,43 @@ diff --git a/src/stores/settingsStore.ts b/src/stores/settingsStore.ts
 diff --git a/src/utils/environment.ts b/src/utils/environment.ts
 --- a/src/utils/environment.ts
 +++ b/src/utils/environment.ts
-@@ -178,23 +178,6 @@
+@@ -142,8 +142,9 @@
+  * Uses Vite's `DEV` flag (true whenever the build is not a production
+  * build/serve) rather than comparing `MODE` to the literal string
+  * 'development' — vitest runs with MODE === 'test', which must count as
+- * "development" here or every feature-flagged provider silently vanishes
+- * from ProviderConfigFactory's registry in any unmocked test.
++ * "development" here or, in any unmocked test, every flagged provider
++ * silently leaves the registry's offer (`isPresent`) and Local Native the
++ * old registry.
+  * Extension builds rely on `extension/vite.config.ts` explicitly defining
+  * `import.meta.env.DEV` as `mode === 'development'`, so `DEV` stays
+  * equivalent to the old MODE check there too.
+@@ -178,23 +179,6 @@
    return import.meta.env.VITE_ENABLE_KIZUNA_AI === 'true';
  }
  
 -/**
 - * Check if Palabra AI features should be enabled
 - * @returns true if Palabra AI features should be shown
-~ 12 more removed lines
+~ 12 more removed lines sha256:54e98fe8ee83
 -}
 -
  /**
   * Tester switch for the Local Native provider in packaged builds (temporary, 2026-09).
   *
+@@ -239,8 +223,9 @@
+ /**
+  * The flagged providers a release offers (D19): `VITE_ENABLED_PROVIDERS`, a
+  * comma-separated list of provider ids. It gates providers in the new
+- * registry (`src/providers/registry.ts`) only; the per-provider gates above
+- * keep gating `ProviderConfigFactory` until those providers move over.
++ * registry (`src/providers/registry.ts`) only. The old registry's one gate
++ * left, `isLocalNativeEnabled` above, gates Local Native's old path (Stage 2
++ * deletion, rulings 1 and 6).
+  * Development builds offer every flagged provider regardless (see
+  * `isPresent`).
+  */
 `````
 
 `src/utils/featureGateForwarding.consistency.test.ts`
@@ -10954,7 +11095,7 @@ diff --git a/src/utils/featureGateForwarding.consistency.test.ts b/src/utils/fea
 
 ### Wave 2 check (controller)
 
-After Task 8: the full gates — `npx vitest run src` at 535 + 1 files and 6 732 + 2 tests, 0 failed, no unhandled errors; `npx vitest run electron` 34 / 477; `npx vitest run extension` 9 / 56; the gate equal to the baseline file (18 lines); the full tree at 99. Then `git log --oneline -3` shows the wave's commits, one per task, and `git status --short` shows nothing of this plan's.
+After Task 8: the full gates — `npx vitest run src` at 535 + 1 files and 6 732 + 2 tests, 0 failed, no unhandled errors; `npx vitest run electron` 34 / 477; `npx vitest run extension` 9 / 56; the gate equal to `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-gate-baseline.txt` (18 lines); `python3 /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/tscdiff.py /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t00.txt /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t08.txt` reports `new 0` and `after 99`. Then `git log --oneline -3` shows the wave's commits, one per task, and `git status --short` shows nothing of this plan's.
 
 ---
 
@@ -10967,10 +11108,11 @@ LocalInference was Stage 1's provider; its old client, descriptor and slice stay
 - `LocalInferenceClient.ts` and its test, `LocalInferenceProviderConfig.ts`; the registration; `IClient.ts`' LocalInference config; `ClientFactory.ts`' `LOCAL_INFERENCE` exemption; `localParticipantConfig.ts`' `createParticipantLocalInferenceConfig` and its memory budget (Local Native's half stays); `modelStore.ts`' `ensureSelectionReady`, `lastResolutionNotes` and `useLastResolutionNotes`, which only the old arm and the old shell's LocalInference branch used; `settingsStore.ts`' `localInference` slice, `updateLocalInference`, its `validateApiKey` arm and the local prompt's LocalInference branch; `astGuard.ts`' header, which named those callers as present (choice 3).
 - Tests of the deleted code: `ensureSelectionReady.test.ts`, `settingsStore.providerSettings.test.tsx`, `providerOrder.test.ts` (Local Native's position alone was left), `modelStore.test.ts`' and `astGuard.test.ts`' old-arm cases, `SettingsInitializer.test.tsx`' single-writer case (ruling 11 of plan 1e-3b-2: the slice it guarded is gone); `nativeModelStore.test.ts` loses one assertion on the deleted slice.
 - One key: `mainPanel.speechDetected`.
+- `languageName.ts`' comment, which cited `LocalInferenceProviderConfig.ts` and "every provider descriptor" as present (choice 3).
 
 **Files:**
 - Delete (6): `src/services/clients/LocalInferenceClient.test.ts`, `src/services/clients/LocalInferenceClient.ts`, `src/services/providers/LocalInferenceProviderConfig.ts`, `src/services/providers/providerOrder.test.ts`, `src/stores/ensureSelectionReady.test.ts`, `src/stores/settingsStore.providerSettings.test.tsx`
-- Modify (24, by the blocks below): `src/components/Settings/engine/StoragePage.test.tsx`, `src/components/Settings/engine/StoragePage.tsx`, `src/components/Settings/engine/useWasmEngineAdapter.test.ts`, `src/components/Settings/engine/useWasmEngineAdapter.ts`, `src/components/Settings/sections/ModelManagementSection.test.tsx`, `src/components/Settings/sections/ModelManagementSection.tsx`, `src/components/SettingsInitializer/SettingsInitializer.test.tsx`, `src/components/SetupWizard/SetupWizard.test.tsx`, `src/services/clients/ClientFactory.ts`, `src/services/interfaces/IClient.ts`, `src/services/providers/ProviderConfigFactory.ts`, `src/services/providers/astGuard.test.ts`, `src/services/providers/astGuard.ts`, `src/services/providers/descriptorRegistry.test.ts`, `src/services/providers/localParticipantConfig.ts`, `src/services/providers/participantConfig.test.ts`, `src/services/providers/prepareToStart.local.test.ts`, `src/stores/modelStore.test.ts`, `src/stores/modelStore.ts`, `src/stores/nativeModelStore.test.ts`, `src/stores/settingsStore.selections.test.ts`, `src/stores/settingsStore.sliceRegistry.test.ts`, `src/stores/settingsStore.test.ts`, `src/stores/settingsStore.ts`
+- Modify (25, by the blocks below): `src/components/Settings/engine/StoragePage.test.tsx`, `src/components/Settings/engine/StoragePage.tsx`, `src/components/Settings/engine/languageName.ts`, `src/components/Settings/engine/useWasmEngineAdapter.test.ts`, `src/components/Settings/engine/useWasmEngineAdapter.ts`, `src/components/Settings/sections/ModelManagementSection.test.tsx`, `src/components/Settings/sections/ModelManagementSection.tsx`, `src/components/SettingsInitializer/SettingsInitializer.test.tsx`, `src/components/SetupWizard/SetupWizard.test.tsx`, `src/services/clients/ClientFactory.ts`, `src/services/interfaces/IClient.ts`, `src/services/providers/ProviderConfigFactory.ts`, `src/services/providers/astGuard.test.ts`, `src/services/providers/astGuard.ts`, `src/services/providers/descriptorRegistry.test.ts`, `src/services/providers/localParticipantConfig.ts`, `src/services/providers/participantConfig.test.ts`, `src/services/providers/prepareToStart.local.test.ts`, `src/stores/modelStore.test.ts`, `src/stores/modelStore.ts`, `src/stores/nativeModelStore.test.ts`, `src/stores/settingsStore.selections.test.ts`, `src/stores/settingsStore.sliceRegistry.test.ts`, `src/stores/settingsStore.test.ts`, `src/stores/settingsStore.ts`
 - The 30 locale catalogs `src/locales/*/translation.json`, by the key tool (1 keys)
 
 **Interfaces:**
@@ -10989,7 +11131,7 @@ LocalInference was Stage 1's provider; its old client, descriptor and slice stay
   python3 /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/plan-apply.py docs/superpowers/plans/2026-09-30-client-contract-stage2-deletion.md t09
   ```
 
-  Expected: `t09: 24 files changed`, and no other line.
+  Expected: `t09: 25 files changed`, and no other line.
 
 - [ ] **Step 3: Remove the locale keys only the deleted code read.**
 
@@ -11002,7 +11144,7 @@ LocalInference was Stage 1's provider; its old client, descriptor and slice stay
 - [ ] **Step 4: Check that nothing reaches what went.**
 
   ```
-  git grep -nE "from '[^']*/(LocalInferenceClient|LocalInferenceProviderConfig)'|isLocalInferenceSessionConfig|createParticipantLocalInferenceConfig\(|state\.localInference|getState\(\)\.localInference|useLocalInferenceSettings" -- src
+  git grep -nE "from '[^']*/(LocalInferenceClient|LocalInferenceProviderConfig)'|isLocalInferenceSessionConfig|createParticipantLocalInferenceConfig\(|state\.localInference|getState\(\)\.localInference|useLocalInferenceSettings|LocalInferenceProviderConfig\.ts /|EVERY provider descriptor|translationModelId ===" -- src
   ```
 
   Expected: nothing (exit status 1).
@@ -11012,17 +11154,17 @@ LocalInference was Stage 1's provider; its old client, descriptor and slice stay
   - `npx vitest run src`: **531 files passed and 1 skipped (532); 6 653 tests passed and 2 skipped (6 655)**; 0 failed, no unhandled errors.
   - `npx vitest run electron`: 34 files, 477 tests passed. `npx vitest run extension`: 9 files, 56 tests passed.
   - Local Native's old path: `npx vitest run src/services src/lib/local-inference/native src/components/Settings/sections/Native src/components/Settings/engine/useNativeEngineAdapter src/stores/nativeModelStore src/stores/settingsStore` — 39 files, 615 tests passed.
-  - `npx tsc --noEmit -p tsconfig.json 2>&1 | command grep -c 'error TS'` prints **98**.
-  - `zsh /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh | diff - /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate-baseline.txt` prints nothing: the baseline's 18 lines, unchanged.
+  - The typecheck, as a set: `npx tsc --noEmit -p tsconfig.json > /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t09.txt`, then `python3 /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/tscdiff.py /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t08.txt /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t09.txt` prints exactly `before 99 after 98; new 0; gone 1` and exits 0 — no error the task before did not have; `after 98` is the full tree's count.
+  - `zsh /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh | diff - /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-gate-baseline.txt` prints nothing: the baseline's 18 lines, unchanged.
 
 - [ ] **Step 6: Commit.**
 
 ```bash
-git add -- src/components/Settings/engine/StoragePage.test.tsx src/components/Settings/engine/StoragePage.tsx src/components/Settings/engine/useWasmEngineAdapter.test.ts src/components/Settings/engine/useWasmEngineAdapter.ts src/components/Settings/sections/ModelManagementSection.test.tsx src/components/Settings/sections/ModelManagementSection.tsx src/components/SettingsInitializer/SettingsInitializer.test.tsx src/components/SetupWizard/SetupWizard.test.tsx src/services/clients/ClientFactory.ts src/services/interfaces/IClient.ts src/services/providers/ProviderConfigFactory.ts src/services/providers/astGuard.test.ts src/services/providers/astGuard.ts src/services/providers/descriptorRegistry.test.ts src/services/providers/localParticipantConfig.ts src/services/providers/participantConfig.test.ts src/services/providers/prepareToStart.local.test.ts src/stores/modelStore.test.ts src/stores/modelStore.ts src/stores/nativeModelStore.test.ts src/stores/settingsStore.selections.test.ts src/stores/settingsStore.sliceRegistry.test.ts src/stores/settingsStore.test.ts src/stores/settingsStore.ts 'src/locales/*/translation.json'
+git add -- src/components/Settings/engine/StoragePage.test.tsx src/components/Settings/engine/StoragePage.tsx src/components/Settings/engine/languageName.ts src/components/Settings/engine/useWasmEngineAdapter.test.ts src/components/Settings/engine/useWasmEngineAdapter.ts src/components/Settings/sections/ModelManagementSection.test.tsx src/components/Settings/sections/ModelManagementSection.tsx src/components/SettingsInitializer/SettingsInitializer.test.tsx src/components/SetupWizard/SetupWizard.test.tsx src/services/clients/ClientFactory.ts src/services/interfaces/IClient.ts src/services/providers/ProviderConfigFactory.ts src/services/providers/astGuard.test.ts src/services/providers/astGuard.ts src/services/providers/descriptorRegistry.test.ts src/services/providers/localParticipantConfig.ts src/services/providers/participantConfig.test.ts src/services/providers/prepareToStart.local.test.ts src/stores/modelStore.test.ts src/stores/modelStore.ts src/stores/nativeModelStore.test.ts src/stores/settingsStore.selections.test.ts src/stores/settingsStore.sliceRegistry.test.ts src/stores/settingsStore.test.ts src/stores/settingsStore.ts 'src/locales/*/translation.json'
 ```
 
 ```bash
-git commit -q -F - -- src/services/clients/LocalInferenceClient.test.ts src/services/clients/LocalInferenceClient.ts src/services/providers/LocalInferenceProviderConfig.ts src/services/providers/providerOrder.test.ts src/stores/ensureSelectionReady.test.ts src/stores/settingsStore.providerSettings.test.tsx src/components/Settings/engine/StoragePage.test.tsx src/components/Settings/engine/StoragePage.tsx src/components/Settings/engine/useWasmEngineAdapter.test.ts src/components/Settings/engine/useWasmEngineAdapter.ts src/components/Settings/sections/ModelManagementSection.test.tsx src/components/Settings/sections/ModelManagementSection.tsx src/components/SettingsInitializer/SettingsInitializer.test.tsx src/components/SetupWizard/SetupWizard.test.tsx src/services/clients/ClientFactory.ts src/services/interfaces/IClient.ts src/services/providers/ProviderConfigFactory.ts src/services/providers/astGuard.test.ts src/services/providers/astGuard.ts src/services/providers/descriptorRegistry.test.ts src/services/providers/localParticipantConfig.ts src/services/providers/participantConfig.test.ts src/services/providers/prepareToStart.local.test.ts src/stores/modelStore.test.ts src/stores/modelStore.ts src/stores/nativeModelStore.test.ts src/stores/settingsStore.selections.test.ts src/stores/settingsStore.sliceRegistry.test.ts src/stores/settingsStore.test.ts src/stores/settingsStore.ts 'src/locales/*/translation.json' <<'EOF'
+git commit -q -F - -- src/services/clients/LocalInferenceClient.test.ts src/services/clients/LocalInferenceClient.ts src/services/providers/LocalInferenceProviderConfig.ts src/services/providers/providerOrder.test.ts src/stores/ensureSelectionReady.test.ts src/stores/settingsStore.providerSettings.test.tsx src/components/Settings/engine/StoragePage.test.tsx src/components/Settings/engine/StoragePage.tsx src/components/Settings/engine/languageName.ts src/components/Settings/engine/useWasmEngineAdapter.test.ts src/components/Settings/engine/useWasmEngineAdapter.ts src/components/Settings/sections/ModelManagementSection.test.tsx src/components/Settings/sections/ModelManagementSection.tsx src/components/SettingsInitializer/SettingsInitializer.test.tsx src/components/SetupWizard/SetupWizard.test.tsx src/services/clients/ClientFactory.ts src/services/interfaces/IClient.ts src/services/providers/ProviderConfigFactory.ts src/services/providers/astGuard.test.ts src/services/providers/astGuard.ts src/services/providers/descriptorRegistry.test.ts src/services/providers/localParticipantConfig.ts src/services/providers/participantConfig.test.ts src/services/providers/prepareToStart.local.test.ts src/stores/modelStore.test.ts src/stores/modelStore.ts src/stores/nativeModelStore.test.ts src/stores/settingsStore.selections.test.ts src/stores/settingsStore.sliceRegistry.test.ts src/stores/settingsStore.test.ts src/stores/settingsStore.ts 'src/locales/*/translation.json' <<'EOF'
 refactor(local-inference): delete LocalInference's old leftovers
 
 Every mount passes LocalInference's own settings and pair, so the three
@@ -11168,7 +11310,7 @@ diff --git a/src/components/Settings/engine/StoragePage.test.tsx b/src/component
 -describe('StoragePage (wasm, prop-driven — LocalInference Engine)', () => {
 -  beforeEach(async () => {
 -    // The store deliberately disagrees with the props passed below, so a
-~ 18 more removed lines
+~ 18 more removed lines sha256:5b71ef2298ae
 -});
 -
  // Task 7's review carry-over: StoragePage's native half (real hooks, real
@@ -11257,6 +11399,40 @@ diff --git a/src/components/Settings/engine/StoragePage.tsx b/src/components/Set
    const directions = [{ dir: speakerDir }, { dir: participantDir }];
 `````
 
+`src/components/Settings/engine/languageName.ts`
+
+`````diff t09
+diff --git a/src/components/Settings/engine/languageName.ts b/src/components/Settings/engine/languageName.ts
+--- a/src/components/Settings/engine/languageName.ts
++++ b/src/components/Settings/engine/languageName.ts
+@@ -11,21 +11,19 @@
+  * code)?.name`).
+  *
+  * Deliberately reads utils/languages.ts's LANGUAGE_OPTIONS map directly
+- * instead of going through ProviderConfigFactory.getConfig(provider)
+- * .languages (LOCAL_INFERENCE/LOCAL_NATIVE — the two callers that would need
+- * it). Both providers' `.languages` field is literally
+~ 10 more removed lines sha256:022ef3502bc4
+- * `vi.mock('react-i18next', ...)` the same way StoragePage.test.tsx's own
+- * `initReactI18next` note documents.
++ * instead of going through the two providers' language lists. Both are
++ * literally `getTranslationSourceLanguages()` (LocalInference's
++ * `localInferenceLanguages.sources`, `src/providers/localInference/settings.ts`;
++ * Local Native's `.languages`, `LocalNativeProviderConfig.ts`), which is
++ * itself every LANGUAGE_OPTIONS code (a universal-multilingual translation
++ * model pulls in the whole set) mapped through this same getLanguageOption
++ * lookup — confirmed no code resolves differently — so the result is
++ * identical either way. Going through `ProviderConfigFactory` once pulled
++ * every old provider descriptor into the two model-management sections just
++ * to read one field, and `src/locales`' real i18n singleton with them, which
++ * broke ModelManagementSection.test.tsx's / NativeModelManagementSection.test.tsx's
++ * fully-replaced `vi.mock('react-i18next', ...)` the same way
++ * StoragePage.test.tsx's own `initReactI18next` note documents.
+  */
+ export function languageNameFor(code: string): string {
+   return getLanguageOption(code).name;
+`````
+
 `src/components/Settings/engine/useWasmEngineAdapter.test.ts`
 
 `````diff t09
@@ -11277,7 +11453,7 @@ diff --git a/src/components/Settings/engine/useWasmEngineAdapter.test.ts b/src/c
 -// Kept from before the old audio service was deleted: useWasmEngineAdapter
 -// statically imports settingsStore, which used to drag in its real static
 -// import graph — including audioStore -> ServiceFactory, which imported
-~ 14 more removed lines
+~ 14 more removed lines sha256:2f97d27258bc
 -  },
 -}));
 +const jaAsr = () => getManifestByType('asr').filter(m => m.multilingual || m.languages.includes('ja'));
@@ -11794,7 +11970,7 @@ diff --git a/src/components/SettingsInitializer/SettingsInitializer.test.tsx b/s
 -// Ruling 11's case 1 mounts the real <AppSessionRoot /> beside
 -// SettingsInitializer, so `attach()` genuinely runs (watchLegsFromStores,
 -// driveLocalReadiness) — the same mocks AppSessionRoot.test.tsx uses for the
-~ 50 more removed lines
+~ 50 more removed lines sha256:297c203f8b69
 -vi.mock('../../contexts/UserProfileContext', () => ({ useUserProfile: () => ({ refetchAll: vi.fn(async () => {}) }) }));
 -
  import type { DirectionResult } from '../../lib/local-inference/selection/types';
@@ -11827,7 +12003,7 @@ diff --git a/src/components/SettingsInitializer/SettingsInitializer.test.tsx b/s
 -  // Ruling 11. Before the switch, the settings store's mode subscription
 -  // re-ran `validateApiKey`, whose LocalInference arm calls
 -  // `ensureSelectionReady` (and its prune wrote the old slice). This mounts
-~ 22 more removed lines
+~ 22 more removed lines sha256:6a00f4e7776f
 -  });
 -
    it('scans the downloaded models once while LocalInference is selected and the model store is not initialized', () => {
@@ -11906,7 +12082,7 @@ diff --git a/src/services/interfaces/IClient.ts b/src/services/interfaces/IClien
 -/**
 - * Local inference session configuration
 - */
-~ 25 more removed lines
+~ 25 more removed lines sha256:6e7775d300fd
 -}
 -
  /**
@@ -11951,7 +12127,7 @@ diff --git a/src/services/providers/ProviderConfigFactory.ts b/src/services/prov
 -    // Registration order here defines the order providers appear in the UI
 -    // list (the configs Map preserves insertion order). Each provider keeps
 -    // its own environment / feature-flag guard. The order is a product
-~ 7 more removed lines
+~ 7 more removed lines sha256:ccdef3c8427e
 -    // 9. Everything else.
 -    // Native (Electron sidecar) local inference — Electron only, behind feature flag.
 +    // Local Native, the one provider the old registry still holds (Stage 2
@@ -11999,7 +12175,7 @@ diff --git a/src/services/providers/astGuard.test.ts b/src/services/providers/as
 -
 -  describe('LocalInferenceProviderConfig.buildSessionConfig (speaker direction)', () => {
 -    it('reports the auto translation pick, not the AST-capable ASR id, in the built config', () => {
-~ 55 more removed lines
+~ 55 more removed lines sha256:17a2574a98f9
 -    });
 -  });
  });
@@ -12211,7 +12387,7 @@ diff --git a/src/services/providers/localParticipantConfig.ts b/src/services/pro
 -/** Fraction of navigator.deviceMemory used as the system RAM model budget. */
 -const RAM_BUDGET_RATIO = 0.75;
 -/** Conservative fallback when navigator.deviceMemory is unavailable (GB). */
-~ 100 more removed lines
+~ 100 more removed lines sha256:338955eacd42
 -}
 -
  export type ParticipantLocalNativeResult =
@@ -12263,7 +12439,7 @@ diff --git a/src/services/providers/participantConfig.test.ts b/src/services/pro
 -  it('local_inference: success with translation available maps to config + no notices', () => {
 -    const d = ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE);
 -    const slice = { ...defaultLocalInferenceSettings };
-~ 47 more removed lines
+~ 47 more removed lines sha256:afd6097fa2b9
 -  });
 -
    it('local_native: failure returns null config + error notice', () => {
@@ -12285,7 +12461,7 @@ diff --git a/src/services/providers/participantConfig.test.ts b/src/services/pro
 -  it('local_inference and local_native pass the BASE participant config (textOnly already applied) to their helper', () => {
 -    const dInf = ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE);
 -    mockedLocalInference.mockReturnValue({
-~ 10 more removed lines
+~ 10 more removed lines sha256:283d9759b571
 -    expect(argInf.keepReplayAudio).toBe(false);
 -
 +  it('local_native passes the BASE participant config (textOnly already applied) to its helper', () => {
@@ -12324,7 +12500,7 @@ diff --git a/src/stores/modelStore.test.ts b/src/stores/modelStore.test.ts
 -// modelStore now statically imports settingsStore (for `resolve`/`applyPrunes`
 -// to read and write localInference.selections) — stub the persistence layer
 -// settingsStore's updateProviderSlice touches, same as settingsStore.test.ts.
-~ 7 more removed lines
+~ 7 more removed lines sha256:76449d1eff98
 -}));
 -
  // Mock modelManifest functions
@@ -12337,7 +12513,7 @@ diff --git a/src/stores/modelStore.test.ts b/src/stores/modelStore.test.ts
 -const { default: useSettingsStore } = await import('./settingsStore');
 -
 -describe('ensureSelectionReady', () => {
-~ 195 more removed lines
+~ 195 more removed lines sha256:bd980dd96fea
 -  });
 -});
  
@@ -12363,7 +12539,7 @@ diff --git a/src/stores/modelStore.test.ts b/src/stores/modelStore.test.ts
 -
 -  it('applyPrunes clears only the named stages and drops an all-auto direction', async () => {
 -    const dir = directionKey('ja', 'en');
-~ 11 more removed lines
+~ 11 more removed lines sha256:9bf8663e6677
 -    expect(useSettingsStore.getState().localInference.selections[dir]).toBeUndefined();
 -  });
  });
@@ -12417,7 +12593,7 @@ diff --git a/src/stores/modelStore.ts b/src/stores/modelStore.ts
 -  /**
 -   * The one write the resolver can cause: an id the manifest no longer knows
 -   * can never resolve again, so keeping it only produces a note the user
-~ 35 more removed lines
+~ 35 more removed lines sha256:a4a347ddff20
 -   */
 -  ensureSelectionReady: () => Promise<{ ready: boolean; notes: ResolutionNote[] }>;
  }
@@ -12454,7 +12630,7 @@ diff --git a/src/stores/modelStore.ts b/src/stores/modelStore.ts
 -    /**
 -     * The one write the resolver can cause: an id the manifest no longer knows
 -     * can never resolve again, so keeping it only produces a note the user
-~ 120 more removed lines
+~ 120 more removed lines sha256:f2332aed4536
 -      return { ready, notes };
 -    },
    })),
@@ -12505,7 +12681,7 @@ diff --git a/src/stores/settingsStore.selections.test.ts b/src/stores/settingsSt
 -describe('local provider slices carry a selections map', () => {
 -  for (const [name, defaults] of [
 -    ['localInference', defaultLocalInferenceSettings as unknown as Record<string, unknown>],
-~ 8 more removed lines
+~ 8 more removed lines sha256:9fc5c084df3b
 -    expect(defaultLocalInferenceSettings.sourceLanguage).toBe('ja');
 -    expect(defaultLocalInferenceSettings.targetLanguage).toBe('en');
 +describe('the localNative slice carries a selections map', () => {
@@ -12518,7 +12694,7 @@ diff --git a/src/stores/settingsStore.selections.test.ts b/src/stores/settingsSt
 -  for (const [name, defaults] of [
 -    ['localInference', defaultLocalInferenceSettings as unknown as Record<string, unknown>],
 -    ['localNative', defaultLocalNativeSettings as unknown as Record<string, unknown>],
-~ 7 more removed lines
+~ 7 more removed lines sha256:5504194b7c36
 -    });
 -  }
 +  it('localNative no longer declares the flat model fields', () => {
@@ -12605,7 +12781,7 @@ diff --git a/src/stores/settingsStore.test.ts b/src/stores/settingsStore.test.ts
 -  describe('Push-to-Translate persistence', () => {
 -    it('persists Push-to-Translate for Local Inference', async () => {
 -      const store = useSettingsStore.getState();
-~ 8 more removed lines
+~ 8 more removed lines sha256:016179736fcc
 -  });
 -
    describe('keepReplayAudio', () => {
@@ -12618,7 +12794,7 @@ diff --git a/src/stores/settingsStore.test.ts b/src/stores/settingsStore.test.ts
 -describe('createParticipantLocalInferenceConfig', () => {
 -  // The participant direction (target→source) is a peer of the speaker
 -  // direction, not a reversal of it: it resolves from the real WASM manifest
-~ 117 more removed lines
+~ 117 more removed lines sha256:9b09b72fdf1b
 -});
 -
  describe('updateProviderSlice (public generic action)', () => {
@@ -12703,7 +12879,7 @@ diff --git a/src/stores/settingsStore.test.ts b/src/stores/settingsStore.test.ts
 -      localInference: {
 -        ...useSettingsStore.getState().localInference,
 -        useTemplateMode: false,
-~ 10 more removed lines
+~ 10 more removed lines sha256:64a8bc943ec5
 -      localInference: {
 -        ...useSettingsStore.getState().localInference,
 +      localNative: {
@@ -12825,7 +13001,7 @@ diff --git a/src/stores/settingsStore.ts b/src/stores/settingsStore.ts
 -      // Local inference: check model readiness instead of API key.
 -      // This is the SINGLE authority for LOCAL_INFERENCE session readiness.
 -      if (provider === Provider.LOCAL_INFERENCE) {
-~ 21 more removed lines
+~ 21 more removed lines sha256:662ff3f6a729
 -      }
 -
        // Get normalized credentials from the provider's descriptor — replaces
@@ -12902,15 +13078,19 @@ With Local Native the old registry's only provider, what the store and the servi
 - `settingsStore.ts`: the four common instruction fields and their setters, `getProcessedSystemInstructions`, `validationCache`, `cacheTimestamp` (its two gate lines go), `loadingModels`, `fetchAvailableModels`, `getCurrentProviderSettings`, `getCurrentProviderConfig`, `useCurrentTurnDetectionMode`, `ProviderSettingsUnion`; `validateApiKey()` keeps its Local Native arm and answers "not valid" without a request for anything else; the default provider and the load's fallback say why they stay `Provider.OPENAI` (choice 4).
 - `locales.consistency.test.ts`' turn-mode case walks `RealtimeTurnDetection`'s own modes and eagernesses (the old registry's modes left with it); `instructions.test.ts`' parity pin states the values (the old store's copy is gone); two tests' stubs (`AccountButton`, `useStartBasicsTour`) name what they stub.
 - One key: `settings.validating`.
+- **The four client diagnostic codes no sender uses** (the controller's ruling on open question 4): `cleanup_failed`, `input_pipeline_failed`, `send_dropped`, `lease_notify_failed`. Their last senders were the old OpenAI client (`send_dropped`, Task 7) and the old Palabra client (the first two, Task 8); `lease_notify_failed` had none even at `fa301e9a`; Local Native's old client sends only `tts_degraded` and `voice_fallback`, and no adapter sends any of the four. They leave `CLIENT_DIAGNOSTICS` (`src/lib/diagnostics/clientDiagnostics.ts`), the notice texts (`src/lib/view/noticeText.ts`) and the catalogs (`notices.*`, four keys); `Conversation.test.ts`' severity case degrades with `parse_error`, a warning, instead of `input_pipeline_failed` — no code in the table is an error now.
+- `storedSettings.ts`' comment on `storedProviderValue`, which said the old store reads a stored provider "as the provider it is instead of falling back to OpenAI" — false since choice 4 — a comment-only exception to the read-only `src/lib/session`.
+- **The import guard** (Revision 1), `src/providers/oldPath.consistency.test.ts`, new, three tests: no file outside the old path's own (`src/services/`, the kept shell's `LanguageSection` and `ProviderSection`, `settingsStore.ts` and two of their tests) imports a module of `src/services/clients/` or `src/services/providers/` by value — a static import or re-export, a side-effect import, a dynamic `import()` or a `require()`, read with the TypeScript parser as `sessionSide.consistency.test.ts` reads imports — but the three shared leaves the new code takes (`ProviderConfig`, `astGuard`, `tutorialUrls`). It lands here, where the old set is final. The review's mutant — `export const mutant = () => import('../../services/clients/ClientFactory');` appended to `src/providers/soniox/adapter.ts` — fails it (`src/providers/soniox/adapter.ts: src/services/clients/ClientFactory`), and so does a side-effect `import '../../services/providers/LocalNativeProviderConfig';` in `src/providers/gemini/wire.ts` (both measured on the result, then reverted); tsc and the builds pass both, the modules existing.
 
 **Files:**
 - Delete (1): `src/services/ClientOperations.ts`
-- Modify (10, by the blocks below): `src/components/TitleBar/AccountButton.test.tsx`, `src/components/Tour/useStartBasicsTour.test.tsx`, `src/lib/provider/instructions.test.ts`, `src/locales/locales.consistency.test.ts`, `src/services/SettingsService.ts`, `src/services/interfaces/IClient.ts`, `src/services/interfaces/ISettingsService.ts`, `src/services/providers/descriptorRegistry.test.ts`, `src/stores/settingsStore.test.ts`, `src/stores/settingsStore.ts`
-- The 30 locale catalogs `src/locales/*/translation.json`, by the key tool (1 keys)
+- Create (1, by the blocks below): `src/providers/oldPath.consistency.test.ts`
+- Modify (14, by the blocks below): `src/components/TitleBar/AccountButton.test.tsx`, `src/components/Tour/useStartBasicsTour.test.tsx`, `src/lib/conversation/Conversation.test.ts`, `src/lib/diagnostics/clientDiagnostics.ts`, `src/lib/provider/instructions.test.ts`, `src/lib/session/storedSettings.ts`, `src/lib/view/noticeText.ts`, `src/locales/locales.consistency.test.ts`, `src/services/SettingsService.ts`, `src/services/interfaces/IClient.ts`, `src/services/interfaces/ISettingsService.ts`, `src/services/providers/descriptorRegistry.test.ts`, `src/stores/settingsStore.test.ts`, `src/stores/settingsStore.ts`
+- The 30 locale catalogs `src/locales/*/translation.json`, by the key tool (5 keys)
 
 **Interfaces:**
 - Consumes: Task 9.
-- Produces: `settingsStore.validateApiKey: () => Promise<ApiKeyValidationResult>`; no instruction fields in the old store (the new providers read the stored keys as legacy keys); the gate at 16 lines.
+- Produces: `settingsStore.validateApiKey: () => Promise<ApiKeyValidationResult>`; no instruction fields in the old store (the new providers read the stored keys as legacy keys); `ClientDiagnosticCode` without the four codes; the old set final, and its guard; the gate at 16 lines.
 
 - [ ] **Step 1: Delete the files.**
 
@@ -12924,31 +13104,31 @@ With Local Native the old registry's only provider, what the store and the servi
   python3 /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/plan-apply.py docs/superpowers/plans/2026-09-30-client-contract-stage2-deletion.md t10
   ```
 
-  Expected: `t10: 10 files changed`, and no other line.
+  Expected: `t10: 15 files changed`, and no other line.
 
 - [ ] **Step 3: Remove the locale keys only the deleted code read.**
 
   ```
-  node /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/drop-locale-keys.mjs . settings.validating
+  node /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/drop-locale-keys.mjs . notices.cleanup_failed notices.input_pipeline_failed notices.lease_notify_failed notices.send_dropped settings.validating
   ```
 
-  Expected: `1 keys removed from 30 catalogs`.
+  Expected: `5 keys removed from 30 catalogs`.
 
 - [ ] **Step 4: Check that nothing reaches what went.**
 
   ```
-  git grep -nE "ClientOperations|getProcessedSystemInstructions|validationCache|fetchAvailableModels|cacheTimestamp" -- src/stores src/services src/components
+  git grep -nE "ClientOperations|getProcessedSystemInstructions|validationCache|fetchAvailableModels|cacheTimestamp|cleanup_failed|input_pipeline_failed|send_dropped|lease_notify_failed|still loaded until Stage 2" -- src/stores src/services src/components src/lib/diagnostics src/lib/view src/lib/conversation src/lib/session src/locales
   ```
 
   Expected: nothing (exit status 1).
 
 - [ ] **Step 5: Run the gates.** Each command as its own call; every expected number is the replay's.
 
-  - `npx vitest run src`: **531 files passed and 1 skipped (532); 6 653 tests passed and 2 skipped (6 655)**; 0 failed, no unhandled errors.
+  - `npx vitest run src`: **532 files passed and 1 skipped (533); 6 656 tests passed and 2 skipped (6 658)**; 0 failed, no unhandled errors.
   - `npx vitest run electron`: 34 files, 477 tests passed. `npx vitest run extension`: 9 files, 56 tests passed.
   - Local Native's old path: `npx vitest run src/services src/lib/local-inference/native src/components/Settings/sections/Native src/components/Settings/engine/useNativeEngineAdapter src/stores/nativeModelStore src/stores/settingsStore` — 39 files, 615 tests passed.
-  - `npx tsc --noEmit -p tsconfig.json 2>&1 | command grep -c 'error TS'` prints **95**.
-  - **The baseline drops to 16 lines.** First check the gate prints exactly these lines —
+  - The typecheck, as a set: `npx tsc --noEmit -p tsconfig.json > /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t10.txt`, then `python3 /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/tscdiff.py /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t09.txt /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t10.txt` prints exactly `before 98 after 95; new 0; gone 3` and exits 0 — no error the task before did not have; `after 95` is the full tree's count.
+  - **The gate's baseline drops to 16 lines.** First check `zsh /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh` prints exactly these lines —
 
     ```
     src/App.tsx: error TS6133: 'React' is declared but its value is never read.
@@ -12969,16 +13149,16 @@ With Local Native the old registry's only provider, what the store and the servi
     src/utils/environment.ts: error TS2339: Property 'create' does not exist on type '{ query(
     ```
 
-    — with `zsh /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh`, then write them, and nothing else, to `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate-baseline.txt` (outside the repository; the Write tool). From here on the gate is that file.
+    — then write them, and nothing else, to `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-gate-baseline.txt` (this plan's own baseline file, outside the repository; the Write tool). From here on the gate is that file.
 
 - [ ] **Step 6: Commit.**
 
 ```bash
-git add -- src/components/TitleBar/AccountButton.test.tsx src/components/Tour/useStartBasicsTour.test.tsx src/lib/provider/instructions.test.ts src/locales/locales.consistency.test.ts src/services/SettingsService.ts src/services/interfaces/IClient.ts src/services/interfaces/ISettingsService.ts src/services/providers/descriptorRegistry.test.ts src/stores/settingsStore.test.ts src/stores/settingsStore.ts 'src/locales/*/translation.json'
+git add -- src/components/TitleBar/AccountButton.test.tsx src/components/Tour/useStartBasicsTour.test.tsx src/lib/conversation/Conversation.test.ts src/lib/diagnostics/clientDiagnostics.ts src/lib/provider/instructions.test.ts src/lib/session/storedSettings.ts src/lib/view/noticeText.ts src/locales/locales.consistency.test.ts src/providers/oldPath.consistency.test.ts src/services/SettingsService.ts src/services/interfaces/IClient.ts src/services/interfaces/ISettingsService.ts src/services/providers/descriptorRegistry.test.ts src/stores/settingsStore.test.ts src/stores/settingsStore.ts 'src/locales/*/translation.json'
 ```
 
 ```bash
-git commit -q -F - -- src/services/ClientOperations.ts src/components/TitleBar/AccountButton.test.tsx src/components/Tour/useStartBasicsTour.test.tsx src/lib/provider/instructions.test.ts src/locales/locales.consistency.test.ts src/services/SettingsService.ts src/services/interfaces/IClient.ts src/services/interfaces/ISettingsService.ts src/services/providers/descriptorRegistry.test.ts src/stores/settingsStore.test.ts src/stores/settingsStore.ts 'src/locales/*/translation.json' <<'EOF'
+git commit -q -F - -- src/services/ClientOperations.ts src/components/TitleBar/AccountButton.test.tsx src/components/Tour/useStartBasicsTour.test.tsx src/lib/conversation/Conversation.test.ts src/lib/diagnostics/clientDiagnostics.ts src/lib/provider/instructions.test.ts src/lib/session/storedSettings.ts src/lib/view/noticeText.ts src/locales/locales.consistency.test.ts src/providers/oldPath.consistency.test.ts src/services/SettingsService.ts src/services/interfaces/IClient.ts src/services/interfaces/ISettingsService.ts src/services/providers/descriptorRegistry.test.ts src/stores/settingsStore.test.ts src/stores/settingsStore.ts 'src/locales/*/translation.json' <<'EOF'
 refactor(settings): trim the shared old code to Local Native
 
 Local Native is the old registry's only provider. Delete what the old
@@ -12986,6 +13166,8 @@ store and service layer kept for every provider: ClientOperations, the
 key-validation service call, the global instruction fields, the
 validation cache and model list, and the generic slice readers. The
 kept shell's default stays an id the old registry does not hold.
+Delete the four client diagnostic codes no sender uses, and add a test
+that no file outside the old path imports it by value.
 
 Co-Authored-By: <implementing model> <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01Q5eVcuCVVhSpoUCA5C7bDe
@@ -13038,6 +13220,57 @@ diff --git a/src/components/Tour/useStartBasicsTour.test.tsx b/src/components/To
      getSettingsService: () => ({
 `````
 
+`src/lib/conversation/Conversation.test.ts`
+
+`````diff t10
+diff --git a/src/lib/conversation/Conversation.test.ts b/src/lib/conversation/Conversation.test.ts
+--- a/src/lib/conversation/Conversation.test.ts
++++ b/src/lib/conversation/Conversation.test.ts
+@@ -165,11 +165,11 @@
+   it('turns failed into an error notice and degraded into a notice with the table\'s severity', () => {
+     const { conv, apply } = make();
+     apply({ kind: 'failed', payload: { message: 'socket died', code: 'E1' } });
+-    apply({ kind: 'degraded', payload: { code: 'input_pipeline_failed', message: 'mic gone' } });
++    apply({ kind: 'degraded', payload: { code: 'parse_error', message: 'bad frame' } });
+     apply({ kind: 'degraded', payload: { code: 'tts_degraded', message: 'no voice' } });
+     expect(conv.snapshot().notices.map((n) => [n.severity, n.message, n.code])).toEqual([
+       ['error', 'socket died', 'E1'],
+-      ['error', 'mic gone', 'input_pipeline_failed'],
++      ['warning', 'bad frame', 'parse_error'],
+       ['warning', 'no voice', 'tts_degraded'],
+     ]);
+     expect(conv.snapshot().notices[0].id).toBe('s1:speaker:n1');
+`````
+
+`src/lib/diagnostics/clientDiagnostics.ts`
+
+`````diff t10
+diff --git a/src/lib/diagnostics/clientDiagnostics.ts b/src/lib/diagnostics/clientDiagnostics.ts
+--- a/src/lib/diagnostics/clientDiagnostics.ts
++++ b/src/lib/diagnostics/clientDiagnostics.ts
+@@ -26,20 +26,12 @@
+ export const CLIENT_DIAGNOSTICS = {
+   /** A frame arrived that could not be parsed. The stream continues. */
+   parse_error: { severity: 'warning' },
+-  /** A teardown step threw. The session is already ending. */
+-  cleanup_failed: { severity: 'warning' },
+-  /** Audio capture broke mid-session: nothing further will be transcribed. */
+-  input_pipeline_failed: { severity: 'error' },
+   /** Speech synthesis degraded or dropped; translation text still arrives. */
+   tts_degraded: { severity: 'warning' },
+   /** An automatic resume attempt failed; further attempts may follow. */
+   resume_attempt_failed: { severity: 'warning' },
+-  /** Outbound audio or text could not be sent and was dropped. */
+-  send_dropped: { severity: 'warning' },
+   /** The requested voice was unavailable and a substitute was used. */
+   voice_fallback: { severity: 'warning' },
+-  /** A managed-session lease notification could not be delivered. */
+-  lease_notify_failed: { severity: 'warning' },
+   /** One utterance could not be transcribed; the session continues. */
+   transcription_failed: { severity: 'warning' },
+   /** One translation failed; the session continues. */
+`````
+
 `src/lib/provider/instructions.test.ts`
 
 `````diff t10
@@ -13075,6 +13308,50 @@ diff --git a/src/lib/provider/instructions.test.ts b/src/lib/provider/instructio
  
 `````
 
+`src/lib/session/storedSettings.ts`
+
+`````diff t10
+diff --git a/src/lib/session/storedSettings.ts b/src/lib/session/storedSettings.ts
+--- a/src/lib/session/storedSettings.ts
++++ b/src/lib/session/storedSettings.ts
+@@ -18,9 +18,10 @@
+ 
+ /**
+  * What `settings.common.provider` holds for a provider: the old enum's
+- * spelling where one exists — the value every install already has, and the
+- * one the old settings store (still loaded until Stage 2 retires it) reads as
+- * the provider it is instead of falling back to OpenAI.
++ * spelling where one exists — the value every install already has. The old
++ * settings store, kept for Local Native until kizuna-ai-lab/sokuji#578,
++ * reads a value its registry does not hold as its inert default (Stage 2
++ * deletion, choice 4).
+  */
+ export function storedProviderValue(id: string): string {
+   for (const [legacy, current] of Object.entries(LEGACY_PROVIDER_IDS)) if (current === id) return legacy;
+`````
+
+`src/lib/view/noticeText.ts`
+
+`````diff t10
+diff --git a/src/lib/view/noticeText.ts b/src/lib/view/noticeText.ts
+--- a/src/lib/view/noticeText.ts
++++ b/src/lib/view/noticeText.ts
+@@ -49,13 +49,9 @@
+   local_models_missing: 'Please download the required models in Settings to start.',
+   // The adapters' degradations (CLIENT_DIAGNOSTICS).
+   parse_error: "A message from the provider couldn't be read; the session continues.",
+-  cleanup_failed: 'A step while closing the session failed.',
+-  input_pipeline_failed: 'Audio capture stopped working; nothing further will be translated.',
+   tts_degraded: 'Speech playback is degraded; the translated text still arrives.',
+   resume_attempt_failed: 'Reconnecting failed; trying again.',
+-  send_dropped: "Some audio or text couldn't be sent and was dropped.",
+   voice_fallback: 'The chosen voice was unavailable, so another voice is used.',
+-  lease_notify_failed: "The service couldn't be told about the session's state.",
+   // A failed leg's API error type (the adapter's code).
+   auth: 'The provider did not accept the credentials: {{detail}}',
+   rate_limit: 'The provider is limiting requests; try again shortly: {{detail}}',
+`````
+
 `src/locales/locales.consistency.test.ts`
 
 `````diff t10
@@ -13106,7 +13383,7 @@ diff --git a/src/locales/locales.consistency.test.ts b/src/locales/locales.consi
 -  // ProviderSpecificSettings renders one button per capabilities.turnDetection.mode
 -  // and derives the label key from the mode string. A mode whose key is absent
 -  // renders the raw key as the button text — Volcengine's 'Push-to-Talk' did
-~ 11 more removed lines
+~ 11 more removed lines sha256:fdfc8dc715a9
 -      }
 -    }
 +  // RealtimeTurnDetection derives a label key from each mode and eagerness it
@@ -13121,6 +13398,139 @@ diff --git a/src/locales/locales.consistency.test.ts b/src/locales/locales.consi
      expect(missing).toEqual([]);
    });
  
+`````
+
+`src/providers/oldPath.consistency.test.ts`
+
+`````diff t10
+diff --git a/src/providers/oldPath.consistency.test.ts b/src/providers/oldPath.consistency.test.ts
+new file mode 100644
+--- /dev/null
++++ b/src/providers/oldPath.consistency.test.ts
+@@ -0,0 +1,123 @@
++/**
++ * The new structure never reaches the old provider path (Stage 2 deletion,
++ * rulings 1 and 2). The old path is every module of `src/services/clients/`
++ * and `src/services/providers/`: Local Native's client, descriptor and
++ * factory, kept whole until kizuna-ai-lab/sokuji#578 ports it. Only the
++ * old path's own files (`OLD_PATH_FILES`) import one of its modules by
++ * value — a static import or re-export, a side-effect import, a dynamic
++ * `import()` or a `require()` — but for the three shared leaves the new code
++ * takes (`SHARED`). A type-only import is erased and allowed.
++ *
++ * When #578 ports Local Native, the old path and this list go together.
++ */
++import { describe, it, expect } from 'vitest';
++import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
++import { dirname, join, posix, resolve } from 'node:path';
++import ts from 'typescript';
++
++const REPO_ROOT = resolve(__dirname, '../..');
++
++/** The old path's modules: every file of these two folders. */
++const OLD_PATH = /^src\/services\/(clients|providers)\//;
++
++/** Modules of those folders that are not the old path's: shared leaves the new code imports. */
++const SHARED = new Set([
++  'src/services/providers/ProviderConfig', // `LanguageOption`, `VoiceOption`
++  'src/services/providers/astGuard', // `guardAstCrossStage`, LocalInference's AST check
++  'src/services/providers/tutorialUrls', // `AI_PROVIDERS_DOCS_URL`, the wizard's docs link
++]);
++
++/** Besides `src/services/` itself, the files that may import the old path: the unmounted shell that renders Local Native, and the old store with its Local Native slice, with the tests that pin them. */
++const OLD_PATH_FILES = new Set([
++  'src/components/Settings/sections/LanguageSection.tsx',
++  'src/components/Settings/sections/LanguageSection.sentence.test.tsx',
++  'src/components/Settings/sections/ProviderSection.tsx',
++  'src/stores/settingsStore.ts',
++  'src/stores/settingsStore.selections.test.ts',
++]);
++const isOldPathFile = (file: string) => file.startsWith('src/services/') || OLD_PATH_FILES.has(file);
++
++const parse = (source: string, fileName: string) =>
++  ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, /\.[jt]sx$/.test(fileName) ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
++
++/** Every specifier a file imports by value: `import … from`, `import '…'`, `export … from`, `import('…')`, `require('…')`; not `import type`, nor a named import whose every name is `type`. */
++function valueSpecifiers(source: string, fileName = 'scan.ts'): string[] {
++  const out: string[] = [];
++  const visit = (node: ts.Node): void => {
++    if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
++      const clause = node.importClause;
++      const named = clause?.namedBindings;
++      const typeOnly = clause?.isTypeOnly === true
++        || (clause !== undefined && clause.name === undefined && named !== undefined && ts.isNamedImports(named)
++          && named.elements.length > 0 && named.elements.every((e) => e.isTypeOnly));
++      if (!typeOnly) out.push(node.moduleSpecifier.text);
++    } else if (ts.isExportDeclaration(node) && !node.isTypeOnly && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
++      out.push(node.moduleSpecifier.text);
++    } else if (ts.isCallExpression(node) && node.arguments[0] && ts.isStringLiteral(node.arguments[0])
++      && (node.expression.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(node.expression) && node.expression.text === 'require'))) {
++      out.push(node.arguments[0].text);
++    }
++    ts.forEachChild(node, visit);
++  };
++  visit(parse(source, fileName));
++  return out;
++}
++
++/** A relative specifier as a repo-relative module, extension dropped; null when it is not relative. */
++function moduleOf(from: string, spec: string): string | null {
++  if (!spec.startsWith('.')) return null;
++  return posix.normalize(posix.join(dirname(from).split('\\').join('/'), spec)).replace(/\.(tsx?|jsx?|mjs)$/, '');
++}
++
++/** Every source file under `src` (no `.d.ts`). */
++function sourceFiles(root: string): string[] {
++  const files: string[] = [];
++  const walk = (dir: string) => {
++    for (const entry of readdirSync(join(root, dir))) {
++      const rel = `${dir}/${entry}`;
++      if (statSync(join(root, rel)).isDirectory()) walk(rel);
++      else if (/\.(tsx?|jsx?|mjs)$/.test(entry) && !entry.endsWith('.d.ts')) files.push(rel);
++    }
++  };
++  walk('src');
++  return files.sort();
++}
++
++/** `file: module` for every value import of the old path from outside it. */
++function offenders(root: string): string[] {
++  return sourceFiles(root).filter((file) => !isOldPathFile(file)).flatMap((file) =>
++    valueSpecifiers(readFileSync(join(root, file), 'utf-8'), file)
++      .map((spec) => moduleOf(file, spec))
++      .filter((target): target is string => target !== null && OLD_PATH.test(target) && !SHARED.has(target))
++      .map((target) => `${file}: ${target}`));
++}
++
++describe('the old provider path', () => {
++  it('is imported by value only by its own files', () => {
++    expect(offenders(REPO_ROOT)).toEqual([]);
++  });
++
++  it('the scan sees every kind of value import, and no type-only one', () => {
++    const source = [
++      "import { ClientFactory } from '../../services/clients/ClientFactory';",
++      "import '../../services/providers/ProviderConfigFactory';",
++      "export { LocalNativeClient } from '../../services/clients/LocalNativeClient';",
++      "const later = () => import('../../services/providers/LocalNativeProviderConfig');",
++      "const old = require('../../services/clients/punctuateDefinite');",
++      "import type { IClient } from '../../services/interfaces/IClient';",
++      "import { type ProviderConfig } from '../../services/providers/ProviderConfig';",
++    ].join('\n');
++    expect(valueSpecifiers(source)).toEqual([
++      '../../services/clients/ClientFactory',
++      '../../services/providers/ProviderConfigFactory',
++      '../../services/clients/LocalNativeClient',
++      '../../services/providers/LocalNativeProviderConfig',
++      '../../services/clients/punctuateDefinite',
++    ]);
++  });
++
++  it('names only files that exist', () => {
++    for (const file of OLD_PATH_FILES) expect(existsSync(join(REPO_ROOT, file)), file).toBe(true);
++    for (const module of SHARED) expect(existsSync(join(REPO_ROOT, `${module}.ts`)), module).toBe(true);
++  });
++});
 `````
 
 `src/services/SettingsService.ts`
@@ -13148,7 +13558,7 @@ diff --git a/src/services/SettingsService.ts b/src/services/SettingsService.ts
 -  
 -  /**
 -   * Validate API key and fetch available models in a single request
-~ 26 more removed lines
+~ 26 more removed lines sha256:106c91d8a98c
 -      };
 -    }
    }
@@ -13200,7 +13610,7 @@ diff --git a/src/services/interfaces/ISettingsService.ts b/src/services/interfac
 -  
 -  /**
 -   * Validate API key and fetch available models in a single request
-~ 13 more removed lines
+~ 13 more removed lines sha256:68dd4aca4110
 -  }>;
 -}
 +  }
@@ -13373,7 +13783,7 @@ diff --git a/src/stores/settingsStore.ts b/src/stores/settingsStore.ts
 -  systemInstructions:
 -    "# ROLE & OBJECTIVE\n" +
 -    "You are a simultaneous interpreter.\n" +
-~ 47 more removed lines
+~ 47 more removed lines sha256:262d6bc4a952
 -  useTemplateMode: true,
 -  participantSystemInstructions: '',
    speakerDisplayMode: 'both',
@@ -13465,7 +13875,7 @@ diff --git a/src/stores/settingsStore.ts b/src/stores/settingsStore.ts
 -    setSystemInstructions: async (systemInstructions) => {
 -      set({systemInstructions});
 -      const service = ServiceFactory.getSettingsService();
-~ 19 more removed lines
+~ 19 more removed lines sha256:bf3382a1ff69
 -    },
 -
      setTextOnly: async (textOnly) => {
@@ -13492,7 +13902,7 @@ diff --git a/src/stores/settingsStore.ts b/src/stores/settingsStore.ts
 -      // Get normalized credentials from the provider's descriptor — replaces
 -      // the four hand-copied per-provider extraction chains that used to live
 -      // here (see git history for the pre-descriptor shape).
-~ 77 more removed lines
+~ 77 more removed lines sha256:dad8d163066b
 -      await get().validateApiKey(getAuthToken);
 -      set({loadingModels: false});
 +      // Every other provider validates in the new registry (its definition's
@@ -13549,7 +13959,7 @@ diff --git a/src/stores/settingsStore.ts b/src/stores/settingsStore.ts
 -    getCurrentProviderSettings: () => {
 -      const state = get();
 -      const descriptor = ProviderConfigFactory.getDescriptor(state.provider);
-~ 52 more removed lines
+~ 52 more removed lines sha256:ab0a1f90685e
 -    },
 -
      getProcessedLocalPrompt: (forParticipant = false) => {
@@ -13593,7 +14003,7 @@ diff --git a/src/stores/settingsStore.ts b/src/stores/settingsStore.ts
 -export const useGetCurrentProviderSettings = () => useSettingsStore((state) => state.getCurrentProviderSettings);
 -
 -// Reactive selector that returns the current provider's settings object,
-~ 7 more removed lines
+~ 7 more removed lines sha256:0906872d0c21
 -export const useGetCurrentProviderConfig = () => useSettingsStore((state) => state.getCurrentProviderConfig);
 -export const useGetProcessedSystemInstructions = () => useSettingsStore((state) => state.getProcessedSystemInstructions);
  export const useGetProcessedLocalPrompt = () => useSettingsStore((state) => state.getProcessedLocalPrompt);
@@ -13616,9 +14026,9 @@ diff --git a/src/stores/settingsStore.ts b/src/stores/settingsStore.ts
 
 ---
 
-### Task 11: `CLAUDE.md` for the new structure (Wave 3)
+### Task 11: `CLAUDE.md` and `CONTEXT.md` for the new structure (Wave 3)
 
-Ruling 7. Every passage that described the old clients, `ClientFactory`, `IClient`, `ProviderConfigFactory`, `openai-realtime-api`, the `livekit-client` pin or the old way to add a provider is rewritten for the new structure; every other section stays as it is. The seven adapters and the session-side guard cite "Inside an `IClient` session" by name; they follow the heading's new name.
+Rulings 7 and 9. Every passage that described the old clients, `ClientFactory`, `IClient`, `ProviderConfigFactory`, `openai-realtime-api`, the `livekit-client` pin or the old way to add a provider is rewritten for the new structure; every other section stays as it is. The seven adapters and the session-side guard cite "Inside an `IClient` session" by name; they follow the heading's new name.
 
 **What goes, and what changes:**
 - Project Overview: the providers as the registry offers them; Local Native on the old path until #578.
@@ -13628,13 +14038,16 @@ Ruling 7. Every passage that described the old clients, `ClientFactory`, `IClien
 - "Key Libraries": `openai` and `@google/genai` as the wire-type SDKs behind the oracle tests, `ws` for the wire probes; `openai-realtime-api` and `livekit-client` out, with the pin section.
 - "Adding a New AI Provider": the spec's "What adding a provider then touches" as the ports landed.
 - The CSP's provider list, the user-managed keys, and "Authentication Flow for Kizuna AI" / "Key Services", which described an `ApiKeyService` that does not exist (the managed provider's lease buys its keys).
+- **Revision 1** (the review's M4 and N2, verified against the result): "Service Layer Pattern" without the nonexistent `IAudioService` (`ServiceFactory` hands out the one settings service); "Audio Service Management" and "Dynamic Audio Device Switching" without the nonexistent `ModernBrowserAudioService`, `switchRecordingDevice` and `currentRecordingDeviceId` — the microphone source (`openMic`, `src/lib/audio/capture/mic.ts`) follows its device live; "Simple Mode Components" and "UI Design System" name `SimpleSettings`, not the nonexistent `SimpleConfigPanel`; step 2 of "Adding a New AI Provider" says `sessionSide.consistency.test.ts` holds a new adapter automatically. Found while verifying them and corrected the same way: the nonexistent `ModernAudioPlayer` ("Audio Processing Pipeline", "Audio Handling"), `OnboardingContext` (twice), `sessionStore`'s description, and "Code Organization"'s `src/services/` and `src/lib/modern-audio/` lines, with `src/lib/audio/` added. The Local Native exception names the import guard.
+- `src/lib/diagnostics/report.ts`' statement of the session rule, in `IClient` / MainPanel terms, follows the heading's new name.
+- **`CONTEXT.md`** (ruling 9), per the review's passage list, each checked against the result: **Provider** (the registry's nine, ids and `settings.key`), **Provider definition** (was ProviderDescriptor), **Provider Registry** (`registry.ts` and `isPresent`), **Provider settings** (was Settings slice; `providerStore`), **Credentials** (`credentials.read`), **Managed provider** (was Kizuna twins), **Local Inference vs Local Native** (the shared abstractions no longer `IClient` and `ProviderDescriptor`), **Leg config** (was SessionConfig), **Adapter** (was Client), **Segment** (was ConversationItem); each names what the old path keeps until #578. **SidecarConnection**, the native model resolution entries and the extension's are kept as they are.
 
 **Files:**
-- Modify (9, by the blocks below): `CLAUDE.md`, `src/providers/gemini/adapter.ts`, `src/providers/openai/adapter.ts`, `src/providers/openai_live/adapter.ts`, `src/providers/openai_translate/adapter.ts`, `src/providers/palabraai/adapter.ts`, `src/providers/sessionSide.consistency.test.ts`, `src/providers/soniox/adapter.ts`, `src/providers/volcengine_ast2/adapter.ts`
+- Modify (11, by the blocks below): `CLAUDE.md`, `CONTEXT.md`, `src/lib/diagnostics/report.ts`, `src/providers/gemini/adapter.ts`, `src/providers/openai/adapter.ts`, `src/providers/openai_live/adapter.ts`, `src/providers/openai_translate/adapter.ts`, `src/providers/palabraai/adapter.ts`, `src/providers/sessionSide.consistency.test.ts`, `src/providers/soniox/adapter.ts`, `src/providers/volcengine_ast2/adapter.ts`
 
 **Interfaces:**
 - Consumes: Tasks 1–10 (the prose describes their result).
-- Produces: `CLAUDE.md`'s heading "Inside an adapter session", which `src/providers/*/adapter.ts` cite.
+- Produces: `CLAUDE.md`'s heading "Inside an adapter session", which `src/providers/*/adapter.ts` and `report.ts` cite; `CONTEXT.md`'s glossary of the new structure.
 
 - [ ] **Step 1: Apply the task's diff blocks** (Global Constraints: never by hand).
 
@@ -13642,38 +14055,40 @@ Ruling 7. Every passage that described the old clients, `ClientFactory`, `IClien
   python3 /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/plan-apply.py docs/superpowers/plans/2026-09-30-client-contract-stage2-deletion.md t11
   ```
 
-  Expected: `t11: 9 files changed`, and no other line.
+  Expected: `t11: 11 files changed`, and no other line.
 
 - [ ] **Step 2: Check that nothing reaches what went.**
 
   ```
-  git grep -nE "Inside an IClient|sets for clients|openai-realtime-api|livekit-client|ApiKeyService|ClientFactory. creates" -- CLAUDE.md 'src/providers/*/adapter.ts' src/providers/sessionSide.consistency.test.ts
+  git grep -nE "Inside an IClient|sets for clients|openai-realtime-api|livekit-client|ApiKeyService|IAudioService|ModernBrowserAudioService|ModernAudioPlayer|SimpleConfigPanel|OnboardingContext|The thirteen|Kizuna twins|11 adapters|only MainPanel knows" -- CLAUDE.md CONTEXT.md 'src/providers/*/adapter.ts' src/providers/sessionSide.consistency.test.ts src/lib/diagnostics/report.ts
   ```
 
   Expected: nothing (exit status 1).
 
 - [ ] **Step 3: Run the gates.** Each command as its own call; every expected number is the replay's.
 
-  - `npx vitest run src`: **531 files passed and 1 skipped (532); 6 653 tests passed and 2 skipped (6 655)**; 0 failed, no unhandled errors.
+  - `npx vitest run src`: **532 files passed and 1 skipped (533); 6 656 tests passed and 2 skipped (6 658)**; 0 failed, no unhandled errors.
   - `npx vitest run electron`: 34 files, 477 tests passed. `npx vitest run extension`: 9 files, 56 tests passed.
   - Local Native's old path: `npx vitest run src/services src/lib/local-inference/native src/components/Settings/sections/Native src/components/Settings/engine/useNativeEngineAdapter src/stores/nativeModelStore src/stores/settingsStore` — 39 files, 615 tests passed.
-  - `npx tsc --noEmit -p tsconfig.json 2>&1 | command grep -c 'error TS'` prints **95**.
-  - `zsh /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh | diff - /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate-baseline.txt` prints nothing: the baseline's 16 lines, unchanged.
+  - The typecheck, as a set: `npx tsc --noEmit -p tsconfig.json > /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t11.txt`, then `python3 /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/tscdiff.py /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t10.txt /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t11.txt` prints exactly `before 95 after 95; new 0; gone 0` and exits 0 — no error the task before did not have; `after 95` is the full tree's count.
+  - `zsh /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh | diff - /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-gate-baseline.txt` prints nothing: the baseline's 16 lines, unchanged.
 
 - [ ] **Step 4: Commit.**
 
 ```bash
-git add -- CLAUDE.md src/providers/gemini/adapter.ts src/providers/openai/adapter.ts src/providers/openai_live/adapter.ts src/providers/openai_translate/adapter.ts src/providers/palabraai/adapter.ts src/providers/sessionSide.consistency.test.ts src/providers/soniox/adapter.ts src/providers/volcengine_ast2/adapter.ts
+git add -- CLAUDE.md CONTEXT.md src/lib/diagnostics/report.ts src/providers/gemini/adapter.ts src/providers/openai/adapter.ts src/providers/openai_live/adapter.ts src/providers/openai_translate/adapter.ts src/providers/palabraai/adapter.ts src/providers/sessionSide.consistency.test.ts src/providers/soniox/adapter.ts src/providers/volcengine_ast2/adapter.ts
 ```
 
 ```bash
-git commit -q -F - -- CLAUDE.md src/providers/gemini/adapter.ts src/providers/openai/adapter.ts src/providers/openai_live/adapter.ts src/providers/openai_translate/adapter.ts src/providers/palabraai/adapter.ts src/providers/sessionSide.consistency.test.ts src/providers/soniox/adapter.ts src/providers/volcengine_ast2/adapter.ts <<'EOF'
-docs(claude): describe the new provider structure
+git commit -q -F - -- CLAUDE.md CONTEXT.md src/lib/diagnostics/report.ts src/providers/gemini/adapter.ts src/providers/openai/adapter.ts src/providers/openai_live/adapter.ts src/providers/openai_translate/adapter.ts src/providers/palabraai/adapter.ts src/providers/sessionSide.consistency.test.ts src/providers/soniox/adapter.ts src/providers/volcengine_ast2/adapter.ts <<'EOF'
+docs(claude, context): describe the new provider structure
 
-Rewrite the passages that described the old clients, their factory and
-registry, openai-realtime-api, the livekit-client pin and the old way
-to add a provider; say Local Native runs the old path until #578. The
-adapters' citations follow the error-handling heading's new name.
+Rewrite the passages of CLAUDE.md that described the old clients, their
+factory and registry, openai-realtime-api, the livekit-client pin, the
+old way to add a provider, and audio services and components that do
+not exist; rewrite CONTEXT.md's provider and session glossary the same
+way. Both say Local Native runs the old path until #578. The adapters'
+and the reporter's citations follow the error-handling heading's name.
 
 Co-Authored-By: <implementing model> <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01Q5eVcuCVVhSpoUCA5C7bDe
@@ -13697,8 +14112,14 @@ diff --git a/CLAUDE.md b/CLAUDE.md
  
  ## Development Commands
  
-@@ -84,13 +84,26 @@
-    - All services implement interfaces (IAudioService, ISettingsService)
+@@ -80,40 +80,60 @@
+ ### Key Architectural Components
+ 
+ 1. **Service Layer Pattern**
+-   - `ServiceFactory` creates platform-specific implementations with singleton caching
+-   - All services implement interfaces (IAudioService, ISettingsService)
++   - `ServiceFactory` hands out the one settings service (`SettingsService`, implementing
++     `ISettingsService`), cached as a singleton; audio has no service object (5. below)
     - Platform detection via `src/utils/environment.ts` utilities
  
 -2. **AI Client Architecture**
@@ -13727,37 +14148,74 @@ diff --git a/CLAUDE.md b/CLAUDE.md
 +     implements the old `IClient` (`src/services/interfaces/IClient.ts`), registered as
 +     `LocalNativeProviderConfig` in `ProviderConfigFactory`, built through `ClientFactory`,
 +     and set up in the old settings shell (`ProviderSection`, `LanguageSection`,
-+     `ProviderSpecificSettings`), which nothing mounts
++     `ProviderSpecificSettings`), which nothing mounts;
++     `src/providers/oldPath.consistency.test.ts` keeps every other file off that path
  
  3. **Audio Processing Pipeline**
     ```
-@@ -102,7 +115,9 @@
+-   Input Device → ModernAudioRecorder → AI Provider → ModernAudioPlayer → Output Device
++   Source (microphone, system audio, a tab) → runner → provider's adapter → L1 → playback → outputs
+    ```
+-   - `ModernAudioRecorder`: Captures input with echo cancellation, supports AudioWorklet with ScriptProcessor fallback
+-   - `ModernAudioPlayer`: Queue-based playback with event-driven processing and volume control
+-   - Unified audio service across all platforms with virtual device support in Electron (Linux only)
++   - `ModernAudioRecorder` (`src/lib/modern-audio/`): captures the microphone with echo
++     cancellation and noise suppression, AudioWorklet with a ScriptProcessor fallback
++   - Playback (`src/lib/audio/playback.ts`): a clip queue per leg and one for replay, the
++     routes kept live from the routing settings, the passthrough stream
++   - `src/lib/audio/appAudio.ts`: one graph per page, and the virtual output per platform
++     (Electron's virtual speaker, the extension's tabs, nothing on the web)
  
  4. **State Management**
     - **Zustand stores** in `src/stores/` for primary application state:
 -     - `settingsStore.ts`: Provider settings, API keys, validation state, UI mode
+-     - `sessionStore.ts`: Active session state and conversation items
 +     - `settingsStore.ts`: common settings (UI mode, text-only, segmentation, display
 +       modes) and Local Native's old slice
 +     - `providerStore.ts`: each provider's settings, credentials and language pair
-      - `sessionStore.ts`: Active session state and conversation items
++     - `sessionStore.ts`: the locked mode the kept old settings shell reads; nothing writes it
       - `audioStore.ts`: Audio device selection and playback state
       - `logStore.ts`: Application logs and diagnostics
-@@ -222,9 +237,11 @@
+-   - React Context for specific features: OnboardingContext, UserProfileContext
++   - React Context for specific features: UserProfileContext, PostHogContext
+    - Zustand's `subscribeWithSelector` middleware for efficient re-renders
+    - Backend-managed API key integration for authenticated providers
+ 
+-5. **Audio Service Management**
+-   - `ModernBrowserAudioService` provides unified audio handling
+-   - Cross-platform compatibility without virtual devices
+-   - Automatic device switching and reconnection, including dynamic switching during active sessions
++5. **Audio** (`src/lib/audio/`)
++   - The runner's sources (`capture/`): the microphone (`mic.ts`, over `ModernAudioRecorder`),
++     system audio, a tab — each following its device during a run
++   - The page's playback (`appAudio.ts`, `playback.ts`), the routing read live from
++     `audioStore`, `routingStore` and `turnModeStore`
+ 
+ 6. **Native runtime (`native/`)**
+    - One CMake super-project builds three engines on ONE pristine upstream ggml 0.22 behind
+@@ -222,12 +242,16 @@
  ### Code Organization
  - `src/components/` - Functional React components with TypeScript
  - `src/stores/` - Zustand state management stores
 -- `src/services/` - Service layer with interface contracts
 -- `src/services/clients/` - AI provider client implementations
 -- `src/services/providers/` - Provider-specific configurations
+-- `src/lib/modern-audio/` - Web Audio API modules (JavaScript, not TypeScript)
 +- `src/providers/<id>/` - One folder per provider: definition, adapter, `Settings` view
 +- `src/lib/contract/`, `src/lib/provider/`, `src/lib/session/` - The client contract, the
 +  definition's types, the runner
-+- `src/services/` - Settings and audio services; Local Native's old client and descriptor
++- `src/services/` - The settings service; Local Native's old client and descriptor
 +  (`clients/`, `providers/`) until kizuna-ai-lab/sokuji#578
- - `src/lib/modern-audio/` - Web Audio API modules (JavaScript, not TypeScript)
++- `src/lib/audio/` - The runner's sources (`capture/`) and the page's playback
++- `src/lib/modern-audio/` - The recorders (`ModernAudioRecorder`, the participant recorders)
++  and the echo monitor
  - `src/utils/` - Shared utilities including environment detection
- - `src/contexts/` - React Context providers (OnboardingContext, UserProfileContext)
-@@ -262,21 +279,26 @@
+-- `src/contexts/` - React Context providers (OnboardingContext, UserProfileContext)
++- `src/contexts/` - React Context providers (UserProfileContext, PostHogContext)
+ 
+ ### Error Handling
+ 
+@@ -262,21 +286,26 @@
    diagnostic logs are on (Help, off by default; `logStore` records nothing
    otherwise), so it is never the surface a user relies on.
  - **Don't record the same failure twice.** If it already reaches the panel by
@@ -13797,7 +14255,7 @@ diff --git a/CLAUDE.md b/CLAUDE.md
  - **Hot paths** (per-audio-chunk, per-frame, per-poll-tick) never log per
    occurrence: return silently, or report the ok → failing transition. Bursts pass
    `dedupeKey`; the panel throttles per key on a 5s window while the console still
-@@ -315,16 +337,16 @@
+@@ -315,21 +344,21 @@
  ### Zustand Store Patterns
  ```typescript
  // Using optimized selectors (preferred - prevents unnecessary re-renders)
@@ -13819,7 +14277,13 @@ diff --git a/CLAUDE.md b/CLAUDE.md
  );
  ```
  
-@@ -385,34 +407,13 @@
+ ### Audio Handling
+-- Always use ModernAudioPlayer/ModernAudioRecorder classes
++- Capture through the runner's sources (`src/lib/audio/capture/`, the microphone over `ModernAudioRecorder`); play through `src/lib/audio/playback.ts`
+ - Audio playback uses queue-based system with event-driven processing
+ - Passthrough audio uses dedicated 'passthrough' track ID for real-time monitoring (default volume: 30%)
+ - AudioWorklet preferred for processing, falls back to ScriptProcessor for compatibility
+@@ -385,34 +414,13 @@
  - **zustand**: State management with `subscribeWithSelector` middleware
  - **@floating-ui/react**: Advanced tooltip positioning and floating elements
  - **i18next & react-i18next**: Internationalization framework
@@ -13835,14 +14299,14 @@ diff --git a/CLAUDE.md b/CLAUDE.md
 -- **ws**: WebSocket client for real-time communication
 -
 -### livekit-client is version-capped by Palabra's server
-~ 18 more removed lines
+~ 18 more removed lines sha256:91097f52ed49
 -Before lifting the pin, confirm the server echoes the id — join a room and check that the
 -inbound `answer` has a non-zero `SessionDescription.id`.
 +- **ws**: WebSocket client for the development wire probes (`scripts/dev/wire-probe/`)
  
  ### Internationalization
  - Complete translations for 35+ languages
-@@ -423,16 +424,25 @@
+@@ -423,16 +431,26 @@
  ## Common Development Tasks
  
  ### Adding a New AI Provider
@@ -13865,8 +14329,9 @@ diff --git a/CLAUDE.md b/CLAUDE.md
 +   conformance suite `src/lib/contract/conformance.ts`), its `Settings` view, and tests.
 +2. One line in `src/providers/registry.ts`, whose order is the picker's, and the order
 +   tests: `registry.test.ts` pins the whole list, and a neighbour's `provider.test.ts`
-+   may pin its place. Its adapter gets a row in
-+   `src/providers/sessionSide.consistency.test.ts`.
++   may pin its place. `src/providers/sessionSide.consistency.test.ts` holds its adapter
++   automatically (it walks every `src/providers/*` folder); pin its session side there, as
++   the ports did.
 +3. `providers.<id>.name` and `.description` in the 30 locale catalogs — or under the
 +   definition's `i18nKey` where the catalogs already spell it otherwise — only when new.
 +4. The extension manifest, when it uses a host the manifest does not list yet: MV3
@@ -13878,7 +14343,38 @@ diff --git a/CLAUDE.md b/CLAUDE.md
  
  ### Adding a native model or TTS family
  
-@@ -662,7 +672,7 @@
+@@ -596,15 +614,17 @@
+ 
+ ### Dynamic Audio Device Switching
+ 1. Recording devices can be switched during active sessions without interrupting the session
+-2. Implemented via `switchRecordingDevice` method in `ModernBrowserAudioService`
+-3. MainPanel detects device changes via useEffect hook
++2. The microphone source (`openMic`, `src/lib/audio/capture/mic.ts`) reads its device and
++   noise suppression live (`MicSettings`, bound to `audioStore` in `src/lib/audio/appCapture.ts`);
++   when the device changes it ends the recorder and begins it again on the new one
++3. A switch in flight finishes before the source stops; a switch that fails ends the source
++   with its reason
+ 4. Important: Use `selectedInputDevice?.deviceId` string in React dependencies, not the full device object
+-5. The service tracks current device with `currentRecordingDeviceId` and handles reconnection automatically
+ 
+ ## UI Components
+ 
+ ### Simple Mode Components
+-- **SimpleConfigPanel**: 6-section configuration (account, language, translation, API key, mic, speaker)
++- **SimpleSettings** (`src/components/Settings/SimpleSettings/SimpleSettings.tsx`): the simple layout's settings — the session settings (`SessionSettingsGeneral` in `ProviderArea.tsx`: languages, speech, output switches, sentence segmentation, the provider picker), the microphone and speaker, system audio, help
+ - **MainPanel**: Unified conversation panel with `uiMode`-driven layout (basic: bubble messages + status footer, advanced: bubble messages + waveform footer with controls)
+ - **Tooltip**: @floating-ui/react powered tooltips with hover/click/focus triggers
+ - **ConnectionStatus**: Real-time connection state indicator
+@@ -612,7 +632,7 @@
+ ### UI Design System
+ - Dark theme with consistent styling across components
+ - Primary action color: `#10a37f` (green), Error state: `#e74c3c` (red)
+-- Component styles defined in colocated SCSS files (e.g., `SimpleConfigPanel.scss`)
++- Component styles defined in colocated SCSS files (e.g., `SimpleSettings.scss`)
+ - Lucide React icons with consistent sizing (14-16px)
+ 
+ ## Platform Requirements
+@@ -662,7 +682,7 @@
  
  ### Security Policy
  - Strict CSP configuration for extension pages
@@ -13887,7 +14383,7 @@ diff --git a/CLAUDE.md b/CLAUDE.md
  - PostHog analytics integration for usage tracking
  
  ## Authentication and API Key Management
-@@ -674,16 +684,19 @@
+@@ -674,16 +694,19 @@
  - **Cross-Platform**: Authentication works across Electron and browser extension
  
  ### API Key Types
@@ -13917,6 +14413,72 @@ diff --git a/CLAUDE.md b/CLAUDE.md
 +- **Auth client** (`src/lib/auth-client.ts`, `src/lib/auth/`): authentication state and
 +  session (Better Auth)
 \ No newline at end of file
+`````
+
+`CONTEXT.md`
+
+`````diff t11
+diff --git a/CONTEXT.md b/CONTEXT.md
+--- a/CONTEXT.md
++++ b/CONTEXT.md
+@@ -4,14 +4,14 @@
+ 
+ ## Provider domain
+ 
+-- **Provider** — one AI translation backend. The thirteen `ProviderConfigFactory` registers, in its registration order: the three Kizuna-managed ones (Soniox, OpenAI Translate, Volcengine AST2), Local Inference, Gemini, Volcengine AST2, OpenAI, OpenAI Translate, OpenAI Live, Soniox, OpenAI Compatible, Palabra, Local Native. Several are behind a feature flag or a platform gate, so a given build offers a subset. Identified by the `Provider` enum value. The enum value is an identifier only — the canonical persisted-settings location is the descriptor's `settingsSliceKey`, which may differ from it (e.g. `openai_compatible` → `openaiCompatible`; the kizuna twins point at their own dedicated slices).
+-- **ProviderDescriptor** — the deep module that answers *every* question about one provider: static config (`getConfig()`), client construction (`createClient`), credential extraction (`extractCredentials`), key validation (`validateAndFetchModels`), latest-model resolution, session-config building (`buildSessionConfig`), language rules (`resolveSourceLanguages` / `resolveTargetLanguages`), i18n name key, and its `settingsSliceKey`. One class per provider (`XProviderConfig`), registered centrally in the Provider Registry. Adding a provider means writing one descriptor and registering it, plus the small set of things that still live outside the descriptor: a `Provider` enum value, the settings slice type + its update action in `settingsStore`, and locale entries for the provider's name/description (see CLAUDE.md's "Adding a New AI Provider" recipe for the full checklist).
+-- **Provider Registry** — `ProviderConfigFactory`'s explicit static registration list, the single source of truth for which providers exist and are available on the current platform/build (feature flags and platform gates live only here). No module-side-effect self-registration.
+-- **Settings slice** — the persisted zustand slice holding one provider's user settings (e.g. `state.volcengineAST2`). The slice's TypeScript interface and defaults live in that provider's descriptor module; the store imports them. A descriptor names its slice via `settingsSliceKey` (kizuna twins reuse a base descriptor's builders but point at their own slice).
+-- **Credentials** — the normalized result of `extractCredentials`: `{ ok: true, primary, secret?, endpoint? } | { ok: false, missing }`. Each provider's raw fields (clientId/clientSecret, accessKeyId/secretAccessKey, appId/accessToken, apiKey/apiSecret, auth token) map into this shape inside its descriptor; callers never name provider-specific fields.
+-- **Kizuna twins (relay twins)** — `KIZUNA_AI_OPENAI_TRANSLATE` / `KIZUNA_AI_VOLCENGINE_AST2`: backend-managed variants that subclass a base provider's descriptor, reuse its session-config builder, but authenticate with a Better Auth session token via the relay (`getAuthToken()` — the async case of `extractCredentials`).
+-- **Local Inference vs Local Native** — two PEER providers, same rank as OpenAI or Gemini; NOT two adapters of one shared inference seam. Local Inference runs models in the browser (WASM/WebGPU workers, models in IndexedDB) so it works everywhere; Local Native runs the Python sidecar (WS-RPC, models on the filesystem) for better hardware utilization. They may offer similarly-named models built from the same base weights, but the model repos, runtimes, and readiness stores (`modelStore` vs `nativeModelStore`) are deliberately separate. The only abstractions they share are the ones every provider shares: `IClient` and `ProviderDescriptor`. Do not introduce a unifying layer between them.
+-- **SessionConfig** — the per-provider wire configuration handed to `IClient.connect()`. Built by the descriptor from its settings slice; cross-provider fields (`textOnly`, `keepReplayAudio`) are applied by the store shell after building.
++- **Provider** — one AI translation backend: a definition in `src/providers/<id>/`. The registry lists nine, in the picker's order: Kizuna AI (the managed Soniox), Local Inference, Gemini, Doubao AST 2.0 (Volcengine AST2), OpenAI Realtime, OpenAI Translate, OpenAI Live, Soniox, Palabra; development builds add the `fake` providers. Several are behind a feature flag, a platform or the Kizuna sign-in, so a given build offers a subset. Identified by the definition's `id`, the old `Provider` enum's spelling (`src/types/Provider.ts`) but for `localInference` (`LEGACY_PROVIDER_IDS`). The id is an identifier only — its settings persist under the definition's `settings.key`, the old slice key, which may differ from it (e.g. `openai_translate` → `openaiTranslate`; `LEGACY_SLICE_KEYS`, `src/lib/session/storedSettings.ts`). Local Native is not in the registry: it still runs the old path until kizuna-ai-lab/sokuji#578.
++- **Provider definition** — the object that answers *every* question about one provider (`Provider<S, K, C, R>`, `src/lib/provider/types.ts`): its settings (`key`, `defaults`, `legacyKeys`, `migrate`) and its `Settings` view, its credentials (`keys`, `fields`, `read`), its readiness `check`, its languages (`sources`, `targets`, `initial`, `reverse`), the capabilities generic code reads (`speech`, `textInput`, `boundaries`, `turns`), `build` / `describe` for one leg's config, `start` (its adapter) and optional session hooks. Adding a provider means one folder, one registry line and its order tests, and locale entries only when new (see CLAUDE.md's "Adding a New AI Provider" recipe for the full checklist). The old path's equivalent, **ProviderDescriptor** (`src/services/providers/ProviderDescriptor.ts`), survives only as `LocalNativeProviderConfig`, until #578.
++- **Provider Registry** — `src/providers/registry.ts`: one list in the picker's order, the single source of truth for which providers exist. `isPresent` (`src/lib/provider/presence.ts`) decides which a build and platform offer, from the definition's `platforms`, `kind`, `flagged` and `testerSwitch`: `VITE_ENABLED_PROVIDERS` names the flagged ones a release offers, `VITE_ENABLE_KIZUNA_AI` gates the managed one. No module-side-effect self-registration. The old registry, `ProviderConfigFactory`, holds Local Native alone until #578.
++- **Provider settings** — one provider's user settings (`S`), held by `providerStore` (`src/stores/providerStore.ts`) and stored under `settings.<key>.*`. A load reads each field of `defaults`, the credentials, the `legacyKeys` and the pair, runs `migrate`, and writes nothing back. `settingsStore` keeps the common settings and the old path's `localNative` slice.
++- **Credentials** — what a definition's `credentials.read(values, auth)` answers: the provider's own record (`R`), or `{ missing }` when a field is empty or the sign-in is absent. The credential form draws `credentials.fields(s)`; each value persists at `settings.<key>.<field>`, and callers never name provider-specific fields. The old path's `extractCredentials` shape is `LocalNativeProviderConfig`'s alone.
++- **Managed provider** — Kizuna AI's own service on a third-party engine: Kizuna Soniox (`kizunaai_soniox`, `src/providers/soniox/kizuna.ts`), `managed(base, …)` (`src/lib/provider/managed.ts`) over Soniox's definition — the sign-in in place of a key, and a lease (`lease.ts`) that buys each stream's key from the backend per run. The relay twins (`kizunaai_openai_translate`, `kizunaai_volcengine_ast2`) are deleted, not ported; a stored selection of one resolves to Kizuna Soniox (`MANAGED_LEGACY_IDS`, `src/lib/session/storedSettings.ts`).
++- **Local Inference vs Local Native** — two PEER providers, same rank as OpenAI or Gemini; NOT two adapters of one shared inference seam. Local Inference runs models in the browser (WASM/WebGPU workers, models in IndexedDB) so it works everywhere; Local Native runs the Python sidecar (WS-RPC, models on the filesystem) for better hardware utilization. They may offer similarly-named models built from the same base weights, but the model repos, runtimes, and readiness stores (`modelStore` vs `nativeModelStore`) are deliberately separate. Local Inference is a provider of the new structure (`src/providers/localInference/`); Local Native still runs the old path (`LocalNativeClient`, `LocalNativeProviderConfig`) until #578 ports it beside it. Do not introduce a unifying layer between them.
++- **Leg config** — what a provider's adapter starts one leg with (`C`): built by the definition's `build(context, s, shared)` from its settings and the run's shared settings, and handed to `start`. The old path's **SessionConfig** (`src/services/interfaces/IClient.ts`) is `LocalNativeSessionConfig` alone, handed to `IClient.connect()`.
+ 
+ ## Native sidecar model resolution
+ 
+@@ -21,9 +21,9 @@
+ 
+ ## Session domain
+ 
+-- **Client** — an `IClient` adapter speaking one provider's realtime protocol (11 adapters behind the `IClient` seam). Constructed only by its provider's descriptor.
++- **Adapter** — one leg's client of a provider's realtime protocol: `adapter.ts` in the provider's folder, implementing L0 (`src/lib/contract/adapter.ts`) — a started session emits segments, audio and lifecycle through `AdapterEvents` — and held to the conformance suite (`src/lib/contract/conformance.ts`). Reached only through its definition's `start`. The old path's **Client** (`IClient`, `src/services/interfaces/IClient.ts`) survives only as `LocalNativeClient`, until #578.
+ - **SidecarConnection** — the WS-RPC transport seam behind the Local Native clients (`ISidecarConnection` is the interface the clients depend on and tests substitute). Owns one socket to the Python sidecar and the mechanics every native client shared: connect, id-correlated request/reply, fire-and-forget send, outbound binary, and routing of un-correlated push messages. The *connection* is the unit, not a shared socket — each native stage client (ASR / translate / TTS / model) holds its own, because the sidecar routes binary frames and frees VRAM per-connection. Native-only: the browser (WASM) side of Local Inference talks to workers, not a sidecar, so it has no equivalent — do not generalize this into a cross-provider transport.
+-- **ConversationItem** — the unified transcript unit (user/assistant message with text/transcript/audio) that every client reduces provider events into.
++- **Segment** — the transcript unit: a source or translation segment with its text, speech and pairing, which L1 (`src/lib/conversation/Conversation.ts`, one per leg) folds an adapter's events into and L2 projects for the surfaces. The old path's **ConversationItem** (`IClient.ts`) is `LocalNativeClient`'s alone.
+ 
+ ## Extension domain
+ 
+`````
+
+`src/lib/diagnostics/report.ts`
+
+`````diff t11
+diff --git a/src/lib/diagnostics/report.ts b/src/lib/diagnostics/report.ts
+--- a/src/lib/diagnostics/report.ts
++++ b/src/lib/diagnostics/report.ts
+@@ -19,9 +19,11 @@
+  *     the owning store and a component renders it. A logger that can pop a
+  *     toast is how "which tier is this?" gets re-litigated at every call site.
+  *
+- * Not a sink for session-scoped client failures: inside an `IClient` session a
+- * client uses `handlers.onError` / `onDiagnostic` / `onRealtimeEvent`, because
+- * only MainPanel knows which channel (speaker/participant) it is.
++ * Not a sink for session-scoped failures: inside an adapter session an adapter
++ * says what happened through its events (`failed`, `degraded`, `frame`),
++ * because only the runner knows which leg it serves (CLAUDE.md, "Inside an
++ * adapter session"); Local Native's old `IClient` does the same through
++ * `handlers.onError` / `onDiagnostic` / `onRealtimeEvent`.
+  */
+ import useLogStore, { type ClientId } from '../../stores/logStore';
+ // Redaction is applied at the sink (`logStore.addLog`), not here, so it also
 `````
 
 `src/providers/gemini/adapter.ts`
@@ -14059,15 +14621,16 @@ diff --git a/src/providers/volcengine_ast2/adapter.ts b/src/providers/volcengine
 
 ### Wave 3 check (controller)
 
-After Task 11: the full gates — `npx vitest run src` at 531 + 1 files and 6 653 + 2 tests, 0 failed, no unhandled errors; `npx vitest run electron` 34 / 477; `npx vitest run extension` 9 / 56; the gate equal to the baseline file (16 lines); the full tree at 95. Then `git log --oneline -3` shows the wave's commits, one per task, and `git status --short` shows nothing of this plan's.
+After Task 11: the full gates — `npx vitest run src` at 532 + 1 files and 6 656 + 2 tests, 0 failed, no unhandled errors; `npx vitest run electron` 34 / 477; `npx vitest run extension` 9 / 56; the gate equal to `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-gate-baseline.txt` (16 lines); `python3 /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/tscdiff.py /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t00.txt /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t11.txt` reports `new 0` and `after 95`. Then `git log --oneline -3` shows the wave's commits, one per task, and `git status --short` shows nothing of this plan's.
 
 ---
+
 
 ### Group check (controller, after Wave 3)
 
 No step types a key or presses Start. Outputs under `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-group/`. The "before" numbers were measured on a scratch copy of `fa301e9a`, the "after" ones on the replay's result; the controller's own builds should match them to within a few kilobytes.
 
-- [ ] **The full gates:** `npx vitest run src` at 0 failed with no unhandled errors (the replay: 531 files passed and 1 skipped, 6 653 tests passed and 2 skipped); the gate equal to the 16-line baseline file; the full tree at 95. `npx vitest run electron`: 34 files, 477 tests; `npx vitest run extension`: 9 files, 56 tests.
+- [ ] **The full gates:** `npx vitest run src` at 0 failed with no unhandled errors (the replay: 532 files passed and 1 skipped, 6 656 tests passed and 2 skipped); the gate equal to this plan's 16-line baseline file; `python3 /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/tscdiff.py /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t00.txt /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tsc/t11.txt` reports `new 0` and `after 95`. `npx vitest run electron`: 34 files, 477 tests; `npx vitest run extension`: 9 files, 56 tests.
 - [ ] **Local Native's old path** (ruling 1): `npx vitest run src/services src/lib/local-inference/native src/components/Settings/sections/Native src/components/Settings/engine/useNativeEngineAdapter src/stores/nativeModelStore src/stores/settingsStore` — 39 files, 615 tests passed (at `fa301e9a`: 80 files, 1 499 tests; the difference is the deleted old code's own tests), 0 failed.
 - [ ] **The builds:** `npm run build`, then `npm run extension:build` (if `extension/node_modules` is missing, `npm ci --prefix extension` first); both exit 0.
 - [ ] **The D24 greps** print nothing, as at `fa301e9a`:
@@ -14082,35 +14645,16 @@ No step types a key or presses Start. Outputs under `/home/jiangzhuo/.claude/job
 
   | | `fa301e9a` | after Task 11 | change |
   |---|---|---|---|
-  | `build/` JavaScript | 10 842 039 | 9 490 969 | −1 351 070 (−12.5 %) |
-  | `build/` source maps | 26 459 933 | 21 323 086 | −5 136 847 |
-  | `build/` whole | 147 727 129 | 141 236 108 | −6 491 021 |
-  | `extension/dist/` JavaScript | 12 343 872 | 10 924 562 | −1 419 310 (−11.5 %) |
-  | `extension/dist/` whole | 114 683 547 | 113 261 212 | −1 422 335 |
+  | `build/` JavaScript | 10 842 039 | 9 478 819 | −1 363 220 (−12.6 %) |
+  | `build/` source maps | 26 459 933 | 21 309 238 | −5 150 695 |
+  | `build/` whole | 147 727 129 | 141 210 110 | −6 517 019 |
+  | `extension/dist/` JavaScript | 12 343 872 | 10 912 438 | −1 431 434 (−11.6 %) |
+  | `extension/dist/` whole | 114 683 547 | 113 249 088 | −1 434 459 |
 
-  The largest chunks move: the web build's `audioStore-*.js` (1 612 653 bytes, which carried the old clients) is gone and `index-*.js` grows from 1 222 236 to 1 724 126; the extension's `assets/settingsStore-*.js` shrinks from 1 852 148 to 342 108 and `fullpage.js` grows from 881 498 to 1 082 181 (the bundler regroups what stays). The rest (the model runtimes, wasm, fonts) is unchanged.
-- [ ] **Nothing new reaches the old path.** `git grep -nE "from '[^']*services/(clients|providers)/" -- src ':!src/services' ':!*.test.ts' ':!*.test.tsx'` prints exactly these fourteen lines — the kept shell, Local Native's store imports, and the shared types the new code takes (`LanguageOption`, `VoiceOption`, `guardAstCrossStage`, `AI_PROVIDERS_DOCS_URL`):
-
-  ```
-  src/components/Settings/sections/LanguageSection.tsx:20:import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
-  src/components/Settings/sections/LanguageSection.tsx:21:import { ProviderConfig } from '../../../services/providers/ProviderConfig';
-  src/components/Settings/sections/ProviderSection.tsx:20:import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
-  src/components/Settings/sections/ProviderSection.tsx:21:import { TUTORIAL_URLS } from '../../../services/providers/tutorialUrls';
-  src/components/SetupWizard/languageDefaults.ts:6:import type { LanguageOption } from '../../services/providers/ProviderConfig';
-  src/components/SetupWizard/steps/StepProviderPath.tsx:4:import { AI_PROVIDERS_DOCS_URL } from '../../../services/providers/tutorialUrls';
-  src/lib/local-inference/modelManifest.ts:3398:import type { LanguageOption } from '../../services/providers/ProviderConfig';
-  src/lib/soniox/ttsCatalog.ts:41:import type { VoiceOption } from '../../services/providers/ProviderConfig';
-  src/providers/localInference/check.ts:2:import { guardAstCrossStage } from '../../services/providers/astGuard';
-  src/providers/localInference/config.ts:5:import { guardAstCrossStage } from '../../services/providers/astGuard';
-  src/stores/settingsStore.ts:4:import {ProviderConfigFactory} from '../services/providers/ProviderConfigFactory';
-  src/stores/settingsStore.ts:32:} from '../services/providers/LocalNativeProviderConfig';
-  src/stores/settingsStore.ts:307:export { createParticipantLocalNativeConfig } from '../services/providers/localParticipantConfig';
-  src/utils/languages.ts:1:import { LanguageOption } from '../services/providers/ProviderConfig';
-  ```
-
-  The shell is still not mounted: `git grep -nE "<(ProviderSection|LanguageSection|ProviderSpecificSettings)\b" -- src ':!*.test.tsx'` prints nothing, as at `fa301e9a`. (It is compiled and evaluated: `src/components/Settings/index.ts:6` re-exports `./sections`, whose `index.ts:1-2` re-export the two sections.)
+  The largest chunks move: the web build's `audioStore-*.js` (1 612 653 bytes, which carried the old clients) is gone and `index-*.js` grows from 1 222 236 to 1 723 384; the extension's `assets/settingsStore-*.js` shrinks from 1 852 148 to 341 813 and `fullpage.js` grows from 881 498 to 1 082 029 (the bundler regroups what stays). The rest (the model runtimes, wasm, fonts) is unchanged.
+- [ ] **Nothing new reaches the old path** (ruling C11): the guard runs in every suite from Task 10 on — `npx vitest run src/providers/oldPath.consistency.test.ts`: 1 file, 3 tests passed. Its scan takes static imports and re-exports, side-effect imports, dynamic `import()` and `require()`, with the TypeScript parser; outside the old path's own files, the only value imports of `src/services/{clients,providers}/` are the three shared leaves (`ProviderConfig`, `astGuard`, `tutorialUrls`). The shell is still not mounted: `git grep -nE "<(ProviderSection|LanguageSection|ProviderSpecificSettings)\b" -- src ':!*.test.tsx'` prints nothing, as at `fa301e9a`. (It is compiled and evaluated: `src/components/Settings/index.ts:6` re-exports `./sections`, whose `index.ts:1-2` re-export the two sections.)
 - [ ] **Every provider's Settings, rendered, as at `fa301e9a`.** Two fresh vites, one on a scratch copy of `fa301e9a` (`git archive fa301e9a | tar -x -C /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-group/before`, `node_modules` and `extension/node_modules` linked from the worktree) on port 5198, one on the worktree on port 5199, each `SOKUJI_DEV_NO_ELECTRON=1 npx vite --port <port> --strictPort --force`, driven by `scripts/dev/headless.mjs` with `--use-fake-device-for-media-stream --use-fake-ui-for-media-stream --autoplay-policy=no-user-gesture-required`, each on its own fresh profile. Before the app loads, `Page.addScriptToEvaluateOnNewDocument` injects the tutorial harness's desktop fake, as the Stage 2 OpenAI Live plan's group check did: `window.electronAPI = {}` and a `window.electron` whose `invoke(channel, data)` records the channel and resolves `undefined` — but `get-audio-status` `{}`, `supports-system-audio-capture` `false`, `list-system-audio-sources` `[]` — with `on` / `receive` / `send` / `removeAllListeners` no-ops. `Network.enable` records every request. For each provider the picker offers — Kizuna AI (signed out), Local Inference, Gemini, Doubao AST 2.0, OpenAI Realtime, OpenAI Translate, OpenAI Live, Soniox, Palabra AI — choose it, open Settings (its panel sits in React's `<Activity>`), and record the settings panel's `innerText` in the simple and the advanced layout, and a screenshot. **The texts are identical before and after, provider by provider, layout by layout**; the screenshots differ by nothing but the build's hash; neither run sends a request to a provider's host (no key is typed). Then the same on each without the desktop fake (the web preview): the same providers but OpenAI Live, identical texts. Record the paths for Task 12.
-- [ ] **The gate's regex, trimmed** (choice 11): after Task 6 its alternative `services/(clients/(…)|providers/(…))\.ts|` names only deleted files. Remove it from `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh` (the new line is `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-plan/tools/oar-gate-new.sh`'s) and check the trimmed command prints the same 16 lines as the baseline file.
+- [ ] **The gate's regex, trimmed** (choice 11), if no other work still runs the gate against a tree that has the old files: after Task 6 its alternative `services/(clients/(…)|providers/(…))\.ts|` names only deleted files. Remove it from `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/oar-gate.sh` (the new line is `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-plan/tools/oar-gate-new.sh`'s) and check the trimmed command prints the same 16 lines as this plan's baseline file.
 - [ ] Stop both vites; record every number, grep and path for Task 12.
 
 ---
@@ -14131,14 +14675,16 @@ The controller's docs task, after the group check. It edits only the spec and th
   6. **"Migration", the relay twins' paragraph** (`:2564-2576`): append — "Both twins' old code is **deleted** by the Stage 2 deletion plan (Tasks 3 and 4); a stored selection of either still falls to Kizuna Soniox (`MANAGED_LEGACY_IDS`)."
   7. **"Risks"** (`:2711-2756`): add a bullet — "**The old path kept for Local Native** (Stage 2 deletion, ruling 1): `src/services/`, the unmounted settings shell and the `localNative` slice stay compiled and tested, working but unreachable but for `nativeModelStore`'s revalidation, until #578 ports Local Native; a change to a shared file must keep their tests green. The shell tolerates a stored provider its registry does not hold, and the old store's default stays an id that registry does not hold (Stage 2 deletion, choice 4)."
 - [ ] **Step 2: Write the roadmap's section.** Append `## Scheduled by the Stage 2 deletion plan` after "Stage 2 without Local Native: what remains", in the earlier sections' form:
-  - **What landed:** the plan's path and commit, the commit range and its `+/−` lines and files (`git diff --shortstat` over it: the replay's is 280 files, +1 098 −52 357, 142 files deleted), the waves as run, each task's review rounds, the group check with its numbers (the suites, the builds, the D24 greps, the absent strings, the bundle sizes, the render comparison's paths).
-  - **Departures, stated:** one deletion plan for every provider (ruling 2; ruling C7), where the roadmap scheduled one per provider; Local Native's old path kept whole (ruling 1); the shell reduced first (choice 1); `getRelayWsUrl` deleted and the `sokuji-auth.` redaction kept as a net (choice 6), where T2 left the choice open; the old AST2 rules swept by `sweepIds` rather than a separate start-up clear (ruling C3); `providerPath.test.ts`' `OPENAI_LIVE` row kept (ruling C1), where Live's inventory listed it; `providers.openaiCompatible.{name,description}` deleted (research note 7), `settings.{low,medium,high}` kept.
+  - **What landed:** the plan's path and commits (the first version `bb39151e`, Revision 1), the commit range and its `+/−` lines and files (`git diff --shortstat` over it: the replay's is 290 files, +1 296 −52 550, 142 files deleted, 1 created), the waves as run, each task's review rounds, the pre-flight's self-test, the group check with its numbers (the suites, the builds, the D24 greps, the absent strings, the bundle sizes, the render comparison's paths).
+  - **Departures, stated:** one deletion plan for every provider (ruling 2; ruling C7), where the roadmap scheduled one per provider; Local Native's old path kept whole (ruling 1); the shell reduced first (choice 1); `getRelayWsUrl` deleted and the `sokuji-auth.` redaction kept as a net (choice 6), where T2 left the choice open; the old AST2 rules swept by `sweepIds` rather than a separate start-up clear (ruling C3); `providerPath.test.ts`' `OPENAI_LIVE` row kept (ruling C1), where Live's inventory listed it; `providers.openaiCompatible.{name,description}` deleted (research note 7), `settings.{low,medium,high}` kept; the four client diagnostic codes no sender uses deleted from the contract's catalogue (ruling C17); `CONTEXT.md` rewritten with `CLAUDE.md` (ruling 9).
   - **The owner's follow-ups:**
     - delete the five repository variables (Settings → Secrets and variables → Actions → Variables on `kizuna-ai-lab/sokuji`), which no workflow reads now: `VITE_ENABLE_VOLCENGINE_AST2`, `VITE_ENABLE_PALABRA_AI`, `VITE_ENABLE_KIZUNA_SONIOX`, `VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE`, `VITE_ENABLE_KIZUNA_VOLCENGINE_AST2`. `VITE_ENABLE_KIZUNA_AI`, `VITE_ENABLE_LOCAL_NATIVE` and `VITE_ENABLED_PROVIDERS` stay;
-    - the open questions below.
+    - the 51 locale keys already unreferenced at `fa301e9a`, `settings.geminiParticipantTokenWarning` among them (the survey's §1.10): a follow-up, out of this plan (ruling C16);
+    - the open question below.
+  - **For the release that carries Stage 2** (ruling 10): `README.md`'s provider table (and its OpenAI Compatible row), `docs/*.html` and `docs/tutorials/*` (`docs/supported-ai-providers.html`, `docs/tutorials/cometapi-setup.html` and the rest that name the retired or deleted paths), `CHANGELOG.md`'s entry, and `.github/ISSUE_TEMPLATE/bug_report.yml`'s OpenAI Compatible block.
   - **Before any release from the branch:** nothing new — the deletion changes no behaviour a user reaches (the group check's render comparison).
-  - **The roadmap's inheritance, item by item,** **what it leaves** and **the open questions:** the three lists below, as landed.
-- [ ] **Step 3: Mark every earlier section's deletion items in place**, each "**Done** by the Stage 2 deletion plan (Task N)" — or "**Changed** by …" where it landed otherwise, with the reason — as the inheritance table below says: the Soniox section's "What that deletion must keep" (`:1753`); the Kizuna Soniox section's release-flag cleanup (`:2354-2357`), "The owner's paid live test … before Plan B2" (`:2358`), "Plan B2's inventory" (`:2406`) and "Plan B2 — deleting both Soniox providers' old code" (`:2500`); the Gemini section's "G2's inventory" (`:3061`) and "G2" (`:3121`); the Volcengine AST2 section's "V2's start-up clear of DNR rules 2000–2009" (`:3749`), "At Stage 2's end" (`:3755`), "V2's inventory" (`:3800`), the flag cleanup (`:3856`) and "V2" (`:3864`); the OpenAI Translate section's "At Stage 2's end" (`:4325`), "T2's inventory" (`:4386`), "T3's inventory" (`:4401`), the flag cleanup (`:4467`), "T2" and "T3" (`:4475-4476`); the OpenAI Realtime section's "The old code's deletion waits only for the two WebSocket live tests" (`:5103`), "The merged deletion inventory" (`:5259`) and "The merged deletion plan" (`:5357`); the Palabra section's `VITE_ENABLE_PALABRA_AI` item (`:6307`), "The deletion inventory" (`:6345`), its row naming the merged deletion (`:6428`) and "The Palabra deletion plan" (`:6445`); the session-end section's "The old clients' `session.closed`" (`:7584`); the OpenAI Live section's "The deletion inventory" (`:8006`) and "The old `OPENAI_LIVE_*` pair and the old code" (`:8177`); the last section's items 2 and 3 (`:8273-8282`).
+  - **The roadmap's inheritance, item by item,** **what it leaves** and **the open question:** the three lists below, as landed.
+- [ ] **Step 3: Mark every earlier section's deletion items in place**, each "**Done** by the Stage 2 deletion plan (Task N)" — or "**Changed** by …" / "**Left** by …" where it landed otherwise, with the reason — as the inheritance table below says: the Soniox section's "Deleting both providers' old code" (`:1752`) and "What that deletion must keep" (`:1753`); the Kizuna Soniox section's stated departure (`:2171`), its release-flag cleanup (`:2354-2357`), "The owner's paid live test … before Plan B2" (`:2358`), "Plan B2's inventory" (`:2406`) and "Plan B2 — deleting both Soniox providers' old code" (`:2500`); the Gemini section's "G2's inventory" (`:3061`) and "G2" (`:3121`); the Volcengine AST2 section's "V2's start-up clear of DNR rules 2000–2009" (`:3749`), "At Stage 2's end" (`:3755`), "V2's inventory" (`:3800`), the flag cleanup (`:3856`), "V2" (`:3864`) and "Generic frame names grouped under Doubao's Logs keys" (`:3872`, **Left**); the OpenAI Translate section's "At Stage 2's end" (`:4325`), "T2's inventory" (`:4386`), "T3's inventory" (`:4401`), the flag cleanup (`:4467`), "T2" and "T3" (`:4475-4476`); the OpenAI Realtime section's "The old code's deletion waits only for the two WebSocket live tests" (`:5103`), "The merged deletion inventory" (`:5259`) and "The merged deletion plan" (`:5357`); the Palabra section's `VITE_ENABLE_PALABRA_AI` item (`:6307`), "The deletion inventory" (`:6345`), its row naming the merged deletion (`:6428`) and "The Palabra deletion plan" (`:6445`); the session-end section's "The old clients' `session.closed`" (`:7584`); the OpenAI Live section's "The deletion inventory" (`:8006`) and "The old `OPENAI_LIVE_*` pair and the old code" (`:8177`); the last section's items 2 and 3 (`:8273-8282`).
 - [ ] **Step 4: Commit.**
 
 ```bash
@@ -14168,17 +14714,20 @@ Every deletion inventory the earlier sections hold, every "What it leaves" item 
 
 | Item | Disposition |
 |---|---|
+| Soniox, "Deleting both providers' old code" after Plan B's paid live test (`:1752`) | **Done**: Task 6 (the clients, descriptors, `sonioxBothMode.ts`, `ManagedSonioxSession`, the slices' readers, the MainPanel chips, the stubs — eight by then), and the shell's Soniox branches in Task 1. |
 | Soniox, "What that deletion must keep" (`:1753`) | **Kept**: every file it names is untouched but for the stubs' re-points (Task 6). |
+| Kizuna Soniox, stated departure: "its old client, descriptor, helpers, settings UI and store slices stay compiled and unreachable until Plan B2" (`:2171`) | **Done**: Task 6 (the shell's branches in Task 1). |
 | Kizuna Soniox, the release-flag cleanup at Stage 2's end (`:2354-2357`) | **Taken**: the five flags leave the code and CI (Tasks 3, 4, 6, 8; ruling 6); the repository variables are the owner's (Task 12). `VITE_ENABLE_KIZUNA_AI` stays. |
 | Kizuna Soniox, "The owner's paid live test … before Plan B2" (`:2358`) | **Met**: 18 of 18 (the roadmap's last section). |
 | Kizuna Soniox, "Plan B2's inventory" (`:2406-2498`) | **Taken whole**: Task 6 — re-points, then the clients, descriptors, helpers, split chips, stubs, `ClientOptions.sonioxManaged` and `IClient`'s Soniox config; the three shell tests in Task 1. Its typecheck note: the gate's old-client alternatives match nothing after Task 6 and are trimmed at the group check (choice 11). **Left:** `SonioxVoiceSection.test.tsx`'s seven full-tree lines (stale props, an unused `React`), which the re-point did not touch — not this plan's. |
 | Kizuna Soniox, "Plan B2 — deleting both Soniox providers' old code" (`:2500`) | **Done**: Task 6; the bundle grep for a string only the old client carried is the group check's (`SonioxClient`, `ManagedSonioxSession`). |
-| Gemini, "G2's inventory" (`:3061-3072`) | **Taken**: Task 5 (the shell's branches and `tutorialUrls.ts`' entry in Task 1); `@google/genai` stays (ruling C2); the stale comments go with their files or are corrected (`sanitizeEvent.ts`). **Left:** `settings.geminiParticipantTokenWarning`, unreferenced before this plan (open question 1). |
+| Gemini, "G2's inventory" (`:3061-3072`) | **Taken**: Task 5 (the shell's branches and `tutorialUrls.ts`' entry in Task 1); `@google/genai` stays (ruling C2); the stale comments go with their files or are corrected (`sanitizeEvent.ts`). **Left:** `settings.geminiParticipantTokenWarning`, unreferenced before this plan — a follow-up (ruling C16). |
 | Gemini, "G2" (`:3121`) | **Done**: Task 5. |
 | Volcengine AST2, "V2's start-up clear of DNR rules 2000–2009" (`:3749-3754`) | **Taken**, shaped by ruling C3: `sweepIds` takes the range at `onStartup` / `onInstalled` (Task 4). |
 | Volcengine AST2, "At Stage 2's end" (`:3755-3757`) and the flag cleanup (`:3856`) | **Taken**: Task 4. |
 | Volcengine AST2, "V2's inventory" (`:3800-3814`) | **Taken whole**: Task 4 (the shell's branches, `KIZUNA_HOSTED_ICONS` and `TUTORIAL_URLS`' entry in Task 1). Its "keep" list: `LEGACY_SLICE_KEYS` and `MANAGED_LEGACY_IDS` kept; `getRelayWsUrl` kept only while the OpenAI Translate twin used it — Task 3 deleted that twin first, so it goes here; the `sokuji-auth.` rule kept as a net (choice 6); `electron/main.js`' `ws-headers-set` / `ws-headers-clear` kept. |
 | Volcengine AST2, "V2" (`:3864`) | **Done**: Task 4. |
+| Volcengine AST2, "Generic frame names grouped under Doubao's Logs keys" (`:3872`), which names V2 as a natural moment to narrow Doubao's rows | **Left**: the grouping stays. The new adapter (`volcengine_ast2/adapter.ts`) is the only emitter of those names today (checked), so the rows are Doubao's alone; narrowing them is a Logs change, not this deletion's. Task 4 removes only the old client's names. |
 | OpenAI Translate, "At Stage 2's end" (`:4325`) and the flag cleanup (`:4467`) | **Taken**: Task 3. |
 | OpenAI Translate, "T2's inventory" (`:4386-4399`) | **Taken whole**: Task 3 (`KIZUNA_HOSTED_ICONS`' entry and the shell's twin branches in Task 1). "Once both twins are gone: `getRelayWsUrl` … delete, or keep the rule as a net": `getRelayWsUrl` deleted (Task 4), the rule kept (choice 6). |
 | OpenAI Translate, "T3's inventory" (`:4401-4413`) | **Taken** in the merged deletion, Task 7; its orphan keys: `settings.translateModelAvailable` (Task 7), `settings.translateSourceParticipantWarning` (Task 1); `settings.userTranscriptModel` / `settings.transcriptModelTooltip` kept (OpenAI Realtime reads them). |
@@ -14203,33 +14752,34 @@ Every deletion inventory the earlier sections hold, every "What it leaves" item 
 - **Local Native's old path**, compiled, tested and unreachable but for `nativeModelStore`'s revalidation, until kizuna-ai-lab/sokuji#578 ports it (ruling 1): `src/services/{clients,providers,interfaces}/`' survivors, the unmounted shell, the `localNative` slice, `settingsStore.validateApiKey`'s arm. #578 deletes them; its port also makes `descriptorRegistry.test.ts` (whose tables now hold Local Native alone), `participantConfig.test.ts` and `prepareToStart.local.test.ts` go.
 - **Comments in the keep set** that name the deleted code (choice 3; ruling 1 keeps those files unedited): e.g. `punctuateDefinite.ts`' header and `LocalNativeProviderConfig.ts`' notes on the other descriptors. And provenance citations in new code — `volcengine_ast2/settings.ts` citing `VolcengineAST2ProviderConfig.ts:8-31` — which name history at `fa301e9a`.
 - **Readers of old state that is now always its reset value**, harmless: `useStartBasicsTour` reads `settingsStore.isApiKeyValid`, which only Local Native's arm sets (as at `fa301e9a`, where only the unmounted shell called the others); `useCreateSessionConfig` has no caller.
-- **Four client diagnostic codes with no emitter:** `cleanup_failed`, `input_pipeline_failed`, `send_dropped` (their last emitters were the old clients) and `lease_notify_failed` (none even at `fa301e9a`) stay in `CLIENT_DIAGNOSTICS`, `noticeText.ts` and the catalogs: the catalogue is the contract's, and a new adapter may emit them.
-- **The released app's descriptions** (choice 12): `README.md`, `CONTEXT.md` (its glossary still describes the old registry and descriptors: open question 2), `docs/*.html`, `docs/tutorials/*`, `CHANGELOG.md`, `.github/ISSUE_TEMPLATE/bug_report.yml`' OpenAI Compatible block; `.gitignore`'s `/palabra-probe/` entry (the owner's local harness for the deleted LiveKit client, never committed).
+- **The released app's descriptions, for the release that carries Stage 2** (ruling 10; choice 12): `README.md`, `docs/*.html`, `docs/tutorials/*`, `CHANGELOG.md`, `.github/ISSUE_TEMPLATE/bug_report.yml`' OpenAI Compatible block — Task 12 lists them; and `.gitignore`'s `/palabra-probe/` entry (the owner's local harness for the deleted LiveKit client, never committed).
+- **`CONTEXT.md`'s native model resolution entries** (Model catalog card, Planner / Loader, Plan) still speak of sherpa-onnx voices and CUDA variant subdirectories, which predate the ggml-only sidecar; outside ruling 9's scope (the open question below).
+- **`CLAUDE.md` outside the passages Task 11 rewrites:** its "Audio Handling" and "Modifying Audio Pipeline" guidance beyond the class names, and the "virtual audio device management (Linux only)" statements under "Dual Platform Architecture" and "Platform Requirements", were not audited here.
+- **The diagnostics design's table** (`docs/superpowers/specs/2026-08-25-diagnostics-reporting-design.md:109-115`) still lists the four deleted codes: a record of #441 as designed, not a statement of the code.
 - **Values on disk** no reader reads (the table under "Stored keys"): nothing deletes a stored value (the owner's rule).
-- **51 locale keys unreferenced before this plan**, `settings.geminiParticipantTokenWarning` among them (open question 1).
+- **51 locale keys unreferenced before this plan**, `settings.geminiParticipantTokenWarning` among them — a follow-up (ruling C16).
 - **`SonioxVoiceSection.test.tsx`' seven full-tree lines**, untouched (the inheritance table).
 
 ## Open questions for the owner
 
-None blocks a task; each is left as it stands until he answers.
+The first version's four are ruled (Revision 1: rulings C16, 9, 10, C17). One remains; it blocks nothing.
 
-1. **The 51 locale keys already unreferenced at `fa301e9a`** (the survey's §1.10; G2 left `settings.geminiParticipantTokenWarning` to you): delete them in a follow-up, or keep them?
-2. **`CONTEXT.md`'s glossary** describes the old registry, descriptors, slices and `IClient` adapters. Ruling 7 named `CLAUDE.md` only: rewrite `CONTEXT.md` the same way?
-3. **The released app's descriptions** (`README.md`'s provider table, `bug_report.yml`'s OpenAI Compatible block, `docs/`): change them with the release that carries Stage 2?
-4. **The four client diagnostic codes with no emitter** (What this plan leaves): keep them in the contract's catalogue, or drop them and their notices?
+1. **`CONTEXT.md`'s native model resolution entries** (Model catalog card, Planner / Loader, Plan) describe sherpa-onnx voices and CUDA variant subdirectories, which predate the ggml-only sidecar. Ruling 9 covered the provider and session entries: rewrite these too, in a later change?
 
 ## Self-review
 
-- **The brief, item by item.** Rulings 1–8: 1 in every task (keep set read only, its gate), 2 in Tasks 2–8, 3 in Task 9, 4 in Task 7, 5 in Task 4, 6 in Tasks 3, 4, 6, 8 (and Task 12's variables), 7 in Task 11, 8 by no task touching `src/providers/fake/` and the D24 greps. C1 in Tasks 3, 4, 7 (the `OPENAI_LIVE` row and the cast strings kept); C2 in Task 5 (a no-op move, research note 2); C3 in Task 4; C4 in Tasks 1 and 10 (choice 4, research note 1); C5 in Task 2; C6 in Task 1; C7 is the task list. The constraints: no migration code (Global Constraints; the stored-keys table); nothing reachable changes (the group check's import grep, builds, strings and render comparison); comments cite rulings and choices only (the blocks were checked: every "(Stage 2 deletion, …)" citation names a ruling or a choice, and none a task, a review or the survey); every count measured by the replay (below); the group check's items and Task 12's are each a step.
-- **The inheritance:** every deletion inventory and "What it leaves" item naming the deletion has a row; the last section's four items too.
-- **The replay.** A fresh `git archive fa301e9a` with `node_modules` and `extension/node_modules` linked; for each task, its `git rm` list, `plan-apply.py` on this document's blocks for it, and its key command — then the tree compared file by file with the scratch history's (identical after all eleven tasks, with no hunk moved), then every gate. The counts in each task are that replay's. The builds and the bundle numbers were measured on a copy of `fa301e9a` and on the replay's result.
+- **The brief, item by item.** Rulings 1–10: 1 in every task (keep set read only, its gate), 2 in Tasks 2–8, 3 in Task 9, 4 in Task 7, 5 in Task 4, 6 in Tasks 3, 4, 6, 8 (and Task 12's variables), 7 in Task 11, 8 by no task touching `src/providers/fake/` and the D24 greps, 9 in Task 11, 10 in Task 12's release list. C1 in Tasks 3, 4, 7 (the `OPENAI_LIVE` row and the cast strings kept); C2 in Task 5 (a no-op move, research note 2); C3 in Task 4; C4 in Tasks 1 and 10 (choice 4, research note 1); C5 in Task 2; C6 in Task 1; C7 is the task list. The constraints: no migration code (Global Constraints; the stored-keys table); nothing reachable changes (the import guard in the suite, the builds, the absent strings and the render comparison); comments cite rulings and choices only (the blocks were checked: every "(Stage 2 deletion, …)" citation names a ruling or a choice, and none a task, a review or the survey); every count measured by the replay (below); the group check's items and Task 12's are each a step.
+- **The inheritance:** every deletion inventory and "What it leaves" item naming the deletion has a row — Revision 1 adds `:1752`, `:2171` and `:3872` — and the last section's four items too.
+- **The replay.** A fresh `git archive fa301e9a` with `node_modules` and `extension/node_modules` linked; for each task, its `git rm` list, `plan-apply.py` on this document's blocks for it, and its key command — then the tree compared file by file with the scratch history's (identical after all eleven tasks, every hunk at its header's line), then every gate, and `tscdiff.py` against the task before (`new 0` after every task). The counts in each task are that replay's. The builds and the bundle numbers were measured on a copy of `fa301e9a` and on the replay's result.
+- **Revision 1, finding by finding** (the review's, and the controller's rulings on them): I1 → ruling C8: the applier's hashes and occurrences, the pre-flight's file check, and the self-test (11 of 11 cases, the review's two mutants refusing: `run-edited`, `dup-unnamed`); M1, N4 → ruling C9, Tasks 2, 6, 8, 9, 10, 11, each task's check step grepping the old words; M2 → ruling C10, three rows and Task 12's list; M3 → ruling C11, Task 10's guard, which fails on the review's dynamic-import mutant and on a side-effect import (measured, then reverted); M4, N2 → ruling C12, Task 11 (with the false statements found beside them); M5 → ruling C13, the set gate in every task; M6 → rulings 10, C14, Task 12; N1, N3, N5 → ruling C15, Task 4, the key tool (its self-test cases `key-namespace`, `key-leaf`), the plan's own baseline file; open questions → rulings C16, 9, 10, C17 (Tasks 12, 11, 12, 10).
+- **Counts Revision 1 changed:** Task 2's shortstat (+49 −3 920), Task 6's (109 files, +117 −13 130), Task 8's (+21 −3 660), Task 9's (61 files, +223 −4 397), Task 10's (46 files, +179 −628, one file created, 5 keys) and Task 11's (11 files, +141 −116); the total (290 files, +1 296 −52 550; 44 keys); Task 10's and Task 11's suites (532 + 1 files and 6 656 + 2 tests: the guard's file and its three tests); the applier's per-task file counts (`t06` 35, `t09` 25, `t10` 15, `t11` 11). Unchanged: every other suite count, Local Native's, the gate's lines, and the full tree's count (95 at the end) — no task adds a tsc error, by the set gate.
 - **Placeholders:** none; every edit is in a block, every deletion in a `git rm` list, every key in a command.
 - **Names across tasks:** `OLD_AST2_RULE_ID_MIN` / `_MAX` (Task 4) are what `wsHeaderRule.test.ts` imports; `useWasmEngineAdapter(isSessionActive, override)` and the two components' props (Task 9) are what their tests and mounts pass; `validateApiKey()`'s signature narrows in Task 6 (`isSignedIn` gone) and Task 10 (`getAuthToken` gone), and each task's blocks update its callers; the gate baseline file changes in Tasks 1 and 10 only.
-- **Choices,** each with where it lands: 1 (Task 1), 2 (the order), 3 (every task's comment hunks), 4 (Tasks 1, 10), 5 (Tasks 6, 7, 10), 6 (Task 7), 7 (Task 4), 8 (Task 7), 9 (every task's test hunks), 10 (every key command), 11 (the group check), 12 (What this plan leaves).
+- **Choices,** each with where it lands: 1 (Task 1), 2 (the order), 3 (every task's comment hunks), 4 (Tasks 1, 10), 5 (Tasks 6, 7, 10), 6 (Task 7), 7 (Task 4), 8 (Task 7), 9 (every task's test hunks), 10 (every key command), 11 (the group check), 12 (What this plan leaves; Task 12's release list).
 
-## Appendix: the plan's two tools
+## Appendix: the plan's four tools
 
-Write each to `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/` if it is missing (Global Constraints). Both are outside the repository.
+Write each to `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/deletion-tools/` if it is missing (Global Constraints). All four are outside the repository.
 
 `plan-apply.py`:
 
@@ -14241,22 +14791,36 @@ Usage: python3 plan-apply.py <plan.md> <tag> [--check]
 
 Takes every block fenced as `````diff <tag> (five backticks) from the plan,
 in order, and applies it to the working tree (the current directory). A
-block is a unified diff, one or more files, each `diff --git a/P b/P`,
-`--- a/P`, `+++ b/P` and its hunks, with one addition: a line
-`~ N more removed lines` stands for N removed lines the plan does not
-print; the removed lines around it are printed and checked. Each hunk is
-matched at its header's line first, then anywhere in the file, and must
-match exactly once: context and removed lines byte for byte, no fuzz.
-Nothing is written unless every hunk of every file matches. --check
-applies nothing and reports what would change.
+block is a unified diff, one or more files: `diff --git a/P b/P`, then
+`--- a/P` (or `--- /dev/null` with `new file mode`, for a file to create),
+`+++ b/P` and the hunks. Two additions to the format:
+
+- `~ N more removed lines sha256:H` stands for N removed lines the plan does
+  not print; H is the first 12 hex digits of the SHA-256 of those lines
+  joined by newlines. They are removed only if they hash to H.
+- A hunk header may end `occurrence K of N`: the hunk's old side (context,
+  removed lines, hashed runs) occurs N times in the file as it stands, and
+  the hunk applies to the K-th. Without it, the old side must occur exactly
+  once.
+
+Every hunk's old side is matched against the whole file, byte for byte, the
+hashed runs included; the header's line number is only reported against.
+Nothing is written unless every hunk of every file matches; a file to create
+must not exist. --check applies nothing and reports what would change.
 """
+import hashlib
+import os
 import re
 import sys
 
 FENCE_OPEN = re.compile(r'^`````diff (\S+)\s*$')
 FENCE_CLOSE = '`````'
-HUNK = re.compile(r'^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@')
-SKIP = re.compile(r'^~ (\d+) more removed lines$')
+HUNK = re.compile(r'^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@(?: occurrence (\d+) of (\d+))?$')
+SKIP = re.compile(r'^~ (\d+) more removed lines sha256:([0-9a-f]{12})$')
+
+
+def run_hash(lines):
+    return hashlib.sha256('\n'.join(lines).encode('utf-8')).hexdigest()[:12]
 
 
 def blocks(plan, tag):
@@ -14281,14 +14845,21 @@ def parse(lines):
     for line in lines:
         if line.startswith('diff --git '):
             m = re.match(r'^diff --git a/(.*) b/(.*)$', line)
-            f = {'path': m.group(2), 'hunks': [], 'eol': None}
+            f = {'path': m.group(2), 'hunks': [], 'eol': None, 'new': False}
             files.append(f)
             h = None
+        elif h is None and line.startswith('new file mode'):
+            f['new'] = True
+        elif h is None and line == '--- /dev/null':
+            f['new'] = True
         elif h is None and (line.startswith('--- ') or line.startswith('+++ ')):
             continue
         elif line.startswith('@@'):
             m = HUNK.match(line)
-            h = {'at': int(m.group(1)), 'items': []}
+            if not m:
+                sys.exit(f'unreadable hunk header: {line!r}')
+            occ = (int(m.group(5)), int(m.group(6))) if m.group(5) else None
+            h = {'at': int(m.group(1)), 'occ': occ, 'items': []}
             f['hunks'].append(h)
         elif line == '\\ No newline at end of file':
             last = h['items'][-1][0]
@@ -14297,7 +14868,8 @@ def parse(lines):
             elif f['eol'] is None:
                 f['eol'] = True
         elif SKIP.match(line):
-            h['items'].append(('~', int(SKIP.match(line).group(1))))
+            m = SKIP.match(line)
+            h['items'].append(('~', (int(m.group(1)), m.group(2))))
         elif line[:1] in (' ', '-', '+'):
             h['items'].append((line[0], line[1:]))
         elif line == '':
@@ -14308,15 +14880,16 @@ def parse(lines):
 
 
 def matches(old, pos, items):
-    """The old side of `items` read at `pos`: its length, or None."""
+    """The old side of `items` read at `pos`, hashed runs included: its length, or None."""
     i = pos
     for kind, val in items:
         if kind == '+':
             continue
         if kind == '~':
-            i += val
-            if i > len(old):
+            n, digest = val
+            if i + n > len(old) or run_hash(old[i:i + n]) != digest:
                 return None
+            i += n
             continue
         if i >= len(old) or old[i] != val:
             return None
@@ -14331,14 +14904,21 @@ def apply_file(text, f):
         old.pop()
     out, pos, notes = [], 0, []
     for h in f['hunks']:
-        want = h['at'] - 1 if any(k != '+' for k, _ in h['items']) else h['at']
-        if want >= pos and matches(old, want, h['items']) is not None:
-            at = want
-        else:
-            found = [p for p in range(pos, len(old) + 1) if matches(old, p, h['items']) is not None]
+        found = [p for p in range(0, len(old) + 1) if matches(old, p, h['items']) is not None]
+        if not found:
+            sys.exit(f"{f['path']}: the hunk at line {h['at']} matches nowhere (a line, or a shortened run's hash, differs)")
+        if h['occ'] is None:
             if len(found) != 1:
-                sys.exit(f"{f['path']}: the hunk at line {h['at']} matches {len(found)} places")
+                sys.exit(f"{f['path']}: the hunk at line {h['at']} matches {len(found)} places, and names no occurrence")
             at = found[0]
+        else:
+            k, n = h['occ']
+            if len(found) != n:
+                sys.exit(f"{f['path']}: the hunk at line {h['at']} is occurrence {k} of {n}, but matches {len(found)} places")
+            at = found[k - 1]
+        if at < pos:
+            sys.exit(f"{f['path']}: the hunk at line {h['at']} matches before the hunk above it")
+        if at != h['at'] - 1:
             notes.append(f"{f['path']}: hunk at {h['at']} applied at {at + 1}")
         out.extend(old[pos:at])
         i = at
@@ -14348,7 +14928,7 @@ def apply_file(text, f):
             elif kind == '-':
                 i += 1
             elif kind == '~':
-                i += val
+                i += val[0]
             else:
                 out.append(val)
         pos = i
@@ -14358,6 +14938,19 @@ def apply_file(text, f):
     if out and eol:
         new += '\n'
     return new, notes
+
+
+def create_file(f):
+    lines = []
+    for h in f['hunks']:
+        for kind, val in h['items']:
+            if kind != '+':
+                sys.exit(f"{f['path']}: a file to create has a line that is not an addition")
+            lines.append(val)
+    text = '\n'.join(lines)
+    if lines and f['eol'] is not False:
+        text += '\n'
+    return text
 
 
 def main():
@@ -14370,8 +14963,16 @@ def main():
     if not found:
         sys.exit(f'no diff block tagged {tag}')
     files = parse([l for b in found for l in b])
+    paths = [f['path'] for f in files]
+    if len(set(paths)) != len(paths):
+        sys.exit(f'{tag}: a file is named twice')
     results = []
     for f in files:
+        if f['new']:
+            if os.path.exists(f['path']):
+                sys.exit(f"{f['path']}: a file to create already exists")
+            results.append((f['path'], create_file(f), []))
+            continue
         try:
             text = open(f['path'], encoding='utf-8').read()
         except FileNotFoundError:
@@ -14382,6 +14983,9 @@ def main():
         for n in notes:
             print(n)
         if not check:
+            d = os.path.dirname(path)
+            if d:
+                os.makedirs(d, exist_ok=True)
             open(path, 'w', encoding='utf-8').write(new)
     print(f"{tag}: {len(results)} files {'would change' if check else 'changed'}")
 
@@ -14395,7 +14999,8 @@ main()
 // Removes the named dotted keys from every catalog under src/locales/*/translation.json,
 // and any object a removal leaves empty. Each catalog is written back as
 // JSON.stringify(…, null, 2) plus a newline, the form every catalog is in.
-// Refuses (exit 1, nothing written) if a key is missing from any catalog.
+// Refuses (exit 1, nothing written) if a key is missing from any catalog, or
+// names a namespace rather than a string: only leaves are removed.
 // Usage: node drop-locale-keys.mjs <repo root> <key> [<key> …]
 import fs from 'node:fs';
 import path from 'node:path';
@@ -14407,26 +15012,28 @@ const catalogs = fs.readdirSync(dir)
   .filter((f) => fs.existsSync(f))
   .sort();
 
+// 'ok', 'missing' or 'not-a-leaf'.
 const drop = (obj, parts) => {
   const [head, ...rest] = parts;
-  if (!(head in obj)) return false;
+  if (obj === null || typeof obj !== 'object' || !(head in obj)) return 'missing';
   if (rest.length === 0) {
+    if (typeof obj[head] !== 'string') return 'not-a-leaf';
     delete obj[head];
-    return true;
+    return 'ok';
   }
   const child = obj[head];
-  if (typeof child !== 'object' || child === null) return false;
-  const ok = drop(child, rest);
-  if (ok && Object.keys(child).length === 0) delete obj[head];
-  return ok;
+  const result = drop(child, rest);
+  if (result === 'ok' && Object.keys(child).length === 0) delete obj[head];
+  return result;
 };
 
 const out = [];
 for (const file of catalogs) {
   const cat = JSON.parse(fs.readFileSync(file, 'utf8'));
   for (const key of keys) {
-    if (!drop(cat, key.split('.'))) {
-      console.error(`${path.relative(root, file)}: no key ${key}`);
+    const result = drop(cat, key.split('.'));
+    if (result !== 'ok') {
+      console.error(`${path.relative(root, file)}: ${result === 'missing' ? 'no key' : 'not a string leaf:'} ${key}`);
       process.exit(1);
     }
   }
@@ -14434,4 +15041,194 @@ for (const file of catalogs) {
 }
 for (const [file, text] of out) fs.writeFileSync(file, text);
 console.log(`${keys.length} keys removed from ${out.length} catalogs`);
+```
+
+`tscdiff.py`:
+
+```python
+#!/usr/bin/env python3
+"""The tsc errors in <after> that <before> does not have.
+
+Usage: python3 tscdiff.py <before.txt> <after.txt>
+
+Each file is `npx tsc --noEmit -p tsconfig.json` output. An error is its file,
+its code and the first 60 characters of its message, the position dropped (a
+deletion moves lines, and a message's tail can name a type the deletion
+narrowed); errors are counted as a multiset, so a second instance of a known
+error is new. Prints `before B after A; new N; gone G`, then one `NEW` line
+per new error. Exit status 1 when N > 0.
+"""
+import collections
+import re
+import sys
+
+LINE = re.compile(r'^(\S+?)\(\d+,\d+\): error (TS\d+): (.*)$')
+
+
+def load(path):
+    errors = collections.Counter()
+    for line in open(path, encoding='utf-8', errors='replace'):
+        m = LINE.match(line.rstrip('\n'))
+        if m:
+            errors[(m.group(1), m.group(2), m.group(3)[:60])] += 1
+    return errors
+
+
+if len(sys.argv) != 3:
+    sys.exit(__doc__)
+before, after = load(sys.argv[1]), load(sys.argv[2])
+new, gone = after - before, before - after
+print(f'before {sum(before.values())} after {sum(after.values())}; new {sum(new.values())}; gone {sum(gone.values())}')
+for (file, code, message), n in sorted(new.items()):
+    print('NEW', n, file, code, message)
+sys.exit(1 if new else 0)
+```
+
+`selftest.py`:
+
+```python
+#!/usr/bin/env python3
+"""The plan's tools, tested against the cases that must refuse.
+
+Usage: python3 selftest.py <scratch dir>
+
+Builds throwaway files in <scratch dir> (created, emptied first; never the
+repository), runs plan-apply.py and drop-locale-keys.mjs on them, and prints
+one line per case. Exit status 1 if any case does not behave as stated. The
+first two refusal cases are the review's mutants: an edit inside a shortened
+run, and a duplicated anchor that moved.
+"""
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+
+TOOLS = os.path.dirname(os.path.abspath(__file__))
+root = os.path.abspath(sys.argv[1])
+shutil.rmtree(root, ignore_errors=True)
+os.makedirs(root)
+results = []
+
+
+def h(lines):
+    return hashlib.sha256('\n'.join(lines).encode()).hexdigest()[:12]
+
+
+def write(rel, text):
+    p = os.path.join(root, rel)
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    open(p, 'w').write(text)
+
+
+def read(rel):
+    return open(os.path.join(root, rel)).read()
+
+
+def plan(name, body):
+    write(f'{name}.md', f'`````diff {name}\n{body}\n`````\n')
+    return os.path.join(root, f'{name}.md')
+
+
+def apply(name, body):
+    p = plan(name, body)
+    r = subprocess.run([sys.executable, os.path.join(TOOLS, 'plan-apply.py'), p, name], cwd=root, capture_output=True, text=True)
+    return r.returncode, (r.stdout + r.stderr).strip()
+
+
+def case(name, ok, detail):
+    results.append(ok)
+    print(f"{'ok  ' if ok else 'FAIL'} {name}: {detail}")
+
+
+# A 40-line file; the block removes lines 10-25, printed as three, a hashed run of eleven, two.
+lines = [f'line {i}' for i in range(1, 41)]
+text = '\n'.join(lines) + '\n'
+run = lines[12:23]
+m1 = '\n'.join([
+    'diff --git a/run.txt b/run.txt', '--- a/run.txt', '+++ b/run.txt',
+    '@@ -7,22 +7,6 @@',
+    ' line 7', ' line 8', ' line 9',
+    '-line 10', '-line 11', '-line 12',
+    f'~ 11 more removed lines sha256:{h(run)}',
+    '-line 24', '-line 25',
+    ' line 26', ' line 27', ' line 28',
+])
+
+write('run.txt', text)
+rc, out = apply('m1', m1)
+after = read('run.txt')
+case('run-intact', rc == 0 and 'line 15\n' not in after and 'line 9\nline 26\n' in after, 'a shortened run whose lines hash as printed is removed')
+
+write('run.txt', text.replace('line 15\n', 'line 15 IMPORTANT EDIT\n'))
+rc, out = apply('m1', m1)
+case('run-edited', rc != 0 and 'IMPORTANT EDIT' in read('run.txt') and 'matches nowhere' in out,
+     f'an edited line inside the run, the count kept, refuses and writes nothing ({out.splitlines()[-1]})')
+
+write('run.txt', text.replace('line 15\n', 'line 15\nline 15b\n'))
+rc, out = apply('m1', m1)
+case('run-grown', rc != 0 and 'line 15b' in read('run.txt'), 'a line inserted into the run refuses')
+
+# A four-line snippet twice; the hunk is written for the second copy.
+snippet = ['function f() {', '  return 1;', '}', '']
+dup = ['// head'] * 3 + snippet + ['// middle'] * 5 + snippet + ['// tail'] * 3
+dup_text = '\n'.join(dup) + '\n'
+second = 3 + len(snippet) + 5 + 1  # 1-based line of the second copy
+m2_body = [
+    'diff --git a/dup.txt b/dup.txt', '--- a/dup.txt', '+++ b/dup.txt',
+    '{header}',
+    ' function f() {', '-  return 1;', '+  return 2;', ' }', ' ',
+]
+unnamed = '\n'.join(m2_body).replace('{header}', f'@@ -{second},4 +{second},4 @@')
+named = '\n'.join(m2_body).replace('{header}', f'@@ -{second},4 +{second},4 @@ occurrence 2 of 2')
+moved = '\n'.join(['// inserted'] * 15 + dup) + '\n'
+
+write('dup.txt', moved)
+rc, out = apply('m2', unnamed)
+case('dup-unnamed', rc != 0 and read('dup.txt') == moved and 'names no occurrence' in out,
+     f'a duplicated anchor that moved, with no occurrence named, refuses ({out.splitlines()[-1]})')
+
+write('dup.txt', moved)
+rc, out = apply('m2', named)
+got = read('dup.txt').split('\n')
+first_at = got.index('function f() {')
+second_at = got.index('function f() {', first_at + 1)
+case('dup-named', rc == 0 and got[first_at + 1] == '  return 1;' and got[second_at + 1] == '  return 2;' and 'applied at' in out,
+     'the same hunk naming "occurrence 2 of 2" edits the second copy, and says it moved')
+
+write('dup.txt', moved + '\n'.join(snippet) + '\n')
+rc, out = apply('m2', named)
+case('dup-third-copy', rc != 0 and 'return 2' not in read('dup.txt'), 'a third copy makes "occurrence 2 of 2" refuse')
+
+# A file to create must not exist.
+create = '\n'.join(['diff --git a/new.txt b/new.txt', 'new file mode 100644', '--- /dev/null', '+++ b/new.txt', '@@ -0,0 +1,2 @@', '+one', '+two'])
+rc, out = apply('m3', create)
+case('create', rc == 0 and read('new.txt') == 'one\ntwo\n', 'a new file is created from its additions')
+rc, out = apply('m3', create)
+case('create-exists', rc != 0, 'creating a file that exists refuses')
+
+# All or nothing: the second file fails, the first is not written.
+write('a.txt', 'alpha\nbeta\ngamma\n')
+write('b.txt', 'one\ntwo\nthree\n')
+both = '\n'.join([
+    'diff --git a/a.txt b/a.txt', '--- a/a.txt', '+++ b/a.txt', '@@ -1,3 +1,3 @@', ' alpha', '-beta', '+BETA', ' gamma',
+    'diff --git a/b.txt b/b.txt', '--- a/b.txt', '+++ b/b.txt', '@@ -1,3 +1,3 @@', ' one', '-TWO', '+2', ' three',
+])
+rc, out = apply('m4', both)
+case('all-or-nothing', rc != 0 and read('a.txt') == 'alpha\nbeta\ngamma\n', 'a failing second file leaves the first unwritten')
+
+# The key tool: a namespace is refused, a leaf is removed.
+catalog = {'x': {'a': 'A', 'b': 'B'}, 'y': 'Y'}
+for loc in ('en', 'ja'):
+    write(f'src/locales/{loc}/translation.json', json.dumps(catalog, indent=2) + '\n')
+r = subprocess.run(['node', os.path.join(TOOLS, 'drop-locale-keys.mjs'), root, 'x'], capture_output=True, text=True)
+case('key-namespace', r.returncode != 0 and json.loads(read('src/locales/en/translation.json')) == catalog,
+     f'a namespace key refuses and writes nothing ({r.stderr.strip()})')
+r = subprocess.run(['node', os.path.join(TOOLS, 'drop-locale-keys.mjs'), root, 'x.a'], capture_output=True, text=True)
+case('key-leaf', r.returncode == 0 and json.loads(read('src/locales/ja/translation.json')) == {'x': {'b': 'B'}, 'y': 'Y'},
+     'a leaf is removed from every catalog')
+
+print(f'selftest: {sum(results)} of {len(results)} passed')
+sys.exit(0 if all(results) else 1)
 ```
