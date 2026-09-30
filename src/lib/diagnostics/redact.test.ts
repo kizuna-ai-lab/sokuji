@@ -27,7 +27,7 @@ describe('redact', () => {
     expect(redact('secret ek_a1b2c3d4e5f6g7 expired')).toBe('secret [REDACTED] expired');
   });
 
-  // GeminiClient.ts:138-139 — `${MODELS_ENDPOINT}?key=${apiKey}`. The parameter
+  // gemini/wire.ts `liveUrl` — `?key=${apiKey}`. The parameter
   // name stays so the reader knows which call failed.
   it('redacts credential query parameters but keeps the parameter name', () => {
     expect(redact('GET https://x/v1/models?key=AIzaSyB-example123&pageToken=abc'))

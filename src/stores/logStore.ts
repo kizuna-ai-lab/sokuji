@@ -27,21 +27,6 @@ export interface EventData {
     | 'session.notify_failed'
     | 'participant.warning'
     | 'participant.info'
-    // Gemini-specific top-level message types
-    | 'setupComplete'
-    | 'usageMetadata'
-    | 'toolCall'
-    | 'toolCallCancellation'
-    | 'goAway'
-    | 'sessionResumptionUpdate'
-    // Gemini-specific serverContent types
-    | 'serverContent.interrupted'
-    | 'serverContent.turnComplete'
-    | 'serverContent.generationComplete'
-    | 'serverContent.groundingMetadata'
-    | 'serverContent.modelTurn'
-    | 'serverContent.outputTranscription'
-    | 'serverContent.inputTranscription'
     // OpenAI server events (shared between beta and GA)
     | 'session.created' | 'session.updated'
     | 'conversation.created'
@@ -384,38 +369,33 @@ const useLogStore = create<LogStore>(
       else if (eventType === 'tts.audio') {
         groupingKey = 'soniox_tts_audio';
       }
-      // Gemini-specific grouping: the old client's names and the new adapter's
-      // domain.event frames (Stage 2 Gemini, ruling 12); the old names go with
-      // the old client. A key groups consecutive frames of one type: the
-      // store merges only events of the same type (the eventType check where
+      // Gemini's grouping: the adapter's domain.event frames (Stage 2 Gemini,
+      // ruling 12). A key groups consecutive frames of one type: the store
+      // merges only events of the same type (the eventType check where
       // entries merge), so a key two types share never merged them.
-      else if (eventType === 'serverContent.modelTurn' || eventType === 'serverContent.outputTranscription') {
-        // (the existing comment and key, unchanged: the deletion plan removes the old names)
-        groupingKey = 'gemini_model_turn';
-      }
       else if (eventType === 'server_content.model_turn') {
         groupingKey = 'gemini_model_turn';
       }
       else if (eventType === 'server_content.output_transcription') {
         groupingKey = 'gemini_output_transcription';
       }
-      else if (eventType === 'serverContent.interrupted' || eventType === 'server_content.interrupted') {
+      else if (eventType === 'server_content.interrupted') {
         // Group Gemini interruption events together
         groupingKey = 'gemini_interrupted';
       }
-      else if (eventType === 'serverContent.turnComplete' || eventType === 'server_content.turn_complete') {
+      else if (eventType === 'server_content.turn_complete') {
         // Group Gemini turn complete events together
         groupingKey = 'gemini_turn_complete';
       }
-      else if (eventType === 'serverContent.generationComplete' || eventType === 'server_content.generation_complete') {
+      else if (eventType === 'server_content.generation_complete') {
         // Group Gemini generation complete events together
         groupingKey = 'gemini_generation_complete';
       }
-      else if (eventType === 'usageMetadata' || eventType === 'server.usage_metadata') {
+      else if (eventType === 'server.usage_metadata') {
         // Group Gemini usage metadata events together
         groupingKey = 'gemini_usage_metadata';
       }
-      else if (eventType === 'serverContent.inputTranscription' || eventType === 'server_content.input_transcription') {
+      else if (eventType === 'server_content.input_transcription') {
         // Group Gemini input transcription events together
         groupingKey = 'gemini_input_transcription';
       }

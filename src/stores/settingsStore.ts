@@ -42,9 +42,6 @@ import {
   LEGACY_TRANSLATE_TRANSCRIPT_MODEL,
 } from '../services/providers/OpenAITranslateProviderConfig';
 import {
-  GeminiSettings, defaultGeminiSettings,
-} from '../services/providers/GeminiProviderConfig';
-import {
   PalabraAISettings, defaultPalabraAISettings,
 } from '../services/providers/PalabraAIProviderConfig';
 import {
@@ -77,14 +74,14 @@ function msgForNativeReason(reason: NativeReadinessReason): string {
 
 export type {
   OpenAISettings, OpenAICompatibleSettings, OpenAICompatibleSettingsBase,
-  OpenAITranslateSettings, GeminiSettings, PalabraAISettings,
+  OpenAITranslateSettings, PalabraAISettings,
   LocalInferenceSettings, LocalNativeSettings, SonioxSettings,
 };
 
 // Union of every provider's settings slice — the return type of
 // getCurrentProviderSettings, resolved dynamically via the active descriptor.
 export type ProviderSettingsUnion =
-  | OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings
+  | OpenAISettings | OpenAICompatibleSettings | PalabraAISettings
   | OpenAITranslateSettings
   | LocalInferenceSettings | LocalNativeSettings | SonioxSettings;
 
@@ -274,7 +271,6 @@ export interface SettingsStore {
 
   // Provider-specific settings
   openai: OpenAISettings;
-  gemini: GeminiSettings;
   openaiCompatible: OpenAICompatibleSettings;
   palabraai: PalabraAISettings;
   openaiTranslate: OpenAITranslateSettings;
@@ -400,7 +396,6 @@ export interface SettingsStore {
 
   // Provider settings actions
   updateOpenAI: (settings: Partial<OpenAISettings>) => void;
-  updateGemini: (settings: Partial<GeminiSettings>) => void;
   updateOpenAICompatible: (settings: Partial<OpenAICompatibleSettings>) => void;
   updatePalabraAI: (settings: Partial<PalabraAISettings>) => void;
   updateOpenAITranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
@@ -632,7 +627,6 @@ const forceWebrtcTurnDetectionOff = (patch: Record<string, unknown>): Record<str
 
 const PROVIDER_SLICE_REGISTRY = {
   openai: { defaults: defaultOpenAISettings, transformPatch: forceWebrtcTurnDetectionOff },
-  gemini: { defaults: defaultGeminiSettings },
   openaiCompatible: { defaults: defaultOpenAICompatibleSettings, transformPatch: forceWebrtcTurnDetectionOff },
   palabraai: { defaults: defaultPalabraAISettings },
   openaiTranslate: { defaults: defaultOpenAITranslateSettings },
@@ -677,7 +671,6 @@ const useSettingsStore = create<SettingsStore>()(
     // === Initial State ===
     ...defaultCommonSettings,
     openai: defaultOpenAISettings,
-    gemini: defaultGeminiSettings,
     openaiCompatible: defaultOpenAICompatibleSettings,
     palabraai: defaultPalabraAISettings,
     openaiTranslate: defaultOpenAITranslateSettings,
@@ -939,7 +932,6 @@ const useSettingsStore = create<SettingsStore>()(
 
     // === Provider Settings Actions ===
     updateOpenAI: (settings) => updateProviderSlice(set, 'openai', settings),
-    updateGemini: (settings) => updateProviderSlice(set, 'gemini', settings),
     updateOpenAICompatible: (settings) => updateProviderSlice(set, 'openaiCompatible', settings),
     updatePalabraAI: (settings) => updateProviderSlice(set, 'palabraai', settings),
     updateOpenAITranslate: (settings) => updateProviderSlice(set, 'openaiTranslate', settings),
@@ -1152,9 +1144,6 @@ const useSettingsStore = create<SettingsStore>()(
               switch (provider) {
                 case Provider.OPENAI:
                   get().updateOpenAI({ model: latestModel });
-                  break;
-                case Provider.GEMINI:
-                  get().updateGemini({ model: latestModel });
                   break;
                 case Provider.OPENAI_COMPATIBLE:
                   get().updateOpenAICompatible({ model: latestModel });
@@ -1496,7 +1485,6 @@ export const useParticipantSystemInstructions = () => useSettingsStore((state) =
 
 // Provider settings
 export const useOpenAISettings = () => useSettingsStore((state) => state.openai);
-export const useGeminiSettings = () => useSettingsStore((state) => state.gemini);
 export const useOpenAICompatibleSettings = () => useSettingsStore((state) => state.openaiCompatible);
 export const usePalabraAISettings = () => useSettingsStore((state) => state.palabraai);
 export const useOpenAITranslateSettings = () => useSettingsStore((state) => state.openaiTranslate);
@@ -1576,7 +1564,6 @@ export const useSetUseTemplateMode = () => useSettingsStore((state) => state.set
 export const useSetParticipantSystemInstructions = () => useSettingsStore((state) => state.setParticipantSystemInstructions);
 
 export const useUpdateOpenAI = () => useSettingsStore((state) => state.updateOpenAI);
-export const useUpdateGemini = () => useSettingsStore((state) => state.updateGemini);
 export const useUpdateOpenAICompatible = () => useSettingsStore((state) => state.updateOpenAICompatible);
 export const useUpdatePalabraAI = () => useSettingsStore((state) => state.updatePalabraAI);
 export const useUpdateOpenAITranslate = () => useSettingsStore((state) => state.updateOpenAITranslate);

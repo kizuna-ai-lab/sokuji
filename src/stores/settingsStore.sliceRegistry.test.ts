@@ -28,7 +28,6 @@ const { default: useSettingsStore } = await import('./settingsStore');
 
 /** action name → [sliceKey, sample patch] for the plain (no-special-case) slices */
 const PLAIN: Array<[string, string, Record<string, unknown>]> = [
-  ['updateGemini', 'gemini', { apiKey: 'k1' }],
   ['updatePalabraAI', 'palabraai', { clientId: 'c1' }],
   ['updateOpenAITranslate', 'openaiTranslate', { apiKey: 'k2' }],
   ['updateLocalInference', 'localInference', { ttsSpeed: 1.5 }],
@@ -107,7 +106,6 @@ describe('provider settings update actions (behavior lock)', () => {
   // channels are exercised because the service can produce either.
   const ALL_SLICES: Array<[string, string, Record<string, unknown>]> = [
     ['updateOpenAI', 'openai', { apiKey: 'x' }],
-    ['updateGemini', 'gemini', { apiKey: 'x' }],
     ['updateOpenAICompatible', 'openaiCompatible', { apiKey: 'x' }],
     ['updatePalabraAI', 'palabraai', { clientId: 'x' }],
     ['updateOpenAITranslate', 'openaiTranslate', { apiKey: 'x' }],
@@ -143,13 +141,13 @@ describe('provider settings update actions (behavior lock)', () => {
     resetReportThrottle();
     setSetting.mockResolvedValue({ success: false, error: 'disk full' } as never);
 
-    await (useSettingsStore.getState() as any).updateGemini({ apiKey: 'x', sourceLanguage: 'ja' });
+    await (useSettingsStore.getState() as any).updateLocalNative({ sourceLanguage: 'ja', targetLanguage: 'en' });
     await settleReports();
 
     const messages = useLogStore.getState().allLogs.map((l) => l.message);
     expect(messages).toEqual([
-      '[Settings] Could not save settings.gemini.apiKey: disk full',
-      '[Settings] Could not save settings.gemini.sourceLanguage: disk full',
+      '[Settings] Could not save settings.localNative.sourceLanguage: disk full',
+      '[Settings] Could not save settings.localNative.targetLanguage: disk full',
     ]);
     useLogStore.getState().clearLogs();
   });
@@ -162,7 +160,7 @@ describe('provider settings update actions (behavior lock)', () => {
     const s = useSettingsStore.getState() as any;
     // Spot every slice key is a populated object after load.
     for (const sliceKey of [
-      'openai', 'gemini', 'openaiCompatible', 'palabraai', 'openaiTranslate',
+      'openai', 'openaiCompatible', 'palabraai', 'openaiTranslate',
       'localInference', 'localNative',
     ]) {
       expect(s[sliceKey], sliceKey).toBeTypeOf('object');

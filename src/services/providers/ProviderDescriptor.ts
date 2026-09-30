@@ -323,14 +323,10 @@ export interface ProviderDescriptor {
    * indifferent to an `auto` source, because nothing has to be swapped.
    * Base: false — most providers carry direction in the system instruction.
    *
-   * The two here are not:
+   * The one here is not:
    * - **Soniox** reverses `sourceLanguage`/`targetLanguage` directly.
-   * - **Gemini Live Translate** reverses `translationConfig.targetLanguageCode`,
-   *   which overrules the instruction, so the instruction swap cannot stand in
-   *   for it. Only the translate models — the dialogue Live models carry
-   *   direction in the instruction like everyone else.
    *
-   * For both, an `auto` source would reverse into the literal `auto` as the
+   * For it, an `auto` source would reverse into the literal `auto` as the
    * participant's translate target, which is not a language. Callers require a
    * concrete source language whenever a participant channel is in scope; see
    * `computeStartGate`'s `autoSourceParticipantBlocked`.

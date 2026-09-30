@@ -5,8 +5,8 @@
  * old client built (`GeminiClient.ts:490-574`) — equals `setupFrame`, and
  * its URL `liveUrl`. The SDK's browser build opens a global `WebSocket`,
  * stubbed here with `FakeSocket`: it connects nowhere (ruling 14). The one
- * value import of `@google/genai` outside the old client; the deletion
- * plan decides its fate.
+ * value import of `@google/genai`, which stays a development dependency for
+ * it and for the server types (Stage 2 deletion, ruling C2).
  */
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { ActivityHandling, EndSensitivity, GoogleGenAI, Modality, StartSensitivity, type LiveConnectConfig } from '@google/genai/web';

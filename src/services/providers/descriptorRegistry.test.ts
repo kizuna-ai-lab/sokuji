@@ -21,7 +21,6 @@ import { Provider } from '../../types/Provider';
 import { defaultOpenAISettings } from './OpenAIProviderConfig';
 import { defaultOpenAICompatibleSettings } from './OpenAICompatibleProviderConfig';
 import { defaultOpenAITranslateSettings } from './OpenAITranslateProviderConfig';
-import { defaultGeminiSettings } from './GeminiProviderConfig';
 import { defaultPalabraAISettings } from './PalabraAIProviderConfig';
 import { defaultLocalNativeSettings } from './LocalNativeProviderConfig';
 import { defaultLocalInferenceSettings } from './LocalInferenceProviderConfig';
@@ -37,7 +36,6 @@ const DEFAULTS_BY_SLICE: Record<string, unknown> = {
   openai: defaultOpenAISettings,
   openaiCompatible: defaultOpenAICompatibleSettings,
   openaiTranslate: defaultOpenAITranslateSettings,
-  gemini: defaultGeminiSettings,
   palabraai: defaultPalabraAISettings,
   localInference: defaultLocalInferenceSettings,
   localNative: defaultLocalNativeSettings,
@@ -48,7 +46,7 @@ const DEFAULTS_BY_SLICE: Record<string, unknown> = {
 describe('provider registry descriptors', () => {
   it('returns a descriptor for every available provider', () => {
     const ids = ProviderConfigFactory.getAvailableProviders();
-    expect(ids.length).toBe(9);
+    expect(ids.length).toBe(8);
     for (const id of ids) {
       const d = ProviderConfigFactory.getDescriptor(id);
       expect(d.getConfig().id).toBe(id);
@@ -165,7 +163,7 @@ describe('descriptor.buildSessionConfig', () => {
     // Expected wire tags (kizuna twins reuse their base tag; compatible uses 'openai').
     const wireTag: Record<string, string> = {
       openai: 'openai', openai_compatible: 'openai', openai_translate: 'openai_translate',
-      gemini: 'gemini', palabraai: 'palabraai',
+      palabraai: 'palabraai',
       local_inference: 'local_inference',
       local_native: 'local_native',
       soniox: 'soniox', kizunaai_soniox: 'soniox',
@@ -177,11 +175,6 @@ describe('descriptor.buildSessionConfig', () => {
     }
   });
 
-  it('gemini config carries VAD tuning through', () => {
-    const cfg: any = ProviderConfigFactory.getDescriptor(Provider.GEMINI)
-      .buildSessionConfig({ ...defaultGeminiSettings, vadSilenceDurationMs: 900 }, 'sys');
-    expect(cfg.vadSilenceDurationMs).toBe(900);
-  });
 });
 
 describe('descriptor language rules', () => {
@@ -191,8 +184,9 @@ describe('descriptor language rules', () => {
   });
 
   it('default providers pass their config languages through', () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.GEMINI);
-    expect(d.resolveSourceLanguages()).toBe(d.getConfig().languages);
+    // Local Native builds its config on each call, so the pass-through is by value.
+    const d = ProviderConfigFactory.getDescriptor(Provider.LOCAL_NATIVE);
+    expect(d.resolveSourceLanguages()).toEqual(d.getConfig().languages);
   });
 });
 
@@ -222,7 +216,6 @@ describe('registry invariants', () => {
     [Provider.OPENAI]: 'openai',
     [Provider.OPENAI_COMPATIBLE]: 'openaiCompatible',
     [Provider.OPENAI_TRANSLATE]: 'openaiTranslate',
-    [Provider.GEMINI]: 'gemini',
     [Provider.PALABRA_AI]: 'palabraai',
     [Provider.LOCAL_INFERENCE]: 'localInference',
     // Registered only under Electron with its gate on — both forced on by
@@ -245,7 +238,6 @@ describe('registry invariants', () => {
     [Provider.OPENAI]: true,
     [Provider.OPENAI_COMPATIBLE]: true,
     [Provider.OPENAI_TRANSLATE]: true,
-    [Provider.GEMINI]: false,
     [Provider.PALABRA_AI]: false,
     [Provider.LOCAL_INFERENCE]: false,
     [Provider.LOCAL_NATIVE]: false,
@@ -283,7 +275,6 @@ describe('S1 capability flags', () => {
   const PUSH_GATED: Partial<Record<Provider, string[] | undefined>> = {
     [Provider.OPENAI]: ['Disabled', 'Push-to-Translate'],
     [Provider.OPENAI_COMPATIBLE]: ['Disabled', 'Push-to-Translate'], // inherited from OpenAI via ...base
-    [Provider.GEMINI]: ['Push-to-Talk', 'Push-to-Translate'],
     [Provider.LOCAL_INFERENCE]: ['Push-to-Talk', 'Push-to-Translate'],
     [Provider.LOCAL_NATIVE]: ['Push-to-Talk', 'Push-to-Translate'],
     [Provider.OPENAI_TRANSLATE]: undefined,
@@ -295,7 +286,6 @@ describe('S1 capability flags', () => {
   const TEXT_INPUT: Partial<Record<Provider, boolean | undefined>> = {
     [Provider.OPENAI]: true,
     [Provider.OPENAI_COMPATIBLE]: true, // inherited
-    [Provider.GEMINI]: true,
     [Provider.LOCAL_INFERENCE]: true,
     [Provider.LOCAL_NATIVE]: true,
     [Provider.OPENAI_TRANSLATE]: undefined,
@@ -310,7 +300,6 @@ describe('S1 capability flags', () => {
   const PTT_FINALIZATION: Partial<Record<Provider, { silenceTailFrames?: number; response: string } | undefined>> = {
     [Provider.LOCAL_INFERENCE]: { silenceTailFrames: 7, response: 'always' },
     [Provider.LOCAL_NATIVE]: { silenceTailFrames: 7, response: 'always' },
-    [Provider.GEMINI]: { response: 'voice-gated-cancel' },
     [Provider.OPENAI]: undefined,
     [Provider.OPENAI_COMPATIBLE]: undefined,
     [Provider.OPENAI_TRANSLATE]: undefined,
@@ -326,7 +315,6 @@ describe('S1 capability flags', () => {
     // Their own silence timers cut the bubble, and the user tunes them, so
     // Auto here would be the pause mode wearing another name.
     [Provider.OPENAI_TRANSLATE]: { pause: true, auto: false, sizes: true },
-    [Provider.GEMINI]: { pause: true, auto: false, sizes: true },
 
     // 1-5 is what slice 3 shipped on the local engines; phase 2 adds Auto,
     // where the VAD utterance is the boundary someone else already decided
@@ -363,7 +351,6 @@ describe('S1 capability flags', () => {
     [Provider.OPENAI]: true,
     [Provider.OPENAI_COMPATIBLE]: true, // inherited via ...base
     [Provider.OPENAI_TRANSLATE]: false,
-    [Provider.GEMINI]: false,
     [Provider.PALABRA_AI]: false,
     [Provider.SONIOX]: false,
     [Provider.KIZUNA_AI_SONIOX]: false,
@@ -468,7 +455,6 @@ describe('S1 capability flags', () => {
   // copy of the same assertion per provider.
   const PAUSE_FIELDS: Partial<Record<Provider, [source: string, translation: string]>> = {
     [Provider.OPENAI_TRANSLATE]: ['userSilenceTimeoutMs', 'assistantSilenceTimeoutMs'],
-    [Provider.GEMINI]: ['inputSegmentSilenceMs', 'assistantSegmentSilenceMs'],
   };
 
   // A2: one stored pause pair, in seconds, converted to milliseconds at the
@@ -629,24 +615,15 @@ describe('legacy façade credential guards (deprecated ClientOperations/ClientFa
 
 describe('S3 reversesDirectionViaSourceLanguage', () => {
   const TRANSLATE = 'gemini-3.5-live-translate-preview';
-  const DIALOGUE = 'gemini-3.1-flash-live-preview';
 
   it('true for Soniox and its managed twin regardless of model', () => {
     expect(ProviderConfigFactory.getDescriptor(Provider.SONIOX).reversesDirectionViaSourceLanguage(undefined)).toBe(true);
     expect(ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_SONIOX).reversesDirectionViaSourceLanguage(undefined)).toBe(true);
   });
 
-  it('gemini: only the live-translate models', () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.GEMINI);
-    expect(d.reversesDirectionViaSourceLanguage(TRANSLATE)).toBe(true);
-    expect(d.reversesDirectionViaSourceLanguage(DIALOGUE)).toBe(false);
-    expect(d.reversesDirectionViaSourceLanguage(undefined)).toBe(false);
-    expect(d.reversesDirectionViaSourceLanguage('')).toBe(false);
-  });
-
   it('false for every other descriptor, any model', () => {
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
-      if ([Provider.SONIOX, Provider.KIZUNA_AI_SONIOX, Provider.GEMINI].includes(id)) continue;
+      if ([Provider.SONIOX, Provider.KIZUNA_AI_SONIOX].includes(id)) continue;
       const d = ProviderConfigFactory.getDescriptor(id);
       expect(d.reversesDirectionViaSourceLanguage(TRANSLATE), `${id}`).toBe(false);
       expect(d.reversesDirectionViaSourceLanguage(undefined), `${id}`).toBe(false);

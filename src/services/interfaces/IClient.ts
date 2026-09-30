@@ -139,47 +139,6 @@ export interface OpenAITranslateSessionConfig extends BaseSessionConfig {
 }
 
 /**
- * Gemini-specific session configuration
- */
-export interface GeminiSessionConfig extends BaseSessionConfig {
-  provider: 'gemini';
-  turnDetectionMode: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
-  vadStartSensitivity: 'high' | 'low';
-  vadEndSensitivity: 'high' | 'low';
-  vadSilenceDurationMs: number;
-  vadPrefixPaddingMs: number;
-  /**
-   * Set only for the Live Translate models, where it — not the system
-   * instruction — is what pins the output language. Absent for the dialogue
-   * models, which carry their direction in the instruction. Built by
-   * buildGeminiTranslationConfig; see geminiTranslateModel.ts.
-   */
-  translationConfig?: {
-    targetLanguageCode: string;
-    echoTargetLanguage: boolean;
-  };
-  /**
-   * The short code for the direction's *other* end, carried for the
-   * participant session's benefit only — never sent to the API. Mirrors how
-   * OpenAITranslateSessionConfig carries `sourceLanguage`.
-   */
-  sourceLanguageCode?: string;
-  /**
-   * The configured language pair, short codes, for the sentence-segmentation
-   * stage alone — never sent to the API. Set unconditionally, including for
-   * the dialogue models, which carry their direction in the instruction and so
-   * expose no language field the stage could read: without this the two
-   * streams both run at `auto`, which routes English and Chinese to SaT
-   * instead of Edge-Punct-Casing and FireRedPunc.
-   *
-   * Reversed for the participant leg, like every other direction-bearing
-   * field here.
-   */
-  segmentationSourceLanguage?: string;
-  segmentationTargetLanguage?: string;
-}
-
-/**
  * PalabraAI-specific session configuration
  */
 export interface PalabraAISessionConfig extends BaseSessionConfig {
@@ -288,7 +247,7 @@ export interface LocalNativeSessionConfig extends BaseSessionConfig {
 /**
  * Union type for all possible session configurations
  */
-export type SessionConfig = OpenAISessionConfig | OpenAITranslateSessionConfig | GeminiSessionConfig | PalabraAISessionConfig | SonioxSessionConfig | LocalInferenceSessionConfig | LocalNativeSessionConfig;
+export type SessionConfig = OpenAISessionConfig | OpenAITranslateSessionConfig | PalabraAISessionConfig | SonioxSessionConfig | LocalInferenceSessionConfig | LocalNativeSessionConfig;
 
 /**
  * Type guards for session configurations
@@ -302,10 +261,6 @@ export function isOpenAISessionConfig(config: unknown): config is OpenAISessionC
 
 export function isOpenAITranslateSessionConfig(config: SessionConfig): config is OpenAITranslateSessionConfig {
   return config.provider === 'openai_translate';
-}
-
-export function isGeminiSessionConfig(config: SessionConfig): config is GeminiSessionConfig {
-  return config.provider === 'gemini';
 }
 
 export function isPalabraAISessionConfig(config: SessionConfig): config is PalabraAISessionConfig {
@@ -433,10 +388,6 @@ export interface IClient {
   // Provider-specific information
   getProvider(): ProviderType;
 
-  // Optional PTT control methods
-  /** Cancel current PTT turn without triggering a response (e.g., when no speech detected) */
-  cancelPttTurn?(): void;
-
   // Optional device control methods (WebRTC only)
   switchInputDevice?(deviceId: string): Promise<void>;
   switchOutputDevice?(deviceId: string): Promise<void>;
@@ -464,23 +415,4 @@ export interface IClient {
    * the countdown says when the session stops, never what it cost.
    */
   getManagedBudgetInfo?(): { budgetMicroUsd: number; rateUsdPerHour: number; startedAtMs: number } | null;
-}
-
-/**
- * Static methods interface for client classes
- * These methods should be implemented as static methods in client classes
- */
-export interface IClientStatic {
-  /**
-   * Validate API key and fetch available models in a single request
-   */
-  validateApiKeyAndFetchModels(apiKey: string): Promise<{
-    validation: ApiKeyValidationResult;
-    models: FilteredModel[];
-  }>;
-
-  /**
-   * Get the latest realtime model ID
-   */
-  getLatestRealtimeModel(models: FilteredModel[]): string;
 }

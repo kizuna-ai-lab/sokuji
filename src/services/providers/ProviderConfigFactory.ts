@@ -1,7 +1,6 @@
 import { ProviderConfig } from './ProviderConfig';
 import { ProviderDescriptor } from './ProviderDescriptor';
 import { OpenAIProviderConfig } from './OpenAIProviderConfig';
-import { GeminiProviderConfig } from './GeminiProviderConfig';
 import { OpenAICompatibleProviderConfig } from './OpenAICompatibleProviderConfig';
 import { OpenAITranslateProviderConfig } from './OpenAITranslateProviderConfig';
 import { PalabraAIProviderConfig } from './PalabraAIProviderConfig';
@@ -37,9 +36,6 @@ export class ProviderConfigFactory {
 
     // 2. Free (local inference) — always available, no API key or flag.
     ProviderConfigFactory.configs.set(Provider.LOCAL_INFERENCE, new LocalInferenceProviderConfig());
-
-    // 3. Gemini
-    ProviderConfigFactory.configs.set(Provider.GEMINI, new GeminiProviderConfig());
 
     // 5. The OpenAI providers: Realtime, Translate.
     ProviderConfigFactory.configs.set(Provider.OPENAI, new OpenAIProviderConfig());

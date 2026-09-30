@@ -166,17 +166,6 @@ describe('settingsStore', () => {
   });
 
   describe('Push-to-Translate persistence', () => {
-    it('persists Push-to-Translate for Gemini', async () => {
-      const store = useSettingsStore.getState();
-      await store.updateGemini({ turnDetectionMode: 'Push-to-Translate' });
-
-      expect(useSettingsStore.getState().gemini.turnDetectionMode).toBe('Push-to-Translate');
-      expect(mockSetSetting).toHaveBeenCalledWith(
-        'settings.gemini.turnDetectionMode',
-        'Push-to-Translate'
-      );
-    });
-
     it('persists Push-to-Translate for Local Inference', async () => {
       const store = useSettingsStore.getState();
       await store.updateLocalInference({ turnDetectionMode: 'Push-to-Translate' });
@@ -198,11 +187,11 @@ describe('settingsStore', () => {
       expect(useSettingsStore.getState().openai.turnDetectionMode).toBe('Push-to-Translate');
     });
 
-    it('per-provider isolation: setting Push-to-Translate on Gemini does not change OpenAI', async () => {
+    it('per-provider isolation: setting Push-to-Translate on Local Inference does not change OpenAI', async () => {
       const store = useSettingsStore.getState();
       const openAIBefore = useSettingsStore.getState().openai.turnDetectionMode;
 
-      await store.updateGemini({ turnDetectionMode: 'Push-to-Translate' });
+      await store.updateLocalInference({ turnDetectionMode: 'Push-to-Translate' });
 
       expect(useSettingsStore.getState().openai.turnDetectionMode).toBe(openAIBefore);
     });
@@ -614,7 +603,7 @@ describe('settingsStore', () => {
     });
 
     it('defaults to websocket for a provider slice with no transportType field', () => {
-      useSettingsStore.setState({ provider: Provider.GEMINI });
+      useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE });
 
       const { result } = renderHook(() => useTransportType());
 
@@ -761,10 +750,10 @@ describe('updateProviderSlice (public generic action)', () => {
   });
 
   it('does not bleed into other slices or drop unpatched fields', async () => {
-    const geminiBefore = useSettingsStore.getState().gemini;
+    const nativeBefore = useSettingsStore.getState().localNative;
     const sourceBefore = (useSettingsStore.getState().soniox as { sourceLanguage: string }).sourceLanguage;
     await useSettingsStore.getState().updateProviderSlice('soniox', { targetLanguage: 'ko' });
-    expect(useSettingsStore.getState().gemini).toBe(geminiBefore);
+    expect(useSettingsStore.getState().localNative).toBe(nativeBefore);
     expect((useSettingsStore.getState().soniox as { sourceLanguage: string }).sourceLanguage).toBe(sourceBefore);
   });
 

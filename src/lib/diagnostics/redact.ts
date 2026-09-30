@@ -23,7 +23,7 @@ const REDACTED = '[REDACTED]';
  * collapsing to an anonymous `[REDACTED]`.
  */
 const PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
-  // `${MODELS_ENDPOINT}?key=${apiKey}` — GeminiClient.ts:138-139.
+  // `?key=${apiKey}` — Gemini's Live socket (`gemini/wire.ts` `liveUrl`).
   //
   // `X-Credential` and `X-Signature` are the SigV4-style query parameters a
   // Volcengine-shaped signed URL carries, and `X-Credential` carries the

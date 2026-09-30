@@ -34,7 +34,6 @@ describe('provider list order', () => {
     expect(ids).toEqual([
       Provider.KIZUNA_AI_SONIOX,
       Provider.LOCAL_INFERENCE,
-      Provider.GEMINI,
       Provider.OPENAI,
       Provider.OPENAI_TRANSLATE,
       Provider.SONIOX,
@@ -63,7 +62,6 @@ describe('provider list order', () => {
 
     expect(ids).toEqual([
       Provider.LOCAL_INFERENCE,
-      Provider.GEMINI,
       Provider.OPENAI,
       Provider.OPENAI_TRANSLATE,
       Provider.SONIOX,

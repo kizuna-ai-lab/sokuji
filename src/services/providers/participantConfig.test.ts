@@ -21,20 +21,17 @@ import { ProviderConfigFactory } from './ProviderConfigFactory';
 import { Provider } from '../../types/Provider';
 import { defaultSonioxSettings } from './SonioxProviderConfig';
 import { defaultPalabraAISettings } from './PalabraAIProviderConfig';
-import { defaultGeminiSettings } from './GeminiProviderConfig';
 import { defaultOpenAISettings } from './OpenAIProviderConfig';
 import { defaultOpenAICompatibleSettings } from './OpenAICompatibleProviderConfig';
 import { defaultOpenAITranslateSettings } from './OpenAITranslateProviderConfig';
 import { defaultLocalInferenceSettings } from './LocalInferenceProviderConfig';
 import { defaultLocalNativeSettings } from './LocalNativeProviderConfig';
-import { reverseGeminiTranslationDirection } from './geminiTranslateModel';
 import { reverseTranscriptionDirection } from './openaiTranscriptionContext';
 import { createParticipantLocalInferenceConfig, createParticipantLocalNativeConfig } from './localParticipantConfig';
 import { useNativeModelStore } from '../../stores/nativeModelStore';
 import { directionKey } from '../../lib/local-inference/selection/types';
 import type { NativeModelInfo } from '../../lib/local-inference/native/nativeProtocol';
 import type {
-  GeminiSessionConfig,
   OpenAISessionConfig,
   OpenAITranslateSessionConfig,
   LocalInferenceSessionConfig,
@@ -140,65 +137,6 @@ describe('participant config: reversed pairs the provider catalog cannot run', (
 });
 
 describe('participant config: helper-based reversals', () => {
-  it('gemini forces turnDetectionMode Auto and reverses translationConfig when present', () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.GEMINI);
-    // Non-Auto so the assertion below discriminates the override's forcing
-    // spread from the base builder simply forwarding settings.turnDetectionMode.
-    const slice = { ...defaultGeminiSettings, turnDetectionMode: 'Push-to-Talk' as const };
-    const { config } = d.buildParticipantSessionConfig(slice, 'i', shell);
-    const c = config as GeminiSessionConfig & { turnDetectionMode?: string };
-    expect(c.turnDetectionMode).toBe('Auto');
-    // Behavioural equality with the helper is asserted exactly: applying
-    // reverseGeminiTranslationDirection to a fresh base+overrides copy must
-    // yield the same object — plus the segmentation pair, which this model has
-    // no translationConfig to carry and which the override therefore swaps
-    // itself. defaultGeminiSettings is en-US -> ja-JP.
-    const base = d.buildSessionConfig(slice, 'i') as GeminiSessionConfig;
-    expect(base.segmentationSourceLanguage).toBe('en');
-    expect(base.segmentationTargetLanguage).toBe('ja');
-    const expected = {
-      ...base,
-      keepReplayAudio: false,
-      textOnly: true,
-      turnDetection: { type: 'semantic_vad', createResponse: true, interruptResponse: false, eagerness: 'high' },
-      turnDetectionMode: 'Auto',
-      segmentationSourceLanguage: 'ja',
-      segmentationTargetLanguage: 'en',
-    } as unknown as GeminiSessionConfig;
-    reverseGeminiTranslationDirection(expected);
-    expect(c).toEqual(expected);
-  });
-
-  it('gemini live-translate model reverses translationConfig direction for participant', () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.GEMINI);
-    // 'live-translate' matches isGeminiTranslateModel's marker, so this slice
-    // exercises the branch the previous case's model: '' (defaultGeminiSettings)
-    // cannot: translationConfig actually present on the base config.
-    const slice = {
-      ...defaultGeminiSettings,
-      model: 'gemini-3.5-live-translate-preview',
-      sourceLanguage: 'en-US',
-      targetLanguage: 'ja-JP',
-    };
-    const base = d.buildSessionConfig(slice, 'i') as GeminiSessionConfig;
-    // toTranslationLanguageCode reduces 'en-US' -> 'en' and 'ja-JP' -> 'ja'.
-    expect(base.translationConfig).toEqual({ targetLanguageCode: 'ja', echoTargetLanguage: false });
-    expect(base.sourceLanguageCode).toBe('en');
-
-    const { config } = d.buildParticipantSessionConfig(slice, 'i', shell);
-    const c = config as GeminiSessionConfig;
-    // Participant translates INTO the user's own language (en): the target
-    // the other party hears is now the original source, and the carried
-    // sourceLanguageCode becomes the original target.
-    expect(c.translationConfig).toEqual({ targetLanguageCode: 'en', echoTargetLanguage: false });
-    expect(c.sourceLanguageCode).toBe('ja');
-    // The segmentation pair reverses with them, and agrees with them: a
-    // translate session is the one case where the two are checkable against
-    // each other.
-    expect(c.segmentationSourceLanguage).toBe('ja');
-    expect(c.segmentationTargetLanguage).toBe('en');
-  });
-
   it('openai and openai_compatible rebuild the transcription hint for the reversed direction', () => {
     for (const id of [Provider.OPENAI, Provider.OPENAI_COMPATIBLE]) {
       const d = ProviderConfigFactory.getDescriptor(id);

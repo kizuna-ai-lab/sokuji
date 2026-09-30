@@ -5,8 +5,8 @@
  * keys) and `turnDetectionMode` (the global turn mode, migrated once by
  * `storedSettings.ts:56`) — plus the instructions it now owns (ruling 4).
  * Stored under `settings.gemini.*` as before. The Live Translate helpers
- * are copied from `geminiTranslateModel.ts`: nothing here imports
- * `src/services`, whose copy the deletion plan removes.
+ * are copied from `geminiTranslateModel.ts`, deleted since with the old
+ * client (Stage 2 deletion, ruling 2).
  */
 import { INSTRUCTION_LEGACY_KEYS, INSTRUCTIONS_DEFAULTS, migrateInstructions, type InstructionsSettings } from '../../lib/provider/instructions';
 import type { CredentialsMissing, LanguageOption, MigrationInputs, ModelOption, Provider } from '../../lib/provider/types';
