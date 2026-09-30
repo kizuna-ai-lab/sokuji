@@ -21,9 +21,13 @@ import type {
   ResponseCreateEvent,
 } from 'openai/resources/realtime/realtime';
 import { pcmToBase64 } from '../../lib/contract/pcm64';
+import { errorCode as openaiErrorCode } from '../../lib/provider/openaiWire';
 import type { RealtimeConfig, TurnDetection } from './config';
 import type { RealtimeCredentials } from './settings';
 import type { TranscriptionHint } from './transcription';
+
+/** The decoder and the error's words: lifted at their third user, OpenAI Live (Stage 2 OpenAI Live, choice 4); re-exported, so this wire's importers are unchanged. */
+export { decodeServerEvent, errorWords, type ServerEvent } from '../../lib/provider/openaiWire';
 
 /** The GA endpoint the SDK dials (`openai/realtime/internal-base.js:41-50`); the model rides in its query, fixed at creation. */
 export const REALTIME_WS_URL = 'wss://api.openai.com/v1/realtime';
@@ -156,21 +160,6 @@ export function isOutOfBand(response: { conversation_id?: unknown; metadata?: un
   return response.conversation_id === null || metadata?.purpose === ANCHOR_METADATA.purpose;
 }
 
-/** A server event as the adapter reads it: a JSON object with a string `type`; the adapter reads each through its SDK type. */
-export type ServerEvent = { type: string } & Record<string, unknown>;
-
-const isArrayBuffer = (data: unknown): data is ArrayBuffer => Object.prototype.toString.call(data) === '[object ArrayBuffer]';
-
-/** A server frame, decoded at once: text, or a binary frame read as an ArrayBuffer (choice 15). Throws when it is not a JSON object with a string `type`. */
-export function decodeServerEvent(data: unknown): ServerEvent {
-  const text = typeof data === 'string' ? data : isArrayBuffer(data) ? new TextDecoder().decode(data) : null;
-  if (text === null) throw new Error(`a server frame of an unexpected kind (${Object.prototype.toString.call(data)})`);
-  const parsed: unknown = JSON.parse(text);
-  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('a server frame that is not a JSON object');
-  if (typeof (parsed as { type?: unknown }).type !== 'string') throw new Error('a server frame with no type');
-  return parsed as ServerEvent;
-}
-
 /**
  * A translation's final text (choice 5): trimmed, and unwrapped when the
  * model answered in JSON (`{"final_text": …}`) — copied from
@@ -200,21 +189,13 @@ export type ErrorCode = 'auth' | 'rate_limit' | 'client' | 'server' | 'segment_e
 
 /**
  * A server `error` as a notice code (choice 14): OpenAI Translate's mapping
- * (its choice 9), copied, and one more — the 60-minute cap's
- * `session_expired` is the run's end, worded as the segment ended
- * (`segment_ended`: "This segment has ended — tap Start Session to
- * continue."), not a refused request. A hypothesis the live test's
- * `session.error` frames settle.
+ * (its choice 9), lifted with it (Stage 2 OpenAI Live, choice 4), and one
+ * more — the 60-minute cap's `session_expired` is the run's end, worded as
+ * the segment ended (`segment_ended`: "This segment has ended — tap Start
+ * Session to continue."), not a refused request. A hypothesis the live
+ * test's `session.error` frames settle.
  */
 export function errorCode(e: Partial<RealtimeError>): ErrorCode {
   if (e.code === 'session_expired') return 'segment_ended';
-  if (e.code === 'invalid_api_key') return 'auth';
-  if (e.code === 'rate_limit_exceeded' || e.code === 'insufficient_quota') return 'rate_limit';
-  if (e.type === 'invalid_request_error') return 'client';
-  return 'server';
-}
-
-/** A server `error` in OpenAI's own words, as the `{{detail}}` of its notice: `[OpenAI <code, else type>] <message>`. */
-export function errorWords(e: Partial<RealtimeError>): string {
-  return `[OpenAI ${e.code || e.type || 'error'}] ${e.message || 'the server reported an error'}`;
+  return openaiErrorCode(e);
 }

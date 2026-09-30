@@ -6,55 +6,22 @@
  * status the key does not explain (a 404, a 5xx) or a failed fetch throws,
  * where the old one called every failure an invalid key (survey §1.14.9);
  * and a refusal answers a code the surfaces put into words. The key rides in
- * the `Authorization` header, never the URL. The settings side: not reached
- * by the adapter, so it may use the real clock by default.
+ * the `Authorization` header, never the URL. The check itself is OpenAI's
+ * model list, lifted at its third user (Stage 2 OpenAI Live, choice 4); this
+ * provider's part is its family and its refusal. The settings side: not
+ * reached by the adapter, so it may use the real clock by default.
  */
-import { realClock, type Clock } from '../../lib/contract/clock';
-import { boundedFetch } from '../../lib/provider/boundedFetch';
+import { createOpenAIModelCheck, type OpenAIModelCheckDeps } from '../../lib/provider/openaiModels';
 import type { CheckContext, CheckResult } from '../../lib/provider/types';
 import { isTranslateModelId, type TranslateCredentials, type TranslateSettings } from './settings';
 
-export const OPENAI_MODELS_URL = 'https://api.openai.com/v1/models';
-/** As long as Soniox's, Gemini's and Doubao's checks wait. */
-export const CHECK_TIMEOUT_MS = 15_000;
+export { CHECK_TIMEOUT_MS, OPENAI_MODELS_URL } from '../../lib/provider/openaiModels';
 
-interface ModelList { data?: Array<{ id?: unknown; created?: unknown }> }
-interface ErrorBody { error?: { message?: unknown; code?: unknown } }
-
-export interface TranslateCheckDeps {
-  fetch?: typeof fetch;
-  clock?: Pick<Clock, 'setTimeout'>;
-}
+export type TranslateCheckDeps = OpenAIModelCheckDeps;
 
 export function createTranslateCheck(deps: TranslateCheckDeps = {}) {
-  const clock = deps.clock ?? realClock;
-  return (k: TranslateCredentials, _s: TranslateSettings, ctx: CheckContext): Promise<CheckResult> => {
-    // Read at call time, so a test's stubbed global is seen.
-    const doFetch = deps.fetch ?? ((input: RequestInfo | URL, init?: RequestInit) => fetch(input, init));
-    const late = `OpenAI did not answer the model list within ${CHECK_TIMEOUT_MS / 1000} s.`;
-    return boundedFetch({ clock, ms: CHECK_TIMEOUT_MS, signal: ctx.signal, late }, async (signal): Promise<CheckResult> => {
-      const response = await doFetch(OPENAI_MODELS_URL, { method: 'GET', headers: { Authorization: `Bearer ${k.apiKey}` }, signal });
-      if (!response.ok) {
-        const body = (await response.json().catch(() => ({}))) as ErrorBody;
-        const said = typeof body.error?.message === 'string' && body.error.message ? body.error.message : 'OpenAI did not accept this key.';
-        const reason = `HTTP ${response.status}: ${said}`;
-        // A region OpenAI does not serve reads as such, whatever the status (`OpenAIClient.ts:170-179`).
-        if (body.error?.code === 'unsupported_country_region_territory') return { ok: false, code: 'region_unsupported', reason };
-        if (response.status === 401 || response.status === 403) return { ok: false, code: 'auth', reason };
-        if (response.status === 429) return { ok: false, code: 'rate_limit', reason };
-        throw new Error(`OpenAI answered the model list with HTTP ${response.status}.`);
-      }
-      const body = (await response.json()) as ModelList;
-      const models = (body.data ?? [])
-        .flatMap((m) => (typeof m.id === 'string' && isTranslateModelId(m.id) ? [{ id: m.id, created: typeof m.created === 'number' ? m.created : 0 }] : []))
-        // Newest first, as the old list sorted them (`OpenAITranslateGAClient.ts:231-234`); the id breaks a tie.
-        .sort((a, b) => b.created - a.created || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
-      // Each id once: a readiness answer's models are keyed by id.
-      const ids = [...new Set(models.map((m) => m.id))];
-      if (ids.length === 0) return { ok: false, code: 'no_translate_model', reason: 'This key lists no gpt-realtime-translate model.' };
-      return { ok: true, models: ids.map((id) => ({ id })) };
-    });
-  };
+  const check = createOpenAIModelCheck({ keep: isTranslateModelId, none: { code: 'no_translate_model', reason: 'This key lists no gpt-realtime-translate model.' } }, deps);
+  return (k: TranslateCredentials, _s: TranslateSettings, ctx: CheckContext): Promise<CheckResult> => check(k.apiKey, ctx);
 }
 
 export const checkTranslate = createTranslateCheck();

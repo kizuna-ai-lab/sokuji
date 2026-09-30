@@ -7,7 +7,6 @@
  * the typecheck. Pure: no socket, no timer.
  */
 import type {
-  RealtimeError,
   RealtimeTranslationInputAudioBufferAppendEvent,
   RealtimeTranslationSessionCloseEvent,
   RealtimeTranslationSessionUpdateEvent,
@@ -18,6 +17,14 @@ import type { TranslateCredentials } from './settings';
 
 /** Lifted to the contract at their third user (Stage 2 OpenAI Realtime, choice 1); re-exported, so this wire's importers are unchanged. */
 export { base64ToPcm, pcmToBase64 } from '../../lib/contract/pcm64';
+/**
+ * The decoder and the error's code and words: lifted at their third user,
+ * OpenAI Live (Stage 2 OpenAI Live, choice 4); re-exported, so this wire's
+ * importers are unchanged. The `.done` events the old client handled are not
+ * among the SDK's seven (choice 18); a server `error` reads as a code first
+ * as the live test's `session.error` frames settle (choice 9).
+ */
+export { decodeServerEvent, errorCode, errorWords, type OpenAIErrorCode as ErrorCode, type ServerEvent } from '../../lib/provider/openaiWire';
 
 /** The translations endpoint (`OpenAITranslateGAClient.ts:23`); the model rides in its query, fixed at creation. */
 export const TRANSLATE_WS_URL = 'wss://api.openai.com/v1/realtime/translations';
@@ -76,26 +83,6 @@ export function appendFrame(pcm: Int16Array): string {
  */
 export const SESSION_CLOSE: RealtimeTranslationSessionCloseEvent = { type: 'session.close' };
 
-/**
- * A server event as the adapter reads it: a JSON object with a string
- * `type`. The SDK's `RealtimeTranslationServerEvent` types the seven it
- * lists; the adapter reads each through its SDK type. The `.done` events the
- * old client handled are not among them (choice 18).
- */
-export type ServerEvent = { type: string } & Record<string, unknown>;
-
-const isArrayBuffer = (data: unknown): data is ArrayBuffer => Object.prototype.toString.call(data) === '[object ArrayBuffer]';
-
-/** A server frame, decoded at once: text, or a binary frame read as an ArrayBuffer (choice 17). Throws when it is not a JSON object with a string `type`. */
-export function decodeServerEvent(data: unknown): ServerEvent {
-  const text = typeof data === 'string' ? data : isArrayBuffer(data) ? new TextDecoder().decode(data) : null;
-  if (text === null) throw new Error(`a server frame of an unexpected kind (${Object.prototype.toString.call(data)})`);
-  const parsed: unknown = JSON.parse(text);
-  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('a server frame that is not a JSON object');
-  if (typeof (parsed as { type?: unknown }).type !== 'string') throw new Error('a server frame with no type');
-  return parsed as ServerEvent;
-}
-
 /** The rate an output audio delta that names none is taken at: PCM16 at 24 kHz, the old client's default (`OpenAITranslateGAClient.ts:604`). */
 export const OUTPUT_RATE = 24_000;
 
@@ -136,24 +123,4 @@ export function isQuietFrame(pcm: Int16Array): boolean {
 /** A delta's `elapsed_ms` when it is a number, else null: framed on every delta (ruling 6), read for nothing else yet. */
 export function elapsedMsOf(e: { elapsed_ms?: unknown }): number | null {
   return typeof e.elapsed_ms === 'number' ? e.elapsed_ms : null;
-}
-
-export type ErrorCode = 'auth' | 'rate_limit' | 'client' | 'server';
-
-/**
- * A server `error` as a notice code (choice 9): OpenAI's codes for a bad key,
- * a rate limit and an exhausted quota first, then an invalid request, else
- * the service's. A hypothesis for this endpoint: the live test's
- * `session.error` frames settle it.
- */
-export function errorCode(e: Partial<RealtimeError>): ErrorCode {
-  if (e.code === 'invalid_api_key') return 'auth';
-  if (e.code === 'rate_limit_exceeded' || e.code === 'insufficient_quota') return 'rate_limit';
-  if (e.type === 'invalid_request_error') return 'client';
-  return 'server';
-}
-
-/** A server `error` in OpenAI's own words, as the `{{detail}}` of `notices.<code>`: `[OpenAI <code, else type>] <message>`. */
-export function errorWords(e: Partial<RealtimeError>): string {
-  return `[OpenAI ${e.code || e.type || 'error'}] ${e.message || 'the server reported an error'}`;
 }
