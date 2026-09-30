@@ -78,11 +78,9 @@
     "failedToSaveSettings": "ذخیره تنظیمات ناموفق بود",
     "settingSavedSuccessfully": "تنظیم با موفقیت ذخیره شد: {{key}}",
     "failedToSaveSetting": "ذخیره تنظیم ناموفق بود: {{key}}",
-    "apiKeyValidationCompleted": "اعتبارسنجی کلید API تکمیل شد",
     "errorValidatingApiKey": "خطا در اعتبارسنجی کلید API",
     "regionNotSupported": "سرویس در منطقه شما در دسترس نیست. لطفاً محیط شبکه خود را بررسی کنید یا ارائه‌دهنده دیگری را امتحان کنید.",
     "sessionActiveNotice": "تنظیمات در حین فعال بودن جلسه قفل شده‌اند. لطفاً جلسه را پایان دهید تا تنظیمات را تغییر دهید.",
-    "realtimeModelAvailable": "مدل زمان واقعی در دسترس است",
     "realtimeModelNotAvailable": "مدل زمان واقعی در دسترس نیست",
     "modelsFound": "{{count}} مدل موجود",
     "volcengineAST2Info": "اطلاعات Doubao AST 2.0",
@@ -194,7 +192,6 @@
       "xhigh": "خیلی زیاد"
     },
     "translateInfoBanner": "این مدل وقتی گوینده از همان زبان مقصد استفاده می‌کند ساکت می‌ماند. گفتار چندزبانه ممکن است شکاف داشته باشد.",
-    "translateModelAvailable": "کلید API تأیید شد. gpt-realtime-translate در دسترس است.",
     "translateModelNotAvailable": "کلید API کار می‌کند، اما با این کلید gpt-realtime-translate در دسترس نیست.",
     "participantSectionHeader": "صدای طرف مقابل",
     "participantSectionDescriptionElectron": "صدای هر برنامه‌ای را که روی این سیستم پخش می‌شود ترجمه کنید.",
@@ -454,10 +451,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "فناوری هوش مصنوعی Google"
-    },
-    "openaiCompatible": {
-      "name": "سازگار با OpenAI (Realtime قدیمی)",
-      "description": "نقطه پایانی شخص ثالث با پروتکل قدیمی Realtime بتای OpenAI. برای خود OpenAI نیست."
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -1150,8 +1143,6 @@
     },
     "credentials": {
       "apiKey": "کلید API",
-      "endpoint": "نشانی نقطه پایانی",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",

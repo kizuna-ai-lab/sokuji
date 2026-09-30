@@ -78,11 +78,9 @@
     "failedToSaveSettings": "Hindi na-save ang mga setting",
     "settingSavedSuccessfully": "Matagumpay na na-save ang setting: {{key}}",
     "failedToSaveSetting": "Hindi na-save ang setting: {{key}}",
-    "apiKeyValidationCompleted": "Tapos na ang pag-verify ng API key",
     "errorValidatingApiKey": "May error sa pag-verify ng API key",
     "regionNotSupported": "Hindi available ang serbisyo sa iyong rehiyon. Suriin ang iyong network environment o subukan ang ibang provider.",
     "sessionActiveNotice": "Nakalock ang mga setting habang aktibo ang session. Tapusin ang session para mabago ang mga setting.",
-    "realtimeModelAvailable": "Available ang realtime model",
     "realtimeModelNotAvailable": "Hindi available ang realtime model",
     "modelsFound": "{{count}} na mga model ang available",
     "volcengineAST2Info": "Impormasyon ng Doubao AST 2.0",
@@ -194,7 +192,6 @@
       "xhigh": "Napakataas"
     },
     "translateInfoBanner": "Tahimik ang modelo kapag ginagamit ng nagsasalita ang parehong wika sa target. Maaaring may mga puwang sa magkahalong wika.",
-    "translateModelAvailable": "Na-validate ang API key. Available ang gpt-realtime-translate.",
     "translateModelNotAvailable": "Gumagana ang API key, ngunit hindi ma-access ang gpt-realtime-translate gamit ang key na ito.",
     "participantSectionHeader": "Audio ng kausap",
     "participantSectionDescriptionElectron": "Isalin ang audio mula sa anumang application na tumutugtog sa system na ito.",
@@ -454,10 +451,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "AI technology ng Google"
-    },
-    "openaiCompatible": {
-      "name": "Tugma sa OpenAI (Legacy Realtime)",
-      "description": "Third-party endpoint na gumagamit ng lumang beta Realtime protocol ng OpenAI. Hindi para sa OpenAI mismo."
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -1150,8 +1143,6 @@
     },
     "credentials": {
       "apiKey": "API key",
-      "endpoint": "Endpoint URL",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",

@@ -1,8 +1,8 @@
 /**
  * The source transcript's hints for a Realtime session's
  * `audio.input.transcription` (choice 5): copied, pure, from
- * `src/services/providers/openaiTranscriptionContext.ts` (the deletion plan
- * removes that copy with the old client), less its reverse helpers — the
+ * `src/services/providers/openaiTranscriptionContext.ts` (deleted since
+ * with the old client), less its reverse helpers — the
  * builder takes each leg's own direction, so the participant's hint is
  * built for the language it hears (D17).
  *

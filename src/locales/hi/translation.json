@@ -78,11 +78,9 @@
     "failedToSaveSettings": "सेटिंग्स सहेजने में विफल",
     "settingSavedSuccessfully": "सेटिंग सफलतापूर्वक सहेजी गई: {{key}}",
     "failedToSaveSetting": "सेटिंग सहेजने में विफल: {{key}}",
-    "apiKeyValidationCompleted": "API कुंजी सत्यापन पूरा हुआ",
     "errorValidatingApiKey": "API कुंजी सत्यापन में त्रुटि",
     "regionNotSupported": "सेवा आपके क्षेत्र में उपलब्ध नहीं है। कृपया अपना नेटवर्क वातावरण जांचें या कोई अन्य प्रदाता आज़माएं।",
     "sessionActiveNotice": "सत्र सक्रिय होने पर सेटिंग्स लॉक हैं। सेटिंग्स बदलने के लिए कृपया सत्र समाप्त करें।",
-    "realtimeModelAvailable": "रीयल-टाइम मॉडल उपलब्ध है",
     "realtimeModelNotAvailable": "रीयल-टाइम मॉडल उपलब्ध नहीं है",
     "modelsFound": "{{count}} मॉडल उपलब्ध हैं",
     "volcengineAST2Info": "Doubao AST 2.0 जानकारी",
@@ -194,7 +192,6 @@
       "xhigh": "बहुत उच्च"
     },
     "translateInfoBanner": "जब वक्ता लक्ष्य के समान भाषा का उपयोग करता है, तो यह मॉडल चुप रहता है। मिश्रित भाषा वाले भाषण में अंतराल हो सकते हैं।",
-    "translateModelAvailable": "API कुंजी मान्य की गई। gpt-realtime-translate उपलब्ध है।",
     "translateModelNotAvailable": "API कुंजी काम करती है, लेकिन इस कुंजी से gpt-realtime-translate तक पहुँच नहीं है।",
     "participantSectionHeader": "दूसरे का ऑडियो",
     "participantSectionDescriptionElectron": "इस सिस्टम पर चल रहे किसी भी एप्लिकेशन के ऑडियो का अनुवाद करें।",
@@ -454,10 +451,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "Google की AI तकनफ0940क"
-    },
-    "openaiCompatible": {
-      "name": "OpenAI संगत (लीगेसी Realtime)",
-      "description": "OpenAI के पुराने beta Realtime प्रोटोकॉल का उपयोग करने वाला थर्ड-पार्टी एंडपॉइंट। OpenAI के लिए नहीं।"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -1150,8 +1143,6 @@
     },
     "credentials": {
       "apiKey": "API कुंजी",
-      "endpoint": "एंडपॉइंट URL",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "एक्सेस कुंजी ID",
       "secretAccessKey": "सीक्रेट एक्सेस कुंजी",
       "appId": "ऐप ID",

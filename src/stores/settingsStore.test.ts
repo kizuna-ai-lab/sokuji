@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { renderHook } from '@testing-library/react';
 import { Provider } from '../types/Provider';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
 import { directionKey } from '../lib/local-inference/selection/types';
@@ -42,7 +41,6 @@ vi.mock('../lib/local-inference/modelManifest', async () => {
 // Import after mocking
 const {
   default: useSettingsStore,
-  useTransportType,
   clampChunkSentences,
 } = await import('./settingsStore');
 
@@ -132,12 +130,12 @@ describe('settingsStore', () => {
 
     it('should persist provider change to settings service', async () => {
       // Switch provider
-      await useSettingsStore.getState().setProvider(Provider.OPENAI_COMPATIBLE);
+      await useSettingsStore.getState().setProvider(Provider.LOCAL_NATIVE);
 
       // Check that settings service was called
       expect(mockSetSetting).toHaveBeenCalledWith(
         'settings.common.provider',
-        Provider.OPENAI_COMPATIBLE
+        Provider.LOCAL_NATIVE
       );
     });
   });
@@ -173,56 +171,6 @@ describe('settingsStore', () => {
         'Push-to-Translate'
       );
     });
-
-    it('persists Push-to-Translate for OpenAI on WebSocket', async () => {
-      const store = useSettingsStore.getState();
-      await store.updateOpenAI({
-        transportType: 'websocket',
-        turnDetectionMode: 'Push-to-Translate',
-      });
-
-      expect(useSettingsStore.getState().openai.turnDetectionMode).toBe('Push-to-Translate');
-    });
-
-    it('per-provider isolation: setting Push-to-Translate on Local Inference does not change OpenAI', async () => {
-      const store = useSettingsStore.getState();
-      const openAIBefore = useSettingsStore.getState().openai.turnDetectionMode;
-
-      await store.updateLocalInference({ turnDetectionMode: 'Push-to-Translate' });
-
-      expect(useSettingsStore.getState().openai.turnDetectionMode).toBe(openAIBefore);
-    });
-  });
-
-  describe('WebRTC auto-correction for Push-to-Translate', () => {
-    it('OpenAI: demotes Push-to-Translate to Disabled when transport switches to webrtc', async () => {
-      const store = useSettingsStore.getState();
-
-      // Start on websocket with Push-to-Translate
-      await store.updateOpenAI({
-        transportType: 'websocket',
-        turnDetectionMode: 'Push-to-Translate',
-      });
-      expect(useSettingsStore.getState().openai.turnDetectionMode).toBe('Push-to-Translate');
-
-      // Switch transport to webrtc
-      await store.updateOpenAI({ transportType: 'webrtc' });
-      expect(useSettingsStore.getState().openai.turnDetectionMode).toBe('Disabled');
-    });
-
-    it('OpenAI Compatible: demotes Push-to-Translate to Disabled when transport switches to webrtc', async () => {
-      const store = useSettingsStore.getState();
-      await store.updateOpenAICompatible({
-        transportType: 'websocket',
-        turnDetectionMode: 'Push-to-Translate',
-      });
-      await store.updateOpenAICompatible({ transportType: 'webrtc' });
-      expect(useSettingsStore.getState().openaiCompatible.turnDetectionMode).toBe('Disabled');
-    });
-
-    // The realtime KIZUNA_AI provider (with its WebRTC webrtc→Disabled demotion)
-    // was removed in favor of the WS-only relay-managed twins, so its
-    // webrtc-demotion test no longer applies.
   });
 
   describe('keepReplayAudio', () => {
@@ -576,38 +524,6 @@ describe('settingsStore', () => {
       expect(useSettingsStore.getState().autoSaveOnStop).toBe(false);
     });
   });
-
-  describe('useTransportType', () => {
-    it('resolves the active provider slice, not a hardcoded openai slice (bug repro: OpenAI Translate reads its own websocket choice, not OpenAI leftover webrtc)', async () => {
-      const store = useSettingsStore.getState();
-      await store.updateOpenAI({ transportType: 'webrtc' });
-      await store.updateOpenAITranslate({ transportType: 'websocket' });
-      useSettingsStore.setState({ provider: Provider.OPENAI_TRANSLATE });
-
-      const { result } = renderHook(() => useTransportType());
-
-      expect(result.current).toBe('websocket');
-    });
-
-    it('resolves OpenAI itself to its own webrtc choice', async () => {
-      const store = useSettingsStore.getState();
-      await store.updateOpenAI({ transportType: 'webrtc' });
-      useSettingsStore.setState({ provider: Provider.OPENAI });
-
-      const { result } = renderHook(() => useTransportType());
-
-      expect(result.current).toBe('webrtc');
-    });
-
-    it('defaults to websocket for a provider slice with no transportType field', () => {
-      useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE });
-
-      const { result } = renderHook(() => useTransportType());
-
-      expect(result.current).toBe('websocket');
-    });
-  });
-
 });
 
 describe('createParticipantLocalInferenceConfig', () => {
@@ -752,14 +668,6 @@ describe('updateProviderSlice (public generic action)', () => {
     await useSettingsStore.getState().updateProviderSlice('localNative', { targetLanguage: 'ko' });
     expect(useSettingsStore.getState().localInference).toBe(inferenceBefore);
     expect(useSettingsStore.getState().localNative.sourceLanguage).toBe(sourceBefore);
-  });
-
-  it('applies the same registry transform the named action applies', async () => {
-    // The openai row's transformPatch forces turnDetectionMode 'Disabled' when
-    // transportType flips to webrtc — the generic path must run it too, or the
-    // two write paths diverge on the same slice.
-    await useSettingsStore.getState().updateProviderSlice('openai', { transportType: 'webrtc' });
-    expect((useSettingsStore.getState().openai as { turnDetectionMode: string }).turnDetectionMode).toBe('Disabled');
   });
 
   it('rejects an unknown slice key', async () => {

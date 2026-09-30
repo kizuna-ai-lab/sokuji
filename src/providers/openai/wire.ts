@@ -163,7 +163,7 @@ export function isOutOfBand(response: { conversation_id?: unknown; metadata?: un
 /**
  * A translation's final text (choice 5): trimmed, and unwrapped when the
  * model answered in JSON (`{"final_text": …}`) — copied from
- * `src/utils/textUtils.ts`, which only the old clients use. Applied to the
+ * `src/utils/textUtils.ts`, deleted since with the old clients. Applied to the
  * `.done` text alone, as the old client did, so a wrapped answer streams
  * raw and settles unwrapped.
  */

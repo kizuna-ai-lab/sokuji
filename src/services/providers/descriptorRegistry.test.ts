@@ -13,11 +13,8 @@ vi.mock('../../utils/environment', async (orig) => ({
 import { ProviderConfigFactory } from './ProviderConfigFactory';
 import { resolveSegmentationOffer } from './ProviderConfig';
 import type { SegmentationOffer } from '../../lib/segmentation/segmentationMode';
-import { DEFAULT_CHUNK_SENTENCES, DEFAULT_SEGMENT_PAUSE_MS } from '../../lib/segmentation/segmentationMode';
+import { DEFAULT_CHUNK_SENTENCES } from '../../lib/segmentation/segmentationMode';
 import { Provider } from '../../types/Provider';
-import { defaultOpenAISettings } from './OpenAIProviderConfig';
-import { defaultOpenAICompatibleSettings } from './OpenAICompatibleProviderConfig';
-import { defaultOpenAITranslateSettings } from './OpenAITranslateProviderConfig';
 import { defaultPalabraAISettings } from './PalabraAIProviderConfig';
 import { defaultLocalNativeSettings } from './LocalNativeProviderConfig';
 import { defaultLocalInferenceSettings } from './LocalInferenceProviderConfig';
@@ -26,9 +23,6 @@ import en from '../../locales/en/translation.json';
 // Map each provider's settingsSliceKey to its per-module default settings slice,
 // so buildSessionConfig can be exercised for every registered provider.
 const DEFAULTS_BY_SLICE: Record<string, unknown> = {
-  openai: defaultOpenAISettings,
-  openaiCompatible: defaultOpenAICompatibleSettings,
-  openaiTranslate: defaultOpenAITranslateSettings,
   palabraai: defaultPalabraAISettings,
   localInference: defaultLocalInferenceSettings,
   localNative: defaultLocalNativeSettings,
@@ -37,7 +31,7 @@ const DEFAULTS_BY_SLICE: Record<string, unknown> = {
 describe('provider registry descriptors', () => {
   it('returns a descriptor for every available provider', () => {
     const ids = ProviderConfigFactory.getAvailableProviders();
-    expect(ids.length).toBe(6);
+    expect(ids.length).toBe(3);
     for (const id of ids) {
       const d = ProviderConfigFactory.getDescriptor(id);
       expect(d.getConfig().id).toBe(id);
@@ -59,7 +53,7 @@ describe('descriptor.createClient', () => {
   it('constructs a client for every available provider', () => {
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
       const client = ProviderConfigFactory.getDescriptor(id).createClient(creds, ws);
-      expect(client.getProvider()).toBe(id === Provider.OPENAI_COMPATIBLE ? Provider.OPENAI : id);
+      expect(client.getProvider()).toBe(id);
     }
   });
 });
@@ -78,8 +72,6 @@ describe('descriptor.validateAndFetchModels', () => {
 describe('descriptor.extractCredentials', () => {
   it('normalizes each provider credential shape', async () => {
     const cases: Array<[Provider, object, { primary: string; secret?: string; endpoint?: string }]> = [
-      [Provider.OPENAI, { apiKey: 'sk-1' }, { primary: 'sk-1' }],
-      [Provider.OPENAI_COMPATIBLE, { apiKey: 'k', customEndpoint: 'https://e' }, { primary: 'k', endpoint: 'https://e' }],
       [Provider.PALABRA_AI, { clientId: 'id', clientSecret: 'sec' }, { primary: 'id', secret: 'sec' }],
     ];
     for (const [id, slice, want] of cases) {
@@ -102,9 +94,7 @@ describe('descriptor.extractCredentials', () => {
 
 describe('descriptor.buildSessionConfig', () => {
   it('builds a config whose provider tag matches, for every provider, from defaults', () => {
-    // Expected wire tags (kizuna twins reuse their base tag; compatible uses 'openai').
     const wireTag: Record<string, string> = {
-      openai: 'openai', openai_compatible: 'openai', openai_translate: 'openai_translate',
       palabraai: 'palabraai',
       local_inference: 'local_inference',
       local_native: 'local_native',
@@ -119,11 +109,6 @@ describe('descriptor.buildSessionConfig', () => {
 });
 
 describe('descriptor language rules', () => {
-  it('openai translate restricts targets to the fixed 13', () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.OPENAI_TRANSLATE);
-    expect(d.resolveTargetLanguages('any').length).toBe(13);
-  });
-
   it('default providers pass their config languages through', () => {
     // Local Native builds its config on each call, so the pass-through is by value.
     const d = ProviderConfigFactory.getDescriptor(Provider.LOCAL_NATIVE);
@@ -154,9 +139,6 @@ describe('registry invariants', () => {
   // deletion, ruling C1), so every table below names only the providers the
   // old registry still registers.
   const EXPECTED_SLICE_KEYS: Partial<Record<Provider, string>> = {
-    [Provider.OPENAI]: 'openai',
-    [Provider.OPENAI_COMPATIBLE]: 'openaiCompatible',
-    [Provider.OPENAI_TRANSLATE]: 'openaiTranslate',
     [Provider.PALABRA_AI]: 'palabraai',
     [Provider.LOCAL_INFERENCE]: 'localInference',
     // Registered only under Electron with its gate on — both forced on by
@@ -174,9 +156,6 @@ describe('registry invariants', () => {
   // Exact expected supportsWebRTC per provider. Relay/twin and non-WebRTC
   // providers must not silently inherit `true` from a base descriptor.
   const EXPECTED_SUPPORTS_WEBRTC: Partial<Record<Provider, boolean>> = {
-    [Provider.OPENAI]: true,
-    [Provider.OPENAI_COMPATIBLE]: true,
-    [Provider.OPENAI_TRANSLATE]: true,
     [Provider.PALABRA_AI]: false,
     [Provider.LOCAL_INFERENCE]: false,
     [Provider.LOCAL_NATIVE]: false,
@@ -210,32 +189,23 @@ describe('registry invariants', () => {
 
 describe('S1 capability flags', () => {
   const PUSH_GATED: Partial<Record<Provider, string[] | undefined>> = {
-    [Provider.OPENAI]: ['Disabled', 'Push-to-Translate'],
-    [Provider.OPENAI_COMPATIBLE]: ['Disabled', 'Push-to-Translate'], // inherited from OpenAI via ...base
     [Provider.LOCAL_INFERENCE]: ['Push-to-Talk', 'Push-to-Translate'],
     [Provider.LOCAL_NATIVE]: ['Push-to-Talk', 'Push-to-Translate'],
-    [Provider.OPENAI_TRANSLATE]: undefined,
     [Provider.PALABRA_AI]: undefined,
   };
 
   const TEXT_INPUT: Partial<Record<Provider, boolean | undefined>> = {
-    [Provider.OPENAI]: true,
-    [Provider.OPENAI_COMPATIBLE]: true, // inherited
     [Provider.LOCAL_INFERENCE]: true,
     [Provider.LOCAL_NATIVE]: true,
-    [Provider.OPENAI_TRANSLATE]: undefined,
     [Provider.PALABRA_AI]: undefined,
   };
 
-  const QUEUES_TEXT: Provider[] = [Provider.OPENAI, Provider.OPENAI_COMPATIBLE];
+  const QUEUES_TEXT: Provider[] = [];
   const LOCAL_PROMPT: Provider[] = [Provider.LOCAL_INFERENCE, Provider.LOCAL_NATIVE];
 
   const PTT_FINALIZATION: Partial<Record<Provider, { silenceTailFrames?: number; response: string } | undefined>> = {
     [Provider.LOCAL_INFERENCE]: { silenceTailFrames: 7, response: 'always' },
     [Provider.LOCAL_NATIVE]: { silenceTailFrames: 7, response: 'always' },
-    [Provider.OPENAI]: undefined,
-    [Provider.OPENAI_COMPATIBLE]: undefined,
-    [Provider.OPENAI_TRANSLATE]: undefined,
     [Provider.PALABRA_AI]: undefined,
   };
 
@@ -243,10 +213,6 @@ describe('S1 capability flags', () => {
   // filled in — because that is the answer the mode resolvers act on. This
   // table IS the specification (segmentation design, Amendment A2).
   const SEGMENTATION: Partial<Record<Provider, SegmentationOffer>> = {
-    // Their own silence timers cut the bubble, and the user tunes them, so
-    // Auto here would be the pause mode wearing another name.
-    [Provider.OPENAI_TRANSLATE]: { pause: true, auto: false, sizes: true },
-
     // 1-5 is what slice 3 shipped on the local engines; phase 2 adds Auto,
     // where the VAD utterance is the boundary someone else already decided
     // and the stage only fills the punctuation in.
@@ -257,12 +223,6 @@ describe('S1 capability flags', () => {
     // Palabra writes text only. Auto stays what it always was — keep the
     // server's segment.
     [Provider.PALABRA_AI]: { pause: false, auto: true, sizes: true },
-
-    // Also the default, and it stays there: the GA client attaches audio to
-    // conversation items, so splitting one would strand the karaoke timing.
-    // The beta client shares the descriptor.
-    [Provider.OPENAI]: { pause: false, auto: true, sizes: false },
-    [Provider.OPENAI_COMPATIBLE]: { pause: false, auto: true, sizes: false }, // inherited via ...base
   };
 
   const DEFAULT_OFFER: SegmentationOffer = { pause: false, auto: true, sizes: false };
@@ -271,12 +231,8 @@ describe('S1 capability flags', () => {
   // reader — the slider inside `renderTurnDetectionSettings`, which
   // `hasTurnDetection: false` returns before ever reaching — so on a provider
   // without turn detection it renders nothing and must not claim to. A2 moved
-  // the two pause clients' sliders into the segmentation section, which is
-  // what emptied it on OpenAI Live and OpenAI Translate.
+  // the two pause clients' sliders into the segmentation section.
   const SILENCE_DURATION: Partial<Record<Provider, boolean>> = {
-    [Provider.OPENAI]: true,
-    [Provider.OPENAI_COMPATIBLE]: true, // inherited via ...base
-    [Provider.OPENAI_TRANSLATE]: false,
     [Provider.PALABRA_AI]: false,
     [Provider.LOCAL_INFERENCE]: false,
     [Provider.LOCAL_NATIVE]: false,
@@ -373,32 +329,6 @@ describe('S1 capability flags', () => {
     }
   });
 
-  // The private fields each pause client keeps its two timers in. The
-  // providers that offer By pause name the pair differently — this map is the
-  // only place that knows, so the invariant below can be a loop rather than a
-  // copy of the same assertion per provider.
-  const PAUSE_FIELDS: Partial<Record<Provider, [source: string, translation: string]>> = {
-    [Provider.OPENAI_TRANSLATE]: ['userSilenceTimeoutMs', 'assistantSilenceTimeoutMs'],
-  };
-
-  // A2: one stored pause pair, in seconds, converted to milliseconds at the
-  // descriptor. A provider that starts offering By pause and forgets to hand
-  // the pair on would run its timers on the fallback for ever, silently.
-  it('every descriptor that offers By pause hands its client the pair, in milliseconds', () => {
-    for (const id of ProviderConfigFactory.getAvailableProviders()) {
-      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
-      if (!resolveSegmentationOffer(caps).pause) continue;
-      const fields = PAUSE_FIELDS[id];
-      expect(fields, `pause fields known for ${id}`).toBeDefined();
-      const client = ProviderConfigFactory.getDescriptor(id).createClient(
-        { ok: true, primary: 'k', secret: 's', endpoint: 'https://e.example' },
-        { transport: 'websocket', sourcePause: 0.8, translationPause: 2.5 },
-      );
-      expect((client as any)[fields![0]], `source pause for ${id}`).toBe(800);
-      expect((client as any)[fields![1]], `translation pause for ${id}`).toBe(2500);
-    }
-  });
-
   // Eleven clients each write `options.sentencesPerChunk ?? 3`, and the
   // number also lives in the store's clamp, in `defaultSize()` and in
   // `segmentationForProvider`. This is what ties every one of those copies to
@@ -413,51 +343,6 @@ describe('S1 capability flags', () => {
       expect((client as any).sentencesPerChunk, `chunk default for ${id}`)
         .toBe(DEFAULT_CHUNK_SENTENCES);
     }
-  });
-
-  it('a client built with no pause runs on the default the store shares with it', () => {
-    for (const id of ProviderConfigFactory.getAvailableProviders()) {
-      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
-      if (!resolveSegmentationOffer(caps).pause) continue;
-      const [source, translation] = PAUSE_FIELDS[id]!;
-      const client = ProviderConfigFactory.getDescriptor(id).createClient(
-        { ok: true, primary: 'k', secret: 's', endpoint: 'https://e.example' },
-        { transport: 'websocket' },
-      );
-      expect((client as any)[source], `source fallback for ${id}`).toBe(DEFAULT_SEGMENT_PAUSE_MS);
-      expect((client as any)[translation], `translation fallback for ${id}`).toBe(DEFAULT_SEGMENT_PAUSE_MS);
-    }
-  });
-
-  // A2's accepted behaviour, stated rather than implied: Off is the absence
-  // of the punctuation stage, not the absence of the pause timers. The pair
-  // still reaches the client — `MainPanel` reads it unconditionally — and the
-  // timers still arm, because they are the only thing that closes an item when
-  // speech stops. Off and By pause therefore run identically on these three
-  // providers; what differs is whether the sliders are reachable.
-  it('hands the pair to a client built in Off, with no segmentation runtime', () => {
-    for (const id of ProviderConfigFactory.getAvailableProviders()) {
-      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
-      if (!resolveSegmentationOffer(caps).pause) continue;
-      const [source, translation] = PAUSE_FIELDS[id]!;
-      const client = ProviderConfigFactory.getDescriptor(id).createClient(
-        { ok: true, primary: 'k', secret: 's', endpoint: 'https://e.example' },
-        { transport: 'websocket', segmentation: null, sourcePause: 0.8, translationPause: 2.5 },
-      );
-      expect((client as any)[source], `source pause in Off for ${id}`).toBe(800);
-      expect((client as any)[translation], `translation pause in Off for ${id}`).toBe(2500);
-    }
-  });
-
-  // Translate over WebRTC has ONE timer for the pair, not two: it closes the
-  // source and the translation item together. It takes the translation pause,
-  // because the last delta of a pair is the translation's — see the client.
-  it('translate over WebRTC gives its single pair timer the translation pause', () => {
-    const client = ProviderConfigFactory.getDescriptor(Provider.OPENAI_TRANSLATE).createClient(
-      { ok: true, primary: 'k' },
-      { transport: 'webrtc', sourcePause: 0.8, translationPause: 2.5 },
-    );
-    expect((client as any).pairSilenceMs).toBe(2500);
   });
 
   it('forcedTransport only on PalabraAI, and it names a real transport', () => {
@@ -521,7 +406,7 @@ describe('legacy façade credential guards (deprecated ClientOperations/ClientFa
 
   it('ClientFactory.createClient rejects an empty apiKey for credentialed providers', async () => {
     const { ClientFactory } = await import('../clients/ClientFactory');
-    expect(() => ClientFactory.createClient('m', Provider.OPENAI, ''))
+    expect(() => ClientFactory.createClient('m', Provider.PALABRA_AI, ''))
       .toThrow(/API key is required/);
     // LOCAL_INFERENCE never had credentials — must keep working with ''
     expect(ClientFactory.createClient('m', Provider.LOCAL_INFERENCE, '')).toBeTruthy();

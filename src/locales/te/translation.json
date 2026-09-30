@@ -78,11 +78,9 @@
     "failedToSaveSettings": "సెట్టింగ్‌లను సేవ్ చేయడం విఫలమైంది",
     "settingSavedSuccessfully": "సెట్టింగ్ విజయవంతంగా సేవ్ చేయబడింది: {{key}}",
     "failedToSaveSetting": "సెట్టింగ్‌ను సేవ్ చేయడం విఫలమైంది: {{key}}",
-    "apiKeyValidationCompleted": "API కీ ధృవీకరణ పూర్తయింది",
     "errorValidatingApiKey": "API కీ ధృవీకరణలో లోపం",
     "regionNotSupported": "మీ ప్రాంతంలో సేవ అందుబాటులో లేదు. మీ నెట్‌వర్క్ వాతావరణాన్ని తనిఖీ చేయండి లేదా వేరే ప్రొవైడర్‌ను ప్రయత్నించండి.",
     "sessionActiveNotice": "సెషన్ చురుకుగా ఉన్నప్పుడు సెట్టింగ్‌లు లాక్ చేయబడ్డాయి. సెట్టింగ్‌లను మార్చడానికి దయచేసి సెషన్‌ను ముగించండి.",
-    "realtimeModelAvailable": "నిజ-సమయ మోడల్ అందుబాటులో ఉంది",
     "realtimeModelNotAvailable": "నిజ-సమయ మోడల్ అందుబాటులో లేదు",
     "modelsFound": "{{count}} మోడల్‌లు అందుబాటులో ఉన్నాయి",
     "volcengineAST2Info": "Doubao AST 2.0 సమాచారం",
@@ -194,7 +192,6 @@
       "xhigh": "చాలా ఎక్కువ"
     },
     "translateInfoBanner": "మాట్లాడేవారు లక్ష్యంతో ఒకే భాషను ఉపయోగించినప్పుడు ఈ మోడల్ నిశ్శబ్దంగా ఉంటుంది. మిశ్రమ భాష ప్రసంగంలో అంతరాలు ఉండవచ్చు.",
-    "translateModelAvailable": "API కీ ధృవీకరించబడింది. gpt-realtime-translate అందుబాటులో ఉంది.",
     "translateModelNotAvailable": "API కీ పని చేస్తుంది, కానీ ఈ కీతో gpt-realtime-translate యాక్సెస్ చేయబడదు.",
     "participantSectionHeader": "ఇతరుల ఆడియో",
     "participantSectionDescriptionElectron": "ఈ సిస్టమ్‌లో ప్లే అవుతున్న ఏ అప్లికేషన్ ఆడియోనైనా అనువదించండి.",
@@ -454,10 +451,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "Google AI టెక్నాలజీ"
-    },
-    "openaiCompatible": {
-      "name": "OpenAI అనుకూలం (లెగసీ Realtime)",
-      "description": "OpenAI యొక్క పాత beta Realtime ప్రోటోకాల్‌ను ఉపయోగించే థర్డ్-పార్టీ ఎండ్‌పాయింట్. OpenAI కోసం కాదు."
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -1150,8 +1143,6 @@
     },
     "credentials": {
       "apiKey": "API కీ",
-      "endpoint": "ఎండ్‌పాయింట్ URL",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "యాక్సెస్ కీ ID",
       "secretAccessKey": "సీక్రెట్ యాక్సెస్ కీ",
       "appId": "యాప్ ID",

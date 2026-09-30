@@ -78,11 +78,9 @@
     "failedToSaveSettings": "שמירת ההגדרות נכשלה",
     "settingSavedSuccessfully": "הגדרה נשמרה בהצלחה: {{key}}",
     "failedToSaveSetting": "שמירת הגדרה נכשלה: {{key}}",
-    "apiKeyValidationCompleted": "אימות מפתח API הושלם",
     "errorValidatingApiKey": "שגיאה באימות מפתח API",
     "regionNotSupported": "השירות אינו זמין באזורך. בדוק את סביבת הרשת שלך או נסה ספק אחר.",
     "sessionActiveNotice": "ההגדרות נעולות כאשר הפגישה פעילה. אנא סיים את הפגישה כדי לשנות הגדרות.",
-    "realtimeModelAvailable": "מודל בזמן אמת זמין",
     "realtimeModelNotAvailable": "מודל בזמן אמת לא זמין",
     "modelsFound": "{{count}} מודלים זמינים",
     "volcengineAST2Info": "מידע על Doubao AST 2.0",
@@ -194,7 +192,6 @@
       "xhigh": "גבוה מאוד"
     },
     "translateInfoBanner": "המודל שותק כשהדובר משתמש באותה שפה כמו היעד. דיבור מעורב שפות עלול להכיל פערים.",
-    "translateModelAvailable": "מפתח API אומת. gpt-realtime-translate זמין.",
     "translateModelNotAvailable": "מפתח API עובד, אך gpt-realtime-translate אינו נגיש עם מפתח זה.",
     "participantSectionHeader": "שמע הצד השני",
     "participantSectionDescriptionElectron": "תרגם שמע מכל יישום שמתנגן במערכת זו.",
@@ -454,10 +451,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "טכנולוגיית בינה מלאכותית של Google"
-    },
-    "openaiCompatible": {
-      "name": "תואם OpenAI (Realtime ישן)",
-      "description": "נקודת קצה של צד שלישי המשתמשת בפרוטוקול Realtime בטא הישן של OpenAI. לא מיועד ל-OpenAI עצמה."
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -1150,8 +1143,6 @@
     },
     "credentials": {
       "apiKey": "מפתח API",
-      "endpoint": "כתובת נקודת הקצה",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",

@@ -78,11 +78,9 @@
     "failedToSaveSettings": "設定儲存失敗",
     "settingSavedSuccessfully": "設定儲存成功: {{key}}",
     "failedToSaveSetting": "設定儲存失敗: {{key}}",
-    "apiKeyValidationCompleted": "API金鑰驗證完成",
     "errorValidatingApiKey": "驗證API金鑰時出錯",
     "regionNotSupported": "該服務在您所在的地區不可用。請檢查您的網路環境或嘗試其他提供商。",
     "sessionActiveNotice": "工作階段啟用時設定已鎖定。請結束工作階段以修改設定。",
-    "realtimeModelAvailable": "即時模型可用",
     "realtimeModelNotAvailable": "即時模型不可用",
     "modelsFound": "找到 {{count}} 個模型",
     "volcengineAST2Info": "豆包同聲傳譯 2.0 資訊",
@@ -194,7 +192,6 @@
       "xhigh": "極高"
     },
     "translateInfoBanner": "當說話人使用與目標相同的語言時，該模型會保持沉默。混合語言場景可能會有片段缺失。",
-    "translateModelAvailable": "API key 驗證成功。gpt-realtime-translate 可用。",
     "translateModelNotAvailable": "API key 有效，但當前 key 沒有 gpt-realtime-translate 存取權限。",
     "participantSectionHeader": "對方音訊",
     "participantSectionDescriptionElectron": "翻譯此系統上任何正在播放的應用程式的音訊。",
@@ -454,10 +451,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "Google 的 AI 技術"
-    },
-    "openaiCompatible": {
-      "name": "OpenAI 相容（舊版 Realtime）",
-      "description": "使用 OpenAI 舊版 beta Realtime 協定的第三方端點。不適用於 OpenAI 官方。"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -1150,8 +1143,6 @@
     },
     "credentials": {
       "apiKey": "API 金鑰",
-      "endpoint": "端點網址",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",

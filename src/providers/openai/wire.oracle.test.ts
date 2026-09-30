@@ -4,7 +4,7 @@
  * built it (`OpenAIGAClient.ts:144-150`), dials exactly `realtimeUrl` with
  * exactly `realtimeProtocols`. The SDK opens a global `WebSocket`, stubbed
  * here with `FakeSocket`: it connects nowhere. The one value import of the
- * SDK's realtime socket outside the old client.
+ * SDK's realtime socket.
  */
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { OpenAIRealtimeWebSocket } from 'openai/realtime/websocket';

@@ -78,11 +78,9 @@
     "failedToSaveSettings": "Не вдалося зберегти налаштування",
     "settingSavedSuccessfully": "Налаштування успішно збережено: {{key}}",
     "failedToSaveSetting": "Не вдалося зберегти налаштування: {{key}}",
-    "apiKeyValidationCompleted": "Перевірку API-ключа завершено",
     "errorValidatingApiKey": "Помилка перевірки API-ключа",
     "regionNotSupported": "Сервіс недоступний у вашому регіоні. Перевірте мережеве середовище або спробуйте іншого провайдера.",
     "sessionActiveNotice": "Налаштування не можна змінити під час активної сесії",
-    "realtimeModelAvailable": "Модель реального часу доступна",
     "realtimeModelNotAvailable": "Модель реального часу недоступна",
     "modelsFound": "{{count}} моделей доступно",
     "volcengineAST2Info": "Інформація про Doubao AST 2.0",
@@ -194,7 +192,6 @@
       "xhigh": "Дуже високий"
     },
     "translateInfoBanner": "Модель мовчить, коли мовець використовує цільову мову. У багатомовній мові можливі пропуски.",
-    "translateModelAvailable": "API-ключ перевірено. gpt-realtime-translate доступний.",
     "translateModelNotAvailable": "API-ключ працює, але gpt-realtime-translate недоступний з цим ключем.",
     "participantSectionHeader": "Аудіо співрозмовника",
     "participantSectionDescriptionElectron": "Перекладайте аудіо з будь-якого додатку, що відтворюється в цій системі.",
@@ -454,10 +451,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "Технологія AI від Google"
-    },
-    "openaiCompatible": {
-      "name": "Сумісний з OpenAI (застарілий Realtime)",
-      "description": "Стороння кінцева точка зі старим бета-протоколом Realtime від OpenAI. Не для самої OpenAI."
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -1150,8 +1143,6 @@
     },
     "credentials": {
       "apiKey": "API-ключ",
-      "endpoint": "URL кінцевої точки",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",

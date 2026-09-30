@@ -62,16 +62,4 @@ describe('useCurrentProviderSettings', () => {
 
     expect(getByTestId('src').textContent).toBe('fr');
   });
-
-  it('re-renders when the provider itself switches', () => {
-    const { getByTestId } = render(<Probe />);
-    expect(getByTestId('src').textContent).toBe('ja');
-
-    act(() => {
-      useSettingsStore.setState({ provider: 'openai' as any });
-    });
-
-    // OpenAI default sourceLanguage is 'en'.
-    expect(getByTestId('src').textContent).toBe('en');
-  });
 });

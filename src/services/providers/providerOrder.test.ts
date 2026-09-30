@@ -32,9 +32,6 @@ describe('provider list order', () => {
 
     expect(ids).toEqual([
       Provider.LOCAL_INFERENCE,
-      Provider.OPENAI,
-      Provider.OPENAI_TRANSLATE,
-      Provider.OPENAI_COMPATIBLE,
       Provider.PALABRA_AI,
       Provider.LOCAL_NATIVE,
     ]);
@@ -58,8 +55,6 @@ describe('provider list order', () => {
 
     expect(ids).toEqual([
       Provider.LOCAL_INFERENCE,
-      Provider.OPENAI,
-      Provider.OPENAI_TRANSLATE,
     ]);
   });
 });

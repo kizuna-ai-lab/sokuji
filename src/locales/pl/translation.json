@@ -78,11 +78,9 @@
     "failedToSaveSettings": "Nie udało się zapisać ustawień",
     "settingSavedSuccessfully": "Ustawienie zostało pomyślnie zapisane: {{key}}",
     "failedToSaveSetting": "Nie udało się zapisać ustawienia: {{key}}",
-    "apiKeyValidationCompleted": "Walidacja klucza API zakończona",
     "errorValidatingApiKey": "Błąd podczas walidacji klucza API",
     "regionNotSupported": "Usługa niedostępna w Twoim regionie. Sprawdź środowisko sieciowe lub wypróbuj innego dostawcę.",
     "sessionActiveNotice": "Ustawienia są zablokowane podczas aktywnej sesji. Zakończ sesję, aby zmienić ustawienia.",
-    "realtimeModelAvailable": "Model w czasie rzeczywistym jest dostępny",
     "realtimeModelNotAvailable": "Model w czasie rzeczywistym nie jest dostępny",
     "modelsFound": "{{count}} modeli dostępnych",
     "volcengineAST2Info": "Informacje o Doubao AST 2.0",
@@ -194,7 +192,6 @@
       "xhigh": "Bardzo wysoki"
     },
     "translateInfoBanner": "Model milczy, gdy mówca używa tego samego języka co docelowy. Mowa wielojęzyczna może mieć luki.",
-    "translateModelAvailable": "Klucz API zweryfikowany. gpt-realtime-translate jest dostępny.",
     "translateModelNotAvailable": "Klucz API działa, ale gpt-realtime-translate jest niedostępny z tym kluczem.",
     "participantSectionHeader": "Dźwięk rozmówcy",
     "participantSectionDescriptionElectron": "Tłumacz dźwięk z dowolnej aplikacji odtwarzanej w tym systemie.",
@@ -454,10 +451,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "Technologia AI Google"
-    },
-    "openaiCompatible": {
-      "name": "Zgodny z OpenAI (starsze Realtime)",
-      "description": "Punkt końcowy innej firmy używający starszego protokołu Realtime beta OpenAI. Nie dla samego OpenAI."
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -1150,8 +1143,6 @@
     },
     "credentials": {
       "apiKey": "Klucz API",
-      "endpoint": "URL punktu końcowego",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",

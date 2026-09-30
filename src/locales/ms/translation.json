@@ -78,11 +78,9 @@
     "failedToSaveSettings": "Gagal menyimpan tetapan",
     "settingSavedSuccessfully": "Tetapan berjaya disimpan: {{key}}",
     "failedToSaveSetting": "Gagal menyimpan tetapan: {{key}}",
-    "apiKeyValidationCompleted": "Pengesahan kunci API selesai",
     "errorValidatingApiKey": "Ralat semasa mengesahkan kunci API",
     "regionNotSupported": "Perkhidmatan tidak tersedia di kawasan anda. Sila semak persekitaran rangkaian anda atau cuba pembekal lain.",
     "sessionActiveNotice": "Tetapan dikunci semasa sesi aktif. Sila tamatkan sesi untuk mengubah tetapan.",
-    "realtimeModelAvailable": "Model masa nyata tersedia",
     "realtimeModelNotAvailable": "Model masa nyata tidak tersedia",
     "modelsFound": "{{count}} model tersedia",
     "volcengineAST2Info": "Maklumat Doubao AST 2.0",
@@ -194,7 +192,6 @@
       "xhigh": "Sangat tinggi"
     },
     "translateInfoBanner": "Model ini senyap apabila penutur menggunakan bahasa yang sama dengan sasaran. Pertuturan berbilang bahasa mungkin mempunyai jurang.",
-    "translateModelAvailable": "Kunci API disahkan. gpt-realtime-translate tersedia.",
     "translateModelNotAvailable": "Kunci API berfungsi, tetapi gpt-realtime-translate tidak boleh diakses dengan kunci ini.",
     "participantSectionHeader": "Audio pihak lain",
     "participantSectionDescriptionElectron": "Terjemahkan audio daripada mana-mana aplikasi yang dimainkan pada sistem ini.",
@@ -454,10 +451,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "Teknologi AI Google"
-    },
-    "openaiCompatible": {
-      "name": "Serasi OpenAI (Realtime lama)",
-      "description": "Titik akhir pihak ketiga yang menggunakan protokol Realtime beta lama OpenAI. Bukan untuk OpenAI sendiri."
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -1150,8 +1143,6 @@
     },
     "credentials": {
       "apiKey": "Kunci API",
-      "endpoint": "URL Titik Akhir",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "APP ID",

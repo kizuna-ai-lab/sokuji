@@ -29,7 +29,6 @@ const { default: useSettingsStore } = await import('./settingsStore');
 /** action name → [sliceKey, sample patch] for the plain (no-special-case) slices */
 const PLAIN: Array<[string, string, Record<string, unknown>]> = [
   ['updatePalabraAI', 'palabraai', { clientId: 'c1' }],
-  ['updateOpenAITranslate', 'openaiTranslate', { apiKey: 'k2' }],
   ['updateLocalInference', 'localInference', { ttsSpeed: 1.5 }],
   ['updateLocalNative', 'localNative', { sourceLanguage: 'ja' }],
 ];
@@ -50,35 +49,6 @@ describe('provider settings update actions (behavior lock)', () => {
     }
   });
 
-  it('openai/openaiCompatible: switching to webrtc forces turnDetectionMode Disabled in state AND persistence', async () => {
-    for (const [action, sliceKey] of [['updateOpenAI', 'openai'], ['updateOpenAICompatible', 'openaiCompatible']] as const) {
-      setSetting.mockClear();
-      (useSettingsStore.setState as any)({ [sliceKey]: { ...(useSettingsStore.getState() as any)[sliceKey], turnDetectionMode: 'Normal' } });
-      await (useSettingsStore.getState() as any)[action]({ transportType: 'webrtc' });
-      expect((useSettingsStore.getState() as any)[sliceKey].turnDetectionMode, action).toBe('Disabled');
-      expect(setSetting, action).toHaveBeenCalledWith(`settings.${sliceKey}.turnDetectionMode`, 'Disabled');
-      expect(setSetting, action).toHaveBeenCalledWith(`settings.${sliceKey}.transportType`, 'webrtc');
-    }
-  });
-
-  it('webrtc forcing is conditional: already-Disabled stays Disabled; a non-webrtc patch never forces it', async () => {
-    for (const [action, sliceKey] of [['updateOpenAI', 'openai'], ['updateOpenAICompatible', 'openaiCompatible']] as const) {
-      // Already Disabled before the update → still Disabled, still persisted.
-      setSetting.mockClear();
-      (useSettingsStore.setState as any)({ [sliceKey]: { ...(useSettingsStore.getState() as any)[sliceKey], turnDetectionMode: 'Disabled' } });
-      await (useSettingsStore.getState() as any)[action]({ transportType: 'webrtc' });
-      expect((useSettingsStore.getState() as any)[sliceKey].turnDetectionMode, action).toBe('Disabled');
-      expect(setSetting, action).toHaveBeenCalledWith(`settings.${sliceKey}.turnDetectionMode`, 'Disabled');
-
-      // Negative case: a websocket patch must NOT force or persist turnDetectionMode.
-      setSetting.mockClear();
-      (useSettingsStore.setState as any)({ [sliceKey]: { ...(useSettingsStore.getState() as any)[sliceKey], turnDetectionMode: 'Normal' } });
-      await (useSettingsStore.getState() as any)[action]({ transportType: 'websocket' });
-      expect((useSettingsStore.getState() as any)[sliceKey].turnDetectionMode, action).toBe('Normal');
-      expect(setSetting, action).not.toHaveBeenCalledWith(`settings.${sliceKey}.turnDetectionMode`, expect.anything());
-    }
-  });
-
   // The registry used to carry `persistErrors: 'throw' | 'swallow'`, split 6/6,
   // and this pinned each row. What the split actually did in production: none
   // of the six "throw" actions was awaited or caught by any caller — they are
@@ -93,10 +63,7 @@ describe('provider settings update actions (behavior lock)', () => {
   // resolves, and the failure becomes one panel entry per key. Both failure
   // channels are exercised because the service can produce either.
   const ALL_SLICES: Array<[string, string, Record<string, unknown>]> = [
-    ['updateOpenAI', 'openai', { apiKey: 'x' }],
-    ['updateOpenAICompatible', 'openaiCompatible', { apiKey: 'x' }],
     ['updatePalabraAI', 'palabraai', { clientId: 'x' }],
-    ['updateOpenAITranslate', 'openaiTranslate', { apiKey: 'x' }],
     ['updateLocalInference', 'localInference', { ttsSpeed: 1.5 }],
     ['updateLocalNative', 'localNative', { sourceLanguage: 'ja' }],
   ];
@@ -148,8 +115,7 @@ describe('provider settings update actions (behavior lock)', () => {
     const s = useSettingsStore.getState() as any;
     // Spot every slice key is a populated object after load.
     for (const sliceKey of [
-      'openai', 'openaiCompatible', 'palabraai', 'openaiTranslate',
-      'localInference', 'localNative',
+      'palabraai', 'localInference', 'localNative',
     ]) {
       expect(s[sliceKey], sliceKey).toBeTypeOf('object');
       expect(Object.keys(s[sliceKey]).length, sliceKey).toBeGreaterThan(0);

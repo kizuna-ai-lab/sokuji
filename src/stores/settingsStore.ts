@@ -3,7 +3,6 @@ import {subscribeWithSelector} from 'zustand/middleware';
 import {ServiceFactory} from '../services/ServiceFactory';
 import {ProviderConfigFactory} from '../services/providers/ProviderConfigFactory';
 import {ProviderConfig} from '../services/providers/ProviderConfig';
-import type {TransportType} from '../services/providers/ProviderDescriptor';
 import {
   FilteredModel,
   SessionConfig,
@@ -29,18 +28,7 @@ import { canEnterSubtitleMode } from '../components/Subtitle/subtitleEnterGate';
 import { currentRunPhase } from '../app/runPhase';
 import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
 import {Provider, ProviderType} from '../types/Provider';
-import {ClientOperations} from '../services/ClientOperations';
 import i18n from '../locales';
-import {
-  OpenAISettings, defaultOpenAISettings, OpenAICompatibleSettingsBase,
-} from '../services/providers/OpenAIProviderConfig';
-import {
-  OpenAICompatibleSettings, defaultOpenAICompatibleSettings,
-} from '../services/providers/OpenAICompatibleProviderConfig';
-import {
-  OpenAITranslateSettings, defaultOpenAITranslateSettings,
-  LEGACY_TRANSLATE_TRANSCRIPT_MODEL,
-} from '../services/providers/OpenAITranslateProviderConfig';
 import {
   PalabraAISettings, defaultPalabraAISettings,
 } from '../services/providers/PalabraAIProviderConfig';
@@ -69,16 +57,14 @@ function msgForNativeReason(reason: NativeReadinessReason): string {
 }
 
 export type {
-  OpenAISettings, OpenAICompatibleSettings, OpenAICompatibleSettingsBase,
-  OpenAITranslateSettings, PalabraAISettings,
+  PalabraAISettings,
   LocalInferenceSettings, LocalNativeSettings,
 };
 
 // Union of every provider's settings slice — the return type of
 // getCurrentProviderSettings, resolved dynamically via the active descriptor.
 export type ProviderSettingsUnion =
-  | OpenAISettings | OpenAICompatibleSettings | PalabraAISettings
-  | OpenAITranslateSettings
+  | PalabraAISettings
   | LocalInferenceSettings | LocalNativeSettings;
 
 // ==================== Type Definitions ====================
@@ -121,11 +107,8 @@ export interface CommonSettings {
   participantDisplayMode: DisplayMode;
 }
 
-// Transport type moved to the services layer; re-exported for existing importers.
 /** The authentication forms that can sit over the app. */
 export type AuthOverlayKind = 'sign-in' | 'sign-up' | 'forgot-password' | null;
-
-export type { TransportType } from '../services/providers/ProviderDescriptor';
 
 // Cache Entry
 interface CacheEntry {
@@ -266,10 +249,7 @@ export interface SettingsStore {
   participantSystemInstructions: string;
 
   // Provider-specific settings
-  openai: OpenAISettings;
-  openaiCompatible: OpenAICompatibleSettings;
   palabraai: PalabraAISettings;
-  openaiTranslate: OpenAITranslateSettings;
   localInference: LocalInferenceSettings;
   localNative: LocalNativeSettings;
 
@@ -385,10 +365,7 @@ export interface SettingsStore {
   setParticipantSystemInstructions: (instructions: string) => void;
 
   // Provider settings actions
-  updateOpenAI: (settings: Partial<OpenAISettings>) => void;
-  updateOpenAICompatible: (settings: Partial<OpenAICompatibleSettings>) => void;
   updatePalabraAI: (settings: Partial<PalabraAISettings>) => void;
-  updateOpenAITranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
   updateLocalInference: (settings: Partial<LocalInferenceSettings>) => void;
   updateLocalNative: (settings: Partial<LocalNativeSettings>) => void;
   /** Generic slice update keyed by descriptor.settingsSliceKey — the write
@@ -458,56 +435,6 @@ export function migratePalabraAuthMode(
   return { authMode: 'platform' };
 }
 
-/** Move a persisted OpenAI-Translate transcript model off the legacy
- *  `gpt-realtime-whisper`. OpenAI reclassified it as legacy on 2026-07-31 and
- *  names `gpt-live-transcribe` as the replacement: identical $0.017/min, lower
- *  word error rate (11.65% -> 9.60% on their Real World Audio Benchmark).
- *  Dropping the value from the dropdown is not enough on its own — the stored
- *  value survives and would keep being sent. Only that one legacy string is
- *  rewritten, so a value a user picks from some future multi-option dropdown
- *  is left alone. */
-export function migrateLegacyTranslateTranscriptModel(
-  slice: { transcriptModel: string }
-): Partial<Pick<OpenAITranslateSettings, 'transcriptModel'>> {
-  return slice.transcriptModel === LEGACY_TRANSLATE_TRANSCRIPT_MODEL
-    ? { transcriptModel: defaultOpenAITranslateSettings.transcriptModel }
-    : {};
-}
-
-/** Migrate a persisted deprecated OpenAI voice-agent realtime model id to its
- *  current replacement. OpenAI notified (2026-07-20) that the pre-2.1 realtime
- *  and audio model families/snapshots are removed from the API on 2027-01-20;
- *  the former default `gpt-realtime-mini` is among them. Prefix-matched so dated
- *  snapshots (e.g. `-preview-2024-12-17`) are also caught. Applied only to the
- *  `openai` slice's `model`, which only ever holds voice-agent realtime ids.
- *  Translate/whisper realtime variants (their own provider slices) and current
- *  or future (>= 2.1) versioned models are left untouched. */
-export function migrateDeprecatedOpenAIModel(model: string): string {
-  const m = (model ?? '').toLowerCase();
-  // Preserve current AND future versioned voice-agent models: any
-  // gpt-realtime-<major>.<minor> at >= 2.1 is kept as-is (2.1, 2.2, 3, ...), so
-  // a user who later selects a newer 2.x model isn't silently downgraded on the
-  // next settings load. Only the pre-2.1 families below are deprecated.
-  const version = m.match(/^gpt-realtime-(\d+)(?:\.(\d+))?/);
-  if (version) {
-    const major = parseInt(version[1], 10);
-    const minor = parseInt(version[2] ?? '0', 10);
-    if (major > 2 || (major === 2 && minor >= 1)) return model;
-  }
-  // Non-voice-agent realtime families live in their own provider slices.
-  if (m.startsWith('gpt-realtime-translate')) return model;
-  if (m.startsWith('gpt-realtime-whisper')) return model;
-  // Deprecated mini realtime families → gpt-realtime-2.1-mini.
-  if (m.startsWith('gpt-realtime-mini') || m.startsWith('gpt-4o-mini-realtime')) {
-    return 'gpt-realtime-2.1-mini';
-  }
-  // Deprecated full realtime families (incl. stale gpt-realtime-1.5 / -2) → 2.1.
-  if (m.startsWith('gpt-realtime') || m.startsWith('gpt-4o-realtime')) {
-    return 'gpt-realtime-2.1';
-  }
-  return model;
-}
-
 /**
  * Resolve the worker type for a specific translation model id.
  * Returns 'opus-mt' when the id is missing or not in the manifest.
@@ -543,8 +470,8 @@ export function createLocalNativeSessionConfig(
 // ─── Provider settings slice registry ────────────────────────────────────────
 // One row per persisted provider slice. This table is the single home for the
 // knowledge the twelve hand-written update actions used to re-encode: the
-// slice's defaults (for loading), its patch transform, and its
-// persistence-error policy. Persist keys are always
+// slice's defaults (for loading) and its persistence-error policy. Persist
+// keys are always
 // `settings.<sliceKey>.<field>` — the sliceKey doubles as the storage prefix.
 
 type SliceUpdateSpec = {
@@ -555,39 +482,25 @@ type SliceUpdateSpec = {
    * `Object.keys` is read from it.
    */
   defaults: object;
-  /** Transform an incoming patch before it is merged AND persisted. */
-  transformPatch?: (patch: Record<string, unknown>) => Record<string, unknown>;
 };
 
-// WebRTC transport: the server truncates audio on user speech (API design),
-// so server VAD must be off to prevent translation interruption. Forcing the
-// field unconditionally is equivalent to the old merged-state check: after
-// the old code ran, turnDetectionMode was always 'Disabled' under webrtc.
-const forceWebrtcTurnDetectionOff = (patch: Record<string, unknown>): Record<string, unknown> =>
-  patch.transportType === 'webrtc' ? { ...patch, turnDetectionMode: 'Disabled' } : patch;
-
 const PROVIDER_SLICE_REGISTRY = {
-  openai: { defaults: defaultOpenAISettings, transformPatch: forceWebrtcTurnDetectionOff },
-  openaiCompatible: { defaults: defaultOpenAICompatibleSettings, transformPatch: forceWebrtcTurnDetectionOff },
   palabraai: { defaults: defaultPalabraAISettings },
-  openaiTranslate: { defaults: defaultOpenAITranslateSettings },
   localInference: { defaults: defaultLocalInferenceSettings },
   localNative: { defaults: defaultLocalNativeSettings },
 } satisfies Record<string, SliceUpdateSpec>;
 
 export type ProviderSliceKey = keyof typeof PROVIDER_SLICE_REGISTRY;
 
-/** Shared implementation behind every updateXxx action: merge the (possibly
- *  transformed) patch into the slice, then persist each field under
+/** Shared implementation behind every updateXxx action: merge the patch
+ *  into the slice, then persist each field under
  *  `settings.<sliceKey>.<field>` per the slice's error policy. */
 async function updateProviderSlice(
   set: (fn: (state: SettingsStore) => Partial<SettingsStore>) => void,
   sliceKey: ProviderSliceKey,
   patch: Record<string, unknown>,
 ): Promise<void> {
-  const spec: SliceUpdateSpec = PROVIDER_SLICE_REGISTRY[sliceKey];
-  const effective = spec.transformPatch ? spec.transformPatch(patch) : patch;
-  set((state) => ({ [sliceKey]: { ...(state as any)[sliceKey], ...effective } }) as Partial<SettingsStore>);
+  set((state) => ({ [sliceKey]: { ...(state as any)[sliceKey], ...patch } }) as Partial<SettingsStore>);
 
   // One seam for every slice. The registry used to carry
   // `persistErrors: 'throw' | 'swallow'`, split 6/6, but none of the six
@@ -596,7 +509,7 @@ async function updateProviderSlice(
   // routed to PostHog and "swallow" meant a console line. Neither reached the
   // user, and which slice got which was arbitrary. `persistSetting` reports
   // the failure once per key instead.
-  for (const [key, value] of Object.entries(effective)) {
+  for (const [key, value] of Object.entries(patch)) {
     await persistSetting(`settings.${sliceKey}.${key}`, value);
   }
 }
@@ -605,10 +518,7 @@ const useSettingsStore = create<SettingsStore>()(
   subscribeWithSelector((set, get) => ({
     // === Initial State ===
     ...defaultCommonSettings,
-    openai: defaultOpenAISettings,
-    openaiCompatible: defaultOpenAICompatibleSettings,
     palabraai: defaultPalabraAISettings,
-    openaiTranslate: defaultOpenAITranslateSettings,
     localInference: defaultLocalInferenceSettings,
     localNative: defaultLocalNativeSettings,
 
@@ -631,13 +541,8 @@ const useSettingsStore = create<SettingsStore>()(
 
     // === Common Settings Actions ===
     setProvider: async (provider) => {
-      // Snapshot the prior state BEFORE committing the provider switch so the
-      // prefill check sees the previous provider's apiKey value.
-      const prior = get();
-
-      // Commit the provider change first so any subscriber (SettingsInitializer
-      // etc.) sees the new value synchronously. Persistence and the optional
-      // prefill happen afterwards.
+      // Commit the provider change first so any subscriber sees the new value
+      // synchronously. Persistence happens afterwards.
       set({provider});
 
       // Clear cache synchronously before persisting, so SettingsInitializer
@@ -647,27 +552,6 @@ const useSettingsStore = create<SettingsStore>()(
 
       const service = ServiceFactory.getSettingsService();
       await service.setSetting('settings.common.provider', provider);
-
-      // Silent prefill: when first switching to OPENAI_TRANSLATE and its key
-      // is empty while the OpenAI provider already has one, copy it across so
-      // the user doesn't have to re-paste. After the copy the keys are
-      // independent — later edits to either won't propagate to the other.
-      const prefillSlice =
-        provider === Provider.OPENAI_TRANSLATE ? 'openaiTranslate'
-        : null;
-      if (prefillSlice && !prior[prefillSlice].apiKey && prior.openai.apiKey) {
-        const openaiKey = prior.openai.apiKey;
-        set((s) => ({
-          [prefillSlice]: { ...s[prefillSlice], apiKey: openaiKey }
-        }) as Partial<SettingsStore>);
-        // Best-effort prefill: if persistence fails the in-memory copy is
-        // still usable for this session; the user can re-trigger by setting
-        // the key manually. persistSetting still files the one panel line.
-        await persistSetting(`settings.${prefillSlice}.apiKey`, openaiKey);
-        // Fire-and-forget validation so the freshly-prefilled key is verified
-        // in the background without blocking the provider switch.
-        void get().validateApiKey();
-      }
     },
 
     setUILanguage: async (uiLanguage) => {
@@ -861,10 +745,7 @@ const useSettingsStore = create<SettingsStore>()(
     },
 
     // === Provider Settings Actions ===
-    updateOpenAI: (settings) => updateProviderSlice(set, 'openai', settings),
-    updateOpenAICompatible: (settings) => updateProviderSlice(set, 'openaiCompatible', settings),
     updatePalabraAI: (settings) => updateProviderSlice(set, 'palabraai', settings),
-    updateOpenAITranslate: (settings) => updateProviderSlice(set, 'openaiTranslate', settings),
     updateLocalInference: (settings) => updateProviderSlice(set, 'localInference', settings),
     updateLocalNative: (settings) => updateProviderSlice(set, 'localNative', settings),
     updateProviderSlice: (sliceKey, patch) => {
@@ -1016,32 +897,6 @@ const useSettingsStore = create<SettingsStore>()(
           cacheTimestamp: Date.now()
         });
 
-        // Auto-select model if current selection is empty or not in available list
-        if (result.models.length > 0) {
-          const currentModel = (state.getCurrentProviderSettings() as any)?.model;
-          const realtimeModels = result.models.filter(m => m.type === 'realtime');
-          if (realtimeModels.length > 0 && (!currentModel || !realtimeModels.some(m => m.id === currentModel))) {
-            const latestModel = ClientOperations.getLatestRealtimeModel(result.models, provider);
-            if (latestModel) {
-              // Update the provider-specific model setting
-              switch (provider) {
-                case Provider.OPENAI:
-                  get().updateOpenAI({ model: latestModel });
-                  break;
-                case Provider.OPENAI_COMPATIBLE:
-                  get().updateOpenAICompatible({ model: latestModel });
-                  break;
-                case Provider.OPENAI_TRANSLATE:
-                  // Translate locks model server-side; settings shape has
-                  // no `model` field, so the auto-select is intentionally
-                  // a no-op here.
-                  break;
-              }
-              console.info(`[Sokuji] Model "${currentModel || '(empty)'}" not available, auto-selected "${latestModel}"`);
-            }
-          }
-        }
-
         return result.validation;
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Validation failed';
@@ -1118,18 +973,6 @@ const useSettingsStore = create<SettingsStore>()(
             await loadProviderSettings(`settings.${sliceKey}`, PROVIDER_SLICE_REGISTRY[sliceKey].defaults),
           ] as const),
         )) as Partial<SettingsStore>;
-
-        // Migrate a persisted deprecated OpenAI realtime model (pre-2.1 family,
-        // removed from the API 2027-01-20) to its current replacement so
-        // existing users don't reconnect onto a dead model.
-        const openaiSlice = loadedSlices.openai as OpenAISettings | undefined;
-        if (openaiSlice?.model) {
-          openaiSlice.model = migrateDeprecatedOpenAIModel(openaiSlice.model);
-        }
-
-        // Retire the legacy translate transcript model.
-        const translateSlice = loadedSlices.openaiTranslate as OpenAITranslateSettings | undefined;
-        if (translateSlice) Object.assign(translateSlice, migrateLegacyTranslateTranscriptModel(translateSlice));
 
         // Drop persisted PalabraAI language codes the API rejects, so an existing
         // user isn't left on a pair whose set_task fails validation.
@@ -1312,22 +1155,9 @@ export const useUseTemplateMode = () => useSettingsStore((state) => state.useTem
 export const useParticipantSystemInstructions = () => useSettingsStore((state) => state.participantSystemInstructions);
 
 // Provider settings
-export const useOpenAISettings = () => useSettingsStore((state) => state.openai);
-export const useOpenAICompatibleSettings = () => useSettingsStore((state) => state.openaiCompatible);
 export const usePalabraAISettings = () => useSettingsStore((state) => state.palabraai);
-export const useOpenAITranslateSettings = () => useSettingsStore((state) => state.openaiTranslate);
 export const useLocalInferenceSettings = () => useSettingsStore((state) => state.localInference);
 export const useLocalNativeSettings = () => useSettingsStore((state) => state.localNative);
-
-// Transport type selector — resolves the ACTIVE provider's own slice (a
-// selector hardcoded to `state.openai` let OpenAI's WebRTC choice silently
-// govern other providers' sessions while their own pickers wrote an unread
-// field).
-export const useTransportType = (): TransportType => useSettingsStore((state) => {
-  const descriptor = ProviderConfigFactory.getDescriptor(state.provider);
-  const slice = state[descriptor.settingsSliceKey as keyof SettingsStore] as { transportType?: TransportType };
-  return slice?.transportType ?? 'websocket';
-});
 
 // Validation state
 export const useIsApiKeyValid = () => useSettingsStore((state) => state.isApiKeyValid);
@@ -1385,10 +1215,7 @@ export const useSetTemplateSystemInstructions = () => useSettingsStore((state) =
 export const useSetUseTemplateMode = () => useSettingsStore((state) => state.setUseTemplateMode);
 export const useSetParticipantSystemInstructions = () => useSettingsStore((state) => state.setParticipantSystemInstructions);
 
-export const useUpdateOpenAI = () => useSettingsStore((state) => state.updateOpenAI);
-export const useUpdateOpenAICompatible = () => useSettingsStore((state) => state.updateOpenAICompatible);
 export const useUpdatePalabraAI = () => useSettingsStore((state) => state.updatePalabraAI);
-export const useUpdateOpenAITranslate = () => useSettingsStore((state) => state.updateOpenAITranslate);
 export const useUpdateLocalInference = () => useSettingsStore((state) => state.updateLocalInference);
 export const useUpdateLocalNative = () => useSettingsStore((state) => state.updateLocalNative);
 

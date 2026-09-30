@@ -63,10 +63,6 @@ export interface EventData {
     // session.close handshake
     | 'session.start' | 'session.close'
     | 'session.connection_lost'
-    // openai-realtime-api custom events (for beta clients)
-    | 'conversation.item.appended' | 'conversation.item.completed'
-    | 'conversation.updated' | 'conversation.interrupted'
-    | 'realtime.event'
     // PalabraAI-specific request types (client → server)
     | 'set_task'
     | 'end_task'

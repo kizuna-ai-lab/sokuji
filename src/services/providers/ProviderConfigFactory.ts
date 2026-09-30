@@ -1,8 +1,5 @@
 import { ProviderConfig } from './ProviderConfig';
 import { ProviderDescriptor } from './ProviderDescriptor';
-import { OpenAIProviderConfig } from './OpenAIProviderConfig';
-import { OpenAICompatibleProviderConfig } from './OpenAICompatibleProviderConfig';
-import { OpenAITranslateProviderConfig } from './OpenAITranslateProviderConfig';
 import { PalabraAIProviderConfig } from './PalabraAIProviderConfig';
 import { LocalInferenceProviderConfig } from './LocalInferenceProviderConfig';
 import { LocalNativeProviderConfig } from './LocalNativeProviderConfig';
@@ -22,15 +19,6 @@ export class ProviderConfigFactory {
 
     // 2. Free (local inference) — always available, no API key or flag.
     ProviderConfigFactory.configs.set(Provider.LOCAL_INFERENCE, new LocalInferenceProviderConfig());
-
-    // 5. The OpenAI providers: Realtime, Translate.
-    ProviderConfigFactory.configs.set(Provider.OPENAI, new OpenAIProviderConfig());
-    ProviderConfigFactory.configs.set(Provider.OPENAI_TRANSLATE, new OpenAITranslateProviderConfig());
-
-    // 7. OpenAI Compatible — Electron only.
-    if (isElectron()) {
-      ProviderConfigFactory.configs.set(Provider.OPENAI_COMPATIBLE, new OpenAICompatibleProviderConfig());
-    }
 
     // 8. Palabra AI — behind its feature flag.
     if (isPalabraAIEnabled()) {

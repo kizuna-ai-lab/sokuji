@@ -1,7 +1,7 @@
 /**
  * OpenAI Realtime on the new contract (spec: "L0 — the client contract"),
- * ported from `OpenAIGAClient` (`src/services/clients/`, still compiled
- * until the deletion plan) without its items, its segmentation stage or the
+ * ported from `OpenAIGAClient` (`src/services/clients/`, deleted since)
+ * without its items, its segmentation stage or the
  * old MainPanel's orchestration: one leg, one WebSocket to the GA endpoint,
  * the key in a subprotocol (choice 7). The start resolves on
  * `session.updated`, the configuration confirmed, so a refused one rejects

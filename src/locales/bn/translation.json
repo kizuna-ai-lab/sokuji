@@ -78,11 +78,9 @@
     "failedToSaveSettings": "সেটিংস সংরক্ষণে ব্যর্থ",
     "settingSavedSuccessfully": "সেটিং সফলভাবে সংরক্ষিত: {{key}}",
     "failedToSaveSetting": "সেটিং সংরক্ষণে ব্যর্থ: {{key}}",
-    "apiKeyValidationCompleted": "API কী যাচাইকরণ সম্পন্ন",
     "errorValidatingApiKey": "API কী যাচাই করতে ত্রুটি",
     "regionNotSupported": "আপনার অঞ্চলে সেবা উপলব্ধ নয়। আপনার নেটওয়ার্ক পরিবেশ পরীক্ষা করুন বা অন্য প্রদানকারী চেষ্টা করুন।",
     "sessionActiveNotice": "সক্রিয় সেশনের সময় সেটিংস পরিবর্তন করা যাবে না",
-    "realtimeModelAvailable": "রিয়েল-টাইম মডেল উপলব্ধ",
     "realtimeModelNotAvailable": "রিয়েল-টাইম মডেল উপলব্ধ নয়",
     "modelsFound": "{{count}}টি মডেল উপলব্ধ",
     "volcengineAST2Info": "Doubao AST 2.0 তথ্য",
@@ -194,7 +192,6 @@
       "xhigh": "অতি উচ্চ"
     },
     "translateInfoBanner": "যখন বক্তা লক্ষ্যের সাথে একই ভাষা ব্যবহার করেন, তখন এই মডেল নীরব থাকে। মিশ্র ভাষার বক্তব্যে ফাঁক থাকতে পারে।",
-    "translateModelAvailable": "API কী যাচাই করা হয়েছে। gpt-realtime-translate উপলব্ধ।",
     "translateModelNotAvailable": "API কী কাজ করে, কিন্তু এই কী দিয়ে gpt-realtime-translate অ্যাক্সেস করা যায় না।",
     "participantSectionHeader": "অন্যের অডিও",
     "participantSectionDescriptionElectron": "এই সিস্টেমে চলমান যেকোনো অ্যাপ্লিকেশন থেকে অডিও অনুবাদ করুন।",
@@ -454,10 +451,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "Google এর AI প্রযুক্তি"
-    },
-    "openaiCompatible": {
-      "name": "OpenAI সামঞ্জস্যপূর্ণ (লিগ্যাসি Realtime)",
-      "description": "OpenAI-এর পুরনো beta Realtime প্রোটোকল ব্যবহারকারী তৃতীয় পক্ষের এন্ডপয়েন্ট। OpenAI-এর নিজস্ব API-এর জন্য নয়।"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -1150,8 +1143,6 @@
     },
     "credentials": {
       "apiKey": "API কী",
-      "endpoint": "এন্ডপয়েন্ট URL",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",

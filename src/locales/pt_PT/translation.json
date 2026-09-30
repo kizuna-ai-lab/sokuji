@@ -78,11 +78,9 @@
     "failedToSaveSettings": "Falha ao guardar definições",
     "settingSavedSuccessfully": "Definição guardada com sucesso: {{key}}",
     "failedToSaveSetting": "Falha ao guardar definição: {{key}}",
-    "apiKeyValidationCompleted": "Validação da chave API concluída",
     "errorValidatingApiKey": "Erro ao validar a chave API",
     "regionNotSupported": "Serviço não disponível na sua região. Verifique o seu ambiente de rede ou tente outro fornecedor.",
     "sessionActiveNotice": "As definições estão bloqueadas enquanto a sessão está activa. Termine a sessão para modificar as definições.",
-    "realtimeModelAvailable": "O modelo em tempo real está disponível",
     "realtimeModelNotAvailable": "O modelo em tempo real não está disponível",
     "modelsFound": "{{count}} modelos disponíveis",
     "volcengineAST2Info": "Informações do Doubao AST 2.0",
@@ -194,7 +192,6 @@
       "xhigh": "Muito alto"
     },
     "translateInfoBanner": "Este modelo permanece em silêncio quando o orador usa o mesmo idioma do destino. A fala em idiomas mistos pode ter lacunas.",
-    "translateModelAvailable": "Chave de API validada. gpt-realtime-translate está disponível.",
     "translateModelNotAvailable": "A chave de API funciona, mas gpt-realtime-translate não está acessível com esta chave.",
     "participantSectionHeader": "Áudio do outro",
     "participantSectionDescriptionElectron": "Traduza o áudio de qualquer aplicação a reproduzir neste sistema.",
@@ -454,10 +451,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "Tecnologia AI da Google"
-    },
-    "openaiCompatible": {
-      "name": "Compatível com OpenAI (Realtime legado)",
-      "description": "Ponto final de terceiros que usa o antigo protocolo Realtime beta da OpenAI. Não serve para a OpenAI."
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -1150,8 +1143,6 @@
     },
     "credentials": {
       "apiKey": "Chave de API",
-      "endpoint": "URL do ponto final",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",

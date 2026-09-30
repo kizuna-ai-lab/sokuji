@@ -74,71 +74,6 @@ export interface BaseSessionConfig {
 }
 
 /**
- * OpenAI-specific session configuration
- */
-export interface OpenAISessionConfig extends BaseSessionConfig {
-  provider: 'openai' | 'cometapi';
-  // Direction, carried for the participant session's benefit only — neither is
-  // forwarded to the API. OpenAI expresses direction through `instructions`,
-  // so nothing else needs these; but the participant session reverses the
-  // direction and must rebuild `inputAudioTranscription` around the other
-  // party's language. See createParticipantSessionConfig.
-  sourceLanguage?: string;
-  targetLanguage?: string;
-  turnDetection?: {
-    type: 'server_vad' | 'semantic_vad' | 'none';
-    threshold?: number;
-    prefixPadding?: number;
-    silenceDuration?: number;
-    eagerness?: string;
-    createResponse?: boolean;
-    interruptResponse?: boolean;
-  };
-  // Built by buildInputAudioTranscription (see openaiTranscriptionContext),
-  // which decides per model which of these the API will accept: `languages`
-  // and `keywords` are rejected outright by the legacy transcription models,
-  // taking the whole session.update down with them. Never populate these by
-  // hand — go through that builder.
-  inputAudioTranscription?: {
-    model: string;
-    language?: string;
-    languages?: string[];
-    keywords?: string[];
-  };
-  inputAudioNoiseReduction?: {
-    type: 'near_field' | 'far_field';
-  };
-  // Reasoning effort. Only consumed by clients when `model` supports it
-  // (currently `gpt-realtime-2`). Clients must gate by model name before
-  // forwarding to the OpenAI API — older models reject the field.
-  reasoningEffort?: 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
-}
-
-/**
- * Target languages supported by OpenAI's gpt-realtime-translate model.
- * The model only supports translating into this fixed set of 13 languages.
- */
-export type TranslateTargetLanguage =
-  | 'en' | 'es' | 'pt' | 'fr' | 'ja' | 'ru' | 'zh'
-  | 'de' | 'ko' | 'hi' | 'id' | 'vi' | 'it';
-
-/**
- * OpenAI Translate (gpt-realtime-translate) session configuration
- */
-export interface OpenAITranslateSessionConfig extends BaseSessionConfig {
-  provider: 'openai_translate';
-  targetLanguage: TranslateTargetLanguage;
-  // UI hint only — not forwarded to the API
-  sourceLanguage?: string;
-  inputAudioTranscription?: { model: string };
-  inputAudioNoiseReduction?: { type: 'near_field' | 'far_field' };
-  // Client-side utterance segmentation used to ride here as two per-provider
-  // silence thresholds. A2 made them one global pause pair, so the client
-  // takes them through ClientOptions instead and nothing about them belongs
-  // in a session config.
-}
-
-/**
  * PalabraAI-specific session configuration
  */
 export interface PalabraAISessionConfig extends BaseSessionConfig {
@@ -217,22 +152,11 @@ export interface LocalNativeSessionConfig extends BaseSessionConfig {
 /**
  * Union type for all possible session configurations
  */
-export type SessionConfig = OpenAISessionConfig | OpenAITranslateSessionConfig | PalabraAISessionConfig | LocalInferenceSessionConfig | LocalNativeSessionConfig;
+export type SessionConfig = PalabraAISessionConfig | LocalInferenceSessionConfig | LocalNativeSessionConfig;
 
 /**
  * Type guards for session configurations
  */
-export function isOpenAISessionConfig(config: unknown): config is OpenAISessionConfig {
-  if (typeof config !== 'object' || config === null) return false;
-
-  const provider = (config as { provider?: unknown }).provider;
-  return provider === 'openai' || provider === 'cometapi';
-}
-
-export function isOpenAITranslateSessionConfig(config: SessionConfig): config is OpenAITranslateSessionConfig {
-  return config.provider === 'openai_translate';
-}
-
 export function isPalabraAISessionConfig(config: SessionConfig): config is PalabraAISessionConfig {
   return config.provider === 'palabraai';
 }
@@ -353,15 +277,4 @@ export interface IClient {
 
   // Provider-specific information
   getProvider(): ProviderType;
-
-  // Optional device control methods (WebRTC only)
-  switchInputDevice?(deviceId: string): Promise<void>;
-  switchOutputDevice?(deviceId: string): Promise<void>;
-  setOutputMuted?(muted: boolean): void;
-  setOutputVolume?(volume: number): void;
-
-  /** Input-side (local capture) frequency data for visualization, where the client
-   * owns its own capture (WebRTC bridge analyser). Absent on clients fed by the
-   * shared recorder. */
-  getInputFrequencies?(): { values: Float32Array } | null;
 }

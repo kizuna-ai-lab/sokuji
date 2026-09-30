@@ -78,11 +78,9 @@
     "failedToSaveSettings": "Opslaan van instellingen mislukt",
     "settingSavedSuccessfully": "Instelling succesvol opgeslagen: {{key}}",
     "failedToSaveSetting": "Opslaan van instelling mislukt: {{key}}",
-    "apiKeyValidationCompleted": "API-sleutel validatie voltooid",
     "errorValidatingApiKey": "Fout bij het valideren van API-sleutel",
     "regionNotSupported": "Service niet beschikbaar in uw regio. Controleer uw netwerkomgeving of probeer een andere provider.",
     "sessionActiveNotice": "Instellingen zijn vergrendeld tijdens een actieve sessie. Beëindig de sessie om instellingen te wijzigen.",
-    "realtimeModelAvailable": "Realtime model is beschikbaar",
     "realtimeModelNotAvailable": "Realtime model is niet beschikbaar",
     "modelsFound": "{{count}} modellen beschikbaar",
     "volcengineAST2Info": "Doubao AST 2.0-informatie",
@@ -194,7 +192,6 @@
       "xhigh": "Zeer hoog"
     },
     "translateInfoBanner": "Dit model blijft stil wanneer de spreker dezelfde taal gebruikt als de doeltaal. Gemengde talen kunnen hiaten veroorzaken.",
-    "translateModelAvailable": "API-sleutel gevalideerd. gpt-realtime-translate is beschikbaar.",
     "translateModelNotAvailable": "API-sleutel werkt, maar gpt-realtime-translate is niet toegankelijk met deze sleutel.",
     "participantSectionHeader": "Audio van de ander",
     "participantSectionDescriptionElectron": "Vertaal audio van elke applicatie die op dit systeem wordt afgespeeld.",
@@ -454,10 +451,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "Google's AI technologie"
-    },
-    "openaiCompatible": {
-      "name": "OpenAI-compatibel (verouderde Realtime)",
-      "description": "Endpoint van derden met OpenAI's oudere beta-Realtime-protocol. Niet voor OpenAI zelf."
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -1150,8 +1143,6 @@
     },
     "credentials": {
       "apiKey": "API-sleutel",
-      "endpoint": "Endpoint-URL",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",

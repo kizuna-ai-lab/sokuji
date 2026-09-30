@@ -1,7 +1,7 @@
 /**
  * OpenAI Translate on the new contract (spec: "L0 — the client contract"),
- * ported from `OpenAITranslateGAClient` (`src/services/clients/`, still
- * compiled until the deletion after the two live tests) without its items,
+ * ported from `OpenAITranslateGAClient` (`src/services/clients/`, deleted
+ * since) without its items,
  * ids, karaoke bookkeeping or segmentation stage: one leg, one WebSocket to
  * the translations endpoint, the key in a subprotocol (choice 3). The start
  * resolves on `session.updated`, the configuration confirmed, so a refused

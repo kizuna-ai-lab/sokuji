@@ -78,11 +78,9 @@
     "failedToSaveSettings": "Error al guardar la configuración",
     "settingSavedSuccessfully": "Configuración guardada exitosamente: {{key}}",
     "failedToSaveSetting": "Error al guardar la configuración: {{key}}",
-    "apiKeyValidationCompleted": "Validación de clave API completada",
     "errorValidatingApiKey": "Error al validar la clave API",
     "regionNotSupported": "El servicio no está disponible en tu región. Por favor, verifica tu entorno de red o prueba con otro proveedor.",
     "sessionActiveNotice": "La configuración está bloqueada mientras la sesión está activa. Termina la sesión para modificar la configuración.",
-    "realtimeModelAvailable": "El modelo en tiempo real está disponible",
     "realtimeModelNotAvailable": "El modelo en tiempo real no está disponible",
     "modelsFound": "{{count}} modelos disponibles",
     "volcengineAST2Info": "Información de Doubao AST 2.0",
@@ -194,7 +192,6 @@
       "xhigh": "Muy alto"
     },
     "translateInfoBanner": "Este modelo permanece en silencio cuando el hablante usa el mismo idioma que el destino. El habla mixta puede tener vacíos.",
-    "translateModelAvailable": "Clave API validada. gpt-realtime-translate está disponible.",
     "translateModelNotAvailable": "La clave API funciona, pero gpt-realtime-translate no es accesible con esta clave.",
     "participantSectionHeader": "Audio del otro",
     "participantSectionDescriptionElectron": "Traduce el audio de cualquier aplicación que se reproduzca en este sistema.",
@@ -454,10 +451,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "Tecnología AI de Google"
-    },
-    "openaiCompatible": {
-      "name": "Compatible con OpenAI (Realtime heredado)",
-      "description": "Endpoint de terceros que usa el antiguo protocolo Realtime beta de OpenAI. No sirve para OpenAI."
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -1150,8 +1143,6 @@
     },
     "credentials": {
       "apiKey": "Clave API",
-      "endpoint": "URL del endpoint",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",

@@ -78,11 +78,9 @@
     "failedToSaveSettings": "설정 저장에 실패했습니다",
     "settingSavedSuccessfully": "설정이 성공적으로 저장되었습니다: {{key}}",
     "failedToSaveSetting": "설정 저장에 실패했습니다: {{key}}",
-    "apiKeyValidationCompleted": "API 키 검증이 완료되었습니다",
     "errorValidatingApiKey": "API 키 검증 중 오류가 발생했습니다",
     "regionNotSupported": "해당 서비스는 귀하의 지역에서 사용할 수 없습니다. 네트워크 환경을 확인하거나 다른 제공업체를 시도해 주세요.",
     "sessionActiveNotice": "세션이 활성 상태일 때 설정이 잠깁니다. 설정을 수정하려면 세션을 종료하세요.",
-    "realtimeModelAvailable": "실시간 모델을 사용할 수 있습니다",
     "realtimeModelNotAvailable": "실시간 모델을 사용할 수 없습니다",
     "modelsFound": "{{count}}개의 모델 사용 가능",
     "volcengineAST2Info": "Doubao AST 2.0 정보",
@@ -194,7 +192,6 @@
       "xhigh": "매우 높음"
     },
     "translateInfoBanner": "화자가 대상 언어와 같은 언어를 사용할 때, 이 모델은 침묵을 유지합니다. 혼합 언어 발화에서는 공백이 생길 수 있습니다.",
-    "translateModelAvailable": "API 키 검증 완료. gpt-realtime-translate 사용 가능.",
     "translateModelNotAvailable": "API 키는 유효하지만 현재 키로 gpt-realtime-translate에 접근할 수 없습니다.",
     "participantSectionHeader": "상대방 오디오",
     "participantSectionDescriptionElectron": "이 시스템에서 재생 중인 모든 애플리케이션의 오디오를 번역합니다.",
@@ -454,10 +451,6 @@
     "gemini": {
       "name": "구글 제미나이",
       "description": "구글의 AI 기술"
-    },
-    "openaiCompatible": {
-      "name": "OpenAI 호환 (레거시 Realtime)",
-      "description": "OpenAI의 구 beta Realtime 프로토콜을 사용하는 서드파티 엔드포인트. OpenAI 자체용이 아닙니다."
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -1150,8 +1143,6 @@
     },
     "credentials": {
       "apiKey": "API 키",
-      "endpoint": "엔드포인트 URL",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",

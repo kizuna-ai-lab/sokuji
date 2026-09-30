@@ -186,11 +186,10 @@ export interface ProviderDescriptor {
    * Session config for the participant (reverse-direction) channel.
    *
    * Base: buildSessionConfig(slice, swappedInstructions) + the generic
-   * participant overrides — textOnly is forced true (the participant leg
-   * never speaks), turn detection is overridden to OpenAI-shaped semantic
-   * VAD (providers that don't read the field ignore it, exactly as before
-   * the extraction). Providers whose direction lives in config fields
-   * override to also reverse those fields.
+   * participant override — textOnly is forced true (the participant leg
+   * never speaks). The OpenAI-shaped semantic-VAD override went with the
+   * last client that read it (Stage 2 deletion, choice 5). Providers whose
+   * direction lives in config fields override to also reverse those fields.
    */
   buildParticipantSessionConfig(
     slice: unknown,
@@ -266,13 +265,6 @@ export abstract class BaseProviderDescriptor implements ProviderDescriptor {
       ...this.buildSessionConfig(slice, swappedInstructions),
       keepReplayAudio: shell.keepReplayAudio,
       textOnly: true,
-      // Override turn detection to use semantic VAD for participant audio (OpenAI-compatible)
-      turnDetection: {
-        type: 'semantic_vad' as const,
-        createResponse: true,
-        interruptResponse: false,
-        eagerness: 'high',
-      },
     } as SessionConfig;
     return { config, notices: [] };
   }

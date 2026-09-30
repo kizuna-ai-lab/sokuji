@@ -78,11 +78,9 @@
     "failedToSaveSettings": "設定の保存に失敗しました",
     "settingSavedSuccessfully": "設定が正常に保存されました: {{key}}",
     "failedToSaveSetting": "設定の保存に失敗しました: {{key}}",
-    "apiKeyValidationCompleted": "APIキー検証が完了しました",
     "errorValidatingApiKey": "APIキー検証中にエラーが発生しました",
     "regionNotSupported": "お住まいの地域ではこのサービスをご利用いただけません。ネットワーク環境をご確認いただくか、別のプロバイダーをお試しください。",
     "sessionActiveNotice": "セッション中は設定がロックされています。設定を変更するにはセッションを終了してください。",
-    "realtimeModelAvailable": "リアルタイムモデルが利用可能です",
     "realtimeModelNotAvailable": "リアルタイムモデルは利用できません",
     "modelsFound": "{{count}}個のモデルが利用可能",
     "volcengineAST2Info": "Doubao AST 2.0 について",
@@ -194,7 +192,6 @@
       "xhigh": "最高"
     },
     "translateInfoBanner": "話者が出力言語と同じ言語を話す場合、このモデルは無音になります。混合言語の発話では空白が生じる可能性があります。",
-    "translateModelAvailable": "APIキーが検証されました。gpt-realtime-translate が利用可能です。",
     "translateModelNotAvailable": "APIキーは有効ですが、このキーでは gpt-realtime-translate にアクセスできません。",
     "participantSectionHeader": "相手の音声",
     "participantSectionDescriptionElectron": "このシステムで再生されている任意のアプリケーションの音声を翻訳します。",
@@ -454,10 +451,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "GoogleのAI技術"
-    },
-    "openaiCompatible": {
-      "name": "OpenAI 互換（旧 Realtime）",
-      "description": "OpenAI の旧 beta Realtime プロトコルを使うサードパーティ製エンドポイント。OpenAI 本体には非対応。"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -1150,8 +1143,6 @@
     },
     "credentials": {
       "apiKey": "API キー",
-      "endpoint": "エンドポイント URL",
-      "endpointPlaceholder": "例：https://api.example.com/v1",
       "accessKeyId": "アクセスキー ID（Access Key ID）",
       "secretAccessKey": "シークレットアクセスキー（Secret Access Key）",
       "appId": "アプリ ID（App ID）",

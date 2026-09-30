@@ -8,7 +8,7 @@ vi.mock('../../utils/environment', async (orig) => ({
   isElectron: () => true,
   isExtension: () => false,
 }));
-import { Provider } from '../../types/Provider';
+import { Provider, type ProviderType } from '../../types/Provider';
 import {
   availablePaths, managedProvider, managedOption, ownKeyOptions, offlineOptions, providerFits, offersRecord,
   textOnlyCapabilityOf, wizardProvider,
@@ -51,8 +51,9 @@ describe('providerPaths', () => {
     expect(providerFits(Provider.SONIOX, 'subtitle-myself')).toBe(true);
     expect(providerFits(Provider.LOCAL_INFERENCE, 'two-way-voice')).toBe(true);
     expect(providerFits(Provider.KIZUNA_AI_SONIOX, 'subtitle-myself')).toBe(true);
-    // OpenAI Compatible, retired (Stage 2 OpenAI Realtime, ruling 1): no build registers it.
-    expect(providerFits(Provider.OPENAI_COMPATIBLE, 'be-heard')).toBe(false);
+    // OpenAI Compatible, retired (Stage 2 OpenAI Realtime, ruling 1): no build registers it, and its
+    // id is only stored data now (Stage 2 deletion, ruling C1).
+    expect(providerFits('openai_compatible' as ProviderType, 'be-heard')).toBe(false);
   });
 
   describe('offersRecord', () => {
@@ -78,7 +79,7 @@ describe('providerPaths', () => {
     });
 
     it('refuses an own-key record for a provider this build does not register', () => {
-      expect(offersRecord({ scenario: 'be-heard', providerPath: 'own-key', provider: Provider.OPENAI_COMPATIBLE })).toBe(false);
+      expect(offersRecord({ scenario: 'be-heard', providerPath: 'own-key', provider: 'openai_compatible' })).toBe(false);
     });
 
     it('refuses a null providerPath or scenario', () => {

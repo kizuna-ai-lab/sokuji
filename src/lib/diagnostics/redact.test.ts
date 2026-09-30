@@ -103,8 +103,8 @@ describe('redact', () => {
       .toBe('Authorization: Bearer [REDACTED]');
   });
 
-  // OpenAITranslateGAClient.ts:707 — `sokuji-auth.${this.apiKey}` is the relay
-  // WebSocket subprotocol; the carrier name stays, the token goes.
+  // `sokuji-auth.<token>` was the relay WebSocket subprotocol, kept as a net
+  // (Stage 2 deletion, choice 6); the carrier name stays, the token goes.
   it('redacts the relay auth subprotocol token', () => {
     expect(redact('subprotocols: sokuji-auth.sess_TOKEN_VALUE_1234, json'))
       .toBe('subprotocols: sokuji-auth.[REDACTED], json');

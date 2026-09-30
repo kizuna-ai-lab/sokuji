@@ -78,11 +78,9 @@
     "failedToSaveSettings": "Failed to save settings",
     "settingSavedSuccessfully": "Successfully saved setting: {{key}}",
     "failedToSaveSetting": "Failed to save setting: {{key}}",
-    "apiKeyValidationCompleted": "API key validation completed",
     "errorValidatingApiKey": "Error validating API key",
     "regionNotSupported": "Service not available in your region. Please check your network environment or try a different provider.",
     "sessionActiveNotice": "Settings are locked while session is active. Please end the session to modify settings.",
-    "realtimeModelAvailable": "Realtime model is available",
     "realtimeModelNotAvailable": "Realtime model is not available",
     "modelsFound": "{{count}} models available",
     "volcengineAST2Info": "Doubao AST 2.0 Info",
@@ -194,7 +192,6 @@
       "xhigh": "XHigh"
     },
     "translateInfoBanner": "This model stays silent when the speaker uses the same language as the target. Mixed-language speech may have gaps.",
-    "translateModelAvailable": "API key validated. gpt-realtime-translate is available.",
     "translateModelNotAvailable": "API key works, but gpt-realtime-translate is not accessible with this key.",
     "participantSectionHeader": "Other's audio",
     "participantSectionDescriptionElectron": "Translate audio from any application playing on this system.",
@@ -454,10 +451,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "Google's AI technology"
-    },
-    "openaiCompatible": {
-      "name": "OpenAI Compatible (Legacy Realtime)",
-      "description": "Third-party endpoint speaking OpenAI's older beta Realtime protocol. Not for OpenAI itself."
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -768,8 +761,6 @@
     },
     "credentials": {
       "apiKey": "API key",
-      "endpoint": "Endpoint URL",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",

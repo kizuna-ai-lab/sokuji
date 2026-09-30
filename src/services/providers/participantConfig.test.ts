@@ -17,19 +17,13 @@ vi.mock('./localParticipantConfig', () => ({
 import { ProviderConfigFactory } from './ProviderConfigFactory';
 import { Provider } from '../../types/Provider';
 import { defaultPalabraAISettings } from './PalabraAIProviderConfig';
-import { defaultOpenAISettings } from './OpenAIProviderConfig';
-import { defaultOpenAICompatibleSettings } from './OpenAICompatibleProviderConfig';
-import { defaultOpenAITranslateSettings } from './OpenAITranslateProviderConfig';
 import { defaultLocalInferenceSettings } from './LocalInferenceProviderConfig';
 import { defaultLocalNativeSettings } from './LocalNativeProviderConfig';
-import { reverseTranscriptionDirection } from './openaiTranscriptionContext';
 import { createParticipantLocalInferenceConfig, createParticipantLocalNativeConfig } from './localParticipantConfig';
 import { useNativeModelStore } from '../../stores/nativeModelStore';
 import { directionKey } from '../../lib/local-inference/selection/types';
 import type { NativeModelInfo } from '../../lib/local-inference/native/nativeProtocol';
 import type {
-  OpenAISessionConfig,
-  OpenAITranslateSessionConfig,
   LocalInferenceSessionConfig,
   LocalNativeSessionConfig,
 } from '../interfaces/IClient';
@@ -38,14 +32,6 @@ const mockedLocalInference = vi.mocked(createParticipantLocalInferenceConfig);
 const mockedLocalNative = vi.mocked(createParticipantLocalNativeConfig);
 
 const shell = { keepReplayAudio: false };
-
-// Local mapping from settingsSliceKey to default settings slice, scoped to
-// the two openai-family providers exercised below — mirrors DEFAULTS_BY_SLICE
-// in descriptorRegistry.test.ts.
-const DEFAULTS_BY_SLICE_LOCAL: Record<string, unknown> = {
-  openai: defaultOpenAISettings,
-  openaiCompatible: defaultOpenAICompatibleSettings,
-};
 
 const M = (id: string, kind: NativeModelInfo['kind'], languages: string[], order: number,
            recommended = false): NativeModelInfo =>
@@ -92,17 +78,6 @@ describe('participant config: reversed pairs the provider catalog cannot run', (
     expect(notices[0].message).toContain('ja');
   });
 
-  it('openai_translate rejects a reversed target outside the 13-entry TARGET_LANGUAGES (th is source-only)', () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.OPENAI_TRANSLATE);
-    const slice = { ...defaultOpenAITranslateSettings, sourceLanguage: 'th', targetLanguage: 'en' };
-    const { config, notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
-    expect(config).toBeNull();
-    expect(notices).toHaveLength(1);
-    expect(notices[0].channel).toBe('error');
-    expect(notices[0].message).toContain('th');
-    expect(notices[0].message).toContain('en');
-  });
-
   it('palabraai accepts a reversed target that exactly matches a TARGET_LANGUAGES entry (es)', () => {
     // Pins the exact-match arm of the guard (`t.value === newTarget`) — 'es'
     // has its own entry in TARGET_LANGUAGES. The split('-')[0] arm described
@@ -115,35 +90,6 @@ describe('participant config: reversed pairs the provider catalog cannot run', (
     const { config, notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
     expect(config).not.toBeNull();
     expect(notices).toEqual([]);
-  });
-});
-
-describe('participant config: helper-based reversals', () => {
-  it('openai and openai_compatible rebuild the transcription hint for the reversed direction', () => {
-    for (const id of [Provider.OPENAI, Provider.OPENAI_COMPATIBLE]) {
-      const d = ProviderConfigFactory.getDescriptor(id);
-      const slice = { ...(DEFAULTS_BY_SLICE_LOCAL[d.settingsSliceKey] as Record<string, unknown>) };
-      const { config } = d.buildParticipantSessionConfig(slice, 'i', shell);
-      const expected = {
-        ...d.buildSessionConfig(slice, 'i'),
-        keepReplayAudio: false,
-        textOnly: true,
-        turnDetection: { type: 'semantic_vad', createResponse: true, interruptResponse: false, eagerness: 'high' },
-      } as OpenAISessionConfig;
-      reverseTranscriptionDirection(expected);
-      expect(config, `hint reversal for ${id}`).toEqual(expected);
-    }
-  });
-
-  it('openai_translate swaps targetLanguage to the old sourceLanguage', () => {
-    for (const id of [Provider.OPENAI_TRANSLATE]) {
-      const d = ProviderConfigFactory.getDescriptor(id);
-      const slice = { ...defaultOpenAITranslateSettings, sourceLanguage: 'ja', targetLanguage: 'en' };
-      const base = d.buildSessionConfig(slice, 'i') as OpenAITranslateSessionConfig;
-      const c = d.buildParticipantSessionConfig(slice, 'i', shell).config as OpenAITranslateSessionConfig;
-      expect(c.targetLanguage, `target for ${id}`).toBe(base.sourceLanguage ?? base.targetLanguage);
-      expect(c.sourceLanguage, `source for ${id}`).toBe(base.targetLanguage);
-    }
   });
 });
 
@@ -241,7 +187,7 @@ describe('participant config: local providers (mocked helpers)', () => {
     expect(notices).toEqual([]);
   });
 
-  it('local_inference and local_native pass the BASE participant config (textOnly + semantic VAD already applied) to their helper', () => {
+  it('local_inference and local_native pass the BASE participant config (textOnly already applied) to their helper', () => {
     const dInf = ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE);
     mockedLocalInference.mockReturnValue({
       success: true,
@@ -251,10 +197,9 @@ describe('participant config: local providers (mocked helpers)', () => {
     dInf.buildParticipantSessionConfig({ ...defaultLocalInferenceSettings }, 'i', shell);
     const infCalls = mockedLocalInference.mock.calls;
     const argInf = infCalls[infCalls.length - 1]?.[0] as unknown as {
-      textOnly?: boolean; turnDetection?: unknown; keepReplayAudio?: boolean;
+      textOnly?: boolean; keepReplayAudio?: boolean;
     };
     expect(argInf.textOnly).toBe(true);
-    expect(argInf.turnDetection).toEqual({ type: 'semantic_vad', createResponse: true, interruptResponse: false, eagerness: 'high' });
     expect(argInf.keepReplayAudio).toBe(false);
 
     const dNat = ProviderConfigFactory.getDescriptor(Provider.LOCAL_NATIVE);
@@ -262,10 +207,9 @@ describe('participant config: local providers (mocked helpers)', () => {
     dNat.buildParticipantSessionConfig({ ...defaultLocalNativeSettings }, 'i', shell);
     const natCalls = mockedLocalNative.mock.calls;
     const argNat = natCalls[natCalls.length - 1]?.[0] as unknown as {
-      textOnly?: boolean; turnDetection?: unknown; keepReplayAudio?: boolean;
+      textOnly?: boolean; keepReplayAudio?: boolean;
     };
     expect(argNat.textOnly).toBe(true);
-    expect(argNat.turnDetection).toEqual({ type: 'semantic_vad', createResponse: true, interruptResponse: false, eagerness: 'high' });
     expect(argNat.keepReplayAudio).toBe(false);
   });
 });

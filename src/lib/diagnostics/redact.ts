@@ -48,8 +48,10 @@ const PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
   ],
   // `Authorization: Bearer <token>` on every provider fetch.
   [/(\bBearer\s+)[A-Za-z0-9._~+/=-]{8,}/g, `$1${REDACTED}`],
-  // `sokuji-auth.${this.apiKey}` WebSocket subprotocol — OpenAITranslateGAClient.ts:707
-  // (relay auth).
+  // `sokuji-auth.<session token>` WebSocket subprotocol: the relay twins' auth.
+  // No client sends it since they went (Stage 2 deletion, ruling 2); kept as
+  // a net, since it carried a Better Auth session token and the rule costs
+  // nothing (Stage 2 deletion, choice 6).
   [/(\bsokuji-auth\.)[A-Za-z0-9._~+/=-]+/g, `$1${REDACTED}`],
   // `openai-insecure-api-key.${apiKey}` WebSocket subprotocol — OpenAI
   // Translate's own key (`openai_translate/wire.ts` `translateProtocols`,

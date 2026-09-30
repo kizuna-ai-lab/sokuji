@@ -24,7 +24,6 @@ const EXPECTED: Record<Provider, ProviderPath> = {
   [Provider.OPENAI]: 'own-key',
   [Provider.GEMINI]: 'own-key',
   [Provider.PALABRA_AI]: 'own-key',
-  [Provider.OPENAI_COMPATIBLE]: 'own-key',
   [Provider.OPENAI_TRANSLATE]: 'own-key',
   [Provider.OPENAI_LIVE]: 'own-key',
   [Provider.VOLCENGINE_AST2]: 'own-key',

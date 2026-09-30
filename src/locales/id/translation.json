@@ -78,11 +78,9 @@
     "failedToSaveSettings": "Gagal menyimpan pengaturan",
     "settingSavedSuccessfully": "Pengaturan berhasil disimpan: {{key}}",
     "failedToSaveSetting": "Gagal menyimpan pengaturan: {{key}}",
-    "apiKeyValidationCompleted": "Validasi kunci API selesai",
     "errorValidatingApiKey": "Kesalahan saat memvalidasi kunci API",
     "regionNotSupported": "Layanan tidak tersedia di wilayah Anda. Silakan periksa lingkungan jaringan Anda atau coba penyedia lain.",
     "sessionActiveNotice": "Pengaturan terkunci saat sesi aktif. Harap akhiri sesi untuk mengubah pengaturan.",
-    "realtimeModelAvailable": "Model real-time tersedia",
     "realtimeModelNotAvailable": "Model real-time tidak tersedia",
     "modelsFound": "{{count}} model tersedia",
     "volcengineAST2Info": "Informasi Doubao AST 2.0",
@@ -194,7 +192,6 @@
       "xhigh": "Sangat tinggi"
     },
     "translateInfoBanner": "Model ini diam ketika pembicara menggunakan bahasa yang sama dengan target. Ucapan multi-bahasa mungkin memiliki celah.",
-    "translateModelAvailable": "Kunci API divalidasi. gpt-realtime-translate tersedia.",
     "translateModelNotAvailable": "Kunci API berfungsi, tetapi gpt-realtime-translate tidak dapat diakses dengan kunci ini.",
     "participantSectionHeader": "Audio lawan bicara",
     "participantSectionDescriptionElectron": "Terjemahkan audio dari aplikasi apa pun yang diputar di sistem ini.",
@@ -454,10 +451,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "Teknologi AI Google"
-    },
-    "openaiCompatible": {
-      "name": "Kompatibel OpenAI (Realtime lama)",
-      "description": "Endpoint pihak ketiga yang memakai protokol Realtime beta lama OpenAI. Bukan untuk OpenAI sendiri."
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -1150,8 +1143,6 @@
     },
     "credentials": {
       "apiKey": "API key",
-      "endpoint": "Endpoint URL",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",

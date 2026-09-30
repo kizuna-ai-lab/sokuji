@@ -78,11 +78,9 @@
     "failedToSaveSettings": "அமைப்புகளைச் சேமிப்பதில் தோல்வி",
     "settingSavedSuccessfully": "அமைப்பு வெற்றிகரமாக சேமிக்கப்பட்டது: {{key}}",
     "failedToSaveSetting": "அமைப்பைச் சேமிப்பதில் தோல்வி: {{key}}",
-    "apiKeyValidationCompleted": "API கீ சரிபார்ப்பு முடிந்தது",
     "errorValidatingApiKey": "API கீ சரிபார்ப்பதில் பிழை",
     "regionNotSupported": "உங்கள் பகுதியில் சேவை கிடைக்கவில்லை. உங்கள் நெட்வொர்க் சூழலை சரிபார்க்கவும் அல்லது வேறு வழங்குநரை முயற்சிக்கவும்.",
     "sessionActiveNotice": "அமர்வு செயலில் இருக்கும் போது அமைப்புகள் பூட்டப்பட்டுள்ளன. அமைப்புகளை மாற்ற அமர்வை முடிக்கவும்.",
-    "realtimeModelAvailable": "நிகழ்நேர மாதிரி கிடைக்கிறது",
     "realtimeModelNotAvailable": "நிகழ்நேர மாதிரி கிடைக்கவில்லை",
     "modelsFound": "{{count}} மாதிரிகள் உள்ளன",
     "volcengineAST2Info": "Doubao AST 2.0 தகவல்",
@@ -194,7 +192,6 @@
       "xhigh": "மிக உயர்"
     },
     "translateInfoBanner": "பேச்சாளர் இலக்கு மொழியையே பயன்படுத்தும்போது இந்த மாதிரி அமைதியாக இருக்கும். கலப்பு மொழி பேச்சில் இடைவெளிகள் இருக்கலாம்.",
-    "translateModelAvailable": "API விசை சரிபார்க்கப்பட்டது. gpt-realtime-translate கிடைக்கிறது.",
     "translateModelNotAvailable": "API விசை செயல்படுகிறது, ஆனால் இந்த விசையால் gpt-realtime-translate ஐ அணுக முடியாது.",
     "participantSectionHeader": "மற்றவரின் ஆடியோ",
     "participantSectionDescriptionElectron": "இந்த கணினியில் இயங்கும் எந்த பயன்பாட்டின் ஆடியோவையும் மொழிபெயர்க்கவும்.",
@@ -454,10 +451,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "Google-ன் AI தகவல்"
-    },
-    "openaiCompatible": {
-      "name": "OpenAI இணக்கமானது (பழைய Realtime)",
-      "description": "OpenAI-இன் பழைய beta Realtime நெறிமுறையைப் பயன்படுத்தும் மூன்றாம் தரப்பு எண்ட்பாயிண்ட். OpenAI-க்கு அல்ல."
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -1150,8 +1143,6 @@
     },
     "credentials": {
       "apiKey": "API விசை",
-      "endpoint": "எண்ட்பாயிண்ட் URL",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",
