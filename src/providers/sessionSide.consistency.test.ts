@@ -1,7 +1,7 @@
 /**
  * A provider's session side — its `adapter.ts` and every file of its own
  * folder the adapter reaches by a value import — follows the rules
- * CLAUDE.md sets for clients (F17): it never imports a store or the
+ * CLAUDE.md sets for adapters (F17): it never imports a store or the
  * reporter (an adapter cannot know which leg it serves; it says what
  * happened through its events — `degraded`, `failed`, `closed`, `frame`),
  * and every timer it runs reads the request's clock (the F9 convention),

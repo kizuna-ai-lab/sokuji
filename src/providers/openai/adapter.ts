@@ -10,7 +10,7 @@
  * in-band responses go up one at a time (`queue.ts`, ruling 8); the drift
  * anchor re-sends the instructions out of band (ruling 2). Every timer
  * reads the request's clock, and nothing is said but through events
- * (CLAUDE.md, "Inside an IClient session").
+ * (CLAUDE.md, "Inside an adapter session").
  */
 import type {
   ConversationItemAdded,

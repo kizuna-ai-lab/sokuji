@@ -11,7 +11,7 @@
  * a stream with no audio carries real-time silence (ruling 3). Messages
  * become segments paired by their sentence, speech ranged once its burst is
  * whole (`items.ts`; ruling 6). Every timer reads the request's clock, and
- * nothing is said but through events (CLAUDE.md, "Inside an IClient
+ * nothing is said but through events (CLAUDE.md, "Inside an adapter
  * session").
  */
 import {

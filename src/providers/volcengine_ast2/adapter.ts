@@ -9,7 +9,7 @@
  * text is final (Gemini/AST2 follow-up, ruling 1) — and what goes up is
  * resampled and paced (`audioIn.ts`). Every timer reads the request's
  * clock, and nothing is said but through events (CLAUDE.md, "Inside an
- * IClient session").
+ * adapter session").
  */
 import {
   AdapterStartError,

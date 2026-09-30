@@ -13,7 +13,7 @@
  * model's `turnComplete` (`hold.ts`; Gemini hold, ruling 1), and under
  * automatic turns let go one utterance at a time (ruling 4).
  * Every timer reads the request's clock, and nothing is said but through
- * events (CLAUDE.md, "Inside an IClient session").
+ * events (CLAUDE.md, "Inside an adapter session").
  */
 import type { Part } from '@google/genai';
 import {

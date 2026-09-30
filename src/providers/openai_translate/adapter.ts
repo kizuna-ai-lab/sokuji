@@ -10,7 +10,7 @@
  * its origin (Stage 2 translation cuts, rulings 1, 2); a push-to-talk release
  * sends a real-time silence tail
  * (`tail.ts`, ruling 2). Every timer reads the request's clock, and nothing
- * is said but through events (CLAUDE.md, "Inside an IClient session").
+ * is said but through events (CLAUDE.md, "Inside an adapter session").
  */
 import type {
   RealtimeError,

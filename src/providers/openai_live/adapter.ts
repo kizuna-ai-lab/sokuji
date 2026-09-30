@@ -12,7 +12,7 @@
  * it (ruling 5). A lost connection is tried again once, then the leg fails
  * (ruling 6). Stop sends `session.close` and closes at once (ruling 8).
  * Every timer reads the request's clock, and nothing is said but through
- * events (CLAUDE.md, "Inside an IClient session").
+ * events (CLAUDE.md, "Inside an adapter session").
  */
 import {
   AdapterStartError,

@@ -7,7 +7,7 @@
  * `LegSpeech`. Both mode (`startBoth`, D23) is two single-leg cores, or one
  * core whose socket carries both legs mixed. Every timer reads the
  * request's clock, and nothing is said but through events (CLAUDE.md,
- * "Inside an IClient session").
+ * "Inside an adapter session").
  */
 import {
   AdapterStartError,
