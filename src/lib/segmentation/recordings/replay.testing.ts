@@ -15,6 +15,7 @@ import type { AdapterEvents } from '../../contract/adapter';
 import { createVirtualClock, type VirtualClock } from '../../contract/clock';
 import { eventsFrom } from '../../contract/events';
 import { Conversation } from '../../conversation/Conversation';
+import type { Leg } from '../../conversation/types';
 import { createProjector, DEFAULT_PROJECTION } from '../../projection/project';
 import type { Pairing } from '../../projection/types';
 import geminiLiveTranslate from './gemini-live-translate.json';
@@ -23,23 +24,30 @@ import tight from './tight.json';
 import user from './user.json';
 
 /**
- * `[arrival ms, 's' | 't', delta]` — a source or translation transcript
- * delta — or `[arrival ms, 'a', samples, rms?]`, an output audio frame
- * (heartbeats left out; no RMS where the probe measured none).
+ * `[arrival ms, 's' | 't', delta, start ms?, end ms?]` — a source or
+ * translation transcript delta, with its stamps where the provider sends
+ * them (OpenAI Live's `start_ms` / `end_ms`) — or `[arrival ms, 'a',
+ * samples, rms?]`, an output audio frame (heartbeats left out; no RMS where
+ * the probe measured none).
  */
-export type RecordedEvent = [number, 's' | 't', string] | [number, 'a', number, number?];
+export type RecordedEvent = [number, 's' | 't', string, (number | null)?, (number | null)?] | [number, 'a', number, number?];
 
 export interface Recording {
   run: string;
   events: RecordedEvent[];
+  /** whisper-1's words for the voiced output, `[start ms, end ms, word]` on the output's sample clock, where the probe measured them (OpenAI Live's U4). */
+  words?: Array<[number, number, string]>;
 }
+
+/** A transcript delta's stamps: null where the recording has none. */
+export interface Stamps { startMs: number | null; endMs: number | null }
 
 export const RECORDINGS = { user, tight, long, geminiLiveTranslate } as unknown as Readonly<Record<'user' | 'tight' | 'long' | 'geminiLiveTranslate', Recording>>;
 
 /** What a leg is fed: each side's transcript, and the translation's audio. */
 export interface ReplayTarget {
-  input(delta: string): void;
-  output(delta: string): void;
+  input(delta: string, stamps: Stamps): void;
+  output(delta: string, stamps: Stamps): void;
   audio(pcm: Int16Array): void;
 }
 
@@ -54,6 +62,8 @@ export interface ReplayResult {
   pairings: Pairing[];
   /** Each exchange, in order: its source text and its translation text, trimmed. */
   exchanges: Array<[string, string]>;
+  /** The leg as L1 holds it at the end: its segments, their speech and its ranges. */
+  leg: Leg;
 }
 
 /** The level a frame with no measured RMS is filled at: speech, 0.03. */
@@ -82,8 +92,8 @@ export function replay(recording: Recording, build: (clock: VirtualClock, events
   for (const e of recording.events) {
     clock.advance(e[0] - clock.now());
     if (e[1] === 'a') leg.audio(frameAt(e[2], e[3]));
-    else if (e[1] === 's') leg.input(e[2]);
-    else leg.output(e[2]);
+    else if (e[1] === 's') leg.input(e[2], { startMs: e[3] ?? null, endMs: e[4] ?? null });
+    else leg.output(e[2], { startMs: e[3] ?? null, endMs: e[4] ?? null });
   }
   clock.advance(30_000);
   const snapshot = conversation.snapshot();
@@ -97,5 +107,6 @@ export function replay(recording: Recording, build: (clock: VirtualClock, events
     orphans: withTranslation.filter((e) => e.source.length === 0).length,
     pairings: withTranslation.map((e) => e.pairing),
     exchanges: exchanges.map((e) => [text(e.source), text(e.translation)]),
+    leg: snapshot,
   };
 }
