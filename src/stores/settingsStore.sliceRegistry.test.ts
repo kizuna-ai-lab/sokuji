@@ -83,12 +83,6 @@ describe('provider settings update actions (behavior lock)', () => {
   });
 
   it('kizuna twins: credentials update in-memory state but are never persisted', async () => {
-    await useSettingsStore.getState().updateKizunaOpenaiTranslate({ apiKey: 'secret', sourceLanguage: 'ja' } as any);
-    expect((useSettingsStore.getState() as any).kizunaOpenaiTranslate.apiKey).toBe('secret');
-    expect(setSetting).not.toHaveBeenCalledWith('settings.kizunaOpenaiTranslate.apiKey', expect.anything());
-    expect(setSetting).toHaveBeenCalledWith('settings.kizunaOpenaiTranslate.sourceLanguage', 'ja');
-
-    setSetting.mockClear();
     await useSettingsStore.getState().updateKizunaVolcengineAst2({ appId: 'a', accessToken: 't', sourceLanguage: 'zh' } as any);
     // Credentials land in state...
     expect((useSettingsStore.getState() as any).kizunaVolcengineAst2.appId).toBe('a');
@@ -118,7 +112,6 @@ describe('provider settings update actions (behavior lock)', () => {
     ['updateOpenAICompatible', 'openaiCompatible', { apiKey: 'x' }],
     ['updatePalabraAI', 'palabraai', { clientId: 'x' }],
     ['updateOpenAITranslate', 'openaiTranslate', { apiKey: 'x' }],
-    ['updateKizunaOpenaiTranslate', 'kizunaOpenaiTranslate', { sourceLanguage: 'ja' }],
     ['updateVolcengineAST2', 'volcengineAST2', { appId: 'x' }],
     ['updateKizunaVolcengineAst2', 'kizunaVolcengineAst2', { sourceLanguage: 'zh' }],
     ['updateLocalInference', 'localInference', { ttsSpeed: 1.5 }],
@@ -173,7 +166,7 @@ describe('provider settings update actions (behavior lock)', () => {
     // Spot every slice key is a populated object after load.
     for (const sliceKey of [
       'openai', 'gemini', 'openaiCompatible', 'palabraai', 'openaiTranslate',
-      'volcengineAST2', 'kizunaOpenaiTranslate',
+      'volcengineAST2',
       'kizunaVolcengineAst2', 'localInference', 'localNative',
     ]) {
       expect(s[sliceKey], sliceKey).toBeTypeOf('object');

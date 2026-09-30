@@ -446,10 +446,6 @@
     "keepReplayAudioDesc": "將翻譯的音訊保存在記憶體中，以便您之後可以從每則訊息重新播放。預設關閉以減少長時間工作階段中的記憶體用量。"
   },
   "providers": {
-    "kizunaai_openai_translate": {
-      "name": "KizunaAI",
-      "description": "75 種來源語言（自動辨識），13 種目標語言"
-    },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
       "description": "8 種語言 + 中英雙向 · 保留您的聲音"

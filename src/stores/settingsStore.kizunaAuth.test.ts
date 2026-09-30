@@ -20,7 +20,6 @@ vi.mock('../utils/environment', async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
   isKizunaAIEnabled: () => true,
   isKizunaSonioxEnabled: () => true,
-  isKizunaOpenAITranslateEnabled: () => true,
   isKizunaVolcengineAST2Enabled: () => true,
   isPalabraAIEnabled: () => true,
   isElectron: () => true,

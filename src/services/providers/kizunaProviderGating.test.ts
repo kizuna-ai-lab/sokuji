@@ -1,5 +1,5 @@
 /**
- * The three Kizuna-managed providers are released independently, so each one
+ * The Kizuna-managed providers are released independently, so each one
  * carries its OWN gate.
  *
  * They used to share one gate, so `VITE_ENABLE_KIZUNA_AI=true` — the switch
@@ -26,13 +26,11 @@ import { Provider } from '../../types/Provider';
 interface Gates {
   master?: boolean;
   soniox?: boolean;
-  openaiTranslate?: boolean;
   volcengineAst2?: boolean;
 }
 
 const MANAGED = [
   Provider.KIZUNA_AI_SONIOX,
-  Provider.KIZUNA_AI_OPENAI_TRANSLATE,
   Provider.KIZUNA_AI_VOLCENGINE_AST2,
 ] as const;
 
@@ -44,7 +42,6 @@ function mockEnv(gates: Gates) {
     ...(await orig<any>()),
     isKizunaAIEnabled: () => gates.master ?? true,
     isKizunaSonioxEnabled: () => gates.soniox ?? false,
-    isKizunaOpenAITranslateEnabled: () => gates.openaiTranslate ?? false,
     isKizunaVolcengineAST2Enabled: () => gates.volcengineAst2 ?? false,
     isPalabraAIEnabled: () => false,
     isLocalNativeEnabled: () => false,
@@ -74,33 +71,21 @@ describe('each Kizuna managed provider is gated on its own', () => {
     const providers = await providersWith({ soniox: true });
 
     expect(providers).toContain(Provider.KIZUNA_AI_SONIOX);
-    expect(providers).not.toContain(Provider.KIZUNA_AI_OPENAI_TRANSLATE);
     expect(providers).not.toContain(Provider.KIZUNA_AI_VOLCENGINE_AST2);
   });
 
   // The case the shared relay gate could not express: holding Soniox back
   // while another managed provider ships.
   it('holds Soniox back while a relay twin ships', async () => {
-    const providers = await providersWith({ openaiTranslate: true });
-
-    expect(providers).not.toContain(Provider.KIZUNA_AI_SONIOX);
-    expect(providers).toContain(Provider.KIZUNA_AI_OPENAI_TRANSLATE);
-    expect(providers).not.toContain(Provider.KIZUNA_AI_VOLCENGINE_AST2);
-  });
-
-  // The other case it could not express: the two twins were welded together.
-  it('separates the two relay twins from each other', async () => {
     const providers = await providersWith({ volcengineAst2: true });
 
     expect(providers).not.toContain(Provider.KIZUNA_AI_SONIOX);
-    expect(providers).not.toContain(Provider.KIZUNA_AI_OPENAI_TRANSLATE);
     expect(providers).toContain(Provider.KIZUNA_AI_VOLCENGINE_AST2);
   });
 
-  it('offers all three when every gate is open', async () => {
+  it('offers both when every gate is open', async () => {
     const providers = await providersWith({
       soniox: true,
-      openaiTranslate: true,
       volcengineAst2: true,
     });
 
@@ -124,7 +109,6 @@ describe('each Kizuna managed provider is gated on its own', () => {
     const providers = await providersWith({
       master: false,
       soniox: true,
-      openaiTranslate: true,
       volcengineAst2: true,
     });
 
@@ -160,23 +144,14 @@ describe('the sign-in default must be a provider this build registered', () => {
     expect(() => factory.getDescriptor(target!)).not.toThrow();
   });
 
-  it('prefers managed Soniox where it is registered alongside the twins', async () => {
+  it('prefers managed Soniox where it is registered alongside the twin', async () => {
     const factory = await factoryWith({
       soniox: true,
-      openaiTranslate: true,
       volcengineAst2: true,
     });
     const target = factory.getDefaultManagedProvider();
 
     expect(target).toBe(Provider.KIZUNA_AI_SONIOX);
-    expect(() => factory.getDescriptor(target!)).not.toThrow();
-  });
-
-  it('falls back to the Translate twin only when Soniox is not registered', async () => {
-    const factory = await factoryWith({ openaiTranslate: true, volcengineAst2: true });
-    const target = factory.getDefaultManagedProvider();
-
-    expect(target).toBe(Provider.KIZUNA_AI_OPENAI_TRANSLATE);
     expect(() => factory.getDescriptor(target!)).not.toThrow();
   });
 
@@ -226,7 +201,6 @@ describe('the legacy kizunaai migration must land on a registered provider', () 
   it('sends a legacy user to managed Soniox even where the twins are registered', async () => {
     const { migrateLegacyKizunaProvider, ProviderConfigFactory } = await migrateWith({
       soniox: true,
-      openaiTranslate: true,
       volcengineAst2: true,
     });
     const migrated = migrateLegacyKizunaProvider('kizunaai');
@@ -241,20 +215,18 @@ describe('the legacy kizunaai migration must land on a registered provider', () 
   it('redirects a persisted twin the build no longer registers', async () => {
     const { migrateLegacyKizunaProvider, ProviderConfigFactory } = await migrateWith({ soniox: true });
 
-    for (const twin of [Provider.KIZUNA_AI_OPENAI_TRANSLATE, Provider.KIZUNA_AI_VOLCENGINE_AST2]) {
-      const migrated = migrateLegacyKizunaProvider(twin);
-      expect(migrated).toBe(Provider.KIZUNA_AI_SONIOX);
-      expect(ProviderConfigFactory.isProviderSupported(migrated)).toBe(true);
-    }
+    const migrated = migrateLegacyKizunaProvider(Provider.KIZUNA_AI_VOLCENGINE_AST2);
+    expect(migrated).toBe(Provider.KIZUNA_AI_SONIOX);
+    expect(ProviderConfigFactory.isProviderSupported(migrated)).toBe(true);
   });
 
   // Per-provider gating makes managed Soniox redirectable too, which the
   // shared relay gate never allowed.
   it('redirects persisted managed Soniox when its own gate is closed', async () => {
-    const { migrateLegacyKizunaProvider, ProviderConfigFactory } = await migrateWith({ openaiTranslate: true });
+    const { migrateLegacyKizunaProvider, ProviderConfigFactory } = await migrateWith({ volcengineAst2: true });
     const migrated = migrateLegacyKizunaProvider(Provider.KIZUNA_AI_SONIOX);
 
-    expect(migrated).toBe(Provider.KIZUNA_AI_OPENAI_TRANSLATE);
+    expect(migrated).toBe(Provider.KIZUNA_AI_VOLCENGINE_AST2);
     expect(ProviderConfigFactory.isProviderSupported(migrated)).toBe(true);
   });
 
@@ -263,7 +235,6 @@ describe('the legacy kizunaai migration must land on a registered provider', () 
   it('leaves a registered provider exactly as the user chose it', async () => {
     const { migrateLegacyKizunaProvider } = await migrateWith({
       soniox: true,
-      openaiTranslate: true,
       volcengineAst2: true,
     });
 

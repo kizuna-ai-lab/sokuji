@@ -446,10 +446,6 @@
     "keepReplayAudioDesc": "번역된 오디오를 메모리에 저장하여 각 메시지에서 나중에 다시 재생할 수 있도록 합니다. 긴 세션 동안 메모리 사용을 줄이기 위해 기본적으로 꺼져 있습니다."
   },
   "providers": {
-    "kizunaai_openai_translate": {
-      "name": "KizunaAI",
-      "description": "소스 75개 언어(자동 감지), 타깃 13개 언어"
-    },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
       "description": "8개 언어 + 중–영 양방향 · 화자 목소리 유지"

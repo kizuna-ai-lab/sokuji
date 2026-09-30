@@ -446,10 +446,6 @@
     "keepReplayAudioDesc": "将翻译的音频保存在内存中，以便您之后可以从每条消息重新播放。默认关闭以减少长时间会话中的内存占用。"
   },
   "providers": {
-    "kizunaai_openai_translate": {
-      "name": "KizunaAI",
-      "description": "75 种源语言（自动识别），13 种目标语言"
-    },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
       "description": "8 种语言 + 中英双向 · 保留您的声音"

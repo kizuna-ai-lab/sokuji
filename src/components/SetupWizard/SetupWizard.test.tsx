@@ -4,7 +4,7 @@ import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/re
 vi.mock('../../utils/environment', async (orig) => ({
   ...(await orig<any>()),
   isKizunaAIEnabled: () => true, isKizunaSonioxEnabled: () => true,
-  isKizunaOpenAITranslateEnabled: () => false, isKizunaVolcengineAST2Enabled: () => false,
+  isKizunaVolcengineAST2Enabled: () => false,
   isPalabraAIEnabled: () => true, isLocalNativeEnabled: () => true,
   isElectron: () => true, isExtension: () => false, getRelayWsUrl: () => 'wss://r.example/v1',
 }));

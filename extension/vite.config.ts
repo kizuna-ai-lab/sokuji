@@ -172,9 +172,6 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.VITE_ENABLE_KIZUNA_SONIOX': JSON.stringify(
         envVal('VITE_ENABLE_KIZUNA_SONIOX', 'false', 'true')
       ),
-      'import.meta.env.VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE': JSON.stringify(
-        envVal('VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE', 'false', 'true')
-      ),
       'import.meta.env.VITE_ENABLE_KIZUNA_VOLCENGINE_AST2': JSON.stringify(
         envVal('VITE_ENABLE_KIZUNA_VOLCENGINE_AST2', 'false', 'true')
       ),

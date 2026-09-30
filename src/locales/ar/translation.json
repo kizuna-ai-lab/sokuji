@@ -446,10 +446,6 @@
     "keepReplayAudioDesc": "تخزين الصوت المُترجَم في الذاكرة لتتمكن من إعادة تشغيله لاحقًا من كل رسالة. مُعطَّل افتراضيًا لتقليل استخدام الذاكرة خلال الجلسات الطويلة."
   },
   "providers": {
-    "kizunaai_openai_translate": {
-      "name": "KizunaAI",
-      "description": "75 لغة مصدر (كشف تلقائي)، 13 لغة هدف"
-    },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
       "description": "8 لغات + الصينية-الإنجليزية باتجاهين · يحافظ على صوتك"

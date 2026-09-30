@@ -446,10 +446,6 @@
     "keepReplayAudioDesc": "ذخیره صدای ترجمه‌شده در حافظه تا بتوانید بعداً آن را از هر پیام پخش کنید. به‌طور پیش‌فرض غیرفعال است تا مصرف حافظه در جلسه‌های طولانی کاهش یابد."
   },
   "providers": {
-    "kizunaai_openai_translate": {
-      "name": "KizunaAI",
-      "description": "۷۵ زبان مبدأ (تشخیص خودکار)، ۱۳ زبان مقصد"
-    },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
       "description": "۸ زبان + چینی–انگلیسی دوطرفه · صدای شما را حفظ می‌کند"

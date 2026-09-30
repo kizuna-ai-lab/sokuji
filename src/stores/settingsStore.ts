@@ -56,7 +56,6 @@ import {
 import {
   LocalNativeProviderConfig, LocalNativeSettings, defaultLocalNativeSettings,
 } from '../services/providers/LocalNativeProviderConfig';
-import { defaultKizunaOpenaiTranslateSettings } from '../services/providers/KizunaAIOpenAITranslateProviderConfig';
 import { defaultKizunaVolcengineAst2Settings } from '../services/providers/KizunaAIVolcengineAST2ProviderConfig';
 import { defaultKizunaSonioxSettings } from '../services/providers/KizunaAISonioxProviderConfig';
 import { reportError, reportWarning, describeCause } from '../lib/diagnostics/report';
@@ -286,7 +285,6 @@ export interface SettingsStore {
   openaiTranslate: OpenAITranslateSettings;
   volcengineAST2: VolcengineAST2Settings;
   soniox: SonioxSettings;
-  kizunaOpenaiTranslate: OpenAITranslateSettings;
   kizunaVolcengineAst2: VolcengineAST2Settings;
   kizunaSoniox: SonioxSettings;
   localInference: LocalInferenceSettings;
@@ -415,7 +413,6 @@ export interface SettingsStore {
   updateOpenAITranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
   updateVolcengineAST2: (settings: Partial<VolcengineAST2Settings>) => void;
   updateSoniox: (settings: Partial<SonioxSettings>) => void;
-  updateKizunaOpenaiTranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
   updateKizunaVolcengineAst2: (settings: Partial<VolcengineAST2Settings>) => void;
   updateKizunaSoniox: (settings: Partial<SonioxSettings>) => void;
   updateLocalInference: (settings: Partial<LocalInferenceSettings>) => void;
@@ -653,7 +650,6 @@ const PROVIDER_SLICE_REGISTRY = {
   // Relay twins authenticate through the relay with a short-lived Better Auth
   // session token; the user-managed credential fields must never be persisted
   // (stale/sensitive values). See each descriptor's extractCredentials.
-  kizunaOpenaiTranslate: { defaults: defaultKizunaOpenaiTranslateSettings, neverPersist: ['apiKey'] },
   kizunaVolcengineAst2: { defaults: defaultKizunaVolcengineAst2Settings, neverPersist: ['appId', 'accessToken'] },
   kizunaSoniox: { defaults: defaultKizunaSonioxSettings, neverPersist: ['apiKey', 'apiKeyEu', 'apiKeyJp'] },
   localInference: { defaults: defaultLocalInferenceSettings },
@@ -698,7 +694,6 @@ const useSettingsStore = create<SettingsStore>()(
     openaiTranslate: defaultOpenAITranslateSettings,
     volcengineAST2: defaultVolcengineAST2Settings,
     soniox: defaultSonioxSettings,
-    kizunaOpenaiTranslate: defaultKizunaOpenaiTranslateSettings,
     kizunaVolcengineAst2: defaultKizunaVolcengineAst2Settings,
     kizunaSoniox: defaultKizunaSonioxSettings,
     localInference: defaultLocalInferenceSettings,
@@ -963,7 +958,6 @@ const useSettingsStore = create<SettingsStore>()(
     updateOpenAITranslate: (settings) => updateProviderSlice(set, 'openaiTranslate', settings),
     updateVolcengineAST2: (settings) => updateProviderSlice(set, 'volcengineAST2', settings),
     updateSoniox: (settings) => updateProviderSlice(set, 'soniox', settings),
-    updateKizunaOpenaiTranslate: (settings) => updateProviderSlice(set, 'kizunaOpenaiTranslate', settings),
     updateKizunaVolcengineAst2: (settings) => updateProviderSlice(set, 'kizunaVolcengineAst2', settings),
     updateKizunaSoniox: (settings) => updateProviderSlice(set, 'kizunaSoniox', settings),
     updateLocalInference: (settings) => updateProviderSlice(set, 'localInference', settings),
@@ -1331,12 +1325,9 @@ const useSettingsStore = create<SettingsStore>()(
           openaiSlice.model = migrateDeprecatedOpenAIModel(openaiSlice.model);
         }
 
-        // Retire the legacy translate transcript model on both the direct and
-        // the relay-managed twin — they share the settings shape.
-        for (const key of ['openaiTranslate', 'kizunaOpenaiTranslate'] as const) {
-          const slice = loadedSlices[key] as OpenAITranslateSettings | undefined;
-          if (slice) Object.assign(slice, migrateLegacyTranslateTranscriptModel(slice));
-        }
+        // Retire the legacy translate transcript model.
+        const translateSlice = loadedSlices.openaiTranslate as OpenAITranslateSettings | undefined;
+        if (translateSlice) Object.assign(translateSlice, migrateLegacyTranslateTranscriptModel(translateSlice));
 
         // Drop persisted PalabraAI language codes the API rejects, so an existing
         // user isn't left on a pair whose set_task fails validation.
@@ -1526,7 +1517,6 @@ export const usePalabraAISettings = () => useSettingsStore((state) => state.pala
 export const useOpenAITranslateSettings = () => useSettingsStore((state) => state.openaiTranslate);
 export const useVolcengineAST2Settings = () => useSettingsStore((state) => state.volcengineAST2);
 export const useSonioxSettings = () => useSettingsStore((state) => state.soniox);
-export const useKizunaOpenaiTranslateSettings = () => useSettingsStore((state) => state.kizunaOpenaiTranslate);
 export const useKizunaVolcengineAst2Settings = () => useSettingsStore((state) => state.kizunaVolcengineAst2);
 export const useKizunaSonioxSettings = () => useSettingsStore((state) => state.kizunaSoniox);
 export const useLocalInferenceSettings = () => useSettingsStore((state) => state.localInference);
@@ -1609,7 +1599,6 @@ export const useUpdatePalabraAI = () => useSettingsStore((state) => state.update
 export const useUpdateOpenAITranslate = () => useSettingsStore((state) => state.updateOpenAITranslate);
 export const useUpdateVolcengineAST2 = () => useSettingsStore((state) => state.updateVolcengineAST2);
 export const useUpdateSoniox = () => useSettingsStore((state) => state.updateSoniox);
-export const useUpdateKizunaOpenaiTranslate = () => useSettingsStore((state) => state.updateKizunaOpenaiTranslate);
 export const useUpdateKizunaVolcengineAst2 = () => useSettingsStore((state) => state.updateKizunaVolcengineAst2);
 export const useUpdateKizunaSoniox = () => useSettingsStore((state) => state.updateKizunaSoniox);
 export const useUpdateLocalInference = () => useSettingsStore((state) => state.updateLocalInference);

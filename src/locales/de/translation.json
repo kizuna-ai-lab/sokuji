@@ -446,10 +446,6 @@
     "keepReplayAudioDesc": "Übersetztes Audio im Speicher behalten, damit Sie es später aus jeder Nachricht erneut abspielen können. Standardmäßig deaktiviert, um den Speicherverbrauch bei langen Sitzungen zu reduzieren."
   },
   "providers": {
-    "kizunaai_openai_translate": {
-      "name": "KizunaAI",
-      "description": "75 Quellsprachen (automatisch erkannt), 13 Zielsprachen"
-    },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
       "description": "8 Sprachen + Chinesisch–Englisch bidirektional · behält Ihre Stimme"

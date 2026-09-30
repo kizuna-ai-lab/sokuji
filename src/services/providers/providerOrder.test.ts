@@ -10,7 +10,6 @@ async function allProviders(): Promise<Provider[]> {
     ...(await orig<any>()),
     isKizunaAIEnabled: () => true,
     isKizunaSonioxEnabled: () => true,
-    isKizunaOpenAITranslateEnabled: () => true,
     isKizunaVolcengineAST2Enabled: () => true,
     isPalabraAIEnabled: () => true,
     isLocalNativeEnabled: () => true,
@@ -36,7 +35,6 @@ describe('provider list order', () => {
 
     expect(ids).toEqual([
       Provider.KIZUNA_AI_SONIOX,
-      Provider.KIZUNA_AI_OPENAI_TRANSLATE,
       Provider.KIZUNA_AI_VOLCENGINE_AST2,
       Provider.LOCAL_INFERENCE,
       Provider.GEMINI,
@@ -59,8 +57,7 @@ describe('provider list order', () => {
       ...(await orig<any>()),
       isKizunaAIEnabled: () => false,
       isKizunaSonioxEnabled: () => false,
-      isKizunaOpenAITranslateEnabled: () => false,
-      isKizunaVolcengineAST2Enabled: () => false,
+        isKizunaVolcengineAST2Enabled: () => false,
       isPalabraAIEnabled: () => false,
       isLocalNativeEnabled: () => false,
       isElectron: () => false,

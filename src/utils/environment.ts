@@ -219,14 +219,6 @@ export function isKizunaSonioxEnabled(): boolean {
   return import.meta.env.VITE_ENABLE_KIZUNA_SONIOX === 'true';
 }
 
-export function isKizunaOpenAITranslateEnabled(): boolean {
-  if (isDevelopmentMode()) {
-    return true;
-  }
-
-  return import.meta.env.VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE === 'true';
-}
-
 export function isKizunaVolcengineAST2Enabled(): boolean {
   if (isDevelopmentMode()) {
     return true;

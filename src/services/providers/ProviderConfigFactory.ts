@@ -5,7 +5,6 @@ import { GeminiProviderConfig } from './GeminiProviderConfig';
 import { OpenAICompatibleProviderConfig } from './OpenAICompatibleProviderConfig';
 import { OpenAITranslateProviderConfig } from './OpenAITranslateProviderConfig';
 import { PalabraAIProviderConfig } from './PalabraAIProviderConfig';
-import { KizunaAIOpenAITranslateProviderConfig } from './KizunaAIOpenAITranslateProviderConfig';
 import { KizunaAIVolcengineAST2ProviderConfig } from './KizunaAIVolcengineAST2ProviderConfig';
 import { KizunaAISonioxProviderConfig } from './KizunaAISonioxProviderConfig';
 import { VolcengineAST2ProviderConfig } from './VolcengineAST2ProviderConfig';
@@ -13,7 +12,7 @@ import { LocalInferenceProviderConfig } from './LocalInferenceProviderConfig';
 import { LocalNativeProviderConfig } from './LocalNativeProviderConfig';
 import { SonioxProviderConfig } from './SonioxProviderConfig';
 import { Provider, ProviderType } from '../../types/Provider';
-import { isKizunaAIEnabled, isKizunaSonioxEnabled, isKizunaOpenAITranslateEnabled, isKizunaVolcengineAST2Enabled, isPalabraAIEnabled, isLocalNativeEnabled, isElectron, isExtension } from '../../utils/environment';
+import { isKizunaAIEnabled, isKizunaSonioxEnabled, isKizunaVolcengineAST2Enabled, isPalabraAIEnabled, isLocalNativeEnabled, isElectron, isExtension } from '../../utils/environment';
 
 export class ProviderConfigFactory {
   private static configs: Map<ProviderType, ProviderDescriptor> = new Map();
@@ -35,9 +34,6 @@ export class ProviderConfigFactory {
     if (isKizunaAIEnabled()) {
       if (isKizunaSonioxEnabled()) {
         ProviderConfigFactory.configs.set(Provider.KIZUNA_AI_SONIOX, new KizunaAISonioxProviderConfig());
-      }
-      if (isKizunaOpenAITranslateEnabled()) {
-        ProviderConfigFactory.configs.set(Provider.KIZUNA_AI_OPENAI_TRANSLATE, new KizunaAIOpenAITranslateProviderConfig());
       }
       if (isKizunaVolcengineAST2Enabled()) {
         ProviderConfigFactory.configs.set(Provider.KIZUNA_AI_VOLCENGINE_AST2, new KizunaAIVolcengineAST2ProviderConfig());
@@ -151,7 +147,6 @@ export class ProviderConfigFactory {
   static getDefaultManagedProvider(): ProviderType | null {
     const preferred = [
       Provider.KIZUNA_AI_SONIOX,
-      Provider.KIZUNA_AI_OPENAI_TRANSLATE,
       Provider.KIZUNA_AI_VOLCENGINE_AST2,
     ];
     return preferred.find((p) => this.configs.has(p)) ?? null;

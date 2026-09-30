@@ -16,7 +16,6 @@ import { OFFLINE_PROVIDERS, providerPathFor } from './providerPath';
  *  a row for a member the enum no longer has. */
 const EXPECTED: Record<Provider, ProviderPath> = {
   // Backend-managed twins: Kizuna AI holds the key, the user signs in.
-  [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: 'managed',
   [Provider.KIZUNA_AI_VOLCENGINE_AST2]: 'managed',
   [Provider.KIZUNA_AI_SONIOX]: 'managed',
   // Local engines: nothing leaves the machine, models download instead.

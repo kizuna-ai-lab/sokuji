@@ -4,7 +4,6 @@ vi.mock('../../utils/environment', async (orig) => ({
   ...(await orig<any>()),
   isKizunaAIEnabled: () => true,
   isKizunaSonioxEnabled: () => true,
-  isKizunaOpenAITranslateEnabled: () => true,
   isKizunaVolcengineAST2Enabled: () => true,
   isPalabraAIEnabled: () => true,
   isLocalNativeEnabled: () => true,
@@ -73,7 +72,8 @@ describe('providerPaths', () => {
     });
 
     it('refuses a managed record naming a provider this build does not register', () => {
-      expect(offersRecord({ scenario: 'be-heard', providerPath: 'managed', provider: Provider.KIZUNA_AI_OPENAI_TRANSLATE })).toBe(false);
+      // The OpenAI Translate relay twin, deleted (Stage 2 deletion, ruling 2).
+      expect(offersRecord({ scenario: 'be-heard', providerPath: 'managed', provider: 'kizunaai_openai_translate' as Provider })).toBe(false);
     });
 
     it('offers an own-key record for Soniox', () => {

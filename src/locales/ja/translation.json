@@ -446,10 +446,6 @@
     "keepReplayAudioDesc": "翻訳された音声をメモリに保存し、後から各メッセージで再生できるようにします。長時間のセッションでのメモリ使用量を抑えるため、既定ではオフです。"
   },
   "providers": {
-    "kizunaai_openai_translate": {
-      "name": "KizunaAI",
-      "description": "ソース75言語（自動検出）、ターゲット13言語"
-    },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
       "description": "8言語＋中英双方向 · 話者の声を再現"

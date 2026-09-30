@@ -446,10 +446,6 @@
     "keepReplayAudioDesc": "Store translated audio in memory so you can replay it later from each message. Off by default to reduce memory use during long sessions."
   },
   "providers": {
-    "kizunaai_openai_translate": {
-      "name": "KizunaAI",
-      "description": "75 source languages (auto-detected), 13 target languages"
-    },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
       "description": "8 languages + Chinese–English two-way · keeps your voice"
