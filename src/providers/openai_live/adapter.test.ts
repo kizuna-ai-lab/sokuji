@@ -6,7 +6,7 @@
  * a virtual clock — no network, no fake timers.
  */
 import { describe, it, expect } from 'vitest';
-import { AdapterStartError } from '../../lib/contract/adapter';
+import { AdapterStartError, type AdapterEvents, type AdapterSession } from '../../lib/contract/adapter';
 import type { AdapterEvent } from '../../lib/contract/events';
 import { flush, type ScenarioStep } from '../../lib/contract/testing/drive';
 import { FakeSocket } from '../../lib/contract/testing/fakeSocket';
@@ -32,6 +32,32 @@ const noSecret = (value: unknown) => {
   for (const secret of SECRETS) expect(text).not.toContain(secret);
 };
 const kinds = (log: readonly AdapterEvent[]) => log.filter((e) => e.kind !== 'frame').map((e) => e.kind);
+/** What a socket has sent so far, by type, in order. */
+const types = (s: FakeSocket) => s.sentJson<{ type: string }>().map((m) => m.type);
+
+/** Counts the listeners added to and still on one signal, without changing what it delivers. */
+function watch(signal: AbortSignal): { added: () => number; left: () => number } {
+  let added = 0;
+  const realAdd = signal.addEventListener.bind(signal);
+  const realRemove = signal.removeEventListener.bind(signal);
+  const live = new Set<EventListenerOrEventListenerObject>();
+  const wrapped = new Map<EventListenerOrEventListenerObject, EventListenerOrEventListenerObject>();
+  signal.addEventListener = ((type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
+    added += 1;
+    const once = typeof options === 'object' && options !== null && options.once;
+    const real: EventListenerOrEventListenerObject = once
+      ? (ev: Event) => { live.delete(listener); if (typeof listener === 'function') listener(ev); else listener.handleEvent(ev); }
+      : listener;
+    live.add(listener);
+    wrapped.set(listener, real);
+    realAdd(type, real, options);
+  }) as typeof signal.addEventListener;
+  signal.removeEventListener = ((type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions) => {
+    live.delete(listener);
+    realRemove(type, wrapped.get(listener) ?? listener, options);
+  }) as typeof signal.removeEventListener;
+  return { added: () => added, left: () => live.size };
+}
 
 function harness(): AdapterHarness<LiveConfig, LiveCredentials> {
   let seam = fakeHeaderSockets();
@@ -107,6 +133,8 @@ describe('the OpenAI Live adapter: the seeded lifecycles', () => {
       if (!socket) return;
       // A reconnect's attempt: its registration answered, its socket connecting.
       if (socket.readyState === FakeSocket.CONNECTING) {
+        // On some draws the attempt opens and is left unanswered: a stop then must still close it.
+        if (run.rand() < 0.2) { socket.open(); await flush(); run.count('harness.attempt_unanswered'); return; }
         if (run.rand() < 0.8) {
           socket.open();
           await flush();
@@ -138,7 +166,7 @@ describe('the OpenAI Live adapter: the seeded lifecycles', () => {
     expect(report.failures).toEqual([]);
     for (const key of [
       'refused', 'live', 'stopped', 'end.failed.connection_lost', 'end.failed.auth', 'end.failed.rate_limit', 'end.closed', 'opening.bound', 'opening.abort', 'opening.abort.late',
-      'harness.drop', 'harness.silent', 'harness.forbidden', 'harness.closed', 'harness.close_1011', 'harness.unanswered', 'harness.reconnected',
+      'harness.drop', 'harness.silent', 'harness.forbidden', 'harness.closed', 'harness.close_1011', 'harness.unanswered', 'harness.reconnected', 'harness.attempt_unanswered',
     ]) expect(report.stats[key] ?? 0, key).toBeGreaterThan(0);
   }, 20_000);
 });
@@ -493,6 +521,60 @@ describe('the OpenAI Live adapter: the watchdog, the reconnect and the ends (rul
     expect(h.frames('session.stalled')).toEqual([]);
     expect(kinds(h.log)).toEqual([]);
   });
+
+  it('released (muted), the connection lost: the new session is unmuted; a press sends no unmute, appends go; a release mutes it', async () => {
+    const h = await liveSession({ context: MANUAL_CTX });
+    h.session.beginTurn();
+    h.session.appendAudio(chunk());
+    h.session.endTurn();
+    const first = h.socket();
+    expect(types(first)).toEqual(['session.start', 'session.input_audio.append', 'session.input_audio.mute']);
+    first.drop();
+    await answerAttempt(h);
+    const second = h.socket();
+    expect(second).not.toBe(first);
+    expect(types(second)).toEqual(['session.start']);
+    h.session.beginTurn();
+    h.session.appendAudio(chunk());
+    h.session.endTurn();
+    expect(types(second)).toEqual(['session.start', 'session.input_audio.append', 'session.input_audio.mute']);
+    h.session.beginTurn();
+    expect(types(second).slice(-1)).toEqual(['session.input_audio.unmute']);
+  });
+
+  it('pressed during the gap after a muted release: the new session takes appends at once, no unmute', async () => {
+    const h = await liveSession({ context: MANUAL_CTX });
+    h.session.beginTurn();
+    h.session.endTurn();
+    h.socket().serverClose(1011);
+    await flush();
+    h.session.beginTurn();
+    await answerAttempt(h);
+    h.session.appendAudio(chunk());
+    expect(types(h.socket())).toEqual(['session.start', 'session.input_audio.append']);
+    h.session.endTurn();
+    expect(types(h.socket()).slice(-1)).toEqual(['session.input_audio.mute']);
+  });
+
+  it('after a real stall and its reconnect, the watchdog runs again on the new session, from zero', async () => {
+    const h = await liveSession();
+    h.socket().receive(SERVER.usage(14));
+    for (let i = 0; i < 24; i++) h.session.appendAudio(chunk());
+    h.socket().receive(SERVER.usage(14));
+    await flush();
+    expect(h.frames('session.stalled')).toEqual([{ seconds: 14 }]);
+    await answerAttempt(h);
+    // The old session's seconds and count are gone: a first report of 14 on the new one is no stall.
+    for (let i = 0; i < 24; i++) h.session.appendAudio(chunk());
+    h.socket().receive(SERVER.usage(14));
+    expect(h.frames('session.stalled')).toHaveLength(1);
+    h.clock.advance(61_000);
+    for (let i = 0; i < 24; i++) h.session.appendAudio(chunk());
+    h.socket().receive(SERVER.usage(14));
+    await flush();
+    expect(h.frames('session.stalled')).toHaveLength(2);
+    expect(kinds(h.log).filter((k) => k === 'reconnecting')).toHaveLength(2);
+  });
 });
 
 describe('the OpenAI Live adapter: stop (ruling 8)', () => {
@@ -536,5 +618,116 @@ describe('the OpenAI Live adapter: stop (ruling 8)', () => {
     h.socket().serverClose(1011);
     await flush();
     noSecret(h.log);
+  });
+});
+
+describe('the OpenAI Live adapter: no listener left on the request signal', () => {
+  it('a cancel while the upgrade is connecting: rejects, fails the connecting socket, clears the rule, leaves no timer and no listener', async () => {
+    const seam = fakeHeaderSockets();
+    const { clock, timers } = trackedClock();
+    const { events, log } = recordEvents();
+    const controller = new AbortController();
+    const w = watch(controller.signal);
+    const starting = createLiveAdapter({ openHeaderSocket: seam.open }).start({ context: AUTO_CTX, config: configFor(), credentials: KEY, clock, signal: controller.signal }, events);
+    await flush();
+    const socket = seam.sockets.last();
+    expect(socket.readyState).toBe(FakeSocket.CONNECTING);
+    controller.abort(new Error('stopped'));
+    await expect(starting).rejects.toThrow('stopped');
+    await flush();
+    expect(socket.readyState).toBe(FakeSocket.CLOSED);
+    expect(socket.sent).toEqual([]);
+    expect(seam.registrations.map((r) => r.cleared)).toEqual([true]);
+    expect(timers()).toBe(0);
+    expect(w.added()).toBeGreaterThan(0);
+    expect(w.left()).toBe(0);
+    expect(kinds(log)).toEqual([]);
+  });
+
+  it('a failed start (forbidden) leaves no listener on the request signal', async () => {
+    const seam = fakeHeaderSockets();
+    const { clock, timers } = trackedClock();
+    const { events } = recordEvents();
+    const controller = new AbortController();
+    const w = watch(controller.signal);
+    const starting = createLiveAdapter({ openHeaderSocket: seam.open }).start({ context: AUTO_CTX, config: configFor(), credentials: KEY, clock, signal: controller.signal }, events);
+    await flush();
+    seam.sockets.last().open();
+    await flush();
+    seam.sockets.last().receive(SERVER.forbidden());
+    await expect(starting).rejects.toMatchObject({ code: 'client' });
+    await flush();
+    expect(w.left()).toBe(0);
+    expect(timers()).toBe(0);
+    expect(seam.sockets.last().readyState).toBe(FakeSocket.CLOSED);
+  });
+
+  it('a live session leaves no listener on the request signal, and a stop leaves none either', async () => {
+    const seam = fakeHeaderSockets();
+    const { clock, timers } = trackedClock();
+    const { events } = recordEvents();
+    const controller = new AbortController();
+    const w = watch(controller.signal);
+    const starting = createLiveAdapter({ openHeaderSocket: seam.open }).start({ context: AUTO_CTX, config: configFor(), credentials: KEY, clock, signal: controller.signal }, events);
+    await flush();
+    seam.sockets.last().open();
+    await flush();
+    seam.sockets.last().receive(SERVER.started());
+    const session = await starting;
+    expect(w.left()).toBe(0);
+    controller.abort(new Error('stop'));
+    await session.stop();
+    expect(timers()).toBe(0);
+  });
+});
+
+describe("the OpenAI Live adapter: a stop made inside the reconnect's own callbacks (Stage 2 OpenAI Live, ruling 6)", () => {
+  /** Drives one leg to a lost connection, with `events` wrapped so a stop is made synchronously from inside the reconnect's own callbacks. */
+  async function reentrantStop(wrap: (events: AdapterEvents, stop: () => void) => AdapterEvents) {
+    const seam = fakeHeaderSockets();
+    const { clock } = trackedClock();
+    const { events, log } = recordEvents();
+    let session: AdapterSession | null = null;
+    const wrapped = wrap(events, () => void session?.stop());
+    const starting = createLiveAdapter({ openHeaderSocket: seam.open }).start({ context: AUTO_CTX, config: configFor(), credentials: KEY, clock, signal: new AbortController().signal }, wrapped);
+    await flush();
+    seam.sockets.last().open();
+    await flush();
+    seam.sockets.last().receive(SERVER.started());
+    session = await starting;
+    seam.sockets.last().serverClose(1011);
+    await flush();
+    const opened = seam.sockets.all.length;
+    const attempt = seam.sockets.last();
+    if (attempt.readyState === FakeSocket.CONNECTING) {
+      attempt.open();
+      await flush();
+      const state: number = attempt.readyState;
+      if (state === FakeSocket.OPEN) attempt.receive(SERVER.started('ghost'));
+      await flush();
+    }
+    return { seam, opened, attempt, after: kinds(log) };
+  }
+
+  it('a stop from the reconnecting event: no attempt socket opened, no reconnected said, no session.start sent after the stop, the rule cleared', async () => {
+    const { seam, opened, attempt, after } = await reentrantStop((events, stop) => ({
+      ...events,
+      reconnecting: () => { events.reconnecting(); stop(); },
+    }));
+    expect(opened).toBe(1);
+    expect(after).not.toContain('reconnected');
+    expect(types(attempt)).toEqual(['session.start']);
+    expect(seam.registrations.every((r) => r.cleared)).toBe(true);
+  });
+
+  it('a stop from the session.connection_lost frame: no attempt socket opened, no reconnected said, no session.start sent after the stop, the rule cleared', async () => {
+    const { seam, opened, attempt, after } = await reentrantStop((events, stop) => ({
+      ...events,
+      frame: (f) => { events.frame(f); if (f.type === 'session.connection_lost') stop(); },
+    }));
+    expect(opened).toBe(1);
+    expect(after).not.toContain('reconnected');
+    expect(types(attempt)).toEqual(['session.start']);
+    expect(seam.registrations.every((r) => r.cleared)).toBe(true);
   });
 });

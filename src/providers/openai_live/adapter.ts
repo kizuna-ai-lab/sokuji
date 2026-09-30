@@ -450,6 +450,8 @@ class LiveLeg implements AdapterSession {
   private unexpected(cause: 'socket_closed' | 'session_closed' | 'stalled', detail: Record<string, unknown>): void {
     if (this.phase !== 'live') return;
     this.frame('in', 'session.connection_lost', { cause, ...detail });
+    // A stop made from inside the reconnect's callbacks ends the leg there (Stage 2 OpenAI Live, ruling 6).
+    if (!this.is('live')) return;
     const recent = this.recentError();
     if (recent && ACTIONABLE.has(recent.code)) {
       this.end({ failed: recent });
@@ -482,6 +484,8 @@ class LiveLeg implements AdapterSession {
     this.lastError = null;
     this.frame('out', 'session.reconnecting');
     this.events.reconnecting();
+    // A stop made from inside the reconnect's callbacks ends the leg there (Stage 2 OpenAI Live, ruling 6).
+    if (this.is('ended')) return;
     const attempt = new AbortController();
     this.attempt = attempt;
     try {
