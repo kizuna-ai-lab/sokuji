@@ -81,7 +81,9 @@ export function buildRule(existing, message, runtimeId) {
   if (id === undefined) return null;
   return {
     id,
-    priority: 1,
+    // Above the old Live rule (4000) at the same filter (`||api.openai.com/v1/live/`), so a leftover of it — left by a client
+    // now unreachable — never supplies the key; nothing else competes at this filter (Stage 2 OpenAI Live, ruling 11).
+    priority: 2,
     action: {
       type: 'modifyHeaders',
       requestHeaders: [

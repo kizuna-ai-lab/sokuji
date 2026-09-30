@@ -18,7 +18,7 @@ describe("the extension's generic upgrade header rules (Stage 2 OpenAI Live, rul
     expect(urlFilterFor('api.openai.com', '/v1/live/')).toBe('||api.openai.com/v1/live/');
     expect(buildRule(OLD, LIVE, RUNTIME)).toEqual({
       id: WS_RULE_ID_MIN,
-      priority: 1,
+      priority: 2,
       action: {
         type: 'modifyHeaders',
         requestHeaders: [{ header: 'Authorization', operation: 'set', value: 'Bearer sk-live' }, { header: 'Origin', operation: 'remove' }],
