@@ -372,7 +372,20 @@ The conformance suite (D24) checks each rule below against every adapter.
   `session.finish`, Soniox's `stt.end` and `tts.end`, Palabra's `task.end`,
   `session.delete`, `session.deleted` and `session.delete_warning` — a warning
   by its suffix — and OpenAI Translate's `session.close` need none: each is
-  said once per leg's end (Stage 2 session end, choices 4–6). No frame payload holds a `ws://` or `wss://` URL:
+  said once per leg's end (Stage 2 session end, choices 4–6). OpenAI Live's
+  need no row either: its three `.delta` frames group under their own type,
+  `session.error`, `session.reconnect_failed` and `session.socket_error` read
+  as errors by their suffix, and none of `session.headers` (the rule's host,
+  path and header names, never a value), `session.start`, `session.started`,
+  `session.updated`, `session.delegation.created`, the three
+  `session.….appended` (instructions, thinking, commentary),
+  `session.usage.updated`, `session.stalled`, `session.closed`,
+  `session.connection_lost`, `session.reconnecting`, `session.reconnected`,
+  `session.unreadable`, `session.unknown`, `session.info`,
+  `session.input_audio.mute` / `.unmute` and their acknowledgements,
+  `translation.cut` or `session.close` is anyone's row; it frames no append,
+  and a close before `session.started` is `session.connection_lost`, OpenAI
+  Translate's name for the same close (Stage 2 OpenAI Live, choice 15). No frame payload holds a `ws://` or `wss://` URL:
   three providers' credentials ride a socket's query, and `redact()` masks
   only the parameters it names, so the kit's `frame-url` rule holds every
   adapter to it (choice 10).
@@ -460,7 +473,12 @@ does not react to a setting changing" is already the rule. Adapters that
 reconnect (Gemini, OpenAI Live, Soniox's 503 resume) reuse the original request
 internally. Gemini's attempts are bounded — three, each within its setup
 timeout — and with no resumption handle it opens a fresh session rather than
-ending (Stage 2 Gemini, ruling 3).
+ending (Stage 2 Gemini, ruling 3). OpenAI Live's is one attempt, then
+`connection_lost`, a second loss within 60 s of the last reconnect not tried
+again; its header seam registers the rule again for the attempt. A stall is
+one of its losses: two equal usage reports with 2 s of voiced audio sent
+between them, so neither a silent room nor a push-to-talk tap reads as one
+(Stage 2 OpenAI Live, ruling 6; choices 13, 14).
 
 **What opacity costs.** Telemetry reads model names straight out of the config
 today (`sessionModelTelemetry(sessionConfig, …)`), and the export switches on the
@@ -505,7 +523,7 @@ it has leaked out of it.
 | Volcengine AST2 | server VAD, no knobs | 500 ms of silence on release, the old finalization's burst (Stage 2 Volcengine AST2, ruling 6); between turns the keepalive sends silence only after 250 ms with no audio (ruling 7) | after silence |
 | Palabra | server segmentation after its silence threshold, configurable 0.3–2.0 s; a stream with no audio for `IDLE_MS` (800 ms) carries real-time silence, one 320 ms chunk a beat, never ahead of the stream's own clock — ten seconds without input would end the session (Stage 2 Palabra, ruling 3; choice 7). 800 ms, not the owner's "about half a second": the participant leg's ScriptProcessor fallback delivers every 682.7 ms, and 500 would splice silence into its speech (reported to the owner; reversible) | what waits in the 320 ms re-chunker sent at once, padded with silence to a chunk, then the adapter's real-time silence from the next beat, and the server confirms the sentence at its threshold (ruling 3; choice 7) — the old "the track (`dtx:false`) carries silence" was the LiveKit client's | after silence |
 | OpenAI Translate | **a continuous stream; there are no turns on the wire**, no commit and no server VAD | the held remainder padded to the next 200 ms engine frame, then one frame of silence per 200 ms beat, in real time, until the translation has been quiet 1 s, at most 3 s after the release — both ends counted in beats, five and fifteen frames, never read off the clock, so a late timer or a stepped clock moves neither (Stage 2 OpenAI Translate, ruling 2): the server holds a sub-frame remainder until more audio arrives, and model time advances only with appended audio | after silence |
-| OpenAI Live | **a continuous stream; there are no turns on the wire** | not needed — release stops the microphone and what was said finishes translating | n/a |
+| OpenAI Live | **a continuous stream; there are no turns on the wire**, no commit and no server VAD; `session.input_audio.mute` / `.unmute`, acknowledged `session.input_audio.muted` / `.unmuted` in about 105 ms (U2) | a mute: the pending translation finishes while muted, and a muted session with nothing appended stops billing (U2'); stopping the appends alone does not finish the last sentence (U1); a tap is no stall — two equal usage reports read as one only across 2 s of voiced audio (choice 14) (Stage 2 OpenAI Live, ruling 5). This row's first version — "not needed — release stops the microphone" — was the old client's reading, which U1 contradicts | after the model's own finish (ruling 5) |
 
 **Every one of the twelve can support manual turns correctly.** None is
 incapable; they differ only between immediate and after-silence.
@@ -536,7 +554,7 @@ mechanism:
 | AST2 | — | 500 ms of silence | the same tail — the old release sent it for an empty press too |
 | Palabra | — (sends nothing) | flush the re-chunker, padded; the leg idle from the next beat, so the server hears silence from the release on and closes the sentence at its threshold (Stage 2 Palabra, choice 7) | the same — the runner sends no audio after either (`run.ts:342-346`); `interrupt_task` does not help (the owner's probe) |
 | OpenAI Translate | — (a press ends a tail still running) | the pad, then real-time silence until quiet, capped | the same tail — what the press appended is the model's input already, and no clear exists (Stage 2 OpenAI Translate, choice 7) |
-| OpenAI Live | — | — | — |
+| OpenAI Live | `session.input_audio.unmute`, appends resumed (Stage 2 OpenAI Live, ruling 5) | `session.input_audio.mute`, appends dropped until the next press; no tail (ruling 5; choice 11) | the same mute — what the press appended is the model's input already, and no clear exists (ruling 5; choice 11) |
 
 A Gemini dialogue model gets no tail: its `activityEnd` ends a turn it answers
 whole (Stage 2 Gemini/AST2 follow-up, choice 13). On Live Translate, typed text
@@ -680,7 +698,8 @@ takeover keeps its hint, where it is true.
 Palabra offer only automatic turns today. All of them gain push-to-talk and
 push-to-translate. OpenAI Translate's gain lands with its Stage 2 plan, over
 WebSocket; its Kizuna twin is deleted, not ported. Palabra's landed with its
-WebSocket port (Stage 2 Palabra, choice 7). The one exception runs the
+WebSocket port (Stage 2 Palabra, choice 7). OpenAI Live's landed with its
+Stage 2 plan, by mute (Stage 2 OpenAI Live, ruling 5). The one exception runs the
 other way: OpenAI Realtime over WebRTC keeps manual turns only (D25), as
 today — with the native track live, the server's VAD would cut the translation
 being played whenever the user speaks, which is why
@@ -898,8 +917,8 @@ window first — OpenAI Translate's follow-up, should its `elapsed_ms` prove
 one timeline (Stage 2 OpenAI Translate, ruling 6). OpenAI Translate now
 states its origins (Stage 2 translation cuts, ruling 2), so its pairing needs
 no timing; the timed window waits for a provider whose origins L2 infers and
-that emits `timing` — Doubao AST 2.0 emits none, and OpenAI Live may state its
-origins by the same cuts instead.
+that emits `timing` — Doubao AST 2.0 emits none, and OpenAI Live states its
+origins by the same cuts and emits no `timing` (Stage 2 OpenAI Live, ruling 3).
 
 Filtering, band packing and styling are **not** L2's. They depend on each
 surface's own settings — the extension overlay carries display modes, a font
@@ -1138,7 +1157,7 @@ real `range`. Pairing needs an `origin`, stated or inferred.
 | LocalNativeClient | yes | per TTS sentence, **exists today** | one translate job — stated |
 | SonioxClient | yes | per TTS segment — filled in once the segment's speech has ended (`speechRanges`); unlit before; none for a segment the provider killed | same utterance — stated |
 | OpenAITranslateGAClient | yes | per audio frame, **by arrival**: each content frame carries the translation's text from the previous frame's end to its length when the frame arrived — the old client's alignment (#216), kept by the owner's ruling, not a known correspondence (Stage 2 OpenAI Translate, ruling 6) | source cut ↔ translation cut — **stated**: each closing source owes the translation one cut, taken once the translation holds as many sentence ends as the source, the latest arriving after the source's last delta; the translation states that source, at its open when known (the cut owed first, else the source still open), else at its close; a sentence end counted as ruling 1 (iii) says, and in the scripts it does not name at their own marks (`।॥۔؟။։።។៕．｡`, counted as the CJK ones); its own quiet settles it and drops cuts no translation answered, as does a translation that begins for a newer source; one that follows no cut continues the spoken source that closed last (Stage 2 translation cuts, rulings 1, 2; choices 3, 5–9). `elapsed_ms` is still framed, and read by nothing |
-| OpenAILiveClient | yes | per audio frame, **exists today** | inferred (`end_ms` timeline) |
+| OpenAILiveClient | yes | per audio frame, **on the output's timeline**: every output frame advances the output's sample clock by its samples ÷ 24 ms, the noise floor's included; a voiced frame's range is the characters its window's `start_ms` / `end_ms` cover in the segment of the delta whose stamps lie nearest it — interpolated inside a delta, held at its end through a gap — computed as the frame arrives, since the text leads its audio. A real range under D4, not a stated exception: U4 measured the stamps against whisper-1's words at a median of 200 ms and a p90 of 760 ms, and the ranges through L1 match them but for a word whose stamps fall on the stream's floor, which no voiced frame covers and the light passes at its row's next voiced frame (Stage 2 OpenAI Live, ruling 2; choices 9, 10). This row's first version — "per audio frame, **exists today**" and "inferred (`end_ms` timeline)" — was never true: the old karaoke was by arrival, and L2 had no timeline rule | source cut ↔ translation cut — **stated**, by the translation cuts module, the source cut at a pause of at least the source pause on the input's timeline (Stage 2 OpenAI Live, rulings 3, 10; choice 6) |
 | OpenAIGAClient | yes | per audio frame, **by arrival**, as OpenAI Translate's: each played frame carries the translation's text from the previous frame's end to its length when the frame arrived, restated within the final text when that settles shorter (`speechRanges`). This table's first "per audio frame" for this client and the compatible one was never true: neither produced a range, and their karaoke was the interpolation D4 deletes (survey §3.7.1). So this is the second stated exception to the honesty rule (Stage 2 OpenAI Realtime, ruling 3; choice 9) | input item ↔ response — **stated**: the assistant item's `previous_item_id` when it names one of the leg's inputs; else, taken when the response began, the newest input the server holds — by when it came to hold it, not when the leg opened it — if it is still unanswered, never an older one behind it; else none, and the translation shows unpaired (Stage 2 OpenAI Realtime, ruling 23; choice 8; the server's order since its final review) |
 | OpenAIClient (compatible) | retired, not ported (Stage 2 OpenAI Realtime, ruling 1) | — | — |
 | GeminiClient | yes | per audio chunk, **by arrival**, as OpenAI Translate's and OpenAI Realtime's: each played chunk carries its translation's text from the previous chunk's end to its length when the chunk arrived, `[0, 0]` before any text — a dialogue model's audio opens its turn's translation, and Live Translate's audio outside an open translation stays unattributed; the text only grows, so nothing is restated. Live Translate's stream is real time with its text 0–0.3 s ahead, so its karaoke is phrase-level and holds through its silence: a chunk with no new text since the last is zero-width. The third stated exception to the honesty rule (Stage 2 Gemini/AST2 follow-up, ruling 2; choice 7) | dialogue models: same turn — stated; Live Translate: source cut ↔ translation cut — stated, as OpenAI Translate's, with no mid-sentence hold into Thai or Lao (Stage 2 translation cuts, ruling 3; choice 6) |
@@ -1726,7 +1745,7 @@ different mechanisms:
 | | Electron | Extension |
 |---|---|---|
 | mechanism | main-process `onBeforeSendHeaders` | `declarativeNetRequest` dynamic rules, in the background worker |
-| life | per host, **one-shot** — the next upgrade consumes it | **persistent** until cleared |
+| life | per host and path, **one-shot** — the next upgrade under the path consumes it; a rule with no path, the whole host, as before (Stage 2 OpenAI Live, choice 2) | **persistent** until cleared — the seam clears it once the upgrade is made, and the worker sweeps its range, and the old Live rule 4000, at start (Stage 2 OpenAI Live, choice 3; ruling 11) |
 | who can hit it | the app's own renderer | any page in the browser, unless the rule sets `initiatorDomains` |
 | constraint | one listener per session, shared with Better Auth's cookie injection | `host_permissions` must list `wss://` explicitly, or Chrome ignores the rule silently |
 
@@ -1740,18 +1759,26 @@ While an AST2 session runs, any page that opens a socket to
 `openspeech.bytedance.com` has the user's App Key and Access Key injected: the
 page cannot read them, but its connection is authenticated, and billed, as the
 user. OpenAI Live's and Bing's rules set `initiatorDomains`, and Live's is
-removed once the session has started. The ported provider installs none; the
+removed once the session has started; the generic pair's rules
+(`WS_HEADERS_SET`) set it too, answer only the extension's own pages — their
+base read from `chrome.runtime.getURL('')` — and are removed as soon as the
+upgrade is made (Stage 2 OpenAI Live, choice 3). The ported provider installs none; the
 old block goes with the old client (the Stage 2 Volcengine AST2 plan's deletion
 plan, V2).
 
 What unifies is the interface a client sees, not the mechanism:
-`openSocket(url, { set, remove }) → WebSocket`, one implementation per platform.
-Electron keeps its one-shot rule; the extension implementation always scopes by
+`OpenHeaderSocket(url, { set, remove }, { signal, clock }) → Promise<WebSocket>`
+(`src/lib/contract/headerSocket.ts`), one registrar per platform — asynchronous,
+since Electron's registration is an IPC round trip and the extension's a
+runtime message. Electron keeps its one-shot rule; the extension implementation always scopes by
 `initiatorDomains` and path, and clears as soon as the upgrade completes. Clients
 stop pairing register and clear calls around a `headersRegistered` flag, the AST2
 exposure closes by construction, the background worker's per-provider blocks and
-message pairs collapse to one, and two legs opening the same host are
-serialized in one place. Today the legs connect one after the other
+message pairs collapse to one, and two legs opening the same host and path are
+serialized in the seam itself, process-wide in the renderer, each rule cleared
+before the next leg registers — a registration that never answers is cleared
+at the holder's own 15 s bound and lets the next leg go, each platform's
+channel being ordered (Stage 2 OpenAI Live, choice 1). Today the legs connect one after the other
 (`MainPanel.tsx:2463`, then `:2753`), so nothing collides yet; a per-host
 register/clear pair would, the moment the legs come up together.
 
@@ -1774,7 +1801,9 @@ and `redact()` masks the subprotocol (Stage 2 OpenAI Translate, ruling 16,
 choice 3). When OpenAI Live makes the seam's first use, its Electron rule
 scopes by path: the rule is per host and one-shot today
 (`electron/main.js:1113-1133`), so a stale Live rule for `api.openai.com` would
-reach a Translate upgrade.
+reach a Translate upgrade. **Done** by the Stage 2 OpenAI Live plan (choice 2):
+`electron/ws-header-rules.js`, the longest path winning; Edge TTS and the old
+AST2 client, which send no path, keep a host-wide rule.
 
 Nor does OpenAI Realtime's: the same subprotocol, read in one function of its
 wire, through its own seam in fixed words (Stage 2 OpenAI Realtime, ruling 25,
@@ -1791,7 +1820,11 @@ does. The plain seam the four copies held now lives in
 Gemini's, Doubao's, OpenAI Translate's and OpenAI Realtime's `socket.ts`
 re-export it, each keeping the `OpenSocket` type its adapter calls, and it
 rethrows a refused socket in fixed words; Soniox's seam stays its own. F14,
-the header seam, joins it there when OpenAI Live builds it.
+the header seam, joined it there, built by the Stage 2 OpenAI Live plan
+(ruling 7; choices 1–3): `headerSocket.ts` and its fake `fakeHeaderSockets`,
+Electron's `ws-header-rules.js`, and the extension's `WS_HEADERS_SET` /
+`WS_HEADERS_CLEAR` (`wsHeaderRule.js`). Its first user needs
+`Authorization: Bearer` set and `Origin` removed (U9).
 
 ### Persisted settings that move
 
@@ -1851,8 +1884,13 @@ named for Palabra, for which they were first built.
    item 3, the roadmap's Palabra record].
 5. When it is flagged, its id in `VITE_ENABLED_PROVIDERS` at release.
 
-For OpenAI Live that is two code files outside its folder, plus the manifest,
-against 21 today.
+For OpenAI Live it was its folder, one registry line and two order tests; no
+locale key and no manifest change (`manifest.json:38, 116` already list its
+host and CSP origin). What else it touched was first-user work, not a
+provider's cost: F14 (the seam and its fake, Electron's rules, the extension's
+pair), the OpenAI helpers lifted at their third user, three members of the
+translation cuts module and the replay harness's stamps (Stage 2 OpenAI Live,
+choices 1–5, 18).
 
 ---
 
@@ -1968,7 +2006,8 @@ the sources: its override feeds the builds, which must refuse before anything
 opens (Stage 2 Kizuna Soniox, ruling 9).
 
 **Legs start in parallel**, roughly halving startup time. Two legs dialling the
-same host are serialized by the socket seam in the provider definition.
+same host are serialized by the header seam in `src/lib/contract/headerSocket.ts`,
+per host and path (Stage 2 OpenAI Live, choice 1; its survey §6 item 5).
 
 **Settings are read once per run.** The snapshot removes the two expectation
 guards (`expect`, `expectAtApply`) that exist today because settings could
@@ -2498,7 +2537,11 @@ The order (the owner may overrule it):
    sentence, stated pairing, ranges at a burst's end. The degenerate extreme
    this item first named — `audio` without `ref`, no `range` — was its old
    LiveKit client's.
-9. **OpenAI Live** (`openai_live`) — span caps, the `end_ms` timeline.
+9. **OpenAI Live** (`openai_live`) — span caps, the `end_ms` timeline. Ported
+   by the Stage 2 OpenAI Live plan: the old span caps kept, the timeline's
+   pause read at the source pause (ruling 10) as its source rules on
+   `ContinuousSegments`, the `end_ms` timeline as the karaoke's clock, F14
+   built for it.
 10. **Local Native** (`local_native`) — LocalInference's sibling on the sidecar.
     Its `Engine` is a thin wrapper like LocalInference's: the shared
     `EngineSurface` over the existing `useNativeEngineAdapter`, with the
@@ -2665,8 +2708,8 @@ From the Stage 2 foundation survey's §3.4:
   than no pairing — so `pairing: 'none'` must stay reachable and the display must
   not assume a group is a real pair. **Amended by the Stage 2 translation cuts
   plan:** of the three, OpenAI Translate and Gemini Live Translate now state
-  their origins; Doubao AST 2.0 still needs it, and OpenAI Live will unless it
-  states its own.
+  their origins; Doubao AST 2.0 still needs it; OpenAI Live states its own
+  (Stage 2 OpenAI Live, ruling 3).
 - **Karaoke's honesty depends on producers being honest.** A client that reports
   a `range` it does not actually know reintroduces the fake alignment this design
   deletes. The rule is one line: report a `range` only when the producer knew

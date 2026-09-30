@@ -1312,7 +1312,7 @@ release), the leg's own session only (choice
 9); the G3 latency mostly moot, since a sentence's audio is a
 faster-than-real-time burst [inf], and its live test's item 4 listens for gaps.
 
-**OpenAI Live:** F14 (reused); the `connection_lost` alias (Task 3).
+**OpenAI Live:** F14 (reused); the `connection_lost` alias (Task 3). **Changed by the Stage 2 OpenAI Live plan** (ruling 7; choices 1–3): F14 was built there, Live its first user; the alias is consumed (`failed { code: 'connection_lost' }`).
 
 **Local Native:**
 - `flagged: true, testerSwitch: LOCAL_NATIVE_DEBUG_KEY` (Task 1).
@@ -3804,7 +3804,7 @@ two stubs):
 - `Provider.KIZUNA_AI_VOLCENGINE_AST2` with `isKizunaManagedProvider` / `kizunaBaseProvider`'s AST2 case (`src/types/Provider.ts:13, 49-60`), `KIZUNA_HOSTED_ICONS`' entry (`src/components/Icons/ProviderIcons.tsx:280`), `isKizunaVolcengineAST2Enabled` (`src/utils/environment.ts:230-236`) and its forwarding (`extension/vite.config.ts:176-184`, `build.yml`'s AST2 lines), `TUTORIAL_URLS`' AST2 entry (`src/services/providers/tutorialUrls.ts:19`) once nothing reads it;
 - the extension's AST2 DNR block and its two messages (`extension/background/background.js:254-317, 544-563`), and **in their place a start-up clear of dynamic rules 2000–2009**, so a browser that ran the old client drops what it left installed;
 - `providers.kizunaai_volcengine_ast2.*` in 30 catalogs; `logStore.ts`' old AST2 event names and grouping alternatives, once no old client emits them;
-- **keep:** `LEGACY_SLICE_KEYS.kizunaai_volcengine_ast2` and `MANAGED_LEGACY_IDS` (a stored selection of the twin falls back, the Kizuna Soniox plan's choice 13), `getRelayWsUrl` and the `sokuji-auth.` redaction rule (shared with the Kizuna OpenAI Translate twin), `electron/main.js`' generic `ws-headers-set/clear` (OpenAI Live's seam will use it).
+- **keep:** `LEGACY_SLICE_KEYS.kizunaai_volcengine_ast2` and `MANAGED_LEGACY_IDS` (a stored selection of the twin falls back, the Kizuna Soniox plan's choice 13), `getRelayWsUrl` and the `sokuji-auth.` redaction rule (shared with the Kizuna OpenAI Translate twin), `electron/main.js`' generic `ws-headers-set/clear` (OpenAI Live's seam will use it). **Changed by the Stage 2 OpenAI Live plan** (choices 1, 2): done — the seam's Electron registrar speaks it, with a path now added, in `src/lib/contract/headerSocket.ts` beside the plain seam.
 
 **The roadmap's inheritance, item by item** (the plan's tables, as landed):
 taken (and where), deferred (and why), or already done.
@@ -3818,7 +3818,7 @@ From "Scheduled by the Stage 2 foundation plan" (`:1287-1289`, `:1298-1302`,
 | Volcengine AST2: F16, windowing the pairing inference | done by the Gemini plan (its Task 2); consumed here through `createProjector` (Tasks 5, 15), and seen in the preview at group check A |
 | OpenAI Translate: F16 if AST2 did not land it | done by the Gemini plan |
 | Palabra: F4, the credential-adjacent control | built here (Tasks 3, 10), Doubao its first user, and drawn by the wizard's credential step too (Task 17); Palabra's platform / app toggle becomes a `credentials.choice` on its `authMode` |
-| OpenAI Live: F14 (reused) | becomes F14's first user |
+| OpenAI Live: F14 (reused) | becomes F14's first user. **Changed by the Stage 2 OpenAI Live plan** (choice 1): done — `src/lib/contract/headerSocket.ts`, beside the plain `socket.ts` |
 
 From the Soniox plan's "Found here" (`:1740-1747` above):
 
@@ -3858,7 +3858,7 @@ What it leaves, for the plans that meet it (the plan's own list, as written;
 then the whole-plan review's note for later ports; the three items the task
 reviews parked for this plan's final fix wave are done, last below):
 - **V2**, the deletion of the old AST2 code with the relay twin, the AST2 background block (replaced by a start-up clear of rules 2000–2009) and the dead flags, after the owner's live test (this record's inventory).
-- **F14**, the header seam, for OpenAI Live; Soniox's, Gemini's and Doubao's plain `socket.ts` move to `src/lib/contract/` with it. **Changed by the Stage 2 Palabra plan** (choice 1; `0e9ccff0`): the plain seam moved without F14, at its fifth user — Gemini's, Doubao's, OpenAI Translate's and OpenAI Realtime's copies re-export `src/lib/contract/socket.ts`; Soniox's stays its own. F14 joins it there.
+- **F14**, the header seam, for OpenAI Live; Soniox's, Gemini's and Doubao's plain `socket.ts` move to `src/lib/contract/` with it. **Changed by the Stage 2 Palabra plan** (choice 1; `0e9ccff0`): the plain seam moved without F14, at its fifth user — Gemini's, Doubao's, OpenAI Translate's and OpenAI Realtime's copies re-export `src/lib/contract/socket.ts`; Soniox's stays its own. F14 joins it there. **Changed by the Stage 2 OpenAI Live plan** (choice 1): done — `src/lib/contract/headerSocket.ts`, opening its sockets through the plain seam's `nativeSocket`.
 - **Palabra's use of F4:** its toggle as a `credentials.choice`.
 - **Stated origins for Doubao,** if the live test shows `Sequence` or the times state the pair (choice 3). **Changed by the Stage 2 Gemini/AST2 follow-up plan:** the owner's probe shows every source subtitle carrying its translation's server times — the evidence; still not taken (that record's open questions).
 - **The legacy mode's own idle words** — an open question.
@@ -4077,7 +4077,11 @@ Live's, and Translate's own `socket.ts`, which takes protocols, moves to
 `src/lib/contract/` with Soniox's, Gemini's and Doubao's when F14 lands. When
 it does, its Electron rule should scope by path (the spec's amendment 10): the
 rule is per host and one-shot today (`electron/main.js:1113-1133`), so a stale
-Live rule for `api.openai.com` would reach a Translate upgrade.
+Live rule for `api.openai.com` would reach a Translate upgrade. **Changed by
+the Stage 2 OpenAI Live plan** (choices 1, 2): the Electron rule scopes by path
+now (`electron/ws-header-rules.js`, the longest path winning; the renderer's
+key `api.openai.com` + `/v1/live/`), and Translate's `socket.ts` moved without
+F14, at the Palabra plan.
 
 **The spec's amendments** (this record's commit), the plan's thirteen, each at
 its anchor:
@@ -4415,7 +4419,7 @@ above):
 | OpenAI Translate: the transcript field | not built: the transcript model is a constant (ruling 8); OpenAI Realtime's port builds one if its models need it |
 | OpenAI Translate: the transport field | deferred to the WebRTC step (ruling 1): `S.transportType` kept, `C.transport` its attachment point (choice 15); a shared `TransportField`, perhaps OpenAI Realtime's first. **Closed 2026-09-29:** no transport to choose (the owner abandoned WebRTC); `S.transportType` removed |
 | OpenAI + Compatible: F15, "unless Translate-WebRTC comes first" | not here: this port is WebSocket; the WebRTC step meets it. **Closed 2026-09-29** with the WebRTC step |
-| OpenAI Live: F14 (reused) | unchanged: Translate needs no header (ruling 16); the seam's per-host Electron rule should scope by path (the spec's amendment 10) |
+| OpenAI Live: F14 (reused) | unchanged: Translate needs no header (ruling 16); the seam's per-host Electron rule should scope by path (the spec's amendment 10). **Changed by the Stage 2 OpenAI Live plan** (choice 2): it scopes by path now |
 
 From the Soniox plan's "Found here" (`:1740-1747` above):
 
@@ -4443,7 +4447,7 @@ From "Scheduled by the Stage 2 Volcengine AST2 plan" (`:3744-3835` above):
 
 | Item | Disposition |
 |---|---|
-| F14's owner, OpenAI Live | unchanged: Translate's plain `socket.ts`, with protocols, moves to `src/lib/contract/` with the other three when F14 lands |
+| F14's owner, OpenAI Live | unchanged: Translate's plain `socket.ts`, with protocols, moves to `src/lib/contract/` with the other three when F14 lands. **Changed by the Stage 2 OpenAI Live plan:** superseded — it moved without F14, at the Palabra plan (its choice 1); F14 joined it later |
 | Generic frame names grouped under Doubao's Logs keys (M6) | met: Translate names none of Doubao's rows; Task 1 pins it |
 | A kit-wide "no ws(s) URL in a frame" rule | n/a: Translate's URL carries no credential, and no frame carries the protocols (Task 9's no-leak case) |
 | Each check opens a real session | n/a: Translate's check is a free model list |
@@ -4454,7 +4458,7 @@ From "Scheduled by the Stage 2 Volcengine AST2 plan" (`:3744-3835` above):
 "Before any release from the branch" (`:1751-1765`, `:2318-2343`, `:3697-3718`
 above):
 - The registry's order: extended by ruling 11, pinned in `registry.test.ts`.
-- The wizard's own-key description: its "OpenAI" is partly true now (Translate); OpenAI Realtime and OpenAI Live wait for their ports.
+- The wizard's own-key description: its "OpenAI" is partly true now (Translate); OpenAI Realtime and OpenAI Live wait for their ports. **Changed by the Stage 2 OpenAI Live plan:** "OpenAI" is true for all three OpenAI providers now, on the desktop app and the extension.
 - The relay twins: `kizunaai_openai_translate` deleted, not ported — T2 (ruling 14).
 - The release-flag cleanup at Stage 2's end: `VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE` joins it, with T2.
 - The native-speaker checks: none (no new key).
@@ -4752,7 +4756,10 @@ subprotocol, as OpenAI Translate's does. F14 stays OpenAI Live's, and OpenAI
 Realtime's own `socket.ts`, a copy of Translate's, moves to `src/lib/contract/`
 with the other four when F14 lands. A stale per-host Electron rule for
 `api.openai.com` would reach its upgrade too, so the seam's rule still scopes
-by path (the spec's "Sockets that need upgrade headers").
+by path (the spec's "Sockets that need upgrade headers"). **Changed by the
+Stage 2 OpenAI Live plan** (choice 2): the path scope is built
+(`electron/ws-header-rules.js`); Realtime's `socket.ts` moved without F14, at
+the Palabra plan.
 
 **The spec's amendments** (this record's commit), the plan's fifteen, each at
 its anchor, as landed:
@@ -5186,7 +5193,9 @@ self-review.
   settings — endpoint and key — kept on disk, unread.
 - **The wizard's own-key description** (`setup.paths.own-key.desc`): its
   "OpenAI" is true for two providers now, OpenAI Realtime and OpenAI Translate;
-  OpenAI Live waits for its port.
+  OpenAI Live waits for its port. **Changed by the Stage 2 OpenAI Live plan:**
+  true for all three OpenAI providers now, on the desktop app and the
+  extension.
 - No new locale key, so no native-speaker check.
 
 **The owner's live test** (own key, real OpenAI; survey §2.16's list, adjusted
@@ -5333,7 +5342,7 @@ From "Scheduled by the Stage 2 OpenAI Translate plan" (`:4321-4340`,
 
 "Before any release from the branch" (`:4271-4294` above):
 - The registry's order: extended by ruling 18, pinned in `registry.test.ts`.
-- The wizard's own-key description: its "OpenAI" true for two providers now; OpenAI Live waits.
+- The wizard's own-key description: its "OpenAI" true for two providers now; OpenAI Live waits. **Changed by the Stage 2 OpenAI Live plan:** true for all three, on the desktop app and the extension.
 - The native-speaker checks: none (no new key).
 - The release-flag cleanup at Stage 2's end: nothing added (OpenAI Realtime is unflagged).
 
@@ -5345,7 +5354,7 @@ then the items the reviews routed here, last below):
 - **The WebRTC step, for both OpenAI providers:** Realtime's transport and its dispatch in `start`, `C.transport` widened from `S.transportType`, D25's `turns(s)` and the participant's transport, the transport control, the ephemeral token, and the kit-level seeded lifecycle scenario (choice 21). **Removed 2026-09-29 (owner):** abandoned; each part closed, the ephemeral token deleted with the old code, and the kit-level scenario reassigned to the next port that wants it ("The owner's WebRTC decision").
 - **Comments that still promise a WebRTC step**, in files the final fix wave did not touch: `src/providers/openai/provider.ts:23, 57` (the latter citing D25), `RealtimeSettings.tsx:23`, `RealtimeTurnDetection.tsx:32-33`; `src/providers/openai_translate/provider.ts:21`, `TranslateSettings.tsx:12`, `segments.ts:8`, `adapter.ts:4, 105`. Restate them WebSocket only, citing the owner's decision. **Done** in the commit after `b384ec59`.
 - **Readiness narrowing for the other ported providers:** each declares its `checkReads` in its own change, with a case like Task 12's.
-- **The copies to lift:** `socket.ts` with F14; `decodeServerEvent`, `errorCode` and `errorWords` at a third user, or after OpenAI Translate's live test. **`socket.ts` done** by the Stage 2 Palabra plan, without F14 (choice 1; `0e9ccff0`).
+- **The copies to lift:** `socket.ts` with F14; `decodeServerEvent`, `errorCode` and `errorWords` at a third user, or after OpenAI Translate's live test. **`socket.ts` done** by the Stage 2 Palabra plan, without F14 (choice 1; `0e9ccff0`). **Changed by the Stage 2 OpenAI Live plan** (choice 4): the decoder and words **done** at their third user, with the model-list check — `src/lib/provider/openaiWire.ts` and `openaiModels.ts`.
 - **The owner's open questions** in this record, each with the live-test item that settles it.
 - **Nothing on the old code:** the old descriptors, clients and slices stay compiled and unreachable, as the protocol documentation.
 - **OpenAI Translate's error window** (Task 11's review, I1): its adapter suite pins `ERROR_WORDS_MS` only past the window (`openai_translate/adapter.test.ts:467`, at `+ 1`) — the gap this plan closed for OpenAI Realtime, at its inclusive edge and its value.
@@ -7170,7 +7179,7 @@ taken (and where), or left (and why).
 | The OpenAI Translate section, "A `.done` before the last audio" | changed: a translation's `.done` settles it as its quiet would (choice 13) |
 | The Gemini section, live-test item 8: Live Translate cut by pause, each side on its own, inferred pairing | changed: stated, the translation at its source's cuts (ruling 3); live-test items 3, 6 |
 | The Gemini section, live-test item 7 and its open question: typed text on Live Translate | kept: a row of its own, no origin, no cut (choices 9, 12); answered since by the owner's test — ignored — and the box's follow-up approved; live-test item 15 |
-| OpenAI Live's pairing (its survey, question 3) | left: `ContinuousSegments` is the candidate; its own plan decides (research note 10) |
+| OpenAI Live's pairing (its survey, question 3) | left: `ContinuousSegments` is the candidate; its own plan decides (research note 10). **Changed by the Stage 2 OpenAI Live plan** (ruling 3): **done** — the module, three members added, with Live's source cut at a pause of the source pause (ruling 10) |
 
 **What this plan leaves** (the plan's own list, as written):
 - **A sentence-count mismatch until the next real pause.** A translator that
@@ -7250,7 +7259,9 @@ taken (and where), or left (and why).
 - **`MID_SENTENCE_HOLD_MS` = 5 000** is the spike's value; the live test
   observes it (items 4, 12, 14).
 - **OpenAI Live's pairing:** `ContinuousSegments` is the candidate; not built
-  here (research note 10).
+  here (research note 10). **Changed by the Stage 2 OpenAI Live plan**
+  (ruling 3): **done**, with its source cut at a pause of the source pause
+  (ruling 10).
 - **The spike keeps its own `simulate`**
   (`scripts/dev/wire-probe/openai-translate.mts`), a research instrument; the
   module is not shared with it.
@@ -7585,3 +7596,488 @@ bound back at 5 s; the controller's rulings):
   set.
 - **Left:** landing the review's fuzz as a Palabra suite (its
   recommendation) — parked.
+
+## Scheduled by the Stage 2 OpenAI Live plan
+
+The Stage 2 OpenAI Live plan
+(`docs/superpowers/plans/2026-09-30-client-contract-stage2-openai-live.md`,
+plan commit `e98b90be`, Revision 1 `b6ee3da3`, written over `a3eab634`)
+landed as the ten commits `03758f05` through `9d933ea9`, and Task 9's fix
+round `9ac0d420`, on `worktree-client-contract-stage2`
+(`b6ee3da3..9ac0d420`: **+6 990 / −227 lines across 52 files**, `git diff
+--shortstat`). Then this record with the spec's amendments. It ports OpenAI Live (`openai_live`) onto the new
+structure under the owner's eleven rulings — the survey's nine questions, all
+answered as recommended, and the review's two: the source cut at a pause of
+the source pause (ruling 10, option C) and the old rule 4000 swept at the
+extension's start (ruling 11) — and builds F14, the header seam, for it.
+
+No locale key, no manifest change and no store change: the new provider reads
+the old slice's stored keys.
+
+Execution began at `b6ee3da3`, the plan's own starting point plus its two
+documentation commits, so every count the plan quotes held as written. The
+plan's writer replayed Revision 1 on a fresh copy of `a3eab634`, and the
+independent re-check rebuilt it again from the plan's blocks; both came out
+the same. The pre-flight scan found no conflict between tasks and needed no
+ruling.
+
+Ten implementation tasks ran in four waves:
+- **Wave 1**, Tasks 1–6 at `b6ee3da3`, in parallel on disjoint folders:
+  Electron, the extension, the seam, the OpenAI lifts, the translation cuts
+  module and the provider's settings side (its `adapter.ts` seed first).
+- **Wave 2**, Tasks 7 ∥ 8 at `99b031ac`: the wire and the model check; the
+  segments, fixtures and replays. Dispatched with five of Wave 1's reviews
+  still out — every Wave 1 commit had matched the replayed numbers and the
+  gates were exact; all six came back clean, so nothing was re-checked.
+- **Wave 3**, Task 9 at `5ee327b9`: the adapter. Wave 2's gates were taken
+  from Task 8's own full run at that head, both tasks having committed.
+- **Wave 4**, Task 10 at `c9b214f7`: the view, the definition and the
+  registry, with Task 9's review still out (the same ruling as Wave 2's).
+
+Each task had one review. Tasks 1–8 and 10 came back clean — Spec ✅,
+Quality Approved, 0 findings each. Task 9's, on the most capable model, was
+Spec ✅, Quality Approved, 0 Critical / 0 Important / 3 Minor / 1 Nit, all
+four in the plan's own code; the controller took them in one fix round
+(`9ac0d420`) rather than leave them to the final review:
+- **Minor 1:** a stop made synchronously from inside the reconnect's own
+  callbacks — the `session.connection_lost` frame or the `reconnecting`
+  event — was ignored, and the leg came back live after `stop()` returned,
+  with an open socket. Unreachable through today's runner, which stops from
+  neither; two guards now end the leg there (ruling 6).
+- **Minor 2:** nothing pinned the state a reconnect resets (the mute flag,
+  the last usage report); three cases now do.
+- **Minor 3:** the seeded lives never stopped during a reconnect's open,
+  unanswered handshake, nor cancelled while the upgrade's socket connected;
+  the harness now leaves some attempts unanswered, and a named case covers
+  the second.
+- **Nit 1:** no case counted the listeners left on the request's signal;
+  three now do.
+
+The scoped re-review found all four addressed — each guard reverted in
+scratch fails its case, and the reset and listener mutants die — with one
+residual, below under "What this plan leaves". Every committed task's report
+matched its brief's red and green counts exactly. Task 11 is this record;
+the final whole-branch review follows it.
+
+**What landed, by task:**
+- **Electron scopes upgrade header rules by path** (`1e66d59f`, Task 1; red 3
+  failed → green 2 files, 10 tests; Electron 34 files, 477 tests):
+  `electron/ws-header-rules.js` (`createWsHeaderRules`: `set`, `clear`,
+  `take`, the getter `size`), one-shot per host and path, the longest path
+  winning, a rule with no path host-wide as before, header removal by any
+  case; `main.js` applies it in its one `onBeforeSendHeaders` listener, and
+  `ws-headers-set` takes a `path` (choice 2).
+- **The extension's generic header pair** (`03758f05`, Task 2; red 4 failed /
+  1 passed → green 2 files, 11 tests; the extension 9 files, 56 tests):
+  `extension/background/wsHeaderRule.js` — rule ids 5000–5099,
+  `initiatorDomains` the extension's own id, `isExtensionPage(sender,
+  runtimeId, pageBase)` with the base from `chrome.runtime.getURL('')`,
+  `sweepIds` with `OLD_LIVE_RULE_ID` (4000); `background.js` answers
+  `WS_HEADERS_SET` / `WS_HEADERS_CLEAR` from the extension's own pages only
+  and sweeps at `onStartup` and `onInstalled` (choice 3; ruling 11). The old
+  `OPENAI_LIVE_*` pair is left as it was.
+- **The header seam** (`bc4df324`, Task 3; red 2 files unresolved → green
+  `src/lib/contract` 15 files, 153 tests): `src/lib/contract/headerSocket.ts`
+  — `OpenHeaderSocket`, `UpgradeHeaders`, `HeaderRule`, `HeaderRegistrar`,
+  `HeaderSocketError`, `HEADER_SOCKET_CAP_MS` (15 000); one gate per host and
+  path, process-wide in the renderer; the rule cleared once the upgrade is
+  made, and in the attempt's `finally` whatever happened; a registration that
+  never answers held no longer than the leg's bound. Its fake,
+  `fakeHeaderSockets` (`refuseNext`, `holdNext`), records each rule and
+  whether it was cleared (ruling 7; choice 1).
+- **OpenAI's decoder, error words and model check lifted** (`357fbc6a`,
+  Task 4; red 2 files unresolved → green 2 files, 8 tests; OpenAI Realtime
+  and OpenAI Translate 24 files, 290 tests): `src/lib/provider/openaiWire.ts`
+  (`decodeServerEvent`, `errorCode`, `errorWords`, `OpenAIError`) and
+  `openaiModels.ts` (`createOpenAIModelCheck`), the two earlier copies now
+  importing them (ruling 9; choice 4).
+- **The translation cuts module's three members** (`99b031ac`, Task 5; red 4
+  failed / 40 passed → green 44; its users 36 files, 690 tests):
+  `cutSource`, `translationContinues`, `closeAll` and the `lost` cut reason
+  on `ContinuousSegments` (choices 5, 8).
+- **The settings side** (`b5ef9015`, Task 6; red 2 files unresolved → green 2
+  files, 15 tests): `LiveSettings`, `LiveCredentials`, `LiveConfig`, the
+  languages and voices, `buildLive` — Auto-detect named "the spoken language"
+  in the instructions — and the folder's `adapter.ts` seed.
+- **The wire and the model check** (`759cebda`, Task 7; red 2 files
+  unresolved → green 2 files, 7 tests): `wire.ts` (`liveHeaders` —
+  `Authorization` set, `Origin` removed (U9) —, `sessionStart` with
+  `delegation` and no transcription model, `muteFrame`, `unmuteFrame`,
+  `SESSION_CLOSE`, `stampOf`) and `check.ts` (`checkLive`).
+- **Segments on the session's timelines, with recorded replays**
+  (`5ee327b9`, Task 8; red 2 files unresolved → green 2 files, 30 tests; the
+  replay harness's users 26 files, 560 tests): `segments.ts` (`LiveSegments`
+  — `input`, `output`, `audio`, `connectionLost`, `stop`; `SOURCE_CLAUSE_MS`,
+  `SOURCE_CAP_MS`, `FLOOR_RMS`, `computeRms`), the source cut at a timeline
+  pause of the source pause, the output's sample clock for the karaoke, a
+  space restored at the output's utterance joins; regression fixtures from
+  the probe's recordings (arrival, type, text and stamps, audio length and
+  RMS; no PCM, no key), their hashes pinned, replayed through the real
+  segments, L1 and L2; `replay.testing.ts` carries the stamps and the leg
+  (rulings 2, 3, 10; choices 5–10).
+- **The adapter over the header seam** (`c9b214f7`, Task 9; red 1 failed / 7
+  passed, 2 files → green 46 tests; the folder 7 files, 90 tests):
+  `createLiveAdapter` — mute and unmute for manual turns, one reconnect with
+  a 60 s grace, the stall watchdog over `STALL_VOICED_SAMPLES` (48 000) of
+  voiced audio between equal usage reports, `session.close` at Stop, the
+  expiry ending the run; three hundred seeded lives over the seam's fake
+  (rulings 5, 6, 8; choices 11–16). Its fix round (`9ac0d420`; 8 cases
+  added, the suite at 590 + 1 files, 7 687 + 2 tests) ends the leg where a
+  stop made inside the reconnect's callbacks lands, and pins the reset, the
+  unanswered attempt and the signal's listeners.
+- **The provider, its settings view and its registration** (`9d933ea9`,
+  Task 10; red 2 failed / 30 passed, 4 files → green 4 files, 42 tests;
+  `src/providers` and the setup wizard 138 files, 1 982 tests):
+  `LiveSettingsView` (instructions and voice only), `openaiLiveProvider` —
+  `platforms: ['electron', 'extension']`, the first provider not on the web;
+  `speech: 'optional'`; `textInput: () => false`; `checkReads: []`; turns
+  both — registered after OpenAI Translate (rulings 1, 4, 9; choice 17).
+
+**Gates after each wave** (the controller's, 0 failed and no unhandled
+errors, the typecheck gate at its 20-line baseline, the full tree at 259):
+- the base `b6ee3da3`: 577 files passed and 1 skipped, 7 551 tests passed
+  and 2 skipped;
+- Wave 1 (`99b031ac`): 583 + 1, 7 594 + 2; Electron 34 / 477, the extension
+  9 / 56;
+- Wave 2 (`5ee327b9`): 587 + 1, 7 631 + 2;
+- Wave 3 (`c9b214f7`): 588 + 1, 7 669 + 2;
+- Wave 4 (`9d933ea9`): 590 + 1, 7 679 + 2.
+
+Each figure is exactly the replay's. Task 9's fix round (`9ac0d420`) adds 8
+cases: 590 + 1, 7 687 + 2, the gate and the full tree unchanged.
+
+**Checked — the group check** (at `9d933ea9`; Task 9's fix round after it
+touches only the adapter's two guards and its test file):
+1. `npx vitest run src`: 590 passed and 1 skipped files, 7 679 passed and 2
+   skipped tests, no unhandled errors. The typecheck gate prints exactly the
+   20-line baseline; the full tree is at 259.
+2. `src/services`: 49 files, 1 039 tests — the old clients untouched.
+   `electron`: 34 files, 477 tests; `extension`: 9 files, 56 tests.
+3. `npm run build` and `npm run extension:build` exit 0. The three D24
+   greps print nothing. `session.headers` ships in `build/static/index-*.js`
+   and `extension/dist/fullpage.js`; `WS_HEADERS_SET` in those two and in
+   `extension/dist/background.js` and `wsHeaderRule.js`, which the build
+   copies beside the worker; `background.js` imports `./wsHeaderRule.js`
+   once.
+4. **Rendered** (headless Chromium over vite, two passes, 22 checks, 17
+   screenshots; `window.electron` faked for the desktop pass — it needed a
+   `removeListener` no-op beyond the plan's list, or the panel's effect
+   cleanup throws and the app never mounts):
+   - **0 requests to `api.openai.com`** in either pass, and no
+     `ws-headers-set` on the faked channel: no key typed, Start never
+     pressed;
+   - the picker lists OpenAI Live right after OpenAI Translate, with the
+     OpenAI icon and the setup guide's link; selected, its key field is
+     empty and Start is disabled with the key hint;
+   - the Provider tab shows the instructions, their preview naming both
+     languages, and the voice, 22 options with `marin` chosen — no model,
+     noise reduction or provider-own turn detection; both fields' markup is
+     OpenAI Realtime's;
+   - the Simple layout offers 56 sources (Auto-detect first) and 55 targets,
+     "Text Only", and push-to-talk;
+   - the wizard's own-key step lists … OpenAI Realtime, OpenAI Translate,
+     OpenAI Live …;
+   - on the web, Live is absent from the picker and from the wizard.
+
+   The first-run tour, which opens after the wizard, covers part of some
+   screenshots; the DOM checks are unaffected.
+
+**Departures, stated:**
+- OpenAI Live offers **Text only** (ruling 1), where the old provider could
+  not stop speaking; the participant speaks on its switch.
+- **Push-to-talk and push-to-translate**, for the first time, by mute
+  (ruling 5).
+- **The karaoke on the output's timeline**, a real range, where the old one
+  was by arrival (ruling 2).
+- **The pairing stated** by the translation cuts module, where the old client
+  inferred it from its own items (ruling 3).
+- **The source cut at a pause of the source pause** (1.5 s by default), no
+  longer the old client's 600 ms gap with its 4 s span nor its short-source
+  grace: longer rows, none left without its translation on the recordings
+  (ruling 10).
+- **A push-to-talk tap is no stall**: 2 s of voiced audio between equal usage
+  reports makes one (choice 14).
+- **The extension's start sweeps the old client's rule id 4000** (ruling 11).
+- **Stop sends `session.close` and does not wait**, where the old client
+  waited up to 5 s for `session.closed` (ruling 8).
+- **The session's expiry ends the run**, where the old client reconnected
+  (ruling 8; research note 13).
+- **No key prefill** from OpenAI Realtime's key (ruling 9).
+- **Not on the web** — as before, now by the definition's `platforms`
+  (choice 17).
+- **Auto-detect is named "the spoken language"** in the instructions, where
+  the old client wrote "auto".
+
+**Before any release from the branch:** the owner's live test below.
+
+**The owner's live test** (own key; switch diagnostic logs on in Help before
+Start; each item names what settles it):
+1. **The desktop app starts** (ruling 7; U9): select OpenAI Live, a key,
+   中文 (中国) → English, Start. The Logs show `session.headers` (`host:
+   api.openai.com`, `path: /v1/live/`, `set: ['Authorization']`, `remove:
+   ['Origin']` — names only), `session.start`, `session.started`; the session
+   runs. The main process's console shows "WS headers registered for
+   api.openai.com/v1/live/: Authorization (removing: Origin)". Record the
+   time from Start to `session.started`.
+2. **The extension starts, on Chrome and on Edge** (choice 3): the same on
+   the extension. In the service worker's console, at the Verbose level, "WS
+   header rule registered: ||api.openai.com/v1/live/"; once the session has
+   started, `chrome.declarativeNetRequest.getDynamicRules()` holds no rule
+   with an id in 5000–5099. Then restart the browser without starting a
+   session: still none, and none with id 4000 (the sweep; ruling 11). Then
+   install the extension on Edge and start Live there: it starts as on
+   Chrome — the sender check reads the pages' base from the browser
+   (Revision 1; the review's M2). Record Edge's `chrome.runtime.getURL('')`.
+3. **Nothing else broke in the main process** (Task 1's risk): sign in and
+   out on the desktop app; use a LocalInference voice that speaks through
+   Edge TTS; if the Bing translator is in use, translate with it. Each works
+   as before.
+4. **Pairing** (rulings 3, 10; research note 7): speak the probe's
+   paragraph, or any monologue of six sentences with natural pauses. Each
+   source row states its translation; record every source row left with no
+   translation, and every row whose translation holds the neighbouring
+   sentence or begins mid-sentence. Then in sentence mode with three
+   sentences a row (ruling 4).
+5. **A speaker who pauses at commas** (ruling 10): speak long sentences with
+   pauses of about a second at each comma and longer ones between sentences:
+   rows stay whole — no row ends at a comma's pause — and each has its own
+   translation. Record how long the rows grow, and any translation cut
+   mid-sentence at a row boundary. A stall of 1.5 s in the transcript's
+   arrival reads as a pause on the input's timeline too: record any row that
+   ends where the speaker did not pause (the plan's re-check, Nit).
+6. **Karaoke** (ruling 2): the speaker leg speaking, watch the lit words
+   against the voice; record rows where the light runs visibly ahead or
+   behind, words it passes over without lighting, and whether the last words
+   of a row stay lit on it while the next row opens (choice 10).
+7. **Text only** (ruling 1; OpenAI Translate's item 5): start with Text only
+   on — the switch is locked while a run is live. There is no audio on the
+   monitor or the virtual microphone; the Logs still show
+   `session.output_audio.delta`; the rows are the same as with speech. The
+   participant leg in Both speaks only with its switch on.
+8. **Push-to-talk** (ruling 5): hold, speak a sentence, release: the
+   translation finishes after the release; the Logs show
+   `session.input_audio.mute` and `session.input_audio.muted` about 0.1 s
+   later; `session.usage.updated`'s `seconds` stops rising within a few
+   seconds; press again: `session.input_audio.unmute` and `…unmuted`, and the
+   next sentence translates. The same in push-to-translate.
+9. **Short taps** (choice 14; the review's I1): under push-to-talk, tap the
+   key several times within a minute, each tap well under a second, some
+   with a word: no `session.stalled`, no `session.reconnecting`, and the leg
+   goes on.
+10. **Both** (U11): speaker and participant together: two `session.headers`,
+    one after the other; each tab its own lines; both translate.
+11. **A lost connection** (ruling 6): turn the network off for five seconds
+    mid-session: `session.connection_lost`, `session.reconnecting`, a second
+    `session.headers`, `session.reconnected`, and the session goes on. Again
+    within a minute: the leg fails with the connection-lost notice. Record
+    each time.
+12. **A start with the network off** (choice 12): with the key already
+    checked, turn the network off and Start: the start fails in the
+    network's words ("OpenAI's socket did not open (check the network, and
+    that the API key is still valid).") within 15 s, or "did not open the
+    connection in time".
+13. **Stop** (ruling 8): Stop mid-sentence: `session.close`, then the
+    runner's `session.stopped`; no `session.error`.
+14. **A silent room** (ruling 6; U3): automatic turns, nobody speaking, three
+    minutes: no `session.stalled`, no reconnect.
+15. **The deferred English → Chinese item** (research notes 5–7): English →
+    中文 (中国), a few sentences with pauses: record whether the English
+    transcript sends a sentence's "." with the next word (source rows would
+    still not open with ". ": the lead rule), whether a row ends only at a
+    pause of the source pause on English too (ruling 10), and whether rows
+    are left with no translation when the model merges sentences.
+16. **Optional, U13:** close the app abruptly mid-session (kill it); later,
+    compare the account's usage dashboard with the session's last
+    `session.usage.updated`.
+17. **Optional, the expiry** (ruling 8): a session left running two hours
+    ends with `session.closed` (`expired`) and the run's end, no reconnect.
+
+**Open questions for the owner:** none. The survey's nine are ruled, and the
+review's two by rulings 10 and 11; what the live test finds (the rows' length
+and the run-over above all) may raise new ones.
+
+**The deletion inventory**, for the plan after the live test (the old code
+stays compiled and unreachable until then):
+- `src/services/clients/OpenAILiveClient.ts` and its test;
+- `src/services/providers/OpenAILiveProviderConfig.ts` and its test, its
+  registration in `ProviderConfigFactory.ts`, and its rows in
+  `descriptorRegistry.test.ts` and `providerOrder.test.ts`;
+- the pins on the old code the new tests hold — `background.wsHeaders.test.ts`'
+  case "leaves the old OpenAI Live pair as it was" and
+  `src/lib/setup/providerPath.test.ts`' `OPENAI_LIVE` row (Revision 1, the
+  review's N3);
+- the old settings UI's Live branches (`ProviderSpecificSettings.tsx`,
+  `ProviderSection.tsx`, `LanguageSection.tsx`);
+- the `openaiLive` slice and its key prefill in `settingsStore.ts` (the
+  stored keys stay: the new provider reads them);
+- `IClient.ts`' Live members;
+- the background's `OPENAI_LIVE_SET_HEADERS` / `OPENAI_LIVE_CLEAR_HEADERS`
+  pair, `openaiLiveSetDNRHeaders` / `openaiLiveClearDNRHeaders` and their
+  rule ids;
+- `mainPanel.openaiLiveConnectionLost` in the 30 catalogs, if nothing else
+  reads it.
+
+Kept: `electron/main.js`' `ws-headers-set` / `ws-headers-clear` (the
+seam's), `wsHeaderRule.js`' sweep of id 4000 (a profile upgraded from an old
+build may still hold the rule; ruling 11), `scripts/dev/wire-probe/live.mts`
+(a research instrument), and the `openai_live` enum value while any old code
+reads it.
+
+**Amended in place**, each marked as changed by this plan:
+- the foundation section's "**OpenAI Live:** F14 (reused)" — F14 built
+  here, its first user; the `connection_lost` alias consumed;
+- the Volcengine AST2 section's "OpenAI Live's seam will use it", its
+  inheritance row "OpenAI Live: F14 (reused)" and its "What it leaves" F14
+  item — done, the seam in `src/lib/contract/headerSocket.ts` beside the
+  plain one;
+- the OpenAI Translate section's F14 paragraph and its inheritance rows
+  ("OpenAI Live: F14 (reused)", "F14's owner, OpenAI Live") — the Electron
+  rule scopes by path now, and `socket.ts` moved without F14 (Palabra);
+- the wizard's own-key description in the OpenAI Translate section and in
+  the OpenAI Realtime section (twice) — "OpenAI" is true for all three
+  OpenAI providers now, on the desktop app and the extension;
+- the OpenAI Realtime section's F14 paragraph — the path scope is built; its
+  "copies to lift" — the decoder and words **done** here (choice 4), with
+  the model check;
+- the translation cuts section's "OpenAI Live's pairing", in its
+  inheritance table and in "What it leaves" — **done** (ruling 3, with its
+  source cut at the source pause, ruling 10).
+
+**The spec's amendments** (this record's commit), each marked "(Stage 2
+OpenAI Live, …)":
+1. "Provider capability", Live's row: the karaoke per audio frame on the
+   output's timeline, a real range under D4; pairing stated by the
+   translation cuts module, the source cut at the source pause. The row's
+   first version was never true.
+2. "Turns" → "What each provider can do", Live's row: mute and unmute, the
+   pending translation finishing while muted, a tap no stall; "after the
+   model's own finish".
+3. "The design", Live's row: `beginTurn` unmute, `endTurn` mute with no
+   tail, `cancelTurn` the same mute; "Coverage": Live's landed, by mute.
+4. "Sockets that need upgrade headers": the platform table's lives (Electron
+   per host and path; the extension cleared by the seam, swept at start with
+   rule 4000); the interface as built (`OpenHeaderSocket`, asynchronous,
+   serialized per host and path in the seam, a registration that never
+   answers cleared at the holder's bound); the generic pair's
+   `initiatorDomains` and sender check; the Electron path rule **done**; F14
+   joined `src/lib/contract/`.
+5. "A run", "Legs start in parallel": serialized by the header seam, per
+   host and path.
+6. "What adding a provider then touches": for OpenAI Live, its folder, one
+   registry line and two order tests; the rest first-user work.
+7. "The session request", the reconnect paragraph: one attempt, a 60 s
+   grace, the rule registered again; the stall's rule.
+8. L2, the timed-window paragraph: Live states its origins by the cuts and
+   emits no `timing`.
+9. "Risks", the inference bullet: Live states its own.
+10. "Migration", item 9: ported, with what was kept and what changed.
+11. The `frame` bullet: Live's frames need no row — named one by one, the
+    five inbound frames it frames by their own type (`session.updated`,
+    `session.delegation.created` and the three `….appended`) included, which
+    the plan's list left out.
+
+**The roadmap's inheritance, item by item** (the plan's table, as landed):
+taken (and where), or left (and why).
+
+| Item | Disposition |
+|---|---|
+| The foundation section: "**OpenAI Live:** F14 (reused); the `connection_lost` alias" | F14 **built** here, its first user (Tasks 1–3); the alias consumed (Task 9: `failed { code: 'connection_lost' }`) |
+| The Volcengine AST2 section: keep `electron/main.js`' generic `ws-headers-set/clear` — "OpenAI Live's seam will use it" | met: the seam's Electron registrar speaks it, a path now added (Tasks 1, 3; choice 2) |
+| The Volcengine AST2 section: "OpenAI Live: F14 (reused) — becomes F14's first user" and "F14, the header seam, for OpenAI Live" | met: `src/lib/contract/headerSocket.ts` beside the plain `socket.ts` (Task 3; choice 1) |
+| The OpenAI Translate section: F14 stays Live's; "its Electron rule should scope by path (the spec's amendment 10)" — a stale Live rule would reach a Translate upgrade | met: `ws-header-rules.js`, the longest path winning, and the renderer's key `api.openai.com` + `/v1/live/` (Tasks 1, 3; choices 1, 2) |
+| The OpenAI Translate section: "Turns": Translate's row split from OpenAI Live's | met: Live's rows amended — mute, unmute, no tail (Task 11; ruling 5) |
+| The OpenAI Translate section: Translate's `socket.ts` "moves … when F14 lands" | superseded by the Palabra plan: moved without F14; nothing left |
+| The OpenAI Translate section, "Before any release": the wizard's own-key description, "OpenAI Live wait[s] for [its] port" | met: "OpenAI" is true for all three OpenAI providers on the desktop app and the extension; no locale change (the web offers two of them, as before) |
+| The OpenAI Realtime section: F14 stays Live's; the stale per-host rule reaches Realtime's upgrade too, so the seam's rule scopes by path | met, as the Translate row |
+| The OpenAI Realtime section: "The Stage 2 order … Palabra → OpenAI Live → Local Native" | this plan is the Live step; Local Native is next |
+| The OpenAI Realtime section: the wizard's description, "OpenAI Live waits" | met, as the Translate row |
+| The OpenAI Realtime section: F14's owner, `socket.ts` "to move with the others" | superseded by the Palabra plan |
+| The OpenAI Realtime section, "The copies to lift": `decodeServerEvent`, `errorCode` and `errorWords` at a third user | **done** at this third user, with the model-list check (Task 4; ruling 9; choice 4) |
+| The Palabra section: `socket.ts` lifted without F14, "F14 stays OpenAI Live's and joins it" | met: the header seam joins it in `src/lib/contract/`, opening its sockets through `nativeSocket` (Task 3) |
+| The Palabra section: the silence rule and the re-chunker "at a third user" | left: Live is not a third user — it needs no real-time silence (U3: with nothing appended there are no frames, no billing and no close within 180 s; a push-to-talk release mutes) |
+| The Palabra section: "The seeded lifecycles for the other adapters … each earlier port gains a harness in its own change" | met for Live: three hundred seeded lives over the header seam's fake (Task 9); the other ports' harnesses stay their own changes |
+| The translation cuts section: "OpenAI Live's pairing (its survey, question 3) — `ContinuousSegments` is the candidate; its own plan decides" | met: ruling 3 — the module, three members added (Tasks 5, 8; choices 5–8) — with the source cut at a pause of the source pause (ruling 10) |
+| The translation cuts section, "What it leaves": a sentence-count mismatch until the next real pause | **applies to Live**, changed in kind by ruling 10: under the old rule the first row was left without its translation on two recordings and the rows after it sat a sentence late; under ruling 10 no row is left without its translation, and a translation longer than its row's count runs over into the next row, three times cut mid-sentence there (research note 7); pinned by the replays, left with the deferred item below |
+| The translation cuts section, "What it leaves": the one-word audio boundary (audio handed over by arrival) | changed for Live: its audio is placed by the stamps on the output's timeline, not by arrival (choices 9, 10); the translation cuts' boundary stays OpenAI Translate's and Gemini's |
+| The translation cuts section, "What it leaves": the guard reads the wall clock | applies to Live's guard too, the module's own (ruling 3) |
+| The translation cuts section: **the deferred English → Chinese item** (the owner, 2026-09-30) | **left, tied to it, not fixed.** Live's recordings are all Chinese → English: the input sends no sentence-final mark (0 of 273 source deltas) and each comma at the head of the next delta after the pause — the item's first half in another script, kept out of the rows by the old client's lead rule (choice 6); the output's late "." (". Anyway") is handled by `translationContinues` (choice 8); the item's second half — a model that merges or splits sentences against the source's count — shows on all three recordings, under ruling 10 as a translation running over into the next row rather than a row left empty (research note 7). English input on Live was not recorded: live-test item 15 |
+| The session-end and wizard section: the kit lets an ending frame itself until `stop()` has returned; OpenAI Translate's `session.close`; the runner's `session.stopped` | consumed: Live's `session.close` is framed inside `stop()` (Task 9; ruling 8); the runner's line follows it |
+| The OpenAI Translate section's ruling 3 (a recent error's words for the close that follows) and `ERROR_WORDS_MS` | consumed (choice 13) |
+| Readiness narrowing (the Realtime section: "each declares its `checkReads` in its own change") | met: `checkReads: []`, pinned by `provider.test.ts`' readiness case |
+| A kit-wide "no ws(s) URL in a frame" rule; the seam's fixed words; `trackedClock` | consumed: `session.headers` carries a host and a path, never a URL; the seam's words are fixed; the harness runs on `trackedClock` |
+
+**What this plan leaves** (the plan's own list, as written, and the
+re-check's two carried Nits):
+- **Ruling 10's costs** (the owner's, stated with his ruling):
+  - **longer rows:** a row runs to the speaker's pause of the source pause —
+    5, 5 and 3 rows on the recordings, where the old rule made 7, 7 and 5 —
+    and at most to the 12 s cap;
+  - **a translation that runs over its row:** the Chinese source has no
+    sentence mark, so each row owes one cut however many sentences its
+    translation holds; a longer translation runs over into the next row,
+    three times of six runs cut mid-sentence there ("It looks like | they
+    put…", "…The owner | seemed…", "…really put | thought into it."), and by
+    the review's count 2, 3 and 2 rows by pause gain or lose a neighbour's
+    clause (research note 7). The translation cuts module's own leftover, "a
+    sentence-count mismatch until the next real pause"; tied to the deferred
+    English → Chinese item. Relating the two stamp clocks (research note 1)
+    to cut by time is not built — the output's clock starts at its first
+    frame, whose offset from the session's is not sent;
+  - **English input untested:** whether `gpt-live-1`'s English transcript
+    sends "." with the next word, and how ruling 10's rows read on English,
+    is not known (live-test item 15).
+- **No short-source grace** (choice 6): a short row closes at its first
+  arrival pause of the source pause, as a long one does; `holdSource` went
+  with the old rule.
+- **A leading comma at a long pause is usually dropped** rather than joined to
+  the row the pause ends: the input sends each comma at the head of the next
+  delta, and after a pause of the source pause the lead rule opens the new
+  row without it. Cosmetic (the plan's re-check, Nit).
+- **A word whose stamps fall on the stream's floor** is never lit: no voiced
+  frame covers it, and the light passes it with its row's next voiced frame
+  (research note 3: " it." on the timeline run, passed 2.5 s late — the
+  karaoke's p90 of 803 ms under ruling 10's rows against the stamps' 760).
+  Filling such a word in later (`speechRanges`) would be a design change.
+- **After an unmute the stream picks up where it paused:** its first frame
+  may be the last 100 ms of the word the pending translation had reached,
+  played on that row (the mute run; research note "Found in review", N6).
+- **U13, billing after an abrupt close,** was not probed (live-test item 16,
+  optional).
+- **A stop made from inside the `session.reconnecting` frame** still lets the
+  `reconnecting` event fire once after it: the frame is framed before the
+  event, and the guard reads the leg after the event. No socket opens and
+  `reconnected` is never said; frames go to the Logs, and the runner stops
+  from none, so it is unreachable today (Task 9's fix round, its
+  re-review's residual).
+- **A `session.closed` for `content`,** like any unrequested close but the
+  expiry, is tried again once (parity with the old client's reconnect): a
+  moderation close reconnects once before it fails.
+- **The extension's sweep runs when the browser or the extension starts,**
+  not at every worker wake: a rule left by a worker that died between set
+  and clear stays until then — scoped to the extension, so no page rides it,
+  and the next set at the same host and path reuses its id. The old client's
+  rule 4000 is swept at the same moments (ruling 11); were the old client
+  somehow running, its rule would go only at the next start, which is
+  harmless.
+- **Keys that differ can still overlap** (choice 1; the review's N4): an
+  extension rule for a path also reaches an upgrade under a longer path
+  (`/v1/` and `/v1/live/`), and two app windows or extension pages running
+  Live at once share one rule, one gate per renderer. Only Live uses the
+  seam today.
+- **The old `OPENAI_LIVE_*` pair and the old code** stay until the deletion
+  plan (the inventory above).
+- **Stamps are kept 60 s behind the audio:** a voiced frame more than a
+  minute behind its text would play rangeless. No recording comes near it.
+- **The locale description** `providers.openai_live.description` says
+  "billed per session minute including silence": true while audio is
+  appended, but a push-to-talk release now stops the billing (U2'). No
+  locale change here (no new key, no native-speaker check); a copy change is
+  the owner's call.
+- **The seam's cap counts the registration**, so a slow IPC round trip or
+  runtime message shortens the upgrade's share of the 15 s; the start's own
+  30 s bound still holds around it.
+- **The extension rule test's list of old rules gives Bing's translator rule
+  (9301) the host `api-edge.cognitive.microsofttranslator.com`,** where the
+  worker's rule is for `www.bing.com`: harmless — the cases read only its id,
+  to show the sweep and the id choice leave other blocks alone — and
+  transcribed as the plan wrote it (the plan's re-check, Nit).
