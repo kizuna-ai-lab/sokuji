@@ -4,7 +4,8 @@ import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
 
 /** Transport for realtime providers. Moved here from settingsStore so the
- *  services layer no longer imports from stores. settingsStore re-exports it. */
+ *  services layer no longer imports from stores; the store's re-export went
+ *  with the OpenAI slices that read it (Stage 2 deletion, ruling 2). */
 export type TransportType = 'websocket' | 'webrtc';
 
 /** Normalized credentials produced by a descriptor from its settings slice.
@@ -16,7 +17,9 @@ export type Credentials =
   | { ok: false; missing: string };
 
 export type CredentialCtx = {
-  /** Better Auth session-token accessor — required only by the kizuna twins. */
+  /** Better Auth session-token accessor. No descriptor left reads it: the
+   *  Kizuna ones that did went with their providers (Stage 2 deletion,
+   *  ruling 2). */
   getAuthToken?: () => Promise<string | null>;
 };
 
@@ -59,9 +62,10 @@ export type ClientOptions = {
    * of any provider slice, so it reaches a client the same way the rest of
    * the segmentation settings do rather than through `buildSessionConfig`.
    *
-   * Only the four providers whose clients cut on their own timers read them;
-   * every other descriptor ignores them. Each converts to milliseconds with
-   * `segmentPauseMs`, and absent means that function's 1.5 s default.
+   * No descriptor left reads them: the four whose clients cut on their own
+   * timers went with their providers (Stage 2 deletion, ruling 2), and Local
+   * Native's client does not. The new providers take the pair from
+   * `SharedSettings.pauses`.
    */
   sourcePause?: number;
   translationPause?: number;
@@ -115,14 +119,16 @@ export interface PreparePorts {
   /** Re-runs provider validation via the STORE action (validateApiKey) and
    *  reports the outcome. Exists because the revalidation authority IS
    *  settingsStore.validateApiKey — a store action with slice-writing side
-   *  effects (isApiKeyValid drives the Start gate and the subtitle window's
-   *  blocked state) that a descriptor must not import: settingsStore imports
-   *  every descriptor, and the reverse edge is a cycle. MainPanel binds it. */
+   *  effects (isApiKeyValid, validationMessage) that a descriptor must not
+   *  import: settingsStore imports Local Native's descriptor, and the reverse
+   *  edge is a cycle. Local Native's hook calls it; nothing binds it since
+   *  MainPanel's session start went, until #578 ports Local Native (Stage 2
+   *  deletion, ruling 1). */
   revalidate: () => Promise<{ valid: boolean; message?: string }>;
   /** The session shape this Start is about to create. Provider-agnostic
-   *  facts the component owns; hooks gate on them instead of re-deriving
-   *  (the kizuna-soniox hook prepares a voice only when the speaker channel
-   *  will actually speak). */
+   *  facts the component owns, for a hook to gate on instead of re-deriving.
+   *  Local Native's hook reads none; the Kizuna Soniox hook that did went
+   *  with its provider (Stage 2 deletion, ruling 2). */
   sessionShape: { speakerWillStart: boolean; participantWillStart: boolean; textOnly: boolean };
   /** null clears the phase (a hook's finally). */
   onPhase: (phase: InitPhase | null) => void;

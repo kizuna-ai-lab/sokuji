@@ -37,4 +37,4 @@ export interface ISettingsService {
    * Get the path to the settings file (if applicable to the platform)
    */
   getSettingsPath(): Promise<{ configDir: string; configFile: string }>;
-  }
+}

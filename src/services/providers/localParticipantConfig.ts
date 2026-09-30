@@ -6,22 +6,18 @@ import type { Selections } from '../../lib/local-inference/selection/types';
  * Participant-channel model resolution for Local Native, the local provider
  * the old registry keeps (Stage 2 deletion, ruling 1).
  *
- * Lived in settingsStore.ts by historical accident: these functions read the
- * MODEL stores (modelStore / nativeModelStore) — readiness state — not
- * settings state. They sit beside the descriptors because the descriptors'
- * buildParticipantSessionConfig is their caller, and a descriptor must never
- * import settingsStore (settingsStore imports every descriptor; the reverse
- * edge is a cycle — AND, concretely, settingsStore's own static import graph
- * reaches audioStore -> ServiceFactory -> ModernAudioRecorder -> an audio
- * worklet `?url` import that the sandboxed Vite test transform denies
- * outright, so the edge would drag that failure into every test file that
- * merely imports ProviderConfigFactory, which both local descriptors are
- * reachable from). `selections` is threaded in as a parameter instead — the
- * caller (a descriptor's buildParticipantSessionConfig) already has it
- * on `slice` without needing settingsStore, since `slice` IS the live
- * settings slice the caller was handed. Mirrors modelStore.resolve /
- * nativeModelStore.resolve, which take `selections` as a parameter for the
- * same reason.
+ * Lived in settingsStore.ts by historical accident: this function reads the
+ * MODEL store (nativeModelStore) — readiness state — not settings state. It
+ * sits beside the descriptor because Local Native's
+ * buildParticipantSessionConfig is its caller, and a descriptor must never
+ * import settingsStore (settingsStore imports Local Native's descriptor; the
+ * reverse edge is a cycle, and every file that merely imports
+ * ProviderConfigFactory, which reaches that descriptor, would pull in the
+ * whole store). `selections` is threaded in as a parameter instead — the
+ * caller already has it on `slice` without needing settingsStore, since
+ * `slice` IS the live settings slice the caller was handed. Mirrors
+ * modelStore.resolve / nativeModelStore.resolve, which take `selections` as
+ * a parameter for the same reason.
  *
  * The participant direction (`target→source`) is a PEER of the speaker
  * direction (`source→target`), not a reversal of it: it has its own entry in

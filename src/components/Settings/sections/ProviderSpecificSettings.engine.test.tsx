@@ -53,8 +53,8 @@ vi.mock('../../../services/ServiceFactory', () => ({
 
 // LOCAL_NATIVE is only registered in ProviderConfigFactory's static block
 // when isElectron() && isLocalNativeEnabled() (see localNativeGating.test.ts's
-// idiom, mirrored here) — force both on so getCurrentProviderSettings() can
-// resolve a descriptor for it under jsdom.
+// idiom, mirrored here) — force both on so the registry holds Local Native's
+// descriptor under jsdom.
 vi.mock('../../../utils/environment', async (orig) => ({
   ...(await orig<any>()),
   isElectron: () => true,

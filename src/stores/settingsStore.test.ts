@@ -48,8 +48,8 @@ describe('settingsStore', () => {
 
   describe('Provider Switching', () => {
     it('should set provider and clear cache without calling validateApiKey', async () => {
-      // setProvider no longer calls validateApiKey directly —
-      // validation is delegated to SettingsInitializer which reacts to provider changes.
+      // setProvider does not call validateApiKey, and nothing validates on a
+      // provider change (Stage 2 deletion, ruling 1).
       const store = useSettingsStore.getState();
 
       // Set some validation state first
@@ -89,7 +89,7 @@ describe('settingsStore', () => {
       // Switch provider
       await store.setProvider(Provider.LOCAL_NATIVE);
 
-      // validateApiKey should NOT be called from setProvider (handled by SettingsInitializer)
+      // validateApiKey should NOT be called from setProvider
       expect(validateSpy).not.toHaveBeenCalled();
 
       // Provider should be updated

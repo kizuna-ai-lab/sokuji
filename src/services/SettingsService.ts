@@ -131,4 +131,4 @@ export class SettingsService implements ISettingsService {
       return { configDir: 'localStorage', configFile: 'Local Storage' };
     }
   }
-  }
+}

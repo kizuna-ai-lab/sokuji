@@ -308,10 +308,9 @@ describe('S2 buildParticipantSessionConfig', () => {
 });
 
 describe('legacy façade credential guards (the deprecated ClientFactory path)', () => {
-  // The production path runs extractCredentials first, but the @deprecated
-  // façade accepts raw positional args — it must keep the old contract of
-  // rejecting incomplete credentials instead of reaching provider clients
-  // with `secret: undefined`.
+  // The @deprecated façade accepts raw positional args — it must keep the old
+  // contract of rejecting incomplete credentials instead of reaching provider
+  // clients with `secret: undefined`.
   it('ClientFactory.createClient rejects an empty apiKey for credentialed providers', async () => {
     const { ClientFactory } = await import('../clients/ClientFactory');
     expect(() => ClientFactory.createClient('m', Provider.PALABRA_AI, ''))

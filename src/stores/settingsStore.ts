@@ -281,9 +281,10 @@ export interface SettingsStore {
   updateLocalNative: (settings: Partial<LocalNativeSettings>) => void;
   /** Generic slice update keyed by descriptor.settingsSliceKey — the write
    *  half of the read path the reactive selectors already use. Same registry
-   *  (persistence policy) as the named actions; throws on an
-   *  unknown key. Consumed by MainPanel when applying a descriptor
-   *  prepareToStart settingsPatch (S4/S5 seam). */
+   *  as the named actions; throws on an unknown key. Built for MainPanel to
+   *  apply a descriptor's prepareToStart settingsPatch (S4/S5 seam); nothing
+   *  calls it since that session start went, until #578 ports Local Native
+   *  (Stage 2 deletion, ruling 1). */
   updateProviderSlice: (sliceKey: string, patch: Record<string, unknown>) => Promise<void>;
 
   // Async actions
@@ -326,8 +327,7 @@ export function createLocalNativeSessionConfig(
 // ─── Provider settings slice registry ────────────────────────────────────────
 // One row per persisted provider slice. This table is the single home for the
 // knowledge the twelve hand-written update actions used to re-encode: the
-// slice's defaults (for loading) and its persistence-error policy. Persist
-// keys are always
+// slice's defaults (for loading). Persist keys are always
 // `settings.<sliceKey>.<field>` — the sliceKey doubles as the storage prefix.
 
 type SliceUpdateSpec = {
@@ -348,7 +348,7 @@ export type ProviderSliceKey = keyof typeof PROVIDER_SLICE_REGISTRY;
 
 /** Shared implementation behind every updateXxx action: merge the patch
  *  into the slice, then persist each field under
- *  `settings.<sliceKey>.<field>` per the slice's error policy. */
+ *  `settings.<sliceKey>.<field>`. */
 async function updateProviderSlice(
   set: (fn: (state: SettingsStore) => Partial<SettingsStore>) => void,
   sliceKey: ProviderSliceKey,
@@ -395,8 +395,11 @@ const useSettingsStore = create<SettingsStore>()(
       // synchronously. Persistence happens afterwards.
       set({provider});
 
-      // Reset the validation state synchronously, before persisting, so a
-      // validation the new provider starts is not wiped by a late reset.
+      // Reset the validation state synchronously, before persisting, so the
+      // previous provider's verdict does not linger. Nothing validates on a
+      // provider change: the one provider this store validates, Local Native,
+      // is revalidated by nativeModelStore when its bundle, sidecar or models
+      // change (Stage 2 deletion, ruling 1).
       get().clearCache();
 
       const service = ServiceFactory.getSettingsService();

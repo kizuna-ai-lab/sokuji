@@ -441,8 +441,8 @@ describe('ModelManagementSection — edgeTtsVoice ownership (freeze bug)', () =>
     });
   });
 
-  // Review fix round 1: `updateLocalInference` must keep one identity across
-  // renders, like the zustand action it replaces (`useUpdateLocalInference`)
+  // `updateLocalInference` (a `useCallback` over the `update` prop) must keep
+  // one identity across renders while `update` does
   // — an inline arrow literal would be a fresh function every render, which
   // this effect's own dependency array would see as "a dep changed", re-
   // running (and re-writing) on every unrelated re-render. `mockSettings`

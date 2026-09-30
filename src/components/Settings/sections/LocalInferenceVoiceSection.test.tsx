@@ -82,12 +82,11 @@ describe('LocalInferenceVoiceSection', () => {
   // that stub has no button/grid at all, so it can't stand in for this case,
   // which needs the REAL VoiceLibrarySection (and its VoicePicker) rendered
   // to prove something about actual markup. Unmock for this one case and
-  // re-import a fresh module graph, using the same primitives as
-  // providerOrder.test.ts / kizunaProviderGating.test.ts (vi.doUnmock +
-  // vi.resetModules + dynamic import) — but the shape here is the INVERSE of
-  // theirs: those files carry no top-level mock of the specifier in question
-  // and reset+unmock it in beforeEach ahead of EVERY test, so each case
-  // starts from the real module and opts INTO its own mock. Here
+  // re-import a fresh module graph (vi.doUnmock + vi.resetModules + dynamic
+  // import) — but in the INVERSE of that pattern's usual shape: a file with
+  // no top-level mock of the specifier in question resets+unmocks it in
+  // beforeEach ahead of EVERY test, so each case starts from the real module
+  // and opts INTO its own mock. Here
   // VoiceLibrarySection is mocked persistently at the top level for every
   // case, and only this one case opts out, with nothing restoring the mock
   // afterward. The invariant that keeps that safe is narrower than "last

@@ -1,6 +1,8 @@
 /**
- * Abstract interface for AI clients (OpenAI, Gemini, etc.)
- * This interface provides a unified API for different AI providers
+ * The old provider path's client interface. One implementer is left, Local
+ * Native's `LocalNativeClient`, until kizuna-ai-lab/sokuji#578 ports it to the
+ * adapter contract in `src/lib/contract/adapter.ts` (Stage 2 deletion,
+ * ruling 1).
  */
 
 import { RealtimeEvent } from '../../stores/logStore';
@@ -158,9 +160,10 @@ export interface ClientEventHandlers {
    *
    * For failures that used to become a `console.error` inside a client, where
    * they were invisible to the user and mis-attributed in analytics — a frame
-   * that would not parse, a cleanup step that threw, TTS falling back. No
-   * bubble, no api_error: `participantTelemetry` gives the code a channel and
-   * the severity from CLIENT_DIAGNOSTICS, and files one panel entry.
+   * that would not parse, TTS falling back. No bubble, no api_error: whoever
+   * set the handlers gives the code its channel and the severity from
+   * CLIENT_DIAGNOSTICS. Nothing creates a client, so nothing sets them, until
+   * #578 ports Local Native (Stage 2 deletion, ruling 1).
    */
   onDiagnostic?: (diagnostic: ClientDiagnostic) => void;
   onConversationUpdated?: (data: { item: ConversationItem; delta?: any }) => void;

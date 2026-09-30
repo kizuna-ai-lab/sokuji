@@ -40,8 +40,9 @@ export interface PrepareManagedVoiceDeps {
   loadClip: () => Promise<Blob | null>;
   sleep?: (ms: number) => Promise<void>;
   now?: () => number;
-  /** Caller cancellation — e.g. MainPanel's start-scoped aborter, threaded in
-   *  as `signal` by `voiceClaim.ts`.
+  /** Caller cancellation — the run's signal (`src/lib/session/run.ts`, aborted
+   *  when the run ends or the page goes away), threaded in as `signal` by
+   *  `voiceClaim.ts`.
    *  Threaded into every `ensure`/`mine` call so a cancel reaches the network
    *  (not just gates the NEXT attempt), and additionally checked at every
    *  loop boundary below the deadline already is. Optional: a caller with no
@@ -247,9 +248,10 @@ export interface VoicePrepOutcome {
  * write (persist only a genuinely CHANGED successful id; a fallback is
  * never persisted, so a busy pool tonight cannot silently demote the user's
  * stored preference) — can be imported and tested directly (see
- * `voicePrepWiring.test.ts`) rather than hand-transcribed into a test
- * double. The caller still owns every actual side effect: the
- * `updateProviderSlice` store write and the `sessionConfig` mutation; the
+ * `voicePrep.test.ts`) rather than hand-transcribed into a test
+ * double. The caller still owns every actual side effect: `voiceClaim.ts`
+ * returns the session's voice as an `override` and a changed id as a
+ * `persist` patch, which the run writes through `persistIfUnchanged`; the
  * notice is worded by the surface, from its code — none of which belong in
  * a routine this file's other exports keep React- and i18n-free.
  */

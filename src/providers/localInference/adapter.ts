@@ -23,11 +23,12 @@ import type { LocalInferenceConfig } from './config';
 /**
  * LocalInference on the new contract (spec: "L0 — the client contract"): ASR,
  * translation and TTS in web workers, ported from `LocalInferenceClient`
- * (`src/services/clients/LocalInferenceClient.ts`) without its display
- * bookkeeping — items, statuses, audio segments and write lanes are L1/L2's
- * now. What stays is the pipeline: which engines load, source segments from
- * the ASR's partials and finals, and serial translation jobs — one per final,
- * or, in the stream shape, one every N sentences inside the utterance.
+ * (`src/services/clients/LocalInferenceClient.ts`, deleted since) without
+ * its display bookkeeping — items, statuses, audio segments and write lanes
+ * are L1/L2's now. What stays is the pipeline: which engines load, source
+ * segments from the ASR's partials and finals, and serial translation jobs —
+ * one per final, or, in the stream shape, one every N sentences inside the
+ * utterance.
  */
 
 export type LocalCredentials = Record<string, never>;

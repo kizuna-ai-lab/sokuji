@@ -32,8 +32,9 @@ import { describeCause } from './describeCause';
 
 /**
  * Re-exported so a caller that already imports `report` needs one import, not
- * two. Clients must import it from `./describeCause` directly instead — this
- * module reaches the store, and they are not allowed to.
+ * two. An adapter and its session side (and Local Native's old client) must
+ * import it from `./describeCause` directly instead — this module reaches the
+ * store, and they are not allowed to.
  */
 export { describeCause };
 

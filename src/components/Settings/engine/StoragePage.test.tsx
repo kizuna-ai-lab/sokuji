@@ -29,10 +29,8 @@ vi.mock('react-i18next', async (importOriginal) => {
 // `?url` import, which this sandboxed Vite test transform denied outright.
 // ServiceFactory no longer imports ModernBrowserAudioService at all;
 // audioStore only calls its getSettingsService. Not needed by the current
-// graph for that reason. Mocked anyway (same fix modelStore.test.ts /
-// settingsStore.test.ts / ensureSelectionReady.test.ts /
-// useWasmEngineAdapter.test.ts already use) so settingsStore's own
-// persistence goes through this mock instead.
+// graph for that reason. Mocked anyway (as settingsStore.test.ts does) so
+// settingsStore's own persistence goes through this mock instead.
 vi.mock('../../../services/ServiceFactory', () => ({
   ServiceFactory: {
     getSettingsService: vi.fn(() => ({
@@ -53,7 +51,7 @@ const { getManifestByType, isTranslationModelCompatible, getModelSizeMb } =
  *  (Stage 2 deletion, ruling 3). */
 const WASM = { settings: { ...LOCAL_INFERENCE_DEFAULTS, selections: {} }, pair: { source: 'ja', target: 'en' } };
 
-// Real-manifest ids that can serve ja→en, mirroring ensureSelectionReady.test.ts.
+// Real-manifest ids that can serve ja→en.
 const asrId = () => getManifestByType('asr')
   .find(m => (m.multilingual || m.languages.includes('ja')) && !m.isCloudModel)!.id;
 

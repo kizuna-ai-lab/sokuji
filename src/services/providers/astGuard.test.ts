@@ -31,9 +31,9 @@ describe('AST cross-stage guard', () => {
 
   describe('guardAstCrossStage (unit)', () => {
     // Injected in place of a static useModelStore import — see astGuard.ts's
-    // doc comment: the pure function takes re-resolution as a parameter so a
-    // store can apply it (modelStore.ts's ensureSelectionReady) without
-    // creating an import cycle.
+    // doc comment: the pure function takes re-resolution as a parameter, and
+    // its callers (the LocalInference provider's config.ts and check.ts) pass
+    // one bound to the direction, as this does.
     const reResolve = (masked: Selections) => useModelStore.getState().resolve('ja', 'en', masked);
 
     it('masks the explicit AST-capable translation pick back to auto when it does not match the resolved ASR', () => {

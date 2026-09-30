@@ -18,10 +18,9 @@ export interface EventData {
     | 'session.error'
     | 'session.reconnect_failed'
     | 'session.init_error'
-    | 'session.webrtc_fallback'
     // Participant/local inference status types
     | 'participant.error'
-    // Managed-lease notifications (ProviderDescriptor.onEvent)
+    // Managed-lease notifications (the frames of `src/providers/soniox/lease.ts`)
     | 'session.retry'
     | 'session.started_refused'
     | 'session.notify_failed'
@@ -41,10 +40,6 @@ export interface EventData {
     | 'response.function_call_arguments.delta' | 'response.function_call_arguments.done'
     | 'rate_limits.updated'
     | 'error'
-    // Beta-only event names (OpenAI Compatible, Kizuna AI)
-    | 'response.text.delta' | 'response.text.done'
-    | 'response.audio.delta' | 'response.audio.done'
-    | 'response.audio_transcript.delta' | 'response.audio_transcript.done'
     // GA-only event names (OpenAI direct)
     | 'response.output_text.delta' | 'response.output_text.done'
     | 'response.output_audio.delta' | 'response.output_audio.done'
