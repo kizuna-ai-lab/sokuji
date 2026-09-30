@@ -8433,8 +8433,8 @@ the gates on a clean archive:
   re-review — the final whole-branch review covers it.
 - **Task 7:** Approved, one Nit — `LocalInferenceClient.ts` named a deleted
   client in the present tense — moot: Task 9 deleted the file.
-- **Tasks 9, 10 and 11,** parked for the final fix wave. Task 9's review (the
-  fresh one): Approved, 0 / 0 / 2 Minor / 2 Nit. Task 10's: Approved,
+- **Tasks 9, 10 and 11,** their findings fixed by the final fix wave (below).
+  Task 9's review (the fresh one): Approved, 0 / 0 / 2 Minor / 2 Nit. Task 10's: Approved,
   0 / 0 / 4 Minor / 3 Nit and an observation. Task 11's, on the most capable
   model (the prose future sessions rely on, every claim checked against the
   tree): Needs fixes, 0 Critical / 1 Important / 5 Minor / 3 Nit, every one
@@ -8454,8 +8454,52 @@ the gates on a clean archive:
   Loader, which does not download weights (`native_models.download` does),
   five more `CLAUDE.md` / `CONTEXT.md` statements (the fakes' registration, a
   tab source and its device, the session-side guard's scope, Kizuna AI in
-  development builds, what presence reads) and three nits (Task 11's). That
-  wave adds its own line to this section when it lands.
+  development builds, what presence reads) and three nits (Task 11's).
+
+**The final whole-branch review and its fix wave.** The final review (the
+most capable model, over `f8a09956..703d8059`, told the parked findings so it
+did not report them again) found the branch ready to push with fixes: 0
+Critical / 0 Important / 8 Minor / 4 Nit. Nothing kept reaches deleted code
+at runtime (imports, Electron IPC, the extension's DNR ids and CSP, the build
+configs and CI), ruling 1's read-only files are untouched, no stored value is
+touched, and both lockfiles are consistent. One fix dispatch then took every
+finding but M7, with the ones parked above, each item checked against the
+tree first:
+- `8cbc9e81`, tests (item A): the AST cross-stage guard on
+  `src/providers/localInference/` (two `build` cases, speaker and reversed,
+  and one readiness case); table → severity in `Conversation.test.ts`,
+  through a test-only error row; `validateApiKey()`'s fall-through, which asks
+  nothing and clears the verdict (an earlier case's unrestored spy, which
+  zustand copied into every later state, is now restored); the Realtime
+  turn-detection modes as one exported tuple, read by the controls, the
+  settings migration and the locale check (the final review's M8, rendering
+  the same options); the old-path guard counting a bare folder specifier
+  (N2). Each new or changed test failed against a mutant and passed once it
+  was restored; the guard's two against a pass-through mock of
+  `guardAstCrossStage`, because the session's auto mode refused a temporary
+  edit removing the call from `config.ts`.
+- `839b43e8`, source comments (item B): Task 9's six files and the
+  LocalInference adapter's "deleted since"; Task 10's comments and braces;
+  `ProviderDescriptor.ts` (M2), `logStore.ts` (M3 — the union also loses
+  `session.webrtc_fallback` and the beta-only OpenAI event names, which
+  nothing emits), `voicePrep.ts` (M4), `settingsStore.ts`' error-policy
+  clauses (M5), `IClient.ts`' header and example (N1), `report.ts`' rule.
+- `55aab8bd`, `CLAUDE.md` and `CONTEXT.md` (item C): Task 11's findings, with
+  M1 and M6.
+- This record's commit: N3 and N4 (the latter in "What this plan leaves").
+
+Gates after it (0 failed, no unhandled errors): `src` 532 + 1 files, 6 661 +
+2 tests (the 6 656 above and the five new); Electron 34 / 477; the extension
+9 / 56; Local Native's old path 39 / 616 (the new `validateApiKey` case falls
+in it); `tscdiff.py` from Task 11's set: before 95 after 95; new 0; gone 0;
+the gate equal to its 16-line baseline.
+
+**The final review's M7 is the owner's follow-up, not done here:**
+`extension/package.json` (and its lockfile) still lists `openai` as a runtime
+dependency, though no value import of it is left in `src/` (all four are
+`import type`; the last value import went with `OpenAIGAClient` in Task 7).
+Removing it changes a dependency and a lockfile, beyond the plan's letter,
+and the lockfile needs npm; it ships no bytes meanwhile.
 
 **What landed, by task** (each commit's `git diff --shortstat` and the files
 it deleted; then its gates: `src` files passed + skipped and tests passed +
@@ -8503,8 +8547,9 @@ every gate at 0 failed, Electron 34 files / 477 tests throughout):
   six locale keys.
 - **OpenAI Realtime, OpenAI Translate and OpenAI Compatible — the merged
   deletion** (`27c77e20`, Task 7; 107 files, +53 −14 613, 49 deleted, `evals/`
-  among them; 541 + 1, 6 783 + 2; 45 / 710; 103): both WebSocket and both
-  WebRTC clients, the session builder, `EphemeralTokenService`, the
+  among them; 541 + 1, 6 783 + 2; 45 / 710; 103): the three WebSocket
+  clients (`OpenAIClient`, `OpenAIGAClient`, `OpenAITranslateGAClient`) and
+  both WebRTC clients, the session builder, `EphemeralTokenService`, the
   descriptors, slices and migrations, `Provider.OPENAI_COMPATIBLE`,
   `textUtils.ts`, the `openai-realtime-api` fork in both `package.json`s and
   lockfiles, and `evals/` with its scripts, its `.gitignore` lines and its own
@@ -8526,10 +8571,12 @@ every gate at 0 failed, Electron 34 files / 477 tests throughout):
   files, +181 −628, 1 deleted, 1 created; 532 + 1, 6 656 + 2; 39 / 615; 95;
   the gate's baseline 18 → 16 lines): `ClientOperations.ts`, the key-validation
   service call, the global instruction fields and
-  `getProcessedSystemInstructions`, the validation cache and model list, the
-  generic slice readers (choice 5); the four client diagnostic codes no sender uses,
-  with their notices and five locale keys (ruling C17); the import guard
-  (ruling C11), 1 file and 3 tests, failing each of the review's mutants.
+  `getProcessedSystemInstructions`, the validation cache and model list with
+  the validation state's `settings.validating` key, the generic slice readers
+  (choice 5); the four client diagnostic codes no sender uses, with their
+  notices and those notices' four locale keys (ruling C17) — five keys in
+  all; the import guard (ruling C11), 1 file and 3 tests, failing each of the
+  review's mutants.
 - **`CLAUDE.md` and `CONTEXT.md`** (`968043c5`, Task 11; 11 files, +146 −121;
   532 + 1, 6 656 + 2; 39 / 615; 95): the provider architecture, adding a
   provider, the adapters' error-handling heading and its citations, without
@@ -8754,14 +8801,22 @@ why).
   arm. #578 deletes them; its port also retires `descriptorRegistry.test.ts`
   (whose tables now hold Local Native alone), `participantConfig.test.ts` and
   `prepareToStart.local.test.ts`.
+- **Local Native's participant config no longer carries a `turnDetection`
+  key** — the one input to its old path the branch changed.
+  `LocalNativeProviderConfig.buildParticipantSessionConfig` builds on the base
+  class's, whose OpenAI-shaped semantic-VAD override went with the last client
+  that read it (Task 7, `27c77e20`; choice 5). Nothing reads the key:
+  `LocalNativeClient` and `src/lib/local-inference/native/**` read neither
+  `turnDetection` nor `turnDetectionMode` (the descriptor still writes the
+  latter). Found by the final review (its N4).
 - **Comments in the keep set that name the deleted code** (choice 3; ruling 1
   keeps those files unedited): e.g. `punctuateDefinite.ts`' header and
   `LocalNativeProviderConfig.ts`' notes on the other descriptors;
   `ClientFactory.ts`' note that production runs `extractCredentials` first
   (Task 10's review) — #578's. And provenance citations in new code —
   `volcengine_ast2/settings.ts` citing `VolcengineAST2ProviderConfig.ts:8-31` —
-  which name history at `fa301e9a`. The ones outside the keep set are the
-  final fix wave's (above).
+  which name history at `fa301e9a`. The ones outside the keep set were
+  corrected by the final fix wave (`839b43e8`, above).
 - **Readers of old state that is now always its reset value**, harmless:
   `useStartBasicsTour` reads `settingsStore.isApiKeyValid`, which only Local
   Native's arm sets (as at `fa301e9a`, where only the unmounted shell called
@@ -8775,7 +8830,7 @@ why).
   management (Linux only)" statements under "Dual Platform Architecture" and
   "Platform Requirements", were not audited. The false statements Task 11's
   review found inside the rewritten passages, of `CLAUDE.md` and `CONTEXT.md`
-  both, are the final fix wave's (above).
+  both, were corrected by the final fix wave (`55aab8bd`, above).
 - **The diagnostics design's table**
   (`docs/superpowers/specs/2026-08-25-diagnostics-reporting-design.md:109-115`)
   still lists the four deleted codes: a record of #441 as designed, not a
@@ -8793,5 +8848,5 @@ why).
 **Open questions for the owner:** none. The first version's four were ruled
 (Revision 1: rulings C16, 9, 10, C17), and Revision 2's one — `CONTEXT.md`'s
 native model resolution entries — by the owner's ruling 11 (Revision 3, Task
-11). The final whole-branch review follows this record; its one fix wave takes
-its own findings with those parked above.
+11). The final whole-branch review and its one fix wave followed this record
+(above); the review's M7 is the owner's.
