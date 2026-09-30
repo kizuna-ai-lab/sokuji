@@ -232,7 +232,7 @@ describe("OpenAI Live's karaoke on the output's sample clock (ruling 2; choices 
   });
 });
 
-describe("OpenAI Live's translation pairs an English source cut by pause, abbreviations and ellipses included (I1)", () => {
+describe("OpenAI Live's translation pairs an English source cut by pause, abbreviations and ellipses included", () => {
   /** Plays a recording through a real `LiveSegments` in pause mode (`sentencesPerSegment: 1`), and reads back its exchanges through L1 and L2 (the probe's own harness). */
   const runLive = (recording: Recording) => replay(recording, (clock, events) => {
     const s = new LiveSegments({ clock, silence: PAUSE, sentencesPerSegment: 1, sink: events });

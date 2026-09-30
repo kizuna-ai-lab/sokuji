@@ -145,7 +145,7 @@ export function createHeaderSocket(registrar: () => HeaderRegistrar | null, open
 
     void (async () => {
       const letGo = await acquire(`${rule.host}${rule.path}`);
-      /** The rule went to the platform and was not refused: however the attempt ends, it is cleared. */
+      /** The rule went to the platform: however the attempt ends, it is cleared — a refused one too, since a refusal may follow a rule the platform installed. */
       let sent = false;
       try {
         if (settled) return;
