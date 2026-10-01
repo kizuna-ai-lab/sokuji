@@ -179,10 +179,10 @@ describe('a provider session side', () => {
       expect.arrayContaining([
         'src/providers/localInference/adapter.ts',
         'src/providers/localInference/engines.ts',
-        'src/providers/localInference/sentenceCut.ts',
         'src/providers/localInference/speech.ts',
       ]),
     );
+    expect(sessionSide(REPO_ROOT, 'src/providers/localInference')).not.toContain('src/providers/localInference/sentenceCut.ts');
     const fake = sessionSide(REPO_ROOT, 'src/providers/fake');
     expect(fake).toEqual(expect.arrayContaining(['src/providers/fake/adapter.ts', 'src/providers/fake/synth.ts']));
     expect(fake).not.toContain('src/providers/fake/script.ts');
@@ -304,8 +304,9 @@ describe('a provider session side', () => {
 
   it("a session side runs no global timer: every timer reads the request's clock", () => {
     expect(providerDirs().flatMap((dir) => timerOffenders(REPO_ROOT, dir))).toEqual([]);
-    // The walk does not follow `src/lib/**`: the one shared module two session sides cut their segments with, by name (Stage 2 translation cuts, choice 1).
+    // The walk does not follow `src/lib/**`: the shared modules session sides cut their segments and jobs with, by name (Stage 2 translation cuts, choice 1; #578 ruling 3).
     expect(globalTimerCalls(readFileSync(join(REPO_ROOT, 'src/lib/segmentation/continuousSegments.ts'), 'utf-8'))).toEqual([]);
+    expect(globalTimerCalls(readFileSync(join(REPO_ROOT, 'src/lib/segmentation/sentenceCut.ts'), 'utf-8'))).toEqual([]);
   });
 
   it("only test-only modules import the adapter test kit or a provider's fixtures", () => {
