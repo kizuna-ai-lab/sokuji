@@ -8928,10 +8928,13 @@ execution.
   graph already bounds its other waits on a wedged device (#246). Past that
   bound, a switch that is slow but still alive can overlap the next one. That
   is the original race, but only after 1.5 s.
-- **`flush(p)` answers for the wizard's provider and the selection only.**
-  Another provider's refused value, such as a long prompt over
-  `chrome.storage.sync`'s per-item quota, does not fail Finish. It still
-  reaches the panel through `persistSetting`'s warning.
+- **Finish answers only for what it wrote:** the pair, the credentials and
+  the credential choice it wrote, and the selection (`flush(p, fields)`,
+  narrowed by the final review below). A value it did not write is not its to
+  fail on, whether it belongs to another provider or to the same one: a long
+  prompt over `chrome.storage.sync`'s per-item quota, for example. That
+  refusal reaches the console, and the Logs panel while diagnostic logs are
+  on.
 
 **The stated scope.** The scenario's mode and text-only writes
 (`audioStore.setMode`, `settingsStore.setTextOnly`) stay unawaited:
@@ -8940,5 +8943,31 @@ execution.
 - A lost `setMode` leaves the person's previous mode, which they see and can
   change. A lost credential would leave a provider that cannot start.
 
+**The final whole-branch review** (opus, on `7022af45..2f2d3ec6`) gave
+"Ready to push: Yes", with 0 Critical, 0 Important and 3 Minor. It probed
+rebuilds, resumes, both buses at once, same-tick picks and A→B→A, and found
+both fixes correct. The three Minor items were handled as follows.
+
+- **Re-graded and fixed: `ee59466f` `fix(setup): Finish answers only for what it wrote`.**
+  Before it, `flush(p)` answered for every one of the provider's keys. So a
+  value of the same provider that storage always refuses failed every Finish
+  of a re-run. One example is a pasted agenda over the quota. Retrying never
+  helped, and the defect was this plan's own. Now:
+  - `flush` takes the fields a caller wrote (`PAIR_FIELDS` for the pair);
+  - Finish passes what it wrote;
+  - one new store case and one new wizard case, both red first;
+  - the mutant "fields ignored" fails both;
+  - `src` 532 + 1 files and 6 678 + 2 tests; type errors 95, none new.
+- **Left for the owner (Minor):** past the 1.5 s deadline, a slow but live
+  switch can land after the newer one. The element is then on the older
+  device, and re-picking the newer one is short-circuited, so the person must
+  pick a third device and come back. Before this plan the same race had no
+  time bound. The `setSinks` interface comment's "ends on the last one asked
+  for" claims too much past the deadline.
+  - The review's cheap fix: when the deadline fired before a switch settled,
+    re-queue the latest request once the late switch lands.
+  - The alternative is to state it in the comment and here.
+- **Corrected in this record (Minor):** choice 2's wording about the panel
+  (above).
+
 **Left to the owner:** resolving the two threads on #570 once this is pushed.
-The final whole-branch review of these commits adds its own line below.
