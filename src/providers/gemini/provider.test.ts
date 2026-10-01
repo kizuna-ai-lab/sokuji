@@ -72,8 +72,8 @@ describe('the Gemini definition', () => {
     expect(geminiProvider.textInput({ ...GEMINI_DEFAULTS, model: '' })).toBe(false);
   });
 
-  it('sits after LocalInference (ruling 6)', () => {
-    expect(PROVIDERS.slice(0, 3).map((p) => p.id)).toEqual(['kizunaai_soniox', 'localInference', 'gemini']);
+  it('sits after LocalInference and the flagged Local Native (ruling 6; #578 ruling 1)', () => {
+    expect(PROVIDERS.slice(0, 4).map((p) => p.id)).toEqual(['kizunaai_soniox', 'localInference', 'local_native', 'gemini']);
   });
 
   it("lets the participant speak when its switch is on, voiced with Gemini's own voice (ruling 5)", () => {
