@@ -6,6 +6,8 @@
  * `storedSettings.ts`) — plus the credential mode (ruling 1). Stored under
  * `settings.volcengineAST2.*` as before. Nothing here imports `src/services`.
  */
+import { pairCode } from '../../lib/language/code';
+import { wireTable } from '../../lib/language/wire';
 import type { CredentialField, CredentialsMissing, LanguageContext, LanguageOption, Provider } from '../../lib/provider/types';
 
 /** Which credentials a run sends (ruling 1): the legacy console's App ID and Access Token, or the new console's API key. */
@@ -77,21 +79,21 @@ export const ast2Credentials: Provider<Ast2Settings, Ast2Credentials, never>['cr
   },
 };
 
-const lang = (value: string, name: string, englishName: string): LanguageOption => ({ value, name, englishName });
+const code = (value: string): LanguageOption => ({ value });
 
 /**
  * The eight languages Doubao speaks (S2S), in the old list's order
  * (`VolcengineAST2ProviderConfig.ts:112-121`) and names.
  */
 const SPOKEN: readonly LanguageOption[] = [
-  lang('zh', '中文', 'Chinese'),
-  lang('en', 'English', 'English'),
-  lang('ja', '日本語', 'Japanese'),
-  lang('id', 'Bahasa Indonesia', 'Indonesian'),
-  lang('es', 'Español', 'Spanish'),
-  lang('pt', 'Português', 'Portuguese'),
-  lang('de', 'Deutsch', 'German'),
-  lang('fr', 'Français', 'French'),
+  code('zh'),
+  code('en'),
+  code('ja'),
+  code('id'),
+  code('es'),
+  code('pt'),
+  code('de'),
+  code('fr'),
 ];
 
 /**
@@ -101,44 +103,40 @@ const SPOKEN: readonly LanguageOption[] = [
  * Soniox's list does).
  */
 const TEXT_ONLY: readonly LanguageOption[] = [
-  lang('ko', '한국어', 'Korean'),
-  lang('tr', 'Türkçe', 'Turkish'),
-  lang('ms', 'Bahasa Melayu', 'Malay'),
-  lang('nl', 'Nederlands', 'Dutch'),
-  lang('ro', 'Română', 'Romanian'),
-  lang('pl', 'Polski', 'Polish'),
-  lang('cs', 'Čeština', 'Czech'),
-  lang('ar', 'العربية', 'Arabic'),
-  lang('th', 'ไทย', 'Thai'),
-  lang('vi', 'Tiếng Việt', 'Vietnamese'),
-  lang('ru', 'Русский', 'Russian'),
-  lang('it', 'Italiano', 'Italian'),
+  code('ko'),
+  code('tr'),
+  code('ms'),
+  code('nl'),
+  code('ro'),
+  code('pl'),
+  code('cs'),
+  code('ar'),
+  code('th'),
+  code('vi'),
+  code('ru'),
+  code('it'),
 ];
 
 /**
  * Two dialects, text only and as a source only ("方言，仅支持作为源语种").
- * Cantonese keeps the shared registry's name (`utils/languages.ts`
- * `yue`); Shanghainese, which it lacks, is in
- * its own script with an English gloss.
+ * App codes `yue` and `wuu` (Wu, Shanghainese's language); Doubao's own
+ * `yue-CN` and `sh-CN` are the wire's.
  */
-const DIALECTS: readonly LanguageOption[] = [
-  lang('yue-CN', '粵語', 'Cantonese'),
-  lang('sh-CN', '上海话 (Shanghainese)', 'Shanghainese'),
-];
+const DIALECTS: readonly LanguageOption[] = [code('yue'), code('wuu')];
 
-/** Chinese↔English in one session: both sides or neither (`zhen/zhen`). */
-export const ZHEN = 'zhen';
-const BIDIRECTIONAL = lang(ZHEN, '中英双语 (zh↔en)', 'Chinese-English Bidirectional');
+/** Chinese↔English in one session, both sides or neither: the app code `zh+en`, Doubao's `zhen/zhen`. */
+export const ZH_EN = pairCode('zh', 'en');
+const BIDIRECTIONAL = code(ZH_EN);
 
 const SPOKEN_SOURCES: readonly LanguageOption[] = [...SPOKEN, BIDIRECTIONAL];
 const TEXT_SOURCES: readonly LanguageOption[] = [...SPOKEN, ...TEXT_ONLY, ...DIALECTS, BIDIRECTIONAL];
 const ZH_OR_EN = new Set(['zh', 'en']);
-const ONLY_ZHEN: readonly LanguageOption[] = [BIDIRECTIONAL];
-/** English first, so leaving `zhen` on the source lands on English, as the old rule R3 did. */
+const ONLY_ZH_EN: readonly LanguageOption[] = [BIDIRECTIONAL];
+/** English first, so leaving `zh+en` on the source lands on English, as the old rule R3 did. */
 const TO_EN_OR_ZH: readonly LanguageOption[] = [SPOKEN[1], SPOKEN[0]];
 
 /**
- * The targets of a source (ruling 3). `zhen` pairs only with itself. Every
+ * The targets of a source (ruling 3). `zh+en` pairs only with itself. Every
  * other pair has Chinese or English on one side — the rule of both modes as
  * this client runs them: S2T's ("源语种或目标语种必须是中英"), and S2S's
  * voice-clone mode's, which is the one the old client used (it sends no
@@ -146,7 +144,7 @@ const TO_EN_OR_ZH: readonly LanguageOption[] = [SPOKEN[1], SPOKEN[0]];
  * `VolcengineAST2ProviderConfig.ts:129`). A dialect is never a target.
  */
 function targetsOf(source: string, speech: boolean): readonly LanguageOption[] {
-  if (source === ZHEN) return ONLY_ZHEN;
+  if (source === ZH_EN) return ONLY_ZH_EN;
   if (!ZH_OR_EN.has(source)) return TO_EN_OR_ZH;
   return (speech ? SPOKEN : [...SPOKEN, ...TEXT_ONLY]).filter((o) => o.value !== source);
 }
@@ -160,6 +158,12 @@ export const ast2Languages: Provider<Ast2Settings, never, never>['languages'] = 
   sources: (_s, context?: LanguageContext) => (context?.speech ? SPOKEN_SOURCES : TEXT_SOURCES),
   targets: (source, _s, context?: LanguageContext) => targetsOf(source, context?.speech === true),
   initial: () => ({ source: 'zh', target: 'en' }),
+  wire: wireTable([
+    ...[...SPOKEN, ...TEXT_ONLY].map((o) => [o.value] as const),
+    ['yue', 'yue-CN'],
+    ['wuu', 'sh-CN'],
+    [ZH_EN, 'zhen'],
+  ]),
 };
 
 /** Whether Doubao runs this direction in this mode: `build`'s guard, over the same two functions. */

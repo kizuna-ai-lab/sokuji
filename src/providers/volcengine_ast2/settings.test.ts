@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { readCredentials } from '../../lib/provider/credentials';
 import { normalizePair, reverseSupported, swapped } from '../../lib/provider/languages';
 import type { AuthContext, LanguageContext } from '../../lib/provider/types';
-import { LANGUAGE_OPTIONS } from '../../utils/languages';
-import { AST2_DEFAULTS, ast2Credentials, ast2Languages, ast2Offers, migrateAst2Settings, ZHEN } from './settings';
+import { parseCode } from '../../lib/language/code';
+import { AST2_DEFAULTS, ast2Credentials, ast2Languages, ast2Offers, migrateAst2Settings, ZH_EN } from './settings';
 
 const signedOut: AuthContext = { signedIn: false, getToken: async () => null };
 const SPEAKING: LanguageContext = { speech: true };
@@ -12,7 +12,7 @@ const p = { languages: ast2Languages };
 const values = (list: readonly { value: string }[]) => list.map((o) => o.value);
 const SPOKEN = ['zh', 'en', 'ja', 'id', 'es', 'pt', 'de', 'fr'];
 const TEXT_ONLY = ['ko', 'tr', 'ms', 'nl', 'ro', 'pl', 'cs', 'ar', 'th', 'vi', 'ru', 'it'];
-const DIALECTS = ['yue-CN', 'sh-CN'];
+const DIALECTS = ['yue', 'wuu'];
 
 describe("Doubao AST 2.0's settings", () => {
   it('default to the legacy credentials and no library', () => {
@@ -71,8 +71,8 @@ describe("Doubao AST 2.0's credentials (ruling 1)", () => {
 
 describe("Doubao AST 2.0's languages (ruling 3; choice 1)", () => {
   it('offer the eight spoken languages and zhen when the run speaks, all twenty, two dialects and zhen when it does not', () => {
-    expect(values(ast2Languages.sources(AST2_DEFAULTS, SPEAKING))).toEqual([...SPOKEN, ZHEN]);
-    expect(values(ast2Languages.sources(AST2_DEFAULTS, TEXT))).toEqual([...SPOKEN, ...TEXT_ONLY, ...DIALECTS, ZHEN]);
+    expect(values(ast2Languages.sources(AST2_DEFAULTS, SPEAKING))).toEqual([...SPOKEN, ZH_EN]);
+    expect(values(ast2Languages.sources(AST2_DEFAULTS, TEXT))).toEqual([...SPOKEN, ...TEXT_ONLY, ...DIALECTS, ZH_EN]);
     // Without a context: the widest offer, text only's.
     expect(ast2Languages.sources(AST2_DEFAULTS)).toBe(ast2Languages.sources(AST2_DEFAULTS, TEXT));
     expect(ast2Languages.initial?.(AST2_DEFAULTS)).toEqual({ source: 'zh', target: 'en' });
@@ -91,21 +91,21 @@ describe("Doubao AST 2.0's languages (ruling 3; choice 1)", () => {
     }
   });
 
-  it("name the eight, the twelve more and Cantonese as the shared registry does, and the three it lacks as the list's own (choice 17)", () => {
-    const named = new Map(ast2Languages.sources(AST2_DEFAULTS, TEXT).map((o) => [o.value, o.name]));
-    // The registry's names for the eight are the old list's (`VolcengineAST2ProviderConfig.ts:112-121`).
-    for (const code of [...SPOKEN, ...TEXT_ONLY.filter((c) => c !== 'ms')]) expect(named.get(code), code).toBe(LANGUAGE_OPTIONS[code].name);
-    expect(named.get('yue-CN')).toBe(LANGUAGE_OPTIONS.yue.name);
-    expect(named.get('ms')).toBe('Bahasa Melayu');
-    expect(named.get('sh-CN')).toBe('上海话 (Shanghainese)');
-    expect(named.get(ZHEN)).toBe('中英双语 (zh↔en)');
+  it('offers app codes; the bidirectional mode is zh+en, the dialects yue and wuu (unified language codes)', () => {
+    const text = ast2Languages.sources(AST2_DEFAULTS, { speech: false }).map((o) => o.value);
+    for (const v of text) expect(parseCode(v), v).not.toBeNull();
+    expect(text).toEqual(expect.arrayContaining(['zh+en', 'yue', 'wuu']));
+    expect(ast2Languages.targets('zh+en', AST2_DEFAULTS, { speech: true }).map((o) => o.value)).toEqual(['zh+en']);
+    expect(ast2Languages.wire?.toWire('zh+en')).toBe('zhen');
+    expect(ast2Languages.wire?.toWire('yue')).toBe('yue-CN');
+    expect(ast2Languages.wire?.toWire('wuu')).toBe('sh-CN');
   });
 
   it('pair zhen only with itself', () => {
     for (const context of [SPEAKING, TEXT]) {
-      expect(values(ast2Languages.targets(ZHEN, AST2_DEFAULTS, context))).toEqual([ZHEN]);
-      for (const source of values(ast2Languages.sources(AST2_DEFAULTS, context)).filter((v) => v !== ZHEN)) {
-        expect(values(ast2Languages.targets(source, AST2_DEFAULTS, context)), source).not.toContain(ZHEN);
+      expect(values(ast2Languages.targets(ZH_EN, AST2_DEFAULTS, context))).toEqual([ZH_EN]);
+      for (const source of values(ast2Languages.sources(AST2_DEFAULTS, context)).filter((v) => v !== ZH_EN)) {
+        expect(values(ast2Languages.targets(source, AST2_DEFAULTS, context)), source).not.toContain(ZH_EN);
       }
     }
   });
@@ -113,7 +113,7 @@ describe("Doubao AST 2.0's languages (ruling 3; choice 1)", () => {
   it("put Chinese or English on one side: zh and en reach every other language of the mode, anything else reaches English or Chinese, English first", () => {
     expect(values(ast2Languages.targets('zh', AST2_DEFAULTS, SPEAKING))).toEqual(SPOKEN.filter((v) => v !== 'zh'));
     expect(values(ast2Languages.targets('en', AST2_DEFAULTS, TEXT))).toEqual([...SPOKEN, ...TEXT_ONLY].filter((v) => v !== 'en'));
-    for (const source of ['ja', 'fr', 'ko', 'it', 'yue-CN', 'sh-CN']) {
+    for (const source of ['ja', 'fr', 'ko', 'it', 'yue', 'wuu']) {
       expect(values(ast2Languages.targets(source, AST2_DEFAULTS, TEXT)), source).toEqual(['en', 'zh']);
     }
     expect(values(ast2Languages.targets('ja', AST2_DEFAULTS, SPEAKING))).toEqual(['en', 'zh']);
@@ -124,7 +124,7 @@ describe("Doubao AST 2.0's languages (ruling 3; choice 1)", () => {
       for (const source of values(ast2Languages.sources(AST2_DEFAULTS, context))) {
         const targets = values(ast2Languages.targets(source, AST2_DEFAULTS, context));
         for (const dialect of DIALECTS) expect(targets, source).not.toContain(dialect);
-        if (source !== ZHEN) expect(targets, source).not.toContain(source);
+        if (source !== ZH_EN) expect(targets, source).not.toContain(source);
       }
     }
   });
@@ -138,25 +138,25 @@ describe("Doubao AST 2.0's languages (ruling 3; choice 1)", () => {
         }
       }
     }
-    expect(swapped(p, AST2_DEFAULTS, { source: ZHEN, target: ZHEN }, SPEAKING)).toBeNull();
+    expect(swapped(p, AST2_DEFAULTS, { source: ZH_EN, target: ZH_EN }, SPEAKING)).toBeNull();
   });
 
   it('keep what they can of a pair a mode switch leaves unoffered, by normalizePair (the spec\'s rule)', () => {
     // Text only's Korean → Chinese, once the run speaks: Korean is gone, so the first source; its first target.
     expect(normalizePair(p, AST2_DEFAULTS, { source: 'ko', target: 'zh' }, SPEAKING)).toEqual({ source: 'zh', target: 'en' });
     expect(normalizePair(p, AST2_DEFAULTS, { source: 'zh', target: 'ko' }, SPEAKING)).toEqual({ source: 'zh', target: 'en' });
-    expect(normalizePair(p, AST2_DEFAULTS, { source: 'yue-CN', target: 'en' }, SPEAKING)).toEqual({ source: 'zh', target: 'en' });
+    expect(normalizePair(p, AST2_DEFAULTS, { source: 'yue', target: 'en' }, SPEAKING)).toEqual({ source: 'zh', target: 'en' });
     // Every spoken pair runs as text too: the switch the other way changes nothing.
     expect(normalizePair(p, AST2_DEFAULTS, { source: 'ja', target: 'zh' }, TEXT)).toEqual({ source: 'ja', target: 'zh' });
   });
 
   it("repair the old UI's pairs: zhen with anything becomes zhen/zhen, a pair with neither Chinese nor English gets English (the old rules R1, R3)", () => {
-    expect(normalizePair(p, AST2_DEFAULTS, { source: ZHEN, target: 'en' })).toEqual({ source: ZHEN, target: ZHEN });
-    expect(normalizePair(p, AST2_DEFAULTS, { source: 'en', target: ZHEN })).toEqual({ source: 'en', target: 'zh' });
+    expect(normalizePair(p, AST2_DEFAULTS, { source: ZH_EN, target: 'en' })).toEqual({ source: ZH_EN, target: ZH_EN });
+    expect(normalizePair(p, AST2_DEFAULTS, { source: 'en', target: ZH_EN })).toEqual({ source: 'en', target: 'zh' });
     expect(normalizePair(p, AST2_DEFAULTS, { source: 'ja', target: 'de' })).toEqual({ source: 'ja', target: 'en' });
     // R1: picking zhen as the source; R3: leaving it.
-    expect(normalizePair(p, AST2_DEFAULTS, { source: ZHEN, target: 'ja' }, SPEAKING)).toEqual({ source: ZHEN, target: ZHEN });
-    expect(normalizePair(p, AST2_DEFAULTS, { source: 'fr', target: ZHEN }, SPEAKING)).toEqual({ source: 'fr', target: 'en' });
+    expect(normalizePair(p, AST2_DEFAULTS, { source: ZH_EN, target: 'ja' }, SPEAKING)).toEqual({ source: ZH_EN, target: ZH_EN });
+    expect(normalizePair(p, AST2_DEFAULTS, { source: 'fr', target: ZH_EN }, SPEAKING)).toEqual({ source: 'fr', target: 'en' });
   });
 
   it('say whether Doubao runs a direction in a mode: build\'s guard', () => {
@@ -164,6 +164,6 @@ describe("Doubao AST 2.0's languages (ruling 3; choice 1)", () => {
     expect(ast2Offers({ source: 'ko', target: 'zh' }, SPEAKING)).toBe(false);
     expect(ast2Offers({ source: 'ko', target: 'zh' }, TEXT)).toBe(true);
     expect(ast2Offers({ source: 'ja', target: 'de' }, TEXT)).toBe(false);
-    expect(ast2Offers({ source: 'en', target: 'yue-CN' }, TEXT)).toBe(false);
+    expect(ast2Offers({ source: 'en', target: 'yue' }, TEXT)).toBe(false);
   });
 });

@@ -5,7 +5,7 @@
  */
 import type { SessionContext } from '../../lib/contract/adapter';
 import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
-import { ast2Offers, type Ast2Settings } from './settings';
+import { ast2Languages, ast2Offers, type Ast2Settings } from './settings';
 
 /** The console libraries a session names (`ReqParams.corpus`), the protobuf's camelCase names. */
 export interface Ast2Corpus {
@@ -47,7 +47,8 @@ export function buildAst2(context: SessionContext, s: Ast2Settings, _shared: Sha
   }
   const corpus = buildCorpus(s);
   // The same libraries on both legs (parity): the build cannot tell the legs of a `zhen/zhen` pair apart (choice 6).
-  return { mode: context.speech ? 's2s' : 's2t', sourceLanguage: source, targetLanguage: target, ...(corpus ? { corpus } : {}) };
+  const wire = ast2Languages.wire!;
+  return { mode: context.speech ? 's2s' : 's2t', sourceLanguage: wire.toWire(source), targetLanguage: wire.toWire(target), ...(corpus ? { corpus } : {}) };
 }
 
 /** No model to name: the old start reported none for AST2 (choice 7). */
