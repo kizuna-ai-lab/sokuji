@@ -1,8 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { describe, expect, it } from 'vitest';
 import { identityWire, wireTable } from './wire';
-
-const reportWarning = vi.hoisted(() => vi.fn());
-vi.mock('../diagnostics/report', () => ({ reportWarning }));
 
 describe('wireTable', () => {
   const t = wireTable([['en'], ['es-CL', 'es-ch'], ['zh+en', 'zhen']]);
@@ -35,12 +34,16 @@ describe('wireTable', () => {
     expect(() => wireTable([['en', 'x'], ['ja', 'X']])).toThrow(/Duplicate vendor code/);
   });
 
-  it('keeps a non-app code and warns instead of throwing at import', () => {
-    reportWarning.mockClear();
+  it('keeps a non-app code without throwing at import: registry.test.ts is what pins every code', () => {
     const odd = wireTable([['zh_CN']]);
-    expect(reportWarning).toHaveBeenCalledWith('Language', expect.stringContaining('zh_CN'));
     expect(odd.toWire('zh_CN')).toBe('zh_CN');
     expect(odd.fromWire('zh_cn')).toBe('zh_CN');
+  });
+
+  it('imports no store and no reporter: adapters reach it through their language tables', () => {
+    const source = readFileSync(resolve(__dirname, 'wire.ts'), 'utf8');
+    const imports = [...source.matchAll(/^import[^;]*from '([^']+)'/gm)].map((m) => m[1]);
+    expect(imports.filter((spec) => /stores\/|diagnostics\//.test(spec))).toEqual([]);
   });
 });
 

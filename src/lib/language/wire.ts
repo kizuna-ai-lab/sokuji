@@ -3,7 +3,6 @@
  * (spec §3). A row of one element means the two are the same.
  */
 import { parseCode, type LanguageCode } from './code';
-import { reportWarning } from '../diagnostics/report';
 
 export type WireRow = readonly [LanguageCode] | readonly [LanguageCode, string];
 
@@ -23,8 +22,9 @@ export function wireTable(rows: readonly WireRow[]): WireTable {
   for (const row of rows) {
     const code = row[0];
     const wire = row.length === 2 ? row[1] : row[0];
-    // A table is built at import: a bad row must not take the whole app down, so it is kept and reported.
-    if (parseCode(code) === null) reportWarning('Language', `Not an app code in a wire table: "${code}"`);
+    // A table is built at import, and adapters import it, so it neither throws on a code a browser's ICU
+    // might canonicalize differently nor imports the reporter (adapters stay store-free); registry.test.ts
+    // asserts every provider's codes are app codes.
     if (out.has(code)) throw new Error(`Duplicate app code: "${code}"`);
     const key = wire.toLowerCase();
     if (back.has(key)) throw new Error(`Duplicate vendor code: "${wire}"`);
