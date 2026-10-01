@@ -170,7 +170,7 @@ export class LiveSegments {
    */
   output(delta: string, startMs: number | null, endMs: number | null): void {
     if (this.stopped) return;
-    let text = delta;
+    let text: string;
     let marks = '';
     if (this.translationRef === null) text = delta.slice((LEADING_PUNCT_RE.exec(delta)?.[0] ?? '').length);
     else {
