@@ -408,13 +408,18 @@ describe('the global pair (unified language codes)', () => {
     expect(setSetting).not.toHaveBeenCalledWith('settings.common.targetLanguage', expect.anything());
   });
 
-  it('writes a pick, both sides as shown, and every loaded provider follows it', async () => {
+  it('writes a pick, both sides as shown, and every loaded provider follows it, forgetting its readiness', async () => {
+    stored.set('settings.common.sourceLanguage', 'ja');
+    stored.set('settings.common.targetLanguage', 'fr');
     await useProviderStore.getState().load(probe);
     await useProviderStore.getState().load(narrow);
+    expect(pairOf('probe')).toEqual({ source: 'ja', target: 'fr' });
+    useProviderStore.setState({ readiness: { ...useProviderStore.getState().readiness, probe: { state: 'ready', models: [] } } });
     useProviderStore.getState().setPair(narrow, { source: 'de', target: 'en' });
     expect(stored.get('settings.common.sourceLanguage')).toBe('de');
     expect(stored.get('settings.common.targetLanguage')).toBe('en');
     expect(pairOf('probe')).toEqual({ source: 'en', target: 'ja' });
+    expect(useProviderStore.getState().readiness.probe).toEqual({ state: 'unknown' });
   });
 
   it('writes no pair when a settings edit narrows the offer, and brings it back when the edit is undone', async () => {
