@@ -24,6 +24,21 @@ export namespace data {
                 /** ReqParams speakerId */
                 speakerId?: (string|null);
 
+                /** ReqParams speechRate */
+                speechRate?: (number|null);
+
+                /** ReqParams enableSourceLanguageDetect */
+                enableSourceLanguageDetect?: (boolean|null);
+
+                /** ReqParams isCustomSpeaker */
+                isCustomSpeaker?: (boolean|null);
+
+                /** ReqParams ttsResourceId */
+                ttsResourceId?: (string|null);
+
+                /** ReqParams extra */
+                extra?: (string|null);
+
                 /** ReqParams corpus */
                 corpus?: (data.speech.understanding.ICorpus|null);
             }
@@ -48,6 +63,21 @@ export namespace data {
 
                 /** ReqParams speakerId. */
                 public speakerId: string;
+
+                /** ReqParams speechRate. */
+                public speechRate: number;
+
+                /** ReqParams enableSourceLanguageDetect. */
+                public enableSourceLanguageDetect?: (boolean|null);
+
+                /** ReqParams isCustomSpeaker. */
+                public isCustomSpeaker: boolean;
+
+                /** ReqParams ttsResourceId. */
+                public ttsResourceId: string;
+
+                /** ReqParams extra. */
+                public extra: string;
 
                 /** ReqParams corpus. */
                 public corpus?: (data.speech.understanding.ICorpus|null);
@@ -185,6 +215,15 @@ export namespace data {
 
                 /** TranslateResponse mutedDurationMs */
                 mutedDurationMs?: (number|null);
+
+                /** TranslateResponse speakerId */
+                speakerId?: (string|null);
+
+                /** TranslateResponse detectedLanguage */
+                detectedLanguage?: (string|null);
+
+                /** TranslateResponse languageConfidence */
+                languageConfidence?: (number|null);
             }
 
             /** Represents a TranslateResponse. */
@@ -219,6 +258,15 @@ export namespace data {
 
                 /** TranslateResponse mutedDurationMs. */
                 public mutedDurationMs: number;
+
+                /** TranslateResponse speakerId. */
+                public speakerId: string;
+
+                /** TranslateResponse detectedLanguage. */
+                public detectedLanguage?: (string|null);
+
+                /** TranslateResponse languageConfidence. */
+                public languageConfidence?: (number|null);
 
                 /**
                  * Encodes the specified TranslateResponse message. Does not implicitly {@link data.speech.ast.TranslateResponse.verify|verify} messages.

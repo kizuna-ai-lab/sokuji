@@ -44,6 +44,11 @@ export const data = $root.data = (() => {
                  * @property {string|null} [sourceLanguage] ReqParams sourceLanguage
                  * @property {string|null} [targetLanguage] ReqParams targetLanguage
                  * @property {string|null} [speakerId] ReqParams speakerId
+                 * @property {number|null} [speechRate] ReqParams speechRate
+                 * @property {boolean|null} [enableSourceLanguageDetect] ReqParams enableSourceLanguageDetect
+                 * @property {boolean|null} [isCustomSpeaker] ReqParams isCustomSpeaker
+                 * @property {string|null} [ttsResourceId] ReqParams ttsResourceId
+                 * @property {string|null} [extra] ReqParams extra
                  * @property {data.speech.understanding.ICorpus|null} [corpus] ReqParams corpus
                  */
 
@@ -95,12 +100,61 @@ export const data = $root.data = (() => {
                 ReqParams.prototype.speakerId = "";
 
                 /**
+                 * ReqParams speechRate.
+                 * @member {number} speechRate
+                 * @memberof data.speech.ast.ReqParams
+                 * @instance
+                 */
+                ReqParams.prototype.speechRate = 0;
+
+                /**
+                 * ReqParams enableSourceLanguageDetect.
+                 * @member {boolean|null|undefined} enableSourceLanguageDetect
+                 * @memberof data.speech.ast.ReqParams
+                 * @instance
+                 */
+                ReqParams.prototype.enableSourceLanguageDetect = null;
+
+                /**
+                 * ReqParams isCustomSpeaker.
+                 * @member {boolean} isCustomSpeaker
+                 * @memberof data.speech.ast.ReqParams
+                 * @instance
+                 */
+                ReqParams.prototype.isCustomSpeaker = false;
+
+                /**
+                 * ReqParams ttsResourceId.
+                 * @member {string} ttsResourceId
+                 * @memberof data.speech.ast.ReqParams
+                 * @instance
+                 */
+                ReqParams.prototype.ttsResourceId = "";
+
+                /**
+                 * ReqParams extra.
+                 * @member {string} extra
+                 * @memberof data.speech.ast.ReqParams
+                 * @instance
+                 */
+                ReqParams.prototype.extra = "";
+
+                /**
                  * ReqParams corpus.
                  * @member {data.speech.understanding.ICorpus|null|undefined} corpus
                  * @memberof data.speech.ast.ReqParams
                  * @instance
                  */
                 ReqParams.prototype.corpus = null;
+
+                // OneOf field names bound to virtual getters and setters
+                let $oneOfFields;
+
+                // Virtual OneOf for proto3 optional field
+                Object.defineProperty(ReqParams.prototype, "_enableSourceLanguageDetect", {
+                    get: $util.oneOfGetter($oneOfFields = ["enableSourceLanguageDetect"]),
+                    set: $util.oneOfSetter($oneOfFields)
+                });
 
                 /**
                  * Encodes the specified ReqParams message. Does not implicitly {@link data.speech.ast.ReqParams.verify|verify} messages.
@@ -122,6 +176,16 @@ export const data = $root.data = (() => {
                         writer.uint32(/* id 3, wireType 2 =*/26).string(message.targetLanguage);
                     if (message.speakerId != null && Object.hasOwnProperty.call(message, "speakerId"))
                         writer.uint32(/* id 4, wireType 2 =*/34).string(message.speakerId);
+                    if (message.speechRate != null && Object.hasOwnProperty.call(message, "speechRate"))
+                        writer.uint32(/* id 5, wireType 0 =*/40).int32(message.speechRate);
+                    if (message.enableSourceLanguageDetect != null && Object.hasOwnProperty.call(message, "enableSourceLanguageDetect"))
+                        writer.uint32(/* id 6, wireType 0 =*/48).bool(message.enableSourceLanguageDetect);
+                    if (message.isCustomSpeaker != null && Object.hasOwnProperty.call(message, "isCustomSpeaker"))
+                        writer.uint32(/* id 7, wireType 0 =*/56).bool(message.isCustomSpeaker);
+                    if (message.ttsResourceId != null && Object.hasOwnProperty.call(message, "ttsResourceId"))
+                        writer.uint32(/* id 8, wireType 2 =*/66).string(message.ttsResourceId);
+                    if (message.extra != null && Object.hasOwnProperty.call(message, "extra"))
+                        writer.uint32(/* id 80, wireType 2 =*/642).string(message.extra);
                     if (message.corpus != null && Object.hasOwnProperty.call(message, "corpus"))
                         $root.data.speech.understanding.Corpus.encode(message.corpus, writer.uint32(/* id 100, wireType 2 =*/802).fork()).ldelim();
                     return writer;
@@ -161,6 +225,26 @@ export const data = $root.data = (() => {
                             }
                         case 4: {
                                 message.speakerId = reader.string();
+                                break;
+                            }
+                        case 5: {
+                                message.speechRate = reader.int32();
+                                break;
+                            }
+                        case 6: {
+                                message.enableSourceLanguageDetect = reader.bool();
+                                break;
+                            }
+                        case 7: {
+                                message.isCustomSpeaker = reader.bool();
+                                break;
+                            }
+                        case 8: {
+                                message.ttsResourceId = reader.string();
+                                break;
+                            }
+                        case 80: {
+                                message.extra = reader.string();
                                 break;
                             }
                         case 100: {
@@ -411,6 +495,9 @@ export const data = $root.data = (() => {
                  * @property {number|null} [endTime] TranslateResponse endTime
                  * @property {boolean|null} [spkChg] TranslateResponse spkChg
                  * @property {number|null} [mutedDurationMs] TranslateResponse mutedDurationMs
+                 * @property {string|null} [speakerId] TranslateResponse speakerId
+                 * @property {string|null} [detectedLanguage] TranslateResponse detectedLanguage
+                 * @property {number|null} [languageConfidence] TranslateResponse languageConfidence
                  */
 
                 /**
@@ -492,12 +579,48 @@ export const data = $root.data = (() => {
                  */
                 TranslateResponse.prototype.mutedDurationMs = 0;
 
+                /**
+                 * TranslateResponse speakerId.
+                 * @member {string} speakerId
+                 * @memberof data.speech.ast.TranslateResponse
+                 * @instance
+                 */
+                TranslateResponse.prototype.speakerId = "";
+
+                /**
+                 * TranslateResponse detectedLanguage.
+                 * @member {string|null|undefined} detectedLanguage
+                 * @memberof data.speech.ast.TranslateResponse
+                 * @instance
+                 */
+                TranslateResponse.prototype.detectedLanguage = null;
+
+                /**
+                 * TranslateResponse languageConfidence.
+                 * @member {number|null|undefined} languageConfidence
+                 * @memberof data.speech.ast.TranslateResponse
+                 * @instance
+                 */
+                TranslateResponse.prototype.languageConfidence = null;
+
                 // OneOf field names bound to virtual getters and setters
                 let $oneOfFields;
 
                 // Virtual OneOf for proto3 optional field
                 Object.defineProperty(TranslateResponse.prototype, "_responseMeta", {
                     get: $util.oneOfGetter($oneOfFields = ["responseMeta"]),
+                    set: $util.oneOfSetter($oneOfFields)
+                });
+
+                // Virtual OneOf for proto3 optional field
+                Object.defineProperty(TranslateResponse.prototype, "_detectedLanguage", {
+                    get: $util.oneOfGetter($oneOfFields = ["detectedLanguage"]),
+                    set: $util.oneOfSetter($oneOfFields)
+                });
+
+                // Virtual OneOf for proto3 optional field
+                Object.defineProperty(TranslateResponse.prototype, "_languageConfidence", {
+                    get: $util.oneOfGetter($oneOfFields = ["languageConfidence"]),
                     set: $util.oneOfSetter($oneOfFields)
                 });
 
@@ -529,6 +652,12 @@ export const data = $root.data = (() => {
                         writer.uint32(/* id 7, wireType 0 =*/56).bool(message.spkChg);
                     if (message.mutedDurationMs != null && Object.hasOwnProperty.call(message, "mutedDurationMs"))
                         writer.uint32(/* id 8, wireType 0 =*/64).int32(message.mutedDurationMs);
+                    if (message.speakerId != null && Object.hasOwnProperty.call(message, "speakerId"))
+                        writer.uint32(/* id 9, wireType 2 =*/74).string(message.speakerId);
+                    if (message.detectedLanguage != null && Object.hasOwnProperty.call(message, "detectedLanguage"))
+                        writer.uint32(/* id 10, wireType 2 =*/82).string(message.detectedLanguage);
+                    if (message.languageConfidence != null && Object.hasOwnProperty.call(message, "languageConfidence"))
+                        writer.uint32(/* id 11, wireType 1 =*/89).double(message.languageConfidence);
                     return writer;
                 };
 
@@ -582,6 +711,18 @@ export const data = $root.data = (() => {
                             }
                         case 8: {
                                 message.mutedDurationMs = reader.int32();
+                                break;
+                            }
+                        case 9: {
+                                message.speakerId = reader.string();
+                                break;
+                            }
+                        case 10: {
+                                message.detectedLanguage = reader.string();
+                                break;
+                            }
+                        case 11: {
+                                message.languageConfidence = reader.double();
                                 break;
                             }
                         default:
