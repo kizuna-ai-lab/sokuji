@@ -4,7 +4,7 @@ import { LEAD_S } from './clipQueue';
 import {
   FakeAudioContext, FakeSink, FakeWorkletNode, reaches, type FakeBufferSource, type FakeGain, type FakeNode,
 } from './fakeWebAudio';
-import { CLOSE_WAIT_MS, createAudioGraph, MAX_REBUILDS } from './graph';
+import { CLOSE_WAIT_MS, createAudioGraph, MAX_REBUILDS, SINK_SWITCH_DEADLINE_MS } from './graph';
 import { createPlayback, type RoutingSource } from './playback';
 
 const reportWarningSpy = vi.hoisted(() => vi.fn());
@@ -156,6 +156,94 @@ describe('createAudioGraph — outputs', () => {
     await graph.setSinks({ virtual: 'cable-1' });
     await graph.resume();
     expect(virtualSink.paused).toBe(true);
+  });
+
+  /** Lets every queued microtask and resolved promise run. */
+  const settle = () => new Promise<void>((resolve) => { setTimeout(resolve, 0); });
+
+  // Each case lets the first switch start (`settle`) before asking for the next:
+  // a request overtaken in the same tick never reaches the element at all.
+
+  it('switches one device at a time per bus, and skips a switch a newer one overtook before its turn', async () => {
+    const { graph, real } = await setup();
+    const calls: string[] = [];
+    const land: Array<() => void> = [];
+    real.setSinkId = (id: string) => {
+      calls.push(id);
+      return new Promise<void>((resolve) => { land.push(() => { real.sinkId = id; resolve(); }); });
+    };
+    const first = graph.setSinks({ real: 'monitor-a' });
+    await settle();
+    const second = graph.setSinks({ real: 'monitor-b' });
+    const third = graph.setSinks({ real: 'monitor-c' });
+    await settle();
+    // monitor-b and monitor-c wait for monitor-a: no two switches overlap on one element.
+    expect(calls).toEqual(['monitor-a']);
+    land.shift()!();
+    await first;
+    await settle();
+    // monitor-b was overtaken by monitor-c before its turn: it never reaches the element.
+    expect(calls).toEqual(['monitor-a', 'monitor-c']);
+    land.shift()!();
+    await Promise.all([second, third]);
+    expect(real.sinkId).toBe('monitor-c');
+  });
+
+  it("a stale switch's failure neither forgets nor pauses the newer selection", async () => {
+    const { graph, virtualSink } = await setup();
+    const outcome: Record<string, { ok: () => void; fail: () => void }> = {};
+    virtualSink.setSinkId = (id: string) => new Promise<void>((resolve, reject) => {
+      outcome[id] = { ok: () => { virtualSink.sinkId = id; resolve(); }, fail: () => reject(new Error('NotFoundError')) };
+    });
+    reportWarningSpy.mockClear();
+    const first = graph.setSinks({ virtual: 'cable-1' });
+    await settle();
+    const second = graph.setSinks({ virtual: 'cable-2' });
+    outcome['cable-1'].fail();
+    await first;
+    await settle();
+    // The newer switch ran after the stale one settled, and was not given up.
+    expect(outcome['cable-2']).toBeDefined();
+    outcome['cable-2'].ok();
+    await second;
+    expect(virtualSink.sinkId).toBe('cable-2');
+    expect(virtualSink.paused).toBe(false);
+    // The device the user moved away from is not worth a line in the panel.
+    expect(reportWarningSpy).not.toHaveBeenCalled();
+  });
+
+  it('turning the virtual output off while a switch is pending keeps it silent when that switch lands', async () => {
+    const { graph, virtualSink } = await setup();
+    let land!: () => void;
+    virtualSink.setSinkId = (id: string) => new Promise<void>((resolve) => { land = () => { virtualSink.sinkId = id; resolve(); }; });
+    const first = graph.setSinks({ virtual: 'cable-1' });
+    await settle();
+    await graph.setSinks({ virtual: undefined });
+    land();
+    await first;
+    await graph.resume();
+    expect(virtualSink.paused).toBe(true);
+  });
+
+  it('a switch landing or still queued at close() neither reaches nor starts the element', async () => {
+    const { graph, real } = await setup();
+    const calls: string[] = [];
+    const land: Array<() => void> = [];
+    real.setSinkId = (id: string) => {
+      calls.push(id);
+      return new Promise<void>((resolve) => { land.push(() => { real.sinkId = id; resolve(); }); });
+    };
+    const first = graph.setSinks({ real: 'monitor-a' });
+    await settle();
+    const second = graph.setSinks({ real: 'monitor-b' });
+    const closed = graph.close();
+    for (const release of land.splice(0)) release();
+    await settle();
+    expect(calls).toEqual(['monitor-a']);
+    // Whatever did reach the element lands too, so a regression fails above instead of hanging here.
+    for (const release of land.splice(0)) release();
+    await Promise.all([first, second, closed]);
+    expect(real.paused).toBe(true);
   });
 
   it('ignores an interrupted play() (AbortError), but reports any other failure to start', async () => {
@@ -782,5 +870,25 @@ describe('createAudioGraph — a wedged context (#246)', () => {
     first.resume = () => Promise.reject(new Error('InvalidStateError'));
     await graph.resume();
     expect(resumeWarnings()).toHaveLength(1);
+  });
+
+  it('a device switch that never settles holds its bus only until the deadline', async () => {
+    const { graph, real, clock, flush } = await setupRecovering();
+    const calls: string[] = [];
+    real.setSinkId = (id: string) => {
+      calls.push(id);
+      return id === 'gone' ? new Promise<void>(() => {}) : Promise.resolve().then(() => { real.sinkId = id; });
+    };
+    void graph.setSinks({ real: 'gone' });
+    await flush();
+    const next = graph.setSinks({ real: 'monitor-b' });
+    await flush();
+    expect(calls).toEqual(['gone']);
+    clock.advance(SINK_SWITCH_DEADLINE_MS);
+    await flush();
+    expect(calls).toEqual(['gone', 'monitor-b']);
+    await next;
+    expect(real.sinkId).toBe('monitor-b');
+    expect(clock.pending).toBe(0);
   });
 });
