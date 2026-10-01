@@ -3416,15 +3416,19 @@ function addBase(into: Set<string>, code: string): void {
   }
 }
 
-/** Base languages some ASR model recognises. Omnilingual's list is unverified, so it adds nothing. */
+/** The language codes one ASR entry contributes, before canonicalization. Omnilingual's list is unverified, so it adds nothing. */
+export function asrEntryLanguages(m: ModelManifestEntry): readonly string[] {
+  if (m.type !== 'asr' && m.type !== 'asr-stream') return [];
+  if (m.asrEngine === 'omnilingual') return [];
+  const declared = m.languages.filter((l) => l !== 'multilingual');
+  // Only a Whisper entry that declares 'multilingual' speaks Whisper's full list.
+  return isWhisper(m) && m.languages.includes('multilingual') ? [...WHISPER_LANGUAGES, ...declared] : declared;
+}
+
+/** Base languages some ASR model recognises. */
 function asrBaseLanguages(): Set<string> {
   const out = new Set<string>();
-  for (const m of MODEL_MANIFEST) {
-    if (m.type !== 'asr' && m.type !== 'asr-stream') continue;
-    if (m.asrEngine === 'omnilingual') continue;
-    if (isWhisper(m)) WHISPER_LANGUAGES.forEach((l) => addBase(out, l));
-    for (const l of m.languages) if (l !== 'multilingual') addBase(out, l);
-  }
+  for (const m of MODEL_MANIFEST) asrEntryLanguages(m).forEach((l) => addBase(out, l));
   return out;
 }
 
