@@ -477,9 +477,7 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "アプリ ID + アクセストークン",
       "voiceClone": "話者の声を複製",
-      "voiceFemale": "Vivi（女性）",
-      "voiceMale": "京腔侃爷（男性）",
-      "voiceHint": "翻訳を音声で再生するときだけ使われます。Vivi と京腔侃爷は中国語か英語しか話せないため、どちらかを選ぶと翻訳先の言語はこの 2 つに限られます。"
+      "voiceHint": "翻訳を音声で再生するときだけ使われます。"
     },
     "local_inference": {
       "name": "無料",
@@ -964,6 +962,8 @@
         "neutral": "中性"
       },
       "age": {
+        "child": "子ども",
+        "teen": "10代",
         "young": "若い",
         "middle_aged": "中年",
         "old": "年配"

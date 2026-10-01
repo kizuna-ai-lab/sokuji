@@ -1,37 +1,63 @@
 import { Info } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { TextField } from '../../components/providers/fields/TextField';
-import { VoiceField } from '../../components/providers/fields/VoiceField';
+import { VoicePreviewContext } from '../../components/providers/VoicePreviewContext';
+import VoiceLibrarySection, { type VoiceEntry } from '../../components/Settings/sections/VoiceLibrarySection';
 import type { SettingsProps } from '../../lib/provider/types';
-import { AST2_VOICES, type Ast2Settings as S, type Ast2Voice } from './settings';
+import type { VoiceLibraryCapability } from '../../types/VoiceLibrary';
+import { voicesFor } from './catalog';
+import { previewVoice } from './preview';
+import type { Ast2Settings as S } from './settings';
+import { CLONE, clonable, effectiveVoice } from './voice';
 
 /** The console's library pages (`ProviderSpecificSettings.tsx:1606-1694`). */
 const CONSOLE = 'https://console.volcengine.com/speech';
+
+/** Doubao has no voice of the user's own to add, rename or delete; 500 voices need the search and facets (R3: gender and age; the target fixes the language, R4). */
+const CAPABILITY: VoiceLibraryCapability = { importModes: [], facetFilter: true };
+const NO_DELETE = async () => {};
 
 /**
  * Doubao AST 2.0's own settings (D18; choice 16): the old UI's Custom
  * Vocabulary and info blocks (`ProviderSpecificSettings.tsx:1603-1716`), the
  * library ids in the shared `TextField`. The pair is the generic section's,
  * the speech mode the Speech section's, the credentials and their mode the
- * credential form's; there are no turn-detection knobs. The voice (#577)
- * shows whether or not the run speaks — the view is not told — so its hint
- * says it only applies to speech.
+ * credential form's; there are no turn-detection knobs. The voice (#577
+ * catalog §3) is the shared voice library, listing the run's target's
+ * voices; picking one writes that target's slot only.
  */
-export function Ast2SettingsView({ settings, update, disabled = false }: SettingsProps<S>) {
+export function Ast2SettingsView({ settings, update, disabled = false, pair, preview }: SettingsProps<S>) {
   const { t } = useTranslation();
-  const voices = [
-    { value: 'clone', name: t('providers.volcengine_ast2.voiceClone', "Clone the speaker's voice") },
-    ...AST2_VOICES.map((v) => ({ value: v.id, name: t(v.labelKey) })),
+  // Every host passes the shown pair; only a component's own test omits it.
+  const shown = pair ?? { source: 'zh', target: 'en' };
+  const voices: VoiceEntry[] = [
+    ...(clonable(shown) ? [{ id: CLONE, label: t('providers.volcengine_ast2.voiceClone', "Clone the speaker's voice"), group: 'builtin' as const, removable: false }] : []),
+    ...voicesFor(shown.target).map((v): VoiceEntry => ({
+      id: v.id,
+      label: v.name,
+      group: 'builtin',
+      removable: false,
+      previewable: true,
+      meta: { gender: v.gender === 'male' ? 'M' : 'F', facets: { gender: v.gender, age: v.age } },
+    })),
   ];
   return (
     <>
-      <VoiceField
-        value={settings.voice}
-        options={voices}
-        onChange={(voice) => update({ voice: voice as Ast2Voice })}
-        disabled={disabled}
-        hint={t('providers.volcengine_ast2.voiceHint', 'Used only when the translation is spoken. Vivi and Jingqiang Kanye speak only Chinese or English, so with either of them the target language is limited to those two.')}
-      />
+      <VoicePreviewContext.Provider value={preview ?? null}>
+        <div className="settings-section" id="volcengine-ast2-voice-section">
+          <h2>{t('settings.voiceSettings', 'Voice Settings')}</h2>
+          <VoiceLibrarySection
+            voices={voices}
+            selectedId={effectiveVoice(shown, settings) ?? ''}
+            onSelect={(id) => update({ voices: { ...settings.voices, [shown.target]: id } })}
+            onDelete={NO_DELETE}
+            onPreview={(id, signal) => previewVoice(id, shown.target, signal)}
+            manageNote={t('providers.volcengine_ast2.voiceHint', 'Used only when the translation is spoken.')}
+            capability={CAPABILITY}
+            isSessionActive={disabled}
+          />
+        </div>
+      </VoicePreviewContext.Provider>
       <div className="settings-section">
         <h2>{t('settings.volcengineAST2CustomVocabulary', 'Custom Vocabulary')}</h2>
         <TextField

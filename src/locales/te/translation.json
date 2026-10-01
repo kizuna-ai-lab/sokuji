@@ -477,9 +477,7 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "యాప్ ID + యాక్సెస్ టోకెన్",
       "voiceClone": "మాట్లాడేవారి గొంతును క్లోన్ చేయి",
-      "voiceFemale": "Vivi (స్త్రీ)",
-      "voiceMale": "Jingqiang Kanye (పురుషుడు)",
-      "voiceHint": "అనువాదం మాట్లాడినప్పుడు మాత్రమే ఉపయోగిస్తారు. Vivi, Jingqiang Kanye చైనీస్ లేదా ఇంగ్లీష్ మాత్రమే మాట్లాడతాయి, కాబట్టి వీటిలో ఏదైనా ఎంచుకుంటే లక్ష్య భాష ఈ రెండింటికే పరిమితం."
+      "voiceHint": "అనువాదం మాట్లాడినప్పుడు మాత్రమే ఉపయోగిస్తారు."
     },
     "local_inference": {
       "name": "ఉచిత",
@@ -964,6 +962,8 @@
         "neutral": "Neutral"
       },
       "age": {
+        "child": "Child",
+        "teen": "Teen",
         "young": "Young",
         "middle_aged": "Middle-aged",
         "old": "Mature"

@@ -477,9 +477,7 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "Stimme des Sprechers klonen",
-      "voiceFemale": "Vivi (weiblich)",
-      "voiceMale": "Jingqiang Kanye (männlich)",
-      "voiceHint": "Wird nur verwendet, wenn die Übersetzung gesprochen wird. Vivi und Jingqiang Kanye sprechen nur Chinesisch oder Englisch, daher ist die Zielsprache mit ihnen auf diese beiden beschränkt."
+      "voiceHint": "Wird nur verwendet, wenn die Übersetzung gesprochen wird."
     },
     "local_inference": {
       "name": "Kostenlos",
@@ -964,6 +962,8 @@
         "neutral": "Neutral"
       },
       "age": {
+        "child": "Child",
+        "teen": "Teen",
         "young": "Young",
         "middle_aged": "Middle-aged",
         "old": "Mature"

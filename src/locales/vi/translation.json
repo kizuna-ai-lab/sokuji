@@ -477,9 +477,7 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "Sao chép giọng người nói",
-      "voiceFemale": "Vivi (nữ)",
-      "voiceMale": "Jingqiang Kanye (nam)",
-      "voiceHint": "Chỉ dùng khi bản dịch được đọc thành tiếng. Vivi và Jingqiang Kanye chỉ nói tiếng Trung hoặc tiếng Anh, nên khi chọn một trong hai, ngôn ngữ đích chỉ gồm hai ngôn ngữ này."
+      "voiceHint": "Chỉ dùng khi bản dịch được đọc thành tiếng."
     },
     "local_inference": {
       "name": "Miễn phí",
@@ -964,6 +962,8 @@
         "neutral": "Neutral"
       },
       "age": {
+        "child": "Child",
+        "teen": "Teen",
         "young": "Young",
         "middle_aged": "Middle-aged",
         "old": "Mature"

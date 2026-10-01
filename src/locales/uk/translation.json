@@ -477,9 +477,7 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "Клонувати голос мовця",
-      "voiceFemale": "Vivi (жіночий)",
-      "voiceMale": "Jingqiang Kanye (чоловічий)",
-      "voiceHint": "Використовується лише тоді, коли переклад озвучується. Vivi та Jingqiang Kanye говорять лише китайською або англійською, тож із будь-яким із них мову перекладу обмежено цими двома."
+      "voiceHint": "Використовується лише тоді, коли переклад озвучується."
     },
     "local_inference": {
       "name": "Безкоштовний",
@@ -964,6 +962,8 @@
         "neutral": "Neutral"
       },
       "age": {
+        "child": "Child",
+        "teen": "Teen",
         "young": "Young",
         "middle_aged": "Middle-aged",
         "old": "Mature"

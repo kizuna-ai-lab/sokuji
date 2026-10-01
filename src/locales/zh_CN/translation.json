@@ -477,9 +477,7 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "应用 ID + 访问令牌",
       "voiceClone": "复刻说话人的声音",
-      "voiceFemale": "Vivi（女声）",
-      "voiceMale": "京腔侃爷（男声）",
-      "voiceHint": "仅在译文以语音播放时生效。Vivi 和京腔侃爷只会说中文或英文，选择其中之一时，目标语言仅限这两种。"
+      "voiceHint": "仅在译文以语音播放时生效。"
     },
     "local_inference": {
       "name": "免费",
@@ -964,6 +962,8 @@
         "neutral": "中性"
       },
       "age": {
+        "child": "儿童",
+        "teen": "少年",
         "young": "年轻",
         "middle_aged": "中年",
         "old": "年长"

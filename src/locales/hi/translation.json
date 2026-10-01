@@ -477,9 +477,7 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "ऐप ID + एक्सेस टोकन",
       "voiceClone": "वक्ता की आवाज़ क्लोन करें",
-      "voiceFemale": "Vivi (महिला)",
-      "voiceMale": "Jingqiang Kanye (पुरुष)",
-      "voiceHint": "केवल तब उपयोग होता है जब अनुवाद बोला जाता है। Vivi और Jingqiang Kanye सिर्फ़ चीनी या अंग्रेज़ी बोलते हैं, इसलिए इनमें से किसी के साथ लक्ष्य भाषा इन्हीं दो तक सीमित रहती है।"
+      "voiceHint": "केवल तब उपयोग होता है जब अनुवाद बोला जाता है।"
     },
     "local_inference": {
       "name": "मुफ़्त",
@@ -964,6 +962,8 @@
         "neutral": "Neutral"
       },
       "age": {
+        "child": "Child",
+        "teen": "Teen",
         "young": "Young",
         "middle_aged": "Middle-aged",
         "old": "Mature"
