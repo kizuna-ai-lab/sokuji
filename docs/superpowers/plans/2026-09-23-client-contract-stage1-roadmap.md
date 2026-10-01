@@ -8958,16 +8958,28 @@ both fixes correct. The three Minor items were handled as follows.
   - one new store case and one new wizard case, both red first;
   - the mutant "fields ignored" fails both;
   - `src` 532 + 1 files and 6 678 + 2 tests; type errors 95, none new.
-- **Left for the owner (Minor):** past the 1.5 s deadline, a slow but live
-  switch can land after the newer one. The element is then on the older
-  device, and re-picking the newer one is short-circuited, so the person must
-  pick a third device and come back. Before this plan the same race had no
-  time bound. The `setSinks` interface comment's "ends on the last one asked
-  for" claims too much past the deadline.
-  - The review's cheap fix: when the deadline fired before a switch settled,
-    re-queue the latest request once the late switch lands.
-  - The alternative is to state it in the comment and here.
+- **Fixed on the owner's word (Minor): `988759d3` `fix(audio): undo a device switch that lands late, past its deadline`.**
+  The defect: past the 1.5 s deadline, a slow but live switch could land after
+  the newer one. The element was then on the older device, and re-picking the
+  newer one was short-circuited, so the person had to pick a third device and
+  come back. Before this plan the same race had no time bound. The fix is the
+  review's own:
+  - When a switch's deadline fired before it settled, and it lands after a
+    newer request, the bus switches to the newest request again.
+  - On the meeting bus, the output pauses until that switch is back (F1).
+  - Nothing switches if the meeting output was turned off meanwhile.
+  - Three new cases: the real bus converges and the meeting bus converges
+    (both red first); the output turned off stays off (a pin). Test 1 gains
+    an assertion that a switch settling within its turn re-switches nothing.
+  - Four mutants, each failing its case: no re-switch, no `overran` guard,
+    no pause, re-switch when the output is off.
+  - `src` 532 + 1 files and 6 681 + 2 tests; type errors 95, none new; the
+    gate equal to its baseline.
+  - The `setSinks` interface comment's "ends on the last one asked for" now
+    holds. It also says the promise never settles for a switch that never
+    settles.
 - **Corrected in this record (Minor):** choice 2's wording about the panel
   (above).
 
-**Left to the owner:** resolving the two threads on #570 once this is pushed.
+**The two threads on #570:** resolved on the owner's word once this was
+pushed (2026-10-01).
