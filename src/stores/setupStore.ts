@@ -44,7 +44,7 @@ function removeLocal(key: string): void {
   }
 }
 
-/** The setup record could not be written. Typed rather than a bare Error so the
+/** The setup record, or a provider setting written before it, could not be written. Typed rather than a bare Error so the
  *  wizard can tell this apart from whatever else Finish may throw and show a
  *  translated line: this message is a diagnostic for the console, never copy. */
 export class SetupPersistError extends Error {

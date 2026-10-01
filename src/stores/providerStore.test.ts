@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { AnyProvider, CheckContext, LanguageContext, LanguageOption, LanguagePair, MigrationInputs } from '../lib/provider/types';
 
 const { stored, getSetting, setSetting } = vi.hoisted(() => {
@@ -447,5 +447,121 @@ describe('refreshReadiness', () => {
     await useProviderStore.getState().refreshReadiness(p, auth, from);
     expect(check.mock.calls[0][1]).toBe(from.settings);
     expect(check.mock.calls[0][2]).toMatchObject({ pair: from.pair, legs: from.legs });
+  });
+});
+
+describe('flush', () => {
+  const landNow = async (key: string, value: unknown) => {
+    stored.set(key, value);
+    return { success: true };
+  };
+  // The store keeps what did not land across tests (beforeEach resets its
+  // state, not its write ledger): put storage back and drain it.
+  afterEach(async () => {
+    setSetting.mockImplementation(landNow);
+    await useProviderStore.getState().flush();
+  });
+
+  /** Holds every write until released; `ok: false` refuses it as a full quota would. */
+  const holdWrites = () => {
+    const held: Array<{ key: string; release: (ok: boolean) => void }> = [];
+    setSetting.mockImplementation((key: string, value: unknown) => new Promise<{ success: boolean; error?: string }>((resolve) => {
+      held.push({ key, release: (ok) => {
+        if (ok) stored.set(key, value);
+        resolve(ok ? { success: true } : { success: false, error: 'QuotaExceededError' });
+      } });
+    }));
+    return held;
+  };
+
+  it('resolves true at once when nothing is being written', async () => {
+    await expect(useProviderStore.getState().flush()).resolves.toBe(true);
+  });
+
+  it('waits for every write the store started, and resolves true once all landed', async () => {
+    await useProviderStore.getState().load(probe);
+    const held = holdWrites();
+    useProviderStore.getState().setCredential(probe, 'apiKey', 'k-1');
+    useProviderStore.getState().setCredential(probe, 'apiKeyEu', 'k-2');
+    let answer: boolean | undefined;
+    const flushed = useProviderStore.getState().flush().then((ok) => { answer = ok; });
+    await new Promise<void>((resolve) => { setTimeout(resolve, 0); });
+    const early = answer;
+    // Released before any assertion: a held write would hold the drain in afterEach.
+    for (const write of held.splice(0)) write.release(true);
+    await flushed;
+    expect(early).toBeUndefined();
+    expect(answer).toBe(true);
+    expect(stored.get('settings.probe.apiKey')).toBe('k-1');
+    expect(stored.get('settings.probe.apiKeyEu')).toBe('k-2');
+  });
+
+  it('resolves false when a write did not land, and writes that value again on the next flush', async () => {
+    await useProviderStore.getState().load(probe);
+    setSetting.mockImplementationOnce(async () => ({ success: false, error: 'QuotaExceededError' }));
+    useProviderStore.getState().setCredential(probe, 'apiKey', 'k-1');
+    await expect(useProviderStore.getState().flush()).resolves.toBe(false);
+    expect(stored.has('settings.probe.apiKey')).toBe(false);
+    // Storage is back: the value the user left is written, nothing else.
+    await expect(useProviderStore.getState().flush()).resolves.toBe(true);
+    expect(stored.get('settings.probe.apiKey')).toBe('k-1');
+  });
+
+  it('resolves false again when the value written again is refused again', async () => {
+    await useProviderStore.getState().load(probe);
+    // Storage refuses every write until afterEach puts it back.
+    setSetting.mockImplementation(async () => ({ success: false, error: 'QuotaExceededError' }));
+    useProviderStore.getState().setCredential(probe, 'apiKey', 'k-1');
+    await expect(useProviderStore.getState().flush()).resolves.toBe(false);
+    await expect(useProviderStore.getState().flush()).resolves.toBe(false);
+    expect(stored.has('settings.probe.apiKey')).toBe(false);
+  });
+
+  it('never writes again a value a newer write of the same key replaced', async () => {
+    await useProviderStore.getState().load(probe);
+    setSetting.mockImplementationOnce(async () => ({ success: false, error: 'QuotaExceededError' }));
+    useProviderStore.getState().setCredential(probe, 'apiKey', 'old');
+    await useProviderStore.getState().flush();
+    useProviderStore.getState().setCredential(probe, 'apiKey', 'new');
+    setSetting.mockClear();
+    await expect(useProviderStore.getState().flush()).resolves.toBe(true);
+    expect(setSetting).not.toHaveBeenCalledWith('settings.probe.apiKey', 'old');
+    expect(stored.get('settings.probe.apiKey')).toBe('new');
+  });
+
+  it('never writes again a value whose write failed after a newer write of its key began', async () => {
+    await useProviderStore.getState().load(probe);
+    const held = holdWrites();
+    useProviderStore.getState().setCredential(probe, 'apiKey', 'old');
+    useProviderStore.getState().setCredential(probe, 'apiKey', 'new');
+    held[1].release(true); // the newer write lands first
+    held[0].release(false); // then the older one fails
+    await new Promise<void>((resolve) => { setTimeout(resolve, 0); });
+    setSetting.mockImplementation(landNow);
+    setSetting.mockClear();
+    await expect(useProviderStore.getState().flush()).resolves.toBe(true);
+    expect(setSetting).not.toHaveBeenCalled();
+    expect(stored.get('settings.probe.apiKey')).toBe('new');
+  });
+
+  it("flush(p) answers for p's own settings and the selection only: another provider's refused value does not fail it", async () => {
+    const other = { ...probe, id: 'other', settings: { ...probe.settings, key: 'other' } } as unknown as AnyProvider;
+    await useProviderStore.getState().load(probe);
+    await useProviderStore.getState().load(other);
+    setSetting.mockImplementation(async (key: string, value: unknown) => {
+      if (key.startsWith('settings.other.')) return { success: false, error: 'QuotaExceededError' };
+      stored.set(key, value);
+      return { success: true };
+    });
+    useProviderStore.getState().setCredential(other, 'apiKey', 'too-long');
+    useProviderStore.getState().setCredential(probe, 'apiKey', 'k-1');
+    await useProviderStore.getState().flush();
+    setSetting.mockClear();
+    await expect(useProviderStore.getState().flush(probe)).resolves.toBe(true);
+    // The other provider's value is neither written again nor answered for…
+    expect(setSetting).not.toHaveBeenCalledWith('settings.other.apiKey', expect.anything());
+    expect(stored.get('settings.probe.apiKey')).toBe('k-1');
+    // …but a flush of every key still sees it.
+    await expect(useProviderStore.getState().flush()).resolves.toBe(false);
   });
 });

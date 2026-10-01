@@ -61,6 +61,14 @@ export interface ProviderStore {
   setCredential(p: AnyProvider, key: string, value: string): void;
   setPair(p: AnyProvider, pair: LanguagePair): void;
   /**
+   * Writes again every value whose last write did not land, then waits for
+   * every write started so far, those included. True when nothing it answers
+   * for is left unsaved. With `p`, only `p`'s own settings and the selection
+   * are written again and answered for: another provider's refused value is
+   * not this caller's to fail on.
+   */
+  flush(p?: AnyProvider): Promise<boolean>;
+  /**
    * Runs the provider's `check` on the live entry (with the store's `legs`),
    * or on a run's shape (`from`), and records the answer. A run's check
    * returns its own answer even when a newer check began meanwhile; that one
@@ -115,9 +123,27 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
     return entry;
   };
   const put = (p: AnyProvider, entry: ProviderEntry) => set((st) => ({ entries: { ...st.entries, [p.id]: entry } }));
+  /** Writes in flight, and the last value per key whose write did not land (a later write of the key replaces it). */
+  const writing = new Set<Promise<boolean>>();
+  const unsaved = new Map<string, unknown>();
+  const latest = new Map<string, number>();
+  let writes = 0;
+  /** Every write this store makes goes through here, so `flush` can wait for it. */
+  const write = (key: string, value: unknown): void => {
+    const mine = ++writes;
+    latest.set(key, mine);
+    unsaved.delete(key);
+    // persistSetting never rejects; it reports a failure itself.
+    const done = persistSetting(key, value).then((ok) => {
+      if (!ok && latest.get(key) === mine) unsaved.set(key, value);
+      return ok;
+    });
+    writing.add(done);
+    void done.then(() => { writing.delete(done); });
+  };
   const persistPair = (p: AnyProvider, before: LanguagePair, after: LanguagePair) => {
-    if (after.source !== before.source) void persistSetting(storageKey(p, SOURCE), after.source);
-    if (after.target !== before.target) void persistSetting(storageKey(p, TARGET), after.target);
+    if (after.source !== before.source) write(storageKey(p, SOURCE), after.source);
+    if (after.target !== before.target) write(storageKey(p, TARGET), after.target);
   };
   const setReadiness = (p: Pick<AnyProvider, 'id'>, readiness: Readiness): Readiness => {
     set((st) => ({ readiness: { ...st.readiness, [p.id]: readiness } }));
@@ -169,7 +195,7 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       }
       set({ selected: id });
       const value = selectionToPersist(id, how);
-      if (value !== null) void persistSetting('settings.common.provider', value);
+      if (value !== null) write('settings.common.provider', value);
     },
     selectionLocked: false,
     setSelectionLocked(locked) {
@@ -233,7 +259,7 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       const kept = normalizePair(p, settings, before);
       const next = derive(p, settings, kept);
       put(p, { settings, credentials: entry.credentials, ...next });
-      for (const [field, value] of Object.entries(patch)) void persistSetting(storageKey(p, field), value);
+      for (const [field, value] of Object.entries(patch)) write(storageKey(p, field), value);
       persistPair(p, before, kept);
       // The answer holds while the check would read the same inputs (ruling 9): no field it reads was edited, and the run's pair did not move.
       const touched = p.checkReads === undefined || Object.keys(patch).some((field) => p.checkReads!.includes(field));
@@ -245,7 +271,7 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       const entry = loaded(p);
       if (!p.credentials.keys.includes(key)) throw new Error(`Provider "${p.id}" has no credential "${key}"`);
       put(p, { ...entry, credentials: { ...entry.credentials, [key]: value } });
-      void persistSetting(storageKey(p, key), value);
+      write(storageKey(p, key), value);
       forgetReadiness(p);
     },
 
@@ -257,6 +283,15 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       put(p, { settings: entry.settings, credentials: entry.credentials, ...derive(p, entry.settings, kept) });
       persistPair(p, before, kept);
       forgetReadiness(p);
+    },
+
+    async flush(p) {
+      const covers = (key: string) => !p || key === 'settings.common.provider' || key.startsWith(`settings.${p.settings.key}.`);
+      for (const [key, value] of [...unsaved]) {
+        if (covers(key)) write(key, value);
+      }
+      await Promise.all([...writing]);
+      return ![...unsaved.keys()].some(covers);
     },
 
     async refreshReadiness(p, auth, from, signal) {

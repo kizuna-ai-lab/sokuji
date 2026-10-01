@@ -1,13 +1,13 @@
 // Binds applySetupDraft to the live stores. Mocked out in SetupWizard's render
 // tests so the component can be exercised without the stores' import graph.
 //
-// applyProvider writes through the provider store (plan 1e-3b-2's switch), the
-// one writer of the session's provider settings; readiness re-checks on the
-// store's own reset.
+// applyProvider writes through the provider store, the one writer of the
+// session's provider settings, and resolves once those writes have landed;
+// readiness re-checks on the store's own reset.
 import { useCallback } from 'react';
 import { useSettingsStore } from '../../stores/settingsStore';
 import useAudioStore from '../../stores/audioStore';   // default export only — there is no named useAudioStore
-import { useSetupStore } from '../../stores/setupStore';
+import { useSetupStore, SetupPersistError } from '../../stores/setupStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { presentProviders } from '../../providers/registry';
 import { providerIdFromStored } from '../../lib/session/storedSettings';
@@ -37,6 +37,10 @@ export function useApplySetup(): (draft: SetupDraft) => Promise<void> {
         store.setPair(p, pair);
         // A wizard choice is a person's: it persists (1e-3b-1 ruling 8).
         store.select(p.id, 'pick');
+        // The record comes last and says setup is done: never over a provider
+        // whose settings are not on disk yet (the extension's storage is
+        // asynchronous, and a closed side panel would keep the record alone).
+        if (!await store.flush(p)) throw new SetupPersistError();
       },
       completeSetup: useSetupStore.getState().completeSetup,
     });

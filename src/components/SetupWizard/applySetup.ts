@@ -18,7 +18,8 @@ export interface ApplySetupDeps {
   /** The provider, its pair and — on the own-key path — its credentials and
    *  the credential choice its step showed (a settings patch; F4), written
    *  where the session reads them; the one write the wizard makes besides
-   *  the presets and the record. */
+   *  the presets and the record. Rejects with `SetupPersistError` when a
+   *  write did not land; the record is then not written. */
   applyProvider: (
     provider: ProviderType,
     pair: { source: string; target: string },

@@ -6,7 +6,7 @@
  * (its own ordering, presets and skip rules) is `applySetup.test.ts`'s; this
  * is only the store-write half `applySetupDraft` hands off as `applyProvider`.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
 
 const { stored, getSetting, setSetting } = vi.hoisted(() => {
@@ -29,6 +29,7 @@ import { readCredentials } from '../../lib/provider/credentials';
 import { volcengineAst2Provider } from '../../providers/volcengine_ast2/provider';
 import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { SetupPersistError } from '../../stores/setupStore';
 import { useApplySetup } from './useApplySetup';
 import { initialDraft } from './setupDraft';
 import type { SetupDraft } from './setupDraft';
@@ -47,6 +48,16 @@ beforeEach(() => {
   getSetting.mockClear();
   setSetting.mockClear();
   useProviderStore.setState({ entries: {}, selected: null, selectionLocked: false });
+});
+
+const landNow = async (key: string, value: unknown) => {
+  stored.set(key, value);
+  return { success: true };
+};
+// The provider store keeps what did not land across tests: put storage back and drain it.
+afterEach(async () => {
+  setSetting.mockImplementation(landNow);
+  await useProviderStore.getState().flush();
 });
 
 describe("useApplySetup's applyProvider (review Minor 4)", () => {
@@ -141,5 +152,52 @@ describe("useApplySetup's applyProvider (review Minor 4)", () => {
 
     expect(useProviderStore.getState().selected).toBeNull();
     expect(setSetting).not.toHaveBeenCalledWith('settings.common.provider', expect.anything());
+  });
+
+  it('records setup complete only after every provider write has landed', async () => {
+    const held: Array<() => void> = [];
+    setSetting.mockImplementation((key: string, value: unknown) => {
+      if (key === 'settings.setup') return landNow(key, value);
+      return new Promise<{ success: boolean }>((resolve) => { held.push(() => { stored.set(key, value); resolve({ success: true }); }); });
+    });
+    const { result } = renderHook(() => useApplySetup());
+
+    const finishing = result.current(draft({}));
+    await new Promise<void>((resolve) => { setTimeout(resolve, 0); });
+    const recordedEarly = setSetting.mock.calls.some(([key]) => key === 'settings.setup');
+    // Released before any assertion: a held write would hold the drain in afterEach.
+    for (const release of held.splice(0)) release();
+    await finishing;
+
+    expect(recordedEarly).toBe(false);
+    expect(setSetting).toHaveBeenCalledWith('settings.setup', expect.objectContaining({ provider: Provider.LOCAL_INFERENCE }));
+    expect(stored.get('settings.common.provider')).toBe('local_inference');
+  });
+
+  it('fails Finish with the setup-persist error, recording nothing, when a provider write does not land', async () => {
+    setSetting.mockImplementation(async (key: string, value: unknown) => {
+      if (key === 'settings.localInference.sourceLanguage') return { success: false, error: 'QuotaExceededError' };
+      return landNow(key, value);
+    });
+    const { result } = renderHook(() => useApplySetup());
+
+    await expect(result.current(draft({}))).rejects.toBeInstanceOf(SetupPersistError);
+
+    expect(setSetting).not.toHaveBeenCalledWith('settings.setup', expect.anything());
+  });
+
+  it('Finish again writes what did not land — a pair already in memory too — and then records', async () => {
+    setSetting.mockImplementation(async (key: string, value: unknown) => {
+      if (key === 'settings.localInference.sourceLanguage') return { success: false, error: 'QuotaExceededError' };
+      return landNow(key, value);
+    });
+    const { result } = renderHook(() => useApplySetup());
+    await expect(result.current(draft({}))).rejects.toBeInstanceOf(SetupPersistError);
+
+    setSetting.mockImplementation(landNow);
+    await result.current(draft({}));
+
+    expect(stored.get('settings.localInference.sourceLanguage')).toBe('en');
+    expect(stored.get('settings.setup')).toEqual(expect.objectContaining({ provider: Provider.LOCAL_INFERENCE }));
   });
 });
