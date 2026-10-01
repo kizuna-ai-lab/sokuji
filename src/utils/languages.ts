@@ -1,13 +1,6 @@
 import { englishLanguageName } from '../lib/language/label';
 import type { LanguageOption } from '../lib/provider/types';
 
-/** The local vocabulary: every app code a universal local model offers (spec "Unified language codes" §7). Named by `languageLabel`. */
-export const LANGUAGE_CODES: readonly string[] = [
-  'af', 'ar', 'bg', 'bn', 'ca', 'cs', 'da', 'de', 'en', 'el', 'es', 'et', 'fa', 'fi', 'fr', 'gu', 'he', 'hi', 'hr', 'hu',
-  'id', 'is', 'it', 'ja', 'kn', 'ko', 'lt', 'lv', 'ml', 'mr', 'mt', 'mul', 'nl', 'no', 'pa', 'pl', 'pt', 'ro', 'ru', 'sk',
-  'sl', 'sr', 'sv', 'sw', 'ta', 'te', 'th', 'fil', 'tr', 'uk', 'ur', 'vi', 'xh', 'yue', 'zh', 'zu',
-];
-
 /** Global language display order — sorted by worldwide usage/importance.
  *  Languages in this array appear first (in this order);
  *  any remaining languages fall back to alphabetical by CLDR English name (`englishLanguageName`). */
