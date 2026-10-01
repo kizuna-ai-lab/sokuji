@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { isPresent } from '../lib/provider/presence';
 import { AUTO, normalizePair } from '../lib/provider/languages';
 import type { AnyProvider, AuthContext } from '../lib/provider/types';
+import { parseCode } from '../lib/language/code';
 import en from '../locales/en/translation.json';
 import { LEGACY_SLICE_KEYS, storedProviderValue } from '../lib/session/storedSettings';
 import { isKizunaAIEnabled } from '../utils/environment';
@@ -328,5 +329,24 @@ describe('the invariants every provider meets (F17)', () => {
 
   it('a development build adds exactly the two fakes', () => {
     expect(PROVIDERS.map((p) => p.id)).toEqual([...released.map((p) => p.id), 'fake', 'fake_leased']);
+  });
+});
+
+describe('language codes (unified language codes)', () => {
+  const contexts = [undefined, { speech: true }, { speech: false }] as const;
+  it.each(PROVIDERS.map((p) => [p.id, p] as const))('%s offers app codes its wire table can send and read back', (_id, p) => {
+    const s = p.settings.defaults;
+    for (const context of contexts) {
+      for (const source of p.languages.sources(s, context)) {
+        expect(parseCode(source.value), `${p.id} source ${source.value}`).not.toBeNull();
+        expect(Object.keys(source), `${p.id} ${source.value}`).toEqual(['value']);
+        const sent = p.languages.wire.toWire(source.value);
+        if (p.languages.wire.codes.length > 0) expect(p.languages.wire.fromWire(sent)).toBe(source.value);
+        for (const target of p.languages.targets(source.value, s, context)) {
+          expect(parseCode(target.value), `${p.id} target ${target.value}`).not.toBeNull();
+          expect(() => p.languages.wire.toWire(target.value), `${p.id} target ${target.value}`).not.toThrow();
+        }
+      }
+    }
   });
 });

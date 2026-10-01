@@ -28,8 +28,8 @@ export function buildPalabra(context: SessionContext, s: PalabraSettings, _share
   // A guard: the provider store keeps the pair within the offer, and the gate refused a participant whose reverse is not offered (D20).
   if (!palabraOffers(context.direction)) return { refused: `Palabra AI does not translate ${source} → ${target}.` };
   return {
-    source: palabraLanguages.wire!.toWire(source),
-    target: palabraLanguages.wire!.toWire(target),
+    source: palabraLanguages.wire.toWire(source),
+    target: palabraLanguages.wire.toWire(target),
     speech: context.speech,
     voiceId: s.voiceId,
     silenceThreshold: effectiveThreshold(s),

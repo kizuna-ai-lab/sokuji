@@ -98,9 +98,9 @@ const SPOKEN: readonly LanguageOption[] = [
 
 /**
  * The twelve more it transcribes and translates into text (S2T), in the
- * documentation's order; names as the shared registry has them
- * (`utils/languages.ts` `LANGUAGE_OPTIONS`; Malay, which it lacks, as
- * Soniox's list does).
+ * documentation's order; codes as the shared
+ * vocabulary has them (`utils/languages.ts` `LANGUAGE_CODES`; Malay, which it
+ * lacks, as Soniox's list does).
  */
 const TEXT_ONLY: readonly LanguageOption[] = [
   code('ko'),

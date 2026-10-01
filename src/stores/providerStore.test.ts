@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import type { AnyProvider, CheckContext, LanguageContext, LanguageOption, LanguagePair, MigrationInputs } from '../lib/provider/types';
+import type { AnyProvider, CheckContext, LanguageContext, LanguageOption, MigrationInputs } from '../lib/provider/types';
 
 const { stored, getSetting, setSetting } = vi.hoisted(() => {
   const stored = new Map<string, unknown>();
@@ -18,7 +18,7 @@ vi.mock('../services/ServiceFactory', () => ({
 
 import { useProviderStore } from './providerStore';
 
-const opt = (value: string): LanguageOption => ({ value, name: value, englishName: value });
+const opt = (value: string): LanguageOption => ({ value });
 
 interface ProbeSettings { region: 'us' | 'eu'; count: number; on: boolean }
 /** Turning `on` stops offering fr, as a model choice can narrow a provider's languages. */
@@ -137,40 +137,6 @@ describe('load', () => {
     // Read, never written, moved or blanked: load writes nothing, and the global stays where it was.
     expect(setSetting).not.toHaveBeenCalled();
     expect(stored.get('settings.common.systemInstructions')).toBe('global');
-  });
-
-  it('rewrites the stored pair before it is normalized, so a renamed code lands on its new spelling', async () => {
-    const p = {
-      ...probe,
-      languages: { ...probe.languages, migratePair: (pair: LanguagePair) => ({ ...pair, source: pair.source === 'vn' ? 'fr' : pair.source }) },
-    } as unknown as AnyProvider;
-    stored.set('settings.probe.sourceLanguage', 'vn');
-    stored.set('settings.probe.targetLanguage', 'en');
-    await useProviderStore.getState().load(p);
-    expect(entry().pair).toEqual({ source: 'fr', target: 'en' });
-  });
-
-  it('falls back to the initial pair for a side migratePair empties', async () => {
-    const p = {
-      ...probe,
-      languages: {
-        ...probe.languages,
-        migratePair: (pair: LanguagePair) => ({ ...pair, source: '' }),
-        initial: () => ({ source: 'ja', target: 'en' }),
-      },
-    } as unknown as AnyProvider;
-    stored.set('settings.probe.sourceLanguage', 'en');
-    stored.set('settings.probe.targetLanguage', 'fr');
-    await useProviderStore.getState().load(p);
-    // The emptied source takes the initial one; the target keeps what was stored, not the initial en.
-    expect(entry().pair).toEqual({ source: 'ja', target: 'fr' });
-  });
-
-  it("hands migratePair '' for a side nothing stored, and the migrated settings", async () => {
-    const migratePair = vi.fn((pair: LanguagePair) => pair);
-    const p = { ...probe, languages: { ...probe.languages, migratePair } } as unknown as AnyProvider;
-    await useProviderStore.getState().load(p);
-    expect(migratePair).toHaveBeenCalledWith({ source: '', target: '' }, { region: 'us', count: 1, on: false });
   });
 
   describe('initial', () => {

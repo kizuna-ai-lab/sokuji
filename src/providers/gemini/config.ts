@@ -82,7 +82,7 @@ export function buildGemini(context: SessionContext, s: GeminiSettings, shared: 
       ? { maxOutputTokens: Math.round(clamp(s.maxTokens, GEMINI_MAX_TOKENS_RANGE.min, GEMINI_MAX_TOKENS_RANGE.max, GEMINI_MAX_TOKENS_RANGE.max)) }
       : {}),
     ...(dialogue ? {} : {
-      translationTargetCode: geminiLanguages.wire!.toWire(target),
+      translationTargetCode: geminiLanguages.wire.toWire(target),
       silence: {
         sourceMs: clampSegmentPauseMs(segmentPauseMs(shared.pauses.sourceSeconds)),
         translationMs: clampSegmentPauseMs(segmentPauseMs(shared.pauses.translationSeconds)),

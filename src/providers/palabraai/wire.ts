@@ -193,7 +193,7 @@ export function transcriptionOf(data: Record<string, unknown>): Transcription {
   return {
     id: idOf(t.transcription_id),
     part: idOf(t.translation_part_id),
-    language: palabraLanguages.wire!.fromWire(str(t.language)) ?? undefined,
+    language: palabraLanguages.wire.fromWire(str(t.language)) ?? undefined,
     text: str(t.text) ?? '',
     start: num(first?.start),
     end: num(first?.end),

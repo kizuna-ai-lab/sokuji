@@ -247,7 +247,7 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       const legacy = Object.fromEntries(legacyKeys.map((k, i) => [k, legacyValues[i]]));
       const settings = p.settings.migrate ? p.settings.migrate(stored, { legacy, credentials }) : stored;
       const initial = p.languages.initial?.(settings) ?? {};
-      const pair = p.languages.migratePair ? p.languages.migratePair({ source, target }, settings) : { source, target };
+      const pair = { source, target };
       // Kept within the widest offer; what a run starts is derived from it for the context (choice 1). Nothing is written.
       const kept = normalizePair(p, settings, { source: pair.source || initial.source, target: pair.target || initial.target });
       loadedProviders.set(p.id, p);

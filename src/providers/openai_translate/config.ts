@@ -40,7 +40,7 @@ export function buildTranslate(context: SessionContext, s: TranslateSettings, sh
   if (!TRANSLATE_TARGETS.some((o) => o.value === target)) return { refused: `OpenAI Translate does not translate into ${target}.` };
   return {
     model: TRANSLATE_MODEL,
-    target: translateLanguages.wire!.toWire(target),
+    target: translateLanguages.wire.toWire(target),
     transcriptModel: TRANSCRIPT_MODEL,
     noiseReduction: NOISE[s.noiseReduction],
     silence: {

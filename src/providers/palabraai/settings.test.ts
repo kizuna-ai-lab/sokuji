@@ -11,7 +11,7 @@ const auth: AuthContext = { signedIn: false, getToken: async () => null };
 const p = { languages: palabraLanguages };
 const S = PALABRA_DEFAULTS;
 const codes = (options: readonly { value: string }[]) => options.map((o) => o.value);
-const vendors = (options: readonly { value: string }[]) => codes(options).map((c) => palabraLanguages.wire!.toWire(c));
+const vendors = (options: readonly { value: string }[]) => codes(options).map((c) => palabraLanguages.wire.toWire(c));
 
 /** Palabra's docs' language tables as captured on 2026-09-29 (`models-map`, `source_languages_meta` / `target_languages_meta`): the codes, and the targets they hide. */
 const DOC_SOURCES = [
@@ -211,7 +211,7 @@ describe('Palabra AI offers app codes (unified language codes)', () => {
     for (const v of [...sources, ...targets]) expect(parseCode(v), v).not.toBeNull();
     expect(targets).toEqual(expect.arrayContaining(['zh-Hans', 'zh-Hant', 'en-US', 'es-CL', 'es-419']));
     expect(targets).not.toContain('es-CH');
-    const wire = palabraLanguages.wire!;
+    const wire = palabraLanguages.wire;
     expect(wire.toWire('es-CL')).toBe('es-ch');
     expect(wire.toWire('es-419')).toBe('es-la');
     expect(wire.toWire('zh-Hant')).toBe('zh-hant');

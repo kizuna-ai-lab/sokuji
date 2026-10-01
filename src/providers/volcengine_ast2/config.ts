@@ -47,7 +47,7 @@ export function buildAst2(context: SessionContext, s: Ast2Settings, _shared: Sha
   }
   const corpus = buildCorpus(s);
   // The same libraries on both legs (parity): the build cannot tell the legs of a `zhen/zhen` pair apart (choice 6).
-  const wire = ast2Languages.wire!;
+  const wire = ast2Languages.wire;
   return { mode: context.speech ? 's2s' : 's2t', sourceLanguage: wire.toWire(source), targetLanguage: wire.toWire(target), ...(corpus ? { corpus } : {}) };
 }
 

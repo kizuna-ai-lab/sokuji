@@ -1,12 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { AUTO, normalizePair, reversedPair, reverseSupported, swapped } from './languages';
+import { identityWire } from '../language/wire';
 import type { LanguageContext, LanguageOption } from './types';
 
-const opt = (value: string): LanguageOption => ({ value, name: value, englishName: value });
+const opt = (value: string): LanguageOption => ({ value });
 
 /** en / ja / fr with detection; fr translates only into en; `zhen` pairs only with itself (AST2's both-or-neither). */
 const p = {
   languages: {
+    wire: identityWire(),
     sources: () => [opt(AUTO), opt('en'), opt('ja'), opt('fr'), opt('zhen')],
     targets: (source: string) => {
       if (source === 'zhen') return [opt('zhen')];
@@ -66,6 +68,7 @@ describe('normalizePair', () => {
 const spoken = (context?: LanguageContext) => [opt('en'), opt('ja'), ...(context?.speech ? [] : [opt('ko')])];
 const q = {
   languages: {
+    wire: identityWire(),
     sources: (_s: unknown, context?: LanguageContext) => spoken(context),
     targets: (source: string, _s: unknown, context?: LanguageContext) => spoken(context).filter((o) => o.value !== source),
   },
@@ -98,6 +101,7 @@ describe('a language context (Stage 2 Volcengine AST2, choice 1)', () => {
  */
 const regional = {
   languages: {
+    wire: identityWire(),
     sources: () => [opt(AUTO), opt('en'), opt('ja'), opt('xx')],
     targets: () => [opt('en-us'), opt('ja'), opt('yy')],
     reverse: (pair: { source: string; target: string }) => {
@@ -124,7 +128,7 @@ describe("a provider's own reverse (Stage 2 Palabra, ruling 9)", () => {
   it('reverses a region target by its source code, where the plain swap finds no source', () => {
     expect(reverseSupported(regional, s, { source: 'ja', target: 'en-us' })).toBe(true);
     // The control: the same lists with no reverse of their own.
-    const plain = { languages: { sources: regional.languages.sources, targets: regional.languages.targets } };
+    const plain = { languages: { wire: identityWire(), sources: regional.languages.sources, targets: regional.languages.targets } };
     expect(reverseSupported(plain, s, { source: 'ja', target: 'en-us' })).toBe(false);
   });
 
@@ -142,7 +146,7 @@ describe("a provider's own reverse (Stage 2 Palabra, ruling 9)", () => {
   });
 
   it('refuses an AUTO source even when the hook maps it into a pair the provider offers (D20; review M2)', () => {
-    const rogue = { languages: { sources: regional.languages.sources, targets: regional.languages.targets, reverse: () => ({ source: 'en', target: 'ja' }) } };
+    const rogue = { languages: { wire: identityWire(), sources: regional.languages.sources, targets: regional.languages.targets, reverse: () => ({ source: 'en', target: 'ja' }) } };
     expect(reverseSupported(rogue, s, { source: AUTO, target: 'ja' })).toBe(false);
   });
 });

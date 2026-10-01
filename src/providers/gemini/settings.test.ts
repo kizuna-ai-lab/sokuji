@@ -148,8 +148,7 @@ describe("Gemini's credentials and languages", () => {
 
   it('names a code for the instructions by its CLDR English name, and sends Google its own code', () => {
     expect(geminiLanguageName('zh-Hant')).toBe(englishLanguageName('zh-Hant'));
-    expect(geminiLanguages.migratePair).toBeUndefined();
-    expect(geminiLanguages.wire?.toWire('zh-Hant')).toBe('zh-Hant');
+    expect(geminiLanguages.wire.toWire('zh-Hant')).toBe('zh-Hant');
   });
 
   it('offer the old 30 prebuilt voices, Aoede first', () => {

@@ -1,72 +1,12 @@
 import { englishLanguageName } from '../lib/language/label';
 import type { LanguageOption } from '../lib/provider/types';
 
-/** Shared language display name registry — single source of truth for code → display name */
-export const LANGUAGE_OPTIONS: Record<string, LanguageOption> = {
-  af: { name: 'Afrikaans', value: 'af', englishName: 'Afrikaans' },
-  ar: { name: 'العربية', value: 'ar', englishName: 'Arabic' },
-  // bat: { name: 'Baltic', value: 'bat', englishName: 'Baltic Languages' },
-  bg: { name: 'Български', value: 'bg', englishName: 'Bulgarian' },
-  bn: { name: 'বাংলা', value: 'bn', englishName: 'Bengali' },
-  ca: { name: 'Català', value: 'ca', englishName: 'Catalan' },
-  cs: { name: 'Čeština', value: 'cs', englishName: 'Czech' },
-  da: { name: 'Dansk', value: 'da', englishName: 'Danish' },
-  de: { name: 'Deutsch', value: 'de', englishName: 'German' },
-  en: { name: 'English', value: 'en', englishName: 'English' },
-  el: { name: 'Ελληνικά', value: 'el', englishName: 'Greek' },
-  es: { name: 'Español', value: 'es', englishName: 'Spanish' },
-  et: { name: 'Eesti', value: 'et', englishName: 'Estonian' },
-  fa: { name: 'فارسی', value: 'fa', englishName: 'Persian' },
-  fi: { name: 'Suomi', value: 'fi', englishName: 'Finnish' },
-  fr: { name: 'Français', value: 'fr', englishName: 'French' },
-  // gem: { name: 'Germanic', value: 'gem', englishName: 'Germanic Languages' },
-  // gmw: { name: 'West Germanic', value: 'gmw', englishName: 'West Germanic Languages' },
-  gu: { name: 'ગુજરાતી', value: 'gu', englishName: 'Gujarati' },
-  he: { name: 'עברית', value: 'he', englishName: 'Hebrew' },
-  hi: { name: 'हिन्दी', value: 'hi', englishName: 'Hindi' },
-  hr: { name: 'Hrvatski', value: 'hr', englishName: 'Croatian' },
-  hu: { name: 'Magyar', value: 'hu', englishName: 'Hungarian' },
-  id: { name: 'Bahasa Indonesia', value: 'id', englishName: 'Indonesian' },
-  is: { name: 'Íslenska', value: 'is', englishName: 'Icelandic' },
-  it: { name: 'Italiano', value: 'it', englishName: 'Italian' },
-  ja: { name: '日本語', value: 'ja', englishName: 'Japanese' },
-  kn: { name: 'ಕನ್ನಡ', value: 'kn', englishName: 'Kannada' },
-  ko: { name: '한국어', value: 'ko', englishName: 'Korean' },
-  lt: { name: 'Lietuvių', value: 'lt', englishName: 'Lithuanian' },
-  lv: { name: 'Latviešu', value: 'lv', englishName: 'Latvian' },
-  ml: { name: 'മലയാളം', value: 'ml', englishName: 'Malayalam' },
-  mr: { name: 'मराठी', value: 'mr', englishName: 'Marathi' },
-  mt: { name: 'Malti', value: 'mt', englishName: 'Maltese' },
-  mul: { name: 'Multiple', value: 'mul', englishName: 'Multiple Languages' },
-  nl: { name: 'Nederlands', value: 'nl', englishName: 'Dutch' },
-  no: { name: 'Norsk', value: 'no', englishName: 'Norwegian' },
-  pa: { name: 'ਪੰਜਾਬੀ', value: 'pa', englishName: 'Punjabi' },
-  pl: { name: 'Polski', value: 'pl', englishName: 'Polish' },
-  pt: { name: 'Português', value: 'pt', englishName: 'Portuguese' },
-  // ROMANCE: { name: 'Romance', value: 'ROMANCE', englishName: 'Romance Languages' },
-  ro: { name: 'Română', value: 'ro', englishName: 'Romanian' },
-  ru: { name: 'Русский', value: 'ru', englishName: 'Russian' },
-  sk: { name: 'Slovenčina', value: 'sk', englishName: 'Slovak' },
-  sl: { name: 'Slovenščina', value: 'sl', englishName: 'Slovenian' },
-  sr: { name: 'Српски', value: 'sr', englishName: 'Serbian' },
-  sv: { name: 'Svenska', value: 'sv', englishName: 'Swedish' },
-  sw: { name: 'Kiswahili', value: 'sw', englishName: 'Swahili' },
-  ta: { name: 'தமிழ்', value: 'ta', englishName: 'Tamil' },
-  te: { name: 'తెలుగు', value: 'te', englishName: 'Telugu' },
-  th: { name: 'ไทย', value: 'th', englishName: 'Thai' },
-  fil: { name: 'Filipino', value: 'fil', englishName: 'Filipino' },
-  tr: { name: 'Türkçe', value: 'tr', englishName: 'Turkish' },
-  uk: { name: 'Українська', value: 'uk', englishName: 'Ukrainian' },
-  ur: { name: 'اردو', value: 'ur', englishName: 'Urdu' },
-  vi: { name: 'Tiếng Việt', value: 'vi', englishName: 'Vietnamese' },
-  xh: { name: 'isiXhosa', value: 'xh', englishName: 'Xhosa' },
-  yue: { name: '粵語', value: 'yue', englishName: 'Cantonese' },
-  zh: { name: '中文', value: 'zh', englishName: 'Chinese' },
-  zu: { name: 'isiZulu', value: 'zu', englishName: 'Zulu' },
-};
-
-/** Every code of the local vocabulary: app codes (spec §7). */
-export const LANGUAGE_CODES: readonly string[] = Object.keys(LANGUAGE_OPTIONS);
+/** The local vocabulary: every app code a universal local model offers (spec "Unified language codes" §7). Named by `languageLabel`. */
+export const LANGUAGE_CODES: readonly string[] = [
+  'af', 'ar', 'bg', 'bn', 'ca', 'cs', 'da', 'de', 'en', 'el', 'es', 'et', 'fa', 'fi', 'fr', 'gu', 'he', 'hi', 'hr', 'hu',
+  'id', 'is', 'it', 'ja', 'kn', 'ko', 'lt', 'lv', 'ml', 'mr', 'mt', 'mul', 'nl', 'no', 'pa', 'pl', 'pt', 'ro', 'ru', 'sk',
+  'sl', 'sr', 'sv', 'sw', 'ta', 'te', 'th', 'fil', 'tr', 'uk', 'ur', 'vi', 'xh', 'yue', 'zh', 'zu',
+];
 
 /** Global language display order — sorted by worldwide usage/importance.
  *  Languages in this array appear first (in this order);
@@ -84,11 +24,6 @@ export const LANGUAGE_PRIORITY: string[] = [
   'sw', 'is', 'et', 'lt', 'lv',
   'af', 'xh', 'zu', 'mt',
 ];
-
-/** Look up a LanguageOption by code, with fallback to code as display name */
-export function getLanguageOption(code: string): LanguageOption {
-  return LANGUAGE_OPTIONS[code] || { name: code, value: code, englishName: code };
-}
 
 /** Sort language options by global priority, then alphabetically for unlisted languages. */
 export function sortLanguageOptions(options: LanguageOption[]): LanguageOption[] {
