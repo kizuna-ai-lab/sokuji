@@ -253,7 +253,8 @@ if (!isWebclientIframe) {
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       z-index: 10000;
       max-width: 350px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif,
+        'Microsoft YaHei UI', 'Microsoft YaHei', 'Microsoft JhengHei UI', 'Microsoft JhengHei', 'Yu Gothic UI', 'Meiryo UI', 'Malgun Gothic', 'PingFang SC', 'Hiragino Sans', 'Noto Sans CJK SC';
       font-size: 14px;
       line-height: 1.4;
       border: 1px solid rgba(255, 255, 255, 0.2);

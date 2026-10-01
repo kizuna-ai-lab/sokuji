@@ -2,7 +2,8 @@
 body {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif,
+    'Microsoft YaHei UI', 'Microsoft YaHei', 'Microsoft JhengHei UI', 'Microsoft JhengHei', 'Yu Gothic UI', 'Meiryo UI', 'Malgun Gothic', 'PingFang SC', 'Hiragino Sans', 'Noto Sans CJK SC';
   background: #ffffff;
   color: #333333;
   min-width: 320px;
