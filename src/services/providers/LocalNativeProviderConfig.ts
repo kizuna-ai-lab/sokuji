@@ -1,6 +1,6 @@
 import { ProviderConfig, ModelOption } from './ProviderConfig';
 import { englishLanguageName } from '../../lib/language/label';
-import { getTranslationSourceLanguages } from '../../lib/local-inference/modelManifest';
+import { getLocalInferenceLanguages } from '../../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
 import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantNotice, ParticipantSessionResult, PreparePorts, PrepareOutcome, type CredentialField } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, LocalNativeSessionConfig } from '../interfaces/IClient';
@@ -222,7 +222,7 @@ export class LocalNativeProviderConfig extends BaseProviderDescriptor {
       apiKeyLabel: '',
       apiKeyPlaceholder: '',
 
-      languages: getTranslationSourceLanguages().map((o) => ({ value: o.value, name: englishLanguageName(o.value), englishName: englishLanguageName(o.value) })),
+      languages: getLocalInferenceLanguages().map((o) => ({ value: o.value, name: englishLanguageName(o.value), englishName: englishLanguageName(o.value) })),
       voices: [],
       models: LocalNativeProviderConfig.MODELS,
       noiseReductionModes: [],

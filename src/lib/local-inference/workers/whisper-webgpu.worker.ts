@@ -487,8 +487,9 @@ async function handleInit(msg: WhisperAsrInitMessage): Promise<void> {
       post({type: 'status', message: 'Warming up WebGPU shaders...'});
       try {
         const warmupOpts: Record<string, any> = {max_new_tokens: 1};
-        if (currentLanguage) {
-          warmupOpts.language = currentLanguage;
+        const warmupLanguage = whisperLanguage(currentLanguage);
+        if (warmupLanguage) {
+          warmupOpts.language = warmupLanguage;
           warmupOpts.task = 'transcribe';
         }
         // Run through the full pipeline to warm up both encoder and decoder

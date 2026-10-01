@@ -25,7 +25,7 @@ import { useLockedMode } from '../../../stores/sessionStore';
 import { effectiveTextOnly } from '../../../utils/effectiveTextOnly';
 import { pairSentence } from '../../SetupWizard/languageSentence';
 import { useAnalytics } from '../../../lib/analytics';
-import { getTranslationTargetLanguages } from '../../../lib/local-inference/modelManifest';
+import { getLocalInferenceTargetLanguages } from '../../../lib/local-inference/modelManifest';
 import { shortenModelName } from '../../../lib/local-inference/modelName';
 import { useNativeLastResolutionNotes, useNativeCatalog, useNativeModelStore } from '../../../stores/nativeModelStore';
 import { directionKey, emptyDirection, type Stage, type Selections, type ResolutionNote } from '../../../lib/local-inference/selection/types';
@@ -86,7 +86,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
 
   // Update source language
   const updateSourceLanguage = (value: string) => {
-    const availableTargets = getTranslationTargetLanguages(value);
+    const availableTargets = getLocalInferenceTargetLanguages(value);
     const currentTarget = localNativeSettings.targetLanguage;
     const updates: Record<string, string> = { sourceLanguage: value };
     if (!availableTargets.some(t => t.value === currentTarget)) {
@@ -126,7 +126,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
 
   // The target list follows the source language.
   const targetLanguages = useMemo(
-    () => getTranslationTargetLanguages(currentProviderSettings.sourceLanguage || 'ja'),
+    () => getLocalInferenceTargetLanguages(currentProviderSettings.sourceLanguage || 'ja'),
     [currentProviderSettings.sourceLanguage],
   );
 

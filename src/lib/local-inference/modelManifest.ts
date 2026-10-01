@@ -3391,7 +3391,9 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
 
 // ─── Language Helpers ────────────────────────────────────────────────────────
 
-import { LANGUAGE_CODES, sortLanguageOptions } from '../../utils/languages';
+import { sortLanguageOptions } from '../../utils/languages';
+import { canonicalTag } from '../language/code';
+import { EDGE_TTS_LANGUAGES, WHISPER_LANGUAGES } from './languageSupport';
 import type { LanguageOption } from '../provider/types';
 import { isSupportedByBing } from '../bing-translator';
 
@@ -3400,36 +3402,57 @@ function isUniversalMultilingual(m: ModelManifestEntry): boolean {
   return !!m.multilingual && m.languages.length === 1 && m.languages[0] === 'multilingual';
 }
 
-/** Get all unique source languages available across translation models */
-export function getTranslationSourceLanguages(): LanguageOption[] {
-  const codes = new Set<string>();
-  for (const m of MODEL_MANIFEST.filter(m => m.type === 'translation')) {
-    if (isUniversalMultilingual(m)) {
-      // Truly universal models (e.g. Qwen 3.5): expose all languages
-      LANGUAGE_CODES.forEach(l => codes.add(l));
-    } else if (m.multilingual) {
-      // Bounded multilingual (e.g. TranslateGemma, Qwen 2.5): use languages list
-      m.languages.forEach(l => codes.add(l));
-    } else if (m.sourceLang) {
-      codes.add(m.sourceLang);
-    }
-  }
-  return sortLanguageOptions([...codes].map((value) => ({ value })));
+/** Whisper speaks its static list, whatever the manifest entry declares. */
+function isWhisper(m: ModelManifestEntry): boolean {
+  return m.asrEngine === 'whisper' || m.asrWorkerType === 'whisper-webgpu';
 }
 
-/** Get available target languages for a given source language */
-export function getTranslationTargetLanguages(sourceLang: string): LanguageOption[] {
-  const codes = new Set<string>();
-  for (const m of MODEL_MANIFEST.filter(m => m.type === 'translation')) {
-    if (isUniversalMultilingual(m)) {
-      LANGUAGE_CODES.forEach(l => { if (l !== sourceLang) codes.add(l); });
-    } else if (m.multilingual) {
-      m.languages.forEach(l => { if (l !== sourceLang) codes.add(l); });
-    } else if (m.sourceLang === sourceLang && m.targetLang) {
-      codes.add(m.targetLang);
-    }
+/** Add `code`'s base language to `into`; a code the app does not accept is skipped. */
+function addBase(into: Set<string>, code: string): void {
+  try {
+    into.add(canonicalTag(code).split('-')[0]);
+  } catch {
+    // Not a BCP-47 tag (e.g. the 'multilingual' marker): contributes nothing.
   }
-  return sortLanguageOptions([...codes].map((value) => ({ value })));
+}
+
+/** The language codes one ASR entry contributes, before canonicalization. Omnilingual's list is unverified, so it adds nothing. */
+export function asrEntryLanguages(m: ModelManifestEntry): readonly string[] {
+  if (m.type !== 'asr' && m.type !== 'asr-stream') return [];
+  if (m.asrEngine === 'omnilingual') return [];
+  const declared = m.languages.filter((l) => l !== 'multilingual');
+  // Only a Whisper entry that declares 'multilingual' speaks Whisper's full list.
+  return isWhisper(m) && m.languages.includes('multilingual') ? [...WHISPER_LANGUAGES, ...declared] : declared;
+}
+
+/** Base languages some ASR model recognises. */
+function asrBaseLanguages(): Set<string> {
+  const out = new Set<string>();
+  for (const m of MODEL_MANIFEST) asrEntryLanguages(m).forEach((l) => addBase(out, l));
+  return out;
+}
+
+/** Base languages some TTS model speaks; Edge TTS declares none and speaks its static list. */
+function ttsBaseLanguages(): Set<string> {
+  const out = new Set<string>();
+  for (const m of MODEL_MANIFEST) {
+    if (m.type !== 'tts') continue;
+    if (m.id === 'edge-tts') EDGE_TTS_LANGUAGES.forEach((l) => addBase(out, l));
+    m.languages.forEach((l) => addBase(out, l));
+  }
+  return out;
+}
+
+/** The Local Inference language list: languages an ASR model and a TTS model both support (by base language). */
+export function getLocalInferenceLanguages(): LanguageOption[] {
+  const tts = ttsBaseLanguages();
+  const codes = [...asrBaseLanguages()].filter((l) => tts.has(l));
+  return sortLanguageOptions(codes.map((value) => ({ value })));
+}
+
+/** The same list without the chosen source. */
+export function getLocalInferenceTargetLanguages(sourceLang: string): LanguageOption[] {
+  return getLocalInferenceLanguages().filter((o) => o.value !== sourceLang);
 }
 
 // ─── Query Helpers ───────────────────────────────────────────────────────────
