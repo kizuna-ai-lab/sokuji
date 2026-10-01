@@ -3,7 +3,7 @@ import { readCredentials } from '../../lib/provider/credentials';
 import { normalizePair, reverseSupported, swapped } from '../../lib/provider/languages';
 import type { AuthContext, LanguageContext } from '../../lib/provider/types';
 import { parseCode } from '../../lib/language/code';
-import { AST2_DEFAULTS, ast2Credentials, ast2Languages, ast2Offers, migrateAst2Settings, ZH_EN } from './settings';
+import { AST2_DEFAULTS, AST2_VOICES, ast2Credentials, ast2Languages, ast2Offers, migrateAst2Settings, ZH_EN, type Ast2Settings } from './settings';
 
 const signedOut: AuthContext = { signedIn: false, getToken: async () => null };
 const SPEAKING: LanguageContext = { speech: true };
@@ -13,10 +13,14 @@ const values = (list: readonly { value: string }[]) => list.map((o) => o.value);
 const SPOKEN = ['zh', 'en', 'ja', 'id', 'es', 'pt', 'de', 'fr'];
 const TEXT_ONLY = ['ko', 'tr', 'ms', 'nl', 'ro', 'pl', 'cs', 'ar', 'th', 'vi', 'ru', 'it'];
 const DIALECTS = ['yue', 'wuu'];
+const FEMALE = 'zh_female_vv_uranus_bigtts';
+const MALE = 'zh_male_jingqiangkanye_emo_mars_bigtts';
+const FIXED: Ast2Settings = { ...AST2_DEFAULTS, voice: FEMALE };
+const EVERY_VOICE: readonly Ast2Settings[] = [AST2_DEFAULTS, FIXED, { ...AST2_DEFAULTS, voice: MALE }];
 
 describe("Doubao AST 2.0's settings", () => {
   it('default to the legacy credentials and no library', () => {
-    expect(AST2_DEFAULTS).toEqual({ authMode: 'app', hotWordTableId: '', replacementTableId: '', glossaryTableId: '' });
+    expect(AST2_DEFAULTS).toEqual({ authMode: 'app', hotWordTableId: '', replacementTableId: '', glossaryTableId: '', voice: 'clone' });
   });
 
   it('migrate the defaults into the defaults, read an old profile as the legacy mode, and drop what left the slice', () => {
@@ -28,6 +32,24 @@ describe("Doubao AST 2.0's settings", () => {
   it('read a wrong-typed field as its default, and keep the API key mode once chosen', () => {
     expect(migrateAst2Settings({ ...AST2_DEFAULTS, authMode: 'token', glossaryTableId: 7 })).toEqual(AST2_DEFAULTS);
     expect(migrateAst2Settings({ ...AST2_DEFAULTS, authMode: 'apiKey' }).authMode).toBe('apiKey');
+  });
+
+  it('keep a fixed voice once chosen, and read a profile without one, or with a voice Doubao does not list, as cloning (#577)', () => {
+    expect(migrateAst2Settings({ ...AST2_DEFAULTS, voice: FEMALE }).voice).toBe(FEMALE);
+    expect(migrateAst2Settings({ ...AST2_DEFAULTS, voice: MALE }).voice).toBe(MALE);
+    expect(migrateAst2Settings({ hotWordTableId: 'hot-1' }).voice).toBe('clone');
+    // An unknown speaker_id is cloned silently by the server (#576 §4): one is never kept, so never sent.
+    expect(migrateAst2Settings({ ...AST2_DEFAULTS, voice: 'zh_male_m191_uranus_bigtts' }).voice).toBe('clone');
+    expect(migrateAst2Settings({ ...AST2_DEFAULTS, voice: 3 }).voice).toBe('clone');
+  });
+});
+
+describe("Doubao AST 2.0's fixed voices (#577)", () => {
+  it('list the documented two, each with the TTS resource it alone runs on (#576 §2)', () => {
+    expect(AST2_VOICES.map((v) => [v.id, v.ttsResourceId])).toEqual([
+      [FEMALE, 'seed-tts-2.0'],
+      [MALE, 'seed-tts-1.0'],
+    ]);
   });
 });
 
@@ -160,10 +182,64 @@ describe("Doubao AST 2.0's languages (ruling 3; choice 1)", () => {
   });
 
   it('say whether Doubao runs a direction in a mode: build\'s guard', () => {
-    expect(ast2Offers({ source: 'ja', target: 'zh' }, SPEAKING)).toBe(true);
-    expect(ast2Offers({ source: 'ko', target: 'zh' }, SPEAKING)).toBe(false);
-    expect(ast2Offers({ source: 'ko', target: 'zh' }, TEXT)).toBe(true);
-    expect(ast2Offers({ source: 'ja', target: 'de' }, TEXT)).toBe(false);
-    expect(ast2Offers({ source: 'en', target: 'yue' }, TEXT)).toBe(false);
+    expect(ast2Offers({ source: 'ja', target: 'zh' }, AST2_DEFAULTS, SPEAKING)).toBe(true);
+    expect(ast2Offers({ source: 'ko', target: 'zh' }, AST2_DEFAULTS, SPEAKING)).toBe(false);
+    expect(ast2Offers({ source: 'ko', target: 'zh' }, AST2_DEFAULTS, TEXT)).toBe(true);
+    expect(ast2Offers({ source: 'ja', target: 'de' }, AST2_DEFAULTS, TEXT)).toBe(false);
+    expect(ast2Offers({ source: 'en', target: 'yue' }, AST2_DEFAULTS, TEXT)).toBe(false);
+  });
+});
+
+describe("Doubao AST 2.0's languages with a fixed voice (#577; #576 §3)", () => {
+  it("keep the speaking offer within the text-only one for every voice (the registry's invariant)", () => {
+    for (const s of EVERY_VOICE) {
+      const textSources = values(ast2Languages.sources(s, TEXT));
+      for (const source of values(ast2Languages.sources(s, SPEAKING))) {
+        expect(textSources, `${s.voice}: ${source}`).toContain(source);
+        const textTargets = values(ast2Languages.targets(source, s, TEXT));
+        const speakingTargets = values(ast2Languages.targets(source, s, SPEAKING));
+        expect(speakingTargets.length, `${s.voice}: ${source}`).toBeGreaterThan(0);
+        for (const target of speakingTargets) expect(textTargets, `${s.voice}: ${source} → ${target}`).toContain(target);
+      }
+    }
+  });
+
+  it('speak from every text-only source, the dialects and zh+en included, when a fixed voice speaks', () => {
+    for (const s of EVERY_VOICE.slice(1)) {
+      expect(values(ast2Languages.sources(s, SPEAKING)), s.voice).toEqual([...SPOKEN, ...TEXT_ONLY, ...DIALECTS, ZH_EN]);
+    }
+  });
+
+  it('speak into Chinese or English only with a fixed voice: the male voice is silent elsewhere (#576 §3)', () => {
+    expect(values(ast2Languages.targets('zh', FIXED, SPEAKING))).toEqual(['en']);
+    expect(values(ast2Languages.targets('en', FIXED, SPEAKING))).toEqual(['zh']);
+    for (const source of ['ja', 'ko', 'ru', 'yue', 'wuu']) {
+      expect(values(ast2Languages.targets(source, FIXED, SPEAKING)), source).toEqual(['en', 'zh']);
+    }
+    expect(values(ast2Languages.targets(ZH_EN, FIXED, SPEAKING))).toEqual([ZH_EN]);
+  });
+
+  it('change nothing for text only or without a context: a voice only speaks', () => {
+    for (const source of values(ast2Languages.sources(AST2_DEFAULTS, TEXT))) {
+      expect(values(ast2Languages.targets(source, FIXED, TEXT)), source).toEqual(values(ast2Languages.targets(source, AST2_DEFAULTS, TEXT)));
+      expect(values(ast2Languages.targets(source, FIXED)), source).toEqual(values(ast2Languages.targets(source, AST2_DEFAULTS)));
+    }
+    expect(ast2Languages.sources(FIXED, TEXT)).toEqual(ast2Languages.sources(AST2_DEFAULTS, TEXT));
+    expect(ast2Languages.sources(FIXED)).toEqual(ast2Languages.sources(AST2_DEFAULTS));
+  });
+
+  it('show a picked Chinese → Japanese as Chinese → English while a fixed voice speaks, and as picked again with cloning', () => {
+    const picked = { source: 'zh', target: 'ja' };
+    expect(normalizePair(p, FIXED, picked, SPEAKING)).toEqual({ source: 'zh', target: 'en' });
+    expect(normalizePair(p, AST2_DEFAULTS, picked, SPEAKING)).toEqual(picked);
+    // Korean speaks only with a fixed voice.
+    expect(normalizePair(p, FIXED, { source: 'ko', target: 'zh' }, SPEAKING)).toEqual({ source: 'ko', target: 'zh' });
+  });
+
+  it("guard build with the run's own voice", () => {
+    expect(ast2Offers({ source: 'ko', target: 'en' }, FIXED, SPEAKING)).toBe(true);
+    expect(ast2Offers({ source: 'yue', target: 'zh' }, FIXED, SPEAKING)).toBe(true);
+    expect(ast2Offers({ source: 'zh', target: 'ja' }, FIXED, SPEAKING)).toBe(false);
+    expect(ast2Offers({ source: 'zh', target: 'ja' }, FIXED, TEXT)).toBe(true);
   });
 });

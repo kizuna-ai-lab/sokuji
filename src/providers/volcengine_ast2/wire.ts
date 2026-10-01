@@ -8,7 +8,7 @@
  * credential parameters wherever it might reach a sink anyway.
  */
 import { data as proto } from './proto/ast2-proto.js';
-import type { Ast2Corpus } from './config';
+import type { Ast2Corpus, Ast2VoiceConfig } from './config';
 import type { Ast2Credentials } from './settings';
 
 const { TranslateRequest, TranslateResponse } = proto.speech.ast;
@@ -57,14 +57,17 @@ export interface StartSessionInput {
   source: string;
   target: string;
   corpus?: Ast2Corpus;
+  /** A fixed voice and its TTS resource (#577); absent, the speaker's voice is cloned. */
+  voice?: Ast2VoiceConfig;
   /** The legacy App ID, sent in `requestMeta.AppKey` as the old client did (parity); the API key mode sends none (choice 5). */
   appKey?: string;
 }
 
 /**
  * `StartSession` (`VolcengineAST2Client.ts:462-526`): 16 kHz pcm in; in
- * `s2s`, 24 kHz Ogg Opus out, the speaker's own voice cloned (no
- * `speaker_id`); in `s2t`, no target audio.
+ * `s2s`, 24 kHz Ogg Opus out, in the fixed voice the input names
+ * (`speaker_id` with its `tts_resource_id`) or, without one, the speaker's
+ * own voice cloned; in `s2t`, no target audio.
  */
 export function startSessionFrame(o: StartSessionInput): Uint8Array {
   return TranslateRequest.encode({
@@ -79,7 +82,13 @@ export function startSessionFrame(o: StartSessionInput): Uint8Array {
     event: EventType.StartSession,
     user: { uid: 'sokuji-user', platform: 'web' },
     sourceAudio: { format: 'pcm', rate: 16_000, bits: 16, channel: 1 },
-    request: { mode: o.mode, sourceLanguage: o.source, targetLanguage: o.target, ...(o.corpus ? { corpus: o.corpus } : {}) },
+    request: {
+      mode: o.mode,
+      sourceLanguage: o.source,
+      targetLanguage: o.target,
+      ...(o.voice ? { speakerId: o.voice.speakerId, ttsResourceId: o.voice.ttsResourceId } : {}),
+      ...(o.corpus ? { corpus: o.corpus } : {}),
+    },
     ...(o.mode === 's2s' ? { targetAudio: { format: 'ogg_opus', rate: 24_000 } } : {}),
   }).finish();
 }

@@ -55,6 +55,28 @@ describe("Doubao AST 2.0's builder", () => {
     expect(build({}, { direction: { source: 'zh+en', target: 'zh+en' }, speech: true, turns: 'manual' })).toMatchObject({ mode: 's2s', sourceLanguage: 'zhen', targetLanguage: 'zhen' });
   });
 
+  it('speaks a fixed voice with the resource it runs on, and clones with neither (#577; #576 §2)', () => {
+    expect(build({ voice: 'zh_female_vv_uranus_bigtts' })).toEqual({
+      mode: 's2s', sourceLanguage: 'zh', targetLanguage: 'en',
+      voice: { speakerId: 'zh_female_vv_uranus_bigtts', ttsResourceId: 'seed-tts-2.0' },
+    });
+    expect(build({ voice: 'zh_male_jingqiangkanye_emo_mars_bigtts' }).voice).toEqual({ speakerId: 'zh_male_jingqiangkanye_emo_mars_bigtts', ttsResourceId: 'seed-tts-1.0' });
+    expect(build()).not.toHaveProperty('voice');
+  });
+
+  it('names no voice for a leg that does not speak, whatever is chosen', () => {
+    expect(build({ voice: 'zh_female_vv_uranus_bigtts' }, { ...SPEAKER, speech: false })).toEqual({ mode: 's2t', sourceLanguage: 'zh', targetLanguage: 'en' });
+  });
+
+  it("runs, in a fixed voice, what only that mode offers, and refuses what it does not: the guard reads the run's voice", () => {
+    const korean: SessionContext = { direction: { source: 'ko', target: 'en' }, speech: true, turns: 'auto' };
+    expect(build({ voice: 'zh_female_vv_uranus_bigtts' }, korean)).toMatchObject({ mode: 's2s', sourceLanguage: 'ko', targetLanguage: 'en' });
+    expect(build({ voice: 'zh_female_vv_uranus_bigtts' }, { direction: { source: 'yue', target: 'zh' }, speech: true, turns: 'auto' })).toMatchObject({ mode: 's2s', sourceLanguage: 'yue-CN' });
+    const japanese: SessionContext = { direction: { source: 'zh', target: 'ja' }, speech: true, turns: 'auto' };
+    expect(buildAst2(japanese, { ...AST2_DEFAULTS, voice: 'zh_female_vv_uranus_bigtts' }, SHARED)).toEqual({ refused: 'Doubao AST 2.0 does not speak zh → ja.' });
+    expect(build({}, japanese)).toMatchObject({ mode: 's2s', targetLanguage: 'ja' });
+  });
+
   it('describes no model (choice 7)', () => {
     expect(describeAst2(build())).toEqual({});
   });
