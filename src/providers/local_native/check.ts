@@ -58,10 +58,17 @@ export function nativeReadinessKey(state: Pick<NativeModelStoreState, 'sidecarSt
   return `${state.sidecarStatus}|${state.bundleStatus}|${Object.keys(state.catalog).sort().join(',')}|${statuses}`;
 }
 
-/** A download, a delete, the bundle or the sidecar's lifecycle moving: the store's own events, once each. */
+/**
+ * A download, a delete, the bundle or the sidecar's lifecycle moving: the
+ * store's own events, once each. `starting` neither calls back nor is
+ * remembered: every check starts an engine that is not ready, so a start that
+ * fails must end where it began (`unavailable → starting → unavailable`), or
+ * each check would schedule the next (#578).
+ */
 export function watchLocalNativeReadiness(onChange: () => void): () => void {
   let key = nativeReadinessKey(useNativeModelStore.getState());
   return useNativeModelStore.subscribe((state) => {
+    if (state.sidecarStatus === 'starting') return;
     const next = nativeReadinessKey(state);
     if (next === key) return;
     key = next;

@@ -75,4 +75,29 @@ describe('watchLocalNativeReadiness', () => {
     expect(onChange).not.toHaveBeenCalled();
     off();
   });
+
+  it('a start that fails ends where it began: no call back (#578)', () => {
+    useNativeModelStore.setState({ sidecarStatus: 'unavailable', bundleStatus: 'mismatch' });
+    const onChange = vi.fn();
+    const off = watchLocalNativeReadiness(onChange);
+    // A check's own engine start: what moves while it is starting is not a settled answer.
+    useNativeModelStore.setState({ sidecarStatus: 'starting' });
+    useNativeModelStore.setState({ bundleStatus: 'ready' });
+    useNativeModelStore.setState({ bundleStatus: 'mismatch' });
+    useNativeModelStore.setState({ sidecarStatus: 'unavailable' });
+    expect(onChange).not.toHaveBeenCalled();
+    off();
+  });
+
+  it('a start that succeeds calls back once, when the sidecar is ready', () => {
+    useNativeModelStore.setState({ sidecarStatus: 'idle', bundleStatus: 'unknown' });
+    const onChange = vi.fn();
+    const off = watchLocalNativeReadiness(onChange);
+    useNativeModelStore.setState({ sidecarStatus: 'starting' });
+    useNativeModelStore.setState({ bundleStatus: 'ready' });
+    expect(onChange).not.toHaveBeenCalled();
+    useNativeModelStore.setState({ sidecarStatus: 'ready' });
+    expect(onChange).toHaveBeenCalledTimes(1);
+    off();
+  });
 });
