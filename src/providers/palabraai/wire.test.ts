@@ -197,3 +197,10 @@ describe("Palabra AI's wire: the server's messages", () => {
     expect(POLICY_VIOLATION).toBe(1008);
   });
 });
+
+describe('transcriptionOf language', () => {
+  it('reads the language Palabra reports as an app code, and drops one outside the table', () => {
+    expect(transcriptionOf({ transcription: { text: 'x', language: 'zh-hant' } }).language).toBe('zh-Hant');
+    expect(transcriptionOf({ transcription: { text: 'x', language: 'ka' } }).language).toBeUndefined();
+  });
+});

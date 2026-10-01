@@ -262,6 +262,7 @@ describe('a provider session side', () => {
       'src/providers/palabraai/adapter.ts',
       'src/providers/palabraai/audioIn.ts',
       'src/providers/palabraai/items.ts',
+      'src/providers/palabraai/languages.ts',
       'src/providers/palabraai/wire.ts',
     ]);
 

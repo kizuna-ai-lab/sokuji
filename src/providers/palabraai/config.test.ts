@@ -14,7 +14,7 @@ const ctx = (source: string, target: string, patch: Partial<SessionContext> = {}
 
 describe("Palabra AI's builder", () => {
   it('builds one leg from its direction and the settings, clamped as the API takes them (ruling 10)', () => {
-    expect(buildPalabra(ctx('ja', 'en-us'), PALABRA_DEFAULTS, SHARED)).toEqual({
+    expect(buildPalabra(ctx('ja', 'en-US'), PALABRA_DEFAULTS, SHARED)).toEqual({
       source: 'ja', target: 'en-us', speech: true, voiceId: 'default_low', silenceThreshold: 0.7, sentenceSplitter: true, translatePartials: false,
       queue: { desiredMs: 8_000, maxMs: 24_000, autoTempo: false },
     });
@@ -31,12 +31,19 @@ describe("Palabra AI's builder", () => {
 
   it('refuses a direction its lists do not offer, a guard the store and the gate keep unreachable', () => {
     expect(buildPalabra(ctx('ja', 'bn'), PALABRA_DEFAULTS, SHARED)).toEqual({ refused: 'Palabra AI does not translate ja → bn.' });
-    expect(buildPalabra(ctx('en-us', 'ja'), PALABRA_DEFAULTS, SHARED)).toEqual({ refused: 'Palabra AI does not translate en-us → ja.' });
+    expect(buildPalabra(ctx('en-US', 'ja'), PALABRA_DEFAULTS, SHARED)).toEqual({ refused: 'Palabra AI does not translate en-US → ja.' });
   });
 
   it('names no model: the old start named none for Palabra', () => {
     const c = buildPalabra(ctx('ja', 'en'), PALABRA_DEFAULTS, SHARED);
     if ('refused' in c) throw new Error(c.refused);
     expect(describePalabra(c)).toEqual({});
+  });
+});
+
+describe("Palabra AI's wire codes", () => {
+  it('sends Palabra its own codes', () => {
+    const c = buildPalabra(ctx('en', 'es-CL'), PALABRA_DEFAULTS, SHARED);
+    expect(c).toMatchObject({ source: 'en', target: 'es-ch' });
   });
 });

@@ -6,7 +6,8 @@
  */
 import type { SessionContext } from '../../lib/contract/adapter';
 import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
-import { effectiveQueue, effectiveThreshold, palabraOffers, type PalabraSettings, type PalabraVoice } from './settings';
+import { palabraLanguages, palabraOffers } from './languages';
+import { effectiveQueue, effectiveThreshold, type PalabraSettings, type PalabraVoice } from './settings';
 
 export interface PalabraConfig {
   source: string;
@@ -27,8 +28,8 @@ export function buildPalabra(context: SessionContext, s: PalabraSettings, _share
   // A guard: the provider store keeps the pair within the offer, and the gate refused a participant whose reverse is not offered (D20).
   if (!palabraOffers(context.direction)) return { refused: `Palabra AI does not translate ${source} → ${target}.` };
   return {
-    source,
-    target,
+    source: palabraLanguages.wire!.toWire(source),
+    target: palabraLanguages.wire!.toWire(target),
     speech: context.speech,
     voiceId: s.voiceId,
     silenceThreshold: effectiveThreshold(s),

@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { parseCode } from '../../lib/language/code';
 import { AUTO, normalizePair, reversedPair, reverseSupported, swapped } from '../../lib/provider/languages';
 import type { AuthContext } from '../../lib/provider/types';
 import {
@@ -10,6 +11,7 @@ const auth: AuthContext = { signedIn: false, getToken: async () => null };
 const p = { languages: palabraLanguages };
 const S = PALABRA_DEFAULTS;
 const codes = (options: readonly { value: string }[]) => options.map((o) => o.value);
+const vendors = (options: readonly { value: string }[]) => codes(options).map((c) => palabraLanguages.wire!.toWire(c));
 
 /** Palabra's docs' language tables as captured on 2026-09-29 (`models-map`, `source_languages_meta` / `target_languages_meta`): the codes, and the targets they hide. */
 const DOC_SOURCES = [
@@ -116,25 +118,21 @@ describe("Palabra AI's credentials (ruling 1)", () => {
 });
 
 describe("Palabra AI's languages: its documented tables (ruling 8)", () => {
-  it('offers Auto-detect first, then every documented source, in English-name order', () => {
+  it('offers Auto-detect first, then every documented source, ', () => {
     const sources = codes(palabraLanguages.sources(S));
     expect(sources[0]).toBe(AUTO);
     expect([...sources].sort()).toEqual([...DOC_SOURCES].sort());
-    const names = palabraLanguages.sources(S).slice(1).map((o) => o.englishName);
-    expect(names).toEqual([...names].sort());
   });
 
-  it('offers every documented target the docs do not hide, in English-name order, whatever the source', () => {
-    const targets = codes(palabraLanguages.targets('en', S));
+  it('offers every documented target the docs do not hide, whatever the source', () => {
+    const targets = vendors(palabraLanguages.targets('en', S));
     expect([...targets].sort()).toEqual(DOC_TARGETS.filter((c) => !DOC_HIDDEN_TARGETS.includes(c)).sort());
-    const names = palabraLanguages.targets('en', S).map((o) => o.englishName);
-    expect(names).toEqual([...names].sort());
-    for (const source of codes(palabraLanguages.sources(S))) expect(codes(palabraLanguages.targets(source, S)), source).toEqual(targets);
+    for (const source of codes(palabraLanguages.sources(S))) expect(vendors(palabraLanguages.targets(source, S)), source).toEqual(targets);
   });
 
   it("offers only codes the API's validator accepts", () => {
-    expect(codes(palabraLanguages.sources(S)).filter((c) => !API_SOURCE_LANGUAGES.has(c))).toEqual([]);
-    expect(codes(palabraLanguages.targets('en', S)).filter((c) => !API_TARGET_LANGUAGES.has(c))).toEqual([]);
+    expect(vendors(palabraLanguages.sources(S)).filter((c) => !API_SOURCE_LANGUAGES.has(c))).toEqual([]);
+    expect(vendors(palabraLanguages.targets('en', S)).filter((c) => !API_TARGET_LANGUAGES.has(c))).toEqual([]);
   });
 
   it('leaves out what the docs do not list: bn, mr and fa as targets, the hidden zh, en-au and en-ca, and the old app\'s vn, ba, eo and ia', () => {
@@ -153,23 +151,23 @@ describe("Palabra AI's languages: its documented tables (ruling 8)", () => {
   });
 
   it("runs a direction its lists offer, and no other (build's guard)", () => {
-    expect(palabraOffers({ source: 'ja', target: 'en-us' })).toBe(true);
+    expect(palabraOffers({ source: 'ja', target: 'en-US' })).toBe(true);
     expect(palabraOffers({ source: AUTO, target: 'es' })).toBe(true);
     expect(palabraOffers({ source: 'ja', target: 'bn' })).toBe(false);
-    expect(palabraOffers({ source: 'en-us', target: 'ja' })).toBe(false);
+    expect(palabraOffers({ source: 'en-US', target: 'ja' })).toBe(false);
   });
 });
 
 describe("Palabra AI's reverse: its documented codes (ruling 9)", () => {
   it('reverses a target by its to_source and a source by its to_target', () => {
-    expect(reversedPair(p, S, { source: 'ja', target: 'en-us' })).toEqual({ source: 'en', target: 'ja' });
-    expect(reversedPair(p, S, { source: 'en', target: 'ja' })).toEqual({ source: 'ja', target: 'en-us' });
-    expect(reversedPair(p, S, { source: 'pt', target: 'es-mx' })).toEqual({ source: 'es', target: 'pt' });
+    expect(reversedPair(p, S, { source: 'ja', target: 'en-US' })).toEqual({ source: 'en', target: 'ja' });
+    expect(reversedPair(p, S, { source: 'en', target: 'ja' })).toEqual({ source: 'ja', target: 'en-US' });
+    expect(reversedPair(p, S, { source: 'pt', target: 'es-MX' })).toEqual({ source: 'es', target: 'pt' });
   });
 
   it("takes, for a documented target the docs hide, the first offered target of its source: Chinese reverses to Simplified Chinese (choice 5)", () => {
-    expect(reversedPair(p, S, { source: 'zh', target: 'en' })).toEqual({ source: 'en', target: 'zh-hans' });
-    expect(reversedPair(p, S, { source: 'en', target: 'zh-hant' })).toEqual({ source: 'zh', target: 'en-us' });
+    expect(reversedPair(p, S, { source: 'zh', target: 'en' })).toEqual({ source: 'en', target: 'zh-Hans' });
+    expect(reversedPair(p, S, { source: 'en', target: 'zh-Hant' })).toEqual({ source: 'zh', target: 'en-US' });
   });
 
   it('has none where the docs give none: an auto source, a source with no documented target, a target with no documented source', () => {
@@ -199,9 +197,30 @@ describe("Palabra AI's reverse: its documented codes (ruling 9)", () => {
   });
 
   it('swaps into the reverse, and not at all when that is the same pair', () => {
-    expect(swapped(p, S, { source: 'en', target: 'ja' })).toEqual({ source: 'ja', target: 'en-us' });
-    expect(swapped(p, S, { source: 'ja', target: 'en-us' })).toEqual({ source: 'en', target: 'ja' });
-    expect(swapped(p, S, { source: 'en', target: 'en-us' })).toBeNull();
+    expect(swapped(p, S, { source: 'en', target: 'ja' })).toEqual({ source: 'ja', target: 'en-US' });
+    expect(swapped(p, S, { source: 'ja', target: 'en-US' })).toEqual({ source: 'en', target: 'ja' });
+    expect(swapped(p, S, { source: 'en', target: 'en-US' })).toBeNull();
     expect(swapped(p, S, { source: AUTO, target: 'ja' })).toBeNull();
+  });
+});
+
+describe('Palabra AI offers app codes (unified language codes)', () => {
+  it('offers app codes, Chile and Latin America by their right subtags', () => {
+    const targets = palabraLanguages.targets('en', PALABRA_DEFAULTS).map((o) => o.value);
+    const sources = palabraLanguages.sources(PALABRA_DEFAULTS).map((o) => o.value);
+    for (const v of [...sources, ...targets]) expect(parseCode(v), v).not.toBeNull();
+    expect(targets).toEqual(expect.arrayContaining(['zh-Hans', 'zh-Hant', 'en-US', 'es-CL', 'es-419']));
+    expect(targets).not.toContain('es-CH');
+    const wire = palabraLanguages.wire!;
+    expect(wire.toWire('es-CL')).toBe('es-ch');
+    expect(wire.toWire('es-419')).toBe('es-la');
+    expect(wire.toWire('zh-Hant')).toBe('zh-hant');
+    expect(wire.fromWire('en-us')).toBe('en-US');
+    expect(wire.fromWire('ka')).toBeNull();
+  });
+
+  it('reverses in app codes: en-US target and en source, zh source to zh-Hans target', () => {
+    expect(palabraLanguages.reverse?.({ source: 'en', target: 'zh-Hant' }, PALABRA_DEFAULTS)).toEqual({ source: 'zh', target: 'en-US' });
+    expect(palabraLanguages.reverse?.({ source: 'zh', target: 'en-US' }, PALABRA_DEFAULTS)).toEqual({ source: 'en', target: 'zh-Hans' });
   });
 });

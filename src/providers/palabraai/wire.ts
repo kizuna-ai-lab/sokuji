@@ -12,6 +12,7 @@
 import { SAMPLE_RATE } from '../../lib/contract/adapter';
 import { pcmToBase64 } from '../../lib/contract/pcm64';
 import type { PalabraConfig } from './config';
+import { palabraLanguages } from './languages';
 import type { PalabraCredentials } from './settings';
 
 export const PALABRA_API = 'https://api.palabra.ai';
@@ -192,7 +193,7 @@ export function transcriptionOf(data: Record<string, unknown>): Transcription {
   return {
     id: idOf(t.transcription_id),
     part: idOf(t.translation_part_id),
-    language: str(t.language),
+    language: palabraLanguages.wire!.fromWire(str(t.language)) ?? undefined,
     text: str(t.text) ?? '',
     start: num(first?.start),
     end: num(first?.end),

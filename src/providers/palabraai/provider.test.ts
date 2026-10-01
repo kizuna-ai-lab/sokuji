@@ -81,14 +81,14 @@ describe('the Palabra AI definition', () => {
   });
 
   it("runs the participant in Palabra's own reverse — a region target by its source code — and speaks it when its switch is on (rulings 7, 9)", () => {
-    const participant = contextsFor(both({ source: 'ja', target: 'en-us' }, { participantSpeech: true })).participant!;
+    const participant = contextsFor(both({ source: 'ja', target: 'en-US' }, { participantSpeech: true })).participant!;
     expect(participant).toEqual({ direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' });
     expect(palabraProvider.build(participant, PALABRA_DEFAULTS, SHARED)).toMatchObject({ source: 'en', target: 'ja', speech: true });
-    expect(gate(both({ source: 'ja', target: 'en-us' }), 'electron')).toBeNull();
+    expect(gate(both({ source: 'ja', target: 'en-US' }), 'electron')).toBeNull();
     // The other way: English reverses to its documented US English.
-    expect(contextsFor(both({ source: 'en', target: 'ja' })).participant!.direction).toEqual({ source: 'ja', target: 'en-us' });
+    expect(contextsFor(both({ source: 'en', target: 'ja' })).participant!.direction).toEqual({ source: 'ja', target: 'en-US' });
     // A participant that does not speak asks for text alone.
-    expect((palabraProvider.build(contextsFor(both({ source: 'ja', target: 'en-us' })).participant!, PALABRA_DEFAULTS, SHARED) as PalabraConfig).speech).toBe(false);
+    expect((palabraProvider.build(contextsFor(both({ source: 'ja', target: 'en-US' })).participant!, PALABRA_DEFAULTS, SHARED) as PalabraConfig).speech).toBe(false);
   });
 
   it('refuses Both where the docs give no reverse: an Auto-detect source, or a target with no source code (D20, ruling 8)', () => {
@@ -121,7 +121,7 @@ describe('the Palabra AI definition', () => {
     stored.set('settings.palabraai.authMode', 'platform');
     stored.set('settings.palabraai.apiKey', 'plbr_oldProfileKey0123456789');
     stored.set('settings.palabraai.sourceLanguage', 'ja');
-    stored.set('settings.palabraai.targetLanguage', 'en-us');
+    stored.set('settings.palabraai.targetLanguage', 'en-US');
     stored.set('settings.palabraai.voiceId', 'default_high');
     stored.set('settings.palabraai.segmentConfirmationSilenceThreshold', 0.1);
     stored.set('settings.palabraai.subscriberCount', 2);
@@ -129,7 +129,7 @@ describe('the Palabra AI definition', () => {
     const entry = useProviderStore.getState().entries.palabraai;
     expect(entry.settings as PalabraSettings).toEqual({ ...PALABRA_DEFAULTS, voiceId: 'default_high', segmentConfirmationSilenceThreshold: 0.1 });
     expect(readCredentials(palabraProvider, entry.settings, entry.credentials, noAuth)).toEqual({ kind: 'apiKey', apiKey: 'plbr_oldProfileKey0123456789' });
-    expect(entry.pair).toEqual({ source: 'ja', target: 'en-us' });
+    expect(entry.pair).toEqual({ source: 'ja', target: 'en-US' });
     expect((palabraProvider.build({ direction: entry.pair, speech: true, turns: 'auto' }, entry.settings as PalabraSettings, SHARED) as PalabraConfig).silenceThreshold).toBe(0.3);
     expect(setSetting).not.toHaveBeenCalled();
   });
