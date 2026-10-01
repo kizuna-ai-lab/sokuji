@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { INSTRUCTION_LEGACY_KEYS, INSTRUCTIONS_DEFAULTS } from '../../lib/provider/instructions';
 import { AUTO, reverseSupported } from '../../lib/provider/languages';
+import { englishLanguageName } from '../../lib/language';
 import type { AuthContext } from '../../lib/provider/types';
 import {
   compareGeminiModels, defaultGeminiModel, effectiveGeminiModel, geminiActivityHandling, GEMINI_DEFAULTS, GEMINI_DIALOGUE_LANGUAGES, GEMINI_LEGACY_KEYS,
@@ -117,11 +118,9 @@ describe("Gemini's credentials and languages", () => {
     for (const list of [GEMINI_DIALOGUE_LANGUAGES, GEMINI_TRANSLATE_TARGETS, GEMINI_TRANSLATE_SOURCES]) {
       expect(values(list)).not.toContain(AUTO);
       expect(new Set(values(list)).size).toBe(list.length);
-      // English first, then Google's order, by English name (Gemini/AST2 follow-up, choice 14).
+      // English first (Gemini/AST2 follow-up, choice 14); a row carries no name — CLDR names it.
       expect(list[0].value).toBe('en');
-      const rest = list.slice(1).map((o) => o.englishName!);
-      expect(rest).toEqual([...rest].sort((a, b) => a.localeCompare(b, 'en')));
-      for (const o of list) expect(o.name!.trim(), o.value).not.toBe('');
+      for (const o of list) expect(o).toEqual({ value: o.value });
     }
     // No region variant but the two Google documents; none of the old codes.
     expect(values(GEMINI_TRANSLATE_SOURCES).filter((code) => code.includes('-'))).toEqual(['zh-Hans', 'zh-Hant', 'pt-BR', 'pt-PT']);
@@ -147,23 +146,10 @@ describe("Gemini's credentials and languages", () => {
     expect(values(GEMINI_DIALOGUE_LANGUAGES)).not.toContain('jv');
   });
 
-  it("let a stored side the offer does not hold take initial's — any pair saved before the rebuild — and keep one it holds; nothing converted (Gemini/AST2 follow-up, choice 17)", () => {
-    const migrate = (s: typeof GEMINI_DEFAULTS, source: string, target: string) => geminiLanguages.migratePair!({ source, target }, s);
-    expect(migrate(GEMINI_DEFAULTS, 'en-US', 'ja-JP')).toEqual({ source: '', target: '' });
-    expect(migrate(GEMINI_DEFAULTS, 'pt-BR', 'cmn-CN')).toEqual({ source: 'pt-BR', target: '' });
-    expect(migrate(GEMINI_DEFAULTS, 'zh-Hant', 'pt-PT')).toEqual({ source: 'zh-Hant', target: 'pt-PT' });
-    // Faroese: a dialogue model's target, not Live Translate's.
-    expect(migrate(DIALOGUE_MODEL, 'en', 'fo')).toEqual({ source: 'en', target: 'fo' });
-    expect(migrate(TRANSLATE_MODEL, 'en', 'fo')).toEqual({ source: 'en', target: '' });
-    expect(migrate(GEMINI_DEFAULTS, '', '')).toEqual({ source: '', target: '' });
-  });
-
-  it("name a code in English — Google's name — for the instructions' template, and fall back to the code", () => {
-    expect(geminiLanguageName('ja')).toBe('Japanese');
-    expect(geminiLanguageName('zh-Hant')).toBe('Chinese (Traditional)');
-    expect(geminiLanguageName('pt-PT')).toBe('Portuguese (Portugal)');
-    expect(geminiLanguageName('jv')).toBe('Javanese');
-    expect(geminiLanguageName('xx')).toBe('xx');
+  it('names a code for the instructions by its CLDR English name, and sends Google its own code', () => {
+    expect(geminiLanguageName('zh-Hant')).toBe(englishLanguageName('zh-Hant'));
+    expect(geminiLanguages.migratePair).toBeUndefined();
+    expect(geminiLanguages.wire?.toWire('zh-Hant')).toBe('zh-Hant');
   });
 
   it('offer the old 30 prebuilt voices, Aoede first', () => {
