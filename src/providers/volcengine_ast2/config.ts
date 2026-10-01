@@ -5,7 +5,9 @@
  */
 import type { SessionContext } from '../../lib/contract/adapter';
 import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
-import { ast2Languages, ast2Offers, fixedVoice, type Ast2Settings } from './settings';
+import { resourceOf } from './catalog';
+import { ast2Languages, ast2Offers, type Ast2Settings } from './settings';
+import { CLONE, effectiveVoice } from './voice';
 
 /** The console libraries a session names (`ReqParams.corpus`), the protobuf's camelCase names. */
 export interface Ast2Corpus {
@@ -53,16 +55,18 @@ export function buildAst2(context: SessionContext, s: Ast2Settings, _shared: Sha
     return { refused: `Doubao AST 2.0 does not ${context.speech ? 'speak' : 'translate'} ${source} → ${target}.` };
   }
   const corpus = buildCorpus(s);
-  // The same libraries on both legs (parity): the build cannot tell the legs of a `zhen/zhen` pair apart (choice 6).
+  // The same libraries on both legs (parity): the build cannot tell the legs of a `zh+en` pair apart (choice 6).
   const wire = ast2Languages.wire;
-  // A text-only leg has no voice to choose; the server would take the fields and ignore them (#576 §4), so they are not sent.
-  const voice = context.speech ? fixedVoice(s.voice) : undefined;
+  // A speaking leg's voice for its own direction (#577 catalog §2.5); a text-only leg has none, and cloning is no field at all.
+  const voice = context.speech ? effectiveVoice(context.direction, s) : undefined;
+  if (context.speech && voice === undefined) return { refused: `Doubao AST 2.0 has no voice that speaks ${target}.` };
+  const ttsResourceId = voice !== undefined && voice !== CLONE ? resourceOf(voice) : undefined;
   return {
     mode: context.speech ? 's2s' : 's2t',
     sourceLanguage: wire.toWire(source),
     targetLanguage: wire.toWire(target),
     ...(corpus ? { corpus } : {}),
-    ...(voice ? { voice: { speakerId: voice.id, ttsResourceId: voice.ttsResourceId } } : {}),
+    ...(voice && ttsResourceId ? { voice: { speakerId: voice, ttsResourceId } } : {}),
   };
 }
 

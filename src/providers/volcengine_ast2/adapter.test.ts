@@ -85,7 +85,7 @@ describe('the Doubao AST 2.0 adapter: opening', () => {
   });
 
   it('starts its session in the chosen fixed voice, and frames the voice it asked for (#577)', () => {
-    const h = startAst2({ patch: { voice: 'zh_female_vv_uranus_bigtts' } });
+    const h = startAst2({ patch: { voices: { en: 'zh_female_vv_uranus_bigtts' } } });
     h.socket().open();
     const [start] = h.requests();
     expect(start.request).toMatchObject({ mode: 's2s', speakerId: 'zh_female_vv_uranus_bigtts', ttsResourceId: 'seed-tts-2.0' });
