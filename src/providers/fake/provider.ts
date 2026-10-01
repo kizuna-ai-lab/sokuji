@@ -1,5 +1,6 @@
 import { FlaskConical } from 'lucide-react';
 import type { Adapter, AdapterEvents, AdapterSession, SessionContext, StartRequest } from '../../lib/contract/adapter';
+import { identityWire } from '../../lib/language/wire';
 import { AUTO } from '../../lib/provider/languages';
 import type { CheckResult, LanguageOption, Provider, ProviderRefusal, SharedSettings } from '../../lib/provider/types';
 import { createFakeAdapter, type FakeConfig, type FakeCredentials } from './adapter';
@@ -8,9 +9,9 @@ import { fakeScript } from './scripts';
 import { FAKE_DEFAULTS, migrateFakeSettings, type FakeSettings } from './settings';
 
 const LANGUAGES: readonly LanguageOption[] = [
-  { value: 'en', name: 'English', englishName: 'English' },
-  { value: 'ja', name: '日本語', englishName: 'Japanese' },
-  { value: 'zh', name: '中文', englishName: 'Chinese' },
+  { value: 'en' },
+  { value: 'ja' },
+  { value: 'zh' },
 ];
 
 // Built on the first `start()`, not here: a module-scope `createFakeAdapter()`
@@ -21,8 +22,9 @@ let adapter: Adapter<FakeConfig, FakeCredentials> | null = null;
 
 /** The fake's language lists: `AUTO` and three languages as sources, never a source as its own target. */
 export const FAKE_LANGUAGES: Provider<FakeSettings, FakeCredentials, FakeConfig>['languages'] = {
-  sources: () => [{ value: AUTO, name: 'Auto', englishName: 'Auto' }, ...LANGUAGES],
+  sources: () => [{ value: AUTO }, ...LANGUAGES],
   targets: (source) => LANGUAGES.filter((l) => l.value !== source),
+  wire: identityWire(),
 };
 
 /** Ready, unless `checkFails` is on. */

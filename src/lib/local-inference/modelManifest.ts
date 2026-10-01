@@ -3391,8 +3391,8 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
 
 // ─── Language Helpers ────────────────────────────────────────────────────────
 
-import { getLanguageOption, LANGUAGE_OPTIONS, sortLanguageOptions } from '../../utils/languages';
-import type { LanguageOption } from '../../services/providers/ProviderConfig';
+import { LANGUAGE_CODES, sortLanguageOptions } from '../../utils/languages';
+import type { LanguageOption } from '../provider/types';
 import { isSupportedByBing } from '../bing-translator';
 
 /** Check if a model is truly universal (languages: ['multilingual']) vs bounded multilingual */
@@ -3406,7 +3406,7 @@ export function getTranslationSourceLanguages(): LanguageOption[] {
   for (const m of MODEL_MANIFEST.filter(m => m.type === 'translation')) {
     if (isUniversalMultilingual(m)) {
       // Truly universal models (e.g. Qwen 3.5): expose all languages
-      Object.keys(LANGUAGE_OPTIONS).forEach(l => codes.add(l));
+      LANGUAGE_CODES.forEach(l => codes.add(l));
     } else if (m.multilingual) {
       // Bounded multilingual (e.g. TranslateGemma, Qwen 2.5): use languages list
       m.languages.forEach(l => codes.add(l));
@@ -3414,7 +3414,7 @@ export function getTranslationSourceLanguages(): LanguageOption[] {
       codes.add(m.sourceLang);
     }
   }
-  return sortLanguageOptions([...codes].map(getLanguageOption));
+  return sortLanguageOptions([...codes].map((value) => ({ value })));
 }
 
 /** Get available target languages for a given source language */
@@ -3422,14 +3422,14 @@ export function getTranslationTargetLanguages(sourceLang: string): LanguageOptio
   const codes = new Set<string>();
   for (const m of MODEL_MANIFEST.filter(m => m.type === 'translation')) {
     if (isUniversalMultilingual(m)) {
-      Object.keys(LANGUAGE_OPTIONS).forEach(l => { if (l !== sourceLang) codes.add(l); });
+      LANGUAGE_CODES.forEach(l => { if (l !== sourceLang) codes.add(l); });
     } else if (m.multilingual) {
       m.languages.forEach(l => { if (l !== sourceLang) codes.add(l); });
     } else if (m.sourceLang === sourceLang && m.targetLang) {
       codes.add(m.targetLang);
     }
   }
-  return sortLanguageOptions([...codes].map(getLanguageOption));
+  return sortLanguageOptions([...codes].map((value) => ({ value })));
 }
 
 // ─── Query Helpers ───────────────────────────────────────────────────────────

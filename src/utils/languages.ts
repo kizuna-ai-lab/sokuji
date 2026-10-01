@@ -1,5 +1,5 @@
 import { englishLanguageName } from '../lib/language/label';
-import { LanguageOption } from '../services/providers/ProviderConfig';
+import type { LanguageOption } from '../lib/provider/types';
 
 /** Shared language display name registry — single source of truth for code → display name */
 export const LANGUAGE_OPTIONS: Record<string, LanguageOption> = {

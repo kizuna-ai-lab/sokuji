@@ -1,3 +1,4 @@
+import { identityWire } from '../../lib/language/wire';
 import type { Provider } from '../../lib/provider/types';
 import type { Selections } from '../../lib/local-inference/selection/types';
 import { getTranslationSourceLanguages, getTranslationTargetLanguages } from '../../lib/local-inference/modelManifest';
@@ -57,4 +58,6 @@ export const localInferenceLanguages: Provider<LocalInferenceSettings, never, ne
   sources: () => getTranslationSourceLanguages(),
   targets: (source) => getTranslationTargetLanguages(source),
   initial: () => ({ source: 'ja', target: 'en' }),
+  // No vendor: each engine turns the app code into its model's own form.
+  wire: identityWire(),
 };
