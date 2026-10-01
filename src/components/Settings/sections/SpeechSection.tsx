@@ -139,8 +139,8 @@ export function SpeechSection({ locked, layout }: { locked: boolean; layout: 'si
 /**
  * The Output block (ruling 6): Text only and Keep audio for replay, headless
  * — no heading, as they sat at the end of the language section today
- * (`LanguageSection.tsx:694-733`). Rendered by the hosts right after
- * `SpeechSection`, as its own `config-section`.
+ * (`LanguageSection.tsx:694-733`). Rendered by the hosts between the
+ * provider and `SpeechSection`, as its own `config-section`.
  *
  * Text only reads the selected provider's `speech` from the registry: a
  * provider that always speaks (`'always'`) is never text-only, so the switch

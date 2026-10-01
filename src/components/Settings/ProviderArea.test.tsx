@@ -38,7 +38,9 @@ import { SessionEnginePage, SessionSettingsGeneral, SessionSettingsProvider } fr
 
 const entry = () => ({ settings: { ...LOCAL_INFERENCE_DEFAULTS }, credentials: {}, pair: { source: 'ja', target: 'en' } });
 
-const SECTION_IDS = ['languages-section', 'turn-detection-section', 'output-section', 'provider-section'];
+// The owner's order of 2026-10-01: the pair, the provider, Text only and
+// Keep audio, then the speech mode.
+const SECTION_IDS = ['languages-section', 'provider-section', 'output-section', 'turn-detection-section'];
 
 beforeEach(() => {
   stored.clear();
@@ -59,7 +61,7 @@ describe('SessionSettingsGeneral', () => {
       // eslint-disable-next-line no-bitwise
       expect(elements[i]!.compareDocumentPosition(elements[i + 1]!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     }
-    const providerSection = elements[elements.length - 1]!;
+    const providerSection = container.querySelector('#provider-section')!;
     expect(providerSection.querySelector('[data-tour="engine-chips"]')).toBeTruthy();
 
     const labels = [...container.querySelectorAll('#languages-section .language-select-group label')].map((el) => el.textContent);

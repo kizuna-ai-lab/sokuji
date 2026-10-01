@@ -27,11 +27,12 @@ export function SessionSettingsGeneral({ locked, layout, onOpenSlot }: { locked:
   const textOnly = useTextOnly();
   return (
     <>
+      {/* The owner's order of 2026-10-01: the pair, the provider, Text only and Keep audio, then the speech mode. */}
       <ProviderLanguages providers={providers} disabled={locked} sentence={{ mode, textOnly }} />
-      <SpeechSection locked={locked} layout={layout} />
-      <OutputToggles locked={locked} />
-      {SENTENCE_SEGMENTATION_SHOWN && <SentenceSegmentationSection isSessionActive={locked} />}
       <ProviderPicker providers={providers} auth={auth} disabled={locked} openSlot={onOpenSlot} />
+      <OutputToggles locked={locked} />
+      <SpeechSection locked={locked} layout={layout} />
+      {SENTENCE_SEGMENTATION_SHOWN && <SentenceSegmentationSection isSessionActive={locked} />}
     </>
   );
 }
