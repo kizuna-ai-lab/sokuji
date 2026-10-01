@@ -1,10 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { previewSampleFor, resolvePreviewSample, PREVIEW_SAMPLES } from './previewSample';
-import { SonioxProviderConfig } from '../../services/providers/SonioxProviderConfig';
+import { SONIOX_LANGUAGES } from '../../providers/soniox/settings';
 
-const supported = new Set(
-  new SonioxProviderConfig().getConfig().languages.map((l: { value: string }) => l.value)
-);
+const supported = new Set(SONIOX_LANGUAGES.map((l) => l.value));
 
 describe('previewSampleFor', () => {
   it('only seeds languages Soniox can actually synthesize', () => {

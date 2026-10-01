@@ -5,10 +5,11 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth, useUser } from '../lib/auth/hooks';
-import { useIsSessionActive } from '../stores/sessionStore';
+import { useRunPhase } from '../app/useRun';
 import { getApiUrl } from '../utils/environment';
 import { mapWalletStatusToQuota } from '../utils/walletQuota';
 import { reportError, reportWarning, describeCause } from '../lib/diagnostics/report';
+import { useAccountStore } from '../stores/accountStore';
 
 export interface QuotaData {
   // Core wallet data (new fields)
@@ -53,6 +54,9 @@ interface UserProfileContextValue {
   refetchAll: () => Promise<void>;
 }
 
+/** The waits between re-fetches of a wallet that failed to load (Stage 2 Kizuna Soniox, ruling 5): 15 s, 30 s, 60 s, then the 5-minute poll. */
+export const WALLET_RETRY_DELAYS_MS: readonly number[] = [15_000, 30_000, 60_000];
+
 const UserProfileContext = createContext<UserProfileContextValue | undefined>(undefined);
 
 export function useUserProfile() {
@@ -70,11 +74,14 @@ interface UserProfileProviderProps {
 export function UserProfileProvider({ children }: UserProfileProviderProps) {
   const { isSignedIn, getToken } = useAuth();
   const { user: betterAuthUser } = useUser();
-  const isSessionActive = useIsSessionActive();
+  // A start or a stop in flight polls every minute too, not only 'running'.
+  const isSessionActive = useRunPhase() !== 'idle';
 
   const [quota, setQuota] = useState<QuotaData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // A fetch failed and no wallet has landed since (Stage 2 Kizuna Soniox, ruling 5).
+  const [walletFailed, setWalletFailed] = useState(false);
 
   // Which session the state currently belongs to, so a response can be checked
   // against it before being written. Both fetches await a network round-trip
@@ -138,6 +145,7 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
         // quote. LogsPanel alone would be invisible outside advanced mode.
         setError(errorMessage);
         reportError('UserProfile', errorMessage);
+        setWalletFailed(true);
         return;
       }
 
@@ -146,6 +154,7 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
 
       setQuota(mapWalletStatusToQuota(raw));
       setError(null);
+      setWalletFailed(false);
       // The latch is shared with the silent poll, so every path that proves the
       // balance endpoint is answering has to clear it. Clearing it only on the
       // poll's own success meant a manual refresh could fix the symptom while
@@ -160,6 +169,7 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
       setError(errorMessage);
       reportError('UserProfile', `Failed to fetch quota: ${errorMessage}`, { cause: err });
       setQuota(null);
+      setWalletFailed(true);
     } finally {
       // The loading flag belongs to whoever owns the state now. A stale request
       // clearing it would report the current session's fetch as finished.
@@ -219,6 +229,7 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
         if (stale()) return;
         setQuota(mapWalletStatusToQuota(raw));
         setError(null);
+        setWalletFailed(false);
         pollFailingRef.current = false;
       } else {
         reportPollFailure(`${response.status} ${response.statusText}`, undefined, stale);
@@ -238,6 +249,7 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
     // sign-out or an account switch would silence the new account's first
     // failure — the provider stays mounted, so nothing else would clear it.
     pollFailingRef.current = false;
+    setWalletFailed(false);
 
     if (isSignedIn && userId) {
       fetchQuota();
@@ -266,6 +278,42 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
     return () => clearInterval(intervalId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSignedIn, isSessionActive, userId]); // Depend on stable values, not the function
+
+  // The start gate reads the wallet outside React (Stage 2 Kizuna Soniox,
+  // ruling 5): null signed out, loading until the first fetch lands,
+  // unknown once one failed with no wallet known.
+  useEffect(() => {
+    const balance = quota?.balance;
+    useAccountStore.getState().setAccount(
+      !isSignedIn || !userId ? null
+        : typeof balance === 'number' ? { status: 'known', balanceMicroUsd: balance, frozen: quota?.frozen === true }
+        : walletFailed ? { status: 'unknown' }
+        : { status: 'loading' },
+    );
+  }, [isSignedIn, userId, quota, walletFailed]);
+  useEffect(() => () => useAccountStore.getState().setAccount(null), []);
+
+  // The way back from an offline launch (ruling 5): while signed in with
+  // no wallet after a failed fetch, re-fetch when the network returns and
+  // on a short back-off, instead of leaving Start refused until the
+  // 5-minute poll. Silent, so the balance display does not flicker; a
+  // success clears `walletFailed` and so ends this effect.
+  useEffect(() => {
+    if (!isSignedIn || !userId || !walletFailed || quota) return;
+    const retry = () => { void fetchQuotaSilently(); };
+    window.addEventListener('online', retry);
+    const timers: Array<ReturnType<typeof setTimeout>> = [];
+    let at = 0;
+    for (const delay of WALLET_RETRY_DELAYS_MS) {
+      at += delay;
+      timers.push(setTimeout(retry, at));
+    }
+    return () => {
+      window.removeEventListener('online', retry);
+      timers.forEach(clearTimeout);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn, userId, walletFailed, quota]); // Stable values, as the effects above
 
   // Better Auth refreshes the session itself, so there is nothing to do here.
   // Kept as a no-op because it is part of the context's public shape; the

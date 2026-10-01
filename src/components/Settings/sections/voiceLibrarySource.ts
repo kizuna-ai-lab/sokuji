@@ -12,15 +12,15 @@
  * synthesizing a sample, which needs a Soniox key the managed user does not
  * have. That is a property of the SOURCE, not of the section.
  */
-import type { SonioxVoice, SonioxVoicesClient } from '../../../services/clients/SonioxVoicesClient';
-import type { ManagedVoicesClient, ManagedVoice } from '../../../services/clients/ManagedVoicesClient';
-import { SonioxVoicesError } from '../../../services/clients/SonioxVoicesClient';
-import { synthesizeOnce } from '../../../services/clients/SonioxTtsRest';
+import type { SonioxVoice, SonioxVoicesClient } from '../../../providers/soniox/voicesClient';
+import type { ManagedVoicesClient, ManagedVoice } from '../../../providers/soniox/managedVoicesClient';
+import { SonioxVoicesError } from '../../../providers/soniox/voicesClient';
+import { synthesizeOnce } from '../../../providers/soniox/ttsRest';
 import type { SonioxRegion } from '../../../lib/soniox/regions';
 import { DEFAULT_SONIOX_REGION } from '../../../lib/soniox/regions';
 import { saveVoiceClip, clearVoiceClip } from '../../../lib/soniox/voiceClipStorage';
 import { SONIOX_TTS_MODEL } from '../../../lib/soniox/ttsCatalog';
-import { managedVoicePollDelayMs } from '../../../services/clients/managedVoicePolling';
+import { managedVoicePollDelayMs } from '../../../providers/soniox/managedVoicePolling';
 import { reportWarning, describeCause } from '../../../lib/diagnostics/report';
 
 export interface VoiceLibrarySource {
@@ -338,7 +338,7 @@ export function managedVoiceSource(
           //
           // NOT swallowed silently, though — "never rethrow" and "discard" are
           // different decisions, and the sibling fire-and-forget calls
-          // (ManagedSonioxSession.markStarted/end) already made the second one
+          // (the lease's session-started/end reports) already made the second one
           // for good reason: unread, a systemic failure here (a route typo, a
           // deploy skew) would be invisible — every preview keeps playing, no
           // preview is ever billed, and the account's next Start 409s for up to

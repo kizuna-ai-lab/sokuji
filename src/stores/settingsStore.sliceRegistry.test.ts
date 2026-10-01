@@ -28,13 +28,7 @@ const { default: useSettingsStore } = await import('./settingsStore');
 
 /** action name → [sliceKey, sample patch] for the plain (no-special-case) slices */
 const PLAIN: Array<[string, string, Record<string, unknown>]> = [
-  ['updateGemini', 'gemini', { apiKey: 'k1' }],
-  ['updatePalabraAI', 'palabraai', { clientId: 'c1' }],
-  ['updateOpenAITranslate', 'openaiTranslate', { apiKey: 'k2' }],
-  ['updateVolcengineAST2', 'volcengineAST2', { appId: 'p1' }],
-  ['updateLocalInference', 'localInference', { ttsSpeed: 1.5 }],
   ['updateLocalNative', 'localNative', { sourceLanguage: 'ja' }],
-  ['updateSoniox', 'soniox', { apiKey: 's1' }],
 ];
 
 beforeEach(() => {
@@ -53,52 +47,6 @@ describe('provider settings update actions (behavior lock)', () => {
     }
   });
 
-  it('openai/openaiCompatible: switching to webrtc forces turnDetectionMode Disabled in state AND persistence', async () => {
-    for (const [action, sliceKey] of [['updateOpenAI', 'openai'], ['updateOpenAICompatible', 'openaiCompatible']] as const) {
-      setSetting.mockClear();
-      (useSettingsStore.setState as any)({ [sliceKey]: { ...(useSettingsStore.getState() as any)[sliceKey], turnDetectionMode: 'Normal' } });
-      await (useSettingsStore.getState() as any)[action]({ transportType: 'webrtc' });
-      expect((useSettingsStore.getState() as any)[sliceKey].turnDetectionMode, action).toBe('Disabled');
-      expect(setSetting, action).toHaveBeenCalledWith(`settings.${sliceKey}.turnDetectionMode`, 'Disabled');
-      expect(setSetting, action).toHaveBeenCalledWith(`settings.${sliceKey}.transportType`, 'webrtc');
-    }
-  });
-
-  it('webrtc forcing is conditional: already-Disabled stays Disabled; a non-webrtc patch never forces it', async () => {
-    for (const [action, sliceKey] of [['updateOpenAI', 'openai'], ['updateOpenAICompatible', 'openaiCompatible']] as const) {
-      // Already Disabled before the update → still Disabled, still persisted.
-      setSetting.mockClear();
-      (useSettingsStore.setState as any)({ [sliceKey]: { ...(useSettingsStore.getState() as any)[sliceKey], turnDetectionMode: 'Disabled' } });
-      await (useSettingsStore.getState() as any)[action]({ transportType: 'webrtc' });
-      expect((useSettingsStore.getState() as any)[sliceKey].turnDetectionMode, action).toBe('Disabled');
-      expect(setSetting, action).toHaveBeenCalledWith(`settings.${sliceKey}.turnDetectionMode`, 'Disabled');
-
-      // Negative case: a websocket patch must NOT force or persist turnDetectionMode.
-      setSetting.mockClear();
-      (useSettingsStore.setState as any)({ [sliceKey]: { ...(useSettingsStore.getState() as any)[sliceKey], turnDetectionMode: 'Normal' } });
-      await (useSettingsStore.getState() as any)[action]({ transportType: 'websocket' });
-      expect((useSettingsStore.getState() as any)[sliceKey].turnDetectionMode, action).toBe('Normal');
-      expect(setSetting, action).not.toHaveBeenCalledWith(`settings.${sliceKey}.turnDetectionMode`, expect.anything());
-    }
-  });
-
-  it('kizuna twins: credentials update in-memory state but are never persisted', async () => {
-    await useSettingsStore.getState().updateKizunaOpenaiTranslate({ apiKey: 'secret', sourceLanguage: 'ja' } as any);
-    expect((useSettingsStore.getState() as any).kizunaOpenaiTranslate.apiKey).toBe('secret');
-    expect(setSetting).not.toHaveBeenCalledWith('settings.kizunaOpenaiTranslate.apiKey', expect.anything());
-    expect(setSetting).toHaveBeenCalledWith('settings.kizunaOpenaiTranslate.sourceLanguage', 'ja');
-
-    setSetting.mockClear();
-    await useSettingsStore.getState().updateKizunaVolcengineAst2({ appId: 'a', accessToken: 't', sourceLanguage: 'zh' } as any);
-    // Credentials land in state...
-    expect((useSettingsStore.getState() as any).kizunaVolcengineAst2.appId).toBe('a');
-    expect((useSettingsStore.getState() as any).kizunaVolcengineAst2.accessToken).toBe('t');
-    // ...but are never persisted.
-    expect(setSetting).not.toHaveBeenCalledWith('settings.kizunaVolcengineAst2.appId', expect.anything());
-    expect(setSetting).not.toHaveBeenCalledWith('settings.kizunaVolcengineAst2.accessToken', expect.anything());
-    expect(setSetting).toHaveBeenCalledWith('settings.kizunaVolcengineAst2.sourceLanguage', 'zh');
-  });
-
   // The registry used to carry `persistErrors: 'throw' | 'swallow'`, split 6/6,
   // and this pinned each row. What the split actually did in production: none
   // of the six "throw" actions was awaited or caught by any caller — they are
@@ -113,15 +61,6 @@ describe('provider settings update actions (behavior lock)', () => {
   // resolves, and the failure becomes one panel entry per key. Both failure
   // channels are exercised because the service can produce either.
   const ALL_SLICES: Array<[string, string, Record<string, unknown>]> = [
-    ['updateOpenAI', 'openai', { apiKey: 'x' }],
-    ['updateGemini', 'gemini', { apiKey: 'x' }],
-    ['updateOpenAICompatible', 'openaiCompatible', { apiKey: 'x' }],
-    ['updatePalabraAI', 'palabraai', { clientId: 'x' }],
-    ['updateOpenAITranslate', 'openaiTranslate', { apiKey: 'x' }],
-    ['updateKizunaOpenaiTranslate', 'kizunaOpenaiTranslate', { sourceLanguage: 'ja' }],
-    ['updateVolcengineAST2', 'volcengineAST2', { appId: 'x' }],
-    ['updateKizunaVolcengineAst2', 'kizunaVolcengineAst2', { sourceLanguage: 'zh' }],
-    ['updateLocalInference', 'localInference', { ttsSpeed: 1.5 }],
     ['updateLocalNative', 'localNative', { sourceLanguage: 'ja' }],
   ];
 
@@ -153,13 +92,13 @@ describe('provider settings update actions (behavior lock)', () => {
     resetReportThrottle();
     setSetting.mockResolvedValue({ success: false, error: 'disk full' } as never);
 
-    await (useSettingsStore.getState() as any).updateGemini({ apiKey: 'x', sourceLanguage: 'ja' });
+    await (useSettingsStore.getState() as any).updateLocalNative({ sourceLanguage: 'ja', targetLanguage: 'en' });
     await settleReports();
 
     const messages = useLogStore.getState().allLogs.map((l) => l.message);
     expect(messages).toEqual([
-      '[Settings] Could not save settings.gemini.apiKey: disk full',
-      '[Settings] Could not save settings.gemini.sourceLanguage: disk full',
+      '[Settings] Could not save settings.localNative.sourceLanguage: disk full',
+      '[Settings] Could not save settings.localNative.targetLanguage: disk full',
     ]);
     useLogStore.getState().clearLogs();
   });
@@ -172,9 +111,7 @@ describe('provider settings update actions (behavior lock)', () => {
     const s = useSettingsStore.getState() as any;
     // Spot every slice key is a populated object after load.
     for (const sliceKey of [
-      'openai', 'gemini', 'openaiCompatible', 'palabraai', 'openaiTranslate',
-      'volcengineAST2', 'kizunaOpenaiTranslate',
-      'kizunaVolcengineAst2', 'localInference', 'localNative',
+      'localNative',
     ]) {
       expect(s[sliceKey], sliceKey).toBeTypeOf('object');
       expect(Object.keys(s[sliceKey]).length, sliceKey).toBeGreaterThan(0);

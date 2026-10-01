@@ -1,7 +1,7 @@
 // src/components/Subtitle/useOverlayDragResize.ts
 import { useCallback } from 'react';
 import { useSubtitlePositionLocked } from '../../stores/subtitleStore';
-import type { SubtitleSurfaceKind } from './SubtitleApp';
+import type { SubtitleSurfaceKind } from './useSubtitleChrome';
 
 type DragKind =
   | 'move'

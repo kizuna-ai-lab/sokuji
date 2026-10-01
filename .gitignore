@@ -6,10 +6,6 @@ node_modules
 # testing
 /coverage
 
-# Evaluation results and audio files (not version controlled)
-evals/results/
-evals/audio/
-
 # production
 /build
 /dist

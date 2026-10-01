@@ -3,16 +3,9 @@ import { describe, it, expect, vi } from 'vitest';
 vi.mock('../../utils/environment', async (orig) => ({
   ...(await orig<any>()),
   isKizunaAIEnabled: () => true,
-  // Explicit: each managed provider is gated on its own now, and this mock's
-  // promise is that EVERY provider gate is forced on.
-  isKizunaSonioxEnabled: () => true,
-  isKizunaOpenAITranslateEnabled: () => true,
-  isKizunaVolcengineAST2Enabled: () => true,
-  isPalabraAIEnabled: () => true,
   isLocalNativeEnabled: () => true,
   isElectron: () => true,
   isExtension: () => false,
-  getRelayWsUrl: () => 'wss://r.example/v1',
 }));
 
 // The real module (src/locales/index.ts) preloads en/translation.json and
@@ -37,7 +30,7 @@ describe('local prepareToStart', () => {
     signal: new AbortController().signal,
   });
 
-  for (const id of [Provider.LOCAL_INFERENCE, Provider.LOCAL_NATIVE]) {
+  for (const id of [Provider.LOCAL_NATIVE]) {
     it(`${id}: valid revalidation → bare ok`, async () => {
       const d = ProviderConfigFactory.getDescriptor(id);
       const p = ports({ valid: true });

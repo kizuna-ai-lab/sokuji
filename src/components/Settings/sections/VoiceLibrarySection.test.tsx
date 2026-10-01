@@ -3,15 +3,25 @@
  *
  * VoicePicker (Tasks 3–4) and the two modals (VoiceCreateModal — Task 5,
  * VoiceDeleteModal — Task 6) each carry their own suite. This file covers
- * only what the composition root itself owns: the AudioContext-backed
- * preview plumbing (`togglePreview`/`stopPreview`, still local to this
- * component), wiring `onAskDelete` to the delete modal and `onConfirm` back
- * to `onDelete`, gating the picker's add-voice affordance on
- * `capability.importModes`, and opening the create modal.
+ * only what the composition root itself owns: the preview plumbing
+ * (`togglePreview`/`stopPreview`, still local to this component) on both of
+ * its paths — its own AudioContext, and the host's preview route when a
+ * `VoicePreviewContext` provides one (the second `describe`) — wiring
+ * `onAskDelete` to the delete modal and `onConfirm` back to `onDelete`,
+ * gating the picker's add-voice affordance on `capability.importModes`, and
+ * opening the create modal.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import VoiceLibrarySection from './VoiceLibrarySection';
+import { VoicePreviewContext } from '../../providers/VoicePreviewContext';
+
+const { reportErrorSpy, reportWarningSpy } = vi.hoisted(() => ({ reportErrorSpy: vi.fn(), reportWarningSpy: vi.fn() }));
+vi.mock('../../../lib/diagnostics/report', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../lib/diagnostics/report')>()),
+  reportError: reportErrorSpy,
+  reportWarning: reportWarningSpy,
+}));
 
 const base = {
   selectedId: 'builtin:Ava',
@@ -312,5 +322,176 @@ describe('VoiceLibrarySection', () => {
     // And the popover closes as the modal opens — the add row's other half of
     // final-review finding 2, pinned the same way the delete flow above is.
     expect(screen.queryByRole('grid')).not.toBeInTheDocument();
+  });
+});
+
+// Task 10a (choice 13): under a provider of VoicePreviewContext, the section
+// plays through that route instead of its own AudioContext — no Web Audio
+// stub needed here, since that path is never reached while a port is
+// provided.
+describe('through the preview route', () => {
+  it("plays a voice's sample through the route, shows Stop while it plays, and Play once it ends", async () => {
+    let finish: () => void = () => {};
+    const port = { play: vi.fn(() => new Promise<void>((r) => { finish = r; })), stop: vi.fn() };
+    const onPreview = vi.fn().mockResolvedValue({ audio: new Float32Array(2048), sampleRate: 24000 });
+
+    render(
+      <VoicePreviewContext.Provider value={port}>
+        <VoiceLibrarySection
+          {...base}
+          selectedId=""
+          voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
+          capability={{ importModes: ['upload'] }}
+          onPreview={onPreview}
+        />
+      </VoicePreviewContext.Provider>,
+    );
+    openPicker();
+
+    fireEvent.click(screen.getByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(onPreview).toHaveBeenCalledWith('custom:1', expect.any(AbortSignal)));
+    await waitFor(() => expect(port.play).toHaveBeenCalledWith({ audio: expect.any(Float32Array), sampleRate: 24000 }));
+    expect(await screen.findByRole('button', { name: /^stop$/i })).toBeInTheDocument();
+
+    act(() => finish());
+    await waitFor(() => expect(screen.getByRole('button', { name: /^play$/i })).toBeInTheDocument());
+  });
+
+  it('a second click stops the route', async () => {
+    const port = { play: vi.fn(() => new Promise<void>(() => {})), stop: vi.fn() };
+    const onPreview = vi.fn().mockResolvedValue({ audio: new Float32Array(2048), sampleRate: 24000 });
+
+    render(
+      <VoicePreviewContext.Provider value={port}>
+        <VoiceLibrarySection
+          {...base}
+          selectedId=""
+          voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
+          capability={{ importModes: ['upload'] }}
+          onPreview={onPreview}
+        />
+      </VoicePreviewContext.Provider>,
+    );
+    openPicker();
+
+    fireEvent.click(screen.getByRole('button', { name: /^play$/i }));
+    const stopBtn = await screen.findByRole('button', { name: /^stop$/i });
+    fireEvent.click(stopBtn);
+    expect(port.stop).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: /^play$/i })).toBeInTheDocument();
+  });
+
+  it('unmounting while a sample plays stops the route', async () => {
+    const port = { play: vi.fn(() => new Promise<void>(() => {})), stop: vi.fn() };
+    const onPreview = vi.fn().mockResolvedValue({ audio: new Float32Array(2048), sampleRate: 24000 });
+
+    const { unmount } = render(
+      <VoicePreviewContext.Provider value={port}>
+        <VoiceLibrarySection
+          {...base}
+          selectedId=""
+          voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
+          capability={{ importModes: ['upload'] }}
+          onPreview={onPreview}
+        />
+      </VoicePreviewContext.Provider>,
+    );
+    openPicker();
+
+    fireEvent.click(screen.getByRole('button', { name: /^play$/i }));
+    await screen.findByRole('button', { name: /^stop$/i });
+    unmount();
+    expect(port.stop).toHaveBeenCalledTimes(1);
+  });
+
+  it('a toggle or an unmount with nothing of its own playing leaves the route alone', async () => {
+    // The route is shared: the test tone and other sections' previews play
+    // through it too. A stopPreview that called port.stop() unconditionally
+    // would cut them on a toggle or an unmount with nothing of this
+    // section's own playing.
+    const port = { play: vi.fn(), stop: vi.fn() };
+    const onPreview = vi.fn().mockResolvedValue({ audio: new Float32Array(2048), sampleRate: 24000 });
+    const voices = [
+      { id: 'custom:1', label: 'First', group: 'custom' as const, removable: true },
+      { id: 'custom:2', label: 'Second', group: 'custom' as const, removable: true },
+    ];
+
+    const { unmount } = render(
+      <VoicePreviewContext.Provider value={port}>
+        <VoiceLibrarySection
+          {...base}
+          selectedId=""
+          voices={voices}
+          capability={{ importModes: ['upload'] }}
+          onPreview={onPreview}
+        />
+      </VoicePreviewContext.Provider>,
+    );
+    unmount();
+    expect(port.stop).not.toHaveBeenCalled();
+
+    let finish: () => void = () => {};
+    port.play.mockImplementation(() => new Promise<void>((r) => { finish = r; }));
+
+    render(
+      <VoicePreviewContext.Provider value={port}>
+        <VoiceLibrarySection
+          {...base}
+          selectedId=""
+          voices={voices}
+          capability={{ importModes: ['upload'] }}
+          onPreview={onPreview}
+        />
+      </VoicePreviewContext.Provider>,
+    );
+    openPicker();
+    const [firstBtn] = screen.getAllByRole('button', { name: /^play$/i });
+    fireEvent.click(firstBtn);
+    await waitFor(() => expect(port.play).toHaveBeenCalledTimes(1));
+
+    // The sample ended on its own — nothing of this section's own is
+    // playing any more.
+    act(() => finish());
+    await waitFor(() => expect(screen.getAllByRole('button', { name: /^play$/i })).toHaveLength(2));
+
+    port.play.mockImplementation(() => new Promise<void>(() => {}));
+    const [, secondBtn] = screen.getAllByRole('button', { name: /^play$/i });
+    fireEvent.click(secondBtn);
+    await waitFor(() => expect(port.play).toHaveBeenCalledTimes(2));
+    expect(port.stop).not.toHaveBeenCalled();
+  });
+
+  it('a sample the route could not play shows Play again and is recorded as an error', async () => {
+    reportErrorSpy.mockClear();
+    reportWarningSpy.mockClear();
+    const failure = new Error('the output device went away');
+    const port = { play: vi.fn(() => Promise.reject(failure)), stop: vi.fn() };
+    const onPreview = vi.fn().mockResolvedValue({ audio: new Float32Array(2048), sampleRate: 24000 });
+
+    render(
+      <VoicePreviewContext.Provider value={port}>
+        <VoiceLibrarySection
+          {...base}
+          selectedId=""
+          voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
+          capability={{ importModes: ['upload'] }}
+          onPreview={onPreview}
+        />
+      </VoicePreviewContext.Provider>,
+    );
+    openPicker();
+
+    fireEvent.click(screen.getByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(port.play).toHaveBeenCalledTimes(1));
+    // What the user asked for did not happen: an error, not a warning (CLAUDE.md's severity rule).
+    await waitFor(() => expect(reportErrorSpy).toHaveBeenCalledTimes(1));
+    expect(reportErrorSpy).toHaveBeenCalledWith(
+      'VoiceLibrary',
+      expect.stringContaining('The voice preview did not play'),
+      { cause: failure },
+    );
+    expect(reportWarningSpy).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /^play$/i })).toBeInTheDocument();
+    expect(port.stop).not.toHaveBeenCalled();
   });
 });

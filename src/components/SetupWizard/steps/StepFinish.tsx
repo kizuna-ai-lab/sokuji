@@ -1,9 +1,11 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
+import { useProviderStore } from '../../../stores/providerStore';
+import { AUTO } from '../../../lib/provider/languages';
 import { getScenario } from '../../../lib/setup/scenarios';
 import { pairSentence } from '../languageSentence';
 import StatusMessage from '../../Settings/shared/StatusMessage';
+import { textOnlyCapabilityOf, wizardProvider } from '../providerPaths';
 import type { SetupDraft } from '../setupDraft';
 
 interface Props { draft: SetupDraft; isSignedIn: boolean; error: string | null }
@@ -11,17 +13,19 @@ interface Props { draft: SetupDraft; isSignedIn: boolean; error: string | null }
 const StepFinish: React.FC<Props> = ({ draft, isSignedIn, error }) => {
   const { t } = useTranslation();
   const preset = getScenario(draft.scenario!);
-  const descriptor = ProviderConfigFactory.getDescriptor(draft.provider!);
-  const providerName = t(`providers.${descriptor.i18nKey ?? draft.provider}.name`, ProviderConfigFactory.getConfig(draft.provider!).displayName);
-  const nameOf = (list: { value: string; name: string }[], v: string | null) => list.find((o) => o.value === v)?.name ?? v ?? '';
-  const sourceName = nameOf(descriptor.resolveSourceLanguages(), draft.sourceLanguage);
-  const targetName = nameOf(descriptor.resolveTargetLanguages(draft.sourceLanguage ?? ''), draft.targetLanguage);
+  const p = wizardProvider(draft.provider)!;
+  const providerName = t(`providers.${p.i18nKey ?? p.id}.name`, p.id);
+  const s = useProviderStore((st) => st.entries[p.id]?.settings) ?? p.settings.defaults;
+  // A source list can start with AUTO (Soniox's does): named by the catalogue key Settings uses, never the definition's raw "Auto".
+  const nameOf = (list: { value: string; name: string }[], v: string | null) => (v === AUTO ? t('common.autoDetect') : list.find((o) => o.value === v)?.name ?? v ?? '');
+  const sourceName = nameOf([...p.languages.sources(s)], draft.sourceLanguage);
+  const targetName = nameOf([...p.languages.targets(draft.sourceLanguage ?? '', s)], draft.targetLanguage);
   // The pair reads as the sentence the pair step and Settings both print,
   // rather than as a bare arrow that says nothing about who hears what.
   const sentence = pairSentence({
     mode: preset.mode,
     textOnly: preset.textOnly,
-    capability: ProviderConfigFactory.getConfig(draft.provider!).capabilities.textOnlyCapability,
+    capability: textOnlyCapabilityOf(p),
     source: draft.sourceLanguage, target: draft.targetLanguage,
   });
   // One sentence, shaped like the mirror line below it — a label, its language,

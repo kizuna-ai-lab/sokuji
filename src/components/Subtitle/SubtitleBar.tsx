@@ -1,5 +1,5 @@
 // src/components/Subtitle/SubtitleBar.tsx
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown,
@@ -11,9 +11,9 @@ import {
   autoUpdate, FloatingPortal,
 } from '@floating-ui/react';
 import DisplayModeButton from '../MainPanel/DisplayModeButton';
-import ExportButton from '../MainPanel/ExportButton';
+import { ExportMenuButton, type ExportMenuButtonProps } from '../MainPanel/ExportButton';
+import { HoldToTalk } from './HoldToTalk';
 import {
-  useExitSubtitleMode,
   useSubtitleFullscreen,
   useSetSubtitleFullscreen,
 } from '../../stores/settingsStore';
@@ -31,7 +31,7 @@ import {
   FONT_SIZE_MAX,
 } from '../../stores/subtitleStore';
 import DisplaySettingsPopover from '../Display/DisplaySettingsPopover';
-import type { SubtitleSurfaceKind } from './SubtitleApp';
+import type { SubtitleSurfaceKind } from './useSubtitleChrome';
 import { useOverlayDragResize } from './useOverlayDragResize';
 import { ChildWindowPopover, useChildPopoverToggle } from './ChildWindowPopover';
 import './SubtitleBar.scss';
@@ -43,8 +43,11 @@ interface Props {
   onClearConversation: () => void;
   speakerActive: boolean;
   participantActive: boolean;
-  exportProps: React.ComponentProps<typeof ExportButton>;
+  /** The new subtitle view's export (plan 1d-3): the menu over its conversation's exporter. */
+  exportMenu?: Omit<ExportMenuButtonProps, 'popoverHost'>;
   surface?: SubtitleSurfaceKind;
+  /** Routes the ✕ button through `SubtitleControls.exit`. */
+  onExit: () => void;
   /**
    * Session start/stop, Electron surface only. Absent on the extension
    * overlay, where the side panel owns session control.
@@ -55,6 +58,17 @@ interface Props {
     canStart: boolean;
     onStart: () => void;
     onStop: () => void;
+  };
+  /**
+   * The overlay's push-to-talk control, in the bar (plan follow-up D — it
+   * used to sit under the bands). Extension-overlay surface only; SubtitleBar
+   * still gates on `surface` itself rather than trusting the caller alone.
+   */
+  holdToTalk?: {
+    onPress: () => void;
+    onRelease: () => void;
+    /** Told whenever the hold state flips, so the caller can keep the bar visible while it's held. */
+    onHeldChange?: (held: boolean) => void;
   };
 }
 
@@ -73,9 +87,11 @@ const SubtitleBar: React.FC<Props> = ({
   onClearConversation,
   speakerActive,
   participantActive,
-  exportProps,
+  exportMenu,
   surface = 'electron',
   sessionControl,
+  holdToTalk,
+  onExit,
 }) => {
   const { t } = useTranslation();
   const subtitle = useSubtitleSettings();
@@ -87,25 +103,14 @@ const SubtitleBar: React.FC<Props> = ({
   const participantMode = useParticipantDisplayMode();
   const setSpeakerMode = useSetSpeakerDisplayMode();
   const setParticipantMode = useSetParticipantDisplayMode();
-  const exitSubtitleMode = useExitSubtitleMode();
   const fullscreen = useSubtitleFullscreen();
   const setFullscreen = useSetSubtitleFullscreen();
   // Single source for both title + aria-label so they can't drift apart.
   const fullscreenLabel = fullscreen
     ? t('subtitle.bar.exitFullscreen', 'Exit fullscreen')
     : t('subtitle.bar.fullscreen', 'Fullscreen');
-  // See SubtitleApp.requestExit — in the extension-overlay surface we forward
-  // the exit intent to the side panel via a window event instead of calling
-  // the local (no-op) settings store action.
-  const requestExit = useCallback(() => {
-    if (surface === 'extension-overlay') {
-      window.dispatchEvent(new Event('sokuji:user-exit'));
-    } else {
-      void exitSubtitleMode();
-    }
-  }, [surface, exitSubtitleMode]);
   // SubtitleBar only needs the drag (move) handle — the 8 resize handles
-  // live on SubtitleApp's iframe-filling root so they sit at the iframe
+  // live on the surface's iframe-filling root so they sit at the iframe
   // edges, not the bar's 36px footprint.
   const { dragHandleProps } = useOverlayDragResize({ surface });
 
@@ -154,6 +159,9 @@ const SubtitleBar: React.FC<Props> = ({
       {...dragHandleProps}
     >
       <div className="subtitle-bar__left">
+        {surface === 'extension-overlay' && holdToTalk && (
+          <HoldToTalk onPress={holdToTalk.onPress} onRelease={holdToTalk.onRelease} onHeldChange={holdToTalk.onHeldChange} />
+        )}
         {surface === 'electron' && sessionControl && (
           <button
             type="button"
@@ -229,12 +237,13 @@ const SubtitleBar: React.FC<Props> = ({
         >
           {subtitle.compactMode ? <ChevronsUpDown size={14} /> : <ChevronsDownUp size={14} />}
         </button>
-        {/* In the extension overlay the wire is capped to the recent tail
-            (MAX_FORWARDED_ITEMS), so an export here would silently omit older
-            messages. The side panel holds the full conversation and is the
-            export source of truth — only offer export on the Electron surface,
-            where the overlay shares the full session store. */}
-        {surface === 'electron' && <ExportButton {...exportProps} popoverHost="child-window" />}
+        {/* In the extension overlay the wire caps entries to the newest
+            OVERLAY_ENTRIES (lib/subtitle/wire.ts), so an export here would
+            silently omit older messages. The side panel holds the full
+            conversation and is the export source of truth — only offer
+            export on the Electron surface, where SubtitleTakeover reads the
+            live entries directly, uncapped. */}
+        {surface === 'electron' && exportMenu && <ExportMenuButton {...exportMenu} popoverHost="child-window" />}
         <button
           type="button"
           className="subtitle-bar__btn"
@@ -306,7 +315,7 @@ const SubtitleBar: React.FC<Props> = ({
         <button
           type="button"
           className="subtitle-bar__btn"
-          onClick={requestExit}
+          onClick={onExit}
           title={t('subtitle.bar.exit', 'Exit subtitle mode')}
           aria-label={t('subtitle.bar.exit', 'Exit subtitle mode')}
         >

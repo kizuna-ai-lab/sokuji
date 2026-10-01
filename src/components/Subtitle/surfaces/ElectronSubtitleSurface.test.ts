@@ -1,8 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ElectronSubtitleSurface } from './ElectronSubtitleSurface';
 
-// Mock SettingsService factory so subtitleStore can be imported without
-// pulling audio worklet side-effects through ServiceFactory.
+// Kept from before the old audio service was deleted: subtitleStore
+// statically imports ServiceFactory, which used to reach
+// ModernBrowserAudioService -> ModernAudioRecorder -> a worklet `?url` import
+// that this sandboxed Vite test transform denied outright. ServiceFactory no
+// longer reaches ModernAudioRecorder at all. Not needed by the current graph
+// for that reason. Mocked anyway so subtitleStore's own persistence goes
+// through this mock instead of a real settings backend.
 vi.mock('../../../services/ServiceFactory', () => ({
   ServiceFactory: {
     getSettingsService: () => ({

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import type { NativeModelInfo } from '../../../lib/local-inference/native/nativeProtocol';
+import { LOCAL_INFERENCE_DEFAULTS } from '../../../providers/localInference/settings';
 
 // Partial mock (not a full replacement, unlike SlotRow.test.tsx): StoragePage
 // renders against the REAL settingsStore, which statically imports
@@ -20,13 +21,15 @@ vi.mock('react-i18next', async (importOriginal) => {
   };
 });
 
-// StoragePage statically imports settingsStore (localInference/localNative)
-// and modelStore, which drag in the real ServiceFactory import chain —
-// audioStore -> ServiceFactory -> ModernBrowserAudioService -> ModernAudioRecorder
-// -> the @sapphi-red/web-noise-suppressor worklet's `?url` import, which this
-// sandboxed Vite test transform denies outright. Mock ServiceFactory (same
-// fix modelStore.test.ts / settingsStore.test.ts / ensureSelectionReady.test.ts
-// / useWasmEngineAdapter.test.ts already use) so that chain never loads;
+// Kept from before the old audio service was deleted: StoragePage statically
+// imports settingsStore (localNative) and modelStore, which
+// used to drag in the real ServiceFactory import chain — audioStore ->
+// ServiceFactory, which imported ModernBrowserAudioService ->
+// ModernAudioRecorder -> the @sapphi-red/web-noise-suppressor worklet's
+// `?url` import, which this sandboxed Vite test transform denied outright.
+// ServiceFactory no longer imports ModernBrowserAudioService at all;
+// audioStore only calls its getSettingsService. Not needed by the current
+// graph for that reason. Mocked anyway (as settingsStore.test.ts does) so
 // settingsStore's own persistence goes through this mock instead.
 vi.mock('../../../services/ServiceFactory', () => ({
   ServiceFactory: {
@@ -44,7 +47,11 @@ const { default: useSettingsStore } = await import('../../../stores/settingsStor
 const { getManifestByType, isTranslationModelCompatible, getModelSizeMb } =
   await import('../../../lib/local-inference/modelManifest');
 
-// Real-manifest ids that can serve ja→en, mirroring ensureSelectionReady.test.ts.
+/** LocalInference's own settings and pair, which every wasm mount passes
+ *  (Stage 2 deletion, ruling 3). */
+const WASM = { settings: { ...LOCAL_INFERENCE_DEFAULTS, selections: {} }, pair: { source: 'ja', target: 'en' } };
+
+// Real-manifest ids that can serve ja→en.
 const asrId = () => getManifestByType('asr')
   .find(m => (m.multilingual || m.languages.includes('ja')) && !m.isCloudModel)!.id;
 
@@ -68,17 +75,11 @@ const trIds = () => getManifestByType('translation')
   .map(m => m.id);
 
 describe('StoragePage (wasm)', () => {
-  beforeEach(async () => {
-    await useSettingsStore.getState().updateLocalInference({
-      sourceLanguage: 'ja', targetLanguage: 'en', selections: {},
-    });
-  });
-
   it('lists downloaded models with an in-use badge on resolved ones', () => {
     useModelStore.setState({
       modelStatuses: { [asrId()]: 'downloaded' }, webgpuAvailable: true,
     });
-    render(<StoragePage provider="wasm" />);
+    render(<StoragePage provider="wasm" {...WASM} />);
     const row = screen.getByTestId(`storage-row-${asrId()}`);
     expect(row).toHaveTextContent('In use'); // resolved ASR for ja→en
   });
@@ -89,7 +90,7 @@ describe('StoragePage (wasm)', () => {
       modelStatuses: { [asrId()]: 'downloaded', [tr1]: 'downloaded', [tr2]: 'downloaded' },
       webgpuAvailable: true,
     });
-    render(<StoragePage provider="wasm" />);
+    render(<StoragePage provider="wasm" {...WASM} />);
     fireEvent.click(screen.getByTestId(`storage-delete-${tr1}`));
     // With a second translation model downloaded, the preview names a fallback,
     // not a dead end.
@@ -108,25 +109,25 @@ describe('StoragePage (wasm)', () => {
     useModelStore.setState({
       modelStatuses: { [id]: 'downloaded' }, webgpuAvailable: true,
     });
-    render(<StoragePage provider="wasm" />);
+    render(<StoragePage provider="wasm" {...WASM} />);
     fireEvent.click(screen.getByTestId(`storage-delete-${id}`));
     expect(screen.getByTestId('storage-confirm').textContent).toMatch(/sessions cannot start/);
   });
 
-  it('Clear all says selections are remembered — and does not touch them', async () => {
-    await useSettingsStore.getState().updateLocalInference({
-      selections: { 'ja→en': { asr: { modelId: asrId() }, translation: { modelId: '' }, tts: { modelId: '' } } },
-    });
+  it('Clear all says selections are remembered — and does not touch them', () => {
+    const selections = { 'ja→en': { asr: { modelId: asrId() }, translation: { modelId: '' }, tts: { modelId: '' } } };
     useModelStore.setState({ modelStatuses: { [asrId()]: 'downloaded' }, webgpuAvailable: true });
-    render(<StoragePage provider="wasm" />);
+    render(<StoragePage provider="wasm" {...WASM} settings={{ ...WASM.settings, selections }} />);
     fireEvent.click(screen.getByRole('button', { name: /Clear all/ }));
     expect(screen.getByTestId('storage-confirm').textContent)
       .toMatch(/selections are remembered/i);
-    expect(useSettingsStore.getState().localInference.selections['ja→en'].asr.modelId).toBe(asrId());
+    // StoragePage takes no `update`: it has no write path to the selections,
+    // so they stay as given (Stage 2 deletion, ruling 3).
+    expect(selections['ja→en'].asr.modelId).toBe(asrId());
   });
 
   it('Import is present for wasm and absent for native', () => {
-    const { unmount } = render(<StoragePage provider="wasm" />);
+    const { unmount } = render(<StoragePage provider="wasm" {...WASM} />);
     expect(screen.getByRole('button', { name: /Import/ })).toBeInTheDocument();
     unmount();
     render(<StoragePage provider="native" />);
@@ -142,7 +143,7 @@ describe('StoragePage (wasm)', () => {
     useModelStore.setState({
       modelStatuses: { [asrId()]: 'downloaded' }, webgpuAvailable: true,
     });
-    render(<StoragePage provider="wasm" isSessionActive />);
+    render(<StoragePage provider="wasm" {...WASM} isSessionActive />);
 
     expect(screen.getByTestId(`storage-delete-${asrId()}`)).toBeDisabled();
     expect(screen.getByRole('button', { name: /Clear all/ })).toBeDisabled();
@@ -160,7 +161,7 @@ describe('StoragePage (wasm)', () => {
     useModelStore.setState({
       modelStatuses: { [asrId()]: 'downloaded', [punctId]: 'downloaded' }, webgpuAvailable: true,
     });
-    render(<StoragePage provider="wasm" />);
+    render(<StoragePage provider="wasm" {...WASM} />);
     expect(screen.getByTestId(`storage-row-${asrId()}`)).toBeInTheDocument();
     expect(screen.queryByTestId(`storage-row-${punctId}`)).toBeNull();
   });
@@ -182,7 +183,7 @@ describe('StoragePage (wasm)', () => {
       modelStatuses: { [asrId()]: 'downloaded' }, webgpuAvailable: true, deleteAllModels,
     });
     try {
-      render(<StoragePage provider="wasm" />);
+      render(<StoragePage provider="wasm" {...WASM} />);
       fireEvent.click(screen.getByRole('button', { name: /Clear all/ }));
       fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
       await waitFor(() => expect(refresh).toHaveBeenCalled());
@@ -202,7 +203,7 @@ describe('StoragePage (wasm)', () => {
     useModelStore.setState({
       modelStatuses: { 'opus-mt-es-fr': 'downloaded' }, webgpuAvailable: true,
     });
-    render(<StoragePage provider="wasm" />);
+    render(<StoragePage provider="wasm" {...WASM} />);
     const row = screen.getByTestId('storage-row-opus-mt-es-fr');
     expect(row).not.toHaveTextContent('In use');
 
@@ -315,7 +316,7 @@ describe('StoragePage (native)', () => {
     expect(screen.queryByTestId('storage-engine-row')).toBeNull();
 
     useNativeModelStore.setState({ bundleStatus: 'ready', bundleVersion: '0.2.0' } as never);
-    rerender(<StoragePage provider="wasm" />);
+    rerender(<StoragePage provider="wasm" {...WASM} />);
     expect(screen.queryByTestId('storage-engine-row')).toBeNull();
   });
 });

@@ -24,7 +24,6 @@
       "audio": "Audio",
       "provider": "Provider"
     },
-    "languageSettings": "Taalinstellingen",
     "voice": "Stem",
     "voiceSettings": "Spraakinstellingen",
     "model": "Model",
@@ -40,10 +39,11 @@
     "autoTempo": "Adaptieve Spraaksnelheid",
     "pushToTalk": "Push-to-Talk",
     "pushToTranslate": "Push-to-Translate",
-    "pushToTranslateNotAvailableInWebrtc": "Niet beschikbaar in WebRTC-modus. Schakel naar WebSocket om Push-to-Translate te gebruiken.",
     "systemInstructions": "Systeeminstructies",
     "speechMode": "Spraakmodus",
     "speechModeAppliesTo": "Van toepassing op uw stem. Audio van de ander gebruikt altijd semantische VAD.",
+    "speechModeTooltip": "Auto: de provider detecteert wanneer u klaar bent met spreken. \nPush-to-Talk: houd Spatie of de microfoonknop ingedrukt om audio handmatig te verzenden. \nPush-to-Translate: zoals Push-to-Talk, maar leidt uw onbewerkte microfoon door naar de virtuele microfoon wanneer inactief, zodat u direct kunt spreken zonder vertaling.",
+    "speechModeAppliesToAuto": "Van toepassing op uw stem. Audio van de ander gebruikt altijd de automatische detectie van de provider.",
     "userTranscriptModel": "Gebruiker transcript model",
     "noiseReduction": "Ruisonderdrukking",
     "noiseSuppression": "Ruisonderdrukking",
@@ -72,22 +72,15 @@
     "eagerness": "Gretigheid",
     "temperature": "Temperatuur",
     "maxTokens": "Maximum tokens",
-    "validating": "Valideren...",
     "enterCustomInstructions": "Voer aangepaste systeeminstructies hier in...",
     "settingsSavedSuccessfully": "Instellingen succesvol opgeslagen",
     "failedToSaveSettings": "Opslaan van instellingen mislukt",
     "settingSavedSuccessfully": "Instelling succesvol opgeslagen: {{key}}",
     "failedToSaveSetting": "Opslaan van instelling mislukt: {{key}}",
-    "apiKeyValidationCompleted": "API-sleutel validatie voltooid",
-    "errorValidatingApiKey": "Fout bij het valideren van API-sleutel",
     "regionNotSupported": "Service niet beschikbaar in uw regio. Controleer uw netwerkomgeving of probeer een andere provider.",
     "sessionActiveNotice": "Instellingen zijn vergrendeld tijdens een actieve sessie. Beëindig de sessie om instellingen te wijzigen.",
-    "realtimeModelAvailable": "Realtime model is beschikbaar",
     "realtimeModelNotAvailable": "Realtime model is niet beschikbaar",
-    "refreshModels": "Beschikbare modellen vernieuwen",
-    "loadingModels": "Beschikbare modellen laden...",
     "modelsFound": "{{count}} modellen beschikbaar",
-    "invalidApiKeyFormat": "Ongeldig API-sleutelformaat",
     "volcengineAST2Info": "Doubao AST 2.0-informatie",
     "volcengineAST2InfoText": "Doubao AST 2.0 biedt spraak-naar-spraakvertaling met automatische stemkloning. De vertaalde audio behoudt de stemkenmerken van de oorspronkelijke spreker.",
     "volcengineAST2TurnDetectionTooltip": "Auto: servergestuurde spraakactiviteitsdetectie. \nPush-to-Talk: houd de spatiebalk of microfoonknop ingedrukt om audio handmatig te verzenden. \nPush-to-Translate: zoals Push-to-Talk, maar leidt uw onbewerkte microfoon door naar de virtuele microfoon wanneer inactief, zodat u direct kunt spreken zonder vertaling.",
@@ -113,8 +106,6 @@
     "low": "Laag",
     "medium": "Gemiddeld",
     "high": "Hoog",
-    "apiKeyValidated": "API-sleutel gevalideerd",
-    "realtimeTranslationAvailable": "Realtime vertaalservice is beschikbaar",
     "advancedMode": "Geavanceerd",
     "providerTooltip": "Kies uw AI-vertaaldienst. Elke dienst heeft verschillende functies, stemmen en prijzen. OpenAI biedt de meeste functies, terwijl Gemini een goed gratis abonnement heeft. Lokale (Offline) modus is volledig gratis — geen API-sleutel of internet nodig.",
     "modelTooltip": "AI-model selecteren",
@@ -135,12 +126,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Niveau van achtergrondruisonderdrukking instellen",
     "systemInstructionsTooltip": "Instructies invoeren om het AI-gedrag aan te passen",
-    "transportType": "Verbindingstype",
-    "transportTypeTooltip": "WebRTC: Lagere latentie, aanbevolen voor de meeste gebruikers.\nWebSocket: Betere compatibiliteit met beperkte netwerken. Gebruik dit als de WebRTC-verbinding mislukt.",
-    "websocket": "WebSocket (Stabiel)",
-    "webrtc": "WebRTC (Lage latentie)",
-    "webrtcVadDisabledTitle": "Server-VAD is niet beschikbaar in WebRTC-modus",
-    "webrtcVadNotice": "Server-VAD is uitgeschakeld in WebRTC-modus. In WebRTC kapt de server automatisch audio af bij spraakdetectie, wat vertalingen onderbreekt.",
     "participantInstructions": "Instructies voor de ander",
     "participantInstructionsTooltip": "Systeeminstructies voor het vertalen van de audio van de ander. Indien leeg, worden de hoofdinstructies hierboven gebruikt.\n\nBelangrijk: Uw hoofdinstructies kunnen de verkeerde taalrichting hebben voor de ander. Voorbeeld: Als u Chinees spreekt en uw hoofdinstructies vertalen Chinees→Japans, maar de ander spreekt Japans, zouden de hoofdinstructies onjuist proberen Japans→Japans te vertalen. Stel aparte instructies voor de ander in om Japans→Chinees te vertalen.",
     "localTranslationPrompt": "Vertaalprompt",
@@ -203,9 +188,7 @@
       "xhigh": "Zeer hoog"
     },
     "translateInfoBanner": "Dit model blijft stil wanneer de spreker dezelfde taal gebruikt als de doeltaal. Gemengde talen kunnen hiaten veroorzaken.",
-    "translateModelAvailable": "API-sleutel gevalideerd. gpt-realtime-translate is beschikbaar.",
     "translateModelNotAvailable": "API-sleutel werkt, maar gpt-realtime-translate is niet toegankelijk met deze sleutel.",
-    "translateSourceParticipantWarning": "Het vertalen van de audio van de ander werkt mogelijk niet — 'Mijn taal' staat niet bij de 13 doeltalen die deze provider ondersteunt.",
     "participantSectionHeader": "Audio van de ander",
     "participantSectionDescriptionElectron": "Vertaal audio van elke applicatie die op dit systeem wordt afgespeeld.",
     "participantSectionDescriptionExtension": "Vertaal audio van het actieve browsertabblad. De originele audio wordt afgespeeld via de standaarduitvoer van uw systeem.",
@@ -222,7 +205,6 @@
     "sonioxSharedSession": "Gedeelde sessie in de modus Beide",
     "sonioxSharedSessionTooltip": "In de modus Beide kan één gedeelde Soniox-sessie voor beide richtingen worden gebruikt, of een aparte sessie per richting.\n\nIngeschakeld: één sessie vertaalt beide kanten met automatische stemscheiding — lagere kosten en latentie.\n\nUitgeschakeld: een aparte sessie per richting — betrouwbaarder wanneer beiden tegelijk praten, maar ongeveer dubbele kosten.\n\nHeeft alleen invloed op de modus Beide.",
     "sonioxSharedSessionManagedCost": "Kizuna AI ondersteunt beide. Uitgeschakeld voert twee sessies tegelijk uit — ongeveer twee keer zoveel kosten per minuut, dus je sessietegoed is in ongeveer de helft van de tijd op en je hebt een hoger saldo nodig om te starten.",
-    "sonioxAutoParticipantWarning": "Stel 'Mijn taal' in op een specifieke taal — met automatische detectie kan de spraak van de ander daar niet naartoe worden vertaald.",
     "sonioxVocabulary": "Aangepast vocabulaire",
     "sonioxVocabularyTooltip": "Stuurt de herkenning richting belangrijke namen en vakjargon en beïnvloedt hoe specifieke termen worden vertaald. Wordt toegepast vanaf de volgende sessie.",
     "sonioxVocabularyTerms": "Termen",
@@ -310,7 +292,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch geauthenticeerd via uw account",
-    "fetchingApiKey": "API-sleutel ophalen van uw account...",
     "provider": "AI-serviceprovider",
     "apiKeyPlaceholder": "Voer uw API sleutel in",
     "setupGuide": "Installatiehandleiding",
@@ -369,6 +350,10 @@
     "loopbackMicWarningText1": "Loopback-invoer zoals \"Stereo Mix\" of een \"Monitor of ...\"-apparaat neemt de audio-uitvoer van het systeem zelf op. Tijdens een sessie met Sokuji's vertaalde spraak zou Sokuji zichzelf horen en in een lus vertalen.",
     "loopbackMicWarningText2": "Het apparaat blijft geselecteerd voor het geval deze routering opzettelijk is, maar kies voor normaal gebruik een fysieke microfoon.",
     "participantNoAudioYet": "Er is nog geen audio van de geselecteerde bron binnengekomen. Speelt die af en wordt er niets vertaald, sta Sokuji dan toe onder Systeeminstellingen > Privacy en beveiliging > Alleen systeemaudio-opname (macOS) en start de sessie opnieuw.",
+    "participantSpeech": "Vertaling van de ander hardop voorlezen",
+    "participantSpeechDesc": "Leest u hardop voor wat de ander zegt, in uw taal, via uw luidsprekers. Het volgt hun stem met een vertraging.",
+    "participantSpeechBlockedWholeSystem": "Uitgeschakeld zolang de audio van de ander alle systeemaudio vastlegt: hun vertaling zou opnieuw worden vastgelegd en vertaald. Kies een applicatie als bron van de ander.",
+    "participantSpeechNotYetAvailable": "Nog niet beschikbaar bij deze provider: de vertaling van de ander wordt alleen als tekst getoond.",
     "audioCaptureUnprovenNotice": "Nog niets vastgelegd",
     "audioCaptureUnprovenTitle": "Er is nog geen audio van de geselecteerde bron binnengekomen",
     "audioCaptureUnprovenText1": "Speelt de bron af en wordt er niets vertaald, dan levert macOS waarschijnlijk stilte: het vastleggen van een app vereist de toestemming 'Alleen systeemaudio-opname', en zonder die toestemming is er geen fout, alleen stilte.",
@@ -427,9 +412,7 @@
     "backToSignIn": "Terug naar inloggen",
     "forgotPasswordError": "Kon verificatiecode niet verzenden. Probeer het opnieuw.",
     "resetPasswordError": "Kon wachtwoord niet resetten. Probeer het opnieuw.",
-    "signedOut": "Log in om de ingebouwde vertaalservice van Kizuna AI te gebruiken.",
-    "sessionUnavailable": "Uw sessie is niet langer geldig. Log opnieuw in.",
-    "unknown": "Uw account kon niet worden geverifieerd. Probeer het opnieuw."
+    "signedOut": "Log in om de ingebouwde vertaalservice van Kizuna AI te gebruiken."
   },
   "simpleConfig": {
     "interfaceLanguage": "Interface Taal",
@@ -453,20 +436,9 @@
     "keepReplayAudioDesc": "Vertaalde audio in het geheugen bewaren zodat u deze later vanuit elk bericht opnieuw kunt afspelen. Standaard uitgeschakeld om geheugengebruik tijdens lange sessies te beperken."
   },
   "providers": {
-    "kizunaai_openai_translate": {
-      "name": "KizunaAI",
-      "description": "75 brontalen (automatisch herkend), 13 doeltalen",
-      "vendor": "OpenAI"
-    },
-    "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI",
-      "description": "8 talen + Chinees–Engels tweerichtings · behoudt je stem",
-      "vendor": "Doubao"
-    },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 talen, 3.600 taalparen · kloon je eigen stem",
-      "vendor": "Soniox"
+      "description": "60 talen, 3.600 taalparen · kloon je eigen stem"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -475,11 +447,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "Google's AI technologie"
-    },
-    "openaiCompatible": {
-      "name": "OpenAI-compatibel (verouderde Realtime)",
-      "description": "Endpoint van derden met OpenAI's oudere beta-Realtime-protocol. Niet voor OpenAI zelf.",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -507,7 +474,8 @@
       "name": "Doubao AST 2.0",
       "description": "Doubao simultaanvertaling",
       "appIdPlaceholder": "APP ID",
-      "accessTokenPlaceholder": "Access Token"
+      "accessTokenPlaceholder": "Access Token",
+      "authModeApp": "App ID + Access Token"
     },
     "local_inference": {
       "name": "Gratis",
@@ -545,7 +513,6 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Vertalingen worden weergegeven in de ondertitel-overlay",
-    "speechDetected": "[Spraak gedetecteerd]",
     "function": "Functie",
     "noChannelConfigured": "Schakel de microfoon of Audio van de ander in voordat u begint.",
     "release": "loslaten",
@@ -564,6 +531,7 @@
     "typeMessage": "Te vertalen tekst...",
     "send": "Verzenden",
     "error": "Fout",
+    "warning": "Waarschuwing",
     "unknownError": "Onbekende fout",
     "insufficientBalance": "Onvoldoende saldo: {{balance}}",
     "walletFrozen": "Wallet is bevroren. Neem contact op met support.",
@@ -589,6 +557,7 @@
       "legendNone": "Uit: deze kant verbergen"
     },
     "playItemAudio": "Audio van dit item afspelen",
+    "replayBlockedWholeSystem": "Herhaling is uitgeschakeld zolang de audio van de ander alle systeemaudio vastlegt: het zou opnieuw worden vertaald.",
     "toolbar": {
       "export": "Gesprek exporteren"
     },
@@ -601,6 +570,8 @@
       "speakerYou": "Ik",
       "speakerOther": "Ander",
       "translationSuffix": "(vert.)",
+      "noTranslation": "(geen vertaling)",
+      "noSource": "(geen origineel)",
       "scopeLabel": "Opnemen",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "Niets geselecteerd",
@@ -625,9 +596,6 @@
     "waveformMicTooltip": "Uw microfoon — uw stem die wordt vastgelegd voor vertaling",
     "waveformSystemTooltip": "Audio van de ander vastgelegd voor vertaling (browsertabblad / systeemaudio)",
     "allChannelsFailed": "Kon geen enkel audiokanaal starten. Controleer de apparaatmachtigingen en probeer het opnieuw.",
-    "participantChannelFailed": "Het audiokanaal van de ander kon niet worden gestart.",
-    "splitDegradedLabel": "Alleen één richting",
-    "splitDegradedTooltip": "Audio van de ander wordt niet vertaald, dus deze sessie loopt maar één kant op. Controleer de machtigingen voor Audio van de ander en start daarna een nieuwe sessie.",
     "sonioxInsufficientBalance": "Onvoldoende saldo om een sessie te starten. Laad uw saldo op en probeer het opnieuw.",
     "sonioxSessionConflict": "Er loopt al een andere sessie op uw account. Probeer het over een moment opnieuw.",
     "sonioxServiceUnavailable": "Soniox is tijdelijk niet beschikbaar. Probeer het over een moment opnieuw.",
@@ -637,7 +605,6 @@
     "sonioxTtsSegmentLost": "Een deel van de gesproken vertaling kon niet worden afgespeeld. Transcriptie en tekstvertaling werken gewoon door.",
     "sonioxSegmentEnded": "Dit segment is beëindigd — tik op ‘Sessie starten’ om door te gaan.",
     "sonioxConnectionLost": "De verbinding is verbroken — tik zo op ‘Sessie starten’ om door te gaan.",
-    "openaiLiveConnectionLost": "De verbinding is verbroken — tik zo op ‘Sessie starten’ om door te gaan.",
     "sonioxVoiceClipMissing": "Dit apparaat heeft geen stemopname, dus deze sessie gebruikt een preset-stem. Neem er een op in Instellingen om hier met uw eigen stem te spreken.",
     "sonioxVoicePoolBusy": "Alle plekken voor aangepaste stemmen zijn op dit moment bezet, dus deze sessie gebruikt een preset-stem. Uw eigen stem wordt de volgende keer weer gebruikt.",
     "sonioxVoiceBuildFailed": "Uw aangepaste stem kon niet worden gebouwd, dus deze sessie gebruikt een preset-stem. Probeer een duidelijkere opname te maken in Instellingen.",
@@ -1171,8 +1138,6 @@
     },
     "credentials": {
       "apiKey": "API-sleutel",
-      "endpoint": "Endpoint-URL",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",
@@ -1272,5 +1237,42 @@
         "content": "Geavanceerde instellingen — spraakdetectie, prompts, stemmen, logs — bevinden zich achter de schakelaar \"Geavanceerd\" rechtsboven in Instellingen. Bekijk deze rondleiding op elk moment opnieuw via Help."
       }
     }
+  },
+  "notices": {
+    "no_provider": "Kies een provider in de instellingen voordat je begint.",
+    "no_legs": "Kies wat je wilt vertalen voordat je begint.",
+    "turn_mode_unsupported": "Deze provider biedt de gekozen spreekmodus niet aan.",
+    "participant_source_unavailable": "Het vertalen van de ander is hier niet beschikbaar.",
+    "participant_unsupported": "Deze provider kan de ander niet vertalen voor dit talenpaar.",
+    "credentials_missing": "Voer je API-sleutel in bij de instellingen voordat je begint.",
+    "not_ready": "De provider is niet klaar: {{detail}}",
+    "build_refused": "De provider kan niet starten met deze instellingen: {{detail}}",
+    "admit_refused": "De provider kan deze combinatie niet uitvoeren: {{detail}}",
+    "start_failed": "De sessie is niet gestart: {{detail}}",
+    "leg_failed": "De sessie is gestopt: {{detail}}",
+    "leg_closed": "De provider heeft de sessie beëindigd.",
+    "source_ended": "De audiobron is verdwenen (losgekoppeld, gesloten of gestopt).",
+    "still_stopping": "De vorige sessie wordt nog gestopt; probeer het zo opnieuw.",
+    "app_capture_lost_using_system_audio": "Het vastleggen van de app is gestopt, dus wordt nu alle systeemaudio vertaald.",
+    "app_capture_monitor_missing": "Het vastleggen van de app is niet gestart, dus wordt nu alle systeemaudio vertaald.",
+    "parse_error": "Een bericht van de provider kon niet worden gelezen; de sessie gaat door.",
+    "tts_degraded": "Spraakweergave is verslechterd; de vertaalde tekst blijft aankomen.",
+    "resume_attempt_failed": "Opnieuw verbinden is mislukt; nieuwe poging.",
+    "voice_fallback": "De gekozen stem was niet beschikbaar, dus wordt een andere stem gebruikt.",
+    "auth": "De provider heeft de inloggegevens niet geaccepteerd: {{detail}}",
+    "rate_limit": "De provider beperkt momenteel verzoeken; probeer het straks opnieuw: {{detail}}",
+    "network": "De verbinding met de provider is mislukt: {{detail}}",
+    "server": "Er is een probleem opgetreden bij de provider: {{detail}}",
+    "client": "De provider heeft het verzoek geweigerd: {{detail}}",
+    "no_asr": "Er is geen spraakherkenningsmodel geïnstalleerd voor {{source}}.",
+    "memory_exceeded": "Deze modellen samen hebben meer geheugen nodig dan dit apparaat heeft.",
+    "gpu_out_of_memory": "GPU-geheugen vol — het geselecteerde model is te groot voor uw GPU. Schakel over naar een kleiner model.",
+    "transcription_failed": "Een deel van de spraak kon niet worden getranscribeerd: {{detail}}",
+    "translation_failed": "Een vertaling is mislukt: {{detail}}",
+    "translation_unavailable": "Geen vertaalmodel voor deze richting: de spraak wordt alleen getranscribeerd.",
+    "local_models_missing": "Download de vereiste modellen in Instellingen om te beginnen.",
+    "no_microphone": "Configureer apparaten voor deze modus om te starten.",
+    "silent_no_permission": "Er is nog geen audio van de geselecteerde bron binnengekomen. Speelt die af en wordt er niets vertaald, sta Sokuji dan toe onder Systeeminstellingen > Privacy en beveiliging > Alleen systeemaudio-opname (macOS) en start de sessie opnieuw.",
+    "loopback_denied": "Audio van de ander vereist toestemming voor schermopname om systeemaudio vast te leggen."
   }
 }

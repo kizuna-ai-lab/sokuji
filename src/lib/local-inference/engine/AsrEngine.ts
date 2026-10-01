@@ -35,12 +35,17 @@ type ErrorCallback = (error: string) => void;
 export class AsrEngine {
   private session: WorkerSession | null = null;
   private currentModel: ModelManifestEntry | null = null;
+  /** Set by `dispose()`: an `init()` still awaiting its model files stops
+   *  before it creates a worker (a load aborted mid-way). */
+  private disposed = false;
 
   onResult: ResultCallback | null = null;
   onPartialResult: PartialResultCallback | null = null;
   onSpeechStart: (() => void) | null = null;
   onStatus: StatusCallback | null = null;
   onError: ErrorCallback | null = null;
+  /** The worker died (its `onerror`, or a pre-ready `error`); unset, that goes to `onError` as well. */
+  onFatal: ErrorCallback | null = null;
 
   /**
    * Initialize the ASR engine with a specific model.
@@ -65,14 +70,19 @@ export class AsrEngine {
     if (this.session) {
       this.dispose();
     }
+    // A dispose() from here on cancels this load before its worker exists.
+    this.disposed = false;
 
     // Load model file blob URLs from IndexedDB
     const manager = ModelManager.getInstance();
     if (!await manager.isModelReady(modelId)) {
       throw new Error(`ASR model "${modelId}" is not downloaded. Download it first via Model Management.`);
     }
+    if (this.disposed) throw new Error('disposed');
     const { dtype } = await manager.getModelVariantInfo(modelId);
+    if (this.disposed) throw new Error('disposed');
     const fileUrls = await manager.getModelBlobUrls(modelId);
+    if (this.disposed) { manager.revokeBlobUrls(fileUrls); throw new Error('disposed'); }
 
     const workerType = model.asrWorkerType || 'sherpa-onnx';
 
@@ -105,6 +115,7 @@ export class AsrEngine {
         manager.revokeBlobUrls(fileUrls);
         throw new Error(`Failed to read package metadata: ${err.message}`);
       }
+      if (this.disposed) { manager.revokeBlobUrls(fileUrls); throw new Error('disposed'); }
 
       dataFileUrls = {};
       for (const [name, url] of Object.entries(fileUrls)) {
@@ -152,7 +163,7 @@ export class AsrEngine {
     const session = new WorkerSession({
       makeWorker,
       revokeBlobs: () => manager.revokeBlobUrls(fileUrls),
-      onFatalError: (message) => this.onError?.(message),
+      onFatalError: (message) => (this.onFatal ?? this.onError)?.(message),
       onMessage: (msg: AsrWorkerOutMessage | StreamingAsrWorkerOutMessage) => {
         switch (msg.type) {
           case 'status':
@@ -273,6 +284,7 @@ export class AsrEngine {
   }
 
   dispose(): void {
+    this.disposed = true;
     this.session?.dispose();
     this.session = null;
     this.currentModel = null;

@@ -1,9 +1,6 @@
-import { ISettingsService, SettingsOperationResult, ApiKeyValidationResult } from './interfaces/ISettingsService';
-import { FilteredModel } from './interfaces/IClient';
-import { ClientOperations } from './ClientOperations';
-import { ProviderType } from '../types/Provider';
+import { ISettingsService, SettingsOperationResult } from './interfaces/ISettingsService';
 import i18n from '../locales';
-import { reportError, reportWarning, describeCause } from '../lib/diagnostics/report';
+import { reportWarning, describeCause } from '../lib/diagnostics/report';
 
 /**
  * Unified Settings Service implementation
@@ -132,38 +129,6 @@ export class SettingsService implements ISettingsService {
     } else {
       // Electron uses localStorage, which is stored in the app's user data directory
       return { configDir: 'localStorage', configFile: 'Local Storage' };
-    }
-  }
-  
-  /**
-   * Validate API key and fetch available models in a single request
-   */
-  async validateApiKeyAndFetchModels(
-    apiKey: string,
-    provider: ProviderType,
-    clientSecret?: string,
-    customEndpoint?: string
-  ): Promise<{
-    validation: ApiKeyValidationResult;
-    models: FilteredModel[];
-  }> {
-    try {
-      return await ClientOperations.validateApiKeyAndFetchModels(
-        apiKey,
-        provider,
-        clientSecret,
-        customEndpoint
-      );
-    } catch (error: any) {
-      reportError('SettingsService', `Failed to validate the API key for ${provider}: ${describeCause(error)}`, { cause: error });
-      return {
-        validation: {
-          valid: false,
-          message: error.message || 'Validation failed',
-          validating: false
-        },
-        models: []
-      };
     }
   }
 }

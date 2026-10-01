@@ -41,10 +41,10 @@ import {
   SonioxVoicesError,
   encodeWavPcm16,
   type SonioxVoice,
-} from '../../../services/clients/SonioxVoicesClient';
+} from '../../../providers/soniox/voicesClient';
 import { resolvePreviewSample } from '../../../lib/tts/previewSample';
 import { previewCacheKey, getCachedPreview, setCachedPreview, clearPreviewCache } from '../../../lib/tts/previewCache';
-import { clampNumber } from '../../../services/providers/SonioxProviderConfig';
+import { clampNumber } from '../../../providers/soniox/config';
 import { SONIOX_TTS_MODEL, SONIOX_DEFAULT_VOICE } from '../../../lib/soniox/ttsCatalog';
 import { SONIOX_VOICE_ROSTER } from '../../../lib/soniox/sonioxVoiceRoster';
 import {
@@ -338,8 +338,8 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         return new Error(t('voiceLibrary.previewSessionRunning', 'A session is running. Try again in a moment.'));
       }
       if (e.status === 503) {
-        // Same wording a managed session-key 503 already uses — see
-        // ManagedSonioxSession.describeError's `mainPanel.sonioxServiceBusy`.
+        // Same wording the old managed session-key 503 used
+        // (`mainPanel.sonioxServiceBusy`).
         return new Error(t('mainPanel.sonioxServiceBusy', 'Soniox is at capacity right now. Please try again shortly.'));
       }
       // Gated on `managed` for the same reason the 402/409 arms above are:
@@ -434,8 +434,8 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
     // Cannot be null for a null `speaks` predicate (see resolvePreviewSample's
     // docstring), but narrowed here rather than asserted.
     if (!sample) return null;
-    // Same choke point the session path uses (SonioxProviderConfig.
-    // buildSessionConfig): the slider already constrains this in practice, so
+    // Same choke point the session path uses (`providers/soniox/config.ts`'s
+    // `buildSoniox`): the slider already constrains this in practice, so
     // clamping here is defensive, but the two paths reading the same setting
     // should agree on its bounds rather than one trusting the raw value.
     const speed = clampNumber(settings.ttsSpeed, 0.7, 1.3, 1.0);
@@ -634,7 +634,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
 
   const onDelete = async (id: string) => {
     if (!source) return;
-    // The live session's SonioxClient captured this voice id at session start
+    // The live session captured this voice id at its start
     // and reuses it for every TTS stream — deleting it server-side would break
     // spoken translation for the rest of the session.
     if (isSessionActive && settings.voice === id) {

@@ -1,0 +1,15 @@
+import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { conversationExporter, exportWords, type Exporter } from '../../lib/export/exporter';
+import type { ConversationViewState } from '../../lib/view/conversationView';
+import { getAppVersion } from '../../utils/conversationExport';
+
+/** The export menu's exporter over a conversation view: a new one only when the view's legs, entries or info change. */
+export function useConversationExporter({ legs, entries, info }: ConversationViewState): Exporter {
+  const { t } = useTranslation();
+  const words = useMemo(() => exportWords((key, defaultValue) => t(key, defaultValue)), [t]);
+  return useMemo(
+    () => conversationExporter({ entries, legs, info, words, appVersion: getAppVersion(), now: Date.now }),
+    [entries, legs, info, words],
+  );
+}

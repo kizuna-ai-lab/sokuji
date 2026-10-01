@@ -1,0 +1,351 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { ManagedVoicesClient } from './managedVoicesClient';
+import { SonioxVoicesError } from './voicesClient';
+
+const TOKEN = 'sess_abc';
+const make = () => new ManagedVoicesClient(async () => TOKEN);
+
+let fetchMock: ReturnType<typeof vi.fn>;
+beforeEach(() => {
+  fetchMock = vi.fn();
+  vi.stubGlobal('fetch', fetchMock);
+});
+afterEach(() => { vi.unstubAllGlobals(); });
+
+const json = (status: number, body: unknown) =>
+  new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+
+describe('ManagedVoicesClient.mine', () => {
+  it('returns null when the account holds no voice', async () => {
+    fetchMock.mockResolvedValue(json(200, { voice: null }));
+    expect(await make().mine()).toBeNull();
+  });
+
+  it('returns the voice with Soniox\'s raw status', async () => {
+    // GET /mine reads status THROUGH to Soniox, so it carries the full
+    // four-value enum — 'not_computed' included. Narrowing it to
+    // ready/processing here would silently mislabel a voice that has not
+    // begun building.
+    fetchMock.mockResolvedValue(json(200, {
+      voice: { voiceId: 'v1', status: 'not_computed', createdAt: 1000 },
+    }));
+    expect(await make().mine()).toEqual({ voiceId: 'v1', status: 'not_computed', createdAt: 1000 });
+  });
+
+  it('sends the session token as a bearer', async () => {
+    fetchMock.mockResolvedValue(json(200, { voice: null }));
+    await make().mine();
+    const init = fetchMock.mock.calls[0][1];
+    expect(init.headers.Authorization).toBe(`Bearer ${TOKEN}`);
+  });
+
+  it('refuses to call at all without a token', async () => {
+    // Firing an unauthenticated request would spend a round trip to learn
+    // what we already know, and the 401 would surface as an infrastructure
+    // error rather than "sign in".
+    const client = new ManagedVoicesClient(async () => null);
+    await expect(client.mine()).rejects.toMatchObject({ errorType: 'authentication_required' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('ManagedVoicesClient.ensure', () => {
+  it('posts multipart with pin=1 and no clip on the warm path', async () => {
+    // The clip runs to ~11.5 MB for a full 2-minute recording (35 MB for an
+    // import). Uploading it when the slot is already warm
+    // would waste the user's uplink on every single session start.
+    fetchMock.mockResolvedValue(json(200, { voiceId: 'v1', status: 'ready' }));
+    const res = await make().ensure({ pin: true });
+    expect(res).toEqual({ voiceId: 'v1', status: 'ready' });
+    const [url, init] = fetchMock.mock.calls[0];
+    // The region rides in the query string: the backend builds the voice
+    // in that project, and a UUID exists only inside one project.
+    expect(String(url)).toMatch(/\/soniox\/voices\/ensure\?region=us$/);
+    expect(init.method).toBe('POST');
+    const form = init.body as FormData;
+    expect(form.get('pin')).toBe('1');
+    expect(form.get('clip')).toBeNull();
+    // A Content-Type header would clobber the multipart boundary fetch
+    // generates for us, and the backend's formData() parse would fail.
+    expect(init.headers['Content-Type']).toBeUndefined();
+  });
+
+  it('attaches the clip when one is supplied, and pin=0 when not pinning', async () => {
+    fetchMock.mockResolvedValue(json(200, { voiceId: 'v2', status: 'processing' }));
+    const clip = new Blob([new Uint8Array([1, 2])], { type: 'audio/wav' });
+    await make().ensure({ pin: false, clip });
+    const form = fetchMock.mock.calls[0][1].body as FormData;
+    expect(form.get('pin')).toBe('0');
+    expect(form.get('clip')).toBeInstanceOf(Blob);
+  });
+
+  it('surfaces pool_exhausted with the server\'s own retry hint', async () => {
+    // The backend pokes its reconciler before refusing, so its hint is a
+    // real estimate of when a pin might have been freed — better than any
+    // constant we could pick here.
+    fetchMock.mockResolvedValue(json(409, { error: 'pool_exhausted', retryAfterMs: 3000 }));
+    await expect(make().ensure({ pin: true })).rejects.toMatchObject({
+      errorType: 'pool_exhausted',
+      status: 409,
+      retryAfterMs: 3000,
+    });
+  });
+
+  it.each([
+    [409, 'clip_required'],
+    [409, 'superseded'],
+    [402, 'insufficient_balance'],
+    [403, 'wallet_frozen'],
+    [403, 'verified_account_required'],
+    [502, 'create_failed'],
+    [503, 'wallet_unavailable'],
+  ])('passes the backend slug through for %i %s', async (status, slug) => {
+    fetchMock.mockResolvedValue(json(status, { error: slug }));
+    await expect(make().ensure({ pin: true })).rejects.toMatchObject({ errorType: slug, status });
+  });
+
+  it('normalizes a transport failure instead of leaking a TypeError', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    const err = await make().ensure({ pin: true }).catch((e) => e);
+    expect(err).toBeInstanceOf(SonioxVoicesError);
+    expect(err.errorType).toBe('network');
+  });
+
+  it('refuses to call at all when the caller signal is already aborted', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      make().ensure({ pin: true, signal: controller.signal })
+    ).rejects.toMatchObject({ errorType: 'aborted' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('ManagedVoicesClient caller-signal threading (via .mine)', () => {
+  // Exercised through `mine` because `mine`/`ensure` both funnel into the
+  // same private `request()` — one code path to cover, plus one threading
+  // check above (`ensure`'s pre-flight refusal) proving the object-form
+  // signature passes `signal` through too.
+
+  it('refuses to call at all when the caller signal is already aborted', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(make().mine(undefined, controller.signal)).rejects.toMatchObject({
+      errorType: 'aborted',
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('maps a mid-flight caller cancel to aborted, NOT timeout', async () => {
+    // fetch() aborting mid-flight rejects with the controller's own reason —
+    // simulate that by listening for the abort request() actually issues
+    // (on its OWN internal controller, forwarded from the caller's signal)
+    // and rejecting with that reason, same as a real fetch would.
+    fetchMock.mockImplementation(
+      (_url: string, init: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          const internalSignal = init.signal as AbortSignal;
+          internalSignal.addEventListener('abort', () => reject(internalSignal.reason));
+        })
+    );
+    const controller = new AbortController();
+    const promise = make().mine(undefined, controller.signal);
+    // Let request() run past `getToken()` and reach fetch() — by which point
+    // its forwardAbort listener is already attached to the caller's signal —
+    // before firing the cancel.
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    controller.abort();
+    await expect(promise).rejects.toMatchObject({ errorType: 'aborted' });
+  });
+
+  it('still maps to timeout when the caller signal never fires', async () => {
+    vi.useFakeTimers();
+    try {
+      fetchMock.mockImplementation(
+        (_url: string, init: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            const internalSignal = init.signal as AbortSignal;
+            internalSignal.addEventListener('abort', () => reject(internalSignal.reason));
+          })
+      );
+      // No caller signal at all — only the client's own deadline can fire.
+      // The assertion is wired up BEFORE advancing the fake timer: attaching
+      // `.rejects` only after would race the timer-driven rejection against
+      // Node's unhandled-rejection detector (the two don't share a
+      // microtask queue tick under fake timers) and flake with a spurious
+      // "handled asynchronously" warning that fails the run.
+      const promise = make().mine();
+      const assertion = expect(promise).rejects.toMatchObject({ errorType: 'timeout' });
+      await vi.advanceTimersByTimeAsync(15_000);
+      await assertion;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('aborts before the fetch settles when the signal fires during the getToken() await', async () => {
+    // A deliberately slow token fetch: the pre-flight check (before this
+    // await) already passed, so only the post-await forwardAbort
+    // registration is left to catch a cancel landing here — the gap M1
+    // closes. Mirrors what a real fetch() does with an already-aborted
+    // signal: reject immediately, before touching the network — never
+    // resolves and never waits out request()'s own 15s deadline.
+    let resolveToken!: (token: string) => void;
+    const slowGetToken = () => new Promise<string>((resolve) => { resolveToken = resolve; });
+    const client = new ManagedVoicesClient(slowGetToken);
+    fetchMock.mockImplementation((_url: string, init: RequestInit) => {
+      const internalSignal = init.signal as AbortSignal;
+      if (internalSignal.aborted) return Promise.reject(internalSignal.reason);
+      return new Promise((_resolve, reject) => {
+        internalSignal.addEventListener('abort', () => reject(internalSignal.reason));
+      });
+    });
+    const controller = new AbortController();
+
+    const promise = client.mine(undefined, controller.signal);
+    controller.abort();
+    resolveToken(TOKEN);
+
+    await expect(promise).rejects.toMatchObject({ errorType: 'aborted' });
+    // fetch is still invoked (request() has no separate skip-fetch branch),
+    // but with an already-aborted internal signal — the "aborted
+    // immediately" case, not "ran to its own timeout".
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [, calledInit] = fetchMock.mock.calls[0];
+    expect((calledInit.signal as AbortSignal).aborted).toBe(true);
+  });
+
+  it('removes the caller-signal listener once the request settles, so a later abort is inert', async () => {
+    fetchMock.mockResolvedValue(json(200, { voice: null }));
+    const controller = new AbortController();
+    await expect(make().mine(undefined, controller.signal)).resolves.toBeNull();
+    // Firing the signal after the request already settled must be a no-op —
+    // no throw here, and (since vitest fails a run on an unhandled
+    // rejection) nothing left listening to produce one either.
+    expect(() => controller.abort()).not.toThrow();
+  });
+});
+
+describe('ManagedVoicesClient.remove', () => {
+  it('resolves on 200', async () => {
+    fetchMock.mockResolvedValue(json(200, { ok: true }));
+    await expect(make().remove()).resolves.toBeUndefined();
+    expect(fetchMock.mock.calls[0][1].method).toBe('DELETE');
+  });
+
+  it('rejects with voice_pinned while a session holds the slot', async () => {
+    fetchMock.mockResolvedValue(json(409, { error: 'voice_pinned' }));
+    await expect(make().remove()).rejects.toMatchObject({ errorType: 'voice_pinned', status: 409 });
+  });
+});
+
+describe('ManagedVoicesClient.sessionKey', () => {
+  it('posts to /soniox/session-key (never /soniox/voices) with this client\'s own region in the body', async () => {
+    fetchMock.mockResolvedValue(json(200, { ttsApiKey: 'tk', region: 'eu' }));
+    const client = new ManagedVoicesClient(async () => TOKEN, 'eu');
+    const result = await client.sessionKey({ mode: 'voice_preview' });
+    expect(result).toEqual({ ttsApiKey: 'tk', region: 'eu' });
+    const [url, init] = fetchMock.mock.calls[0];
+    // No /voices segment and no ?region= query param: this route lives
+    // outside the voices-CRUD path shape `request()` builds for mine/ensure/remove.
+    expect(String(url)).toMatch(/\/soniox\/session-key$/);
+    expect(init.method).toBe('POST');
+    expect(init.headers.Authorization).toBe(`Bearer ${TOKEN}`);
+    expect(JSON.parse(init.body as string)).toEqual({ mode: 'voice_preview', region: 'eu' });
+  });
+
+  it('defaults to US when constructed with no region, same as every other method', async () => {
+    fetchMock.mockResolvedValue(json(200, { ttsApiKey: 'tk', region: 'us' }));
+    await make().sessionKey({ mode: 'voice_preview' });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body as string)).toEqual({ mode: 'voice_preview', region: 'us' });
+  });
+
+  it('narrows a missing response region to THIS CLIENT\'s own region, not the global default', async () => {
+    // Constructed with 'eu', deliberately NOT the default 'us' — `make()`
+    // would leave `this.region` and DEFAULT_SONIOX_REGION both 'us', so the
+    // assertion would pass under either a correct or a regressed
+    // implementation and prove nothing. A eu account whose response omits
+    // `region` must still get a eu-hosted key back, never a US one.
+    fetchMock.mockResolvedValue(json(200, { ttsApiKey: 'tk' }));
+    const client = new ManagedVoicesClient(async () => TOKEN, 'eu');
+    const result = await client.sessionKey({ mode: 'voice_preview' });
+    expect(result.region).toBe('eu');
+  });
+
+  it('narrows an unrecognized response region to THIS CLIENT\'s own region too', async () => {
+    fetchMock.mockResolvedValue(json(200, { ttsApiKey: 'tk', region: 'mars' }));
+    const client = new ManagedVoicesClient(async () => TOKEN, 'jp');
+    const result = await client.sessionKey({ mode: 'voice_preview' });
+    expect(result.region).toBe('jp');
+  });
+
+  it('throws loudly when the response is missing ttsApiKey — a contract break, not a silent undefined credential', async () => {
+    fetchMock.mockResolvedValue(json(200, { region: 'us' }));
+    await expect(make().sessionKey({ mode: 'voice_preview' })).rejects.toBeInstanceOf(SonioxVoicesError);
+  });
+
+  it.each([
+    [402, 'Insufficient balance'],
+    [409, 'Another session is already active'],
+    [503, 'Soniox capacity is temporarily full'],
+  ])('surfaces the backend\'s own %i verdict rather than mapping it away', async (status, message) => {
+    fetchMock.mockResolvedValue(json(status, { error: message }));
+    await expect(make().sessionKey({ mode: 'voice_preview' })).rejects.toMatchObject({
+      errorType: message,
+      status,
+    });
+  });
+
+  it('rejects with the same timeout shape as fetchWithAuth when a 2xx body never arrives', async () => {
+    // sessionKey now reads the JSON body through fetchJsonWithAuth, which
+    // keeps the deadline armed until the body settles (fetchWithAuth alone
+    // releases it the moment headers arrive). Without this, a mint whose
+    // response never finishes streaming would hang forever — and under
+    // managedVoiceSource's per-source preview serialization, every later
+    // preview on that source would then queue behind it forever too.
+    //
+    // Same simulation shape as SonioxTtsRest.test.ts's `stalledBodyResponse`:
+    // `json()` only settles when the INTERNAL controller's signal aborts
+    // (the one `withTimedRequest` passes to `fetch()`), which is exactly
+    // what the timer does at the deadline — a real Response's body read is
+    // tied to that same signal.
+    vi.useFakeTimers();
+    try {
+      fetchMock.mockImplementationOnce((_url: string, init: RequestInit) => Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => new Promise((_res, rej) => {
+          const internalSignal = init.signal as AbortSignal;
+          if (internalSignal.aborted) { rej(internalSignal.reason); return; }
+          internalSignal.addEventListener('abort', () => rej(internalSignal.reason));
+        }),
+      }));
+      // The assertion is wired up BEFORE advancing the fake timer — see
+      // "still maps to timeout when the caller signal never fires" above for
+      // why (a race against Node's unhandled-rejection detector otherwise).
+      const promise = make().sessionKey({ mode: 'voice_preview' });
+      const assertion = expect(promise).rejects.toMatchObject({ errorType: 'timeout', status: 408 });
+      await vi.advanceTimersByTimeAsync(15_000);
+      await assertion;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('ManagedVoicesClient.previewDone', () => {
+  it('posts an empty body to /soniox/preview-done — the backend resolves the account\'s own lease', async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+    await expect(make().previewDone()).resolves.toBeUndefined();
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toMatch(/\/soniox\/preview-done$/);
+    expect(init.method).toBe('POST');
+    expect(init.headers.Authorization).toBe(`Bearer ${TOKEN}`);
+    expect(init.body).toBeUndefined();
+  });
+
+  it('rejects on a 404 (nothing to complete) — the caller is expected to swallow this, not this method', async () => {
+    fetchMock.mockResolvedValue(json(404, { error: 'No preview lease to complete' }));
+    await expect(make().previewDone()).rejects.toMatchObject({ status: 404 });
+  });
+});

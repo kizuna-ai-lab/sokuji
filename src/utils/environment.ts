@@ -136,26 +136,15 @@ export function getApiUrl(): string {
 }
 
 /**
- * Get the WebSocket base URL for the KizunaAI relay
- * @returns The WebSocket URL with /v1 suffix (e.g., wss://sokuji.kizuna.ai/v1)
- *
- * Callers append `/realtime/translations` or `/ast/translate` to this URL.
- */
-export function getRelayWsUrl(): string {
-  const base = getBackendUrl().replace(/\/$/, "");
-  const ws = base.replace(/^http:/, "ws:").replace(/^https:/, "wss:");
-  return `${ws}/v1`;
-}
-
-/**
  * Check if running in development mode
  * @returns true if in development mode
  *
  * Uses Vite's `DEV` flag (true whenever the build is not a production
  * build/serve) rather than comparing `MODE` to the literal string
  * 'development' — vitest runs with MODE === 'test', which must count as
- * "development" here or every feature-flagged provider silently vanishes
- * from ProviderConfigFactory's registry in any unmocked test.
+ * "development" here or, in any unmocked test, every flagged provider
+ * silently leaves the registry's offer (`isPresent`) and Local Native the
+ * old registry.
  * Extension builds rely on `extension/vite.config.ts` explicitly defining
  * `import.meta.env.DEV` as `mode === 'development'`, so `DEV` stays
  * equivalent to the old MODE check there too.
@@ -191,68 +180,6 @@ export function isKizunaAIEnabled(): boolean {
 }
 
 /**
- * Whether each Kizuna-managed provider should be offered.
- *
- * One gate per provider, all NARROWER than `isKizunaAIEnabled`. The master gate
- * cannot hold an individual provider back: it also drives the account UI and
- * onboarding, which are "is this a Kizuna build" concerns rather than
- * per-provider ones.
- *
- * They are separate because the managed providers are released independently.
- * They also bill differently from one another — the relay twins charge per
- * second of session time, Soniox on reported usage — and the wallet page states
- * one set of rates, so offering a provider before its rates are published shows
- * a user a price that is not theirs.
- *
- * These gates only decide REGISTRATION. Nothing downstream may infer "gate on
- * implies provider registered": callers ask ProviderConfigFactory
- * (isProviderSupported / getDefaultManagedProvider) instead, which is what lets
- * any combination of these be safe.
- *
- * Development keeps all of them on, so nothing changes while working locally.
- */
-export function isKizunaSonioxEnabled(): boolean {
-  if (isDevelopmentMode()) {
-    return true;
-  }
-
-  return import.meta.env.VITE_ENABLE_KIZUNA_SONIOX === 'true';
-}
-
-export function isKizunaOpenAITranslateEnabled(): boolean {
-  if (isDevelopmentMode()) {
-    return true;
-  }
-
-  return import.meta.env.VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE === 'true';
-}
-
-export function isKizunaVolcengineAST2Enabled(): boolean {
-  if (isDevelopmentMode()) {
-    return true;
-  }
-
-  return import.meta.env.VITE_ENABLE_KIZUNA_VOLCENGINE_AST2 === 'true';
-}
-
-/**
- * Check if Palabra AI features should be enabled
- * @returns true if Palabra AI features should be shown
- *
- * In development mode: always returns true
- * In production mode: returns false (unless explicitly enabled via VITE_ENABLE_PALABRA_AI env var)
- */
-export function isPalabraAIEnabled(): boolean {
-  // In development mode, always show Palabra AI features
-  if (isDevelopmentMode()) {
-    return true;
-  }
-
-  // In production, check for explicit environment variable
-  return import.meta.env.VITE_ENABLE_PALABRA_AI === 'true';
-}
-
-/**
  * Tester switch for the Local Native provider in packaged builds (temporary, 2026-09).
  *
  * The provider is otherwise gated at build time (`VITE_ENABLE_LOCAL_NATIVE`, off in every
@@ -265,12 +192,17 @@ export function isPalabraAIEnabled(): boolean {
  */
 export const LOCAL_NATIVE_DEBUG_KEY = 'debug:local-native';
 
-function hasLocalNativeDebugSwitch(): boolean {
+/** Whether a tester switch — a `localStorage` key set to `'1'` — is on (F6). False where storage is unavailable. */
+export function debugSwitchOn(key: string): boolean {
   try {
-    return typeof localStorage !== 'undefined' && localStorage.getItem(LOCAL_NATIVE_DEBUG_KEY) === '1';
+    return typeof localStorage !== 'undefined' && localStorage.getItem(key) === '1';
   } catch {
     return false; // localStorage unavailable in restricted contexts
   }
+}
+
+function hasLocalNativeDebugSwitch(): boolean {
+  return debugSwitchOn(LOCAL_NATIVE_DEBUG_KEY);
 }
 
 /**
@@ -286,6 +218,20 @@ export function isLocalNativeEnabled(): boolean {
     return true;
   }
   return isElectron() && hasLocalNativeDebugSwitch();
+}
+
+/**
+ * The flagged providers a release offers (D19): `VITE_ENABLED_PROVIDERS`, a
+ * comma-separated list of provider ids. It gates providers in the new
+ * registry (`src/providers/registry.ts`) only. The old registry's one gate
+ * left, `isLocalNativeEnabled` above, gates Local Native's old path (Stage 2
+ * deletion, rulings 1 and 6).
+ * Development builds offer every flagged provider regardless (see
+ * `isPresent`).
+ */
+export function enabledProviderIds(): ReadonlySet<string> {
+  const raw = import.meta.env.VITE_ENABLED_PROVIDERS ?? '';
+  return new Set(raw.split(',').map((id) => id.trim()).filter((id) => id !== ''));
 }
 
 // ============================================================================

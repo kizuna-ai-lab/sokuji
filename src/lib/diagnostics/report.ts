@@ -19,9 +19,11 @@
  *     the owning store and a component renders it. A logger that can pop a
  *     toast is how "which tier is this?" gets re-litigated at every call site.
  *
- * Not a sink for session-scoped client failures: inside an `IClient` session a
- * client uses `handlers.onError` / `onDiagnostic` / `onRealtimeEvent`, because
- * only MainPanel knows which channel (speaker/participant) it is.
+ * Not a sink for session-scoped failures: inside an adapter session an adapter
+ * says what happened through its events (`failed`, `degraded`, `frame`),
+ * because only the runner knows which leg it serves (CLAUDE.md, "Inside an
+ * adapter session"); Local Native's old `IClient` does the same through
+ * `handlers.onError` / `onDiagnostic` / `onRealtimeEvent`.
  */
 import useLogStore, { type ClientId } from '../../stores/logStore';
 // Redaction is applied at the sink (`logStore.addLog`), not here, so it also
@@ -30,8 +32,9 @@ import { describeCause } from './describeCause';
 
 /**
  * Re-exported so a caller that already imports `report` needs one import, not
- * two. Clients must import it from `./describeCause` directly instead — this
- * module reaches the store, and they are not allowed to.
+ * two. An adapter and its session side (and Local Native's old client) must
+ * import it from `./describeCause` directly instead — this module reaches the
+ * store, and they are not allowed to.
  */
 export { describeCause };
 

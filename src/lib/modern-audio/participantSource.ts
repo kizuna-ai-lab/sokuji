@@ -5,8 +5,9 @@ import { isLoopbackPlatform, isMacOS } from '../../utils/environment';
 export const SYSTEM_PARTICIPANT_SOURCE_ID = 'desktop-audio-loopback';
 
 /**
- * Resolve the participant source id to hand to
- * ModernBrowserAudioService.connectSystemAudioSource().
+ * Resolve the participant source id from a stored device selection, the way
+ * the old `ModernBrowserAudioService.connectSystemAudioSource()` did
+ * (deleted in plan 1e-3c).
  *
  * Falls back to whole-system capture rather than throwing, so a session still
  * starts when the previously selected application has quit.
@@ -43,4 +44,19 @@ export function needsLoopbackStream(deviceId: string | null | undefined): boolea
   if (isApplicationSource(deviceId)) return false;
   if (isMacOS()) return false;
   return true;
+}
+
+/**
+ * Whether Other's translation, read aloud on the real device, is actually
+ * heard rather than recaptured and translated again as Other (1e-3b-2 ruling
+ * 7, completed): on Electron, a whole-system participant capture hears the
+ * real device too — Sokuji's own output included — so it is heard only off
+ * Electron, or on Electron while the chosen source is one application. The
+ * one predicate the participant-speech switch, the run's shape
+ * (`appShape.ts`'s `readShapeFromStores`), the playback route (`appAudio.ts`'s
+ * `readRouting`) and the replay slot (`MainPanel.tsx`'s `replayLegs`) all
+ * share, so what the switch shows is what the run does.
+ */
+export function participantSpeechHeard(platform: string, participantSourceId: string | null | undefined): boolean {
+  return platform !== 'electron' || isApplicationSource(participantSourceId);
 }

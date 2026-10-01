@@ -1,0 +1,43 @@
+/**
+ * The providers, in UI order (D19). One list: its order is the order the
+ * picker shows, `ProviderId` is derived from it, and `isPresent` decides what
+ * this build and platform offer.
+ */
+import { isPresent, type PresenceEnv } from '../lib/provider/presence';
+import type { AnyProvider } from '../lib/provider/types';
+import { debugSwitchOn, enabledProviderIds, getEnvironment, isDevelopmentMode, isKizunaAIEnabled } from '../utils/environment';
+import { fakeLeasedProvider } from './fake/leased';
+import { fakeProvider } from './fake/provider';
+import { geminiProvider } from './gemini/provider';
+import { localInferenceProvider } from './localInference/provider';
+import { openaiProvider } from './openai/provider';
+import { openaiLiveProvider } from './openai_live/provider';
+import { openaiTranslateProvider } from './openai_translate/provider';
+import { palabraProvider } from './palabraai/provider';
+import { kizunaSonioxProvider } from './soniox/kizuna';
+import { sonioxProvider } from './soniox/provider';
+import { volcengineAst2Provider } from './volcengine_ast2/provider';
+
+/** Shipped providers, in UI order (Stage 2 Kizuna Soniox, ruling 6; Stage 2 Gemini, ruling 6; Stage 2 Volcengine AST2, ruling 5; Stage 2 OpenAI Translate, ruling 11; Stage 2 OpenAI Realtime, ruling 18; Stage 2 Palabra, ruling 14; Stage 2 OpenAI Live, ruling 9): the managed Kizuna Soniox, the free LocalInference, then Gemini, Doubao AST 2.0, OpenAI Realtime, OpenAI Translate, OpenAI Live, Soniox and Palabra AI with your own key. */
+const RELEASED = [kizunaSonioxProvider, localInferenceProvider, geminiProvider, volcengineAst2Provider, openaiProvider, openaiTranslateProvider, openaiLiveProvider, sonioxProvider, palabraProvider] as const;
+/** Compiled into development builds only (D24): the fake, and the leased fake that carries the session hooks (Stage 2 foundation, choice 1). */
+const DEV_ONLY = [fakeProvider, fakeLeasedProvider] as const;
+
+export type ProviderId = (typeof RELEASED)[number]['id'] | (typeof DEV_ONLY)[number]['id'];
+
+// `import.meta.env.DEV` itself, not `isDevelopmentMode()`: the literal is what
+// a release build replaces with `false`, which drops the fake from the bundle.
+export const PROVIDERS: readonly AnyProvider[] = import.meta.env.DEV ? [...RELEASED, ...DEV_ONLY] : [...RELEASED];
+
+export function currentPresenceEnv(): PresenceEnv {
+  return { platform: getEnvironment(), dev: isDevelopmentMode(), enabled: enabledProviderIds(), kizuna: isKizunaAIEnabled(), switchOn: debugSwitchOn };
+}
+
+/** The providers offered here, in UI order. */
+export function presentProviders(env: PresenceEnv = currentPresenceEnv()): readonly AnyProvider[] {
+  return PROVIDERS.filter((p) => isPresent(p, env));
+}
+
+export function getProvider(id: string): AnyProvider | undefined {
+  return PROVIDERS.find((p) => p.id === id);
+}

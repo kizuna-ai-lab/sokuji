@@ -26,7 +26,8 @@ import {
   type ModelType,
 } from '../../../lib/local-inference/modelManifest';
 import { directionKey, emptyDirection, splitDirection, type Stage } from '../../../lib/local-inference/selection/types';
-import { useLocalInferenceSettings, useUpdateLocalInference } from '../../../stores/settingsStore';
+import type { LocalInferenceSettings } from '../../../providers/localInference/settings';
+import type { LanguagePair } from '../../../lib/provider/types';
 import { languageNameFor } from '../engine/languageName';
 import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManagementControls';
 import { ModelImportModal } from './ModelImportModal';
@@ -54,6 +55,15 @@ interface ModelManagementSectionProps {
    *  or write the forward speaker pair. Omitted = the settings' forward
    *  pair (the standalone render). */
   direction?: string;
+  /**
+   * LocalInference's own `S`/`update`/pair (the new provider contract); the
+   * old slice it once fell back to went with the old descriptor (Stage 2
+   * deletion, ruling 3). `pair` carries the source/target languages `S` no
+   * longer does (`providerStore` owns the pair now).
+   */
+  settings: LocalInferenceSettings;
+  update: (patch: Partial<LocalInferenceSettings>) => void;
+  pair: LanguagePair;
 }
 
 // ─── ModelCard ─────────────────────────────────────────────────────────────
@@ -325,10 +335,21 @@ export function ModelManagementSection({
   isSessionActive,
   stageFilter,
   direction,
+  settings,
+  update,
+  pair,
 }: ModelManagementSectionProps) {
   const { t } = useTranslation();
-  const settings = useLocalInferenceSettings();
-  const updateLocalInference = useUpdateLocalInference();
+  // Stable identity: the edge-TTS voice auto-select effect holds it in its
+  // deps, and a fresh function every render would re-run that effect's write
+  // (the 2026-08-23 freeze).
+  const updateLocalInference = useCallback(
+    (patch: Partial<LocalInferenceSettings>) => update(patch),
+    [update],
+  );
+  // The forward pair (the new contract — `S` no longer carries it).
+  const forwardSource = pair.source;
+  const forwardTarget = pair.target;
   const statuses = useModelStatuses();
   const downloads = useModelDownloads();
   const downloadErrors = useDownloadErrors();
@@ -383,7 +404,7 @@ export function ModelManagementSection({
   // push, the settings' forward pair otherwise.
   const [sourceLanguage, targetLanguage] = direction
     ? splitDirection(direction)
-    : [settings.sourceLanguage, settings.targetLanguage];
+    : [forwardSource, forwardTarget];
 
   /**
    * Live, non-persisted view of "what would actually run right now" per
@@ -643,7 +664,7 @@ export function ModelManagementSection({
   // the reversed target, so the two writers would ping-pong the field forever,
   // sync-re-rendering the whole app each round (the 2026-08-23 freeze).
   const ownsVoiceSettings = !direction
-    || direction === directionKey(settings.sourceLanguage, settings.targetLanguage);
+    || direction === directionKey(forwardSource, forwardTarget);
   useEffect(() => {
     if (!ownsVoiceSettings) return;
     if (!isEdgeTtsSelected || filteredVoices.length === 0) return;

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Captions, CaptionsOff } from 'lucide-react';
-import { useIsSessionActive } from '../../stores/sessionStore';
+import { useRunPhase } from '../../app/useRun';
 import {
   useEnterSubtitleMode,
   useExitSubtitleMode,
@@ -16,7 +16,7 @@ const SubtitleEnterButton: React.FC = () => {
   const { t } = useTranslation();
   const enterSubtitleMode = useEnterSubtitleMode();
   const exitSubtitleMode = useExitSubtitleMode();
-  const isSessionActive = useIsSessionActive();
+  const running = useRunPhase() === 'running';
   const subtitleActive = useSubtitleModeActive();
   const { showToast } = useToast();
 
@@ -28,8 +28,9 @@ const SubtitleEnterButton: React.FC = () => {
   const exitLabel = t('subtitle.exitButton.label', 'Exit subtitle');
 
   // Shared with settingsStore.enterSubtitleMode (see subtitleEnterGate.ts) so
-  // this button can never be enabled for a click the store would refuse.
-  const canEnter = canEnterSubtitleMode(isSessionActive);
+  // this button can never be enabled for a click the store would refuse. "A
+  // run is live" is now the page's run phase, not the old session flag.
+  const canEnter = canEnterSubtitleMode(running);
   const enterTooltip = canEnter
     ? t('subtitle.enterButton.title', 'Enter subtitle mode')
     : t('subtitle.enterButton.disabled', 'Start a session first');

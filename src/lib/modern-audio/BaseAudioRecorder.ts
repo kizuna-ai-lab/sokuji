@@ -54,6 +54,15 @@ export abstract class BaseAudioRecorder {
   }
 
   /**
+   * The live capture stream, or null when there is none: for watching its
+   * track's end and handing the track to an adapter (the client-contract
+   * capture layer, `src/lib/audio/capture/`).
+   */
+  getStream(): MediaStream | null {
+    return this.stream;
+  }
+
+  /**
    * Immediately release the microphone device by stopping all live tracks.
    *
    * This is a synchronous best-effort teardown for page/window close: it frees

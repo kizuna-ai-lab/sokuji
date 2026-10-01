@@ -5,24 +5,8 @@ import Tooltip from '../../Tooltip/Tooltip';
 import ToggleSwitch from '../shared/ToggleSwitch';
 import {
   useProvider,
-  useSettingsStore,
-  useKizunaVolcengineAst2Settings,
-  useLocalInferenceSettings,
   useLocalNativeSettings,
-  useVolcengineAST2Settings,
-  useUpdateOpenAI,
-  useUpdateGemini,
-  useUpdateOpenAICompatible,
-  useUpdatePalabraAI,
-  useUpdateOpenAITranslate,
-  useUpdateOpenAILive,
-  useUpdateKizunaOpenaiTranslate,
-  useUpdateKizunaVolcengineAst2,
-  useUpdateKizunaSoniox,
-  useUpdateLocalInference,
   useUpdateLocalNative,
-  useUpdateVolcengineAST2,
-  useUpdateSoniox,
   useNavigateToSettings,
   useUIMode,
   useSetEngineSlotTarget,
@@ -32,19 +16,16 @@ import {
   useKeepReplayAudio,
   useSetKeepReplayAudio
 } from '../../../stores/settingsStore';
-import type { SettingsStore } from '../../../stores/settingsStore';
-import { Provider, kizunaBaseProvider } from '../../../types/Provider';
+import { Provider } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
-import { resolveAST2LanguagePair } from '../../../services/providers/volcengineAST2LanguageSync';
-import { useIsParticipantChannelInScope, useMode, speakerChannelInScope } from '../../../stores/audioStore';
+import { useMode, speakerChannelInScope } from '../../../stores/audioStore';
 import { useLockedMode } from '../../../stores/sessionStore';
 import { effectiveTextOnly } from '../../../utils/effectiveTextOnly';
 import { pairSentence } from '../../SetupWizard/languageSentence';
 import { useAnalytics } from '../../../lib/analytics';
-import { getTranslationTargetLanguages, getManifestEntry } from '../../../lib/local-inference/modelManifest';
+import { getTranslationTargetLanguages } from '../../../lib/local-inference/modelManifest';
 import { shortenModelName } from '../../../lib/local-inference/modelName';
-import { useModelStatuses, useModelInitialized, useLastResolutionNotes, useModelStore } from '../../../stores/modelStore';
 import { useNativeLastResolutionNotes, useNativeCatalog, useNativeModelStore } from '../../../stores/nativeModelStore';
 import { directionKey, emptyDirection, type Stage, type Selections, type ResolutionNote } from '../../../lib/local-inference/selection/types';
 
@@ -66,12 +47,8 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
 
   // Settings store
   const provider = useProvider();
-  const kizunaVolcengineAst2Settings = useKizunaVolcengineAst2Settings();
-  const localInferenceSettings = useLocalInferenceSettings();
   const localNativeSettings = useLocalNativeSettings();
-  const volcengineAST2Settings = useVolcengineAST2Settings();
 
-  const isParticipantChannelInScope = useIsParticipantChannelInScope();
   // Mode scope for the Text Only lock below. `lockedMode ?? mode` — the same
   // "effective mode" every other mode-scoped lock in Settings reads, so an
   // in-session panel describes the session that is running rather than the
@@ -79,8 +56,6 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const mode = useMode();
   const lockedMode = useLockedMode();
   const speakerChannelInScopeForUi = speakerChannelInScope(lockedMode ?? mode);
-  const modelStatuses = useModelStatuses();
-  const modelInitialized = useModelInitialized();
   const navigateToSettings = useNavigateToSettings();
   const uiMode = useUIMode();
   const setEngineSlotTarget = useSetEngineSlotTarget();
@@ -92,139 +67,34 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const keepReplayAudio = useKeepReplayAudio();
   const setKeepReplayAudio = useSetKeepReplayAudio();
 
-  const updateOpenAISettings = useUpdateOpenAI();
-  const updateGeminiSettings = useUpdateGemini();
-  const updateOpenAICompatibleSettings = useUpdateOpenAICompatible();
-  const updatePalabraAISettings = useUpdatePalabraAI();
-  const updateOpenAITranslateSettings = useUpdateOpenAITranslate();
-  const updateOpenAILiveSettings = useUpdateOpenAILive();
-  const updateKizunaOpenaiTranslateSettings = useUpdateKizunaOpenaiTranslate();
-  const updateKizunaVolcengineAst2Settings = useUpdateKizunaVolcengineAst2();
-  const updateKizunaSonioxSettings = useUpdateKizunaSoniox();
-  const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
-  const updateLocalInferenceSettings = useUpdateLocalInference();
   const updateLocalNativeSettings = useUpdateLocalNative();
-  const updateSonioxSettings = useUpdateSoniox();
 
-  // Kizuna-managed relay twins reuse their base provider's language controls but
-  // read/write the kizuna slices. `effectiveProvider` drives base-keyed logic
-  // (e.g. AST2's bidirectional language sync); the active slice/updater pairs
-  // resolve to the kizuna slice when managed and the user-managed slice otherwise.
-  const effectiveProvider = kizunaBaseProvider(provider) ?? provider;
-  const activeVolcengineAST2Settings =
-    provider === Provider.KIZUNA_AI_VOLCENGINE_AST2
-      ? kizunaVolcengineAst2Settings
-      : volcengineAST2Settings;
-  const updateActiveVolcengineAST2Settings =
-    provider === Provider.KIZUNA_AI_VOLCENGINE_AST2
-      ? updateKizunaVolcengineAst2Settings
-      : updateVolcengineAST2Settings;
-
-  // Get provider configuration with fallback
-  const providerConfig: ProviderConfig = useMemo(() => {
-    try {
-      return ProviderConfigFactory.getConfig(provider);
-    } catch {
-      return ProviderConfigFactory.getConfig(Provider.OPENAI);
-    }
-  }, [provider]);
-
-  // Get current provider settings via the active descriptor's slice key. The
-  // selector returns the slice object itself — reference-stable under zustand,
-  // so this re-renders only when the slice or the provider changes.
-  const currentProviderSettings = useSettingsStore(
-    (s) => s[ProviderConfigFactory.getDescriptor(s.provider).settingsSliceKey as keyof SettingsStore]
-  ) as Record<string, any>;
+  // The old settings panel's language section, reduced to Local Native: its
+  // path is kept whole, working but unreachable, until
+  // kizuna-ai-lab/sokuji#578 ports it (Stage 2 deletion, ruling 1). The old
+  // registry registers nothing else, so any other stored provider — or Local
+  // Native where it is not registered — renders nothing (Stage 2 deletion,
+  // choice 4).
+  const providerConfig: ProviderConfig | null = useMemo(
+    () => (provider === Provider.LOCAL_NATIVE && ProviderConfigFactory.isProviderSupported(provider)
+      ? ProviderConfigFactory.getConfig(provider)
+      : null),
+    [provider],
+  );
+  const currentProviderSettings = localNativeSettings;
 
   // Update source language
   const updateSourceLanguage = (value: string) => {
-    switch (provider) {
-      case Provider.OPENAI:
-        updateOpenAISettings({ sourceLanguage: value });
-        break;
-      case Provider.GEMINI:
-        updateGeminiSettings({ sourceLanguage: value });
-        break;
-      case Provider.OPENAI_COMPATIBLE:
-        updateOpenAICompatibleSettings({ sourceLanguage: value });
-        break;
-      case Provider.PALABRA_AI:
-        updatePalabraAISettings({ sourceLanguage: value });
-        break;
-      case Provider.OPENAI_TRANSLATE:
-        // Source language is UI-only for translate (auto-detected by API).
-        updateOpenAITranslateSettings({ sourceLanguage: value });
-        break;
-      case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
-        // Relay twin of OPENAI_TRANSLATE — writes the kizuna slice.
-        updateKizunaOpenaiTranslateSettings({ sourceLanguage: value });
-        break;
-      case Provider.OPENAI_LIVE:
-        // Renders the interpreter template only; Live auto-detects the input.
-        updateOpenAILiveSettings({ sourceLanguage: value });
-        break;
-      case Provider.VOLCENGINE_AST2:
-      case Provider.KIZUNA_AI_VOLCENGINE_AST2: {
-        // Both the user-managed AST2 provider and its kizuna twin use the same
-        // bidirectional language sync; the active slice/updater resolve which
-        // store slice is read/written.
-        const prev = activeVolcengineAST2Settings;
-        const next = resolveAST2LanguagePair(
-          { sourceLanguage: prev.sourceLanguage, targetLanguage: prev.targetLanguage },
-          { side: 'source', value },
-        );
-        updateActiveVolcengineAST2Settings({
-          sourceLanguage: next.sourceLanguage,
-          targetLanguage: next.targetLanguage,
-        });
-        // Spec §5: emit source event first (the user-touched side), then a
-        // secondary target event when bidirectional sync also changed the
-        // other side. Both fire from inside this branch so the ordering is
-        // source-then-target — the function returns to skip the trailing
-        // emit below this switch.
-        trackEvent('language_changed', {
-          to_language: next.sourceLanguage,
-          language_type: 'source',
-        });
-        if (next.targetLanguage !== prev.targetLanguage) {
-          trackEvent('language_changed', {
-            to_language: next.targetLanguage,
-            language_type: 'target',
-          });
-        }
-        return;
-      }
-      case Provider.LOCAL_INFERENCE: {
-        const availableTargets = getTranslationTargetLanguages(value);
-        const currentTarget = localInferenceSettings.targetLanguage;
-        const updates: Record<string, string> = { sourceLanguage: value };
-        if (!availableTargets.some(t => t.value === currentTarget)) {
-          updates.targetLanguage = availableTargets[0]?.value || 'en';
-        }
-        updateLocalInferenceSettings(updates);
-        break;
-      }
-      case Provider.LOCAL_NATIVE: {
-        const availableTargets = getTranslationTargetLanguages(value);
-        const currentTarget = localNativeSettings.targetLanguage;
-        const updates: Record<string, string> = { sourceLanguage: value };
-        if (!availableTargets.some(t => t.value === currentTarget)) {
-          updates.targetLanguage = availableTargets[0]?.value || 'en';
-        }
-        // Model reconciliation (compatible ASR, directional translation, stale TTS)
-        // is handled by NativeModelManagementSection's auto-select effect, which
-        // also applies per-direction remembered history — mirroring LOCAL_INFERENCE.
-        updateLocalNativeSettings(updates);
-        break;
-      }
-      case Provider.SONIOX:
-        updateSonioxSettings({ sourceLanguage: value });
-        break;
-      case Provider.KIZUNA_AI_SONIOX:
-        // Relay-managed twin of SONIOX — writes the kizuna slice.
-        updateKizunaSonioxSettings({ sourceLanguage: value });
-        break;
+    const availableTargets = getTranslationTargetLanguages(value);
+    const currentTarget = localNativeSettings.targetLanguage;
+    const updates: Record<string, string> = { sourceLanguage: value };
+    if (!availableTargets.some(t => t.value === currentTarget)) {
+      updates.targetLanguage = availableTargets[0]?.value || 'en';
     }
+    // Model reconciliation (compatible ASR, directional translation, stale TTS)
+    // is handled by NativeModelManagementSection's auto-select effect, which
+    // also applies per-direction remembered history.
+    updateLocalNativeSettings(updates);
     trackEvent('language_changed', {
       to_language: value,
       language_type: 'source'
@@ -233,72 +103,9 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
 
   // Update target language
   const updateTargetLanguage = (value: string) => {
-    switch (provider) {
-      case Provider.OPENAI:
-        updateOpenAISettings({ targetLanguage: value });
-        break;
-      case Provider.GEMINI:
-        updateGeminiSettings({ targetLanguage: value });
-        break;
-      case Provider.OPENAI_COMPATIBLE:
-        updateOpenAICompatibleSettings({ targetLanguage: value });
-        break;
-      case Provider.PALABRA_AI:
-        updatePalabraAISettings({ targetLanguage: value });
-        break;
-      case Provider.OPENAI_TRANSLATE:
-        updateOpenAITranslateSettings({ targetLanguage: value as any });
-        break;
-      case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
-        // Relay twin of OPENAI_TRANSLATE — writes the kizuna slice.
-        updateKizunaOpenaiTranslateSettings({ targetLanguage: value as any });
-        break;
-      case Provider.OPENAI_LIVE:
-        updateOpenAILiveSettings({ targetLanguage: value });
-        break;
-      case Provider.VOLCENGINE_AST2:
-      case Provider.KIZUNA_AI_VOLCENGINE_AST2: {
-        const prev = activeVolcengineAST2Settings;
-        const next = resolveAST2LanguagePair(
-          { sourceLanguage: prev.sourceLanguage, targetLanguage: prev.targetLanguage },
-          { side: 'target', value },
-        );
-        updateActiveVolcengineAST2Settings({
-          sourceLanguage: next.sourceLanguage,
-          targetLanguage: next.targetLanguage,
-        });
-        // Spec §5: emit secondary source event FIRST when the synced side
-        // changed, then the user-touched target event — matches the
-        // source-then-target ordering used for the source-side handler. Both
-        // fire from inside this branch; return to skip the trailing emit.
-        if (next.sourceLanguage !== prev.sourceLanguage) {
-          trackEvent('language_changed', {
-            to_language: next.sourceLanguage,
-            language_type: 'source',
-          });
-        }
-        trackEvent('language_changed', {
-          to_language: next.targetLanguage,
-          language_type: 'target',
-        });
-        return;
-      }
-      case Provider.LOCAL_INFERENCE:
-        updateLocalInferenceSettings({ targetLanguage: value });
-        break;
-      case Provider.LOCAL_NATIVE:
-        // Stale-TTS reset + directional translation reconciliation is handled by
-        // NativeModelManagementSection's auto-select effect (parity with LOCAL_INFERENCE).
-        updateLocalNativeSettings({ targetLanguage: value });
-        break;
-      case Provider.SONIOX:
-        updateSonioxSettings({ targetLanguage: value });
-        break;
-      case Provider.KIZUNA_AI_SONIOX:
-        // Relay-managed twin of SONIOX — writes the kizuna slice.
-        updateKizunaSonioxSettings({ targetLanguage: value });
-        break;
-    }
+    // Stale-TTS reset + directional translation reconciliation is handled by
+    // NativeModelManagementSection's auto-select effect.
+    updateLocalNativeSettings({ targetLanguage: value });
     trackEvent('language_changed', {
       to_language: value,
       language_type: 'target'
@@ -310,94 +117,35 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
     const src = currentProviderSettings?.sourceLanguage;
     const tgt = currentProviderSettings?.targetLanguage;
     if (!src || !tgt || src === 'auto' || src === 'zhen') return;
+    updateSourceLanguage(tgt);
+    // Local Native declares no restricted target list, so the swapped source
+    // is always a valid target.
+    updateTargetLanguage(src);
+  }, [currentProviderSettings, updateSourceLanguage, updateTargetLanguage]);
 
-    if (provider === Provider.LOCAL_INFERENCE) {
-      const availableTargets = getTranslationTargetLanguages(tgt);
-      const newTarget = availableTargets.some(l => l.value === src) ? src : availableTargets[0]?.value || 'en';
-      updateLocalInferenceSettings({ sourceLanguage: tgt, targetLanguage: newTarget });
-    } else if (effectiveProvider === Provider.VOLCENGINE_AST2) {
-      // AST2's updateSource/Target paths each write BOTH fields through the
-      // helper, reading prev from this closure. A two-step swap would invoke
-      // the second write with a stale prev — overwriting the first write with
-      // the original source value and producing src/src. Apply both new values
-      // in one update here instead. src === 'zhen' is already excluded above,
-      // so no resolveAST2LanguagePair invocation is needed. The active updater
-      // resolves to the kizuna slice for the relay twin.
-      updateActiveVolcengineAST2Settings({ sourceLanguage: tgt, targetLanguage: src });
-      trackEvent('language_changed', { to_language: tgt, language_type: 'source' });
-      trackEvent('language_changed', { to_language: src, language_type: 'target' });
-    } else {
-      updateSourceLanguage(tgt);
-      // For providers with a restricted target list (currently only OPENAI_TRANSLATE),
-      // the swapped source may not be a valid target — fall back to the first valid
-      // target so we never produce settings the API will reject. For providers
-      // without a restricted list, the source value always exists in `languages`,
-      // so the fallback never fires and behavior is preserved.
-      const targetList = providerConfig.targetLanguages ?? providerConfig.languages;
-      const newTarget = targetList.some(l => l.value === src)
-        ? src
-        : (targetList[0]?.value ?? src);
-      updateTargetLanguage(newTarget);
-    }
-  }, [provider, effectiveProvider, currentProviderSettings, providerConfig, updateLocalInferenceSettings, updateSourceLanguage, updateTargetLanguage, updateActiveVolcengineAST2Settings, trackEvent]);
-
-  // Dynamic target languages for LOCAL_INFERENCE; restricted list for providers
-  // that explicitly declare `targetLanguages` (e.g. OpenAI Translate has 13);
-  // shared `languages` list otherwise.
-  const targetLanguages = useMemo(() => {
-    if (provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE) {
-      return getTranslationTargetLanguages(currentProviderSettings.sourceLanguage || 'ja');
-    }
-    return providerConfig.targetLanguages ?? providerConfig.languages;
-  }, [provider, providerConfig.languages, providerConfig.targetLanguages, currentProviderSettings.sourceLanguage]);
-
-  // Show a warning beneath the source dropdown when OpenAI Translate is
-  // selected, participant capture is enabled, and the chosen source language
-  // isn't in the 13 supported target languages — because the participant
-  // client's translate target = our source language, and an unsupported
-  // target would fail the API call. Informational only (no auto-toggle).
-  const showTranslateParticipantWarning = useMemo(() => {
-    if (effectiveProvider !== Provider.OPENAI_TRANSLATE) return false;
-    if (!isParticipantChannelInScope) return false;
-    const supportedTargets = ProviderConfigFactory.getDescriptor(Provider.OPENAI_TRANSLATE).resolveTargetLanguages(currentProviderSettings.sourceLanguage);
-    return !supportedTargets.some(t => t.value === currentProviderSettings.sourceLanguage);
-  }, [effectiveProvider, isParticipantChannelInScope, currentProviderSettings.sourceLanguage]);
-
-  // Soniox carries direction in source/target and reverses them for the
-  // participant client (Others / Both-unshared). 'auto' source can't be
-  // reversed — it would make the participant's translate target 'auto', which
-  // Soniox one_way rejects — so require a concrete source language whenever a
-  // participant channel is in scope.
-  const showAutoSourceParticipantWarning = useMemo(() => {
-    return ProviderConfigFactory.getDescriptor(effectiveProvider).reversesDirectionViaSourceLanguage(currentProviderSettings.model)
-      && isParticipantChannelInScope
-      && currentProviderSettings.sourceLanguage === 'auto';
-  }, [effectiveProvider, isParticipantChannelInScope, currentProviderSettings.sourceLanguage, currentProviderSettings.model]);
-
-  // Simplified interface language list (12 most common languages)
+  // The target list follows the source language.
+  const targetLanguages = useMemo(
+    () => getTranslationTargetLanguages(currentProviderSettings.sourceLanguage || 'ja'),
+    [currentProviderSettings.sourceLanguage],
+  );
 
   // The ONE blocking warning (2026-08-23 warning-dedup decision): which
   // mandatory stages have NO candidate at all for the current speaker pair.
   // Reads the resolver - the single source of truth since the selection
   // redesign - instead of a parallel hand-rolled manifest scan, and follows
   // the session gate's own scope: speaker ASR + translation block a session,
-  // TTS never does (subtitles/Edge TTS cover it), so TTS is never "missing".
-  const resolveWasm = useModelStore.getState().resolve;
+  // TTS never does, so TTS is never "missing".
   const resolveNative = useNativeModelStore((state) => state.resolve);
   const nativeStatuses = useNativeModelStore((state) => state.statuses);
   const nativeCatalog = useNativeCatalog();
   const missingStages = useMemo(() => {
-    if (provider === Provider.LOCAL_INFERENCE) {
-      if (!modelInitialized) return [];
-    } else if (provider === Provider.LOCAL_NATIVE) {
-      // No catalog yet = sidecar not up; EngineSection's gate narrates that
-      // state, and "everything is missing" on top of it would be noise.
-      if (Object.keys(nativeCatalog).length === 0) return [];
-    } else {
-      return [];
-    }
-    const settings = provider === Provider.LOCAL_INFERENCE ? localInferenceSettings : localNativeSettings;
-    const resolve = provider === Provider.LOCAL_INFERENCE ? resolveWasm : resolveNative;
+    if (provider !== Provider.LOCAL_NATIVE) return [];
+    // No catalog yet = sidecar not up; EngineSection's gate narrates that
+    // state, and "everything is missing" on top of it would be noise.
+    if (Object.keys(nativeCatalog).length === 0) return [];
+    const settings = localNativeSettings;
+    const resolve = resolveNative;
+
     // Mode-scoped legs (2026-08-23): speaker checks the forward leg,
     // participant the reverse, both checks both — the same table the
     // mode-aware session gate implements (ensureSelectionReady), so this
@@ -421,11 +169,10 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
     }
     return missing;
   }, [
-    provider, modelInitialized, resolveWasm, resolveNative, nativeCatalog, t,
-    localInferenceSettings, localNativeSettings, lockedMode, mode,
-    // resolve() reads candidate pools from its own store; these two make the
-    // memo recompute when a download/delete changes what is resolvable.
-    modelStatuses, nativeStatuses,
+    provider, resolveNative, nativeCatalog, t, localNativeSettings, lockedMode, mode,
+    // resolve() reads candidate pools from its own store; this makes the memo
+    // recompute when a download/delete changes what is resolvable.
+    nativeStatuses,
   ]);
 
   // S0: the language pair narrates as a sentence whose verbs follow the
@@ -447,12 +194,10 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const sentenceMode = lockedMode ?? mode;
   // Does the forward leg actually SPEAK? That decides "they hear" vs "they
   // read", and the provider's capability decides it — NOT the raw toggle.
-  // `textOnly` is one global preference shared across providers, so a user who
-  // turned it on under Gemini and switched to Palabra ('never') still gets
-  // speech; reading the toggle here would print the opposite of what the
-  // session does. Only 'optional' providers honour it, and they do so through
-  // the same effectiveTextOnly() the Text Only switch below renders.
-  const textOnlyCapability = providerConfig.capabilities.textOnlyCapability;
+  // Only 'optional' providers honour the global `textOnly` toggle, and they do
+  // so through the same effectiveTextOnly() the Text Only switch below
+  // renders.
+  const textOnlyCapability = providerConfig?.capabilities.textOnlyCapability ?? 'optional';
   // The sentence itself is shared with the setup wizard, which prints it over
   // the same two fields on two of its steps. Only the resolution of `textOnly`
   // differs by surface, so it is resolved here and handed in.
@@ -469,31 +214,15 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   // "Both" mode runs the speaker leg above plus a mirrored participant leg;
   // the mirror line states that second leg as plain text derived from the
   // same two fields — never a third pair of controls.
-  const sourceLanguageName = providerConfig.languages.find(l => l.value === currentProviderSettings.sourceLanguage)?.name
+  const sourceLanguageName = providerConfig?.languages.find(l => l.value === currentProviderSettings.sourceLanguage)?.name
     ?? currentProviderSettings.sourceLanguage;
   const targetLanguageName = targetLanguages.find(l => l.value === currentProviderSettings.targetLanguage)?.name
     ?? currentProviderSettings.targetLanguage;
-  // ...and only once the source language is pinned — `pairSentence`'s
-  // showMirror withholds the line for 'auto'. That is a hand-written extra
-  // <option> on the source select, absent from every provider's `languages`,
-  // so the lookup above falls through to the raw token; localizing it would
-  // not help, because the mirror's whole job is to name the language I read on
-  // the reverse leg and auto-detect names none. For the providers that reverse
-  // direction THROUGH sourceLanguage (Soniox, Gemini's translate models) the
-  // pair cannot even start — see sessionStartGate's
-  // autoSourceParticipantBlocked, whose warning renders just below — so the
-  // line would describe a session the app refuses to run.
 
   // S0: surface the last resolution notes (auto-substitutions/fallbacks made
   // while picking models for this language pair) right where the pair itself
-  // is edited. WASM and native track their own resolvers/catalogs, so both
-  // notes and the id→display-name lookup are selected per provider.
-  const wasmNotes = useLastResolutionNotes();
-  const nativeNotes = useNativeLastResolutionNotes();
-  const notes =
-    provider === Provider.LOCAL_INFERENCE ? wasmNotes
-    : provider === Provider.LOCAL_NATIVE ? nativeNotes
-    : [];
+  // is edited.
+  const notes = useNativeLastResolutionNotes();
   // no-candidate notes are the BLOCKING condition and belong to the
   // missing-models warning below; everything else is an automatic fallback
   // the session survives, summarized in one line (2026-08-23 dedup decision).
@@ -501,7 +230,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   // page — a note about a hidden leg would deep-link to a slot that is not
   // rendered, and the leg becomes relevant exactly when the mode does.
   const visibleDirs = (() => {
-    const st = provider === Provider.LOCAL_NATIVE ? localNativeSettings : localInferenceSettings;
+    const st = localNativeSettings;
     const effectiveMode = lockedMode ?? mode;
     const fwdKey = directionKey(st.sourceLanguage, st.targetLanguage);
     const revKey = directionKey(st.targetLanguage, st.sourceLanguage);
@@ -513,13 +242,8 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   // Name the picks that failed (deduped: the same deleted model noted in two
   // directions is one name) — a summary that will not say WHICH models it
   // means cannot be acted on.
-  const noteName = (id: string): string => {
-    if (provider === Provider.LOCAL_NATIVE) {
-      return nativeCatalog[id] ? shortenModelName(nativeCatalog[id].name) : id;
-    }
-    const entry = getManifestEntry(id);
-    return entry ? shortenModelName(entry.name, entry.shortName) : id;
-  };
+  const noteName = (id: string): string =>
+    nativeCatalog[id] ? shortenModelName(nativeCatalog[id].name) : id;
   const staleIds: string[] = [];
   for (const n of fallbackNotes) {
     if (n.from && !staleIds.includes(n.from)) staleIds.push(n.from);
@@ -532,16 +256,11 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   // pick will not return on re-download, which is what this click means).
   // ensureSelectionReady() then re-resolves so the summary clears at once.
   const switchNotesToAuto = async () => {
-    const settings = provider === Provider.LOCAL_NATIVE ? localNativeSettings : localInferenceSettings;
-    const next: Selections = { ...settings.selections };
+    const next: Selections = { ...localNativeSettings.selections };
     for (const n of fallbackNotes) {
       next[n.direction] = { ...(next[n.direction] ?? emptyDirection()), [n.stage]: { modelId: '' } };
     }
-    if (provider === Provider.LOCAL_NATIVE) {
-      await updateLocalNativeSettings({ selections: next });
-    } else {
-      await updateLocalInferenceSettings({ selections: next });
-    }
+    await updateLocalNativeSettings({ selections: next });
     // Re-runs ensureSelectionReady through the provider's own validation
     // wrapper (native's read-thunk included) so lastResolutionNotes — and
     // with it this summary — refreshes immediately.
@@ -555,6 +274,8 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
     setEngineSlotTarget({ dir, stage });
     if (uiMode !== 'basic') navigateToSettings('provider');
   };
+
+  if (!providerConfig) return null;
 
   return (
     <>
@@ -584,9 +305,6 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
                 disabled={isSessionActive}
                 className="language-select"
               >
-                {provider !== Provider.LOCAL_INFERENCE && provider !== Provider.LOCAL_NATIVE && effectiveProvider !== Provider.OPENAI_TRANSLATE && (
-                  <option value="auto">{t('common.autoDetect')}</option>
-                )}
                 {providerConfig.languages.map((lang) => (
                   <option key={lang.value} value={lang.value}>
                     {lang.name}
@@ -667,20 +385,6 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
                   </button>
                 </span>
               </div>
-            </div>
-          )}
-
-          {showTranslateParticipantWarning && (
-            <div className="language-warning">
-              <AlertTriangle size={12} />
-              <span>{t('settings.translateSourceParticipantWarning')}</span>
-            </div>
-          )}
-
-          {showAutoSourceParticipantWarning && (
-            <div className="language-warning">
-              <AlertTriangle size={12} />
-              <span>{t('settings.sonioxAutoParticipantWarning')}</span>
             </div>
           )}
 

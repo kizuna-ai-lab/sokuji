@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import 'fake-indexeddb/auto';
 import { byokVoiceSource, managedVoiceSource } from './voiceLibrarySource';
-import { SonioxVoicesError } from '../../../services/clients/SonioxVoicesClient';
+import { SonioxVoicesError } from '../../../providers/soniox/voicesClient';
 import { loadVoiceClip, resetVoiceClipStorageForTesting } from '../../../lib/soniox/voiceClipStorage';
-import type { ManagedVoicesClient } from '../../../services/clients/ManagedVoicesClient';
-import type { SonioxVoicesClient } from '../../../services/clients/SonioxVoicesClient';
+import type { ManagedVoicesClient } from '../../../providers/soniox/managedVoicesClient';
+import type { SonioxVoicesClient } from '../../../providers/soniox/voicesClient';
 import { settleReports, resetReportThrottle } from '../../../lib/diagnostics/report';
 import useLogStore from '../../../stores/logStore';
 

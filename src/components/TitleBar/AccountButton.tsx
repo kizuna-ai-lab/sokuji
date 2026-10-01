@@ -12,14 +12,12 @@ import { User } from 'lucide-react';
 import { useAuth, useUser } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { isKizunaAIEnabled } from '../../utils/environment';
-import { isKizunaManagedProvider, Provider } from '../../types/Provider';
 import {
-  useProvider,
   useAccountPopoverRequested,
   useSetAccountPopoverRequested,
 } from '../../stores/settingsStore';
-import { sonioxManagedMinBalanceMicroUsd } from '../../services/providers/sonioxManagedMinBalance';
 import { compactBalanceLabel } from './compactBalance';
+import { useBalanceShortfall } from './useBalanceShortfall';
 import { useSessionRefreshOnReturn } from './useSessionRefreshOnReturn';
 import { useToast } from '../Toast';
 import AccountPopover from './AccountPopover';
@@ -31,7 +29,8 @@ const AccountButton: React.FC = () => {
   const { user, refetch } = useUser();
   const { showToast } = useToast();
   const { quota } = useUserProfile();
-  const provider = useProvider();
+  // The start gate's own answer for the selected provider (Stage 2 Kizuna Soniox, choice 9).
+  const lowBalance = useBalanceShortfall();
   const [open, setOpen] = useState(false);
   // The popover anchors to the button's own element, so the anchor never
   // travels between components. It is null on the first render and set by the
@@ -108,28 +107,10 @@ const AccountButton: React.FC = () => {
     const initial = (user.name?.[0] ?? user.email[0] ?? '?').toUpperCase();
     const balance = quota?.balance ?? quota?.remaining;
 
-    // The low-balance warning is scoped to managed providers: a BYOK user's
-    // wallet funds nothing, so warning them would be noise. E-mail verification
-    // is account-level and shows regardless.
-    //
-    // The floor mirrors sessionStartGate: ONLY managed Soniox has a real one.
-    // Every other provider's floor is 1 — balances are integer micro-USD, so
-    // that is exactly the "> 0" rule. Applying Soniox's floor to the Translate
-    // and Volcengine twins lit a red "too low to start" dot beside a Start
-    // button that was green and worked.
-    //
-    // For Soniox the floor is deliberately the LOWEST of the four: the real one
-    // depends on `effectiveTextOnly` (a participant-only session opens no
-    // synthesis stream) and on `bothSplit`, both of which the Start button
-    // derives from state that lives in MainPanel. Taking the lowest can only
-    // under-report — no dot while Start happens to be disabled — and never the
-    // reverse. A dot that contradicts the button is worse than a missing one.
-    const floor =
-      provider === Provider.KIZUNA_AI_SONIOX
-        ? sonioxManagedMinBalanceMicroUsd(true)
-        : 1;
-    const lowBalance =
-      isKizunaManagedProvider(provider) && typeof balance === 'number' && balance < floor;
+    // The low-balance warning is the start gate's (useBalanceShortfall): a
+    // provider with no floor (own key, local) never warns, and a managed one
+    // warns exactly when Start refuses below its floor for these legs.
+    // E-mail verification is account-level and shows regardless.
     const unverified = user.emailVerified === false;
     // Red outranks amber: one blocks a session, the other is a reminder.
     const tone = lowBalance ? 'low' : unverified ? 'unverified' : null;

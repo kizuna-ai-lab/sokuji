@@ -17,20 +17,16 @@
  *
  * Follows ProviderSection.select.test.tsx's mount idiom: the real
  * settingsStore (asserted on directly via setState/getState, not spied),
- * ServiceFactory/analytics/auth/supportsBaseSelect mocked. modelStore and
- * nativeModelStore are also real — LOCAL_INFERENCE needs no extra setup
- * (mirrors ProviderSpecificSettings.engine.test.tsx), LOCAL_NATIVE needs
- * `sidecarStatus: 'ready'` or the chips are replaced by the loading notice.
+ * ServiceFactory/analytics/supportsBaseSelect mocked. nativeModelStore is
+ * also real, with `sidecarStatus: 'ready'` or the chips are replaced by the
+ * loading notice. Local Native is the one provider the old section still
+ * serves (Stage 2 deletion, ruling 1).
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
 
 vi.mock('../../../lib/analytics', () => ({
   useAnalytics: () => ({ trackEvent: vi.fn() }),
-}));
-
-vi.mock('../../../lib/auth/hooks', () => ({
-  useAuth: () => ({ isSignedIn: true, getToken: async () => 'token' }),
 }));
 
 vi.mock('../../../services/ServiceFactory', () => ({
@@ -65,7 +61,7 @@ const groupLabels = (container: HTMLElement) =>
 describe('ProviderSection — model chips deep-link to their slot (Task 10)', () => {
   beforeEach(() => {
     useSettingsStore.setState({
-      provider: Provider.LOCAL_INFERENCE,
+      provider: Provider.LOCAL_NATIVE,
       uiMode: 'advanced',
       settingsNavigationTarget: null,
       engineSlotTarget: null,
@@ -112,14 +108,14 @@ describe('ProviderSection — model chips deep-link to their slot (Task 10)', ()
     }
   });
 
-  it("mode='speaker' (default): LOCAL_INFERENCE shows exactly the 3 speaker chips, no group label (single, unambiguous group)", () => {
+  it("mode='speaker' (default): shows exactly the 3 speaker chips, no group label (single, unambiguous group)", () => {
     const { container } = render(<ProviderSection isSessionActive={false} />);
 
     expect(chips(container)).toHaveLength(3);
     expect(groupLabels(container)).toHaveLength(0);
   });
 
-  it("mode='participant': LOCAL_INFERENCE shows 2 chips (ASR/MT, no TTS) for the REVERSE direction, and clicking one targets that reverse dir", () => {
+  it("mode='participant': shows 2 chips (ASR/MT, no TTS) for the REVERSE direction, and clicking one targets that reverse dir", () => {
     useAudioStore.setState({ mode: 'participant' } as never);
     const { container } = render(<ProviderSection isSessionActive={false} />);
 
@@ -130,7 +126,7 @@ describe('ProviderSection — model chips deep-link to their slot (Task 10)', ()
     expect(useSettingsStore.getState().engineSlotTarget).toEqual({ dir: 'en→ja', stage: 'asr' });
   });
 
-  it("mode='both': LOCAL_INFERENCE shows 5 chips across two labeled groups — 'Me' (speaker, 3) then 'Other' (participant, 2)", () => {
+  it("mode='both': shows 5 chips across two labeled groups — 'Me' (speaker, 3) then 'Other' (participant, 2)", () => {
     useAudioStore.setState({ mode: 'both' } as never);
     const { container } = render(<ProviderSection isSessionActive={false} />);
 
@@ -149,8 +145,7 @@ describe('ProviderSection — model chips deep-link to their slot (Task 10)', ()
     expect(useSettingsStore.getState().engineSlotTarget).toEqual({ dir: 'en→ja', stage: 'translation' });
   });
 
-  it('LOCAL_NATIVE: the shared handler is wired the same way — sets engineSlotTarget, switches tabs, leaves uiMode alone', () => {
-    useSettingsStore.setState({ provider: Provider.LOCAL_NATIVE, uiMode: 'advanced' } as never);
+  it('the TTS chip targets the speaker direction\'s tts slot', () => {
     const { container } = render(<ProviderSection isSessionActive={false} />);
 
     fireEvent.click(chips(container)[2]); // TTS
@@ -160,35 +155,15 @@ describe('ProviderSection — model chips deep-link to their slot (Task 10)', ()
     expect(useSettingsStore.getState().uiMode).toBe('advanced');
   });
 
-  it("LOCAL_NATIVE gets identical mode treatment: mode='participant' shows 2 chips for the reverse direction", () => {
-    useSettingsStore.setState({ provider: Provider.LOCAL_NATIVE, uiMode: 'advanced' } as never);
-    useAudioStore.setState({ mode: 'participant' } as never);
-    const { container } = render(<ProviderSection isSessionActive={false} />);
-
-    expect(chips(container)).toHaveLength(2);
-    fireEvent.click(chips(container)[1]); // MT
-    expect(useSettingsStore.getState().engineSlotTarget).toEqual({ dir: 'en→ja', stage: 'translation' });
-  });
-
-  it("LOCAL_NATIVE: the tour's engine-chips anchor is there while the sidecar is still starting", () => {
+  it("the tour's engine-chips anchor is there while the sidecar is still starting", () => {
     // The offline tour's `models` step runs seconds after the wizard selected
     // LOCAL_NATIVE, with the sidecar still 'starting' and the chip row replaced
     // by a loading notice. Anchoring on the chip row means the step is skipped
     // for exactly the users the offline path just sent here.
-    useSettingsStore.setState({ provider: Provider.LOCAL_NATIVE, uiMode: 'advanced' } as never);
     useNativeModelStore.setState({ sidecarStatus: 'starting' } as never);
     const { container } = render(<ProviderSection isSessionActive={false} />);
 
     expect(chips(container)).toHaveLength(0);            // the loading notice, not the chips
     expect(container.querySelector('[data-tour="engine-chips"]')).not.toBeNull();
-  });
-
-  it("LOCAL_NATIVE gets identical mode treatment: mode='both' shows 5 chips across the same two labeled groups", () => {
-    useSettingsStore.setState({ provider: Provider.LOCAL_NATIVE, uiMode: 'advanced' } as never);
-    useAudioStore.setState({ mode: 'both' } as never);
-    const { container } = render(<ProviderSection isSessionActive={false} />);
-
-    expect(chips(container)).toHaveLength(5);
-    expect(groupLabels(container)).toEqual(['Me', 'Other']);
   });
 });

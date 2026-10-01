@@ -26,6 +26,10 @@ vi.mock('../utils/environment', () => ({
   isExtension: () => false,
 }));
 vi.mock('../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
+// The context's own read of the run phase pulls the whole root module graph
+// (getAppSession()); mocked here since the `utils/environment` mock above is
+// total and the root's graph reads it.
+vi.mock('../app/useRun', () => ({ useRunPhase: () => 'idle' }));
 
 const wallet = (balance: number) => ({
   balanceMicroUsd: balance,

@@ -7,6 +7,7 @@ const { setupCaptionContextMenu } = require('./window-caption-menu.js');
 const { setupPopoverWindowHandlers } = require('./popover-windows.js');
 const { setupTranscriptSaveHandler } = require('./transcript-save.js');
 const { createCloseHandshake } = require('./close-handshake.js');
+const { createWsHeaderRules } = require('./ws-header-rules.js');
 const { applyLinuxGpuFlags } = require('./linux-gpu-flags');
 const { acquireSingleInstanceLock, createFocusRelay } = require('./single-instance');
 
@@ -1063,10 +1064,10 @@ ipcMain.handle('fix-monitor-volume', async () => {
 // opening a WebSocket connection. This replaces the previous per-provider IPC
 // bridges (Volcengine, Edge TTS) that proxied every frame through main process.
 
-// Map<host, { set: Map<headerName, headerValue>, remove: Set<lowercased headerName> }>
-// `remove` exists for endpoints that reject a header the browser always adds:
-// OpenAI's Live WebSocket answers 403 to any upgrade carrying `Origin`.
-const wsHeaderRules = new Map();
+// The rules by host and path, one-shot (electron/ws-header-rules.js). A rule
+// may remove a header the browser always adds: OpenAI's Live WebSocket answers
+// 403 to any upgrade carrying `Origin`.
+const wsHeaderRules = createWsHeaderRules();
 
 function initWebSocketHeaderInjection() {
   // Retrieve Better Auth config (stored by better-auth-adapter.js)
@@ -1111,26 +1112,10 @@ function initWebSocketHeaderInjection() {
       }
 
       // ── WebSocket: inject custom headers for provider connections ────
-      // One-shot: headers are consumed on first use and removed from the map,
-      // so they only apply to the intended upgrade handshake.
+      // One-shot: the rule the upgrade's host and path match is consumed by
+      // it, so it only applies to the intended upgrade handshake.
       if (details.resourceType === 'webSocket') {
-        try {
-          const url = new URL(details.url);
-          const rule = wsHeaderRules.get(url.host);
-          if (rule) {
-            if (rule.remove.size > 0) {
-              for (const name of Object.keys(requestHeaders)) {
-                if (rule.remove.has(name.toLowerCase())) delete requestHeaders[name];
-              }
-            }
-            for (const [name, value] of rule.set.entries()) {
-              requestHeaders[name] = value;
-            }
-            wsHeaderRules.delete(url.host);
-          }
-        } catch {
-          // Invalid URL — pass through unchanged
-        }
+        wsHeaderRules.take(details.url, requestHeaders);
       }
 
       // Bing Translator (HTTP): inject browser-like identity so the unofficial
@@ -1159,37 +1144,23 @@ function initWebSocketHeaderInjection() {
   console.log('[Sokuji] [Main] Combined header injection initialized');
 }
 
-// IPC: renderer registers headers for a host before opening a WebSocket
-ipcMain.handle('ws-headers-set', (event, { host, headers, removeHeaders }) => {
-  if (!host || !headers || typeof headers !== 'object') {
-    return { success: false, error: 'Invalid arguments: host and headers required' };
+// IPC: renderer registers headers for a host, and optionally a path, before opening a WebSocket
+ipcMain.handle('ws-headers-set', (event, args) => {
+  const result = wsHeaderRules.set(args);
+  if (result.success) {
+    // Header names only, never a value: a value may be a credential.
+    const { host, path, headers, removeHeaders } = args;
+    const removed = Array.isArray(removeHeaders) && removeHeaders.length > 0 ? ` (removing: ${removeHeaders.join(', ')})` : '';
+    console.log(`[Sokuji] [Main] WS headers registered for ${host}${path || ''}: ${Object.keys(headers).join(', ')}${removed}`);
   }
-  // Coerce all values to strings — Chromium silently drops headers with non-string values.
-  // IPC serialization can turn numeric strings (e.g. App ID "1714584595") into numbers.
-  const entries = Object.entries(headers)
-    .filter(([, v]) => v != null && v !== '')
-    .map(([k, v]) => [k, String(v)]);
-  const headerMap = new Map(entries);
-  // Optional: header names to strip from the same upgrade (matched case-insensitively).
-  const remove = new Set(
-    (Array.isArray(removeHeaders) ? removeHeaders : [])
-      .filter((n) => typeof n === 'string' && n.trim() !== '')
-      .map((n) => n.trim().toLowerCase()),
-  );
-  wsHeaderRules.set(host, { set: headerMap, remove });
-  const removed = remove.size > 0 ? ` (removing: ${[...remove].join(', ')})` : '';
-  console.log(`[Sokuji] [Main] WS headers registered for ${host}: ${[...headerMap.keys()].join(', ')}${removed}`);
-  return { success: true };
+  return result;
 });
 
-// IPC: renderer clears headers for a host after disconnecting
-ipcMain.handle('ws-headers-clear', (event, { host }) => {
-  if (!host) {
-    return { success: false, error: 'Invalid arguments: host required' };
-  }
-  wsHeaderRules.delete(host);
-  console.log(`[Sokuji] [Main] WS headers cleared for ${host}`);
-  return { success: true };
+// IPC: renderer clears the headers for a host, and optionally a path, after disconnecting
+ipcMain.handle('ws-headers-clear', (event, args) => {
+  const result = wsHeaderRules.clear(args);
+  if (result.success) console.log(`[Sokuji] [Main] WS headers cleared for ${args.host}${args.path || ''}`);
+  return result;
 });
 
 // Screen recording permission check for macOS system audio capture

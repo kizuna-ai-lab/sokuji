@@ -1,67 +1,30 @@
 import { describe, it, expect, vi } from 'vitest';
-// Force the remaining provider gates on — Kizuna/Palabra/Local-Native feature
-// flags plus Electron/Extension platform detection — so ALL descriptors register
-// regardless of build env. (Volcengine AST2 is now always-on, no flag.)
+// Force the Local Native gate on, plus Electron platform detection, so every
+// descriptor registers regardless of build env.
 vi.mock('../../utils/environment', async (orig) => ({
   ...(await orig<any>()),
-  isKizunaAIEnabled: () => true,
-  // Explicit: each managed provider is gated on its own now, and this mock's
-  // promise is that EVERY provider gate is forced on.
-  isKizunaSonioxEnabled: () => true,
-  isKizunaOpenAITranslateEnabled: () => true,
-  isKizunaVolcengineAST2Enabled: () => true,
-  isPalabraAIEnabled: () => true,
   isLocalNativeEnabled: () => true,
   isElectron: () => true,
   isExtension: () => false,
-  getRelayWsUrl: () => 'wss://r.example/v1',
 }));
 import { ProviderConfigFactory } from './ProviderConfigFactory';
 import { resolveSegmentationOffer } from './ProviderConfig';
 import type { SegmentationOffer } from '../../lib/segmentation/segmentationMode';
-import { DEFAULT_CHUNK_SENTENCES, DEFAULT_SEGMENT_PAUSE_MS } from '../../lib/segmentation/segmentationMode';
+import { DEFAULT_CHUNK_SENTENCES } from '../../lib/segmentation/segmentationMode';
 import { Provider } from '../../types/Provider';
-import { OpenAITranslateGAClient } from '../clients/OpenAITranslateGAClient';
-import { VolcengineAST2Client } from '../clients/VolcengineAST2Client';
-import { defaultOpenAISettings } from './OpenAIProviderConfig';
-import { defaultOpenAICompatibleSettings } from './OpenAICompatibleProviderConfig';
-import { defaultOpenAITranslateSettings } from './OpenAITranslateProviderConfig';
-import { defaultOpenAILiveSettings } from './OpenAILiveProviderConfig';
-import { defaultGeminiSettings } from './GeminiProviderConfig';
-import { defaultPalabraAISettings } from './PalabraAIProviderConfig';
-import { defaultVolcengineAST2Settings } from './VolcengineAST2ProviderConfig';
 import { defaultLocalNativeSettings } from './LocalNativeProviderConfig';
-import { defaultLocalInferenceSettings } from './LocalInferenceProviderConfig';
-import { defaultKizunaOpenaiTranslateSettings } from './KizunaAIOpenAITranslateProviderConfig';
-import { defaultKizunaVolcengineAst2Settings } from './KizunaAIVolcengineAST2ProviderConfig';
-import { defaultKizunaSonioxSettings } from './KizunaAISonioxProviderConfig';
-import { defaultSonioxSettings } from './SonioxProviderConfig';
-import { ManagedSonioxSession } from '../clients/ManagedSonioxSession';
-import type { ClientOptions } from './ProviderDescriptor';
 import en from '../../locales/en/translation.json';
 
 // Map each provider's settingsSliceKey to its per-module default settings slice,
 // so buildSessionConfig can be exercised for every registered provider.
 const DEFAULTS_BY_SLICE: Record<string, unknown> = {
-  openai: defaultOpenAISettings,
-  openaiCompatible: defaultOpenAICompatibleSettings,
-  openaiTranslate: defaultOpenAITranslateSettings,
-  openaiLive: defaultOpenAILiveSettings,
-  gemini: defaultGeminiSettings,
-  palabraai: defaultPalabraAISettings,
-  volcengineAST2: defaultVolcengineAST2Settings,
-  localInference: defaultLocalInferenceSettings,
   localNative: defaultLocalNativeSettings,
-  kizunaOpenaiTranslate: defaultKizunaOpenaiTranslateSettings,
-  kizunaVolcengineAst2: defaultKizunaVolcengineAst2Settings,
-  kizunaSoniox: defaultKizunaSonioxSettings,
-  soniox: defaultSonioxSettings,
 };
 
 describe('provider registry descriptors', () => {
   it('returns a descriptor for every available provider', () => {
     const ids = ProviderConfigFactory.getAvailableProviders();
-    expect(ids.length).toBe(13);
+    expect(ids.length).toBe(1);
     for (const id of ids) {
       const d = ProviderConfigFactory.getDescriptor(id);
       expect(d.getConfig().id).toBe(id);
@@ -79,150 +42,19 @@ describe('provider registry descriptors', () => {
 describe('descriptor.createClient', () => {
   const creds = { ok: true as const, primary: 'k', secret: 's', endpoint: 'https://e.example' };
   const ws = { transport: 'websocket' as const };
-  // The managed Soniox twin is the one descriptor whose client cannot be built
-  // from credentials alone: its keys come from a ManagedSonioxSession acquired
-  // before any client exists. Supplied unacquired here — createClient only
-  // stores it.
-  // `role` is required, and required for a reason: it is how the leg names
-  // itself when it reports that Soniox accepted its stream, and a leg with no
-  // role sets no started bit at all. Typed as ClientOptions['sonioxManaged'] so
-  // the fixture cannot quietly drop a field the option gains later — this
-  // fixture had already lost `role`, and only tsc noticed.
-  const sonioxManaged: ClientOptions['sonioxManaged'] = {
-    credentials: { stt: 'stt-k', tts: 'tts-k', clientReferenceId: 'sokuji1:acct:lease:mix_stt' },
-    session: new ManagedSonioxSession({ sessionToken: 'sess_TOKEN' }),
-    // Matches the four-segment reference above: shared Both's single mixed stream.
-    role: 'mix_stt',
-  };
-  const optionsFor = (id: unknown) => (id === Provider.KIZUNA_AI_SONIOX ? { ...ws, sonioxManaged } : ws);
 
   it('constructs a client for every available provider', () => {
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
-      const client = ProviderConfigFactory.getDescriptor(id).createClient(creds, optionsFor(id));
-      expect(client.getProvider()).toBe(id === Provider.KIZUNA_AI_OPENAI_TRANSLATE ? Provider.OPENAI_TRANSLATE
-        : id === Provider.KIZUNA_AI_VOLCENGINE_AST2 ? Provider.VOLCENGINE_AST2
-        : id === Provider.KIZUNA_AI_SONIOX ? Provider.SONIOX
-        : id === Provider.OPENAI_COMPATIBLE ? Provider.OPENAI
-        : id);
+      const client = ProviderConfigFactory.getDescriptor(id).createClient(creds, ws);
+      expect(client.getProvider()).toBe(id);
     }
-  });
-
-  it('kizuna translate twin routes to relay OpenAITranslateGAClient', () => {
-    const c = ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_OPENAI_TRANSLATE)
-      .createClient({ ok: true, primary: 'sess_TOKEN' }, ws);
-    expect(c).toBeInstanceOf(OpenAITranslateGAClient);
-  });
-
-  it('kizuna doubao twin routes to relay VolcengineAST2Client', () => {
-    const c = ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_VOLCENGINE_AST2)
-      .createClient({ ok: true, primary: 'sess_TOKEN' }, ws);
-    expect(c).toBeInstanceOf(VolcengineAST2Client);
-  });
-
-  it('kizuna soniox twin routes to a managed-mode SonioxClient built from the session', async () => {
-    const { SonioxClient } = await import('../clients/SonioxClient');
-    const c = ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_SONIOX)
-      .createClient({ ok: true, primary: 'sess_TOKEN' }, { ...ws, sonioxManaged });
-    expect(c).toBeInstanceOf(SonioxClient);
-    expect(c.getProvider()).toBe(Provider.SONIOX);
-  });
-
-  it('refuses to build the managed twin without a session rather than minting a second lease', () => {
-    expect(() =>
-      ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_SONIOX)
-        .createClient({ ok: true, primary: 'sess_TOKEN' }, ws),
-    ).toThrow(/ManagedSonioxSession/);
-  });
-});
-
-describe('descriptor.validateAndFetchModels', () => {
-  it('rejects incomplete credentials with the provider-specific message', async () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.PALABRA_AI);
-    const r = await d.validateAndFetchModels({ ok: false, missing: 'Both Client ID and Client Secret are required for Palabra AI' });
-    expect(r.validation.valid).toBe(false);
-    expect(r.validation.message).toMatch(/Client ID and Client Secret/);
-    expect(r.models).toEqual([]);
-  });
-
-  it('kizuna twins validate statically from a non-empty token', async () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_OPENAI_TRANSLATE);
-    const ok = await d.validateAndFetchModels({ ok: true, primary: 'sess_TOKEN' });
-    expect(ok.validation.valid).toBe(true);
-    expect(ok.models[0].id).toBe('gpt-realtime-translate');
-    const bad = await d.validateAndFetchModels({ ok: false, missing: 'Sign in is required for Kizuna relay providers' });
-    expect(bad.validation.valid).toBe(false);
-  });
-
-  it('kizuna soniox twin validates statically from a non-empty token', async () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_SONIOX);
-    const ok = await d.validateAndFetchModels({ ok: true, primary: 'sess_TOKEN' });
-    expect(ok.validation.valid).toBe(true);
-    expect(ok.models[0].id).toBe('stt-rt-v5');
-    const bad = await d.validateAndFetchModels({ ok: false, missing: 'Sign in is required for Kizuna providers' });
-    expect(bad.validation.valid).toBe(false);
-  });
-});
-
-describe('descriptor.latestRealtimeModel', () => {
-  it('fixed-model providers return their identifier', () => {
-    expect(ProviderConfigFactory.getDescriptor(Provider.VOLCENGINE_AST2).latestRealtimeModel([])).toBe('ast-v2-s2s');
-    expect(ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_VOLCENGINE_AST2).latestRealtimeModel([])).toBe('ast-v2-s2s');
-  });
-});
-
-describe('descriptor.extractCredentials', () => {
-  it('normalizes each provider credential shape', async () => {
-    const cases: Array<[Provider, object, { primary: string; secret?: string; endpoint?: string }]> = [
-      [Provider.OPENAI, { apiKey: 'sk-1' }, { primary: 'sk-1' }],
-      [Provider.OPENAI_COMPATIBLE, { apiKey: 'k', customEndpoint: 'https://e' }, { primary: 'k', endpoint: 'https://e' }],
-      [Provider.PALABRA_AI, { clientId: 'id', clientSecret: 'sec' }, { primary: 'id', secret: 'sec' }],
-      [Provider.VOLCENGINE_AST2, { appId: 123, accessToken: 'tok' }, { primary: '123', secret: 'tok' }],
-    ];
-    for (const [id, slice, want] of cases) {
-      const got = await ProviderConfigFactory.getDescriptor(id).extractCredentials(slice, {});
-      expect(got).toEqual({ ok: true, ...want });
-    }
-  });
-
-  it('two-field providers report both-required when either is missing', async () => {
-    const r = await ProviderConfigFactory.getDescriptor(Provider.PALABRA_AI)
-      .extractCredentials({ clientId: 'id', clientSecret: '' }, {});
-    expect(r).toEqual({ ok: false, missing: 'Both Client ID and Client Secret are required for Palabra AI' });
-  });
-
-  it('kizuna twin resolves the auth token from ctx', async () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_OPENAI_TRANSLATE);
-    expect(await d.extractCredentials({}, { getAuthToken: async () => 'sess_T' }))
-      .toEqual({ ok: true, primary: 'sess_T' });
-    expect((await d.extractCredentials({}, {})).ok).toBe(false);
-    expect((await d.extractCredentials({}, { getAuthToken: async () => null })).ok).toBe(false);
-  });
-
-  it('kizuna soniox twin resolves the auth token from ctx', async () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_SONIOX);
-    expect(await d.extractCredentials({}, { getAuthToken: async () => 'sess_T' }))
-      .toEqual({ ok: true, primary: 'sess_T' });
-    expect((await d.extractCredentials({}, {})).ok).toBe(false);
-    expect((await d.extractCredentials({}, { getAuthToken: async () => null })).ok).toBe(false);
-  });
-
-  it('local inference needs no credentials', async () => {
-    expect(await ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE).extractCredentials({}, {}))
-      .toEqual({ ok: true, primary: '' });
   });
 });
 
 describe('descriptor.buildSessionConfig', () => {
   it('builds a config whose provider tag matches, for every provider, from defaults', () => {
-    // Expected wire tags (kizuna twins reuse their base tag; compatible uses 'openai').
     const wireTag: Record<string, string> = {
-      openai: 'openai', openai_compatible: 'openai', openai_translate: 'openai_translate',
-      openai_live: 'openai_live',
-      gemini: 'gemini', palabraai: 'palabraai',
-      volcengine_ast2: 'volcengine_ast2', local_inference: 'local_inference',
       local_native: 'local_native',
-      kizunaai_openai_translate: 'openai_translate', kizunaai_volcengine_ast2: 'volcengine_ast2',
-      soniox: 'soniox', kizunaai_soniox: 'soniox',
     };
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
       const d = ProviderConfigFactory.getDescriptor(id);
@@ -231,22 +63,13 @@ describe('descriptor.buildSessionConfig', () => {
     }
   });
 
-  it('gemini config carries VAD tuning through', () => {
-    const cfg: any = ProviderConfigFactory.getDescriptor(Provider.GEMINI)
-      .buildSessionConfig({ ...defaultGeminiSettings, vadSilenceDurationMs: 900 }, 'sys');
-    expect(cfg.vadSilenceDurationMs).toBe(900);
-  });
 });
 
 describe('descriptor language rules', () => {
-  it('openai translate restricts targets to the fixed 13', () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.OPENAI_TRANSLATE);
-    expect(d.resolveTargetLanguages('any').length).toBe(13);
-  });
-
   it('default providers pass their config languages through', () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.GEMINI);
-    expect(d.resolveSourceLanguages()).toBe(d.getConfig().languages);
+    // Local Native builds its config on each call, so the pass-through is by value.
+    const d = ProviderConfigFactory.getDescriptor(Provider.LOCAL_NATIVE);
+    expect(d.resolveSourceLanguages()).toEqual(d.getConfig().languages);
   });
 });
 
@@ -269,23 +92,13 @@ describe('registry invariants', () => {
   // Exact expected settingsSliceKey per provider. A typo'd slice key (e.g. a
   // provider silently falling back to a differently-cased or misspelled key)
   // must fail this table lookup loudly, not just pass a generic typeof check.
-  const EXPECTED_SLICE_KEYS: Record<Provider, string> = {
-    [Provider.OPENAI]: 'openai',
-    [Provider.OPENAI_COMPATIBLE]: 'openaiCompatible',
-    [Provider.OPENAI_TRANSLATE]: 'openaiTranslate',
-    [Provider.OPENAI_LIVE]: 'openaiLive',
-    [Provider.GEMINI]: 'gemini',
-    [Provider.PALABRA_AI]: 'palabraai',
-    [Provider.VOLCENGINE_AST2]: 'volcengineAST2',
-    [Provider.LOCAL_INFERENCE]: 'localInference',
-    // Registered only under Electron (isElectron() gate), so the availability
-    // loops below never see it in jsdom — the row satisfies Record<Provider,…>
-    // completeness and documents the expected key.
+  // Partial: the enum keeps ids whose old descriptors are gone (Stage 2
+  // deletion, ruling C1), so every table below names only the providers the
+  // old registry still registers.
+  const EXPECTED_SLICE_KEYS: Partial<Record<Provider, string>> = {
+    // Registered only under Electron with its gate on — both forced on by
+    // this file's environment mock.
     [Provider.LOCAL_NATIVE]: 'localNative',
-    [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: 'kizunaOpenaiTranslate',
-    [Provider.KIZUNA_AI_VOLCENGINE_AST2]: 'kizunaVolcengineAst2',
-    [Provider.KIZUNA_AI_SONIOX]: 'kizunaSoniox',
-    [Provider.SONIOX]: 'soniox',
   };
 
   it('settingsSliceKey matches the exact expected value per provider', () => {
@@ -296,24 +109,9 @@ describe('registry invariants', () => {
   });
 
   // Exact expected supportsWebRTC per provider. Relay/twin and non-WebRTC
-  // providers must not silently inherit `true` from a base descriptor (e.g.
-  // the kizuna OpenAI-translate twin extends OpenAITranslateProviderConfig
-  // but always routes through the WebSocket relay, so it must report false —
-  // see KizunaAIOpenAITranslateProviderConfig for why).
-  const EXPECTED_SUPPORTS_WEBRTC: Record<Provider, boolean> = {
-    [Provider.OPENAI]: true,
-    [Provider.OPENAI_COMPATIBLE]: true,
-    [Provider.OPENAI_TRANSLATE]: true,
-    [Provider.OPENAI_LIVE]: false,
-    [Provider.GEMINI]: false,
-    [Provider.PALABRA_AI]: false,
-    [Provider.VOLCENGINE_AST2]: false,
-    [Provider.LOCAL_INFERENCE]: false,
+  // providers must not silently inherit `true` from a base descriptor.
+  const EXPECTED_SUPPORTS_WEBRTC: Partial<Record<Provider, boolean>> = {
     [Provider.LOCAL_NATIVE]: false,
-    [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: false,
-    [Provider.KIZUNA_AI_VOLCENGINE_AST2]: false,
-    [Provider.KIZUNA_AI_SONIOX]: false,
-    [Provider.SONIOX]: false,
   };
 
   it('supportsWebRTC matches the exact expected value per provider', () => {
@@ -333,9 +131,9 @@ describe('registry invariants', () => {
   });
 
   it('extractCredentials on an empty slice never returns ok (except credential-free providers)', async () => {
-    const credentialFree = new Set([Provider.LOCAL_INFERENCE, Provider.LOCAL_NATIVE]);
+    const credentialFree = new Set([Provider.LOCAL_NATIVE]);
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
-      if (credentialFree.has(id) || id.startsWith('kizunaai')) continue;
+      if (credentialFree.has(id)) continue;
       const r = await ProviderConfigFactory.getDescriptor(id).extractCredentials({}, {});
       expect(r.ok, id).toBe(false);
     }
@@ -343,94 +141,29 @@ describe('registry invariants', () => {
 });
 
 describe('S1 capability flags', () => {
-  const PUSH_GATED: Record<Provider, string[] | undefined> = {
-    [Provider.OPENAI]: ['Disabled', 'Push-to-Translate'],
-    [Provider.OPENAI_COMPATIBLE]: ['Disabled', 'Push-to-Translate'], // inherited from OpenAI via ...base
-    [Provider.GEMINI]: ['Push-to-Talk', 'Push-to-Translate'],
-    [Provider.LOCAL_INFERENCE]: ['Push-to-Talk', 'Push-to-Translate'],
+  const PUSH_GATED: Partial<Record<Provider, string[] | undefined>> = {
     [Provider.LOCAL_NATIVE]: ['Push-to-Talk', 'Push-to-Translate'],
-    [Provider.VOLCENGINE_AST2]: ['Push-to-Talk', 'Push-to-Translate'],
-    [Provider.KIZUNA_AI_VOLCENGINE_AST2]: ['Push-to-Talk', 'Push-to-Translate'], // twin spread
-    [Provider.OPENAI_TRANSLATE]: undefined,
-    [Provider.OPENAI_LIVE]: undefined,
-    [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: undefined,
-    [Provider.SONIOX]: undefined,
-    [Provider.KIZUNA_AI_SONIOX]: undefined,
-    [Provider.PALABRA_AI]: undefined,
   };
 
-  const TEXT_INPUT: Record<Provider, boolean | undefined> = {
-    [Provider.OPENAI]: true,
-    [Provider.OPENAI_COMPATIBLE]: true, // inherited
-    [Provider.GEMINI]: true,
-    [Provider.LOCAL_INFERENCE]: true,
+  const TEXT_INPUT: Partial<Record<Provider, boolean | undefined>> = {
     [Provider.LOCAL_NATIVE]: true,
-    [Provider.OPENAI_TRANSLATE]: undefined,
-    [Provider.OPENAI_LIVE]: undefined,
-    [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: undefined,
-    [Provider.SONIOX]: undefined,
-    [Provider.KIZUNA_AI_SONIOX]: undefined,
-    [Provider.VOLCENGINE_AST2]: undefined,
-    [Provider.KIZUNA_AI_VOLCENGINE_AST2]: undefined,
-    [Provider.PALABRA_AI]: undefined,
   };
 
-  const QUEUES_TEXT: Provider[] = [Provider.OPENAI, Provider.OPENAI_COMPATIBLE];
-  const LOCAL_PROMPT: Provider[] = [Provider.LOCAL_INFERENCE, Provider.LOCAL_NATIVE];
+  const QUEUES_TEXT: Provider[] = [];
+  const LOCAL_PROMPT: Provider[] = [Provider.LOCAL_NATIVE];
 
-  const PTT_FINALIZATION: Record<Provider, { silenceTailFrames?: number; response: string } | undefined> = {
-    [Provider.LOCAL_INFERENCE]: { silenceTailFrames: 7, response: 'always' },
+  const PTT_FINALIZATION: Partial<Record<Provider, { silenceTailFrames?: number; response: string } | undefined>> = {
     [Provider.LOCAL_NATIVE]: { silenceTailFrames: 7, response: 'always' },
-    [Provider.VOLCENGINE_AST2]: { silenceTailFrames: 5, response: 'server-decides' },
-    [Provider.KIZUNA_AI_VOLCENGINE_AST2]: { silenceTailFrames: 5, response: 'server-decides' }, // twin spread
-    [Provider.GEMINI]: { response: 'voice-gated-cancel' },
-    [Provider.OPENAI]: undefined,
-    [Provider.OPENAI_COMPATIBLE]: undefined,
-    [Provider.OPENAI_TRANSLATE]: undefined,
-    [Provider.OPENAI_LIVE]: undefined,
-    [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: undefined,
-    [Provider.SONIOX]: undefined,
-    [Provider.KIZUNA_AI_SONIOX]: undefined,
-    [Provider.PALABRA_AI]: undefined,
   };
 
   // The segmentation offer of every provider, resolved — the default already
   // filled in — because that is the answer the mode resolvers act on. This
-  // table IS the specification (segmentation design, Amendment A2): a
-  // provider added later inherits the default, and the only place that shows
-  // up is the row this Record forces whoever adds it to write.
-  const SEGMENTATION: Record<Provider, SegmentationOffer> = {
-    // Their own silence timers cut the bubble, and the user tunes them, so
-    // Auto here would be the pause mode wearing another name.
-    [Provider.OPENAI_LIVE]: { pause: true, auto: false, sizes: true },
-    [Provider.OPENAI_TRANSLATE]: { pause: true, auto: false, sizes: true },
-    [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: { pause: true, auto: false, sizes: true }, // twin spread
-    [Provider.GEMINI]: { pause: true, auto: false, sizes: true },
-
+  // table IS the specification (segmentation design, Amendment A2).
+  const SEGMENTATION: Partial<Record<Provider, SegmentationOffer>> = {
     // 1-5 is what slice 3 shipped on the local engines; phase 2 adds Auto,
     // where the VAD utterance is the boundary someone else already decided
     // and the stage only fills the punctuation in.
-    [Provider.LOCAL_INFERENCE]: { pause: false, auto: true, sizes: true },
     [Provider.LOCAL_NATIVE]: { pause: false, auto: true, sizes: true },
-
-    // A server decides the outer boundary, and phase 2 can cut inside it.
-    // Two of them DO attach audio to an item — Soniox's `formatted.audio` and
-    // AST2's `decodeTTSAndPlay` target — and the ruling is that it stays on
-    // the FIRST piece: it is the whole segment's audio, there is no
-    // per-sentence timing to cut it on, and the first bubble is where a user
-    // reaches for the replay button. Palabra writes text only. Auto stays
-    // what it always was — keep the server's segment.
-    [Provider.SONIOX]: { pause: false, auto: true, sizes: true },
-    [Provider.KIZUNA_AI_SONIOX]: { pause: false, auto: true, sizes: true }, // twin spread
-    [Provider.VOLCENGINE_AST2]: { pause: false, auto: true, sizes: true },
-    [Provider.KIZUNA_AI_VOLCENGINE_AST2]: { pause: false, auto: true, sizes: true }, // twin spread
-    [Provider.PALABRA_AI]: { pause: false, auto: true, sizes: true },
-
-    // Also the default, and it stays there: the GA client attaches audio to
-    // conversation items, so splitting one would strand the karaoke timing.
-    // The beta client shares the descriptor.
-    [Provider.OPENAI]: { pause: false, auto: true, sizes: false },
-    [Provider.OPENAI_COMPATIBLE]: { pause: false, auto: true, sizes: false }, // inherited via ...base
   };
 
   const DEFAULT_OFFER: SegmentationOffer = { pause: false, auto: true, sizes: false };
@@ -439,21 +172,8 @@ describe('S1 capability flags', () => {
   // reader — the slider inside `renderTurnDetectionSettings`, which
   // `hasTurnDetection: false` returns before ever reaching — so on a provider
   // without turn detection it renders nothing and must not claim to. A2 moved
-  // the two pause clients' sliders into the segmentation section, which is
-  // what emptied it on OpenAI Live and OpenAI Translate.
-  const SILENCE_DURATION: Record<Provider, boolean> = {
-    [Provider.OPENAI]: true,
-    [Provider.OPENAI_COMPATIBLE]: true, // inherited via ...base
-    [Provider.VOLCENGINE_AST2]: false,
-    [Provider.KIZUNA_AI_VOLCENGINE_AST2]: false, // twin spread
-    [Provider.OPENAI_TRANSLATE]: false,
-    [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: false, // twin spread
-    [Provider.OPENAI_LIVE]: false,
-    [Provider.GEMINI]: false,
-    [Provider.PALABRA_AI]: false,
-    [Provider.SONIOX]: false,
-    [Provider.KIZUNA_AI_SONIOX]: false,
-    [Provider.LOCAL_INFERENCE]: false,
+  // the two pause clients' sliders into the segmentation section.
+  const SILENCE_DURATION: Partial<Record<Provider, boolean>> = {
     [Provider.LOCAL_NATIVE]: false,
   };
 
@@ -548,113 +268,26 @@ describe('S1 capability flags', () => {
     }
   });
 
-  // The private fields each pause client keeps its two timers in. Four
-  // providers offer By pause and their clients name the pair differently —
-  // this map is the only place that knows, so the invariant below can be a
-  // loop rather than four copies of the same assertion.
-  const PAUSE_FIELDS: Partial<Record<Provider, [source: string, translation: string]>> = {
-    [Provider.OPENAI_LIVE]: ['userSilenceTimeoutMs', 'assistantSilenceTimeoutMs'],
-    [Provider.OPENAI_TRANSLATE]: ['userSilenceTimeoutMs', 'assistantSilenceTimeoutMs'],
-    [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: ['userSilenceTimeoutMs', 'assistantSilenceTimeoutMs'],
-    [Provider.GEMINI]: ['inputSegmentSilenceMs', 'assistantSegmentSilenceMs'],
-  };
-
-  // A2: one stored pause pair, in seconds, converted to milliseconds at the
-  // descriptor. A provider that starts offering By pause and forgets to hand
-  // the pair on would run its timers on the fallback for ever, silently.
-  it('every descriptor that offers By pause hands its client the pair, in milliseconds', () => {
-    for (const id of ProviderConfigFactory.getAvailableProviders()) {
-      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
-      if (!resolveSegmentationOffer(caps).pause) continue;
-      const fields = PAUSE_FIELDS[id];
-      expect(fields, `pause fields known for ${id}`).toBeDefined();
-      const client = ProviderConfigFactory.getDescriptor(id).createClient(
-        { ok: true, primary: 'k', secret: 's', endpoint: 'https://e.example' },
-        { transport: 'websocket', sourcePause: 0.8, translationPause: 2.5 },
-      );
-      expect((client as any)[fields![0]], `source pause for ${id}`).toBe(800);
-      expect((client as any)[fields![1]], `translation pause for ${id}`).toBe(2500);
-    }
-  });
-
   // Eleven clients each write `options.sentencesPerChunk ?? 3`, and the
   // number also lives in the store's clamp, in `defaultSize()` and in
   // `segmentationForProvider`. This is what ties every one of those copies to
   // the single exported constant: change it, and any client still on a
   // literal 3 fails here.
   it('a client built with no size runs on the one chunk default', () => {
-    // The managed Soniox twin is the one descriptor that cannot be built from
-    // credentials alone; same fixture as `descriptor.createClient` above.
-    const sonioxManaged: ClientOptions['sonioxManaged'] = {
-      credentials: { stt: 'stt-k', tts: 'tts-k', clientReferenceId: 'sokuji1:acct:lease:mix_stt', region: 'us' },
-      session: new ManagedSonioxSession({ sessionToken: 'sess_TOKEN' }),
-      role: 'mix_stt',
-    };
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
       const client = ProviderConfigFactory.getDescriptor(id).createClient(
         { ok: true, primary: 'k', secret: 's', endpoint: 'https://e.example' },
-        id === Provider.KIZUNA_AI_SONIOX
-          ? { transport: 'websocket', sonioxManaged }
-          : { transport: 'websocket' },
+        { transport: 'websocket' },
       );
       expect((client as any).sentencesPerChunk, `chunk default for ${id}`)
         .toBe(DEFAULT_CHUNK_SENTENCES);
     }
   });
 
-  it('a client built with no pause runs on the default the store shares with it', () => {
+  it('declares no forcedTransport: Palabra, the one that did, went with its old code', () => {
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
       const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
-      if (!resolveSegmentationOffer(caps).pause) continue;
-      const [source, translation] = PAUSE_FIELDS[id]!;
-      const client = ProviderConfigFactory.getDescriptor(id).createClient(
-        { ok: true, primary: 'k', secret: 's', endpoint: 'https://e.example' },
-        { transport: 'websocket' },
-      );
-      expect((client as any)[source], `source fallback for ${id}`).toBe(DEFAULT_SEGMENT_PAUSE_MS);
-      expect((client as any)[translation], `translation fallback for ${id}`).toBe(DEFAULT_SEGMENT_PAUSE_MS);
-    }
-  });
-
-  // A2's accepted behaviour, stated rather than implied: Off is the absence
-  // of the punctuation stage, not the absence of the pause timers. The pair
-  // still reaches the client — `MainPanel` reads it unconditionally — and the
-  // timers still arm, because they are the only thing that closes an item when
-  // speech stops. Off and By pause therefore run identically on these three
-  // providers; what differs is whether the sliders are reachable.
-  it('hands the pair to a client built in Off, with no segmentation runtime', () => {
-    for (const id of ProviderConfigFactory.getAvailableProviders()) {
-      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
-      if (!resolveSegmentationOffer(caps).pause) continue;
-      const [source, translation] = PAUSE_FIELDS[id]!;
-      const client = ProviderConfigFactory.getDescriptor(id).createClient(
-        { ok: true, primary: 'k', secret: 's', endpoint: 'https://e.example' },
-        { transport: 'websocket', segmentation: null, sourcePause: 0.8, translationPause: 2.5 },
-      );
-      expect((client as any)[source], `source pause in Off for ${id}`).toBe(800);
-      expect((client as any)[translation], `translation pause in Off for ${id}`).toBe(2500);
-    }
-  });
-
-  // Translate over WebRTC has ONE timer for the pair, not two: it closes the
-  // source and the translation item together. It takes the translation pause,
-  // because the last delta of a pair is the translation's — see the client.
-  it('translate over WebRTC gives its single pair timer the translation pause', () => {
-    const client = ProviderConfigFactory.getDescriptor(Provider.OPENAI_TRANSLATE).createClient(
-      { ok: true, primary: 'k' },
-      { transport: 'webrtc', sourcePause: 0.8, translationPause: 2.5 },
-    );
-    expect((client as any).pairSilenceMs).toBe(2500);
-  });
-
-  it('forcedTransport only on PalabraAI, and it names a real transport', () => {
-    for (const id of ProviderConfigFactory.getAvailableProviders()) {
-      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
-      if (id === Provider.PALABRA_AI) {
-        expect(caps.forcedTransport, `forcedTransport for ${id}`).toBe('webrtc');
-      } else {
-        expect(caps.forcedTransport, `no forcedTransport for ${id}`).toBeUndefined();
-      }
+      expect(caps.forcedTransport, `no forcedTransport for ${id}`).toBeUndefined();
     }
   });
 });
@@ -674,86 +307,24 @@ describe('S2 buildParticipantSessionConfig', () => {
   });
 });
 
-describe('legacy façade credential guards (deprecated ClientOperations/ClientFactory paths)', () => {
-  // The production path runs extractCredentials first, but the @deprecated
-  // façades accept raw positional args — they must keep the old contract of
-  // rejecting incomplete credentials instead of reaching provider clients
-  // with `secret: undefined`.
-  it('two-field providers reject a filled primary with a missing secret', async () => {
-    const { ClientOperations } = await import('../ClientOperations');
-    const cases: Array<[Provider, RegExp]> = [
-      [Provider.VOLCENGINE_AST2, /APP ID and Access Token/],
-    ];
-    for (const [id, msg] of cases) {
-      const r = await ClientOperations.validateApiKeyAndFetchModels('primary-only', id);
-      expect(r.validation.valid, id).toBe(false);
-      expect(r.validation.message, id).toMatch(msg);
-      expect(r.models, id).toEqual([]);
-    }
-  });
-
-  // PalabraAI is no longer a synchronous two-field guard: a missing `secret` is
-  // the documented signal for platform-mode (API key) credentials (see
-  // PalabraAIProviderConfig.toPalabraCredentials), so a legacy caller passing
-  // only a primary now reaches the real validateApiKey network call instead of
-  // being rejected up front. Mock fetch so that call still fails deterministically.
-  it('PalabraAI treats a missing secret as a platform API key, not a guard failure', async () => {
-    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue({
-      ok: false,
-      status: 401,
-      json: async () => ({ error: { message: 'Unauthorized' } }),
-    } as unknown as Response);
-    try {
-      const { ClientOperations } = await import('../ClientOperations');
-      const r = await ClientOperations.validateApiKeyAndFetchModels('primary-only', Provider.PALABRA_AI);
-      expect(fetchSpy).toHaveBeenCalled();
-      expect(r.validation.valid).toBe(false);
-      // Unlike the guard-rejection cases above, credential *shape* was accepted
-      // (creds.ok === true), so validateAndFetchModels still returns the static
-      // model list — only `validation` reflects the failed network check.
-      expect(r.models).toHaveLength(1);
-    } finally {
-      // Without the finally, a failing expect leaks the global fetch mock into
-      // every later test in this file.
-      fetchSpy.mockRestore();
-    }
-  });
-
+describe('legacy façade credential guards (the deprecated ClientFactory path)', () => {
+  // The @deprecated façade accepts raw positional args — it must keep the old
+  // contract of rejecting incomplete credentials instead of reaching provider
+  // clients with `secret: undefined`.
   it('ClientFactory.createClient rejects an empty apiKey for credentialed providers', async () => {
     const { ClientFactory } = await import('../clients/ClientFactory');
-    expect(() => ClientFactory.createClient('m', Provider.OPENAI, ''))
+    expect(() => ClientFactory.createClient('m', Provider.PALABRA_AI, ''))
       .toThrow(/API key is required/);
-    // LOCAL_INFERENCE never had credentials — must keep working with ''
-    expect(ClientFactory.createClient('m', Provider.LOCAL_INFERENCE, '')).toBeTruthy();
+    // LOCAL_NATIVE has no credentials — must keep working with ''
+    expect(ClientFactory.createClient('m', Provider.LOCAL_NATIVE, '')).toBeTruthy();
   });
 });
 
 describe('S3 reversesDirectionViaSourceLanguage', () => {
   const TRANSLATE = 'gemini-3.5-live-translate-preview';
-  const DIALOGUE = 'gemini-3.1-flash-live-preview';
 
-  it('true for Soniox and its managed twin regardless of model', () => {
-    expect(ProviderConfigFactory.getDescriptor(Provider.SONIOX).reversesDirectionViaSourceLanguage(undefined)).toBe(true);
-    expect(ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_SONIOX).reversesDirectionViaSourceLanguage(undefined)).toBe(true);
-  });
-
-  it('gemini: only the live-translate models', () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.GEMINI);
-    expect(d.reversesDirectionViaSourceLanguage(TRANSLATE)).toBe(true);
-    expect(d.reversesDirectionViaSourceLanguage(DIALOGUE)).toBe(false);
-    expect(d.reversesDirectionViaSourceLanguage(undefined)).toBe(false);
-    expect(d.reversesDirectionViaSourceLanguage('')).toBe(false);
-  });
-
-  it('true for OpenAI Live regardless of model — it has no language fields, so the swapped template is the whole direction', () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.OPENAI_LIVE);
-    expect(d.reversesDirectionViaSourceLanguage('gpt-live-1')).toBe(true);
-    expect(d.reversesDirectionViaSourceLanguage(undefined)).toBe(true);
-  });
-
-  it('false for every other descriptor, any model', () => {
+  it('false for every descriptor, any model', () => {
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
-      if ([Provider.SONIOX, Provider.KIZUNA_AI_SONIOX, Provider.GEMINI, Provider.OPENAI_LIVE].includes(id)) continue;
       const d = ProviderConfigFactory.getDescriptor(id);
       expect(d.reversesDirectionViaSourceLanguage(TRANSLATE), `${id}`).toBe(false);
       expect(d.reversesDirectionViaSourceLanguage(undefined), `${id}`).toBe(false);
@@ -762,9 +333,8 @@ describe('S3 reversesDirectionViaSourceLanguage', () => {
 });
 
 describe('S3 planBothMode', () => {
-  it('is inert for every non-Soniox descriptor in every mode', () => {
+  it('is inert for every descriptor in every mode', () => {
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
-      if (id === Provider.SONIOX || id === Provider.KIZUNA_AI_SONIOX) continue;
       const d = ProviderConfigFactory.getDescriptor(id);
       for (const mode of ['speaker', 'participant', 'both']) {
         expect(d.planBothMode(DEFAULTS_BY_SLICE[d.settingsSliceKey], mode), `${id}/${mode}`)
@@ -772,62 +342,16 @@ describe('S3 planBothMode', () => {
       }
     }
   });
-
-  it('the managed twin answers exactly like BYOK Soniox (the 409 twin bug, pinned at this layer)', () => {
-    // Historically a raw `provider === Provider.SONIOX` dispatch was always
-    // false for the twin, which opened two independent managed sessions and
-    // had the second refused with a 409. Dispatch now lives in the registry:
-    // the twin inherits the override by class extension, pinned here.
-    const byok = ProviderConfigFactory.getDescriptor(Provider.SONIOX);
-    const twin = ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_SONIOX);
-    for (const settings of [
-      { bothModeSharedSession: true, sourceLanguage: 'en' },
-      { bothModeSharedSession: true, sourceLanguage: 'auto' },
-      { bothModeSharedSession: false, sourceLanguage: 'en' },
-      undefined,
-    ]) {
-      for (const mode of ['speaker', 'both']) {
-        expect(twin.planBothMode(settings, mode), `${JSON.stringify(settings)}/${mode}`)
-          .toEqual(byok.planBothMode(settings, mode));
-      }
-    }
-  });
-
-  it('Soniox Both mode: shared needs the toggle AND a concrete source; split is the toggle off', () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.SONIOX);
-    expect(d.planBothMode({ bothModeSharedSession: true, sourceLanguage: 'en' }, 'both')).toEqual({ shared: true, split: false });
-    expect(d.planBothMode({ bothModeSharedSession: true, sourceLanguage: 'auto' }, 'both')).toEqual({ shared: false, split: false });
-    expect(d.planBothMode({ bothModeSharedSession: false, sourceLanguage: 'en' }, 'both')).toEqual({ shared: false, split: true });
-    expect(d.planBothMode({ bothModeSharedSession: true, sourceLanguage: 'en' }, 'speaker')).toEqual({ shared: false, split: false });
-  });
 });
 
 describe('S4 prepareToStart', () => {
-  it('is declared only where a provider has pre-start work (locals, kizuna-soniox)', () => {
-    const WITH_HOOK = [Provider.LOCAL_INFERENCE, Provider.LOCAL_NATIVE, Provider.KIZUNA_AI_SONIOX];
+  it('is declared only where a provider has pre-start work (Local Native)', () => {
+    const WITH_HOOK = [Provider.LOCAL_NATIVE];
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
       const d = ProviderConfigFactory.getDescriptor(id);
       expect(typeof d.prepareToStart === 'function', `hook presence for ${id}`)
         .toBe(WITH_HOOK.includes(id));
     }
-    // BYOK Soniox is explicitly hookless: the managed voice-prep flow must
-    // never run for a user's own Soniox key.
-    expect(ProviderConfigFactory.getDescriptor(Provider.SONIOX).prepareToStart).toBeUndefined();
-  });
-});
-
-describe('S6 acquireSessionResources', () => {
-  it('is declared only where a session leases resources (kizuna-soniox)', () => {
-    const WITH_RESOURCES: Provider[] = [Provider.KIZUNA_AI_SONIOX];
-    for (const id of ProviderConfigFactory.getAvailableProviders()) {
-      const d = ProviderConfigFactory.getDescriptor(id);
-      expect(typeof d.acquireSessionResources === 'function', `resource hook presence for ${id}`)
-        .toBe(WITH_RESOURCES.includes(id));
-    }
-    // BYOK Soniox is explicitly resource-less: a user's own key never
-    // exchanges a lease, mints no metered budget, and must not POST
-    // session-end to the managed backend.
-    expect(ProviderConfigFactory.getDescriptor(Provider.SONIOX).acquireSessionResources).toBeUndefined();
   });
 });
 

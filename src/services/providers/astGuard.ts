@@ -7,10 +7,10 @@ import { directionKey, emptyDirection, type DirectionResult, type ResolutionNote
  * doc comment), so a user can explicitly pick an AST-capable ASR model (e.g.
  * Granite Speech) as the TRANSLATION stage while the ASR stage of the same
  * direction resolves — auto or explicit — to a different model.
- * LocalInferenceClient only enters AST mode when `translationModelId ===
- * asrModelId` (LocalInferenceClient.ts); anything else constructs a real
- * TranslationEngine (opus-mt) against AST-only model files, which fails at
- * runtime with no gate and no note.
+ * The LocalInference builder enters AST mode only when the translation id
+ * equals the ASR id (`src/providers/localInference/config.ts`); anything
+ * else constructs a real TranslationEngine (opus-mt) against AST-only model
+ * files, which fails at runtime with no gate and no note.
  *
  * This runs AFTER resolution, at the config-building boundary, rather than
  * teaching the resolver itself about a cross-stage constraint — resolving
@@ -26,12 +26,11 @@ import { directionKey, emptyDirection, type DirectionResult, type ResolutionNote
  * selection instead.
  *
  * Pure: the re-resolution is injected as `reResolve` rather than reached via
- * a static `useModelStore` import — a store importing this module back (see
- * modelStore.ts's `ensureSelectionReady`, which applies this guard to the
- * speaker direction before computing readiness) would otherwise cycle.
- * Callers that already hold a resolver in scope (LocalInferenceProviderConfig,
- * localParticipantConfig) pass `useModelStore.getState().resolve` bound to
- * the direction; modelStore.ts passes its own `get().resolve`.
+ * a static `useModelStore` import. Its callers, the LocalInference
+ * provider's `config.ts` and `check.ts`, pass a resolver bound to the
+ * direction; the old descriptor, participant config and
+ * `modelStore.ensureSelectionReady` that called it went with the old code
+ * (Stage 2 deletion, ruling 3).
  */
 export function guardAstCrossStage(
   src: string,

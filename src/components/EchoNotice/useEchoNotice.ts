@@ -1,9 +1,32 @@
 import { useEffect, useRef, useState } from 'react';
-import type { IAudioService } from '../../services/interfaces/IAudioService';
 import type { EchoCause, EchoNoticeState } from '../../lib/modern-audio/EchoMonitor';
+import type { EchoWatch } from '../../lib/audio/capture/echoWatch';
 
 /** localStorage flag: set to 'true' to stream detector stats to the console. */
 const DIAGNOSTICS_KEY = 'sokuji.echoDiagnostics';
+
+/**
+ * The narrow contract `useEchoNotice` needs (1e-3 ruling 18): the old audio
+ * service already exposed both methods with these exact signatures, so this
+ * contract needed no change of its own when that service was retired; the
+ * new capture's `EchoWatch` is adapted to it by `echoSource` below.
+ */
+export interface EchoSource {
+  onEchoNotice(listener: ((state: EchoNoticeState | null) => void) | null): void;
+  setEchoDiagnostics(enabled: boolean): void;
+}
+
+/** Adapts the new capture's `EchoWatch` to the `EchoSource` contract. */
+export function echoSource(watch: EchoWatch): EchoSource {
+  return {
+    onEchoNotice(listener) {
+      watch.onNotice(listener);
+    },
+    setEchoDiagnostics(enabled) {
+      watch.setDiagnostics(enabled);
+    },
+  };
+}
 
 /**
  * Subscribes to the audio service's echo verdicts and applies the notice's
@@ -17,7 +40,7 @@ const DIAGNOSTICS_KEY = 'sokuji.echoDiagnostics';
  *   because its guess could never change.
  */
 export function useEchoNotice(
-  service: IAudioService | null,
+  service: EchoSource | null,
   onDetected?: (state: EchoNoticeState) => void
 ): { notice: EchoNoticeState | null; dismiss: () => void } {
   const [state, setState] = useState<EchoNoticeState | null>(null);

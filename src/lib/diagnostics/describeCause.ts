@@ -18,8 +18,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  *
  * Handles the shapes this codebase actually throws, because "anything else →
  * unknown error" on its own would erase the message from most of them:
- * `ClientEventHandlers.onError` payloads are plain `{message|error}` objects
- * (`apiErrorProps.ts:8-38`), Palabra wraps errors in `{errors:[{title,detail}]}`
+ * `ClientEventHandlers.onError` payloads are plain `{message|error}` objects,
+ * Palabra wraps errors in `{errors:[{title,detail}]}`
  * (`PalabraAIClient.ts:194-201`), and OpenAI in `{error:{message}}`
  * (`EphemeralTokenService.ts:183`).
  */

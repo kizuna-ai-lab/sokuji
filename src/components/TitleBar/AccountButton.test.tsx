@@ -7,6 +7,22 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (_k: string, d?: string) => d ?? _k }),
 }));
 
+const shortfall = vi.hoisted(() => ({ value: false }));
+vi.mock('./useBalanceShortfall', () => ({ useBalanceShortfall: () => shortfall.value }));
+
+// providerStore imports ServiceFactory at module scope, which chains into
+// SettingsService and into i18n's own setup. Stubbed, as every other test
+// that pulls in the real providerStore does, so this file stays scoped to
+// AccountButton's wiring.
+vi.mock('../../services/ServiceFactory', () => ({
+  ServiceFactory: {
+    getSettingsService: () => ({
+      getSetting: async (_k: string, d: unknown) => d,
+      setSetting: async () => ({ success: true }),
+    }),
+  },
+}));
+
 let signedIn = false;
 let authUser: any = null;
 // A fresh function identity on every render, delegating to one spy. That is
@@ -31,11 +47,9 @@ vi.mock('../../contexts/UserProfileContext', () => ({
   useUserProfile: () => ({ quota, refetchAll: vi.fn() }),
 }));
 
-let providerId = 'openai';
 let popoverRequested = false;
 const setPopoverRequested = vi.fn((next: boolean) => { popoverRequested = next; });
 vi.mock('../../stores/settingsStore', () => ({
-  useProvider: () => providerId,
   useTextOnly: () => false,
   useAccountPopoverRequested: () => popoverRequested,
   useSetAccountPopoverRequested: () => setPopoverRequested,
@@ -54,7 +68,7 @@ beforeEach(() => {
   signedIn = false;
   authUser = null;
   quota = null;
-  providerId = 'openai';
+  shortfall.value = false;
   popoverRequested = false;
   setPopoverRequested.mockClear();
   refetchSpy.mockClear();
@@ -116,34 +130,24 @@ describe('AccountButton status dot', () => {
       .toBe('unverified');
   });
 
-  it('does NOT warn about a low balance under a BYOK provider', () => {
-    // The wallet funds nothing here, so the balance is not the user's problem.
-    signIn();
-    quota = { balance: 1 };
-    render(<AccountButton />);
-    expect(document.querySelector('.account-button__dot')).toBeNull();
-  });
-
   it('shows a red dot for a low balance under a managed provider', () => {
-    providerId = 'kizunaai_soniox';
+    shortfall.value = true;
     signIn();
-    quota = { balance: 1 };
     render(<AccountButton />);
     expect(document.querySelector('.account-button__dot')!.getAttribute('data-tone'))
       .toBe('low');
   });
 
   it('lets red outrank amber when both apply', () => {
-    providerId = 'kizunaai_soniox';
+    shortfall.value = true;
     signIn({ emailVerified: false });
-    quota = { balance: 1 };
     render(<AccountButton />);
     expect(document.querySelector('.account-button__dot')!.getAttribute('data-tone'))
       .toBe('low');
   });
 
   it('shows no dot when verified and funded', () => {
-    providerId = 'kizunaai_soniox';
+    shortfall.value = false;
     signIn();
     quota = { balance: 12_340_000 };
     render(<AccountButton />);
@@ -161,9 +165,8 @@ describe('AccountButton accessibility', () => {
   // the status dot is invisible to a screen reader: the button would just say
   // "Account" whether or not the session is about to be refused.
   it('names the low-balance state in the accessible label', () => {
-    providerId = 'kizunaai_soniox';
+    shortfall.value = true;
     signIn();
-    quota = { balance: 1 };
     render(<AccountButton />);
     expect(screen.getByRole('button').getAttribute('aria-label')).toMatch(/balance/i);
   });
@@ -320,48 +323,25 @@ describe('AccountButton signed-out label', () => {
   });
 });
 
-describe('AccountButton balance floor per provider', () => {
+describe("AccountButton balance dot — the start gate's own answer", () => {
   const signIn = () => {
     signedIn = true;
     authUser = { name: 'J', email: 'you@example.com', emailVerified: true };
   };
 
-  // sessionStartGate applies the Soniox floor ONLY to managed Soniox; every
-  // other provider's floor is 1, i.e. the plain "> 0" rule. Using the Soniox
-  // number for all of them lights a red "too low to start" dot next to a Start
-  // button that is green and works — the false-positive direction this dot was
-  // specifically designed to avoid.
-  it('does not warn on a balance the Translate twin can actually start with', () => {
-    providerId = 'kizunaai_openai_translate';
+  // The dot is exactly the hook's answer, whatever the provider — including
+  // an own-key one, which the hook itself (useBalanceShortfall.test.tsx,
+  // case 3) never marks short. The floor computation lives there now, not
+  // here: this file is only the wiring between the hook and the dot.
+  it('the dot is the start gate\'s: it shows exactly when the hook says the balance is short', () => {
+    shortfall.value = true;
     signIn();
-    quota = { balance: 10_000 };
+    render(<AccountButton />);
+    expect(document.querySelector('.account-button__dot')!.getAttribute('data-tone')).toBe('low');
+
+    cleanup();
+    shortfall.value = false;
     render(<AccountButton />);
     expect(document.querySelector('.account-button__dot')).toBeNull();
-  });
-
-  it('does not warn on that balance for the Volcengine twin either', () => {
-    providerId = 'kizunaai_volcengine_ast2';
-    signIn();
-    quota = { balance: 10_000 };
-    render(<AccountButton />);
-    expect(document.querySelector('.account-button__dot')).toBeNull();
-  });
-
-  it('still warns those twins at a balance of zero, where Start really is blocked', () => {
-    providerId = 'kizunaai_openai_translate';
-    signIn();
-    quota = { balance: 0 };
-    render(<AccountButton />);
-    expect(document.querySelector('.account-button__dot')!.getAttribute('data-tone'))
-      .toBe('low');
-  });
-
-  it('keeps the real Soniox floor for managed Soniox', () => {
-    providerId = 'kizunaai_soniox';
-    signIn();
-    quota = { balance: 10_000 };
-    render(<AccountButton />);
-    expect(document.querySelector('.account-button__dot')!.getAttribute('data-tone'))
-      .toBe('low');
   });
 });

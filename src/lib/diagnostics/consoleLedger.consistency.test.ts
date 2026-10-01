@@ -38,12 +38,16 @@ const REPO_ROOT = resolve(__dirname, '../../..');
  * what reports. Listing them would imply a rule nothing can satisfy.
  */
 const ROOTS = [
+  'src/app',
   'src/stores',
   'src/services',
   'src/contexts',
   'src/components',
   'src/lib',
   'shared',
+  // the new providers (Stage 2): adapters never log — they emit (CLAUDE.md) —
+  // and their components report.
+  'src/providers',
 ];
 
 /** Top-level entry points, which are files rather than directories. */
@@ -139,7 +143,9 @@ function countConsoleCalls(source: string, fileName = 'scan.tsx'): number {
  */
 const LEDGER: Record<string, number> = {
   // --- Later, under the ledger: components ---
-  'src/components/MainPanel/MainPanel.tsx': 43,
+  // MainPanel.tsx's row (43) is gone, not lowered to 0: plan 1e-3b-2's switch
+  // replaced the old panel with the app session's, which reports through
+  // report.ts only.
   'src/components/Auth/UserAccountInfo.tsx': 5,
   // `Rename failed:` and `Delete failed:` — the picker takes `onRename`/
   // `onAskDelete` and VoiceDeleteModal takes `onConfirm` as props, so the
@@ -157,26 +163,36 @@ const LEDGER: Record<string, number> = {
   // there is nothing left to swallow and no breadcrumb to leave.
   'src/components/Settings/sections/VoiceCreateModal.tsx': 3,
   'shared/index.tsx': 4,
-  'src/components/SettingsInitializer/SettingsInitializer.tsx': 3,
+  // SettingsInitializer.tsx's row (3) is gone, not lowered to 0: the switch
+  // cut it to two jobs (plan 1e-3b-2 ruling 10), each reporting through
+  // report.ts.
   'src/components/Tour/TourProvider.tsx': 3,
   'src/components/Auth/ForgotPasswordForm.tsx': 2,
-  'src/components/MainPanel/participantTelemetry.ts': 2,
   'src/components/Settings/sections/HelpSection.tsx': 2,
   'src/components/Settings/sections/ModelManagementSection.tsx': 2,
-  'src/components/Settings/sections/ProviderSpecificSettings.tsx': 2,
+  // ProviderSpecificSettings.tsx's row (2) is gone, not lowered to 0: both of
+  // its calls sat in the other providers' branches, which the Stage 2
+  // deletion removed; the Local Native branch it keeps has none.
   'src/components/Auth/SignInForm.tsx': 1,
   'src/components/Auth/SignUpForm.tsx': 1,
-  'src/components/Settings/AdvancedSettings/AdvancedSettings.tsx': 1,
+  // AdvancedSettings.tsx's row (1) is gone, not lowered to 0: its one call
+  // warned of an unknown provider in the old provider config memo, which the
+  // switch removed with the old provider sections.
   'src/components/Settings/engine/EnginePage.tsx': 1,
   'src/components/SetupWizard/SetupWizard.tsx': 1,
-  'src/components/SetupWizard/applySetup.ts': 1,
+  // applySetup.ts's row is gone, not lowered to 0: its one call —
+  // `console.warn('[applySetup] Post-finish validation failed:', err)` — was
+  // the re-validation for an unchanged provider. The switch's applyProvider
+  // (useApplySetup.ts) binds straight to providerStore, whose own readiness
+  // driver (attach()'s driveReadiness) re-checks automatically, so
+  // there is nothing left here to swallow — the call is gone, not moved.
   'src/components/SetupWizard/steps/StepLanguage.tsx': 1,
   'src/components/Subtitle/ChildWindowPopover.tsx': 1,
   'src/components/Toast/ToastContext.tsx': 1,
-  'src/subtitle-overlay-entry.tsx': 1,
+  // subtitle-overlay-entry.tsx's row (1) is gone, not lowered to 0: plan 1e-4
+  // rewrote the overlay page over the wire; its one failure (no #root) reports
+  // through report.ts.
   // --- Later, under the ledger: src/lib (audio pipeline and helpers) ---
-  'src/lib/modern-audio/ModernBrowserAudioService.ts': 29,
-  'src/lib/modern-audio/WebRTCAudioBridge.ts': 10,
   'src/lib/modern-audio/AppAudioRecorder.ts': 9,
   'src/lib/modern-audio/ModernAudioRecorder.ts': 8,
   'src/lib/analytics.ts': 6,
@@ -198,6 +214,7 @@ describe('console ledger', () => {
     const files = scannedFiles();
     expect(files.length).toBeGreaterThan(150);
     expect(files).toContain('src/stores/logStore.ts');
+    expect(files).toContain('src/providers/fake/adapter.ts');
     expect(countConsoleCalls('a; console.error("x"); console.warn(y); console.info(z)')).toBe(2);
     // Prose must not count — in a line comment, a block comment, or a string.
     expect(countConsoleCalls('// its console.error( could not fire')).toBe(0);
@@ -238,7 +255,7 @@ describe('console ledger', () => {
   // absence of ledger rows, so re-adding one fails here with the reason instead
   // of quietly earning a new baseline entry.
   it('the roots #441 covered stay at zero', () => {
-    const CLEARED = ['src/stores/', 'src/services/', 'src/contexts/'];
+    const CLEARED = ['src/stores/', 'src/services/', 'src/contexts/', 'src/app/', 'src/providers/'];
     const offenders = scannedFiles()
       .filter((f) => CLEARED.some((root) => f.startsWith(root)))
       .filter((f) => countConsoleCalls(read(f), f) > 0);
@@ -281,9 +298,6 @@ describe('console ledger', () => {
       /src\/lib\/diagnostics\/report\.ts$/,
       // Reads the log list and calls clearLogs; never writes an entry.
       /src\/components\/LogsPanel\/LogsPanel\.tsx$/,
-      // The echo notice. Migrates with the rest of MainPanel in PR3a; listed
-      // here so PR1 does not have to touch the repo's most-edited file.
-      /src\/components\/MainPanel\/MainPanel\.tsx$/,
     ];
     const writers = scannedFiles().filter((file) => {
       if (ALLOWED.some((re) => re.test(file))) return false;
@@ -327,6 +341,9 @@ describe('console ledger', () => {
   // Clients cannot know which session leg they are on, so they report through
   // handlers that MainPanel owns. A client importing the store or the reporter
   // as a value would file its failures under the wrong tab.
+  //
+  // A provider's adapter is held to the same by
+  // `src/providers/sessionSide.consistency.test.ts`.
   it('clients never import the store or the reporter as a value', () => {
     const offenders: string[] = [];
     for (const file of scannedFiles().filter((f) => f.startsWith('src/services/clients/'))) {

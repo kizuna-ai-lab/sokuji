@@ -5,7 +5,7 @@ import {
   useModelStore, useModelStatuses, useStorageUsedMb, useWebGPUAvailable, useDeviceFeatures,
 } from '../../../stores/modelStore';
 import { useNativeModelStore, useNativeCatalog } from '../../../stores/nativeModelStore';
-import { useLocalInferenceSettings, useLocalNativeSettings } from '../../../stores/settingsStore';
+import { useLocalNativeSettings } from '../../../stores/settingsStore';
 import { MODEL_MANIFEST, getManifestEntry, getModelSizeMb } from '../../../lib/local-inference/modelManifest';
 import { useSegmentationStore } from '../../../stores/segmentationStore';
 import { wasmCandidates } from '../../../lib/local-inference/selection/candidates.wasm';
@@ -14,6 +14,8 @@ import { resolveDirection } from '../../../lib/local-inference/selection/resolve
 import { directionKey, type DirectionResult, type Selections, type Stage } from '../../../lib/local-inference/selection/types';
 import { ModelImportModal } from '../sections/ModelImportModal';
 import type { NativeModelInfo } from '../../../lib/local-inference/native/nativeProtocol';
+import type { LocalInferenceSettings } from '../../../providers/localInference/settings';
+import type { LanguagePair } from '../../../lib/provider/types';
 import './Engine.scss';
 
 /** Stage nouns reuse the same chip vocabulary resolutionNotes.ts uses — the
@@ -76,9 +78,18 @@ function computeDeleteNotes(
  *  Clear all (relocated from ModelStorageFooter), and Import (WASM only,
  *  reusing ModelImportModal — StoragePage is the one place a user can import
  *  a model with no direction/compatibility context attached to it yet). */
-export const StoragePage: React.FC<{ provider: 'wasm' | 'native'; isSessionActive?: boolean }> = ({
-  provider, isSessionActive = false,
-}) => {
+export const StoragePage: React.FC<
+  /**
+   * The `wasm` half reads LocalInference's own `S`/pair (the new provider
+   * contract); the old slice it once fell back to went with the old
+   * descriptor (Stage 2 deletion, ruling 3). The `native` half reads Local
+   * Native's slice, which the old path keeps (ruling 1).
+   */
+  | { provider: 'wasm'; isSessionActive?: boolean; settings: LocalInferenceSettings; pair: LanguagePair }
+  | { provider: 'native'; isSessionActive?: boolean }
+> = (props) => {
+  const { provider, isSessionActive = false } = props;
+  const wasm = props.provider === 'wasm' ? props : null;
   const { t } = useTranslation();
 
   // ── WASM data (always subscribed — hooks must run unconditionally) ──────
@@ -86,7 +97,6 @@ export const StoragePage: React.FC<{ provider: 'wasm' | 'native'; isSessionActiv
   const wasmStorageMb = useStorageUsedMb();
   const webgpuAvailable = useWebGPUAvailable();
   const deviceFeatures = useDeviceFeatures();
-  const wasmSettings = useLocalInferenceSettings();
 
   // ── Native data ───────────────────────────────────────────────────────
   const nativeStatuses = useNativeModelStore((s) => s.statuses);
@@ -117,9 +127,9 @@ export const StoragePage: React.FC<{ provider: 'wasm' | 'native'; isSessionActiv
 
   const isWasm = provider === 'wasm';
 
-  const sourceLanguage = isWasm ? wasmSettings.sourceLanguage : nativeSettings.sourceLanguage;
-  const targetLanguage = isWasm ? wasmSettings.targetLanguage : nativeSettings.targetLanguage;
-  const selections: Selections = isWasm ? wasmSettings.selections : nativeSettings.selections;
+  const sourceLanguage = wasm ? wasm.pair.source : nativeSettings.sourceLanguage;
+  const targetLanguage = wasm ? wasm.pair.target : nativeSettings.targetLanguage;
+  const selections: Selections = wasm ? wasm.settings.selections : nativeSettings.selections;
   const speakerDir = directionKey(sourceLanguage, targetLanguage);
   const participantDir = directionKey(targetLanguage, sourceLanguage);
   const directions = [{ dir: speakerDir }, { dir: participantDir }];

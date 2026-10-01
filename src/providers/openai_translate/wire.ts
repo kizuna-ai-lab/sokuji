@@ -1,0 +1,126 @@
+/**
+ * OpenAI Translate's wire, spoken directly (survey §1.3–1.4): the URL and
+ * its subprotocols, the three client frames the adapter sends, the server's
+ * frames decoded, the heartbeat test, and a server `error` as a notice code
+ * and words. The client frames are typed by the `openai` SDK's translation
+ * types, imported for types only, so a frame that drifts from the SDK fails
+ * the typecheck. Pure: no socket, no timer.
+ */
+import type {
+  RealtimeTranslationInputAudioBufferAppendEvent,
+  RealtimeTranslationSessionCloseEvent,
+  RealtimeTranslationSessionUpdateEvent,
+} from 'openai/resources/realtime/realtime';
+import { pcmToBase64 } from '../../lib/contract/pcm64';
+import type { TranslateConfig } from './config';
+import type { TranslateCredentials } from './settings';
+
+/** Lifted to the contract at their third user (Stage 2 OpenAI Realtime, choice 1); re-exported, so this wire's importers are unchanged. */
+export { base64ToPcm, pcmToBase64 } from '../../lib/contract/pcm64';
+/**
+ * The decoder and the error's code and words: lifted at their third user,
+ * OpenAI Live (Stage 2 OpenAI Live, choice 4); re-exported, so this wire's
+ * importers are unchanged. The `.done` events the old client handled are not
+ * among the SDK's seven (choice 18); a server `error` reads as a code first
+ * as the live test's `session.error` frames settle (choice 9).
+ */
+export { decodeServerEvent, errorCode, errorWords, type OpenAIErrorCode as ErrorCode, type ServerEvent } from '../../lib/provider/openaiWire';
+
+/** The translations endpoint (`OpenAITranslateGAClient.ts:23`); the model rides in its query, fixed at creation. */
+export const TRANSLATE_WS_URL = 'wss://api.openai.com/v1/realtime/translations';
+
+export function translateUrl(c: Pick<TranslateConfig, 'model'>): string {
+  return `${TRANSLATE_WS_URL}?model=${encodeURIComponent(c.model)}`;
+}
+
+/**
+ * The subprotocols a socket authenticates with (choice 3;
+ * `OpenAITranslateGAClient.ts:698-709`): `realtime`, and the key as
+ * `openai-insecure-api-key.<key>`, which a browser sets itself — no upgrade
+ * header on any platform. Never the beta tag `openai-beta.realtime-v1`: the
+ * endpoint refuses it ("Translation sessions are only available on the GA
+ * API."). The one function of the session side that reads the key; what it
+ * returns is never framed, worded or logged.
+ */
+export function translateProtocols(k: TranslateCredentials): string[] {
+  return ['realtime', `openai-insecure-api-key.${k.apiKey}`];
+}
+
+/**
+ * The session's configuration, sent once `session.created` arrives: the old
+ * `buildSessionUpdate` (`OpenAITranslateGAClient.ts:197-217`), with the
+ * transcription always set and `noise_reduction: null` for none, which the
+ * SDK says turns it off (ruling 9).
+ */
+export function sessionUpdate(c: TranslateConfig): RealtimeTranslationSessionUpdateEvent {
+  return {
+    type: 'session.update',
+    session: {
+      audio: {
+        // The language alone: `output.transcription` is refused as unknown, and the output transcript comes by default (`OpenAITranslateGAClient.test.ts:82-88`).
+        output: { language: c.target },
+        input: {
+          // The model alone: `keywords`, `prompt`, `language`, `languages` and `delay` each came back `unknown_parameter` (probed 2026-08-01).
+          transcription: { model: c.transcriptModel },
+          noise_reduction: c.noiseReduction === null ? null : { type: c.noiseReduction },
+        },
+      },
+    },
+  };
+}
+
+/** One chunk as it goes up: 24 kHz PCM16 mono, the contract's own rate — no resampling (SDK: "base64-encoded 24 kHz PCM16 mono little-endian"). */
+export function appendFrame(pcm: Int16Array): string {
+  const frame: RealtimeTranslationInputAudioBufferAppendEvent = { type: 'session.input_audio_buffer.append', audio: pcmToBase64(pcm) };
+  return JSON.stringify(frame);
+}
+
+/**
+ * The graceful end (SDK: "the server flushes pending input audio and emits
+ * any remaining translated output before closing the session"), sent at
+ * Stop just before the close — nothing waits for what it flushes (Stage 2
+ * session end, ruling 2 (iii)).
+ */
+export const SESSION_CLOSE: RealtimeTranslationSessionCloseEvent = { type: 'session.close' };
+
+/** The rate an output audio delta that names none is taken at: PCM16 at 24 kHz, the old client's default (`OpenAITranslateGAClient.ts:604`). */
+export const OUTPUT_RATE = 24_000;
+
+/**
+ * A heartbeat: the all-zero frames the API sends between utterances
+ * (`OpenAITranslateGAClient.ts:31-57`; commit `98149d35` measured content at
+ * RMS 0.04–0.08 and heartbeats at exactly 0). Told apart by content, not by
+ * length; it returns at the first sample that is not zero.
+ */
+export function isSilentFrame(pcm: Int16Array): boolean {
+  for (let i = 0; i < pcm.length; i++) if (pcm[i] !== 0) return false;
+  return true;
+}
+
+/** RMS over [0, 1] (the old `computeRms`): the Logs' audio frames, and the noise floor below. */
+export function computeRms(pcm: Int16Array): number {
+  if (pcm.length === 0) return 0;
+  let sum = 0;
+  for (let i = 0; i < pcm.length; i++) sum += pcm[i] * pcm[i];
+  return Math.sqrt(sum / pcm.length) / 32768;
+}
+
+/**
+ * Below this RMS an output frame is the stream's noise floor, not speech:
+ * the OpenAI Live client's `OUTPUT_SILENCE_RMS`, set 3× above the floor it
+ * measured and 15× below the quietest speech. OpenAI Translate sends such
+ * frames beside its all-zero heartbeats — 0.0001–0.0009 in the spike's
+ * sessions — and they are not the translation speaking (Stage 2 translation
+ * cuts, ruling 1; choice 11).
+ */
+export const QUIET_RMS = 0.002;
+
+/** A frame below the noise floor: it neither opens the translation nor holds it open (choice 11). A heartbeat is one too, dropped before this. */
+export function isQuietFrame(pcm: Int16Array): boolean {
+  return computeRms(pcm) < QUIET_RMS;
+}
+
+/** A delta's `elapsed_ms` when it is a number, else null: framed on every delta (ruling 6), read for nothing else yet. */
+export function elapsedMsOf(e: { elapsed_ms?: unknown }): number | null {
+  return typeof e.elapsed_ms === 'number' ? e.elapsed_ms : null;
+}

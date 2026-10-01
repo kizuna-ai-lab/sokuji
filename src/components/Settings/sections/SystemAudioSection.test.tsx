@@ -47,8 +47,19 @@ vi.mock('../../../stores/audioStore', () => ({
   useIsAudioLoading: () => false,
 }));
 
-vi.mock('../../../stores/settingsStore', () => ({
-  useProvider: () => 'openai',
+// The section reads `PARTICIPANT_SPEECH_SHOWN` from the routing store; these
+// keep the store's services (and, behind them, the locales) out of the test, so
+// the real flag is what the section sees.
+vi.mock('../../../services/ServiceFactory', () => ({ ServiceFactory: {} }));
+vi.mock('../../../services/persistSetting', () => ({ persistSetting: vi.fn() }));
+
+// A marker only: locked is the one prop this section wires through, and the
+// switch's own behaviour (the whole-system rule, the tooltip) is covered by
+// ParticipantSpeechSwitch.test.tsx.
+vi.mock('./ParticipantSpeechSwitch', () => ({
+  ParticipantSpeechSwitch: ({ locked }: { locked: boolean }) => (
+    <div data-testid="participant-speech-switch" data-locked={String(locked)} />
+  ),
 }));
 
 const SYSTEM = { deviceId: 'desktop-audio-loopback', label: 'System Audio (All Applications)' };
@@ -118,8 +129,9 @@ describe('SystemAudioSection', () => {
   });
 
   it('switches source while the session is active', () => {
-    // Live switching is supported - MainPanel rebuilds the capture around the
-    // new source - so an active session must not block the picker.
+    // Live switching is supported - the open capture (capture/systemAudio.ts)
+    // watches audioStore and reopens itself around the new source - so an
+    // active session must not block the picker.
     mount({ isSessionActive: true });
     fireEvent.click(screen.getByText('Chromium'));
     expect(store.select).toHaveBeenCalled();
@@ -146,5 +158,19 @@ describe('SystemAudioSection', () => {
     const { container } = mount();
     expect(screen.queryByText('Chromium')).toBeNull();
     expect(container.querySelector('.toggle-switch-component')).not.toBeNull();
+  });
+
+  // The owner, 2026-10-01: hidden, with participant speech kept off.
+  it('does not render the participant-speech switch', () => {
+    const { rerender } = mount({ isSessionActive: false });
+    expect(screen.queryByTestId('participant-speech-switch')).toBeNull();
+
+    rerender(<SystemAudioSection isSessionActive={true} />);
+    expect(screen.queryByTestId('participant-speech-switch')).toBeNull();
+  });
+
+  it('shows no Gemini token warning any more; the section no longer reads the provider', () => {
+    mount();
+    expect(screen.queryByText(/Gemini generates audio responses/)).toBeNull();
   });
 });

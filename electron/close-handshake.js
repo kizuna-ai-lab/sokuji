@@ -15,7 +15,12 @@
 // An update install asks the same question first (endSessionThen): the
 // updater's own quit must not be held, because a held quit keeps the old
 // instance alive while the new one starts.
-const DEFAULT_TIMEOUT_MS = 5000;
+
+// The renderer's runner bounds its own ending at 15 s (`DEFAULT_CLOSE_TIMEOUT_MS`,
+// src/lib/session/runner.ts) and answers after it settles; one second more, so
+// a slow auto-save still lands before the close (1e-3 ruling 12, pinned by
+// src/app/closeBound.test.ts).
+const DEFAULT_TIMEOUT_MS = 16000;
 
 function createCloseHandshake({
   quitApp,

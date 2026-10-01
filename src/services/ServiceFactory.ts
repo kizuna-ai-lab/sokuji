@@ -1,6 +1,4 @@
-import { IAudioService } from './interfaces/IAudioService';
 import { ISettingsService } from './interfaces/ISettingsService';
-import { ModernBrowserAudioService } from '../lib/modern-audio/ModernBrowserAudioService';
 import { SettingsService } from './SettingsService';
 import { isElectron as checkIsElectron, isExtension as checkIsExtension } from '../utils/environment';
 
@@ -9,7 +7,6 @@ import { isElectron as checkIsElectron, isExtension as checkIsExtension } from '
  */
 export class ServiceFactory {
   // Static cache for service instances
-  private static audioServiceInstance: IAudioService | null = null;
   private static settingsServiceInstance: ISettingsService | null = null;
   
   /**
@@ -26,23 +23,6 @@ export class ServiceFactory {
    */
   static isBrowserExtension(): boolean {
     return checkIsExtension();
-  }
-  
-  /**
-   * Create the appropriate IAudioService implementation based on the environment
-   * Returns a cached instance if one exists
-   */
-  static getAudioService(): IAudioService {
-    // Return cached instance if available
-    if (ServiceFactory.audioServiceInstance) {
-      return ServiceFactory.audioServiceInstance;
-    }
-    
-    // Create new instance if needed - both platforms now use the same unified service
-    console.info('[Sokuji] [ServiceFactory] Creating Modern Browser audio service (unified for all platforms)');
-    ServiceFactory.audioServiceInstance = new ModernBrowserAudioService();
-    
-    return ServiceFactory.audioServiceInstance;
   }
   
   /**
@@ -69,7 +49,6 @@ export class ServiceFactory {
    * Useful for testing or when switching users
    */
   static resetAllInstances(): void {
-    ServiceFactory.audioServiceInstance = null;
     ServiceFactory.settingsServiceInstance = null;
   }
 }

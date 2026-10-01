@@ -24,7 +24,6 @@
       "audio": "Ääni",
       "provider": "Tarjoaja"
     },
-    "languageSettings": "Kieliasetukset",
     "voice": "Ääni",
     "voiceSettings": "Ääniasetukset",
     "model": "Malli",
@@ -40,10 +39,11 @@
     "autoTempo": "Mukautuva puhenopeus",
     "pushToTalk": "Paina ja puhu",
     "pushToTranslate": "Paina ja käännä",
-    "pushToTranslateNotAvailableInWebrtc": "Ei käytettävissä WebRTC-tilassa. Vaihda WebSocketiin käyttääksesi Paina ja käännä -toimintoa.",
     "systemInstructions": "Järjestelmäohjeet",
     "speechMode": "Puhetila",
     "speechModeAppliesTo": "Koskee omaa ääntäsi. Toisen ääni käyttää aina semanttista VAD:ia.",
+    "speechModeTooltip": "Auto: tarjoaja tunnistaa, milloin olet lopettanut puhumisen. \nPaina ja puhu: pidä välilyöntiä tai mikrofonipainiketta painettuna lähettääksesi ääntä manuaalisesti. \nPaina ja käännä: kuten Paina ja puhu, mutta ohjaa raakamikrofonisi virtuaalimikrofoniin tyhjäkäynnillä, jotta voit puhua suoraan ilman käännöstä.",
+    "speechModeAppliesToAuto": "Koskee omaa ääntäsi. Toisen ääni käyttää aina tarjoajan automaattista tunnistusta.",
     "userTranscriptModel": "Käyttäjän litterointimalli",
     "noiseReduction": "Kohinanvaimennus",
     "noiseSuppression": "Kohinanvaimennus",
@@ -72,22 +72,15 @@
     "eagerness": "Innokkuus",
     "temperature": "Lämpötila",
     "maxTokens": "Maks. tokenit",
-    "validating": "Vahvistetaan...",
     "enterCustomInstructions": "Syötä mukautetut ohjeet...",
     "settingsSavedSuccessfully": "Asetukset tallennettu onnistuneesti",
     "failedToSaveSettings": "Asetusten tallennus epäonnistui",
     "settingSavedSuccessfully": "Asetus tallennettu onnistuneesti: {{key}}",
     "failedToSaveSetting": "Asetuksen tallennus epäonnistui: {{key}}",
-    "apiKeyValidationCompleted": "API-avaimen validointi valmis",
-    "errorValidatingApiKey": "Virhe API-avainta validoidessa",
     "regionNotSupported": "Palvelu ei ole saatavilla alueellasi. Tarkista verkkoympäristösi tai kokeile toista palveluntarjoajaa.",
     "sessionActiveNotice": "Asetukset on lukittu istunnon ollessa aktiivinen. Lopeta istunto muuttaaksesi asetuksia.",
-    "realtimeModelAvailable": "Reaaliaikamalli on saatavilla",
     "realtimeModelNotAvailable": "Reaaliaikamalli ei ole saatavilla",
-    "refreshModels": "Päivitä saatavilla olevat mallit",
-    "loadingModels": "Ladataan saatavilla olevia malleja...",
     "modelsFound": "{{count}} mallia saatavilla",
-    "invalidApiKeyFormat": "Virheellinen API-avaimen muoto",
     "volcengineAST2Info": "Doubao AST 2.0 -tiedot",
     "volcengineAST2InfoText": "Doubao AST 2.0 tarjoaa puheesta puheeseen -kääntämisen automaattisella äänikloonauksella. Käännetty ääni säilyttää alkuperäisen puhujan ääniominaisuudet.",
     "volcengineAST2TurnDetectionTooltip": "Auto: palvelinpuolen ääniaktiivisuuden tunnistus. \nPaina ja puhu: pidä välilyöntiä tai mikrofonipainiketta painettuna lähettääksesi ääntä manuaalisesti. \nPaina ja käännä: kuten Paina ja puhu, mutta ohjaa raakamikrofonisi virtuaalimikrofoniin tyhjäkäynnillä, jotta voit puhua suoraan ilman käännöstä.",
@@ -113,8 +106,6 @@
     "low": "Matala",
     "medium": "Keskitaso",
     "high": "Korkea",
-    "apiKeyValidated": "API-avain vahvistettu",
-    "realtimeTranslationAvailable": "Reaaliaikainen käännöspalvelu on saatavilla",
     "advancedMode": "Edistynyt",
     "providerTooltip": "Valitse tekoäly-käännöspalvelusi. Jokaisella palvelulla on erilaiset ominaisuudet, äänet ja hinnat. OpenAI tarjoaa eniten ominaisuuksia, kun taas Geminillä on hyvä ilmainen suunnitelma. Paikallinen (offline) tila on täysin ilmainen — API-avainta tai internetiä ei tarvita.",
     "modelTooltip": "Valitse käytettävä tekoälymalli. Suuremmat mallit tarjoavat paremman käännöslaadun, mutta voivat olla hitaampia. Pienemmät mallit ovat nopeampia, mutta voivat olla vähemmän tarkkoja.",
@@ -135,12 +126,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Vähentää taustamelua mikrofonistasi selkeämpää puheen tunnistusta varten.\nPois: Ei käsittelyä (paras hiljaisille huoneille).\nAuto: Mukautuu automaattisesti ympäristöösi.\nMatala: Kevyt melunvaimennus.\nKeski: Kohtalainen melunvaimennus.\nKorkea: Aggressiivinen melunvaimennus (voi vaikuttaa äänen laatuun).",
     "systemInstructionsTooltip": "Mukautetut ohjeet, jotka kertovat tekoälylle kuinka kääntää. Voit käyttää tätä käännöstyylin, muodollisuuden tason tai erityisvaatimusten määrittämiseen.",
-    "transportType": "Yhteystyyppi",
-    "transportTypeTooltip": "WebRTC: Pienempi viive, suositellaan useimmille käyttäjille.\nWebSocket: Parempi yhteensopivuus rajoitettujen verkkojen kanssa. Käytä, jos WebRTC-yhteys epäonnistuu.",
-    "websocket": "WebSocket (Vakaa)",
-    "webrtc": "WebRTC (Matala viive)",
-    "webrtcVadDisabledTitle": "Palvelimen VAD ei ole käytettävissä WebRTC-tilassa",
-    "webrtcVadNotice": "Palvelimen VAD on pois käytöstä WebRTC-tilassa. WebRTC:ssä palvelin katkaisee automaattisesti äänen tunnistaessaan puhetta, mikä keskeyttää käännökset.",
     "participantInstructions": "Toisen ohjeet",
     "participantInstructionsTooltip": "Järjestelmäohjeet toisen äänen kääntämiseen. Jos tyhjä, käytetään yllä olevia pääohjeita.\n\nTärkeää: Pääohjeillasi voi olla väärä kielisuunta toiselle. Esimerkki: Jos puhut kiinaa ja pääohjeesi kääntävät kiina→japani, mutta toinen puhuu japania, pääohjeet yrittäisivät virheellisesti kääntää japani→japani. Aseta erilliset toisen ohjeet kääntääksesi japani→kiina.",
     "localTranslationPrompt": "Käännösprompt",
@@ -203,9 +188,7 @@
       "xhigh": "Erittäin korkea"
     },
     "translateInfoBanner": "Malli on hiljaa, kun puhuja käyttää samaa kieltä kuin kohde. Monikielisessä puheessa voi olla aukkoja.",
-    "translateModelAvailable": "API-avain vahvistettu. gpt-realtime-translate on käytettävissä.",
     "translateModelNotAvailable": "API-avain toimii, mutta gpt-realtime-translate ei ole käytettävissä tällä avaimella.",
-    "translateSourceParticipantWarning": "Toisen äänen kääntäminen ei välttämättä toimi — 'Minun kieleni' ei ole niiden 13 kohdekielen joukossa, joita tämä palveluntarjoaja tukee.",
     "participantSectionHeader": "Toisen ääni",
     "participantSectionDescriptionElectron": "Käännä ääni mistä tahansa tässä järjestelmässä toistettavasta sovelluksesta.",
     "participantSectionDescriptionExtension": "Käännä ääni aktiivisesta selainvälilehdestä. Alkuperäinen ääni toistetaan järjestelmäsi oletuslähdön kautta.",
@@ -222,7 +205,6 @@
     "sonioxSharedSession": "Jaettu istunto Molemmat-tilassa",
     "sonioxSharedSessionTooltip": "Molemmat-tila voi käyttää yhtä jaettua Soniox-istuntoa tai erillistä istuntoa kumpaankin suuntaan.\n\nKäytössä: yksi istunto kääntää molemmat puolet automaattisella äänten erottelulla — pienemmät kustannukset ja viive.\n\nPois käytöstä: erillinen istunto kumpaankin suuntaan — luotettavampi, kun molemmat puhuvat yhtä aikaa, mutta noin kaksinkertainen kustannus.\n\nVaikuttaa vain Molemmat-tilaan.",
     "sonioxSharedSessionManagedCost": "Kizuna AI tukee molempia. Kun jaettu istunto on pois käytöstä, kaksi istuntoa on käynnissä samanaikaisesti — noin kaksinkertainen hinta minuutissa, joten istuntosi saldo loppuu noin puolessa ajassa ja aloittamiseen tarvitaan suurempi saldo.",
-    "sonioxAutoParticipantWarning": "Aseta 'Minun kieleni' tietyksi kieleksi — automaattisella tunnistuksella toisen puhetta ei voi kääntää siihen.",
     "sonioxVocabulary": "Mukautettu sanasto",
     "sonioxVocabularyTooltip": "Ohjaa tunnistusta tärkeiden nimien ja erikoistermien suuntaan ja vaikuttaa siihen, miten tietyt termit käännetään. Otetaan käyttöön vasta seuraavasta istunnosta alkaen.",
     "sonioxVocabularyTerms": "Termit",
@@ -310,7 +292,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "Automaattisesti todennettu tilisi kautta",
-    "fetchingApiKey": "Haetaan API-avainta tililtäsi...",
     "provider": "Tekoälypalvelun tarjoaja",
     "apiKeyPlaceholder": "Syötä API-avaimesi",
     "setupGuide": "Asennusopas",
@@ -369,6 +350,10 @@
     "loopbackMicWarningText1": "Loopback-tulot kuten \"Stereo Mix\" tai \"Monitor of ...\" -laitteet äänittävät järjestelmän omaa äänilähtöä. Istunnossa, joka sisältää Sokujin käännetyn puheen, Sokuji kuulisi ja kääntäisi itseään silmukassa.",
     "loopbackMicWarningText2": "Laite pysyy valittuna, jos tämä reititys on tarkoituksellinen, mutta tavalliseen käyttöön valitse fyysinen mikrofoni.",
     "participantNoAudioYet": "Valitusta lähteestä ei ole vielä tullut ääntä. Jos se toistaa eikä mitään käännetä, salli Sokuji kohdassa Järjestelmäasetukset > Tietosuoja ja turvallisuus > Vain järjestelmän äänen tallennus (macOS) ja aloita istunto uudelleen.",
+    "participantSpeech": "Lue toisen käännös ääneen",
+    "participantSpeechDesc": "Lukee ääneen, mitä toinen sanoo, sinun kielelläsi, kaiuttimistasi. Se seuraa heidän ääntään viiveellä.",
+    "participantSpeechBlockedWholeSystem": "Pois päältä, kun toisen ääni kaappaa koko järjestelmän äänen: heidän käännöksensä kaapattaisiin ja käännettäisiin uudelleen. Valitse sovellus toisen äänilähteeksi.",
+    "participantSpeechNotYetAvailable": "Ei vielä käytettävissä tällä tarjoajalla: toisen käännös näytetään vain tekstinä.",
     "audioCaptureUnprovenNotice": "Mitään ei ole vielä kaapattu",
     "audioCaptureUnprovenTitle": "Valitusta lähteestä ei ole vielä tullut ääntä",
     "audioCaptureUnprovenText1": "Jos lähde toistaa eikä mitään käännetä, macOS toimittaa todennäköisesti hiljaisuutta: sovelluksen kaappaaminen vaatii käyttöoikeuden \"Vain järjestelmän äänen tallennus\", ja ilman sitä ei tule virhettä, vain hiljaisuutta.",
@@ -427,9 +412,7 @@
     "backToSignIn": "Takaisin kirjautumiseen",
     "forgotPasswordError": "Vahvistuskoodin lähetys epäonnistui. Yritä uudelleen.",
     "resetPasswordError": "Salasanan palautus epäonnistui. Yritä uudelleen.",
-    "signedOut": "Kirjaudu sisään käyttääksesi Kizuna AI:n sisäänrakennettua käännöspalvelua.",
-    "sessionUnavailable": "Istuntosi ei ole enää voimassa. Kirjaudu sisään uudelleen.",
-    "unknown": "Tiliäsi ei voitu vahvistaa. Yritä uudelleen."
+    "signedOut": "Kirjaudu sisään käyttääksesi Kizuna AI:n sisäänrakennettua käännöspalvelua."
   },
   "simpleConfig": {
     "interfaceLanguage": "Käyttöliittymän kieli",
@@ -453,20 +436,9 @@
     "keepReplayAudioDesc": "Säilytä käännetty ääni muistissa, jotta voit toistaa sen myöhemmin jokaisesta viestistä. Oletuksena pois päältä, jotta muistinkäyttö pysyy pienenä pitkissä istunnoissa."
   },
   "providers": {
-    "kizunaai_openai_translate": {
-      "name": "KizunaAI",
-      "description": "75 lähdekieltä (tunnistetaan automaattisesti), 13 kohdekieltä",
-      "vendor": "OpenAI"
-    },
-    "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI",
-      "description": "8 kieltä + kiina–englanti kaksisuuntaisesti · säilyttää äänesi",
-      "vendor": "Doubao"
-    },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 kieltä, 3600 kieliparia · kloonaa oma äänesi",
-      "vendor": "Soniox"
+      "description": "60 kieltä, 3600 kieliparia · kloonaa oma äänesi"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -475,11 +447,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "Googlen tekoälyteknologia"
-    },
-    "openaiCompatible": {
-      "name": "OpenAI-yhteensopiva (vanha Realtime)",
-      "description": "Kolmannen osapuolen päätepiste, joka käyttää OpenAI:n vanhaa beta-Realtime-protokollaa. Ei OpenAI:lle itselleen.",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -507,7 +474,8 @@
       "name": "Doubao AST 2.0",
       "description": "Doubao simultaanitulkkaus",
       "appIdPlaceholder": "APP ID",
-      "accessTokenPlaceholder": "Access Token"
+      "accessTokenPlaceholder": "Access Token",
+      "authModeApp": "App ID + Access Token"
     },
     "local_inference": {
       "name": "Ilmainen",
@@ -545,7 +513,6 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Käännökset näkyvät tekstityspeitossa",
-    "speechDetected": "[Puhe havaittu]",
     "function": "Funktio",
     "noChannelConfigured": "Ota mikrofoni tai toisen ääni käyttöön ennen aloittamista.",
     "release": "vapauta",
@@ -564,6 +531,7 @@
     "typeMessage": "Käännettävä teksti...",
     "send": "Lähetä",
     "error": "Virhe",
+    "warning": "Varoitus",
     "unknownError": "Tuntematon virhe",
     "insufficientBalance": "Riittämätön saldo: {{balance}}",
     "walletFrozen": "Lompakko on jäädytetty. Ota yhteyttä tukeen.",
@@ -589,6 +557,7 @@
       "legendNone": "Pois: piilota tämä puoli"
     },
     "playItemAudio": "Toista tämän kohteen ääni",
+    "replayBlockedWholeSystem": "Toisto on pois päältä, kun toisen ääni kaappaa koko järjestelmän äänen: se käännettäisiin uudelleen.",
     "toolbar": {
       "export": "Vie keskustelu"
     },
@@ -601,6 +570,8 @@
       "speakerYou": "Minä",
       "speakerOther": "Toinen",
       "translationSuffix": "(kään.)",
+      "noTranslation": "(ei käännöstä)",
+      "noSource": "(ei lähdettä)",
       "scopeLabel": "Sisällytä",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "Ei valintoja",
@@ -625,9 +596,6 @@
     "waveformMicTooltip": "Mikrofonisi — äänesi, joka kaapataan käännöstä varten",
     "waveformSystemTooltip": "Toisen ääni, joka kaapataan käännöstä varten (selainvälilehti / järjestelmän ääni)",
     "allChannelsFailed": "Yhdenkään äänikanavan käynnistys ei onnistunut. Tarkista laitteiden käyttöoikeudet ja yritä uudelleen.",
-    "participantChannelFailed": "Toisen äänikanavan käynnistys epäonnistui.",
-    "splitDegradedLabel": "Vain yhteen suuntaan",
-    "splitDegradedTooltip": "Toisen ääntä ei käännetä, joten tämä istunto toimii vain yhteen suuntaan. Tarkista toisen äänen käyttöoikeudet ja aloita sitten uusi istunto.",
     "sonioxInsufficientBalance": "Saldo ei riitä istunnon aloittamiseen. Lataa saldoasi ja yritä uudelleen.",
     "sonioxSessionConflict": "Tililläsi on jo käynnissä toinen istunto. Yritä uudelleen hetken kuluttua.",
     "sonioxServiceUnavailable": "Soniox ei ole tilapäisesti käytettävissä. Yritä uudelleen hetken kuluttua.",
@@ -637,7 +605,6 @@
     "sonioxTtsSegmentLost": "Osaa puhutusta käännöksestä ei voitu toistaa. Litterointi ja tekstikäännös toimivat edelleen.",
     "sonioxSegmentEnded": "Tämä jakso on päättynyt — jatka napauttamalla ”Aloita istunto”.",
     "sonioxConnectionLost": "Yhteys katkesi — jatka hetken kuluttua napauttamalla ”Aloita istunto”.",
-    "openaiLiveConnectionLost": "Yhteys katkesi — jatka hetken kuluttua napauttamalla ”Aloita istunto”.",
     "sonioxVoiceClipMissing": "Tällä laitteella ei ole äänitallennetta, joten tämä istunto käyttää esiasetettua ääntä. Äänitä sellainen asetuksista, jotta voit puhua täällä omalla äänelläsi.",
     "sonioxVoicePoolBusy": "Kaikki mukautettujen äänten paikat ovat juuri nyt käytössä, joten tämä istunto käyttää esiasetettua ääntä. Omaa ääntäsi käytetään taas ensi kerralla.",
     "sonioxVoiceBuildFailed": "Mukautettua ääntäsi ei voitu luoda, joten tämä istunto käyttää esiasetettua ääntä. Kokeile äänittää selkeämpi näyte asetuksista.",
@@ -1171,8 +1138,6 @@
     },
     "credentials": {
       "apiKey": "API-avain",
-      "endpoint": "Päätepiste-URL",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",
@@ -1272,5 +1237,42 @@
         "content": "Lisäasetukset — puheen käsittely, promptit, äänet, lokit — löytyvät Edistynyt-kytkimen takaa Asetusten oikeasta yläkulmasta. Voit toistaa tämän oppaan milloin tahansa Ohje-valikosta."
       }
     }
+  },
+  "notices": {
+    "no_provider": "Valitse tarjoaja asetuksista ennen aloittamista.",
+    "no_legs": "Valitse mitä käännetään ennen aloittamista.",
+    "turn_mode_unsupported": "Tämä tarjoaja ei tarjoa valittua puhetilaa.",
+    "participant_source_unavailable": "Toisen kääntäminen ei ole käytettävissä täällä.",
+    "participant_unsupported": "Tämä tarjoaja ei voi kääntää toista tälle kieliparille.",
+    "credentials_missing": "Syötä API-avaimesi asetuksiin ennen aloittamista.",
+    "not_ready": "Tarjoaja ei ole valmis: {{detail}}",
+    "build_refused": "Tarjoaja ei voi käynnistyä näillä asetuksilla: {{detail}}",
+    "admit_refused": "Tarjoaja ei voi ajaa tätä yhdistelmää: {{detail}}",
+    "start_failed": "Istunto ei käynnistynyt: {{detail}}",
+    "leg_failed": "Istunto pysähtyi: {{detail}}",
+    "leg_closed": "Tarjoaja lopetti istunnon.",
+    "source_ended": "Äänilähde katosi (irrotettu, suljettu tai pysäytetty).",
+    "still_stopping": "Edellistä istuntoa lopetetaan vielä; yritä hetken päästä uudelleen.",
+    "app_capture_lost_using_system_audio": "Sovelluksen kaappaus pysähtyi, joten nyt käännetään kaikki järjestelmän ääni.",
+    "app_capture_monitor_missing": "Sovelluksen kaappaus ei käynnistynyt, joten nyt käännetään kaikki järjestelmän ääni.",
+    "parse_error": "Tarjoajan viestiä ei voitu lukea; istunto jatkuu.",
+    "tts_degraded": "Puheen toisto on heikentynyt; käännetty teksti saapuu edelleen.",
+    "resume_attempt_failed": "Uudelleenyhdistäminen epäonnistui; yritetään uudelleen.",
+    "voice_fallback": "Valittu ääni ei ollut käytettävissä, joten käytetään toista ääntä.",
+    "auth": "Tarjoaja ei hyväksynyt tunnistetietoja: {{detail}}",
+    "rate_limit": "Tarjoaja rajoittaa pyyntöjä; yritä uudelleen pian: {{detail}}",
+    "network": "Yhteys tarjoajaan epäonnistui: {{detail}}",
+    "server": "Tarjoajalla oli ongelma: {{detail}}",
+    "client": "Tarjoaja hylkäsi pyynnön: {{detail}}",
+    "no_asr": "Puheentunnistusmallia ei ole asennettu kielelle {{source}}.",
+    "memory_exceeded": "Nämä mallit tarvitsevat yhteensä enemmän muistia kuin tässä laitteessa on.",
+    "gpu_out_of_memory": "GPU-muisti loppui — valittu malli on liian suuri GPU:llesi. Vaihda pienempään malliin.",
+    "transcription_failed": "Osaa puheesta ei voitu litteroida: {{detail}}",
+    "translation_failed": "Käännös epäonnistui: {{detail}}",
+    "translation_unavailable": "Tälle suunnalle ei ole käännösmallia: sen puhe vain litteroidaan.",
+    "local_models_missing": "Lataa tarvittavat mallit Asetuksista aloittaaksesi.",
+    "no_microphone": "Määritä tämän tilan laitteet aloittaaksesi.",
+    "silent_no_permission": "Valitusta lähteestä ei ole vielä tullut ääntä. Jos se toistaa eikä mitään käännetä, salli Sokuji kohdassa Järjestelmäasetukset > Tietosuoja ja turvallisuus > Vain järjestelmän äänen tallennus (macOS) ja aloita istunto uudelleen.",
+    "loopback_denied": "Toisen ääni vaatii näytön tallennuksen käyttöoikeuden järjestelmän äänen kaappaamiseen."
   }
 }

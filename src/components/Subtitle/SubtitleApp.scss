@@ -8,9 +8,9 @@
   width: 100vw;
   border-radius: 8px;
   overflow: hidden;
-  // Defined on this element's inline style by SubtitleApp.tsx (the user's
-  // source-text colour). Only reaches descendants that don't set their own
-  // colour — the idle body, PTT hint and bar all do.
+  // Defined on this element's inline style by useSubtitleChrome's rootStyle
+  // (the user's source-text colour). Only reaches descendants that don't set
+  // their own colour — the idle body, PTT hint and bar all do.
   color: var(--subtitle-source-color, #FFFFFF);
   // Positioning context for the SubtitleBar, which floats above the
   // subtitle area so the bar's footprint isn't permanently reserved.
@@ -26,7 +26,7 @@
 // Resize affordance for the extension-overlay surface — 4 corners + 4
 // edges sit on .subtitle-app (iframe boundary), not on the bar. Invisible
 // (cursor-only affordance, no background); rendered only when the user
-// hasn't locked position. See SubtitleApp.tsx > showResizeHandles.
+// hasn't locked position. See useSubtitleChrome.tsx > showResizeHandles.
 .subtitle-app__resize {
   position: absolute;
   z-index: 20; // above .subtitle-bar (z-index: 10)

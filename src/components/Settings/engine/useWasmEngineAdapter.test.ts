@@ -1,49 +1,43 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-
-// useWasmEngineAdapter statically imports settingsStore, which drags in its
-// real static import graph — including
-// audioStore -> ServiceFactory -> ModernBrowserAudioService -> ModernAudioRecorder
-// -> the @sapphi-red/web-noise-suppressor worklet's `?url` import, which this
-// sandboxed Vite test transform denies outright. Mock ServiceFactory (same
-// fix modelStore.test.ts / settingsStore.test.ts / ensureSelectionReady.test.ts
-// already use) so that chain never loads; settingsStore's own persistence
-// goes through this mock instead of a real settings backend.
-vi.mock('../../../services/ServiceFactory', () => ({
-  ServiceFactory: {
-    getSettingsService: vi.fn(() => ({
-      setSetting: vi.fn().mockResolvedValue(undefined),
-      getSetting: vi.fn(),
-    })),
-  },
-}));
-
-const { useWasmEngineAdapter } = await import('./useWasmEngineAdapter');
-const { useModelStore } = await import('../../../stores/modelStore');
-const { default: useSettingsStore } = await import('../../../stores/settingsStore');
-const { getManifestByType } = await import('../../../lib/local-inference/modelManifest');
-const { wasmCandidates } = await import('../../../lib/local-inference/selection/candidates.wasm');
+import { useCallback, useMemo, useState } from 'react';
+import { useWasmEngineAdapter } from './useWasmEngineAdapter';
+import { useModelStore } from '../../../stores/modelStore';
+import { getManifestByType } from '../../../lib/local-inference/modelManifest';
+import { wasmCandidates } from '../../../lib/local-inference/selection/candidates.wasm';
+import { LOCAL_INFERENCE_DEFAULTS, type LocalInferenceSettings } from '../../../providers/localInference/settings';
+import type { LanguagePair } from '../../../lib/provider/types';
 
 const jaAsr = () => getManifestByType('asr').filter(m => m.multilingual || m.languages.includes('ja'));
 
+const JA_EN: LanguagePair = { source: 'ja', target: 'en' };
+const ZH_KO: LanguagePair = { source: 'zh', target: 'ko' };
+
+/** The adapter over LocalInference's own settings, held in React state as
+ *  `LocalInferenceEngine` holds them: the override every mount passes
+ *  (Stage 2 deletion, ruling 3). */
+function useHeldAdapter(pair: LanguagePair = JA_EN) {
+  const [settings, setSettings] = useState<LocalInferenceSettings>({ ...LOCAL_INFERENCE_DEFAULTS, selections: {} });
+  const update = useCallback((patch: Partial<LocalInferenceSettings>) => setSettings((s) => ({ ...s, ...patch })), []);
+  const override = useMemo(() => ({ settings, update, pair }), [settings, update, pair]);
+  return { adapter: useWasmEngineAdapter(false, override), settings };
+}
+
 describe('useWasmEngineAdapter', () => {
-  beforeEach(async () => {
-    await useSettingsStore.getState().updateLocalInference({
-      sourceLanguage: 'ja', targetLanguage: 'en', selections: {},
-    });
+  beforeEach(() => {
     useModelStore.setState({ modelStatuses: {}, webgpuAvailable: true });
   });
 
   it('directions are speaker-first ja→en then en→ja', () => {
-    const { result } = renderHook(() => useWasmEngineAdapter());
-    expect(result.current.directions.map(d => d.dir)).toEqual(['ja→en', 'en→ja']);
+    const { result } = renderHook(() => useHeldAdapter());
+    expect(result.current.adapter.directions.map(d => d.dir)).toEqual(['ja→en', 'en→ja']);
   });
 
   it('readyCandidates lists only downloaded/usable implementations', () => {
     const first = jaAsr()[0];
     useModelStore.setState({ modelStatuses: { [first.id]: 'downloaded' } });
-    const { result } = renderHook(() => useWasmEngineAdapter());
-    const ids = result.current.readyCandidates({ dir: 'ja→en', stage: 'asr' }).map(c => c.id);
+    const { result } = renderHook(() => useHeldAdapter());
+    const ids = result.current.adapter.readyCandidates({ dir: 'ja→en', stage: 'asr' }).map(c => c.id);
     expect(ids).toContain(first.id);
     // an un-downloaded ja-capable ASR is absent
     const notDownloaded = jaAsr().find(m => m.id !== first.id && !m.isCloudModel);
@@ -71,25 +65,43 @@ describe('useWasmEngineAdapter', () => {
       modelStatuses: { [astCandidate!.id]: 'downloaded', [normalCandidate!.id]: 'downloaded' },
       webgpuAvailable: true,
     });
-    const { result } = renderHook(() => useWasmEngineAdapter());
-    const ids = result.current.readyCandidates({ dir: 'ja→en', stage: 'translation' }).map(c => c.id);
+    const { result } = renderHook(() => useHeldAdapter());
+    const ids = result.current.adapter.readyCandidates({ dir: 'ja→en', stage: 'translation' }).map(c => c.id);
     expect(ids).not.toContain(astCandidate!.id);
     expect(ids).toContain(normalCandidate!.id);
   });
 
   it('select writes an explicit pick preserving sibling stages, and "" restores auto', async () => {
-    const { result } = renderHook(() => useWasmEngineAdapter());
-    await act(() => result.current.select({ dir: 'en→ja', stage: 'translation' }, 'some-model'));
-    const sel = useSettingsStore.getState().localInference.selections['en→ja'];
+    const { result } = renderHook(() => useHeldAdapter());
+    await act(() => result.current.adapter.select({ dir: 'en→ja', stage: 'translation' }, 'some-model'));
+    const sel = result.current.settings.selections['en→ja'];
     expect(sel.translation.modelId).toBe('some-model');
     expect(sel.asr.modelId).toBe('');
-    await act(() => result.current.select({ dir: 'en→ja', stage: 'translation' }, ''));
-    expect(useSettingsStore.getState().localInference.selections['en→ja']).toBeUndefined();
+    await act(() => result.current.adapter.select({ dir: 'en→ja', stage: 'translation' }, ''));
+    expect(result.current.settings.selections['en→ja']).toBeUndefined();
   });
 
   it('participant direction renders asr+translation only', () => {
-    const { result } = renderHook(() => useWasmEngineAdapter());
-    expect(result.current.stagesFor('en→ja', false)).toEqual(['asr', 'translation']);
-    expect(result.current.stagesFor('ja→en', true)).toEqual(['asr', 'translation', 'tts']);
+    const { result } = renderHook(() => useHeldAdapter());
+    expect(result.current.adapter.stagesFor('en→ja', false)).toEqual(['asr', 'translation']);
+    expect(result.current.adapter.stagesFor('ja→en', true)).toEqual(['asr', 'translation', 'tts']);
+  });
+
+  it('reads its directions from the given pair', () => {
+    const { result } = renderHook(() => useHeldAdapter(ZH_KO));
+    expect(result.current.adapter.directions.map(d => d.dir)).toEqual(['zh→ko', 'ko→zh']);
+  });
+
+  it("writes a pick through the given update, with the whole selections map", async () => {
+    const update = vi.fn();
+    const { result } = renderHook(() => useWasmEngineAdapter(false, {
+      settings: { ...LOCAL_INFERENCE_DEFAULTS, selections: {} },
+      update,
+      pair: JA_EN,
+    }));
+    await act(() => result.current.select({ dir: 'en→ja', stage: 'translation' }, 'some-model'));
+    expect(update).toHaveBeenCalledWith({
+      selections: { 'en→ja': { asr: { modelId: '' }, translation: { modelId: 'some-model' }, tts: { modelId: '' } } },
+    });
   });
 });

@@ -24,7 +24,6 @@
       "audio": "Audio",
       "provider": "Fournisseur"
     },
-    "languageSettings": "Paramètres de Langue",
     "voice": "Voix",
     "voiceSettings": "Paramètres de Voix",
     "model": "Modèle",
@@ -40,10 +39,11 @@
     "autoTempo": "Vitesse de Parole Adaptative",
     "pushToTalk": "Appuyer pour parler",
     "pushToTranslate": "Appuyer pour traduire",
-    "pushToTranslateNotAvailableInWebrtc": "Non disponible en mode WebRTC. Passez à WebSocket pour utiliser Appuyer pour traduire.",
     "systemInstructions": "Instructions système",
     "speechMode": "Mode de parole",
     "speechModeAppliesTo": "S'applique à votre voix. L'audio de l'autre utilise toujours le VAD sémantique.",
+    "speechModeTooltip": "Auto: le fournisseur détecte quand vous avez fini de parler. \nAppuyer pour parler: maintenez la barre d'espace ou le bouton du microphone pour envoyer l'audio manuellement. \nAppuyer pour traduire: comme Appuyer pour parler, mais achemine votre micro brut vers le micro virtuel en veille pour que vous puissiez parler directement sans traduction.",
+    "speechModeAppliesToAuto": "S'applique à votre voix. L'audio de l'autre utilise toujours la détection automatique du fournisseur.",
     "userTranscriptModel": "Modèle de transcription utilisateur",
     "noiseReduction": "Réduction du bruit",
     "noiseSuppression": "Suppression du bruit",
@@ -72,22 +72,15 @@
     "eagerness": "Empressement",
     "temperature": "Température",
     "maxTokens": "Jetons maximum",
-    "validating": "Validation...",
     "enterCustomInstructions": "Entrez les instructions système personnalisées ici...",
     "settingsSavedSuccessfully": "Paramètres enregistrés avec succès",
     "failedToSaveSettings": "Échec de l'enregistrement des paramètres",
     "settingSavedSuccessfully": "Paramètre enregistré avec succès : {{key}}",
     "failedToSaveSetting": "Échec de l'enregistrement du paramètre : {{key}}",
-    "apiKeyValidationCompleted": "Validation de la clé API terminée",
-    "errorValidatingApiKey": "Erreur lors de la validation de la clé API",
     "regionNotSupported": "Le service n'est pas disponible dans votre région. Veuillez vérifier votre environnement réseau ou essayer un autre fournisseur.",
     "sessionActiveNotice": "Les paramètres sont verrouillés pendant que la session est active. Veuillez terminer la session pour modifier les paramètres.",
-    "realtimeModelAvailable": "Le modèle en temps réel est disponible",
     "realtimeModelNotAvailable": "Le modèle en temps réel n'est pas disponible",
-    "refreshModels": "Actualiser les modèles disponibles",
-    "loadingModels": "Chargement des modèles disponibles...",
     "modelsFound": "{{count}} modèles disponibles",
-    "invalidApiKeyFormat": "Format de clé API invalide",
     "volcengineAST2Info": "Informations Doubao AST 2.0",
     "volcengineAST2InfoText": "Doubao AST 2.0 fournit une traduction vocale avec clonage automatique de la voix. L'audio traduit préserve les caractéristiques vocales du locuteur d'origine.",
     "volcengineAST2TurnDetectionTooltip": "Auto: détection d'activité vocale côté serveur. \nAppuyer pour parler: maintenez la barre d'espace ou le bouton du microphone pour envoyer l'audio manuellement. \nAppuyer pour traduire: comme Appuyer pour parler, mais achemine votre micro brut vers le micro virtuel en veille pour que vous puissiez parler directement sans traduction.",
@@ -113,8 +106,6 @@
     "low": "Bas",
     "medium": "Moyen",
     "high": "Élevé",
-    "apiKeyValidated": "Clé API validée",
-    "realtimeTranslationAvailable": "Service de traduction en temps réel disponible",
     "advancedMode": "Avancé",
     "providerTooltip": "Choisissez votre service de traduction IA. Chaque service a différentes fonctionnalités, voix et prix. OpenAI offre le plus de fonctionnalités, tandis que Gemini a un bon plan gratuit. Le mode Local (Hors ligne) est entièrement gratuit — aucune clé API ni internet requis.",
     "modelTooltip": "Le modèle IA affecte la vitesse et la qualité. Les modèles 'Mini' sont plus rapides mais simples. Les modèles standard sont plus précis mais un peu plus lents. Essayez mini d'abord pour économiser.",
@@ -135,12 +126,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Suppression du bruit de fond. \nAucun: Pas de traitement, utiliser dans des pièces silencieuses. \nChamp proche: Pour casques/microphones proches. \nChamp lointain: Pour haut-parleurs/salles de conférence avec écho.",
     "systemInstructionsTooltip": "Instructions personnalisées pour le traducteur IA. Dites vos préférences comme ton formel/décontracté, gestion des termes techniques, ou style de traduction spécifique.",
-    "transportType": "Type de connexion",
-    "transportTypeTooltip": "WebRTC : Latence plus faible, recommandé pour la plupart des utilisateurs.\nWebSocket : Meilleure compatibilité avec les réseaux restrictifs. À utiliser si la connexion WebRTC échoue.",
-    "websocket": "WebSocket (Stable)",
-    "webrtc": "WebRTC (Faible latence)",
-    "webrtcVadDisabledTitle": "Le VAD serveur n'est pas disponible en mode WebRTC",
-    "webrtcVadNotice": "Le VAD serveur est désactivé en mode WebRTC. En WebRTC, le serveur coupe automatiquement l'audio lorsqu'il détecte la parole, ce qui interrompt les traductions.",
     "participantInstructions": "Instructions pour l'autre",
     "participantInstructionsTooltip": "Instructions système pour traduire l'audio de l'autre. Si vide, les instructions principales ci-dessus seront utilisées.\n\nImportant: Vos instructions principales peuvent avoir la mauvaise direction de langue pour l'autre. Exemple: Si vous parlez chinois et que vos instructions principales traduisent chinois→japonais, mais que l'autre parle japonais, les instructions principales essaieraient incorrectement de traduire japonais→japonais. Définissez des instructions séparées pour l'autre pour traduire japonais→chinois.",
     "localTranslationPrompt": "Prompt de Traduction",
@@ -203,9 +188,7 @@
       "xhigh": "Très élevé"
     },
     "translateInfoBanner": "Ce modèle reste silencieux lorsque le locuteur utilise la langue cible. Les discours multilingues peuvent présenter des silences.",
-    "translateModelAvailable": "Clé API validée. gpt-realtime-translate est disponible.",
     "translateModelNotAvailable": "La clé API fonctionne, mais gpt-realtime-translate n'est pas accessible avec cette clé.",
-    "translateSourceParticipantWarning": "La traduction de l'audio de l'autre peut ne pas fonctionner — « Ma langue » ne figure pas parmi les 13 langues cibles prises en charge par ce fournisseur.",
     "participantSectionHeader": "Audio de l'autre",
     "participantSectionDescriptionElectron": "Traduire l'audio de n'importe quelle application en lecture sur ce système.",
     "participantSectionDescriptionExtension": "Traduire l'audio de l'onglet de navigateur actif. L'audio original est diffusé via la sortie par défaut de votre système.",
@@ -222,7 +205,6 @@
     "sonioxSharedSession": "Session partagée en mode Les deux",
     "sonioxSharedSessionTooltip": "Le mode Les deux peut utiliser une seule session Soniox partagée ou une session distincte par direction.\n\nActivé : une seule session traduit les deux côtés avec séparation automatique des voix — coût et latence réduits.\n\nDésactivé : une session distincte par direction — plus fiable lorsque les deux personnes parlent en même temps, mais environ deux fois plus coûteux.\n\nN’affecte que le mode Les deux.",
     "sonioxSharedSessionManagedCost": "Kizuna AI prend en charge les deux. Lorsque la session partagée est désactivée, deux sessions sont exécutées simultanément : environ deux fois plus cher par minute, votre crédit de session s'épuise donc environ deux fois plus vite et un solde plus élevé est nécessaire pour démarrer.",
-    "sonioxAutoParticipantWarning": "Définissez « Ma langue » sur une langue précise — avec la détection automatique, la parole de l'autre ne peut pas y être traduite.",
     "sonioxVocabulary": "Vocabulaire personnalisé",
     "sonioxVocabularyTooltip": "Favorise la reconnaissance des noms et termes techniques importants, et oriente la façon dont certains termes sont traduits. S'applique à partir de la prochaine session.",
     "sonioxVocabularyTerms": "Termes",
@@ -310,7 +292,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "Authentifié automatiquement via votre compte",
-    "fetchingApiKey": "Récupération de la clé API depuis votre compte...",
     "provider": "Fournisseur de services IA",
     "apiKeyPlaceholder": "Entrez votre clé API",
     "setupGuide": "Guide de configuration",
@@ -369,6 +350,10 @@
     "loopbackMicWarningText1": "Les entrées en boucle comme « Stereo Mix » ou un périphérique « Monitor of ... » enregistrent la sortie audio du système lui-même. Pendant une session incluant la voix traduite de Sokuji, Sokuji s'entendrait et se traduirait en boucle.",
     "loopbackMicWarningText2": "Le périphérique reste sélectionné au cas où ce routage serait intentionnel, mais pour un usage normal, choisissez un microphone physique.",
     "participantNoAudioYet": "Aucun audio n'est encore arrivé de la source sélectionnée. Si elle est en lecture et que rien n'est traduit, autorisez Sokuji dans Réglages Système > Confidentialité et sécurité > Enregistrement audio du système uniquement (macOS), puis relancez la session.",
+    "participantSpeech": "Lire à voix haute la traduction de l'autre",
+    "participantSpeechDesc": "Vous lit à voix haute ce que dit l'autre, dans votre langue, sur vos haut-parleurs. Cela suit sa voix avec un léger décalage.",
+    "participantSpeechBlockedWholeSystem": "Désactivé tant que l'audio de l'autre capture tout l'audio du système : sa traduction serait de nouveau captée et retraduite. Choisissez une application comme source de l'autre.",
+    "participantSpeechNotYetAvailable": "Pas encore disponible avec ce fournisseur : la traduction de l'autre s'affiche uniquement en texte.",
     "audioCaptureUnprovenNotice": "Rien n'a encore été capturé",
     "audioCaptureUnprovenTitle": "Aucun audio n'est encore arrivé de la source sélectionnée",
     "audioCaptureUnprovenText1": "Si la source est en lecture et que rien n'est traduit, macOS fournit probablement du silence : capturer une application nécessite l'autorisation « Enregistrement audio du système uniquement », et sans elle il n'y a pas d'erreur, seulement du silence.",
@@ -427,9 +412,7 @@
     "backToSignIn": "Retour à la connexion",
     "forgotPasswordError": "Échec de l'envoi du code de vérification. Veuillez réessayer.",
     "resetPasswordError": "Échec de la réinitialisation du mot de passe. Veuillez réessayer.",
-    "signedOut": "Connectez-vous pour utiliser le service de traduction intégré de Kizuna AI.",
-    "sessionUnavailable": "Votre session n'est plus valide. Veuillez vous reconnecter.",
-    "unknown": "Impossible de vérifier votre compte. Veuillez réessayer."
+    "signedOut": "Connectez-vous pour utiliser le service de traduction intégré de Kizuna AI."
   },
   "simpleConfig": {
     "interfaceLanguage": "Langue de l'Interface",
@@ -453,20 +436,9 @@
     "keepReplayAudioDesc": "Stocker l'audio traduit en mémoire pour pouvoir le rejouer plus tard depuis chaque message. Désactivé par défaut afin de réduire l'utilisation de la mémoire pendant les longues sessions."
   },
   "providers": {
-    "kizunaai_openai_translate": {
-      "name": "KizunaAI",
-      "description": "75 langues source (détection auto), 13 langues cible",
-      "vendor": "OpenAI"
-    },
-    "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI",
-      "description": "8 langues + chinois–anglais bidirectionnel · conserve votre voix",
-      "vendor": "Doubao"
-    },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 langues, 3600 paires · clonez votre voix",
-      "vendor": "Soniox"
+      "description": "60 langues, 3600 paires · clonez votre voix"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -475,11 +447,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "Technologie AI de Google"
-    },
-    "openaiCompatible": {
-      "name": "Compatible OpenAI (Realtime hérité)",
-      "description": "Point de terminaison tiers utilisant l'ancien protocole Realtime bêta d'OpenAI. Pas pour OpenAI lui-même.",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -507,7 +474,8 @@
       "name": "Doubao AST 2.0",
       "description": "Traduction simultanée Doubao",
       "appIdPlaceholder": "APP ID",
-      "accessTokenPlaceholder": "Access Token"
+      "accessTokenPlaceholder": "Access Token",
+      "authModeApp": "App ID + Access Token"
     },
     "local_inference": {
       "name": "Gratuit",
@@ -545,7 +513,6 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Les traductions s’affichent dans la superposition de sous-titres",
-    "speechDetected": "[Parole détectée]",
     "function": "Fonction",
     "noChannelConfigured": "Activez le microphone ou l'audio de l'autre avant de démarrer.",
     "release": "relâcher",
@@ -564,6 +531,7 @@
     "typeMessage": "Texte à traduire...",
     "send": "Envoyer",
     "error": "Erreur",
+    "warning": "Avertissement",
     "unknownError": "Erreur inconnue",
     "insufficientBalance": "Solde insuffisant : {{balance}}",
     "walletFrozen": "Portefeuille gelé. Veuillez contacter le support.",
@@ -589,6 +557,7 @@
       "legendNone": "Arrêt : masquer ce côté"
     },
     "playItemAudio": "Lire l'audio de cet élément",
+    "replayBlockedWholeSystem": "La relecture est désactivée tant que l'audio de l'autre capture tout l'audio du système : il serait retraduit.",
     "toolbar": {
       "export": "Exporter la conversation"
     },
@@ -601,6 +570,8 @@
       "speakerYou": "Moi",
       "speakerOther": "Autre",
       "translationSuffix": "(trad.)",
+      "noTranslation": "(pas de traduction)",
+      "noSource": "(pas de source)",
       "scopeLabel": "Inclure",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "Rien de sélectionné",
@@ -625,9 +596,6 @@
     "waveformMicTooltip": "Votre microphone — votre voix captée pour la traduction",
     "waveformSystemTooltip": "Audio de l'autre capté pour la traduction (onglet du navigateur / audio système)",
     "allChannelsFailed": "Échec du démarrage des canaux audio. Vérifiez les autorisations des périphériques et réessayez.",
-    "participantChannelFailed": "Échec du démarrage du canal audio de l'autre.",
-    "splitDegradedLabel": "Sens unique uniquement",
-    "splitDegradedTooltip": "L'audio de l'autre n'est pas traduit, cette session fonctionne donc dans un seul sens. Vérifiez les autorisations de l'audio de l'autre, puis lancez une nouvelle session.",
     "sonioxInsufficientBalance": "Solde insuffisant pour démarrer une session. Veuillez recharger votre solde et réessayer.",
     "sonioxSessionConflict": "Une autre session est déjà en cours sur votre compte. Veuillez réessayer dans un instant.",
     "sonioxServiceUnavailable": "Soniox est temporairement indisponible. Veuillez réessayer dans un instant.",
@@ -637,7 +605,6 @@
     "sonioxTtsSegmentLost": "Une partie de la traduction vocale n'a pas pu être lue. La transcription et la traduction du texte ne sont pas affectées.",
     "sonioxSegmentEnded": "Ce segment est terminé — appuyez sur « Démarrer la session » pour continuer.",
     "sonioxConnectionLost": "La connexion a été interrompue — appuyez sur « Démarrer la session » dans un instant pour continuer.",
-    "openaiLiveConnectionLost": "La connexion a été interrompue — appuyez sur « Démarrer la session » dans un instant pour continuer.",
     "sonioxVoiceClipMissing": "Cet appareil ne dispose d'aucun enregistrement vocal, donc cette session utilise une voix préréglée. Enregistrez-en un dans les Paramètres pour parler ici avec votre propre voix.",
     "sonioxVoicePoolBusy": "Toutes les places de voix personnalisées sont actuellement utilisées, donc cette session utilise une voix préréglée. Votre propre voix sera à nouveau utilisée la prochaine fois.",
     "sonioxVoiceBuildFailed": "Votre voix personnalisée n'a pas pu être créée, donc cette session utilise une voix préréglée. Essayez d'enregistrer un extrait plus clair dans les Paramètres.",
@@ -1171,8 +1138,6 @@
     },
     "credentials": {
       "apiKey": "Clé API",
-      "endpoint": "URL du point de terminaison",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",
@@ -1272,5 +1237,42 @@
         "content": "Les paramètres avancés — détection de la parole, prompts, voix, journaux — se trouvent derrière le bouton Avancé, en haut à droite des Paramètres. Rejouez ce guide à tout moment depuis Aide."
       }
     }
+  },
+  "notices": {
+    "no_provider": "Choisissez un fournisseur dans les paramètres avant de démarrer.",
+    "no_legs": "Choisissez ce qu'il faut traduire avant de démarrer.",
+    "turn_mode_unsupported": "Ce fournisseur ne propose pas le mode de parole choisi.",
+    "participant_source_unavailable": "La traduction de l'autre n'est pas disponible ici.",
+    "participant_unsupported": "Ce fournisseur ne peut pas traduire l'autre pour cette paire de langues.",
+    "credentials_missing": "Saisissez votre clé API dans les paramètres avant de démarrer.",
+    "not_ready": "Le fournisseur n'est pas prêt : {{detail}}",
+    "build_refused": "Le fournisseur ne peut pas démarrer avec ces paramètres : {{detail}}",
+    "admit_refused": "Le fournisseur ne peut pas gérer cette combinaison : {{detail}}",
+    "start_failed": "La session n'a pas démarré : {{detail}}",
+    "leg_failed": "La session s'est arrêtée : {{detail}}",
+    "leg_closed": "Le fournisseur a mis fin à la session.",
+    "source_ended": "La source audio a disparu (débranchée, fermée ou arrêtée).",
+    "still_stopping": "La dernière session est encore en cours d'arrêt ; réessayez dans un instant.",
+    "app_capture_lost_using_system_audio": "La capture de l'application s'est arrêtée ; tout l'audio du système est donc traduit à la place.",
+    "app_capture_monitor_missing": "La capture de l'application n'a pas démarré ; tout l'audio du système est donc traduit à la place.",
+    "parse_error": "Un message du fournisseur n'a pas pu être lu ; la session continue.",
+    "tts_degraded": "La lecture vocale est dégradée ; le texte traduit continue d'arriver.",
+    "resume_attempt_failed": "La reconnexion a échoué ; nouvelle tentative en cours.",
+    "voice_fallback": "La voix choisie n'était pas disponible, une autre voix est donc utilisée.",
+    "auth": "Le fournisseur n'a pas accepté les identifiants : {{detail}}",
+    "rate_limit": "Le fournisseur limite les requêtes ; réessayez sous peu : {{detail}}",
+    "network": "La connexion au fournisseur a échoué : {{detail}}",
+    "server": "Le fournisseur a rencontré un problème : {{detail}}",
+    "client": "Le fournisseur a rejeté la requête : {{detail}}",
+    "no_asr": "Aucun modèle de reconnaissance vocale n'est installé pour {{source}}.",
+    "memory_exceeded": "Ces modèles nécessitent ensemble plus de mémoire que n'en possède cet appareil.",
+    "gpu_out_of_memory": "Mémoire GPU insuffisante — le modèle sélectionné est trop volumineux pour votre GPU. Veuillez choisir un modèle plus petit.",
+    "transcription_failed": "Une partie de la parole n'a pas pu être transcrite : {{detail}}",
+    "translation_failed": "Une traduction a échoué : {{detail}}",
+    "translation_unavailable": "Aucun modèle de traduction pour ce sens : sa parole est seulement transcrite.",
+    "local_models_missing": "Veuillez télécharger les modèles requis dans les Paramètres pour commencer.",
+    "no_microphone": "Configurez les périphériques de ce mode pour démarrer.",
+    "silent_no_permission": "Aucun audio n'est encore arrivé de la source sélectionnée. Si elle est en lecture et que rien n'est traduit, autorisez Sokuji dans Réglages Système > Confidentialité et sécurité > Enregistrement audio du système uniquement (macOS), puis relancez la session.",
+    "loopback_denied": "L'Audio de l'autre nécessite l'autorisation d'enregistrement de l'écran pour capturer l'audio du système."
   }
 }

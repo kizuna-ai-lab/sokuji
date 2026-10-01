@@ -16,7 +16,7 @@ const CounterStub = ({ label }: { label: string }) => {
 
 vi.mock('../MainPanel/MainPanel', () => ({ default: () => null }));
 vi.mock('../Tour/TourOverlay', () => ({ default: () => null }));
-vi.mock('../Subtitle/SubtitleApp', () => ({ default: () => null }));
+vi.mock('../Subtitle/SubtitleTakeover', () => ({ SubtitleTakeover: () => <div data-testid="subtitle-takeover" /> }));
 vi.mock('../SetupWizard/SetupWizard', () => ({ default: () => null }));
 vi.mock('./PanelResizer', () => ({ default: () => null }));
 
@@ -41,6 +41,7 @@ vi.mock('../TitleBar/TitleBar', () => ({
 
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
 vi.mock('../../lib/auth/hooks', () => ({ useAuth: () => ({ isSignedIn: false }) }));
+vi.mock('./useSignInProviderSwitch', () => ({ useSignInProviderSwitch: () => {} }));
 vi.mock('../../stores/setupStore', () => ({ useSetupLoaded: () => true, useSetupComplete: () => true }));
 vi.mock('../../stores/layoutStore', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../stores/layoutStore')>()),
@@ -55,11 +56,11 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
   isElectron: () => false,
   isKizunaAIEnabled: () => false,
 }));
+// MainLayout itself no longer reads a provider or a UI mode setter — only
+// the three exports it still uses. The sign-in switch reads uiMode too, but
+// it lives in its own hook (useSignInProviderSwitch, mocked above), so this
+// file mocks settingsStore whole rather than growing this list to cover it.
 vi.mock('../../stores/settingsStore', () => ({
-  useProvider: () => 'openai',
-  useUIMode: () => 'advanced',
-  useSetProvider: () => vi.fn(),
-  useSetUIMode: () => vi.fn(),
   useSettingsNavigationTarget: () => null,
   useSubtitleModeActive: () => false,
   // The logs button exists only while diagnostic logs are on, and these tests

@@ -1,11 +1,14 @@
 /**
  * The closed vocabulary of client-side diagnostics.
  *
- * A provider client cannot know which session leg it is running on — only
- * MainPanel does — so it cannot file its own panel entry, and it must not
- * import the store or `report()` (enforced by consoleLedger.consistency.test.ts).
- * It emits a code instead, and `participantTelemetry` gives it a channel and a
- * severity.
+ * A provider client cannot know which session leg it is running on, so it
+ * cannot file its own panel entry, and it must not import the store or
+ * `report()` (enforced by consoleLedger.consistency.test.ts). It emits a
+ * code instead. The old MainPanel's `participantTelemetry.ts` used to read
+ * this table for the channel and severity (deleted in plan 1e-3c); today
+ * `Conversation` (one instance per leg, constructed in
+ * `src/lib/session/run.ts`) reads it the same way when it turns a code into
+ * a notice.
  *
  * A closed table rather than free-form strings, because the alternative is
  * every client deciding severity for itself: that is exactly the per-call-site
@@ -23,20 +26,22 @@
 export const CLIENT_DIAGNOSTICS = {
   /** A frame arrived that could not be parsed. The stream continues. */
   parse_error: { severity: 'warning' },
-  /** A teardown step threw. The session is already ending. */
-  cleanup_failed: { severity: 'warning' },
-  /** Audio capture broke mid-session: nothing further will be transcribed. */
-  input_pipeline_failed: { severity: 'error' },
   /** Speech synthesis degraded or dropped; translation text still arrives. */
   tts_degraded: { severity: 'warning' },
   /** An automatic resume attempt failed; further attempts may follow. */
   resume_attempt_failed: { severity: 'warning' },
-  /** Outbound audio or text could not be sent and was dropped. */
-  send_dropped: { severity: 'warning' },
   /** The requested voice was unavailable and a substitute was used. */
   voice_fallback: { severity: 'warning' },
-  /** A managed-session lease notification could not be delivered. */
-  lease_notify_failed: { severity: 'warning' },
+  /** One utterance could not be transcribed; the session continues. */
+  transcription_failed: { severity: 'warning' },
+  /** One translation failed; the session continues. */
+  translation_failed: { severity: 'warning' },
+  /** This direction has no translation model: its speech is transcribed only. */
+  translation_unavailable: { severity: 'warning' },
+  /** One segment of spoken translation was lost (the provider killed it); the next one speaks. */
+  tts_segment_lost: { severity: 'warning' },
+  /** Spoken translation has stopped; transcription and text translation go on. */
+  tts_stopped: { severity: 'warning' },
 } satisfies Record<string, { severity: 'error' | 'warning' }>;
 
 export type ClientDiagnosticCode = keyof typeof CLIENT_DIAGNOSTICS;

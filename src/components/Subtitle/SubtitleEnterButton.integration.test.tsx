@@ -40,6 +40,16 @@ vi.mock('../../utils/environment', async (importOriginal) => {
   };
 });
 
+// The button's own read of the run phase (`useRunPhase`, via `getAppSession()`)
+// pulls the whole root module graph — mocked here so this file stays scoped
+// to settingsStore.enterSubtitleMode. `registerRunPhase` below wires the SAME
+// variable into that store's guard (the non-React leaf, src/app/runPhase.ts),
+// so the two gates this file exists to keep in sync read one fact.
+let phase: 'idle' | 'starting' | 'running' | 'stopping' = 'idle';
+vi.mock('../../app/useRun', () => ({
+  useRunPhase: () => phase,
+}));
+
 beforeEach(() => {
   (window as any).electron = {
     invoke: vi.fn(async (channel: string) => {
@@ -55,18 +65,21 @@ beforeEach(() => {
   };
 });
 
-// Import after mocking so settingsStore/sessionStore pick up the mocked
-// environment and ServiceFactory.
+// Import after mocking so settingsStore picks up the mocked environment and
+// ServiceFactory.
 const { default: SubtitleEnterButton } = await import('./SubtitleEnterButton');
 const { default: useSettingsStore } = await import('../../stores/settingsStore');
-const { default: useSessionStore } = await import('../../stores/sessionStore');
+const { registerRunPhase } = await import('../../app/runPhase');
 
 describe('SubtitleEnterButton wired to the real settingsStore', () => {
   beforeEach(() => {
     cleanup();
     isElectronFlag = true;
+    phase = 'idle';
     useSettingsStore.setState({ subtitleModeActive: false, subtitleFullscreen: false });
-    useSessionStore.setState({ isSessionActive: false } as any);
+    // Feeds enterSubtitleMode's guard from the same `phase` the mocked
+    // useRunPhase above hands the button, so a test that flips one flips both.
+    registerRunPhase(() => phase);
   });
 
   it('a click on Electron with no session actually enters subtitle mode', async () => {

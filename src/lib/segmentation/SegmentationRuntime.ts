@@ -42,8 +42,8 @@ export type SegmentationObservation =
   | { kind: 'seal'; reason: SealReason; lang: string; chars: number; terminals: number }
   /** One server-decided segment went through the fill-in helper. */
   | { kind: 'definite'; lang: string; chars: number; terminals: number }
-  /** One `punctuate()` call. Synthesised by the instrumenting wrapper in
-   *  segmentationTelemetry.ts, never emitted from here. */
+  /** One `punctuate()` call. Synthesised by the instrumenting wrapper —
+   *  `memoizePunctuator` in `app/punctuation.ts` — never emitted from here. */
   | { kind: 'model_call' };
 
 export interface SegmentationRuntime {

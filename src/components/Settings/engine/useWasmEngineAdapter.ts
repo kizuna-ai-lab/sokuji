@@ -2,22 +2,37 @@ import { useMemo } from 'react';
 import {
   useModelStore, useModelStatuses, useWebGPUAvailable, useDeviceFeatures, useStorageUsedMb,
 } from '../../../stores/modelStore';
-import { useLocalInferenceSettings, useUpdateLocalInference } from '../../../stores/settingsStore';
 import { wasmCandidates } from '../../../lib/local-inference/selection/candidates.wasm';
 import { directionKey, emptyDirection, type Stage } from '../../../lib/local-inference/selection/types';
 import { getManifestEntry, getModelSizeMb } from '../../../lib/local-inference/modelManifest';
 import { shortenModelName } from '../../../lib/local-inference/modelName';
 import { languageNameFor } from './languageName';
 import type { EngineAdapter } from './EngineTypes';
+import type { LanguagePair } from '../../../lib/provider/types';
+import type { LocalInferenceSettings } from '../../../providers/localInference/settings';
+
+/**
+ * LocalInference's own `S`/`update`/pair (the new provider contract). Every
+ * mount (`LocalInferenceEngine`, wired from both `SimpleSettings` and
+ * `AdvancedSettings`) passes it; the old slice it once fell back to went with
+ * the old descriptor (Stage 2 deletion, ruling 3).
+ */
+export interface WasmEngineAdapterOverride {
+  settings: LocalInferenceSettings;
+  update: (patch: Partial<LocalInferenceSettings>) => void;
+  pair: LanguagePair;
+}
 
 /** LOCAL_INFERENCE's EngineAdapter — resolve() for display, selections for writes. */
-export function useWasmEngineAdapter(isSessionActive = false): EngineAdapter {
-  const { sourceLanguage, targetLanguage, selections } = useLocalInferenceSettings();
-  const updateLocalInference = useUpdateLocalInference();
+export function useWasmEngineAdapter(isSessionActive: boolean, override: WasmEngineAdapterOverride): EngineAdapter {
   const modelStatuses = useModelStatuses();
   const webgpuAvailable = useWebGPUAvailable();
   const deviceFeatures = useDeviceFeatures();
   const storageUsedMb = useStorageUsedMb();
+
+  const sourceLanguage = override.pair.source;
+  const targetLanguage = override.pair.target;
+  const selections = override.settings.selections;
 
   return useMemo<EngineAdapter>(() => {
     const speaker = directionKey(sourceLanguage, targetLanguage);
@@ -82,11 +97,11 @@ export function useWasmEngineAdapter(isSessionActive = false): EngineAdapter {
         if (!nextDir.asr.modelId && !nextDir.translation.modelId && !nextDir.tts.modelId) {
           delete next[slot.dir]; // all-auto directions carry no information
         }
-        await updateLocalInference({ selections: next });
+        await override.update({ selections: next });
       },
       storageSummary: `${storageUsedMb} MB`,
       stagesFor: (_dir, isSpeaker): Stage[] => (isSpeaker ? ['asr', 'translation', 'tts'] : ['asr', 'translation']),
       disabled: isSessionActive,
     };
-  }, [sourceLanguage, targetLanguage, selections, modelStatuses, webgpuAvailable, deviceFeatures, storageUsedMb, updateLocalInference, isSessionActive]);
+  }, [sourceLanguage, targetLanguage, selections, modelStatuses, webgpuAvailable, deviceFeatures, storageUsedMb, override, isSessionActive]);
 }

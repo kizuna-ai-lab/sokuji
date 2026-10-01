@@ -91,6 +91,16 @@ describe('setupReducer — clearing rules (spec §1.4)', () => {
     expect(dropped).toMatchObject({ credentialsValidated: false, credentialsPending: true, credentials: {} });
   });
 
+  it('picking a credential choice keeps it, keeps what was typed, and invalidates a validation (Stage 2 Volcengine AST2, I2)', () => {
+    const validated = run(base, { type: 'credentialsValidated' }, { type: 'setCredential', key: 'appId', value: 'a1' });
+    const picked = run(validated, { type: 'setCredentialChoice', setting: 'authMode', value: 'apiKey' });
+    expect(picked).toMatchObject({ credentialChoice: { setting: 'authMode', value: 'apiKey' }, credentials: { appId: 'a1' }, credentialsValidated: false, credentialsPending: false });
+    // Another path or provider forgets it with the credentials.
+    expect(run(picked, { type: 'setProvider', provider: Provider.GEMINI }).credentialChoice).toBeNull();
+    expect(run(picked, { type: 'setPath', path: 'offline', provider: Provider.LOCAL_INFERENCE }).credentialChoice).toBeNull();
+    expect(initialDraft().credentialChoice).toBeNull();
+  });
+
   it('editing a credential invalidates a previous validation and un-skips', () => {
     const skipped = run(base, { type: 'skipCredentials' });
     expect(skipped).toMatchObject({ credentialsPending: true, credentials: {} });

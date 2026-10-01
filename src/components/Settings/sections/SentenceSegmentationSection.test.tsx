@@ -6,13 +6,13 @@
  * — unchanged from A1 — one confirmation, one download, one delete for the
  * three-model pack.
  *
- * The offers are the REAL ones: `ProviderConfigFactory` is not mocked, so
- * every "this provider offers X" case below is the descriptor's own answer
- * rather than a literal this file made up. Three shapes exist in phase 1 and
- * all three are reachable from a provider registered in every environment:
- * Gemini (pause + sizes), Local Inference (sizes only) and OpenAI (Auto
- * only). The fourth shape, Auto + sizes, arrives in phase 2 and is the one
- * case that has to be stubbed.
+ * The offer this provider makes (`lib/view/appViewSettings`'s `offerFor` /
+ * `selectedBoundaries`) is mocked wholesale, so each case below sets
+ * `mockOffer` directly to the shape the case it stands in for used to
+ * produce: Gemini (pause + sizes), Local Inference (Auto + sizes) and OpenAI
+ * (Auto only). A fourth shape, sizes only with neither pause nor Auto, no
+ * provider offers any more but the resolvers still have a rule for it, so it
+ * stays under test as a bare offer.
  *
  * `segmentationStore` is the REAL store, with its four actions swapped for
  * spies through `setState` — the store keeps its real `PACK_MODELS` and
@@ -37,9 +37,12 @@ vi.mock('react-i18next', async (importOriginal) => {
   };
 });
 
-const { Provider } = await import('../../../types/Provider');
+interface MockOffer {
+  pause: boolean;
+  auto: boolean;
+  sizes: boolean;
+}
 
-let mockProvider: string = Provider.GEMINI;
 let mockMode = 'off';
 const setSegmentationMode = vi.fn();
 let mockChunkSentences = 3;
@@ -48,14 +51,15 @@ let mockSourcePause = 1.5;
 const setSourcePause = vi.fn();
 let mockTranslationPause = 1.5;
 const setTranslationPause = vi.fn();
-/** OpenAI Translate's own transport, the one provider setting this section
- *  reads: over WebRTC that client has a single pair timer, so there is no
- *  source pause to tune. */
-let mockTranslateTransport: 'websocket' | 'webrtc' = 'websocket';
+
+/** Stands in for the selected provider's `boundaries(s)` and what it offers
+ *  the stored cut — set per case the way `mockProvider` used to be, since
+ *  `offerFor`/`selectedBoundaries` are mocked wholesale below rather than
+ *  resolved from a real provider. */
+let mockBoundaries: 'provider' | 'silence' = 'silence';
+let mockOffer: MockOffer = { pause: true, auto: false, sizes: true };
 
 vi.mock('../../../stores/settingsStore', () => ({
-  useProvider: () => mockProvider,
-  useOpenAITranslateSettings: () => ({ transportType: mockTranslateTransport }),
   useSegmentationMode: () => mockMode,
   useSetSegmentationMode: () => setSegmentationMode,
   useSentenceSegmentationChunkSentences: () => mockChunkSentences,
@@ -64,6 +68,17 @@ vi.mock('../../../stores/settingsStore', () => ({
   useSetSegmentationSourcePause: () => setSourcePause,
   useSegmentationTranslationPause: () => mockTranslationPause,
   useSetSegmentationTranslationPause: () => setTranslationPause,
+}));
+
+vi.mock('../../../lib/view/appViewSettings', () => ({
+  selectedBoundaries: () => mockBoundaries,
+  offerFor: () => mockOffer,
+}));
+
+// The re-render selector only; its shape is irrelevant here since the offer
+// itself comes straight from the mock above.
+vi.mock('../../../stores/providerStore', () => ({
+  useProviderStore: () => undefined,
 }));
 
 // The real store never reaches the disk here: its four actions are replaced
@@ -90,7 +105,6 @@ const { useSegmentationStore, PACK_MODELS, PACK_TOTAL_BYTES } =
 const { formatBytes } = await import('../../../lib/local-inference/formatBytes');
 const { MIN_SEGMENT_PAUSE_SECONDS, MAX_SEGMENT_PAUSE_SECONDS } =
   await import('../../../lib/segmentation/segmentationMode');
-const { ProviderConfigFactory } = await import('../../../services/providers/ProviderConfigFactory');
 
 const refresh = vi.fn();
 const download = vi.fn();
@@ -126,12 +140,12 @@ const confirmation = () => screen.queryByRole('dialog');
 beforeEach(() => {
   cleanup();
   setDeviceMemory(8);
-  mockProvider = Provider.GEMINI;
+  mockBoundaries = 'silence';
+  mockOffer = { pause: true, auto: false, sizes: true };
   mockMode = 'off';
   mockChunkSentences = 3;
   mockSourcePause = 1.5;
   mockTranslationPause = 1.5;
-  mockTranslateTransport = 'websocket';
   setSegmentationMode.mockClear();
   setChunkSentences.mockClear();
   setSourcePause.mockClear();
@@ -177,7 +191,7 @@ describe('SentenceSegmentationSection', () => {
 
   describe('the mode control', () => {
     it('offers all three modes on a provider that cuts on its own timers', () => {
-      mockProvider = Provider.GEMINI;
+      mockOffer = { pause: true, auto: false, sizes: true };
       renderSection();
 
       expect(modeButton('Off')).toBeTruthy();
@@ -186,7 +200,7 @@ describe('SentenceSegmentationSection', () => {
     });
 
     it('drops By pause on a provider whose boundaries a server decides', () => {
-      mockProvider = Provider.OPENAI;
+      mockOffer = { pause: false, auto: true, sizes: false };
       renderSection();
 
       expect(modeButton('Off')).toBeTruthy();
@@ -195,7 +209,7 @@ describe('SentenceSegmentationSection', () => {
     });
 
     it('drops By pause on the local engines too', () => {
-      mockProvider = Provider.LOCAL_INFERENCE;
+      mockOffer = { pause: false, auto: true, sizes: true };
       renderSection();
 
       expect(queryModeButton('By pause')).toBeUndefined();
@@ -205,14 +219,14 @@ describe('SentenceSegmentationSection', () => {
       // 'pause' is the stored default; on a provider without timers it
       // resolves to Off, and Off is what has to look chosen.
       mockMode = 'pause';
-      mockProvider = Provider.OPENAI;
+      mockOffer = { pause: false, auto: true, sizes: false };
       renderSection();
 
       expect(modeButton('Off').className).toContain('active');
     });
 
     it('stores the mode the user picked', () => {
-      mockProvider = Provider.GEMINI;
+      mockOffer = { pause: true, auto: false, sizes: true };
       renderSection();
 
       fireEvent.click(modeButton('By pause'));
@@ -224,7 +238,7 @@ describe('SentenceSegmentationSection', () => {
       // no timers, so Off already looks selected. Clicking it has to write
       // `off` all the same: otherwise the user cannot make Off the stored
       // value from here, and switching to Gemini brings By pause back.
-      mockProvider = Provider.OPENAI;
+      mockOffer = { pause: false, auto: true, sizes: false };
       mockMode = 'pause';
       renderSection();
 
@@ -234,7 +248,7 @@ describe('SentenceSegmentationSection', () => {
     });
 
     it('still does nothing when the clicked mode is the stored one', () => {
-      mockProvider = Provider.GEMINI;
+      mockOffer = { pause: true, auto: false, sizes: true };
       mockMode = 'pause';
       renderSection();
 
@@ -257,10 +271,10 @@ describe('SentenceSegmentationSection', () => {
       expect(refresh).toHaveBeenCalledTimes(2);
     });
 
-    it('disables every mode during a session', () => {
+    it('keeps the modes editable during a session', () => {
       renderSection(true);
       for (const label of ['Off', 'By pause', 'By sentences']) {
-        expect(modeButton(label).disabled).toBe(true);
+        expect(modeButton(label).disabled).toBe(false);
       }
     });
   });
@@ -388,15 +402,10 @@ describe('SentenceSegmentationSection', () => {
 
   describe('the size control', () => {
     it('shows 1-5 and no Auto where only sizes are offered', () => {
-      // No descriptor declares this shape any more — the local engines held
-      // it until phase 2 gave them Auto — but the resolvers still have a rule
-      // for it, so the rendering rule is kept under test with a stub.
-      const real = ProviderConfigFactory.getConfig(Provider.LOCAL_INFERENCE);
-      vi.spyOn(ProviderConfigFactory, 'getConfig').mockReturnValue({
-        ...real,
-        capabilities: { ...real.capabilities, segmentation: { pause: false, auto: false, sizes: true } },
-      });
-      mockProvider = Provider.LOCAL_INFERENCE;
+      // No provider offers this shape any more — the local engines held it
+      // until phase 2 gave them Auto — but the resolvers still have a rule
+      // for it, so the rendering rule is kept under test directly.
+      mockOffer = { pause: false, auto: false, sizes: true };
       mockMode = 'sentences';
       useSegmentationStore.setState({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES });
       renderSection();
@@ -408,7 +417,7 @@ describe('SentenceSegmentationSection', () => {
     it('shows Auto on its own where it is the only thing offered', () => {
       // A By sentences mode with nothing under it reads as broken, and on this
       // provider the single button is the only place the word Auto appears.
-      mockProvider = Provider.OPENAI;
+      mockOffer = { pause: false, auto: true, sizes: false };
       mockMode = 'sentences';
       useSegmentationStore.setState({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES });
       renderSection();
@@ -419,9 +428,9 @@ describe('SentenceSegmentationSection', () => {
     });
 
     it('shows Auto alongside 1-5 where both are offered', () => {
-      // Soniox's real offer since phase 2: the server's segment is kept whole
-      // by Auto, or cut inside every N sentences. No stub.
-      mockProvider = Provider.SONIOX;
+      // Local Inference's offer: its segment can be kept whole by Auto, or
+      // cut inside every N sentences.
+      mockOffer = { pause: false, auto: true, sizes: true };
       mockMode = 'sentences';
       mockChunkSentences = 0;
       useSegmentationStore.setState({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES });
@@ -434,7 +443,7 @@ describe('SentenceSegmentationSection', () => {
     });
 
     it('is absent unless the mode is By sentences', () => {
-      mockProvider = Provider.GEMINI;
+      mockOffer = { pause: true, auto: false, sizes: true };
       mockMode = 'pause';
       useSegmentationStore.setState({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES });
       renderSection();
@@ -463,7 +472,7 @@ describe('SentenceSegmentationSection', () => {
 
   describe('the pause sliders', () => {
     it('appear only in By pause, and carry the global seconds', () => {
-      mockProvider = Provider.GEMINI;
+      mockOffer = { pause: true, auto: false, sizes: true };
       mockMode = 'pause';
       mockSourcePause = 0.8;
       mockTranslationPause = 2.2;
@@ -483,7 +492,7 @@ describe('SentenceSegmentationSection', () => {
     });
 
     it('are gone in Off and in By sentences', () => {
-      mockProvider = Provider.GEMINI;
+      mockOffer = { pause: true, auto: false, sizes: true };
       mockMode = 'off';
       renderSection();
       expect(screen.queryByTestId('segmentation-source-pause')).toBeNull();
@@ -496,14 +505,14 @@ describe('SentenceSegmentationSection', () => {
     });
 
     it('are gone on a provider whose stored pause mode resolves to Off', () => {
-      mockProvider = Provider.OPENAI;
+      mockOffer = { pause: false, auto: true, sizes: false };
       mockMode = 'pause';
       renderSection();
       expect(screen.queryByTestId('segmentation-source-pause')).toBeNull();
     });
 
     it('carry the shared range, not a second copy of it', () => {
-      mockProvider = Provider.GEMINI;
+      mockOffer = { pause: true, auto: false, sizes: true };
       mockMode = 'pause';
       renderSection();
 
@@ -514,44 +523,11 @@ describe('SentenceSegmentationSection', () => {
       }
     });
 
-    // OpenAI Translate over WebRTC runs ONE timer for the pair and gives it
-    // the translation pause, so a Source slider there would move nothing.
-    it('drop the Source pause on OpenAI Translate over WebRTC, which has one timer', () => {
-      mockProvider = Provider.OPENAI_TRANSLATE;
-      mockMode = 'pause';
-      mockTranslateTransport = 'webrtc';
-      renderSection();
-
-      expect(screen.queryByTestId('segmentation-source-pause')).toBeNull();
-      expect(screen.queryByText('Source pause')).toBeNull();
-      expect(screen.getByTestId('segmentation-translation-pause')).toBeTruthy();
-    });
-
-    it('keep both on the same provider over WebSocket, which has two', () => {
-      mockProvider = Provider.OPENAI_TRANSLATE;
-      mockMode = 'pause';
-      mockTranslateTransport = 'websocket';
-      renderSection();
-
-      expect(screen.getByTestId('segmentation-source-pause')).toBeTruthy();
-      expect(screen.getByTestId('segmentation-translation-pause')).toBeTruthy();
-    });
-
-    it('keep both on another provider, whatever OpenAI Translate is set to', () => {
-      mockProvider = Provider.GEMINI;
-      mockMode = 'pause';
-      mockTranslateTransport = 'webrtc';
-      renderSection();
-
-      expect(screen.getByTestId('segmentation-source-pause')).toBeTruthy();
-      expect(screen.getByTestId('segmentation-translation-pause')).toBeTruthy();
-    });
-
-    it('are frozen during a session', () => {
+    it('keep the pauses editable during a session', () => {
       mockMode = 'pause';
       renderSection(true);
-      expect((screen.getByTestId('segmentation-source-pause') as HTMLInputElement).disabled).toBe(true);
-      expect((screen.getByTestId('segmentation-translation-pause') as HTMLInputElement).disabled).toBe(true);
+      expect((screen.getByTestId('segmentation-source-pause') as HTMLInputElement).disabled).toBe(false);
+      expect((screen.getByTestId('segmentation-translation-pause') as HTMLInputElement).disabled).toBe(false);
     });
   });
 
