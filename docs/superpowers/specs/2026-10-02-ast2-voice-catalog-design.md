@@ -89,16 +89,22 @@ the branch's own code unless noted. Probe scripts are throwaway and not committe
 
 ### 1.1 Generation
 
-`scripts/fetch-doubao-voices.ts`, run by a maintainer with `npx tsx`, reads `VOLC_AK` and `VOLC_SK`
-from the environment, pages `ListSpeakers` (no `Limit`), and writes
-`src/providers/volcengine_ast2/voices.json`. It signs the request itself (Volcengine's HMAC-SHA256
-scheme, region `cn-beijing`, service `speech_saas_prod`) so the repo gains no dependency; the signer
-is checked once during implementation against the official Python SDK's signature for the same
-request. CI never runs it and no key is ever committed. A refresh is a rerun and an ordinary PR whose
-diff is the JSON.
+The first snapshot is built from the `ListSpeakers` pull already made on 2026-10-02; nothing is
+fetched again to land this feature. Two maintainer-only scripts under `scripts/doubao-voices/`:
 
-The script is a thin fetch around a pure `buildCatalog(entries)` exported for tests. Its rules, each
-commented with its source:
+- `fetch.py` — the script that made that pull: Volcengine's official Python SDK
+  (`volcengine-python-sdk`, installed in a throwaway venv, never a repo dependency) signs
+  `ListSpeakers` with `VOLC_AK` / `VOLC_SK` from the environment, pages it with `Page` alone (no
+  `Limit`, which the service rejects) and writes the raw dump to a path given on the command line.
+  Run only to refresh.
+- `build.ts` — `npx tsx scripts/doubao-voices/build.ts <dump.json>` turns a raw dump into
+  `src/providers/volcengine_ast2/voices.json` through a pure `buildCatalog(entries)` exported for
+  tests.
+
+The raw dump (589 KB) is not committed; `voices.json` is. CI runs neither script and no key is ever
+committed. A refresh is `fetch.py` then `build.ts`, and an ordinary PR whose diff is the JSON.
+
+`buildCatalog`'s rules, each commented with its source:
 
 1. **Exclude one-way-only voices** — the 15 ids the voice-list remark column marks, listed in the
    script (the page says 16; the table marks 15 — the comment records the discrepancy).
@@ -275,7 +281,6 @@ In all thirty locales:
 
 - `buildCatalog`: exclusion, language mapping, the nine-target filter, merging split entries, the
   AST document's additions, empty voices dropped, order kept — on a small fixture.
-- The signer: one request's signature against a fixture produced by the official SDK.
 - The snapshot invariants (§1.3).
 - Languages: the table in §2.1; every clonable pair offered; the registry invariant; `ast2Offers`.
 - `clonable` and `effectiveVoice`'s three rules, including a stored `'clone'` surviving a non-clonable
