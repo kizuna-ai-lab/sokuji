@@ -562,7 +562,7 @@ describe('byokVoiceSource.preview', () => {
 });
 
 describe('preview request language is Soniox\'s code, not the app\'s', () => {
-  const ok = async () => ({ audio: new Float32Array(1), sampleRate: 24000 });
+  const ok = async (_a?: unknown) => ({ audio: new Float32Array(1), sampleRate: 24000 });
 
   it('BYOK: a fil preview carries language tl', async () => {
     const synthesize = vi.fn(ok);
