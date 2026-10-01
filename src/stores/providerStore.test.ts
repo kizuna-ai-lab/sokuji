@@ -564,4 +564,22 @@ describe('flush', () => {
     // …but a flush of every key still sees it.
     await expect(useProviderStore.getState().flush()).resolves.toBe(false);
   });
+
+  it("flush(p, fields) answers for those fields and the selection only: p's other refused value does not fail it", async () => {
+    await useProviderStore.getState().load(probe);
+    setSetting.mockImplementation(async (key: string, value: unknown) => {
+      if (key === 'settings.probe.count') return { success: false, error: 'QuotaExceededError' };
+      stored.set(key, value);
+      return { success: true };
+    });
+    useProviderStore.getState().updateSettings(probe, { count: 9 });
+    useProviderStore.getState().setCredential(probe, 'apiKey', 'k-1');
+    await useProviderStore.getState().flush();
+    setSetting.mockClear();
+    await expect(useProviderStore.getState().flush(probe, ['apiKey'])).resolves.toBe(true);
+    // The field this caller did not write is neither written again nor answered for…
+    expect(setSetting).not.toHaveBeenCalledWith('settings.probe.count', expect.anything());
+    // …but a flush of all of p's keys still sees it.
+    await expect(useProviderStore.getState().flush(probe)).resolves.toBe(false);
+  });
 });

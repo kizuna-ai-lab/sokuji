@@ -27,6 +27,7 @@ vi.mock('../../services/ServiceFactory', () => ({
 import { Provider, type ProviderType } from '../../types/Provider';
 import { readCredentials } from '../../lib/provider/credentials';
 import { volcengineAst2Provider } from '../../providers/volcengine_ast2/provider';
+import { localInferenceProvider } from '../../providers/localInference/provider';
 import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { SetupPersistError } from '../../stores/setupStore';
@@ -199,5 +200,21 @@ describe("useApplySetup's applyProvider (review Minor 4)", () => {
 
     expect(stored.get('settings.localInference.sourceLanguage')).toBe('en');
     expect(stored.get('settings.setup')).toEqual(expect.objectContaining({ provider: Provider.LOCAL_INFERENCE }));
+  });
+
+  it("a value of the provider's own that storage refuses, written before Finish, does not fail it", async () => {
+    // A prompt over the extension's per-item quota, edited in Settings before the wizard re-runs.
+    setSetting.mockImplementation(async (key: string, value: unknown) => {
+      if (key === 'settings.localInference.systemPrompt') return { success: false, error: 'QuotaExceededError' };
+      return landNow(key, value);
+    });
+    await useProviderStore.getState().load(localInferenceProvider);
+    useProviderStore.getState().updateSettings(localInferenceProvider, { systemPrompt: 'a long agenda' });
+    const { result } = renderHook(() => useApplySetup());
+
+    await result.current(draft({}));
+
+    expect(stored.get('settings.setup')).toEqual(expect.objectContaining({ provider: Provider.LOCAL_INFERENCE }));
+    expect(stored.get('settings.localInference.sourceLanguage')).toBe('en');
   });
 });

@@ -64,10 +64,11 @@ export interface ProviderStore {
    * Writes again every value whose last write did not land, then waits for
    * every write started so far, those included. True when nothing it answers
    * for is left unsaved. With `p`, only `p`'s own settings and the selection
-   * are written again and answered for: another provider's refused value is
-   * not this caller's to fail on.
+   * are written again and answered for; with `fields` too, only those of
+   * `p`'s fields (`PAIR_FIELDS` for its pair) and the selection. A value this
+   * caller did not write is not its to fail on.
    */
-  flush(p?: AnyProvider): Promise<boolean>;
+  flush(p?: AnyProvider, fields?: readonly string[]): Promise<boolean>;
   /**
    * Runs the provider's `check` on the live entry (with the store's `legs`),
    * or on a run's shape (`from`), and records the answer. A run's check
@@ -98,6 +99,8 @@ export interface ProviderStore {
 /** The pair persists beside the settings, under the field names every slice uses today. */
 const SOURCE = 'sourceLanguage';
 const TARGET = 'targetLanguage';
+/** The fields a pair is stored under, for a caller that flushes what it wrote. */
+export const PAIR_FIELDS = [SOURCE, TARGET] as const;
 
 function storageKey(p: AnyProvider, field: string): string {
   return `settings.${p.settings.key}.${field}`;
@@ -285,8 +288,9 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       forgetReadiness(p);
     },
 
-    async flush(p) {
-      const covers = (key: string) => !p || key === 'settings.common.provider' || key.startsWith(`settings.${p.settings.key}.`);
+    async flush(p, fields) {
+      const covers = (key: string) => !p || key === 'settings.common.provider'
+        || (fields ? fields.some((field) => key === storageKey(p, field)) : key.startsWith(`settings.${p.settings.key}.`));
       for (const [key, value] of [...unsaved]) {
         if (covers(key)) write(key, value);
       }
