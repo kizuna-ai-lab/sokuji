@@ -8,12 +8,12 @@ import { LIVE_DEFAULTS } from './settings';
 
 const SHARED: SharedSettings = {
   pauses: { sourceSeconds: 1.5, translationSeconds: 2 },
-  reversed: (d) => d.source === 'zh_CN' && d.target === 'en',
+  reversed: (d) => d.source === 'zh-CN' && d.target === 'en',
   segmentation: { mode: 'pause', sentencesPerRow: 0 },
   models: [{ id: 'gpt-live-1' }],
 };
-const SPEAKER: SessionContext = { direction: { source: 'en', target: 'zh_CN' }, speech: true, turns: 'auto' };
-const PARTICIPANT: SessionContext = { direction: { source: 'zh_CN', target: 'en' }, speech: false, turns: 'auto' };
+const SPEAKER: SessionContext = { direction: { source: 'en', target: 'zh-CN' }, speech: true, turns: 'auto' };
+const PARTICIPANT: SessionContext = { direction: { source: 'zh-CN', target: 'en' }, speech: false, turns: 'auto' };
 
 describe("OpenAI Live's builder", () => {
   it("builds gpt-live-1 with this direction's prompt, the voice, both pauses and one sentence a segment by pause", () => {

@@ -53,7 +53,7 @@ export function supportsTranscriptionContext(model: string | undefined): boolean
 
 /**
  * A language value as a code the config accepts, or null: the region
- * stripped (`en_AU`, `zh_CN`, `es_419` are refused), three-letter codes kept
+ * stripped (`en-AU`, `zh-CN`, `es-419` are refused), three-letter codes kept
  * whole, and a language with no supported code — `auto` among them — none.
  */
 export function normalizeTranscriptionLanguage(value: string | undefined | null): string | null {

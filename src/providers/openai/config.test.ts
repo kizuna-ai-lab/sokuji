@@ -6,7 +6,7 @@ import type { SharedSettings } from '../../lib/provider/types';
 import { buildRealtime, describeRealtime, type RealtimeConfig } from './config';
 import { migrateRealtimeSettings, REALTIME_DEFAULTS, type RealtimeSettings } from './settings';
 
-const PAIR = { source: 'en', target: 'zh_CN' };
+const PAIR = { source: 'en', target: 'zh-CN' };
 const shared = (patch: Partial<SharedSettings> = {}): SharedSettings => ({
   pauses: { sourceSeconds: 1.5, translationSeconds: 1.5 },
   reversed: (d) => d.source === PAIR.target && d.target === PAIR.source,
@@ -15,7 +15,7 @@ const shared = (patch: Partial<SharedSettings> = {}): SharedSettings => ({
   ...patch,
 });
 const SPEAKER: SessionContext = { direction: PAIR, speech: true, turns: 'auto' };
-const PARTICIPANT: SessionContext = { direction: { source: 'zh_CN', target: 'en' }, speech: false, turns: 'auto' };
+const PARTICIPANT: SessionContext = { direction: { source: 'zh-CN', target: 'en' }, speech: false, turns: 'auto' };
 const build = (patch: Partial<RealtimeSettings> = {}, context = SPEAKER, sh = shared()) => buildRealtime(context, { ...REALTIME_DEFAULTS, ...patch }, sh) as RealtimeConfig;
 const template = (source: string, target: string) => INSTRUCTIONS_TEMPLATE.replace(/\{\{SOURCE_LANGUAGE\}\}/g, source).replace(/\{\{TARGET_LANGUAGE\}\}/g, target);
 

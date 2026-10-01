@@ -5,7 +5,7 @@ import { createLiveCheck } from './check';
 import { LIVE_DEFAULTS } from './settings';
 
 const K = { apiKey: 'sk-proj-liveCheck0123456789' };
-const ctx: CheckContext = { pair: { source: 'en', target: 'zh_CN' }, legs: ['speaker'] };
+const ctx: CheckContext = { pair: { source: 'en', target: 'zh-CN' }, legs: ['speaker'] };
 const listing = (...models: Array<[string, number]>) => new Response(JSON.stringify({ object: 'list', data: models.map(([id, created]) => ({ id, object: 'model', created })) }), { status: 200 });
 const check = (fetch: typeof globalThis.fetch) => createLiveCheck({ fetch, clock: createVirtualClock(0) })(K, LIVE_DEFAULTS, ctx);
 

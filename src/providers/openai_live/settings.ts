@@ -10,6 +10,8 @@
  * provider (ruling 9).
  */
 import { AUTO } from '../../lib/provider/languages';
+import { identityWire } from '../../lib/language/wire';
+import { englishLanguageName } from '../../lib/language/label';
 import { INSTRUCTION_LEGACY_KEYS, INSTRUCTIONS_DEFAULTS, migrateInstructions, type InstructionsSettings } from '../../lib/provider/instructions';
 import type { CredentialsMissing, LanguageOption, MigrationInputs, Provider } from '../../lib/provider/types';
 
@@ -66,65 +68,65 @@ export function migrateLiveSettings(stored: Readonly<Record<string, unknown>>, i
 
 /** The 55 languages the old provider offered (`OpenAIProviderConfig.LANGUAGES`, `OpenAILiveProviderConfig.ts:112`): every one a source and a target. */
 export const LIVE_LANGUAGES: readonly LanguageOption[] = [
-  { name: 'العربية', value: 'ar', englishName: 'Arabic' },
-  { name: 'አማርኛ', value: 'am', englishName: 'Amharic' },
-  { name: 'Български', value: 'bg', englishName: 'Bulgarian' },
-  { name: 'বাংলা', value: 'bn', englishName: 'Bengali' },
-  { name: 'Català', value: 'ca', englishName: 'Catalan' },
-  { name: 'Čeština', value: 'cs', englishName: 'Czech' },
-  { name: 'Dansk', value: 'da', englishName: 'Danish' },
-  { name: 'Deutsch', value: 'de', englishName: 'German' },
-  { name: 'Ελληνικά', value: 'el', englishName: 'Greek' },
-  { name: 'English', value: 'en', englishName: 'English' },
-  { name: 'English (Australia)', value: 'en_AU', englishName: 'English (Australia)' },
-  { name: 'English (Great Britain)', value: 'en_GB', englishName: 'English (Great Britain)' },
-  { name: 'English (USA)', value: 'en_US', englishName: 'English (USA)' },
-  { name: 'Español', value: 'es', englishName: 'Spanish' },
-  { name: 'Español (Latinoamérica)', value: 'es_419', englishName: 'Spanish (Latin America and Caribbean)' },
-  { name: 'Eesti', value: 'et', englishName: 'Estonian' },
-  { name: 'فارسی', value: 'fa', englishName: 'Persian' },
-  { name: 'Suomi', value: 'fi', englishName: 'Finnish' },
-  { name: 'Filipino', value: 'fil', englishName: 'Filipino' },
-  { name: 'Français', value: 'fr', englishName: 'French' },
-  { name: 'ગુજરાતી', value: 'gu', englishName: 'Gujarati' },
-  { name: 'עברית', value: 'he', englishName: 'Hebrew' },
-  { name: 'हिन्दी', value: 'hi', englishName: 'Hindi' },
-  { name: 'Hrvatski', value: 'hr', englishName: 'Croatian' },
-  { name: 'Magyar', value: 'hu', englishName: 'Hungarian' },
-  { name: 'Bahasa Indonesia', value: 'id', englishName: 'Indonesian' },
-  { name: 'Italiano', value: 'it', englishName: 'Italian' },
-  { name: '日本語', value: 'ja', englishName: 'Japanese' },
-  { name: 'ಕನ್ನಡ', value: 'kn', englishName: 'Kannada' },
-  { name: '한국어', value: 'ko', englishName: 'Korean' },
-  { name: 'Lietuvių', value: 'lt', englishName: 'Lithuanian' },
-  { name: 'Latviešu', value: 'lv', englishName: 'Latvian' },
-  { name: 'മലയാളം', value: 'ml', englishName: 'Malayalam' },
-  { name: 'मराठी', value: 'mr', englishName: 'Marathi' },
-  { name: 'Bahasa Melayu', value: 'ms', englishName: 'Malay' },
-  { name: 'Nederlands', value: 'nl', englishName: 'Dutch' },
-  { name: 'Norsk', value: 'no', englishName: 'Norwegian' },
-  { name: 'Polski', value: 'pl', englishName: 'Polish' },
-  { name: 'Português (Brasil)', value: 'pt_BR', englishName: 'Portuguese (Brazil)' },
-  { name: 'Português (Portugal)', value: 'pt_PT', englishName: 'Portuguese (Portugal)' },
-  { name: 'Română', value: 'ro', englishName: 'Romanian' },
-  { name: 'Русский', value: 'ru', englishName: 'Russian' },
-  { name: 'Slovenčina', value: 'sk', englishName: 'Slovak' },
-  { name: 'Slovenščina', value: 'sl', englishName: 'Slovenian' },
-  { name: 'Српски', value: 'sr', englishName: 'Serbian' },
-  { name: 'Svenska', value: 'sv', englishName: 'Swedish' },
-  { name: 'Kiswahili', value: 'sw', englishName: 'Swahili' },
-  { name: 'தமிழ்', value: 'ta', englishName: 'Tamil' },
-  { name: 'తెలుగు', value: 'te', englishName: 'Telugu' },
-  { name: 'ไทย', value: 'th', englishName: 'Thai' },
-  { name: 'Türkçe', value: 'tr', englishName: 'Turkish' },
-  { name: 'Українська', value: 'uk', englishName: 'Ukrainian' },
-  { name: 'Tiếng Việt', value: 'vi', englishName: 'Vietnamese' },
-  { name: '中文 (中国)', value: 'zh_CN', englishName: 'Chinese (China)' },
-  { name: '中文 (台灣)', value: 'zh_TW', englishName: 'Chinese (Taiwan)' },
+  { value: 'ar' },
+  { value: 'am' },
+  { value: 'bg' },
+  { value: 'bn' },
+  { value: 'ca' },
+  { value: 'cs' },
+  { value: 'da' },
+  { value: 'de' },
+  { value: 'el' },
+  { value: 'en' },
+  { value: 'en-AU' },
+  { value: 'en-GB' },
+  { value: 'en-US' },
+  { value: 'es' },
+  { value: 'es-419' },
+  { value: 'et' },
+  { value: 'fa' },
+  { value: 'fi' },
+  { value: 'fil' },
+  { value: 'fr' },
+  { value: 'gu' },
+  { value: 'he' },
+  { value: 'hi' },
+  { value: 'hr' },
+  { value: 'hu' },
+  { value: 'id' },
+  { value: 'it' },
+  { value: 'ja' },
+  { value: 'kn' },
+  { value: 'ko' },
+  { value: 'lt' },
+  { value: 'lv' },
+  { value: 'ml' },
+  { value: 'mr' },
+  { value: 'ms' },
+  { value: 'nl' },
+  { value: 'no' },
+  { value: 'pl' },
+  { value: 'pt-BR' },
+  { value: 'pt-PT' },
+  { value: 'ro' },
+  { value: 'ru' },
+  { value: 'sk' },
+  { value: 'sl' },
+  { value: 'sr' },
+  { value: 'sv' },
+  { value: 'sw' },
+  { value: 'ta' },
+  { value: 'te' },
+  { value: 'th' },
+  { value: 'tr' },
+  { value: 'uk' },
+  { value: 'vi' },
+  { value: 'zh-CN' },
+  { value: 'zh-TW' },
 ];
 
 /** "Auto-detect" stays a source: the model hears any language. Named as the other providers name it; the picker shows `common.autoDetect`. */
-const AUTO_SOURCE: LanguageOption = { value: AUTO, name: 'Auto', englishName: 'Auto' };
+const AUTO_SOURCE: LanguageOption = { value: AUTO };
 
 /**
  * `AUTO` first, then the 55, as the old picker listed them; every language a
@@ -135,7 +137,9 @@ const AUTO_SOURCE: LanguageOption = { value: AUTO, name: 'Auto', englishName: 'A
 export const liveLanguages: Provider<LiveSettings, never, never>['languages'] = {
   sources: () => [AUTO_SOURCE, ...LIVE_LANGUAGES],
   targets: () => LIVE_LANGUAGES,
-  initial: () => ({ source: 'en', target: 'zh_CN' }),
+  initial: () => ({ source: 'en', target: 'zh-CN' }),
+  // The pair never reaches the wire: the instructions name it, and the transcription hint takes its base language.
+  wire: identityWire(),
 };
 
 /**
@@ -145,7 +149,7 @@ export const liveLanguages: Provider<LiveSettings, never, never>['languages'] = 
  */
 export function liveLanguageName(code: string): string {
   if (code === AUTO) return 'the spoken language';
-  return LIVE_LANGUAGES.find((o) => o.value === code)?.englishName || code;
+  return englishLanguageName(code);
 }
 
 export interface LiveCredentials {

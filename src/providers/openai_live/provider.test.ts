@@ -81,13 +81,13 @@ describe('the OpenAI Live definition', () => {
   });
 
   it("lets the participant speak on its switch, with Other's prompt (ruling 1), and refuses Both for Auto-detect (D20)", () => {
-    const participant = contextsFor(both({ source: 'en', target: 'zh_CN' }, { participantSpeech: true })).participant!;
-    expect(participant).toEqual({ direction: { source: 'zh_CN', target: 'en' }, speech: true, turns: 'auto' });
+    const participant = contextsFor(both({ source: 'en', target: 'zh-CN' }, { participantSpeech: true })).participant!;
+    expect(participant).toEqual({ direction: { source: 'zh-CN', target: 'en' }, speech: true, turns: 'auto' });
     const s: LiveSettings = { ...LIVE_DEFAULTS, useTemplateMode: false, systemInstructions: 'Mine.', participantSystemInstructions: "Other's." };
-    expect(openaiLiveProvider.build(participant, s, { ...SHARED, reversed: (d) => d.source === 'zh_CN' && d.target === 'en' })).toMatchObject({ instructions: "Other's." });
-    expect(contextsFor(both({ source: 'en', target: 'zh_CN' })).participant!.speech).toBe(false);
+    expect(openaiLiveProvider.build(participant, s, { ...SHARED, reversed: (d) => d.source === 'zh-CN' && d.target === 'en' })).toMatchObject({ instructions: "Other's." });
+    expect(contextsFor(both({ source: 'en', target: 'zh-CN' })).participant!.speech).toBe(false);
     expect(gate(both({ source: AUTO, target: 'en' }), 'electron')).toMatchObject({ code: 'participant_unsupported', leg: 'participant' });
-    expect(gate(both({ source: 'en', target: 'zh_CN' }), 'electron')).toBeNull();
+    expect(gate(both({ source: 'en', target: 'zh-CN' }), 'electron')).toBeNull();
   });
 
   it('a start whose signal already aborted registers nothing and opens no socket', async () => {

@@ -39,7 +39,7 @@ describe('LiveSettingsView (choice 17)', () => {
     expect(container.querySelector('.preview-content')?.textContent).toContain('translate Japanese → English.');
     fireEvent.click(screen.getByRole('button', { name: 'settings.advanced' }));
     expect(update).toHaveBeenCalledWith({ useTemplateMode: false });
-    const { container: auto } = render(<LiveSettingsView {...props({ pair: { source: 'auto', target: 'zh_CN' } })} />);
+    const { container: auto } = render(<LiveSettingsView {...props({ pair: { source: 'auto', target: 'zh-CN' } })} />);
     fireEvent.click(screen.getAllByRole('button', { name: 'settings.preview' })[1]);
     expect(auto.querySelector('.preview-content')?.textContent).toContain('translate the spoken language → Chinese (China).');
   });
