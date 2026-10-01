@@ -11,6 +11,9 @@ import { AUTO, baseLanguage, type LanguageCode } from './code';
 import { englishLanguageName } from './label';
 import type { LanguageOption } from '../provider/types';
 
+/** Value of the disabled separator option under a pinned block; never a language code or a state value. */
+export const PIN_SEPARATOR = '__pin-separator__';
+
 export interface OrderContext {
   /** The UI language (an i18next id, `zh_TW` allowed). */
   ui: string;

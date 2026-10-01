@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { PIN_SEPARATOR } from '../../lib/language/order';
 import { act, render, screen, fireEvent } from '@testing-library/react';
 import type { LanguageContext } from '../../lib/provider/types';
 
@@ -71,7 +72,7 @@ describe('ProviderLanguages — the language context (Stage 2 Volcengine AST2, c
     },
   } as unknown as typeof fakeProvider;
   // The codes on offer: display order, pinned copies and the separator are not what this pins.
-  const sources = () => [...new Set([...(screen.getByLabelText('settings.sourceLanguage') as HTMLSelectElement).options].map((o) => o.value).filter((v) => v !== ''))].sort();
+  const sources = () => [...new Set([...(screen.getByLabelText('settings.sourceLanguage') as HTMLSelectElement).options].map((o) => o.value).filter((v) => v !== PIN_SEPARATOR))].sort();
 
   it("offers the languages of the store's context: its legs, and whether they speak", () => {
     useProviderStore.setState({

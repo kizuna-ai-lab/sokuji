@@ -27,6 +27,7 @@ vi.mock('../../../lib/session/appShape', () => ({
   participantSpeechSwitchFromStores: () => participant.speech,
 }));
 
+import { PIN_SEPARATOR } from '../../../lib/language/order';
 import StepLanguagePair from './StepLanguagePair';
 import { initialDraft, type SetupDraft } from '../setupDraft';
 import type { ScenarioId } from '../../../lib/setup/types';
@@ -37,7 +38,7 @@ const draw = (scenario: ScenarioId, pair = { source: 'en', target: 'ja' }, dispa
   const draft: SetupDraft = { ...initialDraft(), provider: Provider.VOLCENGINE_AST2, scenario, sourceLanguage: pair.source, targetLanguage: pair.target };
   render(<StepLanguagePair draft={draft} dispatch={dispatch} />);
   // The codes on offer: the display order, the pinned copies and the separator are not what these cases pin.
-  const codes = [...(screen.getAllByRole('combobox')[0] as HTMLSelectElement).options].map((o) => o.value).filter((v) => v !== '');
+  const codes = [...(screen.getAllByRole('combobox')[0] as HTMLSelectElement).options].map((o) => o.value).filter((v) => v !== PIN_SEPARATOR);
   return [...new Set(codes)].sort();
 };
 
@@ -68,5 +69,16 @@ describe('StepLanguagePair — the scenario decides whether the run speaks (Stag
     const quiet = vi.fn();
     draw('subtitle-myself', { source: 'ko', target: 'ja' }, quiet);
     expect(quiet).not.toHaveBeenCalled();
+  });
+});
+
+describe('StepLanguagePair — the display order', () => {
+  it('pins the draft pair above a disabled separator, then the ordered list', () => {
+    draw('subtitle-myself', { source: 'ko', target: 'ja' });
+    const select = screen.getAllByRole('combobox')[0] as HTMLSelectElement;
+    const values = [...select.options].map((o) => o.value);
+    // The pair, then the offered code closest to the UI language (en), then the rest in display order.
+    expect(values.slice(0, 5)).toEqual(['ko', 'ja', 'en', PIN_SEPARATOR, 'en']);
+    expect(select.options[3].disabled).toBe(true);
   });
 });

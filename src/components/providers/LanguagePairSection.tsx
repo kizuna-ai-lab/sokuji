@@ -7,7 +7,7 @@ import { normalizePair, swapped } from '../../lib/provider/languages';
 import type { AnyProvider, LanguageContext, LanguageOption, LanguagePair } from '../../lib/provider/types';
 import type { AudioMode } from '../../stores/audioStore';
 import { useLanguageLabel } from '../../lib/language/useLanguageLabel';
-import { orderLanguages, pinnedLanguages, type OrderContext } from '../../lib/language/order';
+import { orderLanguages, pinnedLanguages, PIN_SEPARATOR, type OrderContext } from '../../lib/language/order';
 import { effectiveTextOnly } from '../../utils/effectiveTextOnly';
 
 const SEPARATOR = '──────────';
@@ -58,7 +58,7 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
   const options = ({ pinned, ordered }: { pinned: LanguageOption[]; ordered: LanguageOption[] }) => (
     <>
       {pinned.map((o) => <option key={`pin:${o.value}`} value={o.value}>{label(o.value)}</option>)}
-      {pinned.length > 0 && <option key="pin-separator" value="" disabled>{SEPARATOR}</option>}
+      {pinned.length > 0 && <option key="pin-separator" value={PIN_SEPARATOR} disabled>{SEPARATOR}</option>}
       {ordered.map((o) => <option key={o.value} value={o.value}>{label(o.value)}</option>)}
     </>
   );

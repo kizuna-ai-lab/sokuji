@@ -5,6 +5,7 @@ import { languageLabel } from '../../lib/language/label';
 import type { LanguageContext } from '../../lib/provider/types';
 import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
+import { PIN_SEPARATOR } from '../../lib/language/order';
 import { LanguagePairSection } from './LanguagePairSection';
 
 vi.mock('react-i18next', async (importOriginal) => {
@@ -30,7 +31,7 @@ const draw = (
 };
 const values = (select: HTMLElement) => [...(select as HTMLSelectElement).options].map((o) => o.value);
 // The codes on offer, whatever the display order, pinned copies or separator.
-const codesOf = (select: HTMLElement) => [...new Set(values(select).filter((v) => v !== ''))].sort();
+const codesOf = (select: HTMLElement) => [...new Set(values(select).filter((v) => v !== PIN_SEPARATOR))].sort();
 
 describe('LanguagePairSection', () => {
   it('names each option from the code, not from the option (unified language codes)', () => {
@@ -58,10 +59,10 @@ describe('LanguagePairSection', () => {
   it('pins the current pair above a disabled separator, then lists auto first in the rest', () => {
     draw({ source: 'ja', target: 'en' });
     const select = screen.getByLabelText('settings.sourceLanguage') as HTMLSelectElement;
-    expect(values(select).slice(0, 4)).toEqual(['ja', 'en', '', AUTO]);
+    expect(values(select).slice(0, 4)).toEqual(['ja', 'en', PIN_SEPARATOR, AUTO]);
     const separator = select.options[2];
     expect(separator.disabled).toBe(true);
-    expect(separator.value).toBe('');
+    expect(separator.value).toBe(PIN_SEPARATOR);
   });
 
   it('names the AUTO source with the shared auto-detect label', () => {

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useProviderStore } from '../../../stores/providerStore';
 import { normalizePair } from '../../../lib/provider/languages';
 import { useLanguageLabel } from '../../../lib/language/useLanguageLabel';
-import { orderLanguages, pinnedLanguages, type OrderContext } from '../../../lib/language/order';
+import { orderLanguages, pinnedLanguages, PIN_SEPARATOR, type OrderContext } from '../../../lib/language/order';
 import { legsFor, participantSpeechSwitchFromStores } from '../../../lib/session/appShape';
 import { languageContext } from '../../../lib/session/shape';
 import { getScenario } from '../../../lib/setup/scenarios';
@@ -82,7 +82,7 @@ const StepLanguagePair: React.FC<Props> = ({ draft, dispatch }) => {
   const options = (list: typeof sources, name: (v: string) => string) => (
     <>
       {pinnedLanguages(list, pair, ctx).map((o) => <option key={`pin:${o.value}`} value={o.value}>{name(o.value)}</option>)}
-      {pinnedLanguages(list, pair, ctx).length > 0 && <option key="pin-separator" value="" disabled>{SEPARATOR}</option>}
+      {pinnedLanguages(list, pair, ctx).length > 0 && <option key="pin-separator" value={PIN_SEPARATOR} disabled>{SEPARATOR}</option>}
       {orderLanguages(list, ctx).map((o) => <option key={o.value} value={o.value}>{name(o.value)}</option>)}
     </>
   );
