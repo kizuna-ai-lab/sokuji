@@ -25,13 +25,13 @@ export function LocalNativeEngineSummary({
 }: EngineSummaryProps<LocalNativeSettings>) {
   const { t } = useTranslation();
   const mode = modeOfLegs(legs);
-  const participantInScope = legs.includes('participant');
   const sidecarStatus = useNativeModelStore((s) => s.sidecarStatus);
   const catalog = useNativeModelStore((s) => s.catalog);
   const statuses = useNativeModelStore((s) => s.statuses);
   const sizes = useNativeModelStore((s) => s.sizes);
   const asrResolved = useNativeModelStore((s) => s.asrResolved);
   const translationResolved = useNativeModelStore((s) => s.translationResolved);
+  const resolutionNotes = useNativeModelStore((s) => s.lastResolutionNotes);
 
   const speaker: DirectionResult = useMemo(
     () => useNativeModelStore.getState().resolve(pair.source, pair.target, settings.selections),
@@ -42,21 +42,24 @@ export function LocalNativeEngineSummary({
     [pair.source, pair.target, settings.selections, catalog, statuses],
   );
 
+  // Local Native runs one side at a time (#578 ruling 4): the memory is that of the
+  // direction that runs, and a participant run has no voice, as its chips show none.
+  const running = mode === 'participant' ? participant : speaker;
   const estimate = useMemo(() => estimateNativeMemoryByDevice([
-    { id: speaker.asr?.modelId, device: settings.asrDevice },
-    { id: speaker.translation?.modelId, device: settings.translationDevice },
-    { id: speaker.tts?.modelId, device: settings.ttsDevice },
-  ], sizes, catalog), [speaker, settings.asrDevice, settings.translationDevice, settings.ttsDevice, sizes, catalog]);
+    { id: running.asr?.modelId, device: settings.asrDevice },
+    { id: running.translation?.modelId, device: settings.translationDevice },
+    { id: mode === 'participant' ? undefined : running.tts?.modelId, device: settings.ttsDevice },
+  ], sizes, catalog), [running, mode, settings.asrDevice, settings.translationDevice, settings.ttsDevice, sizes, catalog]);
 
   // What is really in use once a run reported its plan — only while it is about the current picks.
   const actual = useMemo(() => {
-    const asrMatch = !!asrResolved && asrResolved.model === speaker.asr?.modelId;
-    const trMatch = !!translationResolved && translationResolved.model === speaker.translation?.modelId;
+    const asrMatch = !!asrResolved && asrResolved.model === running.asr?.modelId;
+    const trMatch = !!translationResolved && translationResolved.model === running.translation?.modelId;
     if (!asrMatch || !trMatch) return null;
     const mem = actualNativeMemoryByDevice(asrResolved, translationResolved);
     const degraded = [asrResolved, translationResolved].some((r) => r?.device === 'cpu' && r?.fallbackReason);
     return { ...mem, degraded };
-  }, [asrResolved, translationResolved, speaker]);
+  }, [asrResolved, translationResolved, running]);
 
   const renderChips = (resolved: DirectionResult, src: string, tgt: string, includeTts: boolean): React.ReactNode => {
     const dir = directionKey(src, tgt);
@@ -102,11 +105,17 @@ export function LocalNativeEngineSummary({
     return <div className="model-inline">{renderChips(speaker, pair.source, pair.target, true)}</div>;
   };
 
-  // The fallbacks in use, for the directions the legs show; no-candidate notes are readiness's to word.
-  const notes = useMemo(
-    () => [...speaker.notes, ...(participantInScope ? participant.notes : [])].filter((n: ResolutionNote) => n.reason !== 'no-candidate'),
-    [speaker, participant, participantInScope],
-  );
+  // The fallbacks in use: what readiness found once the engine's catalog and the downloads were
+  // read, so they are worded only then (resolving here before that would call every explicit pick
+  // unavailable). Only the directions the legs show: a note for a hidden direction would deep-link
+  // to a slot that is not rendered. no-candidate notes are readiness's to word.
+  const notes = useMemo(() => {
+    if (sidecarStatus !== 'ready') return [];
+    const shown = new Set(mode === 'both'
+      ? [directionKey(pair.source, pair.target), directionKey(pair.target, pair.source)]
+      : [mode === 'participant' ? directionKey(pair.target, pair.source) : directionKey(pair.source, pair.target)]);
+    return resolutionNotes.filter((n: ResolutionNote) => n.reason !== 'no-candidate' && shown.has(n.direction));
+  }, [sidecarStatus, resolutionNotes, mode, pair.source, pair.target]);
   const staleNames: string[] = [];
   for (const n of notes) {
     if (!n.from) continue;

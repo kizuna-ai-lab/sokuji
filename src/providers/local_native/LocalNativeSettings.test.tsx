@@ -31,4 +31,40 @@ describe('LocalNativeSettingsView', () => {
     render(<LocalNativeSettingsView settings={LOCAL_NATIVE_DEFAULTS} update={vi.fn()} pair={{ source: 'ja', target: 'en' }} />);
     expect(screen.getByText('Translation Prompt')).toBeTruthy();
   });
+
+  it("offers the prompt on the model of the direction that runs, not on either direction's (#526)", () => {
+    useNativeModelStore.setState({
+      catalog: { 'mt-a': M('mt-a', 'translate', ['multi']), 'translategemma-4b': M('translategemma-4b', 'translate', ['multi']) },
+      statuses: { 'mt-a': 'ready', 'translategemma-4b': 'ready' },
+    });
+    // ja→en translates with the model that owns its prompt; en→ja with one that takes the text.
+    const settings = {
+      ...LOCAL_NATIVE_DEFAULTS,
+      selections: {
+        'ja→en': { asr: { modelId: '' }, translation: { modelId: 'translategemma-4b' }, tts: { modelId: '' } },
+        'en→ja': { asr: { modelId: '' }, translation: { modelId: 'mt-a' }, tts: { modelId: '' } },
+      },
+    };
+    const swapped = {
+      ...settings,
+      selections: {
+        'ja→en': settings.selections['en→ja'],
+        'en→ja': settings.selections['ja→en'],
+      },
+    };
+    const supported = (c: HTMLElement) => c.querySelector('#local-translation-prompt-section')!.getAttribute('aria-disabled') === 'false';
+    const view = (s: typeof settings, legs: readonly ('speaker' | 'participant')[]) => (
+      <LocalNativeSettingsView settings={s} update={vi.fn()} pair={{ source: 'ja', target: 'en' }} legs={legs} />
+    );
+    const { container, rerender } = render(view(settings, ['speaker']));
+    expect(supported(container)).toBe(false);
+    expect([...container.querySelectorAll<HTMLButtonElement>('.option-button')].every((b) => b.disabled)).toBe(true);
+    rerender(view(settings, ['participant']));
+    expect(supported(container)).toBe(true);
+    expect([...container.querySelectorAll<HTMLButtonElement>('.option-button')].some((b) => b.disabled)).toBe(false);
+    rerender(view(swapped, ['participant']));
+    expect(supported(container)).toBe(false);
+    rerender(view(swapped, ['speaker']));
+    expect(supported(container)).toBe(true);
+  });
 });
