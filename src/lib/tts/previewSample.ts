@@ -9,7 +9,7 @@
  * string, so no caller can construct the mismatch.
  *
  * Seeded with the 28 Soniox codes the app's 30 UI locales map onto
- * (`fil→tl`, `pt_BR`/`pt_PT→pt`, `zh_CN`/`zh_TW→zh`) — i.e. the languages
+ * (`pt_BR`/`pt_PT→pt`, `zh_CN`/`zh_TW→zh`) — i.e. the languages
  * the product actually serves. The remaining Soniox target languages fall
  * back to English; timbre still reads correctly because cloned voices are
  * officially any-voice-any-language.
@@ -48,7 +48,7 @@ export const PREVIEW_SAMPLES: Record<string, string> = {
   ta: 'வணக்கம். இது இந்தக் குரலின் ஒரு சிறு மாதிரி.',
   te: 'నమస్కారం. ఇది ఈ స్వరం యొక్క ఒక చిన్న నమూనా.',
   th: 'สวัสดี นี่คือตัวอย่างสั้น ๆ ของเสียงนี้',
-  tl: 'Kumusta. Ito ay isang maikling halimbawa ng tunog ng boses na ito.',
+  fil: 'Kumusta. Ito ay isang maikling halimbawa ng tunog ng boses na ito.',
   tr: 'Merhaba. Bu, bu sesin nasıl duyulduğuna dair kısa bir örnektir.',
   uk: 'Вітаю. Це короткий приклад того, як звучить цей голос.',
   vi: 'Xin chào. Đây là đoạn nghe thử ngắn của giọng nói này.',

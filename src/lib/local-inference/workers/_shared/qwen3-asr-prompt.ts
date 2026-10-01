@@ -77,8 +77,8 @@ export function splitGenerated(ids: number[], cfg: Qwen3AsrPromptConfig): SplitO
   return { prefixIds: body.slice(0, cut), textIds: body.slice(cut + 1), detectedPrefix: true };
 }
 
-/** App-side spellings that differ from the ISO codes the prefix table uses (same aliases as nativeCatalog.ts). */
-const LANG_ALIASES: Record<string, string> = { cantonese: 'yue', tl: 'fil', jap: 'ja' };
+/** Old spellings some callers still send; app codes (`yue`, `fil`) are the prefix table's own. */
+const LANG_ALIASES: Record<string, string> = { jap: 'ja' };
 
 /**
  * Map the app's source-language value onto a key of `language_prefix_ids`, or undefined when

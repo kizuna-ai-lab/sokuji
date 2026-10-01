@@ -7,16 +7,10 @@ import type { NativeModelInfo, NativeModelLicense, NativeVoiceInfo } from './nat
 import type { ResolutionNote, Selections } from '../selection/types';
 
 /**
- * Aliases between the app's source-language values (src/utils/languages.ts) and
- * the ISO codes the model catalogs use. The picker emits `cantonese`/`tl`, while
- * catalog rows use `yue`/`fil` (SenseVoice, Qwen3-ASR, Fun-ASR-MLT-Nano). Without
- * this, selecting Cantonese or Tagalog would mark those models incompatible even
- * though they support the language. Canonicalize both sides so the convention a
- * given row uses doesn't matter.
+ * `jap` is an old catalog spelling of Japanese; app codes (`yue`, `fil`) need no
+ * alias. The picker emits app codes, which is what catalog rows use.
  */
 const LANG_ALIASES: Record<string, string> = {
-  cantonese: 'yue',
-  tl: 'fil',
   jap: 'ja',
 };
 const canonLang = (l: string): string => LANG_ALIASES[l] ?? l;

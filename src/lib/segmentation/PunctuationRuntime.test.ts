@@ -18,7 +18,6 @@ describe('modelForLanguage', () => {
     ['zh-CN', 'fireredpunc'],
     ['cmn-CN', 'fireredpunc'],
     ['yue', 'fireredpunc'],
-    ['cantonese', 'fireredpunc'],
     ['en', 'edge-punct-en'],
     ['en-US', 'edge-punct-en'],
     ['ja', 'sat-3l-sm'],

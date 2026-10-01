@@ -95,7 +95,7 @@ describe("Doubao AST 2.0's languages (ruling 3; choice 1)", () => {
     const named = new Map(ast2Languages.sources(AST2_DEFAULTS, TEXT).map((o) => [o.value, o.name]));
     // The registry's names for the eight are the old list's (`VolcengineAST2ProviderConfig.ts:112-121`).
     for (const code of [...SPOKEN, ...TEXT_ONLY.filter((c) => c !== 'ms')]) expect(named.get(code), code).toBe(LANGUAGE_OPTIONS[code].name);
-    expect(named.get('yue-CN')).toBe(LANGUAGE_OPTIONS.cantonese.name);
+    expect(named.get('yue-CN')).toBe(LANGUAGE_OPTIONS.yue.name);
     expect(named.get('ms')).toBe('Bahasa Melayu');
     expect(named.get('sh-CN')).toBe('上海话 (Shanghainese)');
     expect(named.get(ZHEN)).toBe('中英双语 (zh↔en)');

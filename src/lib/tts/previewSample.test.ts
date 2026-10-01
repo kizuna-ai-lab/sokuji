@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { previewSampleFor, resolvePreviewSample, PREVIEW_SAMPLES } from './previewSample';
 import { SONIOX_LANGUAGES } from '../../providers/soniox/settings';
 
-const supported = new Set(SONIOX_LANGUAGES.map((l) => l.value));
+// Soniox still lists Filipino as its own `tl` until its table moves to app codes;
+// the preview table is keyed by the app code `fil`.
+const supported = new Set(SONIOX_LANGUAGES.map((l) => (l.value === 'tl' ? 'fil' : l.value)));
 
 describe('previewSampleFor', () => {
   it('only seeds languages Soniox can actually synthesize', () => {
@@ -14,8 +16,8 @@ describe('previewSampleFor', () => {
 
   it('covers the 28 Soniox codes the app UI locales map onto', () => {
     expect(Object.keys(PREVIEW_SAMPLES).sort()).toEqual([
-      'ar', 'bn', 'de', 'en', 'es', 'fa', 'fi', 'fr', 'he', 'hi', 'id', 'it',
-      'ja', 'ko', 'ms', 'nl', 'pl', 'pt', 'ru', 'sv', 'ta', 'te', 'th', 'tl',
+      'ar', 'bn', 'de', 'en', 'es', 'fa', 'fi', 'fil', 'fr', 'he', 'hi', 'id', 'it',
+      'ja', 'ko', 'ms', 'nl', 'pl', 'pt', 'ru', 'sv', 'ta', 'te', 'th',
       'tr', 'uk', 'vi', 'zh',
     ]);
   });

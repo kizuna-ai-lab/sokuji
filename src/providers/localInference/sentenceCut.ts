@@ -20,7 +20,7 @@ export const PUNCTUATION_BUDGET_MS = 3000;
 /** Which model today's runtime would run (`modelForLanguage`); `SentenceStream` never reads it — the type asks for one. */
 function modelFor(lang: string): PunctuationModelId {
   const base = baseLang(lang);
-  if (base === 'zh' || base === 'yue' || base === 'cantonese') return 'fireredpunc';
+  if (base === 'zh' || base === 'yue') return 'fireredpunc';
   return base === 'en' ? 'edge-punct-en' : 'sat-3l-sm';
 }
 

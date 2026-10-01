@@ -22,8 +22,8 @@ describe('Qwen3-ASR 0.6B (WebGPU) manifest entry', () => {
     expect(voxtral3b.sortOrder).toBe(5);
   });
 
-  it("lists the 16 languages the model card names, spelled the way the app's language list spells them ('cantonese', not 'yue')", () => {
-    expect(entry.languages).toEqual(['zh', 'en', 'ja', 'ko', 'cantonese', 'ar', 'de', 'es', 'fr', 'it', 'pt', 'ru', 'th', 'vi', 'hi', 'id']);
+  it("lists the 16 languages the model card names, spelled as the app's codes ('yue' for Cantonese)", () => {
+    expect(entry.languages).toEqual(['zh', 'en', 'ja', 'ko', 'yue', 'ar', 'de', 'es', 'fr', 'it', 'pt', 'ru', 'th', 'vi', 'hi', 'id']);
     expect(entry.multilingual).toBeFalsy();
   });
 

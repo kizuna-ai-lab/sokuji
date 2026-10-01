@@ -543,7 +543,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     id: 'sensevoice-int8',
     type: 'asr',
     name: 'SenseVoice (int8)',
-    languages: ['zh', 'en', 'ja', 'ko', 'cantonese'],
+    languages: ['zh', 'en', 'ja', 'ko', 'yue'],
     cdnPath: 'wasm-sensevoice-int8',
     variants: { default: { dtype: 'default', files: asrFiles(238_075_295, 229) } },
     asrEngine: 'sensevoice',
@@ -552,7 +552,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     id: 'sensevoice-nano-int8',
     type: 'asr',
     name: 'SenseVoice Nano (int8)',
-    languages: ['zh', 'en', 'ja', 'ko', 'cantonese'],
+    languages: ['zh', 'en', 'ja', 'ko', 'yue'],
     cdnPath: 'wasm-sensevoice-nano-int8',
     variants: { default: { dtype: 'default', files: asrFiles(265_115_571, 229) } },
     asrEngine: 'sensevoice',
@@ -726,7 +726,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     id: 'wenetspeech-yue-int8',
     type: 'asr',
     name: 'WenetSpeech Yue U2++ (int8)',
-    languages: ['zh', 'cantonese', 'en'],
+    languages: ['zh', 'yue', 'en'],
     cdnPath: 'wasm-wenetspeech-yue-int8',
     variants: { default: { dtype: 'default', files: asrFiles(135_427_715, 227) } },
     asrEngine: 'wenet-ctc',
@@ -1351,7 +1351,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     type: 'asr',
     name: 'Qwen3-ASR 0.6B (WebGPU)',
     shortName: 'Qwen3-ASR 0.6B',
-    languages: ['zh', 'en', 'ja', 'ko', 'cantonese', 'ar', 'de', 'es', 'fr', 'it', 'pt', 'ru', 'th', 'vi', 'hi', 'id'],
+    languages: ['zh', 'en', 'ja', 'ko', 'yue', 'ar', 'de', 'es', 'fr', 'it', 'pt', 'ru', 'th', 'vi', 'hi', 'id'],
     hfModelId: 'jiangzhuo9357/Qwen3-ASR-0.6B-ONNX',
     requiredDevice: 'webgpu',
     asrEngine: 'qwen3-asr',
@@ -1413,7 +1413,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     type: 'asr',
     name: 'Qwen3-ASR 1.7B (WebGPU)',
     shortName: 'Qwen3-ASR 1.7B',
-    languages: ['zh', 'en', 'ja', 'ko', 'cantonese', 'ar', 'de', 'es', 'fr', 'it', 'pt', 'ru', 'th', 'vi', 'hi', 'id'],
+    languages: ['zh', 'en', 'ja', 'ko', 'yue', 'ar', 'de', 'es', 'fr', 'it', 'pt', 'ru', 'th', 'vi', 'hi', 'id'],
     hfModelId: 'jiangzhuo9357/Qwen3-ASR-1.7B-ONNX',
     requiredDevice: 'webgpu',
     asrEngine: 'qwen3-asr',
@@ -2921,7 +2921,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     id: 'cantonese',
     type: 'tts',
     name: 'Cantonese VITS (Cantonese, female)',
-    languages: ['cantonese'],
+    languages: ['yue'],
     cdnPath: 'wasm-cantonese',
     modelFile: 'vits-cantonese-hf-xiaomaiiwn.onnx',
     engine: 'vits',
@@ -3277,7 +3277,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Hunyuan MT 1.5 1.8B (36 languages, WebGPU)',
     languages: [
       'zh', 'en', 'fr', 'pt', 'es', 'ja', 'tr', 'ru', 'ar', 'ko',
-      'th', 'it', 'de', 'vi', 'ms', 'id', 'tl', 'hi', 'pl', 'cs',
+      'th', 'it', 'de', 'vi', 'ms', 'id', 'fil', 'hi', 'pl', 'cs',
       'nl', 'km', 'my', 'fa', 'gu', 'ur', 'te', 'mr', 'he', 'bn',
       'ta', 'uk', 'bo', 'kk', 'mn', 'ug',
     ],
@@ -3307,7 +3307,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
       'et', 'fa', 'fi', 'fr', 'gu', 'he', 'hi', 'hr', 'hu', 'id',
       'is', 'it', 'ja', 'kn', 'ko', 'lt', 'lv', 'ml', 'mr', 'nl',
       'no', 'pa', 'pl', 'pt', 'ro', 'ru', 'sk', 'sl', 'sr', 'sv',
-      'sw', 'ta', 'te', 'th', 'tl', 'tr', 'uk', 'ur', 'vi', 'zh', 'zu',
+      'sw', 'ta', 'te', 'th', 'fil', 'tr', 'uk', 'ur', 'vi', 'zh', 'zu',
     ],
     multilingual: true,
     requiredDevice: 'webgpu',
@@ -3335,13 +3335,10 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     id: 'punct-zh-fireredpunc',
     type: 'punctuation',
     name: 'FireRedPunc (Chinese)',
-    // 'cantonese', not 'yue': ModelManifestEntry.languages uses the app's own
-    // settings vocabulary from src/utils/languages.ts, which has no 'yue' key,
-    // and modelManifest.qwen3Asr.test.ts pins that rule for a sibling entry in
-    // this same array. Every generic consumer — getAsrModelsForLanguage,
-    // ModelManagementSection's `m.languages.includes(...)`, and the
-    // LanguageTags renderer — compares or displays against that vocabulary.
-    languages: ['zh', 'cantonese'],
+    // 'yue': ModelManifestEntry.languages uses the app's codes
+    // (src/utils/languages.ts), and modelManifest.qwen3Asr.test.ts pins
+    // the rule for a sibling entry in this same array.
+    languages: ['zh', 'yue'],
     hfModelId: 'jiangzhuo9357/fireredpunc-onnx',
     hfRevision: '21ae0448b33874552d0c69dfcb0f1db45edf3f79',
     variants: {

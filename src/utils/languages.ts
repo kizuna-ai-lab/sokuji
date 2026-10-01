@@ -53,16 +53,19 @@ export const LANGUAGE_OPTIONS: Record<string, LanguageOption> = {
   ta: { name: 'தமிழ்', value: 'ta', englishName: 'Tamil' },
   te: { name: 'తెలుగు', value: 'te', englishName: 'Telugu' },
   th: { name: 'ไทย', value: 'th', englishName: 'Thai' },
-  tl: { name: 'Tagalog', value: 'tl', englishName: 'Tagalog' },
+  fil: { name: 'Filipino', value: 'fil', englishName: 'Filipino' },
   tr: { name: 'Türkçe', value: 'tr', englishName: 'Turkish' },
   uk: { name: 'Українська', value: 'uk', englishName: 'Ukrainian' },
   ur: { name: 'اردو', value: 'ur', englishName: 'Urdu' },
   vi: { name: 'Tiếng Việt', value: 'vi', englishName: 'Vietnamese' },
   xh: { name: 'isiXhosa', value: 'xh', englishName: 'Xhosa' },
-  cantonese: { name: '粵語 (cantonese)', value: 'cantonese', englishName: 'Cantonese' },
+  yue: { name: '粵語', value: 'yue', englishName: 'Cantonese' },
   zh: { name: '中文', value: 'zh', englishName: 'Chinese' },
   zu: { name: 'isiZulu', value: 'zu', englishName: 'Zulu' },
 };
+
+/** Every code of the local vocabulary: app codes (spec §7). */
+export const LANGUAGE_CODES: readonly string[] = Object.keys(LANGUAGE_OPTIONS);
 
 /** Global language display order — sorted by worldwide usage/importance.
  *  Languages in this array appear first (in this order);
@@ -71,7 +74,7 @@ export const LANGUAGE_PRIORITY: string[] = [
   'en', 'zh', 'es', 'fr', 'ar',
   'bn', 'pt', 'ru', 'de', 'ja',
   'hi', 'ko', 'it', 'tr', 'vi',
-  'th', 'id', 'fa', 'ur', 'tl',
+  'th', 'id', 'fa', 'ur', 'fil',
   'nl', 'pl', 'sv', 'da', 'ta',
   'te', 'ml', 'kn', 'gu', 'mr',
   'pa', 'fi', 'no', 'uk', 'cs',

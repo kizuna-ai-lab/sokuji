@@ -118,11 +118,11 @@ const TEXT_ONLY: readonly LanguageOption[] = [
 /**
  * Two dialects, text only and as a source only ("方言，仅支持作为源语种").
  * Cantonese keeps the shared registry's name (`utils/languages.ts`
- * `cantonese`, its gloss lower-case); Shanghainese, which it lacks, is in
+ * `yue`); Shanghainese, which it lacks, is in
  * its own script with an English gloss.
  */
 const DIALECTS: readonly LanguageOption[] = [
-  lang('yue-CN', '粵語 (cantonese)', 'Cantonese'),
+  lang('yue-CN', '粵語', 'Cantonese'),
   lang('sh-CN', '上海话 (Shanghainese)', 'Shanghainese'),
 ];
 
