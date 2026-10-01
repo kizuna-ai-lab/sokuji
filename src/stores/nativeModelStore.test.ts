@@ -392,6 +392,18 @@ describe('nativeModelStore.refresh — variant-aware via cached statusRepos', ()
   });
 });
 
+describe('nativeModelStore.refresh — a running download', () => {
+  it('never overwrites a running download: the download sets the final status (#578)', async () => {
+    // The sidecar answers 'absent' until the files are complete; the FakeWS never finishes a download.
+    mockModelNotReady('asr-a');
+    void useNativeModelStore.getState().download('asr-a');
+    await useNativeModelStore.getState().refresh(['asr-a', 'asr-b']);
+    const { statuses } = useNativeModelStore.getState();
+    expect(statuses['asr-a']).toBe('downloading');
+    expect(statuses['asr-b']).toBe('ready');
+  });
+});
+
 describe('nativeModelStore TTS resolved', () => {
   beforeEach(() => { useNativeModelStore.setState({ ttsLoading: false, ttsResolved: null }); });
 

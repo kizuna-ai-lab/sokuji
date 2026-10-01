@@ -526,7 +526,15 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     if (!models.length) return;
     try {
       const result = await client.status(models, repos ?? get().statusRepos);
-      set((s) => ({ statuses: { ...s.statuses, ...result } }));
+      // A running download keeps its status: the sidecar answers 'absent' until
+      // its files are complete, and the download sets the final one (#578).
+      set((s) => {
+        const statuses = { ...s.statuses };
+        for (const [model, status] of Object.entries(result)) {
+          if (s.statuses[model] !== 'downloading') statuses[model] = status;
+        }
+        return { statuses };
+      });
     } catch {
       // sidecar not available — leave statuses untouched
     }

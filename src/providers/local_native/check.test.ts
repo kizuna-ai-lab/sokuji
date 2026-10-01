@@ -13,8 +13,8 @@ vi.mock('../../stores/nativeModelStore', async () => {
   return { useNativeModelStore };
 });
 
-import { useNativeModelStore } from '../../stores/nativeModelStore';
-import { checkLocalNative, NATIVE_READINESS_CODES, watchLocalNativeReadiness } from './check';
+import { useNativeModelStore, type NativeModelStatus } from '../../stores/nativeModelStore';
+import { checkLocalNative, NATIVE_READINESS_CODES, nativeReadinessKey, watchLocalNativeReadiness } from './check';
 import { LOCAL_NATIVE_DEFAULTS } from './settings';
 
 const pair = { source: 'ja', target: 'en' };
@@ -48,6 +48,15 @@ describe('checkLocalNative', () => {
     const checking = checkLocalNative(LOCAL_NATIVE_DEFAULTS, { pair, legs: ['speaker'], signal: ac.signal });
     ac.abort(new Error('cancelled'));
     await expect(checking).rejects.toThrow('cancelled');
+  });
+});
+
+describe('nativeReadinessKey', () => {
+  it('reads a running download as absent: its start re-checks nothing, its completion does (#578)', () => {
+    const keyWith = (status: NativeModelStatus) =>
+      nativeReadinessKey({ sidecarStatus: 'ready', bundleStatus: 'ready', catalog: {}, statuses: { 'asr-a': status } });
+    expect(keyWith('downloading')).toBe(keyWith('absent'));
+    expect(keyWith('downloading')).not.toBe(keyWith('ready'));
   });
 });
 

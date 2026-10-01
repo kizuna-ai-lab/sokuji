@@ -51,10 +51,13 @@ export async function checkLocalNative(s: LocalNativeSettings, ctx: CheckContext
 /**
  * What `check`'s answer depends on, as content. `refresh` writes a new
  * statuses object even when nothing changed, and `check` itself refreshes:
- * keyed by reference, every check would schedule the next.
+ * keyed by reference, every check would schedule the next. A running download
+ * reads as `absent`, as it does to the gate: its start schedules no check, its
+ * completion does (#578).
  */
 export function nativeReadinessKey(state: Pick<NativeModelStoreState, 'sidecarStatus' | 'bundleStatus' | 'catalog' | 'statuses'>): string {
-  const statuses = Object.keys(state.statuses).sort().map((id) => `${id}=${state.statuses[id]}`).join(',');
+  const statuses = Object.keys(state.statuses).sort()
+    .map((id) => `${id}=${state.statuses[id] === 'downloading' ? 'absent' : state.statuses[id]}`).join(',');
   return `${state.sidecarStatus}|${state.bundleStatus}|${Object.keys(state.catalog).sort().join(',')}|${statuses}`;
 }
 
