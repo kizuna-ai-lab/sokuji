@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { identityWire, wireTable } from './wire';
+
+const reportWarning = vi.hoisted(() => vi.fn());
+vi.mock('../diagnostics/report', () => ({ reportWarning }));
 
 describe('wireTable', () => {
   const t = wireTable([['en'], ['es-CL', 'es-ch'], ['zh+en', 'zhen']]);
@@ -27,10 +30,17 @@ describe('wireTable', () => {
     expect(() => t.toWire('ja')).toThrow(RangeError);
   });
 
-  it('refuses a table that is not one-to-one, or holds a non-app code', () => {
+  it('refuses a table that is not one-to-one', () => {
     expect(() => wireTable([['en'], ['en', 'en-us']])).toThrow(/Duplicate app code/);
     expect(() => wireTable([['en', 'x'], ['ja', 'X']])).toThrow(/Duplicate vendor code/);
-    expect(() => wireTable([['zh_CN']])).toThrow(/Not an app code/);
+  });
+
+  it('keeps a non-app code and warns instead of throwing at import', () => {
+    reportWarning.mockClear();
+    const odd = wireTable([['zh_CN']]);
+    expect(reportWarning).toHaveBeenCalledWith('Language', expect.stringContaining('zh_CN'));
+    expect(odd.toWire('zh_CN')).toBe('zh_CN');
+    expect(odd.fromWire('zh_cn')).toBe('zh_CN');
   });
 });
 
