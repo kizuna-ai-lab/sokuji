@@ -3,9 +3,10 @@ import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../Tooltip/Tooltip';
 import { pairSentence } from '../SetupWizard/languageSentence';
-import { AUTO, normalizePair, swapped } from '../../lib/provider/languages';
+import { normalizePair, swapped } from '../../lib/provider/languages';
 import type { AnyProvider, LanguageContext, LanguageOption, LanguagePair } from '../../lib/provider/types';
 import type { AudioMode } from '../../stores/audioStore';
+import { useLanguageLabel } from '../../lib/language/useLanguageLabel';
 import { effectiveTextOnly } from '../../utils/effectiveTextOnly';
 
 interface LanguagePairSectionProps {
@@ -33,11 +34,12 @@ interface LanguagePairSectionProps {
 export function LanguagePairSection({ provider, settings, pair, onChange, disabled, sentence, context }: LanguagePairSectionProps) {
   const { t } = useTranslation();
   const id = useId();
+  const label = useLanguageLabel();
   const sources = provider.languages.sources(settings, context);
   const targets = provider.languages.targets(pair.source, settings, context);
   const reversed = swapped(provider, settings, pair, context);
   const option = (o: LanguageOption) => (
-    <option key={o.value} value={o.value}>{o.value === AUTO ? t('common.autoDetect') : o.name}</option>
+    <option key={o.value} value={o.value}>{label(o.value)}</option>
   );
 
   // The capability maps the definition's `speech` onto the sentence's
@@ -52,8 +54,8 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
   });
   const sourceLabel = resolved ? t(resolved.my.key, resolved.my.fallback) : t('settings.sourceLanguage');
   const targetLabel = resolved ? t(resolved.their.key, resolved.their.fallback) : t('settings.targetLanguage');
-  const sourceLanguageName = sources.find((o) => o.value === pair.source)?.name ?? pair.source;
-  const targetLanguageName = targets.find((o) => o.value === pair.target)?.name ?? pair.target;
+  const sourceLanguageName = label(pair.source);
+  const targetLanguageName = label(pair.target);
 
   return (
     <div className="config-section" id="languages-section">

@@ -5,6 +5,7 @@ import { APP_CAPTURE_LOST, APP_MONITOR_MISSING, LOOPBACK_DENIED, SILENT_NO_PERMI
 import { CLIENT_DIAGNOSTICS } from '../diagnostics/clientDiagnostics';
 import { RUN_NOTICE_CODES } from '../session/codes';
 import { NO_MICROPHONE } from '../session/shape';
+import { languageLabel } from '../language/label';
 import { NOTICE_ALIASES, NOTICE_WORDS, noticeText } from './noticeText';
 
 /** A stand-in for i18next: fills `{{name}}` from the options. */
@@ -36,12 +37,12 @@ describe('noticeText', () => {
   });
 
   it('names a source/target language param the way every language menu does, and leaves other params alone', () => {
-    expect(noticeText(plainT, { code: 'no_asr', message: 'x', params: { source: 'en' } })).toBe('No speech recognition model is installed for English.');
-    expect(noticeText(plainT, { code: 'no_asr', message: 'x', params: { source: 'ja' } })).toBe('No speech recognition model is installed for 日本語.');
-    // An unrecognized code stays itself — `getLanguageOption`'s own fallback.
+    expect(noticeText(plainT, { code: 'no_asr', message: 'x', params: { source: 'en' } })).toBe(`No speech recognition model is installed for ${languageLabel('en', 'en')}.`);
+    expect(noticeText(plainT, { code: 'no_asr', message: 'x', params: { source: 'ja' } })).toBe(`No speech recognition model is installed for ${languageLabel('ja', 'en')}.`);
+    // A code that is not a language is not named.
     expect(noticeText(plainT, { code: 'no_asr', message: 'x', params: { source: 'xx' } })).toBe('No speech recognition model is installed for xx.');
     // A param that isn't `source`/`target` (a detail-style one) is untouched —
-    // not run through `getLanguageOption`, unlike `source`/`target` above.
+    // not named, unlike `source`/`target` above.
     const capture = ((key: string, options: Record<string, unknown>) => `${key}:${String(options.device)}`) as unknown as TFunction;
     expect(noticeText(capture, { code: 'source_ended', message: 'x', params: { device: 'USB microphone' } })).toBe('notices.source_ended:USB microphone');
   });

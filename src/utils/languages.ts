@@ -1,3 +1,4 @@
+import { englishLanguageName } from '../lib/language/label';
 import { LanguageOption } from '../services/providers/ProviderConfig';
 
 /** Shared language display name registry — single source of truth for code → display name */
@@ -97,6 +98,6 @@ export function sortLanguageOptions(options: LanguageOption[]): LanguageOption[]
     if (ai !== -1 && bi !== -1) return ai - bi;
     if (ai !== -1) return -1;
     if (bi !== -1) return 1;
-    return a.englishName.localeCompare(b.englishName);
+    return englishLanguageName(a.value).localeCompare(englishLanguageName(b.value));
   });
 }

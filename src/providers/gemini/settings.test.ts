@@ -119,9 +119,9 @@ describe("Gemini's credentials and languages", () => {
       expect(new Set(values(list)).size).toBe(list.length);
       // English first, then Google's order, by English name (Gemini/AST2 follow-up, choice 14).
       expect(list[0].value).toBe('en');
-      const rest = list.slice(1).map((o) => o.englishName);
+      const rest = list.slice(1).map((o) => o.englishName!);
       expect(rest).toEqual([...rest].sort((a, b) => a.localeCompare(b, 'en')));
-      for (const o of list) expect(o.name.trim(), o.value).not.toBe('');
+      for (const o of list) expect(o.name!.trim(), o.value).not.toBe('');
     }
     // No region variant but the two Google documents; none of the old codes.
     expect(values(GEMINI_TRANSLATE_SOURCES).filter((code) => code.includes('-'))).toEqual(['zh-Hans', 'zh-Hant', 'pt-BR', 'pt-PT']);

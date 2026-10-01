@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
+import { languageLabel } from '../../../lib/language/label';
 import { ModelManagementSection } from './ModelManagementSection';
 import { getManifestByType, getManifestEntry, type ModelStatus } from '../../../lib/local-inference/modelManifest';
 import { resolveDirection } from '../../../lib/local-inference/selection/resolveStage';
@@ -357,7 +358,7 @@ describe('ModelManagementSection — Library surface keeps the original group li
     await screen.findByTestId('model-card-moonshine-tiny-ja-quant');
 
     const line = screen.getByText(/Available when your language is/);
-    expect(line).toHaveTextContent('日本語');
+    expect(line).toHaveTextContent(languageLabel('ja', 'en'));
   });
 });
 

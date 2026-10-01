@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { PanelFooter, type PanelFooterProps } from './PanelFooter';
+import { languageLabel } from '../../../lib/language/label';
 import type { RunState } from '../../../lib/session/types';
 
 // react-i18next: return the key itself, so every assertion below is against
@@ -190,13 +191,13 @@ describe('PanelFooter — mode picker', () => {
 });
 
 describe('PanelFooter — language pair', () => {
-  it.each(SITES)('%s: reads "ja → en" and calls onLanguages', (site) => {
+  it.each(SITES)('%s: reads the pair by name and calls onLanguages', (site) => {
     const onLanguages = vi.fn();
     const { container } = render(
       <PanelFooter {...baseProps(site, { pair: { source: 'ja', target: 'en' }, onLanguages })} />,
     );
     const el = container.querySelector('.language-pair') as HTMLElement;
-    expect(el.textContent).toBe('ja → en');
+    expect(el.textContent).toBe(`${languageLabel('ja', 'en')} → ${languageLabel('en', 'en')}`);
     fireEvent.click(el);
     expect(onLanguages).toHaveBeenCalledTimes(1);
   });

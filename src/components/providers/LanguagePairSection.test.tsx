@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { cleanup, render, screen, fireEvent } from '@testing-library/react';
 import { AUTO } from '../../lib/provider/languages';
+import { languageLabel } from '../../lib/language/label';
 import type { LanguageContext } from '../../lib/provider/types';
 import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
@@ -30,6 +31,22 @@ const draw = (
 const values = (select: HTMLElement) => [...(select as HTMLSelectElement).options].map((o) => o.value);
 
 describe('LanguagePairSection', () => {
+  it('names each option from the code, not from the option (unified language codes)', () => {
+    // The file's react-i18next mock carries no i18n object: names come out in English.
+    const provider = {
+      ...fakeProvider,
+      languages: {
+        ...fakeProvider.languages,
+        sources: () => [{ value: 'zh-Hant' }, { value: 'zh-TW' }],
+        targets: () => [{ value: 'zh-TW' }],
+      },
+    } as unknown as typeof fakeProvider;
+    draw({ source: 'zh-Hant', target: 'zh-TW' }, vi.fn(), { provider });
+    const texts = [...document.querySelectorAll('option')].map((o) => o.textContent);
+    expect(texts).toEqual([languageLabel('zh-Hant', 'en'), languageLabel('zh-TW', 'en'), languageLabel('zh-TW', 'en')]);
+    expect(languageLabel('zh-Hant', 'en')).not.toBe(languageLabel('zh-TW', 'en'));
+  });
+
   it("lists the provider's sources, and the targets of the chosen source", () => {
     draw({ source: 'en', target: 'ja' });
     expect(values(screen.getByLabelText('settings.sourceLanguage'))).toEqual([AUTO, 'en', 'ja', 'zh']);

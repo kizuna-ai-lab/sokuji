@@ -7,11 +7,13 @@ import type { PreviewClip } from '../audio/playback';
 import type { Adapter, SessionContext } from '../contract/adapter';
 import type { LegName } from '../conversation/types';
 import type { SessionHooks } from '../session/types';
+import type { WireTable } from '../language/wire';
 
 export type Platform = 'electron' | 'extension' | 'web';
 export type ProviderKind = 'own-key' | 'managed' | 'local';
 
-export interface LanguageOption { value: string; name: string; englishName: string }
+/** A language on offer: an app code (`src/lib/language/code.ts`). `name`/`englishName` are leaving (unified language codes, Task 12); nothing reads them. */
+export interface LanguageOption { value: string; name?: string; englishName?: string }
 export interface LanguagePair { source: string; target: string }
 
 /**
@@ -342,6 +344,8 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
      * `reverseSupported` refuses it before reading the answer.
      */
     reverse?(pair: LanguagePair, s: S): LanguagePair | null;
+    /** App codes ⇄ the vendor's (spec "Unified language codes" §3). Required once every provider has one (Task 12). */
+    wire?: WireTable;
   };
 
   // the only capabilities generic code reads

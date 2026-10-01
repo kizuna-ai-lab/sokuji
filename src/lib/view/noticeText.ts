@@ -6,7 +6,8 @@
  * message — the provider's error text, which today's error bubbles show.
  */
 import type { TFunction } from 'i18next';
-import { getLanguageOption } from '../../utils/languages';
+import i18next from 'i18next';
+import { languageLabel } from '../language/label';
 
 export interface NoticeWords {
   code?: string;
@@ -19,7 +20,7 @@ const LANGUAGE_PARAMS = new Set(['source', 'target']);
 
 function named(params: Record<string, string | number> | undefined): Record<string, string | number> | undefined {
   if (!params) return params;
-  return Object.fromEntries(Object.entries(params).map(([key, value]) => [key, LANGUAGE_PARAMS.has(key) && typeof value === 'string' ? getLanguageOption(value).name : value]));
+  return Object.fromEntries(Object.entries(params).map(([key, value]) => [key, LANGUAGE_PARAMS.has(key) && typeof value === 'string' ? languageLabel(value, i18next.language) : value]));
 }
 
 /** The English for every code a surface puts into words; `src/locales/en/translation.json`'s `notices` holds the same, word for word. */
