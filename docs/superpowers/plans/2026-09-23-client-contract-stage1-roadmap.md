@@ -8494,12 +8494,15 @@ Gates after it (0 failed, no unhandled errors): `src` 532 + 1 files, 6 661 +
 in it); `tscdiff.py` from Task 11's set: before 95 after 95; new 0; gone 0;
 the gate equal to its 16-line baseline.
 
-**The final review's M7 is the owner's follow-up, not done here:**
-`extension/package.json` (and its lockfile) still lists `openai` as a runtime
-dependency, though no value import of it is left in `src/` (all four are
-`import type`; the last value import went with `OpenAIGAClient` in Task 7).
-Removing it changes a dependency and a lockfile, beyond the plan's letter,
-and the lockfile needs npm; it ships no bytes meanwhile.
+**The final review's M7, by the owner's ruling:** `extension/package.json`
+listed `openai` as a runtime dependency, though no value import of it was
+left in `src/` (all four are `import type`; the last value import went with
+`OpenAIGAClient` in Task 7). Left out of the fix wave as a dependency change
+beyond the plan's letter, then removed on the owner's word (2026-10-01):
+`npm uninstall openai --package-lock-only` in `extension/` drops it and `ws`,
+its optional peer and nothing else's; the extension's tests (9 / 56) and
+build pass. The root keeps `openai` as a devDependency for its two
+`wire.oracle.test.ts` files.
 
 **What landed, by task** (each commit's `git diff --shortstat` and the files
 it deleted; then its gates: `src` files passed + skipped and tests passed +
@@ -8703,7 +8706,9 @@ Electron; afterwards `pactl` listed only the HDMI sink and its monitor.
   `VITE_ENABLE_VOLCENGINE_AST2`, `VITE_ENABLE_PALABRA_AI`,
   `VITE_ENABLE_KIZUNA_SONIOX`, `VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE`,
   `VITE_ENABLE_KIZUNA_VOLCENGINE_AST2`. `VITE_ENABLE_KIZUNA_AI`,
-  `VITE_ENABLE_LOCAL_NATIVE` and `VITE_ENABLED_PROVIDERS` stay.
+  `VITE_ENABLE_LOCAL_NATIVE` and `VITE_ENABLED_PROVIDERS` stay. **Done** by
+  the owner (2026-10-01): the repository's variables now hold
+  `VITE_ENABLE_KIZUNA_AI=true` alone of the release flags.
 - **The 51 locale keys already unreferenced at `fa301e9a`,**
   `settings.geminiParticipantTokenWarning` among them: a follow-up, out of
   this plan (ruling C16).
@@ -8849,4 +8854,4 @@ why).
 (Revision 1: rulings C16, 9, 10, C17), and Revision 2's one — `CONTEXT.md`'s
 native model resolution entries — by the owner's ruling 11 (Revision 3, Task
 11). The final whole-branch review and its one fix wave followed this record
-(above); the review's M7 is the owner's.
+(above); the review's M7 was removed on the owner's word.
