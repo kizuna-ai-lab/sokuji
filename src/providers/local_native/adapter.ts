@@ -227,37 +227,36 @@ class NativeSession implements AdapterSession {
     this.host.plan(stage, { ...report, model, device });
   }
 
-  /** TTS, unless the model cannot speak without a clip the device lacks; failing, the session goes on without speech. */
+  /** TTS, unless the model cannot speak without a clip the device lacks; failing — the clip lookup included — the session goes on without speech (#578 ruling 10). */
   private async loadTts(loaded: (stage: NativeStage) => void): Promise<void> {
     const { tts } = this;
     const ttsConfig = this.config.tts;
     if (!tts || !ttsConfig) return;
     const { target } = this.request.context.direction;
-    if (await voiceClipMissing(ttsConfig, this.host)) {
-      if (this.ended) return;
-      this.dropTts(tts);
-      this.notices.push({ code: 'tts_degraded', message: `TTS unavailable, continuing without it: "${ttsConfig.modelId}" needs a voice clip — record or import one in Settings first` });
-      loaded('tts');
-      return;
-    }
-    if (this.ended) return;
-    const startedAt = this.request.clock.now();
     try {
-      const ready = await tts.init({ modelId: ttsConfig.modelId, device: ttsConfig.device, language: target, variant: ttsConfig.variant });
-      if (this.ended) return;
-      this.loadedStage('tts', ttsConfig.modelId, ready, this.request.clock.now() - startedAt);
-      const applied = await applyVoice(tts, ttsConfig, target, ready, this.host);
-      if (this.ended) return;
-      this.ttsReady = ready;
-      this.voiceLabel = applied.voice;
-      if (applied.substituted) {
-        this.notices.push({
-          code: 'voice_fallback',
-          message: `Configured voice ${applied.substituted.from} is no longer usable with this model (deleted, or missing a required transcript); substituted voice ${applied.substituted.to}. Update the selection in settings.`,
-        });
+      if (await voiceClipMissing(ttsConfig, this.host)) {
+        if (this.ended) return;
+        this.dropTts(tts);
+        this.notices.push({ code: 'tts_degraded', message: `TTS unavailable, continuing without it: "${ttsConfig.modelId}" needs a voice clip — record or import one in Settings first` });
+      } else {
+        if (this.ended) return;
+        const startedAt = this.request.clock.now();
+        const ready = await tts.init({ modelId: ttsConfig.modelId, device: ttsConfig.device, language: target, variant: ttsConfig.variant });
+        if (this.ended) return;
+        this.loadedStage('tts', ttsConfig.modelId, ready, this.request.clock.now() - startedAt);
+        const applied = await applyVoice(tts, ttsConfig, target, ready, this.host);
+        if (this.ended) return;
+        this.ttsReady = ready;
+        this.voiceLabel = applied.voice;
+        if (applied.substituted) {
+          this.notices.push({
+            code: 'voice_fallback',
+            message: `Configured voice ${applied.substituted.from} is no longer usable with this model (deleted, or missing a required transcript); substituted voice ${applied.substituted.to}. Update the selection in settings.`,
+          });
+        }
+        tts.onError = (message) => this.emit('degraded', { code: 'tts_degraded', message });
+        tts.onClosed = (message) => this.ttsDied(tts, message);
       }
-      tts.onError = (message) => this.emit('degraded', { code: 'tts_degraded', message });
-      tts.onClosed = (message) => this.ttsDied(tts, message);
     } catch (error) {
       if (this.ended) return;
       this.frame('in', 'local.native.init.tts.error', { model: ttsConfig.modelId, error: describeCause(error) });

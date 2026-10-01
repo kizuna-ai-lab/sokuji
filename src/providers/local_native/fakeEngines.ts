@@ -101,10 +101,11 @@ export class FakeNativeTts implements NativeTtsLike {
   /** Streaming: the oldest synthesis is done. */
   finish() { this.pending.shift()!.d.resolve({ samples: new Float32Array(0), sampleRate: 24000, generationTimeMs: 7 }); }
   failSpeech(message: string) { this.pending.shift()!.d.reject(new Error(message)); }
-  /** Like the real client, a dispose rejects every synthesis in flight. */
+  /** Like the real client, a dispose rejects every synthesis in flight; a test clears this to leave one pending. */
+  rejectsOnDispose = true;
   dispose() {
     this.disposes++;
-    for (const p of this.pending.splice(0)) p.d.reject(new Error('native host disconnected'));
+    if (this.rejectsOnDispose) for (const p of this.pending.splice(0)) p.d.reject(new Error('native host disconnected'));
   }
   close(message = 'native host disconnected') { this.onClosed?.(message); }
 }

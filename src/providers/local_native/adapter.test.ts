@@ -6,6 +6,7 @@ import type { AdapterEvent } from '../../lib/contract/events';
 import { createLocalNativeAdapter, VAD_INIT_TIMEOUT_MS } from './adapter';
 import type { LocalNativeConfig } from './config';
 import { createFakeNativeEngines, createFakeNativeHost } from './fakeEngines';
+import type { LocalNativeEngines } from './engines';
 import type { NativeHost } from './host';
 
 const silent: SessionContext = { direction: { source: 'ja', target: 'en' }, speech: false, turns: 'auto' };
@@ -67,6 +68,8 @@ describe('opening', () => {
     expect(b.calls).toEqual(['translation', 'asr', 'tts', 'vad']);
     expect(b.translation.inits[0]).toEqual({ sourceLang: 'ja', targetLang: 'en', modelId: 'mt-a', device: 'auto', variant: undefined, asrModel: 'asr-a', ttsModel: 'tts-a' });
     expect(a.vad.inits[0]).toEqual({ threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4 });
+    conformant(a.log, speaking);
+    conformant(b.log, speaking);
   });
 
   it('says each model loaded, and hands each plan to the host (#578 ruling 14)', async () => {
@@ -85,6 +88,7 @@ describe('opening', () => {
     t.asr.failInit('no such model');
     await expect(t.starting).rejects.toThrow('ASR engine init failed: no such model');
     expect([t.asr.disposes, t.translation.disposes, t.vad.disposes]).toEqual([1, 1, 1]);
+    conformant(t.log, silent);
   });
 
   it('a cancelled start rejects at once and ends every seam', async () => {
@@ -93,6 +97,7 @@ describe('opening', () => {
     ac.abort(new Error('cancelled'));
     await expect(t.starting).rejects.toThrow('cancelled');
     expect(t.asr.disposes).toBe(1);
+    conformant(t.log, silent);
   });
 
   it('a VAD that never loads fails the start after its timeout', async () => {
@@ -102,6 +107,7 @@ describe('opening', () => {
     await settle();
     t.clock.advance(VAD_INIT_TIMEOUT_MS);
     await expect(t.starting).rejects.toThrow('VAD worker init timeout');
+    conformant(t.log, silent);
   });
 
   it('a VAD that fails to load rejects the start and ends every seam', async () => {
@@ -111,17 +117,26 @@ describe('opening', () => {
     t.vad.failInit('model missing');
     await expect(t.starting).rejects.toThrow('model missing');
     expect([t.asr.disposes, t.translation.disposes, t.vad.disposes]).toEqual([1, 1, 1]);
+    conformant(t.log, silent);
   });
 
-  it('a VAD that cannot even be created rejects the start: nothing throws outside the promise', async () => {
+  it('a VAD that cannot even be created rejects the start before any other seam is made (nothing throws outside the promise)', async () => {
     const fakes = createFakeNativeEngines();
-    fakes.engines.vad = () => { throw new Error('no worker'); };
-    const starting = createLocalNativeAdapter(fakes.engines, createFakeNativeHost()).start(
-      { context: silent, config: config(), credentials: {}, clock: createVirtualClock(), signal: new AbortController().signal },
-      recordConformance().events,
+    const made: string[] = [];
+    const engines: LocalNativeEngines = {
+      asr: () => { made.push('asr'); return fakes.asr; },
+      translation: () => { made.push('translation'); return fakes.translation; },
+      tts: () => { made.push('tts'); return fakes.tts; },
+      vad: () => { throw new Error('no worker'); },
+    };
+    const recorder = recordConformance();
+    const starting = createLocalNativeAdapter(engines, createFakeNativeHost()).start(
+      { context: speaking, config: config({ tts: TTS }), credentials: {}, clock: createVirtualClock(), signal: new AbortController().signal },
+      recorder.events,
     );
     await expect(starting).rejects.toThrow('no worker');
-    expect(fakes.calls).toEqual([]);
+    expect(made).toEqual([]);
+    conformant(recorder.log, speaking);
   });
 
   it('TTS that fails to load leaves the session without speech, and says so (#578 ruling 10)', async () => {
@@ -133,18 +148,35 @@ describe('opening', () => {
     await t.starting;
     await settle();
     expect(ofKind(t.log, 'degraded')).toEqual([expect.objectContaining({ code: 'tts_degraded' })]);
+    conformant(t.log, speaking);
   });
 
   it('a clone-only model with no clip is not loaded, and says so', async () => {
     const t = await open(config({ tts: { ...TTS, capability: { builtin: 'none', custom: 'clip', required: true } } }), speaking);
     expect(t.calls).not.toContain('tts');
     expect(ofKind(t.log, 'degraded')).toEqual([expect.objectContaining({ code: 'tts_degraded' })]);
+    conformant(t.log, speaking);
+  });
+
+  it('a voice-clip lookup that throws leaves the session without speech, and the text goes on (#578 ruling 10)', async () => {
+    const host = createFakeNativeHost({ voiceStore: () => { throw new Error('lookup broke'); } });
+    const t = await open(config({ tts: { ...TTS, capability: { builtin: 'none', custom: 'clip', required: true } } }), speaking, host);
+    expect(t.tts.disposes).toBe(1);
+    expect(t.calls).not.toContain('tts');
+    expect(ofKind(t.log, 'degraded')).toEqual([expect.objectContaining({ code: 'tts_degraded', message: expect.stringContaining('lookup broke') })]);
+    t.asr.final('こんにちは');
+    t.translation.answer('Hello.');
+    await settle();
+    expect(segments(t.log, 'translation')).toEqual([{ origin: 'u1', text: 'Hello.', closed: true }]);
+    expect(t.tts.spoken).toEqual([]);
+    conformant(t.log, speaking);
   });
 
   it('a transcription-only session says so once', async () => {
     const t = await open(config({ translation: null }));
     expect(t.calls).toEqual(['asr', 'vad']);
     expect(ofKind(t.log, 'degraded')).toEqual([expect.objectContaining({ code: 'translation_unavailable' })]);
+    conformant(t.log, silent);
   });
 });
 
@@ -192,6 +224,7 @@ describe('speech in, text out', () => {
     expect(segments(t.log, 'source')).toEqual([{ origin: 'u1', text: 'こん', closed: true }]);
     expect(t.translation.calls).toEqual([]);
     expect(ofKind(t.log, 'degraded')).toEqual([expect.objectContaining({ code: 'transcription_failed' })]);
+    conformant(t.log, silent);
   });
 
   it('VAD edges become sidecar marks, and audio goes to both', async () => {
@@ -203,6 +236,7 @@ describe('speech in, text out', () => {
     expect(t.asr.fed).toEqual([new Int16Array([1, 2])]);
     expect(t.vad.fed).toEqual([new Int16Array([1, 2])]);
     expect(t.asr.marks).toEqual(['start', 'end', 'cancel']);
+    conformant(t.log, silent);
   });
 
   it("a turn's end feeds a 700 ms silent tail to both, then flushes the VAD and the sidecar; a failed flush is only a frame", async () => {
@@ -215,6 +249,7 @@ describe('speech in, text out', () => {
     expect([t.vad.flushes, t.asr.flushes]).toEqual([1, 1]);
     expect(ofKind(t.log, 'frame').map((f) => f.type)).toContain('local.native.asr.flush.error');
     expect(ofKind(t.log, 'failed')).toEqual([]);
+    conformant(t.log, silent);
   });
 });
 
@@ -250,6 +285,7 @@ describe('speech out', () => {
     const host = createFakeNativeHost({ listVoices: async () => [{ name: 'Bella', language: 'en', curated: true, unstable: false, default: true }] });
     const t = await open(config({ tts: { ...TTS, voice: 'builtin:Bella' } }), speaking, host);
     expect(t.tts.voices).toEqual(['Bella']);
+    conformant(t.log, speaking);
   });
 
   it('no audio when the leg does not speak', async () => {
@@ -269,6 +305,7 @@ describe('failing and ending', () => {
     expect(ofKind(t.log, 'failed')).toEqual([{ message: 'The local engine stopped: native host disconnected' }]);
     t.asr.final('late');
     expect(ofKind(t.log, 'segmentOpened')).toEqual([]);
+    conformant(t.log, silent);
   });
 
   it('a closed TTS socket stops speech only', async () => {
@@ -281,12 +318,38 @@ describe('failing and ending', () => {
     await settle();
     expect(t.tts.spoken).toEqual([]);
     expect(segments(t.log, 'translation')).toEqual([{ origin: 'u1', text: 'Hello.', closed: true }]);
+    conformant(t.log, speaking);
+  });
+
+  it('a TTS that dies while a sentence is speaking ends that speech at once, and the next job still runs (#578 ruling 10)', async () => {
+    const t = await open(config({ tts: TTS }), speaking);
+    // The synthesis stays pending on close: only the session's own race can end the job.
+    t.tts.rejectsOnDispose = false;
+    t.asr.final('こんにちは');
+    t.translation.answer('Hello.');
+    await settle();
+    expect(t.tts.spoken).toEqual(['Hello.']);
+    t.asr.final('さようなら');
+    t.tts.close();
+    await settle();
+    expect(t.translation.calls.map((c) => c.text)).toEqual(['こんにちは', 'さようなら']);
+    t.translation.answer('Goodbye.');
+    await settle();
+    expect(segments(t.log, 'translation')).toEqual([
+      { origin: 'u1', text: 'Hello.', closed: true },
+      { origin: 'u2', text: 'Goodbye.', closed: true },
+    ]);
+    expect(ofKind(t.log, 'degraded')).toEqual([expect.objectContaining({ code: 'tts_degraded' })]);
+    expect(ofKind(t.log, 'audio')).toEqual([]);
+    expect(t.tts.spoken).toEqual(['Hello.']);
+    conformant(t.log, speaking);
   });
 
   it('a VAD that fails after it is ready fails the session', async () => {
     const t = await open();
     t.vad.fail('segmenter died');
     expect(ofKind(t.log, 'failed')).toEqual([{ message: 'Voice activity detection stopped: segmenter died' }]);
+    conformant(t.log, silent);
   });
 
   it('a VAD that fails again after the session failed says nothing more', async () => {
@@ -295,6 +358,7 @@ describe('failing and ending', () => {
     t.vad.fail('segmenter died again');
     t.asr.close();
     expect(ofKind(t.log, 'failed')).toEqual([{ message: 'Voice activity detection stopped: segmenter died' }]);
+    conformant(t.log, silent);
   });
 
   it('stop ends every seam before its first await', async () => {
@@ -302,6 +366,7 @@ describe('failing and ending', () => {
     t.mark('stop');
     void t.session.stop();
     expect([t.asr.disposes, t.translation.disposes, t.tts.disposes, t.vad.disposes]).toEqual([1, 1, 1, 1]);
+    conformant(t.log, speaking);
   });
 
   it('stop during a streaming sentence emits nothing after', async () => {
