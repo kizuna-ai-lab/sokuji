@@ -47,6 +47,12 @@ vi.mock('../../../stores/audioStore', () => ({
   useIsAudioLoading: () => false,
 }));
 
+// The section reads `PARTICIPANT_SPEECH_SHOWN` from the routing store; these
+// keep the store's services (and, behind them, the locales) out of the test, so
+// the real flag is what the section sees.
+vi.mock('../../../services/ServiceFactory', () => ({ ServiceFactory: {} }));
+vi.mock('../../../services/persistSetting', () => ({ persistSetting: vi.fn() }));
+
 // A marker only: locked is the one prop this section wires through, and the
 // switch's own behaviour (the whole-system rule, the tooltip) is covered by
 // ParticipantSpeechSwitch.test.tsx.
@@ -154,12 +160,13 @@ describe('SystemAudioSection', () => {
     expect(container.querySelector('.toggle-switch-component')).not.toBeNull();
   });
 
-  it('renders the participant-speech switch, locked with the run', () => {
+  // The owner, 2026-10-01: hidden, with participant speech kept off.
+  it('does not render the participant-speech switch', () => {
     const { rerender } = mount({ isSessionActive: false });
-    expect(screen.getByTestId('participant-speech-switch').dataset.locked).toBe('false');
+    expect(screen.queryByTestId('participant-speech-switch')).toBeNull();
 
     rerender(<SystemAudioSection isSessionActive={true} />);
-    expect(screen.getByTestId('participant-speech-switch').dataset.locked).toBe('true');
+    expect(screen.queryByTestId('participant-speech-switch')).toBeNull();
   });
 
   it('shows no Gemini token warning any more; the section no longer reads the provider', () => {

@@ -11,6 +11,17 @@ import { ServiceFactory } from '../services/ServiceFactory';
 const MEETING = 'settings.routing.meeting';
 const PARTICIPANT_SPEECH = 'settings.routing.participantSpeech';
 
+/**
+ * Whether the participant-speech switch shows. The owner's choice of
+ * 2026-10-01: hidden, and participant speech kept off, until the translated
+ * audio's playback is reworked — an application capture that widens to the
+ * whole system mid-run would still play Other's translation on the real
+ * device. While off, `load()` does not read the saved choice, so one saved
+ * while the switch showed cannot turn speech on unseen; the saved value is
+ * left as it was, not rewritten. Showing it again is this line.
+ */
+export const PARTICIPANT_SPEECH_SHOWN = false;
+
 interface RoutingStore {
   meeting: boolean;
   participantSpeech: boolean;
@@ -26,7 +37,7 @@ export const useRoutingStore = create<RoutingStore>()((set) => ({
     const settings = ServiceFactory.getSettingsService();
     const [meeting, participantSpeech] = await Promise.all([
       settings.getSetting(MEETING, true),
-      settings.getSetting(PARTICIPANT_SPEECH, false),
+      PARTICIPANT_SPEECH_SHOWN ? settings.getSetting(PARTICIPANT_SPEECH, false) : false,
     ]);
     set({
       meeting: typeof meeting === 'boolean' ? meeting : true,

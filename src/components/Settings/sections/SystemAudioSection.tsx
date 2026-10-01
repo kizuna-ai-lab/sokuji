@@ -12,6 +12,7 @@ import {
 import DeviceList from '../shared/DeviceList';
 import { useAnalytics } from '../../../lib/analytics';
 import { ParticipantSpeechSwitch } from './ParticipantSpeechSwitch';
+import { PARTICIPANT_SPEECH_SHOWN } from '../../../stores/routingStore';
 import { isExtension, isElectron } from '../../../utils/environment';
 
 interface SystemAudioSectionProps {
@@ -134,8 +135,9 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
       )}
       {/* Locked by the run, not by the mode-scope `locked` above (ruling 8):
           the participant-TTS opt-in freezes for the run's whole shape, not
-          only while this channel is scoped out. */}
-      <ParticipantSpeechSwitch locked={isSessionActive} />
+          only while this channel is scoped out. Hidden while
+          `PARTICIPANT_SPEECH_SHOWN` is off. */}
+      {PARTICIPANT_SPEECH_SHOWN && <ParticipantSpeechSwitch locked={isSessionActive} />}
     </div>
   );
 };

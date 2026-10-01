@@ -900,7 +900,12 @@ What it leaves:
 **Before the first release**
 - Close the participant-speech route when an application capture falls back
   to the whole system mid-run (`app_capture_lost_using_system_audio`,
-  `app_capture_monitor_missing`): ruling 7's stated gap.
+  `app_capture_monitor_missing`): ruling 7's stated gap. **Deferred by the
+  owner (2026-10-01) to the dedicated plan for the translated audio's
+  playback**; meanwhile the switch is hidden and participant speech kept off
+  (`PARTICIPANT_SPEECH_SHOWN = false` in `routingStore.ts`): the routing
+  store does not read a saved choice, which stays in storage untouched. That
+  plan decides whether a choice saved before the hide is honoured again.
 
 **1e-4 — the extension**
 - The meeting page's subtitle overlay still reads the old `sessionStore`,

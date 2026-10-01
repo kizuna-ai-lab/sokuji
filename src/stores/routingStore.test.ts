@@ -26,9 +26,19 @@ describe('routingStore', () => {
     await useRoutingStore.getState().load();
     expect(useRoutingStore.getState()).toMatchObject({ meeting: true, participantSpeech: false });
     stored.set('settings.routing.meeting', false);
+    await useRoutingStore.getState().load();
+    expect(useRoutingStore.getState()).toMatchObject({ meeting: false, participantSpeech: false });
+  });
+
+  // The owner, 2026-10-01: the switch is hidden and participant speech stays
+  // off, so a choice saved while it showed must not turn it on unseen. The
+  // saved value is left as it was, not rewritten.
+  it('keeps participant speech off while its switch is hidden, whatever was saved', async () => {
     stored.set('settings.routing.participantSpeech', true);
     await useRoutingStore.getState().load();
-    expect(useRoutingStore.getState()).toMatchObject({ meeting: false, participantSpeech: true });
+    expect(useRoutingStore.getState().participantSpeech).toBe(false);
+    expect(stored.get('settings.routing.participantSpeech')).toBe(true);
+    expect(setSetting).not.toHaveBeenCalled();
   });
 
   it('ignores a saved value that is not a boolean', async () => {

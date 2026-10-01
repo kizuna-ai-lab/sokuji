@@ -28,6 +28,8 @@ import { isElectron } from '../../../utils/environment';
  * switch off and disabled too, with a "not available yet" tooltip, keeping
  * the stored choice — the run's shape (`appShape.ts`) and the leg's context
  * (`shape.ts`) read the same flag.
+ *
+ * Not rendered while `PARTICIPANT_SPEECH_SHOWN` (`routingStore.ts`) is off.
  */
 export function ParticipantSpeechSwitch({ locked }: { locked: boolean }) {
   const { t } = useTranslation();
