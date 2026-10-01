@@ -41,7 +41,7 @@ const turnModeBefore = useTurnModeStore.getState();
 beforeEach(() => {
   stored.clear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, readiness: {}, selected: null });
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null });
 });
 
 afterEach(() => {

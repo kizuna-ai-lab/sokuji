@@ -56,7 +56,7 @@ function idleRunner(): { state: StoreApi<RunState> } {
 const realRefresh = useProviderStore.getState().refreshReadiness;
 
 beforeEach(() => {
-  useProviderStore.setState({ entries: {}, readiness: {}, selected: null, legs: ['speaker'], refreshReadiness: realRefresh });
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null, legs: ['speaker'], refreshReadiness: realRefresh });
 });
 
 /**

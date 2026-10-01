@@ -40,7 +40,7 @@ const noAuth = { signedIn: false, getToken: async () => null };
 beforeEach(() => {
   stored.clear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, readiness: {}, selected: null });
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null });
 });
 
 describe('ProviderPanel', () => {
@@ -84,7 +84,7 @@ describe('ProviderPanel', () => {
   it('saves a new language pair', async () => {
     render(<ProviderPanel providers={[fakeProvider]} auth={noAuth} />);
     fireEvent.change(await screen.findByLabelText('settings.sourceLanguage'), { target: { value: 'ja' } });
-    await waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.fake.sourceLanguage', 'ja'));
+    await waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.common.sourceLanguage', 'ja'));
   });
 
   it('draws nothing when no provider is offered', () => {

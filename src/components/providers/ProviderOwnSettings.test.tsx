@@ -44,7 +44,7 @@ const signIn = (userId: string | null = 'u1', signedIn = true, token = 't'): Aut
 beforeEach(() => {
   stored.clear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, readiness: {}, models: {}, selected: 'fake', legs: ['speaker'] });
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, models: {}, selected: 'fake', legs: ['speaker'] });
 });
 
 describe('ProviderOwnSettings', () => {

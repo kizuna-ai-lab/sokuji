@@ -16,7 +16,7 @@ import { useProviderStore } from '../../stores/providerStore';
 import { ownProps, useSelectedProvider } from './useSelectedProvider';
 
 beforeEach(() => {
-  useProviderStore.setState({ entries: {}, readiness: {}, models: {}, selected: 'fake', legs: ['speaker'] });
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, models: {}, selected: 'fake', legs: ['speaker'] });
 });
 
 describe('ownProps', () => {

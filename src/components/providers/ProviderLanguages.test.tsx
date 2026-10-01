@@ -20,6 +20,7 @@ beforeEach(() => {
     entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'auto', target: 'en' } } },
     readiness: {},
     selected: 'fake',
+    intent: { source: 'auto', target: 'en' },
   });
 });
 

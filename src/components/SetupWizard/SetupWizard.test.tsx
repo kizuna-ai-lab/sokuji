@@ -96,7 +96,7 @@ beforeEach(() => {
   applied.length = 0; applyGate = null; applyError = null; signedIn = false; uiLanguage = 'en';
   setupRecord = null; authOverlayState = null;
   setAuthOverlay.mockClear(); trackSpy.mockClear(); startTourSpy.mockClear();
-  useProviderStore.setState({ entries: {}, readiness: {} });
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {} });
 });
 
 afterEach(() => {

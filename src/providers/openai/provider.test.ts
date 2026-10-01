@@ -37,7 +37,7 @@ afterEach(() => {
   stored.clear();
   getSetting.mockClear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, readiness: {}, selected: null, selectionLocked: false, legs: ['speaker'], speech: { textOnly: false, participantSpeech: false } });
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null, selectionLocked: false, legs: ['speaker'], speech: { textOnly: false, participantSpeech: false } });
 });
 
 const both = (pair: { source: string; target: string }, patch: Partial<RunShape> = {}) =>
@@ -113,8 +113,8 @@ describe('the OpenAI Realtime definition', () => {
 
   it("loads an old profile as it was — the key, the pair, the settings — reading no temperature and no WebRTC choice, which runs over WebSocket, converting nothing, and writes nothing (rulings 5, 6, 12)", async () => {
     stored.set('settings.openai.apiKey', 'sk-proj-oldProfileKey0123');
-    stored.set('settings.openai.sourceLanguage', 'ko');
-    stored.set('settings.openai.targetLanguage', 'ja');
+    stored.set('settings.common.sourceLanguage', 'ko');
+    stored.set('settings.common.targetLanguage', 'ja');
     stored.set('settings.openai.model', 'gpt-realtime-2.1');
     stored.set('settings.openai.voice', 'marin');
     stored.set('settings.openai.turnDetectionMode', 'Semantic');

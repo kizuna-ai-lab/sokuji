@@ -35,7 +35,7 @@ afterEach(() => {
   stored.clear();
   getSetting.mockClear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, selected: null, selectionLocked: false });
+  useProviderStore.setState({ entries: {}, intent: undefined, selected: null, selectionLocked: false });
 });
 
 describe('the Gemini definition', () => {
@@ -111,7 +111,7 @@ describe('the Gemini definition', () => {
 
     // Once edited in Gemini's own Settings, its own value wins over the global copy. (`load` skips a provider already loaded: start from an empty store.)
     stored.set('settings.gemini.systemInstructions', 'Mine.');
-    useProviderStore.setState({ entries: {} });
+    useProviderStore.setState({ entries: {}, intent: undefined });
     await useProviderStore.getState().load(geminiProvider);
     expect((useProviderStore.getState().entries.gemini.settings as GeminiSettings).systemInstructions).toBe('Mine.');
   });
