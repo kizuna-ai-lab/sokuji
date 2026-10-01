@@ -8855,3 +8855,90 @@ why).
 native model resolution entries — by the owner's ruling 11 (Revision 3, Task
 11). The final whole-branch review and its one fix wave followed this record
 (above); the review's M7 was removed on the owner's word.
+
+## Fixed before #570 merges: the two open review threads
+
+Two review threads on #570 were still open when the owner asked whether #571
+could merge (2026-10-01): `src/lib/audio/graph.ts:462` (output-device switches
+not serialized) and `src/components/SetupWizard/useApplySetup.ts:36` (setup
+recorded complete before the provider's settings were written). Both defects
+were still in Stage 2's code. The owner chose to fix them before merging:
+「先修那两条，开个计划」.
+
+**What landed.** The plan is
+`docs/superpowers/plans/2026-10-01-client-contract-pr570-review-fixes.md`.
+Its first version was reviewed by replaying it on a fresh copy of `7022af45`.
+The review returned "Ready after fixes" (0 Critical, 2 Important, 7 Minor,
+5 Nit). Revision 1 (`7595ae05`) took in every finding. The owner chose inline
+execution.
+
+- **`79860ccc` `fix(audio): switch one output device at a time per bus`.**
+  `setSinks` hands each bus's switch to a per-bus queue:
+  - one `setSinkId` in flight per element;
+  - a switch a newer request overtook before its turn is skipped, and so is
+    one still queued at `close()`;
+  - a stale switch's success or failure leaves the newer request's records
+    and the element alone;
+  - a switch that never settles holds the next one for
+    `SINK_SWITCH_DEADLINE_MS` (1.5 s) at most.
+
+  There are five new cases. Four failed red as the plan predicted. The one
+  that turns the meeting output off while a switch is pending passed, as the
+  stated pin. Six mutants were run, and each failed exactly the cases the plan
+  named:
+  - no queue;
+  - no stale check in `catch`;
+  - no stale check after the `try`;
+  - `close()` not counted as stale;
+  - no stale check at a turn's start;
+  - no deadline.
+- **`e7f7547c` `fix(setup): record setup complete only over saved provider settings`.**
+  - Every provider-store write goes through one `write()`.
+  - The store tracks the writes in flight and the last value per key that did
+    not land.
+  - `flush(p)` writes those values again for `p`'s keys and the selection,
+    and waits for every write.
+  - `applyProvider` awaits it, and throws `SetupPersistError` when a write did
+    not land. The wizard shows "Could not save your setup" and records nothing.
+  - Finish again writes what was missing, then records. That includes a
+    language pair already in memory, which `setPair`'s change-only writes
+    would never have written again.
+
+  There are seven store cases and three wizard cases, red as predicted
+  (17 failed, 37 passed). Eight mutants were run. Each failed every case the
+  plan named, some more:
+  - result ignored;
+  - no flush;
+  - no retry;
+  - no reset on a new write;
+  - no `latest` guard;
+  - writes not tracked;
+  - retries not awaited;
+  - no scope.
+- **Gates after both commits:**
+  - `npx vitest run src`: 532 files passed and 1 skipped; 6 676 tests passed
+    and 2 skipped; 0 failed.
+  - electron 34 / 477 and extension 9 / 56.
+  - The full tree's typecheck: 95 errors, none new.
+  - The typecheck gate: equal to its 16-line baseline.
+
+**The two choices made on the plan's review:**
+
+- **A switch that never settles** holds its bus for 1.5 s at most, as the
+  graph already bounds its other waits on a wedged device (#246). Past that
+  bound, a switch that is slow but still alive can overlap the next one. That
+  is the original race, but only after 1.5 s.
+- **`flush(p)` answers for the wizard's provider and the selection only.**
+  Another provider's refused value, such as a long prompt over
+  `chrome.storage.sync`'s per-item quota, does not fail Finish. It still
+  reaches the panel through `persistSetting`'s warning.
+
+**The stated scope.** The scenario's mode and text-only writes
+(`audioStore.setMode`, `settingsStore.setTextOnly`) stay unawaited:
+
+- `setTextOnly` already awaits its own write and rolls back when it fails.
+- A lost `setMode` leaves the person's previous mode, which they see and can
+  change. A lost credential would leave a provider that cannot start.
+
+**Left to the owner:** resolving the two threads on #570 once this is pushed.
+The final whole-branch review of these commits adds its own line below.
