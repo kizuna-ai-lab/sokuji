@@ -8,9 +8,7 @@ html, body, #root, .App {
   min-height: 0; /* Allow shrinking for nested scrolling */
   overflow: hidden;
   color: white;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-sans, sans-serif); // src/index.scss
   display: flex;
   flex-direction: column;
 }

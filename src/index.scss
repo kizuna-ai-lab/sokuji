@@ -1,8 +1,40 @@
+// The UI font. The Latin stack ends at `sans-serif`; the CJK fonts after it
+// are reached only for glyphs nothing before them has. Without them a glyph
+// the locale's CJK font lacks went to the system's own fallback, which on a
+// zh-TW Windows is SimSun, a serif, mid-sentence (#559). The tail is ordered
+// by the UI language (`lang`, set in src/locales): its Han characters are
+// shared across Chinese and Japanese, and the first font that has a character
+// decides the shape it is drawn in.
+:root {
+  --font-cjk: 'Microsoft YaHei UI', 'Microsoft YaHei', 'Microsoft JhengHei UI',
+    'Microsoft JhengHei', 'Yu Gothic UI', 'Meiryo UI', 'Malgun Gothic',
+    'PingFang SC', 'Hiragino Sans', 'Noto Sans CJK SC', 'Source Han Sans SC';
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif, var(--font-cjk);
+}
+
+:root:lang(zh-TW) {
+  --font-cjk: 'Microsoft JhengHei UI', 'Microsoft JhengHei', 'Microsoft YaHei UI',
+    'Microsoft YaHei', 'PingFang TC', 'Noto Sans CJK TC', 'Source Han Sans TC',
+    'Noto Sans CJK SC';
+}
+
+:root:lang(ja) {
+  --font-cjk: 'Yu Gothic UI', 'Meiryo UI', 'Meiryo', 'Microsoft YaHei UI',
+    'Microsoft YaHei', 'Hiragino Sans', 'Noto Sans CJK JP', 'Source Han Sans JP',
+    'Noto Sans CJK SC';
+}
+
+:root:lang(ko) {
+  --font-cjk: 'Malgun Gothic', 'Microsoft YaHei UI', 'Microsoft YaHei',
+    'Apple SD Gothic Neo', 'Noto Sans CJK KR', 'Source Han Sans KR',
+    'Noto Sans CJK SC';
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -10,4 +42,13 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+// Form controls take the browser's own font, not the page's, so they would
+// keep the SimSun fallback above. Classes that set their own font still win.
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
 }

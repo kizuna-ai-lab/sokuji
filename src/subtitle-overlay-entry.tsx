@@ -5,6 +5,9 @@
  * `chrome.storage` first); everything about the run arrives on the port.
  */
 import { createRoot } from 'react-dom/client';
+// The UI font (`--font-sans`): without it this page drew subtitles in the
+// browser's default serif, Han characters in SimSun (#559).
+import './index.scss';
 import { AppProviders } from './components/AppProviders';
 import { ConnectedOverlay } from './components/Subtitle/ConnectedOverlay';
 import { reportError } from './lib/diagnostics/report';

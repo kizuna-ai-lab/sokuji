@@ -183,8 +183,21 @@ i18n
     missingKeyHandler: false,
   });
 
+// The document's `lang` follows the UI language. Chromium picks the font for
+// `sans-serif`, and for CJK glyphs no listed font has, by the content
+// language: left at the pages' hard-coded `en`, a zh-TW Windows drew the
+// glyphs Microsoft JhengHei lacks in SimSun, a serif (#559). index.scss
+// orders its CJK fonts by the same attribute. Our codes use `_`, BCP 47 `-`.
+function syncDocumentLang(lng: string | undefined): void {
+  if (lng && typeof document !== 'undefined') {
+    document.documentElement.lang = lng.replace('_', '-');
+  }
+}
+syncDocumentLang(i18n.language);
+
 // Listen for language changes and load translations on demand
 i18n.on('languageChanged', async (lng) => {
+  syncDocumentLang(lng);
   if (lng && lng !== 'en') {
     await loadTranslation(lng);
   }
