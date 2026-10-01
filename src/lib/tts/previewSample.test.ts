@@ -2,9 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { previewSampleFor, resolvePreviewSample, PREVIEW_SAMPLES } from './previewSample';
 import { SONIOX_LANGUAGES } from '../../providers/soniox/settings';
 
-// Soniox still lists Filipino as its own `tl` until its table moves to app codes;
-// the preview table is keyed by the app code `fil`.
-const supported = new Set(SONIOX_LANGUAGES.map((l) => (l.value === 'tl' ? 'fil' : l.value)));
+const supported = new Set(SONIOX_LANGUAGES.map((l) => l.value));
 
 describe('previewSampleFor', () => {
   it('only seeds languages Soniox can actually synthesize', () => {

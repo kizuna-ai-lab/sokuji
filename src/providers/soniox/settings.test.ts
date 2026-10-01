@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { parseCode } from '../../lib/language/code';
 import { reverseSupported } from '../../lib/provider/languages';
 import type { AuthContext } from '../../lib/provider/types';
 import {
@@ -7,6 +8,7 @@ import {
   migrateSonioxSettings,
   sonioxCredentials,
   sonioxKeyField,
+  SONIOX_LANGUAGES,
   sonioxLanguages,
   sonioxVoiceField,
 } from './settings';
@@ -90,7 +92,7 @@ describe('sonioxLanguages', () => {
   it('offers AUTO and the 60 languages as sources, the 60 as every source\'s targets, never AUTO, and starts auto → en', () => {
     const sources = sonioxLanguages.sources(SONIOX_DEFAULTS);
     expect(sources).toHaveLength(61);
-    expect(sources[0]).toEqual({ value: 'auto', name: 'Auto', englishName: 'Auto' });
+    expect(sources[0]).toEqual({ value: 'auto' });
 
     const targets = sonioxLanguages.targets('ja', SONIOX_DEFAULTS);
     expect(targets).toHaveLength(60);
@@ -115,4 +117,13 @@ describe('sonioxKeyField / sonioxVoiceField', () => {
     expect(sonioxVoiceField('eu')).toBe('voiceEu');
     expect(sonioxVoiceField('jp')).toBe('voiceJp');
   });
+});
+
+it('offers app codes; Tagalog is fil here and tl at Soniox (unified language codes)', () => {
+  const values = SONIOX_LANGUAGES.map((o) => o.value);
+  for (const v of values) expect(parseCode(v), v).not.toBeNull();
+  expect(values).toContain('fil');
+  expect(values).not.toContain('tl');
+  expect(sonioxLanguages.wire?.toWire('fil')).toBe('tl');
+  expect(sonioxLanguages.wire?.fromWire('tl')).toBe('fil');
 });
