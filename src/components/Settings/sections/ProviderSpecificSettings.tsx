@@ -56,9 +56,20 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     nativeCatalog,
   ]);
 
+  // The old slice, handed to the native model UI as its host's settings,
+  // writer and pair (#578).
+  const nativePair = useMemo(
+    () => ({ source: localNativeSettings.sourceLanguage, target: localNativeSettings.targetLanguage }),
+    [localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage],
+  );
+  const nativeOverride = useMemo(
+    () => ({ settings: localNativeSettings, update: updateLocalNativeSettings, pair: nativePair }),
+    [localNativeSettings, updateLocalNativeSettings, nativePair],
+  );
+
   // LOCAL_NATIVE's EngineAdapter — hoisted above the return (hooks must run
   // unconditionally) even though it's only rendered in the branch below.
-  const nativeAdapter = useNativeEngineAdapter(isSessionActive);
+  const nativeAdapter = useNativeEngineAdapter(isSessionActive, nativeOverride);
 
   // One-shot deep-link into the engine surface, fired by an engine chip.
   // Consumed on the render where it's seen: Local Native opens that slot, and
@@ -100,9 +111,11 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         onInitialSlotConsumed={() => setEngineInitialSlot(null)}
         renderLibrary={(slot) => (
           <NativeModelManagementSection isSessionActive={isSessionActive}
-            stageFilter={slot.stage} direction={slot.dir} />
+            stageFilter={slot.stage} direction={slot.dir}
+            settings={localNativeSettings} update={updateLocalNativeSettings} pair={nativePair} />
         )}
-        renderStorage={() => <StoragePage provider="native" isSessionActive={isSessionActive} />}
+        renderStorage={() => <StoragePage provider="native" isSessionActive={isSessionActive}
+          settings={localNativeSettings} pair={nativePair} />}
       />
 
       {ttsActive && (

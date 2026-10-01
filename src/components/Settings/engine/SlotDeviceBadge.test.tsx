@@ -28,10 +28,6 @@ const GPU_CATALOG = { m: { tiers: [{ tier: 'gpu-vulkan', available: true }] } };
 const CPU_CATALOG = { m: { tiers: [{ tier: 'cpu', available: true }] } };
 let mockCatalog: Record<string, unknown> = GPU_CATALOG;
 
-vi.mock('../../../stores/settingsStore', () => ({
-  useLocalNativeSettings: () => mockSettings,
-}));
-
 vi.mock('../../../stores/nativeModelStore', () => ({
   useNativeAsrResolved: () => mockAsrResolved,
   useNativeTranslationResolved: () => mockTranslationResolved,
@@ -57,20 +53,20 @@ const actual = (container: HTMLElement) => badge(container).querySelector('.slot
 
 describe('SlotDeviceBadge', () => {
   it('is a plain span, not a control: nothing to click, nothing to focus', () => {
-    const { container } = render(<SlotDeviceBadge stage="asr" modelId="m" id="b" />);
+    const { container } = render(<SlotDeviceBadge stage="asr" modelId="m" id="b" setting={mockSettings.asrDevice} />);
     expect(badge(container).tagName).toBe('SPAN');
     expect(container.querySelector('button')).toBeNull();
   });
 
   it('carries the id the select describes itself by, and names what it is for assistive tech', () => {
-    const { container } = render(<SlotDeviceBadge stage="asr" modelId="m" id="slot-asr-0" />);
+    const { container } = render(<SlotDeviceBadge stage="asr" modelId="m" id="slot-asr-0" setting={mockSettings.asrDevice} />);
     expect(badge(container).id).toBe('slot-asr-0');
     expect(badge(container).querySelector('.slot-device-badge__sr')).toHaveTextContent('Compute device:');
     expect(badge(container).textContent).toBe('Compute device: Auto');
   });
 
   it('auto without a resolved device shows only "Auto"', () => {
-    const { container } = render(<SlotDeviceBadge stage="asr" modelId="m" id="b" />);
+    const { container } = render(<SlotDeviceBadge stage="asr" modelId="m" id="b" setting={mockSettings.asrDevice} />);
     expect(setting(container)).toHaveTextContent('Auto');
     expect(actual(container)).toBeNull();
     expect(badge(container).className).not.toContain('--pinned');
@@ -78,7 +74,7 @@ describe('SlotDeviceBadge', () => {
 
   it('auto with this model resolved on vulkan shows "Auto" and "Vulkan"', () => {
     mockAsrResolved = { model: 'm', device: 'vulkan' };
-    const { container } = render(<SlotDeviceBadge stage="asr" modelId="m" id="b" />);
+    const { container } = render(<SlotDeviceBadge stage="asr" modelId="m" id="b" setting={mockSettings.asrDevice} />);
     expect(setting(container)).toHaveTextContent('Auto');
     expect(actual(container)).toHaveTextContent('Vulkan');
   });
@@ -86,7 +82,7 @@ describe('SlotDeviceBadge', () => {
   it('a pinned cpu setting with this model resolved on cpu shows both words and the --pinned class', () => {
     mockSettings = { ...mockSettings, translationDevice: 'cpu' };
     mockTranslationResolved = { model: 'm', device: 'cpu' };
-    const { container } = render(<SlotDeviceBadge stage="translation" modelId="m" id="b" />);
+    const { container } = render(<SlotDeviceBadge stage="translation" modelId="m" id="b" setting={mockSettings.translationDevice} />);
     expect(setting(container)).toHaveTextContent('CPU');
     expect(actual(container)).toHaveTextContent('CPU');
     expect(badge(container).className).toContain('slot-device-badge--pinned');
@@ -94,7 +90,7 @@ describe('SlotDeviceBadge', () => {
 
   it('a pinned gpu setting shows "GPU" pinned while a GPU tier exists', () => {
     mockSettings = { ...mockSettings, asrDevice: 'gpu' };
-    const { container } = render(<SlotDeviceBadge stage="asr" modelId="m" id="b" />);
+    const { container } = render(<SlotDeviceBadge stage="asr" modelId="m" id="b" setting={mockSettings.asrDevice} />);
     expect(setting(container)).toHaveTextContent('GPU');
     expect(badge(container).className).toContain('slot-device-badge--pinned');
   });
@@ -102,28 +98,28 @@ describe('SlotDeviceBadge', () => {
   it('a stale gpu pin on a box with no GPU tier reads as Auto, unpinned — the same coercion the library control applies', () => {
     mockSettings = { ...mockSettings, asrDevice: 'gpu' };
     mockCatalog = CPU_CATALOG;
-    const { container } = render(<SlotDeviceBadge stage="asr" modelId="m" id="b" />);
+    const { container } = render(<SlotDeviceBadge stage="asr" modelId="m" id="b" setting={mockSettings.asrDevice} />);
     expect(setting(container)).toHaveTextContent('Auto');
     expect(badge(container).className).not.toContain('--pinned');
   });
 
   it('the store\'s resolved report is about another model: the actual device stays hidden for this slot', () => {
     mockAsrResolved = { model: 'other-model', device: 'vulkan' };
-    const { container } = render(<SlotDeviceBadge stage="asr" modelId="m" id="b" />);
+    const { container } = render(<SlotDeviceBadge stage="asr" modelId="m" id="b" setting={mockSettings.asrDevice} />);
     expect(setting(container)).toHaveTextContent('Auto');
     expect(actual(container)).toBeNull();
   });
 
   it('a slot with no model picked shows the setting alone even when something resolved', () => {
     mockAsrResolved = { model: 'm', device: 'vulkan' };
-    const { container } = render(<SlotDeviceBadge stage="asr" modelId={null} id="b" />);
+    const { container } = render(<SlotDeviceBadge stage="asr" modelId={null} id="b" setting={mockSettings.asrDevice} />);
     expect(actual(container)).toBeNull();
   });
 
   it('a resolved device that contradicts the setting is a leftover, not shown: cpu pin vs. vulkan report', () => {
     mockSettings = { ...mockSettings, asrDevice: 'cpu' };
     mockAsrResolved = { model: 'm', device: 'vulkan' };
-    const { container } = render(<SlotDeviceBadge stage="asr" modelId="m" id="b" />);
+    const { container } = render(<SlotDeviceBadge stage="asr" modelId="m" id="b" setting={mockSettings.asrDevice} />);
     expect(setting(container)).toHaveTextContent('CPU');
     expect(actual(container)).toBeNull();
   });
@@ -131,23 +127,28 @@ describe('SlotDeviceBadge', () => {
   it('a resolved device that contradicts the setting is a leftover, not shown: gpu pin vs. cpu report', () => {
     mockSettings = { ...mockSettings, ttsDevice: 'gpu' };
     mockTtsResolved = { model: 'm', device: 'cpu' };
-    const { container } = render(<SlotDeviceBadge stage="tts" modelId="m" id="b" />);
+    const { container } = render(<SlotDeviceBadge stage="tts" modelId="m" id="b" setting={mockSettings.ttsDevice} />);
     expect(setting(container)).toHaveTextContent('GPU');
     expect(actual(container)).toBeNull();
   });
 
   it('maps resolved device kinds to their proper names, and unknown short tokens to acronyms', () => {
     mockTtsResolved = { model: 'm', device: 'metal' };
-    const { container, unmount } = render(<SlotDeviceBadge stage="tts" modelId="m" id="b" />);
+    const { container, unmount } = render(<SlotDeviceBadge stage="tts" modelId="m" id="b" setting={mockSettings.ttsDevice} />);
     expect(actual(container)).toHaveTextContent('Metal');
     unmount();
     mockTtsResolved = { model: 'm', device: 'cuda' };
-    const second = render(<SlotDeviceBadge stage="tts" modelId="m" id="b" />);
+    const second = render(<SlotDeviceBadge stage="tts" modelId="m" id="b" setting={mockSettings.ttsDevice} />);
     expect(actual(second.container)).toHaveTextContent('CUDA');
   });
 
+  it('shows the setting it is handed', () => {
+    const { container } = render(<SlotDeviceBadge stage="asr" modelId="m" id="b" setting="cpu" />);
+    expect(container.querySelector('.slot-device-badge__setting')?.textContent).toBe('CPU');
+  });
+
   it('publishes its width to the host element as --slot-badge-w and clears it on unmount', () => {
-    const { container, unmount } = render(<div><SlotDeviceBadge stage="asr" modelId="m" id="b" /></div>);
+    const { container, unmount } = render(<div><SlotDeviceBadge stage="asr" modelId="m" id="b" setting={mockSettings.asrDevice} /></div>);
     const host = badge(container).parentElement!;
     expect(host.style.getPropertyValue('--slot-badge-w')).toMatch(/^\d+px$/);
     unmount();

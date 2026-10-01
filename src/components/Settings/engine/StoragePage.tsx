@@ -5,7 +5,6 @@ import {
   useModelStore, useModelStatuses, useStorageUsedMb, useWebGPUAvailable, useDeviceFeatures,
 } from '../../../stores/modelStore';
 import { useNativeModelStore, useNativeCatalog } from '../../../stores/nativeModelStore';
-import { useLocalNativeSettings } from '../../../stores/settingsStore';
 import { MODEL_MANIFEST, getManifestEntry, getModelSizeMb } from '../../../lib/local-inference/modelManifest';
 import { useSegmentationStore } from '../../../stores/segmentationStore';
 import { wasmCandidates } from '../../../lib/local-inference/selection/candidates.wasm';
@@ -15,6 +14,7 @@ import { directionKey, type DirectionResult, type Selections, type Stage } from 
 import { ModelImportModal } from '../sections/ModelImportModal';
 import type { NativeModelInfo } from '../../../lib/local-inference/native/nativeProtocol';
 import type { LocalInferenceSettings } from '../../../providers/localInference/settings';
+import type { NativeEngineSettings } from '../../../providers/local_native/settings';
 import type { LanguagePair } from '../../../lib/provider/types';
 import './Engine.scss';
 
@@ -83,13 +83,14 @@ export const StoragePage: React.FC<
    * The `wasm` half reads LocalInference's own `S`/pair (the new provider
    * contract); the old slice it once fell back to went with the old
    * descriptor (Stage 2 deletion, ruling 3). The `native` half reads Local
-   * Native's slice, which the old path keeps (ruling 1).
+   * Native's own settings and pair (#578).
    */
   | { provider: 'wasm'; isSessionActive?: boolean; settings: LocalInferenceSettings; pair: LanguagePair }
-  | { provider: 'native'; isSessionActive?: boolean }
+  | { provider: 'native'; isSessionActive?: boolean; settings: NativeEngineSettings; pair: LanguagePair }
 > = (props) => {
   const { provider, isSessionActive = false } = props;
   const wasm = props.provider === 'wasm' ? props : null;
+  const native = props.provider === 'native' ? props : null;
   const { t } = useTranslation();
 
   // ── WASM data (always subscribed — hooks must run unconditionally) ──────
@@ -101,7 +102,6 @@ export const StoragePage: React.FC<
   // ── Native data ───────────────────────────────────────────────────────
   const nativeStatuses = useNativeModelStore((s) => s.statuses);
   const nativeCatalog = useNativeCatalog();
-  const nativeSettings = useLocalNativeSettings();
   // The engine (sidecar bundle) itself, not a model — its own row above the
   // model list (moved here from EngineSection's ready-state row: the card
   // now renders nothing once healthy, see EngineSection.tsx).
@@ -127,9 +127,9 @@ export const StoragePage: React.FC<
 
   const isWasm = provider === 'wasm';
 
-  const sourceLanguage = wasm ? wasm.pair.source : nativeSettings.sourceLanguage;
-  const targetLanguage = wasm ? wasm.pair.target : nativeSettings.targetLanguage;
-  const selections: Selections = wasm ? wasm.settings.selections : nativeSettings.selections;
+  const sourceLanguage = wasm ? wasm.pair.source : native!.pair.source;
+  const targetLanguage = wasm ? wasm.pair.target : native!.pair.target;
+  const selections: Selections = wasm ? wasm.settings.selections : native!.settings.selections;
   const speakerDir = directionKey(sourceLanguage, targetLanguage);
   const participantDir = directionKey(targetLanguage, sourceLanguage);
   const directions = [{ dir: speakerDir }, { dir: participantDir }];

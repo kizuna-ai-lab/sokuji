@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import { useNativeModelStore } from '../../../stores/nativeModelStore';
-import { useLocalNativeSettings, useUpdateLocalNative } from '../../../stores/settingsStore';
 import { nativeCandidates } from '../../../lib/local-inference/selection/candidates.native';
 import { directionKey, emptyDirection, type Stage } from '../../../lib/local-inference/selection/types';
+import type { NativeEngineOverride } from '../../../providers/local_native/settings';
 import { EngineSection } from '../sections/EngineSection';
 import { SlotDeviceBadge } from './SlotDeviceBadge';
 import { languageNameFor } from './languageName';
@@ -12,10 +12,12 @@ import type { EngineAdapter } from './EngineTypes';
 const fmtBytes = (b?: number): string | undefined =>
   b && b > 0 ? `${Math.round(b / 1_048_576)} MB` : undefined;
 
-/** LOCAL_NATIVE's EngineAdapter — sidecar catalog + statuses, EngineSection gate. */
-export function useNativeEngineAdapter(isSessionActive = false): EngineAdapter {
-  const { sourceLanguage, targetLanguage, selections } = useLocalNativeSettings();
-  const updateLocalNative = useUpdateLocalNative();
+/** LOCAL_NATIVE's EngineAdapter — sidecar catalog + statuses, EngineSection gate. Every mount hands it the host's settings / update / pair: Local Native's `Engine`, and the old settings shell its slice (#578). */
+export function useNativeEngineAdapter(isSessionActive: boolean, override: NativeEngineOverride): EngineAdapter {
+  const sourceLanguage = override.pair.source;
+  const targetLanguage = override.pair.target;
+  const { selections, asrDevice, translationDevice, ttsDevice } = override.settings;
+  const { update } = override;
   const catalog = useNativeModelStore((s) => s.catalog);
   const statuses = useNativeModelStore((s) => s.statuses);
 
@@ -65,7 +67,7 @@ export function useNativeEngineAdapter(isSessionActive = false): EngineAdapter {
         if (!nextDir.asr.modelId && !nextDir.translation.modelId && !nextDir.tts.modelId) {
           delete next[slot.dir];
         }
-        await updateLocalNative({ selections: next });
+        update({ selections: next });
       },
       // The sidecar bundle gate renders at the top of the Engine page; while
       // the sidecar is starting/absent, the catalog is empty and every ready
@@ -82,11 +84,12 @@ export function useNativeEngineAdapter(isSessionActive = false): EngineAdapter {
       slotBadge: (slot, id) => {
         const [src, tgt] = split(slot.dir);
         const modelId = useNativeModelStore.getState().resolve(src, tgt, selections)[slot.stage]?.modelId ?? null;
-        return React.createElement(SlotDeviceBadge, { stage: slot.stage, modelId, id });
+        const setting = slot.stage === 'asr' ? asrDevice : slot.stage === 'translation' ? translationDevice : ttsDevice;
+        return React.createElement(SlotDeviceBadge, { stage: slot.stage, modelId, id, setting });
       },
       storageSummary: fmtBytes(storageBytes) ?? '0 MB',
       stagesFor: (_dir, isSpeaker): Stage[] => (isSpeaker ? ['asr', 'translation', 'tts'] : ['asr', 'translation']),
       disabled: isSessionActive,
     };
-  }, [sourceLanguage, targetLanguage, selections, catalog, statuses, updateLocalNative, isSessionActive]);
+  }, [sourceLanguage, targetLanguage, selections, asrDevice, translationDevice, ttsDevice, catalog, statuses, update, isSessionActive]);
 }

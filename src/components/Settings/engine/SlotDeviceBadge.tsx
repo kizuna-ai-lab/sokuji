@@ -1,6 +1,5 @@
 import React, { useLayoutEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocalNativeSettings } from '../../../stores/settingsStore';
 import { useNativeAsrResolved, useNativeCatalog, useNativeTranslationResolved, useNativeTtsResolved } from '../../../stores/nativeModelStore';
 import { gpuTierAvailable } from '../../../lib/local-inference/native/nativeCatalog';
 import type { Stage } from '../../../lib/local-inference/selection/types';
@@ -55,10 +54,11 @@ export const BADGE_WIDTH_VAR = '--slot-badge-w';
  * `id` is what the select's aria-describedby points at: sighted users read
  * the badge as part of the control, so assistive tech gets it as the
  * control's description, prefixed with what it is.
+ *
+ * The setting comes from the host's settings (#578).
  */
-export const SlotDeviceBadge: React.FC<{ stage: Stage; modelId: string | null; id: string }> = ({ stage, modelId, id }) => {
+export const SlotDeviceBadge: React.FC<{ stage: Stage; modelId: string | null; id: string; setting: DeviceSetting }> = ({ stage, modelId, id, setting: rawSetting }) => {
   const { t } = useTranslation();
-  const settings = useLocalNativeSettings();
   const catalog = useNativeCatalog();
   // Hook rules require all three selectors to be called unconditionally;
   // only the one matching `stage` is used below.
@@ -67,9 +67,6 @@ export const SlotDeviceBadge: React.FC<{ stage: Stage; modelId: string | null; i
   const ttsResolved = useNativeTtsResolved();
   const ref = useRef<HTMLSpanElement>(null);
 
-  const rawSetting: DeviceSetting = stage === 'asr' ? settings.asrDevice
-    : stage === 'translation' ? settings.translationDevice
-    : settings.ttsDevice;
   // A stale 'gpu' pin on a box with no GPU tier reads as Auto, exactly as
   // NativeDeviceControl shows it in the library.
   const setting: DeviceSetting = rawSetting === 'gpu' && !gpuTierAvailable(catalog) ? 'auto' : rawSetting;
