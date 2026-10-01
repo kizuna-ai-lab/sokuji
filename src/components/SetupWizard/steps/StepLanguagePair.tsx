@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useProviderStore } from '../../../stores/providerStore';
 import { normalizePair } from '../../../lib/provider/languages';
 import { useLanguageLabel } from '../../../lib/language/useLanguageLabel';
+import { orderLanguages, pinnedLanguages, type OrderContext } from '../../../lib/language/order';
 import { legsFor, participantSpeechSwitchFromStores } from '../../../lib/session/appShape';
 import { languageContext } from '../../../lib/session/shape';
 import { getScenario } from '../../../lib/setup/scenarios';
@@ -10,6 +11,8 @@ import { pairSentence } from '../languageSentence';
 import { defaultLanguagePair } from '../languageDefaults';
 import { textOnlyCapabilityOf, wizardProvider } from '../providerPaths';
 import type { SetupAction, SetupDraft } from '../setupDraft';
+
+const SEPARATOR = '──────────';
 
 interface Props { draft: SetupDraft; dispatch: React.Dispatch<SetupAction> }
 
@@ -71,6 +74,19 @@ const StepLanguagePair: React.FC<Props> = ({ draft, dispatch }) => {
   const theirLabel = t(sentence.their.key, sentence.their.fallback);
   const nameOf = (v: string) => label(v);
 
+  // Display only: the dropdowns use the app-wide order; the seeding above keeps
+  // reading the provider's own order.
+  const browser = typeof navigator !== 'undefined' ? navigator.languages ?? [] : [];
+  const ctx: OrderContext = { ui: uiLanguage ?? 'en', browser };
+  const pair = { source, target: draft.targetLanguage ?? '' };
+  const options = (list: typeof sources, name: (v: string) => string) => (
+    <>
+      {pinnedLanguages(list, pair, ctx).map((o) => <option key={`pin:${o.value}`} value={o.value}>{name(o.value)}</option>)}
+      {pinnedLanguages(list, pair, ctx).length > 0 && <option key="pin-separator" value="" disabled>{SEPARATOR}</option>}
+      {orderLanguages(list, ctx).map((o) => <option key={o.value} value={o.value}>{name(o.value)}</option>)}
+    </>
+  );
+
   const setSource = (next: string) => {
     const nextTargets = targetsFor(next);
     const keep = nextTargets.some((o) => o.value === draft.targetLanguage) ? draft.targetLanguage! : (nextTargets[0]?.value ?? '');
@@ -84,13 +100,13 @@ const StepLanguagePair: React.FC<Props> = ({ draft, dispatch }) => {
       <label className="setup-field">
         <span>{myLabel}</span>
         <select value={source} onChange={(e) => setSource(e.target.value)} aria-label={myLabel}>
-          {sources.map((o) => <option key={o.value} value={o.value}>{nameOf(o.value)}</option>)}
+          {options(sources, nameOf)}
         </select>
       </label>
       <label className="setup-field">
         <span>{theirLabel}</span>
         <select value={draft.targetLanguage ?? ''} onChange={(e) => dispatch({ type: 'setLanguages', source, target: e.target.value })} aria-label={theirLabel}>
-          {targets.map((o) => <option key={o.value} value={o.value}>{label(o.value)}</option>)}
+          {options(targets, label)}
         </select>
       </label>
       {/* Both mode runs a mirrored second leg off the same two fields. There

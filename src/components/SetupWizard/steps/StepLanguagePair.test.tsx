@@ -36,7 +36,9 @@ const draw = (scenario: ScenarioId, pair = { source: 'en', target: 'ja' }, dispa
   // Any stored spelling: `wizardProvider` is the stub above.
   const draft: SetupDraft = { ...initialDraft(), provider: Provider.VOLCENGINE_AST2, scenario, sourceLanguage: pair.source, targetLanguage: pair.target };
   render(<StepLanguagePair draft={draft} dispatch={dispatch} />);
-  return [...(screen.getAllByRole('combobox')[0] as HTMLSelectElement).options].map((o) => o.value);
+  // The codes on offer: the display order, the pinned copies and the separator are not what these cases pin.
+  const codes = [...(screen.getAllByRole('combobox')[0] as HTMLSelectElement).options].map((o) => o.value).filter((v) => v !== '');
+  return [...new Set(codes)].sort();
 };
 
 beforeEach(() => { participant.speech = false; });

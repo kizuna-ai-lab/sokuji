@@ -29,6 +29,8 @@ const draw = (
   return onChange;
 };
 const values = (select: HTMLElement) => [...(select as HTMLSelectElement).options].map((o) => o.value);
+// The codes on offer, whatever the display order, pinned copies or separator.
+const codesOf = (select: HTMLElement) => [...new Set(values(select).filter((v) => v !== ''))].sort();
 
 describe('LanguagePairSection', () => {
   it('names each option from the code, not from the option (unified language codes)', () => {
@@ -43,14 +45,23 @@ describe('LanguagePairSection', () => {
     } as unknown as typeof fakeProvider;
     draw({ source: 'zh-Hant', target: 'zh-TW' }, vi.fn(), { provider });
     const texts = [...document.querySelectorAll('option')].map((o) => o.textContent);
-    expect(texts).toEqual([languageLabel('zh-Hant', 'en'), languageLabel('zh-TW', 'en'), languageLabel('zh-TW', 'en')]);
+    expect([...new Set(texts.filter((x) => x !== '──────────'))].sort()).toEqual([languageLabel('zh-Hant', 'en'), languageLabel('zh-TW', 'en')].sort());
     expect(languageLabel('zh-Hant', 'en')).not.toBe(languageLabel('zh-TW', 'en'));
   });
 
-  it("lists the provider's sources, and the targets of the chosen source", () => {
+  it("offers exactly the provider's codes: its sources, and the targets of the chosen source", () => {
     draw({ source: 'en', target: 'ja' });
-    expect(values(screen.getByLabelText('settings.sourceLanguage'))).toEqual([AUTO, 'en', 'ja', 'zh']);
-    expect(values(screen.getByLabelText('settings.targetLanguage'))).toEqual(['ja', 'zh']);
+    expect(codesOf(screen.getByLabelText('settings.sourceLanguage'))).toEqual([AUTO, 'en', 'ja', 'zh'].sort());
+    expect(codesOf(screen.getByLabelText('settings.targetLanguage'))).toEqual(['ja', 'zh']);
+  });
+
+  it('pins the current pair above a disabled separator, then lists auto first in the rest', () => {
+    draw({ source: 'ja', target: 'en' });
+    const select = screen.getByLabelText('settings.sourceLanguage') as HTMLSelectElement;
+    expect(values(select).slice(0, 4)).toEqual(['ja', 'en', '', AUTO]);
+    const separator = select.options[2];
+    expect(separator.disabled).toBe(true);
+    expect(separator.value).toBe('');
   });
 
   it('names the AUTO source with the shared auto-detect label', () => {
@@ -135,11 +146,11 @@ describe('LanguagePairSection — a language context (Stage 2 Volcengine AST2, c
 
   it('lists the offer for the context, and the widest one without', () => {
     drawIn({ speech: true }, { source: 'en', target: 'ja' });
-    expect(values(screen.getByLabelText('settings.sourceLanguage'))).toEqual(['en', 'ja']);
-    expect(values(screen.getByLabelText('settings.targetLanguage'))).toEqual(['ja']);
+    expect(codesOf(screen.getByLabelText('settings.sourceLanguage'))).toEqual(['en', 'ja']);
+    expect(codesOf(screen.getByLabelText('settings.targetLanguage'))).toEqual(['ja']);
     cleanup();
     drawIn(undefined, { source: 'en', target: 'ja' });
-    expect(values(screen.getByLabelText('settings.sourceLanguage'))).toEqual(['en', 'ja', 'ko']);
+    expect(codesOf(screen.getByLabelText('settings.sourceLanguage'))).toEqual(['en', 'ja', 'ko']);
   });
 
   it('normalizes a new source within the context, and swaps only within it', () => {
