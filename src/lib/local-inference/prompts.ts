@@ -5,6 +5,8 @@
  * prompt.
  */
 
+import { englishLanguageName } from '../language/label';
+
 export const LANG_NAMES: Record<string, string> = {
   ja: 'Japanese', zh: 'Chinese', en: 'English', ko: 'Korean',
   de: 'German', fr: 'French', es: 'Spanish', ru: 'Russian',
@@ -34,8 +36,8 @@ export const LANG_FILLERS: Record<string, string[]> = {
 };
 
 export function buildDefaultLocalPrompt(sourceLang: string, targetLang: string): string {
-  const srcName = LANG_NAMES[sourceLang] || sourceLang;
-  const tgtName = LANG_NAMES[targetLang] || targetLang;
+  const srcName = LANG_NAMES[sourceLang] || englishLanguageName(sourceLang);
+  const tgtName = LANG_NAMES[targetLang] || englishLanguageName(targetLang);
   const nativeTgt = NATIVE_NAMES[targetLang];
   const tgtLabel = nativeTgt ? `${nativeTgt} (${tgtName})` : tgtName;
 
