@@ -201,6 +201,14 @@ describe('PanelFooter — language pair', () => {
     fireEvent.click(el);
     expect(onLanguages).toHaveBeenCalledTimes(1);
   });
+
+  it.each(SITES)('%s: a bidirectional pair (source === target) is named once', (site) => {
+    const { container } = render(
+      <PanelFooter {...baseProps(site, { pair: { source: 'zh+en', target: 'zh+en' } })} />,
+    );
+    const el = container.querySelector('.language-pair') as HTMLElement;
+    expect(el.textContent).toBe(languageLabel('zh+en', 'en'));
+  });
 });
 
 describe('PanelFooter — test tone', () => {
