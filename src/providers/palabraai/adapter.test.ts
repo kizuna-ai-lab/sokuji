@@ -761,6 +761,19 @@ describe("the Palabra AI adapter: a sentence's messages", () => {
     expect(h.frames('audio.output')).toEqual([{ id: SENTENCE, part: '0', last: false, samples: 4_800 }, { id: SENTENCE, part: '0', last: true, samples: 2_859 }]);
   });
 
+  it("logs the vendor's own language on the frames, even one outside the table", async () => {
+    const h = await livePalabra();
+    const withLanguage = (raw: string, language: string) => {
+      const m = JSON.parse(raw);
+      m.data.transcription.language = language;
+      return JSON.stringify(m);
+    };
+    h.socket().receive(withLanguage(SERVER.validated(), 'ka'));
+    h.socket().receive(withLanguage(SERVER.translated(), 'ka'));
+    expect(h.frames('transcription.validated')).toMatchObject([{ language: 'ka' }]);
+    expect(h.frames('translation.final')).toMatchObject([{ language: 'ka' }]);
+  });
+
   it('on a leg that does not speak, frames the speech it gets anyway and plays none of it (ruling 7)', async () => {
     const h = await livePalabra({ context: { ...AUTO_CTX, speech: false } });
     expect(h.sent()[0]).toMatchObject({ data: { output_stream: null } });

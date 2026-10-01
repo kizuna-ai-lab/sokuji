@@ -105,6 +105,12 @@ let silentFrame: string | null = null;
 const silence = (): string => (silentFrame ??= inputAudio(SILENCE));
 
 /** A thrown value's name alone (`SyntaxError`, `SecurityError`), never its message: a browser that refuses a socket quotes its URL, a credential in it. */
+/** The language exactly as Palabra sent it, for the Logs frames: the converted one is null outside the table. */
+const rawLanguage = (data: Record<string, unknown>): string | null => {
+  const language = (data.transcription as { language?: unknown } | undefined)?.language;
+  return typeof language === 'string' ? language : null;
+};
+
 function errorName(error: unknown): string {
   const name = (error as { name?: unknown } | null)?.name;
   return typeof name === 'string' && name !== '' ? name : 'unknown error';
@@ -349,7 +355,7 @@ class PalabraLeg implements AdapterSession {
       }
       case 'validated_transcription': {
         const t = transcriptionOf(m.data);
-        this.frame('in', 'transcription.validated', { id: t.id ?? null, language: t.language ?? null, text: t.text, start: t.start ?? null, end: t.end ?? null });
+        this.frame('in', 'transcription.validated', { id: t.id ?? null, language: rawLanguage(m.data), text: t.text, start: t.start ?? null, end: t.end ?? null });
         if (this.phase === 'live') this.items.sourceFinal(t);
         return;
       }
@@ -361,7 +367,7 @@ class PalabraLeg implements AdapterSession {
       }
       case 'translated_transcription': {
         const t = transcriptionOf(m.data);
-        this.frame('in', 'translation.final', { id: t.id ?? null, part: t.part ?? null, language: t.language ?? null, text: t.text });
+        this.frame('in', 'translation.final', { id: t.id ?? null, part: t.part ?? null, language: rawLanguage(m.data), text: t.text });
         if (this.phase === 'live') this.items.translationFinal(t);
         return;
       }
