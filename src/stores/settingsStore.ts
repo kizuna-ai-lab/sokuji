@@ -137,6 +137,16 @@ function clampSegmentationPause(value: unknown): number {
  * `resolveSegmentationMode` does with it too — the store and the resolver
  * must not disagree about an unrecognised value.
  */
+/**
+ * Whether the sentence segmentation section shows. The owner's choice of
+ * 2026-10-01: hidden, and segmentation kept Off for every provider, until the
+ * feature is refined. While hidden, `loadSettings()` does not read the saved
+ * mode, so one saved while the section showed — By sentences, or By pause,
+ * the default it had — cannot run unseen; the saved value is left as it was,
+ * not rewritten. Showing it again is this line.
+ */
+export const SENTENCE_SEGMENTATION_SHOWN = false;
+
 function clampSegmentationMode(value: unknown): SegmentationMode {
   return value === 'off' || value === 'sentences' || value === 'pause' ? value : 'pause';
 }
@@ -152,7 +162,7 @@ const defaultCommonSettings: CommonSettings = {
   keepReplayAudio: false,
   autoSaveOnStop: false,
   diagnosticLogs: false,
-  segmentationMode: 'pause',
+  segmentationMode: SENTENCE_SEGMENTATION_SHOWN ? 'pause' : 'off',
   sentenceSegmentationChunkSentences: DEFAULT_CHUNK_SENTENCES,
   segmentationSourcePause: DEFAULT_SEGMENT_PAUSE_SECONDS,
   segmentationTranslationPause: DEFAULT_SEGMENT_PAUSE_SECONDS,
@@ -654,9 +664,9 @@ const useSettingsStore = create<SettingsStore>()(
         const textOnly = await service.getSetting('settings.common.textOnly', defaultCommonSettings.textOnly);
         const keepReplayAudio = await service.getSetting('settings.common.keepReplayAudio', defaultCommonSettings.keepReplayAudio);
         const autoSaveOnStop = await service.getSetting('settings.common.autoSaveOnStop', defaultCommonSettings.autoSaveOnStop);
-        const segmentationMode = clampSegmentationMode(
-          await service.getSetting('settings.common.segmentationMode', defaultCommonSettings.segmentationMode),
-        );
+        const segmentationMode = SENTENCE_SEGMENTATION_SHOWN
+          ? clampSegmentationMode(await service.getSetting('settings.common.segmentationMode', defaultCommonSettings.segmentationMode))
+          : 'off';
         const sentenceSegmentationChunkSentences = clampChunkSentences(
           await service.getSetting('settings.common.sentenceSegmentationChunkSentences', defaultCommonSettings.sentenceSegmentationChunkSentences),
         );

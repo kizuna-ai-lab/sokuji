@@ -240,21 +240,17 @@ describe('settingsStore', () => {
   });
 
   describe('segmentationMode', () => {
-    // One stored value for every provider: `pause` resolves to By pause on
-    // the three clients with timers of their own and to Off everywhere else,
-    // so the default is what every provider does today.
-    it('defaults to pause', async () => {
+    // The owner, 2026-10-01: the section is hidden and segmentation stays
+    // Off for every provider, so a mode saved while it showed — By
+    // sentences, or By pause, the old default — must not run unseen. The
+    // saved value is left as it was, not rewritten.
+    it.each(['sentences', 'pause', 'off', 'enabled', undefined])('is Off while the section is hidden, with %s saved', async (saved) => {
       useSettingsStore.setState({ segmentationMode: 'sentences' });
-      mockGetSetting.mockImplementation(async (_key: string, fallback: unknown) => fallback);
-      await useSettingsStore.getState().loadSettings();
-      expect(useSettingsStore.getState().segmentationMode).toBe('pause');
-    });
-
-    it('takes the default for a stored mode this build does not know', async () => {
       mockGetSetting.mockImplementation(async (key: string, fallback: unknown) =>
-        key === 'settings.common.segmentationMode' ? 'enabled' : fallback);
+        key === 'settings.common.segmentationMode' && saved !== undefined ? saved : fallback);
       await useSettingsStore.getState().loadSettings();
-      expect(useSettingsStore.getState().segmentationMode).toBe('pause');
+      expect(useSettingsStore.getState().segmentationMode).toBe('off');
+      expect(mockSetSetting).not.toHaveBeenCalledWith('settings.common.segmentationMode', expect.anything());
     });
 
     it('persists a change', async () => {

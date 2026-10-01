@@ -38,7 +38,7 @@ import { SessionEnginePage, SessionSettingsGeneral, SessionSettingsProvider } fr
 
 const entry = () => ({ settings: { ...LOCAL_INFERENCE_DEFAULTS }, credentials: {}, pair: { source: 'ja', target: 'en' } });
 
-const SECTION_IDS = ['languages-section', 'turn-detection-section', 'output-section', 'sentence-segmentation-section', 'provider-section'];
+const SECTION_IDS = ['languages-section', 'turn-detection-section', 'output-section', 'provider-section'];
 
 beforeEach(() => {
   stored.clear();
@@ -64,6 +64,12 @@ describe('SessionSettingsGeneral', () => {
 
     const labels = [...container.querySelectorAll('#languages-section .language-select-group label')].map((el) => el.textContent);
     expect(labels).toEqual(['I speak', 'they hear']);
+  });
+
+  // The owner, 2026-10-01: hidden, with segmentation kept Off.
+  it('does not render the sentence segmentation section', () => {
+    const { container } = render(<SessionSettingsGeneral locked={false} layout="advanced" onOpenSlot={vi.fn()} />);
+    expect(container.querySelector('#sentence-segmentation-section')).toBeNull();
   });
 
   it('a chip calls onOpenSlot with its slot', () => {

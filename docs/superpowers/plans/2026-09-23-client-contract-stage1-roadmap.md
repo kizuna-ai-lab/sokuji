@@ -906,6 +906,16 @@ What it leaves:
   (`PARTICIPANT_SPEECH_SHOWN = false` in `routingStore.ts`): the routing
   store does not read a saved choice, which stays in storage untouched. That
   plan decides whether a choice saved before the hide is honoured again.
+- Sentence segmentation is hidden until the feature is refined (the owner,
+  2026-10-01): `SENTENCE_SEGMENTATION_SHOWN = false` in `settingsStore.ts`
+  keeps the section out of the General tab and Simple mode and holds
+  `segmentationMode` at Off for every provider, without reading the saved
+  mode — By pause, the default it had, included, so GPT-Live, OpenAI
+  Translate and Gemini no longer cut a bubble at a pause inside a segment;
+  their own silence timers still run on the stored pauses. Showing it again
+  is that line plus the store's two default-mode tests the hide replaced
+  (`defaults to pause`, `takes the default for a stored mode this build does
+  not know`).
 
 **1e-4 — the extension**
 - The meeting page's subtitle overlay still reads the old `sessionStore`,

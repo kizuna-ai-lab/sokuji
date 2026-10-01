@@ -8,7 +8,7 @@ import { useAuthContext } from '../providers/useAuthContext';
 import type { EngineSlot } from '../../lib/provider/types';
 import { presentProviders } from '../../providers/registry';
 import { useMode } from '../../stores/audioStore';
-import { useEngineSlotTarget, useSetEngineSlotTarget, useTextOnly } from '../../stores/settingsStore';
+import { SENTENCE_SEGMENTATION_SHOWN, useEngineSlotTarget, useSetEngineSlotTarget, useTextOnly } from '../../stores/settingsStore';
 
 /**
  * The provider-related blocks the two Settings layouts show (plan 1e-3b-2):
@@ -30,7 +30,7 @@ export function SessionSettingsGeneral({ locked, layout, onOpenSlot }: { locked:
       <ProviderLanguages providers={providers} disabled={locked} sentence={{ mode, textOnly }} />
       <SpeechSection locked={locked} layout={layout} />
       <OutputToggles locked={locked} />
-      <SentenceSegmentationSection isSessionActive={locked} />
+      {SENTENCE_SEGMENTATION_SHOWN && <SentenceSegmentationSection isSessionActive={locked} />}
       <ProviderPicker providers={providers} auth={auth} disabled={locked} openSlot={onOpenSlot} />
     </>
   );
