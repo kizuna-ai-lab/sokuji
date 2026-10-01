@@ -15,10 +15,6 @@ vi.mock('../../../lib/analytics', () => ({
   useAnalytics: () => ({ trackEvent: vi.fn() }),
 }));
 
-vi.mock('../../../lib/auth/hooks', () => ({
-  useAuth: () => ({ isSignedIn: true, getToken: async () => 'token' }),
-}));
-
 vi.mock('../../../services/ServiceFactory', () => ({
   ServiceFactory: {
     getSettingsService: () => ({
@@ -26,6 +22,15 @@ vi.mock('../../../services/ServiceFactory', () => ({
       setSetting: async () => undefined,
     }),
   },
+}));
+
+// Local Native registers in the old registry only on Electron with its gate
+// on — the only provider the old section still offers (Stage 2 deletion,
+// ruling 1).
+vi.mock('../../../utils/environment', async (orig) => ({
+  ...(await orig<any>()),
+  isElectron: () => true,
+  isLocalNativeEnabled: () => true,
 }));
 
 const baseSelectSupported = vi.hoisted(() => ({ value: true }));
@@ -37,28 +42,31 @@ const { default: useSettingsStore } = await import('../../../stores/settingsStor
 const { Provider } = await import('../../../types/Provider');
 const { default: ProviderSection } = await import('./ProviderSection');
 
+// The pre-twin managed id: a stored value no registry has ever registered.
+const UNREGISTERED = 'kizunaai' as (typeof Provider)[keyof typeof Provider];
+
 const getSelect = () =>
   document.querySelector('.provider-select') as HTMLSelectElement;
 
 describe('ProviderSection — provider <select>', () => {
   beforeEach(() => {
     baseSelectSupported.value = true;
-    useSettingsStore.setState({ provider: Provider.OPENAI } as never);
+    useSettingsStore.setState({ provider: Provider.LOCAL_NATIVE } as never);
   });
 
   it('switches provider through the store on change', () => {
+    useSettingsStore.setState({ provider: UNREGISTERED } as never);
     render(<ProviderSection isSessionActive={false} />);
 
-    fireEvent.change(getSelect(), { target: { value: Provider.GEMINI } });
+    fireEvent.change(getSelect(), { target: { value: Provider.LOCAL_NATIVE } });
 
-    expect(useSettingsStore.getState().provider).toBe(Provider.GEMINI);
+    expect(useSettingsStore.getState().provider).toBe(Provider.LOCAL_NATIVE);
   });
 
   it('reflects the current provider as the selected option', () => {
-    useSettingsStore.setState({ provider: Provider.PALABRA_AI } as never);
     render(<ProviderSection isSessionActive={false} />);
 
-    expect(getSelect().value).toBe(Provider.PALABRA_AI);
+    expect(getSelect().value).toBe(Provider.LOCAL_NATIVE);
   });
 
   it('is disabled while a session is active', () => {
@@ -73,35 +81,35 @@ describe('ProviderSection — provider <select>', () => {
     render(<ProviderSection isSessionActive={false} />);
 
     const option = document.querySelector(
-      `.provider-select option[value="${Provider.OPENAI}"]`,
+      `.provider-select option[value="${Provider.LOCAL_NATIVE}"]`,
     );
-    expect(option?.querySelector('.provider-select__icon svg')).not.toBeNull();
+    expect(option?.querySelector('.provider-select__icon img')).not.toBeNull();
     expect(option?.querySelector('.provider-select__description')?.textContent)
-      .toContain('GPT');
+      .toContain('Speech Recognition');
     // The closed control mirrors the selected option via <selectedcontent>.
     expect(document.querySelector('.provider-select selectedcontent')).not.toBeNull();
   });
 
-  it('survives a persisted provider that is no longer registered and keeps it visible', () => {
-    // e.g. local_native persisted in Electron, then the profile opened in the
-    // extension — or a feature flag turned off since. The registry has no
-    // descriptor for it; before this, the settings-slice selector threw
-    // (getDescriptor) and the whole section crashed. The select must render,
-    // report the stored value, and pin it on a disabled option instead of
-    // silently displaying the first registered provider.
-    useSettingsStore.setState({ provider: Provider.LOCAL_NATIVE } as never);
+  it('survives a persisted provider that is not registered and keeps it visible', () => {
+    // Every stored provider but Local Native since the Stage 2 deletion — or a
+    // feature flag turned off since. The registry has no descriptor for it;
+    // the settings-slice selector would throw (getDescriptor) and crash the
+    // whole section. The select must render, report the stored value, and pin
+    // it on a disabled option instead of silently displaying the first
+    // registered provider (Stage 2 deletion, choice 4).
+    useSettingsStore.setState({ provider: UNREGISTERED } as never);
     render(<ProviderSection isSessionActive={false} />);
 
     const select = getSelect();
-    expect(select.value).toBe(Provider.LOCAL_NATIVE);
+    expect(select.value).toBe(UNREGISTERED);
     const opt = document.querySelector(
-      `.provider-select option[value="${Provider.LOCAL_NATIVE}"]`,
+      `.provider-select option[value="${UNREGISTERED}"]`,
     ) as HTMLOptionElement;
     expect(opt).not.toBeNull();
     expect(opt.disabled).toBe(true);
     // Switching AWAY still works.
-    fireEvent.change(select, { target: { value: Provider.GEMINI } });
-    expect(useSettingsStore.getState().provider).toBe(Provider.GEMINI);
+    fireEvent.change(select, { target: { value: Provider.LOCAL_NATIVE } });
+    expect(useSettingsStore.getState().provider).toBe(Provider.LOCAL_NATIVE);
   });
 
   it('falls back to plain text options where base-select is unsupported', () => {
@@ -109,15 +117,16 @@ describe('ProviderSection — provider <select>', () => {
     render(<ProviderSection isSessionActive={false} />);
 
     const option = document.querySelector(
-      `.provider-select option[value="${Provider.OPENAI}"]`,
+      `.provider-select option[value="${Provider.LOCAL_NATIVE}"]`,
     );
     // A classic select popup renders option text only — element children
     // would be flattened or invisible, so the markup must not emit them.
     expect(option?.querySelector('span')).toBeNull();
-    expect(option?.textContent).toBe('OpenAI Realtime');
+    expect(option?.textContent).toBe('Free (Native)');
     expect(document.querySelector('.provider-select selectedcontent')).toBeNull();
     // Switching still works through the same handler.
-    fireEvent.change(getSelect(), { target: { value: Provider.GEMINI } });
-    expect(useSettingsStore.getState().provider).toBe(Provider.GEMINI);
+    useSettingsStore.setState({ provider: UNREGISTERED } as never);
+    fireEvent.change(getSelect(), { target: { value: Provider.LOCAL_NATIVE } });
+    expect(useSettingsStore.getState().provider).toBe(Provider.LOCAL_NATIVE);
   });
 });

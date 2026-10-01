@@ -8,7 +8,7 @@ Worktree directory: `.claude/worktrees/` (gitignored)
 
 ## Project Overview
 
-Sokuji is a real-time AI-powered translation application available as both an Electron desktop app and a browser extension. It provides live speech translation using OpenAI, Google Gemini, Palabra.ai, and Kizuna AI APIs with modern audio processing capabilities. It also supports OpenAI-compatible API endpoints for flexibility.
+Sokuji is a real-time AI-powered translation application available as both an Electron desktop app and a browser extension. It provides live speech translation through Kizuna AI (managed Soniox), free on-device inference, Google Gemini, Doubao AST 2.0, OpenAI Realtime, OpenAI Translate, OpenAI Live, Soniox and Palabra AI, with modern audio processing capabilities. Local Native, the Electron sidecar, still runs on the old provider path until kizuna-ai-lab/sokuji#578.
 
 ## Development Commands
 
@@ -80,40 +80,66 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
 ### Key Architectural Components
 
 1. **Service Layer Pattern**
-   - `ServiceFactory` creates platform-specific implementations with singleton caching
-   - All services implement interfaces (IAudioService, ISettingsService)
+   - `ServiceFactory` hands out the one settings service (`SettingsService`, implementing
+     `ISettingsService`), cached as a singleton; audio has no service object (5. below)
    - Platform detection via `src/utils/environment.ts` utilities
 
-2. **AI Client Architecture**
-   - `ClientFactory` creates provider-specific clients
-   - Providers: OpenAI, Gemini, PalabraAI, KizunaAI, OpenAI Compatible
-   - Each client implements `IClient` interface
-   - Real-time communication via WebSocket or REST APIs
-   - OpenAI Compatible provider allows custom API endpoints (Electron only)
-   - KizunaAI uses OpenAI-compatible API with backend-managed authentication
+2. **Provider Architecture** (spec: `docs/superpowers/specs/2026-09-22-client-contract-design.md`)
+   - One folder per provider, `src/providers/<id>/`: `provider.ts`, the definition
+     (settings, credentials, languages, `check`, `session`, its `Settings` view; typed by
+     `src/lib/provider/types.ts`), and `adapter.ts`, the L0 client of one leg: it speaks
+     the provider's wire and emits segments, audio and lifecycle through `AdapterEvents`
+     (`src/lib/contract/adapter.ts`); every adapter passes `src/lib/contract/conformance.ts`
+   - `src/providers/registry.ts` lists them in UI order and compiles the `fake` providers
+     into development builds only (D24); `src/lib/provider/presence.ts` (`isPresent`)
+     decides what a build and platform offer: a definition's `platforms`, a flagged one by
+     `VITE_ENABLED_PROVIDERS` (every one in a development build, or by its tester switch),
+     the managed one by `VITE_ENABLE_KIZUNA_AI` (on in every development build)
+   - `src/stores/providerStore.ts` holds each provider's settings, credentials and pair,
+     stored under `settings.<key>.*` (older keys through the definition's `legacyKeys` and
+     `migrate`); a load never writes
+   - The runner (`src/lib/session/`, `src/app/`) runs the legs; L1
+     (`src/lib/conversation/Conversation.ts`) folds each leg's events into segments
+   - Local Native is the exception until kizuna-ai-lab/sokuji#578: `LocalNativeClient`
+     implements the old `IClient` (`src/services/interfaces/IClient.ts`), registered as
+     `LocalNativeProviderConfig` in `ProviderConfigFactory`, built through `ClientFactory`,
+     and set up in the old settings shell (`ProviderSection`, `LanguageSection`,
+     `ProviderSpecificSettings`), which nothing mounts;
+     `src/providers/oldPath.consistency.test.ts` keeps every other file off that path.
+     Its folders (`src/services/{clients,providers,interfaces}/`) also hold four shared
+     leaves the new code takes — `ProviderConfig` (`LanguageOption`, `VoiceOption`),
+     `astGuard`, `tutorialUrls` and `ISettingsService`, the guard's `SHARED` set — which
+     stay or move when #578 lands; they are not Local Native's to delete
 
 3. **Audio Processing Pipeline**
    ```
-   Input Device → ModernAudioRecorder → AI Provider → ModernAudioPlayer → Output Device
+   Source (microphone, system audio, a tab) → runner → provider's adapter → L1 → playback → outputs
    ```
-   - `ModernAudioRecorder`: Captures input with echo cancellation, supports AudioWorklet with ScriptProcessor fallback
-   - `ModernAudioPlayer`: Queue-based playback with event-driven processing and volume control
-   - Unified audio service across all platforms with virtual device support in Electron (Linux only)
+   - `ModernAudioRecorder` (`src/lib/modern-audio/`): captures the microphone with echo
+     cancellation and noise suppression, AudioWorklet with a ScriptProcessor fallback
+   - Playback (`src/lib/audio/playback.ts`): a clip queue per leg and one for replay, the
+     routes kept live from the routing settings, the passthrough stream
+   - `src/lib/audio/appAudio.ts`: one graph per page, and the virtual output per platform
+     (Electron's virtual speaker, the extension's tabs, nothing on the web)
 
 4. **State Management**
    - **Zustand stores** in `src/stores/` for primary application state:
-     - `settingsStore.ts`: Provider settings, API keys, validation state, UI mode
-     - `sessionStore.ts`: Active session state and conversation items
+     - `settingsStore.ts`: common settings (UI mode, text-only, segmentation, display
+       modes) and Local Native's old slice
+     - `providerStore.ts`: each provider's settings, credentials and language pair
+     - `sessionStore.ts`: the locked mode the kept old settings shell reads; nothing writes it
      - `audioStore.ts`: Audio device selection and playback state
      - `logStore.ts`: Application logs and diagnostics
-   - React Context for specific features: OnboardingContext, UserProfileContext
+   - React Context for specific features: UserProfileContext, PostHogContext
    - Zustand's `subscribeWithSelector` middleware for efficient re-renders
    - Backend-managed API key integration for authenticated providers
 
-5. **Audio Service Management**
-   - `ModernBrowserAudioService` provides unified audio handling
-   - Cross-platform compatibility without virtual devices
-   - Automatic device switching and reconnection, including dynamic switching during active sessions
+5. **Audio** (`src/lib/audio/`)
+   - The runner's sources (`capture/`): the microphone (`mic.ts`, over `ModernAudioRecorder`)
+     and system audio, each following its device or source during a run; a tab, fixed
+     when it opens
+   - The page's playback (`appAudio.ts`, `playback.ts`), the routing read live from
+     `audioStore`, `routingStore` and `turnModeStore`
 
 6. **Native runtime (`native/`)**
    - One CMake super-project builds three engines on ONE pristine upstream ggml 0.22 behind
@@ -222,12 +248,18 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
 ### Code Organization
 - `src/components/` - Functional React components with TypeScript
 - `src/stores/` - Zustand state management stores
-- `src/services/` - Service layer with interface contracts
-- `src/services/clients/` - AI provider client implementations
-- `src/services/providers/` - Provider-specific configurations
-- `src/lib/modern-audio/` - Web Audio API modules (JavaScript, not TypeScript)
+- `src/providers/<id>/` - One folder per provider: definition, adapter, `Settings` view
+- `src/lib/contract/`, `src/lib/provider/`, `src/lib/session/` - The client contract, the
+  definition's types, the runner
+- `src/services/` - The settings service; Local Native's old client and descriptor
+  (`clients/`, `providers/`, `interfaces/`) until kizuna-ai-lab/sokuji#578, beside four
+  shared leaves the new code takes (`ProviderConfig`, `astGuard`, `tutorialUrls`,
+  `ISettingsService`), which stay or move when #578 lands
+- `src/lib/audio/` - The runner's sources (`capture/`) and the page's playback
+- `src/lib/modern-audio/` - The recorders (`ModernAudioRecorder`, the participant recorders)
+  and the echo monitor
 - `src/utils/` - Shared utilities including environment detection
-- `src/contexts/` - React Context providers (OnboardingContext, UserProfileContext)
+- `src/contexts/` - React Context providers (UserProfileContext, PostHogContext)
 
 ### Error Handling
 
@@ -262,21 +294,28 @@ reportWarning('AudioStore', 'No real microphone available', { dedupeKey: 'mic.mi
   diagnostic logs are on (Help, off by default; `logStore` records nothing
   otherwise), so it is never the surface a user relies on.
 - **Don't record the same failure twice.** If it already reaches the panel by
-  another route (`handlers.onError`, `onRealtimeEvent`, a rethrow into MainPanel's
-  session-start catch, `validationMessage`, descriptor `notices`), add nothing.
-- **Inside an `IClient` session**, clients never call `report()` and never
-  `console.*` — only MainPanel knows which channel (speaker/participant) a client
-  is on. Pick by what the failure did to the session:
-  - `handlers.onError` — the session is broken. Raises a conversation bubble and
-    an `api_error`.
-  - `handlers.onDiagnostic({ code, message, cause })` — the session continues,
-    degraded: a frame that would not parse, a cleanup step that threw, TTS falling
-    back. `code` comes from `CLIENT_DIAGNOSTICS`
-    (`src/lib/diagnostics/clientDiagnostics.ts`), which also decides the severity,
-    so a client never picks one. No bubble, no `api_error`.
-  - `handlers.onRealtimeEvent` — wire traffic, not a failure.
-  - throw out of `connect()` — the session never started; MainPanel's
-    `onConnectFailed` reports it once, for whichever leg it was.
+  another route (an adapter's `failed` or `degraded` event, a start the runner
+  reports, `validationMessage`, a provider's notices), add nothing.
+- **Inside an adapter session** (`src/lib/contract/adapter.ts`), adapters never
+  call `report()` and never `console.*` — only the runner knows which leg an
+  adapter serves. Pick by what the failure did to the session:
+  - `events.failed({ message, code?, cause? })` — the session is broken. L1 files
+    an error notice on the leg, the run ends, and the runner tracks `api_error`.
+  - `events.degraded({ code, message, cause? })` — the session continues,
+    degraded: a frame that would not parse, one utterance that could not be
+    transcribed, TTS falling back. `code` comes from `CLIENT_DIAGNOSTICS`
+    (`src/lib/diagnostics/clientDiagnostics.ts`), which also decides the notice's
+    severity, so an adapter never picks one; L1 files it once per window, and the
+    runner tracks `api_error`.
+  - `events.frame(...)` — wire traffic for the Logs panel, not a failure.
+  - a `start()` that rejects (an `AdapterStartError` carries a notice code) — the
+    session never started; the runner reports it once, for whichever leg it was.
+  `src/providers/sessionSide.consistency.test.ts` holds every adapter's session side
+  off the stores and the reporter, and its timers on the request's clock;
+  `src/lib/diagnostics/consoleLedger.consistency.test.ts` holds `src/providers` to no
+  `console.error` / `console.warn`. Local Native's old `IClient` (until
+  kizuna-ai-lab/sokuji#578) keeps the same rule through `handlers.onError`,
+  `handlers.onDiagnostic` and `handlers.onRealtimeEvent`.
 - **Hot paths** (per-audio-chunk, per-frame, per-poll-tick) never log per
   occurrence: return silently, or report the ok → failing transition. Bursts pass
   `dedupeKey`; the panel throttles per key on a 5s window while the console still
@@ -315,23 +354,23 @@ const apiUrl = getApiUrl(); // https://sokuji.kizuna.ai/api
 ### Zustand Store Patterns
 ```typescript
 // Using optimized selectors (preferred - prevents unnecessary re-renders)
-const provider = useProvider();
-const setProvider = useSetProvider();
+const uiMode = useUIMode();
+const setUIMode = useSetUIMode();
 
 // Direct store access for multiple values
-const { provider, uiLanguage, uiMode } = useSettingsStore();
+const { uiLanguage, uiMode, textOnly } = useSettingsStore();
 
 // Subscribing to changes outside React
 useSettingsStore.subscribe(
-  (state) => state.provider,
-  (provider) => console.log('Provider changed:', provider)
+  (state) => state.uiMode,
+  (uiMode) => console.log('UI mode changed:', uiMode)
 );
 ```
 
 ### Audio Handling
-- Always use ModernAudioPlayer/ModernAudioRecorder classes
+- Capture through the runner's sources (`src/lib/audio/capture/`, the microphone over `ModernAudioRecorder`); play through `src/lib/audio/playback.ts`
 - Audio playback uses queue-based system with event-driven processing
-- Passthrough audio uses dedicated 'passthrough' track ID for real-time monitoring (default volume: 30%)
+- Passthrough: the microphone's processed voice, under the translation, into the meeting (the virtual output) on its own `passthrough` feed (`src/lib/audio/routes.ts`); off by default, its volume `audioStore`'s `realVoicePassthroughVolume`, default 0.2 — the settings show 20%, on a 0–60% slider
 - AudioWorklet preferred for processing, falls back to ScriptProcessor for compatibility
 - Echo cancellation enabled by default with modern browser APIs
 
@@ -360,6 +399,10 @@ useSettingsStore.subscribe(
 ### Environment Variables
 - `VITE_BACKEND_URL`: Backend API URL (default: `https://sokuji.kizuna.ai`)
 - `VITE_ENABLE_KIZUNA_AI`: Enable Kizuna AI provider in production (`true`/`false`)
+- `VITE_ENABLED_PROVIDERS`: the comma-separated ids of the `flagged` providers a release
+  offers (`enabledProviderIds` in `src/utils/environment.ts`, read by `isPresent`);
+  development builds offer every flagged provider regardless, and a definition's tester
+  switch offers it on one device. No provider is flagged today
 - `VITE_ENABLE_LOCAL_NATIVE`: Register the Local Native (Electron sidecar) provider in
   production builds; unset in releases. Temporary run-time alternative for testers on a
   packaged Electron build: DevTools → `localStorage.setItem('debug:local-native', '1')` →
@@ -385,37 +428,16 @@ useSettingsStore.subscribe(
 - **zustand**: State management with `subscribeWithSelector` middleware
 - **@floating-ui/react**: Advanced tooltip positioning and floating elements
 - **i18next & react-i18next**: Internationalization framework
-- **openai-realtime-api**: OpenAI real-time API client (strongly-typed fork)
-- **@google/genai**: Google Gemini SDK
-- **livekit-client**: LiveKit SDK for Palabra AI WebRTC integration — **pinned to an exact version, do not upgrade** (see below)
+- **openai** (dev): the OpenAI SDK, for its realtime wire types (`openai`, `openai_translate`)
+  and the socket `src/providers/openai/wire.oracle.test.ts` checks the hand-written wire against
+- **@google/genai** (dev): the Gemini SDK, the same way: its server types, and the socket
+  `src/providers/gemini/wire.oracle.test.ts` checks the wire against
 - **better-auth**: Authentication library for user sessions
 - **lucide-react**: Icon library
-- **ws**: WebSocket client for real-time communication
-
-### livekit-client is version-capped by Palabra's server
-
-`livekit-client` is pinned to an **exact** version (currently `2.18.7`) — never widen it to a
-caret range and never bump it without a live Palabra session test. Palabra runs LiveKit server
-**1.8.4 / protocol 15**, whose answers carry `SessionDescription.id = 0` because the server
-doesn't echo the offer's id. livekit-client **2.18.8+** gates negotiation completion on
-`offerId > checkpoint`, so `negotiate()` never resolves, times out after 15s, and the engine
-escalates to a full reconnect — forever. Palabra's own SDK (`@palabra-ai/translator`) pins
-`livekit-client` `2.13.0` for the same reason.
-
-This regression is **silent**: `connect()` still resolves, the UI still says "connected", and
-the entire vitest suite still passes — nothing covers real WebRTC negotiation. The only signal
-is a live session producing zero transcriptions plus a `NegotiationError: negotiation timed out`
-every ~17s.
-
-One related symptom is expected and harmless: Palabra only serves `/rtc`, so every connect logs
-a failed WebSocket and a 404 on `/rtc/v1` (a path added in client 2.17.0) before LiveKit's
-automatic v0 fallback, costing ~1s on first connect.
-
-Before lifting the pin, confirm the server echoes the id — join a room and check that the
-inbound `answer` has a non-zero `SessionDescription.id`.
+- **ws**: WebSocket client for the development wire probes (`scripts/dev/wire-probe/`)
 
 ### Internationalization
-- Complete translations for 35+ languages
+- Complete translations in 30 locale catalogs (`src/locales/*/translation.json`)
 - English fallback for missing translations
 - Language detection via i18next-browser-languagedetector
 - **UI Language Quick Access**: 12 most common languages directly available
@@ -423,16 +445,26 @@ inbound `answer` has a non-zero `SessionDescription.id`.
 ## Common Development Tasks
 
 ### Adding a New AI Provider
-1. Create the client class implementing `IClient` in `src/services/clients/`
-2. Create `XProviderConfig` in `src/services/providers/` extending `BaseProviderDescriptor`:
-   settings interface + defaults, `settingsSliceKey`, `createClient`, `validateAndFetchModels`,
-   `extractCredentials`, `buildSessionConfig`, language overrides if restricted;
-   set `supportsWebRTC = true` if the provider runs over WebRTC transport (it defaults
-   to `false`), and `i18nKey` if the locale key differs from the provider id
-3. Register it in `ProviderConfigFactory`'s static block (behind its feature flag)
-4. Add the enum value in `src/types/Provider.ts` and the settings slice + update action in `settingsStore.ts`
-5. Add `providers.<id>.name/.description` to locales
-The registry invariant test (`descriptorRegistry.test.ts`) fails loudly on anything missed.
+What the spec's "What adding a provider then touches" lists
+(`docs/superpowers/specs/2026-09-22-client-contract-design.md`), as the Stage 2 ports landed:
+1. One folder, `src/providers/<id>/`: `provider.ts` (the definition, typed by
+   `src/lib/provider/types.ts`: settings with their defaults — and `legacyKeys`/`migrate`
+   when it reads keys an older build stored — credentials, languages, `check`,
+   `session`), `adapter.ts` (the L0 client, `src/lib/contract/adapter.ts`, passing the
+   conformance suite `src/lib/contract/conformance.ts`), its `Settings` view, and tests.
+2. One line in `src/providers/registry.ts`, whose order is the picker's, and the order
+   tests: `registry.test.ts` pins the whole list, and a neighbour's `provider.test.ts`
+   may pin its place. `src/providers/sessionSide.consistency.test.ts` holds its adapter
+   automatically (it walks every `src/providers/*` folder); pin its session side there, as
+   the ports did.
+3. `providers.<id>.name` and `.description` in the 30 locale catalogs — or under the
+   definition's `i18nKey` where the catalogs already spell it otherwise — only when new.
+4. The extension manifest, when it uses a host the manifest does not list yet: MV3
+   declares hosts statically (`host_permissions`, and the CSP's `connect-src`).
+5. When it is flagged, its id in `VITE_ENABLED_PROVIDERS` at release.
+`registry.test.ts`'s invariants fail loudly on anything missed. Local Native is the
+exception until kizuna-ai-lab/sokuji#578: it still runs the old path (`src/services/`,
+`ProviderConfigFactory`, the old settings shell).
 
 ### Adding a native model or TTS family
 
@@ -579,7 +611,7 @@ for which wheel `sidecar-tests` installs. The comments that used to contradict t
 corrected on 2026-09-05.
 
 ### Modifying Audio Pipeline
-1. Audio processing modules in `src/lib/modern-audio/` (JavaScript files)
+1. Audio processing modules in `src/lib/modern-audio/` (the recorders; TypeScript) and `src/lib/audio/` (sources and playback)
 2. Test with both regular and passthrough audio
 3. Ensure echo cancellation is working properly
 4. Handle browser security restrictions and permissions
@@ -596,15 +628,17 @@ corrected on 2026-09-05.
 
 ### Dynamic Audio Device Switching
 1. Recording devices can be switched during active sessions without interrupting the session
-2. Implemented via `switchRecordingDevice` method in `ModernBrowserAudioService`
-3. MainPanel detects device changes via useEffect hook
+2. The microphone source (`openMic`, `src/lib/audio/capture/mic.ts`) reads its device and
+   noise suppression live (`MicSettings`, bound to `audioStore` in `src/lib/audio/appCapture.ts`);
+   when the device changes it ends the recorder and begins it again on the new one
+3. A switch in flight finishes before the source stops; a switch that fails ends the source
+   with its reason
 4. Important: Use `selectedInputDevice?.deviceId` string in React dependencies, not the full device object
-5. The service tracks current device with `currentRecordingDeviceId` and handles reconnection automatically
 
 ## UI Components
 
 ### Simple Mode Components
-- **SimpleConfigPanel**: 6-section configuration (account, language, translation, API key, mic, speaker)
+- **SimpleSettings** (`src/components/Settings/SimpleSettings/SimpleSettings.tsx`): the simple layout's settings — the session settings (`SessionSettingsGeneral` in `ProviderArea.tsx`: languages, speech, output switches, sentence segmentation, the provider picker), the microphone and speaker, system audio, help
 - **MainPanel**: Unified conversation panel with `uiMode`-driven layout (basic: bubble messages + status footer, advanced: bubble messages + waveform footer with controls)
 - **Tooltip**: @floating-ui/react powered tooltips with hover/click/focus triggers
 - **ConnectionStatus**: Real-time connection state indicator
@@ -612,7 +646,7 @@ corrected on 2026-09-05.
 ### UI Design System
 - Dark theme with consistent styling across components
 - Primary action color: `#10a37f` (green), Error state: `#e74c3c` (red)
-- Component styles defined in colocated SCSS files (e.g., `SimpleConfigPanel.scss`)
+- Component styles defined in colocated SCSS files (e.g., `SimpleSettings.scss`)
 - Lucide React icons with consistent sizing (14-16px)
 
 ## Platform Requirements
@@ -662,7 +696,7 @@ are still manual.
 
 ### Security Policy
 - Strict CSP configuration for extension pages
-- Allowed connections to AI provider APIs (OpenAI, Google, Palabra, Kizuna AI, and OpenAI-compatible endpoints)
+- Allowed connections to AI provider APIs (OpenAI, Google, Doubao, Soniox, Palabra, Kizuna AI)
 - PostHog analytics integration for usage tracking
 
 ## Authentication and API Key Management
@@ -674,16 +708,20 @@ are still manual.
 - **Cross-Platform**: Authentication works across Electron and browser extension
 
 ### API Key Types
-1. **User-Managed Keys**: OpenAI, Gemini, Palabra AI, OpenAI Compatible - users input their own keys
+1. **User-Managed Keys**: OpenAI (Realtime, Translate, Live), Gemini, Doubao AST 2.0, Soniox, Palabra AI - users input their own keys
 2. **Backend-Managed Keys**: Kizuna AI - keys fetched from authenticated backend service
 
 ### Authentication Flow for Kizuna AI
-1. User signs in via Better Auth authentication
-2. `ApiKeyService` fetches API key from backend endpoint (`/api/user/api-key`)
-3. API key is cached for 5 minutes to reduce backend load
-4. Provider becomes available in UI only when authenticated and key is available
+1. User signs in via Better Auth authentication (`src/lib/auth-client.ts`)
+2. The managed provider (`src/providers/soniox/kizuna.ts`) asks for the sign-in in place of
+   a key, and for the balance floor its budget sets
+3. At Start its lease (`src/providers/soniox/lease.ts`) buys the session's keys from the
+   backend, one per stream; the run ends when the grant does, and the lease tells the
+   backend when the session is over
+4. It is offered where `isKizunaAIEnabled()` holds: every development build, and a release
+   built with `VITE_ENABLE_KIZUNA_AI=true`
 
 ### Key Services
-- **ApiKeyService**: Handles fetching API keys from backend with caching
-- **AuthContext**: Manages authentication state and token lifecycle (Better Auth)
-- **Service Integration**: All AI clients check authentication before operations
+- **Lease** (`src/providers/soniox/lease.ts`): the managed session's keys, per run
+- **Auth client** (`src/lib/auth-client.ts`, `src/lib/auth/`): authentication state and
+  session (Better Auth)

@@ -4,6 +4,7 @@ import type { TFunction } from 'i18next';
 import type { SegmentId } from '../../lib/conversation/types';
 import type { Exporter } from '../../lib/export/exporter';
 import type { Entry } from '../../lib/projection/types';
+import { baseLang } from '../../lib/segmentation/sentenceEnd';
 import type { SubtitleIdleModel, SubtitleSession } from '../../lib/subtitle/session';
 import { settingsTargetForCode } from '../../lib/view/noticeTargets';
 import { noticeText } from '../../lib/view/noticeText';
@@ -40,14 +41,16 @@ export interface SubtitleControls {
   openSettings?(target: string): void;
 }
 
+/** Two letters of the pair's base language (`baseLang`): Gemini's `cmn-CN` reads ZH, not CM (Stage 2 Gemini, choice 9). */
 function languageCodeShort(code: string | undefined): string {
-  return code ? code.slice(0, 2).toUpperCase() : '?';
+  return code ? baseLang(code).slice(0, 2).toUpperCase() : '?';
 }
 
 function idleState(idle: SubtitleIdleModel | undefined, t: TFunction): SubtitleIdleState {
   if (!idle) return { kind: 'ended' };
   // An uncoded reason stays as it is — `noticeText` returns the message.
-  if (idle.kind === 'unready') return { kind: 'unready', message: noticeText(t, idle), target: settingsTargetForCode(idle.code) };
+  // The code goes with it: a pending one draws as progress (`SubtitleIdle`).
+  if (idle.kind === 'unready') return { kind: 'unready', message: noticeText(t, idle), target: settingsTargetForCode(idle.code), ...(idle.code ? { code: idle.code } : {}) };
   if (idle.kind === 'failed') {
     // start_failed's own message is already "the session didn't start:
     // <detail>" (NOTICE_WORDS); noticeText would wrap it a second time

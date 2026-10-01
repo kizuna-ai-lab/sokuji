@@ -79,6 +79,36 @@ describe('SpinePreview', () => {
     expect(await screen.findByLabelText('Script')).toBeInTheDocument();
   });
 
+  // Task 12: `&signedin=1` hands the session a signed-in stand-in with no
+  // network, so a managed provider (the leased fake) can start in the
+  // preview without a real sign-in.
+  it('&signedin=1 hands the session a signed-in stand-in', async () => {
+    const before = window.location.href;
+    const spy = vi.spyOn(getAppSession(), 'setBridges');
+    window.history.replaceState(null, '', '/?preview=spine&signedin=1');
+    try {
+      render(<SpinePreview />);
+      await waitFor(() => expect(spy).toHaveBeenCalledWith(
+        expect.objectContaining({ auth: expect.objectContaining({ signedIn: true, userId: 'preview' }) }),
+      ));
+    } finally {
+      spy.mockRestore();
+      window.history.replaceState(null, '', before);
+    }
+  });
+
+  // Task 12: `&script=` targets whichever fake is selected, not always `fake`.
+  it('&script= applies to the leased fake when it is the one selected', async () => {
+    const before = window.location.href;
+    window.history.replaceState(null, '', '/?preview=spine&provider=fake_leased&script=cjk');
+    try {
+      render(<SpinePreview />);
+      await waitFor(() => expect(useProviderStore.getState().entries.fake_leased?.settings).toMatchObject({ script: 'cjk' }));
+    } finally {
+      window.history.replaceState(null, '', before);
+    }
+  });
+
   it('shows no seals until the runner hands the preview a seal frame', async () => {
     const { container } = render(<SpinePreview />);
     await waitFor(() => expect(container.querySelector('[data-probe="seals"]')).not.toBeNull());
@@ -237,7 +267,8 @@ describe('SpinePreview', () => {
     const prevAutoSave = useSettingsStore.getState().autoSaveOnStop;
     const prevTurnMode = useTurnModeStore.getState().turnMode;
     const prevMonitorMuted = useAudioStore.getState().isMonitorMuted;
-    window.history.replaceState(null, '', '/?preview=spine&script=cjk&autosave=1&turn=push-to-talk&monitor=1');
+    const prevMode = useAudioStore.getState().mode;
+    window.history.replaceState(null, '', '/?preview=spine&script=cjk&autosave=1&turn=push-to-talk&monitor=1&mode=both');
     runnerStart.mockClear();
     try {
       render(<SpinePreview />);
@@ -246,6 +277,7 @@ describe('SpinePreview', () => {
         expect(useSettingsStore.getState().autoSaveOnStop).toBe(true);
         expect(useTurnModeStore.getState().turnMode).toBe('push-to-talk');
         expect(useAudioStore.getState().isMonitorMuted).toBe(false);
+        expect(useAudioStore.getState().mode).toBe('both');
       });
       // No `&autostart=1`: the settings apply, but nothing starts.
       expect(runnerStart).not.toHaveBeenCalled();
@@ -253,7 +285,7 @@ describe('SpinePreview', () => {
       window.history.replaceState(null, '', before);
       useSettingsStore.setState({ autoSaveOnStop: prevAutoSave });
       useTurnModeStore.setState({ turnMode: prevTurnMode });
-      useAudioStore.setState({ isMonitorMuted: prevMonitorMuted });
+      useAudioStore.setState({ isMonitorMuted: prevMonitorMuted, mode: prevMode });
     }
   });
 
@@ -291,12 +323,51 @@ describe('SpinePreview', () => {
     }
   });
 
+  // `&signedin=1` also reaches the `&settings=` blocks through
+  // `AuthStandIn`, so Kizuna Soniox's Settings show as signed in there too —
+  // and its voice library, which would otherwise call the backend for the
+  // account's cached voice, runs on the stand-in `setManagedVoiceStandIn`
+  // installs (choice 15): no network at all.
+  it('&signedin=1 reaches the Settings blocks, and the managed voice library calls no backend', async () => {
+    const before = window.location.href;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => { void input; return new Response('{}'); });
+    vi.stubGlobal('fetch', fetchMock);
+    window.history.replaceState(null, '', '/?preview=spine&settings=advanced&provider=kizunaai_soniox&signedin=1');
+    try {
+      render(<SpinePreview />);
+      await screen.findByText('simpleSettings.autoAuthenticated');
+      for (const call of fetchMock.mock.calls) {
+        expect(String(call[0])).not.toContain('/soniox/');
+      }
+    } finally {
+      window.history.replaceState(null, '', before);
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("signed out, Kizuna Soniox's Settings offer the sign-in", async () => {
+    const before = window.location.href;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => { void input; return new Response('{}'); });
+    vi.stubGlobal('fetch', fetchMock);
+    window.history.replaceState(null, '', '/?preview=spine&settings=advanced&provider=kizunaai_soniox');
+    try {
+      const { container } = render(<SpinePreview />);
+      await waitFor(() => expect(container.querySelector('.sign-in-link')).not.toBeNull());
+      for (const call of fetchMock.mock.calls) {
+        expect(String(call[0])).not.toContain('/soniox/');
+      }
+    } finally {
+      window.history.replaceState(null, '', before);
+      vi.unstubAllGlobals();
+    }
+  });
+
   // Task 5, plan 1e-2b ruling 12: `&punctuation=1` downloads the punctuation
   // pack before autostart so a `sentences` cut gets a real punctuator instead
-  // of racing a background load. Last in the file: the previous test also
+  // of racing a background load. Last in the file: an earlier test also
   // started the app's (module-singleton) runner, but stopped it and awaited
-  // `settled()` first, so it is idle again here; nothing after this depends
-  // on it staying idle.
+  // `settled()` first, so it is idle again here — the two Task 9 tests above
+  // never touch it; nothing after this depends on it staying idle.
   it('with &punctuation=1, downloads the punctuation pack before autostart when it is not ready', async () => {
     const before = window.location.href;
     window.history.replaceState(null, '', '/?preview=spine&autostart=1&punctuation=1');

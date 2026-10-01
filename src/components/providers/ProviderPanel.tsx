@@ -21,7 +21,7 @@ export function ProviderPanel({ providers, auth, disabled }: ProviderPanelProps)
     <>
       <ProviderPicker providers={providers} auth={auth} disabled={disabled} />
       <ProviderLanguages providers={providers} disabled={disabled} />
-      <ProviderOwnSettings providers={providers} disabled={disabled} />
+      <ProviderOwnSettings providers={providers} auth={auth} disabled={disabled} />
       <ProviderEngine providers={providers} disabled={disabled} />
     </>
   );

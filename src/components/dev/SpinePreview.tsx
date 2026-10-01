@@ -10,7 +10,7 @@ import type { OpenSource } from '../../lib/session/source';
 import type { SubtitleSession } from '../../lib/subtitle/session';
 import { messagePortWire, publishSubtitles } from '../../lib/subtitle/wire';
 import type { Entry } from '../../lib/projection/types';
-import type { EngineSlot } from '../../lib/provider/types';
+import type { AuthContext, EngineSlot } from '../../lib/provider/types';
 import type { ConversationViewState, Readable } from '../../lib/view/conversationView';
 import { displayItems } from '../../lib/view/filter';
 import type { KaraokeState } from '../../lib/view/karaoke';
@@ -18,6 +18,7 @@ import { lastEndItem } from '../../lib/view/lastEnd';
 import { FAKE_SCRIPT_NAMES } from '../../providers/fake/scripts';
 import { createFakeSource } from '../../providers/fake/source';
 import { presentProviders } from '../../providers/registry';
+import { setManagedVoiceStandIn } from '../../providers/soniox/managedVoiceSource';
 import useAudioStore from '../../stores/audioStore';
 import { useConversationDisplayStore } from '../../stores/conversationDisplayStore';
 import { useModelStore } from '../../stores/modelStore';
@@ -33,6 +34,7 @@ import { useReadable } from '../Conversation/useReadable';
 import { ExportMenuButton } from '../MainPanel/ExportButton';
 import MainPanel from '../MainPanel/MainPanel';
 import { ProviderPanel } from '../providers/ProviderPanel';
+import { AuthStandIn } from '../providers/useAuthContext';
 import { SessionEnginePage, SessionSettingsGeneral, SessionSettingsProvider } from '../Settings/ProviderArea';
 import { SpeechSection } from '../Settings/sections/SpeechSection';
 import { SubtitleTakeover } from '../Subtitle/SubtitleTakeover';
@@ -114,6 +116,19 @@ if (param('ui') === 'advanced') useSettingsStore.setState({ uiMode: 'advanced' }
 
 /** `&capture=device`: the session runs on the app's own capture (the microphone for the speaker leg) instead of the fake source. */
 const deviceCapture = () => param('capture') === 'device';
+
+/** The preview's stand-in for a signed-in account (`&signedin=1`): a managed provider reads it; nothing calls the backend. */
+const PREVIEW_SIGNED_IN: AuthContext = { signedIn: true, userId: 'preview', getToken: async () => 'preview-token' };
+
+// The preview's sign-in is never real: Kizuna Soniox's voice library lists
+// nothing here and calls no backend (Stage 2 Kizuna Soniox, choice 15).
+setManagedVoiceStandIn({
+  list: async () => [],
+  create: async () => { throw new Error('The preview cannot build a voice.'); },
+  delete: async () => {},
+  waitUntilReady: async () => { throw new Error('The preview cannot build a voice.'); },
+  canPreview: false,
+});
 
 // The page's session is the app's (plan 1e-3a): the same runner, view,
 // karaoke, subtitle session, punctuator, frames, analytics and auto-save the
@@ -273,8 +288,9 @@ function PreviewOverlayFrame({ view, karaoke, session, controls, compact, measur
  * `&punctuation=1` downloads the punctuation pack before autostart, so the
  * session's punctuator is on disk for a `sentences` cut — a dry run of plan
  * 1e-3's own wiring. `&monitor=1` writes the stored monitor switch (the old
- * app reads the same key), so it outlives the page — as `&autosave=1` and
- * `&turn=` do. `&settings=simple|advanced` (plan 1e-3b-2 Task 3) draws the
+ * app reads the same key), so it outlives the page — as `&autosave=1`,
+ * `&turn=` and `&mode=` (the audio mode, for the live start gate, F7) do.
+ * `&settings=simple|advanced` (plan 1e-3b-2 Task 3) draws the
  * Settings blocks the app's two layouts show, in place of `ProviderPanel`:
  * `simple` is `SessionSettingsGeneral` in its Simple layout (a chip pushes
  * `SessionEnginePage`, with a back row, the way Simple mode's own list
@@ -287,10 +303,15 @@ function PreviewOverlayFrame({ view, karaoke, session, controls, compact, measur
  * tab's other blocks beside it would double `#provider-section`.
  * `&wire=1` (with `&overlay=1`) tallies the overlay's wire per message type
  * as the JSON bytes the extension's port would carry, on `window.__sokujiWire`
- * (plan 1e-4).
+ * (plan 1e-4). `&signedin=1` (Stage 2 foundation Task 12) hands the session
+ * a signed-in stand-in with no network, so a managed provider (the leased
+ * fake) can start here — and to the `&settings=` blocks; Kizuna Soniox's
+ * voice library runs on a stand-in that calls nothing; `&script=` applies to
+ * whichever fake is selected — `fake_leased` when it is picked
+ * (`&provider=fake_leased`), `fake` otherwise.
  */
 export function SpinePreview() {
-  const auth = useAppSessionBridges();
+  const auth = useAppSessionBridges(undefined, param('signedin') === '1' ? PREVIEW_SIGNED_IN : undefined);
   const providers = useMemo(() => presentProviders(), []);
   // This page's probes run on the fake unless a parameter asks for another
   // provider (plan 1e-2 ruling 10, `&provider=<id>`). ProviderPanel is a
@@ -376,9 +397,10 @@ export function SpinePreview() {
   useEffect(() => {
     if (urlApplied || !storesLoaded || !entry) return;
     const params = new URLSearchParams(window.location.search);
-    // `&script=<name>`: which script the fake plays (the headless checks pick theirs).
+    // `&script=<name>`: which script the selected fake plays (`fake` or `fake_leased`; `fake` otherwise).
     const script = params.get('script');
-    const fake = providers.find((p) => p.id === 'fake');
+    const selected = useProviderStore.getState().selected;
+    const fake = providers.find((p) => p.id === (selected === 'fake_leased' ? 'fake_leased' : 'fake'));
     if (fake && script && (FAKE_SCRIPT_NAMES as readonly string[]).includes(script)) {
       useProviderStore.getState().updateSettings(fake, { script });
     }
@@ -392,6 +414,9 @@ export function SpinePreview() {
     // `&turn=push-to-talk|push-to-translate`: the stored turn mode this session runs under.
     const turn = params.get('turn');
     if (turn === 'push-to-talk' || turn === 'push-to-translate') useTurnModeStore.getState().setTurnMode(turn);
+    // `&mode=speaker|participant|both`: the stored audio mode, for the live gate's check (F7) — like `&turn=`, it outlives the page.
+    const mode = params.get('mode');
+    if (mode === 'speaker' || mode === 'participant' || mode === 'both') useAudioStore.getState().setMode(mode);
     // `&compact=1`: the subtitle surfaces' bands (not the panel's own compact mode).
     if (params.get('compact') === '1') void useSubtitleStore.getState().setCompactMode(true);
     // `&autosave=1`: the stored auto-save switch, on — the run's end saves the conversation.
@@ -491,57 +516,59 @@ export function SpinePreview() {
   const locked = phase !== 'idle';
 
   return (
-    <div className="settings-container spine-preview">
-      <div className="settings-body">
-        {settingsMode === 'simple' ? (
-          engineSlot ? (
+    <AuthStandIn.Provider value={param('signedin') === '1' ? PREVIEW_SIGNED_IN : null}>
+      <div className="settings-container spine-preview">
+        <div className="settings-body">
+          {settingsMode === 'simple' ? (
+            engineSlot ? (
+              <>
+                <button type="button" className="engine-back-row" onClick={() => setEngineSlot(null)}>
+                  Back
+                </button>
+                <SessionEnginePage locked={locked} slot={engineSlot} />
+              </>
+            ) : (
+              <SessionSettingsGeneral locked={locked} layout="simple" onOpenSlot={setEngineSlot} />
+            )
+          ) : settingsMode === 'advanced' ? (
             <>
-              <button type="button" className="engine-back-row" onClick={() => setEngineSlot(null)}>
-                Back
-              </button>
-              <SessionEnginePage locked={locked} slot={engineSlot} />
+              <SpeechSection locked={locked} layout="advanced" />
+              <SessionSettingsProvider locked={locked} />
             </>
           ) : (
-            <SessionSettingsGeneral locked={locked} layout="simple" onOpenSlot={setEngineSlot} />
-          )
-        ) : settingsMode === 'advanced' ? (
-          <>
-            <SpeechSection locked={locked} layout="advanced" />
-            <SessionSettingsProvider locked={locked} />
-          </>
-        ) : (
-          <ProviderPanel providers={providers} auth={auth} disabled={locked} />
-        )}
-        <SessionControls
-          runner={runner}
-          turnMode={turnMode}
-          audio={audio}
-          capture={deviceCapture() ? () => ({ ...captured }) : undefined}
-        />
-        {/* Not before `urlApplied`: the panel's own Start enables as soon as the stores and the provider's entry have loaded, ahead of the URL's `&script=`/`&turn=` — a probe that clicks at once would otherwise race the fake's default script. */}
-        {previewParams.panel && urlApplied && (
-          <div className="spine-panel">
-            <MainPanel />
-          </div>
-        )}
-        <p data-probe="seals">{sealProbe}</p>
-        <PreviewConversation view={session.view} karaoke={session.karaoke} playback={audio?.playback ?? null} />
-        {previewParams.subtitle && (
-          <div className="spine-subtitle">
-            <SubtitleTakeover />
-          </div>
-        )}
-        {previewParams.overlay && (
-          <PreviewOverlayFrame
-            view={session.view}
-            karaoke={session.karaoke}
-            session={session.subtitle}
-            controls={subtitleControls}
-            compact={previewParams.compact}
-            measure={previewParams.wire}
+            <ProviderPanel providers={providers} auth={auth} disabled={locked} />
+          )}
+          <SessionControls
+            runner={runner}
+            turnMode={turnMode}
+            audio={audio}
+            capture={deviceCapture() ? () => ({ ...captured }) : undefined}
           />
-        )}
+          {/* Not before `urlApplied`: the panel's own Start enables as soon as the stores and the provider's entry have loaded, ahead of the URL's `&script=`/`&turn=` — a probe that clicks at once would otherwise race the fake's default script. */}
+          {previewParams.panel && urlApplied && (
+            <div className="spine-panel">
+              <MainPanel />
+            </div>
+          )}
+          <p data-probe="seals">{sealProbe}</p>
+          <PreviewConversation view={session.view} karaoke={session.karaoke} playback={audio?.playback ?? null} />
+          {previewParams.subtitle && (
+            <div className="spine-subtitle">
+              <SubtitleTakeover />
+            </div>
+          )}
+          {previewParams.overlay && (
+            <PreviewOverlayFrame
+              view={session.view}
+              karaoke={session.karaoke}
+              session={session.subtitle}
+              controls={subtitleControls}
+              compact={previewParams.compact}
+              measure={previewParams.wire}
+            />
+          )}
+        </div>
       </div>
-    </div>
+    </AuthStandIn.Provider>
   );
 }

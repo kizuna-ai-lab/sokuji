@@ -79,6 +79,29 @@ describe('subtitleSession', () => {
     expect(subtitleSession({ ...input, microphoneMissing: true, run: { phase: 'starting', step: 'checking' } }).idle).toEqual({ kind: 'starting' });
     expect(subtitleSession({ ...input, microphoneMissing: false }).canStart).toBe(true);
   });
+
+  describe("the start gate's refusal (Stage 2 foundation, F7)", () => {
+    const refusal = { code: 'participant_unsupported', message: 'fake does not translate ja into auto.', leg: 'participant' as const };
+    const refused = { run: idle, readiness: { state: 'ready' as const, models: [] }, pair: null, turnMode: 'auto' as const, legs: ['speaker', 'participant'] as const, refusal };
+
+    it("keeps Start off with the gate's refusal, worded by its code", () => {
+      const session = subtitleSession(refused);
+      expect(session.canStart).toBe(false);
+      expect(session.idle).toEqual({ kind: 'unready', message: refusal.message, code: 'participant_unsupported' });
+    });
+
+    it("puts the refusal after the microphone and before the provider's readiness", () => {
+      expect(subtitleSession({ ...refused, microphoneMissing: true }).idle).toMatchObject({ code: 'no_microphone' });
+      expect(subtitleSession({ ...refused, readiness: { state: 'not-ready', reason: 'no key', code: 'credentials_missing' } }).idle)
+        .toMatchObject({ code: 'participant_unsupported' });
+    });
+
+    // Characterization: a start under way already wins; this pins that the
+    // refusal's branch comes after it.
+    it('a start under way outranks it', () => {
+      expect(subtitleSession({ ...refused, run: { phase: 'starting', step: 'checking' } }).idle.kind).toBe('starting');
+    });
+  });
 });
 
 describe('sameSession', () => {

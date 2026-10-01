@@ -2,7 +2,9 @@
 //
 // The five first-run scenarios and what each one sets. This is the whole
 // "preset" concept: a scenario is a translation mode plus whether the speaker
-// leg should speak, plus which half of a bilingual utterance each leg shows.
+// leg should speak. It sets no display mode: which half of a bilingual
+// utterance each leg shows stays the user's, a re-run of the wizard included
+// (Stage 2 session end, ruling 1).
 // The participant leg never speaks (every descriptor's
 // buildParticipantSessionConfig forces textOnly, see utils/effectiveTextOnly),
 // so `participant` has no voice variant.
@@ -11,23 +13,19 @@
 import type { ScenarioId } from './types';
 
 export type ScenarioMode = 'speaker' | 'participant' | 'both';
-export type ScenarioDisplayMode = 'source' | 'translation' | 'both';
 
 export interface ScenarioPreset {
   id: ScenarioId;
   mode: ScenarioMode;
   textOnly: boolean;
-  /** Left undefined when the scenario does not run that leg (spec §1.2). */
-  speakerDisplayMode?: ScenarioDisplayMode;
-  participantDisplayMode?: ScenarioDisplayMode;
 }
 
 export const SCENARIOS: readonly ScenarioPreset[] = [
-  { id: 'understand-others', mode: 'participant', textOnly: true, participantDisplayMode: 'translation' },
-  { id: 'be-heard', mode: 'speaker', textOnly: false, speakerDisplayMode: 'both' },
-  { id: 'subtitle-myself', mode: 'speaker', textOnly: true, speakerDisplayMode: 'translation' },
-  { id: 'two-way-voice', mode: 'both', textOnly: false, speakerDisplayMode: 'both', participantDisplayMode: 'both' },
-  { id: 'two-way-text', mode: 'both', textOnly: true, speakerDisplayMode: 'both', participantDisplayMode: 'both' },
+  { id: 'understand-others', mode: 'participant', textOnly: true },
+  { id: 'be-heard', mode: 'speaker', textOnly: false },
+  { id: 'subtitle-myself', mode: 'speaker', textOnly: true },
+  { id: 'two-way-voice', mode: 'both', textOnly: false },
+  { id: 'two-way-text', mode: 'both', textOnly: true },
 ];
 
 export function getScenario(id: ScenarioId): ScenarioPreset {

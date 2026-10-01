@@ -36,4 +36,10 @@ describe('startLabel', () => {
     expect(startLabel(t, run, 'basic')).toBe('Loading (1/3)...');
     expect(startLabel(t, run, 'advanced')).toBe('Loading (1/3)...');
   });
+
+  it('names the voice claim while preparing, on both sites', () => {
+    const run: RunState = { phase: 'starting', step: 'preparing' };
+    expect(startLabel(t, run, 'basic')).toBe('Preparing your voice…');
+    expect(startLabel(t, run, 'advanced')).toBe('Preparing your voice…');
+  });
 });

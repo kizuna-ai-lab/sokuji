@@ -9,14 +9,28 @@ vi.mock('../../services/ServiceFactory', () => ({
   },
 }));
 
+// The live gate (Stage 2 foundation, F7) refuses the participant leg on the
+// web, jsdom's platform: the file runs as Electron, so a participant-only
+// start is refused only where a case asks for the web.
+const environment = vi.hoisted(() => ({ value: 'electron' as 'web' | 'electron' | 'extension' }));
+vi.mock('../../utils/environment', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../utils/environment')>()),
+  getEnvironment: () => environment.value,
+}));
+
 import { createStore } from 'zustand/vanilla';
 import type { Leg } from '../conversation/types';
 import type { Runner } from '../session/runner';
 import type { RunState } from '../session/types';
 import type { ConversationViewState, Readable } from '../view/conversationView';
 import { fakeProvider } from '../../providers/fake/provider';
+import { fakeLeasedProvider } from '../../providers/fake/leased';
+import { FAKE_LEASED_DEFAULTS } from '../../providers/fake/settings';
+import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { useRoutingStore } from '../../stores/routingStore';
+import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { appSubtitleSession } from './appSession';
 
@@ -25,10 +39,17 @@ const speakerLeg: Leg = { leg: 'speaker', session: 's', languages: { source: 'en
 const providersBefore = useProviderStore.getState();
 const turnBefore = useTurnModeStore.getState();
 const audioBefore = useAudioStore.getState();
+const accountBefore = useAccountStore.getState();
+const settingsBefore = useSettingsStore.getState();
+const routingBefore = useRoutingStore.getState();
 afterEach(() => {
   useProviderStore.setState(providersBefore, true);
   useTurnModeStore.setState(turnBefore, true);
   useAudioStore.setState(audioBefore, true);
+  useAccountStore.setState(accountBefore, true);
+  useSettingsStore.setState(settingsBefore, true);
+  useRoutingStore.setState(routingBefore, true);
+  environment.value = 'electron';
 });
 
 function setup(options?: { microphoneRequired?(): boolean; provider?: boolean; view?: Readable<ConversationViewState> }) {
@@ -98,6 +119,20 @@ describe('appSubtitleSession — the microphone gate (1e-3 ruling 5)', () => {
   });
 });
 
+describe('appSubtitleSession — the live start gate (Stage 2 foundation, F7)', () => {
+  it('keeps Start off while the live gate refuses, and turns it back on when the mode changes', () => {
+    environment.value = 'web';
+    useAudioStore.setState({ mode: 'participant', selectedInputDevice: null });
+    const { session } = setup();
+    expect(session.get()).toMatchObject({ canStart: false, idle: { kind: 'unready', code: 'participant_source_unavailable' } });
+    const listener = vi.fn();
+    session.subscribe(listener);
+    useAudioStore.setState({ mode: 'speaker' });
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(session.get().canStart).toBe(true);
+  });
+});
+
 describe("appSubtitleSession — legs follow the audio mode's intent (1e-3b-1 ruling 12)", () => {
   it('offers both legs once the mode is "both", even with nothing on screen yet', () => {
     useAudioStore.setState({ mode: 'both' });
@@ -113,6 +148,68 @@ describe("appSubtitleSession — legs follow the audio mode's intent (1e-3b-1 ru
   it("offers only the mode's leg with nothing on screen", () => {
     useAudioStore.setState({ mode: 'speaker' });
     expect(setup().session.get().legs).toEqual(['speaker']);
+  });
+});
+
+describe('appSubtitleSession — the balance floor (Stage 2 Kizuna Soniox, rulings 5, 6)', () => {
+  it('keeps Start off below the floor, and turns it on when the balance arrives or text only lowers the floor', () => {
+    const { session } = setup();
+    useProviderStore.setState({
+      selected: 'fake_leased',
+      entries: { fake_leased: { settings: { ...FAKE_LEASED_DEFAULTS, minimumBalanceMicroUsd: 1000 }, credentials: {}, pair: { source: 'en', target: 'ja' } } },
+    });
+    useAudioStore.setState({ mode: 'speaker' });
+    useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: 1500, frozen: false } });
+
+    const listener = vi.fn();
+    session.subscribe(listener);
+    expect(session.get()).toMatchObject({ canStart: false, idle: { kind: 'unready', code: 'balance_below_floor' } });
+
+    useSettingsStore.setState({ textOnly: true });
+    expect(listener).toHaveBeenCalled();
+    expect(session.get().canStart).toBe(true);
+
+    useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: 500, frozen: false } });
+    expect(session.get().canStart).toBe(false);
+
+    useAccountStore.setState({ account: { status: 'unknown' } });
+    expect(session.get()).toMatchObject({ idle: { kind: 'unready', code: 'quota_unknown' } });
+
+    useAccountStore.setState({ account: { status: 'loading' } });
+    expect(session.get()).toMatchObject({ idle: { kind: 'unready', code: 'quota_pending' } });
+  });
+});
+
+describe('appSubtitleSession — the participant-speech switch feeds the balance floor (Stage 2 Kizuna Soniox, choice 8)', () => {
+  it('re-evaluates the gate when the participant-speech switch flips, under an application source on Electron', () => {
+    environment.value = 'electron';
+    // A stub floor that prices the participant's speech directly (review
+    // Minor 2): the leased fake's own floor does not, so it cannot show
+    // that `useRoutingStore.subscribe(update)` in appSession.ts feeds the
+    // recompute. Restored in `finally`.
+    const original = fakeLeasedProvider.session!.minimumBalance!;
+    fakeLeasedProvider.session!.minimumBalance = (shape) => (shape.participantSpeech ? 2000 : 500);
+    try {
+      useProviderStore.setState({
+        selected: 'fake_leased',
+        entries: { fake_leased: { settings: FAKE_LEASED_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
+      });
+      useAudioStore.setState({ mode: 'speaker', selectedParticipantSource: { deviceId: 'app:1', label: 'App' } });
+      useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: 1000, frozen: false } });
+      useRoutingStore.setState({ participantSpeech: false });
+
+      const { session } = setup({ provider: false });
+      expect(session.get().canStart).toBe(true);
+
+      const listener = vi.fn();
+      session.subscribe(listener);
+      useRoutingStore.setState({ participantSpeech: true });
+
+      expect(listener).toHaveBeenCalled();
+      expect(session.get()).toMatchObject({ canStart: false, idle: { kind: 'unready', code: 'balance_below_floor' } });
+    } finally {
+      fakeLeasedProvider.session!.minimumBalance = original;
+    }
   });
 });
 

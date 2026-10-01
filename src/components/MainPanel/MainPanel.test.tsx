@@ -370,6 +370,21 @@ describe('MainPanel', () => {
     act(() => { runner().state.setState({ phase: 'idle' }, true); });
   });
 
+  // Settings are locked while a run is live, so the stored ones are the run's.
+  it("offers typed text only when the provider takes it with the stored settings (Live Translate takes none)", async () => {
+    const textInput = vi.spyOn(fakeProvider, 'textInput').mockReturnValue(false);
+    try {
+      const { container } = await renderPanel();
+      act(() => { runner().state.setState({ phase: 'running', since: 0, legs: { speaker: 'live' } }, true); });
+      expect(container.querySelector('[data-tour="main-action"]')?.textContent).toContain('simplePanel.stop');
+      expect(container.querySelector('.text-input')).toBeNull();
+      expect(textInput).toHaveBeenCalledWith(useProviderStore.getState().entries.fake!.settings);
+    } finally {
+      textInput.mockRestore();
+      act(() => { runner().state.setState({ phase: 'idle' }, true); });
+    }
+  });
+
   it('draws why a refused start did not happen after the list, in words, with no action for a code with no Settings target', async () => {
     const { container } = await renderPanel();
     await start(container);

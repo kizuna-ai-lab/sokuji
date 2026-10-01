@@ -1,16 +1,21 @@
 /**
  * The app's subtitle session, live from the runner, the conversation view and
- * three stores (the selected provider's readiness and pair, the turn mode,
- * and the audio store's mode and chosen microphone for the microphone gate).
+ * several stores (the selected provider's readiness and pair, the turn mode,
+ * the audio store's mode and chosen microphone for the microphone gate, and
+ * the account's wallet, the text-only switch and the participant-speech
+ * switch, for the balance floor), and the start gate over them (F7).
  * The only module under `src/lib/subtitle` that reads a store.
  */
 import { describeCause, reportError } from '../diagnostics/report';
-import { legsFor } from '../session/appShape';
+import { legsFor, liveGate } from '../session/appShape';
 import type { Runner } from '../session/runner';
 import { microphoneMissing } from '../session/shape';
 import type { ConversationViewState, Readable } from '../view/conversationView';
+import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { useRoutingStore } from '../../stores/routingStore';
+import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { sameSession, subtitleSession, type SubtitleSession } from './session';
 
@@ -39,6 +44,7 @@ export function appSubtitleSession(
       legs: (['speaker', 'participant'] as const).filter((leg) => intent.includes(leg) || shown.includes(leg)),
       microphoneMissing: (options.microphoneRequired?.() ?? false) && microphoneMissing(intent, audio.selectedInputDevice?.deviceId),
       providerLoaded: !!(id && providers.entries[id]),
+      refusal: liveGate(),
     });
   };
   let state = read();
@@ -55,7 +61,19 @@ export function appSubtitleSession(
       }
     }
   };
-  const offs = [runner.state.subscribe(update), useProviderStore.subscribe(update), useTurnModeStore.subscribe(update), useAudioStore.subscribe(update), view.subscribe(update)];
+  const offs = [
+    runner.state.subscribe(update),
+    useProviderStore.subscribe(update),
+    useTurnModeStore.subscribe(update),
+    useAudioStore.subscribe(update),
+    view.subscribe(update),
+    useAccountStore.subscribe(update),
+    useSettingsStore.subscribe((s) => s.textOnly, update),
+    // A plain store (no subscribeWithSelector): fires on every change of it,
+    // but `update` compares the computed session before it notifies its own
+    // listeners, so an unrelated change here still costs nothing downstream.
+    useRoutingStore.subscribe(update),
+  ];
   return {
     get: () => state,
     subscribe(listener) {

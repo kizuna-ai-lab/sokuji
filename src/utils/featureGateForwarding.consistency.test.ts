@@ -42,7 +42,7 @@ describe('feature gates reach the builds that need them', () => {
   // Guards the derivation itself: if the regex ever stops matching, every
   // assertion below would vacuously pass over an empty set.
   it('finds the gates environment.ts reads', () => {
-    expect(GATES.length).toBeGreaterThanOrEqual(4);
+    expect(GATES.length).toBeGreaterThanOrEqual(3);
     expect(GATES).toContain('VITE_ENABLE_KIZUNA_AI');
     expect(GATES).toContain('VITE_ENABLED_PROVIDERS');
   });

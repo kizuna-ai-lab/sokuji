@@ -3,12 +3,11 @@ import { subscribeWithSelector } from 'zustand/middleware';
 
 // This store is a leftover of the pre-client-contract session path. Nothing
 // writes it any more — the new session lives under `src/app/`. It survives
-// only because kept old-provider UI still reads it: `ProviderSpecificSettings`
-// (useSessionIsInitializing, useLockedMode) and, through the same imports,
-// `ProviderSection` / `LanguageSection` (useLockedMode), which are unmounted
-// at run time but still type-checked. Each Stage 2 port that removes one of
-// those readers moves this store a step closer to deletion; once the last
-// reader is gone, delete the file.
+// only because the old settings shell, kept for Local Native until
+// kizuna-ai-lab/sokuji#578 (Stage 2 deletion, ruling 1), still reads its
+// locked mode: `ProviderSpecificSettings`, `ProviderSection` and
+// `LanguageSection` (useLockedMode), unmounted at run time but still
+// type-checked. When #578 ports Local Native, delete the file.
 export type LockedFooterMode = 'speaker' | 'participant' | 'both';
 
 interface SessionStore {
@@ -18,29 +17,21 @@ interface SessionStore {
   // Settings panel uses it too to decide which channel sections are
   // editable during the session.
   lockedMode: LockedFooterMode | null;
-  isInitializing: boolean;
 
   // Actions
   setLockedMode: (mode: LockedFooterMode | null) => void;
-  setIsInitializing: (initializing: boolean) => void;
 }
 
 const useSessionStore = create<SessionStore>()(
   subscribeWithSelector((set) => ({
     // Initial state
     lockedMode: null,
-    isInitializing: false,
 
     // Setters
     setLockedMode: (mode) => set({ lockedMode: mode }),
-    setIsInitializing: (isInitializing) => set({ isInitializing }),
   }))
 );
 
 export const useLockedMode = () => useSessionStore((state) => state.lockedMode);
-// Named useSessionIsInitializing to avoid colliding with the old MainPanel's
-// local isInitializing state when both were in scope (that local state was
-// deleted in plan 1e-3c).
-export const useSessionIsInitializing = () => useSessionStore((state) => state.isInitializing);
 
 export default useSessionStore;

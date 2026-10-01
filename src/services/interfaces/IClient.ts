@@ -1,6 +1,8 @@
 /**
- * Abstract interface for AI clients (OpenAI, Gemini, etc.)
- * This interface provides a unified API for different AI providers
+ * The old provider path's client interface. One implementer is left, Local
+ * Native's `LocalNativeClient`, until kizuna-ai-lab/sokuji#578 ports it to the
+ * adapter contract in `src/lib/contract/adapter.ts` (Stage 2 deletion,
+ * ruling 1).
  */
 
 import { RealtimeEvent } from '../../stores/logStore';
@@ -74,218 +76,6 @@ export interface BaseSessionConfig {
 }
 
 /**
- * OpenAI-specific session configuration
- */
-export interface OpenAISessionConfig extends BaseSessionConfig {
-  provider: 'openai' | 'cometapi';
-  // Direction, carried for the participant session's benefit only — neither is
-  // forwarded to the API. OpenAI expresses direction through `instructions`,
-  // so nothing else needs these; but the participant session reverses the
-  // direction and must rebuild `inputAudioTranscription` around the other
-  // party's language. See createParticipantSessionConfig.
-  sourceLanguage?: string;
-  targetLanguage?: string;
-  turnDetection?: {
-    type: 'server_vad' | 'semantic_vad' | 'none';
-    threshold?: number;
-    prefixPadding?: number;
-    silenceDuration?: number;
-    eagerness?: string;
-    createResponse?: boolean;
-    interruptResponse?: boolean;
-  };
-  // Built by buildInputAudioTranscription (see openaiTranscriptionContext),
-  // which decides per model which of these the API will accept: `languages`
-  // and `keywords` are rejected outright by the legacy transcription models,
-  // taking the whole session.update down with them. Never populate these by
-  // hand — go through that builder.
-  inputAudioTranscription?: {
-    model: string;
-    language?: string;
-    languages?: string[];
-    keywords?: string[];
-  };
-  inputAudioNoiseReduction?: {
-    type: 'near_field' | 'far_field';
-  };
-  // Reasoning effort. Only consumed by clients when `model` supports it
-  // (currently `gpt-realtime-2`). Clients must gate by model name before
-  // forwarding to the OpenAI API — older models reject the field.
-  reasoningEffort?: 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
-}
-
-/**
- * Target languages supported by OpenAI's gpt-realtime-translate model.
- * The model only supports translating into this fixed set of 13 languages.
- */
-export type TranslateTargetLanguage =
-  | 'en' | 'es' | 'pt' | 'fr' | 'ja' | 'ru' | 'zh'
-  | 'de' | 'ko' | 'hi' | 'id' | 'vi' | 'it';
-
-/**
- * OpenAI Translate (gpt-realtime-translate) session configuration
- */
-export interface OpenAITranslateSessionConfig extends BaseSessionConfig {
-  provider: 'openai_translate';
-  targetLanguage: TranslateTargetLanguage;
-  // UI hint only — not forwarded to the API
-  sourceLanguage?: string;
-  inputAudioTranscription?: { model: string };
-  inputAudioNoiseReduction?: { type: 'near_field' | 'far_field' };
-  // Client-side utterance segmentation used to ride here as two per-provider
-  // silence thresholds. A2 made them one global pause pair, so the client
-  // takes them through ClientOptions instead and nothing about them belongs
-  // in a session config.
-}
-
-/**
- * GPT-Live-1 interpreter session (Live API primary WebSocket). Every field is
- * fixed at session.start; `instructions` is the rendered interpreter template
- * and carries the language pair, which is why the pair is also kept here for
- * the UI and the participant swap.
- */
-export interface OpenAILiveSessionConfig extends BaseSessionConfig {
-  provider: 'openai_live';
-  sourceLanguage?: string;
-  targetLanguage: string;
-  // Client-side utterance segmentation is the global pause pair now (A2); it
-  // reaches the client through ClientOptions, not through here.
-}
-
-/**
- * Gemini-specific session configuration
- */
-export interface GeminiSessionConfig extends BaseSessionConfig {
-  provider: 'gemini';
-  turnDetectionMode: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
-  vadStartSensitivity: 'high' | 'low';
-  vadEndSensitivity: 'high' | 'low';
-  vadSilenceDurationMs: number;
-  vadPrefixPaddingMs: number;
-  /**
-   * Set only for the Live Translate models, where it — not the system
-   * instruction — is what pins the output language. Absent for the dialogue
-   * models, which carry their direction in the instruction. Built by
-   * buildGeminiTranslationConfig; see geminiTranslateModel.ts.
-   */
-  translationConfig?: {
-    targetLanguageCode: string;
-    echoTargetLanguage: boolean;
-  };
-  /**
-   * The short code for the direction's *other* end, carried for the
-   * participant session's benefit only — never sent to the API. Mirrors how
-   * OpenAITranslateSessionConfig carries `sourceLanguage`.
-   */
-  sourceLanguageCode?: string;
-  /**
-   * The configured language pair, short codes, for the sentence-segmentation
-   * stage alone — never sent to the API. Set unconditionally, including for
-   * the dialogue models, which carry their direction in the instruction and so
-   * expose no language field the stage could read: without this the two
-   * streams both run at `auto`, which routes English and Chinese to SaT
-   * instead of Edge-Punct-Casing and FireRedPunc.
-   *
-   * Reversed for the participant leg, like every other direction-bearing
-   * field here.
-   */
-  segmentationSourceLanguage?: string;
-  segmentationTargetLanguage?: string;
-}
-
-/**
- * PalabraAI-specific session configuration
- */
-export interface PalabraAISessionConfig extends BaseSessionConfig {
-  provider: 'palabraai';
-  sourceLanguage: string;
-  targetLanguage: string;
-  voiceId: string;
-  segmentConfirmationSilenceThreshold: number;
-  sentenceSplitterEnabled: boolean;
-  translatePartialTranscriptions: boolean;
-  desiredQueueLevelMs: number;
-  maxQueueLevelMs: number;
-  autoTempo: boolean;
-}
-
-/**
- * Volcengine AST 2.0 session configuration (s2s mode)
- */
-export interface VolcengineAST2SessionConfig extends BaseSessionConfig {
-  provider: 'volcengine_ast2';
-  sourceLanguage: string;
-  targetLanguage: string;
-  turnDetectionMode?: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
-  /** Boost recognition of specific terms (Volcengine self-learning platform: Hot Words). Library ID only; empty string or undefined = not set. */
-  hotWordTableId?: string;
-  /** Post-transcription text substitution (Volcengine self-learning platform: Replacement). Library ID only; empty string or undefined = not set. */
-  replacementTableId?: string;
-  /** Source-to-target bilingual term pairs (Volcengine self-learning platform: Glossary). Library ID only; empty string or undefined = not set. */
-  glossaryTableId?: string;
-}
-
-/**
- * Soniox speech-to-speech translation session configuration.
- * `voice` comes from BaseSessionConfig. When `bidirectional` is true the
- * client sends a two_way translation block (source ↔ target); sourceLanguage
- * must then be a concrete language ('auto' is only valid for one_way, where
- * it means "no language_hints").
- */
-export interface SonioxSessionConfig extends BaseSessionConfig {
-  provider: 'soniox';
-  sourceLanguage: string; // 'auto' | ISO code
-  targetLanguage: string; // ISO code
-  /** True only for Both mode with a shared single session (set by MainPanel). Drives two_way vs one_way. */
-  bidirectional: boolean;
-  /** Custom vocabulary parsed from settings; absent when all three parts are empty. */
-  context?: {
-    terms?: string[];
-    translationTerms?: Array<{ source: string; target: string }>;
-    /** Free-form background text (wire: context.text); absent when empty. */
-    text?: string;
-  };
-  /** Clamped -1.0..1.0; 0 (default) is omitted from the wire. */
-  endpointSensitivity?: number;
-  /** Clamped integer 0..3; 0 (default) is omitted from the wire. */
-  endpointLatencyAdjustmentLevel?: number;
-  /** Clamped integer 500..3000; 2000 (server default) is omitted from the wire. */
-  endpointMaxDelayMs?: number;
-  /** Clamped 0.7..1.3; 1.0 (default) is omitted from the wire. */
-  ttsSpeed?: number;
-}
-
-/**
- * Local inference session configuration
- */
-export interface LocalInferenceSessionConfig extends BaseSessionConfig {
-  provider: 'local_inference';
-  sourceLanguage: string;
-  targetLanguage: string;
-  asrModelId: string;
-  translationModelId?: string;
-  ttsModelId?: string;
-  ttsSpeakerId: number;
-  ttsSpeed: number;
-  edgeTtsVoice?: string;
-  vadThreshold?: number;
-  /** vad-web only; 0 or absent derives it from vadThreshold. Never applies above it. */
-  vadNegativeThreshold?: number;
-  vadMinSilenceDuration?: number;
-  vadMinSpeechDuration?: number;
-  vadMaxSpeechDuration?: number;
-  turnDetectionMode?: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
-  /**
-   * Whether the active system prompt expects `<transcript>` wrapping around
-   * the user message. Tracks the actual prompt, not the mode flag: true when
-   * the resolved instructions equal a buildDefaultLocalPrompt output (Simple
-   * mode OR Advanced-mode fallback when the user's textarea is empty); false
-   * when the user provided a custom prompt in Advanced mode.
-   */
-  wrapTranscript?: boolean;
-}
-
-/**
  * Native (Electron sidecar) local inference: ASR → translation (→ optional TTS),
  * served by the Python sidecar over localhost WebSocket. Separate from the WASM
  * LOCAL_INFERENCE provider.
@@ -318,46 +108,11 @@ export interface LocalNativeSessionConfig extends BaseSessionConfig {
 /**
  * Union type for all possible session configurations
  */
-export type SessionConfig = OpenAISessionConfig | OpenAITranslateSessionConfig | OpenAILiveSessionConfig | GeminiSessionConfig | PalabraAISessionConfig | VolcengineAST2SessionConfig | SonioxSessionConfig | LocalInferenceSessionConfig | LocalNativeSessionConfig;
+export type SessionConfig = LocalNativeSessionConfig;
 
 /**
  * Type guards for session configurations
  */
-export function isOpenAISessionConfig(config: unknown): config is OpenAISessionConfig {
-  if (typeof config !== 'object' || config === null) return false;
-
-  const provider = (config as { provider?: unknown }).provider;
-  return provider === 'openai' || provider === 'cometapi';
-}
-
-export function isOpenAITranslateSessionConfig(config: SessionConfig): config is OpenAITranslateSessionConfig {
-  return config.provider === 'openai_translate';
-}
-
-export function isOpenAILiveSessionConfig(config: SessionConfig): config is OpenAILiveSessionConfig {
-  return config.provider === 'openai_live';
-}
-
-export function isGeminiSessionConfig(config: SessionConfig): config is GeminiSessionConfig {
-  return config.provider === 'gemini';
-}
-
-export function isPalabraAISessionConfig(config: SessionConfig): config is PalabraAISessionConfig {
-  return config.provider === 'palabraai';
-}
-
-export function isVolcengineAST2SessionConfig(config: SessionConfig): config is VolcengineAST2SessionConfig {
-  return config.provider === 'volcengine_ast2';
-}
-
-export function isSonioxSessionConfig(config: SessionConfig): config is SonioxSessionConfig {
-  return config.provider === 'soniox';
-}
-
-export function isLocalInferenceSessionConfig(config: SessionConfig): config is LocalInferenceSessionConfig {
-  return config.provider === 'local_inference';
-}
-
 export function isLocalNativeSessionConfig(config: SessionConfig): config is LocalNativeSessionConfig {
   return config.provider === 'local_native';
 }
@@ -405,9 +160,10 @@ export interface ClientEventHandlers {
    *
    * For failures that used to become a `console.error` inside a client, where
    * they were invisible to the user and mis-attributed in analytics — a frame
-   * that would not parse, a cleanup step that threw, TTS falling back. No
-   * bubble, no api_error: `participantTelemetry` gives the code a channel and
-   * the severity from CLIENT_DIAGNOSTICS, and files one panel entry.
+   * that would not parse, TTS falling back. No bubble, no api_error: whoever
+   * set the handlers gives the code its channel and the severity from
+   * CLIENT_DIAGNOSTICS. Nothing creates a client, so nothing sets them, until
+   * #578 ports Local Native (Stage 2 deletion, ruling 1).
    */
   onDiagnostic?: (diagnostic: ClientDiagnostic) => void;
   onConversationUpdated?: (data: { item: ConversationItem; delta?: any }) => void;
@@ -415,16 +171,6 @@ export interface ClientEventHandlers {
   onRealtimeEvent?: (event: RealtimeEvent) => void;
   onReconnecting?: () => void;
   onReconnected?: () => void;
-}
-
-/**
- * API Key validation result interface
- */
-export interface ApiKeyValidationResult {
-  valid: boolean | null;
-  message: string;
-  validating: boolean;
-  hasRealtimeModel?: boolean;
 }
 
 /**
@@ -470,55 +216,4 @@ export interface IClient {
 
   // Provider-specific information
   getProvider(): ProviderType;
-
-  // Optional PTT control methods
-  /** Cancel current PTT turn without triggering a response (e.g., when no speech detected) */
-  cancelPttTurn?(): void;
-
-  // Optional device control methods (WebRTC only)
-  switchInputDevice?(deviceId: string): Promise<void>;
-  switchOutputDevice?(deviceId: string): Promise<void>;
-  setOutputMuted?(muted: boolean): void;
-  setOutputVolume?(volume: number): void;
-
-  /** Input-side (local capture) frequency data for visualization, where the client
-   * owns its own capture (WebRTC bridge analyser). Absent on clients fed by the
-   * shared recorder. */
-  getInputFrequencies?(): { values: Float32Array } | null;
-
-  // Optional Both single-session (Soniox) mixer methods
-  /** Feed the second audio channel (Both single-session mixer). SonioxClient only. */
-  appendParticipantAudio?(audioData: Int16Array): void;
-  /** Return a second IClient reference bound to this same core (Both single-session). SonioxClient only. */
-  createSecondaryPort?(): IClient;
-
-  /**
-   * Managed-mode Soniox only: the running session's fixed ALLOWANCE parameters
-   * (grant, conservative rate, start time), for the status footer's
-   * remaining-time countdown — see SonioxClient.getManagedBudgetInfo. Null for
-   * BYOK sessions or before the managed session-key exchange has completed.
-   *
-   * `rateUsdPerHour` is the rate the allowance was budgeted at, not a price:
-   * the countdown says when the session stops, never what it cost.
-   */
-  getManagedBudgetInfo?(): { budgetMicroUsd: number; rateUsdPerHour: number; startedAtMs: number } | null;
-}
-
-/**
- * Static methods interface for client classes
- * These methods should be implemented as static methods in client classes
- */
-export interface IClientStatic {
-  /**
-   * Validate API key and fetch available models in a single request
-   */
-  validateApiKeyAndFetchModels(apiKey: string): Promise<{
-    validation: ApiKeyValidationResult;
-    models: FilteredModel[];
-  }>;
-
-  /**
-   * Get the latest realtime model ID
-   */
-  getLatestRealtimeModel(models: FilteredModel[]): string;
 }

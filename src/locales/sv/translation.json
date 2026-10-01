@@ -24,7 +24,6 @@
       "audio": "Ljud",
       "provider": "Leverantör"
     },
-    "languageSettings": "Språkinställningar",
     "voice": "Röst",
     "voiceSettings": "Röstinställningar",
     "model": "Modell",
@@ -40,10 +39,11 @@
     "autoTempo": "Adaptiv Talhastighet",
     "pushToTalk": "Push-to-Talk",
     "pushToTranslate": "Push-to-Translate",
-    "pushToTranslateNotAvailableInWebrtc": "Inte tillgängligt i WebRTC-läge. Växla till WebSocket för att använda Push-to-Translate.",
     "systemInstructions": "Systeminstruktioner",
     "speechMode": "Talläge",
     "speechModeAppliesTo": "Gäller din röst. Den andras ljud använder alltid semantisk VAD.",
+    "speechModeTooltip": "Auto: leverantören känner av när du har talat klart. \nPush-to-Talk: håll ned mellanslag eller mikrofonknappen för att skicka ljud manuellt. \nPush-to-Translate: som Push-to-Talk, men dirigerar din råa mikrofon till den virtuella mikrofonen när inaktiv så att du kan tala direkt utan översättning.",
+    "speechModeAppliesToAuto": "Gäller din röst. Den andras ljud använder alltid leverantörens automatiska detektering.",
     "userTranscriptModel": "Användartranskriptionsmodell",
     "noiseReduction": "Brusreducering",
     "noiseSuppression": "Brusreducering",
@@ -72,22 +72,15 @@
     "eagerness": "Iver",
     "temperature": "Temperatur",
     "maxTokens": "Max tokens",
-    "validating": "Validerar...",
     "enterCustomInstructions": "Ange anpassade instruktioner...",
     "settingsSavedSuccessfully": "Inställningar sparade",
     "failedToSaveSettings": "Kunde inte spara inställningar",
     "settingSavedSuccessfully": "Inställning sparad: {{key}}",
     "failedToSaveSetting": "Kunde inte spara inställning: {{key}}",
-    "apiKeyValidationCompleted": "API-nyckelvalidering slutförd",
-    "errorValidatingApiKey": "Fel vid validering av API-nyckel",
     "regionNotSupported": "Tjänsten är inte tillgänglig i din region. Kontrollera din nätverksmiljö eller prova en annan leverantör.",
     "sessionActiveNotice": "Inställningar kan inte ändras under en aktiv session",
-    "realtimeModelAvailable": "Realtidsmodell tillgänglig",
     "realtimeModelNotAvailable": "Realtidsmodell ej tillgänglig",
-    "refreshModels": "Uppdatera tillgängliga modeller",
-    "loadingModels": "Laddar tillgängliga modeller...",
     "modelsFound": "{{count}} modeller tillgängliga",
-    "invalidApiKeyFormat": "Ogiltigt API-nyckelformat",
     "volcengineAST2Info": "Doubao AST 2.0-information",
     "volcengineAST2InfoText": "Doubao AST 2.0 erbjuder röst-till-röst-översättning med automatisk röstkloning. Det översatta ljudet bevarar den ursprungliga talarens röstegenskaper.",
     "volcengineAST2TurnDetectionTooltip": "Auto: röstaktivitetsdetektering på serversidan. \nPush-to-Talk: håll ned mellanslag eller mikrofonknappen för att skicka ljud manuellt. \nPush-to-Translate: som Push-to-Talk, men dirigerar din råa mikrofon till den virtuella mikrofonen när inaktiv så att du kan tala direkt utan översättning.",
@@ -113,8 +106,6 @@
     "low": "Låg",
     "medium": "Medel",
     "high": "Hög",
-    "apiKeyValidated": "API-nyckel validerad",
-    "realtimeTranslationAvailable": "Realtidsöversättningstjänst är tillgänglig",
     "advancedMode": "Avancerat",
     "providerTooltip": "Välj din AI-översättningstjänst. Varje tjänst har olika funktioner, röster och priser. OpenAI erbjuder flest funktioner, medan Gemini har en bra gratisplan. Lokalt (Offline) läge är helt gratis — ingen API-nyckel eller internet krävs.",
     "modelTooltip": "Välj AI-modell",
@@ -135,12 +126,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Ställ in nivå för bakgrundsbrusreducering",
     "systemInstructionsTooltip": "Ange instruktioner för att anpassa AI-beteendet",
-    "transportType": "Anslutningstyp",
-    "transportTypeTooltip": "WebRTC: Lägre latens, rekommenderas för de flesta användare.\nWebSocket: Bättre kompatibilitet med begränsade nätverk. Använd om WebRTC-anslutningen misslyckas.",
-    "websocket": "WebSocket (Stabil)",
-    "webrtc": "WebRTC (Låg latens)",
-    "webrtcVadDisabledTitle": "Server-VAD är inte tillgänglig i WebRTC-läge",
-    "webrtcVadNotice": "Server-VAD är inaktiverat i WebRTC-läge. I WebRTC klipper servern automatiskt av ljud vid taligenkänning, vilket avbryter översättningar.",
     "participantInstructions": "Instruktioner för den andra",
     "participantInstructionsTooltip": "Systeminstruktioner för att översätta den andras ljud. Om tom används huvudinstruktionerna ovan.\n\nViktigt: Dina huvudinstruktioner kan ha fel språkriktning för den andra. Exempel: Om du talar kinesiska och dina huvudinstruktioner översätter kinesiska→japanska, men den andra talar japanska, skulle huvudinstruktionerna felaktigt försöka översätta japanska→japanska. Ställ in separata instruktioner för den andra för att översätta japanska→kinesiska.",
     "localTranslationPrompt": "Översättningsprompt",
@@ -203,9 +188,7 @@
       "xhigh": "Mycket hög"
     },
     "translateInfoBanner": "Modellen är tyst när talaren använder samma språk som målspråket. Blandspråklig tal kan ha luckor.",
-    "translateModelAvailable": "API-nyckel validerad. gpt-realtime-translate är tillgänglig.",
     "translateModelNotAvailable": "API-nyckeln fungerar, men gpt-realtime-translate är inte tillgänglig med den här nyckeln.",
-    "translateSourceParticipantWarning": "Översättning av den andras ljud kanske inte fungerar — 'Mitt språk' finns inte bland de 13 målspråk som den här leverantören stöder.",
     "participantSectionHeader": "Den andras ljud",
     "participantSectionDescriptionElectron": "Översätt ljud från valfri applikation som spelas upp på detta system.",
     "participantSectionDescriptionExtension": "Översätt ljud från den aktiva webbläsarfliken. Originalljudet spelas upp via systemets standardutgång.",
@@ -222,7 +205,6 @@
     "sonioxSharedSession": "Delad session i läget Båda",
     "sonioxSharedSessionTooltip": "Läget Båda kan använda en delad Soniox-session eller en separat session per riktning.\n\nAktiverad: en enda session översätter båda sidor med automatisk röstseparation — lägre kostnad och latens.\n\nInaktiverad: en separat session per riktning — mer tillförlitlig när båda talar samtidigt, men ungefär dubbel kostnad.\n\nPåverkar endast läget Båda.",
     "sonioxSharedSessionManagedCost": "Kizuna AI stöder båda. Inaktiverad kör två sessioner samtidigt — ungefär dubbla kostnaden per minut, så din sessionstid tar slut på ungefär halva tiden och det krävs ett högre saldo för att starta.",
-    "sonioxAutoParticipantWarning": "Ange ett specifikt språk för 'Mitt språk' — med automatisk identifiering kan den andras tal inte översättas dit.",
     "sonioxVocabulary": "Anpassat ordförråd",
     "sonioxVocabularyTooltip": "Styr igenkänningen mot viktiga namn och fackterminologi och påverkar hur specifika termer översätts. Gäller från nästa session.",
     "sonioxVocabularyTerms": "Termer",
@@ -310,7 +292,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatiskt autentiserad via ditt konto",
-    "fetchingApiKey": "Hämtar API-nyckel från ditt konto...",
     "provider": "AI-tjänsteleverantör",
     "apiKeyPlaceholder": "Ange din API nyckel",
     "setupGuide": "Installationsguide",
@@ -372,6 +353,7 @@
     "participantSpeech": "Läs upp den andras översättning",
     "participantSpeechDesc": "Läser högt för dig vad den andra säger, på ditt språk, genom dina högtalare. Det följer deras röst med en fördröjning.",
     "participantSpeechBlockedWholeSystem": "Avstängt medan den andras ljud fångar allt systemljud: deras översättning skulle fångas och översättas igen. Välj ett program som den andras källa.",
+    "participantSpeechNotYetAvailable": "Inte tillgängligt än med den här leverantören: den andras översättning visas endast som text.",
     "audioCaptureUnprovenNotice": "Inget har fångats ännu",
     "audioCaptureUnprovenTitle": "Inget ljud har kommit från den valda källan ännu",
     "audioCaptureUnprovenText1": "Om källan spelar upp och inget översätts levererar macOS troligen tystnad: att fånga en app kräver behörigheten \"Endast inspelning av systemljud\", och utan den uppstår inget fel, bara tystnad.",
@@ -430,9 +412,7 @@
     "backToSignIn": "Tillbaka till inloggning",
     "forgotPasswordError": "Kunde inte skicka verifieringskod. Försök igen.",
     "resetPasswordError": "Kunde inte återställa lösenord. Försök igen.",
-    "signedOut": "Logga in för att använda Kizuna AI:s inbyggda översättningstjänst.",
-    "sessionUnavailable": "Din session är inte längre giltig. Logga in igen.",
-    "unknown": "Kunde inte verifiera ditt konto. Försök igen."
+    "signedOut": "Logga in för att använda Kizuna AI:s inbyggda översättningstjänst."
   },
   "simpleConfig": {
     "interfaceLanguage": "Gränssnittsspråk",
@@ -456,20 +436,9 @@
     "keepReplayAudioDesc": "Spara översatt ljud i minnet så att du kan spela upp det senare från varje meddelande. Av som standard för att minska minnesanvändningen under långa sessioner."
   },
   "providers": {
-    "kizunaai_openai_translate": {
-      "name": "KizunaAI",
-      "description": "75 källspråk (identifieras automatiskt), 13 målspråk",
-      "vendor": "OpenAI"
-    },
-    "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI",
-      "description": "8 språk + kinesiska–engelska dubbelriktat · behåller din röst",
-      "vendor": "Doubao"
-    },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 språk, 3600 språkpar · klona din egen röst",
-      "vendor": "Soniox"
+      "description": "60 språk, 3600 språkpar · klona din egen röst"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -478,11 +447,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "Googles AI teknologi"
-    },
-    "openaiCompatible": {
-      "name": "OpenAI-kompatibel (äldre Realtime)",
-      "description": "Tredjepartsslutpunkt som använder OpenAI:s äldre beta-Realtime-protokoll. Inte för OpenAI själv.",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -510,7 +474,8 @@
       "name": "Doubao AST 2.0",
       "description": "Doubao simultanöversättning",
       "appIdPlaceholder": "APP ID",
-      "accessTokenPlaceholder": "Access Token"
+      "accessTokenPlaceholder": "Access Token",
+      "authModeApp": "APP ID + Access Token"
     },
     "local_inference": {
       "name": "Gratis",
@@ -548,7 +513,6 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Översättningar visas i undertextöverlägget",
-    "speechDetected": "[Tal upptäckt]",
     "function": "Funktion",
     "noChannelConfigured": "Aktivera mikrofon eller den andras ljud innan du börjar.",
     "release": "släpp",
@@ -632,9 +596,6 @@
     "waveformMicTooltip": "Din mikrofon — din röst som fångas för översättning",
     "waveformSystemTooltip": "Den andras ljud som fångas för översättning (webbläsarflik / systemljud)",
     "allChannelsFailed": "Kunde inte starta någon ljudkanal. Kontrollera enhetsbehörigheterna och försök igen.",
-    "participantChannelFailed": "Det gick inte att starta den andras ljudkanal.",
-    "splitDegradedLabel": "Endast en riktning",
-    "splitDegradedTooltip": "Den andras ljud översätts inte, så den här sessionen körs bara åt ett håll. Kontrollera behörigheterna för den andras ljud och kör sedan en ny session.",
     "sonioxInsufficientBalance": "Otillräckligt saldo för att starta en session. Fyll på ditt saldo och försök igen.",
     "sonioxSessionConflict": "En annan session pågår redan på ditt konto. Försök igen om en liten stund.",
     "sonioxServiceUnavailable": "Soniox är tillfälligt otillgängligt. Försök igen om en liten stund.",
@@ -644,7 +605,6 @@
     "sonioxTtsSegmentLost": "En del av den talade översättningen kunde inte spelas upp. Transkribering och textöversättning påverkas inte.",
     "sonioxSegmentEnded": "Det här avsnittet har avslutats — tryck på ”Starta session” för att fortsätta.",
     "sonioxConnectionLost": "Anslutningen avbröts — tryck på ”Starta session” om en stund för att fortsätta.",
-    "openaiLiveConnectionLost": "Anslutningen avbröts — tryck på ”Starta session” om en stund för att fortsätta.",
     "sonioxVoiceClipMissing": "Den här enheten har ingen röstinspelning, så den här sessionen använder en förinställd röst. Spela in en i Inställningar för att tala med din egen röst här.",
     "sonioxVoicePoolBusy": "Alla platser för anpassade röster används just nu, så den här sessionen använder en förinställd röst. Din egen röst används igen nästa gång.",
     "sonioxVoiceBuildFailed": "Din anpassade röst kunde inte byggas, så den här sessionen använder en förinställd röst. Försök spela in ett tydligare klipp i Inställningar.",
@@ -1178,8 +1138,6 @@
     },
     "credentials": {
       "apiKey": "API-nyckel",
-      "endpoint": "Slutpunkts-URL",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "APP ID",
@@ -1298,13 +1256,9 @@
     "app_capture_lost_using_system_audio": "Appinsamlingen stoppades, så nu översätts allt systemljud i stället.",
     "app_capture_monitor_missing": "Appinsamlingen startade inte, så nu översätts allt systemljud i stället.",
     "parse_error": "Ett meddelande från leverantören kunde inte läsas; sessionen fortsätter.",
-    "cleanup_failed": "Ett steg vid avslutning av sessionen misslyckades.",
-    "input_pipeline_failed": "Ljudinspelningen slutade fungera; inget mer kommer att översättas.",
     "tts_degraded": "Röstuppspelningen är försämrad; den översatta texten fortsätter att komma.",
     "resume_attempt_failed": "Återanslutningen misslyckades; försöker igen.",
-    "send_dropped": "En del ljud eller text kunde inte skickas och kasserades.",
     "voice_fallback": "Den valda rösten var inte tillgänglig, så en annan röst används.",
-    "lease_notify_failed": "Tjänsten kunde inte informeras om sessionens status.",
     "auth": "Leverantören godkände inte autentiseringsuppgifterna: {{detail}}",
     "rate_limit": "Leverantören begränsar just nu förfrågningar; försök igen strax: {{detail}}",
     "network": "Anslutningen till leverantören misslyckades: {{detail}}",

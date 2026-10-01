@@ -54,6 +54,37 @@ describe('checkConformance rules', () => {
     expect(rules(log)).toContain('stop-silence');
   });
 
+  it('lets a frame follow the stop marker only when the stopped marker follows it, and flags one after it (Stage 2 session end, choice 3)', () => {
+    const goodbye = frame('out', 'session.finish');
+    expect(rules([{ kind: 'marker', payload: 'stop' }, goodbye, { kind: 'marker', payload: 'stopped' }])).toEqual([]);
+    expect(rules([{ kind: 'marker', payload: 'stop' }, { kind: 'marker', payload: 'stopped' }, goodbye])).toEqual(['stop-silence']);
+    // A log with no stopped marker keeps the old rule.
+    expect(rules([{ kind: 'marker', payload: 'stop' }, goodbye])).toEqual(['stop-silence']);
+    // Anything else is late at once, as ever.
+    expect(rules([{ kind: 'marker', payload: 'stop' }, opened(1), { kind: 'marker', payload: 'stopped' }])).toEqual(['stop-silence']);
+  });
+
+  it('says "after stop()", not "after stop() returned", for a frame after stop with no stopped marker in the log', () => {
+    const goodbye = frame('out', 'session.finish');
+    const violations = checkConformance([{ kind: 'marker', payload: 'stop' }, goodbye], auto);
+    expect(violations).toHaveLength(1);
+    expect(violations[0].rule).toBe('stop-silence');
+    expect(violations[0].detail).toBe('frame after stop()');
+  });
+
+  it('lets a frame follow failed or closed only when the stopped marker follows it, and flags one after it (Stage 2 session end, choice 3)', () => {
+    const outcome = frame('in', 'session.deleted', { status: 204 });
+    const failed = { kind: 'failed' as const, payload: { message: 'x' } };
+    const stop = { kind: 'marker' as const, payload: 'stop' as const };
+    const stopped = { kind: 'marker' as const, payload: 'stopped' as const };
+    expect(rules([failed, outcome, stop, stopped])).toEqual([]);
+    expect(rules([{ kind: 'closed', payload: { reason: 'x' } }, stop, outcome, stopped])).toEqual([]);
+    expect(rules([failed, stop, stopped, outcome])).toEqual(['ended-silence', 'stop-silence']);
+    expect(rules([failed, opened(1), stop, stopped])).toEqual(['ended-silence']);
+    // A log with no stopped marker keeps the old rule.
+    expect(rules([failed, outcome])).toEqual(['ended-silence']);
+  });
+
   it('flags a ref opened twice', () => {
     expect(rules([opened(1), opened(1)])).toContain('ref-opened-once');
   });
@@ -96,6 +127,18 @@ describe('checkConformance rules', () => {
   it('flags a credential-shaped value in a frame payload', () => {
     const log: ConformanceLog = [frame('out', 'local.init', { url: 'https://x/?key=AIzaSyA-FAKE-KEY-0123456789abcdefghij' })];
     expect(rules(log)).toContain('frame-secret');
+  });
+
+  it('flags a socket URL in a frame payload, whatever carries its credential (Stage 2 Palabra, choice 10)', () => {
+    // `redact()` masks `token=` already: the URL is flagged for being a socket URL, not for its secret.
+    const masked = [frame('out', 'session.opened', { url: 'wss://streaming.palabra.ai/streaming-api/ab12/v1/speech-to-speech/stream?token=[REDACTED]' })];
+    expect(rules(masked)).toContain('frame-url');
+    // A parameter no rule names, deep in the payload, in any case.
+    const unnamed = [frame('in', 'session.whatever', { attempts: [{ to: 'WS://host.example/stream?credential=abc' }] })];
+    expect(rules(unnamed)).toContain('frame-url');
+    // An https URL, or prose that mentions a socket, is no socket URL.
+    const fine = [frame('out', 'session.create', { endpoint: 'https://api.palabra.ai/session-storage/session', note: 'the ws transport' })];
+    expect(rules(fine)).not.toContain('frame-url');
   });
 
   it('flags audio when speech is off', () => {
@@ -173,5 +216,70 @@ describe('checkConformance rules', () => {
     ];
     const v = checkConformance(log, auto).filter((x) => x.rule === 'text-input-answered');
     expect(v.map((x) => x.index)).toEqual([3]);
+  });
+
+  describe('speechRanges (ranges filled in after the audio)', () => {
+    const ranges = (ref: number, list: Array<[number, [number, number]]>) => ({ kind: 'speechRanges' as const, payload: { ref, ranges: list.map(([index, range]) => ({ index, range })) } });
+
+    it("accepts ranges filled in on a closed segment's existing entries", () => {
+      const log: ConformanceLog = [opened(2, 'translation'), text(2, 'Hello, world.'), closed(2), audio(2, undefined), audio(2, undefined), ranges(2, [[0, [0, 7]], [1, [7, 13]]])];
+      expect(rules(log)).toEqual([]);
+    });
+
+    it('flags ranges for an entry the ref never emitted', () => {
+      expect(rules([opened(2, 'translation'), text(2, 'Hi.'), audio(2, undefined), ranges(2, [[1, [0, 3]]])])).toContain('ranges-entry');
+      expect(rules([ranges(5, [[0, [0, 1]]])])).toContain('ranges-entry');
+    });
+
+    it("flags a filled range beyond the ref's text, at close or at once when already closed", () => {
+      // Already closed: checked at once.
+      expect(rules([opened(2, 'translation'), text(2, 'Hi.'), closed(2), audio(2, undefined), ranges(2, [[0, [0, 9]]])])).toContain('range-in-text');
+      // Still open: checked when the ref closes.
+      expect(rules([opened(2, 'translation'), text(2, 'Hi.'), audio(2, undefined), ranges(2, [[0, [0, 9]]]), closed(2)])).toContain('range-in-text');
+      expect(rules([opened(2, 'translation'), text(2, 'Hi.'), closed(2), audio(2, undefined), ranges(2, [[0, [0, 3]]])])).toEqual([]);
+      expect(rules([opened(2, 'translation'), text(2, 'Hi.'), audio(2, undefined), ranges(2, [[0, [0, 3]]]), closed(2)])).toEqual([]);
+    });
+
+    it('flags ranges that overlap or run backwards in entry order', () => {
+      const two = (list: Array<[number, [number, number]]>): ConformanceLog => [opened(2, 'translation'), text(2, 'Hello, world.'), closed(2), audio(2, undefined), audio(2, undefined), ranges(2, list)];
+      expect(rules(two([[0, [0, 8]], [1, [5, 13]]]))).toContain('ranges-order');
+      expect(rules(two([[0, [7, 13]], [1, [0, 7]]]))).toContain('ranges-order');
+      expect(rules(two([[0, [0, 7]], [1, [7, 7]]]))).toEqual([]);
+    });
+
+    it('checks filled ranges against ranges the audio already carried', () => {
+      const log: ConformanceLog = [opened(2, 'translation'), text(2, 'Hello, world.'), audio(2, [0, 7]), audio(2, undefined), ranges(2, [[1, [3, 13]]])];
+      expect(rules(log)).toContain('ranges-order');
+    });
+
+    it('flags each out-of-text range of one speechRanges on its own', () => {
+      const log: ConformanceLog = [opened(2, 'translation'), text(2, 'Hi.'), closed(2), audio(2, undefined), audio(2, undefined), ranges(2, [[0, [0, 5]], [1, [5, 9]]])];
+      expect(rules(log).filter((r) => r === 'range-in-text')).toHaveLength(2);
+    });
+
+    it('flags each overlapping pair once, not again on every later ranged event of the ref', () => {
+      const log: ConformanceLog = [
+        opened(2, 'translation'), text(2, 'Hello, world and more.'), closed(2),
+        audio(2, undefined), audio(2, undefined), audio(2, undefined),
+        ranges(2, [[0, [0, 8]], [1, [5, 13]]]), // entries 0 and 1 overlap
+        ranges(2, [[2, [13, 22]]]),
+        audio(2, [22, 22]),
+      ];
+      expect(rules(log).filter((r) => r === 'ranges-order')).toHaveLength(1);
+      // Two different offending pairs are two violations.
+      const both: ConformanceLog = [
+        opened(2, 'translation'), text(2, 'Hello, world and more.'), closed(2),
+        audio(2, undefined), audio(2, undefined), audio(2, undefined),
+        ranges(2, [[0, [0, 8]], [1, [5, 13]], [2, [10, 22]]]),
+      ];
+      expect(rules(both).filter((r) => r === 'ranges-order')).toHaveLength(2);
+    });
+
+    it('a range set again replaces the one the entry had', () => {
+      // Corrected before the close: the first range is not checked against the text.
+      expect(rules([opened(2, 'translation'), text(2, 'Hi.'), audio(2, undefined), ranges(2, [[0, [0, 9]]]), ranges(2, [[0, [0, 3]]]), closed(2)])).toEqual([]);
+      // A range an audio carried, corrected by a fill-in, likewise.
+      expect(rules([opened(2, 'translation'), text(2, 'Hi.'), audio(2, [0, 9]), ranges(2, [[0, [0, 3]]]), closed(2)])).toEqual([]);
+    });
   });
 });

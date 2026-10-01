@@ -13,7 +13,7 @@ import { redact } from '../lib/diagnostics/redact';
 import { describeCause, reportWarning } from '../lib/diagnostics/report';
 import { autoSaveConversation } from '../lib/export/appAutoSave';
 import type { AuthContext } from '../lib/provider/types';
-import { appReplayAudio, ensureReadyFromStores, persistIfUnchanged, readShapeFromStores, watchLegsFromStores } from '../lib/session/appShape';
+import { appReplayAudio, ensureReadyFromStores, persistIfUnchanged, readShapeFromStores, watchLegsFromStores, watchSpeechFromStores } from '../lib/session/appShape';
 import type { AnalyticsPort, ControlMethod, FramePort } from '../lib/session/ports';
 import { createRunner, type Runner } from '../lib/session/runner';
 import type { OpenSource } from '../lib/session/source';
@@ -28,7 +28,7 @@ import { useProviderStore } from '../stores/providerStore';
 import { getEnvironment, isElectron } from '../utils/environment';
 import { trackBusy } from './busy';
 import { createAppPunctuation, type AppPunctuation } from './punctuation';
-import { driveLocalReadiness } from './readiness';
+import { driveReadiness } from './readiness';
 import { registerRunPhase } from './runPhase';
 import { registerSubtitleFeed } from './subtitleFeed';
 import { appStartInputs, createFrameLog, decorateSessionAnalytics, teeFrames, type FrameLog } from './telemetry';
@@ -38,7 +38,7 @@ export interface AppBridges {
   auth: AuthContext;
   track: AnalyticsPort['track'];
   notify: AutoSaveNotifier;
-  /** The account's balance, refetched after a run; absent where there is none (the preview). */
+  /** The account's balance, refetched after a run and after a start the service refused on the wallet; absent where there is none (the preview). */
   refetchQuota?(): Promise<void>;
 }
 
@@ -79,13 +79,15 @@ export interface AppSession {
   audio(): Promise<LoadedAudio>;
   /**
    * The one start every surface calls (ruling 11): resolves without starting
-   * unless `subtitle.get().canStart` — the provider's entry loaded, the
-   * microphone rule — neither of which the runner itself checks. Otherwise
-   * forwards to `runner.start(method)`.
+   * unless `subtitle.get().canStart`, and otherwise forwards to
+   * `runner.start(method)`. The runner re-checks at start what it can — the
+   * start gate's refusal, the provider's entry, its readiness — and ends a
+   * start it refuses with a notice; the microphone rule is the surfaces'
+   * alone.
    */
   start(method?: ControlMethod): Promise<void>;
   setBridges(next: Partial<AppBridges>): void;
-  /** Wires the page's lifetime into the session: legs on the audio mode, local readiness, the provider held during a run, a source's end as an `audio_error`, `pagehide`, the subtitle feed the extension overlay's publisher reads, and Electron's busy flag and close request. Returns the detach. */
+  /** Wires the page's lifetime into the session: legs on the audio mode, readiness for every kind, and the sign-in's flips (loading finished included), the provider held during a run, a source's end as an `audio_error`, a start the service refused on the wallet as a balance refetch, `pagehide`, the subtitle feed the extension overlay's publisher reads, and Electron's busy flag and close request. Returns the detach. */
   attach(): () => void;
 }
 
@@ -99,6 +101,8 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
     track: () => {},
     notify: { showToast: () => {} },
   };
+  /** Heard when the sign-in or the account flips (F1): the readiness driver forgets managed providers' answers. */
+  const signInWatchers = new Set<() => void>();
   const frames = createFrameLog();
   const punctuation = createAppPunctuation({ track: () => bridges.track, onModelCall: () => frames.countModelCall() });
 
@@ -106,7 +110,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
   let playback: Playback | null = null;
   let openLeg: OpenSource | null = null;
   let loading: Promise<LoadedAudio> | null = null;
-  /** One live `attach()` at a time (final review M6). */
+  /** One live `attach()` at a time. */
   let attached = false;
 
   const refetchQuota = () => {
@@ -153,7 +157,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
 
   // Karaoke over the playback's queues, behind one identity: nothing lit until
   // the playback loads. The root bridges into the real karaoke only while the
-  // proxy itself has at least one listener (final review, parked item 8):
+  // proxy itself has at least one listener:
   // `createKaraoke` only samples at its interval while *something* is
   // subscribed to it, so an unconditional bridging subscription here would
   // keep it sampling at 10 Hz even with nobody watching the proxy.
@@ -216,17 +220,24 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
     },
     setBridges(next) {
       // Never `Object.assign`: a caller that omits a key (rather than naming
-      // it `undefined`) must not erase what an earlier caller set (M2) — a
+      // it `undefined`) must not erase what an earlier caller set — a
       // second `useAppSessionBridges()` bare of `refetchQuota` would
       // otherwise switch the balance refetch off.
+      const signedIn = bridges.auth.signedIn;
+      const userId = bridges.auth.userId ?? null;
+      const loaded = bridges.auth.loaded !== false;
       for (const key of Object.keys(next) as (keyof AppBridges)[]) {
         const value = next[key];
         if (value !== undefined) (bridges as Record<keyof AppBridges, unknown>)[key] = value;
       }
+      // A microtask later: `useAppSessionBridges` calls this while React renders, and a store write there would update other components mid-render.
+      if (bridges.auth.signedIn !== signedIn || (bridges.auth.userId ?? null) !== userId || (bridges.auth.loaded !== false) !== loaded) {
+        queueMicrotask(() => { for (const watcher of [...signInWatchers]) watcher(); });
+      }
     },
     attach() {
-      // One live attach at a time (final review M6): a second one while the
-      // first is still live would double the pagehide listener, the local
+      // One live attach at a time: a second one while the
+      // first is still live would double the pagehide listener, the
       // readiness driver and the busy tracker. 1e-3b picks the owner; until
       // then this makes a wrong second caller visible instead of silent.
       if (attached) {
@@ -237,7 +248,12 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       const offs: Array<() => void> = [
         // The panel's readiness is about the legs a start would open: the audio mode's.
         watchLegsFromStores(),
-        driveLocalReadiness({ runner, providers: () => presentProviders(), auth: () => bridges.auth, clock }),
+        // The languages on offer follow whether a start would speak (Stage 2 Volcengine AST2, choice 1).
+        watchSpeechFromStores(),
+        driveReadiness({
+          runner, providers: () => presentProviders(), auth: () => bridges.auth, clock,
+          watchSignIn: (fn) => { signInWatchers.add(fn); return () => { signInWatchers.delete(fn); }; },
+        }),
       ];
       // The store's own guard on the provider (plan 1e-3b-1 ruling 7).
       const lock = () => useProviderStore.getState().setSelectionLocked(runner.state.getState().phase !== 'idle');
@@ -256,6 +272,17 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       offs.push(runner.state.subscribe((now, before) => {
         if (now.phase !== 'idle' || before.phase === 'idle' || now.lastEnd?.reason !== 'source-ended' || !now.lastEnd.notice) return;
         bridges.track('audio_error', { error_type: 'device_access', error_message: redact(now.lastEnd.notice.message), device_info: now.lastEnd.notice.leg });
+      }));
+      // A start the service refused on the wallet (a balance spent elsewhere,
+      // a wallet frozen since the last fetch): the wallet the gate and the
+      // account button read is stale, so fetch it now — as the old app's
+      // failed-start teardown did — rather than let every press meet the same
+      // refusal until the idle poll. A run that went live refetches in
+      // `onRunEnded` instead.
+      offs.push(runner.state.subscribe((now, before) => {
+        if (now.phase !== 'idle' || before.phase === 'idle' || now.lastEnd?.reason !== 'start-failed') return;
+        const code = now.lastEnd.notice?.code;
+        if (code === 'insufficient_balance' || code === 'wallet_frozen') refetchQuota();
       }));
       // A reload, the window or side panel closing, a page frozen into the
       // back/forward cache: close every leg and capture now; nothing is saved

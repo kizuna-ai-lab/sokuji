@@ -160,7 +160,8 @@ export default defineConfig(({ command, mode }) => {
             'update-manager': 'electron/update-manager.js',
             'update-payload': 'electron/update-payload.js',
             'window-caption-dblclick': 'electron/window-caption-dblclick.js',
-            'window-caption-menu': 'electron/window-caption-menu.js'
+            'window-caption-menu': 'electron/window-caption-menu.js',
+            'ws-header-rules': 'electron/ws-header-rules.js'
           },
           onstart(args) {
             // SOKUJI_DEV_NO_ELECTRON=1 serves the renderer alone, for headless

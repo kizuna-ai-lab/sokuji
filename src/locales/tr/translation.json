@@ -24,7 +24,6 @@
       "audio": "Ses",
       "provider": "Sağlayıcı"
     },
-    "languageSettings": "Dil Ayarları",
     "voice": "Ses",
     "voiceSettings": "Ses Ayarları",
     "model": "Model",
@@ -40,10 +39,11 @@
     "autoTempo": "Uyarlanabilir Konuşma Hızı",
     "pushToTalk": "Bas-Konuş",
     "pushToTranslate": "Bas-Çevir",
-    "pushToTranslateNotAvailableInWebrtc": "WebRTC modunda kullanılamaz. Bas-Çevir kullanmak için WebSocket'e geçin.",
     "systemInstructions": "Sistem talimatları",
     "speechMode": "Konuşma Modu",
     "speechModeAppliesTo": "Sizin sesinize uygulanır. Karşı tarafın sesi her zaman anlamsal VAD kullanır.",
+    "speechModeTooltip": "Otomatik: sağlayıcı, konuşmanızın ne zaman bittiğini algılar. \nBas-Konuş: ses göndermek için boşluk tuşunu veya mikrofon düğmesini basılı tutun. \nBas-Çevir: Bas-Konuş gibi ancak boştayken ham mikrofonunuzu sanal mikrofona yönlendirir, böylece çeviri olmadan doğrudan konuşabilirsiniz.",
+    "speechModeAppliesToAuto": "Sizin sesinize uygulanır. Karşı tarafın sesi her zaman sağlayıcının otomatik algılamasını kullanır.",
     "userTranscriptModel": "Kullanıcı transkripsiyon modeli",
     "noiseReduction": "Gürültü azaltma",
     "noiseSuppression": "Gürültü Bastırma",
@@ -72,22 +72,15 @@
     "eagerness": "İsteklilik",
     "temperature": "Sıcaklık",
     "maxTokens": "Maks. token",
-    "validating": "Doğrulanıyor...",
     "enterCustomInstructions": "Özel talimatları girin...",
     "settingsSavedSuccessfully": "Ayarlar başarıyla kaydedildi",
     "failedToSaveSettings": "Ayarlar kaydedilemedi",
     "settingSavedSuccessfully": "Ayar başarıyla kaydedildi: {{key}}",
     "failedToSaveSetting": "Ayar kaydedilemedi: {{key}}",
-    "apiKeyValidationCompleted": "API anahtarı doğrulaması tamamlandı",
-    "errorValidatingApiKey": "API anahtarını doğrularken hata",
     "regionNotSupported": "Hizmet bölgenizde kullanılamıyor. Ağ ortamınızı kontrol edin veya başka bir sağlayıcı deneyin.",
     "sessionActiveNotice": "Oturum aktifken ayarlar kilitlenir. Ayarları değiştirmek için lütfen oturumu sonlandırın.",
-    "realtimeModelAvailable": "Gerçek zamanlı model kullanılabilir",
     "realtimeModelNotAvailable": "Gerçek zamanlı model kullanılamıyor",
-    "refreshModels": "Mevcut modelleri yenile",
-    "loadingModels": "Mevcut modeller yükleniyor...",
     "modelsFound": "{{count}} model mevcut",
-    "invalidApiKeyFormat": "Geçersiz API anahtarı formatı",
     "volcengineAST2Info": "Doubao AST 2.0 Bilgileri",
     "volcengineAST2InfoText": "Doubao AST 2.0, otomatik ses klonlama ile konuşmadan konuşmaya çeviri sağlar. Çevrilen ses, orijinal konuşmacının ses özelliklerini korur.",
     "volcengineAST2TurnDetectionTooltip": "Otomatik: sunucu taraflı ses etkinliği algılama. \nBas-Konuş: ses göndermek için boşluk tuşunu veya mikrofon düğmesini basılı tutun. \nBas-Çevir: Bas-Konuş gibi ancak boştayken ham mikrofonunuzu sanal mikrofona yönlendirir, böylece çeviri olmadan doğrudan konuşabilirsiniz.",
@@ -113,8 +106,6 @@
     "low": "Düşük",
     "medium": "Orta",
     "high": "Yüksek",
-    "apiKeyValidated": "API anahtarı doğrulandı",
-    "realtimeTranslationAvailable": "Gerçek zamanlı çeviri hizmeti mevcut",
     "advancedMode": "Gelişmiş",
     "providerTooltip": "AI çeviri hizmetinizi seçin. Her hizmetin farklı özellikleri, sesleri ve fiyatları vardır. OpenAI en fazla özellik sunarken, Gemini iyi bir ücretsiz plana sahiptir. Yerel (Çevrimdışı) modu tamamen ücretsizdir — API anahtarı veya internet gerekmez.",
     "modelTooltip": "Kullanılacak AI modelini seçin. Daha büyük modeller daha iyi çeviri kalitesi sağlar ancak daha yavaş olabilir. Daha küçük modeller daha hızlıdır ancak daha az doğru olabilir.",
@@ -135,12 +126,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Daha net konuşma tanıma için mikrofonunuzdan arka plan gürültüsünü azaltır.\nKapalı: İşleme yok (sessiz odalar için en iyisi).\nOtomatik: Ortamınıza otomatik olarak uyum sağlar.\nDüşük: Hafif gürültü azaltma.\nOrta: Ilımlı gürültü azaltma.\nYüksek: Agresif gürültü azaltma (ses kalitesini etkileyebilir).",
     "systemInstructionsTooltip": "AI'ya nasıl çeviri yapacağını söyleyen özel talimatlar. Bunu çeviri stilini, resmiyet düzeyini veya özel gereksinimleri tanımlamak için kullanabilirsiniz.",
-    "transportType": "Bağlantı Türü",
-    "transportTypeTooltip": "WebRTC: Daha düşük gecikme, çoğu kullanıcı için önerilir.\nWebSocket: Kısıtlı ağlarla daha iyi uyumluluk. WebRTC bağlantısı başarısız olursa kullanın.",
-    "websocket": "WebSocket (Kararlı)",
-    "webrtc": "WebRTC (Düşük Gecikme)",
-    "webrtcVadDisabledTitle": "Sunucu VAD WebRTC modunda kullanılamaz",
-    "webrtcVadNotice": "WebRTC modunda sunucu VAD devre dışıdır. WebRTC'de sunucu konuşma algıladığında sesi otomatik olarak keser, bu da çevirileri kesintiye uğratır.",
     "participantInstructions": "Karşı taraf talimatları",
     "participantInstructionsTooltip": "Karşı tarafın sesini çevirmek için sistem talimatları. Boşsa, yukarıdaki ana talimatlar kullanılacaktır.\n\nÖnemli: Ana talimatlarınız karşı taraf için yanlış dil yönüne sahip olabilir. Örnek: Çince konuşuyorsanız ve ana talimatlarınız Çince→Japonca çeviriyorsa, ancak karşı taraf Japonca konuşuyorsa, ana talimatlar yanlışlıkla Japonca→Japonca çevirmeye çalışır. Japonca→Çince çevirmek için ayrı karşı taraf talimatları belirleyin.",
     "localTranslationPrompt": "Çeviri Prompt'u",
@@ -203,9 +188,7 @@
       "xhigh": "Çok yüksek"
     },
     "translateInfoBanner": "Konuşmacı hedef dille aynı dili kullandığında model sessiz kalır. Karışık dilli konuşmalarda boşluklar olabilir.",
-    "translateModelAvailable": "API anahtarı doğrulandı. gpt-realtime-translate kullanılabilir.",
     "translateModelNotAvailable": "API anahtarı çalışıyor ancak bu anahtarla gpt-realtime-translate erişilebilir değil.",
-    "translateSourceParticipantWarning": "Karşı tarafın sesinin çevrilmesi çalışmayabilir — \"Benim dilim\", bu sağlayıcının desteklediği 13 hedef dil arasında değil.",
     "participantSectionHeader": "Karşı tarafın sesi",
     "participantSectionDescriptionElectron": "Bu sistemde çalan herhangi bir uygulamadan gelen sesi çevirin.",
     "participantSectionDescriptionExtension": "Etkin tarayıcı sekmesinden gelen sesi çevirin. Orijinal ses, sistem varsayılan çıkışınızdan çalar.",
@@ -222,7 +205,6 @@
     "sonioxSharedSession": "Her ikisi modunda paylaşılan oturum",
     "sonioxSharedSessionTooltip": "Her ikisi modu, tek bir paylaşılan Soniox oturumu veya her yön için ayrı bir oturum kullanabilir.\n\nEtkin: tek bir oturum her iki tarafı otomatik ses ayrımıyla çevirir — daha düşük maliyet ve gecikme.\n\nDevre dışı: her yön için ayrı bir oturum — iki kişi aynı anda konuştuğunda daha güvenilir, ancak maliyeti yaklaşık iki katı.\n\nYalnızca Her ikisi modunu etkiler.",
     "sonioxSharedSessionManagedCost": "Kizuna AI her ikisini de destekler. Devre dışı, aynı anda iki oturum çalıştırır — dakika başına yaklaşık iki katı maliyet, bu yüzden oturum süreniz yaklaşık yarı sürede biter ve başlamak için daha yüksek bakiye gerekir.",
-    "sonioxAutoParticipantWarning": "\"Benim dilim\" için belirli bir dil seçin — otomatik algılamayla karşı tarafın konuşması o dile çevrilemez.",
     "sonioxVocabulary": "Özel Kelime Dağarcığı",
     "sonioxVocabularyTooltip": "Tanımayı önemli adlara ve terimlere doğru yönlendirir ve belirli terimlerin nasıl çevrileceğine yön verir. Bir sonraki oturumdan itibaren geçerli olur.",
     "sonioxVocabularyTerms": "Terimler",
@@ -310,7 +292,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "Hesabınız üzerinden otomatik olarak doğrulandı",
-    "fetchingApiKey": "API anahtarı hesabınızdan alınıyor...",
     "provider": "Yapay zeka hizmet sağlayıcısı",
     "apiKeyPlaceholder": "API anahtarınızı girin",
     "setupGuide": "Kurulum kılavuzu",
@@ -372,6 +353,7 @@
     "participantSpeech": "Karşı tarafın çevirisini sesli oku",
     "participantSpeechDesc": "Karşı tarafın söylediklerini sizin dilinizde, hoparlörlerinizden sesli olarak okur. Onun sesini bir gecikmeyle takip eder.",
     "participantSpeechBlockedWholeSystem": "Karşı tarafın sesi tüm sistem sesini yakalarken kapalıdır: çevirisi tekrar yakalanıp çevrilmiş olurdu. Karşı tarafın kaynağı olarak bir uygulama seçin.",
+    "participantSpeechNotYetAvailable": "Bu sağlayıcıda henüz kullanılamıyor: karşı tarafın çevirisi yalnızca metin olarak gösterilir.",
     "audioCaptureUnprovenNotice": "Henüz hiçbir şey yakalanmadı",
     "audioCaptureUnprovenTitle": "Seçilen kaynaktan henüz ses gelmedi",
     "audioCaptureUnprovenText1": "Kaynak oynatılıyor ve hiçbir şey çevrilmiyorsa macOS büyük olasılıkla sessizlik iletiyordur: bir uygulamayı yakalamak \"Yalnızca Sistem Sesi Kaydı\" iznini gerektirir ve bu izin olmadan hata oluşmaz, yalnızca sessizlik olur.",
@@ -430,9 +412,7 @@
     "backToSignIn": "Giriş Yap'a Dön",
     "forgotPasswordError": "Doğrulama kodu gönderilemedi. Lütfen tekrar deneyin.",
     "resetPasswordError": "Şifre sıfırlanamadı. Lütfen tekrar deneyin.",
-    "signedOut": "Kizuna AI'nin yerleşik çeviri hizmetini kullanmak için giriş yapın.",
-    "sessionUnavailable": "Oturumunuz artık geçerli değil. Lütfen tekrar giriş yapın.",
-    "unknown": "Hesabınız doğrulanamadı. Lütfen tekrar deneyin."
+    "signedOut": "Kizuna AI'nin yerleşik çeviri hizmetini kullanmak için giriş yapın."
   },
   "simpleConfig": {
     "interfaceLanguage": "Arayüz Dili",
@@ -456,20 +436,9 @@
     "keepReplayAudioDesc": "Çevrilen sesi bellekte saklayın, böylece her mesajdan daha sonra yeniden oynatabilirsiniz. Uzun oturumlarda bellek kullanımını azaltmak için varsayılan olarak kapalıdır."
   },
   "providers": {
-    "kizunaai_openai_translate": {
-      "name": "KizunaAI",
-      "description": "75 kaynak dil (otomatik algılama), 13 hedef dil",
-      "vendor": "OpenAI"
-    },
-    "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI",
-      "description": "8 dil + Çince–İngilizce çift yönlü · sesinizi korur",
-      "vendor": "Doubao"
-    },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 dil, 3.600 dil çifti · kendi sesinizi klonlayın",
-      "vendor": "Soniox"
+      "description": "60 dil, 3.600 dil çifti · kendi sesinizi klonlayın"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -478,11 +447,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "Google'un AI teknolojisi"
-    },
-    "openaiCompatible": {
-      "name": "OpenAI uyumlu (eski Realtime)",
-      "description": "OpenAI'nin eski beta Realtime protokolünü kullanan üçüncü taraf uç noktası. OpenAI'nin kendisi için değil.",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -510,7 +474,8 @@
       "name": "Doubao AST 2.0",
       "description": "Doubao eşzamanlı çeviri",
       "appIdPlaceholder": "APP ID",
-      "accessTokenPlaceholder": "Access Token"
+      "accessTokenPlaceholder": "Access Token",
+      "authModeApp": "App ID + Access Token"
     },
     "local_inference": {
       "name": "Ücretsiz",
@@ -548,7 +513,6 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Çeviriler altyazı katmanında gösteriliyor",
-    "speechDetected": "[Konuşma algılandı]",
     "function": "İşlev",
     "noChannelConfigured": "Başlamadan önce mikrofonu veya karşı tarafın sesini etkinleştirin.",
     "release": "bırakın",
@@ -632,9 +596,6 @@
     "waveformMicTooltip": "Mikrofonunuz — sesiniz çeviri için kaydediliyor",
     "waveformSystemTooltip": "Çeviri için yakalanan karşı tarafın sesi (tarayıcı sekmesi / sistem sesi)",
     "allChannelsFailed": "Hiçbir ses kanalı başlatılamadı. Cihaz izinlerini kontrol edip tekrar deneyin.",
-    "participantChannelFailed": "Karşı tarafın ses kanalı başlatılamadı.",
-    "splitDegradedLabel": "Yalnızca tek yönlü",
-    "splitDegradedTooltip": "Karşı tarafın sesi çevrilmiyor, bu nedenle bu oturum yalnızca tek yönlü çalışıyor. Karşı tarafın sesi izinlerini kontrol edin, ardından yeni bir oturum başlatın.",
     "sonioxInsufficientBalance": "Oturum başlatmak için bakiye yetersiz. Lütfen bakiyenizi yükleyip tekrar deneyin.",
     "sonioxSessionConflict": "Hesabınızda zaten başka bir oturum çalışıyor. Lütfen biraz sonra tekrar deneyin.",
     "sonioxServiceUnavailable": "Soniox geçici olarak kullanılamıyor. Lütfen biraz sonra tekrar deneyin.",
@@ -644,7 +605,6 @@
     "sonioxTtsSegmentLost": "Sesli çevirinin bir kısmı oynatılamadı. Deşifre ve metin çevirisi etkilenmedi.",
     "sonioxSegmentEnded": "Bu bölüm sona erdi — devam etmek için “Oturumu başlat”a dokunun.",
     "sonioxConnectionLost": "Bağlantı kesildi — devam etmek için birazdan “Oturumu başlat”a dokunun.",
-    "openaiLiveConnectionLost": "Bağlantı kesildi — devam etmek için birazdan “Oturumu başlat”a dokunun.",
     "sonioxVoiceClipMissing": "Bu cihazda ses kaydı yok, bu yüzden bu oturum hazır bir ses kullanıyor. Burada kendi sesinizle konuşmak için Ayarlar'dan bir kayıt yapın.",
     "sonioxVoicePoolBusy": "Şu anda tüm özel ses yuvaları kullanımda olduğundan bu oturum hazır bir ses kullanıyor. Kendi sesiniz bir sonraki sefer tekrar kullanılacak.",
     "sonioxVoiceBuildFailed": "Özel sesiniz oluşturulamadı, bu yüzden bu oturum hazır bir ses kullanıyor. Ayarlar'dan daha net bir kayıt yapmayı deneyin.",
@@ -1178,8 +1138,6 @@
     },
     "credentials": {
       "apiKey": "API anahtarı",
-      "endpoint": "Uç nokta URL'si",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",
@@ -1298,13 +1256,9 @@
     "app_capture_lost_using_system_audio": "Uygulama yakalaması durdu, bu yüzden artık tüm sistem sesi çevriliyor.",
     "app_capture_monitor_missing": "Uygulama yakalaması başlamadı, bu yüzden artık tüm sistem sesi çevriliyor.",
     "parse_error": "Sağlayıcıdan gelen bir mesaj okunamadı; oturum devam ediyor.",
-    "cleanup_failed": "Oturumu kapatma adımlarından biri başarısız oldu.",
-    "input_pipeline_failed": "Ses yakalama çalışmayı durdurdu; artık hiçbir şey çevrilmeyecek.",
     "tts_degraded": "Konuşma oynatma düşük kalitede; çevrilen metin gelmeye devam ediyor.",
     "resume_attempt_failed": "Yeniden bağlanma başarısız oldu; tekrar deneniyor.",
-    "send_dropped": "Bazı ses veya metinler gönderilemedi ve atıldı.",
     "voice_fallback": "Seçilen ses kullanılamadı, bu yüzden başka bir ses kullanılıyor.",
-    "lease_notify_failed": "Hizmete oturumun durumu bildirilemedi.",
     "auth": "Sağlayıcı kimlik bilgilerini kabul etmedi: {{detail}}",
     "rate_limit": "Sağlayıcı istekleri sınırlıyor; kısa süre sonra tekrar deneyin: {{detail}}",
     "network": "Sağlayıcıya bağlantı başarısız oldu: {{detail}}",

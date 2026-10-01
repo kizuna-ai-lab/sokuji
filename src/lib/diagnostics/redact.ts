@@ -23,7 +23,7 @@ const REDACTED = '[REDACTED]';
  * collapsing to an anonymous `[REDACTED]`.
  */
 const PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
-  // `${MODELS_ENDPOINT}?key=${apiKey}` — GeminiClient.ts:138-139.
+  // `?key=${apiKey}` — Gemini's Live socket (`gemini/wire.ts` `liveUrl`).
   //
   // `X-Credential` and `X-Signature` are the SigV4-style query parameters a
   // Volcengine-shaped signed URL carries, and `X-Credential` carries the
@@ -33,19 +33,49 @@ const PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
   // URL a user pastes into a bug report. They need naming explicitly: the rule is
   // anchored on `[?&]`, so a bare `signature` alternative does NOT match
   // `?X-Signature=` — the `X-` prefix sits between the delimiter and the name.
+  //
+  // `api_app_key`, `api_access_key` and `api_key`: Doubao AST 2.0 takes its
+  // credentials in the socket's query (`volcengine_ast2/wire.ts` `ast2Url`,
+  // Stage 2 Volcengine AST2 ruling 2). The URL is never put in a frame, an
+  // error or a notice; this is the net for one that reaches a sink anyway.
+  //
+  // `token`: Palabra's socket takes the platform key, or a REST session's
+  // publisher token, in its query (`palabraai/wire.ts` `directUrl` and
+  // `sessionUrl`, Stage 2 Palabra, ruling 1) — the same net.
   [
-    /([?&](?:key|api_key|apikey|token|access_token|accessToken|secret|signature|x-credential|x-signature|x-security-token)=)[^&\s"']+/gi,
+    /([?&](?:key|api_key|api_app_key|api_access_key|apikey|token|access_token|accessToken|secret|signature|x-credential|x-signature|x-security-token)=)[^&\s"']+/gi,
     `$1${REDACTED}`,
   ],
   // `Authorization: Bearer <token>` on every provider fetch.
   [/(\bBearer\s+)[A-Za-z0-9._~+/=-]{8,}/g, `$1${REDACTED}`],
-  // `sokuji-auth.${this.apiKey}` WebSocket subprotocol — OpenAITranslateGAClient.ts:501,
-  // VolcengineAST2Client (relay auth).
+  // `sokuji-auth.<session token>` WebSocket subprotocol: the relay twins' auth.
+  // No client sends it since they went (Stage 2 deletion, ruling 2); kept as
+  // a net, since it carried a Better Auth session token and the rule costs
+  // nothing (Stage 2 deletion, choice 6).
   [/(\bsokuji-auth\.)[A-Za-z0-9._~+/=-]+/g, `$1${REDACTED}`],
+  // `openai-insecure-api-key.${apiKey}` WebSocket subprotocol — OpenAI
+  // Translate's own key (`openai_translate/wire.ts` `translateProtocols`,
+  // Stage 2 OpenAI Translate, choice 3) and OpenAI Realtime's
+  // (`openai/wire.ts` `realtimeProtocols`, Stage 2 OpenAI Realtime,
+  // choice 7). The subprotocol is never put in a
+  // frame, an error or a notice, and the bare `sk-` rule below masks an
+  // OpenAI key anyway; this keeps the carrier's name and masks a key of any
+  // shape — a browser that refuses the socket quotes the subprotocol.
+  [/(\bopenai-insecure-api-key\.)[A-Za-z0-9._~+/=-]+/g, `$1${REDACTED}`],
   // Bare provider key shapes. `sk-`/`AIza`/`key-` were already redacted by
   // errorTracking.ts:57; `ek_` is the OpenAI ephemeral client secret
   // (EphemeralTokenService.ts:190), which :200 could otherwise dump wholesale.
-  [/\b(?:sk-|AIza|key-|ek_)[A-Za-z0-9_-]{10,}\b/g, REDACTED],
+  // `plbr_` is Palabra's platform key, a documented shape (its OpenAPI's
+  // `APIKey` scheme), in the REST header and the direct socket's query
+  // (`palabraai/wire.ts` `restHeaders`, `directUrl`): a net for a key
+  // Palabra's own words might quote (Stage 2 Palabra, choice 10).
+  [/\b(?:sk-|AIza|key-|ek_|plbr_)[A-Za-z0-9_-]{10,}\b/g, REDACTED],
+  // A JWT, whole: Palabra's REST session hands out a publisher token (and an
+  // id of the same shape, as the owner's probe logged it) that rides the
+  // session socket's query (`palabraai/wire.ts` `readCreated`, `sessionUrl`;
+  // Stage 2 Palabra, choice 10). Neither is framed; this is the net, and
+  // what lets the kit's `frame-secret` rule catch one that is.
+  [/\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g, REDACTED],
   // Account addresses — named in #441. Reached via the wallet and auth paths
   // (UserProfileContext, settingsStore.ts:1121).
   [/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, REDACTED],

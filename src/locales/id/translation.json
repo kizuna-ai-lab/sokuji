@@ -24,7 +24,6 @@
       "audio": "Audio",
       "provider": "Penyedia"
     },
-    "languageSettings": "Pengaturan Bahasa",
     "voice": "Suara",
     "voiceSettings": "Pengaturan Suara",
     "model": "Model",
@@ -40,10 +39,11 @@
     "autoTempo": "Kecepatan Bicara Adaptif",
     "pushToTalk": "Tekan untuk Bicara",
     "pushToTranslate": "Tekan untuk Terjemahkan",
-    "pushToTranslateNotAvailableInWebrtc": "Tidak tersedia dalam mode WebRTC. Beralih ke WebSocket untuk menggunakan Tekan untuk Terjemahkan.",
     "systemInstructions": "Instruksi sistem",
     "speechMode": "Mode Bicara",
     "speechModeAppliesTo": "Berlaku untuk suara Anda. Audio lawan bicara selalu menggunakan VAD semantik.",
+    "speechModeTooltip": "Otomatis: penyedia mendeteksi kapan Anda selesai berbicara. \nTekan untuk Bicara: tahan tombol Spasi atau tombol mikrofon untuk mengirim audio secara manual. \nTekan untuk Terjemahkan: seperti Tekan untuk Bicara, tetapi merutekan mikrofon mentah Anda ke mikrofon virtual saat tidak aktif sehingga Anda dapat berbicara langsung tanpa terjemahan.",
+    "speechModeAppliesToAuto": "Berlaku untuk suara Anda. Audio lawan bicara selalu menggunakan deteksi otomatis dari penyedia.",
     "userTranscriptModel": "Model transkripsi pengguna",
     "noiseReduction": "Pengurangan noise",
     "noiseSuppression": "Peredam Noise",
@@ -72,22 +72,15 @@
     "eagerness": "Keinginan",
     "temperature": "Suhu",
     "maxTokens": "Token maksimum",
-    "validating": "Memvalidasi...",
     "enterCustomInstructions": "Masukkan instruksi sistem kustom di sini...",
     "settingsSavedSuccessfully": "Pengaturan berhasil disimpan",
     "failedToSaveSettings": "Gagal menyimpan pengaturan",
     "settingSavedSuccessfully": "Pengaturan berhasil disimpan: {{key}}",
     "failedToSaveSetting": "Gagal menyimpan pengaturan: {{key}}",
-    "apiKeyValidationCompleted": "Validasi kunci API selesai",
-    "errorValidatingApiKey": "Kesalahan saat memvalidasi kunci API",
     "regionNotSupported": "Layanan tidak tersedia di wilayah Anda. Silakan periksa lingkungan jaringan Anda atau coba penyedia lain.",
     "sessionActiveNotice": "Pengaturan terkunci saat sesi aktif. Harap akhiri sesi untuk mengubah pengaturan.",
-    "realtimeModelAvailable": "Model real-time tersedia",
     "realtimeModelNotAvailable": "Model real-time tidak tersedia",
-    "refreshModels": "Segarkan model yang tersedia",
-    "loadingModels": "Memuat model yang tersedia...",
     "modelsFound": "{{count}} model tersedia",
-    "invalidApiKeyFormat": "Format kunci API tidak valid",
     "volcengineAST2Info": "Informasi Doubao AST 2.0",
     "volcengineAST2InfoText": "Doubao AST 2.0 menyediakan terjemahan ucapan ke ucapan dengan kloning suara otomatis. Audio yang diterjemahkan mempertahankan karakteristik suara pembicara asli.",
     "volcengineAST2TurnDetectionTooltip": "Otomatis: deteksi aktivitas suara sisi server. \nTekan untuk Bicara: tahan tombol Spasi atau tombol mikrofon untuk mengirim audio secara manual. \nTekan untuk Terjemahkan: seperti Tekan untuk Bicara, tetapi merutekan mikrofon mentah Anda ke mikrofon virtual saat tidak aktif sehingga Anda dapat berbicara langsung tanpa terjemahan.",
@@ -113,8 +106,6 @@
     "low": "Rendah",
     "medium": "Sedang",
     "high": "Tinggi",
-    "apiKeyValidated": "Kunci API divalidasi",
-    "realtimeTranslationAvailable": "Layanan terjemahan waktu nyata tersedia",
     "advancedMode": "Lanjutan",
     "providerTooltip": "Pilih layanan terjemahan AI Anda. Setiap layanan memiliki fitur, suara, dan harga yang berbeda. OpenAI menawarkan fitur terbanyak, sedangkan Gemini memiliki paket gratis yang bagus. Mode Lokal (Offline) sepenuhnya gratis — tidak memerlukan kunci API atau internet.",
     "modelTooltip": "Model AI mempengaruhi kecepatan dan kualitas. Model 'Mini' lebih cepat tapi sederhana. Model standar lebih akurat tapi sedikit lebih lambat. Coba mini terlebih dahulu untuk efisiensi biaya.",
@@ -135,12 +126,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Penghilangan noise latar belakang. \nTidak ada: Tanpa pemrosesan, gunakan di ruangan sunyi. \nJarak dekat: Untuk headset/mikrofon dekat. \nJarak jauh: Untuk speaker/ruang konferensi dengan gema.",
     "systemInstructionsTooltip": "Instruksi khusus untuk penerjemah AI. Beri tahu preferensi Anda seperti nada formal/kasual, penanganan istilah teknis, atau gaya terjemahan tertentu.",
-    "transportType": "Jenis Koneksi",
-    "transportTypeTooltip": "WebRTC: Latensi lebih rendah, direkomendasikan untuk sebagian besar pengguna.\nWebSocket: Kompatibilitas lebih baik dengan jaringan terbatas. Gunakan jika koneksi WebRTC gagal.",
-    "websocket": "WebSocket (Stabil)",
-    "webrtc": "WebRTC (Latensi Rendah)",
-    "webrtcVadDisabledTitle": "VAD Server tidak tersedia dalam mode WebRTC",
-    "webrtcVadNotice": "VAD Server dinonaktifkan dalam mode WebRTC. Di WebRTC, server secara otomatis memotong audio saat mendeteksi ucapan, yang mengganggu terjemahan.",
     "participantInstructions": "Instruksi untuk lawan bicara",
     "participantInstructionsTooltip": "Instruksi sistem untuk menerjemahkan audio lawan bicara. Jika kosong, instruksi utama di atas akan digunakan.\n\nPenting: Instruksi utama Anda mungkin memiliki arah bahasa yang salah untuk lawan bicara. Contoh: Jika Anda berbicara bahasa Mandarin dan instruksi utama Anda menerjemahkan Mandarin→Jepang, tetapi lawan bicara berbicara bahasa Jepang, instruksi utama akan keliru mencoba menerjemahkan Jepang→Jepang. Tetapkan instruksi lawan bicara terpisah untuk menerjemahkan Jepang→Mandarin.",
     "localTranslationPrompt": "Prompt Terjemahan",
@@ -203,9 +188,7 @@
       "xhigh": "Sangat tinggi"
     },
     "translateInfoBanner": "Model ini diam ketika pembicara menggunakan bahasa yang sama dengan target. Ucapan multi-bahasa mungkin memiliki celah.",
-    "translateModelAvailable": "Kunci API divalidasi. gpt-realtime-translate tersedia.",
     "translateModelNotAvailable": "Kunci API berfungsi, tetapi gpt-realtime-translate tidak dapat diakses dengan kunci ini.",
-    "translateSourceParticipantWarning": "Penerjemahan audio lawan bicara mungkin tidak berfungsi — \"Bahasa saya\" tidak termasuk dalam 13 bahasa target yang didukung penyedia ini.",
     "participantSectionHeader": "Audio lawan bicara",
     "participantSectionDescriptionElectron": "Terjemahkan audio dari aplikasi apa pun yang diputar di sistem ini.",
     "participantSectionDescriptionExtension": "Terjemahkan audio dari tab browser aktif. Audio asli diputar melalui output default sistem Anda.",
@@ -222,7 +205,6 @@
     "sonioxSharedSession": "Sesi bersama dalam mode Keduanya",
     "sonioxSharedSessionTooltip": "Mode Keduanya dapat menggunakan satu sesi Soniox bersama atau sesi terpisah untuk tiap arah.\n\nAktif: satu sesi menerjemahkan kedua sisi dengan pemisahan suara otomatis — biaya dan latensi lebih rendah.\n\nNonaktif: sesi terpisah untuk tiap arah — lebih andal ketika keduanya berbicara bersamaan, tetapi biayanya sekitar dua kali lipat.\n\nHanya memengaruhi mode Keduanya.",
     "sonioxSharedSessionManagedCost": "Kizuna AI mendukung keduanya. Nonaktif menjalankan dua sesi sekaligus — biayanya sekitar dua kali lipat per menit, jadi jatah sesi Anda habis dalam waktu sekitar setengahnya dan diperlukan saldo lebih besar untuk memulai.",
-    "sonioxAutoParticipantWarning": "Setel \"Bahasa saya\" ke bahasa tertentu — dengan deteksi otomatis, ucapan lawan bicara tidak dapat diterjemahkan ke bahasa itu.",
     "sonioxVocabulary": "Kosakata Kustom",
     "sonioxVocabularyTooltip": "Mengarahkan pengenalan ke nama dan istilah penting, serta memengaruhi cara penerjemahan istilah tertentu. Berlaku mulai sesi berikutnya.",
     "sonioxVocabularyTerms": "Istilah",
@@ -310,7 +292,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "Otomatis terautentikasi melalui akun Anda",
-    "fetchingApiKey": "Mengambil kunci API dari akun Anda...",
     "provider": "Penyedia layanan AI",
     "apiKeyPlaceholder": "Masukkan kunci API Anda",
     "setupGuide": "Panduan pengaturan",
@@ -372,6 +353,7 @@
     "participantSpeech": "Ucapkan terjemahan lawan bicara",
     "participantSpeechDesc": "Membacakan dengan suara keras apa yang dikatakan lawan bicara, dalam bahasa Anda, melalui speaker Anda. Ini mengikuti suara mereka dengan sedikit jeda.",
     "participantSpeechBlockedWholeSystem": "Dimatikan selama audio lawan bicara menangkap seluruh audio sistem: terjemahannya akan ditangkap dan diterjemahkan lagi. Pilih aplikasi sebagai sumber lawan bicara.",
+    "participantSpeechNotYetAvailable": "Belum tersedia dengan penyedia ini: terjemahan lawan bicara hanya ditampilkan sebagai teks.",
     "audioCaptureUnprovenNotice": "Belum ada yang ditangkap",
     "audioCaptureUnprovenTitle": "Belum ada audio yang masuk dari sumber yang dipilih",
     "audioCaptureUnprovenText1": "Jika sumber sedang diputar tetapi tidak ada yang diterjemahkan, macOS kemungkinan mengirimkan keheningan: menangkap sebuah aplikasi memerlukan izin \"System Audio Recording Only\", dan tanpa izin itu tidak ada kesalahan, hanya keheningan.",
@@ -430,9 +412,7 @@
     "backToSignIn": "Kembali ke Masuk",
     "forgotPasswordError": "Gagal mengirim kode verifikasi. Silakan coba lagi.",
     "resetPasswordError": "Gagal mengatur ulang kata sandi. Silakan coba lagi.",
-    "signedOut": "Masuk untuk menggunakan layanan terjemahan bawaan Kizuna AI.",
-    "sessionUnavailable": "Sesi Anda tidak lagi valid. Silakan masuk kembali.",
-    "unknown": "Tidak dapat memverifikasi akun Anda. Silakan coba lagi."
+    "signedOut": "Masuk untuk menggunakan layanan terjemahan bawaan Kizuna AI."
   },
   "simpleConfig": {
     "interfaceLanguage": "Bahasa Antarmuka",
@@ -456,20 +436,9 @@
     "keepReplayAudioDesc": "Simpan audio terjemahan di memori sehingga Anda dapat memutarnya kembali nanti dari setiap pesan. Nonaktif secara default untuk mengurangi penggunaan memori selama sesi yang panjang."
   },
   "providers": {
-    "kizunaai_openai_translate": {
-      "name": "KizunaAI",
-      "description": "75 bahasa sumber (deteksi otomatis), 13 bahasa target",
-      "vendor": "OpenAI"
-    },
-    "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI",
-      "description": "8 bahasa + Mandarin–Inggris dua arah · mempertahankan suara Anda",
-      "vendor": "Doubao"
-    },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 bahasa, 3.600 pasangan · klon suara Anda sendiri",
-      "vendor": "Soniox"
+      "description": "60 bahasa, 3.600 pasangan · klon suara Anda sendiri"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -478,11 +447,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "Teknologi AI Google"
-    },
-    "openaiCompatible": {
-      "name": "Kompatibel OpenAI (Realtime lama)",
-      "description": "Endpoint pihak ketiga yang memakai protokol Realtime beta lama OpenAI. Bukan untuk OpenAI sendiri.",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -510,7 +474,8 @@
       "name": "Doubao AST 2.0",
       "description": "Terjemahan simultan Doubao",
       "appIdPlaceholder": "APP ID",
-      "accessTokenPlaceholder": "Access Token"
+      "accessTokenPlaceholder": "Access Token",
+      "authModeApp": "App ID + Access Token"
     },
     "local_inference": {
       "name": "Gratis",
@@ -548,7 +513,6 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Terjemahan ditampilkan di overlay subtitle",
-    "speechDetected": "[Ucapan terdeteksi]",
     "function": "Fungsi",
     "noChannelConfigured": "Aktifkan mikrofon atau audio lawan bicara sebelum memulai.",
     "release": "lepas",
@@ -632,9 +596,6 @@
     "waveformMicTooltip": "Mikrofon Anda — suara Anda yang ditangkap untuk diterjemahkan",
     "waveformSystemTooltip": "Audio lawan bicara yang ditangkap untuk terjemahan (tab browser / audio sistem)",
     "allChannelsFailed": "Gagal memulai saluran audio mana pun. Periksa izin perangkat dan coba lagi.",
-    "participantChannelFailed": "Gagal memulai saluran audio lawan bicara.",
-    "splitDegradedLabel": "Hanya satu arah",
-    "splitDegradedTooltip": "Audio lawan bicara tidak diterjemahkan, sehingga sesi ini hanya berjalan satu arah. Periksa izin audio lawan bicara, lalu jalankan sesi baru.",
     "sonioxInsufficientBalance": "Saldo tidak mencukupi untuk memulai sesi. Silakan isi ulang saldo Anda dan coba lagi.",
     "sonioxSessionConflict": "Sesi lain sudah berjalan di akun Anda. Silakan coba lagi sebentar lagi.",
     "sonioxServiceUnavailable": "Soniox untuk sementara tidak tersedia. Silakan coba lagi sebentar lagi.",
@@ -644,7 +605,6 @@
     "sonioxTtsSegmentLost": "Sebagian terjemahan suara tidak dapat diputar. Transkripsi dan terjemahan teks tidak terpengaruh.",
     "sonioxSegmentEnded": "Segmen ini telah berakhir — ketuk “Mulai sesi” untuk melanjutkan.",
     "sonioxConnectionLost": "Koneksi terputus — ketuk “Mulai sesi” sebentar lagi untuk melanjutkan.",
-    "openaiLiveConnectionLost": "Koneksi terputus — ketuk “Mulai sesi” sebentar lagi untuk melanjutkan.",
     "sonioxVoiceClipMissing": "Perangkat ini tidak memiliki rekaman suara, sehingga sesi ini menggunakan suara preset. Rekam satu di Pengaturan untuk berbicara dengan suara Anda sendiri di sini.",
     "sonioxVoicePoolBusy": "Semua slot suara kustom sedang digunakan saat ini, sehingga sesi ini menggunakan suara preset. Suara Anda sendiri akan digunakan lagi lain kali.",
     "sonioxVoiceBuildFailed": "Suara kustom Anda tidak dapat dibangun, sehingga sesi ini menggunakan suara preset. Coba rekam klip yang lebih jelas di Pengaturan.",
@@ -1178,8 +1138,6 @@
     },
     "credentials": {
       "apiKey": "API key",
-      "endpoint": "Endpoint URL",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",
@@ -1298,13 +1256,9 @@
     "app_capture_lost_using_system_audio": "Penangkapan aplikasi berhenti, jadi seluruh audio sistem kini diterjemahkan.",
     "app_capture_monitor_missing": "Penangkapan aplikasi tidak dimulai, jadi seluruh audio sistem kini diterjemahkan.",
     "parse_error": "Pesan dari penyedia tidak dapat dibaca; sesi tetap berlanjut.",
-    "cleanup_failed": "Salah satu langkah saat menutup sesi gagal.",
-    "input_pipeline_failed": "Penangkapan audio berhenti berfungsi; tidak ada lagi yang akan diterjemahkan.",
     "tts_degraded": "Pemutaran suara menurun kualitasnya; teks terjemahan tetap masuk.",
     "resume_attempt_failed": "Penyambungan ulang gagal; mencoba lagi.",
-    "send_dropped": "Sebagian audio atau teks tidak dapat dikirim dan dibuang.",
     "voice_fallback": "Suara yang dipilih tidak tersedia, jadi suara lain digunakan.",
-    "lease_notify_failed": "Layanan tidak dapat diberi tahu tentang status sesi.",
     "auth": "Penyedia tidak menerima kredensial: {{detail}}",
     "rate_limit": "Penyedia sedang membatasi permintaan; coba lagi sebentar lagi: {{detail}}",
     "network": "Koneksi ke penyedia gagal: {{detail}}",

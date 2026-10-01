@@ -45,6 +45,9 @@ const ROOTS = [
   'src/components',
   'src/lib',
   'shared',
+  // the new providers (Stage 2): adapters never log — they emit (CLAUDE.md) —
+  // and their components report.
+  'src/providers',
 ];
 
 /** Top-level entry points, which are files rather than directories. */
@@ -167,7 +170,9 @@ const LEDGER: Record<string, number> = {
   'src/components/Auth/ForgotPasswordForm.tsx': 2,
   'src/components/Settings/sections/HelpSection.tsx': 2,
   'src/components/Settings/sections/ModelManagementSection.tsx': 2,
-  'src/components/Settings/sections/ProviderSpecificSettings.tsx': 2,
+  // ProviderSpecificSettings.tsx's row (2) is gone, not lowered to 0: both of
+  // its calls sat in the other providers' branches, which the Stage 2
+  // deletion removed; the Local Native branch it keeps has none.
   'src/components/Auth/SignInForm.tsx': 1,
   'src/components/Auth/SignUpForm.tsx': 1,
   // AdvancedSettings.tsx's row (1) is gone, not lowered to 0: its one call
@@ -179,7 +184,7 @@ const LEDGER: Record<string, number> = {
   // `console.warn('[applySetup] Post-finish validation failed:', err)` — was
   // the re-validation for an unchanged provider. The switch's applyProvider
   // (useApplySetup.ts) binds straight to providerStore, whose own readiness
-  // driver (attach()'s driveLocalReadiness) re-checks automatically, so
+  // driver (attach()'s driveReadiness) re-checks automatically, so
   // there is nothing left here to swallow — the call is gone, not moved.
   'src/components/SetupWizard/steps/StepLanguage.tsx': 1,
   'src/components/Subtitle/ChildWindowPopover.tsx': 1,
@@ -188,7 +193,6 @@ const LEDGER: Record<string, number> = {
   // rewrote the overlay page over the wire; its one failure (no #root) reports
   // through report.ts.
   // --- Later, under the ledger: src/lib (audio pipeline and helpers) ---
-  'src/lib/modern-audio/WebRTCAudioBridge.ts': 10,
   'src/lib/modern-audio/AppAudioRecorder.ts': 9,
   'src/lib/modern-audio/ModernAudioRecorder.ts': 8,
   'src/lib/analytics.ts': 6,
@@ -210,6 +214,7 @@ describe('console ledger', () => {
     const files = scannedFiles();
     expect(files.length).toBeGreaterThan(150);
     expect(files).toContain('src/stores/logStore.ts');
+    expect(files).toContain('src/providers/fake/adapter.ts');
     expect(countConsoleCalls('a; console.error("x"); console.warn(y); console.info(z)')).toBe(2);
     // Prose must not count — in a line comment, a block comment, or a string.
     expect(countConsoleCalls('// its console.error( could not fire')).toBe(0);
@@ -250,7 +255,7 @@ describe('console ledger', () => {
   // absence of ledger rows, so re-adding one fails here with the reason instead
   // of quietly earning a new baseline entry.
   it('the roots #441 covered stay at zero', () => {
-    const CLEARED = ['src/stores/', 'src/services/', 'src/contexts/', 'src/app/'];
+    const CLEARED = ['src/stores/', 'src/services/', 'src/contexts/', 'src/app/', 'src/providers/'];
     const offenders = scannedFiles()
       .filter((f) => CLEARED.some((root) => f.startsWith(root)))
       .filter((f) => countConsoleCalls(read(f), f) > 0);
@@ -336,6 +341,9 @@ describe('console ledger', () => {
   // Clients cannot know which session leg they are on, so they report through
   // handlers that MainPanel owns. A client importing the store or the reporter
   // as a value would file its failures under the wrong tab.
+  //
+  // A provider's adapter is held to the same by
+  // `src/providers/sessionSide.consistency.test.ts`.
   it('clients never import the store or the reporter as a value', () => {
     const offenders: string[] = [];
     for (const file of scannedFiles().filter((f) => f.startsWith('src/services/clients/'))) {

@@ -49,7 +49,6 @@ function setup(o: { turnMode?: TurnMode; legs?: RunShape['legs']; provider?: Any
     participantSpeech: false,
     keepReplayAudio: true,
     shared: {
-      instructions: () => '',
       pauses: { sourceSeconds: 1, translationSeconds: 1 },
       reversed: () => false,
       segmentation: { mode: 'off', sentencesPerRow: 0 },
@@ -255,11 +254,22 @@ describe('runner — typed text and clearing', () => {
 
   it('ignores typed text when no run is live, or the provider takes none', async () => {
     const log: string[] = [];
-    const { runner } = setup({ turnMode: 'auto', provider: spyingProvider(log, { textInput: false }), log });
+    const { runner } = setup({ turnMode: 'auto', provider: spyingProvider(log, { textInput: () => false }), log });
     runner.sendText('early');
     await runner.start();
     runner.sendText('hi');
     expect(log).not.toContain('speaker:text');
+  });
+
+  it("asks the provider whether it takes text with the run's own settings", async () => {
+    const log: string[] = [];
+    const asked: unknown[] = [];
+    const textInput = (s: unknown) => { asked.push(s); return true; };
+    const { runner } = setup({ turnMode: 'auto', provider: spyingProvider(log, { textInput }), log });
+    await runner.start();
+    runner.sendText('hi');
+    expect(asked).toEqual([FAKE_DEFAULTS]);
+    expect(log).toContain('speaker:text');
   });
 
   it('clear() empties the conversation and the queued audio, and keeps the run', async () => {

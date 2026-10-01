@@ -24,7 +24,6 @@
       "audio": "音訊",
       "provider": "提供商"
     },
-    "languageSettings": "語言設定",
     "voice": "語音",
     "voiceSettings": "語音設定",
     "model": "模型",
@@ -40,10 +39,11 @@
     "autoTempo": "自動調整語速",
     "pushToTalk": "按住說話",
     "pushToTranslate": "按住翻譯",
-    "pushToTranslateNotAvailableInWebrtc": "在 WebRTC 模式下無法使用。請切換到 WebSocket 以使用按住翻譯。",
     "systemInstructions": "系統指令",
     "speechMode": "語音模式",
     "speechModeAppliesTo": "適用於您的語音。對方音訊始終使用語意 VAD。",
+    "speechModeTooltip": "自動：由提供商自動偵測您何時說完。\n按住說話：按住空白鍵或麥克風按鈕手動發送音訊。\n按住翻譯：與按住說話類似，但閒置時將原始麥克風音訊直通到虛擬麥克風，您可以直接說話而不進行翻譯。",
+    "speechModeAppliesToAuto": "適用於您的語音。對方音訊始終使用提供商的自動偵測。",
     "userTranscriptModel": "使用者轉錄模型",
     "noiseReduction": "降噪",
     "noiseSuppression": "噪音抑制",
@@ -72,22 +72,15 @@
     "eagerness": "積極性",
     "temperature": "溫度",
     "maxTokens": "最大權杖數",
-    "validating": "驗證中...",
     "enterCustomInstructions": "在此輸入自訂系統指令...",
     "settingsSavedSuccessfully": "設定儲存成功",
     "failedToSaveSettings": "設定儲存失敗",
     "settingSavedSuccessfully": "設定儲存成功: {{key}}",
     "failedToSaveSetting": "設定儲存失敗: {{key}}",
-    "apiKeyValidationCompleted": "API金鑰驗證完成",
-    "errorValidatingApiKey": "驗證API金鑰時出錯",
     "regionNotSupported": "該服務在您所在的地區不可用。請檢查您的網路環境或嘗試其他提供商。",
     "sessionActiveNotice": "工作階段啟用時設定已鎖定。請結束工作階段以修改設定。",
-    "realtimeModelAvailable": "即時模型可用",
     "realtimeModelNotAvailable": "即時模型不可用",
-    "refreshModels": "重新整理可用模型",
-    "loadingModels": "載入可用模型中...",
     "modelsFound": "找到 {{count}} 個模型",
-    "invalidApiKeyFormat": "API 金鑰格式無效",
     "volcengineAST2Info": "豆包同聲傳譯 2.0 資訊",
     "volcengineAST2InfoText": "豆包同聲傳譯 2.0 提供語音到語音的同聲傳譯，支援自動聲音複製。翻譯後的音訊保留原始說話者的聲音特徵。",
     "volcengineAST2TurnDetectionTooltip": "自動：伺服器端語音活動偵測。\n按住說話：按住空白鍵或麥克風按鈕手動發送音訊。\n按住翻譯：與按住說話類似，但閒置時將原始麥克風音訊直通到虛擬麥克風，您可以直接說話而不進行翻譯。",
@@ -113,8 +106,6 @@
     "low": "低",
     "medium": "中",
     "high": "高",
-    "apiKeyValidated": "API金鑰已驗證",
-    "realtimeTranslationAvailable": "即時翻譯服務可用",
     "advancedMode": "進階",
     "providerTooltip": "選擇您的AI翻譯服務。每個服務都有不同的功能、語音和價格。OpenAI提供最多功能，而Gemini有良好的免費方案。本地（離線）模式完全免費——無需API金鑰或網際網路。",
     "modelTooltip": "AI模型影響速度和品質。'Mini'模型更快但簡單。標準模型更準確但稍慢。為了節省成本，先試試mini。",
@@ -135,12 +126,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "背景噪音消除。\n無：不處理，在安靜房間使用。\n近場：用於耳機/近距離麥克風。\n遠場：用於有回音的喇叭/會議室。",
     "systemInstructionsTooltip": "AI翻譯器的自訂指令。告訴它您的偏好，如正式/隨意的語調、技術術語處理或特定的翻譯風格。",
-    "transportType": "連線類型",
-    "transportTypeTooltip": "WebRTC：延遲更低，推薦大多數使用者使用。\nWebSocket：網路相容性更好，適合受限網路環境。如果 WebRTC 連線失敗可切換使用。",
-    "websocket": "WebSocket（穩定）",
-    "webrtc": "WebRTC（低延遲）",
-    "webrtcVadDisabledTitle": "WebRTC 模式下不支援伺服器 VAD",
-    "webrtcVadNotice": "WebRTC 模式下伺服器 VAD 已停用。在 WebRTC 模式中，伺服器偵測到語音時會自動截斷音訊輸出，這會導致翻譯被中斷。",
     "participantInstructions": "對方指令",
     "participantInstructionsTooltip": "用於翻譯對方音訊的系統指令。留空則使用上方的主指令。\n\n注意：主指令中的語言方向可能與對方不符。例如：如果您說中文、主指令翻譯中文→日語，但對方說日語，使用主指令會錯誤地嘗試翻譯日語→日語。請設置單獨的對方指令來翻譯日語→中文。",
     "localTranslationPrompt": "翻譯提示詞",
@@ -203,9 +188,7 @@
       "xhigh": "極高"
     },
     "translateInfoBanner": "當說話人使用與目標相同的語言時，該模型會保持沉默。混合語言場景可能會有片段缺失。",
-    "translateModelAvailable": "API key 驗證成功。gpt-realtime-translate 可用。",
     "translateModelNotAvailable": "API key 有效，但當前 key 沒有 gpt-realtime-translate 存取權限。",
-    "translateSourceParticipantWarning": "翻譯對方音訊可能無法運作——「我的語言」不在該服務商支援的 13 個目標語言裡。",
     "participantSectionHeader": "對方音訊",
     "participantSectionDescriptionElectron": "翻譯此系統上任何正在播放的應用程式的音訊。",
     "participantSectionDescriptionExtension": "翻譯當前瀏覽器分頁的音訊。原始音訊透過系統預設輸出播放。",
@@ -222,7 +205,6 @@
     "sonioxSharedSession": "「兩者」模式下共用工作階段",
     "sonioxSharedSessionTooltip": "「兩者」模式可以使用一個共用的 Soniox 工作階段，也可以每個方向各用一個獨立的工作階段。\n\n已啟用：單一工作階段同時翻譯雙方，並自動區分聲音——成本與延遲更低。\n\n停用：每個方向各一個獨立工作階段——兩人同時說話時更可靠，但成本約為兩倍。\n\n僅影響「兩者」模式。",
     "sonioxSharedSessionManagedCost": "Kizuna AI 兩種方式都支援。關閉後會同時執行兩個工作階段——每分鐘成本約為兩倍，因此可用時長大約減半，開始所需的餘額也更高。",
-    "sonioxAutoParticipantWarning": "請把「我的語言」設為具體語言——使用自動偵測時，無法把對方的語音翻譯成它。",
     "sonioxVocabulary": "自訂詞彙",
     "sonioxVocabularyTooltip": "讓辨識更偏向重要人名與專業術語，並引導特定術語的譯法。將於下次工作階段生效。",
     "sonioxVocabularyTerms": "詞彙",
@@ -310,7 +292,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "已通過您的帳戶自動認證",
-    "fetchingApiKey": "正在從您的帳戶取得 API 金鑰...",
     "provider": "AI服務提供商",
     "apiKeyPlaceholder": "輸入您的 API 金鑰",
     "setupGuide": "設定指南",
@@ -372,6 +353,7 @@
     "participantSpeech": "朗讀對方的譯文",
     "participantSpeechDesc": "用您的語言，透過您的喇叭，把對方所說的內容朗讀給您聽。它會有延遲地跟隨對方的聲音。",
     "participantSpeechBlockedWholeSystem": "當對方音訊正在擷取整個系統的聲音時會關閉：對方的譯文會被再次擷取並翻譯。請選擇一個應用程式作為對方的來源。",
+    "participantSpeechNotYetAvailable": "此提供商暫不支援：對方的譯文僅以文字顯示。",
     "audioCaptureUnprovenNotice": "尚未擷取到音訊",
     "audioCaptureUnprovenTitle": "所選來源尚未傳來任何音訊",
     "audioCaptureUnprovenText1": "如果來源正在播放卻沒有譯文，很可能是 macOS 只給出了靜音：擷取某個應用程式的音訊需要「僅系統錄音」權限，沒有該權限時不會報錯，只會是靜音。",
@@ -430,9 +412,7 @@
     "backToSignIn": "返回登入",
     "forgotPasswordError": "發送驗證碼失敗。請再試一次。",
     "resetPasswordError": "重設密碼失敗。請再試一次。",
-    "signedOut": "登入後即可使用 Kizuna AI 內建的翻譯服務。",
-    "sessionUnavailable": "登入狀態已失效，請重新登入。",
-    "unknown": "無法驗證您的帳戶，請再試一次。"
+    "signedOut": "登入後即可使用 Kizuna AI 內建的翻譯服務。"
   },
   "simpleConfig": {
     "interfaceLanguage": "介面語言",
@@ -456,20 +436,9 @@
     "keepReplayAudioDesc": "將翻譯的音訊保存在記憶體中，以便您之後可以從每則訊息重新播放。預設關閉以減少長時間工作階段中的記憶體用量。"
   },
   "providers": {
-    "kizunaai_openai_translate": {
-      "name": "KizunaAI",
-      "description": "75 種來源語言（自動辨識），13 種目標語言",
-      "vendor": "OpenAI"
-    },
-    "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI",
-      "description": "8 種語言 + 中英雙向 · 保留您的聲音",
-      "vendor": "豆包"
-    },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 種語言，3,600 個語言對 · 可複製您自己的聲音",
-      "vendor": "Soniox"
+      "description": "60 種語言，3,600 個語言對 · 可複製您自己的聲音"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -478,11 +447,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "Google 的 AI 技術"
-    },
-    "openaiCompatible": {
-      "name": "OpenAI 相容（舊版 Realtime）",
-      "description": "使用 OpenAI 舊版 beta Realtime 協定的第三方端點。不適用於 OpenAI 官方。",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -510,7 +474,8 @@
       "name": "豆包同聲傳譯 2.0",
       "description": "豆包語音同聲傳譯",
       "appIdPlaceholder": "APP ID",
-      "accessTokenPlaceholder": "Access Token"
+      "accessTokenPlaceholder": "Access Token",
+      "authModeApp": "App ID + Access Token"
     },
     "local_inference": {
       "name": "免費",
@@ -548,7 +513,6 @@
   },
   "mainPanel": {
     "subtitleTakeover": "翻譯內容正在字幕浮層中顯示",
-    "speechDetected": "[偵測到語音]",
     "function": "功能",
     "noChannelConfigured": "開始前請啟用麥克風或對方音訊。",
     "release": "釋放",
@@ -632,9 +596,6 @@
     "waveformMicTooltip": "您的麥克風 —— 正在擷取您的聲音用於翻譯",
     "waveformSystemTooltip": "擷取對方音訊用於翻譯（瀏覽器分頁 / 系統音訊）",
     "allChannelsFailed": "無法啟動任何音訊通道。請檢查裝置權限後再試一次。",
-    "participantChannelFailed": "無法啟動對方音訊通道。",
-    "splitDegradedLabel": "僅單向",
-    "splitDegradedTooltip": "對方音訊未被翻譯，因此本次工作階段僅單向運作。請檢查對方音訊權限，然後開始新的工作階段。",
     "sonioxInsufficientBalance": "餘額不足,無法開始工作階段。請儲值後再試一次。",
     "sonioxSessionConflict": "您的帳戶中已有另一個工作階段正在進行。請稍後再試一次。",
     "sonioxServiceUnavailable": "Soniox 暫時無法使用。請稍後再試一次。",
@@ -644,7 +605,6 @@
     "sonioxTtsSegmentLost": "有一段語音翻譯未能播放。轉錄和文字翻譯不受影響。",
     "sonioxSegmentEnded": "此段落已結束——點一下「開始」以繼續。",
     "sonioxConnectionLost": "連線已中斷——請稍候點一下「開始」以繼續。",
-    "openaiLiveConnectionLost": "連線已中斷——請稍候點一下「開始」以繼續。",
     "sonioxVoiceClipMissing": "此裝置沒有語音錄音，因此本次工作階段使用預設語音。請在設定中錄製一段，以便在此使用您自己的聲音。",
     "sonioxVoicePoolBusy": "目前所有自訂語音名額都在使用中，因此本次工作階段使用預設語音。您自己的語音將於下次再次使用。",
     "sonioxVoiceBuildFailed": "無法建立您的自訂語音，因此本次工作階段使用預設語音。請嘗試在設定中錄製更清晰的片段。",
@@ -1178,8 +1138,6 @@
     },
     "credentials": {
       "apiKey": "API 金鑰",
-      "endpoint": "端點網址",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",
@@ -1298,13 +1256,9 @@
     "app_capture_lost_using_system_audio": "應用程式擷取已停止，現在改為翻譯整個系統的聲音。",
     "app_capture_monitor_missing": "應用程式擷取未能啟動，現在改為翻譯整個系統的聲音。",
     "parse_error": "無法讀取來自提供商的訊息；工作階段將繼續。",
-    "cleanup_failed": "結束工作階段時的某個步驟失敗。",
-    "input_pipeline_failed": "音訊擷取已停止運作；此後將不再翻譯任何內容。",
     "tts_degraded": "語音播放已降級；翻譯文字仍會正常送達。",
     "resume_attempt_failed": "重新連線失敗，正在重試。",
-    "send_dropped": "部分音訊或文字未能傳送，已被捨棄。",
     "voice_fallback": "所選語音不可用，已改用另一個語音。",
-    "lease_notify_failed": "無法將工作階段狀態告知服務。",
     "auth": "提供商未接受憑證：{{detail}}",
     "rate_limit": "提供商目前正在限制請求；請稍後再試：{{detail}}",
     "network": "與提供商的連線失敗：{{detail}}",

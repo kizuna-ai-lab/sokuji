@@ -7,4 +7,11 @@ export type SubtitleIdleState =
   | { kind: 'starting'; completed?: number; total?: number }
   | { kind: 'failed'; message: string }
   /** The new runner's provider is not ready (plan 1d-2): its reason, in words the provider gave. */
-  | { kind: 'unready'; message: string; /** Where Settings fixes it (`settingsTargetForCode`); null or absent: nowhere. */ target?: string | null };
+  | {
+      kind: 'unready';
+      message: string;
+      /** Where Settings fixes it (`settingsTargetForCode`); null or absent: nowhere. */
+      target?: string | null;
+      /** The reason's code: a pending one (a managed sign-in or wallet still loading) draws as progress, not a fix. */
+      code?: string;
+    };

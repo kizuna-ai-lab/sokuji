@@ -81,9 +81,10 @@ ctx.onmessage = async (event: MessageEvent<InMessage>) => {
       } catch (err) {
         // Prefix the error message with a bracket-tag so the main thread can
         // classify the failure without extending the worker-protocol shape.
-        // Task 10 (LocalInferenceClient) reads the prefix to pick a user-facing
-        // message; other translation workers emit untagged messages and fall
-        // through to the raw text.
+        // The LocalInference adapter's `humanizeTranslationError`
+        // (`src/providers/localInference/adapter.ts`) reads the prefix to pick
+        // a user-facing message; other translation workers emit untagged
+        // messages and fall through to the raw text.
         const errorType = classifyError(err);
         const raw = err instanceof Error ? err.message : String(err);
         post({

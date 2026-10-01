@@ -90,11 +90,14 @@ vi.mock('../lib/view/karaoke', () => ({
   }),
 }));
 
+import { AdapterStartError } from '../lib/contract/adapter';
 import { createVirtualClock } from '../lib/contract/clock';
 import { settleReports } from '../lib/diagnostics/report';
 import { autoSaveConversation } from '../lib/export/appAutoSave';
 import { DEFAULT_CLOSE_TIMEOUT_MS } from '../lib/session/runner';
+import { fakeLeasedProvider } from '../providers/fake/leased';
 import { fakeProvider } from '../providers/fake/provider';
+import { FAKE_LEASED_DEFAULTS } from '../providers/fake/settings';
 import { createFakeSource, type FakeSource } from '../providers/fake/source';
 import { localInferenceProvider } from '../providers/localInference/provider';
 import useAudioStore from '../stores/audioStore';
@@ -432,6 +435,19 @@ describe('attach', () => {
     detach();
   });
 
+  it("keeps the provider store's speech inputs on the text-only switch, only while attached (Stage 2 Volcengine AST2, choice 1)", async () => {
+    const { session } = await setup();
+    useSettingsStore.setState({ textOnly: false });
+    const detach = session.attach();
+
+    useSettingsStore.setState({ textOnly: true });
+    expect(useProviderStore.getState().speech.textOnly).toBe(true);
+
+    detach();
+    useSettingsStore.setState({ textOnly: false });
+    expect(useProviderStore.getState().speech.textOnly).toBe(true);
+  });
+
   it('checks a local provider by itself', async () => {
     const { session, clock } = await setup();
     const spy = vi.fn(async () => ({ state: 'unknown' as const }));
@@ -447,6 +463,60 @@ describe('attach', () => {
     await flush();
 
     expect(spy).toHaveBeenCalledWith(localInferenceProvider, { signedIn: false, getToken: expect.any(Function) });
+
+    detach();
+  });
+
+  it("forgets a managed provider's readiness when the sign-in or the account flips — after the render, not during it", async () => {
+    const { session } = await setup();
+    useProviderStore.setState({
+      selected: 'fake_leased',
+      entries: { fake_leased: { settings: FAKE_LEASED_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
+      readiness: { fake_leased: { state: 'ready', models: [] } },
+    });
+    const detach = session.attach();
+    const readiness = () => useProviderStore.getState().readiness.fake_leased;
+
+    session.setBridges({ auth: { signedIn: true, userId: 'u1', getToken: async () => 't' } });
+    expect(readiness()).toEqual({ state: 'ready', models: [] });
+    await Promise.resolve();
+    expect(readiness()).toEqual({ state: 'unknown' });
+
+    useProviderStore.setState({ readiness: { fake_leased: { state: 'ready', models: [] } } });
+    session.setBridges({ auth: { signedIn: true, userId: 'u1', getToken: async () => 't' } });
+    await Promise.resolve();
+    expect(readiness()).toEqual({ state: 'ready', models: [] });
+
+    session.setBridges({ auth: { signedIn: true, userId: 'u2', getToken: async () => 't' } });
+    await Promise.resolve();
+    expect(readiness()).toEqual({ state: 'unknown' });
+
+    detach();
+  });
+
+  it('forgets it too when the sign-in finishes loading', async () => {
+    const { session } = await setup();
+    useProviderStore.setState({
+      selected: 'fake_leased',
+      entries: { fake_leased: { settings: FAKE_LEASED_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
+      readiness: { fake_leased: { state: 'ready', models: [] } },
+    });
+    const detach = session.attach();
+    const readiness = () => useProviderStore.getState().readiness.fake_leased;
+    const getToken = async () => 't';
+
+    session.setBridges({ auth: { signedIn: false, loaded: false, getToken } });
+    await Promise.resolve();
+    useProviderStore.setState({ readiness: { fake_leased: { state: 'ready', models: [] } } });
+
+    session.setBridges({ auth: { signedIn: false, loaded: true, getToken } });
+    await Promise.resolve();
+    expect(readiness()).toEqual({ state: 'unknown' });
+
+    useProviderStore.setState({ readiness: { fake_leased: { state: 'ready', models: [] } } });
+    session.setBridges({ auth: { signedIn: false, loaded: true, getToken } });
+    await Promise.resolve();
+    expect(readiness()).toEqual({ state: 'ready', models: [] });
 
     detach();
   });
@@ -630,6 +700,34 @@ describe('attach', () => {
     });
     expect(track.mock.calls.filter(([event]) => event === 'audio_error')).toHaveLength(1);
 
+    detach();
+  });
+
+  /** A signed-in session on the leased fake whose lease the service refuses with `code`, attached, with its balance refetch spied on. */
+  async function refusedLease(code: string) {
+    const { session } = await setup();
+    await useProviderStore.getState().load(fakeLeasedProvider);
+    useProviderStore.getState().select('fake_leased');
+    const refetchQuota = vi.fn(async () => {});
+    session.setBridges({ refetchQuota, auth: { signedIn: true, userId: 'u1', getToken: async () => 't' } });
+    const acquire = vi.spyOn(fakeLeasedProvider.session!, 'acquire').mockRejectedValueOnce(new AdapterStartError('The service refused the lease.', code));
+    const detach = session.attach();
+    await session.runner.start();
+    await session.runner.settled();
+    acquire.mockRestore();
+    expect(session.runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'start-failed', notice: { code } } });
+    return { refetchQuota, detach };
+  }
+
+  it.each(['insufficient_balance', 'wallet_frozen'])('refetches the balance once the service refuses a start with %s: the wallet it answered for has changed', async (code) => {
+    const { refetchQuota, detach } = await refusedLease(code);
+    expect(refetchQuota).toHaveBeenCalledTimes(1);
+    detach();
+  });
+
+  it('refetches nothing for a start refused for another reason', async () => {
+    const { refetchQuota, detach } = await refusedLease('session_conflict');
+    expect(refetchQuota).not.toHaveBeenCalled();
     detach();
   });
 

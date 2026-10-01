@@ -13,6 +13,12 @@ export function startLabel(t: TFunction, run: RunState, site: 'basic' | 'advance
       ? t('simplePanel.initProgress', 'Loading ({{completed}}/{{total}})...', { completed: run.loading.done, total: run.loading.total })
       : t('mainPanel.initProgress', 'Loading ({{completed}}/{{total}})...', { completed: run.loading.done, total: run.loading.total });
   }
+  // The provider's `prepare` (Kizuna Soniox's voice claim): today's "Preparing your voice…" (`initPhaseLabel`), for any provider's prepare (choice 16).
+  if (run.step === 'preparing') {
+    return site === 'basic'
+      ? t('simplePanel.preparingVoice', 'Preparing your voice…')
+      : t('mainPanel.preparingVoice', 'Preparing your voice…');
+  }
   return site === 'basic'
     ? t('simplePanel.connecting', 'Connecting...')
     : t('mainPanel.initializing', 'Initializing...');

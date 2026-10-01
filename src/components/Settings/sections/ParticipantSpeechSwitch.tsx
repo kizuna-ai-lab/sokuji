@@ -1,7 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import ToggleSwitch from '../shared/ToggleSwitch';
 import { participantSpeechHeard } from '../../../lib/modern-audio/participantSource';
+import { selectedFromStores } from '../../../lib/session/appShape';
 import useAudioStore from '../../../stores/audioStore';
+import { useProviderStore } from '../../../stores/providerStore';
 import { useRoutingStore } from '../../../stores/routingStore';
 import { isElectron } from '../../../utils/environment';
 
@@ -20,19 +22,31 @@ import { isElectron } from '../../../utils/environment';
  * share, so what the switch shows is what the run does. So the switch shows
  * off and disabled then, with a tooltip naming why; the stored choice is kept
  * (Text only's forced display keeps its setting the same way).
+ *
+ * A provider whose participant-speech flag is off (the definition's
+ * `participantSpeech: false`, Stage 2 Kizuna Soniox ruling 2) shows the
+ * switch off and disabled too, with a "not available yet" tooltip, keeping
+ * the stored choice — the run's shape (`appShape.ts`) and the leg's context
+ * (`shape.ts`) read the same flag.
  */
 export function ParticipantSpeechSwitch({ locked }: { locked: boolean }) {
   const { t } = useTranslation();
   const participantSpeech = useRoutingStore((s) => s.participantSpeech);
   const selectedParticipantSource = useAudioStore((s) => s.selectedParticipantSource);
+  // Subscribed to what the provider lookup reads, so the switch follows a selection or a load.
+  useProviderStore((s) => s.selected);
+  useProviderStore((s) => s.entries);
+  // The provider's participant-speech flag (ruling 2) — Kizuna Soniox's is off until the backend mints a participant speech key. Absolute, so named first.
+  // The provider exactly as the run and the live gate find it (`selectedFromStores`: the selected one if present, else the first present), so the switch never offers speech a run would not voice.
+  const offered = selectedFromStores()?.provider.participantSpeech !== false;
   const heard = participantSpeechHeard(isElectron() ? 'electron' : 'other', selectedParticipantSource?.deviceId);
   return (
     <ToggleSwitch
-      checked={participantSpeech && heard}
+      checked={participantSpeech && heard && offered}
       onChange={() => useRoutingStore.getState().setParticipantSpeech(!participantSpeech)}
       label={t('audioPanel.participantSpeech')}
-      disabled={locked || !heard}
-      tooltip={heard ? t('audioPanel.participantSpeechDesc') : t('audioPanel.participantSpeechBlockedWholeSystem')}
+      disabled={locked || !heard || !offered}
+      tooltip={!offered ? t('audioPanel.participantSpeechNotYetAvailable') : heard ? t('audioPanel.participantSpeechDesc') : t('audioPanel.participantSpeechBlockedWholeSystem')}
     />
   );
 }

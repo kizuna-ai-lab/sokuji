@@ -62,7 +62,7 @@ export interface AudioGraph {
   playOnce(audio: Float32Array, sampleRate: number): OneShot;
   /** Makes the edges exactly these; an edge to a bus this platform lacks is ignored. */
   route(edges: readonly Edge[]): void;
-  /** Points each bus's element at a device; the virtual one stays silent until it has one. */
+  /** Points each bus's element at a device; the virtual one stays silent until it has one. A bus switches one device at a time and ends on the last one asked for; the promise settles once this call's switches have run, and never for a switch that never settles. */
   setSinks(sinks: { real?: string; virtual?: string }): Promise<void>;
   /** The translated speech the graph plays (speaker, participant, replay), before any route: the echo monitor's reference. */
   readonly ttsTap: PcmTap;
@@ -93,6 +93,8 @@ export const RESUME_DEADLINE_MS = 1_500;
 export const MAX_REBUILDS = 3;
 /** How long `close()` waits for the context's own close: a wedged one may never settle it (#246). */
 export const CLOSE_WAIT_MS = 1_000;
+/** How long a bus's device switch holds the next one: a wedged sink may never settle `setSinkId` (#246). */
+export const SINK_SWITCH_DEADLINE_MS = 1_500;
 
 interface Built {
   ctx: AudioContext;
@@ -193,7 +195,9 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
   // `setSinkId` actually resolved to. The virtual element plays only once its
   // switch has *landed* on the id currently requested — not merely started —
   // so a `resume()` racing a pending switch never starts it on whatever
-  // device the element happened to be on before (F1).
+  // device the element happened to be on before (F1). A bus's switches run
+  // one at a time (`switchBus` below), so only the latest request's switch
+  // sets `applied`, or forgets `requested` when it fails.
   const requested: Partial<Record<Bus, string>> = {};
   const applied: Partial<Record<Bus, string>> = {};
   // An output that will not start is reported once per failing streak, not once per chunk/resume.
@@ -277,6 +281,72 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
   let cancelDeadline: (() => void) | null = null;
   let rebuilds = 0;
   let rebuilding: Promise<void> | null = null;
+
+  /**
+   * The turn each bus's next switch waits for. One `setSinkId` at a time per
+   * element: two in flight could land in either order and leave the element
+   * on the older device. A switch whose turn comes after a newer request, or
+   * after `close()`, never reaches the element; a stale switch's outcome,
+   * success or failure, leaves the newer request's records and the element
+   * alone. A switch that has not settled after `SINK_SWITCH_DEADLINE_MS`
+   * stops holding the next one; if it then lands after a newer switch, the
+   * bus switches to the newest request again.
+   */
+  const switching: Partial<Record<Bus, Promise<void>>> = {};
+  const switchBus = (bus: Bus, element: SinkElement, id: string | undefined): Promise<void> => {
+    const stale = () => closing !== null || requested[bus] !== id;
+    let turnOver!: () => void;
+    const over = new Promise<void>((resolve) => { turnOver = resolve; });
+    const run = async () => {
+      if (stale()) return;
+      let overran = false;
+      const cancel = clock.setTimeout(() => { overran = true; turnOver(); }, SINK_SWITCH_DEADLINE_MS);
+      try {
+        await element.setSinkId?.(id ?? '');
+      } catch (error) {
+        cancel();
+        if (stale()) return;
+        reportWarning('AudioGraph', `Could not switch the ${bus} output: ${describeCause(error)}`, { dedupeKey: `graph:sink:${bus}` });
+        // Forget the id on either bus, so a later setSinks with the same id
+        // (the device coming back, or routing re-applying unchanged
+        // settings) retries instead of short-circuiting.
+        requested[bus] = undefined;
+        if (bus === 'virtual') {
+          // Never play the meeting's audio on whatever device the element was left on.
+          element.pause();
+          return;
+        }
+        // The real element keeps playing wherever it was — the user still
+        // hears their audio — so it plays as on success.
+        play(bus);
+        return;
+      }
+      cancel();
+      if (stale()) {
+        // Past its deadline the next switch ran beside this one, and may have
+        // landed first: this landing moved the element back to an older device.
+        // Switch to the newest request again.
+        if (overran && closing === null) {
+          const newest = requested[bus];
+          if (bus === 'virtual') {
+            // Never play the meeting's audio on a device it was not asked for (F1).
+            applied.virtual = undefined;
+            element.pause();
+            if (newest === undefined) return;
+          }
+          void switchBus(bus, element, newest);
+        }
+        return;
+      }
+      applied[bus] = id;
+      play(bus);
+    };
+    // `run` never rejects, so the chain never breaks. The next switch waits
+    // for this one's turn: its end, or the deadline when it hangs.
+    const done = (switching[bus] ?? Promise.resolve()).then(run).finally(turnOver);
+    switching[bus] = over;
+    return done;
+  };
 
   const clearWatch = () => {
     cancelGrace?.();
@@ -422,6 +492,7 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
     },
 
     async setSinks(sinks) {
+      const switches: Promise<void>[] = [];
       for (const bus of ['real', 'virtual'] as const) {
         const element = elements[bus];
         const id = sinks[bus];
@@ -439,30 +510,9 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
             continue;
           }
         }
-        try {
-          await element.setSinkId?.(id ?? '');
-        } catch (error) {
-          reportWarning('AudioGraph', `Could not switch the ${bus} output: ${describeCause(error)}`, { dedupeKey: `graph:sink:${bus}` });
-          // Forget the id on either bus, so a later setSinks with the same id
-          // (the device coming back, or routing re-applying unchanged
-          // settings) retries instead of short-circuiting above.
-          requested[bus] = undefined;
-          if (bus === 'virtual') {
-            // Never play the meeting's audio on whatever device the element was left on.
-            element.pause();
-            continue;
-          }
-          // The real element keeps playing wherever it was — the user still
-          // hears their audio — so fall through to play() as on success.
-          play(bus);
-          continue;
-        }
-        // A newer request for this bus arrived while this one was pending:
-        // let that one's own resolution decide `applied` and `play`.
-        if (requested[bus] !== id) continue;
-        applied[bus] = id;
-        play(bus);
+        switches.push(switchBus(bus, element, id));
       }
+      await Promise.all(switches);
     },
 
     ttsTap,

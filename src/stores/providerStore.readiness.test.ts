@@ -26,8 +26,10 @@ beforeEach(async () => {
 
 const opt = (value: string): LanguageOption => ({ value, name: value, englishName: value });
 const noAuth = { signedIn: false, getToken: async () => null };
+const signedIn = { signedIn: true, getToken: async () => 't' };
+const signedOut = noAuth;
 
-function probe(kind: 'own-key' | 'local', check: (k: unknown, s: unknown, ctx: CheckContext) => Promise<CheckResult>): AnyProvider {
+function probe(kind: 'own-key' | 'local' | 'managed', check: (k: unknown, s: unknown, ctx: CheckContext) => Promise<CheckResult>): AnyProvider {
   return {
     id: 'probe',
     kind,
@@ -64,7 +66,22 @@ function runInputs(legs: CheckContext['legs'] = ['speaker']) {
 }
 
 describe('refreshReadiness', () => {
-  it('reports missing credentials without calling check', async () => {
+  it("words missing credentials by the provider's own code, and by credentials_missing when it gives none", async () => {
+    const signInCheck = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
+    const signIn: AnyProvider = {
+      ...probe('own-key', signInCheck),
+      credentials: {
+        keys: ['apiKey'],
+        fields: () => [{ key: 'apiKey', labelKey: 'k', secret: true }],
+        read: () => ({ missing: 'Sign in first.', code: 'sign_in_required', params: { who: 'you' } }),
+      },
+    } as AnyProvider;
+    await store.useProviderStore.getState().load(signIn);
+    await expect(store.useProviderStore.getState().refreshReadiness(signIn, noAuth)).resolves.toEqual({
+      state: 'not-ready', reason: 'Sign in first.', code: 'sign_in_required', params: { who: 'you' },
+    });
+    expect(signInCheck).not.toHaveBeenCalled();
+
     const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
     const p = probe('own-key', check);
     await store.useProviderStore.getState().load(p);
@@ -134,6 +151,16 @@ describe('refreshReadiness', () => {
     expect(check).toHaveBeenCalledTimes(2);
   });
 
+  it("keeps an own-key provider's answer through a sign-in flip: its key, not the account, is what it checks", async () => {
+    const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
+    const p = probe('own-key', check);
+    await loadedWithKey(p);
+    await store.useProviderStore.getState().refreshReadiness(p, signedIn);
+    await store.useProviderStore.getState().refreshReadiness(p, signedOut);
+    expect(check).toHaveBeenCalledTimes(1);
+    expect(readiness()).toEqual({ state: 'ready', models: [] });
+  });
+
   it('asks a local engine every time, since its readiness changes as models download', async () => {
     const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
     const p = probe('local', check);
@@ -177,6 +204,222 @@ describe('refreshReadiness', () => {
     expect(readiness()).toEqual({ state: 'ready', models: [] });
     store.useProviderStore.getState().updateSettings(p, { mode: 'b' });
     expect(readiness()).toEqual({ state: 'unknown' });
+  });
+});
+
+describe('refreshReadiness — a provider that declares what its check reads (Stage 2 OpenAI Realtime, ruling 9)', () => {
+  /** A probe with a second field, whose check reads only what `checkReads` names; its sources follow `mode`, so an edit to `mode` can move the pair. */
+  function narrowed(check: (k: unknown, s: unknown, ctx: CheckContext) => Promise<CheckResult>, checkReads: readonly string[]): AnyProvider {
+    return {
+      ...probe('own-key', check),
+      settings: { key: 'probe', defaults: { mode: 'a', slider: 1 } },
+      checkReads,
+      languages: { sources: (s: { mode: string }) => [opt(s.mode === 'a' ? 'en' : 'ja')], targets: () => [opt('fr')] },
+    } as unknown as AnyProvider;
+  }
+
+  it('keeps a ready answer through an edit to a field it does not read: Start stays on, and a later check is served from the kept answer', async () => {
+    const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true, models: [{ id: 'm1' }] }));
+    const p = narrowed(check, ['mode']);
+    await loadedWithKey(p);
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    store.useProviderStore.getState().updateSettings(p, { slider: 2 });
+    expect(readiness()).toEqual({ state: 'ready', models: [{ id: 'm1' }] });
+    // A run's own check, with the edited settings: the kept answer is keyed on `mode` alone.
+    await expect(store.useProviderStore.getState().refreshReadiness(p, noAuth, runInputs())).resolves.toEqual({ state: 'ready', models: [{ id: 'm1' }] });
+    expect(check).toHaveBeenCalledTimes(1);
+  });
+
+  it('forgets it for an edit to a field it reads, and asks again', async () => {
+    const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
+    const p = narrowed(check, ['slider']);
+    await loadedWithKey(p);
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    store.useProviderStore.getState().updateSettings(p, { slider: 2 });
+    expect(readiness()).toEqual({ state: 'unknown' });
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(check).toHaveBeenCalledTimes(2);
+  });
+
+  it('forgets it when an edit it does not read moves the pair: the check reads the pair', async () => {
+    const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
+    const p = narrowed(check, []);
+    await loadedWithKey(p);
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(store.useProviderStore.getState().entries.probe.pair).toEqual({ source: 'en', target: 'fr' });
+    store.useProviderStore.getState().updateSettings(p, { mode: 'b' });
+    expect(store.useProviderStore.getState().entries.probe.pair).toEqual({ source: 'ja', target: 'fr' });
+    expect(readiness()).toEqual({ state: 'unknown' });
+  });
+
+  it('reads no field with an empty list, and a credential edit still forgets', async () => {
+    const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
+    const p = narrowed(check, []);
+    await loadedWithKey(p, 'k1');
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    store.useProviderStore.getState().updateSettings(p, { slider: 5 });
+    expect(readiness()).toEqual({ state: 'ready', models: [] });
+    store.useProviderStore.getState().setCredential(p, 'apiKey', 'k2');
+    expect(readiness()).toEqual({ state: 'unknown' });
+  });
+
+  it('lets a refusal, or a check that threw, stand through an edit it does not read too, and asks again on the next check', async () => {
+    const refusal = vi.fn(async (): Promise<CheckResult> => ({ ok: false, reason: 'no' }));
+    const p = narrowed(refusal, []);
+    await loadedWithKey(p);
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(readiness()).toEqual({ state: 'not-ready', reason: 'no' });
+    store.useProviderStore.getState().updateSettings(p, { slider: 3 });
+    expect(readiness()).toEqual({ state: 'not-ready', reason: 'no' });
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(refusal).toHaveBeenCalledTimes(2);
+
+    // A fresh module: nothing kept from the half above.
+    vi.resetModules();
+    store = await import('./providerStore');
+    const thrown = vi.fn(async (): Promise<CheckResult> => { throw new Error('offline'); });
+    const q = narrowed(thrown, []);
+    await loadedWithKey(q);
+    await store.useProviderStore.getState().refreshReadiness(q, noAuth);
+    expect(readiness()).toEqual({ state: 'not-ready', reason: 'offline' });
+    store.useProviderStore.getState().updateSettings(q, { slider: 3 });
+    expect(readiness()).toEqual({ state: 'not-ready', reason: 'offline' });
+    await store.useProviderStore.getState().refreshReadiness(q, noAuth);
+    expect(thrown).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('forgetReadiness', () => {
+  it('forgetReadiness makes readiness unknown and drops a check still running', async () => {
+    const answer = deferred<CheckResult>();
+    const p = probe('own-key', () => answer.promise);
+    await loadedWithKey(p);
+    const done = store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(readiness()).toEqual({ state: 'checking' });
+    store.useProviderStore.getState().forgetReadiness(p);
+    expect(readiness()).toEqual({ state: 'unknown' });
+    answer.resolve({ ok: true });
+    await done;
+    expect(readiness()).toEqual({ state: 'unknown' });
+  });
+});
+
+describe('refreshReadiness — a managed provider and the sign-in (roadmap 1b)', () => {
+  /** A managed probe: no fields of its own; `read` decides by the sign-in. */
+  function managed(check: () => Promise<CheckResult>, read: AnyProvider['credentials']['read']): AnyProvider {
+    return { ...probe('managed', check), credentials: { keys: [], fields: () => [], read } } as AnyProvider;
+  }
+
+  it("keeps a managed provider's answer per sign-in (roadmap 1b)", async () => {
+    const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
+    const p = managed(check, (_v, auth) => (auth.signedIn ? {} : { missing: 'Sign in first.', code: 'sign_in_required' }));
+    await store.useProviderStore.getState().load(p);
+    await store.useProviderStore.getState().refreshReadiness(p, signedIn);
+    await store.useProviderStore.getState().refreshReadiness(p, signedIn);
+    expect(check).toHaveBeenCalledTimes(1);
+
+    await expect(store.useProviderStore.getState().refreshReadiness(p, signedOut)).resolves.toMatchObject({ state: 'not-ready', code: 'sign_in_required' });
+    expect(readiness()).toMatchObject({ state: 'not-ready', code: 'sign_in_required' });
+    expect(check).toHaveBeenCalledTimes(1);
+
+    await expect(store.useProviderStore.getState().refreshReadiness(p, signedIn)).resolves.toEqual({ state: 'ready', models: [] });
+    expect(readiness()).toEqual({ state: 'ready', models: [] });
+    expect(check).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks again when only the sign-in changed', async () => {
+    const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
+    const p = managed(check, () => ({}));
+    await store.useProviderStore.getState().load(p);
+    await store.useProviderStore.getState().refreshReadiness(p, signedIn);
+    await store.useProviderStore.getState().refreshReadiness(p, signedOut);
+    expect(check).toHaveBeenCalledTimes(2);
+  });
+
+  it('asks again when only the account changed', async () => {
+    const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
+    const p = managed(check, () => ({}));
+    await store.useProviderStore.getState().load(p);
+    await store.useProviderStore.getState().refreshReadiness(p, { signedIn: true, userId: 'u1', getToken: async () => 't' });
+    await store.useProviderStore.getState().refreshReadiness(p, { signedIn: true, userId: 'u2', getToken: async () => 't' });
+    expect(check).toHaveBeenCalledTimes(2);
+    // The kept answer holds for the same account.
+    await store.useProviderStore.getState().refreshReadiness(p, { signedIn: true, userId: 'u2', getToken: async () => 't' });
+    expect(check).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('refreshReadiness — the models a ready answer found (F2; choice 3)', () => {
+  const models = () => store.useProviderStore.getState().models.probe;
+
+  it('keeps the models of the latest ready answer through a re-check, and empties them on a refusal', async () => {
+    let answer: CheckResult = { ok: true, models: [{ id: 'm2' }, { id: 'm1' }] };
+    const p = probe('own-key', async () => answer);
+    await loadedWithKey(p);
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(models()).toEqual([{ id: 'm2' }, { id: 'm1' }]);
+
+    store.useProviderStore.getState().updateSettings(p, { mode: 'b' });
+    expect(readiness()).toEqual({ state: 'unknown' });
+    expect(models()).toEqual([{ id: 'm2' }, { id: 'm1' }]);
+
+    answer = { ok: false, reason: 'no' };
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(models()).toEqual([]);
+  });
+
+  it('empties them for missing credentials, and keeps them through a check that threw', async () => {
+    const p = probe('own-key', async () => ({ ok: true, models: [{ id: 'm1' }] }));
+    await loadedWithKey(p);
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(models()).toEqual([{ id: 'm1' }]);
+    store.useProviderStore.getState().setCredential(p, 'apiKey', '');
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(models()).toEqual([]);
+
+    // A fresh module: nothing kept from the half above.
+    vi.resetModules();
+    store = await import('./providerStore');
+    let throws = false;
+    const q = probe('own-key', async () => {
+      if (throws) throw new Error('offline');
+      return { ok: true, models: [{ id: 'm1' }] };
+    });
+    await loadedWithKey(q);
+    await store.useProviderStore.getState().refreshReadiness(q, noAuth);
+    expect(models()).toEqual([{ id: 'm1' }]);
+    store.useProviderStore.getState().updateSettings(q, { mode: 'b' });
+    throws = true;
+    await store.useProviderStore.getState().refreshReadiness(q, noAuth);
+    expect(readiness()).toMatchObject({ state: 'not-ready' });
+    expect(models()).toEqual([{ id: 'm1' }]);
+  });
+
+  it('restores the models with a kept answer: the same key typed back reuses the answer, and its models', async () => {
+    const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true, models: [{ id: 'm1' }] }));
+    const p = probe('own-key', check);
+    await loadedWithKey(p, 'k1');
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    store.useProviderStore.getState().setCredential(p, 'apiKey', '');
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(models()).toEqual([]);
+    store.useProviderStore.getState().setCredential(p, 'apiKey', 'k1');
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    // Asked once: the answer came from the kept one, so only its recording can have restored the list.
+    expect(check).toHaveBeenCalledTimes(1);
+    expect(readiness()).toEqual({ state: 'ready', models: [{ id: 'm1' }] });
+    expect(models()).toEqual([{ id: 'm1' }]);
+  });
+
+  it('records one shared empty list for a ready answer that found no models', async () => {
+    const answers: CheckResult[] = [{ ok: true }, { ok: true, models: [] }];
+    const p = probe('local', async () => answers.shift()!);
+    await loadedWithKey(p);
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(models()).toBe(store.NO_MODELS);
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(models()).toBe(store.NO_MODELS);
+    expect(readiness()).toEqual({ state: 'ready', models: [] });
   });
 });
 

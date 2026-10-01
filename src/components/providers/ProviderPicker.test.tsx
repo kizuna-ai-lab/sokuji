@@ -42,13 +42,12 @@ vi.mock('../../utils/supportsBaseSelect', () => ({
 
 // The vendor credit renders through <Trans>, which reads the real i18next
 // singleton directly (context or getI18n()) rather than the useTranslation()
-// hook mocked above — same setup PoweredBy.test.tsx uses to exercise the same
-// i18nKey ('providers.poweredBy').
+// hook mocked above ('providers.poweredBy').
 import '../../locales';
 
 import { fakeProvider } from '../../providers/fake/provider';
 import { localInferenceProvider } from '../../providers/localInference/provider';
-import type { EngineSummaryProps } from '../../lib/provider/types';
+import type { EngineSummaryProps, Readiness } from '../../lib/provider/types';
 import type { FakeSettings } from '../../providers/fake/settings';
 import { useProviderStore } from '../../stores/providerStore';
 import { ProviderPicker } from './ProviderPicker';
@@ -94,6 +93,36 @@ describe('ProviderPicker', () => {
     expect(await screen.findByRole('option', { name: 'providers.local_inference.name' })).toBeTruthy();
   });
 
+  it("reads a provider's name under its i18nKey when it has one", async () => {
+    const openaiCompatible = { ...fakeProvider, id: 'openai_compatible', i18nKey: 'openaiCompatible', settings: { ...fakeProvider.settings, key: 'openaiCompatible' } };
+    render(<ProviderPicker providers={[openaiCompatible]} auth={noAuth} />);
+    expect(await screen.findByRole('option', { name: 'providers.openaiCompatible.name' })).toBeTruthy();
+  });
+
+  it("draws a provider's credential choice and writes it as a setting: the other option's fields show (F4)", async () => {
+    const choosy = {
+      ...fakeProvider,
+      id: 'choosy',
+      settings: { key: 'choosy', defaults: { ...fakeProvider.settings.defaults, mode: 'key' } },
+      credentials: {
+        keys: ['apiKey', 'appId'],
+        fields: (s: { mode: string }) => (s.mode === 'app' ? [{ key: 'appId', labelKey: 'setup.credentials.appId', secret: false }] : [{ key: 'apiKey', labelKey: 'setup.credentials.apiKey', secret: true }]),
+        read: () => ({}),
+        choice: { setting: 'mode', options: [{ value: 'key', labelKey: 'choice.key' }, { value: 'app', labelKey: 'choice.app' }] },
+      },
+    } as unknown as typeof fakeProvider;
+    render(<ProviderPicker providers={[choosy]} auth={noAuth} />);
+    await screen.findByLabelText('setup.credentials.apiKey');
+    expect(screen.getByRole('button', { name: 'choice.key' }).getAttribute('aria-pressed')).toBe('true');
+
+    fireEvent.click(screen.getByRole('button', { name: 'choice.app' }));
+
+    expect((useProviderStore.getState().entries.choosy?.settings as { mode: string }).mode).toBe('app');
+    expect(await screen.findByLabelText('setup.credentials.appId')).toBeInTheDocument();
+    expect(screen.queryByLabelText('setup.credentials.apiKey')).toBeNull();
+    await waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.choosy.mode', 'app'));
+  });
+
   it('disables the select and the credential inputs', async () => {
     stored.set('settings.fake.requireKey', true);
     render(<ProviderPicker providers={[fakeProvider]} auth={noAuth} disabled />);
@@ -120,6 +149,7 @@ describe('ProviderPicker', () => {
     const props = seen[seen.length - 1];
     expect(props?.legs).toEqual(['speaker', 'participant']);
     expect(props?.openSlot).toBe(openSlot);
+    expect(seen[0].models).toEqual([]);
   });
 
   it('shows no EngineSummary without openSlot', async () => {
@@ -144,6 +174,139 @@ describe('ProviderPicker', () => {
     });
     expect(await screen.findByText('notices.local_models_missing')).toHaveClass('validation-message', 'error');
     expect(screen.queryByTitle('simpleSettings.validate')).toBeNull();
+  });
+
+  it("Validate tracks api_key_validated, with the provider's stored spelling and whether it passed", async () => {
+    const { unmount } = render(<ProviderPicker providers={[fakeProvider]} auth={noAuth} />);
+    fireEvent.click(await screen.findByTitle('simpleSettings.validate'));
+    await waitFor(() => expect(trackEvent).toHaveBeenCalledWith('api_key_validated', { provider: 'fake', success: true }));
+    unmount();
+
+    trackEvent.mockClear();
+    useProviderStore.setState({ entries: {}, readiness: {}, selected: null });
+    stored.set('settings.fake.checkFails', true);
+    render(<ProviderPicker providers={[fakeProvider]} auth={noAuth} />);
+    fireEvent.click(await screen.findByTitle('simpleSettings.validate'));
+    await waitFor(() => expect(trackEvent).toHaveBeenCalledWith('api_key_validated', { provider: 'fake', success: false }));
+  });
+
+  // Their own ids, below: the store keeps a ready answer per provider id at
+  // module scope, and the fake's default settings already have one from the
+  // case above, which would answer these without calling their `check`.
+  it("Validate tracks a refusal's code as error_type", async () => {
+    const refusing = {
+      ...fakeProvider, id: 'refusing', settings: { ...fakeProvider.settings, key: 'refusing' },
+      check: async () => ({ ok: false as const, reason: 'x', code: 'invalid_key' }),
+    };
+    render(<ProviderPicker providers={[refusing]} auth={noAuth} />);
+    fireEvent.click(await screen.findByTitle('simpleSettings.validate'));
+    await waitFor(() => expect(trackEvent).toHaveBeenCalledWith('api_key_validated', { provider: 'refusing', success: false, error_type: 'invalid_key' }));
+  });
+
+  it('Validate tracks nothing for a check that found nothing out: it was superseded', async () => {
+    let answer!: (result: { ok: true }) => void;
+    const superseded = {
+      ...fakeProvider, id: 'superseded', settings: { ...fakeProvider.settings, key: 'superseded' },
+      check: () => new Promise<{ ok: true }>((resolve) => { answer = resolve; }),
+    };
+    render(<ProviderPicker providers={[superseded]} auth={noAuth} />);
+    fireEvent.click(await screen.findByTitle('simpleSettings.validate'));
+    await waitFor(() => expect(useProviderStore.getState().readiness.superseded).toEqual({ state: 'checking' }));
+    // An edit meanwhile: the answer this press gets back is unknown.
+    act(() => { useProviderStore.getState().forgetReadiness(superseded); });
+    await act(async () => {
+      answer({ ok: true });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(trackEvent).not.toHaveBeenCalledWith('api_key_validated', expect.anything());
+  });
+
+  it('Validate tracks nothing for a check a newer one superseded while that one still runs: the press answers checking', async () => {
+    const answers: Array<(result: { ok: true }) => void> = [];
+    const overtaken = {
+      ...fakeProvider, id: 'overtaken', settings: { ...fakeProvider.settings, key: 'overtaken' },
+      check: () => new Promise<{ ok: true }>((resolve) => { answers.push(resolve); }),
+    };
+    // The store's refreshReadiness, with the answer each call got back.
+    const realRefresh = useProviderStore.getState().refreshReadiness;
+    const got: Array<Promise<Readiness>> = [];
+    useProviderStore.setState({ refreshReadiness: (...args) => { const answer = realRefresh(...args); got.push(answer); return answer; } });
+    try {
+      render(<ProviderPicker providers={[overtaken]} auth={noAuth} />);
+      fireEvent.click(await screen.findByTitle('simpleSettings.validate'));
+      await waitFor(() => expect(answers).toHaveLength(1));
+      // A newer check (the readiness driver's, or a start's) begins while the press's still runs.
+      act(() => { void useProviderStore.getState().refreshReadiness(overtaken, noAuth); });
+      expect(answers).toHaveLength(2);
+      await act(async () => {
+        answers[0]({ ok: true });
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+      await expect(got[0]).resolves.toEqual({ state: 'checking' });
+      expect(trackEvent).not.toHaveBeenCalledWith('api_key_validated', expect.anything());
+      await act(async () => {
+        answers[1]({ ok: true });
+        await got[1];
+      });
+    } finally {
+      useProviderStore.setState({ refreshReadiness: realRefresh });
+    }
+  });
+
+  it('offers no Validate button for a managed provider: its readiness follows the sign-in', async () => {
+    const managed = { ...fakeProvider, id: 'managed-probe', kind: 'managed' as const, settings: { ...fakeProvider.settings, key: 'managedProbe' } };
+    render(<ProviderPicker providers={[managed]} auth={noAuth} />);
+    await waitFor(() => expect(useProviderStore.getState().entries['managed-probe']).toBeDefined());
+    expect(screen.queryByTitle('simpleSettings.validate')).toBeNull();
+  });
+
+  it("draws a managed provider's account row, not a credential form", async () => {
+    const managed = { ...fakeProvider, id: 'managed-probe', kind: 'managed' as const, settings: { ...fakeProvider.settings, key: 'managedProbe' } };
+    const { unmount } = render(<ProviderPicker providers={[managed]} auth={noAuth} />);
+    await waitFor(() => expect(useProviderStore.getState().entries['managed-probe']).toBeDefined());
+    expect(document.querySelector('.api-key-warning')).not.toBeNull();
+    expect(screen.queryByLabelText('setup.credentials.apiKey')).toBeNull();
+    unmount();
+
+    useProviderStore.setState({ entries: {}, readiness: {}, selected: null });
+    render(<ProviderPicker providers={[managed]} auth={{ ...noAuth, signedIn: true }} />);
+    expect(await screen.findByText('simpleSettings.autoAuthenticated')).toBeInTheDocument();
+  });
+
+  describe('the recommended provider', () => {
+    it('recommends the first managed provider — rich option', async () => {
+      baseSelectSupported.value = true;
+      const managedA = { ...fakeProvider, id: 'managed-a', kind: 'managed' as const, settings: { ...fakeProvider.settings, key: 'managedA' } };
+      const managedB = { ...fakeProvider, id: 'managed-b', kind: 'managed' as const, settings: { ...fakeProvider.settings, key: 'managedB' } };
+      render(<ProviderPicker providers={[fakeProvider, managedA, managedB]} auth={noAuth} />);
+      await screen.findByLabelText('simpleSettings.provider');
+
+      expect(document.querySelectorAll('.provider-select em.provider-recommended')).toHaveLength(1);
+      const managedAOption = document.querySelector('.provider-select option[value="managed-a"]');
+      const tag = managedAOption?.querySelector('em.provider-recommended');
+      expect(tag).not.toBeNull();
+      expect(tag?.textContent).toBe('simpleSettings.recommended');
+    });
+
+    it('recommends it in text on the extension floor', async () => {
+      baseSelectSupported.value = false;
+      const managedA = { ...fakeProvider, id: 'managed-a', kind: 'managed' as const, settings: { ...fakeProvider.settings, key: 'managedA' } };
+      const managedB = { ...fakeProvider, id: 'managed-b', kind: 'managed' as const, settings: { ...fakeProvider.settings, key: 'managedB' } };
+      render(<ProviderPicker providers={[fakeProvider, managedA, managedB]} auth={noAuth} />);
+      await screen.findByLabelText('simpleSettings.provider');
+
+      expect(document.querySelector('.provider-select option[value="managed-a"]')?.textContent).toBe('simpleSettings.recommendedOption');
+      expect(document.querySelector('.provider-select option[value="fake"]')?.textContent).toBe('providers.fake.name');
+      expect(document.querySelector('.provider-select option[value="managed-b"]')?.textContent).toBe('providers.managed-b.name');
+    });
+
+    it('recommends nothing when no managed provider is offered', async () => {
+      render(<ProviderPicker providers={[fakeProvider]} auth={noAuth} />);
+      await screen.findByLabelText('simpleSettings.provider');
+
+      expect(document.querySelectorAll('.provider-select .provider-recommended')).toHaveLength(0);
+      expect(document.querySelector('.provider-select option[value="fake"]')?.textContent).toBe('providers.fake.name');
+    });
   });
 
   describe('the setup guide link (parity with ProviderSection.tsx)', () => {

@@ -9,7 +9,8 @@ import { openExternalUrl } from '../../utils/openExternalUrl';
 import { useProviderStore } from '../../stores/providerStore';
 import Tooltip from '../Tooltip/Tooltip';
 import { CredentialForm } from './CredentialForm';
-import { useSelectedProvider } from './useSelectedProvider';
+import { ManagedAccountRow } from './ManagedAccountRow';
+import { ownProps, useSelectedProvider } from './useSelectedProvider';
 // The rich option markup below (icon, name-line, description) is styled by
 // the shared rules ProviderSection.tsx also relies on (`.provider-select__*`,
 // `.provider-name-line`, `.powered-by` — see Settings.scss's "Rich provider
@@ -69,8 +70,12 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
   const [richSelect] = useState(() => supportsBaseSelect());
 
   if (!selection) return null;
-  const { provider, entry, readiness, update } = selection;
-  const { setCredential, refreshReadiness, select } = useProviderStore.getState();
+  const { provider, entry, readiness } = selection;
+  const { setCredential, refreshReadiness, select, updateSettings } = useProviderStore.getState();
+  const credentialChoice = provider.credentials.choice;
+  // The first managed provider offered, as the wizard's managed card recommends it (today's ProviderSection.tsx:553-580).
+  const recommendedId = providers.find((p) => p.kind === 'managed')?.id;
+  const recommendedLabel = t('simpleSettings.recommended', 'Recommended');
 
   // Today's `ProviderSection.tsx` keys dismissal by the old enum's spelling
   // (e.g. `local_inference`), so a dismissal made there carries over.
@@ -84,24 +89,28 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
 
   // One renderer for every provider option — ports ProviderSection.tsx's
   // renderProviderOption (~:551-586) over the new registry: name/description
-  // key off the old enum's spelling (storedProviderValue), same as the
-  // option's `value`; a provider whose keys are missing falls back to its id
-  // for the name (as today) and no description line at all. The icon and
-  // vendor come straight off the definition (`p.icon`, `p.vendor`) rather
-  // than a separate UI-layer lookup table.
+  // key comes straight off the definition (`i18nKey`, falling back to `id` —
+  // controller ruling 2), not off `storedProviderValue`, which only maps the
+  // id onto its stored spelling; a provider whose keys are missing falls back
+  // to its id for the name (as today) and no description line at all. The
+  // icon and vendor come straight off the definition (`p.icon`, `p.vendor`)
+  // rather than a separate UI-layer lookup table.
   //
-  // No "Recommended" tag: no managed provider is offered on this branch
-  // (Stage 2 brings it back with the managed step).
+  // The first managed provider offered carries "Recommended" (Stage 2 Kizuna Soniox).
   const renderProviderOption = (p: AnyProvider) => {
-    const storedId = storedProviderValue(p.id);
-    const name = t(`providers.${storedId}.name`, p.id);
+    const localeKey = p.i18nKey ?? p.id;
+    const name = t(`providers.${localeKey}.name`, p.id);
     if (!richSelect) {
       // Chrome below 135 renders <option>{text}</option> and drops every
       // child element, so on the extension's floor (116) the option holds
       // text only.
-      return <option key={p.id} value={p.id}>{name}</option>;
+      return (
+        <option key={p.id} value={p.id}>
+          {p.id === recommendedId ? t('simpleSettings.recommendedOption', '{{name}} ({{label}})', { name, label: recommendedLabel }) : name}
+        </option>
+      );
     }
-    const description = t(`providers.${storedId}.description`, '');
+    const description = t(`providers.${localeKey}.description`, '');
     const vendor = p.vendor;
     return (
       <option key={p.id} value={p.id}>
@@ -110,8 +119,8 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
         </span>
         <span className="provider-select__text">
           {/* Name and engine credit share one line: crediting an engine only
-              matters where the name alone doesn't say which one it is (the
-              Kizuna-managed twins, none offered on this branch — see above). */}
+              matters where the name alone doesn't say which one it is (a
+              Kizuna-managed twin). */}
           <span className="provider-name-line">
             <span className="provider-select__name">{name}</span>
             {vendor && (
@@ -123,6 +132,7 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
                 />
               </span>
             )}
+            {p.id === recommendedId && <em className="provider-recommended">{recommendedLabel}</em>}
           </span>
           {description && <span className="provider-select__description">{description}</span>}
         </span>
@@ -178,18 +188,37 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
           {providers.map((p) => renderProviderOption(p))}
         </select>
       </div>
-      {entry && (
+      {/* A managed provider has no field: its account row says whether the sign-in covers it. */}
+      {entry && (provider.kind === 'managed' ? <ManagedAccountRow auth={auth} /> : (
         <CredentialForm
           fields={provider.credentials.fields(entry.settings)}
           values={entry.credentials}
           readiness={readiness}
           onChange={(key, value) => setCredential(provider, key, value)}
-          onCheck={provider.kind === 'local' ? undefined : () => void refreshReadiness(provider, auth)}
+          // F4: which fields show is a setting, written as any settings edit is (the readiness driver re-checks the other fields).
+          choice={credentialChoice && {
+            options: credentialChoice.options,
+            value: String((entry.settings as Record<string, unknown>)[credentialChoice.setting] ?? ''),
+            onChange: (value) => updateSettings(provider, { [credentialChoice.setting]: value }),
+          }}
+          // A local provider checks itself, and a managed one follows the sign-in (F1): only an own-key provider offers Validate.
+          onCheck={provider.kind === 'own-key' ? () => {
+            void refreshReadiness(provider, auth).then((answer) => {
+              // Superseded (an edit meanwhile, or a newer check still running): this press found nothing out.
+              if (answer.state === 'unknown' || answer.state === 'checking') return;
+              // Today's event (ProviderSection.tsx's handleValidateApiKey), for the button a person pressed.
+              trackEvent('api_key_validated', {
+                provider: storedProviderValue(provider.id),
+                success: answer.state === 'ready',
+                ...(answer.state === 'not-ready' && answer.code ? { error_type: answer.code } : {}),
+              });
+            });
+          } : undefined}
           disabled={disabled}
         />
-      )}
+      ))}
       {openSlot && provider.EngineSummary && entry && (
-        <provider.EngineSummary settings={entry.settings} update={update} disabled={disabled} pair={entry.pair} legs={legs} openSlot={openSlot} />
+        <provider.EngineSummary {...ownProps(selection, entry, disabled)} legs={legs} openSlot={openSlot} />
       )}
       {provider.guideUrl && !dismissedTutorials.has(storedProviderId) && (
         <div className="tutorial-link">

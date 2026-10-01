@@ -12,7 +12,7 @@ const SEND_COOLDOWN_MS = 300;
 
 /**
  * Typed text — speaker channel only. Visibility ("running && legs.speaker &&
- * provider.textInput", ruling 16) is the composition's (Task 12); this
+ * provider.textInput(settings)", ruling 16) is the composition's (Task 12); this
  * component only owns its own box and the 300ms re-submit latch, calling
  * `onSend` with the trimmed text (`MainPanel.tsx:4646-4670`, `:3511-3530`).
  */

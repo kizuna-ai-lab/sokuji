@@ -7,10 +7,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 
 // providerStore imports ServiceFactory at module scope, which chains into
-// SettingsService -> ClientOperations -> ProviderConfigFactory (a static
-// initializer reading isKizunaAIEnabled at import time) and into i18n's own
-// setup. Stubbed, as every other test that pulls in the real providerStore
-// does, so this file stays scoped to the hook's own wiring.
+// SettingsService and into i18n's own setup. Stubbed, as every other test
+// that pulls in the real providerStore does, so this file stays scoped to the
+// hook's own wiring.
 vi.mock('../../services/ServiceFactory', () => ({
   ServiceFactory: {
     getSettingsService: () => ({

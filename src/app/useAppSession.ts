@@ -15,12 +15,15 @@ import { getAppSession } from './session';
 
 export { useRunState, useRunPhase } from './useRun';
 
-/** Hands the session the page's sign-in, analytics, toasts and balance refetch; returns the sign-in for the settings panel. */
-export function useAppSessionBridges(refetchQuota?: () => Promise<void>): AuthContext {
-  const { isSignedIn, getToken } = useAuth();
+/** Hands the session the page's sign-in, analytics, toasts and balance refetch; returns the sign-in for the settings panel. `standIn` replaces the sign-in — the preview's `&signedin=1`, for a managed provider with no network. */
+export function useAppSessionBridges(refetchQuota?: () => Promise<void>, standIn?: AuthContext): AuthContext {
+  const { isLoaded, isSignedIn, userId, getToken, error } = useAuth();
   const { trackEvent } = useAnalytics();
   const { showToast } = useToast();
-  const auth = useMemo(() => ({ signedIn: isSignedIn, getToken }), [isSignedIn, getToken]);
+  // A signed-out answer carrying an error is a session fetch that failed, not an answer (`useAuthContext.ts`): not loaded until the refetch answers.
+  const loaded = isLoaded && !(!isSignedIn && error);
+  const real = useMemo(() => ({ signedIn: isSignedIn, loaded, userId: userId ?? null, getToken }), [isSignedIn, loaded, userId, getToken]);
+  const auth = standIn ?? real;
   // Every render, as the preview's bridge did: the runner reads them when it needs them, never a stale closure.
   getAppSession().setBridges({ auth, track: trackEvent as AnalyticsPort['track'], notify: { showToast }, refetchQuota });
   return auth;

@@ -21,6 +21,10 @@ export const localInferenceProvider: Provider<LocalInferenceSettings, LocalCrede
   kind: 'local',
   platforms: ['electron', 'extension', 'web'],
   icon: KizunaAIIcon,
+  // The old enum's spelling (controller ruling 2): the picker reads
+  // `providers.<i18nKey ?? id>.*` from the definition now, not from
+  // `storedProviderValue`.
+  i18nKey: 'local_inference',
   // Today's TUTORIAL_URLS value (`services/providers/tutorialUrls.ts`), as a
   // literal: that module is under `src/services`, the old provider layer
   // this rewrite is replacing, and this provider's own code should not
@@ -41,7 +45,7 @@ export const localInferenceProvider: Provider<LocalInferenceSettings, LocalCrede
   languages: localInferenceLanguages,
 
   speech: 'optional',
-  textInput: true,
+  textInput: () => true,
   boundaries: () => 'provider',
   turns: () => ['auto', 'manual'],
 

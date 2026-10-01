@@ -1,24 +1,15 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { renderHook } from '@testing-library/react';
 import { Provider } from '../types/Provider';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
-import { directionKey } from '../lib/local-inference/selection/types';
 import useLogStore from './logStore';
 
-// Force platform detection so environment-gated providers (notably Volcengine
-// AST 2.0, which requires Electron/Extension) are present in the descriptor
-// registry. createSessionConfig now dispatches through
-// ProviderConfigFactory.getDescriptor, which throws for unregistered providers;
-// these tests exercise VOLCENGINE_AST2 directly. Mirrors descriptorRegistry.test.ts.
+// Force platform detection so environment-gated providers are present in the
+// descriptor registry. createSessionConfig now dispatches through
+// ProviderConfigFactory.getDescriptor, which throws for unregistered
+// providers. Mirrors descriptorRegistry.test.ts.
 vi.mock('../utils/environment', async (orig) => ({
   ...(await orig<any>()),
   isKizunaAIEnabled: () => true,
-  // Explicit: each managed provider is gated on its own now, and this mock's
-  // promise is that EVERY provider gate is forced on.
-  isKizunaSonioxEnabled: () => true,
-  isKizunaOpenAITranslateEnabled: () => true,
-  isKizunaVolcengineAST2Enabled: () => true,
-  isPalabraAIEnabled: () => true,
   isElectron: () => true,
   isExtension: () => false,
 }));
@@ -35,20 +26,9 @@ vi.mock('../services/ServiceFactory', () => ({
   },
 }));
 
-// Mock estimateModelMemoryByDevice so we can control memory budget checks
-const mockEstimateMemory = vi.fn().mockReturnValue({ vramMb: 0, ramMb: 0 });
-vi.mock('../lib/local-inference/modelManifest', async () => {
-  const actual = await vi.importActual('../lib/local-inference/modelManifest');
-  return {
-    ...actual,
-    estimateModelMemoryByDevice: (...args: any[]) => mockEstimateMemory(...args),
-  };
-});
-
 // Import after mocking
 const {
   default: useSettingsStore,
-  useTransportType,
   clampChunkSentences,
 } = await import('./settingsStore');
 
@@ -58,7 +38,6 @@ describe('settingsStore', () => {
     useSettingsStore.setState({
       provider: Provider.OPENAI,
       isValidating: false,
-      cacheTimestamp: null,
     });
     vi.clearAllMocks();
   });
@@ -69,13 +48,12 @@ describe('settingsStore', () => {
 
   describe('Provider Switching', () => {
     it('should set provider and clear cache without calling validateApiKey', async () => {
-      // setProvider no longer calls validateApiKey directly —
-      // validation is delegated to SettingsInitializer which reacts to provider changes.
+      // setProvider does not call validateApiKey, and nothing validates on a
+      // provider change (Stage 2 deletion, ruling 1).
       const store = useSettingsStore.getState();
 
-      // Set some cache data first
+      // Set some validation state first
       useSettingsStore.setState({
-        validationCache: new Map([['test', { validation: { valid: true, message: '' }, models: [], timestamp: Date.now() }]]),
         availableModels: [{ id: 'test', type: 'realtime' as const, created: 0 }],
         isApiKeyValid: true,
       });
@@ -86,7 +64,7 @@ describe('settingsStore', () => {
       // Provider should be updated
       expect(useSettingsStore.getState().provider).toBe(Provider.GEMINI);
 
-      // Cache should be cleared (availableModels reset, validationCache empty)
+      // The validation state is reset (availableModels empty, isApiKeyValid null)
       const state = useSettingsStore.getState();
       expect(state.availableModels).toEqual([]);
       expect(state.isApiKeyValid).toBeNull();
@@ -108,20 +86,23 @@ describe('settingsStore', () => {
         return { valid: true, message: '', validating: false };
       });
 
-      // Switch to a Kizuna-managed (relay) provider
-      await store.setProvider(Provider.KIZUNA_AI_OPENAI_TRANSLATE);
+      // Switch provider
+      await store.setProvider(Provider.LOCAL_NATIVE);
 
-      // validateApiKey should NOT be called from setProvider (handled by SettingsInitializer)
+      // validateApiKey should NOT be called from setProvider
       expect(validateSpy).not.toHaveBeenCalled();
 
       // Provider should be updated
-      expect(useSettingsStore.getState().provider).toBe(Provider.KIZUNA_AI_OPENAI_TRANSLATE);
+      expect(useSettingsStore.getState().provider).toBe(Provider.LOCAL_NATIVE);
+
+      // zustand copies the state's properties into every next state, so an
+      // unrestored spy would answer for validateApiKey in every later test.
+      validateSpy.mockRestore();
     });
 
     it('should clear cache when switching providers', async () => {
-      // Set some cache data
+      // Set some validation state
       useSettingsStore.setState({
-        validationCache: new Map([['test', { validation: { valid: true, message: '' }, models: [], timestamp: Date.now() }]]),
         availableModels: [{ id: 'test', type: 'realtime' as const, created: 0 }],
         isApiKeyValid: true,
       });
@@ -129,207 +110,77 @@ describe('settingsStore', () => {
       // Switch provider
       await useSettingsStore.getState().setProvider(Provider.GEMINI);
 
-      // Verify cache was cleared by checking state (not spy)
+      // Verify it was reset by checking state (not spy)
       const state = useSettingsStore.getState();
-      expect(state.validationCache.size).toBe(0);
       expect(state.availableModels).toEqual([]);
       expect(state.isApiKeyValid).toBeNull();
     });
 
     it('should persist provider change to settings service', async () => {
       // Switch provider
-      await useSettingsStore.getState().setProvider(Provider.OPENAI_COMPATIBLE);
+      await useSettingsStore.getState().setProvider(Provider.LOCAL_NATIVE);
 
       // Check that settings service was called
       expect(mockSetSetting).toHaveBeenCalledWith(
         'settings.common.provider',
-        Provider.OPENAI_COMPATIBLE
+        Provider.LOCAL_NATIVE
       );
     });
   });
 
   describe('Cache Management', () => {
     it('should clear cache and reset validation state', () => {
-      // Set initial state with cache
+      // Set initial validation state
       useSettingsStore.setState({
-        validationCache: new Map([['test', { validation: { valid: true, message: '' }, models: [], timestamp: Date.now() }]]),
         availableModels: [{ id: 'test', type: 'realtime' as const, created: 0 }],
         isApiKeyValid: true,
       });
 
-      // Clear cache
+      // Clear it
       useSettingsStore.getState().clearCache();
 
       // Check state was reset
       const state = useSettingsStore.getState();
-      expect(state.validationCache.size).toBe(0);
       expect(state.availableModels).toEqual([]);
       expect(state.isApiKeyValid).toBeNull();
     });
   });
 
-  describe('Volcengine AST 2.0 custom vocabulary', () => {
-    const volcBase = {
-      appId: 'app-id',
-      accessToken: 'token',
-      sourceLanguage: 'zh' as const,
-      targetLanguage: 'en' as const,
-      turnDetectionMode: 'Auto' as const,
-    };
+  describe('validateApiKey', () => {
+    // Every provider but Local Native validates in the new registry (its
+    // definition's `check`); this store holds only Local Native's old path
+    // (Stage 2 deletion, ruling 1), so for any other provider there is nothing
+    // to ask: no request, no readiness check, and the last verdict is cleared.
+    it('answers not valid for a provider other than Local Native, asking nothing, and resets the validation state', async () => {
+      const fetchSpy = vi.fn(async () => new Response('{}'));
+      vi.stubGlobal('fetch', fetchSpy);
+      const { useNativeModelStore } = await import('./nativeModelStore');
+      const readySpy = vi.spyOn(useNativeModelStore.getState(), 'ensureSelectionReady')
+        .mockResolvedValue({ ready: true, reason: 'ready', notes: [] });
+      try {
+        useSettingsStore.setState({
+          provider: Provider.OPENAI,
+          isApiKeyValid: true,
+          availableModels: [{ id: 'test', type: 'realtime' as const, created: 0 }],
+          validationMessage: 'stale',
+          isValidating: true,
+        });
 
-    it('omits all three corpus fields when values are empty strings', () => {
-      useSettingsStore.setState({
-        provider: Provider.VOLCENGINE_AST2,
-        volcengineAST2: {
-          ...volcBase,
-          hotWordTableId: '',
-          replacementTableId: '',
-          glossaryTableId: '',
-        },
-      } as any);
+        const result = await useSettingsStore.getState().validateApiKey();
 
-      const config = useSettingsStore.getState().createSessionConfig('sys');
-      expect(config.provider).toBe('volcengine_ast2');
-      expect((config as any).hotWordTableId).toBeUndefined();
-      expect((config as any).replacementTableId).toBeUndefined();
-      expect((config as any).glossaryTableId).toBeUndefined();
+        expect(result).toEqual({ valid: false, message: '', validating: false });
+        const state = useSettingsStore.getState();
+        expect(state.isApiKeyValid).toBeNull();
+        expect(state.availableModels).toEqual([]);
+        expect(state.validationMessage).toBe('');
+        expect(state.isValidating).toBe(false);
+        expect(fetchSpy).not.toHaveBeenCalled();
+        expect(readySpy).not.toHaveBeenCalled();
+      } finally {
+        readySpy.mockRestore();
+        vi.unstubAllGlobals();
+      }
     });
-
-    it('omits fields that contain only whitespace', () => {
-      useSettingsStore.setState({
-        provider: Provider.VOLCENGINE_AST2,
-        volcengineAST2: {
-          ...volcBase,
-          hotWordTableId: '   ',
-          replacementTableId: '\t\n',
-          glossaryTableId: ' ',
-        },
-      } as any);
-
-      const config = useSettingsStore.getState().createSessionConfig('sys');
-      expect((config as any).hotWordTableId).toBeUndefined();
-      expect((config as any).replacementTableId).toBeUndefined();
-      expect((config as any).glossaryTableId).toBeUndefined();
-    });
-
-    it('trims and passes through set IDs; leaves others undefined', () => {
-      useSettingsStore.setState({
-        provider: Provider.VOLCENGINE_AST2,
-        volcengineAST2: {
-          ...volcBase,
-          hotWordTableId: '  hot-abc  ',
-          replacementTableId: '',
-          glossaryTableId: 'gloss-1',
-        },
-      } as any);
-
-      const config = useSettingsStore.getState().createSessionConfig('sys');
-      expect((config as any).hotWordTableId).toBe('hot-abc');
-      expect((config as any).replacementTableId).toBeUndefined();
-      expect((config as any).glossaryTableId).toBe('gloss-1');
-    });
-
-    it('trims all three when all are set', () => {
-      useSettingsStore.setState({
-        provider: Provider.VOLCENGINE_AST2,
-        volcengineAST2: {
-          ...volcBase,
-          hotWordTableId: '\thot-1\t',
-          replacementTableId: ' rep-2 ',
-          glossaryTableId: 'gloss-3',
-        },
-      } as any);
-
-      const config = useSettingsStore.getState().createSessionConfig('sys');
-      expect((config as any).hotWordTableId).toBe('hot-1');
-      expect((config as any).replacementTableId).toBe('rep-2');
-      expect((config as any).glossaryTableId).toBe('gloss-3');
-    });
-  });
-
-  describe('Push-to-Translate persistence', () => {
-    it('persists Push-to-Translate for Gemini', async () => {
-      const store = useSettingsStore.getState();
-      await store.updateGemini({ turnDetectionMode: 'Push-to-Translate' });
-
-      expect(useSettingsStore.getState().gemini.turnDetectionMode).toBe('Push-to-Translate');
-      expect(mockSetSetting).toHaveBeenCalledWith(
-        'settings.gemini.turnDetectionMode',
-        'Push-to-Translate'
-      );
-    });
-
-    it('persists Push-to-Translate for Volcengine AST2', async () => {
-      const store = useSettingsStore.getState();
-      await store.updateVolcengineAST2({ turnDetectionMode: 'Push-to-Translate' });
-
-      expect(useSettingsStore.getState().volcengineAST2.turnDetectionMode).toBe('Push-to-Translate');
-      expect(mockSetSetting).toHaveBeenCalledWith(
-        'settings.volcengineAST2.turnDetectionMode',
-        'Push-to-Translate'
-      );
-    });
-
-    it('persists Push-to-Translate for Local Inference', async () => {
-      const store = useSettingsStore.getState();
-      await store.updateLocalInference({ turnDetectionMode: 'Push-to-Translate' });
-
-      expect(useSettingsStore.getState().localInference.turnDetectionMode).toBe('Push-to-Translate');
-      expect(mockSetSetting).toHaveBeenCalledWith(
-        'settings.localInference.turnDetectionMode',
-        'Push-to-Translate'
-      );
-    });
-
-    it('persists Push-to-Translate for OpenAI on WebSocket', async () => {
-      const store = useSettingsStore.getState();
-      await store.updateOpenAI({
-        transportType: 'websocket',
-        turnDetectionMode: 'Push-to-Translate',
-      });
-
-      expect(useSettingsStore.getState().openai.turnDetectionMode).toBe('Push-to-Translate');
-    });
-
-    it('per-provider isolation: setting Push-to-Translate on Gemini does not change OpenAI', async () => {
-      const store = useSettingsStore.getState();
-      const openAIBefore = useSettingsStore.getState().openai.turnDetectionMode;
-
-      await store.updateGemini({ turnDetectionMode: 'Push-to-Translate' });
-
-      expect(useSettingsStore.getState().openai.turnDetectionMode).toBe(openAIBefore);
-    });
-  });
-
-  describe('WebRTC auto-correction for Push-to-Translate', () => {
-    it('OpenAI: demotes Push-to-Translate to Disabled when transport switches to webrtc', async () => {
-      const store = useSettingsStore.getState();
-
-      // Start on websocket with Push-to-Translate
-      await store.updateOpenAI({
-        transportType: 'websocket',
-        turnDetectionMode: 'Push-to-Translate',
-      });
-      expect(useSettingsStore.getState().openai.turnDetectionMode).toBe('Push-to-Translate');
-
-      // Switch transport to webrtc
-      await store.updateOpenAI({ transportType: 'webrtc' });
-      expect(useSettingsStore.getState().openai.turnDetectionMode).toBe('Disabled');
-    });
-
-    it('OpenAI Compatible: demotes Push-to-Translate to Disabled when transport switches to webrtc', async () => {
-      const store = useSettingsStore.getState();
-      await store.updateOpenAICompatible({
-        transportType: 'websocket',
-        turnDetectionMode: 'Push-to-Translate',
-      });
-      await store.updateOpenAICompatible({ transportType: 'webrtc' });
-      expect(useSettingsStore.getState().openaiCompatible.turnDetectionMode).toBe('Disabled');
-    });
-
-    // The realtime KIZUNA_AI provider (with its WebRTC webrtc→Disabled demotion)
-    // was removed in favor of the WS-only relay-managed twins, so its
-    // webrtc-demotion test no longer applies.
   });
 
   describe('keepReplayAudio', () => {
@@ -683,160 +534,6 @@ describe('settingsStore', () => {
       expect(useSettingsStore.getState().autoSaveOnStop).toBe(false);
     });
   });
-
-  describe('useTransportType', () => {
-    it('resolves the active provider slice, not a hardcoded openai slice (bug repro: OpenAI Translate reads its own websocket choice, not OpenAI leftover webrtc)', async () => {
-      const store = useSettingsStore.getState();
-      await store.updateOpenAI({ transportType: 'webrtc' });
-      await store.updateOpenAITranslate({ transportType: 'websocket' });
-      useSettingsStore.setState({ provider: Provider.OPENAI_TRANSLATE });
-
-      const { result } = renderHook(() => useTransportType());
-
-      expect(result.current).toBe('websocket');
-    });
-
-    it('resolves OpenAI itself to its own webrtc choice', async () => {
-      const store = useSettingsStore.getState();
-      await store.updateOpenAI({ transportType: 'webrtc' });
-      useSettingsStore.setState({ provider: Provider.OPENAI });
-
-      const { result } = renderHook(() => useTransportType());
-
-      expect(result.current).toBe('webrtc');
-    });
-
-    it('defaults to websocket for a provider slice with no transportType field', () => {
-      useSettingsStore.setState({ provider: Provider.GEMINI });
-
-      const { result } = renderHook(() => useTransportType());
-
-      expect(result.current).toBe('websocket');
-    });
-  });
-
-});
-
-describe('createParticipantLocalInferenceConfig', () => {
-  // The participant direction (target→source) is a peer of the speaker
-  // direction, not a reversal of it: it resolves from the real WASM manifest
-  // via modelStore.resolve(), driven by real modelStatuses state and a
-  // `selections` argument passed in directly (mirrors how the descriptor
-  // calls it — no settingsStore access inside this function at all).
-  // 'sensevoice-int8' (multilingual ASR) and 'opus-mt-en-jap' (the real
-  // en→ja Opus-MT entry) are real manifest ids.
-  beforeEach(async () => {
-    const { useModelStore } = await import('./modelStore');
-    useModelStore.setState({ modelStatuses: {} });
-  });
-
-  afterEach(async () => {
-    const { useModelStore } = await import('./modelStore');
-    useModelStore.setState({ modelStatuses: {} });
-  });
-
-  it('swaps languages and resolves reverse models', async () => {
-    const { createParticipantLocalInferenceConfig } = await import('./settingsStore');
-    const { useModelStore } = await import('./modelStore');
-    useModelStore.setState({
-      modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-jap': 'downloaded' },
-    });
-
-    const baseConfig = {
-      provider: 'local_inference' as const,
-      model: 'local-asr-translate',
-      instructions: '',
-      sourceLanguage: 'ja',
-      targetLanguage: 'en',
-      asrModelId: 'sensevoice-int8',
-      translationModelId: 'opus-mt-ja-en',
-      ttsModelId: 'piper-en',
-      ttsSpeakerId: 0,
-      ttsSpeed: 1.0,
-    };
-
-    // Explicit selection for the participant's OWN direction (en→ja) — auto
-    // resolution isn't deterministic here since a cloud translation model is
-    // always "ready" and can outrank a downloaded local one.
-    const result = createParticipantLocalInferenceConfig(baseConfig, {
-      [directionKey('en', 'ja')]: {
-        asr: { modelId: 'sensevoice-int8' }, translation: { modelId: 'opus-mt-en-jap' }, tts: { modelId: '' },
-      },
-    });
-
-    expect(result.success).toBe(true);
-    if (!result.success) throw new Error('unexpected');
-    expect(result.config.sourceLanguage).toBe('en');
-    expect(result.config.targetLanguage).toBe('ja');
-    expect(result.config.asrModelId).toBe('sensevoice-int8');
-    expect(result.config.translationModelId).toBe('opus-mt-en-jap');
-    expect(result.config.ttsModelId).toBeUndefined();
-    expect(result.translationAvailable).toBe(true);
-  });
-
-  it('returns no_asr when no ASR model is available', async () => {
-    const { createParticipantLocalInferenceConfig } = await import('./settingsStore');
-    const { useModelStore } = await import('./modelStore');
-    // Nothing downloaded: the reverse direction cannot resolve an ASR model.
-    useModelStore.setState({ modelStatuses: {} });
-
-    const baseConfig = {
-      provider: 'local_inference' as const,
-      model: 'local-asr-translate',
-      instructions: '',
-      sourceLanguage: 'en',
-      targetLanguage: 'ja',
-      asrModelId: 'sensevoice-int8',
-      translationModelId: 'opus-mt-en-jap',
-      ttsModelId: 'piper-ja',
-      ttsSpeakerId: 0,
-      ttsSpeed: 1.0,
-    };
-
-    const result = createParticipantLocalInferenceConfig(baseConfig, {});
-    expect(result.success).toBe(false);
-    if (result.success) throw new Error('unexpected');
-    expect(result.reason).toBe('no_asr');
-  });
-
-  it('returns memory_exceeded when VRAM budget is exceeded', async () => {
-    const { createParticipantLocalInferenceConfig } = await import('./settingsStore');
-    const { useModelStore } = await import('./modelStore');
-    useModelStore.setState({
-      modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-jap': 'downloaded' },
-    });
-
-    const baseConfig = {
-      provider: 'local_inference' as const,
-      model: 'local-asr-translate',
-      instructions: '',
-      sourceLanguage: 'ja',
-      targetLanguage: 'en',
-      asrModelId: 'sensevoice-int8',
-      translationModelId: 'opus-mt-ja-en',
-      ttsModelId: 'piper-en',
-      ttsSpeakerId: 0,
-      ttsSpeed: 1.0,
-    };
-
-    // Set VRAM budget via localStorage override, then simulate models exceeding it
-    localStorage.setItem('debug:vram-budget', '4096');
-    mockEstimateMemory.mockReturnValue({ vramMb: 8000, ramMb: 0 });
-
-    const result = createParticipantLocalInferenceConfig(baseConfig, {
-      [directionKey('en', 'ja')]: {
-        asr: { modelId: 'sensevoice-int8' }, translation: { modelId: 'opus-mt-en-jap' }, tts: { modelId: '' },
-      },
-    });
-    expect(result.success).toBe(false);
-    if (result.success) throw new Error('unexpected');
-    expect(result.reason).toBe('memory_exceeded');
-    expect(result.detail).toContain('VRAM');
-    expect(result.detail).toContain('8000MB');
-
-    localStorage.removeItem('debug:vram-budget');
-    mockEstimateMemory.mockReturnValue({ vramMb: 0, ramMb: 0 });
-  });
 });
 
 describe('updateProviderSlice (public generic action)', () => {
@@ -849,24 +546,14 @@ describe('updateProviderSlice (public generic action)', () => {
   // module-level ServiceFactory mock already in effect for the whole file.
 
   it('merges a patch into the named slice', async () => {
-    await useSettingsStore.getState().updateProviderSlice('soniox', { targetLanguage: 'ja' });
-    expect((useSettingsStore.getState().soniox as { targetLanguage: string }).targetLanguage).toBe('ja');
+    await useSettingsStore.getState().updateProviderSlice('localNative', { targetLanguage: 'ja' });
+    expect(useSettingsStore.getState().localNative.targetLanguage).toBe('ja');
   });
 
-  it('does not bleed into other slices or drop unpatched fields', async () => {
-    const geminiBefore = useSettingsStore.getState().gemini;
-    const sourceBefore = (useSettingsStore.getState().soniox as { sourceLanguage: string }).sourceLanguage;
-    await useSettingsStore.getState().updateProviderSlice('soniox', { targetLanguage: 'ko' });
-    expect(useSettingsStore.getState().gemini).toBe(geminiBefore);
-    expect((useSettingsStore.getState().soniox as { sourceLanguage: string }).sourceLanguage).toBe(sourceBefore);
-  });
-
-  it('applies the same registry transform the named action applies', async () => {
-    // The openai row's transformPatch forces turnDetectionMode 'Disabled' when
-    // transportType flips to webrtc — the generic path must run it too, or the
-    // two write paths diverge on the same slice.
-    await useSettingsStore.getState().updateProviderSlice('openai', { transportType: 'webrtc' });
-    expect((useSettingsStore.getState().openai as { turnDetectionMode: string }).turnDetectionMode).toBe('Disabled');
+  it('does not drop unpatched fields', async () => {
+    const sourceBefore = useSettingsStore.getState().localNative.sourceLanguage;
+    await useSettingsStore.getState().updateProviderSlice('localNative', { targetLanguage: 'ko' });
+    expect(useSettingsStore.getState().localNative.sourceLanguage).toBe(sourceBefore);
   });
 
   it('rejects an unknown slice key', async () => {
@@ -882,10 +569,10 @@ describe('updateProviderSlice (public generic action)', () => {
   });
 
   it('behaves identically to the named per-provider action', async () => {
-    await useSettingsStore.getState().updateProviderSlice('soniox', { voice: 'Daniel' });
-    const viaGeneric = useSettingsStore.getState().soniox;
-    await useSettingsStore.getState().updateSoniox({ voice: 'Daniel' });
-    expect(useSettingsStore.getState().soniox).toEqual(viaGeneric);
+    await useSettingsStore.getState().updateProviderSlice('localNative', { targetLanguage: 'de' });
+    const viaGeneric = useSettingsStore.getState().localNative;
+    await useSettingsStore.getState().updateLocalNative({ targetLanguage: 'de' });
+    expect(useSettingsStore.getState().localNative).toEqual(viaGeneric);
   });
 });
 
@@ -906,14 +593,13 @@ describe('local_native asrDevice setting', () => {
 describe('getProcessedLocalPrompt', () => {
   beforeEach(() => {
     useSettingsStore.setState({
-      provider: Provider.LOCAL_INFERENCE,
-      localInference: {
-        ...useSettingsStore.getState().localInference,
+      provider: Provider.LOCAL_NATIVE,
+      localNative: {
+        ...useSettingsStore.getState().localNative,
         sourceLanguage: 'ja',
         targetLanguage: 'en',
         useTemplateMode: true,
         systemPrompt: '',
-        participantSystemPrompt: '',
       },
     });
   });
@@ -930,8 +616,8 @@ describe('getProcessedLocalPrompt', () => {
 
   it('Advanced mode: returns the user speaker prompt verbatim', () => {
     useSettingsStore.setState({
-      localInference: {
-        ...useSettingsStore.getState().localInference,
+      localNative: {
+        ...useSettingsStore.getState().localNative,
         useTemplateMode: false,
         systemPrompt: 'My custom speaker prompt',
       },
@@ -942,8 +628,8 @@ describe('getProcessedLocalPrompt', () => {
 
   it('Advanced mode: empty speaker falls back to default', () => {
     useSettingsStore.setState({
-      localInference: {
-        ...useSettingsStore.getState().localInference,
+      localNative: {
+        ...useSettingsStore.getState().localNative,
         useTemplateMode: false,
         systemPrompt: '',
       },
@@ -952,39 +638,24 @@ describe('getProcessedLocalPrompt', () => {
     expect(result).toBe(buildDefaultLocalPrompt('ja', 'en'));
   });
 
-  it('Advanced mode: empty participant falls back to resolved speaker', () => {
+  it('Advanced mode: the participant takes the speaker prompt (Local Native has none of its own)', () => {
     useSettingsStore.setState({
-      localInference: {
-        ...useSettingsStore.getState().localInference,
+      localNative: {
+        ...useSettingsStore.getState().localNative,
         useTemplateMode: false,
         systemPrompt: 'Speaker says hi',
-        participantSystemPrompt: '',
       },
     });
     const result = useSettingsStore.getState().getProcessedLocalPrompt(true);
     expect(result).toBe('Speaker says hi');
   });
 
-  it('Advanced mode: participant filled returns participant text', () => {
+  it('Advanced mode: an empty prompt falls back to the default in both directions', () => {
     useSettingsStore.setState({
-      localInference: {
-        ...useSettingsStore.getState().localInference,
-        useTemplateMode: false,
-        systemPrompt: 'Speaker',
-        participantSystemPrompt: 'Participant',
-      },
-    });
-    const result = useSettingsStore.getState().getProcessedLocalPrompt(true);
-    expect(result).toBe('Participant');
-  });
-
-  it('Advanced mode: empty speaker AND empty participant both fall back to default', () => {
-    useSettingsStore.setState({
-      localInference: {
-        ...useSettingsStore.getState().localInference,
+      localNative: {
+        ...useSettingsStore.getState().localNative,
         useTemplateMode: false,
         systemPrompt: '',
-        participantSystemPrompt: '',
       },
     });
     const speaker = useSettingsStore.getState().getProcessedLocalPrompt(false);

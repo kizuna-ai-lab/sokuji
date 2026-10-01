@@ -24,7 +24,6 @@
       "audio": "オーディオ",
       "provider": "プロバイダー"
     },
-    "languageSettings": "言語設定",
     "voice": "音声",
     "voiceSettings": "音声設定",
     "model": "モデル",
@@ -40,10 +39,11 @@
     "autoTempo": "適応的な話速",
     "pushToTalk": "プッシュトゥトーク",
     "pushToTranslate": "プッシュトゥトランスレート",
-    "pushToTranslateNotAvailableInWebrtc": "WebRTC モードでは利用できません。プッシュトゥトランスレートを使用するには WebSocket に切り替えてください。",
     "systemInstructions": "システム指示",
     "speechMode": "音声モード",
     "speechModeAppliesTo": "あなたの声に適用されます。相手の音声は常にセマンティックVADを使用します。",
+    "speechModeTooltip": "自動：話し終わりをプロバイダーが自動的に検出します。\nプッシュトゥトーク：スペースまたはマイクボタンを押して音声を手動で送信します。\nプッシュトゥトランスレート：プッシュトゥトークと同様ですが、アイドル時に生のマイク音声を仮想マイクへパススルーするので、翻訳せずに直接話せます。",
+    "speechModeAppliesToAuto": "あなたの声に適用されます。相手の音声は常にプロバイダーの自動検出を使用します。",
     "userTranscriptModel": "ユーザー転写モデル",
     "noiseReduction": "ノイズ低減",
     "noiseSuppression": "ノイズ抑制",
@@ -72,22 +72,15 @@
     "eagerness": "積極性",
     "temperature": "温度",
     "maxTokens": "最大トークン",
-    "validating": "検証中...",
     "enterCustomInstructions": "カスタムシステム指示をここに入力してください...",
     "settingsSavedSuccessfully": "設定が正常に保存されました",
     "failedToSaveSettings": "設定の保存に失敗しました",
     "settingSavedSuccessfully": "設定が正常に保存されました: {{key}}",
     "failedToSaveSetting": "設定の保存に失敗しました: {{key}}",
-    "apiKeyValidationCompleted": "APIキー検証が完了しました",
-    "errorValidatingApiKey": "APIキー検証中にエラーが発生しました",
     "regionNotSupported": "お住まいの地域ではこのサービスをご利用いただけません。ネットワーク環境をご確認いただくか、別のプロバイダーをお試しください。",
     "sessionActiveNotice": "セッション中は設定がロックされています。設定を変更するにはセッションを終了してください。",
-    "realtimeModelAvailable": "リアルタイムモデルが利用可能です",
     "realtimeModelNotAvailable": "リアルタイムモデルは利用できません",
-    "refreshModels": "利用可能なモデルを更新",
-    "loadingModels": "利用可能なモデルを読み込み中...",
     "modelsFound": "{{count}}個のモデルが利用可能",
-    "invalidApiKeyFormat": "APIキーの形式が無効です",
     "volcengineAST2Info": "Doubao AST 2.0 について",
     "volcengineAST2InfoText": "Doubao AST 2.0は、自動音声クローニングによる音声対音声翻訳を提供します。翻訳された音声は、元の話者の声の特徴を保持します。",
     "volcengineAST2TurnDetectionTooltip": "自動：サーバー側の音声活動検出。\nプッシュトゥトーク：スペースまたはマイクボタンを押して音声を手動で送信します。\nプッシュトゥトランスレート：プッシュトゥトークと同様ですが、アイドル時に生のマイク音声を仮想マイクへパススルーするので、翻訳せずに直接話せます。",
@@ -113,8 +106,6 @@
     "low": "低",
     "medium": "中",
     "high": "高",
-    "apiKeyValidated": "APIキーが検証されました",
-    "realtimeTranslationAvailable": "リアルタイム翻訳サービスが利用可能です",
     "advancedMode": "アドバンス",
     "providerTooltip": "AI翻訳サービスを選択してください。各サービスには異なる機能、音声、価格があります。OpenAIは最も多くの機能を提供し、Geminiは良い無料プランがあります。ローカル（オフライン）モードは完全無料——APIキーもインターネットも不要です。",
     "modelTooltip": "AIモデルは速度と品質に影響します。「Mini」モデルは高速ですが簡単です。標準モデルはより正確ですが少し遅いです。コスト効率のためにまずminiを試してください。",
@@ -135,12 +126,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "背景ノイズの除去。\nなし：処理なし、静かな部屋で使用。\n近距離：ヘッドセット/近いマイク用。\n遠距離：エコーのあるスピーカー/会議室用。",
     "systemInstructionsTooltip": "AI翻訳者のカスタム指示。フォーマル/カジュアルなトーン、専門用語の扱い、特定の翻訳スタイルなどの好みを伝えてください。",
-    "transportType": "接続タイプ",
-    "transportTypeTooltip": "WebRTC：低遅延、ほとんどのユーザーにおすすめ。\nWebSocket：制限のあるネットワークでも安定接続。WebRTCが失敗した場合に使用してください。",
-    "websocket": "WebSocket（安定）",
-    "webrtc": "WebRTC（低遅延）",
-    "webrtcVadDisabledTitle": "WebRTCモードではサーバーVADは利用できません",
-    "webrtcVadNotice": "WebRTCモードではサーバーVADは無効になっています。WebRTCでは、サーバーが音声を検出すると自動的にオーディオを切り捨てるため、翻訳が中断されます。",
     "participantInstructions": "相手の指示",
     "participantInstructionsTooltip": "相手の音声を翻訳するためのシステム指示。空欄の場合、上記のメイン指示が使用されます。\n\n重要：メイン指示の言語方向が相手に適さない場合があります。例：あなたが中国語を話し、メイン指示が中国語→日本語に翻訳する場合、相手が日本語を話すと、メイン指示は日本語→日本語と誤って翻訳しようとします。日本語→中国語に翻訳するための別の相手の指示を設定してください。",
     "localTranslationPrompt": "翻訳プロンプト",
@@ -203,9 +188,7 @@
       "xhigh": "最高"
     },
     "translateInfoBanner": "話者が出力言語と同じ言語を話す場合、このモデルは無音になります。混合言語の発話では空白が生じる可能性があります。",
-    "translateModelAvailable": "APIキーが検証されました。gpt-realtime-translate が利用可能です。",
     "translateModelNotAvailable": "APIキーは有効ですが、このキーでは gpt-realtime-translate にアクセスできません。",
-    "translateSourceParticipantWarning": "相手の音声の翻訳が機能しない可能性があります — 「自分の言語」がこのプロバイダーのサポートする 13 の出力言語に含まれていません。",
     "participantSectionHeader": "相手の音声",
     "participantSectionDescriptionElectron": "このシステムで再生されている任意のアプリケーションの音声を翻訳します。",
     "participantSectionDescriptionExtension": "アクティブなブラウザタブの音声を翻訳します。元の音声はシステムの既定の出力から再生されます。",
@@ -222,7 +205,6 @@
     "sonioxSharedSession": "「両方」モードでセッションを共有",
     "sonioxSharedSessionTooltip": "「両方」モードでは、1 つの Soniox セッションを共有することも、方向ごとに別々のセッションを使うこともできます。\n\n有効:1 つのセッションで両者を翻訳し、声を自動的に区別します——コストと遅延が低くなります。\n\n無効:方向ごとに別々のセッションを使用します——2 人が同時に話すときに安定しますが、コストは約 2 倍になります。\n\n「両方」モードにのみ影響します。",
     "sonioxSharedSessionManagedCost": "Kizuna AI はどちらにも対応しています。無効にすると 2 つのセッションを同時に実行します。1 分あたりの費用が約 2 倍になるため、セッションの残り時間はおよそ半分になり、開始にはより多くの残高が必要です。",
-    "sonioxAutoParticipantWarning": "「自分の言語」を具体的に指定してください——自動検出では、相手の音声をその言語に翻訳できません。",
     "sonioxVocabulary": "カスタム語彙",
     "sonioxVocabularyTooltip": "重要な固有名詞や専門用語の認識に重みを付け、特定の用語の訳し方を導きます。次回のセッションから適用されます。",
     "sonioxVocabularyTerms": "用語",
@@ -310,7 +292,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "アカウントで自動的に認証されました",
-    "fetchingApiKey": "アカウントからAPIキーを取得中...",
     "provider": "AIサービスプロバイダー",
     "apiKeyPlaceholder": "APIキーを入力してください",
     "setupGuide": "セットアップガイド",
@@ -372,6 +353,7 @@
     "participantSpeech": "相手の翻訳を読み上げる",
     "participantSpeechDesc": "相手が話した内容を、あなたの言語で、あなたのスピーカーから読み上げます。相手の声に少し遅れて続きます。",
     "participantSpeechBlockedWholeSystem": "相手の音声がシステム音声全体をキャプチャしている間はオフになります。相手の翻訳が再びキャプチャされ、翻訳されてしまうためです。アプリケーションを相手のソースとして選んでください。",
+    "participantSpeechNotYetAvailable": "このプロバイダーではまだ利用できません。相手の翻訳はテキストのみで表示されます。",
     "audioCaptureUnprovenNotice": "まだ音声を取得できていません",
     "audioCaptureUnprovenTitle": "選択したソースからまだ音声が届いていません",
     "audioCaptureUnprovenText1": "ソースが再生中なのに翻訳されない場合、macOS が無音を返している可能性があります。アプリの音声を取得するには「システムオーディオ録音のみ」の権限が必要で、権限がないとエラーは出ず、無音になるだけです。",
@@ -430,9 +412,7 @@
     "backToSignIn": "サインインに戻る",
     "forgotPasswordError": "認証コードの送信に失敗しました。もう一度お試しください。",
     "resetPasswordError": "パスワードのリセットに失敗しました。もう一度お試しください。",
-    "signedOut": "Kizuna AIの内蔵翻訳サービスを利用するにはサインインしてください。",
-    "sessionUnavailable": "セッションが無効になりました。もう一度サインインしてください。",
-    "unknown": "アカウントを確認できませんでした。もう一度お試しください。"
+    "signedOut": "Kizuna AIの内蔵翻訳サービスを利用するにはサインインしてください。"
   },
   "simpleConfig": {
     "interfaceLanguage": "インターフェース言語",
@@ -456,20 +436,9 @@
     "keepReplayAudioDesc": "翻訳された音声をメモリに保存し、後から各メッセージで再生できるようにします。長時間のセッションでのメモリ使用量を抑えるため、既定ではオフです。"
   },
   "providers": {
-    "kizunaai_openai_translate": {
-      "name": "KizunaAI",
-      "description": "ソース75言語（自動検出）、ターゲット13言語",
-      "vendor": "OpenAI"
-    },
-    "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI",
-      "description": "8言語＋中英双方向 · 話者の声を再現",
-      "vendor": "Doubao"
-    },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60言語、3,600の言語ペア · 自分の声をクローン",
-      "vendor": "Soniox"
+      "description": "60言語、3,600の言語ペア · 自分の声をクローン"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -478,11 +447,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "GoogleのAI技術"
-    },
-    "openaiCompatible": {
-      "name": "OpenAI 互換（旧 Realtime）",
-      "description": "OpenAI の旧 beta Realtime プロトコルを使うサードパーティ製エンドポイント。OpenAI 本体には非対応。",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -510,7 +474,8 @@
       "name": "Doubao AST 2.0",
       "description": "Doubao 同時通訳",
       "appIdPlaceholder": "APP ID",
-      "accessTokenPlaceholder": "Access Token"
+      "accessTokenPlaceholder": "Access Token",
+      "authModeApp": "アプリ ID + アクセストークン"
     },
     "local_inference": {
       "name": "無料",
@@ -548,7 +513,6 @@
   },
   "mainPanel": {
     "subtitleTakeover": "翻訳は字幕オーバーレイに表示されています",
-    "speechDetected": "[音声を検出しました]",
     "function": "関数",
     "noChannelConfigured": "開始する前にマイクまたは相手の音声を有効にしてください。",
     "release": "離す",
@@ -632,9 +596,6 @@
     "waveformMicTooltip": "あなたのマイク — 翻訳のためにキャプチャされるあなたの声",
     "waveformSystemTooltip": "翻訳のためにキャプチャされる相手の音声（ブラウザタブ / システム音声）",
     "allChannelsFailed": "オーディオチャンネルを開始できませんでした。デバイスの権限を確認してもう一度お試しください。",
-    "participantChannelFailed": "相手の音声チャンネルを開始できませんでした。",
-    "splitDegradedLabel": "片方向のみ",
-    "splitDegradedTooltip": "相手の音声が翻訳されていないため、このセッションは片方向のみで動作しています。相手の音声の権限を確認してから、新しいセッションを実行してください。",
     "sonioxInsufficientBalance": "セッションを開始するには残高が不足しています。残高をチャージしてもう一度お試しください。",
     "sonioxSessionConflict": "このアカウントでは既に別のセッションが実行中です。しばらくしてからもう一度お試しください。",
     "sonioxServiceUnavailable": "Sonioxは一時的に利用できません。しばらくしてからもう一度お試しください。",
@@ -644,7 +605,6 @@
     "sonioxTtsSegmentLost": "音声翻訳の一部を再生できませんでした。文字起こしとテキスト翻訳には影響ありません。",
     "sonioxSegmentEnded": "このセグメントは終了しました——続けるには「セッション開始」をタップしてください。",
     "sonioxConnectionLost": "接続が中断されました——少ししてから「セッション開始」をタップして続けてください。",
-    "openaiLiveConnectionLost": "接続が中断されました——少ししてから「セッション開始」をタップして続けてください。",
     "sonioxVoiceClipMissing": "この端末には音声の録音がないため、このセッションではプリセット音声を使用します。ここでご自身の声で話すには、設定で録音してください。",
     "sonioxVoicePoolBusy": "現在、カスタム音声の枠がすべて使用中のため、このセッションではプリセット音声を使用します。次回はご自身の音声が再び使用されます。",
     "sonioxVoiceBuildFailed": "カスタム音声を作成できなかったため、このセッションではプリセット音声を使用します。設定でより聞き取りやすいクリップを録音してみてください。",
@@ -1178,8 +1138,6 @@
     },
     "credentials": {
       "apiKey": "API キー",
-      "endpoint": "エンドポイント URL",
-      "endpointPlaceholder": "例：https://api.example.com/v1",
       "accessKeyId": "アクセスキー ID（Access Key ID）",
       "secretAccessKey": "シークレットアクセスキー（Secret Access Key）",
       "appId": "アプリ ID（App ID）",
@@ -1298,13 +1256,9 @@
     "app_capture_lost_using_system_audio": "アプリのキャプチャが停止したため、代わりにシステム音声全体が翻訳されています。",
     "app_capture_monitor_missing": "アプリのキャプチャが開始しなかったため、代わりにシステム音声全体が翻訳されています。",
     "parse_error": "プロバイダーからのメッセージを読み取れませんでした。セッションは継続します。",
-    "cleanup_failed": "セッション終了時の処理の一部が失敗しました。",
-    "input_pipeline_failed": "音声キャプチャが動作しなくなりました。これ以降は翻訳されません。",
     "tts_degraded": "音声再生が低下していますが、翻訳されたテキストは引き続き届きます。",
     "resume_attempt_failed": "再接続に失敗しました。再試行しています。",
-    "send_dropped": "音声またはテキストの一部を送信できず、破棄されました。",
     "voice_fallback": "選択した音声が利用できなかったため、別の音声が使用されます。",
-    "lease_notify_failed": "セッションの状態をサービスに伝えられませんでした。",
     "auth": "プロバイダーが認証情報を受け付けませんでした: {{detail}}",
     "rate_limit": "プロバイダーがリクエストを制限しています。しばらくしてから再試行してください: {{detail}}",
     "network": "プロバイダーへの接続に失敗しました: {{detail}}",

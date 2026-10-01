@@ -61,8 +61,10 @@ const trackEvent = vi.hoisted(() => vi.fn());
 vi.mock('../lib/analytics', () => ({
   useAnalytics: () => ({ trackEvent }),
 }));
+// Mutable so the loading-sign-in tests can flip it: read fresh on every call.
+const authState = vi.hoisted(() => ({ isLoaded: true, isSignedIn: true, error: null as Error | null }));
 vi.mock('../lib/auth/hooks', () => ({
-  useAuth: () => ({ isSignedIn: true, getToken: async () => 't' }),
+  useAuth: () => ({ isLoaded: authState.isLoaded, isSignedIn: authState.isSignedIn, userId: authState.isSignedIn ? 'u1' : undefined, getToken: async () => 't', error: authState.error }),
 }));
 
 import { ToastProvider } from '../components/Toast';
@@ -111,10 +113,46 @@ describe('useAppSessionBridges', () => {
     const refetch = vi.fn(async () => {});
     const { result } = renderHook(() => useAppSessionBridges(refetch), { wrapper: ToastProvider });
     expect(result.current.signedIn).toBe(true);
+    expect(result.current.userId).toBe('u1');
     trackEvent.mockClear();
     await act(() => getAppSession().runner.start());
     expect(trackEvent).toHaveBeenCalledWith('translation_session_start', expect.objectContaining({ session_id: 'r1' }));
     await act(() => getAppSession().runner.stop());
     expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('hands the session a stand-in sign-in when given one', async () => {
+    const standIn = { signedIn: true, userId: 'preview', getToken: async () => 'x' };
+    const { result } = renderHook(() => useAppSessionBridges(undefined, standIn), { wrapper: ToastProvider });
+    expect(result.current).toBe(standIn);
+  });
+
+  it('tells the session whether the sign-in has loaded', async () => {
+    authState.isLoaded = false;
+    try {
+      const { result } = renderHook(() => useAppSessionBridges(), { wrapper: ToastProvider });
+      expect(result.current.loaded).toBe(false);
+    } finally {
+      authState.isLoaded = true;
+    }
+  });
+
+  it('tells the session a signed-out answer carrying an error has not loaded — a session fetch that failed at an offline launch — and a plain signed-out one has', async () => {
+    try {
+      // Better Auth reports a failed session fetch as loaded and signed out, with an error.
+      authState.isSignedIn = false;
+      authState.error = new Error('Failed to fetch');
+      const failed = renderHook(() => useAppSessionBridges(), { wrapper: ToastProvider });
+      expect(failed.result.current).toMatchObject({ signedIn: false, loaded: false });
+      failed.unmount();
+
+      authState.error = null;
+      const signedOut = renderHook(() => useAppSessionBridges(), { wrapper: ToastProvider });
+      expect(signedOut.result.current).toMatchObject({ signedIn: false, loaded: true });
+      signedOut.unmount();
+    } finally {
+      authState.isSignedIn = true;
+      authState.error = null;
+    }
   });
 });

@@ -1,8 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { DirectionResult } from '../../lib/local-inference/selection/types';
+import { directionKey, type DirectionResult, type Selections } from '../../lib/local-inference/selection/types';
 
-/** One direction's table entry: an id per stage, or absent/null for "does not resolve". */
-type TableEntry = { asr?: string | null; translation?: string | null; tts?: string | null };
+/** One direction's table entry: an id per stage, or absent/null for "does not
+ *  resolve". `autoTranslation` is what the translation stage resolves to once
+ *  that direction's stored translation selection is auto (`''`) — what the AST
+ *  cross-stage guard's re-resolution asks for. */
+type TableEntry = { asr?: string | null; translation?: string | null; tts?: string | null; autoTranslation?: string | null };
 type Table = Record<string, TableEntry>;
 
 // Prefixed "mock" so Vitest hoists these alongside the vi.mock factory below
@@ -13,12 +16,13 @@ const mockInitialize = vi.fn(async () => { mockInitialized = true; });
 const mockApplyPrunes = vi.fn(async () => {});
 const mockOff = vi.fn();
 const mockSubscribe = vi.fn((_selector: (s: { modelStatuses: unknown }) => unknown, _listener: () => void) => mockOff);
-const mockResolve = vi.fn((src: string, tgt: string, _selections: unknown): DirectionResult => {
+const mockResolve = vi.fn((src: string, tgt: string, selections: Selections): DirectionResult => {
   const entry = mockTable[`${src}>${tgt}`];
   const stage = (id: string | null | undefined) => (id ? { modelId: id, source: 'explicit' as const } : null);
+  const translationAuto = selections[directionKey(src, tgt)]?.translation.modelId === '';
   return {
     asr: stage(entry?.asr),
-    translation: stage(entry?.translation),
+    translation: stage(translationAuto ? entry?.autoTranslation : entry?.translation),
     tts: stage(entry?.tts),
     notes: [],
     prunes: [],
@@ -114,6 +118,22 @@ describe('checkLocalInference', () => {
   it('with the participant leg alone, requires the reverse direction\'s ASR and translation', async () => {
     resolved({ 'ja>en': { asr: 'a', translation: 't' }, 'en>ja': { asr: 'a2', translation: null } });
     expect((await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['participant'] })).ok).toBe(false);
+  });
+
+  // 'granite-speech' is the real manifest's AST-capable model (this file
+  // leaves modelManifest unmocked). Raw, this direction has a translation;
+  // guarded, the explicit pick falls back to auto, which has none here — the
+  // verdict follows the guarded resolution, as `build` would.
+  it('judges readiness on the AST-guarded resolution: an explicit Granite Speech translation pick that does not match the resolved ASR falls back to auto', async () => {
+    resolved({ 'ja>en': { asr: 'a', translation: 'granite-speech', autoTranslation: null } });
+    const selections: Selections = {
+      [directionKey('ja', 'en')]: { asr: { modelId: '' }, translation: { modelId: 'granite-speech' }, tts: { modelId: '' } },
+    };
+    expect(await checkLocalInference({ ...defaults, selections }, { pair: { source: 'ja', target: 'en' }, legs: ['speaker'] })).toEqual({
+      ok: false,
+      reason: 'Required models are not available for the selected language pair.',
+      code: 'local_models_missing',
+    });
   });
 
   it('writes nothing', async () => {

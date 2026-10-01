@@ -6,8 +6,8 @@
  */
 import type { Leg, Segment, SegmentId } from '../conversation/types';
 import { cutSegment } from './cut';
-import { DEFAULT_PAIRING, inferPairs } from './pair';
-import type { CutSettings, Entry, PairingThresholds, ProjectionSettings, Row } from './types';
+import { createPairCache, DEFAULT_PAIRING } from './pair';
+import type { CutSettings, Entry, ProjectionSettings, Row } from './types';
 
 export const DEFAULT_PROJECTION: ProjectionSettings = { mode: 'off', sentencesPerRow: 0, sourcePauseMs: 0, translationPauseMs: 0, pairing: DEFAULT_PAIRING };
 
@@ -21,7 +21,7 @@ interface Group { id: string; pairing: Exchange['pairing']; source: Segment[]; t
 
 export function createProjector(): Projector {
   const rows = new WeakMap<Segment, { cut: CutSettings; rows: Row[] }>();
-  const pairs = new WeakMap<readonly Segment[], { thresholds: PairingThresholds; map: Map<SegmentId, SegmentId> }>();
+  const pairsOf = createPairCache();
   let entries = new Map<string, Entry>();
   let last: readonly Entry[] = [];
 
@@ -31,14 +31,6 @@ export function createProjector(): Projector {
     const fresh = cutSegment(seg, cut);
     rows.set(seg, { cut, rows: fresh });
     return fresh;
-  };
-
-  const pairsOf = (leg: Leg, thresholds: PairingThresholds): Map<SegmentId, SegmentId> => {
-    const hit = pairs.get(leg.segments);
-    if (hit && hit.thresholds === thresholds) return hit.map;
-    const map = inferPairs(leg.segments, thresholds);
-    pairs.set(leg.segments, { thresholds, map });
-    return map;
   };
 
   return {

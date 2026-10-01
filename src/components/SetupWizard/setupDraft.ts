@@ -18,6 +18,13 @@ export interface SetupDraft {
   provider: ProviderType | null;
   /** own-key only: slice key → value, cleared when path or provider changes. */
   credentials: Record<string, string>;
+  /**
+   * own-key only: the credential choice the step shows (F4; Stage 2
+   * Volcengine AST2, ruling 1) — the provider's `credentials.choice.setting` and
+   * the option picked. Null until one is picked: the saved setting stands.
+   * Written at Finish, and cleared when path or provider changes.
+   */
+  credentialChoice: { setting: string; value: string } | null;
   credentialsValidated: boolean;
   /** "Skip for now" was taken on step 3 (spec §1.4). */
   credentialsPending: boolean;
@@ -30,6 +37,7 @@ export type SetupAction =
   | { type: 'setPath'; path: ProviderPath; provider: ProviderType | null }
   | { type: 'setProvider'; provider: ProviderType }
   | { type: 'setCredential'; key: string; value: string }
+  | { type: 'setCredentialChoice'; setting: string; value: string }
   | { type: 'prefillCredentials'; credentials: Record<string, string> }
   | { type: 'credentialsValidated' }
   | { type: 'skipCredentials'; keepExisting?: boolean }
@@ -48,6 +56,7 @@ export function initialDraft(): SetupDraft {
     providerPath: null,
     provider: null,
     credentials: {},
+    credentialChoice: null,
     credentialsValidated: false,
     credentialsPending: false,
     sourceLanguage: null,
@@ -73,6 +82,7 @@ export function draftFromRecord(
 
 const cleared = {
   credentials: {} as Record<string, string>,
+  credentialChoice: null,
   credentialsValidated: false,
   credentialsPending: false,
   sourceLanguage: null,
@@ -107,6 +117,15 @@ export function setupReducer(d: SetupDraft, a: SetupAction): SetupDraft {
       return {
         ...d,
         credentials: { ...d.credentials, [a.key]: a.value },
+        credentialsValidated: false,
+        credentialsPending: false,
+      };
+    // Another set of fields: what was validated was the other set. Typed
+    // values of either set stay, as the settings panel keeps both.
+    case 'setCredentialChoice':
+      return {
+        ...d,
+        credentialChoice: { setting: a.setting, value: a.value },
         credentialsValidated: false,
         credentialsPending: false,
       };

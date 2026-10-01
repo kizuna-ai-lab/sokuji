@@ -13,14 +13,15 @@
  * before any of these pieces mount. This hook only loads the shown entry.
  */
 import { useEffect } from 'react';
-import type { AnyProvider } from '../../lib/provider/types';
+import type { AnyProvider, ModelOption, SettingsProps } from '../../lib/provider/types';
 import type { ProviderEntry, Readiness } from '../../stores/providerStore';
-import { UNKNOWN, useProviderStore } from '../../stores/providerStore';
+import { NO_MODELS, UNKNOWN, useProviderStore } from '../../stores/providerStore';
 
 export interface SelectedProvider {
   provider: AnyProvider;
   entry: ProviderEntry | undefined;
   readiness: Readiness;
+  models: readonly ModelOption[];
   update(patch: Readonly<Record<string, unknown>>): void;
 }
 
@@ -41,11 +42,17 @@ export function useSelectedProvider(providers: readonly AnyProvider[]): Selected
   const provider = providers.find((p) => p.id === selected) ?? providers[0];
   const entry = useProviderStore((st) => (provider ? st.entries[provider.id] : undefined));
   const readiness = useProviderStore((st) => (provider ? st.readiness[provider.id] : undefined)) ?? UNKNOWN;
+  const models = useProviderStore((st) => (provider ? st.models[provider.id] : undefined)) ?? NO_MODELS;
 
   useEffect(() => {
     if (provider && !entry) void useProviderStore.getState().load(provider);
   }, [provider, entry]);
 
   if (!provider) return null;
-  return { provider, entry, readiness, update: updateFor(provider) };
+  return { provider, entry, readiness, models, update: updateFor(provider) };
+}
+
+/** The props a provider's own component gets (D18): its settings and `update`, the lock, the pair, and the models its readiness found (F2). `account` is `ProviderOwnSettings`' own. */
+export function ownProps(selection: SelectedProvider, entry: ProviderEntry, disabled: boolean | undefined): SettingsProps<unknown> {
+  return { settings: entry.settings, update: selection.update, disabled, pair: entry.pair, models: selection.models };
 }

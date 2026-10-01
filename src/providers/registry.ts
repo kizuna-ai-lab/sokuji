@@ -5,14 +5,23 @@
  */
 import { isPresent, type PresenceEnv } from '../lib/provider/presence';
 import type { AnyProvider } from '../lib/provider/types';
-import { enabledProviderIds, getEnvironment, isDevelopmentMode } from '../utils/environment';
+import { debugSwitchOn, enabledProviderIds, getEnvironment, isDevelopmentMode, isKizunaAIEnabled } from '../utils/environment';
+import { fakeLeasedProvider } from './fake/leased';
 import { fakeProvider } from './fake/provider';
+import { geminiProvider } from './gemini/provider';
 import { localInferenceProvider } from './localInference/provider';
+import { openaiProvider } from './openai/provider';
+import { openaiLiveProvider } from './openai_live/provider';
+import { openaiTranslateProvider } from './openai_translate/provider';
+import { palabraProvider } from './palabraai/provider';
+import { kizunaSonioxProvider } from './soniox/kizuna';
+import { sonioxProvider } from './soniox/provider';
+import { volcengineAst2Provider } from './volcengine_ast2/provider';
 
-/** Shipped providers, in UI order (ruling 10: LocalInference first). */
-const RELEASED = [localInferenceProvider] as const;
-/** Compiled into development builds only (D24). */
-const DEV_ONLY = [fakeProvider] as const;
+/** Shipped providers, in UI order (Stage 2 Kizuna Soniox, ruling 6; Stage 2 Gemini, ruling 6; Stage 2 Volcengine AST2, ruling 5; Stage 2 OpenAI Translate, ruling 11; Stage 2 OpenAI Realtime, ruling 18; Stage 2 Palabra, ruling 14; Stage 2 OpenAI Live, ruling 9): the managed Kizuna Soniox, the free LocalInference, then Gemini, Doubao AST 2.0, OpenAI Realtime, OpenAI Translate, OpenAI Live, Soniox and Palabra AI with your own key. */
+const RELEASED = [kizunaSonioxProvider, localInferenceProvider, geminiProvider, volcengineAst2Provider, openaiProvider, openaiTranslateProvider, openaiLiveProvider, sonioxProvider, palabraProvider] as const;
+/** Compiled into development builds only (D24): the fake, and the leased fake that carries the session hooks (Stage 2 foundation, choice 1). */
+const DEV_ONLY = [fakeProvider, fakeLeasedProvider] as const;
 
 export type ProviderId = (typeof RELEASED)[number]['id'] | (typeof DEV_ONLY)[number]['id'];
 
@@ -21,7 +30,7 @@ export type ProviderId = (typeof RELEASED)[number]['id'] | (typeof DEV_ONLY)[num
 export const PROVIDERS: readonly AnyProvider[] = import.meta.env.DEV ? [...RELEASED, ...DEV_ONLY] : [...RELEASED];
 
 export function currentPresenceEnv(): PresenceEnv {
-  return { platform: getEnvironment(), dev: isDevelopmentMode(), enabled: enabledProviderIds() };
+  return { platform: getEnvironment(), dev: isDevelopmentMode(), enabled: enabledProviderIds(), kizuna: isKizunaAIEnabled(), switchOn: debugSwitchOn };
 }
 
 /** The providers offered here, in UI order. */

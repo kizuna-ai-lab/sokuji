@@ -118,6 +118,26 @@ describe('SubtitleIdle unready state', () => {
   });
 });
 
+// A managed provider's sign-in or wallet still loading is progress, not a
+// failure: drawn as the starting state draws it — a disabled action with the
+// spinner, its words kept whole — never as a fix with a warning icon.
+describe('SubtitleIdle pending state', () => {
+  it.each(['sign_in_pending', 'quota_pending'])('draws %s as progress, its ellipsis kept, with no fix action or warning', (code) => {
+    const h = handlers();
+    const onOpenSettings = vi.fn();
+    const { container } = render(<SubtitleIdle state={{ kind: 'unready', message: 'Checking...', code, target: 'provider' }} {...h} onOpenSettings={onOpenSettings} />);
+    const btn = screen.getByRole('button', { name: 'Checking...' });
+    expect(btn).toBeDisabled();
+    expect(btn.classList.contains('subtitle-idle__action--fix')).toBe(false);
+    expect(btn.querySelector('.spinning')).not.toBeNull();
+    expect(container.querySelector('.subtitle-idle__action--fix')).toBeNull();
+    fireEvent.click(btn);
+    expect(onOpenSettings).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: /return to main window/i }));
+    expect(h.onReturn).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('SubtitleIdle return affordance', () => {
   it('is present in every non-starting state', () => {
     const h = handlers();

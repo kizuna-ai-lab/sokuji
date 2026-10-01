@@ -24,7 +24,6 @@
       "audio": "오디오",
       "provider": "제공자"
     },
-    "languageSettings": "언어 설정",
     "voice": "음성",
     "voiceSettings": "음성 설정",
     "model": "모델",
@@ -40,10 +39,11 @@
     "autoTempo": "적응형 말하기 속도",
     "pushToTalk": "푸시 투 토크",
     "pushToTranslate": "푸시 투 트랜슬레이트",
-    "pushToTranslateNotAvailableInWebrtc": "WebRTC 모드에서는 사용할 수 없습니다. 푸시 투 트랜슬레이트를 사용하려면 WebSocket으로 전환하세요.",
     "systemInstructions": "시스템 지시사항",
     "speechMode": "음성 모드",
     "speechModeAppliesTo": "내 음성에 적용됩니다. 상대방 오디오는 항상 의미론적 VAD를 사용합니다.",
+    "speechModeTooltip": "자동: 말이 끝나는 시점을 제공자가 자동으로 감지합니다. \n푸시 투 토크: 스페이스 또는 마이크 버튼을 눌러 오디오를 수동으로 전송합니다. \n푸시 투 트랜슬레이트: 푸시 투 토크와 비슷하지만, 유휴 상태일 때 원본 마이크 오디오를 가상 마이크로 패스스루하여 번역 없이 직접 말할 수 있습니다.",
+    "speechModeAppliesToAuto": "내 음성에 적용됩니다. 상대방 오디오는 항상 제공자의 자동 감지를 사용합니다.",
     "userTranscriptModel": "사용자 전사 모델",
     "noiseReduction": "노이즈 감소",
     "noiseSuppression": "노이즈 억제",
@@ -72,22 +72,15 @@
     "eagerness": "적극성",
     "temperature": "온도",
     "maxTokens": "최대 토큰",
-    "validating": "검증 중...",
     "enterCustomInstructions": "여기에 사용자 정의 시스템 지시사항을 입력하세요...",
     "settingsSavedSuccessfully": "설정이 성공적으로 저장되었습니다",
     "failedToSaveSettings": "설정 저장에 실패했습니다",
     "settingSavedSuccessfully": "설정이 성공적으로 저장되었습니다: {{key}}",
     "failedToSaveSetting": "설정 저장에 실패했습니다: {{key}}",
-    "apiKeyValidationCompleted": "API 키 검증이 완료되었습니다",
-    "errorValidatingApiKey": "API 키 검증 중 오류가 발생했습니다",
     "regionNotSupported": "해당 서비스는 귀하의 지역에서 사용할 수 없습니다. 네트워크 환경을 확인하거나 다른 제공업체를 시도해 주세요.",
     "sessionActiveNotice": "세션이 활성 상태일 때 설정이 잠깁니다. 설정을 수정하려면 세션을 종료하세요.",
-    "realtimeModelAvailable": "실시간 모델을 사용할 수 있습니다",
     "realtimeModelNotAvailable": "실시간 모델을 사용할 수 없습니다",
-    "refreshModels": "사용 가능한 모델 새로고침",
-    "loadingModels": "사용 가능한 모델 로딩 중...",
     "modelsFound": "{{count}}개의 모델 사용 가능",
-    "invalidApiKeyFormat": "API 키 형식이 올바르지 않습니다",
     "volcengineAST2Info": "Doubao AST 2.0 정보",
     "volcengineAST2InfoText": "Doubao AST 2.0은 자동 음성 복제를 통한 음성 대 음성 번역을 제공합니다. 번역된 오디오는 원래 화자의 음성 특성을 유지합니다.",
     "volcengineAST2TurnDetectionTooltip": "자동: 서버 측 음성 활동 감지. \n푸시 투 토크: 스페이스 또는 마이크 버튼을 눌러 오디오를 수동으로 전송합니다. \n푸시 투 트랜슬레이트: 푸시 투 토크와 비슷하지만, 유휴 상태일 때 원본 마이크 오디오를 가상 마이크로 패스스루하여 번역 없이 직접 말할 수 있습니다.",
@@ -113,8 +106,6 @@
     "low": "낮음",
     "medium": "중간",
     "high": "높음",
-    "apiKeyValidated": "API 키가 확인되었습니다",
-    "realtimeTranslationAvailable": "실시간 번역 서비스를 사용할 수 있습니다",
     "advancedMode": "고급",
     "providerTooltip": "AI 번역 서비스를 선택하세요. 각 서비스마다 다른 기능, 음성, 가격이 있습니다. OpenAI는 가장 많은 기능을 제공하며, Gemini는 좋은 무료 플랜이 있습니다. 로컬 (오프라인) 모드는 완전 무료——API 키나 인터넷이 필요 없습니다.",
     "modelTooltip": "AI 모델은 속도와 품질에 영향을 줍니다. 'Mini' 모델은 더 빠르지만 단순합니다. 표준 모델은 더 정확하지만 약간 느립니다. 비용 효율을 위해 먼저 mini를 시도하세요.",
@@ -135,12 +126,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "배경 소음 제거. \n없음: 처리 없음, 조용한 방에서 사용. \n근거리: 헤드셋/가까운 마이크용. \n원거리: 에코가 있는 스피커/회의실용.",
     "systemInstructionsTooltip": "AI 번역기를 위한 사용자 지정 지침. 격식/비격식 톤, 기술 용어 처리 또는 특정 번역 스타일과 같은 선호 사항을 알려주세요.",
-    "transportType": "연결 유형",
-    "transportTypeTooltip": "WebRTC: 지연 시간이 낮으며 대부분의 사용자에게 권장됩니다.\nWebSocket: 제한된 네트워크에서도 안정적으로 연결됩니다. WebRTC 연결이 실패하면 사용하세요.",
-    "websocket": "WebSocket (안정적)",
-    "webrtc": "WebRTC (저지연)",
-    "webrtcVadDisabledTitle": "WebRTC 모드에서는 서버 VAD를 사용할 수 없습니다",
-    "webrtcVadNotice": "WebRTC 모드에서 서버 VAD가 비활성화됩니다. WebRTC에서는 서버가 음성을 감지하면 자동으로 오디오를 잘라 번역이 중단됩니다.",
     "participantInstructions": "상대방 지시",
     "participantInstructionsTooltip": "상대방 오디오 번역을 위한 시스템 지시입니다. 비어 있으면 위의 기본 지시가 사용됩니다.\n\n중요: 기본 지시의 언어 방향이 상대방에게 적합하지 않을 수 있습니다. 예: 내가 중국어를 말하고 기본 지시가 중국어→일본어로 번역하지만, 상대방이 일본어를 말하면 기본 지시가 일본어→일본어로 잘못 번역하려고 합니다. 일본어→중국어로 번역하기 위한 별도의 상대방 지시를 설정하세요.",
     "localTranslationPrompt": "번역 프롬프트",
@@ -203,9 +188,7 @@
       "xhigh": "매우 높음"
     },
     "translateInfoBanner": "화자가 대상 언어와 같은 언어를 사용할 때, 이 모델은 침묵을 유지합니다. 혼합 언어 발화에서는 공백이 생길 수 있습니다.",
-    "translateModelAvailable": "API 키 검증 완료. gpt-realtime-translate 사용 가능.",
     "translateModelNotAvailable": "API 키는 유효하지만 현재 키로 gpt-realtime-translate에 접근할 수 없습니다.",
-    "translateSourceParticipantWarning": "상대방 오디오 번역이 작동하지 않을 수 있습니다 — 내 언어가 이 제공업체가 지원하는 13개 대상 언어에 없습니다.",
     "participantSectionHeader": "상대방 오디오",
     "participantSectionDescriptionElectron": "이 시스템에서 재생 중인 모든 애플리케이션의 오디오를 번역합니다.",
     "participantSectionDescriptionExtension": "활성 브라우저 탭의 오디오를 번역합니다. 원본 오디오는 시스템 기본 출력으로 재생됩니다.",
@@ -222,7 +205,6 @@
     "sonioxSharedSession": "모두 모드에서 세션 공유",
     "sonioxSharedSessionTooltip": "모두 모드에서는 하나의 Soniox 세션을 공유하거나 방향별로 별도의 세션을 사용할 수 있습니다.\n\n활성화됨: 하나의 세션이 양쪽을 번역하고 음성을 자동으로 구분합니다 — 비용과 지연이 낮아집니다.\n\n비활성화: 방향별로 별도의 세션을 사용합니다 — 두 사람이 동시에 말할 때 더 안정적이지만 비용은 약 2배입니다.\n\n모두 모드에만 적용됩니다.",
     "sonioxSharedSessionManagedCost": "Kizuna AI는 두 가지 모두 지원합니다. 사용 안 함은 두 개의 세션을 동시에 실행합니다. 분당 비용이 약 2배이므로 세션 사용 가능 시간이 약 절반으로 줄고, 시작하려면 더 많은 잔액이 필요합니다.",
-    "sonioxAutoParticipantWarning": "내 언어를 특정 언어로 지정하세요 — 자동 감지에서는 상대방의 음성을 그 언어로 번역할 수 없습니다.",
     "sonioxVocabulary": "맞춤 어휘",
     "sonioxVocabularyTooltip": "중요한 이름과 전문 용어 쪽으로 인식에 가중치를 두고, 특정 용어의 번역 방식을 유도합니다. 다음 세션부터 적용됩니다.",
     "sonioxVocabularyTerms": "용어",
@@ -310,7 +292,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "계정을 통해 자동으로 인증됨",
-    "fetchingApiKey": "계정에서 API 키를 가져오는 중...",
     "provider": "AI 서비스 제공자",
     "apiKeyPlaceholder": "API 키를 입력하세요",
     "setupGuide": "설정 가이드",
@@ -372,6 +353,7 @@
     "participantSpeech": "상대방 번역 소리 내어 읽기",
     "participantSpeechDesc": "상대방이 말하는 내용을 당신의 언어로, 당신의 스피커를 통해 소리 내어 읽어줍니다. 약간의 지연을 두고 상대방의 목소리를 따라갑니다.",
     "participantSpeechBlockedWholeSystem": "상대방 오디오가 시스템 오디오 전체를 캡처하는 동안에는 꺼집니다. 상대방의 번역이 다시 캡처되어 번역되기 때문입니다. 애플리케이션을 상대방 소스로 선택하세요.",
+    "participantSpeechNotYetAvailable": "이 제공자에서는 아직 사용할 수 없습니다. 상대방 번역은 텍스트로만 표시됩니다.",
     "audioCaptureUnprovenNotice": "아직 캡처된 오디오가 없습니다",
     "audioCaptureUnprovenTitle": "선택한 소스에서 아직 오디오가 들어오지 않았습니다",
     "audioCaptureUnprovenText1": "소스가 재생 중인데도 번역되지 않는다면 macOS가 무음을 전달하고 있을 가능성이 큽니다. 앱의 오디오를 캡처하려면 \"시스템 오디오 녹음만\" 권한이 필요하며, 이 권한이 없으면 오류 없이 무음만 전달됩니다.",
@@ -430,9 +412,7 @@
     "backToSignIn": "로그인으로 돌아가기",
     "forgotPasswordError": "인증 코드를 보내지 못했습니다. 다시 시도해 주세요.",
     "resetPasswordError": "비밀번호를 재설정하지 못했습니다. 다시 시도해 주세요.",
-    "signedOut": "Kizuna AI의 내장 번역 서비스를 사용하려면 로그인하세요.",
-    "sessionUnavailable": "세션이 더 이상 유효하지 않습니다. 다시 로그인해 주세요.",
-    "unknown": "계정을 확인할 수 없습니다. 다시 시도해 주세요."
+    "signedOut": "Kizuna AI의 내장 번역 서비스를 사용하려면 로그인하세요."
   },
   "simpleConfig": {
     "interfaceLanguage": "인터페이스 언어",
@@ -456,20 +436,9 @@
     "keepReplayAudioDesc": "번역된 오디오를 메모리에 저장하여 각 메시지에서 나중에 다시 재생할 수 있도록 합니다. 긴 세션 동안 메모리 사용을 줄이기 위해 기본적으로 꺼져 있습니다."
   },
   "providers": {
-    "kizunaai_openai_translate": {
-      "name": "KizunaAI",
-      "description": "소스 75개 언어(자동 감지), 타깃 13개 언어",
-      "vendor": "OpenAI"
-    },
-    "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI",
-      "description": "8개 언어 + 중–영 양방향 · 화자 목소리 유지",
-      "vendor": "Doubao"
-    },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60개 언어, 3,600개 언어 쌍 · 내 목소리 클론",
-      "vendor": "Soniox"
+      "description": "60개 언어, 3,600개 언어 쌍 · 내 목소리 클론"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -478,11 +447,6 @@
     "gemini": {
       "name": "구글 제미나이",
       "description": "구글의 AI 기술"
-    },
-    "openaiCompatible": {
-      "name": "OpenAI 호환 (레거시 Realtime)",
-      "description": "OpenAI의 구 beta Realtime 프로토콜을 사용하는 서드파티 엔드포인트. OpenAI 자체용이 아닙니다.",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -510,7 +474,8 @@
       "name": "Doubao AST 2.0",
       "description": "Doubao 동시 통역",
       "appIdPlaceholder": "APP ID",
-      "accessTokenPlaceholder": "Access Token"
+      "accessTokenPlaceholder": "Access Token",
+      "authModeApp": "App ID + Access Token"
     },
     "local_inference": {
       "name": "무료",
@@ -548,7 +513,6 @@
   },
   "mainPanel": {
     "subtitleTakeover": "번역이 자막 오버레이에 표시되고 있습니다",
-    "speechDetected": "[음성 감지됨]",
     "function": "기능",
     "noChannelConfigured": "시작하기 전에 마이크 또는 상대방 오디오를 활성화하세요.",
     "release": "놓기",
@@ -632,9 +596,6 @@
     "waveformMicTooltip": "내 마이크 — 번역을 위해 캡처되는 내 목소리",
     "waveformSystemTooltip": "번역을 위해 캡처되는 상대방 오디오 (브라우저 탭 / 시스템 오디오)",
     "allChannelsFailed": "오디오 채널을 시작하지 못했습니다. 장치 권한을 확인하고 다시 시도하세요.",
-    "participantChannelFailed": "상대방 오디오 채널을 시작하지 못했습니다.",
-    "splitDegradedLabel": "단방향만",
-    "splitDegradedTooltip": "상대방 오디오가 번역되지 않아 이 세션은 단방향으로만 실행됩니다. 상대방 오디오 권한을 확인한 후 새 세션을 실행하세요.",
     "sonioxInsufficientBalance": "세션을 시작하기에 잔액이 부족합니다. 잔액을 충전한 후 다시 시도해 주세요.",
     "sonioxSessionConflict": "이미 계정에서 다른 세션이 실행 중입니다. 잠시 후 다시 시도해 주세요.",
     "sonioxServiceUnavailable": "Soniox를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.",
@@ -644,7 +605,6 @@
     "sonioxTtsSegmentLost": "음성 번역의 일부를 재생하지 못했습니다. 전사와 텍스트 번역에는 영향이 없습니다.",
     "sonioxSegmentEnded": "이 세그먼트가 종료되었습니다 — 계속하려면 ‘세션 시작’을 탭하세요.",
     "sonioxConnectionLost": "연결이 끊어졌습니다 — 잠시 후 계속하려면 ‘세션 시작’을 탭하세요.",
-    "openaiLiveConnectionLost": "연결이 끊어졌습니다 — 잠시 후 계속하려면 ‘세션 시작’을 탭하세요.",
     "sonioxVoiceClipMissing": "이 기기에 음성 녹음이 없어 이 세션은 프리셋 음성을 사용합니다. 여기서 본인 목소리로 말하려면 설정에서 녹음하세요.",
     "sonioxVoicePoolBusy": "지금은 모든 맞춤 음성 슬롯이 사용 중이라 이 세션은 프리셋 음성을 사용합니다. 다음 번에는 본인 음성이 다시 사용됩니다.",
     "sonioxVoiceBuildFailed": "맞춤 음성을 만들지 못해 이 세션은 프리셋 음성을 사용합니다. 설정에서 더 또렷한 클립을 녹음해 보세요.",
@@ -1178,8 +1138,6 @@
     },
     "credentials": {
       "apiKey": "API 키",
-      "endpoint": "엔드포인트 URL",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",
@@ -1298,13 +1256,9 @@
     "app_capture_lost_using_system_audio": "앱 캡처가 중지되어 지금은 시스템 오디오 전체가 대신 번역되고 있습니다.",
     "app_capture_monitor_missing": "앱 캡처가 시작되지 않아 지금은 시스템 오디오 전체가 대신 번역되고 있습니다.",
     "parse_error": "제공자로부터 온 메시지를 읽을 수 없습니다. 세션은 계속됩니다.",
-    "cleanup_failed": "세션을 종료하는 단계 중 하나가 실패했습니다.",
-    "input_pipeline_failed": "오디오 캡처가 작동을 멈췄습니다. 더 이상 번역되지 않습니다.",
     "tts_degraded": "음성 재생 품질이 저하되었지만 번역된 텍스트는 계속 도착합니다.",
     "resume_attempt_failed": "재연결에 실패했습니다. 다시 시도합니다.",
-    "send_dropped": "일부 오디오 또는 텍스트를 전송하지 못해 버려졌습니다.",
     "voice_fallback": "선택한 음성을 사용할 수 없어 다른 음성을 사용합니다.",
-    "lease_notify_failed": "세션 상태를 서비스에 알릴 수 없었습니다.",
     "auth": "제공자가 자격 증명을 수락하지 않았습니다: {{detail}}",
     "rate_limit": "제공자가 요청을 제한하고 있습니다. 잠시 후 다시 시도하세요: {{detail}}",
     "network": "제공자에 대한 연결이 실패했습니다: {{detail}}",

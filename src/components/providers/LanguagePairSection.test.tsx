@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { cleanup, render, screen, fireEvent } from '@testing-library/react';
 import { AUTO } from '../../lib/provider/languages';
+import type { LanguageContext } from '../../lib/provider/types';
 import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import { LanguagePairSection } from './LanguagePairSection';
@@ -96,5 +97,43 @@ describe('LanguagePairSection', () => {
       expect(screen.getByText('settings.langSentence.iSpeak')).toBeTruthy();
       expect(screen.getByText('settings.langSentence.theyRead')).toBeTruthy();
     });
+  });
+});
+
+describe('LanguagePairSection — a language context (Stage 2 Volcengine AST2, choice 1)', () => {
+  const opt = (value: string) => ({ value, name: value, englishName: value });
+  /** Speaking offers en and ja; text also ko — Doubao AST 2.0's shape. */
+  const offered = (context?: LanguageContext) => [opt('en'), opt('ja'), ...(context?.speech ? [] : [opt('ko')])];
+  const moody = {
+    ...fakeProvider,
+    languages: {
+      sources: (_s: unknown, context?: LanguageContext) => offered(context),
+      targets: (source: string, _s: unknown, context?: LanguageContext) => offered(context).filter((o) => o.value !== source),
+    },
+  } as unknown as typeof fakeProvider;
+  const drawIn = (context: LanguageContext | undefined, pair: { source: string; target: string }, onChange = vi.fn()) => {
+    render(<LanguagePairSection provider={moody} settings={FAKE_DEFAULTS} pair={pair} onChange={onChange} context={context} />);
+    return onChange;
+  };
+
+  it('lists the offer for the context, and the widest one without', () => {
+    drawIn({ speech: true }, { source: 'en', target: 'ja' });
+    expect(values(screen.getByLabelText('settings.sourceLanguage'))).toEqual(['en', 'ja']);
+    expect(values(screen.getByLabelText('settings.targetLanguage'))).toEqual(['ja']);
+    cleanup();
+    drawIn(undefined, { source: 'en', target: 'ja' });
+    expect(values(screen.getByLabelText('settings.sourceLanguage'))).toEqual(['en', 'ja', 'ko']);
+  });
+
+  it('normalizes a new source within the context, and swaps only within it', () => {
+    const onChange = drawIn({ speech: true }, { source: 'en', target: 'ja' });
+    fireEvent.change(screen.getByLabelText('settings.sourceLanguage'), { target: { value: 'ja' } });
+    expect(onChange).toHaveBeenCalledWith({ source: 'ja', target: 'en' });
+    cleanup();
+    drawIn({ speech: false }, { source: 'en', target: 'ko' });
+    expect(screen.getByTitle('simpleConfig.swapLanguages')).not.toBeDisabled();
+    cleanup();
+    drawIn({ speech: true }, { source: 'en', target: 'ko' });
+    expect(screen.getByTitle('simpleConfig.swapLanguages')).toBeDisabled();
   });
 });

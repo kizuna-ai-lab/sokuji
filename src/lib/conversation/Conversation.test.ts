@@ -1,7 +1,18 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { createVirtualClock } from '../contract/clock';
 import type { AdapterEvent } from '../contract/events';
+import type { ClientDiagnosticCode } from '../diagnostics/clientDiagnostics';
 import { Conversation, DEGRADED_DEDUPE_MS, MARK_COMPACT_MS, type ConversationDiagnostic } from './Conversation';
+
+// The real rows, plus one test-only row whose severity is 'error': every real
+// row is a warning, as is the fallback for an unknown code, so without this row
+// no case could tell the table's severity from the fallback.
+vi.mock('../diagnostics/clientDiagnostics', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../diagnostics/clientDiagnostics')>();
+  return { ...actual, CLIENT_DIAGNOSTICS: { ...actual.CLIENT_DIAGNOSTICS, test_error_row: { severity: 'error' } } };
+});
+/** The test-only row above; not a real code, hence the cast. */
+const TEST_ERROR_ROW = 'test_error_row' as ClientDiagnosticCode;
 
 const pcm = (n: number) => new Int16Array(n);
 
@@ -128,18 +139,51 @@ describe('Conversation — audio', () => {
     expect(conv.snapshot().segments[0].speech[0].range).toBeUndefined();
     expect(diagnostics.map((d) => d.code)).toEqual(['range_out_of_text']);
   });
+
+  it("drops a range past a segment's text and reports it right away when the audio arrives after close, with no fill-in in flight (Gemini/AST2 follow-up, choice 19)", () => {
+    const { conv, diagnostics, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    apply({ kind: 'segmentClosed', payload: { ref: 1 } });
+    apply({ kind: 'audio', payload: { ref: 1, range: [0, 12], pcm: pcm(240) } }); // 12 is past 'hello world' (11 characters)
+    expect(conv.snapshot().segments[0].speech).toEqual([{ range: undefined, pcm: pcm(240) }]);
+    expect(diagnostics.map((d) => d.code)).toEqual(['range_out_of_text']);
+  });
+
+  it("after fill-in, re-anchors a range measured against the adapter's own text onto the filled text (Gemini/AST2 follow-up, choice 19)", async () => {
+    const { conv, diagnostics, apply } = make({ languages: { source: 'ja', target: 'zh' }, punctuate: async () => '我来帮你，翻译。' });
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: '我来帮你翻译' } });
+    apply({ kind: 'segmentClosed', payload: { ref: 1 } });
+    await conv.settled();
+    expect(conv.snapshot().segments[0].text).toBe('我来帮你，翻译。');
+    // The whole of the adapter's text, [0, 6]: the whole of the filled one.
+    apply({ kind: 'audio', payload: { ref: 1, range: [0, 6], pcm: pcm(240) } });
+    expect(conv.snapshot().segments[0].speech).toEqual([{ range: [0, 8], pcm: pcm(240) }]);
+    expect(diagnostics).toEqual([]);
+  });
+
+  it("after fill-in, drops a range past the adapter's own text with a diagnostic, keeping the pcm", async () => {
+    const { conv, diagnostics, apply } = make({ punctuate: async () => 'Hello, world.' });
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    apply({ kind: 'segmentClosed', payload: { ref: 1 } });
+    await conv.settled();
+    apply({ kind: 'audio', payload: { ref: 1, range: [0, 12], pcm: pcm(240) } }); // 12 is past 'hello world' (11), not past the filled text (13)
+    expect(conv.snapshot().segments[0].speech).toEqual([{ range: undefined, pcm: pcm(240) }]);
+    expect(diagnostics.map((d) => d.code)).toEqual(['range_out_of_text']);
+  });
 });
 
 describe('Conversation — notices and closing', () => {
   it('turns failed into an error notice and degraded into a notice with the table\'s severity', () => {
     const { conv, apply } = make();
     apply({ kind: 'failed', payload: { message: 'socket died', code: 'E1' } });
-    apply({ kind: 'degraded', payload: { code: 'input_pipeline_failed', message: 'mic gone' } });
+    apply({ kind: 'degraded', payload: { code: 'parse_error', message: 'bad frame' } });
     apply({ kind: 'degraded', payload: { code: 'tts_degraded', message: 'no voice' } });
+    apply({ kind: 'degraded', payload: { code: TEST_ERROR_ROW, message: 'an error row' } });
     expect(conv.snapshot().notices.map((n) => [n.severity, n.message, n.code])).toEqual([
       ['error', 'socket died', 'E1'],
-      ['error', 'mic gone', 'input_pipeline_failed'],
+      ['warning', 'bad frame', 'parse_error'],
       ['warning', 'no voice', 'tts_degraded'],
+      ['error', 'an error row', 'test_error_row'],
     ]);
     expect(conv.snapshot().notices[0].id).toBe('s1:speaker:n1');
   });
@@ -287,6 +331,162 @@ describe('Conversation — re-anchoring and fill-in', () => {
   });
 });
 
+describe('Conversation — ranges filled in after the audio (speechRanges)', () => {
+  const ranges = (ref: number, list: Array<[number, [number, number]]>): AdapterEvent => ({ kind: 'speechRanges', payload: { ref, ranges: list.map(([index, range]) => ({ index, range })) } });
+  const speechOf = (conv: Conversation, k = 0) => conv.snapshot().segments[k].speech;
+
+  it('sets ranges on speech a closed segment already holds', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(10) } }, { kind: 'audio', payload: { ref: 1, pcm: pcm(10) } });
+    apply({ kind: 'segmentClosed', payload: { ref: 1 } });
+    apply(ranges(1, [[0, [0, 5]], [1, [6, 11]]]));
+    expect(speechOf(conv).map((s) => s.range)).toEqual([[0, 5], [6, 11]]);
+    expect(speechOf(conv).map((s) => s.pcm.length)).toEqual([10, 10]);
+  });
+
+  it("re-anchors ranges measured against the adapter's text onto punctuation fill-in's", async () => {
+    const { conv, apply } = make({ punctuate: async () => 'Hello, world.' });
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(10) } }, { kind: 'audio', payload: { ref: 1, pcm: pcm(10) } });
+    apply({ kind: 'segmentClosed', payload: { ref: 1 } });
+    await conv.settled();
+    expect(conv.snapshot().segments[0].text).toBe('Hello, world.');
+    apply(ranges(1, [[0, [0, 5]], [1, [5, 11]]]));
+    expect(speechOf(conv).map((s) => s.range)).toEqual([[0, 7], [7, 13]]);
+  });
+
+  it('a fill-in landing after the ranges re-anchors them as it re-anchors any range', async () => {
+    const { conv, apply } = make({ punctuate: () => new Promise((r) => setTimeout(() => r('Hello, world.'), 20)) });
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(10) } }, { kind: 'audio', payload: { ref: 1, pcm: pcm(10) } });
+    apply({ kind: 'segmentClosed', payload: { ref: 1 } });
+    apply(ranges(1, [[0, [0, 5]], [1, [5, 11]]]));
+    expect(speechOf(conv).map((s) => s.range)).toEqual([[0, 5], [5, 11]]);
+    await conv.settled();
+    expect(speechOf(conv).map((s) => s.range)).toEqual([[0, 7], [7, 13]]);
+  });
+
+  it('a revision after fill-in measures later ranges against the revised text, not the pre-fill one', async () => {
+    const { conv, apply } = make({ punctuate: async () => 'Hello, world.' });
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(10) } }, { kind: 'audio', payload: { ref: 1, pcm: pcm(10) } });
+    apply({ kind: 'segmentClosed', payload: { ref: 1 } });
+    await conv.settled();
+    expect(conv.snapshot().segments[0].text).toBe('Hello, world.');
+    // Different letters on purpose: a revision that only grows re-anchors the same either way.
+    apply({ kind: 'segmentText', payload: { ref: 1, text: 'hello there' } });
+    apply(ranges(1, [[0, [0, 5]], [1, [6, 11]]]));
+    expect(speechOf(conv).map((s) => s.range)).toEqual([[0, 5], [6, 11]]);
+  });
+
+  it('sets ranges on audio held before its segment opened', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'audio', payload: { ref: 3, pcm: pcm(10) } }, { kind: 'audio', payload: { ref: 3, pcm: pcm(10) } });
+    apply(ranges(3, [[1, [2, 4]]]));
+    apply({ kind: 'segmentOpened', payload: { ref: 3, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 3, text: 'abcd' } });
+    expect(speechOf(conv).map((s) => s.range)).toEqual([undefined, [2, 4]]);
+  });
+
+  it('drops a range for an entry the segment does not hold, or an invalid range, with a diagnostic, and applies the rest', () => {
+    const { conv, diagnostics, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'Hello' } });
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(10) } });
+    apply(ranges(1, [[0, [0, 3]], [4, [0, 1]], [0, [5, 2]]]));
+    expect(speechOf(conv)[0].range).toEqual([0, 3]);
+    expect(diagnostics.map((d) => d.code).filter((c) => c === 'range_out_of_text')).toHaveLength(2);
+  });
+
+  it('ignores ranges for a ref it does not hold', () => {
+    const { conv, diagnostics, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'abc' } });
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(10) } }, { kind: 'segmentClosed', payload: { ref: 1 } });
+    conv.clear();
+    const before = conv.snapshot();
+    apply(ranges(1, [[0, [0, 3]]]));
+    expect(conv.snapshot()).toBe(before);
+    expect(diagnostics).toEqual([]);
+  });
+
+  it("counts a fill-in's entries from the adapter's first audio, across a clear", () => {
+    const { conv, diagnostics, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(10) } }, { kind: 'audio', payload: { ref: 1, pcm: pcm(10) } }); // the adapter's entries 0 and 1
+    conv.clear();
+    expect(conv.snapshot().segments.map((s) => [s.text, s.speech.length])).toEqual([['', 0]]);
+    apply({ kind: 'segmentText', payload: { ref: 1, text: 'hello world, bye' } });
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(10) } }); // the adapter's entry 2
+    apply({ kind: 'segmentClosed', payload: { ref: 1 } });
+    apply(ranges(1, [[0, [0, 5]], [1, [6, 11]], [2, [13, 16]]]));
+    expect(speechOf(conv).map((s) => s.range)).toEqual([[13, 16]]);
+    expect(diagnostics).toEqual([]);
+  });
+
+  it("drops a filled range beyond a closed segment's text, keeping the pcm", () => {
+    const { conv, diagnostics, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'Hi.' } });
+    apply({ kind: 'segmentClosed', payload: { ref: 1 } }, { kind: 'audio', payload: { ref: 1, pcm: pcm(10) } });
+    apply(ranges(1, [[0, [0, 9]]]));
+    expect(speechOf(conv)[0]).toEqual({ range: undefined, pcm: pcm(10) });
+    expect(diagnostics.map((d) => d.code)).toEqual(['range_out_of_text']);
+  });
+
+  it("after fill-in, drops a filled range beyond the adapter's own text with the same diagnostic as without it", async () => {
+    // Rewritten by fill-in: the skeleton re-anchoring leaves such a range unmapped.
+    const rewritten = make({ punctuate: async () => 'Hello, world.' });
+    rewritten.apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    rewritten.apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(10) } }, { kind: 'audio', payload: { ref: 1, pcm: pcm(10) } });
+    rewritten.apply({ kind: 'segmentClosed', payload: { ref: 1 } });
+    await rewritten.conv.settled();
+    expect(rewritten.conv.snapshot().segments[0].text).toBe('Hello, world.');
+    rewritten.apply(ranges(1, [[0, [0, 5]], [1, [5, 12]]])); // 12 is past 'hello world' (11), not past the filled text (13)
+    expect(speechOf(rewritten.conv).map((s) => s.range)).toEqual([[0, 7], undefined]);
+    expect(rewritten.diagnostics.map((d) => d.code)).toEqual(['range_out_of_text']);
+
+    // Only grown by fill-in: the range would otherwise stand, since it fits the filled text.
+    const grown = make({ punctuate: async (_l, t) => `${t}.` });
+    grown.apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    grown.apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(10) } }, { kind: 'segmentClosed', payload: { ref: 1 } });
+    await grown.conv.settled();
+    expect(grown.conv.snapshot().segments[0].text).toBe('hello world.');
+    grown.apply(ranges(1, [[0, [0, 12]]]));
+    expect(speechOf(grown.conv)[0]).toEqual({ range: undefined, pcm: pcm(10) });
+    expect(grown.diagnostics.map((d) => d.code)).toEqual(['range_out_of_text']);
+  });
+
+  it('on held audio too, a bad entry is reported and an entry named twice takes the last range, as on a segment', () => {
+    const held = make();
+    held.apply({ kind: 'audio', payload: { ref: 3, pcm: pcm(10) } }, { kind: 'audio', payload: { ref: 3, pcm: pcm(10) } });
+    held.apply(ranges(3, [[1, [0, 2]], [1, [2, 4]], [5, [0, 1]], [0, [3, 1]]]));
+    expect(held.diagnostics.map((d) => d.code)).toEqual(['range_out_of_text', 'range_out_of_text']);
+    held.apply({ kind: 'segmentOpened', payload: { ref: 3, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 3, text: 'abcd' } });
+    expect(speechOf(held.conv).map((s) => s.range)).toEqual([undefined, [2, 4]]);
+
+    const open = make();
+    open.apply({ kind: 'segmentOpened', payload: { ref: 3, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 3, text: 'abcd' } });
+    open.apply({ kind: 'audio', payload: { ref: 3, pcm: pcm(10) } }, { kind: 'audio', payload: { ref: 3, pcm: pcm(10) } });
+    open.apply(ranges(3, [[1, [0, 2]], [1, [2, 4]], [5, [0, 1]], [0, [3, 1]]]));
+    expect(open.diagnostics.map((d) => d.code)).toEqual(['range_out_of_text', 'range_out_of_text']);
+    expect(speechOf(open.conv).map((s) => s.range)).toEqual([undefined, [2, 4]]);
+  });
+
+  it('reports a negative or fractional index; only an entry a clear dropped goes silently', () => {
+    const { conv, diagnostics, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(10) } });
+    apply(ranges(1, [[-1, [0, 5]]]));
+    expect(diagnostics.map((d) => d.code)).toEqual(['range_out_of_text']);
+
+    conv.clear(); // the adapter's entry 0 is gone
+    apply({ kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(10) } }); // the adapter's entry 1
+    diagnostics.length = 0;
+    apply(ranges(1, [[0, [0, 5]], [-1, [0, 5]], [0.5, [0, 5]], [1, [6, 11]]]));
+    expect(diagnostics.map((d) => d.code)).toEqual(['range_out_of_text', 'range_out_of_text']);
+    expect(speechOf(conv).map((s) => s.range)).toEqual([[6, 11]]);
+  });
+});
+
 describe('Conversation — retention and clear', () => {
   it('keeps the range but no pcm when keepPcm is off', () => {
     const { conv, apply } = make({ retention: { keepPcm: false, maxPcmBytes: 1 << 20 } });
@@ -320,12 +520,36 @@ describe('Conversation — retention and clear', () => {
     expect(conv.snapshot().segments[0].text).toBe('still live');
   });
 
-  it('trims pcm held for refs that have not opened when it pushes the leg over the ceiling', () => {
+  it('trims pcm held for refs that have not opened when it pushes the leg over the ceiling, keeping their entries (Gemini/AST2 follow-up, choice 6)', () => {
     const { conv, apply } = make({ retention: { keepPcm: true, maxPcmBytes: 1000 } });
     apply({ kind: 'audio', payload: { ref: 9, pcm: pcm(300) } });   // 600 bytes, pending
-    apply({ kind: 'audio', payload: { ref: 10, pcm: pcm(300) } });  // 1200 total: ref 9 is dropped
+    apply({ kind: 'audio', payload: { ref: 10, pcm: pcm(300) } });  // 1200 total: ref 9's pcm is dropped
     apply({ kind: 'segmentOpened', payload: { ref: 9, side: 'translation' } }, { kind: 'segmentOpened', payload: { ref: 10, side: 'translation' } });
-    expect(conv.snapshot().segments.map((s) => s.speech.length)).toEqual([0, 1]);
+    expect(conv.snapshot().segments.map((s) => s.speech.map((x) => x.pcm.length))).toEqual([[0], [300]]);
+  });
+
+  it('a range stated after the ceiling dropped a held clip\'s pcm still lands on its entry, unsaid', () => {
+    const { conv, apply, diagnostics } = make({ retention: { keepPcm: true, maxPcmBytes: 1000 } });
+    apply({ kind: 'audio', payload: { ref: 9, pcm: pcm(300) } });
+    apply({ kind: 'audio', payload: { ref: 10, pcm: pcm(300) } });
+    apply({ kind: 'segmentOpened', payload: { ref: 9, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 9, text: 'Hello.' } }, { kind: 'segmentClosed', payload: { ref: 9 } });
+    apply({ kind: 'speechRanges', payload: { ref: 9, ranges: [{ index: 0, range: [0, 6] }] } });
+    expect(conv.snapshot().segments[0].speech).toEqual([{ range: [0, 6], pcm: new Int16Array(0) }]);
+    expect(diagnostics).toEqual([]);
+  });
+
+  it('a range stated for the second of two held clips lands on it, after the ceiling dropped only the first\'s pcm (Gemini/AST2 follow-up, choice 6)', () => {
+    const { conv, apply, diagnostics } = make({ retention: { keepPcm: true, maxPcmBytes: 400 } });
+    apply({ kind: 'audio', payload: { ref: 9, pcm: pcm(100) } });   // 200 bytes, held, index 0
+    apply({ kind: 'audio', payload: { ref: 10, pcm: pcm(150) } });  // 500 total: over the ceiling, ref 9's pcm is dropped, its entry kept
+    apply({ kind: 'audio', payload: { ref: 9, pcm: pcm(50) } });    // a second held clip for ref 9, index 1 — 400 total, at the ceiling: kept
+    apply({ kind: 'segmentOpened', payload: { ref: 9, side: 'translation' } });
+    apply({ kind: 'speechRanges', payload: { ref: 9, ranges: [{ index: 1, range: [0, 6] }] } });
+    expect(conv.snapshot().segments[0].speech).toEqual([
+      { range: undefined, pcm: new Int16Array(0) },
+      { range: [0, 6], pcm: pcm(50) },
+    ]);
+    expect(diagnostics).toEqual([]);
   });
 
   it('drops pcm held for a ref that never opened when the leg closes', () => {

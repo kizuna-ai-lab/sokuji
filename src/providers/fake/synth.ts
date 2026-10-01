@@ -1,11 +1,15 @@
 import { SAMPLE_RATE } from '../../lib/contract/adapter';
 
-/** A 440 Hz tone, `ms` long, at the contract's sample rate. */
-export function synthPcm(ms: number, hz = 440, amplitude = 8000): Int16Array {
+/**
+ * A 440 Hz tone, `ms` long, at the contract's sample rate.
+ * `from`: the samples of this tone already played, so consecutive chunks of
+ * one stream join without a click (G3).
+ */
+export function synthPcm(ms: number, hz = 440, amplitude = 8000, from = 0): Int16Array {
   const n = Math.round((SAMPLE_RATE * ms) / 1000);
   const out = new Int16Array(n);
   for (let i = 0; i < n; i++) {
-    out[i] = Math.round(Math.sin((2 * Math.PI * hz * i) / SAMPLE_RATE) * amplitude);
+    out[i] = Math.round(Math.sin((2 * Math.PI * hz * (from + i)) / SAMPLE_RATE) * amplitude);
   }
   return out;
 }

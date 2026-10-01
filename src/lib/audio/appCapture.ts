@@ -61,9 +61,6 @@ function withCleanup(source: Source, cleanup: () => void): Source {
     onPcm: (listener) => source.onPcm(listener),
     onEnded: (listener) => source.onEnded(listener),
     onDegraded: (listener) => source.onDegraded(listener),
-    get track() {
-      return source.track;
-    },
     async stop() {
       if (!cleaned) {
         cleaned = true;

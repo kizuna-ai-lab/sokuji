@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import ToggleSwitch from '../shared/ToggleSwitch';
-import { useSelectedProvider } from '../../providers/useSelectedProvider';
+import { ownProps, useSelectedProvider } from '../../providers/useSelectedProvider';
 import { useAnalytics } from '../../../lib/analytics';
 import { storedProviderValue } from '../../../lib/session/storedSettings';
 import type { TurnMode } from '../../../lib/session/types';
@@ -91,7 +91,7 @@ function ProviderTurnDetection({ locked, layout }: { locked: boolean; layout: 's
   const tuning = selection.provider.TurnDetection;
   if (!tuning) return null;
   const { Summary, Help } = tuning;
-  const props = { settings: selection.entry.settings, update: selection.update, disabled: locked, pair: selection.entry.pair };
+  const props = ownProps(selection, selection.entry, locked);
 
   const openControls = () => {
     if (layout === 'simple') {
@@ -115,15 +115,14 @@ function ProviderTurnDetection({ locked, layout }: { locked: boolean; layout: 's
 }
 
 /**
- * The global turn mode's own section (1e-3b-2 ruling 6): today's local-VAD
- * tooltip (`LocalSettingsControls.tsx`'s `SpeechModeControl` default),
- * accurate while LocalInference is the only provider — a provider-neutral
- * sentence needs new words and lands with Stage 2's second provider. Below
- * the turn modes, the provider's own tuning of Auto, drawn for `layout`.
+ * The global turn mode's own section (1e-3b-2 ruling 6). Its tooltip is
+ * provider-neutral (Stage 2 Soniox, ruling 8): what ends an utterance under
+ * Auto is each provider's own detection. The turn modes come first, then
+ * that detection's tuning — the provider's own, drawn for `layout`.
  */
 export function SpeechSection({ locked, layout }: { locked: boolean; layout: 'simple' | 'advanced' }) {
   const { t } = useTranslation();
-  const tooltip = `${t('settings.localInferenceTurnDetectionTooltip', 'Auto: local Voice Activity Detection automatically detects speech. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.')}\n\n${t('settings.speechModeAppliesTo', "Applies to your voice. Other's audio always uses semantic VAD.")}`;
+  const tooltip = `${t('settings.speechModeTooltip', 'Auto: the provider detects when you have finished speaking. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.')}\n\n${t('settings.speechModeAppliesToAuto', "Applies to your voice. Other's audio always uses the provider's automatic detection.")}`;
   return (
     <div className="config-section turn-detection-section" id="turn-detection-section">
       <h3>

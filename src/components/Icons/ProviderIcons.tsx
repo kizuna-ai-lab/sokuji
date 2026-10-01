@@ -1,5 +1,4 @@
 import React from 'react';
-import { Provider, KizunaManagedProvider } from '../../types/Provider';
 
 interface IconProps {
   size?: string | number;
@@ -269,13 +268,3 @@ export function kizunaHostedIcon(
   return HostedIcon;
 }
 
-/**
- * Every Kizuna-managed provider's composite mark. Kept exhaustive by
- * ProviderIcons.test.tsx against isKizunaManagedProvider(), so a fourth twin
- * can't quietly fall back to the bare Kizuna logo.
- */
-export const KIZUNA_HOSTED_ICONS: Record<KizunaManagedProvider, React.FC<IconProps>> = {
-  [Provider.KIZUNA_AI_SONIOX]: kizunaHostedIcon(SonioxIcon),
-  [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: kizunaHostedIcon(OpenAIIcon, { plate: true, color: '#000' }),
-  [Provider.KIZUNA_AI_VOLCENGINE_AST2]: kizunaHostedIcon(VolcengineIcon, { plate: true }),
-};

@@ -1,23 +1,27 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { DirectionResult } from '../../lib/local-inference/selection/types';
+import { directionKey, type DirectionResult, type Selections } from '../../lib/local-inference/selection/types';
 import type { SessionContext } from '../../lib/contract/adapter';
 import type { SharedSettings } from '../../lib/provider/types';
 import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
 
-/** One direction's table entry: an id per stage, or absent/null for "does not resolve". */
-type TableEntry = { asr?: string | null; translation?: string | null; tts?: string | null };
+/** One direction's table entry: an id per stage, or absent/null for "does not
+ *  resolve". `autoTranslation` is what the translation stage resolves to once
+ *  that direction's stored translation selection is auto (`''`) — what the AST
+ *  cross-stage guard's re-resolution asks for. */
+type TableEntry = { asr?: string | null; translation?: string | null; tts?: string | null; autoTranslation?: string | null };
 type Table = Record<string, TableEntry>;
 
 // Prefixed "mock" so Vitest hoists these alongside the vi.mock factories below
 // (see check.test.ts for the same convention).
 let mockTable: Table = {};
 let mockDeviceFeatures: string[] = [];
-const mockResolve = vi.fn((src: string, tgt: string, _selections: unknown): DirectionResult => {
+const mockResolve = vi.fn((src: string, tgt: string, selections: Selections): DirectionResult => {
   const entry = mockTable[`${src}>${tgt}`];
   const stage = (id: string | null | undefined) => (id ? { modelId: id, source: 'explicit' as const } : null);
+  const translationAuto = selections[directionKey(src, tgt)]?.translation.modelId === '';
   return {
     asr: stage(entry?.asr),
-    translation: stage(entry?.translation),
+    translation: stage(translationAuto ? entry?.autoTranslation : entry?.translation),
     tts: stage(entry?.tts),
     notes: [],
     prunes: [],
@@ -68,10 +72,10 @@ function settings(overrides: Partial<LocalInferenceSettings> = {}): LocalInferen
 
 function shared(overrides: { reversed?: boolean; segmentation?: SharedSettings['segmentation'] } = {}): SharedSettings {
   return {
-    instructions: () => '',
     pauses: { sourceSeconds: 0, translationSeconds: 0 },
     reversed: () => overrides.reversed ?? false,
     segmentation: overrides.segmentation ?? { mode: 'off', sentencesPerRow: 0 },
+    models: [],
   };
 }
 
@@ -152,6 +156,32 @@ describe('buildLocalInference', () => {
     const c = buildLocalInference(ctx({ source: 'en', target: 'ja' }), settings(), shared()) as LocalInferenceConfig;
     expect(c.translation).toEqual({ kind: 'ast' });
     expect(describeLocalInference(c)).toEqual({ asrModel: 'granite', translationModel: 'granite', ttsModel: undefined });
+  });
+
+  // The AST cross-stage guard (astGuard.ts): an AST-capable model picked
+  // explicitly as the translation stage while the ASR stage resolves to a
+  // different model would load as a translation engine against AST-only
+  // files. `build` masks that pick back to auto instead.
+  it('builds the auto pick as the translation engine when Granite Speech was picked for translation but the ASR resolves to another model', () => {
+    mockManifest = { granite: { type: 'asr', asrEngine: 'granite-speech', astLanguages: { en: ['ja'] } } };
+    resolved({ 'ja>en': { asr: 'sherpa-ja', translation: 'granite', autoTranslation: 'opus-ja-en' } });
+    const selections: Selections = {
+      [directionKey('ja', 'en')]: { asr: { modelId: '' }, translation: { modelId: 'granite' }, tts: { modelId: '' } },
+    };
+    const c = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings({ selections }), shared()) as LocalInferenceConfig;
+    expect(c.asr.modelId).toBe('sherpa-ja');
+    expect(c.translation).toMatchObject({ kind: 'engine', modelId: 'opus-ja-en' });
+  });
+
+  it('applies the same guard to the reversed (participant) direction', () => {
+    mockManifest = { granite: { type: 'asr', asrEngine: 'granite-speech', astLanguages: { en: ['ja'] } } };
+    resolved({ 'en>ja': { asr: 'sherpa-en', translation: 'granite', autoTranslation: 'opus-en-ja' } });
+    const selections: Selections = {
+      [directionKey('en', 'ja')]: { asr: { modelId: '' }, translation: { modelId: 'granite' }, tts: { modelId: '' } },
+    };
+    const c = buildLocalInference(ctx({ source: 'en', target: 'ja' }), settings({ selections }), shared({ reversed: true })) as LocalInferenceConfig;
+    expect(c.asr.modelId).toBe('sherpa-en');
+    expect(c.translation).toMatchObject({ kind: 'engine', modelId: 'opus-en-ja' });
   });
 
   it('marks an asr-stream model streaming, and any other ASR model not', () => {

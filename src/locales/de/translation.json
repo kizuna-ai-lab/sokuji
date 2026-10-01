@@ -24,7 +24,6 @@
       "audio": "Audio",
       "provider": "Anbieter"
     },
-    "languageSettings": "Spracheinstellungen",
     "voice": "Stimme",
     "voiceSettings": "Stimmeinstellungen",
     "model": "Modell",
@@ -40,10 +39,11 @@
     "autoTempo": "Adaptive Sprechgeschwindigkeit",
     "pushToTalk": "Push-to-Talk",
     "pushToTranslate": "Push-to-Translate",
-    "pushToTranslateNotAvailableInWebrtc": "Im WebRTC-Modus nicht verfügbar. Wechseln Sie zu WebSocket, um Push-to-Translate zu verwenden.",
     "systemInstructions": "Systemanweisungen",
     "speechMode": "Sprachmodus",
     "speechModeAppliesTo": "Gilt für Ihre Stimme. Das Audio des Gegenübers verwendet immer semantische VAD.",
+    "speechModeTooltip": "Auto: Der Anbieter erkennt, wann Sie zu Ende gesprochen haben. \nPush-to-Talk: Halten Sie die Leertaste oder die Mikrofontaste, um Audio manuell zu senden. \nPush-to-Translate: Wie Push-to-Talk, leitet aber Ihr Roh-Mikrofon im Leerlauf an das virtuelle Mikrofon weiter, sodass Sie ohne Übersetzung direkt sprechen können.",
+    "speechModeAppliesToAuto": "Gilt für Ihre Stimme. Das Audio des Gegenübers verwendet immer die automatische Erkennung des Anbieters.",
     "userTranscriptModel": "Benutzer-Transkriptionsmodell",
     "noiseReduction": "Rauschunterdrückung",
     "noiseSuppression": "Rauschunterdrückung",
@@ -72,22 +72,15 @@
     "eagerness": "Eifer",
     "temperature": "Temperatur",
     "maxTokens": "Maximale Token",
-    "validating": "Validierung...",
     "enterCustomInstructions": "Geben Sie hier benutzerdefinierte Systemanweisungen ein...",
     "settingsSavedSuccessfully": "Einstellungen erfolgreich gespeichert",
     "failedToSaveSettings": "Fehler beim Speichern der Einstellungen",
     "settingSavedSuccessfully": "Einstellung erfolgreich gespeichert: {{key}}",
     "failedToSaveSetting": "Fehler beim Speichern der Einstellung: {{key}}",
-    "apiKeyValidationCompleted": "API-Schlüssel-Validierung abgeschlossen",
-    "errorValidatingApiKey": "Fehler bei der Validierung des API-Schlüssels",
     "regionNotSupported": "Der Dienst ist in Ihrer Region nicht verfügbar. Bitte überprüfen Sie Ihre Netzwerkumgebung oder versuchen Sie einen anderen Anbieter.",
     "sessionActiveNotice": "Die Einstellungen sind gesperrt, während die Sitzung aktiv ist. Beenden Sie die Sitzung, um die Einstellungen zu ändern.",
-    "realtimeModelAvailable": "Echtzeitmodell ist verfügbar",
     "realtimeModelNotAvailable": "Echtzeitmodell ist nicht verfügbar",
-    "refreshModels": "Verfügbare Modelle aktualisieren",
-    "loadingModels": "Verfügbare Modelle werden geladen...",
     "modelsFound": "{{count}} Modelle verfügbar",
-    "invalidApiKeyFormat": "Ungültiges API-Schlüsselformat",
     "volcengineAST2Info": "Doubao AST 2.0-Informationen",
     "volcengineAST2InfoText": "Doubao AST 2.0 bietet Sprache-zu-Sprache-Übersetzung mit automatischer Stimmklonung. Das übersetzte Audio behält die Stimmcharakteristiken des ursprünglichen Sprechers bei.",
     "volcengineAST2TurnDetectionTooltip": "Auto: serverseitige Sprachaktivitätserkennung. \nPush-to-Talk: Halten Sie die Leertaste oder die Mikrofontaste, um Audio manuell zu senden. \nPush-to-Translate: Wie Push-to-Talk, leitet aber Ihr Roh-Mikrofon im Leerlauf an das virtuelle Mikrofon weiter, sodass Sie ohne Übersetzung direkt sprechen können.",
@@ -113,8 +106,6 @@
     "low": "Niedrig",
     "medium": "Mittel",
     "high": "Hoch",
-    "apiKeyValidated": "API-Schlüssel validiert",
-    "realtimeTranslationAvailable": "Echtzeit-Übersetzungsdienst ist verfügbar",
     "advancedMode": "Erweitert",
     "providerTooltip": "Wählen Sie Ihren KI-Übersetzungsdienst. Jeder Dienst hat unterschiedliche Funktionen, Stimmen und Preise. OpenAI bietet die meisten Funktionen, während Gemini einen guten kostenlosen Plan hat. Der lokale (Offline-)Modus ist völlig kostenlos — kein API-Schlüssel oder Internet erforderlich.",
     "modelTooltip": "Das KI-Modell beeinflusst Geschwindigkeit und Qualität. 'Mini'-Modelle sind schneller, aber einfacher. Standardmodelle sind genauer, aber etwas langsamer. Probieren Sie zuerst Mini zur Kosteneinsparung.",
@@ -135,12 +126,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Hintergrundgeräuschentfernung. \nKeine: Keine Verarbeitung, in ruhigen Räumen verwenden. \nNahfeld: Für Headsets/nahe Mikrofone. \nFernfeld: Für Lautsprecher/Konferenzräume mit Echo.",
     "systemInstructionsTooltip": "Benutzerdefinierte Anweisungen für den KI-Übersetzer. Teilen Sie Ihre Vorlieben wie formeller/lockerer Ton, Behandlung von Fachbegriffen oder spezifischer Übersetzungsstil mit.",
-    "transportType": "Verbindungstyp",
-    "transportTypeTooltip": "WebRTC: Geringere Latenz, für die meisten Benutzer empfohlen.\nWebSocket: Bessere Kompatibilität mit eingeschränkten Netzwerken. Verwenden Sie es, wenn die WebRTC-Verbindung fehlschlägt.",
-    "websocket": "WebSocket (Stabil)",
-    "webrtc": "WebRTC (Niedrige Latenz)",
-    "webrtcVadDisabledTitle": "Server-VAD ist im WebRTC-Modus nicht verfügbar",
-    "webrtcVadNotice": "Server-VAD ist im WebRTC-Modus deaktiviert. Im WebRTC-Modus schneidet der Server automatisch Audio ab, wenn er Sprache erkennt, was Übersetzungen unterbricht.",
     "participantInstructions": "Anweisungen für das Gegenüber",
     "participantInstructionsTooltip": "Systemanweisungen für die Übersetzung des Audios Ihres Gegenübers. Wenn leer, werden die Hauptanweisungen oben verwendet.\n\nWichtig: Ihre Hauptanweisungen haben möglicherweise die falsche Sprachrichtung für Ihr Gegenüber. Beispiel: Wenn Sie Chinesisch sprechen und Ihre Hauptanweisungen Chinesisch→Japanisch übersetzen, aber Ihr Gegenüber Japanisch spricht, würden die Hauptanweisungen fälschlicherweise versuchen, Japanisch→Japanisch zu übersetzen. Legen Sie separate Anweisungen für das Gegenüber fest, um Japanisch→Chinesisch zu übersetzen.",
     "localTranslationPrompt": "Übersetzungs-Prompt",
@@ -203,9 +188,7 @@
       "xhigh": "Sehr hoch"
     },
     "translateInfoBanner": "Dieses Modell bleibt still, wenn der Sprecher die Zielsprache verwendet. Bei gemischtsprachiger Sprache können Lücken entstehen.",
-    "translateModelAvailable": "API-Schlüssel validiert. gpt-realtime-translate ist verfügbar.",
     "translateModelNotAvailable": "Der API-Schlüssel funktioniert, aber gpt-realtime-translate ist mit diesem Schlüssel nicht zugänglich.",
-    "translateSourceParticipantWarning": "Die Übersetzung des Audios Ihres Gegenübers funktioniert möglicherweise nicht — „Meine Sprache“ ist nicht unter den 13 von diesem Anbieter unterstützten Zielsprachen.",
     "participantSectionHeader": "Audio des Gegenübers",
     "participantSectionDescriptionElectron": "Audio von jeder auf diesem System laufenden Anwendung übersetzen.",
     "participantSectionDescriptionExtension": "Audio des aktiven Browser-Tabs übersetzen. Das Original-Audio wird über die Standardausgabe Ihres Systems wiedergegeben.",
@@ -222,7 +205,6 @@
     "sonioxSharedSession": "Gemeinsame Sitzung im Modus „Beides“",
     "sonioxSharedSessionTooltip": "Im Modus „Beides“ kann eine gemeinsame Soniox-Sitzung für beide Richtungen oder je Richtung eine separate Sitzung verwendet werden.\n\nAktiviert: Eine einzelne Sitzung übersetzt beide Seiten mit automatischer Stimmentrennung – geringere Kosten und Latenz.\n\nDeaktiviert: Eine separate Sitzung pro Richtung – zuverlässiger, wenn beide gleichzeitig sprechen, aber etwa doppelte Kosten.\n\nBetrifft nur den Modus „Beides“.",
     "sonioxSharedSessionManagedCost": "Kizuna AI unterstützt beides. „Deaktiviert“ führt zwei Sitzungen gleichzeitig aus – etwa doppelte Kosten pro Minute, Ihr Sitzungsguthaben ist also in etwa der halben Zeit aufgebraucht und zum Starten ist ein höheres Guthaben nötig.",
-    "sonioxAutoParticipantWarning": "Legen Sie für „Meine Sprache“ eine konkrete Sprache fest – bei automatischer Erkennung kann die Sprache des Gegenübers nicht dorthin übersetzt werden.",
     "sonioxVocabulary": "Benutzerdefiniertes Vokabular",
     "sonioxVocabularyTooltip": "Beeinflusst die Erkennung wichtiger Namen und Fachbegriffe und lenkt, wie bestimmte Begriffe übersetzt werden. Wirkt sich erst ab der nächsten Sitzung aus.",
     "sonioxVocabularyTerms": "Begriffe",
@@ -310,7 +292,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch über Ihr Konto authentifiziert",
-    "fetchingApiKey": "API-Schlüssel wird von Ihrem Konto abgerufen...",
     "provider": "KI-Dienstanbieter",
     "apiKeyPlaceholder": "Geben Sie Ihren API-Schlüssel ein",
     "setupGuide": "Einrichtungsanleitung",
@@ -372,6 +353,7 @@
     "participantSpeech": "Übersetzung des Gegenübers vorlesen",
     "participantSpeechDesc": "Liest Ihnen laut vor, was das Gegenüber sagt, in Ihrer Sprache, über Ihre Lautsprecher. Es folgt der Stimme mit einer Verzögerung.",
     "participantSpeechBlockedWholeSystem": "Deaktiviert, solange das Audio des Gegenübers das gesamte Systemaudio erfasst: Die Übersetzung würde erneut erfasst und übersetzt. Wählen Sie eine Anwendung als Quelle des Gegenübers.",
+    "participantSpeechNotYetAvailable": "Bei diesem Anbieter noch nicht verfügbar: Die Übersetzung des Gegenübers wird nur als Text angezeigt.",
     "audioCaptureUnprovenNotice": "Noch nichts erfasst",
     "audioCaptureUnprovenTitle": "Von der ausgewählten Quelle ist noch kein Audio angekommen",
     "audioCaptureUnprovenText1": "Wenn die Quelle abspielt und nichts übersetzt wird, liefert macOS wahrscheinlich Stille: Das Erfassen einer App erfordert die Berechtigung „Nur Systemaudioaufnahme“, und ohne sie gibt es keinen Fehler, nur Stille.",
@@ -430,9 +412,7 @@
     "backToSignIn": "Zurück zur Anmeldung",
     "forgotPasswordError": "Bestätigungscode konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
     "resetPasswordError": "Passwort konnte nicht zurückgesetzt werden. Bitte versuchen Sie es erneut.",
-    "signedOut": "Melden Sie sich an, um den integrierten Übersetzungsdienst von Kizuna AI zu nutzen.",
-    "sessionUnavailable": "Ihre Sitzung ist nicht mehr gültig. Bitte melden Sie sich erneut an.",
-    "unknown": "Ihr Konto konnte nicht überprüft werden. Bitte versuchen Sie es erneut."
+    "signedOut": "Melden Sie sich an, um den integrierten Übersetzungsdienst von Kizuna AI zu nutzen."
   },
   "simpleConfig": {
     "interfaceLanguage": "Sprache der Benutzeroberfläche",
@@ -456,20 +436,9 @@
     "keepReplayAudioDesc": "Übersetztes Audio im Speicher behalten, damit Sie es später aus jeder Nachricht erneut abspielen können. Standardmäßig deaktiviert, um den Speicherverbrauch bei langen Sitzungen zu reduzieren."
   },
   "providers": {
-    "kizunaai_openai_translate": {
-      "name": "KizunaAI",
-      "description": "75 Quellsprachen (automatisch erkannt), 13 Zielsprachen",
-      "vendor": "OpenAI"
-    },
-    "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI",
-      "description": "8 Sprachen + Chinesisch–Englisch bidirektional · behält Ihre Stimme",
-      "vendor": "Doubao"
-    },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 Sprachen, 3.600 Sprachpaare · eigene Stimme klonen",
-      "vendor": "Soniox"
+      "description": "60 Sprachen, 3.600 Sprachpaare · eigene Stimme klonen"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -478,11 +447,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "Googles AI-Technologie"
-    },
-    "openaiCompatible": {
-      "name": "OpenAI-kompatibel (Legacy Realtime)",
-      "description": "Drittanbieter-Endpunkt mit OpenAIs älterem Beta-Realtime-Protokoll. Nicht für OpenAI selbst.",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -510,7 +474,8 @@
       "name": "Doubao AST 2.0",
       "description": "Doubao Simultanübersetzung",
       "appIdPlaceholder": "APP ID",
-      "accessTokenPlaceholder": "Access Token"
+      "accessTokenPlaceholder": "Access Token",
+      "authModeApp": "App ID + Access Token"
     },
     "local_inference": {
       "name": "Kostenlos",
@@ -548,7 +513,6 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Übersetzungen erscheinen im Untertitel-Overlay",
-    "speechDetected": "[Sprache erkannt]",
     "function": "Funktion",
     "noChannelConfigured": "Aktivieren Sie das Mikrofon oder das Audio des Gegenübers, bevor Sie starten.",
     "release": "loslassen",
@@ -632,9 +596,6 @@
     "waveformMicTooltip": "Ihr Mikrofon — Ihre Stimme, die zur Übersetzung erfasst wird",
     "waveformSystemTooltip": "Audio des Gegenübers, das zur Übersetzung erfasst wird (Browser-Tab / System-Audio)",
     "allChannelsFailed": "Kein Audiokanal konnte gestartet werden. Prüfen Sie die Geräteberechtigungen und versuchen Sie es erneut.",
-    "participantChannelFailed": "Der Audiokanal des Gegenübers konnte nicht gestartet werden.",
-    "splitDegradedLabel": "Nur eine Richtung",
-    "splitDegradedTooltip": "Das Audio des Gegenübers wird nicht übersetzt, diese Sitzung läuft daher nur in eine Richtung. Prüfen Sie die Berechtigungen für das Audio des Gegenübers und starten Sie dann eine neue Sitzung.",
     "sonioxInsufficientBalance": "Unzureichendes Guthaben, um eine Sitzung zu starten. Bitte laden Sie Ihr Guthaben auf und versuchen Sie es erneut.",
     "sonioxSessionConflict": "In Ihrem Konto läuft bereits eine andere Sitzung. Bitte versuchen Sie es in Kürze erneut.",
     "sonioxServiceUnavailable": "Soniox ist vorübergehend nicht verfügbar. Bitte versuchen Sie es in Kürze erneut.",
@@ -644,7 +605,6 @@
     "sonioxTtsSegmentLost": "Ein Teil der gesprochenen Übersetzung konnte nicht wiedergegeben werden. Transkription und Textübersetzung sind nicht betroffen.",
     "sonioxSegmentEnded": "Dieser Abschnitt ist beendet — tippen Sie auf „Sitzung starten“, um fortzufahren.",
     "sonioxConnectionLost": "Die Verbindung wurde unterbrochen — tippen Sie gleich auf „Sitzung starten“, um fortzufahren.",
-    "openaiLiveConnectionLost": "Die Verbindung wurde unterbrochen — tippen Sie gleich auf „Sitzung starten“, um fortzufahren.",
     "sonioxVoiceClipMissing": "Auf diesem Gerät liegt keine Sprachaufnahme vor, daher verwendet diese Sitzung eine voreingestellte Stimme. Nehmen Sie eine in den Einstellungen auf, um hier mit Ihrer eigenen Stimme zu sprechen.",
     "sonioxVoicePoolBusy": "Alle Plätze für eigene Stimmen sind gerade belegt, daher verwendet diese Sitzung eine voreingestellte Stimme. Ihre eigene Stimme wird beim nächsten Mal wieder verwendet.",
     "sonioxVoiceBuildFailed": "Ihre eigene Stimme konnte nicht erstellt werden, daher verwendet diese Sitzung eine voreingestellte Stimme. Versuchen Sie, in den Einstellungen eine klarere Aufnahme zu machen.",
@@ -1178,8 +1138,6 @@
     },
     "credentials": {
       "apiKey": "API-Schlüssel",
-      "endpoint": "Endpunkt-URL",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",
@@ -1298,13 +1256,9 @@
     "app_capture_lost_using_system_audio": "Die App-Erfassung wurde beendet, daher wird stattdessen das gesamte Systemaudio übersetzt.",
     "app_capture_monitor_missing": "Die App-Erfassung konnte nicht gestartet werden, daher wird stattdessen das gesamte Systemaudio übersetzt.",
     "parse_error": "Eine Nachricht des Anbieters konnte nicht gelesen werden; die Sitzung wird fortgesetzt.",
-    "cleanup_failed": "Ein Schritt beim Beenden der Sitzung ist fehlgeschlagen.",
-    "input_pipeline_failed": "Die Audioaufnahme hat aufgehört zu funktionieren; es wird nichts weiter übersetzt.",
     "tts_degraded": "Die Sprachwiedergabe ist beeinträchtigt; der übersetzte Text wird weiterhin geliefert.",
     "resume_attempt_failed": "Die Wiederverbindung ist fehlgeschlagen; ein neuer Versuch folgt.",
-    "send_dropped": "Einiges an Audio oder Text konnte nicht gesendet werden und wurde verworfen.",
     "voice_fallback": "Die gewählte Stimme war nicht verfügbar, daher wird eine andere Stimme verwendet.",
-    "lease_notify_failed": "Der Dienst konnte nicht über den Sitzungsstatus informiert werden.",
     "auth": "Der Anbieter hat die Zugangsdaten nicht akzeptiert: {{detail}}",
     "rate_limit": "Der Anbieter begrenzt gerade Anfragen; versuchen Sie es in Kürze erneut: {{detail}}",
     "network": "Die Verbindung zum Anbieter ist fehlgeschlagen: {{detail}}",

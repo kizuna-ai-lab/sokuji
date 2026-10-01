@@ -46,23 +46,6 @@ describe('logStore — per-client event grouping', () => {
     expect(speaker[0].groupingKey).toBe('input_audio_buffer');
   });
 
-  // The Live API names the same microphone stream `session.input_audio.append`
-  // (no `_buffer`); one entry per frame drowned the panel in a real session.
-  it('collapses the Live wire name for mic appends under the same key', () => {
-    for (let seq = 0; seq < 3; seq++) {
-      useLogStore.getState().addRealtimeEvent(
-        { type: 'session.input_audio.append', audio: `chunk-${seq}` } as any,
-        'client',
-        'session.input_audio.append',
-        'speaker'
-      );
-    }
-    const speaker = entriesFor('speaker');
-    expect(speaker).toHaveLength(1);
-    expect(speaker[0].events).toHaveLength(3);
-    expect(speaker[0].groupingKey).toBe('input_audio_buffer');
-  });
-
   // A session nobody speaks in sends nothing but mic appends, and they all
   // share one groupingKey, so they land in ONE entry for as long as the silence
   // lasts. Uncapped, that entry grew for the whole session and every append
@@ -121,6 +104,139 @@ describe('logStore — per-client event grouping', () => {
     // The differing event breaks the run, so the trailing append cannot rejoin
     // the original group.
     expect(entriesFor('speaker')).toHaveLength(3);
+  });
+
+  it("groups each of Gemini's renamed frames: consecutive frames of one type in one entry (Stage 2 Gemini, ruling 12)", () => {
+    const add = (type: string) => useLogStore.getState().addRealtimeEvent({ type, data: {} } as any, 'server', type, 'speaker');
+    add('server_content.model_turn');
+    add('server_content.model_turn');
+    add('server_content.model_turn');
+    let speaker = entriesFor('speaker');
+    expect(speaker).toHaveLength(1);
+    expect(speaker[0].groupingKey).toBe('gemini_model_turn');
+    expect(speaker[0].events).toHaveLength(3);
+
+    // Another type starts its own entry: the store merges only consecutive events of the same type (`logStore.ts:525-531`).
+    add('server_content.output_transcription');
+    add('server_content.output_transcription');
+    add('server_content.model_turn');
+    speaker = entriesFor('speaker');
+    expect(speaker.map((e) => [e.groupingKey, e.events?.length])).toEqual([
+      ['gemini_model_turn', 3],
+      ['gemini_output_transcription', 2],
+      ['gemini_model_turn', 1],
+    ]);
+
+    const keys: Array<[string, string]> = [
+      ['server_content.input_transcription', 'gemini_input_transcription'],
+      ['server_content.turn_complete', 'gemini_turn_complete'],
+      ['server_content.generation_complete', 'gemini_generation_complete'],
+      ['server_content.interrupted', 'gemini_interrupted'],
+      ['server.usage_metadata', 'gemini_usage_metadata'],
+    ];
+    for (const [type, key] of keys) {
+      add(type);
+      add(type);
+      speaker = entriesFor('speaker');
+      expect(speaker[speaker.length - 1].groupingKey, type).toBe(key);
+      expect(speaker[speaker.length - 1].events, type).toHaveLength(2);
+    }
+  });
+
+  it("groups Doubao AST 2.0's renamed frames under the old client's keys (Stage 2 Volcengine AST2, choice 9)", () => {
+    const add = (type: string) => useLogStore.getState().addRealtimeEvent({ type, data: {} } as any, 'server', type, 'speaker');
+    add('subtitle.source');
+    add('subtitle.source');
+    add('subtitle.source');
+    let speaker = entriesFor('speaker');
+    expect(speaker).toHaveLength(1);
+    expect(speaker[0].groupingKey).toBe('volcengine_source_subtitle');
+    expect(speaker[0].events).toHaveLength(3);
+
+    // A group holds one frame type (the merge compares `eventType` too): each
+    // name keeps its old client's key, but three of them share a key
+    // ('volcengine_tts') — adding each type twice and checking the group's own
+    // event count is what would catch a grouping that merged them regardless
+    // of type; checking only the newest entry's groupingKey would not.
+    const keys: Array<[string, string]> = [
+      ['subtitle.translation', 'volcengine_translation_subtitle'],
+      ['tts.sentence_start', 'volcengine_tts'],
+      ['tts.sentence_end', 'volcengine_tts'],
+      ['tts.ended', 'volcengine_tts'],
+      ['session.usage', 'volcengine_usage'],
+      ['session.audio_muted', 'volcengine_audio_mute'],
+    ];
+    for (const [type, key] of keys) {
+      add(type);
+      add(type);
+      speaker = entriesFor('speaker');
+      expect(speaker[speaker.length - 1].groupingKey, type).toBe(key);
+      expect(speaker[speaker.length - 1].events, type).toHaveLength(2);
+    }
+    expect(speaker).toHaveLength(7);
+  });
+
+  it("groups OpenAI Translate's delta frames each under its own type, and gives its other frames no key (Stage 2 OpenAI Translate, choice 12)", () => {
+    const add = (type: string) => useLogStore.getState().addRealtimeEvent({ type, data: {} } as any, 'server', type, 'speaker');
+    for (const type of ['session.input_transcript.delta', 'session.output_transcript.delta', 'session.output_audio.delta']) {
+      add(type);
+      add(type);
+    }
+    expect(entriesFor('speaker').map((e) => [e.groupingKey, e.events?.length])).toEqual([
+      ['session.input_transcript.delta', 2],
+      ['session.output_transcript.delta', 2],
+      ['session.output_audio.delta', 2],
+    ]);
+    // None of its other names is a row of Doubao's (`subtitle.*`, `tts.*`, `session.usage`, `session.audio_muted`) or of anyone's: one entry each, ungrouped.
+    const others = [
+      'session.opened', 'session.created', 'session.update', 'session.updated', 'session.closed', 'session.error', 'session.unknown', 'session.unreadable',
+      'session.socket_error', 'session.connection_lost', 'session.input_transcript.done', 'session.output_transcript.done', 'session.output_audio.done',
+      'turn.tail', 'turn.tail_end',
+    ];
+    for (const type of others) add(type);
+    expect(entriesFor('speaker').slice(3).map((e) => [e.eventType, e.groupingKey])).toEqual(others.map((type) => [type, undefined]));
+  });
+
+  it("groups OpenAI Realtime's delta frames each under its own type, and gives its other frames no key (Stage 2 OpenAI Realtime, choice 13)", () => {
+    const add = (type: string) => useLogStore.getState().addRealtimeEvent({ type, data: {} } as any, 'server', type, 'speaker');
+    const deltas = [
+      'conversation.item.input_audio_transcription.delta', 'response.output_audio_transcript.delta', 'response.output_text.delta', 'response.output_audio.delta',
+    ];
+    for (const type of deltas) {
+      add(type);
+      add(type);
+    }
+    expect(entriesFor('speaker').map((e) => [e.groupingKey, e.events?.length])).toEqual(deltas.map((type) => [type, 2]));
+    // None of its other names is the microphone's row, one of Doubao's (`subtitle.*`, `tts.*`, `session.usage`, `session.audio_muted`) or anyone's: one entry each, ungrouped.
+    const others = [
+      'session.opened', 'session.update', 'input_audio_buffer.commit', 'input_audio_buffer.clear', 'conversation.item.create', 'response.create', 'response.queued', 'response.anchor',
+      'session.created', 'session.updated', 'input_audio_buffer.speech_started', 'input_audio_buffer.speech_stopped', 'input_audio_buffer.committed', 'input_audio_buffer.cleared',
+      'conversation.item.added', 'conversation.item.done', 'conversation.item.input_audio_transcription.completed', 'conversation.item.input_audio_transcription.failed',
+      'response.created', 'response.output_item.added', 'response.output_item.done', 'response.content_part.added', 'response.content_part.done',
+      'conversation.item.deleted', 'conversation.item.truncated', 'conversation.item.input_audio_transcription.segment', 'input_audio_buffer.timeout_triggered',
+      'response.output_audio_transcript.done', 'response.output_text.done', 'response.output_audio.done', 'response.done', 'rate_limits.updated',
+      'session.error', 'session.unknown', 'session.unreadable', 'session.socket_error', 'session.connection_lost',
+    ];
+    for (const type of others) add(type);
+    expect(entriesFor('speaker').slice(deltas.length).map((e) => [e.eventType, e.groupingKey])).toEqual(others.map((type) => [type, undefined]));
+  });
+
+  it("groups Palabra's streamed frames each under its own type, and gives its other frames no key (Stage 2 Palabra, choice 11)", () => {
+    const add = (type: string) => useLogStore.getState().addRealtimeEvent({ type, data: {} } as any, 'server', type, 'speaker');
+    const streamed = ['transcription.partial', 'translation.partial', 'audio.output'];
+    for (const type of streamed) {
+      add(type);
+      add(type);
+    }
+    expect(entriesFor('speaker').map((e) => [e.groupingKey, e.events?.length])).toEqual(streamed.map((type) => [type, 2]));
+    // None of its other names is the microphone's row, one of Doubao's (`subtitle.*`, `tts.*`, `session.usage`, `session.audio_muted`), the old client's, or anyone's: one entry each, ungrouped.
+    const others = [
+      'session.create', 'session.created', 'session.create_failed', 'session.opened', 'task.set', 'task.get', 'task.not_found', 'task.current',
+      'transcription.validated', 'translation.final', 'audio.idle', 'audio.resumed', 'turn.flush',
+      'session.warning', 'session.error', 'session.end_of_stream', 'session.unknown', 'session.unreadable', 'session.socket_error', 'session.connection_lost',
+    ];
+    for (const type of others) add(type);
+    expect(entriesFor('speaker').slice(streamed.length).map((e) => [e.eventType, e.groupingKey])).toEqual(others.map((type) => [type, undefined]));
   });
 });
 

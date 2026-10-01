@@ -40,8 +40,8 @@ export interface LocalInferenceConfig {
  * trimmed and, if blank, replaced by the default — the reversed
  * (participant) direction then prefers its own prompt (trimmed), falling
  * back to that already-resolved speaker value when it too is blank. This is
- * LocalInference's own prompt mechanism — it never calls
- * `shared.instructions()` (ruling 3).
+ * LocalInference's own prompt mechanism: every provider owns its instructions
+ * (Stage 2 Gemini, ruling 4).
  */
 function localInstructions(context: SessionContext, s: LocalInferenceSettings, shared: SharedSettings): string {
   const { source, target } = context.direction;

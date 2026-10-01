@@ -24,7 +24,6 @@
       "audio": "Audio",
       "provider": "Provider"
     },
-    "languageSettings": "Language Settings",
     "voice": "Voice",
     "voiceSettings": "Voice Settings",
     "model": "Model",
@@ -40,10 +39,11 @@
     "autoTempo": "Adaptive Speech Speed",
     "pushToTalk": "Push-to-Talk",
     "pushToTranslate": "Push-to-Translate",
-    "pushToTranslateNotAvailableInWebrtc": "Not available in WebRTC mode. Switch to WebSocket to use Push-to-Translate.",
     "systemInstructions": "System Instructions",
     "speechMode": "Speech Mode",
     "speechModeAppliesTo": "Applies to your voice. Other's audio always uses semantic VAD.",
+    "speechModeTooltip": "Auto: the provider detects when you have finished speaking. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.",
+    "speechModeAppliesToAuto": "Applies to your voice. Other's audio always uses the provider's automatic detection.",
     "userTranscriptModel": "User transcript model",
     "noiseReduction": "Noise reduction",
     "noiseSuppression": "Noise Suppression",
@@ -72,22 +72,15 @@
     "eagerness": "Eagerness",
     "temperature": "Temperature",
     "maxTokens": "Max tokens",
-    "validating": "Validating...",
     "enterCustomInstructions": "Enter custom system instructions here...",
     "settingsSavedSuccessfully": "Settings saved successfully",
     "failedToSaveSettings": "Failed to save settings",
     "settingSavedSuccessfully": "Successfully saved setting: {{key}}",
     "failedToSaveSetting": "Failed to save setting: {{key}}",
-    "apiKeyValidationCompleted": "API key validation completed",
-    "errorValidatingApiKey": "Error validating API key",
     "regionNotSupported": "Service not available in your region. Please check your network environment or try a different provider.",
     "sessionActiveNotice": "Settings are locked while session is active. Please end the session to modify settings.",
-    "realtimeModelAvailable": "Realtime model is available",
     "realtimeModelNotAvailable": "Realtime model is not available",
-    "refreshModels": "Refresh available models",
-    "loadingModels": "Loading available models...",
     "modelsFound": "{{count}} models available",
-    "invalidApiKeyFormat": "Invalid API key format",
     "volcengineAST2Info": "Doubao AST 2.0 Info",
     "volcengineAST2InfoText": "Doubao AST 2.0 provides speech-to-speech translation with automatic voice cloning. The translated audio preserves the original speaker's voice characteristics.",
     "volcengineAST2TurnDetectionTooltip": "Auto: server-side voice activity detection. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.",
@@ -113,8 +106,6 @@
     "low": "Low",
     "medium": "Medium",
     "high": "High",
-    "apiKeyValidated": "API key validated",
-    "realtimeTranslationAvailable": "Realtime translation is available",
     "advancedMode": "Advanced",
     "providerTooltip": "Choose your AI translation service. Each service has different features, voices, and pricing. OpenAI offers the most features, while Gemini provides a good free tier. Local (Offline) mode is completely free — no API key or internet required.",
     "modelTooltip": "The AI model affects speed and quality. 'Mini' models are faster but simpler. Standard models are more accurate but slightly slower. Try mini first for cost efficiency.",
@@ -135,12 +126,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Background noise removal. \nNone: No processing, use in quiet rooms. \nNear field: For headsets/close microphones. \nFar field: For speakers/conference rooms with echo.",
     "systemInstructionsTooltip": "Custom instructions for the AI translator. Tell it your preferences like formal/casual tone, technical terms handling, or specific translation style.",
-    "transportType": "Connection Type",
-    "transportTypeTooltip": "WebRTC: Lower latency, recommended for most users.\nWebSocket: Better compatibility with restrictive networks. Use if WebRTC connection fails.",
-    "websocket": "WebSocket (Stable)",
-    "webrtc": "WebRTC (Low Latency)",
-    "webrtcVadDisabledTitle": "Server VAD is not available in WebRTC mode",
-    "webrtcVadNotice": "Server VAD is disabled in WebRTC mode. In WebRTC, the server automatically truncates audio when it detects speech, which interrupts translations.",
     "participantInstructions": "Other's Instructions",
     "participantInstructionsTooltip": "System instructions for translating Other's audio. If empty, the main instructions above will be used.\n\nImportant: Your main instructions may have the wrong language direction for the other side. Example: If you speak Chinese and your main instructions translate Chinese→Japanese, but the other side speaks Japanese, the main instructions would incorrectly try to translate Japanese→Japanese. Set separate Other's instructions to translate Japanese→Chinese.",
     "localTranslationPrompt": "Translation Prompt",
@@ -203,9 +188,7 @@
       "xhigh": "XHigh"
     },
     "translateInfoBanner": "This model stays silent when the speaker uses the same language as the target. Mixed-language speech may have gaps.",
-    "translateModelAvailable": "API key validated. gpt-realtime-translate is available.",
     "translateModelNotAvailable": "API key works, but gpt-realtime-translate is not accessible with this key.",
-    "translateSourceParticipantWarning": "Translating Other's audio may not work — My language is not among the 13 target languages this provider supports.",
     "participantSectionHeader": "Other's audio",
     "participantSectionDescriptionElectron": "Translate audio from any application playing on this system.",
     "participantSectionDescriptionExtension": "Translate audio from the active browser tab. The original audio plays through your system default output.",
@@ -222,7 +205,6 @@
     "sonioxSharedSession": "Shared session in Both mode",
     "sonioxSharedSessionTooltip": "Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic voice separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode.",
     "sonioxSharedSessionManagedCost": "Kizuna AI supports both. Disabled runs two sessions at once — about twice the cost per minute, so your session allowance runs out in about half the time and a higher balance is needed to start.",
-    "sonioxAutoParticipantWarning": "Set My language to a specific language — with automatic detection, the other side's speech can't be translated into it.",
     "sonioxVocabulary": "Custom Vocabulary",
     "sonioxVocabularyTooltip": "Bias recognition toward important names and jargon, and steer how specific terms are translated. Applies from the next session.",
     "sonioxVocabularyTerms": "Terms",
@@ -310,7 +292,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatically authenticated via your account",
-    "fetchingApiKey": "Fetching API key from your account...",
     "provider": "AI Service Provider",
     "apiKeyPlaceholder": "Enter your API key",
     "setupGuide": "Setup guide",
@@ -366,6 +347,7 @@
     "participantSpeech": "Speak Other's translation",
     "participantSpeechDesc": "Reads what Other says aloud to you, in your language, on your speakers. It follows their voice with a delay.",
     "participantSpeechBlockedWholeSystem": "Off while Other's audio captures all system sound: their translation would be captured and translated again. Pick an application as Other's source.",
+    "participantSpeechNotYetAvailable": "Not available yet with this provider: Other's translation is shown as text only.",
     "audioCaptureUnprovenNotice": "Nothing captured yet",
     "audioCaptureUnprovenTitle": "No audio has come through from the selected source yet",
     "audioCaptureUnprovenText1": "If the source is playing and nothing is translated, macOS is probably delivering silence: capturing an application needs the \"System Audio Recording Only\" permission, and without it there is no error, only silence.",
@@ -430,9 +412,7 @@
     "backToSignIn": "Back to Sign In",
     "forgotPasswordError": "Failed to send verification code. Please try again.",
     "resetPasswordError": "Failed to reset password. Please try again.",
-    "signedOut": "Sign in to use Kizuna AI's built-in translation service.",
-    "sessionUnavailable": "Your session is no longer valid. Please sign in again.",
-    "unknown": "Could not verify your account. Please try again."
+    "signedOut": "Sign in to use Kizuna AI's built-in translation service."
   },
   "simpleConfig": {
     "interfaceLanguage": "Interface Language",
@@ -456,20 +436,9 @@
     "keepReplayAudioDesc": "Store translated audio in memory so you can replay it later from each message. Off by default to reduce memory use during long sessions."
   },
   "providers": {
-    "kizunaai_openai_translate": {
-      "name": "KizunaAI",
-      "description": "75 source languages (auto-detected), 13 target languages",
-      "vendor": "OpenAI"
-    },
-    "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI",
-      "description": "8 languages + Chinese–English two-way · keeps your voice",
-      "vendor": "Doubao"
-    },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 languages, 3,600 pairs · clone your own voice",
-      "vendor": "Soniox"
+      "description": "60 languages, 3,600 pairs · clone your own voice"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -478,11 +447,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "Google's AI technology"
-    },
-    "openaiCompatible": {
-      "name": "OpenAI Compatible (Legacy Realtime)",
-      "description": "Third-party endpoint speaking OpenAI's older beta Realtime protocol. Not for OpenAI itself.",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -510,7 +474,8 @@
       "name": "Doubao AST 2.0",
       "description": "Doubao simultaneous interpretation",
       "appIdPlaceholder": "APP ID",
-      "accessTokenPlaceholder": "Access Token"
+      "accessTokenPlaceholder": "Access Token",
+      "authModeApp": "App ID + Access Token"
     },
     "local_inference": {
       "name": "Free",
@@ -548,7 +513,6 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Translations are showing in the subtitle overlay",
-    "speechDetected": "[Speech detected]",
     "function": "Function",
     "noChannelConfigured": "Enable microphone or Other's audio before starting.",
     "release": "release",
@@ -632,9 +596,6 @@
     "waveformMicTooltip": "Your microphone — your voice being captured for translation",
     "waveformSystemTooltip": "Other's audio captured for translation (browser tab / system audio)",
     "allChannelsFailed": "Failed to start any audio channel. Check device permissions and try again.",
-    "participantChannelFailed": "Failed to start Other's audio channel.",
-    "splitDegradedLabel": "One-way only",
-    "splitDegradedTooltip": "Other's audio isn't being translated, so this session is running one way only. Check Other's audio permissions, then run a new session.",
     "sonioxInsufficientBalance": "Insufficient balance to start a session. Please top up your balance and try again.",
     "sonioxSessionConflict": "Another session is already running on your account. Please try again in a moment.",
     "sonioxServiceUnavailable": "Soniox is temporarily unavailable. Please try again in a moment.",
@@ -644,7 +605,6 @@
     "sonioxTtsSegmentLost": "Part of the spoken translation could not be played. Transcription and text translation are unaffected.",
     "sonioxSegmentEnded": "This segment has ended — tap Start Session to continue.",
     "sonioxConnectionLost": "The connection was interrupted — tap Start Session in a moment to continue.",
-    "openaiLiveConnectionLost": "The connection was interrupted — tap Start Session in a moment to continue.",
     "sonioxVoiceClipMissing": "This device has no voice recording, so this session uses a built-in voice. Record one in Settings to speak in your own voice here.",
     "sonioxVoicePoolBusy": "All custom voice slots are in use right now, so this session uses a built-in voice. Your own voice will be used again next time.",
     "sonioxVoiceBuildFailed": "Your custom voice could not be built, so this session uses a built-in voice. Try recording a clearer clip in Settings.",
@@ -796,8 +756,6 @@
     },
     "credentials": {
       "apiKey": "API key",
-      "endpoint": "Endpoint URL",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",
@@ -1298,13 +1256,9 @@
     "app_capture_lost_using_system_audio": "The app capture stopped, so all system audio is being translated instead.",
     "app_capture_monitor_missing": "The app capture didn't start, so all system audio is being translated instead.",
     "parse_error": "A message from the provider couldn't be read; the session continues.",
-    "cleanup_failed": "A step while closing the session failed.",
-    "input_pipeline_failed": "Audio capture stopped working; nothing further will be translated.",
     "tts_degraded": "Speech playback is degraded; the translated text still arrives.",
     "resume_attempt_failed": "Reconnecting failed; trying again.",
-    "send_dropped": "Some audio or text couldn't be sent and was dropped.",
     "voice_fallback": "The chosen voice was unavailable, so another voice is used.",
-    "lease_notify_failed": "The service couldn't be told about the session's state.",
     "auth": "The provider did not accept the credentials: {{detail}}",
     "rate_limit": "The provider is limiting requests; try again shortly: {{detail}}",
     "network": "The connection to the provider failed: {{detail}}",

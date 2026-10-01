@@ -1,7 +1,9 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import './VoiceLibrarySection.scss';
 import type { VoiceLibraryCapability, VoiceFacets } from '../../../types/VoiceLibrary';
+import { describeCause, reportError } from '../../../lib/diagnostics/report';
+import { VoicePreviewContext } from '../../providers/VoicePreviewContext';
 import VoicePicker from './VoicePicker';
 import VoiceCreateModal, { type VoiceCreateReview } from './VoiceCreateModal';
 import VoiceDeleteModal from './VoiceDeleteModal';
@@ -142,6 +144,10 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   const audioCtxRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
 
+  const port = useContext(VoicePreviewContext);
+  /** The row playing through the host's route, if any: `stopPreview` stops the route only for this section's own sample, never the test tone or another section's preview on that shared route. */
+  const playingIdRef = useRef<string | null>(null);
+
   // Monotonic token: a toggle invalidates any earlier onPreview still in
   // flight, so a stale resolution can't start playback over a newer one.
   const previewTokenRef = useRef(0);
@@ -155,6 +161,10 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     previewAbortRef.current?.abort();
     previewAbortRef.current = null;
     setPreviewLoadingId(null);
+    if (playingIdRef.current) {
+      playingIdRef.current = null;
+      port?.stop();
+    }
     const src = sourceRef.current;
     if (src) {
       src.onended = null;
@@ -162,7 +172,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
       sourceRef.current = null;
     }
     setPlayingId(null);
-  }, []);
+  }, [port]);
 
   // The return value exists only to satisfy VoicePicker's `onPreview` prop
   // type — the picker never reads what this resolves to (it only
@@ -215,6 +225,26 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     }
     if (token !== previewTokenRef.current) return null; // superseded by a newer toggle
     if (!payload || payload.audio.length === 0) return null;
+    if (port) {
+      // The host's preview route (the selected output device); the token tells a finish from a superseded play.
+      playingIdRef.current = id;
+      setPlayingId(id);
+      port.play(payload).then(
+        () => {
+          if (token !== previewTokenRef.current) return;
+          playingIdRef.current = null;
+          setPlayingId(null);
+        },
+        (error: unknown) => {
+          if (token === previewTokenRef.current) {
+            playingIdRef.current = null;
+            setPlayingId(null);
+          }
+          reportError('VoiceLibrary', `The voice preview did not play: ${describeCause(error)}`, { cause: error });
+        },
+      );
+      return payload;
+    }
     const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const ctx = audioCtxRef.current ?? (audioCtxRef.current = new AudioCtx());
     if (ctx.state === 'suspended') { try { await ctx.resume(); } catch { /* ignore */ } }
@@ -228,7 +258,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     setPlayingId(id);
     src.start();
     return payload;
-  }, [playingId, onPreview, stopPreview]);
+  }, [playingId, onPreview, stopPreview, port]);
 
   // Stop playback + release the context on unmount.
   useEffect(() => () => {

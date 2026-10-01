@@ -5,7 +5,7 @@ import { getManifestByType, getManifestEntry, type ModelStatus } from '../../../
 import { resolveDirection } from '../../../lib/local-inference/selection/resolveStage';
 import { wasmCandidates } from '../../../lib/local-inference/selection/candidates.wasm';
 import { directionKey, type Selections } from '../../../lib/local-inference/selection/types';
-import { LOCAL_INFERENCE_DEFAULTS } from '../../../providers/localInference/settings';
+import { LOCAL_INFERENCE_DEFAULTS, type LocalInferenceSettings } from '../../../providers/localInference/settings';
 
 const defaultSettings = {
   sourceLanguage: 'en', targetLanguage: 'en',
@@ -14,6 +14,13 @@ const defaultSettings = {
 };
 const mockSettings = { ...defaultSettings };
 const mockUpdate = vi.fn();
+/** The props every mount passes (Stage 2 deletion, ruling 3), read off this
+ *  file's mutable fixture at render time. */
+const slice = () => ({
+  settings: mockSettings as unknown as LocalInferenceSettings,
+  update: mockUpdate,
+  pair: { source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage },
+});
 
 vi.mock('react-i18next', () => ({
   // Interpolating, mirroring StoragePage.test.tsx — needed so {{lang}} in
@@ -25,10 +32,6 @@ vi.mock('react-i18next', () => ({
         ? fb.replace(/\{\{(\w+)\}\}/g, (_m, n) => String(opts?.[n] ?? ''))
         : _k,
   }),
-}));
-vi.mock('../../../stores/settingsStore', () => ({
-  useLocalInferenceSettings: () => mockSettings,
-  useUpdateLocalInference: () => mockUpdate,
 }));
 
 // Edge TTS voice list — two disjoint locales so the forward/reversed targets
@@ -105,19 +108,10 @@ beforeEach(() => {
   for (const k of Object.keys(mockDownloads)) delete mockDownloads[k];
 });
 
-describe('ModelManagementSection (self-reads store)', () => {
-  it('renders without settings/update props', async () => {
-    render(<ModelManagementSection isSessionActive={false} />);
-    await waitFor(() =>
-      expect(screen.getByText('ASR (Speech Recognition)')).toBeInTheDocument(),
-    );
-  });
-});
-
 describe('ModelManagementSection (prop-driven, LocalInference Engine)', () => {
-  it("writes through the given `update`, not the store, and reads `selections` from the given `settings`, not the store's", () => {
-    // The store's own selections carry an unrelated direction — proof that a
-    // write built from the PROP's settings (empty) never resurrects it.
+  it("writes through the given `update` and reads `selections` from the given `settings`", () => {
+    // This file's shared fixture carries an unrelated direction — proof that a
+    // write is built from the given settings (empty) alone.
     mockSettings.selections = {
       'zh→fr': { asr: { modelId: 'ghost-model' }, translation: { modelId: '' }, tts: { modelId: '' } },
     };
@@ -153,7 +147,7 @@ describe('ModelManagementSection — import affordance', () => {
     mockSettings.sourceLanguage = 'en';
     mockSettings.targetLanguage = 'ja';
 
-    render(<ModelManagementSection isSessionActive={false} />);
+    render(<ModelManagementSection isSessionActive={false} {...slice()} />);
     const showAll = await screen.findByText(/Show all ASR models/);
     fireEvent.click(showAll);
 
@@ -169,7 +163,7 @@ describe('ModelManagementSection — import affordance', () => {
       downloadedBytes: 1, totalBytes: 2, currentFile: 'config.json', percent: 50, isImport: true,
     };
 
-    render(<ModelManagementSection isSessionActive={false} />);
+    render(<ModelManagementSection isSessionActive={false} {...slice()} />);
 
     const card = await screen.findByTestId('model-card-sensevoice-int8');
     expect(within(card).queryByTitle('Cancel')).toBeNull();
@@ -191,7 +185,7 @@ describe('ModelManagementSection — embedded voice', () => {
     };
     mockStatuses['supertonic-3'] = 'downloaded';
 
-    render(<ModelManagementSection isSessionActive={false} />);
+    render(<ModelManagementSection isSessionActive={false} {...slice()} />);
 
     const card = await waitFor(() => screen.getByTestId('model-card-supertonic-3'));
     // VoiceLibrarySection (Supertonic dropdown) renders a "Voice" label in the body.
@@ -213,7 +207,7 @@ describe('ModelManagementSection — embedded voice', () => {
     };
     mockStatuses['supertonic-3'] = 'downloaded';
 
-    render(<ModelManagementSection isSessionActive={false} />);
+    render(<ModelManagementSection isSessionActive={false} {...slice()} />);
 
     const card = await waitFor(() => screen.getByTestId('model-card-supertonic-3'));
     expect(within(card).getByText(/Voice Builder/)).toHaveTextContent(/closed/i);
@@ -227,7 +221,7 @@ describe('ModelManagementSection — selected state comes from resolve(), not se
   it('marks the resolved model selected without writing it to settings', async () => {
     mockStatuses['sensevoice-int8'] = 'downloaded';
 
-    render(<ModelManagementSection isSessionActive={false} />);
+    render(<ModelManagementSection isSessionActive={false} {...slice()} />);
 
     // No role="radio" in this markup — a selected card shows the "Active"
     // status label and carries the --selected modifier class (see ModelCard).
@@ -261,7 +255,7 @@ describe('ModelManagementSection — selected state comes from resolve(), not se
       mockStatuses[m.id] = 'downloaded';
     }
 
-    render(<ModelManagementSection isSessionActive={false} />);
+    render(<ModelManagementSection isSessionActive={false} {...slice()} />);
 
     const selectedLabels = await screen.findAllByText('Active');
     expect(selectedLabels.length).toBeGreaterThan(0);
@@ -286,7 +280,7 @@ describe('ModelManagementSection — Library surface keeps the original group li
     mockSettings.sourceLanguage = 'en';
     mockSettings.targetLanguage = 'ja';
 
-    render(<ModelManagementSection isSessionActive={false} stageFilter="asr" />);
+    render(<ModelManagementSection isSessionActive={false} {...slice()} stageFilter="asr" />);
     await screen.findByRole('button', { name: /Show all ASR models \(\d+\)/ });
 
     // Bare mode: the stage's collapsible group header would duplicate the
@@ -319,7 +313,7 @@ describe('ModelManagementSection — Library surface keeps the original group li
     mockSettings.targetLanguage = 'ja';
     mockStatuses['moonshine-tiny-ja-quant'] = 'downloaded';
 
-    render(<ModelManagementSection isSessionActive={false} stageFilter="asr" direction="ja→en" />);
+    render(<ModelManagementSection isSessionActive={false} {...slice()} stageFilter="asr" direction="ja→en" />);
 
     const card = screen.getByTestId('model-card-moonshine-tiny-ja-quant');
     // Compatible under the slot's direction: no show-all toggle needed, and
@@ -337,7 +331,7 @@ describe('ModelManagementSection — Library surface keeps the original group li
     mockSettings.sourceLanguage = 'en';
     mockSettings.targetLanguage = 'ja';
 
-    render(<ModelManagementSection isSessionActive={false} stageFilter="asr" />);
+    render(<ModelManagementSection isSessionActive={false} {...slice()} stageFilter="asr" />);
     fireEvent.click(await screen.findByRole('button', { name: /Show all ASR models/ }));
 
     const card = await screen.findByTestId('model-card-moonshine-tiny-ja-quant');
@@ -358,7 +352,7 @@ describe('ModelManagementSection — Library surface keeps the original group li
     mockSettings.targetLanguage = 'ja';
     mockStatuses['moonshine-tiny-ja-quant'] = 'downloaded';
 
-    render(<ModelManagementSection isSessionActive={false} stageFilter="asr" />);
+    render(<ModelManagementSection isSessionActive={false} {...slice()} stageFilter="asr" />);
     fireEvent.click(await screen.findByRole('button', { name: /Show all ASR models/ }));
     await screen.findByTestId('model-card-moonshine-tiny-ja-quant');
 
@@ -374,14 +368,14 @@ describe('ModelManagementSection — Library surface keeps the original group li
 // this footer's own `disabled` prop is unrelated to that surface).
 describe('ModelManagementSection — ModelStorageFooter only on the standalone render (C1)', () => {
   it('a Library-view (stageFilter set) render has no ModelStorageFooter', async () => {
-    render(<ModelManagementSection isSessionActive={false} stageFilter="asr" />);
+    render(<ModelManagementSection isSessionActive={false} {...slice()} stageFilter="asr" />);
     // Bare mode has no stage title — anchor on the rendered list instead.
     await screen.findByRole('button', { name: /Show all ASR models/ });
     expect(document.querySelector('.model-management__storage')).not.toBeInTheDocument();
   });
 
   it('the standalone (prop-less stageFilter) render keeps the footer', async () => {
-    render(<ModelManagementSection isSessionActive={false} />);
+    render(<ModelManagementSection isSessionActive={false} {...slice()} />);
     await screen.findByText('ASR (Speech Recognition)');
     expect(document.querySelector('.model-management__storage')).toBeInTheDocument();
   });
@@ -401,7 +395,7 @@ describe('ModelManagementSection — edgeTtsVoice ownership (freeze bug)', () =>
     // Valid for the FORWARD target (ja) — invalid for the reversed leg's (en).
     mockSettings.edgeTtsVoice = 'ja-JP-NanamiNeural';
 
-    render(<ModelManagementSection isSessionActive={false} stageFilter="translation" direction="ja→en" />);
+    render(<ModelManagementSection isSessionActive={false} {...slice()} stageFilter="translation" direction="ja→en" />);
 
     await waitFor(() => expect(mockGetEdgeTtsVoices).toHaveBeenCalled());
     // One extra macrotask so the auto-select effect (if it ran) has flushed.
@@ -419,7 +413,7 @@ describe('ModelManagementSection — edgeTtsVoice ownership (freeze bug)', () =>
     mockSettings.sourceLanguage = 'en';
     mockSettings.targetLanguage = 'ja';
 
-    render(<ModelManagementSection isSessionActive={false} stageFilter="tts" direction="ja→en" />);
+    render(<ModelManagementSection isSessionActive={false} {...slice()} stageFilter="tts" direction="ja→en" />);
     await screen.findByTestId('model-card-edge-tts');
     expect(screen.queryByText('Voice')).not.toBeInTheDocument();
   });
@@ -428,7 +422,7 @@ describe('ModelManagementSection — edgeTtsVoice ownership (freeze bug)', () =>
     mockSettings.sourceLanguage = 'en';
     mockSettings.targetLanguage = 'ja';
 
-    render(<ModelManagementSection isSessionActive={false} stageFilter="tts" direction="en→ja" />);
+    render(<ModelManagementSection isSessionActive={false} {...slice()} stageFilter="tts" direction="en→ja" />);
     await screen.findByTestId('model-card-edge-tts');
     expect(await screen.findByText('Voice')).toBeInTheDocument();
   });
@@ -438,7 +432,7 @@ describe('ModelManagementSection — edgeTtsVoice ownership (freeze bug)', () =>
     mockSettings.targetLanguage = 'ja';
     mockSettings.edgeTtsVoice = 'en-US-AriaNeural'; // wrong language for target ja
 
-    render(<ModelManagementSection isSessionActive={false} />);
+    render(<ModelManagementSection isSessionActive={false} {...slice()} />);
 
     await waitFor(() => {
       const voiceWrites = mockUpdate.mock.calls.filter(([p]) => p && 'edgeTtsVoice' in p);
@@ -447,8 +441,8 @@ describe('ModelManagementSection — edgeTtsVoice ownership (freeze bug)', () =>
     });
   });
 
-  // Review fix round 1: `updateLocalInference` must keep one identity across
-  // renders, like the zustand action it replaces (`useUpdateLocalInference`)
+  // `updateLocalInference` (a `useCallback` over the `update` prop) must keep
+  // one identity across renders while `update` does
   // — an inline arrow literal would be a fresh function every render, which
   // this effect's own dependency array would see as "a dep changed", re-
   // running (and re-writing) on every unrelated re-render. `mockSettings`
@@ -459,7 +453,7 @@ describe('ModelManagementSection — edgeTtsVoice ownership (freeze bug)', () =>
     mockSettings.targetLanguage = 'ja';
     mockSettings.edgeTtsVoice = 'en-US-AriaNeural'; // wrong language for target ja
 
-    const { rerender } = render(<ModelManagementSection isSessionActive={false} />);
+    const { rerender } = render(<ModelManagementSection isSessionActive={false} {...slice()} />);
 
     await waitFor(() => {
       const voiceWrites = mockUpdate.mock.calls.filter(([p]) => p && 'edgeTtsVoice' in p);
@@ -468,7 +462,7 @@ describe('ModelManagementSection — edgeTtsVoice ownership (freeze bug)', () =>
 
     // A re-render with unchanged props/inputs (e.g. a parent re-rendering
     // for an unrelated reason) must not re-trigger the effect.
-    rerender(<ModelManagementSection isSessionActive={false} />);
+    rerender(<ModelManagementSection isSessionActive={false} {...slice()} />);
     await new Promise((r) => setTimeout(r, 0));
 
     const voiceWrites = mockUpdate.mock.calls.filter(([p]) => p && 'edgeTtsVoice' in p);

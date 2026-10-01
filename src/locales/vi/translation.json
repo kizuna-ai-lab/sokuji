@@ -24,7 +24,6 @@
       "audio": "Âm thanh",
       "provider": "Nhà cung cấp"
     },
-    "languageSettings": "Cài đặt ngôn ngữ",
     "voice": "Giọng nói",
     "voiceSettings": "Cài đặt giọng nói",
     "model": "Mô hình",
@@ -40,10 +39,11 @@
     "autoTempo": "Tốc độ nói thích ứng",
     "pushToTalk": "Nhấn để nói",
     "pushToTranslate": "Nhấn để dịch",
-    "pushToTranslateNotAvailableInWebrtc": "Không khả dụng trong chế độ WebRTC. Chuyển sang WebSocket để sử dụng Nhấn để dịch.",
     "systemInstructions": "Hướng dẫn hệ thống",
     "speechMode": "Chế độ giọng nói",
     "speechModeAppliesTo": "Áp dụng cho giọng nói của bạn. Âm thanh đối phương luôn sử dụng VAD ngữ nghĩa.",
+    "speechModeTooltip": "Tự động: nhà cung cấp phát hiện khi bạn đã nói xong. \nNhấn để nói: giữ phím Space hoặc nút micrô để gửi âm thanh thủ công. \nNhấn để dịch: giống như Nhấn để nói, nhưng định tuyến micrô gốc của bạn đến micrô ảo khi không hoạt động để bạn có thể nói trực tiếp mà không cần dịch.",
+    "speechModeAppliesToAuto": "Áp dụng cho giọng nói của bạn. Âm thanh đối phương luôn sử dụng tính năng phát hiện tự động của nhà cung cấp.",
     "userTranscriptModel": "Mô hình phiên âm người dùng",
     "noiseReduction": "Giảm tiếng ồn",
     "noiseSuppression": "Khử tiếng ồn",
@@ -72,22 +72,15 @@
     "eagerness": "Độ nhạy",
     "temperature": "Nhiệt độ",
     "maxTokens": "Token tối đa",
-    "validating": "Đang xác thực...",
     "enterCustomInstructions": "Nhập hướng dẫn tùy chỉnh...",
     "settingsSavedSuccessfully": "Cài đặt đã được lưu thành công",
     "failedToSaveSettings": "Lưu cài đặt thất bại",
     "settingSavedSuccessfully": "Cài đặt đã được lưu thành công: {{key}}",
     "failedToSaveSetting": "Lưu cài đặt thất bại: {{key}}",
-    "apiKeyValidationCompleted": "Xác thực khóa API hoàn tất",
-    "errorValidatingApiKey": "Lỗi khi xác thực khóa API",
     "regionNotSupported": "Dịch vụ không khả dụng trong khu vực của bạn. Vui lòng kiểm tra môi trường mạng hoặc thử nhà cung cấp khác.",
     "sessionActiveNotice": "Cài đặt bị khóa khi phiên đang hoạt động. Vui lòng kết thúc phiên để thay đổi cài đặt.",
-    "realtimeModelAvailable": "Mô hình thời gian thực có sẵn",
     "realtimeModelNotAvailable": "Mô hình thời gian thực không có sẵn",
-    "refreshModels": "Làm mới các mô hình có sẵn",
-    "loadingModels": "Đang tải các mô hình có sẵn...",
     "modelsFound": "{{count}} mô hình có sẵn",
-    "invalidApiKeyFormat": "Định dạng khóa API không hợp lệ",
     "volcengineAST2Info": "Thông tin Doubao AST 2.0",
     "volcengineAST2InfoText": "Doubao AST 2.0 cung cấp dịch giọng nói sang giọng nói với nhân bản giọng nói tự động. Âm thanh đã dịch giữ nguyên đặc điểm giọng nói của người nói gốc.",
     "volcengineAST2TurnDetectionTooltip": "Tự động: phát hiện hoạt động giọng nói phía máy chủ. \nNhấn để nói: giữ phím cách hoặc nút micrô để gửi âm thanh thủ công. \nNhấn để dịch: giống như Nhấn để nói, nhưng định tuyến micrô gốc của bạn đến micrô ảo khi không hoạt động để bạn có thể nói trực tiếp mà không cần dịch.",
@@ -113,8 +106,6 @@
     "low": "Thấp",
     "medium": "Trung bình",
     "high": "Cao",
-    "apiKeyValidated": "Đã xác thực khóa API",
-    "realtimeTranslationAvailable": "Dịch vụ dịch thuật thời gian thực có sẵn",
     "advancedMode": "Nâng cao",
     "providerTooltip": "Chọn dịch vụ dịch AI của bạn. Mỗi dịch vụ có các tính năng, giọng nói và mức giá khác nhau. OpenAI cung cấp nhiều tính năng nhất, trong khi Gemini có gói miễn phí tốt. Chế độ Cục bộ (Ngoại tuyến) hoàn toàn miễn phí — không cần khóa API hay internet.",
     "modelTooltip": "Mô hình AI ảnh hưởng đến tốc độ và chất lượng. Mô hình 'Mini' nhanh hơn nhưng đơn giản hơn. Mô hình chuẩn chính xác hơn nhưng hơi chậm hơn. Thử mini trước để tiết kiệm chi phí.",
@@ -135,12 +126,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Loại bỏ tiếng ồn nền. \nKhông: Không xử lý, dùng trong phòng yên tĩnh. \nGần: Cho tai nghe/microphone gần. \nXa: Cho loa/phòng hội nghị có tiếng vọng.",
     "systemInstructionsTooltip": "Hướng dẫn tùy chỉnh cho AI dịch. Cho biết sở thích của bạn như giọng điệu trang trọng/thân mật, xử lý thuật ngữ kỹ thuật, hoặc phong cách dịch cụ thể.",
-    "transportType": "Loại kết nối",
-    "transportTypeTooltip": "WebRTC: Độ trễ thấp hơn, được khuyến nghị cho hầu hết người dùng.\nWebSocket: Tương thích tốt hơn với mạng hạn chế. Sử dụng nếu kết nối WebRTC thất bại.",
-    "websocket": "WebSocket (Ổn định)",
-    "webrtc": "WebRTC (Độ trễ thấp)",
-    "webrtcVadDisabledTitle": "VAD máy chủ không khả dụng trong chế độ WebRTC",
-    "webrtcVadNotice": "VAD máy chủ bị tắt trong chế độ WebRTC. Trong WebRTC, máy chủ tự động cắt âm thanh khi phát hiện giọng nói, điều này làm gián đoạn bản dịch.",
     "participantInstructions": "Hướng dẫn cho đối phương",
     "participantInstructionsTooltip": "Hướng dẫn hệ thống để dịch âm thanh đối phương. Nếu để trống, sẽ sử dụng hướng dẫn chính ở trên.\n\nQuan trọng: Hướng dẫn chính của bạn có thể có hướng ngôn ngữ sai đối với đối phương. Ví dụ: Nếu bạn nói tiếng Trung và hướng dẫn chính dịch Trung→Nhật, nhưng đối phương nói tiếng Nhật, hướng dẫn chính sẽ dịch nhầm Nhật→Nhật. Hãy đặt hướng dẫn riêng cho đối phương để dịch Nhật→Trung.",
     "localTranslationPrompt": "Prompt Dịch thuật",
@@ -203,9 +188,7 @@
       "xhigh": "Rất cao"
     },
     "translateInfoBanner": "Mô hình này im lặng khi người nói sử dụng cùng ngôn ngữ với ngôn ngữ đích. Lời nói đa ngôn ngữ có thể có khoảng trống.",
-    "translateModelAvailable": "Khóa API đã được xác thực. gpt-realtime-translate có sẵn.",
     "translateModelNotAvailable": "Khóa API hoạt động, nhưng không thể truy cập gpt-realtime-translate với khóa này.",
-    "translateSourceParticipantWarning": "Việc dịch âm thanh đối phương có thể không hoạt động — \"Ngôn ngữ của tôi\" không nằm trong 13 ngôn ngữ đích mà nhà cung cấp này hỗ trợ.",
     "participantSectionHeader": "Âm thanh đối phương",
     "participantSectionDescriptionElectron": "Dịch âm thanh từ bất kỳ ứng dụng nào đang phát trên hệ thống này.",
     "participantSectionDescriptionExtension": "Dịch âm thanh từ tab trình duyệt đang hoạt động. Âm thanh gốc phát qua đầu ra mặc định của hệ thống.",
@@ -222,7 +205,6 @@
     "sonioxSharedSession": "Phiên dùng chung ở chế độ Cả hai",
     "sonioxSharedSessionTooltip": "Chế độ Cả hai có thể dùng một phiên Soniox chung hoặc một phiên riêng cho mỗi chiều.\n\nBật: một phiên duy nhất dịch cả hai bên với việc tách giọng tự động — chi phí và độ trễ thấp hơn.\n\nTắt: một phiên riêng cho mỗi chiều — đáng tin cậy hơn khi cả hai cùng nói, nhưng chi phí khoảng gấp đôi.\n\nChỉ ảnh hưởng đến chế độ Cả hai.",
     "sonioxSharedSessionManagedCost": "Kizuna AI hỗ trợ cả hai. Tắt sẽ chạy hai phiên cùng lúc — chi phí mỗi phút cao khoảng gấp đôi, nên thời lượng phiên của bạn hết trong khoảng một nửa thời gian và cần số dư cao hơn để bắt đầu.",
-    "sonioxAutoParticipantWarning": "Hãy đặt \"Ngôn ngữ của tôi\" thành một ngôn ngữ cụ thể — với chế độ tự động phát hiện, lời nói của đối phương không thể được dịch sang ngôn ngữ đó.",
     "sonioxVocabulary": "Từ vựng tùy chỉnh",
     "sonioxVocabularyTooltip": "Định hướng việc nhận diện theo các tên riêng và thuật ngữ quan trọng, đồng thời chi phối cách dịch các thuật ngữ cụ thể. Áp dụng từ phiên tiếp theo.",
     "sonioxVocabularyTerms": "Thuật ngữ",
@@ -310,7 +292,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "Tự động xác thực qua tài khoản của bạn",
-    "fetchingApiKey": "Đang lấy khóa API từ tài khoản của bạn...",
     "provider": "Nhà cung cấp dịch vụ AI",
     "apiKeyPlaceholder": "Nhập khóa API của bạn",
     "setupGuide": "Hướng dẫn cài đặt",
@@ -372,6 +353,7 @@
     "participantSpeech": "Đọc to bản dịch của đối phương",
     "participantSpeechDesc": "Đọc to cho bạn nghe những gì đối phương nói, bằng ngôn ngữ của bạn, qua loa của bạn. Nó theo sát giọng nói của họ với một độ trễ.",
     "participantSpeechBlockedWholeSystem": "Bị tắt trong khi âm thanh đối phương đang thu toàn bộ âm thanh hệ thống: bản dịch của họ sẽ bị thu và dịch lại. Hãy chọn một ứng dụng làm nguồn của đối phương.",
+    "participantSpeechNotYetAvailable": "Chưa khả dụng với nhà cung cấp này: bản dịch của đối phương chỉ hiển thị dưới dạng văn bản.",
     "audioCaptureUnprovenNotice": "Chưa thu được gì",
     "audioCaptureUnprovenTitle": "Chưa có âm thanh nào từ nguồn đã chọn",
     "audioCaptureUnprovenText1": "Nếu nguồn đang phát mà không có gì được dịch, nhiều khả năng macOS đang trả về im lặng: thu âm thanh của một ứng dụng cần quyền \"System Audio Recording Only\", và không có quyền này thì sẽ không có lỗi, chỉ có im lặng.",
@@ -430,9 +412,7 @@
     "backToSignIn": "Quay lại đăng nhập",
     "forgotPasswordError": "Không thể gửi mã xác minh. Vui lòng thử lại.",
     "resetPasswordError": "Không thể đặt lại mật khẩu. Vui lòng thử lại.",
-    "signedOut": "Đăng nhập để sử dụng dịch vụ dịch thuật tích hợp của Kizuna AI.",
-    "sessionUnavailable": "Phiên của bạn không còn hiệu lực. Vui lòng đăng nhập lại.",
-    "unknown": "Không thể xác minh tài khoản của bạn. Vui lòng thử lại."
+    "signedOut": "Đăng nhập để sử dụng dịch vụ dịch thuật tích hợp của Kizuna AI."
   },
   "simpleConfig": {
     "interfaceLanguage": "Ngôn Ngữ Giao Diện",
@@ -456,20 +436,9 @@
     "keepReplayAudioDesc": "Lưu âm thanh đã dịch trong bộ nhớ để bạn có thể phát lại sau từ mỗi tin nhắn. Tắt theo mặc định để giảm sử dụng bộ nhớ trong các phiên dài."
   },
   "providers": {
-    "kizunaai_openai_translate": {
-      "name": "KizunaAI",
-      "description": "75 ngôn ngữ nguồn (tự động nhận diện), 13 ngôn ngữ đích",
-      "vendor": "OpenAI"
-    },
-    "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI",
-      "description": "8 ngôn ngữ + Trung–Anh hai chiều · giữ nguyên giọng của bạn",
-      "vendor": "Doubao"
-    },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 ngôn ngữ, 3.600 cặp · nhân bản giọng của bạn",
-      "vendor": "Soniox"
+      "description": "60 ngôn ngữ, 3.600 cặp · nhân bản giọng của bạn"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -478,11 +447,6 @@
     "gemini": {
       "name": "Google Gemini",
       "description": "Công nghệ AI của Google"
-    },
-    "openaiCompatible": {
-      "name": "Tương thích OpenAI (Realtime cũ)",
-      "description": "Điểm cuối bên thứ ba dùng giao thức Realtime beta cũ của OpenAI. Không dành cho chính OpenAI.",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
@@ -510,7 +474,8 @@
       "name": "Doubao AST 2.0",
       "description": "Dịch đồng thời Doubao",
       "appIdPlaceholder": "APP ID",
-      "accessTokenPlaceholder": "Access Token"
+      "accessTokenPlaceholder": "Access Token",
+      "authModeApp": "App ID + Access Token"
     },
     "local_inference": {
       "name": "Miễn phí",
@@ -548,7 +513,6 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Bản dịch đang hiển thị trong lớp phủ phụ đề",
-    "speechDetected": "[Phát hiện giọng nói]",
     "function": "Hàm",
     "noChannelConfigured": "Hãy bật micrô hoặc âm thanh đối phương trước khi bắt đầu.",
     "release": "thả ra",
@@ -632,9 +596,6 @@
     "waveformMicTooltip": "Microphone của bạn — giọng nói của bạn đang được thu để dịch",
     "waveformSystemTooltip": "Âm thanh đối phương được thu để dịch (tab trình duyệt / âm thanh hệ thống)",
     "allChannelsFailed": "Không thể khởi động bất kỳ kênh âm thanh nào. Kiểm tra quyền thiết bị và thử lại.",
-    "participantChannelFailed": "Không thể khởi động kênh âm thanh đối phương.",
-    "splitDegradedLabel": "Chỉ một chiều",
-    "splitDegradedTooltip": "Âm thanh đối phương không được dịch, nên phiên này chỉ chạy một chiều. Hãy kiểm tra quyền của âm thanh đối phương, rồi chạy một phiên mới.",
     "sonioxInsufficientBalance": "Số dư không đủ để bắt đầu phiên. Vui lòng nạp thêm số dư và thử lại.",
     "sonioxSessionConflict": "Một phiên khác đã đang chạy trên tài khoản của bạn. Vui lòng thử lại sau giây lát.",
     "sonioxServiceUnavailable": "Soniox tạm thời không khả dụng. Vui lòng thử lại sau giây lát.",
@@ -644,7 +605,6 @@
     "sonioxTtsSegmentLost": "Không phát được một phần bản dịch giọng nói. Phiên âm và bản dịch văn bản không bị ảnh hưởng.",
     "sonioxSegmentEnded": "Đoạn này đã kết thúc — nhấn “Bắt đầu phiên” để tiếp tục.",
     "sonioxConnectionLost": "Kết nối đã bị gián đoạn — hãy nhấn “Bắt đầu phiên” sau giây lát để tiếp tục.",
-    "openaiLiveConnectionLost": "Kết nối đã bị gián đoạn — hãy nhấn “Bắt đầu phiên” sau giây lát để tiếp tục.",
     "sonioxVoiceClipMissing": "Thiết bị này không có bản ghi âm giọng nói nào, vì vậy phiên này dùng một giọng có sẵn. Hãy ghi âm một bản trong Cài đặt để nói bằng chính giọng của bạn tại đây.",
     "sonioxVoicePoolBusy": "Hiện tất cả các chỗ giọng nói tùy chỉnh đều đang được sử dụng, vì vậy phiên này dùng một giọng có sẵn. Giọng nói của riêng bạn sẽ được dùng lại vào lần sau.",
     "sonioxVoiceBuildFailed": "Không thể xây dựng giọng nói tùy chỉnh của bạn, vì vậy phiên này dùng một giọng có sẵn. Hãy thử ghi âm một đoạn rõ hơn trong Cài đặt.",
@@ -1178,8 +1138,6 @@
     },
     "credentials": {
       "apiKey": "Khóa API",
-      "endpoint": "Endpoint URL",
-      "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",
@@ -1298,13 +1256,9 @@
     "app_capture_lost_using_system_audio": "Việc thu ứng dụng đã dừng, nên toàn bộ âm thanh hệ thống đang được dịch thay thế.",
     "app_capture_monitor_missing": "Việc thu ứng dụng chưa bắt đầu, nên toàn bộ âm thanh hệ thống đang được dịch thay thế.",
     "parse_error": "Không thể đọc một thông báo từ nhà cung cấp; phiên vẫn tiếp tục.",
-    "cleanup_failed": "Một bước khi đóng phiên đã thất bại.",
-    "input_pipeline_failed": "Việc thu âm thanh đã ngừng hoạt động; sẽ không còn gì được dịch nữa.",
     "tts_degraded": "Phát lại giọng nói bị giảm chất lượng; văn bản đã dịch vẫn tiếp tục đến.",
     "resume_attempt_failed": "Kết nối lại thất bại; đang thử lại.",
-    "send_dropped": "Một số âm thanh hoặc văn bản không thể gửi được và đã bị bỏ qua.",
     "voice_fallback": "Giọng nói đã chọn không khả dụng, nên một giọng nói khác được sử dụng.",
-    "lease_notify_failed": "Không thể báo cho dịch vụ biết trạng thái của phiên.",
     "auth": "Nhà cung cấp không chấp nhận thông tin xác thực: {{detail}}",
     "rate_limit": "Nhà cung cấp đang giới hạn yêu cầu; hãy thử lại sau ít phút: {{detail}}",
     "network": "Kết nối đến nhà cung cấp thất bại: {{detail}}",

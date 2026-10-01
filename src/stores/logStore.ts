@@ -18,31 +18,15 @@ export interface EventData {
     | 'session.error'
     | 'session.reconnect_failed'
     | 'session.init_error'
-    | 'session.webrtc_fallback'
     // Participant/local inference status types
     | 'participant.error'
-    // Managed-lease notifications (ProviderDescriptor.onEvent)
+    // Managed-lease notifications (the frames of `src/providers/soniox/lease.ts`)
     | 'session.retry'
     | 'session.started_refused'
     | 'session.notify_failed'
     | 'participant.warning'
     | 'participant.info'
-    // Gemini-specific top-level message types
-    | 'setupComplete'
-    | 'usageMetadata'
-    | 'toolCall'
-    | 'toolCallCancellation'
-    | 'goAway'
-    | 'sessionResumptionUpdate'
-    // Gemini-specific serverContent types
-    | 'serverContent.interrupted'
-    | 'serverContent.turnComplete'
-    | 'serverContent.generationComplete'
-    | 'serverContent.groundingMetadata'
-    | 'serverContent.modelTurn'
-    | 'serverContent.outputTranscription'
-    | 'serverContent.inputTranscription'
-    // OpenAI server events (shared between beta and GA)
+    // OpenAI server events
     | 'session.created' | 'session.updated'
     | 'conversation.created'
     | 'conversation.item.created' | 'conversation.item.deleted' | 'conversation.item.truncated'
@@ -56,11 +40,7 @@ export interface EventData {
     | 'response.function_call_arguments.delta' | 'response.function_call_arguments.done'
     | 'rate_limits.updated'
     | 'error'
-    // Beta-only event names (OpenAI Compatible, Kizuna AI)
-    | 'response.text.delta' | 'response.text.done'
-    | 'response.audio.delta' | 'response.audio.done'
-    | 'response.audio_transcript.delta' | 'response.audio_transcript.done'
-    // GA-only event names (OpenAI direct)
+    // OpenAI's output events
     | 'response.output_text.delta' | 'response.output_text.done'
     | 'response.output_audio.delta' | 'response.output_audio.done'
     | 'response.output_audio_transcript.delta' | 'response.output_audio_transcript.done'
@@ -74,38 +54,10 @@ export interface EventData {
     | 'session.input_audio_buffer.append'
     | 'conversation.item.create' | 'conversation.item.truncate' | 'conversation.item.delete'
     | 'response.create' | 'response.cancel'
-    // OpenAI Live (gpt-live-1) client events — the primary WebSocket's
-    // session.start/session.close handshake and its own audio-append name
-    // (distinct from the Realtime API's input_audio_buffer.append)
-    | 'session.start' | 'session.close' | 'session.close_timeout'
-    | 'session.input_audio.append'
+    // OpenAI Live (gpt-live-1) — the primary WebSocket's session.start /
+    // session.close handshake
+    | 'session.start' | 'session.close'
     | 'session.connection_lost'
-    // openai-realtime-api custom events (for beta clients)
-    | 'conversation.item.appended' | 'conversation.item.completed'
-    | 'conversation.updated' | 'conversation.interrupted'
-    | 'realtime.event'
-    // PalabraAI-specific request types (client → server)
-    | 'set_task'
-    | 'end_task'
-    | 'get_task'
-    | 'pause_task'
-    | 'tts_task'
-    | 'input_audio_data'
-    // PalabraAI-specific response types (server → client)
-    | 'partial_transcription'
-    | 'partial_translated_transcription'
-    | 'validated_transcription'
-    | 'translated_transcription'
-    | 'output_audio_data'
-    | 'current_task'
-    // Volcengine AST2. One client event, then whatever the server sent: the
-    // name is read out of the proto's `EventType` enum, so the exact set lives
-    // in the generated code rather than here, and an event the enum does not
-    // name arrives as `message.<number>`. The twelve the grouping switch below
-    // treats specially (SourceSubtitle*, TranslationSubtitle*, TTS*,
-    // UsageResponse, Audio{Muted,Unmuted}) are among them.
-    | 'start_session.sent'
-    | `message.${number}`
     // Sentence segmentation stage — diagnostics only, counts and durations,
     // never transcript text. They ride the events stream (which LogsPanel shows
     // and 'copy logs' exports) rather than the plain error/warning entries
@@ -197,7 +149,7 @@ export interface LogEntry {
   type?: 'info' | 'success' | 'warning' | 'error' | 'token';
   events?: EventData[]; // For storing all events (single or grouped)
   source?: RealtimeEventSource; // To identify if it's a client or server event
-  eventType?: string; // The type of the event (e.g., 'session.created', 'response.text.delta')
+  eventType?: string; // The type of the event (e.g., 'session.created', 'response.output_text.delta')
   groupingKey?: string; // Custom grouping key for specific event types
   /**
    * How many events this entry has grouped in total. `events` keeps only the
@@ -381,10 +333,9 @@ const useLogStore = create<LogStore>(
       let groupingKey: string | undefined;
       
       // OpenAI-specific grouping. The translate API prefixes the same wire
-      // event with `session.`, and the Live API names it without `_buffer`;
-      // all three are the microphone stream, collapsed under one key.
-      if (eventType === 'input_audio_buffer.append' || eventType === 'session.input_audio_buffer.append'
-          || eventType === 'session.input_audio.append') {
+      // event with `session.`; both are the microphone stream, collapsed
+      // under one key.
+      if (eventType === 'input_audio_buffer.append' || eventType === 'session.input_audio_buffer.append') {
         groupingKey = 'input_audio_buffer';
       }
       // For other delta events, group by event type only
@@ -395,78 +346,60 @@ const useLogStore = create<LogStore>(
       else if (eventType === 'tts.audio') {
         groupingKey = 'soniox_tts_audio';
       }
-      // Gemini-specific grouping
-      else if (eventType === 'serverContent.modelTurn' || eventType === 'serverContent.outputTranscription') {
-        // Group Gemini model turn and output transcription events together (both are assistant output)
+      // Gemini's grouping: the adapter's domain.event frames (Stage 2 Gemini,
+      // ruling 12). A key groups consecutive frames of one type: the store
+      // merges only events of the same type (the eventType check where
+      // entries merge), so a key two types share never merged them.
+      else if (eventType === 'server_content.model_turn') {
         groupingKey = 'gemini_model_turn';
       }
-      else if (eventType === 'serverContent.interrupted') {
+      else if (eventType === 'server_content.output_transcription') {
+        groupingKey = 'gemini_output_transcription';
+      }
+      else if (eventType === 'server_content.interrupted') {
         // Group Gemini interruption events together
         groupingKey = 'gemini_interrupted';
       }
-      else if (eventType === 'serverContent.turnComplete') {
+      else if (eventType === 'server_content.turn_complete') {
         // Group Gemini turn complete events together
         groupingKey = 'gemini_turn_complete';
       }
-      else if (eventType === 'serverContent.generationComplete') {
+      else if (eventType === 'server_content.generation_complete') {
         // Group Gemini generation complete events together
         groupingKey = 'gemini_generation_complete';
       }
-      else if (eventType === 'usageMetadata') {
+      else if (eventType === 'server.usage_metadata') {
         // Group Gemini usage metadata events together
         groupingKey = 'gemini_usage_metadata';
       }
-      else if (eventType === 'serverContent.inputTranscription') {
+      else if (eventType === 'server_content.input_transcription') {
         // Group Gemini input transcription events together
         groupingKey = 'gemini_input_transcription';
       }
-      // PalabraAI-specific grouping
-      else if (eventType === 'partial_transcription') {
-        // Group PalabraAI partial transcription events together
-        groupingKey = 'palabraai_partial_transcription';
+      // Palabra's frames that come in streams (Stage 2 Palabra, choice 11): a
+      // partial's snapshots, about four a second, and a sentence's audio, a
+      // burst of 200 ms chunks — each grouped under its own type when
+      // consecutive, the `.delta` rule's way, with no key another provider's
+      // frames could share.
+      else if (eventType === 'transcription.partial' || eventType === 'translation.partial' || eventType === 'audio.output') {
+        groupingKey = eventType;
       }
-      else if (eventType === 'partial_translated_transcription') {
-        // Group PalabraAI partial translated transcription events together
-        groupingKey = 'palabraai_partial_translated_transcription';
-      }
-      else if (eventType === 'validated_transcription') {
-        // Group PalabraAI validated transcription events together
-        groupingKey = 'palabraai_validated_transcription';
-      }
-      else if (eventType === 'translated_transcription') {
-        // Group PalabraAI translated transcription events together
-        groupingKey = 'palabraai_translated_transcription';
-      }
-      else if (eventType === 'output_audio_data') {
-        // Group PalabraAI output audio data events together
-        groupingKey = 'palabraai_output_audio_data';
-      }
-      else if (eventType === 'input_audio_data') {
-        // Group PalabraAI input audio data events together
-        groupingKey = 'palabraai_input_audio_data';
-      }
-      else if (eventType === 'set_task' || eventType === 'end_task' || eventType === 'get_task' || eventType === 'pause_task' || eventType === 'tts_task') {
-        // Group PalabraAI task management events together
-        groupingKey = 'palabraai_task_management';
-      }
-      else if (eventType === 'current_task') {
-        // Group PalabraAI current task response events together
-        groupingKey = 'palabraai_current_task';
-      }
-      // Volcengine AST2-specific grouping
-      else if (eventType === 'SourceSubtitleResponse' || eventType === 'SourceSubtitleStart' || eventType === 'SourceSubtitleEnd') {
+      // Doubao AST 2.0's grouping: the adapter's `domain.event` frames, under
+      // the keys its old client's names had (Stage 2 Volcengine AST2,
+      // choice 9).
+      else if (eventType === 'subtitle.source') {
         groupingKey = 'volcengine_source_subtitle';
       }
-      else if (eventType === 'TranslationSubtitleResponse' || eventType === 'TranslationSubtitleStart' || eventType === 'TranslationSubtitleEnd') {
+      else if (eventType === 'subtitle.translation') {
         groupingKey = 'volcengine_translation_subtitle';
       }
-      else if (eventType === 'TTSResponse' || eventType === 'TTSSentenceStart' || eventType === 'TTSSentenceEnd') {
+      else if (eventType === 'tts.sentence_start' || eventType === 'tts.sentence_end' || eventType === 'tts.ended') {
         groupingKey = 'volcengine_tts';
       }
-      else if (eventType === 'UsageResponse') {
+      else if (eventType === 'session.usage') {
         groupingKey = 'volcengine_usage';
       }
-      else if (eventType === 'AudioMuted' || eventType === 'AudioUnmuted') {
+      else if (eventType === 'session.audio_muted') {
         groupingKey = 'volcengine_audio_mute';
       }
       // For other events, extract item_id if it exists (OpenAI)

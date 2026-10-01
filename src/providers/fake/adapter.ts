@@ -32,6 +32,7 @@ function maxRef(script: FakeScript): number {
       else if ('text' in step) max = Math.max(max, step.text.ref);
       else if ('close' in step) max = Math.max(max, step.close.ref);
       else if ('audio' in step && step.audio.ref !== undefined) max = Math.max(max, step.audio.ref);
+      else if ('ranges' in step) max = Math.max(max, step.ranges.ref);
     }
   }
   return max;
@@ -145,7 +146,9 @@ class FakeSession implements AdapterSession {
     else if ('close' in step) this.emit('segmentClosed', step.close);
     else if ('audio' in step) {
       if (!this.context.speech) return;
-      this.emit('audio', { ref: step.audio.ref, range: step.audio.range, pcm: synthPcm(step.audio.ms) });
+      this.emit('audio', { ref: step.audio.ref, range: step.audio.range, pcm: synthPcm(step.audio.ms, undefined, undefined, step.audio.from) });
+    } else if ('ranges' in step) {
+      if (this.context.speech) this.emit('speechRanges', step.ranges);
     } else if ('degraded' in step) this.emit('degraded', step.degraded);
     else if ('reconnecting' in step) this.emit('reconnecting', undefined);
     else if ('reconnected' in step) this.emit('reconnected', undefined);

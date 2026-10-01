@@ -85,7 +85,6 @@ function setup(o: Options = {}) {
     participantSpeech: false,
     keepReplayAudio: true,
     shared: {
-      instructions: () => '',
       pauses: { sourceSeconds: 1, translationSeconds: 1 },
       reversed: () => false,
       segmentation: { mode: 'off', sentencesPerRow: 0 },
@@ -158,6 +157,21 @@ describe('runner — starting', () => {
     expect(events('error_occurred')).toEqual([]);
   });
 
+  it('hands build the models its own readiness check found (F2)', async () => {
+    const build = vi.fn(fakeProvider.build);
+    const { runner } = setup({ shape: { provider: { ...fakeProvider, build } as AnyProvider }, ready: { state: 'ready', models: [{ id: 'm2' }, { id: 'm1' }] } });
+    await runner.start();
+    expect(build.mock.calls[0][2].models).toEqual([{ id: 'm2' }, { id: 'm1' }]);
+
+    // Both legs build from the one answer.
+    const both = vi.fn(fakeProvider.build);
+    const two = setup({ shape: { provider: { ...fakeProvider, build: both } as AnyProvider, legs: ['speaker', 'participant'] }, ready: { state: 'ready', models: [{ id: 'm2' }, { id: 'm1' }] } });
+    await two.runner.start();
+    expect(both).toHaveBeenCalledTimes(2);
+    expect(both.mock.calls[0][2].models).toEqual([{ id: 'm2' }, { id: 'm1' }]);
+    expect(both.mock.calls[1][2].models).toBe(both.mock.calls[0][2].models);
+  });
+
   it('refuses the participant leg of an auto source before checking anything (D20)', async () => {
     const { runner } = setup({ shape: { legs: ['speaker', 'participant'], pair: { source: 'auto', target: 'en' } } });
     await runner.start();
@@ -180,6 +194,20 @@ describe('runner — starting', () => {
     const { runner } = setup({ settings: { requireKey: true } });
     await runner.start();
     expect(runner.state.getState()).toMatchObject({ lastEnd: { reason: 'refused', notice: { code: 'credentials_missing' } } });
+  });
+
+  it("refuses a start whose credentials are missing, by the provider's own code", async () => {
+    const provider = {
+      ...fakeProvider,
+      credentials: { keys: [], fields: () => [], read: () => ({ missing: 'Sign in first.', code: 'sign_in_required' }) },
+    } as unknown as AnyProvider;
+    const { runner, sources } = setup({ shape: { provider } });
+    await runner.start();
+    expect(runner.state.getState()).toMatchObject({
+      phase: 'idle',
+      lastEnd: { reason: 'refused', notice: { code: 'sign_in_required', message: 'Sign in first.' } },
+    });
+    expect(sources).toHaveLength(0);
   });
 
   it("names the runner's own refusals in snake_case", async () => {
@@ -854,36 +882,169 @@ describe('runner — legs end together (D21)', () => {
   });
 });
 
+describe('runner — the Logs line each leg ends with (Stage 2 session end, ruling 2 (i))', () => {
+  /** Every frame the frames port saw: its leg, its type and its payload. */
+  function framesSeen() {
+    const seen: Array<[string, string, unknown]> = [];
+    const port: FramePort = { frame: (leg, f) => { seen.push([leg, f.type, f.payload]); } };
+    return { seen, port, stopped: () => seen.filter(([, type]) => type === 'session.stopped') };
+  }
+  /** The fake, but each session frames a goodbye as it stops: what an adapter says of its own ending. */
+  const sayingGoodbye = {
+    ...fakeProvider,
+    async start(request: StartRequest<unknown, unknown>, events: AdapterEvents) {
+      const session = await fakeProvider.start(request as never, events);
+      // Spreading a `FakeSession` instance would drop its prototype methods; delegate explicitly.
+      return {
+        info: session.info,
+        appendAudio: (pcm: Int16Array) => session.appendAudio(pcm),
+        appendText: (text: string) => session.appendText(text),
+        beginTurn: () => session.beginTurn(),
+        endTurn: () => session.endTurn(),
+        cancelTurn: () => session.cancelTurn(),
+        stop: () => {
+          events.frame({ direction: 'out', type: 'fake.goodbye' });
+          return session.stop();
+        },
+      };
+    },
+  } as unknown as AnyProvider;
+
+  it("a stop frames session.stopped once per leg, speaker first, after what each leg's adapter framed of its own ending: why, the leg's last state and the time since Start", async () => {
+    const frames = framesSeen();
+    const { runner, clock } = setup({ shape: { provider: sayingGoodbye, legs: ['speaker', 'participant'] }, frames: frames.port });
+    await runner.start();
+    clock.advance(4_000);
+    await runner.stop();
+    expect(frames.seen).toEqual([
+      ['participant', 'fake.goodbye', undefined],
+      ['speaker', 'fake.goodbye', undefined],
+      ['speaker', 'session.stopped', { reason: 'user', state: 'live', elapsedMs: 4_000 }],
+      ['participant', 'session.stopped', { reason: 'user', state: 'live', elapsedMs: 4_000 }],
+    ]);
+  });
+
+  it('counts the time from Start, not from when the leg went live', async () => {
+    const frames = framesSeen();
+    const { runner, clock } = setup({ settings: { startDelayMs: 2_000 }, frames: frames.port });
+    const starting = runner.start();
+    await flush();
+    clock.advance(2_000);
+    await starting;
+    expect(runner.state.getState()).toMatchObject({ phase: 'running', since: 2_000 });
+    clock.advance(3_000);
+    await runner.stop();
+    expect(frames.stopped()).toEqual([['speaker', 'session.stopped', { reason: 'user', state: 'live', elapsedMs: 5_000 }]]);
+  });
+
+  it("a leg's failure is each leg's reason, with its notice's code and the leg that failed", async () => {
+    const frames = framesSeen();
+    const { runner, clock } = setup({ shape: { legs: ['speaker', 'participant'] }, settings: { failAfterMs: 1_000 }, frames: frames.port });
+    await runner.start();
+    clock.advance(1_000);
+    await flush();
+    expect(frames.stopped()).toEqual([
+      ['speaker', 'session.stopped', { reason: 'leg-failed', code: 'leg_failed', leg: 'speaker', state: 'live', elapsedMs: 1_000 }],
+      ['participant', 'session.stopped', { reason: 'leg-failed', code: 'leg_failed', leg: 'speaker', state: 'live', elapsedMs: 1_000 }],
+    ]);
+  });
+
+  it('a start that fails, or a stop while its leg still opens, ends with the state the leg reached', async () => {
+    const failed = framesSeen();
+    const one = setup({ settings: { startThrows: true }, frames: failed.port });
+    await one.runner.start();
+    await flush();
+    expect(failed.seen).toEqual([['speaker', 'session.stopped', { reason: 'start-failed', code: 'start_failed', leg: 'speaker', state: 'opening', elapsedMs: 0 }]]);
+
+    const slow = framesSeen();
+    const two = setup({ settings: { startDelayMs: 2_000 }, frames: slow.port });
+    const starting = two.runner.start();
+    await flush();
+    two.clock.advance(500);
+    await two.runner.stop();
+    await starting;
+    expect(slow.seen).toEqual([['speaker', 'session.stopped', { reason: 'user', state: 'opening', elapsedMs: 500 }]]);
+  });
+
+  it('a leg whose source will not open ends with no state: its adapter was never asked to start', async () => {
+    const frames = framesSeen();
+    const { runner } = setup({ openSource: async () => { throw new Error('permission denied'); }, frames: frames.port });
+    await runner.start();
+    expect(frames.seen).toEqual([['speaker', 'session.stopped', { reason: 'start-failed', code: 'start_failed', leg: 'speaker', state: null, elapsedMs: 0 }]]);
+  });
+
+  it('says nothing for a start refused before it opened anything, a stop while it checked, or a page going away', async () => {
+    const refused = framesSeen();
+    const one = setup({ settings: { buildRefused: true }, frames: refused.port });
+    await one.runner.start();
+    expect(refused.seen).toEqual([]);
+
+    const checking = framesSeen();
+    const two = setup({ ensureReady: () => new Promise(() => {}), frames: checking.port });
+    void two.runner.start();
+    await flush();
+    await two.runner.stop();
+    expect(checking.seen).toEqual([]);
+
+    const gone = framesSeen();
+    const three = setup({ frames: gone.port });
+    await three.runner.start();
+    three.runner.abandon();
+    await flush();
+    expect(gone.stopped()).toEqual([]);
+
+    // Nor an ending that overran its bound and was then abandoned, once its release gives up.
+    const overran = framesSeen();
+    const { provider } = hangingStop();
+    const four = setup({ shape: { provider }, frames: overran.port, closeTimeoutMs: 3_000, timeoutMs: 10_000 });
+    await four.runner.start();
+    const stopped = four.runner.stop();
+    await flush();
+    four.clock.advance(3_000);
+    await stopped;
+    four.runner.abandon();
+    for (let i = 0; i < 4; i++) {
+      four.clock.advance(10_000);
+      await flush();
+    }
+    expect(overran.stopped()).toEqual([]);
+  });
+
+  it('an ending that overran its bound says its line once its unwind finishes, counting to the stop, not to then', async () => {
+    const frames = framesSeen();
+    const { provider, finishStop } = hangingStop();
+    const { runner, clock } = setup({ shape: { provider }, frames: frames.port, closeTimeoutMs: 3_000, timeoutMs: 10_000 });
+    await runner.start();
+    clock.advance(600);
+    const stopped = runner.stop();
+    await flush();
+    clock.advance(3_000);
+    await stopped;
+    expect(frames.stopped()).toEqual([]);
+    finishStop();
+    await flush();
+    expect(frames.stopped()).toEqual([['speaker', 'session.stopped', { reason: 'user', state: 'live', elapsedMs: 600 }]]);
+  });
+});
+
 describe('runner — capture carry-over', () => {
-  /** The fake provider, with every request it starts recorded. */
-  function recordingInputs() {
-    const inputs: Array<MediaStreamTrack | undefined> = [];
+  it('hands the adapter a request of the context, config, credentials, clock, signal and punctuator alone — no track, even from a source that has one (Stage 2 Palabra, ruling 16)', async () => {
+    const requests: Array<StartRequest<never, never>> = [];
     const provider = {
       ...fakeProvider,
       async start(request: StartRequest<never, never>, events: AdapterEvents) {
-        inputs.push(request.input);
+        requests.push(request);
         return fakeProvider.start(request, events);
       },
     } as unknown as AnyProvider;
-    return { inputs, provider };
-  }
-
-  it("hands the adapter the source's track, and builds the request once the source has opened", async () => {
-    const track = { kind: 'audio' } as MediaStreamTrack;
-    const { inputs, provider } = recordingInputs();
     const { runner } = setup({
       shape: { provider },
-      openSource: async () => Object.assign(createFakeSource(createVirtualClock(0)), { track }),
+      // A capture that still carries its device track: nothing reads it.
+      openSource: async () => Object.assign(createFakeSource(createVirtualClock(0)), { track: { kind: 'audio' } as MediaStreamTrack }),
     });
     await runner.start();
-    expect(inputs).toEqual([track]);
-  });
-
-  it('builds a request without input when the source has no track', async () => {
-    const { inputs, provider } = recordingInputs();
-    const { runner } = setup({ shape: { provider } });
-    await runner.start();
-    expect(inputs).toEqual([undefined]);
+    expect(requests).toHaveLength(1);
+    expect(Object.keys(requests[0]).sort()).toEqual(['clock', 'config', 'context', 'credentials', 'punctuate', 'signal']);
   });
 
   it('keeps capturing when the adapter throws on audio, and reports it once per failing streak', async () => {
@@ -1169,7 +1330,7 @@ describe('runner — cancel at each starting step (F5)', () => {
     expect(events('translation_session_start')).toEqual([]);
   });
 
-  it('a stop during acquire (a slow lease) cancels the start and still releases the lease', async () => {
+  it('a stop during acquire (a slow lease) cancels the start, stops the source it opened, and still releases the lease', async () => {
     let land!: () => void;
     const gate = new Promise<void>((resolve) => { land = resolve; });
     let released = false;
@@ -1180,18 +1341,48 @@ describe('runner — cancel at each starting step (F5)', () => {
     const { runner, sources, events } = setup({ shape: { provider } });
     const starting = runner.start();
     await flush();
-    // No distinct 'acquire' step exists on `RunState`; the visible step is
-    // still whatever ran last ('checking', since this provider has no `prepare`).
-    expect(runner.state.getState()).toMatchObject({ phase: 'starting', step: 'checking' });
+    // The lease runs after `opening` began and the sources opened (Stage 2 Kizuna Soniox, ruling 9).
+    expect(runner.state.getState()).toMatchObject({ phase: 'starting', step: 'opening' });
+    expect(sources).toHaveLength(1);
     const stopping = runner.stop();
     land();
     await stopping;
     await starting;
     await flush();
     expect(runner.state.getState()).toEqual({ phase: 'idle', lastEnd: { reason: 'user' } });
-    expect(sources).toHaveLength(0);
+    expect(sources[0].stopped).toBe(true);
     expect(events('translation_session_start')).toEqual([]);
     expect(released).toBe(true);
+  });
+
+  it("a stop while a lease run's source is opening mints no lease, and stops the source once it opens", async () => {
+    let land!: () => void;
+    const gate = new Promise<void>((resolve) => { land = resolve; });
+    const acquire = vi.fn(async () => ({ credentials: () => ({}), release: async () => {} }));
+    const provider = { ...fakeProvider, session: { acquire } } as unknown as AnyProvider;
+    const opened: FakeSource[] = [];
+    const { runner, events } = setup({
+      shape: { provider },
+      openSource: async () => {
+        await gate;
+        const source = createFakeSource(createVirtualClock(0));
+        opened.push(source);
+        return source;
+      },
+    });
+    const starting = runner.start();
+    await flush();
+    expect(runner.state.getState()).toMatchObject({ phase: 'starting', step: 'opening' });
+    const stopping = runner.stop();
+    land();
+    await stopping;
+    await starting;
+    await flush();
+    expect(acquire).not.toHaveBeenCalled();
+    expect(opened).toHaveLength(1);
+    expect(opened[0].stopped).toBe(true);
+    expect(runner.state.getState()).toEqual({ phase: 'idle', lastEnd: { reason: 'user' } });
+    expect(events('translation_session_start')).toEqual([]);
   });
 
   // The 'opening' step is already covered by "a stop during a slow start

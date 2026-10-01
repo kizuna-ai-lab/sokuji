@@ -6,6 +6,7 @@
  * speaks (range), and lifecycle. Identity, time, ordering, cutting and logging
  * vocabulary are not its business (spec: "L0 — the client contract").
  */
+import type { LegName } from '../conversation/types';
 import type { ClientDiagnosticCode } from '../diagnostics/clientDiagnostics';
 import type { Clock } from './clock';
 
@@ -31,13 +32,15 @@ export interface SessionContext {
 /** Asks a punctuation model for `text` with marks. Null: no answer. */
 export type Punctuator = (lang: string, text: string) => Promise<string | null>;
 
+/**
+ * Every adapter takes the runner's pcm through `appendAudio`: none sends a
+ * native track since Palabra's port over WebSocket, so the request carries
+ * none (Stage 2 Palabra, ruling 16).
+ */
 export interface StartRequest<C, K> {
   context: SessionContext;
   config: C;
   credentials: K;
-  /** A track from the runner's capture graph, for adapters that send a native
-   *  track (WebRTC). Absent in tests and ignored by adapters that take pcm. */
-  input?: MediaStreamTrack;
   /** Every timer the adapter runs reads this clock; tests pass a virtual one. */
   clock: Clock;
   /** Aborted when the run is cancelled; an adapter still opening rejects and opens nothing. */
@@ -78,13 +81,27 @@ export interface AdapterEvents {
   /** `ref` absent: attributable to no segment (plays, pairs with nothing).
    *  `range` absent: this segment's audio, which characters unknown. */
   audio(e: { pcm: Int16Array; ref?: Ref; range?: TextRange }): void;
+  /**
+   * Sets the ranges of speech this adapter already emitted for `ref`
+   * (Stage 2 Soniox, ruling 2): `index` is the entry's place among this
+   * ref's `audio` events, 0 first. Measured, like `audio.range`, against
+   * the text the adapter last sent for `ref`. The entries must exist, each
+   * range must lie within that text, and a ref's ranged entries must ascend
+   * without overlapping. The segment may already be closed.
+   */
+  speechRanges(e: { ref: Ref; ranges: ReadonlyArray<{ index: number; range: TextRange }> }): void;
   closed(e: { reason: string }): void;
   reconnecting(): void;
   reconnected(): void;
   /** The session is broken. Nothing follows. */
   failed(e: { message: string; code?: string; cause?: unknown }): void;
-  /** Running, degraded. */
-  degraded(e: { code: ClientDiagnosticCode; message: string; cause?: unknown }): void;
+  /**
+   * Running, degraded. `reason`: a short machine-readable token for
+   * analytics only (`tts_408`, `tts_connect_failed`) — never user text,
+   * never the cause; absent, the runner's `api_error` reads `code`
+   * (Stage 2 Kizuna Soniox, ruling 8).
+   */
+  degraded(e: { code: ClientDiagnosticCode; message: string; cause?: unknown; reason?: string }): void;
   loading(e: { stage: string; done: number; total: number }): void;
   busy(e: boolean): void;
   /** Wire traffic for the Logs panel. Never audio, never a credential. */
@@ -106,5 +123,21 @@ export class AdapterStartError extends Error {
   constructor(message: string, readonly code: string, readonly params?: Record<string, string | number>, options?: { cause?: unknown }) {
     super(message);
     this.cause = options?.cause;
+  }
+}
+
+/**
+ * A `startBoth` that failed on one leg says which (D22): the runner's
+ * notice names it. `cause` is that leg's own failure — an
+ * `AdapterStartError` keeps its code — and the message is the cause's.
+ * Set here, not passed to `super`: this project's lib (ES2020) has no
+ * `Error` options.
+ */
+export class LegStartError extends Error {
+  readonly cause: unknown;
+
+  constructor(readonly leg: LegName, cause: unknown) {
+    super(cause instanceof Error ? cause.message : String(cause));
+    this.cause = cause;
   }
 }

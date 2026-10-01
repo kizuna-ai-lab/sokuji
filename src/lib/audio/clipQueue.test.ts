@@ -189,6 +189,47 @@ describe('ClipQueue', () => {
     expect(reportErrorSpy).toHaveBeenCalledTimes(1);
   });
 
+  it("an early onended does not blank the position: the next clip is found from its own end, not the lagging clock", () => {
+    const { timeline, plays, advance } = fakeTimeline();
+    const queue = new ClipQueue(timeline);
+    queue.enqueue('a', pcm(100));
+    queue.enqueue('b', pcm(100));
+    advance(LEAD_S + 0.099); // one render quantum short of 'a's scheduled end
+    // Chromium can fire a clip's onended while ctx.currentTime is still short
+    // of its scheduled end; 'a' is gone from the queue before the clock says so.
+    plays[0].onEnded();
+    expect(queue.position()?.key).toBe('b');
+    expect(queue.position()?.t).toBeCloseTo(0, 1);
+  });
+
+  it('clear() resets the clamp: a later clip is judged against the real clock, not a stale ended time', () => {
+    const { timeline, plays, advance } = fakeTimeline();
+    const queue = new ClipQueue(timeline);
+    queue.enqueue('a', pcm(100));
+    advance(LEAD_S + 0.099);
+    plays[0].onEnded(); // early onended: the clamp jumps to 'a's scheduled end
+    queue.clear();
+    // A timeline reset (a rebuilt AudioContext) can read an earlier `now`
+    // than the stale clamp; simulate that by winding the clock back.
+    advance(-(LEAD_S + 0.099));
+    queue.enqueue('b', pcm(200));
+    // 'b' has not started yet on the real (reset) clock: a leftover clamp
+    // from before the reset must not report it as already playing.
+    expect(queue.position()).toBeNull();
+  });
+
+  it('a clip stopped by clear() does not move the clamp: only a natural end proves the clock has passed', () => {
+    const { timeline, advance } = fakeTimeline();
+    const queue = new ClipQueue(timeline);
+    queue.enqueue('a', pcm(1000)); // ends far in the future
+    advance(LEAD_S + 0.05); // well before 'a' would naturally end
+    queue.clear(); // stops 'a' early
+    queue.enqueue('b', pcm(100));
+    // If clearing had advanced the clamp to 'a's scheduled end, 'b' would be
+    // misreported as already playing.
+    expect(queue.position()).toBeNull();
+  });
+
   it('counts every clear(), even one on an idle queue, and tells subscribers each time', () => {
     const { timeline } = fakeTimeline();
     const queue = new ClipQueue(timeline);

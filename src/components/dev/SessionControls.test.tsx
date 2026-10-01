@@ -7,6 +7,7 @@ import { ConversationSet } from '../../lib/session/conversationSet';
 import type { Runner } from '../../lib/session/runner';
 import type { RunState } from '../../lib/session/types';
 import { useRoutingStore } from '../../stores/routingStore';
+import { createGapCounter, GAP_MIN_SAMPLES } from './gapCounter';
 
 const reportErrorSpy = vi.hoisted(() => vi.fn());
 vi.mock('../../lib/diagnostics/report', async (importOriginal) => {
@@ -150,7 +151,35 @@ describe('SessionControls — playback', () => {
       Object.assign(audio.playback, { ttsTap: { read: () => Float32Array.of(0.25, -0.5) } });
       render(<SessionControls runner={runner} turnMode="auto" audio={audio} />);
       act(() => { vi.advanceTimersByTime(100); });
-      expect(document.querySelector('[data-probe="playback"]')?.textContent).toBe('heard: speaker:2:0 · tap peak: 0.500 · bus peak: 0.000');
+      expect(document.querySelector('[data-probe="playback"]')?.textContent).toBe('heard: speaker:2:0 · tap peak: 0.500 · bus peak: 0.000 · gaps: 0 (0 ms) at -');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('shows a nonzero gap count and its timing, from the real gap counter (not a mock of its output)', () => {
+    vi.useFakeTimers();
+    try {
+      const { runner } = fakeRunner();
+      const audio = fakeAudio();
+      // A run of GAP_MIN_SAMPLES silent samples between two runs of speech: the
+      // same shape gapCounter.test.ts proves is exactly one gap, gapMs 0.5, at 0.1.
+      const samples = new Float32Array(2400 + GAP_MIN_SAMPLES + 100);
+      samples.fill(0.3, 0, 2400);
+      samples.fill(0.3, 2400 + GAP_MIN_SAMPLES);
+      Object.assign(audio.playback, { ttsTap: { read: () => samples } });
+      // The reference counter is the same real, unmocked createGapCounter the
+      // component uses internally, fed the exact same samples: this asserts
+      // against its real output, not a hand-picked or mocked GapCount.
+      const reference = createGapCounter();
+      reference.push(samples);
+      const expected = reference.read();
+      render(<SessionControls runner={runner} turnMode="auto" audio={audio} />);
+      act(() => { vi.advanceTimersByTime(100); });
+      expect(expected.gaps).toBe(1);
+      expect(document.querySelector('[data-probe="playback"]')?.textContent).toBe(
+        `heard: - · tap peak: 0.300 · bus peak: 0.000 · gaps: ${expected.gaps} (${Math.round(expected.gapMs)} ms) at ${expected.at.map((s) => s.toFixed(1)).join(',') || '-'}`,
+      );
     } finally {
       vi.useRealTimers();
     }
@@ -164,7 +193,7 @@ describe('SessionControls — playback', () => {
       Object.assign(audio.playback, { meter: (bus: string) => (bus === 'real' ? { read: () => Float32Array.of(0.1, 0.4) } : null) });
       render(<SessionControls runner={runner} turnMode="auto" audio={audio} />);
       act(() => { vi.advanceTimersByTime(100); });
-      expect(document.querySelector('[data-probe="playback"]')?.textContent).toBe('heard: - · tap peak: 0.000 · bus peak: 0.400');
+      expect(document.querySelector('[data-probe="playback"]')?.textContent).toBe('heard: - · tap peak: 0.000 · bus peak: 0.400 · gaps: 0 (0 ms) at -');
     } finally {
       vi.useRealTimers();
     }
@@ -183,7 +212,7 @@ describe('SessionControls — playback', () => {
       // the clip has ended and the graph is resting.
       busLevel = new Float32Array(1);
       act(() => { vi.advanceTimersByTime(100); });
-      expect(document.querySelector('[data-probe="playback"]')?.textContent).toBe('heard: - · tap peak: 0.000 · bus peak: 0.600');
+      expect(document.querySelector('[data-probe="playback"]')?.textContent).toBe('heard: - · tap peak: 0.000 · bus peak: 0.600 · gaps: 0 (0 ms) at -');
     } finally {
       vi.useRealTimers();
     }
@@ -195,7 +224,7 @@ describe('SessionControls — playback', () => {
       const { runner } = fakeRunner();
       render(<SessionControls runner={runner} turnMode="auto" audio={fakeAudio()} capture={() => ({ chunks: 3, peak: 0.25 })} />);
       act(() => { vi.advanceTimersByTime(100); });
-      expect(document.querySelector('[data-probe="playback"]')?.textContent).toBe('heard: - · tap peak: 0.000 · bus peak: 0.000 · captured: 3 · mic peak: 0.250');
+      expect(document.querySelector('[data-probe="playback"]')?.textContent).toBe('heard: - · tap peak: 0.000 · bus peak: 0.000 · gaps: 0 (0 ms) at - · captured: 3 · mic peak: 0.250');
     } finally {
       vi.useRealTimers();
     }
@@ -213,7 +242,7 @@ describe('SessionControls — playback', () => {
       Object.assign(audio.playback.queues, { speaker: { position: () => null, pending: 0, subscribe: () => () => {} } });
       rerender(<SessionControls runner={runner} turnMode="auto" audio={audio} capture={() => ({ chunks: 2, peak: 0.1 })} />);
       act(() => { vi.advanceTimersByTime(100); });
-      expect(document.querySelector('[data-probe="playback"]')?.textContent).toBe('heard: speaker:2:0 · tap peak: 0.000 · bus peak: 0.000 · captured: 2 · mic peak: 0.100');
+      expect(document.querySelector('[data-probe="playback"]')?.textContent).toBe('heard: speaker:2:0 · tap peak: 0.000 · bus peak: 0.000 · gaps: 0 (0 ms) at - · captured: 2 · mic peak: 0.100');
     } finally {
       vi.useRealTimers();
     }

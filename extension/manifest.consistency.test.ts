@@ -25,6 +25,22 @@ describe('manifest stays consistent with the platform registry', () => {
     expect(csp).toContain('https://tts-rt.soniox.com');
   });
 
+  // The OpenAI Compatible presets were never reached from the extension (that
+  // provider is Electron only) and the relay's sockets went with the relay
+  // twins (Stage 2 deletion, rulings 2 and 5). The https origins of the
+  // backend stay: the account and wallet calls use them.
+  it('allows no origin only a deleted provider connected to', () => {
+    const origins = manifest.content_security_policy.extension_pages.split(/[ ;]+/);
+    for (const origin of [
+      'https://api.cometapi.com', 'wss://api.cometapi.com',
+      'https://new.yunai.link', 'wss://new.yunai.link',
+      'wss://sokuji.kizuna.ai', 'wss://sokuji-api.kizuna.ai', 'wss://sokuji-api-dev.kizuna.ai',
+    ]) {
+      expect(origins, origin).not.toContain(origin);
+    }
+    expect(origins).toContain('https://sokuji-api.kizuna.ai');
+  });
+
   it('allows every Soniox regional origin', () => {
     const csp = manifest.content_security_policy.extension_pages;
     for (const origin of [

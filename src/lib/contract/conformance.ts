@@ -1,13 +1,15 @@
 /**
  * The rules of "What every adapter must honour", checked over a recorded
- * event log. Markers record what the caller did (stop, turns, text input) so
- * the rules that depend on it can be checked from the log alone.
+ * event log. Markers record what the caller did (stop, turns, text input),
+ * and when `stop()` returned, so the rules that depend on it can be checked
+ * from the log alone.
  */
 import type { SessionContext } from './adapter';
 import { redact } from '../diagnostics/redact';
 import { eventsFrom, type AdapterEvent } from './events';
 
-export type MarkerName = 'stop' | 'endTurn' | 'cancelTurn' | 'appendText';
+/** `stop` as the caller calls `stop()`, `stopped` once its promise has settled. */
+export type MarkerName = 'stop' | 'stopped' | 'endTurn' | 'cancelTurn' | 'appendText';
 /** `text` is the typed text, for `appendText` markers. */
 export interface Marker { kind: 'marker'; payload: MarkerName; text?: string }
 export type ConformanceLog = Array<AdapterEvent | Marker>;
@@ -48,6 +50,8 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
   const pending: PendingText[] = [];
   let ended = false;
   let stopped = false;
+  /** Where `stop()` returned, if the log says so: a frame after an ending is admitted only before this marker. */
+  const returnedAt = log.findIndex((e) => e.kind === 'marker' && e.payload === 'stopped');
   let translationUnavailable = false;
 
   const flag = (rule: string, detail: string, index: number) => out.push({ rule, detail, index });
@@ -56,19 +60,42 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
   // arrival — the text may still be a snapshot — but checked against the
   // text when its segment closes, and on every later revision (a
   // `segmentText` for an already-closed ref), mirroring L1's `clampRanges`.
-  const rangesByRef = new Map<number, Array<{ index: number; range: [number, number] }>>();
+  // `key` names one range — an `audio` event's own, or the k-th of a
+  // `speechRanges` — so two bad ranges in one event are two violations.
+  // Held per speech entry: a range set again replaces the one it had, so a
+  // range the adapter corrected is not checked any more.
+  const rangesByRef = new Map<number, Map<number, { index: number; key: string; range: [number, number] }>>();
   const closedRefs = new Set<number>();
-  const flaggedRange = new Set<number>();
+  const flaggedRange = new Set<string>();
   const checkRangesForRef = (ref: number) => {
     const entries = rangesByRef.get(ref);
     if (!entries) return;
     const len = (textOf.get(ref) ?? '').length;
-    for (const e of entries) {
-      if (flaggedRange.has(e.index)) continue;
+    for (const e of entries.values()) {
+      if (flaggedRange.has(e.key)) continue;
       if (e.range[1] > len) {
         flag('range-in-text', `range [${e.range[0]}, ${e.range[1]}] outside text of length ${len}`, e.index);
-        flaggedRange.add(e.index);
+        flaggedRange.add(e.key);
       }
+    }
+  };
+
+  // Per ref, how many `audio` events it has had (a `speechRanges` index names
+  // one of them), and the range each entry holds, carried or filled in later.
+  const audioCount = new Map<number, number>();
+  const entryRanges = new Map<number, Map<number, [number, number]>>();
+  /** Offending pairs already flagged, by their entries and ranges: every later ranged event re-reads the whole ref. */
+  const flaggedOrder = new Set<string>();
+  /** A ref's ranged entries, in entry order, must ascend without overlapping: the karaoke sweep reads them so. Each offending pair is flagged once. */
+  const checkOrder = (ref: number, index: number) => {
+    const ordered = [...(entryRanges.get(ref) ?? new Map<number, [number, number]>()).entries()].sort((a, b) => a[0] - b[0]);
+    for (let k = 1; k < ordered.length; k++) {
+      const [[a, ra], [b, rb]] = [ordered[k - 1], ordered[k]];
+      if (rb[0] >= ra[1]) continue;
+      const pair = `${ref}:${a}[${ra}]:${b}[${rb}]`;
+      if (flaggedOrder.has(pair)) continue;
+      flaggedOrder.add(pair);
+      flag('ranges-order', `ref ${ref}: entry ${b}'s range starts before entry ${a}'s ends`, index);
     }
   };
 
@@ -78,8 +105,15 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
       if (entry.payload === 'appendText') pending.push({ index, text: entry.text ?? '', answered: false });
       return;
     }
-    if (ended) flag('ended-silence', `${entry.kind} after failed/closed`, index);
-    if (stopped) flag('stop-silence', `${entry.kind} after stop()`, index);
+    // A frame said before `stop()` has returned is the ending's own Logs line
+    // — the goodbye it sends, a REST delete's outcome — which the runner files
+    // until every leg's stop has settled. It is admitted only when the log's
+    // `stopped` marker follows it; a log with none keeps the old rule. Anything
+    // else after an ending is late at once (Stage 2 session end, choice 3).
+    const late = entry.kind !== 'frame' || !(index < returnedAt);
+    const after = entry.kind === 'frame' && returnedAt >= 0 && index > returnedAt ? 'after stop() returned' : 'after stop()';
+    if (ended && late) flag('ended-silence', `${entry.kind} after failed/closed`, index);
+    if (stopped && late) flag('stop-silence', `${entry.kind} ${after}`, index);
 
     switch (entry.kind) {
       case 'segmentOpened': {
@@ -117,17 +151,49 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
         if (!context.speech) flag('no-audio-when-silent', 'audio with speech: false', index);
         if (!(pcm instanceof Int16Array)) flag('audio-int16', 'pcm is not an Int16Array', index);
         if (ref !== undefined && sideOf.get(ref) === 'source') flag('audio-on-source', `audio on source-side ref ${ref}`, index);
+        // This entry's place among the ref's audio: what a later `speechRanges` names it by.
+        const n = ref === undefined ? 0 : (audioCount.get(ref) ?? 0);
+        if (ref !== undefined) audioCount.set(ref, n + 1);
         if (range) {
           const [start, end] = range;
           if (start < 0 || start > end) {
             flag('range-in-text', `range [${start}, ${end}] is not a valid range`, index);
           } else if (ref !== undefined) {
-            const list = rangesByRef.get(ref) ?? [];
-            list.push({ index, range: [start, end] });
-            rangesByRef.set(ref, list);
+            const byIndex = entryRanges.get(ref) ?? new Map<number, [number, number]>();
+            byIndex.set(n, [start, end]);
+            entryRanges.set(ref, byIndex);
+            const held = rangesByRef.get(ref) ?? new Map<number, { index: number; key: string; range: [number, number] }>();
+            held.set(n, { index, key: String(index), range: [start, end] });
+            rangesByRef.set(ref, held);
             if (closedRefs.has(ref)) checkRangesForRef(ref);
+            checkOrder(ref, index);
           }
         }
+        break;
+      }
+      case 'speechRanges': {
+        const { ref, ranges } = entry.payload;
+        const count = audioCount.get(ref) ?? 0;
+        const byIndex = entryRanges.get(ref) ?? new Map<number, [number, number]>();
+        entryRanges.set(ref, byIndex);
+        ranges.forEach(({ index: entryIndex, range }, k) => {
+          if (!Number.isInteger(entryIndex) || entryIndex < 0 || entryIndex >= count) {
+            flag('ranges-entry', `ranges name speech entry ${entryIndex} of ref ${ref}, which has ${count}`, index);
+            return;
+          }
+          const [start, end] = range;
+          if (start < 0 || start > end) {
+            flag('range-in-text', `range [${start}, ${end}] is not a valid range`, index);
+            return;
+          }
+          byIndex.set(entryIndex, [start, end]);
+          const held = rangesByRef.get(ref) ?? new Map<number, { index: number; key: string; range: [number, number] }>();
+          // One key per range, not per log entry: each bad range in one event is its own violation, not hidden behind the first.
+          held.set(entryIndex, { index, key: `${index}:${k}`, range: [start, end] });
+          rangesByRef.set(ref, held);
+        });
+        if (closedRefs.has(ref)) checkRangesForRef(ref);
+        checkOrder(ref, index);
         break;
       }
       case 'degraded':
@@ -147,6 +213,8 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
         if (problem) flag('frame-clean', problem, index);
         const secret = frameSecret(payload);
         if (secret) flag('frame-secret', secret, index);
+        const url = frameUrl(payload);
+        if (url) flag('frame-url', url, index);
         break;
       }
       default:
@@ -182,6 +250,31 @@ function dirtyFrame(value: unknown, path = 'payload'): string | null {
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
       if (CREDENTIAL_KEY.test(k)) return `${path}.${k} looks like a credential`;
       const p = dirtyFrame(v, `${path}.${k}`);
+      if (p) return p;
+    }
+  }
+  return null;
+}
+
+/**
+ * Where a frame payload holds a socket URL, or null (Stage 2 Palabra,
+ * choice 10): Gemini's key, Doubao AST 2.0's credentials and Palabra's
+ * token ride in their socket's query, and `redact()` masks only the
+ * parameters it names. No adapter frames its URL; this holds every one to
+ * it, whatever the parameter is called.
+ */
+function frameUrl(value: unknown, path = 'payload'): string | null {
+  if (typeof value === 'string') return /\bwss?:\/\//i.test(value) ? `${path} carries a socket URL` : null;
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) {
+      const p = frameUrl(value[i], `${path}[${i}]`);
+      if (p) return p;
+    }
+    return null;
+  }
+  if (value && typeof value === 'object' && !(value instanceof Int16Array || value instanceof ArrayBuffer || ArrayBuffer.isView(value))) {
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      const p = frameUrl(v, `${path}.${k}`);
       if (p) return p;
     }
   }

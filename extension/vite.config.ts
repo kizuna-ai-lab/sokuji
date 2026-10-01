@@ -61,6 +61,8 @@ export default defineConfig(({ mode }) => {
         targets: [
           // Content scripts and background (vanilla JS, no bundling needed)
           { src: 'background/background.js', dest: '.' },
+          // Its generic upgrade header rules, which it imports as a module.
+          { src: 'background/wsHeaderRule.js', dest: '.' },
           { src: 'content/content.js', dest: '.' },
           { src: 'content/zoom-content.js', dest: '.' },
           { src: 'content/subtitle-overlay-content.js', dest: '.' },
@@ -72,10 +74,6 @@ export default defineConfig(({ mode }) => {
           { src: '_locales', dest: '.' },
           { src: 'icons', dest: '.' },
           // Worklets
-          {
-            src: '../src/services/worklets/pcm-audio-worklet-processor.js',
-            dest: 'worklets',
-          },
           {
             src: '../src/services/worklets/audio-recorder-worklet-processor.js',
             dest: 'worklets',
@@ -158,29 +156,14 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.VITE_BACKEND_URL': JSON.stringify(
         envVal('VITE_BACKEND_URL', '')
       ),
+      // Every gate is forwarded explicitly, like every key above: Vite's
+      // automatic loading reads the EXTENSION directory, so a flag documented
+      // in the root .env reaches this build only by appearing in this list.
+      // Omitted, the gate reads false in extension builds no matter how it is
+      // configured — which makes the switch unturnable-on.
+      // `featureGateForwarding.consistency.test.ts` fails when one is missing.
       'import.meta.env.VITE_ENABLE_KIZUNA_AI': JSON.stringify(
         envVal('VITE_ENABLE_KIZUNA_AI', 'false', 'true')
-      ),
-      // One gate per managed provider, forwarded explicitly like every key
-      // above: Vite's automatic loading reads the EXTENSION directory, so a
-      // flag documented in the root .env reaches this build only by appearing
-      // in this list. Omitted, the gate reads false in extension builds no
-      // matter how it is configured — which makes the switch unturnable-on.
-      // `featureGateForwarding.consistency.test.ts` fails when one is missing.
-      'import.meta.env.VITE_ENABLE_KIZUNA_SONIOX': JSON.stringify(
-        envVal('VITE_ENABLE_KIZUNA_SONIOX', 'false', 'true')
-      ),
-      'import.meta.env.VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE': JSON.stringify(
-        envVal('VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE', 'false', 'true')
-      ),
-      'import.meta.env.VITE_ENABLE_KIZUNA_VOLCENGINE_AST2': JSON.stringify(
-        envVal('VITE_ENABLE_KIZUNA_VOLCENGINE_AST2', 'false', 'true')
-      ),
-      'import.meta.env.VITE_ENABLE_PALABRA_AI': JSON.stringify(
-        envVal('VITE_ENABLE_PALABRA_AI', 'false')
-      ),
-      'import.meta.env.VITE_ENABLE_VOLCENGINE_AST2': JSON.stringify(
-        envVal('VITE_ENABLE_VOLCENGINE_AST2', 'false', 'true')
       ),
       // The flagged providers a release offers (D19), one comma-separated
       // list. Dev builds offer every flagged provider in code, so there is no

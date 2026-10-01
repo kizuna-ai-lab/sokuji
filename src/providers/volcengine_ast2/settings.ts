@@ -1,0 +1,169 @@
+/**
+ * Doubao AST 2.0's `S`, credentials and languages (survey §2.2–2.5). `S` is
+ * the old slice (`VolcengineAST2ProviderConfig.ts:8-31`) without what
+ * leaves it — the two credentials (same keys), the pair (`providerStore`,
+ * same keys) and `turnDetectionMode` (the global turn mode, migrated once by
+ * `storedSettings.ts`) — plus the credential mode (ruling 1). Stored under
+ * `settings.volcengineAST2.*` as before. Nothing here imports `src/services`.
+ */
+import type { CredentialField, CredentialsMissing, LanguageContext, LanguageOption, Provider } from '../../lib/provider/types';
+
+/** Which credentials a run sends (ruling 1): the legacy console's App ID and Access Token, or the new console's API key. */
+export type Ast2AuthMode = 'app' | 'apiKey';
+
+export interface Ast2Settings {
+  /** Picked in the credential form (F4); an old profile reads the legacy mode, whose App ID and Access Token it already holds. */
+  authMode: Ast2AuthMode;
+  /** The console's hot-word library (`corpus.boosting_table_id`); '' for none. */
+  hotWordTableId: string;
+  /** The console's regex replacement library (`corpus.regex_correct_table_id`). */
+  replacementTableId: string;
+  /** The console's glossary library (`corpus.glossary_table_id`). */
+  glossaryTableId: string;
+}
+
+export const AST2_DEFAULTS: Ast2Settings = {
+  authMode: 'app',
+  hotWordTableId: '',
+  replacementTableId: '',
+  glossaryTableId: '',
+};
+
+const AUTH_MODES: readonly unknown[] = ['app', 'apiKey'];
+
+/** What was stored, made valid field by field; nothing is written back. */
+export function migrateAst2Settings(stored: Readonly<Record<string, unknown>>): Ast2Settings {
+  const str = (k: 'hotWordTableId' | 'replacementTableId' | 'glossaryTableId') => (typeof stored[k] === 'string' ? (stored[k] as string) : AST2_DEFAULTS[k]);
+  return {
+    authMode: AUTH_MODES.includes(stored.authMode) ? (stored.authMode as Ast2AuthMode) : AST2_DEFAULTS.authMode,
+    hotWordTableId: str('hotWordTableId'),
+    replacementTableId: str('replacementTableId'),
+    glossaryTableId: str('glossaryTableId'),
+  };
+}
+
+/** One leg's credentials: the kind decides the socket's query (`wire.ts` `ast2Url`). */
+export type Ast2Credentials =
+  | { kind: 'app'; appKey: string; accessKey: string }
+  | { kind: 'apiKey'; apiKey: string };
+
+const APP_ID: CredentialField = { key: 'appId', labelKey: 'setup.credentials.appId', secret: false, placeholderKey: 'providers.volcengine_ast2.appIdPlaceholder' };
+const ACCESS_TOKEN: CredentialField = { key: 'accessToken', labelKey: 'setup.credentials.accessToken', secret: true, placeholderKey: 'providers.volcengine_ast2.accessTokenPlaceholder' };
+const API_KEY: CredentialField = { key: 'apiKey', labelKey: 'setup.credentials.apiKey', secret: true, placeholderKey: 'simpleSettings.apiKeyPlaceholder' };
+
+/** A stored value as text: chrome storage hands an App ID stored as a number back as one (`descriptorRegistry.test.ts:179`). */
+const text = (v: unknown): string => (v === undefined || v === null ? '' : String(v)).trim();
+
+export const ast2Credentials: Provider<Ast2Settings, Ast2Credentials, never>['credentials'] = {
+  keys: ['appId', 'accessToken', 'apiKey'],
+  fields: (s) => (s.authMode === 'apiKey' ? [API_KEY] : [APP_ID, ACCESS_TOKEN]),
+  // `values` holds exactly the fields `fields(s)` shows, so its keys name the mode.
+  read: (values): Ast2Credentials | CredentialsMissing => {
+    if ('apiKey' in values) {
+      const apiKey = text(values.apiKey);
+      // No code: the runner words it `credentials_missing` ("Enter your API key in Settings before starting.").
+      return apiKey ? { kind: 'apiKey', apiKey } : { missing: 'Enter the API key of your Doubao AST 2.0 app.' };
+    }
+    const appKey = text(values.appId);
+    const accessKey = text(values.accessToken);
+    return appKey && accessKey ? { kind: 'app', appKey, accessKey } : { missing: 'Enter the App ID and the Access Token of your Doubao AST 2.0 app.' };
+  },
+  choice: {
+    setting: 'authMode',
+    options: [
+      { value: 'app', labelKey: 'providers.volcengine_ast2.authModeApp' },
+      { value: 'apiKey', labelKey: 'setup.credentials.apiKey' },
+    ],
+  },
+};
+
+const lang = (value: string, name: string, englishName: string): LanguageOption => ({ value, name, englishName });
+
+/**
+ * The eight languages Doubao speaks (S2S), in the old list's order
+ * (`VolcengineAST2ProviderConfig.ts:112-121`) and names.
+ */
+const SPOKEN: readonly LanguageOption[] = [
+  lang('zh', '中文', 'Chinese'),
+  lang('en', 'English', 'English'),
+  lang('ja', '日本語', 'Japanese'),
+  lang('id', 'Bahasa Indonesia', 'Indonesian'),
+  lang('es', 'Español', 'Spanish'),
+  lang('pt', 'Português', 'Portuguese'),
+  lang('de', 'Deutsch', 'German'),
+  lang('fr', 'Français', 'French'),
+];
+
+/**
+ * The twelve more it transcribes and translates into text (S2T), in the
+ * documentation's order; names as the shared registry has them
+ * (`utils/languages.ts` `LANGUAGE_OPTIONS`; Malay, which it lacks, as
+ * Soniox's list does).
+ */
+const TEXT_ONLY: readonly LanguageOption[] = [
+  lang('ko', '한국어', 'Korean'),
+  lang('tr', 'Türkçe', 'Turkish'),
+  lang('ms', 'Bahasa Melayu', 'Malay'),
+  lang('nl', 'Nederlands', 'Dutch'),
+  lang('ro', 'Română', 'Romanian'),
+  lang('pl', 'Polski', 'Polish'),
+  lang('cs', 'Čeština', 'Czech'),
+  lang('ar', 'العربية', 'Arabic'),
+  lang('th', 'ไทย', 'Thai'),
+  lang('vi', 'Tiếng Việt', 'Vietnamese'),
+  lang('ru', 'Русский', 'Russian'),
+  lang('it', 'Italiano', 'Italian'),
+];
+
+/**
+ * Two dialects, text only and as a source only ("方言，仅支持作为源语种").
+ * Cantonese keeps the shared registry's name (`utils/languages.ts`
+ * `cantonese`, its gloss lower-case); Shanghainese, which it lacks, is in
+ * its own script with an English gloss.
+ */
+const DIALECTS: readonly LanguageOption[] = [
+  lang('yue-CN', '粵語 (cantonese)', 'Cantonese'),
+  lang('sh-CN', '上海话 (Shanghainese)', 'Shanghainese'),
+];
+
+/** Chinese↔English in one session: both sides or neither (`zhen/zhen`). */
+export const ZHEN = 'zhen';
+const BIDIRECTIONAL = lang(ZHEN, '中英双语 (zh↔en)', 'Chinese-English Bidirectional');
+
+const SPOKEN_SOURCES: readonly LanguageOption[] = [...SPOKEN, BIDIRECTIONAL];
+const TEXT_SOURCES: readonly LanguageOption[] = [...SPOKEN, ...TEXT_ONLY, ...DIALECTS, BIDIRECTIONAL];
+const ZH_OR_EN = new Set(['zh', 'en']);
+const ONLY_ZHEN: readonly LanguageOption[] = [BIDIRECTIONAL];
+/** English first, so leaving `zhen` on the source lands on English, as the old rule R3 did. */
+const TO_EN_OR_ZH: readonly LanguageOption[] = [SPOKEN[1], SPOKEN[0]];
+
+/**
+ * The targets of a source (ruling 3). `zhen` pairs only with itself. Every
+ * other pair has Chinese or English on one side — the rule of both modes as
+ * this client runs them: S2T's ("源语种或目标语种必须是中英"), and S2S's
+ * voice-clone mode's, which is the one the old client used (it sends no
+ * `speaker_id`: the server clones the speaker's voice,
+ * `VolcengineAST2ProviderConfig.ts:129`). A dialect is never a target.
+ */
+function targetsOf(source: string, speech: boolean): readonly LanguageOption[] {
+  if (source === ZHEN) return ONLY_ZHEN;
+  if (!ZH_OR_EN.has(source)) return TO_EN_OR_ZH;
+  return (speech ? SPOKEN : [...SPOKEN, ...TEXT_ONLY]).filter((o) => o.value !== source);
+}
+
+/**
+ * Doubao's languages depend on whether the run speaks (ruling 3; choice 1):
+ * speaking offers the eight S2S languages, text only the twenty S2T ones and
+ * the two dialects; without a context, the widest offer — text only's.
+ */
+export const ast2Languages: Provider<Ast2Settings, never, never>['languages'] = {
+  sources: (_s, context?: LanguageContext) => (context?.speech ? SPOKEN_SOURCES : TEXT_SOURCES),
+  targets: (source, _s, context?: LanguageContext) => targetsOf(source, context?.speech === true),
+  initial: () => ({ source: 'zh', target: 'en' }),
+};
+
+/** Whether Doubao runs this direction in this mode: `build`'s guard, over the same two functions. */
+export function ast2Offers(direction: { source: string; target: string }, context: LanguageContext): boolean {
+  return ast2Languages.sources(AST2_DEFAULTS, context).some((o) => o.value === direction.source)
+    && ast2Languages.targets(direction.source, AST2_DEFAULTS, context).some((o) => o.value === direction.target);
+}

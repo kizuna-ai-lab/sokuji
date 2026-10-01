@@ -45,7 +45,7 @@ export function SessionSettingsProvider({ locked }: { locked: boolean }) {
     <>
       <ProviderPicker providers={providers} auth={auth} disabled={locked} openSlot={setEngineSlotTarget} />
       <ProviderEngine providers={providers} disabled={locked} initialSlot={engineSlotTarget} onInitialSlotConsumed={() => setEngineSlotTarget(null)} />
-      <ProviderOwnSettings providers={providers} disabled={locked} />
+      <ProviderOwnSettings providers={providers} auth={auth} disabled={locked} />
       {/* The provider's speech-detection Controls, where LocalInference's VAD sat before the Speech section summarized it. */}
       <ProviderTurnDetectionControls providers={providers} disabled={locked} />
     </>

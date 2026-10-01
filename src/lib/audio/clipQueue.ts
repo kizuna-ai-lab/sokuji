@@ -59,6 +59,14 @@ export class ClipQueue<K extends string = string> implements QueueView<K> {
   private clips: Scheduled<K>[] = [];
   /** When the last scheduled clip ends: the next one starts there, or one lead ahead of the clock if that has passed. */
   private tail = 0;
+  /**
+   * The latest natural clip end seen so far. A clip's own `onended` proves
+   * the audio clock has passed that clip's end, even when the main thread's
+   * `currentTime` has not caught up yet (Chromium can fire `onended` a
+   * render quantum early); `position()` clamps to this so the gap between
+   * one clip's early end and the clock catching up never reads as silence.
+   */
+  private endedAt = 0;
   /** How many times `clear()` has run. */
   private clearCount = 0;
   private readonly listeners = new Set<() => void>();
@@ -90,6 +98,7 @@ export class ClipQueue<K extends string = string> implements QueueView<K> {
     const clips = this.clips;
     this.clips = [];
     this.tail = 0;
+    this.endedAt = 0;
     this.clearCount += 1;
     for (const clip of clips) {
       clip.done = true;
@@ -99,7 +108,7 @@ export class ClipQueue<K extends string = string> implements QueueView<K> {
   }
 
   position(): Playing<K> | null {
-    const now = this.timeline.now();
+    const now = Math.max(this.timeline.now(), this.endedAt);
     const clip = this.clips.find((c) => c.at <= now && now < c.end);
     return clip ? { key: clip.key, t: (now - clip.at) * 1000, ms: (clip.end - clip.at) * 1000 } : null;
   }
@@ -120,6 +129,9 @@ export class ClipQueue<K extends string = string> implements QueueView<K> {
   private finish(clip: Scheduled<K>): void {
     if (clip.done) return;
     clip.done = true;
+    // A clip that `clear()` stopped already had `done` set true before this
+    // ran, so only a natural end reaches here and moves the clamp.
+    this.endedAt = Math.max(this.endedAt, clip.end);
     this.clips = this.clips.filter((c) => c !== clip);
     this.notify();
   }

@@ -55,6 +55,10 @@ export class Conversation {
   private readonly indexByRef = new Map<number, number>();
   /** Audio that arrived before its segment opened. */
   private readonly pending = new Map<number, Speech[]>();
+  /** A segment whose text fill-in replaced: the adapter's own text, which a late `speechRanges` or `audio` range is measured against. Deleted when the adapter sends text again. */
+  private readonly unfilled = new Map<number, string>();
+  /** Per ref, the speech entries `clear()` dropped: an adapter counts `speechRanges` indices from its first `audio`, L1 (and the clip keys, `playback.clear()`) from the clear (choice 1). */
+  private readonly clearedEntries = new Map<number, number>();
   private counter = 0;
   private noticeCounter = 0;
   private version = 0;
@@ -82,6 +86,7 @@ export class Conversation {
       case 'segmentText': return this.text(event.payload.ref, event.payload.text, event.payload.timing, event.payload.language);
       case 'segmentClosed': return this.close(event.payload.ref, event.payload.origin);
       case 'audio': return this.audio(event.payload.ref, event.payload.range, event.payload.pcm);
+      case 'speechRanges': return this.ranges(event.payload.ref, event.payload.ranges);
       case 'failed': {
         this.addNotice({ severity: 'error', message: event.payload.message, code: event.payload.code ?? 'leg_failed' });
         this.finalizeAll();
@@ -150,12 +155,17 @@ export class Conversation {
   /** Drops every closed segment, every notice and all pcm; segments still open stay open with empty text. */
   clear(): void {
     this.batch(() => {
+      // Every entry dropped here, closed segments' too: a closed segment's speech can keep arriving after a clear, into `pending`.
+      const dropped = (ref: number, n: number) => { if (n > 0) this.clearedEntries.set(ref, (this.clearedEntries.get(ref) ?? 0) + n); };
+      for (const seg of this.segments) dropped(seg.ref, seg.speech.length);
+      for (const [ref, list] of this.pending) dropped(ref, list.length);
       const kept = this.segments.filter((s) => !s.final).map((s) => ({ ...s, text: '', marks: [], speech: [], timing: undefined }));
       this.segments = kept;
       this.notices = [];
       this.indexByRef.clear();
       kept.forEach((s, i) => this.indexByRef.set(s.ref, i));
       this.pending.clear();
+      this.unfilled.clear();
       this.pcmBytes = 0;
       this.trimCursor = 0;
       this.lastDegradedAt.clear();
@@ -205,6 +215,7 @@ export class Conversation {
   }
 
   private text(ref: number, text: string, timing?: SegmentTiming, language?: string): void {
+    this.unfilled.delete(ref);
     const i = this.indexByRef.get(ref);
     if (i === undefined) return this.violation(`text for ref ${ref} before it opened`);
     const seg = this.segments[i];
@@ -244,12 +255,69 @@ export class Conversation {
       this.opts.onDiagnostic?.({ code: 'range_out_of_text', message: `range [${range[0]}, ${range[1]}] is not a valid range` });
       kept = undefined;
     }
+    // After fill-in the adapter still measures against the text it sent: re-anchored from that text onto the filled
+    // one, as `ranges` does, through the one shared `measure` (Gemini/AST2 follow-up, choice 19).
+    kept = this.measure(ref, seg, [kept])[0];
     this.replace(i, { ...seg, speech: [...seg.speech, { range: kept, pcm: this.retain(pcm) }] });
+    // A range on an already-closed segment is checked against its settled text right away, as `ranges` does — the same
+    // check `clampRanges` repeats on every later revision.
+    if (seg.final) this.clampRanges(i);
     // Local speech can still arrive after close, so a segment already
     // retired by the trim cursor (final and drained) is not done for good:
     // pull the cursor back to it so `afterAudio` re-examines it.
     if (i < this.trimCursor) this.trimCursor = i;
     this.afterAudio();
+  }
+
+  /**
+   * Measures ranges against a segment whose text a fill-in replaced: fits each one to the adapter's own
+   * (pre-fill-in) text, drops and reports one that reaches past it, then re-anchors what is left onto the settled
+   * text — the one rule `ranges()` and `audio()` both need (Gemini/AST2 follow-up, choice 19). With no fill-in in
+   * flight `own` is `undefined` and every range comes back unchanged, through `reanchorRanges`' identical-text case.
+   */
+  private measure(ref: number, seg: Segment, ranges: ReadonlyArray<TextRange | undefined>): Array<TextRange | undefined> {
+    const own = this.unfilled.get(ref);
+    const fitted = ranges.map((range) => {
+      if (!range || own === undefined || range[1] <= own.length) return range;
+      this.opts.onDiagnostic?.({ code: 'range_out_of_text', message: `range [${range[0]}, ${range[1]}] outside ${seg.id}'s text of length ${own.length}` });
+      return undefined;
+    });
+    return reanchorRanges(own ?? seg.text, seg.text, fitted);
+  }
+
+  /** Ranges an adapter sets on speech it already emitted: measured against the text it last sent, re-anchored onto the text as it stands (choice 1). */
+  private ranges(ref: number, all: ReadonlyArray<{ index: number; range: TextRange }>): void {
+    const i = this.indexByRef.get(ref);
+    // Audio held in `pending` takes them — before its segment opened, or after a clear dropped its closed segment; it moves with its pcm at open.
+    const held = i === undefined ? this.pending.get(ref) : undefined;
+    if (i === undefined && !held) return; // a ref with neither a segment nor held audio
+    const entries = i === undefined ? held! : this.segments[i].speech;
+    const where = i === undefined ? `ref ${ref}'s held audio` : this.segments[i].id;
+    // The adapter counts from its first audio; L1 from the last clear. An entry the clear dropped is gone with its audio, silently;
+    // any other index L1 does not hold (negative, fractional, past the end) or an invalid range is the adapter's bug, and said.
+    const offset = this.clearedEntries.get(ref) ?? 0;
+    const hits = all.flatMap((g) => {
+      if (Number.isInteger(g.index) && g.index >= 0 && g.index < offset) return [];
+      const index = g.index - offset;
+      const [start, end] = g.range;
+      if (Number.isInteger(index) && index >= 0 && index < entries.length && start >= 0 && start <= end) return [{ index, range: g.range }];
+      this.opts.onDiagnostic?.({ code: 'range_out_of_text', message: `speech entry ${g.index} of ${where} cannot take range [${start}, ${end}]` });
+      return [];
+    });
+    if (hits.length === 0) return;
+    // An entry named twice takes the last range, on both paths.
+    if (i === undefined) {
+      const list = [...held!];
+      for (const h of hits) list[h.index] = { ...list[h.index], range: h.range };
+      this.pending.set(ref, list);
+      return;
+    }
+    const seg = this.segments[i];
+    const anchored = this.measure(ref, seg, hits.map((h) => h.range));
+    const speech = [...seg.speech];
+    hits.forEach((h, k) => { speech[h.index] = { ...speech[h.index], range: anchored[k] }; });
+    this.replace(i, { ...seg, speech });
+    if (seg.final) this.clampRanges(i);
   }
 
   private addNotice(input: NoticeInput): void {
@@ -287,6 +355,7 @@ export class Conversation {
     const job: Promise<void> = fillIn(lang, before, punctuate).then((filled) => {
       const j = this.indexByRef.get(seg.ref);
       if (j === undefined || filled === before || this.segments[j].text !== before) return;
+      this.unfilled.set(seg.ref, before);
       this.replaceText(j, filled, { mark: false });
       this.clampRanges(j);
     });
@@ -349,11 +418,14 @@ export class Conversation {
       if (seg.final && i === this.trimCursor) this.trimCursor++;
       i++;
     }
-    // Still over: audio held for refs that have not opened yet, oldest first.
+    // Still over: audio held for refs that have not opened yet, oldest first — its pcm dropped and its entries kept, as
+    // a segment's are, so a later `speechRanges` still names them and the clip keys still line up (Doubao states its
+    // ranges after its audio: Gemini/AST2 follow-up, choice 6).
     for (const [ref, list] of this.pending) {
       if (this.pcmBytes <= max) break;
+      if (!list.some((s) => s.pcm.length > 0)) continue;
       for (const s of list) this.pcmBytes -= s.pcm.byteLength;
-      this.pending.delete(ref);
+      this.pending.set(ref, list.map((s) => ({ ...s, pcm: EMPTY_PCM })));
     }
   }
 

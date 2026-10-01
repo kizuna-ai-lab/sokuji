@@ -1,13 +1,11 @@
 import { ProviderConfig, LanguageOption } from './ProviderConfig';
 import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
-// Type-only, so this adds no runtime edge from the shared descriptor module to
-// SonioxClient's dependency graph (i18n, the wire components).
-import type { ManagedSonioxSession, SonioxCredentialBundle, SonioxSttRole } from '../clients/ManagedSonioxSession';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
 
 /** Transport for realtime providers. Moved here from settingsStore so the
- *  services layer no longer imports from stores. settingsStore re-exports it. */
+ *  services layer no longer imports from stores; the store's re-export went
+ *  with the OpenAI slices that read it (Stage 2 deletion, ruling 2). */
 export type TransportType = 'websocket' | 'webrtc';
 
 /** Normalized credentials produced by a descriptor from its settings slice.
@@ -19,7 +17,9 @@ export type Credentials =
   | { ok: false; missing: string };
 
 export type CredentialCtx = {
-  /** Better Auth session-token accessor — required only by the kizuna twins. */
+  /** Better Auth session-token accessor. No descriptor left reads it: the
+   *  Kizuna ones that did went with their providers (Stage 2 deletion,
+   *  ruling 2). */
   getAuthToken?: () => Promise<string | null>;
 };
 
@@ -37,46 +37,12 @@ export type ClientOptions = {
   transport: TransportType;
   webrtcOptions?: { inputDeviceId?: string; outputDeviceId?: string };
   /**
-   * Managed Soniox only. The lease is acquired by MainPanel BEFORE any client
-   * exists (an awaited round trip with a 409 retry), so the keys arrive here
-   * rather than being minted inside the client. Keeping this optional is what
-   * lets createClient stay synchronous and return exactly one IClient for all
-   * eleven providers.
-   */
-  sonioxManaged?: {
-    credentials: SonioxCredentialBundle;
-    session: ManagedSonioxSession;
-    /**
-     * WHICH leg this client is — the role its bundle was taken with. Required,
-     * not optional: it is how the leg names itself when it reports that Soniox
-     * accepted its stream, and on a two-stream lease `session-started` refuses
-     * a roleless body (400 `role_required`) and another leg's role
-     * (`role_not_issued`), leaving the lease at its start window either way.
-     */
-    role: SonioxSttRole;
-    /**
-     * Whether THIS client speaks for the session when it ends for a
-     * session-level reason — the balance running out, or Soniox dropping the
-     * session at its granted duration. Defaults to true.
-     *
-     * Exactly one client per session may say yes; it is the primacy bit, and
-     * this is its single source (ManagedSonioxSession reads it back off the leg
-     * rather than being told a second time). Every leg is still ENDED by such
-     * an outcome — saying no only means "not the one who says the sentence".
-     *
-     * It has to be the speaker whenever there is one, because MainPanel's
-     * teardown renders `speakerClient.getConversationItems()`: a notice emitted
-     * on the participant leg is not merely misplaced, it is never displayed.
-     */
-    announcesSessionOutcome?: boolean;
-  };
-  /**
    * The sentence segmentation stage, shared by both legs and every provider.
    *
    * Absent or disabled means today's behaviour exactly: a client that receives
    * no runtime never seals and never calls a model. Clients never construct
-   * one — MainPanel owns the single instance (useSegmentationRuntime) so no
-   * client has to import a store.
+   * one, so no client imports a store; the old session start that passed one
+   * in is gone until #578 ports Local Native (Stage 2 deletion, ruling 1).
    */
   segmentation?: SegmentationRuntime | null;
   /**
@@ -96,9 +62,10 @@ export type ClientOptions = {
    * of any provider slice, so it reaches a client the same way the rest of
    * the segmentation settings do rather than through `buildSessionConfig`.
    *
-   * Only the four providers whose clients cut on their own timers read them;
-   * every other descriptor ignores them. Each converts to milliseconds with
-   * `segmentPauseMs`, and absent means that function's 1.5 s default.
+   * No descriptor left reads them: the four whose clients cut on their own
+   * timers went with their providers (Stage 2 deletion, ruling 2), and Local
+   * Native's client does not. The new providers take the pair from
+   * `SharedSettings.pauses`.
    */
   sourcePause?: number;
   translationPause?: number;
@@ -117,12 +84,12 @@ export interface ParticipantNotice {
 }
 
 export interface ParticipantSessionResult {
-  /** null ⇒ this provider cannot run a participant leg right now; MainPanel
-   *  maps null to the participant-skip path (splitParticipantFailure =
-   *  'no-participant-config'). */
+  /** null ⇒ this provider cannot run a participant leg right now; the old
+   *  session start skipped the participant leg on null. That start is gone
+   *  until #578 ports Local Native (Stage 2 deletion, ruling 1). */
   config: SessionConfig | null;
-  /** User-facing participant.error/.warning/.info events. Emitting them is
-   *  MainPanel's job (side effects stay in the component). */
+  /** User-facing participant.error/.warning/.info events, for the caller to
+   *  emit (side effects stay out of the descriptor). */
   notices: ParticipantNotice[];
 }
 
@@ -152,20 +119,22 @@ export interface PreparePorts {
   /** Re-runs provider validation via the STORE action (validateApiKey) and
    *  reports the outcome. Exists because the revalidation authority IS
    *  settingsStore.validateApiKey — a store action with slice-writing side
-   *  effects (isApiKeyValid drives the Start gate and the subtitle window's
-   *  blocked state) that a descriptor must not import: settingsStore imports
-   *  every descriptor, and the reverse edge is a cycle. MainPanel binds it. */
+   *  effects (isApiKeyValid, validationMessage) that a descriptor must not
+   *  import: settingsStore imports Local Native's descriptor, and the reverse
+   *  edge is a cycle. Local Native's hook calls it; nothing binds it since
+   *  MainPanel's session start went, until #578 ports Local Native (Stage 2
+   *  deletion, ruling 1). */
   revalidate: () => Promise<{ valid: boolean; message?: string }>;
   /** The session shape this Start is about to create. Provider-agnostic
-   *  facts the component owns; hooks gate on them instead of re-deriving
-   *  (the kizuna-soniox hook prepares a voice only when the speaker channel
-   *  will actually speak). */
+   *  facts the component owns, for a hook to gate on instead of re-deriving.
+   *  Local Native's hook reads none; the Kizuna Soniox hook that did went
+   *  with its provider (Stage 2 deletion, ruling 2). */
   sessionShape: { speakerWillStart: boolean; participantWillStart: boolean; textOnly: boolean };
   /** null clears the phase (a hook's finally). */
   onPhase: (phase: InitPhase | null) => void;
-  /** Start cancellation. No caller aborts today — MainPanel supplies a live
-   *  controller per Start and S6's abort path is the intended aborter; a hook
-   *  must still honor it (result discarded silently once fired). */
+  /** Start cancellation. Nothing supplies one since the old session start
+   *  went (Stage 2 deletion, ruling 1); a hook must still honor it (result
+   *  discarded silently once fired). */
   signal: AbortSignal;
 }
 
@@ -175,76 +144,6 @@ export type InitPhase =
   | { phase: 'loading-models'; completed: number; total: number }
   | { phase: 'loading-native-asr' }
   | { phase: 'preparing-voice' };
-
-/** Provider-neutral view of a metered session budget. The soniox descriptor
- *  adapts its SonioxBudgetSnapshot behind this; nothing provider-shaped
- *  crosses the seam. */
-export interface BudgetSnapshot {
-  remainingMs: number;
-  totalMs: number;
-}
-
-/**
- * Session-scoped resources a provider acquires before any client exists and
- * releases after every client is down. MainPanel holds exactly one,
- * provider-agnostically, in sessionResourcesRef.
- */
-export interface SessionResources {
-  /** Per-leg additions to ClientOptions (today: the sonioxManaged bundle).
-   *  Empty object when this leg gets nothing. A non-empty result means the
-   *  acquire already produced this leg's credentials, so createAIClient
-   *  skips extractCredentials for it. */
-  legClientOptions(role: 'speaker' | 'participant'): Partial<ClientOptions>;
-  /** Present iff the session runs on a metered budget. Drives the countdown
-   *  generically — a data condition, not a provider condition. Returns null
-   *  while the budget is not yet known. Implementations must not rely on `this`:
-   *  callers may extract the function and call it bare. */
-  budget?: () => BudgetSnapshot | null;
-  /** Idempotent. 'aborted' = Start did not reach an active session after
-   *  acquire — either it failed (the no-channel guard) or it was cancelled
-   *  (the post-acquire check, or the pre-activation check that catches a
-   *  cancel racing client construction); 'disconnect' = normal teardown,
-   *  including the init-failure unwind that routes through
-   *  disconnectConversation. The no-channel guard, the pre-activation bail,
-   *  and normal teardown all call this from afterBothLegs, strictly after
-   *  both legs are down. The post-acquire check is the one exception: it
-   *  calls release() directly, deliberately not routed through
-   *  teardownSessionLegs, because acquire has just returned and no leg has
-   *  been created yet — there is nothing for that teardown to wait on.
-   *  Never called for a failed acquire (see acquireSessionResources). */
-  release(reason: 'disconnect' | 'aborted'): void;
-}
-
-export interface AcquireSessionResourcesContext {
-  getAuthToken: () => Promise<string | null>;
-  /** The active provider slice's Soniox region, resolved by the caller so the
-   *  descriptor never reaches into the store. Ignored by every provider that
-   *  has no regions. */
-  region?: string;
-  /** The session's channel matrix, resolved by MainPanel. `textOnly` is the
-   *  EFFECTIVE session text-only-ness — `speakerWillStart ? <store snapshot>
-   *  : true` — resolved at the call site; the rule and its rationale live at
-   *  the MainPanel computation, the descriptor consumes the value. `splitBoth`
-   *  feeds the resolver's both-split decision; `sharedBoth` is carried for
-   *  call-shape symmetry and deliberately NOT read — the soniox resolver
-   *  derives roles from the acquire body instead (resolveManagedSonioxWiring
-   *  documents why). */
-  wiring: {
-    speakerWillStart: boolean;
-    participantWillStart: boolean;
-    sharedBoth: boolean;
-    splitBoth: boolean;
-    textOnly: boolean;
-  };
-  /** Session-lifecycle events for the realtime log. Closed vocabulary — the
-   *  managed lease emits 'session.retry' (409 on acquire) and
-   *  'session.started_refused' (a refused session-started report) and
- *  'session.notify_failed' (a lease notification that never reached the
- *  backend). MainPanel
-   *  forwards these to addRealtimeEvent; the log renders unknown types
-   *  generically. */
-  onEvent: (type: 'session.retry' | 'session.started_refused' | 'session.notify_failed', data: unknown) => void;
-}
 
 /**
  * The deep module for one provider. Everything the app needs to know about a
@@ -259,10 +158,10 @@ export interface ProviderDescriptor {
   /** i18n namespace under `providers.*`; defaults to getConfig().id. */
   readonly i18nKey?: string;
   /** True when the CLIENT owns audio capture over WebRTC transport
-   *  (MediaStreamTrack) and MainPanel must not start the native recorder.
-   *  NOT "can run over webrtc": PalabraAI always runs webrtc transport yet
-   *  declares false, because its capture path is appendInputAudio. See
-   *  capabilities.forcedTransport for transport selection. */
+   *  (MediaStreamTrack), so the session start must not start the native
+   *  recorder. Local Native, the one descriptor left, declares false (Stage 2
+   *  deletion, ruling 1). See capabilities.forcedTransport for transport
+   *  selection. */
   readonly supportsWebRTC: boolean;
 
   /** Slice keys a user must fill for extractCredentials to succeed (spec §1.8).
@@ -293,11 +192,10 @@ export interface ProviderDescriptor {
    * Session config for the participant (reverse-direction) channel.
    *
    * Base: buildSessionConfig(slice, swappedInstructions) + the generic
-   * participant overrides — textOnly is forced true (the participant leg
-   * never speaks), turn detection is overridden to OpenAI-shaped semantic
-   * VAD (providers that don't read the field ignore it, exactly as before
-   * the extraction). Providers whose direction lives in config fields
-   * override to also reverse those fields.
+   * participant override — textOnly is forced true (the participant leg
+   * never speaks). The OpenAI-shaped semantic-VAD override went with the
+   * last client that read it (Stage 2 deletion, choice 5). Providers whose
+   * direction lives in config fields override to also reverse those fields.
    */
   buildParticipantSessionConfig(
     slice: unknown,
@@ -323,14 +221,9 @@ export interface ProviderDescriptor {
    * indifferent to an `auto` source, because nothing has to be swapped.
    * Base: false — most providers carry direction in the system instruction.
    *
-   * The two here are not:
-   * - **Soniox** reverses `sourceLanguage`/`targetLanguage` directly.
-   * - **Gemini Live Translate** reverses `translationConfig.targetLanguageCode`,
-   *   which overrules the instruction, so the instruction swap cannot stand in
-   *   for it. Only the translate models — the dialogue Live models carry
-   *   direction in the instruction like everyone else.
-   *
-   * For both, an `auto` source would reverse into the literal `auto` as the
+   * No descriptor left overrides it (Stage 2 deletion, ruling 2). One that
+   * reversed `sourceLanguage`/`targetLanguage` directly, as Soniox's did,
+   * would reverse an `auto` source into the literal `auto` as the
    * participant's translate target, which is not a language. Callers require a
    * concrete source language whenever a participant channel is in scope; see
    * `computeStartGate`'s `autoSourceParticipantBlocked`.
@@ -338,30 +231,15 @@ export interface ProviderDescriptor {
   reversesDirectionViaSourceLanguage(model: string | null | undefined): boolean;
 
   /**
-   * Optional async pre-start hook, awaited by MainPanel FIRST in the connect
-   * sequence (before the no-channel guard, any audio init, any client).
-   * ok:false blocks Start with the display-ready message; a REJECTED promise
-   * is treated as ok:false with a generic message (MainPanel catches and
-   * logs); once ports.signal fires the result is discarded silently.
+   * Optional async pre-start hook, for the session start to await FIRST in
+   * the connect sequence (before the no-channel guard, any audio init, any
+   * client). ok:false blocks Start with the display-ready message; a REJECTED
+   * promise counts as ok:false with a generic message; once ports.signal
+   * fires the result is discarded silently. Nothing awaits it since the old
+   * session start went, until #578 ports Local Native (Stage 2 deletion,
+   * ruling 1).
    */
   prepareToStart?(slice: unknown, ports: PreparePorts): Promise<PrepareOutcome>;
-
-  /**
-   * Acquire session-scoped resources (a lease, metered credentials) before
-   * any client is constructed. Undefined on providers whose clients carry
-   * their own key — MainPanel treats undefined as null resources.
-   *
-   * Deliberately separate from createClient: acquiring is an awaited network
-   * round trip, createClient is synchronous and per-leg, and the resources
-   * outlive any one client.
-   *
-   * Error path (normative): either return resources or throw AFTER cleaning
-   * up your own partial state (ManagedSonioxSession.end() is idempotent and
-   * no-ops without a lease, so a wrapper's catch may always call it).
-   * MainPanel catches the throw, unwinds Start through the existing abort
-   * path, and NEVER calls release() for a failed acquire.
-   */
-  acquireSessionResources?(ctx: AcquireSessionResourcesContext): Promise<SessionResources | null>;
 }
 
 /** Shared defaults. Subclasses override only what differs from the common case
@@ -395,13 +273,6 @@ export abstract class BaseProviderDescriptor implements ProviderDescriptor {
       ...this.buildSessionConfig(slice, swappedInstructions),
       keepReplayAudio: shell.keepReplayAudio,
       textOnly: true,
-      // Override turn detection to use semantic VAD for participant audio (OpenAI-compatible)
-      turnDetection: {
-        type: 'semantic_vad' as const,
-        createResponse: true,
-        interruptResponse: false,
-        eagerness: 'high',
-      },
     } as SessionConfig;
     return { config, notices: [] };
   }

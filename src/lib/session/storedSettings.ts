@@ -18,9 +18,10 @@ export function providerIdFromStored(stored: unknown): string | null {
 
 /**
  * What `settings.common.provider` holds for a provider: the old enum's
- * spelling where one exists — the value every install already has, and the
- * one the old settings store (still loaded until Stage 2 retires it) reads as
- * the provider it is instead of falling back to OpenAI.
+ * spelling where one exists — the value every install already has. The old
+ * settings store, kept for Local Native until kizuna-ai-lab/sokuji#578,
+ * reads a value its registry does not hold as its inert default (Stage 2
+ * deletion, choice 4).
  */
 export function storedProviderValue(id: string): string {
   for (const [legacy, current] of Object.entries(LEGACY_PROVIDER_IDS)) if (current === id) return legacy;
@@ -34,10 +35,16 @@ export interface StoredSelection {
   fromStorage: boolean;
 }
 
-/** The provider a load selects: the stored one when this build offers it, else the first offered (LocalInference: the registry puts it first). */
-export function selectionFromStored(stored: unknown, offered: readonly string[]): StoredSelection | null {
+/** Stored ids of managed providers the new session does not port — the pre-twin `'kizunaai'` and the relay twins (spec: "Migration") — which a load maps to the default managed provider (Stage 2 Kizuna Soniox, choice 13). */
+export const MANAGED_LEGACY_IDS: readonly string[] = ['kizunaai', 'kizunaai_openai_translate', 'kizunaai_volcengine_ast2'];
+
+/** The provider a load selects: the stored one when this build offers it; a managed id it does not port, the default managed provider when one is offered; else the first offered. Never written back. */
+export function selectionFromStored(stored: unknown, offered: readonly string[], managedDefault: string | null = null): StoredSelection | null {
   const id = providerIdFromStored(stored);
   if (id !== null && offered.includes(id)) return { id, fromStorage: true };
+  if (id !== null && managedDefault !== null && MANAGED_LEGACY_IDS.includes(id) && offered.includes(managedDefault)) {
+    return { id: managedDefault, fromStorage: false };
+  }
   return offered.length > 0 ? { id: offered[0], fromStorage: false } : null;
 }
 

@@ -2,11 +2,14 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, fireEvent, act } from '@testing-library/react';
 import LogsPanel from './LogsPanel';
 import useLogStore, { MAX_EVENTS_PER_GROUP } from '../../stores/logStore';
+import { useProviderStore } from '../../stores/providerStore';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, fallback?: string) => fallback ?? key,
   }),
+  // The provider store's imports initialise i18n.
+  initReactI18next: { type: '3rdParty', init: () => {} },
 }));
 
 // jsdom has no ResizeObserver; LogsPanel observes its scroll container to size
@@ -98,6 +101,43 @@ describe('LogsPanel', () => {
     });
   });
 
+  describe('the open tab', () => {
+    const activeTab = (container: HTMLElement) => container.querySelector('[role="tabpanel"]')?.id;
+    afterEach(() => {
+      useProviderStore.setState({ legs: ['speaker'] });
+    });
+
+    it('opens on Other when only the participant runs, and on Me otherwise', () => {
+      useProviderStore.setState({ legs: ['participant'] });
+      const participantOnly = render(<LogsPanel toggleLogs={() => {}} />);
+      expect(activeTab(participantOnly.container)).toBe('tabpanel-participant');
+      participantOnly.unmount();
+
+      useProviderStore.setState({ legs: ['speaker', 'participant'] });
+      const both = render(<LogsPanel toggleLogs={() => {}} />);
+      expect(activeTab(both.container)).toBe('tabpanel-speaker');
+    });
+
+    it("follows a switch to one leg while open; a switch to both keeps the user's tab", () => {
+      const { container, getByText } = render(<LogsPanel toggleLogs={() => {}} />);
+      expect(activeTab(container)).toBe('tabpanel-speaker');
+
+      act(() => { useProviderStore.setState({ legs: ['participant'] }); });
+      expect(activeTab(container)).toBe('tabpanel-participant');
+
+      act(() => { useProviderStore.setState({ legs: ['speaker', 'participant'] }); });
+      expect(activeTab(container)).toBe('tabpanel-participant');
+
+      // The user's pick stands while both run, even when the legs are set again.
+      fireEvent.click(getByText('Me'));
+      act(() => { useProviderStore.setState({ legs: ['speaker', 'participant'] }); });
+      expect(activeTab(container)).toBe('tabpanel-speaker');
+
+      act(() => { useProviderStore.setState({ legs: ['speaker'] }); });
+      expect(activeTab(container)).toBe('tabpanel-speaker');
+    });
+  });
+
   describe('severity rendering', () => {
     it('marks a failure event row so the error style applies', () => {
       write(() => {
@@ -120,6 +160,29 @@ describe('LogsPanel', () => {
       const { container } = render(<LogsPanel toggleLogs={() => {}} />);
       expect(container.querySelector('.event-entry.error')).toBeNull();
       expect(container.querySelector('.event-entry.warning')).toBeNull();
+    });
+  });
+
+  describe('the ends of a session (Stage 2 session end)', () => {
+    const rows = (container: HTMLElement) => Array.from(container.querySelectorAll('.event-entry, .session-separator'))
+      .map((el) => (el.classList.contains('session-separator') ? '—' : el.querySelector('.event-type')?.textContent));
+
+    it("draws the session-ended separator after the runner's session.stopped, each leg's last line, and not after a server's session.closed before it (choice 7)", () => {
+      write(() => {
+        useLogStore.getState().addRealtimeEvent({ type: 'session.closed', data: {} } as never, 'server', 'session.closed', 'speaker');
+        useLogStore.getState().addRealtimeEvent({ type: 'session.stopped', data: { reason: 'leg-closed' } } as never, 'client', 'session.stopped', 'speaker');
+        useLogStore.getState().addRealtimeEvent({ type: 'session.opened', data: {} } as never, 'client', 'session.opened', 'speaker');
+      });
+      const { container } = render(<LogsPanel toggleLogs={() => {}} />);
+      expect(rows(container)).toEqual(['session.closed', 'session.stopped', '—', 'session.opened']);
+    });
+
+    it("marks a failed REST delete as a warning, by its name's suffix (ruling 2 (ii); choice 5)", () => {
+      write(() => {
+        useLogStore.getState().addRealtimeEvent({ type: 'session.delete_warning', data: { status: 404 } } as never, 'server', 'session.delete_warning', 'speaker');
+      });
+      const { container } = render(<LogsPanel toggleLogs={() => {}} />);
+      expect(container.querySelector('.event-entry.warning')).not.toBeNull();
     });
   });
 

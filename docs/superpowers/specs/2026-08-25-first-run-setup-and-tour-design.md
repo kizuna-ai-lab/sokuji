@@ -29,7 +29,7 @@ on a version bump. Existing users are migrated silently and never see the wizard
 
 **In scope**
 - The setup wizard, its persistence (`settings.setup`), and its Help-section re-entry
-- Scenario presets (mode, text-only, display modes) and scenario-aware provider filtering
+- Scenario presets (mode, text-only, ~~display modes~~ — **Amended by the Stage 2 session-end and wizard plan**, ruling 1: the presets set no display mode) and scenario-aware provider filtering
 - The tour engine, the chapter-1 step catalogue, `data-tour` anchors, `settings.tour`
 - Migration of existing users; deletion of `UserTypeSelection`, `OnboardingContext`,
   `Onboarding/`, `react-joyride`, and their locale keys
@@ -102,7 +102,7 @@ You / Others / Both channel scope. The settings a scenario would set already exi
 |---|---|---|
 | `audio.mode` | `audioStore.ts:101`, `setMode` `:273` | `'speaker' \| 'participant' \| 'both'` |
 | `common.textOnly` | `settingsStore.ts:109` | A *request*; see below |
-| `common.speakerDisplayMode`, `participantDisplayMode` | `:111-112` | `'source' \| 'translation' \| 'both'` |
+| `common.speakerDisplayMode`, `participantDisplayMode` | `:111-112` | `'source' \| 'translation' \| 'both'` — no longer set by the wizard (**Amended by the Stage 2 session-end and wizard plan**, ruling 1) |
 
 **The participant leg never speaks.** Every descriptor's `buildParticipantSessionConfig`
 forces `textOnly: true` and `descriptorRegistry.test.ts` pins it as a registry-wide
@@ -176,17 +176,20 @@ the first; the step indicator at the top shows position.
 
 #### Scenarios
 
-| Id | Card title (en) | `audio.mode` | `textOnly` | Display modes (speaker / participant) |
+| Id | Card title (en) | `audio.mode` | `textOnly` | ~~Display modes (speaker / participant)~~ |
 |---|---|---|---|---|
-| `understand-others` | Understand what others say — online meetings, classes, videos, streams | `participant` | (forced by mode) | — / `translation` |
-| `be-heard` | Be understood in a meeting — they hear my translated voice | `speaker` | `false` | `both` / — |
-| `subtitle-myself` | Subtitle my own speech — talks, streams, presentations; no audio | `speaker` | `true` | `translation` / — |
-| `two-way-voice` | Two-way online conversation — they hear my voice, I read their subtitles | `both` | `false` | `both` / `both` |
-| `two-way-text` | Two-way online conversation, subtitles only — bilingual captions, minutes | `both` | `true` | `both` / `both` |
+| `understand-others` | Understand what others say — online meetings, classes, videos, streams | `participant` | (forced by mode) | ~~— / `translation`~~ |
+| `be-heard` | Be understood in a meeting — they hear my translated voice | `speaker` | `false` | ~~`both` / —~~ |
+| `subtitle-myself` | Subtitle my own speech — talks, streams, presentations; no audio | `speaker` | `true` | ~~`translation` / —~~ |
+| `two-way-voice` | Two-way online conversation — they hear my voice, I read their subtitles | `both` | `false` | ~~`both` / `both`~~ |
+| `two-way-text` | Two-way online conversation, subtitles only — bilingual captions, minutes | `both` | `true` | ~~`both` / `both`~~ |
 
-`understand-others` writes `textOnly: true` for hygiene (it is forced anyway); only the
-display mode on its own leg is set. A display mode marked "—" is left at its current
-value.
+`understand-others` writes `textOnly: true` for hygiene (it is forced anyway).
+**Amended by the Stage 2 session-end and wizard plan** (ruling 1, the owner's,
+2026-09-30): the wizard sets no display mode — the presets carry none, and a
+completion, a re-run included, leaves both legs' modes at their stored values
+(default `both`), so a mode the user chose survives. No migration: a stored mode
+stays as it is.
 
 #### Provider paths
 
@@ -236,7 +239,7 @@ nothing (offline) **or** by "Skip for now", which sets `credentialsPending` and 
 
 1. `audioStore.setMode(preset.mode)`
 2. `settingsStore.setTextOnly(preset.textOnly)`
-3. `setSpeakerDisplayMode` / `setParticipantDisplayMode` for the legs the preset names
+3. ~~`setSpeakerDisplayMode` / `setParticipantDisplayMode` for the legs the preset names~~ — removed: the wizard writes no display mode (**Amended by the Stage 2 session-end and wizard plan**, ruling 1)
 4. `settingsStore.updateProviderSlice(descriptor.settingsSliceKey, { sourceLanguage, targetLanguage, ...credentials })` (`settingsStore.ts:326`) — credentials only on `own-key`. The slice is written **before** the provider so that the validation effect (next paragraph) fires once, with the final values.
 5. `settingsStore.setProvider(draft.provider)`
 6. `settingsService.setSetting('settings.setup', { version: SETUP_VERSION, scenario, providerPath, provider, completedAt })`
