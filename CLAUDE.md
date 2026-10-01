@@ -638,7 +638,7 @@ corrected on 2026-09-05.
 ## UI Components
 
 ### Simple Mode Components
-- **SimpleSettings** (`src/components/Settings/SimpleSettings/SimpleSettings.tsx`): the simple layout's settings — the session settings (`SessionSettingsGeneral` in `ProviderArea.tsx`: languages, speech, output switches, sentence segmentation, the provider picker), the microphone and speaker, system audio, help
+- **SimpleSettings** (`src/components/Settings/SimpleSettings/SimpleSettings.tsx`): the simple layout's settings — the session settings (`SessionSettingsGeneral` in `ProviderArea.tsx`, shared with Advanced's General tab: languages, the provider picker, output switches, speech; sentence segmentation is hidden and held at Off while `SENTENCE_SEGMENTATION_SHOWN` in `settingsStore.ts` is false), the microphone and speaker, system audio (its participant-speech switch hidden and held off while `PARTICIPANT_SPEECH_SHOWN` in `routingStore.ts` is false), help
 - **MainPanel**: Unified conversation panel with `uiMode`-driven layout (basic: bubble messages + status footer, advanced: bubble messages + waveform footer with controls)
 - **Tooltip**: @floating-ui/react powered tooltips with hover/click/focus triggers
 - **ConnectionStatus**: Real-time connection state indicator
