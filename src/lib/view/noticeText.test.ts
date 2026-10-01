@@ -7,6 +7,7 @@ import { RUN_NOTICE_CODES } from '../session/codes';
 import { NO_MICROPHONE } from '../session/shape';
 import { languageLabel } from '../language/label';
 import { NOTICE_ALIASES, NOTICE_WORDS, noticeText } from './noticeText';
+import { settingsTargetForCode } from './noticeTargets';
 
 /** A stand-in for i18next: fills `{{name}}` from the options. */
 const t = ((key: string, options: Record<string, unknown>) =>
@@ -108,6 +109,20 @@ describe('noticeText', () => {
     expect(noticeText(t, { code: 'region_unsupported', message: 'x' })).toMatch(/^settings\.regionNotSupported\|/);
     expect(at(enCatalog, NOTICE_ALIASES.no_translate_model)).toBe('API key works, but gpt-realtime-translate is not accessible with this key.');
     expect(at(enCatalog, NOTICE_ALIASES.region_unsupported)).toBe('Service not available in your region. Please check your network environment or try a different provider.');
+  });
+
+  it("words Local Native's readiness codes by the sentences every locale has (#578 ruling 5)", () => {
+    expect(NOTICE_ALIASES).toMatchObject({
+      native_engine_update_required: 'settings.localNativeEngineUpdateRequired',
+      native_engine_required: 'settings.localNativeEngineRequired',
+      native_unavailable: 'settings.localNativeUnavailable',
+      native_starting: 'settings.localNativeStarting',
+      native_asr_missing: 'settings.localNativeAsrIncompatible',
+      native_translation_missing: 'settings.localNativeTranslationIncompatible',
+    });
+    for (const code of ['native_engine_update_required', 'native_engine_required', 'native_unavailable', 'native_starting', 'native_asr_missing', 'native_translation_missing']) {
+      expect(settingsTargetForCode(code), code).toBe('provider');
+    }
   });
 
   it("puts the local engines' notices into words", () => {

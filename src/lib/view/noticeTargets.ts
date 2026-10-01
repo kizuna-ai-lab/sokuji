@@ -27,6 +27,13 @@ export const NOTICE_TARGETS: Readonly<Record<string, string>> = {
   // OpenAI Translate's check codes (Stage 2 OpenAI Translate): the key, and the choice of another provider, are the provider section's.
   no_translate_model: 'provider',
   region_unsupported: 'provider',
+  // Local Native's readiness codes (#578 ruling 5): the engine card and the model chips are the provider section's.
+  native_engine_update_required: 'provider',
+  native_engine_required: 'provider',
+  native_unavailable: 'provider',
+  native_starting: 'provider',
+  native_asr_missing: 'provider',
+  native_translation_missing: 'provider',
 };
 
 export function settingsTargetForCode(code: string | undefined): string | null {
