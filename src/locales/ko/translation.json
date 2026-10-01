@@ -475,7 +475,11 @@
       "description": "Doubao 동시 통역",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "App ID + Access Token"
+      "authModeApp": "App ID + Access Token",
+      "voiceClone": "화자 목소리 복제",
+      "voiceFemale": "Vivi (여성)",
+      "voiceMale": "Jingqiang Kanye (남성)",
+      "voiceHint": "번역을 음성으로 출력할 때만 사용됩니다. Vivi와 Jingqiang Kanye는 중국어 또는 영어만 말하므로, 둘 중 하나를 선택하면 대상 언어가 이 두 언어로 제한됩니다."
     },
     "local_inference": {
       "name": "무료",

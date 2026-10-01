@@ -475,7 +475,11 @@
       "description": "Doubao simultaanvertaling",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "App ID + Access Token"
+      "authModeApp": "App ID + Access Token",
+      "voiceClone": "Stem van de spreker klonen",
+      "voiceFemale": "Vivi (vrouw)",
+      "voiceMale": "Jingqiang Kanye (man)",
+      "voiceHint": "Wordt alleen gebruikt als de vertaling wordt uitgesproken. Vivi en Jingqiang Kanye spreken alleen Chinees of Engels, dus met een van beide is de doeltaal beperkt tot die twee."
     },
     "local_inference": {
       "name": "Gratis",

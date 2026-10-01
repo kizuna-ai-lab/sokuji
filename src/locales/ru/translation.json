@@ -475,7 +475,11 @@
       "description": "Синхронный перевод Doubao",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "App ID + Access Token"
+      "authModeApp": "App ID + Access Token",
+      "voiceClone": "Клонировать голос говорящего",
+      "voiceFemale": "Vivi (женский)",
+      "voiceMale": "Jingqiang Kanye (мужской)",
+      "voiceHint": "Используется, только когда перевод озвучивается. Vivi и Jingqiang Kanye говорят только по-китайски или по-английски, поэтому с любым из них язык перевода ограничен этими двумя."
     },
     "local_inference": {
       "name": "Бесплатный",

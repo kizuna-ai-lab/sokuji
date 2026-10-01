@@ -475,7 +475,11 @@
       "description": "Doubao sabay-sabay na pagsasalin",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "App ID + Access Token"
+      "authModeApp": "App ID + Access Token",
+      "voiceClone": "I-clone ang boses ng nagsasalita",
+      "voiceFemale": "Vivi (babae)",
+      "voiceMale": "Jingqiang Kanye (lalaki)",
+      "voiceHint": "Ginagamit lang kapag binibigkas ang salin. Chinese o English lang ang sinasalita nina Vivi at Jingqiang Kanye, kaya sa alinman sa kanila, limitado sa dalawang iyon ang target na wika."
     },
     "local_inference": {
       "name": "Libre",

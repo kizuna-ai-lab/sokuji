@@ -1,8 +1,9 @@
 import { Info } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { TextField } from '../../components/providers/fields/TextField';
+import { VoiceField } from '../../components/providers/fields/VoiceField';
 import type { SettingsProps } from '../../lib/provider/types';
-import type { Ast2Settings as S } from './settings';
+import { AST2_VOICES, type Ast2Settings as S, type Ast2Voice } from './settings';
 
 /** The console's library pages (`ProviderSpecificSettings.tsx:1606-1694`). */
 const CONSOLE = 'https://console.volcengine.com/speech';
@@ -12,12 +13,25 @@ const CONSOLE = 'https://console.volcengine.com/speech';
  * Vocabulary and info blocks (`ProviderSpecificSettings.tsx:1603-1716`), the
  * library ids in the shared `TextField`. The pair is the generic section's,
  * the speech mode the Speech section's, the credentials and their mode the
- * credential form's; there are no turn-detection knobs.
+ * credential form's; there are no turn-detection knobs. The voice (#577)
+ * shows whether or not the run speaks — the view is not told — so its hint
+ * says it only applies to speech.
  */
 export function Ast2SettingsView({ settings, update, disabled = false }: SettingsProps<S>) {
   const { t } = useTranslation();
+  const voices = [
+    { value: 'clone', name: t('providers.volcengine_ast2.voiceClone', "Clone the speaker's voice") },
+    ...AST2_VOICES.map((v) => ({ value: v.id, name: t(v.labelKey) })),
+  ];
   return (
     <>
+      <VoiceField
+        value={settings.voice}
+        options={voices}
+        onChange={(voice) => update({ voice: voice as Ast2Voice })}
+        disabled={disabled}
+        hint={t('providers.volcengine_ast2.voiceHint', 'Used only when the translation is spoken. Vivi and Jingqiang Kanye speak only Chinese or English, so with either of them the target language is limited to those two.')}
+      />
       <div className="settings-section">
         <h2>{t('settings.volcengineAST2CustomVocabulary', 'Custom Vocabulary')}</h2>
         <TextField

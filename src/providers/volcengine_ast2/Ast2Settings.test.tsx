@@ -48,9 +48,24 @@ describe("Doubao AST 2.0's settings view", () => {
     expect(screen.getByText('settings.volcengineAST2InfoText').className).toBe('volcengine-info-notice');
   });
 
-  it('locks the three fields while disabled', () => {
+  it('offers cloning first, then the two fixed voices, and writes the choice (#577)', () => {
+    const update = vi.fn();
+    render(<Ast2SettingsView settings={AST2_DEFAULTS} update={update} />);
+    const select = screen.getByLabelText('settings.voice') as HTMLSelectElement;
+    expect(select.value).toBe('clone');
+    expect(Array.from(select.options).map((o) => [o.value, o.textContent])).toEqual([
+      ['clone', 'providers.volcengine_ast2.voiceClone'],
+      ['zh_female_vv_uranus_bigtts', 'providers.volcengine_ast2.voiceFemale'],
+      ['zh_male_jingqiangkanye_emo_mars_bigtts', 'providers.volcengine_ast2.voiceMale'],
+    ]);
+    fireEvent.change(select, { target: { value: 'zh_male_jingqiangkanye_emo_mars_bigtts' } });
+    expect(update).toHaveBeenCalledWith({ voice: 'zh_male_jingqiangkanye_emo_mars_bigtts' });
+    expect(screen.getByText('providers.volcengine_ast2.voiceHint')).toBeInTheDocument();
+  });
+
+  it('locks the voice and the three fields while disabled', () => {
     render(<Ast2SettingsView settings={AST2_DEFAULTS} update={vi.fn()} disabled />);
-    for (const label of ['settings.volcengineAST2HotWordLibraryId', 'settings.volcengineAST2ReplacementLibraryId', 'settings.volcengineAST2GlossaryLibraryId']) {
+    for (const label of ['settings.voice', 'settings.volcengineAST2HotWordLibraryId', 'settings.volcengineAST2ReplacementLibraryId', 'settings.volcengineAST2GlossaryLibraryId']) {
       expect(screen.getByLabelText(label)).toBeDisabled();
     }
   });

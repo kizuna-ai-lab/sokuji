@@ -475,7 +475,11 @@
       "description": "豆包語音同聲傳譯",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "App ID + Access Token"
+      "authModeApp": "App ID + Access Token",
+      "voiceClone": "複製說話者的聲音",
+      "voiceFemale": "Vivi（女聲）",
+      "voiceMale": "京腔侃爺（男聲）",
+      "voiceHint": "僅在譯文以語音播放時生效。Vivi 和京腔侃爺只會說中文或英文，選擇其中之一時，目標語言僅限這兩種。"
     },
     "local_inference": {
       "name": "免費",

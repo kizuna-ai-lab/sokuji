@@ -475,7 +475,11 @@
       "description": "Doubao ஒரே நேர மொழிபெயர்ப்பு",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "App ID + Access Token"
+      "authModeApp": "App ID + Access Token",
+      "voiceClone": "பேசுபவரின் குரலை நகலெடு",
+      "voiceFemale": "Vivi (பெண்)",
+      "voiceMale": "Jingqiang Kanye (ஆண்)",
+      "voiceHint": "மொழிபெயர்ப்பு பேசப்படும்போது மட்டுமே பயன்படுத்தப்படும். Vivi மற்றும் Jingqiang Kanye சீனம் அல்லது ஆங்கிலம் மட்டுமே பேசும்; எனவே இவற்றில் எதைத் தேர்ந்தாலும் இலக்கு மொழி இந்த இரண்டுக்குள் மட்டுமே."
     },
     "local_inference": {
       "name": "இலவசம்",

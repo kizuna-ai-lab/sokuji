@@ -475,7 +475,11 @@
       "description": "תרגום סימולטני Doubao",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "App ID + Access Token"
+      "authModeApp": "App ID + Access Token",
+      "voiceClone": "שכפול קול הדובר",
+      "voiceFemale": "Vivi (נשי)",
+      "voiceMale": "Jingqiang Kanye (גברי)",
+      "voiceHint": "בשימוש רק כשהתרגום מושמע. Vivi ו-Jingqiang Kanye מדברים סינית או אנגלית בלבד, ולכן עם כל אחד מהם שפת היעד מוגבלת לשתיים אלה."
     },
     "local_inference": {
       "name": "חינמי",

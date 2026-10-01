@@ -475,7 +475,11 @@
       "description": "Doubao সিমালটেনিয়াস ট্রান্সলেশন",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "App ID + Access Token"
+      "authModeApp": "App ID + Access Token",
+      "voiceClone": "বক্তার কণ্ঠ ক্লোন করুন",
+      "voiceFemale": "Vivi (নারী)",
+      "voiceMale": "Jingqiang Kanye (পুরুষ)",
+      "voiceHint": "শুধু অনুবাদ উচ্চারিত হলে ব্যবহৃত হয়। Vivi ও Jingqiang Kanye কেবল চীনা বা ইংরেজিতে কথা বলে, তাই এদের যেকোনোটির সাথে লক্ষ্য ভাষা এই দুটিতেই সীমিত।"
     },
     "local_inference": {
       "name": "বিনামূল্যে",

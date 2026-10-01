@@ -475,7 +475,11 @@
       "description": "Doubao 同時通訳",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "アプリ ID + アクセストークン"
+      "authModeApp": "アプリ ID + アクセストークン",
+      "voiceClone": "話者の声を複製",
+      "voiceFemale": "Vivi（女性）",
+      "voiceMale": "京腔侃爷（男性）",
+      "voiceHint": "翻訳を音声で再生するときだけ使われます。Vivi と京腔侃爷は中国語か英語しか話せないため、どちらかを選ぶと翻訳先の言語はこの 2 つに限られます。"
     },
     "local_inference": {
       "name": "無料",

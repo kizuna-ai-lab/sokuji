@@ -7,10 +7,12 @@ export interface VoiceFieldProps {
   options: readonly { value: string; name: string }[];
   onChange(voice: string): void;
   disabled?: boolean;
+  /** A line under the select, in Soniox's `setting-description` markup: what the choice does beyond the voice. */
+  hint?: string;
 }
 
 /** A provider's prebuilt voice (F13): the old voice section. `#voice-settings-section` is Settings' `voice-settings` target (`Settings.tsx:51`). */
-export function VoiceField({ value, options, onChange, disabled = false }: VoiceFieldProps) {
+export function VoiceField({ value, options, onChange, disabled = false, hint }: VoiceFieldProps) {
   const { t } = useTranslation();
   return (
     <div className="settings-section voice-settings-section" id="voice-settings-section">
@@ -25,6 +27,11 @@ export function VoiceField({ value, options, onChange, disabled = false }: Voice
           {options.map((o) => <option key={o.value} value={o.value}>{o.name}</option>)}
         </select>
       </div>
+      {hint && (
+        <div className="setting-item">
+          <div className="setting-description voice-field-hint">{hint}</div>
+        </div>
+      )}
     </div>
   );
 }

@@ -475,7 +475,11 @@
       "description": "Doubao simultaneous interpretation",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "App ID + Access Token"
+      "authModeApp": "App ID + Access Token",
+      "voiceClone": "Clone the speaker's voice",
+      "voiceFemale": "Vivi (female)",
+      "voiceMale": "Jingqiang Kanye (male)",
+      "voiceHint": "Used only when the translation is spoken. Vivi and Jingqiang Kanye speak only Chinese or English, so with either of them the target language is limited to those two."
     },
     "local_inference": {
       "name": "Free",

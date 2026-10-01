@@ -475,7 +475,11 @@
       "description": "Doubao eşzamanlı çeviri",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "App ID + Access Token"
+      "authModeApp": "App ID + Access Token",
+      "voiceClone": "Konuşanın sesini klonla",
+      "voiceFemale": "Vivi (kadın)",
+      "voiceMale": "Jingqiang Kanye (erkek)",
+      "voiceHint": "Yalnızca çeviri seslendirildiğinde kullanılır. Vivi ve Jingqiang Kanye yalnızca Çince veya İngilizce konuşur; bu yüzden ikisinden biri seçildiğinde hedef dil bu ikisiyle sınırlıdır."
     },
     "local_inference": {
       "name": "Ücretsiz",

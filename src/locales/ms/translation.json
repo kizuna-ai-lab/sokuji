@@ -475,7 +475,11 @@
       "description": "Terjemahan serentak Doubao",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "APP ID + Access Token"
+      "authModeApp": "APP ID + Access Token",
+      "voiceClone": "Klon suara penutur",
+      "voiceFemale": "Vivi (wanita)",
+      "voiceMale": "Jingqiang Kanye (lelaki)",
+      "voiceHint": "Hanya digunakan apabila terjemahan dituturkan. Vivi dan Jingqiang Kanye hanya bertutur dalam bahasa Cina atau Inggeris, jadi dengan salah satunya bahasa sasaran terhad kepada dua bahasa itu."
     },
     "local_inference": {
       "name": "Percuma",

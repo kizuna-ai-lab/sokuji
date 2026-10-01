@@ -475,7 +475,11 @@
       "description": "Traduzione simultanea Doubao",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "App ID + Access Token"
+      "authModeApp": "App ID + Access Token",
+      "voiceClone": "Clona la voce di chi parla",
+      "voiceFemale": "Vivi (femminile)",
+      "voiceMale": "Jingqiang Kanye (maschile)",
+      "voiceHint": "Usata solo quando la traduzione viene pronunciata. Vivi e Jingqiang Kanye parlano solo cinese o inglese, quindi con l'una o l'altra la lingua di destinazione è limitata a queste due."
     },
     "local_inference": {
       "name": "Gratuito",
