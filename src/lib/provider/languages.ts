@@ -5,10 +5,11 @@
  * takes an optional language context (Stage 2 Volcengine AST2, choice 1):
  * under one, the offer for it; without, the provider's widest offer.
  */
+import { AUTO } from '../language/code';
 import type { LanguageContext, LanguageOption, LanguagePair, Provider } from './types';
 
-/** The source value that asks the provider to detect the language. Never a target. */
-export const AUTO = 'auto';
+/** The source value that asks the provider to detect the language. Never a target. Defined with the app code. */
+export { AUTO };
 
 /** Only the language functions are read, so a provider of any `K` and `C` fits. */
 type Languages<S> = Pick<Provider<S, never, never>, 'languages'>;

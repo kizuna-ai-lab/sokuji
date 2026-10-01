@@ -560,3 +560,32 @@ describe('byokVoiceSource.preview', () => {
     expect(src.cacheNamespace).toBe('soniox:eu');
   });
 });
+
+describe('preview request language is Soniox\'s code, not the app\'s', () => {
+  const ok = async (_a?: unknown) => ({ audio: new Float32Array(1), sampleRate: 24000 });
+
+  it('BYOK: a fil preview carries language tl', async () => {
+    const synthesize = vi.fn(ok);
+    const source = byokVoiceSource(fakeSonioxClient(), { synthesize: synthesize as any, apiKey: 'k' });
+    await source.preview!({ id: 'v1', language: 'fil', text: 'x', speed: 1.0 });
+    expect(synthesize.mock.calls[0][0]).toMatchObject({ language: 'tl' });
+  });
+
+  it('managed: a fil preview carries language tl', async () => {
+    const synthesize = vi.fn(ok);
+    const client = fakeClient({
+      sessionKey: vi.fn(async () => ({ ttsApiKey: 'tk', region: 'us' as const })),
+      previewDone: vi.fn(async () => {}),
+    });
+    const source = managedVoiceSource(client, ACCOUNT, { synthesize: synthesize as any });
+    await source.preview!({ id: 'v1', language: 'fil', text: 'x', speed: 1.0 });
+    expect(synthesize.mock.calls[0][0]).toMatchObject({ language: 'tl' });
+  });
+
+  it('a code outside Soniox\'s table is sent unchanged rather than throwing', async () => {
+    const synthesize = vi.fn(ok);
+    const source = byokVoiceSource(fakeSonioxClient(), { synthesize: synthesize as any, apiKey: 'k' });
+    await source.preview!({ id: 'v1', language: 'yue', text: 'x', speed: 1.0 });
+    expect(synthesize.mock.calls[0][0]).toMatchObject({ language: 'yue' });
+  });
+});

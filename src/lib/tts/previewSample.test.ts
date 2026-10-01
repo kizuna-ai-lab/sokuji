@@ -14,8 +14,8 @@ describe('previewSampleFor', () => {
 
   it('covers the 28 Soniox codes the app UI locales map onto', () => {
     expect(Object.keys(PREVIEW_SAMPLES).sort()).toEqual([
-      'ar', 'bn', 'de', 'en', 'es', 'fa', 'fi', 'fr', 'he', 'hi', 'id', 'it',
-      'ja', 'ko', 'ms', 'nl', 'pl', 'pt', 'ru', 'sv', 'ta', 'te', 'th', 'tl',
+      'ar', 'bn', 'de', 'en', 'es', 'fa', 'fi', 'fil', 'fr', 'he', 'hi', 'id', 'it',
+      'ja', 'ko', 'ms', 'nl', 'pl', 'pt', 'ru', 'sv', 'ta', 'te', 'th',
       'tr', 'uk', 'vi', 'zh',
     ]);
   });

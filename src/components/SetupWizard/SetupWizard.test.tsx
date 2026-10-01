@@ -85,6 +85,7 @@ vi.mock('../Tour/TourProvider', () => ({ useTour: () => ({ start: startTourSpy }
 
 import SetupWizard from './SetupWizard';
 import { LOCAL_INFERENCE_DEFAULTS, localInferenceLanguages } from '../../providers/localInference/settings';
+import { languageLabel } from '../../lib/language/label';
 import { matchLanguage } from './languageDefaults';
 import { useProviderStore } from '../../stores/providerStore';
 import { sonioxProvider } from '../../providers/soniox/provider';
@@ -95,7 +96,7 @@ beforeEach(() => {
   applied.length = 0; applyGate = null; applyError = null; signedIn = false; uiLanguage = 'en';
   setupRecord = null; authOverlayState = null;
   setAuthOverlay.mockClear(); trackSpy.mockClear(); startTourSpy.mockClear();
-  useProviderStore.setState({ entries: {}, readiness: {} });
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {} });
 });
 
 afterEach(() => {
@@ -206,10 +207,8 @@ describe('SetupWizard', () => {
     next();                                           // language pair
     const source = (screen.getByRole('combobox', { name: 'I speak' }) as HTMLSelectElement).value;
     const target = (screen.getByRole('combobox', { name: 'they hear' }) as HTMLSelectElement).value;
-    const sources = localInferenceLanguages.sources(LOCAL_INFERENCE_DEFAULTS);
-    const targets = localInferenceLanguages.targets(source, LOCAL_INFERENCE_DEFAULTS);
-    const sourceName = sources.find((o) => o.value === source)!.name;
-    const targetName = targets.find((o) => o.value === target)!.name;
+    const sourceName = languageLabel(source, 'en');
+    const targetName = languageLabel(target, 'en');
     // The reverse leg reads the pair the other way round: they speak what the
     // forward leg targets, I read what it sources. Asserting the names is what
     // catches the two being swapped.
@@ -361,11 +360,12 @@ describe('SetupWizard', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled());
     next();                                           // language pair
     // Soniox's source list is AUTO-first; the wizard names it through the
-    // catalogue key Settings uses, not the definition's raw "Auto".
-    expect(screen.getByRole('option', { name: 'common.autoDetect' })).toBeInTheDocument();
+    // catalogue key Settings uses (this suite's mock `t` answers the hook's
+    // fallback, "Auto Detect"), not the definition's raw "Auto".
+    expect(screen.getByRole('option', { name: 'Auto Detect' })).toBeInTheDocument();
     fireEvent.change(screen.getByRole('combobox', { name: 'I speak' }), { target: { value: 'auto' } });
     next();                                           // finish
-    expect(screen.getByText(/common\.autoDetect/)).toBeInTheDocument();
+    expect(screen.getByText(/Auto Detect/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
     await waitFor(() => expect(applied).toHaveLength(1));
     expect(applied[0]).toMatchObject({

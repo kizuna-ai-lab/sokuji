@@ -24,7 +24,7 @@ describe('HY-MT1.5-1.8B manifest entry', () => {
   it('declares all 36 languages from the ONNX repo README', () => {
     const expected = [
       'zh', 'en', 'fr', 'pt', 'es', 'ja', 'tr', 'ru', 'ar', 'ko',
-      'th', 'it', 'de', 'vi', 'ms', 'id', 'tl', 'hi', 'pl', 'cs',
+      'th', 'it', 'de', 'vi', 'ms', 'id', 'fil', 'hi', 'pl', 'cs',
       'nl', 'km', 'my', 'fa', 'gu', 'ur', 'te', 'mr', 'he', 'bn',
       'ta', 'uk', 'bo', 'kk', 'mn', 'ug',
     ];

@@ -38,7 +38,7 @@ afterEach(() => {
   stored.clear();
   getSetting.mockClear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, readiness: {}, selected: null, selectionLocked: false, legs: ['speaker'], speech: { textOnly: false, participantSpeech: false } });
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null, selectionLocked: false, legs: ['speaker'], speech: { textOnly: false, participantSpeech: false } });
 });
 
 const both = (pair: { source: string; target: string }, patch: Partial<RunShape> = {}) =>
@@ -81,14 +81,14 @@ describe('the Palabra AI definition', () => {
   });
 
   it("runs the participant in Palabra's own reverse — a region target by its source code — and speaks it when its switch is on (rulings 7, 9)", () => {
-    const participant = contextsFor(both({ source: 'ja', target: 'en-us' }, { participantSpeech: true })).participant!;
+    const participant = contextsFor(both({ source: 'ja', target: 'en-US' }, { participantSpeech: true })).participant!;
     expect(participant).toEqual({ direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' });
     expect(palabraProvider.build(participant, PALABRA_DEFAULTS, SHARED)).toMatchObject({ source: 'en', target: 'ja', speech: true });
-    expect(gate(both({ source: 'ja', target: 'en-us' }), 'electron')).toBeNull();
+    expect(gate(both({ source: 'ja', target: 'en-US' }), 'electron')).toBeNull();
     // The other way: English reverses to its documented US English.
-    expect(contextsFor(both({ source: 'en', target: 'ja' })).participant!.direction).toEqual({ source: 'ja', target: 'en-us' });
+    expect(contextsFor(both({ source: 'en', target: 'ja' })).participant!.direction).toEqual({ source: 'ja', target: 'en-US' });
     // A participant that does not speak asks for text alone.
-    expect((palabraProvider.build(contextsFor(both({ source: 'ja', target: 'en-us' })).participant!, PALABRA_DEFAULTS, SHARED) as PalabraConfig).speech).toBe(false);
+    expect((palabraProvider.build(contextsFor(both({ source: 'ja', target: 'en-US' })).participant!, PALABRA_DEFAULTS, SHARED) as PalabraConfig).speech).toBe(false);
   });
 
   it('refuses Both where the docs give no reverse: an Auto-detect source, or a target with no source code (D20, ruling 8)', () => {
@@ -120,8 +120,8 @@ describe('the Palabra AI definition', () => {
   it('loads an old profile as it was — the key, the pair, the settings, a threshold the API refuses sent as its floor — and writes nothing', async () => {
     stored.set('settings.palabraai.authMode', 'platform');
     stored.set('settings.palabraai.apiKey', 'plbr_oldProfileKey0123456789');
-    stored.set('settings.palabraai.sourceLanguage', 'ja');
-    stored.set('settings.palabraai.targetLanguage', 'en-us');
+    stored.set('settings.common.sourceLanguage', 'ja');
+    stored.set('settings.common.targetLanguage', 'en-US');
     stored.set('settings.palabraai.voiceId', 'default_high');
     stored.set('settings.palabraai.segmentConfirmationSilenceThreshold', 0.1);
     stored.set('settings.palabraai.subscriberCount', 2);
@@ -129,12 +129,12 @@ describe('the Palabra AI definition', () => {
     const entry = useProviderStore.getState().entries.palabraai;
     expect(entry.settings as PalabraSettings).toEqual({ ...PALABRA_DEFAULTS, voiceId: 'default_high', segmentConfirmationSilenceThreshold: 0.1 });
     expect(readCredentials(palabraProvider, entry.settings, entry.credentials, noAuth)).toEqual({ kind: 'apiKey', apiKey: 'plbr_oldProfileKey0123456789' });
-    expect(entry.pair).toEqual({ source: 'ja', target: 'en-us' });
+    expect(entry.pair).toEqual({ source: 'ja', target: 'en-US' });
     expect((palabraProvider.build({ direction: entry.pair, speech: true, turns: 'auto' }, entry.settings as PalabraSettings, SHARED) as PalabraConfig).silenceThreshold).toBe(0.3);
     expect(setSetting).not.toHaveBeenCalled();
   });
 
-  it('opens a profile from before the platform key in the platform mode, its app pair kept but not read, and a target it no longer offers at the first of its list: stated departures (ruling 2)', async () => {
+  it('opens a profile from before the platform key in the platform mode, its app pair kept but not read, and the old per-provider pair keys not read at all: the provider shows its initial pair (ruling 2)', async () => {
     stored.set('settings.palabraai.clientId', 'legacy-client-id');
     stored.set('settings.palabraai.clientSecret', 'legacy-client-secret');
     stored.set('settings.palabraai.sourceLanguage', 'ja');
@@ -146,7 +146,7 @@ describe('the Palabra AI definition', () => {
     // One click on the app pair's option, and the pair it kept reads again.
     const app = { ...(entry.settings as PalabraSettings), authMode: 'app' as const };
     expect(readCredentials(palabraProvider, app, entry.credentials, noAuth)).toEqual({ kind: 'app', clientId: 'legacy-client-id', clientSecret: 'legacy-client-secret' });
-    expect(entry.pair).toEqual({ source: 'ja', target: 'ar' });
+    expect(entry.pair).toEqual({ source: 'en', target: 'es' });
     expect(setSetting).not.toHaveBeenCalled();
   });
 

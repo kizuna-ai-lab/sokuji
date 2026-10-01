@@ -22,6 +22,16 @@ import { saveVoiceClip, clearVoiceClip } from '../../../lib/soniox/voiceClipStor
 import { SONIOX_TTS_MODEL } from '../../../lib/soniox/ttsCatalog';
 import { managedVoicePollDelayMs } from '../../../providers/soniox/managedVoicePolling';
 import { reportWarning, describeCause } from '../../../lib/diagnostics/report';
+import { sonioxWire } from '../../../providers/soniox/languages';
+
+/**
+ * The preview sample is looked up by app code; Soniox's TTS REST call takes
+ * Soniox's own (`fil` -> `tl`). `toWire` throws on a code outside the table,
+ * and a preview must not fail for that, so such a code is sent unchanged.
+ */
+function sonioxLanguage(code: string): string {
+  try { return sonioxWire.toWire(code); } catch { return code; }
+}
 
 export interface VoiceLibrarySource {
   /** Every voice this source can offer. The managed source returns zero or
@@ -87,7 +97,7 @@ export function byokVoiceSource(client: SonioxVoicesClient, ttsDeps: ByokTtsDeps
     waitUntilReady: (id) => client.waitUntilReady(id),
     canPreview: true,
     preview: ({ id, language, text, speed, signal }) =>
-      synthesize({ apiKey, region, voice: id, language, text, speed, signal }),
+      synthesize({ apiKey, region, voice: id, language: sonioxLanguage(language), text, speed, signal }),
     // A different region is a different Soniox project — its cloned-voice
     // UUIDs are not the same namespace, so cached audio must not cross.
     cacheNamespace: `soniox:${region}`,
@@ -320,7 +330,7 @@ export function managedVoiceSource(
           // an oversight to fall back from.
           return await synthesize({
             apiKey: key.ttsApiKey, region: key.region,
-            voice: id, language, text, speed, signal,
+            voice: id, language: sonioxLanguage(language), text, speed, signal,
           });
         } finally {
           // `finally`, not the success path. This call is the BILLING

@@ -24,7 +24,7 @@ beforeEach(async () => {
   store = await import('./providerStore');
 });
 
-const opt = (value: string): LanguageOption => ({ value, name: value, englishName: value });
+const opt = (value: string): LanguageOption => ({ value });
 const noAuth = { signedIn: false, getToken: async () => null };
 const signedIn = { signedIn: true, getToken: async () => 't' };
 const signedOut = noAuth;

@@ -95,9 +95,10 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      decides what a build and platform offer: a definition's `platforms`, a flagged one by
      `VITE_ENABLED_PROVIDERS` (every one in a development build, or by its tester switch),
      the managed one by `VITE_ENABLE_KIZUNA_AI` (on in every development build)
-   - `src/stores/providerStore.ts` holds each provider's settings, credentials and pair,
-     stored under `settings.<key>.*` (older keys through the definition's `legacyKeys` and
-     `migrate`); a load never writes
+   - `src/stores/providerStore.ts` holds each provider's settings and credentials, stored under
+     `settings.<key>.*` (older keys through the definition's `legacyKeys` and `migrate`), and
+     one language pair for every provider under `settings.common.sourceLanguage/targetLanguage`
+     that only a pick writes (each provider shows it within what it offers); a load never writes
    - The runner (`src/lib/session/`, `src/app/`) runs the legs; L1
      (`src/lib/conversation/Conversation.ts`) folds each leg's events into segments
    - Local Native is the exception until kizuna-ai-lab/sokuji#578: `LocalNativeClient`
@@ -126,7 +127,7 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
    - **Zustand stores** in `src/stores/` for primary application state:
      - `settingsStore.ts`: common settings (UI mode, text-only, segmentation, display
        modes) and Local Native's old slice
-     - `providerStore.ts`: each provider's settings, credentials and language pair
+     - `providerStore.ts`: each provider's settings and credentials, and the one global language pair (`settings.common.*`, written only by a pick)
      - `sessionStore.ts`: the locked mode the kept old settings shell reads; nothing writes it
      - `audioStore.ts`: Audio device selection and playback state
      - `logStore.ts`: Application logs and diagnostics

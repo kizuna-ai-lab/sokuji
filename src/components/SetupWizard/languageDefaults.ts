@@ -3,7 +3,7 @@
 // Sensible starting values for the language-pair step. Providers spell codes
 // differently ('zh_CN', 'zh-CN', 'ja', 'ja-JP'), so matching is tolerant, in
 // that order of strictness: exact, normalised, primary subtag.
-import type { LanguageOption } from '../../services/providers/ProviderConfig';
+import type { LanguageOption } from '../../lib/provider/types';
 import { LANGUAGE_PRIORITY } from '../../utils/languages';
 
 const norm = (code: string) => code.toLowerCase().replace(/_/g, '-');

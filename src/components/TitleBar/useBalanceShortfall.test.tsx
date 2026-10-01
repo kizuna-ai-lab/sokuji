@@ -26,7 +26,7 @@ import { useBalanceShortfall } from './useBalanceShortfall';
  */
 describe('useBalanceShortfall', () => {
   beforeEach(() => {
-    useProviderStore.setState({ entries: {}, readiness: {}, selected: null, legs: ['speaker'] });
+    useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null, legs: ['speaker'] });
     useAudioStore.setState({ mode: 'speaker', selectedParticipantSource: useAudioStore.getInitialState().selectedParticipantSource });
     useRoutingStore.setState({ participantSpeech: false });
     useSettingsStore.setState({ textOnly: false });

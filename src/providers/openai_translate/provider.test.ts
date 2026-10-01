@@ -34,7 +34,7 @@ afterEach(() => {
   stored.clear();
   getSetting.mockClear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, selected: null, selectionLocked: false, legs: ['speaker'], speech: { textOnly: false, participantSpeech: false } });
+  useProviderStore.setState({ entries: {}, intent: undefined, selected: null, selectionLocked: false, legs: ['speaker'], speech: { textOnly: false, participantSpeech: false } });
 });
 
 const both = (pair: { source: string; target: string }, patch: Partial<RunShape> = {}) =>
@@ -102,8 +102,8 @@ describe('the OpenAI Translate definition', () => {
 
   it('loads an old profile as it was: the key, the pair, the noise reduction; a WebRTC choice and the transcript model unread, the session over WebSocket, nothing written (rulings 1, 8)', async () => {
     stored.set('settings.openaiTranslate.apiKey', 'sk-proj-oldProfileKey0123');
-    stored.set('settings.openaiTranslate.sourceLanguage', 'ko');
-    stored.set('settings.openaiTranslate.targetLanguage', 'ja');
+    stored.set('settings.common.sourceLanguage', 'ko');
+    stored.set('settings.common.targetLanguage', 'ja');
     stored.set('settings.openaiTranslate.noiseReduction', 'Far field');
     stored.set('settings.openaiTranslate.transportType', 'webrtc');
     stored.set('settings.openaiTranslate.transcriptModel', 'gpt-realtime-whisper');

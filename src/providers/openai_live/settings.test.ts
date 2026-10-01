@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { INSTRUCTION_LEGACY_KEYS, INSTRUCTIONS_DEFAULTS } from '../../lib/provider/instructions';
 import { AUTO, reverseSupported } from '../../lib/provider/languages';
 import type { AuthContext } from '../../lib/provider/types';
+import { parseCode } from '../../lib/language/code';
+import { englishLanguageName } from '../../lib/language/label';
 import {
   isLiveModelId, LIVE_DEFAULTS, LIVE_LANGUAGES, LIVE_LEGACY_KEYS, LIVE_VOICES, liveCredentials, liveLanguageName, liveLanguages, migrateLiveSettings,
 } from './settings';
@@ -41,17 +43,17 @@ describe("OpenAI Live's languages (D20)", () => {
     expect(liveLanguages.sources(LIVE_DEFAULTS)[0].value).toBe(AUTO);
     expect(liveLanguages.sources(LIVE_DEFAULTS).slice(1)).toEqual(LIVE_LANGUAGES);
     expect(liveLanguages.targets('ja', LIVE_DEFAULTS)).toEqual(LIVE_LANGUAGES);
-    expect(liveLanguages.initial?.(LIVE_DEFAULTS)).toEqual({ source: 'en', target: 'zh_CN' });
+    expect(liveLanguages.initial?.(LIVE_DEFAULTS)).toEqual({ source: 'en', target: 'zh-CN' });
   });
 
   it('refuses Both for an Auto-detect source, as D20 does for every provider — no provider rule is left to write', () => {
     const p = { languages: liveLanguages };
     expect(reverseSupported(p, LIVE_DEFAULTS, { source: AUTO, target: 'en' })).toBe(false);
-    expect(reverseSupported(p, LIVE_DEFAULTS, { source: 'en', target: 'zh_CN' })).toBe(true);
+    expect(reverseSupported(p, LIVE_DEFAULTS, { source: 'en', target: 'zh-CN' })).toBe(true);
   });
 
   it('names a language in English for the template; Auto-detect is "the spoken language", where the old client wrote "auto"', () => {
-    expect(liveLanguageName('zh_CN')).toBe('Chinese (China)');
+    expect(liveLanguageName('zh-CN')).toBe(englishLanguageName('zh-CN'));
     expect(liveLanguageName(AUTO)).toBe('the spoken language');
     expect(liveLanguageName('xx')).toBe('xx');
   });
@@ -68,5 +70,20 @@ describe("OpenAI Live's credentials and model family", () => {
   it('takes gpt-live-1 and any dated gpt-live snapshot, never the transcription model', () => {
     expect(['gpt-live-1', 'GPT-LIVE-1', 'gpt-live-2026-10-01'].every(isLiveModelId)).toBe(true);
     expect(['gpt-live-transcribe', 'gpt-live-transcribe-2026', 'gpt-realtime', 'gpt-live'].some(isLiveModelId)).toBe(false);
+  });
+});
+
+describe('unified language codes', () => {
+  it('offers app codes only, Chinese and English variants by region (unified language codes)', () => {
+    const values = LIVE_LANGUAGES.map((o) => o.value);
+    for (const v of values) expect(parseCode(v), v).not.toBeNull();
+    expect(values).toEqual(expect.arrayContaining(['zh-CN', 'zh-TW', 'en-US', 'en-GB', 'en-AU', 'es-419', 'pt-BR', 'pt-PT']));
+    expect(liveLanguages.initial?.(LIVE_DEFAULTS)).toEqual({ source: 'en', target: 'zh-CN' });
+    expect(liveLanguages.wire?.toWire('zh-TW')).toBe('zh-TW');
+  });
+
+  it("names a code in English for the instructions, auto as 'the spoken language'", () => {
+    expect(liveLanguageName('zh-TW')).toBe(englishLanguageName('zh-TW'));
+    expect(liveLanguageName(AUTO)).toBe('the spoken language');
   });
 });

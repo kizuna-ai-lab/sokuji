@@ -30,7 +30,16 @@ import { LegSpeech } from './speech';
 import { SonioxSttStream, type SonioxSttConfig, type SonioxSttMessage, type SonioxToken } from './sttStream';
 import { tokenFrames, Utterances, type SegmentEvent } from './utterances';
 import type { SonioxConfig } from './config';
+import { sonioxWire } from './languages';
 import type { SonioxCredentials } from './settings';
+
+/** A token as the app reads it: its languages in app codes, a language outside the table dropped (unified language codes). */
+function inAppCodes(token: SonioxToken): SonioxToken {
+  const language = sonioxWire.fromWire(token.language);
+  const sourceLanguage = sonioxWire.fromWire(token.source_language);
+  const { language: _l, source_language: _s, ...rest } = token;
+  return { ...rest, ...(language ? { language } : {}), ...(sourceLanguage ? { source_language: sourceLanguage } : {}) };
+}
 
 /** The first resume attempt at once, then after 1 s and after 3 s (`SonioxClient.ts:649`). */
 export const RESUME_DELAYS_MS: readonly number[] = [0, 1_000, 3_000];
@@ -129,7 +138,7 @@ class SonioxCore {
       clock: o.primary.clock,
       sink: {
         segment: (leg, event) => { if (!this.ended) emitSegment(this.leg(leg).events, event); },
-        speak: (leg, ref, text, span, language) => { if (!this.ended) this.leg(leg).speech?.speak(ref, text, span, language); },
+        speak: (leg, ref, text, span, language) => { if (!this.ended) this.leg(leg).speech?.speak(ref, text, span, sonioxWire.toWire(language)); },
         endSpeech: (leg) => { if (!this.ended) this.leg(leg).speech?.endUtterance(); },
       },
       legFor: (token) => this.legFor(token),
@@ -252,11 +261,11 @@ class SonioxCore {
       region: credentials.region,
       model: config.stt.model,
       sampleRate: SAMPLE_RATE,
-      translation: this.o.shared ? { type: 'two_way', language_a: source, language_b: target } : { type: 'one_way', target_language: target },
+      translation: this.o.shared ? { type: 'two_way', language_a: sonioxWire.toWire(source), language_b: sonioxWire.toWire(target) } : { type: 'one_way', target_language: sonioxWire.toWire(target) },
       // D20 keeps an auto source out of Both: the gate refuses the participant leg.
       ...(this.o.shared
-        ? { languageHints: [source, target], enableSpeakerDiarization: true }
-        : source !== AUTO ? { languageHints: [source] } : {}),
+        ? { languageHints: [sonioxWire.toWire(source), sonioxWire.toWire(target)], enableSpeakerDiarization: true }
+        : source !== AUTO ? { languageHints: [sonioxWire.toWire(source)] } : {}),
       ...(config.stt.context ? { context: config.stt.context } : {}),
       endpointSensitivity: config.stt.endpointSensitivity,
       endpointLatencyAdjustmentLevel: config.stt.endpointLatencyAdjustmentLevel,
@@ -310,9 +319,9 @@ class SonioxCore {
   }
 
   private onMessage(message: SonioxSttMessage): void {
-    const tokens = message.tokens ?? [];
-    for (const f of tokenFrames(tokens)) this.frame(f.direction, f.type, f.payload);
-    this.utterances.message(tokens);
+    const raw = message.tokens ?? [];
+    for (const f of tokenFrames(raw)) this.frame(f.direction, f.type, f.payload);
+    this.utterances.message(raw.map(inAppCodes));
   }
 
   private onError(code: string, message: string): void {

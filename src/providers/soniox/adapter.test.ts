@@ -625,3 +625,22 @@ describe("the Soniox adapter: Plan B's session seams", () => {
     expect(tts().sentJson<Json>()).toContainEqual(expect.objectContaining({ stream_id: 'utt-1-1', model: expect.any(String), client_reference_id: 'ref-1' }));
   });
 });
+
+describe('language codes (unified language codes)', () => {
+  it("sends Filipino to Soniox as tl and reads Soniox's tl back as fil", async () => {
+    const { stt, tts, of } = await live({ context: { ...AUTO_CTX, direction: { source: 'en', target: 'fil' } } });
+    expect(stt().sentJson<Json>()[0]).toMatchObject({ translation: { type: 'one_way', target_language: 'tl' }, language_hints: ['en'] });
+    stt().receive(msg(orig('Hello.'), tr('Kumusta.', 'tl'), END));
+    const languages = of('segmentText').map((e) => e.payload.language);
+    expect(languages).toContain('fil');
+    expect(languages).not.toContain('tl');
+    expect(tts().sentJson<Json>()).toContainEqual(expect.objectContaining({ language: 'tl' }));
+  });
+
+  it('drops a language Soniox reports outside the table', async () => {
+    const { stt, of } = await live();
+    stt().receive(msg({ ...orig('Hello.'), language: 'xx' }, END));
+    expect(of('segmentText').length).toBeGreaterThan(0);
+    for (const e of of('segmentText')) expect(e.payload).not.toHaveProperty('language');
+  });
+});

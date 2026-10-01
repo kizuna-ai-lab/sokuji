@@ -1,12 +1,16 @@
 import { ArrowLeftRight, Languages } from 'lucide-react';
-import { useId } from 'react';
+import { useId, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../Tooltip/Tooltip';
 import { pairSentence } from '../SetupWizard/languageSentence';
-import { AUTO, normalizePair, swapped } from '../../lib/provider/languages';
+import { normalizePair, swapped } from '../../lib/provider/languages';
 import type { AnyProvider, LanguageContext, LanguageOption, LanguagePair } from '../../lib/provider/types';
 import type { AudioMode } from '../../stores/audioStore';
+import { useLanguageLabel } from '../../lib/language/useLanguageLabel';
+import { orderLanguages, pinnedLanguages, PIN_SEPARATOR, type OrderContext } from '../../lib/language/order';
 import { effectiveTextOnly } from '../../utils/effectiveTextOnly';
+
+const SEPARATOR = '──────────';
 
 interface LanguagePairSectionProps {
   provider: AnyProvider;
@@ -31,13 +35,32 @@ interface LanguagePairSectionProps {
  * LanguageSection's translation-languages block.
  */
 export function LanguagePairSection({ provider, settings, pair, onChange, disabled, sentence, context }: LanguagePairSectionProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const id = useId();
+  const label = useLanguageLabel();
   const sources = provider.languages.sources(settings, context);
   const targets = provider.languages.targets(pair.source, settings, context);
   const reversed = swapped(provider, settings, pair, context);
-  const option = (o: LanguageOption) => (
-    <option key={o.value} value={o.value}>{o.value === AUTO ? t('common.autoDetect') : o.name}</option>
+  // Display only: the dropdowns use the app-wide order, while the provider's own
+  // order still decides normalizePair's first option.
+  const ui = i18n?.language ?? 'en';
+  const browser = typeof navigator !== 'undefined' ? navigator.languages ?? [] : [];
+  const browserKey = browser.join(',');
+  const ctx: OrderContext = useMemo(() => ({ ui, browser }), [ui, browserKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const sourceOptions = useMemo(
+    () => ({ pinned: pinnedLanguages(sources, pair, ctx), ordered: orderLanguages(sources, ctx) }),
+    [sources, pair, ctx],
+  );
+  const targetOptions = useMemo(
+    () => ({ pinned: pinnedLanguages(targets, pair, ctx), ordered: orderLanguages(targets, ctx) }),
+    [targets, pair, ctx],
+  );
+  const options = ({ pinned, ordered }: { pinned: LanguageOption[]; ordered: LanguageOption[] }) => (
+    <>
+      {pinned.map((o) => <option key={`pin:${o.value}`} value={o.value}>{label(o.value)}</option>)}
+      {pinned.length > 0 && <option key="pin-separator" value={PIN_SEPARATOR} disabled>{SEPARATOR}</option>}
+      {ordered.map((o) => <option key={o.value} value={o.value}>{label(o.value)}</option>)}
+    </>
   );
 
   // The capability maps the definition's `speech` onto the sentence's
@@ -52,8 +75,8 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
   });
   const sourceLabel = resolved ? t(resolved.my.key, resolved.my.fallback) : t('settings.sourceLanguage');
   const targetLabel = resolved ? t(resolved.their.key, resolved.their.fallback) : t('settings.targetLanguage');
-  const sourceLanguageName = sources.find((o) => o.value === pair.source)?.name ?? pair.source;
-  const targetLanguageName = targets.find((o) => o.value === pair.target)?.name ?? pair.target;
+  const sourceLanguageName = label(pair.source);
+  const targetLanguageName = label(pair.target);
 
   return (
     <div className="config-section" id="languages-section">
@@ -76,7 +99,7 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
             onChange={(e) => onChange(normalizePair(provider, settings, { source: e.target.value, target: pair.target }, context))}
             disabled={disabled}
           >
-            {sources.map(option)}
+            {options(sourceOptions)}
           </select>
         </div>
         <div className="language-arrow">
@@ -99,7 +122,7 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
             onChange={(e) => onChange({ source: pair.source, target: e.target.value })}
             disabled={disabled}
           >
-            {targets.map(option)}
+            {options(targetOptions)}
           </select>
         </div>
       </div>

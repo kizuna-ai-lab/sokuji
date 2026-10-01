@@ -16,6 +16,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent, act, waitFor } from '@testing-library/react';
+import { languageLabel } from '../../../lib/language/label';
 
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
@@ -91,7 +92,7 @@ beforeEach(() => {
 describe('ProviderSpecificSettings — Engine surface composition', () => {
   it('LOCAL_NATIVE: EngineSurface renders with both direction headings and the EngineSection gate, exactly once', () => {
     const { container } = render(<ProviderSpecificSettings isSessionActive={false} />);
-    expect(directionHeadings(container)).toEqual(['日本語 → English', 'English → 日本語']);
+    expect(directionHeadings(container)).toEqual([`${languageLabel('ja', 'en')} → ${languageLabel('en', 'en')}`, `${languageLabel('en', 'en')} → ${languageLabel('ja', 'en')}`]);
     // Moved into the adapter's `gate` (Task 8) — must render, and only once
     // (the branch's old standalone <EngineSection/> is gone).
     expect(container.querySelectorAll('[data-testid="engine-section-gate"]')).toHaveLength(1);

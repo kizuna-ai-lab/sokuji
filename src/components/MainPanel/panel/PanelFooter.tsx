@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { X, Zap, Mic, Loader, Wrench } from 'lucide-react';
 import ModePicker from '../ModePicker';
 import SessionCountdown from '../SessionCountdown';
+import { useLanguageLabel } from '../../../lib/language/useLanguageLabel';
 import { startLabel } from './startLabel';
 import type { RunState } from '../../../lib/session/types';
 import type { AudioMode } from '../../../stores/audioStore';
@@ -47,6 +48,7 @@ export interface PanelFooterProps {
  */
 export function PanelFooter(props: PanelFooterProps) {
   const { t } = useTranslation();
+  const label = useLanguageLabel();
   const {
     site,
     run,
@@ -76,7 +78,8 @@ export function PanelFooter(props: PanelFooterProps) {
   const isReconnecting = run.phase === 'running' && Object.values(run.legs).includes('reconnecting');
 
   const statusDotClass = `status-dot ${isReconnecting ? 'reconnecting' : isRunning ? 'active' : ''}`;
-  const languagePairText = pair ? `${pair.source} → ${pair.target}` : '';
+  // A bidirectional pair (`zh+en`) is both ends at once: name it once, not `X → X`.
+  const languagePairText = !pair ? '' : pair.source === pair.target ? label(pair.source) : `${label(pair.source)} → ${label(pair.target)}`;
   const handleActionClick = isIdle ? onStart : onStop;
   const actionDisabled = (isIdle && !canStart) || run.phase === 'stopping';
 

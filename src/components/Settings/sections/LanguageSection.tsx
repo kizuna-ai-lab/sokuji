@@ -16,6 +16,7 @@ import {
   useKeepReplayAudio,
   useSetKeepReplayAudio
 } from '../../../stores/settingsStore';
+import { languageLabel } from '../../../lib/language/label';
 import { Provider } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
@@ -42,7 +43,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   showTranslationLanguages = true,
   className = ''
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { trackEvent } = useAnalytics();
 
   // Settings store
@@ -216,8 +217,9 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   // same two fields — never a third pair of controls.
   const sourceLanguageName = providerConfig?.languages.find(l => l.value === currentProviderSettings.sourceLanguage)?.name
     ?? currentProviderSettings.sourceLanguage;
-  const targetLanguageName = targetLanguages.find(l => l.value === currentProviderSettings.targetLanguage)?.name
-    ?? currentProviderSettings.targetLanguage;
+  const targetLanguageName = targetLanguages.some(l => l.value === currentProviderSettings.targetLanguage)
+    ? languageLabel(currentProviderSettings.targetLanguage, i18n.language)
+    : currentProviderSettings.targetLanguage;
 
   // S0: surface the last resolution notes (auto-substitutions/fallbacks made
   // while picking models for this language pair) right where the pair itself
@@ -307,7 +309,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
               >
                 {providerConfig.languages.map((lang) => (
                   <option key={lang.value} value={lang.value}>
-                    {lang.name}
+                    {languageLabel(lang.value, i18n.language)}
                   </option>
                 ))}
               </select>
@@ -339,7 +341,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
               >
                 {targetLanguages.map((lang) => (
                   <option key={lang.value} value={lang.value}>
-                    {lang.name}
+                    {languageLabel(lang.value, i18n.language)}
                   </option>
                 ))}
               </select>

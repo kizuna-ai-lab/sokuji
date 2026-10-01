@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { parseCode } from '../../lib/language/code';
 import { readCredentials } from '../../lib/provider/credentials';
 import { AUTO, normalizePair, reverseSupported, swapped } from '../../lib/provider/languages';
 import {
@@ -33,14 +34,14 @@ describe("OpenAI Translate's settings", () => {
 });
 
 describe("OpenAI Translate's languages", () => {
-  it('hears the old descriptor\'s 74 languages, with no auto, and speaks thirteen (ruling 15)', () => {
-    expect(TRANSLATE_SOURCES).toHaveLength(74);
-    expect(new Set(TRANSLATE_SOURCES.map((o) => o.value)).size).toBe(74);
+  it('hears the old descriptor\'s 73 languages, with no auto, and speaks thirteen (ruling 15)', () => {
+    expect(TRANSLATE_SOURCES).toHaveLength(73);
+    expect(new Set(TRANSLATE_SOURCES.map((o) => o.value)).size).toBe(73);
     expect(TRANSLATE_SOURCES.some((o) => o.value === AUTO)).toBe(false);
     expect(TRANSLATE_TARGETS.map((o) => o.value)).toEqual(['en', 'es', 'pt', 'fr', 'ja', 'ru', 'zh', 'de', 'ko', 'hi', 'id', 'vi', 'it']);
     // Every target is a source too, so the participant leg of any pair hears its target.
     for (const t of TRANSLATE_TARGETS) expect(TRANSLATE_SOURCES.map((o) => o.value), t.value).toContain(t.value);
-    expect(TRANSLATE_SOURCES.find((o) => o.value === 'fil')).toEqual({ name: 'Filipino', value: 'fil', englishName: 'Filipino' });
+    expect(TRANSLATE_SOURCES.find((o) => o.value === 'fil')).toEqual({ value: 'fil' });
   });
 
   it('offers the thirteen for every source, the source itself included, speaking or not (ruling 15)', () => {
@@ -77,4 +78,12 @@ describe("OpenAI Translate's credentials", () => {
     expect(readCredentials({ credentials: translateCredentials }, S, { apiKey: ' \n' }, signedOut)).toEqual({ missing: 'Enter your OpenAI API key.' });
     expect(readCredentials({ credentials: translateCredentials }, S, {}, signedOut)).toEqual({ missing: 'Enter your OpenAI API key.' });
   });
+});
+
+it('offers app codes only, Filipino once (unified language codes)', () => {
+  const values = [...TRANSLATE_SOURCES, ...TRANSLATE_TARGETS].map((o) => o.value);
+  for (const v of values) expect(parseCode(v), v).not.toBeNull();
+  expect(TRANSLATE_SOURCES.filter((o) => o.value === 'fil')).toHaveLength(1);
+  expect(TRANSLATE_SOURCES.map((o) => o.value)).not.toContain('tl');
+  expect(translateLanguages.wire?.toWire('zh')).toBe('zh');
 });

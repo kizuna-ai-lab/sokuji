@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import type { AnyProvider, CheckContext, LanguageContext, LanguageOption, LanguagePair, MigrationInputs } from '../lib/provider/types';
+import type { AnyProvider, CheckContext, LanguageContext, LanguageOption, MigrationInputs } from '../lib/provider/types';
 
 const { stored, getSetting, setSetting } = vi.hoisted(() => {
   const stored = new Map<string, unknown>();
@@ -16,9 +16,10 @@ vi.mock('../services/ServiceFactory', () => ({
   ServiceFactory: { getSettingsService: () => ({ getSetting, setSetting }) },
 }));
 
-import { useProviderStore } from './providerStore';
+import { identityWire } from '../lib/language/wire';
+import { useProviderStore, PAIR_FIELDS } from './providerStore';
 
-const opt = (value: string): LanguageOption => ({ value, name: value, englishName: value });
+const opt = (value: string): LanguageOption => ({ value });
 
 interface ProbeSettings { region: 'us' | 'eu'; count: number; on: boolean }
 /** Turning `on` stops offering fr, as a model choice can narrow a provider's languages. */
@@ -36,6 +37,19 @@ const probe = {
   languages: {
     sources: (s: ProbeSettings) => langs(s),
     targets: (source: string, s: ProbeSettings) => langs(s).filter((o) => o.value !== source),
+    wire: identityWire(),
+  },
+} as unknown as AnyProvider;
+
+/** Offers en and de only: a pair the probe keeps, it cannot. */
+const narrow = {
+  ...probe,
+  id: 'narrow',
+  settings: { key: 'narrow', defaults: { region: 'us', count: 1, on: false } },
+  languages: {
+    sources: () => [opt('en'), opt('de')],
+    targets: (source: string) => [opt('en'), opt('de')].filter((o) => o.value !== source),
+    wire: probe.languages.wire,
   },
 } as unknown as AnyProvider;
 
@@ -45,7 +59,7 @@ beforeEach(() => {
   stored.clear();
   getSetting.mockClear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, selected: null, selectionLocked: false });
+  useProviderStore.setState({ entries: {}, selected: null, selectionLocked: false, intent: undefined });
 });
 
 describe('load', () => {
@@ -75,23 +89,18 @@ describe('load', () => {
     expect(entry().settings).not.toHaveProperty('apiKey');
   });
 
-  it('keeps a stored pair the provider offers', async () => {
-    stored.set('settings.probe.sourceLanguage', 'ja');
-    stored.set('settings.probe.targetLanguage', 'fr');
+  it('reads the one pair at settings.common.*, and shows it where the provider offers it', async () => {
+    stored.set('settings.common.sourceLanguage', 'ja');
+    stored.set('settings.common.targetLanguage', 'en');
     await useProviderStore.getState().load(probe);
-    expect(entry().pair).toEqual({ source: 'ja', target: 'fr' });
+    expect(entry().pair).toEqual({ source: 'ja', target: 'en' });
+    expect(getSetting).not.toHaveBeenCalledWith('settings.probe.sourceLanguage', expect.anything());
   });
 
-  it('repairs a stored pair the provider does not offer', async () => {
-    stored.set('settings.probe.sourceLanguage', 'xx');
-    stored.set('settings.probe.targetLanguage', 'en');
+  it("starts from the provider's initial, then its first options, when nothing was picked", async () => {
     await useProviderStore.getState().load(probe);
     expect(entry().pair).toEqual({ source: 'en', target: 'ja' });
-  });
-
-  it('starts from the first source and its first target when nothing is stored', async () => {
-    await useProviderStore.getState().load(probe);
-    expect(entry().pair).toEqual({ source: 'en', target: 'ja' });
+    expect(useProviderStore.getState().intent).toBeNull();
   });
 
   it('does not overwrite a provider that is already loaded', async () => {
@@ -139,40 +148,6 @@ describe('load', () => {
     expect(stored.get('settings.common.systemInstructions')).toBe('global');
   });
 
-  it('rewrites the stored pair before it is normalized, so a renamed code lands on its new spelling', async () => {
-    const p = {
-      ...probe,
-      languages: { ...probe.languages, migratePair: (pair: LanguagePair) => ({ ...pair, source: pair.source === 'vn' ? 'fr' : pair.source }) },
-    } as unknown as AnyProvider;
-    stored.set('settings.probe.sourceLanguage', 'vn');
-    stored.set('settings.probe.targetLanguage', 'en');
-    await useProviderStore.getState().load(p);
-    expect(entry().pair).toEqual({ source: 'fr', target: 'en' });
-  });
-
-  it('falls back to the initial pair for a side migratePair empties', async () => {
-    const p = {
-      ...probe,
-      languages: {
-        ...probe.languages,
-        migratePair: (pair: LanguagePair) => ({ ...pair, source: '' }),
-        initial: () => ({ source: 'ja', target: 'en' }),
-      },
-    } as unknown as AnyProvider;
-    stored.set('settings.probe.sourceLanguage', 'en');
-    stored.set('settings.probe.targetLanguage', 'fr');
-    await useProviderStore.getState().load(p);
-    // The emptied source takes the initial one; the target keeps what was stored, not the initial en.
-    expect(entry().pair).toEqual({ source: 'ja', target: 'fr' });
-  });
-
-  it("hands migratePair '' for a side nothing stored, and the migrated settings", async () => {
-    const migratePair = vi.fn((pair: LanguagePair) => pair);
-    const p = { ...probe, languages: { ...probe.languages, migratePair } } as unknown as AnyProvider;
-    await useProviderStore.getState().load(p);
-    expect(migratePair).toHaveBeenCalledWith({ source: '', target: '' }, { region: 'us', count: 1, on: false });
-  });
-
   describe('initial', () => {
     const withInitial = {
       ...probe,
@@ -185,8 +160,8 @@ describe('load', () => {
     });
 
     it('prefers a stored pair to the initial one', async () => {
-      stored.set('settings.probe.sourceLanguage', 'en');
-      stored.set('settings.probe.targetLanguage', 'fr');
+      stored.set('settings.common.sourceLanguage', 'en');
+      stored.set('settings.common.targetLanguage', 'fr');
       await useProviderStore.getState().load(withInitial);
       expect(entry().pair).toEqual({ source: 'en', target: 'fr' });
     });
@@ -210,16 +185,6 @@ describe('writes', () => {
     await vi.waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.probe.count', 3));
   });
 
-  it('moves the pair when new settings stop offering it, and persists only what moved', async () => {
-    stored.set('settings.probe.targetLanguage', 'fr');
-    await useProviderStore.getState().load(probe);
-    expect(entry().pair).toEqual({ source: 'en', target: 'fr' });
-    useProviderStore.getState().updateSettings(probe, { on: true });
-    expect(entry().pair).toEqual({ source: 'en', target: 'ja' });
-    await vi.waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.probe.targetLanguage', 'ja'));
-    expect(setSetting).not.toHaveBeenCalledWith('settings.probe.sourceLanguage', expect.anything());
-  });
-
   it('saves a credential under its key without touching the settings', async () => {
     await useProviderStore.getState().load(probe);
     useProviderStore.getState().setCredential(probe, 'apiKeyEu', 'eu-1');
@@ -233,8 +198,8 @@ describe('writes', () => {
     useProviderStore.getState().setPair(probe, { source: 'ja', target: 'en' });
     expect(entry().pair).toEqual({ source: 'ja', target: 'en' });
     await vi.waitFor(() => {
-      expect(setSetting).toHaveBeenCalledWith('settings.probe.sourceLanguage', 'ja');
-      expect(setSetting).toHaveBeenCalledWith('settings.probe.targetLanguage', 'en');
+      expect(setSetting).toHaveBeenCalledWith('settings.common.sourceLanguage', 'ja');
+      expect(setSetting).toHaveBeenCalledWith('settings.common.targetLanguage', 'en');
     });
   });
 
@@ -325,14 +290,15 @@ describe('the language context (Stage 2 Volcengine AST2, choice 1)', () => {
 
   beforeEach(() => {
     useProviderStore.setState({ legs: ['speaker'], speech: speaking, readiness: {} });
-    stored.set('settings.moody.sourceLanguage', 'ko');
-    stored.set('settings.moody.targetLanguage', 'en');
+    stored.set('settings.common.sourceLanguage', 'ko');
+    stored.set('settings.common.targetLanguage', 'en');
   });
+  const intent = () => useProviderStore.getState().intent;
 
   it("derives the pair a speaking run can start from a text-only one, keeping the user's as stored, writing nothing", async () => {
     await useProviderStore.getState().load(moody);
     expect(moodyEntry().pair).toEqual({ source: 'en', target: 'ja' });
-    expect(moodyEntry().stored).toEqual({ source: 'ko', target: 'en' });
+    expect(intent()).toEqual({ source: 'ko', target: 'en' });
     expect(pairWrites()).toEqual([]);
   });
 
@@ -340,11 +306,11 @@ describe('the language context (Stage 2 Volcengine AST2, choice 1)', () => {
     await useProviderStore.getState().load(moody);
     useProviderStore.getState().setSpeech(textOnly);
     expect(moodyEntry().pair).toEqual({ source: 'ko', target: 'en' });
-    expect(moodyEntry()).not.toHaveProperty('stored');
+    expect(intent()).toEqual({ source: 'ko', target: 'en' });
     useProviderStore.getState().setSpeech(speaking);
     expect(moodyEntry().pair).toEqual({ source: 'en', target: 'ja' });
     // Narrowed away again, the user's pair is kept beside it, so the next text-only run gets it back.
-    expect(moodyEntry().stored).toEqual({ source: 'ko', target: 'en' });
+    expect(intent()).toEqual({ source: 'ko', target: 'en' });
     useProviderStore.getState().setSpeech(textOnly);
     expect(moodyEntry().pair).toEqual({ source: 'ko', target: 'en' });
     expect(pairWrites()).toEqual([]);
@@ -367,7 +333,7 @@ describe('the language context (Stage 2 Volcengine AST2, choice 1)', () => {
     await useProviderStore.getState().load(moody);
     // The load derives from the inputs already kept: what a speaking run can start, the user's pair beside it.
     expect(moodyEntry().pair).toEqual({ source: 'en', target: 'ja' });
-    expect(moodyEntry().stored).toEqual({ source: 'ko', target: 'en' });
+    expect(intent()).toEqual({ source: 'ko', target: 'en' });
     useProviderStore.getState().setSpeech(textOnly);
     expect(moodyEntry().pair).toEqual({ source: 'ko', target: 'en' });
   });
@@ -377,29 +343,29 @@ describe('the language context (Stage 2 Volcengine AST2, choice 1)', () => {
     await useProviderStore.getState().load(moody);
     useProviderStore.getState().setPair(moody, { source: 'ko', target: 'ja' });
     expect(moodyEntry().pair).toEqual({ source: 'en', target: 'ja' });
-    expect(moodyEntry().stored).toEqual({ source: 'ko', target: 'ja' });
-    await vi.waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.moody.sourceLanguage', 'ko'));
+    expect(intent()).toEqual({ source: 'ko', target: 'ja' });
+    await vi.waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.common.sourceLanguage', 'ko'));
     // A pick the context runs is the pair, and nothing is kept beside it.
     useProviderStore.getState().setPair(moody, { source: 'ja', target: 'en' });
     expect(moodyEntry().pair).toEqual({ source: 'ja', target: 'en' });
-    expect(moodyEntry()).not.toHaveProperty('stored');
+    expect(intent()).toEqual({ source: 'ja', target: 'en' });
   });
 
   it('persists a pick from the stored pair, not the shown one: picking the pair on show replaces the one kept', async () => {
     await useProviderStore.getState().load(moody);
     // Speaking shows en → ja while ko → en is kept; the wizard's Finish applies the shown pair.
     useProviderStore.getState().setPair(moody, { source: 'en', target: 'ja' });
-    expect(moodyEntry()).not.toHaveProperty('stored');
+    expect(intent()).toEqual({ source: 'en', target: 'ja' });
     await vi.waitFor(() => {
-      expect(stored.get('settings.moody.sourceLanguage')).toBe('en');
-      expect(stored.get('settings.moody.targetLanguage')).toBe('ja');
+      expect(stored.get('settings.common.sourceLanguage')).toBe('en');
+      expect(stored.get('settings.common.targetLanguage')).toBe('ja');
     });
   });
 
   it("keeps the stored pair across a settings edit, writing only the settings", async () => {
     await useProviderStore.getState().load(moody);
     useProviderStore.getState().updateSettings(moody, { count: 2 });
-    expect(moodyEntry().stored).toEqual({ source: 'ko', target: 'en' });
+    expect(intent()).toEqual({ source: 'ko', target: 'en' });
     expect(moodyEntry().pair).toEqual({ source: 'en', target: 'ja' });
     await vi.waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.moody.count', 2));
     expect(pairWrites()).toEqual([]);
@@ -421,8 +387,59 @@ describe('the language context (Stage 2 Volcengine AST2, choice 1)', () => {
     useProviderStore.getState().setSpeech(textOnly);
     expect(useProviderStore.getState().readiness.moody).toEqual({ state: 'unknown' });
     expect(useProviderStore.getState().readiness.probe).toBe(ready);
-    // A provider whose languages ignore the context never carries a stored pair.
-    expect(entry()).not.toHaveProperty('stored');
+  });
+});
+
+describe('the global pair (unified language codes)', () => {
+  const pairOf = (id: string) => useProviderStore.getState().entries[id].pair;
+
+  it('keeps the pair across providers; a side one lacks takes its first option and nothing is written', async () => {
+    stored.set('settings.common.sourceLanguage', 'ja');
+    stored.set('settings.common.targetLanguage', 'fr');
+    await useProviderStore.getState().load(probe);
+    await useProviderStore.getState().load(narrow);
+    setSetting.mockClear();
+    expect(pairOf('probe')).toEqual({ source: 'ja', target: 'fr' });
+    expect(pairOf('narrow')).toEqual({ source: 'en', target: 'de' });
+    useProviderStore.getState().select('narrow', 'pick');
+    useProviderStore.getState().select('probe', 'pick');
+    expect(pairOf('probe')).toEqual({ source: 'ja', target: 'fr' });
+    expect(setSetting).not.toHaveBeenCalledWith('settings.common.sourceLanguage', expect.anything());
+    expect(setSetting).not.toHaveBeenCalledWith('settings.common.targetLanguage', expect.anything());
+  });
+
+  it('writes a pick, both sides as shown, and every loaded provider follows it, forgetting its readiness', async () => {
+    stored.set('settings.common.sourceLanguage', 'ja');
+    stored.set('settings.common.targetLanguage', 'fr');
+    await useProviderStore.getState().load(probe);
+    await useProviderStore.getState().load(narrow);
+    expect(pairOf('probe')).toEqual({ source: 'ja', target: 'fr' });
+    useProviderStore.setState({ readiness: { ...useProviderStore.getState().readiness, probe: { state: 'ready', models: [] } } });
+    useProviderStore.getState().setPair(narrow, { source: 'de', target: 'en' });
+    expect(stored.get('settings.common.sourceLanguage')).toBe('de');
+    expect(stored.get('settings.common.targetLanguage')).toBe('en');
+    expect(pairOf('probe')).toEqual({ source: 'en', target: 'ja' });
+    expect(useProviderStore.getState().readiness.probe).toEqual({ state: 'unknown' });
+  });
+
+  it('writes no pair when a settings edit narrows the offer, and brings it back when the edit is undone', async () => {
+    stored.set('settings.common.sourceLanguage', 'ja');
+    stored.set('settings.common.targetLanguage', 'fr');
+    await useProviderStore.getState().load(probe);
+    setSetting.mockClear();
+    useProviderStore.getState().updateSettings(probe, { on: true });
+    expect(pairOf('probe')).toEqual({ source: 'ja', target: 'en' });
+    expect(setSetting).not.toHaveBeenCalledWith('settings.common.targetLanguage', expect.anything());
+    useProviderStore.getState().updateSettings(probe, { on: false });
+    expect(pairOf('probe')).toEqual({ source: 'ja', target: 'fr' });
+  });
+
+  it('shows a stored code no provider offers as the first options, and keeps it stored', async () => {
+    stored.set('settings.common.sourceLanguage', 'zh+en');
+    stored.set('settings.common.targetLanguage', 'zh+en');
+    await useProviderStore.getState().load(narrow);
+    expect(pairOf('narrow')).toEqual({ source: 'en', target: 'de' });
+    expect(useProviderStore.getState().intent).toEqual({ source: 'zh+en', target: 'zh+en' });
   });
 });
 
@@ -563,6 +580,14 @@ describe('flush', () => {
     expect(stored.get('settings.probe.apiKey')).toBe('k-1');
     // …but a flush of every key still sees it.
     await expect(useProviderStore.getState().flush()).resolves.toBe(false);
+  });
+
+  it('flush(p, PAIR_FIELDS) answers for the two global keys: a refused pick fails it', async () => {
+    await useProviderStore.getState().load(probe);
+    setSetting.mockImplementation(async () => ({ success: false, error: 'QuotaExceededError' }));
+    useProviderStore.getState().setPair(probe, { source: 'ja', target: 'en' });
+    await expect(useProviderStore.getState().flush(probe, PAIR_FIELDS)).resolves.toBe(false);
+    await expect(useProviderStore.getState().flush(probe, ['apiKey'])).resolves.toBe(true);
   });
 
   it("flush(p, fields) answers for those fields and the selection only: p's other refused value does not fail it", async () => {

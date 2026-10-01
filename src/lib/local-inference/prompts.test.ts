@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildDefaultLocalPrompt } from './prompts';
+import { englishLanguageName } from '../language/label';
 
 describe('buildDefaultLocalPrompt', () => {
   it('includes native and english target names plus language-specific fillers', () => {
@@ -37,5 +38,13 @@ describe('buildDefaultLocalPrompt', () => {
   it('does not include /no_think (that is a worker-side Qwen3 switch)', () => {
     const p = buildDefaultLocalPrompt('ja', 'en');
     expect(p).not.toContain('/no_think');
+  });
+});
+
+describe('buildDefaultLocalPrompt fallback names', () => {
+  it('names a code LANG_NAMES lacks instead of echoing it', () => {
+    const prompt = buildDefaultLocalPrompt('yue', 'en');
+    expect(prompt).toContain(englishLanguageName('yue'));
+    expect(prompt).not.toContain('from yue');
   });
 });

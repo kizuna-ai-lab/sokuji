@@ -83,9 +83,10 @@ describe('normalizeLangForPrefix', () => {
     expect(normalizeLangForPrefix(undefined, cfg)).toBeUndefined();
     expect(normalizeLangForPrefix('fr', cfg)).toBeUndefined();
   });
-  it('resolves the app aliases the catalogs use (cantonese → yue, tl → fil)', () => {
-    const c = { ...cfg, language_prefix_ids: { yue: [1], fil: [2] } };
-    expect(normalizeLangForPrefix('cantonese', c)).toBe('yue');
-    expect(normalizeLangForPrefix('tl', c)).toBe('fil');
+  it('takes the app codes for Cantonese and Filipino as they are', () => {
+    const withBoth = { ...cfg, language_prefix_ids: { ...cfg.language_prefix_ids, yue: [1], fil: [2] } };
+    expect(normalizeLangForPrefix('yue', withBoth)).toBe('yue');
+    expect(normalizeLangForPrefix('fil', withBoth)).toBe('fil');
+    expect(normalizeLangForPrefix('cantonese', withBoth)).toBeUndefined();
   });
 });

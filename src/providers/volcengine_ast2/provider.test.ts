@@ -34,7 +34,7 @@ afterEach(() => {
   stored.clear();
   getSetting.mockClear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, selected: null, selectionLocked: false, legs: ['speaker'], speech: { textOnly: false, participantSpeech: false } });
+  useProviderStore.setState({ entries: {}, intent: undefined, selected: null, selectionLocked: false, legs: ['speaker'], speech: { textOnly: false, participantSpeech: false } });
 });
 
 describe('the Doubao AST 2.0 definition', () => {
@@ -90,23 +90,23 @@ describe('the Doubao AST 2.0 definition', () => {
     expect(opened).not.toHaveBeenCalled();
   });
 
-  it("loads an old profile as it was: the legacy mode, an App ID stored as a number read as text, the zhen pair repaired, nothing written", async () => {
+  it("loads an old profile as it was: the legacy mode, an App ID stored as a number read as text, an old per-provider pair (a zhen) not read: the provider shows its initial pair, nothing written", async () => {
     stored.set('settings.volcengineAST2.appId', 123456);
     stored.set('settings.volcengineAST2.accessToken', 'tok');
     stored.set('settings.volcengineAST2.hotWordTableId', 'hot-1');
     stored.set('settings.volcengineAST2.sourceLanguage', 'zhen');
-    stored.set('settings.volcengineAST2.targetLanguage', 'en');
+    stored.set('settings.volcengineAST2.targetLanguage', 'ja');
     await useProviderStore.getState().load(volcengineAst2Provider);
     const entry = useProviderStore.getState().entries.volcengine_ast2;
     expect(entry.settings as Ast2Settings).toEqual({ ...AST2_DEFAULTS, hotWordTableId: 'hot-1' });
     expect(readCredentials(volcengineAst2Provider, entry.settings, entry.credentials, { signedIn: false, getToken: async () => null })).toEqual({ kind: 'app', appKey: '123456', accessKey: 'tok' });
-    expect(entry.pair).toEqual({ source: 'zhen', target: 'zhen' });
+    expect(entry.pair).toEqual({ source: 'zh', target: 'en' });
     expect(setSetting).not.toHaveBeenCalled();
   });
 
   it("keeps a text-only pair stored while a run would speak, and offers it back once text only is on (choice 1)", async () => {
-    stored.set('settings.volcengineAST2.sourceLanguage', 'ko');
-    stored.set('settings.volcengineAST2.targetLanguage', 'zh');
+    stored.set('settings.common.sourceLanguage', 'ko');
+    stored.set('settings.common.targetLanguage', 'zh');
     await useProviderStore.getState().load(volcengineAst2Provider);
     expect(useProviderStore.getState().entries.volcengine_ast2.pair).toEqual({ source: 'zh', target: 'en' });
     useProviderStore.getState().setSpeech({ textOnly: true, participantSpeech: false });

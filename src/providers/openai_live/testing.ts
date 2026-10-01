@@ -22,11 +22,11 @@ export const KEY: LiveCredentials = { apiKey: 'sk-proj-liveKey0123456789' };
 
 export const SHARED: SharedSettings = {
   pauses: { sourceSeconds: 1.5, translationSeconds: 1.5 },
-  reversed: (d) => d.source === 'en' && d.target === 'zh_CN',
+  reversed: (d) => d.source === 'en' && d.target === 'zh-CN',
   segmentation: { mode: 'pause', sentencesPerRow: 0 },
   models: [{ id: 'gpt-live-1' }],
 };
-export const AUTO_CTX: SessionContext = { direction: { source: 'zh_CN', target: 'en' }, speech: true, turns: 'auto' };
+export const AUTO_CTX: SessionContext = { direction: { source: 'zh-CN', target: 'en' }, speech: true, turns: 'auto' };
 export const MANUAL_CTX: SessionContext = { ...AUTO_CTX, turns: 'manual' };
 
 /** A leg's config: the defaults, patched. A refusal is a fixture bug: it throws. */

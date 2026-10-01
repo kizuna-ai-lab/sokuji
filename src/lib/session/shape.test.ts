@@ -128,10 +128,10 @@ describe('gate', () => {
   });
 
   it("refuses the participant leg a pair whose reverse its own speech does not offer (Stage 2 Volcengine AST2, choice 1)", () => {
-    const opt = (value: string) => ({ value, name: value, englishName: value });
+    const opt = (value: string) => ({ value });
     // Speaking offers en and ja; text also ko — Doubao AST 2.0's shape.
     const spoken = (context?: LanguageContext) => [opt('en'), opt('ja'), ...(context?.speech ? [] : [opt('ko')])];
-    const narrow = { ...fakeProvider, languages: { sources: (_s: unknown, context?: LanguageContext) => spoken(context), targets: (source: string, _s: unknown, context?: LanguageContext) => spoken(context).filter((o) => o.value !== source) } };
+    const narrow = { ...fakeProvider, languages: { wire: fakeProvider.languages.wire, sources: (_s: unknown, context?: LanguageContext) => spoken(context), targets: (source: string, _s: unknown, context?: LanguageContext) => spoken(context).filter((o) => o.value !== source) } };
     const both = { provider: narrow, legs: ['speaker', 'participant'] as LegName[], pair: { source: 'en', target: 'ko' }, textOnly: true };
     expect(gate(shape({ ...both, participantSpeech: true }), 'electron')).toMatchObject({ code: 'participant_unsupported', leg: 'participant' });
     expect(gate(shape({ ...both, participantSpeech: false }), 'electron')).toBeNull();

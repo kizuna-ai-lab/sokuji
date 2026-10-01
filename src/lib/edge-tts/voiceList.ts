@@ -11,10 +11,10 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
  *
  * `prefixes` — locale prefixes that a voice's Locale must start with to be
  *   considered a match. Used when the app's language code does not map 1:1
- *   to an Edge TTS Locale primary subtag (e.g. our `cantonese` → `zh-HK`).
+ *   to an Edge TTS Locale primary subtag (e.g. our `yue` → `zh-HK`).
  * `excludes` — locales to exclude even though they match the primary subtag.
  *   E.g. `zh` in this app means Mandarin, so Cantonese (`zh-HK`) and Taiwanese
- *   Hakka-adjacent variants should be offered under `cantonese` instead.
+ *   Hakka-adjacent variants should be offered under `yue` instead.
  * `preferred` — the default Locale to pick when auto-selecting a voice.
  *   Voices matching this Locale are sorted to the front of the filtered list
  *   so that consumers who take the first result get the expected dialect.
@@ -27,7 +27,7 @@ interface LocaleRule {
 
 const LOCALE_RULES: Record<string, LocaleRule> = {
   zh: { excludes: ['zh-HK'], preferred: 'zh-CN' },          // Mandarin
-  cantonese: { prefixes: ['zh-HK'], preferred: 'zh-HK' },   // Cantonese
+  yue: { prefixes: ['zh-HK'], preferred: 'zh-HK' },   // Cantonese
   en: { preferred: 'en-US' },
   pt: { preferred: 'pt-BR' },
   es: { preferred: 'es-ES' },

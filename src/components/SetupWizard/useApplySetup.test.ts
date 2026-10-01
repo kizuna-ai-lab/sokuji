@@ -44,11 +44,11 @@ beforeEach(() => {
   stored.clear();
   // A stored pair different from the draft's, so setPair's own persist call
   // (only fields that actually change) is guaranteed to fire either way.
-  stored.set('settings.localInference.sourceLanguage', 'ja');
-  stored.set('settings.localInference.targetLanguage', 'en');
+  stored.set('settings.common.sourceLanguage', 'ja');
+  stored.set('settings.common.targetLanguage', 'en');
   getSetting.mockClear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, selected: null, selectionLocked: false });
+  useProviderStore.setState({ entries: {}, selected: null, selectionLocked: false, intent: undefined });
 });
 
 const landNow = async (key: string, value: unknown) => {
@@ -70,8 +70,8 @@ describe("useApplySetup's applyProvider (review Minor 4)", () => {
     expect(useProviderStore.getState().selected).toBe('localInference');
     expect(useProviderStore.getState().entries.localInference?.pair).toEqual({ source: 'en', target: 'ja' });
     expect(setSetting).toHaveBeenCalledWith('settings.common.provider', 'local_inference');
-    expect(setSetting).toHaveBeenCalledWith('settings.localInference.sourceLanguage', 'en');
-    expect(setSetting).toHaveBeenCalledWith('settings.localInference.targetLanguage', 'ja');
+    expect(setSetting).toHaveBeenCalledWith('settings.common.sourceLanguage', 'en');
+    expect(setSetting).toHaveBeenCalledWith('settings.common.targetLanguage', 'ja');
   });
 
   it('leaves both display modes as the user chose them: a re-run of a two-way scenario writes neither (Stage 2 session end, ruling 1)', async () => {
@@ -177,7 +177,7 @@ describe("useApplySetup's applyProvider (review Minor 4)", () => {
 
   it('fails Finish with the setup-persist error, recording nothing, when a provider write does not land', async () => {
     setSetting.mockImplementation(async (key: string, value: unknown) => {
-      if (key === 'settings.localInference.sourceLanguage') return { success: false, error: 'QuotaExceededError' };
+      if (key === 'settings.common.sourceLanguage') return { success: false, error: 'QuotaExceededError' };
       return landNow(key, value);
     });
     const { result } = renderHook(() => useApplySetup());
@@ -189,7 +189,7 @@ describe("useApplySetup's applyProvider (review Minor 4)", () => {
 
   it('Finish again writes what did not land — a pair already in memory too — and then records', async () => {
     setSetting.mockImplementation(async (key: string, value: unknown) => {
-      if (key === 'settings.localInference.sourceLanguage') return { success: false, error: 'QuotaExceededError' };
+      if (key === 'settings.common.sourceLanguage') return { success: false, error: 'QuotaExceededError' };
       return landNow(key, value);
     });
     const { result } = renderHook(() => useApplySetup());
@@ -198,7 +198,7 @@ describe("useApplySetup's applyProvider (review Minor 4)", () => {
     setSetting.mockImplementation(landNow);
     await result.current(draft({}));
 
-    expect(stored.get('settings.localInference.sourceLanguage')).toBe('en');
+    expect(stored.get('settings.common.sourceLanguage')).toBe('en');
     expect(stored.get('settings.setup')).toEqual(expect.objectContaining({ provider: Provider.LOCAL_INFERENCE }));
   });
 
@@ -215,6 +215,6 @@ describe("useApplySetup's applyProvider (review Minor 4)", () => {
     await result.current(draft({}));
 
     expect(stored.get('settings.setup')).toEqual(expect.objectContaining({ provider: Provider.LOCAL_INFERENCE }));
-    expect(stored.get('settings.localInference.sourceLanguage')).toBe('en');
+    expect(stored.get('settings.common.sourceLanguage')).toBe('en');
   });
 });

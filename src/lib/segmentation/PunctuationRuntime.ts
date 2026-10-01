@@ -54,15 +54,12 @@ export type PunctuationStatus =
  * Which model serves a language. Everything not Chinese or English goes to
  * SaT, which covers 85 languages; so does `auto` with nothing detected yet.
  *
- * Cantonese has two spellings in play and both must route to FireRedPunc.
- * `'cantonese'` is the app's own settings vocabulary (src/utils/languages.ts,
- * and what `sourceLanguage` actually holds); `'yue'` is the BCP-47 tag a
- * provider's `detectedLanguage` can carry. `baseLang` normalises neither into
- * the other, so matching only one sends half the Cantonese traffic to SaT.
+ * Cantonese is `yue`, the app code, and a provider's detected language uses
+ * the same tag.
  */
 export function modelForLanguage(lang: string): PunctuationModelId {
   const base = baseLang(lang);
-  if (base === 'zh' || base === 'yue' || base === 'cantonese') return 'fireredpunc';
+  if (base === 'zh' || base === 'yue') return 'fireredpunc';
   if (base === 'en') return 'edge-punct-en';
   return 'sat-3l-sm';
 }

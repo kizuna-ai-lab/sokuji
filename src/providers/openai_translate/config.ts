@@ -11,7 +11,7 @@
 import type { SessionContext } from '../../lib/contract/adapter';
 import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
 import { clampSegmentPauseMs, segmentPauseMs } from '../../lib/segmentation/segmentationMode';
-import { TRANSCRIPT_MODEL, TRANSLATE_MODEL, TRANSLATE_TARGETS, type NoiseReduction, type TranslateSettings } from './settings';
+import { TRANSCRIPT_MODEL, TRANSLATE_MODEL, TRANSLATE_TARGETS, translateLanguages, type NoiseReduction, type TranslateSettings } from './settings';
 
 export interface TranslateConfig {
   /** The endpoint's model, in the socket's `?model=` (ruling 7). */
@@ -40,7 +40,7 @@ export function buildTranslate(context: SessionContext, s: TranslateSettings, sh
   if (!TRANSLATE_TARGETS.some((o) => o.value === target)) return { refused: `OpenAI Translate does not translate into ${target}.` };
   return {
     model: TRANSLATE_MODEL,
-    target,
+    target: translateLanguages.wire.toWire(target),
     transcriptModel: TRANSCRIPT_MODEL,
     noiseReduction: NOISE[s.noiseReduction],
     silence: {

@@ -1,15 +1,18 @@
 /**
  * Soniox's `S`, languages and credentials (survey §2.2–2.5). `S` is the old
  * slice (`SonioxProviderConfig.ts:13-71`) without what leaves it: the pair
- * (`providerStore` persists `sourceLanguage` / `targetLanguage` under the
- * same keys), the three region keys (credentials now, same keys), and
+ * (the one global pair `providerStore` keeps under
+ * `settings.common.sourceLanguage` / `targetLanguage`), the three region keys (credentials now, same keys), and
  * `model` (only ever `stt-rt-v5`: a constant in `config.ts`; its stored value
  * stays in storage, unread). Stored under `settings.soniox.*` as before.
  */
 import { AUTO } from '../../lib/provider/languages';
-import type { CredentialsMissing, LanguageOption, Provider } from '../../lib/provider/types';
+import type { CredentialsMissing, Provider } from '../../lib/provider/types';
 import { asSonioxRegion, DEFAULT_SONIOX_REGION, type SonioxRegion } from '../../lib/soniox/regions';
 import { SONIOX_DEFAULT_VOICE } from '../../lib/soniox/ttsCatalog';
+import { SONIOX_LANGUAGES, sonioxWire } from './languages';
+
+export { SONIOX_LANGUAGES };
 
 export interface SonioxSettings {
   /** Which deployment: each region is a separate Soniox project with its own key. */
@@ -127,73 +130,10 @@ export const sonioxCredentials: Provider<SonioxSettings, SonioxCredentials, neve
   },
 };
 
-/** The 60 languages of Soniox's own STS demo: translation is any-to-any across them. */
-export const SONIOX_LANGUAGES: readonly LanguageOption[] = [
-  { name: 'Afrikaans', value: 'af', englishName: 'Afrikaans' },
-  { name: 'Shqip', value: 'sq', englishName: 'Albanian' },
-  { name: 'العربية', value: 'ar', englishName: 'Arabic' },
-  { name: 'Azərbaycan', value: 'az', englishName: 'Azerbaijani' },
-  { name: 'Euskara', value: 'eu', englishName: 'Basque' },
-  { name: 'Беларуская', value: 'be', englishName: 'Belarusian' },
-  { name: 'বাংলা', value: 'bn', englishName: 'Bengali' },
-  { name: 'Bosanski', value: 'bs', englishName: 'Bosnian' },
-  { name: 'Български', value: 'bg', englishName: 'Bulgarian' },
-  { name: 'Català', value: 'ca', englishName: 'Catalan' },
-  { name: '中文', value: 'zh', englishName: 'Chinese' },
-  { name: 'Hrvatski', value: 'hr', englishName: 'Croatian' },
-  { name: 'Čeština', value: 'cs', englishName: 'Czech' },
-  { name: 'Dansk', value: 'da', englishName: 'Danish' },
-  { name: 'Nederlands', value: 'nl', englishName: 'Dutch' },
-  { name: 'English', value: 'en', englishName: 'English' },
-  { name: 'Eesti', value: 'et', englishName: 'Estonian' },
-  { name: 'Suomi', value: 'fi', englishName: 'Finnish' },
-  { name: 'Français', value: 'fr', englishName: 'French' },
-  { name: 'Galego', value: 'gl', englishName: 'Galician' },
-  { name: 'Deutsch', value: 'de', englishName: 'German' },
-  { name: 'Ελληνικά', value: 'el', englishName: 'Greek' },
-  { name: 'ગુજરાતી', value: 'gu', englishName: 'Gujarati' },
-  { name: 'עברית', value: 'he', englishName: 'Hebrew' },
-  { name: 'हिन्दी', value: 'hi', englishName: 'Hindi' },
-  { name: 'Magyar', value: 'hu', englishName: 'Hungarian' },
-  { name: 'Bahasa Indonesia', value: 'id', englishName: 'Indonesian' },
-  { name: 'Italiano', value: 'it', englishName: 'Italian' },
-  { name: '日本語', value: 'ja', englishName: 'Japanese' },
-  { name: 'ಕನ್ನಡ', value: 'kn', englishName: 'Kannada' },
-  { name: 'Қазақ', value: 'kk', englishName: 'Kazakh' },
-  { name: '한국어', value: 'ko', englishName: 'Korean' },
-  { name: 'Latviešu', value: 'lv', englishName: 'Latvian' },
-  { name: 'Lietuvių', value: 'lt', englishName: 'Lithuanian' },
-  { name: 'Македонски', value: 'mk', englishName: 'Macedonian' },
-  { name: 'Bahasa Melayu', value: 'ms', englishName: 'Malay' },
-  { name: 'മലയാളം', value: 'ml', englishName: 'Malayalam' },
-  { name: 'मराठी', value: 'mr', englishName: 'Marathi' },
-  { name: 'Norsk', value: 'no', englishName: 'Norwegian' },
-  { name: 'فارسی', value: 'fa', englishName: 'Persian' },
-  { name: 'Polski', value: 'pl', englishName: 'Polish' },
-  { name: 'Português', value: 'pt', englishName: 'Portuguese' },
-  { name: 'ਪੰਜਾਬੀ', value: 'pa', englishName: 'Punjabi' },
-  { name: 'Română', value: 'ro', englishName: 'Romanian' },
-  { name: 'Русский', value: 'ru', englishName: 'Russian' },
-  { name: 'Српски', value: 'sr', englishName: 'Serbian' },
-  { name: 'Slovenčina', value: 'sk', englishName: 'Slovak' },
-  { name: 'Slovenščina', value: 'sl', englishName: 'Slovenian' },
-  { name: 'Español', value: 'es', englishName: 'Spanish' },
-  { name: 'Kiswahili', value: 'sw', englishName: 'Swahili' },
-  { name: 'Svenska', value: 'sv', englishName: 'Swedish' },
-  { name: 'Tagalog', value: 'tl', englishName: 'Tagalog' },
-  { name: 'தமிழ்', value: 'ta', englishName: 'Tamil' },
-  { name: 'తెలుగు', value: 'te', englishName: 'Telugu' },
-  { name: 'ไทย', value: 'th', englishName: 'Thai' },
-  { name: 'Türkçe', value: 'tr', englishName: 'Turkish' },
-  { name: 'Українська', value: 'uk', englishName: 'Ukrainian' },
-  { name: 'اردو', value: 'ur', englishName: 'Urdu' },
-  { name: 'Tiếng Việt', value: 'vi', englishName: 'Vietnamese' },
-  { name: 'Cymraeg', value: 'cy', englishName: 'Welsh' },
-];
-
 export const sonioxLanguages: Provider<SonioxSettings, never, never>['languages'] = {
-  sources: () => [{ value: AUTO, name: 'Auto', englishName: 'Auto' }, ...SONIOX_LANGUAGES],
+  sources: () => [{ value: AUTO }, ...SONIOX_LANGUAGES],
   // Every language, the source's own included, as the old resolveTargetLanguages returned (survey §2.5).
   targets: () => SONIOX_LANGUAGES,
   initial: () => ({ source: AUTO, target: 'en' }),
+  wire: sonioxWire,
 };

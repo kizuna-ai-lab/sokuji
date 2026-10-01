@@ -31,6 +31,7 @@ import type {
   AsrWorkerOutMessage,
 } from '../types';
 import { acquireWebGpuAdapter, bindCheckedWebGpuAdapter } from './shaderF16Gate';
+import { whisperLanguage } from './whisperLanguage';
 
 // ─── ORT / Transformers.js env setup ─────────────────────────────────────────
 
@@ -324,8 +325,9 @@ async function runWhisperSegment(audio: Float32Array, startSample: number): Prom
       // hallucination/repetition, especially with fp16 quantized models.
       no_repeat_ngram_size: 3,
     };
-    if (currentLanguage) {
-      options.language = currentLanguage;
+    const language = whisperLanguage(currentLanguage);
+    if (language) {
+      options.language = language;
       options.task = 'transcribe';
     }
 

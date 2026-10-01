@@ -1,3 +1,4 @@
+import { identityWire } from '../../lib/language/wire';
 import type { Provider } from '../../lib/provider/types';
 import type { Selections } from '../../lib/local-inference/selection/types';
 import { getTranslationSourceLanguages, getTranslationTargetLanguages } from '../../lib/local-inference/modelManifest';
@@ -6,9 +7,9 @@ import { getTranslationSourceLanguages, getTranslationTargetLanguages } from '..
  * LocalInference's `S` (spec: "Settings — never secrets"). Today's
  * `LocalInferenceSettings` (`src/services/providers/LocalInferenceProviderConfig.ts`)
  * minus three fields that leave `S` entirely under the new contract:
- * `sourceLanguage`/`targetLanguage` become the pair `providerStore` itself
- * persists (same storage keys, so an existing user's pick survives with no
- * `migrate`), and `turnDetectionMode` becomes the global turn mode
+ * `sourceLanguage`/`targetLanguage` become the one global pair `providerStore`
+ * keeps (`settings.common.sourceLanguage`/`targetLanguage`, not under this
+ * provider's keys), and `turnDetectionMode` becomes the global turn mode
  * (`turnModeStore`; its one-time migration is plan 1e-3's, not this `S`'s).
  */
 export interface LocalInferenceSettings {
@@ -57,4 +58,6 @@ export const localInferenceLanguages: Provider<LocalInferenceSettings, never, ne
   sources: () => getTranslationSourceLanguages(),
   targets: (source) => getTranslationTargetLanguages(source),
   initial: () => ({ source: 'ja', target: 'en' }),
+  // No vendor: each engine turns the app code into its model's own form.
+  wire: identityWire(),
 };

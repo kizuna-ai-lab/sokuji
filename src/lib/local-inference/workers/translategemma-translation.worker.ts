@@ -40,6 +40,10 @@ interface DisposeMessage {
 
 type WorkerMessage = InitMessage | TranslateMessage | DisposeMessage;
 
+/** TranslateGemma's own spelling where it differs from the app code (its list was written with `tl`). */
+const TRANSLATEGEMMA_CODES: Record<string, string> = { fil: 'tl' };
+const gemmaCode = (code: string) => TRANSLATEGEMMA_CODES[code] ?? code;
+
 let generator: any = null;
 
 // ─── Init handler ──────────────────────────────────────────────────────────
@@ -100,8 +104,8 @@ async function handleTranslate(msg: TranslateMessage) {
       role: 'user',
       content: [{
         type: 'text',
-        source_lang_code: msg.sourceLang,
-        target_lang_code: msg.targetLang,
+        source_lang_code: gemmaCode(msg.sourceLang),
+        target_lang_code: gemmaCode(msg.targetLang),
         text: msg.text,
       }],
     }];

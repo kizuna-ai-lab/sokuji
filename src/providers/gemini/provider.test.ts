@@ -35,7 +35,7 @@ afterEach(() => {
   stored.clear();
   getSetting.mockClear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, selected: null, selectionLocked: false });
+  useProviderStore.setState({ entries: {}, intent: undefined, selected: null, selectionLocked: false });
 });
 
 describe('the Gemini definition', () => {
@@ -111,21 +111,8 @@ describe('the Gemini definition', () => {
 
     // Once edited in Gemini's own Settings, its own value wins over the global copy. (`load` skips a provider already loaded: start from an empty store.)
     stored.set('settings.gemini.systemInstructions', 'Mine.');
-    useProviderStore.setState({ entries: {} });
+    useProviderStore.setState({ entries: {}, intent: undefined });
     await useProviderStore.getState().load(geminiProvider);
     expect((useProviderStore.getState().entries.gemini.settings as GeminiSettings).systemInstructions).toBe('Mine.');
-  });
-
-  it("loads an old profile's pair, saved in the old regional codes, as the default pair — English → Japanese — writing nothing (Gemini/AST2 follow-up, ruling 6; choice 17)", async () => {
-    stored.set('settings.gemini.sourceLanguage', 'en-US');
-    stored.set('settings.gemini.targetLanguage', 'cmn-CN');
-    await useProviderStore.getState().load(geminiProvider);
-    expect(useProviderStore.getState().entries.gemini.pair).toEqual({ source: 'en', target: 'ja' });
-    expect(setSetting).not.toHaveBeenCalled();
-    // One side still offered stays.
-    stored.set('settings.gemini.sourceLanguage', 'pt-BR');
-    useProviderStore.setState({ entries: {} });
-    await useProviderStore.getState().load(geminiProvider);
-    expect(useProviderStore.getState().entries.gemini.pair).toEqual({ source: 'pt-BR', target: 'ja' });
   });
 });

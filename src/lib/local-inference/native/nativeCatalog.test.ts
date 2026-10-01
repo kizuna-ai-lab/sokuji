@@ -9,7 +9,7 @@ const V = (name: string, language: string | undefined, curated: boolean, def = f
  * Fixture catalog for ASR logic tests. Contains entries that exercise:
  *   - recommended-first then order sorting
  *   - language filtering (including multi)
- *   - canonLang aliases (yue for cantonese, fil for tl)
+ *   - app codes yue/fil matching catalog rows directly
  * Production catalog data lives in the sidecar (tested in sidecar/tests/test_catalog.py).
  */
 const M = (id: string, kind: NativeModelInfo['kind'], languages: string[], order: number,
@@ -19,7 +19,7 @@ const M = (id: string, kind: NativeModelInfo['kind'], languages: string[], order
 const FIXTURE_ASR: Record<string, NativeModelInfo> = {
   // recommended, order 0 — covers en/de/zh/ja/ko; leads for those languages
   'cohere-transcribe-03-2026': M('cohere-transcribe-03-2026', 'asr', ['en', 'de', 'zh', 'ja', 'ko'], 0, true),
-  // recommended, order 1 — covers zh/en/ja/ko/yue (yue = cantonese alias)
+  // recommended, order 1 — covers zh/en/ja/ko/yue
   'sense-voice': M('sense-voice', 'asr', ['zh', 'en', 'ja', 'ko', 'yue'], 1, true),
   // non-recommended multi models for fallback
   'whisper-tiny': M('whisper-tiny', 'asr', ['multi'], 2),
@@ -75,17 +75,15 @@ describe('nativeCatalog', () => {
     expect(supportsLanguage({ languages: ['zh', 'en'] }, 'de')).toBe(false);
     expect(supportsLanguage({ languages: ['multi'] }, 'de')).toBe(true);
 
-    // Alias-aware: the picker emits app codes (cantonese/tl) while catalog rows use
-    // ISO codes (yue/fil). Both must resolve to the same model.
-    expect(supportsLanguage({ languages: ['yue'] }, 'cantonese')).toBe(true);
-    expect(supportsLanguage({ languages: ['yue'] }, 'yue')).toBe(true);
-    expect(supportsLanguage({ languages: ['fil'] }, 'tl')).toBe(true);
+    // App codes (yue, fil) match catalog rows directly.
+    expect(supportsLanguage({ languages: ['zh', 'yue'] }, 'yue')).toBe(true);
     expect(supportsLanguage({ languages: ['fil'] }, 'fil')).toBe(true);
+    expect(supportsLanguage({ languages: ['zh'] }, 'yue')).toBe(false);
     // sense-voice (yue) and fun-asr (yue) are reachable when the picker selects Cantonese
-    expect(compatibleNativeAsr('cantonese', FIXTURE_ASR).map((m) => m.id)).toContain('sense-voice');
-    expect(compatibleNativeAsr('cantonese', FIXTURE_ASR).map((m) => m.id)).toContain('fun-asr');
-    // fun-asr (fil) is reachable when the picker selects Tagalog (tl)
-    expect(compatibleNativeAsr('tl', FIXTURE_ASR).map((m) => m.id)).toContain('fun-asr');
+    expect(compatibleNativeAsr('yue', FIXTURE_ASR).map((m) => m.id)).toContain('sense-voice');
+    expect(compatibleNativeAsr('yue', FIXTURE_ASR).map((m) => m.id)).toContain('fun-asr');
+    // fun-asr (fil) is reachable when the picker selects Filipino
+    expect(compatibleNativeAsr('fil', FIXTURE_ASR).map((m) => m.id)).toContain('fun-asr');
 
     // Recommended-first then order: for zh, cohere (recommended, order 0) leads
     expect(compatibleNativeAsr('zh', FIXTURE_ASR).map((m) => m.id)[0]).toBe('cohere-transcribe-03-2026');

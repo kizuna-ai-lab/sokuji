@@ -24,7 +24,7 @@ const LANG_NAMES: Record<string, string> = {
   es: 'Spanish',    ja: 'Japanese',   tr: 'Turkish',    ru: 'Russian',
   ar: 'Arabic',     ko: 'Korean',     th: 'Thai',       it: 'Italian',
   de: 'German',     vi: 'Vietnamese', ms: 'Malay',      id: 'Indonesian',
-  tl: 'Filipino',   hi: 'Hindi',      pl: 'Polish',     cs: 'Czech',
+  fil: 'Filipino',  hi: 'Hindi',      pl: 'Polish',     cs: 'Czech',
   nl: 'Dutch',      km: 'Khmer',      my: 'Burmese',    fa: 'Persian',
   gu: 'Gujarati',   ur: 'Urdu',       te: 'Telugu',     mr: 'Marathi',
   he: 'Hebrew',     bn: 'Bengali',    ta: 'Tamil',      uk: 'Ukrainian',

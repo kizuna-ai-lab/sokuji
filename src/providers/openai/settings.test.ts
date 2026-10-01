@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { INSTRUCTION_LEGACY_KEYS, INSTRUCTIONS_DEFAULTS } from '../../lib/provider/instructions';
 import { AUTO, reverseSupported } from '../../lib/provider/languages';
 import type { AuthContext } from '../../lib/provider/types';
+import { parseCode } from '../../lib/language/code';
+import { englishLanguageName } from '../../lib/language/label';
 import {
   effectiveRealtimeModel, isRealtimeModelId, migrateRealtimeSettings, realtimeCredentials, realtimeLanguageName, realtimeLanguages,
   REALTIME_DEFAULTS, REALTIME_LANGUAGES, REALTIME_LEGACY_KEYS, REALTIME_VOICES, takesReasoning,
@@ -75,21 +77,21 @@ describe("OpenAI Realtime's settings", () => {
     expect(s).toMatchObject({ useTemplateMode: false, systemInstructions: 'Translate plainly.' });
   });
 
-  it('offers Auto-detect and the old 55 as sources, the 55 as every source\'s targets, en → zh_CN first (ruling 7)', () => {
+  it('offers Auto-detect and the old 55 as sources, the 55 as every source\'s targets, en → zh-CN first (ruling 7)', () => {
     const sources = realtimeLanguages.sources(REALTIME_DEFAULTS);
     expect(sources).toHaveLength(56);
     expect(sources[0].value).toBe(AUTO);
     expect(sources.slice(1)).toEqual(REALTIME_LANGUAGES);
     expect(realtimeLanguages.targets(AUTO, REALTIME_DEFAULTS)).toEqual(REALTIME_LANGUAGES);
     expect(realtimeLanguages.targets('en', REALTIME_DEFAULTS).map((o) => o.value)).toContain('en');
-    expect(realtimeLanguages.initial?.(REALTIME_DEFAULTS)).toEqual({ source: 'en', target: 'zh_CN' });
+    expect(realtimeLanguages.initial?.(REALTIME_DEFAULTS)).toEqual({ source: 'en', target: 'zh-CN' });
     // D20: an Auto-detect source never reverses, so Both is refused for it; a named one does.
     expect(reverseSupported({ languages: realtimeLanguages }, REALTIME_DEFAULTS, { source: AUTO, target: 'en' })).toBe(false);
     expect(reverseSupported({ languages: realtimeLanguages }, REALTIME_DEFAULTS, { source: 'ja', target: 'en' })).toBe(true);
   });
 
   it('names a language in English for the template, Auto-detect as "the spoken language" (ruling 7)', () => {
-    expect(realtimeLanguageName('zh_CN')).toBe('Chinese (China)');
+    expect(realtimeLanguageName('zh-CN')).toBe(englishLanguageName('zh-CN'));
     expect(realtimeLanguageName(AUTO)).toBe('the spoken language');
     expect(realtimeLanguageName('xx')).toBe('xx');
   });
@@ -128,5 +130,20 @@ describe("OpenAI Realtime's settings", () => {
     expect(takesReasoning('gpt-realtime')).toBe(false);
     // A dated 1.0 snapshot: the four-digit year is not a 2.x minor version.
     expect(takesReasoning('gpt-realtime-2025-08-28')).toBe(false);
+  });
+});
+
+describe('unified language codes', () => {
+  it('offers app codes only, Chinese and English variants by region (unified language codes)', () => {
+    const values = REALTIME_LANGUAGES.map((o) => o.value);
+    for (const v of values) expect(parseCode(v), v).not.toBeNull();
+    expect(values).toEqual(expect.arrayContaining(['zh-CN', 'zh-TW', 'en-US', 'en-GB', 'en-AU', 'es-419', 'pt-BR', 'pt-PT']));
+    expect(realtimeLanguages.initial?.(REALTIME_DEFAULTS)).toEqual({ source: 'en', target: 'zh-CN' });
+    expect(realtimeLanguages.wire?.toWire('zh-TW')).toBe('zh-TW');
+  });
+
+  it("names a code in English for the instructions, auto as 'the spoken language'", () => {
+    expect(realtimeLanguageName('zh-TW')).toBe(englishLanguageName('zh-TW'));
+    expect(realtimeLanguageName(AUTO)).toBe('the spoken language');
   });
 });

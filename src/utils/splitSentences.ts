@@ -4,19 +4,10 @@
  * (handles abbreviations, version numbers, decimals automatically).
  */
 
-// Map app-internal language codes that are not valid BCP-47 tags to
-// equivalents Intl.Segmenter will accept. `cantonese` is this app's own
-// target-language code (see utils/languages.ts); `yue` is its ISO 639-3 tag.
-const LOCALE_ALIASES: Record<string, string> = {
-  cantonese: 'yue',
-};
-
+// App codes are BCP-47; an underscore form is still accepted from callers
+// outside the app vocabulary.
 function toBcp47(locale: string): string {
-  const lower = locale.toLowerCase();
-  if (LOCALE_ALIASES[lower]) return LOCALE_ALIASES[lower];
-  // Accept underscore-separated variants like "zh_CN" that some provider
-  // configs still use.
-  return locale.replace('_', '-');
+  return locale.replace(/_/g, '-');
 }
 
 export function splitSentences(text: string, locale = 'en'): string[] {

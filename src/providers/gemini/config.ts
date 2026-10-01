@@ -11,7 +11,7 @@ import { resolveInstructions } from '../../lib/provider/instructions';
 import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
 import { clampSegmentPauseMs, segmentPauseMs } from '../../lib/segmentation/segmentationMode';
 import {
-  effectiveGeminiModel, geminiActivityHandling, geminiLanguageName, geminiTextInMarks, GEMINI_DEFAULTS, GEMINI_DEFAULT_VOICE,
+  effectiveGeminiModel, geminiActivityHandling, geminiLanguageName, geminiLanguages, geminiTextInMarks, GEMINI_DEFAULTS, GEMINI_DEFAULT_VOICE,
   GEMINI_MAX_TOKENS_RANGE, GEMINI_TEMPERATURE_RANGE, GEMINI_TRANSLATE_TARGETS, GEMINI_VAD_PREFIX_RANGE, GEMINI_VAD_SILENCE_RANGE,
   isGeminiTranslateModel, type GeminiActivityHandling, type GeminiSettings,
 } from './settings';
@@ -82,7 +82,7 @@ export function buildGemini(context: SessionContext, s: GeminiSettings, shared: 
       ? { maxOutputTokens: Math.round(clamp(s.maxTokens, GEMINI_MAX_TOKENS_RANGE.min, GEMINI_MAX_TOKENS_RANGE.max, GEMINI_MAX_TOKENS_RANGE.max)) }
       : {}),
     ...(dialogue ? {} : {
-      translationTargetCode: target,
+      translationTargetCode: geminiLanguages.wire.toWire(target),
       silence: {
         sourceMs: clampSegmentPauseMs(segmentPauseMs(shared.pauses.sourceSeconds)),
         translationMs: clampSegmentPauseMs(segmentPauseMs(shared.pauses.translationSeconds)),

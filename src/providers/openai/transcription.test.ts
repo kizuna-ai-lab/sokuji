@@ -25,7 +25,7 @@ describe('normalizeTranscriptionLanguage', () => {
   it('passes supported base codes through, and strips the region from variants the API refuses', () => {
     expect(normalizeTranscriptionLanguage('en')).toBe('en');
     expect(normalizeTranscriptionLanguage('ja')).toBe('ja');
-    for (const [value, code] of [['en_AU', 'en'], ['en_GB', 'en'], ['en_US', 'en'], ['zh_CN', 'zh'], ['zh_TW', 'zh'], ['es_419', 'es'], ['pt_BR', 'pt'], ['pt_PT', 'pt']]) {
+    for (const [value, code] of [['en-AU', 'en'], ['en-GB', 'en'], ['en-US', 'en'], ['zh-CN', 'zh'], ['zh-TW', 'zh'], ['es-419', 'es'], ['pt-BR', 'pt'], ['pt-PT', 'pt']]) {
       expect(normalizeTranscriptionLanguage(value), value).toBe(code);
     }
   });
@@ -69,11 +69,11 @@ describe('parseTranscriptionKeywords', () => {
 
 describe('buildTranscriptionHint', () => {
   it('sends languages and keywords to the context-capable models', () => {
-    expect(buildTranscriptionHint('gpt-live-transcribe', 'en_US', 'Sokuji, Kizuna AI')).toEqual({ model: 'gpt-live-transcribe', languages: ['en'], keywords: ['Sokuji', 'Kizuna AI'] });
+    expect(buildTranscriptionHint('gpt-live-transcribe', 'en-US', 'Sokuji, Kizuna AI')).toEqual({ model: 'gpt-live-transcribe', languages: ['en'], keywords: ['Sokuji', 'Kizuna AI'] });
   });
 
   it('sends the singular language to a legacy model, and never keywords: the API would refuse the whole session.update', () => {
-    const hint = buildTranscriptionHint('gpt-4o-mini-transcribe', 'zh_CN', 'Sokuji');
+    const hint = buildTranscriptionHint('gpt-4o-mini-transcribe', 'zh-CN', 'Sokuji');
     expect(hint).toEqual({ model: 'gpt-4o-mini-transcribe', language: 'zh' });
   });
 
@@ -86,7 +86,7 @@ describe('buildTranscriptionHint', () => {
 
   it('keeps every model the settings offer to a payload the API accepts', () => {
     for (const model of TRANSCRIPT_MODELS) {
-      const hint = buildTranscriptionHint(model, 'en_AU', 'Sokuji');
+      const hint = buildTranscriptionHint(model, 'en-AU', 'Sokuji');
       expect(hint, model).toEqual(supportsTranscriptionContext(model) ? { model, languages: ['en'], keywords: ['Sokuji'] } : { model, language: 'en' });
     }
   });

@@ -9,7 +9,7 @@ import { appendFrame, LIVE_WS_URL, liveHeaders, muteFrame, SESSION_CLOSE, sessio
 
 const KEY = { apiKey: 'sk-proj-liveWire0123456789' };
 const CONFIG = buildLive(
-  { direction: { source: 'zh_CN', target: 'en' }, speech: true, turns: 'auto' },
+  { direction: { source: 'zh-CN', target: 'en' }, speech: true, turns: 'auto' },
   LIVE_DEFAULTS,
   { pauses: { sourceSeconds: 1.5, translationSeconds: 1.5 }, reversed: () => false, segmentation: { mode: 'pause', sentencesPerRow: 0 }, models: [] },
 ) as LiveConfig;

@@ -1,7 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { useProviderStore } from '../../../stores/providerStore';
-import { AUTO } from '../../../lib/provider/languages';
+import { useLanguageLabel } from '../../../lib/language/useLanguageLabel';
 import { getScenario } from '../../../lib/setup/scenarios';
 import { pairSentence } from '../languageSentence';
 import StatusMessage from '../../Settings/shared/StatusMessage';
@@ -12,14 +11,12 @@ interface Props { draft: SetupDraft; isSignedIn: boolean; error: string | null }
 
 const StepFinish: React.FC<Props> = ({ draft, isSignedIn, error }) => {
   const { t } = useTranslation();
+  const label = useLanguageLabel();
   const preset = getScenario(draft.scenario!);
   const p = wizardProvider(draft.provider)!;
   const providerName = t(`providers.${p.i18nKey ?? p.id}.name`, p.id);
-  const s = useProviderStore((st) => st.entries[p.id]?.settings) ?? p.settings.defaults;
-  // A source list can start with AUTO (Soniox's does): named by the catalogue key Settings uses, never the definition's raw "Auto".
-  const nameOf = (list: { value: string; name: string }[], v: string | null) => (v === AUTO ? t('common.autoDetect') : list.find((o) => o.value === v)?.name ?? v ?? '');
-  const sourceName = nameOf([...p.languages.sources(s)], draft.sourceLanguage);
-  const targetName = nameOf([...p.languages.targets(draft.sourceLanguage ?? '', s)], draft.targetLanguage);
+  const sourceName = draft.sourceLanguage ? label(draft.sourceLanguage) : '';
+  const targetName = draft.targetLanguage ? label(draft.targetLanguage) : '';
   // The pair reads as the sentence the pair step and Settings both print,
   // rather than as a bare arrow that says nothing about who hears what.
   const sentence = pairSentence({

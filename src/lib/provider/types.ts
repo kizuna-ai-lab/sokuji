@@ -7,11 +7,13 @@ import type { PreviewClip } from '../audio/playback';
 import type { Adapter, SessionContext } from '../contract/adapter';
 import type { LegName } from '../conversation/types';
 import type { SessionHooks } from '../session/types';
+import type { WireTable } from '../language/wire';
 
 export type Platform = 'electron' | 'extension' | 'web';
 export type ProviderKind = 'own-key' | 'managed' | 'local';
 
-export interface LanguageOption { value: string; name: string; englishName: string }
+/** A language on offer: an app code (`src/lib/language/code.ts`), named by `languageLabel` wherever it shows. */
+export interface LanguageOption { value: string }
 export interface LanguagePair { source: string; target: string }
 
 /**
@@ -323,15 +325,6 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
     /** The pair to start from when nothing is stored; normalized like any stored pair. Absent: the first source and its first target. */
     initial?(s: S): Partial<LanguagePair>;
     /**
-     * Rewrites the stored pair before it is normalized (F5): a code the
-     * provider renamed, or one its offer no longer holds. '' in a side means
-     * nothing is stored there; a side returned as '' falls back to
-     * `initial`. First named for Palabra's `vn` → `vi`, which Palabra's port
-     * does not take (Stage 2 Palabra, ruling 2); Gemini reads its stored
-     * pair through it (Stage 2 Gemini/AST2 follow-up, choice 17).
-     */
-    migratePair?(stored: LanguagePair, s: S): LanguagePair;
-    /**
      * The pair the other way round (Stage 2 Palabra, ruling 9): the
      * participant leg's direction (D17, D20) and the swap button's result.
      * Absent: the plain swap, `{ source: target, target: source }`. For a
@@ -342,6 +335,8 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
      * `reverseSupported` refuses it before reading the answer.
      */
     reverse?(pair: LanguagePair, s: S): LanguagePair | null;
+    /** App codes ⇄ the vendor's: `toWire` for every code a build sends, `fromWire` for every language the vendor reports (spec "Unified language codes" §3). */
+    wire: WireTable;
   };
 
   // the only capabilities generic code reads

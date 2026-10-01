@@ -13,6 +13,13 @@ const SHARED: SharedSettings = {
 const SPEAKER: SessionContext = { direction: { source: 'zh', target: 'en' }, speech: true, turns: 'auto' };
 const build = (patch: Partial<Ast2Settings> = {}, context = SPEAKER) => buildAst2(context, { ...AST2_DEFAULTS, ...patch }, SHARED) as Ast2Config;
 
+it('sends Doubao its own codes', () => {
+  const c = buildAst2({ direction: { source: 'zh+en', target: 'zh+en' }, speech: true, turns: 'auto' }, AST2_DEFAULTS, SHARED);
+  expect(c).toMatchObject({ sourceLanguage: 'zhen', targetLanguage: 'zhen' });
+  const d = buildAst2({ direction: { source: 'wuu', target: 'zh' }, speech: false, turns: 'auto' }, AST2_DEFAULTS, SHARED);
+  expect(d).toMatchObject({ sourceLanguage: 'sh-CN', targetLanguage: 'zh' });
+});
+
 describe('buildCorpus — the old buildCorpusFromConfig cases (`VolcengineAST2Client.test.ts:19-79`)', () => {
   it('is absent when no id is set, or every id is blank', () => {
     expect(buildCorpus(AST2_DEFAULTS)).toBeUndefined();
@@ -44,8 +51,8 @@ describe("Doubao AST 2.0's builder", () => {
     expect(buildAst2(korean, AST2_DEFAULTS, SHARED)).toEqual({ refused: 'Doubao AST 2.0 does not speak ko → zh.' });
     expect(buildAst2({ direction: { source: 'ja', target: 'de' }, speech: false, turns: 'auto' }, AST2_DEFAULTS, SHARED)).toEqual({ refused: 'Doubao AST 2.0 does not translate ja → de.' });
     expect(build({}, { ...korean, speech: false })).toEqual({ mode: 's2t', sourceLanguage: 'ko', targetLanguage: 'zh' });
-    expect(build({}, { direction: { source: 'yue-CN', target: 'en' }, speech: false, turns: 'auto' })).toMatchObject({ mode: 's2t', sourceLanguage: 'yue-CN' });
-    expect(build({}, { direction: { source: 'zhen', target: 'zhen' }, speech: true, turns: 'manual' })).toMatchObject({ mode: 's2s', sourceLanguage: 'zhen', targetLanguage: 'zhen' });
+    expect(build({}, { direction: { source: 'yue', target: 'en' }, speech: false, turns: 'auto' })).toMatchObject({ mode: 's2t', sourceLanguage: 'yue-CN' });
+    expect(build({}, { direction: { source: 'zh+en', target: 'zh+en' }, speech: true, turns: 'manual' })).toMatchObject({ mode: 's2s', sourceLanguage: 'zhen', targetLanguage: 'zhen' });
   });
 
   it('describes no model (choice 7)', () => {
