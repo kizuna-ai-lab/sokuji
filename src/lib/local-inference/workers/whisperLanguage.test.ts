@@ -6,7 +6,7 @@ describe('whisperLanguage', () => {
     expect(whisperLanguage('ja')).toBe('ja');
     expect(whisperLanguage('zh-Hant')).toBe('zh');
     expect(whisperLanguage('yue')).toBeUndefined();
-    expect(whisperLanguage('fil')).toBeUndefined();
+    expect(whisperLanguage('fil')).toBe('tl');
     expect(whisperLanguage('auto')).toBeUndefined();
     expect(whisperLanguage(undefined)).toBeUndefined();
   });
