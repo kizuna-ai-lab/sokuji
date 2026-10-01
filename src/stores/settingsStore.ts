@@ -625,6 +625,8 @@ const useSettingsStore = create<SettingsStore>()(
         const { ready, reason } = await useNativeModelStore.getState()
           .ensureSelectionReady(() => ({
             selection: get().localNative,
+            selections: get().localNative.selections,
+            mode: useAudioStore.getState().mode,
             textOnly: effectiveTextOnly({
               speakerLegRuns: speakerChannelInScope(useAudioStore.getState().mode),
               textOnly: get().textOnly,

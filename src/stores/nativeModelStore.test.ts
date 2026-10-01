@@ -2,12 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useNativeModelStore, deriveVariantRepos, formatEngineReadyLog } from './nativeModelStore';
 import useLogStore from './logStore';
 import { requiredNativeModels } from '../lib/local-inference/native/nativeCatalog';
+import type { NativeReadinessInput } from '../lib/local-inference/native/nativeCatalog';
 import { directionKey, emptyDirection } from '../lib/local-inference/selection/types';
 import type { HardwareInfoResultMsg, NativeModelInfo } from '../lib/local-inference/native/nativeProtocol';
 import { settleReports, resetReportThrottle } from '../lib/diagnostics/report';
 
 // Kept from before the old audio service was deleted:
-// resolve()/applyPrunes()/ensureSelectionReady() reach settingsStore via a
+// The cases that seed the old settings slice reach settingsStore via a
 // dynamic import, which used to drag in its real static import graph —
 // including audioStore -> ServiceFactory, which imported
 // ModernBrowserAudioService -> ModernAudioRecorder -> the
@@ -256,31 +257,23 @@ describe('catalog-derived statusRepos cache (cold-start variant awareness)', () 
     });
   });
 
-  it('an explicit variant pin wins over the recommendation', async () => {
+  it("an explicit variant pin in Local Native's own settings wins over the recommendation (#578 ruling 6)", async () => {
     _asrExtraModels = [FUN_ASR];
-    const { default: useSettingsStore } = await import('./settingsStore');
-    // The pin now lives on a (direction, stage) selections entry rather than
-    // a global per-model map — any direction works for this direction-
-    // agnostic catalog-wide cache (catalogStatusRepos collects across every
-    // direction the user has touched).
+    const { useProviderStore } = await import('./providerStore');
     const dir = directionKey('zh', 'en');
-    useSettingsStore.setState({
-      localNative: {
-        ...useSettingsStore.getState().localNative,
-        selections: { [dir]: { ...emptyDirection(), asr: { modelId: 'fun-asr-mlt-nano', variant: 'q6_k' } } },
-      },
-    } as any);
+    const entry = {
+      settings: { selections: { [dir]: { ...emptyDirection(), asr: { modelId: 'fun-asr-mlt-nano', variant: 'q6_k' } } } },
+      credentials: {},
+      pair: { source: 'zh', target: 'en' },
+    };
+    useProviderStore.setState({ entries: { ...useProviderStore.getState().entries, local_native: entry } });
     await useNativeModelStore.getState().ensureCatalog();
     await useNativeModelStore.getState().refresh(['fun-asr-mlt-nano']);
     expect((globalThis as any).__lastStatusRepos).toMatchObject({
       'fun-asr-mlt-nano': 'handy/Fun-ASR-gguf/Fun-ASR-Q6_K.gguf',
     });
-    useSettingsStore.setState({
-      localNative: {
-        ...useSettingsStore.getState().localNative,
-        selections: {},
-      },
-    } as any);
+    const { local_native: _dropped, ...rest } = useProviderStore.getState().entries;
+    useProviderStore.setState({ entries: rest });
   });
 
   it('single-variant cards stay out of the cache (default repo is correct for them)', async () => {
@@ -444,21 +437,15 @@ describe('nativeModelStore sidecar lifecycle', () => {
     expect(modelsCatalogCallCount()).toBe(calls);
   });
 
-  it('retrySidecar re-runs provider validation so the stale gate message clears', async () => {
-    // Boot fails once → the gate stores an "unavailable" message.
-    mockModelsCatalogReject();
-    useNativeModelStore.setState({ sidecarStatus: 'idle', catalog: {} } as any);
-    await useNativeModelStore.getState().ensureCatalog();
-    expect(useNativeModelStore.getState().sidecarStatus).toBe('unavailable');
-    // Retry succeeds — validateApiKey owns validationMessage/isApiKeyValid
-    // (Start button + banner); a successful retry must re-run it.
+  it("retrySidecar boots the sidecar and leaves the old store's validation alone (#578 ruling 6)", async () => {
+    mockModelsCatalogResolve();
+    useNativeModelStore.setState({ sidecarStatus: 'unavailable' });
     const { useSettingsStore } = await import('./settingsStore');
     const validateApiKey = vi.fn(async () => ({ valid: true, validating: false }));
     useSettingsStore.setState({ provider: 'local_native', validateApiKey } as never);
-    mockModelsCatalogResolve();
     await useNativeModelStore.getState().retrySidecar();
     expect(useNativeModelStore.getState().sidecarStatus).toBe('ready');
-    expect(validateApiKey).toHaveBeenCalled();
+    expect(validateApiKey).not.toHaveBeenCalled();
   });
 });
 
@@ -727,22 +714,49 @@ describe('nativeModelStore resolved plans retain backend and computeType', () =>
 });
 
 describe('ensureSelectionReady (facade)', () => {
-  // The only fields readiness reads off settings now — model choices and
-  // variant pins live entirely in settingsStore's localNative.selections
-  // (seeded per-test below), not on this object.
+  // The pair under test. Model choices and variant pins arrive in the
+  // caller's `selections`, handed in per test through `read()` below.
   const SEL = { sourceLanguage: 'zh', targetLanguage: 'en' };
 
-  beforeEach(async () => {
-    _shouldReject = false;
-    _notReadyModels = new Set();
-    // ensureSelectionReady now resolves against settingsStore's
-    // localNative.selections (the structured source of truth), not the flat
-    // fields the read() thunk returns — a leftover explicit selection from a
-    // PRIOR test would silently change what these tests are exercising.
+  /** The facade's thunk: the pair, the caller's own selections, the mode and the toggle. */
+  const read = (over: Partial<NativeReadinessInput> = {}) => (): NativeReadinessInput =>
+    ({ selection: SEL, selections: {}, mode: 'speaker', textOnly: false, ...over });
+
+  it('resolves against the selections the caller hands in, never the old slice (#578 ruling 6)', async () => {
+    mockModelsCatalogResolve();
+    await useNativeModelStore.getState().ensureCatalog();
     const { useSettingsStore } = await import('./settingsStore');
+    const dir = directionKey('zh', 'en');
+    // The old slice names a model the catalog does not know; the caller hands in nothing explicit.
     useSettingsStore.setState({
-      localNative: { ...useSettingsStore.getState().localNative, selections: {} },
+      localNative: { ...useSettingsStore.getState().localNative, selections: { [dir]: { ...emptyDirection(), asr: { modelId: 'gone-model' } } } },
     });
+    const r = await useNativeModelStore.getState().ensureSelectionReady(read({ textOnly: true }));
+    expect(r.notes.filter((n) => n.from === 'gone-model')).toEqual([]);
+    expect(r.ready).toBe(true);
+  });
+
+  it('writes nothing back, not even a dead id it found (#578 ruling 6)', async () => {
+    mockModelsCatalogResolve();
+    await useNativeModelStore.getState().ensureCatalog();
+    const { useSettingsStore } = await import('./settingsStore');
+    const dir = directionKey('zh', 'en');
+    const dead = { [dir]: { ...emptyDirection(), asr: { modelId: 'gone-model' } } };
+    useSettingsStore.setState({ localNative: { ...useSettingsStore.getState().localNative, selections: dead } });
+    const r = await useNativeModelStore.getState().ensureSelectionReady(read({ selections: dead }));
+    expect(r.notes.some((n) => n.from === 'gone-model')).toBe(true);
+    expect(useSettingsStore.getState().localNative.selections).toEqual(dead);
+    expect('applyPrunes' in useNativeModelStore.getState()).toBe(false);
+  });
+
+  it("the mandatory leg follows the caller's mode, not audioStore", async () => {
+    mockModelsCatalogResolve();
+    await useNativeModelStore.getState().ensureCatalog();
+    const { default: useAudioStore } = await import('./audioStore');
+    useAudioStore.setState({ mode: 'speaker' } as never);
+    // en → zh has no ASR in the fixture catalog (its ASR is zh-only): participant alone is mandatory and fails.
+    const r = await useNativeModelStore.getState().ensureSelectionReady(read({ mode: 'participant' }));
+    expect(r).toMatchObject({ ready: false, reason: 'asr-incompatible' });
   });
 
   it('reads the selection AFTER sidecar warmup, not at call time', async () => {
@@ -756,7 +770,7 @@ describe('ensureSelectionReady (facade)', () => {
     let statusWhenRead: string | undefined;
     await useNativeModelStore.getState().ensureSelectionReady(() => {
       statusWhenRead = useNativeModelStore.getState().sidecarStatus;
-      return { selection: SEL, textOnly: true };
+      return { selection: SEL, selections: {}, mode: 'speaker', textOnly: true };
     });
     // Would be 'idle' if the read were hoisted back above the warmup await.
     expect(statusWhenRead).toBe('ready');
@@ -766,7 +780,7 @@ describe('ensureSelectionReady (facade)', () => {
     useNativeModelStore.setState({ sidecarStatus: 'unavailable' });
     // ensureCatalog will try to (re)load; make the catalog fetch reject so it stays unavailable.
     mockModelsCatalogReject();
-    const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({ selection: SEL, textOnly: false }));
+    const r = await useNativeModelStore.getState().ensureSelectionReady(read({ textOnly: false }));
     // There is nothing to resolve yet at this lifecycle stage, so notes is empty.
     expect(r).toEqual({ ready: false, reason: 'unavailable', notes: [] });
   });
@@ -779,7 +793,7 @@ describe('ensureSelectionReady (facade)', () => {
     // `{ ok: true }` mock reply (which carries no `state`/`sku`).
     (globalThis as any).window.electron.invoke = vi.fn().mockRejectedValue(new Error('no ipc'));
     mockModelsCatalogReject();
-    const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({ selection: SEL, textOnly: false }));
+    const r = await useNativeModelStore.getState().ensureSelectionReady(read({ textOnly: false }));
     expect(r.reason).toBe('engine-absent');
   });
 
@@ -787,14 +801,14 @@ describe('ensureSelectionReady (facade)', () => {
     useNativeModelStore.setState({ sidecarStatus: 'unavailable', bundleStatus: 'mismatch' });
     (globalThis as any).window.electron.invoke = vi.fn().mockRejectedValue(new Error('no ipc'));
     mockModelsCatalogReject();
-    const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({ selection: SEL, textOnly: false }));
+    const r = await useNativeModelStore.getState().ensureSelectionReady(read({ textOnly: false }));
     expect(r.reason).toBe('engine-mismatch');
   });
 
   it('ready + downloaded compatible pair → ready', async () => {
     mockModelsCatalogResolve();
     await useNativeModelStore.getState().ensureCatalog(); // status → ready, catalog seeded
-    const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({ selection: SEL, textOnly: true }));
+    const r = await useNativeModelStore.getState().ensureSelectionReady(read({ textOnly: true }));
     // FakeWS reports every queried model 'ready'; textOnly drops the TTS
     // requirement so readiness only needs the asr+translation pair.
     expect(r.ready).toBe(true);
@@ -825,18 +839,12 @@ describe('ensureSelectionReady (facade)', () => {
     // (language-filtered) candidate pool, so it reports lang-incompatible and
     // falls through to no auto candidate either — a pin can no longer leak
     // across directions the way a shared flat field once could.
-    const { useSettingsStore } = await import('./settingsStore');
     const dir = directionKey('en', 'zh');
-    useSettingsStore.setState({
-      localNative: {
-        ...useSettingsStore.getState().localNative,
-        selections: {
-          [dir]: { ...emptyDirection(), asr: { modelId: 'whisper-en' }, translation: { modelId: 'opus-mt-zh-en' } },
-        },
-      },
-    });
-    const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({
+    const r = await useNativeModelStore.getState().ensureSelectionReady(read({
       selection: { sourceLanguage: 'en', targetLanguage: 'zh' },
+      selections: {
+        [dir]: { ...emptyDirection(), asr: { modelId: 'whisper-en' }, translation: { modelId: 'opus-mt-zh-en' } },
+      },
       textOnly: false,
     }));
     // opus-mt-zh-en is a card for zh→en, not the reversed en→zh pair — incompatible
@@ -860,20 +868,13 @@ describe('ensureSelectionReady (facade)', () => {
         { id: 'bf16', sizeBytes: 15e9, repo: 'tencent/Hy-MT2-1.8B', supported: true, recommended: false },
       ],
     } } as any });
-    // ensureSelectionReady resolves against settingsStore's localNative.selections
-    // — the read() thunk below only carries the language pair now, so without
-    // this the resolver would auto-pick the recommended qwen2.5-0.5b instead
-    // of honoring hy-mt2-1.8b as explicit.
-    const { useSettingsStore } = await import('./settingsStore');
+    // ensureSelectionReady resolves against the selections its caller hands in
+    // — without this entry the resolver would auto-pick the recommended
+    // qwen2.5-0.5b instead of honoring hy-mt2-1.8b as explicit.
     const dir = directionKey(SEL.sourceLanguage, SEL.targetLanguage);
-    useSettingsStore.setState({
-      localNative: {
-        ...useSettingsStore.getState().localNative,
-        selections: { [dir]: { ...emptyDirection(), translation: { modelId: 'hy-mt2-1.8b' } } },
-      },
-    });
-    await useNativeModelStore.getState().ensureSelectionReady(() => ({
-      selection: SEL, textOnly: false,
+    await useNativeModelStore.getState().ensureSelectionReady(read({
+      selections: { [dir]: { ...emptyDirection(), translation: { modelId: 'hy-mt2-1.8b' } } },
+      textOnly: false,
     }));
     expect((globalThis as any).__lastStatusRepos).toMatchObject({ 'hy-mt2-1.8b': 'tencent/Hy-MT2-1.8B-FP8' });
   });
@@ -905,16 +906,10 @@ describe('ensureSelectionReady (facade)', () => {
     // Without an explicit structured selection, the resolver would auto-pick
     // the recommended moss-tts-nano (from the base fixture) over moss-tts-pro —
     // see the note on the translation-variant test above.
-    const { useSettingsStore } = await import('./settingsStore');
     const dir = directionKey(SEL.sourceLanguage, 'ja');
-    useSettingsStore.setState({
-      localNative: {
-        ...useSettingsStore.getState().localNative,
-        selections: { [dir]: { ...emptyDirection(), tts: { modelId: 'moss-tts-pro', variant: 'fp32' } } },
-      },
-    });
-    await useNativeModelStore.getState().ensureSelectionReady(() => ({
+    await useNativeModelStore.getState().ensureSelectionReady(read({
       selection: { ...SEL, targetLanguage: 'ja' },
+      selections: { [dir]: { ...emptyDirection(), tts: { modelId: 'moss-tts-pro', variant: 'fp32' } } },
       textOnly: false,
     }));
     expect((globalThis as any).__lastStatusRepos).toMatchObject({ 'moss-tts-pro': 'org/moss-pro-fp32' });
@@ -928,7 +923,7 @@ describe('ensureSelectionReady (facade)', () => {
     // take precedence over 'starting' in the reason derivation) so a leftover
     // bundleStatus from an earlier test in this file can't steal the reason.
     useNativeModelStore.setState({ sidecarStatus: 'starting', bundleStatus: 'unknown' });
-    const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({ selection: SEL, textOnly: false }));
+    const r = await useNativeModelStore.getState().ensureSelectionReady(read({ textOnly: false }));
     // There is nothing to resolve yet at this lifecycle stage, so notes is empty.
     expect(r).toEqual({ ready: false, reason: 'starting', notes: [] });
   });
@@ -940,7 +935,7 @@ describe('ensureSelectionReady (facade)', () => {
     // first) wins the reason.
     mockModelsCatalogResolve();
     await useNativeModelStore.getState().ensureCatalog(); // status → ready, catalog seeded
-    const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({
+    const r = await useNativeModelStore.getState().ensureSelectionReady(read({
       selection: { sourceLanguage: 'en', targetLanguage: 'en' },
       textOnly: true,
     }));
@@ -960,7 +955,7 @@ describe('ensureSelectionReady (facade)', () => {
     mockModelsCatalogResolve();
     mockModelNotReady('moss-tts-nano');
     await useNativeModelStore.getState().ensureCatalog();
-    const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({
+    const r = await useNativeModelStore.getState().ensureSelectionReady(read({
       selection: { ...SEL, targetLanguage: 'ja' }, textOnly: false,
     }));
     expect(r.ready).toBe(true);
@@ -975,7 +970,7 @@ describe('ensureSelectionReady (facade)', () => {
     mockModelsCatalogResolve();
     mockModelNotReady('moss-tts-nano');
     await useNativeModelStore.getState().ensureCatalog();
-    const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({
+    const r = await useNativeModelStore.getState().ensureSelectionReady(read({
       selection: { ...SEL, targetLanguage: 'ja' }, textOnly: true,
     }));
     expect(r.ready).toBe(true);
@@ -1003,7 +998,7 @@ describe('ensureSelectionReady (facade)', () => {
       'opus-mt-zh-en': { id: 'opus-mt-zh-en', name: 'Opus MT zh-en', kind: 'translate', languages: ['zh', 'en'],
         recommended: false, tiers: [{ tier: 'cpu', backend: 'opus', available: true }], order: 1, repo: 'opus-mt-zh-en' },
     } as any });
-    const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({
+    const r = await useNativeModelStore.getState().ensureSelectionReady(read({
       selection: SEL, textOnly: false,
     }));
     expect(r.ready).toBe(true);
@@ -1012,28 +1007,23 @@ describe('ensureSelectionReady (facade)', () => {
     expect(r.notes.some((n) => n.direction === 'en→zh' && n.stage === 'translation' && n.reason === 'no-candidate')).toBe(true);
   });
 
-  it('prunes a dead id seeded on the PARTICIPANT-direction selections entry in one ensureSelectionReady() call', async () => {
-    // Mirrors ensureSelectionReady.test.ts's "applies prunes found while
-    // checking" (gate table row 5), but for the direction the facade never
-    // gates Start on — pruning must still happen for it, and in the SAME
-    // call as the speaker-direction resolve, not a second round-trip.
+  it('notes a dead id on the PARTICIPANT direction and leaves it in place', async () => {
+    // The direction the facade never gates Start on still resolves in the same
+    // call as the speaker direction, and a dead id there is noted, not written
+    // back: the caller owns its settings (#578 ruling 6).
     mockModelsCatalogResolve();
     await useNativeModelStore.getState().ensureCatalog();
     const { useSettingsStore } = await import('./settingsStore');
     const participantDir = directionKey(SEL.targetLanguage, SEL.sourceLanguage); // 'en→zh'
-    useSettingsStore.setState({
-      localNative: {
-        ...useSettingsStore.getState().localNative,
-        selections: {
-          [participantDir]: { asr: { modelId: 'retired-xyz' }, translation: { modelId: '' }, tts: { modelId: '' } },
-        },
-      },
-    });
-    const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({ selection: SEL, textOnly: false }));
+    const selections = {
+      [participantDir]: { asr: { modelId: 'retired-xyz' }, translation: { modelId: '' }, tts: { modelId: '' } },
+    };
+    // The old slice holds the same dead id: were anything still pruning it, the entry would go.
+    useSettingsStore.setState({ localNative: { ...useSettingsStore.getState().localNative, selections } });
+    const r = await useNativeModelStore.getState().ensureSelectionReady(read({ selections }));
     expect(r.ready).toBe(true);
-    // The dead id is gone, and with nothing else explicit left in the
-    // direction, applyPrunes drops the entry entirely.
-    expect(useSettingsStore.getState().localNative.selections[participantDir]).toBeUndefined();
+    expect(r.notes.some((n) => n.direction === participantDir && n.from === 'retired-xyz')).toBe(true);
+    expect(useSettingsStore.getState().localNative.selections).toEqual(selections);
   });
 });
 
@@ -1187,16 +1177,6 @@ describe('nativeModelStore.resolve', () => {
     },
   } as any;
 
-  beforeEach(async () => {
-    // resolve() reads `selections` from the caller, not settingsStore — this
-    // block only resets settingsStore for applyPrunes(), which reaches it via
-    // a dynamic import (same path ensureSelectionReady uses).
-    const { useSettingsStore } = await import('./settingsStore');
-    useSettingsStore.setState({
-      localNative: { ...useSettingsStore.getState().localNative, selections: {} },
-    });
-  });
-
   it('resolves from the sidecar catalog and download statuses', () => {
     useNativeModelStore.setState({ catalog: ASR_FIXTURE, statuses: { 'sense-voice': 'ready' } });
     expect(useNativeModelStore.getState().resolve('ja', 'en', {}).asr?.modelId).toBe('sense-voice');
@@ -1205,18 +1185,5 @@ describe('nativeModelStore.resolve', () => {
   it('falls to null when the only candidate is absent', () => {
     useNativeModelStore.setState({ catalog: ASR_FIXTURE, statuses: { 'sense-voice': 'absent' } });
     expect(useNativeModelStore.getState().resolve('ja', 'en', {}).asr).toBeNull();
-  });
-
-  it('applyPrunes writes to the localNative slice', async () => {
-    const { useSettingsStore } = await import('./settingsStore');
-    const dir = directionKey('ja', 'en');
-    useSettingsStore.setState({
-      localNative: {
-        ...useSettingsStore.getState().localNative,
-        selections: { [dir]: { asr: { modelId: 'gone' }, translation: { modelId: 'kept' }, tts: { modelId: '' } } },
-      },
-    });
-    await useNativeModelStore.getState().applyPrunes([{ direction: dir, stage: 'asr' }]);
-    expect(useSettingsStore.getState().localNative.selections[dir].asr.modelId).toBe('');
   });
 });
