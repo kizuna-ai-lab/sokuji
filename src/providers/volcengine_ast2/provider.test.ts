@@ -90,17 +90,17 @@ describe('the Doubao AST 2.0 definition', () => {
     expect(opened).not.toHaveBeenCalled();
   });
 
-  it("loads an old profile as it was: the legacy mode, an App ID stored as a number read as text, the old per-provider pair not read, nothing written", async () => {
+  it("loads an old profile as it was: the legacy mode, an App ID stored as a number read as text, a stored zhen, no longer offered, falls back to the first source, nothing written", async () => {
     stored.set('settings.volcengineAST2.appId', 123456);
     stored.set('settings.volcengineAST2.accessToken', 'tok');
     stored.set('settings.volcengineAST2.hotWordTableId', 'hot-1');
     stored.set('settings.volcengineAST2.sourceLanguage', 'zhen');
-    stored.set('settings.volcengineAST2.targetLanguage', 'en');
+    stored.set('settings.volcengineAST2.targetLanguage', 'ja');
     await useProviderStore.getState().load(volcengineAst2Provider);
     const entry = useProviderStore.getState().entries.volcengine_ast2;
     expect(entry.settings as Ast2Settings).toEqual({ ...AST2_DEFAULTS, hotWordTableId: 'hot-1' });
     expect(readCredentials(volcengineAst2Provider, entry.settings, entry.credentials, { signedIn: false, getToken: async () => null })).toEqual({ kind: 'app', appKey: '123456', accessKey: 'tok' });
-    expect(entry.pair).toEqual({ source: 'zh', target: 'en' });
+    expect(entry.pair).toEqual({ source: 'zh', target: 'ja' });
     expect(setSetting).not.toHaveBeenCalled();
   });
 
