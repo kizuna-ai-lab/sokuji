@@ -137,7 +137,7 @@ describe("Palabra AI's languages: its documented tables (ruling 8)", () => {
 
   it('leaves out what the docs do not list: bn, mr and fa as targets, the hidden zh, en-au and en-ca, and the old app\'s vn, ba, eo and ia', () => {
     const targets = codes(palabraLanguages.targets('en', S));
-    for (const code of ['bn', 'mr', 'fa', 'zh', 'en-au', 'en-ca', 'vn']) expect(targets, code).not.toContain(code);
+    for (const code of ['bn', 'mr', 'fa', 'zh', 'en-AU', 'en-CA', 'vn']) expect(targets, code).not.toContain(code);
     const sources = codes(palabraLanguages.sources(S));
     for (const code of ['ba', 'eo', 'ia']) expect(sources, code).not.toContain(code);
   });

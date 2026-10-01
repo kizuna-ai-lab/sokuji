@@ -83,7 +83,7 @@ const code = (value: string): LanguageOption => ({ value });
 
 /**
  * The eight languages Doubao speaks (S2S), in the old list's order
- * (`VolcengineAST2ProviderConfig.ts:112-121`) and names.
+ * (`VolcengineAST2ProviderConfig.ts:112-121`).
  */
 const SPOKEN: readonly LanguageOption[] = [
   code('zh'),
@@ -98,9 +98,7 @@ const SPOKEN: readonly LanguageOption[] = [
 
 /**
  * The twelve more it transcribes and translates into text (S2T), in the
- * documentation's order; codes as the shared
- * vocabulary has them (`utils/languages.ts` `LANGUAGE_CODES`; Malay, which it
- * lacks, as Soniox's list does).
+ * documentation's order.
  */
 const TEXT_ONLY: readonly LanguageOption[] = [
   code('ko'),

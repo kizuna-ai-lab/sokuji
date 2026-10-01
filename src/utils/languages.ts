@@ -10,7 +10,7 @@ export const LANGUAGE_CODES: readonly string[] = [
 
 /** Global language display order — sorted by worldwide usage/importance.
  *  Languages in this array appear first (in this order);
- *  any remaining languages fall back to alphabetical by englishName. */
+ *  any remaining languages fall back to alphabetical by CLDR English name (`englishLanguageName`). */
 export const LANGUAGE_PRIORITY: string[] = [
   'en', 'zh', 'es', 'fr', 'ar',
   'bn', 'pt', 'ru', 'de', 'ja',

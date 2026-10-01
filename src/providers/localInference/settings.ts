@@ -7,9 +7,9 @@ import { getTranslationSourceLanguages, getTranslationTargetLanguages } from '..
  * LocalInference's `S` (spec: "Settings — never secrets"). Today's
  * `LocalInferenceSettings` (`src/services/providers/LocalInferenceProviderConfig.ts`)
  * minus three fields that leave `S` entirely under the new contract:
- * `sourceLanguage`/`targetLanguage` become the pair `providerStore` itself
- * persists (same storage keys, so an existing user's pick survives with no
- * `migrate`), and `turnDetectionMode` becomes the global turn mode
+ * `sourceLanguage`/`targetLanguage` become the one global pair `providerStore`
+ * keeps (`settings.common.sourceLanguage`/`targetLanguage`, not under this
+ * provider's keys), and `turnDetectionMode` becomes the global turn mode
  * (`turnModeStore`; its one-time migration is plan 1e-3's, not this `S`'s).
  */
 export interface LocalInferenceSettings {

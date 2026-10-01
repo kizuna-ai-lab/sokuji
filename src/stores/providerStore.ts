@@ -59,8 +59,10 @@ export interface ProviderStore {
    * Writes again every value whose last write did not land, then waits for
    * every write started so far, those included. True when nothing it answers
    * for is left unsaved. With `p`, only `p`'s own settings and the selection
-   * are written again and answered for; with `fields` too, only those of
-   * `p`'s fields (`PAIR_FIELDS` for its pair) and the selection. A value this
+   * are written again and answered for, and so are the global pair keys
+   * (every provider reads them); with `fields` too, only those of `p`'s
+   * fields (`PAIR_FIELDS` for its pair, which are the global pair keys) and
+   * the selection. A value this
    * caller did not write is not its to fail on.
    */
   flush(p?: AnyProvider, fields?: readonly string[]): Promise<boolean>;
@@ -273,6 +275,7 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       const kept = normalizePair(p, entry.settings, pair);
       const before = get().intent;
       set({ intent: kept });
+      // Put `p`'s own entry first: one never `load`ed (seeded by a test) stays in step, and `rederive` walks only loaded entries.
       put(p, { settings: entry.settings, credentials: entry.credentials, pair: derive(p, entry.settings) });
       persistPair(before, kept);
       rederive();
