@@ -62,7 +62,7 @@ export interface AudioGraph {
   playOnce(audio: Float32Array, sampleRate: number): OneShot;
   /** Makes the edges exactly these; an edge to a bus this platform lacks is ignored. */
   route(edges: readonly Edge[]): void;
-  /** Points each bus's element at a device; the virtual one stays silent until it has one. A bus switches one device at a time and ends on the last one asked for; the promise settles once this call's switches have run. */
+  /** Points each bus's element at a device; the virtual one stays silent until it has one. A bus switches one device at a time and ends on the last one asked for; the promise settles once this call's switches have run, and never for a switch that never settles. */
   setSinks(sinks: { real?: string; virtual?: string }): Promise<void>;
   /** The translated speech the graph plays (speaker, participant, replay), before any route: the echo monitor's reference. */
   readonly ttsTap: PcmTap;
@@ -289,7 +289,8 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
    * after `close()`, never reaches the element; a stale switch's outcome,
    * success or failure, leaves the newer request's records and the element
    * alone. A switch that has not settled after `SINK_SWITCH_DEADLINE_MS`
-   * stops holding the next one.
+   * stops holding the next one; if it then lands after a newer switch, the
+   * bus switches to the newest request again.
    */
   const switching: Partial<Record<Bus, Promise<void>>> = {};
   const switchBus = (bus: Bus, element: SinkElement, id: string | undefined): Promise<void> => {
@@ -298,7 +299,8 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
     const over = new Promise<void>((resolve) => { turnOver = resolve; });
     const run = async () => {
       if (stale()) return;
-      const cancel = clock.setTimeout(turnOver, SINK_SWITCH_DEADLINE_MS);
+      let overran = false;
+      const cancel = clock.setTimeout(() => { overran = true; turnOver(); }, SINK_SWITCH_DEADLINE_MS);
       try {
         await element.setSinkId?.(id ?? '');
       } catch (error) {
@@ -320,7 +322,22 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
         return;
       }
       cancel();
-      if (stale()) return;
+      if (stale()) {
+        // Past its deadline the next switch ran beside this one, and may have
+        // landed first: this landing moved the element back to an older device.
+        // Switch to the newest request again.
+        if (overran && closing === null) {
+          const newest = requested[bus];
+          if (bus === 'virtual') {
+            // Never play the meeting's audio on a device it was not asked for (F1).
+            applied.virtual = undefined;
+            element.pause();
+            if (newest === undefined) return;
+          }
+          void switchBus(bus, element, newest);
+        }
+        return;
+      }
       applied[bus] = id;
       play(bus);
     };

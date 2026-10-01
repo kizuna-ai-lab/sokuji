@@ -187,6 +187,9 @@ describe('createAudioGraph — outputs', () => {
     land.shift()!();
     await Promise.all([second, third]);
     expect(real.sinkId).toBe('monitor-c');
+    // monitor-a settled within its turn, so nothing switches again.
+    await settle();
+    expect(calls).toEqual(['monitor-a', 'monitor-c']);
   });
 
   it("a stale switch's failure neither forgets nor pauses the newer selection", async () => {
@@ -889,6 +892,74 @@ describe('createAudioGraph — a wedged context (#246)', () => {
     expect(calls).toEqual(['gone', 'monitor-b']);
     await next;
     expect(real.sinkId).toBe('monitor-b');
+    expect(clock.pending).toBe(0);
+  });
+
+  it('a switch that overran its deadline and lands after the newer one is undone: the bus ends on the newer device', async () => {
+    const { graph, real, clock, flush } = await setupRecovering();
+    const calls: string[] = [];
+    let landSlow!: () => void;
+    real.setSinkId = (id: string) => {
+      calls.push(id);
+      if (id === 'bt-headset') return new Promise<void>((resolve) => { landSlow = () => { real.sinkId = id; resolve(); }; });
+      return Promise.resolve().then(() => { real.sinkId = id; });
+    };
+    void graph.setSinks({ real: 'bt-headset' });
+    await flush();
+    const next = graph.setSinks({ real: 'speakers' });
+    clock.advance(SINK_SWITCH_DEADLINE_MS);
+    await flush();
+    await next;
+    expect(real.sinkId).toBe('speakers');
+    // The slow switch lands late and moves the element back…
+    landSlow();
+    await flush();
+    // …and the bus switches to the newest request again.
+    expect(real.sinkId).toBe('speakers');
+    expect(calls).toEqual(['bt-headset', 'speakers', 'speakers']);
+    expect(clock.pending).toBe(0);
+  });
+
+  it('on the meeting bus, a late landing pauses the output until the newer device is back', async () => {
+    const { graph, virtualSink, clock, flush } = await setupRecovering();
+    let landSlow!: () => void;
+    virtualSink.setSinkId = (id: string) => {
+      if (id === 'cable-1') return new Promise<void>((resolve) => { landSlow = () => { virtualSink.sinkId = id; resolve(); }; });
+      return Promise.resolve().then(() => { virtualSink.sinkId = id; });
+    };
+    void graph.setSinks({ virtual: 'cable-1' });
+    await flush();
+    const next = graph.setSinks({ virtual: 'cable-2' });
+    clock.advance(SINK_SWITCH_DEADLINE_MS);
+    await flush();
+    await next;
+    expect(virtualSink.paused).toBe(false);
+    const plays = virtualSink.plays;
+    landSlow();
+    await flush();
+    expect(virtualSink.sinkId).toBe('cable-2');
+    expect(virtualSink.paused).toBe(false);
+    // Paused while it stood on the stale device, then started again on the newer one.
+    expect(virtualSink.plays).toBe(plays + 1);
+    expect(clock.pending).toBe(0);
+  });
+
+  it('a late landing after the meeting output was turned off leaves it off, and switches nothing', async () => {
+    const { graph, virtualSink, clock, flush } = await setupRecovering();
+    const calls: string[] = [];
+    let landSlow!: () => void;
+    virtualSink.setSinkId = (id: string) => {
+      calls.push(id);
+      return new Promise<void>((resolve) => { landSlow = () => { virtualSink.sinkId = id; resolve(); }; });
+    };
+    void graph.setSinks({ virtual: 'cable-1' });
+    await flush();
+    clock.advance(SINK_SWITCH_DEADLINE_MS);
+    await graph.setSinks({ virtual: undefined });
+    landSlow();
+    await flush();
+    expect(calls).toEqual(['cable-1']);
+    expect(virtualSink.paused).toBe(true);
     expect(clock.pending).toBe(0);
   });
 });
