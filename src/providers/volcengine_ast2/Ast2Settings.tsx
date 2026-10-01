@@ -43,7 +43,8 @@ export function Ast2SettingsView({ settings, update, disabled = false, pair, pre
   ];
   return (
     <>
-      <VoicePreviewContext.Provider value={preview ?? null}>
+      {/* A text-only target no voice speaks and cloning cannot run (zh → ru) has nothing to pick: no section, not an empty one. */}
+      {voices.length > 0 && <VoicePreviewContext.Provider value={preview ?? null}>
         <div className="settings-section" id="volcengine-ast2-voice-section">
           <h2>{t('settings.voiceSettings', 'Voice Settings')}</h2>
           <VoiceLibrarySection
@@ -57,7 +58,7 @@ export function Ast2SettingsView({ settings, update, disabled = false, pair, pre
             isSessionActive={disabled}
           />
         </div>
-      </VoicePreviewContext.Provider>
+      </VoicePreviewContext.Provider>}
       <div className="settings-section">
         <h2>{t('settings.volcengineAST2CustomVocabulary', 'Custom Vocabulary')}</h2>
         <TextField

@@ -80,6 +80,14 @@ describe("Doubao AST 2.0's settings view", () => {
     expect(props.selectedId).toBe('zh_female_vv_uranus_bigtts');
   });
 
+  it('shows no voice section for a target no voice speaks and cloning cannot run (a text-only zh → ru)', () => {
+    render(<Ast2SettingsView settings={AST2_DEFAULTS} update={vi.fn()} pair={{ source: 'zh', target: 'ru' }} />);
+    expect(library).toHaveLength(0);
+    expect(screen.queryByRole('heading', { name: 'settings.voiceSettings' })).toBeNull();
+    // The rest of the view still renders.
+    expect(screen.getByRole('heading', { name: 'settings.volcengineAST2CustomVocabulary' })).toBeInTheDocument();
+  });
+
   it("writes the new target's slot after the target changed, leaving the old one (Review Focus)", () => {
     const update = vi.fn();
     const settings = { ...AST2_DEFAULTS, voices: { en: 'en_male_alex_uranus_bigtts' } };
