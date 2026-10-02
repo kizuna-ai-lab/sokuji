@@ -305,6 +305,16 @@ describe('createPlayback — passthrough', () => {
     expect(passthroughPlayed()).toBe(1);
   });
 
+  it('stops what it scheduled when the route closes, so a quick reopen never plays it late', () => {
+    const { playback, plays } = build({ ...ROUTING, passthrough: { on: true, ratio: 0.2, gate: 'held' } });
+    playback.live(true);
+    playback.held(true);
+    playback.passthrough(pcm(85));
+    expect(plays.filter((p) => p.feed === 'passthrough' && !p.done)).toHaveLength(1);
+    playback.held(false);
+    expect(plays.filter((p) => p.feed === 'passthrough' && !p.done)).toHaveLength(0);
+  });
+
   it("schedules nothing while push-to-translate's key is held, so a release never lets out the held voice", () => {
     const { playback, passthroughPlayed } = build({ ...ROUTING, passthrough: { on: true, ratio: 1, gate: 'idle' } });
     playback.live(true);

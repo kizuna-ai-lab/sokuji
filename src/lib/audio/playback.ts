@@ -91,14 +91,18 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
    * Whether the original-voice route is open. While it is closed nothing is
    * scheduled: a stream queued behind a closed route would be let out when the
    * key opens it — push-to-talk's press the voice from before it,
-   * push-to-translate's release the held voice.
+   * push-to-translate's release the held voice. Closing it stops what is
+   * already scheduled too: the route only disconnects the feed, so a quick
+   * reopen would otherwise play that late.
    */
   let passthroughOpen = false;
 
   const apply = () => {
     const settings = routing.get();
     const edges = routesFor(settings, held);
-    passthroughOpen = edges.some((e) => e.from === 'passthrough');
+    const open = edges.some((e) => e.from === 'passthrough');
+    if (passthroughOpen && !open) passthroughStream.clear();
+    passthroughOpen = open;
     graph.route(edges);
     void graph.setSinks(settings.sinks);
   };
