@@ -48,9 +48,18 @@ describe('VoicePicker', () => {
     // so this pins the actual invariant — the grid NESTED inside the dialog —
     // rather than merely that one of each role exists somewhere on the page.
     const grid = within(screen.getByRole('dialog')).getByRole('grid');
-    expect(within(grid).getByText(/female · calm · soft/)).toBeInTheDocument();
+    // Labels, not raw tags: no catalog is loaded here, so each falls back to its humanized tag.
+    expect(within(grid).getByText(/Female · Calm · Soft/)).toBeInTheDocument();
     expect(within(grid).getByText('Grace')).toBeInTheDocument();
     expect(within(grid).getByText('Mine')).toBeInTheDocument();
+  });
+
+  it("puts the age after the gender in a preset's subtitle, three facets at most", () => {
+    const aged = { ...GRACE, id: 'builtin:Hope', label: 'Hope', meta: { facets: { gender: 'female', age: 'middle_aged', style: ['calm', 'soft'] } } };
+    render(<VoicePicker {...base} selectedId="builtin:Hope" voices={[aged]} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    const grid = within(screen.getByRole('dialog')).getByRole('grid');
+    expect(within(grid).getByText('Female · Middle aged · Calm')).toBeInTheDocument();
   });
 
   // Spec §7: "the selected row carries `aria-selected="true"`". Final-review

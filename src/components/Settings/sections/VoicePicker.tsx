@@ -263,12 +263,11 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
 
   const selected = voices.find((v) => v.id === selectedId);
 
-  /** `female · calm · soft` — R2's row subtitle, built from the raw facet tags
-   *  the roster already carries. Deliberately NOT humanized here: this is a
-   *  scan line meant to be read at a glance across many rows, unlike the
-   *  facet dropdown's individual option labels (which do humanize, since each
-   *  is read on its own). Clones carry no facets, so they get the group
-   *  marker instead. */
+  /** `Female · Middle-aged · Calm` — R2's row subtitle: gender, age, then
+   *  style, three at most, each the same label the facet dropdown shows (the
+   *  locale's, else the humanized tag; changed 2026-10-02 from raw tags so the
+   *  age reads as a word, in the UI language). Clones carry no facets, so
+   *  they get no subtitle. */
   const rowSubtitle = (v: VoiceEntry): string => {
     // Clones get NO subtitle. They used to repeat the group label here, which
     // made sense when the group was an invisible `<optgroup>` and the row had
@@ -280,7 +279,12 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
     // leaving an empty line box.
     if (v.group === 'custom') return '';
     const f = v.meta?.facets;
-    const parts = [f?.gender, ...(f?.style ?? [])].filter(Boolean) as string[];
+    const label = (dim: 'gender' | 'age' | 'style', value: string) => t(`voiceLibrary.filter.${dim}.${value}`, humanizeFacetValue(value));
+    const parts = [
+      f?.gender && label('gender', f.gender),
+      f?.age && label('age', f.age),
+      ...(f?.style ?? []).map((s) => label('style', s)),
+    ].filter(Boolean) as string[];
     if (parts.length === 0 && v.meta?.language) return v.meta.language;
     return parts.slice(0, 3).join(' · ');
   };

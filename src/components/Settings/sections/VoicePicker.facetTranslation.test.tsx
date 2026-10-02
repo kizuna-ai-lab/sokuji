@@ -64,4 +64,12 @@ describe('VoicePicker facet value translation', () => {
     expect(within(ageSelect).getByText('Middle-aged')).toBeInTheDocument();
     expect(within(ageSelect).queryByText('Middle aged')).not.toBeInTheDocument();
   });
+
+  it("renders a preset row's subtitle through the same catalog", () => {
+    render(<VoicePicker {...base} voices={[AGED]} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    const grid = within(screen.getByRole('dialog')).getByRole('grid');
+    expect(within(grid).getByText('Middle-aged')).toBeInTheDocument();
+    expect(within(grid).queryByText('Middle aged')).not.toBeInTheDocument();
+  });
 });
