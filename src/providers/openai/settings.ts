@@ -137,19 +137,22 @@ export function migrateRealtimeSettings(stored: Readonly<Record<string, unknown>
   };
 }
 
-/** The prebuilt voices (`OpenAIProviderConfig.ts:249-260`). */
-export const REALTIME_VOICES: readonly { value: string; name: string }[] = [
-  { name: 'Alloy', value: 'alloy' },
-  { name: 'Ash', value: 'ash' },
-  { name: 'Ballad', value: 'ballad' },
-  { name: 'Cedar', value: 'cedar' },
-  { name: 'Coral', value: 'coral' },
-  { name: 'Echo', value: 'echo' },
-  { name: 'Marin', value: 'marin' },
-  { name: 'Sage', value: 'sage' },
-  { name: 'Shimmer', value: 'shimmer' },
-  { name: 'Verse', value: 'verse' },
-];
+/**
+ * The sample OpenAI's Platform playground plays for a voice. No guide links
+ * it and it may move without notice; a voice whose sample is gone just fails
+ * its preview, with no synthesized fallback (decision 2026-10-03).
+ */
+const VOICE_PREVIEWS = 'https://cdn.openai.com/API/voice-previews/';
+
+/**
+ * The prebuilt voices (`OpenAIProviderConfig.ts:249-260`), still the ten the
+ * Realtime guide lists (realtime-conversations#voice-options, 2026-10-03),
+ * each with its published sample. OpenAI publishes no gender or style for
+ * them, so they carry none.
+ */
+export const REALTIME_VOICES: readonly { value: string; name: string; clip: string }[] = [
+  'alloy', 'ash', 'ballad', 'cedar', 'coral', 'echo', 'marin', 'sage', 'shimmer', 'verse',
+].map((value) => ({ name: value[0].toUpperCase() + value.slice(1), value, clip: `${VOICE_PREVIEWS}${value}.flac` }));
 
 /** The 55 languages the old provider offered (`OpenAIProviderConfig.ts:191-247`): every one a source and a target. */
 export const REALTIME_LANGUAGES: readonly LanguageOption[] = [

@@ -110,6 +110,8 @@
     "providerTooltip": "உங்கள் AI மொழிபெயர்ப்பு சேவையைத் தேர்வு செய்யுங்கள். ஒவ்வொரு சேவையிலும் வெவ்வேறு அம்சங்கள், குரல்கள் மற்றும் விலைகள் உள்ளன. OpenAI அதிக அம்சங்களை வழங்குகிறது, Gemini நல்ல இலவச திட்டத்தை வழங்குகிறது. லோக்கல் (ஆஃப்லைன்) பயன்முறை முற்றிலும் இலவசம் — API விசை அல்லது இணையம் தேவையில்லை.",
     "modelTooltip": "AI மாதிரியைத் தேர்ந்தெடுக்கவும்",
     "voiceTooltip": "AI குரலைத் தேர்ந்தெடுக்கவும்",
+    "voicePreviewNeedsKey": "குரல்களை முன்னோட்டமிட உங்கள் API விசையைச் சேமிக்கவும்.",
+    "geminiVoicePreviewNote": "ஒரு குரலை முன்னோட்டமிடுவது உங்கள் Gemini API விசையைக் கொண்டு ஒரு சிறிய வாக்கியத்தை உருவாக்கும்; அதற்கு Google கட்டணம் வசூலிக்கக்கூடும்.",
     "turnDetectionTooltip": "நீங்கள் பேசி முடித்தீர்களா என்பதை AI எவ்வாறு அறியும். \nNormal: அமைதிக்காக காத்திருக்கிறது. \nSemantic: AI சூழலைப் புரிந்துகொள்கிறது. \nபுஷ்-டு-டாக்: கைமுறை கட்டுப்பாடு. \nபுஷ்-டு-ட்ரான்ஸ்லேட்: செயலற்ற நிலையில் மெய்நிகர் மைக்கிற்கு கச்சா மைக் பாஸ்த்ரூவுடன் கைமுறை கட்டுப்பாடு.",
     "thresholdTooltip": "குரல் கண்டறிதல் வரம்பை சரிசெய்யவும்",
     "prefixPaddingTooltip": "பேச்சுக்கு முன் நிரப்புதல் சேர்க்கவும்",
@@ -454,7 +456,9 @@
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 மொழிபெயர்ப்பாளர், மௌனம் உட்பட அமர்வு நிமிடத்திற்குக் கட்டணம்"
+      "description": "GPT-Live-1 மொழிபெயர்ப்பாளர், மௌனம் உட்பட அமர்வு நிமிடத்திற்குக் கட்டணம்",
+      "voiceGroupRealtime": "Realtime-இல் உள்ளவையே",
+      "voiceGroupLive": "GPT-Live-இல் புதியவை"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -476,7 +480,8 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "பேசுபவரின் குரலை நகலெடு"
+      "voiceClone": "பேசுபவரின் குரலை நகலெடு",
+      "voiceGroupClone": "குரல் நகலாக்கம்"
     },
     "local_inference": {
       "name": "இலவசம்",
@@ -996,21 +1001,37 @@
       },
       "style": {
         "breathy": "Breathy",
+        "breezy": "Breezy",
         "bright": "Bright",
         "calm": "Calm",
+        "casual": "Casual",
+        "clear": "Clear",
         "confident": "Confident",
         "deep": "Deep",
         "dramatic": "Dramatic",
+        "easy_going": "Easy-going",
         "energetic": "Energetic",
+        "even": "Even",
+        "excitable": "Excitable",
         "expressive": "Expressive",
+        "firm": "Firm",
         "formal": "Formal",
+        "forward": "Forward",
         "friendly": "Friendly",
+        "gentle": "Gentle",
+        "gravelly": "Gravelly",
+        "informative": "Informative",
+        "knowledgeable": "Knowledgeable",
+        "lively": "Lively",
+        "mature": "Mature",
         "neutral": "Neutral",
         "playful": "Playful",
         "raspy": "Raspy",
         "smooth": "Smooth",
         "soft": "Soft",
-        "warm": "Warm"
+        "upbeat": "Upbeat",
+        "warm": "Warm",
+        "youthful": "Youthful"
       },
       "anyUseCase": "Any use case",
       "anyStyle": "Any style"

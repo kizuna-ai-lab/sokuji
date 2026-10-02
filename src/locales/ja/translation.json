@@ -110,6 +110,8 @@
     "providerTooltip": "AI翻訳サービスを選択してください。各サービスには異なる機能、音声、価格があります。OpenAIは最も多くの機能を提供し、Geminiは良い無料プランがあります。ローカル（オフライン）モードは完全無料——APIキーもインターネットも不要です。",
     "modelTooltip": "AIモデルは速度と品質に影響します。「Mini」モデルは高速ですが簡単です。標準モデルはより正確ですが少し遅いです。コスト効率のためにまずminiを試してください。",
     "voiceTooltip": "AIの話す声を選択してください。各音声には異なるトーンとスタイルがあります。さまざまな音声を試して、お気に入りを見つけてください。",
+    "voicePreviewNeedsKey": "音声を試聴するには API キーを保存してください。",
+    "geminiVoicePreviewNote": "試聴すると、お使いの Gemini API キーで短い一文が合成され、Google から課金される場合があります。",
     "turnDetectionTooltip": "AIが話し終わったことをどう認識するか。\n通常：沈黙を待つ。\nセマンティック：AIが文脈を理解する。\nプッシュトゥトーク：手動制御。\nプッシュトゥトランスレート：手動制御。アイドル時に生のマイク音声を仮想マイクへパススルーします。",
     "thresholdTooltip": "音声検出感度（0.0-1.0）。低い値は小さな音を検出しますが、誤って起動する可能性があります。高い値はより大きな声が必要です。デフォルトの0.5は多くの場合に適しています。",
     "prefixPaddingTooltip": "スピーチ開始前に保持する無音時間（秒）。文の始まりをキャプチャするのに役立ちます。高すぎると応答が遅れます。0.3-0.5を試してください。",
@@ -454,7 +456,9 @@
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 による通訳、セッション時間で分単位課金（無音含む）"
+      "description": "GPT-Live-1 による通訳、セッション時間で分単位課金（無音含む）",
+      "voiceGroupRealtime": "Realtime と共通",
+      "voiceGroupLive": "GPT-Live で追加"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -476,7 +480,8 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "アプリ ID + アクセストークン",
-      "voiceClone": "話者の声を複製"
+      "voiceClone": "話者の声を複製",
+      "voiceGroupClone": "声の複製"
     },
     "local_inference": {
       "name": "無料",
@@ -996,21 +1001,37 @@
       },
       "style": {
         "breathy": "息づかい",
+        "breezy": "軽やか",
         "bright": "明るい",
         "calm": "落ち着いた",
+        "casual": "カジュアル",
+        "clear": "はっきり",
         "confident": "自信",
         "deep": "低音",
         "dramatic": "ドラマチック",
+        "easy_going": "おおらか",
         "energetic": "元気",
+        "even": "安定",
+        "excitable": "テンション高め",
         "expressive": "表情豊か",
+        "firm": "きっぱり",
         "formal": "フォーマル",
+        "forward": "ハキハキ",
         "friendly": "親しみやすい",
+        "gentle": "優しい",
+        "gravelly": "ざらついた",
+        "informative": "解説調",
+        "knowledgeable": "知的",
+        "lively": "生き生き",
+        "mature": "大人っぽい",
         "neutral": "ニュートラル",
         "playful": "遊び心",
         "raspy": "かすれ声",
         "smooth": "なめらか",
         "soft": "やわらかい",
-        "warm": "温かい"
+        "upbeat": "陽気",
+        "warm": "温かい",
+        "youthful": "若々しい"
       },
       "anyUseCase": "用途を問わない",
       "anyStyle": "スタイルを問わない"

@@ -110,6 +110,8 @@
     "providerTooltip": "Välj din AI-översättningstjänst. Varje tjänst har olika funktioner, röster och priser. OpenAI erbjuder flest funktioner, medan Gemini har en bra gratisplan. Lokalt (Offline) läge är helt gratis — ingen API-nyckel eller internet krävs.",
     "modelTooltip": "Välj AI-modell",
     "voiceTooltip": "Välj AI-röst",
+    "voicePreviewNeedsKey": "Spara din API-nyckel för att lyssna på röster.",
+    "geminiVoicePreviewNote": "När du lyssnar på en röst syntetiseras en kort mening med din Gemini-API-nyckel, vilket Google kan debitera.",
     "turnDetectionTooltip": "Hur AI vet när du har slutat tala. \nNormal: Väntar på tystnad. \nSemantisk: AI förstår sammanhang. \nPush-to-Talk: Manuell styrning. \nPush-to-Translate: Manuell styrning med rå mikrofon-genomströmning till den virtuella mikrofonen när inaktiv.",
     "thresholdTooltip": "Justera tröskelvärde för röstdetektering",
     "prefixPaddingTooltip": "Lägg till utfyllnad före tal",
@@ -454,7 +456,9 @@
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1-tolk, debiteras per sessionsminut inklusive tystnad"
+      "description": "GPT-Live-1-tolk, debiteras per sessionsminut inklusive tystnad",
+      "voiceGroupRealtime": "Samma som i Realtime",
+      "voiceGroupLive": "Nya i GPT-Live"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -476,7 +480,8 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "APP ID + Access Token",
-      "voiceClone": "Klona talarens röst"
+      "voiceClone": "Klona talarens röst",
+      "voiceGroupClone": "Röstkloning"
     },
     "local_inference": {
       "name": "Gratis",
@@ -996,21 +1001,37 @@
       },
       "style": {
         "breathy": "Breathy",
+        "breezy": "Breezy",
         "bright": "Bright",
         "calm": "Calm",
+        "casual": "Casual",
+        "clear": "Clear",
         "confident": "Confident",
         "deep": "Deep",
         "dramatic": "Dramatic",
+        "easy_going": "Easy-going",
         "energetic": "Energetic",
+        "even": "Even",
+        "excitable": "Excitable",
         "expressive": "Expressive",
+        "firm": "Firm",
         "formal": "Formal",
+        "forward": "Forward",
         "friendly": "Friendly",
+        "gentle": "Gentle",
+        "gravelly": "Gravelly",
+        "informative": "Informative",
+        "knowledgeable": "Knowledgeable",
+        "lively": "Lively",
+        "mature": "Mature",
         "neutral": "Neutral",
         "playful": "Playful",
         "raspy": "Raspy",
         "smooth": "Smooth",
         "soft": "Soft",
-        "warm": "Warm"
+        "upbeat": "Upbeat",
+        "warm": "Warm",
+        "youthful": "Youthful"
       },
       "anyUseCase": "Any use case",
       "anyStyle": "Any style"

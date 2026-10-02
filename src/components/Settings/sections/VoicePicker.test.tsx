@@ -712,3 +712,47 @@ describe('Escape while renaming', () => {
     expect(screen.queryByRole('grid')).not.toBeInTheDocument();
   });
 });
+
+// A provider whose presets come in kinds of its own — OpenAI Live's ten
+// Realtime voices beside the twelve it added, AST2's cloning beside its
+// catalog — names each kind with `section`; the rest stay under "Presets".
+describe('preset sections', () => {
+  const REALTIME = { id: 'marin', label: 'Marin', group: 'builtin' as const, removable: false, section: 'Same as Realtime' };
+  const REALTIME_2 = { id: 'cedar', label: 'Cedar', group: 'builtin' as const, removable: false, section: 'Same as Realtime' };
+  const LIVE = { id: 'quartz', label: 'Quartz', group: 'builtin' as const, removable: false, section: 'Added in GPT-Live' };
+  const CLONE = { id: 'clone', label: 'Clone the speaker', group: 'builtin' as const, removable: false, section: 'Voice cloning' };
+  /** Header and voice rows, in document order: a header as `# label`. */
+  const rows = () => Array.from(screen.getByRole('grid').querySelectorAll('[role="row"]')).map((r) =>
+    r.classList.contains('voice-pop__group') ? `# ${r.textContent}` : (r.querySelector('.voice-row__name')?.textContent ?? r.textContent));
+
+  it('lists each section under its own heading, in the order given, and no "Presets" heading when every preset has one', () => {
+    render(<VoicePicker {...base} selectedId="marin" voices={[REALTIME, REALTIME_2, LIVE]} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    expect(rows()).toEqual(['# Same as Realtime', 'Marin', 'Cedar', '# Added in GPT-Live', 'Quartz']);
+  });
+
+  it('keeps the presets without a section under "Presets", which counts only them', () => {
+    render(<VoicePicker {...base} selectedId="clone" voices={[CLONE, GRACE, { ...ALEX, meta: { facets: { gender: 'male' } } }]} capability={{ importModes: [], facetFilter: true }} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    expect(rows()).toEqual(['# Voice cloning', 'Clone the speaker', '# Presets · 2 of 2', 'Grace', 'Alex']);
+  });
+
+  it('jumps by typing to the row as rendered, when a roster interleaves its sections', async () => {
+    // Rendered: "Presets" (Grace, Alex) first — its first preset comes first — then "Voice cloning".
+    render(<VoicePicker {...base} selectedId="builtin:Grace" voices={[GRACE, CLONE, ALEX]} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    expect(rows()).toEqual(['# Presets', 'Grace', 'Alex', '# Voice cloning', 'Clone the speaker']);
+    fireEvent.keyDown(screen.getByRole('grid'), { key: 'a' });
+    await vi.waitFor(() => expect(screen.getByRole('gridcell', { name: 'Alex' })).toHaveFocus());
+  });
+
+  it('moves across the headings with the arrow keys, as one list', async () => {
+    render(<VoicePicker {...base} selectedId="marin" voices={[REALTIME, LIVE]} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    const grid = screen.getByRole('grid');
+    fireEvent.keyDown(grid, { key: 'ArrowDown' });
+    await vi.waitFor(() => expect(screen.getByRole('gridcell', { name: 'Marin' })).toHaveFocus());
+    fireEvent.keyDown(grid, { key: 'ArrowDown' });
+    await vi.waitFor(() => expect(screen.getByRole('gridcell', { name: 'Quartz' })).toHaveFocus());
+  });
+});

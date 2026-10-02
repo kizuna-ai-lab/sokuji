@@ -110,6 +110,8 @@
     "providerTooltip": "Wählen Sie Ihren KI-Übersetzungsdienst. Jeder Dienst hat unterschiedliche Funktionen, Stimmen und Preise. OpenAI bietet die meisten Funktionen, während Gemini einen guten kostenlosen Plan hat. Der lokale (Offline-)Modus ist völlig kostenlos — kein API-Schlüssel oder Internet erforderlich.",
     "modelTooltip": "Das KI-Modell beeinflusst Geschwindigkeit und Qualität. 'Mini'-Modelle sind schneller, aber einfacher. Standardmodelle sind genauer, aber etwas langsamer. Probieren Sie zuerst Mini zur Kosteneinsparung.",
     "voiceTooltip": "Wählen Sie die Sprechstimme der KI. Jede Stimme hat unterschiedlichen Ton und Stil. Probieren Sie verschiedene aus, um Ihre Lieblingsstimme zu finden.",
+    "voicePreviewNeedsKey": "Speichern Sie Ihren API-Schlüssel, um Stimmen anzuhören.",
+    "geminiVoicePreviewNote": "Beim Anhören einer Stimme wird mit Ihrem Gemini-API-Schlüssel ein kurzer Satz synthetisiert, den Google in Rechnung stellen kann.",
     "turnDetectionTooltip": "Wie die KI weiß, wann Sie fertig gesprochen haben. \nNormal: Wartet auf Stille. \nSemantisch: KI versteht den Kontext. \nPush-to-Talk: Manuelle Steuerung. \nPush-to-Translate: Manuelle Steuerung mit Roh-Mikrofon-Passthrough zum virtuellen Mikrofon im Leerlauf.",
     "thresholdTooltip": "Spracherkennungsempfindlichkeit (0.0-1.0). Niedrige Werte erkennen leisere Geräusche, können aber versehentlich ausgelöst werden. Hohe Werte erfordern lauteres Sprechen. Standard 0.5 funktioniert für die meisten.",
     "prefixPaddingTooltip": "Stille Zeit vor Beginn Ihrer Sprache (Sekunden). Hilft, den Anfang von Sätzen zu erfassen. Zu hoch verzögert die Antwort. Versuchen Sie 0.3-0.5.",
@@ -454,7 +456,9 @@
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1-Dolmetscher, Abrechnung pro Sitzungsminute inklusive Stille"
+      "description": "GPT-Live-1-Dolmetscher, Abrechnung pro Sitzungsminute inklusive Stille",
+      "voiceGroupRealtime": "Wie bei Realtime",
+      "voiceGroupLive": "Neu in GPT-Live"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -476,7 +480,8 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "Stimme des Sprechers klonen"
+      "voiceClone": "Stimme des Sprechers klonen",
+      "voiceGroupClone": "Stimmklonen"
     },
     "local_inference": {
       "name": "Kostenlos",
@@ -996,21 +1001,37 @@
       },
       "style": {
         "breathy": "Breathy",
+        "breezy": "Breezy",
         "bright": "Bright",
         "calm": "Calm",
+        "casual": "Casual",
+        "clear": "Clear",
         "confident": "Confident",
         "deep": "Deep",
         "dramatic": "Dramatic",
+        "easy_going": "Easy-going",
         "energetic": "Energetic",
+        "even": "Even",
+        "excitable": "Excitable",
         "expressive": "Expressive",
+        "firm": "Firm",
         "formal": "Formal",
+        "forward": "Forward",
         "friendly": "Friendly",
+        "gentle": "Gentle",
+        "gravelly": "Gravelly",
+        "informative": "Informative",
+        "knowledgeable": "Knowledgeable",
+        "lively": "Lively",
+        "mature": "Mature",
         "neutral": "Neutral",
         "playful": "Playful",
         "raspy": "Raspy",
         "smooth": "Smooth",
         "soft": "Soft",
-        "warm": "Warm"
+        "upbeat": "Upbeat",
+        "warm": "Warm",
+        "youthful": "Youthful"
       },
       "anyUseCase": "Any use case",
       "anyStyle": "Any style"

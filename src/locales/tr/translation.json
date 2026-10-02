@@ -110,6 +110,8 @@
     "providerTooltip": "AI çeviri hizmetinizi seçin. Her hizmetin farklı özellikleri, sesleri ve fiyatları vardır. OpenAI en fazla özellik sunarken, Gemini iyi bir ücretsiz plana sahiptir. Yerel (Çevrimdışı) modu tamamen ücretsizdir — API anahtarı veya internet gerekmez.",
     "modelTooltip": "Kullanılacak AI modelini seçin. Daha büyük modeller daha iyi çeviri kalitesi sağlar ancak daha yavaş olabilir. Daha küçük modeller daha hızlıdır ancak daha az doğru olabilir.",
     "voiceTooltip": "Çevrilmiş konuşma için bir ses seçin. Her sesin farklı özellikleri vardır. Farklı sesleri deneyerek beğendiğinizi bulun.",
+    "voicePreviewNeedsKey": "Sesleri dinlemek için API anahtarınızı kaydedin.",
+    "geminiVoicePreviewNote": "Bir sesi önizlemek, Gemini API anahtarınızla kısa bir cümle sentezler; Google bunun için ücret alabilir.",
     "turnDetectionTooltip": "Yapay zeka konuşmayı bitirdiğinizi nasıl anlar. \nNormal: Sessizliği bekler. \nSemantik: Yapay zeka bağlamı anlar. \nBas-Konuş: Manuel kontrol. \nBas-Çevir: Boştayken ham mikrofon geçişiyle sanal mikrofona manuel kontrol.",
     "thresholdTooltip": "Ses algılama eşiğini ayarlayın",
     "prefixPaddingTooltip": "Konuşmadan önce dolgu ekleyin",
@@ -454,7 +456,9 @@
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 tercüman, sessizlik dahil oturum dakikası başına ücretlendirilir"
+      "description": "GPT-Live-1 tercüman, sessizlik dahil oturum dakikası başına ücretlendirilir",
+      "voiceGroupRealtime": "Realtime ile aynı",
+      "voiceGroupLive": "GPT-Live ile eklenenler"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -476,7 +480,8 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "Konuşanın sesini klonla"
+      "voiceClone": "Konuşanın sesini klonla",
+      "voiceGroupClone": "Ses klonlama"
     },
     "local_inference": {
       "name": "Ücretsiz",
@@ -996,21 +1001,37 @@
       },
       "style": {
         "breathy": "Breathy",
+        "breezy": "Breezy",
         "bright": "Bright",
         "calm": "Calm",
+        "casual": "Casual",
+        "clear": "Clear",
         "confident": "Confident",
         "deep": "Deep",
         "dramatic": "Dramatic",
+        "easy_going": "Easy-going",
         "energetic": "Energetic",
+        "even": "Even",
+        "excitable": "Excitable",
         "expressive": "Expressive",
+        "firm": "Firm",
         "formal": "Formal",
+        "forward": "Forward",
         "friendly": "Friendly",
+        "gentle": "Gentle",
+        "gravelly": "Gravelly",
+        "informative": "Informative",
+        "knowledgeable": "Knowledgeable",
+        "lively": "Lively",
+        "mature": "Mature",
         "neutral": "Neutral",
         "playful": "Playful",
         "raspy": "Raspy",
         "smooth": "Smooth",
         "soft": "Soft",
-        "warm": "Warm"
+        "upbeat": "Upbeat",
+        "warm": "Warm",
+        "youthful": "Youthful"
       },
       "anyUseCase": "Any use case",
       "anyStyle": "Any style"

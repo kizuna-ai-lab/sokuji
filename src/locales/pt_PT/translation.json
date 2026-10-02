@@ -110,6 +110,8 @@
     "providerTooltip": "Escolha o seu serviço de tradução com IA. Cada serviço tem diferentes funcionalidades, vozes e preços. OpenAI oferece mais funcionalidades, enquanto Gemini tem um bom plano gratuito. O modo Local (Offline) é totalmente gratuito — sem necessidade de chave API ou internet.",
     "modelTooltip": "Selecionar modelo de IA",
     "voiceTooltip": "Selecionar voz de IA",
+    "voicePreviewNeedsKey": "Guarde a sua chave de API para ouvir as vozes.",
+    "geminiVoicePreviewNote": "Ouvir uma voz sintetiza uma frase curta com a sua chave de API do Gemini, que a Google pode cobrar.",
     "turnDetectionTooltip": "Como a IA sabe quando terminou de falar. \nNormal: Aguarda silêncio. \nSemântico: A IA compreende o contexto. \nPremir para falar: Controlo manual. \nPush-to-Translate: Controlo manual com encaminhamento do microfone em bruto para o microfone virtual quando inativo.",
     "thresholdTooltip": "Ajustar limiar de deteção de voz",
     "prefixPaddingTooltip": "Adicionar preenchimento antes da fala",
@@ -454,7 +456,9 @@
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "Intérprete GPT-Live-1, faturado ao minuto de sessão, silêncio incluído"
+      "description": "Intérprete GPT-Live-1, faturado ao minuto de sessão, silêncio incluído",
+      "voiceGroupRealtime": "Iguais às do Realtime",
+      "voiceGroupLive": "Novas no GPT-Live"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -476,7 +480,8 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "Clonar a voz de quem fala"
+      "voiceClone": "Clonar a voz de quem fala",
+      "voiceGroupClone": "Clonagem de voz"
     },
     "local_inference": {
       "name": "Gratuito",
@@ -996,21 +1001,37 @@
       },
       "style": {
         "breathy": "Breathy",
+        "breezy": "Breezy",
         "bright": "Bright",
         "calm": "Calm",
+        "casual": "Casual",
+        "clear": "Clear",
         "confident": "Confident",
         "deep": "Deep",
         "dramatic": "Dramatic",
+        "easy_going": "Easy-going",
         "energetic": "Energetic",
+        "even": "Even",
+        "excitable": "Excitable",
         "expressive": "Expressive",
+        "firm": "Firm",
         "formal": "Formal",
+        "forward": "Forward",
         "friendly": "Friendly",
+        "gentle": "Gentle",
+        "gravelly": "Gravelly",
+        "informative": "Informative",
+        "knowledgeable": "Knowledgeable",
+        "lively": "Lively",
+        "mature": "Mature",
         "neutral": "Neutral",
         "playful": "Playful",
         "raspy": "Raspy",
         "smooth": "Smooth",
         "soft": "Soft",
-        "warm": "Warm"
+        "upbeat": "Upbeat",
+        "warm": "Warm",
+        "youthful": "Youthful"
       },
       "anyUseCase": "Any use case",
       "anyStyle": "Any style"

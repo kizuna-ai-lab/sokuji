@@ -29,30 +29,50 @@ export const LIVE_DEFAULTS: LiveSettings = { ...INSTRUCTIONS_DEFAULTS, voice: LI
 /** The instructions' legacy keys (Stage 2 Gemini, choice 1): nothing else is read that `S` does not name. */
 export const LIVE_LEGACY_KEYS: readonly string[] = INSTRUCTION_LEGACY_KEYS;
 
-/** The ten Realtime voices in their order, then the twelve Live added (`OpenAILiveProviderConfig.ts:27-41`). */
-export const LIVE_VOICES: readonly { value: string; name: string }[] = [
-  { name: 'Alloy', value: 'alloy' },
-  { name: 'Ash', value: 'ash' },
-  { name: 'Ballad', value: 'ballad' },
-  { name: 'Cedar', value: 'cedar' },
-  { name: 'Coral', value: 'coral' },
-  { name: 'Echo', value: 'echo' },
-  { name: 'Marin', value: 'marin' },
-  { name: 'Sage', value: 'sage' },
-  { name: 'Shimmer', value: 'shimmer' },
-  { name: 'Verse', value: 'verse' },
-  { name: 'Quartz', value: 'quartz' },
-  { name: 'Ripple', value: 'ripple' },
-  { name: 'Vesper', value: 'vesper' },
-  { name: 'Willow', value: 'willow' },
-  { name: 'Stone', value: 'stone' },
-  { name: 'Gleam', value: 'gleam' },
-  { name: 'Meridian', value: 'meridian' },
-  { name: 'Bossa', value: 'bossa' },
-  { name: 'Tempo', value: 'tempo' },
-  { name: 'Beacon', value: 'beacon' },
-  { name: 'Delta', value: 'delta' },
-  { name: 'Cinder', value: 'cinder' },
+/**
+ * The sample OpenAI's Platform playground plays for a voice. No guide links
+ * it and it may move without notice; a voice whose sample is gone just fails
+ * its preview, with no synthesized fallback (decision 2026-10-03).
+ */
+const VOICE_PREVIEWS = 'https://cdn.openai.com/API/voice-previews/';
+
+export interface LiveVoice {
+  value: string;
+  name: string;
+  /** One of the ten Realtime voices, or one of the twelve Live added: the settings list each under a heading of its own. */
+  origin: 'realtime' | 'live';
+  /** Its published sample, in English. */
+  clip: string;
+  /** The guide's presentation, where it gives one: for the twelve Live added only. */
+  gender?: 'female' | 'male';
+  /** The guide's regional influence and language, in its own English. Not a language limit: "Regional influence describes a voice's speaking style", so the list is not filtered by it (decision 2026-10-03). */
+  description?: string;
+}
+
+const realtime = (value: string): LiveVoice => ({ name: value[0].toUpperCase() + value.slice(1), value, origin: 'realtime', clip: `${VOICE_PREVIEWS}${value}.flac` });
+const live = (value: string, gender: 'female' | 'male', description: string): LiveVoice =>
+  ({ name: value[0].toUpperCase() + value.slice(1), value, origin: 'live', clip: `${VOICE_PREVIEWS}${value}.wav`, gender, description });
+
+/**
+ * The ten Realtime voices in their order, then the twelve Live added
+ * (`OpenAILiveProviderConfig.ts:27-41`), still the guide's 22
+ * (live-conversations#voice-options, 2026-10-03). Only the twelve have a
+ * documented presentation and accent; the ten carry none.
+ */
+export const LIVE_VOICES: readonly LiveVoice[] = [
+  ...['alloy', 'ash', 'ballad', 'cedar', 'coral', 'echo', 'marin', 'sage', 'shimmer', 'verse'].map(realtime),
+  live('quartz', 'female', 'Australian English'),
+  live('ripple', 'male', 'Australian English'),
+  live('vesper', 'male', 'British English'),
+  live('willow', 'female', 'Irish English'),
+  live('stone', 'male', 'Irish English'),
+  live('gleam', 'female', 'North American English'),
+  live('meridian', 'male', 'North American English'),
+  live('bossa', 'female', 'Brazilian Portuguese'),
+  live('tempo', 'male', 'Brazilian Portuguese'),
+  live('beacon', 'male', 'Filipino English'),
+  live('delta', 'female', 'Southern U.S. English'),
+  live('cinder', 'male', 'Southern U.S. English'),
 ];
 
 /**

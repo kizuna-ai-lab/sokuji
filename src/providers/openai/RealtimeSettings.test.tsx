@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { useContext } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 
 vi.mock('react-i18next', () => ({
@@ -12,10 +13,24 @@ vi.mock('react-i18next', () => ({
 }));
 const tooltips: unknown[] = [];
 vi.mock('../../components/Tooltip/Tooltip', () => ({ default: ({ content }: { content: unknown }) => { tooltips.push(content); return null; } }));
+import type { VoiceLibrarySectionProps } from '../../components/Settings/sections/VoiceLibrarySection';
+import { VoicePreviewContext } from '../../components/providers/VoicePreviewContext';
+const { library, previewRealtimeVoice } = vi.hoisted(() => ({
+  library: [] as Array<VoiceLibrarySectionProps & { port: unknown }>,
+  previewRealtimeVoice: vi.fn(async () => null),
+}));
+vi.mock('../../components/Settings/sections/VoiceLibrarySection', () => ({
+  default: function Library(props: VoiceLibrarySectionProps) {
+    library.push({ ...props, port: useContext(VoicePreviewContext) });
+    return null;
+  },
+}));
+vi.mock('./preview', () => ({ previewRealtimeVoice }));
+const libraryProps = () => library[library.length - 1];
 
 import type { SettingsProps } from '../../lib/provider/types';
 import { RealtimeSettingsView } from './RealtimeSettings';
-import { REALTIME_DEFAULTS, type RealtimeSettings } from './settings';
+import { REALTIME_DEFAULTS, REALTIME_VOICES, type RealtimeSettings } from './settings';
 
 const props = (patch: Partial<SettingsProps<RealtimeSettings>> = {}): SettingsProps<RealtimeSettings> => ({
   settings: REALTIME_DEFAULTS,
@@ -24,13 +39,18 @@ const props = (patch: Partial<SettingsProps<RealtimeSettings>> = {}): SettingsPr
   models: [{ id: 'gpt-realtime-2.1' }, { id: 'gpt-realtime-2.1-mini' }, { id: 'gpt-realtime-mini' }],
   ...patch,
 });
+beforeEach(() => {
+  library.length = 0;
+  previewRealtimeVoice.mockClear();
+});
+
 const headings = (container: HTMLElement) => Array.from(container.querySelectorAll('.settings-section > h2')).map((h) => h.textContent);
 
 describe('RealtimeSettingsView (choice 17)', () => {
   it('draws the old sections in the old order: instructions, voice, model, transcript, noise, model configuration, reasoning — and no transport, temperature or push mode', () => {
     const { container } = render(<RealtimeSettingsView {...props()} />);
     expect(headings(container)).toEqual([
-      'settings.systemInstructions', 'settings.voice', 'settings.model', 'settings.userTranscriptModel', 'settings.noiseReduction',
+      'settings.systemInstructions', 'Voice Settings', 'settings.model', 'settings.userTranscriptModel', 'settings.noiseReduction',
       'settings.modelConfiguration', 'settings.reasoningEffort',
     ]);
     expect(screen.queryByLabelText('settings.temperature')).toBeNull();
@@ -49,9 +69,9 @@ describe('RealtimeSettingsView (choice 17)', () => {
   it('writes the voice, the model — shown as the effective one — the noise reduction and the max tokens', () => {
     const update = vi.fn();
     render(<RealtimeSettingsView {...props({ update, settings: { ...REALTIME_DEFAULTS, model: 'gpt-realtime-9' } })} />);
-    const voice = screen.getByLabelText('settings.voice') as HTMLSelectElement;
-    expect(voice.options).toHaveLength(10);
-    fireEvent.change(voice, { target: { value: 'marin' } });
+    const library = libraryProps();
+    expect(library.voices.map((v) => v.id)).toEqual(REALTIME_VOICES.map((v) => v.value));
+    library.onSelect('marin');
     expect(update).toHaveBeenCalledWith({ voice: 'marin' });
     const model = screen.getByLabelText('settings.model') as HTMLSelectElement;
     expect(model.value).toBe('gpt-realtime-2.1-mini');
@@ -91,9 +111,23 @@ describe('RealtimeSettingsView (choice 17)', () => {
     expect(screen.queryByLabelText('settings.reasoningEffort')).toBeNull();
   });
 
+  it("lists each voice by its name alone and auditions it with its published sample, through the host's preview route (preset voice preview)", async () => {
+    const port = { play: vi.fn(async () => {}), stop: vi.fn() };
+    render(<RealtimeSettingsView {...props({ preview: port })} />);
+    const library = libraryProps();
+    expect(library.voices.find((v) => v.id === 'cedar')).toEqual({ id: 'cedar', label: 'Cedar', group: 'builtin', removable: false, previewable: true });
+    expect(library.selectedId).toBe(REALTIME_DEFAULTS.voice);
+    expect(library.port).toBe(port);
+    expect(library.manageNote).toBeUndefined();
+    const signal = new AbortController().signal;
+    await library.onPreview!('cedar', signal);
+    expect(previewRealtimeVoice).toHaveBeenCalledWith('cedar', signal);
+  });
+
   it('disabled locks every control', () => {
     render(<RealtimeSettingsView {...props({ disabled: true, settings: { ...REALTIME_DEFAULTS, transcriptModel: 'gpt-transcribe' } })} />);
-    for (const label of ['settings.voice', 'settings.model', 'settings.userTranscriptModel', 'Transcription keywords', 'settings.noiseReduction', 'Unlimited', 'settings.reasoningEffort']) {
+    expect(libraryProps().isSessionActive).toBe(true);
+    for (const label of ['settings.model', 'settings.userTranscriptModel', 'Transcription keywords', 'settings.noiseReduction', 'Unlimited', 'settings.reasoningEffort']) {
       expect(screen.getByLabelText(label), label).toBeDisabled();
     }
     expect(screen.getByRole('button', { name: 'settings.advanced' })).toBeDisabled();

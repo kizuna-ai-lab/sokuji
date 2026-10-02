@@ -100,6 +100,12 @@ describe("OpenAI Realtime's settings", () => {
     expect(REALTIME_VOICES.map((v) => v.value)).toEqual(['alloy', 'ash', 'ballad', 'cedar', 'coral', 'echo', 'marin', 'sage', 'shimmer', 'verse']);
   });
 
+  it("carries each voice's sample from OpenAI's voice previews, and nothing OpenAI does not publish (preset voice preview)", () => {
+    for (const v of REALTIME_VOICES) {
+      expect(v).toEqual({ name: v.name, value: v.value, clip: `https://cdn.openai.com/API/voice-previews/${v.value}.flac` });
+    }
+  });
+
   it('reads one key, trimmed, and an empty one as missing (choice 19)', () => {
     expect(realtimeCredentials.fields(REALTIME_DEFAULTS)).toEqual([{ key: 'apiKey', labelKey: 'setup.credentials.apiKey', secret: true, placeholderKey: 'simpleSettings.apiKeyPlaceholder' }]);
     expect(realtimeCredentials.read({ apiKey: ' sk-proj-abc\n' }, signedOut)).toEqual({ apiKey: 'sk-proj-abc' });

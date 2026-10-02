@@ -251,14 +251,28 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
     return presets.filter((v) => keep.has(v.id) || v.id === selectedId);
   }, [presets, matched, facetsOn, selectedId]);
 
-  // Flat row order as rendered: clones, then the shown presets. (The add row
-  // is a `.voice-row` too, but `focusActive` excludes it separately — see its
-  // comment below — so it never appears in this list.) Keyboard order must
-  // match visual order, so this is derived from the same arrays the JSX maps
-  // over rather than from `voices`.
+  // Presets a provider puts in a kind of their own (`section`: OpenAI Live's
+  // Realtime voices beside the ones it added, AST2's cloning beside its
+  // catalog) are listed under that heading; the rest under "Presets". The
+  // order of the sections is the roster's, not the filtered rows', so the
+  // "Presets" heading — which carries the filter's count and the refresh
+  // button — keeps its place even when the filter empties it.
+  const unsectioned = useMemo(() => presets.filter((v) => !v.section), [presets]);
+  const sections = useMemo(() => {
+    const order: (string | undefined)[] = [];
+    for (const v of presets) if (!order.includes(v.section || undefined)) order.push(v.section || undefined);
+    if (onRefresh && !order.includes(undefined)) order.push(undefined);
+    return order.map((section) => ({ section, rows: shownPresets.filter((v) => (v.section || undefined) === section) }));
+  }, [presets, shownPresets, onRefresh]);
+
+  // Flat row order as rendered: clones, then the shown presets section by
+  // section. (The add row is a `.voice-row` too, but `focusActive` excludes
+  // it separately — see its comment below — so it never appears in this
+  // list.) Keyboard order must match visual order, so this is derived from
+  // the same arrays the JSX maps over rather than from `voices`.
   const rowOrder = useMemo(
-    () => [...clones, ...shownPresets].map((v) => v.id),
-    [clones, shownPresets],
+    () => [...clones, ...sections.flatMap((s) => s.rows)].map((v) => v.id),
+    [clones, sections],
   );
 
   const selected = voices.find((v) => v.id === selectedId);
@@ -553,8 +567,9 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
       text: (now - typed.current.at < 700 ? typed.current.text : '') + e.key.toLowerCase(),
       at: now,
     };
-    const all = [...clones, ...shownPresets];
-    const hit = all.findIndex((v) => v.label.toLowerCase().startsWith(typed.current.text));
+    // Searched in `rowOrder`, the order `go` indexes: sections regroup the presets, so the roster's own order is not the rendered one.
+    const byId = new Map(voices.map((v) => [v.id, v]));
+    const hit = rowOrder.findIndex((id) => byId.get(id)?.label.toLowerCase().startsWith(typed.current.text));
     if (hit >= 0) go(hit);
   };
 
@@ -924,11 +939,27 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
                 hiding it then would remove the only sign that the filter is
                 what emptied the list. `onRefresh` also keeps it, because the
                 refresh control lives inside this header. */}
-            {(presets.length > 0 || !!onRefresh) && (
+            {sections.map(({ section, rows }, s) => {
+              const start = clones.length + sections.slice(0, s).reduce((n, g) => n + g.rows.length, 0);
+              if (section) {
+                // A named section shows only over rows: a filter that hides them all hides its heading too.
+                return rows.length === 0 ? null : (
+                  <React.Fragment key={`section:${section}`}>
+                    <div role="row" className="voice-pop__group">
+                      <div role="columnheader">{section}</div>
+                    </div>
+                    {rows.map((v, i) => row(v, start + i))}
+                  </React.Fragment>
+                );
+              }
+              // "Presets" counts only its own rows: a named section is not among them.
+              const matchedHere = matched.filter((v) => !v.section).length;
+              return (
+              <React.Fragment key="presets">
               <div role="row" className="voice-pop__group">
                 <div role="columnheader">
                   {t('voiceLibrary.presets', 'Presets')}
-                {facetsOn && presets.length > 0 && (
+                {facetsOn && unsectioned.length > 0 && (
                   <span className="voice-pop__count">
                     {' · '}
                     {/* A nested element, not a sibling text node: the group
@@ -943,11 +974,11 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
                           replacement, not the DIFFERENT "no imported voices
                           yet" case below, which is about the My Voices group
                           having no clones at all. */}
-                      {hasActiveFacets(criteria) && matched.length === 0
+                      {hasActiveFacets(criteria) && matchedHere === 0
                         ? t('voiceLibrary.filter.empty', 'No voices match these filters.')
                         : t('voiceLibrary.filterCount', '{shown} of {total}')
-                            .replace('{shown}', String(matched.length))
-                            .replace('{total}', String(presets.length))}
+                            .replace('{shown}', String(matchedHere))
+                            .replace('{total}', String(unsectioned.length))}
                     </span>
                   </span>
                 )}
@@ -959,8 +990,10 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
                 )}
                 </div>
               </div>
-            )}
-            {shownPresets.map((v, i) => row(v, clones.length + i))}
+              {rows.map((v, i) => row(v, start + i))}
+              </React.Fragment>
+              );
+            })}
           </div>
           {/* Spec §8: the hint shows "when a provider CAN create but has no
               clones yet", and `onAddVoice` being present is exactly that

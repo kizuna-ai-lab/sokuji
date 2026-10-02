@@ -110,6 +110,8 @@
     "providerTooltip": "Valitse tekoäly-käännöspalvelusi. Jokaisella palvelulla on erilaiset ominaisuudet, äänet ja hinnat. OpenAI tarjoaa eniten ominaisuuksia, kun taas Geminillä on hyvä ilmainen suunnitelma. Paikallinen (offline) tila on täysin ilmainen — API-avainta tai internetiä ei tarvita.",
     "modelTooltip": "Valitse käytettävä tekoälymalli. Suuremmat mallit tarjoavat paremman käännöslaadun, mutta voivat olla hitaampia. Pienemmät mallit ovat nopeampia, mutta voivat olla vähemmän tarkkoja.",
     "voiceTooltip": "Valitse ääni käännetylle puheelle. Jokaisella äänellä on erilaiset ominaisuudet. Kokeile erilaisia ääniä löytääksesi mieleisesi.",
+    "voicePreviewNeedsKey": "Tallenna API-avaimesi kuunnellaksesi ääniä.",
+    "geminiVoicePreviewNote": "Äänen esikuuntelu syntetisoi yhden lyhyen lauseen Gemini-API-avaimellasi, ja Google voi laskuttaa siitä.",
     "turnDetectionTooltip": "Miten tekoäly tietää, milloin olet lopettanut puhumisen. \nNormaali: Odottaa hiljaisuutta. \nSemanttinen: Tekoäly ymmärtää kontekstin. \nPaina ja puhu: Manuaalinen hallinta. \nPush-to-Translate: Manuaalinen hallinta raakamikrofonin läpisyötöllä virtuaalimikrofoniin tyhjäkäynnillä.",
     "thresholdTooltip": "Säädä puheen tunnistuksen kynnysarvoa",
     "prefixPaddingTooltip": "Lisää täyttö ennen puhetta",
@@ -454,7 +456,9 @@
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1-tulkki, laskutus istuntominuuteittain hiljaisuus mukaan lukien"
+      "description": "GPT-Live-1-tulkki, laskutus istuntominuuteittain hiljaisuus mukaan lukien",
+      "voiceGroupRealtime": "Samat kuin Realtimessa",
+      "voiceGroupLive": "Uudet GPT-Livessä"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -476,7 +480,8 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "Kloonaa puhujan ääni"
+      "voiceClone": "Kloonaa puhujan ääni",
+      "voiceGroupClone": "Äänen kloonaus"
     },
     "local_inference": {
       "name": "Ilmainen",
@@ -996,21 +1001,37 @@
       },
       "style": {
         "breathy": "Breathy",
+        "breezy": "Breezy",
         "bright": "Bright",
         "calm": "Calm",
+        "casual": "Casual",
+        "clear": "Clear",
         "confident": "Confident",
         "deep": "Deep",
         "dramatic": "Dramatic",
+        "easy_going": "Easy-going",
         "energetic": "Energetic",
+        "even": "Even",
+        "excitable": "Excitable",
         "expressive": "Expressive",
+        "firm": "Firm",
         "formal": "Formal",
+        "forward": "Forward",
         "friendly": "Friendly",
+        "gentle": "Gentle",
+        "gravelly": "Gravelly",
+        "informative": "Informative",
+        "knowledgeable": "Knowledgeable",
+        "lively": "Lively",
+        "mature": "Mature",
         "neutral": "Neutral",
         "playful": "Playful",
         "raspy": "Raspy",
         "smooth": "Smooth",
         "soft": "Soft",
-        "warm": "Warm"
+        "upbeat": "Upbeat",
+        "warm": "Warm",
+        "youthful": "Youthful"
       },
       "anyUseCase": "Any use case",
       "anyStyle": "Any style"

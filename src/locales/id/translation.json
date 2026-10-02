@@ -110,6 +110,8 @@
     "providerTooltip": "Pilih layanan terjemahan AI Anda. Setiap layanan memiliki fitur, suara, dan harga yang berbeda. OpenAI menawarkan fitur terbanyak, sedangkan Gemini memiliki paket gratis yang bagus. Mode Lokal (Offline) sepenuhnya gratis — tidak memerlukan kunci API atau internet.",
     "modelTooltip": "Model AI mempengaruhi kecepatan dan kualitas. Model 'Mini' lebih cepat tapi sederhana. Model standar lebih akurat tapi sedikit lebih lambat. Coba mini terlebih dahulu untuk efisiensi biaya.",
     "voiceTooltip": "Pilih suara bicara AI. Setiap suara memiliki nada dan gaya berbeda. Coba suara yang berbeda untuk menemukan favorit Anda.",
+    "voicePreviewNeedsKey": "Simpan API key Anda untuk mendengarkan pratinjau suara.",
+    "geminiVoicePreviewNote": "Pratinjau suara mensintesis satu kalimat pendek dengan API key Gemini Anda, yang dapat ditagih oleh Google.",
     "turnDetectionTooltip": "Cara AI mengetahui kapan Anda selesai berbicara. \nNormal: Menunggu keheningan. \nSemantik: AI memahami konteks. \nTekan untuk Bicara: Kontrol manual. \nTekan untuk Terjemahkan: Kontrol manual dengan passthrough mikrofon mentah ke mikrofon virtual saat tidak aktif.",
     "thresholdTooltip": "Sensitivitas deteksi suara (0.0-1.0). Nilai rendah mendeteksi suara lebih pelan tapi mungkin terpicu secara tidak sengaja. Nilai tinggi butuh bicara lebih keras. Default 0.5 cocok untuk kebanyakan orang.",
     "prefixPaddingTooltip": "Waktu hening untuk dipertahankan sebelum ucapan Anda dimulai (detik). Membantu menangkap awal kalimat. Terlalu tinggi menunda respons. Coba 0.3-0.5.",
@@ -454,7 +456,9 @@
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "Juru bahasa GPT-Live-1, ditagih per menit sesi termasuk keheningan"
+      "description": "Juru bahasa GPT-Live-1, ditagih per menit sesi termasuk keheningan",
+      "voiceGroupRealtime": "Sama seperti Realtime",
+      "voiceGroupLive": "Baru di GPT-Live"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -476,7 +480,8 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "Kloning suara pembicara"
+      "voiceClone": "Kloning suara pembicara",
+      "voiceGroupClone": "Kloning suara"
     },
     "local_inference": {
       "name": "Gratis",
@@ -996,21 +1001,37 @@
       },
       "style": {
         "breathy": "Breathy",
+        "breezy": "Breezy",
         "bright": "Bright",
         "calm": "Calm",
+        "casual": "Casual",
+        "clear": "Clear",
         "confident": "Confident",
         "deep": "Deep",
         "dramatic": "Dramatic",
+        "easy_going": "Easy-going",
         "energetic": "Energetic",
+        "even": "Even",
+        "excitable": "Excitable",
         "expressive": "Expressive",
+        "firm": "Firm",
         "formal": "Formal",
+        "forward": "Forward",
         "friendly": "Friendly",
+        "gentle": "Gentle",
+        "gravelly": "Gravelly",
+        "informative": "Informative",
+        "knowledgeable": "Knowledgeable",
+        "lively": "Lively",
+        "mature": "Mature",
         "neutral": "Neutral",
         "playful": "Playful",
         "raspy": "Raspy",
         "smooth": "Smooth",
         "soft": "Soft",
-        "warm": "Warm"
+        "upbeat": "Upbeat",
+        "warm": "Warm",
+        "youthful": "Youthful"
       },
       "anyUseCase": "Any use case",
       "anyStyle": "Any style"

@@ -110,6 +110,8 @@
     "providerTooltip": "AI 번역 서비스를 선택하세요. 각 서비스마다 다른 기능, 음성, 가격이 있습니다. OpenAI는 가장 많은 기능을 제공하며, Gemini는 좋은 무료 플랜이 있습니다. 로컬 (오프라인) 모드는 완전 무료——API 키나 인터넷이 필요 없습니다.",
     "modelTooltip": "AI 모델은 속도와 품질에 영향을 줍니다. 'Mini' 모델은 더 빠르지만 단순합니다. 표준 모델은 더 정확하지만 약간 느립니다. 비용 효율을 위해 먼저 mini를 시도하세요.",
     "voiceTooltip": "AI의 음성을 선택하세요. 각 음성마다 다른 톤과 스타일이 있습니다. 다양한 음성을 시도해 좋아하는 것을 찾으세요.",
+    "voicePreviewNeedsKey": "음성을 미리 들으려면 API 키를 저장하세요.",
+    "geminiVoicePreviewNote": "음성을 미리 들으면 Gemini API 키로 짧은 문장 하나가 합성되며, Google에서 요금을 청구할 수 있습니다.",
     "turnDetectionTooltip": "AI가 당신이 말을 끝냈다는 것을 아는 방법. \n일반: 침묵을 기다림. \n의미: AI가 문맥을 이해함. \n푸시 투 토크: 수동 제어. \n푸시 투 트랜슬레이트: 수동 제어이며, 유휴 상태일 때 원본 마이크 오디오를 가상 마이크로 패스스루합니다.",
     "thresholdTooltip": "음성 감지 감도 (0.0-1.0). 낮은 값은 조용한 소리를 감지하지만 실수로 작동할 수 있습니다. 높은 값은 더 큰 목소리가 필요합니다. 기본값 0.5가 대부분에게 적합합니다.",
     "prefixPaddingTooltip": "말하기 시작 전 유지할 무음 시간 (초). 문장 시작을 캡처하는 데 도움이 됩니다. 너무 높으면 응답이 지연됩니다. 0.3-0.5를 시도하세요.",
@@ -454,7 +456,9 @@
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 통역, 세션 시간 기준 분당 과금(무음 포함)"
+      "description": "GPT-Live-1 통역, 세션 시간 기준 분당 과금(무음 포함)",
+      "voiceGroupRealtime": "Realtime과 동일",
+      "voiceGroupLive": "GPT-Live에서 추가됨"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -476,7 +480,8 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "화자 목소리 복제"
+      "voiceClone": "화자 목소리 복제",
+      "voiceGroupClone": "목소리 복제"
     },
     "local_inference": {
       "name": "무료",
@@ -996,21 +1001,37 @@
       },
       "style": {
         "breathy": "숨결",
+        "breezy": "산뜻함",
         "bright": "밝음",
         "calm": "차분함",
+        "casual": "캐주얼",
+        "clear": "또렷함",
         "confident": "자신감",
         "deep": "저음",
         "dramatic": "드라마틱",
+        "easy_going": "느긋함",
         "energetic": "활기참",
+        "even": "안정감",
+        "excitable": "들뜸",
         "expressive": "표현력",
+        "firm": "단호함",
         "formal": "격식",
+        "forward": "시원시원함",
         "friendly": "친근함",
+        "gentle": "온화함",
+        "gravelly": "걸걸함",
+        "informative": "설명조",
+        "knowledgeable": "박식함",
+        "lively": "생기",
+        "mature": "성숙함",
         "neutral": "중립",
         "playful": "장난기",
         "raspy": "거친 음색",
         "smooth": "부드러움",
         "soft": "차분한 음색",
-        "warm": "따뜻함"
+        "upbeat": "경쾌함",
+        "warm": "따뜻함",
+        "youthful": "젊음"
       },
       "anyUseCase": "용도 무관",
       "anyStyle": "스타일 무관"

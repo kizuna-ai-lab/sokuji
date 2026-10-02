@@ -110,6 +110,8 @@
     "providerTooltip": "Wybierz usługę tłumaczenia AI. Każda usługa ma różne funkcje, głosy i ceny. OpenAI oferuje najwięcej funkcji, a Gemini ma dobry darmowy plan. Tryb lokalny (Offline) jest całkowicie darmowy — nie wymaga klucza API ani internetu.",
     "modelTooltip": "Wybierz model AI",
     "voiceTooltip": "Wybierz głos AI",
+    "voicePreviewNeedsKey": "Zapisz klucz API, aby odsłuchać głosy.",
+    "geminiVoicePreviewNote": "Odsłuchanie głosu generuje jedno krótkie zdanie przy użyciu Twojego klucza Gemini API, za co Google może naliczyć opłatę.",
     "turnDetectionTooltip": "Jak SI rozpoznaje, że skończyłeś mówić. \nNormalny: Czeka na ciszę. \nSemantyczny: SI rozumie kontekst. \nNaciśnij i mów: Sterowanie ręczne. \nPush-to-Translate: Sterowanie ręczne z przekazaniem surowego mikrofonu do wirtualnego mikrofonu w stanie bezczynności.",
     "thresholdTooltip": "Dostosuj próg wykrywania mowy",
     "prefixPaddingTooltip": "Dodaj wypełnienie przed mową",
@@ -454,7 +456,9 @@
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "Tłumacz GPT-Live-1, rozliczany za minutę sesji łącznie z ciszą"
+      "description": "Tłumacz GPT-Live-1, rozliczany za minutę sesji łącznie z ciszą",
+      "voiceGroupRealtime": "Te same co w Realtime",
+      "voiceGroupLive": "Nowe w GPT-Live"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -476,7 +480,8 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "Klonuj głos mówcy"
+      "voiceClone": "Klonuj głos mówcy",
+      "voiceGroupClone": "Klonowanie głosu"
     },
     "local_inference": {
       "name": "Darmowy",
@@ -996,21 +1001,37 @@
       },
       "style": {
         "breathy": "Breathy",
+        "breezy": "Breezy",
         "bright": "Bright",
         "calm": "Calm",
+        "casual": "Casual",
+        "clear": "Clear",
         "confident": "Confident",
         "deep": "Deep",
         "dramatic": "Dramatic",
+        "easy_going": "Easy-going",
         "energetic": "Energetic",
+        "even": "Even",
+        "excitable": "Excitable",
         "expressive": "Expressive",
+        "firm": "Firm",
         "formal": "Formal",
+        "forward": "Forward",
         "friendly": "Friendly",
+        "gentle": "Gentle",
+        "gravelly": "Gravelly",
+        "informative": "Informative",
+        "knowledgeable": "Knowledgeable",
+        "lively": "Lively",
+        "mature": "Mature",
         "neutral": "Neutral",
         "playful": "Playful",
         "raspy": "Raspy",
         "smooth": "Smooth",
         "soft": "Soft",
-        "warm": "Warm"
+        "upbeat": "Upbeat",
+        "warm": "Warm",
+        "youthful": "Youthful"
       },
       "anyUseCase": "Any use case",
       "anyStyle": "Any style"

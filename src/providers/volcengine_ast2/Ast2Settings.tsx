@@ -31,7 +31,11 @@ export function Ast2SettingsView({ settings, update, disabled = false, pair, pre
   // Every host passes the shown pair; only a component's own test omits it.
   const shown = pair ?? { source: 'zh', target: 'en' };
   const voices: VoiceEntry[] = [
-    ...(clonable(shown) ? [{ id: CLONE, label: t('providers.volcengine_ast2.voiceClone', "Clone the speaker's voice"), group: 'builtin' as const, removable: false }] : []),
+    // Cloning under a heading of its own, the catalog under "Presets" (decision 2026-10-03).
+    ...(clonable(shown) ? [{
+      id: CLONE, label: t('providers.volcengine_ast2.voiceClone', "Clone the speaker's voice"), group: 'builtin' as const, removable: false,
+      section: t('providers.volcengine_ast2.voiceGroupClone', 'Voice cloning'),
+    }] : []),
     ...voicesFor(shown.target).map((v): VoiceEntry => ({
       id: v.id,
       label: v.name,

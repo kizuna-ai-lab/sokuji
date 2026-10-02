@@ -153,8 +153,19 @@ describe("Gemini's credentials and languages", () => {
 
   it('offer the old 30 prebuilt voices, Aoede first', () => {
     expect(GEMINI_VOICES).toHaveLength(30);
-    expect(GEMINI_VOICES[0]).toEqual({ value: 'Aoede', name: 'Aoede' });
+    expect(GEMINI_VOICES[0]).toEqual({ value: 'Aoede', name: 'Aoede', gender: 'female', style: 'breezy' });
     expect(new Set(GEMINI_VOICES.map((v) => v.value)).size).toBe(30);
+  });
+
+  it("carry Google's documented style (ai.google.dev speech generation) and gender (Cloud TTS), as facet values (preset voice preview)", () => {
+    expect(Object.fromEntries(GEMINI_VOICES.map((v) => [v.value, `${v.gender} ${v.style}`]))).toEqual({
+      Achernar: 'female soft', Achird: 'male friendly', Algenib: 'male gravelly', Algieba: 'male smooth', Alnilam: 'male firm',
+      Aoede: 'female breezy', Autonoe: 'female bright', Callirrhoe: 'female easy_going', Charon: 'male informative', Despina: 'female smooth',
+      Enceladus: 'male breathy', Erinome: 'female clear', Fenrir: 'male excitable', Gacrux: 'female mature', Iapetus: 'male clear',
+      Kore: 'female firm', Laomedeia: 'female upbeat', Leda: 'female youthful', Orus: 'male firm', Puck: 'male upbeat',
+      Pulcherrima: 'female forward', Rasalgethi: 'male informative', Sadachbia: 'male lively', Sadaltager: 'male knowledgeable', Schedar: 'male even',
+      Sulafat: 'female warm', Umbriel: 'male easy_going', Vindemiatrix: 'female gentle', Zephyr: 'female bright', Zubenelgenubi: 'male casual',
+    });
   });
 });
 

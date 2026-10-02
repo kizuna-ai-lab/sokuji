@@ -110,6 +110,8 @@
     "providerTooltip": "Выберите сервис AI-перевода. Каждый сервис имеет разные функции, голоса и цены. OpenAI предлагает больше всего функций, а у Gemini есть хороший бесплатный план. Локальный (офлайн) режим полностью бесплатен — не нужен API-ключ или интернет.",
     "modelTooltip": "Выберите AI-модель для использования. Большие модели обеспечивают лучшее качество перевода, но могут быть медленнее. Меньшие модели быстрее, но могут быть менее точными.",
     "voiceTooltip": "Выберите голос для переведенной речи. Каждый голос имеет разные характеристики. Попробуйте разные, чтобы найти тот, который вам нравится.",
+    "voicePreviewNeedsKey": "Сохраните API-ключ, чтобы прослушивать голоса.",
+    "geminiVoicePreviewNote": "При прослушивании голоса с помощью вашего API-ключа Gemini синтезируется одна короткая фраза, за которую Google может взимать плату.",
     "turnDetectionTooltip": "Как ИИ узнаёт, что вы закончили говорить. \nОбычный: ждёт тишины. \nСемантический: ИИ понимает контекст. \nНажми и говори: ручное управление. \nНажми и переведи: ручное управление с прямой передачей сырого микрофона на виртуальный микрофон в режиме ожидания.",
     "thresholdTooltip": "Настроить порог обнаружения голоса",
     "prefixPaddingTooltip": "Добавить отступ перед речью",
@@ -454,7 +456,9 @@
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "Переводчик GPT-Live-1, оплата за минуту сессии, включая тишину"
+      "description": "Переводчик GPT-Live-1, оплата за минуту сессии, включая тишину",
+      "voiceGroupRealtime": "Как в Realtime",
+      "voiceGroupLive": "Новые в GPT-Live"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -476,7 +480,8 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "Клонировать голос говорящего"
+      "voiceClone": "Клонировать голос говорящего",
+      "voiceGroupClone": "Клонирование голоса"
     },
     "local_inference": {
       "name": "Бесплатный",
@@ -996,21 +1001,37 @@
       },
       "style": {
         "breathy": "Breathy",
+        "breezy": "Breezy",
         "bright": "Bright",
         "calm": "Calm",
+        "casual": "Casual",
+        "clear": "Clear",
         "confident": "Confident",
         "deep": "Deep",
         "dramatic": "Dramatic",
+        "easy_going": "Easy-going",
         "energetic": "Energetic",
+        "even": "Even",
+        "excitable": "Excitable",
         "expressive": "Expressive",
+        "firm": "Firm",
         "formal": "Formal",
+        "forward": "Forward",
         "friendly": "Friendly",
+        "gentle": "Gentle",
+        "gravelly": "Gravelly",
+        "informative": "Informative",
+        "knowledgeable": "Knowledgeable",
+        "lively": "Lively",
+        "mature": "Mature",
         "neutral": "Neutral",
         "playful": "Playful",
         "raspy": "Raspy",
         "smooth": "Smooth",
         "soft": "Soft",
-        "warm": "Warm"
+        "upbeat": "Upbeat",
+        "warm": "Warm",
+        "youthful": "Youthful"
       },
       "anyUseCase": "Any use case",
       "anyStyle": "Any style"
