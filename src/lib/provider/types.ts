@@ -159,7 +159,7 @@ export interface SettingsProps<S> {
   models?: readonly ModelOption[];
   /** The provider's account (F3). Set by `ProviderOwnSettings` for `Settings`; absent elsewhere. */
   account?: ProviderAccount;
-  /** The voice-preview route. Set by `ProviderOwnSettings` for `Settings`; absent elsewhere, where a voice library plays on its own. */
+  /** The voice-preview route. Set by `ProviderOwnSettings` for `Settings` and by `ProviderEngine` for `Engine`; absent elsewhere, where a voice library plays on its own. */
   preview?: PreviewPort;
   /** The legs a start would open (the audio mode's). Set by `ProviderOwnSettings` for `Settings`: Soniox locks its shared-session choice outside Both. */
   legs?: readonly LegName[];

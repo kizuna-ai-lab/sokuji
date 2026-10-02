@@ -2,7 +2,6 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { CircleHelp } from 'lucide-react';
 import Tooltip from '../../Tooltip/Tooltip';
-import { useLocalNativeSettings, useUpdateLocalNative } from '../../../stores/settingsStore';
 import { useNativeCatalog } from '../../../stores/nativeModelStore';
 import { gpuTierAvailable } from '../../../lib/local-inference/native/nativeCatalog';
 import type { Stage } from '../../../lib/local-inference/selection/types';
@@ -17,26 +16,14 @@ const TOOLTIP_KEY: Record<Stage, [string, string]> = {
 };
 
 /**
- * Per-stage compute-device segmented control (Auto / CPU / GPU), reading and
- * writing asrDevice/translationDevice/ttsDevice on the localNative slice.
- *
- * Extracted (Task 8, Step 3b) from NativeModelManagementSection's group
- * headers; markup here is byte-identical to the inline block it replaced.
- * This is now the control's ONLY mount (B'2 decision, 2026-09-03): the Engine
- * page dropped its own copy in favor of a read-only SlotDeviceBadge that
- * links back here, so this control lives solely in the model library, in
- * NMMS's group headers.
+ * Per-stage compute-device segmented control (Auto / CPU / GPU) over the
+ * value its host hands it (#578). Its only mount is the model library,
+ * NMMS's group headers (B'2 decision, 2026-09-03).
  */
-export const NativeDeviceControl: React.FC<{ stage: Stage; disabled?: boolean }> = ({ stage, disabled = false }) => {
+export const NativeDeviceControl: React.FC<{ stage: Stage; value: DeviceMode; onChange(device: DeviceMode): void; disabled?: boolean }> = ({ stage, value: rawValue, onChange, disabled = false }) => {
   const { t } = useTranslation();
-  const settings = useLocalNativeSettings();
-  const update = useUpdateLocalNative();
   const catalog = useNativeCatalog();
   const gpuAvail = gpuTierAvailable(catalog);
-
-  const rawValue = stage === 'asr' ? settings.asrDevice
-    : stage === 'translation' ? settings.translationDevice
-    : settings.ttsDevice;
   // Coerce a stale 'gpu' to 'auto' for display when no GPU tier is available.
   const deviceValue: DeviceMode = rawValue === 'gpu' && !gpuAvail ? 'auto' : rawValue;
   const opts: Array<[DeviceMode, string]> = [
@@ -45,12 +32,6 @@ export const NativeDeviceControl: React.FC<{ stage: Stage; disabled?: boolean }>
     ...(gpuAvail ? [['gpu', t('models.deviceGpu', 'GPU')] as [DeviceMode, string]] : []),
   ];
   const [ttKey, ttDefault] = TOOLTIP_KEY[stage];
-
-  const setDevice = (mode: DeviceMode) => {
-    if (stage === 'asr') update({ asrDevice: mode });
-    else if (stage === 'translation') update({ translationDevice: mode });
-    else update({ ttsDevice: mode });
-  };
 
   return (
     <div className="model-group__device-control">
@@ -68,7 +49,7 @@ export const NativeDeviceControl: React.FC<{ stage: Stage; disabled?: boolean }>
           <button
             key={mode}
             className={`segmented-option ${deviceValue === mode ? 'active' : ''}`}
-            onClick={() => { if (deviceValue !== mode) setDevice(mode); }}
+            onClick={() => { if (deviceValue !== mode) onChange(mode); }}
             disabled={disabled}
           >
             {label}

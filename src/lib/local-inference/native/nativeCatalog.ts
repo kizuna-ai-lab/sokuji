@@ -563,12 +563,18 @@ export interface NativeReadinessSelection {
   targetLanguage: string;
 }
 
-/** Everything readiness reads out of settings, resolved in one go. Handed to the
- * facade as a thunk rather than a value: a cold sidecar start is slow, and the
- * user can change the pair / text-only while it runs, so the verdict must be
- * computed from the selection as of AFTER warmup — not a call-site snapshot. */
+/** Everything readiness reads, resolved in one go. Handed to the facade as a
+ * thunk rather than a value: a cold sidecar start is slow, and the user can
+ * change the pair / text-only while it runs, so the verdict must be computed
+ * from the selection as of AFTER warmup — not a call-site snapshot. The
+ * caller owns `selections` and `mode` (#578 ruling 6): the facade reads no
+ * settings store and no audio store of its own. */
 export interface NativeReadinessInput {
   selection: NativeReadinessSelection;
+  /** The caller's own model choices, keyed `src→tgt`. */
+  selections: Selections;
+  /** The audio mode a start would run: `participant` alone gates the reverse direction. */
+  mode: 'speaker' | 'participant' | 'both';
   textOnly: boolean;
 }
 

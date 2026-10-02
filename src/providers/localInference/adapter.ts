@@ -16,7 +16,7 @@ import { countSkeleton } from '../../lib/segmentation/sealCursor';
 import { gateChars, type SealedChunk } from '../../lib/segmentation/SentenceStream';
 import { DEFAULT_CHUNK_SENTENCES } from '../../lib/segmentation/segmentationMode';
 import { defaultEngines, type AsrLike, type LocalEngines, type TranslationLike, type TtsLike, type TtsReady } from './engines';
-import { SentenceCut, runtimeOver } from './sentenceCut';
+import { SentenceCut, runtimeOver } from '../../lib/segmentation/sentenceCut';
 import { speakTranslation } from './speech';
 import type { LocalInferenceConfig } from './config';
 

@@ -1,9 +1,9 @@
-import type { Clock } from '../../lib/contract/clock';
-import type { Punctuator } from '../../lib/contract/adapter';
-import { countSkeleton, offsetAfterSkeleton } from '../../lib/segmentation/sealCursor';
-import type { PunctuationModelId, SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
-import { baseLang, breakpoints, sentenceEnds } from '../../lib/segmentation/sentenceEnd';
-import { SentenceStream, type SealedChunk } from '../../lib/segmentation/SentenceStream';
+import type { Clock } from '../contract/clock';
+import type { Punctuator } from '../contract/adapter';
+import { countSkeleton, offsetAfterSkeleton } from './sealCursor';
+import type { PunctuationModelId, SegmentationRuntime } from './SegmentationRuntime';
+import { baseLang, breakpoints, sentenceEnds } from './sentenceEnd';
+import { SentenceStream, type SealedChunk } from './SentenceStream';
 
 /**
  * LocalInference's stream shape (plan 1e-2b): a translation job every N
@@ -12,6 +12,7 @@ import { SentenceStream, type SealedChunk } from '../../lib/segmentation/Sentenc
  * the sealing; this keeps the cursor that turns an ASR's cumulative
  * hypotheses into the "text since the last seal" it expects, and the guard
  * against engines whose later text is not a growth of what was sealed.
+ * Shared by LocalInference and Local Native (#578 ruling 3).
  */
 
 /** A stalled punctuator must not stall sealing: today's runtime gives up after 3 s (`INFERENCE_TIMEOUT_MS`). */

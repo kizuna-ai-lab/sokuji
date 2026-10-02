@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight, Download, CheckCircle, Star, Zap, Trash2, X, AlertTriangle } from 'lucide-react';
 import Tooltip from '../../Tooltip/Tooltip';
-import { useLocalNativeSettings, useUpdateLocalNative } from '../../../stores/settingsStore';
+import type { NativeEngineSettings } from '../../../providers/local_native/settings';
+import type { LanguagePair } from '../../../lib/provider/types';
 import {
   nativeAsrCards,
   nativeAsrIncompatibleCards,
@@ -469,10 +470,12 @@ export const NativeModelManagementSection: React.FC<{
   /** The direction ("src→tgt") whose slot opened this Library push — see
    *  ModelManagementSection's prop of the same name. */
   direction?: string;
-}> = ({ isSessionActive = false, stageFilter, direction }) => {
+  /** The host's settings, its writer, and its pair (#578): Local Native's `Engine`, or the old shell's slice. */
+  settings: NativeEngineSettings;
+  update: (patch: Partial<NativeEngineSettings>) => void;
+  pair: LanguagePair;
+}> = ({ isSessionActive = false, stageFilter, direction, settings, update, pair }) => {
   const { t } = useTranslation();
-  const settings = useLocalNativeSettings();
-  const update = useUpdateLocalNative();
   const catalog = useNativeCatalog();
   const statuses = useNativeModelStatuses();
   const sizes = useNativeModelSizes();
@@ -489,11 +492,11 @@ export const NativeModelManagementSection: React.FC<{
   const [showAllAsr, setShowAllAsr] = useState(false);
 
   // ONE pair drives everything below — the opening slot's direction when
-  // this is a Library push, the settings' forward pair otherwise (see
+  // this is a Library push, the host's forward pair otherwise (see
   // ModelManagementSection's identical treatment).
   const [srcLang, tgtLang] = direction
     ? splitDirection(direction)
-    : [settings.sourceLanguage, settings.targetLanguage];
+    : [pair.source, pair.target];
   const dir = directionKey(srcLang, tgtLang);
 
   // Live, resolved view of "what would actually run right now" per stage —
@@ -758,7 +761,7 @@ export const NativeModelManagementSection: React.FC<{
       {(!stageFilter || stageFilter === 'asr') && (
         <ModelGroup id="model-asr" title={t('models.asrModels', 'ASR (Speech Recognition)')}
           bare={!!stageFilter}
-          aboveList={<NativeDeviceControl stage="asr" disabled={isSessionActive} />}>
+          aboveList={<NativeDeviceControl stage="asr" value={settings.asrDevice} onChange={(asrDevice) => update({ asrDevice })} disabled={isSessionActive} />}>
           {renderCards(asrCards, (c) => selectedAsr === c.selectId, 'asr',
             variantData, handlePinVariant)}
           {asrIncompatibleCards.length > 0 && (
@@ -791,7 +794,7 @@ export const NativeModelManagementSection: React.FC<{
       {(!stageFilter || stageFilter === 'translation') && (
         <ModelGroup id="model-translation" title={t('models.translationModels', 'Translation')}
           bare={!!stageFilter}
-          aboveList={<NativeDeviceControl stage="translation" disabled={isSessionActive} />}>
+          aboveList={<NativeDeviceControl stage="translation" value={settings.translationDevice} onChange={(translationDevice) => update({ translationDevice })} disabled={isSessionActive} />}>
           {renderCards(
             translationCards,
             (c) => selectedTranslation === c.selectId,
@@ -805,7 +808,7 @@ export const NativeModelManagementSection: React.FC<{
       {(!stageFilter || stageFilter === 'tts') && (
         <ModelGroup id="model-tts" title={t('models.ttsModels', 'TTS (Text-to-Speech)')}
           bare={!!stageFilter}
-          aboveList={<NativeDeviceControl stage="tts" disabled={isSessionActive} />}>
+          aboveList={<NativeDeviceControl stage="tts" value={settings.ttsDevice} onChange={(ttsDevice) => update({ ttsDevice })} disabled={isSessionActive} />}>
           {ttsCards.length > 0 ? (
             // The voice picker is embedded inside the selected card via renderBody.
             // NativeModelCard only renders the body when the card is selected, and
