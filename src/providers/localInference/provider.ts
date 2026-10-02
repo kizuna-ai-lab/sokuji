@@ -40,6 +40,8 @@ export const localInferenceProvider: Provider<LocalInferenceSettings, LocalCrede
 
   credentials: { keys: [], fields: () => [], read: () => ({}) },
   check: (_k, s, ctx) => checkLocalInference(s, ctx),
+  // Its models are per direction, and both legs need the participant's too: a pick or an audio-mode switch is a new answer.
+  checkReadsDirection: true,
   watchReadiness: watchLocalInferenceReadiness,
 
   languages: localInferenceLanguages,

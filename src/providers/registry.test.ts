@@ -133,6 +133,24 @@ describe('the invariants every provider meets (F17)', () => {
   const signedOut: AuthContext = { signedIn: false, getToken: async () => null };
   const signedIn: AuthContext = { signedIn: true, getToken: async () => 'token' };
 
+  it('lets only LocalInference read the pair and the legs in its check, so a pick or an audio-mode switch checks no network provider again', () => {
+    expect(PROVIDERS.filter((p) => p.checkReadsDirection).map((p) => p.id)).toEqual(['localInference']);
+  });
+
+  it('declares the settings each own-key check reads, so an edit to any other field checks nothing again', () => {
+    const ownKey = released.filter((p) => p.kind === 'own-key');
+    expect(Object.fromEntries(ownKey.map((p) => [p.id, p.checkReads]))).toEqual({
+      gemini: [],
+      volcengine_ast2: ['authMode'],
+      openai: [],
+      openai_translate: [],
+      openai_live: [],
+      // The region picks the key field (`sonioxKeyField`).
+      soniox: ['region'],
+      palabraai: ['authMode'],
+    });
+  });
+
   it("every released id is the old Provider enum's spelling (controller ruling 2)", () => {
     for (const p of released) expect(Object.keys(LEGACY_SLICE_KEYS), p.id).toContain(storedProviderValue(p.id));
   });

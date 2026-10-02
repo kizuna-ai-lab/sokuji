@@ -9,8 +9,10 @@
  * - An own-key or managed provider: at once — on the clock's next turn,
  *   never inside a store's notification — when it is selected, when its
  *   entry loads, and on a sign-in flip; every other reset (an edit to its
- *   settings, credentials or pair; other legs) after
- *   `NETWORK_READINESS_DELAY_MS`, so typing a key checks once per pause.
+ *   credentials or to a setting it reads — and, for one whose check reads
+ *   them, its pair or the legs) after `NETWORK_READINESS_DELAY_MS`, so
+ *   typing a key checks once per pause. No released network provider reads
+ *   the pair or the legs: a pick or an audio-mode switch checks none.
  * - A sign-in flip forgets every loaded managed provider's readiness.
  * - A flip heard while a run is on forgets those answers at once; the
  *   selected provider is re-checked once idle, after the edit delay.
