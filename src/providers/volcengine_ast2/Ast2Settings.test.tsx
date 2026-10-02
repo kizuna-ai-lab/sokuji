@@ -65,7 +65,7 @@ describe("Doubao AST 2.0's settings view", () => {
     const props = libraryProps();
     expect(props.voices[0]).toMatchObject({ id: 'clone', label: 'providers.volcengine_ast2.voiceClone', group: 'builtin', removable: false });
     expect(props.voices.slice(1).map((v) => v.id)).toEqual(voicesFor('en').map((v) => v.id));
-    // The description shows under the picker once chosen, and is searched; the categories are the "use case" facet, in Chinese.
+    // The description shows under the picker once chosen; the categories are the "use case" facet, in Chinese.
     expect(props.voices.find((v) => v.id === 'zh_male_jingqiangkanye_moon_bigtts')).toMatchObject({
       label: 'Harmony',
       previewable: true,

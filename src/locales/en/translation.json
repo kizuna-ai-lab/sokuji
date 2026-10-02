@@ -82,7 +82,7 @@
     "realtimeModelNotAvailable": "Realtime model is not available",
     "modelsFound": "{{count}} models available",
     "volcengineAST2Info": "Doubao AST 2.0 Info",
-    "volcengineAST2InfoText": "Doubao AST 2.0 provides speech-to-speech translation with automatic voice cloning. The translated audio preserves the original speaker's voice characteristics.",
+    "volcengineAST2InfoText": "Doubao AST 2.0 provides speech-to-speech simultaneous interpretation. The translation can be spoken in the speaker's own cloned voice, or in a voice picked from its voice library.",
     "volcengineAST2TurnDetectionTooltip": "Auto: server-side voice activity detection. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.",
     "volcengineAST2CustomVocabulary": "Custom Vocabulary",
     "volcengineAST2HotWordLibraryId": "Hot Words Library ID",

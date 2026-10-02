@@ -13,7 +13,7 @@ import { CLONE, clonable, effectiveVoice } from './voice';
 /** The console's library pages (`ProviderSpecificSettings.tsx:1606-1694`). */
 const CONSOLE = 'https://console.volcengine.com/speech';
 
-/** Doubao has no voice of the user's own to add, rename or delete; 500 voices need the search and facets (R3: gender, age and, since 2026-10-02, the categories; the target fixes the language, R4). */
+/** Doubao has no voice of the user's own to add, rename or delete; 500 voices need the facet bar (R3: gender, age and, since 2026-10-02, the categories; the target fixes the language, R4). */
 const CAPABILITY: VoiceLibraryCapability = { importModes: [], facetFilter: true };
 const NO_DELETE = async () => {};
 
@@ -103,7 +103,7 @@ export function Ast2SettingsView({ settings, update, disabled = false, pair, pre
             style={{ padding: '12px', backgroundColor: 'rgba(16, 163, 127, 0.1)', border: '1px solid rgba(16, 163, 127, 0.3)', borderRadius: '8px', fontSize: '13px', color: '#aaa' }}
           >
             <Info size={14} style={{ marginRight: '8px', verticalAlign: 'middle', color: '#10a37f' }} />
-            {t('settings.volcengineAST2InfoText', "Doubao AST 2.0 provides speech-to-speech translation with automatic voice cloning. The translated audio preserves the original speaker's voice characteristics.")}
+            {t('settings.volcengineAST2InfoText', "Doubao AST 2.0 provides speech-to-speech simultaneous interpretation. The translation can be spoken in the speaker's own cloned voice, or in a voice picked from its voice library.")}
           </div>
         </div>
       </div>

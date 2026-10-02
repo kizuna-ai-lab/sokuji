@@ -82,7 +82,7 @@
     "realtimeModelNotAvailable": "Mô hình thời gian thực không có sẵn",
     "modelsFound": "{{count}} mô hình có sẵn",
     "volcengineAST2Info": "Thông tin Doubao AST 2.0",
-    "volcengineAST2InfoText": "Doubao AST 2.0 cung cấp dịch giọng nói sang giọng nói với nhân bản giọng nói tự động. Âm thanh đã dịch giữ nguyên đặc điểm giọng nói của người nói gốc.",
+    "volcengineAST2InfoText": "Doubao AST 2.0 cung cấp dịch song song từ giọng nói sang giọng nói. Bản dịch có thể được đọc bằng giọng nhân bản của người nói hoặc bằng một giọng chọn từ thư viện giọng.",
     "volcengineAST2TurnDetectionTooltip": "Tự động: phát hiện hoạt động giọng nói phía máy chủ. \nNhấn để nói: giữ phím cách hoặc nút micrô để gửi âm thanh thủ công. \nNhấn để dịch: giống như Nhấn để nói, nhưng định tuyến micrô gốc của bạn đến micrô ảo khi không hoạt động để bạn có thể nói trực tiếp mà không cần dịch.",
     "volcengineAST2CustomVocabulary": "Từ vựng tùy chỉnh",
     "volcengineAST2HotWordLibraryId": "ID thư viện từ khóa",

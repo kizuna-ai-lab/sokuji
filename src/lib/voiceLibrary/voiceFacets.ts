@@ -13,8 +13,8 @@
  */
 import type { VoiceFacets, VoiceFacetCriteria } from '../../types/VoiceLibrary';
 
-/** The shape this module needs from a voice entry — a label to search and an
- *  optional facet sidecar. Structural so both VoiceEntry and test fixtures fit. */
+/** The shape this module needs from a voice entry — its label and an optional
+ *  facet sidecar. Structural so both VoiceEntry and test fixtures fit. */
 export interface FacetedVoice {
   label: string;
   meta?: { facets?: VoiceFacets };

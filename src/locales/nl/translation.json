@@ -82,7 +82,7 @@
     "realtimeModelNotAvailable": "Realtime model is niet beschikbaar",
     "modelsFound": "{{count}} modellen beschikbaar",
     "volcengineAST2Info": "Doubao AST 2.0-informatie",
-    "volcengineAST2InfoText": "Doubao AST 2.0 biedt spraak-naar-spraakvertaling met automatische stemkloning. De vertaalde audio behoudt de stemkenmerken van de oorspronkelijke spreker.",
+    "volcengineAST2InfoText": "Doubao AST 2.0 biedt simultaan tolken van spraak naar spraak. De vertaling kan worden uitgesproken met de gekloonde stem van de spreker of met een stem uit de stemmenbibliotheek.",
     "volcengineAST2TurnDetectionTooltip": "Auto: servergestuurde spraakactiviteitsdetectie. \nPush-to-Talk: houd de spatiebalk of microfoonknop ingedrukt om audio handmatig te verzenden. \nPush-to-Translate: zoals Push-to-Talk, maar leidt uw onbewerkte microfoon door naar de virtuele microfoon wanneer inactief, zodat u direct kunt spreken zonder vertaling.",
     "volcengineAST2CustomVocabulary": "Aangepast vocabulaire",
     "volcengineAST2HotWordLibraryId": "Hotword-bibliotheek-ID",

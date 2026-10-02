@@ -82,7 +82,7 @@
     "realtimeModelNotAvailable": "Reaaliaikamalli ei ole saatavilla",
     "modelsFound": "{{count}} mallia saatavilla",
     "volcengineAST2Info": "Doubao AST 2.0 -tiedot",
-    "volcengineAST2InfoText": "Doubao AST 2.0 tarjoaa puheesta puheeseen -kääntämisen automaattisella äänikloonauksella. Käännetty ääni säilyttää alkuperäisen puhujan ääniominaisuudet.",
+    "volcengineAST2InfoText": "Doubao AST 2.0 tarjoaa simultaanitulkkauksen puheesta puheeksi. Käännös voidaan puhua puhujan kloonatulla äänellä tai äänikirjastosta valitulla äänellä.",
     "volcengineAST2TurnDetectionTooltip": "Auto: palvelinpuolen ääniaktiivisuuden tunnistus. \nPaina ja puhu: pidä välilyöntiä tai mikrofonipainiketta painettuna lähettääksesi ääntä manuaalisesti. \nPaina ja käännä: kuten Paina ja puhu, mutta ohjaa raakamikrofonisi virtuaalimikrofoniin tyhjäkäynnillä, jotta voit puhua suoraan ilman käännöstä.",
     "volcengineAST2CustomVocabulary": "Mukautettu sanasto",
     "volcengineAST2HotWordLibraryId": "Hotword-kirjaston tunnus",

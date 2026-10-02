@@ -11,12 +11,12 @@ const adapter = createAst2Adapter();
 /**
  * Doubao AST 2.0 with the user's own credentials (Stage 2 Volcengine AST2):
  * Volcengine's simultaneous interpretation, one protobuf socket per leg,
- * speech to speech in the speaker's cloned voice or speech to text. The old
- * enum's id and slice (controller ruling 2 of the foundation), so a stored
- * selection, the credentials and the libraries carry over. Its credentials
- * ride in the socket's query (ruling 2), so it runs on the web too, and the
- * extension's manifest already lists its host and CSP origin: no manifest
- * or background change. Released between Gemini and Soniox, unflagged
+ * speech to speech — in the speaker's cloned voice or a catalog voice (#577)
+ * — or speech to text. The old enum's id and slice (controller ruling 2 of
+ * the foundation), so a stored selection, the credentials and the libraries
+ * carry over. Its credentials ride in the socket's query (ruling 2), so it
+ * runs on the web too; the extension's manifest lists its host, and its CSP
+ * the voice-sample CDN the catalog's previews fetch from. Released between Gemini and Soniox, unflagged
  * (ruling 5); the old `VITE_ENABLE_VOLCENGINE_AST2` is dead and not read.
  */
 export const volcengineAst2Provider: Provider<Ast2Settings, Ast2Credentials, Ast2Config> & { id: 'volcengine_ast2' } = {
