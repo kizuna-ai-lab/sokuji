@@ -128,18 +128,8 @@
     "tar-stream": "^3.2.0"
   },
   "overrides": {
-    "form-data": "^4.0.6",
-    "axios": "^1.9.0",
     "onnxruntime-node": "npm:empty-npm-package@1.0.0",
-    "fast-uri": "^3.1.8",
-    "js-yaml@3": "^3.15.2",
-    "js-yaml@4": "^4.3.2",
-    "brace-expansion@1": "^1.1.21",
-    "brace-expansion@2": "^2.1.7",
-    "brace-expansion@5": "^5.0.12",
-    "undici": "^6.28.1",
-    "@electron/rebuild": "^4.2.0",
-    "tar@7": "^7.5.21"
+    "@electron/rebuild": "^4.2.0"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.11.1",
