@@ -89,12 +89,30 @@ export function migrateGeminiSettings(stored: Readonly<Record<string, unknown>>,
   };
 }
 
-/** The prebuilt voices (`GeminiProviderConfig.ts:177-206`). */
-export const GEMINI_VOICES: readonly { value: string; name: string }[] = [
-  'Aoede', 'Puck', 'Charon', 'Kore', 'Fenrir', 'Leda', 'Orus', 'Zephyr', 'Achird', 'Algenib',
-  'Algieba', 'Alnilam', 'Autonoe', 'Callirrhoe', 'Despina', 'Enceladus', 'Erinome', 'Gacrux', 'Iapetus', 'Laomedeia',
-  'Pulcherrima', 'Rasalgethi', 'Sadachbia', 'Sadaltager', 'Schedar', 'Sulafat', 'Umbriel', 'Vindemiatrix', 'Zubenelgenubi', 'Achernar',
-].map((voice) => ({ value: voice, name: voice }));
+export interface GeminiVoice {
+  value: string;
+  name: string;
+  /** Cloud Text-to-Speech's gender for the same voice (docs.cloud.google.com/text-to-speech/docs/chirp3-hd): the Gemini guides give none. */
+  gender: 'female' | 'male';
+  /** The speech-generation guide's one word (ai.google.dev/gemini-api/docs/speech-generation), as a facet value: `Easy-going` is `easy_going`. */
+  style: string;
+}
+
+/**
+ * The prebuilt voices (`GeminiProviderConfig.ts:177-206`), in the old order:
+ * still the 30 Google documents for the Live models (2026-10-03), each
+ * speaking every language the model does.
+ */
+export const GEMINI_VOICES: readonly GeminiVoice[] = ([
+  ['Aoede', 'female', 'breezy'], ['Puck', 'male', 'upbeat'], ['Charon', 'male', 'informative'], ['Kore', 'female', 'firm'],
+  ['Fenrir', 'male', 'excitable'], ['Leda', 'female', 'youthful'], ['Orus', 'male', 'firm'], ['Zephyr', 'female', 'bright'],
+  ['Achird', 'male', 'friendly'], ['Algenib', 'male', 'gravelly'], ['Algieba', 'male', 'smooth'], ['Alnilam', 'male', 'firm'],
+  ['Autonoe', 'female', 'bright'], ['Callirrhoe', 'female', 'easy_going'], ['Despina', 'female', 'smooth'], ['Enceladus', 'male', 'breathy'],
+  ['Erinome', 'female', 'clear'], ['Gacrux', 'female', 'mature'], ['Iapetus', 'male', 'clear'], ['Laomedeia', 'female', 'upbeat'],
+  ['Pulcherrima', 'female', 'forward'], ['Rasalgethi', 'male', 'informative'], ['Sadachbia', 'male', 'lively'], ['Sadaltager', 'male', 'knowledgeable'],
+  ['Schedar', 'male', 'even'], ['Sulafat', 'female', 'warm'], ['Umbriel', 'male', 'easy_going'], ['Vindemiatrix', 'female', 'gentle'],
+  ['Zubenelgenubi', 'male', 'casual'], ['Achernar', 'female', 'soft'],
+] as const).map(([value, gender, style]) => ({ value, name: value, gender, style }));
 
 /** Where Google documents a language (Gemini/AST2 follow-up, ruling 6): in both tables below, the Live API's alone, or Live Translate's alone. */
 type Documented = 'both' | 'dialogue' | 'translate';
