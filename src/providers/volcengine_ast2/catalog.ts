@@ -24,19 +24,32 @@ export interface CatalogEntry {
   age: Age;
   name: string;
   previewUrl: string;
+  /** Volcengine's one-line description of the persona, in Chinese (his ruling: shown as it is). */
+  description: string;
+  /** Scenes and accents, untranslated: what the filter bar narrows by. */
+  categories: readonly string[];
 }
 
 const byId = new Map(catalog.voices.map((v) => [v.id, v]));
 
 /** A voice's language entry; `{}` (or a missing one) reads as its first. */
-function language(v: CatalogVoice, code: string): Required<CatalogLanguage> {
+function language(v: CatalogVoice, code: string): CatalogLanguage {
   const own = v.l[code];
-  return (own?.n !== undefined ? own : Object.values(v.l)[0]) as Required<CatalogLanguage>;
+  return own?.n !== undefined ? own : Object.values(v.l)[0];
 }
 
 function entry(v: CatalogVoice, code: string): CatalogEntry {
   const l = language(v, code);
-  return { id: v.id, resource: v.r === 1 ? 'seed-tts-1.0' : 'seed-tts-2.0', gender: v.g, age: l.a, name: l.n, previewUrl: catalog.prefix + l.p };
+  return {
+    id: v.id,
+    resource: v.r === 1 ? 'seed-tts-1.0' : 'seed-tts-2.0',
+    gender: v.g,
+    age: l.a!,
+    name: l.n!,
+    previewUrl: catalog.prefix + l.p!,
+    description: l.d ?? '',
+    categories: l.c ?? [],
+  };
 }
 
 /** Whether a voice speaks a target; for zh+en, both Chinese and English. */

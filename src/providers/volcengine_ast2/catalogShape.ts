@@ -11,11 +11,18 @@ export type FixedLanguage = (typeof FIXED_LANGUAGES)[number];
 /** ListSpeakers' 儿童 / 少年/少女 / 青年 / 中年 / 老年; the last three are the voice library's existing values. */
 export type Age = 'child' | 'teen' | 'young' | 'middle_aged' | 'old';
 
-/** One language of a voice: its persona name, age and sample clip path under `Catalog.prefix`. `{}` reads as the voice's first language. */
+/**
+ * One language of a voice: its persona name, age and sample clip path under
+ * `Catalog.prefix`, its one-line description (Volcengine's, in Chinese) and
+ * the categories that tell it from the list's other voices; the last two are
+ * left out when empty. `{}` reads as the voice's first language.
+ */
 export interface CatalogLanguage {
   n?: string;
   a?: Age;
   p?: string;
+  d?: string;
+  c?: string[];
 }
 
 export interface CatalogVoice {

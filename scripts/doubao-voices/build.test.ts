@@ -58,6 +58,35 @@ describe('buildCatalog (#577 catalog spec §1.1)', () => {
     expect(c.voices[1].l.en).toEqual({});
   });
 
+  it("keeps each persona's description, and the categories that tell a list's voices apart, once each", () => {
+    const clip = (id: string) => `portal/bigtts/short_trial_url/${id}.mp3`;
+    const c = buildCatalog([
+      raw({ voice_type: 'ja_x', languages: [{ language: 'ja' }], description: '温婉柔和', categories: [{ categories: ['通用场景'] }, { categories: ['外语音色', '日语', '外语音色'] }, { categories: ['教学场景'] }] }),
+      raw({ voice_type: 'en_x', languages: [{ language: 'en' }], categories: [{ categories: ['外语音色'] }, { categories: ['美式英语'] }] }),
+      raw({ voice_type: 'zh_x', categories: [{ categories: ['角色扮演'] }, { categories: ['角色扮演', '北京口音'] }] }),
+      raw({ voice_type: 'es_x', languages: [{ language: 'es-mx' }], categories: [{ categories: ['墨西哥西语', '外语音色'] }] }),
+    ], '2026-10-02');
+    expect(c.voices.map((v) => v.l)).toEqual([
+      // Every foreign voice is 外语音色, every Japanese one 日语: neither narrows a list of one language.
+      { ja: { n: 'ja_x', a: 'young', p: clip('ja_x'), d: '温婉柔和', c: ['通用场景', '教学场景'] } },
+      // An accent does: 美式英语 against 英式英语, 墨西哥西语 against 西班牙语.
+      { en: { n: 'en_x', a: 'young', p: clip('en_x'), c: ['美式英语'] } },
+      { zh: { n: 'zh_x', a: 'young', p: clip('zh_x'), c: ['角色扮演', '北京口音'] } },
+      { es: { n: 'es_x', a: 'young', p: clip('es_x'), c: ['墨西哥西语'] } },
+    ]);
+  });
+
+  it('stores a language as {} only when its description and categories match the first one too', () => {
+    const c = buildCatalog([
+      raw({ voice_type: 'v', name: 'V', description: '同', languages: [{ language: 'zh-cn' }, { language: 'ja' }], categories: [{ categories: ['日语', '通用场景'] }] }),
+    ], '2026-10-02');
+    // zh keeps 日语 (a category, not its language); ja drops it, so the two differ.
+    expect(c.voices[0].l).toEqual({
+      zh: { n: 'V', a: 'young', p: 'portal/bigtts/short_trial_url/v.mp3', d: '同', c: ['日语', '通用场景'] },
+      ja: { n: 'V', a: 'young', p: 'portal/bigtts/short_trial_url/v.mp3', d: '同', c: ['通用场景'] },
+    });
+  });
+
   it('keeps ListSpeakers order', () => {
     const c = buildCatalog(['c', 'a', 'b'].map((id) => raw({ voice_type: id })), '2026-10-02');
     expect(c.voices.map((v) => v.id)).toEqual(['c', 'a', 'b']);

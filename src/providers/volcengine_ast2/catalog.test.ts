@@ -47,7 +47,11 @@ describe("the catalog's lookups", () => {
     expect(harmony).toEqual({
       id: 'zh_male_jingqiangkanye_moon_bigtts', resource: 'seed-tts-1.0', gender: 'male', age: 'young', name: 'Harmony',
       previewUrl: `${catalog.prefix}portal/bigtts/short_trial_url/Harmony.mp3`,
+      description: '有气泡音的京圈少爷，潇洒直率，幽默阳光。',
+      categories: ['美式英语'],
     });
+    // Neither 外语音色 nor 日语 tells one Japanese voice from another.
+    expect(voicesFor('ja').find((v) => v.id === 'ja_female_bv024_uranus_bigtts')!.categories).toEqual(['通用场景', '教学场景']);
     expect(voicesFor('zh').find((v) => v.id === harmony.id)!.name).toBe('京腔侃爷');
     expect(en.map((v) => v.id)).toEqual(catalog.voices.filter((v) => 'en' in v.l).map((v) => v.id));
   });

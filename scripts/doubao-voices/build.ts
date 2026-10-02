@@ -25,6 +25,8 @@ export interface RawSpeaker {
   languages: { language: string }[] | null;
   short_trial_url: string | null;
   trial_url: string | null;
+  description?: string | null;
+  categories?: { categories: string[] | null }[] | null;
 }
 
 /** Every sample clip lives under this CDN path (public, `Access-Control-Allow-Origin: *`). */
@@ -75,7 +77,25 @@ export const LANGUAGE: Readonly<Record<string, FixedLanguage>> = {
  */
 export const AST_DOCUMENTED = ['zh_female_vv_uranus_bigtts', 'zh_male_jingqiangkanye_emo_mars_bigtts'] as const;
 
-const AGE: Readonly<Record<string, Age>> = { 儿童: 'child', '少年/少女': 'teen', 青年: 'young', 中年: 'middle_aged', 老年: 'old' };
+/**
+ * Categories that tell no voice of a one-language list from another, so the
+ * filter bar does not offer them (his ruling, 2026-10-02): every foreign
+ * voice is 外语音色, and a language whose voices all carry its name.
+ * Accents stay — 美式英语 against 英式英语, 墨西哥西语 against 西班牙语,
+ * 北京口音 — and so does every scene (角色扮演, 客服场景…).
+ */
+const EVERY_FOREIGN_VOICE = '外语音色';
+const OWN_LANGUAGE: Readonly<Partial<Record<FixedLanguage, string>>> = {
+  ja: '日语', id: '印尼语', pt: '巴西葡萄牙语', fr: '法语', de: '德语', ko: '韩语',
+};
+
+/** The entry's categories for one of its languages, once each, in ListSpeakers' order. */
+function categoriesFor(e: RawSpeaker, code: FixedLanguage): string[] {
+  const all = (e.categories ?? []).flatMap((g) => g.categories ?? []);
+  return [...new Set(all)].filter((c) => c !== EVERY_FOREIGN_VOICE && c !== OWN_LANGUAGE[code]);
+}
+
+const AGE: Readonly<Record<string, Age>> ={ 儿童: 'child', '少年/少女': 'teen', 青年: 'young', 中年: 'middle_aged', 老年: 'old' };
 const GENDER: Readonly<Record<string, 'male' | 'female'>> = { 男: 'male', 女: 'female' };
 const RESOURCE: Readonly<Record<string, 1 | 2>> = { 'seed-tts-1.0': 1, 'seed-tts-2.0': 2 };
 
@@ -93,7 +113,7 @@ function clipPath(e: RawSpeaker): string {
   return url.slice(PREFIX.length);
 }
 
-const same = (a: CatalogLanguage, b: CatalogLanguage) => a.n === b.n && a.a === b.a && a.p === b.p;
+const same = (a: CatalogLanguage, b: CatalogLanguage) => JSON.stringify(a) === JSON.stringify(b);
 
 /** A language equal to the voice's first is stored as `{}` (Vivi's five are one persona). */
 function dedupe(v: CatalogVoice): CatalogVoice {
@@ -114,10 +134,12 @@ export function buildCatalog(entries: readonly RawSpeaker[], fetched: string): C
     } else if (voice.r !== r || voice.g !== g) {
       throw new Error(`${e.voice_type}: its entries disagree on resource or gender`);
     }
-    const language: CatalogLanguage = { n: e.name, a: pick(AGE, e.age, 'age', e.voice_type), p: clipPath(e) };
+    const base: CatalogLanguage = { n: e.name, a: pick(AGE, e.age, 'age', e.voice_type), p: clipPath(e), ...(e.description ? { d: e.description } : {}) };
     for (const l of e.languages ?? []) {
       const code = LANGUAGE[l.language];
-      if (code && !(code in voice.l)) voice.l[code] = language;
+      if (!code || code in voice.l) continue;
+      const c = categoriesFor(e, code);
+      voice.l[code] = c.length > 0 ? { ...base, c } : base;
     }
   }
   for (const id of AST_DOCUMENTED) {
