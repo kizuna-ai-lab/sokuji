@@ -476,8 +476,7 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "Sao chép giọng người nói",
-      "voiceHint": "Chỉ dùng khi bản dịch được đọc thành tiếng."
+      "voiceClone": "Sao chép giọng người nói"
     },
     "local_inference": {
       "name": "Miễn phí",

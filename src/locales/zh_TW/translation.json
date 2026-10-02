@@ -476,8 +476,7 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "複製說話者的聲音",
-      "voiceHint": "僅在譯文以語音播放時生效。"
+      "voiceClone": "複製說話者的聲音"
     },
     "local_inference": {
       "name": "免費",

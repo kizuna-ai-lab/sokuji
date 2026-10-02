@@ -476,8 +476,7 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "استنساخ صوت المتحدث",
-      "voiceHint": "يُستخدم فقط عند نطق الترجمة."
+      "voiceClone": "استنساخ صوت المتحدث"
     },
     "local_inference": {
       "name": "مجاني",

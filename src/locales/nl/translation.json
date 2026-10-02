@@ -476,8 +476,7 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "Stem van de spreker klonen",
-      "voiceHint": "Wordt alleen gebruikt als de vertaling wordt uitgesproken."
+      "voiceClone": "Stem van de spreker klonen"
     },
     "local_inference": {
       "name": "Gratis",

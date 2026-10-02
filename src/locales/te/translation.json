@@ -476,8 +476,7 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "యాప్ ID + యాక్సెస్ టోకెన్",
-      "voiceClone": "మాట్లాడేవారి గొంతును క్లోన్ చేయి",
-      "voiceHint": "అనువాదం మాట్లాడినప్పుడు మాత్రమే ఉపయోగిస్తారు."
+      "voiceClone": "మాట్లాడేవారి గొంతును క్లోన్ చేయి"
     },
     "local_inference": {
       "name": "ఉచిత",

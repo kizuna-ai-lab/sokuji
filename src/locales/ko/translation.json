@@ -476,8 +476,7 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "화자 목소리 복제",
-      "voiceHint": "번역을 음성으로 출력할 때만 사용됩니다."
+      "voiceClone": "화자 목소리 복제"
     },
     "local_inference": {
       "name": "무료",

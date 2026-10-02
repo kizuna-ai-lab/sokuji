@@ -476,8 +476,7 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "ऐप ID + एक्सेस टोकन",
-      "voiceClone": "वक्ता की आवाज़ क्लोन करें",
-      "voiceHint": "केवल तब उपयोग होता है जब अनुवाद बोला जाता है।"
+      "voiceClone": "वक्ता की आवाज़ क्लोन करें"
     },
     "local_inference": {
       "name": "मुफ़्त",

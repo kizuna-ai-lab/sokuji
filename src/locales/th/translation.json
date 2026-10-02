@@ -476,8 +476,7 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "โคลนเสียงผู้พูด",
-      "voiceHint": "ใช้เฉพาะเมื่อพูดคำแปลออกเสียง"
+      "voiceClone": "โคลนเสียงผู้พูด"
     },
     "local_inference": {
       "name": "ฟรี",

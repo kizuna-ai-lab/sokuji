@@ -476,8 +476,7 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "Kloning suara pembicara",
-      "voiceHint": "Hanya dipakai saat terjemahan diucapkan."
+      "voiceClone": "Kloning suara pembicara"
     },
     "local_inference": {
       "name": "Gratis",

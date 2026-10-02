@@ -13,7 +13,7 @@ import { CLONE, clonable, effectiveVoice } from './voice';
 /** The console's library pages (`ProviderSpecificSettings.tsx:1606-1694`). */
 const CONSOLE = 'https://console.volcengine.com/speech';
 
-/** Doubao has no voice of the user's own to add, rename or delete; 500 voices need the search and facets (R3: gender and age; the target fixes the language, R4). */
+/** Doubao has no voice of the user's own to add, rename or delete; 500 voices need the search and facets (R3: gender, age and, since 2026-10-02, the categories; the target fixes the language, R4). */
 const CAPABILITY: VoiceLibraryCapability = { importModes: [], facetFilter: true };
 const NO_DELETE = async () => {};
 
@@ -38,7 +38,11 @@ export function Ast2SettingsView({ settings, update, disabled = false, pair, pre
       group: 'builtin',
       removable: false,
       previewable: true,
-      meta: { gender: v.gender === 'male' ? 'M' : 'F', facets: { gender: v.gender, age: v.age } },
+      meta: {
+        gender: v.gender === 'male' ? 'M' : 'F',
+        // Categories go in the use-case facet as they are, in Chinese; the description shows under the picker once chosen.
+        facets: { gender: v.gender, age: v.age, useCase: [...v.categories], ...(v.description ? { description: v.description } : {}) },
+      },
     })),
   ];
   return (
@@ -53,7 +57,6 @@ export function Ast2SettingsView({ settings, update, disabled = false, pair, pre
             onSelect={(id) => update({ voices: { ...settings.voices, [shown.target]: id } })}
             onDelete={NO_DELETE}
             onPreview={(id, signal) => previewVoice(id, shown.target, signal)}
-            manageNote={t('providers.volcengine_ast2.voiceHint', 'Used only when the translation is spoken.')}
             capability={CAPABILITY}
             isSessionActive={disabled}
           />

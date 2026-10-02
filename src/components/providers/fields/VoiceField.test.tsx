@@ -35,15 +35,6 @@ describe('VoiceField', () => {
     expect(tooltips).toContain('settings.voiceTooltip');
   });
 
-  it('shows a hint under the select when given one, and none otherwise', () => {
-    const { container, rerender } = render(<VoiceField value="Puck" options={options} onChange={vi.fn()} />);
-    expect(container.querySelector('.voice-field-hint')).toBeNull();
-    rerender(<VoiceField value="Puck" options={options} onChange={vi.fn()} hint="Only when spoken." />);
-    const hint = screen.getByText('Only when spoken.');
-    expect(hint.className).toContain('voice-field-hint');
-    expect(container.querySelector('#voice-settings-section')!.contains(hint)).toBe(true);
-  });
-
   it('disabled disables it', () => {
     render(<VoiceField value="Aoede" options={options} onChange={vi.fn()} disabled />);
     expect(screen.getByLabelText('settings.voice')).toBeDisabled();

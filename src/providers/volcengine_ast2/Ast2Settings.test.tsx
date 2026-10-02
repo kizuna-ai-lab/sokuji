@@ -65,10 +65,16 @@ describe("Doubao AST 2.0's settings view", () => {
     const props = libraryProps();
     expect(props.voices[0]).toMatchObject({ id: 'clone', label: 'providers.volcengine_ast2.voiceClone', group: 'builtin', removable: false });
     expect(props.voices.slice(1).map((v) => v.id)).toEqual(voicesFor('en').map((v) => v.id));
-    expect(props.voices.find((v) => v.id === 'zh_male_jingqiangkanye_moon_bigtts')).toMatchObject({ label: 'Harmony', previewable: true, meta: { facets: { gender: 'male', age: 'young' } } });
+    // The description shows under the picker once chosen, and is searched; the categories are the "use case" facet, in Chinese.
+    expect(props.voices.find((v) => v.id === 'zh_male_jingqiangkanye_moon_bigtts')).toMatchObject({
+      label: 'Harmony',
+      previewable: true,
+      meta: { facets: { gender: 'male', age: 'young', useCase: ['美式英语'], description: '有气泡音的京圈少爷，潇洒直率，幽默阳光。' } },
+    });
     expect(props.selectedId).toBe('clone');
     expect(props.capability).toEqual({ importModes: [], facetFilter: true });
-    expect(props.manageNote).toBe('providers.volcengine_ast2.voiceHint');
+    // No AST2-only footnote under the library (his call).
+    expect(props.manageNote).toBeUndefined();
     props.onSelect('en_male_alex_uranus_bigtts');
     expect(update).toHaveBeenCalledWith({ voices: { en: 'en_male_alex_uranus_bigtts' } });
   });

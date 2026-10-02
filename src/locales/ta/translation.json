@@ -476,8 +476,7 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "பேசுபவரின் குரலை நகலெடு",
-      "voiceHint": "மொழிபெயர்ப்பு பேசப்படும்போது மட்டுமே பயன்படுத்தப்படும்."
+      "voiceClone": "பேசுபவரின் குரலை நகலெடு"
     },
     "local_inference": {
       "name": "இலவசம்",

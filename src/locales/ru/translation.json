@@ -476,8 +476,7 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "Клонировать голос говорящего",
-      "voiceHint": "Используется, только когда перевод озвучивается."
+      "voiceClone": "Клонировать голос говорящего"
     },
     "local_inference": {
       "name": "Бесплатный",

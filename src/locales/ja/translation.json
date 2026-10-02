@@ -476,8 +476,7 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "アプリ ID + アクセストークン",
-      "voiceClone": "話者の声を複製",
-      "voiceHint": "翻訳を音声で再生するときだけ使われます。"
+      "voiceClone": "話者の声を複製"
     },
     "local_inference": {
       "name": "無料",

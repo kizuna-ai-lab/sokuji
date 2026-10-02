@@ -476,8 +476,7 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "Clonar la voz del hablante",
-      "voiceHint": "Solo se usa cuando la traducción se reproduce en voz."
+      "voiceClone": "Clonar la voz del hablante"
     },
     "local_inference": {
       "name": "Gratis",

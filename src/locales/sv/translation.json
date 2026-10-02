@@ -476,8 +476,7 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "APP ID + Access Token",
-      "voiceClone": "Klona talarens röst",
-      "voiceHint": "Används bara när översättningen läses upp."
+      "voiceClone": "Klona talarens röst"
     },
     "local_inference": {
       "name": "Gratis",

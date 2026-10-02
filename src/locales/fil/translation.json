@@ -476,8 +476,7 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "I-clone ang boses ng nagsasalita",
-      "voiceHint": "Ginagamit lang kapag binibigkas ang salin."
+      "voiceClone": "I-clone ang boses ng nagsasalita"
     },
     "local_inference": {
       "name": "Libre",

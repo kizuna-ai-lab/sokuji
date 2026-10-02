@@ -476,8 +476,7 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "Клонувати голос мовця",
-      "voiceHint": "Використовується лише тоді, коли переклад озвучується."
+      "voiceClone": "Клонувати голос мовця"
     },
     "local_inference": {
       "name": "Безкоштовний",

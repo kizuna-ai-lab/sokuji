@@ -476,8 +476,7 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "应用 ID + 访问令牌",
-      "voiceClone": "复刻说话人的声音",
-      "voiceHint": "仅在译文以语音播放时生效。"
+      "voiceClone": "复刻说话人的声音"
     },
     "local_inference": {
       "name": "免费",

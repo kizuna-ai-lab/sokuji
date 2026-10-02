@@ -476,8 +476,7 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "বক্তার কণ্ঠ ক্লোন করুন",
-      "voiceHint": "শুধু অনুবাদ উচ্চারিত হলে ব্যবহৃত হয়।"
+      "voiceClone": "বক্তার কণ্ঠ ক্লোন করুন"
     },
     "local_inference": {
       "name": "বিনামূল্যে",

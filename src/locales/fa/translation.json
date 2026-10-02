@@ -476,8 +476,7 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "شبیه‌سازی صدای گوینده",
-      "voiceHint": "فقط زمانی استفاده می‌شود که ترجمه به‌صورت گفتاری پخش شود."
+      "voiceClone": "شبیه‌سازی صدای گوینده"
     },
     "local_inference": {
       "name": "رایگان",

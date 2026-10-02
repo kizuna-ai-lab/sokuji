@@ -476,8 +476,7 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "Konuşanın sesini klonla",
-      "voiceHint": "Yalnızca çeviri seslendirildiğinde kullanılır."
+      "voiceClone": "Konuşanın sesini klonla"
     },
     "local_inference": {
       "name": "Ücretsiz",
