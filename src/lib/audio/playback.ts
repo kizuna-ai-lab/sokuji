@@ -135,8 +135,8 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
     live(on) {
       live = on;
       if (!on) {
-        // Push-to-translate already closes this route while held; ending a
-        // run must drop whatever the microphone still had in flight too.
+        // A manual turn's key already gates this route (the routing's `gate`);
+        // ending a run must drop whatever the microphone still had in flight too.
         passthroughStream.clear();
         restLater();
       }

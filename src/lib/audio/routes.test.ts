@@ -32,9 +32,19 @@ describe('routesFor', () => {
   it('mixes passthrough into the meeting at its ratio, and closes it while push-to-translate is held', () => {
     const s = { ...OFF, passthrough: { on: true, ratio: 0.3 } };
     expect(routesFor(s, false)).toContainEqual({ from: 'passthrough', to: 'virtual', gain: 0.3 });
-    expect(routesFor(s, true).some((e) => e.from === 'passthrough')).toBe(false);
+    expect(routesFor(s, true)).toContainEqual({ from: 'passthrough', to: 'virtual', gain: 0.3 });
+    const translate = { ...OFF, passthrough: { on: true, ratio: 1, gate: 'idle' as const } };
+    expect(routesFor(translate, false)).toContainEqual({ from: 'passthrough', to: 'virtual', gain: 1 });
+    expect(routesFor(translate, true).some((e) => e.from === 'passthrough')).toBe(false);
     expect(routesFor({ ...s, passthrough: { on: true, ratio: 0 } }, false).some((e) => e.from === 'passthrough')).toBe(false);
     expect(routesFor({ ...s, passthrough: { on: false, ratio: 0.3 } }, false).some((e) => e.from === 'passthrough')).toBe(false);
+  });
+
+  it('opens passthrough under push-to-talk only while the key is held, as 0.41.1 did', () => {
+    const s = { ...OFF, passthrough: { on: true, ratio: 0.3, gate: 'held' as const } };
+    expect(routesFor(s, false).some((e) => e.from === 'passthrough')).toBe(false);
+    expect(routesFor(s, true)).toContainEqual({ from: 'passthrough', to: 'virtual', gain: 0.3 });
+    expect(routesFor({ ...s, passthrough: { ...s.passthrough, on: false } }, true).some((e) => e.from === 'passthrough')).toBe(false);
   });
 
   it('caps the ratio at unity', () => {

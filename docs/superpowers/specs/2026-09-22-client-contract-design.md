@@ -633,6 +633,10 @@ previous turn is still ending can no longer reset the previous turn's count.
 virtual device" route inversely: open while idle, closed while held. The adapter
 never learns it exists. It stops depending on the recorder, which today leaves
 passthrough silent during push-to-talk idle even with the passthrough toggle on.
+**Amended 2026-10-02 (owner):** that silence is kept, now as a routing rule too —
+under push-to-talk the toggle's route opens only while the key is held, as 0.41.1
+behaved (the routing's `passthrough.gate`: `'idle'` for push-to-translate,
+`'held'` for push-to-talk).
 
 **The automatic mechanism and its knobs are the provider's configuration**, in
 `C`. OpenAI's stored `'Normal'` and `'Semantic'` are not turn modes but its two
@@ -697,7 +701,9 @@ takeover keeps its hint, where it is true.
   own track. Removed instead with the transport: the owner abandoned OpenAI's
   WebRTC (2026-09-29), and over WebSocket the runner's gate holds.
 - Push-to-talk idle suppresses passthrough even with the toggle on —
-  passthrough is a route, independent of the recorder.
+  passthrough is a route, independent of the recorder. **Reversed 2026-10-02
+  (owner):** not a defect; push-to-talk keeps passthrough to the hold, through the
+  route's `gate` rather than the recorder.
 - A passthrough volume of 0 plays at 30% (`passthroughVolume || 0.3`) — it is a
   gain on a route, and 0 means 0.
 - The declared modes disagree with the offered ones — AST2 declares two and
