@@ -5,7 +5,7 @@ import { FIXED_LANGUAGES, type Catalog } from './catalogShape';
 import { defaultVoice, isFixedTarget, resourceOf, speaks, voicesFor } from './catalog';
 import { ONE_WAY_ONLY } from '../../../scripts/doubao-voices/build';
 
-const catalog = raw as Catalog;
+const catalog = raw as unknown as Catalog;
 const VIVI = 'zh_female_vv_uranus_bigtts';
 
 describe("the snapshot's invariants (#577 catalog spec §1.3)", () => {

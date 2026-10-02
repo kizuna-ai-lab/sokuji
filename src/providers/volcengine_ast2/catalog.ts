@@ -6,7 +6,8 @@
 import raw from './voices.json';
 import { FIXED_LANGUAGES, type Age, type Catalog, type CatalogLanguage, type CatalogVoice, type FixedLanguage } from './catalogShape';
 
-const catalog = raw as Catalog;
+// The JSON's inferred type (a literal per voice, `{}` languages included) does not overlap `Catalog` enough to cast directly; build.ts writes it to this shape.
+const catalog = raw as unknown as Catalog;
 
 /** A target a voice is chosen for: one of the nine languages, or Chinese↔English (`pairCode('zh', 'en')`). */
 export type FixedTarget = FixedLanguage | 'zh+en';
