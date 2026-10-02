@@ -737,6 +737,15 @@ describe('preset sections', () => {
     expect(rows()).toEqual(['# Voice cloning', 'Clone the speaker', '# Presets · 2 of 2', 'Grace', 'Alex']);
   });
 
+  it('jumps by typing to the row as rendered, when a roster interleaves its sections', async () => {
+    // Rendered: "Presets" (Grace, Alex) first — its first preset comes first — then "Voice cloning".
+    render(<VoicePicker {...base} selectedId="builtin:Grace" voices={[GRACE, CLONE, ALEX]} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    expect(rows()).toEqual(['# Presets', 'Grace', 'Alex', '# Voice cloning', 'Clone the speaker']);
+    fireEvent.keyDown(screen.getByRole('grid'), { key: 'a' });
+    await vi.waitFor(() => expect(screen.getByRole('gridcell', { name: 'Alex' })).toHaveFocus());
+  });
+
   it('moves across the headings with the arrow keys, as one list', async () => {
     render(<VoicePicker {...base} selectedId="marin" voices={[REALTIME, LIVE]} />);
     fireEvent.click(screen.getByRole('button', { expanded: false }));

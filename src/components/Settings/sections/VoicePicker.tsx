@@ -567,8 +567,9 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
       text: (now - typed.current.at < 700 ? typed.current.text : '') + e.key.toLowerCase(),
       at: now,
     };
-    const all = [...clones, ...shownPresets];
-    const hit = all.findIndex((v) => v.label.toLowerCase().startsWith(typed.current.text));
+    // Searched in `rowOrder`, the order `go` indexes: sections regroup the presets, so the roster's own order is not the rendered one.
+    const byId = new Map(voices.map((v) => [v.id, v]));
+    const hit = rowOrder.findIndex((id) => byId.get(id)?.label.toLowerCase().startsWith(typed.current.text));
     if (hit >= 0) go(hit);
   };
 
