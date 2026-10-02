@@ -225,6 +225,10 @@ const path = require('path');
 
 const CRASH_MARKER = 'sandbox-crash-marker.json';
 const FALLBACK_MARKER = 'no-sandbox-fallback.json';
+// Written into the Squirrel root once its ACL carries the sandbox read grant.
+const INSTALL_ACL_MARKER = 'sandbox-read-granted';
+// ALL APPLICATION PACKAGES, read+execute, inherited by every app-<version> folder.
+const SANDBOX_READ_GRANT = '*S-1-15-2-1:(OI)(CI)(RX)';
 
 /** Real dependencies, overridable in tests via options.deps. */
 function defaultDeps() {
@@ -280,6 +284,47 @@ function getScanDirectories(app, env) {
   if (env.LOCALAPPDATA) dirs.push(env.LOCALAPPDATA);
   if (env.USERPROFILE) dirs.push(env.USERPROFILE);
   return [...new Set(dirs)];
+}
+
+/**
+ * Wiring point #0 — the first thing main.js does on win32, before the Squirrel
+ * hooks and long before app is ready.
+ *
+ * Electron 43.7.6 / 44.5.0 and later check, in PreCreateThreads, whether the
+ * sandbox token can read <exe dir>\icudtl.dat, and abort with a FATAL log when
+ * it cannot (electron/electron#54382). That runs before any GPU child exists,
+ * so the crash detection and recovery below never see it, and --no-sandbox does
+ * not skip it. main.js's top level runs earlier, so granting ALL APPLICATION
+ * PACKAGES read on the Squirrel root here — the grant Electron's message names,
+ * and the one Program Files installs already inherit — keeps the orphan ACE
+ * from locking the sandbox out of our own files.
+ *
+ * Squirrel runs the new version's exe with --squirrel-install/--squirrel-updated,
+ * so this also runs on every install and update. The marker keeps later launches
+ * to one existsSync; a failed grant writes none, so the next launch retries.
+ *
+ * @param {string} execPath - process.execPath.
+ * @returns {'skipped'|'already'|'granted'|'failed'}
+ */
+function grantInstallDirSandboxRead(execPath, options = {}) {
+  const deps = mergeDeps(options.deps);
+  if (deps.platform !== 'win32') return 'skipped';
+  const root = path.dirname(path.dirname(execPath));
+  if (!deps.fs.existsSync(path.join(root, 'Update.exe'))) return 'skipped';
+  const marker = path.join(root, INSTALL_ACL_MARKER);
+  if (deps.fs.existsSync(marker)) return 'already';
+  try {
+    deps.execFileSync('icacls', [root, '/grant', SANDBOX_READ_GRANT], { windowsHide: true, timeout: 30000 });
+  } catch (err) {
+    deps.log('icacls /grant failed at', root, String(err && err.message));
+    return 'failed';
+  }
+  try {
+    deps.fs.writeFileSync(marker, `${SANDBOX_READ_GRANT}\n`);
+  } catch {
+    /* the grant holds; the next launch just runs icacls once more */
+  }
+  return 'granted';
 }
 
 /**
@@ -522,6 +567,7 @@ module.exports = {
   UPSTREAM_URL,
   CRASH_MARKER,
   FALLBACK_MARKER,
+  INSTALL_ACL_MARKER,
   parseIcaclsAces,
   findExplicitOrphanSids,
   isGpuSandboxCrash,
@@ -531,6 +577,7 @@ module.exports = {
   repairDirectory,
   buildBackupLog,
   getScanDirectories,
+  grantInstallDirSandboxRead,
   applyNoSandboxFlag,
   registerCrashDetection,
   handleRecoveryMode,
