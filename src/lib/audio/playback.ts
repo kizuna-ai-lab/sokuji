@@ -87,9 +87,23 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
     }, QUIET_MS);
   };
 
+  /**
+   * Whether the original-voice route is open. While it is closed nothing is
+   * scheduled: a stream queued behind a closed route would be let out when the
+   * key opens it — push-to-talk's press the voice from before it,
+   * push-to-translate's release the held voice. Closing it stops what is
+   * already scheduled too: the route only disconnects the feed, so a quick
+   * reopen would otherwise play that late.
+   */
+  let passthroughOpen = false;
+
   const apply = () => {
     const settings = routing.get();
-    graph.route(routesFor(settings, held));
+    const edges = routesFor(settings, held);
+    const open = edges.some((e) => e.from === 'passthrough');
+    if (passthroughOpen && !open) passthroughStream.clear();
+    passthroughOpen = open;
+    graph.route(edges);
     void graph.setSinks(settings.sinks);
   };
   apply();
@@ -135,8 +149,8 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
     live(on) {
       live = on;
       if (!on) {
-        // Push-to-translate already closes this route while held; ending a
-        // run must drop whatever the microphone still had in flight too.
+        // A manual turn's key already gates this route (the routing's `gate`);
+        // ending a run must drop whatever the microphone still had in flight too.
         passthroughStream.clear();
         restLater();
       }
@@ -183,7 +197,7 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
     stopPreview,
 
     passthrough(pcm) {
-      if (!live) return;
+      if (!live || !passthroughOpen) return;
       void graph.resume();
       passthroughStream.push(pcm);
     },

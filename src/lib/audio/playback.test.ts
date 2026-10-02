@@ -185,9 +185,19 @@ describe('createPlayback — routes', () => {
     expect(routes[1]).toContainEqual({ from: 'speaker', to: 'real', gain: 1 });
   });
 
+  it("opens passthrough only while push-to-talk's key is held", () => {
+    const { graph, routes } = fakeGraph();
+    const playback = createPlayback(graph, routing({ ...ROUTING, passthrough: { on: true, ratio: 0.2, gate: 'held' } }).source);
+    expect(routes[routes.length - 1].some((e: Edge) => e.from === 'passthrough')).toBe(false);
+    playback.held(true);
+    expect(routes[routes.length - 1]).toContainEqual({ from: 'passthrough', to: 'virtual', gain: 0.2 });
+    playback.held(false);
+    expect(routes[routes.length - 1].some((e: Edge) => e.from === 'passthrough')).toBe(false);
+  });
+
   it("closes passthrough while push-to-translate's key is held", () => {
     const { graph, routes } = fakeGraph();
-    const playback = createPlayback(graph, routing().source);
+    const playback = createPlayback(graph, routing({ ...ROUTING, passthrough: { on: true, ratio: 0.2, gate: 'idle' } }).source);
     playback.held(true);
     expect(routes[routes.length - 1].some((e: Edge) => e.from === 'passthrough')).toBe(false);
     playback.held(false);
@@ -283,6 +293,37 @@ describe('createPlayback — passthrough', () => {
     playback.live(true);
     playback.passthrough(pcm(85));
     expect(resumed()).toBeGreaterThan(0);
+  });
+
+  it("schedules nothing while push-to-talk's route is closed, so a press never lets out the voice from before it", () => {
+    const { playback, passthroughPlayed } = build({ ...ROUTING, passthrough: { on: true, ratio: 0.2, gate: 'held' } });
+    playback.live(true);
+    playback.passthrough(pcm(85));
+    expect(passthroughPlayed()).toBe(0);
+    playback.held(true);
+    playback.passthrough(pcm(85));
+    expect(passthroughPlayed()).toBe(1);
+  });
+
+  it('stops what it scheduled when the route closes, so a quick reopen never plays it late', () => {
+    const { playback, plays } = build({ ...ROUTING, passthrough: { on: true, ratio: 0.2, gate: 'held' } });
+    playback.live(true);
+    playback.held(true);
+    playback.passthrough(pcm(85));
+    expect(plays.filter((p) => p.feed === 'passthrough' && !p.done)).toHaveLength(1);
+    playback.held(false);
+    expect(plays.filter((p) => p.feed === 'passthrough' && !p.done)).toHaveLength(0);
+  });
+
+  it("schedules nothing while push-to-translate's key is held, so a release never lets out the held voice", () => {
+    const { playback, passthroughPlayed } = build({ ...ROUTING, passthrough: { on: true, ratio: 1, gate: 'idle' } });
+    playback.live(true);
+    playback.held(true);
+    playback.passthrough(pcm(85));
+    expect(passthroughPlayed()).toBe(0);
+    playback.held(false);
+    playback.passthrough(pcm(85));
+    expect(passthroughPlayed()).toBe(1);
   });
 
   it('forwards the original voice only while the run is live', () => {

@@ -407,9 +407,9 @@ export class Run {
     this.deps.analytics.track('text_input_sent', { session_id: this.id, provider: this.shape.provider.id, text_length: text.length });
   }
 
-  /** Push-to-translate closes the original-voice route while the key is held; push-to-talk leaves it alone. */
+  /** A manual turn's key gates the original-voice route: push-to-translate closes it while held, push-to-talk opens it only while held (the routing's `gate`). */
   private hold(held: boolean): void {
-    if (this.shape.turnMode === 'push-to-translate') this.deps.playback.held(held);
+    if (this.shape.turnMode !== 'auto') this.deps.playback.held(held);
   }
 
   /** The run's punctuator, decided once (`RunnerDeps.punctuationReady`). */

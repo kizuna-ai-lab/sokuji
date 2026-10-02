@@ -84,8 +84,8 @@ describe('runner — manual turns', () => {
     runner.release();
     expect(count('speaker:audio')).toBe(6);
     expect(log.filter((e) => !e.endsWith(':audio'))).toEqual(['speaker:begin', 'speaker:end']);
-    // Push-to-talk leaves the original-voice route alone.
-    expect(playback.held).not.toHaveBeenCalled();
+    // Push-to-talk's key opens the original-voice route while held, as 0.41.1 did.
+    expect(playback.held.mock.calls).toEqual([[true], [false]]);
     expect(events('push_to_talk_used')).toEqual([{ session_id: 'run1', hold_duration_ms: 600, mode: 'push-to-talk' }]);
     clock.advance(300);
     expect(count('speaker:audio')).toBe(6);

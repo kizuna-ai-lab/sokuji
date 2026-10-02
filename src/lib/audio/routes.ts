@@ -24,13 +24,18 @@ export interface RoutingSettings {
   monitor: boolean;
   /** Participant translation → the real device: the participant-TTS opt-in, off by default. */
   participantSpeech: boolean;
-  /** The microphone → the virtual device, under the translation, at `ratio` (0–1). */
-  passthrough: { on: boolean; ratio: number };
+  /**
+   * The microphone → the virtual device, under the translation, at `ratio` (0–1).
+   * `gate`, under a manual turn mode, ties the route to the key: `'idle'` opens it
+   * while the key is up (push-to-translate), `'held'` only while it is down
+   * (push-to-talk, as 0.41.1 did). Absent, the key does not matter.
+   */
+  passthrough: { on: boolean; ratio: number; gate?: 'idle' | 'held' };
   /** Output device ids: the monitor device, and the virtual speaker where one exists (Electron). */
   sinks: { real?: string; virtual?: string };
 }
 
-/** Every edge the settings ask for. `held`: push-to-translate's key is down, which closes the original-voice route. */
+/** Every edge the settings ask for. `held`: a manual turn's key is down, which the passthrough's `gate` reads. */
 export function routesFor(s: RoutingSettings, held: boolean): Edge[] {
   // Replay and preview are fixed routes to the real device, never into the meeting.
   const edges: Edge[] = [
@@ -40,7 +45,8 @@ export function routesFor(s: RoutingSettings, held: boolean): Edge[] {
   if (s.meeting) edges.push({ from: 'speaker', to: 'virtual', gain: 1 });
   if (s.monitor) edges.push({ from: 'speaker', to: 'real', gain: 1 });
   if (s.participantSpeech) edges.push({ from: 'participant', to: 'real', gain: 1 });
-  if (s.passthrough.on && !held && s.passthrough.ratio > 0) {
+  const { gate } = s.passthrough;
+  if (s.passthrough.on && s.passthrough.ratio > 0 && (gate === undefined || held === (gate === 'held'))) {
     edges.push({ from: 'passthrough', to: 'virtual', gain: Math.min(1, s.passthrough.ratio) });
   }
   return edges;

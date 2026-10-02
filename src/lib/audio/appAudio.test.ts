@@ -53,13 +53,18 @@ describe('readRouting', () => {
     expect(readRouting({ ...AUDIO, audioMonitorDevices: [AUDIO.audioMonitorDevices[0]] }, SWITCHES, 'electron', 'auto').sinks.virtual).toBeUndefined();
   });
 
-  it('forces the original voice on at full level under push-to-translate, whatever the toggle says (1e-3 ruling 4)', () => {
+  it('forces the original voice on at full level under push-to-translate, whatever the toggle says, open while idle (1e-3 ruling 4)', () => {
     expect(readRouting({ ...AUDIO, isRealVoicePassthroughEnabled: false, realVoicePassthroughVolume: 0.2 }, SWITCHES, 'electron', 'push-to-translate').passthrough)
-      .toEqual({ on: true, ratio: 1 });
+      .toEqual({ on: true, ratio: 1, gate: 'idle' });
     expect(readRouting({ ...AUDIO, isRealVoicePassthroughEnabled: false, realVoicePassthroughVolume: 0.2 }, SWITCHES, 'electron', 'auto').passthrough)
       .toEqual({ on: false, ratio: 0.2 });
+  });
+
+  it('follows the toggle under push-to-talk, open only while the key is held, as 0.41.1 did', () => {
+    expect(readRouting({ ...AUDIO, isRealVoicePassthroughEnabled: true, realVoicePassthroughVolume: 0.2 }, SWITCHES, 'electron', 'push-to-talk').passthrough)
+      .toEqual({ on: true, ratio: 0.2, gate: 'held' });
     expect(readRouting({ ...AUDIO, isRealVoicePassthroughEnabled: false, realVoicePassthroughVolume: 0.2 }, SWITCHES, 'electron', 'push-to-talk').passthrough)
-      .toEqual({ on: false, ratio: 0.2 });
+      .toEqual({ on: false, ratio: 0.2, gate: 'held' });
   });
 
   // 1e-3b-2 ruling 7: a whole-system participant capture on Electron would
@@ -222,6 +227,6 @@ describe('createAppRouting', () => {
     routing.subscribe(heard);
     useTurnModeStore.getState().setTurnMode('push-to-translate');
     expect(heard).toHaveBeenCalledTimes(1);
-    expect(routing.get().passthrough).toEqual({ on: true, ratio: 1 });
+    expect(routing.get().passthrough).toEqual({ on: true, ratio: 1, gate: 'idle' });
   });
 });

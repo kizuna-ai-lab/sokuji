@@ -54,10 +54,14 @@ export function readRouting(
     participantSpeech: switches.participantSpeech && participantSpeechHeard(platform, audio.selectedParticipantSource?.deviceId),
     // 1e-3 ruling 4, today's rule (`isPassthroughActive`): under push-to-translate
     // the original voice is on at full level whenever the key is not held (the
-    // route closes while held), whatever the passthrough toggle says.
+    // route closes while held), whatever the passthrough toggle says. Under
+    // push-to-talk it follows the toggle but only while the key is held: 0.41.1
+    // ran the recorder only during a hold, and the owner kept that (2026-10-02).
     passthrough: turnMode === 'push-to-translate'
-      ? { on: true, ratio: 1 }
-      : { on: audio.isRealVoicePassthroughEnabled, ratio: audio.realVoicePassthroughVolume },
+      ? { on: true, ratio: 1, gate: 'idle' }
+      : turnMode === 'push-to-talk'
+        ? { on: audio.isRealVoicePassthroughEnabled, ratio: audio.realVoicePassthroughVolume, gate: 'held' }
+        : { on: audio.isRealVoicePassthroughEnabled, ratio: audio.realVoicePassthroughVolume },
     sinks: {
       real: audio.selectedMonitorDevice?.deviceId,
       virtual: platform === 'electron' ? findVirtualSpeaker(audio.audioMonitorDevices) : undefined,
