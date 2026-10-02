@@ -39,7 +39,8 @@ describe("OpenAI Live's settings", () => {
   it("carries each voice's sample, and the twelve Live added their documented presentation and accent (preset voice preview)", () => {
     const previews = 'https://cdn.openai.com/API/voice-previews/';
     // The ten Realtime voices: OpenAI publishes no gender or style for them.
-    for (const v of LIVE_VOICES.slice(0, 10)) expect(v).toEqual({ name: v.name, value: v.value, clip: `${previews}${v.value}.flac` });
+    for (const v of LIVE_VOICES.slice(0, 10)) expect(v).toEqual({ name: v.name, value: v.value, origin: 'realtime', clip: `${previews}${v.value}.flac` });
+    for (const v of LIVE_VOICES.slice(10)) expect(v.origin).toBe('live');
     // live-conversations#voice-options: language, regional influence, presentation.
     expect(LIVE_VOICES.slice(10).map((v) => [v.value, v.clip, v.gender, v.description])).toEqual([
       ['quartz', `${previews}quartz.wav`, 'female', 'Australian English'],

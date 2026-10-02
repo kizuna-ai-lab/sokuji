@@ -456,7 +456,9 @@
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "Intérprete GPT-Live-1, facturado por minuto de sesión, silencio incluido"
+      "description": "Intérprete GPT-Live-1, facturado por minuto de sesión, silencio incluido",
+      "voiceGroupRealtime": "Igual que en Realtime",
+      "voiceGroupLive": "Nuevas en GPT-Live"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -478,7 +480,8 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "Clonar la voz del hablante"
+      "voiceClone": "Clonar la voz del hablante",
+      "voiceGroupClone": "Clonación de voz"
     },
     "local_inference": {
       "name": "Gratis",

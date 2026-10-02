@@ -456,7 +456,9 @@
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 による通訳、セッション時間で分単位課金（無音含む）"
+      "description": "GPT-Live-1 による通訳、セッション時間で分単位課金（無音含む）",
+      "voiceGroupRealtime": "Realtime と共通",
+      "voiceGroupLive": "GPT-Live で追加"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -478,7 +480,8 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "アプリ ID + アクセストークン",
-      "voiceClone": "話者の声を複製"
+      "voiceClone": "話者の声を複製",
+      "voiceGroupClone": "声の複製"
     },
     "local_inference": {
       "name": "無料",

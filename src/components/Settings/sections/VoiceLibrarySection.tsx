@@ -32,6 +32,12 @@ export interface VoiceEntry {
    *  that cannot speak yet, and a future Palabra roster mixes builtins that
    *  publish a sample URL with clones still processing. */
   previewable?: boolean;
+  /** A `builtin` entry's heading of its own, already in the user's words:
+   *  entries with the same one are listed together under it, in the order
+   *  given; entries without one sit under "Presets". For a provider whose
+   *  presets come in kinds (OpenAI Live's Realtime voices beside the ones it
+   *  added, AST2's cloning beside its catalog). */
+  section?: string;
   meta?: {
     gender?: 'M' | 'F';
     /** Drives curated-first ordering where a provider applies one (e.g.

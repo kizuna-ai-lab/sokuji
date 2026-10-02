@@ -456,7 +456,9 @@
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "מתורגמן GPT-Live-1, חיוב לפי דקת שיחה כולל שקט"
+      "description": "מתורגמן GPT-Live-1, חיוב לפי דקת שיחה כולל שקט",
+      "voiceGroupRealtime": "כמו ב-Realtime",
+      "voiceGroupLive": "חדשים ב-GPT-Live"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -478,7 +480,8 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "שכפול קול הדובר"
+      "voiceClone": "שכפול קול הדובר",
+      "voiceGroupClone": "שכפול קול"
     },
     "local_inference": {
       "name": "חינמי",

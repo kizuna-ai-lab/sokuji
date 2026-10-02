@@ -39,6 +39,8 @@ const VOICE_PREVIEWS = 'https://cdn.openai.com/API/voice-previews/';
 export interface LiveVoice {
   value: string;
   name: string;
+  /** One of the ten Realtime voices, or one of the twelve Live added: the settings list each under a heading of its own. */
+  origin: 'realtime' | 'live';
   /** Its published sample, in English. */
   clip: string;
   /** The guide's presentation, where it gives one: for the twelve Live added only. */
@@ -47,9 +49,9 @@ export interface LiveVoice {
   description?: string;
 }
 
-const realtime = (value: string): LiveVoice => ({ name: value[0].toUpperCase() + value.slice(1), value, clip: `${VOICE_PREVIEWS}${value}.flac` });
+const realtime = (value: string): LiveVoice => ({ name: value[0].toUpperCase() + value.slice(1), value, origin: 'realtime', clip: `${VOICE_PREVIEWS}${value}.flac` });
 const live = (value: string, gender: 'female' | 'male', description: string): LiveVoice =>
-  ({ name: value[0].toUpperCase() + value.slice(1), value, clip: `${VOICE_PREVIEWS}${value}.wav`, gender, description });
+  ({ name: value[0].toUpperCase() + value.slice(1), value, origin: 'live', clip: `${VOICE_PREVIEWS}${value}.wav`, gender, description });
 
 /**
  * The ten Realtime voices in their order, then the twelve Live added

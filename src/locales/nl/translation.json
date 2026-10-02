@@ -456,7 +456,9 @@
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1-tolk, gefactureerd per sessieminuut inclusief stilte"
+      "description": "GPT-Live-1-tolk, gefactureerd per sessieminuut inclusief stilte",
+      "voiceGroupRealtime": "Zelfde als Realtime",
+      "voiceGroupLive": "Nieuw in GPT-Live"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -478,7 +480,8 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "Stem van de spreker klonen"
+      "voiceClone": "Stem van de spreker klonen",
+      "voiceGroupClone": "Stem klonen"
     },
     "local_inference": {
       "name": "Gratis",

@@ -456,7 +456,9 @@
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 口譯，依工作階段時長計費（含靜音）"
+      "description": "GPT-Live-1 口譯，依工作階段時長計費（含靜音）",
+      "voiceGroupRealtime": "與 Realtime 相同",
+      "voiceGroupLive": "GPT-Live 新增"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -478,7 +480,8 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "複製說話者的聲音"
+      "voiceClone": "複製說話者的聲音",
+      "voiceGroupClone": "聲音複製"
     },
     "local_inference": {
       "name": "免費",

@@ -456,7 +456,9 @@
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 అనువాదకుడు, నిశ్శబ్దంతో సహా సెషన్ నిమిషానికి బిల్లింగ్"
+      "description": "GPT-Live-1 అనువాదకుడు, నిశ్శబ్దంతో సహా సెషన్ నిమిషానికి బిల్లింగ్",
+      "voiceGroupRealtime": "Realtime లో ఉన్నవే",
+      "voiceGroupLive": "GPT-Live లో కొత్తవి"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -478,7 +480,8 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "యాప్ ID + యాక్సెస్ టోకెన్",
-      "voiceClone": "మాట్లాడేవారి గొంతును క్లోన్ చేయి"
+      "voiceClone": "మాట్లాడేవారి గొంతును క్లోన్ చేయి",
+      "voiceGroupClone": "గొంతు క్లోనింగ్"
     },
     "local_inference": {
       "name": "ఉచిత",

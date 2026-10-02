@@ -456,7 +456,9 @@
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1-tolk, debiteras per sessionsminut inklusive tystnad"
+      "description": "GPT-Live-1-tolk, debiteras per sessionsminut inklusive tystnad",
+      "voiceGroupRealtime": "Samma som i Realtime",
+      "voiceGroupLive": "Nya i GPT-Live"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -478,7 +480,8 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "APP ID + Access Token",
-      "voiceClone": "Klona talarens röst"
+      "voiceClone": "Klona talarens röst",
+      "voiceGroupClone": "Röstkloning"
     },
     "local_inference": {
       "name": "Gratis",

@@ -456,7 +456,9 @@
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "Interprète GPT-Live-1, facturé à la minute de session, silence compris"
+      "description": "Interprète GPT-Live-1, facturé à la minute de session, silence compris",
+      "voiceGroupRealtime": "Identiques à Realtime",
+      "voiceGroupLive": "Nouveautés de GPT-Live"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -478,7 +480,8 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "Cloner la voix de l'orateur"
+      "voiceClone": "Cloner la voix de l'orateur",
+      "voiceGroupClone": "Clonage de voix"
     },
     "local_inference": {
       "name": "Gratuit",

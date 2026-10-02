@@ -456,7 +456,9 @@
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "Jurubahasa GPT-Live-1, dicaj mengikut minit sesi termasuk senyap"
+      "description": "Jurubahasa GPT-Live-1, dicaj mengikut minit sesi termasuk senyap",
+      "voiceGroupRealtime": "Sama seperti Realtime",
+      "voiceGroupLive": "Baharu dalam GPT-Live"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -478,7 +480,8 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "APP ID + Access Token",
-      "voiceClone": "Klon suara penutur"
+      "voiceClone": "Klon suara penutur",
+      "voiceGroupClone": "Pengklonan suara"
     },
     "local_inference": {
       "name": "Percuma",

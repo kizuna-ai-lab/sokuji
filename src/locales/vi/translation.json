@@ -456,7 +456,9 @@
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "Phiên dịch GPT-Live-1, tính phí theo phút phiên kể cả khoảng lặng"
+      "description": "Phiên dịch GPT-Live-1, tính phí theo phút phiên kể cả khoảng lặng",
+      "voiceGroupRealtime": "Giống Realtime",
+      "voiceGroupLive": "Mới trong GPT-Live"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -478,7 +480,8 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "Sao chép giọng người nói"
+      "voiceClone": "Sao chép giọng người nói",
+      "voiceGroupClone": "Sao chép giọng"
     },
     "local_inference": {
       "name": "Miễn phí",

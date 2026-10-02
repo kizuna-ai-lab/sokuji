@@ -456,7 +456,9 @@
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 통역, 세션 시간 기준 분당 과금(무음 포함)"
+      "description": "GPT-Live-1 통역, 세션 시간 기준 분당 과금(무음 포함)",
+      "voiceGroupRealtime": "Realtime과 동일",
+      "voiceGroupLive": "GPT-Live에서 추가됨"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -478,7 +480,8 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "화자 목소리 복제"
+      "voiceClone": "화자 목소리 복제",
+      "voiceGroupClone": "목소리 복제"
     },
     "local_inference": {
       "name": "무료",

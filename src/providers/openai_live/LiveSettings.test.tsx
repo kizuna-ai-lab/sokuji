@@ -80,8 +80,14 @@ describe('LiveSettingsView (choice 17)', () => {
   it("shows a Realtime voice by its name alone, and a voice Live added with its documented presentation and accent (decision 2026-10-03)", () => {
     render(<LiveSettingsView {...props()} />);
     const byId = (id: string) => libraryProps().voices.find((v) => v.id === id);
-    expect(byId('marin')).toEqual({ id: 'marin', label: 'Marin', group: 'builtin', removable: false, previewable: true });
+    expect(byId('marin')).toEqual({ id: 'marin', label: 'Marin', group: 'builtin', removable: false, previewable: true, section: 'Same as Realtime' });
     expect(byId('quartz')).toMatchObject({ label: 'Quartz', previewable: true, meta: { gender: 'F', facets: { gender: 'female', description: 'Australian English' } } });
+  });
+
+  it('lists the ten Realtime voices and the twelve Live added under headings of their own: why only the twelve carry labels (decision 2026-10-03)', () => {
+    render(<LiveSettingsView {...props()} />);
+    const sections = libraryProps().voices.map((v) => v.section);
+    expect(sections).toEqual([...Array(10).fill('Same as Realtime'), ...Array(12).fill('Added in GPT-Live')]);
   });
 
   it("auditions a voice with its published sample, through the host's preview route; free, so no note and no key", async () => {

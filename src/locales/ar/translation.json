@@ -456,7 +456,9 @@
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "مترجم GPT-Live-1، الفوترة لكل دقيقة جلسة شاملة الصمت"
+      "description": "مترجم GPT-Live-1، الفوترة لكل دقيقة جلسة شاملة الصمت",
+      "voiceGroupRealtime": "مثل Realtime",
+      "voiceGroupLive": "أُضيفت في GPT-Live"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -478,7 +480,8 @@
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
-      "voiceClone": "استنساخ صوت المتحدث"
+      "voiceClone": "استنساخ صوت المتحدث",
+      "voiceGroupClone": "استنساخ الصوت"
     },
     "local_inference": {
       "name": "مجاني",
