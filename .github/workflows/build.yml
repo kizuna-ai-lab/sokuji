@@ -42,7 +42,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: Install dependencies
@@ -188,7 +188,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: Install dependencies
@@ -748,8 +748,9 @@ jobs:
             exit 0
           fi
           python3 -c "import yaml" 2>/dev/null || pip3 install --quiet pyyaml
-          python3 - "$ARM" "$X64" <<'PY'
-          import sys, yaml
+          ZIP=$(find macos-arm64-artifacts macos-x64-artifacts -name '*.zip' 2>/dev/null | head -1)
+          python3 - "$ARM" "$X64" "$ZIP" <<'PY'
+          import plistlib, re, sys, yaml, zipfile
           paths = [p for p in sys.argv[1:3] if p]
           docs = [yaml.safe_load(open(p)) for p in paths]
           # Prefer arm64 for the top-level path/sha512 fields, matching what the
@@ -763,6 +764,19 @@ jobs:
                       files.append(f)
           merged = dict(primary)
           merged['files'] = files
+          # electron-builder leaves the app's minimum macOS out of latest-mac.yml,
+          # so an install below it would be offered a build that cannot launch
+          # (Electron 44 raised it to 13.0). electron-updater's
+          # checkIfUpdateSupported compares os.release() -- the Darwin version --
+          # against minimumSystemVersion, so the floor goes in as Darwin. A floor
+          # missing from the map fails here rather than shipping without a gate.
+          DARWIN_FOR_MACOS = {'13.0': '22.0.0'}
+          with zipfile.ZipFile(sys.argv[3]) as z:
+              name = next(n for n in z.namelist() if re.fullmatch(r'[^/]+\.app/Contents/Info\.plist', n))
+              min_macos = plistlib.loads(z.read(name))['LSMinimumSystemVersion']
+          if min_macos not in DARWIN_FOR_MACOS:
+              sys.exit(f'LSMinimumSystemVersion {min_macos} has no Darwin entry in DARWIN_FOR_MACOS')
+          merged['minimumSystemVersion'] = DARWIN_FOR_MACOS[min_macos]
           with open('release-assets/latest-mac.yml', 'w') as fh:
               yaml.safe_dump(merged, fh, default_flow_style=False, sort_keys=False)
           PY

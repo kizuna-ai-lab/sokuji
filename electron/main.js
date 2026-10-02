@@ -11,6 +11,13 @@ const { createWsHeaderRules } = require('./ws-header-rules.js');
 const { applyLinuxGpuFlags } = require('./linux-gpu-flags');
 const { acquireSingleInstanceLock, createFocusRelay } = require('./single-instance');
 
+// Let the Windows sandbox read our own install folder before Electron checks it
+// and aborts (issue #352; electron/electron#54382). Runs ahead of the Squirrel
+// hooks so install and update runs grant it too.
+if (process.platform === 'win32') {
+  require('./sandbox-recovery').grantInstallDirSandboxRead(process.execPath);
+}
+
 // Handle Squirrel events for Windows
 if (process.platform === 'win32') {
   const handleSquirrelEvent = require('./squirrel-events');
