@@ -295,6 +295,27 @@ describe('createPlayback — passthrough', () => {
     expect(resumed()).toBeGreaterThan(0);
   });
 
+  it("schedules nothing while push-to-talk's route is closed, so a press never lets out the voice from before it", () => {
+    const { playback, passthroughPlayed } = build({ ...ROUTING, passthrough: { on: true, ratio: 0.2, gate: 'held' } });
+    playback.live(true);
+    playback.passthrough(pcm(85));
+    expect(passthroughPlayed()).toBe(0);
+    playback.held(true);
+    playback.passthrough(pcm(85));
+    expect(passthroughPlayed()).toBe(1);
+  });
+
+  it("schedules nothing while push-to-translate's key is held, so a release never lets out the held voice", () => {
+    const { playback, passthroughPlayed } = build({ ...ROUTING, passthrough: { on: true, ratio: 1, gate: 'idle' } });
+    playback.live(true);
+    playback.held(true);
+    playback.passthrough(pcm(85));
+    expect(passthroughPlayed()).toBe(0);
+    playback.held(false);
+    playback.passthrough(pcm(85));
+    expect(passthroughPlayed()).toBe(1);
+  });
+
   it('forwards the original voice only while the run is live', () => {
     const { playback, passthroughPlayed } = build();
     playback.passthrough(pcm(85));

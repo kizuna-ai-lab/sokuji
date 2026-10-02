@@ -87,9 +87,19 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
     }, QUIET_MS);
   };
 
+  /**
+   * Whether the original-voice route is open. While it is closed nothing is
+   * scheduled: a stream queued behind a closed route would be let out when the
+   * key opens it — push-to-talk's press the voice from before it,
+   * push-to-translate's release the held voice.
+   */
+  let passthroughOpen = false;
+
   const apply = () => {
     const settings = routing.get();
-    graph.route(routesFor(settings, held));
+    const edges = routesFor(settings, held);
+    passthroughOpen = edges.some((e) => e.from === 'passthrough');
+    graph.route(edges);
     void graph.setSinks(settings.sinks);
   };
   apply();
@@ -183,7 +193,7 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
     stopPreview,
 
     passthrough(pcm) {
-      if (!live) return;
+      if (!live || !passthroughOpen) return;
       void graph.resume();
       passthroughStream.push(pcm);
     },
