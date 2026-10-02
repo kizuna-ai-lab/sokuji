@@ -33,6 +33,8 @@ export const volcengineAst2Provider: Provider<Ast2Settings, Ast2Credentials, Ast
   // Two credential modes (ruling 1): the choice sits above the fields, in both layouts.
   credentials: ast2Credentials,
   check: (k, s, ctx) => checkAst2(k, s, ctx),
+  // The credential mode picks the credential fields; the libraries and the voice are not checked.
+  checkReads: ['authMode'],
 
   // The offer follows whether the run speaks (ruling 3; choice 1).
   languages: ast2Languages,

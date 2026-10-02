@@ -39,6 +39,8 @@ export const openaiTranslateProvider: Provider<TranslateSettings, TranslateCrede
 
   credentials: translateCredentials,
   check: (k, s, ctx) => checkTranslate(k, s, ctx),
+  // The model list reads the key alone.
+  checkReads: [],
 
   languages: translateLanguages,
 

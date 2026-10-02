@@ -42,6 +42,8 @@ export const geminiProvider: Provider<GeminiSettings, GeminiCredentials, GeminiC
 
   credentials: geminiCredentials,
   check: checkGemini,
+  // The model list reads the key alone.
+  checkReads: [],
 
   languages: geminiLanguages,
 
