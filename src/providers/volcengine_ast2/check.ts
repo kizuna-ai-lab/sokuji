@@ -1,7 +1,7 @@
 /**
  * Doubao AST 2.0's readiness (spec: "Readiness is one check"; ruling 9):
  * one real handshake — the socket with the credentials in its query, a
- * text-only `StartSession` for the pair, and on its own session's
+ * text-only zh → en `StartSession`, and on its own session's
  * `SessionStarted` a `FinishSession` and the close. No audio is sent. Bounded by
  * `CHECK_TIMEOUT_MS` and the caller's signal; the socket is closed on every
  * path. A browser cannot see the upgrade's 401: a socket that fails before
@@ -60,8 +60,8 @@ export function createAst2Check(deps: Ast2CheckDeps = {}) {
 
       socket.onopen = () => {
         opened = true;
-        // Text only: no voice is set up, and every spoken pair also runs as text (ruling 9). The user's pair, so a pair Doubao refuses is refused here.
-        socket.send(startSessionFrame({ ids, sequence: sequence++, mode: 's2t', source: ctx.pair.source, target: ctx.pair.target, ...(k.kind === 'app' ? { appKey: k.appKey } : {}) }));
+        // Text only and always zh → en: the check validates the credentials, so a pick or an audio-mode switch never needs another one (no `checkReadsDirection`). The language offer and `build` keep a run to pairs Doubao runs.
+        socket.send(startSessionFrame({ ids, sequence: sequence++, mode: 's2t', source: 'zh', target: 'en', ...(k.kind === 'app' ? { appKey: k.appKey } : {}) }));
       };
       socket.onmessage = (e: MessageEvent) => {
         let r;

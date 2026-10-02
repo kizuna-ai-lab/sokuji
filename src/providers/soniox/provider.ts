@@ -32,6 +32,8 @@ export const sonioxProvider: Provider<SonioxSettings, SonioxCredentials, SonioxC
 
   credentials: sonioxCredentials,
   check: (k, s, ctx) => checkSoniox(k, s, ctx),
+  // The region picks the key field (`sonioxKeyField`); the check reads nothing else.
+  checkReads: ['region'],
 
   languages: sonioxLanguages,
 

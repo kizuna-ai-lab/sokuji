@@ -277,6 +277,8 @@ describe('the language context (Stage 2 Volcengine AST2, choice 1)', () => {
     ...probe,
     id: 'moody',
     speech: 'optional',
+    // Its check reads the pair, so a pair the context moves forgets its answer.
+    checkReadsDirection: true,
     settings: { key: 'moody', defaults: probe.settings.defaults },
     languages: {
       sources: (_s: ProbeSettings, context?: LanguageContext) => offered(context),
@@ -388,6 +390,18 @@ describe('the language context (Stage 2 Volcengine AST2, choice 1)', () => {
     expect(useProviderStore.getState().readiness.moody).toEqual({ state: 'unknown' });
     expect(useProviderStore.getState().readiness.probe).toBe(ready);
   });
+
+  it('keeps the readiness of a provider whose check does not read the pair when the context moves its pair', async () => {
+    const plain = { ...moody, checkReadsDirection: undefined } as unknown as AnyProvider;
+    await useProviderStore.getState().load(plain);
+    const ready = { state: 'ready' as const, models: [] };
+    useProviderStore.setState({ readiness: { moody: ready } });
+    useProviderStore.getState().setSpeech(speaking);
+    const before = moodyEntry().pair;
+    useProviderStore.getState().setSpeech(textOnly);
+    expect(moodyEntry().pair).not.toEqual(before);
+    expect(useProviderStore.getState().readiness.moody).toBe(ready);
+  });
 });
 
 describe('the global pair (unified language codes)', () => {
@@ -408,10 +422,10 @@ describe('the global pair (unified language codes)', () => {
     expect(setSetting).not.toHaveBeenCalledWith('settings.common.targetLanguage', expect.anything());
   });
 
-  it('writes a pick, both sides as shown, and every loaded provider follows it, forgetting its readiness', async () => {
+  it('writes a pick, both sides as shown, and every loaded provider follows it, forgetting the readiness of one whose check reads the pair', async () => {
     stored.set('settings.common.sourceLanguage', 'ja');
     stored.set('settings.common.targetLanguage', 'fr');
-    await useProviderStore.getState().load(probe);
+    await useProviderStore.getState().load({ ...probe, checkReadsDirection: true } as unknown as AnyProvider);
     await useProviderStore.getState().load(narrow);
     expect(pairOf('probe')).toEqual({ source: 'ja', target: 'fr' });
     useProviderStore.setState({ readiness: { ...useProviderStore.getState().readiness, probe: { state: 'ready', models: [] } } });
@@ -446,14 +460,26 @@ describe('the global pair (unified language codes)', () => {
 describe('refreshReadiness', () => {
   const auth = { signedIn: false, getToken: async () => null };
 
-  it('asks check about the pair, and forgets readiness when the pair changes', async () => {
+  it('asks check about the pair, and forgets readiness when the pair changes, for a check that reads it', async () => {
     const check = vi.fn(async (_k: unknown, _s: unknown, _ctx: CheckContext) => ({ ok: true as const }));
-    const p = { ...probe, check };
+    const p = { ...probe, check, checkReadsDirection: true } as unknown as AnyProvider;
     await useProviderStore.getState().load(p);
     await useProviderStore.getState().refreshReadiness(p, auth);
     expect(check.mock.calls[0][2]).toMatchObject({ pair: useProviderStore.getState().entries[p.id].pair });
     useProviderStore.getState().setPair(p, { source: 'ja', target: 'en' });
     expect(useProviderStore.getState().readiness[p.id]).toEqual({ state: 'unknown' });
+  });
+
+  it('keeps readiness through a pick, and checks nothing again, for a check that does not read the pair', async () => {
+    const check = vi.fn(async (_k: unknown, _s: unknown, _ctx: CheckContext) => ({ ok: true as const }));
+    const p = { ...probe, check };
+    await useProviderStore.getState().load(p);
+    await useProviderStore.getState().refreshReadiness(p, auth);
+    const ready = useProviderStore.getState().readiness[p.id];
+    useProviderStore.getState().setPair(p, { source: 'ja', target: 'en' });
+    expect(useProviderStore.getState().readiness[p.id]).toBe(ready);
+    await useProviderStore.getState().refreshReadiness(p, auth);
+    expect(check).toHaveBeenCalledTimes(1);
   });
 
   it("checks the inputs it is given — a run's shape — instead of the live entry", async () => {

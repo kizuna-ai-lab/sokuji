@@ -78,11 +78,11 @@ export interface ProviderStore {
   forgetReadiness(p: Pick<AnyProvider, 'id'>): void;
   /** The legs a start would open now, speaker first (appShape's `watchLegsFromStores` keeps them); the speaker alone until then. */
   legs: readonly LegName[];
-  /** Other legs change what a check answers: every loaded provider's readiness is forgotten, and each pair derived again from the intent for the new language context. The same legs change nothing. */
+  /** Other legs change what a check that reads them answers (`checkReadsDirection`): that provider's readiness is forgotten, and each pair derived again from the intent for the new language context. The same legs change nothing. */
   setLegs(legs: readonly LegName[]): void;
   /** Whether a run would speak besides its legs (appShape's `watchSpeechFromStores` keeps it): with the legs, each provider's language context (Stage 2 Volcengine AST2, choice 1). Nothing speaks until it is kept. */
   speech: SpeechInputs;
-  /** Every loaded entry's pair is derived again from the intent, nothing written; a provider whose pair moved forgets its readiness. The same inputs change nothing. */
+  /** Every loaded entry's pair is derived again from the intent, nothing written; a provider whose pair moved forgets its readiness when its check reads the pair. The same inputs change nothing. */
   setSpeech(inputs: SpeechInputs): void;
   /** The provider the panel shows and a run starts. A person's pick persists (old enum spelling, `storedSettings.ts`); a load never writes (1e-3 ruling 2). */
   selected: string | null;
@@ -161,6 +161,8 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
     supersede(p);
     setReadiness(p, UNKNOWN);
   };
+  /** A pair or legs change outdates only the answer of a check that reads them (`checkReadsDirection`): a network one validates the credentials alone. */
+  const readsDirection = (p: Pick<AnyProvider, 'checkReadsDirection'> | undefined) => p?.checkReadsDirection === true;
   /** What a provider shows: the intent, else its initial; within its offer for the store's context. Nothing is written. */
   const derive = (p: AnyProvider, settings: unknown): LanguagePair => {
     const intent = get().intent;
@@ -175,8 +177,8 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       const pair = derive(p, entry.settings);
       if (pair.source === entry.pair.source && pair.target === entry.pair.target) continue;
       put(p, { settings: entry.settings, credentials: entry.credentials, pair });
-      // The check reads the pair: its answer was about the other one.
-      forgetReadiness(p);
+      // A check that reads the pair answered about the other one.
+      if (readsDirection(p)) forgetReadiness(p);
     }
   };
 
@@ -208,7 +210,8 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       const now = get().legs;
       if (legs.length === now.length && legs.every((leg, i) => leg === now[i])) return;
       set({ legs });
-      for (const id of Object.keys(get().entries)) forgetReadiness({ id });
+      // Other legs change only what a check that reads them answers.
+      for (const id of Object.keys(get().entries)) if (readsDirection(loadedProviders.get(id))) forgetReadiness({ id });
       rederive();
     },
     speech: { textOnly: false, participantSpeech: false },
@@ -255,9 +258,9 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       const pair = derive(p, settings);
       put(p, { settings, credentials: entry.credentials, pair });
       for (const [field, value] of Object.entries(patch)) write(storageKey(p, field), value);
-      // The answer holds while the check would read the same inputs (ruling 9): no field it reads was edited, and the run's pair did not move.
+      // The answer holds while the check would read the same inputs (ruling 9): no field it reads was edited, and, for a check that reads it, the run's pair did not move.
       const touched = p.checkReads === undefined || Object.keys(patch).some((field) => p.checkReads!.includes(field));
-      const moved = pair.source !== entry.pair.source || pair.target !== entry.pair.target;
+      const moved = readsDirection(p) && (pair.source !== entry.pair.source || pair.target !== entry.pair.target);
       if (touched || moved) forgetReadiness(p);
     },
 
@@ -279,7 +282,7 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       put(p, { settings: entry.settings, credentials: entry.credentials, pair: derive(p, entry.settings) });
       persistPair(before, kept);
       rederive();
-      forgetReadiness(p);
+      if (readsDirection(p)) forgetReadiness(p);
     },
 
     async flush(p, fields) {
@@ -333,7 +336,9 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       const read = p.checkReads === undefined
         ? inputs.settings
         : Object.fromEntries(p.checkReads.map((field) => [field, (inputs.settings as Record<string, unknown>)[field]]));
-      const key = JSON.stringify([read, values, ...account, inputs.pair, inputs.legs]);
+      // The pair and legs key it only for a check that reads them: another pair or audio mode is served from the same answer otherwise.
+      const direction = readsDirection(p) ? [inputs.pair, inputs.legs] : [];
+      const key = JSON.stringify([read, values, ...account, ...direction]);
       const kept = p.kind === 'local' ? undefined : lastAnswer.get(p.id);
       if (kept && kept.inputs === key) return answered(kept.readiness);
 

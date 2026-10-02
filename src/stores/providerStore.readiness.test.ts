@@ -44,6 +44,9 @@ function probe(kind: 'own-key' | 'local' | 'managed', check: (k: unknown, s: unk
   } as unknown as AnyProvider;
 }
 
+/** A provider whose check reads the pair and the legs (`checkReadsDirection`), as a local engine's does. */
+const directional = (p: AnyProvider): AnyProvider => ({ ...p, checkReadsDirection: true }) as AnyProvider;
+
 function deferred<T>() {
   let resolve!: (v: T) => void;
   let reject!: (e: unknown) => void;
@@ -241,15 +244,27 @@ describe('refreshReadiness — a provider that declares what its check reads (St
     expect(check).toHaveBeenCalledTimes(2);
   });
 
-  it('forgets it when an edit it does not read moves the pair: the check reads the pair', async () => {
+  it('forgets it when an edit it does not read moves the pair, for a check that reads the pair (checkReadsDirection)', async () => {
     const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
-    const p = narrowed(check, []);
+    const p = directional(narrowed(check, []));
     await loadedWithKey(p);
     await store.useProviderStore.getState().refreshReadiness(p, noAuth);
     expect(store.useProviderStore.getState().entries.probe.pair).toEqual({ source: 'en', target: 'fr' });
     store.useProviderStore.getState().updateSettings(p, { mode: 'b' });
     expect(store.useProviderStore.getState().entries.probe.pair).toEqual({ source: 'ja', target: 'fr' });
     expect(readiness()).toEqual({ state: 'unknown' });
+  });
+
+  it('keeps it when an edit it does not read moves the pair, for a check that does not read the pair', async () => {
+    const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
+    const p = narrowed(check, []);
+    await loadedWithKey(p);
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    store.useProviderStore.getState().updateSettings(p, { mode: 'b' });
+    expect(store.useProviderStore.getState().entries.probe.pair).toEqual({ source: 'ja', target: 'fr' });
+    expect(readiness()).toEqual({ state: 'ready', models: [] });
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(check).toHaveBeenCalledTimes(1);
   });
 
   it('reads no field with an empty list, and a credential edit still forgets', async () => {
@@ -492,9 +507,9 @@ describe('refreshReadiness — the legs a run would open', () => {
     expect(check.mock.calls[2][2].legs).toEqual(['participant']);
   });
 
-  it('forgets every loaded provider\'s readiness when the legs change, and nothing when they do not', async () => {
+  it('forgets the readiness of a check that reads the legs when they change, and nothing when they do not', async () => {
     const answer = deferred<CheckResult>();
-    const p = probe('own-key', () => answer.promise);
+    const p = directional(probe('own-key', () => answer.promise));
     await loadedWithKey(p);
     const pending = store.useProviderStore.getState().refreshReadiness(p, noAuth);
     store.useProviderStore.getState().setLegs(['speaker']);
@@ -508,9 +523,18 @@ describe('refreshReadiness — the legs a run would open', () => {
     expect(readiness()).toEqual({ state: 'unknown' });
   });
 
-  it('keeps a network answer per legs: other legs ask again', async () => {
+  it('keeps the readiness of a check that does not read the legs through a change of legs: nothing is checked again', async () => {
     const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
     const p = probe('own-key', check);
+    await loadedWithKey(p);
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    store.useProviderStore.getState().setLegs(['speaker', 'participant']);
+    expect(readiness()).toEqual({ state: 'ready', models: [] });
+  });
+
+  it('keeps a network answer per legs for a check that reads them: other legs ask again', async () => {
+    const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
+    const p = directional(probe('own-key', check));
     await loadedWithKey(p);
     await store.useProviderStore.getState().refreshReadiness(p, noAuth, runInputs(['speaker']));
     await store.useProviderStore.getState().refreshReadiness(p, noAuth, runInputs(['speaker']));
@@ -519,12 +543,22 @@ describe('refreshReadiness — the legs a run would open', () => {
     expect(check).toHaveBeenCalledTimes(2);
   });
 
-  it('keeps a network answer per pair: another pair asks again', async () => {
+  it('keeps a network answer per pair for a check that reads it: another pair asks again', async () => {
     const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
-    const p = probe('own-key', check);
+    const p = directional(probe('own-key', check));
     await loadedWithKey(p);
     await store.useProviderStore.getState().refreshReadiness(p, noAuth, runInputs());
     await store.useProviderStore.getState().refreshReadiness(p, noAuth, { ...runInputs(), pair: { source: 'ja', target: 'en' } });
     expect(check).toHaveBeenCalledTimes(2);
+  });
+
+  it('serves a check that reads neither from one answer, whatever the pair and legs a run asks about', async () => {
+    const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
+    const p = probe('own-key', check);
+    await loadedWithKey(p);
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth, runInputs(['speaker']));
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth, runInputs(['speaker', 'participant']));
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth, { ...runInputs(), pair: { source: 'ja', target: 'en' } });
+    expect(check).toHaveBeenCalledTimes(1);
   });
 });

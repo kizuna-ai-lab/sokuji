@@ -24,15 +24,16 @@ function setup(o: { online?: boolean } = {}) {
 }
 
 describe("Doubao AST 2.0's check (ruling 9)", () => {
-  it("opens the socket with the credentials in its query, starts a text-only session for the user's pair, and on SessionStarted finishes it and closes", async () => {
+  it('opens the socket with the credentials in its query, starts a text-only zh → en session whatever the pair, and on SessionStarted finishes it and closes', async () => {
     const h = setup();
+    // The user's pair is ja → en; the check validates the credentials alone, so a pick never needs another one.
     const answer = h.check(APP_KEY, AST2_DEFAULTS, ctx());
     expect(h.socket().url).toBe(ast2Url(APP_KEY));
     expect(h.socket().binaryType).toBe('arraybuffer');
     h.socket().open();
     const [start] = sentRequests(h.socket());
     expect(start.event).toBe(EventType.StartSession);
-    expect(start.request).toMatchObject({ mode: 's2t', sourceLanguage: 'ja', targetLanguage: 'en' });
+    expect(start.request).toMatchObject({ mode: 's2t', sourceLanguage: 'zh', targetLanguage: 'en' });
     expect(start.targetAudio ?? null).toBeNull();
     expect(start.requestMeta).toMatchObject({ AppKey: '1234567890', SessionID: 'id-1', ConnectionID: 'id-2' });
     h.socket().receive(SERVER.started());
