@@ -35,6 +35,27 @@ describe("OpenAI Live's settings", () => {
       'quartz', 'ripple', 'vesper', 'willow', 'stone', 'gleam', 'meridian', 'bossa', 'tempo', 'beacon', 'delta', 'cinder',
     ]);
   });
+
+  it("carries each voice's sample, and the twelve Live added their documented presentation and accent (preset voice preview)", () => {
+    const previews = 'https://cdn.openai.com/API/voice-previews/';
+    // The ten Realtime voices: OpenAI publishes no gender or style for them.
+    for (const v of LIVE_VOICES.slice(0, 10)) expect(v).toEqual({ name: v.name, value: v.value, clip: `${previews}${v.value}.flac` });
+    // live-conversations#voice-options: language, regional influence, presentation.
+    expect(LIVE_VOICES.slice(10).map((v) => [v.value, v.clip, v.gender, v.description])).toEqual([
+      ['quartz', `${previews}quartz.wav`, 'female', 'Australian English'],
+      ['ripple', `${previews}ripple.wav`, 'male', 'Australian English'],
+      ['vesper', `${previews}vesper.wav`, 'male', 'British English'],
+      ['willow', `${previews}willow.wav`, 'female', 'Irish English'],
+      ['stone', `${previews}stone.wav`, 'male', 'Irish English'],
+      ['gleam', `${previews}gleam.wav`, 'female', 'North American English'],
+      ['meridian', `${previews}meridian.wav`, 'male', 'North American English'],
+      ['bossa', `${previews}bossa.wav`, 'female', 'Brazilian Portuguese'],
+      ['tempo', `${previews}tempo.wav`, 'male', 'Brazilian Portuguese'],
+      ['beacon', `${previews}beacon.wav`, 'male', 'Filipino English'],
+      ['delta', `${previews}delta.wav`, 'female', 'Southern U.S. English'],
+      ['cinder', `${previews}cinder.wav`, 'male', 'Southern U.S. English'],
+    ]);
+  });
 });
 
 describe("OpenAI Live's languages (D20)", () => {
