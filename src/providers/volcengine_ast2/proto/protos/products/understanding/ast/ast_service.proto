@@ -11,7 +11,12 @@ message ReqParams {
   string source_language = 2; // 源语言
   string target_language = 3; // 目标语言
   string speaker_id = 4;
+  int32 speech_rate = 5;
+  optional bool enable_source_language_detect = 6;
+  bool is_custom_speaker = 7;
+  string tts_resource_id = 8;
 
+  string extra = 80;
   understanding.Corpus corpus = 100;
 }
 
@@ -36,6 +41,10 @@ message TranslateResponse {
   int32 end_time = 6;
   bool spk_chg = 7;
   int32 muted_duration_ms = 8;
+  string speaker_id = 9;
+  // 仅 SourceSubtitleEnd(652) 等场景由语种检测写入
+  optional string detected_language = 10;
+  optional double language_confidence = 11;
 }
 
 service ASTService {

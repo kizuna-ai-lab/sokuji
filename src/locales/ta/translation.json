@@ -82,7 +82,7 @@
     "realtimeModelNotAvailable": "நிகழ்நேர மாதிரி கிடைக்கவில்லை",
     "modelsFound": "{{count}} மாதிரிகள் உள்ளன",
     "volcengineAST2Info": "Doubao AST 2.0 தகவல்",
-    "volcengineAST2InfoText": "Doubao AST 2.0 தானியங்கி குரல் குளோனிங்குடன் பேச்சிலிருந்து பேச்சுக்கான மொழிபெயர்ப்பை வழங்குகிறது. மொழிபெயர்க்கப்பட்ட ஒலி அசல் பேச்சாளரின் குரல் பண்புகளைப் பாதுகாக்கிறது.",
+    "volcengineAST2InfoText": "Doubao AST 2.0 பேச்சிலிருந்து பேச்சுக்கு உடனடி மொழிபெயர்ப்பை வழங்குகிறது. மொழிபெயர்ப்பை பேசுபவரின் நகலெடுத்த குரலிலோ, குரல் நூலகத்திலிருந்து தேர்ந்தெடுத்த குரலிலோ கேட்கலாம்.",
     "volcengineAST2TurnDetectionTooltip": "ஆட்டோ: சர்வர் பக்க குரல் செயல்பாடு கண்டறிதல். \nபுஷ்-டு-டாக்: ஒலியை கைமுறையாக அனுப்ப ஸ்பேஸ் அல்லது மைக் பொத்தானை அழுத்திப் பிடிக்கவும். \nபுஷ்-டு-ட்ரான்ஸ்லேட்: புஷ்-டு-டாக் போன்றது, ஆனால் செயலற்ற நிலையில் உங்கள் மூல மைக்கை மெய்நிகர் மைக்கிற்கு வழிநடத்துகிறது, இதனால் நீங்கள் மொழிபெயர்ப்பு இல்லாமல் நேரடியாகப் பேசலாம்.",
     "volcengineAST2CustomVocabulary": "தனிப்பயன் சொற்களஞ்சியம்",
     "volcengineAST2HotWordLibraryId": "ஹாட்வேர்ட் நூலக ID",
@@ -475,7 +475,8 @@
       "description": "Doubao ஒரே நேர மொழிபெயர்ப்பு",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "App ID + Access Token"
+      "authModeApp": "App ID + Access Token",
+      "voiceClone": "பேசுபவரின் குரலை நகலெடு"
     },
     "local_inference": {
       "name": "இலவசம்",
@@ -960,6 +961,8 @@
         "neutral": "Neutral"
       },
       "age": {
+        "child": "Child",
+        "teen": "Teen",
         "young": "Young",
         "middle_aged": "Middle-aged",
         "old": "Mature"

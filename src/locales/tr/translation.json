@@ -82,7 +82,7 @@
     "realtimeModelNotAvailable": "Gerçek zamanlı model kullanılamıyor",
     "modelsFound": "{{count}} model mevcut",
     "volcengineAST2Info": "Doubao AST 2.0 Bilgileri",
-    "volcengineAST2InfoText": "Doubao AST 2.0, otomatik ses klonlama ile konuşmadan konuşmaya çeviri sağlar. Çevrilen ses, orijinal konuşmacının ses özelliklerini korur.",
+    "volcengineAST2InfoText": "Doubao AST 2.0, konuşmadan konuşmaya simultane tercüme sunar. Çeviri, konuşanın klonlanmış sesiyle ya da ses kütüphanesinden seçilen bir sesle seslendirilebilir.",
     "volcengineAST2TurnDetectionTooltip": "Otomatik: sunucu taraflı ses etkinliği algılama. \nBas-Konuş: ses göndermek için boşluk tuşunu veya mikrofon düğmesini basılı tutun. \nBas-Çevir: Bas-Konuş gibi ancak boştayken ham mikrofonunuzu sanal mikrofona yönlendirir, böylece çeviri olmadan doğrudan konuşabilirsiniz.",
     "volcengineAST2CustomVocabulary": "Özel Sözlük",
     "volcengineAST2HotWordLibraryId": "Sıcak Sözcük Kütüphane Kimliği",
@@ -475,7 +475,8 @@
       "description": "Doubao eşzamanlı çeviri",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "App ID + Access Token"
+      "authModeApp": "App ID + Access Token",
+      "voiceClone": "Konuşanın sesini klonla"
     },
     "local_inference": {
       "name": "Ücretsiz",
@@ -960,6 +961,8 @@
         "neutral": "Neutral"
       },
       "age": {
+        "child": "Child",
+        "teen": "Teen",
         "young": "Young",
         "middle_aged": "Middle-aged",
         "old": "Mature"

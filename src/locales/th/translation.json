@@ -82,7 +82,7 @@
     "realtimeModelNotAvailable": "โมเดลแบบเรียลไทม์ไม่พร้อมใช้งาน",
     "modelsFound": "มีโมเดล {{count}} ตัวที่ใช้ได้",
     "volcengineAST2Info": "ข้อมูล Doubao AST 2.0",
-    "volcengineAST2InfoText": "Doubao AST 2.0 ให้บริการแปลเสียงพูดเป็นเสียงพูดพร้อมการโคลนเสียงอัตโนมัติ เสียงที่แปลจะรักษาคุณลักษณะเสียงของผู้พูดต้นฉบับไว้",
+    "volcengineAST2InfoText": "Doubao AST 2.0 ให้บริการล่ามพร้อมกันจากเสียงพูดเป็นเสียงพูด คำแปลสามารถพูดด้วยเสียงที่โคลนจากผู้พูด หรือด้วยเสียงที่เลือกจากคลังเสียงก็ได้",
     "volcengineAST2TurnDetectionTooltip": "อัตโนมัติ: การตรวจจับกิจกรรมเสียงฝั่งเซิร์ฟเวอร์ \nกดเพื่อพูด: กดแป้นเว้นวรรคหรือปุ่มไมโครโฟนค้างไว้เพื่อส่งเสียงด้วยตนเอง \nกดเพื่อแปล: เหมือนกับกดเพื่อพูด แต่จะส่งเสียงไมค์ดิบของคุณไปยังไมค์เสมือนเมื่อไม่ได้กด เพื่อให้คุณพูดโดยตรงได้โดยไม่ต้องแปล",
     "volcengineAST2CustomVocabulary": "คำศัพท์ที่กำหนดเอง",
     "volcengineAST2HotWordLibraryId": "ID ไลบรารีคำสำคัญ",
@@ -475,7 +475,8 @@
       "description": "การแปลพร้อมกัน Doubao",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "App ID + Access Token"
+      "authModeApp": "App ID + Access Token",
+      "voiceClone": "โคลนเสียงผู้พูด"
     },
     "local_inference": {
       "name": "ฟรี",
@@ -960,6 +961,8 @@
         "neutral": "Neutral"
       },
       "age": {
+        "child": "Child",
+        "teen": "Teen",
         "young": "Young",
         "middle_aged": "Middle-aged",
         "old": "Mature"

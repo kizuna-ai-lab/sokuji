@@ -14,7 +14,9 @@
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import WebSocket from 'ws';
-import { ast2Offers, type Ast2Credentials } from '../../../src/providers/volcengine_ast2/settings';
+import type { SharedSettings } from '../../../src/lib/provider/types';
+import { buildAst2 } from '../../../src/providers/volcengine_ast2/config';
+import { AST2_DEFAULTS, type Ast2Credentials } from '../../../src/providers/volcengine_ast2/settings';
 import {
   EventType, ast2Url, audioFrame, decodeResponse, eventName, finishSessionFrame, isOk, startSessionFrame, toNumber, type Ast2Response,
 } from '../../../src/providers/volcengine_ast2/wire';
@@ -82,10 +84,15 @@ function relation(tts: string, subtitle: string): string {
   return 'differs';
 }
 
+/** `buildAst2` reads none of these; a run's real values do not change what it sends. */
+const SHARED: SharedSettings = { pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 }, models: [] };
+
 async function session(source: string, target: string): Promise<void> {
   const run: Run = startRun('ast2', `s2s-${source}-${target}`);
-  if (!ast2Offers({ source, target }, { speech: true })) {
-    run.report(`Doubao does not speak ${source} → ${target} (the app's own offer); skipped.`);
+  // The app's own build: its offer refuses a pair Doubao does not speak before anything is billed, and a pair cloning cannot run gets the target's fixed voice, with Doubao's own language codes.
+  const config = buildAst2({ direction: { source, target }, speech: true, turns: 'auto' }, AST2_DEFAULTS, SHARED);
+  if ('refused' in config) {
+    run.report(`${config.refused} (the app's own offer); skipped.`);
     return;
   }
   const clipFile = source === 'zh' ? CLIPS.zh : CLIPS.ja;
@@ -185,8 +192,16 @@ async function session(source: string, target: string): Promise<void> {
   run.log('ws', opened ? 'open' : 'not-open', { credentials: credentials!.kind });
   if (!opened) { run.report('The socket did not open (a refused credential is an HTTP 401 on the upgrade).'); return; }
 
-  ws.send(startSessionFrame({ ids, sequence: sequence++, mode: 's2s', source, target, ...(credentials!.kind === 'app' ? { appKey: credentials!.appKey } : {}) }));
-  run.log('out', 'StartSession', { mode: 's2s', source, target });
+  ws.send(startSessionFrame({
+    ids,
+    sequence: sequence++,
+    mode: config.mode,
+    source: config.sourceLanguage,
+    target: config.targetLanguage,
+    ...(config.voice ? { voice: config.voice } : {}),
+    ...(credentials!.kind === 'app' ? { appKey: credentials!.appKey } : {}),
+  }));
+  run.log('out', 'StartSession', { mode: config.mode, source: config.sourceLanguage, target: config.targetLanguage, voice: config.voice?.speakerId ?? 'clone' });
   for (let i = 0; i < 150 && !started && !finished && !closed; i++) await sleep(100);
   if (!started) { run.report(`No SessionStarted within 15 s; close ${JSON.stringify(closed)}.`); ws.close(); return; }
 

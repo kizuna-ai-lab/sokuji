@@ -82,7 +82,7 @@
     "realtimeModelNotAvailable": "Hindi available ang realtime model",
     "modelsFound": "{{count}} na mga model ang available",
     "volcengineAST2Info": "Impormasyon ng Doubao AST 2.0",
-    "volcengineAST2InfoText": "Ang Doubao AST 2.0 ay nagbibigay ng pagsasalin ng pananalita-sa-pananalita na may awtomatikong voice cloning. Pinapanatili ng naisaling audio ang mga katangian ng boses ng orihinal na nagsasalita.",
+    "volcengineAST2InfoText": "Nagbibigay ang Doubao AST 2.0 ng sabayang pagsasalin mula boses patungong boses. Maaaring bigkasin ang salin sa na-clone na boses ng nagsasalita o sa boses na pinili mula sa voice library.",
     "volcengineAST2TurnDetectionTooltip": "Auto: server-side voice activity detection. \nPush-to-Talk: pindutin nang matagal ang Space o ang mic button para magpadala ng audio nang manual. \nPush-to-Translate: tulad ng Push-to-Talk, ngunit ipinapadala ang iyong raw mic sa virtual mic kapag idle para makapagsalita ka nang direkta nang walang pagsasalin.",
     "volcengineAST2CustomVocabulary": "Pasadyang Bokabularyo",
     "volcengineAST2HotWordLibraryId": "ID ng Hotword Library",
@@ -475,7 +475,8 @@
       "description": "Doubao sabay-sabay na pagsasalin",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "App ID + Access Token"
+      "authModeApp": "App ID + Access Token",
+      "voiceClone": "I-clone ang boses ng nagsasalita"
     },
     "local_inference": {
       "name": "Libre",
@@ -960,6 +961,8 @@
         "neutral": "Neutral"
       },
       "age": {
+        "child": "Child",
+        "teen": "Teen",
         "young": "Young",
         "middle_aged": "Middle-aged",
         "old": "Mature"

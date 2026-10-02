@@ -82,7 +82,7 @@
     "realtimeModelNotAvailable": "Модель реального часу недоступна",
     "modelsFound": "{{count}} моделей доступно",
     "volcengineAST2Info": "Інформація про Doubao AST 2.0",
-    "volcengineAST2InfoText": "Doubao AST 2.0 забезпечує переклад мовлення в мовлення з автоматичним клонуванням голосу. Перекладене аудіо зберігає голосові характеристики оригінального мовця.",
+    "volcengineAST2InfoText": "Doubao AST 2.0 виконує синхронний переклад мовлення в мовлення. Переклад може звучати клонованим голосом мовця або голосом, вибраним із бібліотеки голосів.",
     "volcengineAST2TurnDetectionTooltip": "Авто: серверне виявлення голосової активності. \nНатисни і говори: утримуйте пробіл або кнопку мікрофона, щоб надіслати аудіо вручну. \nНатисни і переклади: як Натисни і говори, але в режимі очікування передає ваш необроблений мікрофон до віртуального мікрофона, щоб ви могли говорити безпосередньо без перекладу.",
     "volcengineAST2CustomVocabulary": "Користувацький словник",
     "volcengineAST2HotWordLibraryId": "ID бібліотеки ключових слів",
@@ -475,7 +475,8 @@
       "description": "Синхронний переклад Doubao",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "App ID + Access Token"
+      "authModeApp": "App ID + Access Token",
+      "voiceClone": "Клонувати голос мовця"
     },
     "local_inference": {
       "name": "Безкоштовний",
@@ -960,6 +961,8 @@
         "neutral": "Neutral"
       },
       "age": {
+        "child": "Child",
+        "teen": "Teen",
         "young": "Young",
         "middle_aged": "Middle-aged",
         "old": "Mature"

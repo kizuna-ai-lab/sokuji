@@ -82,7 +82,7 @@
     "realtimeModelNotAvailable": "রিয়েল-টাইম মডেল উপলব্ধ নয়",
     "modelsFound": "{{count}}টি মডেল উপলব্ধ",
     "volcengineAST2Info": "Doubao AST 2.0 তথ্য",
-    "volcengineAST2InfoText": "Doubao AST 2.0 স্বয়ংক্রিয় ভয়েস ক্লোনিং সহ স্পিচ-টু-স্পিচ অনুবাদ প্রদান করে। অনুবাদিত অডিও মূল বক্তার কণ্ঠস্বরের বৈশিষ্ট্য সংরক্ষণ করে।",
+    "volcengineAST2InfoText": "Doubao AST 2.0 কথা থেকে কথায় তাৎক্ষণিক অনুবাদ দেয়। অনুবাদটি বক্তার ক্লোন করা কণ্ঠে বা কণ্ঠ লাইব্রেরি থেকে বেছে নেওয়া কণ্ঠে শোনানো যায়।",
     "volcengineAST2TurnDetectionTooltip": "অটো: সার্ভার-সাইড ভয়েস অ্যাক্টিভিটি ডিটেকশন। \nপুশ-টু-টক: ম্যানুয়ালি অডিও পাঠাতে স্পেস বা মাইক বোতাম ধরে রাখুন। \nপুশ-টু-ট্রান্সলেট: পুশ-টু-টকের মতো, তবে নিষ্ক্রিয় থাকার সময় আপনার মূল মাইক্রোফোনকে ভার্চুয়াল মাইক্রোফোনে রাউট করে যাতে আপনি অনুবাদ ছাড়াই সরাসরি কথা বলতে পারেন।",
     "volcengineAST2CustomVocabulary": "কাস্টম শব্দভাণ্ডার",
     "volcengineAST2HotWordLibraryId": "হটওয়ার্ড লাইব্রেরি ID",
@@ -475,7 +475,8 @@
       "description": "Doubao সিমালটেনিয়াস ট্রান্সলেশন",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "App ID + Access Token"
+      "authModeApp": "App ID + Access Token",
+      "voiceClone": "বক্তার কণ্ঠ ক্লোন করুন"
     },
     "local_inference": {
       "name": "বিনামূল্যে",
@@ -960,6 +961,8 @@
         "neutral": "Neutral"
       },
       "age": {
+        "child": "Child",
+        "teen": "Teen",
         "young": "Young",
         "middle_aged": "Middle-aged",
         "old": "Mature"

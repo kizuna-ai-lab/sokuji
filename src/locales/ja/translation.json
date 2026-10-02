@@ -82,7 +82,7 @@
     "realtimeModelNotAvailable": "リアルタイムモデルは利用できません",
     "modelsFound": "{{count}}個のモデルが利用可能",
     "volcengineAST2Info": "Doubao AST 2.0 について",
-    "volcengineAST2InfoText": "Doubao AST 2.0は、自動音声クローニングによる音声対音声翻訳を提供します。翻訳された音声は、元の話者の声の特徴を保持します。",
+    "volcengineAST2InfoText": "Doubao AST 2.0 は音声から音声への同時通訳を提供します。翻訳は、複製した話者本人の声でも、ボイスライブラリから選んだ声でも再生できます。",
     "volcengineAST2TurnDetectionTooltip": "自動：サーバー側の音声活動検出。\nプッシュトゥトーク：スペースまたはマイクボタンを押して音声を手動で送信します。\nプッシュトゥトランスレート：プッシュトゥトークと同様ですが、アイドル時に生のマイク音声を仮想マイクへパススルーするので、翻訳せずに直接話せます。",
     "volcengineAST2CustomVocabulary": "カスタム語彙",
     "volcengineAST2HotWordLibraryId": "ホットワードライブラリ ID",
@@ -475,7 +475,8 @@
       "description": "Doubao 同時通訳",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "アプリ ID + アクセストークン"
+      "authModeApp": "アプリ ID + アクセストークン",
+      "voiceClone": "話者の声を複製"
     },
     "local_inference": {
       "name": "無料",
@@ -960,6 +961,8 @@
         "neutral": "中性"
       },
       "age": {
+        "child": "子ども",
+        "teen": "10代",
         "young": "若い",
         "middle_aged": "中年",
         "old": "年配"

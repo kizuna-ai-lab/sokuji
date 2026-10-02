@@ -82,7 +82,7 @@
     "realtimeModelNotAvailable": "Realtidsmodell ej tillgänglig",
     "modelsFound": "{{count}} modeller tillgängliga",
     "volcengineAST2Info": "Doubao AST 2.0-information",
-    "volcengineAST2InfoText": "Doubao AST 2.0 erbjuder röst-till-röst-översättning med automatisk röstkloning. Det översatta ljudet bevarar den ursprungliga talarens röstegenskaper.",
+    "volcengineAST2InfoText": "Doubao AST 2.0 erbjuder simultantolkning från tal till tal. Översättningen kan läsas upp med talarens klonade röst eller med en röst som valts från röstbiblioteket.",
     "volcengineAST2TurnDetectionTooltip": "Auto: röstaktivitetsdetektering på serversidan. \nPush-to-Talk: håll ned mellanslag eller mikrofonknappen för att skicka ljud manuellt. \nPush-to-Translate: som Push-to-Talk, men dirigerar din råa mikrofon till den virtuella mikrofonen när inaktiv så att du kan tala direkt utan översättning.",
     "volcengineAST2CustomVocabulary": "Anpassad vokabulär",
     "volcengineAST2HotWordLibraryId": "ID för hotword-bibliotek",
@@ -475,7 +475,8 @@
       "description": "Doubao simultanöversättning",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "APP ID + Access Token"
+      "authModeApp": "APP ID + Access Token",
+      "voiceClone": "Klona talarens röst"
     },
     "local_inference": {
       "name": "Gratis",
@@ -960,6 +961,8 @@
         "neutral": "Neutral"
       },
       "age": {
+        "child": "Child",
+        "teen": "Teen",
         "young": "Young",
         "middle_aged": "Middle-aged",
         "old": "Mature"

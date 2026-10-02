@@ -82,7 +82,7 @@
     "realtimeModelNotAvailable": "即時模型不可用",
     "modelsFound": "找到 {{count}} 個模型",
     "volcengineAST2Info": "豆包同聲傳譯 2.0 資訊",
-    "volcengineAST2InfoText": "豆包同聲傳譯 2.0 提供語音到語音的同聲傳譯，支援自動聲音複製。翻譯後的音訊保留原始說話者的聲音特徵。",
+    "volcengineAST2InfoText": "豆包同聲傳譯 2.0 提供語音到語音的同聲傳譯。譯文可以用複製的說話者聲音播放，也可以使用從音色庫中選擇的音色。",
     "volcengineAST2TurnDetectionTooltip": "自動：伺服器端語音活動偵測。\n按住說話：按住空白鍵或麥克風按鈕手動發送音訊。\n按住翻譯：與按住說話類似，但閒置時將原始麥克風音訊直通到虛擬麥克風，您可以直接說話而不進行翻譯。",
     "volcengineAST2CustomVocabulary": "自學習平台",
     "volcengineAST2HotWordLibraryId": "熱詞詞表 ID",
@@ -475,7 +475,8 @@
       "description": "豆包語音同聲傳譯",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "App ID + Access Token"
+      "authModeApp": "App ID + Access Token",
+      "voiceClone": "複製說話者的聲音"
     },
     "local_inference": {
       "name": "免費",
@@ -960,6 +961,8 @@
         "neutral": "中性"
       },
       "age": {
+        "child": "兒童",
+        "teen": "少年",
         "young": "年輕",
         "middle_aged": "中年",
         "old": "年長"

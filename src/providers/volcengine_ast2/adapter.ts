@@ -181,10 +181,18 @@ class Ast2Leg implements AdapterSession {
       source: config.sourceLanguage,
       target: config.targetLanguage,
       ...(config.corpus ? { corpus: config.corpus } : {}),
+      ...(config.voice ? { voice: config.voice } : {}),
       ...(credentials.kind === 'app' ? { appKey: credentials.appKey } : {}),
     }));
     // Never the request's meta: it carries the App ID (`conformance.ts`' credential rule).
-    this.frame('out', 'session.start', { sessionId: this.ids.session, mode: config.mode, source: config.sourceLanguage, target: config.targetLanguage, corpus: config.corpus ?? null });
+    this.frame('out', 'session.start', {
+      sessionId: this.ids.session,
+      mode: config.mode,
+      source: config.sourceLanguage,
+      target: config.targetLanguage,
+      corpus: config.corpus ?? null,
+      voice: config.voice?.speakerId ?? null,
+    });
   }
 
   private onMessage(data: unknown): void {

@@ -82,7 +82,7 @@
     "realtimeModelNotAvailable": "Model w czasie rzeczywistym nie jest dostępny",
     "modelsFound": "{{count}} modeli dostępnych",
     "volcengineAST2Info": "Informacje o Doubao AST 2.0",
-    "volcengineAST2InfoText": "Doubao AST 2.0 zapewnia tłumaczenie mowy na mowę z automatycznym klonowaniem głosu. Przetłumaczony dźwięk zachowuje cechy głosowe oryginalnego mówcy.",
+    "volcengineAST2InfoText": "Doubao AST 2.0 zapewnia tłumaczenie symultaniczne mowy na mowę. Tłumaczenie może być wypowiadane sklonowanym głosem mówcy lub głosem wybranym z biblioteki głosów.",
     "volcengineAST2TurnDetectionTooltip": "Auto: wykrywanie aktywności głosowej po stronie serwera. \nNaciśnij i mów: przytrzymaj spację lub przycisk mikrofonu, aby ręcznie wysłać dźwięk. \nNaciśnij i tłumacz: jak Naciśnij i mów, ale w stanie bezczynności kieruje surowy mikrofon do wirtualnego mikrofonu, dzięki czemu możesz mówić bezpośrednio bez tłumaczenia.",
     "volcengineAST2CustomVocabulary": "Słownik niestandardowy",
     "volcengineAST2HotWordLibraryId": "ID biblioteki słów kluczowych",
@@ -475,7 +475,8 @@
       "description": "Tłumaczenie symultaniczne Doubao",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "App ID + Access Token"
+      "authModeApp": "App ID + Access Token",
+      "voiceClone": "Klonuj głos mówcy"
     },
     "local_inference": {
       "name": "Darmowy",
@@ -960,6 +961,8 @@
         "neutral": "Neutral"
       },
       "age": {
+        "child": "Child",
+        "teen": "Teen",
         "young": "Young",
         "middle_aged": "Middle-aged",
         "old": "Mature"

@@ -75,6 +75,16 @@ describe("Doubao AST 2.0's wire", () => {
     expect(start.targetAudio).toMatchObject({ format: 'ogg_opus', rate: 24000 });
   });
 
+  it('names a fixed voice and its resource, and sends neither field when cloning (#577)', () => {
+    const fixed = decodeRequest(startSessionFrame({ ids, sequence: 0, mode: 's2s', source: 'zh', target: 'en', voice: { speakerId: 'zh_male_jingqiangkanye_emo_mars_bigtts', ttsResourceId: 'seed-tts-1.0' } }));
+    expect(fixed.request).toMatchObject({ mode: 's2s', speakerId: 'zh_male_jingqiangkanye_emo_mars_bigtts', ttsResourceId: 'seed-tts-1.0' });
+    // Cloning is the frame the client always sent: the same bytes with the voice left out.
+    const before = { ids, sequence: 0, mode: 's2s' as const, source: 'zh', target: 'en' };
+    expect(startSessionFrame({ ...before, voice: undefined })).toEqual(startSessionFrame(before));
+    const clone = decodeRequest(startSessionFrame(before));
+    expect(clone.request).toMatchObject({ speakerId: '', ttsResourceId: '' });
+  });
+
   it('starts a text-only session with no target audio, and the API key mode with no App ID', () => {
     const start = decodeRequest(startSessionFrame({ ids, sequence: 0, mode: 's2t', source: 'ko', target: 'zh' }));
     expect(start.request).toMatchObject({ mode: 's2t', sourceLanguage: 'ko', targetLanguage: 'zh' });

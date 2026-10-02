@@ -82,7 +82,7 @@
     "realtimeModelNotAvailable": "실시간 모델을 사용할 수 없습니다",
     "modelsFound": "{{count}}개의 모델 사용 가능",
     "volcengineAST2Info": "Doubao AST 2.0 정보",
-    "volcengineAST2InfoText": "Doubao AST 2.0은 자동 음성 복제를 통한 음성 대 음성 번역을 제공합니다. 번역된 오디오는 원래 화자의 음성 특성을 유지합니다.",
+    "volcengineAST2InfoText": "Doubao AST 2.0은 음성 대 음성 동시통역을 제공합니다. 번역은 복제한 화자 본인의 목소리로, 또는 음성 라이브러리에서 고른 목소리로 재생할 수 있습니다.",
     "volcengineAST2TurnDetectionTooltip": "자동: 서버 측 음성 활동 감지. \n푸시 투 토크: 스페이스 또는 마이크 버튼을 눌러 오디오를 수동으로 전송합니다. \n푸시 투 트랜슬레이트: 푸시 투 토크와 비슷하지만, 유휴 상태일 때 원본 마이크 오디오를 가상 마이크로 패스스루하여 번역 없이 직접 말할 수 있습니다.",
     "volcengineAST2CustomVocabulary": "맞춤 어휘",
     "volcengineAST2HotWordLibraryId": "핫워드 라이브러리 ID",
@@ -475,7 +475,8 @@
       "description": "Doubao 동시 통역",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "App ID + Access Token"
+      "authModeApp": "App ID + Access Token",
+      "voiceClone": "화자 목소리 복제"
     },
     "local_inference": {
       "name": "무료",
@@ -960,6 +961,8 @@
         "neutral": "중성"
       },
       "age": {
+        "child": "어린이",
+        "teen": "청소년",
         "young": "젊음",
         "middle_aged": "중년",
         "old": "노년"

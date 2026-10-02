@@ -105,12 +105,13 @@ describe('the Doubao AST 2.0 definition', () => {
   });
 
   it("keeps a text-only pair stored while a run would speak, and offers it back once text only is on (choice 1)", async () => {
-    stored.set('settings.common.sourceLanguage', 'ko');
-    stored.set('settings.common.targetLanguage', 'zh');
+    // Russian is a text-only target: a speaking run shows the source's first target instead (#577 catalog §2.1).
+    stored.set('settings.common.sourceLanguage', 'zh');
+    stored.set('settings.common.targetLanguage', 'ru');
     await useProviderStore.getState().load(volcengineAst2Provider);
     expect(useProviderStore.getState().entries.volcengine_ast2.pair).toEqual({ source: 'zh', target: 'en' });
     useProviderStore.getState().setSpeech({ textOnly: true, participantSpeech: false });
-    expect(useProviderStore.getState().entries.volcengine_ast2.pair).toEqual({ source: 'ko', target: 'zh' });
+    expect(useProviderStore.getState().entries.volcengine_ast2.pair).toEqual({ source: 'zh', target: 'ru' });
     expect(setSetting).not.toHaveBeenCalled();
   });
 });

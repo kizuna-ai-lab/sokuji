@@ -82,7 +82,7 @@
     "realtimeModelNotAvailable": "Модель в реальном времени недоступна",
     "modelsFound": "{{count}} моделей доступно",
     "volcengineAST2Info": "Информация о Doubao AST 2.0",
-    "volcengineAST2InfoText": "Doubao AST 2.0 обеспечивает перевод речи в речь с автоматическим клонированием голоса. Переведённое аудио сохраняет голосовые характеристики оригинального говорящего.",
+    "volcengineAST2InfoText": "Doubao AST 2.0 выполняет синхронный перевод речи в речь. Перевод может звучать клонированным голосом говорящего или голосом, выбранным из библиотеки голосов.",
     "volcengineAST2TurnDetectionTooltip": "Авто: серверное обнаружение голосовой активности. \nНажми и говори: удерживайте пробел или кнопку микрофона для ручной отправки аудио. \nНажми и переведи: как «Нажми и говори», но в режиме ожидания направляет сырой микрофон на виртуальный микрофон, чтобы вы могли говорить напрямую без перевода.",
     "volcengineAST2CustomVocabulary": "Пользовательский словарь",
     "volcengineAST2HotWordLibraryId": "ID библиотеки ключевых слов",
@@ -475,7 +475,8 @@
       "description": "Синхронный перевод Doubao",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "App ID + Access Token"
+      "authModeApp": "App ID + Access Token",
+      "voiceClone": "Клонировать голос говорящего"
     },
     "local_inference": {
       "name": "Бесплатный",
@@ -960,6 +961,8 @@
         "neutral": "Neutral"
       },
       "age": {
+        "child": "Child",
+        "teen": "Teen",
         "young": "Young",
         "middle_aged": "Middle-aged",
         "old": "Mature"

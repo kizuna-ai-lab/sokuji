@@ -82,7 +82,7 @@
     "realtimeModelNotAvailable": "مدل زمان واقعی در دسترس نیست",
     "modelsFound": "{{count}} مدل موجود",
     "volcengineAST2Info": "اطلاعات Doubao AST 2.0",
-    "volcengineAST2InfoText": "Doubao AST 2.0 ترجمه گفتار به گفتار با شبیه‌سازی خودکار صدا ارائه می‌دهد. صدای ترجمه شده ویژگی‌های صوتی گوینده اصلی را حفظ می‌کند.",
+    "volcengineAST2InfoText": "Doubao AST 2.0 ترجمهٔ همزمان گفتار به گفتار ارائه می‌دهد. ترجمه را می‌توان با صدای شبیه‌سازی‌شدهٔ گوینده یا با صدایی که از کتابخانهٔ صداها انتخاب شده پخش کرد.",
     "volcengineAST2TurnDetectionTooltip": "خودکار: تشخیص فعالیت صوتی سمت سرور. \nفشار و صحبت: کلید فاصله یا دکمه میکروفون را نگه دارید تا صدا را به‌صورت دستی ارسال کنید. \nفشار و ترجمه: مشابه فشار و صحبت، اما در حالت بیکار میکروفون خام شما را به میکروفون مجازی هدایت می‌کند تا بتوانید مستقیماً بدون ترجمه صحبت کنید.",
     "volcengineAST2CustomVocabulary": "واژگان سفارشی",
     "volcengineAST2HotWordLibraryId": "شناسه کتابخانه کلمات کلیدی",
@@ -475,7 +475,8 @@
       "description": "ترجمه همزمان Doubao",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "App ID + Access Token"
+      "authModeApp": "App ID + Access Token",
+      "voiceClone": "شبیه‌سازی صدای گوینده"
     },
     "local_inference": {
       "name": "رایگان",
@@ -960,6 +961,8 @@
         "neutral": "Neutral"
       },
       "age": {
+        "child": "Child",
+        "teen": "Teen",
         "young": "Young",
         "middle_aged": "Middle-aged",
         "old": "Mature"

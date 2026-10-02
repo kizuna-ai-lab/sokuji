@@ -82,7 +82,7 @@
     "realtimeModelNotAvailable": "रीयल-टाइम मॉडल उपलब्ध नहीं है",
     "modelsFound": "{{count}} मॉडल उपलब्ध हैं",
     "volcengineAST2Info": "Doubao AST 2.0 जानकारी",
-    "volcengineAST2InfoText": "Doubao AST 2.0 स्वचालित आवाज़ क्लोनिंग के साथ स्पीच-टू-स्पीच अनुवाद प्रदान करता है। अनुवादित ऑडियो मूल वक्ता की आवाज़ की विशेषताओं को संरक्षित करता है।",
+    "volcengineAST2InfoText": "Doubao AST 2.0 वाणी-से-वाणी तत्काल अनुवाद देता है। अनुवाद वक्ता की क्लोन की गई आवाज़ में या आवाज़ लाइब्रेरी से चुनी गई आवाज़ में बोला जा सकता है।",
     "volcengineAST2TurnDetectionTooltip": "ऑटो: सर्वर-साइड वॉयस एक्टिविटी डिटेक्शन। \nपुश-टू-टॉक: ऑडियो को मैन्युअल रूप से भेजने के लिए स्पेस या माइक बटन दबाए रखें। \nपुश-टू-ट्रांसलेट: पुश-टू-टॉक की तरह, लेकिन निष्क्रिय होने पर आपके मूल माइक को वर्चुअल माइक पर रूट करता है ताकि आप अनुवाद के बिना सीधे बोल सकें।",
     "volcengineAST2CustomVocabulary": "कस्टम शब्दावली",
     "volcengineAST2HotWordLibraryId": "हॉटवर्ड लाइब्रेरी ID",
@@ -475,7 +475,8 @@
       "description": "Doubao सिमल्टेनियस ट्रांसलेशन",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token",
-      "authModeApp": "ऐप ID + एक्सेस टोकन"
+      "authModeApp": "ऐप ID + एक्सेस टोकन",
+      "voiceClone": "वक्ता की आवाज़ क्लोन करें"
     },
     "local_inference": {
       "name": "मुफ़्त",
@@ -960,6 +961,8 @@
         "neutral": "Neutral"
       },
       "age": {
+        "child": "Child",
+        "teen": "Teen",
         "young": "Young",
         "middle_aged": "Middle-aged",
         "old": "Mature"

@@ -9,6 +9,7 @@
 import { pairCode } from '../../lib/language/code';
 import { wireTable } from '../../lib/language/wire';
 import type { CredentialField, CredentialsMissing, LanguageContext, LanguageOption, Provider } from '../../lib/provider/types';
+import { isFixedTarget, speaks, type FixedTarget } from './catalog';
 
 /** Which credentials a run sends (ruling 1): the legacy console's App ID and Access Token, or the new console's API key. */
 export type Ast2AuthMode = 'app' | 'apiKey';
@@ -22,16 +23,35 @@ export interface Ast2Settings {
   replacementTableId: string;
   /** The console's glossary library (`corpus.glossary_table_id`). */
   glossaryTableId: string;
+  /** The voice chosen per target language (#577 catalog §2.4): `'clone'` or a catalog voice id. Absent: the effective voice's fallbacks (`voice.ts`). */
+  voices: Ast2Voices;
 }
+
+export type Ast2Voices = Partial<Record<FixedTarget, string>>;
 
 export const AST2_DEFAULTS: Ast2Settings = {
   authMode: 'app',
   hotWordTableId: '',
   replacementTableId: '',
   glossaryTableId: '',
+  voices: {},
 };
 
 const AUTH_MODES: readonly unknown[] = ['app', 'apiKey'];
+
+/**
+ * The stored choices that still hold: a fixed target's slot naming `'clone'`
+ * or a catalog voice that speaks it. A voice a refresh removed, or anything
+ * that is not a plain object, is dropped; nothing is written back.
+ */
+function readVoices(stored: unknown): Ast2Voices {
+  if (!stored || typeof stored !== 'object' || Array.isArray(stored)) return {};
+  const voices: Ast2Voices = {};
+  for (const [target, id] of Object.entries(stored)) {
+    if (isFixedTarget(target) && typeof id === 'string' && (id === 'clone' || speaks(id, target))) voices[target] = id;
+  }
+  return voices;
+}
 
 /** What was stored, made valid field by field; nothing is written back. */
 export function migrateAst2Settings(stored: Readonly<Record<string, unknown>>): Ast2Settings {
@@ -41,6 +61,7 @@ export function migrateAst2Settings(stored: Readonly<Record<string, unknown>>): 
     hotWordTableId: str('hotWordTableId'),
     replacementTableId: str('replacementTableId'),
     glossaryTableId: str('glossaryTableId'),
+    voices: readVoices(stored.voices),
   };
 }
 
@@ -126,34 +147,39 @@ const DIALECTS: readonly LanguageOption[] = [code('yue'), code('wuu')];
 export const ZH_EN = pairCode('zh', 'en');
 const BIDIRECTIONAL = code(ZH_EN);
 
-const SPOKEN_SOURCES: readonly LanguageOption[] = [...SPOKEN, BIDIRECTIONAL];
 const TEXT_SOURCES: readonly LanguageOption[] = [...SPOKEN, ...TEXT_ONLY, ...DIALECTS, BIDIRECTIONAL];
 const ZH_OR_EN = new Set(['zh', 'en']);
 const ONLY_ZH_EN: readonly LanguageOption[] = [BIDIRECTIONAL];
 /** English first, so leaving `zh+en` on the source lands on English, as the old rule R3 did. */
 const TO_EN_OR_ZH: readonly LanguageOption[] = [SPOKEN[1], SPOKEN[0]];
+/** The targets a speaking leg reaches from Chinese or English: the nine some catalog voice speaks (catalog spec §1.1 rule 3). */
+const SPOKEN_TARGETS: readonly LanguageOption[] = [...SPOKEN, code('ko')];
+
+/** The eight languages the cloning model speaks ("声音复刻模式": lang_8), for `voice.ts`'s `clonable`. */
+export const CLONING_LANGUAGES: ReadonlySet<string> = new Set(SPOKEN.map((o) => o.value));
 
 /**
- * The targets of a source (ruling 3). `zh+en` pairs only with itself. Every
- * other pair has Chinese or English on one side — the rule of both modes as
- * this client runs them: S2T's ("源语种或目标语种必须是中英"), and S2S's
- * voice-clone mode's, which is the one the old client used (it sends no
- * `speaker_id`: the server clones the speaker's voice,
- * `VolcengineAST2ProviderConfig.ts:129`). A dialect is never a target.
+ * The targets of a source (ruling 3; #577 catalog §2.1). `zh+en` pairs only
+ * with itself. Every other pair has Chinese or English on one side — S2T's
+ * rule ("源语种或目标语种必须是中英") and, measured, the speaking one's
+ * (ja→ko: "unsupported source or target language"). Speaking reaches the
+ * nine languages a catalog voice speaks; cloning's eight are among them, so
+ * the offer does not depend on the voice (R7). A dialect is never a target.
  */
 function targetsOf(source: string, speech: boolean): readonly LanguageOption[] {
   if (source === ZH_EN) return ONLY_ZH_EN;
   if (!ZH_OR_EN.has(source)) return TO_EN_OR_ZH;
-  return (speech ? SPOKEN : [...SPOKEN, ...TEXT_ONLY]).filter((o) => o.value !== source);
+  return (speech ? SPOKEN_TARGETS : [...SPOKEN, ...TEXT_ONLY]).filter((o) => o.value !== source);
 }
 
 /**
- * Doubao's languages depend on whether the run speaks (ruling 3; choice 1):
- * speaking offers the eight S2S languages, text only the twenty S2T ones and
- * the two dialects; without a context, the widest offer — text only's.
+ * Doubao's languages (ruling 3; #577 catalog §2.1): the twenty, the two
+ * dialects and zh+en as sources in every context — a fixed voice takes them
+ * all ("指定音色模式: 源语种 lang_20、方言") — and the targets `targetsOf` gives.
+ * Without a context, the widest offer, text only's.
  */
 export const ast2Languages: Provider<Ast2Settings, never, never>['languages'] = {
-  sources: (_s, context?: LanguageContext) => (context?.speech ? SPOKEN_SOURCES : TEXT_SOURCES),
+  sources: () => TEXT_SOURCES,
   targets: (source, _s, context?: LanguageContext) => targetsOf(source, context?.speech === true),
   initial: () => ({ source: 'zh', target: 'en' }),
   wire: wireTable([
@@ -164,8 +190,8 @@ export const ast2Languages: Provider<Ast2Settings, never, never>['languages'] = 
   ]),
 };
 
-/** Whether Doubao runs this direction in this mode: `build`'s guard, over the same two functions. */
-export function ast2Offers(direction: { source: string; target: string }, context: LanguageContext): boolean {
-  return ast2Languages.sources(AST2_DEFAULTS, context).some((o) => o.value === direction.source)
-    && ast2Languages.targets(direction.source, AST2_DEFAULTS, context).some((o) => o.value === direction.target);
+/** Whether Doubao runs this direction in this mode and voice: `build`'s guard, over the same two functions. */
+export function ast2Offers(direction: { source: string; target: string }, s: Ast2Settings, context: LanguageContext): boolean {
+  return ast2Languages.sources(s, context).some((o) => o.value === direction.source)
+    && ast2Languages.targets(direction.source, s, context).some((o) => o.value === direction.target);
 }

@@ -25,6 +25,11 @@ describe('manifest stays consistent with the platform registry', () => {
     expect(csp).toContain('https://tts-rt.soniox.com');
   });
 
+  it("CSP connect-src allows Doubao's voice-sample CDN (the AST 2.0 voice preview)", () => {
+    const origins = manifest.content_security_policy.extension_pages.split(/[ ;]+/);
+    expect(origins).toContain('https://lf3-static.bytednsdoc.com');
+  });
+
   // The OpenAI Compatible presets were never reached from the extension (that
   // provider is Electron only) and the relay's sockets went with the relay
   // twins (Stage 2 deletion, rulings 2 and 5). The https origins of the

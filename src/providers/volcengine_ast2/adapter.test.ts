@@ -81,7 +81,15 @@ describe('the Doubao AST 2.0 adapter: opening', () => {
     expect(start.requestMeta).toMatchObject({ AppKey: '1234567890', SessionID: 'id-1', ConnectionID: 'id-2', Sequence: 0 });
     expect(start.request).toMatchObject({ mode: 's2s', sourceLanguage: 'zh', targetLanguage: 'en', corpus: { boostingTableId: 'hot-1' } });
     expect(start.targetAudio).toMatchObject({ format: 'ogg_opus', rate: 24000 });
-    expect(h.frames('session.start')).toEqual([{ sessionId: 'id-1', mode: 's2s', source: 'zh', target: 'en', corpus: { boostingTableId: 'hot-1' } }]);
+    expect(h.frames('session.start')).toEqual([{ sessionId: 'id-1', mode: 's2s', source: 'zh', target: 'en', corpus: { boostingTableId: 'hot-1' }, voice: null }]);
+  });
+
+  it('starts its session in the chosen fixed voice, and frames the voice it asked for (#577)', () => {
+    const h = startAst2({ patch: { voices: { en: 'zh_female_vv_uranus_bigtts' } } });
+    h.socket().open();
+    const [start] = h.requests();
+    expect(start.request).toMatchObject({ mode: 's2s', speakerId: 'zh_female_vv_uranus_bigtts', ttsResourceId: 'seed-tts-2.0' });
+    expect(h.frames('session.start')).toEqual([{ sessionId: 'id-1', mode: 's2s', source: 'zh', target: 'en', corpus: null, voice: 'zh_female_vv_uranus_bigtts' }]);
   });
 
   it('dials an API key in its query and sends no App ID; a silent leg starts text only, with no target audio', () => {

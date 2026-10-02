@@ -26,8 +26,9 @@ export interface VoiceFacets {
   /** How the voice sounds. A voice may carry several. */
   style?: string[];
   /** The provider's own one-line character description, in whatever language
-   *  the provider publishes it (Soniox: English only). Searchable, and shown
-   *  beneath the voice name where the presentation has room. */
+   *  the provider publishes it (Soniox: English only; Doubao: Chinese). Shown
+   *  under the picker once the voice is chosen. Nothing searches it: the
+   *  picker has no search box, only type-to-jump on the voice name. */
   description?: string;
 }
 
@@ -64,7 +65,7 @@ export interface VoiceLibraryCapability {
   maxClipSeconds?: number;
   /** Shortest usable reference clip in seconds. Unset → the store/UI default. */
   minClipSeconds?: number;
-  /** Render the facet filter bar (search + gender/age/accent/use-case/style)
+  /** Render the facet filter bar (gender/age/accent/use-case/style; no search box)
    *  above the voice list. Worth it only for a roster too large to scan —
    *  Soniox ships 200 built-ins — and only useful when the entries carry
    *  `meta.facets`. The bar builds its own vocabulary from those facets, so
