@@ -242,10 +242,10 @@ function stopCapture() {
  * the helper has still printed a perfectly well-formed measurement.
  *
  * @param {string} deviceName  Substring matched against device names
- * @returns {Promise<{found: boolean, changed?: boolean, unmuted?: boolean,
+ * @returns {Promise<{found: boolean, timedOut?: boolean, changed?: boolean, unmuted?: boolean,
  *                    before?: object, after?: object}|null>}
  */
-async function ensureUnityGain(deviceName, { spawn = nodeSpawn, resolvePath = resolveAudioHostPath } = {}) {
+async function ensureUnityGain(deviceName, { spawn = nodeSpawn, resolvePath = resolveAudioHostPath, timeoutMs = 5000 } = {}) {
   const exe = resolvePath();
   if (!exe) return null;
 
@@ -258,9 +258,23 @@ async function ensureUnityGain(deviceName, { spawn = nodeSpawn, resolvePath = re
       return resolve(null);
     }
 
+    // Core Audio calls can hang outright (measured after two coreaudiod restarts
+    // a moment apart: every client, this one for over ten minutes, until Core
+    // Audio restarted again). That must not keep the app from opening its window,
+    // and a Core Audio that cannot answer is one the device is unusable on, so it
+    // reads as not found: the caller then offers the restart that cures it.
+    const timer = setTimeout(() => {
+      child.kill('SIGKILL');
+      resolve({ found: false, timedOut: true });
+    }, timeoutMs);
+
     child.stdout.on('data', (d) => { out += d.toString('utf8'); });
-    child.on('error', () => resolve(null));
+    child.on('error', () => {
+      clearTimeout(timer);
+      resolve(null);
+    });
     child.on('close', (code) => {
+      clearTimeout(timer);
       // The helper reports what it measured and *then* exits non-zero when a
       // write was refused, so the payload alone cannot be trusted: it would say
       // found, unchanged, which the caller reads as "already at unity" - the

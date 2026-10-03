@@ -393,4 +393,38 @@ describe('ensureUnityGain', () => {
     child.emit('error', new Error('ENOENT'));
     expect(await p).toBeNull();
   });
+
+  // Measured on macOS 26.6.1: after two Core Audio restarts a moment apart, every
+  // Core Audio client hung - this helper for over ten minutes - until coreaudiod
+  // restarted again. This runs on the startup path before the window exists, so
+  // a helper that never exits was an app that never opened. And a Core Audio
+  // that cannot answer is one the virtual device is not usable on: reported as
+  // not found, so the caller offers the Core Audio restart that cures it.
+  it('gives up on a helper that never exits: kills it and reports the device unavailable', async () => {
+    vi.useFakeTimers();
+    try {
+      const child = fakeChild();
+      const p = ensureUnityGain('SokujiVirtualAudio', { spawn: () => child, resolvePath });
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(await p).toEqual({ found: false, timedOut: true });
+      expect(child.kill).toHaveBeenCalledWith('SIGKILL');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('leaves a helper that answered in time alone', async () => {
+    vi.useFakeTimers();
+    try {
+      const child = fakeChild();
+      const p = ensureUnityGain('SokujiVirtualAudio', { spawn: () => child, resolvePath });
+      child.stdout.emit('data', Buffer.from('{"found":false}'));
+      child.emit('close', 0);
+      await vi.advanceTimersByTimeAsync(10000);
+      expect(await p).toEqual({ found: false });
+      expect(child.kill).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
