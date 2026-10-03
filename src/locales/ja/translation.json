@@ -848,7 +848,12 @@
     "installCommand": "sudo apt install pulseaudio-utils",
     "unavailableBody": "Sokuji は仮想マイク/スピーカーを設定できませんでした。PulseAudio または PipeWire が実行されていることを確認してください。",
     "retry": "再試行",
-    "retrying": "再試行中..."
+    "retrying": "再試行中...",
+    "macDriverNotLoadedBody": "Sokuji の仮想マイクはインストールされていますが、macOS に読み込まれていないため、会議アプリに翻訳が届きません。修復すると、macOS が管理者パスワードを求めます。",
+    "macRepairFailedBody": "修復しても仮想マイクが表示されませんでした。Mac を再起動するか、.pkg インストーラーから Sokuji を再インストールしてください。",
+    "repair": "修復",
+    "repairing": "修復中...",
+    "macRepairPrompt": "Sokuji が仮想マイクを修復しようとしています。"
   },
   "subtitle": {
     "sessionEnded": "セッションが終了しました",

@@ -848,7 +848,12 @@
     "installCommand": "sudo apt install pulseaudio-utils",
     "unavailableBody": "Sokuji không thể thiết lập micro/loa ảo. Hãy đảm bảo PulseAudio hoặc PipeWire đang chạy.",
     "retry": "Thử lại",
-    "retrying": "Đang thử lại..."
+    "retrying": "Đang thử lại...",
+    "macDriverNotLoadedBody": "Micro ảo của Sokuji đã được cài đặt nhưng macOS chưa tải nó, nên các ứng dụng họp không nghe được bản dịch của bạn. Hãy sửa nó; macOS sẽ yêu cầu mật khẩu quản trị viên của bạn.",
+    "macRepairFailedBody": "Sau khi sửa, micro ảo vẫn chưa xuất hiện. Hãy khởi động lại Mac hoặc cài đặt lại Sokuji bằng trình cài đặt .pkg.",
+    "repair": "Sửa",
+    "repairing": "Đang sửa...",
+    "macRepairPrompt": "Sokuji muốn sửa micro ảo của mình."
   },
   "subtitle": {
     "sessionEnded": "Phiên đã kết thúc",

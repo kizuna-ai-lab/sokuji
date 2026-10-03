@@ -848,7 +848,12 @@
     "installCommand": "sudo apt install pulseaudio-utils",
     "unavailableBody": "Sokuji अपना वर्चुअल माइक्रोफ़ोन/स्पीकर सेट अप नहीं कर सका। सुनिश्चित करें कि PulseAudio या PipeWire चल रहा है।",
     "retry": "पुनः प्रयास करें",
-    "retrying": "पुनः प्रयास हो रहा है..."
+    "retrying": "पुनः प्रयास हो रहा है...",
+    "macDriverNotLoadedBody": "Sokuji का वर्चुअल माइक्रोफ़ोन इंस्टॉल है, लेकिन macOS ने उसे लोड नहीं किया है, इसलिए मीटिंग ऐप्स आपका अनुवाद नहीं सुन पा रहे हैं। इसे ठीक करें; macOS आपका एडमिनिस्ट्रेटर पासवर्ड मांगेगा।",
+    "macRepairFailedBody": "ठीक करने के बाद भी वर्चुअल माइक्रोफ़ोन वापस नहीं आया। अपना Mac रीस्टार्ट करें, या .pkg इंस्टॉलर से Sokuji को फिर से इंस्टॉल करें।",
+    "repair": "ठीक करें",
+    "repairing": "ठीक किया जा रहा है...",
+    "macRepairPrompt": "Sokuji अपना वर्चुअल माइक्रोफ़ोन ठीक करना चाहता है।"
   },
   "subtitle": {
     "sessionEnded": "सत्र समाप्त हुआ",

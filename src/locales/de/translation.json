@@ -848,7 +848,12 @@
     "installCommand": "sudo apt install pulseaudio-utils",
     "unavailableBody": "Sokuji konnte sein virtuelles Mikrofon/virtuellen Lautsprecher nicht einrichten. Stelle sicher, dass PulseAudio oder PipeWire läuft.",
     "retry": "Wiederholen",
-    "retrying": "Wird wiederholt..."
+    "retrying": "Wird wiederholt...",
+    "macDriverNotLoadedBody": "Das virtuelle Mikrofon von Sokuji ist installiert, aber macOS hat es nicht geladen, deshalb hören Meeting-Apps deine Übersetzung nicht. Repariere es; macOS fragt nach deinem Administratorpasswort.",
+    "macRepairFailedBody": "Die Reparatur hat das virtuelle Mikrofon nicht zurückgebracht. Starte deinen Mac neu oder installiere Sokuji mit dem .pkg-Installationsprogramm neu.",
+    "repair": "Reparieren",
+    "repairing": "Wird repariert...",
+    "macRepairPrompt": "Sokuji möchte sein virtuelles Mikrofon reparieren."
   },
   "subtitle": {
     "sessionEnded": "Sitzung beendet",

@@ -848,7 +848,12 @@
     "installCommand": "sudo apt install pulseaudio-utils",
     "unavailableBody": "Sokuji tidak dapat menyediakan mikrofon/pembesar suara maya. Pastikan PulseAudio atau PipeWire sedang berjalan.",
     "retry": "Cuba semula",
-    "retrying": "Mencuba semula..."
+    "retrying": "Mencuba semula...",
+    "macDriverNotLoadedBody": "Mikrofon maya Sokuji telah dipasang, tetapi macOS belum memuatkannya, jadi aplikasi mesyuarat tidak dapat mendengar terjemahan anda. Baikinya; macOS akan meminta kata laluan pentadbir anda.",
+    "macRepairFailedBody": "Pembaikan tidak memulihkan mikrofon maya. Mulakan semula Mac anda, atau pasang semula Sokuji daripada pemasang .pkg.",
+    "repair": "Baiki",
+    "repairing": "Membaiki...",
+    "macRepairPrompt": "Sokuji ingin membaiki mikrofon mayanya."
   },
   "subtitle": {
     "sessionEnded": "Sesi berakhir",

@@ -848,7 +848,12 @@
     "installCommand": "sudo apt install pulseaudio-utils",
     "unavailableBody": "Sokuji 無法建立虛擬麥克風/喇叭，請確認 PulseAudio 或 PipeWire 正在執行。",
     "retry": "重試",
-    "retrying": "重試中..."
+    "retrying": "重試中...",
+    "macDriverNotLoadedBody": "Sokuji 的虛擬麥克風已安裝，但 macOS 沒有載入它，會議軟體聽不到你的翻譯。點擊修復，macOS 會要求輸入管理員密碼。",
+    "macRepairFailedBody": "修復後虛擬麥克風仍未出現。請重新啟動 Mac，或用 .pkg 安裝檔重新安裝 Sokuji。",
+    "repair": "修復",
+    "repairing": "正在修復...",
+    "macRepairPrompt": "Sokuji 需要修復它的虛擬麥克風。"
   },
   "subtitle": {
     "sessionEnded": "對話已結束",

@@ -848,7 +848,12 @@
     "installCommand": "sudo apt install pulseaudio-utils",
     "unavailableBody": "Sokuji ไม่สามารถตั้งค่าไมโครโฟน/ลำโพงเสมือนได้ โปรดตรวจสอบว่า PulseAudio หรือ PipeWire กำลังทำงานอยู่",
     "retry": "ลองใหม่",
-    "retrying": "กำลังลองใหม่..."
+    "retrying": "กำลังลองใหม่...",
+    "macDriverNotLoadedBody": "ติดตั้งไมโครโฟนเสมือนของ Sokuji แล้ว แต่ macOS ยังไม่ได้โหลด แอปประชุมจึงไม่ได้ยินคำแปลของคุณ โปรดซ่อมแซม macOS จะขอรหัสผ่านผู้ดูแลระบบของคุณ",
+    "macRepairFailedBody": "การซ่อมแซมไม่ได้ทำให้ไมโครโฟนเสมือนกลับมา โปรดรีสตาร์ท Mac หรือติดตั้ง Sokuji ใหม่จากตัวติดตั้ง .pkg",
+    "repair": "ซ่อมแซม",
+    "repairing": "กำลังซ่อมแซม...",
+    "macRepairPrompt": "Sokuji ต้องการซ่อมแซมไมโครโฟนเสมือนของตน"
   },
   "subtitle": {
     "sessionEnded": "เซสชันสิ้นสุดแล้ว",

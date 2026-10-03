@@ -203,6 +203,15 @@ async function buildAudioStatus(devicesCreated) {
     };
   }
 
+  if (process.platform === 'darwin' && audioUtils.virtualDeviceProblem?.() === 'not-loaded') {
+    return {
+      ok: false,
+      platform: 'darwin',
+      reason: 'mac-driver-not-loaded',
+      message: 'SokujiVirtualAudio is installed, but macOS has not loaded it'
+    };
+  }
+
   return { ok: false, platform: process.platform, reason: 'other', message: 'Failed to create virtual audio devices' };
 }
 
@@ -959,6 +968,22 @@ ipcMain.handle('create-virtual-speaker', async () => {
       error: error?.message || 'Failed to create virtual audio devices'
     };
   }
+});
+
+// macOS: re-sign an installed-but-unloaded driver behind the administrator
+// prompt (macos-audio-utils.js repairVirtualDevice), then report the result the
+// way a retry does. The renderer supplies the dialog text in the UI language.
+ipcMain.handle('repair-virtual-audio', async (_event, data) => {
+  if (process.platform !== 'darwin' || !audioUtils.repairVirtualDevice) {
+    return { ok: false, cancelled: false, error: 'Only the macOS driver can be repaired' };
+  }
+  const prompt = typeof data?.prompt === 'string' && data.prompt ? data.prompt.slice(0, 300) : 'Sokuji wants to repair its virtual microphone.';
+  const result = await audioUtils.repairVirtualDevice({ prompt });
+  if (result.ok) {
+    const created = await createVirtualAudioDevices();
+    sendAudioStatus(await buildAudioStatus(created));
+  }
+  return result;
 });
 
 // System audio capture IPC handlers (Linux only)

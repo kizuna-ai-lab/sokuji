@@ -848,7 +848,12 @@
     "installCommand": "sudo apt install pulseaudio-utils",
     "unavailableBody": "Sokuji tidak dapat menyiapkan mikrofon/speaker virtualnya. Pastikan PulseAudio atau PipeWire sedang berjalan.",
     "retry": "Coba lagi",
-    "retrying": "Mencoba lagi..."
+    "retrying": "Mencoba lagi...",
+    "macDriverNotLoadedBody": "Mikrofon virtual Sokuji sudah terpasang, tetapi macOS belum memuatnya, jadi aplikasi rapat tidak bisa mendengar terjemahan Anda. Perbaiki; macOS akan meminta kata sandi administrator Anda.",
+    "macRepairFailedBody": "Perbaikan tidak memulihkan mikrofon virtual. Mulai ulang Mac Anda, atau pasang ulang Sokuji dari penginstal .pkg.",
+    "repair": "Perbaiki",
+    "repairing": "Memperbaiki...",
+    "macRepairPrompt": "Sokuji ingin memperbaiki mikrofon virtualnya."
   },
   "subtitle": {
     "sessionEnded": "Sesi berakhir",

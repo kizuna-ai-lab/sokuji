@@ -848,7 +848,12 @@
     "installCommand": "sudo apt install pulseaudio-utils",
     "unavailableBody": "Sokuji לא הצליח להגדיר את המיקרופון/הרמקול הווירטואליים שלו. ודא ש-PulseAudio או PipeWire פועלים.",
     "retry": "נסה שוב",
-    "retrying": "מנסה שוב..."
+    "retrying": "מנסה שוב...",
+    "macDriverNotLoadedBody": "המיקרופון הווירטואלי של Sokuji מותקן, אבל macOS לא טען אותו, ולכן אפליקציות פגישות לא שומעות את התרגום שלך. תקן אותו; macOS יבקש את סיסמת המנהל שלך.",
+    "macRepairFailedBody": "התיקון לא החזיר את המיקרופון הווירטואלי. הפעל מחדש את ה-Mac, או התקן מחדש את Sokuji מתוכנית ההתקנה .pkg.",
+    "repair": "תיקון",
+    "repairing": "מתקן...",
+    "macRepairPrompt": "Sokuji רוצה לתקן את המיקרופון הווירטואלי שלו."
   },
   "subtitle": {
     "sessionEnded": "ההפעלה הסתיימה",

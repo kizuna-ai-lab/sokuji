@@ -36,6 +36,7 @@ export const INVOKE_CHANNELS = [
   'open-directory',
   'open-external',
   'create-virtual-speaker',
+  'repair-virtual-audio',
   'get-cookies',
   'set-cookie',
   'check-vbcable',

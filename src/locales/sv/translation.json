@@ -848,7 +848,12 @@
     "installCommand": "sudo apt install pulseaudio-utils",
     "unavailableBody": "Sokuji kunde inte konfigurera sin virtuella mikrofon/högtalare. Kontrollera att PulseAudio eller PipeWire körs.",
     "retry": "Försök igen",
-    "retrying": "Försöker igen..."
+    "retrying": "Försöker igen...",
+    "macDriverNotLoadedBody": "Sokujis virtuella mikrofon är installerad, men macOS har inte läst in den, så mötesappar hör inte din översättning. Reparera den; macOS ber om ditt administratörslösenord.",
+    "macRepairFailedBody": "Reparationen fick inte tillbaka den virtuella mikrofonen. Starta om din Mac eller installera om Sokuji med .pkg-installationsprogrammet.",
+    "repair": "Reparera",
+    "repairing": "Reparerar...",
+    "macRepairPrompt": "Sokuji vill reparera sin virtuella mikrofon."
   },
   "subtitle": {
     "sessionEnded": "Sessionen avslutad",
