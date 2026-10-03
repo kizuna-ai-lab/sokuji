@@ -119,10 +119,11 @@ export async function openMic(
       .catch((error: unknown) => core.end(`The microphone failed: ${describeCause(error)}`));
   };
 
-  const begin = async () => {
+  /** Opens `deviceId`; `name` is its label, read by the caller while it was the selection — after the await the store may select another. */
+  const begin = async (name: string) => {
     if (!(await recorder.begin(deviceId))) throw new Error('The microphone could not be opened. Reload the page and try again.');
     open = true;
-    label = settings.deviceLabel() ?? deviceId ?? '';
+    label = name;
     const mine = ++generation;
     unwatch = core.watch(recorder.getStream(), () => queue(() => trackEnded(mine)));
     await recorder.record((data) => core.deliver(data.mono));
@@ -133,6 +134,8 @@ export async function openMic(
 
   /** Opens `next` (or waits, for none) and says where the microphone went, when it went there because of a loss. */
   const switchTo = async (next: string | undefined) => {
+    // Read now, while the selection is `next`: by the time it has opened, the store may have moved on.
+    const name = settings.deviceLabel() ?? next ?? '';
     deviceId = next;
     await close();
     if (core.stopped) return;
@@ -145,13 +148,13 @@ export async function openMic(
       return;
     }
     try {
-      await begin();
+      await begin(name);
     } catch {
       if (core.stopped) return;
       // This device will not open: the store leaves it out and selects the
       // next one, which `follow` then opens. The failed one is reported as the
       // device that went away, unless one already did.
-      lost ??= settings.deviceLabel() ?? next;
+      lost ??= name;
       settings.markUnusable(next);
       return;
     }
@@ -206,7 +209,8 @@ export async function openMic(
       return;
     }
     try {
-      await begin();
+      // The same device: it keeps the name it opened with.
+      await begin(label);
       reopened = { generation, at: Date.now() };
       // A blip: the same device opened again, nothing to tell.
       lost = null;
@@ -223,7 +227,7 @@ export async function openMic(
   // Recorded now and applied when `begin` builds the graph.
   await recorder.setNoiseSuppressionMode(mode);
   try {
-    await begin();
+    await begin(label);
   } catch (error) {
     await core.stop();
     throw error;

@@ -281,6 +281,25 @@ describe('openMic — its device going away (#593)', () => {
     expect(degraded).toHaveBeenCalledWith(expect.objectContaining({ code: MIC_LOST_USING_OTHER, params: { lost: 'Built-in Mic', device: 'USB Mic' } }));
   });
 
+  it('names the device it actually opened, even when the store moved on while it was opening', async () => {
+    const fake = fakeRecorder();
+    const fixture = settingsFixture();
+    const source = await openMic(fixture.settings, live(), () => fake.recorder);
+    const degraded = vi.fn();
+    source.onDegraded(degraded);
+    const release = fake.hangNextBegin();
+    fixture.listed.delete('mic-1');
+    fixture.set({ deviceId: 'mic-2' });
+    await settle();
+    // mic-2 is still opening when the store selects mic-3.
+    fixture.set({ deviceId: 'mic-3' });
+    release();
+    await settle();
+    expect(fake.calls.filter((c) => c.startsWith('begin:'))).toEqual(['begin:mic-1', 'begin:mic-2', 'begin:mic-3']);
+    expect(degraded).toHaveBeenNthCalledWith(1, expect.objectContaining({ code: MIC_LOST_USING_OTHER, params: { lost: 'Built-in Mic', device: 'USB Mic' } }));
+    expect(degraded).toHaveBeenNthCalledWith(2, expect.objectContaining({ code: MIC_NOW_USING, params: { device: 'Webcam Mic' } }));
+  });
+
   it('waits without opening any device when none is left, keeps the run, and picks up the next one with a notice', async () => {
     const fake = fakeRecorder({ failBegins: [2] });
     const fixture = settingsFixture({}, { onUnusable: (id) => { fixture.listed.delete(id); fixture.set({ deviceId: undefined }); } });
