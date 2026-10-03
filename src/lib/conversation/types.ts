@@ -35,7 +35,7 @@ export interface Segment {
 export interface Notice {
   id: string;
   at: number;
-  severity: 'error' | 'warning';
+  severity: 'error' | 'warning' | 'info';
   /** Diagnostic English. Surfaces localize by `code` and `params`. */
   message: string;
   code?: string;
