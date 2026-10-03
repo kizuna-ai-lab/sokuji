@@ -40,7 +40,8 @@ export function Home() {
     // Follow the OS's devices from here on (spec 2026-10-04): plugging,
     // unplugging, a Bluetooth reconnect, a repaired virtual device.
     return watchDevices({
-      sync: () => useAudioStore.getState().syncDevices(),
+      // A `devicechange` also tries the devices marked unusable again; the poll does not.
+      sync: (reason) => useAudioStore.getState().syncDevices({ retryUnusable: reason === 'change' }),
       // While waiting for any microphone or while off the user's own: keep
       // looking. Linux announces a USB device but not a Bluetooth or PipeWire
       // one coming back, so without this it would never switch back or leave

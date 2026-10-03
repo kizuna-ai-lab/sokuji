@@ -48,7 +48,7 @@ The existing full refresh (`audioStore.refreshDevices`, `audioStore.ts:336-552`)
 - Output (monitor): the same order, ending with the first non-virtual output, then any output.
 - Devices match by `deviceId` only. A Bluetooth device keeps its id across reconnects.
 
-**Unusable inputs**: an in-memory set on the store, never persisted. The microphone source adds a device it failed to open (section 2). An id leaves the set when it disappears from the list, so a device that is replugged or reconnects is tried again, or when the user selects it by hand.
+**Unusable inputs**: an in-memory set on the store, never persisted. The microphone source adds a device it failed to open (section 2). An id leaves the set when it disappears from the list, so a device that is replugged or reconnects is tried again, or when the user selects it by hand. A sync triggered by `devicechange`, or by the audio system recovering, also clears every mark: the OS reported a change, so the user's device is tried again (the poll and a mark's own sync do not).
 
 **Triggers**:
 

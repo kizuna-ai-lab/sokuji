@@ -113,6 +113,8 @@ describe('audioSystemStore', () => {
     receivedHandlers['audio-status']({ ok: true, platform: 'darwin' });
 
     expect(syncDevices).toHaveBeenCalledTimes(1);
+    // The audio system came back: devices marked unusable while it was down are tried again.
+    expect(syncDevices).toHaveBeenCalledWith({ retryUnusable: true });
   });
 
   it('leaves the device list alone when the status is first learned or did not change', () => {

@@ -99,6 +99,34 @@ describe('watchDevices', () => {
     expect(sync).toHaveBeenCalledTimes(2);
   });
 
+  it('tells the sync what asked for it: a devicechange run is "change", a poll run is "poll"', async () => {
+    const target = devices();
+    const sync = vi.fn(async (_reason: 'change' | 'poll') => {});
+    watchDevices({ sync, mediaDevices: target, delayMs: 10, shouldPoll: () => true, pollMs: 100 });
+    change(target);
+    await vi.advanceTimersByTimeAsync(10);
+    expect(sync.mock.calls).toEqual([['change']]);
+    await vi.advanceTimersByTimeAsync(90);
+    expect(sync.mock.calls).toEqual([['change'], ['poll']]);
+  });
+
+  it('makes the trailing run "change" when a change arrives during a poll\'s flight, and a later poll does not undo it', async () => {
+    const target = devices();
+    let finish!: () => void;
+    const sync = vi.fn((_reason: 'change' | 'poll') => new Promise<void>((resolve) => { finish = resolve; }));
+    watchDevices({ sync, mediaDevices: target, delayMs: 10, shouldPoll: () => true, pollMs: 100 });
+    await vi.advanceTimersByTimeAsync(100);
+    expect(sync.mock.calls).toEqual([['poll']]);
+    change(target);
+    await vi.advanceTimersByTimeAsync(10);
+    // The next poll beat lands in the same flight, after the change.
+    await vi.advanceTimersByTimeAsync(90);
+    expect(sync).toHaveBeenCalledTimes(1);
+    finish();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(sync.mock.calls).toEqual([['poll'], ['change']]);
+  });
+
   it('stops polling when unwatched', async () => {
     const target = devices();
     const sync = vi.fn(async () => {});

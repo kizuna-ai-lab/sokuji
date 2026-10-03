@@ -130,8 +130,11 @@ interface AudioStore {
 
   // Complex actions
   refreshDevices: () => Promise<{ defaultInputDevice: AudioDevice | null; defaultMonitorDevice: AudioDevice | null }>;
-  /** Follows the OS (spec 2026-10-04 §1): re-lists the devices and applies the choice. Never persists, never mutes, never prompts. */
-  syncDevices: () => Promise<void>;
+  /**
+   * Follows the OS (spec 2026-10-04 §1): re-lists the devices and applies the choice. Never persists, never mutes, never prompts.
+   * `retryUnusable`: the OS reported a change (`devicechange`, the audio system recovering), so every unusable mark is cleared and the user's device tried again.
+   */
+  syncDevices: (options?: { retryUnusable?: boolean }) => Promise<void>;
   /** The microphone could not open this device: leave it out of the choice, and choose again now. */
   markInputUnusable: (deviceId: string) => void;
 }
@@ -516,7 +519,7 @@ const useAudioStore = create<AudioStore>()(
       }
     },
 
-    syncDevices: async () => {
+    syncDevices: async ({ retryUnusable = false } = {}) => {
       // Before the first refresh the saved devices are unknown: a choice now
       // would bypass them. That refresh reads the devices itself.
       if (!get().devicesLoaded) return;
@@ -530,8 +533,9 @@ const useAudioStore = create<AudioStore>()(
         return;
       }
       const state = get();
-      // A mark lasts until its device leaves the list: replugged, it is tried again.
-      const unusableInputIds = state.unusableInputIds.filter((id) => inputs.some((device) => device.deviceId === id));
+      // A mark lasts until its device leaves the list (replugged, it is tried
+      // again), or until the OS reports a change: then every device is tried again.
+      const unusableInputIds = retryUnusable ? [] : state.unusableInputIds.filter((id) => inputs.some((device) => device.deviceId === id));
       const input = chooseInput({
         devices: inputs,
         savedId: state.savedInputDeviceId,

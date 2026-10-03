@@ -117,7 +117,9 @@ const useAudioSystemStore = create<AudioSystemStore>()((set, get) => ({
         message: data.message ?? null,
         dismissed: (isLiveUpdate && !data.ok) ? false : get().dismissed,
       });
-      if (recovered) void useAudioStore.getState().syncDevices();
+      // A recovery is a change the OS reported: devices marked unusable while
+      // it was down (a Repair restarting Core Audio mid-run) are tried again.
+      if (recovered) void useAudioStore.getState().syncDevices({ retryUnusable: true });
     };
 
     statusHandler = (data: any) => applyStatus(data, true);

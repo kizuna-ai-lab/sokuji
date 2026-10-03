@@ -8,8 +8,11 @@
  */
 import { describeCause, reportWarning } from '../diagnostics/report';
 
+/** What asked for a sync: the OS reporting a change, or the poll. */
+export type DeviceSyncReason = 'change' | 'poll';
+
 export interface DeviceWatchOptions {
-  sync(): Promise<unknown>;
+  sync(reason: DeviceSyncReason): Promise<unknown>;
   mediaDevices?: Pick<MediaDevices, 'addEventListener' | 'removeEventListener'>;
   delayMs?: number;
   /** Checked every `pollMs`; while true, the sync also runs on that beat (one flight with `devicechange`'s). */
@@ -21,24 +24,28 @@ export function watchDevices({ sync, mediaDevices = globalThis.navigator?.mediaD
   if (!mediaDevices?.addEventListener) return () => {};
   let timer: ReturnType<typeof setTimeout> | null = null;
   let running = false;
-  let again = false;
+  /** The trailing run's reason, while one is queued: a change wins over a poll, whichever came first. */
+  let queued: DeviceSyncReason | null = null;
   let stopped = false;
 
-  const run = async () => {
+  const run = async (reason: DeviceSyncReason) => {
     if (running) {
-      again = true;
+      queued = queued === 'change' ? 'change' : reason;
       return;
     }
     running = true;
     try {
-      do {
-        again = false;
+      let current = reason;
+      for (;;) {
+        queued = null;
         try {
-          await sync();
+          await sync(current);
         } catch (error) {
           reportWarning('DeviceWatch', `Following the audio devices failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'devices:sync' });
         }
-      } while (again && !stopped);
+        if (queued === null || stopped) break;
+        current = queued;
+      }
     } finally {
       running = false;
     }
@@ -48,13 +55,13 @@ export function watchDevices({ sync, mediaDevices = globalThis.navigator?.mediaD
     if (timer !== null) clearTimeout(timer);
     timer = setTimeout(() => {
       timer = null;
-      void run();
+      void run('change');
     }, delayMs);
   };
 
   const poll = shouldPoll
     ? setInterval(() => {
-        if (shouldPoll()) void run();
+        if (shouldPoll()) void run('poll');
       }, pollMs)
     : null;
 

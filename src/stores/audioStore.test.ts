@@ -516,6 +516,24 @@ describe('audioStore — following the OS (syncDevices)', () => {
     expect(useAudioStore.getState().selectedInputDevice?.deviceId).toBe('mic-a');
   });
 
+  it('retryUnusable clears every mark and chooses the saved device again', async () => {
+    useAudioStore.setState({ unusableInputIds: ['mic-a'], selectedInputDevice: real('mic-b') });
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-a'), real('mic-b')], outputs: [real('spk-a')], complete: true });
+    await useAudioStore.getState().syncDevices({ retryUnusable: true });
+    const s = useAudioStore.getState();
+    expect(s.unusableInputIds).toEqual([]);
+    expect(s.selectedInputDevice?.deviceId).toBe('mic-a');
+  });
+
+  it('keeps the marks on a plain sync (the poll, a mark\'s own sync)', async () => {
+    useAudioStore.setState({ unusableInputIds: ['mic-a'], selectedInputDevice: real('mic-b') });
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-a'), real('mic-b')], outputs: [real('spk-a')], complete: true });
+    await useAudioStore.getState().syncDevices();
+    const s = useAudioStore.getState();
+    expect(s.unusableInputIds).toEqual(['mic-a']);
+    expect(s.selectedInputDevice?.deviceId).toBe('mic-b');
+  });
+
   it('markInputUnusable leaves the device out and re-syncs at once', async () => {
     mockListAudioDevices.mockResolvedValue({ inputs: [real('mic-a'), real('mic-b')], outputs: [], complete: true });
     useAudioStore.getState().markInputUnusable('mic-a');
