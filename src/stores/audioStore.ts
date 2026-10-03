@@ -7,6 +7,9 @@ import { reportError, reportWarning, describeCause } from '../lib/diagnostics/re
 import { listAudioDevices, listSystemAudioSources } from '../lib/audio/devices';
 import { isVirtualDevice } from '../components/Settings/shared/hooks';
 import { isLoopbackInput } from '../utils/audioDevices';
+import { pickDefaultInputDevice } from '../lib/audio/deviceChoice';
+
+export { pickDefaultInputDevice };
 
 export type NoiseSuppressionMode = 'off' | 'standard' | 'enhanced';
 export type AudioMode = 'speaker' | 'participant' | 'both';
@@ -66,26 +69,6 @@ export const DEFAULT_PARTICIPANT_SOURCE: AudioDevice = {
   deviceId: 'desktop-audio-loopback',
   label: 'System Audio (All Applications)',
 };
-
-/**
- * Pick a default microphone from an enumerated input list, excluding virtual
- * ones (e.g. Sokuji's own "Sokuji_Virtual_Mic" — the monitor of Sokuji's own
- * virtual speaker, meant for other apps to consume, not for Sokuji to listen
- * to itself). Returns null when only virtual/loopback devices are available
- * rather than falling back to one — auto-selecting a loopback device as the
- * mic would feed Sokuji's own TTS output back into ASR as "user speech",
- * creating a self-sustaining transcription loop (observed on machines with
- * no physical microphone, where a virtual device is the only input listed).
- *
- * OS loopback-style inputs ("Stereo Mix", PulseAudio sink monitors,
- * VoiceMeeter outputs) carry isVirtual: false — they are real OS devices and
- * must stay manually selectable (warned) — but they re-capture system output
- * just the same, so automatic selection skips them by label too.
- */
-export function pickDefaultInputDevice(inputs: AudioDevice[]): AudioDevice | null {
-  const candidates = inputs.filter(device => !device.isVirtual && !isLoopbackInput(device));
-  return candidates[0] ?? null;
-}
 
 interface AudioStore {
   // State
