@@ -39,7 +39,16 @@ export function Home() {
 
     // Follow the OS's devices from here on (spec 2026-10-04): plugging,
     // unplugging, a Bluetooth reconnect, a repaired virtual device.
-    return watchDevices({ sync: () => useAudioStore.getState().syncDevices() });
+    return watchDevices({
+      sync: () => useAudioStore.getState().syncDevices(),
+      // Off the user's own microphone (on a fallback, or waiting): keep
+      // looking for it. Linux announces a USB device but not a Bluetooth or
+      // PipeWire one coming back, so without this it would never switch back.
+      shouldPoll: () => {
+        const audio = useAudioStore.getState();
+        return audio.savedInputDeviceId !== null && audio.selectedInputDevice?.deviceId !== audio.savedInputDeviceId;
+      },
+    });
   }, []); // Empty dependency array - only run once on mount
 
   return (

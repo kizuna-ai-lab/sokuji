@@ -69,4 +69,42 @@ describe('watchDevices', () => {
   it('does nothing where there are no media devices', () => {
     expect(() => watchDevices({ sync: vi.fn(), mediaDevices: undefined })()).not.toThrow();
   });
+
+  it('polls while shouldPoll says so, and stops polling when it does not', async () => {
+    const target = devices();
+    const sync = vi.fn(async () => {});
+    let displaced = true;
+    watchDevices({ sync, mediaDevices: target, shouldPoll: () => displaced, pollMs: 3000 });
+    await vi.advanceTimersByTimeAsync(2999);
+    expect(sync).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(sync).toHaveBeenCalledTimes(1);
+    displaced = false;
+    await vi.advanceTimersByTimeAsync(9000);
+    expect(sync).toHaveBeenCalledTimes(1);
+  });
+
+  it('a poll shares the single flight with devicechange', async () => {
+    const target = devices();
+    let finish!: () => void;
+    const sync = vi.fn(() => new Promise<void>((resolve) => { finish = resolve; }));
+    watchDevices({ sync, mediaDevices: target, delayMs: 10, shouldPoll: () => true, pollMs: 100 });
+    change(target);
+    await vi.advanceTimersByTimeAsync(10);
+    expect(sync).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(300);
+    expect(sync).toHaveBeenCalledTimes(1);
+    finish();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(sync).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops polling when unwatched', async () => {
+    const target = devices();
+    const sync = vi.fn(async () => {});
+    const unwatch = watchDevices({ sync, mediaDevices: target, shouldPoll: () => true, pollMs: 100 });
+    unwatch();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(sync).not.toHaveBeenCalled();
+  });
 });
