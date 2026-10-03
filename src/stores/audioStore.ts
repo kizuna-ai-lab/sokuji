@@ -139,6 +139,11 @@ interface AudioStore {
   markInputUnusable: (deviceId: string) => void;
 }
 
+/** The same devices, in the same order, with the same names: `syncDevices` keeps the array it has. */
+const sameDevices = (current: readonly AudioDevice[], next: readonly AudioDevice[]) =>
+  current.length === next.length &&
+  current.every((device, i) => device.deviceId === next[i].deviceId && device.label === next[i].label && device.isVirtual === next[i].isVirtual);
+
 const useAudioStore = create<AudioStore>()(
   subscribeWithSelector((set, get) => ({
     // Initial state
@@ -523,19 +528,26 @@ const useAudioStore = create<AudioStore>()(
       // Before the first refresh the saved devices are unknown: a choice now
       // would bypass them. That refresh reads the devices itself.
       if (!get().devicesLoaded) return;
-      const { inputs, outputs, complete } = await listAudioDevices({ warmUp: false });
-      if (!complete) {
+      const listing = await listAudioDevices({ warmUp: false });
+      const state = get();
+      // The poll lists every 3 s while off the user's device: an unchanged list
+      // keeps its array, and a sync that changes nothing sets nothing, so no
+      // subscriber (playback, the routing, the pickers) wakes for it.
+      const inputs = sameDevices(state.audioInputDevices, listing.inputs) ? state.audioInputDevices : listing.inputs;
+      const outputs = sameDevices(state.audioMonitorDevices, listing.outputs) ? state.audioMonitorDevices : listing.outputs;
+      const listsChanged = inputs !== state.audioInputDevices || outputs !== state.audioMonitorDevices;
+      if (!listing.complete) {
         // A failed listing, or one without labels (no microphone permission
         // yet): virtual and loopback inputs cannot be told from real ones, so
         // the lists may change but no choice does — and a failure that looks
         // like "every device is gone" changes nothing at all.
-        if (inputs.length > 0 || outputs.length > 0) set({ audioInputDevices: inputs, audioMonitorDevices: outputs });
+        if ((inputs.length > 0 || outputs.length > 0) && listsChanged) set({ audioInputDevices: inputs, audioMonitorDevices: outputs });
         return;
       }
-      const state = get();
       // A mark lasts until its device leaves the list (replugged, it is tried
       // again), or until the OS reports a change: then every device is tried again.
-      const unusableInputIds = retryUnusable ? [] : state.unusableInputIds.filter((id) => inputs.some((device) => device.deviceId === id));
+      const marks = retryUnusable ? [] : state.unusableInputIds.filter((id) => inputs.some((device) => device.deviceId === id));
+      const unusableInputIds = marks.length === state.unusableInputIds.length && marks.every((id, i) => id === state.unusableInputIds[i]) ? state.unusableInputIds : marks;
       const input = chooseInput({
         devices: inputs,
         savedId: state.savedInputDeviceId,
@@ -543,16 +555,19 @@ const useAudioStore = create<AudioStore>()(
         unusable: new Set(unusableInputIds),
       });
       const monitor = chooseOutput({ devices: outputs, savedId: state.savedMonitorDeviceId, currentId: state.selectedMonitorDevice?.deviceId ?? null });
-      // The same object when the choice did not change: subscribers see no churn.
+      // The same object when neither the choice nor its name changed; a device
+      // whose label changed (a placeholder becoming its real name) is replaced.
       const keep = (current: AudioDevice | null, next: AudioDevice | null) =>
-        current && next && current.deviceId === next.deviceId ? current : next;
-      set({
-        audioInputDevices: inputs,
-        audioMonitorDevices: outputs,
-        unusableInputIds,
-        selectedInputDevice: keep(state.selectedInputDevice, input),
-        selectedMonitorDevice: keep(state.selectedMonitorDevice, monitor),
-      });
+        current && next && current.deviceId === next.deviceId && current.label === next.label ? current : next;
+      const selectedInputDevice = keep(state.selectedInputDevice, input);
+      const selectedMonitorDevice = keep(state.selectedMonitorDevice, monitor);
+      if (
+        !listsChanged &&
+        unusableInputIds === state.unusableInputIds &&
+        selectedInputDevice === state.selectedInputDevice &&
+        selectedMonitorDevice === state.selectedMonitorDevice
+      ) return;
+      set({ audioInputDevices: inputs, audioMonitorDevices: outputs, unusableInputIds, selectedInputDevice, selectedMonitorDevice });
     },
 
     markInputUnusable: (deviceId) => {

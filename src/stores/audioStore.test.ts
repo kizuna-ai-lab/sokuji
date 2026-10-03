@@ -550,6 +550,34 @@ describe('audioStore — following the OS (syncDevices)', () => {
     expect(s.savedInputDeviceId).toBe('mic-b');
   });
 
+  it('notifies no subscriber when the listing has not changed', async () => {
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-a'), real('mic-b')], outputs: [real('spk-a')], complete: true });
+    const heard = vi.fn();
+    const off = useAudioStore.subscribe(heard);
+    await useAudioStore.getState().syncDevices();
+    off();
+    expect(heard).not.toHaveBeenCalled();
+  });
+
+  it('notifies no subscriber when an unlabelled listing has not changed either', async () => {
+    useAudioStore.setState({ audioInputDevices: [real('Microphone 12345...')], audioMonitorDevices: [] });
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('Microphone 12345...')], outputs: [], complete: false });
+    const heard = vi.fn();
+    const off = useAudioStore.subscribe(heard);
+    await useAudioStore.getState().syncDevices();
+    off();
+    expect(heard).not.toHaveBeenCalled();
+  });
+
+  it('replaces the selected device object when its label changed (a placeholder becoming its real name)', async () => {
+    const before = useAudioStore.getState().selectedInputDevice;
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-a', 'Mic A (USB)'), real('mic-b')], outputs: [real('spk-a')], complete: true });
+    await useAudioStore.getState().syncDevices();
+    const after = useAudioStore.getState().selectedInputDevice;
+    expect(after).not.toBe(before);
+    expect(after).toEqual(real('mic-a', 'Mic A (USB)'));
+  });
+
   it('keeps the same device object when the choice did not change, so subscribers see no churn', async () => {
     const before = useAudioStore.getState().selectedInputDevice;
     mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-a'), real('mic-b')], outputs: [real('spk-a')], complete: true });
