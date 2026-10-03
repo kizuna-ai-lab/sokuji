@@ -3,7 +3,7 @@ import { isElectron } from '../utils/environment';
 import { reportError, describeCause } from '../lib/diagnostics/report';
 
 export type AudioSystemStatus = 'unknown' | 'ok' | 'unavailable';
-export type AudioSystemReason = 'pactl-missing' | 'pulseaudio-unavailable' | 'other' | null;
+export type AudioSystemReason = 'pactl-missing' | 'pulseaudio-unavailable' | 'mac-driver-not-loaded' | 'other' | null;
 
 interface AudioSystemState {
   status: AudioSystemStatus;
@@ -12,10 +12,16 @@ interface AudioSystemState {
   message: string | null;
   dismissed: boolean;
   retrying: boolean;
+  /** macOS: the driver repair (administrator prompt + Core Audio restart) is running. */
+  repairing: boolean;
+  /** macOS: the last repair ran but the device still did not appear. */
+  repairFailed: boolean;
 }
 
 interface AudioSystemActions {
   retry: () => Promise<void>;
+  /** macOS: re-sign the unloaded driver; `prompt` is the administrator dialog's text. */
+  repair: (prompt: string) => Promise<void>;
   dismiss: () => void;
   initListeners: () => void;
   cleanupListeners: () => void;
@@ -33,6 +39,8 @@ const useAudioSystemStore = create<AudioSystemStore>()((set, get) => ({
   message: null,
   dismissed: false,
   retrying: false,
+  repairing: false,
+  repairFailed: false,
 
   retry: async () => {
     if (!isElectron() || get().retrying) return;
@@ -49,6 +57,29 @@ const useAudioSystemStore = create<AudioSystemStore>()((set, get) => ({
       );
     } finally {
       set({ retrying: false });
+    }
+  },
+
+  repair: async (prompt: string) => {
+    if (!isElectron() || get().repairing) return;
+    set({ repairing: true, repairFailed: false });
+    try {
+      const result = await (window as any).electron?.invoke('repair-virtual-audio', { prompt });
+      // Success arrives as a live 'audio-status' push, like retry's. A dialog the
+      // user cancelled is not a failure: the banner simply stays as it was.
+      if (!result?.ok && !result?.cancelled) {
+        set({ repairFailed: true });
+        reportError('AudioSystemStore', `The virtual microphone repair did not work: ${result?.error ?? 'no result'}`);
+      }
+    } catch (error) {
+      set({ repairFailed: true });
+      reportError(
+        'AudioSystemStore',
+        `Failed to repair the virtual microphone: ${describeCause(error)}`,
+        { cause: error },
+      );
+    } finally {
+      set({ repairing: false });
     }
   },
 
@@ -111,6 +142,9 @@ export const useAudioSystemMessage = () => useAudioSystemStore(state => state.me
 export const useAudioSystemDismissed = () => useAudioSystemStore(state => state.dismissed);
 export const useAudioSystemRetrying = () => useAudioSystemStore(state => state.retrying);
 export const useAudioSystemRetry = () => useAudioSystemStore(state => state.retry);
+export const useAudioSystemRepairing = () => useAudioSystemStore(state => state.repairing);
+export const useAudioSystemRepairFailed = () => useAudioSystemStore(state => state.repairFailed);
+export const useAudioSystemRepair = () => useAudioSystemStore(state => state.repair);
 export const useAudioSystemDismiss = () => useAudioSystemStore(state => state.dismiss);
 export const useInitAudioSystemListeners = () => useAudioSystemStore(state => state.initListeners);
 export const useCleanupAudioSystemListeners = () => useAudioSystemStore(state => state.cleanupListeners);

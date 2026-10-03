@@ -36,17 +36,17 @@ describe('restoreVirtualDeviceGain', () => {
     expect(h.ensureUnityGain).toHaveBeenCalledWith(VIRTUAL_DEVICE_NAME);
   });
 
-  it('survives a helper that cannot tell', async () => {
-    await expect(restoreVirtualDeviceGain({ host: host(null) })).resolves.toBeUndefined();
+  it('survives a helper that cannot tell, and says so', async () => {
+    await expect(restoreVirtualDeviceGain({ host: host(null) })).resolves.toBeNull();
   });
 
-  it('survives a device that is installed but not registered', async () => {
-    await expect(restoreVirtualDeviceGain({ host: host({ found: false }) })).resolves.toBeUndefined();
+  it('survives a device that is installed but not registered, and passes that on', async () => {
+    await expect(restoreVirtualDeviceGain({ host: host({ found: false }) })).resolves.toEqual({ found: false });
   });
 
   it('survives a helper that rejects', async () => {
     const h = { ensureUnityGain: vi.fn(async () => { throw new Error('EACCES'); }) };
-    await expect(restoreVirtualDeviceGain({ host: h })).resolves.toBeUndefined();
+    await expect(restoreVirtualDeviceGain({ host: h })).resolves.toBeNull();
   });
 });
 

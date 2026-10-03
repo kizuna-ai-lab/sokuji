@@ -848,7 +848,12 @@
     "installCommand": "sudo apt install pulseaudio-utils",
     "unavailableBody": "Sokuji가 가상 마이크/스피커를 설정하지 못했습니다. PulseAudio 또는 PipeWire가 실행 중인지 확인하세요.",
     "retry": "다시 시도",
-    "retrying": "다시 시도하는 중..."
+    "retrying": "다시 시도하는 중...",
+    "macDriverNotLoadedBody": "Sokuji의 가상 마이크가 설치되어 있지만 macOS가 불러오지 않아 회의 앱에서 번역을 들을 수 없습니다. 복구하면 macOS가 관리자 암호를 요청합니다.",
+    "macRepairFailedBody": "복구 후에도 가상 마이크가 나타나지 않았습니다. Mac을 재시동하거나 .pkg 설치 프로그램으로 Sokuji를 다시 설치하세요.",
+    "repair": "복구",
+    "repairing": "복구 중...",
+    "macRepairPrompt": "Sokuji가 가상 마이크를 복구하려고 합니다."
   },
   "subtitle": {
     "sessionEnded": "세션이 종료되었습니다",

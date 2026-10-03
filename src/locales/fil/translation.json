@@ -848,7 +848,12 @@
     "installCommand": "sudo apt install pulseaudio-utils",
     "unavailableBody": "Hindi ma-set up ng Sokuji ang virtual na mikropono/speaker nito. Tiyaking tumatakbo ang PulseAudio o PipeWire.",
     "retry": "Subukang muli",
-    "retrying": "Sinusubukang muli..."
+    "retrying": "Sinusubukang muli...",
+    "macDriverNotLoadedBody": "Naka-install ang virtual na mikropono ng Sokuji, pero hindi ito na-load ng macOS, kaya hindi marinig ng mga meeting app ang iyong pagsasalin. Ayusin ito; hihingin ng macOS ang iyong administrator password.",
+    "macRepairFailedBody": "Hindi naibalik ng pag-aayos ang virtual na mikropono. I-restart ang iyong Mac, o i-install muli ang Sokuji mula sa .pkg installer.",
+    "repair": "Ayusin",
+    "repairing": "Inaayos...",
+    "macRepairPrompt": "Gustong ayusin ng Sokuji ang virtual na mikropono nito."
   },
   "subtitle": {
     "sessionEnded": "Tapos na ang session",

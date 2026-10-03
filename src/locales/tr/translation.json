@@ -848,7 +848,12 @@
     "installCommand": "sudo apt install pulseaudio-utils",
     "unavailableBody": "Sokuji sanal mikrofonunu/hoparlörünü kuramadı. PulseAudio veya PipeWire'ın çalıştığından emin olun.",
     "retry": "Yeniden dene",
-    "retrying": "Yeniden deneniyor..."
+    "retrying": "Yeniden deneniyor...",
+    "macDriverNotLoadedBody": "Sokuji'nin sanal mikrofonu yüklü ancak macOS onu yüklemedi; bu yüzden toplantı uygulamaları çevirinizi duyamıyor. Onarın; macOS yönetici parolanızı isteyecek.",
+    "macRepairFailedBody": "Onarım sanal mikrofonu geri getirmedi. Mac'inizi yeniden başlatın veya Sokuji'yi .pkg yükleyicisiyle yeniden yükleyin.",
+    "repair": "Onar",
+    "repairing": "Onarılıyor...",
+    "macRepairPrompt": "Sokuji sanal mikrofonunu onarmak istiyor."
   },
   "subtitle": {
     "sessionEnded": "Oturum sona erdi",

@@ -45,31 +45,60 @@ if [ ! -d "$HAL_DIR" ]; then
 fi
 
 if [ -d "$DRIVER_SOURCE" ]; then
-    echo "Sokuji postinstall: Installing virtual audio driver..."
+    # PackageKit runs this script twice per install: electron-builder lists it
+    # both as the package's postinstall and as the Sokuji.app component's (see
+    # the pkg's PackageInfo). The second run used to delete the driver the first
+    # had just installed, a moment after the first restarted CoreAudio, so the
+    # surviving coreaudiod could scan this directory while the driver was missing
+    # and publish no device until the next restart. So an identical driver is
+    # left alone, the directory is never without one, and CoreAudio restarts only
+    # after a change. See electron/macos-driver-install.consistency.test.js.
+    if [ -d "$DRIVER_DEST" ] && diff -rq "$DRIVER_SOURCE" "$DRIVER_DEST" >/dev/null 2>&1; then
+        echo "Sokuji postinstall: Virtual audio driver already installed and unchanged"
+    else
+        echo "Sokuji postinstall: Installing virtual audio driver..."
 
-    # Remove old driver if it exists
-    if [ -d "$DRIVER_DEST" ]; then
-        echo "Sokuji postinstall: Removing old driver..."
-        rm -rf "$DRIVER_DEST"
+        # Stage the copy under a name HAL does not load, then move it into place.
+        # The installed driver is removed only once the staged copy is complete
+        # and correctly owned: a copy that fails halfway, on a full disk say,
+        # must not turn a working virtual microphone into a missing one.
+        STAGING="$HAL_DIR/SokujiVirtualAudio.driver.installing"
+        rm -rf "$STAGING"
+        echo "Sokuji postinstall: Copying driver to $DRIVER_DEST..."
+        if ! cp -R "$DRIVER_SOURCE" "$STAGING" || \
+           ! chown -R root:wheel "$STAGING" || \
+           ! chmod -R 755 "$STAGING"; then
+            rm -rf "$STAGING"
+            echo "Sokuji postinstall: ERROR - Failed to stage the virtual audio driver; the installed one is unchanged"
+            exit 1
+        fi
+
+        # Swap it in, keeping the old driver aside until the swap has worked, so
+        # a move that fails restores it rather than leaving no driver at all.
+        PREVIOUS="$HAL_DIR/SokujiVirtualAudio.driver.previous"
+        rm -rf "$PREVIOUS"
+        if [ -d "$DRIVER_DEST" ] && ! mv "$DRIVER_DEST" "$PREVIOUS"; then
+            rm -rf "$STAGING"
+            echo "Sokuji postinstall: ERROR - Failed to move the installed virtual audio driver aside; it is unchanged"
+            exit 1
+        fi
+        if ! mv "$STAGING" "$DRIVER_DEST"; then
+            [ -d "$PREVIOUS" ] && mv "$PREVIOUS" "$DRIVER_DEST"
+            rm -rf "$STAGING"
+            echo "Sokuji postinstall: ERROR - Failed to move the new virtual audio driver into place; the installed one was restored"
+            exit 1
+        fi
+        rm -rf "$PREVIOUS"
+
+        # Restart CoreAudio to load the driver
+        echo "Sokuji postinstall: Restarting CoreAudio to load driver..."
+        # Try multiple methods to ensure CoreAudio restarts regardless of permission level
+        killall coreaudiod 2>/dev/null || \
+        launchctl kickstart -k system/com.apple.audio.coreaudiod 2>/dev/null || \
+        launchctl kill SIGTERM system/com.apple.audio.coreaudiod 2>/dev/null || true
+
+        echo "Sokuji postinstall: Virtual audio driver installed successfully"
     fi
-
-    # Copy the driver to the HAL plugins directory
-    echo "Sokuji postinstall: Copying driver to $DRIVER_DEST..."
-    cp -R "$DRIVER_SOURCE" "$DRIVER_DEST"
-
-    # Set correct permissions on the driver
-    echo "Sokuji postinstall: Setting driver permissions..."
-    chown -R root:wheel "$DRIVER_DEST"
-    chmod -R 755 "$DRIVER_DEST"
-
-    # Restart CoreAudio to load the driver
-    echo "Sokuji postinstall: Restarting CoreAudio to load driver..."
-    # Try multiple methods to ensure CoreAudio restarts regardless of permission level
-    killall coreaudiod 2>/dev/null || \
-    launchctl kickstart -k system/com.apple.audio.coreaudiod 2>/dev/null || \
-    launchctl kill SIGTERM system/com.apple.audio.coreaudiod 2>/dev/null || true
-
-    echo "Sokuji postinstall: Virtual audio driver installed successfully"
 else
     echo "Sokuji postinstall: Warning - Virtual audio driver not found in app bundle"
 fi

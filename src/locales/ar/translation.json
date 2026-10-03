@@ -848,7 +848,12 @@
     "installCommand": "sudo apt install pulseaudio-utils",
     "unavailableBody": "لم يتمكن Sokuji من إعداد الميكروفون/مكبر الصوت الافتراضي. تأكد من تشغيل PulseAudio أو PipeWire.",
     "retry": "إعادة المحاولة",
-    "retrying": "جارٍ إعادة المحاولة..."
+    "retrying": "جارٍ إعادة المحاولة...",
+    "macDriverNotLoadedBody": "الميكروفون الافتراضي لـ Sokuji مثبت، لكن macOS لم يحمّله، لذلك لا تسمع تطبيقات الاجتماعات ترجمتك. أصلحه؛ سيطلب macOS كلمة مرور المسؤول.",
+    "macRepairFailedBody": "لم يُعِد الإصلاح الميكروفون الافتراضي. أعد تشغيل جهاز Mac، أو أعد تثبيت Sokuji من مُثبّت .pkg.",
+    "repair": "إصلاح",
+    "repairing": "جارٍ الإصلاح...",
+    "macRepairPrompt": "يريد Sokuji إصلاح الميكروفون الافتراضي الخاص به."
   },
   "subtitle": {
     "sessionEnded": "انتهت الجلسة",

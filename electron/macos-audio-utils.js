@@ -26,6 +26,9 @@ const VIRTUAL_DEVICE_NAME = 'SokujiVirtualAudio';
  *
  * Best-effort by construction: a helper that is missing, old, or unable to
  * write the property must not stop the app from starting.
+ *
+ * @returns {Promise<object|null>} what the helper reported (`found` says whether
+ *   Core Audio has the device at all), or null when it could not tell.
  */
 async function restoreVirtualDeviceGain({ host = audioHost } = {}) {
   let result = null;
@@ -33,24 +36,93 @@ async function restoreVirtualDeviceGain({ host = audioHost } = {}) {
     result = await host.ensureUnityGain(VIRTUAL_DEVICE_NAME);
   } catch (error) {
     console.warn('[Sokuji] [macOS Audio] Could not check virtual device gain:', error);
-    return;
+    return null;
   }
 
   if (!result) {
     console.warn('[Sokuji] [macOS Audio] Could not check the virtual device gain; if other applications hear silence, check that SokujiVirtualAudio is at full volume in Audio MIDI Setup');
-    return;
+    return null;
   }
   if (!result.found) {
-    // Installed on disk but not registered with Core Audio - a restart usually
-    // settles it, and the caller has already told the user how that looks.
-    console.warn('[Sokuji] [macOS Audio] Virtual device is installed but not registered with Core Audio yet');
-    return;
+    console.warn('[Sokuji] [macOS Audio] Virtual device is installed but not registered with Core Audio');
+    return result;
   }
   if (result.changed || result.unmuted) {
     console.log(`[Sokuji] [macOS Audio] Virtual device gain restored to unity (was output=${result.before?.output}, input=${result.before?.input}${result.unmuted ? ', and it was muted' : ''})`);
-    return;
+    return result;
   }
   console.log('[Sokuji] [macOS Audio] Virtual device gain is at unity');
+  return result;
+}
+
+// Where the pkg installs the driver (pkg-scripts/postinstall).
+const DRIVER_PATH = '/Library/Audio/Plug-Ins/HAL/SokujiVirtualAudio.driver';
+
+/**
+ * What the last check found wrong with the virtual device: 'not-installed' (no
+ * driver on disk), 'not-loaded' (the driver is there but Core Audio has no such
+ * device), or null. main.js turns it into the audio-status the banner shows.
+ */
+let lastProblem = null;
+function virtualDeviceProblem() {
+  return lastProblem;
+}
+
+/** `s` as an AppleScript string literal. */
+function appleScriptString(s) {
+  return `"${String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+}
+
+/**
+ * Restart Core Audio behind macOS's administrator prompt, then wait for the
+ * device to register.
+ *
+ * The pkg's postinstall runs twice per install, and before the fix the second
+ * run could leave coreaudiod scanning the HAL directory while the driver was
+ * missing, so the driver sat on disk with no device until Core Audio restarted
+ * again. In-app updates never re-run the postinstall, so this does that restart
+ * from the app: the dialog is macOS's own, so the app never sees the password.
+ * See macos-driver-install.consistency.test.js.
+ *
+ * @param {{prompt: string, execFile?: Function, host?: object, sleep?: Function, now?: Function, deadlineMs?: number}} options
+ * @returns {Promise<{ok: true} | {ok: false, cancelled: boolean, error?: string}>}
+ */
+async function repairVirtualDevice({
+  prompt,
+  execFile = require('util').promisify(require('child_process').execFile),
+  host = audioHost,
+  sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  now = Date.now,
+  deadlineMs = 15000,
+} = {}) {
+  const script = `do shell script ${appleScriptString('/usr/bin/killall coreaudiod')} with administrator privileges with prompt ${appleScriptString(prompt)}`;
+  try {
+    await execFile('/usr/bin/osascript', ['-e', script]);
+  } catch (error) {
+    const detail = String(error?.stderr || error?.message || error);
+    if (/\(-128\)|User canceled/.test(detail)) {
+      console.log('[Sokuji] [macOS Audio] Virtual device repair cancelled at the password dialog');
+      return { ok: false, cancelled: true };
+    }
+    console.warn('[Sokuji] [macOS Audio] Virtual device repair failed:', detail);
+    return { ok: false, cancelled: false, error: detail.trim() };
+  }
+
+  // coreaudiod restarts on its own; the device appears once it has loaded the
+  // driver. Bounded by time rather than by probes: a Core Audio still wedged
+  // makes every probe wait out the helper's timeout, and the Repair button stays
+  // disabled until this returns.
+  const deadline = now() + deadlineMs;
+  do {
+    const result = await restoreVirtualDeviceGain({ host });
+    if (result?.found) {
+      lastProblem = null;
+      console.log('[Sokuji] [macOS Audio] Virtual device repaired and registered');
+      return { ok: true };
+    }
+    await sleep(500);
+  } while (now() < deadline);
+  return { ok: false, cancelled: false, error: 'The virtual device did not register after the repair' };
 }
 
 /**
@@ -70,11 +142,20 @@ async function createVirtualAudioDevices({
     const isInstalled = await checkInstalled();
 
     if (isInstalled) {
+      // Only a helper that answered "no such device" proves macOS did not load
+      // the driver; one that could not tell must not cost the user the device.
+      const result = await restoreVirtualDeviceGain({ host });
+      if (result && !result.found) {
+        lastProblem = 'not-loaded';
+        console.log('[Sokuji] [macOS Audio] Sokuji Virtual Audio is installed, but macOS has not loaded it');
+        return false;
+      }
+      lastProblem = null;
       console.log('[Sokuji] [macOS Audio] Sokuji Virtual Audio is installed and ready');
-      await restoreVirtualDeviceGain({ host });
       return true;
     }
 
+    lastProblem = 'not-installed';
     console.log('[Sokuji] [macOS Audio] Sokuji Virtual Audio not detected');
     console.log('[Sokuji] [macOS Audio] Virtual audio driver not found. This may happen if:');
     console.log('[Sokuji] [macOS Audio] - The application was not installed via the official PKG installer');
@@ -156,7 +237,7 @@ async function isSokujiVirtualAudioInstalled() {
 
     // Method 1: Check if driver file exists
     try {
-      await fs.access('/Library/Audio/Plug-Ins/HAL/SokujiVirtualAudio.driver');
+      await fs.access(DRIVER_PATH);
       console.log('[Sokuji] [macOS Audio] Sokuji Virtual Audio driver found in HAL Plug-Ins');
 
       // Check if installation flag exists
@@ -363,7 +444,10 @@ module.exports = {
   stopCapture: audioHost.stopCapture,
   createVirtualAudioDevices,
   restoreVirtualDeviceGain,
+  repairVirtualDevice,
+  virtualDeviceProblem,
   VIRTUAL_DEVICE_NAME,
+  DRIVER_PATH,
   removeVirtualAudioDevices,
   isMacOSAudioAvailable,
   cleanupOrphanedDevices,

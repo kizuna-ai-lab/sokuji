@@ -38,6 +38,8 @@ describe('audioSystemStore', () => {
       message: null,
       dismissed: false,
       retrying: false,
+      repairing: false,
+      repairFailed: false,
     });
     useAudioSystemStore.getState().cleanupListeners();
   });
@@ -120,5 +122,42 @@ describe('audioSystemStore', () => {
     useAudioSystemStore.setState({ retrying: true });
     await useAudioSystemStore.getState().retry();
     expect(electron.invoke).not.toHaveBeenCalledWith('create-virtual-speaker');
+  });
+
+  // macOS: the driver is installed but was never loaded; the main process
+  // re-signs it behind an administrator prompt. Success arrives as a live
+  // audio-status push, like retry's.
+  it('repair() asks the main process to repair the driver, with the dialog prompt', async () => {
+    const { electron } = mockElectron({ invoke: vi.fn(async () => ({ ok: true })) });
+    await useAudioSystemStore.getState().repair('Allow Sokuji to repair');
+    expect(electron.invoke).toHaveBeenCalledWith('repair-virtual-audio', { prompt: 'Allow Sokuji to repair' });
+    expect(useAudioSystemStore.getState().repairing).toBe(false);
+    expect(useAudioSystemStore.getState().repairFailed).toBe(false);
+  });
+
+  it('repair() cancelled at the password dialog is not a failure', async () => {
+    mockElectron({ invoke: vi.fn(async () => ({ ok: false, cancelled: true })) });
+    await useAudioSystemStore.getState().repair('p');
+    expect(useAudioSystemStore.getState().repairFailed).toBe(false);
+  });
+
+  it('repair() that did not bring the device back is marked failed', async () => {
+    mockElectron({ invoke: vi.fn(async () => ({ ok: false, cancelled: false, error: 'not registered' })) });
+    await useAudioSystemStore.getState().repair('p');
+    expect(useAudioSystemStore.getState().repairFailed).toBe(true);
+    expect(useAudioSystemStore.getState().repairing).toBe(false);
+  });
+
+  it('repair() swallows a rejected invoke and marks it failed', async () => {
+    mockElectron({ invoke: vi.fn(async () => { throw new Error('IPC broke'); }) });
+    await expect(useAudioSystemStore.getState().repair('p')).resolves.toBeUndefined();
+    expect(useAudioSystemStore.getState().repairFailed).toBe(true);
+  });
+
+  it('repair() is a no-op while already repairing', async () => {
+    const { electron } = mockElectron();
+    useAudioSystemStore.setState({ repairing: true });
+    await useAudioSystemStore.getState().repair('p');
+    expect(electron.invoke).not.toHaveBeenCalledWith('repair-virtual-audio', expect.anything());
   });
 });
