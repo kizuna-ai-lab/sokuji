@@ -3,7 +3,9 @@
  * runner"): `ModernAudioRecorder` — 48 kHz capture, RNNoise / GTCRN, 24 kHz
  * chunks — opened on the selected device, following the device and the noise
  * suppression during the run (today's `switchRecordingDevice` and MainPanel's
- * noise-suppression effect).
+ * noise-suppression effect). When its device goes away it reopens it, follows
+ * the store's next choice, or waits for one (spec 2026-10-04 §2, #593); only
+ * `stop()`, or a failure that is not about a device, ends it.
  */
 import { SAMPLE_RATE } from '../../contract/adapter';
 import { describeCause, reportWarning } from '../../diagnostics/report';
@@ -20,7 +22,14 @@ export type NoiseSuppression = 'off' | 'standard' | 'enhanced';
 
 /** The settings a microphone follows, read live. */
 export interface MicSettings {
+  /** The selected device; undefined while none is, and the source waits for one. */
   deviceId(): string | undefined;
+  /** The selected device's name, for the notices. */
+  deviceLabel(): string | undefined;
+  /** Whether the OS still lists the device. */
+  isListed(deviceId: string): boolean;
+  /** The device would not open: the store leaves it out and chooses again (spec 2026-10-04 §2). */
+  markUnusable(deviceId: string): void;
   noiseSuppression(): NoiseSuppression;
   muted(): boolean;
   /** Called when any of them may have changed. */
@@ -47,9 +56,17 @@ export async function openMic(
 ): Promise<Source> {
   const recorder = createRecorder();
   let deviceId = settings.deviceId();
+  /** The open device's name, kept from when it opened: a device that went away can no longer be looked up. */
+  let label = settings.deviceLabel() ?? deviceId ?? '';
   let mode = settings.noiseSuppression();
   /** Whether the recorder has begun and not ended: only then is there anything to end. */
   let open = false;
+  /** Which `begin` the watched track belongs to: a late `ended` from an earlier stream is ignored. */
+  let generation = 0;
+  /** The name of a device that went away, until the notice that says where the microphone went next. */
+  let lost: string | null = null;
+  /** On a fallback, or waiting: the next device the source opens gets a "now using" notice. */
+  let displaced = false;
   let unwatch = () => {};
   let unsubscribe = () => {};
   let chain: Promise<void> = Promise.resolve();
@@ -85,13 +102,99 @@ export async function openMic(
     },
   });
 
+  /** Steps run one at a time, in order: a switch, a lost track, a noise-mode change. A failure not about a device ends the source. */
+  const queue = (step: () => Promise<void>) => {
+    chain = chain
+      .then(step)
+      .catch((error: unknown) => core.end(`The microphone failed: ${describeCause(error)}`));
+  };
+
   const begin = async () => {
     if (!(await recorder.begin(deviceId))) throw new Error('The microphone could not be opened. Reload the page and try again.');
     open = true;
-    unwatch = core.watch(recorder.getStream());
+    label = settings.deviceLabel() ?? deviceId ?? '';
+    const mine = ++generation;
+    unwatch = core.watch(recorder.getStream(), () => queue(() => trackEnded(mine)));
     await recorder.record((data) => core.deliver(data.mono));
   };
 
+  const notice = (code: string, message: string, params: Record<string, string>, severity: 'warning' | 'info' = 'warning') =>
+    core.degrade({ code, message, params, severity });
+
+  /** Opens `next` (or waits, for none) and says where the microphone went, when it went there because of a loss. */
+  const switchTo = async (next: string | undefined) => {
+    deviceId = next;
+    await close();
+    if (core.stopped) return;
+    if (next === undefined) {
+      if (lost !== null) {
+        notice(MIC_LOST_WAITING, `The microphone "${lost}" went away; waiting for one to be connected.`, { lost });
+        lost = null;
+        displaced = true;
+      }
+      return;
+    }
+    try {
+      await begin();
+    } catch {
+      // This device will not open: the store leaves it out and selects the
+      // next one, which `follow` then opens. The failed one is reported as the
+      // device that went away, unless one already did.
+      lost ??= settings.deviceLabel() ?? next;
+      settings.markUnusable(next);
+      return;
+    }
+    if (lost !== null) {
+      notice(MIC_LOST_USING_OTHER, `The microphone "${lost}" went away; using "${label}" instead.`, { lost, device: label });
+      lost = null;
+      displaced = true;
+    } else if (displaced) {
+      notice(MIC_NOW_USING, `Now using the microphone "${label}".`, { device: label }, 'info');
+      displaced = false;
+    }
+  };
+
+  /** The store's settings changed: follow the noise mode and the device. */
+  const follow = async () => {
+    if (core.stopped || core.ended) return;
+    const nextMode = settings.noiseSuppression();
+    if (nextMode !== mode) {
+      mode = nextMode;
+      await recorder.setNoiseSuppressionMode(mode);
+    }
+    const next = settings.deviceId();
+    if (next === deviceId && (open || next === undefined)) return;
+    // A move off a device the OS no longer lists is a loss, whether the sync
+    // or the track's `ended` got here first.
+    if (open && deviceId !== undefined && !settings.isListed(deviceId)) lost ??= label;
+    await switchTo(next);
+  };
+
+  /** The open device's track ended: reopen it if it is still there, else let the store choose again. */
+  const trackEnded = async (which: number) => {
+    if (core.stopped || core.ended || which !== generation || !open) return;
+    const gone = deviceId as string;
+    lost ??= label;
+    // The sync handled `devicechange` first and already chose another device.
+    if (settings.deviceId() !== gone) {
+      await switchTo(settings.deviceId());
+      return;
+    }
+    await close();
+    if (core.stopped) return;
+    try {
+      await begin();
+      // A blip: the same device opened again, nothing to tell.
+      lost = null;
+    } catch {
+      settings.markUnusable(gone);
+    }
+  };
+
+  if (deviceId === undefined) {
+    await core.stop();
+    throw new Error('No microphone is selected. Choose one in Settings and try again.');
+  }
   // Recorded now and applied when `begin` builds the graph.
   await recorder.setNoiseSuppressionMode(mode);
   try {
@@ -105,23 +208,6 @@ export async function openMic(
     throw signal.reason ?? new Error('aborted');
   }
 
-  unsubscribe = settings.subscribe(() => {
-    chain = chain
-      .then(async () => {
-        if (core.stopped || core.ended) return;
-        const nextMode = settings.noiseSuppression();
-        if (nextMode !== mode) {
-          mode = nextMode;
-          await recorder.setNoiseSuppressionMode(mode);
-        }
-        const nextDevice = settings.deviceId();
-        if (nextDevice === deviceId) return;
-        deviceId = nextDevice;
-        await close();
-        if (core.stopped) return;
-        await begin();
-      })
-      .catch((error: unknown) => core.end(`The microphone could not switch: ${describeCause(error)}`));
-  });
+  unsubscribe = settings.subscribe(() => queue(follow));
   return core;
 }

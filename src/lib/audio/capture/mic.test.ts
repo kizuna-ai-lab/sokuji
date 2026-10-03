@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { TRACK_ENDED } from './core';
-import { openMic, type MicRecorder, type MicSettings, type NoiseSuppression } from './mic';
+import { MIC_LOST_USING_OTHER, MIC_LOST_WAITING, MIC_NOW_USING, openMic, type MicRecorder, type MicSettings, type NoiseSuppression } from './mic';
 
 /** A recorder that records its calls; `push` delivers a chunk while it records, `endTrack` unplugs its device. */
 function fakeRecorder(o: { failBegins?: number[]; falseBegins?: number[] } = {}) {
@@ -72,11 +71,20 @@ function fakeRecorder(o: { failBegins?: number[]; falseBegins?: number[] } = {})
   };
 }
 
-function settingsFixture(initial: { deviceId?: string; noiseSuppression?: NoiseSuppression; muted?: boolean } = {}) {
+function settingsFixture(initial: { deviceId?: string; noiseSuppression?: NoiseSuppression; muted?: boolean } = {}, options: { onUnusable?: (id: string) => void } = {}) {
   let current = { deviceId: 'mic-1' as string | undefined, noiseSuppression: 'off' as NoiseSuppression, muted: false, ...initial };
+  const labels: Record<string, string> = { 'mic-1': 'Built-in Mic', 'mic-2': 'USB Mic', 'mic-3': 'Webcam Mic' };
+  const listed = new Set(['mic-1', 'mic-2', 'mic-3']);
+  const unusable: string[] = [];
   const listeners = new Set<() => void>();
   const settings: MicSettings = {
     deviceId: () => current.deviceId,
+    deviceLabel: () => (current.deviceId === undefined ? undefined : labels[current.deviceId] ?? current.deviceId),
+    isListed: (id) => listed.has(id),
+    markUnusable: (id) => {
+      unusable.push(id);
+      options.onUnusable?.(id);
+    },
     noiseSuppression: () => current.noiseSuppression,
     muted: () => current.muted,
     subscribe: (listener) => {
@@ -88,7 +96,7 @@ function settingsFixture(initial: { deviceId?: string; noiseSuppression?: NoiseS
     current = { ...current, ...patch };
     for (const listener of listeners) listener();
   };
-  return { settings, set, listeners };
+  return { settings, set, listeners, listed, unusable };
 }
 
 const settle = async () => {
@@ -164,34 +172,15 @@ describe('openMic', () => {
     const source = await openMic(settings, live(), () => fake.recorder);
     const heard = vi.fn();
     source.onPcm(heard);
+    const degraded = vi.fn();
+    source.onDegraded(degraded);
     set({ deviceId: 'mic-2' });
     await settle();
     fake.push();
     expect(fake.calls).toEqual(['ns:off', 'begin:mic-1', 'record', 'end', 'begin:mic-2', 'record']);
     expect(fake.calls).not.toContain('quit');
     expect(heard).toHaveBeenCalledTimes(1);
-  });
-
-  it('ends with the reason when a device switch fails', async () => {
-    const fake = fakeRecorder({ failBegins: [2] });
-    const { settings, set } = settingsFixture();
-    const source = await openMic(settings, live(), () => fake.recorder);
-    const ended = vi.fn();
-    source.onEnded(ended);
-    set({ deviceId: 'gone' });
-    await settle();
-    expect(ended).toHaveBeenCalledTimes(1);
-    expect(String(ended.mock.calls[0][0])).toContain('no longer available');
-  });
-
-  it('ends when its device goes away', async () => {
-    const fake = fakeRecorder();
-    const { settings } = settingsFixture();
-    const source = await openMic(settings, live(), () => fake.recorder);
-    const ended = vi.fn();
-    source.onEnded(ended);
-    fake.endTrack();
-    expect(ended).toHaveBeenCalledWith(TRACK_ENDED);
+    expect(degraded).not.toHaveBeenCalled();
   });
 
   it('stops once: disposes the recorder (quit, not end) and follows the settings no more', async () => {
@@ -231,5 +220,146 @@ describe('openMic', () => {
     await source.stop();
     expect(fake.calls).toContain('track.stop');
     expect(fake.calls.indexOf('track.stop')).toBeLessThan(fake.calls.indexOf('quit'));
+  });
+});
+
+describe('openMic — its device going away (#593)', () => {
+  it('reopens the same device when its track ends and it opens again: no notice, no end', async () => {
+    const fake = fakeRecorder();
+    const { settings } = settingsFixture();
+    const source = await openMic(settings, live(), () => fake.recorder);
+    const ended = vi.fn();
+    const degraded = vi.fn();
+    source.onEnded(ended);
+    source.onDegraded(degraded);
+    fake.endTrack();
+    await settle();
+    expect(fake.calls).toEqual(['ns:off', 'begin:mic-1', 'record', 'end', 'begin:mic-1', 'record']);
+    expect(ended).not.toHaveBeenCalled();
+    expect(degraded).not.toHaveBeenCalled();
+  });
+
+  it('moves to the device the store chooses next when the lost one will not reopen, and says which', async () => {
+    const fake = fakeRecorder({ failBegins: [2] });
+    const fixture = settingsFixture({}, { onUnusable: (id) => { fixture.listed.delete(id); fixture.set({ deviceId: 'mic-2' }); } });
+    const source = await openMic(fixture.settings, live(), () => fake.recorder);
+    const ended = vi.fn();
+    const degraded = vi.fn();
+    source.onEnded(ended);
+    source.onDegraded(degraded);
+    fake.endTrack();
+    await settle();
+    expect(fake.calls).toEqual(['ns:off', 'begin:mic-1', 'record', 'end', 'begin:mic-1', 'begin:mic-2', 'record']);
+    expect(fixture.unusable).toEqual(['mic-1']);
+    expect(ended).not.toHaveBeenCalled();
+    expect(degraded).toHaveBeenCalledTimes(1);
+    expect(degraded).toHaveBeenCalledWith(expect.objectContaining({ code: MIC_LOST_USING_OTHER, severity: 'warning', params: { lost: 'Built-in Mic', device: 'USB Mic' } }));
+  });
+
+  it('raises the same notice, once, when the store moves on before the track ends', async () => {
+    const fake = fakeRecorder();
+    const fixture = settingsFixture();
+    const source = await openMic(fixture.settings, live(), () => fake.recorder);
+    const degraded = vi.fn();
+    source.onDegraded(degraded);
+    fixture.listed.delete('mic-1');
+    fixture.set({ deviceId: 'mic-2' });
+    fake.endTrack();
+    await settle();
+    expect(fake.calls.filter((c) => c.startsWith('begin:'))).toEqual(['begin:mic-1', 'begin:mic-2']);
+    expect(degraded).toHaveBeenCalledTimes(1);
+    expect(degraded).toHaveBeenCalledWith(expect.objectContaining({ code: MIC_LOST_USING_OTHER, params: { lost: 'Built-in Mic', device: 'USB Mic' } }));
+  });
+
+  it('waits without opening any device when none is left, keeps the run, and picks up the next one with a notice', async () => {
+    const fake = fakeRecorder({ failBegins: [2] });
+    const fixture = settingsFixture({}, { onUnusable: (id) => { fixture.listed.delete(id); fixture.set({ deviceId: undefined }); } });
+    const source = await openMic(fixture.settings, live(), () => fake.recorder);
+    const ended = vi.fn();
+    const degraded = vi.fn();
+    source.onEnded(ended);
+    source.onDegraded(degraded);
+    fake.endTrack();
+    await settle();
+    expect(fake.calls).not.toContain('begin:default');
+    expect(ended).not.toHaveBeenCalled();
+    expect(degraded).toHaveBeenLastCalledWith(expect.objectContaining({ code: MIC_LOST_WAITING, severity: 'warning', params: { lost: 'Built-in Mic' } }));
+
+    fixture.set({ deviceId: 'mic-3' });
+    await settle();
+    expect(fake.calls.slice(-2)).toEqual(['begin:mic-3', 'record']);
+    expect(degraded).toHaveBeenLastCalledWith(expect.objectContaining({ code: MIC_NOW_USING, severity: 'info', params: { device: 'Webcam Mic' } }));
+    expect(degraded).toHaveBeenCalledTimes(2);
+  });
+
+  it('says "now using" once it leaves the fallback for the user\'s device coming back', async () => {
+    const fake = fakeRecorder({ failBegins: [2] });
+    const fixture = settingsFixture({}, { onUnusable: (id) => { fixture.listed.delete(id); fixture.set({ deviceId: 'mic-2' }); } });
+    const source = await openMic(fixture.settings, live(), () => fake.recorder);
+    const degraded = vi.fn();
+    source.onDegraded(degraded);
+    fake.endTrack();
+    await settle();
+    fixture.listed.add('mic-1');
+    fixture.set({ deviceId: 'mic-1' });
+    await settle();
+    expect(degraded).toHaveBeenLastCalledWith(expect.objectContaining({ code: MIC_NOW_USING, severity: 'info', params: { device: 'Built-in Mic' } }));
+    // Back on the user's device: a later switch of theirs is a plain switch again.
+    fixture.set({ deviceId: 'mic-3' });
+    await settle();
+    expect(degraded).toHaveBeenCalledTimes(2);
+  });
+
+  it('no longer ends the run when a switch fails: the device is marked unusable and the next one opens', async () => {
+    const fake = fakeRecorder({ failBegins: [2] });
+    const fixture = settingsFixture({}, { onUnusable: () => fixture.set({ deviceId: 'mic-3' }) });
+    const source = await openMic(fixture.settings, live(), () => fake.recorder);
+    const ended = vi.fn();
+    const degraded = vi.fn();
+    source.onEnded(ended);
+    source.onDegraded(degraded);
+    fixture.set({ deviceId: 'gone' });
+    await settle();
+    expect(ended).not.toHaveBeenCalled();
+    expect(fixture.unusable).toEqual(['gone']);
+    expect(fake.calls.slice(-2)).toEqual(['begin:mic-3', 'record']);
+    expect(degraded).toHaveBeenCalledWith(expect.objectContaining({ code: MIC_LOST_USING_OTHER, params: { lost: 'gone', device: 'Webcam Mic' } }));
+  });
+
+  it('stays muted through a fallback', async () => {
+    const fake = fakeRecorder({ failBegins: [2] });
+    const fixture = settingsFixture({ muted: true }, { onUnusable: (id) => { fixture.listed.delete(id); fixture.set({ deviceId: 'mic-2' }); } });
+    const source = await openMic(fixture.settings, live(), () => fake.recorder);
+    const heard = vi.fn();
+    source.onPcm(heard);
+    fake.endTrack();
+    await settle();
+    fake.push();
+    expect(heard).not.toHaveBeenCalled();
+    fixture.set({ muted: false });
+    await settle();
+    fake.push();
+    expect(heard).toHaveBeenCalledTimes(1);
+  });
+
+  it('a stop during a loss leaves nothing open and says nothing more', async () => {
+    const fake = fakeRecorder({ failBegins: [2] });
+    const fixture = settingsFixture({}, { onUnusable: () => fixture.set({ deviceId: 'mic-2' }) });
+    const source = await openMic(fixture.settings, live(), () => fake.recorder);
+    const degraded = vi.fn();
+    source.onDegraded(degraded);
+    fake.endTrack();
+    await source.stop();
+    await settle();
+    expect(fake.calls[fake.calls.length - 1]).toBe('quit');
+    expect(fake.calls).not.toContain('begin:mic-2');
+    expect(degraded).not.toHaveBeenCalled();
+  });
+
+  it('refuses to start with no microphone selected, opening nothing', async () => {
+    const fake = fakeRecorder();
+    const { settings } = settingsFixture({ deviceId: undefined });
+    await expect(openMic(settings, live(), () => fake.recorder)).rejects.toThrow(/no microphone/i);
+    expect(fake.calls.filter((c) => c.startsWith('begin'))).toEqual([]);
   });
 });
