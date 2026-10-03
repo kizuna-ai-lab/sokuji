@@ -107,6 +107,8 @@ const useAudioSystemStore = create<AudioSystemStore>()((set, get) => ({
       // The device list was read while the virtual device was missing, and
       // nothing else reads it again: without this, the translation reaches a
       // device a repair or retry brought back only after a restart.
+      // It stays beside the `devicechange` watch: whether macOS fires that after
+      // Core Audio restarts is unverified.
       const recovered = data.ok && get().status === 'unavailable';
       set({
         status: data.ok ? 'ok' : 'unavailable',
@@ -115,7 +117,7 @@ const useAudioSystemStore = create<AudioSystemStore>()((set, get) => ({
         message: data.message ?? null,
         dismissed: (isLiveUpdate && !data.ok) ? false : get().dismissed,
       });
-      if (recovered) void useAudioStore.getState().refreshDevices();
+      if (recovered) void useAudioStore.getState().syncDevices();
     };
 
     statusHandler = (data: any) => applyStatus(data, true);

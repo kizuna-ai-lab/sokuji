@@ -11,6 +11,7 @@ import { SettingsInitializer } from '../components/SettingsInitializer/SettingsI
 import AuthOverlay from '../components/Auth/AuthOverlay';
 import { AppSessionRoot } from '../app/AppSessionRoot';
 import { loadSessionStores } from '../app/loadStores';
+import { watchDevices } from '../lib/audio/deviceWatch';
 
 export function Home() {
   const loadSettings = useLoadSettings();
@@ -35,6 +36,10 @@ export function Home() {
     // turn mode migrated, the routing switches, the punctuation pack — read by
     // the session from the first Start.
     void loadSessionStores();
+
+    // Follow the OS's devices from here on (spec 2026-10-04): plugging,
+    // unplugging, a Bluetooth reconnect, a repaired virtual device.
+    return watchDevices({ sync: () => useAudioStore.getState().syncDevices() });
   }, []); // Empty dependency array - only run once on mount
 
   return (

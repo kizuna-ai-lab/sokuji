@@ -104,20 +104,20 @@ describe('audioSystemStore', () => {
   // When a repair or a retry brings it back, nothing else reads the list
   // again, so the translation reached the repaired device only after a restart.
   it('re-reads the device list when the virtual device comes back', () => {
-    const refreshDevices = vi.fn(async () => ({ defaultInputDevice: null, defaultMonitorDevice: null }));
-    useAudioStore.setState({ refreshDevices });
+    const syncDevices = vi.fn(async () => {});
+    useAudioStore.setState({ syncDevices });
     const { receivedHandlers } = mockElectron();
     useAudioSystemStore.setState({ status: 'unavailable', reason: 'mac-driver-not-loaded' });
 
     useAudioSystemStore.getState().initListeners();
     receivedHandlers['audio-status']({ ok: true, platform: 'darwin' });
 
-    expect(refreshDevices).toHaveBeenCalledTimes(1);
+    expect(syncDevices).toHaveBeenCalledTimes(1);
   });
 
   it('leaves the device list alone when the status is first learned or did not change', () => {
-    const refreshDevices = vi.fn(async () => ({ defaultInputDevice: null, defaultMonitorDevice: null }));
-    useAudioStore.setState({ refreshDevices });
+    const syncDevices = vi.fn(async () => {});
+    useAudioStore.setState({ syncDevices });
     const { receivedHandlers } = mockElectron();
 
     useAudioSystemStore.getState().initListeners();
@@ -125,7 +125,7 @@ describe('audioSystemStore', () => {
     receivedHandlers['audio-status']({ ok: true, platform: 'darwin' });
     receivedHandlers['audio-status']({ ok: false, platform: 'darwin', reason: 'mac-driver-not-loaded' });
 
-    expect(refreshDevices).not.toHaveBeenCalled();
+    expect(syncDevices).not.toHaveBeenCalled();
   });
 
   it('dismiss() sets dismissed to true', () => {
