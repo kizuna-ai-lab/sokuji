@@ -28,6 +28,8 @@ export interface MicSettings {
   deviceLabel(): string | undefined;
   /** Whether the OS still lists the device. */
   isListed(deviceId: string): boolean;
+  /** Whether the store has already marked the device unusable (it still selects it until its next sync). */
+  isUnusable(deviceId: string): boolean;
   /** The device would not open: the store leaves it out and chooses again (spec 2026-10-04 §2). */
   markUnusable(deviceId: string): void;
   noiseSuppression(): NoiseSuppression;
@@ -137,6 +139,7 @@ export async function openMic(
     try {
       await begin();
     } catch {
+      if (core.stopped) return;
       // This device will not open: the store leaves it out and selects the
       // next one, which `follow` then opens. The failed one is reported as the
       // device that went away, unless one already did.
@@ -164,6 +167,8 @@ export async function openMic(
     }
     const next = settings.deviceId();
     if (next === deviceId && (open || next === undefined)) return;
+    // The failed device is marked but the store has not moved off it yet: wait for it.
+    if (!open && next !== undefined && next === deviceId && settings.isUnusable(next)) return;
     // A move off a device the OS no longer lists is a loss, whether the sync
     // or the track's `ended` got here first.
     if (open && deviceId !== undefined && !settings.isListed(deviceId)) lost ??= label;
@@ -187,6 +192,7 @@ export async function openMic(
       // A blip: the same device opened again, nothing to tell.
       lost = null;
     } catch {
+      if (core.stopped) return;
       settings.markUnusable(gone);
     }
   };

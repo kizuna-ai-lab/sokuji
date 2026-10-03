@@ -153,12 +153,15 @@ describe('the settings the sources follow', () => {
     useAudioStore.setState({
       selectedInputDevice: { deviceId: 'mic-1', label: 'USB Mic' },
       audioInputDevices: [{ deviceId: 'mic-1', label: 'USB Mic' }],
+      unusableInputIds: ['mic-2'],
       markInputUnusable,
     } as never);
     const settings = micSettings();
     expect(settings.deviceLabel()).toBe('USB Mic');
     expect(settings.isListed('mic-1')).toBe(true);
     expect(settings.isListed('mic-2')).toBe(false);
+    expect(settings.isUnusable('mic-2')).toBe(true);
+    expect(settings.isUnusable('mic-1')).toBe(false);
     settings.markUnusable('mic-1');
     expect(markInputUnusable).toHaveBeenCalledWith('mic-1');
   });
