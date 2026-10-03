@@ -59,15 +59,19 @@ if [ -d "$DRIVER_SOURCE" ]; then
         echo "Sokuji postinstall: Installing virtual audio driver..."
 
         # Stage the copy under a name HAL does not load, then move it into place.
+        # The installed driver is removed only once the staged copy is complete
+        # and correctly owned: a copy that fails halfway, on a full disk say,
+        # must not turn a working virtual microphone into a missing one.
         STAGING="$HAL_DIR/SokujiVirtualAudio.driver.installing"
         rm -rf "$STAGING"
         echo "Sokuji postinstall: Copying driver to $DRIVER_DEST..."
-        cp -R "$DRIVER_SOURCE" "$STAGING"
-
-        # Set correct permissions on the driver
-        echo "Sokuji postinstall: Setting driver permissions..."
-        chown -R root:wheel "$STAGING"
-        chmod -R 755 "$STAGING"
+        if ! cp -R "$DRIVER_SOURCE" "$STAGING" || \
+           ! chown -R root:wheel "$STAGING" || \
+           ! chmod -R 755 "$STAGING"; then
+            rm -rf "$STAGING"
+            echo "Sokuji postinstall: ERROR - Failed to stage the virtual audio driver; the installed one is unchanged"
+            exit 1
+        fi
 
         rm -rf "$DRIVER_DEST"
         mv "$STAGING" "$DRIVER_DEST"

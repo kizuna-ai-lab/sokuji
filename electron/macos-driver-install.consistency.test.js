@@ -99,6 +99,22 @@ describe('pkg postinstall survives PackageKit running it twice', () => {
     expect(restarts()).toBe(2);
   });
 
+  // A full disk, say, fails the copy halfway. The working driver must survive
+  // that: it is removed only once a complete, correctly owned copy is staged.
+  it.each(['cp', 'chown'])('keeps the installed driver when staging the new one fails (%s)', (cmd) => {
+    runPostinstall();
+    writeBundledDriver('driver v2');
+    writeFileSync(
+      path.join(root, 'bin', cmd),
+      `#!/bin/sh\necho "${cmd} $*" >> "${root}/calls.log"\nfor last; do :; done\nmkdir -p "$last"\nexit 1\n`,
+      { mode: 0o755 },
+    );
+    expect(() => runPostinstall()).toThrow();
+    expect(installedBinary()).toBe('driver v1');
+    expect(readdirSync(halDir)).toEqual(['SokujiVirtualAudio.driver']);
+    expect(restarts()).toBe(1);
+  });
+
   // A copy straight into the final path leaves a half-written driver there for
   // a CoreAudio scan to find; the copy is staged under a name HAL ignores.
   it('never copies straight into the installed driver path', () => {

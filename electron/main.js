@@ -979,10 +979,10 @@ ipcMain.handle('repair-virtual-audio', async (_event, data) => {
   }
   const prompt = typeof data?.prompt === 'string' && data.prompt ? data.prompt.slice(0, 300) : 'Sokuji wants to repair its virtual microphone.';
   const result = await audioUtils.repairVirtualDevice({ prompt });
-  if (result.ok) {
-    const created = await createVirtualAudioDevices();
-    sendAudioStatus(await buildAudioStatus(created));
-  }
+  // The repair's last probe found the device (and put its gain back to unity),
+  // so the status follows from that same check: a second one could disagree
+  // with the result returned here.
+  if (result.ok) sendAudioStatus(await buildAudioStatus(true));
   return result;
 });
 

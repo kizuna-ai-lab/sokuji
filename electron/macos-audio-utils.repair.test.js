@@ -117,10 +117,39 @@ describe('repairVirtualDevice', () => {
   });
 
   it('gives up when the device does not come back', async () => {
+    const clock = fakeClock();
     const h = host({ found: false });
-    const result = await repairVirtualDevice({ prompt: 'Repair', execFile: succeeded(), host: h, sleep: noSleep, attempts: 4 });
+    const result = await repairVirtualDevice({
+      prompt: 'Repair', execFile: succeeded(), host: h, sleep: clock.sleep, now: clock.now, deadlineMs: 2000,
+    });
     expect(result.ok).toBe(false);
     expect(result.cancelled).toBe(false);
     expect(h.ensureUnityGain).toHaveBeenCalledTimes(4);
   });
+
+  // A Core Audio still wedged after the restart makes every probe wait out the
+  // helper's 5 s timeout. Counting probes instead of time kept the Repair button
+  // disabled for nearly two minutes before the failure guidance showed.
+  it('gives up within its deadline when every probe times out', async () => {
+    const clock = fakeClock();
+    const ensureUnityGain = vi.fn(async () => {
+      clock.advance(5000);
+      return { found: false, timedOut: true };
+    });
+    const result = await repairVirtualDevice({
+      prompt: 'Repair', execFile: succeeded(), host: { ensureUnityGain }, sleep: clock.sleep, now: clock.now,
+    });
+    expect(result.ok).toBe(false);
+    expect(clock.now()).toBeLessThanOrEqual(15000 + 5000 + 500);
+  });
 });
+
+/** A clock that moves only when the code under test sleeps or a fake probe takes time. */
+function fakeClock() {
+  let t = 0;
+  return {
+    now: () => t,
+    advance: (ms) => { t += ms; },
+    sleep: async (ms) => { t += ms; },
+  };
+}

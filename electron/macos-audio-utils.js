@@ -84,7 +84,7 @@ function appleScriptString(s) {
  * from the app: the dialog is macOS's own, so the app never sees the password.
  * See macos-driver-install.consistency.test.js.
  *
- * @param {{prompt: string, execFile?: Function, host?: object, sleep?: Function, attempts?: number}} options
+ * @param {{prompt: string, execFile?: Function, host?: object, sleep?: Function, now?: Function, deadlineMs?: number}} options
  * @returns {Promise<{ok: true} | {ok: false, cancelled: boolean, error?: string}>}
  */
 async function repairVirtualDevice({
@@ -92,7 +92,8 @@ async function repairVirtualDevice({
   execFile = require('util').promisify(require('child_process').execFile),
   host = audioHost,
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
-  attempts = 20,
+  now = Date.now,
+  deadlineMs = 15000,
 } = {}) {
   const script = `do shell script ${appleScriptString('/usr/bin/killall coreaudiod')} with administrator privileges with prompt ${appleScriptString(prompt)}`;
   try {
@@ -107,8 +108,12 @@ async function repairVirtualDevice({
     return { ok: false, cancelled: false, error: detail.trim() };
   }
 
-  // coreaudiod restarts on its own; the device appears once it has loaded the driver.
-  for (let i = 0; i < attempts; i++) {
+  // coreaudiod restarts on its own; the device appears once it has loaded the
+  // driver. Bounded by time rather than by probes: a Core Audio still wedged
+  // makes every probe wait out the helper's timeout, and the Repair button stays
+  // disabled until this returns.
+  const deadline = now() + deadlineMs;
+  do {
     const result = await restoreVirtualDeviceGain({ host });
     if (result?.found) {
       lastProblem = null;
@@ -116,7 +121,7 @@ async function repairVirtualDevice({
       return { ok: true };
     }
     await sleep(500);
-  }
+  } while (now() < deadline);
   return { ok: false, cancelled: false, error: 'The virtual device did not register after the repair' };
 }
 
