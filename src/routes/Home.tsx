@@ -41,12 +41,14 @@ export function Home() {
     // unplugging, a Bluetooth reconnect, a repaired virtual device.
     return watchDevices({
       sync: () => useAudioStore.getState().syncDevices(),
-      // Off the user's own microphone (on a fallback, or waiting): keep
-      // looking for it. Linux announces a USB device but not a Bluetooth or
-      // PipeWire one coming back, so without this it would never switch back.
+      // While waiting for any microphone or while off the user's own: keep
+      // looking. Linux announces a USB device but not a Bluetooth or PipeWire
+      // one coming back, so without this it would never switch back or leave
+      // waiting. Each beat is only a device listing, so polling can run for as
+      // long as needed.
       shouldPoll: () => {
         const audio = useAudioStore.getState();
-        return audio.savedInputDeviceId !== null && audio.selectedInputDevice?.deviceId !== audio.savedInputDeviceId;
+        return audio.selectedInputDevice === null || (audio.savedInputDeviceId !== null && audio.selectedInputDevice.deviceId !== audio.savedInputDeviceId);
       },
     });
   }, []); // Empty dependency array - only run once on mount

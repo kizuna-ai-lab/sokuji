@@ -55,7 +55,7 @@ The existing full refresh (`audioStore.refreshDevices`, `audioStore.ts:336-552`)
 - One `devicechange` listener on `navigator.mediaDevices`, installed once by the main window (not the subtitle window), removed on unload.
 - Debounced about 500 ms, since a Bluetooth connect fires a burst.
 - Single-flight: a change during a sync queues exactly one more.
-- While the selection is off the saved input (on a fallback, or waiting), a 3-second poll runs the same sync. Chromium on Linux announces only udev sound-card changes: a Bluetooth headset or a PipeWire device coming back is seen only when the devices are listed again (found in the Linux live check, 2026-10-04).
+- While no input is selected (waiting), or the selection is off the saved input (on a fallback), a 3-second poll runs the same sync. Chromium on Linux announces only udev sound-card changes: a Bluetooth headset or a PipeWire device coming back is seen only when the devices are listed again (found in the Linux live check, 2026-10-04).
 - `23aa94df`'s refresh on audio-system recovery calls `syncDevices` instead of `refreshDevices`. It stays as a belt-and-braces trigger, since whether `devicechange` fires after macOS restarts Core Audio is unverified.
 - The microphone source asks for a sync after marking a device unusable.
 
