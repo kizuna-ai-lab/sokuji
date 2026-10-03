@@ -538,6 +538,7 @@
     "send": "Gửi",
     "error": "Lỗi",
     "warning": "Cảnh báo",
+    "notice": "Thông báo",
     "unknownError": "Lỗi không xác định",
     "insufficientBalance": "Số dư không đủ: {{balance}}",
     "walletFrozen": "Ví đã bị đóng băng. Vui lòng liên hệ hỗ trợ.",
@@ -1302,6 +1303,9 @@
     "local_models_missing": "Vui lòng tải xuống các mô hình cần thiết trong Cài đặt để bắt đầu.",
     "no_microphone": "Cấu hình thiết bị cho chế độ này để bắt đầu.",
     "silent_no_permission": "Chưa có âm thanh nào từ nguồn đã chọn. Nếu nguồn đang phát mà không có gì được dịch, hãy cho phép Sokuji trong System Settings > Privacy & Security > System Audio Recording Only (macOS), rồi bắt đầu lại phiên.",
-    "loopback_denied": "Âm thanh đối phương cần quyền Ghi Màn Hình để thu âm thanh hệ thống."
+    "loopback_denied": "Âm thanh đối phương cần quyền Ghi Màn Hình để thu âm thanh hệ thống.",
+    "mic_lost_using_other": "Micrô \"{{lost}}\" đã bị ngắt kết nối, nên \"{{device}}\" đang được dùng thay thế.",
+    "mic_lost_waiting": "Micrô đã bị ngắt kết nối. Việc dịch giọng nói của bạn sẽ tiếp tục khi có micrô được kết nối.",
+    "mic_now_using": "Đang dùng micrô \"{{device}}\"."
   }
 }

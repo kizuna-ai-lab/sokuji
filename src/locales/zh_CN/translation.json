@@ -538,6 +538,7 @@
     "send": "发送",
     "error": "错误",
     "warning": "警告",
+    "notice": "提示",
     "unknownError": "未知错误",
     "insufficientBalance": "余额不足：{{balance}}",
     "walletFrozen": "钱包已冻结。请联系客服。",
@@ -1302,6 +1303,9 @@
     "local_models_missing": "请先在设置中下载所需的模型才能开始使用。",
     "no_microphone": "请为此模式配置设备以开始。",
     "silent_no_permission": "所选来源尚未传来任何音频。如果它正在播放却没有译文，请在 系统设置 > 隐私与安全性 > 仅系统录音 中允许 Sokuji（macOS），然后重新开始会话。",
-    "loopback_denied": "对方音频需要屏幕录制权限才能捕获系统音频。"
+    "loopback_denied": "对方音频需要屏幕录制权限才能捕获系统音频。",
+    "mic_lost_using_other": "麦克风「{{lost}}」已断开，现在改用「{{device}}」。",
+    "mic_lost_waiting": "麦克风已断开。接上麦克风后会自动继续翻译你说的话。",
+    "mic_now_using": "现在使用麦克风「{{device}}」。"
   }
 }

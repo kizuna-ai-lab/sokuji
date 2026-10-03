@@ -11,6 +11,11 @@ import { ModernAudioRecorder } from '../../modern-audio/ModernAudioRecorder';
 import type { Source } from '../../session/source';
 import { createSourceCore } from './core';
 
+/** The notices the microphone raises when its device changes under it (#593; spec 2026-10-04 §3). */
+export const MIC_LOST_USING_OTHER = 'mic_lost_using_other';
+export const MIC_LOST_WAITING = 'mic_lost_waiting';
+export const MIC_NOW_USING = 'mic_now_using';
+
 export type NoiseSuppression = 'off' | 'standard' | 'enhanced';
 
 /** The settings a microphone follows, read live. */

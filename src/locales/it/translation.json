@@ -538,6 +538,7 @@
     "send": "Invia",
     "error": "Errore",
     "warning": "Avviso",
+    "notice": "Nota",
     "unknownError": "Errore sconosciuto",
     "insufficientBalance": "Saldo insufficiente: {{balance}}",
     "walletFrozen": "Portafoglio congelato. Contatta il supporto.",
@@ -1302,6 +1303,9 @@
     "local_models_missing": "Scarica i modelli necessari nelle Impostazioni per iniziare.",
     "no_microphone": "Configura i dispositivi per questa modalità per iniziare.",
     "silent_no_permission": "Dalla sorgente selezionata non è ancora arrivato alcun audio. Se sta riproducendo e non viene tradotto nulla, consenti Sokuji in Impostazioni di Sistema > Privacy e sicurezza > Solo registrazione audio di sistema (macOS), poi riavvia la sessione.",
-    "loopback_denied": "L'Audio dell'altro richiede l'autorizzazione alla Registrazione Schermo per acquisire l'audio di sistema."
+    "loopback_denied": "L'Audio dell'altro richiede l'autorizzazione alla Registrazione Schermo per acquisire l'audio di sistema.",
+    "mic_lost_using_other": "Il microfono «{{lost}}» è stato scollegato, quindi ora viene usato «{{device}}».",
+    "mic_lost_waiting": "Il microfono è stato scollegato. La traduzione della tua voce riprenderà quando verrà collegato un microfono.",
+    "mic_now_using": "Ora viene usato il microfono «{{device}}»."
   }
 }
