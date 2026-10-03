@@ -10,6 +10,7 @@
 import { SAMPLE_RATE } from '../../contract/adapter';
 import { describeCause, reportWarning } from '../../diagnostics/report';
 import { ModernAudioRecorder } from '../../modern-audio/ModernAudioRecorder';
+import { MicrophoneCaptureError } from '../../modern-audio/microphoneCaptureError';
 import type { Source } from '../../session/source';
 import { createSourceCore } from './core';
 
@@ -23,6 +24,19 @@ export const MIC_NOW_USING = 'mic_now_using';
  * device that keeps dropping: it is treated as one that will not open.
  */
 const REOPEN_HOLD_MS = 5_000;
+
+/**
+ * The microphone was refused — permission revoked, or capture no longer
+ * allowed — rather than missing: not about the device, so it ends the source
+ * like any other such failure (spec 2026-10-04 §2) instead of marking the
+ * device and waiting. With the permission gone the listing loses its labels,
+ * so a wait would never end and say nothing.
+ */
+function refused(error: unknown): boolean {
+  if (!(error instanceof MicrophoneCaptureError)) return false;
+  const name = (error.cause as { name?: unknown } | null | undefined)?.name;
+  return name === 'NotAllowedError' || name === 'SecurityError';
+}
 
 export type NoiseSuppression = 'off' | 'standard' | 'enhanced';
 
@@ -149,8 +163,10 @@ export async function openMic(
     }
     try {
       await begin(name);
-    } catch {
+    } catch (error) {
       if (core.stopped) return;
+      // Refused, not missing: rethrown, so `queue` ends the source with it.
+      if (refused(error)) throw error;
       // This device will not open: the store leaves it out and selects the
       // next one, which `follow` then opens. The failed one is reported as the
       // device that went away, unless one already did.
@@ -214,8 +230,9 @@ export async function openMic(
       reopened = { generation, at: Date.now() };
       // A blip: the same device opened again, nothing to tell.
       lost = null;
-    } catch {
+    } catch (error) {
       if (core.stopped) return;
+      if (refused(error)) throw error;
       settings.markUnusable(gone);
     }
   };

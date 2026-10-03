@@ -1,5 +1,6 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { MIC_LOST_USING_OTHER, MIC_LOST_WAITING, MIC_NOW_USING, openMic, type MicRecorder, type MicSettings, type NoiseSuppression } from './mic';
+import { MicrophoneCaptureError } from '../../modern-audio/microphoneCaptureError';
 
 /** A begin past this many is a runaway reopen loop: it throws, so a broken source cannot spin a test forever. */
 const RUNAWAY_BEGINS = 50;
@@ -7,8 +8,9 @@ const RUNAWAY_BEGINS = 50;
 /**
  * A recorder that records its calls; `push` delivers a chunk while it records, `endTrack` unplugs its device.
  * `deadOnArrival(deviceId, n)`: the n-th begin hands out a track that has already ended.
+ * `throwOn[n]`: the n-th begin throws that value.
  */
-function fakeRecorder(o: { failBegins?: number[]; falseBegins?: number[]; deadOnArrival?: (deviceId: string | undefined, n: number) => boolean } = {}) {
+function fakeRecorder(o: { failBegins?: number[]; falseBegins?: number[]; deadOnArrival?: (deviceId: string | undefined, n: number) => boolean; throwOn?: Record<number, unknown> } = {}) {
   const calls: string[] = [];
   const track = Object.assign(new EventTarget(), { readyState: 'live' as MediaStreamTrackState, stop: vi.fn(() => calls.push('track.stop')) }) as unknown as MediaStreamTrack;
   const stream = { getAudioTracks: () => [track], getTracks: () => [track] } as unknown as MediaStream;
@@ -35,6 +37,10 @@ function fakeRecorder(o: { failBegins?: number[]; falseBegins?: number[]; deadOn
       if (o.failBegins?.includes(begins)) {
         open = false;
         throw new Error('The selected microphone is no longer available (NotFoundError).');
+      }
+      if (o.throwOn && begins in o.throwOn) {
+        open = false;
+        throw o.throwOn[begins];
       }
       if (o.falseBegins?.includes(begins)) {
         open = false;
@@ -404,6 +410,42 @@ describe('openMic — its device going away (#593)', () => {
     expect(fake.calls.slice(-2)).toEqual(['begin:mic-2', 'record']);
     expect(degraded).toHaveBeenCalledTimes(1);
     expect(degraded).toHaveBeenCalledWith(expect.objectContaining({ code: MIC_LOST_USING_OTHER }));
+  });
+
+  describe('a permission failure, which is not about the device', () => {
+    const denied = (name: string) => new MicrophoneCaptureError(new DOMException('Permission denied', name));
+
+    it('ends the source when a switch is refused the microphone, marking nothing and raising no notice', async () => {
+      const fake = fakeRecorder({ throwOn: { 2: denied('NotAllowedError') } });
+      const fixture = settingsFixture();
+      const source = await openMic(fixture.settings, live(), () => fake.recorder);
+      const ended = vi.fn();
+      const degraded = vi.fn();
+      source.onEnded(ended);
+      source.onDegraded(degraded);
+      fixture.set({ deviceId: 'mic-2' });
+      await settle();
+      expect(ended).toHaveBeenCalledTimes(1);
+      expect(ended).toHaveBeenCalledWith(expect.stringContaining('NotAllowedError'));
+      expect(fixture.unusable).toEqual([]);
+      expect(degraded).not.toHaveBeenCalled();
+    });
+
+    it('ends the source when the reopen after a lost track is refused, marking nothing', async () => {
+      const fake = fakeRecorder({ throwOn: { 2: denied('SecurityError') } });
+      const fixture = settingsFixture();
+      const source = await openMic(fixture.settings, live(), () => fake.recorder);
+      const ended = vi.fn();
+      const degraded = vi.fn();
+      source.onEnded(ended);
+      source.onDegraded(degraded);
+      fake.endTrack();
+      await settle();
+      expect(ended).toHaveBeenCalledTimes(1);
+      expect(ended).toHaveBeenCalledWith(expect.stringContaining('SecurityError'));
+      expect(fixture.unusable).toEqual([]);
+      expect(degraded).not.toHaveBeenCalled();
+    });
   });
 
   describe('a device that keeps dropping', () => {
