@@ -176,6 +176,15 @@ describe('createSourceCore', () => {
     expect(heard).not.toHaveBeenCalled();
   });
 
+  it('hands a track that had already ended when watched to the given handler, without ending the source', () => {
+    const { core } = setup();
+    const { stream } = fakeStream({ ended: true });
+    const handler = vi.fn();
+    core.watch(stream, handler);
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(core.ended).toBe(false);
+  });
+
   it('ends a source whose track had already ended by the time it was watched', () => {
     const { core } = setup();
     const { stream } = fakeStream({ ended: true });

@@ -18,6 +18,12 @@ export const MIC_LOST_USING_OTHER = 'mic_lost_using_other';
 export const MIC_LOST_WAITING = 'mic_lost_waiting';
 export const MIC_NOW_USING = 'mic_now_using';
 
+/**
+ * A reopened device whose track ends again sooner than this is not a blip but a
+ * device that keeps dropping: it is treated as one that will not open.
+ */
+const REOPEN_HOLD_MS = 5_000;
+
 export type NoiseSuppression = 'off' | 'standard' | 'enhanced';
 
 /** The settings a microphone follows, read live. */
@@ -69,6 +75,8 @@ export async function openMic(
   let lost: string | null = null;
   /** On a fallback, or waiting: the next device the source opens gets a "now using" notice. */
   let displaced = false;
+  /** The open that `trackEnded` last reopened, and when it came up: its track ending again soon means the device keeps dropping. */
+  let reopened: { generation: number; at: number } | null = null;
   let unwatch = () => {};
   let unsubscribe = () => {};
   let chain: Promise<void> = Promise.resolve();
@@ -185,10 +193,21 @@ export async function openMic(
       await switchTo(settings.deviceId());
       return;
     }
+    // The reopen of this very open ended within the hold — a track already
+    // ended when watched lands here too, at once: the device keeps dropping.
+    // Reopening again would loop (getUserMedia, a new graph, the OS indicator
+    // flickering), so it counts as a device that will not open.
+    const dropping = reopened !== null && reopened.generation === which && Date.now() - reopened.at < REOPEN_HOLD_MS;
     await close();
     if (core.stopped) return;
+    if (dropping) {
+      // `lost` stays: the store's next choice, or waiting, gets the notice.
+      settings.markUnusable(gone);
+      return;
+    }
     try {
       await begin();
+      reopened = { generation, at: Date.now() };
       // A blip: the same device opened again, nothing to tell.
       lost = null;
     } catch {

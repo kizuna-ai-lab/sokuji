@@ -1,10 +1,16 @@
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { MIC_LOST_USING_OTHER, MIC_LOST_WAITING, MIC_NOW_USING, openMic, type MicRecorder, type MicSettings, type NoiseSuppression } from './mic';
 
-/** A recorder that records its calls; `push` delivers a chunk while it records, `endTrack` unplugs its device. */
-function fakeRecorder(o: { failBegins?: number[]; falseBegins?: number[] } = {}) {
+/** A begin past this many is a runaway reopen loop: it throws, so a broken source cannot spin a test forever. */
+const RUNAWAY_BEGINS = 50;
+
+/**
+ * A recorder that records its calls; `push` delivers a chunk while it records, `endTrack` unplugs its device.
+ * `deadOnArrival(deviceId, n)`: the n-th begin hands out a track that has already ended.
+ */
+function fakeRecorder(o: { failBegins?: number[]; falseBegins?: number[]; deadOnArrival?: (deviceId: string | undefined, n: number) => boolean } = {}) {
   const calls: string[] = [];
-  const track = Object.assign(new EventTarget(), { stop: vi.fn(() => calls.push('track.stop')) }) as unknown as MediaStreamTrack;
+  const track = Object.assign(new EventTarget(), { readyState: 'live' as MediaStreamTrackState, stop: vi.fn(() => calls.push('track.stop')) }) as unknown as MediaStreamTrack;
   const stream = { getAudioTracks: () => [track], getTracks: () => [track] } as unknown as MediaStream;
   let begins = 0;
   let open = false;
@@ -15,6 +21,8 @@ function fakeRecorder(o: { failBegins?: number[]; falseBegins?: number[] } = {})
     async begin(deviceId) {
       begins += 1;
       calls.push(`begin:${deviceId ?? 'default'}`);
+      if (begins > RUNAWAY_BEGINS) throw new Error('runaway: the source kept reopening');
+      (track as { readyState: MediaStreamTrackState }).readyState = o.deadOnArrival?.(deviceId, begins) ? 'ended' : 'live';
       // The stream is live as soon as the device is acquired, before the rest of
       // `begin()`'s setup finishes (`ModernAudioRecorder.begin` assigns `this.stream`
       // from its first await, `getUserMedia`, well before it resolves).
@@ -377,6 +385,73 @@ describe('openMic — its device going away (#593)', () => {
     expect(fake.calls.slice(-2)).toEqual(['begin:mic-2', 'record']);
     expect(degraded).toHaveBeenCalledTimes(1);
     expect(degraded).toHaveBeenCalledWith(expect.objectContaining({ code: MIC_LOST_USING_OTHER }));
+  });
+
+  describe('a device that keeps dropping', () => {
+    afterEach(() => vi.useRealTimers());
+
+    it('does not reopen a device whose track ends again within 5 s of its reopen: marked once, the store followed, one notice', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      const fake = fakeRecorder();
+      // Still listed: the OS keeps showing it, it only keeps dropping.
+      const fixture = settingsFixture({}, { onUnusable: () => fixture.set({ deviceId: 'mic-2' }) });
+      const source = await openMic(fixture.settings, live(), () => fake.recorder);
+      const ended = vi.fn();
+      const degraded = vi.fn();
+      source.onEnded(ended);
+      source.onDegraded(degraded);
+      fake.endTrack();
+      await settle();
+      vi.setSystemTime(Date.now() + 4_999);
+      fake.endTrack();
+      await settle();
+      expect(fake.calls.filter((c) => c === 'begin:mic-1')).toHaveLength(2);
+      expect(fixture.unusable).toEqual(['mic-1']);
+      expect(fake.calls.slice(-2)).toEqual(['begin:mic-2', 'record']);
+      expect(ended).not.toHaveBeenCalled();
+      expect(degraded).toHaveBeenCalledTimes(1);
+      expect(degraded).toHaveBeenCalledWith(expect.objectContaining({ code: MIC_LOST_USING_OTHER, params: { lost: 'Built-in Mic', device: 'USB Mic' } }));
+    });
+
+    it('reopens it again when its track ends more than 5 s after the reopen: a new blip, no notice', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      const fake = fakeRecorder();
+      const fixture = settingsFixture();
+      const source = await openMic(fixture.settings, live(), () => fake.recorder);
+      const ended = vi.fn();
+      const degraded = vi.fn();
+      source.onEnded(ended);
+      source.onDegraded(degraded);
+      fake.endTrack();
+      await settle();
+      vi.setSystemTime(Date.now() + 5_001);
+      fake.endTrack();
+      await settle();
+      expect(fake.calls.filter((c) => c === 'begin:mic-1')).toHaveLength(3);
+      expect(fake.calls.slice(-2)).toEqual(['begin:mic-1', 'record']);
+      expect(fixture.unusable).toEqual([]);
+      expect(ended).not.toHaveBeenCalled();
+      expect(degraded).not.toHaveBeenCalled();
+    });
+
+    it('does not reopen a device whose reopened track had already ended when watched: marked, the store followed, no spin', async () => {
+      // Every reopen of mic-1 hands out a dead track: unbounded, this spins until RUNAWAY_BEGINS.
+      const fake = fakeRecorder({ deadOnArrival: (id, n) => id === 'mic-1' && n > 1 });
+      const fixture = settingsFixture({}, { onUnusable: () => fixture.set({ deviceId: 'mic-2' }) });
+      const source = await openMic(fixture.settings, live(), () => fake.recorder);
+      const ended = vi.fn();
+      const degraded = vi.fn();
+      source.onEnded(ended);
+      source.onDegraded(degraded);
+      fake.endTrack();
+      await settle();
+      expect(fake.calls.filter((c) => c.startsWith('begin:'))).toEqual(['begin:mic-1', 'begin:mic-1', 'begin:mic-2']);
+      expect(fixture.unusable).toEqual(['mic-1']);
+      expect(fake.calls.slice(-2)).toEqual(['begin:mic-2', 'record']);
+      expect(ended).not.toHaveBeenCalled();
+      expect(degraded).toHaveBeenCalledTimes(1);
+      expect(degraded).toHaveBeenCalledWith(expect.objectContaining({ code: MIC_LOST_USING_OTHER, params: { lost: 'Built-in Mic', device: 'USB Mic' } }));
+    });
   });
 
   it('refuses to start with no microphone selected, opening nothing', async () => {
