@@ -46,9 +46,9 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   silent_no_permission: 'No audio has come through from the selected source yet. If it is playing and nothing is translated, allow Sokuji under System Settings > Privacy & Security > System Audio Recording Only (macOS), then start the session again.',
   loopback_denied: "Other's audio requires Screen Recording permission to capture system audio.",
   // The microphone's device changing under it (#593).
-  mic_lost_using_other: 'The microphone "{{lost}}" went away, so "{{device}}" is being used instead.',
+  mic_lost_using_other: 'The microphone “{{lost}}” went away, so “{{device}}” is being used instead.',
   mic_lost_waiting: 'The microphone went away. Translation of your speech resumes when a microphone is connected.',
-  mic_now_using: 'Now using the microphone "{{device}}".',
+  mic_now_using: 'Now using the microphone “{{device}}”.',
   no_microphone: 'Configure devices for this mode to start.',
   // Readiness (a provider's check).
   local_models_missing: 'Please download the required models in Settings to start.',

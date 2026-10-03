@@ -50,8 +50,8 @@ describe('noticeText', () => {
 
   it("names the microphone's devices in its notices", () => {
     expect(noticeText(plainT, { code: 'mic_lost_using_other', message: 'x', params: { lost: 'AirPods', device: 'MacBook Microphone' } }))
-      .toBe('The microphone "AirPods" went away, so "MacBook Microphone" is being used instead.');
-    expect(noticeText(plainT, { code: 'mic_now_using', message: 'x', params: { device: 'AirPods' } })).toBe('Now using the microphone "AirPods".');
+      .toBe('The microphone “AirPods” went away, so “MacBook Microphone” is being used instead.');
+    expect(noticeText(plainT, { code: 'mic_now_using', message: 'x', params: { device: 'AirPods' } })).toBe('Now using the microphone “AirPods”.');
   });
 
   it('puts the five API error types into words', () => {

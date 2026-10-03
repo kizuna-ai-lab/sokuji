@@ -1304,8 +1304,8 @@
     "no_microphone": "Configure os dispositivos para este modo para iniciar.",
     "silent_no_permission": "Ainda não chegou áudio da fonte selecionada. Se ela está tocando e nada é traduzido, permita o Sokuji em Ajustes do Sistema > Privacidade e Segurança > Apenas Gravação de Áudio do Sistema (macOS) e inicie a sessão novamente.",
     "loopback_denied": "O Áudio do outro requer permissão de Gravação de Tela para capturar o áudio do sistema.",
-    "mic_lost_using_other": "O microfone \"{{lost}}\" foi desconectado, então \"{{device}}\" está sendo usado no lugar.",
+    "mic_lost_using_other": "O microfone “{{lost}}” foi desconectado, então “{{device}}” está sendo usado no lugar.",
     "mic_lost_waiting": "O microfone foi desconectado. A tradução da sua fala será retomada quando um microfone for conectado.",
-    "mic_now_using": "Agora usando o microfone \"{{device}}\"."
+    "mic_now_using": "Agora usando o microfone “{{device}}”."
   }
 }

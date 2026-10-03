@@ -1304,8 +1304,8 @@
     "no_microphone": "Konfigurasikan peranti untuk mod ini bagi bermula.",
     "silent_no_permission": "Belum ada audio diterima daripada sumber yang dipilih. Jika ia sedang dimainkan tetapi tiada apa yang diterjemahkan, benarkan Sokuji di System Settings > Privacy & Security > System Audio Recording Only (macOS), kemudian mulakan sesi semula.",
     "loopback_denied": "Audio pihak lain memerlukan kebenaran Rakaman Skrin untuk menangkap audio sistem.",
-    "mic_lost_using_other": "Mikrofon \"{{lost}}\" terputus, jadi \"{{device}}\" digunakan sebagai ganti.",
+    "mic_lost_using_other": "Mikrofon “{{lost}}” terputus, jadi “{{device}}” digunakan sebagai ganti.",
     "mic_lost_waiting": "Mikrofon terputus. Terjemahan pertuturan anda akan bersambung apabila mikrofon disambungkan.",
-    "mic_now_using": "Kini menggunakan mikrofon \"{{device}}\"."
+    "mic_now_using": "Kini menggunakan mikrofon “{{device}}”."
   }
 }
