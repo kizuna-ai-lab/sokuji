@@ -115,6 +115,22 @@ describe('pkg postinstall survives PackageKit running it twice', () => {
     expect(restarts()).toBe(1);
   });
 
+  // The old driver is moved aside, not deleted, until the new one is in place,
+  // so a move that fails puts it back instead of leaving no driver at all.
+  it('puts the installed driver back when moving the new one into place fails', () => {
+    runPostinstall();
+    writeBundledDriver('driver v2');
+    writeFileSync(
+      path.join(root, 'bin', 'mv'),
+      `#!/bin/sh\necho "mv $*" >> "${root}/calls.log"\ncase "$1" in *.installing) exit 1 ;; esac\nexec /bin/mv "$@"\n`,
+      { mode: 0o755 },
+    );
+    expect(() => runPostinstall()).toThrow();
+    expect(installedBinary()).toBe('driver v1');
+    expect(readdirSync(halDir)).toEqual(['SokujiVirtualAudio.driver']);
+    expect(restarts()).toBe(1);
+  });
+
   // A copy straight into the final path leaves a half-written driver there for
   // a CoreAudio scan to find; the copy is staged under a name HAL ignores.
   it('never copies straight into the installed driver path', () => {

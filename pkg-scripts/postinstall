@@ -73,8 +73,22 @@ if [ -d "$DRIVER_SOURCE" ]; then
             exit 1
         fi
 
-        rm -rf "$DRIVER_DEST"
-        mv "$STAGING" "$DRIVER_DEST"
+        # Swap it in, keeping the old driver aside until the swap has worked, so
+        # a move that fails restores it rather than leaving no driver at all.
+        PREVIOUS="$HAL_DIR/SokujiVirtualAudio.driver.previous"
+        rm -rf "$PREVIOUS"
+        if [ -d "$DRIVER_DEST" ] && ! mv "$DRIVER_DEST" "$PREVIOUS"; then
+            rm -rf "$STAGING"
+            echo "Sokuji postinstall: ERROR - Failed to move the installed virtual audio driver aside; it is unchanged"
+            exit 1
+        fi
+        if ! mv "$STAGING" "$DRIVER_DEST"; then
+            [ -d "$PREVIOUS" ] && mv "$PREVIOUS" "$DRIVER_DEST"
+            rm -rf "$STAGING"
+            echo "Sokuji postinstall: ERROR - Failed to move the new virtual audio driver into place; the installed one was restored"
+            exit 1
+        fi
+        rm -rf "$PREVIOUS"
 
         # Restart CoreAudio to load the driver
         echo "Sokuji postinstall: Restarting CoreAudio to load driver..."
