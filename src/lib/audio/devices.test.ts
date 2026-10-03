@@ -168,6 +168,8 @@ describe('listAudioDevices', () => {
     expect(devices).toEqual({ inputs: [], outputs: [], complete: false });
     expect(reportErrorSpy).toHaveBeenCalledTimes(1);
     expect(reportErrorSpy.mock.calls[0][0]).toBe('AudioDevices');
+    // The poll lists every 3 s: a listing that keeps failing is one burst, not a line per beat.
+    expect(reportErrorSpy.mock.calls[0][2]).toMatchObject({ dedupeKey: 'devices:list' });
   });
 });
 

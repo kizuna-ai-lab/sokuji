@@ -96,7 +96,8 @@ export async function listAudioDevices({ warmUp = true }: { warmUp?: boolean } =
     const complete = !devices.some((d) => d.kind === 'audioinput' && d.label === '');
     return { inputs, outputs, complete };
   } catch (error) {
-    reportError('AudioDevices', `Failed to get audio devices: ${describeCause(error)}`, { cause: error });
+    // Deduped: while the device watch polls, a listing that keeps failing fails every 3 s.
+    reportError('AudioDevices', `Failed to get audio devices: ${describeCause(error)}`, { cause: error, dedupeKey: 'devices:list' });
     return { inputs: [], outputs: [], complete: false };
   }
 }
