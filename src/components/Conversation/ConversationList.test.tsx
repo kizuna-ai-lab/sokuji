@@ -210,6 +210,19 @@ describe('ConversationList — notices and the empty state', () => {
     expect(container.querySelector('.conversation-list')).toBeNull();
   });
 
+  it('draws an info notice as the neutral system bubble, headed "Notice", not as an error', () => {
+    const notice: DisplayItem = {
+      kind: 'notice',
+      notice: { kind: 'notice', id: 'n', leg: 'speaker', severity: 'info', message: 'Now using the microphone "USB Mic".', code: 'mic_now_using', params: { device: 'USB Mic' }, at: 0 },
+    };
+    const { container } = render(<ConversationList {...props({ items: [notice] })} />);
+    expect(container.querySelector('.message-bubble.system')).not.toBeNull();
+    expect(container.querySelector('.message-bubble.error')).toBeNull();
+    expect(container.querySelector('.message-header')?.textContent).toBe('Notice');
+    expect(container.querySelector('.error-content')).toBeNull();
+    expect(container.querySelector('.message-content')?.textContent).toContain('Now using the microphone');
+  });
+
   it('sets the font size on the display', () => {
     const { container } = render(<ConversationList {...props({ fontSize: 20 })} />);
     expect((container.querySelector('.conversation-display') as HTMLElement).style.getPropertyValue('--conversation-font-size')).toBe('20px');
