@@ -186,12 +186,33 @@ describe('caption share glue', () => {
     let release;
     ports = () => new Promise((resolve) => { release = () => resolve(new Map()); });
     const starting = call('caption-share:start', STATE);
+    await new Promise((r) => setTimeout(r, 0)); // the start is looking up ports
     main.emit('closed');
     release();
     const result = await starting;
     expect(result).toMatchObject({ error: 'listen-failed' });
     expect(server.running()).toBe(false);
     expect(beats).toBe(0);
+  });
+
+  // PR #597 review: starts run one at a time, so a start the old window left
+  // cannot stop the share a recreated window started meanwhile.
+  it("a start from a recreated window outlives the closed window's start", async () => {
+    let release;
+    ports = () => new Promise((resolve) => { release = () => resolve(new Map()); });
+    const first = call('caption-share:start', STATE);
+    await new Promise((r) => setTimeout(r, 0)); // the first start is looking up ports
+    main.emit('closed');
+    const second = fakeWindow();
+    main = second;
+    share.attachWindow(second);
+    ports = async () => new Map();
+    const replacement = call('caption-share:start', STATE, second.webContents);
+    release();
+    expect(await first).toMatchObject({ error: 'listen-failed' });
+    expect(await replacement).toMatchObject({ running: true, port: 7788 });
+    expect(server.running()).toBe(true);
+    expect(beats).toBe(1);
   });
 
   it('a second start while sharing answers the status without a second network poll', async () => {

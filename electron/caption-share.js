@@ -120,14 +120,11 @@ function setupCaptionShare({
     push();
   };
 
-  ipcMain.handle('caption-share:start', async (event, payload) => {
-    if (!isTrustedSender(event.sender)) return { error: 'listen-failed', reason: 'not the main window' };
-    const next = validState(payload);
-    if (!next) return { error: 'listen-failed', reason: 'bad state' };
+  /** `askedIn`: the window generation when the request came, before it waited its turn. */
+  const start = async (next, askedIn) => {
     // Already sharing: the status as it is, and no second network poll.
     if (server.running()) return status();
     state = next;
-    const startedIn = windowGeneration;
     try {
       hardware = await hardwarePorts();
       await server.start(state);
@@ -137,7 +134,7 @@ function setupCaptionShare({
     // The window that asked closed, crashed or navigated while this started
     // (the port lookup can take seconds on macOS): end rather than serve a
     // network no window shows.
-    if (startedIn !== windowGeneration) {
+    if (askedIn !== windowGeneration) {
       await stop();
       return { error: 'listen-failed', reason: 'the window closed while sharing started' };
     }
@@ -154,6 +151,19 @@ function setupCaptionShare({
     }, NETWORK_POLL_MS);
     pushPresent();
     return status();
+  };
+
+  // One start at a time: a start the old window left finishes its cleanup
+  // before one from a recreated window begins, or it would stop that share.
+  let startQueue = Promise.resolve();
+  ipcMain.handle('caption-share:start', (event, payload) => {
+    if (!isTrustedSender(event.sender)) return { error: 'listen-failed', reason: 'not the main window' };
+    const next = validState(payload);
+    if (!next) return { error: 'listen-failed', reason: 'bad state' };
+    const askedIn = windowGeneration;
+    const run = startQueue.then(() => start(next, askedIn));
+    startQueue = run.catch(() => {});
+    return run;
   });
 
   ipcMain.handle('caption-share:stop', async (event) => {
