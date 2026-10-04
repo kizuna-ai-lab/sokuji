@@ -106,6 +106,8 @@ host panel ◄──────────── status push ─────�
   conversation (`runner.ts:190`). The publisher sends `clear` with that reason and forgets what it
   sent. A reset is never inferred from entries disappearing. The view's update and the reset may
   arrive in either order; both orders end in the same page.
+  Implemented as `ConversationSet.onReset` (`runner.conversation.onReset`): `replace` and `clear`
+  both pass through that object.
 - **State.** Alongside the entries: the phase (`live` while the runner is running, `idle`
   otherwise), the language pair (`settings.common.sourceLanguage/targetLanguage`), and `allowSave`.
 - **Lifetime.** The publisher exists while sharing is on. It is started and stopped by the host
@@ -314,6 +316,9 @@ holds off a laptop's display sleep on Windows and macOS is not known and is on t
 - Its strings live under `viewer.*` in `src/locales/<lang>/translation.json` and are compiled into
   the viewer bundle through `import.meta.glob('../locales/*/translation.json', { eager: true,
   import: 'viewer' })` (Vite's JSON named exports), so only that subtree of each catalog ships.
+  As built: the build shares whole catalogs with the main app, so named exports did not keep the
+  other subtrees out (§13's fallback). `scripts/gen-viewer-strings.mjs` writes the `viewer`
+  subtrees to `src/viewer/strings.generated.ts`, and a test fails when it drifts from the catalogs.
 - The page uses a small lookup function, not i18next.
 
 ## 6. Present page
@@ -409,6 +414,8 @@ Host side only, through `useAnalytics().trackEvent` and two new entries in `Anal
   `tailscale*`, `ZeroTier*`, and any address in `100.64.0.0/10`). Order: Wi‑Fi, wired, other,
   virtual; private ranges before public within a kind. The default gateway is not looked up in v1.
   The ranking is a pure function in `electron/caption-share-net.js`.
+  Windows `Local Area Connection* N` (Mobile Hotspot) and macOS `bridgeN` (Internet Sharing) are
+  *other*, not virtual: they are the right address when phones join the computer's own hotspot.
 - **Network changes.** While sharing, the address list is re-read every 10 s. If the selected
   address is gone, the new first choice is selected and the status carries `addressChanged: true`.
 - **Ending.** Sharing ends when the host turns it off, when the app quits (`before-quit`,
