@@ -1303,5 +1303,113 @@
     "no_microphone": "Konfigurasikan perangkat untuk mode ini untuk memulai.",
     "silent_no_permission": "Belum ada audio yang masuk dari sumber yang dipilih. Jika sumber sedang diputar tetapi tidak ada yang diterjemahkan, izinkan Sokuji di System Settings > Privacy & Security > System Audio Recording Only (macOS), lalu mulai sesi lagi.",
     "loopback_denied": "Audio lawan bicara memerlukan izin Perekaman Layar untuk menangkap audio sistem."
+  },
+  "viewer": {
+    "title": "Subtitle Sokuji",
+    "connecting": "Menghubungkan…",
+    "original": "Asli",
+    "enter": {
+      "iRead": "Saya ingin membaca",
+      "both": "Kedua bahasa",
+      "bothHint": "{{first}} di atas, {{second}} di bawah",
+      "start": "Mulai membaca",
+      "insecureNote": "Browser Anda mungkin menyebut halaman ini tidak aman. Ini alamat jaringan lokal: subtitle dikirim langsung dari komputer pembicara."
+    },
+    "status": {
+      "waiting": "Menunggu dimulai",
+      "live": "Langsung",
+      "paused": "Dijeda",
+      "reconnecting": "Menghubungkan ulang…",
+      "ended": "Berbagi telah berakhir"
+    },
+    "notice": {
+      "cleared": "Pembicara menghapus subtitle sebelumnya",
+      "restarted": "Pembicara memulai sesi baru"
+    },
+    "legend": {
+      "onSite": "Di lokasi",
+      "remote": "Online"
+    },
+    "backToLive": "Ke terbaru",
+    "dock": {
+      "textSize": "Ukuran teks",
+      "more": "Lainnya"
+    },
+    "settings": {
+      "title": "Tampilan",
+      "iRead": "Saya membaca",
+      "textSize": "Ukuran teks",
+      "sizes": {
+        "small": "Kecil",
+        "medium": "Sedang",
+        "large": "Besar",
+        "xlarge": "Sangat besar"
+      },
+      "theme": "Warna",
+      "themes": {
+        "dark": "Gelap",
+        "light": "Terang",
+        "contrast": "Kontras tinggi"
+      },
+      "completeOnly": "Hanya kalimat lengkap",
+      "completeOnlyHint": "Sembunyikan yang masih diucapkan",
+      "keepAwake": "Biarkan layar tetap menyala",
+      "save": "Simpan subtitle ini",
+      "saveHint": "File .txt berisi apa yang ada di halaman ini",
+      "saveButton": "Simpan",
+      "close": "Tutup",
+      "aiNote": "Subtitle dibuat oleh AI dan mungkin mengandung kesalahan."
+    },
+    "shortcuts": "+ − ukuran teks · B kedua bahasa · F layar penuh · End ke terbaru",
+    "transcript": {
+      "header": "Subtitle Sokuji, disimpan {{time}}"
+    },
+    "present": {
+      "title": "Baca subtitle di ponsel atau komputer Anda",
+      "step1": "Sambungkan ke Wi‑Fi",
+      "password": "Kata sandi: {{password}}",
+      "step2": "Pindai dengan ponsel, atau ketik alamat ini di komputer",
+      "step3": "Pilih bahasa yang ingin dibaca",
+      "noInstall": "Tanpa aplikasi, tanpa masuk",
+      "sameNetwork": "Alamat ini hanya bisa dibuka di jaringan yang sama",
+      "androidChrome": "Chrome di Android tidak bisa membukanya? Izinkan di Setelan → Aplikasi → Chrome → Izin → Perangkat di sekitar.",
+      "watching": "Menonton: {{count}}",
+      "fullscreen": "Layar penuh",
+      "windowTitle": "Halaman proyektor Sokuji",
+      "ended": "Berbagi telah berakhir"
+    }
+  },
+  "captionShare": {
+    "button": "Bagikan subtitle",
+    "buttonActive": "Membagikan subtitle: {{count}} perangkat menonton",
+    "intro": "Biarkan orang di jaringan yang sama membaca subtitle dan terjemahan di sini lewat ponsel atau komputer mereka.",
+    "enable": "Bagikan subtitle",
+    "firewallNote": "Windows mungkin menanyakan apakah Sokuji boleh menggunakan jaringan. Pilih “Jaringan pribadi”.",
+    "address": "Alamat",
+    "copy": "Salin",
+    "copied": "Disalin",
+    "network": "Jaringan",
+    "kinds": {
+      "wifi": "Wi‑Fi",
+      "wired": "Kabel",
+      "other": "Jaringan",
+      "virtual": "Adaptor virtual"
+    },
+    "recommended": "disarankan",
+    "usuallyUnreachable": "biasanya tidak terjangkau",
+    "watching": "Menonton",
+    "watchingCount": "{{count}} perangkat",
+    "allowSave": "Izinkan penonton menyimpan subtitle ini",
+    "wifiHint": "Tampilkan info Wi‑Fi di halaman proyektor",
+    "wifiName": "Nama Wi‑Fi",
+    "wifiNamePlaceholder": "mis. Meetup-Guest",
+    "wifiPassword": "Kata sandi (opsional)",
+    "openPresent": "Buka halaman proyektor",
+    "stop": "Hentikan berbagi",
+    "stopNote": "Halaman penonton akan menunjukkan bahwa berbagi telah berakhir.",
+    "warnNoViewers": "Sudah dua menit dan belum ada perangkat yang terhubung. Jaringan ini mungkin mencegah perangkat saling terhubung (Wi‑Fi tamu dan sebagian jaringan kantor begitu), atau firewall mungkin memblokir Sokuji. Pastikan semua orang berada di jaringan yang sama dengan komputer ini, izinkan Sokuji di jaringan pribadi pada Windows, atau gunakan hotspot ponsel atau router Anda sendiri.",
+    "warnAddressChanged": "Jaringan berubah. Alamatnya sekarang {{address}}: kirim ulang tautannya atau buka lagi halaman proyektor.",
+    "errorPortsBusy": "Tidak dapat mulai berbagi: port 7788–7797 semuanya sedang dipakai.",
+    "errorListen": "Tidak dapat mulai berbagi: {{reason}}"
   }
 }

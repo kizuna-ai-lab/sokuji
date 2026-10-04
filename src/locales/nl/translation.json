@@ -1303,5 +1303,113 @@
     "no_microphone": "Configureer apparaten voor deze modus om te starten.",
     "silent_no_permission": "Er is nog geen audio van de geselecteerde bron binnengekomen. Speelt die af en wordt er niets vertaald, sta Sokuji dan toe onder Systeeminstellingen > Privacy en beveiliging > Alleen systeemaudio-opname (macOS) en start de sessie opnieuw.",
     "loopback_denied": "Audio van de ander vereist toestemming voor schermopname om systeemaudio vast te leggen."
+  },
+  "viewer": {
+    "title": "Sokuji-ondertiteling",
+    "connecting": "Verbinden…",
+    "original": "Origineel",
+    "enter": {
+      "iRead": "Ik wil lezen",
+      "both": "Beide talen",
+      "bothHint": "{{first}} boven, {{second}} eronder",
+      "start": "Beginnen met lezen",
+      "insecureNote": "Uw browser noemt deze pagina mogelijk niet veilig. Het is een adres op het lokale netwerk: de ondertiteling komt rechtstreeks van de computer van de spreker."
+    },
+    "status": {
+      "waiting": "Wacht op start",
+      "live": "Live",
+      "paused": "Gepauzeerd",
+      "reconnecting": "Opnieuw verbinden…",
+      "ended": "Het delen is gestopt"
+    },
+    "notice": {
+      "cleared": "De spreker heeft de eerdere ondertiteling gewist",
+      "restarted": "De spreker is een nieuwe ronde begonnen"
+    },
+    "legend": {
+      "onSite": "Ter plaatse",
+      "remote": "Online"
+    },
+    "backToLive": "Terug naar live",
+    "dock": {
+      "textSize": "Lettergrootte",
+      "more": "Meer"
+    },
+    "settings": {
+      "title": "Weergave",
+      "iRead": "Ik lees",
+      "textSize": "Lettergrootte",
+      "sizes": {
+        "small": "Klein",
+        "medium": "Middel",
+        "large": "Groot",
+        "xlarge": "Extra groot"
+      },
+      "theme": "Kleuren",
+      "themes": {
+        "dark": "Donker",
+        "light": "Licht",
+        "contrast": "Hoog contrast"
+      },
+      "completeOnly": "Alleen volledige zinnen",
+      "completeOnlyHint": "Verbergt wat nog wordt uitgesproken",
+      "keepAwake": "Scherm aan laten",
+      "save": "Deze ondertiteling opslaan",
+      "saveHint": "Een .txt-bestand met de inhoud van deze pagina",
+      "saveButton": "Opslaan",
+      "close": "Sluiten",
+      "aiNote": "De ondertiteling wordt door AI gemaakt en kan fouten bevatten."
+    },
+    "shortcuts": "+ − lettergrootte · B beide talen · F volledig scherm · End terug naar live",
+    "transcript": {
+      "header": "Sokuji-ondertiteling, opgeslagen op {{time}}"
+    },
+    "present": {
+      "title": "Lees de ondertiteling op uw telefoon of computer",
+      "step1": "Maak verbinding met de Wi‑Fi",
+      "password": "Wachtwoord: {{password}}",
+      "step2": "Scan met uw telefoon of typ dit adres op een computer",
+      "step3": "Kies de taal die u wilt lezen",
+      "noInstall": "Geen app, niet inloggen",
+      "sameNetwork": "Dit adres werkt alleen op hetzelfde netwerk",
+      "androidChrome": "Opent Chrome op Android de pagina niet? Sta het toe via Instellingen → Apps → Chrome → Rechten → Apparaten in de buurt.",
+      "watching": "Kijkers: {{count}}",
+      "fullscreen": "Volledig scherm",
+      "windowTitle": "Sokuji-projectiepagina",
+      "ended": "Het delen is gestopt"
+    }
+  },
+  "captionShare": {
+    "button": "Ondertiteling delen",
+    "buttonActive": "Ondertiteling wordt gedeeld · kijkers: {{count}}",
+    "intro": "Laat mensen op hetzelfde netwerk de ondertiteling en vertalingen van hier lezen op hun telefoon of computer.",
+    "enable": "Ondertiteling delen",
+    "firewallNote": "Windows vraagt mogelijk of Sokuji het netwerk mag gebruiken. Kies 'Particuliere netwerken'.",
+    "address": "Adres",
+    "copy": "Kopiëren",
+    "copied": "Gekopieerd",
+    "network": "Netwerk",
+    "kinds": {
+      "wifi": "Wi‑Fi",
+      "wired": "Bekabeld",
+      "other": "Netwerk",
+      "virtual": "Virtuele adapter"
+    },
+    "recommended": "aanbevolen",
+    "usuallyUnreachable": "meestal onbereikbaar",
+    "watching": "Kijkers",
+    "watchingCount": "{{count}}",
+    "allowSave": "Kijkers mogen deze ondertiteling opslaan",
+    "wifiHint": "Wi‑Fi-gegevens tonen op de projectiepagina",
+    "wifiName": "Wi‑Fi-naam",
+    "wifiNamePlaceholder": "bijv. Meetup-Guest",
+    "wifiPassword": "Wachtwoord (optioneel)",
+    "openPresent": "Projectiepagina openen",
+    "stop": "Delen stoppen",
+    "stopNote": "Op de pagina's van de kijkers verschijnt dan dat het delen is gestopt.",
+    "warnNoViewers": "Na twee minuten is er nog geen apparaat verbonden. Mogelijk laat dit netwerk apparaten elkaar niet bereiken (dat doen gast-Wi‑Fi en sommige bedrijfsnetwerken), of blokkeert een firewall Sokuji. Controleer of iedereen op hetzelfde netwerk zit als deze computer, sta Sokuji in Windows toe op particuliere netwerken, of gebruik een hotspot van een telefoon of uw eigen router.",
+    "warnAddressChanged": "Het netwerk is gewijzigd. Het adres is nu {{address}}: stuur de link opnieuw of open de projectiepagina opnieuw.",
+    "errorPortsBusy": "Delen kon niet starten: de poorten 7788–7797 zijn allemaal in gebruik.",
+    "errorListen": "Delen kon niet starten: {{reason}}"
   }
 }

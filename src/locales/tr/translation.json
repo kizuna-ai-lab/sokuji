@@ -1303,5 +1303,113 @@
     "no_microphone": "Başlamak için bu mod için cihazları yapılandırın.",
     "silent_no_permission": "Seçilen kaynaktan henüz ses gelmedi. Kaynak oynatılıyor ve hiçbir şey çevrilmiyorsa Sistem Ayarları > Gizlilik ve Güvenlik > Yalnızca Sistem Sesi Kaydı (macOS) altında Sokuji'ye izin verin, ardından oturumu yeniden başlatın.",
     "loopback_denied": "Karşı tarafın sesi, sistem sesini yakalamak için Ekran Kaydı izni gerektirir."
+  },
+  "viewer": {
+    "title": "Sokuji altyazıları",
+    "connecting": "Bağlanıyor…",
+    "original": "Orijinal",
+    "enter": {
+      "iRead": "Ne okumak istiyorsunuz?",
+      "both": "Her iki dil",
+      "bothHint": "Üstte {{first}}, altta {{second}}",
+      "start": "Okumaya başla",
+      "insecureNote": "Tarayıcınız bu sayfayı güvenli değil olarak gösterebilir. Bu bir yerel ağ adresidir: altyazılar doğrudan konuşmacının bilgisayarından gelir."
+    },
+    "status": {
+      "waiting": "Başlaması bekleniyor",
+      "live": "Canlı",
+      "paused": "Duraklatıldı",
+      "reconnecting": "Yeniden bağlanıyor…",
+      "ended": "Paylaşım sona erdi"
+    },
+    "notice": {
+      "cleared": "Konuşmacı önceki altyazıları temizledi",
+      "restarted": "Konuşmacı baştan başladı"
+    },
+    "legend": {
+      "onSite": "Yüz yüze",
+      "remote": "Çevrim içi"
+    },
+    "backToLive": "Canlıya dön",
+    "dock": {
+      "textSize": "Metin boyutu",
+      "more": "Daha fazla"
+    },
+    "settings": {
+      "title": "Görünüm",
+      "iRead": "Okuma dili",
+      "textSize": "Metin boyutu",
+      "sizes": {
+        "small": "Küçük",
+        "medium": "Orta",
+        "large": "Büyük",
+        "xlarge": "Çok büyük"
+      },
+      "theme": "Renkler",
+      "themes": {
+        "dark": "Koyu",
+        "light": "Açık",
+        "contrast": "Yüksek kontrast"
+      },
+      "completeOnly": "Yalnızca tamamlanmış cümleler",
+      "completeOnlyHint": "Hâlâ söylenmekte olanı gizle",
+      "keepAwake": "Ekranı açık tut",
+      "save": "Bu altyazıları kaydet",
+      "saveHint": "Bu sayfadakileri içeren bir .txt dosyası",
+      "saveButton": "Kaydet",
+      "close": "Kapat",
+      "aiNote": "Altyazılar yapay zeka tarafından oluşturulur ve hata içerebilir."
+    },
+    "shortcuts": "+ − metin boyutu · B her iki dil · F tam ekran · End canlıya dön",
+    "transcript": {
+      "header": "Sokuji altyazıları, kaydedilme zamanı: {{time}}"
+    },
+    "present": {
+      "title": "Altyazıları telefonunuzda veya bilgisayarınızda okuyun",
+      "step1": "Wi‑Fi ağına bağlanın",
+      "password": "Şifre: {{password}}",
+      "step2": "Telefonunuzla kodu tarayın veya bilgisayarda bu adresi yazın",
+      "step3": "Okumak istediğiniz dili seçin",
+      "noInstall": "Uygulama ya da giriş gerekmez",
+      "sameNetwork": "Bu adres yalnızca aynı ağda açılır",
+      "androidChrome": "Android'de Chrome açmıyor mu? Ayarlar → Uygulamalar → Chrome → İzinler → Yakındaki cihazlar bölümünden izin verin.",
+      "watching": "İzleyen: {{count}}",
+      "fullscreen": "Tam ekran",
+      "windowTitle": "Sokuji projeksiyon sayfası",
+      "ended": "Paylaşım sona erdi"
+    }
+  },
+  "captionShare": {
+    "button": "Altyazıları paylaş",
+    "buttonActive": "Altyazılar paylaşılıyor: {{count}} izleyici",
+    "intro": "Aynı ağdaki kişiler buradaki altyazıları ve çevirileri telefonlarından veya bilgisayarlarından okuyabilsin.",
+    "enable": "Altyazıları paylaş",
+    "firewallNote": "Windows, Sokuji'nin ağı kullanmasına izin verip vermeyeceğinizi sorabilir. “Özel ağlar” seçeneğini seçin.",
+    "address": "Adres",
+    "copy": "Kopyala",
+    "copied": "Kopyalandı",
+    "network": "Ağ",
+    "kinds": {
+      "wifi": "Wi‑Fi",
+      "wired": "Kablolu",
+      "other": "Ağ",
+      "virtual": "Sanal bağdaştırıcı"
+    },
+    "recommended": "önerilen",
+    "usuallyUnreachable": "genellikle erişilemez",
+    "watching": "İzleyenler",
+    "watchingCount": "{{count}}",
+    "allowSave": "İzleyiciler bu altyazıları kaydedebilsin",
+    "wifiHint": "Projeksiyon sayfasında Wi‑Fi bilgisini göster",
+    "wifiName": "Wi‑Fi adı",
+    "wifiNamePlaceholder": "ör. Meetup-Guest",
+    "wifiPassword": "Şifre (isteğe bağlı)",
+    "openPresent": "Projeksiyon sayfasını aç",
+    "stop": "Paylaşımı durdur",
+    "stopNote": "İzleyicilerin sayfalarında paylaşımın sona erdiği gösterilir.",
+    "warnNoViewers": "İki dakika geçti ve hiçbir cihaz bağlanmadı. Bu ağ cihazların birbirine erişmesini engelliyor olabilir (misafir Wi‑Fi ağları ve bazı şirket ağları bunu yapar) ya da bir güvenlik duvarı Sokuji'yi engelliyor olabilir. Herkesin bu bilgisayarla aynı ağda olduğundan emin olun, Windows'ta Sokuji'ye özel ağlarda izin verin ya da telefonunuzun erişim noktasını veya kendi yönlendiricinizi kullanın.",
+    "warnAddressChanged": "Ağ değişti. Yeni adres {{address}}: bağlantıyı yeniden gönderin veya projeksiyon sayfasını yeniden açın.",
+    "errorPortsBusy": "Paylaşım başlatılamadı: 7788–7797 bağlantı noktalarının hepsi kullanımda.",
+    "errorListen": "Paylaşım başlatılamadı: {{reason}}"
   }
 }

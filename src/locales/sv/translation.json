@@ -1303,5 +1303,113 @@
     "no_microphone": "Konfigurera enheter för detta läge för att börja.",
     "silent_no_permission": "Inget ljud har kommit från den valda källan ännu. Om den spelar upp och inget översätts, tillåt Sokuji under Systeminställningar > Integritet och säkerhet > Endast inspelning av systemljud (macOS) och starta sessionen igen.",
     "loopback_denied": "Den andras ljud kräver behörighet för skärminspelning för att fånga systemljud."
+  },
+  "viewer": {
+    "title": "Sokuji-undertexter",
+    "connecting": "Ansluter…",
+    "original": "Original",
+    "enter": {
+      "iRead": "Jag vill läsa",
+      "both": "Båda språken",
+      "bothHint": "{{first}} överst, {{second}} under",
+      "start": "Börja läsa",
+      "insecureNote": "Webbläsaren kan kalla den här sidan osäker. Det är en adress i det lokala nätverket: undertexterna kommer direkt från talarens dator."
+    },
+    "status": {
+      "waiting": "Väntar på start",
+      "live": "Live",
+      "paused": "Pausad",
+      "reconnecting": "Ansluter igen…",
+      "ended": "Delningen har avslutats"
+    },
+    "notice": {
+      "cleared": "Talaren har rensat de tidigare undertexterna",
+      "restarted": "Talaren har startat en ny omgång"
+    },
+    "legend": {
+      "onSite": "På plats",
+      "remote": "På distans"
+    },
+    "backToLive": "Tillbaka till live",
+    "dock": {
+      "textSize": "Textstorlek",
+      "more": "Mer"
+    },
+    "settings": {
+      "title": "Visning",
+      "iRead": "Jag läser",
+      "textSize": "Textstorlek",
+      "sizes": {
+        "small": "Liten",
+        "medium": "Mellan",
+        "large": "Stor",
+        "xlarge": "Extra stor"
+      },
+      "theme": "Färger",
+      "themes": {
+        "dark": "Mörkt",
+        "light": "Ljust",
+        "contrast": "Hög kontrast"
+      },
+      "completeOnly": "Bara hela meningar",
+      "completeOnlyHint": "Dölj det som fortfarande sägs",
+      "keepAwake": "Håll skärmen tänd",
+      "save": "Spara de här undertexterna",
+      "saveHint": "En .txt-fil med det som finns på sidan",
+      "saveButton": "Spara",
+      "close": "Stäng",
+      "aiNote": "Undertexterna skapas av AI och kan innehålla fel."
+    },
+    "shortcuts": "+ − textstorlek · B båda språken · F helskärm · End tillbaka till live",
+    "transcript": {
+      "header": "Sokuji-undertexter, sparade {{time}}"
+    },
+    "present": {
+      "title": "Läs undertexterna i din telefon eller dator",
+      "step1": "Anslut till Wi‑Fi-nätverket",
+      "password": "Lösenord: {{password}}",
+      "step2": "Skanna med telefonen eller skriv in adressen på en dator",
+      "step3": "Välj språket du vill läsa",
+      "noInstall": "Ingen app, ingen inloggning",
+      "sameNetwork": "Adressen fungerar bara i samma nätverk",
+      "androidChrome": "Öppnar inte Chrome på Android sidan? Tillåt det i Inställningar → Appar → Chrome → Behörigheter → Enheter i närheten.",
+      "watching": "Tittare: {{count}}",
+      "fullscreen": "Helskärm",
+      "windowTitle": "Sokujis projektorsida",
+      "ended": "Delningen har avslutats"
+    }
+  },
+  "captionShare": {
+    "button": "Dela undertexter",
+    "buttonActive": "Delar undertexter: {{count}} tittare",
+    "intro": "Låt personer i samma nätverk läsa undertexterna och översättningarna härifrån i sin telefon eller dator.",
+    "enable": "Dela undertexter",
+    "firewallNote": "Windows kan fråga om Sokuji får använda nätverket. Välj ”Privata nätverk”.",
+    "address": "Adress",
+    "copy": "Kopiera",
+    "copied": "Kopierat",
+    "network": "Nätverk",
+    "kinds": {
+      "wifi": "Wi‑Fi",
+      "wired": "Trådbundet",
+      "other": "Nätverk",
+      "virtual": "Virtuellt nätverkskort"
+    },
+    "recommended": "rekommenderas",
+    "usuallyUnreachable": "oftast inte nåbart",
+    "watching": "Tittare",
+    "watchingCount": "{{count}}",
+    "allowSave": "Låt tittarna spara de här undertexterna",
+    "wifiHint": "Visa Wi‑Fi-uppgifter på projektorsidan",
+    "wifiName": "Wi‑Fi-namn",
+    "wifiNamePlaceholder": "t.ex. Meetup-Guest",
+    "wifiPassword": "Lösenord (valfritt)",
+    "openPresent": "Öppna projektorsidan",
+    "stop": "Sluta dela",
+    "stopNote": "Tittarnas sidor visar då att delningen har avslutats.",
+    "warnNoViewers": "Två minuter har gått och ingen enhet har anslutit. Nätverket kanske hindrar enheter från att nå varandra (det gör gäst-Wi‑Fi och en del företagsnätverk), eller så blockerar en brandvägg Sokuji. Kontrollera att alla är på samma nätverk som den här datorn, tillåt Sokuji på privata nätverk i Windows, eller använd en mobil hotspot eller en egen router.",
+    "warnAddressChanged": "Nätverket har ändrats. Adressen är nu {{address}}: skicka länken igen eller öppna projektorsidan på nytt.",
+    "errorPortsBusy": "Det gick inte att börja dela: portarna 7788–7797 är alla upptagna.",
+    "errorListen": "Det gick inte att börja dela: {{reason}}"
   }
 }

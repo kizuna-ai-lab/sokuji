@@ -1303,5 +1303,113 @@
     "no_microphone": "このモードを開始するにはデバイスを設定してください。",
     "silent_no_permission": "選択したソースからまだ音声が届いていません。再生中なのに翻訳されない場合は、システム設定 > プライバシーとセキュリティ > システムオーディオ録音のみ で Sokuji を許可し（macOS）、セッションをもう一度開始してください。",
     "loopback_denied": "相手の音声にはシステムオーディオをキャプチャするために画面録画の権限が必要です。"
+  },
+  "viewer": {
+    "title": "Sokuji 字幕",
+    "connecting": "接続中…",
+    "original": "原文",
+    "enter": {
+      "iRead": "読みたい言語",
+      "both": "両方の言語",
+      "bothHint": "{{first}}が上、{{second}}が下",
+      "start": "読み始める",
+      "insecureNote": "ブラウザでこのページが「安全でない」と表示される場合がありますが、これはローカルネットワークのアドレスだからです。字幕は話者のパソコンから直接届いています。"
+    },
+    "status": {
+      "waiting": "開始待ち",
+      "live": "ライブ",
+      "paused": "一時停止中",
+      "reconnecting": "再接続中…",
+      "ended": "共有は終了しました"
+    },
+    "notice": {
+      "cleared": "話者がこれまでの字幕を消去しました",
+      "restarted": "話者が新しいセッションを開始しました"
+    },
+    "legend": {
+      "onSite": "対面",
+      "remote": "オンライン"
+    },
+    "backToLive": "最新に戻る",
+    "dock": {
+      "textSize": "文字サイズ",
+      "more": "その他"
+    },
+    "settings": {
+      "title": "表示設定",
+      "iRead": "表示する言語",
+      "textSize": "文字サイズ",
+      "sizes": {
+        "small": "小",
+        "medium": "中",
+        "large": "大",
+        "xlarge": "特大"
+      },
+      "theme": "配色",
+      "themes": {
+        "dark": "ダーク",
+        "light": "ライト",
+        "contrast": "ハイコントラスト"
+      },
+      "completeOnly": "完成した文だけ表示",
+      "completeOnlyHint": "話している途中の文は表示しません",
+      "keepAwake": "画面をつけたままにする",
+      "save": "この字幕を保存",
+      "saveHint": "このページの字幕を .txt ファイルでダウンロードします",
+      "saveButton": "保存",
+      "close": "閉じる",
+      "aiNote": "字幕は AI が生成しているため、誤りを含む場合があります。"
+    },
+    "shortcuts": "+ − 文字サイズ · B 両方の言語 · F 全画面 · End 最新に戻る",
+    "transcript": {
+      "header": "Sokuji 字幕（{{time}} 保存）"
+    },
+    "present": {
+      "title": "お手元のスマートフォンやパソコンで字幕をご覧ください",
+      "step1": "Wi‑Fi に接続",
+      "password": "パスワード：{{password}}",
+      "step2": "スマートフォンでスキャン、またはパソコンでこのアドレスを入力",
+      "step3": "読みたい言語を選択",
+      "noInstall": "アプリ不要・サインイン不要",
+      "sameNetwork": "このアドレスは同じネットワーク内でのみ開けます",
+      "androidChrome": "Android の Chrome で開けない場合は、「設定 → アプリ → Chrome → 権限 → 付近のデバイス」で許可してください。",
+      "watching": "閲覧中：{{count}}",
+      "fullscreen": "全画面表示",
+      "windowTitle": "Sokuji 投影ページ",
+      "ended": "共有は終了しました"
+    }
+  },
+  "captionShare": {
+    "button": "字幕を共有",
+    "buttonActive": "字幕を共有中：{{count}} 台が閲覧中",
+    "intro": "同じネットワークにいる人が、ここの字幕と訳文を自分のスマートフォンやパソコンで読めるようになります。",
+    "enable": "字幕を共有する",
+    "firewallNote": "Windows から Sokuji のネットワーク利用を許可するか確認される場合があります。「プライベート ネットワーク」を選んでください。",
+    "address": "アドレス",
+    "copy": "コピー",
+    "copied": "コピーしました",
+    "network": "ネットワーク",
+    "kinds": {
+      "wifi": "Wi‑Fi",
+      "wired": "有線",
+      "other": "ネットワーク",
+      "virtual": "仮想アダプター"
+    },
+    "recommended": "おすすめ",
+    "usuallyUnreachable": "通常は接続できません",
+    "watching": "閲覧中",
+    "watchingCount": "{{count}} 台",
+    "allowSave": "閲覧者にこの字幕の保存を許可する",
+    "wifiHint": "投影ページに Wi‑Fi の案内を表示する",
+    "wifiName": "Wi‑Fi 名",
+    "wifiNamePlaceholder": "例：Meetup-Guest",
+    "wifiPassword": "パスワード（任意）",
+    "openPresent": "投影ページを開く",
+    "stop": "共有を終了",
+    "stopNote": "閲覧者のページには、共有が終了したことが表示されます。",
+    "warnNoViewers": "2 分経ちましたが、まだ接続した端末がありません。このネットワークでは端末同士が通信できないようになっている（ゲスト Wi‑Fi や一部の社内ネットワークなど）か、ファイアウォールが Sokuji をブロックしている可能性があります。全員がこのパソコンと同じネットワークにつながっているか確認する、Windows でプライベート ネットワークでの Sokuji の通信を許可する、あるいはスマートフォンのテザリングや自前のルーターを使う、といった方法を試してください。",
+    "warnAddressChanged": "ネットワークが変わり、アドレスが {{address}} になりました。リンクを送り直すか、投影ページを開き直してください。",
+    "errorPortsBusy": "共有を開始できませんでした：ポート 7788–7797 はすべて使用中です。",
+    "errorListen": "共有を開始できませんでした：{{reason}}"
   }
 }

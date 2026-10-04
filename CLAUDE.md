@@ -249,6 +249,18 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      sidecar bundle built before `sidecar-v0.2.0` shipped hollow — no `sokuji_native` wheel
      installed inside at all.
 
+7. **LAN caption sharing** (spec: `docs/superpowers/specs/2026-10-04-lan-caption-sharing-design.md`)
+   - Desktop only. `src/lib/share/publisher.ts` mirrors the conversation view (reset by
+     `ConversationSet.onReset`) over IPC to `electron/caption-share.js`, which runs a Node
+     `http` server (`caption-share-server.js`, ports 7788–7797) pushing SSE to viewers.
+   - The viewer and projector pages are the second Vite input `viewer.html` (`src/viewer/`):
+     strings are the `viewer` subtree of each catalog, compiled in through the generated
+     `src/viewer/strings.generated.ts` (`node scripts/gen-viewer-strings.mjs` after editing any
+     `viewer.*` string; a test fails on drift); they load nothing from another origin and never
+     import analytics. `scripts/check-viewer-bundle.mjs` checks a build, and
+     `scripts/dev/caption-share-demo.mjs` serves a build with sample captions for a look.
+   - Nothing about sharing is persisted; the host panel is `src/components/CaptionShare/`.
+
 ## Important Patterns and Conventions
 
 ### Code Organization

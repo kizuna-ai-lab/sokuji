@@ -96,6 +96,15 @@ export const INVOKE_CHANNELS = [
   'app:close-ready',
   // Window-close handshake: whether a session is running or tearing down.
   'app:session-busy',
+  // LAN caption sharing (electron/caption-share.js)
+  'caption-share:start',
+  'caption-share:stop',
+  'caption-share:patch',
+  'caption-share:clear',
+  'caption-share:state',
+  'caption-share:select-address',
+  'caption-share:set-wifi',
+  'caption-share:present',
   // Externally-registered (electron-audio-loopback)
   ...EXTERNAL_INVOKE_CHANNELS,
 ];

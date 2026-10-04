@@ -1303,5 +1303,113 @@
     "no_microphone": "Skonfiguruj urządzenia dla tego trybu, aby rozpocząć.",
     "silent_no_permission": "Z wybranego źródła nie dotarł jeszcze żaden dźwięk. Jeśli źródło odtwarza, a nic nie jest tłumaczone, zezwól Sokuji w Ustawienia systemowe > Prywatność i ochrona > Tylko nagrywanie dźwięku systemowego (macOS), a następnie uruchom sesję ponownie.",
     "loopback_denied": "Dźwięk rozmówcy wymaga uprawnienia do nagrywania ekranu, aby przechwycić dźwięk systemowy."
+  },
+  "viewer": {
+    "title": "Napisy Sokuji",
+    "connecting": "Łączenie…",
+    "original": "Oryginał",
+    "enter": {
+      "iRead": "Chcę czytać",
+      "both": "Oba języki",
+      "bothHint": "{{first}} na górze, {{second}} pod spodem",
+      "start": "Zacznij czytać",
+      "insecureNote": "Przeglądarka może oznaczyć tę stronę jako niezabezpieczoną. To adres w sieci lokalnej: napisy pochodzą prosto z komputera mówcy."
+    },
+    "status": {
+      "waiting": "Oczekiwanie na start",
+      "live": "Na żywo",
+      "paused": "Wstrzymano",
+      "reconnecting": "Ponowne łączenie…",
+      "ended": "Udostępnianie zakończone"
+    },
+    "notice": {
+      "cleared": "Mówca wyczyścił wcześniejsze napisy",
+      "restarted": "Mówca rozpoczął nową rundę"
+    },
+    "legend": {
+      "onSite": "Na miejscu",
+      "remote": "Zdalnie"
+    },
+    "backToLive": "Wróć do bieżących",
+    "dock": {
+      "textSize": "Rozmiar czcionki",
+      "more": "Więcej"
+    },
+    "settings": {
+      "title": "Wyświetlanie",
+      "iRead": "Ja czytam",
+      "textSize": "Rozmiar czcionki",
+      "sizes": {
+        "small": "Mały",
+        "medium": "Średni",
+        "large": "Duży",
+        "xlarge": "Bardzo duży"
+      },
+      "theme": "Kolory",
+      "themes": {
+        "dark": "Ciemny",
+        "light": "Jasny",
+        "contrast": "Wysoki kontrast"
+      },
+      "completeOnly": "Tylko pełne zdania",
+      "completeOnlyHint": "Ukryj to, co jest jeszcze wypowiadane",
+      "keepAwake": "Nie wygaszaj ekranu",
+      "save": "Zapisz te napisy",
+      "saveHint": "Plik .txt z zawartością tej strony",
+      "saveButton": "Zapisz",
+      "close": "Zamknij",
+      "aiNote": "Napisy są generowane przez AI i mogą zawierać błędy."
+    },
+    "shortcuts": "+ − rozmiar czcionki · B oba języki · F pełny ekran · End wróć do bieżących",
+    "transcript": {
+      "header": "Napisy Sokuji, zapisano {{time}}"
+    },
+    "present": {
+      "title": "Czytaj napisy na telefonie lub komputerze",
+      "step1": "Połącz się z Wi‑Fi",
+      "password": "Hasło: {{password}}",
+      "step2": "Zeskanuj telefonem albo wpisz ten adres na komputerze",
+      "step3": "Wybierz język, w którym chcesz czytać",
+      "noInstall": "Bez aplikacji, bez logowania",
+      "sameNetwork": "Ten adres działa tylko w tej samej sieci",
+      "androidChrome": "Chrome na Androidzie nie otwiera strony? Zezwól w Ustawienia → Aplikacje → Chrome → Uprawnienia → Urządzenia w pobliżu.",
+      "watching": "Oglądający: {{count}}",
+      "fullscreen": "Pełny ekran",
+      "windowTitle": "Strona projektora Sokuji",
+      "ended": "Udostępnianie zakończone"
+    }
+  },
+  "captionShare": {
+    "button": "Udostępnij napisy",
+    "buttonActive": "Udostępnianie napisów · oglądający: {{count}}",
+    "intro": "Osoby w tej samej sieci mogą czytać te napisy i tłumaczenia na swoim telefonie lub komputerze.",
+    "enable": "Udostępnij napisy",
+    "firewallNote": "Windows może zapytać, czy Sokuji może korzystać z sieci. Wybierz „Sieci prywatne”.",
+    "address": "Adres",
+    "copy": "Kopiuj",
+    "copied": "Skopiowano",
+    "network": "Sieć",
+    "kinds": {
+      "wifi": "Wi‑Fi",
+      "wired": "Przewodowa",
+      "other": "Sieć",
+      "virtual": "Karta wirtualna"
+    },
+    "recommended": "zalecane",
+    "usuallyUnreachable": "zwykle nieosiągalne",
+    "watching": "Oglądający",
+    "watchingCount": "{{count}}",
+    "allowSave": "Pozwól oglądającym zapisać te napisy",
+    "wifiHint": "Pokaż dane Wi‑Fi na stronie projektora",
+    "wifiName": "Nazwa sieci Wi‑Fi",
+    "wifiNamePlaceholder": "np. Meetup-Guest",
+    "wifiPassword": "Hasło (opcjonalnie)",
+    "openPresent": "Otwórz stronę projektora",
+    "stop": "Zakończ udostępnianie",
+    "stopNote": "Na stronach oglądających pojawi się informacja, że udostępnianie zostało zakończone.",
+    "warnNoViewers": "Minęły dwie minuty, a żadne urządzenie się nie połączyło. Ta sieć może nie pozwalać urządzeniom łączyć się ze sobą (tak działają sieci Wi‑Fi dla gości i niektóre sieci firmowe) albo zapora blokuje Sokuji. Sprawdź, czy wszyscy są w tej samej sieci co ten komputer, zezwól Sokuji na dostęp do sieci prywatnych w Windows albo użyj hotspotu w telefonie lub własnego routera.",
+    "warnAddressChanged": "Sieć się zmieniła. Nowy adres to {{address}}: wyślij link ponownie albo otwórz stronę projektora jeszcze raz.",
+    "errorPortsBusy": "Nie udało się rozpocząć udostępniania: wszystkie porty 7788–7797 są zajęte.",
+    "errorListen": "Nie udało się rozpocząć udostępniania: {{reason}}"
   }
 }

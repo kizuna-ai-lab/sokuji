@@ -1303,5 +1303,113 @@
     "no_microphone": "Määritä tämän tilan laitteet aloittaaksesi.",
     "silent_no_permission": "Valitusta lähteestä ei ole vielä tullut ääntä. Jos se toistaa eikä mitään käännetä, salli Sokuji kohdassa Järjestelmäasetukset > Tietosuoja ja turvallisuus > Vain järjestelmän äänen tallennus (macOS) ja aloita istunto uudelleen.",
     "loopback_denied": "Toisen ääni vaatii näytön tallennuksen käyttöoikeuden järjestelmän äänen kaappaamiseen."
+  },
+  "viewer": {
+    "title": "Sokuji-tekstitys",
+    "connecting": "Yhdistetään…",
+    "original": "Alkuperäinen",
+    "enter": {
+      "iRead": "Haluan lukea",
+      "both": "Molemmat kielet",
+      "bothHint": "{{first}} ylhäällä, {{second}} alla",
+      "start": "Aloita lukeminen",
+      "insecureNote": "Selain saattaa sanoa, ettei tämä sivu ole suojattu. Kyse on lähiverkon osoitteesta: tekstitys tulee suoraan puhujan tietokoneelta."
+    },
+    "status": {
+      "waiting": "Odotetaan alkua",
+      "live": "Suorana",
+      "paused": "Tauolla",
+      "reconnecting": "Yhdistetään uudelleen…",
+      "ended": "Jakaminen on päättynyt"
+    },
+    "notice": {
+      "cleared": "Puhuja tyhjensi aiemmat tekstitykset",
+      "restarted": "Puhuja aloitti uuden kierroksen"
+    },
+    "legend": {
+      "onSite": "Paikan päällä",
+      "remote": "Etänä"
+    },
+    "backToLive": "Takaisin uusimpaan",
+    "dock": {
+      "textSize": "Fonttikoko",
+      "more": "Lisää"
+    },
+    "settings": {
+      "title": "Näyttö",
+      "iRead": "Luen",
+      "textSize": "Fonttikoko",
+      "sizes": {
+        "small": "Pieni",
+        "medium": "Keskikokoinen",
+        "large": "Suuri",
+        "xlarge": "Erittäin suuri"
+      },
+      "theme": "Värit",
+      "themes": {
+        "dark": "Tumma",
+        "light": "Vaalea",
+        "contrast": "Suuri kontrasti"
+      },
+      "completeOnly": "Vain valmiit lauseet",
+      "completeOnlyHint": "Piilota se, mitä vielä sanotaan",
+      "keepAwake": "Pidä näyttö päällä",
+      "save": "Tallenna tämä tekstitys",
+      "saveHint": ".txt-tiedosto tämän sivun sisällöstä",
+      "saveButton": "Tallenna",
+      "close": "Sulje",
+      "aiNote": "Tekstityksen tuottaa tekoäly, ja siinä voi olla virheitä."
+    },
+    "shortcuts": "+ − fonttikoko · B molemmat kielet · F koko näyttö · End takaisin uusimpaan",
+    "transcript": {
+      "header": "Sokuji-tekstitys, tallennettu {{time}}"
+    },
+    "present": {
+      "title": "Lue tekstitys puhelimella tai tietokoneella",
+      "step1": "Yhdistä Wi‑Fi-verkkoon",
+      "password": "Salasana: {{password}}",
+      "step2": "Skannaa puhelimella tai kirjoita tämä osoite tietokoneella",
+      "step3": "Valitse kieli, jota haluat lukea",
+      "noInstall": "Ei sovellusta, ei kirjautumista",
+      "sameNetwork": "Tämä osoite aukeaa vain samassa verkossa",
+      "androidChrome": "Eikö Chrome avaa sivua Androidissa? Salli se kohdassa Asetukset → Sovellukset → Chrome → Käyttöoikeudet → Lähellä olevat laitteet.",
+      "watching": "Katsojia: {{count}}",
+      "fullscreen": "Koko näyttö",
+      "windowTitle": "Sokuji-projektorisivu",
+      "ended": "Jakaminen on päättynyt"
+    }
+  },
+  "captionShare": {
+    "button": "Jaa tekstitys",
+    "buttonActive": "Tekstitystä jaetaan · katsojia: {{count}}",
+    "intro": "Samassa verkossa olevat voivat lukea tämän tekstityksen ja käännökset puhelimellaan tai tietokoneellaan.",
+    "enable": "Jaa tekstitys",
+    "firewallNote": "Windows saattaa kysyä, saako Sokuji käyttää verkkoa. Valitse ”Yksityiset verkot”.",
+    "address": "Osoite",
+    "copy": "Kopioi",
+    "copied": "Kopioitu",
+    "network": "Verkko",
+    "kinds": {
+      "wifi": "Wi‑Fi",
+      "wired": "Langallinen",
+      "other": "Verkko",
+      "virtual": "Virtuaalinen sovitin"
+    },
+    "recommended": "suositeltu",
+    "usuallyUnreachable": "yleensä ei tavoitettavissa",
+    "watching": "Katsojat",
+    "watchingCount": "{{count}}",
+    "allowSave": "Salli katsojien tallentaa tämä tekstitys",
+    "wifiHint": "Näytä Wi‑Fi-tiedot projektorisivulla",
+    "wifiName": "Wi‑Fi-verkon nimi",
+    "wifiNamePlaceholder": "esim. Meetup-Guest",
+    "wifiPassword": "Salasana (valinnainen)",
+    "openPresent": "Avaa projektorisivu",
+    "stop": "Lopeta jakaminen",
+    "stopNote": "Katsojien sivuilla näytetään, että jakaminen on päättynyt.",
+    "warnNoViewers": "Kaksi minuuttia on kulunut, eikä yksikään laite ole yhdistänyt. Tämä verkko saattaa estää laitteita tavoittamasta toisiaan (niin tekevät vieras-Wi‑Fi-verkot ja jotkin yritysverkot), tai palomuuri voi estää Sokujin. Varmista, että kaikki ovat samassa verkossa kuin tämä tietokone, salli Sokuji yksityisissä verkoissa Windowsissa tai käytä puhelimen yhteyspistettä tai omaa reititintä.",
+    "warnAddressChanged": "Verkko vaihtui. Osoite on nyt {{address}}: lähetä linkki uudelleen tai avaa projektorisivu uudelleen.",
+    "errorPortsBusy": "Jakamista ei voitu aloittaa: portit 7788–7797 ovat kaikki käytössä.",
+    "errorListen": "Jakamista ei voitu aloittaa: {{reason}}"
   }
 }

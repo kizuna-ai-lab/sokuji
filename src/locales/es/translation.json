@@ -1303,5 +1303,113 @@
     "no_microphone": "Configura los dispositivos para este modo para empezar.",
     "silent_no_permission": "Todavía no ha llegado audio de la fuente seleccionada. Si está reproduciendo y no se traduce nada, permite Sokuji en Ajustes del Sistema > Privacidad y seguridad > Solo grabación de audio del sistema (macOS) y vuelve a iniciar la sesión.",
     "loopback_denied": "El Audio del otro requiere el permiso de Grabación de Pantalla para capturar el audio del sistema."
+  },
+  "viewer": {
+    "title": "Subtítulos de Sokuji",
+    "connecting": "Conectando…",
+    "original": "Original",
+    "enter": {
+      "iRead": "Quiero leer",
+      "both": "Ambos idiomas",
+      "bothHint": "{{first}} arriba, {{second}} debajo",
+      "start": "Empezar a leer",
+      "insecureNote": "Puede que tu navegador diga que esta página no es segura. Es una dirección de la red local: los subtítulos llegan directamente del ordenador de quien habla."
+    },
+    "status": {
+      "waiting": "Esperando el inicio",
+      "live": "En directo",
+      "paused": "En pausa",
+      "reconnecting": "Reconectando…",
+      "ended": "Se ha dejado de compartir"
+    },
+    "notice": {
+      "cleared": "Quien habla ha borrado los subtítulos anteriores",
+      "restarted": "Quien habla ha empezado una nueva ronda"
+    },
+    "legend": {
+      "onSite": "Presencial",
+      "remote": "En línea"
+    },
+    "backToLive": "Volver al directo",
+    "dock": {
+      "textSize": "Tamaño de fuente",
+      "more": "Más"
+    },
+    "settings": {
+      "title": "Visualización",
+      "iRead": "Yo leo",
+      "textSize": "Tamaño de fuente",
+      "sizes": {
+        "small": "Pequeño",
+        "medium": "Mediano",
+        "large": "Grande",
+        "xlarge": "Muy grande"
+      },
+      "theme": "Colores",
+      "themes": {
+        "dark": "Oscuro",
+        "light": "Claro",
+        "contrast": "Alto contraste"
+      },
+      "completeOnly": "Solo frases completas",
+      "completeOnlyHint": "Oculta lo que aún se está diciendo",
+      "keepAwake": "Mantener la pantalla encendida",
+      "save": "Guardar estos subtítulos",
+      "saveHint": "Un archivo .txt con lo que hay en esta página",
+      "saveButton": "Guardar",
+      "close": "Cerrar",
+      "aiNote": "Los subtítulos los genera una IA y pueden contener errores."
+    },
+    "shortcuts": "+ − tamaño de fuente · B ambos idiomas · F pantalla completa · End volver al directo",
+    "transcript": {
+      "header": "Subtítulos de Sokuji, guardados el {{time}}"
+    },
+    "present": {
+      "title": "Lee los subtítulos en tu móvil u ordenador",
+      "step1": "Conéctate al Wi‑Fi",
+      "password": "Contraseña: {{password}}",
+      "step2": "Escanea con el móvil o escribe esta dirección en un ordenador",
+      "step3": "Elige el idioma que quieres leer",
+      "noInstall": "Sin app ni inicio de sesión",
+      "sameNetwork": "Esta dirección solo funciona en la misma red",
+      "androidChrome": "¿Chrome en Android no la abre? Permítelo en Ajustes → Aplicaciones → Chrome → Permisos → Dispositivos cercanos.",
+      "watching": "Espectadores: {{count}}",
+      "fullscreen": "Pantalla completa",
+      "windowTitle": "Página de proyección de Sokuji",
+      "ended": "Se ha dejado de compartir"
+    }
+  },
+  "captionShare": {
+    "button": "Compartir subtítulos",
+    "buttonActive": "Compartiendo subtítulos: {{count}} viendo",
+    "intro": "Las personas de la misma red pueden leer en su móvil u ordenador los subtítulos y las traducciones de aquí.",
+    "enable": "Compartir subtítulos",
+    "firewallNote": "Puede que Windows pregunte si Sokuji puede usar la red. Elige «Redes privadas».",
+    "address": "Dirección",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "network": "Red",
+    "kinds": {
+      "wifi": "Wi‑Fi",
+      "wired": "Por cable",
+      "other": "Red",
+      "virtual": "Adaptador virtual"
+    },
+    "recommended": "recomendado",
+    "usuallyUnreachable": "normalmente inaccesible",
+    "watching": "Espectadores",
+    "watchingCount": "{{count}}",
+    "allowSave": "Permitir que los espectadores guarden estos subtítulos",
+    "wifiHint": "Mostrar los datos del Wi‑Fi en la página de proyección",
+    "wifiName": "Nombre del Wi‑Fi",
+    "wifiNamePlaceholder": "p. ej., Meetup-Guest",
+    "wifiPassword": "Contraseña (opcional)",
+    "openPresent": "Abrir la página de proyección",
+    "stop": "Dejar de compartir",
+    "stopNote": "Las páginas de los espectadores indicarán que se ha dejado de compartir.",
+    "warnNoViewers": "Han pasado dos minutos y no se ha conectado ningún dispositivo. Puede que esta red impida que los dispositivos se comuniquen entre sí (pasa con las redes Wi‑Fi de invitados y algunas redes de empresa) o que un cortafuegos esté bloqueando Sokuji. Comprueba que todos estén en la misma red que este ordenador, permite Sokuji en redes privadas en Windows, o usa el punto de acceso de un móvil o tu propio router.",
+    "warnAddressChanged": "La red ha cambiado. La dirección ahora es {{address}}: vuelve a enviar el enlace o abre de nuevo la página de proyección.",
+    "errorPortsBusy": "No se pudo empezar a compartir: los puertos 7788–7797 están todos en uso.",
+    "errorListen": "No se pudo empezar a compartir: {{reason}}"
   }
 }

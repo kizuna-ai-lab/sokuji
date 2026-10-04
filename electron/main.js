@@ -6,6 +6,7 @@ const { setupCaptionDoubleClick } = require('./window-caption-dblclick.js');
 const { setupCaptionContextMenu } = require('./window-caption-menu.js');
 const { setupPopoverWindowHandlers } = require('./popover-windows.js');
 const { setupTranscriptSaveHandler } = require('./transcript-save.js');
+const { setupCaptionShare } = require('./caption-share.js');
 const { createCloseHandshake } = require('./close-handshake.js');
 const { createWsHeaderRules } = require('./ws-header-rules.js');
 const { applyLinuxGpuFlags } = require('./linux-gpu-flags');
@@ -30,6 +31,18 @@ if (process.platform === 'win32') {
 const { UpdateManager } = require('./update-manager');
 const { NativeHostManager } = require('./native-host-manager');
 const nativeHost = new NativeHostManager();
+
+// LAN caption sharing (spec 2026-10-04): handlers registered once, here;
+// createWindow() hands each new main window to attachWindow(). The closures
+// read mainWindow when an IPC call arrives, after the module has run.
+const captionShare = setupCaptionShare({
+  ipcMain,
+  BrowserWindow,
+  app,
+  isTrustedSender: (sender) => sender === mainWindow?.webContents,
+  getMainWindow: () => mainWindow,
+  isDev: import.meta.env.MODE === 'development' || !app.isPackaged,
+});
 
 // Config utility no longer needed - using localStorage in renderer process
 
@@ -430,6 +443,7 @@ function createWindow() {
   // An Electron-drawn Minimize/Maximize/Close menu takes its place.
   setupCaptionContextMenu(mainWindow);
   setupPopoverWindowHandlers(mainWindow);
+  captionShare.attachWindow(mainWindow);
   closeHandshake.attachWindow(mainWindow);
   mainWindow.on('close', (event) => closeHandshake.onWindowClose(event));
 

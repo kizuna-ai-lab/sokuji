@@ -10,6 +10,9 @@ export interface ConversationInfo {
   models: { asrModel?: string; translationModel?: string; ttsModel?: string };
 }
 
+/** Why the conversation emptied: `clear()` was called, or a new run replaced it. */
+export type ConversationResetReason = 'clear' | 'restart';
+
 /**
  * The conversation: the legs of the last run, held until the next start
  * replaces them or `clear()` empties them (spec: "The conversation outlives
@@ -19,6 +22,7 @@ export class ConversationSet {
   private legs = new Map<LegName, Conversation>();
   private unsubscribes: Array<() => void> = [];
   private readonly listeners = new Set<() => void>();
+  private readonly resetListeners = new Set<(reason: ConversationResetReason) => void>();
   private cached: readonly Leg[] = [];
   private stale = true;
   private current: ConversationInfo | null = null;
@@ -38,6 +42,7 @@ export class ConversationSet {
     this.current = info;
     this.unsubscribes = [...this.legs.values()].map((c) => c.subscribe(() => this.changed()));
     this.changed();
+    this.reset('restart');
   }
 
   /** Every leg's snapshot, speaker first; the same array until a leg changes. */
@@ -57,8 +62,25 @@ export class ConversationSet {
     return () => { this.listeners.delete(listener); };
   }
 
+  /** Told when the conversation empties (LAN caption sharing mirrors it, spec 2026-10-04 §3.1). */
+  onReset(listener: (reason: ConversationResetReason) => void): () => void {
+    this.resetListeners.add(listener);
+    return () => { this.resetListeners.delete(listener); };
+  }
+
   clear(): void {
     for (const conversation of this.legs.values()) conversation.clear();
+    this.reset('clear');
+  }
+
+  private reset(reason: ConversationResetReason): void {
+    for (const listener of this.resetListeners) {
+      try {
+        listener(reason);
+      } catch (error) {
+        reportError('SessionRunner', `A conversation reset listener threw: ${describeCause(error)}`, { cause: error, dedupeKey: 'reset-listener' });
+      }
+    }
   }
 
   private changed(): void {

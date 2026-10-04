@@ -1,0 +1,46 @@
+// src/viewer/present.scss
+@use '../styles/tokens' as tk;
+
+.present {
+  min-height: 100%;
+  box-sizing: border-box;
+  background: #111;
+  color: #f2f2f2;
+  padding: 4vh 4vw;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 3vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Hiragino Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+
+  &--ended { place-items: center; }
+
+  &__head {
+    position: relative;
+    padding-right: 7rem; // keeps a long title clear of the full-screen button
+    :fullscreen & { padding-right: 0; }
+    h1 { margin: 0; font-size: clamp(24px, 4vw, 48px); }
+    p { margin: 0.4em 0 0; color: #a8adb0; font-size: clamp(14px, 1.6vw, 22px); }
+  }
+  &__fullscreen {
+    position: absolute; top: 0; right: 0;
+    background: #333; color: #ddd; border: 1px solid #444; border-radius: 6px; padding: 4px 10px; cursor: pointer;
+    :fullscreen & { display: none; }
+  }
+  &__steps {
+    list-style: none; margin: 0; padding: 0;
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3vw; align-items: start; align-self: center;
+    &--wifi { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  &__step {
+    display: grid; justify-items: center; gap: 1.2vh; text-align: center;
+    font-size: clamp(14px, 1.6vw, 22px);
+    .qr-code { width: min(22vw, 32vh); height: auto; border-radius: 6px; }
+  }
+  &__n { color: tk.$color-primary; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: clamp(16px, 2vw, 28px); }
+  &__mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #cfd3d5; }
+  &__address { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600; font-size: clamp(18px, 2.6vw, 40px); }
+  &__big { font-size: clamp(20px, 3vw, 44px); }
+  &__foot { display: flex; justify-content: space-between; align-items: flex-end; gap: 2vw; color: #a8adb0; font-size: clamp(12px, 1.4vw, 18px); }
+  &__notes { display: flex; flex-direction: column; gap: 0.3em; min-width: 0; }
+  &__count { white-space: nowrap; flex-shrink: 0; }
+}

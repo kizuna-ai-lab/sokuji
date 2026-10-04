@@ -1,0 +1,122 @@
+// src/components/CaptionShare/CaptionSharePanel.scss
+@use '../Settings/shared/variables' as vars;
+@use '../../styles/tokens' as tk;
+
+// Floating wrapper (CaptionShareButton): size() middleware sets max-height
+// inline; the panel scrolls within it, as .display-popover-floating does.
+.caption-share-floating {
+  display: flex;
+  min-height: 0;
+
+  .caption-share-panel {
+    min-height: 0;
+    overflow-y: auto;
+  }
+}
+
+// Chrome copied from .display-settings-popover (DisplaySettingsPopover.scss),
+// the toolbar's other popover, so the two read as one family.
+.caption-share-panel {
+  background: #1a1a1a;
+  color: #e8e8e8;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 16px;
+  width: 360px;
+  box-sizing: border-box;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  max-height: var(--popover-max-height, 100vh);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: vars.$font-body;
+
+  .toggle-switch-component { margin-top: 0; }
+
+  &__intro,
+  &__note {
+    margin: 0;
+    color: vars.$text-muted;
+    font-size: vars.$font-caption;
+    line-height: 1.5;
+  }
+
+  &__main {
+    display: grid;
+    grid-template-columns: 128px minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+  }
+
+  &__facts {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  &__label {
+    display: block;
+    font-size: vars.$font-caption;
+    color: vars.$text-muted;
+    margin-bottom: 4px;
+  }
+
+  // The whole address stays readable (the host reads it out; the port matters),
+  // so it wraps rather than truncating, with Copy under it.
+  &__address {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      overflow-wrap: anywhere;
+      min-width: 0;
+      max-width: 100%;
+    }
+  }
+
+  &__count {
+    font-size: 18px;
+    font-weight: vars.$weight-medium;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-top: 1px solid vars.$border-subtle;
+    padding-top: 10px;
+  }
+
+  &__wifi {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .qr-code { border-radius: 4px; }
+}
+
+.caption-share-btn {
+  position: relative;
+
+  &.active { color: tk.$color-primary; }
+
+  &__count {
+    margin-left: 3px;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+}

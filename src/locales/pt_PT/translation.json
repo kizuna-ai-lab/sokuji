@@ -1303,5 +1303,113 @@
     "no_microphone": "Configure os dispositivos para este modo para começar.",
     "silent_no_permission": "Ainda não chegou áudio da fonte selecionada. Se estiver a reproduzir e nada for traduzido, permita o Sokuji em Definições do Sistema > Privacidade e Segurança > Apenas gravação de áudio do sistema (macOS) e inicie a sessão novamente.",
     "loopback_denied": "O Áudio do outro requer permissão de Gravação de Ecrã para capturar o áudio do sistema."
+  },
+  "viewer": {
+    "title": "Legendas do Sokuji",
+    "connecting": "A ligar…",
+    "original": "Original",
+    "enter": {
+      "iRead": "Quero ler",
+      "both": "Os dois idiomas",
+      "bothHint": "{{first}} em cima, {{second}} em baixo",
+      "start": "Começar a ler",
+      "insecureNote": "O seu navegador pode indicar que esta página não é segura. É um endereço da rede local: as legendas vêm diretamente do computador do apresentador."
+    },
+    "status": {
+      "waiting": "A aguardar o início",
+      "live": "Em direto",
+      "paused": "Em pausa",
+      "reconnecting": "A restabelecer a ligação…",
+      "ended": "A partilha terminou"
+    },
+    "notice": {
+      "cleared": "O apresentador apagou as legendas anteriores",
+      "restarted": "O apresentador recomeçou"
+    },
+    "legend": {
+      "onSite": "Presencial",
+      "remote": "Remoto"
+    },
+    "backToLive": "Voltar ao direto",
+    "dock": {
+      "textSize": "Tamanho do texto",
+      "more": "Mais"
+    },
+    "settings": {
+      "title": "Apresentação",
+      "iRead": "Quero ler",
+      "textSize": "Tamanho do texto",
+      "sizes": {
+        "small": "Pequeno",
+        "medium": "Médio",
+        "large": "Grande",
+        "xlarge": "Muito grande"
+      },
+      "theme": "Cores",
+      "themes": {
+        "dark": "Escuro",
+        "light": "Claro",
+        "contrast": "Alto contraste"
+      },
+      "completeOnly": "Só frases completas",
+      "completeOnlyHint": "Oculta o que ainda está a ser dito",
+      "keepAwake": "Manter o ecrã ligado",
+      "save": "Guardar estas legendas",
+      "saveHint": "Um ficheiro .txt com o que está nesta página",
+      "saveButton": "Guardar",
+      "close": "Fechar",
+      "aiNote": "As legendas são geradas por IA e podem conter erros."
+    },
+    "shortcuts": "+ − tamanho do texto · B os dois idiomas · F ecrã inteiro · End voltar ao direto",
+    "transcript": {
+      "header": "Legendas do Sokuji, guardadas em {{time}}"
+    },
+    "present": {
+      "title": "Leia as legendas no telemóvel ou no computador",
+      "step1": "Ligue-se ao Wi‑Fi",
+      "password": "Palavra-passe: {{password}}",
+      "step2": "Leia o código com o telemóvel ou escreva este endereço no computador",
+      "step3": "Escolha o idioma que quer ler",
+      "noInstall": "Sem aplicação nem início de sessão",
+      "sameNetwork": "Este endereço só abre na mesma rede",
+      "androidChrome": "O Chrome no Android não abre? Permita em Definições → Apps → Chrome → Autorizações → Dispositivos próximos.",
+      "watching": "A ver: {{count}}",
+      "fullscreen": "Ecrã inteiro",
+      "windowTitle": "Página de projeção do Sokuji",
+      "ended": "A partilha terminou"
+    }
+  },
+  "captionShare": {
+    "button": "Partilhar legendas",
+    "buttonActive": "A partilhar legendas: {{count}} a ver",
+    "intro": "Permita que pessoas na mesma rede leiam as legendas e traduções daqui no telemóvel ou no computador.",
+    "enable": "Partilhar legendas",
+    "firewallNote": "O Windows pode perguntar se o Sokuji pode utilizar a rede. Escolha Redes privadas.",
+    "address": "Endereço",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "network": "Rede",
+    "kinds": {
+      "wifi": "Wi‑Fi",
+      "wired": "Por cabo",
+      "other": "Rede",
+      "virtual": "Adaptador virtual"
+    },
+    "recommended": "recomendado",
+    "usuallyUnreachable": "normalmente inacessível",
+    "watching": "A ver",
+    "watchingCount": "{{count}}",
+    "allowSave": "Permitir que os espetadores guardem estas legendas",
+    "wifiHint": "Mostrar os dados do Wi‑Fi na página de projeção",
+    "wifiName": "Nome do Wi‑Fi",
+    "wifiNamePlaceholder": "p. ex. Meetup-Guest",
+    "wifiPassword": "Palavra-passe (opcional)",
+    "openPresent": "Abrir página de projeção",
+    "stop": "Parar a partilha",
+    "stopNote": "As páginas dos espetadores vão indicar que a partilha terminou.",
+    "warnNoViewers": "Já passaram dois minutos e nenhum dispositivo se ligou. Esta rede pode impedir que os dispositivos comuniquem entre si (as redes Wi‑Fi de convidados e algumas redes empresariais fazem-no), ou uma firewall pode estar a bloquear o Sokuji. Verifique se estão todos na mesma rede que este computador, permita o Sokuji em redes privadas no Windows, ou utilize o hotspot do telemóvel ou um router próprio.",
+    "warnAddressChanged": "A rede mudou. O endereço é agora {{address}}: envie novamente a ligação ou volte a abrir a página de projeção.",
+    "errorPortsBusy": "Não foi possível iniciar a partilha: as portas 7788–7797 estão todas ocupadas.",
+    "errorListen": "Não foi possível iniciar a partilha: {{reason}}"
   }
 }

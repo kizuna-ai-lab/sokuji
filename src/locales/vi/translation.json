@@ -1303,5 +1303,113 @@
     "no_microphone": "Cấu hình thiết bị cho chế độ này để bắt đầu.",
     "silent_no_permission": "Chưa có âm thanh nào từ nguồn đã chọn. Nếu nguồn đang phát mà không có gì được dịch, hãy cho phép Sokuji trong System Settings > Privacy & Security > System Audio Recording Only (macOS), rồi bắt đầu lại phiên.",
     "loopback_denied": "Âm thanh đối phương cần quyền Ghi Màn Hình để thu âm thanh hệ thống."
+  },
+  "viewer": {
+    "title": "Phụ đề Sokuji",
+    "connecting": "Đang kết nối…",
+    "original": "Bản gốc",
+    "enter": {
+      "iRead": "Tôi muốn đọc",
+      "both": "Cả hai ngôn ngữ",
+      "bothHint": "{{first}} ở trên, {{second}} ở dưới",
+      "start": "Bắt đầu đọc",
+      "insecureNote": "Trình duyệt có thể báo trang này không an toàn. Đây là địa chỉ mạng nội bộ: phụ đề được gửi thẳng từ máy tính của người nói."
+    },
+    "status": {
+      "waiting": "Đang chờ bắt đầu",
+      "live": "Trực tiếp",
+      "paused": "Đã tạm dừng",
+      "reconnecting": "Đang kết nối lại…",
+      "ended": "Đã kết thúc chia sẻ"
+    },
+    "notice": {
+      "cleared": "Người nói đã xóa các phụ đề trước đó",
+      "restarted": "Người nói đã bắt đầu một lượt mới"
+    },
+    "legend": {
+      "onSite": "Tại chỗ",
+      "remote": "Trực tuyến"
+    },
+    "backToLive": "Về mới nhất",
+    "dock": {
+      "textSize": "Cỡ chữ",
+      "more": "Thêm"
+    },
+    "settings": {
+      "title": "Hiển thị",
+      "iRead": "Ngôn ngữ đọc",
+      "textSize": "Cỡ chữ",
+      "sizes": {
+        "small": "Nhỏ",
+        "medium": "Vừa",
+        "large": "Lớn",
+        "xlarge": "Rất lớn"
+      },
+      "theme": "Màu giao diện",
+      "themes": {
+        "dark": "Tối",
+        "light": "Sáng",
+        "contrast": "Tương phản cao"
+      },
+      "completeOnly": "Chỉ hiện câu hoàn chỉnh",
+      "completeOnlyHint": "Ẩn phần vẫn đang được nói",
+      "keepAwake": "Giữ màn hình luôn sáng",
+      "save": "Lưu phụ đề này",
+      "saveHint": "Tệp .txt chứa nội dung trên trang này",
+      "saveButton": "Lưu",
+      "close": "Đóng",
+      "aiNote": "Phụ đề do AI tạo và có thể có sai sót."
+    },
+    "shortcuts": "+ − cỡ chữ · B hai ngôn ngữ · F toàn màn hình · End về mới nhất",
+    "transcript": {
+      "header": "Phụ đề Sokuji, lưu lúc {{time}}"
+    },
+    "present": {
+      "title": "Đọc phụ đề trên điện thoại hoặc máy tính của bạn",
+      "step1": "Kết nối Wi‑Fi",
+      "password": "Mật khẩu: {{password}}",
+      "step2": "Quét bằng điện thoại, hoặc nhập địa chỉ này trên máy tính",
+      "step3": "Chọn ngôn ngữ bạn muốn đọc",
+      "noInstall": "Không cần cài ứng dụng, không cần đăng nhập",
+      "sameNetwork": "Địa chỉ này chỉ mở được trong cùng mạng",
+      "androidChrome": "Chrome trên Android không mở được? Hãy cho phép trong Cài đặt → Ứng dụng → Chrome → Quyền → Thiết bị ở gần.",
+      "watching": "Đang xem: {{count}}",
+      "fullscreen": "Toàn màn hình",
+      "windowTitle": "Trang trình chiếu Sokuji",
+      "ended": "Đã kết thúc chia sẻ"
+    }
+  },
+  "captionShare": {
+    "button": "Chia sẻ phụ đề",
+    "buttonActive": "Đang chia sẻ phụ đề: {{count}} thiết bị đang xem",
+    "intro": "Cho phép những người dùng cùng mạng đọc phụ đề và bản dịch tại đây trên điện thoại hoặc máy tính của họ.",
+    "enable": "Chia sẻ phụ đề",
+    "firewallNote": "Windows có thể hỏi có cho phép Sokuji dùng mạng không. Hãy chọn “Mạng riêng”.",
+    "address": "Địa chỉ",
+    "copy": "Sao chép",
+    "copied": "Đã sao chép",
+    "network": "Mạng",
+    "kinds": {
+      "wifi": "Wi‑Fi",
+      "wired": "Có dây",
+      "other": "Mạng",
+      "virtual": "Bộ điều hợp ảo"
+    },
+    "recommended": "khuyến nghị",
+    "usuallyUnreachable": "thường không kết nối được",
+    "watching": "Đang xem",
+    "watchingCount": "{{count}} thiết bị",
+    "allowSave": "Cho phép người xem lưu phụ đề này",
+    "wifiHint": "Thêm thông tin Wi‑Fi vào trang trình chiếu",
+    "wifiName": "Tên Wi‑Fi",
+    "wifiNamePlaceholder": "VD: Meetup-Guest",
+    "wifiPassword": "Mật khẩu (không bắt buộc)",
+    "openPresent": "Mở trang trình chiếu",
+    "stop": "Dừng chia sẻ",
+    "stopNote": "Trang của người xem sẽ báo rằng việc chia sẻ đã kết thúc.",
+    "warnNoViewers": "Đã 2 phút mà chưa có thiết bị nào kết nối. Mạng này có thể ngăn các thiết bị kết nối với nhau (Wi‑Fi khách và một số mạng công ty là như vậy), hoặc tường lửa đang chặn Sokuji. Hãy kiểm tra xem mọi người có dùng cùng mạng với máy tính này không, cho phép Sokuji trên mạng riêng trong Windows, hoặc dùng điểm phát sóng từ điện thoại hay bộ định tuyến của riêng bạn.",
+    "warnAddressChanged": "Mạng đã thay đổi. Địa chỉ mới là {{address}}: hãy gửi lại liên kết hoặc mở lại trang trình chiếu.",
+    "errorPortsBusy": "Không thể bắt đầu chia sẻ: các cổng 7788–7797 đều đang được sử dụng.",
+    "errorListen": "Không thể bắt đầu chia sẻ: {{reason}}"
   }
 }

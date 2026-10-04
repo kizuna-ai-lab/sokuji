@@ -75,6 +75,8 @@ const validReceiveChannels = [
   'app-audio:event',
   // Window close / app quit: end the session before the window goes
   'app:close-requested',
+  // LAN caption sharing status (main → renderer)
+  'caption-share:status',
 ];
 
 // Expose protected methods that allow the renderer process to use

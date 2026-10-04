@@ -1303,5 +1303,113 @@
     "no_microphone": "Konfigurasikan peranti untuk mod ini bagi bermula.",
     "silent_no_permission": "Belum ada audio diterima daripada sumber yang dipilih. Jika ia sedang dimainkan tetapi tiada apa yang diterjemahkan, benarkan Sokuji di System Settings > Privacy & Security > System Audio Recording Only (macOS), kemudian mulakan sesi semula.",
     "loopback_denied": "Audio pihak lain memerlukan kebenaran Rakaman Skrin untuk menangkap audio sistem."
+  },
+  "viewer": {
+    "title": "Sari kata Sokuji",
+    "connecting": "Menyambung…",
+    "original": "Asal",
+    "enter": {
+      "iRead": "Saya mahu membaca",
+      "both": "Kedua-dua bahasa",
+      "bothHint": "{{first}} di atas, {{second}} di bawah",
+      "start": "Mula membaca",
+      "insecureNote": "Pelayar anda mungkin menyatakan halaman ini tidak selamat. Ini alamat rangkaian setempat: sari kata dihantar terus dari komputer penutur."
+    },
+    "status": {
+      "waiting": "Menunggu bermula",
+      "live": "Langsung",
+      "paused": "Dijeda",
+      "reconnecting": "Menyambung semula…",
+      "ended": "Perkongsian telah tamat"
+    },
+    "notice": {
+      "cleared": "Penutur telah mengosongkan sari kata sebelum ini",
+      "restarted": "Penutur telah memulakan sesi baharu"
+    },
+    "legend": {
+      "onSite": "Di lokasi",
+      "remote": "Dalam talian"
+    },
+    "backToLive": "Ke terkini",
+    "dock": {
+      "textSize": "Saiz teks",
+      "more": "Lagi"
+    },
+    "settings": {
+      "title": "Paparan",
+      "iRead": "Saya membaca",
+      "textSize": "Saiz teks",
+      "sizes": {
+        "small": "Kecil",
+        "medium": "Sederhana",
+        "large": "Besar",
+        "xlarge": "Sangat besar"
+      },
+      "theme": "Warna",
+      "themes": {
+        "dark": "Gelap",
+        "light": "Cerah",
+        "contrast": "Kontras tinggi"
+      },
+      "completeOnly": "Ayat lengkap sahaja",
+      "completeOnlyHint": "Sembunyikan apa yang masih diucapkan",
+      "keepAwake": "Pastikan skrin kekal hidup",
+      "save": "Simpan sari kata ini",
+      "saveHint": "Fail .txt berisi kandungan halaman ini",
+      "saveButton": "Simpan",
+      "close": "Tutup",
+      "aiNote": "Sari kata dijana oleh AI dan mungkin mengandungi kesilapan."
+    },
+    "shortcuts": "+ − saiz teks · B kedua-dua bahasa · F skrin penuh · End ke terkini",
+    "transcript": {
+      "header": "Sari kata Sokuji, disimpan {{time}}"
+    },
+    "present": {
+      "title": "Baca sari kata pada telefon atau komputer anda",
+      "step1": "Sambung ke Wi‑Fi",
+      "password": "Kata laluan: {{password}}",
+      "step2": "Imbas dengan telefon, atau taip alamat ini pada komputer",
+      "step3": "Pilih bahasa yang anda mahu baca",
+      "noInstall": "Tiada aplikasi, tiada log masuk",
+      "sameNetwork": "Alamat ini hanya boleh dibuka dalam rangkaian yang sama",
+      "androidChrome": "Chrome di Android tidak dapat membukanya? Benarkan dalam Tetapan → Apl → Chrome → Kebenaran → Peranti berdekatan.",
+      "watching": "Menonton: {{count}}",
+      "fullscreen": "Skrin penuh",
+      "windowTitle": "Halaman projektor Sokuji",
+      "ended": "Perkongsian telah tamat"
+    }
+  },
+  "captionShare": {
+    "button": "Kongsi sari kata",
+    "buttonActive": "Berkongsi sari kata: {{count}} peranti menonton",
+    "intro": "Benarkan orang dalam rangkaian yang sama membaca sari kata dan terjemahan di sini pada telefon atau komputer mereka.",
+    "enable": "Kongsi sari kata",
+    "firewallNote": "Windows mungkin bertanya sama ada Sokuji boleh menggunakan rangkaian. Pilih “Rangkaian persendirian”.",
+    "address": "Alamat",
+    "copy": "Salin",
+    "copied": "Disalin",
+    "network": "Rangkaian",
+    "kinds": {
+      "wifi": "Wi‑Fi",
+      "wired": "Berwayar",
+      "other": "Rangkaian",
+      "virtual": "Penyesuai maya"
+    },
+    "recommended": "disyorkan",
+    "usuallyUnreachable": "biasanya tidak dapat dicapai",
+    "watching": "Menonton",
+    "watchingCount": "{{count}} peranti",
+    "allowSave": "Benarkan penonton menyimpan sari kata ini",
+    "wifiHint": "Tunjukkan maklumat Wi‑Fi pada halaman projektor",
+    "wifiName": "Nama Wi‑Fi",
+    "wifiNamePlaceholder": "cth. Meetup-Guest",
+    "wifiPassword": "Kata laluan (pilihan)",
+    "openPresent": "Buka halaman projektor",
+    "stop": "Henti berkongsi",
+    "stopNote": "Halaman penonton akan menunjukkan bahawa perkongsian telah tamat.",
+    "warnNoViewers": "Sudah dua minit dan belum ada peranti yang bersambung. Rangkaian ini mungkin menghalang peranti daripada saling berhubung (Wi‑Fi tetamu dan sesetengah rangkaian syarikat begitu), atau tembok api mungkin menyekat Sokuji. Pastikan semua orang berada dalam rangkaian yang sama dengan komputer ini, benarkan Sokuji pada rangkaian persendirian dalam Windows, atau gunakan hotspot telefon atau penghala anda sendiri.",
+    "warnAddressChanged": "Rangkaian telah berubah. Alamat kini {{address}}: hantar semula pautan atau buka semula halaman projektor.",
+    "errorPortsBusy": "Tidak dapat mula berkongsi: port 7788–7797 semuanya sedang digunakan.",
+    "errorListen": "Tidak dapat mula berkongsi: {{reason}}"
   }
 }
