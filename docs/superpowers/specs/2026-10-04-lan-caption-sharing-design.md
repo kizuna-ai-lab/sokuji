@@ -109,7 +109,10 @@ host panel ◄──────────── status push ─────�
   Implemented as `ConversationSet.onReset` (`runner.conversation.onReset`): `replace` and `clear`
   both pass through that object.
 - **State.** Alongside the entries: the phase (`live` while the runner is running, `idle`
-  otherwise), the language pair (`settings.common.sourceLanguage/targetLanguage`), and `allowSave`.
+  otherwise), the language pair, and `allowSave`. The pair is the selected provider's
+  (`providerStore.entries[selected].pair`, the one the surfaces show and a run starts with), not
+  the stored pick `settings.common.sourceLanguage/targetLanguage`: that is empty until the host
+  picks, and may name a language the provider does not offer (final review, C1).
 - **Lifetime.** The publisher exists while sharing is on. It is started and stopped by the host
   panel's store (§7).
 

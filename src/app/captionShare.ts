@@ -154,6 +154,21 @@ export function createCaptionShareController(deps: CaptionShareDeps): CaptionSha
   };
 }
 
+/**
+ * The pair viewers are told about: the selected provider's, which the
+ * surfaces show and a run starts with (as `appSubtitleSession` reads it), not
+ * the raw pick (`intent`), which is null until the host picks and may name a
+ * language the provider does not offer.
+ */
+export const sharedPair: CaptionShareDeps['pair'] = {
+  get: () => {
+    const providers = useProviderStore.getState();
+    const id = providers.selected;
+    return id ? providers.entries[id]?.pair ?? null : null;
+  },
+  subscribe: (listener) => useProviderStore.subscribe(() => listener()),
+};
+
 let controller: CaptionShareController | null = null;
 
 /** The page's one controller, over the app session and window.electron (desktop only). */
@@ -165,7 +180,7 @@ export function getCaptionShareController(): CaptionShareController {
       view: session.view,
       onReset: (listener) => session.runner.conversation.onReset(listener),
       runState: { getState: () => session.runner.state.getState(), subscribe: (listener) => session.runner.state.subscribe(() => listener()) },
-      pair: { get: () => useProviderStore.getState().intent ?? null, subscribe: (listener) => useProviderStore.subscribe(() => listener()) },
+      pair: sharedPair,
       store: useCaptionShareStore,
       now: () => Date.now(),
     });
