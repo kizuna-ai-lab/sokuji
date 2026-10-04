@@ -26,17 +26,23 @@ if (mainEntry && files.includes(mainEntry)) problems.push(`the main app entry ${
 const html = readFileSync(join(build, 'viewer.html'), 'utf8');
 for (const m of html.matchAll(/(?:src|href)="(?:https?:)?\/\/[^"]*"/g)) problems.push(`viewer.html loads from another origin: ${m[0]}`);
 
+// Sentinels: Japanese strings outside `viewer` that differ from English at the
+// same key. An untranslated placeholder equals English and may legitimately
+// appear inside a viewer string ("Watching"), so it proves nothing.
 const ja = JSON.parse(readFileSync(join(root, 'src/locales/ja/translation.json'), 'utf8'));
+const en = JSON.parse(readFileSync(join(root, 'src/locales/en/translation.json'), 'utf8'));
 const sentinels = [];
-const walk = (node) => {
-  for (const value of Object.values(node)) {
-    if (typeof value === 'string') { if (value.length >= 8) sentinels.push(value); } else walk(value);
+const walk = (node, english) => {
+  for (const [key, value] of Object.entries(node)) {
+    const other = english && typeof english === 'object' ? english[key] : undefined;
+    if (typeof value === 'string') {
+      if (value.length >= 8 && value !== other) sentinels.push(value);
+    } else if (value && typeof value === 'object') {
+      walk(value, other);
+    }
   }
 };
-for (const [key, value] of Object.entries(ja)) {
-  if (key === 'viewer') continue;
-  if (typeof value === 'string') { if (value.length >= 8) sentinels.push(value); } else walk(value);
-}
+walk(Object.fromEntries(Object.entries(ja).filter(([key]) => key !== 'viewer')), en);
 const code = files.filter((f) => f.endsWith('.js')).map((f) => readFileSync(join(build, f), 'utf8')).join('\n');
 const leaked = sentinels.filter((s) => code.includes(s));
 if (leaked.length > 0) problems.push(`${leaked.length} strings from other ja catalog subtrees are in the viewer bundle, e.g. "${leaked[0]}"`);
