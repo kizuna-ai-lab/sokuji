@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import type { TFunction } from 'i18next';
 import en from '../../locales/en/translation.json';
 import { APP_CAPTURE_LOST, APP_MONITOR_MISSING, LOOPBACK_DENIED, SILENT_NO_PERMISSION } from '../audio/capture/systemAudio';
+import { MIC_LOST_USING_OTHER, MIC_LOST_WAITING, MIC_NOW_USING } from '../audio/capture/mic';
 import { CLIENT_DIAGNOSTICS } from '../diagnostics/clientDiagnostics';
 import { RUN_NOTICE_CODES } from '../session/codes';
 import { NO_MICROPHONE } from '../session/shape';
@@ -47,6 +48,12 @@ describe('noticeText', () => {
     expect(noticeText(capture, { code: 'source_ended', message: 'x', params: { device: 'USB microphone' } })).toBe('notices.source_ended:USB microphone');
   });
 
+  it("names the microphone's devices in its notices", () => {
+    expect(noticeText(plainT, { code: 'mic_lost_using_other', message: 'x', params: { lost: 'AirPods', device: 'MacBook Microphone' } }))
+      .toBe('The microphone “AirPods” went away, so “MacBook Microphone” is being used instead.');
+    expect(noticeText(plainT, { code: 'mic_now_using', message: 'x', params: { device: 'AirPods' } })).toBe('Now using the microphone “AirPods”.');
+  });
+
   it('puts the five API error types into words', () => {
     for (const code of ['auth', 'rate_limit', 'network', 'server', 'client']) {
       expect(NOTICE_WORDS[code]).toBeDefined();
@@ -55,7 +62,7 @@ describe('noticeText', () => {
   });
 
   it('has words for every code the runner, the capture and the adapters record', () => {
-    for (const code of [...RUN_NOTICE_CODES, ...Object.keys(CLIENT_DIAGNOSTICS), APP_CAPTURE_LOST, APP_MONITOR_MISSING, SILENT_NO_PERMISSION, LOOPBACK_DENIED, NO_MICROPHONE]) {
+    for (const code of [...RUN_NOTICE_CODES, ...Object.keys(CLIENT_DIAGNOSTICS), APP_CAPTURE_LOST, APP_MONITOR_MISSING, SILENT_NO_PERMISSION, LOOPBACK_DENIED, MIC_LOST_USING_OTHER, MIC_LOST_WAITING, MIC_NOW_USING, NO_MICROPHONE]) {
       // An adapter's code may be worded by an alias instead (never both: see below).
       expect(NOTICE_WORDS[code] ?? NOTICE_ALIASES[code], code).toBeDefined();
     }

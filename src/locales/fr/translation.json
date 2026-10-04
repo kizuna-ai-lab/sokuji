@@ -538,6 +538,7 @@
     "send": "Envoyer",
     "error": "Erreur",
     "warning": "Avertissement",
+    "notice": "Information",
     "unknownError": "Erreur inconnue",
     "insufficientBalance": "Solde insuffisant : {{balance}}",
     "walletFrozen": "Portefeuille gelé. Veuillez contacter le support.",
@@ -1302,7 +1303,10 @@
     "local_models_missing": "Veuillez télécharger les modèles requis dans les Paramètres pour commencer.",
     "no_microphone": "Configurez les périphériques de ce mode pour démarrer.",
     "silent_no_permission": "Aucun audio n'est encore arrivé de la source sélectionnée. Si elle est en lecture et que rien n'est traduit, autorisez Sokuji dans Réglages Système > Confidentialité et sécurité > Enregistrement audio du système uniquement (macOS), puis relancez la session.",
-    "loopback_denied": "L'Audio de l'autre nécessite l'autorisation d'enregistrement de l'écran pour capturer l'audio du système."
+    "loopback_denied": "L'Audio de l'autre nécessite l'autorisation d'enregistrement de l'écran pour capturer l'audio du système.",
+    "mic_lost_using_other": "Le microphone « {{lost}} » a été déconnecté ; « {{device}} » est utilisé à la place.",
+    "mic_lost_waiting": "Le microphone a été déconnecté. La traduction de votre voix reprendra dès qu’un microphone sera connecté.",
+    "mic_now_using": "Le microphone « {{device}} » est maintenant utilisé."
   },
   "viewer": {
     "title": "Sous-titres Sokuji",

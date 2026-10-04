@@ -29,6 +29,31 @@ export type DisplayItem =
     }
   | { kind: 'notice'; notice: NoticeEntry };
 
+/**
+ * How long the surfaces show a transient notice (`Notice.lifetime`), from the
+ * moment it was recorded. One number for every transient notice: #481 asks
+ * that a notice's lifetime follow its kind, not its call site. The microphone's
+ * device notices are the first; jiangzhuo chose eight seconds (2026-10-05).
+ */
+export const TRANSIENT_NOTICE_MS = 8000;
+
+/** The entries a surface shows at `now`: every entry but a transient notice whose time is up. The same array when none is. */
+export function visibleEntries(entries: readonly Entry[], now: number): readonly Entry[] {
+  const expired = (e: Entry) => e.kind === 'notice' && e.lifetime === 'transient' && now >= e.at + TRANSIENT_NOTICE_MS;
+  return entries.some(expired) ? entries.filter((e) => !expired(e)) : entries;
+}
+
+/** When the next transient notice still shown at `now` hides, or null when none is. */
+export function nextNoticeExpiry(entries: readonly Entry[], now: number): number | null {
+  let next: number | null = null;
+  for (const e of entries) {
+    if (e.kind !== 'notice' || e.lifetime !== 'transient') continue;
+    const hidesAt = e.at + TRANSIENT_NOTICE_MS;
+    if (hidesAt > now && (next === null || hidesAt < next)) next = hidesAt;
+  }
+  return next;
+}
+
 export function showsSide(filter: SideFilter, side: Side): boolean {
   return filter === 'both' || filter === side;
 }

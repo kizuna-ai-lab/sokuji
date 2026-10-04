@@ -148,6 +148,23 @@ describe('createAppCapture — the meter gate', () => {
 });
 
 describe('the settings the sources follow', () => {
+  it("reads the microphone's label and listing from the audio store, and marks a device unusable through it", () => {
+    const markInputUnusable = vi.fn();
+    useAudioStore.setState({
+      selectedInputDevice: { deviceId: 'mic-1', label: 'USB Mic' },
+      audioInputDevices: [{ deviceId: 'mic-1', label: 'USB Mic' }],
+      unusableInputIds: ['mic-2'],
+      markInputUnusable,
+    } as never);
+    const settings = micSettings();
+    expect(settings.deviceLabel()).toBe('USB Mic');
+    expect(settings.isListed('mic-1')).toBe(true);
+    expect(settings.isListed('mic-2')).toBe(false);
+    expect(settings.isUnusable('mic-2')).toBe(true);
+    expect(settings.isUnusable('mic-1')).toBe(false);
+    settings.markUnusable('mic-1');
+    expect(markInputUnusable).toHaveBeenCalledWith('mic-1');
+  });
   it("reads the microphone's device, noise suppression and mute from the audio store, live", () => {
     const settings = micSettings();
     useAudioStore.setState({ selectedInputDevice: { deviceId: 'mic-1', label: 'Mic' }, noiseSuppressionMode: 'standard', isMicMuted: false });

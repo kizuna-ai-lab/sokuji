@@ -538,6 +538,7 @@
     "send": "Gönder",
     "error": "Hata",
     "warning": "Uyarı",
+    "notice": "Bildirim",
     "unknownError": "Bilinmeyen hata",
     "insufficientBalance": "Yetersiz bakiye: {{balance}}",
     "walletFrozen": "Cüzdan donduruldu. Lütfen destek ile iletişime geçin.",
@@ -1302,7 +1303,10 @@
     "local_models_missing": "Başlamak için lütfen Ayarlar'dan gerekli modelleri indirin.",
     "no_microphone": "Başlamak için bu mod için cihazları yapılandırın.",
     "silent_no_permission": "Seçilen kaynaktan henüz ses gelmedi. Kaynak oynatılıyor ve hiçbir şey çevrilmiyorsa Sistem Ayarları > Gizlilik ve Güvenlik > Yalnızca Sistem Sesi Kaydı (macOS) altında Sokuji'ye izin verin, ardından oturumu yeniden başlatın.",
-    "loopback_denied": "Karşı tarafın sesi, sistem sesini yakalamak için Ekran Kaydı izni gerektirir."
+    "loopback_denied": "Karşı tarafın sesi, sistem sesini yakalamak için Ekran Kaydı izni gerektirir.",
+    "mic_lost_using_other": "“{{lost}}” mikrofonunun bağlantısı kesildi, bu yüzden bunun yerine “{{device}}” kullanılıyor.",
+    "mic_lost_waiting": "Mikrofonun bağlantısı kesildi. Bir mikrofon bağlandığında konuşmanızın çevirisi devam edecek.",
+    "mic_now_using": "Artık “{{device}}” mikrofonu kullanılıyor."
   },
   "viewer": {
     "title": "Sokuji altyazıları",

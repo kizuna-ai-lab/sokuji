@@ -538,6 +538,7 @@
     "send": "Hantar",
     "error": "Ralat",
     "warning": "Amaran",
+    "notice": "Notis",
     "unknownError": "Ralat tidak diketahui",
     "insufficientBalance": "Baki tidak mencukupi: {{balance}}",
     "walletFrozen": "Dompet dibekukan. Sila hubungi sokongan.",
@@ -1302,7 +1303,10 @@
     "local_models_missing": "Sila muat turun model yang diperlukan dalam Tetapan untuk bermula.",
     "no_microphone": "Konfigurasikan peranti untuk mod ini bagi bermula.",
     "silent_no_permission": "Belum ada audio diterima daripada sumber yang dipilih. Jika ia sedang dimainkan tetapi tiada apa yang diterjemahkan, benarkan Sokuji di System Settings > Privacy & Security > System Audio Recording Only (macOS), kemudian mulakan sesi semula.",
-    "loopback_denied": "Audio pihak lain memerlukan kebenaran Rakaman Skrin untuk menangkap audio sistem."
+    "loopback_denied": "Audio pihak lain memerlukan kebenaran Rakaman Skrin untuk menangkap audio sistem.",
+    "mic_lost_using_other": "Mikrofon “{{lost}}” terputus, jadi “{{device}}” digunakan sebagai ganti.",
+    "mic_lost_waiting": "Mikrofon terputus. Terjemahan pertuturan anda akan bersambung apabila mikrofon disambungkan.",
+    "mic_now_using": "Kini menggunakan mikrofon “{{device}}”."
   },
   "viewer": {
     "title": "Sari kata Sokuji",

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { isElectron } from '../utils/environment';
 import { reportError, describeCause } from '../lib/diagnostics/report';
+import useAudioStore from './audioStore';
 
 export type AudioSystemStatus = 'unknown' | 'ok' | 'unavailable';
 export type AudioSystemReason = 'pactl-missing' | 'pulseaudio-unavailable' | 'mac-driver-not-loaded' | 'other' | null;
@@ -20,7 +21,7 @@ interface AudioSystemState {
 
 interface AudioSystemActions {
   retry: () => Promise<void>;
-  /** macOS: re-sign the unloaded driver; `prompt` is the administrator dialog's text. */
+  /** macOS: restart Core Audio so it loads the installed driver; `prompt` is the administrator dialog's text. */
   repair: (prompt: string) => Promise<void>;
   dismiss: () => void;
   initListeners: () => void;
@@ -103,6 +104,12 @@ const useAudioSystemStore = create<AudioSystemStore>()((set, get) => ({
     // silently un-dismiss a still-unresolved, already-acknowledged failure.
     const applyStatus = (data: any, isLiveUpdate: boolean) => {
       if (!data) return;
+      // The device list was read while the virtual device was missing, and
+      // nothing else reads it again: without this, the translation reaches a
+      // device a repair or retry brought back only after a restart.
+      // It stays beside the `devicechange` watch: whether macOS fires that after
+      // Core Audio restarts is unverified.
+      const recovered = data.ok && get().status === 'unavailable';
       set({
         status: data.ok ? 'ok' : 'unavailable',
         platform: data.platform ?? null,
@@ -110,6 +117,9 @@ const useAudioSystemStore = create<AudioSystemStore>()((set, get) => ({
         message: data.message ?? null,
         dismissed: (isLiveUpdate && !data.ok) ? false : get().dismissed,
       });
+      // A recovery is a change the OS reported: devices marked unusable while
+      // it was down (a Repair restarting Core Audio mid-run) are tried again.
+      if (recovered) void useAudioStore.getState().syncDevices({ retryUnusable: true });
     };
 
     statusHandler = (data: any) => applyStatus(data, true);

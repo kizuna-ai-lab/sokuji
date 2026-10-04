@@ -538,6 +538,7 @@
     "send": "Lähetä",
     "error": "Virhe",
     "warning": "Varoitus",
+    "notice": "Ilmoitus",
     "unknownError": "Tuntematon virhe",
     "insufficientBalance": "Riittämätön saldo: {{balance}}",
     "walletFrozen": "Lompakko on jäädytetty. Ota yhteyttä tukeen.",
@@ -1302,7 +1303,10 @@
     "local_models_missing": "Lataa tarvittavat mallit Asetuksista aloittaaksesi.",
     "no_microphone": "Määritä tämän tilan laitteet aloittaaksesi.",
     "silent_no_permission": "Valitusta lähteestä ei ole vielä tullut ääntä. Jos se toistaa eikä mitään käännetä, salli Sokuji kohdassa Järjestelmäasetukset > Tietosuoja ja turvallisuus > Vain järjestelmän äänen tallennus (macOS) ja aloita istunto uudelleen.",
-    "loopback_denied": "Toisen ääni vaatii näytön tallennuksen käyttöoikeuden järjestelmän äänen kaappaamiseen."
+    "loopback_denied": "Toisen ääni vaatii näytön tallennuksen käyttöoikeuden järjestelmän äänen kaappaamiseen.",
+    "mic_lost_using_other": "Mikrofoni ”{{lost}}” irrotettiin, joten sen sijaan käytetään mikrofonia ”{{device}}”.",
+    "mic_lost_waiting": "Mikrofoni irrotettiin. Puheesi kääntäminen jatkuu, kun mikrofoni yhdistetään.",
+    "mic_now_using": "Nyt käytetään mikrofonia ”{{device}}”."
   },
   "viewer": {
     "title": "Sokuji-tekstitys",

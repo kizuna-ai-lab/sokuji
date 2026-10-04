@@ -10,6 +10,7 @@ vi.mock('../utils/environment', async (importOriginal) => {
 
 // Import after mocking, following settingsStore.subtitle.test.ts's convention.
 const { default: useAudioSystemStore } = await import('./audioSystemStore');
+const { default: useAudioStore } = await import('./audioStore');
 
 function mockElectron(overrides: Partial<Record<string, any>> = {}) {
   const receivedHandlers: Record<string, (...args: any[]) => void> = {};
@@ -97,6 +98,36 @@ describe('audioSystemStore', () => {
     const s = useAudioSystemStore.getState();
     expect(s.status).toBe('ok');
     expect(s.dismissed).toBe(true);
+  });
+
+  // The device list is read at startup, while the virtual device was missing.
+  // When a repair or a retry brings it back, nothing else reads the list
+  // again, so the translation reached the repaired device only after a restart.
+  it('re-reads the device list when the virtual device comes back', () => {
+    const syncDevices = vi.fn(async () => {});
+    useAudioStore.setState({ syncDevices });
+    const { receivedHandlers } = mockElectron();
+    useAudioSystemStore.setState({ status: 'unavailable', reason: 'mac-driver-not-loaded' });
+
+    useAudioSystemStore.getState().initListeners();
+    receivedHandlers['audio-status']({ ok: true, platform: 'darwin' });
+
+    expect(syncDevices).toHaveBeenCalledTimes(1);
+    // The audio system came back: devices marked unusable while it was down are tried again.
+    expect(syncDevices).toHaveBeenCalledWith({ retryUnusable: true });
+  });
+
+  it('leaves the device list alone when the status is first learned or did not change', () => {
+    const syncDevices = vi.fn(async () => {});
+    useAudioStore.setState({ syncDevices });
+    const { receivedHandlers } = mockElectron();
+
+    useAudioSystemStore.getState().initListeners();
+    receivedHandlers['audio-status']({ ok: true, platform: 'darwin' });
+    receivedHandlers['audio-status']({ ok: true, platform: 'darwin' });
+    receivedHandlers['audio-status']({ ok: false, platform: 'darwin', reason: 'mac-driver-not-loaded' });
+
+    expect(syncDevices).not.toHaveBeenCalled();
   });
 
   it('dismiss() sets dismissed to true', () => {

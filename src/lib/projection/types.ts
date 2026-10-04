@@ -39,10 +39,11 @@ export type Entry =
       kind: 'notice';
       id: string;
       leg: LegName;
-      severity: 'error' | 'warning';
+      severity: 'error' | 'warning' | 'info';
       message: string;
       code?: string;
       params?: Record<string, string | number>;
+      lifetime?: 'transient';
       at: number;
     };
 

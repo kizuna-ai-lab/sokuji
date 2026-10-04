@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Entry, Row } from '../projection/types';
-import { displayItems, type LegFilters } from './filter';
+import { displayItems, nextNoticeExpiry, TRANSIENT_NOTICE_MS, visibleEntries, type LegFilters } from './filter';
 
 const row = (segmentId: string, side: 'source' | 'translation', k = 0, text = 'x'): Row =>
   ({ key: `${segmentId}:${k}`, segmentId, side, start: 0, end: text.length, text, final: true });
@@ -101,5 +101,28 @@ describe('displayItems — reuse (`previous`)', () => {
   it('behaves as today when called without `previous`', () => {
     const entries = [exchange('a', 'speaker', [row('s1', 'source')], [row('s2', 'translation')])];
     expect(shape(displayItems(entries, both))).toEqual(['s1:0+h+e', 's2:0+e']);
+  });
+});
+
+describe('transient notices (#481: a lifetime per kind, decided here)', () => {
+  const notice = (id: string, at: number, lifetime?: 'transient'): Entry =>
+    ({ kind: 'notice', id, leg: 'speaker', severity: 'warning', message: id, at, ...(lifetime ? { lifetime } : {}) });
+
+  it('shows a transient notice for eight seconds', () => {
+    expect(TRANSIENT_NOTICE_MS).toBe(8000);
+  });
+
+  it('hides a transient notice once its time is up, and keeps every other entry', () => {
+    const entries = [notice('a', 1000, 'transient'), notice('b', 1000), exchange('e', 'speaker', [row('s', 'source')], [], 1000)];
+    expect(visibleEntries(entries, 1000 + TRANSIENT_NOTICE_MS - 1)).toBe(entries);
+    expect(visibleEntries(entries, 1000 + TRANSIENT_NOTICE_MS).map((e) => e.id)).toEqual(['b', 'e']);
+  });
+
+  it('names the moment the next transient notice hides, or none', () => {
+    const entries = [notice('a', 1000, 'transient'), notice('b', 3000, 'transient'), notice('c', 0)];
+    expect(nextNoticeExpiry(entries, 2000)).toBe(1000 + TRANSIENT_NOTICE_MS);
+    expect(nextNoticeExpiry(entries, 1000 + TRANSIENT_NOTICE_MS)).toBe(3000 + TRANSIENT_NOTICE_MS);
+    expect(nextNoticeExpiry(entries, 3000 + TRANSIENT_NOTICE_MS)).toBeNull();
+    expect(nextNoticeExpiry([notice('c', 0)], 0)).toBeNull();
   });
 });

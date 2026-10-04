@@ -5,6 +5,12 @@ import type { LegName } from '../conversation/types';
 export interface SourceNotice {
   code: string;
   message: string;
+  /** Filled into the notice's words, e.g. a device's name. */
+  params?: Record<string, string | number>;
+  /** 'warning' unless said; 'info' is good news, e.g. a microphone back in use. */
+  severity?: 'warning' | 'info';
+  /** 'transient': a passing event the surfaces hide after a while (`Notice.lifetime`). */
+  lifetime?: 'transient';
 }
 
 /** One leg's capture (spec: "Sources, in full"): 24 kHz mono pcm, an end, and a degradation. */

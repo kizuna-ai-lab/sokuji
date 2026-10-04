@@ -48,6 +48,7 @@ import AudioSystemBanner from '../AudioSystemBanner/AudioSystemBanner';
 import { ConversationList, type NoticeAction } from '../Conversation/ConversationList';
 import { useConversationExporter } from '../Conversation/useConversationExporter';
 import { useReadable } from '../Conversation/useReadable';
+import { useVisibleEntries } from '../Conversation/useVisibleEntries';
 import EchoNotice from '../EchoNotice/EchoNotice';
 import { echoSource, useEchoNotice } from '../EchoNotice/useEchoNotice';
 import WarningModal from '../Settings/shared/WarningModal';
@@ -166,12 +167,14 @@ export default function MainPanel() {
   const display = useConversationDisplayStore();
 
   // The conversation: the view's entries through the display filter, reusing unchanged lines (ruling 14), then why the last start did not happen.
+  // A transient notice (a microphone switch) leaves the panel once its time is up; the export keeps it.
+  const shown = useVisibleEntries(viewState.entries);
   const previous = useRef<readonly DisplayItem[]>([]);
   const drawn = useMemo(() => {
-    const next = displayItems(viewState.entries, { speaker: speakerMode, participant: participantMode }, previous.current);
+    const next = displayItems(shown, { speaker: speakerMode, participant: participantMode }, previous.current);
     previous.current = next;
     return next;
-  }, [viewState.entries, speakerMode, participantMode]);
+  }, [shown, speakerMode, participantMode]);
   // Clear dismisses the idle line too. The end stays on the runner, which the
   // subtitle surfaces read, so the panel keeps the end it cleared, by
   // reference: a later end is another object and draws again.

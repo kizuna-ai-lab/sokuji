@@ -1,7 +1,7 @@
 /**
  * Device enumeration, moved out of the old `ModernBrowserAudioService`
  * (plan 1e-3c, controller ruling 3): plain functions, no store access, no
- * React. `audioStore.refreshDevices` is the only caller.
+ * React. `audioStore.refreshDevices` and `audioStore.syncDevices` are the only callers.
  */
 import { ServiceFactory } from '../../services/ServiceFactory';
 import { reportError, reportWarning, describeCause } from '../diagnostics/report';
@@ -17,10 +17,18 @@ declare const chrome: any;
 // module has no instance to hang it on and the app only ever has one caller.
 let permissionWarmupPromise: Promise<void> | null = null;
 
+/** The OS's audio devices, and whether the list can be trusted to tell virtual and loopback inputs apart. */
+export interface DeviceLists {
+  inputs: AudioDevice[];
+  outputs: AudioDevice[];
+  /** Enumeration succeeded and every input carries its label: without labels, virtual and loopback inputs look like real ones. */
+  complete: boolean;
+}
+
 /**
  * Get available audio input and output devices.
  */
-export async function listAudioDevices(): Promise<{ inputs: AudioDevice[]; outputs: AudioDevice[] }> {
+export async function listAudioDevices({ warmUp = true }: { warmUp?: boolean } = {}): Promise<DeviceLists> {
   try {
     // Enumerate FIRST. Once microphone permission has been granted for this
     // origin (always the case in Electron after the first run), enumerate
@@ -46,7 +54,7 @@ export async function listAudioDevices(): Promise<{ inputs: AudioDevice[]; outpu
       d => d.kind === 'audioinput' && d.label === ''
     );
 
-    if (needsMicrophoneWarmup) {
+    if (needsMicrophoneWarmup && warmUp) {
       // Input labels missing => mic permission not yet granted this session.
       // Warm up to unlock them, but if the warm-up fails (e.g. broken default
       // device), fall through with whatever enumerate already gave us instead
@@ -85,10 +93,12 @@ export async function listAudioDevices(): Promise<{ inputs: AudioDevice[]; outpu
         isVirtual: device.label ? isVirtualSpeaker(device) : false
       }));
 
-    return { inputs, outputs };
+    const complete = !devices.some((d) => d.kind === 'audioinput' && d.label === '');
+    return { inputs, outputs, complete };
   } catch (error) {
-    reportError('AudioDevices', `Failed to get audio devices: ${describeCause(error)}`, { cause: error });
-    return { inputs: [], outputs: [] };
+    // Deduped: while the device watch polls, a listing that keeps failing fails every 3 s.
+    reportError('AudioDevices', `Failed to get audio devices: ${describeCause(error)}`, { cause: error, dedupeKey: 'devices:list' });
+    return { inputs: [], outputs: [], complete: false };
   }
 }
 

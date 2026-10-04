@@ -538,6 +538,7 @@
     "send": "Enviar",
     "error": "Error",
     "warning": "Advertencia",
+    "notice": "Aviso",
     "unknownError": "Error desconocido",
     "insufficientBalance": "Saldo insuficiente: {{balance}}",
     "walletFrozen": "Billetera congelada. Contacte con soporte.",
@@ -1302,7 +1303,10 @@
     "local_models_missing": "Por favor, descarga los modelos necesarios en Configuración para comenzar.",
     "no_microphone": "Configura los dispositivos para este modo para empezar.",
     "silent_no_permission": "Todavía no ha llegado audio de la fuente seleccionada. Si está reproduciendo y no se traduce nada, permite Sokuji en Ajustes del Sistema > Privacidad y seguridad > Solo grabación de audio del sistema (macOS) y vuelve a iniciar la sesión.",
-    "loopback_denied": "El Audio del otro requiere el permiso de Grabación de Pantalla para capturar el audio del sistema."
+    "loopback_denied": "El Audio del otro requiere el permiso de Grabación de Pantalla para capturar el audio del sistema.",
+    "mic_lost_using_other": "El micrófono «{{lost}}» se desconectó, así que ahora se usa «{{device}}».",
+    "mic_lost_waiting": "El micrófono se desconectó. La traducción de tu voz se reanudará cuando se conecte un micrófono.",
+    "mic_now_using": "Ahora se usa el micrófono «{{device}}»."
   },
   "viewer": {
     "title": "Subtítulos de Sokuji",

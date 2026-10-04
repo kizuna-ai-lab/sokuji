@@ -538,6 +538,7 @@
     "send": "Wyślij",
     "error": "Błąd",
     "warning": "Ostrzeżenie",
+    "notice": "Informacja",
     "unknownError": "Nieznany błąd",
     "insufficientBalance": "Niewystarczające saldo: {{balance}}",
     "walletFrozen": "Portfel zamrożony. Skontaktuj się z pomocą techniczną.",
@@ -1302,7 +1303,10 @@
     "local_models_missing": "Pobierz wymagane modele w Ustawieniach, aby rozpocząć.",
     "no_microphone": "Skonfiguruj urządzenia dla tego trybu, aby rozpocząć.",
     "silent_no_permission": "Z wybranego źródła nie dotarł jeszcze żaden dźwięk. Jeśli źródło odtwarza, a nic nie jest tłumaczone, zezwól Sokuji w Ustawienia systemowe > Prywatność i ochrona > Tylko nagrywanie dźwięku systemowego (macOS), a następnie uruchom sesję ponownie.",
-    "loopback_denied": "Dźwięk rozmówcy wymaga uprawnienia do nagrywania ekranu, aby przechwycić dźwięk systemowy."
+    "loopback_denied": "Dźwięk rozmówcy wymaga uprawnienia do nagrywania ekranu, aby przechwycić dźwięk systemowy.",
+    "mic_lost_using_other": "Mikrofon „{{lost}}” został odłączony, więc zamiast niego używany jest „{{device}}”.",
+    "mic_lost_waiting": "Mikrofon został odłączony. Tłumaczenie Twojej mowy zostanie wznowione po podłączeniu mikrofonu.",
+    "mic_now_using": "Teraz używany jest mikrofon „{{device}}”."
   },
   "viewer": {
     "title": "Napisy Sokuji",

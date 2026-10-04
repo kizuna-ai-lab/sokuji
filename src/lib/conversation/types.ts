@@ -35,15 +35,22 @@ export interface Segment {
 export interface Notice {
   id: string;
   at: number;
-  severity: 'error' | 'warning';
+  severity: 'error' | 'warning' | 'info';
   /** Diagnostic English. Surfaces localize by `code` and `params`. */
   message: string;
   code?: string;
   params?: Record<string, string | number>;
+  /**
+   * How long the surfaces show it (#481: a notice's lifetime follows its kind,
+   * not its call site). Absent: as long as the conversation. 'transient': a
+   * passing event, hidden from the surfaces after `TRANSIENT_NOTICE_MS` but
+   * kept in the conversation and its export.
+   */
+  lifetime?: 'transient';
 }
 
 /** What a caller supplies to record a notice; the leg adds its id and time. */
-export type NoticeInput = Pick<Notice, 'severity' | 'message' | 'code' | 'params'>;
+export type NoticeInput = Pick<Notice, 'severity' | 'message' | 'code' | 'params' | 'lifetime'>;
 
 export interface Languages { source: string; target: string }
 

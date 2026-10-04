@@ -8,8 +8,8 @@ export interface FakeSource extends Source {
   setVoiced(voiced: boolean): void;
   /** Ends the capture, as an unplugged device would. */
   end(reason: string): void;
-  /** Reports the capture as degraded, with a code (default 'source_degraded'). */
-  degrade(message: string, code?: string): void;
+  /** Reports the capture as degraded, with a code (default 'source_degraded'), and optionally its params and level. */
+  degrade(message: string, code?: string, extra?: Pick<SourceNotice, 'params' | 'severity' | 'lifetime'>): void;
   readonly stopped: boolean;
 }
 
@@ -54,8 +54,8 @@ export function createFakeSource(clock: Clock, options: { chunkMs?: number; voic
       cancel();
       for (const listener of endedListeners) listener(reason);
     },
-    degrade(message, code = 'source_degraded') {
-      for (const listener of degradedListeners) listener({ code, message });
+    degrade(message, code = 'source_degraded', extra = {}) {
+      for (const listener of degradedListeners) listener({ code, message, ...extra });
     },
     get stopped() {
       return stopped;
