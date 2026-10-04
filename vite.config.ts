@@ -136,6 +136,10 @@ export default defineConfig(({ command, mode }) => {
           // Entry points for the main process
           entry: {
             'better-auth-adapter': 'electron/better-auth-adapter.js',
+            'caption-share': 'electron/caption-share.js',
+            'caption-share-core': 'electron/caption-share-core.js',
+            'caption-share-net': 'electron/caption-share-net.js',
+            'caption-share-server': 'electron/caption-share-server.js',
             'macos-audio-utils': 'electron/macos-audio-utils.js',
             'main': 'electron/main.js',
             'native-host-manager': 'electron/native-host-manager.js',
