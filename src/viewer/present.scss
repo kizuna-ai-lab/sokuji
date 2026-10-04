@@ -40,5 +40,7 @@
   &__mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #cfd3d5; }
   &__address { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600; font-size: clamp(18px, 2.6vw, 40px); }
   &__big { font-size: clamp(20px, 3vw, 44px); }
-  &__foot { display: flex; justify-content: space-between; color: #a8adb0; font-size: clamp(12px, 1.4vw, 18px); }
+  &__foot { display: flex; justify-content: space-between; align-items: flex-end; gap: 2vw; color: #a8adb0; font-size: clamp(12px, 1.4vw, 18px); }
+  &__notes { display: flex; flex-direction: column; gap: 0.3em; min-width: 0; }
+  &__count { white-space: nowrap; flex-shrink: 0; }
 }

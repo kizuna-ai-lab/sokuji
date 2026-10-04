@@ -339,6 +339,11 @@ holds off a laptop's display sleep on Windows and macOS is not known and is on t
   `http://` (without a scheme some browsers try HTTPS first).
 - Step 3: "选你要看的语言".
 - A corner line: the number of devices watching, and "这个地址只在同一个网络里打得开".
+- Under it, one line for Android (his live test 2026-10-05, his pick of the projector page only):
+  Chrome on Android reaches a LAN address only with its "Nearby devices" permission allowed
+  (Android's local network permission), and shows `ERR_TOO_MANY_RETRIES` otherwise; the viewer
+  page never loads to say so. "安卓 Chrome 打不开？在「设置 → 应用 → Chrome → 权限 → 附近设备」里允许。"
+  iPhone needs no line: Chrome and Safari there work once the phone is on the same Wi‑Fi.
 - `F` or a button toggles fullscreen; Esc leaves it.
 
 ## 7. Host side

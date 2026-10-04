@@ -1372,6 +1372,7 @@
       "step3": "选你要看的语言",
       "noInstall": "不用装 app，不用登录",
       "sameNetwork": "这个地址只在同一个网络里打得开",
+      "androidChrome": "安卓 Chrome 打不开？在「设置 → 应用 → Chrome → 权限 → 附近设备」里允许。",
       "watching": "在看：{{count}}",
       "fullscreen": "全屏",
       "windowTitle": "Sokuji 投屏页",

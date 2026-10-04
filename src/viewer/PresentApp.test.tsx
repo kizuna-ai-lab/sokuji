@@ -33,6 +33,15 @@ describe('PresentApp', () => {
     expect(document.title).toBe('Sokuji projector page');
   });
 
+  // His live test 2026-10-05: Chrome on Android cannot reach a LAN address
+  // until the "Nearby devices" permission is allowed, and the viewer page never
+  // loads to say so; the room reads it here before scanning.
+  it('tells Android Chrome users which permission opens the page', () => {
+    render(<PresentApp />);
+    act(() => FakeEventSource.last!.emit('present', INFO));
+    expect(screen.getByText(/Chrome .*Nearby devices/)).toBeTruthy();
+  });
+
   it("speaks the host's UI language from the address, over the window's OS locale", () => {
     window.history.pushState({}, '', '/present?lang=ja');
     render(<PresentApp />);

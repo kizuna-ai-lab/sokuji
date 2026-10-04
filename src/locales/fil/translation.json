@@ -1372,6 +1372,7 @@
       "step3": "Piliin ang wikang gusto mong basahin",
       "noInstall": "Walang app, walang sign-in",
       "sameNetwork": "Bubukas lang ang address na ito sa parehong network",
+      "androidChrome": "Hindi mabuksan sa Chrome sa Android? Payagan ito sa Settings → Apps → Chrome → Permissions → Nearby devices.",
       "watching": "Nanonood: {{count}}",
       "fullscreen": "Fullscreen",
       "windowTitle": "Projector page ng Sokuji",

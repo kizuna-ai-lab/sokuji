@@ -1372,6 +1372,7 @@
       "step3": "Kies de taal die u wilt lezen",
       "noInstall": "Geen app, niet inloggen",
       "sameNetwork": "Dit adres werkt alleen op hetzelfde netwerk",
+      "androidChrome": "Opent Chrome op Android de pagina niet? Sta het toe via Instellingen → Apps → Chrome → Rechten → Apparaten in de buurt.",
       "watching": "Kijkers: {{count}}",
       "fullscreen": "Volledig scherm",
       "windowTitle": "Sokuji-projectiepagina",

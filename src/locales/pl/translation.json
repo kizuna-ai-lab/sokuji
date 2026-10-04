@@ -1372,6 +1372,7 @@
       "step3": "Wybierz język, w którym chcesz czytać",
       "noInstall": "Bez aplikacji, bez logowania",
       "sameNetwork": "Ten adres działa tylko w tej samej sieci",
+      "androidChrome": "Chrome na Androidzie nie otwiera strony? Zezwól w Ustawienia → Aplikacje → Chrome → Uprawnienia → Urządzenia w pobliżu.",
       "watching": "Oglądający: {{count}}",
       "fullscreen": "Pełny ekran",
       "windowTitle": "Strona projektora Sokuji",

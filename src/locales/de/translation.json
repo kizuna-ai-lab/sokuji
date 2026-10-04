@@ -1372,6 +1372,7 @@
       "step3": "Die gewünschte Sprache wählen",
       "noInstall": "Keine App, keine Anmeldung",
       "sameNetwork": "Diese Adresse funktioniert nur im selben Netzwerk",
+      "androidChrome": "Öffnet Chrome auf Android die Seite nicht? Unter Einstellungen → Apps → Chrome → Berechtigungen → Geräte in der Nähe erlauben.",
       "watching": "Zuschauer: {{count}}",
       "fullscreen": "Vollbild",
       "windowTitle": "Sokuji-Projektionsseite",

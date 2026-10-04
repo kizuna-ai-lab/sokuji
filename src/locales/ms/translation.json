@@ -1372,6 +1372,7 @@
       "step3": "Pilih bahasa yang anda mahu baca",
       "noInstall": "Tiada aplikasi, tiada log masuk",
       "sameNetwork": "Alamat ini hanya boleh dibuka dalam rangkaian yang sama",
+      "androidChrome": "Chrome di Android tidak dapat membukanya? Benarkan dalam Tetapan → Apl → Chrome → Kebenaran → Peranti berdekatan.",
       "watching": "Menonton: {{count}}",
       "fullscreen": "Skrin penuh",
       "windowTitle": "Halaman projektor Sokuji",

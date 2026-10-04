@@ -1405,6 +1405,7 @@
       "step3": "Choose the language you want to read",
       "noInstall": "No app, no sign-in",
       "sameNetwork": "This address only opens on the same network",
+      "androidChrome": "Android Chrome won't open it? Allow it in Settings → Apps → Chrome → Permissions → Nearby devices.",
       "watching": "Watching: {{count}}",
       "fullscreen": "Full screen",
       "windowTitle": "Sokuji projector page",

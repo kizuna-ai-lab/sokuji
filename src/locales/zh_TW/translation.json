@@ -1372,6 +1372,7 @@
       "step3": "選擇要看的語言",
       "noInstall": "不用安裝 App，不用登入",
       "sameNetwork": "這個網址只有在同一個網路裡才打得開",
+      "androidChrome": "Android 的 Chrome 打不開？請到「設定 → 應用程式 → Chrome → 權限 → 鄰近裝置」中允許。",
       "watching": "在看：{{count}}",
       "fullscreen": "全螢幕",
       "windowTitle": "Sokuji 投影頁",

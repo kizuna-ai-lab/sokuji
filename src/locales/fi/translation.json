@@ -1372,6 +1372,7 @@
       "step3": "Valitse kieli, jota haluat lukea",
       "noInstall": "Ei sovellusta, ei kirjautumista",
       "sameNetwork": "Tämä osoite aukeaa vain samassa verkossa",
+      "androidChrome": "Eikö Chrome avaa sivua Androidissa? Salli se kohdassa Asetukset → Sovellukset → Chrome → Käyttöoikeudet → Lähellä olevat laitteet.",
       "watching": "Katsojia: {{count}}",
       "fullscreen": "Koko näyttö",
       "windowTitle": "Sokuji-projektorisivu",

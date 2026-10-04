@@ -1372,6 +1372,7 @@
       "step3": "Välj språket du vill läsa",
       "noInstall": "Ingen app, ingen inloggning",
       "sameNetwork": "Adressen fungerar bara i samma nätverk",
+      "androidChrome": "Öppnar inte Chrome på Android sidan? Tillåt det i Inställningar → Appar → Chrome → Behörigheter → Enheter i närheten.",
       "watching": "Tittare: {{count}}",
       "fullscreen": "Helskärm",
       "windowTitle": "Sokujis projektorsida",

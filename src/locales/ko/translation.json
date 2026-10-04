@@ -1372,6 +1372,7 @@
       "step3": "읽을 언어 선택",
       "noInstall": "앱 설치도, 로그인도 필요 없음",
       "sameNetwork": "이 주소는 같은 네트워크에서만 열립니다",
+      "androidChrome": "Android Chrome에서 열리지 않나요? 설정 → 애플리케이션 → Chrome → 권한 → 근처 기기에서 허용하세요.",
       "watching": "시청 중: {{count}}",
       "fullscreen": "전체 화면",
       "windowTitle": "Sokuji 프로젝터 화면",

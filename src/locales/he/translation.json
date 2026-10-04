@@ -1372,6 +1372,7 @@
       "step3": "בחרו את השפה שאתם רוצים לקרוא",
       "noInstall": "בלי אפליקציה ובלי התחברות",
       "sameNetwork": "הכתובת נפתחת רק מאותה רשת",
+      "androidChrome": "Chrome ב-Android לא פותח את הדף? אפשרו זאת בהגדרות ← אפליקציות ← Chrome ← הרשאות ← מכשירים בקרבת מקום.",
       "watching": "צופים: {{count}}",
       "fullscreen": "מסך מלא",
       "windowTitle": "דף ההקרנה של Sokuji",

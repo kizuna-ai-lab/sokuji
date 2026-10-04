@@ -1372,6 +1372,7 @@
       "step3": "Pilih bahasa yang ingin dibaca",
       "noInstall": "Tanpa aplikasi, tanpa masuk",
       "sameNetwork": "Alamat ini hanya bisa dibuka di jaringan yang sama",
+      "androidChrome": "Chrome di Android tidak bisa membukanya? Izinkan di Setelan → Aplikasi → Chrome → Izin → Perangkat di sekitar.",
       "watching": "Menonton: {{count}}",
       "fullscreen": "Layar penuh",
       "windowTitle": "Halaman proyektor Sokuji",

@@ -1372,6 +1372,7 @@
       "step3": "Okumak istediğiniz dili seçin",
       "noInstall": "Uygulama ya da giriş gerekmez",
       "sameNetwork": "Bu adres yalnızca aynı ağda açılır",
+      "androidChrome": "Android'de Chrome açmıyor mu? Ayarlar → Uygulamalar → Chrome → İzinler → Yakındaki cihazlar bölümünden izin verin.",
       "watching": "İzleyen: {{count}}",
       "fullscreen": "Tam ekran",
       "windowTitle": "Sokuji projeksiyon sayfası",

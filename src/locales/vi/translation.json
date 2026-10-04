@@ -1372,6 +1372,7 @@
       "step3": "Chọn ngôn ngữ bạn muốn đọc",
       "noInstall": "Không cần cài ứng dụng, không cần đăng nhập",
       "sameNetwork": "Địa chỉ này chỉ mở được trong cùng mạng",
+      "androidChrome": "Chrome trên Android không mở được? Hãy cho phép trong Cài đặt → Ứng dụng → Chrome → Quyền → Thiết bị ở gần.",
       "watching": "Đang xem: {{count}}",
       "fullscreen": "Toàn màn hình",
       "windowTitle": "Trang trình chiếu Sokuji",

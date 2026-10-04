@@ -1372,6 +1372,7 @@
       "step3": "読みたい言語を選択",
       "noInstall": "アプリ不要・サインイン不要",
       "sameNetwork": "このアドレスは同じネットワーク内でのみ開けます",
+      "androidChrome": "Android の Chrome で開けない場合は、「設定 → アプリ → Chrome → 権限 → 付近のデバイス」で許可してください。",
       "watching": "閲覧中：{{count}}",
       "fullscreen": "全画面表示",
       "windowTitle": "Sokuji 投影ページ",

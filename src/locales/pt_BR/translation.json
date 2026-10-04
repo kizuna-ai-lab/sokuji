@@ -1372,6 +1372,7 @@
       "step3": "Escolha o idioma que você quer ler",
       "noInstall": "Sem aplicativo, sem login",
       "sameNetwork": "Este endereço só abre na mesma rede",
+      "androidChrome": "O Chrome no Android não abre? Permita em Configurações → Apps → Chrome → Permissões → Dispositivos por perto.",
       "watching": "Assistindo: {{count}}",
       "fullscreen": "Tela cheia",
       "windowTitle": "Página de projeção do Sokuji",

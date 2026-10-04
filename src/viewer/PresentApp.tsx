@@ -95,8 +95,13 @@ export default function PresentApp(): React.ReactElement {
         </li>
       </ol>
       <footer className="present__foot">
-        <span>{t('viewer.present.sameNetwork')}</span>
-        <span>{t('viewer.present.watching', { count: info.viewers })}</span>
+        {/* Chrome on Android reaches a LAN address only with "Nearby devices"
+            allowed, and the viewer page cannot load to say so (his live test 2026-10-05). */}
+        <div className="present__notes">
+          <span>{t('viewer.present.sameNetwork')}</span>
+          <span>{t('viewer.present.androidChrome')}</span>
+        </div>
+        <span className="present__count">{t('viewer.present.watching', { count: info.viewers })}</span>
       </footer>
     </main>
   );
