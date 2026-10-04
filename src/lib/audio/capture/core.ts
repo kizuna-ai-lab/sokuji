@@ -11,8 +11,8 @@ export const TRACK_ENDED = 'The capture device went away (unplugged, closed or s
 export interface SourceCore extends Source {
   /** Hands a chunk to the listeners, unless muted, ended or stopped. */
   deliver(pcm: Int16Array): void;
-  /** Ends the source when the stream's audio track ends; returns the unwatch. */
-  watch(stream: MediaStream | null): () => void;
+  /** Ends the source when the stream's audio track ends — or hands the end to `onEnded` instead; returns the unwatch. */
+  watch(stream: MediaStream | null, onEnded?: () => void): () => void;
   /** Ends the source with a reason, once; nothing after a stop. */
   end(reason: string): void;
   degrade(notice: SourceNotice): void;
@@ -95,17 +95,17 @@ export function createSourceCore(options: SourceCoreOptions): SourceCore {
       }
     },
 
-    watch(stream) {
+    watch(stream, onEnded = () => end(TRACK_ENDED)) {
       const track = stream?.getAudioTracks()[0];
       if (!track) return () => {};
       // Already gone by the time anyone watched it: nothing will ever fire 'ended'.
       if (track.readyState === 'ended') {
-        end(TRACK_ENDED);
+        onEnded();
         return () => {};
       }
-      const onEnded = () => end(TRACK_ENDED);
-      track.addEventListener('ended', onEnded);
-      return () => track.removeEventListener('ended', onEnded);
+      const listener = () => onEnded();
+      track.addEventListener('ended', listener);
+      return () => track.removeEventListener('ended', listener);
     },
 
     end,

@@ -538,6 +538,7 @@
     "send": "Skicka",
     "error": "Fel",
     "warning": "Varning",
+    "notice": "Meddelande",
     "unknownError": "Okänt fel",
     "insufficientBalance": "Otillräckligt saldo: {{balance}}",
     "walletFrozen": "Plånboken är frusen. Kontakta supporten.",
@@ -1302,6 +1303,9 @@
     "local_models_missing": "Ladda ner de nödvändiga modellerna i Inställningar för att börja.",
     "no_microphone": "Konfigurera enheter för detta läge för att börja.",
     "silent_no_permission": "Inget ljud har kommit från den valda källan ännu. Om den spelar upp och inget översätts, tillåt Sokuji under Systeminställningar > Integritet och säkerhet > Endast inspelning av systemljud (macOS) och starta sessionen igen.",
-    "loopback_denied": "Den andras ljud kräver behörighet för skärminspelning för att fånga systemljud."
+    "loopback_denied": "Den andras ljud kräver behörighet för skärminspelning för att fånga systemljud.",
+    "mic_lost_using_other": "Mikrofonen ”{{lost}}” kopplades från, så ”{{device}}” används i stället.",
+    "mic_lost_waiting": "Mikrofonen kopplades från. Översättningen av ditt tal fortsätter när en mikrofon ansluts.",
+    "mic_now_using": "Nu används mikrofonen ”{{device}}”."
   }
 }

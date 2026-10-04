@@ -7,6 +7,9 @@ import { reportError, reportWarning, describeCause } from '../lib/diagnostics/re
 import { listAudioDevices, listSystemAudioSources } from '../lib/audio/devices';
 import { isVirtualDevice } from '../components/Settings/shared/hooks';
 import { isLoopbackInput } from '../utils/audioDevices';
+import { pickDefaultInputDevice, chooseInput, chooseOutput } from '../lib/audio/deviceChoice';
+
+export { pickDefaultInputDevice };
 
 export type NoiseSuppressionMode = 'off' | 'standard' | 'enhanced';
 export type AudioMode = 'speaker' | 'participant' | 'both';
@@ -67,26 +70,6 @@ export const DEFAULT_PARTICIPANT_SOURCE: AudioDevice = {
   label: 'System Audio (All Applications)',
 };
 
-/**
- * Pick a default microphone from an enumerated input list, excluding virtual
- * ones (e.g. Sokuji's own "Sokuji_Virtual_Mic" — the monitor of Sokuji's own
- * virtual speaker, meant for other apps to consume, not for Sokuji to listen
- * to itself). Returns null when only virtual/loopback devices are available
- * rather than falling back to one — auto-selecting a loopback device as the
- * mic would feed Sokuji's own TTS output back into ASR as "user speech",
- * creating a self-sustaining transcription loop (observed on machines with
- * no physical microphone, where a virtual device is the only input listed).
- *
- * OS loopback-style inputs ("Stereo Mix", PulseAudio sink monitors,
- * VoiceMeeter outputs) carry isVirtual: false — they are real OS devices and
- * must stay manually selectable (warned) — but they re-capture system output
- * just the same, so automatic selection skips them by label too.
- */
-export function pickDefaultInputDevice(inputs: AudioDevice[]): AudioDevice | null {
-  const candidates = inputs.filter(device => !device.isVirtual && !isLoopbackInput(device));
-  return candidates[0] ?? null;
-}
-
 interface AudioStore {
   // State
   audioInputDevices: AudioDevice[];
@@ -97,6 +80,13 @@ interface AudioStore {
   selectedParticipantSource: AudioDevice | null;
   /** Saved app key from a previous run, used to re-find the app on startup. */
   persistedParticipantAppKey: string | null;
+  /** The user's own picks, as persisted: the devices the choice returns to (spec 2026-10-04 §1). */
+  savedInputDeviceId: string | null;
+  savedMonitorDeviceId: string | null;
+  /** Inputs that failed to open this session; never persisted. A mark clears when its device leaves the list or the user picks it. */
+  unusableInputIds: readonly string[];
+  /** Set once the first `refreshDevices` has loaded the saved devices; `syncDevices` waits for it. */
+  devicesLoaded: boolean;
   isLoading: boolean;
   isRealVoicePassthroughEnabled: boolean;
   realVoicePassthroughVolume: number;
@@ -140,7 +130,19 @@ interface AudioStore {
 
   // Complex actions
   refreshDevices: () => Promise<{ defaultInputDevice: AudioDevice | null; defaultMonitorDevice: AudioDevice | null }>;
+  /**
+   * Follows the OS (spec 2026-10-04 §1): re-lists the devices and applies the choice. Never persists, never mutes, never prompts.
+   * `retryUnusable`: the OS reported a change (`devicechange`, the audio system recovering), so every unusable mark is cleared and the user's device tried again.
+   */
+  syncDevices: (options?: { retryUnusable?: boolean }) => Promise<void>;
+  /** The microphone could not open this device: leave it out of the choice, and choose again now. */
+  markInputUnusable: (deviceId: string) => void;
 }
+
+/** The same devices, in the same order, with the same names: `syncDevices` keeps the array it has. */
+const sameDevices = (current: readonly AudioDevice[], next: readonly AudioDevice[]) =>
+  current.length === next.length &&
+  current.every((device, i) => device.deviceId === next[i].deviceId && device.label === next[i].label && device.isVirtual === next[i].isVirtual);
 
 const useAudioStore = create<AudioStore>()(
   subscribeWithSelector((set, get) => ({
@@ -152,6 +154,10 @@ const useAudioStore = create<AudioStore>()(
     participantSources: [],
     selectedParticipantSource: DEFAULT_PARTICIPANT_SOURCE,
     persistedParticipantAppKey: null,
+    savedInputDeviceId: null,
+    savedMonitorDeviceId: null,
+    unusableInputIds: [],
+    devicesLoaded: false,
     isLoading: true,
     isRealVoicePassthroughEnabled: false,
     realVoicePassthroughVolume: 0.2,
@@ -215,14 +221,19 @@ const useAudioStore = create<AudioStore>()(
     },
     selectInputDevice: (device) => {
       console.info(`[Sokuji] [AudioStore] Selected input device: ${device.label} (${device.deviceId})`);
-      set({ selectedInputDevice: device });
+      set({
+        selectedInputDevice: device,
+        savedInputDeviceId: device.deviceId,
+        // The user asked for this one: try it again even if it failed before.
+        unusableInputIds: get().unusableInputIds.filter((id) => id !== device.deviceId),
+      });
 
       // Persist the selected device ID
       void persistSetting(STORAGE_KEYS.SELECTED_INPUT_DEVICE_ID, device.deviceId);
     },
     selectMonitorDevice: (device) => {
       console.info(`[Sokuji] [AudioStore] Selected monitor device: ${device.label} (${device.deviceId})`);
-      set({ selectedMonitorDevice: device });
+      set({ selectedMonitorDevice: device, savedMonitorDeviceId: device.deviceId });
 
       // Persist the selected device ID
       void persistSetting(STORAGE_KEYS.SELECTED_MONITOR_DEVICE_ID, device.deviceId);
@@ -367,6 +378,7 @@ const useAudioStore = create<AudioStore>()(
         }
         const savedInputDeviceId = await settingsService.getSetting<string>(STORAGE_KEYS.SELECTED_INPUT_DEVICE_ID, '');
         const savedMonitorDeviceId = await settingsService.getSetting<string>(STORAGE_KEYS.SELECTED_MONITOR_DEVICE_ID, '');
+        set({ savedInputDeviceId: savedInputDeviceId || null, savedMonitorDeviceId: savedMonitorDeviceId || null });
         const savedInputDeviceOn = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.IS_INPUT_DEVICE_ON, null);
         const savedMonitorDeviceOn = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.IS_MONITOR_DEVICE_ON, null);
         const savedPassthroughEnabled = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.IS_REAL_VOICE_PASSTHROUGH_ENABLED, null);
@@ -456,81 +468,42 @@ const useAudioStore = create<AudioStore>()(
           void persistSetting(STORAGE_KEYS.IS_PARTICIPANT_MUTED, derivedParticipantMuted);
         }
 
-        // Try to restore saved input device, or select default
-        const currentInputDevice = get().selectedInputDevice;
-        if (!currentInputDevice || !devices.inputs.some(d => d.deviceId === currentInputDevice?.deviceId)) {
-          // Reject a persisted device if it's virtual: a user who hit the old
-          // auto-select bug may have SELECTED_INPUT_DEVICE_ID pointing at
-          // Sokuji's own virtual mic. Restoring it here would silently
-          // reintroduce the feedback loop for exactly the users this fix is
-          // meant to protect, since it'd never reach pickDefaultInputDevice.
-          const savedInputDevice = savedInputDeviceId
-            ? devices.inputs.find(d => d.deviceId === savedInputDeviceId && !d.isVirtual)
-            : undefined;
-
-          if (savedInputDevice) {
-            console.info('[Sokuji] [AudioStore] Restored saved input device:', savedInputDevice.label);
-            set({ selectedInputDevice: savedInputDevice });
-          } else {
-            // No saved device (or it's gone, or it was virtual) — fall back
-            // to the first real (non-virtual) input.
-            const fallback = pickDefaultInputDevice(devices.inputs);
-            if (fallback) {
-              set({ selectedInputDevice: fallback });
-            } else {
-              // No real microphone available — either no input devices were
-              // enumerated at all, or the only ones present are virtual/loopback
-              // (e.g. Sokuji's own "Sokuji_Virtual_Mic"). Clear the selection
-              // AND mute: canStartSession (MainPanel.tsx) gates purely on
-              // !!selectedInputDevice — by design "mute state does not block
-              // start" — so leaving a stale device object in place would let
-              // a session start (and later unmute) against a device that's
-              // no longer connected or was never meant to be listened to.
-              const currentlyMuted = get().isMicMuted;
-              set({ selectedInputDevice: null, isMicMuted: true });
-              if (!currentlyMuted) {
-                reportWarning('AudioStore', 'No real microphone found — clearing selection and turning mic off');
-                void persistSetting(STORAGE_KEYS.IS_MIC_MUTED, true);
-              }
-            }
+        // Restore the saved input device, or choose one (deviceChoice.ts: the
+        // same rule the automatic sync applies).
+        const input = chooseInput({
+          devices: devices.inputs,
+          savedId: savedInputDeviceId || null,
+          currentId: get().selectedInputDevice?.deviceId ?? null,
+          unusable: new Set(get().unusableInputIds),
+        });
+        if (input) {
+          if (input.deviceId !== get().selectedInputDevice?.deviceId) set({ selectedInputDevice: input });
+        } else {
+          // No real microphone available — either no input devices were
+          // enumerated at all, or the only ones present are virtual/loopback
+          // (e.g. Sokuji's own "Sokuji_Virtual_Mic"). Clear the selection
+          // AND mute: canStartSession (MainPanel.tsx) gates purely on
+          // !!selectedInputDevice — by design "mute state does not block
+          // start" — so leaving a stale device object in place would let
+          // a session start (and later unmute) against a device that's
+          // no longer connected or was never meant to be listened to.
+          // The automatic sync never does this: only a refresh mutes.
+          const currentlyMuted = get().isMicMuted;
+          set({ selectedInputDevice: null, isMicMuted: true });
+          if (!currentlyMuted) {
+            reportWarning('AudioStore', 'No real microphone found — clearing selection and turning mic off');
+            void persistSetting(STORAGE_KEYS.IS_MIC_MUTED, true);
           }
         }
 
-        // Try to restore saved monitor device, or select default
-        let defaultMonitorDevice = null;
-        const currentMonitorDevice = get().selectedMonitorDevice;
-        if (!currentMonitorDevice || !devices.outputs.some(d => d.deviceId === currentMonitorDevice?.deviceId)) {
-          if (savedMonitorDeviceId) {
-            // Try to restore saved monitor device
-            const savedMonitorDevice = devices.outputs.find(d => d.deviceId === savedMonitorDeviceId);
-            if (savedMonitorDevice) {
-              console.info('[Sokuji] [AudioStore] Restored saved monitor device:', savedMonitorDevice.label);
-              defaultMonitorDevice = savedMonitorDevice;
-              set({ selectedMonitorDevice: defaultMonitorDevice });
-            } else if (devices.outputs.length > 0) {
-              // Saved device not found, fall back to first non-virtual output device
-              const nonVirtualOutputs = devices.outputs.filter(device => !device.isVirtual);
-              if (nonVirtualOutputs.length > 0) {
-                defaultMonitorDevice = nonVirtualOutputs[0];
-                set({ selectedMonitorDevice: defaultMonitorDevice });
-              } else {
-                defaultMonitorDevice = devices.outputs[0];
-                set({ selectedMonitorDevice: defaultMonitorDevice });
-              }
-            }
-          } else if (devices.outputs.length > 0) {
-            // No saved preference, select first non-virtual output device
-            const nonVirtualOutputs = devices.outputs.filter(device => !device.isVirtual);
-            if (nonVirtualOutputs.length > 0) {
-              defaultMonitorDevice = nonVirtualOutputs[0];
-              set({ selectedMonitorDevice: defaultMonitorDevice });
-            } else {
-              defaultMonitorDevice = devices.outputs[0];
-              set({ selectedMonitorDevice: defaultMonitorDevice });
-            }
-          }
-        }
-        
+        // Restore the saved monitor device, or choose one (deviceChoice.ts).
+        const defaultMonitorDevice = chooseOutput({
+          devices: devices.outputs,
+          savedId: savedMonitorDeviceId || null,
+          currentId: get().selectedMonitorDevice?.deviceId ?? null,
+        });
+        if (defaultMonitorDevice?.deviceId !== get().selectedMonitorDevice?.deviceId) set({ selectedMonitorDevice: defaultMonitorDevice });
+
         // Note the virtual device if one is already present. The former
         // `else if (service.supportsVirtualDevices())` branch — which created
         // devices and re-read the device list — was unreachable: the old
@@ -547,8 +520,59 @@ const useAudioStore = create<AudioStore>()(
         reportError('AudioStore', `Failed to refresh audio devices: ${describeCause(error)}`, { cause: error });
         return { defaultInputDevice: null, defaultMonitorDevice: null };
       } finally {
-        set({ isLoading: false });
+        set({ isLoading: false, devicesLoaded: true });
       }
+    },
+
+    syncDevices: async ({ retryUnusable = false } = {}) => {
+      // Before the first refresh the saved devices are unknown: a choice now
+      // would bypass them. That refresh reads the devices itself.
+      if (!get().devicesLoaded) return;
+      const listing = await listAudioDevices({ warmUp: false });
+      const state = get();
+      // The poll lists every 3 s while off the user's device: an unchanged list
+      // keeps its array, and a sync that changes nothing sets nothing, so no
+      // subscriber (playback, the routing, the pickers) wakes for it.
+      const inputs = sameDevices(state.audioInputDevices, listing.inputs) ? state.audioInputDevices : listing.inputs;
+      const outputs = sameDevices(state.audioMonitorDevices, listing.outputs) ? state.audioMonitorDevices : listing.outputs;
+      const listsChanged = inputs !== state.audioInputDevices || outputs !== state.audioMonitorDevices;
+      if (!listing.complete) {
+        // A failed listing, or one without labels (no microphone permission
+        // yet): virtual and loopback inputs cannot be told from real ones, so
+        // the lists may change but no choice does — and a failure that looks
+        // like "every device is gone" changes nothing at all.
+        if ((inputs.length > 0 || outputs.length > 0) && listsChanged) set({ audioInputDevices: inputs, audioMonitorDevices: outputs });
+        return;
+      }
+      // A mark lasts until its device leaves the list (replugged, it is tried
+      // again), or until the OS reports a change: then every device is tried again.
+      const marks = retryUnusable ? [] : state.unusableInputIds.filter((id) => inputs.some((device) => device.deviceId === id));
+      const unusableInputIds = marks.length === state.unusableInputIds.length && marks.every((id, i) => id === state.unusableInputIds[i]) ? state.unusableInputIds : marks;
+      const input = chooseInput({
+        devices: inputs,
+        savedId: state.savedInputDeviceId,
+        currentId: state.selectedInputDevice?.deviceId ?? null,
+        unusable: new Set(unusableInputIds),
+      });
+      const monitor = chooseOutput({ devices: outputs, savedId: state.savedMonitorDeviceId, currentId: state.selectedMonitorDevice?.deviceId ?? null });
+      // The same object when neither the choice nor its name changed; a device
+      // whose label changed (a placeholder becoming its real name) is replaced.
+      const keep = (current: AudioDevice | null, next: AudioDevice | null) =>
+        current && next && current.deviceId === next.deviceId && current.label === next.label ? current : next;
+      const selectedInputDevice = keep(state.selectedInputDevice, input);
+      const selectedMonitorDevice = keep(state.selectedMonitorDevice, monitor);
+      if (
+        !listsChanged &&
+        unusableInputIds === state.unusableInputIds &&
+        selectedInputDevice === state.selectedInputDevice &&
+        selectedMonitorDevice === state.selectedMonitorDevice
+      ) return;
+      set({ audioInputDevices: inputs, audioMonitorDevices: outputs, unusableInputIds, selectedInputDevice, selectedMonitorDevice });
+    },
+
+    markInputUnusable: (deviceId) => {
+      if (!get().unusableInputIds.includes(deviceId)) set({ unusableInputIds: [...get().unusableInputIds, deviceId] });
+      void get().syncDevices();
     },
   }))
 );

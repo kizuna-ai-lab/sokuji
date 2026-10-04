@@ -6,7 +6,7 @@ import { ServiceFactory } from '../services/ServiceFactory';
 // Device enumeration moved to src/lib/audio/devices.ts (plan 1e-3c, controller
 // ruling 3); refreshDevices calls its plain functions instead of the old
 // audioService, so tests mock the module rather than an audioService object.
-const mockListAudioDevices = vi.hoisted(() => vi.fn(async () => ({ inputs: [] as AudioDevice[], outputs: [] as AudioDevice[] })));
+const mockListAudioDevices = vi.hoisted(() => vi.fn(async (_options?: { warmUp?: boolean }): Promise<{ inputs: AudioDevice[]; outputs: AudioDevice[]; complete?: boolean }> => ({ inputs: [], outputs: [] })));
 const mockListSystemAudioSources = vi.hoisted(() => vi.fn(async () => [] as AudioDevice[]));
 vi.mock('../lib/audio/devices', () => ({
   listAudioDevices: mockListAudioDevices,
@@ -14,7 +14,7 @@ vi.mock('../lib/audio/devices', () => ({
 }));
 
 beforeEach(() => {
-  mockListAudioDevices.mockReset().mockResolvedValue({ inputs: [], outputs: [] });
+  mockListAudioDevices.mockReset().mockResolvedValue({ inputs: [], outputs: [], complete: true });
   mockListSystemAudioSources.mockReset().mockResolvedValue([]);
 });
 
@@ -425,5 +425,184 @@ describe('audioStore - participant tap audio seen', () => {
     await useAudioStore.getState().refreshDevices();
 
     expect(useAudioStore.getState().participantTapAudioSeen).toBe(true);
+  });
+});
+
+describe('audioStore — following the OS (syncDevices)', () => {
+  const real = (deviceId: string, label = deviceId): AudioDevice => ({ deviceId, label, isVirtual: false });
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  beforeEach(() => {
+    localStorage.clear();
+    useAudioStore.setState({
+      devicesLoaded: true,
+      audioInputDevices: [real('mic-a'), real('mic-b')],
+      audioMonitorDevices: [real('spk-a')],
+      selectedInputDevice: real('mic-a'),
+      selectedMonitorDevice: real('spk-a'),
+      savedInputDeviceId: 'mic-a',
+      savedMonitorDeviceId: 'spk-a',
+      unusableInputIds: [],
+      isMicMuted: false,
+    } as any);
+  });
+
+  it('falls back to another real microphone when the selected one leaves the list, without saving it', async () => {
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-b')], outputs: [real('spk-a')], complete: true });
+    await useAudioStore.getState().syncDevices();
+    await flush();
+    const s = useAudioStore.getState();
+    expect(s.selectedInputDevice?.deviceId).toBe('mic-b');
+    expect(s.savedInputDeviceId).toBe('mic-a');
+    expect(localStorage.getItem('audio.selectedInputDeviceId') ?? '').not.toContain('mic-b');
+  });
+
+  it('switches back to the saved microphone when it returns', async () => {
+    useAudioStore.setState({ selectedInputDevice: real('mic-b') });
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-b'), real('mic-a')], outputs: [real('spk-a')], complete: true });
+    await useAudioStore.getState().syncDevices();
+    expect(useAudioStore.getState().selectedInputDevice?.deviceId).toBe('mic-a');
+  });
+
+  it('waits — no selection — when only virtual or loopback inputs remain, and leaves mute alone', async () => {
+    mockListAudioDevices.mockResolvedValueOnce({
+      inputs: [{ deviceId: 'v', label: 'Sokuji_Virtual_Mic', isVirtual: true }, { deviceId: 'l', label: 'Monitor of Built-in Audio', isVirtual: false }],
+      outputs: [real('spk-a')],
+      complete: true,
+    });
+    await useAudioStore.getState().syncDevices();
+    const s = useAudioStore.getState();
+    expect(s.selectedInputDevice).toBeNull();
+    expect(s.isMicMuted).toBe(false);
+  });
+
+  it('changes no selection when the listing has no labels, and keeps the lists when the listing failed', async () => {
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('Microphone 12345...')], outputs: [], complete: false });
+    await useAudioStore.getState().syncDevices();
+    expect(useAudioStore.getState().selectedInputDevice?.deviceId).toBe('mic-a');
+
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [], outputs: [], complete: false });
+    useAudioStore.setState({ audioInputDevices: [real('mic-a')] });
+    await useAudioStore.getState().syncDevices();
+    expect(useAudioStore.getState().audioInputDevices.map((d) => d.deviceId)).toEqual(['mic-a']);
+    expect(useAudioStore.getState().selectedInputDevice?.deviceId).toBe('mic-a');
+  });
+
+  it('never warms up the permission, lists applications or re-reads settings', async () => {
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-a')], outputs: [real('spk-a')], complete: true });
+    await useAudioStore.getState().syncDevices();
+    expect(mockListAudioDevices).toHaveBeenCalledWith({ warmUp: false });
+    expect(mockListSystemAudioSources).not.toHaveBeenCalled();
+  });
+
+  it('does nothing before the first refresh has loaded the saved devices', async () => {
+    useAudioStore.setState({ devicesLoaded: false });
+    await useAudioStore.getState().syncDevices();
+    expect(mockListAudioDevices).not.toHaveBeenCalled();
+  });
+
+  it('leaves an unusable input out until it leaves the list; back again, it is chosen again', async () => {
+    useAudioStore.setState({ unusableInputIds: ['mic-a'] });
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-a'), real('mic-b')], outputs: [], complete: true });
+    await useAudioStore.getState().syncDevices();
+    expect(useAudioStore.getState().selectedInputDevice?.deviceId).toBe('mic-b');
+
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-b')], outputs: [], complete: true });
+    await useAudioStore.getState().syncDevices();
+    expect(useAudioStore.getState().unusableInputIds).toEqual([]);
+
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-a'), real('mic-b')], outputs: [], complete: true });
+    await useAudioStore.getState().syncDevices();
+    expect(useAudioStore.getState().selectedInputDevice?.deviceId).toBe('mic-a');
+  });
+
+  it('retryUnusable clears every mark and chooses the saved device again', async () => {
+    useAudioStore.setState({ unusableInputIds: ['mic-a'], selectedInputDevice: real('mic-b') });
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-a'), real('mic-b')], outputs: [real('spk-a')], complete: true });
+    await useAudioStore.getState().syncDevices({ retryUnusable: true });
+    const s = useAudioStore.getState();
+    expect(s.unusableInputIds).toEqual([]);
+    expect(s.selectedInputDevice?.deviceId).toBe('mic-a');
+  });
+
+  it('keeps the marks on a plain sync (the poll, a mark\'s own sync)', async () => {
+    useAudioStore.setState({ unusableInputIds: ['mic-a'], selectedInputDevice: real('mic-b') });
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-a'), real('mic-b')], outputs: [real('spk-a')], complete: true });
+    await useAudioStore.getState().syncDevices();
+    const s = useAudioStore.getState();
+    expect(s.unusableInputIds).toEqual(['mic-a']);
+    expect(s.selectedInputDevice?.deviceId).toBe('mic-b');
+  });
+
+  it('markInputUnusable leaves the device out and re-syncs at once', async () => {
+    mockListAudioDevices.mockResolvedValue({ inputs: [real('mic-a'), real('mic-b')], outputs: [], complete: true });
+    useAudioStore.getState().markInputUnusable('mic-a');
+    await flush();
+    expect(useAudioStore.getState().unusableInputIds).toEqual(['mic-a']);
+    expect(useAudioStore.getState().selectedInputDevice?.deviceId).toBe('mic-b');
+  });
+
+  it("a user's pick clears its unusable mark and becomes the saved device", () => {
+    useAudioStore.setState({ unusableInputIds: ['mic-b'] });
+    useAudioStore.getState().selectInputDevice(real('mic-b'));
+    const s = useAudioStore.getState();
+    expect(s.unusableInputIds).toEqual([]);
+    expect(s.savedInputDeviceId).toBe('mic-b');
+  });
+
+  it('notifies no subscriber when the listing has not changed', async () => {
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-a'), real('mic-b')], outputs: [real('spk-a')], complete: true });
+    const heard = vi.fn();
+    const off = useAudioStore.subscribe(heard);
+    await useAudioStore.getState().syncDevices();
+    off();
+    expect(heard).not.toHaveBeenCalled();
+  });
+
+  it('notifies no subscriber when an unlabelled listing has not changed either', async () => {
+    useAudioStore.setState({ audioInputDevices: [real('Microphone 12345...')], audioMonitorDevices: [] });
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('Microphone 12345...')], outputs: [], complete: false });
+    const heard = vi.fn();
+    const off = useAudioStore.subscribe(heard);
+    await useAudioStore.getState().syncDevices();
+    off();
+    expect(heard).not.toHaveBeenCalled();
+  });
+
+  it('replaces the selected device object when its label changed (a placeholder becoming its real name)', async () => {
+    const before = useAudioStore.getState().selectedInputDevice;
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-a', 'Mic A (USB)'), real('mic-b')], outputs: [real('spk-a')], complete: true });
+    await useAudioStore.getState().syncDevices();
+    const after = useAudioStore.getState().selectedInputDevice;
+    expect(after).not.toBe(before);
+    expect(after).toEqual(real('mic-a', 'Mic A (USB)'));
+  });
+
+  it('keeps the same device object when the choice did not change, so subscribers see no churn', async () => {
+    const before = useAudioStore.getState().selectedInputDevice;
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-a'), real('mic-b')], outputs: [real('spk-a')], complete: true });
+    await useAudioStore.getState().syncDevices();
+    expect(useAudioStore.getState().selectedInputDevice).toBe(before);
+  });
+});
+
+describe('audioStore — refreshDevices and the saved device', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useAudioStore.setState({ selectedInputDevice: { deviceId: 'mic-b', label: 'B', isVirtual: false }, devicesLoaded: false } as any);
+  });
+
+  it('prefers the saved microphone over the current one, remembers the saved ids, and marks the devices loaded', async () => {
+    localStorage.setItem('audio.selectedInputDeviceId', 'mic-a');
+    mockListAudioDevices.mockResolvedValueOnce({
+      inputs: [{ deviceId: 'mic-b', label: 'B', isVirtual: false }, { deviceId: 'mic-a', label: 'A', isVirtual: false }],
+      outputs: [],
+      complete: true,
+    });
+    await useAudioStore.getState().refreshDevices();
+    const s = useAudioStore.getState();
+    expect(s.selectedInputDevice?.deviceId).toBe('mic-a');
+    expect(s.savedInputDeviceId).toBe('mic-a');
+    expect(s.devicesLoaded).toBe(true);
   });
 });

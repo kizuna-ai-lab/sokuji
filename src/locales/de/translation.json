@@ -538,6 +538,7 @@
     "send": "Senden",
     "error": "Fehler",
     "warning": "Warnung",
+    "notice": "Hinweis",
     "unknownError": "Unbekannter Fehler",
     "insufficientBalance": "Unzureichendes Guthaben: {{balance}}",
     "walletFrozen": "Wallet ist eingefroren. Bitte kontaktieren Sie den Support.",
@@ -1302,6 +1303,9 @@
     "local_models_missing": "Bitte laden Sie die erforderlichen Modelle in den Einstellungen herunter, um zu starten.",
     "no_microphone": "Konfigurieren Sie die Geräte für diesen Modus, um zu starten.",
     "silent_no_permission": "Von der ausgewählten Quelle ist noch kein Audio angekommen. Wenn sie abspielt und nichts übersetzt wird, erlauben Sie Sokuji unter Systemeinstellungen > Datenschutz & Sicherheit > Nur Systemaudioaufnahme (macOS) und starten Sie die Sitzung erneut.",
-    "loopback_denied": "Für das Audio des Gegenübers ist die Berechtigung zur Bildschirmaufnahme erforderlich, um System-Audio zu erfassen."
+    "loopback_denied": "Für das Audio des Gegenübers ist die Berechtigung zur Bildschirmaufnahme erforderlich, um System-Audio zu erfassen.",
+    "mic_lost_using_other": "Das Mikrofon „{{lost}}“ wurde getrennt, daher wird stattdessen „{{device}}“ verwendet.",
+    "mic_lost_waiting": "Das Mikrofon wurde getrennt. Die Übersetzung Ihrer Sprache wird fortgesetzt, sobald ein Mikrofon verbunden ist.",
+    "mic_now_using": "Jetzt wird das Mikrofon „{{device}}“ verwendet."
   }
 }

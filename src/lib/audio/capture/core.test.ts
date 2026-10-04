@@ -25,6 +25,16 @@ function setup(o: { muted?: () => boolean } = {}) {
 const chunk = () => new Int16Array(4);
 
 describe('createSourceCore', () => {
+  it('hands an ended track to the given handler instead of ending the source', () => {
+    const core = createSourceCore({ muted: () => false, release: async () => {} });
+    const track = Object.assign(new EventTarget(), { readyState: 'live' }) as unknown as MediaStreamTrack;
+    const stream = { getAudioTracks: () => [track] } as unknown as MediaStream;
+    const handler = vi.fn();
+    core.watch(stream, handler);
+    track.dispatchEvent(new Event('ended'));
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(core.ended).toBe(false);
+  });
   it('hands each chunk to every listener, and stops handing it after unsubscribe', () => {
     const { core } = setup();
     const a = vi.fn();
@@ -164,6 +174,15 @@ describe('createSourceCore', () => {
     const heard = vi.fn();
     core.onDegraded(heard);
     expect(heard).not.toHaveBeenCalled();
+  });
+
+  it('hands a track that had already ended when watched to the given handler, without ending the source', () => {
+    const { core } = setup();
+    const { stream } = fakeStream({ ended: true });
+    const handler = vi.fn();
+    core.watch(stream, handler);
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(core.ended).toBe(false);
   });
 
   it('ends a source whose track had already ended by the time it was watched', () => {

@@ -1,6 +1,6 @@
 import { memo, useCallback, useLayoutEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AlertCircle, Play, User, Users } from 'lucide-react';
+import { AlertCircle, Info, Play, User, Users } from 'lucide-react';
 import type { LegName, SegmentId } from '../../lib/conversation/types';
 import type { DisplayItem, NoticeEntry } from '../../lib/view/filter';
 import { noticeText } from '../../lib/view/noticeText';
@@ -188,10 +188,28 @@ const RowBubble = memo(function RowBubble({ item, upTo, replaySlot, canReplay, r
 
 const NoticeBubble = memo(function NoticeBubble({ notice, action }: { notice: NoticeEntry; action: NoticeAction | null }) {
   const { t } = useTranslation();
-  const warning = notice.severity === 'warning';
   // A code-less notice with an empty message has no words at all: today's
   // bubble falls back to the same "Unknown error" rather than an empty line.
   const words = noticeText(t, notice) || t('mainPanel.unknownError', 'Unknown error');
+  // Good news (a microphone back in use, spec 2026-10-04 §3): the neutral
+  // system bubble, not the error one.
+  if (notice.severity === 'info') {
+    return (
+      <div className="message-bubble system">
+        <div className="message-header">
+          <Info size={12} />
+          {t('mainPanel.notice', 'Notice')}
+        </div>
+        <div className="message-content">{words}</div>
+        {action && (
+          <button type="button" className="message-action" onClick={action.run}>
+            {action.label}
+          </button>
+        )}
+      </div>
+    );
+  }
+  const warning = notice.severity === 'warning';
   return (
     <div className={`message-bubble error${warning ? ' warning' : ''}`}>
       <div className="message-header">

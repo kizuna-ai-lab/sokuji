@@ -142,15 +142,34 @@ describe('listAudioDevices', () => {
     expect(streams[0].getTracks()[0].stop).toHaveBeenCalledTimes(1);
   });
 
+  it('reports a labelled listing as complete', async () => {
+    setMediaDevices(vi.fn(async () => makeStream()), vi.fn(async () => LABELED));
+    expect((await listAudioDevices()).complete).toBe(true);
+  });
+
+  it('with warmUp: false, never opens the microphone and reports an unlabelled listing as incomplete', async () => {
+    const getUserMedia = vi.fn(async () => makeStream());
+    setMediaDevices(getUserMedia, vi.fn(async () => UNLABELED));
+
+    const devices = await listAudioDevices({ warmUp: false });
+
+    expect(getUserMedia).not.toHaveBeenCalled();
+    expect(document.getElementById('sokuji-mic-error')).toBeNull();
+    expect(devices.complete).toBe(false);
+    expect(devices.inputs.map((d) => d.deviceId)).toEqual(['mic-1']);
+  });
+
   it('records an error and returns empty lists when enumeration itself throws', async () => {
     const enumerateDevices = vi.fn(() => Promise.reject(new Error('enumerateDevices unavailable')));
     setMediaDevices(vi.fn(), enumerateDevices);
 
     const devices = await listAudioDevices();
 
-    expect(devices).toEqual({ inputs: [], outputs: [] });
+    expect(devices).toEqual({ inputs: [], outputs: [], complete: false });
     expect(reportErrorSpy).toHaveBeenCalledTimes(1);
     expect(reportErrorSpy.mock.calls[0][0]).toBe('AudioDevices');
+    // The poll lists every 3 s: a listing that keeps failing is one burst, not a line per beat.
+    expect(reportErrorSpy.mock.calls[0][2]).toMatchObject({ dedupeKey: 'devices:list' });
   });
 });
 

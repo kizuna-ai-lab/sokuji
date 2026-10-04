@@ -31,6 +31,10 @@ const onAudioChange = (listener: () => void) => useAudioStore.subscribe(() => li
 export function micSettings(): MicSettings {
   return {
     deviceId: () => audio().selectedInputDevice?.deviceId,
+    deviceLabel: () => audio().selectedInputDevice?.label,
+    isListed: (id) => audio().audioInputDevices.some((device) => device.deviceId === id),
+    isUnusable: (id) => audio().unusableInputIds.includes(id),
+    markUnusable: (id) => audio().markInputUnusable(id),
     noiseSuppression: () => audio().noiseSuppressionMode,
     muted: () => audio().isMicMuted,
     subscribe: onAudioChange,

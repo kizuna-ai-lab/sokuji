@@ -4,8 +4,13 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import AudioSystemBanner from './AudioSystemBanner';
 import useAudioSystemStore from '../../stores/audioSystemStore';
 
-// The suites load no i18next catalog, so t(key) renders the key itself: these
-// assertions pin which keys the banner uses, not their English copy.
+// t(key) renders the key itself, so these assertions pin which keys the banner
+// uses, not their English copy. Mocked rather than left to chance: the store
+// reaches the locales module through audioStore, which loads the catalogs.
+vi.mock('react-i18next', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('react-i18next')>()),
+  useTranslation: () => ({ t: (key: string) => key }),
+}));
 
 const unavailable = (reason: string, extra: Record<string, unknown> = {}) =>
   useAudioSystemStore.setState({
