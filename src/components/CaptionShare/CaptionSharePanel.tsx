@@ -60,8 +60,12 @@ const CaptionSharePanel: React.FC = () => {
   };
   const stop = async () => {
     const s = useCaptionShareStore.getState();
-    if (s.startedAt !== null) trackEvent('caption_share_ended', { duration_ms: Date.now() - s.startedAt, peak_viewers: s.peakViewers });
+    const endedAt = Date.now();
     await controller.stop();
+    // A stop that did not go through leaves sharing on: no ending to count yet.
+    if (s.startedAt !== null && !useCaptionShareStore.getState().status.running) {
+      trackEvent('caption_share_ended', { duration_ms: endedAt - s.startedAt, peak_viewers: s.peakViewers });
+    }
   };
   const copy = async () => {
     if (!url) return;

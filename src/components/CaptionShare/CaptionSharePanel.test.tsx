@@ -108,4 +108,14 @@ describe('CaptionSharePanel', () => {
     expect(trackEvent).toHaveBeenCalledWith('caption_share_ended', { duration_ms: 6_000, peak_viewers: 5 });
     expect(controller.stop).toHaveBeenCalled();
   });
+
+  // A stop that did not go through leaves sharing on (PR #597 review): the
+  // share has not ended, and the next stop must not count a second ending.
+  it('does not track an ending when the stop did not go through', async () => {
+    useCaptionShareStore.getState().markStarted(4_000, { ...RUNNING, viewers: 5 });
+    controller.stop.mockImplementationOnce(async () => {});
+    render(<CaptionSharePanel />);
+    await act(async () => { fireEvent.click(screen.getByText('captionShare.stop')); });
+    expect(trackEvent).not.toHaveBeenCalledWith('caption_share_ended', expect.anything());
+  });
 });

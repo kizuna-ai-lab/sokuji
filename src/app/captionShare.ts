@@ -67,6 +67,9 @@ export function createCaptionShareController(deps: CaptionShareDeps): CaptionSha
     state: (state) => deps.ipc.invoke('caption-share:state', state),
   };
 
+  const beginPublisher = () => {
+    stopPublisher = startSharePublisher({ view: deps.view, state: stateSource, onReset: deps.onReset }, port);
+  };
   const endPublisher = () => {
     stopPublisher?.();
     stopPublisher = null;
@@ -112,7 +115,7 @@ export function createCaptionShareController(deps: CaptionShareDeps): CaptionSha
           return false;
         }
         deps.store.getState().markStarted(deps.now(), result);
-        stopPublisher = startSharePublisher({ view: deps.view, state: stateSource, onReset: deps.onReset }, port);
+        beginPublisher();
         await pushWifi();
         return true;
       } catch (error) {
@@ -124,11 +127,16 @@ export function createCaptionShareController(deps: CaptionShareDeps): CaptionSha
       }
     },
     async stop() {
+      // No new lines leave once the host asks to stop.
       endPublisher();
       try {
         await deps.ipc.invoke('caption-share:stop');
       } catch (error) {
+        // The server may still be serving: the panel keeps saying so (the host
+        // can stop again), and viewers keep getting the conversation as it is.
         reportError('CaptionShare', `Stopping caption sharing failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'caption-share:stop' });
+        if (deps.store.getState().status.running) beginPublisher();
+        return;
       }
       deps.store.getState().markStopped();
     },

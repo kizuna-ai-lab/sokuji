@@ -104,6 +104,25 @@ describe('caption share controller', () => {
     expect(useCaptionShareStore.getState().status).toEqual(IDLE_STATUS);
   });
 
+  // PR #597 review: a stop the main process did not carry out must not show
+  // sharing as off while the server still serves the captions to the network.
+  it('keeps sharing, and publishing, when the stop did not go through', async () => {
+    const { ipc, controller, run } = setup();
+    await controller.start();
+    await flush();
+    ipc.invoke.mockImplementation(async (channel: string) => {
+      if (channel === 'caption-share:stop') throw new Error('stop failed');
+      return undefined;
+    });
+    await controller.stop();
+    expect(useCaptionShareStore.getState().status.running).toBe(true);
+    expect(useCaptionShareStore.getState().startedAt).toBe(5000);
+    const before = ipc.invoke.mock.calls.length;
+    run.setState({ phase: 'idle' });
+    await flush();
+    expect(channels(ipc).slice(before)).toContain('caption-share:state');
+  });
+
   it("opens the present window in Sokuji's UI language", async () => {
     const { ipc, controller } = setup();
     await controller.start();
