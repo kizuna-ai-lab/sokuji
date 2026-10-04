@@ -48,6 +48,18 @@ const exporter: Exporter = {
   json: () => '{}',
 };
 
+// The caption-share button is a marker here: its own tests cover it. The
+// toolbar's job is to show it on the desktop app only.
+vi.mock('../../CaptionShare/CaptionShareButton', () => ({
+  __esModule: true,
+  default: () => <div data-testid="caption-share-marker" />,
+}));
+const env = vi.hoisted(() => ({ electron: false }));
+vi.mock('../../../utils/environment', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../utils/environment')>()),
+  isElectron: () => env.electron,
+}));
+
 const renderToolbar = (legs: readonly LegName[], over: Partial<{ hasConversation: boolean; onClear(): void }> = {}) =>
   render(
     <PanelToolbar
@@ -149,5 +161,18 @@ describe('PanelToolbar — display settings popover', () => {
     const marker = screen.getByTestId('display-settings-popover-marker');
     expect(marker).toBeInTheDocument();
     expect(container.contains(marker)).toBe(false);
+  });
+});
+
+describe('PanelToolbar — caption sharing', () => {
+  it('offers caption sharing on the desktop app only', () => {
+    env.electron = false;
+    renderToolbar(['speaker']);
+    expect(screen.queryByTestId('caption-share-marker')).toBeNull();
+    cleanup();
+    env.electron = true;
+    renderToolbar(['speaker']);
+    expect(screen.getByTestId('caption-share-marker')).toBeTruthy();
+    env.electron = false;
   });
 });

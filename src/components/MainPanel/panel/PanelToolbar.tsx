@@ -17,6 +17,8 @@ import {
 import DisplayModeButton from '../DisplayModeButton';
 import { ExportMenuButton } from '../ExportButton';
 import DisplaySettingsPopover from '../../Display/DisplaySettingsPopover';
+import CaptionShareButton from '../../CaptionShare/CaptionShareButton';
+import { isElectron } from '../../../utils/environment';
 import {
   useSpeakerDisplayMode,
   useParticipantDisplayMode,
@@ -173,6 +175,8 @@ const PanelToolbar: React.FC<PanelToolbarProps> = ({ legs, exporter, hasConversa
           speakerMode={speakerDisplayMode}
           participantMode={participantDisplayMode}
         />
+        {/* LAN caption sharing (spec 2026-10-04 §7.1): the desktop app only. */}
+        {isElectron() && <CaptionShareButton />}
         <button
           className="font-size-btn"
           ref={displayPopoverFloating.refs.setReference}
