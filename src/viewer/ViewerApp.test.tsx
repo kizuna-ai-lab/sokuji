@@ -56,6 +56,12 @@ describe('ViewerApp', () => {
     expect(screen.getByRole('dialog', { name: 'Display' })).toBeTruthy();
   });
 
+  it('wears the chosen colour scheme on the entry screen too', () => {
+    window.localStorage.setItem('sokuji.viewer.theme', JSON.stringify('light'));
+    const { container } = render(<ViewerApp />);
+    expect(container.querySelector('.viewer')?.classList.contains('viewer--light')).toBe(true);
+  });
+
   it('shows no save action unless the host allows it', () => {
     render(<ViewerApp />);
     enter();

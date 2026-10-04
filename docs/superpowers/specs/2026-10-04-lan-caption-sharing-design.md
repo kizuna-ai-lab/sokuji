@@ -452,6 +452,10 @@ any tool). Both the host panel and the viewer page use:
 
 The viewer page's light and high-contrast schemes are additions on top of those tokens. The viewer
 page has its own layout SCSS; it does not import `Settings.scss` or `MainPanel` styles wholesale.
+The scheme a viewer picks colours the whole page, chrome included — the phone's settings button,
+the settings sheet or menu, the desktop's top bar and footer, the entry screen — not only the
+caption area (his ruling 2026-10-04, after the live look): the controls keep the app's shapes, and
+their colours come from per-scheme tokens (`--v-chrome-*`, `--v-control-*`, `--v-accent*`).
 
 ## 10. Error handling
 

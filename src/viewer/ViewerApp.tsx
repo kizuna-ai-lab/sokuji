@@ -119,7 +119,7 @@ const ViewerApp: React.FC = () => {
 
   if (!entered) {
     return (
-      <div className={`viewer viewer--${layout}`}>
+      <div className={`viewer viewer--${layout} viewer--${theme}`}>
         <EntryScreen t={t} name={name} pair={pair} choice={choice} onChoose={choose} onStart={start} />
       </div>
     );

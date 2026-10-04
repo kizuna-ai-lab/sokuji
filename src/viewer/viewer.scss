@@ -1,8 +1,9 @@
 // src/viewer/viewer.scss
 //
 // The LAN caption viewer. Controls are the app's own (ToggleSwitch, Button,
-// the ModePicker segmented archetype, option rows) on the app's dark
-// surfaces; the light and high-contrast schemes change the caption area only.
+// the ModePicker segmented archetype, option rows) in the app's shapes; their
+// colours, like the captions', follow the scheme the viewer picks (his ruling
+// 2026-10-04): every chrome colour is a token each scheme sets.
 @use '../components/Settings/shared/variables' as vars;
 @use '../styles/tokens' as tk;
 
@@ -24,7 +25,22 @@ body {
   // blue-violet; the app's orange read like the green at a glance).
   --v-speaker: #{tk.$color-speaker};
   --v-participant: #8f8cff;
+  // Chrome: bars, the settings sheet or menu, and the controls on them.
+  --v-chrome-bg: #1e1e1e;
+  --v-chrome-line: #333;
+  --v-chrome-text: #ececec;
+  --v-chrome-muted: #9aa0a6;
+  --v-control-bg: #333;
+  --v-control-hover: #3a3a3a;
+  --v-control-line: #444;
+  --v-control-text: #ddd;
+  --v-accent: #{tk.$color-primary};
+  --v-accent-fill: #{tk.$color-primary-fill};
+  --v-on-accent: #{tk.$color-on-primary};
+  --v-toggle-off: #555;
+  --v-shadow: rgba(0, 0, 0, 0.5);
   --v-size: 20px;
+  color-scheme: dark;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -34,11 +50,37 @@ body {
   &--light {
     --v-bg: #fafafa; --v-text: #161616; --v-muted: #5f6368; --v-line: #e0e0e0; --v-partial: #80868b;
     --v-speaker: #{tk.$color-primary-fill}; --v-participant: #5a55d6;
+    --v-chrome-bg: #fff; --v-chrome-line: #dadce0; --v-chrome-text: #202124; --v-chrome-muted: #5f6368;
+    --v-control-bg: #f1f3f4; --v-control-hover: #e8eaed; --v-control-line: #dadce0; --v-control-text: #3c4043;
+    // The bright accent is unreadable on white: text and fill both take the deep green.
+    --v-accent: #{tk.$color-primary-fill}; --v-accent-fill: #{tk.$color-primary-fill}; --v-on-accent: #fff;
+    --v-toggle-off: #bdc1c6; --v-shadow: rgba(0, 0, 0, 0.15);
+    color-scheme: light;
   }
   &--contrast {
     --v-bg: #000; --v-text: #ffeb3b; --v-muted: #fff; --v-line: #555; --v-partial: #c7b833;
     --v-speaker: #ffeb3b; --v-participant: #4fc3f7;
+    --v-chrome-bg: #000; --v-chrome-line: #fff; --v-chrome-text: #fff; --v-chrome-muted: #fff;
+    --v-control-bg: #000; --v-control-hover: #222; --v-control-line: #fff; --v-control-text: #fff;
+    --v-accent: #ffeb3b; --v-accent-fill: #ffeb3b; --v-on-accent: #000;
+    --v-toggle-off: #777; --v-shadow: rgba(0, 0, 0, 0.8);
   }
+
+  // The app's switch and buttons, recoloured from the scheme inside this page only.
+  .toggle-switch-component .toggle-switch-label {
+    .toggle-label-text { color: var(--v-chrome-muted); }
+    .toggle-label-text.active { color: var(--v-accent); }
+    .toggle-track-container {
+      .toggle-track { background-color: var(--v-toggle-off); }
+      input:checked + .toggle-track { background-color: var(--v-accent); }
+    }
+  }
+  .settings-btn--primary,
+  .settings-btn--primary:hover:not(:disabled) { background: var(--v-accent-fill); color: var(--v-on-accent); }
+  .settings-btn--secondary { border-color: var(--v-accent); color: var(--v-accent); }
+  .settings-btn--secondary:hover:not(:disabled) { background: var(--v-control-hover); }
+  .settings-btn--ghost { color: var(--v-chrome-muted); }
+  .settings-btn--ghost:hover:not(:disabled) { color: var(--v-chrome-text); background: var(--v-control-hover); }
   &--size-small { --v-size: 16px; }
   &--size-medium { --v-size: 20px; }
   &--size-large { --v-size: 24px; }
@@ -54,31 +96,37 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  color: #ececec;
+  color: var(--v-chrome-text);
 
   &__title { margin: 0; font-size: 22px; font-weight: 600; }
-  &__pair { margin: 0; color: vars.$text-muted; }
+  &__pair { margin: 0; color: var(--v-chrome-muted); }
   &__choices {
     border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px;
-    legend { color: vars.$text-muted; font-size: vars.$font-caption; margin-bottom: 8px; }
+    legend { color: var(--v-chrome-muted); font-size: vars.$font-caption; margin-bottom: 8px; }
   }
-  &__note { margin: 0; color: vars.$text-muted; font-size: vars.$font-caption; line-height: 1.5; }
+  &__note { margin: 0; color: var(--v-chrome-muted); font-size: vars.$font-caption; line-height: 1.5; }
   .settings-btn { align-self: stretch; justify-content: center; }
 }
 
+// The option-row archetype's shape (vars.option-row), its colours from the scheme.
 .viewer-option {
-  @include vars.option-row;
+  border: 1px solid var(--v-control-line);
+  border-radius: vars.$radius-sm;
+  padding: 6px 8px;
+  font-size: vars.$font-body;
+  transition: border-color vars.$transition-fast, background-color vars.$transition-fast, color vars.$transition-fast;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  color: vars.$text-primary;
+  background: transparent;
+  color: var(--v-chrome-text);
   text-align: left;
   cursor: pointer;
-  &:hover { @include vars.option-row-hover; }
-  &.selected { color: vars.$color-primary; border-color: vars.$color-primary; }
+  &:hover { background: var(--v-control-hover); }
+  &.selected { color: var(--v-accent); border-color: var(--v-accent); }
   b { font-size: 15px; font-weight: vars.$weight-medium; }
-  span { font-size: vars.$font-caption; color: vars.$text-muted; }
+  span { font-size: vars.$font-caption; color: var(--v-chrome-muted); }
   &:focus-visible { @include vars.focus-ring; }
 }
 
@@ -88,7 +136,7 @@ body {
   align-items: stretch;
   height: 28px;
   box-sizing: border-box;
-  border: 1px solid #444;
+  border: 1px solid var(--v-control-line);
   border-radius: 6px;
   overflow: hidden;
   flex-shrink: 0;
@@ -99,15 +147,16 @@ body {
     justify-content: center;
     padding: 0 12px;
     font-size: 12px;
-    color: #aaa;
-    background: #333;
+    color: var(--v-control-text);
+    background: var(--v-control-bg);
     border: 0;
     line-height: 1;
     cursor: pointer;
     white-space: nowrap;
-    &:not(:last-child) { border-right: 1px solid #444; }
-    &:hover:not(.active) { background: #3a3a3a; }
-    &.active { @include vars.state-selected-fill; }
+    &:not(:last-child) { border-right: 1px solid var(--v-control-line); }
+    &:hover:not(.active) { background: var(--v-control-hover); }
+    // The app's state-selected-fill, from the scheme.
+    &.active { background: var(--v-accent-fill); color: var(--v-on-accent); }
     &:focus-visible { @include vars.focus-ring; }
   }
 }
@@ -118,9 +167,9 @@ body {
   align-items: center;
   gap: 10px;
   padding: 8px 20px;
-  border-bottom: 1px solid #333;
-  background: #1e1e1e;
-  color: #ececec;
+  border-bottom: 1px solid var(--v-chrome-line);
+  background: var(--v-chrome-bg);
+  color: var(--v-chrome-text);
   font-size: 13px;
   &__title { font-weight: 600; }
   &__grow { flex: 1; }
@@ -141,14 +190,14 @@ body {
     gap: 6px;
     min-height: 32px;
     padding: 0 12px;
-    border: 1px solid #444;
+    border: 1px solid var(--v-control-line);
     border-radius: 6px;
-    background: #333;
-    color: #ddd;
+    background: var(--v-control-bg);
+    color: var(--v-control-text);
     font-size: 13px;
     cursor: pointer;
     b { font-weight: 600; }
-    &:hover { background: #3a3a3a; }
+    &:hover { background: var(--v-control-hover); }
     &:focus-visible { @include vars.focus-ring; }
   }
 }
@@ -163,12 +212,12 @@ body {
 .viewer-icon-btn {
   min-width: 30px;
   height: 28px;
-  border: 1px solid #444;
+  border: 1px solid var(--v-control-line);
   border-radius: 6px;
-  background: #333;
-  color: #ddd;
+  background: var(--v-control-bg);
+  color: var(--v-control-text);
   cursor: pointer;
-  &:hover { background: #3a3a3a; }
+  &:hover { background: var(--v-control-hover); }
   &:focus-visible { @include vars.focus-ring; }
 }
 
@@ -219,12 +268,12 @@ body {
   transform: translateX(-50%);
   padding: 6px 14px;
   border-radius: 999px;
-  border: 1px solid #444;
-  background: #2b2b2b;
-  color: #ececec;
+  border: 1px solid var(--v-control-line);
+  background: var(--v-control-bg);
+  color: var(--v-control-text);
   font-size: 13px;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 14px var(--v-shadow);
 }
 
 // Desktop footer
@@ -233,26 +282,26 @@ body {
   justify-content: space-between;
   gap: 16px;
   padding: 6px 20px;
-  border-top: 1px solid #333;
-  background: #1e1e1e;
-  color: #9aa0a6;
+  border-top: 1px solid var(--v-chrome-line);
+  background: var(--v-chrome-bg);
+  color: var(--v-chrome-muted);
   font-size: 12px;
 }
 
-// Settings: a sheet on phones, a menu elsewhere; always the app's dark surface
+// Settings: a sheet on phones, a menu elsewhere, in the scheme's chrome colours
 .viewer-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); }
 .viewer-settings {
   position: fixed;
   z-index: 10;
-  background: #1e1e1e;
-  color: #ececec;
-  border: 1px solid #333;
+  background: var(--v-chrome-bg);
+  color: var(--v-chrome-text);
+  border: 1px solid var(--v-chrome-line);
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   font-size: vars.$font-body;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 24px var(--v-shadow);
 
   &--sheet { left: 0; right: 0; bottom: 0; border-radius: 16px 16px 0 0; padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
   &--menu { top: 52px; right: 16px; width: 340px; border-radius: 8px; }
@@ -263,7 +312,7 @@ body {
   }
   &__field {
     display: flex; flex-direction: column; gap: 6px;
-    > span { font-size: vars.$font-caption; color: vars.$text-muted; }
+    > span { font-size: vars.$font-caption; color: var(--v-chrome-muted); }
     // The field stretches the control to its width; the options share it, and
     // a long label ("Japanisch ⇄ Chinesisch (China)") wraps instead of clipping.
     .viewer-segmented { height: auto; min-height: 28px; }
@@ -272,8 +321,8 @@ body {
   &__save {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
     div { display: flex; flex-direction: column; gap: 2px; }
-    span { font-size: vars.$font-caption; color: vars.$text-muted; }
+    span { font-size: vars.$font-caption; color: var(--v-chrome-muted); }
   }
-  &__note { margin: 0; font-size: vars.$font-caption; color: vars.$text-muted; }
+  &__note { margin: 0; font-size: vars.$font-caption; color: var(--v-chrome-muted); }
   .toggle-switch-component { margin-top: 0; }
 }
