@@ -20,8 +20,10 @@ body {
   --v-muted: #9aa0a6;
   --v-line: #2c2c2c;
   --v-partial: #8e9497;
+  // On site and remote, as far apart in hue as the theme allows (green and
+  // blue-violet; the app's orange read like the green at a glance).
   --v-speaker: #{tk.$color-speaker};
-  --v-participant: #{tk.$color-participant};
+  --v-participant: #8f8cff;
   --v-size: 20px;
   height: 100%;
   display: flex;
@@ -31,7 +33,7 @@ body {
 
   &--light {
     --v-bg: #fafafa; --v-text: #161616; --v-muted: #5f6368; --v-line: #e0e0e0; --v-partial: #80868b;
-    --v-speaker: #{tk.$color-primary-fill}; --v-participant: #b9770e;
+    --v-speaker: #{tk.$color-primary-fill}; --v-participant: #5a55d6;
   }
   &--contrast {
     --v-bg: #000; --v-text: #ffeb3b; --v-muted: #fff; --v-line: #555; --v-partial: #c7b833;
@@ -140,15 +142,6 @@ body {
   &--live i { background: tk.$color-success; }
   &--reconnecting i { background: tk.$color-degraded; }
 }
-.viewer-legend {
-  display: inline-flex;
-  gap: 10px;
-  font-size: 12px;
-  color: var(--v-muted);
-  &__item::before { content: '●'; margin-right: 4px; }
-  &__item--speaker::before { color: var(--v-speaker); }
-  &__item--participant::before { color: var(--v-participant); }
-}
 .viewer-icon-btn {
   min-width: 30px;
   height: 28px;
@@ -179,10 +172,16 @@ body {
   &__primary { margin: 0; font-size: var(--v-size); line-height: 1.45; font-weight: 600; }
   &__secondary { margin: 4px 0 0; font-size: calc(var(--v-size) * 0.7); line-height: 1.5; color: var(--v-muted); }
   &__time { font-size: 12px; color: var(--v-muted); font-variant-numeric: tabular-nums; }
-  .viewer--two-legs &--speaker &__primary::before,
-  .viewer--two-legs &--participant &__primary::before { content: '●'; font-size: 0.5em; vertical-align: middle; margin-right: 0.5em; }
-  .viewer--two-legs &--speaker &__primary::before { color: var(--v-speaker); }
-  .viewer--two-legs &--participant &__primary::before { color: var(--v-participant); }
+
+  // Which side is speaking (his ruling 2026-10-04): a stripe down every line
+  // once both sides have spoken, and the side's name where it changes.
+  .viewer--two-legs & { border-left: 3px solid transparent; padding-left: 10px; }
+  .viewer--two-legs &--speaker { border-left-color: var(--v-speaker); }
+  .viewer--two-legs &--participant { border-left-color: var(--v-participant); }
+  &__side { display: block; margin-bottom: 2px; font-size: 12px; font-weight: 600; letter-spacing: 0.02em; }
+  &--speaker &__side { color: var(--v-speaker); }
+  &--participant &__side { color: var(--v-participant); }
+  .viewer--desktop & &__side { grid-column: 2 / -1; }
   .viewer--desktop.viewer--both & {
     display: grid;
     grid-template-columns: 52px minmax(0, 1fr) minmax(0, 1fr);
@@ -265,8 +264,10 @@ body {
   &__field {
     display: flex; flex-direction: column; gap: 6px;
     > span { font-size: vars.$font-caption; color: vars.$text-muted; }
-    // The field stretches the control to its width; the options share it.
-    .viewer-segmented__option { flex: 1 1 auto; }
+    // The field stretches the control to its width; the options share it, and
+    // a long label ("Japanisch ⇄ Chinesisch (China)") wraps instead of clipping.
+    .viewer-segmented { height: auto; min-height: 28px; }
+    .viewer-segmented__option { flex: 1 1 auto; min-width: 0; white-space: normal; padding: 6px 8px; line-height: 1.25; }
   }
   &__save {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;

@@ -18,7 +18,7 @@ import { viewerT } from './strings';
 import { defaultChoice, validChoice, type Choice } from './text';
 import { transcriptText } from './transcript';
 import { useViewerStream } from './useViewerStream';
-import { Dock, Legend, STATUS_KEYS, StatusText, TopBar } from './ViewerBar';
+import { Dock, STATUS_KEYS, StatusText, TopBar } from './ViewerBar';
 import './viewer.scss';
 
 const isSize = (v: unknown): v is Size => typeof v === 'string' && (SIZES as readonly string[]).includes(v);
@@ -126,15 +126,24 @@ const ViewerApp: React.FC = () => {
   }
 
   const legs = legsOf(model.entries);
-  const legend = legs.speaker && legs.participant;
+  const twoLegs = legs.speaker && legs.participant;
+  // Both languages: the chosen code leads. Tapping the selected "both" again
+  // swaps the order, and its label names the order shown (his ruling 2026-10-04).
+  const other = pair && (choice.code === pair.source ? pair.target : pair.source);
+  const onChoice = (v: string) => {
+    if (!pair) return;
+    if (v !== 'both') choose({ code: v, both: false });
+    else if (choice.both && other) choose({ code: other, both: true });
+    else choose({ code: choice.code || pair.target, both: true });
+  };
   const choiceControl = pair ? (
     <Segmented
       label={t('viewer.settings.iRead')}
       value={choice.both ? 'both' : choice.code}
-      onChange={(v) => choose(v === 'both' ? { code: choice.code || pair.target, both: true } : { code: v, both: false })}
+      onChange={onChoice}
       options={[
         { value: pair.source, label: name(pair.source) },
-        { value: 'both', label: t('viewer.enter.both') },
+        { value: 'both', label: choice.both && other ? `${name(choice.code)} ⇄ ${name(other)}` : t('viewer.enter.both') },
         { value: pair.target, label: name(pair.target) },
       ]}
     />
@@ -142,7 +151,7 @@ const ViewerApp: React.FC = () => {
   const emptyText = t(STATUS_KEYS[status]);
   const classes = [
     'viewer', `viewer--${layout}`, `viewer--${theme}`, `viewer--size-${size}`,
-    choice.both ? 'viewer--both' : '', legend ? 'viewer--two-legs' : '', fullscreen ? 'viewer--fullscreen' : '',
+    choice.both ? 'viewer--both' : '', twoLegs ? 'viewer--two-legs' : '', fullscreen ? 'viewer--fullscreen' : '',
   ].filter(Boolean).join(' ');
 
   return (
@@ -150,13 +159,12 @@ const ViewerApp: React.FC = () => {
       {layout === 'phone' ? (
         <header className="viewer-statusline">
           <StatusText t={t} status={status} />
-          {legend && <Legend t={t} />}
         </header>
       ) : !fullscreen && (
-        <TopBar t={t} status={status} legend={legend} choice={choiceControl}
+        <TopBar t={t} status={status} choice={choiceControl}
           onSmaller={() => changeSize(stepSize(size, -1))} onLarger={() => changeSize(stepSize(size, 1))} onMore={() => setSettingsOpen(true)} />
       )}
-      <CaptionList t={t} entries={model.entries} choice={choice} completeOnly={completeOnly} layout={layout}
+      <CaptionList t={t} entries={model.entries} choice={choice} completeOnly={completeOnly} layout={layout} twoLegs={twoLegs}
         notice={model.notice} emptyText={emptyText} following={following} onFollowingChange={setFollowing} />
       {layout === 'phone' && (
         <Dock t={t} onView={() => setSettingsOpen(true)} onTextSize={() => changeSize(size === 'xlarge' ? 'small' : stepSize(size, 1))} onMore={() => setSettingsOpen(true)} />

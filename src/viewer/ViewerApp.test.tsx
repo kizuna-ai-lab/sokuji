@@ -57,16 +57,35 @@ describe('ViewerApp', () => {
     expect(downloadFile).toHaveBeenCalled();
   });
 
-  it('shows the legend only once both sides have spoken', () => {
+  // Who is speaking: a tag on the line where the side changes, once both sides
+  // have spoken (his ruling 2026-10-04: stripe + tag at each change, no legend).
+  it('tags the side at each change of speaker, only once both sides have spoken', () => {
     render(<ViewerApp />);
     enter();
     expect(screen.queryByText('On site')).toBeNull();
     cleanup();
-    model.current = live({ entries: [entry('a', 'speaker', '今日は', '今天'), entry('b', 'participant', '谢谢', 'ありがとう', 2)] });
+    model.current = live({ entries: [
+      entry('a', 'speaker', '今日は', '今天', 1), entry('b', 'speaker', 'では', '那么', 2),
+      entry('c', 'participant', '谢谢', 'ありがとう', 3), entry('d', 'speaker', 'はい', '好', 4),
+    ] });
     render(<ViewerApp />);
     enter();
-    expect(screen.getByText('On site')).toBeTruthy();
-    expect(screen.getByText('Remote')).toBeTruthy();
+    const tags = (text: string) => screen.getAllByText(text).map((el) => el.closest('.viewer-entry')?.getAttribute('data-id'));
+    expect(tags('On site')).toEqual(['a', 'd']);
+    expect(tags('Remote')).toEqual(['c']);
+  });
+
+  // His ruling 2026-10-04: tapping the selected "both" again swaps which
+  // language leads; the button names the order it shows.
+  it('swaps the order of both languages when the selected both is tapped again', () => {
+    Object.defineProperty(window, 'innerWidth', { value: 1280, configurable: true });
+    render(<ViewerApp />);
+    enter();
+    const primary = () => document.querySelector('.viewer-entry__primary')?.textContent;
+    expect(primary()).toContain('今天');
+    fireEvent.click(screen.getByRole('button', { name: 'Chinese (China) ⇄ Japanese' }));
+    expect(screen.getByRole('button', { name: 'Japanese ⇄ Chinese (China)' })).toBeTruthy();
+    expect(primary()).toContain('今日は');
   });
 
   it('reads each side in the chosen language', () => {

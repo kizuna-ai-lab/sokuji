@@ -20,7 +20,7 @@ const entry = (id: string, tr: string, final = true): ViewerEntry => ({
 });
 const list = (entries: ViewerEntry[], choice: Choice = { code: 'zh-CN', both: false }, completeOnly = false) => (
   <CaptionList
-    t={(key) => key} entries={entries} choice={choice} completeOnly={completeOnly} layout="phone"
+    t={(key) => key} entries={entries} choice={choice} completeOnly={completeOnly} layout="phone" twoLegs={false}
     notice={null} emptyText="nothing yet" following onFollowingChange={() => {}}
   />
 );

@@ -72,8 +72,9 @@ Settled in brainstorming; each was a choice between listed alternatives.
     page alike (§9).
 12. **Controls appear only when they can be used.** No button for an unbuilt feature; an option the
     viewer cannot use is hidden, not disabled with an explanation.
-13. **Legend labels**: when both sides have spoken, the viewer page shows "● 现场 ● 线上" (English
-    source strings "On site" / "Remote"): the host's microphone side and the meeting-audio side.
+13. **Side labels**: when both sides have spoken, the viewer page names the side "现场" / "线上"
+    (English source strings "On site" / "Remote"): the host's microphone side and the meeting-audio
+    side. Shown as a tag where the side changes, with a coloured stripe per line (§5.2).
 
 ## 3. Architecture
 
@@ -256,9 +257,12 @@ and whenever any of it changes; `ended` as above.
 - **One language chosen**: each entry shows its text in that language: the translation rows where
   the entry's target is that language, the source rows where its source is. **Both**: the chosen
   language first and large; the other below, smaller and muted. If one side has no text yet, only
-  the other shows.
-- **Sides**: the host's side in the speaker colour, the other side in the participant colour
-  (`src/styles/_tokens.scss`). Once both legs have appeared, a one-line legend "● 现场 ● 线上".
+  the other shows. Tapping the selected 双语 again swaps which language leads; while selected, its
+  label names the order shown, e.g. "中文 ⇄ 日语" (his ruling 2026-10-04, after the live look).
+- **Sides** (revised 2026-10-04 after the live look, replacing the dots and the legend, which read
+  alike): once both legs have appeared, every line carries a 3px stripe down its left edge in its
+  side's colour (on site green, remote blue-violet: far apart in hue), and the line where the side
+  changes carries the side's name ("现场" / "线上") above it. No legend in the bar.
 - **Unfinished text** (rows with `final: false`): lighter, with a dashed underline. With "只显示完整句"
   on, unfinished rows are not drawn.
 - **Following**: the list follows new text. Scrolling up (touch or wheel) stops following and shows

@@ -19,28 +19,19 @@ export const StatusText: React.FC<{ t: T; status: ViewerStatus }> = ({ t, status
   </span>
 );
 
-export const Legend: React.FC<{ t: T }> = ({ t }) => (
-  <span className="viewer-legend">
-    <span className="viewer-legend__item viewer-legend__item--speaker">{t('viewer.legend.onSite')}</span>
-    <span className="viewer-legend__item viewer-legend__item--participant">{t('viewer.legend.remote')}</span>
-  </span>
-);
-
 interface TopBarProps {
   t: T;
   status: ViewerStatus;
-  legend: boolean;
   choice: React.ReactNode;
   onSmaller(): void;
   onLarger(): void;
   onMore(): void;
 }
 
-export const TopBar: React.FC<TopBarProps> = ({ t, status, legend, choice, onSmaller, onLarger, onMore }) => (
+export const TopBar: React.FC<TopBarProps> = ({ t, status, choice, onSmaller, onLarger, onMore }) => (
   <header className="viewer-bar">
     <StatusText t={t} status={status} />
     <span className="viewer-bar__title">{t('viewer.title')}</span>
-    {legend && <Legend t={t} />}
     <span className="viewer-bar__grow" />
     {choice}
     <button type="button" className="viewer-icon-btn" aria-label={`${t('viewer.dock.textSize')} −`} onClick={onSmaller}>A−</button>
