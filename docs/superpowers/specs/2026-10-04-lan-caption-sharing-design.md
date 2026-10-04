@@ -1,7 +1,8 @@
 # LAN Caption Sharing — Design
 
 **Date**: 2026-10-04
-**Status**: Approved section by section in brainstorming with jiangzhuo; this file awaits his review.
+**Status**: Approved section by section in brainstorming with jiangzhuo; revised after his first
+review (decisions 3 and 10).
 **Origin**: kizuna-ai-lab/sokuji discussion #556 ("share a QR code so people can watch on their phones").
 **Reference board** (private claude.ai artifact, screenshots of 30+ products and the mockups this
 design follows): https://claude.ai/artifact/L4XdZhs5iXK4AY7gdMMv4U
@@ -36,11 +37,12 @@ Settled in brainstorming; each was a choice between listed alternatives.
    come back. Rejected: WebSocket (`ws` would become a runtime dependency, and heartbeat and
    reconnect would be ours to write, for a one-way stream); serving the app's own `index.html` in a
    viewer mode (phones would download the whole app and run its sign-in and analytics start-up).
-3. **History accumulates from the moment sharing is turned on, across runs.** A Stop followed by a
-   Start does not empty the viewer page; the previous run's lines stay above the new ones. **The
-   host's Clear clears every viewer too**, which gives the host a way to take something back.
-   Rejected: accumulate and let Clear affect only the host; mirror the host view exactly (a new Start
-   would wipe what viewers had).
+3. **The viewer page mirrors the host's conversation.** It keeps what the host keeps and loses what
+   the host loses: a Stop leaves it as it is, a new Start empties it (the host's own conversation is
+   replaced at that moment, `src/lib/session/runner.ts:190`), and Clear empties it, which also gives
+   the host a way to take something back. Rejected: accumulating across runs while Clear clears
+   viewers (chosen first, then reversed by jiangzhuo: if Clear can wipe the viewer pages, a new Start
+   should too); accumulating with Clear affecting only the host.
 4. **No access barrier in v1.** The address is `http://<ip>:<port>/`; anyone on the network who
    knows it can watch while sharing is on. Mitigations that remain: sharing is off at every launch,
    it ends when the host turns it off or quits, and the address is only reachable on that network.
@@ -64,7 +66,8 @@ Settled in brainstorming; each was a choice between listed alternatives.
 9. **Nothing about sharing is persisted.** "Allow saving", the Wi‑Fi hint switch, the Wi‑Fi name
    and password, and whether the Windows firewall note was seen live in memory and are gone when
    Sokuji quits. Sharing is off at every launch.
-10. **No analytics** for this feature.
+10. **Analytics on the host side only**: two events, sharing started and sharing ended (§7.5), with
+    no content in them. The viewer page sends nothing to anyone.
 11. **The UI uses the app's existing components and styles**, on the host panel and on the viewer
     page alike (§9).
 12. **Controls appear only when they can be used.** No button for an unbuilt feature; an option the
@@ -80,7 +83,7 @@ Three parts. Data flows one way: host renderer → main process → viewers.
 Host renderer                         Main process                          Viewer browser
 ─────────────                         ────────────                          ──────────────
 conversation view ─► share publisher ─IPC─► caption-share server ─SSE─► viewer page (/)
-runner.onClear   ─┘   (diff, state)          (log, viewers, routes)        present page (/present,
+runner resets    ─┘   (diff, state)          (log, viewers, routes)        present page (/present,
 host panel ◄──────────── status push ───────┘                               loopback only, own window)
 ```
 
@@ -93,14 +96,16 @@ host panel ◄──────────── status push ─────�
   `ViewerEntry` (§4.1): id, leg, start time, the pair, and the source and translation rows with
   their text and `final` flag. Notices (errors, warnings) are not shared. No audio, no provider
   details.
-- **Diff.** The publisher keeps what it last sent and posts only upserts and removals. Entry ids
-  carry the run's session id (`src/lib/projection/project.ts:58, 85-88`), so ids never collide
-  across runs. A removal is sent only for an entry of the **current** run; entries of earlier runs
-  are frozen once a new run's entries appear (decision 3).
-- **Clear.** `runner.clear()` (`src/lib/session/runner.ts:311-314`) is the one path behind the
-  toolbar's Clear (`src/components/MainPanel/MainPanel.tsx:245-249`). The runner gains an
-  `onClear(listener)` subscription; the publisher sends `clear` and forgets what it sent. Clear is
-  never inferred from entries disappearing.
+- **Diff.** The publisher keeps what it last sent and posts only upserts and removals; it mirrors the
+  view, so an entry that leaves the view is removed. Entry ids carry the run's session id
+  (`src/lib/projection/project.ts:58, 85-88`), so a line of an old run is never mistaken for a line
+  of the new one.
+- **Resets.** The runner gains `onConversationReset(listener: (reason: 'clear' | 'restart') => void)`,
+  fired by `runner.clear()` (`src/lib/session/runner.ts:311-314`, the one path behind the toolbar's
+  Clear, `src/components/MainPanel/MainPanel.tsx:245-249`) and when a start replaces the
+  conversation (`runner.ts:190`). The publisher sends `clear` with that reason and forgets what it
+  sent. A reset is never inferred from entries disappearing. The view's update and the reset may
+  arrive in either order; both orders end in the same page.
 - **State.** Alongside the entries: the phase (`live` while the runner is running, `idle`
   otherwise), the language pair (`settings.common.sourceLanguage/targetLanguage`), and `allowSave`.
 - **Lifetime.** The publisher exists while sharing is on. It is started and stopped by the host
@@ -110,8 +115,8 @@ host panel ◄──────────── status push ─────�
 
 - Listens on `0.0.0.0`, trying ports 7788 to 7797 and taking the first free one. The port stays
   fixed for the whole sharing session.
-- Keeps the shared log: an insertion-ordered map from entry id to `ViewerEntry`, capped at 5,000
-  entries (oldest dropped first; a two-hour talk is about 1,500).
+- Keeps the shared conversation: an insertion-ordered map from entry id to `ViewerEntry`, emptied on
+  `clear`, capped at 5,000 entries (oldest dropped first; a two-hour talk is about 1,500).
 - Serves the routes in §4.3, counts open viewer streams, and pushes status to the host renderer.
 - Opens and closes the present window (§7.3).
 - Registered once at module load in the `setupX(...)` shape the other main modules use
@@ -164,7 +169,7 @@ Channels follow the `ns:verb` naming and are added to `INVOKE_CHANNELS`
 | `caption-share:start` | `ShareState` | `ShareStatus` or an error code (`ports-busy`, `listen-failed`) |
 | `caption-share:stop` | — | — |
 | `caption-share:patch` | `{ upsert: ViewerEntry[]; remove: string[] }` | — |
-| `caption-share:clear` | — | — |
+| `caption-share:clear` | `{ reason: 'clear' \| 'restart' }` | — |
 | `caption-share:state` | `ShareState` | — |
 | `caption-share:select-address` | `{ address: string }` | `ShareStatus` |
 | `caption-share:set-wifi` | `{ wifi: { ssid: string; password: string } \| null }` | — |
@@ -214,8 +219,8 @@ Viewer stream `/events`, as SSE events (`event:` name, JSON `data:`):
 |---|---|---|
 | `snapshot` | `{ state: ShareState; entries: ViewerEntry[] }` | first message of every connection |
 | `upsert` | `{ entries: ViewerEntry[] }` | entries added or changed |
-| `remove` | `{ ids: string[] }` | entries of the current run removed |
-| `clear` | `{}` | the host pressed Clear |
+| `remove` | `{ ids: string[] }` | entries left the host's view |
+| `clear` | `{ reason: 'clear' \| 'restart' }` | the host pressed Clear, or a new run started |
 | `state` | `{ state: ShareState }` | phase, pair or `allowSave` changed |
 | `ended` | `{}` | sharing ended; the server closes the stream right after |
 
@@ -253,8 +258,8 @@ and whenever any of it changes; `ended` as above.
   on, unfinished rows are not drawn.
 - **Following**: the list follows new text. Scrolling up (touch or wheel) stops following and shows
   a "回到当前" pill; tapping it, or End on a keyboard, resumes.
-- **Text is selectable.** Every entry since sharing began stays in the page's DOM, so the browser's
-  own find (Ctrl+F) searches the whole history.
+- **Text is selectable.** Every entry of the current conversation stays in the page's DOM, so the
+  browser's own find (Ctrl+F) searches all of it.
 
 ### 5.3 Layout by width
 
@@ -293,8 +298,8 @@ Shown in the top status text and in the document title (`● 直播中 · Sokuji
 | 重新连接中 | the stream dropped, the browser is retrying | entries stay |
 | 分享已结束 | `ended` received | reconnecting stops; save stays if it was allowed |
 
-On `clear` the list empties and one line "讲者清空了之前的字幕" stays at the top until the next
-entry arrives.
+On `clear` the list empties and one line stays at the top until the next entry arrives:
+"讲者清空了之前的字幕" for `clear`, "讲者开始了新的一轮" for `restart`.
 
 ### 5.6 Keep-awake
 
@@ -376,8 +381,24 @@ holds off a laptop's display sleep on Windows and macOS is not known and is on t
 ### 7.4 Store
 
 `src/stores/captionShareStore.ts`, a zustand store with no persistence: `status` (the latest
-`ShareStatus`), `allowSave`, `wifiHint: { enabled, ssid, password }`, `firewallNoteSeen`, and the
-start/stop actions that also start and stop the publisher. Persisting nothing is decision 9.
+`ShareStatus`), `allowSave`, `wifiHint: { enabled, ssid, password }`, `firewallNoteSeen`, the start
+time and the peak viewer count of the current share (for §7.5), and the start/stop actions that also
+start and stop the publisher. Persisting nothing is decision 9.
+
+### 7.5 Analytics
+
+Host side only, through `useAnalytics().trackEvent` and two new entries in `AnalyticsEvents`
+(`src/lib/analytics.ts:8`):
+
+| Event | Properties | When |
+|---|---|---|
+| `caption_share_started` | `{ address_kind: 'wifi' \| 'wired' \| 'other' \| 'virtual' }` | the server started and the panel shows the address |
+| `caption_share_ended` | `{ duration_ms: number; peak_viewers: number }` | the host turned sharing off |
+
+- No address, port, language, Wi‑Fi detail or caption text is sent. A failed start sends nothing.
+- Ends caused by quitting the app, a reload or a renderer crash are not tracked: the renderer that
+  would send the event is already gone.
+- The viewer page imports no analytics code.
 
 ## 8. Network and lifecycle
 
@@ -436,8 +457,8 @@ page has its own layout SCSS; it does not import `Settings.scss` or `MainPanel` 
 Test-first, as the repo works.
 
 1. **Pure functions** (renderer and viewer): `Entry` → `ViewerEntry` (notices dropped, rows kept
-   with `final`); the publisher's diff (upsert, change, removal in the current run only, earlier runs
-   frozen, clear resets); text by language (one language, both, two legs with reversed pairs); the
+   with `final`); the publisher's diff (upsert, change, removal when an entry leaves the view) and
+   resets (`clear` and `restart`, each with the view update arriving before and after); text by language (one language, both, two legs with reversed pairs); the
    viewer reducer over every stream event; default language from `navigator.languages`; follow and
    stop-following; width → layout; the `.txt` format; Wi‑Fi QR escaping; address ranking with real
    Windows, macOS and Linux interface names.
@@ -452,8 +473,10 @@ Test-first, as the repo works.
    (`electron/entry-map.consistency.test.js`); `src/viewer` in the console ledger; the 30 catalogs in
    lockstep (`src/locales/locales.consistency.test.ts`).
 4. **Components**: the host panel off and on; no network dropdown with one address; the 2-minute
-   warning (fake timers); no toolbar button outside Electron. The viewer page: no save action unless
-   allowed; every state. Because the suites never load a catalog, a test checks both directions:
+   warning (fake timers); no toolbar button outside Electron; `caption_share_started` on a
+   successful start only and `caption_share_ended` with duration and peak viewers on turning off
+   (a mocked `trackEvent`). The viewer page: no save action unless allowed; every state, including
+   both reset notes; nothing under `src/viewer` imports the analytics module or PostHog. Because the suites never load a catalog, a test checks both directions:
    every `viewer.*` key the viewer code uses exists in `en`, and every `en` `viewer.*` key is used.
 5. **Build**: after `npm run build`, `build/viewer.html` exists, and the viewer bundle references no
    external origin.
@@ -468,7 +491,8 @@ Test-first, as the repo works.
 - Keep-awake on a phone and on a laptop (Windows and macOS).
 - The present window dragged to a second display and made fullscreen.
 - A guest Wi‑Fi with client isolation: the 2-minute warning.
-- A Stop and Start in the middle of sharing (history continues), and Clear (viewers clear).
+- A Stop (viewer pages keep their lines), a new Start (viewer pages empty), and Clear (viewer pages
+  empty).
 
 ## 12. Out of scope for v1
 
