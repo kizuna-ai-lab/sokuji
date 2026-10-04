@@ -18,7 +18,7 @@ import { viewerT } from './strings';
 import { defaultChoice, validChoice, type Choice } from './text';
 import { transcriptText } from './transcript';
 import { useViewerStream } from './useViewerStream';
-import { Dock, STATUS_KEYS, StatusText, TopBar } from './ViewerBar';
+import { STATUS_KEYS, StatusLine, TopBar } from './ViewerBar';
 import './viewer.scss';
 
 const isSize = (v: unknown): v is Size => typeof v === 'string' && (SIZES as readonly string[]).includes(v);
@@ -157,18 +157,13 @@ const ViewerApp: React.FC = () => {
   return (
     <div className={classes}>
       {layout === 'phone' ? (
-        <header className="viewer-statusline">
-          <StatusText t={t} status={status} />
-        </header>
+        <StatusLine t={t} status={status} onSettings={() => setSettingsOpen(true)} />
       ) : !fullscreen && (
         <TopBar t={t} status={status} choice={choiceControl}
           onSmaller={() => changeSize(stepSize(size, -1))} onLarger={() => changeSize(stepSize(size, 1))} onMore={() => setSettingsOpen(true)} />
       )}
       <CaptionList t={t} entries={model.entries} choice={choice} completeOnly={completeOnly} layout={layout} twoLegs={twoLegs}
         notice={model.notice} emptyText={emptyText} following={following} onFollowingChange={setFollowing} />
-      {layout === 'phone' && (
-        <Dock t={t} onView={() => setSettingsOpen(true)} onTextSize={() => changeSize(size === 'xlarge' ? 'small' : stepSize(size, 1))} onMore={() => setSettingsOpen(true)} />
-      )}
       {layout === 'desktop' && !fullscreen && <footer className="viewer-footer"><span>{t('viewer.settings.aiNote')}</span><span>{t('viewer.shortcuts')}</span></footer>}
       {settingsOpen && (
         <SettingsPanel

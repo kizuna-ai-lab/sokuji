@@ -43,16 +43,29 @@ describe('ViewerApp', () => {
     expect(screen.getByText('今天')).toBeTruthy();
   });
 
+  // His ruling 2026-10-04: the phone's bottom dock repeated the settings sheet
+  // twice ("View" and "More") and took two or three lines of captions; one
+  // button in the status line opens the sheet instead.
+  it('opens the display settings from the status line on a phone, with no bottom dock', () => {
+    render(<ViewerApp />);
+    enter();
+    expect(document.querySelector('.viewer-dock')).toBeNull();
+    const button = screen.getByRole('button', { name: 'Display' });
+    expect(button.closest('.viewer-statusline')).not.toBeNull();
+    fireEvent.click(button);
+    expect(screen.getByRole('dialog', { name: 'Display' })).toBeTruthy();
+  });
+
   it('shows no save action unless the host allows it', () => {
     render(<ViewerApp />);
     enter();
-    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Display' }));
     expect(screen.queryByText('Save these captions')).toBeNull();
     cleanup();
     model.current = live({ state: { phase: 'live', pair: { source: 'ja', target: 'zh-CN' }, allowSave: true } });
     render(<ViewerApp />);
     enter();
-    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Display' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(downloadFile).toHaveBeenCalled();
   });

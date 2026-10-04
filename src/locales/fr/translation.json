@@ -1332,7 +1332,6 @@
     },
     "backToLive": "Revenir au direct",
     "dock": {
-      "view": "Affichage",
       "textSize": "Taille du texte",
       "more": "Plus"
     },

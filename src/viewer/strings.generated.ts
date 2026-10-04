@@ -29,7 +29,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "العودة إلى المباشر",
     "dock": {
-      "view": "اللغة",
       "textSize": "حجم النص",
       "more": "المزيد"
     },
@@ -104,7 +103,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "লাইভে ফিরুন",
     "dock": {
-      "view": "ভাষা",
       "textSize": "লেখার আকার",
       "more": "আরও"
     },
@@ -179,7 +177,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "Zurück zu Live",
     "dock": {
-      "view": "Ansicht",
       "textSize": "Schriftgröße",
       "more": "Mehr"
     },
@@ -254,7 +251,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "Back to live",
     "dock": {
-      "view": "View",
       "textSize": "Text size",
       "more": "More"
     },
@@ -329,7 +325,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "Volver al directo",
     "dock": {
-      "view": "Vista",
       "textSize": "Tamaño de fuente",
       "more": "Más"
     },
@@ -404,7 +399,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "بازگشت به پخش زنده",
     "dock": {
-      "view": "زبان",
       "textSize": "اندازهٔ متن",
       "more": "بیشتر"
     },
@@ -479,7 +473,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "Takaisin uusimpaan",
     "dock": {
-      "view": "Näkymä",
       "textSize": "Fonttikoko",
       "more": "Lisää"
     },
@@ -554,7 +547,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "Bumalik sa live",
     "dock": {
-      "view": "Wika",
       "textSize": "Laki ng teksto",
       "more": "Higit pa"
     },
@@ -629,7 +621,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "Revenir au direct",
     "dock": {
-      "view": "Affichage",
       "textSize": "Taille du texte",
       "more": "Plus"
     },
@@ -704,7 +695,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "חזרה לשידור החי",
     "dock": {
-      "view": "שפה",
       "textSize": "גודל טקסט",
       "more": "עוד"
     },
@@ -779,7 +769,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "लाइव पर लौटें",
     "dock": {
-      "view": "भाषा",
       "textSize": "टेक्स्ट आकार",
       "more": "और"
     },
@@ -854,7 +843,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "Ke terbaru",
     "dock": {
-      "view": "Bahasa",
       "textSize": "Ukuran teks",
       "more": "Lainnya"
     },
@@ -929,7 +917,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "Torna alla diretta",
     "dock": {
-      "view": "Vista",
       "textSize": "Dimensione carattere",
       "more": "Altro"
     },
@@ -1004,7 +991,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "最新に戻る",
     "dock": {
-      "view": "表示言語",
       "textSize": "文字サイズ",
       "more": "その他"
     },
@@ -1079,7 +1065,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "최신으로 이동",
     "dock": {
-      "view": "표시 언어",
       "textSize": "글자 크기",
       "more": "더 보기"
     },
@@ -1154,7 +1139,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "Ke terkini",
     "dock": {
-      "view": "Bahasa",
       "textSize": "Saiz teks",
       "more": "Lagi"
     },
@@ -1229,7 +1213,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "Terug naar live",
     "dock": {
-      "view": "Weergave",
       "textSize": "Lettergrootte",
       "more": "Meer"
     },
@@ -1304,7 +1287,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "Wróć do bieżących",
     "dock": {
-      "view": "Widok",
       "textSize": "Rozmiar czcionki",
       "more": "Więcej"
     },
@@ -1379,7 +1361,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "Voltar ao vivo",
     "dock": {
-      "view": "Idioma",
       "textSize": "Tamanho do texto",
       "more": "Mais"
     },
@@ -1454,7 +1435,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "Voltar ao direto",
     "dock": {
-      "view": "Idioma",
       "textSize": "Tamanho do texto",
       "more": "Mais"
     },
@@ -1529,7 +1509,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "К прямому эфиру",
     "dock": {
-      "view": "Язык",
       "textSize": "Размер текста",
       "more": "Ещё"
     },
@@ -1604,7 +1583,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "Tillbaka till live",
     "dock": {
-      "view": "Vy",
       "textSize": "Textstorlek",
       "more": "Mer"
     },
@@ -1679,7 +1657,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "நேரலைக்குத் திரும்பு",
     "dock": {
-      "view": "மொழி",
       "textSize": "எழுத்தளவு",
       "more": "மேலும்"
     },
@@ -1754,7 +1731,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "లైవ్‌కు తిరిగి వెళ్ళు",
     "dock": {
-      "view": "భాష",
       "textSize": "అక్షర పరిమాణం",
       "more": "మరిన్ని"
     },
@@ -1829,7 +1805,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "ไปที่ล่าสุด",
     "dock": {
-      "view": "ภาษา",
       "textSize": "ขนาดตัวอักษร",
       "more": "เพิ่มเติม"
     },
@@ -1904,7 +1879,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "Canlıya dön",
     "dock": {
-      "view": "Dil",
       "textSize": "Metin boyutu",
       "more": "Daha fazla"
     },
@@ -1979,7 +1953,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "До прямого ефіру",
     "dock": {
-      "view": "Мова",
       "textSize": "Розмір тексту",
       "more": "Ще"
     },
@@ -2054,7 +2027,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "Về mới nhất",
     "dock": {
-      "view": "Ngôn ngữ",
       "textSize": "Cỡ chữ",
       "more": "Thêm"
     },
@@ -2129,7 +2101,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "回到当前",
     "dock": {
-      "view": "看什么",
       "textSize": "字号",
       "more": "更多"
     },
@@ -2204,7 +2175,6 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "backToLive": "回到最新",
     "dock": {
-      "view": "看什麼",
       "textSize": "字級",
       "more": "更多"
     },

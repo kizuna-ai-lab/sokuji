@@ -274,7 +274,7 @@ and whenever any of it changes; `ended` as above.
 
 | Width | Typical | Captions | Controls |
 |---|---|---|---|
-| < 600px | phone; a laptop window made narrow | one column, chosen language above, other below | bottom bar: 看什么, 字号, 更多 |
+| < 600px | phone; a laptop window made narrow | one column, chosen language above, other below | one "Aa 显示设置" button at the right of the status line; no bottom bar (revised 2026-10-04: its 看什么 and 更多 both opened the same sheet, and it took two or three lines of captions) |
 | 600–1000px | tablet; half-screen window | one centred column, about 36 CJK characters wide | top bar |
 | ≥ 1000px | laptop full screen | both: side by side, one row per entry, time on the left; one language: centred column, large | top bar, shortcut hints in the footer |
 | fullscreen (F) | used as a screen in the room | top bar hidden, one font step larger | Esc leaves |

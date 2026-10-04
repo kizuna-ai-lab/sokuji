@@ -40,12 +40,17 @@ export const TopBar: React.FC<TopBarProps> = ({ t, status, choice, onSmaller, on
   </header>
 );
 
-interface DockProps { t: T; onView(): void; onTextSize(): void; onMore(): void }
-
-export const Dock: React.FC<DockProps> = ({ t, onView, onTextSize, onMore }) => (
-  <nav className="viewer-dock">
-    <button type="button" onClick={onView}><b aria-hidden="true">文A</b><span>{t('viewer.dock.view')}</span></button>
-    <button type="button" onClick={onTextSize}><b aria-hidden="true">Aa</b><span>{t('viewer.dock.textSize')}</span></button>
-    <button type="button" onClick={onMore} aria-label={t('viewer.dock.more')}><b aria-hidden="true">⋯</b><span>{t('viewer.dock.more')}</span></button>
-  </nav>
+/**
+ * Phones: the status line, with the one button that opens the display
+ * settings. No bottom dock (his ruling 2026-10-04): it repeated the sheet
+ * twice and took two or three lines of captions.
+ */
+export const StatusLine: React.FC<{ t: T; status: ViewerStatus; onSettings(): void }> = ({ t, status, onSettings }) => (
+  <header className="viewer-statusline">
+    <StatusText t={t} status={status} />
+    <button type="button" className="viewer-statusline__settings" onClick={onSettings}>
+      <b aria-hidden="true">Aa</b>
+      <span>{t('viewer.settings.title')}</span>
+    </button>
+  </header>
 );
