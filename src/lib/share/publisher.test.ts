@@ -105,4 +105,18 @@ describe('startSharePublisher', () => {
     await flush();
     expect(h.port.patch).toHaveBeenCalledTimes(1);
   });
+
+  // PR #597 review: a patch acknowledged after a reset belongs to the page the
+  // reset emptied. Counting its lines as delivered would keep them from ever
+  // being sent again when the view shows them after the reset.
+  it('does not count a patch acknowledged after a reset as delivered', async () => {
+    const h = harness(); // the first patch (line a) is in flight
+    h.reset('clear'); // the reset lands before its acknowledgement
+    await flush();
+    h.view.set({ entries: [exchange('a', '1')] });
+    await flush();
+    expect(h.port.patch).toHaveBeenCalledTimes(2);
+    expect(lastOf(h.port.patch.mock.calls)![0].upsert.map((e) => e.id)).toEqual(['a']);
+    h.stop();
+  });
 });

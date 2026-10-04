@@ -28,6 +28,9 @@ export function startSharePublisher(sources: PublisherSources, port: SharePort):
   const cache = new WeakMap<Entry, ShareItem | null>();
   let failing = false;
   let stopped = false;
+  // Bumped by every reset: a patch acknowledged after one belongs to the page
+  // the reset emptied, and its lines must not count as delivered.
+  let generation = 0;
 
   const failed = (error: unknown) => {
     if (!failing) {
@@ -54,8 +57,9 @@ export function startSharePublisher(sources: PublisherSources, port: SharePort):
     if (stopped) return;
     const diff = diffEntries(acked, items());
     if (diff.upsert.length === 0 && diff.remove.length === 0) return;
+    const sentIn = generation;
     port.patch({ upsert: diff.upsert, remove: diff.remove }).then(
-      () => { failing = false; applyDiff(acked, diff); },
+      () => { failing = false; if (sentIn === generation) applyDiff(acked, diff); },
       failed,
     );
   };
@@ -75,6 +79,7 @@ export function startSharePublisher(sources: PublisherSources, port: SharePort):
   const offView = sources.view.subscribe(publish);
   const offState = sources.state.subscribe(sendState);
   const offReset = sources.onReset((reason) => {
+    generation += 1;
     acked.clear();
     port.clear(reason).catch(failed);
   });
