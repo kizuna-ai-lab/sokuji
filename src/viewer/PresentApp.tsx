@@ -8,7 +8,13 @@ import { wifiQrText } from '../lib/share/wifiQr';
 import { viewerT } from './strings';
 import './present.scss';
 
-const languages = (): readonly string[] => (navigator.languages && navigator.languages.length > 0 ? navigator.languages : [navigator.language]);
+// The host's window passes Sokuji's UI language as `?lang=`: this window's own
+// navigator.languages is the OS locale, which may not be the language the host uses.
+const languages = (): readonly string[] => {
+  const ui = new URLSearchParams(window.location.search).get('lang');
+  const browser = navigator.languages && navigator.languages.length > 0 ? navigator.languages : [navigator.language];
+  return ui ? [ui, ...browser] : browser;
+};
 
 export default function PresentApp(): React.ReactElement {
   const { t, catalog } = useMemo(() => viewerT(languages()), []);

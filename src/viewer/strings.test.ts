@@ -29,6 +29,10 @@ describe('viewer strings', () => {
     expect(pickCatalog(['zh-Hant-TW'], ALL)).toBe('zh_TW');
     expect(pickCatalog(['zh-HK'], ALL)).toBe('zh_TW');
     expect(pickCatalog(['zh'], ALL)).toBe('zh_CN');
+    // The app's own catalog ids, as the host's window passes its UI language.
+    expect(pickCatalog(['zh_TW'], ALL)).toBe('zh_TW');
+    expect(pickCatalog(['pt_BR'], ALL)).toBe('pt_BR');
+    expect(pickCatalog(['zh_CN'], ALL)).toBe('zh_CN');
     expect(pickCatalog(['zh-Hans-CN'], ALL)).toBe('zh_CN');
     expect(pickCatalog(['pt-BR'], ALL)).toBe('pt_BR');
     expect(pickCatalog(['pt'], ALL)).toBe('pt_PT');

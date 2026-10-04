@@ -33,6 +33,14 @@ describe('PresentApp', () => {
     expect(document.title).toBe('Sokuji projector page');
   });
 
+  it("speaks the host's UI language from the address, over the window's OS locale", () => {
+    window.history.pushState({}, '', '/present?lang=ja');
+    render(<PresentApp />);
+    act(() => FakeEventSource.last!.emit('present', INFO));
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('お手元のスマートフォンやパソコンで字幕をご覧ください');
+    window.history.pushState({}, '', '/present');
+  });
+
   it('leaves the pair out until the host has one', () => {
     render(<PresentApp />);
     act(() => FakeEventSource.last!.emit('present', { ...INFO, pair: { source: '', target: '' } }));

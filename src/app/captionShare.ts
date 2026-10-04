@@ -14,6 +14,7 @@ import { startSharePublisher, type SharePort } from '../lib/share/publisher';
 import type { ShareState, ShareStatus } from '../lib/share/types';
 import { useCaptionShareStore, type ShareError, type WifiHintState } from '../stores/captionShareStore';
 import { useProviderStore } from '../stores/providerStore';
+import useSettingsStore from '../stores/settingsStore';
 import { getAppSession } from './session';
 
 export interface CaptionShareIpc {
@@ -28,6 +29,8 @@ export interface CaptionShareDeps {
   runState: { getState(): RunState; subscribe(listener: () => void): () => void };
   pair: { get(): { source: string; target: string } | null; subscribe(listener: () => void): () => void };
   store: typeof useCaptionShareStore;
+  /** Sokuji's UI language (a catalog id such as `zh_CN`): the present window's OS locale may differ. */
+  uiLanguage(): string;
   now(): number;
 }
 
@@ -146,7 +149,7 @@ export function createCaptionShareController(deps: CaptionShareDeps): CaptionSha
     },
     async openPresent() {
       try {
-        await deps.ipc.invoke('caption-share:present');
+        await deps.ipc.invoke('caption-share:present', { lang: deps.uiLanguage() });
       } catch (error) {
         reportError('CaptionShare', `Opening the projector page failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'caption-share:present' });
       }
@@ -182,6 +185,7 @@ export function getCaptionShareController(): CaptionShareController {
       runState: { getState: () => session.runner.state.getState(), subscribe: (listener) => session.runner.state.subscribe(() => listener()) },
       pair: sharedPair,
       store: useCaptionShareStore,
+      uiLanguage: () => useSettingsStore.getState().uiLanguage,
       now: () => Date.now(),
     });
   }

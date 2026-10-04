@@ -16,11 +16,11 @@ export const VIEWER_CATALOGS: Readonly<Record<string, Words>> = VIEWER_WORDS as 
 
 const ALIASES: Readonly<Record<string, string>> = { iw: 'he', in: 'id', tl: 'fil' };
 
-/** The first of the browser's languages a catalog exists for; English otherwise. */
+/** The first of the browser's languages (BCP-47, or a catalog id such as `zh_CN`) a catalog exists for; English otherwise. */
 export function pickCatalog(languages: readonly string[], available: readonly string[]): string {
   const have = new Set(available);
   for (const raw of languages) {
-    const [base, ...rest] = raw.toLowerCase().split('-');
+    const [base, ...rest] = raw.toLowerCase().split(/[-_]/);
     let id: string;
     if (base === 'zh') id = rest.some((p) => p === 'hant' || p === 'tw' || p === 'hk' || p === 'mo') ? 'zh_TW' : 'zh_CN';
     else if (base === 'pt') id = rest.includes('br') ? 'pt_BR' : 'pt_PT';

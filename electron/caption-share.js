@@ -71,6 +71,7 @@ function setupCaptionShare({
   let wifi = null;
   let poll = null;
   let presentWindow = null;
+  let presentUrl = null;
   let viewers = 0;
 
   const status = () => ({ running: server.running(), port: server.port(), addresses, selected, viewers, addressChanged });
@@ -190,9 +191,14 @@ function setupCaptionShare({
     pushPresent();
   });
 
-  ipcMain.handle('caption-share:present', (event) => {
+  ipcMain.handle('caption-share:present', (event, payload) => {
     if (!isTrustedSender(event.sender) || !server.running()) return;
+    // Sokuji's UI language, for the page's words: this window's navigator.languages
+    // is the OS locale. Only a catalog-shaped id (`ja`, `zh_CN`, `pt-BR`) goes into the URL.
+    const lang = typeof payload?.lang === 'string' && /^[A-Za-z]{2,3}([_-][A-Za-z0-9]{2,8})?$/.test(payload.lang) ? payload.lang : null;
+    const url = `http://127.0.0.1:${server.port()}/present${lang ? `?lang=${lang}` : ''}`;
     if (presentWindow && !presentWindow.isDestroyed()) {
+      if (presentUrl !== url) { presentUrl = url; presentWindow.loadURL(url); }
       presentWindow.show();
       presentWindow.focus();
       return;
@@ -206,7 +212,8 @@ function setupCaptionShare({
       webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
     });
     presentWindow.on('closed', () => { presentWindow = null; });
-    presentWindow.loadURL(`http://127.0.0.1:${server.port()}/present`);
+    presentUrl = url;
+    presentWindow.loadURL(url);
   });
 
   app.on('will-quit', () => { void stop(); });

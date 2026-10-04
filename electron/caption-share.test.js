@@ -140,6 +140,24 @@ describe('caption share glue', () => {
     expect(server.calls).toContain('stop');
   });
 
+  // The present window's navigator.languages is the OS locale, not Sokuji's UI
+  // language; the host's window passes the UI language along.
+  it("opens the present page in the host's UI language, and reloads it when that changed", async () => {
+    await call('caption-share:start', STATE);
+    await call('caption-share:present', { lang: 'zh_CN' });
+    expect(FakeBrowserWindow.all[0].url).toBe('http://127.0.0.1:7788/present?lang=zh_CN');
+    await call('caption-share:present', { lang: 'zh_CN' });
+    await call('caption-share:present', { lang: 'ja' });
+    expect(FakeBrowserWindow.all).toHaveLength(1);
+    expect(FakeBrowserWindow.all[0].url).toBe('http://127.0.0.1:7788/present?lang=ja');
+  });
+
+  it('leaves out a language that is not a catalog id', async () => {
+    await call('caption-share:start', STATE);
+    await call('caption-share:present', { lang: 'x"><b>' });
+    expect(FakeBrowserWindow.all[0].url).toBe('http://127.0.0.1:7788/present');
+  });
+
   it('carries the Wi-Fi hint to the present page and drops an empty name', async () => {
     await call('caption-share:start', STATE);
     await call('caption-share:set-wifi', { wifi: { ssid: 'Meetup-Guest', password: 'pw' } });

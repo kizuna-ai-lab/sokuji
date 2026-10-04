@@ -32,6 +32,7 @@ function setup(startResult: unknown = STATUS) {
     runState: { getState: () => run.getState(), subscribe: (l) => run.subscribe(() => l()) },
     pair: { get: () => ({ source: 'ja', target: 'zh-CN' }), subscribe: () => () => {} },
     store: useCaptionShareStore,
+    uiLanguage: () => 'zh_CN',
     now: () => 5000,
   });
   return { ipc, receivers, controller, run };
@@ -101,5 +102,12 @@ describe('caption share controller', () => {
     await controller.stop();
     expect(channels(ipc)).toEqual(expect.arrayContaining(['caption-share:select-address', 'caption-share:present', 'caption-share:stop']));
     expect(useCaptionShareStore.getState().status).toEqual(IDLE_STATUS);
+  });
+
+  it("opens the present window in Sokuji's UI language", async () => {
+    const { ipc, controller } = setup();
+    await controller.start();
+    await controller.openPresent();
+    expect(ipc.invoke).toHaveBeenCalledWith('caption-share:present', { lang: 'zh_CN' });
   });
 });
