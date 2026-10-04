@@ -28,21 +28,25 @@ for (const m of html.matchAll(/(?:src|href)="(?:https?:)?\/\/[^"]*"/g)) problems
 
 // Sentinels: Japanese strings outside `viewer` that differ from English at the
 // same key. An untranslated placeholder equals English and may legitimately
-// appear inside a viewer string ("Watching"), so it proves nothing.
+// appear inside a viewer string ("Watching"), so it proves nothing; nor does
+// a string a viewer string contains ("セッションを開始" inside the viewer's
+// "…新しいセッションを開始しました").
 const ja = JSON.parse(readFileSync(join(root, 'src/locales/ja/translation.json'), 'utf8'));
 const en = JSON.parse(readFileSync(join(root, 'src/locales/en/translation.json'), 'utf8'));
-const sentinels = [];
-const walk = (node, english) => {
+const walk = (node, english, out, differsOnly) => {
   for (const [key, value] of Object.entries(node)) {
     const other = english && typeof english === 'object' ? english[key] : undefined;
     if (typeof value === 'string') {
-      if (value.length >= 8 && value !== other) sentinels.push(value);
+      if (!differsOnly || (value.length >= 8 && value !== other)) out.push(value);
     } else if (value && typeof value === 'object') {
-      walk(value, other);
+      walk(value, other, out, differsOnly);
     }
   }
+  return out;
 };
-walk(Object.fromEntries(Object.entries(ja).filter(([key]) => key !== 'viewer')), en);
+const viewerStrings = walk(ja.viewer ?? {}, en.viewer, [], false);
+const sentinels = walk(Object.fromEntries(Object.entries(ja).filter(([key]) => key !== 'viewer')), en, [], true)
+  .filter((s) => !viewerStrings.some((v) => v.includes(s)));
 const code = files.filter((f) => f.endsWith('.js')).map((f) => readFileSync(join(build, f), 'utf8')).join('\n');
 const leaked = sentinels.filter((s) => code.includes(s));
 if (leaked.length > 0) problems.push(`${leaked.length} strings from other ja catalog subtrees are in the viewer bundle, e.g. "${leaked[0]}"`);
