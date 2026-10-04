@@ -59,7 +59,7 @@ class FakeBrowserWindow extends EventEmitter {
   focus() { this.focused += 1; }
 }
 
-let handlers, server, main, interfaces, beat, share;
+let handlers, server, main, interfaces, beat, beats, ports, share;
 const call = (channel, payload, sender = main.webContents) => handlers.get(channel)({ sender }, payload);
 
 beforeEach(() => {
@@ -69,6 +69,8 @@ beforeEach(() => {
   main = fakeWindow();
   interfaces = { wlan0: [v4('192.168.1.23')], docker0: [v4('172.17.0.1')] };
   beat = null;
+  beats = 0;
+  ports = async () => new Map();
   share = setupCaptionShare({
     ipcMain: { handle: (channel, fn) => { if (handlers.has(channel)) throw new Error(`twice: ${channel}`); handlers.set(channel, fn); } },
     BrowserWindow: FakeBrowserWindow,
@@ -77,9 +79,9 @@ beforeEach(() => {
     getMainWindow: () => main,
     isDev: false,
     networkInterfaces: () => interfaces,
-    hardwarePorts: async () => new Map(),
+    hardwarePorts: () => ports(),
     createServer: () => server,
-    timers: { setInterval: (fn) => { beat = fn; return 1; }, clearInterval: () => {} },
+    timers: { setInterval: (fn) => { beat = fn; beats += 1; return beats; }, clearInterval: () => { beats -= 1; } },
   });
   share.attachWindow(main);
 });
@@ -175,6 +177,29 @@ describe('caption share glue', () => {
     main.webContents.emit('render-process-gone', {}, { reason: 'crashed' });
     await new Promise((r) => setTimeout(r, 0));
     expect(server.running()).toBe(false);
+  });
+
+  // PR #597 review: a window that closes while the share is still starting
+  // (the hardware-port lookup can take seconds on macOS) must not leave a
+  // listener on the network that no window shows.
+  it('a start the window closed under ends instead of serving', async () => {
+    let release;
+    ports = () => new Promise((resolve) => { release = () => resolve(new Map()); });
+    const starting = call('caption-share:start', STATE);
+    main.emit('closed');
+    release();
+    const result = await starting;
+    expect(result).toMatchObject({ error: 'listen-failed' });
+    expect(server.running()).toBe(false);
+    expect(beats).toBe(0);
+  });
+
+  it('a second start while sharing answers the status without a second network poll', async () => {
+    await call('caption-share:start', STATE);
+    expect(beats).toBe(1);
+    const again = await call('caption-share:start', STATE);
+    expect(again).toMatchObject({ running: true, port: 7788 });
+    expect(beats).toBe(1);
   });
 
   it('a window recreated on macOS gets the pushes without registering the handlers again', async () => {

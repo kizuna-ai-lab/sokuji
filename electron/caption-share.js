@@ -72,6 +72,8 @@ function setupCaptionShare({
   let poll = null;
   let presentWindow = null;
   let presentUrl = null;
+  // Bumped whenever the host window closes, crashes or navigates away.
+  let windowGeneration = 0;
   let viewers = 0;
 
   const status = () => ({ running: server.running(), port: server.port(), addresses, selected, viewers, addressChanged });
@@ -122,12 +124,22 @@ function setupCaptionShare({
     if (!isTrustedSender(event.sender)) return { error: 'listen-failed', reason: 'not the main window' };
     const next = validState(payload);
     if (!next) return { error: 'listen-failed', reason: 'bad state' };
+    // Already sharing: the status as it is, and no second network poll.
+    if (server.running()) return status();
     state = next;
+    const startedIn = windowGeneration;
     try {
       hardware = await hardwarePorts();
       await server.start(state);
     } catch (error) {
       return { error: error && error.code === 'ports-busy' ? 'ports-busy' : 'listen-failed', reason: String((error && error.message) || error) };
+    }
+    // The window that asked closed, crashed or navigated while this started
+    // (the port lookup can take seconds on macOS): end rather than serve a
+    // network no window shows.
+    if (startedIn !== windowGeneration) {
+      await stop();
+      return { error: 'listen-failed', reason: 'the window closed while sharing started' };
     }
     selected = null;
     addressChanged = false;
@@ -220,6 +232,8 @@ function setupCaptionShare({
 
   const attachWindow = (win) => {
     const end = () => {
+      // Also cancels a start still in flight: it checks the generation when it lands.
+      windowGeneration += 1;
       if (server.running()) void stop();
     };
     win.webContents.on('render-process-gone', end);
