@@ -890,6 +890,13 @@ describe('runner — legs end together (D21)', () => {
       expect.objectContaining({ severity: 'info', code: 'mic_now_using', params: { device: 'USB Mic' } }),
     ]);
   });
+
+  it("carries a source notice's lifetime onto its leg", async () => {
+    const { runner, sources } = setup();
+    await runner.start();
+    sources[0].degrade('Now using the microphone "USB Mic".', 'mic_now_using', { severity: 'info', lifetime: 'transient' });
+    expect(runner.conversation.snapshot()[0].notices).toEqual([expect.objectContaining({ code: 'mic_now_using', lifetime: 'transient' })]);
+  });
 });
 
 describe('runner — the Logs line each leg ends with (Stage 2 session end, ruling 2 (i))', () => {

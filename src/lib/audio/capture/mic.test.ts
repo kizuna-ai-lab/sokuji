@@ -269,7 +269,7 @@ describe('openMic — its device going away (#593)', () => {
     expect(fixture.unusable).toEqual(['mic-1']);
     expect(ended).not.toHaveBeenCalled();
     expect(degraded).toHaveBeenCalledTimes(1);
-    expect(degraded).toHaveBeenCalledWith(expect.objectContaining({ code: MIC_LOST_USING_OTHER, severity: 'warning', params: { lost: 'Built-in Mic', device: 'USB Mic' } }));
+    expect(degraded).toHaveBeenCalledWith(expect.objectContaining({ code: MIC_LOST_USING_OTHER, severity: 'warning', params: { lost: 'Built-in Mic', device: 'USB Mic' }, lifetime: 'transient' }));
   });
 
   it('raises the same notice, once, when the store moves on before the track ends', async () => {
@@ -318,12 +318,13 @@ describe('openMic — its device going away (#593)', () => {
     await settle();
     expect(fake.calls).not.toContain('begin:default');
     expect(ended).not.toHaveBeenCalled();
-    expect(degraded).toHaveBeenLastCalledWith(expect.objectContaining({ code: MIC_LOST_WAITING, severity: 'warning', params: { lost: 'Built-in Mic' } }));
+    // Every device notice is transient: the surfaces hide it after a while (#481).
+    expect(degraded).toHaveBeenLastCalledWith(expect.objectContaining({ code: MIC_LOST_WAITING, severity: 'warning', params: { lost: 'Built-in Mic' }, lifetime: 'transient' }));
 
     fixture.set({ deviceId: 'mic-3' });
     await settle();
     expect(fake.calls.slice(-2)).toEqual(['begin:mic-3', 'record']);
-    expect(degraded).toHaveBeenLastCalledWith(expect.objectContaining({ code: MIC_NOW_USING, severity: 'info', params: { device: 'Webcam Mic' } }));
+    expect(degraded).toHaveBeenLastCalledWith(expect.objectContaining({ code: MIC_NOW_USING, severity: 'info', params: { device: 'Webcam Mic' }, lifetime: 'transient' }));
     expect(degraded).toHaveBeenCalledTimes(2);
   });
 

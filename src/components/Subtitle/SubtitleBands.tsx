@@ -6,6 +6,7 @@ import { buildBands, type BandPiece } from '../../lib/subtitle/bands';
 import { displayItems, type LegFilters } from '../../lib/view/filter';
 import { noticeText } from '../../lib/view/noticeText';
 import { ConversationList } from '../Conversation/ConversationList';
+import { useVisibleEntries } from '../Conversation/useVisibleEntries';
 import './SubtitleStream.scss';
 import '../../styles/karaoke.scss';
 
@@ -33,7 +34,9 @@ const noReplay = () => {};
  * (`--subtitle-*` for the bands, `--conversation-*` for the list).
  */
 export function SubtitleBody(props: SubtitleBodyProps) {
-  const { entries, lit, compact, fontSize, filters, sourceTextColor, translationTextColor } = props;
+  const { lit, compact, fontSize, filters, sourceTextColor, translationTextColor } = props;
+  // A transient notice (a microphone switch) leaves the subtitle once its time is up.
+  const entries = useVisibleEntries(props.entries);
   const style: CSSProperties & Record<string, string> = {
     fontSize: `${fontSize}px`,
     '--conversation-font-size': `${fontSize}px`,

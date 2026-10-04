@@ -43,6 +43,7 @@ export type Entry =
       message: string;
       code?: string;
       params?: Record<string, string | number>;
+      lifetime?: 'transient';
       at: number;
     };
 

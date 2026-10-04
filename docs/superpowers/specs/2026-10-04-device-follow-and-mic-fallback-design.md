@@ -118,6 +118,13 @@ Plumbing:
 - Every consumer takes it: `conversation/types.ts:38`, `projection/types.ts:42`, `export/transcript.ts:143`, and `ConversationList.tsx:191`.
 - `NoticeBubble` draws info with a neutral colour, lucide's `Info` icon and the header "Notice" (`mainPanel.notice`, in every catalog). The bubble is rendered and screenshotted for review before merge.
 
+**Their lifetime** (jiangzhuo, 2026-10-05, after the live tests): all three device notices are transient.
+
+- **What hides them:** the conversation list (main window and expanded subtitles) and the compact subtitle bands hide them `TRANSIENT_NOTICE_MS` (8 s) after they were recorded.
+- **What keeps them:** the conversation, its export and the session-end auto-save keep them.
+- **How it is modelled:** the lifetime is a kind, not a per-call duration. `Notice.lifetime: 'transient'` is set by the source, and the one duration lives in the view (`lib/view/filter.ts`). That follows #481 (a notice's lifetime follows its kind, not its call site), so another notice can join by setting the same field.
+- **Accepted trade-off:** the waiting notice hides too, while the microphone is still missing. jiangzhuo chose that over keeping it on screen.
+
 ### 4. Platforms
 
 All of the above runs in the renderer, so Electron on Windows, macOS and Linux and the extension's side panel behave alike. What differs is how a device disappears:

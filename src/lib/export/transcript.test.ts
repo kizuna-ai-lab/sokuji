@@ -149,4 +149,10 @@ describe('renderTranscriptJson — notice params', () => {
     const json = renderTranscriptJson([{ kind: 'notice', id: 'n2', leg: 'participant', severity: 'error', message: 'ended', code: 'source_ended', params: { leg: 'participant' }, at: 9 }], []);
     expect(json.notices).toEqual([{ id: 'n2', leg: 'participant', at: 9, severity: 'error', message: 'ended', code: 'source_ended', params: { leg: 'participant' } }]);
   });
+
+  // The surfaces hide a transient notice after a while; the record keeps it.
+  it('keeps a transient notice, whatever its age', () => {
+    const json = renderTranscriptJson([{ kind: 'notice', id: 'n3', leg: 'speaker', severity: 'info', message: 'now using', code: 'mic_now_using', params: { device: 'USB Mic' }, lifetime: 'transient', at: 1 }], []);
+    expect(json.notices).toEqual([expect.objectContaining({ id: 'n3', code: 'mic_now_using', params: { device: 'USB Mic' } })]);
+  });
 });

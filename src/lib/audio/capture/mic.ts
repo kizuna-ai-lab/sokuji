@@ -144,8 +144,10 @@ export async function openMic(
     await recorder.record((data) => core.deliver(data.mono));
   };
 
+  // A device switch is a passing event: the surfaces hide its notice after a
+  // while, the conversation and its export keep it (jiangzhuo, 2026-10-05).
   const notice = (code: string, message: string, params: Record<string, string>, severity: 'warning' | 'info' = 'warning') =>
-    core.degrade({ code, message, params, severity });
+    core.degrade({ code, message, params, severity, lifetime: 'transient' });
 
   /** Opens `next` (or waits, for none) and says where the microphone went, when it went there because of a loss. */
   const switchTo = async (next: string | undefined) => {

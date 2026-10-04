@@ -126,9 +126,9 @@ export class Conversation {
   }
 
   /** A degradation from outside the adapter's stream (a source's): a warning unless said, throttled per code like `degraded`. */
-  degraded(code: string, message: string, extra: { params?: Record<string, string | number>; severity?: 'warning' | 'info' } = {}): void {
+  degraded(code: string, message: string, extra: { params?: Record<string, string | number>; severity?: 'warning' | 'info'; lifetime?: 'transient' } = {}): void {
     if (!this.admitDegraded(code)) return;
-    this.batch(() => this.addNotice({ severity: extra.severity ?? 'warning', message, code, params: extra.params }));
+    this.batch(() => this.addNotice({ severity: extra.severity ?? 'warning', message, code, params: extra.params, lifetime: extra.lifetime }));
   }
 
   /**

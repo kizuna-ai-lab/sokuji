@@ -9,7 +9,7 @@ export interface FakeSource extends Source {
   /** Ends the capture, as an unplugged device would. */
   end(reason: string): void;
   /** Reports the capture as degraded, with a code (default 'source_degraded'), and optionally its params and level. */
-  degrade(message: string, code?: string, extra?: Pick<SourceNotice, 'params' | 'severity'>): void;
+  degrade(message: string, code?: string, extra?: Pick<SourceNotice, 'params' | 'severity' | 'lifetime'>): void;
   readonly stopped: boolean;
 }
 

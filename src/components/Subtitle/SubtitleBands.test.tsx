@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { act, render } from '@testing-library/react';
+import { TRANSIENT_NOTICE_MS } from '../../lib/view/filter';
 import type { Entry, Row } from '../../lib/projection/types';
 import { SubtitleBody, type SubtitleBodyProps } from './SubtitleBands';
 
@@ -111,5 +112,22 @@ describe('SubtitleBody — expanded', () => {
     expect(container.querySelector('.subtitle-stream.expanded')).not.toBeNull();
     expect([...container.querySelectorAll('.conversation-row .row-text')].map((el) => el.textContent)).toEqual(['こんにちは。']);
     expect(container.querySelector('.row-play-btn')).toBeNull();
+  });
+});
+
+describe('SubtitleBody — a transient notice (#481)', () => {
+  const transient: Entry = { kind: 'notice', id: 'n', leg: 'speaker', severity: 'info', message: 'Now using the microphone "USB Mic".', at: 10_000, lifetime: 'transient' };
+
+  it.each([true, false])('shows it, then leaves it out once its time is up (compact: %s)', (compact) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(10_000);
+    try {
+      const { container } = render(<SubtitleBody {...props({ compact, entries: [transient] })} />);
+      expect(container.textContent).toContain('Now using the microphone');
+      act(() => { vi.advanceTimersByTime(TRANSIENT_NOTICE_MS); });
+      expect(container.textContent).not.toContain('Now using the microphone');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

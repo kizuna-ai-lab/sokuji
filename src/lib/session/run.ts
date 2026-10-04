@@ -461,8 +461,8 @@ export class Run {
     const conversation = this.conversations.get(leg)!;
     this.stack.defer(`${leg} end watch`, source.onEnded((reason) =>
       this.legEnded(leg, 'source-ended', { code: 'source_ended' satisfies RunNoticeCode, message: `The ${leg} capture ended: ${reason}` })));
-    this.stack.defer(`${leg} degradation watch`, source.onDegraded(({ code, message, params, severity }) =>
-      conversation.degraded(code, message, { params, severity })));
+    this.stack.defer(`${leg} degradation watch`, source.onDegraded(({ code, message, params, severity, lifetime }) =>
+      conversation.degraded(code, message, { params, severity, lifetime })));
     return source;
   }
 

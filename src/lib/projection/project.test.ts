@@ -66,6 +66,15 @@ describe('createProjector', () => {
     expect(entry).toMatchObject({ kind: 'notice', code: 'lease_ended', params: { minutes: 3 } });
   });
 
+  it("carries a notice's lifetime onto its entry, and a changed lifetime is a changed entry", () => {
+    const projector = createProjector();
+    const notice: Notice = { id: 's:speaker:n1', at: 5, severity: 'info', message: 'now using', code: 'mic_now_using', lifetime: 'transient' };
+    const [entry] = projector.project([legOf('speaker', [], [notice])], DEFAULT_PROJECTION);
+    expect(entry).toMatchObject({ kind: 'notice', lifetime: 'transient' });
+    const [again] = projector.project([legOf('speaker', [], [{ ...notice, lifetime: undefined }])], DEFAULT_PROJECTION);
+    expect(again).not.toBe(entry);
+  });
+
   it('cuts rows with the settings', () => {
     const src = seg('speaker', { text: 'One. Two.' });
     const [e] = exchanges(createProjector().project([legOf('speaker', [src])], { ...DEFAULT_PROJECTION, mode: 'sentences', sentencesPerRow: 1 }));

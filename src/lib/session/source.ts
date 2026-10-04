@@ -9,6 +9,8 @@ export interface SourceNotice {
   params?: Record<string, string | number>;
   /** 'warning' unless said; 'info' is good news, e.g. a microphone back in use. */
   severity?: 'warning' | 'info';
+  /** 'transient': a passing event the surfaces hide after a while (`Notice.lifetime`). */
+  lifetime?: 'transient';
 }
 
 /** One leg's capture (spec: "Sources, in full"): 24 kHz mono pcm, an end, and a degradation. */
