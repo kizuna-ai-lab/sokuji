@@ -2574,7 +2574,8 @@ Add to `src/lib/diagnostics/consoleLedger.consistency.test.ts`, inside `describe
 
 ```ts
   it('nothing draws a notice through a surface this design retired (spec 2026-10-05)', () => {
-    const retired = /components\/Toast\b|EchoNotice\/EchoNotice\b|components\/UpdateBanner\b|components\/AudioSystemBanner\b|lib\/view\/lastEnd\b/;
+    // Relative imports carry no `components/`: match the module path's tail, quoted.
+    const retired = /['"][^'"]*\/(Toast|UpdateBanner\/UpdateBanner|AudioSystemBanner\/AudioSystemBanner|EchoNotice\/EchoNotice|view\/lastEnd)['"]/;
     const offenders: string[] = [];
     for (const file of scannedFiles()) {
       for (const line of read(file).split('\n')) {
