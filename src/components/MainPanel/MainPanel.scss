@@ -124,91 +124,42 @@
   gap: 4px;
 }
 
-.message-bubble {
-  max-width: 80%;
-  padding: 6px 10px;
-  border-radius: 12px;
-  position: relative;
-  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+// ─── System rows (spec 2026-10-05 §2, R2) ──────────
+// An event in the conversation: a chat system row, not a message. No
+// background, no header word; the severity is the icon's colour and the
+// text's brightness. Nothing else in src/ draws `.message-bubble` any more.
 
-  // ── Role variants ──
+.sys-row {
+  padding: 3px 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #9aa0a6;
+  text-align: center;
 
-  &.system {
-    align-self: center;
-    background: #444;
-    font-style: italic;
-    max-width: 90%;
-
-    &.playing {
-      background: #555;
-      box-shadow: 0 0 10px rgba(tk.$color-speaker, 0.3);
-    }
+  > svg {
+    display: inline-block;
+    vertical-align: -2px;
+    margin-right: 5px;
   }
 
-  // ── Error ──
+  &--error { color: #d8d8d8; > svg { color: #ff6b6b; } }
+  &--warning { color: #bdbdbd; > svg { color: tk.$color-degraded; } }
+  &--info { color: #8a8a8a; > svg { color: tk.$color-toolbar-icon; } }
 
-  &.error {
-    align-self: center;
-    background: #5a1a1a;
-    border: 1px solid #cc4444;
-    margin-left: auto;
-    margin-right: auto;
+  &__text { display: inline; }
 
-    .message-header {
-      color: #ff6b6b;
-      font-weight: 600;
-      svg { margin-right: 4px; }
-    }
-
-    .message-content.error-content {
-      color: #ff6b6b;
-    }
-  }
-
-  // ── Header & Content ──
-
-  .message-header {
-    font-size: 11px;
-    text-transform: uppercase;
-    opacity: 0.7;
-    margin-bottom: 4px;
-    font-weight: 500;
-    display: none;
-    align-items: center;
-    gap: 6px;
-  }
-
-  &.error .message-header,
-  &.system .message-header {
-    display: flex;
-  }
-
-  .message-content {
-    font-size: var(--conversation-font-size, 14px);
-    line-height: 1.4;
-    word-wrap: break-word;
-    white-space: pre-wrap;
-    position: relative;
-  }
-
-  // A notice's action (plan 1e-3b-1 ruling 13) — the link look of the nearest
-  // sibling control, `.language-model-warning__link` (Settings.scss).
-  .message-action {
+  // The action is a link after the words: ` · Settings`.
+  &__action {
+    font: inherit;
     background: none;
     border: none;
     padding: 0;
-    font: inherit;
-    color: #ff6b6b;
+    color: tk.$color-primary;
     text-decoration: underline;
     cursor: pointer;
-    display: inline-block;
-    margin-top: 4px;
-    &:hover {
-      opacity: 0.8;
-    }
-    &:focus-visible {
-      @include vars.focus-ring;
-    }
+    &::before { content: ' · '; color: #666; text-decoration: none; display: inline-block; }
+    &:hover { opacity: 0.8; }
+    &:focus-visible { @include vars.focus-ring; }
   }
 }
 

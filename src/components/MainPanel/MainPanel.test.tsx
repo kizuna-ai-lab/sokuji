@@ -398,9 +398,9 @@ describe('MainPanel', () => {
     // A refused start keeps the last conversation; the idle line comes after it.
     expect(list.querySelectorAll('.conversation-row').length).toBeGreaterThan(0);
     const last = list.lastElementChild as HTMLElement;
-    expect(last.classList.contains('message-bubble')).toBe(true);
+    expect(last.classList.contains('sys-row')).toBe(true);
     expect(last.textContent).toContain('notices.not_ready');
-    expect(container.querySelector('.message-action')).toBeNull();
+    expect(container.querySelector('.sys-row__action')).toBeNull();
   });
 
   it("disables every replay while the gate says so, and hands the gate the run, the platform and Other's source", async () => {
@@ -438,7 +438,7 @@ describe('MainPanel', () => {
     act(() => { lastModal().onClose(); });
     expect(lastModal()).toMatchObject({ isOpen: false, type: null });
 
-    const actions = container.querySelectorAll<HTMLButtonElement>('.message-action');
+    const actions = container.querySelectorAll<HTMLButtonElement>('.sys-row__action');
     expect(actions.length).toBe(1);
     expect(actions[0].textContent).toBe('audioPanel.openSystemSettings');
     fireEvent.click(actions[0]);
@@ -483,7 +483,7 @@ describe('MainPanel', () => {
       act(() => {
         runner().state.setState({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'no_microphone', message: 'm', leg: 'speaker' } } }, true);
       });
-      const actions = container.querySelectorAll<HTMLButtonElement>('.message-action');
+      const actions = container.querySelectorAll<HTMLButtonElement>('.sys-row__action');
       expect(actions.length).toBe(1);
       expect(actions[0].textContent).toBe('settings.title');
       fireEvent.click(actions[0]);
@@ -501,11 +501,11 @@ describe('MainPanel', () => {
     act(() => {
       runner().state.setState({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'not_ready', message: 'm' } } }, true);
     });
-    expect(container.querySelector('.message-action')).toBeNull();
+    expect(container.querySelector('.sys-row__action')).toBeNull();
     act(() => {
       runner().state.setState({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'no_microphone', message: 'm', leg: 'speaker' } } }, true);
     });
-    expect(container.querySelector('.message-action')?.textContent).toBe('settings.title');
+    expect(container.querySelector('.sys-row__action')?.textContent).toBe('settings.title');
   });
 
   // Today's toggle (`MainPanel.tsx:3543-3551`): the playing item's button stops it.
@@ -545,18 +545,18 @@ describe('MainPanel', () => {
     act(() => {
       runner().state.setState({ phase: 'idle', lastEnd: { reason: 'start-failed', notice: { code: 'start_failed', message: 'socket closed' } } }, true);
     });
-    expect(container.querySelectorAll('.conversation-list .message-bubble').length).toBe(1);
+    expect(container.querySelectorAll('.conversation-list .sys-row').length).toBe(1);
     expect(clear().disabled).toBe(false);
 
     fireEvent.click(clear());
-    expect(container.querySelector('.message-bubble')).toBeNull();
+    expect(container.querySelector('.sys-row')).toBeNull();
     expect(container.querySelector('.conversation-display .empty-state')).not.toBeNull();
     expect(clear().disabled).toBe(true);
 
     act(() => {
       runner().state.setState({ phase: 'idle', lastEnd: { reason: 'start-failed', notice: { code: 'start_failed', message: 'socket closed again' } } }, true);
     });
-    expect(container.querySelectorAll('.conversation-list .message-bubble').length).toBe(1);
+    expect(container.querySelectorAll('.conversation-list .sys-row').length).toBe(1);
   });
 
   it("clears a refused start's line with the conversation it kept", async () => {
@@ -567,7 +567,7 @@ describe('MainPanel', () => {
     act(() => { useProviderStore.getState().updateSettings(fakeProvider, { checkFails: true }); });
     await click(container, () => expect(runner().state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'refused' } }));
     expect(container.querySelectorAll('.conversation-list .conversation-row').length).toBeGreaterThan(0);
-    expect(container.querySelectorAll('.conversation-list .message-bubble').length).toBe(1);
+    expect(container.querySelectorAll('.conversation-list .sys-row').length).toBe(1);
 
     fireEvent.click(container.querySelector('.clear-conversation-btn') as HTMLButtonElement);
     act(() => { clock.advance(VIEW_INTERVAL_MS); });
