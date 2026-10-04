@@ -9,6 +9,7 @@ const core = require('./caption-share-core.js');
 const PORTS = Array.from({ length: 10 }, (_, i) => 7788 + i);
 const HEARTBEAT_MS = 15_000;
 const WRONG_HOST = 'Open the address Sokuji shows. It starts with http:// and a number such as 192.168.1.23.';
+const FORWARDED_HEADERS = ['accept', 'accept-encoding', 'accept-language', 'if-none-match', 'if-modified-since', 'cache-control'];
 
 function listen(server, port) {
   return new Promise((resolve, reject) => {
@@ -85,10 +86,14 @@ function createCaptionShareServer({ assets, devServerUrl = null, ports = PORTS, 
 
   // Development only: the Vite dev server serves viewer.html and its modules.
   // Its responses pass through as they are (no CSP: Vite injects inline scripts).
+  // The upstream is pinned to the dev server and only a path goes to it, with
+  // a few caching headers: never a host the request names, never its cookies.
   const proxy = (req, res, targetPath) => {
-    const target = new URL(targetPath, devServerUrl);
+    const target = new URL(devServerUrl);
+    const headers = { host: target.host };
+    for (const name of FORWARDED_HEADERS) if (req.headers[name]) headers[name] = req.headers[name];
     const upstream = http.request(
-      { hostname: target.hostname, port: target.port, path: target.pathname + target.search, method: 'GET', headers: { ...req.headers, host: target.host } },
+      { hostname: target.hostname, port: target.port, path: targetPath, method: 'GET', headers },
       (up) => {
         res.writeHead(up.statusCode ?? 502, up.headers);
         up.pipe(res);
@@ -106,9 +111,9 @@ function createCaptionShareServer({ assets, devServerUrl = null, ports = PORTS, 
     res.end(html);
   };
 
-  const serveAsset = async (req, res, pathname) => {
-    if (devServerUrl) return proxy(req, res, req.url);
-    const rel = core.staticPath(pathname);
+  const serveAsset = async (req, res, url) => {
+    if (devServerUrl) return proxy(req, res, url.pathname + url.search);
+    const rel = core.staticPath(url.pathname);
     if (!rel) return send(res, 404, 'Not found');
     const allowed = await assets.allowed();
     if (!allowed.has(rel)) return send(res, 404, 'Not found');
@@ -127,6 +132,9 @@ function createCaptionShareServer({ assets, devServerUrl = null, ports = PORTS, 
     } catch {
       return send(res, 404, 'Not found');
     }
+    // An absolute-form (`http://other/x`) or protocol-relative (`//other/x`)
+    // target names another host: this server answers only for itself.
+    if (url.origin !== 'http://localhost') return send(res, 404, 'Not found');
     const local = core.isLoopback(req.socket.remoteAddress);
     switch (url.pathname) {
       case '/events':
@@ -138,7 +146,7 @@ function createCaptionShareServer({ assets, devServerUrl = null, ports = PORTS, 
       case '/':
         return servePage(req, res);
       default:
-        return serveAsset(req, res, url.pathname);
+        return serveAsset(req, res, url);
     }
   };
 

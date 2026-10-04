@@ -18,9 +18,9 @@ function memoryAssets() {
   return { allowed: async () => new Set(['static/viewer-1.js']), read: async (rel) => files.get(rel) ?? null };
 }
 
-function get(port, path, host = `127.0.0.1:${port}`) {
+function get(port, path, host = `127.0.0.1:${port}`, headers = {}) {
   return new Promise((resolve, reject) => {
-    const req = http.get({ host: '127.0.0.1', port, path, headers: { Host: host } }, (res) => {
+    const req = http.get({ host: '127.0.0.1', port, path, headers: { Host: host, ...headers } }, (res) => {
       let body = '';
       res.setEncoding('utf8');
       res.on('data', (c) => { body += c; });
@@ -171,6 +171,27 @@ describe('caption share server', () => {
     expect(one.events.at(-1)).toEqual({ name: 'ended', data: {} });
     expect(server.running()).toBe(false);
     await expect(get(port, '/')).rejects.toBeTruthy();
+  });
+
+  it('in development, forwards only a path to the pinned dev server, never to a host the request names', async () => {
+    const seen = [];
+    const upstream = http.createServer((req, res) => {
+      seen.push({ url: req.url, host: req.headers.host, cookie: req.headers.cookie });
+      res.end('dev');
+    });
+    await new Promise((r) => upstream.listen(0, '127.0.0.1', r));
+    try {
+      const devHost = `127.0.0.1:${upstream.address().port}`;
+      const server = make({ assets: null, devServerUrl: `http://${devHost}` });
+      const { port } = await server.start(STATE);
+      expect((await get(port, '//evil.example/x')).status).toBe(404);
+      expect((await get(port, 'http://evil.example/x')).status).toBe(404);
+      const ok = await get(port, '/src/viewer/main.tsx?v=1', undefined, { Cookie: 'session=secret' });
+      expect(ok.body).toBe('dev');
+      expect(seen).toEqual([{ url: '/src/viewer/main.tsx?v=1', host: devHost, cookie: undefined }]);
+    } finally {
+      await new Promise((r) => upstream.close(r));
+    }
   });
 
   it('forwards page requests to the development server', async () => {
