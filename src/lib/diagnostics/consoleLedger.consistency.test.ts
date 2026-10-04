@@ -48,6 +48,9 @@ const ROOTS = [
   // the new providers (Stage 2): adapters never log — they emit (CLAUDE.md) —
   // and their components report.
   'src/providers',
+  // The LAN caption viewer runs on other devices and cannot reach report():
+  // it shows failures as page state and logs nothing (spec 2026-10-04 §10).
+  'src/viewer',
 ];
 
 /** Top-level entry points, which are files rather than directories. */
