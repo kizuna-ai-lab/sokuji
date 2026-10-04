@@ -35,7 +35,8 @@ const REOPEN_HOLD_MS = 5_000;
 function refused(error: unknown): boolean {
   if (!(error instanceof MicrophoneCaptureError)) return false;
   const name = (error.cause as { name?: unknown } | null | undefined)?.name;
-  return name === 'NotAllowedError' || name === 'SecurityError';
+  // PermissionDeniedError: older Chromium's name for NotAllowedError (as in describeMicrophoneFailure).
+  return name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError';
 }
 
 export type NoiseSuppression = 'off' | 'standard' | 'enhanced';

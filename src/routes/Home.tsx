@@ -46,10 +46,16 @@ export function Home() {
       // looking. Linux announces a USB device but not a Bluetooth or PipeWire
       // one coming back, so without this it would never switch back or leave
       // waiting. Each beat is only a device listing, so polling can run for as
-      // long as needed.
+      // long as needed. A selection still on a device marked unusable counts
+      // too: after a failed open, a sync whose listing failed or came back
+      // incomplete leaves it there, and without another devicechange only the
+      // poll would ever move it on.
       shouldPoll: () => {
         const audio = useAudioStore.getState();
-        return audio.selectedInputDevice === null || (audio.savedInputDeviceId !== null && audio.selectedInputDevice.deviceId !== audio.savedInputDeviceId);
+        const selected = audio.selectedInputDevice;
+        return selected === null
+          || (audio.savedInputDeviceId !== null && selected.deviceId !== audio.savedInputDeviceId)
+          || audio.unusableInputIds.includes(selected.deviceId);
       },
     });
   }, []); // Empty dependency array - only run once on mount

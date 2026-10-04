@@ -431,6 +431,20 @@ describe('openMic — its device going away (#593)', () => {
       expect(degraded).not.toHaveBeenCalled();
     });
 
+    // Older Chromium spells a revoked permission the legacy way;
+    // describeMicrophoneFailure already treats it as NotAllowedError.
+    it('treats the legacy PermissionDeniedError as a refusal too', async () => {
+      const fake = fakeRecorder({ throwOn: { 2: denied('PermissionDeniedError') } });
+      const fixture = settingsFixture();
+      const source = await openMic(fixture.settings, live(), () => fake.recorder);
+      const ended = vi.fn();
+      source.onEnded(ended);
+      fixture.set({ deviceId: 'mic-2' });
+      await settle();
+      expect(ended).toHaveBeenCalledWith(expect.stringContaining('PermissionDeniedError'));
+      expect(fixture.unusable).toEqual([]);
+    });
+
     it('ends the source when the reopen after a lost track is refused, marking nothing', async () => {
       const fake = fakeRecorder({ throwOn: { 2: denied('SecurityError') } });
       const fixture = settingsFixture();
