@@ -117,6 +117,14 @@ describe('noticeText', () => {
     expect(at(enCatalog, NOTICE_ALIASES.region_unsupported)).toBe('Service not available in your region. Please check your network environment or try a different provider.');
   });
 
+  it('words the panel notes by the export keys (spec 2026-10-05 §5)', () => {
+    const t = ((key: string, opts?: { defaultValue?: string }) => `${key}|${opts?.defaultValue ?? ''}`) as unknown as import('i18next').TFunction;
+    expect(noticeText(t, { code: 'export_copied', message: 'copied' })).toBe('mainPanel.export.copySuccess|copied');
+    expect(noticeText(t, { code: 'export_copy_failed', message: 'failed' })).toBe('mainPanel.export.copyFailed|failed');
+    expect(noticeText(t, { code: 'autosave_saved', message: 'saved' })).toBe('mainPanel.export.autoSave.saved|saved');
+    expect(noticeText(t, { code: 'autosave_failed', message: 'failed' })).toBe('mainPanel.export.autoSave.failed|failed');
+  });
+
   it("puts the local engines' notices into words", () => {
     for (const code of ['no_asr', 'memory_exceeded', 'gpu_out_of_memory', 'transcription_failed', 'translation_failed', 'translation_unavailable']) {
       expect(NOTICE_WORDS[code]).toBeDefined();

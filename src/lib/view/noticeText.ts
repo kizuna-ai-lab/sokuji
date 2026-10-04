@@ -114,6 +114,12 @@ export const NOTICE_ALIASES: Readonly<Record<string, string>> = {
   // OpenAI Translate (Stage 2 OpenAI Translate, choice 11): a key that lists no gpt-realtime-translate model, and a region OpenAI does not serve — the old validation's sentences, which every locale already has.
   no_translate_model: 'settings.translateModelNotAvailable',
   region_unsupported: 'settings.regionNotSupported',
+  // The panel notes (spec 2026-10-05 §5): a result about the conversation,
+  // worded by the export menu's own sentences.
+  export_copied: 'mainPanel.export.copySuccess',
+  export_copy_failed: 'mainPanel.export.copyFailed',
+  autosave_saved: 'mainPanel.export.autoSave.saved',
+  autosave_failed: 'mainPanel.export.autoSave.failed',
 };
 
 /** The notice in the user's words; the message itself for a code with no words, as today's bubbles show it. */
