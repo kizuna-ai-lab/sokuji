@@ -33,7 +33,9 @@ const ViewerApp: React.FC = () => {
   const { t, catalog } = useMemo(() => viewerT(languages()), []);
   const model = useViewerStream();
   const status = statusOf(model);
-  const pair = model.state?.pair ?? null;
+  // A host whose provider has not loaded sends two blank codes: no pair yet.
+  const sent = model.state?.pair;
+  const pair = sent && sent.source && sent.target ? sent : null;
   const [width, setWidth] = useState(() => window.innerWidth);
   const layout = layoutFor(width);
   const [entered, setEntered] = useState(false);

@@ -12,9 +12,10 @@ interface SegmentedProps<V extends string> {
 export default function Segmented<V extends string>({ label, options, value, onChange }: SegmentedProps<V>): React.ReactElement {
   return (
     <div className="viewer-segmented" role="group" aria-label={label}>
-      {options.map((o) => (
+      {/* Keyed by position: two options may briefly share a value, and a duplicate key leaves stale buttons. */}
+      {options.map((o, i) => (
         <button
-          key={o.value}
+          key={i}
           type="button"
           className={`viewer-segmented__option ${o.value === value ? 'active' : ''}`.trim()}
           aria-pressed={o.value === value}

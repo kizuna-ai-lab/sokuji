@@ -61,7 +61,10 @@ export default function PresentApp(): React.ReactElement {
     <main className="present">
       <header className="present__head">
         <h1>{t('viewer.present.title')}</h1>
-        <p>{`${name(info.pair.source)} ⇄ ${name(info.pair.target)} · ${t('viewer.present.noInstall')}`}</p>
+        {/* A host whose provider has not loaded sends two blank codes: no pair to name yet. */}
+        <p>{info.pair.source && info.pair.target
+          ? `${name(info.pair.source)} ⇄ ${name(info.pair.target)} · ${t('viewer.present.noInstall')}`
+          : t('viewer.present.noInstall')}</p>
         <button type="button" className="present__fullscreen" onClick={() => void toggleFullscreen()}>{t('viewer.present.fullscreen')}</button>
       </header>
       <ol className={`present__steps ${info.wifi ? 'present__steps--wifi' : ''}`.trim()}>

@@ -33,6 +33,14 @@ describe('PresentApp', () => {
     expect(document.title).toBe('Sokuji projector page');
   });
 
+  it('leaves the pair out until the host has one', () => {
+    render(<PresentApp />);
+    act(() => FakeEventSource.last!.emit('present', { ...INFO, pair: { source: '', target: '' } }));
+    expect(screen.getByText('No app, no sign-in')).toBeTruthy();
+    act(() => FakeEventSource.last!.emit('present', INFO));
+    expect(screen.getByText('Japanese ⇄ Chinese (China) · No app, no sign-in')).toBeTruthy();
+  });
+
   it('adds the Wi-Fi step with name, password and its own QR code', () => {
     render(<PresentApp />);
     act(() => FakeEventSource.last!.emit('present', { ...INFO, wifi: { ssid: 'Meetup-Guest', password: 'pw' } }));

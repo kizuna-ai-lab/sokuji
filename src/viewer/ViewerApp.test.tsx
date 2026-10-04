@@ -106,6 +106,15 @@ describe('ViewerApp', () => {
     expect(screen.getByText('今天')).toBeTruthy();
   });
 
+  // A host whose provider has not loaded yet sends a pair of two blank codes:
+  // that is no pair yet, not two languages without names.
+  it('waits for a pair with two languages before offering a choice', () => {
+    model.current = live({ state: { phase: 'live', pair: { source: '', target: '' }, allowSave: false } });
+    render(<ViewerApp />);
+    expect(screen.getByText('Connecting…')).toBeTruthy();
+    expect((screen.getByRole('button', { name: 'Start reading' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
   // Spec §5.6: the browser pauses the keep-awake video while the page is
   // hidden (another app, the lock screen); coming back must turn it on again,
   // or the screen sleeps mid-talk.
