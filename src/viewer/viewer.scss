@@ -168,7 +168,8 @@ body {
   overflow-y: auto;
   padding: 12px 16px 24px;
   box-sizing: border-box;
-  .viewer--tablet &, .viewer--desktop:not(.viewer--both) & { max-width: 44em; margin: 0 auto; }
+  // A centred reading column, but the scroller stays full width so its bar sits at the window edge.
+  .viewer--tablet &, .viewer--desktop:not(.viewer--both) & { padding-inline: max(16px, calc((100% - 44em) / 2)); }
   &__notice, &__empty { color: var(--v-muted); font-size: 14px; text-align: center; margin: 16px 0; }
 }
 .viewer-entry {
@@ -264,6 +265,8 @@ body {
   &__field {
     display: flex; flex-direction: column; gap: 6px;
     > span { font-size: vars.$font-caption; color: vars.$text-muted; }
+    // The field stretches the control to its width; the options share it.
+    .viewer-segmented__option { flex: 1 1 auto; }
   }
   &__save {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;

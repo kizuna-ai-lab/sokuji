@@ -2,6 +2,18 @@
 @use '../Settings/shared/variables' as vars;
 @use '../../styles/tokens' as tk;
 
+// Floating wrapper (CaptionShareButton): size() middleware sets max-height
+// inline; the panel scrolls within it, as .display-popover-floating does.
+.caption-share-floating {
+  display: flex;
+  min-height: 0;
+
+  .caption-share-panel {
+    min-height: 0;
+    overflow-y: auto;
+  }
+}
+
 // Chrome copied from .display-settings-popover (DisplaySettingsPopover.scss),
 // the toolbar's other popover, so the two read as one family.
 .caption-share-panel {
@@ -51,18 +63,20 @@
     margin-bottom: 4px;
   }
 
+  // The whole address stays readable (the host reads it out; the port matters),
+  // so it wraps rather than truncating, with Copy under it.
   &__address {
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
     gap: 6px;
 
     code {
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: 12px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      overflow-wrap: anywhere;
       min-width: 0;
+      max-width: 100%;
     }
   }
 

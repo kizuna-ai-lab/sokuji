@@ -1323,7 +1323,7 @@
     "recommended": "recommended",
     "usuallyUnreachable": "usually unreachable",
     "watching": "Watching",
-    "watchingCount": "{{count}} watching",
+    "watchingCount": "{{count}}",
     "allowSave": "Let viewers save these captions",
     "wifiHint": "Add a Wi‑Fi hint to the projector page",
     "wifiName": "Wi‑Fi name",

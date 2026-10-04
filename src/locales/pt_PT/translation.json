@@ -1398,7 +1398,7 @@
     "recommended": "recomendado",
     "usuallyUnreachable": "normalmente inacessível",
     "watching": "A ver",
-    "watchingCount": "{{count}} a ver",
+    "watchingCount": "{{count}}",
     "allowSave": "Permitir que os espetadores guardem estas legendas",
     "wifiHint": "Mostrar os dados do Wi‑Fi na página de projeção",
     "wifiName": "Nome do Wi‑Fi",

@@ -1398,7 +1398,7 @@
     "recommended": "recomendado",
     "usuallyUnreachable": "normalmente inaccesible",
     "watching": "Espectadores",
-    "watchingCount": "{{count}} viendo",
+    "watchingCount": "{{count}}",
     "allowSave": "Permitir que los espectadores guarden estos subtítulos",
     "wifiHint": "Mostrar los datos del Wi‑Fi en la página de proyección",
     "wifiName": "Nombre del Wi‑Fi",

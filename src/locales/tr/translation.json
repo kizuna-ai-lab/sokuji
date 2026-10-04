@@ -1398,7 +1398,7 @@
     "recommended": "önerilen",
     "usuallyUnreachable": "genellikle erişilemez",
     "watching": "İzleyenler",
-    "watchingCount": "{{count}} izleyici",
+    "watchingCount": "{{count}}",
     "allowSave": "İzleyiciler bu altyazıları kaydedebilsin",
     "wifiHint": "Projeksiyon sayfasında Wi‑Fi bilgisini göster",
     "wifiName": "Wi‑Fi adı",

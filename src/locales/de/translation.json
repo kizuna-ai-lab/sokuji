@@ -1398,7 +1398,7 @@
     "recommended": "empfohlen",
     "usuallyUnreachable": "meist nicht erreichbar",
     "watching": "Zuschauer",
-    "watchingCount": "{{count}} Zuschauer",
+    "watchingCount": "{{count}}",
     "allowSave": "Zuschauer dürfen diese Untertitel speichern",
     "wifiHint": "Wi‑Fi-Hinweis auf der Projektionsseite anzeigen",
     "wifiName": "Wi‑Fi-Name",

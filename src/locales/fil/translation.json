@@ -1398,7 +1398,7 @@
     "recommended": "inirerekomenda",
     "usuallyUnreachable": "kadalasang hindi maabot",
     "watching": "Nanonood",
-    "watchingCount": "{{count}} ang nanonood",
+    "watchingCount": "{{count}}",
     "allowSave": "Payagan ang mga nanonood na i-save ang mga subtitle na ito",
     "wifiHint": "Ipakita ang detalye ng Wi‑Fi sa projector page",
     "wifiName": "Pangalan ng Wi‑Fi",

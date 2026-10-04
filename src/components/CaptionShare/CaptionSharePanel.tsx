@@ -131,7 +131,7 @@ const CaptionSharePanel: React.FC = () => {
           )}
           <div className="caption-share-panel__fact">
             <span className="caption-share-panel__label">{t('captionShare.watching', 'Watching')}</span>
-            <span className="caption-share-panel__count">{t('captionShare.watchingCount', { count: status.viewers, defaultValue: '{{count}} watching' })}</span>
+            <span className="caption-share-panel__count">{t('captionShare.watchingCount', { count: status.viewers, defaultValue: '{{count}}' })}</span>
           </div>
         </div>
       </div>

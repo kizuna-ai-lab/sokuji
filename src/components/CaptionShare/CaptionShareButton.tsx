@@ -58,6 +58,7 @@ const CaptionShareButton: React.FC = () => {
         <FloatingPortal>
           <div
             ref={floating.refs.setFloating}
+            className="caption-share-floating"
             style={floating.floatingStyles}
             aria-label={t('captionShare.button', 'Share captions')}
             {...interactions.getFloatingProps()}

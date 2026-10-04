@@ -16,6 +16,8 @@
 
   &__head {
     position: relative;
+    padding-right: 7rem; // keeps a long title clear of the full-screen button
+    :fullscreen & { padding-right: 0; }
     h1 { margin: 0; font-size: clamp(24px, 4vw, 48px); }
     p { margin: 0.4em 0 0; color: #a8adb0; font-size: clamp(14px, 1.6vw, 22px); }
   }
@@ -26,7 +28,7 @@
   }
   &__steps {
     list-style: none; margin: 0; padding: 0;
-    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3vw; align-items: center;
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3vw; align-items: start; align-self: center;
     &--wifi { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
   &__step {
