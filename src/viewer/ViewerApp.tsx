@@ -92,6 +92,15 @@ const ViewerApp: React.FC = () => {
     return () => window.removeEventListener('keydown', onKey);
   });
 
+  // The browser pauses the keep-awake video while the page is hidden; turn it
+  // on again on the way back (spec §5.6). The video was first started by a tap.
+  useEffect(() => {
+    if (!entered || !awake) return undefined;
+    const onVisibility = () => { if (document.visibilityState === 'visible') void keepAwake(true); };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [entered, awake]);
+
   const start = () => {
     setEntered(true);
     if (awake) void keepAwake(true);

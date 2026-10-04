@@ -1,6 +1,6 @@
 // src/viewer/CaptionList.tsx
 import React, { useLayoutEffect, useRef } from 'react';
-import type { ResetReason, ViewerEntry } from '../lib/share/types';
+import type { ResetReason, ViewerEntry, ViewerRow } from '../lib/share/types';
 import { formatLocalTime } from '../utils/conversationExport';
 import type { Layout } from './layout';
 import { atLiveEdge } from './layout';
@@ -32,6 +32,31 @@ const Pieces: React.FC<{ pieces: Piece[] }> = ({ pieces }) => (
   </>
 );
 
+interface RowProps { entry: ViewerEntry; code: string; both: boolean; completeOnly: boolean; desktop: boolean }
+
+/**
+ * One line. Memoized on primitives and the entry object, which the model keeps
+ * for every entry an update did not touch: upserts arrive many times a second
+ * and a long talk holds ~1,500 entries, so only the changed line re-renders.
+ */
+const CaptionRow = React.memo(function CaptionRow({ entry, code, both, completeOnly, desktop }: RowProps) {
+  const { primary, secondary } = sidesFor(entry, code);
+  const first = piecesOf(primary, completeOnly);
+  const second = both ? piecesOf(secondary, completeOnly) : [];
+  if (first.length === 0 && second.length === 0) return null;
+  return (
+    <article className={`viewer-entry viewer-entry--${entry.leg}`}>
+      {desktop && <time className="viewer-entry__time">{formatLocalTime(entry.t).slice(0, 5)}</time>}
+      {first.length > 0 && <p className="viewer-entry__primary"><Pieces pieces={first} /></p>}
+      {second.length > 0 && <p className="viewer-entry__secondary"><Pieces pieces={second} /></p>}
+    </article>
+  );
+});
+
+/** Whether `piecesOf(rows, completeOnly)` has a piece: a shown row with text that is not blank. */
+const shows = (rows: readonly ViewerRow[], completeOnly: boolean): boolean =>
+  rows.some((row) => (!completeOnly || row.final) && row.text.trim() !== '');
+
 const CaptionList: React.FC<CaptionListProps> = ({ t, entries, choice, completeOnly, layout, notice, emptyText, following, onFollowingChange }) => {
   const list = useRef<HTMLDivElement>(null);
 
@@ -45,26 +70,23 @@ const CaptionList: React.FC<CaptionListProps> = ({ t, entries, choice, completeO
     if (el) onFollowingChange(atLiveEdge(el.scrollTop, el.clientHeight, el.scrollHeight));
   };
 
-  const rows = entries.flatMap((entry) => {
+  // Stops at the first line with something to show, which is almost always the first.
+  const empty = !entries.some((entry) => {
     const { primary, secondary } = sidesFor(entry, choice.code);
-    const first = piecesOf(primary, completeOnly);
-    const second = choice.both ? piecesOf(secondary, completeOnly) : [];
-    if (first.length === 0 && second.length === 0) return [];
-    return [(
-      <article key={entry.id} className={`viewer-entry viewer-entry--${entry.leg}`}>
-        {layout === 'desktop' && <time className="viewer-entry__time">{formatLocalTime(entry.t).slice(0, 5)}</time>}
-        {first.length > 0 && <p className="viewer-entry__primary"><Pieces pieces={first} /></p>}
-        {second.length > 0 && <p className="viewer-entry__secondary"><Pieces pieces={second} /></p>}
-      </article>
-    )];
+    return shows(primary, completeOnly) || (choice.both && shows(secondary, completeOnly));
   });
 
   return (
     <div className="viewer-list-wrap">
       <div className="viewer-list" ref={list} onScroll={onScroll}>
         {notice && <p className="viewer-list__notice">{t(NOTICE_KEYS[notice])}</p>}
-        {rows.length === 0 && !notice && <p className="viewer-list__empty">{emptyText}</p>}
-        {rows}
+        {empty && !notice && <p className="viewer-list__empty">{emptyText}</p>}
+        {entries.map((entry) => (
+          <CaptionRow
+            key={entry.id} entry={entry} code={choice.code} both={choice.both}
+            completeOnly={completeOnly} desktop={layout === 'desktop'}
+          />
+        ))}
       </div>
       {!following && (
         <button type="button" className="viewer-jump" onClick={() => onFollowingChange(true)}>

@@ -9,6 +9,7 @@ vi.mock('./useViewerStream', () => ({ useViewerStream: () => model.current }));
 vi.mock('./keepAwake', () => ({ keepAwake: vi.fn(async () => true) }));
 vi.mock('../utils/conversationExport', async (orig) => ({ ...(await orig<typeof import('../utils/conversationExport')>()), downloadFile: vi.fn() }));
 import { downloadFile } from '../utils/conversationExport';
+import { keepAwake } from './keepAwake';
 import ViewerApp from './ViewerApp';
 
 const entry = (id: string, leg: 'speaker' | 'participant', src: string, tr: string, t = 1): ViewerEntry => ({
@@ -103,5 +104,33 @@ describe('ViewerApp', () => {
     render(<ViewerApp />);
     enter();
     expect(screen.getByText('今天')).toBeTruthy();
+  });
+
+  // Spec §5.6: the browser pauses the keep-awake video while the page is
+  // hidden (another app, the lock screen); coming back must turn it on again,
+  // or the screen sleeps mid-talk.
+  it('turns keep-awake on again when the page comes back into view', () => {
+    const visibility = vi.spyOn(document, 'visibilityState', 'get');
+    render(<ViewerApp />);
+    enter();
+    vi.mocked(keepAwake).mockClear();
+    visibility.mockReturnValue('hidden');
+    act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+    expect(keepAwake).not.toHaveBeenCalled();
+    visibility.mockReturnValue('visible');
+    act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+    expect(keepAwake).toHaveBeenCalledWith(true);
+    visibility.mockRestore();
+  });
+
+  it('leaves keep-awake off on return when the viewer turned it off', () => {
+    window.localStorage.setItem('sokuji.viewer.keepAwake', 'false');
+    const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+    render(<ViewerApp />);
+    enter();
+    vi.mocked(keepAwake).mockClear();
+    act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+    expect(keepAwake).not.toHaveBeenCalled();
+    visibility.mockRestore();
   });
 });

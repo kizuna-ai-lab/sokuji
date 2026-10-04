@@ -80,5 +80,7 @@ export function downloadFile(content: string, filename: string, mime: string): v
   document.body.appendChild(a);
   a.click();
   a.remove();
-  URL.revokeObjectURL(url);
+  // Safari starts the download after the click returns: revoking in the same
+  // task leaves it nothing to fetch (the LAN viewer's save runs on iPhones).
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
