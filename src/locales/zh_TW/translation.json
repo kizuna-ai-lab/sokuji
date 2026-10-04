@@ -1307,5 +1307,113 @@
     "mic_lost_using_other": "麥克風「{{lost}}」已中斷連線，現在改用「{{device}}」。",
     "mic_lost_waiting": "麥克風已中斷連線。接上麥克風後會自動繼續翻譯你說的話。",
     "mic_now_using": "現在使用麥克風「{{device}}」。"
+  },
+  "viewer": {
+    "title": "Sokuji 字幕",
+    "connecting": "正在連線…",
+    "original": "原文",
+    "enter": {
+      "iRead": "我看",
+      "both": "雙語",
+      "bothHint": "{{first}}在上，{{second}}在下",
+      "start": "開始看",
+      "insecureNote": "網址列可能顯示「不安全」，因為這是區域網路的網址：字幕直接來自講者的電腦。"
+    },
+    "status": {
+      "waiting": "等待開始",
+      "live": "直播中",
+      "paused": "已暫停",
+      "reconnecting": "重新連線中…",
+      "ended": "分享已結束"
+    },
+    "notice": {
+      "cleared": "講者清除了之前的字幕",
+      "restarted": "講者開始了新的一輪"
+    },
+    "legend": {
+      "onSite": "現場",
+      "remote": "線上"
+    },
+    "backToLive": "回到最新",
+    "dock": {
+      "textSize": "字級",
+      "more": "更多"
+    },
+    "settings": {
+      "title": "顯示設定",
+      "iRead": "我看",
+      "textSize": "字級",
+      "sizes": {
+        "small": "小",
+        "medium": "中",
+        "large": "大",
+        "xlarge": "特大"
+      },
+      "theme": "配色",
+      "themes": {
+        "dark": "深色",
+        "light": "淺色",
+        "contrast": "高對比"
+      },
+      "completeOnly": "只顯示完整句子",
+      "completeOnlyHint": "還沒說完的句子先不顯示",
+      "keepAwake": "保持螢幕常亮",
+      "save": "儲存本場字幕",
+      "saveHint": "把這個頁面上的字幕下載為 .txt 檔案",
+      "saveButton": "儲存",
+      "close": "關閉",
+      "aiNote": "字幕由 AI 產生，僅供參考。"
+    },
+    "shortcuts": "+ − 字級 · B 雙語 · F 全螢幕 · End 回到最新",
+    "transcript": {
+      "header": "Sokuji 字幕，儲存於 {{time}}"
+    },
+    "present": {
+      "title": "用手機或電腦看字幕",
+      "step1": "連上 Wi‑Fi",
+      "password": "密碼：{{password}}",
+      "step2": "手機掃描 QR 碼；電腦在瀏覽器輸入這個網址",
+      "step3": "選擇要看的語言",
+      "noInstall": "不用安裝 App，不用登入",
+      "sameNetwork": "這個網址只有在同一個網路裡才打得開",
+      "androidChrome": "Android 的 Chrome 打不開？請到「設定 → 應用程式 → Chrome → 權限 → 鄰近裝置」中允許。",
+      "watching": "在看：{{count}}",
+      "fullscreen": "全螢幕",
+      "windowTitle": "Sokuji 投影頁",
+      "ended": "分享已結束"
+    }
+  },
+  "captionShare": {
+    "button": "分享字幕",
+    "buttonActive": "正在分享字幕：{{count}} 台裝置在看",
+    "intro": "讓同一個網路裡的人用手機或電腦看這裡的字幕和譯文。",
+    "enable": "開啟分享",
+    "firewallNote": "開啟後 Windows 可能會詢問是否允許 Sokuji 存取網路，請選「私人網路」。",
+    "address": "網址",
+    "copy": "複製",
+    "copied": "已複製",
+    "network": "網路",
+    "kinds": {
+      "wifi": "Wi‑Fi",
+      "wired": "有線",
+      "other": "網路",
+      "virtual": "虛擬網路卡"
+    },
+    "recommended": "推薦",
+    "usuallyUnreachable": "通常連不上",
+    "watching": "在看",
+    "watchingCount": "{{count}} 台裝置",
+    "allowSave": "允許聽眾儲存本場字幕",
+    "wifiHint": "投影頁加上 Wi‑Fi 提示",
+    "wifiName": "Wi‑Fi 名稱",
+    "wifiNamePlaceholder": "例如 Meetup-Guest",
+    "wifiPassword": "密碼（可以留空）",
+    "openPresent": "開啟投影頁",
+    "stop": "結束分享",
+    "stopNote": "結束後，聽眾的頁面會顯示「分享已結束」。",
+    "warnNoViewers": "已經開了 2 分鐘，還沒有裝置連上。這個網路可能把裝置互相隔離了（訪客 Wi‑Fi、部分公司網路會這樣），也可能是防火牆擋住了。可以試試：確認大家和這台電腦連的是同一個網路；在 Windows 上允許 Sokuji 存取私人網路；或改用手機熱點、自備的路由器。",
+    "warnAddressChanged": "網路變了，網址已換成 {{address}}，請重新傳送連結或重新開啟投影頁。",
+    "errorPortsBusy": "無法開啟分享：連接埠 7788–7797 都被占用了。",
+    "errorListen": "無法開啟分享：{{reason}}"
   }
 }

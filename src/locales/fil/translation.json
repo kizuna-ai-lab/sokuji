@@ -1307,5 +1307,113 @@
     "mic_lost_using_other": "Nadiskonekta ang mikroponong “{{lost}}”, kaya “{{device}}” na ang ginagamit.",
     "mic_lost_waiting": "Nadiskonekta ang mikropono. Magpapatuloy ang pagsasalin ng iyong pananalita kapag may nakakonektang mikropono.",
     "mic_now_using": "Ginagamit na ngayon ang mikroponong “{{device}}”."
+  },
+  "viewer": {
+    "title": "Mga subtitle ng Sokuji",
+    "connecting": "Kumokonekta…",
+    "original": "Orihinal",
+    "enter": {
+      "iRead": "Gusto kong basahin",
+      "both": "Parehong wika",
+      "bothHint": "{{first}} sa itaas, {{second}} sa ibaba",
+      "start": "Simulang magbasa",
+      "insecureNote": "Maaaring sabihin ng browser mo na hindi secure ang page na ito. Address ito sa local network: direktang galing ang mga subtitle sa computer ng nagsasalita."
+    },
+    "status": {
+      "waiting": "Hinihintay magsimula",
+      "live": "Live",
+      "paused": "Naka-pause",
+      "reconnecting": "Muling kumokonekta…",
+      "ended": "Tapos na ang pagbabahagi"
+    },
+    "notice": {
+      "cleared": "Binura ng nagsasalita ang mga naunang subtitle",
+      "restarted": "Nagsimula ulit ang nagsasalita"
+    },
+    "legend": {
+      "onSite": "Onsite",
+      "remote": "Online"
+    },
+    "backToLive": "Bumalik sa live",
+    "dock": {
+      "textSize": "Laki ng teksto",
+      "more": "Higit pa"
+    },
+    "settings": {
+      "title": "Display",
+      "iRead": "Gusto kong basahin",
+      "textSize": "Laki ng teksto",
+      "sizes": {
+        "small": "Maliit",
+        "medium": "Katamtaman",
+        "large": "Malaki",
+        "xlarge": "Napakalaki"
+      },
+      "theme": "Mga kulay",
+      "themes": {
+        "dark": "Madilim",
+        "light": "Maliwanag",
+        "contrast": "Mataas na contrast"
+      },
+      "completeOnly": "Buong pangungusap lang",
+      "completeOnlyHint": "Itago ang sinasabi pa lang",
+      "keepAwake": "Panatilihing bukas ang screen",
+      "save": "I-save ang mga subtitle na ito",
+      "saveHint": "Isang .txt file ng nasa page na ito",
+      "saveButton": "I-save",
+      "close": "Isara",
+      "aiNote": "Gawa ng AI ang mga subtitle at maaaring may mali."
+    },
+    "shortcuts": "+ − laki ng teksto · B parehong wika · F fullscreen · End bumalik sa live",
+    "transcript": {
+      "header": "Mga subtitle ng Sokuji, na-save noong {{time}}"
+    },
+    "present": {
+      "title": "Basahin ang mga subtitle sa phone o computer mo",
+      "step1": "Kumonekta sa Wi‑Fi",
+      "password": "Password: {{password}}",
+      "step2": "I-scan gamit ang phone, o i-type ang address na ito sa computer",
+      "step3": "Piliin ang wikang gusto mong basahin",
+      "noInstall": "Walang app, walang sign-in",
+      "sameNetwork": "Bubukas lang ang address na ito sa parehong network",
+      "androidChrome": "Hindi mabuksan sa Chrome sa Android? Payagan ito sa Settings → Apps → Chrome → Permissions → Nearby devices.",
+      "watching": "Nanonood: {{count}}",
+      "fullscreen": "Fullscreen",
+      "windowTitle": "Projector page ng Sokuji",
+      "ended": "Tapos na ang pagbabahagi"
+    }
+  },
+  "captionShare": {
+    "button": "Ibahagi ang subtitle",
+    "buttonActive": "Ibinabahagi ang subtitle: {{count}} ang nanonood",
+    "intro": "Hayaang mabasa ng mga tao sa parehong network ang mga subtitle at salin dito sa kanilang phone o computer.",
+    "enable": "Ibahagi ang subtitle",
+    "firewallNote": "Maaaring itanong ng Windows kung puwedeng gamitin ng Sokuji ang network. Piliin ang Private networks.",
+    "address": "Address",
+    "copy": "Kopyahin",
+    "copied": "Nakopya",
+    "network": "Network",
+    "kinds": {
+      "wifi": "Wi‑Fi",
+      "wired": "Wired",
+      "other": "Network",
+      "virtual": "Virtual adapter"
+    },
+    "recommended": "inirerekomenda",
+    "usuallyUnreachable": "kadalasang hindi maabot",
+    "watching": "Nanonood",
+    "watchingCount": "{{count}}",
+    "allowSave": "Payagan ang mga nanonood na i-save ang mga subtitle na ito",
+    "wifiHint": "Ipakita ang detalye ng Wi‑Fi sa projector page",
+    "wifiName": "Pangalan ng Wi‑Fi",
+    "wifiNamePlaceholder": "hal. Meetup-Guest",
+    "wifiPassword": "Password (opsyonal)",
+    "openPresent": "Buksan ang projector page",
+    "stop": "Itigil ang pagbabahagi",
+    "stopNote": "Makikita sa page ng mga nanonood na tapos na ang pagbabahagi.",
+    "warnNoViewers": "Dalawang minuto na pero wala pang device na nakakonekta. Maaaring hinaharangan ng network na ito ang pag-uugnayan ng mga device (ganito ang guest Wi‑Fi at ilang network ng kumpanya), o may firewall na humaharang sa Sokuji. Tiyaking nasa parehong network ang lahat at ang computer na ito, payagan ang Sokuji sa private networks sa Windows, o gumamit ng hotspot ng phone o sarili mong router.",
+    "warnAddressChanged": "Nagbago ang network. {{address}} na ang address: ipadala muli ang link o buksan muli ang projector page.",
+    "errorPortsBusy": "Hindi masimulan ang pagbabahagi: ginagamit na ang lahat ng port 7788–7797.",
+    "errorListen": "Hindi masimulan ang pagbabahagi: {{reason}}"
   }
 }

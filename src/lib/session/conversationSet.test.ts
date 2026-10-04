@@ -31,6 +31,27 @@ describe('ConversationSet', () => {
     expect(set.snapshot()[0].session).toBe('r2');
   });
 
+  it('says why the conversation emptied: restart on a new run, clear on clear()', () => {
+    const set = new ConversationSet();
+    const heard: string[] = [];
+    const off = set.onReset((reason) => heard.push(reason));
+    set.replace(new Map([['speaker', make('speaker', 'r1')]]));
+    set.clear();
+    set.replace(new Map([['speaker', make('speaker', 'r2')]]));
+    off();
+    set.clear();
+    expect(heard).toEqual(['restart', 'clear', 'restart']);
+  });
+
+  it('a reset listener that throws does not keep a later one from hearing it', () => {
+    const set = new ConversationSet();
+    set.onReset(() => { throw new Error('buggy'); });
+    const heard: string[] = [];
+    set.onReset((reason) => heard.push(reason));
+    set.clear();
+    expect(heard).toEqual(['clear']);
+  });
+
   it('a subscriber that throws does not keep a later subscriber from hearing a change (F2)', () => {
     const set = new ConversationSet();
     set.subscribe(() => { throw new Error('buggy surface'); });

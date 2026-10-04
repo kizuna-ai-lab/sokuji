@@ -1307,5 +1307,113 @@
     "mic_lost_using_other": "마이크 ‘{{lost}}’의 연결이 끊어져 대신 ‘{{device}}’을(를) 사용합니다.",
     "mic_lost_waiting": "마이크 연결이 끊어졌습니다. 마이크가 연결되면 내 음성의 번역이 자동으로 다시 시작됩니다.",
     "mic_now_using": "이제 마이크 ‘{{device}}’을(를) 사용합니다."
+  },
+  "viewer": {
+    "title": "Sokuji 자막",
+    "connecting": "연결 중…",
+    "original": "원문",
+    "enter": {
+      "iRead": "읽을 언어",
+      "both": "두 언어 모두",
+      "bothHint": "{{first}} 위, {{second}} 아래",
+      "start": "보기 시작",
+      "insecureNote": "브라우저에 이 페이지가 안전하지 않다고 표시될 수 있습니다. 로컬 네트워크 주소이기 때문이며, 자막은 화자의 컴퓨터에서 바로 전송됩니다."
+    },
+    "status": {
+      "waiting": "시작 대기 중",
+      "live": "실시간",
+      "paused": "일시 중지됨",
+      "reconnecting": "다시 연결 중…",
+      "ended": "공유가 종료되었습니다"
+    },
+    "notice": {
+      "cleared": "화자가 이전 자막을 지웠습니다",
+      "restarted": "화자가 새 세션을 시작했습니다"
+    },
+    "legend": {
+      "onSite": "현장",
+      "remote": "온라인"
+    },
+    "backToLive": "최신으로 이동",
+    "dock": {
+      "textSize": "글자 크기",
+      "more": "더 보기"
+    },
+    "settings": {
+      "title": "표시 설정",
+      "iRead": "표시 언어",
+      "textSize": "글자 크기",
+      "sizes": {
+        "small": "작게",
+        "medium": "보통",
+        "large": "크게",
+        "xlarge": "아주 크게"
+      },
+      "theme": "색상 테마",
+      "themes": {
+        "dark": "다크",
+        "light": "라이트",
+        "contrast": "고대비"
+      },
+      "completeOnly": "완성된 문장만 표시",
+      "completeOnlyHint": "아직 말하는 중인 문장은 숨깁니다",
+      "keepAwake": "화면 켜짐 유지",
+      "save": "이 자막 저장",
+      "saveHint": "이 페이지의 내용을 .txt 파일로 저장합니다",
+      "saveButton": "저장",
+      "close": "닫기",
+      "aiNote": "자막은 AI가 생성하므로 오류가 있을 수 있습니다."
+    },
+    "shortcuts": "+ − 글자 크기 · B 두 언어 · F 전체 화면 · End 최신으로 이동",
+    "transcript": {
+      "header": "Sokuji 자막, {{time}} 저장"
+    },
+    "present": {
+      "title": "휴대폰이나 컴퓨터에서 자막을 보세요",
+      "step1": "Wi‑Fi에 연결",
+      "password": "비밀번호: {{password}}",
+      "step2": "휴대폰으로 스캔하거나 컴퓨터에서 이 주소를 입력",
+      "step3": "읽을 언어 선택",
+      "noInstall": "앱 설치도, 로그인도 필요 없음",
+      "sameNetwork": "이 주소는 같은 네트워크에서만 열립니다",
+      "androidChrome": "Android Chrome에서 열리지 않나요? 설정 → 애플리케이션 → Chrome → 권한 → 근처 기기에서 허용하세요.",
+      "watching": "시청 중: {{count}}",
+      "fullscreen": "전체 화면",
+      "windowTitle": "Sokuji 프로젝터 화면",
+      "ended": "공유가 종료되었습니다"
+    }
+  },
+  "captionShare": {
+    "button": "자막 공유",
+    "buttonActive": "자막 공유 중: {{count}}대 시청 중",
+    "intro": "같은 네트워크에 있는 사람들이 이곳의 자막과 번역을 휴대폰이나 컴퓨터에서 볼 수 있습니다.",
+    "enable": "자막 공유",
+    "firewallNote": "Windows에서 Sokuji의 네트워크 사용을 허용할지 물어볼 수 있습니다. '개인 네트워크'를 선택하세요.",
+    "address": "주소",
+    "copy": "복사",
+    "copied": "복사됨",
+    "network": "네트워크",
+    "kinds": {
+      "wifi": "Wi‑Fi",
+      "wired": "유선",
+      "other": "네트워크",
+      "virtual": "가상 어댑터"
+    },
+    "recommended": "권장",
+    "usuallyUnreachable": "대개 연결 불가",
+    "watching": "시청 중",
+    "watchingCount": "{{count}}대",
+    "allowSave": "시청자가 이 자막을 저장할 수 있도록 허용",
+    "wifiHint": "프로젝터 화면에 Wi‑Fi 안내 표시",
+    "wifiName": "Wi‑Fi 이름",
+    "wifiNamePlaceholder": "예: Meetup-Guest",
+    "wifiPassword": "비밀번호(선택 사항)",
+    "openPresent": "프로젝터 화면 열기",
+    "stop": "공유 중지",
+    "stopNote": "시청자의 페이지에 공유가 끝났다고 표시됩니다.",
+    "warnNoViewers": "2분이 지났지만 아직 연결된 기기가 없습니다. 이 네트워크가 기기끼리 연결되지 않도록 막고 있거나(게스트 Wi‑Fi와 일부 회사 네트워크가 그렇습니다) 방화벽이 Sokuji를 차단하고 있을 수 있습니다. 모두가 이 컴퓨터와 같은 네트워크에 있는지 확인하거나, Windows에서 개인 네트워크에 대해 Sokuji를 허용하거나, 휴대폰 핫스팟 또는 직접 준비한 공유기를 사용해 보세요.",
+    "warnAddressChanged": "네트워크가 바뀌어 주소가 {{address}}(으)로 변경되었습니다. 링크를 다시 보내거나 프로젝터 화면을 다시 여세요.",
+    "errorPortsBusy": "공유를 시작하지 못했습니다: 포트 7788–7797이 모두 사용 중입니다.",
+    "errorListen": "공유를 시작하지 못했습니다: {{reason}}"
   }
 }

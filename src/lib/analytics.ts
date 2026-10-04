@@ -239,7 +239,11 @@ export interface AnalyticsEvents {
     error_message: string;
     device_info?: string;
   };
-  
+
+  // LAN caption sharing (spec 2026-10-04 §7.5): host side only, no content.
+  'caption_share_started': { address_kind: 'wifi' | 'wired' | 'other' | 'virtual' };
+  'caption_share_ended': { duration_ms: number; peak_viewers: number };
+
   // Extension specific events
   'extension_installed': { extension_version: string };
   'extension_uninstalled': { extension_version: string };

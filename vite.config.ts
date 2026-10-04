@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import electron from 'vite-plugin-electron/simple'
 import path from 'path'
 import fs from 'fs'
+import { fileURLToPath } from 'url'
 import pkg from './package.json' with { type: 'json' }
 import { dropDuplicateOrtWasm } from './vite.drop-duplicate-ort-wasm'
 import { workerManualChunks } from './vite.worker-chunks'
@@ -135,6 +136,10 @@ export default defineConfig(({ command, mode }) => {
           // Entry points for the main process
           entry: {
             'better-auth-adapter': 'electron/better-auth-adapter.js',
+            'caption-share': 'electron/caption-share.js',
+            'caption-share-core': 'electron/caption-share-core.js',
+            'caption-share-net': 'electron/caption-share-net.js',
+            'caption-share-server': 'electron/caption-share-server.js',
             'macos-audio-utils': 'electron/macos-audio-utils.js',
             'main': 'electron/main.js',
             'native-host-manager': 'electron/native-host-manager.js',
@@ -270,7 +275,19 @@ export default defineConfig(({ command, mode }) => {
     build: {
       outDir: 'build',
       assetsDir: 'static',
-      sourcemap: true
+      sourcemap: true,
+      // The LAN caption-share server serves only the viewer's own files, read
+      // from this manifest (electron/caption-share-core.js `viewerAssets`). A
+      // plain file name, not Vite's default `.vite/manifest.json`: packagers
+      // may skip dot-directories.
+      manifest: 'asset-manifest.json',
+      // Vite 8 reads `rolldownOptions` (see the main-process config above).
+      rolldownOptions: {
+        input: {
+          main: fileURLToPath(new URL('./index.html', import.meta.url)),
+          viewer: fileURLToPath(new URL('./viewer.html', import.meta.url)),
+        },
+      },
     },
     worker: {
       format: 'es',

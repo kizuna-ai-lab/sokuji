@@ -1307,5 +1307,113 @@
     "mic_lost_using_other": "Das Mikrofon „{{lost}}“ wurde getrennt, daher wird stattdessen „{{device}}“ verwendet.",
     "mic_lost_waiting": "Das Mikrofon wurde getrennt. Die Übersetzung Ihrer Sprache wird fortgesetzt, sobald ein Mikrofon verbunden ist.",
     "mic_now_using": "Jetzt wird das Mikrofon „{{device}}“ verwendet."
+  },
+  "viewer": {
+    "title": "Sokuji-Untertitel",
+    "connecting": "Verbinden…",
+    "original": "Original",
+    "enter": {
+      "iRead": "Ich möchte lesen",
+      "both": "Beide Sprachen",
+      "bothHint": "{{first}} oben, {{second}} darunter",
+      "start": "Lesen starten",
+      "insecureNote": "Ihr Browser bezeichnet diese Seite möglicherweise als nicht sicher. Es ist eine Adresse im lokalen Netzwerk: Die Untertitel kommen direkt vom Computer des Sprechers."
+    },
+    "status": {
+      "waiting": "Wartet auf den Start",
+      "live": "Live",
+      "paused": "Pausiert",
+      "reconnecting": "Verbindung wird wiederhergestellt…",
+      "ended": "Das Teilen wurde beendet"
+    },
+    "notice": {
+      "cleared": "Der Sprecher hat die bisherigen Untertitel gelöscht",
+      "restarted": "Der Sprecher hat eine neue Runde gestartet"
+    },
+    "legend": {
+      "onSite": "Vor Ort",
+      "remote": "Online"
+    },
+    "backToLive": "Zurück zu Live",
+    "dock": {
+      "textSize": "Schriftgröße",
+      "more": "Mehr"
+    },
+    "settings": {
+      "title": "Anzeige",
+      "iRead": "Ich lese",
+      "textSize": "Schriftgröße",
+      "sizes": {
+        "small": "Klein",
+        "medium": "Mittel",
+        "large": "Groß",
+        "xlarge": "Sehr groß"
+      },
+      "theme": "Farben",
+      "themes": {
+        "dark": "Dunkel",
+        "light": "Hell",
+        "contrast": "Hoher Kontrast"
+      },
+      "completeOnly": "Nur vollständige Sätze",
+      "completeOnlyHint": "Blendet aus, was gerade noch gesprochen wird",
+      "keepAwake": "Bildschirm eingeschaltet lassen",
+      "save": "Diese Untertitel speichern",
+      "saveHint": "Eine .txt-Datei mit dem Inhalt dieser Seite",
+      "saveButton": "Speichern",
+      "close": "Schließen",
+      "aiNote": "Die Untertitel werden von KI erzeugt und können Fehler enthalten."
+    },
+    "shortcuts": "+ − Schriftgröße · B beide Sprachen · F Vollbild · End zurück zu Live",
+    "transcript": {
+      "header": "Sokuji-Untertitel, gespeichert am {{time}}"
+    },
+    "present": {
+      "title": "Untertitel auf dem Smartphone oder Computer lesen",
+      "step1": "Mit dem Wi‑Fi verbinden",
+      "password": "Passwort: {{password}}",
+      "step2": "Mit dem Smartphone scannen oder diese Adresse am Computer eingeben",
+      "step3": "Die gewünschte Sprache wählen",
+      "noInstall": "Keine App, keine Anmeldung",
+      "sameNetwork": "Diese Adresse funktioniert nur im selben Netzwerk",
+      "androidChrome": "Öffnet Chrome auf Android die Seite nicht? Unter Einstellungen → Apps → Chrome → Berechtigungen → Geräte in der Nähe erlauben.",
+      "watching": "Zuschauer: {{count}}",
+      "fullscreen": "Vollbild",
+      "windowTitle": "Sokuji-Projektionsseite",
+      "ended": "Das Teilen wurde beendet"
+    }
+  },
+  "captionShare": {
+    "button": "Untertitel teilen",
+    "buttonActive": "Untertitel werden geteilt: {{count}} Zuschauer",
+    "intro": "Personen im selben Netzwerk können die Untertitel und Übersetzungen von hier auf ihrem Smartphone oder Computer lesen.",
+    "enable": "Untertitel teilen",
+    "firewallNote": "Windows fragt eventuell, ob Sokuji das Netzwerk nutzen darf. Wählen Sie „Private Netzwerke“.",
+    "address": "Adresse",
+    "copy": "Kopieren",
+    "copied": "Kopiert",
+    "network": "Netzwerk",
+    "kinds": {
+      "wifi": "Wi‑Fi",
+      "wired": "Kabelgebunden",
+      "other": "Netzwerk",
+      "virtual": "Virtueller Adapter"
+    },
+    "recommended": "empfohlen",
+    "usuallyUnreachable": "meist nicht erreichbar",
+    "watching": "Zuschauer",
+    "watchingCount": "{{count}}",
+    "allowSave": "Zuschauer dürfen diese Untertitel speichern",
+    "wifiHint": "Wi‑Fi-Hinweis auf der Projektionsseite anzeigen",
+    "wifiName": "Wi‑Fi-Name",
+    "wifiNamePlaceholder": "z. B. Meetup-Guest",
+    "wifiPassword": "Passwort (optional)",
+    "openPresent": "Projektionsseite öffnen",
+    "stop": "Teilen beenden",
+    "stopNote": "Auf den Seiten der Zuschauer wird dann angezeigt, dass das Teilen beendet ist.",
+    "warnNoViewers": "Seit zwei Minuten hat sich kein Gerät verbunden. Vielleicht lässt dieses Netzwerk keine Verbindungen zwischen Geräten zu (Gast-Wi‑Fi und manche Firmennetzwerke tun das), oder eine Firewall blockiert Sokuji. Prüfen Sie, ob alle im selben Netzwerk sind wie dieser Computer, erlauben Sie Sokuji in Windows für private Netzwerke, oder nutzen Sie einen Handy-Hotspot oder Ihren eigenen Router.",
+    "warnAddressChanged": "Das Netzwerk hat sich geändert. Die Adresse lautet jetzt {{address}}: Senden Sie den Link erneut oder öffnen Sie die Projektionsseite neu.",
+    "errorPortsBusy": "Teilen konnte nicht gestartet werden: Die Ports 7788–7797 sind alle belegt.",
+    "errorListen": "Teilen konnte nicht gestartet werden: {{reason}}"
   }
 }
