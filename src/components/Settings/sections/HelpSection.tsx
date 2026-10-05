@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { HelpCircle, RefreshCw, Mail, MessageSquare, Globe, Wand2 } from 'lucide-react';
+import { HelpCircle, RefreshCw, Check, CircleAlert, Mail, MessageSquare, Globe, Wand2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import { isElectron } from '../../../utils/environment';
@@ -39,6 +39,17 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActi
   const wantedLanguageRef = useRef<string | null>(null);
   const languageChainRef = useRef<Promise<void>>(Promise.resolve());
 
+  // The check's result, on the link that asked for it (spec 2026-10-05 §5):
+  // "Up to date" or "Failed to check" for five seconds, then the link again.
+  // A new check passes through 'checking' first, so a second failure re-runs this.
+  const [checkResult, setCheckResult] = useState<'not-available' | 'error' | null>(null);
+  useEffect(() => {
+    if (updateStatus !== 'not-available' && updateStatus !== 'error') { setCheckResult(null); return; }
+    setCheckResult(updateStatus);
+    const timer = setTimeout(() => setCheckResult(null), 5000);
+    return () => clearTimeout(timer);
+  }, [updateStatus]);
+
   const openExternalUrl = (url: string) => {
     if (isElectron() && (window as any).electron?.invoke) {
       (window as any).electron.invoke('open-external', url);
@@ -76,11 +87,24 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActi
         {isElectron() && (
           <button
             type="button"
-            className={`help-link ${updateStatus === 'checking' ? 'disabled' : ''}`}
+            className={[
+              'help-link',
+              updateStatus === 'checking' ? 'disabled' : '',
+              checkResult === 'not-available' ? 'help-link--ok' : '',
+              checkResult === 'error' ? 'help-link--error' : '',
+            ].filter(Boolean).join(' ')}
             onClick={() => { if (updateStatus !== 'checking') checkForUpdates(); }}
           >
-            <RefreshCw size={13} className={updateStatus === 'checking' ? 'spinning' : ''} />
-            <span>{updateStatus === 'checking' ? t('update.checking') : t('update.checkButton')}</span>
+            {updateStatus === 'checking' ? <RefreshCw size={13} className="spinning" />
+              : checkResult === 'not-available' ? <Check size={13} />
+              : checkResult === 'error' ? <CircleAlert size={13} />
+              : <RefreshCw size={13} />}
+            <span>
+              {updateStatus === 'checking' ? t('update.checking')
+                : checkResult === 'not-available' ? t('update.upToDate')
+                : checkResult === 'error' ? t('update.error')
+                : t('update.checkButton')}
+            </span>
           </button>
         )}
         {/*

@@ -2177,6 +2177,10 @@
     opacity: 0.5;
     cursor: not-allowed;
   }
+
+  // The update check's result, for five seconds (spec 2026-10-05 §5).
+  &--ok { color: vars.$color-primary; }
+  &--error { color: #ff6b6b; }
 }
 
 // Interface language: a picker that has to read as a link, because that is the

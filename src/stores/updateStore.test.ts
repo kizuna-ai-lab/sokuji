@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import useUpdateStore from './updateStore';
 
 describe('updateStore', () => {
@@ -51,5 +51,13 @@ describe('updateStore', () => {
     expect(s.appImageUrl).toBe('https://example.com/app.AppImage');
     expect(s.debUrl).toBe('https://example.com/app.deb');
     expect(s.releasePageUrl).toBe('https://example.com/release');
+  });
+
+  it('an error status stays until the next check (spec 2026-10-05 §4: the Help link shows it, not a timer)', () => {
+    vi.useFakeTimers();
+    useUpdateStore.setState({ status: 'error', errorMessage: 'offline' });
+    vi.advanceTimersByTime(10_000);
+    expect(useUpdateStore.getState().status).toBe('error');
+    vi.useRealTimers();
   });
 });

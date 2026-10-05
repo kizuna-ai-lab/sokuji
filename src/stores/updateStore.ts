@@ -167,23 +167,6 @@ const useUpdateStore = create<UpdateStore>()(
   }))
 );
 
-// Auto-hide error after 5 seconds (works regardless of how status is set)
-let errorTimer: ReturnType<typeof setTimeout> | null = null;
-useUpdateStore.subscribe(
-  (state) => state.status,
-  (status) => {
-    if (errorTimer) {
-      clearTimeout(errorTimer);
-      errorTimer = null;
-    }
-    if (status === 'error') {
-      errorTimer = setTimeout(() => {
-        useUpdateStore.setState({ status: 'idle', errorMessage: null });
-      }, 5000);
-    }
-  }
-);
-
 // Individual selectors (following logStore.ts pattern — avoids new object refs on every render)
 export const useUpdateStatus = () => useUpdateStore(state => state.status);
 export const useUpdateNewVersion = () => useUpdateStore(state => state.newVersion);
