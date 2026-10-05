@@ -4,7 +4,7 @@ import type { NativeModelInfo } from '../../../lib/local-inference/native/native
 import { LOCAL_INFERENCE_DEFAULTS } from '../../../providers/localInference/settings';
 
 // Partial mock (not a full replacement, unlike SlotRow.test.tsx): StoragePage
-// renders against the REAL settingsStore, which statically imports
+// renders against the REAL stores, and settingsStore statically imports
 // `src/locales` (`import i18n from '../locales'`) to call
 // `.use(initReactI18next)` — a full react-i18next replacement drops that
 // export and the module blows up on import. Keep everything real except
@@ -21,8 +21,8 @@ vi.mock('react-i18next', async (importOriginal) => {
   };
 });
 
-// Kept from before the old audio service was deleted: StoragePage statically
-// imports settingsStore (localNative) and modelStore, which
+// Kept from before the old audio service was deleted: StoragePage's stores
+// (modelStore, nativeModelStore) statically import settingsStore, which
 // used to drag in the real ServiceFactory import chain — audioStore ->
 // ServiceFactory, which imported ModernBrowserAudioService ->
 // ModernAudioRecorder -> the @sapphi-red/web-noise-suppressor worklet's
@@ -43,13 +43,15 @@ vi.mock('../../../services/ServiceFactory', () => ({
 const { StoragePage } = await import('./StoragePage');
 const { useModelStore } = await import('../../../stores/modelStore');
 const { useNativeModelStore } = await import('../../../stores/nativeModelStore');
-const { default: useSettingsStore } = await import('../../../stores/settingsStore');
 const { getManifestByType, isTranslationModelCompatible, getModelSizeMb } =
   await import('../../../lib/local-inference/modelManifest');
 
 /** LocalInference's own settings and pair, which every wasm mount passes
  *  (Stage 2 deletion, ruling 3). */
 const WASM = { settings: { ...LOCAL_INFERENCE_DEFAULTS, selections: {} }, pair: { source: 'ja', target: 'en' } };
+
+/** Local Native's settings, which every native mount passes with its pair (#578). */
+const NATIVE = { selections: {}, asrDevice: 'auto' as const, translationDevice: 'auto' as const, ttsDevice: 'auto' as const, ttsVoice: '' };
 
 // Real-manifest ids that can serve ja→en.
 const asrId = () => getManifestByType('asr')
@@ -130,7 +132,7 @@ describe('StoragePage (wasm)', () => {
     const { unmount } = render(<StoragePage provider="wasm" {...WASM} />);
     expect(screen.getByRole('button', { name: /Import/ })).toBeInTheDocument();
     unmount();
-    render(<StoragePage provider="native" />);
+    render(<StoragePage provider="native" settings={NATIVE} pair={{ source: 'ja', target: 'en' }} />);
     expect(screen.queryByRole('button', { name: /Import/ })).not.toBeInTheDocument();
   });
 
@@ -232,18 +234,29 @@ describe('StoragePage (native)', () => {
     'piper-en': M('piper-en', 'tts', ['en'], 1, true),
   };
 
-  beforeEach(async () => {
-    await useSettingsStore.getState().updateLocalNative({
-      sourceLanguage: 'ja', targetLanguage: 'en', selections: {},
-    });
+  beforeEach(() => {
     useNativeModelStore.setState({ catalog: {}, statuses: {} });
   });
 
   it('lists ready models with an in-use badge on the resolved one', () => {
     useNativeModelStore.setState({ catalog: CATALOG, statuses: { 'sense-voice': 'ready' } });
-    render(<StoragePage provider="native" />);
+    render(<StoragePage provider="native" settings={NATIVE} pair={{ source: 'ja', target: 'en' }} />);
     const row = screen.getByTestId('storage-row-sense-voice');
     expect(row).toHaveTextContent('In use'); // resolved (auto) ASR for ja→en
+  });
+
+  it("resolves the in-use badge against the host's pair (#578)", () => {
+    // A ja-only model serves neither direction of a zh↔en pair, so it is
+    // downloaded but not in use; it would be for a ja source.
+    useNativeModelStore.setState({
+      catalog: { ...CATALOG, 'ja-asr': M('ja-asr', 'asr', ['ja'], 2) },
+      statuses: { 'ja-asr': 'ready' },
+    });
+    const zh = render(<StoragePage provider="native" settings={NATIVE} pair={{ source: 'zh', target: 'en' }} />);
+    expect(screen.getByTestId('storage-row-ja-asr')).not.toHaveTextContent('In use');
+    zh.unmount();
+    render(<StoragePage provider="native" settings={NATIVE} pair={{ source: 'ja', target: 'en' }} />);
+    expect(screen.getByTestId('storage-row-ja-asr')).toHaveTextContent('In use');
   });
 
   it('delete confirm previews the fallback via the resolver', () => {
@@ -253,7 +266,7 @@ describe('StoragePage (native)', () => {
       catalog: CATALOG,
       statuses: { 'qwen2.5-0.5b': 'ready', 'opus-mt-ja-en': 'ready' },
     });
-    render(<StoragePage provider="native" />);
+    render(<StoragePage provider="native" settings={NATIVE} pair={{ source: 'ja', target: 'en' }} />);
     fireEvent.click(screen.getByTestId('storage-delete-qwen2.5-0.5b'));
     expect(screen.getByTestId('storage-confirm').textContent).toMatch(/falls back to/);
   });
@@ -268,11 +281,11 @@ describe('StoragePage (native)', () => {
       bundleStatus: 'ready', bundleVersion: '0.2.0', bundleDevVenv: false,
       bundleInstalledSize: null, fetchBundleEntry,
     } as never);
-    const first = render(<StoragePage provider="native" />);
+    const first = render(<StoragePage provider="native" settings={NATIVE} pair={{ source: 'ja', target: 'en' }} />);
     expect(fetchBundleEntry).toHaveBeenCalledTimes(1);
     first.unmount();
     useNativeModelStore.setState({ bundleInstalledSize: 5 * 1024 ** 3 } as never);
-    render(<StoragePage provider="native" />);
+    render(<StoragePage provider="native" settings={NATIVE} pair={{ source: 'ja', target: 'en' }} />);
     expect(fetchBundleEntry).toHaveBeenCalledTimes(1);
   });
 
@@ -284,7 +297,7 @@ describe('StoragePage (native)', () => {
       bundleInstalledSize: 5 * 1024 ** 3, removeBundle,
     } as never);
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
-    render(<StoragePage provider="native" />);
+    render(<StoragePage provider="native" settings={NATIVE} pair={{ source: 'ja', target: 'en' }} />);
     const engineRow = screen.getByTestId('storage-engine-row');
     expect(engineRow).toHaveTextContent('Engine 0.2.0');
     expect(engineRow).toHaveTextContent('5.0 GB on disk');
@@ -301,7 +314,7 @@ describe('StoragePage (native)', () => {
       bundleStatus: 'ready', bundleVersion: '0.2.0', bundleDevVenv: false,
       bundleInstalledSize: 5 * 1024 ** 3, removeBundle,
     } as never);
-    render(<StoragePage provider="native" isSessionActive />);
+    render(<StoragePage provider="native" isSessionActive settings={NATIVE} pair={{ source: 'ja', target: 'en' }} />);
     const btn = screen.getByRole('button', { name: /Remove engine/ });
     expect(btn).toBeDisabled();
     fireEvent.click(btn);
@@ -312,7 +325,7 @@ describe('StoragePage (native)', () => {
     useNativeModelStore.setState({
       catalog: CATALOG, statuses: {}, bundleStatus: 'absent', bundleVersion: null,
     } as never);
-    const { rerender } = render(<StoragePage provider="native" />);
+    const { rerender } = render(<StoragePage provider="native" settings={NATIVE} pair={{ source: 'ja', target: 'en' }} />);
     expect(screen.queryByTestId('storage-engine-row')).toBeNull();
 
     useNativeModelStore.setState({ bundleStatus: 'ready', bundleVersion: '0.2.0' } as never);

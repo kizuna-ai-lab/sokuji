@@ -10,8 +10,8 @@ import {
 import { isElectron } from '../utils/environment';
 import { resolveDirection } from '../lib/local-inference/selection/resolveStage';
 import { nativeCandidates } from '../lib/local-inference/selection/candidates.native';
-import { directionKey, emptyDirection, type DirectionResult, type ResolutionNote, type Selections, type Stage } from '../lib/local-inference/selection/types';
-import { reportWarning, describeCause } from '../lib/diagnostics/report';
+import { directionKey, type DirectionResult, type ResolutionNote, type Selections } from '../lib/local-inference/selection/types';
+import { reportWarning } from '../lib/diagnostics/report';
 import useLogStore from './logStore';
 
 export type NativeModelStatus = NativeModelState | 'downloading';
@@ -141,8 +141,8 @@ interface NativeModelStore {
    *     channel is simply skipped at connect time.
    * Returns ready + a reason, and `notes` (both directions, blocking or not)
    * for the UI to render instead of the generic `localNative*`-family
-   * strings. resolve() output IS the answer — there is nothing left to write
-   * back to settings on the caller's behalf. Mirrors the WASM
+   * strings. resolve() output IS the answer, and nothing is written back — not
+   * even a dead id: the caller owns its settings (#578 ruling 6). Mirrors the WASM
    * useModelStore.ensureSelectionReady in shape (peers, not a shared layer).
    * `read` is a thunk, called only once the sidecar is warm — see
    * NativeReadinessInput for why a snapshot would be wrong.
@@ -160,16 +160,6 @@ interface NativeModelStore {
    * manifest.
    */
   resolve: (src: string, tgt: string, selections: Selections) => DirectionResult;
-  /**
-   * The one write the resolver can cause: an id the catalog no longer knows
-   * can never resolve again, so keeping it only produces a note the user
-   * cannot act on. Garbage collection, not write-back. Reaches settingsStore
-   * via a dynamic import — same settingsStore-import path this file already
-   * uses (catalogStatusRepos / revalidateNativeProvider) — so a settings-store
-   * failure at this point degrades to "nothing pruned" rather than throwing.
-   * Mirrors modelStore.ts's `applyPrunes`, against the `localNative` slice.
-   */
-  applyPrunes: (prunes: Array<{ direction: string; stage: Stage }>) => Promise<void>;
   /** Every note the last {@link ensureSelectionReady} call produced (speaker +
    *  participant directions), for the UI to render in place of the generic
    *  `localNative*`-family strings. Plan 2 owns the rendering; this store
@@ -195,7 +185,6 @@ interface NativeModelStore {
 // Singleton management connection (separate from session-stage clients).
 const client = new NativeModelClient();
 
-// Re-run provider validation so the Start button gates with the cache state.
 /**
  * Catalog-derived statusRepos defaults: each multi-variant card's CHOSEN
  * (pinned ?? recommended) quant repo. Populated the moment the catalog lands,
@@ -246,26 +235,21 @@ export function deriveVariantRepos(cards: NativeModelInfo[], pins: Record<string
   return statusReposFor(Object.keys(vd), vd, effectivePins);
 }
 
+/**
+ * Catalog-wide pins: Local Native's own settings (#578 ruling 6), across every
+ * direction the user has touched — this runs before any direction is current.
+ * Reached through a dynamic import, as the old slice was: the provider store
+ * loads the registry, which imports this store. No entry yet, no pins.
+ */
 async function catalogStatusRepos(list: NativeModelInfo[]): Promise<Record<string, string>> {
   let pins: Record<string, string> = {};
   try {
-    const { useSettingsStore } = await import('./settingsStore');
-    const selections = useSettingsStore.getState().localNative.selections;
-    // Catalog-wide (not scoped to one pair yet — this runs before any direction
-    // is necessarily "current"), so collect pins across every direction the
-    // user has ever touched, not just the speaker/participant pair.
+    const { useProviderStore } = await import('./providerStore');
+    const settings = useProviderStore.getState().entries.local_native?.settings as { selections?: Selections } | undefined;
+    const selections = settings?.selections ?? {};
     pins = pinsFromSelections(selections, Object.keys(selections));
-  } catch { /* settings store unavailable — fall back to recommendations */ }
+  } catch { /* provider store unavailable — fall back to recommendations */ }
   return deriveVariantRepos(list, pins);
-}
-
-async function revalidateNativeProvider(): Promise<void> {
-  try {
-    const { useSettingsStore } = await import('./settingsStore');
-    if (useSettingsStore.getState().provider === 'local_native') {
-      await useSettingsStore.getState().validateApiKey();
-    }
-  } catch { /* best-effort */ }
 }
 
 // Direct main-process IPC for the self-contained bundle flow. The bundle is
@@ -369,8 +353,6 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
           bundleStatus: 'ready', bundleSku: r.sku ?? null, bundleVersion: r.version ?? null,
           bundlePhase: null, bundleStagedBytes: 0,
         });
-        // Unlock the provider gate + warm the freshly installed sidecar.
-        void revalidateNativeProvider();
       } else if (r?.cancelled) {
         set({
           bundleStatus: 'paused', bundlePhase: null,
@@ -402,7 +384,6 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
         // lifecycle back to a state the next validation re-derives from.
         set({ sidecarStatus: 'idle', catalog: {}, statuses: {}, engineInfo: null, deviceProfiles: null, profileGeneration: null });
         await get().refreshBundle();
-        void revalidateNativeProvider();
       }
     } catch { /* best-effort */ }
   },
@@ -535,12 +516,8 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
 
   retrySidecar: async () => {
     set({ sidecarStatus: 'idle', engineInfo: null, deviceProfiles: null, profileGeneration: null });
+    // The provider's readiness watch sees the lifecycle move and re-checks (#578 ruling 6).
     await get().ensureCatalog();
-    // validateApiKey owns settingsStore's validationMessage / isApiKeyValid
-    // (the Start-button gate and the provider banner); nothing else re-runs it
-    // after a manual retry, so a successful boot would leave a stale
-    // "unavailable" message and a locked Start button without this.
-    await revalidateNativeProvider();
   },
 
   setStatusRepos: (repos) => set({ statusRepos: repos }),
@@ -549,7 +526,15 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     if (!models.length) return;
     try {
       const result = await client.status(models, repos ?? get().statusRepos);
-      set((s) => ({ statuses: { ...s.statuses, ...result } }));
+      // A running download keeps its status: the sidecar answers 'absent' until
+      // its files are complete, and the download sets the final one (#578).
+      set((s) => {
+        const statuses = { ...s.statuses };
+        for (const [model, status] of Object.entries(result)) {
+          if (s.statuses[model] !== 'downloading') statuses[model] = status;
+        }
+        return { statuses };
+      });
     } catch {
       // sidecar not available — leave statuses untouched
     }
@@ -570,7 +555,6 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
         statuses: { ...s.statuses, [model]: status === 'ready' ? 'ready' : 'absent' },
         errors: { ...s.errors, [model]: '' },
       }));
-      if (status === 'ready') await revalidateNativeProvider();
     } catch (err) {
       set((s) => ({
         statuses: { ...s.statuses, [model]: 'absent' },
@@ -597,7 +581,6 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
       // sidecar refused/unavailable — keep the best-effort 'absent' (the model is
       // hidden either way; readiness re-checks against the real cache on next refresh).
     }
-    await revalidateNativeProvider();
   },
 
   isReady: (models) => models.length > 0 && models.every((m) => get().statuses[m] === 'ready'),
@@ -618,35 +601,12 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     // Settings are read HERE, not at the call site: the warmup above can take
     // seconds on a cold start, during which the user may change the pair or
     // toggle text-only. The pre-facade gate read them at this same point.
-    const { selection, textOnly } = read();
+    const { selection, selections, mode: audioMode, textOnly } = read();
     const catalog = get().catalog;
-    // Selections are reached via a dynamic import — same path
-    // catalogStatusRepos/revalidateNativeProvider already use in this file —
-    // rather than a static one, to avoid a circular static import with
-    // settingsStore.ts (which already dynamically imports this module).
-    // Unavailable settings store degrades to "nothing explicit", i.e. every
-    // stage resolves purely from the catalog.
-    let selections: Selections = {};
-    try {
-      const { useSettingsStore } = await import('./settingsStore');
-      selections = useSettingsStore.getState().localNative.selections;
-    } catch (err) {
-      // settings store unavailable — resolve with no explicit selections.
-      // Logged so a broken import graph doesn't silently masquerade as "no
-      // selections yet".
-      reportWarning('NativeModelStore', `ensureSelectionReady: settings store unavailable, resolving with no explicit selections: ${describeCause(err)}`, { cause: err });
-    }
     const speakerDir = directionKey(selection.sourceLanguage, selection.targetLanguage);
     const participantDir = directionKey(selection.targetLanguage, selection.sourceLanguage);
-    // The mandatory leg follows the audio mode (see the ready verdict below);
-    // read it up front so pin priority and the status refresh judge the SAME
-    // leg the gate does. Picker position, not lockedMode — see the verdict's
-    // own comment.
-    let audioMode: 'speaker' | 'participant' | 'both' = 'speaker';
-    try {
-      const { default: useAudioStore } = await import('./audioStore');
-      audioMode = useAudioStore.getState().mode;
-    } catch { /* default: speaker */ }
+    // The mandatory leg follows the caller's mode (see the ready verdict
+    // below): pin priority and the status refresh judge the SAME leg the gate does.
     const mandatoryFirst = audioMode === 'participant'
       ? [participantDir, speakerDir] : [speakerDir, participantDir];
     // Pins now live on the (direction, stage) that chose them — collect only
@@ -681,16 +641,11 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
 
     // Resolve BOTH the speaker (src→tgt) and participant (tgt→src) directions
     // against the sidecar catalog + the live download statuses just refreshed
-    // above, then garbage-collect every id either resolution found dead (an id
-    // the catalog no longer knows about at all) in one combined write.
+    // above. A dead id only produces a note: nothing is written back (#578 ruling 6).
     const rawSpeaker = get().resolve(selection.sourceLanguage, selection.targetLanguage, selections);
     const speaker = textOnly ? stripTts(rawSpeaker) : rawSpeaker;
     const rawParticipant = get().resolve(selection.targetLanguage, selection.sourceLanguage, selections);
     const participant = textOnly ? stripTts(rawParticipant) : rawParticipant;
-    const prunes = [...speaker.prunes, ...participant.prunes];
-    if (prunes.length > 0) {
-      await get().applyPrunes(prunes);
-    }
 
     // requiredNativeModels/the SECOND refresh below need the SPEAKER direction's
     // resolved ids directly — resolve() already folds explicit-vs-auto,
@@ -754,30 +709,6 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   resolve: (src, tgt, selections) => {
     const { catalog, statuses } = get();
     return resolveDirection(directionKey(src, tgt), selections, nativeCandidates({ catalog, statuses }));
-  },
-
-  applyPrunes: async (prunes) => {
-    if (prunes.length === 0) return;
-    try {
-      const { useSettingsStore } = await import('./settingsStore');
-      const store = useSettingsStore.getState();
-      const next = { ...store.localNative.selections };
-      for (const { direction, stage } of prunes) {
-        const dir = next[direction] ?? emptyDirection();
-        next[direction] = { ...dir, [stage]: { modelId: '' } };
-      }
-      // A direction with nothing explicit left carries no information.
-      for (const key of Object.keys(next)) {
-        const d = next[key];
-        if (!d.asr.modelId && !d.translation.modelId && !d.tts.modelId) delete next[key];
-      }
-      await store.updateLocalNative({ selections: next });
-    } catch (err) {
-      // settings store unavailable — nothing to prune. Logged (not silently
-      // swallowed) since a prune failure means a dead id survives in storage
-      // and keeps producing a note the user cannot act on.
-      reportWarning('NativeModelStore', `applyPrunes: settings store unavailable, prune skipped: ${describeCause(err)}`, { cause: err });
-    }
   },
 
   setAsrLoading: (v) => set({ asrLoading: v }),

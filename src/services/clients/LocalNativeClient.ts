@@ -14,7 +14,7 @@ import { splitSentences } from '../../utils/splitSentences';
 import { useNativeModelStore, nativeListTtsVoices, nativeHardwareInfo } from '../../stores/nativeModelStore';
 import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
 import { describeCause } from '../../lib/diagnostics/describeCause';
-import { createNativeVadWorker } from './createNativeVadWorker';
+import { createNativeVadWorker } from '../../lib/local-inference/native/createNativeVadWorker';
 import { SentenceStream } from '../../lib/segmentation/SentenceStream';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
 import { countSkeleton, offsetAfterSkeleton } from '../../lib/segmentation/sealCursor';

@@ -179,10 +179,20 @@ describe('a provider session side', () => {
       expect.arrayContaining([
         'src/providers/localInference/adapter.ts',
         'src/providers/localInference/engines.ts',
-        'src/providers/localInference/sentenceCut.ts',
         'src/providers/localInference/speech.ts',
       ]),
     );
+    expect(sessionSide(REPO_ROOT, 'src/providers/localInference')).not.toContain('src/providers/localInference/sentenceCut.ts');
+    // The engines are injected (the definition hands in `nativeEngines`): the adapter reaches `engines.ts` as types only, so the walk does not and the two rules below hold it by name.
+    expect(sessionSide(REPO_ROOT, 'src/providers/local_native')).toEqual(
+      expect.arrayContaining([
+        'src/providers/local_native/adapter.ts',
+        'src/providers/local_native/speech.ts',
+        'src/providers/local_native/voice.ts',
+      ]),
+    );
+    // The store-backed host stays off the session side (#578 ruling 14).
+    expect(sessionSide(REPO_ROOT, 'src/providers/local_native')).not.toContain('src/providers/local_native/config.ts');
     const fake = sessionSide(REPO_ROOT, 'src/providers/fake');
     expect(fake).toEqual(expect.arrayContaining(['src/providers/fake/adapter.ts', 'src/providers/fake/synth.ts']));
     expect(fake).not.toContain('src/providers/fake/script.ts');
@@ -300,12 +310,18 @@ describe('a provider session side', () => {
 
   it('a session side imports no store and no reporter as a value', () => {
     expect(providerDirs().flatMap((dir) => storeOffenders(REPO_ROOT, dir))).toEqual([]);
+    // Local Native's engines are injected, so the walk does not reach `engines.ts`: held by name.
+    const engines = readFileSync(join(REPO_ROOT, 'src/providers/local_native/engines.ts'), 'utf-8');
+    expect(valueImports(engines, 'engines.ts').filter((s) => FORBIDDEN.some((re) => re.test(s)))).toEqual([]);
   });
 
   it("a session side runs no global timer: every timer reads the request's clock", () => {
     expect(providerDirs().flatMap((dir) => timerOffenders(REPO_ROOT, dir))).toEqual([]);
-    // The walk does not follow `src/lib/**`: the one shared module two session sides cut their segments with, by name (Stage 2 translation cuts, choice 1).
+    // The walk does not follow `src/lib/**`: the shared modules session sides cut their segments and jobs with, by name (Stage 2 translation cuts, choice 1; #578 ruling 3).
     expect(globalTimerCalls(readFileSync(join(REPO_ROOT, 'src/lib/segmentation/continuousSegments.ts'), 'utf-8'))).toEqual([]);
+    expect(globalTimerCalls(readFileSync(join(REPO_ROOT, 'src/lib/segmentation/sentenceCut.ts'), 'utf-8'))).toEqual([]);
+    // Local Native's engines are injected, so the walk does not reach `engines.ts`: held by name.
+    expect(globalTimerCalls(readFileSync(join(REPO_ROOT, 'src/providers/local_native/engines.ts'), 'utf-8'))).toEqual([]);
   });
 
   it("only test-only modules import the adapter test kit or a provider's fixtures", () => {
@@ -317,6 +333,7 @@ describe('a provider session side', () => {
     expect(files.length).toBeGreaterThan(300);
     // The helper control.
     expect(testOnly.has('src/providers/localInference/fakeEngines.ts')).toBe(true);
+    expect(testOnly.has('src/providers/local_native/fakeEngines.ts')).toBe(true);
     expect(testOnly.has('src/providers/localInference/adapter.ts')).toBe(false);
     // The definition's control, on a synthetic graph.
     const synFiles = ['a.test.ts', 'helper.ts', 'deep.ts', 'app.ts', 'used.ts', 'cyc1.ts', 'cyc2.ts', 'orphan.ts'];

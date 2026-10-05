@@ -8998,3 +8998,103 @@ both fixes correct. The three Minor items were handled as follows.
 
 **The two threads on #570:** resolved on the owner's word once this was
 pushed (2026-10-01).
+
+## The Local Native port (kizuna-ai-lab/sokuji#578)
+
+Local Native, the Electron sidecar, runs on the client contract since the port
+the owner deferred out of Stage 2 (2026-09-30). The plan is
+`docs/superpowers/plans/2026-10-02-local-native-port.md`, on
+`worktree-local-native-port`. The provider is `local_native`
+(`src/providers/local_native/`): flagged, Electron only, offered in a release
+only behind its `debug:local-native` tester switch or
+`VITE_ENABLED_PROVIDERS=local_native`, and registered right after
+LocalInference. Its old path stays compiled and unreachable until the owner's
+live test (ruling 11).
+
+**The sixteen rulings**, by number and title:
+1. **Place and presence:** right after `localInference`, `flagged`, behind
+   `LOCAL_NATIVE_DEBUG_KEY`, `platforms: ['electron']`, `kind: 'local'`.
+2. **Not the third user:** no real-time silence and no re-chunking; audio goes
+   to the sidecar and the VAD worker as it arrives.
+3. **`SentenceCut` moves to `src/lib/segmentation/sentenceCut.ts`**, unchanged;
+   LocalInference and Local Native import it from there. It is a segmentation
+   module, not a provider seam: the two providers stay peers.
+4. **Two legs are refused by `admit`**, with no code of its own: the
+   `admit_refused` sentence carries the English detail "Local Native translates
+   one side at a time: choose Me or Other."
+5. **Readiness says why by code,** each aliased to a sentence every locale
+   already has: `native_engine_update_required`, `native_engine_required`,
+   `native_unavailable`, `native_starting`, `native_asr_missing`,
+   `native_translation_missing`, all targeting the `provider` section.
+6. **The new provider owns `settings.localNative.*`:** `check` never prunes;
+   `nativeModelStore` stops writing the old slice and stops re-running the old
+   `validateApiKey`, and reads its selections from its caller.
+7. **Settings keep the old slice's field names**, so every saved value is read
+   as is, with no migration code; `participantSystemPrompt` is the one new field.
+8. **Translation streams into its segment:** `translate_partial` opens and
+   updates it, the result replaces the text, and a failed translation closes
+   what streamed and says `translation_failed`.
+9. **Speech ranges:** one ranged clip per sentence for one-shot synthesis; each
+   streamed chunk as it arrives, its sentence's range divided among them by
+   sample count once the sentence ends.
+10. **Failures by effect:** a closed ASR or translation socket, or the VAD
+    worker failing after it is ready, ends the session; TTS failing to load,
+    dying, or a clone-only model with no clip is `tts_degraded` and the text
+    goes on; an id-less ASR error is `transcription_failed`, an id-less
+    translation error `translation_failed`.
+11. **The old path and its gates stay:** `VITE_ENABLE_LOCAL_NATIVE`,
+    `isLocalNativeEnabled()`, the old settings shell, `LocalNativeClient` and the
+    `localNative` slice, untouched but where the plan names them.
+12. **The first-run wizard is unchanged:** it does not offer a flagged provider.
+13. **Voice previews take the app's route:** `LocalNativeEngine` provides the
+    preview port `ProviderEngine` hands it as `VoicePreviewContext`.
+14. **Resolved plans travel through the bridge:** the adapter reports each
+    stage's resolved device through `host.plan(...)`, which the definition wires
+    to `nativeModelStore`'s `set*Resolved`; the loading flags are not written.
+15. **Load order is the builder's:** `asrFirst`, from the catalog's tiers and
+    sizes (GPU-only first, else the larger).
+16. **`check` passes `textOnly: false`:** TTS never gates readiness, and
+    refreshing its status keeps the library's badges accurate.
+
+**The stated departures from the old path:**
+- A TTS load failure is degraded, not session-broken (ruling 10).
+- Translation partials keep streaming into their segment (ruling 8).
+- `translate_init` carries `ttsModel` only when TTS loads.
+- The store no longer prunes or re-validates the old slice (ruling 6), and the
+  old path's `revalidateNativeProvider` is gone: `watchReadiness` re-checks
+  when a download, a delete, the bundle or the sidecar's lifecycle moves.
+
+**Behaviors decided while executing the plan:**
+- The summary's memory estimate and its "In use" match follow the direction
+  that runs: the participant's when the legs' mode is participant.
+- The summary's fallback notes come from the readiness check's
+  `lastResolutionNotes`, shown only while the sidecar is ready, and only for the
+  directions the legs show, as the old `LanguageSection` did.
+- The settings view judges custom-prompt support on the running direction's
+  translation model only (#526).
+- In participant mode the memory estimate leaves out TTS while participant
+  speech is held off; to revisit with kizuna-ai-lab/sokuji#579.
+- A throwing voice-clip lookup degrades TTS instead of failing the start
+  (ruling 10).
+- The VAD worker is created before the sidecar clients, so a factory throw
+  leaves nothing to dispose.
+
+**What remains:**
+1. **The owner's live test on the sidecar**, on the Electron app with
+   `debug:local-native` set: the native backends (GPU and CPU), the voices
+   (built-in, a custom clip, a clone-only model without a clip), the device
+   profile, push-to-talk, a sentences display, typed text, and Start refused
+   for Both.
+2. **The deletion plan for the old path**, after that test: `LocalNativeClient`
+   and its tests, `LocalNativeProviderConfig`, `ProviderConfigFactory`,
+   `ClientFactory`, `ProviderDescriptor`, `localParticipantConfig`,
+   `punctuateDefinite`, `IClient.ts`, the old settings shell and
+   `sessionStore.ts`, the `localNative` slice and `settingsStore.validateApiKey`,
+   `oldPath.consistency.test.ts`, `VITE_ENABLE_LOCAL_NATIVE` and
+   `isLocalNativeEnabled`, and the old store's `asrLoading` / `ttsLoading` (only
+   the old client writes them, and no component reads them), with the tests
+   that hold only the old path (`descriptorRegistry.test.ts`,
+   `participantConfig.test.ts`, `prepareToStart.local.test.ts` among them). The
+   old store's `lastResolutionNotes` stays: the new summary reads it.
+3. **Shipping:** `VITE_ENABLED_PROVIDERS=local_native` at a release, and the
+   tester switch removed with the old path.

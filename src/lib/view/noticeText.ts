@@ -114,6 +114,13 @@ export const NOTICE_ALIASES: Readonly<Record<string, string>> = {
   // OpenAI Translate (Stage 2 OpenAI Translate, choice 11): a key that lists no gpt-realtime-translate model, and a region OpenAI does not serve — the old validation's sentences, which every locale already has.
   no_translate_model: 'settings.translateModelNotAvailable',
   region_unsupported: 'settings.regionNotSupported',
+  // Local Native's readiness (#578 ruling 5): the old gate's sentences, which every locale has.
+  native_engine_update_required: 'settings.localNativeEngineUpdateRequired',
+  native_engine_required: 'settings.localNativeEngineRequired',
+  native_unavailable: 'settings.localNativeUnavailable',
+  native_starting: 'settings.localNativeStarting',
+  native_asr_missing: 'settings.localNativeAsrIncompatible',
+  native_translation_missing: 'settings.localNativeTranslationIncompatible',
 };
 
 /** The notice in the user's words; the message itself for a code with no words, as today's bubbles show it. */

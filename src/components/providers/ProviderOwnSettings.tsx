@@ -68,8 +68,8 @@ interface ProviderEngineProps {
 
 /**
  * The selected provider's `Engine` (ruling 3): model management, the local
- * engines only, with the legs a start would open and the deep-link slot.
- * Nothing when the provider offers none, or before its entry loads.
+ * engines only, with the legs a start would open, the deep-link slot and the
+ * app's voice-preview route (#578 ruling 13). Nothing when the provider offers none, or before its entry loads.
  */
 export function ProviderEngine({ providers, disabled, initialSlot, onInitialSlotConsumed }: ProviderEngineProps) {
   const legs = useProviderStore((s) => s.legs);
@@ -83,6 +83,7 @@ export function ProviderEngine({ providers, disabled, initialSlot, onInitialSlot
       legs={legs}
       initialSlot={initialSlot}
       onInitialSlotConsumed={onInitialSlotConsumed}
+      preview={appVoicePreview}
     />
   );
 }

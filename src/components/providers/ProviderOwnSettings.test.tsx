@@ -206,6 +206,14 @@ describe('ProviderEngine', () => {
     expect(seen[0].onInitialSlotConsumed).toBe(onInitialSlotConsumed);
   });
 
+  it("hands Engine the app's voice-preview route (#578 ruling 13)", () => {
+    useProviderStore.setState({ entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'auto', target: 'en' } } } });
+    const seen: EngineProps<FakeSettings>[] = [];
+    const Engine = (props: EngineProps<FakeSettings>) => { seen.push(props); return null; };
+    render(<ProviderEngine providers={[{ ...fakeProvider, Engine }]} />);
+    expect(seen[0].preview).toBe(appVoicePreview);
+  });
+
   it('renders nothing when the provider has no Engine', () => {
     useProviderStore.setState({ entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'auto', target: 'en' } } } });
     const { container } = render(<ProviderEngine providers={[fakeProvider]} />);
