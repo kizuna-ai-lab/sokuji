@@ -34,9 +34,6 @@ vi.mock('../../lib/auth/hooks', () => ({
   useUser: () => ({ isLoaded: true, user: authUser, refetch: () => refetchSpy() }),
 }));
 
-const showToast = vi.fn();
-vi.mock('../Toast', () => ({ useToast: () => ({ showToast }) }));
-
 let quota: any = null;
 let kizunaEnabled = true;
 vi.mock('../../utils/environment', () => ({
@@ -72,7 +69,6 @@ beforeEach(() => {
   popoverRequested = false;
   setPopoverRequested.mockClear();
   refetchSpy.mockClear();
-  showToast.mockClear();
 });
 
 describe('AccountButton', () => {
@@ -273,38 +269,13 @@ describe('AccountButton e-mail verification', () => {
     expect(refetchSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('confirms the transition with a toast', () => {
-    // Otherwise the only feedback is a warning disappearing, which is not
-    // feedback: the user cannot tell success from a screen that never updated.
+  it('verification shows as the dot clearing; nothing else (spec 2026-10-05 §5, T5)', () => {
     signIn(false);
-    const { rerender } = render(<AccountButton />);
-    expect(showToast).not.toHaveBeenCalled();
-
+    const { container, rerender } = render(<AccountButton />);
+    expect(container.querySelector('.account-button__dot[data-tone="unverified"]')).not.toBeNull();
     signIn(true);
     rerender(<AccountButton />);
-
-    expect(showToast).toHaveBeenCalledTimes(1);
-    expect(String(showToast.mock.calls[0][0])).toMatch(/verified/i);
-  });
-
-  it('does not toast again on later renders', () => {
-    signIn(false);
-    const { rerender } = render(<AccountButton />);
-    signIn(true);
-    rerender(<AccountButton />);
-    rerender(<AccountButton />);
-    rerender(<AccountButton />);
-    expect(showToast).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not toast when an already-verified session merely finishes loading', () => {
-    // Every app launch looks like this: the session resolves asynchronously, so
-    // the first render has no user at all. Reading "no user yet" as "was
-    // unverified" would congratulate the user on verifying at every startup.
-    const { rerender } = render(<AccountButton />);
-    signIn(true);
-    rerender(<AccountButton />);
-    expect(showToast).not.toHaveBeenCalled();
+    expect(container.querySelector('.account-button__dot')).toBeNull();
   });
 });
 
