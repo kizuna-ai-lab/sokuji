@@ -275,6 +275,53 @@
 // Control Footer — shared base + mode variants
 // ═══════════════════════════════════════════════════
 
+// ─── Status line (spec 2026-10-05 §3, P1) ──────────
+// Why the user cannot start, or what is wrong now: one line above the footer,
+// the text-input row's colours, the same in both modes. It wraps.
+
+.status-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #252525;
+  border-top: 1px solid #333;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #e8e8e8;
+  flex-shrink: 0;
+
+  > svg { flex-shrink: 0; color: tk.$color-degraded; margin-top: 1px; }
+
+  &__text { flex: 1; min-width: 0; }
+
+  &__action {
+    flex-shrink: 0;
+    font: inherit;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #fff;
+    padding: 3px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    &:hover { background: rgba(255, 255, 255, 0.18); }
+    &:focus-visible { @include vars.focus-ring; }
+  }
+
+  &__dismiss {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: #aaa;
+    padding: 1px;
+    margin: 0 -2px 0 0;
+    display: inline-flex;
+    cursor: pointer;
+    &:hover { color: #fff; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
+}
+
 .control-footer {
   flex-shrink: 0;
   background: #2a2a2a;
