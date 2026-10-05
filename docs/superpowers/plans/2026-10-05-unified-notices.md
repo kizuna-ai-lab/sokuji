@@ -571,7 +571,8 @@ In `src/components/MainPanel/MainPanel.scss`, replace lines 127-213 (from `.mess
     color: tk.$color-primary;
     text-decoration: underline;
     cursor: pointer;
-    &::before { content: ' · '; color: #666; text-decoration: none; display: inline-block; }
+    // `pre` keeps the spaces around the dot: an inline-block drops the leading and trailing space of its own line.
+    &::before { content: ' · '; color: #666; text-decoration: none; display: inline-block; white-space: pre; }
     &:hover { opacity: 0.8; }
     &:focus-visible { @include vars.focus-ring; }
   }
