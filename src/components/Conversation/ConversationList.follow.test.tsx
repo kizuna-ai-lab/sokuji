@@ -101,6 +101,31 @@ describe('ConversationList — following the newest line', () => {
     expect(box.top).toBe(800);
   });
 
+  // Scroll anchoring: a row above the visible ones grows (a translation landing on an
+  // earlier segment) and the browser moves scrollTop down by as much, keeping the
+  // distance to the bottom. Measured in Chromium: it fires `scroll`. Not the reader.
+  it('does not resume when scroll anchoring moves the list down near the bottom', () => {
+    const { box, el, moveTo, update, wheelUp } = mount();
+    wheelUp();
+    moveTo(670);                 // stopped 30px above the bottom
+    box.height = 1020;           // a row above grows by 20px…
+    box.top = 690;               // …and anchoring keeps the reader's line in place
+    fireEvent.scroll(el);
+    update(1060);
+    expect(box.top).toBe(690);
+  });
+
+  it('resumes when the reader wheels down to the bottom while a line lands', () => {
+    const { box, el, moveTo, update, wheelUp } = mount();
+    wheelUp();
+    moveTo(400);
+    fireEvent.wheel(el, { deltaY: 10 });
+    box.height = 1020;           // the box changed on the frame the reader arrived
+    moveTo(700);
+    update(1100);
+    expect(box.top).toBe(800);
+  });
+
   it('holds while the scrollbar is dragged, and lets the release decide', () => {
     const { el, box, moveTo, update } = mount();
     fireEvent.pointerDown(el);
