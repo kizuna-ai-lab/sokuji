@@ -564,6 +564,7 @@
       "legendNone": "Pois: piilota tämä puoli"
     },
     "playItemAudio": "Toista tämän kohteen ääni",
+    "backToLatest": "Takaisin uusimpaan",
     "replayBlockedWholeSystem": "Toisto on pois päältä, kun toisen ääni kaappaa koko järjestelmän äänen: se käännettäisiin uudelleen.",
     "toolbar": {
       "export": "Vie keskustelu"

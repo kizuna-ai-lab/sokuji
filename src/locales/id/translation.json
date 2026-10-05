@@ -564,6 +564,7 @@
       "legendNone": "Mati: sembunyikan sisi ini"
     },
     "playItemAudio": "Putar audio item ini",
+    "backToLatest": "Kembali ke terbaru",
     "replayBlockedWholeSystem": "Putar ulang dimatikan selama audio lawan bicara menangkap seluruh audio sistem: audio itu akan diterjemahkan lagi.",
     "toolbar": {
       "export": "Ekspor percakapan"

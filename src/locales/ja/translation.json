@@ -564,6 +564,7 @@
       "legendNone": "オフ: この側を非表示"
     },
     "playItemAudio": "この項目の音声を再生",
+    "backToLatest": "最新に戻る",
     "replayBlockedWholeSystem": "相手の音声がシステム音声全体をキャプチャしている間、再生はオフになります。もう一度翻訳されてしまうためです。",
     "toolbar": {
       "export": "会話をエクスポート"

@@ -564,6 +564,7 @@
       "legendNone": "Aus: diese Seite ausblenden"
     },
     "playItemAudio": "Audio dieses Elements abspielen",
+    "backToLatest": "Zurück zum Neuesten",
     "replayBlockedWholeSystem": "Die Wiedergabe ist deaktiviert, solange das Audio des Gegenübers das gesamte Systemaudio erfasst: Es würde erneut übersetzt.",
     "toolbar": {
       "export": "Unterhaltung exportieren"

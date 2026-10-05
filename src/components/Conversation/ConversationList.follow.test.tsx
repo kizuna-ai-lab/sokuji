@@ -3,11 +3,9 @@ import { act, fireEvent, render } from '@testing-library/react';
 import type { DisplayItem } from '../../lib/view/filter';
 import { ConversationList, type ConversationListProps } from './ConversationList';
 
+// The key itself, so a test sees which catalog entry the row names.
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string, fallback?: string | { defaultValue?: string }) =>
-      typeof fallback === 'string' ? fallback : fallback?.defaultValue ?? key,
-  }),
+  useTranslation: () => ({ t: (key: string) => key }),
 }));
 
 const rows = (n: number): DisplayItem[] => Array.from({ length: n }, (_, i) => ({
@@ -142,7 +140,9 @@ describe('ConversationList — the Back to live row', () => {
     act(() => { vi.advanceTimersByTime(249); });
     expect(dock()).toBeNull();
     act(() => { vi.advanceTimersByTime(1); });
-    expect(dock()?.textContent).toBe('Back to live');
+    // The panel's own words, not the audience page's (`viewer.backToLive`): a viewer copy
+    // change, or the viewer dropping the key, must not reach the panel.
+    expect(dock()?.textContent).toBe('mainPanel.backToLatest');
     expect(el.nextElementSibling).toBe(dock());   // docked after the list, not floating inside it
   });
 

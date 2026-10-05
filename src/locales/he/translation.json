@@ -564,6 +564,7 @@
       "legendNone": "כבוי: הסתר צד זה"
     },
     "playItemAudio": "הפעל את השמע של פריט זה",
+    "backToLatest": "חזרה לחדש ביותר",
     "replayBlockedWholeSystem": "ההפעלה החוזרת כבויה כל עוד שמע הצד השני לוכד את כל שמע המערכת: היא תתורגם שוב.",
     "toolbar": {
       "export": "ייצא שיחה"

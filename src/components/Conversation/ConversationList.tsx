@@ -107,7 +107,7 @@ function FollowDock({ onClick }: { onClick(): void }) {
   return (
     <button type="button" className="follow-dock" onClick={onClick}>
       <ArrowDown size={14} aria-hidden="true" />
-      <span className="follow-dock__label">{t('viewer.backToLive', 'Back to live')}</span>
+      <span className="follow-dock__label">{t('mainPanel.backToLatest', 'Back to latest')}</span>
     </button>
   );
 }

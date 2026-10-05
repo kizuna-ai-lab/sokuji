@@ -564,6 +564,7 @@
       "legendNone": "關閉：隱藏這一側"
     },
     "playItemAudio": "播放此項目的音訊",
+    "backToLatest": "回到最新",
     "replayBlockedWholeSystem": "當對方音訊正在擷取整個系統的聲音時，重播功能會關閉：否則會被再次翻譯。",
     "toolbar": {
       "export": "匯出對話"

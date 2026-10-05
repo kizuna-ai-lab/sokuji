@@ -564,6 +564,7 @@
       "legendNone": "Kapalı: bu tarafı gizle"
     },
     "playItemAudio": "Bu öğenin sesini oynat",
+    "backToLatest": "En yeniye dön",
     "replayBlockedWholeSystem": "Karşı tarafın sesi tüm sistem sesini yakalarken yeniden oynatma kapalıdır: tekrar çevrilmiş olurdu.",
     "toolbar": {
       "export": "Sohbeti dışa aktar"

@@ -564,6 +564,7 @@
       "legendNone": "Desligado: ocultar este lado"
     },
     "playItemAudio": "Reproduzir o áudio deste item",
+    "backToLatest": "Voltar ao mais recente",
     "replayBlockedWholeSystem": "A reprodução fica desativada enquanto o áudio do outro capta todo o áudio do sistema: seria traduzido novamente.",
     "toolbar": {
       "export": "Exportar conversa"
