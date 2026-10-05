@@ -95,6 +95,7 @@ import { createVirtualClock } from '../lib/contract/clock';
 import { settleReports } from '../lib/diagnostics/report';
 import { autoSaveConversation } from '../lib/export/appAutoSave';
 import { DEFAULT_CLOSE_TIMEOUT_MS } from '../lib/session/runner';
+import { usePanelNotesStore } from '../stores/panelNotesStore';
 import { fakeLeasedProvider } from '../providers/fake/leased';
 import { fakeProvider } from '../providers/fake/provider';
 import { FAKE_LEASED_DEFAULTS } from '../providers/fake/settings';
@@ -236,12 +237,21 @@ describe('createAppSession', () => {
     await session.runner.start();
     await session.runner.stop();
     expect(autoSave).toHaveBeenCalledTimes(1);
-    const [legs, info, notify] = autoSave.mock.calls[0];
+    const [legs, info] = autoSave.mock.calls[0];
     expect(legs.map((leg) => leg.leg)).toEqual(['speaker']);
     expect(info).toBe(session.runner.conversation.info);
-    expect(notify).toEqual({ showToast: expect.any(Function) });
     expect(refetchQuota).toHaveBeenCalledTimes(1);
     expect(order).toEqual(['saved', 'refetch']);
+  });
+
+  it('clears the panel notes when a run starts (spec 2026-10-05 §5)', async () => {
+    const { session } = await setup();
+    // The clearing is an attach-time subscription, like the session's others.
+    const detach = session.attach();
+    usePanelNotesStore.getState().add({ severity: 'info', code: 'export_copied', message: 'copied' });
+    session.runner.state.setState({ phase: 'starting', step: 'checking' });
+    expect(usePanelNotesStore.getState().notes).toEqual([]);
+    detach();
   });
 
   it('never erases a bridge with undefined: a later setBridges without refetchQuota keeps the earlier one', async () => {

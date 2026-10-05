@@ -27,8 +27,8 @@ vi.mock('../../utils/conversationExport', () => ({
 import { saveTranscriptText } from './autoSave';
 
 const invoke = vi.fn();
-const showToast = vi.fn();
-const notify = { showToast };
+const note = vi.fn();
+const notify = { note };
 
 const CONTENT = [
   'Sokuji conversation export',
@@ -42,7 +42,7 @@ const FILENAME = 'sokuji-conversation-20260918-153000.txt';
 beforeEach(() => {
   electron = true;
   invoke.mockReset();
-  showToast.mockReset();
+  note.mockReset();
   reportError.mockReset();
   downloadFile.mockReset();
   (window as unknown as { electron: { invoke: typeof invoke } }).electron = { invoke };
@@ -59,18 +59,21 @@ describe('saveTranscriptText', () => {
     expect(channel).toBe('transcript:save');
     expect(payload).toEqual({ content: CONTENT });
 
-    const [text, opts] = showToast.mock.calls[0];
-    expect(text).toBe('Conversation saved: sokuji-conversation-20260918-153000.txt');
-    expect(opts).toMatchObject({ variant: 'success', durationMs: 6000 });
-    opts.action.onClick();
-    expect(invoke).toHaveBeenLastCalledWith('open-directory', '/home/u/Downloads');
+    const [input] = note.mock.calls[0];
+    expect(input).toMatchObject({
+      severity: 'info',
+      code: 'autosave_saved',
+      params: { filename: 'sokuji-conversation-20260918-153000.txt' },
+      action: { kind: 'show-in-folder', dir: '/home/u/Downloads' },
+    });
+    expect(input.lifetime).toBeUndefined();
   });
 
   it('browser: downloads the file and leaves the confirmation to the browser', async () => {
     electron = false;
     expect(await saveTranscriptText(CONTENT, FILENAME, notify)).toBe('saved');
     expect(downloadFile).toHaveBeenCalledWith(CONTENT, FILENAME, 'text/plain;charset=utf-8');
-    expect(showToast).not.toHaveBeenCalled();
+    expect(note).not.toHaveBeenCalled();
   });
 
   it('reports and tells the user when main could not write the file', async () => {
@@ -83,9 +86,9 @@ describe('saveTranscriptText', () => {
       'Failed to auto-save the conversation: EACCES: permission denied',
       expect.objectContaining({ cause: expect.any(Error) }),
     );
-    const [text, opts] = showToast.mock.calls[0];
-    expect(text).toContain('Download as .txt');
-    expect(opts).toMatchObject({ variant: 'error' });
+    const [input] = note.mock.calls[0];
+    expect(input).toMatchObject({ severity: 'warning', code: 'autosave_failed', params: { action: 'Download as .txt' } });
+    expect(input.action).toBeUndefined();
   });
 
   it('resolves, never rejects, when the IPC itself throws', async () => {

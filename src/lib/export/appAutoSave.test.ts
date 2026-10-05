@@ -44,13 +44,13 @@ const participantLeg: Leg = {
 };
 const info = { provider: 'fake', models: { asrModel: 'fake' } };
 const invoke = vi.fn();
-const showToast = vi.fn();
+const note = vi.fn();
 
 beforeEach(() => {
   state.autoSaveOnStop = true;
   electron = false;
   invoke.mockReset();
-  showToast.mockReset();
+  note.mockReset();
   reportError.mockReset();
   downloadFile.mockReset();
   (window as unknown as { electron: { invoke: typeof invoke } }).electron = { invoke };
@@ -58,7 +58,7 @@ beforeEach(() => {
 
 describe('autoSaveConversation', () => {
   it('saves the whole conversation, header first, one block per exchange', async () => {
-    expect(await autoSaveConversation(legs, info, { showToast })).toBe('saved');
+    expect(await autoSaveConversation(legs, info, { note })).toBe('saved');
     const [content, filename, mime] = downloadFile.mock.calls[0];
     expect(content).toMatch(/^Sokuji conversation export\nGenerated: /);
     expect(content).toContain('Provider: fake\nModels: asr=fake\n');
@@ -68,7 +68,7 @@ describe('autoSaveConversation', () => {
   });
 
   it('auto-saves both legs, Me then Other, in time order', async () => {
-    expect(await autoSaveConversation([legs[0], participantLeg], info, { showToast })).toBe('saved');
+    expect(await autoSaveConversation([legs[0], participantLeg], info, { note })).toBe('saved');
     const [content] = downloadFile.mock.calls[0];
     const meIndex = content.indexOf('] Me');
     const otherIndex = content.indexOf('] Other');
@@ -79,25 +79,25 @@ describe('autoSaveConversation', () => {
 
   it('does nothing while the switch is off, or when nothing was said', async () => {
     state.autoSaveOnStop = false;
-    expect(await autoSaveConversation(legs, info, { showToast })).toBe('disabled');
+    expect(await autoSaveConversation(legs, info, { note })).toBe('disabled');
     state.autoSaveOnStop = true;
-    expect(await autoSaveConversation([{ ...legs[0], segments: [] }], info, { showToast })).toBe('empty');
+    expect(await autoSaveConversation([{ ...legs[0], segments: [] }], info, { note })).toBe('empty');
     expect(downloadFile).not.toHaveBeenCalled();
   });
 
   it("desktop: hands the text to the main process and offers the folder, as today's auto-save does", async () => {
     electron = true;
     invoke.mockResolvedValueOnce({ ok: true, path: '/home/u/Downloads/sokuji-conversation-20260924-100100.txt', dir: '/home/u/Downloads' });
-    expect(await autoSaveConversation(legs, info, { showToast })).toBe('saved');
+    expect(await autoSaveConversation(legs, info, { note })).toBe('saved');
     expect(invoke).toHaveBeenCalledWith('transcript:save', { content: expect.stringContaining('今天天气很好。我们去公园吧。') });
-    expect(showToast.mock.calls[0][0]).toBe('Conversation saved: sokuji-conversation-20260924-100100.txt');
+    expect(note.mock.calls[0][0]).toMatchObject({ code: 'autosave_saved', params: { filename: 'sokuji-conversation-20260924-100100.txt' } });
   });
 
   it('reports a failed save and tells the user how to save by hand', async () => {
     electron = true;
     invoke.mockResolvedValueOnce({ ok: false, error: 'disk full' });
-    expect(await autoSaveConversation(legs, info, { showToast })).toBe('failed');
+    expect(await autoSaveConversation(legs, info, { note })).toBe('failed');
     expect(reportError).toHaveBeenCalledTimes(1);
-    expect(showToast.mock.calls[0][1]).toMatchObject({ variant: 'error' });
+    expect(note.mock.calls[0][0]).toMatchObject({ severity: 'warning', code: 'autosave_failed' });
   });
 });
