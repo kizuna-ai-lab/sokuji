@@ -23,6 +23,17 @@ describe('the Back to live row', () => {
     expect(trimmed(panel, '\\.follow-dock__label')).toMatch(/text-box:\s*trim-both cap alphabetic/);
   });
 
+  // The subtitle window's background is the user's own colour and opacity, and its
+  // controls are translucent white over it; the panel's solid #252525 looked like a
+  // patch there (rendered on black 80%, black 35% and navy 90%). S1, his pick.
+  it('lets the subtitle window’s own background through, with a hairline and translucent words', () => {
+    const dock = rule(stream, '\\.subtitle-stream\\.expanded \\.follow-dock');
+    expect(dock).toMatch(/background:\s*transparent/);
+    expect(dock).toMatch(/border-top:\s*1px solid rgba\(255, 255, 255, 0\.14\)/);
+    expect(dock).toMatch(/color:\s*rgba\(255, 255, 255, 0\.62\)/);
+    expect(rule(stream, '\\.subtitle-stream\\.expanded \\.follow-dock:hover')).toMatch(/background:\s*rgba\(255, 255, 255, 0\.08\)/);
+  });
+
   it('bleeds through exactly the subtitle stream’s padding to its edges and bottom', () => {
     const pad = rule(stream, '\\.subtitle-stream').match(/padding:\s*(\d+)px (\d+)px (\d+)px/);
     expect(pad).not.toBeNull();
