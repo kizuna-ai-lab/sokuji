@@ -271,10 +271,6 @@
   }
 }
 
-// ═══════════════════════════════════════════════════
-// Control Footer — shared base + mode variants
-// ═══════════════════════════════════════════════════
-
 // ─── Status line (spec 2026-10-05 §3, P1) ──────────
 // Why the user cannot start, or what is wrong now: one line above the footer,
 // the text-input row's colours, the same in both modes. It wraps.
@@ -322,6 +318,10 @@
   }
 }
 
+// ═══════════════════════════════════════════════════
+// Control Footer — shared base + mode variants
+// ═══════════════════════════════════════════════════
+
 .control-footer {
   flex-shrink: 0;
   background: #2a2a2a;
@@ -351,13 +351,6 @@
         background: tk.$color-degraded;
         animation: pulse 1s ease-in-out infinite;
       }
-    }
-
-    .reconnecting-label {
-      color: tk.$color-degraded;
-      font-size: 12px;
-      animation: pulse 1s ease-in-out infinite;
-      flex-shrink: 0;
     }
 
     .footer-spacer { flex: 1; min-width: 12px; }
@@ -408,6 +401,10 @@
       transition: background 0.3s ease;
       flex-shrink: 0;
       &.active { background: tk.$color-primary; }
+      &.reconnecting {
+        background: tk.$color-degraded;
+        animation: pulse 1s ease-in-out infinite;
+      }
     }
 
     .footer-spacer { flex: 1; min-width: 12px; }
@@ -541,42 +538,7 @@
       cursor: not-allowed;
       box-shadow: none;
 
-      &:hover {
-        background: #666;
-        .tooltip { visibility: visible; opacity: 1; }
-      }
-
-      .tooltip {
-        visibility: hidden;
-        width: 200px;
-        background: #333;
-        color: #fff;
-        text-align: center;
-        border-radius: 6px;
-        padding: 8px;
-        position: absolute;
-        z-index: 10;
-        bottom: 125%;
-        left: 50%;
-        margin-left: -100px;
-        opacity: 0;
-        transition: opacity 0.3s;
-        font-weight: normal;
-        font-size: 12px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-        pointer-events: none;
-
-        &::after {
-          content: "";
-          position: absolute;
-          top: 100%;
-          left: 50%;
-          margin-left: -5px;
-          border-width: 5px;
-          border-style: solid;
-          border-color: #333 transparent transparent transparent;
-        }
-      }
+      &:hover { background: #666; }
     }
 
     .spinner { animation: spin 1s linear infinite; }
@@ -623,7 +585,7 @@
       min-width: auto;
 
       .btn-text,
-      > span:not(.stop-icon):not(.play-icon):not(.status-dot):not(.tooltip) {
+      > span:not(.stop-icon):not(.play-icon):not(.status-dot) {
         display: none;
       }
     }

@@ -1,36 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, act, renderHook } from '@testing-library/react';
-import EchoNotice from './EchoNotice';
+import { act, renderHook } from '@testing-library/react';
 import { useEchoNotice } from './useEchoNotice';
 import type { EchoNoticeState } from '../../lib/modern-audio/EchoMonitor';
 import type { EchoSource } from './useEchoNotice';
 
 const state = (cause: EchoNoticeState['cause']): EchoNoticeState => ({ cause, lagMs: 120, rho: 0.8 });
-
-describe('EchoNotice', () => {
-  it('renders nothing when clear', () => {
-    const { container } = render(<EchoNotice state={null} onDismiss={() => {}} />);
-    expect(container.firstChild).toBeNull();
-  });
-
-  it.each([
-    ['tts-echo', /translated speech back/i],
-    ['meeting-echo', /Meeting audio/i],
-    ['far-end-echo', /echoing your translation/i],
-    ['self-capture', /Sokuji's own audio/i],
-    ['routing-loop', /playback directly/i],
-  ] as const)('renders a specific message for %s', (cause, pattern) => {
-    render(<EchoNotice state={state(cause)} onDismiss={() => {}} />);
-    expect(screen.getByRole('alert')).toHaveTextContent(pattern);
-  });
-
-  it('invokes onDismiss', () => {
-    const onDismiss = vi.fn();
-    render(<EchoNotice state={state('tts-echo')} onDismiss={onDismiss} />);
-    fireEvent.click(screen.getByRole('button'));
-    expect(onDismiss).toHaveBeenCalledOnce();
-  });
-});
 
 describe('useEchoNotice', () => {
   function fakeService() {

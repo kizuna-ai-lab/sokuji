@@ -106,12 +106,15 @@ describe('MainPanel without a microphone', () => {
     const speakerSegment = () => container.querySelector('.mode-picker__segment[aria-label="modePicker.modeYou"]') as HTMLButtonElement;
 
     expect(start().disabled).toBe(true);
-    expect(start().title).toBe('notices.no_microphone');
+    // The reason is the status line's, not the button's.
+    expect(start().getAttribute('title')).toBeNull();
+    expect(container.querySelector('.status-line')?.getAttribute('data-status')).toBe('unready:no_microphone');
+    expect(container.querySelector('.status-line__text')?.textContent).toBe('notices.no_microphone');
     expect(speakerSegment().classList.contains('mode-picker__segment--warn')).toBe(true);
 
     act(() => { useAudioStore.setState({ selectedInputDevice: { deviceId: 'mic-1', label: 'Mic' } }); });
     expect(start().disabled).toBe(false);
-    expect(start().title).toBe('');
+    expect(container.querySelector('.status-line')).toBeNull();
     expect(speakerSegment().classList.contains('mode-picker__segment--warn')).toBe(false);
   });
 });

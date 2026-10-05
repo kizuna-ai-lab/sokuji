@@ -389,7 +389,7 @@ describe('MainPanel', () => {
     }
   });
 
-  it('draws why a refused start did not happen after the list, in words, with no action for a code with no Settings target', async () => {
+  it('draws why a refused start did not happen as the status line, in words, with no action for a code with no Settings target', async () => {
     const { container } = await renderPanel();
     await start(container);
     playFirstExchange();
@@ -399,12 +399,14 @@ describe('MainPanel', () => {
     await click(container, () => expect(runner().state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'refused' } }));
 
     const list = container.querySelector('.conversation-list') as HTMLElement;
-    // A refused start keeps the last conversation; the idle line comes after it.
+    // A refused start keeps the last conversation; the status line says why, outside the list.
     expect(list.querySelectorAll('.conversation-row').length).toBeGreaterThan(0);
-    const last = list.lastElementChild as HTMLElement;
-    expect(last.classList.contains('sys-row')).toBe(true);
-    expect(last.textContent).toContain('notices.not_ready');
-    expect(container.querySelector('.sys-row__action')).toBeNull();
+    expect(list.querySelector('.sys-row')).toBeNull();
+    const line = container.querySelector('.status-line');
+    // The live gate (the provider is known unready now) outranks the refusal it caused.
+    expect(line?.getAttribute('data-status')).toMatch(/^unready:/);
+    expect(line?.querySelector('.status-line__text')?.textContent).toContain('The fake reports not ready');
+    expect(container.querySelector('.status-line__action')).toBeNull();
   });
 
   it("disables every replay while the gate says so, and hands the gate the run, the platform and Other's source", async () => {
@@ -429,7 +431,7 @@ describe('MainPanel', () => {
     await stop();
   });
 
-  it('opens the Screen Recording modal on a loopback denial, with the application note, and reopens it from the idle line', async () => {
+  it('opens the Screen Recording modal on a loopback denial, with the application note, and reopens it from the status line', async () => {
     useAudioStore.setState({ participantSources: [{ deviceId: 'system', label: 'System' }, { deviceId: 'app:1', label: 'App' }] });
     const { container } = await renderPanel();
     expect(lastModal()).toMatchObject({ isOpen: false, type: null });
@@ -442,7 +444,11 @@ describe('MainPanel', () => {
     act(() => { lastModal().onClose(); });
     expect(lastModal()).toMatchObject({ isOpen: false, type: null });
 
-    const actions = container.querySelectorAll<HTMLButtonElement>('.sys-row__action');
+    const line = container.querySelector('.status-line');
+    expect(line?.getAttribute('data-status')).toBe('last-end:loopback_denied');
+    expect(line?.querySelector('.status-line__text')?.textContent).toBe('notices.loopback_denied');
+    expect(container.querySelector('.sys-row')).toBeNull();
+    const actions = container.querySelectorAll<HTMLButtonElement>('.status-line__action');
     expect(actions.length).toBe(1);
     expect(actions[0].textContent).toBe('audioPanel.openSystemSettings');
     fireEvent.click(actions[0]);
@@ -487,7 +493,8 @@ describe('MainPanel', () => {
       act(() => {
         runner().state.setState({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'no_microphone', message: 'm', leg: 'speaker' } } }, true);
       });
-      const actions = container.querySelectorAll<HTMLButtonElement>('.sys-row__action');
+      expect(container.querySelector('.status-line')?.getAttribute('data-status')).toBe('last-end:no_microphone');
+      const actions = container.querySelectorAll<HTMLButtonElement>('.status-line__action');
       expect(actions.length).toBe(1);
       expect(actions[0].textContent).toBe('settings.title');
       fireEvent.click(actions[0]);
@@ -497,19 +504,19 @@ describe('MainPanel', () => {
     }
   });
 
-  // The list caches a notice's action by its id for as long as the action
-  // callback keeps its identity — the panel's whole life — so `lastEndItem`
-  // names an end by its code: a later end must not show an earlier one's action.
+  // The line's key names an end by its code: a later end must not show an earlier one's action.
   it("gives each end its own action, not the one the panel drew for an earlier end", async () => {
     const { container } = await renderPanel();
     act(() => {
       runner().state.setState({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'not_ready', message: 'm' } } }, true);
     });
-    expect(container.querySelector('.sys-row__action')).toBeNull();
+    expect(container.querySelector('.status-line')?.getAttribute('data-status')).toBe('last-end:not_ready');
+    expect(container.querySelector('.status-line__action')).toBeNull();
     act(() => {
       runner().state.setState({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'no_microphone', message: 'm', leg: 'speaker' } } }, true);
     });
-    expect(container.querySelector('.sys-row__action')?.textContent).toBe('settings.title');
+    expect(container.querySelector('.status-line')?.getAttribute('data-status')).toBe('last-end:no_microphone');
+    expect(container.querySelector('.status-line__action')?.textContent).toBe('settings.title');
   });
 
   // Today's toggle (`MainPanel.tsx:3543-3551`): the playing item's button stops it.
@@ -549,18 +556,19 @@ describe('MainPanel', () => {
     act(() => {
       runner().state.setState({ phase: 'idle', lastEnd: { reason: 'start-failed', notice: { code: 'start_failed', message: 'socket closed' } } }, true);
     });
-    expect(container.querySelectorAll('.conversation-list .sys-row').length).toBe(1);
+    expect(container.querySelector('.status-line')?.getAttribute('data-status')).toBe('last-end:start_failed');
+    expect(container.querySelector('.sys-row')).toBeNull();
     expect(clear().disabled).toBe(false);
 
     fireEvent.click(clear());
-    expect(container.querySelector('.sys-row')).toBeNull();
+    expect(container.querySelector('.status-line')).toBeNull();
     expect(container.querySelector('.conversation-display .empty-state')).not.toBeNull();
     expect(clear().disabled).toBe(true);
 
     act(() => {
       runner().state.setState({ phase: 'idle', lastEnd: { reason: 'start-failed', notice: { code: 'start_failed', message: 'socket closed again' } } }, true);
     });
-    expect(container.querySelectorAll('.conversation-list .sys-row').length).toBe(1);
+    expect(container.querySelector('.status-line')?.getAttribute('data-status')).toBe('last-end:start_failed');
   });
 
   it("clears a refused start's line with the conversation it kept", async () => {
@@ -571,12 +579,40 @@ describe('MainPanel', () => {
     act(() => { useProviderStore.getState().updateSettings(fakeProvider, { checkFails: true }); });
     await click(container, () => expect(runner().state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'refused' } }));
     expect(container.querySelectorAll('.conversation-list .conversation-row').length).toBeGreaterThan(0);
-    expect(container.querySelectorAll('.conversation-list .sys-row').length).toBe(1);
+    expect(container.querySelector('.sys-row')).toBeNull();
 
     fireEvent.click(container.querySelector('.clear-conversation-btn') as HTMLButtonElement);
     act(() => { clock.advance(VIEW_INTERVAL_MS); });
     expect(container.querySelector('.conversation-list')).toBeNull();
+    // The gate is still shut (the provider is unready now): that line is a live condition, not the end Clear hid.
+    expect(container.querySelector('.status-line')?.getAttribute('data-status')).toMatch(/^unready:/);
     expect(container.querySelector('.conversation-display .empty-state')).not.toBeNull();
+  });
+
+  it('shows why Start is off as the status line, not as a tooltip (spec 2026-10-05 §3)', async () => {
+    // The web has no participant leg to run: the start gate refuses it, which makes the subtitle session's idle `unready`.
+    useAudioStore.setState({ mode: 'participant' });
+    const { container } = await renderPanel();
+    expect(getAppSession().subtitle.get().canStart).toBe(false);
+    expect(container.querySelector('.status-line')?.getAttribute('data-status')).toMatch(/^unready:/);
+    expect(mainAction(container).disabled).toBe(true);
+    expect(mainAction(container).getAttribute('title')).toBeNull();
+    expect(container.querySelector('.tooltip')).toBeNull();
+  });
+
+  it('a transient mic event stays a row; the wait is the line', async () => {
+    const selected = useAudioStore.getState().selectedInputDevice;
+    useAudioStore.setState({ selectedInputDevice: null });
+    try {
+      const { container } = await renderPanel();
+      act(() => { runner().state.setState({ phase: 'running', since: 0, legs: { speaker: 'live' } }, true); });
+      expect(container.querySelector('.status-line')?.getAttribute('data-status')).toBe('mic-waiting');
+    } finally {
+      act(() => {
+        runner().state.setState({ phase: 'idle' }, true);
+        useAudioStore.setState({ selectedInputDevice: selected });
+      });
+    }
   });
 
   // Ruling 16's toggle: a second press stops the tone, even one still decoding.

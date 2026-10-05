@@ -62,18 +62,12 @@ describe('PanelFooter — idle / start gate', () => {
     expect(onStart).toHaveBeenCalledTimes(1);
   });
 
-  it.each(SITES)('%s: canStart false with a startBlockMessage disables Start and shows the message', (site) => {
-    const message = 'Configure devices for this mode to start.';
-    const { container } = render(
-      <PanelFooter {...baseProps(site, { canStart: false, startBlockMessage: message })} />,
-    );
-    const btn = actionButton(container);
-    expect(btn).toBeDisabled();
-    if (site === 'basic') {
-      expect(btn.getAttribute('title')).toBe(message);
-    } else {
-      expect(btn.querySelector('.tooltip')?.textContent).toBe(message);
-    }
+  it.each(SITES)('%s: canStart false disables Start and says nothing on the button — the status line says why', (site) => {
+    const { container } = render(<PanelFooter {...baseProps(site, { canStart: false })} />);
+    const button = container.querySelector('[data-tour="main-action"]') as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    expect(button.getAttribute('title')).toBeNull();
+    expect(container.querySelector('.tooltip')).toBeNull();
   });
 });
 
@@ -133,16 +127,10 @@ describe('PanelFooter — running / stopping', () => {
 });
 
 describe('PanelFooter — reconnecting', () => {
-  it.each(SITES)('%s: a reconnecting leg paints the status dot; basic alone shows the label', (site) => {
-    const run: RunState = { phase: 'running', since: 0, legs: { speaker: 'reconnecting' } };
-    const { container } = render(<PanelFooter {...baseProps(site, { run })} />);
-    expect(container.querySelector('.status-dot.reconnecting')).toBeTruthy();
-    const label = screen.queryByText('connectionStatus.reconnecting');
-    if (site === 'basic') {
-      expect(label).toBeInTheDocument();
-    } else {
-      expect(label).toBeNull();
-    }
+  it.each(SITES)('%s: a reconnecting leg marks the dot; no label in the footer', (site) => {
+    const { container } = render(<PanelFooter {...baseProps(site, { run: { phase: 'running', since: 0, legs: { speaker: 'reconnecting' } } })} />);
+    expect(container.querySelector('.status-dot.reconnecting')).not.toBeNull();
+    expect(container.querySelector('.reconnecting-label')).toBeNull();
   });
 });
 

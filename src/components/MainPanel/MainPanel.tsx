@@ -17,8 +17,6 @@ import { participantSpeechHeard } from '../../lib/modern-audio/participantSource
 import { NO_MICROPHONE } from '../../lib/session/shape';
 import type { RunEnd, RunState } from '../../lib/session/types';
 import { displayItems, type DisplayItem, type NoticeEntry } from '../../lib/view/filter';
-import { lastEndItem } from '../../lib/view/lastEnd';
-import { noticeText } from '../../lib/view/noticeText';
 import { actionForCode, actionLabel, type NoticeActionSpec } from '../../lib/view/noticeActions';
 import { isPanelNoteId, PANEL_NOTE_ID_PREFIX, panelNoteEntries } from '../../lib/view/panelNotes';
 import { getProvider } from '../../providers/registry';
@@ -45,6 +43,7 @@ import {
   useSubtitleModeActive,
   useUIMode,
 } from '../../stores/settingsStore';
+import { useSetSubtitleEntryHint } from '../../stores/subtitleStore';
 import { useCleanupUpdateListeners, useInitUpdateListeners } from '../../stores/updateStore';
 import { getEnvironment, isElectron, isExtension } from '../../utils/environment';
 import AudioSystemBanner from '../AudioSystemBanner/AudioSystemBanner';
@@ -52,7 +51,6 @@ import { ConversationList, type NoticeAction } from '../Conversation/Conversatio
 import { useConversationExporter } from '../Conversation/useConversationExporter';
 import { useReadable } from '../Conversation/useReadable';
 import { useVisibleEntries } from '../Conversation/useVisibleEntries';
-import EchoNotice from '../EchoNotice/EchoNotice';
 import { echoSource, useEchoNotice } from '../EchoNotice/useEchoNotice';
 import WarningModal from '../Settings/shared/WarningModal';
 import UpdateBanner from '../UpdateBanner/UpdateBanner';
@@ -66,6 +64,8 @@ import TypedText from './panel/TypedText';
 import { usePermissionWarning } from './panel/usePermissionWarning';
 import { usePushToTalk } from './panel/usePushToTalk';
 import { InputWaveforms, OutputWaveform } from './panel/Waveforms';
+import { StatusLine } from './StatusLine';
+import { useStatusLine } from './useStatusLine';
 import './MainPanel.scss';
 
 /**
@@ -183,15 +183,10 @@ export default function MainPanel() {
     previous.current = next;
     return next;
   }, [shown, speakerMode, participantMode]);
-  // Clear dismisses the idle line too. The end stays on the runner, which the
+  // Clear dismisses the status line's last-end entry too. The end stays on the runner, which the
   // subtitle surfaces read, so the panel keeps the end it cleared, by
   // reference: a later end is another object and draws again.
   const [dismissedEnd, setDismissedEnd] = useState<RunEnd | null>(null);
-  const lastEnd = useMemo(
-    () => (run.phase === 'idle' && run.lastEnd !== undefined && run.lastEnd === dismissedEnd ? null : lastEndItem(run)),
-    [run, dismissedEnd],
-  );
-  const items = useMemo(() => (lastEnd ? [...drawn, lastEnd] : drawn), [drawn, lastEnd]);
   const segments = useMemo(() => new Map(viewState.legs.flatMap((leg) => leg.segments.map((s) => [s.id, s] as const))), [viewState.legs]);
   // No participant replay slot while the whole-system rule mutes it (ruling
   // 7, completed): the switch, the run's shape and the route all agree.
@@ -212,7 +207,7 @@ export default function MainPanel() {
   // off this callback's identity, so a bundle arriving mid-session invalidates and rebuilds it
   // rather than serving stale text (ruling 14). That cache is never pruned: one entry per notice
   // drawn, for the panel's life — a page's worth. An id always names the same action: a leg's
-  // notice ids are unique per run, and an end's names its code (`lastEndItem`).
+  // notice ids are unique per run.
   // One table of actions (spec 2026-10-05 §6); the panel owns the handlers.
   const runNoticeAction = useCallback((spec: NoticeActionSpec) => {
     switch (spec.kind) {
@@ -235,9 +230,6 @@ export default function MainPanel() {
 
   // The start gate both surfaces read (the subtitle session), in words.
   const idle = subtitle.idle;
-  const startBlockMessage = run.phase === 'idle' && !subtitle.canStart && idle.kind === 'unready'
-    ? noticeText(t, { code: idle.code, params: idle.params, message: idle.message })
-    : undefined;
   const missingDevice = idle.kind === 'unready' && idle.code === NO_MICROPHONE ? 'speaker' as const : null;
 
   const speakerLive = run.phase === 'running' && run.legs.speaker === 'live';
@@ -261,12 +253,17 @@ export default function MainPanel() {
       trackEvent('echo_detected', { cause: state.cause, lag_ms: Math.round(state.lagMs) });
     },
   );
+  const setEntryHint = useSetSubtitleEntryHint();
+  const status = useStatusLine({ run, idle, canStart: subtitle.canStart, dismissedEnd, echo });
+  const onDismissStatus = useCallback((what: 'echo' | 'subtitle-entry') => {
+    if (what === 'echo') dismissEcho(); else setEntryHint(null);
+  }, [dismissEcho, setEntryHint]);
   const testTone = useTestTone(audio);   // dev only: { playing, toggle } | undefined
   useUpdateAndAudioSystemListeners();    // today's two listener inits, pre-switch MainPanel.tsx:1111-1125
 
   const takeover = subtitleModeActive && isExtension();
-  // The idle line counts: after a failed start it is all there is, and Clear takes it away.
-  const hasConversation = viewState.entries.length > 0 || lastEnd !== null || notes.length > 0;
+  // A failed start's line counts: after one it is all there is, and Clear takes it away.
+  const hasConversation = viewState.entries.length > 0 || notes.length > 0 || (status?.key.startsWith('last-end:') ?? false);
   const onClear = useCallback(() => {
     runner.clear();
     usePanelNotesStore.getState().clear();
@@ -278,7 +275,7 @@ export default function MainPanel() {
   const footer = (site: 'basic' | 'advanced') => (
     <PanelFooter
       site={site} run={run} mode={mode} missingDevice={missingDevice}
-      canStart={subtitle.canStart} startBlockMessage={startBlockMessage}
+      canStart={subtitle.canStart}
       holdToTalk={speakerLive && subtitle.holdToTalk} held={ptt.held} micMuted={micMuted}
       pair={subtitle.pair} duration={duration}
       // Ruling 11: `session.start` is the one start every surface calls — never a start while the gate is shut, the button is off then; this also holds for a click that beat its render (as the takeover's Start).
@@ -306,7 +303,7 @@ export default function MainPanel() {
           </div>
         ) : (
           <ConversationList
-            items={items} lit={lit} replaying={replaying} replayLegs={replayLegs}
+            items={drawn} lit={lit} replaying={replaying} replayLegs={replayLegs}
             canReplay={(id) => { const s = segments.get(id); return !!s?.final && s.speech.some((e) => e.pcm.length > 0); }}
             onReplay={(leg, id) => {
               if (!audio) return;
@@ -321,8 +318,8 @@ export default function MainPanel() {
           />
         )}
         {canSendText && <TypedText onSend={(text) => runner.sendText(text)} />}
+        {status && <StatusLine entry={status} onAction={runNoticeAction} onDismiss={onDismissStatus} />}
         {footer(uiMode === 'advanced' ? 'advanced' : 'basic')}
-        <EchoNotice state={echo} onDismiss={dismissEcho} />
       </div>
       <WarningModal
         isOpen={permission.warning !== null}
