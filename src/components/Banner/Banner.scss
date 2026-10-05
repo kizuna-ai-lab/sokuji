@@ -1,4 +1,5 @@
 @use '../../styles/tokens' as tk;
+@use '../Settings/shared/variables' as vars;
 
 // The app-level banner (spec 2026-10-05 §4): AudioSystemBanner's geometry,
 // two tones. `attention` wears the usage amber: it asks the user to act.
@@ -30,6 +31,9 @@
     gap: 8px;
     flex-wrap: wrap;
     min-width: 0;
+    // Each line of words is its own element (Banner.tsx wraps a plain string),
+    // centred by its ink: without a set line-height, Chinese sat 1px low here.
+    > span { @include vars.cap-centred; }
   }
 
   // A command the user copies (pactl-missing).
@@ -72,6 +76,10 @@
     &:hover:not(:disabled) { background: rgba(255, 255, 255, 0.25); }
     &:disabled { cursor: default; opacity: 0.7; }
   }
+
+  // The label keeps a full line's height, so a button with an icon and one
+  // without are equally tall, in every interface language.
+  &__btn-label { @include vars.cap-centred; }
 
   &__dismiss {
     background: none;

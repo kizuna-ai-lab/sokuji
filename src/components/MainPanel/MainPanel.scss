@@ -292,7 +292,9 @@
 
   > svg { flex-shrink: 0; color: tk.$color-degraded; }
 
-  &__text { flex: 1; min-width: 0; }
+  // The words and the action's label sit on the row's axis by their ink, not
+  // by their line boxes (`cap-centred`): centred boxes left Chinese 0.8px high.
+  &__text { flex: 1; min-width: 0; @include vars.cap-centred; }
 
   &__action {
     flex-shrink: 0;
@@ -303,6 +305,7 @@
     padding: 3px 8px;
     border-radius: 3px;
     cursor: pointer;
+    @include vars.cap-centred(3px);
     &:hover { background: rgba(255, 255, 255, 0.18); }
     &:focus-visible { @include vars.focus-ring; }
   }

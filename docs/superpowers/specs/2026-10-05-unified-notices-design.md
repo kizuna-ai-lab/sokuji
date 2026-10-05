@@ -202,7 +202,11 @@ the Electron subtitle takeover's expanded view (`SubtitleBody` → the same comp
   flex-shrink: 0` — the text-input row's colours (`MainPanel.scss:265-269`).
 - Icon 14px, `#f39c12`. Text `flex: 1; min-width: 0`, wraps. The row is as tall as its
   tallest item (the action button), so the items are centred on it: with top alignment a
-  one-line text sat 6px under the top edge and 12px over the bottom one.
+  one-line text sat 6px under the top edge and 12px over the bottom one. The words and the
+  action's label are centred by their ink, not their line boxes, where the browser can trim
+  a line (`text-box: trim-both cap alphabetic` under `@supports`, the `cap-centred` mixin,
+  the trimmed height given back as padding): a centred box left Chinese 0.6–0.8px high,
+  and a fixed 1px that fixed one platform pushed another off (measured on Linux and macOS).
 - Action: a small button at the right, `background: rgba(255,255,255,.1); color: #fff;
   padding: 3px 8px; border-radius: 3px; font: inherit`. Dismiss: an `X` 14px, `#aaa`,
   `aria-label` `common.dismiss`. A line has an action or a dismiss, not both.
@@ -220,7 +224,9 @@ align-items: center; gap: 12px; padding: 6px 12px; font-size: 12px; color: #fff;
 flex-shrink: 0`; content = 14px icon + wrapping text; actions = one `.banner__btn`
 (`rgba(255,255,255,.15)`, `padding: 3px 8px; border-radius: 3px`, optional 12px icon) and
 an `X` 12px. Two tones: `attention` `$color-usage #e67e22`, `brand` `$color-primary-fill
-#008261`.
+#008261`. Each line of words and the button's label is an element of its own, centred by its
+ink the same way as the status line's (`cap-centred`), so the button is equally tall with or
+without an icon and in every interface language.
 
 `useBanners()` returns the ordered list to draw, `attention` first:
 
