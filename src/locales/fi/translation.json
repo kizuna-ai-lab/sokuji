@@ -901,7 +901,8 @@
       "colorArea": "Kylläisyys ja kirkkaus",
       "colorHue": "Sävy",
       "colorHex": "Heksadesimaalinen värikoodi",
-      "newItemHighlight": "Korosta vasta saapunutta tekstiä"
+      "newItemHighlight": "Korosta vasta saapunutta tekstiä",
+      "autoScroll": "Vieritä automaattisesti uusimpaan"
     },
     "pttHint": "Paina välilyöntiä puhuaksesi"
   },

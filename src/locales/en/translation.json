@@ -1094,7 +1094,8 @@
       "colorArea": "Saturation and brightness",
       "colorHue": "Hue",
       "colorHex": "Hex color value",
-      "newItemHighlight": "Highlight newly-arrived text"
+      "newItemHighlight": "Highlight newly-arrived text",
+      "autoScroll": "Auto-scroll to newest"
     },
     "pttHint": "Press Space to speak"
   },

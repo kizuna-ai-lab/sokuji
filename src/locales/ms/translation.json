@@ -901,7 +901,8 @@
       "colorArea": "Ketepuan dan kecerahan",
       "colorHue": "Rona",
       "colorHex": "Nilai warna heks",
-      "newItemHighlight": "Serlahkan teks yang baru tiba"
+      "newItemHighlight": "Serlahkan teks yang baru tiba",
+      "autoScroll": "Tatal automatik ke yang terkini"
     },
     "pttHint": "Tekan Bar Ruang untuk bercakap"
   },

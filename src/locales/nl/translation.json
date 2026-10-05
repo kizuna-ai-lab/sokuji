@@ -901,7 +901,8 @@
       "colorArea": "Verzadiging en helderheid",
       "colorHue": "Tint",
       "colorHex": "Hexadecimale kleurwaarde",
-      "newItemHighlight": "Markeer nieuw binnengekomen tekst"
+      "newItemHighlight": "Markeer nieuw binnengekomen tekst",
+      "autoScroll": "Automatisch naar nieuwste scrollen"
     },
     "pttHint": "Druk op Spatie om te spreken"
   },

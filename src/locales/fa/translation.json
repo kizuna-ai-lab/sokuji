@@ -901,7 +901,8 @@
       "colorArea": "اشباع و روشنایی",
       "colorHue": "فام رنگ",
       "colorHex": "مقدار رنگ هگز",
-      "newItemHighlight": "برجسته‌سازی متنِ تازه‌رسیده"
+      "newItemHighlight": "برجسته‌سازی متنِ تازه‌رسیده",
+      "autoScroll": "پیمایش خودکار به جدیدترین"
     },
     "pttHint": "برای صحبت، Space را نگه دارید"
   },

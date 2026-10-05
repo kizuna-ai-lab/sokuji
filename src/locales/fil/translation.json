@@ -901,7 +901,8 @@
       "colorArea": "Saturation at liwanag",
       "colorHue": "Hue",
       "colorHex": "Hex na halaga ng kulay",
-      "newItemHighlight": "I-highlight ang bagong dating na teksto"
+      "newItemHighlight": "I-highlight ang bagong dating na teksto",
+      "autoScroll": "Awtomatikong mag-scroll sa pinakabago"
     },
     "pttHint": "Pindutin ang Space upang magsalita"
   },

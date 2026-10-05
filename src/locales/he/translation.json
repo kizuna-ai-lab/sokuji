@@ -901,7 +901,8 @@
       "colorArea": "רוויה ובהירות",
       "colorHue": "גוון",
       "colorHex": "ערך צבע הקסדצימלי",
-      "newItemHighlight": "הדגשת טקסט שהגיע זה עתה"
+      "newItemHighlight": "הדגשת טקסט שהגיע זה עתה",
+      "autoScroll": "גלילה אוטומטית לחדש ביותר"
     },
     "pttHint": "לחץ על רווח כדי לדבר"
   },

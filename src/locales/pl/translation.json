@@ -901,7 +901,8 @@
       "colorArea": "Nasycenie i jasność",
       "colorHue": "Odcień",
       "colorHex": "Szesnastkowa wartość koloru",
-      "newItemHighlight": "Wyróżnij nowo otrzymany tekst"
+      "newItemHighlight": "Wyróżnij nowo otrzymany tekst",
+      "autoScroll": "Automatycznie przewijaj do najnowszego"
     },
     "pttHint": "Naciśnij spację, aby mówić"
   },

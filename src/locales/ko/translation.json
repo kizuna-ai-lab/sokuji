@@ -901,7 +901,8 @@
       "colorArea": "채도 및 명도",
       "colorHue": "색상",
       "colorHex": "16진수 색상 값",
-      "newItemHighlight": "새로 도착한 텍스트 강조 표시"
+      "newItemHighlight": "새로 도착한 텍스트 강조 표시",
+      "autoScroll": "최신 항목으로 자동 스크롤"
     },
     "pttHint": "스페이스바를 눌러 말하세요"
   },

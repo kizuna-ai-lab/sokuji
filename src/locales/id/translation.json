@@ -901,7 +901,8 @@
       "colorArea": "Saturasi dan kecerahan",
       "colorHue": "Rona",
       "colorHex": "Nilai warna heksadesimal",
-      "newItemHighlight": "Sorot teks yang baru tiba"
+      "newItemHighlight": "Sorot teks yang baru tiba",
+      "autoScroll": "Gulir otomatis ke yang terbaru"
     },
     "pttHint": "Tekan Spasi untuk berbicara"
   },

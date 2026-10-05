@@ -901,7 +901,8 @@
       "colorArea": "Saturation et luminosité",
       "colorHue": "Teinte",
       "colorHex": "Valeur hexadécimale de la couleur",
-      "newItemHighlight": "Surligner le texte nouvellement arrivé"
+      "newItemHighlight": "Surligner le texte nouvellement arrivé",
+      "autoScroll": "Défiler automatiquement vers le plus récent"
     },
     "pttHint": "Appuyez sur Espace pour parler"
   },

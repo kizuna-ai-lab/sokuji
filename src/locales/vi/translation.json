@@ -901,7 +901,8 @@
       "colorArea": "Độ bão hòa và độ sáng",
       "colorHue": "Sắc độ",
       "colorHex": "Giá trị màu hex",
-      "newItemHighlight": "Tô sáng văn bản vừa đến"
+      "newItemHighlight": "Tô sáng văn bản vừa đến",
+      "autoScroll": "Tự động cuộn đến mới nhất"
     },
     "pttHint": "Nhấn Phím cách để nói"
   },
