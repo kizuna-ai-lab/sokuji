@@ -1376,7 +1376,7 @@ Add to `src/components/MainPanel/MainPanel.scss`, immediately before the `.contr
 
 .status-line {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
   padding: 6px 12px;
   background: #252525;
@@ -1386,7 +1386,7 @@ Add to `src/components/MainPanel/MainPanel.scss`, immediately before the `.contr
   color: #e8e8e8;
   flex-shrink: 0;
 
-  > svg { flex-shrink: 0; color: tk.$color-degraded; margin-top: 1px; }
+  > svg { flex-shrink: 0; color: tk.$color-degraded; }
 
   &__text { flex: 1; min-width: 0; }
 

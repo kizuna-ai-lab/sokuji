@@ -274,11 +274,13 @@
 
 // ─── Status line (spec 2026-10-05 §3, P1) ──────────
 // Why the user cannot start, or what is wrong now: one line above the footer,
-// the text-input row's colours, the same in both modes. It wraps.
+// the text-input row's colours, the same in both modes. It wraps. The row is
+// as tall as its tallest item (the action button), so the items are centred on
+// it: top alignment left a one-line text nearer the top edge than the bottom.
 
 .status-line {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
   padding: 6px 12px;
   background: #252525;
@@ -288,7 +290,7 @@
   color: #e8e8e8;
   flex-shrink: 0;
 
-  > svg { flex-shrink: 0; color: tk.$color-degraded; margin-top: 1px; }
+  > svg { flex-shrink: 0; color: tk.$color-degraded; }
 
   &__text { flex: 1; min-width: 0; }
 

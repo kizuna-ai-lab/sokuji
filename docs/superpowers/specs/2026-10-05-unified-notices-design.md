@@ -197,10 +197,12 @@ per-cause while another line is on top.
 `MainPanel.tsx` between `.conversation-display` and `.control-footer` in both modes, and in
 the Electron subtitle takeover's expanded view (`SubtitleBody` → the same component):
 
-- `display: flex; align-items: flex-start; gap: 8px; padding: 6px 12px; background: #252525;
+- `display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: #252525;
   border-top: 1px solid #333; font-size: 12px; line-height: 1.4; color: #e8e8e8;
   flex-shrink: 0` — the text-input row's colours (`MainPanel.scss:265-269`).
-- Icon 14px, `#f39c12`, `margin-top: 1px`. Text `flex: 1; min-width: 0`, wraps.
+- Icon 14px, `#f39c12`. Text `flex: 1; min-width: 0`, wraps. The row is as tall as its
+  tallest item (the action button), so the items are centred on it: with top alignment a
+  one-line text sat 6px under the top edge and 12px over the bottom one.
 - Action: a small button at the right, `background: rgba(255,255,255,.1); color: #fff;
   padding: 3px 8px; border-radius: 3px; font: inherit`. Dismiss: an `X` 14px, `#aaa`,
   `aria-label` `common.dismiss`. A line has an action or a dismiss, not both.
