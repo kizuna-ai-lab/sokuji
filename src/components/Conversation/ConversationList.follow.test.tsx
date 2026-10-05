@@ -171,6 +171,20 @@ describe('ConversationList — the Back to live row', () => {
     expect(el.nextElementSibling).toBe(dock());   // docked after the list, not floating inside it
   });
 
+  // A list that fits cannot move: a wheel up there is no reading back, and no scroll
+  // event would ever resume following. Reported by CodeRabbit on #599.
+  it('ignores upward input while the list is too short to scroll, and keeps following', () => {
+    vi.useFakeTimers();
+    const { el, box, update, dock } = mount();
+    update(250);                                   // the conversation fits in the 300px box
+    fireEvent.wheel(el, { deltaY: -10 });
+    fireEvent.keyDown(el, { key: 'PageUp' });
+    act(() => { vi.advanceTimersByTime(1000); });
+    expect(dock()).toBeNull();
+    update(1000);                                  // it grows past the box: still on the newest line
+    expect(box.top).toBe(700);
+  });
+
   it('never shows for a nudge up and straight back', () => {
     vi.useFakeTimers();
     const { moveTo, wheelUp, dock } = mount();

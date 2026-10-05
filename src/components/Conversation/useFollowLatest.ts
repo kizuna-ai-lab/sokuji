@@ -84,19 +84,22 @@ export function useFollowLatest(
         last = el.scrollTop;
       }
     };
+    // A list that fits cannot move, so upward input there is no reading back, and
+    // no scroll event would ever resume following.
+    const intendUp = () => { if (el.scrollHeight - el.clientHeight > 1) stop(true); };
     const onWheel = (e: WheelEvent) => {
-      if (e.deltaY < 0) stop(true);
+      if (e.deltaY < 0) intendUp();
       else if (e.deltaY > 0) intendDown();
     };
     const onTouchStart = (e: TouchEvent) => { touchY = e.touches[0]?.clientY ?? null; };
     const onTouchMove = (e: TouchEvent) => {
       const y = e.touches[0]?.clientY ?? null;
-      if (touchY !== null && y !== null && y > touchY + 2) stop(true);
+      if (touchY !== null && y !== null && y > touchY + 2) intendUp();
       else if (touchY !== null && y !== null && y < touchY - 2) intendDown();
       touchY = y;
     };
     const onKeyDown = (e: KeyboardEvent) => {
-      if (UP_KEYS.has(e.key)) stop(true);
+      if (UP_KEYS.has(e.key)) intendUp();
       else if (DOWN_KEYS.has(e.key)) intendDown();
     };
     // A press on the list itself, not on a row, is its scrollbar (or its padding).
