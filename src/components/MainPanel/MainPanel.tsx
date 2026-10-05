@@ -173,7 +173,7 @@ export default function MainPanel() {
   const display = useConversationDisplayStore();
 
   // The conversation, then the panel notes after it (spec 2026-10-05 §5), through the display filter,
-  // reusing unchanged lines (ruling 14), then why the last start did not happen.
+  // reusing unchanged lines (ruling 14).
   // A transient notice or note leaves the panel once its time is up; the export keeps the notices.
   const entries = useMemo(() => (notes.length === 0 ? viewState.entries : [...viewState.entries, ...panelNoteEntries(notes)]), [viewState.entries, notes]);
   const shown = useVisibleEntries(entries);
@@ -262,8 +262,8 @@ export default function MainPanel() {
   useUpdateAndAudioSystemListeners();    // today's two listener inits, pre-switch MainPanel.tsx:1111-1125
 
   const takeover = subtitleModeActive && isExtension();
-  // A failed start's line counts: after one it is all there is, and Clear takes it away.
-  const hasConversation = viewState.entries.length > 0 || notes.length > 0 || (status?.key.startsWith('last-end:') ?? false);
+  // What the list draws counts (`shown`: the conversation and the notes after the transient rule, before a side filter, which can hide rows the user brings back), so an expired note never leaves Clear on over an empty list; a failed start's line counts too: after one it is all there is, and Clear takes it away.
+  const hasConversation = shown.length > 0 || (status?.key.startsWith('last-end:') ?? false);
   const onClear = useCallback(() => {
     runner.clear();
     usePanelNotesStore.getState().clear();

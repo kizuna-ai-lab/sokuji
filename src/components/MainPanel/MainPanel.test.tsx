@@ -141,11 +141,13 @@ import { createVirtualClock } from '../../lib/contract/clock';
 import { PunctuationRuntime } from '../../lib/segmentation/PunctuationRuntime';
 import type { AnalyticsPort } from '../../lib/session/ports';
 import { VIEW_INTERVAL_MS } from '../../lib/view/conversationView';
+import { TRANSIENT_NOTICE_MS } from '../../lib/view/filter';
 import { fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource } from '../../providers/fake/source';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { useSubtitleStore } from '../../stores/subtitleStore';
 import { usePanelNotesStore } from '../../stores/panelNotesStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import MainPanel from './MainPanel';
@@ -404,7 +406,7 @@ describe('MainPanel', () => {
     expect(list.querySelector('.sys-row')).toBeNull();
     const line = container.querySelector('.status-line');
     // The live gate (the provider is known unready now) outranks the refusal it caused.
-    expect(line?.getAttribute('data-status')).toMatch(/^unready:/);
+    expect(line?.getAttribute('data-status')).toBe('unready:message');
     expect(line?.querySelector('.status-line__text')?.textContent).toContain('The fake reports not ready');
     expect(container.querySelector('.status-line__action')).toBeNull();
   });
@@ -585,7 +587,7 @@ describe('MainPanel', () => {
     act(() => { clock.advance(VIEW_INTERVAL_MS); });
     expect(container.querySelector('.conversation-list')).toBeNull();
     // The gate is still shut (the provider is unready now): that line is a live condition, not the end Clear hid.
-    expect(container.querySelector('.status-line')?.getAttribute('data-status')).toMatch(/^unready:/);
+    expect(container.querySelector('.status-line')?.getAttribute('data-status')).toBe('unready:message');
     expect(container.querySelector('.conversation-display .empty-state')).not.toBeNull();
   });
 
@@ -594,13 +596,43 @@ describe('MainPanel', () => {
     useAudioStore.setState({ mode: 'participant' });
     const { container } = await renderPanel();
     expect(getAppSession().subtitle.get().canStart).toBe(false);
-    expect(container.querySelector('.status-line')?.getAttribute('data-status')).toMatch(/^unready:/);
+    expect(container.querySelector('.status-line')?.getAttribute('data-status')).toBe('unready:participant_source_unavailable');
     expect(mainAction(container).disabled).toBe(true);
     expect(mainAction(container).getAttribute('title')).toBeNull();
     expect(container.querySelector('.tooltip')).toBeNull();
   });
 
-  it('a transient mic event stays a row; the wait is the line', async () => {
+  it('mounts the status line directly above the advanced footer', async () => {
+    const restoreCanvas = stubCanvas();
+    try {
+      useSettingsStore.setState({ uiMode: 'advanced' });
+      useAudioStore.setState({ mode: 'participant' });
+      const { container } = await renderPanel();
+      const line = container.querySelector('.status-line');
+      expect(line).not.toBeNull();
+      expect(line!.nextElementSibling?.matches('.control-footer.advanced')).toBe(true);
+    } finally {
+      restoreCanvas();
+    }
+  });
+
+  it('dismissing the echo line hides it', async () => {
+    const { container } = await renderPanel();
+    act(() => { capture.echo.onNotice.mock.lastCall![0]({ cause: 'tts-echo', lagMs: 120, rho: 0.8 }); });
+    expect(container.querySelector('[data-status="echo:tts-echo"]')).not.toBeNull();
+    fireEvent.click(container.querySelector('.status-line__dismiss')!);
+    expect(container.querySelector('.status-line')).toBeNull();
+  });
+
+  it('dismissing the subtitle-entry hint clears it from the store', async () => {
+    const { container } = await renderPanel();
+    act(() => { useSubtitleStore.setState({ entryHint: 'refresh' }); });
+    expect(container.querySelector('[data-status="subtitle-entry"]')).not.toBeNull();
+    fireEvent.click(container.querySelector('.status-line__dismiss')!);
+    expect(useSubtitleStore.getState().entryHint).toBeNull();
+  });
+
+  it('the wait for a microphone is the line', async () => {
     const selected = useAudioStore.getState().selectedInputDevice;
     useAudioStore.setState({ selectedInputDevice: null });
     try {
@@ -696,6 +728,13 @@ describe('panel notes (spec 2026-10-05 §5)', () => {
     expect(row).not.toBeNull();
     fireEvent.click(row!.querySelector('.sys-row__action')!);
     expect(invoke).toHaveBeenCalledWith('open-directory', '/d');
+  });
+
+  it('an expired transient note leaves Clear off over an empty list', async () => {
+    usePanelNotesStore.getState().add({ severity: 'info', code: 'export_copied', message: 'copied', lifetime: 'transient' }, Date.now() - TRANSIENT_NOTICE_MS - 1);
+    const { container } = await renderPanel();
+    expect(container.querySelector('.sys-row--info')).toBeNull();
+    expect((container.querySelector('.clear-conversation-btn') as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('Clear removes the notes with the conversation', async () => {
