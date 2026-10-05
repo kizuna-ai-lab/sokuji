@@ -8,7 +8,7 @@ import {
   useSubtitleModeActive,
 } from '../../stores/settingsStore';
 import { isElectron, isExtension } from '../../utils/environment';
-import { useToast } from '../Toast';
+import { useSetSubtitleEntryHint } from '../../stores/subtitleStore';
 import { CONTENT_SCRIPT_UNAVAILABLE } from './surfaces/ExtensionContentScriptSubtitleSurface';
 import { canEnterSubtitleMode } from './subtitleEnterGate';
 
@@ -18,7 +18,7 @@ const SubtitleEnterButton: React.FC = () => {
   const exitSubtitleMode = useExitSubtitleMode();
   const running = useRunPhase() === 'running';
   const subtitleActive = useSubtitleModeActive();
-  const { showToast } = useToast();
+  const setEntryHint = useSetSubtitleEntryHint();
 
   if (!isElectron() && !isExtension()) return null;
 
@@ -42,21 +42,15 @@ const SubtitleEnterButton: React.FC = () => {
   const handleEnter = async () => {
     try {
       await enterSubtitleMode();
+      setEntryHint(null);
     } catch (err) {
       // Most common case (extension): the meeting tab was open before the
       // extension was reloaded, so the new content script was never
-      // injected and chrome.tabs.sendMessage has no receiver. Prompt the
-      // user to refresh.
+      // injected and chrome.tabs.sendMessage has no receiver. The hint is a
+      // state the status line shows until the next entry or a dismiss (spec
+      // 2026-10-05 §3), not a toast that is gone in five seconds.
       const code = (err as { code?: string } | null)?.code;
-      if (code === CONTENT_SCRIPT_UNAVAILABLE) {
-        showToast(
-          t(
-            'subtitle.enterButton.refreshPageHint',
-            'Refresh the meeting tab and try again',
-          ),
-          { variant: 'error', durationMs: 5000 },
-        );
-      }
+      if (code === CONTENT_SCRIPT_UNAVAILABLE) setEntryHint('refresh');
     }
   };
   const onClick = subtitleActive

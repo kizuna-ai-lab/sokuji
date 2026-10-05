@@ -19,8 +19,6 @@ vi.mock('react-i18next', async (importOriginal) => {
   };
 });
 
-vi.mock('../Toast', () => ({ useToast: () => ({ showToast: vi.fn() }) }));
-
 vi.mock('../../services/ServiceFactory', () => ({
   ServiceFactory: {
     getSettingsService: () => ({

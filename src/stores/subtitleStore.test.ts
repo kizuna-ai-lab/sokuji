@@ -2,11 +2,12 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useSubtitleStore, useSubtitleFontSize, useSubtitlePositionLocked } from './subtitleStore';
 
 // Mock SettingsService factory to capture setSetting calls
+const setSettingSpy = vi.fn(async (_key: string, _value: unknown) => ({ success: true }));
 vi.mock('../services/ServiceFactory', () => ({
   ServiceFactory: {
     getSettingsService: () => ({
       getSetting: vi.fn(async (key: string, def: unknown) => def),
-      setSetting: vi.fn(async () => ({ success: true })),
+      setSetting: (key: string, value: unknown) => setSettingSpy(key, value),
     }),
   },
 }));
@@ -34,7 +35,24 @@ describe('subtitleStore', () => {
       windowBounds: null,
       speakerDisplayMode: 'both',
       participantDisplayMode: 'both',
+      entryHint: null,
     });
+    setSettingSpy.mockClear();
+  });
+
+  it('entryHint is in-memory only: set, cleared, never persisted', async () => {
+    expect(useSubtitleStore.getState().entryHint).toBeNull();
+    useSubtitleStore.getState().setEntryHint('refresh');
+    expect(useSubtitleStore.getState().entryHint).toBe('refresh');
+    useSubtitleStore.getState().setEntryHint(null);
+    expect(useSubtitleStore.getState().entryHint).toBeNull();
+    // Let any (wrongly) started persistence settle, then check nothing was
+    // written and that a hydrate neither reads nor resets the hint.
+    useSubtitleStore.getState().setEntryHint('refresh');
+    await useSubtitleStore.getState().hydrate();
+    await Promise.resolve();
+    expect(setSettingSpy).not.toHaveBeenCalled();
+    expect(useSubtitleStore.getState().entryHint).toBe('refresh');
   });
 
   it('setNewItemHighlightEnabled flips the boolean and defaults to true', async () => {
