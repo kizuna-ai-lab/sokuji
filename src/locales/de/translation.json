@@ -901,8 +901,7 @@
       "colorArea": "Sättigung und Helligkeit",
       "colorHue": "Farbton",
       "colorHex": "Hex-Farbwert",
-      "newItemHighlight": "Neu eingetroffenen Text hervorheben",
-      "autoScroll": "Automatisch zum Neuesten scrollen"
+      "newItemHighlight": "Neu eingetroffenen Text hervorheben"
     },
     "pttHint": "Leertaste zum Sprechen halten"
   },

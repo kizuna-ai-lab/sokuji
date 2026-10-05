@@ -323,7 +323,7 @@ export default function MainPanel() {
               if (s) audio.playback.replay(leg, s);
             }}
             replayBlocked={blocked} noticeAction={noticeAction}
-            compact={display.compactMode} autoScroll={display.autoScroll} fontSize={display.fontSize}
+            compact={display.compactMode} fontSize={display.fontSize}
             empty={<><MessageSquare size={32} /><p>{t('simplePanel.startToBegin', 'Click Start to begin real-time translation')}</p></>}
           />
         )}

@@ -52,7 +52,6 @@ vi.mock('../../stores/subtitleStore', () => ({
   useSubtitleSpeakerDisplayMode: () => 'both',
   useSubtitleParticipantDisplayMode: () => 'both',
   useSubtitleNewItemHighlightEnabled: () => false,
-  useSubtitleAutoScroll: () => true,
 }));
 
 const { SubtitleView } = await import('./SubtitleView');

@@ -26,8 +26,6 @@ export interface ConversationListProps {
   /** The action a notice's bubble offers, if any (plan 1e-3b-1 ruling 13). */
   noticeAction?(notice: NoticeEntry): NoticeAction | null;
   compact: boolean;
-  /** Follow the newest line; off lets the reader scroll back undisturbed. Defaults to on. */
-  autoScroll?: boolean;
   /** In px: the display's `--conversation-font-size`. */
   fontSize: number;
   /** Shown when there is nothing to draw. */
@@ -42,14 +40,14 @@ function formatTime(ts: number): string {
 }
 
 export function ConversationList({
-  items, lit, replaying, replayLegs, canReplay, onReplay, replayBlocked, noticeAction, compact, autoScroll = true, fontSize, empty,
+  items, lit, replaying, replayLegs, canReplay, onReplay, replayBlocked, noticeAction, compact, fontSize, empty,
 }: ConversationListProps) {
   const display = useRef<HTMLDivElement>(null);
   // Follow the newest line, as today's panel does; layout has run by the time this fires.
   useLayoutEffect(() => {
     const el = display.current;
-    if (autoScroll && el) el.scrollTop = el.scrollHeight;
-  }, [items, autoScroll]);
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [items]);
 
   // One stable callback identity for RowBubble's memo, whatever identity `onReplay` holds this render.
   const onReplayRef = useRef(onReplay);

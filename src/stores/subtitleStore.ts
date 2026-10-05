@@ -27,8 +27,6 @@ interface SubtitleState {
   // Visual cue for newly-arrived items in the compact band (issue #236).
   // When false, the per-item fade-in + overlay animation is suppressed.
   newItemHighlightEnabled: boolean;
-  // Expanded list follows the newest line (on by default)
-  autoScroll: boolean;
   // Window/positioning (Electron path; extension surface ignores them)
   alwaysOnTop: boolean;
   positionLocked: boolean;
@@ -47,7 +45,6 @@ interface SubtitleState {
   setSourceTextColor: (s: string) => Promise<void>;
   setTranslationTextColor: (s: string) => Promise<void>;
   setNewItemHighlightEnabled: (b: boolean) => Promise<void>;
-  setAutoScroll: (b: boolean) => Promise<void>;
   toggleAlwaysOnTop: () => Promise<void>;
   togglePositionLocked: () => Promise<void>;
   saveWindowBounds: (b: SubtitleWindowBounds) => Promise<void>;
@@ -72,7 +69,6 @@ const DEFAULTS = {
   sourceTextColor: SUBTITLE_DEFAULT_SOURCE_TEXT_COLOR,
   translationTextColor: SUBTITLE_DEFAULT_TRANSLATION_TEXT_COLOR,
   newItemHighlightEnabled: true,
-  autoScroll: true,
   alwaysOnTop: false,
   positionLocked: false,
   windowBounds: null as SubtitleWindowBounds | null,
@@ -141,12 +137,6 @@ export const useSubtitleStore = create<SubtitleState>()(
       const { ok } = await persist('translationTextColor', s);
       if (!ok) set({ translationTextColor: previous });
     },
-    setAutoScroll: async (b) => {
-      const previous = get().autoScroll;
-      set({ autoScroll: b });
-      const { ok } = await persist('autoScroll', b);
-      if (!ok) set({ autoScroll: previous });
-    },
     setNewItemHighlightEnabled: async (b) => {
       const previous = get().newItemHighlightEnabled;
       set({ newItemHighlightEnabled: b });
@@ -201,7 +191,7 @@ export const useSubtitleStore = create<SubtitleState>()(
       const svc = ServiceFactory.getSettingsService();
       const [
         fontSize, compactMode, bgOpacity, bgColor,
-        sourceTextColor, translationTextColor, newItemHighlightEnabled, autoScroll,
+        sourceTextColor, translationTextColor, newItemHighlightEnabled,
         alwaysOnTop, positionLocked, windowBounds,
         speakerDisplayMode, participantDisplayMode,
       ] = await Promise.all([
@@ -212,7 +202,6 @@ export const useSubtitleStore = create<SubtitleState>()(
         svc.getSetting(KEY('sourceTextColor'), DEFAULTS.sourceTextColor),
         svc.getSetting(KEY('translationTextColor'), DEFAULTS.translationTextColor),
         svc.getSetting(KEY('newItemHighlightEnabled'), DEFAULTS.newItemHighlightEnabled),
-        svc.getSetting(KEY('autoScroll'), DEFAULTS.autoScroll),
         svc.getSetting(KEY('alwaysOnTop'), DEFAULTS.alwaysOnTop),
         svc.getSetting(KEY('positionLocked'), DEFAULTS.positionLocked),
         svc.getSetting<SubtitleWindowBounds | null>(KEY('windowBounds'), DEFAULTS.windowBounds),
@@ -227,7 +216,6 @@ export const useSubtitleStore = create<SubtitleState>()(
         sourceTextColor,
         translationTextColor,
         newItemHighlightEnabled,
-        autoScroll,
         alwaysOnTop,
         positionLocked,
         windowBounds,
@@ -245,7 +233,6 @@ export const useSubtitleBgOpacity = () => useSubtitleStore((s) => s.bgOpacity);
 export const useSubtitleBgColor = () => useSubtitleStore((s) => s.bgColor);
 export const useSubtitleSourceTextColor = () => useSubtitleStore((s) => s.sourceTextColor);
 export const useSubtitleTranslationTextColor = () => useSubtitleStore((s) => s.translationTextColor);
-export const useSubtitleAutoScroll = () => useSubtitleStore((s) => s.autoScroll);
 export const useSubtitleNewItemHighlightEnabled = () =>
   useSubtitleStore((s) => s.newItemHighlightEnabled);
 export const useSubtitleAlwaysOnTop = () => useSubtitleStore((s) => s.alwaysOnTop);
@@ -280,7 +267,6 @@ export const useSetSubtitleBgOpacity = () => useSubtitleStore((s) => s.setBgOpac
 export const useSetSubtitleBgColor = () => useSubtitleStore((s) => s.setBgColor);
 export const useSetSubtitleSourceTextColor = () => useSubtitleStore((s) => s.setSourceTextColor);
 export const useSetSubtitleTranslationTextColor = () => useSubtitleStore((s) => s.setTranslationTextColor);
-export const useSetSubtitleAutoScroll = () => useSubtitleStore((s) => s.setAutoScroll);
 export const useSetSubtitleNewItemHighlightEnabled = () =>
   useSubtitleStore((s) => s.setNewItemHighlightEnabled);
 export const useToggleSubtitleAlwaysOnTop = () => useSubtitleStore((s) => s.toggleAlwaysOnTop);

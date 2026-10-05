@@ -7,8 +7,6 @@ import {
   useSubtitleSourceTextColor,
   useSubtitleTranslationTextColor,
   useSubtitleNewItemHighlightEnabled,
-  useSubtitleAutoScroll,
-  useSetSubtitleAutoScroll,
   useSetSubtitleBgOpacity,
   useSetSubtitleBgColor,
   useSetSubtitleSourceTextColor,
@@ -21,8 +19,6 @@ import {
 import ToggleSwitch from '../Settings/shared/ToggleSwitch';
 import ColorPicker from './ColorPicker';
 import {
-  useConversationDisplayAutoScroll,
-  useSetConversationDisplayAutoScroll,
   useConversationDisplayBgColor,
   useConversationDisplaySourceTextColor,
   useConversationDisplayTranslationTextColor,
@@ -61,9 +57,6 @@ interface InnerBindings {
   // newItemHighlightEnabled is subtitle-only. Conversation-mode bindings
   // leave it undefined so the toggle row is suppressed.
   newItemHighlightEnabled: boolean | undefined;
-  // Both surfaces carry it, each from its own store.
-  autoScroll?: boolean;
-  setAutoScroll?: (b: boolean) => Promise<void>;
   setBgOpacity: ((n: number) => Promise<void>) | undefined;
   setBgColor: (s: string) => Promise<void>;
   setSourceTextColor: (s: string) => Promise<void>;
@@ -91,8 +84,6 @@ const SubtitleBoundPopover: React.FC = () => {
     sourceTextColor: useSubtitleSourceTextColor(),
     translationTextColor: useSubtitleTranslationTextColor(),
     newItemHighlightEnabled: useSubtitleNewItemHighlightEnabled(),
-    autoScroll: useSubtitleAutoScroll(),
-    setAutoScroll: useSetSubtitleAutoScroll(),
     setBgOpacity: useSetSubtitleBgOpacity(),
     setBgColor: useSetSubtitleBgColor(),
     setSourceTextColor: useSetSubtitleSourceTextColor(),
@@ -112,8 +103,6 @@ const ConversationBoundPopover: React.FC = () => {
     sourceTextColor: useConversationDisplaySourceTextColor(),
     translationTextColor: useConversationDisplayTranslationTextColor(),
     newItemHighlightEnabled: undefined,
-    autoScroll: useConversationDisplayAutoScroll(),
-    setAutoScroll: useSetConversationDisplayAutoScroll(),
     setBgOpacity: undefined,
     setBgColor: useSetConversationDisplayBgColor(),
     setSourceTextColor: useSetConversationDisplaySourceTextColor(),
@@ -199,15 +188,6 @@ const DisplaySettingsPopoverInner: React.FC<{ bindings: InnerBindings }> = ({ bi
               'subtitle.settings.newItemHighlight',
               'Highlight newly-arrived text',
             )}
-          />
-        </div>
-      )}
-      {bindings.autoScroll !== undefined && bindings.setAutoScroll !== undefined && (
-        <div className="field">
-          <ToggleSwitch
-            checked={bindings.autoScroll}
-            onChange={() => void bindings.setAutoScroll!(!bindings.autoScroll)}
-            label={t('subtitle.settings.autoScroll', 'Auto-scroll to newest')}
           />
         </div>
       )}

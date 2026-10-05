@@ -21,8 +21,6 @@ export interface SubtitleBodyProps {
   sourceTextColor?: string;
   translationTextColor?: string;
   newItemHighlightEnabled: boolean;
-  /** Expanded list only: follow the newest line. Defaults to on. */
-  autoScroll?: boolean;
   /** Panel notes (spec 2026-10-05 §5): after the entries in the expanded list, never in the bands, which read L1 as the exports do (Ruling 8). */
   notes?: readonly Entry[];
   /** The action a system row in the expanded list offers, if any. */
@@ -75,7 +73,6 @@ export function SubtitleBody(props: SubtitleBodyProps) {
           onReplay={noReplay}
           noticeAction={noticeAction}
           compact={false}
-          autoScroll={props.autoScroll}
           fontSize={fontSize}
           empty={null}
         />

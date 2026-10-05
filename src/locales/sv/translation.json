@@ -901,8 +901,7 @@
       "colorArea": "Mättnad och ljusstyrka",
       "colorHue": "Nyans",
       "colorHex": "Hexadecimalt färgvärde",
-      "newItemHighlight": "Markera nyligen ankommen text",
-      "autoScroll": "Rulla automatiskt till senaste"
+      "newItemHighlight": "Markera nyligen ankommen text"
     },
     "pttHint": "Tryck på mellanslag för att tala"
   },

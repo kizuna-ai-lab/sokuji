@@ -10,7 +10,6 @@ import { settingsTargetForCode } from '../../lib/view/noticeTargets';
 import { noticeText } from '../../lib/view/noticeText';
 import {
   useSubtitleNewItemHighlightEnabled,
-  useSubtitleAutoScroll,
   useSubtitleParticipantDisplayMode,
   useSubtitleSettings,
   useSubtitleSpeakerDisplayMode,
@@ -95,7 +94,6 @@ export function SubtitleView({ surface, model, controls, exporter, statusLine, n
   const speaker = useSubtitleSpeakerDisplayMode();
   const participant = useSubtitleParticipantDisplayMode();
   const newItemHighlightEnabled = useSubtitleNewItemHighlightEnabled();
-  const autoScroll = useSubtitleAutoScroll();
   const filters = useMemo(() => ({ speaker, participant }), [speaker, participant]);
   const { entries, lit, session, notes } = model;
   const running = session?.phase === 'running';
@@ -159,7 +157,6 @@ export function SubtitleView({ surface, model, controls, exporter, statusLine, n
             sourceTextColor={subtitle.sourceTextColor}
             translationTextColor={subtitle.translationTextColor}
             newItemHighlightEnabled={newItemHighlightEnabled}
-            autoScroll={autoScroll}
             notes={notes}
             noticeAction={noticeAction}
           />
