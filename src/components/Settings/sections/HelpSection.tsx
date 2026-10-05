@@ -43,8 +43,16 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActi
   // "Up to date" or "Failed to check" for five seconds, then the link again.
   // A new check passes through 'checking' first, so a second failure re-runs this.
   const [checkResult, setCheckResult] = useState<'not-available' | 'error' | null>(null);
+  // Only a check the user started shows a result: a stale status held by the
+  // store (or the one present at mount) must not flash on every reopen.
+  const previousStatusRef = useRef(updateStatus);
   useEffect(() => {
-    if (updateStatus !== 'not-available' && updateStatus !== 'error') { setCheckResult(null); return; }
+    const previous = previousStatusRef.current;
+    previousStatusRef.current = updateStatus;
+    if (previous !== 'checking' || (updateStatus !== 'not-available' && updateStatus !== 'error')) {
+      setCheckResult(null);
+      return;
+    }
     setCheckResult(updateStatus);
     const timer = setTimeout(() => setCheckResult(null), 5000);
     return () => clearTimeout(timer);

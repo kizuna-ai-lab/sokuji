@@ -352,8 +352,9 @@ describe('the update check’s result on its link (spec 2026-10-05 §5)', () => 
   const link = () => screen.getByText(/update\.(checkButton|checking|upToDate|error)/).closest('button') as HTMLButtonElement;
 
   it('says Up to date for five seconds, then offers the check again', () => {
-    updateStatus = 'not-available';
+    updateStatus = 'checking';
     const { rerender } = render(<HelpSection />);
+    updateStatus = 'not-available'; rerender(<HelpSection />);
     expect(link().className).toContain('help-link--ok');
     expect(link().textContent).toBe('update.upToDate');
     act(() => { vi.advanceTimersByTime(5000); });
@@ -363,14 +364,23 @@ describe('the update check’s result on its link (spec 2026-10-05 §5)', () => 
 
   // Review Focus 5: a second failure shows again although the status returns to the same value.
   it('says the check failed, in red, every time it fails', () => {
-    updateStatus = 'error';
+    updateStatus = 'checking';
     const { rerender } = render(<HelpSection />);
+    updateStatus = 'error'; rerender(<HelpSection />);
     expect(link().className).toContain('help-link--error');
+    expect(link().textContent).toBe('update.error');
     act(() => { vi.advanceTimersByTime(5000); });
     rerender(<HelpSection />);
     expect(link().textContent).toBe('update.checkButton');
     updateStatus = 'checking'; rerender(<HelpSection />);
     updateStatus = 'error'; rerender(<HelpSection />);
     expect(link().textContent).toBe('update.error');
+  });
+
+  it.each(['error', 'not-available'] as const)('mounting with a stale %s status shows the idle link', (stale) => {
+    updateStatus = stale;
+    render(<HelpSection />);
+    expect(link().textContent).toBe('update.checkButton');
+    expect(link().className).not.toContain('help-link--');
   });
 });
