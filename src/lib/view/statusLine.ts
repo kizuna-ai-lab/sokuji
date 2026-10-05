@@ -89,7 +89,8 @@ export function statusLine(input: StatusLineInput): StatusEntry | null {
     }
   }
   // 4. The subtitle layer could not be entered (the extension): the user just pressed the button, so this outranks the ambient echo.
-  if (subtitleEntryHint) {
+  // Only while running: the overlay opens only then (Ruling 11), and an ended run leaves nothing to enter.
+  if (run.phase === 'running' && subtitleEntryHint) {
     return { key: 'subtitle-entry', icon: 'captions', words: { kind: 'key', key: 'subtitle.enterButton.refreshPageHint', fallback: 'Refresh the meeting tab and try again' }, action: null, dismiss: 'subtitle-entry' };
   }
   // 5. Echo: per-cause dismissal and the all-clear reset stay on `useEchoNotice`.

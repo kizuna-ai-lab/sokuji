@@ -30,7 +30,7 @@ export function StatusLine({ entry, onAction, onDismiss }: StatusLineProps) {
   const action = entry.action;
   const label = action ? actionLabel(action) : null;
   return (
-    <div className="status-line" data-status={entry.key}>
+    <div className="status-line" role="status" data-status={entry.key}>
       <Icon size={14} aria-hidden="true" />
       <span className="status-line__text">{words}</span>
       {action && label && (

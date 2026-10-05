@@ -6,15 +6,17 @@ import {
   useAudioSystemRepairing, useAudioSystemRetry, useAudioSystemRetrying, useAudioSystemStatus,
 } from '../../stores/audioSystemStore';
 import {
-  useDismissBanner, useDownloadUpdate, useInstallUpdate, useOpenUpdateDialog, useUpdateBannerDismissed,
+  useDismissBanner, useDownloadUpdate, useInstallUpdate, useOpenUpdateDialog, useUpdateBannerDismissed, useUpdateErrorFrom,
   useUpdateNewVersion, useUpdateProgressPercent, useUpdateStatus, useUpdateSupportsAutoUpdate,
 } from '../../stores/updateStore';
 import { Banner, type BannerProps } from './Banner';
 
 /**
  * The app-level banners to draw, in order (spec 2026-10-05 §4): the audio
- * system (attention) above the update (brand). An update check's failure is
- * not a banner any more; the Help link shows it.
+ * system (attention) above the update (brand). An update's failure is never a
+ * banner of its own: a failed check is the Help link's, a failed download
+ * draws `available` again (Download Now is the retry) and a failed install
+ * keeps `downloaded` (Ruling 9).
  */
 export function useBanners(): BannerProps[] {
   const { t } = useTranslation();
@@ -50,7 +52,13 @@ export function useBanners(): BannerProps[] {
     });
   }
 
-  const status = useUpdateStatus();
+  const storeStatus = useUpdateStatus();
+  const errorFrom = useUpdateErrorFrom();
+  // A failed download is `available` again; a failed install stays `downloaded`; any other error draws nothing.
+  const status = storeStatus !== 'error' ? storeStatus
+    : errorFrom === 'downloading' ? 'available'
+    : errorFrom === 'downloaded' ? 'downloaded'
+    : storeStatus;
   const newVersion = useUpdateNewVersion();
   const percent = useUpdateProgressPercent();
   const bannerDismissed = useUpdateBannerDismissed();
@@ -59,7 +67,8 @@ export function useBanners(): BannerProps[] {
   const openDialog = useOpenUpdateDialog();
   const downloadUpdate = useDownloadUpdate();
   const installUpdate = useInstallUpdate();
-  const shown = !(bannerDismissed && status !== 'downloading' && status !== 'downloaded');
+  // Only `downloading` cannot be dismissed; the next `available` re-arms a dismissed banner (the store).
+  const shown = !bannerDismissed || status === 'downloading';
   if (shown && status === 'available') {
     banners.push({
       id: 'update', tone: 'brand', icon: <Download size={14} aria-hidden="true" />,

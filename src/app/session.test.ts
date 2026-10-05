@@ -254,6 +254,22 @@ describe('createAppSession', () => {
     detach();
   });
 
+  // Final review I2: the subtitle surfaces' Clear reaches the runner, not MainPanel's
+  // handler, so the session clears the notes when the conversation empties.
+  it('clears the panel notes when the conversation is cleared from anywhere', async () => {
+    const { session } = await setup();
+    const detach = session.attach();
+    usePanelNotesStore.getState().add({ severity: 'info', code: 'export_copied', message: 'copied' });
+    session.runner.clear();
+    expect(usePanelNotesStore.getState().notes).toEqual([]);
+    detach();
+    // Detached, a Clear leaves the store alone.
+    usePanelNotesStore.getState().add({ severity: 'info', code: 'export_copied', message: 'copied' });
+    session.runner.clear();
+    expect(usePanelNotesStore.getState().notes).toHaveLength(1);
+    usePanelNotesStore.getState().clear();
+  });
+
   it('never erases a bridge with undefined: a later setBridges without refetchQuota keeps the earlier one', async () => {
     const { session } = await setup();
     const refetchQuota = vi.fn(async () => {});

@@ -231,7 +231,10 @@ an `X` 12px. Two tones: `attention` `$color-usage #e67e22`, `brand` `$color-prim
 
 The banner's text is no longer a button (`UpdateBanner.tsx:54-104`'s `role="button"` goes).
 `updateStore`'s `error` status no longer draws a banner and loses its 5 s self-reset
-(`updateStore.ts:170-185`); the Help link consumes it (section 5). `UpdateDialog` stays for
+(`updateStore.ts:170-185`); the Help link consumes it (section 5). A failure while
+`downloading` returns the banner to `available` (Download now is the retry) and one while
+`downloaded` keeps `downloaded`, from the status the error interrupted
+(`updateStore.errorFrom`); other check failures stay silent. `UpdateDialog` stays for
 the no-auto-update path only; whether anything else still opens it is checked in the plan.
 
 ### 5. Results: where each toast goes
@@ -244,7 +247,7 @@ are deleted. Each of the six uses:
 |---|---|
 | copy to clipboard ok / failed (`ExportButton.tsx:207-209`) | **panel note** (below): info `mainPanel.export.copySuccess` / warning `mainPanel.export.copyFailed`, `transient` |
 | session-end auto-save ok / failed (`lib/transcript/autoSave.ts:27,57`) | **panel note**: info `mainPanel.export.autoSave.saved` with action Show in folder (`open-directory`, as today) / warning `…autoSave.failed`; not transient |
-| session expired (`UserAccountInfo.tsx:274-277`) | the sign-in card's `.error-message` (`SignInForm.tsx:89-93`), text `auth.sessionExpired`. `setAuthOverlay('sign-in')` gains a reason: `settingsStore.authOverlayReason: 'session_expired' \| null`, set beside `authOverlay`, read once by `SignInForm` as its initial `error`, cleared when the overlay closes or the user submits |
+| session expired (`UserAccountInfo.tsx:274-277`) | the sign-in card's `.error-message` (`SignInForm.tsx:89-93`), text `auth.sessionExpired`. `setAuthOverlay('sign-in')` gains a reason: `settingsStore.authOverlayReason: 'session_expired' \| null`, set beside `authOverlay`, read once by `SignInForm` as its initial `error`, cleared when the overlay closes or switches kind (not on submit) |
 | e-mail verified (`AccountButton.tsx:66-73`) | nothing. The `unverified` dot (`AccountButton.scss:36-49`) clears and the address shows its green check (`UserAccountInfo.tsx`, `email-verified-icon`), both existing; the effect is deleted |
 | refresh the meeting tab (`SubtitleEnterButton.tsx:52`) | **state** line, priority 4 (section 3) |
 | update check failed (today a banner, `UpdateBanner.tsx:37-46`) | the Help link's label (`HelpSection.tsx:76-84`), which already swaps to `update.checking` while checking: on a result it shows `update.upToDate` (green, `Check` 13px) or `update.error` (red `#ff6b6b`, `CircleAlert` 13px) for 5 s, then returns to `update.checkButton`. status `not-available` draws `update.upToDate`, `error` draws `update.error`, both read from `updateStore.status`; the 5 s timer lives in the component |
@@ -253,7 +256,9 @@ are deleted. Each of the six uses:
 `src/stores/panelNotesStore.ts`: `{ id, at, severity, code, params?, action?, lifetime? }`,
 the same shape `SystemRow` draws for an L1 notice. MainPanel appends them after the
 conversation's visible entries (the slot the "last end" item used, `MainPanel.tsx:178-183`),
-`useVisibleEntries`'s transient rule applies to them too. They are cleared by Clear and by
+`useVisibleEntries`'s transient rule applies to them too. They also draw in the Electron
+takeover's expanded list and, while the extension overlay runs, under the panel's
+placeholder — never in the compact view, the bands or the exports. They are cleared by Clear and by
 the next start. They are not L1 notices on purpose: the text export, the JSON export and
 the subtitle bands read L1 only, so nothing has to filter them out, and the contract's
 `Notice` type does not change.
@@ -281,8 +286,9 @@ MainPanel owns the handlers. Rows and the status line stay presentational.
 - **event** → the compact bands as today (`src/lib/subtitle/bands.ts`); the Electron
   takeover's expanded list draws `SystemRow`. Panel notes are not L1, so they never reach
   a band.
-- **state** → idle: `SubtitleIdle` keeps its fix button and reads the same `statusLine`
-  selector (one text source for both windows). Running: the takeover's expanded view
+- **state** → idle: `SubtitleIdle` keeps its fix button and its own idle drawing; it does not
+  read the selector — its words come from the same `idleOf` and `noticeText`, so both windows
+  say the same thing. Running: the takeover's expanded view
   mounts `StatusLine`; the compact bands and the extension overlay do not.
 - **app** → not drawn in either subtitle surface.
 
@@ -312,7 +318,8 @@ Unit, colocated, vitest:
 - `StatusLine.test.tsx`: renders text via `noticeText` for a code and raw text for echo;
   action xor dismiss; `aria-label` from `common.dismiss`.
 - `Banner.test.tsx` + `useBanners.test.ts`: tones, order (attention above brand),
-  `downloading` has no dismiss, update `error` draws nothing.
+  `downloading` has no dismiss, update `error` draws no error banner (a failed download or
+  install keeps its way back, section 4).
 - `HelpSection.test.tsx`: the link label swaps to `upToDate` / `error` on a result and back
   after 5 s (fake timers); `checking` as today.
 - `SignInForm.test.tsx`: `authOverlayReason: 'session_expired'` shows `auth.sessionExpired`
@@ -351,7 +358,7 @@ Four pull requests, in order, each leaving `main` consistent:
 2. **state** — `statusLine` selector and `StatusLine`; removes the Start `title`/`.tooltip`,
    `lastEnd.ts` and `dismissedEnd`, `EchoNotice`, the basic `reconnecting-label`; the
    advanced dot's style; `subtitleStore.entryHint` and the subtitle-entry toast; the
-   takeover window mounts the line; `SubtitleIdle` reads the selector.
+   takeover window mounts the line; `SubtitleIdle` keeps its own idle drawing.
 3. **app** — `Banner` + `useBanners` replace both banners; update actions; the Help link's
    result label; `updateStore` drops the error banner and its timer.
 4. **no toast** — `authOverlayReason` and the sign-in card line; the e-mail-verified effect

@@ -19,7 +19,7 @@ const unavailable = (reason: string, extra: Record<string, unknown> = {}) =>
     reason: reason as never, message: null, dismissed: false, retrying: false, repairing: false, repairFailed: false, ...extra,
   });
 const update = (extra: Partial<ReturnType<typeof useUpdateStore.getState>>) =>
-  useUpdateStore.setState({ status: 'idle', newVersion: '0.43.0', downloadProgress: 0, errorMessage: null, supportsAutoUpdate: true, bannerDismissed: false, ...extra });
+  useUpdateStore.setState({ status: 'idle', newVersion: '0.43.0', downloadProgress: 0, errorMessage: null, errorFrom: null, supportsAutoUpdate: true, bannerDismissed: false, ...extra });
 
 beforeEach(() => {
   useAudioSystemStore.setState({ status: 'ok', dismissed: false, retry: vi.fn(async () => {}), repair: vi.fn(async () => {}) });
@@ -96,12 +96,44 @@ describe('Banners — the update (spec 2026-10-05 §4)', () => {
     fireEvent.click(screen.getByText('update.restartNow'));
     expect(useUpdateStore.getState().installUpdate).toHaveBeenCalled();
   });
-  it('a dismissed banner stays hidden except while downloading or downloaded', () => {
+  // Spec §4's table: only `downloading` cannot be dismissed; the next `available` re-arms (the store's reset).
+  it('a dismissed banner stays hidden except while downloading', () => {
     update({ status: 'available', bannerDismissed: true });
     expect(render(<Banners />).container.querySelector('.banner')).toBeNull();
     cleanup();
     update({ status: 'downloaded', bannerDismissed: true });
+    expect(render(<Banners />).container.querySelector('.banner')).toBeNull();
+    cleanup();
+    update({ status: 'downloading', bannerDismissed: true });
     expect(render(<Banners />).container.querySelector('.banner')).not.toBeNull();
+  });
+  it('downloaded: the X dismisses it', () => {
+    update({ status: 'downloaded' });
+    const { container } = render(<Banners />);
+    fireEvent.click(container.querySelector('.banner__dismiss')!);
+    expect(useUpdateStore.getState().dismissBanner).toHaveBeenCalled();
+  });
+  // Ruling 9: no error banner, but a failure keeps a way back. A download that failed is
+  // `available` again (Download Now is the retry); an install that failed keeps `downloaded`.
+  it('an error while downloading draws the available banner again, with Download Now', () => {
+    update({ status: 'error', errorFrom: 'downloading', errorMessage: 'net::ERR' });
+    const { container } = render(<Banners />);
+    expect(container.querySelector('.banner--brand')).not.toBeNull();
+    expect(screen.getByText('update.available')).toBeTruthy();
+    fireEvent.click(screen.getByText('update.downloadNow'));
+    expect(useUpdateStore.getState().downloadUpdate).toHaveBeenCalled();
+  });
+  it('an error while downloaded keeps the downloaded banner, with Restart and Update', () => {
+    update({ status: 'error', errorFrom: 'downloaded', errorMessage: 'install failed' });
+    render(<Banners />);
+    expect(screen.getByText('update.downloaded')).toBeTruthy();
+    fireEvent.click(screen.getByText('update.restartNow'));
+    expect(useUpdateStore.getState().installUpdate).toHaveBeenCalled();
+  });
+  it('an error while checking draws nothing, and no error banner ever', () => {
+    update({ status: 'error', errorFrom: 'checking' });
+    const { container } = render(<Banners />);
+    expect(container.querySelector('.banner')).toBeNull();
   });
   it('error, idle, checking and not-available draw nothing', () => {
     for (const status of ['error', 'idle', 'checking', 'not-available'] as const) {

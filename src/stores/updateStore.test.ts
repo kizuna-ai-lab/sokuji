@@ -1,4 +1,11 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+// The status handler is Electron's: the listeners register only there.
+vi.mock('../utils/environment', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../utils/environment')>()),
+  isElectron: () => true,
+}));
+
 import useUpdateStore from './updateStore';
 
 describe('updateStore', () => {
@@ -19,6 +26,7 @@ describe('updateStore', () => {
       releasePageUrl: null,
       bannerDismissed: false,
       dialogOpen: false,
+      errorFrom: null,
     });
   });
 
@@ -59,5 +67,48 @@ describe('updateStore', () => {
     vi.advanceTimersByTime(10_000);
     expect(useUpdateStore.getState().status).toBe('error');
     vi.useRealTimers();
+  });
+
+  // Ruling 9: the banner keeps a way back after a failed download or install, so the store
+  // remembers which status the error interrupted — in memory, until any other status.
+  describe('errorFrom', () => {
+    let status: (data: Record<string, unknown>) => void = () => {};
+    beforeEach(() => {
+      (window as unknown as { electron: unknown }).electron = {
+        receive: vi.fn((channel: string, fn: (data: Record<string, unknown>) => void) => { if (channel === 'update-status') status = fn; }),
+        removeListener: vi.fn(),
+        invoke: vi.fn(),
+      };
+      useUpdateStore.getState().initListeners();
+    });
+    afterEach(() => {
+      useUpdateStore.getState().cleanupListeners();
+      delete (window as unknown as { electron?: unknown }).electron;
+    });
+
+    it('is the status an error interrupted, kept through a repeated error, and cleared by any other status', () => {
+      status({ status: 'downloading' });
+      status({ status: 'error', message: 'net::ERR' });
+      expect(useUpdateStore.getState()).toMatchObject({ status: 'error', errorFrom: 'downloading' });
+      // electron-updater reports one failure twice (the rejected download and its 'error' event).
+      status({ status: 'error', message: 'net::ERR' });
+      expect(useUpdateStore.getState().errorFrom).toBe('downloading');
+      status({ status: 'available', version: '0.43.0' });
+      expect(useUpdateStore.getState().errorFrom).toBeNull();
+      status({ status: 'downloaded' });
+      status({ status: 'error', message: 'install failed' });
+      expect(useUpdateStore.getState().errorFrom).toBe('downloaded');
+      status({ status: 'checking' });
+      expect(useUpdateStore.getState().errorFrom).toBeNull();
+      status({ status: 'error', message: 'offline' });
+      expect(useUpdateStore.getState().errorFrom).toBe('checking');
+      status({ status: 'not-available' });
+      expect(useUpdateStore.getState().errorFrom).toBeNull();
+    });
+
+    it('is null for an error that interrupted nothing it names', () => {
+      status({ status: 'error', message: 'No update available to download' });
+      expect(useUpdateStore.getState()).toMatchObject({ status: 'error', errorFrom: null });
+    });
   });
 });

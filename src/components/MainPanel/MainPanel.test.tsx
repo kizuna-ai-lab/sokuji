@@ -623,11 +623,24 @@ describe('MainPanel', () => {
   });
 
   it('dismissing the subtitle-entry hint clears it from the store', async () => {
+    // The hint is a running line (Ruling 11); a selected input, or the line is the microphone wait, which outranks it.
+    const selected = useAudioStore.getState().selectedInputDevice;
+    useAudioStore.setState({ selectedInputDevice: { deviceId: 'mic', label: 'Mic', isVirtual: false } as never });
     const { container } = await renderPanel();
-    act(() => { useSubtitleStore.setState({ entryHint: 'refresh' }); });
-    expect(container.querySelector('[data-status="subtitle-entry"]')).not.toBeNull();
-    fireEvent.click(container.querySelector('.status-line__dismiss')!);
-    expect(useSubtitleStore.getState().entryHint).toBeNull();
+    try {
+      act(() => {
+        runner().state.setState({ phase: 'running', since: 0, legs: { speaker: 'live' } }, true);
+        useSubtitleStore.setState({ entryHint: 'refresh' });
+      });
+      expect(container.querySelector('[data-status="subtitle-entry"]')).not.toBeNull();
+      fireEvent.click(container.querySelector('.status-line__dismiss')!);
+      expect(useSubtitleStore.getState().entryHint).toBeNull();
+    } finally {
+      act(() => {
+        runner().state.setState({ phase: 'idle' }, true);
+        useAudioStore.setState({ selectedInputDevice: selected });
+      });
+    }
   });
 
   it('the wait for a microphone is the line', async () => {
@@ -733,6 +746,25 @@ describe('panel notes (spec 2026-10-05 §5)', () => {
     const { container } = await renderPanel();
     expect(container.querySelector('.sys-row--info')).toBeNull();
     expect((container.querySelector('.clear-conversation-btn') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  // Ruling 8 (final review C1): the overlay draws L1 only, so while it runs the panel's
+  // placeholder carries the notes under it — the one place they show.
+  it("draws a note under the extension overlay's placeholder while the overlay runs", async () => {
+    env.extension = true;
+    useSettingsStore.setState({ subtitleModeActive: true });
+    usePanelNotesStore.getState().add({ severity: 'info', code: 'export_copied', message: 'copied', lifetime: 'transient' });
+    const { container } = await renderPanel();
+    try {
+      act(() => { runner().state.setState({ phase: 'running', since: 0, legs: { speaker: 'live' } }, true); });
+      const placeholder = container.querySelector('.conversation-display > .empty-state')!;
+      expect(placeholder.querySelector('p')?.textContent).toContain('mainPanel.subtitleTakeover');
+      const row = placeholder.querySelector('.sys-row--info');
+      expect(row).not.toBeNull();
+      expect(placeholder.querySelector('p')!.compareDocumentPosition(row!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    } finally {
+      act(() => { runner().state.setState({ phase: 'idle' }, true); });
+    }
   });
 
   it('Clear removes the notes with the conversation', async () => {

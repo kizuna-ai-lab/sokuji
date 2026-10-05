@@ -14,6 +14,7 @@ import {
   useSubtitleSettings,
   useSubtitleSpeakerDisplayMode,
 } from '../../stores/subtitleStore';
+import type { ConversationListProps } from '../Conversation/ConversationList';
 import SubtitleBar from './SubtitleBar';
 import { SubtitleBody } from './SubtitleBands';
 import SubtitleIdle from './SubtitleIdle';
@@ -27,6 +28,8 @@ export interface SubtitleModel {
   lit: ReadonlyMap<SegmentId, number>;
   /** Null on the overlay until the side panel has sent one. */
   session: SubtitleSession | null;
+  /** The Electron takeover's panel notes (spec 2026-10-05 §5): drawn in the expanded list only, never in the bands (Ruling 8). */
+  notes?: readonly Entry[];
 }
 
 export interface SubtitleControls {
@@ -70,14 +73,16 @@ const noop = () => {};
  * its own window, the extension overlay from its wire. The old subtitle
  * window's layout, class for class.
  */
-export function SubtitleView({ surface, model, controls, exporter, statusLine }: {
+export function SubtitleView({ surface, model, controls, exporter, statusLine, noticeAction }: {
   surface: SubtitleSurfaceKind;
   model: SubtitleModel;
   controls: SubtitleControls;
   /** The conversation's export, Electron only: the overlay's tail is not the whole conversation. */
   exporter?: Exporter;
-  /** The Electron takeover's status line (spec 2026-10-05 §7); the overlay has none. */
+  /** The Electron takeover's status line (spec 2026-10-05 §7), in the expanded view only; the overlay has none. */
   statusLine?: ReactNode;
+  /** The action a system row in the expanded list offers, if any: the Electron takeover's. */
+  noticeAction?: ConversationListProps['noticeAction'];
 }) {
   const { t } = useTranslation();
   // The overlay's hold-to-talk control lives in the bar (follow-up D) and
@@ -90,7 +95,7 @@ export function SubtitleView({ surface, model, controls, exporter, statusLine }:
   const participant = useSubtitleParticipantDisplayMode();
   const newItemHighlightEnabled = useSubtitleNewItemHighlightEnabled();
   const filters = useMemo(() => ({ speaker, participant }), [speaker, participant]);
-  const { entries, lit, session } = model;
+  const { entries, lit, session, notes } = model;
   const running = session?.phase === 'running';
 
   const [now, setNow] = useState(Date.now());
@@ -152,6 +157,8 @@ export function SubtitleView({ surface, model, controls, exporter, statusLine }:
             sourceTextColor={subtitle.sourceTextColor}
             translationTextColor={subtitle.translationTextColor}
             newItemHighlightEnabled={newItemHighlightEnabled}
+            notes={notes}
+            noticeAction={noticeAction}
           />
         )
       ) : (
@@ -164,7 +171,8 @@ export function SubtitleView({ surface, model, controls, exporter, statusLine }:
           onOpenSettings={controls.openSettings}
         />
       )}
-      {running && surface === 'electron' && statusLine}
+      {/* The line belongs to the expanded view (spec 2026-10-05 §7); the compact bands carry none. */}
+      {running && surface === 'electron' && !subtitle.compactMode && statusLine}
       {chrome.resizeHandles}
     </div>
   );

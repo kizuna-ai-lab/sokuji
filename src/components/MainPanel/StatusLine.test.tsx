@@ -22,6 +22,8 @@ describe('StatusLine', () => {
     const onAction = vi.fn();
     const { container } = render(<StatusLine entry={entry()} onAction={onAction} onDismiss={vi.fn()} />);
     expect(container.querySelector('.status-line')).not.toBeNull();
+    // A live region: a line that appears mid-run (reconnecting, the microphone wait) is announced.
+    expect(container.querySelector('.status-line')?.getAttribute('role')).toBe('status');
     expect(container.querySelector('.status-line__text')?.textContent).toBe('notices.no_microphone');
     const button = container.querySelector('.status-line__action') as HTMLButtonElement;
     expect(button.textContent).toBe('settings.title');

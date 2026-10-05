@@ -271,10 +271,15 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
         release: () => runner.release(),
       }));
       // A new run starts a new record: the previous run's panel notes go with the
-      // conversation they belonged to (spec 2026-10-05 §5).
+      // conversation they belonged to (spec 2026-10-05 §5). On every start, a
+      // refused one too: the conversation is replaced only once a start gets past
+      // its refusals, so the reset below misses those.
       offs.push(runner.state.subscribe((now, before) => {
         if (now.phase === 'starting' && before.phase === 'idle') usePanelNotesStore.getState().clear();
       }));
+      // The conversation emptied — Clear from any surface (the subtitle bar's
+      // reaches the runner, not MainPanel's handler) — and the notes go with it.
+      offs.push(runner.conversation.onReset(() => usePanelNotesStore.getState().clear()));
       // A source that ended the run (a device unplugged, a switch that failed): today's `audio_error` (ruling 10).
       offs.push(runner.state.subscribe((now, before) => {
         if (now.phase !== 'idle' || before.phase === 'idle' || now.lastEnd?.reason !== 'source-ended' || !now.lastEnd.notice) return;

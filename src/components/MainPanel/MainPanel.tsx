@@ -17,8 +17,8 @@ import { participantSpeechHeard } from '../../lib/modern-audio/participantSource
 import { NO_MICROPHONE } from '../../lib/session/shape';
 import type { RunEnd, RunState } from '../../lib/session/types';
 import { displayItems, type DisplayItem, type NoticeEntry } from '../../lib/view/filter';
-import { actionForCode, actionLabel, type NoticeActionSpec } from '../../lib/view/noticeActions';
-import { isPanelNoteId, PANEL_NOTE_ID_PREFIX, panelNoteEntries } from '../../lib/view/panelNotes';
+import { actionLabel, type NoticeActionSpec } from '../../lib/view/noticeActions';
+import { isPanelNoteId, noticeActionSpec, panelNoteEntries } from '../../lib/view/panelNotes';
 import { getProvider } from '../../providers/registry';
 import {
   useIsMicMuted,
@@ -47,6 +47,7 @@ import { useSetSubtitleEntryHint } from '../../stores/subtitleStore';
 import { useCleanupUpdateListeners, useInitUpdateListeners } from '../../stores/updateStore';
 import { getEnvironment, isElectron, isExtension } from '../../utils/environment';
 import { ConversationList, type NoticeAction } from '../Conversation/ConversationList';
+import { SystemRow } from '../Conversation/SystemRow';
 import { useConversationExporter } from '../Conversation/useConversationExporter';
 import { useReadable } from '../Conversation/useReadable';
 import { useVisibleEntries } from '../Conversation/useVisibleEntries';
@@ -176,6 +177,7 @@ export default function MainPanel() {
   // A transient notice or note leaves the panel once its time is up; the export keeps the notices.
   const entries = useMemo(() => (notes.length === 0 ? viewState.entries : [...viewState.entries, ...panelNoteEntries(notes)]), [viewState.entries, notes]);
   const shown = useVisibleEntries(entries);
+  const takeover = subtitleModeActive && isExtension();
   const previous = useRef<readonly DisplayItem[]>([]);
   const drawn = useMemo(() => {
     const next = displayItems(shown, { speaker: speakerMode, participant: participantMode }, previous.current);
@@ -201,12 +203,6 @@ export default function MainPanel() {
 
   const permission = usePermissionWarning(run, viewState.legs);
   const openWarning = permission.open;
-  // The store action and `open` are stable for the panel's life; `t` is not — a language bundle
-  // arriving swaps it (`i18n`'s `bindI18nStore: 'added'`). ConversationList's per-notice cache keys
-  // off this callback's identity, so a bundle arriving mid-session invalidates and rebuilds it
-  // rather than serving stale text (ruling 14). That cache is never pruned: one entry per notice
-  // drawn, for the panel's life — a page's worth. An id always names the same action: a leg's
-  // notice ids are unique per run.
   // One table of actions (spec 2026-10-05 §6); the panel owns the handlers.
   const runNoticeAction = useCallback((spec: NoticeActionSpec) => {
     switch (spec.kind) {
@@ -215,13 +211,18 @@ export default function MainPanel() {
       case 'sign-in': setAuthOverlay('sign-in'); return;
       case 'system-settings': openWarning(spec.pane === 'screen-recording' ? 'screen-recording-denied' : 'audio-capture-denied'); return;
       case 'show-in-folder': if (isElectron()) void window.electron.invoke('open-directory', spec.dir); return;
+      default: { const _exhaustive: never = spec; return _exhaustive; }
     }
   }, [navigateToSettings, setAccountPopoverRequested, setAuthOverlay, openWarning]);
+  // The store actions and `open` are stable for the panel's life; `t` and the notes are not — a
+  // language bundle arriving swaps `t` (`i18n`'s `bindI18nStore: 'added'`), and a note added or
+  // cleared swaps `notes`. ConversationList's per-notice cache keys off this callback's identity,
+  // so either change invalidates and rebuilds it rather than serving stale text (ruling 14).
+  // Between rebuilds the cache is never pruned: one entry per notice drawn — a page's worth. An id
+  // always names the same action: a leg's notice ids are unique per run, a note's per page.
   // A panel note carries its own action; an L1 notice's follows its code.
   const noticeAction = useCallback((notice: NoticeEntry): NoticeAction | null => {
-    const spec = isPanelNoteId(notice.id)
-      ? notes.find((n) => `${PANEL_NOTE_ID_PREFIX}${n.id}` === notice.id)?.action ?? null
-      : actionForCode(notice.code);
+    const spec = noticeActionSpec(notice, notes);
     if (!spec) return null;
     const { key, fallback } = actionLabel(spec);
     return { label: t(key, fallback), run: () => runNoticeAction(spec) };
@@ -260,9 +261,13 @@ export default function MainPanel() {
   const testTone = useTestTone(audio);   // dev only: { playing, toggle } | undefined
   useUpdateAndAudioSystemListeners();    // today's two listener inits, pre-switch MainPanel.tsx:1111-1125
 
-  const takeover = subtitleModeActive && isExtension();
   // What the list draws counts (`shown`: the conversation and the notes after the transient rule, before a side filter, which can hide rows the user brings back), so an expired note never leaves Clear on over an empty list; a failed start's line counts too: after one it is all there is, and Clear takes it away.
   const hasConversation = shown.length > 0 || (status?.key.startsWith('last-end:') ?? false);
+  // The extension overlay draws L1 only: while it runs, the notes show under the panel's placeholder (Ruling 8).
+  const overlayNotes = useMemo(
+    () => (takeover ? shown.filter((e): e is NoticeEntry => e.kind === 'notice' && isPanelNoteId(e.id)) : []),
+    [takeover, shown],
+  );
   const onClear = useCallback(() => {
     runner.clear();
     usePanelNotesStore.getState().clear();
@@ -297,7 +302,14 @@ export default function MainPanel() {
         )}
         {takeover ? (
           <div className="conversation-display">
-            <div className="empty-state"><Captions size={32} /><p>{t('mainPanel.subtitleTakeover', 'Translations are showing in the subtitle overlay')}</p></div>
+            <div className="empty-state">
+              <Captions size={32} /><p>{t('mainPanel.subtitleTakeover', 'Translations are showing in the subtitle overlay')}</p>
+              {overlayNotes.length > 0 && (
+                <div className="conversation-list">
+                  {overlayNotes.map((note) => <SystemRow key={note.id} notice={note} action={noticeAction(note)} />)}
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <ConversationList

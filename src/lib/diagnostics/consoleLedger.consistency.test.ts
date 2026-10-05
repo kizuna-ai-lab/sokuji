@@ -359,14 +359,13 @@ describe('console ledger', () => {
   });
 
   it('nothing draws a notice through a surface this design retired (spec 2026-10-05)', () => {
-    // Relative imports carry no `components/`: match the module path's tail, quoted.
-    const retired = /['"][^'"]*\/(Toast|UpdateBanner\/UpdateBanner|AudioSystemBanner\/AudioSystemBanner|EchoNotice\/EchoNotice|view\/lastEnd)['"]/;
+    // Relative imports carry no `components/`: match the module path's tail, quoted. Over the
+    // whole text, so a path on a multi-line import's `} from` line, `export … from` and `import()`
+    // are found too.
+    const retired = /\b(?:from|import)\s*\(?\s*['"][^'"]*\/(Toast|UpdateBanner\/UpdateBanner|AudioSystemBanner\/AudioSystemBanner|EchoNotice\/EchoNotice|view\/lastEnd)['"]/g;
     const offenders: string[] = [];
     for (const file of scannedFiles()) {
-      for (const line of read(file).split('\n')) {
-        if (!/^\s*import\b/.test(line)) continue;
-        if (retired.test(line)) offenders.push(`${file}: ${line.trim()}`);
-      }
+      for (const match of read(file).matchAll(retired)) offenders.push(`${file}: ${match[0]}`);
     }
     expect(offenders).toEqual([]);
   });

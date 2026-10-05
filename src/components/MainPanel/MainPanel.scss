@@ -112,8 +112,9 @@
   color: #666;
   gap: 16px;
 
-  svg { opacity: 0.3; }
-  p { margin: 0; font-size: 16px; max-width: 300px; }
+  // Its own icon only: the extension overlay's placeholder draws the panel notes under it, whose icons carry their severity.
+  > svg { opacity: 0.3; }
+  > p { margin: 0; font-size: 16px; max-width: 300px; }
 }
 
 // ─── Conversation List & Bubbles ───────────────────

@@ -69,6 +69,14 @@ describe('statusLine — while running (priorities 2–5)', () => {
   it('the subtitle layer’s hint, dismissible, above echo (the user just pressed the button)', () => {
     expect(statusLine(input({ run: running(), subtitleEntryHint: true, echo }))).toMatchObject({ key: 'subtitle-entry', icon: 'captions', words: { kind: 'key', key: 'subtitle.enterButton.refreshPageHint' }, dismiss: 'subtitle-entry' });
   });
+  it('the microphone wait outranks the subtitle layer’s hint', () => {
+    expect(statusLine(input({ run: running(), waitingForMicrophone: true, subtitleEntryHint: true }))).toMatchObject({ key: 'mic-waiting', icon: 'mic-off', dismiss: null });
+  });
+  // Ruling 11: the overlay opens only while a run is live, so the hint is a running line.
+  it('the subtitle layer’s hint only while running', () => {
+    expect(statusLine(input({ subtitleEntryHint: true }))).toBeNull();
+    expect(statusLine(input({ run: { phase: 'starting', step: 'checking' }, idle: { kind: 'starting' }, canStart: false, subtitleEntryHint: true }))).toBeNull();
+  });
   it('echo last, dismissible, with its cause', () => {
     expect(statusLine(input({ run: running(), echo }))).toMatchObject({ key: 'echo:tts-echo', icon: 'triangle-alert', words: { kind: 'echo', cause: 'tts-echo' }, dismiss: 'echo' });
   });
