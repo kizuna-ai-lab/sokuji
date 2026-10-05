@@ -1638,7 +1638,7 @@ export function useStatusLine({ run, idle, canStart, dismissedEnd, echo }: UseSt
   }, [dismissEcho, setEntryHint]);
 ```
 
-- `hasConversation` (247): `const hasConversation = viewState.entries.length > 0 || notes.length > 0 || (status?.key.startsWith('last-end:') ?? false);` — Clear still takes a failed start's line away, as it took the bubble.
+- `hasConversation` (247): `const hasConversation = shown.length > 0 || (status?.key.startsWith('last-end:') ?? false);` — what the list draws (`shown`, the entries after the transient rule), so an expired transient note never leaves Clear on over an empty list (Ruling 6 during execution; the first draft counted `notes.length`). Clear still takes a failed start's line away, as it took the bubble.
 - the footer (255-266): drop `startBlockMessage={startBlockMessage}`.
 - the mount (298-302): replace `<EchoNotice state={echo} onDismiss={dismissEcho} />` with nothing, and insert between `{canSendText && <TypedText … />}` and `{footer(...)}`:
 
@@ -2320,8 +2320,16 @@ Expected: FAIL — the status resets to `idle` after 5 s; the link never shows `
   // "Up to date" or "Failed to check" for five seconds, then the link again.
   // A new check passes through 'checking' first, so a second failure re-runs this.
   const [checkResult, setCheckResult] = useState<'not-available' | 'error' | null>(null);
+  // Only a check the user started shows a result: a stale status held by the
+  // store (or the one present at mount) must not flash on every reopen (Ruling 7).
+  const previousStatusRef = useRef(updateStatus);
   useEffect(() => {
-    if (updateStatus !== 'not-available' && updateStatus !== 'error') { setCheckResult(null); return; }
+    const previous = previousStatusRef.current;
+    previousStatusRef.current = updateStatus;
+    if (previous !== 'checking' || (updateStatus !== 'not-available' && updateStatus !== 'error')) {
+      setCheckResult(null);
+      return;
+    }
     setCheckResult(updateStatus);
     const timer = setTimeout(() => setCheckResult(null), 5000);
     return () => clearTimeout(timer);

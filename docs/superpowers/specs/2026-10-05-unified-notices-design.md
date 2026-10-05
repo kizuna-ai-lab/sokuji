@@ -161,7 +161,8 @@ Inputs and priority, highest first; the first that holds is the line:
    b. else the last start's refusal or failure: `runner.state.idle.lastEnd` with reason
       `refused` or `start-failed` (`runner.ts:168-249`), shown until the next start or
       Clear. This replaces the timeline's "last end" bubble (`src/lib/view/lastEnd.ts`),
-      which is removed together with MainPanel's `dismissedEnd` state.
+      which is removed; MainPanel's `dismissedEnd` state stays, as the "until Clear" the
+      selector reads (Clear records the end it dismissed).
    Action by code: `NOTICE_TARGETS` codes → Settings (deep link); `balance_below_floor`,
    `insufficient_balance` → Top up; `sign_in_*` → Sign in;
    `loopback_denied` → Open System Settings (today's `MainPanel.tsx:209`). Icon:
@@ -289,7 +290,8 @@ MainPanel owns the handlers. Rows and the status line stay presentational.
 
 `report()` / `CLIENT_DIAGNOSTICS` / LogsPanel (the diagnostics policy of #441); how
 adapters raise `failed` and `degraded`; `Notice`'s type and L1's recording; `noticeText`,
-`NOTICE_WORDS`, `NOTICE_ALIASES` (no key is added or removed); the subtitle bands' shape;
+`NOTICE_WORDS` (no locale key is added or removed; `NOTICE_ALIASES` gains four rows for the
+panel notes — a code table, not a catalog); the subtitle bands' shape;
 `WarningModal` and every Settings inline message (ruling 1); Local Native's old `IClient`
 path, which draws through the kept shell until #578.
 
