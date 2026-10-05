@@ -564,6 +564,7 @@
       "legendNone": "Wyłącz: ukryj tę stronę"
     },
     "playItemAudio": "Odtwórz dźwięk tego elementu",
+    "backToLatest": "Wróć do najnowszych",
     "replayBlockedWholeSystem": "Odtwarzanie jest wyłączone, gdy dźwięk rozmówcy przechwytuje cały dźwięk systemowy: zostałby przetłumaczony ponownie.",
     "toolbar": {
       "export": "Eksportuj rozmowę"

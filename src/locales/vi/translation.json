@@ -564,6 +564,7 @@
       "legendNone": "Tắt: ẩn phía này"
     },
     "playItemAudio": "Phát âm thanh của mục này",
+    "backToLatest": "Về mới nhất",
     "replayBlockedWholeSystem": "Phát lại bị tắt trong khi âm thanh đối phương đang thu toàn bộ âm thanh hệ thống: nó sẽ bị dịch lại.",
     "toolbar": {
       "export": "Xuất hội thoại"

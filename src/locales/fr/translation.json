@@ -564,6 +564,7 @@
       "legendNone": "Arrêt : masquer ce côté"
     },
     "playItemAudio": "Lire l'audio de cet élément",
+    "backToLatest": "Revenir au plus récent",
     "replayBlockedWholeSystem": "La relecture est désactivée tant que l'audio de l'autre capture tout l'audio du système : il serait retraduit.",
     "toolbar": {
       "export": "Exporter la conversation"

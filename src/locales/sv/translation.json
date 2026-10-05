@@ -564,6 +564,7 @@
       "legendNone": "Av: dölj denna sida"
     },
     "playItemAudio": "Spela upp ljudet för detta objekt",
+    "backToLatest": "Tillbaka till senaste",
     "replayBlockedWholeSystem": "Uppspelning är avstängd medan den andras ljud fångar allt systemljud: det skulle översättas igen.",
     "toolbar": {
       "export": "Exportera konversation"

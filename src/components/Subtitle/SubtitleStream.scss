@@ -120,6 +120,26 @@
       background: transparent;
       padding: 0;
     }
+
+    // The list's Back to live row spans the window: out through this stream's
+    // 8px/12px/10px padding to its edges and bottom. The window's background is
+    // the user's colour and opacity and its controls are translucent white over
+    // it (the bar's buttons), so the row is see-through with a hairline, not the
+    // panel's solid #252525.
+    .follow-dock {
+      width: auto;
+      align-self: stretch;
+      margin: 8px -12px -10px;
+      font-size: 13px;
+      background: transparent;
+      border-top: 1px solid rgba(255, 255, 255, 0.14);
+      color: rgba(255, 255, 255, 0.62);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.9);
+      }
+    }
   }
 }
 

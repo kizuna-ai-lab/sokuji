@@ -564,6 +564,7 @@
       "legendNone": "Mati: sembunyikan sisi ini"
     },
     "playItemAudio": "Main audio item ini",
+    "backToLatest": "Kembali ke terkini",
     "replayBlockedWholeSystem": "Main semula dimatikan semasa audio pihak lain menangkap semua audio sistem: ia akan diterjemah semula.",
     "toolbar": {
       "export": "Eksport perbualan"

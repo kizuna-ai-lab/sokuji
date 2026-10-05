@@ -564,6 +564,7 @@
       "legendNone": "Patay: itago ang panig na ito"
     },
     "playItemAudio": "I-play ang audio ng item na ito",
+    "backToLatest": "Bumalik sa pinakabago",
     "replayBlockedWholeSystem": "Naka-off ang muling pagpapatugtog habang kinukuha ng audio ng kausap ang buong system audio: muli itong isasalin.",
     "toolbar": {
       "export": "I-export ang usapan"

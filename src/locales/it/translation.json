@@ -564,6 +564,7 @@
       "legendNone": "Spento: nascondi questo lato"
     },
     "playItemAudio": "Riproduci l'audio di questo elemento",
+    "backToLatest": "Torna al più recente",
     "replayBlockedWholeSystem": "La riproduzione è disattivata finché l'audio dell'altro cattura tutto l'audio di sistema: verrebbe tradotto di nuovo.",
     "toolbar": {
       "export": "Esporta conversazione"

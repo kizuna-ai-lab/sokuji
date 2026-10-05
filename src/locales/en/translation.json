@@ -564,6 +564,7 @@
       "ariaLabel": "{{scope}}: {{mode}} — click to change"
     },
     "playItemAudio": "Play this item's audio",
+    "backToLatest": "Back to latest",
     "replayBlockedWholeSystem": "Replay is off while Other's audio captures all system sound: it would be translated again.",
     "toolbar": {
       "export": "Export conversation"

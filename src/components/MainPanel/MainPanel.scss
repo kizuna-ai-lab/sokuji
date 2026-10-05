@@ -324,6 +324,37 @@
   }
 }
 
+// ─── Back to live ──────────────────────────────────
+// Only while the reader has scrolled back (ConversationList's useFollowLatest):
+// docked below the list, never floating over it (spec 2026-10-05 goal 4), so it
+// takes its height from the bottom and the line being read stays put. The status
+// line's geometry and colours, without its warning icon: it reads as part of the
+// panel, not as a notice. The whole row is the button.
+
+.follow-dock {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 12px;
+  background: #252525;
+  border: none;
+  border-top: 1px solid #333;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #cfcfcf;
+  cursor: pointer;
+
+  > svg { flex-shrink: 0; }
+  &__label { @include vars.cap-centred; }
+  &:hover { background: #2d2d2d; color: #fff; }
+  // Inset: the row spans the panel, so an outset ring would be clipped at its edges.
+  &:focus-visible { @include vars.focus-ring; outline-offset: -2px; }
+}
+
 // ═══════════════════════════════════════════════════
 // Control Footer — shared base + mode variants
 // ═══════════════════════════════════════════════════

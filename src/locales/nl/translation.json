@@ -564,6 +564,7 @@
       "legendNone": "Uit: deze kant verbergen"
     },
     "playItemAudio": "Audio van dit item afspelen",
+    "backToLatest": "Terug naar nieuwste",
     "replayBlockedWholeSystem": "Herhaling is uitgeschakeld zolang de audio van de ander alle systeemaudio vastlegt: het zou opnieuw worden vertaald.",
     "toolbar": {
       "export": "Gesprek exporteren"

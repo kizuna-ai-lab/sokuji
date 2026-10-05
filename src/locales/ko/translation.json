@@ -564,6 +564,7 @@
       "legendNone": "끄기: 이쪽 숨기기"
     },
     "playItemAudio": "이 항목의 오디오 재생",
+    "backToLatest": "최신으로 이동",
     "replayBlockedWholeSystem": "상대방 오디오가 시스템 오디오 전체를 캡처하는 동안에는 재생이 꺼집니다. 다시 번역되기 때문입니다.",
     "toolbar": {
       "export": "대화 내보내기"
