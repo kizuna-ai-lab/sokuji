@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, waitFor } from '@testing-library/react';
 
 // Kept from before the old audio service was deleted: ServiceFactory used to
 // import ModernBrowserAudioService -> ModernAudioRecorder -> a worklet
@@ -93,6 +93,8 @@ import { createVirtualClock } from '../../lib/contract/clock';
 import { fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource } from '../../providers/fake/source';
 import { useProviderStore } from '../../stores/providerStore';
+import useAudioStore from '../../stores/audioStore';
+import { useSubtitleStore } from '../../stores/subtitleStore';
 import { configureAppSession, getAppSession } from '../../app/session';
 import type { SubtitleControls } from './SubtitleView';
 import { SubtitleTakeover } from './SubtitleTakeover';
@@ -188,5 +190,22 @@ describe('SubtitleTakeover', () => {
     render(<SubtitleTakeover />);
     act(() => { lastControls().openSettings!('provider'); });
     expect(order).toEqual(['exit', 'navigate:provider']);
+  });
+
+  // Spec 2026-10-05 §7: the takeover hands SubtitleView the same status line
+  // MainPanel draws; its dismiss clears the entry hint the store holds.
+  it("hands SubtitleView a status line that draws the subtitle entry hint while running and dismisses it", async () => {
+    // A selected input, or the line is the microphone wait, which outranks the hint.
+    useAudioStore.setState({ selectedInputDevice: { deviceId: 'mic', label: 'Mic', isVirtual: false } as never });
+    render(<SubtitleTakeover />);
+    const line = render(<>{captured[captured.length - 1].statusLine as React.ReactNode}</>);
+    await act(async () => { await getAppSession().runner.start(); });
+    act(() => { useSubtitleStore.getState().setEntryHint('refresh'); });
+    await waitFor(() => expect(line.container.querySelector('[data-status="subtitle-entry"]')).not.toBeNull());
+    act(() => { fireEvent.click(line.container.querySelector('.status-line button')!); });
+    expect(useSubtitleStore.getState().entryHint).toBeNull();
+    useAudioStore.setState({ selectedInputDevice: null });
+    await act(() => getAppSession().runner.stop());
+    await getAppSession().runner.settled();
   });
 });

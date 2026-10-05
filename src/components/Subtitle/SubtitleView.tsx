@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { SegmentId } from '../../lib/conversation/types';
@@ -70,12 +70,14 @@ const noop = () => {};
  * its own window, the extension overlay from its wire. The old subtitle
  * window's layout, class for class.
  */
-export function SubtitleView({ surface, model, controls, exporter }: {
+export function SubtitleView({ surface, model, controls, exporter, statusLine }: {
   surface: SubtitleSurfaceKind;
   model: SubtitleModel;
   controls: SubtitleControls;
   /** The conversation's export, Electron only: the overlay's tail is not the whole conversation. */
   exporter?: Exporter;
+  /** The Electron takeover's status line (spec 2026-10-05 §7); the overlay has none. */
+  statusLine?: ReactNode;
 }) {
   const { t } = useTranslation();
   // The overlay's hold-to-talk control lives in the bar (follow-up D) and
@@ -162,6 +164,7 @@ export function SubtitleView({ surface, model, controls, exporter }: {
           onOpenSettings={controls.openSettings}
         />
       )}
+      {running && surface === 'electron' && statusLine}
       {chrome.resizeHandles}
     </div>
   );

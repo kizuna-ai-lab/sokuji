@@ -70,6 +70,18 @@ beforeEach(() => {
 });
 
 describe('SubtitleView', () => {
+  it('draws the host\u2019s status line under the body while running, on the Electron surface only', () => {
+    const line = <div data-testid="status-line-slot" />;
+    const a = render(<SubtitleView surface="electron" model={{ entries: [entry], lit: new Map(), session: session() }} controls={controls()} statusLine={line} />);
+    expect(a.queryByTestId('status-line-slot')).not.toBeNull();
+    a.unmount();
+    const b = render(<SubtitleView surface="extension-overlay" model={{ entries: [entry], lit: new Map(), session: session() }} controls={controls()} statusLine={line} />);
+    expect(b.queryByTestId('status-line-slot')).toBeNull();
+    b.unmount();
+    const c = render(<SubtitleView surface="electron" model={{ entries: [], lit: new Map(), session: session({ phase: 'idle', since: null }) }} controls={controls()} statusLine={line} />);
+    expect(c.queryByTestId('status-line-slot')).toBeNull();
+  });
+
   it('never shows a negative elapsed time when the session arrives after mount', () => {
     const future = Date.now() + 5000;
     render(<SubtitleView surface="electron" model={{ entries: [], lit: new Map(), session: session({ since: future }) }} controls={controls()} />);

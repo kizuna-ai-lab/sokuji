@@ -4,6 +4,7 @@ import { useExitSubtitleMode, useNavigateToSettings } from '../../stores/setting
 import { useConversationExporter } from '../Conversation/useConversationExporter';
 import { useReadable } from '../Conversation/useReadable';
 import { SubtitleView, type SubtitleControls } from './SubtitleView';
+import { TakeoverStatusLine } from './TakeoverStatusLine';
 
 /**
  * The Electron subtitle takeover over the app's session (roadmap 1d-2 → 1e):
@@ -37,5 +38,5 @@ export function SubtitleTakeover() {
       navigateToSettings(target);
     },
   }), [session, exitSubtitleMode, navigateToSettings]);
-  return <SubtitleView surface="electron" model={{ entries: viewState.entries, lit, session: sessionState }} controls={controls} exporter={exporter} />;
+  return <SubtitleView surface="electron" model={{ entries: viewState.entries, lit, session: sessionState }} controls={controls} exporter={exporter} statusLine={<TakeoverStatusLine />} />;
 }
