@@ -46,14 +46,13 @@ import {
 import { useSetSubtitleEntryHint } from '../../stores/subtitleStore';
 import { useCleanupUpdateListeners, useInitUpdateListeners } from '../../stores/updateStore';
 import { getEnvironment, isElectron, isExtension } from '../../utils/environment';
-import AudioSystemBanner from '../AudioSystemBanner/AudioSystemBanner';
 import { ConversationList, type NoticeAction } from '../Conversation/ConversationList';
 import { useConversationExporter } from '../Conversation/useConversationExporter';
 import { useReadable } from '../Conversation/useReadable';
 import { useVisibleEntries } from '../Conversation/useVisibleEntries';
 import { echoSource, useEchoNotice } from '../EchoNotice/useEchoNotice';
 import WarningModal from '../Settings/shared/WarningModal';
-import UpdateBanner from '../UpdateBanner/UpdateBanner';
+import { Banners } from '../Banner/useBanners';
 import UpdateDialog from '../UpdateDialog/UpdateDialog';
 import ModeDevicePopover from './ModeDevicePopover';
 import { PanelFooter } from './panel/PanelFooter';
@@ -290,8 +289,7 @@ export default function MainPanel() {
 
   return (
     <div className="main-panel-wrapper" style={{ '--conversation-bg-color': display.bgColor, '--conversation-source-color': display.sourceTextColor, '--conversation-translation-color': display.translationTextColor } as CSSProperties}>
-      <UpdateBanner />
-      <AudioSystemBanner />
+      <Banners />
       <UpdateDialog />
       <div className="main-panel">
         {(!takeover || run.phase !== 'idle' || hasConversation) && (
