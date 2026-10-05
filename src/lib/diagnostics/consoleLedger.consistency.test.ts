@@ -191,7 +191,7 @@ const LEDGER: Record<string, number> = {
   // there is nothing left here to swallow — the call is gone, not moved.
   'src/components/SetupWizard/steps/StepLanguage.tsx': 1,
   'src/components/Subtitle/ChildWindowPopover.tsx': 1,
-  'src/components/Toast/ToastContext.tsx': 1,
+  // ToastContext.tsx's row (1) is gone, not lowered to 0: spec 2026-10-05 removed the toast; its uses became panel notes, the status line, or the control's own state.
   // subtitle-overlay-entry.tsx's row (1) is gone, not lowered to 0: plan 1e-4
   // rewrote the overlay page over the wire; its one failure (no #root) reports
   // through report.ts.
@@ -353,6 +353,19 @@ describe('console ledger', () => {
       for (const line of read(file).split('\n')) {
         if (!/^\s*import\b/.test(line) || /^\s*import type\b/.test(line)) continue;
         if (/stores\/logStore|lib\/diagnostics\/report/.test(line)) offenders.push(`${file}: ${line.trim()}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('nothing draws a notice through a surface this design retired (spec 2026-10-05)', () => {
+    // Relative imports carry no `components/`: match the module path's tail, quoted.
+    const retired = /['"][^'"]*\/(Toast|UpdateBanner\/UpdateBanner|AudioSystemBanner\/AudioSystemBanner|EchoNotice\/EchoNotice|view\/lastEnd)['"]/;
+    const offenders: string[] = [];
+    for (const file of scannedFiles()) {
+      for (const line of read(file).split('\n')) {
+        if (!/^\s*import\b/.test(line)) continue;
+        if (retired.test(line)) offenders.push(`${file}: ${line.trim()}`);
       }
     }
     expect(offenders).toEqual([]);

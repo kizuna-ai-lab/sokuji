@@ -67,7 +67,6 @@ vi.mock('../lib/auth/hooks', () => ({
 const refetchAll = vi.hoisted(() => vi.fn(async () => {}));
 vi.mock('../contexts/UserProfileContext', () => ({ useUserProfile: () => ({ refetchAll }) }));
 
-import { ToastProvider } from '../components/Toast';
 import { createVirtualClock } from '../lib/contract/clock';
 import { fakeProvider } from '../providers/fake/provider';
 import { createFakeSource } from '../providers/fake/source';
@@ -85,7 +84,7 @@ configureAppSession({
 });
 
 const attach = vi.spyOn(getAppSession(), 'attach');
-const renderRoot = () => render(<ToastProvider><AppSessionRoot /></ToastProvider>);
+const renderRoot = () => render(<AppSessionRoot />);
 
 beforeAll(async () => {
   await useProviderStore.getState().load(fakeProvider);

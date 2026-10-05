@@ -67,7 +67,6 @@ vi.mock('../lib/auth/hooks', () => ({
   useAuth: () => ({ isLoaded: authState.isLoaded, isSignedIn: authState.isSignedIn, userId: authState.isSignedIn ? 'u1' : undefined, getToken: async () => 't', error: authState.error }),
 }));
 
-import { ToastProvider } from '../components/Toast';
 import { createVirtualClock } from '../lib/contract/clock';
 import { fakeProvider } from '../providers/fake/provider';
 import { createFakeSource } from '../providers/fake/source';
@@ -111,7 +110,7 @@ describe('useRunState', () => {
 describe('useAppSessionBridges', () => {
   it("hands the session the page's sign-in, analytics and balance refetch", async () => {
     const refetch = vi.fn(async () => {});
-    const { result } = renderHook(() => useAppSessionBridges(refetch), { wrapper: ToastProvider });
+    const { result } = renderHook(() => useAppSessionBridges(refetch));
     expect(result.current.signedIn).toBe(true);
     expect(result.current.userId).toBe('u1');
     trackEvent.mockClear();
@@ -123,14 +122,14 @@ describe('useAppSessionBridges', () => {
 
   it('hands the session a stand-in sign-in when given one', async () => {
     const standIn = { signedIn: true, userId: 'preview', getToken: async () => 'x' };
-    const { result } = renderHook(() => useAppSessionBridges(undefined, standIn), { wrapper: ToastProvider });
+    const { result } = renderHook(() => useAppSessionBridges(undefined, standIn));
     expect(result.current).toBe(standIn);
   });
 
   it('tells the session whether the sign-in has loaded', async () => {
     authState.isLoaded = false;
     try {
-      const { result } = renderHook(() => useAppSessionBridges(), { wrapper: ToastProvider });
+      const { result } = renderHook(() => useAppSessionBridges());
       expect(result.current.loaded).toBe(false);
     } finally {
       authState.isLoaded = true;
@@ -142,12 +141,12 @@ describe('useAppSessionBridges', () => {
       // Better Auth reports a failed session fetch as loaded and signed out, with an error.
       authState.isSignedIn = false;
       authState.error = new Error('Failed to fetch');
-      const failed = renderHook(() => useAppSessionBridges(), { wrapper: ToastProvider });
+      const failed = renderHook(() => useAppSessionBridges());
       expect(failed.result.current).toMatchObject({ signedIn: false, loaded: false });
       failed.unmount();
 
       authState.error = null;
-      const signedOut = renderHook(() => useAppSessionBridges(), { wrapper: ToastProvider });
+      const signedOut = renderHook(() => useAppSessionBridges());
       expect(signedOut.result.current).toMatchObject({ signedIn: false, loaded: true });
       signedOut.unmount();
     } finally {

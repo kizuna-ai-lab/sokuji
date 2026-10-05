@@ -20,7 +20,6 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('../Toast', () => ({ useToast: () => ({ showToast: vi.fn() }) }));
 
 const { copyToClipboard } = vi.hoisted(() => ({ copyToClipboard: vi.fn() }));
 vi.mock('../../utils/conversationExport', async (orig) => ({

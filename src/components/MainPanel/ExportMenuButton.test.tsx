@@ -11,7 +11,6 @@ vi.mock('react-i18next', () => ({
     },
   }),
 }));
-vi.mock('../Toast', () => ({ useToast: () => ({ showToast: vi.fn() }) }));
 vi.mock('../../stores/settingsStore', () => ({
   useAutoSaveOnStop: () => false,
   useSetAutoSaveOnStop: () => vi.fn(),

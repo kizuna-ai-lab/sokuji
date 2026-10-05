@@ -67,7 +67,6 @@ vi.mock('react-i18next', async (importOriginal) => {
 
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
 
-vi.mock('../Toast', () => ({ useToast: () => ({ showToast: vi.fn() }) }));
 
 vi.mock('../../config/analytics', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../config/analytics')>()),

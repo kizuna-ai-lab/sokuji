@@ -32,7 +32,6 @@ vi.mock('../../lib/auth-client', () => ({
     oneTimeToken: { generate: async () => ({ data: null, error: null }) },
   },
 }));
-vi.mock('../Toast', () => ({ useToast: () => ({ showToast: vi.fn() }) }));
 vi.mock('../../stores/settingsStore', () => ({ useSetAuthOverlay: () => vi.fn() }));
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn(), resetUser: vi.fn() }) }));
 vi.mock('../../utils/environment', () => ({

@@ -126,8 +126,6 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
   isElectron: () => env.electron,
 }));
 
-// The export menu's toasts: no ToastProvider in these renders.
-vi.mock('../Toast', () => ({ useToast: () => ({ showToast: vi.fn() }) }));
 
 // A marker: what the panel asks the permission modal to show.
 interface ModalProps { isOpen: boolean; onClose(): void; type: string | null; note?: string | null }
