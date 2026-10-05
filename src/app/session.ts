@@ -20,7 +20,7 @@ import type { OpenSource } from '../lib/session/source';
 import { appSubtitleSession } from '../lib/subtitle/appSession';
 import type { SubtitleSession } from '../lib/subtitle/session';
 import type { AutoSaveNotifier } from '../lib/transcript/autoSave';
-import { usePanelNotesStore } from '../stores/panelNotesStore';
+import { panelNoteWriter, usePanelNotesStore } from '../stores/panelNotesStore';
 import { appProjectionSettings } from '../lib/view/appViewSettings';
 import { createConversationView, type ConversationViewState, type Readable } from '../lib/view/conversationView';
 import { createKaraoke, type KaraokeState } from '../lib/view/karaoke';
@@ -119,9 +119,6 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
     void refetch().catch((error: unknown) => reportWarning('AppSession', `Refreshing the account after the session failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'session:refetch' }));
   };
 
-  // The results of the auto-save are panel notes (spec 2026-10-05 §5): drawn
-  // after the conversation, cleared by Clear and by the next start.
-  const panelNotes: AutoSaveNotifier = { note: (input) => usePanelNotesStore.getState().add(input) };
   const runner: Runner = createRunner({
     clock,
     platform: getEnvironment(),
@@ -145,9 +142,14 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
     punctuationReady: () => punctuation.ready(),
     newSessionId: options.newSessionId ?? (() => crypto.randomUUID()),
     onRunEnded: async (legs) => {
+      // The results of the auto-save are panel notes (spec 2026-10-05 §5): drawn
+      // after the conversation, cleared by Clear and by the next start. The
+      // writer is this run's: a save that outlives the runner's bound answers
+      // after the next run may have started, and that answer is dropped.
+      const notes: AutoSaveNotifier = { note: panelNoteWriter() };
       try {
         // The one auto-save per run (roadmap, plan 1d-3).
-        await autoSaveConversation(legs, runner.conversation.info, panelNotes);
+        await autoSaveConversation(legs, runner.conversation.info, notes);
       } finally {
         refetchQuota();
       }

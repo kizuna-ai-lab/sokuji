@@ -33,6 +33,8 @@ export type PanelNoteInput = Omit<PanelNote, 'id' | 'at'>;
 
 interface PanelNotesState {
   notes: readonly PanelNote[];
+  /** Counts the clears: which conversation the notes are after (see `panelNoteWriter`). */
+  epoch: number;
   /** `at` is for tests; the app stamps `Date.now()`, the clock `useVisibleEntries` reads. */
   add(input: PanelNoteInput, at?: number): void;
   clear(): void;
@@ -43,12 +45,30 @@ let seq = 0;
 export const usePanelNotesStore = create<PanelNotesState>()(
   subscribeWithSelector((set) => ({
     notes: [],
+    epoch: 0,
     add: (input, at = Date.now()) => {
       seq += 1;
       set((state) => ({ notes: [...state.notes, { ...input, id: `${at}-${seq}`, at }] }));
     },
-    clear: () => set({ notes: [] }),
+    // Every clear is a new epoch, also one that removes nothing: a start with
+    // no notes still ends the conversation a pending result was about.
+    clear: () => set((state) => ({ notes: [], epoch: state.epoch + 1 })),
   })),
 );
 
 export const usePanelNotes = () => usePanelNotesStore((s) => s.notes);
+
+/**
+ * A writer bound to the conversation on screen now, for a result that arrives
+ * later than the action that asked for it (the clipboard's answer, a
+ * transcript save that outlives the runner's bound). Take it before awaiting:
+ * what it is handed after a Clear or the next start is dropped, because by
+ * then it would be drawn after another conversation.
+ */
+export function panelNoteWriter(): (input: PanelNoteInput) => void {
+  const { epoch } = usePanelNotesStore.getState();
+  return (input) => {
+    const store = usePanelNotesStore.getState();
+    if (store.epoch === epoch) store.add(input);
+  };
+}

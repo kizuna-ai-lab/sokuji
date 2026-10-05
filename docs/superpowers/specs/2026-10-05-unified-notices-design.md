@@ -267,7 +267,10 @@ conversation's visible entries (the slot the "last end" item used, `MainPanel.ts
 `useVisibleEntries`'s transient rule applies to them too. They also draw in the Electron
 takeover's expanded list and, while the extension overlay runs, under the panel's
 placeholder — never in the compact view, the bands or the exports. They are cleared by Clear and by
-the next start. They are not L1 notices on purpose: the text export, the JSON export and
+the next start, and a result that answers only after that is dropped: the copy and the
+auto-save take their writer (`panelNoteWriter`) before they await, bound to the store's
+epoch, so a clipboard that answers late or a save that outlives the runner's 5 s bound never
+writes after another conversation. They are not L1 notices on purpose: the text export, the JSON export and
 the subtitle bands read L1 only, so nothing has to filter them out, and the contract's
 `Notice` type does not change.
 

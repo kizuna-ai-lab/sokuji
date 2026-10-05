@@ -234,4 +234,19 @@ describe('copy → panel note (spec 2026-10-05 §5)', () => {
     await waitFor(() => expect(usePanelNotesStore.getState().notes).toHaveLength(1));
     expect(usePanelNotesStore.getState().notes[0]).toMatchObject({ severity: 'warning', code: 'export_copy_failed', lifetime: 'transient' });
   });
+
+  // PR #598 review: the clipboard answers later than the click. A Clear or a
+  // new run in between means the result belongs to a conversation that is gone.
+  it('drops the result of a copy that answers after the notes were cleared', async () => {
+    let answer!: (ok: boolean) => void;
+    copyToClipboard.mockReturnValueOnce(new Promise<boolean>((resolve) => { answer = resolve; }));
+    renderMenu();
+    fireEvent.click(copyItem());
+    usePanelNotesStore.getState().clear();
+    await act(async () => {
+      answer(true);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(usePanelNotesStore.getState().notes).toEqual([]);
+  });
 });

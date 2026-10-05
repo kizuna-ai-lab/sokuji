@@ -19,7 +19,7 @@ import {
 import type { DisplayMode } from '../../stores/settingsStore';
 import { modeToToggles, togglesToMode, type ScopeToggles } from './conversationFilter';
 import { copyToClipboard, downloadFile, exportFilename } from '../../utils/conversationExport';
-import { PANEL_NOTE_CODES, usePanelNotesStore } from '../../stores/panelNotesStore';
+import { PANEL_NOTE_CODES, panelNoteWriter } from '../../stores/panelNotesStore';
 import { ChildWindowPopover, useChildPopoverToggle } from '../Subtitle/ChildWindowPopover';
 import { useAutoSaveOnStop, useSetAutoSaveOnStop } from '../../stores/settingsStore';
 import { isElectron } from '../../utils/environment';
@@ -200,11 +200,14 @@ export function ExportMenuButton({ exporter, speakerMode, participantMode, popov
 
   const handleCopy = useCallback(async () => {
     closeMenu();
+    // The writer too is taken before the await: an answer that comes after a
+    // Clear or the next start is about a conversation that is gone.
+    const note = panelNoteWriter();
     // The text is taken before the await, so the copy is the scope as clicked.
     const ok = await copyToClipboard(exporter.text(scope, false));
     // The result is a passing event about the conversation: a transient panel
     // note after it (spec 2026-10-05 §5), not feedback on this button.
-    usePanelNotesStore.getState().add(ok
+    note(ok
       ? { severity: 'info', code: PANEL_NOTE_CODES.exportCopied, message: 'Conversation copied to clipboard', lifetime: 'transient' }
       : { severity: 'warning', code: PANEL_NOTE_CODES.exportCopyFailed, message: 'Failed to copy. Check browser permissions.', lifetime: 'transient' });
   }, [exporter, scope, closeMenu]);
