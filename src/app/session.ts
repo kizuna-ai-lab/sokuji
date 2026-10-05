@@ -20,6 +20,7 @@ import type { OpenSource } from '../lib/session/source';
 import { appSubtitleSession } from '../lib/subtitle/appSession';
 import type { SubtitleSession } from '../lib/subtitle/session';
 import type { AutoSaveNotifier } from '../lib/transcript/autoSave';
+import { panelNoteWriter, usePanelNotesStore } from '../stores/panelNotesStore';
 import { appProjectionSettings } from '../lib/view/appViewSettings';
 import { createConversationView, type ConversationViewState, type Readable } from '../lib/view/conversationView';
 import { createKaraoke, type KaraokeState } from '../lib/view/karaoke';
@@ -37,7 +38,6 @@ import { appStartInputs, createFrameLog, decorateSessionAnalytics, teeFrames, ty
 export interface AppBridges {
   auth: AuthContext;
   track: AnalyticsPort['track'];
-  notify: AutoSaveNotifier;
   /** The account's balance, refetched after a run and after a start the service refused on the wallet; absent where there is none (the preview). */
   refetchQuota?(): Promise<void>;
 }
@@ -99,7 +99,6 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
   const bridges: AppBridges = {
     auth: { signedIn: false, getToken: async () => null },
     track: () => {},
-    notify: { showToast: () => {} },
   };
   /** Heard when the sign-in or the account flips (F1): the readiness driver forgets managed providers' answers. */
   const signInWatchers = new Set<() => void>();
@@ -143,9 +142,14 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
     punctuationReady: () => punctuation.ready(),
     newSessionId: options.newSessionId ?? (() => crypto.randomUUID()),
     onRunEnded: async (legs) => {
+      // The results of the auto-save are panel notes (spec 2026-10-05 §5): drawn
+      // after the conversation, cleared by Clear and by the next start. The
+      // writer is this run's: a save that outlives the runner's bound answers
+      // after the next run may have started, and that answer is dropped.
+      const notes: AutoSaveNotifier = { note: panelNoteWriter() };
       try {
         // The one auto-save per run (roadmap, plan 1d-3).
-        await autoSaveConversation(legs, runner.conversation.info, bridges.notify);
+        await autoSaveConversation(legs, runner.conversation.info, notes);
       } finally {
         refetchQuota();
       }
@@ -268,6 +272,16 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
         press: () => runner.press(),
         release: () => runner.release(),
       }));
+      // A new run starts a new record: the previous run's panel notes go with the
+      // conversation they belonged to (spec 2026-10-05 §5). On every start, a
+      // refused one too: the conversation is replaced only once a start gets past
+      // its refusals, so the reset below misses those.
+      offs.push(runner.state.subscribe((now, before) => {
+        if (now.phase === 'starting' && before.phase === 'idle') usePanelNotesStore.getState().clear();
+      }));
+      // The conversation emptied — Clear from any surface (the subtitle bar's
+      // reaches the runner, not MainPanel's handler) — and the notes go with it.
+      offs.push(runner.conversation.onReset(() => usePanelNotesStore.getState().clear()));
       // A source that ended the run (a device unplugged, a switch that failed): today's `audio_error` (ruling 10).
       offs.push(runner.state.subscribe((now, before) => {
         if (now.phase !== 'idle' || before.phase === 'idle' || now.lastEnd?.reason !== 'source-ended' || !now.lastEnd.notice) return;

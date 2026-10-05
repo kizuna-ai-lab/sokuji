@@ -11,16 +11,14 @@ import { getAppSession, type AppSession, type LoadedAudio } from '../../app/sess
 import { useRunState } from '../../app/useRun';
 import { isDevelopment } from '../../config/analytics';
 import { useAnalytics } from '../../lib/analytics';
-import { LOOPBACK_DENIED } from '../../lib/audio/capture/systemAudio';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause, reportError, reportWarning } from '../../lib/diagnostics/report';
 import { participantSpeechHeard } from '../../lib/modern-audio/participantSource';
 import { NO_MICROPHONE } from '../../lib/session/shape';
 import type { RunEnd, RunState } from '../../lib/session/types';
 import { displayItems, type DisplayItem, type NoticeEntry } from '../../lib/view/filter';
-import { lastEndItem } from '../../lib/view/lastEnd';
-import { noticeText } from '../../lib/view/noticeText';
-import { settingsTargetForCode } from '../../lib/view/noticeTargets';
+import { actionLabel, type NoticeActionSpec } from '../../lib/view/noticeActions';
+import { isPanelNoteId, noticeActionSpec, panelNoteEntries } from '../../lib/view/panelNotes';
 import { getProvider } from '../../providers/registry';
 import {
   useIsMicMuted,
@@ -32,27 +30,30 @@ import {
 } from '../../stores/audioStore';
 import { useCleanupAudioSystemListeners, useInitAudioSystemListeners } from '../../stores/audioSystemStore';
 import { useConversationDisplayStore } from '../../stores/conversationDisplayStore';
+import { usePanelNotes, usePanelNotesStore } from '../../stores/panelNotesStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import {
   useKeepReplayAudio,
   useNavigateToSettings,
   useParticipantDisplayMode,
+  useSetAccountPopoverRequested,
+  useSetAuthOverlay,
   useSpeakerDisplayMode,
   useSubtitleModeActive,
   useUIMode,
 } from '../../stores/settingsStore';
+import { useSetSubtitleEntryHint } from '../../stores/subtitleStore';
 import { useCleanupUpdateListeners, useInitUpdateListeners } from '../../stores/updateStore';
-import { getEnvironment, isExtension } from '../../utils/environment';
-import AudioSystemBanner from '../AudioSystemBanner/AudioSystemBanner';
+import { getEnvironment, isElectron, isExtension } from '../../utils/environment';
 import { ConversationList, type NoticeAction } from '../Conversation/ConversationList';
+import { SystemRow } from '../Conversation/SystemRow';
 import { useConversationExporter } from '../Conversation/useConversationExporter';
 import { useReadable } from '../Conversation/useReadable';
 import { useVisibleEntries } from '../Conversation/useVisibleEntries';
-import EchoNotice from '../EchoNotice/EchoNotice';
 import { echoSource, useEchoNotice } from '../EchoNotice/useEchoNotice';
 import WarningModal from '../Settings/shared/WarningModal';
-import UpdateBanner from '../UpdateBanner/UpdateBanner';
+import { Banners } from '../Banner/useBanners';
 import UpdateDialog from '../UpdateDialog/UpdateDialog';
 import ModeDevicePopover from './ModeDevicePopover';
 import { PanelFooter } from './panel/PanelFooter';
@@ -63,6 +64,8 @@ import TypedText from './panel/TypedText';
 import { usePermissionWarning } from './panel/usePermissionWarning';
 import { usePushToTalk } from './panel/usePushToTalk';
 import { InputWaveforms, OutputWaveform } from './panel/Waveforms';
+import { StatusLine } from './StatusLine';
+import { useStatusLine } from './useStatusLine';
 import './MainPanel.scss';
 
 /**
@@ -155,6 +158,9 @@ export default function MainPanel() {
   const participantMode = useParticipantDisplayMode();
   const keepReplayAudio = useKeepReplayAudio();
   const navigateToSettings = useNavigateToSettings();
+  const setAccountPopoverRequested = useSetAccountPopoverRequested();
+  const setAuthOverlay = useSetAuthOverlay();
+  const notes = usePanelNotes();
   const subtitleModeActive = useSubtitleModeActive();
   const participantSpeech = useRoutingStore((s) => s.participantSpeech);
   const mode = useMode();
@@ -166,24 +172,22 @@ export default function MainPanel() {
   const providerSettings = useProviderStore((s) => (s.selected ? s.entries[s.selected]?.settings : undefined));
   const display = useConversationDisplayStore();
 
-  // The conversation: the view's entries through the display filter, reusing unchanged lines (ruling 14), then why the last start did not happen.
-  // A transient notice (a microphone switch) leaves the panel once its time is up; the export keeps it.
-  const shown = useVisibleEntries(viewState.entries);
+  // The conversation, then the panel notes after it (spec 2026-10-05 §5), through the display filter,
+  // reusing unchanged lines (ruling 14).
+  // A transient notice or note leaves the panel once its time is up; the export keeps the notices.
+  const entries = useMemo(() => (notes.length === 0 ? viewState.entries : [...viewState.entries, ...panelNoteEntries(notes)]), [viewState.entries, notes]);
+  const shown = useVisibleEntries(entries);
+  const takeover = subtitleModeActive && isExtension();
   const previous = useRef<readonly DisplayItem[]>([]);
   const drawn = useMemo(() => {
     const next = displayItems(shown, { speaker: speakerMode, participant: participantMode }, previous.current);
     previous.current = next;
     return next;
   }, [shown, speakerMode, participantMode]);
-  // Clear dismisses the idle line too. The end stays on the runner, which the
+  // Clear dismisses the status line's last-end entry too. The end stays on the runner, which the
   // subtitle surfaces read, so the panel keeps the end it cleared, by
   // reference: a later end is another object and draws again.
   const [dismissedEnd, setDismissedEnd] = useState<RunEnd | null>(null);
-  const lastEnd = useMemo(
-    () => (run.phase === 'idle' && run.lastEnd !== undefined && run.lastEnd === dismissedEnd ? null : lastEndItem(run)),
-    [run, dismissedEnd],
-  );
-  const items = useMemo(() => (lastEnd ? [...drawn, lastEnd] : drawn), [drawn, lastEnd]);
   const segments = useMemo(() => new Map(viewState.legs.flatMap((leg) => leg.segments.map((s) => [s.id, s] as const))), [viewState.legs]);
   // No participant replay slot while the whole-system rule mutes it (ruling
   // 7, completed): the switch, the run's shape and the route all agree.
@@ -199,23 +203,33 @@ export default function MainPanel() {
 
   const permission = usePermissionWarning(run, viewState.legs);
   const openWarning = permission.open;
-  // The store action and `open` are stable for the panel's life; `t` is not — a language bundle
-  // arriving swaps it (`i18n`'s `bindI18nStore: 'added'`). ConversationList's per-notice cache keys
-  // off this callback's identity, so a bundle arriving mid-session invalidates and rebuilds it
-  // rather than serving stale text (ruling 14). That cache is never pruned: one entry per notice
-  // drawn, for the panel's life — a page's worth. An id always names the same action: a leg's
-  // notice ids are unique per run, and an end's names its code (`lastEndItem`).
+  // One table of actions (spec 2026-10-05 §6); the panel owns the handlers.
+  const runNoticeAction = useCallback((spec: NoticeActionSpec) => {
+    switch (spec.kind) {
+      case 'settings': navigateToSettings(spec.target); return;
+      case 'top-up': setAccountPopoverRequested(true); return;
+      case 'sign-in': setAuthOverlay('sign-in'); return;
+      case 'system-settings': openWarning(spec.pane === 'screen-recording' ? 'screen-recording-denied' : 'audio-capture-denied'); return;
+      case 'show-in-folder': if (isElectron()) void window.electron.invoke('open-directory', spec.dir); return;
+      default: { const _exhaustive: never = spec; return _exhaustive; }
+    }
+  }, [navigateToSettings, setAccountPopoverRequested, setAuthOverlay, openWarning]);
+  // The store actions and `open` are stable for the panel's life; `t` and the notes are not — a
+  // language bundle arriving swaps `t` (`i18n`'s `bindI18nStore: 'added'`), and a note added or
+  // cleared swaps `notes`. ConversationList's per-notice cache keys off this callback's identity,
+  // so either change invalidates and rebuilds it rather than serving stale text (ruling 14).
+  // Between rebuilds the cache is never pruned: one entry per notice drawn — a page's worth. An id
+  // always names the same action: a leg's notice ids are unique per run, a note's per page.
+  // A panel note carries its own action; an L1 notice's follows its code.
   const noticeAction = useCallback((notice: NoticeEntry): NoticeAction | null => {
-    if (notice.code === LOOPBACK_DENIED) return { label: t('audioPanel.openSystemSettings', 'Open System Settings'), run: () => openWarning('screen-recording-denied') };
-    const target = settingsTargetForCode(notice.code);
-    return target ? { label: t('settings.title', 'Settings'), run: () => navigateToSettings(target) } : null;
-  }, [t, navigateToSettings, openWarning]);
+    const spec = noticeActionSpec(notice, notes);
+    if (!spec) return null;
+    const { key, fallback } = actionLabel(spec);
+    return { label: t(key, fallback), run: () => runNoticeAction(spec) };
+  }, [t, notes, runNoticeAction]);
 
   // The start gate both surfaces read (the subtitle session), in words.
   const idle = subtitle.idle;
-  const startBlockMessage = run.phase === 'idle' && !subtitle.canStart && idle.kind === 'unready'
-    ? noticeText(t, { code: idle.code, params: idle.params, message: idle.message })
-    : undefined;
   const missingDevice = idle.kind === 'unready' && idle.code === NO_MICROPHONE ? 'speaker' as const : null;
 
   const speakerLive = run.phase === 'running' && run.legs.speaker === 'live';
@@ -239,14 +253,24 @@ export default function MainPanel() {
       trackEvent('echo_detected', { cause: state.cause, lag_ms: Math.round(state.lagMs) });
     },
   );
+  const setEntryHint = useSetSubtitleEntryHint();
+  const status = useStatusLine({ run, idle, canStart: subtitle.canStart, dismissedEnd, echo });
+  const onDismissStatus = useCallback((what: 'echo' | 'subtitle-entry') => {
+    if (what === 'echo') dismissEcho(); else setEntryHint(null);
+  }, [dismissEcho, setEntryHint]);
   const testTone = useTestTone(audio);   // dev only: { playing, toggle } | undefined
   useUpdateAndAudioSystemListeners();    // today's two listener inits, pre-switch MainPanel.tsx:1111-1125
 
-  const takeover = subtitleModeActive && isExtension();
-  // The idle line counts: after a failed start it is all there is, and Clear takes it away.
-  const hasConversation = viewState.entries.length > 0 || lastEnd !== null;
+  // What the list draws counts (`shown`: the conversation and the notes after the transient rule, before a side filter, which can hide rows the user brings back), so an expired note never leaves Clear on over an empty list; a failed start's line counts too: after one it is all there is, and Clear takes it away.
+  const hasConversation = shown.length > 0 || (status?.key.startsWith('last-end:') ?? false);
+  // The extension overlay draws L1 only: while it runs, the notes show under the panel's placeholder (Ruling 8).
+  const overlayNotes = useMemo(
+    () => (takeover ? shown.filter((e): e is NoticeEntry => e.kind === 'notice' && isPanelNoteId(e.id)) : []),
+    [takeover, shown],
+  );
   const onClear = useCallback(() => {
     runner.clear();
+    usePanelNotesStore.getState().clear();
     const now = runner.state.getState();
     if (now.phase === 'idle' && now.lastEnd) setDismissedEnd(now.lastEnd);
   }, [runner]);
@@ -255,7 +279,7 @@ export default function MainPanel() {
   const footer = (site: 'basic' | 'advanced') => (
     <PanelFooter
       site={site} run={run} mode={mode} missingDevice={missingDevice}
-      canStart={subtitle.canStart} startBlockMessage={startBlockMessage}
+      canStart={subtitle.canStart}
       holdToTalk={speakerLive && subtitle.holdToTalk} held={ptt.held} micMuted={micMuted}
       pair={subtitle.pair} duration={duration}
       // Ruling 11: `session.start` is the one start every surface calls — never a start while the gate is shut, the button is off then; this also holds for a click that beat its render (as the takeover's Start).
@@ -270,8 +294,7 @@ export default function MainPanel() {
 
   return (
     <div className="main-panel-wrapper" style={{ '--conversation-bg-color': display.bgColor, '--conversation-source-color': display.sourceTextColor, '--conversation-translation-color': display.translationTextColor } as CSSProperties}>
-      <UpdateBanner />
-      <AudioSystemBanner />
+      <Banners />
       <UpdateDialog />
       <div className="main-panel">
         {(!takeover || run.phase !== 'idle' || hasConversation) && (
@@ -279,11 +302,18 @@ export default function MainPanel() {
         )}
         {takeover ? (
           <div className="conversation-display">
-            <div className="empty-state"><Captions size={32} /><p>{t('mainPanel.subtitleTakeover', 'Translations are showing in the subtitle overlay')}</p></div>
+            <div className="empty-state">
+              <Captions size={32} /><p>{t('mainPanel.subtitleTakeover', 'Translations are showing in the subtitle overlay')}</p>
+              {overlayNotes.length > 0 && (
+                <div className="conversation-list">
+                  {overlayNotes.map((note) => <SystemRow key={note.id} notice={note} action={noticeAction(note)} />)}
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <ConversationList
-            items={items} lit={lit} replaying={replaying} replayLegs={replayLegs}
+            items={drawn} lit={lit} replaying={replaying} replayLegs={replayLegs}
             canReplay={(id) => { const s = segments.get(id); return !!s?.final && s.speech.some((e) => e.pcm.length > 0); }}
             onReplay={(leg, id) => {
               if (!audio) return;
@@ -298,8 +328,8 @@ export default function MainPanel() {
           />
         )}
         {canSendText && <TypedText onSend={(text) => runner.sendText(text)} />}
+        {status && <StatusLine entry={status} onAction={runNoticeAction} onDismiss={onDismissStatus} />}
         {footer(uiMode === 'advanced' ? 'advanced' : 'basic')}
-        <EchoNotice state={echo} onDismiss={dismissEcho} />
       </div>
       <WarningModal
         isOpen={permission.warning !== null}

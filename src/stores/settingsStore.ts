@@ -90,6 +90,7 @@ export interface CommonSettings {
 
 /** The authentication forms that can sit over the app. */
 export type AuthOverlayKind = 'sign-in' | 'sign-up' | 'forgot-password' | null;
+export type AuthOverlayReason = 'session_expired';
 
 // ==================== Default Values ====================
 
@@ -201,6 +202,8 @@ export interface SettingsStore {
    *  Home, so reaching for the account unmounted the whole tree — and any live
    *  translation session with it — before the user had typed anything. */
   authOverlay: AuthOverlayKind;
+  /** Why the sign-in form opened, when the form should say so (spec 2026-10-05 §5): the session expired. Null for any other form or none. */
+  authOverlayReason: AuthOverlayReason | null;
   /** Ephemeral: fired once by an engine chip (Task 10) to deep-link into the
    *  engine surface with a given slot pre-expanded. Never persisted — the
    *  consuming surface (SimpleSettings, ProviderSpecificSettings) reads it,
@@ -308,7 +311,7 @@ export interface SettingsStore {
   navigateToSettings: (target: string | null) => void;
   setEngineSlotTarget: (t: { dir: string; stage: Stage } | null) => void;
   setAccountPopoverRequested: (next: boolean) => void;
-  setAuthOverlay: (next: AuthOverlayKind) => void;
+  setAuthOverlay: (next: AuthOverlayKind, reason?: AuthOverlayReason) => void;
 }
 
 // ==================== Helper Functions ====================
@@ -394,6 +397,7 @@ const useSettingsStore = create<SettingsStore>()(
     engineSlotTarget: null,
     accountPopoverRequested: false,
     authOverlay: null,
+    authOverlayReason: null,
 
     settingsLoaded: false,
     subtitleModeActive: false,
@@ -772,8 +776,8 @@ const useSettingsStore = create<SettingsStore>()(
       set({engineSlotTarget: t});
     },
 
-    setAuthOverlay: (next: AuthOverlayKind) => {
-      set({authOverlay: next});
+    setAuthOverlay: (next: AuthOverlayKind, reason?: AuthOverlayReason) => {
+      set({authOverlay: next, authOverlayReason: next === 'sign-in' ? reason ?? null : null});
     },
 
     setAccountPopoverRequested: (next: boolean) => {
@@ -826,6 +830,8 @@ export const useAuthOverlay = () =>
   useSettingsStore((state: SettingsStore) => state.authOverlay);
 export const useSetAuthOverlay = () =>
   useSettingsStore((state: SettingsStore) => state.setAuthOverlay);
+export const useAuthOverlayReason = () =>
+  useSettingsStore((state: SettingsStore) => state.authOverlayReason);
 
 // Settings loading state
 export const useSettingsLoaded = () => useSettingsStore((state) => state.settingsLoaded);

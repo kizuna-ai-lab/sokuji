@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, waitFor } from '@testing-library/react';
 
 // Kept from before the old audio service was deleted: ServiceFactory used to
 // import ModernBrowserAudioService -> ModernAudioRecorder -> a worklet
@@ -78,6 +78,9 @@ vi.mock('./SubtitleView', () => ({
   SubtitleView: (props: Record<string, unknown>) => { captured.push(props); return null; },
 }));
 
+// The one case that draws the real view checks its list; the bar's export popover would open a child window.
+vi.mock('./SubtitleBar', () => ({ default: () => null }));
+
 const { exit, navigate, order } = vi.hoisted(() => {
   const order: string[] = [];
   const exit = vi.fn(async () => { order.push('exit'); });
@@ -93,7 +96,12 @@ import { createVirtualClock } from '../../lib/contract/clock';
 import { fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource } from '../../providers/fake/source';
 import { useProviderStore } from '../../stores/providerStore';
+import useAudioStore from '../../stores/audioStore';
+import { usePanelNotesStore } from '../../stores/panelNotesStore';
+import { useSubtitleStore } from '../../stores/subtitleStore';
 import { configureAppSession, getAppSession } from '../../app/session';
+import type { NoticeEntry } from '../../lib/view/filter';
+import type { NoticeAction } from '../Conversation/SystemRow';
 import type { SubtitleControls } from './SubtitleView';
 import { SubtitleTakeover } from './SubtitleTakeover';
 
@@ -188,5 +196,79 @@ describe('SubtitleTakeover', () => {
     render(<SubtitleTakeover />);
     act(() => { lastControls().openSettings!('provider'); });
     expect(order).toEqual(['exit', 'navigate:provider']);
+  });
+
+  // Spec 2026-10-05 §7: the takeover hands SubtitleView the same status line
+  // MainPanel draws; its dismiss clears the entry hint the store holds.
+  it("hands SubtitleView a status line that draws the subtitle entry hint while running and dismisses it", async () => {
+    // A selected input, or the line is the microphone wait, which outranks the hint.
+    useAudioStore.setState({ selectedInputDevice: { deviceId: 'mic', label: 'Mic', isVirtual: false } as never });
+    render(<SubtitleTakeover />);
+    const line = render(<>{captured[captured.length - 1].statusLine as React.ReactNode}</>);
+    await act(async () => { await getAppSession().runner.start(); });
+    act(() => { useSubtitleStore.getState().setEntryHint('refresh'); });
+    await waitFor(() => expect(line.container.querySelector('[data-status="subtitle-entry"]')).not.toBeNull());
+    act(() => { fireEvent.click(line.container.querySelector('.status-line button')!); });
+    expect(useSubtitleStore.getState().entryHint).toBeNull();
+    useAudioStore.setState({ selectedInputDevice: null });
+    await act(() => getAppSession().runner.stop());
+    await getAppSession().runner.settled();
+  });
+
+  // Ruling 8 (final review C1): the panel notes are drawn wherever a
+  // conversation list is — the takeover's expanded list — and never in the
+  // compact bands. The real view draws what the takeover hands it.
+  it('draws a panel note as a system row in the expanded list, and not in the compact bands', async () => {
+    const { SubtitleView: RealView } = await vi.importActual<typeof import('./SubtitleView')>('./SubtitleView');
+    const props = () => captured[captured.length - 1] as unknown as Parameters<typeof RealView>[0];
+    render(<SubtitleTakeover />);
+    await act(async () => { await getAppSession().runner.start(); });
+    act(() => { usePanelNotesStore.getState().add({ severity: 'info', code: 'export_copied', message: 'copied' }); });
+    try {
+      act(() => { useSubtitleStore.setState({ compactMode: false }); });
+      const expanded = render(<RealView {...props()} />);
+      expect(expanded.container.querySelector('.subtitle-stream.expanded .sys-row--info')).not.toBeNull();
+      expanded.unmount();
+      act(() => { useSubtitleStore.setState({ compactMode: true }); });
+      const compact = render(<RealView {...props()} />);
+      expect(compact.container.querySelector('.subtitle-stream.compact')).not.toBeNull();
+      expect(compact.container.querySelector('.sys-row')).toBeNull();
+      compact.unmount();
+    } finally {
+      act(() => { useSubtitleStore.setState({ compactMode: false }); usePanelNotesStore.getState().clear(); });
+      await act(() => getAppSession().runner.stop());
+      await getAppSession().runner.settled();
+    }
+  });
+
+  // A note keeps its own action (Show in folder, over the Electron bridge); an
+  // L1 notice gets its code's Settings, which leaves subtitle mode first. The
+  // other kinds belong to the title bar, which the takeover hides.
+  it("gives the list's rows the actions this window can honour", () => {
+    const invoke = vi.fn();
+    const electron = window as unknown as { electron?: unknown; electronAPI?: unknown };
+    try {
+      act(() => { usePanelNotesStore.getState().add({ severity: 'info', code: 'autosave_saved', message: 'saved', action: { kind: 'show-in-folder', dir: '/d' } }); });
+      render(<SubtitleTakeover />);
+      // After the render, as MainPanel's case: the click needs only `invoke`, and `isElectron()` reads `electronAPI`.
+      electron.electronAPI = {};
+      electron.electron = { invoke };
+      const noticeAction = captured[captured.length - 1].noticeAction as (n: NoticeEntry) => NoticeAction | null;
+      const note = (captured[captured.length - 1].model as { notes: NoticeEntry[] }).notes[0];
+      const saved = noticeAction(note);
+      expect(saved?.label).toBe('mainPanel.export.autoSave.showInFolder');
+      saved!.run();
+      expect(invoke).toHaveBeenCalledWith('open-directory', '/d');
+      const l1 = (code: string): NoticeEntry => ({ kind: 'notice', id: `n:${code}`, leg: 'speaker', severity: 'warning', message: code, code, at: 0 });
+      const voice = noticeAction(l1('voice_fallback'));
+      expect(voice?.label).toBe('settings.title');
+      act(() => { voice!.run(); });
+      expect(order).toEqual(['exit', 'navigate:provider']);
+      expect(noticeAction(l1('insufficient_balance'))).toBeNull();
+    } finally {
+      delete electron.electron;
+      delete electron.electronAPI;
+      act(() => { usePanelNotesStore.getState().clear(); });
+    }
   });
 });

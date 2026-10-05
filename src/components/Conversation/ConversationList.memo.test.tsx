@@ -5,7 +5,7 @@ import type { LegName } from '../../lib/conversation/types';
 import { ConversationList, type ConversationListProps, type NoticeAction } from './ConversationList';
 
 // A karaoke tick or a replay-state change should only re-render the rows and
-// notices whose own props actually changed — RowBubble and NoticeBubble are
+// notices whose own props actually changed — RowBubble and SystemRow are
 // memoized, so counting `useTranslation()` calls (both call it) counts renders.
 const tally = vi.hoisted(() => ({ n: 0 }));
 

@@ -16,8 +16,6 @@ export interface PanelFooterProps {
   /** Today's amber segment: 'speaker' when the speaker's leg has no microphone. */
   missingDevice: 'speaker' | null;
   canStart: boolean;
-  /** Why Start is off, in words; undefined when it is not. */
-  startBlockMessage?: string;
   /** A run is live under manual turns with the speaker leg live: the hold button shows. */
   holdToTalk: boolean;
   held: boolean;
@@ -44,7 +42,9 @@ export interface PanelFooterProps {
  * never a disabled Start. The push-to-talk "Release" state, the mode
  * popover and the language-pair navigation are the caller's (Task 12) —
  * this component only renders what it is handed. And a leased run's
- * countdown beside the session clock (Stage 2 Kizuna Soniox).
+ * countdown beside the session clock (Stage 2 Kizuna Soniox). Why Start is
+ * off, and a reconnecting leg's words, are the status line's (spec 2026-10-05
+ * §3), not this footer's: the button carries no reason, the dot only pulses.
  */
 export function PanelFooter(props: PanelFooterProps) {
   const { t } = useTranslation();
@@ -55,7 +55,6 @@ export function PanelFooter(props: PanelFooterProps) {
     mode,
     missingDevice,
     canStart,
-    startBlockMessage,
     holdToTalk,
     held,
     micMuted,
@@ -87,11 +86,6 @@ export function PanelFooter(props: PanelFooterProps) {
     return (
       <div className="control-footer basic">
         <span className={statusDotClass} />
-        {isReconnecting && (
-          <span className="reconnecting-label">
-            {t('connectionStatus.reconnecting', 'Reconnecting...')}
-          </span>
-        )}
         <ModePicker
           mode={mode}
           locked={!isIdle}
@@ -119,7 +113,7 @@ export function PanelFooter(props: PanelFooterProps) {
             className={`main-action-btn ${isRunningOrStopping ? 'stop' : 'start'}`}
             onClick={handleActionClick}
             disabled={actionDisabled}
-            title={isStarting ? t('mainPanel.clickToCancel', 'Click to cancel') : isIdle ? startBlockMessage : undefined}
+            title={isStarting ? t('mainPanel.clickToCancel', 'Click to cancel') : undefined}
           >
             {isStarting ? (
               <>
@@ -210,9 +204,6 @@ export function PanelFooter(props: PanelFooterProps) {
             <>
               <Zap size={14} />
               <span>{t('mainPanel.startSession')}</span>
-              {startBlockMessage && (
-                <span className="tooltip">{startBlockMessage}</span>
-              )}
             </>
           )}
         </button>

@@ -136,6 +136,28 @@ $toggle-bg-on:    $color-primary;
   outline-offset: $focus-ring-offset;
 }
 
+// Centre a line of text by the font's own metrics, not by its line box. A line
+// box follows the first font's ascent and descent, and the ink of a CJK glyph
+// does not sit in its middle: at 12px it was 0.6–0.8px high in a box with a
+// set line-height and up to 1px low in one without. Trimming the box to the
+// cap height and the baseline, and giving the trimmed height back as padding,
+// keeps the element's height and puts capitals exactly on the axis and CJK
+// within half a pixel, on Linux and on macOS alike (measured 2026-10-05; a
+// fixed 1px that centred one platform pushed the other off). `$pad` is the
+// element's own block padding, each side. Chromium 133+; elsewhere the element
+// keeps its normal box. The element must hold the line itself: text-box does
+// not reach bare text inside a flex container.
+@mixin cap-centred($pad: 0px) {
+  @supports (text-box: trim-both cap alphabetic) {
+    text-box: trim-both cap alphabetic;
+    @if $pad == 0px {
+      padding-block: calc((1lh - 1cap) / 2);
+    } @else {
+      padding-block: calc((1lh - 1cap) / 2 + #{$pad});
+    }
+  }
+}
+
 // --- Selection state (mutually-exclusive sets) ---------------
 // green = the selected item. Form is fixed per control archetype:
 //   tabs        → underline

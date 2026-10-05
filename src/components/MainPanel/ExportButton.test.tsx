@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-library/react';
 import type { DisplayMode } from '../../stores/settingsStore';
 import type { Exporter } from '../../lib/export/exporter';
 import { ExportMenuButton } from './ExportButton';
+import { usePanelNotesStore } from '../../stores/panelNotesStore';
 
 // i18n: return the default string passed to t(key, default), with {{x}}
 // interpolation applied so aria-labels built from the toolbar's own words
@@ -19,7 +20,12 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('../Toast', () => ({ useToast: () => ({ showToast: vi.fn() }) }));
+
+const { copyToClipboard } = vi.hoisted(() => ({ copyToClipboard: vi.fn() }));
+vi.mock('../../utils/conversationExport', async (orig) => ({
+  ...(await orig<Record<string, unknown>>()),
+  copyToClipboard,
+}));
 
 let autoSaveOn = false;
 const setAutoSaveOnStop = vi.fn(async (v: boolean) => { autoSaveOn = v; });
@@ -205,5 +211,42 @@ describe('ExportMenuButton auto-save row', () => {
     electronEnv = false;
     renderMenu();
     expect(autoSaveRow().getAttribute('title')).toContain('side panel');
+  });
+});
+
+describe('copy → panel note (spec 2026-10-05 §5)', () => {
+  beforeEach(() => { usePanelNotesStore.setState({ notes: [] }); });
+
+  const copyItem = () => screen.getByText(/mainPanel\.export\.copyToClipboard|Copy to clipboard/);
+
+  it('leaves a transient info note when the copy succeeds', async () => {
+    copyToClipboard.mockResolvedValueOnce(true);
+    renderMenu();
+    fireEvent.click(copyItem());
+    await waitFor(() => expect(usePanelNotesStore.getState().notes).toHaveLength(1));
+    expect(usePanelNotesStore.getState().notes[0]).toMatchObject({ severity: 'info', code: 'export_copied', lifetime: 'transient' });
+  });
+
+  it('leaves a transient warning note when the copy fails', async () => {
+    copyToClipboard.mockResolvedValueOnce(false);
+    renderMenu();
+    fireEvent.click(copyItem());
+    await waitFor(() => expect(usePanelNotesStore.getState().notes).toHaveLength(1));
+    expect(usePanelNotesStore.getState().notes[0]).toMatchObject({ severity: 'warning', code: 'export_copy_failed', lifetime: 'transient' });
+  });
+
+  // PR #598 review: the clipboard answers later than the click. A Clear or a
+  // new run in between means the result belongs to a conversation that is gone.
+  it('drops the result of a copy that answers after the notes were cleared', async () => {
+    let answer!: (ok: boolean) => void;
+    copyToClipboard.mockReturnValueOnce(new Promise<boolean>((resolve) => { answer = resolve; }));
+    renderMenu();
+    fireEvent.click(copyItem());
+    usePanelNotesStore.getState().clear();
+    await act(async () => {
+      answer(true);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(usePanelNotesStore.getState().notes).toEqual([]);
   });
 });

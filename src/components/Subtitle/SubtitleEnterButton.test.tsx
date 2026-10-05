@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
 import SubtitleEnterButton from './SubtitleEnterButton';
+import { useSubtitleStore } from '../../stores/subtitleStore';
+import { CONTENT_SCRIPT_UNAVAILABLE } from './surfaces/ExtensionContentScriptSubtitleSurface';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (_k: string, d?: string) => d ?? _k }),
@@ -20,7 +22,14 @@ vi.mock('../../stores/settingsStore', () => ({
   useSubtitleModeActive: () => subtitleActive,
 }));
 
-vi.mock('../Toast', () => ({ useToast: () => ({ showToast: vi.fn() }) }));
+vi.mock('../../services/ServiceFactory', () => ({
+  ServiceFactory: {
+    getSettingsService: () => ({
+      getSetting: async (_k: string, d: unknown) => d,
+      setSetting: async () => ({ success: true }),
+    }),
+  },
+}));
 
 let electron = true;
 vi.mock('../../utils/environment', () => ({
@@ -34,6 +43,7 @@ beforeEach(() => {
   phase = 'idle';
   subtitleActive = false;
   electron = true;
+  useSubtitleStore.setState({ entryHint: null });
 });
 
 describe('SubtitleEnterButton on Electron', () => {
@@ -78,5 +88,31 @@ describe('SubtitleEnterButton on the extension', () => {
     phase = p;
     render(<SubtitleEnterButton />);
     expect(screen.getByRole('button')).toBeDisabled();
+  });
+});
+
+describe('SubtitleEnterButton refresh hint', () => {
+  it('sets the refresh hint when the content script is unavailable', async () => {
+    enterSubtitleMode.mockRejectedValueOnce(
+      Object.assign(new Error('no receiver'), { code: CONTENT_SCRIPT_UNAVAILABLE }),
+    );
+    render(<SubtitleEnterButton />);
+    fireEvent.click(screen.getByRole('button'));
+    await waitFor(() => expect(useSubtitleStore.getState().entryHint).toBe('refresh'));
+  });
+
+  it('clears the hint after a successful entry', async () => {
+    useSubtitleStore.setState({ entryHint: 'refresh' });
+    render(<SubtitleEnterButton />);
+    fireEvent.click(screen.getByRole('button'));
+    await waitFor(() => expect(useSubtitleStore.getState().entryHint).toBeNull());
+  });
+
+  it('leaves the hint alone on an unrelated failure', async () => {
+    enterSubtitleMode.mockRejectedValueOnce(new Error('other'));
+    render(<SubtitleEnterButton />);
+    fireEvent.click(screen.getByRole('button'));
+    await waitFor(() => expect(enterSubtitleMode).toHaveBeenCalled());
+    expect(useSubtitleStore.getState().entryHint).toBeNull();
   });
 });

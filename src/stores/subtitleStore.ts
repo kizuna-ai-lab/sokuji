@@ -34,6 +34,8 @@ interface SubtitleState {
   // Subtitle-local display-mode filters — INDEPENDENT of MainPanel's copies.
   speakerDisplayMode: DisplayMode;
   participantDisplayMode: DisplayMode;
+  /** The extension's content script was missing on the last attempt to enter subtitle mode (spec 2026-10-05 §3, priority 4). In memory only; cleared by the next successful entry or by the user. */
+  entryHint: 'refresh' | null;
 
   // Actions (all async because persistence is async — matches existing pattern in settingsStore)
   setFontSize: (n: number) => Promise<void>;
@@ -48,6 +50,7 @@ interface SubtitleState {
   saveWindowBounds: (b: SubtitleWindowBounds) => Promise<void>;
   setSpeakerDisplayMode: (m: DisplayMode) => Promise<void>;
   setParticipantDisplayMode: (m: DisplayMode) => Promise<void>;
+  setEntryHint: (hint: 'refresh' | null) => void;
 
   // Hydration (called once at app boot — see Task 5)
   hydrate: () => Promise<void>;
@@ -71,6 +74,7 @@ const DEFAULTS = {
   windowBounds: null as SubtitleWindowBounds | null,
   speakerDisplayMode: 'both' as DisplayMode,
   participantDisplayMode: 'both' as DisplayMode,
+  entryHint: null as 'refresh' | null,
 };
 
 export const FONT_SIZE_MIN = 12;
@@ -181,6 +185,7 @@ export const useSubtitleStore = create<SubtitleState>()(
       const { ok } = await persist('participantDisplayMode', m);
       if (!ok) set({ participantDisplayMode: previous });
     },
+    setEntryHint: (hint) => set({ entryHint: hint }),
 
     hydrate: async () => {
       const svc = ServiceFactory.getSettingsService();
@@ -235,6 +240,7 @@ export const useSubtitlePositionLocked = () => useSubtitleStore((s) => s.positio
 export const useSubtitleWindowBounds = () => useSubtitleStore((s) => s.windowBounds);
 export const useSubtitleSpeakerDisplayMode = () => useSubtitleStore((s) => s.speakerDisplayMode);
 export const useSubtitleParticipantDisplayMode = () => useSubtitleStore((s) => s.participantDisplayMode);
+export const useSubtitleEntryHint = () => useSubtitleStore((s) => s.entryHint);
 
 // Convenience snapshot reader (mirrors useSubtitleSettings from v1).
 // useShallow keeps the returned object reference stable across renders when
@@ -268,3 +274,4 @@ export const useToggleSubtitlePositionLocked = () => useSubtitleStore((s) => s.t
 export const useSaveSubtitleWindowBounds = () => useSubtitleStore((s) => s.saveWindowBounds);
 export const useSetSubtitleSpeakerDisplayMode = () => useSubtitleStore((s) => s.setSpeakerDisplayMode);
 export const useSetSubtitleParticipantDisplayMode = () => useSubtitleStore((s) => s.setParticipantDisplayMode);
+export const useSetSubtitleEntryHint = () => useSubtitleStore((s) => s.setEntryHint);

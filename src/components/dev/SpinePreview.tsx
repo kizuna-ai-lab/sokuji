@@ -14,7 +14,6 @@ import type { AuthContext, EngineSlot } from '../../lib/provider/types';
 import type { ConversationViewState, Readable } from '../../lib/view/conversationView';
 import { displayItems } from '../../lib/view/filter';
 import type { KaraokeState } from '../../lib/view/karaoke';
-import { lastEndItem } from '../../lib/view/lastEnd';
 import { FAKE_SCRIPT_NAMES } from '../../providers/fake/scripts';
 import { createFakeSource } from '../../providers/fake/source';
 import { presentProviders } from '../../providers/registry';
@@ -41,7 +40,7 @@ import { SubtitleTakeover } from '../Subtitle/SubtitleTakeover';
 import type { SubtitleControls } from '../Subtitle/SubtitleView';
 import { uiLanguage } from '../Subtitle/uiLanguage';
 import { configureAppSession, getAppSession, type LoadedAudio } from '../../app/session';
-import { useAppSessionBridges, useRunPhase, useRunState } from '../../app/useAppSession';
+import { useAppSessionBridges, useRunPhase } from '../../app/useAppSession';
 import { loadSessionStores } from '../../app/loadStores';
 import { SessionControls } from './SessionControls';
 import { tallied, type WireTally } from './wireTally';
@@ -160,13 +159,8 @@ function PreviewConversation({ view, karaoke, playback }: {
   const keepReplayAudio = useSettingsStore((s) => s.keepReplayAudio);
   const participantSpeech = useRoutingStore((s) => s.participantSpeech);
   const display = useConversationDisplayStore();
-  const runState = useRunState();
   const exporter = useConversationExporter(viewState);
-  const items = useMemo(() => {
-    const drawn = displayItems(entries, { speaker, participant });
-    const last = lastEndItem(runState);
-    return last ? [...drawn, last] : drawn;
-  }, [entries, speaker, participant, runState]);
+  const items = useMemo(() => displayItems(entries, { speaker, participant }), [entries, speaker, participant]);
   const segments = useMemo(() => new Map(legs.flatMap((leg) => leg.segments.map((s) => [s.id, s] as const))), [legs]);
   const replayLegs = useMemo(
     () => new Set<LegName>(keepReplayAudio ? (participantSpeech ? ['speaker', 'participant'] : ['speaker']) : []),

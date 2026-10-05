@@ -4,6 +4,9 @@ import { isElectron } from '../utils/environment';
 
 export type UpdateStatus = 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'not-available' | 'error';
 
+/** The status an `error` interrupted, as far as the banner cares (Ruling 9). */
+export type UpdateErrorFrom = 'checking' | 'downloading' | 'downloaded';
+
 interface UpdateState {
   status: UpdateStatus;
   newVersion: string | null;
@@ -21,6 +24,13 @@ interface UpdateState {
   releasePageUrl: string | null;
   bannerDismissed: boolean;
   dialogOpen: boolean;
+  /**
+   * What the current `error` interrupted, in memory: a failed download draws the
+   * `available` banner again, a failed install keeps `downloaded` (spec
+   * 2026-10-05 §4). Null for any other status, or an error that interrupted
+   * none of these.
+   */
+  errorFrom: UpdateErrorFrom | null;
 }
 
 interface UpdateActions {
@@ -58,6 +68,7 @@ const useUpdateStore = create<UpdateStore>()(
     releasePageUrl: null,
     bannerDismissed: false,
     dialogOpen: false,
+    errorFrom: null,
 
     // Actions
     checkForUpdates: () => {
@@ -134,6 +145,16 @@ const useUpdateStore = create<UpdateStore>()(
           update.bannerDismissed = false;
         }
 
+        // What an error interrupted; a repeated error (one failure reported twice) keeps the first's.
+        if (data.status === 'error') {
+          const before = get();
+          if (before.status !== 'error') {
+            update.errorFrom = before.status === 'checking' || before.status === 'downloading' || before.status === 'downloaded' ? before.status : null;
+          }
+        } else {
+          update.errorFrom = null;
+        }
+
         set(update);
       };
 
@@ -167,23 +188,6 @@ const useUpdateStore = create<UpdateStore>()(
   }))
 );
 
-// Auto-hide error after 5 seconds (works regardless of how status is set)
-let errorTimer: ReturnType<typeof setTimeout> | null = null;
-useUpdateStore.subscribe(
-  (state) => state.status,
-  (status) => {
-    if (errorTimer) {
-      clearTimeout(errorTimer);
-      errorTimer = null;
-    }
-    if (status === 'error') {
-      errorTimer = setTimeout(() => {
-        useUpdateStore.setState({ status: 'idle', errorMessage: null });
-      }, 5000);
-    }
-  }
-);
-
 // Individual selectors (following logStore.ts pattern — avoids new object refs on every render)
 export const useUpdateStatus = () => useUpdateStore(state => state.status);
 export const useUpdateNewVersion = () => useUpdateStore(state => state.newVersion);
@@ -200,6 +204,7 @@ export const useUpdateDebUrl = () => useUpdateStore(state => state.debUrl);
 export const useUpdateReleasePageUrl = () => useUpdateStore(state => state.releasePageUrl);
 export const useUpdateBannerDismissed = () => useUpdateStore(state => state.bannerDismissed);
 export const useUpdateDialogOpen = () => useUpdateStore(state => state.dialogOpen);
+export const useUpdateErrorFrom = () => useUpdateStore(state => state.errorFrom);
 
 // Individual action selectors (stable references — safe for useEffect deps)
 export const useCheckForUpdates = () => useUpdateStore(state => state.checkForUpdates);

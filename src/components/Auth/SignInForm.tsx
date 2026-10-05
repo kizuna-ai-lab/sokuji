@@ -5,7 +5,7 @@
  */
 
 import React, { useState, FormEvent } from 'react';
-import { useSetAuthOverlay } from '../../stores/settingsStore';
+import { useAuthOverlayReason, useSetAuthOverlay } from '../../stores/settingsStore';
 import { authClient } from '../../lib/auth-client';
 import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
@@ -14,10 +14,12 @@ import './SignInForm.scss';
 export function SignInForm() {
   const { t } = useTranslation();
   const setAuthOverlay = useSetAuthOverlay();
+  const reason = useAuthOverlayReason();
   const { trackEvent, identifyUser } = useAnalytics();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  // Why the form opened, in its own message slot (spec 2026-10-05 §5, T4): once, as the initial state; a submit replaces it.
+  const [error, setError] = useState(reason === 'session_expired' ? t('auth.sessionExpired', 'Your session has expired. Please sign in again.') : '');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {

@@ -23,7 +23,6 @@ import {useTranslation} from 'react-i18next';
 import {useAnalytics} from '../../lib/analytics';
 import {reportError} from '../../lib/diagnostics/report';
 import {isElectron, getBackendUrl, getApiUrl} from '../../utils/environment';
-import {useToast} from '../Toast';
 import {useSetAuthOverlay} from '../../stores/settingsStore';
 import './UserAccountInfo.scss';
 
@@ -38,7 +37,6 @@ export function UserAccountInfo({
   const {trackEvent, resetUser} = useAnalytics();
   const {isLoaded, isSignedIn} = useAuth();
   const {user: betterAuthUser, refetch: refetchSession} = useUser();
-  const {showToast} = useToast();
   const setAuthOverlay = useSetAuthOverlay();
 
   // Signing out is a network round-trip. Without this the button looked
@@ -271,11 +269,8 @@ export function UserAccountInfo({
           // — this panel, the title-bar mark, the provider notice — follows
           // from isSignedIn on its own.
           refetchSession?.();
-          showToast(
-            t('auth.sessionExpired', 'Your session has expired. Please sign in again.'),
-            {variant: 'error'},
-          );
-          setAuthOverlay('sign-in');
+          // The sign-in card says why it opened.
+          setAuthOverlay('sign-in', 'session_expired');
           // Deliberately do NOT open the page: it would only show a login form
           // in a browser, which is neither what was asked for nor where the
           // user can act on it.

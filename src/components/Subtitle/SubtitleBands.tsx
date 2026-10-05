@@ -5,7 +5,7 @@ import type { Entry } from '../../lib/projection/types';
 import { buildBands, type BandPiece } from '../../lib/subtitle/bands';
 import { displayItems, type LegFilters } from '../../lib/view/filter';
 import { noticeText } from '../../lib/view/noticeText';
-import { ConversationList } from '../Conversation/ConversationList';
+import { ConversationList, type ConversationListProps } from '../Conversation/ConversationList';
 import { useVisibleEntries } from '../Conversation/useVisibleEntries';
 import './SubtitleStream.scss';
 import '../../styles/karaoke.scss';
@@ -21,6 +21,10 @@ export interface SubtitleBodyProps {
   sourceTextColor?: string;
   translationTextColor?: string;
   newItemHighlightEnabled: boolean;
+  /** Panel notes (spec 2026-10-05 §5): after the entries in the expanded list, never in the bands, which read L1 as the exports do (Ruling 8). */
+  notes?: readonly Entry[];
+  /** The action a system row in the expanded list offers, if any. */
+  noticeAction?: ConversationListProps['noticeAction'];
 }
 
 const NO_REPLAY: ReadonlySet<LegName> = new Set();
@@ -34,9 +38,14 @@ const noReplay = () => {};
  * (`--subtitle-*` for the bands, `--conversation-*` for the list).
  */
 export function SubtitleBody(props: SubtitleBodyProps) {
-  const { lit, compact, fontSize, filters, sourceTextColor, translationTextColor } = props;
-  // A transient notice (a microphone switch) leaves the subtitle once its time is up.
-  const entries = useVisibleEntries(props.entries);
+  const { lit, compact, fontSize, filters, sourceTextColor, translationTextColor, notes, noticeAction } = props;
+  // The panel notes join the expanded list only (the same merge MainPanel does).
+  const listed = useMemo(
+    () => (compact || !notes || notes.length === 0 ? props.entries : [...props.entries, ...notes]),
+    [compact, notes, props.entries],
+  );
+  // A transient notice (a microphone switch) or note leaves the subtitle once its time is up.
+  const entries = useVisibleEntries(listed);
   const style: CSSProperties & Record<string, string> = {
     fontSize: `${fontSize}px`,
     '--conversation-font-size': `${fontSize}px`,
@@ -62,6 +71,7 @@ export function SubtitleBody(props: SubtitleBodyProps) {
           replayLegs={NO_REPLAY}
           canReplay={cannotReplay}
           onReplay={noReplay}
+          noticeAction={noticeAction}
           compact={false}
           fontSize={fontSize}
           empty={null}

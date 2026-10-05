@@ -1,4 +1,4 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render } from '@testing-library/react';
 
 // Kept from before the old audio service was deleted: ServiceFactory used to
@@ -119,14 +119,13 @@ vi.mock('./panel/replayGate', async (importOriginal) => {
   return { replayBlocked: gate.spy };
 });
 
-const env = vi.hoisted(() => ({ extension: false }));
+const env = vi.hoisted(() => ({ extension: false, electron: false }));
 vi.mock('../../utils/environment', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/environment')>()),
   isExtension: () => env.extension,
+  isElectron: () => env.electron,
 }));
 
-// The export menu's toasts: no ToastProvider in these renders.
-vi.mock('../Toast', () => ({ useToast: () => ({ showToast: vi.fn() }) }));
 
 // A marker: what the panel asks the permission modal to show.
 interface ModalProps { isOpen: boolean; onClose(): void; type: string | null; note?: string | null }
@@ -140,11 +139,14 @@ import { createVirtualClock } from '../../lib/contract/clock';
 import { PunctuationRuntime } from '../../lib/segmentation/PunctuationRuntime';
 import type { AnalyticsPort } from '../../lib/session/ports';
 import { VIEW_INTERVAL_MS } from '../../lib/view/conversationView';
+import { TRANSIENT_NOTICE_MS } from '../../lib/view/filter';
 import { fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource } from '../../providers/fake/source';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { useSubtitleStore } from '../../stores/subtitleStore';
+import { usePanelNotesStore } from '../../stores/panelNotesStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import MainPanel from './MainPanel';
 
@@ -224,6 +226,8 @@ beforeEach(async () => {
   useSettingsStore.setState({ uiMode: 'basic', keepReplayAudio: false, subtitleModeActive: false });
   useAudioStore.setState({ mode: 'speaker', participantSources: [], selectedParticipantSource: useAudioStore.getInitialState().selectedParticipantSource });
   env.extension = false;
+  env.electron = false;
+  usePanelNotesStore.setState({ notes: [] });
   modal.calls.length = 0;
   trackEvent.mockClear();
   // Answers as the real gate does, unless a case says otherwise.
@@ -385,7 +389,7 @@ describe('MainPanel', () => {
     }
   });
 
-  it('draws why a refused start did not happen after the list, in words, with no action for a code with no Settings target', async () => {
+  it('draws why a refused start did not happen as the status line, in words, with no action for a code with no Settings target', async () => {
     const { container } = await renderPanel();
     await start(container);
     playFirstExchange();
@@ -395,12 +399,14 @@ describe('MainPanel', () => {
     await click(container, () => expect(runner().state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'refused' } }));
 
     const list = container.querySelector('.conversation-list') as HTMLElement;
-    // A refused start keeps the last conversation; the idle line comes after it.
+    // A refused start keeps the last conversation; the status line says why, outside the list.
     expect(list.querySelectorAll('.conversation-row').length).toBeGreaterThan(0);
-    const last = list.lastElementChild as HTMLElement;
-    expect(last.classList.contains('message-bubble')).toBe(true);
-    expect(last.textContent).toContain('notices.not_ready');
-    expect(container.querySelector('.message-action')).toBeNull();
+    expect(list.querySelector('.sys-row')).toBeNull();
+    const line = container.querySelector('.status-line');
+    // The live gate (the provider is known unready now) outranks the refusal it caused.
+    expect(line?.getAttribute('data-status')).toBe('unready:message');
+    expect(line?.querySelector('.status-line__text')?.textContent).toContain('The fake reports not ready');
+    expect(container.querySelector('.status-line__action')).toBeNull();
   });
 
   it("disables every replay while the gate says so, and hands the gate the run, the platform and Other's source", async () => {
@@ -425,7 +431,7 @@ describe('MainPanel', () => {
     await stop();
   });
 
-  it('opens the Screen Recording modal on a loopback denial, with the application note, and reopens it from the idle line', async () => {
+  it('opens the Screen Recording modal on a loopback denial, with the application note, and reopens it from the status line', async () => {
     useAudioStore.setState({ participantSources: [{ deviceId: 'system', label: 'System' }, { deviceId: 'app:1', label: 'App' }] });
     const { container } = await renderPanel();
     expect(lastModal()).toMatchObject({ isOpen: false, type: null });
@@ -438,7 +444,11 @@ describe('MainPanel', () => {
     act(() => { lastModal().onClose(); });
     expect(lastModal()).toMatchObject({ isOpen: false, type: null });
 
-    const actions = container.querySelectorAll<HTMLButtonElement>('.message-action');
+    const line = container.querySelector('.status-line');
+    expect(line?.getAttribute('data-status')).toBe('last-end:loopback_denied');
+    expect(line?.querySelector('.status-line__text')?.textContent).toBe('notices.loopback_denied');
+    expect(container.querySelector('.sys-row')).toBeNull();
+    const actions = container.querySelectorAll<HTMLButtonElement>('.status-line__action');
     expect(actions.length).toBe(1);
     expect(actions[0].textContent).toBe('audioPanel.openSystemSettings');
     fireEvent.click(actions[0]);
@@ -483,7 +493,8 @@ describe('MainPanel', () => {
       act(() => {
         runner().state.setState({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'no_microphone', message: 'm', leg: 'speaker' } } }, true);
       });
-      const actions = container.querySelectorAll<HTMLButtonElement>('.message-action');
+      expect(container.querySelector('.status-line')?.getAttribute('data-status')).toBe('last-end:no_microphone');
+      const actions = container.querySelectorAll<HTMLButtonElement>('.status-line__action');
       expect(actions.length).toBe(1);
       expect(actions[0].textContent).toBe('settings.title');
       fireEvent.click(actions[0]);
@@ -493,19 +504,19 @@ describe('MainPanel', () => {
     }
   });
 
-  // The list caches a notice's action by its id for as long as the action
-  // callback keeps its identity — the panel's whole life — so `lastEndItem`
-  // names an end by its code: a later end must not show an earlier one's action.
+  // The line's key names an end by its code: a later end must not show an earlier one's action.
   it("gives each end its own action, not the one the panel drew for an earlier end", async () => {
     const { container } = await renderPanel();
     act(() => {
       runner().state.setState({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'not_ready', message: 'm' } } }, true);
     });
-    expect(container.querySelector('.message-action')).toBeNull();
+    expect(container.querySelector('.status-line')?.getAttribute('data-status')).toBe('last-end:not_ready');
+    expect(container.querySelector('.status-line__action')).toBeNull();
     act(() => {
       runner().state.setState({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'no_microphone', message: 'm', leg: 'speaker' } } }, true);
     });
-    expect(container.querySelector('.message-action')?.textContent).toBe('settings.title');
+    expect(container.querySelector('.status-line')?.getAttribute('data-status')).toBe('last-end:no_microphone');
+    expect(container.querySelector('.status-line__action')?.textContent).toBe('settings.title');
   });
 
   // Today's toggle (`MainPanel.tsx:3543-3551`): the playing item's button stops it.
@@ -545,18 +556,19 @@ describe('MainPanel', () => {
     act(() => {
       runner().state.setState({ phase: 'idle', lastEnd: { reason: 'start-failed', notice: { code: 'start_failed', message: 'socket closed' } } }, true);
     });
-    expect(container.querySelectorAll('.conversation-list .message-bubble').length).toBe(1);
+    expect(container.querySelector('.status-line')?.getAttribute('data-status')).toBe('last-end:start_failed');
+    expect(container.querySelector('.sys-row')).toBeNull();
     expect(clear().disabled).toBe(false);
 
     fireEvent.click(clear());
-    expect(container.querySelector('.message-bubble')).toBeNull();
+    expect(container.querySelector('.status-line')).toBeNull();
     expect(container.querySelector('.conversation-display .empty-state')).not.toBeNull();
     expect(clear().disabled).toBe(true);
 
     act(() => {
       runner().state.setState({ phase: 'idle', lastEnd: { reason: 'start-failed', notice: { code: 'start_failed', message: 'socket closed again' } } }, true);
     });
-    expect(container.querySelectorAll('.conversation-list .message-bubble').length).toBe(1);
+    expect(container.querySelector('.status-line')?.getAttribute('data-status')).toBe('last-end:start_failed');
   });
 
   it("clears a refused start's line with the conversation it kept", async () => {
@@ -567,12 +579,83 @@ describe('MainPanel', () => {
     act(() => { useProviderStore.getState().updateSettings(fakeProvider, { checkFails: true }); });
     await click(container, () => expect(runner().state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'refused' } }));
     expect(container.querySelectorAll('.conversation-list .conversation-row').length).toBeGreaterThan(0);
-    expect(container.querySelectorAll('.conversation-list .message-bubble').length).toBe(1);
+    expect(container.querySelector('.sys-row')).toBeNull();
 
     fireEvent.click(container.querySelector('.clear-conversation-btn') as HTMLButtonElement);
     act(() => { clock.advance(VIEW_INTERVAL_MS); });
     expect(container.querySelector('.conversation-list')).toBeNull();
+    // The gate is still shut (the provider is unready now): that line is a live condition, not the end Clear hid.
+    expect(container.querySelector('.status-line')?.getAttribute('data-status')).toBe('unready:message');
     expect(container.querySelector('.conversation-display .empty-state')).not.toBeNull();
+  });
+
+  it('shows why Start is off as the status line, not as a tooltip (spec 2026-10-05 §3)', async () => {
+    // The web has no participant leg to run: the start gate refuses it, which makes the subtitle session's idle `unready`.
+    useAudioStore.setState({ mode: 'participant' });
+    const { container } = await renderPanel();
+    expect(getAppSession().subtitle.get().canStart).toBe(false);
+    expect(container.querySelector('.status-line')?.getAttribute('data-status')).toBe('unready:participant_source_unavailable');
+    expect(mainAction(container).disabled).toBe(true);
+    expect(mainAction(container).getAttribute('title')).toBeNull();
+    expect(container.querySelector('.tooltip')).toBeNull();
+  });
+
+  it('mounts the status line directly above the advanced footer', async () => {
+    const restoreCanvas = stubCanvas();
+    try {
+      useSettingsStore.setState({ uiMode: 'advanced' });
+      useAudioStore.setState({ mode: 'participant' });
+      const { container } = await renderPanel();
+      const line = container.querySelector('.status-line');
+      expect(line).not.toBeNull();
+      expect(line!.nextElementSibling?.matches('.control-footer.advanced')).toBe(true);
+    } finally {
+      restoreCanvas();
+    }
+  });
+
+  it('dismissing the echo line hides it', async () => {
+    const { container } = await renderPanel();
+    act(() => { capture.echo.onNotice.mock.lastCall![0]({ cause: 'tts-echo', lagMs: 120, rho: 0.8 }); });
+    expect(container.querySelector('[data-status="echo:tts-echo"]')).not.toBeNull();
+    fireEvent.click(container.querySelector('.status-line__dismiss')!);
+    expect(container.querySelector('.status-line')).toBeNull();
+  });
+
+  it('dismissing the subtitle-entry hint clears it from the store', async () => {
+    // The hint is a running line (Ruling 11); a selected input, or the line is the microphone wait, which outranks it.
+    const selected = useAudioStore.getState().selectedInputDevice;
+    useAudioStore.setState({ selectedInputDevice: { deviceId: 'mic', label: 'Mic', isVirtual: false } as never });
+    const { container } = await renderPanel();
+    try {
+      act(() => {
+        runner().state.setState({ phase: 'running', since: 0, legs: { speaker: 'live' } }, true);
+        useSubtitleStore.setState({ entryHint: 'refresh' });
+      });
+      expect(container.querySelector('[data-status="subtitle-entry"]')).not.toBeNull();
+      fireEvent.click(container.querySelector('.status-line__dismiss')!);
+      expect(useSubtitleStore.getState().entryHint).toBeNull();
+    } finally {
+      act(() => {
+        runner().state.setState({ phase: 'idle' }, true);
+        useAudioStore.setState({ selectedInputDevice: selected });
+      });
+    }
+  });
+
+  it('the wait for a microphone is the line', async () => {
+    const selected = useAudioStore.getState().selectedInputDevice;
+    useAudioStore.setState({ selectedInputDevice: null });
+    try {
+      const { container } = await renderPanel();
+      act(() => { runner().state.setState({ phase: 'running', since: 0, legs: { speaker: 'live' } }, true); });
+      expect(container.querySelector('.status-line')?.getAttribute('data-status')).toBe('mic-waiting');
+    } finally {
+      act(() => {
+        runner().state.setState({ phase: 'idle' }, true);
+        useAudioStore.setState({ selectedInputDevice: selected });
+      });
+    }
   });
 
   // Ruling 16's toggle: a second press stops the tone, even one still decoding.
@@ -639,5 +722,56 @@ describe('MainPanel', () => {
     const { container } = await renderPanel();
     expect(container.querySelector('.empty-state')?.textContent).toContain('simplePanel.startToBegin');
     expect(container.querySelector('.conversation-toolbar')).not.toBeNull();
+  });
+});
+
+describe('panel notes (spec 2026-10-05 §5)', () => {
+  afterEach(() => { delete (window as unknown as { electron?: unknown }).electron; });
+
+  it('draws a note after the conversation as a system row with its own action', async () => {
+    const invoke = vi.fn();
+    usePanelNotesStore.getState().add({ severity: 'info', code: 'autosave_saved', message: 'saved', params: { filename: 'a.txt' }, action: { kind: 'show-in-folder', dir: '/d' } });
+    const { container } = await renderPanel();
+    // After the render: the update listeners the panel mounts need the whole bridge, the click only `invoke`.
+    env.electron = true;
+    (window as unknown as { electron: { invoke: typeof invoke } }).electron = { invoke };
+    const row = container.querySelector('.sys-row--info');
+    expect(row).not.toBeNull();
+    fireEvent.click(row!.querySelector('.sys-row__action')!);
+    expect(invoke).toHaveBeenCalledWith('open-directory', '/d');
+  });
+
+  it('an expired transient note leaves Clear off over an empty list', async () => {
+    usePanelNotesStore.getState().add({ severity: 'info', code: 'export_copied', message: 'copied', lifetime: 'transient' }, Date.now() - TRANSIENT_NOTICE_MS - 1);
+    const { container } = await renderPanel();
+    expect(container.querySelector('.sys-row--info')).toBeNull();
+    expect((container.querySelector('.clear-conversation-btn') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  // Ruling 8 (final review C1): the overlay draws L1 only, so while it runs the panel's
+  // placeholder carries the notes under it — the one place they show.
+  it("draws a note under the extension overlay's placeholder while the overlay runs", async () => {
+    env.extension = true;
+    useSettingsStore.setState({ subtitleModeActive: true });
+    usePanelNotesStore.getState().add({ severity: 'info', code: 'export_copied', message: 'copied', lifetime: 'transient' });
+    const { container } = await renderPanel();
+    try {
+      act(() => { runner().state.setState({ phase: 'running', since: 0, legs: { speaker: 'live' } }, true); });
+      const placeholder = container.querySelector('.conversation-display > .empty-state')!;
+      expect(placeholder.querySelector('p')?.textContent).toContain('mainPanel.subtitleTakeover');
+      const row = placeholder.querySelector('.sys-row--info');
+      expect(row).not.toBeNull();
+      expect(placeholder.querySelector('p')!.compareDocumentPosition(row!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    } finally {
+      act(() => { runner().state.setState({ phase: 'idle' }, true); });
+    }
+  });
+
+  it('Clear removes the notes with the conversation', async () => {
+    usePanelNotesStore.getState().add({ severity: 'info', code: 'export_copied', message: 'copied', lifetime: 'transient' });
+    const { container } = await renderPanel();
+    expect(container.querySelector('.sys-row--info')).not.toBeNull();
+    fireEvent.click(container.querySelector('.clear-conversation-btn')!);
+    expect(usePanelNotesStore.getState().notes).toEqual([]);
   });
 });

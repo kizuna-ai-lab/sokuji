@@ -112,8 +112,9 @@
   color: #666;
   gap: 16px;
 
-  svg { opacity: 0.3; }
-  p { margin: 0; font-size: 16px; max-width: 300px; }
+  // Its own icon only: the extension overlay's placeholder draws the panel notes under it, whose icons carry their severity.
+  > svg { opacity: 0.3; }
+  > p { margin: 0; font-size: 16px; max-width: 300px; }
 }
 
 // ─── Conversation List & Bubbles ───────────────────
@@ -124,91 +125,43 @@
   gap: 4px;
 }
 
-.message-bubble {
-  max-width: 80%;
-  padding: 6px 10px;
-  border-radius: 12px;
-  position: relative;
-  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+// ─── System rows (spec 2026-10-05 §2, R2) ──────────
+// An event in the conversation: a chat system row, not a message. No
+// background, no header word; the severity is the icon's colour and the
+// text's brightness. Nothing else in src/ draws `.message-bubble` any more.
 
-  // ── Role variants ──
+.sys-row {
+  padding: 3px 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #9aa0a6;
+  text-align: center;
 
-  &.system {
-    align-self: center;
-    background: #444;
-    font-style: italic;
-    max-width: 90%;
-
-    &.playing {
-      background: #555;
-      box-shadow: 0 0 10px rgba(tk.$color-speaker, 0.3);
-    }
+  > svg {
+    display: inline-block;
+    vertical-align: -2px;
+    margin-right: 5px;
   }
 
-  // ── Error ──
+  &--error { color: #d8d8d8; > svg { color: #ff6b6b; } }
+  &--warning { color: #bdbdbd; > svg { color: tk.$color-degraded; } }
+  &--info { color: #8a8a8a; > svg { color: tk.$color-toolbar-icon; } }
 
-  &.error {
-    align-self: center;
-    background: #5a1a1a;
-    border: 1px solid #cc4444;
-    margin-left: auto;
-    margin-right: auto;
+  &__text { display: inline; }
 
-    .message-header {
-      color: #ff6b6b;
-      font-weight: 600;
-      svg { margin-right: 4px; }
-    }
-
-    .message-content.error-content {
-      color: #ff6b6b;
-    }
-  }
-
-  // ── Header & Content ──
-
-  .message-header {
-    font-size: 11px;
-    text-transform: uppercase;
-    opacity: 0.7;
-    margin-bottom: 4px;
-    font-weight: 500;
-    display: none;
-    align-items: center;
-    gap: 6px;
-  }
-
-  &.error .message-header,
-  &.system .message-header {
-    display: flex;
-  }
-
-  .message-content {
-    font-size: var(--conversation-font-size, 14px);
-    line-height: 1.4;
-    word-wrap: break-word;
-    white-space: pre-wrap;
-    position: relative;
-  }
-
-  // A notice's action (plan 1e-3b-1 ruling 13) — the link look of the nearest
-  // sibling control, `.language-model-warning__link` (Settings.scss).
-  .message-action {
+  // The action is a link after the words: ` · Settings`.
+  &__action {
+    font: inherit;
     background: none;
     border: none;
     padding: 0;
-    font: inherit;
-    color: #ff6b6b;
+    color: tk.$color-primary;
     text-decoration: underline;
     cursor: pointer;
-    display: inline-block;
-    margin-top: 4px;
-    &:hover {
-      opacity: 0.8;
-    }
-    &:focus-visible {
-      @include vars.focus-ring;
-    }
+    // `pre` keeps the spaces around the dot: an inline-block drops the leading and trailing space of its own line.
+    &::before { content: ' · '; color: #666; text-decoration: none; display: inline-block; white-space: pre; }
+    &:hover { opacity: 0.8; }
+    &:focus-visible { @include vars.focus-ring; }
   }
 }
 
@@ -319,6 +272,58 @@
   }
 }
 
+// ─── Status line (spec 2026-10-05 §3, P1) ──────────
+// Why the user cannot start, or what is wrong now: one line above the footer,
+// the text-input row's colours, the same in both modes. It wraps. The row is
+// as tall as its tallest item (the action button), so the items are centred on
+// it: top alignment left a one-line text nearer the top edge than the bottom.
+
+.status-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #252525;
+  border-top: 1px solid #333;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #e8e8e8;
+  flex-shrink: 0;
+
+  > svg { flex-shrink: 0; color: tk.$color-degraded; }
+
+  // The words and the action's label sit on the row's axis by their ink, not
+  // by their line boxes (`cap-centred`): centred boxes left Chinese 0.8px high.
+  &__text { flex: 1; min-width: 0; @include vars.cap-centred; }
+
+  &__action {
+    flex-shrink: 0;
+    font: inherit;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #fff;
+    padding: 3px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    @include vars.cap-centred(3px);
+    &:hover { background: rgba(255, 255, 255, 0.18); }
+    &:focus-visible { @include vars.focus-ring; }
+  }
+
+  &__dismiss {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: #aaa;
+    padding: 1px;
+    margin: 0 -2px 0 0;
+    display: inline-flex;
+    cursor: pointer;
+    &:hover { color: #fff; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
+}
+
 // ═══════════════════════════════════════════════════
 // Control Footer — shared base + mode variants
 // ═══════════════════════════════════════════════════
@@ -352,13 +357,6 @@
         background: tk.$color-degraded;
         animation: pulse 1s ease-in-out infinite;
       }
-    }
-
-    .reconnecting-label {
-      color: tk.$color-degraded;
-      font-size: 12px;
-      animation: pulse 1s ease-in-out infinite;
-      flex-shrink: 0;
     }
 
     .footer-spacer { flex: 1; min-width: 12px; }
@@ -409,6 +407,10 @@
       transition: background 0.3s ease;
       flex-shrink: 0;
       &.active { background: tk.$color-primary; }
+      &.reconnecting {
+        background: tk.$color-degraded;
+        animation: pulse 1s ease-in-out infinite;
+      }
     }
 
     .footer-spacer { flex: 1; min-width: 12px; }
@@ -542,42 +544,7 @@
       cursor: not-allowed;
       box-shadow: none;
 
-      &:hover {
-        background: #666;
-        .tooltip { visibility: visible; opacity: 1; }
-      }
-
-      .tooltip {
-        visibility: hidden;
-        width: 200px;
-        background: #333;
-        color: #fff;
-        text-align: center;
-        border-radius: 6px;
-        padding: 8px;
-        position: absolute;
-        z-index: 10;
-        bottom: 125%;
-        left: 50%;
-        margin-left: -100px;
-        opacity: 0;
-        transition: opacity 0.3s;
-        font-weight: normal;
-        font-size: 12px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-        pointer-events: none;
-
-        &::after {
-          content: "";
-          position: absolute;
-          top: 100%;
-          left: 50%;
-          margin-left: -5px;
-          border-width: 5px;
-          border-style: solid;
-          border-color: #333 transparent transparent transparent;
-        }
-      }
+      &:hover { background: #666; }
     }
 
     .spinner { animation: spin 1s linear infinite; }
@@ -624,7 +591,7 @@
       min-width: auto;
 
       .btn-text,
-      > span:not(.stop-icon):not(.play-icon):not(.status-dot):not(.tooltip) {
+      > span:not(.stop-icon):not(.play-icon):not(.status-dot) {
         display: none;
       }
     }

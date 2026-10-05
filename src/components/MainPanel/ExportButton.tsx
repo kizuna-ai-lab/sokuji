@@ -19,7 +19,7 @@ import {
 import type { DisplayMode } from '../../stores/settingsStore';
 import { modeToToggles, togglesToMode, type ScopeToggles } from './conversationFilter';
 import { copyToClipboard, downloadFile, exportFilename } from '../../utils/conversationExport';
-import { useToast } from '../Toast';
+import { PANEL_NOTE_CODES, panelNoteWriter } from '../../stores/panelNotesStore';
 import { ChildWindowPopover, useChildPopoverToggle } from '../Subtitle/ChildWindowPopover';
 import { useAutoSaveOnStop, useSetAutoSaveOnStop } from '../../stores/settingsStore';
 import { isElectron } from '../../utils/environment';
@@ -45,7 +45,6 @@ export interface ExportMenuButtonProps {
 /** The export menu: scope checkboxes, the three actions and the auto-save switch, over an `Exporter` (plan 1d-3). */
 export function ExportMenuButton({ exporter, speakerMode, participantMode, popoverHost = 'floating' }: ExportMenuButtonProps) {
   const { t } = useTranslation();
-  const { showToast } = useToast();
   const childHosted = popoverHost === 'child-window';
   const childMenu = useChildPopoverToggle();
   const childBtnRef = React.useRef<HTMLButtonElement>(null);
@@ -201,14 +200,17 @@ export function ExportMenuButton({ exporter, speakerMode, participantMode, popov
 
   const handleCopy = useCallback(async () => {
     closeMenu();
+    // The writer too is taken before the await: an answer that comes after a
+    // Clear or the next start is about a conversation that is gone.
+    const note = panelNoteWriter();
     // The text is taken before the await, so the copy is the scope as clicked.
     const ok = await copyToClipboard(exporter.text(scope, false));
-    if (ok) {
-      showToast(t('mainPanel.export.copySuccess', 'Conversation copied to clipboard'), { variant: 'success' });
-    } else {
-      showToast(t('mainPanel.export.copyFailed', 'Failed to copy. Check browser permissions.'), { variant: 'error', durationMs: 4000 });
-    }
-  }, [exporter, scope, showToast, t, closeMenu]);
+    // The result is a passing event about the conversation: a transient panel
+    // note after it (spec 2026-10-05 §5), not feedback on this button.
+    note(ok
+      ? { severity: 'info', code: PANEL_NOTE_CODES.exportCopied, message: 'Conversation copied to clipboard', lifetime: 'transient' }
+      : { severity: 'warning', code: PANEL_NOTE_CODES.exportCopyFailed, message: 'Failed to copy. Check browser permissions.', lifetime: 'transient' });
+  }, [exporter, scope, closeMenu]);
 
   const handleDownloadTxt = useCallback(() => {
     closeMenu();

@@ -45,8 +45,10 @@ vi.mock('./SubtitleBar', () => ({
       onBlur: () => p.holdToTalk?.onHeldChange?.(false),
     }),
 }));
+// Compact unless a case says otherwise; reset before each.
+const view = vi.hoisted(() => ({ compactMode: true }));
 vi.mock('../../stores/subtitleStore', () => ({
-  useSubtitleSettings: () => ({ fontSize: 24, compactMode: true, sourceTextColor: '#fff', translationTextColor: '#9ad0ff' }),
+  useSubtitleSettings: () => ({ fontSize: 24, compactMode: view.compactMode, sourceTextColor: '#fff', translationTextColor: '#9ad0ff' }),
   useSubtitleSpeakerDisplayMode: () => 'both',
   useSubtitleParticipantDisplayMode: () => 'both',
   useSubtitleNewItemHighlightEnabled: () => false,
@@ -67,9 +69,32 @@ const controls = () => ({ exit: vi.fn(), clear: vi.fn(), press: vi.fn(), release
 beforeEach(() => {
   cleanup();
   useSubtitleChromeMock.mockClear();
+  view.compactMode = true;
 });
 
 describe('SubtitleView', () => {
+  it('draws the host\u2019s status line under the body while running, on the Electron surface\u2019s expanded view only', () => {
+    view.compactMode = false;
+    const line = <div data-testid="status-line-slot" />;
+    const a = render(<SubtitleView surface="electron" model={{ entries: [entry], lit: new Map(), session: session() }} controls={controls()} statusLine={line} />);
+    expect(a.queryByTestId('status-line-slot')).not.toBeNull();
+    a.unmount();
+    const b = render(<SubtitleView surface="extension-overlay" model={{ entries: [entry], lit: new Map(), session: session() }} controls={controls()} statusLine={line} />);
+    expect(b.queryByTestId('status-line-slot')).toBeNull();
+    b.unmount();
+    const c = render(<SubtitleView surface="electron" model={{ entries: [], lit: new Map(), session: session({ phase: 'idle', since: null }) }} controls={controls()} statusLine={line} />);
+    expect(c.queryByTestId('status-line-slot')).toBeNull();
+  });
+
+  // Spec 2026-10-05 §7 (Ruling 11): the compact bands carry no line, only the expanded list does.
+  it('draws no status line in the compact view', () => {
+    view.compactMode = true;
+    const line = <div data-testid="status-line-slot" />;
+    const { queryByTestId, container } = render(<SubtitleView surface="electron" model={{ entries: [entry], lit: new Map(), session: session() }} controls={controls()} statusLine={line} />);
+    expect(container.querySelector('.subtitle-stream.compact')).not.toBeNull();
+    expect(queryByTestId('status-line-slot')).toBeNull();
+  });
+
   it('never shows a negative elapsed time when the session arrives after mount', () => {
     const future = Date.now() + 5000;
     render(<SubtitleView surface="electron" model={{ entries: [], lit: new Map(), session: session({ since: future }) }} controls={controls()} />);

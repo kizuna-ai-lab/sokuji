@@ -95,6 +95,7 @@ import { createVirtualClock } from '../lib/contract/clock';
 import { settleReports } from '../lib/diagnostics/report';
 import { autoSaveConversation } from '../lib/export/appAutoSave';
 import { DEFAULT_CLOSE_TIMEOUT_MS } from '../lib/session/runner';
+import { usePanelNotesStore } from '../stores/panelNotesStore';
 import { fakeLeasedProvider } from '../providers/fake/leased';
 import { fakeProvider } from '../providers/fake/provider';
 import { FAKE_LEASED_DEFAULTS } from '../providers/fake/settings';
@@ -236,12 +237,70 @@ describe('createAppSession', () => {
     await session.runner.start();
     await session.runner.stop();
     expect(autoSave).toHaveBeenCalledTimes(1);
-    const [legs, info, notify] = autoSave.mock.calls[0];
+    const [legs, info] = autoSave.mock.calls[0];
     expect(legs.map((leg) => leg.leg)).toEqual(['speaker']);
     expect(info).toBe(session.runner.conversation.info);
-    expect(notify).toEqual({ showToast: expect.any(Function) });
     expect(refetchQuota).toHaveBeenCalledTimes(1);
     expect(order).toEqual(['saved', 'refetch']);
+  });
+
+  it('clears the panel notes when a run starts (spec 2026-10-05 §5)', async () => {
+    const { session } = await setup();
+    // The clearing is an attach-time subscription, like the session's others.
+    const detach = session.attach();
+    usePanelNotesStore.getState().add({ severity: 'info', code: 'export_copied', message: 'copied' });
+    session.runner.state.setState({ phase: 'starting', step: 'checking' });
+    expect(usePanelNotesStore.getState().notes).toEqual([]);
+    detach();
+  });
+
+  // Final review I2: the subtitle surfaces' Clear reaches the runner, not MainPanel's
+  // handler, so the session clears the notes when the conversation empties.
+  it('clears the panel notes when the conversation is cleared from anywhere', async () => {
+    const { session } = await setup();
+    const detach = session.attach();
+    usePanelNotesStore.getState().add({ severity: 'info', code: 'export_copied', message: 'copied' });
+    session.runner.clear();
+    expect(usePanelNotesStore.getState().notes).toEqual([]);
+    detach();
+    // Detached, a Clear leaves the store alone.
+    usePanelNotesStore.getState().add({ severity: 'info', code: 'export_copied', message: 'copied' });
+    session.runner.clear();
+    expect(usePanelNotesStore.getState().notes).toHaveLength(1);
+    usePanelNotesStore.getState().clear();
+  });
+
+  it("writes the auto-save's note while the run's conversation stands", async () => {
+    autoSave.mockImplementationOnce(async (_legs, _info, notify) => {
+      await Promise.resolve();
+      notify.note({ severity: 'info', code: 'autosave_saved', message: 'saved' });
+      return 'saved';
+    });
+    const { session } = await setup();
+    await session.runner.start();
+    await session.runner.stop();
+    expect(usePanelNotesStore.getState().notes.map((n) => n.code)).toEqual(['autosave_saved']);
+    usePanelNotesStore.getState().clear();
+  });
+
+  // PR #598 review: a save can outlive the runner's 5 s bound, after which the
+  // next run may start. Its result must not be drawn in that run's conversation.
+  it("drops the auto-save's note when the conversation was reset before the save answered", async () => {
+    let finish!: () => void;
+    autoSave.mockImplementationOnce(async (_legs, _info, notify) => {
+      await new Promise<void>((resolve) => { finish = resolve; });
+      notify.note({ severity: 'info', code: 'autosave_saved', message: 'saved' });
+      return 'saved';
+    });
+    const { session } = await setup();
+    await session.runner.start();
+    const stopping = session.runner.stop();
+    await vi.waitFor(() => expect(autoSave).toHaveBeenCalledTimes(1));
+    // Clear, or the next start: the notes are emptied while the save still writes.
+    usePanelNotesStore.getState().clear();
+    finish();
+    await stopping;
+    expect(usePanelNotesStore.getState().notes).toEqual([]);
   });
 
   it('never erases a bridge with undefined: a later setBridges without refetchQuota keeps the earlier one', async () => {

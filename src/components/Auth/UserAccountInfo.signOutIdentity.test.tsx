@@ -45,8 +45,6 @@ vi.mock('../../lib/auth-client', () => ({
   },
 }));
 
-const showToast = vi.fn();
-vi.mock('../Toast', () => ({ useToast: () => ({ showToast }) }));
 
 const setAuthOverlay = vi.fn();
 vi.mock('../../stores/settingsStore', () => ({

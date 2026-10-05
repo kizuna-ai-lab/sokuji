@@ -7,7 +7,6 @@ import { ExportMenuButton } from './ExportButton';
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string, def?: string) => (typeof def === 'string' ? def : key) }),
 }));
-vi.mock('../Toast', () => ({ useToast: () => ({ showToast: vi.fn() }) }));
 const setAutoSaveOnStop = vi.fn(async () => {});
 vi.mock('../../stores/settingsStore', () => ({
   useAutoSaveOnStop: () => false,
