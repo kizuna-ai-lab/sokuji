@@ -13,11 +13,11 @@ const input = (over: Partial<StatusLineInput> = {}): StatusLineInput => ({
 });
 
 describe('statusLine — cannot start (priority 1)', () => {
-  it('words the gates refusal with its code and the fix (spec 3)', () => {
+  it('words the gate’s refusal with its code and the fix (spec §3)', () => {
     const entry = statusLine(input({ canStart: false, idle: { kind: 'unready', message: 'No microphone is chosen for the speaker leg.', code: 'no_microphone' } }));
     expect(entry).toMatchObject({ key: 'unready:no_microphone', icon: 'mic-off', words: { kind: 'notice', code: 'no_microphone' }, action: { kind: 'settings', target: 'microphone' }, dismiss: null });
   });
-  it('picks the icon by the code: credentials -> key, balance -> wallet, anything else -> alert', () => {
+  it('picks the icon by the code: credentials → key, balance → wallet, anything else → alert', () => {
     const unready = (code: string, params?: Record<string, string>) => statusLine(input({ canStart: false, idle: { kind: 'unready', message: 'm', code, params } }));
     expect(unready('credentials_missing')?.icon).toBe('key-round');
     expect(unready('sign_in_required')?.icon).toBe('key-round');
@@ -58,7 +58,7 @@ describe('statusLine — cannot start (priority 1)', () => {
   });
 });
 
-describe('statusLine — while running (priorities 2-5)', () => {
+describe('statusLine — while running (priorities 2–5)', () => {
   it('reconnecting, with no action', () => {
     expect(statusLine(input({ run: running({ speaker: 'reconnecting' }), echo }))).toMatchObject({ key: 'reconnecting', icon: 'refresh-cw', words: { kind: 'key', key: 'connectionStatus.reconnecting' }, action: null, dismiss: null });
   });
@@ -66,7 +66,7 @@ describe('statusLine — while running (priorities 2-5)', () => {
     expect(statusLine(input({ run: running(), waitingForMicrophone: true }))).toMatchObject({ key: 'mic-waiting', icon: 'mic-off', words: { kind: 'notice', code: 'mic_lost_waiting' } });
     expect(statusLine(input({ run: running({ speaker: 'reconnecting' }), waitingForMicrophone: true }))?.key).toBe('reconnecting');
   });
-  it('the subtitle layer hint, dismissible, above echo (the user just pressed the button)', () => {
+  it('the subtitle layer’s hint, dismissible, above echo (the user just pressed the button)', () => {
     expect(statusLine(input({ run: running(), subtitleEntryHint: true, echo }))).toMatchObject({ key: 'subtitle-entry', icon: 'captions', words: { kind: 'key', key: 'subtitle.enterButton.refreshPageHint' }, dismiss: 'subtitle-entry' });
   });
   it('echo last, dismissible, with its cause', () => {

@@ -1,5 +1,5 @@
 /**
- * The status line (spec 2026-10-05 3): why the user cannot start, or what is
+ * The status line (spec 2026-10-05 §3): why the user cannot start, or what is
  * wrong right now. Not a record — the condition's presence is the line's. One
  * line at a time, the highest of: cannot start › reconnecting › waiting for a
  * microphone › the subtitle layer unavailable › echo. Pure: the inputs come
@@ -72,7 +72,7 @@ export function statusLine(input: StatusLineInput): StatusEntry | null {
     // 1a. The live gate: what the stores refuse now (a stale failure never outranks it).
     if (!canStart && idle.kind === 'unready') return blocker(`unready:${idle.code ?? 'message'}`, idle.code, idle.message, idle.params);
     // 1b. The last start, refused or failed, until the next start or Clear. A run that
-    // ended on its own already carries its notice on a leg (spec 2); this is not it.
+    // ended on its own already carries its notice on a leg (spec §2); this is not it.
     const end = run.lastEnd;
     if (end && (end.reason === 'refused' || end.reason === 'start-failed') && end.notice && end !== dismissedEnd) {
       return blocker(`last-end:${end.notice.code}`, end.notice.code, end.notice.message, end.notice.params);

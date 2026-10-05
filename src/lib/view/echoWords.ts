@@ -1,6 +1,6 @@
 import type { EchoCause } from '../modern-audio/EchoMonitor';
 
-/** The echo causes' words: the problem and what fixes it (moved from EchoNotice.tsx; spec 2026-10-05 3). */
+/** The echo causes' words: the problem and what fixes it (moved from EchoNotice.tsx; spec 2026-10-05 §3). */
 export const ECHO_WORDS: Readonly<Record<EchoCause, { message: string; fallback: string; action: string; actionFallback: string }>> = {
   'tts-echo': {
     message: 'echoNotice.ttsEcho',
