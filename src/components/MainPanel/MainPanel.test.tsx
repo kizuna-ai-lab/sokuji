@@ -1,4 +1,4 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render } from '@testing-library/react';
 
 // Kept from before the old audio service was deleted: ServiceFactory used to
@@ -119,10 +119,11 @@ vi.mock('./panel/replayGate', async (importOriginal) => {
   return { replayBlocked: gate.spy };
 });
 
-const env = vi.hoisted(() => ({ extension: false }));
+const env = vi.hoisted(() => ({ extension: false, electron: false }));
 vi.mock('../../utils/environment', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/environment')>()),
   isExtension: () => env.extension,
+  isElectron: () => env.electron,
 }));
 
 // The export menu's toasts: no ToastProvider in these renders.
@@ -145,6 +146,7 @@ import { createFakeSource } from '../../providers/fake/source';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { usePanelNotesStore } from '../../stores/panelNotesStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import MainPanel from './MainPanel';
 
@@ -224,6 +226,8 @@ beforeEach(async () => {
   useSettingsStore.setState({ uiMode: 'basic', keepReplayAudio: false, subtitleModeActive: false });
   useAudioStore.setState({ mode: 'speaker', participantSources: [], selectedParticipantSource: useAudioStore.getInitialState().selectedParticipantSource });
   env.extension = false;
+  env.electron = false;
+  usePanelNotesStore.setState({ notes: [] });
   modal.calls.length = 0;
   trackEvent.mockClear();
   // Answers as the real gate does, unless a case says otherwise.
@@ -639,5 +643,30 @@ describe('MainPanel', () => {
     const { container } = await renderPanel();
     expect(container.querySelector('.empty-state')?.textContent).toContain('simplePanel.startToBegin');
     expect(container.querySelector('.conversation-toolbar')).not.toBeNull();
+  });
+});
+
+describe('panel notes (spec 2026-10-05 §5)', () => {
+  afterEach(() => { delete (window as unknown as { electron?: unknown }).electron; });
+
+  it('draws a note after the conversation as a system row with its own action', async () => {
+    const invoke = vi.fn();
+    usePanelNotesStore.getState().add({ severity: 'info', code: 'autosave_saved', message: 'saved', params: { filename: 'a.txt' }, action: { kind: 'show-in-folder', dir: '/d' } });
+    const { container } = await renderPanel();
+    // After the render: the update listeners the panel mounts need the whole bridge, the click only `invoke`.
+    env.electron = true;
+    (window as unknown as { electron: { invoke: typeof invoke } }).electron = { invoke };
+    const row = container.querySelector('.sys-row--info');
+    expect(row).not.toBeNull();
+    fireEvent.click(row!.querySelector('.sys-row__action')!);
+    expect(invoke).toHaveBeenCalledWith('open-directory', '/d');
+  });
+
+  it('Clear removes the notes with the conversation', async () => {
+    usePanelNotesStore.getState().add({ severity: 'info', code: 'export_copied', message: 'copied', lifetime: 'transient' });
+    const { container } = await renderPanel();
+    expect(container.querySelector('.sys-row--info')).not.toBeNull();
+    fireEvent.click(container.querySelector('.clear-conversation-btn')!);
+    expect(usePanelNotesStore.getState().notes).toEqual([]);
   });
 });
