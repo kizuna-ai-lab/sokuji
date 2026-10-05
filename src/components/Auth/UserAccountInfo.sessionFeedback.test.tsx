@@ -55,9 +55,6 @@ vi.mock('../../lib/auth-client', () => ({
   },
 }));
 
-const showToast = vi.fn();
-vi.mock('../Toast', () => ({ useToast: () => ({ showToast }) }));
-
 const setAuthOverlay = vi.fn();
 vi.mock('../../stores/settingsStore', () => ({
   useSetAuthOverlay: () => setAuthOverlay,
@@ -73,7 +70,6 @@ vi.mock('../../utils/environment', () => ({
 beforeEach(() => {
   cleanup();
   signOut.mockClear();
-  showToast.mockClear();
   setAuthOverlay.mockClear();
   refetchSession.mockClear();
   ottResult = { data: { token: 'good' }, error: null };
@@ -123,7 +119,7 @@ describe('a session the server has forgotten', () => {
     const open = vi.spyOn(window, 'open').mockImplementation(() => null);
     render(<UserAccountInfo />);
     fireEvent.click(topUp());
-    await waitFor(() => expect(showToast).toHaveBeenCalled());
+    await waitFor(() => expect(setAuthOverlay).toHaveBeenCalledWith('sign-in', 'session_expired'));
     expect(open).not.toHaveBeenCalled();
     open.mockRestore();
   });
@@ -133,8 +129,7 @@ describe('a session the server has forgotten', () => {
     vi.spyOn(window, 'open').mockImplementation(() => null);
     render(<UserAccountInfo />);
     fireEvent.click(topUp());
-    await waitFor(() => expect(showToast).toHaveBeenCalled());
-    expect(showToast.mock.calls[0][1]).toMatchObject({ variant: 'error' });
+    await waitFor(() => expect(setAuthOverlay).toHaveBeenCalledWith('sign-in', 'session_expired'));
   });
 
   it('re-checks the session so the rest of the UI stops claiming to be signed in', async () => {
@@ -151,7 +146,7 @@ describe('a session the server has forgotten', () => {
     vi.spyOn(window, 'open').mockImplementation(() => null);
     render(<UserAccountInfo />);
     fireEvent.click(topUp());
-    await waitFor(() => expect(setAuthOverlay).toHaveBeenCalledWith('sign-in'));
+    await waitFor(() => expect(setAuthOverlay).toHaveBeenCalledWith('sign-in', 'session_expired'));
   });
 
   // A token endpoint that is merely down is a different problem from a session
