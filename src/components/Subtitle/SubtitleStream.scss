@@ -120,6 +120,15 @@
       background: transparent;
       padding: 0;
     }
+
+    // The list's Back to live row spans the window as the status line below it
+    // does: out through this stream's 8px/12px/10px padding to its edges and bottom.
+    .follow-dock {
+      width: auto;
+      align-self: stretch;
+      margin: 8px -12px -10px;
+      font-size: 13px;
+    }
   }
 }
 
