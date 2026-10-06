@@ -1454,6 +1454,16 @@ def test_tts_asr_loopback_per_family():
     else:
         skipped.append("magpie_tts")
 
+    # neutts (2026-10-06): a documented speaker, chosen through the voice_id option; then the
+    # same model with nothing set, the case that decides whether its card may leave
+    # default_preset empty (the engine speaks emily, session.cpp:62-64).
+    neutts_dir = family_dir("SK_TEST_TTS_NEUTTS_DIR")
+    if neutts_dir:
+        attempt("neutts", neutts_dir, lambda m: m.set_preset("paul"), note="preset: paul")
+        attempt("neutts", neutts_dir, lambda m: None, note="bare: nothing set")
+    else:
+        skipped.append("neutts")
+
     # pocket_tts (English package): the ONE full-production-chain leg (ruling
     # R17(s4) / I1 point 2; the symlinked-snapshot loading defect it surfaced is
     # fixed by ruling R18's hard-link staging) -- see

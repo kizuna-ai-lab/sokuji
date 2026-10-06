@@ -188,6 +188,11 @@ constexpr FamilyInfo kFamilies[] = {
     // (include/engine/models/magpie_tts/assets.h:62). The engine maps a bare language code
     // itself (tokenizer_text.cpp:1140-1165).
     {"magpie_tts",     false, false, false, 22050, false, true,  false, FamilyTask::Tts, "voice_id"},
+    // neutts (audio.cpp src/models/neutts/): built-in speaker prompts read only from the voice_id
+    // option, default emily (session.cpp:62-64; an unknown name throws, prompt.cpp:98-100); no
+    // cloning in this port; strict; 24 kHz, its codec's output rate (session.cpp:281). Segment
+    // streaming gains nothing on one utterance, so offline.
+    {"neutts",         false, false, false, 24000, false, true,  false, FamilyTask::Tts, "voice_id"},
 };
 
 const FamilyInfo *find_family(const char *name) {

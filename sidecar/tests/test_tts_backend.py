@@ -1802,3 +1802,18 @@ def test_magpie_card_is_not_gated_by_r16(native_env):
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=m.family, voice_required=m.voice_required))
     samples, _rate, _ms = b.generate("hello")
     assert samples.dtype == np.float32
+
+
+def test_neutts_card_is_not_gated_by_r16(native_env):
+    """The card is not voice-gated: with no clip and no preset set, the R16 gate lets generate()
+    through to the native layer (mocked here; test_tts_engine's bare loopback leg is what shows
+    the real engine answering a bare synth)."""
+    from sokuji_sidecar import catalog
+    created, log = native_env
+    m = catalog.tts_model("neutts-2e")
+    assert m.voice_required is False
+    created["caps"] = _caps(clones=False)
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "orig", config=PlanConfig(tts_family=m.family, voice_required=m.voice_required))
+    samples, _rate, _ms = b.generate("hello")
+    assert samples.dtype == np.float32

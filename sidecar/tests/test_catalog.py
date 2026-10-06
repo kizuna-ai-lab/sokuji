@@ -224,7 +224,8 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
                 "chatterbox",
                 "chatterbox-turbo",
                 "confucius4",
-                "magpie-357m")
+                "magpie-357m",
+                "neutts-2e")
 
 # The 2026-09-03 batch arrived CPU-ONLY and earned every tier the same evening
 # (commit 2f2b28bc, after the per-family fleet run; catalog._TTS_TIER_OVERRIDES).
@@ -1414,3 +1415,39 @@ def test_magpie_card_and_license():
     # The matrix dtypes of each published rung (no companions), read from the Hub: the q8_0 file
     # keeps f16 tensors beside its q8_0 ones; the orig file is F32 only.
     assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"}), "orig": frozenset({"f32"})}
+
+
+def test_neutts_card_and_license():
+    # 2026-10-06: English; the four speakers Neuphonic documents for 2E (the GGUF carries nine
+    # prompts); NeuTTS Open License behind the conditional gate.
+    m = catalog.tts_model("neutts-2e")
+    assert m is not None
+    assert (m.family, m.graph_family, m.name) == ("neutts", "neutts", "NeuTTS 2E")
+    assert m.sort_order == 22 and m.recommended is False
+    assert m.languages == ("en",)
+    assert m.clones is False and m.transcript_required is False and m.named_voices is True
+    assert m.streaming is False and m.sample_rate == 24000
+    assert m.voice_required is False and m.default_preset == ""
+    assert m.presets == ("emily", "paul", "sophie", "steven")
+    cap = catalog.voice_capability(m)
+    assert (cap["builtin"], cap["custom"], cap["required"]) == ("named", "none", False)
+    assert m.extra_files == ()
+    assert m.family not in catalog._TTS_TIER_OVERRIDES
+    assert {d.tier for d in m.deployments} == {"cpu"}
+    rungs = {d.compute_type: d for d in m.deployments}
+    assert set(rungs) == {"orig"} and rungs["orig"].rank == 2.0
+    assert rungs["orig"].artifact == "audio-cpp/audio.cpp-gguf/NeuTTS-2E-GGUF/neutts-2e-orig.gguf"
+    assert rungs["orig"].est_bytes == 3_016_181_288
+    assert m.size_bytes == 3_016_181_288
+    assert catalog.license_dict(m) == {
+        "spdx": "LicenseRef-NeuTTS-Open-License-1.0",
+        "name": "NeuTTS Open License v1.0",
+        "url": "https://huggingface.co/neuphonic/neutts-2e/blob/main/LICENSE",
+        "nonCommercial": False,
+        "requiresConsent": True,
+        "sourceRepo": "audio-cpp/audio.cpp-gguf",
+        "attribution": "Neuphonic",
+    }
+    # The matrix dtypes of the one published rung (a single "orig" file, no companions), read
+    # from the Hub: bf16 and f32.
+    assert dict(m.rung_dtypes) == {"orig": frozenset({"bf16", "f32"})}

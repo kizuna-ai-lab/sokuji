@@ -1568,6 +1568,27 @@ TTS_MODELS: list[TtsModel] = [
             requires_consent=True,
             source_repo=_AUDIOCPP_GGUF_REPO,
             attribution="NVIDIA")),
+    # NeuTTS 2E (Neuphonic): English, built-in speakers chosen through the voice_id option, no
+    # cloning. The GGUF carries nine speaker prompts; Neuphonic's model card documents four
+    # fixed speakers for 2E, and the card offers those four (ruling 9, applied to voices). The
+    # NeuTTS Open License allows commercial use below a revenue threshold: the conditional
+    # consent wording. One unquantised ("orig") file.
+    _tts_gguf_row(
+        "neutts-2e", "NeuTTS 2E", ("en",),
+        "neutts", "NeuTTS-2E-GGUF",
+        {"orig": ("neutts-2e-orig.gguf", 3016181288)},
+        default_quant="orig", order=22, clones=False, streaming=False,
+        sample_rate=24000, named_voices=True,
+        presets=("emily", "paul", "sophie", "steven"),
+        rung_dtypes={"orig": {"bf16", "f32"}},
+        license=License(
+            spdx="LicenseRef-NeuTTS-Open-License-1.0",
+            name="NeuTTS Open License v1.0",
+            url="https://huggingface.co/neuphonic/neutts-2e/blob/main/LICENSE",
+            non_commercial=False,
+            requires_consent=True,
+            source_repo=_AUDIOCPP_GGUF_REPO,
+            attribution="Neuphonic")),
 ]
 
 

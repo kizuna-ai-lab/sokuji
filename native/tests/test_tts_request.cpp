@@ -514,6 +514,16 @@ void magpie_tts_requests() {
     assert(!has(req, "voice_id") && !req.voice.has_value());
 }
 
+void neutts_requests() {
+    const auto h = handle_for("neutts");
+    assert(!h->clones && h->preset_option != nullptr && std::strcmp(h->preset_option, "voice_id") == 0);
+    give_preset(h.get(), "paul");
+    rt::TaskRequest req = build_request(h.get(), "Hello.", "en", 1.0f);
+    assert(opt(req, "voice_id") == "paul");
+    assert(!req.voice.has_value());
+    assert(!has(req, "do_sample") && opt(req, "seed") == "0");
+}
+
 }  // namespace
 
 int main() {
@@ -537,6 +547,7 @@ int main() {
     chatterbox_turbo_requests();
     confucius4_tts_requests();
     magpie_tts_requests();
+    neutts_requests();
     std::puts("test_tts_request ok");
     return 0;
 }

@@ -1774,3 +1774,13 @@ def test_models_catalog_carries_the_magpie_card():
                          "magpie-tts-multilingual-357m-q8_0.gguf")
     assert c["sizeBytes"] == 1562142912
     assert c["license"]["requiresConsent"] is True and c["license"]["nonCommercial"] is False
+
+
+def test_models_catalog_carries_the_neutts_card():
+    c = _catalog("tts")["neutts-2e"]
+    assert c["order"] == 22 and c["clones"] is False and c["streaming"] is False
+    assert c["voice"]["builtin"] == "named" and c["voice"]["custom"] == "none"
+    assert c["voice"]["required"] is False
+    assert c["repo"] == "audio-cpp/audio.cpp-gguf/NeuTTS-2E-GGUF/neutts-2e-orig.gguf"
+    assert c["sizeBytes"] == 3016181288
+    assert c["license"]["requiresConsent"] is True and c["license"]["nonCommercial"] is False

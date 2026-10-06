@@ -97,7 +97,7 @@ def test_audio_families():
     # always compiles silero_vad in regardless of AUDIOCPP_MODELS (see upstreams.cmake), so
     # the family rides along unused, reported by sk_audio_families() but never called.
     required = {"index_tts2", "irodori_tts", "moss_tts_nano", "omnivoice", "pocket_tts",
-                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3", "fireredtts3", "moss_tts_local", "vibevoice", "chatterbox", "chatterbox_turbo", "confucius4_tts", "magpie_tts"}
+                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3", "fireredtts3", "moss_tts_local", "vibevoice", "chatterbox", "chatterbox_turbo", "confucius4_tts", "magpie_tts", "neutts"}
     assert required <= set(families)
     assert families == sorted(families)
     # Sized from the library's own count, so the binding never cuts the list off.
@@ -421,6 +421,8 @@ TTS_CONFUCIUS4_DIR = os.environ.get("SK_TEST_TTS_CONFUCIUS4_DIR")
 needs_tts_confucius4 = pytest.mark.skipif(not (HAVE_TREE and TTS_CONFUCIUS4_DIR), reason="needs a built tree and SK_TEST_TTS_CONFUCIUS4_DIR")
 TTS_MAGPIE_DIR = os.environ.get("SK_TEST_TTS_MAGPIE_DIR")
 needs_tts_magpie = pytest.mark.skipif(not (HAVE_TREE and TTS_MAGPIE_DIR), reason="needs a built tree and SK_TEST_TTS_MAGPIE_DIR")
+TTS_NEUTTS_DIR = os.environ.get("SK_TEST_TTS_NEUTTS_DIR")
+needs_tts_neutts = pytest.mark.skipif(not (HAVE_TREE and TTS_NEUTTS_DIR), reason="needs a built tree and SK_TEST_TTS_NEUTTS_DIR")
 needs_tts_supertonic = pytest.mark.skipif(not (HAVE_TREE and TTS_SUPERTONIC_DIR), reason="needs a built tree and SK_TEST_TTS_SUPERTONIC_DIR")
 needs_tts_moss = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_DIR), reason="needs a built tree and SK_TEST_TTS_MOSS_DIR")
 needs_tts_index = pytest.mark.skipif(not (HAVE_TREE and TTS_INDEX_DIR), reason="needs a built tree and SK_TEST_TTS_INDEX_DIR")
@@ -643,6 +645,9 @@ NEW_CPU_TTS_FAMILIES = [
     # magpie_tts speaks one of five baked speakers, chosen through the voice_id option; no clip.
     CpuTtsCase("magpie_tts", "SK_TEST_TTS_MAGPIE_DIR", TTS_MAGPIE_DIR, "Hello from Magpie.", "en", 22050, False,
                clones=False, preset="Sofia"),
+    # neutts speaks a built-in speaker prompt, chosen through the voice_id option; no clip.
+    CpuTtsCase("neutts", "SK_TEST_TTS_NEUTTS_DIR", TTS_NEUTTS_DIR, "Hello from NeuTTS.", "en", 24000, False,
+               clones=False, preset="paul"),
 ]
 
 
@@ -1096,6 +1101,63 @@ def test_tts_magpie_a_language_without_a_frontend_fails_cleanly():
         t.unload()
 
 
+@needs_tts_neutts
+def test_tts_neutts_presets_reach_the_engine():
+    """NeuTTS reads its speaker only from the voice_id option, so two of its speakers must
+    sound different; through cached_voice_id both would be emily."""
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    t = sokuji_native.tts_load(_main_gguf(TTS_NEUTTS_DIR), "neutts", cpu)
+    try:
+        t.set_preset("emily")
+        emily, rate = t.synth("Hello from NeuTTS.", language="en")
+        t.set_preset("paul")
+        paul, _rate = t.synth("Hello from NeuTTS.", language="en")
+    finally:
+        t.unload()
+    assert rate == 24000
+    assert emily.shape != paul.shape or not np.allclose(emily, paul)
+
+
+# The four names of the sidecar card "neutts-2e" (catalog.py, its `presets` tuple): the GGUF
+# carries nine speaker prompts and the card offers the four Neuphonic documents, so this test
+# is what pins them to the real file.
+NEUTTS_CARD_PRESETS = ("emily", "paul", "sophie", "steven")
+
+
+@needs_tts_neutts
+def test_tts_neutts_every_card_preset_synthesises():
+    """An unknown voice_id raises ("unsupported NeuTTS speaker"), so a preset the card offers
+    that the GGUF does not carry would fail at the user's first synth."""
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    t = sokuji_native.tts_load(_main_gguf(TTS_NEUTTS_DIR), "neutts", cpu)
+    try:
+        for name in NEUTTS_CARD_PRESETS:
+            t.set_preset(name)
+            samples, rate = t.synth("Hello from NeuTTS.", language="en")
+            assert rate == 24000, name
+            assert 0.3 < samples.shape[0] / rate < 20.0, name
+            assert float(np.max(np.abs(samples))) > 0.01, name
+    finally:
+        t.unload()
+
+
+@needs_tts_neutts
+def test_tts_neutts_unknown_preset_fails_cleanly():
+    """sk_tts_set_preset does not know NeuTTS's names, so a typo surfaces at synth, as the
+    engine's own message."""
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    t = sokuji_native.tts_load(_main_gguf(TTS_NEUTTS_DIR), "neutts", cpu)
+    try:
+        t.set_preset("nobody")
+        with pytest.raises(sokuji_native.NativeError, match="unsupported NeuTTS speaker: nobody"):
+            t.synth("Hello from NeuTTS.", language="en")
+    finally:
+        t.unload()
+
+
 # --------------------------------------------------------------------------------------
 # TTS on a real GPU device.
 #
@@ -1181,6 +1243,7 @@ GPU_TTS_FAMILIES = {
     "chatterbox_turbo": ("SK_TEST_TTS_CHATTERBOX_TURBO_DIR", TTS_CHATTERBOX_TURBO_DIR, None, False, 30.0, GPU_TTS_TEXT, "en"),
     "confucius4_tts": ("SK_TEST_TTS_CONFUCIUS4_DIR", TTS_CONFUCIUS4_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
     "magpie_tts": ("SK_TEST_TTS_MAGPIE_DIR", TTS_MAGPIE_DIR, "Sofia", False, 30.0, GPU_TTS_TEXT, "en"),
+    "neutts": ("SK_TEST_TTS_NEUTTS_DIR", TTS_NEUTTS_DIR, "paul", False, 30.0, GPU_TTS_TEXT, "en"),
 }
 
 # The dirs above hold the DEFAULT rung — the catalog's `default_quant`, which is
