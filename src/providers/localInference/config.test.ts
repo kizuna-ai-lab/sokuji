@@ -84,7 +84,7 @@ function shared(overrides: { reversed?: boolean; segmentation?: SharedSettings['
 function cfg(ids: { asr: string; translation?: string; tts?: string }): LocalInferenceConfig {
   return {
     asr: { modelId: ids.asr, streaming: false },
-    vad: { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4, maxSpeechDuration: 30 },
+    vad: { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4, maxSpeechDuration: 30, preSpeechPadDuration: 0.8 },
     translation: ids.translation ? { kind: 'engine', modelId: ids.translation, instructions: '', wrapTranscript: false } : { kind: 'none' },
     ...(ids.tts ? { tts: { modelId: ids.tts, speakerId: 0, speed: 1, edgeVoice: undefined } } : {}),
   };
@@ -194,9 +194,19 @@ describe('buildLocalInference', () => {
   it('carries a set VAD negative threshold into vad.negativeThreshold, and leaves it out when unset', () => {
     resolved({ 'ja>en': { asr: 'a', translation: 't' } });
     const withIt = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings({ vadNegativeThreshold: 0.15 }), shared()) as LocalInferenceConfig;
-    expect(withIt.vad).toEqual({ threshold: 0.3, negativeThreshold: 0.15, minSilenceDuration: 1.4, minSpeechDuration: 0.4, maxSpeechDuration: 30 });
+    expect(withIt.vad).toEqual({ threshold: 0.3, negativeThreshold: 0.15, minSilenceDuration: 1.4, minSpeechDuration: 0.4, maxSpeechDuration: 30, preSpeechPadDuration: 0.8 });
     const without = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared()) as LocalInferenceConfig;
     expect(without.vad).not.toHaveProperty('negativeThreshold');
+  });
+
+  it('carries the pre-speech padding into vad.preSpeechPadDuration', () => {
+    // The vad-web workers read it as `vadConfig.preSpeechPadDuration`; without
+    // it in the config they fall back to their own built-in 0.8 s.
+    resolved({ 'ja>en': { asr: 'a', translation: 't' } });
+    const set = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings({ vadPreSpeechPadDuration: 0.3 }), shared()) as LocalInferenceConfig;
+    expect(set.vad.preSpeechPadDuration).toBe(0.3);
+    const byDefault = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared()) as LocalInferenceConfig;
+    expect(byDefault.vad.preSpeechPadDuration).toBe(0.8);
   });
 
   it("trims the speaker prompt before falling back to the default, matching today's cascade", () => {

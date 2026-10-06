@@ -120,18 +120,31 @@ describe('LocalInferenceTurnDetectionControls', () => {
     expect(screen.getByText('Min Speech Duration')).toBeTruthy();
     expect(screen.queryByText('Max Speech Duration')).toBeNull();
     expect(screen.queryByText('Silence Threshold')).toBeNull();
+    // Its C++ detector looks back a fixed two windows before detected speech
+    // and has no setting for it (sherpa-onnx voice-activity-detector.cc).
+    expect(screen.queryByText('Pre-Speech Padding')).toBeNull();
   });
 
-  it('adds max speech and the silence threshold for a vad-web worker', () => {
+  it('adds max speech, the silence threshold and the pre-speech padding for a vad-web worker', () => {
     render(<LocalInferenceTurnDetectionControls settings={LOCAL_INFERENCE_DEFAULTS} update={() => {}} pair={pair} />);
     expect(screen.getByText('Max Speech Duration')).toBeTruthy();
     expect(screen.getByText('Silence Threshold')).toBeTruthy();
+    expect(screen.getByText('Pre-Speech Padding')).toBeTruthy();
+  });
+
+  it('sends a pre-speech padding change through update', () => {
+    const update = vi.fn();
+    const { container } = render(<LocalInferenceTurnDetectionControls settings={LOCAL_INFERENCE_DEFAULTS} update={update} pair={pair} />);
+    const pad = [...container.querySelectorAll('input[type="range"]')]
+      .find((s) => (s as HTMLInputElement).value === String(LOCAL_INFERENCE_DEFAULTS.vadPreSpeechPadDuration)) as HTMLInputElement;
+    fireEvent.change(pad, { target: { value: '0.3' } });
+    expect(update).toHaveBeenCalledWith({ vadPreSpeechPadDuration: 0.3 });
   });
 
   it('disables every slider', () => {
     const { container } = render(<LocalInferenceTurnDetectionControls settings={LOCAL_INFERENCE_DEFAULTS} update={() => {}} disabled pair={pair} />);
     const sliders = container.querySelectorAll('input[type="range"]');
-    expect(sliders.length).toBe(5);
+    expect(sliders.length).toBe(6);
     for (const slider of sliders) expect(slider).toBeDisabled();
   });
 });

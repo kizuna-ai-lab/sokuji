@@ -155,6 +155,8 @@
     "vadMinSilenceDurationTooltip": "Durasi diam minimum untuk memisahkan segmen ucapan. Nilai lebih pendek memisahkan kalimat lebih cepat, nilai lebih panjang menunggu jeda yang lebih alami.",
     "vadMaxSpeechDuration": "Durasi Bicara Maksimum",
     "vadMaxSpeechDurationTooltip": "Durasi terpanjang satu segmen ucapan sebelum dipecah. Sebagian model memecah lebih awal, pada segmen terpanjang yang dapat ditranskripsikan dengan benar.",
+    "vadPreSpeechPadDuration": "Penyangga Sebelum Bicara",
+    "vadPreSpeechPadDurationTooltip": "Menyimpan audio tepat sebelum ucapan terdeteksi, agar bunyi pertama kalimat tidak terpotong. Nilai yang lebih besar juga mengirim lebih banyak derau sebelum Anda berbicara ke pengenalan.",
     "vadMinSpeechDuration": "Durasi Bicara Minimum",
     "vadMinSpeechDurationTooltip": "Durasi minimum untuk dianggap sebagai ucapan valid. Memfilter suara yang sangat pendek seperti klik atau batuk.",
     "geminiVadTooltip": "Mengontrol cara Gemini mendeteksi jeda bicara untuk membagi giliran. Menyesuaikan pengaturan ini dapat meningkatkan responsivitas terjemahan untuk ucapan yang terus-menerus. \nTekan untuk Bicara: tahan sebuah tombol untuk mengirim audio. \nTekan untuk Terjemahkan: seperti Tekan untuk Bicara, tetapi merutekan mikrofon mentah Anda ke mikrofon virtual saat tidak aktif sehingga Anda dapat berbicara langsung tanpa terjemahan.",

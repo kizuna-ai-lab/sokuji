@@ -16,7 +16,7 @@ const auto: SessionContext = { direction: { source: 'ja', target: 'en' }, speech
 function makeConfig(over: Partial<LocalInferenceConfig> = {}): LocalInferenceConfig {
   return {
     asr: { modelId: 'asr-model', streaming: true },
-    vad: { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4, maxSpeechDuration: 30 },
+    vad: { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4, maxSpeechDuration: 30, preSpeechPadDuration: 0.8 },
     translation: { kind: 'engine', modelId: 'mt-model', instructions: 'Translate ja to en.', wrapTranscript: true },
     ...over,
   };

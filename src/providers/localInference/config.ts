@@ -16,7 +16,7 @@ import type { LocalInferenceSettings } from './settings';
  */
 export interface LocalInferenceConfig {
   asr: { modelId: string; streaming: boolean };
-  vad: { threshold: number; negativeThreshold?: number; minSilenceDuration: number; minSpeechDuration: number; maxSpeechDuration: number };
+  vad: { threshold: number; negativeThreshold?: number; minSilenceDuration: number; minSpeechDuration: number; maxSpeechDuration: number; preSpeechPadDuration: number };
   translation:
     | { kind: 'engine'; modelId: string; instructions: string; wrapTranscript: boolean }
     | { kind: 'ast' }
@@ -86,6 +86,7 @@ export function buildLocalInference(
     minSilenceDuration: s.vadMinSilenceDuration,
     minSpeechDuration: s.vadMinSpeechDuration,
     maxSpeechDuration: s.vadMaxSpeechDuration,
+    preSpeechPadDuration: s.vadPreSpeechPadDuration,
   };
   if (s.vadNegativeThreshold) vad.negativeThreshold = s.vadNegativeThreshold;
 
