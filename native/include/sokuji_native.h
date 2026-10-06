@@ -320,10 +320,10 @@ SK_API void      sk_tts_unload(sk_tts *);
 /* Register the recording device with ggml's registry. MUST be called before the first
  * sk_init of the process (sk_init enumerates devices once, first call wins). Returns 1. */
 SK_API int32_t   sk_record_register_device(void);
-/* Start capturing. `weight_names`: every tensor name in the model file; `rung_ops`: the op
- * names whose src0 is a rung-bearing weight ("MUL_MAT", "MUL_MAT_ID", "GET_ROWS") — a src0
- * of one of those ops whose name is in weight_names is recorded as WEIGHT, every other
- * tensor with its literal dtype. */
+/* Start capturing. `weight_names`: every tensor name in the GGUFs the model path stands for,
+ * the main file and its companions; `rung_ops`: the op names whose src0 is a rung-bearing
+ * weight ("MUL_MAT", "MUL_MAT_ID", "GET_ROWS") — a src0 of one of those ops whose name is in
+ * weight_names is recorded as WEIGHT, every other tensor with its literal dtype. */
 SK_API void      sk_record_begin(const char *const *weight_names, int32_t n_names,
                                  const char *const *rung_ops, int32_t n_rung_ops);
 /* Stop capturing and write the .ops file. `recorded_on` is the ggml device kind the model was
