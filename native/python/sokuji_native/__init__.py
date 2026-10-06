@@ -230,9 +230,14 @@ def device_supports_ops(index: int, stage: str, family: str, weight_dtypes) -> O
 
 def audio_families() -> list[str]:
     lib = _load()
-    buf = (ctypes.c_char_p * 64)()
-    n = lib.sk_audio_families(buf, 64)
-    return [buf[i].decode() for i in range(n)]
+    # Sized from the library's own count (out == NULL), never a fixed buffer the compiled
+    # roster could outgrow: sk_audio_families truncates silently at its capacity.
+    n = lib.sk_audio_families(None, 0)
+    buf = (ctypes.c_char_p * max(n, 1))()
+    got = lib.sk_audio_families(buf, n)
+    if got != n:
+        raise NativeError(_ffi.SK_ERR_INTERNAL, f"sk_audio_families: wrote {got} of {n} names")
+    return [buf[i].decode() for i in range(got)]
 
 
 def _pcm(x):

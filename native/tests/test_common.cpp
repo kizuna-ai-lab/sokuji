@@ -286,9 +286,19 @@ int main(int argc, char **argv) {
     sk_free(nullptr);                                                 // and null
 
     assert(std::strstr(sk_engine_versions(), "audiocpp=0.9.0+54aa279") != nullptr);
-    const char *fams[32];
-    int nf = sk_audio_families(fams, 32);
-    assert(nf >= 10);                                                 // may include companion families too
+    // Sized from the library's own count (out == NULL), so no fixed buffer here can be outgrown
+    // as the roster grows: the filled count must equal it, and a short buffer is filled with
+    // the first names and never overrun.
+    const int32_t total = sk_audio_families(nullptr, 0);
+    assert(total >= 10);                                              // may include companion families too
+    std::vector<const char *> fams(static_cast<size_t>(total), nullptr);
+    const int nf = sk_audio_families(fams.data(), total);
+    assert(nf == total);
+    {
+        const char *two[2] = {nullptr, nullptr};
+        assert(sk_audio_families(two, 2) == 2);
+        assert(std::strcmp(two[0], fams[0]) == 0 && std::strcmp(two[1], fams[1]) == 0);
+    }
     const char *want[] = {"index_tts2", "irodori_tts", "moss_tts_nano", "omnivoice", "pocket_tts",
                           "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2"};
     for (const char *w : want) {

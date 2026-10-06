@@ -99,6 +99,27 @@ def test_audio_families():
                 "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2"}
     assert required <= set(families)
     assert families == sorted(families)
+    # Sized from the library's own count, so the binding never cuts the list off.
+    assert len(families) == sokuji_native._load().sk_audio_families(None, 0)
+
+
+def test_audio_families_never_truncates(monkeypatch):
+    """sk_audio_families truncates silently at its capacity, so a fixed-size buffer in the
+    binding would drop names once the compiled roster outgrew it. A fake library with 100
+    families shows that every name comes back."""
+    names = [f"family_{i:03d}".encode() for i in range(100)]
+
+    class FakeLib:
+        def sk_audio_families(self, out, capacity):
+            if out is None or capacity <= 0:
+                return len(names)
+            n = min(capacity, len(names))
+            for i in range(n):
+                out[i] = names[i]
+            return n
+
+    monkeypatch.setattr(sokuji_native, "_load", lambda: FakeLib())
+    assert sokuji_native.audio_families() == [n.decode() for n in names]
 
 
 @needs_tree
@@ -391,6 +412,68 @@ needs_tts_omnivoice_clone = pytest.mark.skipif(
     reason="needs a built tree, SK_TEST_TTS_OMNIVOICE_DIR and SK_TEST_TTS_SUPERTONIC_DIR (reference clip)")
 
 
+def _main_gguf(path) -> str:
+    """The main GGUF of a test model directory: the largest *.gguf directly inside it (ties:
+    the first name); a path that names a .gguf comes back as given. native/tests/model_path.h's
+    rule, which the op recorder applies to the same directories. A card that stages
+    companions (per-quant components, a codec) keeps them beside its main file, so the
+    directory alone is ambiguous to audio.cpp's own resolver; the sidecar likewise hands
+    sk_tts_load the main file, never the directory."""
+    p = pathlib.Path(path)
+    if p.suffix == ".gguf":
+        return str(p)
+    ggufs = sorted((f for f in p.iterdir() if f.suffix == ".gguf" and f.is_file()),
+                   key=lambda f: (-f.stat().st_size, f.name))
+    if not ggufs:
+        raise FileNotFoundError(f"no .gguf directly inside {p}")
+    return str(ggufs[0])
+
+
+def test_main_gguf_picks_the_largest_gguf_beside_its_companions(tmp_path):
+    """native/tests/model_path.h's rule, which the op recorder applies to the same
+    directories: the largest .gguf directly inside wins, ties go to the first name,
+    subdirectories and other extensions are ignored, a .gguf path comes back unchanged."""
+    for name, size in (("mmproj-model-Q8_0.gguf", 300), ("vocoder-model-Q8_0.gguf", 200),
+                       ("tokenizer-model-Q8_0.gguf", 80), ("model-Q8_0.gguf", 1200),
+                       ("README.md", 5000)):
+        (tmp_path / name).write_bytes(b"\0" * size)
+    (tmp_path / "codec").mkdir()
+    (tmp_path / "codec" / "codec-q8_0.gguf").write_bytes(b"\0" * 9000)
+    assert _main_gguf(tmp_path) == str(tmp_path / "model-Q8_0.gguf")
+    companion = tmp_path / "vocoder-model-Q8_0.gguf"
+    assert _main_gguf(companion) == str(companion)
+    tie = tmp_path / "tie"
+    tie.mkdir()
+    (tie / "b.gguf").write_bytes(b"\0" * 64)
+    (tie / "a.gguf").write_bytes(b"\0" * 64)
+    assert _main_gguf(tie) == str(tie / "a.gguf")
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    with pytest.raises(FileNotFoundError):
+        _main_gguf(empty)
+
+
+@needs_tts_supertonic
+def test_tts_loads_the_main_gguf_of_a_directory_with_companions(tmp_path):
+    """A card that stages companion GGUFs beside its main file leaves a directory audio.cpp
+    cannot resolve on its own, so the harness hands sk_tts_load the main file, as the sidecar
+    does. A real model plus a smaller companion: the rule picks the model, and it loads."""
+    real = pathlib.Path(_main_gguf(TTS_SUPERTONIC_DIR))
+    (tmp_path / real.name).symlink_to(real)
+    (tmp_path / "aaa-companion.gguf").write_bytes(b"\0" * 16)
+    main = _main_gguf(tmp_path)
+    assert main == str(tmp_path / real.name)
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    t = sokuji_native.tts_load(main, "supertonic", cpu)
+    try:
+        t.set_preset("M1")
+        samples, rate = t.synth("Hello.", language="en")
+    finally:
+        t.unload()
+    assert rate == 44100 and samples.shape[0] > 0
+
+
 @needs_tts_supertonic
 def test_tts_supertonic_streams_presets_and_cancel():
     sokuji_native.init()
@@ -542,7 +625,7 @@ def test_tts_new_family_synthesises_on_cpu(family, env_name, model_dir, text, la
     cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
     voice = _cpu_reference_clip() if needs_ref else None
 
-    t = sokuji_native.tts_load(model_dir, family, cpu)
+    t = sokuji_native.tts_load(_main_gguf(model_dir), family, cpu)
     try:
         caps = t.capabilities
         assert caps.clones and not caps.transcript_required
@@ -592,7 +675,7 @@ def test_tts_new_family_accepts_a_clip_that_carries_a_transcript(
     cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
     pcm, ref_rate, ref_text = _cpu_reference_clip()
 
-    t = sokuji_native.tts_load(model_dir, family, cpu)
+    t = sokuji_native.tts_load(_main_gguf(model_dir), family, cpu)
     try:
         t.set_voice(pcm, ref_rate, ref_text=ref_text)
         samples, out_rate = t.synth(text, language=language)
@@ -794,7 +877,7 @@ if cfg["clones"]:
         ref.unload()
 
 t0 = time.perf_counter()
-model = s.tts_load(cfg["model_dir"], cfg["family"], device)
+model = s.tts_load(cfg["model_path"], cfg["family"], device)
 load_s = time.perf_counter() - t0
 try:
     if cfg["preset"]:
@@ -859,7 +942,7 @@ def test_tts_synthesises_on_a_gpu_device(family, quant):
         "native_python_dir": str(pathlib.Path(sokuji_native.__file__).resolve().parents[1]),
         "device_index": device.index,
         "family": family,
-        "model_dir": model_dir,
+        "model_path": _main_gguf(model_dir),
         "preset": preset,
         "clones": clones,
         "supertonic_dir": TTS_SUPERTONIC_DIR,
@@ -904,3 +987,36 @@ def test_tts_synthesises_on_a_gpu_device(family, quant):
     # Silence of the right length is the failure mode a duration check cannot see: a backend
     # that runs every kernel and writes zeros passes everything above.
     assert got["peak"] > GPU_TTS_MIN_PEAK, got
+
+
+_NATIVE_ROOT = pathlib.Path(__file__).resolve().parents[2]
+
+
+def _ops_report(ops_dir):
+    return subprocess.run(
+        [sys.executable, str(_NATIVE_ROOT / "cmake" / "gen_ops_data.py"), "--report", str(ops_dir),
+         str(_NATIVE_ROOT / "include" / "sokuji_native.h")],
+        capture_output=True, text=True)
+
+
+def test_every_shipped_op_recording_fits_the_coverage_cap():
+    """The build's static_assert, run early: every shipped .ops expanded over the widest
+    fallback dtype set fits SK_OP_COVERAGE_MAX."""
+    proc = _ops_report(_NATIVE_ROOT / "src" / "ops")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    lines = proc.stdout.splitlines()
+    assert any(l.startswith("tts-index_tts2.ops: ") for l in lines), proc.stdout
+    assert lines and all(l.endswith(" ok") for l in lines), proc.stdout
+
+
+def test_op_report_flags_a_recording_over_the_cap(tmp_path):
+    # 292 WEIGHT lines x 7 + 4 other lines = 2048 exactly (fits); 293 x 7 = 2051 (does not).
+    edge = [f"op=MUL_MAT src=[WEIGHT,f32] ne0=[{i},1]" for i in range(292)]
+    edge += [f"op=ADD src=[f32,f32] ne0=[{i},1]" for i in range(4)]
+    (tmp_path / "tts-edge.ops").write_text("# stage: tts ; family: edge\n" + "\n".join(edge) + "\n")
+    over = [f"op=MUL_MAT src=[WEIGHT,f32] ne0=[{i},1]" for i in range(293)]
+    (tmp_path / "tts-over.ops").write_text("# stage: tts ; family: over\n" + "\n".join(over) + "\n")
+    proc = _ops_report(tmp_path)
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert "tts-edge.ops: 296 op lines, 292 WEIGHT, 2048 expanded / cap 2048 ok" in proc.stdout
+    assert "tts-over.ops: 293 op lines, 293 WEIGHT, 2051 expanded / cap 2048 OVER" in proc.stdout

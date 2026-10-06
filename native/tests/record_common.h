@@ -11,15 +11,9 @@
 #include "sokuji_native.h"
 #include "gguf.h"
 #include "ggml.h"
+#include "model_path.h"   // find_gguf: a test model directory's main GGUF
 
 static const char *const RUNG_OPS[] = {"MUL_MAT", "MUL_MAT_ID", "GET_ROWS"};
-
-static std::string find_gguf(const std::string &path) {     // a directory → its single .gguf; a file → itself
-    if (path.size() > 5 && path.compare(path.size() - 5, 5, ".gguf") == 0) return path;
-    for (const auto &e : std::filesystem::directory_iterator(path))
-        if (e.path().extension() == ".gguf") return e.path().string();
-    return "";
-}
 
 static bool ignore_text(const char *, void *) { return true; }
 static bool ignore_audio(const float *, size_t, int32_t, int32_t, void *) { return true; }
@@ -64,7 +58,11 @@ static Clip reference_clip(const sk_device *cpu, const std::string &supertonic_d
 static int record_family(const std::string &stage, const std::string &family, const std::string &model,
                          const sk_device *dev, const std::string &out_path, int32_t flash_attn,
                          const std::string &supertonic_dir) {
+    // The main GGUF: the file the recording's weight names, `# source:` and
+    // `# dtypes-in-file:` come from, and the path a tts family is loaded from below. A
+    // companion's tensors (if the directory stages any) are recorded with their literal dtypes.
     const std::string gguf = find_gguf(model);
+    if (gguf.empty()) { std::fprintf(stderr, "record_family: no .gguf in %s\n", model.c_str()); return 0; }
     std::vector<std::string> names, dtypes_v; std::set<std::string> dtypes;
     {
         gguf_init_params ip = { /*no_alloc*/ true, /*ctx*/ nullptr };
@@ -95,7 +93,9 @@ static int record_family(const std::string &stage, const std::string &family, co
     if (stage == "tts") {
         sk_tts_options o{family.c_str(), family == "pocket_tts" ? "english" : nullptr};
         sk_tts *m = nullptr;
-        if (sk_tts_load(model.c_str(), dev, &o, &m) != SK_OK) { std::fprintf(stderr, "tts load: %s\n", sk_last_error()); return 0; }
+        // The main GGUF file, as the sidecar hands it over in production: a directory that stages
+        // companions beside it is ambiguous to audio.cpp's own resolver.
+        if (sk_tts_load(gguf.c_str(), dev, &o, &m) != SK_OK) { std::fprintf(stderr, "tts load: %s\n", sk_last_error()); return 0; }
         if (needs_voice && !ref.pcm.empty()) sk_tts_set_voice(m, ref.pcm.data(), ref.pcm.size(), ref.rate, "The quick brown fox jumps over the lazy dog.");
         if (family == "pocket_tts") sk_tts_set_preset(m, "alba");
         if (sk_tts_synth(m, "The quick brown fox jumps over the lazy dog.", "en", 1.0f, ignore_audio, nullptr) != SK_OK)

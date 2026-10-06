@@ -58,6 +58,11 @@ target_include_directories(test_tts_request PRIVATE ../src ../include ${audiocpp
 target_link_libraries(test_tts_request PRIVATE ggml)
 add_test(NAME test_tts_request COMMAND test_tts_request)
 
+# The test cache's main-GGUF rule (model_path.h), which record_ops and test_ops_coverage share.
+# Pure std::filesystem, so it runs on every lane.
+add_executable(test_model_path test_model_path.cpp)
+add_test(NAME test_model_path COMMAND test_model_path)
+
 # Spec A §3.2: the pure .ops text format (no backend, no model) — runs on every lane.
 # sk_ops_format.cpp is compiled straight in: it has C++ linkage, so the shared library
 # (which exports only the sk_* C ABI) cannot hand it to a test binary.

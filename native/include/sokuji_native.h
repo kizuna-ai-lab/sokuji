@@ -137,7 +137,9 @@ typedef struct sk_op_check { char name[64]; int32_t supported; } sk_op_check;
 /* Widest shipped recording (tts/index_tts2: 504 identities, 67 WEIGHT) expanded over the
  * widest fallback dtype set (7, gen_ops_data.py's WIDEST_FALLBACK) reaches 906 entries, and
  * over q8_0's 4-dtype rung set still 705 — both exceed 512, so the cap is 2048. The
- * generated static_assert in sk_ops_data.cpp, not this comment, is the gate. */
+ * generated static_assert in sk_ops_data.cpp, not this comment, is the gate. Raising the cap
+ * resizes sk_op_coverage, which crosses this ABI: an SK_ABI_VERSION change, never a quiet edit
+ * (native/README.md, "The op-coverage cap"). */
 #define SK_OP_COVERAGE_MAX 2048
 typedef struct sk_op_coverage {
     int32_t n_ops;            /* entries written */
@@ -188,7 +190,9 @@ SK_API void        sk_free(void *p);
 
 /* Names of every audio.cpp model family compiled into this library, sorted. Includes
  * companions that share a build target with a selected family. Diagnostic only: the
- * sidecar's catalog decides what is supported. */
+ * sidecar's catalog decides what is supported. out == NULL or capacity <= 0: returns the
+ * total count and writes nothing. Otherwise writes min(capacity, total) entries and returns
+ * that number; a short buffer truncates silently, so size it from the count first. */
 SK_API int32_t sk_audio_families(const char **out, int32_t capacity);
 
 /* ---- ASR (transcribe.cpp) ----

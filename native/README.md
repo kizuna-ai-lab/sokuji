@@ -257,6 +257,24 @@ unchanged here: pass the HF cache's `snapshots/.../*.gguf` symlink path as given
 right `.gguf` extension and audio.cpp's existence check follows symlinks) — never resolve it
 down to the extension-less `blobs/<hash>` file.
 
+Test model directories: every `SK_TEST_TTS_<X>_DIR` is `~/.cache/sokuji-native-tests/tts/<card id>/`
+and holds ONE quant of one card. That is its main GGUF plus any companion files the card stages
+beside it (per-quant components, a codec), laid out the way the sidecar stages them. Such a
+directory is never handed to `sk_tts_load` as a directory: with more than one `.gguf` in it,
+audio.cpp cannot tell which file is the model. The harness passes the main GGUF *file* instead, as
+the sidecar does in production. The main GGUF is **the largest `.gguf` directly inside the
+directory** (ties: the first name; subdirectories are not searched). There is one rule with two
+copies, each pinned by a test:
+- `tests/model_path.h`'s `find_gguf`, used by the op recorder and `test_ops_coverage` (pinned by
+  `test_model_path`).
+- `_main_gguf` in `python/tests/test_sokuji_native.py`, used by the CPU-family table and the GPU
+  gate (pinned by `test_main_gguf_picks_the_largest_gguf_beside_its_companions`).
+
+A recording's weight names, `# source:` and `# dtypes-in-file:` come from the main GGUF. A
+companion's tensors are recorded with their literal dtypes unless that family's own code says
+otherwise. `test_tts`, the parity suite and the single-family Python tests still pass their
+one-file directories as directories, which keeps that form of `model_path` covered.
+
 CTest needs two real model directories for `test_tts` (skips with exit code 77 when absent).
 Note: supertonic's Q8_0 GGUF is not currently viable (audio.cpp `docs/gguf.md`: "Q8 blockers
 unresolved" in the text/vector graph paths) — F16 is the smallest quant with a passing test
@@ -416,6 +434,27 @@ bit-identity A/B, per-family timings). One caveat carried from there:
 `moss_tts_nano` is the one family that samples its stop decision (R23), so its Metal wording
 can differ from its CPU wording while both are correct — the GPU test asserts duration and
 non-emptiness, never a transcript.
+
+## The op-coverage cap
+
+`sk_op_coverage` carries at most `SK_OP_COVERAGE_MAX` (2048) entries. A recording's worst case
+is fixed at build time: its `op=` lines, with every `WEIGHT` line expanded over the widest
+fallback dtype set (`WIDEST_FALLBACK` in `cmake/gen_ops_data.py`, 7, which is
+`len(RUNG_FALLBACK_DTYPES["q4_k_m"])` in the sidecar's catalog). `gen_ops_data.py` emits one
+`static_assert` per recording, so a recording past the cap **fails the build on every lane**
+(`"<file>: N expanded entries exceed SK_OP_COVERAGE_MAX"`). A recording fits while
+7 × `WEIGHT` lines + other `op=` lines ≤ 2048. The widest shipped one, `tts-index_tts2.ops`, is
+at 906 (504 op lines, 67 `WEIGHT`). Check a new recording before committing it:
+
+    python3 native/cmake/gen_ops_data.py --report native/src/ops native/include/sokuji_native.h
+
+This prints one line per recording, and `OVER` with exit status 1 for any recording that does
+not fit. `test_sokuji_native.py` runs the same report over the shipped set.
+
+A recording that does not fit is not committed. Raising the cap resizes `sk_op_coverage`, a
+struct the C ABI hands to the caller, so it is an ABI change: `SK_ABI_VERSION`,
+`SK_ABI_VERSION_NUM`, and `_ffi.py`'s `SK_ABI_VERSION` and `SK_OP_COVERAGE_MAX` all move
+together. That is the owner's decision. Stop and report the family's counts instead.
 
 ## Bumping a pin
 
