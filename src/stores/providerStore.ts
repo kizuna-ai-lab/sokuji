@@ -217,8 +217,9 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
     speech: { textOnly: false, participantSpeech: false },
     setSpeech(inputs) {
       const now = get().speech;
-      if (now.textOnly === inputs.textOnly && now.participantSpeech === inputs.participantSpeech) return;
-      set({ speech: { textOnly: inputs.textOnly, participantSpeech: inputs.participantSpeech } });
+      const transcriptionOnly = inputs.transcriptionOnly ?? false;
+      if (now.textOnly === inputs.textOnly && now.participantSpeech === inputs.participantSpeech && (now.transcriptionOnly ?? false) === transcriptionOnly) return;
+      set({ speech: { textOnly: inputs.textOnly, participantSpeech: inputs.participantSpeech, transcriptionOnly } });
       rederive();
     },
 
