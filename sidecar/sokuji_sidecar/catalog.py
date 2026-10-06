@@ -165,8 +165,8 @@ ASR_MODELS: list[AsrModel] = [
     _tc_row("granite-speech-4.1-2b", "Granite Speech 4.1 (2B)",
             ("en", "fr", "de", "es", "pt", "ja"),
             "handy-computer/granite-speech-4.1-2b-gguf", "granite-speech-4.1-2b",
-            20, {"F16": 4632623104, "Q8_0": 2559878848, "Q6_K": 2024967936,
-                 "Q5_K_M": 1829704544, "Q4_K_M": 1602904800}, default="Q4_K_M", arch="granite_speech"),
+            20, {"F16": 4632623200, "Q8_0": 2559878944, "Q6_K": 2024968032,
+                 "Q5_K_M": 1829704640, "Q4_K_M": 1602904896}, default="Q4_K_M", arch="granite_speech"),
     # WER 1.33 — Granite Speech 5.0 TurboCTC (transcribe.cpp 0.2.4, #159): English-only
     # CTC, sub-GB and CPU-fast (RTF 17 on a Ryzen 4750U). Arch::name granite_speech5_ctc
     # (directory granite5_ctc). The -nc sibling is CC-BY-NC-SA and not listed.
@@ -182,13 +182,13 @@ ASR_MODELS: list[AsrModel] = [
     _tc_row("granite-speech-4.1-2b-plus", "Granite Speech 4.1 (2B+)",
             ("en", "fr", "de", "es", "pt"),
             "handy-computer/granite-speech-4.1-2b-plus-gguf", "granite-speech-4.1-2b-plus",
-            30, {"F16": 4229971808, "Q8_0": 2345973152, "Q6_K": 1859821504,
-                 "Q5_K_M": 1691297088, "Q4_K_M": 1489663424}, default="Q4_K_M", arch="granite_speech"),
+            30, {"F16": 4229971936, "Q8_0": 2345973280, "Q6_K": 1859821632,
+                 "Q5_K_M": 1691297216, "Q4_K_M": 1489663552}, default="Q4_K_M", arch="granite_speech"),
     # WER 1.59 (q4_k_m beats q8_0's 1.62 per the author's table) — en/de/es/fr.
     _tc_row("canary-1b-flash", "Canary 1B Flash", ("en", "de", "es", "fr"),
             "handy-computer/canary-1b-flash-gguf", "canary-1b-flash",
-            35, {"F16": 1785657120, "Q8_0": 1048131360, "Q6_K": 857603872,
-                 "Q5_K_M": 769563424, "Q4_K_M": 677141280}, default="Q4_K_M", arch="canary"),
+            35, {"F16": 1785657184, "Q8_0": 1048131424, "Q6_K": 857603936,
+                 "Q5_K_M": 769563488, "Q4_K_M": 677141344}, default="Q4_K_M", arch="canary"),
     # WER 1.61 — CJK quality mainstay (verified all-5-langs correct on real clips).
     _tc_row("qwen3-asr-1.7b", "Qwen3-ASR 1.7B",
             ("zh", "en", "ja", "ko", "yue", "ar", "de", "es",
@@ -220,8 +220,8 @@ ASR_MODELS: list[AsrModel] = [
     # canary rung (en/de/es/fr).
     _tc_row("canary-180m-flash", "Canary 180M Flash", ("en", "de", "es", "fr"),
             "handy-computer/canary-180m-flash-gguf", "canary-180m-flash",
-            65, {"F16": 381632192, "Q8_0": 218447552, "Q6_K": 176291520,
-                 "Q5_K_M": 158704320, "Q4_K_M": 139223744}, default="Q8_0", arch="canary"),
+            65, {"F16": 381632288, "Q8_0": 218447648, "Q6_K": 176291616,
+                 "Q5_K_M": 158704416, "Q4_K_M": 139223840}, default="Q8_0", arch="canary"),
     # WER 1.91 — European quality tier (NVIDIA Canary, 25 langs).
     _tc_row("canary-1b-v2", "Canary 1B v2",
             ("bg", "hr", "cs", "da", "nl", "en", "et", "fi", "fr", "de", "el",
@@ -257,8 +257,8 @@ ASR_MODELS: list[AsrModel] = [
     # author warns of edge-case failures below Q5_K_M — Q8_0 is the default.
     _tc_row("moss-transcribe-diarize", "MOSS Transcribe (0.9B)", ("en", "zh"),
             "handy-computer/moss-transcribe-diarize-gguf", "MOSS-Transcribe-Diarize",
-            85, {"F16": 1833665696, "Q8_0": 986899616, "Q6_K": 768151712,
-                 "Q5_K_M": 700313760, "Q4_K_M": 617345184}, default="Q8_0", arch="moss"),
+            85, {"F16": 1833666240, "Q8_0": 986900160, "Q6_K": 768152256,
+                 "Q5_K_M": 700314304, "Q4_K_M": 617345728}, default="Q8_0", arch="moss"),
     # WER 2.01 — 99-language mainstay: ~large-v3 quality at 4x the speed.
     # Sizes are the 2026-07-21 re-upload of the repo (quants 64 bytes shorter per
     # file; F16 was re-encoded, ~10.8 MB smaller) — all five match the live tree.
@@ -346,7 +346,7 @@ ASR_MODELS: list[AsrModel] = [
     # WER 1.41 — en+EU speech-LLM
     _tc_row("granite-4.0-1b-speech", "Granite Speech 4.0 (1B)", ("en", "fr", "de", "es", "pt", "ja"),
             "handy-computer/granite-4.0-1b-speech-gguf", "granite-4.0-1b-speech",
-            27, {"F16": 4632623104, "Q8_0": 2559878848, "Q6_K": 2024967936, "Q5_K_M": 1829704544, "Q4_K_M": 1602904800}, default="Q4_K_M", arch="granite_speech"),
+            27, {"F16": 4632623200, "Q8_0": 2559878944, "Q6_K": 2024968032, "Q5_K_M": 1829704640, "Q4_K_M": 1602904896}, default="Q4_K_M", arch="granite_speech"),
     # WER 1.56 — GPU-class 24B (Q5_K_M 17GB+); q4_k_m dropped (2.11 cliff).
     # GPU-only tiers: hardware-gated off CPU-only machines (a 17GB CPU download
     # for a 24B is unusable); big-GPU machines still see it, small-GPU ones get

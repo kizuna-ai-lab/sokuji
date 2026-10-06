@@ -153,7 +153,7 @@ def test_moss_transcribe_diarize_row():
     # skip (F16 is the listed-only top rung everywhere else).
     assert m.deployments[0].artifact == ("handy-computer/moss-transcribe-diarize-gguf/"
                                          "MOSS-Transcribe-Diarize-Q8_0.gguf")
-    assert m.size_bytes == 986899616
+    assert m.size_bytes == 986900160
     ct_rank = {d.compute_type: d.rank for d in m.deployments}
     assert ct_rank == {"q8_0": 2.0, "f16": 0.5, "q6_k": 1.0, "q5_k_m": 0.5, "q4_k_m": 1.0}
 
@@ -920,3 +920,30 @@ def test_divergent_arch_names_are_pinned_to_arch_name():
     directory_names = {"cohere", "granite", "granite_nar"}
     offenders = sorted(m.id for m in catalog.asr_models() if m.graph_family in directory_names)
     assert not offenders, offenders
+
+
+# Exact Hub sizes, read 2026-10-06: these six repos were re-converted upstream (transcribe.cpp
+# #182 and later) and serve slightly larger files at every rung than they did when carded.
+_RECONVERTED_ASR_SIZES = {
+    "canary-1b-flash": {"F16": 1785657184, "Q8_0": 1048131424, "Q6_K": 857603936,
+                        "Q5_K_M": 769563488, "Q4_K_M": 677141344},
+    "canary-180m-flash": {"F16": 381632288, "Q8_0": 218447648, "Q6_K": 176291616,
+                          "Q5_K_M": 158704416, "Q4_K_M": 139223840},
+    "granite-speech-4.1-2b": {"F16": 4632623200, "Q8_0": 2559878944, "Q6_K": 2024968032,
+                              "Q5_K_M": 1829704640, "Q4_K_M": 1602904896},
+    "granite-4.0-1b-speech": {"F16": 4632623200, "Q8_0": 2559878944, "Q6_K": 2024968032,
+                              "Q5_K_M": 1829704640, "Q4_K_M": 1602904896},
+    "granite-speech-4.1-2b-plus": {"F16": 4229971936, "Q8_0": 2345973280, "Q6_K": 1859821632,
+                                   "Q5_K_M": 1691297216, "Q4_K_M": 1489663552},
+    "moss-transcribe-diarize": {"F16": 1833666240, "Q8_0": 986900160, "Q6_K": 768152256,
+                                "Q5_K_M": 700314304, "Q4_K_M": 617345728},
+}
+
+
+@pytest.mark.parametrize("mid", sorted(_RECONVERTED_ASR_SIZES))
+def test_reconverted_asr_rows_carry_the_hub_sizes(mid):
+    m = catalog.asr_model(mid)
+    by_quant = {d.compute_type.upper(): d.est_bytes for d in m.deployments}
+    assert by_quant == _RECONVERTED_ASR_SIZES[mid]
+    # deployments are default-first, and size_bytes is the default rung's
+    assert m.size_bytes == by_quant[m.deployments[0].compute_type.upper()]
