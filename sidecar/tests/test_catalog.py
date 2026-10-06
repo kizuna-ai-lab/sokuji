@@ -709,6 +709,18 @@ def test_voice_required_families_is_the_single_source_of_truth():
         assert m.voice_required is (m.family in catalog.VOICE_REQUIRED_FAMILIES), mid
 
 
+def test_the_fourteen_existing_cards_clone_as_their_family_does():
+    """The backend reports the CARD's clones to the renderer (PlanConfig.tts_clones), where it
+    used to report the family's. Pinned equal for every card that predates the override, so
+    nothing on the wire moves for them: native/src/sk_tts.cpp's kFamilies has every family
+    clone except supertonic."""
+    from sokuji_sidecar import planner
+    for mid in PRE_A_TTS_CARD_IDS:
+        m = catalog.tts_model(mid)
+        assert m.clones is (m.family != "supertonic"), mid
+        assert planner._plan_config(m).tts_clones is m.clones, mid
+
+
 def test_supertonic_row():
     m = catalog.tts_model("supertonic-3")
     assert m and m.sample_rate == 44100

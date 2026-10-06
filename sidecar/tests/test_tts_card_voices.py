@@ -79,11 +79,30 @@ def test_a_cards_preset_rules_are_checked_when_the_catalog_loads():
                                                       # default preset makes it speak at load
 
 
+def test_a_default_preset_needs_the_cards_own_presets():
+    with pytest.raises(ValueError, match="default_preset 'vivian' needs"):
+        _preset_card(presets=())                      # nothing for the backend to check it against
+
+
+@pytest.mark.parametrize("family", ["supertonic", "pocket_tts"])
+def test_a_family_the_native_layer_lists_carries_no_presets_of_its_own(family):
+    with pytest.raises(ValueError, match=f"{family}'s presets"):
+        catalog._tts_gguf_row("native-listed", "Native Listed", ("en",), family, "N-GGUF",
+                              {"q8_0": ("n-q8_0.gguf", 1)}, default_quant="q8_0", order=99,
+                              named_voices=True, presets=("F1",))
+
+
 def test_plan_config_carries_the_cards_voice_fields():
     cfg = planner._plan_config(_preset_card())
     assert (cfg.tts_family, cfg.voice_required, cfg.tts_presets, cfg.tts_default_preset) == \
         ("qwen3_tts", False, ("aiden", "vivian"), "vivian")
     assert planner._plan_config(_clone_card()).voice_required is True
+
+
+def test_plan_config_carries_whether_the_card_clones():
+    assert planner._plan_config(_preset_card()).tts_clones is False   # clones defaults to False
+    assert planner._plan_config(_clone_card()).tts_clones is True
+    assert planner.PlanConfig().tts_clones is True    # a bare PlanConfig restricts nothing
 
 
 def test_the_wire_reports_the_cards_own_voice_requirement(monkeypatch):

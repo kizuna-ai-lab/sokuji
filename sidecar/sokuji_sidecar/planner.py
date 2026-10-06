@@ -59,6 +59,10 @@ class PlanConfig:
     voice_required: bool = False
     tts_presets: tuple[str, ...] = ()
     tts_default_preset: str = ""
+    # Whether the card accepts a reference clip. NativeTtsBackend.set_voice refuses one
+    # otherwise and its CLONES reports it, so a card can narrow what its family's engine
+    # would take (every family but supertonic clones). True is the inert default.
+    tts_clones: bool = True
 
 
 @dataclass(frozen=True)
@@ -109,6 +113,7 @@ def _plan_config(model, deployment=None) -> PlanConfig:
         voice_required=getattr(model, "voice_required", False),
         tts_presets=tuple(getattr(model, "presets", ())),
         tts_default_preset=getattr(model, "default_preset", ""),
+        tts_clones=getattr(model, "clones", True),
     )
 
 

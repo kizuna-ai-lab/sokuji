@@ -15,7 +15,7 @@ from sokuji_sidecar import tts_backend
 from sokuji_sidecar.planner import PlanConfig
 from _tts_cards import CPU_MACHINE
 
-REF ="acme/pocket-tts-en-gguf/pocket_tts-en/model.gguf"
+REF = "acme/pocket-tts-en-gguf/pocket_tts-en/model.gguf"
 
 
 class NativeError(RuntimeError):
@@ -1589,6 +1589,42 @@ def test_a_voice_the_card_does_not_offer_is_refused_and_the_default_stays(native
     samples, _rate, _ms = b.generate("hello")
     assert samples.dtype == np.float32
     assert log[-1] == ("synth", "hello", None, 1.0, False)
+
+
+_PRESET_ONLY_CONFIG = dict(_PRESET_CONFIG, tts_clones=False)   # a CustomVoice-style card
+
+
+def test_a_clip_for_a_card_that_does_not_clone_is_refused_and_the_default_stays(native_env):
+    """The card decides whether a clip is accepted, not the family: every family but
+    supertonic clones, so the native layer would take a clip for a preset-only card and then
+    drop its default preset. The clip is refused before the native layer, with the same clean
+    BackendLoadError; the default stays applied, so the next synth still speaks. The backend
+    reports the card's CLONES, which tts_init carries to the renderer."""
+    created, log = native_env
+    created["model_factory"] = _NoBareSynthModel
+    assert created["caps"].clones is True                # the family says it clones
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(**_PRESET_ONLY_CONFIG))
+    model = created["model"]
+    assert b.CLONES is False                              # the card says it does not
+    with pytest.raises(backends.BackendLoadError, match=r"preset_family does not clone"):
+        b.set_voice(np.ones(2400, np.float32), 24000, ref_text="hi")
+    assert model.voice is None                            # set_voice never reached the engine
+    assert model.preset == "vivian" and b._voice_set is True
+    samples, _rate, _ms = b.generate("hello")
+    assert samples.dtype == np.float32
+    assert log[-1] == ("synth", "hello", None, 1.0, False)
+
+
+def test_a_clip_for_a_card_that_clones_still_reaches_the_engine(native_env):
+    created, _log = native_env
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0",
+           config=PlanConfig(tts_family="omnivoice", voice_required=True, tts_clones=True))
+    assert b.CLONES is True
+    b.set_voice(np.ones(2400, np.float32), 24000, ref_text="hello there")
+    assert created["model"].voice == (2400, 24000, "hello there")
+    assert b._voice_set is True
 
 
 @pytest.mark.parametrize("config, measured", [

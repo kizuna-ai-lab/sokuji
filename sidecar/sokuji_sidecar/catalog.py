@@ -1128,8 +1128,9 @@ def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
     once in size_bytes, which is the default rung's package plus them.
     `voice_required` is None for the family's rule (VOICE_REQUIRED_FAMILIES) or the
     card's own; `presets` are the names the card offers when the native layer cannot
-    list them (named_voices must be set), and `default_preset` is the one the sidecar
-    applies right after load (spec stage 2.3). Tiers come
+    list them (named_voices must be set; supertonic and pocket_tts, which it lists,
+    carry none), and `default_preset`, one of them, is what the sidecar applies right
+    after load (spec stage 2.3). Tiers come
     from `_TTS_TIER_OVERRIDES.get(family, _TTS_TIERS)` — cpu-only by default,
     gpu-vulkan and gpu-metal added back per family once GB10/M4-validated (see
     that dict's own comment, R19/R25/R36)."""
@@ -1145,7 +1146,15 @@ def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
     presets = tuple(presets)
     if presets and not named_voices:
         raise ValueError(f"{mid}: a card with presets must set named_voices=True")
-    if default_preset and presets and default_preset not in presets:
+    if presets and family in ("supertonic", "pocket_tts"):
+        # sk_tts_presets lists these two families' presets completely, and the native layer
+        # refuses any other name for them: a card's own list would only drift from it.
+        raise ValueError(f"{mid}: the native layer lists {family}'s presets itself; "
+                         "a card of it must not carry presets")
+    if default_preset and not presets:
+        raise ValueError(f"{mid}: default_preset {default_preset!r} needs the card's own presets, "
+                         "the names the backend checks it against")
+    if default_preset and default_preset not in presets:
         raise ValueError(f"{mid}: default_preset {default_preset!r} is not one of its presets {presets}")
     required = (family in VOICE_REQUIRED_FAMILIES) if voice_required is None else bool(voice_required)
     if default_preset and required:

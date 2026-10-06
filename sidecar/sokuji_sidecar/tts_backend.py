@@ -228,7 +228,9 @@ may also carry PlanConfig.tts_default_preset, applied right after load -- before
 warm-up and any bare synth, so both run -- and PlanConfig.tts_presets, the names
 list_builtin_voices() offers when sk_tts_presets lists none and the only names
 set_builtin_voice() accepts: any other raises BackendLoadError and leaves the voice already
-set in place."""
+set in place. PlanConfig.tts_clones is the same kind of card rule for a clip: set_voice()
+refuses one for a card that does not clone (the native layer asks only the family) and
+CLONES reports the card's value, never wider than the family's."""
 import os
 import queue
 import shutil
@@ -405,6 +407,7 @@ class NativeTtsBackend:
         self._voice_set = False   # R16: True once set_voice()/set_builtin_voice() lands
         self._voice_required = False   # spec stage 2.3: the loaded card's PlanConfig.voice_required
         self._presets = ()             # spec stage 2.3: the loaded card's PlanConfig.tts_presets
+        self._card_clones = True       # spec stage 2.3: the loaded card's PlanConfig.tts_clones
         # Every (thread, cancel, done) 3-tuple for a generate() or generate_stream()
         # call that hasn't finished self-cleanup yet, oldest first -- see the module
         # docstring's I3 and "Final fix wave" (I-1) paragraphs. Two distinct shapes:
@@ -477,7 +480,10 @@ class NativeTtsBackend:
                 path, family=family, device=dev, language=cfg.tts_language or None)
             caps = self._model.capabilities
             self.STREAMING = bool(caps.streaming)
-            self.CLONES = bool(caps.clones)
+            self._card_clones = bool(cfg.tts_clones)   # spec stage 2.3: the card's rule
+            # The card can only narrow what the family's engine offers: a card that does not
+            # clone reports so (tts_init carries this to the renderer), whatever the family says.
+            self.CLONES = bool(caps.clones) and self._card_clones
             self.sample_rate = int(caps.sample_rate)
             self._family = family              # R16: the name _ensure_voice_ready() reports
             self._voice_required = bool(cfg.voice_required)   # spec stage 2.3: the card's rule
@@ -663,6 +669,13 @@ class NativeTtsBackend:
     def set_voice(self, audio, sr, ref_text: str = "") -> None:
         if self._model is None:
             raise BackendLoadError("native_tts not loaded")
+        # Spec stage 2.3: the card decides whether a clip is taken. The native layer asks only
+        # the family, and every family but supertonic clones, so it would accept a clip for a
+        # preset-only card and drop that card's default preset. Refused here, before the native
+        # layer, with the voice already set left in place.
+        if not self._card_clones:
+            raise BackendLoadError(
+                f"{self._family} does not clone voices; set one of its own voices instead")
         pcm = np.ascontiguousarray(np.asarray(audio, dtype=np.float32).reshape(-1))
         self._model.set_voice(pcm, int(sr), ref_text=ref_text or None)
         self._voice_set = True   # R16
