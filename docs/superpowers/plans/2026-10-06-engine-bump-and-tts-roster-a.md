@@ -20513,7 +20513,7 @@ for cid in NEW_CARDS:
     m = catalog.tts_model(cid)
     default = m.deployments[0]                       # deployments are default-first
     big = max(m.deployments, key=lambda d: d.est_bytes or 0)
-    if big.quant == default.quant:
+    if big.compute_type == default.compute_type:
         out[cid] = None
         continue
     repo, path = catalog.split_artifact(big.artifact)
@@ -20524,7 +20524,7 @@ for cid in NEW_CARDS:
     for f in files:
         print(f"fetch {cid} {repo}/{f}", flush=True)
         hf_hub_download(repo, f, revision=catalog.hub_revision(repo), local_dir=dest)
-    out[cid] = {"quant": big.quant, "dir": str(dest / folder) if folder else str(dest)}
+    out[cid] = {"quant": big.compute_type, "dir": str(dest / folder) if folder else str(dest)}
 (EXEC / "largest.json").write_text(json.dumps(out, indent=1))
 print(json.dumps(out, indent=1))
 ```
