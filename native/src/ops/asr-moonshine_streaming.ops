@@ -1,5 +1,5 @@
 # stage: asr ; family: moonshine_streaming
-# engine: ggml=0.22.0;transcribe=0.2.3;llama=0.3.0;audiocpp=0.7.1;lane=cpu-vulkan
+# engine: ggml=0.26.0;transcribe=0.3.1;llama=0.6.0;audiocpp=0.9.0+54aa279;lane=cpu-vulkan
 # source: moonshine-streaming-tiny-Q8_0.gguf
 # recorded-on: gpu
 # dtypes-in-file: f16 f32 q8_0

@@ -1,9 +1,11 @@
 # stage: translate ; family: qwen3
-# engine: ggml=0.22.0;transcribe=0.2.3;llama=0.3.0;audiocpp=0.7.1;lane=cpu-vulkan
+# engine: ggml=0.26.0;transcribe=0.3.1;llama=0.6.0;audiocpp=0.9.0+54aa279;lane=cpu-vulkan
 # source: Qwen3-0.6B-Q8_0.gguf
 # recorded-on: gpu
 # dtypes-in-file: f32 q8_0
 op=GET_ROWS params=- dst=f32 src=[WEIGHT,i32,-,-,-] ne0=[1024,8,1024] max0=[1024,151936,1,1] max1=[8,1,1,1] maxd=[1024,8,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=165306368
+op=DUP params=- dst=f32 src=[f32,-,-,-,-] ne0=[1024,1,1024] max0=[1024,8,1,1] max1=[1,1,1,1] maxd=[1024,8,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=32768
+op=SET_ROWS params=- dst=f32 src=[f32,i64,f32,-,-] ne0=[1024,8,1024] max0=[1024,8,1,1] max1=[8,1,1,1] maxd=[1024,8,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=32768
 op=RMS_NORM params=358637bd000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 dst=f32 src=[f32,-,-,-,-] ne0=[1024,1,1024] max0=[1024,8,1,1] max1=[1,1,1,1] maxd=[1024,8,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=32768
 op=MUL params=- dst=f32 src=[f32,f32,-,-,-] ne0=[1024,1024,1024] max0=[1024,8,1,1] max1=[1024,1,1,1] maxd=[1024,8,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=32768
 op=MUL_MAT params=- dst=f32 src=[WEIGHT,f32,-,-,-] ne0=[1024,1024,2048] max0=[1024,2048,1,1] max1=[1024,8,1,1] maxd=[2048,8,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=2228224
@@ -21,9 +23,12 @@ op=MUL_MAT params=- dst=f32 src=[WEIGHT,f32,-,-,-] ne0=[3072,3072,1024] max0=[30
 op=GET_ROWS params=- dst=f32 src=[f32,i32,-,-,-] ne0=[1024,1,1024] max0=[1024,8,1,1] max1=[1,1,1,1] maxd=[1024,1,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=32768
 op=MUL_MAT params=- dst=f32 src=[WEIGHT,f32,-,-,-] ne0=[1024,1024,151936] max0=[1024,151936,1,1] max1=[1024,1,1,1] maxd=[151936,1,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=165306368
 op=GET_ROWS params=- dst=f32 src=[WEIGHT,i32,-,-,-] ne0=[1024,1,1024] max0=[1024,151936,1,1] max1=[1,1,1,1] maxd=[1024,1,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=165306368
+op=SET_ROWS params=- dst=f32 src=[f32,i64,f32,-,-] ne0=[1024,1,1024] max0=[1024,1,1,1] max1=[1,1,1,1] maxd=[1024,1,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=4096
 op=ROPE params=000000000000008000000002000000000000a000497424003f800000000000003f800000420000003f8000000000000000000000000000000000000000000000 dst=f32 src=[f32,i32,-,-,-] ne0=[128,1,128] max0=[128,16,1,1] max1=[1,1,1,1] maxd=[128,16,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=8192
 op=SET_ROWS params=- dst=f16 src=[f32,i64,f16,-,-] ne0=[1024,1,1024] max0=[1024,1,1,1] max1=[1,1,1,1] maxd=[1024,4096,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=8388608
 op=GET_ROWS params=- dst=f32 src=[WEIGHT,i32,-,-,-] ne0=[1024,8,1024] max0=[1024,151936,1,1] max1=[8,1,1,1] maxd=[1024,8,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=165306368
+op=DUP params=- dst=f32 src=[f32,-,-,-,-] ne0=[1024,1,1024] max0=[1024,8,1,1] max1=[1,1,1,1] maxd=[1024,8,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=32768
+op=SET_ROWS params=- dst=f32 src=[f32,i64,f32,-,-] ne0=[1024,8,1024] max0=[1024,8,1,1] max1=[8,1,1,1] maxd=[1024,8,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=32768
 op=RMS_NORM params=358637bd000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 dst=f32 src=[f32,-,-,-,-] ne0=[1024,1,1024] max0=[1024,8,1,1] max1=[1,1,1,1] maxd=[1024,8,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=32768
 op=MUL params=- dst=f32 src=[f32,f32,-,-,-] ne0=[1024,1024,1024] max0=[1024,8,1,1] max1=[1024,1,1,1] maxd=[1024,8,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=32768
 op=MUL_MAT params=- dst=f32 src=[WEIGHT,f32,-,-,-] ne0=[1024,1024,2048] max0=[1024,2048,1,1] max1=[1024,8,1,1] maxd=[2048,8,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=2228224
@@ -45,6 +50,7 @@ op=MUL_MAT params=- dst=f32 src=[WEIGHT,f32,-,-,-] ne0=[3072,3072,1024] max0=[30
 op=GET_ROWS params=- dst=f32 src=[f32,i32,-,-,-] ne0=[1024,1,1024] max0=[1024,8,1,1] max1=[1,1,1,1] maxd=[1024,1,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=32768
 op=MUL_MAT params=- dst=f32 src=[WEIGHT,f32,-,-,-] ne0=[1024,1024,151936] max0=[1024,151936,1,1] max1=[1024,1,1,1] maxd=[151936,1,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=165306368
 op=GET_ROWS params=- dst=f32 src=[WEIGHT,i32,-,-,-] ne0=[1024,1,1024] max0=[1024,151936,1,1] max1=[1,1,1,1] maxd=[1024,1,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=165306368
+op=SET_ROWS params=- dst=f32 src=[f32,i64,f32,-,-] ne0=[1024,1,1024] max0=[1024,1,1,1] max1=[1,1,1,1] maxd=[1024,1,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=4096
 op=ROPE params=000000000000008000000002000000000000a000497424003f800000000000003f800000420000003f8000000000000000000000000000000000000000000000 dst=f32 src=[f32,i32,-,-,-] ne0=[128,1,128] max0=[128,16,1,1] max1=[1,1,1,1] maxd=[128,16,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=8192
 op=SET_ROWS params=- dst=f16 src=[f32,i64,f16,-,-] ne0=[1024,1,1024] max0=[1024,1,1,1] max1=[1,1,1,1] maxd=[1024,4096,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=8388608
 op=SET_ROWS params=- dst=f16 src=[f32,i64,f16,-,-] ne0=[1,1024,1] max0=[1,1024,1,1] max1=[1024,1,1,1] maxd=[1,4194304,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=8388608

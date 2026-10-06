@@ -440,9 +440,10 @@ non-emptiness, never a transcript.
    and run the gate there; a CPU-only runner prints `SKIPPED (no device)` for every tts family
    and gates **asr/translate drift only**, which is what CI's CPU lanes do. A tts .ops file
    whose `# recorded-on:` says `cpu` is rejected by the gate. The `# engine:` header line is
-   provenance only — the gate never compares it — so a recording that did not drift keeps its
-   original `# engine:` line across a pin bump; the asr/translate recordings in this tree still
-   name the 0.22.0-era engines for exactly that reason.
+   provenance only — the gate never compares it — but every recording, asr and translate
+   included, is re-recorded on every bump (2026-10-06 ruling), so each file's `# engine:` line
+   names the engines it was last checked against; a re-recording that did not drift changes
+   only that line.
    All nine TTS families are cached under
    `~/.cache/sokuji-native-tests/tts/` — `ci/ops-env.sh` reads that path from
    `$SOKUJI_NATIVE_TEST_CACHE`, defaulting to `$HOME/.cache/sokuji-native-tests`, so set the

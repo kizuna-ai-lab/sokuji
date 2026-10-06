@@ -1,5 +1,5 @@
 # stage: tts ; family: qwen3_tts
-# engine: ggml=0.25.3;transcribe=0.2.4;llama=0.5.0;audiocpp=0.8.2;lane=cpu-vulkan
+# engine: ggml=0.26.0;transcribe=0.3.1;llama=0.6.0;audiocpp=0.9.0+54aa279;lane=cpu-vulkan
 # source: qwen3-tts-12hz-0.6b-base-q8_0.gguf
 # recorded-on: vulkan
 # dtypes-in-file: bf16 f16 f32 q8_0
