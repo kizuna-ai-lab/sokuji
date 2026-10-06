@@ -1419,7 +1419,8 @@ def test_weight_dtypes_prefers_the_file_header_over_the_fallback(monkeypatch, tm
     card = catalog.tts_model("voxcpm2")
     monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: None)                 # not on disk
     assert set(accel.weight_dtypes(card, "q8_0")) == catalog.RUNG_FALLBACK_DTYPES["q8_0"]
-    hdr = accel.gguf_header.GgufHeader("voxcpm2", frozenset({"q8_0", "bf16", "f32"}), 3)
+    dts = frozenset({"q8_0", "bf16", "f32"})
+    hdr = accel.gguf_header.GgufHeader("voxcpm2", dts, 3, dts)
     monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: str(tmp_path / "x.gguf"))
     monkeypatch.setattr(accel.gguf_header, "read_header", lambda p: hdr)
     assert accel.weight_dtypes(card, "q8_0") == ("bf16", "f32", "q8_0")                   # sorted
@@ -1433,13 +1434,15 @@ def test_weight_dtypes_never_yields_an_integer_type(monkeypatch, tmp_path):
     card = catalog.tts_model("voxcpm2")
     monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: str(tmp_path / "x.gguf"))
 
-    hdr = accel.gguf_header.GgufHeader("voxcpm2", frozenset({"q8_0", "bf16", "f32", "i32", "i64"}), 5)
+    dts = frozenset({"q8_0", "bf16", "f32", "i32", "i64"})        # supertonic-3 keeps 2-D i64 tables
+    hdr = accel.gguf_header.GgufHeader("voxcpm2", dts, 5, dts)
     monkeypatch.setattr(accel.gguf_header, "read_header", lambda p: hdr)
     assert accel.weight_dtypes(card, "q8_0") == ("bf16", "f32", "q8_0")                   # i32/i64 gone
 
     # A header of nothing but index tables leaves no question to ask: the rung's fallback set
     # stands in rather than an empty tuple (n_weight_dtypes <= 0 is SK_ERR_INVALID_ARGUMENT).
-    only_int = accel.gguf_header.GgufHeader("voxcpm2", frozenset({"i32", "i64"}), 2)
+    ints = frozenset({"i32", "i64"})
+    only_int = accel.gguf_header.GgufHeader("voxcpm2", ints, 2, ints)
     monkeypatch.setattr(accel.gguf_header, "read_header", lambda p: only_int)
     assert set(accel.weight_dtypes(card, "q8_0")) == catalog.RUNG_FALLBACK_DTYPES["q8_0"]
 
@@ -1447,6 +1450,37 @@ def test_weight_dtypes_never_yields_an_integer_type(monkeypatch, tmp_path):
     for ct in sorted({d.compute_type for d in card.deployments}):
         monkeypatch.setattr(accel, "_artifact_path", lambda model, c: None)
         assert not set(accel.weight_dtypes(card, ct)) & {"i8", "i16", "i32", "i64", "f64"}
+
+
+def test_weight_dtypes_reads_only_the_matrix_tensors_dtypes(monkeypatch, tmp_path):
+    """WEIGHT expands over the dtypes of the file's matrix tensors (owner's ruling 2026-10-06,
+    op-coverage precision). CosyVoice 3's q8_0 file keeps its 1-D norms in bf16; with bf16 in
+    the set, Vulkan was asked MUL_MAT[bf16,f16], a node no graph builds, and refused."""
+    card = catalog.tts_model("voxcpm2")
+    monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: str(tmp_path / "x.gguf"))
+    hdr = accel.gguf_header.GgufHeader("voxcpm2", frozenset({"bf16", "q8_0"}), 2, frozenset({"q8_0"}))
+    monkeypatch.setattr(accel.gguf_header, "read_header", lambda p: hdr)
+    assert accel.weight_dtypes(card, "q8_0") == ("q8_0",)
+
+
+def test_weight_dtypes_falls_back_to_the_cards_own_rung_set(monkeypatch):
+    """Before its file is on disk, a rung of a card carrying its own dtype sets asks that set,
+    not the label's wide RUNG_FALLBACK_DTYPES entry."""
+    card = catalog._tts_gguf_row("x", "X", ("en",), "voxcpm2", "X-GGUF",
+                                 {"q8_0": ("x-q8_0.gguf", 1), "f32": ("x-f32.gguf", 2)},
+                                 default_quant="q8_0", order=99,
+                                 rung_dtypes={"q8_0": {"q8_0", "f16", "f32"}, "f32": {"f32"}})
+    monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: None)                 # not on disk
+    assert accel.weight_dtypes(card, "q8_0") == ("f16", "f32", "q8_0")
+    assert set(accel.weight_dtypes(card, "q8_0")) != catalog.RUNG_FALLBACK_DTYPES["q8_0"]
+    assert accel.weight_dtypes(card, "f32") == ("f32",)
+
+
+def test_weight_dtypes_of_a_card_without_its_own_sets_is_the_rung_fallback(monkeypatch):
+    card = catalog.tts_model("supertonic-3")
+    assert card.rung_dtypes == ()
+    monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: None)                 # not on disk
+    assert accel.weight_dtypes(card, "f16") == tuple(sorted(catalog.RUNG_FALLBACK_DTYPES["f16"]))
 
 
 def test_ops_key_carries_the_dtype_set():

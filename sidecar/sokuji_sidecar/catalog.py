@@ -710,6 +710,11 @@ class TtsModel(_ModelBase):
     # The preset the sidecar applies right after load, for a card whose family cannot
     # synthesise with nothing set; "" = none.
     default_preset: str = ""
+    # (rung, dtypes) the pre-download op-coverage query expands WEIGHT over for that rung, read
+    # from the published file's matrix tensors; a rung without an entry asks
+    # RUNG_FALLBACK_DTYPES. () for the cards that predate sub-project A (owner's ruling
+    # 2026-10-06, op-coverage precision).
+    rung_dtypes: tuple[tuple[str, frozenset[str]], ...] = ()
 
 
 # Ruling R16: families whose engine CANNOT synthesize until a voice is set --
@@ -1111,7 +1116,7 @@ def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
                   sample_rate=24000, named_voices=False, transcript_required=False,
                   recommended=False, extra_files=(), license=None,
                   repo=_AUDIOCPP_GGUF_REPO, companions=None, voice_required=None, presets=(),
-                  default_preset=""):
+                  default_preset="", rung_dtypes=None):
     """One native_tts card. `quants` maps QUANT token (the filename's own
     suffix, e.g. "q8_0") -> (filename, bytes) under `dir_` in `repo`: audio.cpp's
     official mirror unless the card names a third-party repo, which must be pinned
@@ -1142,7 +1147,12 @@ def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
     after load (spec stage 2.3). Tiers come
     from `_TTS_TIER_OVERRIDES.get(family, _TTS_TIERS)` — cpu-only by default,
     gpu-vulkan and gpu-metal added back per family once GB10/M4-validated (see
-    that dict's own comment, R19/R25/R36)."""
+    that dict's own comment, R19/R25/R36).
+
+    `rung_dtypes` maps a QUANT token to the ggml dtypes of that rung's published
+    file's matrix tensors (benchmark/qwen3-asr-webgpu/hub_matrix_dtypes.py reads
+    them without a download): the set its pre-download op-coverage query expands
+    WEIGHT over, in place of the label's RUNG_FALLBACK_DTYPES entry."""
     # A rung without a RUNG_FALLBACK_DTYPES entry would query op coverage over {f32} alone
     # before its file is on disk (accel.weight_dtypes): loud at import, as _tc_row is.
     unknown_rungs = sorted(set(quants) - set(RUNG_FALLBACK_DTYPES))
@@ -1153,6 +1163,16 @@ def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
     unknown = sorted(set(companions) - set(quants))
     if unknown:
         raise ValueError(f"{mid}: companions for quants the card does not ship: {unknown}")
+    rung_dtypes = {q: frozenset(dts) for q, dts in (rung_dtypes or {}).items()}
+    unknown = sorted(set(rung_dtypes) - set(quants))
+    if unknown:
+        raise ValueError(f"{mid}: rung_dtypes for quants the card does not ship: {unknown}")
+    empty = sorted(q for q, dts in rung_dtypes.items() if not dts)
+    if empty:
+        raise ValueError(f"{mid}: rung_dtypes has an empty set for {empty}")
+    not_weight = sorted({t for dts in rung_dtypes.values() for t in dts} - WEIGHT_CAPABLE_DTYPES)
+    if not_weight:
+        raise ValueError(f"{mid}: rung_dtypes holds types a WEIGHT tensor cannot: {not_weight}")
     paths = ([dir_] if dir_ else []) + [fname for fname, _n in quants.values()]
     paths += [rel for comps in companions.values() for rel, _n in comps]
     bad = sorted(p for p in paths if not _repo_path(p))
@@ -1194,7 +1214,8 @@ def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
                     transcript_required=transcript_required, recommended=recommended,
                     sort_order=order, size_bytes=total_bytes, extra_files=extra_files,
                     license=license, graph_family=family, voice_required=required,
-                    presets=presets, default_preset=default_preset)
+                    presets=presets, default_preset=default_preset,
+                    rung_dtypes=tuple((q, rung_dtypes[q]) for q in order_keys if q in rung_dtypes))
 
 
 SUPERTONIC_LANGS = ("en", "ko", "ja", "ar", "bg", "cs", "da", "de", "el", "es", "et",

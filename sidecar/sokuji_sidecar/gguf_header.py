@@ -1,12 +1,15 @@
-"""Minimal GGUF header reader (spec A §3.3): `general.architecture` and the set of tensor
-dtypes, without loading anything. Header-only: reads a few hundred KiB at most (the tokenizer
-KVs are skipped, not decoded). GGUF v2/v3 little-endian.
+"""Minimal GGUF header reader (spec A §3.3): `general.architecture`, the set of tensor
+dtypes and the set of matrix-tensor dtypes, without loading anything. Header-only: reads a few
+hundred KiB at most (the tokenizer KVs are skipped, not decoded). GGUF v2/v3 little-endian.
+Reads a local path or any binary file object that can read and seek (a remote file).
 
 Any truncated or malformed header — a `struct.unpack` short read, a length-prefixed string
 claiming more bytes than the file has, or bytes that are not valid UTF-8 — raises GgufError,
 never a raw struct.error/UnicodeDecodeError/OverflowError. Callers need only catch GgufError."""
 from __future__ import annotations
 
+import contextlib
+import os
 import struct
 from dataclasses import dataclass
 
@@ -31,6 +34,10 @@ class GgufHeader:
     architecture: str
     tensor_types: frozenset[str]
     n_tensors: int
+    # The dtypes of the tensors whose GGUF n_dims is two or more: the set a recording's WEIGHT
+    # expands over. A norm or bias is 1-D and never a WEIGHT node, so its dtype must not widen
+    # the set (owner's ruling 2026-10-06, op-coverage precision).
+    matrix_types: frozenset[str]
 
 
 _KV_SIZES = {0: 1, 1: 1, 2: 2, 3: 2, 4: 4, 5: 4, 6: 4, 7: 1, 10: 8, 11: 8, 12: 8}   # fixed-size KV value types
@@ -71,15 +78,19 @@ class _R:
         raise GgufError(f"unknown KV value type {ty}")
 
 
-def read_header(path: str) -> GgufHeader:
-    with open(path, "rb") as f:
+def read_header(source) -> GgufHeader:
+    """`source` is a path (str or os.PathLike), opened and closed here, or a binary file object
+    with read/seek, read from its current position and left open."""
+    stream = hasattr(source, "read") and hasattr(source, "seek")
+    name = "<stream>" if stream else os.fspath(source)
+    with contextlib.nullcontext(source) if stream else open(name, "rb") as f:
         if f.read(4) != b"GGUF":
-            raise GgufError(f"{path}: not a GGUF file")
+            raise GgufError(f"{name}: not a GGUF file")
         r = _R(f)
         try:
             version = r.u32()
             if version not in (2, 3):
-                raise GgufError(f"{path}: unsupported GGUF version {version}")
+                raise GgufError(f"{name}: unsupported GGUF version {version}")
             n_tensors, n_kv = r.u64(), r.u64()
             arch = ""
             for _ in range(n_kv):
@@ -89,13 +100,16 @@ def read_header(path: str) -> GgufHeader:
                     arch = r.s()
                 else:
                     r.skip_value(ty)
-            types = set()
+            types, matrix = set(), set()
             for _ in range(n_tensors):
                 r.s()                                      # name
                 nd = r.u32()
                 for _ in range(nd):
                     r.u64()                                # dims
-                types.add(GGML_TYPE_NAMES.get(r.u32(), "unknown"))
+                ty = GGML_TYPE_NAMES.get(r.u32(), "unknown")
+                types.add(ty)
+                if nd >= 2:
+                    matrix.add(ty)
                 r.u64()                                    # offset
         except GgufError:
             raise                                          # already specific (version, unknown KV type, ...)
@@ -104,5 +118,5 @@ def read_header(path: str) -> GgufHeader:
             # seek (ValueError from _R.s()), and non-UTF-8 string bytes (UnicodeDecodeError,
             # a ValueError subclass) all land here — a truncated or corrupted-but-magic-valid
             # file, not a programming error.
-            raise GgufError(f"{path}: truncated or malformed GGUF header ({e})") from e
-        return GgufHeader(arch, frozenset(types), n_tensors)
+            raise GgufError(f"{name}: truncated or malformed GGUF header ({e})") from e
+        return GgufHeader(arch, frozenset(types), n_tensors, frozenset(matrix))

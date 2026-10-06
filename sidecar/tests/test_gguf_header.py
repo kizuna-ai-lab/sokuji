@@ -1,6 +1,9 @@
-"""A minimal GGUF v2/v3 header reader: architecture + the tensor dtype set. Tested on a file
-written here (no model download) and, when present, on the cached whisper-tiny GGUF."""
+"""A minimal GGUF v2/v3 header reader: architecture, the tensor dtype set and the matrix
+dtype set. Tested on a file written here (no model download) and, when present, on the cached
+whisper-tiny GGUF."""
+import io
 import os
+import pathlib
 import struct
 
 import pytest
@@ -10,17 +13,25 @@ from sokuji_sidecar import gguf_header
 GGUF_MAGIC = b"GGUF"
 
 
-def _write_gguf(path, arch: str, tensors: list[tuple[str, int]]):
-    """tensors: (name, ggml_type id). Writes header + tensor infos, no data."""
+def _gguf_bytes(arch: str, tensors: list[tuple]) -> bytes:
+    """tensors: (name, ggml_type id) for a 4x4 matrix, or (name, ggml_type id, dims). Header +
+    tensor infos, no data."""
     def s(x: str) -> bytes:
         b = x.encode()
         return struct.pack("<Q", len(b)) + b
     out = bytearray(GGUF_MAGIC + struct.pack("<I", 3) + struct.pack("<Q", len(tensors)) + struct.pack("<Q", 2))
     out += s("general.architecture") + struct.pack("<I", 8) + s(arch)          # type 8 = string
     out += s("tokenizer.ggml.tokens") + struct.pack("<I", 9) + struct.pack("<I", 8) + struct.pack("<Q", 2) + s("a") + s("b")   # array of strings: must be skipped
-    for name, ty in tensors:
-        out += s(name) + struct.pack("<I", 2) + struct.pack("<QQ", 4, 4) + struct.pack("<I", ty) + struct.pack("<Q", 0)
-    path.write_bytes(bytes(out))
+    for name, ty, *rest in tensors:
+        dims = rest[0] if rest else (4, 4)
+        out += s(name) + struct.pack("<I", len(dims)) + struct.pack(f"<{len(dims)}Q", *dims)
+        out += struct.pack("<I", ty) + struct.pack("<Q", 0)
+    return bytes(out)
+
+
+def _write_gguf(path, arch: str, tensors: list[tuple]):
+    """Writes _gguf_bytes(arch, tensors) to `path`."""
+    path.write_bytes(_gguf_bytes(arch, tensors))
 
 
 def test_reads_architecture_and_dtype_set(tmp_path):
@@ -30,6 +41,40 @@ def test_reads_architecture_and_dtype_set(tmp_path):
     assert h.architecture == "qwen3"
     assert h.n_tensors == 4
     assert h.tensor_types == frozenset({"q8_0", "q4_K", "f32", "bf16"})   # ids 8, 12, 0, 30 as ggml names them
+
+
+# CosyVoice 3's q8_0 file in miniature: a bf16 norm (1-D) beside a q8_0 matrix (2-D).
+_NORM_AND_MATRIX = [("blk.0.norm.weight", 30, (896,)), ("output.weight", 8, (896, 6561))]
+
+
+def test_matrix_types_leave_out_one_dimensional_tensors():
+    """WEIGHT (the src0 of a MUL_MAT/MUL_MAT_ID/GET_ROWS) expands over the dtypes of the file's
+    matrix tensors, those of two or more dimensions: a 1-D norm in bf16 must not put bf16 in
+    the set while every matrix is q8_0. tensor_types still lists every tensor's dtype."""
+    h = gguf_header.read_header(io.BytesIO(_gguf_bytes("cosyvoice3", _NORM_AND_MATRIX)))
+    assert h.matrix_types == frozenset({"q8_0"})
+    assert h.tensor_types == frozenset({"bf16", "q8_0"})
+    assert h.architecture == "cosyvoice3" and h.n_tensors == 2
+
+
+def test_a_path_and_a_stream_read_identically(tmp_path):
+    """A path (str or os.PathLike) is opened and closed here; a binary file object is read as
+    it is and left open, so a caller can hand in a remote file it owns."""
+    data = _gguf_bytes("cosyvoice3", _NORM_AND_MATRIX)
+    p = tmp_path / "toy.gguf"
+    p.write_bytes(data)
+    stream = io.BytesIO(data)
+    from_stream = gguf_header.read_header(stream)
+    assert not stream.closed
+    assert gguf_header.read_header(str(p)) == from_stream
+    assert gguf_header.read_header(pathlib.Path(p)) == from_stream
+
+
+def test_a_stream_error_names_the_stream():
+    with pytest.raises(gguf_header.GgufError, match="<stream>"):
+        gguf_header.read_header(io.BytesIO(b"NOPE" + b"\0" * 64))
+    with pytest.raises(gguf_header.GgufError, match="<stream>"):
+        gguf_header.read_header(io.BytesIO(_gguf_bytes("cosyvoice3", _NORM_AND_MATRIX)[:40]))
 
 
 def test_rejects_non_gguf(tmp_path):

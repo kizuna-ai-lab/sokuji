@@ -896,12 +896,13 @@ def test_asr_graph_family_matches_native_arch(gguf, card_id):
 
 
 def test_rung_fallback_sets_cover_cached_ggufs():
-    """Premise 7: a rung is a dtype SET. Every cached GGUF's header set — once the integer
-    index tables are filtered out, which is what accel.weight_dtypes hands the query — must be
-    within its rung's fallback set, or the pre-download answer would refuse a file it later
-    accepts. The filter is the point: the raw header sets DO carry i32/i64, and widening the
-    fallback sets to admit them instead is what made every Vulkan device refuse every TTS
-    family (a MUL_MAT/GET_ROWS with an integer src0 is a question no real graph poses)."""
+    """Premise 7: a rung is a dtype SET. Every cached GGUF's matrix-tensor set — the dtypes
+    WEIGHT expands over, with the integer index tables filtered out, which is what
+    accel.weight_dtypes hands the query — must be within its rung's fallback set, or the
+    pre-download answer would refuse a file it later accepts. The filter is the point: the raw
+    header sets DO carry i32/i64, and widening the fallback sets to admit them instead is what
+    made every Vulkan device refuse every TTS family (a MUL_MAT/GET_ROWS with an integer src0
+    is a question no real graph poses)."""
     from sokuji_sidecar import gguf_header
     if not os.path.isdir(_CACHE):
         pytest.skip("no cached models")
@@ -912,7 +913,7 @@ def test_rung_fallback_sets_cover_cached_ggufs():
                                  "f32", "q4_k", "q4_0", "orig") if r in name), None)
         if rung is None:
             continue
-        weights = gguf_header.read_header(path).tensor_types & catalog.WEIGHT_CAPABLE_DTYPES
+        weights = gguf_header.read_header(path).matrix_types & catalog.WEIGHT_CAPABLE_DTYPES
         assert weights, path
         assert weights <= catalog.RUNG_FALLBACK_DTYPES[rung], (path, sorted(weights - catalog.RUNG_FALLBACK_DTYPES[rung]))
         checked += 1
@@ -982,6 +983,56 @@ def test_tts_gguf_row_rejects_a_rung_without_a_fallback_set():
     with pytest.raises(ValueError, match="include default 'bf16'"):
         catalog._tts_gguf_row("x", "X", ("en",), "x_family", "X-GGUF",
                               {"q8_0": ("x-q8_0.gguf", 1)}, default_quant="bf16", order=99)
+
+
+def test_tts_gguf_row_checks_its_rung_dtypes():
+    """A card's own per-rung dtype sets: one per rung it ships, never empty, and only types a
+    WEIGHT tensor can hold. Each is loud at import, as the rung labels are."""
+    def row(rung_dtypes):
+        return catalog._tts_gguf_row("x", "X", ("en",), "x_family", "X-GGUF",
+                                     {"q8_0": ("x-q8_0.gguf", 1), "f32": ("x-f32.gguf", 2)},
+                                     default_quant="q8_0", order=99, rung_dtypes=rung_dtypes)
+    m = row({"q8_0": {"q8_0", "f16", "f32"}, "f32": {"f32"}})
+    assert dict(m.rung_dtypes) == {"q8_0": frozenset({"q8_0", "f16", "f32"}), "f32": frozenset({"f32"})}
+    hash(m)                                                         # still a frozen, hashable card
+    assert row(None).rung_dtypes == ()
+    with pytest.raises(ValueError, match="bf16"):
+        row({"bf16": {"bf16"}})                                     # a rung the card does not ship
+    with pytest.raises(ValueError, match="empty"):
+        row({"q8_0": set()})
+    with pytest.raises(ValueError, match="i64"):
+        row({"q8_0": {"q8_0", "i64"}})                              # an index table, never a WEIGHT
+
+
+def test_every_tts_card_after_the_fourteen_carries_its_rung_dtypes():
+    """A card added after the fourteen that predate sub-project A carries its own dtype set
+    for every rung it ships (`rung_dtypes`, read from the published files' matrix tensors with
+    benchmark/qwen3-asr-webgpu/hub_matrix_dtypes.py); the fourteen keep RUNG_FALLBACK_DTYPES.
+    The check on the newer cards is vacuous until the first of them lands."""
+    for m in catalog.tts_models():
+        if m.id in PRE_A_TTS_CARD_IDS:
+            assert m.rung_dtypes == (), m.id
+        else:
+            assert dict(m.rung_dtypes).keys() == {d.compute_type for d in m.deployments}, m.id
+
+
+def test_card_rung_dtypes_cover_the_cached_files():
+    """A card's own set is its rung's pre-download question; once the main GGUF is on disk its
+    matrix tensors' dtypes are the question (accel.weight_dtypes). The first must cover the
+    second, or the answer before the download never asks a dtype the file holds, and could
+    accept a rung the answer after the download refuses."""
+    from sokuji_sidecar import gguf_header
+    checked = 0
+    for m in catalog.tts_models():
+        for ct, dtypes in m.rung_dtypes:
+            dep = next(d for d in m.deployments if d.compute_type == ct)
+            fname = os.path.basename(catalog.split_artifact(dep.artifact)[1])
+            for path in glob.glob(f"{_CACHE}/**/{glob.escape(fname)}", recursive=True):
+                weights = gguf_header.read_header(path).matrix_types & catalog.WEIGHT_CAPABLE_DTYPES
+                assert weights <= dtypes, (m.id, ct, path, sorted(weights - dtypes))
+                checked += 1
+    if not checked:
+        pytest.skip("no rung of a card with its own dtype sets is cached")
 
 
 # ---- Onboarding guards (2026-09-05): the two silent drops the native-onboarding doc warns

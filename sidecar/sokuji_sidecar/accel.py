@@ -307,11 +307,16 @@ def _companion_paths(model, compute_type: str):
 
 
 def weight_dtypes(model, compute_type: str) -> tuple:
-    """The dtype set WEIGHT expands over (spec A premise 7): the union of the header sets of
-    the rung's GGUFs -- its main file and every companion GGUF (spec stage 2.2: one recording
-    covers the whole model's graph) -- INTERSECTED with the weight-capable types, when all of
-    them are on disk; else, with the rung only partly cached, its deliberately wide fallback
-    set. Sorted, so it keys.
+    """The dtype set WEIGHT expands over (spec A premise 7): the union of the matrix-tensor
+    dtypes of the rung's GGUFs -- its main file and every companion GGUF (spec stage 2.2: one
+    recording covers the whole model's graph) -- INTERSECTED with the weight-capable types,
+    when all of them are on disk; else, with the rung only partly cached, the card's own set
+    for the rung (TtsModel.rung_dtypes) or, without one, the label's deliberately wide
+    fallback set. Sorted, so it keys.
+
+    Matrix tensors only (owner's ruling 2026-10-06, op-coverage precision): a norm or bias is
+    1-D and never a WEIGHT node, and its dtype (CosyVoice 3 keeps its norms in bf16 beside a
+    q8_0 LM head) would have Vulkan asked a MUL_MAT[bf16,f16] no graph builds, and refused.
 
     The intersection is not cosmetic. A GGUF header also lists its i32/i64 index tables, and a
     WEIGHT node is the src0 of a MUL_MAT/MUL_MAT_ID/GET_ROWS — never an integer tensor. Asking
@@ -320,7 +325,8 @@ def weight_dtypes(model, compute_type: str) -> tuple:
     header set (impossible for a real model, but not for a corrupt or hand-made file) leaves
     nothing to ask, so the fallback set stands in."""
     from . import catalog as _cat
-    fallback = tuple(sorted(_cat.RUNG_FALLBACK_DTYPES.get(compute_type, frozenset({"f32"}))))
+    own = dict(getattr(model, "rung_dtypes", ())).get(compute_type)
+    fallback = tuple(sorted(own or _cat.RUNG_FALLBACK_DTYPES.get(compute_type, frozenset({"f32"}))))
     main = _artifact_path(model, compute_type)
     companions = _companion_paths(model, compute_type)
     if not main or companions is None:
@@ -328,7 +334,7 @@ def weight_dtypes(model, compute_type: str) -> tuple:
     header = set()
     for path in [main] + companions:
         try:
-            header |= gguf_header.read_header(path).tensor_types & _cat.WEIGHT_CAPABLE_DTYPES
+            header |= gguf_header.read_header(path).matrix_types & _cat.WEIGHT_CAPABLE_DTYPES
         except Exception:
             pass
     return tuple(sorted(header)) if header else fallback

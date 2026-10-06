@@ -327,7 +327,7 @@ def test_weight_dtypes_of_a_partly_cached_rung_is_the_fallback(companions, hub_c
     for i, rel in enumerate(cached):
         add_cached_file(hub_cache, OFFICIAL, OFFICIAL_SHA, rel, refs_main=(i == 0))
     monkeypatch.setattr(accel.gguf_header, "read_header", lambda p: accel.gguf_header.GgufHeader(
-        "x", frozenset({"q8_0"}), 1))
+        "x", frozenset({"q8_0"}), 1, frozenset({"q8_0"})))
     assert accel.weight_dtypes(companions, "bf16") == \
         tuple(sorted(catalog.RUNG_FALLBACK_DTYPES["bf16"]))
 
@@ -338,7 +338,7 @@ def test_weight_dtypes_reads_every_cached_gguf_of_the_rung(companions, hub_cache
     headers = {"companion-q8_0.gguf": {"q8_0", "f32"}, "codec-q8_0.gguf": {"f16"},
                "vocoder-q8_0.gguf": {"bf16", "i32"}}
     monkeypatch.setattr(accel.gguf_header, "read_header", lambda p: accel.gguf_header.GgufHeader(
-        "x", frozenset(headers[os.path.basename(p)]), 1))
+        "x", frozenset(headers[os.path.basename(p)]), 1, frozenset(headers[os.path.basename(p)])))
     assert accel.weight_dtypes(companions, "q8_0") == ("bf16", "f16", "f32", "q8_0")
 
 
@@ -363,7 +363,7 @@ def test_a_pinned_rung_is_downloaded_only_with_every_file_cached_at_the_pin(
     # Op coverage reads the companion GGUF's header at the pin too.
     headers = {"pc-q8_0.gguf": {"q8_0"}, "vocoder-q8_0.gguf": {"f16"}}
     monkeypatch.setattr(accel.gguf_header, "read_header", lambda p: accel.gguf_header.GgufHeader(
-        "x", frozenset(headers[os.path.basename(p)]), 1))
+        "x", frozenset(headers[os.path.basename(p)]), 1, frozenset(headers[os.path.basename(p)])))
     assert accel.weight_dtypes(card, "q8_0") == ("f16", "q8_0")
 
 
