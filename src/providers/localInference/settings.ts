@@ -24,7 +24,6 @@ export interface LocalInferenceSettings {
   vadMinSilenceDuration: number;
   vadMinSpeechDuration: number;
   vadMaxSpeechDuration: number;
-  /** Seconds of audio kept from before detected speech; vad-web workers only. */
   vadPreSpeechPadDuration: number;
   /** true = Simple (default), false = Advanced. */
   useTemplateMode: boolean;
@@ -44,7 +43,6 @@ export const LOCAL_INFERENCE_DEFAULTS: LocalInferenceSettings = {
   vadMinSilenceDuration: 1.4,
   vadMinSpeechDuration: 0.4,
   vadMaxSpeechDuration: 30,
-  // The workers' own fallback before the setting existed.
   vadPreSpeechPadDuration: 0.8,
   useTemplateMode: true,
   systemPrompt: '',

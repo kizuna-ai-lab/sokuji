@@ -200,8 +200,6 @@ describe('buildLocalInference', () => {
   });
 
   it('carries the pre-speech padding into vad.preSpeechPadDuration', () => {
-    // The vad-web workers read it as `vadConfig.preSpeechPadDuration`; without
-    // it in the config they fall back to their own built-in 0.8 s.
     resolved({ 'ja>en': { asr: 'a', translation: 't' } });
     const set = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings({ vadPreSpeechPadDuration: 0.3 }), shared()) as LocalInferenceConfig;
     expect(set.vad.preSpeechPadDuration).toBe(0.3);

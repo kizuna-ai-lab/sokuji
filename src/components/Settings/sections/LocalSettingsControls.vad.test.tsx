@@ -53,8 +53,6 @@ describe('VadControl pre-speech padding', () => {
     expect(screen.getByText('0.80s')).toBeTruthy();
   });
 
-  // The sherpa-onnx engine takes its own fixed look-back before detected
-  // speech and has no setting for it.
   it('hides the slider when the value is omitted', () => {
     render(<VadControl values={BASE} onChange={() => {}} disabled={false} />);
     expect(screen.queryByText('Pre-Speech Padding')).toBeNull();

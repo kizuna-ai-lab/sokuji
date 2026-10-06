@@ -117,11 +117,7 @@ export interface VadValues {
    * 0 means "auto": the worker derives it from vadThreshold.
    */
   vadNegativeThreshold?: number;
-  /**
-   * Seconds kept from before detected speech, vad-web workers only — omit it
-   * and the slider is hidden. The sherpa-onnx engine looks back a fixed two
-   * windows (~64 ms) of its own and has no setting for it.
-   */
+  /** vad-web workers only — omit it and the slider is hidden. */
   vadPreSpeechPadDuration?: number;
 }
 

@@ -5,8 +5,6 @@ import { LOCAL_INFERENCE_DEFAULTS, localInferenceLanguages } from './settings';
 
 describe('LOCAL_INFERENCE_DEFAULTS', () => {
   it('pads speech with the 0.8 s every vad-web worker used before the setting existed', () => {
-    // The workers' own fallback (`preSpeechPadDuration ?? 0.8`): an existing
-    // user's segments do not change when the setting appears.
     expect(LOCAL_INFERENCE_DEFAULTS.vadPreSpeechPadDuration).toBe(0.8);
   });
 });

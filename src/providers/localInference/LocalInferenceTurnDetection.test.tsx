@@ -120,8 +120,6 @@ describe('LocalInferenceTurnDetectionControls', () => {
     expect(screen.getByText('Min Speech Duration')).toBeTruthy();
     expect(screen.queryByText('Max Speech Duration')).toBeNull();
     expect(screen.queryByText('Silence Threshold')).toBeNull();
-    // Its C++ detector looks back a fixed two windows before detected speech
-    // and has no setting for it (sherpa-onnx voice-activity-detector.cc).
     expect(screen.queryByText('Pre-Speech Padding')).toBeNull();
   });
 

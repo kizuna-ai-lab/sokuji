@@ -21,7 +21,7 @@ const helpIcon = (
  * `ProviderSpecificSettings.tsx`). `showVad` is false only for a streaming
  * ASR that reports no worker type: endpoint detection replaces VAD there.
  * `vadIsWebWorker` adds the three vad-web knobs; the sherpa-onnx engine has
- * its own hysteresis, cuts at a fixed length and pads by a fixed look-back.
+ * its own hysteresis and cuts at a fixed length.
  */
 function useVadKnobs(settings: S, pair: LanguagePair | undefined): { showVad: boolean; vadIsWebWorker: boolean } {
   // `localInferenceLanguages.initial()` gives the same fallback; the Speech
@@ -87,8 +87,7 @@ export function LocalInferenceTurnDetectionControls({ settings, update, disabled
         vadMinSilenceDuration: settings.vadMinSilenceDuration,
         vadMinSpeechDuration: settings.vadMinSpeechDuration,
         // vad-web workers only — the sherpa-onnx engine has its own
-        // hysteresis, cuts at a fixed length and looks back a fixed two
-        // windows before detected speech.
+        // hysteresis and cuts at a fixed length.
         ...(vadIsWebWorker
           ? {
               vadMaxSpeechDuration: settings.vadMaxSpeechDuration,
