@@ -123,6 +123,10 @@ describe("Palabra AI's wire: the task", () => {
 
   it('asks for text alone on a leg that does not speak (ruling 7), and sends the settings as built', () => {
     expect(setTask(configFor({ ...AUTO_CTX, speech: false })).data.output_stream).toBeNull();
+    const only = setTask(configFor({ ...AUTO_CTX, translate: false })).data;
+    expect(only.output_stream).toBeNull();
+    expect(only.pipeline.translations).toEqual([]);
+    expect(only.pipeline.allowed_message_types).toEqual(['partial_transcription', 'validated_transcription']);
     const c = configFor(AUTO_CTX, { voiceId: 'default_high', segmentConfirmationSilenceThreshold: 1.2, sentenceSplitterEnabled: false, translatePartialTranscriptions: true, desiredQueueLevelMs: 15_000, maxQueueLevelMs: 12_000, autoTempo: true });
     const { pipeline } = setTask(c).data;
     expect(pipeline.transcription).toMatchObject({ segment_confirmation_silence_threshold: 1.2, sentence_splitter: { enabled: false } });

@@ -19,6 +19,8 @@ export interface Ast2Corpus {
 export interface Ast2Config {
   /** Speech to speech, or to text only (`context.speech`). */
   mode: 's2s' | 's2t';
+  /** Transcription only (`context.translate === false`): text mode, no voice, no target audio; the translation the server still sends is dropped by the runner (the wire has no ASR-only mode). */
+  transcribeOnly?: true;
   sourceLanguage: string;
   targetLanguage: string;
   /** Absent when no library id is set. */
@@ -50,19 +52,22 @@ export function buildCorpus(s: Pick<Ast2Settings, 'hotWordTableId' | 'replacemen
 
 export function buildAst2(context: SessionContext, s: Ast2Settings, _shared: SharedSettings): Ast2Config | ProviderRefusal {
   const { source, target } = context.direction;
+  const transcribeOnly = context.translate === false;
+  const speaks = context.speech && !transcribeOnly;
   // A guard: the provider store keeps the pair within what the run's context offers (choice 1), so no surface hands one it cannot run.
-  if (!ast2Offers(context.direction, s, { speech: context.speech })) {
-    return { refused: `Doubao AST 2.0 does not ${context.speech ? 'speak' : 'translate'} ${source} → ${target}.` };
+  if (!ast2Offers(context.direction, s, { speech: speaks })) {
+    return { refused: `Doubao AST 2.0 does not ${speaks ? 'speak' : 'translate'} ${source} → ${target}.` };
   }
   const corpus = buildCorpus(s);
   // The same libraries on both legs (parity): the build cannot tell the legs of a `zh+en` pair apart (choice 6).
   const wire = ast2Languages.wire;
   // A speaking leg's voice for its own direction (#577 catalog §2.5); a text-only leg has none, and cloning is no field at all.
-  const voice = context.speech ? effectiveVoice(context.direction, s) : undefined;
-  if (context.speech && voice === undefined) return { refused: `Doubao AST 2.0 has no voice that speaks ${target}.` };
+  const voice = speaks ? effectiveVoice(context.direction, s) : undefined;
+  if (speaks && voice === undefined) return { refused: `Doubao AST 2.0 has no voice that speaks ${target}.` };
   const ttsResourceId = voice !== undefined && voice !== CLONE ? resourceOf(voice) : undefined;
   return {
-    mode: context.speech ? 's2s' : 's2t',
+    mode: speaks ? 's2s' : 's2t',
+    ...(transcribeOnly ? { transcribeOnly: true as const } : {}),
     sourceLanguage: wire.toWire(source),
     targetLanguage: wire.toWire(target),
     ...(corpus ? { corpus } : {}),

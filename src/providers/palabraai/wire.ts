@@ -107,7 +107,7 @@ export function setTask(c: PalabraConfig): SetTaskMessage {
     message_type: 'set_task',
     data: {
       input_stream: { content_type: 'audio', source: { type: 'ws', format: 'pcm_s16le', sample_rate: SAMPLE_RATE, channels: 1 } },
-      output_stream: c.speech ? { content_type: 'audio', target: { type: 'ws', format: 'pcm_s16le' } } : null,
+      output_stream: c.speech && !c.transcribeOnly ? { content_type: 'audio', target: { type: 'ws', format: 'pcm_s16le' } } : null,
       pipeline: {
         transcription: {
           source_language: c.source,
@@ -115,7 +115,7 @@ export function setTask(c: PalabraConfig): SetTaskMessage {
           segment_confirmation_silence_threshold: c.silenceThreshold,
           sentence_splitter: { enabled: c.sentenceSplitter },
         },
-        translations: [{
+        translations: c.transcribeOnly ? [] : [{
           target_language: c.target,
           translate_partial_transcriptions: c.translatePartials,
           speech_generation: {
@@ -125,7 +125,9 @@ export function setTask(c: PalabraConfig): SetTaskMessage {
           },
         }],
         translation_queue_configs: { global: { desired_queue_level_ms: c.queue.desiredMs, max_queue_level_ms: c.queue.maxMs, auto_tempo: c.queue.autoTempo } },
-        allowed_message_types: ['translated_transcription', 'partial_transcription', 'partial_translated_transcription', 'validated_transcription'],
+        allowed_message_types: c.transcribeOnly
+          ? ['partial_transcription', 'validated_transcription']
+          : ['translated_transcription', 'partial_transcription', 'partial_translated_transcription', 'validated_transcription'],
       },
     },
   };
