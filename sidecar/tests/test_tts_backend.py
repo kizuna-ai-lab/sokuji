@@ -13,8 +13,9 @@ import pytest
 from sokuji_sidecar import backends
 from sokuji_sidecar import tts_backend
 from sokuji_sidecar.planner import PlanConfig
+from _tts_cards import CPU_MACHINE
 
-REF = "acme/pocket-tts-en-gguf/pocket_tts-en/model.gguf"
+REF ="acme/pocket-tts-en-gguf/pocket_tts-en/model.gguf"
 
 
 class NativeError(RuntimeError):
@@ -240,6 +241,29 @@ class _PocketLikeModel(_FakeTtsModel):
         if self.preset is None and self.voice is None:
             raise NativeError(-8, "PocketTTS session prepare() requires a "
                                "session voice via --voice-id or --voice-ref")
+        return super().synth(text, language, speed, on_chunk)
+
+
+class _NoBareSynthModel(_FakeTtsModel):
+    """A family whose session refuses a synth with neither a preset nor a clip set, and whose
+    preset names the native layer cannot enumerate (presets() == []). Records every preset the
+    backend hands it."""
+
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        self.preset_calls = []
+
+    def presets(self):
+        self._check_loaded("sk_tts_presets")
+        return []
+
+    def set_preset(self, name):
+        self.preset_calls.append(name)
+        super().set_preset(name)
+
+    def synth(self, text, language=None, speed=1.0, on_chunk=None):
+        if self.preset is None and self.voice is None:
+            raise NativeError(-8, "session prepare() requires a voice")
         return super().synth(text, language, speed, on_chunk)
 
 
@@ -814,7 +838,7 @@ def test_generate_raises_when_clone_only_family_has_no_voice_set(native_env):
     voice clone reference audio", task-7-report.md §3)."""
     created, log = native_env
     b = backends.make_backend("native_tts")
-    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="qwen3_tts"))
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="qwen3_tts", voice_required=True))
     with pytest.raises(backends.BackendLoadError, match="qwen3_tts"):
         b.generate("hello")
     assert log == []          # never reached the native synth() call
@@ -839,7 +863,7 @@ def test_generate_stream_raises_when_clone_only_family_has_no_voice_set(native_e
     created, log = native_env
     created["caps"] = _caps(streaming=True)
     b = backends.make_backend("native_tts")
-    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="omnivoice"))
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="omnivoice", voice_required=True))
     with pytest.raises(backends.BackendLoadError, match="omnivoice"):
         b.generate_stream("hello")
     assert log == []
@@ -863,7 +887,7 @@ def test_index_tts2_is_gated_by_r16(native_env):
     must raise the same clean, family-named error before the native layer."""
     created, log = native_env
     b = backends.make_backend("native_tts")
-    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="index_tts2"))
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="index_tts2", voice_required=True))
     with pytest.raises(backends.BackendLoadError, match="index_tts2"):
         b.generate("hello")
     assert log == []
@@ -1313,7 +1337,7 @@ def test_load_on_gpu_skips_the_warmup_for_a_clone_only_family(native_env):
     attempted-and-swallowed. Also proves set_voice() state is untouched."""
     created, log = native_env
     b = backends.make_backend("native_tts")
-    b.load(REF, "vulkan", "q8_0", config=PlanConfig(tts_family="qwen3_tts"))
+    b.load(REF, "vulkan", "q8_0", config=PlanConfig(tts_family="qwen3_tts", voice_required=True))
     assert b.is_loaded
     assert log == []
     assert b._voice_set is False
@@ -1322,7 +1346,7 @@ def test_load_on_gpu_skips_the_warmup_for_a_clone_only_family(native_env):
 def test_load_on_gpu_skips_the_warmup_for_the_other_clone_only_family(native_env):
     created, log = native_env
     b = backends.make_backend("native_tts")
-    b.load(REF, "vulkan", "q8_0", config=PlanConfig(tts_family="omnivoice"))
+    b.load(REF, "vulkan", "q8_0", config=PlanConfig(tts_family="omnivoice", voice_required=True))
     assert b.is_loaded
     assert log == []
 
@@ -1502,3 +1526,116 @@ def test_load_supertonic_cpu_gets_no_default_preset(native_env):
     assert model.preset is None
     assert b._voice_set is False
     assert log == []
+
+
+# ── Spec stage 2.3: the card's own voice requirement, presets and default preset ──
+
+_PRESET_CONFIG = dict(tts_family="preset_family", tts_presets=("aiden", "vivian"),
+                      tts_default_preset="vivian")
+
+
+def test_the_voice_gate_reads_the_card_not_the_family(native_env):
+    """The R16 gate follows PlanConfig.voice_required (the card), not the family: a qwen3_tts
+    card that speaks a preset is not gated, and a card can require a clip its family would
+    not."""
+    created, log = native_env
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="qwen3_tts", voice_required=False))
+    samples, _rate, _ms = b.generate("hello")
+    assert samples.dtype == np.float32
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="moss_tts_nano", voice_required=True))
+    log.clear()
+    with pytest.raises(backends.BackendLoadError, match="moss_tts_nano"):
+        b.generate("hello")
+    assert log == []
+
+
+def test_a_default_preset_is_applied_right_after_load_before_the_warm_up(native_env):
+    created, log = native_env
+    created["model_factory"] = _NoBareSynthModel
+    b = backends.make_backend("native_tts")
+    b.load(REF, "vulkan", "q8_0", config=PlanConfig(**_PRESET_CONFIG))
+    assert created["model"].preset_calls == ["vivian"]
+    assert b._voice_set is True
+    assert log == [("synth", "Warm-up.", None, 1.0, False)]   # the warm-up ran for real
+    samples, _rate, _ms = b.generate("hello")                   # and a bare generate speaks
+    assert samples.dtype == np.float32
+
+
+def test_list_builtin_voices_falls_back_to_the_cards_presets(native_env):
+    created, _log = native_env
+    created["model_factory"] = _NoBareSynthModel                # sk_tts_presets lists nothing
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(**_PRESET_CONFIG))
+    assert b.list_builtin_voices() == ["aiden", "vivian"]
+    created["model_factory"] = _FakeTtsModel                     # a family the native layer lists
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="supertonic"))
+    assert b.list_builtin_voices() == ["Alba", "Bella"]
+
+
+def test_a_voice_the_card_does_not_offer_is_refused_and_the_default_stays(native_env):
+    """A stale voice name -- left over from another model's picker -- is refused with the same
+    clean BackendLoadError the R16 gate raises, before the native layer is reached; the default
+    preset stays applied, so the next synth still speaks."""
+    created, log = native_env
+    created["model_factory"] = _NoBareSynthModel
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(**_PRESET_CONFIG))
+    model = created["model"]
+    with pytest.raises(backends.BackendLoadError, match=r"no voice named 'F1'"):
+        b.set_builtin_voice("F1")                      # supertonic's first preset
+    assert model.preset_calls == ["vivian"]            # set_preset never saw 'F1'
+    assert model.preset == "vivian" and b._voice_set is True
+    samples, _rate, _ms = b.generate("hello")
+    assert samples.dtype == np.float32
+    assert log[-1] == ("synth", "hello", None, 1.0, False)
+
+
+@pytest.mark.parametrize("config, measured", [
+    (_PRESET_CONFIG, True),
+    (dict(tts_family="clone_family", voice_required=True), False),
+])
+def test_init_measures_a_default_preset_card_and_skips_a_voice_required_one(
+        native_env, monkeypatch, capsys, config, measured):
+    """TtsEngine.init measures RTF with a bare generate and a GPU load warms up with one. A
+    card with a default preset has it applied before both, so both run and rtf is a number; a
+    card that requires a voice skips both outright -- no synth is attempted and no exception
+    is swallowed, so it never reads as "measured: unknown" because its first synth failed."""
+    from sokuji_sidecar import accel, tts_engine
+    created, _log = native_env
+    created["model_factory"] = _NoBareSynthModel
+    generate_calls = []
+    real_generate = tts_backend.NativeTtsBackend.generate
+
+    def counting_generate(self, text, speed=1.0):
+        generate_calls.append(text)
+        return real_generate(self, text, speed)
+
+    monkeypatch.setattr(tts_backend.NativeTtsBackend, "generate", counting_generate)
+    plan = accel.Plan("native_tts", "gpu-vulkan", "vulkan", "q8_0", REF, 2.0,
+                      config=PlanConfig(**config))
+
+    def load_measured(plans, **_kw):
+        b = backends.make_backend("native_tts")
+        b.load(plans[0].artifact, plans[0].device, plans[0].compute_type, config=plans[0].config)
+        return b, plans[0], None, None
+
+    monkeypatch.setattr(accel, "resolve_tts", lambda *a, **k: [plan])
+    monkeypatch.setattr(accel, "load_measured", load_measured)
+    monkeypatch.setattr(accel, "bench_load", lambda: {})
+    monkeypatch.setattr(accel, "bench_save", lambda entries, generation: None)
+    monkeypatch.setattr(accel, "probe", lambda force=False: CPU_MACHINE)
+
+    eng = tts_engine.TtsEngine()
+    eng.init("card-under-test")
+    err = capsys.readouterr().err
+    assert "warm-up synth failed" not in err
+    if measured:
+        assert created["model"].preset_calls == ["vivian"]
+        assert generate_calls == ["Warm-up.", accel.BENCH_TTS_TEXT]
+        assert isinstance(eng.resolved["rtf"], float)
+    else:
+        assert created["model"].preset_calls == []
+        assert generate_calls == []
+        assert "rtf" not in eng.resolved
+    eng.close()

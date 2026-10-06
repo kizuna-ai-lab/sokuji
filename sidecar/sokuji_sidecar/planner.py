@@ -52,6 +52,13 @@ class PlanConfig:
     tts_family: str = ""
     tts_language: str = ""
     tts_extra_files: tuple[tuple[str, int], ...] = ()
+    # Spec stage 2.3, from the card: whether a voice must be set before the first synth
+    # (tts_backend's R16 gate, its warm-up and accel.measure_rtf_tts read it), the preset
+    # names the card offers when the native layer cannot list them, and the preset applied
+    # right after load.
+    voice_required: bool = False
+    tts_presets: tuple[str, ...] = ()
+    tts_default_preset: str = ""
 
 
 @dataclass(frozen=True)
@@ -99,6 +106,9 @@ def _plan_config(model, deployment=None) -> PlanConfig:
         tts_family=getattr(model, "family", ""),
         tts_language=getattr(model, "load_language", ""),
         tts_extra_files=_rung_extra_files(model, deployment),
+        voice_required=getattr(model, "voice_required", False),
+        tts_presets=tuple(getattr(model, "presets", ())),
+        tts_default_preset=getattr(model, "default_preset", ""),
     )
 
 

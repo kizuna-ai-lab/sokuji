@@ -218,7 +218,17 @@ to -- or a filesystem without hard-link support). native_models.py's delete path
 must remove a card's staged entries too (a
 hard link keeps the blob's inode alive even after the HF-cache-side symlink/blob is
 deleted, so "delete" would otherwise silently free nothing) -- see that module's own
-_prune_staged_files()/_prune_staged_repo()."""
+_prune_staged_files()/_prune_staged_repo().
+
+Spec stage 2.3 -- the R16 gate, the R33 warm-up and accel.measure_rtf_tts no longer test
+the FAMILY against _VOICE_REQUIRED_FAMILIES; they read the loaded CARD's
+PlanConfig.voice_required, which catalog._tts_gguf_row defaults to that set but a card may
+override (a CustomVoice checkpoint rides qwen3_tts and speaks a preset from load). A card
+may also carry PlanConfig.tts_default_preset, applied right after load -- before the
+warm-up and any bare synth, so both run -- and PlanConfig.tts_presets, the names
+list_builtin_voices() offers when sk_tts_presets lists none and the only names
+set_builtin_voice() accepts: any other raises BackendLoadError and leaves the voice already
+set in place."""
 import os
 import queue
 import shutil
@@ -250,16 +260,11 @@ _SENTINEL = object()
 # specific interaction needs no code change.
 _UNLOAD_DEADLINE_S = 10.0
 
-# R16: families whose native default voice raises when synth() is attempted with no
-# clone/preset set first. The set itself, its per-family evidence, and the reasons
-# moss_tts_nano / pocket_tts / voxcpm1 / voxcpm2 / irodori_tts are deliberately NOT in it
-# now live in catalog.VOICE_REQUIRED_FAMILIES -- read that comment for the full story.
-# It moved there because the RENDERER needs the same fact: catalog.voice_capability() puts
-# it on the wire as voice["required"], so LocalNativeClient's pre-init gate reads it
-# instead of inferring it from voice SHAPE (builtin=none + custom=clip) -- an inference
-# that refused to start TTS for every family that merely looks clone-only while speaking
-# fine with nothing set. catalog is the module both consumers can import; the reverse
-# import would be a cycle. This alias keeps the historical private name used below.
+# R16: the family rule a card's voice_required defaults to (catalog.VOICE_REQUIRED_FAMILIES,
+# whose comment carries the per-family evidence and the families deliberately left out). The
+# gate itself reads the CARD, through PlanConfig.voice_required (spec stage 2.3): a card may
+# override its family. The renderer reads the same card field off the wire (voice.required).
+# This alias keeps the historical private name.
 _VOICE_REQUIRED_FAMILIES = VOICE_REQUIRED_FAMILIES
 
 # R33 / W-1: the fixed short phrase load() synthesizes once, on a non-CPU
@@ -398,6 +403,8 @@ class NativeTtsBackend:
         self._language = None
         self._family = None
         self._voice_set = False   # R16: True once set_voice()/set_builtin_voice() lands
+        self._voice_required = False   # spec stage 2.3: the loaded card's PlanConfig.voice_required
+        self._presets = ()             # spec stage 2.3: the loaded card's PlanConfig.tts_presets
         # Every (thread, cancel, done) 3-tuple for a generate() or generate_stream()
         # call that hasn't finished self-cleanup yet, oldest first -- see the module
         # docstring's I3 and "Final fix wave" (I-1) paragraphs. Two distinct shapes:
@@ -424,10 +431,10 @@ class NativeTtsBackend:
         self._workers_lock = threading.Lock()
 
     def _ensure_voice_ready(self) -> None:
-        """R16: raise BEFORE ever reaching the native layer when this family has no
-        usable default voice and none has been set yet -- see _VOICE_REQUIRED_FAMILIES
-        and the module docstring."""
-        if self._family in _VOICE_REQUIRED_FAMILIES and not self._voice_set:
+        """R16: raise BEFORE ever reaching the native layer when the loaded card cannot speak
+        until a voice is set and none has been yet -- PlanConfig.voice_required, the card's own
+        rule (spec stage 2.3), which defaults to its family's (_VOICE_REQUIRED_FAMILIES)."""
+        if self._voice_required and not self._voice_set:
             raise BackendLoadError(f"{self._family} requires a voice clip before synthesis")
 
     def load(self, model_ref: str, device: str, compute_type: str, config=None) -> None:
@@ -472,7 +479,9 @@ class NativeTtsBackend:
             self.STREAMING = bool(caps.streaming)
             self.CLONES = bool(caps.clones)
             self.sample_rate = int(caps.sample_rate)
-            self._family = family              # R16: which _ensure_voice_ready() gates on
+            self._family = family              # R16: the name _ensure_voice_ready() reports
+            self._voice_required = bool(cfg.voice_required)   # spec stage 2.3: the card's rule
+            self._presets = tuple(cfg.tts_presets)
             self._voice_set = False             # a freshly loaded model has no voice yet
             # R34: give a family whose engine needs one a genuinely working
             # default voice BEFORE any synth (warm-up or a client's own bare
@@ -482,7 +491,11 @@ class NativeTtsBackend:
             # has been set yet -- always true here, since load() just reset
             # self._voice_set above, but written this way to match the ruling
             # and stay correct if that ever changes.
-            if family in _DEFAULT_PRESET_FAMILIES and not self._voice_set:
+            if cfg.tts_default_preset:
+                # Spec stage 2.3: the card names the preset it speaks with until the caller
+                # picks a voice (a family that cannot synthesise bare).
+                self.set_builtin_voice(cfg.tts_default_preset)
+            elif family in _DEFAULT_PRESET_FAMILIES and not self._voice_set:
                 presets = self._model.presets()
                 if presets:
                     self.set_builtin_voice(presets[0])
@@ -497,9 +510,10 @@ class NativeTtsBackend:
                           "no default voice could be applied; a bare synth will "
                           "fail until a client calls set_voice()/set_builtin_voice()",
                           file=sys.stderr, flush=True)
-            # R33 / W-1: warm up ONLY on a non-CPU device, and never for a
-            # clone-only family -- see the module docstring's "Task 4" paragraph.
-            if device != "cpu" and family not in _VOICE_REQUIRED_FAMILIES:
+            # R33 / W-1: warm up ONLY on a non-CPU device, and never for a card that needs a
+            # voice before it can speak (spec stage 2.3: the card's own voice_required) -- see
+            # the module docstring's R33 paragraph.
+            if device != "cpu" and not self._voice_required:
                 self._warm_up()
         except BackendLoadError:
             self.unload()
@@ -656,6 +670,12 @@ class NativeTtsBackend:
     def set_builtin_voice(self, name: str) -> None:
         if self._model is None:
             raise BackendLoadError("native_tts not loaded")
+        # Spec stage 2.3: a card that lists its presets refuses any other name here, before the
+        # native layer -- a stale pick from another model's picker would otherwise reach the
+        # engine and fail at synth time. The voice already set stays.
+        if self._presets and name not in self._presets:
+            raise BackendLoadError(
+                f"{self._family} has no voice named {name!r} (its voices: {', '.join(self._presets)})")
         self._model.set_preset(name)
         self._voice_set = True   # R16
 
@@ -669,7 +689,9 @@ class NativeTtsBackend:
     def list_builtin_voices(self) -> list:
         if self._model is None:
             raise BackendLoadError("native_tts not loaded")
-        return self._model.presets()
+        # Spec stage 2.3: sk_tts_presets names only supertonic's and pocket_tts's presets; a
+        # card whose family it cannot list carries its own (PlanConfig.tts_presets).
+        return self._model.presets() or list(self._presets)
 
     def unload(self) -> None:
         # Cancel every OUTSTANDING worker, then wait for each one BEFORE touching

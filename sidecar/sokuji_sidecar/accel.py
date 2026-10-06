@@ -859,6 +859,12 @@ def measure_rtf_tts(backend, plan, model_id: str, machine: Machine, *, force: bo
     generate()/generate_stream() already resample this way; this benchmark must
     agree with them or its RTF numbers are wrong for exactly the families I2 exists
     to cover)."""
+    if getattr(getattr(plan, "config", None), "voice_required", False):
+        # Spec stage 2.3: a card that cannot speak until a voice is set has nothing to measure
+        # at init -- skipped, as load() skips its warm-up, rather than a bare synth failing
+        # inside _measure and reading as "not measured".
+        return None
+
     def run(backend):
         samples, rate, gen_ms = backend.generate(BENCH_TTS_TEXT, 1.0)
         audio_s = len(samples) / float(rate)

@@ -48,6 +48,11 @@ def list_builtin_voices(model_id: str | None = None, engine=None) -> list:
     from . import catalog
     m = catalog.tts_model(model_id) if model_id else None
     family = getattr(m, "family", "")
+    # Spec stage 2.3: a card that lists its own presets (the native layer cannot enumerate
+    # them) needs neither a load nor the snapshot.
+    presets = tuple(getattr(m, "presets", ()) or ())
+    if presets:
+        return list(presets)
     if family == "supertonic":
         return list(_SUPERTONIC_PRESETS)
     layout = _LOAD_FREE_PRESETS.get(family)

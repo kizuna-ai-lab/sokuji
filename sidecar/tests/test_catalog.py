@@ -420,9 +420,9 @@ def test_index_tts2_card_and_license():
     assert m.family == "index_tts2"
     assert m.languages == ("zh", "en", "ja", "es", "ar")   # the 2.5 checkpoint's five
     assert m.streaming is False
-    # Needs the clip, not a transcript of it. The "clip is mandatory" axis lives in
-    # tts_backend._VOICE_REQUIRED_FAMILIES; there is no catalog field for it.
+    # Needs the clip, not a transcript of it: the card's voice_required (its family's rule).
     assert m.clones is True and m.transcript_required is False
+    assert m.voice_required is True
     assert m.named_voices is False
     assert m.sample_rate == 22050
     assert m.size_bytes == 3_502_955_328
@@ -687,15 +687,26 @@ def test_voice_required_is_its_own_axis_not_a_shape_inference():
         assert "required" in cap(m), m.id
 
 
+# The fourteen cards that predate sub-project A, kept apart from TTS_CARD_IDS, which every
+# 2026-10-06 card is appended to: assertions true only of these fourteen iterate this tuple.
+PRE_A_TTS_CARD_IDS = TTS_CARD_IDS[:14]
+
+
 def test_voice_required_families_is_the_single_source_of_truth():
-    """tts_backend's own R16 gate and the wire field must be the same set, or the sidecar
-    would refuse a synth the renderer had already decided was fine (or vice versa)."""
+    """A card's voice_required defaults to its family's rule (catalog.VOICE_REQUIRED_FAMILIES)
+    and is what both the wire field and tts_backend's R16 gate read (through
+    PlanConfig.voice_required), so the sidecar can never refuse a synth the renderer had
+    already decided was fine, or vice versa."""
     from sokuji_sidecar import tts_backend
     assert tts_backend._VOICE_REQUIRED_FAMILIES is catalog.VOICE_REQUIRED_FAMILIES
     assert catalog.VOICE_REQUIRED_FAMILIES == {"qwen3_tts", "omnivoice", "index_tts2"}
     for m in catalog.tts_models():
-        assert (catalog.voice_capability(m)["required"]
-                is (m.family in catalog.VOICE_REQUIRED_FAMILIES)), m.id
+        assert catalog.voice_capability(m)["required"] is m.voice_required, m.id
+    # Every card that predates per-card overrides follows its family's rule.
+    assert len(PRE_A_TTS_CARD_IDS) == 14
+    for mid in PRE_A_TTS_CARD_IDS:
+        m = catalog.tts_model(mid)
+        assert m.voice_required is (m.family in catalog.VOICE_REQUIRED_FAMILIES), mid
 
 
 def test_supertonic_row():

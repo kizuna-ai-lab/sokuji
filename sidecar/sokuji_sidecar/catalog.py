@@ -692,6 +692,15 @@ class TtsModel(_ModelBase):
     # () for every other card (single self-sufficient GGUF — see native/README.md's
     # "GGUF-embedded sidecars" note).
     extra_files: tuple[tuple[str, int], ...] = ()
+    # Spec stage 2.3. Whether a clip or preset MUST be set before the card can speak: its
+    # family's rule (VOICE_REQUIRED_FAMILIES, below) unless the card overrides it.
+    voice_required: bool = False
+    # Preset names the card offers when the native layer cannot enumerate them
+    # (sk_tts_presets lists only supertonic's and pocket_tts's); () = ask the native layer.
+    presets: tuple[str, ...] = ()
+    # The preset the sidecar applies right after load, for a card whose family cannot
+    # synthesise with nothing set; "" = none.
+    default_preset: str = ""
 
 
 # Ruling R16: families whose engine CANNOT synthesize until a voice is set --
@@ -724,6 +733,10 @@ class TtsModel(_ModelBase):
 #   voxcpm1, voxcpm2, irodori_tts  (2026-09-03) all synthesize with nothing set;
 #                  their speaker reference is optional (irodori's own request
 #                  default is no_ref=true). CPU-verified against the real GGUFs.
+#
+# Since spec stage 2.3 this set is each card's DEFAULT: TtsModel.voice_required is what the
+# wire and the R16 gate read, and _tts_gguf_row sets it from this set unless the card overrides
+# it (a CustomVoice checkpoint rides qwen3_tts and speaks a preset from load).
 VOICE_REQUIRED_FAMILIES = frozenset({"qwen3_tts", "omnivoice", "index_tts2"})
 
 
@@ -746,7 +759,7 @@ def voice_capability(model: "TtsModel") -> dict:
     custom = "clip" if model.clones else "none"
     builtin = "named" if model.named_voices else "none"
     out = {"builtin": builtin, "custom": custom,
-           "required": model.family in VOICE_REQUIRED_FAMILIES}
+           "required": model.voice_required}
     if custom == "clip" and model.transcript_required:
         out["transcriptRequired"] = True
     return out
@@ -1088,7 +1101,8 @@ def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
                   order, load_language="", clones=False, streaming=False,
                   sample_rate=24000, named_voices=False, transcript_required=False,
                   recommended=False, extra_files=(), license=None,
-                  repo=_AUDIOCPP_GGUF_REPO, companions=None):
+                  repo=_AUDIOCPP_GGUF_REPO, companions=None, voice_required=None, presets=(),
+                  default_preset=""):
     """One native_tts card. `quants` maps QUANT token (the filename's own
     suffix, e.g. "q8_0") -> (filename, bytes) under `dir_` in `repo`: audio.cpp's
     official mirror unless the card names a third-party repo, which must be pinned
@@ -1111,7 +1125,11 @@ def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
     (relative-to-`dir_` filename, bytes) sidecar assets sk_tts_presets discovers
     next to the loaded gguf (only pocket-tts-en has one:
     embeddings/alba.safetensors) — downloaded alongside every quant and counted
-    once in size_bytes, which is the default rung's package plus them. Tiers come
+    once in size_bytes, which is the default rung's package plus them.
+    `voice_required` is None for the family's rule (VOICE_REQUIRED_FAMILIES) or the
+    card's own; `presets` are the names the card offers when the native layer cannot
+    list them (named_voices must be set), and `default_preset` is the one the sidecar
+    applies right after load (spec stage 2.3). Tiers come
     from `_TTS_TIER_OVERRIDES.get(family, _TTS_TIERS)` — cpu-only by default,
     gpu-vulkan and gpu-metal added back per family once GB10/M4-validated (see
     that dict's own comment, R19/R25/R36)."""
@@ -1124,6 +1142,15 @@ def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
     bad = sorted(p for p in paths if not _repo_path(p))
     if bad:
         raise ValueError(f"{mid}: not a path inside {repo}: {bad}")
+    presets = tuple(presets)
+    if presets and not named_voices:
+        raise ValueError(f"{mid}: a card with presets must set named_voices=True")
+    if default_preset and presets and default_preset not in presets:
+        raise ValueError(f"{mid}: default_preset {default_preset!r} is not one of its presets {presets}")
+    required = (family in VOICE_REQUIRED_FAMILIES) if voice_required is None else bool(voice_required)
+    if default_preset and required:
+        raise ValueError(f"{mid}: a default preset makes the card speak from load; "
+                         "voice_required must be False")
     deps = []
     tiers = _TTS_TIER_OVERRIDES.get(family, _TTS_TIERS)
     prefix = f"{repo}/{dir_}/" if dir_ else f"{repo}/"
@@ -1142,7 +1169,8 @@ def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
                     sample_rate=sample_rate, named_voices=named_voices,
                     transcript_required=transcript_required, recommended=recommended,
                     sort_order=order, size_bytes=total_bytes, extra_files=extra_files,
-                    license=license, graph_family=family)
+                    license=license, graph_family=family, voice_required=required,
+                    presets=presets, default_preset=default_preset)
 
 
 SUPERTONIC_LANGS = ("en", "ko", "ja", "ar", "bg", "cs", "da", "de", "el", "es", "et",
@@ -1317,8 +1345,8 @@ TTS_MODELS: list[TtsModel] = [
         sample_rate=48000),
     # IndexTTS 2.5: offline, 22.05 kHz, and the only card here whose reference
     # clip is MANDATORY -- audio.cpp exposes no built-in voices for it and its
-    # request parser refuses without one, so tts_backend._VOICE_REQUIRED_FAMILIES
-    # turns that into a clean error before the native layer. `clones=True` with
+    # request parser refuses without one, so the card's voice_required (its family's rule)
+    # makes tts_backend raise a clean error before the native layer. `clones=True` with
     # `transcript_required=False`: it needs the clip, not a transcript of it.
     #
     # bilibili's Model Use License is NOT an OSI licence and is not in the SPDX
