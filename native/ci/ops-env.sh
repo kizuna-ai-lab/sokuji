@@ -16,4 +16,5 @@ export SK_TEST_TTS_INDEX_DIR=$C/tts/index-tts2.5
 export SK_TEST_TTS_COSYVOICE3_DIR=$C/tts/cosyvoice3
 export SK_TEST_TTS_FIREREDTTS3_DIR=$C/tts/fireredtts3-base
 export SK_TEST_TTS_MOSS_LOCAL_DIR=$C/tts/moss-tts-local-1.5
+export SK_TEST_TTS_VIBEVOICE_DIR=$C/tts/vibevoice-1.5b
 exec "$@"

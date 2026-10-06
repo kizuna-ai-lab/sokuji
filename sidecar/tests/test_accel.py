@@ -1723,3 +1723,13 @@ def test_models_catalog_carries_the_moss_tts_local_card():
     assert c["repo"] == "audio-cpp/audio.cpp-gguf/MOSS-TTS-Local-v1.5-GGUF/moss-tts-local-v1.5-q8_0.gguf"
     assert c["sizeBytes"] == 7512220768
     assert "license" not in c
+
+
+def test_models_catalog_carries_the_vibevoice_card():
+    c = _catalog("tts")["vibevoice-1.5b"]
+    assert c["order"] == 17 and c["clones"] is True and c["streaming"] is False
+    assert c["voice"]["builtin"] == "none" and c["voice"]["custom"] == "clip"
+    assert c["voice"]["required"] is False
+    assert c["repo"] == "audio-cpp/audio.cpp-gguf/VibeVoice-1.5B-GGUF/vibevoice-1.5b-q8_0.gguf"
+    assert c["sizeBytes"] == 3224701538
+    assert c["license"]["requiresConsent"] is True and c["license"]["nonCommercial"] is False

@@ -1726,3 +1726,16 @@ def test_moss_tts_local_card_is_not_gated_by_r16(native_env):
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=m.family, voice_required=m.voice_required))
     samples, _rate, _ms = b.generate("hello")
     assert samples.dtype == np.float32
+
+
+def test_vibevoice_card_is_not_gated_by_r16(native_env):
+    """VibeVoice speaks with nothing set (CPU loopback, 2026-10-06), so a plain generate()
+    must reach the native layer."""
+    from sokuji_sidecar import catalog
+    created, log = native_env
+    m = catalog.tts_model("vibevoice-1.5b")
+    assert m.voice_required is False
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=m.family, voice_required=m.voice_required))
+    samples, _rate, _ms = b.generate("hello")
+    assert samples.dtype == np.float32

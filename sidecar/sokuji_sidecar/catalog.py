@@ -1482,6 +1482,29 @@ TTS_MODELS: list[TtsModel] = [
         default_quant="q8_0", order=16, clones=True, streaming=False,
         sample_rate=48000,
         rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}}),
+    # VibeVoice 1.5B: an optional clip conditions its one speaker (sk_tts.cpp wraps the text
+    # as a "Speaker 1:" script); English and Chinese only, per its model card. Microsoft's
+    # model card limits it to research use and advises against commercial or real-world use
+    # without further testing, so it goes behind the consent gate with the conditional
+    # wording, named after those terms rather than the weights' MIT tag so the modal does
+    # not call MIT "not an open-source license" (owner's rulings, 2026-10-06). The official
+    # pipeline's audible disclaimer and watermark are not part of the audio.cpp port.
+    _tts_gguf_row(
+        "vibevoice-1.5b", "VibeVoice 1.5B", ("en", "zh"),
+        "vibevoice", "VibeVoice-1.5B-GGUF",
+        {"q8_0": ("vibevoice-1.5b-q8_0.gguf", 3224701538),
+         "bf16": ("vibevoice-1.5b-bf16.gguf", 5420021858)},
+        default_quant="q8_0", order=17, clones=True, streaming=False,
+        sample_rate=24000,
+        rung_dtypes={"q8_0": {"bf16", "f16", "q8_0"}, "bf16": {"bf16"}},
+        license=License(
+            spdx="LicenseRef-VibeVoice-Model-Card-Terms",
+            name="VibeVoice model card terms of use (research use only)",
+            url="https://huggingface.co/microsoft/VibeVoice-1.5B",
+            non_commercial=False,
+            requires_consent=True,
+            source_repo=_AUDIOCPP_GGUF_REPO,
+            attribution="Microsoft (microsoft/VibeVoice-1.5B)")),
 ]
 
 

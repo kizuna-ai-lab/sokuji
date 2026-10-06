@@ -144,3 +144,11 @@ describe('MOSS-TTS-Local v1.5 clip window', () => {
     expect(s.capability.maxClipSeconds).toBe(20);
   });
 });
+
+describe('VibeVoice 1.5B clip window', () => {
+  it('caps the reference at 10s, as audio.cpp does for a voice prompt off CUDA', () => {
+    const s = voiceStoreFor('clip', 'vibevoice-1.5b')!;
+    expect(s.capability.maxClipSeconds).toBe(10);
+    expect(s.capability.minClipSeconds).toBe(3);
+  });
+});

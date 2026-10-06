@@ -162,6 +162,10 @@ constexpr FamilyInfo kFamilies[] = {
     // (:33); do_sample defaults to true (generator.h:23-34) and greedy is moss_tts_nano's
     // runaway (R23), so it samples too.
     {"moss_tts_local", false, true,  false, 48000, true,  false, false, FamilyTask::Tts, nullptr},
+    // vibevoice (audio.cpp src/models/vibevoice/): an offline Tts session only (loader.cpp:131);
+    // a clip is optional (voice.speaker.audio; cached_voice_id throws, session.cpp:319-321);
+    // do_sample defaults to false. Its text is a speaker script (build_request wraps it).
+    {"vibevoice",      false, true,  false, 24000, false, false, false, FamilyTask::Tts, nullptr},
 };
 
 const FamilyInfo *find_family(const char *name) {
@@ -276,6 +280,27 @@ const char *english_language_name(const std::string &code) {
     for (const auto &entry : kLanguageNames)
         if (code == entry.code) return entry.name;
     return nullptr;
+}
+
+// VibeVoice's speaker script for one plain utterance: every non-blank line, trimmed, becomes
+// "Speaker 1: <line>"; blank lines are dropped.
+std::string vibevoice_script(const std::string &text) {
+    std::string out;
+    size_t start = 0;
+    while (start <= text.size()) {
+        const size_t end = text.find('\n', start);
+        const std::string line = text.substr(start, end == std::string::npos ? std::string::npos : end - start);
+        const size_t first = line.find_first_not_of(" \t\r");
+        if (first != std::string::npos) {
+            const size_t last = line.find_last_not_of(" \t\r");
+            if (!out.empty()) out += '\n';
+            out += "Speaker 1: ";
+            out += line.substr(first, last - first + 1);
+        }
+        if (end == std::string::npos) break;
+        start = end + 1;
+    }
+    return out;
 }
 
 // Builds the per-call TaskRequest: text, whichever voice state (if any) is stored on the
@@ -395,6 +420,13 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
         const char *name = (language && *language) ? english_language_name(base_language_code(language)) : nullptr;
         req.text_input->language = name ? name : "";
     }
+
+    // VibeVoice reads its text as a speaker script and silently drops every line that is not
+    // "Speaker N: ..." (audio.cpp src/models/vibevoice/tokenizer_text.cpp:49-75); ids are
+    // re-based to 0 (:76-85), the speaker a clip conditions. Every non-blank line is one
+    // speaker's.
+    if (t->family == "vibevoice")
+        req.text_input->text = vibevoice_script(req.text_input->text);
 
     // Ruling R7(s4): deterministic synthesis by default — product behavior AND the parity
     // harness's precondition (Task 3 compares this binding's output against the official

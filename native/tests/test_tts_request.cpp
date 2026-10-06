@@ -420,6 +420,20 @@ void moss_tts_local_takes_the_vendors_names() {
     assert(wrong == 0);
 }
 
+void vibevoice_requests() {
+    assert(vibevoice_script("").empty());
+    const auto h = handle_for("vibevoice");
+    rt::TaskRequest req = build_request(h.get(), "Hello there.", "en", 1.0f);
+    assert(req.text_input && req.text_input->text == "Speaker 1: Hello there.");
+    req = build_request(h.get(), "  First line.\r\n\n\tSecond line.  ", "en", 1.0f);
+    assert(req.text_input->text == "Speaker 1: First line.\nSpeaker 1: Second line.");
+    // Not strict; greedy, its own default; the fixed seed.
+    assert(opt(req, "do_sample") == "false" && opt(req, "seed") == "0");
+    give_clip(h.get(), "");
+    req = build_request(h.get(), "Hello.", "en", 1.0f);
+    assert(carries_clip(req) && req.text_input->text == "Speaker 1: Hello.");
+}
+
 }  // namespace
 
 int main() {
@@ -436,6 +450,7 @@ int main() {
     language_names_match_the_vendors();
     moss_tts_local_requests();
     moss_tts_local_takes_the_vendors_names();
+    vibevoice_requests();
     std::puts("test_tts_request ok");
     return 0;
 }

@@ -97,7 +97,7 @@ def test_audio_families():
     # always compiles silero_vad in regardless of AUDIOCPP_MODELS (see upstreams.cmake), so
     # the family rides along unused, reported by sk_audio_families() but never called.
     required = {"index_tts2", "irodori_tts", "moss_tts_nano", "omnivoice", "pocket_tts",
-                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3", "fireredtts3", "moss_tts_local"}
+                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3", "fireredtts3", "moss_tts_local", "vibevoice"}
     assert required <= set(families)
     assert families == sorted(families)
     # Sized from the library's own count, so the binding never cuts the list off.
@@ -411,6 +411,8 @@ TTS_FIREREDTTS3_DIR = os.environ.get("SK_TEST_TTS_FIREREDTTS3_DIR")
 needs_tts_fireredtts3 = pytest.mark.skipif(not (HAVE_TREE and TTS_FIREREDTTS3_DIR), reason="needs a built tree and SK_TEST_TTS_FIREREDTTS3_DIR")
 TTS_MOSS_LOCAL_DIR = os.environ.get("SK_TEST_TTS_MOSS_LOCAL_DIR")
 needs_tts_moss_local = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_LOCAL_DIR), reason="needs a built tree and SK_TEST_TTS_MOSS_LOCAL_DIR")
+TTS_VIBEVOICE_DIR = os.environ.get("SK_TEST_TTS_VIBEVOICE_DIR")
+needs_tts_vibevoice = pytest.mark.skipif(not (HAVE_TREE and TTS_VIBEVOICE_DIR), reason="needs a built tree and SK_TEST_TTS_VIBEVOICE_DIR")
 needs_tts_supertonic = pytest.mark.skipif(not (HAVE_TREE and TTS_SUPERTONIC_DIR), reason="needs a built tree and SK_TEST_TTS_SUPERTONIC_DIR")
 needs_tts_moss = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_DIR), reason="needs a built tree and SK_TEST_TTS_MOSS_DIR")
 needs_tts_index = pytest.mark.skipif(not (HAVE_TREE and TTS_INDEX_DIR), reason="needs a built tree and SK_TEST_TTS_INDEX_DIR")
@@ -621,6 +623,8 @@ NEW_CPU_TTS_FAMILIES = [
                transcript_required=True),
     # moss_tts_local speaks with nothing set; its clip is optional.
     CpuTtsCase("moss_tts_local", "SK_TEST_TTS_MOSS_LOCAL_DIR", TTS_MOSS_LOCAL_DIR, "Hello from MOSS.", "en", 48000, False),
+    # vibevoice takes an optional clip; its text is wrapped as a one-speaker script.
+    CpuTtsCase("vibevoice", "SK_TEST_TTS_VIBEVOICE_DIR", TTS_VIBEVOICE_DIR, "Hello from VibeVoice.", "en", 24000, False),
 ]
 
 
@@ -879,6 +883,23 @@ def test_tts_moss_tts_local_speaks_stereo_without_a_language_tag():
     assert float(np.max(np.abs(samples))) > 0.01
 
 
+@needs_tts_vibevoice
+def test_tts_vibevoice_speaks_every_line():
+    """VibeVoice drops, silently, every line of its script that is not "Speaker N: ...".
+    sk_tts_synth wraps each line of an utterance as speaker 1, so a second line is spoken, not
+    lost: the two-line synth is longer than the one-line one by more than a second."""
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    t = sokuji_native.tts_load(_main_gguf(TTS_VIBEVOICE_DIR), "vibevoice", cpu)
+    try:
+        one, rate = t.synth("Hello there.", language="en")
+        two, rate2 = t.synth("Hello there.\nThis second line is long enough to be heard on its own.", language="en")
+    finally:
+        t.unload()
+    assert rate == rate2 == 24000
+    assert two.shape[0] > one.shape[0] + rate
+
+
 # --------------------------------------------------------------------------------------
 # TTS on a real GPU device.
 #
@@ -956,6 +977,7 @@ GPU_TTS_FAMILIES = {
     "cosyvoice3": ("SK_TEST_TTS_COSYVOICE3_DIR", TTS_COSYVOICE3_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
     "fireredtts3": ("SK_TEST_TTS_FIREREDTTS3_DIR", TTS_FIREREDTTS3_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
     "moss_tts_local": ("SK_TEST_TTS_MOSS_LOCAL_DIR", TTS_MOSS_LOCAL_DIR, None, False, 30.0, GPU_TTS_TEXT, "en"),
+    "vibevoice": ("SK_TEST_TTS_VIBEVOICE_DIR", TTS_VIBEVOICE_DIR, None, False, 30.0, GPU_TTS_TEXT, "en"),
 }
 
 # The dirs above hold the DEFAULT rung — the catalog's `default_quant`, which is
@@ -992,6 +1014,7 @@ GPU_TTS_BF16_ENV = {
     "qwen3_tts": "SK_TEST_TTS_QWEN3_BF16_DIR",
     "omnivoice": "SK_TEST_TTS_OMNIVOICE_BF16_DIR",
     "voxcpm2": "SK_TEST_TTS_VOXCPM2_BF16_DIR",
+    "vibevoice": "SK_TEST_TTS_VIBEVOICE_BF16_DIR",
 }
 
 _GPU_TTS_RUNNER = r'''

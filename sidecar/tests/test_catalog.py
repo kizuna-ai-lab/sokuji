@@ -219,7 +219,8 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
                 # 2026-10-06 roster expansion (sub-project A)
                 "cosyvoice3",
                 "fireredtts3-base",
-                "moss-tts-local-1.5")
+                "moss-tts-local-1.5",
+                "vibevoice-1.5b")
 
 # The 2026-09-03 batch arrived CPU-ONLY and earned every tier the same evening
 # (commit 2f2b28bc, after the per-family fleet run; catalog._TTS_TIER_OVERRIDES).
@@ -1249,3 +1250,41 @@ def test_moss_tts_local_card():
     assert m.size_bytes == 7_512_220_768
     # The matrix dtypes of the rung's published GGUF (no companions), read from the Hub.
     assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"})}
+
+
+def test_vibevoice_card_and_license():
+    # 2026-10-06: an optional clip (decided by the CPU loopback), English and Chinese only.
+    # MIT, but behind the consent gate with the conditional wording: Microsoft's model card
+    # limits VibeVoice to research use (owner's ruling).
+    m = catalog.tts_model("vibevoice-1.5b")
+    assert m is not None
+    assert (m.family, m.graph_family, m.name) == ("vibevoice", "vibevoice", "VibeVoice 1.5B")
+    assert m.sort_order == 17 and m.recommended is False
+    assert m.languages == ("en", "zh")
+    assert m.clones is True and m.transcript_required is False and m.named_voices is False
+    assert m.streaming is False and m.sample_rate == 24000
+    assert m.voice_required is False and m.presets == () and m.default_preset == ""
+    assert m.extra_files == ()
+    assert m.family not in catalog._TTS_TIER_OVERRIDES
+    assert {d.tier for d in m.deployments} == {"cpu"}
+    rungs = {d.compute_type: d for d in m.deployments}
+    assert set(rungs) == {"q8_0", "bf16"}
+    assert rungs["q8_0"].rank == 2.0 and rungs["bf16"].rank == 1.0
+    assert rungs["q8_0"].artifact == "audio-cpp/audio.cpp-gguf/VibeVoice-1.5B-GGUF/vibevoice-1.5b-q8_0.gguf"
+    assert rungs["q8_0"].est_bytes == 3_224_701_538
+    assert rungs["bf16"].artifact == "audio-cpp/audio.cpp-gguf/VibeVoice-1.5B-GGUF/vibevoice-1.5b-bf16.gguf"
+    assert rungs["bf16"].est_bytes == 5_420_021_858
+    assert m.size_bytes == 3_224_701_538
+    # The matrix dtypes of each rung's published GGUF (no companions), read from the Hub; the
+    # q8_0 file carries bf16 and f16 matrices beside its q8_0 ones.
+    assert dict(m.rung_dtypes) == {"q8_0": frozenset({"bf16", "f16", "q8_0"}),
+                                   "bf16": frozenset({"bf16"})}
+    assert catalog.license_dict(m) == {
+        "spdx": "LicenseRef-VibeVoice-Model-Card-Terms",
+        "name": "VibeVoice model card terms of use (research use only)",
+        "url": "https://huggingface.co/microsoft/VibeVoice-1.5B",
+        "nonCommercial": False,
+        "requiresConsent": True,
+        "sourceRepo": "audio-cpp/audio.cpp-gguf",
+        "attribution": "Microsoft (microsoft/VibeVoice-1.5B)",
+    }

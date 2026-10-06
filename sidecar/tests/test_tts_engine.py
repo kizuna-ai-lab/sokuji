@@ -1262,9 +1262,9 @@ def test_tts_asr_loopback_per_family():
         d = os.environ.get(env_name)
         return d if d and os.path.isdir(d) else None
 
-    def attempt(family, model_dir, setup, note="", language="en"):
+    def attempt(family, model_dir, setup, note="", language="en", device=None):
         t0 = time.monotonic()
-        model = sn.tts_load(model_dir, family)
+        model = sn.tts_load(model_dir, family, device)
         try:
             setup(model)
             samples, rate = model.synth(_LOOPBACK_TEXT, language=language)
@@ -1407,6 +1407,16 @@ def test_tts_asr_loopback_per_family():
         attempt("moss_tts_local", moss_local_dir, lambda m: None)
     else:
         skipped.append("moss_tts_local")
+
+    # vibevoice (2026-10-06): synthesised with nothing set, the case that decides whether the
+    # card may speak without a clip; its text reaches the engine as a one-speaker script. Its
+    # session refuses the library's no-device default (audio.cpp src/models/vibevoice/
+    # session.cpp:46-53), so it loads on the CPU device the sidecar's own loader resolves.
+    vibevoice_dir = family_dir("SK_TEST_TTS_VIBEVOICE_DIR")
+    if vibevoice_dir:
+        attempt("vibevoice", vibevoice_dir, lambda m: None, device=native.device_for("cpu"))
+    else:
+        skipped.append("vibevoice")
 
     # pocket_tts (English package): the ONE full-production-chain leg (ruling
     # R17(s4) / I1 point 2; the symlinked-snapshot loading defect it surfaced is
