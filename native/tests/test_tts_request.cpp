@@ -311,6 +311,115 @@ void fireredtts3_requests() {
     assert(!has(req, "language"));
 }
 
+// The names the two vendors write, each with the app's base code for it. They are read off the
+// vendors' own lists, never off kLanguageNames, so a slip in one of its rows shows up here.
+//
+// FireRedTTS-3's tag list: audio.cpp src/models/fireredtts3/tokenizer_text.cpp:20-45, in its order.
+constexpr LanguageName kFireRedTags[] = {
+    {"zh", "Chinese"},    {"en", "English"},    {"yue", "Cantonese"}, {"ja", "Japanese"},
+    {"ko", "Korean"},     {"es", "Spanish"},    {"fr", "French"},     {"ru", "Russian"},
+    {"ar", "Arabic"},     {"tr", "Turkish"},    {"id", "Indonesian"}, {"pt", "Portuguese"},
+    {"it", "Italian"},    {"nl", "Dutch"},      {"vi", "Vietnamese"}, {"de", "German"},
+    {"uk", "Ukrainian"},  {"th", "Thai"},       {"pl", "Polish"},     {"ro", "Romanian"},
+    {"el", "Greek"},      {"cs", "Czech"},      {"fi", "Finnish"},    {"hi", "Hindi"},
+};
+// MOSS-TTS-Local v1.5's language table, in the vendor card's order ("Supported Languages"; its
+// codes are the 31 of audio.cpp's model_specs/moss_tts_local.json). The card's Tagalog code is
+// "tl"; the app's own base code for it is "fil".
+constexpr LanguageName kMossLocalNames[] = {
+    {"zh", "Chinese"},    {"yue", "Cantonese"}, {"en", "English"},    {"ar", "Arabic"},
+    {"cs", "Czech"},      {"da", "Danish"},     {"nl", "Dutch"},      {"fi", "Finnish"},
+    {"fr", "French"},     {"de", "German"},     {"el", "Greek"},      {"he", "Hebrew"},
+    {"hi", "Hindi"},      {"hu", "Hungarian"},  {"it", "Italian"},    {"ja", "Japanese"},
+    {"ko", "Korean"},     {"mk", "Macedonian"}, {"ms", "Malay"},      {"fa", "Persian (Farsi)"},
+    {"pl", "Polish"},     {"pt", "Portuguese"}, {"ro", "Romanian"},   {"ru", "Russian"},
+    {"es", "Spanish"},    {"sw", "Swahili"},    {"sv", "Swedish"},    {"fil", "Tagalog"},
+    {"th", "Thai"},       {"tr", "Turkish"},    {"vi", "Vietnamese"},
+};
+// The vendor's own code for Tagalog, which the table keeps beside the app's "fil".
+constexpr LanguageName kVendorCodeAliases[] = {{"tl", "Tagalog"}};
+static_assert(std::size(kFireRedTags) == 24 && std::size(kMossLocalNames) == 31,
+              "a vendor list was mistyped");
+
+template <size_t N>
+bool listed_in(const LanguageName (&list)[N], const LanguageName &row) {
+    for (const auto &pair : list)
+        if (std::string(pair.code) == row.code && std::string(pair.name) == row.name) return true;
+    return false;
+}
+
+bool vendor_lists_have(const LanguageName &row) {
+    return listed_in(kFireRedTags, row) || listed_in(kMossLocalNames, row) || listed_in(kVendorCodeAliases, row);
+}
+
+// kLanguageNames is the one table both name-tagged families read, so a slip in any row reaches a
+// family. Every pair of both vendors' lists must come out of a request as the vendor's name, and
+// every row of the table must be one of those pairs. FireRedTTS-3's rule hands the name of ANY
+// table code to its "language" option, which is how the whole table is read here.
+void language_names_match_the_vendors() {
+    const auto h = handle_for("fireredtts3");
+    int wrong = 0;
+    const auto check = [&](const LanguageName &pair) {
+        const std::string got = opt(build_request(h.get(), "Hello.", pair.code, 1.0f), "language");
+        if (got != pair.name) {
+            std::fprintf(stderr, "language code \"%s\": want \"%s\", got \"%s\"\n", pair.code, pair.name, got.c_str());
+            ++wrong;
+        }
+    };
+    for (const auto &pair : kFireRedTags) check(pair);
+    for (const auto &pair : kMossLocalNames) check(pair);
+    for (const auto &pair : kVendorCodeAliases) check(pair);
+    for (const auto &row : kLanguageNames) {
+        if (!vendor_lists_have(row)) {
+            std::fprintf(stderr, "table row \"%s\" -> \"%s\" is on no vendor list\n", row.code, row.name);
+            ++wrong;
+        }
+    }
+    assert(wrong == 0);
+    // 24 FireRedTTS-3 tags + the 9 names only MOSS-TTS-Local lists + the "tl" alias.
+    assert(std::size(kLanguageNames) == 34);
+}
+
+void moss_tts_local_requests() {
+    const auto h = handle_for("moss_tts_local");
+    rt::TaskRequest req = build_request(h.get(), "Hello.", "en", 1.0f);
+    assert(req.text_input && req.text_input->language == "English");
+    req = build_request(h.get(), "Hello.", "fil", 1.0f);
+    assert(req.text_input->language == "Tagalog");
+    req = build_request(h.get(), "Hello.", "FA-ir", 1.0f);
+    assert(req.text_input->language == "Persian (Farsi)");
+    // No name: an empty slot, which the model reads as "detect the language yourself".
+    req = build_request(h.get(), "Hello.", "xx", 1.0f);
+    assert(req.text_input->language.empty());
+    req = build_request(h.get(), "Hello.", nullptr, 1.0f);
+    assert(req.text_input->language.empty());
+    assert(!has(req, "language"));
+    // Not strict; samples its audio tokens like moss_tts_nano (R23), with the fixed seed.
+    assert(opt(req, "do_sample") == "true" && opt(req, "seed") == "0");
+    give_clip(h.get(), "The quick brown fox.");
+    req = build_request(h.get(), "Hello.", "en", 1.0f);
+    assert(carries_clip(req));
+}
+
+// MOSS-TTS-Local reads its name from text_input.language, where FireRedTTS-3 reads an option:
+// all 31 names of the vendor's card (and its "tl") must reach the prompt's slot as written.
+void moss_tts_local_takes_the_vendors_names() {
+    const auto h = handle_for("moss_tts_local");
+    int wrong = 0;
+    const auto check = [&](const LanguageName &pair) {
+        const rt::TaskRequest req = build_request(h.get(), "Hello.", pair.code, 1.0f);
+        const std::string got = req.text_input ? req.text_input->language : std::string("<no text_input>");
+        if (got != pair.name) {
+            std::fprintf(stderr, "moss_tts_local, code \"%s\": want \"%s\", got \"%s\"\n", pair.code, pair.name, got.c_str());
+            ++wrong;
+        }
+        assert(!has(req, "language"));
+    };
+    for (const auto &pair : kMossLocalNames) check(pair);
+    for (const auto &pair : kVendorCodeAliases) check(pair);
+    assert(wrong == 0);
+}
+
 }  // namespace
 
 int main() {
@@ -324,6 +433,9 @@ int main() {
     load_language_replaces_the_callers_on_every_synth();
     cosyvoice3_requests();
     fireredtts3_requests();
+    language_names_match_the_vendors();
+    moss_tts_local_requests();
+    moss_tts_local_takes_the_vendors_names();
     std::puts("test_tts_request ok");
     return 0;
 }

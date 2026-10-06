@@ -1712,3 +1712,17 @@ def test_fireredtts3_base_card_is_gated_by_r16(native_env):
     b.set_voice(np.ones(2400, np.float32), 24000, ref_text="hello there")
     samples, _rate, _ms = b.generate("hello")
     assert samples.dtype == np.float32
+
+
+def test_moss_tts_local_card_is_not_gated_by_r16(native_env):
+    """MOSS-TTS-Local speaks with nothing set (its clip is optional), so a plain generate()
+    must reach the native layer."""
+    from sokuji_sidecar import catalog
+    created, log = native_env
+    m = catalog.tts_model("moss-tts-local-1.5")
+    assert m.voice_required is False
+    assert m.family not in catalog.VOICE_REQUIRED_FAMILIES
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=m.family, voice_required=m.voice_required))
+    samples, _rate, _ms = b.generate("hello")
+    assert samples.dtype == np.float32

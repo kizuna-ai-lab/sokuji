@@ -1469,6 +1469,19 @@ TTS_MODELS: list[TtsModel] = [
         default_quant="q8_0", order=15, clones=True, streaming=False,
         sample_rate=24000, transcript_required=True,
         rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}}),
+    # MOSS-TTS-Local v1.5: speaks with nothing set; a clip is optional and needs no
+    # transcript; 48 kHz stereo. Its 31 languages are the vendor's table, with Tagalog as the
+    # app's "fil" (the code Intl gives "tl"). bf16 (13.4 GB) is left out.
+    _tts_gguf_row(
+        "moss-tts-local-1.5", "MOSS-TTS-Local v1.5",
+        ("zh", "yue", "en", "ar", "cs", "da", "nl", "fi", "fr", "de", "el", "he", "hi", "hu",
+         "it", "ja", "ko", "mk", "ms", "fa", "pl", "pt", "ro", "ru", "es", "sw", "sv", "fil",
+         "th", "tr", "vi"),
+        "moss_tts_local", "MOSS-TTS-Local-v1.5-GGUF",
+        {"q8_0": ("moss-tts-local-v1.5-q8_0.gguf", 7512220768)},
+        default_quant="q8_0", order=16, clones=True, streaming=False,
+        sample_rate=48000,
+        rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}}),
 ]
 
 

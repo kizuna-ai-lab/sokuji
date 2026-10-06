@@ -157,6 +157,11 @@ constexpr FamilyInfo kFamilies[] = {
     // prompt is built from reference_text (:73-89); strict options, declaring reference_text and
     // language.
     {"fireredtts3",    false, true,  true,  24000, false, true,  true,  FamilyTask::VoiceCloning, nullptr},
+    // moss_tts_local (audio.cpp src/models/moss/moss_tts_local/): offline (loader.cpp:76-79);
+    // the clip is optional and no transcript is read (session.cpp:300-311); 48 kHz stereo
+    // (:33); do_sample defaults to true (generator.h:23-34) and greedy is moss_tts_nano's
+    // runaway (R23), so it samples too.
+    {"moss_tts_local", false, true,  false, 48000, true,  false, false, FamilyTask::Tts, nullptr},
 };
 
 const FamilyInfo *find_family(const char *name) {
@@ -249,13 +254,21 @@ std::string base_language_code(const char *language) {
 
 // English language names, for a family whose prompt is tagged with a name instead of a code.
 struct LanguageName { const char *code; const char *name; };
+// The union of FireRedTTS-3's 24 tags and MOSS-TTS-Local v1.5's 31 language names, which are its
+// vendor card's table verbatim ("Persian (Farsi)" included), with Tagalog under the app's "fil"
+// and the card's own "tl" kept beside it. A family that does not know a name it is handed
+// refuses it by name, which is the loud failure wanted for a card that lists no such language.
+// "Persian (Farsi)": the vendor README table is the only source; the training tag is unconfirmed.
 constexpr LanguageName kLanguageNames[] = {
-    {"ar", "Arabic"},     {"cs", "Czech"},      {"de", "German"},     {"el", "Greek"},
-    {"en", "English"},    {"es", "Spanish"},    {"fi", "Finnish"},    {"fr", "French"},
-    {"hi", "Hindi"},      {"id", "Indonesian"}, {"it", "Italian"},    {"ja", "Japanese"},
-    {"ko", "Korean"},     {"nl", "Dutch"},      {"pl", "Polish"},     {"pt", "Portuguese"},
-    {"ro", "Romanian"},   {"ru", "Russian"},    {"th", "Thai"},       {"tr", "Turkish"},
-    {"uk", "Ukrainian"},  {"vi", "Vietnamese"}, {"yue", "Cantonese"}, {"zh", "Chinese"},
+    {"ar", "Arabic"},     {"cs", "Czech"},      {"da", "Danish"},     {"de", "German"},
+    {"el", "Greek"},      {"en", "English"},    {"es", "Spanish"},    {"fa", "Persian (Farsi)"},
+    {"fi", "Finnish"},    {"fil", "Tagalog"},   {"fr", "French"},     {"he", "Hebrew"},
+    {"hi", "Hindi"},      {"hu", "Hungarian"},  {"id", "Indonesian"}, {"it", "Italian"},
+    {"ja", "Japanese"},   {"ko", "Korean"},     {"mk", "Macedonian"}, {"ms", "Malay"},
+    {"nl", "Dutch"},      {"pl", "Polish"},     {"pt", "Portuguese"}, {"ro", "Romanian"},
+    {"ru", "Russian"},    {"sv", "Swedish"},    {"sw", "Swahili"},    {"th", "Thai"},
+    {"tl", "Tagalog"},    {"tr", "Turkish"},    {"uk", "Ukrainian"},  {"vi", "Vietnamese"},
+    {"yue", "Cantonese"}, {"zh", "Chinese"},
 };
 
 // nullptr for a code with no entry.
@@ -372,6 +385,15 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
     if (t->family == "fireredtts3" && language && *language) {
         if (const char *name = english_language_name(base_language_code(language)))
             req.options["language"] = name;
+    }
+
+    // MOSS-TTS-Local v1.5 reads its prompt's language slot as a NAME, the way its vendor's
+    // processor writes it ("English", "French"); audio.cpp copies text_input.language into that
+    // slot verbatim (src/models/moss/moss_tts_local/tokenizer_text.cpp:38-45). A code with no
+    // name leaves the slot empty, which the model treats as "detect it" (session.cpp:307-311).
+    if (t->family == "moss_tts_local") {
+        const char *name = (language && *language) ? english_language_name(base_language_code(language)) : nullptr;
+        req.text_input->language = name ? name : "";
     }
 
     // Ruling R7(s4): deterministic synthesis by default — product behavior AND the parity
@@ -542,6 +564,13 @@ SK_API sk_status sk_tts_load(const char *model_path, const sk_device *device,
 
         rt::SessionOptions session_options;
         session_options.backend = backend;
+        // moss_tts_local's default ("auto") weight type expands the backbone to f32 on a CPU
+        // backend (audio.cpp src/models/moss/moss_tts_local/session.cpp:150-183): one CPU synth of
+        // the 7.5 GB q8_0 file peaked at 24.2 GB that way and at 13.1 GB with "native", which
+        // keeps the file's own weights (measured 2026-10-06). GPU backends already resolve "auto"
+        // to native.
+        if (std::strcmp(info->name, "moss_tts_local") == 0)
+            session_options.options["moss_tts_local.weight_type"] = "native";
 
         // Session created AT LOAD (report §9's Xcode precedent): one long-lived session per
         // handle, reused across every sk_tts_synth call.

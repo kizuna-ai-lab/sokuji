@@ -97,7 +97,7 @@ def test_audio_families():
     # always compiles silero_vad in regardless of AUDIOCPP_MODELS (see upstreams.cmake), so
     # the family rides along unused, reported by sk_audio_families() but never called.
     required = {"index_tts2", "irodori_tts", "moss_tts_nano", "omnivoice", "pocket_tts",
-                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3", "fireredtts3"}
+                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3", "fireredtts3", "moss_tts_local"}
     assert required <= set(families)
     assert families == sorted(families)
     # Sized from the library's own count, so the binding never cuts the list off.
@@ -409,6 +409,8 @@ TTS_COSYVOICE3_DIR = os.environ.get("SK_TEST_TTS_COSYVOICE3_DIR")
 needs_tts_cosyvoice3 = pytest.mark.skipif(not (HAVE_TREE and TTS_COSYVOICE3_DIR), reason="needs a built tree and SK_TEST_TTS_COSYVOICE3_DIR")
 TTS_FIREREDTTS3_DIR = os.environ.get("SK_TEST_TTS_FIREREDTTS3_DIR")
 needs_tts_fireredtts3 = pytest.mark.skipif(not (HAVE_TREE and TTS_FIREREDTTS3_DIR), reason="needs a built tree and SK_TEST_TTS_FIREREDTTS3_DIR")
+TTS_MOSS_LOCAL_DIR = os.environ.get("SK_TEST_TTS_MOSS_LOCAL_DIR")
+needs_tts_moss_local = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_LOCAL_DIR), reason="needs a built tree and SK_TEST_TTS_MOSS_LOCAL_DIR")
 needs_tts_supertonic = pytest.mark.skipif(not (HAVE_TREE and TTS_SUPERTONIC_DIR), reason="needs a built tree and SK_TEST_TTS_SUPERTONIC_DIR")
 needs_tts_moss = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_DIR), reason="needs a built tree and SK_TEST_TTS_MOSS_DIR")
 needs_tts_index = pytest.mark.skipif(not (HAVE_TREE and TTS_INDEX_DIR), reason="needs a built tree and SK_TEST_TTS_INDEX_DIR")
@@ -617,6 +619,8 @@ NEW_CPU_TTS_FAMILIES = [
     # fireredtts3 (Base) is clone-only and its continuation prompt needs the clip's transcript.
     CpuTtsCase("fireredtts3", "SK_TEST_TTS_FIREREDTTS3_DIR", TTS_FIREREDTTS3_DIR, "Hello from FireRedTTS.", "en", 24000, True,
                transcript_required=True),
+    # moss_tts_local speaks with nothing set; its clip is optional.
+    CpuTtsCase("moss_tts_local", "SK_TEST_TTS_MOSS_LOCAL_DIR", TTS_MOSS_LOCAL_DIR, "Hello from MOSS.", "en", 48000, False),
 ]
 
 
@@ -857,6 +861,24 @@ def test_tts_fireredtts3_takes_language_codes():
     assert float(np.max(np.abs(samples))) > 0.01
 
 
+@needs_tts_moss_local
+def test_tts_moss_tts_local_speaks_stereo_without_a_language_tag():
+    """MOSS-TTS-Local's prompt carries a language NAME; a code with none (here "xx") leaves
+    the slot empty, and the model picks the language itself instead of failing. Its codec
+    writes 48 kHz stereo, which synth() hands back as (frames, 2)."""
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    t = sokuji_native.tts_load(_main_gguf(TTS_MOSS_LOCAL_DIR), "moss_tts_local", cpu)
+    try:
+        samples, rate = t.synth("Hello from MOSS.", language="xx")
+    finally:
+        t.unload()
+    assert rate == 48000
+    assert samples.ndim == 2 and samples.shape[1] == 2
+    assert 0.3 < samples.shape[0] / rate < 20.0
+    assert float(np.max(np.abs(samples))) > 0.01
+
+
 # --------------------------------------------------------------------------------------
 # TTS on a real GPU device.
 #
@@ -933,6 +955,7 @@ GPU_TTS_FAMILIES = {
     "index_tts2": ("SK_TEST_TTS_INDEX_DIR", TTS_INDEX_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
     "cosyvoice3": ("SK_TEST_TTS_COSYVOICE3_DIR", TTS_COSYVOICE3_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
     "fireredtts3": ("SK_TEST_TTS_FIREREDTTS3_DIR", TTS_FIREREDTTS3_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
+    "moss_tts_local": ("SK_TEST_TTS_MOSS_LOCAL_DIR", TTS_MOSS_LOCAL_DIR, None, False, 30.0, GPU_TTS_TEXT, "en"),
 }
 
 # The dirs above hold the DEFAULT rung — the catalog's `default_quant`, which is

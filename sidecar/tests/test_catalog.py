@@ -218,7 +218,8 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
                 "voxcpm1-0.5b", "voxcpm2", "irodori-tts-v4-small", "index-tts2.5",
                 # 2026-10-06 roster expansion (sub-project A)
                 "cosyvoice3",
-                "fireredtts3-base")
+                "fireredtts3-base",
+                "moss-tts-local-1.5")
 
 # The 2026-09-03 batch arrived CPU-ONLY and earned every tier the same evening
 # (commit 2f2b28bc, after the per-family fleet run; catalog._TTS_TIER_OVERRIDES).
@@ -1220,5 +1221,31 @@ def test_fireredtts3_base_card():
     assert rungs["q8_0"].artifact == "audio-cpp/audio.cpp-gguf/FireRedTTS3-Base-GGUF/fireredtts3-base-q8_0.gguf"
     assert rungs["q8_0"].est_bytes == 4_180_334_848
     assert m.size_bytes == 4_180_334_848
+    # The matrix dtypes of the rung's published GGUF (no companions), read from the Hub.
+    assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"})}
+
+
+def test_moss_tts_local_card():
+    # 2026-10-06: speaks with nothing set, clip optional; 48 kHz; the vendor's 31 languages
+    # with Tagalog as the app's "fil"; cpu-only until a fleet run.
+    m = catalog.tts_model("moss-tts-local-1.5")
+    assert m is not None
+    assert (m.family, m.graph_family, m.name) == ("moss_tts_local", "moss_tts_local", "MOSS-TTS-Local v1.5")
+    assert m.sort_order == 16 and m.recommended is False
+    assert m.languages == ("zh", "yue", "en", "ar", "cs", "da", "nl", "fi", "fr", "de", "el", "he",
+                           "hi", "hu", "it", "ja", "ko", "mk", "ms", "fa", "pl", "pt", "ro", "ru",
+                           "es", "sw", "sv", "fil", "th", "tr", "vi")
+    assert "tl" not in m.languages
+    assert m.clones is True and m.transcript_required is False and m.named_voices is False
+    assert m.streaming is False and m.sample_rate == 48000
+    assert m.voice_required is False and m.presets == () and m.default_preset == ""
+    assert m.license is None and m.extra_files == ()
+    assert m.family not in catalog._TTS_TIER_OVERRIDES
+    assert {d.tier for d in m.deployments} == {"cpu"}
+    rungs = {d.compute_type: d for d in m.deployments}
+    assert set(rungs) == {"q8_0"} and rungs["q8_0"].rank == 2.0
+    assert rungs["q8_0"].artifact == "audio-cpp/audio.cpp-gguf/MOSS-TTS-Local-v1.5-GGUF/moss-tts-local-v1.5-q8_0.gguf"
+    assert rungs["q8_0"].est_bytes == 7_512_220_768
+    assert m.size_bytes == 7_512_220_768
     # The matrix dtypes of the rung's published GGUF (no companions), read from the Hub.
     assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"})}
