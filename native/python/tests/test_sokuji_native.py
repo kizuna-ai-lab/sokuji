@@ -386,6 +386,9 @@ TTS_INDEX_DIR = os.environ.get("SK_TEST_TTS_INDEX_DIR")
 needs_tts_supertonic = pytest.mark.skipif(not (HAVE_TREE and TTS_SUPERTONIC_DIR), reason="needs a built tree and SK_TEST_TTS_SUPERTONIC_DIR")
 needs_tts_moss = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_DIR), reason="needs a built tree and SK_TEST_TTS_MOSS_DIR")
 needs_tts_index = pytest.mark.skipif(not (HAVE_TREE and TTS_INDEX_DIR), reason="needs a built tree and SK_TEST_TTS_INDEX_DIR")
+needs_tts_omnivoice_clone = pytest.mark.skipif(
+    not (HAVE_TREE and TTS_OMNIVOICE_DIR and TTS_SUPERTONIC_DIR),
+    reason="needs a built tree, SK_TEST_TTS_OMNIVOICE_DIR and SK_TEST_TTS_SUPERTONIC_DIR (reference clip)")
 
 
 @needs_tts_supertonic
@@ -615,6 +618,39 @@ def test_tts_index_tts2_without_a_voice_fails_cleanly():
             t.synth("Hello from IndexTTS.", language="en")
     finally:
         t.unload()
+
+
+@needs_tts_omnivoice_clone
+def test_tts_load_language_is_forced_on_every_synth():
+    """A non-empty load language (a catalog card's load_language) replaces the language every
+    synth passes, for every family but pocket_tts. omnivoice refuses a language it cannot
+    resolve, so a synth asked for one fails on a plain load and only succeeds when the load
+    language wins: proof that the forced language, not the caller's, reached the engine."""
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    pcm, ref_rate, ref_text = _cpu_reference_clip()
+    bogus = "not-a-language"
+    text = "Hello from OmniVoice."
+
+    plain = sokuji_native.tts_load(TTS_OMNIVOICE_DIR, "omnivoice", cpu)
+    try:
+        plain.set_voice(pcm, ref_rate, ref_text=ref_text)
+        with pytest.raises(sokuji_native.NativeError, match="unsupported OmniVoice language"):
+            plain.synth(text, language=bogus)
+    finally:
+        plain.unload()
+
+    forced = sokuji_native.tts_load(TTS_OMNIVOICE_DIR, "omnivoice", cpu, language="en")
+    try:
+        forced.set_voice(pcm, ref_rate, ref_text=ref_text)
+        samples, rate = forced.synth(text, language=bogus)
+    finally:
+        forced.unload()
+
+    assert rate == 24000
+    frames = int(samples.shape[0])
+    assert 0.3 < frames / rate < 20.0
+    assert float(np.max(np.abs(samples))) > 0.01
 
 
 # --------------------------------------------------------------------------------------

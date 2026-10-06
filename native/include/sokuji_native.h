@@ -285,7 +285,10 @@ typedef struct sk_tts sk_tts;
 typedef struct sk_tts_options {
     const char *family;    /* required: moss_tts_nano | qwen3_tts | omnivoice | pocket_tts |
                             * supertonic | voxcpm1 | voxcpm2 | irodori_tts | index_tts2 */
-    const char *language;  /* pocket_tts load-time language package ("english", ...); ignored elsewhere; NULL ok */
+    const char *language;  /* pocket_tts: load-time language package ("english", ...). Every other
+                            * family: when non-empty, the language every sk_tts_synth on this
+                            * handle uses in place of its own `language` argument (a card's load
+                            * language). NULL or "" = the caller's language, as before. */
 } sk_tts_options;
 typedef struct sk_tts_caps {
     bool streaming;            /* omnivoice, supertonic, voxcpm1, voxcpm2 */

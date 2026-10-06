@@ -32,16 +32,18 @@ constexpr PinnedRow kPinnedRows[] = {
     {"index_tts2",    false, true,  false, 22050, false, false},
 };
 
-std::unique_ptr<sk_tts> handle_from(const FamilyInfo &info) {
+// load_language is what sk_tts_options.language carries at load (a card's load_language).
+std::unique_ptr<sk_tts> handle_from(const FamilyInfo &info, const char *load_language = nullptr) {
     auto h = std::make_unique<sk_tts>();
-    adopt_family(h.get(), info);
+    const sk_tts_options opts{info.name, load_language};
+    adopt_family(h.get(), info, opts);
     return h;
 }
 
-std::unique_ptr<sk_tts> handle_for(const char *family) {
+std::unique_ptr<sk_tts> handle_for(const char *family, const char *load_language = nullptr) {
     const FamilyInfo *info = find_family(family);
     assert(info != nullptr);
-    return handle_from(*info);
+    return handle_from(*info, load_language);
 }
 
 void give_clip(sk_tts *h, const char *ref_text) {
@@ -224,6 +226,43 @@ void existing_families_build_the_same_requests() {
     assert(opt(req, "retry_badcase") == "false");
 }
 
+void load_language_is_kept_for_every_family_but_pocket_tts() {
+    assert(handle_for("omnivoice", "arz")->forced_language == "arz");
+    assert(handle_for("index_tts2", "ja")->forced_language == "ja");
+    // pocket_tts's load language names a package ("english", ...), not a request language.
+    assert(handle_for("pocket_tts", "english")->forced_language.empty());
+    assert(handle_for("omnivoice", nullptr)->forced_language.empty());
+    assert(handle_for("omnivoice", "")->forced_language.empty());
+}
+
+void load_language_replaces_the_callers_on_every_synth() {
+    const auto forced = handle_for("omnivoice", "arz");
+    give_clip(forced.get(), "Marhaba.");
+    rt::TaskRequest req = build_request(forced.get(), "Hello.", "ar", 1.0f);
+    assert(req.text_input && req.text_input->language == "arz");
+    req = build_request(forced.get(), "Hello.", nullptr, 1.0f);
+    assert(req.text_input && req.text_input->language == "arz");
+
+    const auto plain = handle_for("omnivoice");
+    req = build_request(plain.get(), "Hello.", "ar", 1.0f);
+    assert(req.text_input && req.text_input->language == "ar");
+
+    const auto pocket = handle_for("pocket_tts", "english");
+    req = build_request(pocket.get(), "Hello.", "en", 1.0f);
+    assert(req.text_input && req.text_input->language == "en");
+
+    // The family rules apply to whatever language the load left in force.
+    const auto qwen3 = handle_for("qwen3_tts", "en");
+    req = build_request(qwen3.get(), "Hello.", "zh", 1.0f);
+    assert(req.text_input && req.text_input->language == "auto");
+    const auto index = handle_for("index_tts2", "JA");
+    req = build_request(index.get(), "Hello.", "en", 1.0f);
+    assert(opt(req, "language") == "ja");
+    const auto irodori = handle_for("irodori_tts", "en");
+    req = build_request(irodori.get(), "Konnichiwa.", "en", 1.0f);
+    assert(opt(req, "language") == "ja");
+}
+
 }  // namespace
 
 int main() {
@@ -233,6 +272,8 @@ int main() {
     strict_family_gets_the_transcript_only_when_its_spec_declares_one();
     preset_reaches_the_engine_by_the_rows_route();
     existing_families_build_the_same_requests();
+    load_language_is_kept_for_every_family_but_pocket_tts();
+    load_language_replaces_the_callers_on_every_synth();
     std::puts("test_tts_request ok");
     return 0;
 }

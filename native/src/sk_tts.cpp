@@ -36,6 +36,9 @@ struct sk_tts {
     bool    strict_options       = false;   // see FamilyInfo::strict_options
     bool    strict_sends_ref_text = false;  // see FamilyInfo::strict_sends_ref_text
     const char *preset_option    = nullptr; // see FamilyInfo::preset_option (a string literal of the row)
+    // sk_tts_options.language at load, for every family but pocket_tts (adopt_family). When
+    // set, build_request uses it in place of the language each sk_tts_synth passes.
+    std::string forced_language;
     int32_t default_rate         = 0;
     std::vector<std::string> preset_names;   // cached at load; see report §3
 
@@ -162,9 +165,9 @@ rt::TaskSpec task_spec_for(const FamilyInfo &info) {
     return spec;
 }
 
-// Copies a family row onto a freshly loaded handle (sk_tts_load's last step), so no later
-// call has to look the row up again.
-void adopt_family(sk_tts *h, const FamilyInfo &info) {
+// Copies a family row, and the load options that outlive the load, onto a freshly loaded
+// handle (sk_tts_load's last step), so no later call has to look either up again.
+void adopt_family(sk_tts *h, const FamilyInfo &info, const sk_tts_options &opts) {
     h->family                = info.name;
     h->streaming_family      = info.streaming;
     h->clones                = info.clones;
@@ -174,6 +177,13 @@ void adopt_family(sk_tts *h, const FamilyInfo &info) {
     h->strict_options        = info.strict_options;
     h->strict_sends_ref_text = info.strict_sends_ref_text;
     h->preset_option         = info.preset_option;
+    // A card's load language (catalog load_language -> PlanConfig.tts_language ->
+    // sk_tts_options.language) is the language every synth on this handle speaks, for a
+    // checkpoint driven by a code the app's language picker does not offer. pocket_tts is the
+    // exception: its load language names a package ("english", ...) and is consumed at load.
+    h->forced_language.clear();
+    if (std::strcmp(info.name, "pocket_tts") != 0 && opts.language && *opts.language)
+        h->forced_language = opts.language;
 }
 
 // SK_TTS_REQUEST_ONLY: native/tests/test_tts_request.cpp compiles this file straight in and
@@ -223,6 +233,10 @@ int backend_relative_index(ggml_backend_dev_t dev) {
 // that always apply (Ruling R7(s4)). Caller holds t->mutex.
 rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *language, float speed) {
     rt::TaskRequest req;
+    // A load-time forced language wins over the caller's (adopt_family). The family rules
+    // below (qwen3_tts's "auto", irodori_tts's "ja", index_tts2's option) apply to it as they
+    // would to the caller's.
+    if (!t->forced_language.empty()) language = t->forced_language.c_str();
     // Ruling R14(s4): qwen3_tts resolves `language` against a per-checkpoint
     // codec_language_id table keyed by FULL LANGUAGE NAMES baked into the GGUF's own
     // metadata (qwen3_tts/talker.cpp), not ISO codes -- an ISO code like "en" throws
@@ -519,7 +533,7 @@ SK_API sk_status sk_tts_load(const char *model_path, const sk_device *device,
             std::sort(h->preset_names.begin(), h->preset_names.end());
         }
 
-        adopt_family(h, *info);
+        adopt_family(h, *info, *opts);
     } catch (const std::exception &ex) {
         const sk_status rc = fail("sk_tts_load", ex.what());
         delete h;
