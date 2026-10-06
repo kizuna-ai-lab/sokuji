@@ -10781,6 +10781,110 @@ Expected: one commit with exactly those thirteen files.
 
 ---
 
+### Task 12c: the op-coverage gate asks TTS bf16 weights as f16 on Vulkan and Metal (inserted 2026-10-07)
+
+**Why.** audio.cpp's shared `BackendWeightStore` changes the dtype of some weights when it loads
+them. In `backend_safe_loaded_storage_type`
+(`include/engine/framework/core/backend_weight_store.h:273-285` in the pinned 54aa279), a tensor
+with `Native` storage whose file dtype is BF16 is loaded as F16 when the backend is Vulkan or Metal.
+On CPU, and with any non-Native storage type, the dtype is unchanged. Every audio.cpp family loads
+through this store, and Sokuji leaves storage at Native.
+
+The gate does not model this:
+- `sk_device_supports_ops` expands every WEIGHT node over the file's matrix dtypes.
+- On a GPU it therefore asks about `MUL_MAT[bf16,…]` ops the device never runs.
+- On a device that lacks bf16 support, a family is refused even though it would run fine.
+- The Task 12b recorder guard catches the real case. Task 21's NeuTTS 2E file
+  (`neutts-2e-orig.gguf`, matrix dtypes `bf16 f32`) records live f16 WEIGHTs on Vulkan0 and is refused:
+  `tts/neutts: a WEIGHT source holds f16, which the dtypes-in-file set does not`.
+- Other files have bf16 matrices beside f16, so the guard passes them while the query still asks the
+  wrong question: kugelaudio q8_0 (`bf16 f16 q8_0`), the vibevoice and qwen3 bf16 rungs.
+
+**Ruling** (controller, 2026-10-07, applying the owner's 2026-10-06 "fix the gate's precision first" to
+the same class): the gate asks about the dtype the device RUNS, by audio.cpp's own rule. That means:
+
+1. **The query.** In `sk_device_supports_ops`, when the stage is `"tts"` and the target device is
+   a Vulkan or Metal device, each WEIGHT dtype `bf16` is asked as `f16`.
+   - Deduplicate after mapping, so `{bf16, f16}` asks f16 once.
+   - Every other target is unchanged: CPU, any non-TTS stage (llama.cpp and transcribe.cpp do not
+     convert), and any other backend.
+   - Identify the device's backend the way the existing native code already does (look in
+     `sk_profile.cpp` / `sk_common.cpp` for how a device's lane or registry name is read). Do not
+     add a second detection scheme.
+2. **The guard.** In `sk_record_end_to_file`, the set a live WEIGHT dtype must belong to is the
+   SAME mapped set: `dtypes-in-file` with bf16 replaced by f16 when the stage is `"tts"` and
+   `recorded_on` is `vulkan` or `metal`.
+   - So on Vulkan a live f16 is covered by a file's bf16.
+   - A live bf16 on Vulkan or Metal is now refused, because the query would ask it as f16.
+   - On cpu nothing changes.
+   - Put the mapping rule in ONE helper used by both places, so they cannot drift.
+3. **Unchanged.** The `# dtypes-in-file` header stays the files' truth (matrix dtypes of the main and
+   companion GGUFs). So do the cards' `rung_dtypes` and `accel.weight_dtypes`. The native query maps,
+   so no sidecar change is needed. The twelve-plus existing recordings must stay byte-identical.
+
+**Files** (expected; adjust to where the code really is, and report every file touched):
+- Modify: `native/src/sk_ops.cpp` (the query), `native/src/sk_ops_record.cpp` (the guard), and the
+  shared helper's home (e.g. `native/src/sk_ops.h` or `sk_internal.h`)
+- Modify: `native/include/sokuji_native.h`: the `sk_device_supports_ops` and `sk_record_begin` /
+  `sk_record_end_to_file` doc comments state the mapping, comment-only beyond that
+- Modify: `native/tests/test_record_guard.cpp` (or wherever the Task 12b guard test lives): new cases
+- Modify: a test that pins the query's mapping (see Step 1)
+- Modify: `native/README.md`, the op-coverage section: one paragraph on the mapping
+
+**Steps**
+
+- [ ] **Step 1: RED, the guard.** Add cases to the guard test (model-free, the way the 12b cases are
+  built):
+  - stage `tts`, `recorded_on` `vulkan`, dtypes-in-file `{bf16, f32}`, live WEIGHT f16 → ACCEPTED
+    (fails today: refused);
+  - the same on `metal` → ACCEPTED;
+  - the same with `recorded_on` `cpu` → REFUSED;
+  - stage `tts`, `vulkan`, `{bf16, f32}`, live WEIGHT bf16 → REFUSED;
+  - stage `asr` (or `translate`), `vulkan`, `{bf16}`, live f16 → REFUSED (non-TTS stages are not mapped).
+
+  Build the record-vk tree (it hosts the guard test; 13 CTest tests) and watch the accepted cases
+  FAIL.
+- [ ] **Step 2: RED, the query.** Pin the mapping with a test that runs on a real device.
+  - On the Vulkan tree: query a shipped TTS recording whose header holds bf16 (vibevoice:
+    `bf16 f16 q8_0`) with weight dtypes `{bf16}` alone. Assert that no returned op spelling contains
+    `bf16` as a WEIGHT dtype, that the f16 spelling appears, and that `all_supported == 1` on GB10.
+  - On the CPU tree, or for stage `asr`: assert bf16 is still spelled.
+  - Choose the cheapest home: `test_common.cpp`'s device sweep, a small new CTest, or a native
+    Python test gated on a Vulkan device.
+  - The spelling comes from `ask()` in `sk_ops.cpp`.
+  - Watch it FAIL.
+- [ ] **Step 3: GREEN.** Implement the one helper and use it in both places. Update the doc comments
+  and the README paragraph.
+- [ ] **Step 4: Gates.**
+  - Rebuild cpu, vulkan and record-vk, using the Vulkan env from the global constraints.
+  - CTest: cpu 11/11, vulkan 11/11, record-vk 13/13 (or the new count, if you added a CTest; report
+    it).
+  - `bash native/ci/ops-env.sh ctest --test-dir native/build/record-vk -R test_ops_coverage -V`:
+    every current family `ok`, no DIFF (20 recordings at HEAD).
+  - `gen_ops_data.py --report`: 20 lines, all `ok`.
+  - Re-record nothing. Confirm with `git status` that no `.ops` changed.
+  - The native Python suite against the CPU stage: baseline 68 passed, 34 skipped, plus any new
+    test. Run it after Task 20's fix commit, which adds tests, and report the actual count.
+  - The sidecar suite: 905 passed, 12 skipped, or Task 20's new count. No change is expected.
+  - The Vulkan GPU sweep in `test_common` must still print `all_supported=1` for every TTS family.
+    Quote the vibevoice and kugelaudio lines if present (kugelaudio is not recorded yet; the
+    vibevoice line is enough).
+- [ ] **Step 5: Commit.**
+  - Use a pathspec list of exactly the files touched.
+  - Message: `fix(native): the op-coverage gate asks TTS bf16 weights as f16 on Vulkan and Metal`.
+  - The body says: audio.cpp's BackendWeightStore loads a Native BF16 tensor as F16 on those
+    backends; the query and the recorder guard now share that rule; headers and rung_dtypes stay
+    the files' truth.
+  - Trailer: `Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>`. Do not push.
+
+**Not in scope:**
+- audio.cpp's second load-time conversion (a quantized tensor reshaped into a conv kernel whose
+  last dim is not block-sized is loaded as F32, `type_for_storable_loaded_tensor`). The guard catches
+  it if a file lacks f32; report it if you see it, but do not model it.
+- CUDA/HIP, which are not built.
+
+---
+
 ### Task 21: NeuTTS 2E joins with its four documented speakers
 
 Card `neutts-2e`, order 22, family `neutts`. English only. Built-in speaker prompts, selected only by
