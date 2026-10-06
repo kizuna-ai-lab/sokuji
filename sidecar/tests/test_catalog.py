@@ -222,7 +222,8 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
                 "moss-tts-local-1.5",
                 "vibevoice-1.5b",
                 "chatterbox",
-                "chatterbox-turbo")
+                "chatterbox-turbo",
+                "confucius4")
 
 # The 2026-09-03 batch arrived CPU-ONLY and earned every tier the same evening
 # (commit 2f2b28bc, after the per-family fleet run; catalog._TTS_TIER_OVERRIDES).
@@ -757,7 +758,7 @@ def test_voice_required_families_is_the_single_source_of_truth():
     already decided was fine, or vice versa."""
     from sokuji_sidecar import tts_backend
     assert tts_backend._VOICE_REQUIRED_FAMILIES is catalog.VOICE_REQUIRED_FAMILIES
-    assert catalog.VOICE_REQUIRED_FAMILIES == {"qwen3_tts", "omnivoice", "index_tts2", "cosyvoice3", "fireredtts3", "chatterbox"}
+    assert catalog.VOICE_REQUIRED_FAMILIES == {"qwen3_tts", "omnivoice", "index_tts2", "cosyvoice3", "fireredtts3", "chatterbox", "confucius4_tts"}
     for m in catalog.tts_models():
         assert catalog.voice_capability(m)["required"] is m.voice_required, m.id
     # Every card that predates per-card overrides follows its family's rule.
@@ -1345,3 +1346,29 @@ def test_chatterbox_turbo_card():
     assert m.size_bytes == 699_101_408
     # The matrix dtypes of the one published rung (no companions), read from the Hub.
     assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"})}
+
+
+def test_confucius4_card():
+    # 2026-10-06: clone-only, no transcript; the vendor's 14 languages; one F32 ("orig") file;
+    # cpu-only until a fleet run.
+    m = catalog.tts_model("confucius4")
+    assert m is not None
+    assert (m.family, m.graph_family, m.name) == ("confucius4_tts", "confucius4_tts", "Confucius4-TTS")
+    assert m.sort_order == 20 and m.recommended is False
+    assert m.languages == ("zh", "en", "ja", "ko", "de", "fr", "es", "id", "it", "th", "pt", "ru",
+                           "ms", "vi")
+    assert m.clones is True and m.transcript_required is False and m.named_voices is False
+    assert m.streaming is False and m.sample_rate == 22050
+    assert m.voice_required is True and m.presets == () and m.default_preset == ""
+    assert "confucius4_tts" in catalog.VOICE_REQUIRED_FAMILIES
+    assert m.license is None and m.extra_files == ()
+    assert m.family not in catalog._TTS_TIER_OVERRIDES
+    assert {d.tier for d in m.deployments} == {"cpu"}
+    rungs = {d.compute_type: d for d in m.deployments}
+    assert set(rungs) == {"orig"} and rungs["orig"].rank == 2.0
+    assert "orig" in catalog.RUNG_FALLBACK_DTYPES
+    assert rungs["orig"].artifact == "audio-cpp/audio.cpp-gguf/Confucius4-TTS-GGUF/confucius4-tts-orig.gguf"
+    assert rungs["orig"].est_bytes == 8_192_757_760
+    assert m.size_bytes == 8_192_757_760
+    # The matrix dtypes of the one published rung (F32 only, no companions), read from the Hub.
+    assert dict(m.rung_dtypes) == {"orig": frozenset({"f32"})}

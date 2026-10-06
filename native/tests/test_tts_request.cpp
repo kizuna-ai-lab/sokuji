@@ -485,6 +485,19 @@ void chatterbox_turbo_requests() {
     assert(opt(req, "do_sample") == "false" && opt(req, "seed") == "1");
 }
 
+void confucius4_tts_requests() {
+    const auto h = handle_for("confucius4_tts");
+    assert(task_spec_for(*find_family("confucius4_tts")).task == rt::VoiceTaskKind::VoiceCloning);
+    give_clip(h.get(), "The quick brown fox.");
+    rt::TaskRequest req = build_request(h.get(), "Hello.", "ja", 1.0f);
+    assert(carries_clip(req));
+    // The caller's code reaches the engine's prompt table unchanged, on text_input.
+    assert(req.text_input && req.text_input->language == "ja");
+    // Strict, declaring neither reference_text nor do_sample.
+    assert(!has(req, "reference_text") && !has(req, "do_sample") && !has(req, "language"));
+    assert(opt(req, "seed") == "0");
+}
+
 }  // namespace
 
 int main() {
@@ -506,6 +519,7 @@ int main() {
     vibevoice_breaks_a_line_at_a_bare_cr();
     chatterbox_requests();
     chatterbox_turbo_requests();
+    confucius4_tts_requests();
     std::puts("test_tts_request ok");
     return 0;
 }

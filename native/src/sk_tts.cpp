@@ -175,6 +175,13 @@ constexpr FamilyInfo kFamilies[] = {
     // offline Tts session with one built-in voice; prepare() refuses a clip (:76-84); 24 kHz
     // (:104); do_sample is not read.
     {"chatterbox_turbo", false, false, false, 24000, false, false, false, FamilyTask::Tts, nullptr},
+    // confucius4_tts (audio.cpp src/models/confucius4_tts/): a VoiceCloning session only
+    // (session.cpp:173-175); the clip is mandatory and no transcript option exists
+    // (request.cpp:140-143); strict; 22.05 kHz (include/engine/models/confucius4_tts/types.h:39).
+    // It takes the caller's bare language code from text_input and falls back to zh without one
+    // (request.cpp:13-35, tokenizer_text.cpp:283-292). Segment streaming gains nothing on one
+    // utterance, so offline.
+    {"confucius4_tts", false, true,  false, 22050, false, true,  false, FamilyTask::VoiceCloning, nullptr},
 };
 
 const FamilyInfo *find_family(const char *name) {

@@ -1769,3 +1769,21 @@ def test_chatterbox_turbo_card_is_not_gated_by_r16(native_env):
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=m.family, voice_required=m.voice_required))
     samples, _rate, _ms = b.generate("hello")
     assert samples.dtype == np.float32
+
+
+def test_confucius4_card_is_gated_by_r16(native_env):
+    """Confucius4-TTS clones or does nothing, so the card's voice_required gates a bare
+    generate() before the native layer; a clip alone un-gates it."""
+    from sokuji_sidecar import catalog
+    created, log = native_env
+    m = catalog.tts_model("confucius4")
+    assert m.voice_required is True
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "orig", config=PlanConfig(tts_family=m.family, voice_required=m.voice_required))
+    with pytest.raises(backends.BackendLoadError, match="confucius4_tts"):
+        b.generate("hello")
+    assert log == []
+    assert b._workers == []
+    b.set_voice(np.ones(2400, np.float32), 24000)
+    samples, _rate, _ms = b.generate("hello")
+    assert samples.dtype == np.float32

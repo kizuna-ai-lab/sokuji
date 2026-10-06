@@ -160,3 +160,11 @@ describe('Chatterbox clip window', () => {
     expect(s.capability.maxClipSeconds).toBe(20);
   });
 });
+
+describe('Confucius4-TTS clip window', () => {
+  it('keeps the default 3-20s window (audio.cpp sets no ceiling of its own)', () => {
+    const s = voiceStoreFor('clip', 'confucius4')!;
+    expect(s.capability.minClipSeconds).toBe(3);
+    expect(s.capability.maxClipSeconds).toBe(20);
+  });
+});

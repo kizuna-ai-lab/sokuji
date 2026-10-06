@@ -19,4 +19,5 @@ export SK_TEST_TTS_MOSS_LOCAL_DIR=$C/tts/moss-tts-local-1.5
 export SK_TEST_TTS_VIBEVOICE_DIR=$C/tts/vibevoice-1.5b
 export SK_TEST_TTS_CHATTERBOX_DIR=$C/tts/chatterbox
 export SK_TEST_TTS_CHATTERBOX_TURBO_DIR=$C/tts/chatterbox-turbo
+export SK_TEST_TTS_CONFUCIUS4_DIR=$C/tts/confucius4
 exec "$@"

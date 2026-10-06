@@ -761,8 +761,11 @@ class TtsModel(_ModelBase):
 #               (transcript_required).
 #   chatterbox  (2026-10-06) "Chatterbox prepare requires speaker reference audio" (audio.cpp
 #               src/models/chatterbox/session.cpp:410-412); its session is VoiceCloning only.
+#   confucius4_tts  (2026-10-06) "Confucius4-TTS voice cloning requires speaker reference audio
+#               or cached_voice_id" (audio.cpp src/models/confucius4_tts/request.cpp:140-143); a
+#               VoiceCloning session only, and no transcript option.
 VOICE_REQUIRED_FAMILIES = frozenset({"qwen3_tts", "omnivoice", "index_tts2", "cosyvoice3", "fireredtts3",
-                                     "chatterbox"})
+                                     "chatterbox", "confucius4_tts"})
 
 
 def voice_capability(model: "TtsModel") -> dict:
@@ -1531,6 +1534,17 @@ TTS_MODELS: list[TtsModel] = [
         default_quant="q8_0", order=19, clones=False, streaming=False,
         sample_rate=24000,
         rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}}),
+    # Confucius4-TTS (NetEase Youdao): clone-only (a VoiceCloning session), no transcript; the
+    # vendor's 14 languages, of which audio.cpp normalises text for en and zh and runs the rest
+    # as its own best-effort cross-language paths. Published as one F32 file ("orig").
+    _tts_gguf_row(
+        "confucius4", "Confucius4-TTS",
+        ("zh", "en", "ja", "ko", "de", "fr", "es", "id", "it", "th", "pt", "ru", "ms", "vi"),
+        "confucius4_tts", "Confucius4-TTS-GGUF",
+        {"orig": ("confucius4-tts-orig.gguf", 8192757760)},
+        default_quant="orig", order=20, clones=True, streaming=False,
+        sample_rate=22050,
+        rung_dtypes={"orig": {"f32"}}),
 ]
 
 
