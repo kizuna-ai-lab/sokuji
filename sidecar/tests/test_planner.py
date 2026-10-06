@@ -1055,11 +1055,11 @@ def test_plan_config_tts_fields_default_inert_for_translate_cards():
 
 def test_plan_config_reads_tts_extra_files(monkeypatch):
     # Ruling R18(s4): tts_backend.py's load() hard-link-stages every entry in
-    # PlanConfig.tts_extra_files alongside the gguf -- _plan_config must read it
-    # straight off the resolved TtsModel card's own extra_files field.
+    # PlanConfig.tts_extra_files alongside the gguf. The entries are repo-relative:
+    # the card's extra_files resolved against the default rung's own folder.
     card = catalog.tts_model("pocket-tts-en")
     cfg = planner._plan_config(card)
-    assert cfg.tts_extra_files == (("embeddings/alba.safetensors", 6194424),)
+    assert cfg.tts_extra_files == (("PocketTTS-GGUF/english/embeddings/alba.safetensors", 6194424),)
 
 
 def test_plan_config_tts_extra_files_defaults_inert_for_cards_without_one():

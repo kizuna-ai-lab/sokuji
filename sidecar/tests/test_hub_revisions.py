@@ -75,7 +75,7 @@ def _hub_calls(path, functions=None):
     ("native_models.py", None),
     ("tts_backend.py", None),
     ("tts_voices.py", None),
-    ("accel.py", {"_downloaded_quants", "_artifact_path"}),
+    ("accel.py", {"_downloaded_quants", "_artifact_path", "_companion_paths"}),
 ])
 def test_every_tts_path_hub_call_passes_a_revision(module, functions):
     """A pinned download writes snapshots/<sha>/ and no refs/main, so ONE lookup of "main"

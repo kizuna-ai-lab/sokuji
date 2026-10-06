@@ -23,6 +23,11 @@ class Deployment:
     rank: float         # tie-breaker within a tier (higher = preferred)
     est_bytes: int | None = None                     # footprint estimate; None → model_size(artifact)
     platforms: tuple[str, ...] = ("linux", "windows", "macos")  # OSes this deployment runs on (D9)
+    # Repo-relative (path, bytes) of the files this rung needs beside its main file (spec stage
+    # 2.2): LFM2.5-Audio's mmproj/vocoder/tokenizer per quant, MioTTS's codec in another folder
+    # of the same repo. Downloaded with the rung, counted in est_bytes, staged beside the main
+    # file at their repo-relative paths.
+    companions: tuple[tuple[str, int], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -764,16 +769,16 @@ def license_dict(model: "TtsModel") -> dict | None:
     }
 
 
-# All 14 cards are single-file GGUFs from audio.cpp's official mirror,
-# verified 2026-09-01 (the first ten) and 2026-09-03 (the four added then)
-# via the HF tree API (`GET
-# api/models/audio-cpp/audio.cpp-gguf/tree/main/<dir>`) — every (dir, file)
-# pair below resolves to a real LFS object and the byte count shown is its
-# exact `lfs.size`. Cross-checked against the repo's own `model_specs/
-# <family>.json` package list (vendored at
-# native/build/cpu/_deps/audiocpp-src/model_specs/) for the curated default
-# per family and, for pocket_tts, exactly which languages ship a preset asset
-# (see the pocket-tts-en row below).
+# The fourteen cards that predate sub-project A are single-file GGUFs from audio.cpp's official
+# mirror, verified 2026-09-01 (the first ten) and 2026-09-03 (the four added then) via the HF
+# tree API (`GET api/models/audio-cpp/audio.cpp-gguf/tree/main/<dir>`) — every (dir, file) pair
+# below resolves to a real LFS object and the byte count shown is its exact `lfs.size`.
+# Cross-checked against the repo's own `model_specs/<family>.json` package list (vendored at
+# native/build/cpu/_deps/audiocpp-src/model_specs/) for the curated default per family and, for
+# pocket_tts, exactly which languages ship a preset asset (see the pocket-tts-en row below).
+# A card may instead come from a third-party repo pinned in PINNED_REVISIONS (`repo=`, ruling
+# 4), sit at a repo's root (`dir_=""`), and give each rung the companion files it needs beside
+# its main GGUF (`companions=`, spec stage 2.2).
 _AUDIOCPP_GGUF_REPO = "audio-cpp/audio.cpp-gguf"
 
 # Ruling 4 (2026-10-06): a GGUF hosted outside audio.cpp's official mirror is downloaded from
@@ -1073,37 +1078,65 @@ _TTS_TIER_OVERRIDES: dict[str, tuple[str, ...]] = {
 }
 
 
+def _repo_path(path: str) -> bool:
+    """A path inside a Hub repo: not empty, no leading, trailing or doubled slash, no '.' or
+    '..' segment."""
+    return bool(path) and all(seg not in ("", ".", "..") for seg in path.split("/"))
+
+
 def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
                   order, load_language="", clones=False, streaming=False,
                   sample_rate=24000, named_voices=False, transcript_required=False,
-                  recommended=False, extra_files=(), license=None):
+                  recommended=False, extra_files=(), license=None,
+                  repo=_AUDIOCPP_GGUF_REPO, companions=None):
     """One native_tts card. `quants` maps QUANT token (the filename's own
-    suffix, e.g. "q8_0") -> (filename, bytes) under `dir_` in
-    `_AUDIOCPP_GGUF_REPO`; `default_quant` gets rank 2.0, any other listed
-    quant gets rank 1.0 — exactly `_llm_translate_row`'s two-rung shape,
+    suffix, e.g. "q8_0") -> (filename, bytes) under `dir_` in `repo`: audio.cpp's
+    official mirror unless the card names a third-party repo, which must be pinned
+    in PINNED_REVISIONS (ruling 4). `dir_=""` is the repo's root, so the artifact
+    is "repo/file", never "repo//file". `default_quant` gets rank 2.0, any other
+    listed quant gets rank 1.0 — exactly `_llm_translate_row`'s two-rung shape,
     INCLUDING that shape's quant-picking semantics (fix round 1: this is not
     simply "the curated default always wins"): `default_quant` is the RANK
     default — the pin-absent/no-budget-known/nothing-fits fallback
     (`planner._llamacpp_quant`) — while `resolve_tts`'s real auto path
     (`_llamacpp_variant_row`) picks the LARGEST quant that fits the machine's
     budget, which is routinely the bigger, rank-1.0 alt quant (e.g. bf16 over
-    the "default" q8_0) once it fits. `extra_files` are (relative-to-`dir_`
-    filename, bytes) sidecar assets sk_tts_presets discovers next to the
-    loaded gguf (only pocket-tts-en has one: embeddings/alba.safetensors) —
-    downloaded alongside every quant and counted once in size_bytes. Tiers come from
-    `_TTS_TIER_OVERRIDES.get(family, _TTS_TIERS)` — cpu-only by default, gpu-vulkan and
-    gpu-metal added back per family once GB10/M4-validated (see that dict's own
-    comment, R19/R25/R36)."""
+    the "default" q8_0) once it fits.
+
+    `companions` maps a QUANT token to the (repo-relative path, bytes) of the
+    files that rung needs beside its main GGUF, in another folder of the repo
+    (MioTTS's codec) or at its root (LFM2.5-Audio's mmproj/vocoder/tokenizer).
+    They ride that rung's Deployment and count in its est_bytes, so the planner
+    fits the whole package against device memory. `extra_files` are
+    (relative-to-`dir_` filename, bytes) sidecar assets sk_tts_presets discovers
+    next to the loaded gguf (only pocket-tts-en has one:
+    embeddings/alba.safetensors) — downloaded alongside every quant and counted
+    once in size_bytes, which is the default rung's package plus them. Tiers come
+    from `_TTS_TIER_OVERRIDES.get(family, _TTS_TIERS)` — cpu-only by default,
+    gpu-vulkan and gpu-metal added back per family once GB10/M4-validated (see
+    that dict's own comment, R19/R25/R36)."""
+    companions = dict(companions or {})
+    unknown = sorted(set(companions) - set(quants))
+    if unknown:
+        raise ValueError(f"{mid}: companions for quants the card does not ship: {unknown}")
+    paths = ([dir_] if dir_ else []) + [fname for fname, _n in quants.values()]
+    paths += [rel for comps in companions.values() for rel, _n in comps]
+    bad = sorted(p for p in paths if not _repo_path(p))
+    if bad:
+        raise ValueError(f"{mid}: not a path inside {repo}: {bad}")
     deps = []
     tiers = _TTS_TIER_OVERRIDES.get(family, _TTS_TIERS)
+    prefix = f"{repo}/{dir_}/" if dir_ else f"{repo}/"
     order_keys = [default_quant] + [q for q in quants if q != default_quant]
     for i, q in enumerate(order_keys):
         fname, nbytes = quants[q]
-        artifact = f"{_AUDIOCPP_GGUF_REPO}/{dir_}/{fname}"
+        comps = tuple(companions.get(q, ()))
+        est = nbytes + sum(sz for _p, sz in comps)
         rank = 2.0 if i == 0 else 1.0
-        deps += [Deployment("native_tts", tier, q, artifact, rank, est_bytes=nbytes)
+        deps += [Deployment("native_tts", tier, q, prefix + fname, rank, est_bytes=est,
+                            companions=comps)
                  for tier in tiers]
-    total_bytes = quants[default_quant][1] + sum(sz for _n, sz in extra_files)
+    total_bytes = deps[0].est_bytes + sum(sz for _n, sz in extra_files)
     return TtsModel(mid, name, langs, tuple(deps), family=family,
                     load_language=load_language, clones=clones, streaming=streaming,
                     sample_rate=sample_rate, named_voices=named_voices,

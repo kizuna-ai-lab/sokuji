@@ -95,3 +95,44 @@ def fake_native(monkeypatch):
     monkeypatch.setattr(native, "module", lambda: types.SimpleNamespace(tts_load=tts_load))
     monkeypatch.setattr(native, "device_for", lambda kind: f"dev:{kind}")
     return loads
+
+
+OFFICIAL = catalog._AUDIOCPP_GGUF_REPO
+COMPANION_FAMILY = "companion_test"
+CODEC = "Companion-Codec-GGUF/codec-q8_0.gguf"     # one codec every rung shares, in another folder
+
+GPU12 = accel.Machine(os="Linux", arch="x86_64", cpu_cores=16, apple_silicon=False,
+                      installed=frozenset({"native_tts"}), fingerprint="t-gpu12",
+                      tc_kinds=("vulkan", "cpu"),
+                      gpus=(("vulkan", "NVIDIA GeForce RTX 4070", 12 << 30),), generation="G-test")
+GPU24 = accel.Machine(os="Linux", arch="x86_64", cpu_cores=16, apple_silicon=False,
+                      installed=frozenset({"native_tts"}), fingerprint="t-gpu24",
+                      tc_kinds=("vulkan", "cpu"),
+                      gpus=(("vulkan", "NVIDIA GeForce RTX 4090", 24 << 30),), generation="G-test")
+
+
+def companion_card():
+    """A card in a folder of the official mirror whose rungs each need two companions: a codec
+    in ANOTHER folder of the repo (shared by both rungs, MioTTS's shape) and a per-quant file
+    at the repo's ROOT (LFM2.5-Audio's shape). Package sizes: q8_0 6.5 GiB, bf16 12 GiB."""
+    return catalog._tts_gguf_row(
+        "companion-test", "Companion Test", ("en",), COMPANION_FAMILY, "Companion-Test-GGUF",
+        {"q8_0": ("companion-q8_0.gguf", 5 << 30), "bf16": ("companion-bf16.gguf", 9 << 30)},
+        default_quant="q8_0", order=99,
+        companions={"q8_0": ((CODEC, 1 << 30), ("vocoder-q8_0.gguf", 1 << 29)),
+                    "bf16": ((CODEC, 1 << 30), ("vocoder-bf16.gguf", 2 << 30))})
+
+
+@pytest.fixture
+def companions(monkeypatch):
+    """companion_card() in the catalog, its family carrying both GPU tiers."""
+    monkeypatch.setitem(catalog._TTS_TIER_OVERRIDES, COMPANION_FAMILY,
+                        ("gpu-vulkan", "gpu-metal", "cpu"))
+    card = companion_card()
+    monkeypatch.setattr(catalog, "TTS_MODELS", catalog.TTS_MODELS + [card])
+    return card
+
+
+def rung(card, compute_type):
+    """The card's first deployment of one quant."""
+    return next(d for d in card.deployments if d.compute_type == compute_type)

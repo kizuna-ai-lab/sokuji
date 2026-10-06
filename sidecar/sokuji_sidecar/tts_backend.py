@@ -10,10 +10,13 @@ picked by the catalog card via PlanConfig.tts_family (sk_tts_load's required
 family_hint); PlanConfig.tts_language is pocket_tts's load-time language package
 ("english", ...), ignored by every other family.
 
-model_ref is the artifact "org/repo/<dir>/<file>.gguf" the catalog resolves to. The
-files a family ships besides the gguf (voice presets, embeddings, ...) live under the
-SAME <dir> in its HF repo, so load() resolves a SCOPED local snapshot — only that one
-directory, not the whole repo — via `allow_patterns=[f"{dir}/*"]`.
+model_ref is the artifact "org/repo/<dir>/<file>.gguf" (or "org/repo/<file>.gguf" at a
+repo's root) the catalog resolves to. The files a rung needs besides it arrive in
+PlanConfig.tts_extra_files as repo-relative paths: the card's extra_files under the same
+<dir> (pocket_tts's embeddings) and the rung's own companions, which may sit in another
+folder of the repo or at its root (spec stage 2.2). load() resolves a SCOPED local
+snapshot at the repo's revision (catalog.hub_revision) covering <dir> and those paths,
+not the whole repo.
 
 Ruling R18(s4) — SUPERSEDES the prior "no hard-links" ruling: the gguf (and, for
 pocket_tts, its embeddings/*.safetensors sidecar) are hard-link-staged into a small
@@ -440,20 +443,24 @@ class NativeTtsBackend:
                 raise BackendLoadError(
                     f"native_tts needs an 'org/repo/dir/file.gguf' artifact, got {model_ref!r}")
             model_dir = fname.rsplit("/", 1)[0] if "/" in fname else ""
+            # Repo-relative (planner._plan_config): the rung's companions and the card's
+            # extra_files beside the main file.
+            extras = [rel for rel, _size in cfg.tts_extra_files]
             allow = [f"{model_dir}/*"] if model_dir else [fname]
+            allow += [rel for rel in extras if not (model_dir and rel.startswith(f"{model_dir}/"))]
             from huggingface_hub import snapshot_download
             snap = snapshot_download(repo, revision=hub_revision(repo), allow_patterns=allow,
                                      local_files_only=True)
-            # R18: stage the gguf (+ any sidecar, e.g. pocket_tts's
-            # embeddings/*.safetensors) as HARD LINKS before ever handing a path to
-            # the native layer -- see _stage_for_native()'s docstring and the module
-            # docstring's second paragraph for why a real HF snapshot's symlinked
-            # path breaks audio.cpp's own model loader.
+            # R18: stage the gguf and every file the rung needs beside it as HARD LINKS
+            # before ever handing a path to the native layer, each at its repo-relative
+            # path under one <repo>__<rev> root, so the engine finds a companion where the
+            # repo puts it relative to the main GGUF -- see _stage_for_native()'s docstring
+            # and the module docstring's R18 paragraph for why a real HF snapshot's
+            # symlinked path breaks audio.cpp's own model loader.
             rev = os.path.basename(snap)
             path = _stage_for_native(repo, rev, fname, f"{snap}/{fname}")
-            for extra_name, _size in cfg.tts_extra_files:
-                extra_rel = f"{model_dir}/{extra_name}" if model_dir else extra_name
-                _stage_for_native(repo, rev, extra_rel, f"{snap}/{extra_rel}")
+            for rel in extras:
+                _stage_for_native(repo, rev, rel, f"{snap}/{rel}")
             # Always resolve an explicit device — including "cpu" (the slice-3 F1
             # lesson, translate_backend.load carries the same comment): passing
             # NULL leaves the native default in place, which can silently place a

@@ -1188,7 +1188,6 @@ def _run_pocket_production_chain(asr):
     hard-asserted like the other four, with no exemption."""
     import huggingface_hub.constants as _hfc
     from sokuji_sidecar import backends, catalog, native_models
-    from sokuji_sidecar.planner import PlanConfig
 
     scratch = os.path.expanduser("~/.cache/sokuji-native-tests/hf-scratch-pocket-chain")
     os.makedirs(scratch, exist_ok=True)
@@ -1207,15 +1206,11 @@ def _run_pocket_production_chain(asr):
         artifact = card.deployments[0].artifact
         b = backends.make_backend("native_tts")
         t0 = time.monotonic()
-        # tts_extra_files straight off the catalog card, matching what
-        # planner._plan_config() would build in production (this leg calls
-        # NativeTtsBackend.load() directly, bypassing the planner, so it must
-        # reconstruct the same PlanConfig by hand) -- without it, pocket-tts-en's
-        # embeddings/alba.safetensors sidecar never gets staged and set_builtin_voice
-        # below fails with "unknown preset 'alba'".
-        b.load(artifact, "cpu", "q8_0",
-               config=PlanConfig(tts_family="pocket_tts", tts_language="english",
-                                 tts_extra_files=card.extra_files))
+        # The PlanConfig planner._plan_config() builds in production for this rung (this
+        # leg calls NativeTtsBackend.load() directly, bypassing the planner) -- without its
+        # tts_extra_files, pocket-tts-en's embeddings/alba.safetensors sidecar never gets
+        # staged and set_builtin_voice below fails with "unknown preset 'alba'".
+        b.load(artifact, "cpu", "q8_0", config=planner._plan_config(card, card.deployments[0]))
         try:
             b.set_builtin_voice("alba")
             samples, rate, _gen_ms = b.generate(_LOOPBACK_TEXT)

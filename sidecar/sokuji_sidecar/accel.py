@@ -249,27 +249,21 @@ from .planner import (  # noqa: E402,F401
 
 
 def _downloaded_quants(model) -> set:
-    """compute_types of `model` whose artifact file is already in the local HF
-    cache. LOAD-time quant selection restricts itself to these (an absent
-    upgrade rung must never be chosen over a cached default — it would fail
-    to load); an empty set means nothing is cached yet, so selection falls
-    back to pure budget logic and the readiness gate drives the download."""
-    from . import catalog as _cat
-    from huggingface_hub import hf_hub_download
+    """compute_types of `model` whose rung is wholly in the local HF cache: its main file
+    and every companion and extra file it needs (native_models.rung_cached). LOAD-time quant
+    selection restricts itself to these (an absent upgrade rung -- or one an interrupted
+    download left without a companion -- must never be chosen over a cached default: it would
+    fail to load); an empty set means nothing is cached yet, so selection falls back to pure
+    budget logic and the readiness gate drives the download."""
+    from . import native_models
     out = set()
     seen = set()
     for d in model.deployments:
         if d.compute_type in seen:
             continue
         seen.add(d.compute_type)
-        repo, fname = _cat.split_artifact(d.artifact)
-        if not fname:
-            continue
-        try:
-            hf_hub_download(repo, fname, revision=_cat.hub_revision(repo), local_files_only=True)
+        if native_models.rung_cached(model, d):
             out.add(d.compute_type)
-        except Exception:
-            pass
     return out
 
 
@@ -290,10 +284,32 @@ def _artifact_path(model, compute_type: str):
     return None
 
 
+def _companion_paths(model, compute_type: str) -> list:
+    """Local paths of the rung's cached companion GGUFs (spec stage 2.2). A companion that is
+    not cached, or is not a GGUF, is skipped."""
+    from . import catalog as _cat
+    from huggingface_hub import hf_hub_download
+    dep = next((d for d in model.deployments if d.compute_type == compute_type), None)
+    if dep is None:
+        return []
+    repo, _fname = _cat.split_artifact(dep.artifact)
+    out = []
+    for rel, _size in getattr(dep, "companions", ()):
+        if not rel.endswith(".gguf"):
+            continue
+        try:
+            out.append(hf_hub_download(repo, rel, revision=_cat.hub_revision(repo),
+                                       local_files_only=True))
+        except Exception:
+            pass
+    return out
+
+
 def weight_dtypes(model, compute_type: str) -> tuple:
-    """The dtype set WEIGHT expands over (spec A premise 7): the file's real header set,
-    INTERSECTED with the weight-capable types, when the rung is on disk; else the rung's
-    deliberately wide fallback set. Sorted, so it keys.
+    """The dtype set WEIGHT expands over (spec A premise 7): the union of the header sets of
+    the rung's cached GGUFs -- its main file and every companion GGUF (spec stage 2.2: one
+    recording covers the whole model's graph) -- INTERSECTED with the weight-capable types;
+    else the rung's deliberately wide fallback set. Sorted, so it keys.
 
     The intersection is not cosmetic. A GGUF header also lists its i32/i64 index tables, and a
     WEIGHT node is the src0 of a MUL_MAT/MUL_MAT_ID/GET_ROWS — never an integer tensor. Asking
@@ -303,15 +319,15 @@ def weight_dtypes(model, compute_type: str) -> tuple:
     nothing to ask, so the fallback set stands in."""
     from . import catalog as _cat
     fallback = tuple(sorted(_cat.RUNG_FALLBACK_DTYPES.get(compute_type, frozenset({"f32"}))))
-    path = _artifact_path(model, compute_type)
-    if path:
+    header = set()
+    for path in [_artifact_path(model, compute_type)] + _companion_paths(model, compute_type):
+        if not path:
+            continue
         try:
-            header = gguf_header.read_header(path).tensor_types & _cat.WEIGHT_CAPABLE_DTYPES
-            if header:
-                return tuple(sorted(header))
+            header |= gguf_header.read_header(path).tensor_types & _cat.WEIGHT_CAPABLE_DTYPES
         except Exception:
             pass
-    return fallback
+    return tuple(sorted(header)) if header else fallback
 
 
 def _ops_key(machine: Machine, device_index: int, stage: str, family: str, compute_type: str, weight_dtypes_) -> str:

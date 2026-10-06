@@ -1184,11 +1184,11 @@ def test_f2_stage_for_native_race_recovers_from_file_exists_error_without_copy(t
 
 
 def test_load_stages_pocket_extra_files_alongside_the_gguf(native_env):
-    """R18: PlanConfig.tts_extra_files (planner._plan_config, straight off
-    TtsModel.extra_files) carries pocket-tts-en's embeddings/alba.safetensors --
-    load() must stage it as a SIBLING of the staged gguf, matching the relative
-    layout native's own preset discovery expects (gguf_parent_dir / "embeddings",
-    sk_tts.cpp's own comment)."""
+    """R18: PlanConfig.tts_extra_files (planner._plan_config: the rung's companions and the
+    card's extra_files, repo-relative) carries pocket-tts-en's embeddings/alba.safetensors --
+    load() must stage it as a SIBLING of the staged gguf, matching the relative layout
+    native's own preset discovery expects (gguf_parent_dir / "embeddings", sk_tts.cpp's own
+    comment)."""
     created, _log = native_env
     extra_rel = "pocket_tts-en/embeddings/alba.safetensors"
     extra_source = os.path.join(created["snap_dir"], extra_rel)
@@ -1199,12 +1199,13 @@ def test_load_stages_pocket_extra_files_alongside_the_gguf(native_env):
     b = backends.make_backend("native_tts")
     b.load(REF, "cpu", "q8_0", config=PlanConfig(
         tts_family="pocket_tts", tts_language="english",
-        tts_extra_files=(("embeddings/alba.safetensors", 999),)))
+        tts_extra_files=((extra_rel, 999),)))
 
     staged_gguf = created["load_call"][0]
     staged_extra = os.path.join(os.path.dirname(staged_gguf), "embeddings", "alba.safetensors")
     assert os.path.isfile(staged_extra)
     assert os.path.samefile(staged_extra, extra_source)
+    assert created["snapshot_call"] == ("acme/pocket-tts-en-gguf", ["pocket_tts-en/*"], True)
 
 
 def test_load_staging_is_idempotent_across_repeated_loads(native_env):

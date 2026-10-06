@@ -23,11 +23,64 @@ def _ignored(filename, patterns):
 def _tts_extra_files(_tm, fname):
     """(repo-relative) sidecar asset paths for a TTS card's `extra_files`
     (pocket-tts-en's embeddings/alba.safetensors), resolved next to `fname`'s
-    own directory — the same directory every quant of that card shares."""
-    if not _tm.extra_files:
+    own directory — the same directory every quant of that card shares. []
+    for a card without any (every ASR and translate card)."""
+    extra = getattr(_tm, "extra_files", ())
+    if not extra:
         return []
     dirpath = fname.rsplit("/", 1)[0] if "/" in fname else ""
-    return [f"{dirpath}/{name}" if dirpath else name for name, _size in _tm.extra_files]
+    return [f"{dirpath}/{name}" if dirpath else name for name, _size in extra]
+
+
+def _rung_files(m, dep):
+    """(repo, repo-relative path) of every file one rung of a catalog card needs, main file
+    first: the deployment's own companions (spec stage 2.2: another folder of the repo, or its
+    root), then a TTS card's extra_files beside the main file. [] for a whole-repo artifact."""
+    repo, fname = split_artifact(dep.artifact)
+    if not fname:
+        return []
+    files = [(repo, fname)]
+    files += [(repo, rel) for rel, _size in getattr(dep, "companions", ())]
+    files += [(repo, rel) for rel in _tts_extra_files(m, fname)]
+    return list(dict.fromkeys(files))
+
+
+def _cached_path(repo, fname):
+    """Local path of one file in the HF cache at the repo's revision (hub_revision), or None
+    when it is not cached. A local lookup: never touches the network."""
+    from huggingface_hub import hf_hub_download
+    try:
+        return hf_hub_download(repo, fname, revision=hub_revision(repo),
+                               local_files_only=True) or ""
+    except Exception:
+        return None
+
+
+def rung_cached(m, dep) -> bool:
+    """True when every file the rung needs is in the cache: its main file, its companions and
+    the card's extra files. A rung an interrupted download left without a companion is not
+    downloaded: it would fail to stage at load."""
+    files = _rung_files(m, dep)
+    return bool(files) and all(_cached_path(r, f) is not None for r, f in files)
+
+
+def _catalog_card(model_id):
+    """The ASR, translate or TTS catalog card for `model_id`, or None."""
+    if not model_id:
+        return None
+    from .catalog import translate_model as _translate_model, tts_model as _tts_model
+    return _asr_model(model_id) or _translate_model(model_id) or _tts_model(model_id)
+
+
+def _tts_rung_size(artifact):
+    """A catalog TTS rung's whole download (main + companions + the card's extra files) when
+    `artifact` names one, else 0: the byte total of a chosen variant's download."""
+    from .catalog import tts_models
+    for m in tts_models():
+        for d in m.deployments:
+            if d.artifact == artifact and d.est_bytes:
+                return d.est_bytes + sum(sz for _n, sz in m.extra_files)
+    return 0
 
 
 def _base_specs(model_id):
@@ -35,14 +88,12 @@ def _base_specs(model_id):
     from .catalog import tts_model as _tts_model
     _tm = _tts_model(model_id) if model_id else None
     if _tm is not None:
-        # Every TTS card is a single-file audio.cpp GGUF — exactly the ASR/
-        # translate shape: artifact "org/repo/dir/file.gguf" -> one pinned
-        # file. pocket-tts-en additionally ships a same-directory preset
-        # asset (embeddings/alba.safetensors) that sk_tts_presets discovers
-        # next to the loaded gguf, listed via TtsModel.extra_files.
-        repo, fname = split_artifact(_tm.deployments[0].artifact)
-        files = [(repo, fname)] + [(repo, extra) for extra in _tts_extra_files(_tm, fname)]
-        return {"repos": [], "urls": [], "files": files}
+        # A TTS rung is a GGUF artifact "org/repo/[dir/]file.gguf": its main file, the
+        # companions it needs beside it (another folder of the repo, or its root), and the
+        # card's extra_files (pocket-tts-en's embeddings/alba.safetensors, which
+        # sk_tts_presets discovers next to the loaded gguf). The default rung here; a chosen
+        # rung arrives through download_specs' `repo`.
+        return {"repos": [], "urls": [], "files": _rung_files(_tm, _tm.deployments[0])}
     from .catalog import translate_model as _translate_model
     _trm = _translate_model(model_id) if model_id else _translate_model("qwen2.5-0.5b")
     if _trm is not None:
@@ -83,8 +134,12 @@ def download_specs(model_id, repo=None):
         if fname:
             from .catalog import tts_model as _tts_model
             _tm = _tts_model(model_id) if model_id else None
-            extra = _tts_extra_files(_tm, fname) if _tm is not None else []
-            files = [(repo2, fname)] + [(repo2, e) for e in extra]
+            dep = next((d for d in _tm.deployments if d.artifact == repo), None) if _tm else None
+            if dep is not None:
+                files = _rung_files(_tm, dep)          # the chosen rung, with its companions
+            else:
+                extra = _tts_extra_files(_tm, fname) if _tm is not None else []
+                files = [(repo2, fname)] + [(repo2, e) for e in extra]
             return {"repos": [], "urls": [], "files": files}
         return {"repos": [repo], "urls": []}
     return _base_specs(model_id)
@@ -107,6 +162,9 @@ def model_size(model_id):
         return cat_model.size_bytes
     if model_id in _SIZE_CACHE:
         return _SIZE_CACHE[model_id]
+    rung_size = _tts_rung_size(model_id)
+    if rung_size:
+        return rung_size
     from huggingface_hub import HfApi
     api = HfApi()
     total = 0
@@ -150,56 +208,23 @@ def _repos_cached(specs) -> bool:
     return True
 
 
-def _ladder_artifacts(model_id):
-    """Every quant rung's artifact for a multi-quant catalog card (ASR or a
-    GGUF LLM translate card), [] for single-variant/unknown ids. model_status's
-    no-override path treats a card as RUNNABLE when ANY rung is cached —
-    load-time resolution only ever loads downloaded quants (accel's
-    downloaded= restriction), so runnability must not depend on the static
-    default rung (field bug: Fun-ASR default Q6_K vs downloaded Q8_0 read
-    'absent' from every bare status query)."""
-    m = _asr_model(model_id) if model_id else None
-    if m is None:
-        from .catalog import translate_model as _translate_model
-        m = _translate_model(model_id) if model_id else None
-    if m is None:
-        from .catalog import tts_model as _tts_model
-        m = _tts_model(model_id) if model_id else None
+def _ladder_rungs(model_id):
+    """One deployment per quant rung of a multi-quant catalog card (ASR, translate or TTS),
+    [] for a single-rung or unknown id. model_status's no-override path treats a card as
+    RUNNABLE when ANY rung is wholly cached — load-time resolution only ever loads downloaded
+    rungs (accel's downloaded= restriction), so runnability must not depend on the static
+    default rung (field bug: Fun-ASR default Q6_K vs downloaded Q8_0 read 'absent' from every
+    bare status query)."""
+    m = _catalog_card(model_id)
     if m is None:
         return []
-    arts, seen = [], set()
+    rungs, seen = [], set()
     for d in m.deployments:
         if d.compute_type in seen:
             continue
         seen.add(d.compute_type)
-        arts.append(d.artifact)
-    return arts if len(arts) > 1 else []
-
-
-def _extra_files_present(model_id) -> bool:
-    """True if every one of a TTS card's `extra_files` (pocket-tts-en's
-    embeddings/alba.safetensors) is already cached, or the card has none.
-
-    Fix round 1, CQ-2: `_ladder_artifacts`'s any-rung relaxation only ever
-    looks at each quant's PRIMARY artifact file — a card whose extra_files
-    sidecar is missing still read 'ready' as long as one gguf rung was cached.
-    Checked unconditionally (both the bare and repo-override `model_status`
-    paths) in addition to, not instead of, the existing ladder/files check —
-    for an override, `specs["files"]` already lists the extras too (see
-    `download_specs`), so this is a cheap, harmless re-check there and the
-    only thing that actually closes the gap on the bare (ladder) path."""
-    from .catalog import tts_model as _tts_model
-    m = _tts_model(model_id) if model_id else None
-    if m is None or not m.extra_files:
-        return True
-    from huggingface_hub import hf_hub_download
-    repo, fname = split_artifact(m.deployments[0].artifact)
-    for extra in _tts_extra_files(m, fname):
-        try:
-            hf_hub_download(repo, extra, revision=hub_revision(repo), local_files_only=True)
-        except Exception:
-            return False
-    return True
+        rungs.append(d)
+    return rungs if len(rungs) > 1 else []
 
 
 def model_status(model_id, repo=None):
@@ -208,14 +233,11 @@ def model_status(model_id, repo=None):
     `repo` overrides the model's default repo with a chosen variant's repo (mirrors
     download_specs), so status reflects the variant the card actually downloads.
     WITHOUT an override, a multi-quant card's file requirement is satisfied by
-    ANY cached rung of its ladder (see _ladder_artifacts) — the override form
-    keeps per-quant semantics for the download buttons. This covers every
-    catalog kind uniformly (ASR, translate, TTS): every card is a single-file
-    (or, for pocket-tts-en, single-file-plus-sidecar) artifact, so there is no
-    per-kind status branch left — TTS used to need one (a whole-repo,
-    any-variant-cached check) before its artifacts became single-file GGUFs.
-    A card's `extra_files` sidecar (see _extra_files_present) is required in
-    addition to the ladder/files check, on both the bare and override paths.
+    ANY wholly cached rung of its ladder (see _ladder_rungs) — the override form
+    keeps per-quant semantics for the download buttons. Either way a rung counts
+    only with every file it needs: its main file, its companions and the card's
+    extra files (rung_cached; download_specs lists the same set for one rung). This
+    covers every catalog kind uniformly (ASR, translate, TTS).
 
     Translate cards (native_translate) need nothing beyond their GGUF file —
     translation runs in-process through sokuji_native, the same wheel ASR and
@@ -224,25 +246,14 @@ def model_status(model_id, repo=None):
     try:
         if not _repos_cached(specs):
             return "absent"
-        ladder = _ladder_artifacts(model_id) if repo is None else []
-        if ladder:
-            from huggingface_hub import hf_hub_download
-
-            def _rung_cached(artifact):
-                r, fname = split_artifact(artifact)
-                try:
-                    hf_hub_download(r, fname, revision=hub_revision(r), local_files_only=True)
-                    return True
-                except Exception:
-                    return False
-            if not any(_rung_cached(a) for a in ladder):
+        rungs = _ladder_rungs(model_id) if repo is None else []
+        if rungs:
+            m = _catalog_card(model_id)
+            if not any(rung_cached(m, d) for d in rungs):
                 return "absent"
         elif specs.get("files"):
-            from huggingface_hub import hf_hub_download
-            for r, fname in specs["files"]:
-                hf_hub_download(r, fname, revision=hub_revision(r), local_files_only=True)
-        if not _extra_files_present(model_id):
-            return "absent"
+            if any(_cached_path(r, fname) is None for r, fname in specs["files"]):
+                return "absent"
         return "ready"
     except Exception:
         return "absent"
@@ -384,6 +395,19 @@ def _prune_staged_repo(repo: str) -> None:
             shutil.rmtree(os.path.join(root, entry), ignore_errors=True)
 
 
+def _files_needed_elsewhere(model_id, repo):
+    """(repo, path) pairs some rung that is NOT being deleted still needs: every rung of every
+    other card, plus this card's other rungs when only one rung (`repo`, its artifact) goes."""
+    from .catalog import asr_models, translate_models, tts_models
+    needed = set()
+    for m in list(asr_models()) + list(translate_models()) + list(tts_models()):
+        for d in m.deployments:
+            if m.id == model_id and (repo is None or d.artifact == repo):
+                continue
+            needed.update(_rung_files(m, d))
+    return needed
+
+
 def delete_model(model_id, repo=None):
     """Remove a model's cached files from the HF cache.
 
@@ -426,7 +450,7 @@ def delete_model(model_id, repo=None):
     downloaded NON-default rung (e.g. an f16 pin the user downloaded, then
     deleted after the renderer's variant selector reverted to "default") would
     otherwise survive untouched and keep model_status reporting the card "ready"
-    forever (_ladder_artifacts' any-rung-cached relaxation). Expand to every
+    forever (_ladder_rungs' any-rung-cached relaxation). Expand to every
     rung's (repo, fname) [+ extra_files] below when the caller asked for the
     whole model, not a specific chosen variant.
 
@@ -447,23 +471,21 @@ def delete_model(model_id, repo=None):
         from .catalog import tts_model as _tts_model
         _tm = _tts_model(model_id) if model_id else None
         if _tm is not None:
-            # T4ii: pre-seed with what the _base_specs loop above (specs.get
-            # ("files", [])) already contributed to files_by_repo -- otherwise
-            # the deployment whose (repo, fname) matches the default rung
-            # download_specs() already resolved gets appended to
-            # files_by_repo[r] a SECOND time below (a harmless but wasteful
-            # duplicate delete-file entry).
+            # T4ii: pre-seed with what download_specs() already contributed (the default
+            # rung), so its files are not listed twice.
             seen = {(r, fname) for r, fname in specs.get("files", [])}
             for dep in _tm.deployments:
-                r, fname = split_artifact(dep.artifact)
-                if fname is None or (r, fname) in seen:
-                    continue
-                seen.add((r, fname))
-                files_by_repo.setdefault(r, []).append(fname)
-                for extra in _tts_extra_files(_tm, fname):
-                    if (r, extra) not in seen:
-                        seen.add((r, extra))
-                        files_by_repo[r].append(extra)
+                for r, rel in _rung_files(_tm, dep):
+                    if (r, rel) not in seen:
+                        seen.add((r, rel))
+                        files_by_repo.setdefault(r, []).append(rel)
+
+    # A file that a rung NOT being deleted still needs stays, with its staged hard link:
+    # another card's, or -- when only one rung goes -- this card's other rungs' (MioTTS's
+    # codec serves every rung of its card; pocket-tts-en's alba preset serves both quants).
+    needed = _files_needed_elsewhere(model_id, repo)
+    files_by_repo = {r: kept for r, fnames in files_by_repo.items()
+                     if (kept := [f for f in fnames if (r, f) not in needed])}
 
     # F4: classify repos into "file-scoped" (shared by >1 catalog card) vs
     # "whole-revision" (solo owner) BEFORE the cache scan below — this
@@ -647,7 +669,17 @@ async def download(model_id, send, should_cancel=None, repo=None):
     for i, (r, fname) in enumerate(files):
         if cancelled():
             return "cancelled"
-        await _fetch(hf_hub_download, r, fname, revision=hub_revision(r), poll_repo=r)
+        local = _cached_path(r, fname)
+        if local is not None:
+            # Already in the cache at this revision (a re-run after an interrupted
+            # download): count it and ask the Hub only for what is missing.
+            try:
+                done_bytes += os.path.getsize(os.path.realpath(local)) if local else 0
+            except OSError:
+                pass
+            done_units += 1
+        else:
+            await _fetch(hf_hub_download, r, fname, revision=hub_revision(r), poll_repo=r)
         await progress(final=i == len(files) - 1)
     return "ready"
 

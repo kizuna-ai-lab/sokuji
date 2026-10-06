@@ -339,7 +339,7 @@ def test_m4_delete_model_repo_none_deletes_every_cached_rung(monkeypatch, tmp_pa
     downloaded a non-default rung (e.g. bf16) and then deletes via the
     default-repo path (repo=None, e.g. after the renderer's variant selector
     reverted to 'default') must not be left with an orphaned cached rung that
-    keeps model_status() reporting 'ready' forever (_ladder_artifacts' any-
+    keeps model_status() reporting 'ready' forever (_ladder_rungs' any-
     rung-cached relaxation treats ANY cached quant as sufficient)."""
     from sokuji_sidecar import native_models as nm
 
@@ -1199,7 +1199,7 @@ def test_model_status_repo_override_keeps_specific_quant_semantics(monkeypatch, 
 def test_model_status_tts_ready_when_any_ladder_quant_cached(monkeypatch, tmp_path):
     """TTS artifacts are single-file GGUFs (exactly ASR/translate's shape,
     slice 4) — a multi-quant card (moss-tts-nano: q8_0 default + bf16 alt) is
-    RUNNABLE when ANY rung is cached, sharing _ladder_artifacts with ASR/
+    RUNNABLE when ANY rung is cached, sharing _ladder_rungs with ASR/
     translate (see test_model_status_ready_when_any_ladder_quant_cached
     above) — no TTS-specific status branch is left at all."""
     import huggingface_hub

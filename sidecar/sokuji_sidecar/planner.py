@@ -36,16 +36,16 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class PlanConfig:
-    """Declarative per-load hints, read from the resolved catalog card and
-    consumed by backends at load time: native_translate reads the two thinking
-    flags and prompt_family (which of its three prompt strategies to use);
-    native_tts reads tts_family (sk_tts_load's required family_hint),
-    tts_language (pocket_tts's load-time language package, e.g. "english";
-    ignored by every other family), and tts_extra_files (ruling R18(s4):
-    same-directory sidecar assets, e.g. pocket-tts-en's
-    embeddings/alba.safetensors, that must be hard-link-staged alongside the
-    gguf — see tts_backend.py's module docstring). All-inert defaults so a
-    bare `PlanConfig()` changes no behavior."""
+    """Declarative per-load hints, read from the resolved catalog card and the rung a Plan
+    loads, consumed by backends at load time: native_translate reads the two thinking flags
+    and prompt_family (which of its three prompt strategies to use); native_tts reads
+    tts_family (sk_tts_load's required family_hint), tts_language (pocket_tts's load-time
+    language package, e.g. "english"; ignored by every other family), and tts_extra_files
+    (ruling R18(s4)): the repo-relative (path, bytes) of every file the rung needs
+    hard-link-staged beside its gguf -- its own companions (spec stage 2.2) and the card's
+    extra_files, e.g. pocket-tts-en's PocketTTS-GGUF/english/embeddings/alba.safetensors (see
+    tts_backend.py's module docstring). All-inert defaults so a bare `PlanConfig()` changes no
+    behavior."""
     disable_thinking: bool = False
     append_no_think: bool = False
     prompt_family: str = ""
@@ -70,21 +70,35 @@ class NoUsablePlan(Exception):
     model on a CPU-only box)."""
 
 
-def _plan_config(model) -> PlanConfig:
-    """Build a Plan's PlanConfig from its resolved catalog card. Card types
-    differ (an AsrModel and a TtsModel have no thinking flags), so every
-    field is read defensively via getattr with an inert default — this stays
-    correct for any current or future card shape. `family`/`load_language`
-    land on TtsModel in slice 4's catalog task; reading them defensively now
-    means native_tts's backend already gets tts_family/tts_language the
-    moment those catalog fields exist, with no further planner change."""
+def _rung_extra_files(model, deployment) -> tuple:
+    """Repo-relative (path, bytes) of what one rung needs staged beside its main file: the
+    deployment's own companions, then the card's extra_files resolved against the main file's
+    folder (pocket-tts-en's embeddings/alba.safetensors)."""
+    if deployment is None:
+        return ()
+    _repo, fname = catalog.split_artifact(deployment.artifact)
+    folder = fname.rsplit("/", 1)[0] if fname and "/" in fname else ""
+    extras = tuple((f"{folder}/{name}" if folder else name, size)
+                   for name, size in getattr(model, "extra_files", ()))
+    return tuple(getattr(deployment, "companions", ())) + extras
+
+
+def _plan_config(model, deployment=None) -> PlanConfig:
+    """Build a Plan's PlanConfig from its resolved catalog card and the rung it loads
+    (`deployment`; default: the card's first, its default rung). Card types differ (an
+    AsrModel and a TtsModel have no thinking flags), so every field is read defensively via
+    getattr with an inert default — this stays correct for any current or future card shape.
+    tts_extra_files are THAT rung's companions plus the card's extra files, so each Plan of
+    one resolution stages exactly what its own rung needs."""
+    if deployment is None:
+        deployment = next(iter(getattr(model, "deployments", ()) or ()), None)
     return PlanConfig(
         disable_thinking=getattr(model, "disable_thinking", False),
         append_no_think=getattr(model, "append_no_think", False),
         prompt_family=getattr(model, "prompt_family", ""),
         tts_family=getattr(model, "family", ""),
         tts_language=getattr(model, "load_language", ""),
-        tts_extra_files=getattr(model, "extra_files", ()),
+        tts_extra_files=_rung_extra_files(model, deployment),
     )
 
 
@@ -216,8 +230,8 @@ def resolve_deployments(model, machine: Machine, override: str = "auto",
         pinned = [d for d in usable if _pinned(d)]
         rest = [d for d in usable if not _pinned(d)]
         usable = pinned + rest
-    config = _plan_config(model)
-    plans = [Plan(d.backend, d.tier, TIER_DEVICE[d.tier], d.compute_type, d.artifact, d.rank, config)
+    plans = [Plan(d.backend, d.tier, TIER_DEVICE[d.tier], d.compute_type, d.artifact, d.rank,
+                  _plan_config(model, d))
              for d in usable]
     # Cache-based demotion is an AUTO-mode refinement; an explicit override is the
     # user's will and is never second-guessed by the benchmark.
@@ -403,8 +417,8 @@ def resolve_translate(model_id: str, override: str = "auto", *, machine: Machine
         picks = [d for d in picks if d is not None and d.backend in machine.installed]
         if not picks:
             raise NoUsablePlan(model_id)
-        config = _plan_config(model)
-        plans = [Plan(d.backend, d.tier, TIER_DEVICE[d.tier], d.compute_type, d.artifact, d.rank, config)
+        plans = [Plan(d.backend, d.tier, TIER_DEVICE[d.tier], d.compute_type, d.artifact, d.rank,
+                      _plan_config(model, d))
                  for d in picks]
         # Bench correction (E6): when BOTH the GPU pick and its CPU floor have
         # measured decode throughput, and the GPU is not actually faster,
@@ -471,8 +485,8 @@ def resolve_tts(model_id: str, override: str = "auto", *, machine: Machine, plat
         picks = [d for d in picks if d is not None and d.backend in machine.installed]
         if not picks:
             raise NoUsablePlan(model_id)
-        config = _plan_config(model)
-        return [Plan(d.backend, d.tier, TIER_DEVICE[d.tier], d.compute_type, d.artifact, d.rank, config)
+        return [Plan(d.backend, d.tier, TIER_DEVICE[d.tier], d.compute_type, d.artifact, d.rank,
+                     _plan_config(model, d))
                 for d in picks]
     # Explicit device override: unchanged tier-pinning path, except a pinned
     # quant must still be honored first (mirrors resolve_translate's override
