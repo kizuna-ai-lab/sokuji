@@ -18,12 +18,13 @@ export interface Refusal extends RunNotice {
  * A run's shape holds both; so does the provider store, for the language
  * offer (Stage 2 Volcengine AST2, choice 1).
  */
-export interface SpeechInputs { textOnly: boolean; participantSpeech: boolean }
+export interface SpeechInputs { textOnly: boolean; participantSpeech: boolean; transcriptionOnly?: boolean }
 
-type Speaking = Pick<AnyProvider, 'speech' | 'participantSpeech'>;
+type Speaking = Pick<AnyProvider, 'speech' | 'participantSpeech' | 'transcribeOnly'>;
 
 /** Whether a leg speaks: the one rule `contextsFor`, the gate and the language offer read. */
 function legSpeaks(p: Speaking, leg: LegName, inputs: SpeechInputs): boolean {
+  if (inputs.transcriptionOnly && p.transcribeOnly) return false;
   const speaks = (wanted: boolean) => p.speech === 'always' || (p.speech === 'optional' && wanted);
   if (leg === 'speaker') return speaks(!inputs.textOnly);
   // While its provider's participant-speech flag is off (Kizuna Soniox
@@ -44,11 +45,13 @@ export function languageContext(p: Speaking, legs: readonly LegName[], inputs: S
  */
 export function contextsFor(shape: RunShape): Partial<Record<LegName, SessionContext>> {
   const { provider: p, pair } = shape;
+  const transcribeOnly = Boolean(shape.transcriptionOnly && p.transcribeOnly);
   const contexts: Partial<Record<LegName, SessionContext>> = {};
   if (shape.legs.includes('speaker')) {
     contexts.speaker = {
       direction: { source: pair.source, target: pair.target },
       speech: legSpeaks(p, 'speaker', shape),
+      ...(transcribeOnly ? { translate: false } : {}),
       turns: shape.turnMode === 'auto' ? 'auto' : 'manual',
     };
   }
@@ -57,6 +60,7 @@ export function contextsFor(shape: RunShape): Partial<Record<LegName, SessionCon
       // The gate refused a pair with no reverse before anything asks (D20); the plain swap only answers a shape nothing gated.
       direction: reversedPair(p, shape.settings, pair) ?? { source: pair.target, target: pair.source },
       speech: legSpeaks(p, 'participant', shape),
+      ...(transcribeOnly ? { translate: false } : {}),
       turns: 'auto',
     };
   }
@@ -64,7 +68,7 @@ export function contextsFor(shape: RunShape): Partial<Record<LegName, SessionCon
 }
 
 /** What the start gate reads (F7): a run's frozen shape satisfies it, and so do the stores as they stand. `textOnly`, `participantSpeech` and `account` feed a managed provider's balance floor (Stage 2 Kizuna Soniox); absent, nothing is gated on a balance. */
-export type GateInput = Pick<RunShape, 'provider' | 'settings' | 'pair' | 'legs' | 'turnMode'> & Partial<Pick<RunShape, 'textOnly' | 'participantSpeech' | 'account'>>;
+export type GateInput = Pick<RunShape, 'provider' | 'settings' | 'pair' | 'legs' | 'turnMode'> & Partial<Pick<RunShape, 'textOnly' | 'transcriptionOnly' | 'participantSpeech' | 'account'>>;
 
 /** A start refused below a managed provider's floor: worded by the old gate's "Insufficient balance: {{balance}}" (ruling 6). */
 export const BALANCE_BELOW_FLOOR = 'balance_below_floor';
@@ -124,7 +128,7 @@ export function gate(shape: GateInput, platform: Platform): Refusal | null {
       return { code: 'participant_source_unavailable' satisfies RunNoticeCode, message: 'This build has no participant source.', leg: 'participant' };
     }
     // D20: the participant leg runs the reversed pair, in the languages its own speech offers (Stage 2 Volcengine AST2, choice 1); an auto source never reverses.
-    const participant = { speech: legSpeaks(p, 'participant', { textOnly: shape.textOnly ?? false, participantSpeech: shape.participantSpeech ?? false }) };
+    const participant = { speech: legSpeaks(p, 'participant', { textOnly: shape.textOnly ?? false, participantSpeech: shape.participantSpeech ?? false, transcriptionOnly: shape.transcriptionOnly ?? false }) };
     if (!reverseSupported(p, s, shape.pair, participant)) {
       // Worded from the pair actually checked (Stage 2 Palabra, ruling 9; choice 3): a hooked provider's reverse of `shape.pair`, not the plain swap.
       const reversed = reversedPair(p, s, shape.pair);

@@ -261,7 +261,7 @@ class SonioxCore {
       region: credentials.region,
       model: config.stt.model,
       sampleRate: SAMPLE_RATE,
-      translation: this.o.shared ? { type: 'two_way', language_a: sonioxWire.toWire(source), language_b: sonioxWire.toWire(target) } : { type: 'one_way', target_language: sonioxWire.toWire(target) },
+      ...(context.translate === false ? {} : { translation: this.o.shared ? { type: 'two_way', language_a: sonioxWire.toWire(source), language_b: sonioxWire.toWire(target) } : { type: 'one_way', target_language: sonioxWire.toWire(target) } }),
       // D20 keeps an auto source out of Both: the gate refuses the participant leg.
       ...(this.o.shared
         ? { languageHints: [sonioxWire.toWire(source), sonioxWire.toWire(target)], enableSpeakerDiarization: true }

@@ -34,6 +34,8 @@ export interface RunShape {
   turnMode: TurnMode;
   /** The speaker leg produces no translated speech (unless the provider always speaks). */
   textOnly: boolean;
+  /** The run asks its provider for no translation, only the transcript (honoured where `provider.transcribeOnly`). */
+  transcriptionOnly?: boolean;
   /** The participant-TTS opt-in; off until plan 1c-2's routing adds the switch. */
   participantSpeech: boolean;
   keepReplayAudio: boolean;

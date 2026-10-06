@@ -288,13 +288,13 @@ describe("SpeechSection — the provider's turn-detection tuning", () => {
 });
 
 describe('OutputToggles', () => {
-  it('is one config-section with no heading, holding the two switches', () => {
+  it('is one config-section with no heading, holding its switches', () => {
     const { container } = render(<OutputToggles locked={false} />);
     const section = container.querySelector('#output-section');
     expect(section).toBeTruthy();
     expect(section?.className).toContain('config-section');
     expect(section?.querySelector('h3')).toBeNull();
-    expect(section!.querySelectorAll('[role="switch"]')).toHaveLength(2);
+    expect(section!.querySelectorAll('[role="switch"]')).toHaveLength(3);
   });
 
   it("toggles Text Only for LocalInference (speech: 'optional')", () => {

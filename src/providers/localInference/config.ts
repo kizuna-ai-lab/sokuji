@@ -95,7 +95,10 @@ export function buildLocalInference(
   const isAst = asrEntry?.asrEngine === 'granite-speech' && resolved.translation?.modelId === resolved.asr.modelId;
 
   let translation: LocalInferenceConfig['translation'];
-  if (isAst) {
+  if (context.translate === false) {
+    // Transcription only: neither a translation model nor the AST model's own translation runs.
+    translation = { kind: 'none' };
+  } else if (isAst) {
     translation = { kind: 'ast' };
   } else if (!resolved.translation) {
     translation = { kind: 'none' };

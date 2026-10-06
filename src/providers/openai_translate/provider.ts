@@ -46,6 +46,8 @@ export const openaiTranslateProvider: Provider<TranslateSettings, TranslateCrede
 
   // Text only is offered (ruling 4): the API still speaks, and a leg that does not speak drops the audio.
   speech: 'optional',
+  // Transcription only: the runner keeps the translation side and the audio out of the conversation.
+  transcribeOnly: true,
   // The endpoint takes audio only.
   textInput: () => false,
   // Our own silence timers end segments (the old offer: pause, no auto, sizes).

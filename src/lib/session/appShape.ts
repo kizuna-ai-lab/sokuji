@@ -59,7 +59,7 @@ export function participantSpeechSwitchFromStores(): boolean {
  * keeps it for the language offer (Stage 2 Volcengine AST2, choice 1).
  */
 export function speechInputsFromStores(): SpeechInputs {
-  return { textOnly: useSettingsStore.getState().textOnly, participantSpeech: participantSpeechSwitchFromStores() };
+  return { textOnly: useSettingsStore.getState().textOnly, transcriptionOnly: useSettingsStore.getState().transcriptionOnly, participantSpeech: participantSpeechSwitchFromStores() };
 }
 
 /** Keeps the provider store's speech inputs on the stores', now and on every change, so each provider's pair is one its run could start. Returns the unsubscribe. */
@@ -84,6 +84,7 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
     legs: legsFor(useAudioStore.getState().mode),
     turnMode: useTurnModeStore.getState().turnMode,
     textOnly: st.textOnly,
+    transcriptionOnly: st.transcriptionOnly,
     participantSpeech: participantSpeechFromStores(provider),
     keepReplayAudio: st.keepReplayAudio,
     shared: buildSharedSettings(

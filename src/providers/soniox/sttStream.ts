@@ -55,7 +55,8 @@ export interface SonioxSttConfig {
   model: string;
   sampleRate: number;
   languageHints?: string[];
-  translation: SonioxTranslationConfig;
+  /** Absent: the socket only transcribes. */
+  translation?: SonioxTranslationConfig;
   /** Custom vocabulary and background text, wire-shaped (snake_case). Omitted from the config frame when absent. */
   context?: {
     terms?: string[];
@@ -153,7 +154,7 @@ export class SonioxSttStream {
           ...(config.enableSpeakerDiarization ? { enable_speaker_diarization: true } : {}),
           enable_language_identification: true,
           ...(config.languageHints?.length ? { language_hints: config.languageHints } : {}),
-          translation: config.translation,
+          ...(config.translation ? { translation: config.translation } : {}),
           ...(config.clientReferenceId ? { client_reference_id: config.clientReferenceId } : {}),
         }));
         this.lastAudioAt = this.clock.now();

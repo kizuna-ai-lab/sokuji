@@ -218,11 +218,11 @@ describe('watchLegsFromStores', () => {
 
 describe('speechInputsFromStores and watchSpeechFromStores (Stage 2 Volcengine AST2, choice 1)', () => {
   it("reads the text-only switch and the participant's speech: its switch, and a source that will not recapture it", () => {
-    expect(speechInputsFromStores()).toEqual({ textOnly: false, participantSpeech: false });
+    expect(speechInputsFromStores()).toEqual({ textOnly: false, transcriptionOnly: false, participantSpeech: false });
     expect(participantSpeechSwitchFromStores()).toBe(false);
     useSettingsStore.setState({ textOnly: true });
     useRoutingStore.setState({ participantSpeech: true });
-    expect(speechInputsFromStores()).toEqual({ textOnly: true, participantSpeech: true });
+    expect(speechInputsFromStores()).toEqual({ textOnly: true, transcriptionOnly: false, participantSpeech: true });
     environment.value = 'electron';
     useAudioStore.setState({ selectedParticipantSource: { deviceId: 'desktop-audio-loopback', label: 'System' } });
     expect(speechInputsFromStores().participantSpeech).toBe(false);
@@ -232,17 +232,17 @@ describe('speechInputsFromStores and watchSpeechFromStores (Stage 2 Volcengine A
   it("keeps the provider store's speech inputs on the stores', now and on every change, until unsubscribed", () => {
     useSettingsStore.setState({ textOnly: true });
     const unwatch = watchSpeechFromStores();
-    expect(useProviderStore.getState().speech).toEqual({ textOnly: true, participantSpeech: false });
+    expect(useProviderStore.getState().speech).toEqual({ textOnly: true, transcriptionOnly: false, participantSpeech: false });
     useSettingsStore.setState({ textOnly: false });
     useRoutingStore.setState({ participantSpeech: true });
-    expect(useProviderStore.getState().speech).toEqual({ textOnly: false, participantSpeech: true });
+    expect(useProviderStore.getState().speech).toEqual({ textOnly: false, transcriptionOnly: false, participantSpeech: true });
     // A source that would recapture the participant's speech reaches the store through the audio store alone.
     environment.value = 'electron';
     useAudioStore.setState({ selectedParticipantSource: { deviceId: 'desktop-audio-loopback', label: 'System' } });
     expect(useProviderStore.getState().speech.participantSpeech).toBe(false);
     unwatch();
     useSettingsStore.setState({ textOnly: true });
-    expect(useProviderStore.getState().speech).toEqual({ textOnly: false, participantSpeech: false });
+    expect(useProviderStore.getState().speech).toEqual({ textOnly: false, transcriptionOnly: false, participantSpeech: false });
   });
 });
 

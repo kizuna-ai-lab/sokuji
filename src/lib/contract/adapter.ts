@@ -25,6 +25,8 @@ export interface SessionContext {
   direction: { source: Lang; target: Lang };
   /** Produce translated audio at all. */
   speech: boolean;
+  /** False: transcribe only, ask for no translation. Absent means true. */
+  translate?: boolean;
   /** Always 'auto' on the participant leg. */
   turns: 'auto' | 'manual';
 }
