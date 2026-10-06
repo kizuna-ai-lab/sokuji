@@ -90,20 +90,37 @@ sk_layout sk_layout_of(const struct ggml_tensor *t);
  * the rebuilt shapes — sk_ops.cpp itself is the library's C ABI and drags the whole runtime. */
 struct ggml_tensor *sk_ops_rebuild_node(struct ggml_context *ctx, const sk_op_desc &d, int32_t weight_type);
 
-/* The dtype a WEIGHT whose file holds `dtype` (a ggml_type_name spelling) is loaded as, and so
- * the dtype a device is asked about, for `stage` on a device of kind `device` in the
- * `# recorded-on` vocabulary ("vulkan", "metal", "cpu", "gpu"). audio.cpp's BackendWeightStore
- * loads a tensor with Native storage whose file dtype is BF16 as F16 when its backend is Vulkan
- * or Metal (backend_weight_store.h:273-286, backend_safe_loaded_storage_type), on CPU it keeps
- * the file's dtype, and the families Sokuji ships load their weights through that store with
- * Native storage on those backends, which Sokuji never overrides; llama.cpp and transcribe.cpp
- * load the file's dtype as is. So: "bf16" → "f16" for stage "tts" on "vulkan" or "metal", every
- * other dtype and target unchanged. The one rule both sides use (ruling 2026-10-07, op-coverage
- * precision): sk_device_supports_ops maps each WEIGHT dtype through it before expanding, and
- * sk_record_end_to_file maps `# dtypes-in-file` through it before checking the live WEIGHT
- * dtypes, so a family that ever kept a bf16 weight as bf16 there would be refused at recording,
- * never asked the wrong question. The header itself keeps the files' own dtypes. */
-std::string sk_ops_loaded_weight_dtype(const std::string &stage, const std::string &device, const std::string &dtype);
+/* The dtypes a WEIGHT whose file holds `dtype` (a ggml_type_name spelling) may be held in, and
+ * so the dtypes a device is asked about, for `family` of `stage` on a device of kind `device` in
+ * the `# recorded-on` vocabulary ("vulkan", "metal", "cpu", "gpu").
+ *
+ * The rule: audio.cpp's BackendWeightStore loads a tensor with Native storage whose file dtype
+ * is BF16 as F16 when its backend is Vulkan or Metal (backend_weight_store.h:273-286,
+ * backend_safe_loaded_storage_type), and keeps the file's dtype on a CPU. Sokuji passes no
+ * weight_type option except moss_tts_local's, set to "native", so every family loads at its own
+ * default storage, Native wherever a family does not choose another. llama.cpp and
+ * transcribe.cpp load the file's dtype as is. So for stage "tts" on "vulkan" or "metal", "bf16"
+ * is asked as "f16"; every other dtype, stage and target is unchanged.
+ *
+ * The exception: a family that builds some device weight without that store's conversion — the
+ * file's own type handed to make_tensor, a derived tensor stored at the file's dtype, or a
+ * non-Native default storage — can hold a bf16 WEIGHT on Vulkan or Metal, so for those a "bf16"
+ * is asked both as "bf16" and as "f16" (the list, each entry with its source line, is in
+ * sk_ops_format.cpp). That restores the pre-mapping question exactly where the rule does not
+ * hold.
+ *
+ * Both sides use this one helper (ruling 2026-10-07, op-coverage precision):
+ * sk_device_supports_ops maps each WEIGHT dtype through it before expanding, and
+ * sk_record_end_to_file maps `# dtypes-in-file` through it, for the device that ran each live
+ * WEIGHT (a host WEIGHT ran on the CPU), before checking it. The guard sees such a path only when
+ * the recorded file holds bf16 there (qwen3_tts is recorded from a file whose output_proj is
+ * f32), so the list comes from reading audio.cpp's loaders, not from the recordings. The header
+ * itself keeps the files' own dtypes. */
+std::vector<std::string> sk_ops_loaded_weight_dtypes(const std::string &stage, const std::string &family,
+                                                     const std::string &device, const std::string &dtype);
+/* The `# recorded-on` word for an SK_DEVICE_* kind: "vulkan", "metal", "cpu", else "gpu". The one
+ * spelling sk_device_supports_ops and the recorder (record_common.h) both use. */
+const char *sk_ops_device_word(int32_t kind);
 
 std::string sk_ops_format(const sk_op_recording &r);
 bool sk_ops_parse(const std::string &text, sk_op_recording &out, std::string &error);

@@ -1,6 +1,8 @@
-/* The .ops text form (spec A §3.2). Pure: ggml's name tables are the only thing it touches,
- * so it compiles into the library and, unchanged, straight into the test binaries. */
+/* The .ops text form (spec A §3.2), and the WEIGHT dtype rule the query and the recorder share.
+ * Pure: ggml's name tables are the only thing it touches, so it compiles into the library and,
+ * unchanged, straight into the test binaries. */
 #include "sk_ops.h"
+#include "sokuji_native.h"   // SK_DEVICE_* for sk_ops_device_word
 #include "ggml.h"
 
 #include <algorithm>
@@ -200,10 +202,70 @@ std::string sk_op_spelling(const sk_op_desc &d, const char *weight) {
     return s + "]->" + type_name(d.dst_type, weight);
 }
 
-std::string sk_ops_loaded_weight_dtype(const std::string &stage, const std::string &device, const std::string &dtype) {
+namespace {
+
+/* audio.cpp families (the pinned 54aa279) that build a device weight without the weight store's
+ * BF16 → F16 conversion, so a bf16 in their file can stay bf16 on Vulkan or Metal. Found by
+ * reading every loader under src/models and src/community_models for the three ways around it:
+ * the file's own type handed to make_tensor, a derived tensor stored at the file's dtype, a
+ * non-Native default storage. Families not compiled in today are listed too. Kept sorted. */
+const char *const kRawTypedWeightFamilies[] = {
+    // community_models/audio8_tts/ar.cpp:384-392 (wqkv) and 408-421 (gate/up), codec.cpp:787-809
+    // (codec wqkv split into q/k/v): require_tensor at the session storage, make_tensor(.type).
+    "audio8_tts",
+    // models/breeze_tts/speech_decoder.cpp:194-208 (conv1x1 output_proj as a linear) and
+    // generator.cpp:251-275 (packed projections): make_tensor(data.type / packed_type).
+    "breeze_tts",
+    // models/dramabox/dit.cpp:54-90 through framework/modules/packed_linear_weights.cpp:51-82:
+    // PackedLinearWeightsBuilder::build packs require_tensor rows into make_tensor(packed_type).
+    "dramabox",
+    // models/fish_audio/ar.cpp:353-368 (packed qkv) and 378-391 (packed gate/up): make_tensor(.type).
+    "fish_audio",
+    // models/higgs_audio_tts/ar.cpp:168-192 (packed qkv) and 212-232 (packed gate/up).
+    "higgs_audio_tts",
+    // models/index_tts2/gpt.cpp:363-374 (transposed conv1d linear stored at the file's dtype
+    // through make_from_f32) and vocoder.cpp:54-65 (BigVGAN storage set to the file's dtype).
+    "index_tts2",
+    // models/irodori_tts/rf_dit.cpp:104-113 and 190-194: the packed q/k/v/gate projection is
+    // make_from_f32 at resolve_derived_storage_type, the file's dtype under Native storage.
+    "irodori_tts",
+    // models/kugelaudio/ar.cpp:72-80: the four lm_head speech rows, make_tensor(head.type).
+    "kugelaudio",
+    // models/miocodec/weights.cpp:191-215: at Native storage the q/k/v rows are packed into
+    // make_tensor(q.type). miotts loads it as its codec (models/miotts/session.cpp).
+    "miocodec",
+    "miotts",
+    // community_models/moss_voicegen: weight storage defaults to BF16 (include/engine/
+    // community_models/moss_voicegen/session.h:56), a non-Native storage the store never converts.
+    "moss_voicegen",
+    // models/qwen3_tts/tokenizer_speech_decoder.cpp:317-334 (load_conv1x1_as_linear, used for
+    // the speech decoder's output_proj at 382-395): make_tensor(data.type) at Native storage.
+    "qwen3_tts",
+    // community_models/vieneu_v3_turbo/tokenizer_speech_decoder.cpp:309-326: qwen3_tts's loader.
+    "vieneu_v3_turbo",
+};
+
+}  // namespace
+
+std::vector<std::string> sk_ops_loaded_weight_dtypes(const std::string &stage, const std::string &family,
+                                                     const std::string &device, const std::string &dtype) {
     // backend_weight_store.h:281-284 (audio.cpp): Vulkan or Metal, and a Native BF16 source.
-    const bool bf16_as_f16 = stage == "tts" && (device == "vulkan" || device == "metal");
-    return bf16_as_f16 && dtype == ggml_type_name(GGML_TYPE_BF16) ? std::string(ggml_type_name(GGML_TYPE_F16)) : dtype;
+    const bool converts = stage == "tts" && (device == "vulkan" || device == "metal") &&
+                          dtype == ggml_type_name(GGML_TYPE_BF16);
+    if (!converts) return {dtype};
+    const std::string f16 = ggml_type_name(GGML_TYPE_F16);
+    for (const char *raw : kRawTypedWeightFamilies)
+        if (family == raw) return {dtype, f16};
+    return {f16};
+}
+
+const char *sk_ops_device_word(int32_t kind) {
+    switch (kind) {
+        case SK_DEVICE_VULKAN: return "vulkan";
+        case SK_DEVICE_METAL:  return "metal";
+        case SK_DEVICE_CPU:    return "cpu";
+        default:               return "gpu";
+    }
 }
 
 void sk_ops_add(std::vector<sk_op_desc> &nodes, const sk_op_desc &d) {

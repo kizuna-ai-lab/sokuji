@@ -304,7 +304,8 @@ int main(int argc, char **argv) {
             assert(n_swept == 18);
 
             // The device runs a tts bf16 weight as f16 (audio.cpp's BackendWeightStore,
-            // backend_weight_store.h:273-286), so the gate asks it as f16: {bf16}, {f16} and
+            // backend_weight_store.h:273-286), and vibevoice has no raw-typed device weight path
+            // that would keep bf16, so the gate asks it as f16: {bf16}, {f16} and
             // {bf16, f16} are one expansion, entry for entry, with no WEIGHT spelled bf16. WEIGHT
             // is src0, and vibevoice holds no literal bf16 source, so "[bf16," counts WEIGHT
             // entries; it does hold literal f16 src0s, so the WEIGHT entries asked as f16 are the
@@ -339,6 +340,19 @@ int main(int argc, char **argv) {
             for (int j = 0; j < cb.n_ops; ++j) if (std::strstr(cb.ops[j].name, "[bf16,") != nullptr) ++asr_bf16;
             std::fprintf(stderr, "test_common: asr/whisper [bf16] n_ops=%d, %d WEIGHT entries spelled bf16, on device %d\n", cb.n_ops, asr_bf16, i);
             assert(asr_bf16 > 0);
+
+            // qwen3_tts builds its speech-decoder output_proj from the file's own dtype
+            // (tokenizer_speech_decoder.cpp:317-334), so a bf16 there stays bf16 on the device:
+            // a bf16 WEIGHT is asked both ways, once spelled bf16 and once f16 (beyond the literal
+            // f16 src0s an {f32} query spells), for every device-side WEIGHT node.
+            cb = {}; c32 = {};
+            assert(sk_device_supports_ops(i, "tts", "qwen3_tts", bf16, 1, &cb) == SK_OK);
+            assert(sk_device_supports_ops(i, "tts", "qwen3_tts", f32, 1, &c32) == SK_OK);
+            const int raw_bf16 = count(cb, "[bf16,");
+            const int raw_f16 = count(cb, "[f16,") - count(c32, "[f16,");
+            std::fprintf(stderr, "test_common: tts/qwen3_tts [bf16] n_ops=%d (%d WEIGHT entries spelled bf16, %d f16) on device %d\n",
+                         cb.n_ops, raw_bf16, raw_f16, i);
+            assert(raw_bf16 > 0 && raw_f16 == raw_bf16);
         }
     }
 

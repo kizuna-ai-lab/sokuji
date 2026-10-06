@@ -149,12 +149,13 @@ typedef struct sk_op_coverage {
 
 /* stage: "asr" | "translate" | "tts". family: the catalog card's graph_family.
  * weight_dtypes: the ggml type names WEIGHT expands over ("q4_K", "q8_0", "bf16", "f16",
- * "f32", ...), each taken as the device loads it and then deduplicated internally (first-seen
+ * "f32", ...), each taken as the device may hold it and then deduplicated internally (first-seen
  * order) before expansion: for stage "tts" on a Vulkan or Metal device "bf16" is asked as "f16",
  * because audio.cpp's weight store loads a bf16 weight as f16 on those backends, so {"bf16",
- * "f16"} asks f16 once and no entry there spells a WEIGHT bf16. A CPU device, any other device,
- * and the asr and translate stages ask every dtype as given; pass the file's own dtypes either
- * way, the mapping is done here. A WEIGHT node
+ * "f16"} asks f16 once. The exception is a family with a raw-typed device weight path, one that
+ * builds some device weight past that conversion (the list is in native/src/sk_ops_format.cpp,
+ * e.g. qwen3_tts, kugelaudio): there a "bf16" is asked both as "bf16" and as "f16". A CPU device, any other device, and the asr and translate stages ask every
+ * dtype as given; pass the file's own dtypes either way, the mapping is done here. A WEIGHT node
  * whose recorded row length is not a multiple of a dtype's block size is skipped for that
  * dtype only (no GGUF can hold that tensor in it; f32/f16 have block size 1, so the node is
  * still asked in whichever dtype the real file would use). A dtype that is neither a float
@@ -333,7 +334,7 @@ SK_API int32_t   sk_record_register_device(void);
  * weight ("MUL_MAT", "MUL_MAT_ID", "GET_ROWS") — a src0 of one of those ops whose name is in
  * weight_names is recorded as WEIGHT, every other tensor with its literal dtype. A WEIGHT's live
  * dtype is the one the engine loaded, which is not always the file's: an audio.cpp (tts) weight
- * the file holds in bf16 is f16 on Vulkan and Metal (see sk_record_end_to_file). */
+ * the file holds in bf16 is usually f16 on Vulkan and Metal (see sk_record_end_to_file). */
 SK_API void      sk_record_begin(const char *const *weight_names, int32_t n_names,
                                  const char *const *rung_ops, int32_t n_rung_ops);
 /* Stop capturing and write the .ops file. `recorded_on` is the ggml device kind the model was
@@ -341,15 +342,22 @@ SK_API void      sk_record_begin(const char *const *weight_names, int32_t n_name
  * recording taken on "cpu" is not a valid shipping recording — audio.cpp builds a different
  * graph on a host backend (see sk_ops.h's sk_op_desc::host). `dtypes` is the file's own
  * matrix dtypes and becomes `# dtypes-in-file:` unchanged. A recording with a WEIGHT source
- * whose float or quantized dtype is not in `dtypes` as `recorded_on` loads them is refused with
- * SK_ERR_INVALID_ARGUMENT and nothing is written. "As loaded" is sk_device_supports_ops's
- * mapping: for stage "tts" on "vulkan" or "metal" a bf16 in `dtypes` stands for f16, so a live
- * f16 is covered by it and a live bf16 is refused (the query would never ask it); elsewhere
- * `dtypes` stands as given. */
+ * whose float or quantized dtype is not in `dtypes` as the device that ran it loads them is
+ * refused with SK_ERR_INVALID_ARGUMENT and nothing is written. "As loaded" is
+ * sk_device_supports_ops's mapping. A device WEIGHT ran on `recorded_on`: for stage "tts" on
+ * "vulkan" or "metal" a bf16 in `dtypes` stands for f16, so a live f16 is covered by it and a
+ * live bf16 is refused (the query would never ask it), except for a family with a raw-typed
+ * device weight path, where it stands for both. A WEIGHT the recording tagged host ran on the
+ * CPU and is held against `dtypes` as given, as is everything on "cpu" and in asr and translate. */
 SK_API sk_status sk_record_end_to_file(const char *path, const char *stage, const char *family,
                                        const char *source_file, const char *recorded_on,
                                        const char *const *dtypes, int32_t n_dtypes);
 SK_API int32_t   sk_record_node_count(void);
+/* Compute `graph` (a ggml_cgraph *) on `backend` (a ggml_backend_t) through the recorder's
+ * audio.cpp path, which tags each node host exactly when the backend's device is a CPU, as it
+ * does for audio.cpp's host-pinned subgraphs. Returns the ggml_status. A test hook: it lets a
+ * model-free test record a host WEIGHT. */
+SK_API int32_t   sk_record_compute_graph(void *backend, void *graph);
 #endif
 
 #ifdef __cplusplus

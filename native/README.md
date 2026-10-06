@@ -288,17 +288,34 @@ The gate asks about the dtype a device runs, which for a TTS weight is not alway
 audio.cpp's `BackendWeightStore` loads a tensor with `Native` storage whose file dtype is BF16 as
 F16 when its backend is Vulkan or Metal (`backend_safe_loaded_storage_type`,
 `include/engine/framework/core/backend_weight_store.h:273-286` at the pinned commit); on CPU it
-keeps the file's dtype. The families Sokuji ships load their weights through that store with
-`Native` storage on those backends, which Sokuji never overrides. llama.cpp and transcribe.cpp
-load the file's dtype as is. One helper, `sk_ops_loaded_weight_dtype` (`src/sk_ops.h`), holds the
-rule: for stage `tts` on `vulkan` or `metal`, `bf16` is `f16`; every other dtype, stage and target
-is unchanged. `sk_device_supports_ops` maps each WEIGHT dtype through it and dedupes after
-mapping, so `{bf16, f16}` asks f16 once. `sk_record_end_to_file` maps `# dtypes-in-file:`
-through it for the recording's `# recorded-on:` device before the guard checks the live WEIGHT
-dtypes, so on Vulkan a live f16 is covered by a file's bf16 and a live bf16 is refused, since the
-query would never ask it; a family that kept a bf16 weight as bf16 there would fail its recording,
-not pass the gate unasked. The header itself, the cards' `rung_dtypes` and the sidecar's
-`accel.weight_dtypes` stay the files' own dtypes: the native side maps (ruling 2026-10-07).
+keeps the file's dtype. The only weight-type option Sokuji passes is `moss_tts_local.weight_type`,
+set to `native`, so every family loads at its own default storage, `Native` wherever a family
+does not choose another. llama.cpp and transcribe.cpp load the file's dtype as is. So for stage
+`tts` on `vulkan` or `metal`, `bf16` is asked as `f16`; every other dtype, stage and target is
+unchanged. The exception is a family with a raw-typed
+device weight path, one that builds a device weight past that conversion: the file's own type
+handed to `make_tensor` (qwen3_tts's speech-decoder `output_proj`, kugelaudio's `lm_head`), a
+derived tensor stored at the file's dtype (irodori_tts, index_tts2), or a non-Native default
+storage (moss_voicegen). For those a `bf16` is asked both as `bf16` and as `f16`. The list, each
+entry with its audio.cpp source lines, is `kRawTypedWeightFamilies` in `src/sk_ops_format.cpp`;
+it comes from reading every loader under audio.cpp's `src/models` and `src/community_models`,
+not from the recordings, and a pin bump re-reads them.
+
+One helper, `sk_ops_loaded_weight_dtypes` (`src/sk_ops.h`), holds the rule and its exceptions.
+`sk_device_supports_ops` maps each WEIGHT dtype through it and dedupes after mapping, so
+`{bf16, f16}` asks f16 once. `sk_record_end_to_file` maps `# dtypes-in-file:` through it for the
+device that ran each live WEIGHT before the guard checks it. A device WEIGHT ran on the
+recording's `# recorded-on:` device, so on Vulkan a live f16 is covered by a file's bf16 and a
+live bf16 is refused unless the family is on the list. A WEIGHT tagged `host` ran on the CPU and
+is checked against the file's set unmapped. The guard sees a raw-typed path only when the
+recorded file holds bf16 there: qwen3_tts is recorded from a 0.6B file whose `output_proj` is f32,
+while the 1.7B q8_0_v2 and bf16 rungs hold it in bf16. The header itself, the cards' `rung_dtypes`
+and the sidecar's `accel.weight_dtypes` stay the files' own dtypes: the native side maps (ruling
+2026-10-07).
+
+Known gap: audio.cpp stores some derived weights as F32 under `Native` storage
+(`type_for_derived_storage`), so a file with no f32 matrix never has those nodes asked in f32.
+f32 is supported on every device, so this changes no answer today.
 
 CTest needs two real model directories for `test_tts` (skips with exit code 77 when absent).
 Note: supertonic's Q8_0 GGUF is not currently viable (audio.cpp `docs/gguf.md`: "Q8 blockers

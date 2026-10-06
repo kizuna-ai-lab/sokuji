@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include "sokuji_native.h"
+#include "sk_ops.h"          // sk_ops_device_word (sk_ops_format.cpp is compiled into every includer)
 #include "gguf.h"
 #include "ggml.h"
 #include "model_path.h"      // find_gguf: a test model directory's main GGUF
@@ -31,14 +32,10 @@ static const sk_device *tts_record_device(const sk_device *devs, int n) {
     for (int i = 0; i < n; ++i) if (devs[i].kind != SK_DEVICE_CPU && std::strcmp(devs[i].name, "SKREC0") != 0) return &devs[i];
     return nullptr;
 }
+/* The `# recorded-on` word: the library's own spelling (sk_ops.h), which sk_device_supports_ops
+ * maps a device with, so a recording and the query name a device the same way. */
 static const char *device_kind_name(const sk_device *d) {
-    if (!d) return "cpu";
-    switch (d->kind) {
-        case SK_DEVICE_VULKAN: return "vulkan";
-        case SK_DEVICE_METAL:  return "metal";
-        case SK_DEVICE_CPU:    return "cpu";
-        default:               return "gpu";
-    }
+    return sk_ops_device_word(d ? d->kind : SK_DEVICE_CPU);
 }
 
 /* A real speech clip for the clone-only families: supertonic preset M1, made BEFORE recording

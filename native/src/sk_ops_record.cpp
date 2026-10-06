@@ -26,10 +26,11 @@ std::mutex g_rec_mutex;
 std::set<std::string> g_weight_names;
 std::set<int32_t> g_rung_ops;
 std::vector<sk_op_desc> g_nodes;
-/* The live dtype of every source recorded as WEIGHT. sk_record_end_to_file refuses a recording
- * whose WEIGHT dtypes the passed `# dtypes-in-file` set, as the recording device loads it, does
- * not cover (owner's ruling 2026-10-06, op-coverage precision). */
-std::set<int32_t> g_weight_types;
+/* The live dtype of every source recorded as WEIGHT, kept apart by where it ran: a host WEIGHT
+ * ran on the CPU, every other one on the recording device. sk_record_end_to_file refuses a
+ * recording whose WEIGHT dtypes the passed `# dtypes-in-file` set, as the device that ran them
+ * loads it, does not cover (owner's ruling 2026-10-06, op-coverage precision). */
+std::set<int32_t> g_weight_types_device, g_weight_types_host;
 bool g_recording = false;
 ggml_backend_t g_cpu = nullptr;
 
@@ -40,7 +41,7 @@ ggml_backend_t g_cpu = nullptr;
  * tagged GGML_BACKEND_BUFFER_USAGE_WEIGHTS (backend_weight_store.h:158), so the buffer usage
  * is the signal there. A named leaf NOT in the file (a KV slot, a streaming-state tensor)
  * keeps its literal dtype; so does anything computed (op != NONE) or flagged INPUT. */
-int32_t src_type_of(const ggml_tensor *node, int i) {
+int32_t src_type_of(const ggml_tensor *node, int i, bool host) {
     const ggml_tensor *t = node->src[i];
     if (!t) return SK_SRC_ABSENT;
     if (i == 0 && g_rung_ops.count(node->op)) {
@@ -51,7 +52,7 @@ int32_t src_type_of(const ggml_tensor *node, int i) {
         const bool named_in_file = name && *name && g_weight_names.count(name);
         const bool weights_buffer = root->buffer && ggml_backend_buffer_get_usage(root->buffer) == GGML_BACKEND_BUFFER_USAGE_WEIGHTS;
         if (leaf && (named_in_file || weights_buffer)) {
-            g_weight_types.insert(root->type);
+            (host ? g_weight_types_host : g_weight_types_device).insert(root->type);
             return SK_SRC_WEIGHT;
         }
     }
@@ -77,7 +78,7 @@ void record_node(const ggml_tensor *node, bool host) {
     std::memcpy(d.op_params.data(), node->op_params, sizeof d.op_params);
     d.dst_type = node->type;
     d.host = host;
-    for (int i = 0; i < 5 && i < GGML_MAX_SRC; ++i) d.src_type[i] = src_type_of(node, i);
+    for (int i = 0; i < 5 && i < GGML_MAX_SRC; ++i) d.src_type[i] = src_type_of(node, i, host);
     for (int i = 0; i < 4; ++i) {
         d.max_ne_dst[i] = node->ne[i];
         d.max_ne_src0[i] = node->src[0] ? node->src[0]->ne[i] : 1;
@@ -192,7 +193,7 @@ SK_API int32_t sk_record_register_device(void) {
 
 SK_API void sk_record_begin(const char *const *names, int32_t n, const char *const *rung_ops, int32_t n_ops) {
     std::lock_guard<std::mutex> l(g_rec_mutex);
-    g_weight_names.clear(); g_rung_ops.clear(); g_nodes.clear(); g_weight_types.clear();
+    g_weight_names.clear(); g_rung_ops.clear(); g_nodes.clear(); g_weight_types_device.clear(); g_weight_types_host.clear();
     for (int32_t i = 0; i < n; ++i) if (names[i]) g_weight_names.insert(names[i]);
     for (int32_t i = 0; i < n_ops; ++i)
         for (int o = 0; o < GGML_OP_COUNT; ++o)
@@ -202,17 +203,22 @@ SK_API void sk_record_begin(const char *const *names, int32_t n, const char *con
 
 SK_API int32_t sk_record_node_count(void) { std::lock_guard<std::mutex> l(g_rec_mutex); return static_cast<int32_t>(g_nodes.size()); }
 
+SK_API int32_t sk_record_compute_graph(void *backend, void *graph) {
+    return static_cast<int32_t>(sk_recording_graph_compute(static_cast<ggml_backend_t>(backend), static_cast<ggml_cgraph *>(graph)));
+}
+
 SK_API sk_status sk_record_end_to_file(const char *path, const char *stage, const char *family,
                                        const char *source_file, const char *recorded_on,
                                        const char *const *dtypes, int32_t n_dtypes) {
     sk_op_recording r;
-    std::set<int32_t> weight_types;
+    std::set<int32_t> device_types, host_types;
     {
         std::lock_guard<std::mutex> l(g_rec_mutex);
         g_recording = false;
         r.nodes = g_nodes;   // COPIED, not moved: a recording costs minutes of model loading and
-        weight_types = g_weight_types;   // synthesis, so a failed write or a refusal below must
-    }                                    // leave it retryable in memory.
+        device_types = g_weight_types_device;   // synthesis, so a failed write or a refusal below
+        host_types = g_weight_types_host;       // must leave it retryable in memory.
+    }
     r.stage = stage; r.family = family; r.engine = sk_engine_versions(); r.source_file = source_file;
     r.recorded_on = recorded_on ? recorded_on : "cpu";
     for (int32_t i = 0; i < n_dtypes; ++i) r.dtypes_in_file.push_back(dtypes[i]);
@@ -222,30 +228,40 @@ SK_API sk_status sk_record_end_to_file(const char *path, const char *stage, cons
      * 2026-10-06, op-coverage precision). The set holds the matrix-tensor dtypes of the model's
      * GGUFs, the main one and its companions; a 1-D head (pocket_tts's out_eos) passes only
      * because its dtype is a matrix one too. Only the dtypes the expansion asks count: a float or
-     * a quantized type, never an integer table (sk_device_supports_ops skips those). The set is
-     * taken as `recorded_on` loads it, through the same sk_ops_loaded_weight_dtype the query
-     * maps with (ruling 2026-10-07): on Vulkan or Metal a tts file's bf16 is a live f16, so a
-     * live f16 is covered by it and a live bf16 is covered by nothing, since the query would
-     * never ask it. */
-    std::vector<std::string> loaded;
-    for (const std::string &d : r.dtypes_in_file) {
-        const std::string l = sk_ops_loaded_weight_dtype(r.stage, r.recorded_on, d);
-        if (std::find(loaded.begin(), loaded.end(), l) == loaded.end()) loaded.push_back(l);
-    }
-    std::string missing;
-    for (int32_t t : weight_types) {
-        const ggml_type ty = static_cast<ggml_type>(t);
-        if (ty != GGML_TYPE_F32 && ty != GGML_TYPE_F16 && ty != GGML_TYPE_BF16 && !ggml_is_quantized(ty)) continue;
-        const std::string name = ggml_type_name(ty);
-        if (std::find(loaded.begin(), loaded.end(), name) == loaded.end())
-            missing += (missing.empty() ? "" : " ") + name;
-    }
-    if (!missing.empty()) {
+     * a quantized type, never an integer table (sk_device_supports_ops skips those).
+     *
+     * The set is taken as the device that ran each WEIGHT loads it, through the same
+     * sk_ops_loaded_weight_dtypes the query maps with (ruling 2026-10-07). A device WEIGHT ran on
+     * `recorded_on`: on Vulkan or Metal a tts file's bf16 is a live f16, so a live f16 is covered
+     * by it and a live bf16 by nothing, unless the family keeps bf16 on a raw-typed device weight
+     * path, where both are. A host WEIGHT ran on the CPU (qwen3_tts's voice-prompt stage runs on a
+     * CPU backend inside a Vulkan session, audio.cpp src/models/qwen3_tts/session.cpp:112-118),
+     * which loads the file's dtype as is, and the query asks host nodes only of a CPU device,
+     * unmapped. */
+    auto check = [&](const std::set<int32_t> &live, const std::string &device, const char *kind) {
+        std::vector<std::string> loaded;
+        for (const std::string &d : r.dtypes_in_file)
+            for (const std::string &l : sk_ops_loaded_weight_dtypes(r.stage, r.family, device, d))
+                if (std::find(loaded.begin(), loaded.end(), l) == loaded.end()) loaded.push_back(l);
+        std::string missing;
+        for (int32_t t : live) {
+            const ggml_type ty = static_cast<ggml_type>(t);
+            if (ty != GGML_TYPE_F32 && ty != GGML_TYPE_F16 && ty != GGML_TYPE_BF16 && !ggml_is_quantized(ty)) continue;
+            const std::string name = ggml_type_name(ty);
+            if (std::find(loaded.begin(), loaded.end(), name) == loaded.end())
+                missing += (missing.empty() ? "" : " ") + name;
+        }
+        if (missing.empty()) return std::string();
         std::string as_loaded;
         for (const std::string &l : loaded) as_loaded += (as_loaded.empty() ? "" : " ") + l;
-        sk::set_error(std::string("sk_record_end_to_file: ") + stage + "/" + family + ": a WEIGHT source holds " +
-                      missing + ", which the dtypes-in-file set does not as " + r.recorded_on + " loads it (" +
-                      as_loaded + ")");
+        return std::string(kind) + " holds " + missing + ", outside the dtypes-in-file set as " + device +
+               " loads it (" + as_loaded + ")";
+    };
+    const std::string device_miss = check(device_types, r.recorded_on, "a WEIGHT source");
+    const std::string host_miss = check(host_types, sk_ops_device_word(SK_DEVICE_CPU), "a host WEIGHT source");
+    if (!device_miss.empty() || !host_miss.empty()) {
+        sk::set_error(std::string("sk_record_end_to_file: ") + stage + "/" + family + ": " + device_miss +
+                      (device_miss.empty() || host_miss.empty() ? "" : "; ") + host_miss);
         return SK_ERR_INVALID_ARGUMENT;
     }
     std::ofstream f(path);

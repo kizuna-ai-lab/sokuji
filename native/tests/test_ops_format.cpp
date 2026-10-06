@@ -4,6 +4,8 @@
 #undef NDEBUG
 #include <cassert>
 #include <string>
+#include <vector>
+#include "sokuji_native.h"   // SK_DEVICE_* for sk_ops_device_word
 #include "sk_ops.h"
 #include "ggml.h"
 
@@ -145,5 +147,31 @@ int main() {
     std::string bad_params_line = "op=MUL_MAT params=" + std::string(128, 'z') + " dst=f32 src=[f32,-,-,-,-]\n";
     assert(!sk_ops_parse(bad_params_line, back, err) && !err.empty());
     assert(!sk_ops_parse("op=MUL_MAT maxbytes=abc dst=f32 src=[f32,-,-,-,-]\n", back, err) && !err.empty());
+
+    // The dtypes a WEIGHT stored in a file dtype is held in on a device. audio.cpp loads a tts
+    // bf16 as f16 on Vulkan and Metal; a family with a raw-typed device weight path also keeps
+    // bf16; nothing else is mapped. Pinned here so every lane, CPU-only CI included, sees the
+    // exception list.
+    using V = std::vector<std::string>;
+    assert((sk_ops_loaded_weight_dtypes("tts", "vibevoice", "vulkan", "bf16") == V{"f16"}));
+    assert((sk_ops_loaded_weight_dtypes("tts", "vibevoice", "metal", "bf16") == V{"f16"}));
+    assert((sk_ops_loaded_weight_dtypes("tts", "vibevoice", "vulkan", "q8_0") == V{"q8_0"}));
+    assert((sk_ops_loaded_weight_dtypes("tts", "vibevoice", "cpu", "bf16") == V{"bf16"}));
+    assert((sk_ops_loaded_weight_dtypes("tts", "vibevoice", "gpu", "bf16") == V{"bf16"}));
+    assert((sk_ops_loaded_weight_dtypes("asr", "whisper", "vulkan", "bf16") == V{"bf16"}));
+    assert((sk_ops_loaded_weight_dtypes("translate", "qwen3", "metal", "bf16") == V{"bf16"}));
+    for (const char *raw : {"audio8_tts", "breeze_tts", "dramabox", "fish_audio", "higgs_audio_tts", "index_tts2",
+                            "irodori_tts", "kugelaudio", "miocodec", "miotts", "moss_voicegen", "qwen3_tts",
+                            "vieneu_v3_turbo"}) {
+        assert((sk_ops_loaded_weight_dtypes("tts", raw, "vulkan", "bf16") == V{"bf16", "f16"}));
+        assert((sk_ops_loaded_weight_dtypes("tts", raw, "metal", "bf16") == V{"bf16", "f16"}));
+        assert((sk_ops_loaded_weight_dtypes("tts", raw, "cpu", "bf16") == V{"bf16"}));
+        assert((sk_ops_loaded_weight_dtypes("tts", raw, "vulkan", "f16") == V{"f16"}));
+    }
+    // The `# recorded-on` words, one spelling for the query and the recorder.
+    assert(std::string(sk_ops_device_word(SK_DEVICE_VULKAN)) == "vulkan");
+    assert(std::string(sk_ops_device_word(SK_DEVICE_METAL)) == "metal");
+    assert(std::string(sk_ops_device_word(SK_DEVICE_CPU)) == "cpu");
+    assert(std::string(sk_ops_device_word(SK_DEVICE_OTHER)) == "gpu");
     return 0;
 }
