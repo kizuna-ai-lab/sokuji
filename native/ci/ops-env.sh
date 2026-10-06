@@ -24,4 +24,5 @@ export SK_TEST_TTS_MAGPIE_DIR=$C/tts/magpie-357m
 export SK_TEST_TTS_NEUTTS_DIR=$C/tts/neutts-2e
 export SK_TEST_TTS_KUGELAUDIO_DIR=$C/tts/kugelaudio-0
 export SK_TEST_TTS_QWEN3_CUSTOMVOICE_DIR=$C/tts/qwen3-tts-1.7b-customvoice
+export SK_TEST_TTS_IRODORI_V3_DIR=$C/tts/irodori-tts-500m-v3
 exec "$@"

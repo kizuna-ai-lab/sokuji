@@ -1805,3 +1805,13 @@ def test_models_catalog_carries_the_qwen3_customvoice_card():
                          "qwen3-tts-12hz-1.7b-customvoice-q8_0.gguf")
     assert c["sizeBytes"] == 2817044064
     assert "license" not in c
+
+
+def test_models_catalog_carries_the_irodori_500m_v3_card():
+    c = _catalog("tts")["irodori-tts-500m-v3"]
+    assert c["order"] == 25 and c["clones"] is True and c["streaming"] is False
+    assert c["voice"]["builtin"] == "none" and c["voice"]["custom"] == "clip"
+    assert c["voice"]["required"] is False
+    assert c["repo"] == "audio-cpp/audio.cpp-gguf/Irodori-TTS-500M-v3-GGUF/irodori-tts-500m-v3-q8_0.gguf"
+    assert c["sizeBytes"] == 1093739584
+    assert "license" not in c

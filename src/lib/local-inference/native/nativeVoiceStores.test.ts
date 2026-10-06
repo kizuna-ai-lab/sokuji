@@ -168,3 +168,11 @@ describe('Confucius4-TTS clip window', () => {
     expect(s.capability.maxClipSeconds).toBe(20);
   });
 });
+
+describe('Irodori TTS 500M v3 clip window', () => {
+  it('keeps the default 3-20s window (its card asks for a short reference clip)', () => {
+    const s = voiceStoreFor('clip', 'irodori-tts-500m-v3')!;
+    expect(s.capability.minClipSeconds).toBe(3);
+    expect(s.capability.maxClipSeconds).toBe(20);
+  });
+});

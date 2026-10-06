@@ -1622,6 +1622,17 @@ TTS_MODELS: list[TtsModel] = [
                  "Ono_Anna", "Sohee"),
         default_preset="Vivian",
         rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}, "bf16": {"bf16"}}),
+    # Irodori TTS 500M v3: an older irodori_tts checkpoint (its embedded request contract
+    # declares `caption`, not `instruction`; Sokuji sends neither). Japanese only, clip
+    # optional, 48 kHz. Tiers come from the family.
+    _tts_gguf_row(
+        "irodori-tts-500m-v3", "Irodori TTS 500M v3", ("ja",),
+        "irodori_tts", "Irodori-TTS-500M-v3-GGUF",
+        {"q8_0": ("irodori-tts-500m-v3-q8_0.gguf", 1093739584),
+         "f16": ("irodori-tts-500m-v3-f16.gguf", 1254813120)},
+        default_quant="q8_0", order=25, clones=True, streaming=False,
+        sample_rate=48000,
+        rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}, "f16": {"f16"}}),
 ]
 
 

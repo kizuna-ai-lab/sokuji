@@ -427,6 +427,7 @@ TTS_KUGELAUDIO_DIR = os.environ.get("SK_TEST_TTS_KUGELAUDIO_DIR")
 needs_tts_kugelaudio = pytest.mark.skipif(not (HAVE_TREE and TTS_KUGELAUDIO_DIR), reason="needs a built tree and SK_TEST_TTS_KUGELAUDIO_DIR")
 TTS_QWEN3_CUSTOMVOICE_DIR = os.environ.get("SK_TEST_TTS_QWEN3_CUSTOMVOICE_DIR")
 needs_tts_qwen3_customvoice = pytest.mark.skipif(not (HAVE_TREE and TTS_QWEN3_CUSTOMVOICE_DIR), reason="needs a built tree and SK_TEST_TTS_QWEN3_CUSTOMVOICE_DIR")
+TTS_IRODORI_V3_DIR = os.environ.get("SK_TEST_TTS_IRODORI_V3_DIR")
 needs_tts_supertonic = pytest.mark.skipif(not (HAVE_TREE and TTS_SUPERTONIC_DIR), reason="needs a built tree and SK_TEST_TTS_SUPERTONIC_DIR")
 needs_tts_moss = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_DIR), reason="needs a built tree and SK_TEST_TTS_MOSS_DIR")
 needs_tts_index = pytest.mark.skipif(not (HAVE_TREE and TTS_INDEX_DIR), reason="needs a built tree and SK_TEST_TTS_INDEX_DIR")
@@ -659,6 +660,9 @@ NEW_CPU_TTS_FAMILIES = [
     # reports clones=false although the family row (Base) clones.
     CpuTtsCase("qwen3_tts", "SK_TEST_TTS_QWEN3_CUSTOMVOICE_DIR", TTS_QWEN3_CUSTOMVOICE_DIR, "Hello from Qwen.", "en", 24000, False,
                case_id="qwen3-tts-1.7b-customvoice", clones=False, preset="Vivian"),
+    # A second irodori_tts card: the 500M v3 checkpoint, with its older request contract.
+    CpuTtsCase("irodori_tts", "SK_TEST_TTS_IRODORI_V3_DIR", TTS_IRODORI_V3_DIR, "こんにちは、世界。", "ja", 48000, False,
+               case_id="irodori-tts-500m-v3"),
 ]
 
 
@@ -1361,12 +1365,15 @@ GPU_TTS_FAMILIES = {
     "kugelaudio": ("SK_TEST_TTS_KUGELAUDIO_DIR", TTS_KUGELAUDIO_DIR, "english_male", False, 30.0, GPU_TTS_TEXT, "en"),
     "qwen3-tts-1.7b-customvoice": ("SK_TEST_TTS_QWEN3_CUSTOMVOICE_DIR", TTS_QWEN3_CUSTOMVOICE_DIR, "Vivian", False, 30.0,
                                    GPU_TTS_TEXT, "en"),
+    "irodori-tts-500m-v3": ("SK_TEST_TTS_IRODORI_V3_DIR", TTS_IRODORI_V3_DIR, None, False, 30.0,
+                            "こんにちは、世界。今日はいい天気ですね。", "ja"),
 }
 
 # A GPU_TTS_FAMILIES key that names a second card of an already-listed family, mapped to the
 # family sk_tts_load is given. Every other key is its own family.
 GPU_TTS_CARD_FAMILY = {
     "qwen3-tts-1.7b-customvoice": "qwen3_tts",
+    "irodori-tts-500m-v3": "irodori_tts",
 }
 
 # The dirs above hold the DEFAULT rung — the catalog's `default_quant`, which is
