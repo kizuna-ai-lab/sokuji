@@ -1832,3 +1832,18 @@ def test_kugelaudio_card_is_not_gated_by_r16(native_env):
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=m.family, voice_required=m.voice_required))
     samples, _rate, _ms = b.generate("hello")
     assert samples.dtype == np.float32
+
+
+def test_qwen3_customvoice_card_is_not_gated_by_r16(native_env):
+    """qwen3_tts is a voice-required family (its Base checkpoint clones or does nothing), but
+    the CustomVoice card speaks a built-in speaker: its own voice_required=False is what the
+    gate reads, so a plain generate() reaches the native layer."""
+    from sokuji_sidecar import catalog
+    created, log = native_env
+    m = catalog.tts_model("qwen3-tts-1.7b-customvoice")
+    assert m.family in catalog.VOICE_REQUIRED_FAMILIES and m.voice_required is False
+    created["caps"] = _caps(clones=False)
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=m.family, voice_required=m.voice_required))
+    samples, _rate, _ms = b.generate("hello")
+    assert samples.dtype == np.float32

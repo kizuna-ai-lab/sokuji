@@ -690,6 +690,14 @@ SK_API sk_status sk_tts_load(const char *model_path, const sk_device *device,
         }
 
         adopt_family(h, *info, *opts);
+        // A qwen3_tts CustomVoice checkpoint speaks one of its built-in speakers and takes no
+        // reference clip: only the Base variant advertises speaker references (audio.cpp
+        // src/models/qwen3_tts/loader.cpp:33-51), and the CustomVoice session never reads
+        // voice.speaker.audio (session.cpp:617-622). The family row's clone flags describe Base.
+        if (std::strcmp(info->name, "qwen3_tts") == 0 && !inspection.capabilities.supports_speaker_reference) {
+            h->clones = false;
+            h->transcript_required = false;
+        }
     } catch (const std::exception &ex) {
         const sk_status rc = fail("sk_tts_load", ex.what());
         delete h;

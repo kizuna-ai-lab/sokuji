@@ -226,7 +226,8 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
                 "confucius4",
                 "magpie-357m",
                 "neutts-2e",
-                "kugelaudio-0")
+                "kugelaudio-0",
+                "qwen3-tts-1.7b-customvoice")
 
 # The 2026-09-03 batch arrived CPU-ONLY and earned every tier the same evening
 # (commit 2f2b28bc, after the per-family fleet run; catalog._TTS_TIER_OVERRIDES).
@@ -1486,3 +1487,39 @@ def test_kugelaudio_card():
     # dtype is ggml's spelling ("q4_K").
     assert dict(m.rung_dtypes) == {"q8_0": frozenset({"bf16", "f16", "q8_0"}),
                                    "q4_k": frozenset({"bf16", "f16", "q4_K"})}
+
+
+def test_qwen3_customvoice_card():
+    # 2026-10-06: the qwen3_tts CustomVoice checkpoint: nine built-in speakers, no cloning, and
+    # a default speaker applied at load, so the card needs no voice although its family does.
+    # Tiers are the family's (_TTS_TIER_OVERRIDES is keyed by family).
+    m = catalog.tts_model("qwen3-tts-1.7b-customvoice")
+    assert m is not None
+    assert (m.family, m.graph_family, m.name) == ("qwen3_tts", "qwen3_tts", "Qwen3-TTS 1.7B CustomVoice")
+    assert m.sort_order == 24 and m.recommended is False
+    assert m.languages == ("zh", "en", "ja", "ko", "de", "fr", "ru", "pt", "es", "it")
+    assert m.clones is False and m.transcript_required is False and m.named_voices is True
+    assert m.streaming is False and m.sample_rate == 24000
+    assert "qwen3_tts" in catalog.VOICE_REQUIRED_FAMILIES
+    assert m.voice_required is False
+    assert m.presets == ("Vivian", "Serena", "Uncle_Fu", "Dylan", "Eric", "Ryan", "Aiden",
+                         "Ono_Anna", "Sohee")
+    assert m.default_preset == "Vivian" and m.default_preset in m.presets
+    cap = catalog.voice_capability(m)
+    assert (cap["builtin"], cap["custom"], cap["required"]) == ("named", "none", False)
+    assert m.license is None and m.extra_files == ()
+    assert {d.tier for d in m.deployments} == set(catalog._TTS_TIER_OVERRIDES["qwen3_tts"])
+    rungs = {d.compute_type: d for d in m.deployments}
+    assert set(rungs) == {"q8_0", "bf16"}
+    assert rungs["q8_0"].rank == 2.0 and rungs["bf16"].rank == 1.0
+    assert rungs["q8_0"].artifact == ("audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-1.7B-CustomVoice-GGUF/"
+                                      "qwen3-tts-12hz-1.7b-customvoice-q8_0.gguf")
+    assert rungs["q8_0"].est_bytes == 2_817_044_064
+    assert rungs["bf16"].artifact == ("audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-1.7B-CustomVoice-GGUF/"
+                                      "qwen3-tts-12hz-1.7b-customvoice-bf16.gguf")
+    assert rungs["bf16"].est_bytes == 4_179_144_352
+    assert m.size_bytes == 2_817_044_064
+    # The matrix dtypes of each published rung (no companions), read from the Hub: the q8_0 file
+    # keeps f16 and f32 matrices beside its quantised ones; the bf16 file is bf16 throughout.
+    assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"}),
+                                   "bf16": frozenset({"bf16"})}

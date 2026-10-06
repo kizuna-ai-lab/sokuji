@@ -1794,3 +1794,14 @@ def test_models_catalog_carries_the_kugelaudio_card():
     assert c["repo"] == "audio-cpp/audio.cpp-gguf/KugelAudio-0-Open-GGUF/kugelaudio-0-open-q8_0.gguf"
     assert c["sizeBytes"] == 9752398658
     assert "license" not in c
+
+
+def test_models_catalog_carries_the_qwen3_customvoice_card():
+    c = _catalog("tts")["qwen3-tts-1.7b-customvoice"]
+    assert c["order"] == 24 and c["clones"] is False and c["streaming"] is False
+    assert c["voice"]["builtin"] == "named" and c["voice"]["custom"] == "none"
+    assert c["voice"]["required"] is False and "transcriptRequired" not in c["voice"]
+    assert c["repo"] == ("audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-1.7B-CustomVoice-GGUF/"
+                         "qwen3-tts-12hz-1.7b-customvoice-q8_0.gguf")
+    assert c["sizeBytes"] == 2817044064
+    assert "license" not in c

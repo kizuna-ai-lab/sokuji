@@ -425,6 +425,8 @@ TTS_NEUTTS_DIR = os.environ.get("SK_TEST_TTS_NEUTTS_DIR")
 needs_tts_neutts = pytest.mark.skipif(not (HAVE_TREE and TTS_NEUTTS_DIR), reason="needs a built tree and SK_TEST_TTS_NEUTTS_DIR")
 TTS_KUGELAUDIO_DIR = os.environ.get("SK_TEST_TTS_KUGELAUDIO_DIR")
 needs_tts_kugelaudio = pytest.mark.skipif(not (HAVE_TREE and TTS_KUGELAUDIO_DIR), reason="needs a built tree and SK_TEST_TTS_KUGELAUDIO_DIR")
+TTS_QWEN3_CUSTOMVOICE_DIR = os.environ.get("SK_TEST_TTS_QWEN3_CUSTOMVOICE_DIR")
+needs_tts_qwen3_customvoice = pytest.mark.skipif(not (HAVE_TREE and TTS_QWEN3_CUSTOMVOICE_DIR), reason="needs a built tree and SK_TEST_TTS_QWEN3_CUSTOMVOICE_DIR")
 needs_tts_supertonic = pytest.mark.skipif(not (HAVE_TREE and TTS_SUPERTONIC_DIR), reason="needs a built tree and SK_TEST_TTS_SUPERTONIC_DIR")
 needs_tts_moss = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_DIR), reason="needs a built tree and SK_TEST_TTS_MOSS_DIR")
 needs_tts_index = pytest.mark.skipif(not (HAVE_TREE and TTS_INDEX_DIR), reason="needs a built tree and SK_TEST_TTS_INDEX_DIR")
@@ -653,6 +655,10 @@ NEW_CPU_TTS_FAMILIES = [
     # kugelaudio speaks one of four preset voices (through cached_voice_id); it refuses a clip.
     CpuTtsCase("kugelaudio", "SK_TEST_TTS_KUGELAUDIO_DIR", TTS_KUGELAUDIO_DIR, "Hello from KugelAudio.", "en", 24000, False,
                clones=False, preset="english_male"),
+    # The qwen3_tts CustomVoice checkpoint: nine built-in speakers, no clone path, so its handle
+    # reports clones=false although the family row (Base) clones.
+    CpuTtsCase("qwen3_tts", "SK_TEST_TTS_QWEN3_CUSTOMVOICE_DIR", TTS_QWEN3_CUSTOMVOICE_DIR, "Hello from Qwen.", "en", 24000, False,
+               case_id="qwen3-tts-1.7b-customvoice", clones=False, preset="Vivian"),
 ]
 
 
@@ -1217,6 +1223,55 @@ def test_tts_kugelaudio_unknown_preset_fails_cleanly():
         t.unload()
 
 
+@needs_tts_qwen3_customvoice
+def test_tts_qwen3_customvoice_takes_no_clip():
+    """A qwen3_tts CustomVoice checkpoint speaks a built-in speaker and has no clone path, so its
+    handle reports clones=false and sk_tts_set_voice refuses a clip up front. (The Base
+    checkpoint of the same family still clones: test_tts_parity.py's qwen3 cases.)"""
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    t = sokuji_native.tts_load(_main_gguf(TTS_QWEN3_CUSTOMVOICE_DIR), "qwen3_tts", cpu)
+    try:
+        caps = t.capabilities
+        assert not caps.clones and not caps.transcript_required
+        with pytest.raises(sokuji_native.NativeError, match="does not support voice cloning"):
+            t.set_voice(np.zeros(24000, dtype=np.float32), 24000, ref_text="hello")
+    finally:
+        t.unload()
+
+
+@needs_tts_qwen3_customvoice
+def test_tts_qwen3_customvoice_needs_a_speaker():
+    """With no speaker chosen the CustomVoice prefill refuses; the catalog card's
+    default_preset is what the sidecar applies at load so a bare generate speaks."""
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    t = sokuji_native.tts_load(_main_gguf(TTS_QWEN3_CUSTOMVOICE_DIR), "qwen3_tts", cpu)
+    try:
+        with pytest.raises(sokuji_native.NativeError, match="requires speaker"):
+            t.synth("Hello from Qwen.", language="en")
+    finally:
+        t.unload()
+
+
+@needs_tts_qwen3_customvoice
+def test_tts_qwen3_customvoice_presets_reach_the_engine():
+    """The speaker goes through voice.speaker.cached_voice_id; two speakers must sound
+    different."""
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    t = sokuji_native.tts_load(_main_gguf(TTS_QWEN3_CUSTOMVOICE_DIR), "qwen3_tts", cpu)
+    try:
+        t.set_preset("Vivian")
+        vivian, rate = t.synth("Hello from Qwen.", language="en")
+        t.set_preset("Ryan")
+        ryan, _rate = t.synth("Hello from Qwen.", language="en")
+    finally:
+        t.unload()
+    assert rate == 24000
+    assert vivian.shape != ryan.shape or not np.allclose(vivian, ryan)
+
+
 # --------------------------------------------------------------------------------------
 # TTS on a real GPU device.
 #
@@ -1304,6 +1359,14 @@ GPU_TTS_FAMILIES = {
     "magpie_tts": ("SK_TEST_TTS_MAGPIE_DIR", TTS_MAGPIE_DIR, "Sofia", False, 30.0, GPU_TTS_TEXT, "en"),
     "neutts": ("SK_TEST_TTS_NEUTTS_DIR", TTS_NEUTTS_DIR, "paul", False, 30.0, GPU_TTS_TEXT, "en"),
     "kugelaudio": ("SK_TEST_TTS_KUGELAUDIO_DIR", TTS_KUGELAUDIO_DIR, "english_male", False, 30.0, GPU_TTS_TEXT, "en"),
+    "qwen3-tts-1.7b-customvoice": ("SK_TEST_TTS_QWEN3_CUSTOMVOICE_DIR", TTS_QWEN3_CUSTOMVOICE_DIR, "Vivian", False, 30.0,
+                                   GPU_TTS_TEXT, "en"),
+}
+
+# A GPU_TTS_FAMILIES key that names a second card of an already-listed family, mapped to the
+# family sk_tts_load is given. Every other key is its own family.
+GPU_TTS_CARD_FAMILY = {
+    "qwen3-tts-1.7b-customvoice": "qwen3_tts",
 }
 
 # The dirs above hold the DEFAULT rung — the catalog's `default_quant`, which is
@@ -1341,6 +1404,7 @@ GPU_TTS_BF16_ENV = {
     "omnivoice": "SK_TEST_TTS_OMNIVOICE_BF16_DIR",
     "voxcpm2": "SK_TEST_TTS_VOXCPM2_BF16_DIR",
     "vibevoice": "SK_TEST_TTS_VIBEVOICE_BF16_DIR",
+    "qwen3-tts-1.7b-customvoice": "SK_TEST_TTS_QWEN3_CUSTOMVOICE_BF16_DIR",
 }
 
 _GPU_TTS_RUNNER = r'''
@@ -1436,7 +1500,7 @@ def test_tts_synthesises_on_a_gpu_device(family, quant):
     cfg = {
         "native_python_dir": str(pathlib.Path(sokuji_native.__file__).resolve().parents[1]),
         "device_index": device.index,
-        "family": family,
+        "family": GPU_TTS_CARD_FAMILY.get(family, family),
         "model_path": _main_gguf(model_dir),
         "preset": preset,
         "clones": clones,

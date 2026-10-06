@@ -1604,6 +1604,24 @@ TTS_MODELS: list[TtsModel] = [
         sample_rate=24000, named_voices=True,
         presets=("default", "clear", "english_female", "english_male"),
         rung_dtypes={"q8_0": {"bf16", "f16", "q8_0"}, "q4_k": {"bf16", "f16", "q4_K"}}),
+    # Qwen3-TTS 1.7B CustomVoice: the qwen3_tts family's CustomVoice checkpoint. Nine built-in
+    # speakers (its vendor card's order), no clone path (native/src/sk_tts.cpp reports
+    # clones=false for it), so the card needs no voice although qwen3_tts is in
+    # VOICE_REQUIRED_FAMILIES: the speaker is mandatory, and default_preset gives it the
+    # vendor's first-listed one at load. Every speaker speaks every one of the ten languages.
+    # Tiers come from the family (_TTS_TIER_OVERRIDES is keyed by family).
+    _tts_gguf_row(
+        "qwen3-tts-1.7b-customvoice", "Qwen3-TTS 1.7B CustomVoice",
+        ("zh", "en", "ja", "ko", "de", "fr", "ru", "pt", "es", "it"),
+        "qwen3_tts", "Qwen3-TTS-12Hz-1.7B-CustomVoice-GGUF",
+        {"q8_0": ("qwen3-tts-12hz-1.7b-customvoice-q8_0.gguf", 2817044064),
+         "bf16": ("qwen3-tts-12hz-1.7b-customvoice-bf16.gguf", 4179144352)},
+        default_quant="q8_0", order=24, clones=False, streaming=False,
+        sample_rate=24000, named_voices=True, voice_required=False,
+        presets=("Vivian", "Serena", "Uncle_Fu", "Dylan", "Eric", "Ryan", "Aiden",
+                 "Ono_Anna", "Sohee"),
+        default_preset="Vivian",
+        rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}, "bf16": {"bf16"}}),
 ]
 
 
