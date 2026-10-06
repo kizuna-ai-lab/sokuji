@@ -42,6 +42,7 @@ class GgufHeader:
 
 
 _KV_SIZES = {0: 1, 1: 1, 2: 2, 3: 2, 4: 4, 5: 4, 6: 4, 7: 1, 10: 8, 11: 8, 12: 8}   # fixed-size KV value types
+_GGML_MAX_DIMS = 4                                                                  # ggml.h GGML_MAX_DIMS
 
 
 class _R:
@@ -105,6 +106,8 @@ def read_header(source) -> GgufHeader:
             for _ in range(n_tensors):
                 r.s()                                      # name
                 nd = r.u32()
+                if nd > _GGML_MAX_DIMS:
+                    raise GgufError(f"{name}: a tensor with {nd} dimensions (ggml allows {_GGML_MAX_DIMS})")
                 dims = [r.u64() for _ in range(nd)]
                 ty = GGML_TYPE_NAMES.get(r.u32(), "unknown")
                 types.add(ty)

@@ -1002,12 +1002,25 @@ def test_tts_gguf_row_checks_its_rung_dtypes():
         row({"q8_0": set()})
     with pytest.raises(ValueError, match="i64"):
         row({"q8_0": {"q8_0", "i64"}})                              # an index table, never a WEIGHT
-    # Within the label's own fallback set, which gen_ops_data.py's WIDEST_FALLBACK sizes the
-    # coverage cap by.
-    with pytest.raises(ValueError, match=r"\['q4_K'\]"):
-        row({"q8_0": {"q8_0", "q4_K"}})
-    with pytest.raises(ValueError, match=r"\['f16'\]"):
-        row({"f32": {"f32", "f16"}})
+    # No wider than gen_ops_data.py's WIDEST_FALLBACK, which sizes the coverage cap's
+    # static_assert. The label's own fallback set is no bound: a rung's set also covers its
+    # companions' dtypes.
+    with pytest.raises(ValueError, match="8 dtypes"):
+        row({"q8_0": {"q4_0", "q4_K", "q5_K", "q6_K", "q8_0", "bf16", "f16", "f32"}})
+    assert dict(row({"f32": {"f32", "f16"}}).rung_dtypes)["f32"] == {"f32", "f16"}
+
+
+def test_a_rung_set_covers_its_companions_dtypes():
+    """MioTTS's shape: a bf16 LM rung with a q8_0 codec companion. A rung's set is what
+    accel.weight_dtypes reads once the rung is on disk, the matrix dtypes of the main GGUF and of
+    every companion GGUF, so it holds the codec's q8_0 although RUNG_FALLBACK_DTYPES["bf16"]
+    does not."""
+    m = catalog._tts_gguf_row("x", "X", ("en",), "x_family", "X-GGUF", {"bf16": ("x-bf16.gguf", 1)},
+                              default_quant="bf16", order=99,
+                              companions={"bf16": (("Codec-GGUF/codec-q8_0.gguf", 1),)},
+                              rung_dtypes={"bf16": {"bf16", "f16", "f32", "q8_0"}})
+    assert dict(m.rung_dtypes)["bf16"] == {"bf16", "f16", "f32", "q8_0"}
+    assert "q8_0" not in catalog.RUNG_FALLBACK_DTYPES["bf16"]
 
 
 def test_every_tts_card_after_the_fourteen_carries_its_rung_dtypes():
@@ -1022,25 +1035,57 @@ def test_every_tts_card_after_the_fourteen_carries_its_rung_dtypes():
             assert dict(m.rung_dtypes).keys() == {d.compute_type for d in m.deployments}, m.id
 
 
-def test_card_rung_dtypes_cover_the_cached_files():
-    """A card's own set is its rung's pre-download question; once the main GGUF is on disk its
-    matrix tensors' dtypes are the question (accel.weight_dtypes). Read from the published
-    file, the first equals the second for that very file: a dtype missing from the card's set is
-    never asked before the download, which could accept a rung the answer after it refuses, and
-    an extra one is a question the file never poses."""
+def _cached_rung_union(m, ct, root):
+    """The weight-capable matrix dtypes of rung `ct`'s main GGUF and every companion GGUF, read
+    from a test cache under `root` that stages the companions beside the main file (native/
+    README.md, "Test model directories"); None unless all of them are cached there."""
     from sokuji_sidecar import gguf_header
+    dep = next(d for d in m.deployments if d.compute_type == ct)
+    main = os.path.basename(catalog.split_artifact(dep.artifact)[1])
+    companions = [os.path.basename(rel) for rel, _n in dep.companions if rel.endswith(".gguf")]
+    for path in sorted(glob.glob(f"{root}/**/{glob.escape(main)}", recursive=True)):
+        files = [path] + [os.path.join(os.path.dirname(path), c) for c in companions]
+        if all(os.path.isfile(f) for f in files):
+            union = set()
+            for f in files:
+                union |= gguf_header.read_header(f).matrix_types
+            return frozenset(union & catalog.WEIGHT_CAPABLE_DTYPES)
+    return None
+
+
+def test_cached_rung_union_reads_the_main_gguf_and_its_companions(tmp_path, monkeypatch):
+    from sokuji_sidecar import gguf_header
+    m = catalog._tts_gguf_row("x", "X", ("en",), "x_family", "X-GGUF", {"bf16": ("x-bf16.gguf", 1)},
+                              default_quant="bf16", order=99,
+                              companions={"bf16": (("Codec-GGUF/codec-q8_0.gguf", 1),)},
+                              rung_dtypes={"bf16": {"bf16", "f32", "q8_0"}})
+    card_dir = tmp_path / "tts" / "x"
+    card_dir.mkdir(parents=True)
+    (card_dir / "x-bf16.gguf").write_bytes(b"")
+    headers = {"x-bf16.gguf": {"bf16", "f32", "i32"}, "codec-q8_0.gguf": {"q8_0"}}
+    monkeypatch.setattr(gguf_header, "read_header", lambda p: gguf_header.GgufHeader(
+        "x", frozenset(headers[os.path.basename(p)]), 1, frozenset(headers[os.path.basename(p)])))
+    assert _cached_rung_union(m, "bf16", str(tmp_path)) is None              # the codec is not there
+    (card_dir / "codec-q8_0.gguf").write_bytes(b"")
+    assert _cached_rung_union(m, "bf16", str(tmp_path)) == {"bf16", "f32", "q8_0"}   # i32 dropped
+
+
+def test_card_rung_dtypes_equal_their_cached_rung_files():
+    """A card's own set is its rung's pre-download question; once the rung is on disk the
+    question is the matrix dtypes of its main GGUF and every companion GGUF together
+    (accel.weight_dtypes). Read from the published files, the two are equal: a dtype missing from
+    the card's set is never asked before the download, which could accept a rung the answer
+    after it refuses, and an extra one is a question no file poses."""
     checked = 0
     for m in catalog.tts_models():
         for ct, dtypes in m.rung_dtypes:
-            dep = next(d for d in m.deployments if d.compute_type == ct)
-            fname = os.path.basename(catalog.split_artifact(dep.artifact)[1])
-            # Matched by the rung's own file name, so every hit is that rung's file.
-            for path in glob.glob(f"{_CACHE}/**/{glob.escape(fname)}", recursive=True):
-                weights = gguf_header.read_header(path).matrix_types & catalog.WEIGHT_CAPABLE_DTYPES
-                assert weights == dtypes, (m.id, ct, path, sorted(weights ^ dtypes))
-                checked += 1
+            got = _cached_rung_union(m, ct, _CACHE)
+            if got is None:
+                continue
+            assert got == dtypes, (m.id, ct, sorted(got ^ dtypes))
+            checked += 1
     if not checked:
-        pytest.skip("no rung of a card with its own dtype sets is cached")
+        pytest.skip("no rung of a card with its own dtype sets is fully cached")
 
 
 # ---- Onboarding guards (2026-09-05): the two silent drops the native-onboarding doc warns

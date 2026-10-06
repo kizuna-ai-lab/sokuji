@@ -71,6 +71,20 @@ def test_a_trailing_size_one_dimension_does_not_make_a_matrix():
     assert h.tensor_types == frozenset({"bf16", "f32", "f16", "q8_0"})
 
 
+def test_a_tensor_with_more_than_four_dimensions_is_malformed():
+    """ggml tensors have at most four dimensions (GGML_MAX_DIMS). A larger n_dims is a corrupt
+    header, refused before it sizes anything: five well-formed dims, and an n_dims of 2**32 - 1
+    with nothing behind it."""
+    with pytest.raises(gguf_header.GgufError, match="5 dimensions"):
+        gguf_header.read_header(io.BytesIO(_gguf_bytes("x", [("t", 0, (1, 1, 1, 1, 1))])))
+    good = _gguf_bytes("x", [("t", 0, (4, 4))])
+    tensor = struct.pack("<Q", 1) + b"t" + struct.pack("<I", 2)
+    assert good.count(tensor) == 1
+    corrupt = good.replace(tensor, struct.pack("<Q", 1) + b"t" + struct.pack("<I", 0xFFFFFFFF))
+    with pytest.raises(gguf_header.GgufError, match="4294967295 dimensions"):
+        gguf_header.read_header(io.BytesIO(corrupt))
+
+
 def test_a_path_and_a_stream_read_identically(tmp_path):
     """A path (str or os.PathLike) is opened and closed here; a binary file object is read as
     it is and left open, so a caller can hand in a remote file it owns."""

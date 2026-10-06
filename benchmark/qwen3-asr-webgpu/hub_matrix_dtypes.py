@@ -1,12 +1,15 @@
-"""Print the matrix-tensor dtypes of one GGUF in a Hub repo, read from its header at one
-revision without downloading the file: the set a TTS card's `rung_dtypes` carries for that rung
-(sidecar/sokuji_sidecar/catalog.py; owner's ruling 2026-10-06, op-coverage precision).
+"""Print the matrix-tensor dtypes of one rung's GGUFs in a Hub repo, read from their headers at
+one revision without downloading the files: a TTS card's `rung_dtypes[q]`, the union over the
+rung's main GGUF and its companion GGUFs (sidecar/sokuji_sidecar/catalog.py; owner's ruling
+2026-10-06, op-coverage precision).
 
-Usage: python hub_matrix_dtypes.py <org/repo> <path in repo> [revision]
+Usage: python hub_matrix_dtypes.py <org/repo> <path> [<path> ...] [--revision R]
 
-Prints the weight-capable dtypes of the file's tensors of two or more dimensions,
-space-separated and sorted. Without a revision, a third-party repo pinned in
-catalog.PINNED_REVISIONS (ruling 4) is read at its pinned commit, any other repo at its head."""
+Pass the rung's main GGUF and every companion GGUF, as repo paths. Prints the weight-capable
+dtypes of their tensors of two or more dimensions, as one union, space-separated and sorted.
+Without --revision, a third-party repo pinned in catalog.PINNED_REVISIONS (ruling 4) is read at
+its pinned commit, any other repo at its head."""
+import argparse
 import os
 import sys
 
@@ -18,12 +21,18 @@ from sokuji_sidecar import catalog, gguf_header  # noqa: E402
 
 
 def main(argv=None):
-    argv = sys.argv[1:] if argv is None else argv
-    repo, path = argv[0], argv[1]
-    revision = argv[2] if len(argv) > 2 else catalog.hub_revision(repo)
-    with HfFileSystem().open(f"{repo}/{path}", "rb", revision=revision) as fh:
-        header = gguf_header.read_header(fh)
-    print(" ".join(sorted(header.matrix_types & catalog.WEIGHT_CAPABLE_DTYPES)))
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("repo", help="org/repo")
+    parser.add_argument("paths", nargs="+", help="the rung's main GGUF and its companion GGUFs")
+    parser.add_argument("--revision", default=None, help="default: the catalog's pin, else the head")
+    args = parser.parse_args(argv)
+    revision = args.revision or catalog.hub_revision(args.repo)
+    fs = HfFileSystem()
+    union = set()
+    for path in args.paths:
+        with fs.open(f"{args.repo}/{path}", "rb", revision=revision) as fh:
+            union |= gguf_header.read_header(fh).matrix_types
+    print(" ".join(sorted(union & catalog.WEIGHT_CAPABLE_DTYPES)))
     return 0
 
 

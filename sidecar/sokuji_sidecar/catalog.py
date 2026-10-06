@@ -711,9 +711,9 @@ class TtsModel(_ModelBase):
     # synthesise with nothing set; "" = none.
     default_preset: str = ""
     # (rung, dtypes) the pre-download op-coverage query expands WEIGHT over for that rung, read
-    # from the published file's matrix tensors; a rung without an entry asks
-    # RUNG_FALLBACK_DTYPES. () for the cards that predate sub-project A (owner's ruling
-    # 2026-10-06, op-coverage precision).
+    # from the matrix tensors of the published main GGUF and its companion GGUFs; a rung
+    # without an entry asks RUNG_FALLBACK_DTYPES. () for the cards that predate sub-project A
+    # (owner's ruling 2026-10-06, op-coverage precision).
     rung_dtypes: tuple[tuple[str, frozenset[str]], ...] = ()
 
 
@@ -1149,10 +1149,11 @@ def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
     gpu-vulkan and gpu-metal added back per family once GB10/M4-validated (see
     that dict's own comment, R19/R25/R36).
 
-    `rung_dtypes` maps a QUANT token to the ggml dtypes of that rung's published
-    file's matrix tensors (benchmark/qwen3-asr-webgpu/hub_matrix_dtypes.py reads
-    them without a download): the set its pre-download op-coverage query expands
-    WEIGHT over, in place of the label's RUNG_FALLBACK_DTYPES entry."""
+    `rung_dtypes` maps a QUANT token to the ggml dtypes of the matrix tensors of
+    that rung's published main GGUF and companion GGUFs together
+    (benchmark/qwen3-asr-webgpu/hub_matrix_dtypes.py reads them without a
+    download): the set its pre-download op-coverage query expands WEIGHT over, in
+    place of the label's RUNG_FALLBACK_DTYPES entry."""
     # A rung without a RUNG_FALLBACK_DTYPES entry would query op coverage over {f32} alone
     # before its file is on disk (accel.weight_dtypes): loud at import, as _tc_row is.
     unknown_rungs = sorted(set(quants) - set(RUNG_FALLBACK_DTYPES))
@@ -1173,12 +1174,16 @@ def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
     not_weight = sorted({t for dts in rung_dtypes.values() for t in dts} - WEIGHT_CAPABLE_DTYPES)
     if not_weight:
         raise ValueError(f"{mid}: rung_dtypes holds types a WEIGHT tensor cannot: {not_weight}")
-    # Within the label's own fallback set, which gen_ops_data.py's WIDEST_FALLBACK sizes the
-    # SK_OP_COVERAGE_MAX check by.
+    # No wider than gen_ops_data.py's WIDEST_FALLBACK (== len(RUNG_FALLBACK_DTYPES["q4_k_m"]),
+    # pinned by test_widest_fallback_matches_gen_ops_data), which sizes the build's
+    # SK_OP_COVERAGE_MAX static_assert. Not bounded by the label's own fallback set: a rung's set
+    # is the matrix dtypes of its main GGUF and its companion GGUFs together, as
+    # accel.weight_dtypes reads them after the download.
+    widest = len(RUNG_FALLBACK_DTYPES["q4_k_m"])
     for q, dts in rung_dtypes.items():
-        extra = sorted(dts - RUNG_FALLBACK_DTYPES[q])
-        if extra:
-            raise ValueError(f"{mid}: rung_dtypes[{q!r}] goes beyond RUNG_FALLBACK_DTYPES[{q!r}]: {extra}")
+        if len(dts) > widest:
+            raise ValueError(f"{mid}: rung_dtypes[{q!r}] holds {len(dts)} dtypes, wider than "
+                             f"gen_ops_data.py's WIDEST_FALLBACK ({widest}): {sorted(dts)}")
     paths = ([dir_] if dir_ else []) + [fname for fname, _n in quants.values()]
     paths += [rel for comps in companions.values() for rel, _n in comps]
     bad = sorted(p for p in paths if not _repo_path(p))
