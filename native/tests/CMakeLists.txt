@@ -49,6 +49,15 @@ set_tests_properties(test_tts PROPERTIES
     ENVIRONMENT "GGML_BACKEND_PATH=${CMAKE_BINARY_DIR}/lib"
     SKIP_RETURN_CODE 77)
 
+# sk_tts.cpp's family table and the requests it builds, without a model. The source is
+# compiled straight in with SK_TTS_REQUEST_ONLY, which leaves out everything that needs
+# engine_runtime or sk_common.cpp. It uses only audio.cpp's header-only runtime types, so it
+# links no engine and runs on every lane.
+add_executable(test_tts_request test_tts_request.cpp)
+target_include_directories(test_tts_request PRIVATE ../src ../include ${audiocpp_SOURCE_DIR}/include)
+target_link_libraries(test_tts_request PRIVATE ggml)
+add_test(NAME test_tts_request COMMAND test_tts_request)
+
 # Spec A §3.2: the pure .ops text format (no backend, no model) — runs on every lane.
 # sk_ops_format.cpp is compiled straight in: it has C++ linkage, so the shared library
 # (which exports only the sk_* C ABI) cannot hand it to a test binary.

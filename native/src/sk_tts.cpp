@@ -34,6 +34,8 @@ struct sk_tts {
     bool    transcript_required  = false;
     bool    sample_decode        = false;
     bool    strict_options       = false;   // see FamilyInfo::strict_options
+    bool    strict_sends_ref_text = false;  // see FamilyInfo::strict_sends_ref_text
+    const char *preset_option    = nullptr; // see FamilyInfo::preset_option (a string literal of the row)
     int32_t default_rate         = 0;
     std::vector<std::string> preset_names;   // cached at load; see report §3
 
@@ -48,6 +50,8 @@ struct sk_tts {
 
 namespace {
 
+enum class FamilyTask : unsigned char { Tts, VoiceCloning };
+
 struct FamilyInfo {
     const char *name;
     bool        streaming;
@@ -57,11 +61,24 @@ struct FamilyInfo {
     bool        sample_decode;
     // The family runs runtime::validate_spec_backed_request_options() over the whole request
     // and throws "unknown <Family> request option: <key>" for any key its own
-    // model_specs/<family>.json does not declare. Only irodori_tts does this today, and it
-    // declares neither "do_sample" nor "reference_text" — so build_request must send a
-    // strict family ONLY options its spec lists. Adding an unconditional option below is
-    // therefore a live break for such a family, not a no-op it would ignore.
+    // model_specs/<family>.json does not declare — so build_request must send a strict family
+    // ONLY options its spec lists. Adding an unconditional option below is therefore a live
+    // break for such a family, not a no-op it would ignore. irodori_tts, the first strict
+    // family, declares neither "do_sample" nor "reference_text".
     bool        strict_options;
+    // A strict family whose spec DOES declare "reference_text" (a clone that needs the clip's
+    // transcript) sets this, and build_request sends it the transcript the way it sends one to
+    // every non-strict family. It is still never sent "do_sample". Ignored when strict_options
+    // is false.
+    bool        strict_sends_ref_text;
+    // The VoiceTaskKind the session is created with at load: Tts for every family that accepts
+    // it, clone or not; VoiceCloning for a family whose session refuses Tts at
+    // create_task_session.
+    FamilyTask  task;
+    // How a name given to sk_tts_set_preset reaches the engine. nullptr: as
+    // voice.speaker.cached_voice_id. Otherwise the request option that carries it, for a family
+    // that reads its preset only from that option and ignores cached_voice_id.
+    const char *preset_option;
 };
 
 // Baked-in per report §3/§4: streaming = omnivoice+supertonic only (report §2); clones =
@@ -111,16 +128,23 @@ struct FamilyInfo {
 //               the missing clip a clean caller error is the sidecar's job
 //               (tts_backend._VOICE_REQUIRED_FAMILIES) — this ABI has no
 //               "clone is mandatory" capability bit to carry it.
+//
+// strict_sends_ref_text, task and preset_option are false, Tts and nullptr for all nine rows
+// above: irodori_tts, the one strict family among them, declares no reference_text; every one
+// accepts a Tts session; and the three with presets (supertonic, pocket_tts, qwen3_tts
+// CustomVoice) take them through cached_voice_id.
+//
+//   name              stream clones transcr rate   sample strict refText task             preset_option
 constexpr FamilyInfo kFamilies[] = {
-    {"moss_tts_nano", false, true,  false, 48000, true,  false},
-    {"qwen3_tts",      false, true,  true,  24000, false, false},
-    {"omnivoice",      true,  true,  true,  24000, false, false},
-    {"pocket_tts",     false, true,  false, 24000, false, false},
-    {"supertonic",     true,  false, false, 44100, false, false},
-    {"voxcpm1",        true,  true,  false, 16000, false, false},
-    {"voxcpm2",        true,  true,  false, 48000, false, false},
-    {"irodori_tts",    false, true,  false, 48000, false, true},
-    {"index_tts2",     false, true,  false, 22050, false, false},
+    {"moss_tts_nano", false, true,  false, 48000, true,  false, false, FamilyTask::Tts, nullptr},
+    {"qwen3_tts",      false, true,  true,  24000, false, false, false, FamilyTask::Tts, nullptr},
+    {"omnivoice",      true,  true,  true,  24000, false, false, false, FamilyTask::Tts, nullptr},
+    {"pocket_tts",     false, true,  false, 24000, false, false, false, FamilyTask::Tts, nullptr},
+    {"supertonic",     true,  false, false, 44100, false, false, false, FamilyTask::Tts, nullptr},
+    {"voxcpm1",        true,  true,  false, 16000, false, false, false, FamilyTask::Tts, nullptr},
+    {"voxcpm2",        true,  true,  false, 48000, false, false, false, FamilyTask::Tts, nullptr},
+    {"irodori_tts",    false, true,  false, 48000, false, true,  false, FamilyTask::Tts, nullptr},
+    {"index_tts2",     false, true,  false, 22050, false, false, false, FamilyTask::Tts, nullptr},
 };
 
 const FamilyInfo *find_family(const char *name) {
@@ -129,6 +153,33 @@ const FamilyInfo *find_family(const char *name) {
     return nullptr;
 }
 
+// The task kind and run mode sk_tts_load creates a family's session with.
+rt::TaskSpec task_spec_for(const FamilyInfo &info) {
+    rt::TaskSpec spec;
+    spec.task = info.task == FamilyTask::VoiceCloning ? rt::VoiceTaskKind::VoiceCloning
+                                                      : rt::VoiceTaskKind::Tts;
+    spec.mode = info.streaming ? rt::RunMode::Streaming : rt::RunMode::Offline;
+    return spec;
+}
+
+// Copies a family row onto a freshly loaded handle (sk_tts_load's last step), so no later
+// call has to look the row up again.
+void adopt_family(sk_tts *h, const FamilyInfo &info) {
+    h->family                = info.name;
+    h->streaming_family      = info.streaming;
+    h->clones                = info.clones;
+    h->transcript_required   = info.transcript_required;
+    h->default_rate          = info.default_rate;
+    h->sample_decode         = info.sample_decode;
+    h->strict_options        = info.strict_options;
+    h->strict_sends_ref_text = info.strict_sends_ref_text;
+    h->preset_option         = info.preset_option;
+}
+
+// SK_TTS_REQUEST_ONLY: native/tests/test_tts_request.cpp compiles this file straight in and
+// keeps only the family table and the request building. Everything that needs the audio.cpp
+// runtime or sk_common.cpp's state sits inside these guards, so that test links no engine.
+#ifndef SK_TTS_REQUEST_ONLY
 // audio.cpp has no status codes (report §5): every failure is a std::exception whose message
 // is the only signal. Classify by substring — "does not exist" is our own path-resolution
 // failure (package.cpp), "unknown ... session option" / "unsupported speaker" / "reference_text"
@@ -165,6 +216,7 @@ int backend_relative_index(ggml_backend_dev_t dev) {
         if (ggml_backend_reg_dev_get(reg, i) == dev) return static_cast<int>(i);
     return 0;
 }
+#endif  // SK_TTS_REQUEST_ONLY
 
 // Builds the per-call TaskRequest: text, whichever voice state (if any) is stored on the
 // handle, speed (supertonic only, Ruling R6(s4)), and the deterministic-synthesis options
@@ -221,15 +273,22 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
         // store — so a clip saved for OmniVoice and then used with Irodori would throw
         // "unknown Irodori-TTS request option: reference_text". The transcript is optional
         // for every family that is not transcript_required, so dropping it here costs a
-        // strict family nothing it could have used.
-        if (!t->clone_ref_text.empty() && !t->strict_options)
+        // strict family nothing it could have used. A strict family whose spec DOES declare
+        // reference_text (FamilyInfo::strict_sends_ref_text) gets it like any other.
+        if (!t->clone_ref_text.empty() && (!t->strict_options || t->strict_sends_ref_text))
             req.options["reference_text"] = t->clone_ref_text;
     } else if (t->has_preset) {
-        rt::VoiceReference ref;
-        ref.cached_voice_id = t->preset_name;
-        rt::VoiceCondition voice;
-        voice.speaker = std::move(ref);
-        req.voice = std::move(voice);
+        if (t->preset_option) {
+            // This family reads its preset from a request option and ignores
+            // voice.speaker.cached_voice_id (FamilyInfo::preset_option).
+            req.options[t->preset_option] = t->preset_name;
+        } else {
+            rt::VoiceReference ref;
+            ref.cached_voice_id = t->preset_name;
+            rt::VoiceCondition voice;
+            voice.speaker = std::move(ref);
+            req.voice = std::move(voice);
+        }
     }
 
     if (t->family == "supertonic" && speed != 1.0f) {
@@ -270,6 +329,7 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
     return req;
 }
 
+#ifndef SK_TTS_REQUEST_ONLY
 sk_status synth_offline(sk_tts *t, const rt::TaskRequest &request, sk_audio_cb cb, void *user) {
     sk_status rc = SK_OK;
     try {
@@ -347,9 +407,11 @@ sk_status synth_streaming(sk_tts *t, const rt::TaskRequest &request, sk_audio_cb
     }
     return rc;
 }
+#endif  // SK_TTS_REQUEST_ONLY
 
 }  // namespace
 
+#ifndef SK_TTS_REQUEST_ONLY
 extern "C" {
 
 SK_API sk_status sk_tts_load(const char *model_path, const sk_device *device,
@@ -410,9 +472,7 @@ SK_API sk_status sk_tts_load(const char *model_path, const sk_device *device,
         rt::ModelInspection inspection = registry.inspect(load_request);
         h->model = registry.load(load_request);
 
-        rt::TaskSpec task_spec;
-        task_spec.task = rt::VoiceTaskKind::Tts;
-        task_spec.mode = info->streaming ? rt::RunMode::Streaming : rt::RunMode::Offline;
+        const rt::TaskSpec task_spec = task_spec_for(*info);
 
         rt::SessionOptions session_options;
         session_options.backend = backend;
@@ -459,13 +519,7 @@ SK_API sk_status sk_tts_load(const char *model_path, const sk_device *device,
             std::sort(h->preset_names.begin(), h->preset_names.end());
         }
 
-        h->family              = info->name;
-        h->streaming_family    = info->streaming;
-        h->clones              = info->clones;
-        h->transcript_required = info->transcript_required;
-        h->default_rate        = info->default_rate;
-        h->sample_decode       = info->sample_decode;
-        h->strict_options      = info->strict_options;
+        adopt_family(h, *info);
     } catch (const std::exception &ex) {
         const sk_status rc = fail("sk_tts_load", ex.what());
         delete h;
@@ -581,3 +635,4 @@ SK_API void sk_tts_unload(sk_tts *t) {
 }
 
 }  // extern "C"
+#endif  // SK_TTS_REQUEST_ONLY
