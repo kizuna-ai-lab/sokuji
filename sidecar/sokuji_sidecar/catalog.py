@@ -97,6 +97,15 @@ RUNG_FALLBACK_DTYPES: dict[str, frozenset[str]] = {
     "q8_0":   frozenset({"q8_0", "bf16", "f16", "f32"}),
     "f16":    frozenset({"f16", "f32"}),
     "bf16":   frozenset({"bf16", "f16", "f32"}),
+    # Rung labels audio.cpp's own conversions use (sub-project A's cards), each set read from
+    # the published files' headers on 2026-10-06: an `orig` file keeps the checkpoint's own
+    # float types (f32, or f32+bf16 for NeuTTS-2E); `f32` is all f32 (CosyVoice3);
+    # KugelAudio's `q4_k` holds q4_K+bf16+f16; Breeze-TTS-2's `q4_0` holds q4_0+bf16+f16+f32,
+    # and LFM2.5-Audio's Q4_0 keeps its token embedding at q6_K (its own documentation).
+    "orig":   frozenset({"bf16", "f16", "f32"}),
+    "f32":    frozenset({"f32"}),
+    "q4_k":   frozenset({"q4_K", "bf16", "f16", "f32"}),
+    "q4_0":   frozenset({"q4_0", "q6_K", "bf16", "f16", "f32"}),
 }
 
 # The ggml types a rung-bearing WEIGHT tensor can actually hold: the float types a graph
@@ -1134,6 +1143,12 @@ def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
     from `_TTS_TIER_OVERRIDES.get(family, _TTS_TIERS)` — cpu-only by default,
     gpu-vulkan and gpu-metal added back per family once GB10/M4-validated (see
     that dict's own comment, R19/R25/R36)."""
+    # A rung without a RUNG_FALLBACK_DTYPES entry would query op coverage over {f32} alone
+    # before its file is on disk (accel.weight_dtypes): loud at import, as _tc_row is.
+    unknown_rungs = sorted(set(quants) - set(RUNG_FALLBACK_DTYPES))
+    if unknown_rungs or default_quant not in quants:
+        raise ValueError(f"{mid}: quants keys must have a RUNG_FALLBACK_DTYPES entry and include "
+                         f"default {default_quant!r}; unknown={unknown_rungs}, keys={sorted(quants)}")
     companions = dict(companions or {})
     unknown = sorted(set(companions) - set(quants))
     if unknown:

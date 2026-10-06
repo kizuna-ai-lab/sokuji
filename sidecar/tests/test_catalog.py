@@ -247,11 +247,39 @@ def test_tts_models_have_deployments_languages_and_family():
             assert d.tier in ("cpu", "gpu-vulkan", "gpu-metal")
 
 
-def test_tts_artifacts_are_audiocpp_gguf_files():
+def _assert_tts_artifacts(m):
+    """Every rung's artifact is "<repo>/<path>.gguf" with no empty segment, from audio.cpp's
+    official mirror or a third-party repo pinned in PINNED_REVISIONS (ruling 4); every
+    companion is a non-empty path inside that repo with its byte count."""
+    for d in m.deployments:
+        repo, path = catalog.split_artifact(d.artifact)
+        assert path and path.endswith(".gguf"), (m.id, d.artifact)
+        assert "" not in path.split("/"), (m.id, d.artifact)
+        assert repo == catalog._AUDIOCPP_GGUF_REPO or repo in catalog.PINNED_REVISIONS, (m.id, repo)
+        for rel, size in d.companions:
+            assert rel and not set(rel.split("/")) & {"", ".", ".."}, (m.id, rel)
+            assert size > 0, (m.id, rel)
+
+
+def test_tts_artifacts_are_gguf_files_from_the_mirror_or_a_pinned_repo():
     for m in catalog.tts_models():
-        for d in m.deployments:
-            assert d.artifact.startswith("audio-cpp/audio.cpp-gguf/"), (m.id, d.artifact)
-            assert d.artifact.endswith(".gguf"), (m.id, d.artifact)
+        _assert_tts_artifacts(m)
+    # The fourteen cards that predate third-party hosting all come from the official mirror,
+    # each rung a single file.
+    for mid in PRE_A_TTS_CARD_IDS:
+        for d in catalog.tts_model(mid).deployments:
+            assert d.artifact.startswith("audio-cpp/audio.cpp-gguf/"), (mid, d.artifact)
+            assert d.companions == (), (mid, d.artifact)
+
+
+def test_the_artifact_rule_accepts_a_pinned_root_card_and_refuses_an_unpinned_one():
+    def card(repo):
+        return catalog._tts_gguf_row("x", "X", ("en",), "x_family", "",
+                                     {"q8_0": ("x-q8_0.gguf", 1)}, default_quant="q8_0", order=99,
+                                     repo=repo)
+    _assert_tts_artifacts(card("WalkingCat/Soprano-1.1-80M-GGUF"))
+    with pytest.raises(AssertionError):
+        _assert_tts_artifacts(card("someone/unpinned-gguf"))
 
 
 def test_tts_system_has_cpu_floor_and_unique_ids():
@@ -264,24 +292,46 @@ def test_tts_system_has_cpu_floor_and_unique_ids():
         assert any(d.tier == "cpu" for d in m.deployments), f"{m.id} has no cpu floor"
 
 
+def _assert_tts_ladder(m):
+    """The two-rung shape every TTS card shares: one rank-2.0 default, any alt at rank 1.0,
+    and every quant on exactly its family's tier set (_TTS_TIER_OVERRIDES, else cpu only -- a
+    new family starts there until the fleet has run it, R19)."""
+    want = set(catalog._TTS_TIER_OVERRIDES.get(m.family, catalog._TTS_TIERS))
+    by_ct = {}
+    for d in m.deployments:
+        by_ct.setdefault(d.compute_type, set()).add(d.tier)
+    for ct, tiers in by_ct.items():
+        assert tiers == want, (m.id, ct, sorted(tiers))
+    ranks = {d.compute_type: d.rank for d in m.deployments}
+    assert list(ranks.values()).count(2.0) == 1, m.id
+    assert set(ranks.values()) <= {1.0, 2.0}, m.id
+
+
 def test_tts_quant_ladder_shape():
-    # Every card follows _llm_translate_row's two-rung shape: the default
-    # quant is rank 2.0, any alt is rank 1.0, and EVERY quant carries the
-    # SAME tier set (unlike the old catalog's per-precision/per-platform row
-    # variation) -- {"cpu", "gpu-vulkan", "gpu-metal"} for every family
-    # post-task-10 (R36 restored gpu-metal fleet-wide), pocket_tts included
-    # (ruling R29, superseding R28 -- see test_pocket_tts_gpu_vulkan_r29
-    # below for why), and the four added 2026-09-03 once both accelerator
-    # lanes had been measured for them. No family is a tier exception.
     for m in catalog.tts_models():
-        by_ct = {}
-        for d in m.deployments:
-            by_ct.setdefault(d.compute_type, set()).add(d.tier)
-        for ct, tiers in by_ct.items():
-            assert tiers == {"cpu", "gpu-vulkan", "gpu-metal"}, (m.id, ct)
-        ranks = {d.compute_type: d.rank for d in m.deployments}
-        assert sorted(ranks.values(), reverse=True)[0] == 2.0, m.id
-        assert set(ranks.values()) <= {1.0, 2.0}, m.id
+        _assert_tts_ladder(m)
+    # Every card that predates sub-project A runs on every lane: no family among them is a
+    # tier exception (R29 for pocket_tts, R36 for gpu-metal, 2f2b28bc for the 2026-09-03 four).
+    for mid in PRE_A_TTS_CARD_IDS:
+        m = catalog.tts_model(mid)
+        for ct in {d.compute_type for d in m.deployments}:
+            assert {d.tier for d in m.deployments if d.compute_type == ct} == \
+                {"cpu", "gpu-vulkan", "gpu-metal"}, (mid, ct)
+
+
+def test_the_ladder_rule_accepts_a_cpu_only_new_family_and_refuses_mixed_tiers():
+    new = catalog._tts_gguf_row("x", "X", ("en",), "some_unvalidated_family", "X-GGUF",
+                                {"q8_0": ("x-q8_0.gguf", 1), "orig": ("x-orig.gguf", 2)},
+                                default_quant="q8_0", order=99)
+    _assert_tts_ladder(new)
+    assert {d.tier for d in new.deployments} == {"cpu"}
+    mixed = catalog.TtsModel("m", "M", ("en",), (
+        catalog.Deployment("native_tts", "gpu-vulkan", "q8_0", "audio-cpp/audio.cpp-gguf/M/m-q8_0.gguf", 2.0),
+        catalog.Deployment("native_tts", "cpu", "q8_0", "audio-cpp/audio.cpp-gguf/M/m-q8_0.gguf", 2.0),
+        catalog.Deployment("native_tts", "cpu", "bf16", "audio-cpp/audio.cpp-gguf/M/m-bf16.gguf", 1.0)),
+        family="voxcpm2", graph_family="voxcpm2")
+    with pytest.raises(AssertionError):
+        _assert_tts_ladder(mixed)
 
 
 def test_pocket_tts_gpu_vulkan_r29():
@@ -858,7 +908,8 @@ def test_rung_fallback_sets_cover_cached_ggufs():
     checked = 0
     for path in glob.glob(f"{_CACHE}/**/*.gguf", recursive=True):
         name = os.path.basename(path).lower().replace("-", "_")
-        rung = next((r for r in ("q4_k_m", "q5_k_m", "q6_k", "q8_0", "bf16", "f16") if r in name), None)
+        rung = next((r for r in ("q4_k_m", "q5_k_m", "q6_k", "q8_0", "bf16", "f16",
+                                 "f32", "q4_k", "q4_0", "orig") if r in name), None)
         if rung is None:
             continue
         weights = gguf_header.read_header(path).tensor_types & catalog.WEIGHT_CAPABLE_DTYPES
@@ -890,6 +941,47 @@ def test_widest_fallback_matches_gen_ops_data():
     m = re.search(r"WIDEST_FALLBACK\s*=\s*(\d+)", text)
     assert m, "WIDEST_FALLBACK constant not found in gen_ops_data.py"
     assert int(m.group(1)) == len(catalog.RUNG_FALLBACK_DTYPES["q4_k_m"])
+
+
+def test_the_new_rung_labels_have_their_dtype_sets():
+    """Rung labels audio.cpp's own conversions use. The q4_k_m set stays the widest, which is
+    what gen_ops_data.py's WIDEST_FALLBACK sizes the generated static_asserts by."""
+    sets = catalog.RUNG_FALLBACK_DTYPES
+    assert sets["orig"] == {"bf16", "f16", "f32"}
+    assert sets["f32"] == {"f32"}
+    assert sets["q4_k"] == {"q4_K", "bf16", "f16", "f32"}
+    assert sets["q4_0"] == {"q4_0", "q6_K", "bf16", "f16", "f32"}
+    widest = len(sets["q4_k_m"])
+    assert all(len(s) <= widest for s in sets.values()), {r: len(s) for r, s in sets.items()}
+
+
+# Weight dtypes of published files at those labels, integer tables dropped (GGUF headers read
+# 2026-10-06; the label is the file name's own suffix).
+_PUBLISHED_RUNG_DTYPES = (
+    ("orig", {"f32"}),                          # confucius4-tts, fireredtts3-base, magpie-tts-multilingual-357m
+    ("orig", {"f32", "bf16"}),                  # neutts-2e
+    ("f32", {"f32"}),                           # cosyvoice3
+    ("q4_k", {"q4_K", "bf16", "f16"}),          # kugelaudio-0-open
+    ("q4_0", {"q4_0", "bf16", "f32", "f16"}),   # breeze-tts-2
+    ("bf16", {"f16", "bf16"}),                  # breeze-tts-2's bf16 file keeps f16 tensors
+)
+
+
+def test_published_files_fit_their_rungs_fallback_set():
+    for rung, dtypes in _PUBLISHED_RUNG_DTYPES:
+        fallback = catalog.RUNG_FALLBACK_DTYPES[rung]
+        assert dtypes <= fallback, (rung, sorted(dtypes - fallback))
+
+
+def test_tts_gguf_row_rejects_a_rung_without_a_fallback_set():
+    """A rung label with no RUNG_FALLBACK_DTYPES entry would query op coverage over {f32} alone
+    before its file is on disk; _tts_gguf_row refuses it at import, as _tc_row does."""
+    with pytest.raises(ValueError, match="q5_0"):
+        catalog._tts_gguf_row("x", "X", ("en",), "x_family", "X-GGUF",
+                              {"q5_0": ("x-q5_0.gguf", 1)}, default_quant="q5_0", order=99)
+    with pytest.raises(ValueError, match="include default 'bf16'"):
+        catalog._tts_gguf_row("x", "X", ("en",), "x_family", "X-GGUF",
+                              {"q8_0": ("x-q8_0.gguf", 1)}, default_quant="bf16", order=99)
 
 
 # ---- Onboarding guards (2026-09-05): the two silent drops the native-onboarding doc warns
