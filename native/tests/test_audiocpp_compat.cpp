@@ -11,6 +11,11 @@
 #include <cstring>
 #include <vector>
 
+// audio.cpp 54aa279's fork adds GGML_MUL_MAT_LOWERING_VULKAN_F32_INPUTS = 4
+// (external/ggml/include/ggml.h:459); the shim must carry the fork's value.
+static_assert(GGML_MUL_MAT_LOWERING_VULKAN_F32_INPUTS == 4,
+              "audiocpp_compat.h must mirror the fork's ggml_mul_mat_lowering values");
+
 static ggml_backend_t g_cpu;
 
 // Builds `out` in a fresh no_alloc context via `build`, uploads `inputs`, computes on CPU and

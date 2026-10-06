@@ -8,5 +8,10 @@
     "file": "src/CMakeLists.txt",
     "old": "$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>",
     "new": "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
+  },
+  {
+    "file": "src/transcribe.cpp",
+    "old": "static const bool s_backend_reg_filter_installed = [] {\n    ggml_backend_set_reg_filter(&backend_reg_filter);\n    return true;\n}();",
+    "new": "// sokuji-native: ggml_backend_set_reg_filter exists only in transcribe.cpp's own vendored\n// ggml (its patches/ggml/0002-backend-reg-filter.patch); we build on one pristine upstream\n// ggml, which has no registration filter. sokuji_native registers the backends itself\n// (sk_init) and hands sk_asr_load the device it picked, so the allowed-backend mask\n// (transcribe_init_backends_ex / TRANSCRIBE_BACKENDS) is not enforced in this build.\nstatic const bool s_backend_reg_filter_installed = [] {\n    (void) &backend_reg_filter;\n    return true;\n}();"
   }
 ]

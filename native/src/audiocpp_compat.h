@@ -264,6 +264,9 @@ enum ggml_mul_mat_lowering {
     GGML_MUL_MAT_LOWERING_DEFAULT                    = 0,
     GGML_MUL_MAT_LOWERING_CUDA_NVFP4_F16_ACTIVATION  = 2,
     GGML_MUL_MAT_LOWERING_CUDA_TILE_F16_ACCUM_OUTPUT = 3,
+    GGML_MUL_MAT_LOWERING_VULKAN_F32_INPUTS          = 4,   /* 54aa279: linear_module.cpp:98, gated on
+                                                               LinearModuleConfig::vulkan_f32_activation_lowering,
+                                                               which nothing in audio.cpp sets */
 };
 enum ggml_concat_lowering {
     GGML_CONCAT_LOWERING_DEFAULT            = 0,
@@ -428,6 +431,25 @@ static inline struct ggml_tensor *sokuji_ggml_sub(
 #define ggml_sub sokuji_ggml_sub
 
 #ifdef __cplusplus
+}
+#endif
+
+#ifdef __cplusplus
+/* ===== (E) continued: the fork's 7-argument ggml_gated_delta_net ===================
+ *
+ * Upstream ggml (0.25+) takes an explicit snapshot count K and a 4D state
+ * [S_v, S_v, H_v, n_seqs], writing snapshots most-recent first; the fork (external/ggml
+ * at 54aa279) takes no K, a 3D state (S_v*S_v*H, K, n_seqs), and writes snapshots into the
+ * trailing slots. Same name, different arity, so this is a C++ overload beside upstream's
+ * extern "C" declaration rather than a #define. Its only caller is engine_core's
+ * qwen35_decoder_runtime.cpp, reached by firered_audio and index_echo, neither of which
+ * sokuji-native builds: reaching it is a bug, not a fallback. Carding either family needs
+ * a real port (reshape the state to 4D, K = state->ne[1], re-order the snapshot slots). */
+static inline struct ggml_tensor *ggml_gated_delta_net(
+        struct ggml_context *ctx, struct ggml_tensor *q, struct ggml_tensor *k, struct ggml_tensor *v,
+        struct ggml_tensor *g, struct ggml_tensor *beta, struct ggml_tensor *state) {
+    (void)ctx; (void)q; (void)k; (void)v; (void)g; (void)beta; (void)state;
+    GGML_ABORT("ggml_gated_delta_net (fork 7-arg form): Qwen3.5 decoder op, not built in sokuji-native");
 }
 #endif
 

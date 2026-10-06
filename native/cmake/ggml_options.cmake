@@ -81,17 +81,11 @@ list(APPEND SOKUJI_GGML_PATCH_SPEC "ggml-gguf-bulk-array-read.json")
 # rather than inventing one. Metal lane only: it touches src/ggml-metal/, which no other
 # lane compiles.
 #
-# The second Metal gap on the same families: ggml 0.25.3's Metal GGML_OP_PAD still pads only
-# at the END of an axis (re-verified at the native-v1.2.0 bump; its supports_op rejects any
-# non-zero leading pad), while ggml-cpu and ggml-vulkan both implement the full lp/rp form
-# ggml_pad_ext builds. qwen3_tts's speech
-# tokenizer decoder pads causally - left_pad = kernel_extent - stride, in
-# tokenizer_speech_decoder.cpp's causal_conv1d - so every one of its depthwise convs is a
-# leading pad. The patch teaches kernel_pad_impl the leading pads with exactly ggml-cpu's
-# non-circular semantics; circular padding stays unimplemented, as upstream leaves it.
+# Leading-edge GGML_OP_PAD, the second Metal gap qwen3_tts hit, is upstream since ggml 0.26.0
+# (46fc5b3b "metal: support left and circular padding in GGML_OP_PAD"), so the
+# ggml-metal-pad-leading.json spec that used to carry it is gone.
 if(SOKUJI_GPU_RESOLVED STREQUAL "metal")
     list(APPEND SOKUJI_GGML_PATCH_SPEC "ggml-metal-diag-mask-inf.json")
-    list(APPEND SOKUJI_GGML_PATCH_SPEC "ggml-metal-pad-leading.json")
 endif()
 
 set(BUILD_SHARED_LIBS ON)                                   # ggml itself is shared …
