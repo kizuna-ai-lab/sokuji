@@ -1835,3 +1835,13 @@ def test_models_catalog_carries_the_higgs_card():
     assert c["repo"] == "audio-cpp/audio.cpp-gguf/Higgs-Audio-v3-TTS-4B-GGUF/higgs-audio-v3-tts-4b-q8_0.gguf"
     assert c["sizeBytes"] == 5095354048
     assert c["license"]["requiresConsent"] is True and c["license"]["nonCommercial"] is True
+
+
+def test_models_catalog_carries_the_fish_card():
+    c = _catalog("tts")["fish-audio-s2-pro"]
+    assert c["order"] == 28 and c["clones"] is True and c["streaming"] is False
+    assert c["voice"]["builtin"] == "none" and c["voice"]["custom"] == "clip"
+    assert c["voice"]["required"] is False and c["voice"]["transcriptRequired"] is True
+    assert c["repo"] == "audio-cpp/audio.cpp-gguf/Fish-Audio-S2-Pro-GGUF/fish-audio-s2-pro-q8_0.gguf"
+    assert c["sizeBytes"] == 6317911232
+    assert c["license"]["requiresConsent"] is True and c["license"]["nonCommercial"] is True

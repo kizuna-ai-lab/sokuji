@@ -1259,6 +1259,17 @@ HIGGS_LANGS = ("af", "ar", "az", "bg", "bn", "bs", "ca", "cs", "cy", "da", "de",
                "sl", "so", "sq", "sr", "sv", "sw", "ta", "te", "th", "tr", "uk", "ur", "uz",
                "vi", "zh")
 
+# Fish Audio S2 Pro: audio.cpp exposes "80+ languages" with no list (model_specs/
+# fish_audio.json); the vendor's card names 83. These are the ones the Local Native language
+# picker can offer (getLocalInferenceLanguages, read 2026-10-06), as app codes: Tagalog is
+# "fil" and the card's Javanese "jw" is "jv".
+FISH_LANGS = ("af", "am", "ar", "az", "bg", "bn", "bs", "ca", "cs", "cy", "da", "de", "el",
+              "en", "es", "et", "fa", "fi", "fil", "fr", "gl", "gu", "he", "hi", "hr", "hu",
+              "id", "is", "it", "ja", "jv", "ka", "kk", "km", "kn", "ko", "lt", "lv", "ml",
+              "mn", "mr", "ms", "my", "ne", "nl", "no", "pl", "ps", "pt", "ro", "ru", "si",
+              "sk", "sl", "sq", "sr", "sv", "sw", "ta", "te", "th", "tr", "uk", "ur", "vi",
+              "zh")
+
 TTS_MODELS: list[TtsModel] = [
     # Offline, clones from a reference clip, no presets (sk_tts_presets() ==
     # []). audio.cpp ships Q8_0 (default) and BF16; languages per
@@ -1676,6 +1687,24 @@ TTS_MODELS: list[TtsModel] = [
             requires_consent=True,
             source_repo=_AUDIOCPP_GGUF_REPO,
             attribution="Boson AI (bosonai)")),
+    # Fish Audio S2 Pro: an optional clip, which then needs its transcript; 44.1 kHz. The Fish
+    # Audio Research License allows research and non-commercial use only (commercial use is a
+    # separate licence): the non-commercial consent gate. bf16 (10.2 GB) is left out.
+    _tts_gguf_row(
+        "fish-audio-s2-pro", "Fish Audio S2 Pro", FISH_LANGS,
+        "fish_audio", "Fish-Audio-S2-Pro-GGUF",
+        {"q8_0": ("fish-audio-s2-pro-q8_0.gguf", 6317911232)},
+        default_quant="q8_0", order=28, clones=True, streaming=False,
+        sample_rate=44100, transcript_required=True,
+        rung_dtypes={"q8_0": {"bf16", "f16", "f32", "q8_0"}},
+        license=License(
+            spdx="LicenseRef-Fish-Audio-Research-License",
+            name="Fish Audio Research License",
+            url="https://huggingface.co/fishaudio/s2-pro/blob/main/LICENSE.md",
+            non_commercial=True,
+            requires_consent=True,
+            source_repo=_AUDIOCPP_GGUF_REPO,
+            attribution="Fish Audio (fishaudio)")),
 ]
 
 

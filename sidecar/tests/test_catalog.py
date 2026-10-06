@@ -230,7 +230,8 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
                 "qwen3-tts-1.7b-customvoice",
                 "irodori-tts-500m-v3",
                 "irodori-tts-v4.1-anime",
-                "higgs-audio-v3-4b")
+                "higgs-audio-v3-4b",
+                "fish-audio-s2-pro")
 
 # The 2026-09-03 batch arrived CPU-ONLY and earned every tier the same evening
 # (commit 2f2b28bc, after the per-family fleet run; catalog._TTS_TIER_OVERRIDES).
@@ -1623,4 +1624,48 @@ def test_higgs_card_and_license():
         "requiresConsent": True,
         "sourceRepo": "audio-cpp/audio.cpp-gguf",
         "attribution": "Boson AI (bosonai)",
+    }
+
+
+FISH_PICKER_LANGS = ("af", "am", "ar", "az", "bg", "bn", "bs", "ca", "cs", "cy", "da", "de", "el",
+                     "en", "es", "et", "fa", "fi", "fil", "fr", "gl", "gu", "he", "hi", "hr", "hu",
+                     "id", "is", "it", "ja", "jv", "ka", "kk", "km", "kn", "ko", "lt", "lv", "ml",
+                     "mn", "mr", "ms", "my", "ne", "nl", "no", "pl", "ps", "pt", "ro", "ru", "si",
+                     "sk", "sl", "sq", "sr", "sv", "sw", "ta", "te", "th", "tr", "uk", "ur", "vi",
+                     "zh")
+
+
+def test_fish_card_and_license():
+    # 2026-10-06: an optional clip that needs its transcript; the vendor's 83 languages that the
+    # Local Native picker can offer; non-commercial; q8_0 only (bf16 is above 10 GB).
+    m = catalog.tts_model("fish-audio-s2-pro")
+    assert m is not None
+    assert (m.family, m.graph_family, m.name) == ("fish_audio", "fish_audio", "Fish Audio S2 Pro")
+    assert m.sort_order == 28 and m.recommended is False
+    assert m.languages == catalog.FISH_LANGS == FISH_PICKER_LANGS
+    assert len(m.languages) == 66 and not {"tl", "jw"} & set(m.languages)
+    assert m.clones is True and m.transcript_required is True and m.named_voices is False
+    assert m.streaming is False and m.sample_rate == 44100
+    assert m.voice_required is False and m.presets == () and m.default_preset == ""
+    assert m.extra_files == ()
+    assert m.family not in catalog._TTS_TIER_OVERRIDES
+    assert {d.tier for d in m.deployments} == {"cpu"}
+    rungs = {d.compute_type: d for d in m.deployments}
+    assert set(rungs) == {"q8_0"} and rungs["q8_0"].rank == 2.0
+    assert rungs["q8_0"].artifact == "audio-cpp/audio.cpp-gguf/Fish-Audio-S2-Pro-GGUF/fish-audio-s2-pro-q8_0.gguf"
+    assert rungs["q8_0"].est_bytes == 6_317_911_232
+    assert m.size_bytes == 6_317_911_232
+    # The matrix dtypes of the one published rung (no companions), read from the Hub: the 40
+    # decoder layers' matrices are q8_0, the embeddings and the quantiser codebooks f16, the
+    # codec's convolutions f32, its rope tables bf16 (the loader never reads those) and its
+    # attention masks i8 (not weight-capable).
+    assert dict(m.rung_dtypes) == {"q8_0": frozenset({"bf16", "f16", "f32", "q8_0"})}
+    assert catalog.license_dict(m) == {
+        "spdx": "LicenseRef-Fish-Audio-Research-License",
+        "name": "Fish Audio Research License",
+        "url": "https://huggingface.co/fishaudio/s2-pro/blob/main/LICENSE.md",
+        "nonCommercial": True,
+        "requiresConsent": True,
+        "sourceRepo": "audio-cpp/audio.cpp-gguf",
+        "attribution": "Fish Audio (fishaudio)",
     }

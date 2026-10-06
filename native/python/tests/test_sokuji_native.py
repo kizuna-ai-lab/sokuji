@@ -97,7 +97,7 @@ def test_audio_families():
     # always compiles silero_vad in regardless of AUDIOCPP_MODELS (see upstreams.cmake), so
     # the family rides along unused, reported by sk_audio_families() but never called.
     required = {"index_tts2", "irodori_tts", "moss_tts_nano", "omnivoice", "pocket_tts",
-                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3", "fireredtts3", "moss_tts_local", "vibevoice", "chatterbox", "chatterbox_turbo", "confucius4_tts", "magpie_tts", "neutts", "kugelaudio", "higgs_audio_tts"}
+                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3", "fireredtts3", "moss_tts_local", "vibevoice", "chatterbox", "chatterbox_turbo", "confucius4_tts", "magpie_tts", "neutts", "kugelaudio", "higgs_audio_tts", "fish_audio"}
     assert required <= set(families)
     assert families == sorted(families)
     # Sized from the library's own count, so the binding never cuts the list off.
@@ -431,6 +431,8 @@ TTS_IRODORI_V3_DIR = os.environ.get("SK_TEST_TTS_IRODORI_V3_DIR")
 TTS_IRODORI_ANIME_DIR = os.environ.get("SK_TEST_TTS_IRODORI_ANIME_DIR")
 TTS_HIGGS_DIR = os.environ.get("SK_TEST_TTS_HIGGS_DIR")
 needs_tts_higgs = pytest.mark.skipif(not (HAVE_TREE and TTS_HIGGS_DIR), reason="needs a built tree and SK_TEST_TTS_HIGGS_DIR")
+TTS_FISH_DIR = os.environ.get("SK_TEST_TTS_FISH_DIR")
+needs_tts_fish = pytest.mark.skipif(not (HAVE_TREE and TTS_FISH_DIR), reason="needs a built tree and SK_TEST_TTS_FISH_DIR")
 needs_tts_supertonic =pytest.mark.skipif(not (HAVE_TREE and TTS_SUPERTONIC_DIR), reason="needs a built tree and SK_TEST_TTS_SUPERTONIC_DIR")
 needs_tts_moss = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_DIR), reason="needs a built tree and SK_TEST_TTS_MOSS_DIR")
 needs_tts_index = pytest.mark.skipif(not (HAVE_TREE and TTS_INDEX_DIR), reason="needs a built tree and SK_TEST_TTS_INDEX_DIR")
@@ -671,6 +673,9 @@ NEW_CPU_TTS_FAMILIES = [
                case_id="irodori-tts-v4.1-anime"),
     # higgs_audio_tts takes an optional clip (its transcript optional too).
     CpuTtsCase("higgs_audio_tts", "SK_TEST_TTS_HIGGS_DIR", TTS_HIGGS_DIR, "Hello from Higgs Audio.", "en", 24000, False),
+    # fish_audio speaks with nothing set; a clip needs its transcript.
+    CpuTtsCase("fish_audio", "SK_TEST_TTS_FISH_DIR", TTS_FISH_DIR, "Hello from Fish Audio.", "en", 44100, False,
+               transcript_required=True),
 ]
 
 
@@ -1303,6 +1308,23 @@ def test_tts_higgs_clones_a_clip_that_has_no_transcript():
     assert float(np.max(np.abs(samples))) > 0.01
 
 
+@needs_tts_fish
+def test_tts_fish_clone_needs_a_transcript():
+    """Fish Audio refuses an inline reference clip without its transcript; the row is
+    transcript_required, so sk_tts_set_voice refuses it up front."""
+    if not TTS_SUPERTONIC_DIR:
+        pytest.skip("needs SK_TEST_TTS_SUPERTONIC_DIR for a real-speech reference clip")
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    pcm, ref_rate, _ref_text = _cpu_reference_clip()
+    t = sokuji_native.tts_load(_main_gguf(TTS_FISH_DIR), "fish_audio", cpu)
+    try:
+        with pytest.raises(sokuji_native.NativeError, match="requires ref_text"):
+            t.set_voice(pcm, ref_rate)
+    finally:
+        t.unload()
+
+
 # --------------------------------------------------------------------------------------
 # TTS on a real GPU device.
 #
@@ -1397,6 +1419,7 @@ GPU_TTS_FAMILIES = {
     "irodori-tts-v4.1-anime": ("SK_TEST_TTS_IRODORI_ANIME_DIR", TTS_IRODORI_ANIME_DIR, None, False, 30.0,
                                "こんにちは、世界。今日はいい天気ですね。", "ja"),
     "higgs_audio_tts": ("SK_TEST_TTS_HIGGS_DIR", TTS_HIGGS_DIR, None, False, 30.0, GPU_TTS_TEXT, "en"),
+    "fish_audio": ("SK_TEST_TTS_FISH_DIR", TTS_FISH_DIR, None, False, 30.0, GPU_TTS_TEXT, "en"),
 }
 
 # A GPU_TTS_FAMILIES key that names a second card of an already-listed family, mapped to the

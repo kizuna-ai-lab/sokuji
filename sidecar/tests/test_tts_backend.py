@@ -1884,3 +1884,16 @@ def test_higgs_card_is_not_gated_by_r16(native_env):
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=m.family, voice_required=m.voice_required))
     samples, _rate, _ms = b.generate("hello")
     assert samples.dtype == np.float32
+
+
+def test_fish_card_is_not_gated_by_r16(native_env):
+    """Fish Audio speaks with nothing set; its clip is optional (with its transcript)."""
+    from sokuji_sidecar import catalog
+    created, log = native_env
+    m = catalog.tts_model("fish-audio-s2-pro")
+    assert m.voice_required is False
+    created["caps"] = _caps(transcript_required=True, sample_rate=44100)
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=m.family, voice_required=m.voice_required))
+    samples, _rate, _ms = b.generate("hello")
+    assert samples.dtype == np.float32

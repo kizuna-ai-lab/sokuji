@@ -181,7 +181,7 @@ int main(int argc, char **argv) {
             }
             if (std::string(stage) == "tts") ++n_tts;
         }
-        assert(n_tts == 20);
+        assert(n_tts == 21);
 
         // Fix round 1: a WEIGHT dtype whose block size does not divide the recorded ne0_src0
         // must be skipped, not asked (no GGUF can hold that tensor in it) — compute the
@@ -301,7 +301,7 @@ int main(int argc, char **argv) {
                 if (!paravirtual) assert(c.all_supported == 1);
                 ++n_swept;
             }
-            assert(n_swept == 20);
+            assert(n_swept == 21);
 
             // The device runs a tts bf16 weight as f16 (audio.cpp's BackendWeightStore,
             // backend_weight_store.h:273-286), and vibevoice has no raw-typed device weight path
@@ -376,7 +376,7 @@ int main(int argc, char **argv) {
     }
     const char *want[] = {"index_tts2", "irodori_tts", "moss_tts_nano", "omnivoice", "pocket_tts",
                           "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2",
-                          "cosyvoice3", "fireredtts3", "moss_tts_local", "vibevoice", "chatterbox", "chatterbox_turbo", "confucius4_tts", "magpie_tts", "neutts", "kugelaudio", "higgs_audio_tts"};
+                          "cosyvoice3", "fireredtts3", "moss_tts_local", "vibevoice", "chatterbox", "chatterbox_turbo", "confucius4_tts", "magpie_tts", "neutts", "kugelaudio", "higgs_audio_tts", "fish_audio"};
     for (const char *w : want) {
         bool found = false;
         for (int i = 0; i < nf; ++i) if (std::strcmp(fams[i], w) == 0) found = true;

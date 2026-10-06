@@ -203,6 +203,10 @@ constexpr FamilyInfo kFamilies[] = {
     // (session.cpp:253-256); 24 kHz (include/engine/models/higgs_audio_tts/codec.h:81); with a
     // seed its sampler is the host-side seeded one on every backend.
     {"higgs_audio_tts", false, true,  false, 24000, false, false, false, FamilyTask::Tts, nullptr},
+    // fish_audio (audio.cpp src/models/fish_audio/session.cpp): an offline Tts session only
+    // (:306-312); a clip is optional but needs its transcript (:252-259); 44.1 kHz
+    // (include/engine/framework/codecs/fish_dac_codec_runtime.h:28); random seed unless sent.
+    {"fish_audio",     false, true,  true,  44100, false, false, false, FamilyTask::Tts, nullptr},
 };
 
 const FamilyInfo *find_family(const char *name) {

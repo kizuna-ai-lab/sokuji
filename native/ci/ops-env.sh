@@ -27,4 +27,5 @@ export SK_TEST_TTS_QWEN3_CUSTOMVOICE_DIR=$C/tts/qwen3-tts-1.7b-customvoice
 export SK_TEST_TTS_IRODORI_V3_DIR=$C/tts/irodori-tts-500m-v3
 export SK_TEST_TTS_IRODORI_ANIME_DIR=$C/tts/irodori-tts-v4.1-anime
 export SK_TEST_TTS_HIGGS_DIR=$C/tts/higgs-audio-v3-4b
+export SK_TEST_TTS_FISH_DIR=$C/tts/fish-audio-s2-pro
 exec "$@"
