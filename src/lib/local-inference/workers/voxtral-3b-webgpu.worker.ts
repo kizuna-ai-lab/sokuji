@@ -30,6 +30,7 @@ import { FrameProcessor, Message } from '@ricky0123/vad-web';
 import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processor';
 import { resolveVadThresholds } from './_shared/vad-thresholds';
 import { resolveMaxSpeechFrames } from './_shared/max-speech-frames';
+import { SileroInput, SILERO_INPUT_SAMPLES } from './_shared/silero-input';
 
 import type {
   Voxtral3BAsrInitMessage,
@@ -74,6 +75,7 @@ const VAD_FRAME_MS = (VAD_FRAME_SAMPLES / VAD_SAMPLE_RATE) * 1000;
 interface VadSession {
   session: InferenceSession;
   state: Tensor;
+  input: SileroInput;
 }
 
 let vadSession: VadSession | null = null;
@@ -93,7 +95,7 @@ const VOXTRAL_3B_MAX_SEGMENT_SAMPLES = 30 * VAD_SAMPLE_RATE;
 
 async function vadInfer(frame: Float32Array): Promise<{ isSpeech: number; notSpeech: number }> {
   if (!vadSession) return { isSpeech: 0, notSpeech: 1 };
-  const input = new Tensor('float32', frame, [1, VAD_FRAME_SAMPLES]);
+  const input = new Tensor('float32', vadSession.input.next(frame), [1, SILERO_INPUT_SAMPLES]);
   const sr = new Tensor('int64', BigInt64Array.from([BigInt(VAD_SAMPLE_RATE)]), []);
   const result = await vadSession.session.run({ input, sr, state: vadSession.state });
   vadSession.state = result.stateN as Tensor;
@@ -104,6 +106,7 @@ async function vadInfer(frame: Float32Array): Promise<{ isSpeech: number; notSpe
 function vadResetStates() {
   if (!vadSession) return;
   vadSession.state = new Tensor('float32', new Float32Array(2 * 128), [2, 1, 128]);
+  vadSession.input.reset();
 }
 
 async function initVad(vadConfig?: Voxtral3BAsrInitMessage['vadConfig'], vadModelUrl?: string): Promise<void> {
@@ -113,6 +116,7 @@ async function initVad(vadConfig?: Voxtral3BAsrInitMessage['vadConfig'], vadMode
   vadSession = {
     session,
     state: new Tensor('float32', new Float32Array(2 * 128), [2, 1, 128]),
+    input: new SileroInput(),
   };
 
   const { positive: positiveSpeechThreshold, negative: negativeSpeechThreshold } = resolveVadThresholds(vadConfig);
