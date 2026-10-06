@@ -1464,6 +1464,16 @@ def test_tts_asr_loopback_per_family():
     else:
         skipped.append("neutts")
 
+    # kugelaudio (2026-10-06): its English male preset voice, then the same model with nothing
+    # set, the case that decides whether its card may leave default_preset empty (the engine
+    # speaks "default", session.cpp:86).
+    kugelaudio_dir = family_dir("SK_TEST_TTS_KUGELAUDIO_DIR")
+    if kugelaudio_dir:
+        attempt("kugelaudio", kugelaudio_dir, lambda m: m.set_preset("english_male"), note="preset: english_male")
+        attempt("kugelaudio", kugelaudio_dir, lambda m: None, note="bare: nothing set")
+    else:
+        skipped.append("kugelaudio")
+
     # pocket_tts (English package): the ONE full-production-chain leg (ruling
     # R17(s4) / I1 point 2; the symlinked-snapshot loading defect it surfaced is
     # fixed by ruling R18's hard-link staging) -- see

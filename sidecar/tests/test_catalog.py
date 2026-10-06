@@ -225,7 +225,8 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
                 "chatterbox-turbo",
                 "confucius4",
                 "magpie-357m",
-                "neutts-2e")
+                "neutts-2e",
+                "kugelaudio-0")
 
 # The 2026-09-03 batch arrived CPU-ONLY and earned every tier the same evening
 # (commit 2f2b28bc, after the per-family fleet run; catalog._TTS_TIER_OVERRIDES).
@@ -1451,3 +1452,37 @@ def test_neutts_card_and_license():
     # The matrix dtypes of the one published rung (a single "orig" file, no companions), read
     # from the Hub: bf16 and f32.
     assert dict(m.rung_dtypes) == {"orig": frozenset({"bf16", "f32"})}
+
+
+def test_kugelaudio_card():
+    # 2026-10-06: four preset voices, no cloning, the vendor's 23 European languages; q8_0 and
+    # q4_k (bf16 is above 10 GB); cpu-only until a fleet run.
+    m = catalog.tts_model("kugelaudio-0")
+    assert m is not None
+    assert (m.family, m.graph_family, m.name) == ("kugelaudio", "kugelaudio", "KugelAudio 0 Open")
+    assert m.sort_order == 23 and m.recommended is False
+    assert m.languages == ("en", "de", "fr", "es", "it", "pt", "nl", "pl", "ru", "uk", "cs", "ro",
+                           "hu", "sv", "da", "fi", "no", "el", "bg", "sk", "hr", "sr", "tr")
+    assert m.clones is False and m.transcript_required is False and m.named_voices is True
+    assert m.streaming is False and m.sample_rate == 24000
+    assert m.voice_required is False and m.default_preset == ""
+    assert m.presets == ("default", "clear", "english_female", "english_male")
+    cap = catalog.voice_capability(m)
+    assert (cap["builtin"], cap["custom"], cap["required"]) == ("named", "none", False)
+    assert m.license is None and m.extra_files == ()
+    assert m.family not in catalog._TTS_TIER_OVERRIDES
+    assert {d.tier for d in m.deployments} == {"cpu"}
+    rungs = {d.compute_type: d for d in m.deployments}
+    assert set(rungs) == {"q8_0", "q4_k"}
+    assert rungs["q8_0"].rank == 2.0 and rungs["q4_k"].rank == 1.0
+    assert "q4_k" in catalog.RUNG_FALLBACK_DTYPES
+    assert rungs["q8_0"].artifact == "audio-cpp/audio.cpp-gguf/KugelAudio-0-Open-GGUF/kugelaudio-0-open-q8_0.gguf"
+    assert rungs["q8_0"].est_bytes == 9_752_398_658
+    assert rungs["q4_k"].artifact == "audio-cpp/audio.cpp-gguf/KugelAudio-0-Open-GGUF/kugelaudio-0-open-q4_k.gguf"
+    assert rungs["q4_k"].est_bytes == 5_732_997_442
+    assert m.size_bytes == 9_752_398_658
+    # The matrix dtypes of each published rung (no companions), read from the Hub: both keep
+    # bf16 and f16 matrices beside their quantised ones. The key is the rung label ("q4_k"), the
+    # dtype is ggml's spelling ("q4_K").
+    assert dict(m.rung_dtypes) == {"q8_0": frozenset({"bf16", "f16", "q8_0"}),
+                                   "q4_k": frozenset({"bf16", "f16", "q4_K"})}

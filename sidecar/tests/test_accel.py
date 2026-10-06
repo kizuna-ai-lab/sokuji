@@ -1784,3 +1784,13 @@ def test_models_catalog_carries_the_neutts_card():
     assert c["repo"] == "audio-cpp/audio.cpp-gguf/NeuTTS-2E-GGUF/neutts-2e-orig.gguf"
     assert c["sizeBytes"] == 3016181288
     assert c["license"]["requiresConsent"] is True and c["license"]["nonCommercial"] is False
+
+
+def test_models_catalog_carries_the_kugelaudio_card():
+    c = _catalog("tts")["kugelaudio-0"]
+    assert c["order"] == 23 and c["clones"] is False and c["streaming"] is False
+    assert c["voice"]["builtin"] == "named" and c["voice"]["custom"] == "none"
+    assert c["voice"]["required"] is False
+    assert c["repo"] == "audio-cpp/audio.cpp-gguf/KugelAudio-0-Open-GGUF/kugelaudio-0-open-q8_0.gguf"
+    assert c["sizeBytes"] == 9752398658
+    assert "license" not in c

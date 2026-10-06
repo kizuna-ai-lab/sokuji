@@ -193,6 +193,11 @@ constexpr FamilyInfo kFamilies[] = {
     // cloning in this port; strict; 24 kHz, its codec's output rate (session.cpp:281). Segment
     // streaming gains nothing on one utterance, so offline.
     {"neutts",         false, false, false, 24000, false, true,  false, FamilyTask::Tts, "voice_id"},
+    // kugelaudio (audio.cpp src/models/kugelaudio/session.cpp): a Tts session that refuses voice
+    // cloning (:24-26, a clip throws at :88-90); four preset voices through voice_id or
+    // cached_voice_id (:86-97); strict; 24 kHz (:120). It streams only through a sink, so
+    // offline.
+    {"kugelaudio",     false, false, false, 24000, false, true,  false, FamilyTask::Tts, nullptr},
 };
 
 const FamilyInfo *find_family(const char *name) {

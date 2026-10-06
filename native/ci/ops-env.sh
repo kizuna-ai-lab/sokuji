@@ -22,4 +22,5 @@ export SK_TEST_TTS_CHATTERBOX_TURBO_DIR=$C/tts/chatterbox-turbo
 export SK_TEST_TTS_CONFUCIUS4_DIR=$C/tts/confucius4
 export SK_TEST_TTS_MAGPIE_DIR=$C/tts/magpie-357m
 export SK_TEST_TTS_NEUTTS_DIR=$C/tts/neutts-2e
+export SK_TEST_TTS_KUGELAUDIO_DIR=$C/tts/kugelaudio-0
 exec "$@"

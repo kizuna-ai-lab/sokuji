@@ -1589,6 +1589,21 @@ TTS_MODELS: list[TtsModel] = [
             requires_consent=True,
             source_repo=_AUDIOCPP_GGUF_REPO,
             attribution="Neuphonic")),
+    # KugelAudio 0 Open: four preset voices (default and clear are German, english_female and
+    # english_male British English, per its card), no cloning; the vendor's 23 European
+    # languages, strongest in es/fr/en/de. q8_0 is audio.cpp's default package; q4_k is the
+    # smaller rung; bf16 (17.3 GB) is left out.
+    _tts_gguf_row(
+        "kugelaudio-0", "KugelAudio 0 Open",
+        ("en", "de", "fr", "es", "it", "pt", "nl", "pl", "ru", "uk", "cs", "ro", "hu", "sv",
+         "da", "fi", "no", "el", "bg", "sk", "hr", "sr", "tr"),
+        "kugelaudio", "KugelAudio-0-Open-GGUF",
+        {"q8_0": ("kugelaudio-0-open-q8_0.gguf", 9752398658),
+         "q4_k": ("kugelaudio-0-open-q4_k.gguf", 5732997442)},
+        default_quant="q8_0", order=23, clones=False, streaming=False,
+        sample_rate=24000, named_voices=True,
+        presets=("default", "clear", "english_female", "english_male"),
+        rung_dtypes={"q8_0": {"bf16", "f16", "q8_0"}, "q4_k": {"bf16", "f16", "q4_K"}}),
 ]
 
 

@@ -524,6 +524,17 @@ void neutts_requests() {
     assert(!has(req, "do_sample") && opt(req, "seed") == "0");
 }
 
+void kugelaudio_requests() {
+    const auto h = handle_for("kugelaudio");
+    assert(!h->clones && h->preset_option == nullptr);
+    give_preset(h.get(), "english_male");
+    rt::TaskRequest req = build_request(h.get(), "Hello.", "en", 1.0f);
+    assert(cached_voice(req) == "english_male");
+    assert(!has(req, "voice_id"));
+    // Strict: its spec declares do_sample, but a strict row never sends it.
+    assert(!has(req, "do_sample") && opt(req, "seed") == "0");
+}
+
 }  // namespace
 
 int main() {
@@ -548,6 +559,7 @@ int main() {
     confucius4_tts_requests();
     magpie_tts_requests();
     neutts_requests();
+    kugelaudio_requests();
     std::puts("test_tts_request ok");
     return 0;
 }
