@@ -6110,6 +6110,150 @@ self-contained GGUF: no companions, `extra_files=()`.
 
 ---
 
+### Task 12b: The op-coverage gate expands WEIGHT over the file's matrix dtypes; TTS recordings need not be CPU-complete; cards carry per-rung dtype sets
+
+Owner's ruling, 2026-10-06 (inserted between Tasks 12 and 13 after Task 13's CosyVoice 3 recording exposed it).
+
+**Why.** A recording marks `src0` of `MUL_MAT` / `MUL_MAT_ID` / `GET_ROWS` as `WEIGHT` (`native/src/sk_ops_record.cpp:32-50`), and `sk_device_supports_ops` expands every `WEIGHT` node over a dtype set (`native/src/sk_ops.cpp:126-160`). That set is today the union of EVERY tensor's dtype in the file. This holds both for the recording's `# dtypes-in-file:` (`native/tests/record_common.h:61-77`) and for the sidecar's post-download set (`accel.weight_dtypes` → `gguf_header.read_header(...).tensor_types`). The trouble is that 1-D tensors (norms, biases) are never `WEIGHT` nodes, yet their dtype still enters the set.
+
+CosyVoice 3's q8_0 GGUF keeps 121 1-D norms in bf16 while its LM head is q8_0. audio.cpp feeds the LM head F16 activations on Vulkan only: `src/models/cosyvoice3/ar.cpp:66-72`, and the same choice sits in the shared `framework/modules/transformers/causal_decoder*.cpp` and in neutts, breeze_tts and soprano_tts. The gate then asks Vulkan for `MUL_MAT[bf16,f16]`, a node no graph builds, and Vulkan refuses it. So a family that runs on Vulkan would be refused its Vulkan tier at runtime.
+
+There is a second problem. `test_common`'s CPU sweep requires every TTS recording to be fully supported on CPU. But a TTS recording is taken on a GPU (CLAUDE.md "A TTS family" step 2), and audio.cpp builds a different graph on a host backend. CosyVoice 3's Vulkan-only F16 head node is refused on CPU, a node CPU never runs.
+
+**What changes:**
+
+- **(A) The set `WEIGHT` expands over** becomes the dtypes of the file's matrix tensors: tensors with two or more dimensions, which is what a `WEIGHT` node's tensor is.
+  - This applies in the recorder's `# dtypes-in-file:` (the header keeps its name; the format does not change).
+  - It also applies in the sidecar's post-download set (`GgufHeader.matrix_types`).
+  - All twelve shipped recordings are re-recorded so their headers carry the new set. Op lines do not change.
+- **(B)** `test_common`'s CPU sweep no longer asserts `all_supported` for stage `tts`. It still asserts it for `asr` and `translate`.
+- **(C) Per-card rung dtype sets.** A card carries its own per-rung dtype sets (`rung_dtypes`) for the pre-download check, read from the published files' matrix tensors. A family card added from Task 13 on must carry them; the 14 pre-A cards keep `RUNG_FALLBACK_DTYPES`.
+  - A tool reads a remote GGUF's matrix dtypes at a revision without downloading the file.
+
+**Files:**
+
+Modify:
+- `native/tests/record_common.h` (`record_family`'s dtype collection)
+- `native/tests/test_common.cpp` (the CPU sweep)
+- `native/src/sk_ops.cpp` (the comment at about :118-120 that says the CPU sweep asserts the whole recording)
+- `native/src/sk_ops.h` (`SK_SRC_WEIGHT`'s doc: one sentence on the expansion set)
+- `native/README.md` (the op-recording paragraph: what `# dtypes-in-file` holds)
+- the twelve `native/src/ops/*.ops` (re-recorded headers)
+- `sidecar/sokuji_sidecar/gguf_header.py` (`matrix_types`; `read_header` also accepts a binary file object)
+- `sidecar/sokuji_sidecar/accel.py` (`weight_dtypes`)
+- `sidecar/sokuji_sidecar/catalog.py` (`TtsModel.rung_dtypes`, `_tts_gguf_row(rung_dtypes=)`)
+
+Create:
+- `benchmark/qwen3-asr-webgpu/hub_matrix_dtypes.py`
+
+Tests:
+- `sidecar/tests/test_gguf_header.py` (or the file that holds the existing `read_header` tests; find it with `grep -rln read_header sidecar/tests`)
+- `sidecar/tests/test_accel.py`
+- `sidecar/tests/test_catalog.py`
+
+**Interfaces:**
+
+- Consumes:
+  - Task 6's `accel._artifact_path`, `accel._companion_paths` and `weight_dtypes` (fallback unless the whole rung is cached);
+  - Task 8's `RUNG_FALLBACK_DTYPES`, `WEIGHT_CAPABLE_DTYPES` and `PRE_A_TTS_CARD_IDS`;
+  - Task 12's `find_gguf`.
+- Produces:
+  - `GgufHeader.matrix_types: frozenset[str]` (dtypes of tensors whose GGUF `n_dims >= 2`);
+  - `read_header(path_or_binary_file)`;
+  - `TtsModel.rung_dtypes: tuple[tuple[str, frozenset[str]], ...]` (empty for pre-A cards);
+  - the `_tts_gguf_row(..., rung_dtypes=None)` keyword: a dict from rung token (the same keys as `quants`) to a set of ggml dtype spellings;
+  - `accel.weight_dtypes`: header part = union of the rung GGUFs' `matrix_types` ∩ `WEIGHT_CAPABLE_DTYPES`; fallback part = the card's `rung_dtypes` entry when the card has one for that compute type, else `RUNG_FALLBACK_DTYPES`;
+  - the tool `python benchmark/qwen3-asr-webgpu/hub_matrix_dtypes.py <org/repo> <path in repo> [revision]`, which prints the matrix dtypes, space-separated and sorted.
+
+**Steps (TDD; each change test-first):**
+
+- [ ] **Step 1: Sidecar header reader.**
+  1. Write tests first:
+     - a synthetic GGUF in a `BytesIO`, written with `struct` the way the existing `read_header` tests build theirs: one 1-D bf16 tensor and one 2-D q8_0 tensor. `read_header(fileobj).matrix_types == {"q8_0"}` and `tensor_types == {"bf16", "q8_0"}`;
+     - the same file written to disk reads identically by path.
+  2. Watch them fail.
+  3. Implement:
+     - `matrix_types` is collected where the tensor loop reads `nd` (`gguf_header.py`).
+     - `read_header` accepts `str | os.PathLike` (opened) or an object with `read`/`seek` (used as is; not closed).
+     - The error messages name the path, or `<stream>`.
+
+- [ ] **Step 2: `accel.weight_dtypes` and the card field.**
+  1. Write tests first:
+     - a fully cached rung whose file has 1-D bf16 + 2-D q8_0 → `('q8_0',)`. Use `add_cached_file` with real GGUF bytes from Step 1's builder, or monkeypatch `gguf_header.read_header` to return a header with those two sets, whichever the existing `weight_dtypes` tests already do.
+     - a card with `rung_dtypes={"q8_0": {"q8_0", "f16", "f32"}}` and nothing cached → that set, not `RUNG_FALLBACK_DTYPES["q8_0"]`.
+     - a pre-A card (e.g. `supertonic-3`) with nothing cached → `RUNG_FALLBACK_DTYPES` exactly as before.
+     - `_tts_gguf_row` raises `ValueError` for:
+       - a `rung_dtypes` key not in `quants`;
+       - an empty set;
+       - a dtype outside `WEIGHT_CAPABLE_DTYPES`.
+     - catalog test: every TTS card whose id is not in `PRE_A_TTS_CARD_IDS` has `dict(m.rung_dtypes).keys() == {d.compute_type for d in m.deployments}`. It is vacuous until Task 13 lands a card; say so in its docstring.
+     - catalog test: for every card with `rung_dtypes` and every rung whose main GGUF is cached under `~/.cache/sokuji-native-tests/` (skip when none), the cached file's `matrix_types ∩ WEIGHT_CAPABLE_DTYPES` ⊆ that rung's set.
+  2. Watch them fail.
+  3. Implement:
+     - `TtsModel.rung_dtypes` (default `()`, frozen-dataclass safe);
+     - `_tts_gguf_row(rung_dtypes=None)` with the checks;
+     - `weight_dtypes` as specified. Update its docstring: the header part is the matrix tensors' dtypes, and the reason in one sentence.
+  4. Change `test_rung_fallback_sets_cover_cached_ggufs` (in `test_catalog.py`) to compare `matrix_types` rather than `tensor_types`. The fallback set predicts the `WEIGHT` expansion, which is now matrix-only.
+
+- [ ] **Step 3: The remote tool.** Write `benchmark/qwen3-asr-webgpu/hub_matrix_dtypes.py`:
+  - It inserts the worktree's `sidecar/` on `sys.path`.
+  - It opens `huggingface_hub.HfFileSystem().open(f"{repo}/{path}", "rb", revision=revision)`.
+  - It calls `gguf_header.read_header(fileobj)` and prints `" ".join(sorted(h.matrix_types & catalog.WEIGHT_CAPABLE_DTYPES))`.
+  - A module docstring says what it is for: a card's `rung_dtypes`, read without downloading the file.
+
+  Live check (network):
+  - Run: `/home/jiangzhuo/.cache/sokuji-native-tests/venv/bin/python /home/jiangzhuo/Desktop/kizunaai/sokuji/.claude/worktrees/tts-roster-expansion/benchmark/qwen3-asr-webgpu/hub_matrix_dtypes.py audio-cpp/audio.cpp-gguf CosyVoice3-GGUF/cosyvoice3-q8_0.gguf`
+  - Expected: a set WITHOUT bf16 (the bf16 tensors are 1-D norms).
+
+  If the folder name differs, read the exact path from the Task 13 brief (`task-13-brief.md`, the `_tts_gguf_row` call). Record the printed set in your report.
+
+- [ ] **Step 4: Native recorder.**
+  1. In `record_family` (`record_common.h`), collect the dtypes from tensors whose dimension count is two or more:
+     - Open the file with `gguf_init_params{ /*no_alloc*/ true, /*ctx*/ &meta }`.
+     - For each tensor name `ggml_get_tensor(meta, name)`, test `ggml_n_dims(t) >= 2`.
+     - Free `meta`.
+     - `names` still lists EVERY tensor, because the recorder's `WEIGHT` detection needs all names.
+  2. Update the comment above it, and `SK_SRC_WEIGHT`'s doc in `sk_ops.h`, by one sentence each: the expansion set is the matrix tensors' dtypes, because a 1-D tensor is never a `WEIGHT` node.
+  3. Build the CPU tree.
+
+- [ ] **Step 5: The CPU sweep.**
+  1. In `test_common.cpp`'s CPU sweep (about :135-160), keep the `sk_device_supports_ops` call, its `SK_OK`, the `n_ops` bounds and the unsupported-node print.
+  2. Make `assert(c.all_supported == 1)` apply only when `std::string(stage) != "tts"`. The comment says why:
+     - a TTS recording is taken on a GPU and describes the device graph;
+     - audio.cpp builds a different graph on a host backend (e.g. an LM head fed F16 only on Vulkan: cosyvoice3 `ar.cpp:66-72`, the shared `causal_decoder`);
+     - the planner never gates a TTS cpu tier.
+  3. Leave the integer-dtype equality check and the GPU sweep unchanged.
+  4. Fix the `sk_ops.cpp` comment that says the CPU sweep asserts the whole recording.
+
+- [ ] **Step 6: Re-record the twelve headers.**
+  1. Rebuild `native/build/record-vk` (Vulkan env prefix).
+  2. Run `bash /home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/lnp/exec/record-all-ops.sh`, Task 3's script, which writes into `native/src/ops`.
+  3. Run `git -C <worktree> diff --stat -- native/src/ops`. Expected: only `# dtypes-in-file:` lines change, in some or all of the twelve files. Check each with `git diff -U0`.
+     - If any `op=` line changes, stop and report: the recorder's graph changed, which this task must not do.
+  4. Rebuild record-vk and run the op gate: `bash native/ci/ops-env.sh ctest --test-dir native/build/record-vk -R test_ops_coverage --output-on-failure`. Expected: 12 families `ok`.
+
+- [ ] **Step 7: Full native gates.**
+  1. Rebuild and run CTest on the CPU tree (11/11) and the Vulkan tree (11/11). The Vulkan `test_common` runs the GPU sweep with each recording's new set, so all twelve must stay `all_supported`.
+  2. Run record-vk CTest (12/12).
+  3. Run the CPU-stage native pytest + parity (57 passed, 18 skipped, 2 xfailed, as after Task 12).
+  4. Write each log with a single command.
+
+- [ ] **Step 8: Docs.** In `native/README.md`'s op-recording paragraph, say in two sentences that `# dtypes-in-file` holds the dtypes of the file's matrix tensors (`n_dims >= 2`), which is the set `WEIGHT` expands over. Also say that a TTS recording describes the GPU graph and is not required to be CPU-complete.
+
+- [ ] **Step 9: Sidecar suite, then commit.** Two commits, each a pathspec commit with `git add --` for new files first:
+  1. `fix(native): op coverage expands WEIGHT over the file's matrix dtypes` — the recorder, `test_common`, `sk_ops` comments, README and the twelve `.ops`.
+  2. `feat(sidecar): matrix dtypes and per-card rung dtype sets for the op-coverage gate` — `gguf_header`, `accel`, `catalog`, the tool and the tests.
+
+  Use the standard trailer. Run the full sidecar suite once before the second commit. Expected: 868 + the new tests, all passing, 12 skipped.
+
+**Global constraints that bind this task:**
+
+- The ABI stays 2: no `sokuji_native.h` function or struct changes, and `SK_OP_COVERAGE_MAX` is not raised.
+- No ggml patch.
+- Production comments cite rulings, choices or issue numbers only (cite "owner's ruling 2026-10-06, op-coverage precision"), never tasks, reviews or plans.
+
+---
+
 ### Task 13: CosyVoice 3 joins as a clone-only family
 
 Card `cosyvoice3`, order 14, family `cosyvoice3`. The reference clip is mandatory
