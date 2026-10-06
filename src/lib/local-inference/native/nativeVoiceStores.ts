@@ -66,7 +66,7 @@ const MODEL_CLIP_LIMITS: Record<string, { min?: number; max?: number }> = {
   // users record/import only what will actually be used.
   'omnivoice-0.6b': { max: 8 },
   // audio.cpp caps a VibeVoice voice prompt at 10s on every backend but CUDA/HIP
-  // (src/models/vibevoice/session.cpp:26-27); Sokuji hands it the clip in memory, which skips
+  // (src/models/vibevoice/session.cpp:25-26); Sokuji hands it the clip in memory, which skips
   // that cap, so the store applies it.
   'vibevoice-1.5b': { max: 10 },
 };

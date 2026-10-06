@@ -434,6 +434,27 @@ void vibevoice_requests() {
     assert(carries_clip(req) && req.text_input->text == "Speaker 1: Hello.");
 }
 
+// The engine's line pattern ends in (.*), and "." refuses a CR, so a line carrying a bare CR
+// would be dropped (or, alone, make the synth throw "no valid Speaker N: lines"). A CR breaks a
+// line the way an LF does; CRLF is one break, because the empty piece between them is skipped.
+void vibevoice_breaks_a_line_at_a_bare_cr() {
+    assert(vibevoice_script("A\rB") == "Speaker 1: A\nSpeaker 1: B");
+    assert(vibevoice_script("A\r\nB") == "Speaker 1: A\nSpeaker 1: B");
+    assert(vibevoice_script("A\r\rB\n\rC\r") == "Speaker 1: A\nSpeaker 1: B\nSpeaker 1: C");
+    assert(vibevoice_script("\r").empty());
+    const auto h = handle_for("vibevoice");
+    const rt::TaskRequest req = build_request(h.get(), "Hello there.\rWhat is that?", "en", 1.0f);
+    assert(req.text_input->text == "Speaker 1: Hello there.\nSpeaker 1: What is that?");
+}
+
+// A label the user typed is text for the one speaker, never a second speaker: the wrapper
+// prefixes every line unconditionally.
+void vibevoice_keeps_a_typed_speaker_label_as_text() {
+    const auto h = handle_for("vibevoice");
+    const rt::TaskRequest req = build_request(h.get(), "Speaker 2: hi", "en", 1.0f);
+    assert(req.text_input->text == "Speaker 1: Speaker 2: hi");
+}
+
 void chatterbox_requests() {
     const auto h = handle_for("chatterbox");
     assert(task_spec_for(*find_family("chatterbox")).task == rt::VoiceTaskKind::VoiceCloning);
@@ -468,6 +489,8 @@ int main() {
     moss_tts_local_requests();
     moss_tts_local_takes_the_vendors_names();
     vibevoice_requests();
+    vibevoice_keeps_a_typed_speaker_label_as_text();
+    vibevoice_breaks_a_line_at_a_bare_cr();
     chatterbox_requests();
     std::puts("test_tts_request ok");
     return 0;

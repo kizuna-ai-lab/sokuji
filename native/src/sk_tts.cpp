@@ -288,16 +288,18 @@ const char *english_language_name(const std::string &code) {
 }
 
 // VibeVoice's speaker script for one plain utterance: every non-blank line, trimmed, becomes
-// "Speaker 1: <line>"; blank lines are dropped.
+// "Speaker 1: <line>"; blank lines are dropped. A line ends at an LF or a CR (a CRLF is a break
+// and an empty piece, which is skipped): the engine's pattern refuses a CR inside a line
+// (tokenizer_text.cpp:49-86), so a line left holding one would be dropped.
 std::string vibevoice_script(const std::string &text) {
     std::string out;
     size_t start = 0;
     while (start <= text.size()) {
-        const size_t end = text.find('\n', start);
+        const size_t end = text.find_first_of("\r\n", start);
         const std::string line = text.substr(start, end == std::string::npos ? std::string::npos : end - start);
-        const size_t first = line.find_first_not_of(" \t\r");
+        const size_t first = line.find_first_not_of(" \t");
         if (first != std::string::npos) {
-            const size_t last = line.find_last_not_of(" \t\r");
+            const size_t last = line.find_last_not_of(" \t");
             if (!out.empty()) out += '\n';
             out += "Speaker 1: ";
             out += line.substr(first, last - first + 1);

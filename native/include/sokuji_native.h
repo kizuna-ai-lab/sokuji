@@ -303,6 +303,9 @@ typedef struct sk_tts_caps {
 } sk_tts_caps;
 typedef bool (*sk_audio_cb)(const float *pcm, size_t n_samples, int32_t sample_rate,
                             int32_t channels, void *user);
+/* device NULL = audio.cpp's BestAvailable, which some families' sessions refuse (vibevoice:
+ * "VibeVoice session supports only CPU, CUDA, HIP, Vulkan, and Metal backends"); callers
+ * should pass the device they mean. */
 SK_API sk_status sk_tts_load(const char *model_path, const sk_device *device,
                       const sk_tts_options *opts, sk_tts **out);
 SK_API sk_status sk_tts_capabilities(sk_tts *, sk_tts_caps *);
