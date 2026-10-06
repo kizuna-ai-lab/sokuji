@@ -97,6 +97,30 @@ const mockCatalog: Record<string, NativeModelInfo> = {
       attribution: 'Some Org',
     },
   },
+  // A TTS card behind the same gate: nativeTtsCards must carry its licence to the card spec.
+  'lic-tts': {
+    id: 'lic-tts',
+    name: 'Licensed TTS Model',
+    languages: ['en'],
+    recommended: false,
+    tiers: [],
+    order: 14,
+    repo: 'org/lic-tts-repo/lic-tts-q8_0.gguf',
+    kind: 'tts',
+    sizeBytes: 600000000,
+    clones: true,
+    streaming: false,
+    voice: { builtin: 'none', custom: 'clip', required: true, transcriptRequired: true },
+    license: {
+      spdx: 'CC-BY-NC-4.0',
+      name: 'Creative Commons Attribution-NonCommercial 4.0',
+      url: 'https://creativecommons.org/licenses/by-nc/4.0/',
+      nonCommercial: true,
+      requiresConsent: true,
+      sourceRepo: 'org/lic-tts-repo',
+      attribution: 'Some TTS Org',
+    },
+  },
   'plain-asr': {
     id: 'plain-asr',
     name: 'Plain ASR Model',
@@ -287,6 +311,21 @@ describe('NativeModelManagementSection — non-commercial license consent gate',
 
     expect(mockDownload).not.toHaveBeenCalled();
     expect(acceptButtonQuery()).toBeInTheDocument();
+  });
+
+  it('a TTS card with a non-commercial licence opens the consent modal too', () => {
+    render(<NativeModelManagementSection />);
+    const card = screen.getByTestId('model-card-lic-tts');
+
+    fireEvent.click(within(card).getByRole('button', { name: /download/i }));
+
+    expect(mockDownload).not.toHaveBeenCalled();
+    expect(acceptButtonQuery()).toBeInTheDocument();
+    expect(screen.getByText(/downloads from org\/lic-tts-repo/)).toBeInTheDocument();
+
+    fireEvent.click(acceptButtonQuery()!);
+    expect(mockDownload).toHaveBeenCalledTimes(1);
+    expect(mockDownload).toHaveBeenCalledWith('lic-tts', undefined);
   });
 
   it('a card with no license downloads immediately — the modal never shows', () => {

@@ -402,6 +402,21 @@ describe('nativeCatalog', () => {
     expect(voiceCapability(undefined)).toEqual({ builtin: 'none', custom: 'none' });
   });
 
+  it('nativeTtsCards carries each card\'s licence, so the download gate can read it', () => {
+    const license = {
+      spdx: 'CC-BY-NC-4.0', name: 'Creative Commons Attribution-NonCommercial 4.0 International',
+      url: 'https://creativecommons.org/licenses/by-nc/4.0/', nonCommercial: true, requiresConsent: true,
+      sourceRepo: 'audio-cpp/audio.cpp-gguf', attribution: 'k2-fsa/OmniVoice',
+    };
+    const cat: Record<string, NativeModelInfo> = {
+      ...TTS_CAT,
+      'omnivoice-0.6b': M('omnivoice-0.6b', 'tts', ['multi'], 4, false, { clones: true, license }),
+    };
+    const cards = nativeTtsCards('en', cat);
+    expect(cards.find((c) => c.selectId === 'omnivoice-0.6b')?.license).toEqual(license);
+    expect(cards.find((c) => c.selectId === 'moss-tts-nano')?.license).toBeUndefined();
+  });
+
   it('nativeTtsCards lists tts models for the language; resolveNativeTts honors off/valid/default', () => {
     expect(nativeTtsCards('ja', TTS_CAT).map((c) => c.selectId)).toEqual(['moss-tts-nano']);
     expect(resolveNativeTts('off', 'en', TTS_CAT)).toBeUndefined();

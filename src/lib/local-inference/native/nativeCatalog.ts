@@ -538,6 +538,9 @@ export function nativeTtsCards(tgt: string, catalog: Record<string, NativeModelI
     selectId: m.id, downloadId: m.id, name: m.name, languages: m.languages,
     recommended: i === 0, sortOrder: m.order,
     streaming: m.streaming, clones: m.clones,
+    // The download gate reads spec.license (requiresConsent): non-commercial and
+    // conditional licences sit behind it (ruling 12, spec stage 2.4), TTS cards included.
+    license: m.license,
   }));
 }
 
