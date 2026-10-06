@@ -1,12 +1,14 @@
 // The test cache's main-GGUF rule (model_path.h) on a scratch directory: the largest .gguf
 // directly inside wins, ties go to the first name, subdirectories and other extensions are
 // ignored, a path naming a .gguf comes back unchanged, and a directory without one yields "".
+// model_ggufs lists every GGUF the path stands for.
 #undef NDEBUG
 #include <cassert>
 #include <chrono>
 #include <cstdio>
 #include <fstream>
 #include <string>
+#include <vector>
 #include "model_path.h"
 
 namespace fs = std::filesystem;
@@ -47,6 +49,16 @@ int main() {
     // Nothing to find: "", and the caller reports it.
     fs::create_directories(root / "empty");
     assert(find_gguf((root / "empty").string()).empty());
+
+    // Every GGUF a model path stands for: a directory's .gguf files directly inside it, sorted
+    // (the main one and its companions); a path naming a .gguf, that file alone, since an
+    // asr/translate test model is one file in the cache root beside unrelated models.
+    const std::vector<std::string> all = model_ggufs(root.string());
+    assert(all.size() == 4);
+    assert(name_of(all[0]) == "mmproj-model-Q8_0.gguf" && name_of(all[1]) == "model-Q8_0.gguf" &&
+           name_of(all[2]) == "tokenizer-model-Q8_0.gguf" && name_of(all[3]) == "vocoder-model-Q8_0.gguf");
+    assert(model_ggufs(companion) == std::vector<std::string>{companion});
+    assert(model_ggufs((root / "empty").string()).empty());
 
     fs::remove_all(root);
     std::puts("test_model_path ok");

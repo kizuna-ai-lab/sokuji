@@ -11,7 +11,8 @@
 #include "sokuji_native.h"
 #include "gguf.h"
 #include "ggml.h"
-#include "model_path.h"   // find_gguf: a test model directory's main GGUF
+#include "model_path.h"      // find_gguf: a test model directory's main GGUF
+#include "model_tensors.h"   // the names and matrix dtypes of the model path's GGUFs
 
 static const char *const RUNG_OPS[] = {"MUL_MAT", "MUL_MAT_ID", "GET_ROWS"};
 
@@ -58,34 +59,16 @@ static Clip reference_clip(const sk_device *cpu, const std::string &supertonic_d
 static int record_family(const std::string &stage, const std::string &family, const std::string &model,
                          const sk_device *dev, const std::string &out_path, int32_t flash_attn,
                          const std::string &supertonic_dir) {
-    // The main GGUF: the file the recording's weight names, `# source:` and
-    // `# dtypes-in-file:` come from, and the path a tts family is loaded from below. A
-    // companion's tensors (if the directory stages any) are recorded with their literal dtypes.
-    // `# dtypes-in-file:` holds only the dtypes of the matrix tensors (two or more dimensions),
-    // the set WEIGHT expands over; sk_record_end_to_file refuses a recording whose WEIGHT dtype
-    // is outside it (owner's ruling 2026-10-06, op-coverage precision). `names` still lists
-    // every tensor.
+    // The main GGUF: the file the recording's `# source:` names and the path a tts family is
+    // loaded from below. The weight names and `# dtypes-in-file:` come from every GGUF the model
+    // path stands for, the main one and any companion staged beside it (model_tensors.h): the
+    // union of their matrix-tensor dtypes is the set WEIGHT expands over, and
+    // sk_record_end_to_file refuses a recording whose WEIGHT dtype is outside it (owner's ruling
+    // 2026-10-06, op-coverage precision).
     const std::string gguf = find_gguf(model);
     if (gguf.empty()) { std::fprintf(stderr, "record_family: no .gguf in %s\n", model.c_str()); return 0; }
     std::vector<std::string> names, dtypes_v; std::set<std::string> dtypes;
-    {
-        ggml_context *meta = nullptr;
-        gguf_init_params ip = { /*no_alloc*/ true, /*ctx*/ &meta };
-        gguf_context *g = gguf_init_from_file(gguf.c_str(), ip);
-        if (!g) { std::fprintf(stderr, "record_family: cannot read %s\n", gguf.c_str()); return 0; }
-        for (int64_t i = 0; i < gguf_get_n_tensors(g); ++i) {
-            const char *name = gguf_get_tensor_name(g, i);
-            names.push_back(name);
-            const ggml_tensor *t = ggml_get_tensor(meta, name);
-            if (!t) {
-                std::fprintf(stderr, "record_family: no tensor %s in %s's metadata\n", name, gguf.c_str());
-                ggml_free(meta); gguf_free(g); return 0;
-            }
-            if (ggml_n_dims(t) >= 2) dtypes.insert(ggml_type_name(gguf_get_tensor_type(g, i)));
-        }
-        ggml_free(meta);
-        gguf_free(g);
-    }
+    if (!model_tensors(model, names, dtypes)) return 0;
     dtypes_v.assign(dtypes.begin(), dtypes.end());
     std::vector<const char *> name_ptrs; for (auto &s : names) name_ptrs.push_back(s.c_str());
     std::vector<const char *> dtype_ptrs; for (auto &s : dtypes_v) dtype_ptrs.push_back(s.c_str());

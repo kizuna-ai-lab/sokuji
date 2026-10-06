@@ -219,10 +219,10 @@ SK_API sk_status sk_record_end_to_file(const char *path, const char *stage, cons
     std::sort(r.dtypes_in_file.begin(), r.dtypes_in_file.end());
     /* WEIGHT is expanded over `# dtypes-in-file` alone, so a WEIGHT source in a dtype outside it
      * is a question the gate would never ask: refuse the recording instead (owner's ruling
-     * 2026-10-06, op-coverage precision). The set holds the main GGUF's matrix-tensor dtypes; a
-     * 1-D head (pocket_tts's out_eos) passes only because its dtype is a matrix one too. Only
-     * the dtypes the expansion asks count: a float or a quantized type, never an integer table
-     * (sk_device_supports_ops skips those). */
+     * 2026-10-06, op-coverage precision). The set holds the matrix-tensor dtypes of the model's
+     * GGUFs, the main one and its companions; a 1-D head (pocket_tts's out_eos) passes only
+     * because its dtype is a matrix one too. Only the dtypes the expansion asks count: a float or
+     * a quantized type, never an integer table (sk_device_supports_ops skips those). */
     std::string missing;
     for (int32_t t : weight_types) {
         const ggml_type ty = static_cast<ggml_type>(t);

@@ -12,7 +12,7 @@
 
 constexpr int32_t SK_SRC_ABSENT = -1;
 /* Rung-bearing weight (src0 of MUL_MAT / MUL_MAT_ID / GET_ROWS): expanded per dtype at query
- * time. The expansion set is the dtypes of the model file's matrix tensors; the recorder refuses
+ * time. The expansion set is the dtypes of the model GGUFs' matrix tensors; the recorder refuses
  * a WEIGHT whose dtype is outside that set (owner's ruling 2026-10-06, op-coverage precision). */
 constexpr int32_t SK_SRC_WEIGHT = -2;
 
@@ -72,7 +72,7 @@ struct sk_op_recording {
     /* ggml's device kind the model was loaded on for this recording ("vulkan", "metal",
      * "cpu"). TTS recordings must be taken on a non-host device — see sk_ops.cpp. */
     std::string recorded_on;
-    std::vector<std::string> dtypes_in_file;    // ggml_type_name() of the GGUF's matrix-tensor (ggml_n_dims >= 2) dtypes, sorted
+    std::vector<std::string> dtypes_in_file;    // ggml_type_name() of the matrix-tensor (ggml_n_dims >= 2) dtypes of the main GGUF and its companions, sorted
     std::vector<sk_op_desc> nodes;
 };
 

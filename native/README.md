@@ -270,17 +270,19 @@ copies, each pinned by a test:
 - `_main_gguf` in `python/tests/test_sokuji_native.py`, used by the CPU-family table and the GPU
   gate (pinned by `test_main_gguf_picks_the_largest_gguf_beside_its_companions`).
 
-A recording's weight names, `# source:` and `# dtypes-in-file:` come from the main GGUF.
-`# dtypes-in-file:` holds the dtypes of that file's matrix tensors (`ggml_n_dims >= 2`), which is
-the set `WEIGHT` expands over; the recorder refuses a `WEIGHT` whose dtype is outside that set, so
-a 1-D norm's dtype stays out without a `WEIGHT` going unasked (owner's ruling 2026-10-06). The
-sidecar's post-download set (`gguf_header`'s `matrix_types`) uses the same dimension rule. A TTS
-recording describes the GPU graph it was taken on and is not required to be CPU-complete;
-`test_common`'s CPU sweep asserts full support for asr and translate recordings only. A
-companion's tensors are recorded with their literal dtypes unless that family's own code says
-otherwise. `test_tts`, the parity suite and the single-family Python
-tests still pass their one-file directories as directories, which keeps that form of
-`model_path` covered.
+A recording's `# source:` names the main GGUF. Its weight names and `# dtypes-in-file:` come from
+every `.gguf` directly in the model directory, the main one and its companions (`model_ggufs`,
+`tests/model_tensors.h`); a model path that names a `.gguf` file, as the asr/translate ones in the
+cache root do, stands for that file alone. `# dtypes-in-file:` holds the union of those files'
+matrix-tensor dtypes (`ggml_n_dims >= 2`), which is the set `WEIGHT` expands over, as the
+sidecar's post-download set (`accel.weight_dtypes`, the `matrix_types` of the rung's main and
+companion GGUFs, same dimension rule) is. The recorder refuses a `WEIGHT` whose dtype is outside
+that set, so a 1-D norm's dtype stays out without a `WEIGHT` going unasked (owner's ruling
+2026-10-06). A companion's weights are recorded as `WEIGHT` like the main file's. A TTS recording
+describes the GPU graph it was taken on and is not required to be CPU-complete; `test_common`'s CPU
+sweep asserts full support for asr and translate recordings only. `test_tts`, the parity suite and
+the single-family Python tests still pass their one-file directories as directories, which keeps
+that form of `model_path` covered.
 
 CTest needs two real model directories for `test_tts` (skips with exit code 77 when absent).
 Note: supertonic's Q8_0 GGUF is not currently viable (audio.cpp `docs/gguf.md`: "Q8 blockers
