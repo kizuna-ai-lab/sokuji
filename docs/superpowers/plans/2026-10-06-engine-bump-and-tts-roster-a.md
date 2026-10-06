@@ -87,7 +87,8 @@ Every command in this plan is written out with these expanded. The Bash tool her
 - **Owner rulings after the spec (2026-10-06):**
   - VoiceTut: OmniVoice's licence, languages `("ar",)` displayed as Egyptian Arabic, driven with `arz` via the card's `load_language`.
   - Irodori v4.1-Anime: MIT.
-  - VibeVoice: conditional consent gate.
+  - VibeVoice: conditional consent gate, with the licence named after the model card's terms of use (`LicenseRef-VibeVoice-Model-Card-Terms`), not "MIT". That keeps the modal from calling MIT "not an open-source license".
+  - The multitalker ASR card is fixed inside A (Task 39), not as a separate hotfix.
   - F5-TTS: out.
   - All twelve `.ops` are re-recorded at the bump.
   - A broken language is dropped from its card, not the family.
@@ -8546,8 +8547,8 @@ def test_vibevoice_card_and_license():
     assert rungs["bf16"].est_bytes == 5_420_021_858
     assert m.size_bytes == 3_224_701_538
     assert catalog.license_dict(m) == {
-        "spdx": "MIT",
-        "name": "MIT License, with Microsoft's research-use model card",
+        "spdx": "LicenseRef-VibeVoice-Model-Card-Terms",
+        "name": "VibeVoice model card terms of use (research use only)",
         "url": "https://huggingface.co/microsoft/VibeVoice-1.5B",
         "nonCommercial": False,
         "requiresConsent": True,
@@ -8638,11 +8639,12 @@ with:
         default_quant="q8_0", order=16, clones=True, streaming=False,
         sample_rate=48000),
     # VibeVoice 1.5B: an optional clip conditions its one speaker (sk_tts.cpp wraps the text
-    # as a "Speaker 1:" script); English and Chinese only, per its model card. MIT, but
-    # Microsoft's model card limits it to research use and advises against commercial or
-    # real-world use without further testing, so it goes behind the consent gate with the
-    # conditional wording (owner's ruling, 2026-10-06). The official pipeline's audible
-    # disclaimer and watermark are not part of the audio.cpp port.
+    # as a "Speaker 1:" script); English and Chinese only, per its model card. Microsoft's
+    # model card limits it to research use and advises against commercial or real-world use
+    # without further testing, so it goes behind the consent gate with the conditional
+    # wording, named after those terms rather than the weights' MIT tag so the modal does
+    # not call MIT "not an open-source license" (owner's rulings, 2026-10-06). The official
+    # pipeline's audible disclaimer and watermark are not part of the audio.cpp port.
     _tts_gguf_row(
         "vibevoice-1.5b", "VibeVoice 1.5B", ("en", "zh"),
         "vibevoice", "VibeVoice-1.5B-GGUF",
@@ -8651,8 +8653,8 @@ with:
         default_quant="q8_0", order=17, clones=True, streaming=False,
         sample_rate=24000,
         license=License(
-            spdx="MIT",
-            name="MIT License, with Microsoft's research-use model card",
+            spdx="LicenseRef-VibeVoice-Model-Card-Terms",
+            name="VibeVoice model card terms of use (research use only)",
             url="https://huggingface.co/microsoft/VibeVoice-1.5B",
             non_commercial=False,
             requires_consent=True,
