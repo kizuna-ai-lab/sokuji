@@ -115,3 +115,23 @@ describe("Gemini's builder", () => {
     expect(describeGemini(build())).toEqual({ translationModel: DIALOGUE });
   });
 });
+
+describe("Gemini's builder: transcription only", () => {
+  const TO: SessionContext = { ...SPEAKER, translate: false };
+  it('asks for no translation, voice or translating prompt', () => {
+    const d = build({}, TO);
+    expect(d).toMatchObject({ kind: 'dialogue', transcribeOnly: true });
+    expect(d.instructions).toContain('silent transcriber');
+    for (const absent of ['voice', 'translationTargetCode'] as const) expect(d, absent).not.toHaveProperty(absent);
+    const t = build({ model: TRANSLATE }, TO);
+    expect(t).toMatchObject({ kind: 'translate', transcribeOnly: true });
+    expect(t).not.toHaveProperty('translationTargetCode');
+  });
+  it('does not refuse a target Live Translate cannot speak', () => {
+    const odd: SessionContext = { ...TO, direction: { source: 'en', target: 'tlh' } };
+    expect(buildGemini(odd, { ...GEMINI_DEFAULTS, model: TRANSLATE }, shared())).not.toHaveProperty('refused');
+  });
+  it('leaves a normal leg untouched', () => {
+    expect(build()).not.toHaveProperty('transcribeOnly');
+  });
+});
