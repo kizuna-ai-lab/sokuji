@@ -57,6 +57,20 @@ def test_matrix_types_leave_out_one_dimensional_tensors():
     assert h.architecture == "cosyvoice3" and h.n_tensors == 2
 
 
+def test_a_trailing_size_one_dimension_does_not_make_a_matrix():
+    """The dimension rule is ggml_n_dims's, the op recorder's: trailing size-1 dimensions do not
+    count, so a [N,1] head a converter stored 2-D is not a matrix on either side. A size-1
+    dimension before a larger one still counts."""
+    h = gguf_header.read_header(io.BytesIO(_gguf_bytes("x", [
+        ("head.weight", 30, (896, 1)),                # bf16 [N,1]: 1-D to ggml
+        ("stop.weight", 0, (896, 1, 1)),              # f32 [N,1,1]: 1-D to ggml
+        ("conv.weight", 1, (3, 1, 16)),               # f16 [3,1,16]: 3-D
+        ("output.weight", 8, (896, 6561)),            # q8_0 matrix
+    ])))
+    assert h.matrix_types == frozenset({"f16", "q8_0"})
+    assert h.tensor_types == frozenset({"bf16", "f32", "f16", "q8_0"})
+
+
 def test_a_path_and_a_stream_read_identically(tmp_path):
     """A path (str or os.PathLike) is opened and closed here; a binary file object is read as
     it is and left open, so a caller can hand in a remote file it owns."""

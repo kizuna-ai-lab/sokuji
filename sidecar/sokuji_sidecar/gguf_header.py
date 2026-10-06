@@ -34,9 +34,10 @@ class GgufHeader:
     architecture: str
     tensor_types: frozenset[str]
     n_tensors: int
-    # The dtypes of the tensors whose GGUF n_dims is two or more: the set a recording's WEIGHT
-    # expands over. A norm or bias is 1-D and never a WEIGHT node, so its dtype must not widen
-    # the set (owner's ruling 2026-10-06, op-coverage precision).
+    # The dtypes of the matrix tensors, those with two or more dimensions by ggml_n_dims's rule
+    # (trailing size-1 dimensions do not count): the set a recording's WEIGHT expands over. The
+    # op recorder refuses a WEIGHT whose dtype is outside this set, so a 1-D norm's dtype stays
+    # out without a WEIGHT going unasked (owner's ruling 2026-10-06, op-coverage precision).
     matrix_types: frozenset[str]
 
 
@@ -104,11 +105,10 @@ def read_header(source) -> GgufHeader:
             for _ in range(n_tensors):
                 r.s()                                      # name
                 nd = r.u32()
-                for _ in range(nd):
-                    r.u64()                                # dims
+                dims = [r.u64() for _ in range(nd)]
                 ty = GGML_TYPE_NAMES.get(r.u32(), "unknown")
                 types.add(ty)
-                if nd >= 2:
+                if any(d > 1 for d in dims[1:]):           # ggml_n_dims(t) >= 2
                     matrix.add(ty)
                 r.u64()                                    # offset
         except GgufError:

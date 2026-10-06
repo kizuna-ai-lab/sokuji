@@ -314,9 +314,10 @@ def weight_dtypes(model, compute_type: str) -> tuple:
     for the rung (TtsModel.rung_dtypes) or, without one, the label's deliberately wide
     fallback set. Sorted, so it keys.
 
-    Matrix tensors only (owner's ruling 2026-10-06, op-coverage precision): a norm or bias is
-    1-D and never a WEIGHT node, and its dtype (CosyVoice 3 keeps its norms in bf16 beside a
-    q8_0 LM head) would have Vulkan asked a MUL_MAT[bf16,f16] no graph builds, and refused.
+    Matrix tensors only (owner's ruling 2026-10-06, op-coverage precision): a 1-D norm's dtype
+    (CosyVoice 3 keeps its norms in bf16 beside a q8_0 LM head) would have Vulkan asked a
+    MUL_MAT[bf16,f16] no graph builds, and refused; the op recorder refuses a WEIGHT whose dtype
+    is outside the matrix set, so leaving the 1-D ones out drops no question a graph asks.
 
     The intersection is not cosmetic. A GGUF header also lists its i32/i64 index tables, and a
     WEIGHT node is the src0 of a MUL_MAT/MUL_MAT_ID/GET_ROWS — never an integer tensor. Asking

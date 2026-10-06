@@ -1173,6 +1173,12 @@ def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
     not_weight = sorted({t for dts in rung_dtypes.values() for t in dts} - WEIGHT_CAPABLE_DTYPES)
     if not_weight:
         raise ValueError(f"{mid}: rung_dtypes holds types a WEIGHT tensor cannot: {not_weight}")
+    # Within the label's own fallback set, which gen_ops_data.py's WIDEST_FALLBACK sizes the
+    # SK_OP_COVERAGE_MAX check by.
+    for q, dts in rung_dtypes.items():
+        extra = sorted(dts - RUNG_FALLBACK_DTYPES[q])
+        if extra:
+            raise ValueError(f"{mid}: rung_dtypes[{q!r}] goes beyond RUNG_FALLBACK_DTYPES[{q!r}]: {extra}")
     paths = ([dir_] if dir_ else []) + [fname for fname, _n in quants.values()]
     paths += [rel for comps in companions.values() for rel, _n in comps]
     bad = sorted(p for p in paths if not _repo_path(p))

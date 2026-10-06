@@ -1002,6 +1002,12 @@ def test_tts_gguf_row_checks_its_rung_dtypes():
         row({"q8_0": set()})
     with pytest.raises(ValueError, match="i64"):
         row({"q8_0": {"q8_0", "i64"}})                              # an index table, never a WEIGHT
+    # Within the label's own fallback set, which gen_ops_data.py's WIDEST_FALLBACK sizes the
+    # coverage cap by.
+    with pytest.raises(ValueError, match=r"\['q4_K'\]"):
+        row({"q8_0": {"q8_0", "q4_K"}})
+    with pytest.raises(ValueError, match=r"\['f16'\]"):
+        row({"f32": {"f32", "f16"}})
 
 
 def test_every_tts_card_after_the_fourteen_carries_its_rung_dtypes():
@@ -1018,18 +1024,20 @@ def test_every_tts_card_after_the_fourteen_carries_its_rung_dtypes():
 
 def test_card_rung_dtypes_cover_the_cached_files():
     """A card's own set is its rung's pre-download question; once the main GGUF is on disk its
-    matrix tensors' dtypes are the question (accel.weight_dtypes). The first must cover the
-    second, or the answer before the download never asks a dtype the file holds, and could
-    accept a rung the answer after the download refuses."""
+    matrix tensors' dtypes are the question (accel.weight_dtypes). Read from the published
+    file, the first equals the second for that very file: a dtype missing from the card's set is
+    never asked before the download, which could accept a rung the answer after it refuses, and
+    an extra one is a question the file never poses."""
     from sokuji_sidecar import gguf_header
     checked = 0
     for m in catalog.tts_models():
         for ct, dtypes in m.rung_dtypes:
             dep = next(d for d in m.deployments if d.compute_type == ct)
             fname = os.path.basename(catalog.split_artifact(dep.artifact)[1])
+            # Matched by the rung's own file name, so every hit is that rung's file.
             for path in glob.glob(f"{_CACHE}/**/{glob.escape(fname)}", recursive=True):
                 weights = gguf_header.read_header(path).matrix_types & catalog.WEIGHT_CAPABLE_DTYPES
-                assert weights <= dtypes, (m.id, ct, path, sorted(weights - dtypes))
+                assert weights == dtypes, (m.id, ct, path, sorted(weights ^ dtypes))
                 checked += 1
     if not checked:
         pytest.skip("no rung of a card with its own dtype sets is cached")
