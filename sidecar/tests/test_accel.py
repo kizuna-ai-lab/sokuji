@@ -1743,3 +1743,13 @@ def test_models_catalog_carries_the_chatterbox_card():
     assert c["repo"] == "audio-cpp/audio.cpp-gguf/Chatterbox-GGUF/chatterbox-q8_0.gguf"
     assert c["sizeBytes"] == 2088393668
     assert "license" not in c
+
+
+def test_models_catalog_carries_the_chatterbox_turbo_card():
+    c = _catalog("tts")["chatterbox-turbo"]
+    assert c["order"] == 19 and c["clones"] is False and c["streaming"] is False
+    assert c["voice"]["builtin"] == "none" and c["voice"]["custom"] == "none"
+    assert c["voice"]["required"] is False
+    assert c["repo"] == "audio-cpp/audio.cpp-gguf/Chatterbox-Turbo-GGUF/chatterbox-turbo-q8_0.gguf"
+    assert c["sizeBytes"] == 699101408
+    assert "license" not in c

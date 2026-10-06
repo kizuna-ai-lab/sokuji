@@ -1428,6 +1428,13 @@ def test_tts_asr_loopback_per_family():
     else:
         skipped.append("chatterbox" if chatterbox_dir else "chatterbox (needs supertonic for a reference clip)")
 
+    # chatterbox_turbo (2026-10-06): its one built-in voice; no clip.
+    chatterbox_turbo_dir = family_dir("SK_TEST_TTS_CHATTERBOX_TURBO_DIR")
+    if chatterbox_turbo_dir:
+        attempt("chatterbox_turbo", chatterbox_turbo_dir, lambda m: None)
+    else:
+        skipped.append("chatterbox_turbo")
+
     # pocket_tts (English package): the ONE full-production-chain leg (ruling
     # R17(s4) / I1 point 2; the symlinked-snapshot loading defect it surfaced is
     # fixed by ruling R18's hard-link staging) -- see

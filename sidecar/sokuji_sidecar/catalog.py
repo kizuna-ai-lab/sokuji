@@ -1521,6 +1521,16 @@ TTS_MODELS: list[TtsModel] = [
         default_quant="q8_0", order=18, clones=True, streaming=False,
         sample_rate=24000,
         rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}, "f16": {"f16"}}),
+    # Chatterbox Turbo: a community model in audio.cpp (src/community_models/chatterbox_turbo,
+    # spec status "testing"), English, one built-in voice; it refuses a clip, so it does not
+    # clone. audio.cpp's spec names an f16 package the Hub folder does not hold: q8_0 only.
+    _tts_gguf_row(
+        "chatterbox-turbo", "Chatterbox Turbo", ("en",),
+        "chatterbox_turbo", "Chatterbox-Turbo-GGUF",
+        {"q8_0": ("chatterbox-turbo-q8_0.gguf", 699101408)},
+        default_quant="q8_0", order=19, clones=False, streaming=False,
+        sample_rate=24000,
+        rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}}),
 ]
 
 

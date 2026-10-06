@@ -54,6 +54,7 @@ static const Case CASES[] = {
     {"tts", "moss_tts_local", "SK_TEST_TTS_MOSS_LOCAL_DIR"},
     {"tts", "vibevoice", "SK_TEST_TTS_VIBEVOICE_DIR"},
     {"tts", "chatterbox", "SK_TEST_TTS_CHATTERBOX_DIR"},
+    {"tts", "chatterbox_turbo", "SK_TEST_TTS_CHATTERBOX_TURBO_DIR"},
     {"asr", "whisper", "SK_TEST_ASR_GGUF"},               {"asr", "moonshine_streaming", "SK_TEST_ASR_STREAM_GGUF"},
     {"translate", "qwen3", "SK_TEST_TRANSLATE_GGUF"},
 };

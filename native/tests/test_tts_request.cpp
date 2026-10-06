@@ -472,6 +472,19 @@ void chatterbox_requests() {
     assert(opt(build_request(other.get(), "Hello.", "en", 1.0f), "seed") == "0");
 }
 
+void chatterbox_turbo_requests() {
+    const auto h = handle_for("chatterbox_turbo");
+    assert(!h->clones);
+    assert(task_spec_for(*find_family("chatterbox_turbo")).task == rt::VoiceTaskKind::Tts);
+    rt::TaskRequest req = build_request(h.get(), "Hello.", "en", 1.0f);
+    assert(!req.voice.has_value());
+    assert(req.text_input && req.text_input->language == "en");
+    // Not strict; do_sample is not read by this family, and the fixed seed is. Its T3 maps seed
+    // 0 to a constant but its flow noise shares chatterbox's choose_seed, so it too is given a
+    // fixed nonzero seed.
+    assert(opt(req, "do_sample") == "false" && opt(req, "seed") == "1");
+}
+
 }  // namespace
 
 int main() {
@@ -492,6 +505,7 @@ int main() {
     vibevoice_keeps_a_typed_speaker_label_as_text();
     vibevoice_breaks_a_line_at_a_bare_cr();
     chatterbox_requests();
+    chatterbox_turbo_requests();
     std::puts("test_tts_request ok");
     return 0;
 }

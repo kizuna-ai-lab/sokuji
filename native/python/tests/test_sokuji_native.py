@@ -97,7 +97,7 @@ def test_audio_families():
     # always compiles silero_vad in regardless of AUDIOCPP_MODELS (see upstreams.cmake), so
     # the family rides along unused, reported by sk_audio_families() but never called.
     required = {"index_tts2", "irodori_tts", "moss_tts_nano", "omnivoice", "pocket_tts",
-                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3", "fireredtts3", "moss_tts_local", "vibevoice", "chatterbox"}
+                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3", "fireredtts3", "moss_tts_local", "vibevoice", "chatterbox", "chatterbox_turbo"}
     assert required <= set(families)
     assert families == sorted(families)
     # Sized from the library's own count, so the binding never cuts the list off.
@@ -415,6 +415,8 @@ TTS_VIBEVOICE_DIR = os.environ.get("SK_TEST_TTS_VIBEVOICE_DIR")
 needs_tts_vibevoice = pytest.mark.skipif(not (HAVE_TREE and TTS_VIBEVOICE_DIR), reason="needs a built tree and SK_TEST_TTS_VIBEVOICE_DIR")
 TTS_CHATTERBOX_DIR = os.environ.get("SK_TEST_TTS_CHATTERBOX_DIR")
 needs_tts_chatterbox = pytest.mark.skipif(not (HAVE_TREE and TTS_CHATTERBOX_DIR), reason="needs a built tree and SK_TEST_TTS_CHATTERBOX_DIR")
+TTS_CHATTERBOX_TURBO_DIR = os.environ.get("SK_TEST_TTS_CHATTERBOX_TURBO_DIR")
+needs_tts_chatterbox_turbo = pytest.mark.skipif(not (HAVE_TREE and TTS_CHATTERBOX_TURBO_DIR), reason="needs a built tree and SK_TEST_TTS_CHATTERBOX_TURBO_DIR")
 needs_tts_supertonic = pytest.mark.skipif(not (HAVE_TREE and TTS_SUPERTONIC_DIR), reason="needs a built tree and SK_TEST_TTS_SUPERTONIC_DIR")
 needs_tts_moss = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_DIR), reason="needs a built tree and SK_TEST_TTS_MOSS_DIR")
 needs_tts_index = pytest.mark.skipif(not (HAVE_TREE and TTS_INDEX_DIR), reason="needs a built tree and SK_TEST_TTS_INDEX_DIR")
@@ -629,6 +631,9 @@ NEW_CPU_TTS_FAMILIES = [
     CpuTtsCase("vibevoice", "SK_TEST_TTS_VIBEVOICE_DIR", TTS_VIBEVOICE_DIR, "Hello from VibeVoice.", "en", 24000, False),
     # chatterbox is clone-only (a VoiceCloning session; no clip, no synth).
     CpuTtsCase("chatterbox", "SK_TEST_TTS_CHATTERBOX_DIR", TTS_CHATTERBOX_DIR, "Hello from Chatterbox.", "en", 24000, True),
+    # chatterbox_turbo speaks its one built-in voice and takes no clip.
+    CpuTtsCase("chatterbox_turbo", "SK_TEST_TTS_CHATTERBOX_TURBO_DIR", TTS_CHATTERBOX_TURBO_DIR, "Hello from Chatterbox Turbo.", "en", 24000, False,
+               clones=False),
 ]
 
 
@@ -729,6 +734,36 @@ def test_tts_new_family_accepts_a_clip_that_carries_a_transcript(case):
     frames = int(samples.shape[0])
     assert 0.3 < frames / out_rate < 20.0
     assert float(np.max(np.abs(samples))) > 0.01
+
+
+# Both Chatterbox families draw their noise from audio.cpp's chatterbox choose_seed, which
+# turns seed 0 into a random draw: build_request gives each a fixed nonzero seed, so two
+# synths of the same text on one session are sample-identical (ruling R7(s4)).
+SEEDED_CPU_TTS_CASES = [c for c in NEW_CPU_TTS_FAMILIES if c.family in ("chatterbox", "chatterbox_turbo")]
+
+
+@pytest.mark.parametrize("case", SEEDED_CPU_TTS_CASES, ids=_cpu_case_ids(SEEDED_CPU_TTS_CASES))
+def test_tts_chatterbox_synthesis_is_reproducible(case):
+    if not HAVE_TREE:
+        pytest.skip("needs a built tree")
+    if not case.model_dir:
+        pytest.skip(f"needs {case.env_name}")
+    if case.needs_ref and not TTS_SUPERTONIC_DIR:
+        pytest.skip(f"{case.family} needs SK_TEST_TTS_SUPERTONIC_DIR for a reference clip")
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    voice = _cpu_reference_clip() if case.needs_ref else None
+    t = sokuji_native.tts_load(_main_gguf(case.model_dir), case.family, cpu)
+    try:
+        if voice is not None:
+            t.set_voice(voice[0], voice[1], ref_text=voice[2])
+        first, rate = t.synth(case.text, language=case.language)
+        second, rate2 = t.synth(case.text, language=case.language)
+    finally:
+        t.unload()
+    assert rate == rate2 == case.rate
+    assert first.shape[0] > 0
+    assert np.array_equal(first, second)
 
 
 @needs_tts_index
@@ -942,6 +977,20 @@ def test_tts_chatterbox_languages_are_the_engines_nineteen():
     assert float(np.max(np.abs(samples))) > 0.01
 
 
+@needs_tts_chatterbox_turbo
+def test_tts_chatterbox_turbo_takes_no_clip():
+    """Chatterbox Turbo speaks one built-in voice and its prepare() refuses a clip; the family
+    row says clones=false, so sk_tts_set_voice refuses one up front."""
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    t = sokuji_native.tts_load(_main_gguf(TTS_CHATTERBOX_TURBO_DIR), "chatterbox_turbo", cpu)
+    try:
+        with pytest.raises(sokuji_native.NativeError, match="does not support voice cloning"):
+            t.set_voice(np.zeros(24000, dtype=np.float32), 24000)
+    finally:
+        t.unload()
+
+
 # --------------------------------------------------------------------------------------
 # TTS on a real GPU device.
 #
@@ -1024,6 +1073,7 @@ GPU_TTS_FAMILIES = {
     # recording (taken in English) covers; every other language runs its multilingual T3.
     "chatterbox": ("SK_TEST_TTS_CHATTERBOX_DIR", TTS_CHATTERBOX_DIR, None, True, 30.0,
                    "Hallo Welt, wie geht es dir heute?", "de"),
+    "chatterbox_turbo": ("SK_TEST_TTS_CHATTERBOX_TURBO_DIR", TTS_CHATTERBOX_TURBO_DIR, None, False, 30.0, GPU_TTS_TEXT, "en"),
 }
 
 # The dirs above hold the DEFAULT rung — the catalog's `default_quant`, which is
