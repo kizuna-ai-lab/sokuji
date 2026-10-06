@@ -271,12 +271,14 @@ copies, each pinned by a test:
   gate (pinned by `test_main_gguf_picks_the_largest_gguf_beside_its_companions`).
 
 A recording's weight names, `# source:` and `# dtypes-in-file:` come from the main GGUF.
-`# dtypes-in-file:` holds the dtypes of that file's matrix tensors (`n_dims >= 2`), which is the
-set `WEIGHT` expands over: a norm or bias is 1-D and never a `WEIGHT` node, so its dtype stays out
-(owner's ruling 2026-10-06). A TTS recording describes the GPU graph it was taken on and is not
-required to be CPU-complete; `test_common`'s CPU sweep asserts full support for asr and translate
-recordings only. A companion's tensors are recorded with their literal dtypes unless that
-family's own code says otherwise. `test_tts`, the parity suite and the single-family Python
+`# dtypes-in-file:` holds the dtypes of that file's matrix tensors (`ggml_n_dims >= 2`), which is
+the set `WEIGHT` expands over; the recorder refuses a `WEIGHT` whose dtype is outside that set, so
+a 1-D norm's dtype stays out without a `WEIGHT` going unasked (owner's ruling 2026-10-06). The
+sidecar's post-download set (`gguf_header`'s `matrix_types`) uses the same dimension rule. A TTS
+recording describes the GPU graph it was taken on and is not required to be CPU-complete;
+`test_common`'s CPU sweep asserts full support for asr and translate recordings only. A
+companion's tensors are recorded with their literal dtypes unless that family's own code says
+otherwise. `test_tts`, the parity suite and the single-family Python
 tests still pass their one-file directories as directories, which keeps that form of
 `model_path` covered.
 

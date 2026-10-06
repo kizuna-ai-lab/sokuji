@@ -329,7 +329,9 @@ SK_API void      sk_record_begin(const char *const *weight_names, int32_t n_name
 /* Stop capturing and write the .ops file. `recorded_on` is the ggml device kind the model was
  * loaded on ("vulkan" | "metal" | "cpu"); it becomes the file's `# recorded-on:` header. A tts
  * recording taken on "cpu" is not a valid shipping recording — audio.cpp builds a different
- * graph on a host backend (see sk_ops.h's sk_op_desc::host). */
+ * graph on a host backend (see sk_ops.h's sk_op_desc::host). A recording with a WEIGHT source
+ * whose float or quantized dtype is not in `dtypes` is refused with SK_ERR_INVALID_ARGUMENT and
+ * nothing is written. */
 SK_API sk_status sk_record_end_to_file(const char *path, const char *stage, const char *family,
                                        const char *source_file, const char *recorded_on,
                                        const char *const *dtypes, int32_t n_dtypes);

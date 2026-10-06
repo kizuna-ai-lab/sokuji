@@ -124,7 +124,9 @@ int main(int argc, char **argv) {
             std::istringstream ls(b); std::string l; while (std::getline(ls, l)) if (l.rfind("op=", 0) == 0) a += l + "\n";
             std::ofstream(tmp) << a;
         }
-        if (count <= 0) { std::printf("FAIL %s/%s: recorded nothing\n", c.stage, c.family); ++failures; continue; }
+        // record_family's stderr line says which: nothing recorded, a load error, or the
+        // recorder refusing a WEIGHT dtype outside the dtypes-in-file set.
+        if (count <= 0) { std::printf("FAIL %s/%s: recording failed or recorded nothing\n", c.stage, c.family); ++failures; continue; }
         std::string live_text; read_file(tmp, live_text);
         sk_op_recording live; assert(sk_ops_parse(live_text, live, err));
         const auto a = spellings(shipped), bset = spellings(live);

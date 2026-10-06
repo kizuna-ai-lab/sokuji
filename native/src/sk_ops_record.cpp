@@ -26,6 +26,10 @@ std::mutex g_rec_mutex;
 std::set<std::string> g_weight_names;
 std::set<int32_t> g_rung_ops;
 std::vector<sk_op_desc> g_nodes;
+/* The live dtype of every source recorded as WEIGHT. sk_record_end_to_file refuses a recording
+ * whose WEIGHT dtypes the passed `# dtypes-in-file` set does not cover (owner's ruling
+ * 2026-10-06, op-coverage precision). */
+std::set<int32_t> g_weight_types;
 bool g_recording = false;
 ggml_backend_t g_cpu = nullptr;
 
@@ -46,7 +50,10 @@ int32_t src_type_of(const ggml_tensor *node, int i) {
         const char *name = ggml_get_name(root);
         const bool named_in_file = name && *name && g_weight_names.count(name);
         const bool weights_buffer = root->buffer && ggml_backend_buffer_get_usage(root->buffer) == GGML_BACKEND_BUFFER_USAGE_WEIGHTS;
-        if (leaf && (named_in_file || weights_buffer)) return SK_SRC_WEIGHT;
+        if (leaf && (named_in_file || weights_buffer)) {
+            g_weight_types.insert(root->type);
+            return SK_SRC_WEIGHT;
+        }
     }
     return static_cast<int32_t>(t->type);
 }
@@ -185,7 +192,7 @@ SK_API int32_t sk_record_register_device(void) {
 
 SK_API void sk_record_begin(const char *const *names, int32_t n, const char *const *rung_ops, int32_t n_ops) {
     std::lock_guard<std::mutex> l(g_rec_mutex);
-    g_weight_names.clear(); g_rung_ops.clear(); g_nodes.clear();
+    g_weight_names.clear(); g_rung_ops.clear(); g_nodes.clear(); g_weight_types.clear();
     for (int32_t i = 0; i < n; ++i) if (names[i]) g_weight_names.insert(names[i]);
     for (int32_t i = 0; i < n_ops; ++i)
         for (int o = 0; o < GGML_OP_COUNT; ++o)
@@ -199,15 +206,36 @@ SK_API sk_status sk_record_end_to_file(const char *path, const char *stage, cons
                                        const char *source_file, const char *recorded_on,
                                        const char *const *dtypes, int32_t n_dtypes) {
     sk_op_recording r;
+    std::set<int32_t> weight_types;
     {
         std::lock_guard<std::mutex> l(g_rec_mutex);
         g_recording = false;
         r.nodes = g_nodes;   // COPIED, not moved: a recording costs minutes of model loading and
-    }                        // synthesis, so a failed write must leave it retryable in memory.
+        weight_types = g_weight_types;   // synthesis, so a failed write or a refusal below must
+    }                                    // leave it retryable in memory.
     r.stage = stage; r.family = family; r.engine = sk_engine_versions(); r.source_file = source_file;
     r.recorded_on = recorded_on ? recorded_on : "cpu";
     for (int32_t i = 0; i < n_dtypes; ++i) r.dtypes_in_file.push_back(dtypes[i]);
     std::sort(r.dtypes_in_file.begin(), r.dtypes_in_file.end());
+    /* WEIGHT is expanded over `# dtypes-in-file` alone, so a WEIGHT source in a dtype outside it
+     * is a question the gate would never ask: refuse the recording instead (owner's ruling
+     * 2026-10-06, op-coverage precision). The set holds the main GGUF's matrix-tensor dtypes; a
+     * 1-D head (pocket_tts's out_eos) passes only because its dtype is a matrix one too. Only
+     * the dtypes the expansion asks count: a float or a quantized type, never an integer table
+     * (sk_device_supports_ops skips those). */
+    std::string missing;
+    for (int32_t t : weight_types) {
+        const ggml_type ty = static_cast<ggml_type>(t);
+        if (ty != GGML_TYPE_F32 && ty != GGML_TYPE_F16 && ty != GGML_TYPE_BF16 && !ggml_is_quantized(ty)) continue;
+        const std::string name = ggml_type_name(ty);
+        if (std::find(r.dtypes_in_file.begin(), r.dtypes_in_file.end(), name) == r.dtypes_in_file.end())
+            missing += (missing.empty() ? "" : " ") + name;
+    }
+    if (!missing.empty()) {
+        sk::set_error(std::string("sk_record_end_to_file: ") + stage + "/" + family + ": a WEIGHT source holds " +
+                      missing + ", which the dtypes-in-file set does not");
+        return SK_ERR_INVALID_ARGUMENT;
+    }
     std::ofstream f(path);
     if (!f) {
         sk::set_error(std::string("sk_record_end_to_file: cannot open ") + path + " for writing");

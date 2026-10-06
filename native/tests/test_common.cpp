@@ -150,13 +150,18 @@ int main(int argc, char **argv) {
             c = {};
             assert(sk_device_supports_ops(cpu_index, stage, family, ptrs.data(), (int32_t)ptrs.size(), &c) == SK_OK);
             assert(c.n_ops > 0 && c.n_ops <= SK_OP_COVERAGE_MAX);
-            for (int i = 0; i < c.n_ops; ++i) if (!c.ops[i].supported) std::fprintf(stderr, "%s/%s unsupported on cpu: %s\n", stage, family, c.ops[i].name);
             // A tts recording is taken on a GPU and describes the device graph. audio.cpp builds a
             // different graph on a host backend (an LM head fed F16 only on Vulkan: cosyvoice3's
             // ar.cpp:66-72, the shared causal_decoder), and the planner never gates a tts cpu
             // tier, so only asr and translate must be CPU-complete (owner's ruling 2026-10-06,
-            // op-coverage precision).
-            if (std::string(stage) != "tts") assert(c.all_supported == 1);
+            // op-coverage precision). A tts refusal is printed marked as expected, so a real
+            // asr/translate one stands out.
+            const bool tts = std::string(stage) == "tts";
+            for (int i = 0; i < c.n_ops; ++i)
+                if (!c.ops[i].supported)
+                    std::fprintf(stderr, "%s%s/%s unsupported on cpu: %s\n",
+                                 tts ? "(expected: GPU-recorded tts graph) " : "", stage, family, c.ops[i].name);
+            if (!tts) assert(c.all_supported == 1);
             // Fix round 2 (C1), device-independent so every lane guards it: a WEIGHT node is the
             // src0 of a MUL_MAT/MUL_MAT_ID/GET_ROWS and can only hold a float or a quantized
             // type, so the integer index-table dtypes a header also lists must be skipped before

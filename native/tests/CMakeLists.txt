@@ -99,6 +99,12 @@ if(SOKUJI_RECORD_OPS)
     target_include_directories(test_ops_coverage PRIVATE ../src)
     add_test(NAME test_ops_coverage COMMAND test_ops_coverage ${CMAKE_BINARY_DIR}/lib)
     set_tests_properties(test_ops_coverage PROPERTIES ENVIRONMENT "GGML_BACKEND_PATH=${CMAKE_BINARY_DIR}/lib" SKIP_RETURN_CODE 77)
+    # The recorder refuses a WEIGHT whose dtype is outside the passed dtypes-in-file set; a
+    # hand-built graph through the recording device, no model.
+    add_executable(test_record_guard test_record_guard.cpp)
+    target_link_libraries(test_record_guard PRIVATE sokuji_native ggml)
+    add_test(NAME test_record_guard COMMAND test_record_guard ${CMAKE_BINARY_DIR}/lib)
+    set_tests_properties(test_record_guard PROPERTIES ENVIRONMENT "GGML_BACKEND_PATH=${CMAKE_BINARY_DIR}/lib")
 endif()
 
 # Spec A: the pure Vulkan-selection helper (no loader, no GPU) — runs on every lane.

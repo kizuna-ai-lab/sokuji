@@ -62,8 +62,9 @@ static int record_family(const std::string &stage, const std::string &family, co
     // `# dtypes-in-file:` come from, and the path a tts family is loaded from below. A
     // companion's tensors (if the directory stages any) are recorded with their literal dtypes.
     // `# dtypes-in-file:` holds only the dtypes of the matrix tensors (two or more dimensions),
-    // the set WEIGHT expands over, because a norm or bias is 1-D and never a WEIGHT node (owner's
-    // ruling 2026-10-06, op-coverage precision); `names` still lists every tensor.
+    // the set WEIGHT expands over; sk_record_end_to_file refuses a recording whose WEIGHT dtype
+    // is outside it (owner's ruling 2026-10-06, op-coverage precision). `names` still lists
+    // every tensor.
     const std::string gguf = find_gguf(model);
     if (gguf.empty()) { std::fprintf(stderr, "record_family: no .gguf in %s\n", model.c_str()); return 0; }
     std::vector<std::string> names, dtypes_v; std::set<std::string> dtypes;
