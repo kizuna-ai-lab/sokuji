@@ -1390,6 +1390,16 @@ def test_tts_asr_loopback_per_family():
     else:
         skipped.append("cosyvoice3" if cosyvoice3_dir else "cosyvoice3 (needs supertonic for a reference clip)")
 
+    # fireredtts3 (2026-10-06): FireRedTTS-3 Base clones with the clip's transcript, which its
+    # continuation prompt requires; "en" reaches it as the vendor's "English" (sk_tts.cpp).
+    fireredtts3_dir = family_dir("SK_TEST_TTS_FIREREDTTS3_DIR")
+    if fireredtts3_dir and supertonic_ref:
+        ref_samples, ref_rate, ref_text = supertonic_ref
+        attempt("fireredtts3", fireredtts3_dir,
+                lambda m: m.set_voice(_loopback_mono(ref_samples), ref_rate, ref_text))
+    else:
+        skipped.append("fireredtts3" if fireredtts3_dir else "fireredtts3 (needs supertonic for a reference clip)")
+
     # pocket_tts (English package): the ONE full-production-chain leg (ruling
     # R17(s4) / I1 point 2; the symlinked-snapshot loading defect it surfaced is
     # fixed by ruling R18's hard-link staging) -- see

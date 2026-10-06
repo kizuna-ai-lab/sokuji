@@ -1694,3 +1694,21 @@ def test_cosyvoice3_card_is_gated_by_r16(native_env):
     b.set_voice(np.ones(2400, np.float32), 24000)
     samples, _rate, _ms = b.generate("hello")
     assert samples.dtype == np.float32
+
+
+def test_fireredtts3_base_card_is_gated_by_r16(native_env):
+    """FireRedTTS-3 Base refuses a synth with no clip, so the card's voice_required gates a
+    bare generate(); a clip with its transcript un-gates it."""
+    from sokuji_sidecar import catalog
+    created, log = native_env
+    m = catalog.tts_model("fireredtts3-base")
+    assert m.voice_required is True
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=m.family, voice_required=m.voice_required))
+    with pytest.raises(backends.BackendLoadError, match="fireredtts3"):
+        b.generate("hello")
+    assert log == []
+    assert b._workers == []
+    b.set_voice(np.ones(2400, np.float32), 24000, ref_text="hello there")
+    samples, _rate, _ms = b.generate("hello")
+    assert samples.dtype == np.float32

@@ -285,6 +285,32 @@ void cosyvoice3_requests() {
     assert(task_spec_for(*find_family("cosyvoice3")).task == rt::VoiceTaskKind::Tts);
 }
 
+void fireredtts3_requests() {
+    assert(base_language_code("ZH-hant_TW") == "zh");
+    assert(base_language_code(nullptr).empty());
+    assert(std::string(english_language_name("yue")) == "Cantonese");
+    assert(english_language_name("xx") == nullptr);
+
+    assert(task_spec_for(*find_family("fireredtts3")).task == rt::VoiceTaskKind::VoiceCloning);
+    const auto h = handle_for("fireredtts3");
+    give_clip(h.get(), "The quick brown fox.");
+    rt::TaskRequest req = build_request(h.get(), "Hello.", "en", 1.0f);
+    assert(carries_clip(req));
+    assert(opt(req, "language") == "English");
+    assert(opt(req, "reference_text") == "The quick brown fox.");
+    assert(!has(req, "do_sample") && opt(req, "seed") == "0");
+    req = build_request(h.get(), "Hello.", "PT_br", 1.0f);
+    assert(opt(req, "language") == "Portuguese");
+    req = build_request(h.get(), "Hello.", "yue", 1.0f);
+    assert(opt(req, "language") == "Cantonese");
+    // A code with no name stays on text_input only, where the engine refuses it by name.
+    req = build_request(h.get(), "Hello.", "xx", 1.0f);
+    assert(!has(req, "language"));
+    assert(req.text_input && req.text_input->language == "xx");
+    req = build_request(h.get(), "Hello.", nullptr, 1.0f);
+    assert(!has(req, "language"));
+}
+
 }  // namespace
 
 int main() {
@@ -297,6 +323,7 @@ int main() {
     load_language_is_kept_for_every_family_but_pocket_tts();
     load_language_replaces_the_callers_on_every_synth();
     cosyvoice3_requests();
+    fireredtts3_requests();
     std::puts("test_tts_request ok");
     return 0;
 }

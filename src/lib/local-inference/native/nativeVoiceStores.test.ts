@@ -128,3 +128,11 @@ describe('CosyVoice 3 clip window', () => {
     expect(s.capability.maxClipSeconds).toBe(20);
   });
 });
+
+describe('FireRedTTS-3 Base clip window', () => {
+  it('keeps the default 3-20s window (audio.cpp sets no ceiling of its own)', () => {
+    const s = voiceStoreFor('clip', 'fireredtts3-base')!;
+    expect(s.capability.minClipSeconds).toBe(3);
+    expect(s.capability.maxClipSeconds).toBe(20);
+  });
+});

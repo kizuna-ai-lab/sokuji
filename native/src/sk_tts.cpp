@@ -152,6 +152,11 @@ constexpr FamilyInfo kFamilies[] = {
     // offline only (:88-93); the reference clip is mandatory (:170-174); strict options,
     // declaring reference_text and template_name.
     {"cosyvoice3",     false, true,  false, 24000, false, true,  true,  FamilyTask::Tts, nullptr},
+    // fireredtts3 (audio.cpp src/models/fireredtts3/session.cpp): the Base checkpoint takes only
+    // a VoiceCloning session, offline (:225-237); the clip is mandatory and its continuation
+    // prompt is built from reference_text (:73-89); strict options, declaring reference_text and
+    // language.
+    {"fireredtts3",    false, true,  true,  24000, false, true,  true,  FamilyTask::VoiceCloning, nullptr},
 };
 
 const FamilyInfo *find_family(const char *name) {
@@ -231,6 +236,34 @@ int backend_relative_index(ggml_backend_dev_t dev) {
     return 0;
 }
 #endif  // SK_TTS_REQUEST_ONLY
+
+// The bare lower-case primary subtag of a language code: "pt-BR" -> "pt", "ZH_cn" -> "zh".
+std::string base_language_code(const char *language) {
+    std::string code(language ? language : "");
+    const size_t cut = code.find_first_of("-_");
+    if (cut != std::string::npos) code.resize(cut);
+    std::transform(code.begin(), code.end(), code.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    return code;
+}
+
+// English language names, for a family whose prompt is tagged with a name instead of a code.
+struct LanguageName { const char *code; const char *name; };
+constexpr LanguageName kLanguageNames[] = {
+    {"ar", "Arabic"},     {"cs", "Czech"},      {"de", "German"},     {"el", "Greek"},
+    {"en", "English"},    {"es", "Spanish"},    {"fi", "Finnish"},    {"fr", "French"},
+    {"hi", "Hindi"},      {"id", "Indonesian"}, {"it", "Italian"},    {"ja", "Japanese"},
+    {"ko", "Korean"},     {"nl", "Dutch"},      {"pl", "Polish"},     {"pt", "Portuguese"},
+    {"ro", "Romanian"},   {"ru", "Russian"},    {"th", "Thai"},       {"tr", "Turkish"},
+    {"uk", "Ukrainian"},  {"vi", "Vietnamese"}, {"yue", "Cantonese"}, {"zh", "Chinese"},
+};
+
+// nullptr for a code with no entry.
+const char *english_language_name(const std::string &code) {
+    for (const auto &entry : kLanguageNames)
+        if (code == entry.code) return entry.name;
+    return nullptr;
+}
 
 // Builds the per-call TaskRequest: text, whichever voice state (if any) is stored on the
 // handle, speed (supertonic only, Ruling R6(s4)), and the deterministic-synthesis options
@@ -331,6 +364,15 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
     // from the clip alone, so a clip without a transcript takes that one.
     if (t->family == "cosyvoice3" && t->has_clone)
         req.options["template_name"] = t->clone_ref_text.empty() ? "cross_lingual" : "zero_shot";
+
+    // FireRedTTS-3 tags its prompt with the vendor's English language names and throws for
+    // anything else (audio.cpp src/models/fireredtts3/tokenizer_text.cpp:20-45, :214-219); its
+    // "language" option wins over text_input (session.cpp:47-55). A code with no name stays on
+    // text_input alone, where the engine refuses it by name.
+    if (t->family == "fireredtts3" && language && *language) {
+        if (const char *name = english_language_name(base_language_code(language)))
+            req.options["language"] = name;
+    }
 
     // Ruling R7(s4): deterministic synthesis by default — product behavior AND the parity
     // harness's precondition (Task 3 compares this binding's output against the official

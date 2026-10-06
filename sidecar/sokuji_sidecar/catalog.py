@@ -755,7 +755,11 @@ class TtsModel(_ModelBase):
 #   cosyvoice3  "CosyVoice3 requires reference audio" (audio.cpp
 #               src/models/cosyvoice3/session.cpp:170-174); no built-in voice. Needs
 #               the clip only: with no transcript it clones cross-lingually.
-VOICE_REQUIRED_FAMILIES = frozenset({"qwen3_tts", "omnivoice", "index_tts2", "cosyvoice3"})
+#   fireredtts3 (2026-10-06) the Base checkpoint clones or does nothing: "FireRedTTS3 Base
+#               voice clone requires reference audio" (audio.cpp
+#               src/models/fireredtts3/session.cpp:78-83). Its transcript is required too
+#               (transcript_required).
+VOICE_REQUIRED_FAMILIES = frozenset({"qwen3_tts", "omnivoice", "index_tts2", "cosyvoice3", "fireredtts3"})
 
 
 def voice_capability(model: "TtsModel") -> dict:
@@ -1453,6 +1457,18 @@ TTS_MODELS: list[TtsModel] = [
         default_quant="q8_0", order=14, clones=True, streaming=False,
         sample_rate=24000,
         rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}, "f32": {"f32"}}),
+    # FireRedTTS-3 Base: clone-only, and its continuation prompt needs the clip's transcript.
+    # Languages: the vendor's 24, as codes (sk_tts.cpp hands the engine the vendor's tag for
+    # each); its 21 Chinese dialect tags have no language code. orig (12.3 GB) is left out.
+    _tts_gguf_row(
+        "fireredtts3-base", "FireRedTTS-3 Base",
+        ("zh", "en", "yue", "ja", "ko", "es", "fr", "ru", "ar", "tr", "id", "pt",
+         "it", "nl", "vi", "de", "uk", "th", "pl", "ro", "el", "cs", "fi", "hi"),
+        "fireredtts3", "FireRedTTS3-Base-GGUF",
+        {"q8_0": ("fireredtts3-base-q8_0.gguf", 4180334848)},
+        default_quant="q8_0", order=15, clones=True, streaming=False,
+        sample_rate=24000, transcript_required=True,
+        rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}}),
 ]
 
 

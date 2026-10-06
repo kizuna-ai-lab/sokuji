@@ -1703,3 +1703,13 @@ def test_models_catalog_carries_the_cosyvoice3_card():
     assert c["repo"] == "audio-cpp/audio.cpp-gguf/CosyVoice3-GGUF/cosyvoice3-q8_0.gguf"
     assert c["sizeBytes"] == 2257658080
     assert "license" not in c
+
+
+def test_models_catalog_carries_the_fireredtts3_base_card():
+    c = _catalog("tts")["fireredtts3-base"]
+    assert c["order"] == 15 and c["clones"] is True and c["streaming"] is False
+    assert c["voice"]["builtin"] == "none" and c["voice"]["custom"] == "clip"
+    assert c["voice"]["required"] is True and c["voice"]["transcriptRequired"] is True
+    assert c["repo"] == "audio-cpp/audio.cpp-gguf/FireRedTTS3-Base-GGUF/fireredtts3-base-q8_0.gguf"
+    assert c["sizeBytes"] == 4180334848
+    assert "license" not in c

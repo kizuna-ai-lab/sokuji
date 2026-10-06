@@ -217,7 +217,8 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
                 # 2026-09-03 batch
                 "voxcpm1-0.5b", "voxcpm2", "irodori-tts-v4-small", "index-tts2.5",
                 # 2026-10-06 roster expansion (sub-project A)
-                "cosyvoice3")
+                "cosyvoice3",
+                "fireredtts3-base")
 
 # The 2026-09-03 batch arrived CPU-ONLY and earned every tier the same evening
 # (commit 2f2b28bc, after the per-family fleet run; catalog._TTS_TIER_OVERRIDES).
@@ -752,7 +753,7 @@ def test_voice_required_families_is_the_single_source_of_truth():
     already decided was fine, or vice versa."""
     from sokuji_sidecar import tts_backend
     assert tts_backend._VOICE_REQUIRED_FAMILIES is catalog.VOICE_REQUIRED_FAMILIES
-    assert catalog.VOICE_REQUIRED_FAMILIES == {"qwen3_tts", "omnivoice", "index_tts2", "cosyvoice3"}
+    assert catalog.VOICE_REQUIRED_FAMILIES == {"qwen3_tts", "omnivoice", "index_tts2", "cosyvoice3", "fireredtts3"}
     for m in catalog.tts_models():
         assert catalog.voice_capability(m)["required"] is m.voice_required, m.id
     # Every card that predates per-card overrides follows its family's rule.
@@ -1196,3 +1197,28 @@ def test_cosyvoice3_card():
     assert m.size_bytes == 2_257_658_080
     # The matrix dtypes of each rung's published GGUF (no companions), read from the Hub.
     assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"}), "f32": frozenset({"f32"})}
+
+
+def test_fireredtts3_base_card():
+    # 2026-10-06: clone-only, transcript required; the vendor's 24 languages as codes
+    # (sk_tts.cpp maps each to the vendor's tag); cpu-only until a fleet run.
+    m = catalog.tts_model("fireredtts3-base")
+    assert m is not None
+    assert (m.family, m.graph_family, m.name) == ("fireredtts3", "fireredtts3", "FireRedTTS-3 Base")
+    assert m.sort_order == 15 and m.recommended is False
+    assert m.languages == ("zh", "en", "yue", "ja", "ko", "es", "fr", "ru", "ar", "tr", "id", "pt",
+                           "it", "nl", "vi", "de", "uk", "th", "pl", "ro", "el", "cs", "fi", "hi")
+    assert m.clones is True and m.transcript_required is True and m.named_voices is False
+    assert m.streaming is False and m.sample_rate == 24000
+    assert m.voice_required is True and m.presets == () and m.default_preset == ""
+    assert "fireredtts3" in catalog.VOICE_REQUIRED_FAMILIES
+    assert m.license is None and m.extra_files == ()
+    assert m.family not in catalog._TTS_TIER_OVERRIDES
+    assert {d.tier for d in m.deployments} == {"cpu"}
+    rungs = {d.compute_type: d for d in m.deployments}
+    assert set(rungs) == {"q8_0"} and rungs["q8_0"].rank == 2.0
+    assert rungs["q8_0"].artifact == "audio-cpp/audio.cpp-gguf/FireRedTTS3-Base-GGUF/fireredtts3-base-q8_0.gguf"
+    assert rungs["q8_0"].est_bytes == 4_180_334_848
+    assert m.size_bytes == 4_180_334_848
+    # The matrix dtypes of the rung's published GGUF (no companions), read from the Hub.
+    assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"})}

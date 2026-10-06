@@ -97,7 +97,7 @@ def test_audio_families():
     # always compiles silero_vad in regardless of AUDIOCPP_MODELS (see upstreams.cmake), so
     # the family rides along unused, reported by sk_audio_families() but never called.
     required = {"index_tts2", "irodori_tts", "moss_tts_nano", "omnivoice", "pocket_tts",
-                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3"}
+                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3", "fireredtts3"}
     assert required <= set(families)
     assert families == sorted(families)
     # Sized from the library's own count, so the binding never cuts the list off.
@@ -407,6 +407,8 @@ TTS_IRODORI_DIR = os.environ.get("SK_TEST_TTS_IRODORI_DIR")
 TTS_INDEX_DIR = os.environ.get("SK_TEST_TTS_INDEX_DIR")
 TTS_COSYVOICE3_DIR = os.environ.get("SK_TEST_TTS_COSYVOICE3_DIR")
 needs_tts_cosyvoice3 = pytest.mark.skipif(not (HAVE_TREE and TTS_COSYVOICE3_DIR), reason="needs a built tree and SK_TEST_TTS_COSYVOICE3_DIR")
+TTS_FIREREDTTS3_DIR = os.environ.get("SK_TEST_TTS_FIREREDTTS3_DIR")
+needs_tts_fireredtts3 = pytest.mark.skipif(not (HAVE_TREE and TTS_FIREREDTTS3_DIR), reason="needs a built tree and SK_TEST_TTS_FIREREDTTS3_DIR")
 needs_tts_supertonic = pytest.mark.skipif(not (HAVE_TREE and TTS_SUPERTONIC_DIR), reason="needs a built tree and SK_TEST_TTS_SUPERTONIC_DIR")
 needs_tts_moss = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_DIR), reason="needs a built tree and SK_TEST_TTS_MOSS_DIR")
 needs_tts_index = pytest.mark.skipif(not (HAVE_TREE and TTS_INDEX_DIR), reason="needs a built tree and SK_TEST_TTS_INDEX_DIR")
@@ -612,6 +614,9 @@ NEW_CPU_TTS_FAMILIES = [
     CpuTtsCase("index_tts2", "SK_TEST_TTS_INDEX_DIR", TTS_INDEX_DIR, "Hello from IndexTTS.", "en", 22050, True),
     # 2026-10-06 roster expansion. cosyvoice3 is clone-only: no clip, no synth.
     CpuTtsCase("cosyvoice3", "SK_TEST_TTS_COSYVOICE3_DIR", TTS_COSYVOICE3_DIR, "Hello from CosyVoice.", "en", 24000, True),
+    # fireredtts3 (Base) is clone-only and its continuation prompt needs the clip's transcript.
+    CpuTtsCase("fireredtts3", "SK_TEST_TTS_FIREREDTTS3_DIR", TTS_FIREREDTTS3_DIR, "Hello from FireRedTTS.", "en", 24000, True,
+               transcript_required=True),
 ]
 
 
@@ -797,6 +802,61 @@ def test_tts_cosyvoice3_clones_a_clip_that_has_no_transcript():
     assert float(np.max(np.abs(samples))) > 0.01
 
 
+@needs_tts_fireredtts3
+def test_tts_fireredtts3_without_a_voice_fails_cleanly():
+    """FireRedTTS-3 Base clones or does nothing: "FireRedTTS3 Base voice clone requires
+    reference audio", which the catalog's VOICE_REQUIRED_FAMILIES pre-empts in the sidecar."""
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    t = sokuji_native.tts_load(_main_gguf(TTS_FIREREDTTS3_DIR), "fireredtts3", cpu)
+    try:
+        with pytest.raises(sokuji_native.NativeError, match="requires reference audio"):
+            t.synth("Hello from FireRedTTS.", language="en")
+    finally:
+        t.unload()
+
+
+@needs_tts_fireredtts3
+def test_tts_fireredtts3_clone_needs_a_transcript():
+    """transcript_required: sk_tts_set_voice refuses a clip without its transcript up front."""
+    if not TTS_SUPERTONIC_DIR:
+        pytest.skip("needs SK_TEST_TTS_SUPERTONIC_DIR for a real-speech reference clip")
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    pcm, ref_rate, _ref_text = _cpu_reference_clip()
+    t = sokuji_native.tts_load(_main_gguf(TTS_FIREREDTTS3_DIR), "fireredtts3", cpu)
+    try:
+        with pytest.raises(sokuji_native.NativeError, match="requires ref_text"):
+            t.set_voice(pcm, ref_rate)
+    finally:
+        t.unload()
+
+
+@needs_tts_fireredtts3
+def test_tts_fireredtts3_takes_language_codes():
+    """FireRedTTS-3 tags its prompt with the vendor's language names. sk_tts_synth maps the
+    caller's code to one, in any case and with any region subtag; a code with no name reaches
+    the engine as given, and the engine refuses it by name."""
+    if not TTS_SUPERTONIC_DIR:
+        pytest.skip("needs SK_TEST_TTS_SUPERTONIC_DIR for a real-speech reference clip")
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    pcm, ref_rate, ref_text = _cpu_reference_clip()
+    t = sokuji_native.tts_load(_main_gguf(TTS_FIREREDTTS3_DIR), "fireredtts3", cpu)
+    try:
+        t.set_voice(pcm, ref_rate, ref_text=ref_text)
+        # Two bare words ("Hallo Welt.", "Hallo von FireRedTTS.") make the engine emit under a
+        # second of near-silence at seed 0, so the sentence carries a second clause.
+        samples, rate = t.synth("Hallo von FireRedTTS. Wie geht es dir?", language="DE-de")
+        with pytest.raises(sokuji_native.NativeError, match="unsupported FireRedTTS3 Base language tag: xx"):
+            t.synth("Hello.", language="xx")
+    finally:
+        t.unload()
+    assert rate == 24000
+    assert 0.3 < samples.shape[0] / rate < 20.0
+    assert float(np.max(np.abs(samples))) > 0.01
+
+
 # --------------------------------------------------------------------------------------
 # TTS on a real GPU device.
 #
@@ -872,6 +932,7 @@ GPU_TTS_FAMILIES = {
                     "こんにちは、世界。今日はいい天気ですね。", "ja"),
     "index_tts2": ("SK_TEST_TTS_INDEX_DIR", TTS_INDEX_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
     "cosyvoice3": ("SK_TEST_TTS_COSYVOICE3_DIR", TTS_COSYVOICE3_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
+    "fireredtts3": ("SK_TEST_TTS_FIREREDTTS3_DIR", TTS_FIREREDTTS3_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
 }
 
 # The dirs above hold the DEFAULT rung — the catalog's `default_quant`, which is
