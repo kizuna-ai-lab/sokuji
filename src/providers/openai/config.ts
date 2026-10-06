@@ -35,6 +35,8 @@ export interface RealtimeConfig {
   turnDetection: TurnDetection | null;
   /** From this direction's source (D17): the participant's hint is for the language it hears. */
   transcription: TranscriptionHint;
+  /** Transcription only (`context.translate === false`): no response is ever created, so nothing translates or speaks; only the input transcription runs. */
+  transcribeOnly: boolean;
   /** `null` turns it off (ruling 16). */
   noiseReduction: 'near_field' | 'far_field' | null;
   /** A `gpt-realtime-2*` model only. */
@@ -42,6 +44,9 @@ export interface RealtimeConfig {
   /** WebSocket only (ruling 12; choice 18): the owner abandoned WebRTC for this provider (2026-09-29). It reaches `info.transport`, which analytics reports. */
   transport: 'websocket';
 }
+
+/** Sent only because the session wants instructions; no response is ever asked for under it. */
+export const TRANSCRIBE_ONLY_INSTRUCTIONS = 'Transcription only. Do not respond.';
 
 const NOISE: Readonly<Record<NoiseReduction, RealtimeConfig['noiseReduction']>> = {
   None: null,
@@ -58,6 +63,7 @@ export function buildRealtime(context: SessionContext, s: RealtimeSettings, shar
   const { source, target } = context.direction;
   // The participant's direction reads Other's prompt, as Gemini's and LocalInference's builders do.
   const instructions = resolveInstructions(s, { participant: shared.reversed(context.direction), source: realtimeLanguageName(source), target: realtimeLanguageName(target) });
+  const transcribeOnly = context.translate === false;
   const turnDetection: TurnDetection | null = context.turns === 'manual'
     ? null
     : s.turnDetectionMode === 'Semantic'
@@ -71,9 +77,10 @@ export function buildRealtime(context: SessionContext, s: RealtimeSettings, shar
         };
   return {
     model,
-    instructions,
-    modalities: context.speech ? ['audio'] : ['text'],
-    ...(context.speech ? { voice: s.voice || REALTIME_DEFAULT_VOICE } : {}),
+    instructions: transcribeOnly ? TRANSCRIBE_ONLY_INSTRUCTIONS : instructions,
+    modalities: context.speech && !transcribeOnly ? ['audio'] : ['text'],
+    transcribeOnly,
+    ...(context.speech && !transcribeOnly ? { voice: s.voice || REALTIME_DEFAULT_VOICE } : {}),
     // Every knob falls back to its default on a value that is not a finite number; maxTokens' default is 'inf' (unlimited).
     maxTokens: s.maxTokens === 'inf' || !Number.isFinite(s.maxTokens) ? 'inf' : Math.round(clamp(s.maxTokens, REALTIME_MAX_TOKENS_RANGE, REALTIME_MAX_TOKENS_RANGE.max)),
     turnDetection,

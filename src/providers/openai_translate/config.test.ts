@@ -24,8 +24,14 @@ describe("OpenAI Translate's builder", () => {
       transcriptModel: 'gpt-live-transcribe',
       noiseReduction: null,
       silence: { sourceMs: 1500, translationMs: 2000, deferMidSentence: false },
+      transcribeOnly: false,
       transport: 'websocket',
     });
+  });
+
+  it('transcription only: flagged so the adapter plays nothing (the endpoint cannot stop translating)', () => {
+    expect(build({}, { ...SPEAKER, translate: false }).transcribeOnly).toBe(true);
+    expect(build({}, { ...SPEAKER, translate: true }).transcribeOnly).toBe(false);
   });
 
   it('sends the chosen noise reduction as its type, and None as null, which turns it off (ruling 9)', () => {

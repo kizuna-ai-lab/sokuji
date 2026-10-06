@@ -26,19 +26,25 @@ export interface LiveConfig {
    * off.
    */
   sentencesPerSegment: number;
+  /** Transcription only (`context.translate === false`): the input transcript still arrives, the model is told to stay silent, and the adapter plays nothing. The endpoint cannot be switched off, so the runner's fallback still drops what comes anyway. */
+  transcribeOnly: boolean;
   /** WebSocket only. It reaches `info.transport`, which analytics reports. */
   transport: 'websocket';
 }
+
+/** The session's only way to be told not to translate: no wire switch exists, so it is asked to stay silent. */
+export const TRANSCRIBE_ONLY_INSTRUCTIONS = 'Do not translate, answer or speak. Stay completely silent and produce no output.';
 
 export function buildLive(context: SessionContext, s: LiveSettings, shared: SharedSettings): LiveConfig | ProviderRefusal {
   const { source, target } = context.direction;
   // A guard: the languages offer the 55 targets only, so the runner never builds another.
   if (!LIVE_LANGUAGES.some((o) => o.value === target)) return { refused: `OpenAI Live does not translate into ${target}.` };
+  const transcribeOnly = context.translate === false;
   const sentences = shared.segmentation.mode === 'sentences';
   return {
     model: LIVE_MODEL,
     // The participant's direction reads Other's prompt, as the other builders do.
-    instructions: resolveInstructions(s, { participant: shared.reversed(context.direction), source: liveLanguageName(source), target: liveLanguageName(target) }),
+    instructions: transcribeOnly ? TRANSCRIBE_ONLY_INSTRUCTIONS : resolveInstructions(s, { participant: shared.reversed(context.direction), source: liveLanguageName(source), target: liveLanguageName(target) }),
     voice: LIVE_VOICES.some((v) => v.value === s.voice) ? s.voice : LIVE_DEFAULT_VOICE,
     silence: {
       sourceMs: clampSegmentPauseMs(segmentPauseMs(shared.pauses.sourceSeconds)),
@@ -46,6 +52,7 @@ export function buildLive(context: SessionContext, s: LiveSettings, shared: Shar
       deferMidSentence: sentences,
     },
     sentencesPerSegment: sentences ? Math.max(0, Math.round(shared.segmentation.sentencesPerRow)) : 1,
+    transcribeOnly,
     transport: 'websocket',
   };
 }

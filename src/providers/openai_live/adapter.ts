@@ -395,7 +395,7 @@ class LiveLeg implements AdapterSession {
     const rms = computeRms(pcm);
     const voiced = rms > FLOOR_RMS;
     if (voiced) this.frame('in', e.type, { samples: pcm.length, rms: Math.round(rms * 10_000) / 10_000 });
-    this.segments.audio(pcm, { voiced, play: this.request.context.speech });
+    this.segments.audio(pcm, { voiced, play: this.request.context.speech && !this.request.config.transcribeOnly });
   }
 
   /** The seconds billed, framed; two equal reports with 2 s of voiced audio sent between them are a stall (choice 14). */

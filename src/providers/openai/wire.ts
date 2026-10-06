@@ -63,11 +63,11 @@ export interface WireSessionUpdate {
 }
 
 /** Detection as the wire takes it: the server answers each turn itself, and never interrupts a translation still playing (`OpenAIProviderConfig.ts:100-116`). */
-function turnDetectionOf(d: TurnDetection | null): RealtimeAudioInputTurnDetection | null {
+function turnDetectionOf(d: TurnDetection | null, createResponse: boolean): RealtimeAudioInputTurnDetection | null {
   if (d === null) return null;
-  if (d.type === 'semantic_vad') return { type: 'semantic_vad', create_response: true, interrupt_response: false, eagerness: d.eagerness };
+  if (d.type === 'semantic_vad') return { type: 'semantic_vad', create_response: createResponse, interrupt_response: false, eagerness: d.eagerness };
   return {
-    type: 'server_vad', create_response: true, interrupt_response: false,
+    type: 'server_vad', create_response: createResponse, interrupt_response: false,
     threshold: d.threshold, prefix_padding_ms: d.prefixPaddingMs, silence_duration_ms: d.silenceDurationMs,
   };
 }
@@ -92,7 +92,7 @@ export function sessionUpdate(c: RealtimeConfig): WireSessionUpdate {
       tools: [],
       audio: {
         input: {
-          turn_detection: turnDetectionOf(c.turnDetection),
+          turn_detection: turnDetectionOf(c.turnDetection, !c.transcribeOnly),
           transcription: c.transcription,
           noise_reduction: c.noiseReduction === null ? null : { type: c.noiseReduction },
         },

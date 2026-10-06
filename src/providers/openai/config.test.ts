@@ -3,7 +3,7 @@ import type { SessionContext } from '../../lib/contract/adapter';
 import { INSTRUCTIONS_TEMPLATE } from '../../lib/provider/instructions';
 import { AUTO } from '../../lib/provider/languages';
 import type { SharedSettings } from '../../lib/provider/types';
-import { buildRealtime, describeRealtime, type RealtimeConfig } from './config';
+import { TRANSCRIBE_ONLY_INSTRUCTIONS, buildRealtime, describeRealtime, type RealtimeConfig } from './config';
 import { migrateRealtimeSettings, REALTIME_DEFAULTS, type RealtimeSettings } from './settings';
 
 const PAIR = { source: 'en', target: 'zh-CN' };
@@ -31,8 +31,15 @@ describe("OpenAI Realtime's builder", () => {
       transcription: { model: 'gpt-4o-mini-transcribe', language: 'en' },
       noiseReduction: null,
       reasoningEffort: 'low',
+      transcribeOnly: false,
       transport: 'websocket',
     });
+  });
+
+  it('transcription only: text modality, no voice, no translating prompt; the transcription hint stays', () => {
+    const c = build({}, { ...SPEAKER, translate: false });
+    expect(c).toMatchObject({ transcribeOnly: true, modalities: ['text'], instructions: TRANSCRIBE_ONLY_INSTRUCTIONS, transcription: { model: 'gpt-4o-mini-transcribe', language: 'en' } });
+    expect(c.voice).toBeUndefined();
   });
 
   it("builds the participant as the reversed call: Other's prompt, the hint for the language it hears, text when it does not speak, and the user's own detection (ruling 4; D17)", () => {

@@ -24,6 +24,8 @@ export interface TranslateConfig {
   noiseReduction: 'near_field' | 'far_field' | null;
   /** Each side's silence timer and the mid-sentence deferral, as Gemini's Live Translate (choice 4). */
   silence: { sourceMs: number; translationMs: number; deferMidSentence: boolean };
+  /** Transcription only (`context.translate === false`): this endpoint is translation-only and cannot be switched off, so the adapter plays no audio and the runner's fallback drops the translation side. */
+  transcribeOnly: boolean;
   /** WebSocket only (ruling 1; choice 15): the owner abandoned WebRTC for this provider (2026-09-29). It reaches `info.transport`, which analytics reports. */
   transport: 'websocket';
 }
@@ -49,6 +51,7 @@ export function buildTranslate(context: SessionContext, s: TranslateSettings, sh
       deferMidSentence: shared.segmentation.mode === 'sentences',
     },
     // Every session runs over WebSocket (ruling 1): a stored `transportType`, `webrtc` included, is not read into `S`.
+    transcribeOnly: context.translate === false,
     transport: 'websocket',
   };
 }
