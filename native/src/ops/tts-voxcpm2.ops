@@ -2,7 +2,7 @@
 # engine: ggml=0.26.0;transcribe=0.3.1;llama=0.6.0;audiocpp=0.9.0+54aa279;lane=cpu-vulkan
 # source: voxcpm2-q8_0.gguf
 # recorded-on: vulkan
-# dtypes-in-file: bf16 f16 f32 i32 q8_0
+# dtypes-in-file: f16 f32 q8_0
 op=GET_ROWS params=- dst=f32 src=[WEIGHT,i32,-,-,-] ne0=[2048,1,2048] max0=[2048,73448,1,1] max1=[1,1,1,1] maxd=[2048,1,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=300843008
 op=RMS_NORM params=3727c5ac000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 dst=f32 src=[f32,-,-,-,-] ne0=[2048,1,2048] max0=[2048,11,1,1] max1=[1,1,1,1] maxd=[2048,11,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=90112
 op=MUL params=- dst=f32 src=[f32,f32,-,-,-] ne0=[2048,2048,2048] max0=[2048,11,1,1] max1=[2048,11,1,1] maxd=[2048,11,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=90112

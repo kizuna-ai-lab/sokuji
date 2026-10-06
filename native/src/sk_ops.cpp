@@ -117,8 +117,9 @@ SK_API sk_status sk_device_supports_ops(int32_t index, const char *stage, const 
     //     refusing the family over them is a false refusal (this is what made pocket_tts's
     //     CONV_TRANSPOSE_1D[f16,f32] and CPY[bf16,f16] — the HOST spellings of casts that are
     //     f32 on a device — refuse the card on every Vulkan box).
-    //   * a CPU target asks them, because that is exactly where they run, and the CPU sweep in
-    //     test_common.cpp asserts the whole recording is supported there.
+    //   * a CPU target asks them, because that is exactly where they run. The CPU sweep in
+    //     test_common.cpp asserts a whole asr/translate recording is supported there; a tts
+    //     recording describes the GPU graph and is not required to be CPU-complete.
     const bool cpu_target = ggml_backend_dev_type(devs[index]) == GGML_BACKEND_DEVICE_TYPE_CPU;
     try {
         for (const sk_op_desc &d : rec->nodes) {

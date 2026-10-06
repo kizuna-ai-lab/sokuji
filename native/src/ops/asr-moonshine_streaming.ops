@@ -2,7 +2,7 @@
 # engine: ggml=0.26.0;transcribe=0.3.1;llama=0.6.0;audiocpp=0.9.0+54aa279;lane=cpu-vulkan
 # source: moonshine-streaming-tiny-Q8_0.gguf
 # recorded-on: gpu
-# dtypes-in-file: f16 f32 q8_0
+# dtypes-in-file: f16 q8_0
 op=NORM params=358637bd000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 dst=f32 src=[f32,-,-,-,-] ne0=[80,1,80] max0=[80,600,1,1] max1=[1,1,1,1] maxd=[80,600,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=192000
 op=UNARY params=0000000d000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 dst=f32 src=[f32,-,-,-,-] ne0=[1,1,1] max0=[1,1,1,1] max1=[1,1,1,1] maxd=[1,1,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=4
 op=MUL params=- dst=f32 src=[f32,f32,-,-,-] ne0=[80,1,80] max0=[80,600,1,1] max1=[1,1,1,1] maxd=[80,600,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=192000

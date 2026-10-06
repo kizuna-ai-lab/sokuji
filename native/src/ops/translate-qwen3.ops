@@ -2,7 +2,7 @@
 # engine: ggml=0.26.0;transcribe=0.3.1;llama=0.6.0;audiocpp=0.9.0+54aa279;lane=cpu-vulkan
 # source: Qwen3-0.6B-Q8_0.gguf
 # recorded-on: gpu
-# dtypes-in-file: f32 q8_0
+# dtypes-in-file: q8_0
 op=GET_ROWS params=- dst=f32 src=[WEIGHT,i32,-,-,-] ne0=[1024,8,1024] max0=[1024,151936,1,1] max1=[8,1,1,1] maxd=[1024,8,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=165306368
 op=DUP params=- dst=f32 src=[f32,-,-,-,-] ne0=[1024,1,1024] max0=[1024,8,1,1] max1=[1,1,1,1] maxd=[1024,8,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=32768
 op=SET_ROWS params=- dst=f32 src=[f32,i64,f32,-,-] ne0=[1024,8,1024] max0=[1024,8,1,1] max1=[8,1,1,1] maxd=[1024,8,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=32768

@@ -116,8 +116,9 @@ int main(int argc, char **argv) {
     }
     { sk_device_profile bad = {}; assert(sk_device_profile_get(n + 5, &bad) == SK_ERR_INVALID_ARGUMENT); }
 
-    // Op coverage: every shipped recording, expanded over its own dtypes-in-file set, is fully
-    // supported on the CPU device; error paths are the documented statuses.
+    // Op coverage: every shipped recording, expanded over its own dtypes-in-file set, is
+    // answered on the CPU device, and every asr/translate one is fully supported there; error
+    // paths are the documented statuses.
     {
         const char *f16[] = {"f16", "f32"};
         // Ruling: sk_op_coverage is ~136 KB (SK_OP_COVERAGE_MAX == 2048); both instances below
@@ -150,7 +151,12 @@ int main(int argc, char **argv) {
             assert(sk_device_supports_ops(cpu_index, stage, family, ptrs.data(), (int32_t)ptrs.size(), &c) == SK_OK);
             assert(c.n_ops > 0 && c.n_ops <= SK_OP_COVERAGE_MAX);
             for (int i = 0; i < c.n_ops; ++i) if (!c.ops[i].supported) std::fprintf(stderr, "%s/%s unsupported on cpu: %s\n", stage, family, c.ops[i].name);
-            assert(c.all_supported == 1);
+            // A tts recording is taken on a GPU and describes the device graph. audio.cpp builds a
+            // different graph on a host backend (an LM head fed F16 only on Vulkan: cosyvoice3's
+            // ar.cpp:66-72, the shared causal_decoder), and the planner never gates a tts cpu
+            // tier, so only asr and translate must be CPU-complete (owner's ruling 2026-10-06,
+            // op-coverage precision).
+            if (std::string(stage) != "tts") assert(c.all_supported == 1);
             // Fix round 2 (C1), device-independent so every lane guards it: a WEIGHT node is the
             // src0 of a MUL_MAT/MUL_MAT_ID/GET_ROWS and can only hold a float or a quantized
             // type, so the integer index-table dtypes a header also lists must be skipped before

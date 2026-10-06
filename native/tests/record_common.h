@@ -61,17 +61,28 @@ static int record_family(const std::string &stage, const std::string &family, co
     // The main GGUF: the file the recording's weight names, `# source:` and
     // `# dtypes-in-file:` come from, and the path a tts family is loaded from below. A
     // companion's tensors (if the directory stages any) are recorded with their literal dtypes.
+    // `# dtypes-in-file:` holds only the dtypes of the matrix tensors (two or more dimensions),
+    // the set WEIGHT expands over, because a norm or bias is 1-D and never a WEIGHT node (owner's
+    // ruling 2026-10-06, op-coverage precision); `names` still lists every tensor.
     const std::string gguf = find_gguf(model);
     if (gguf.empty()) { std::fprintf(stderr, "record_family: no .gguf in %s\n", model.c_str()); return 0; }
     std::vector<std::string> names, dtypes_v; std::set<std::string> dtypes;
     {
-        gguf_init_params ip = { /*no_alloc*/ true, /*ctx*/ nullptr };
+        ggml_context *meta = nullptr;
+        gguf_init_params ip = { /*no_alloc*/ true, /*ctx*/ &meta };
         gguf_context *g = gguf_init_from_file(gguf.c_str(), ip);
         if (!g) { std::fprintf(stderr, "record_family: cannot read %s\n", gguf.c_str()); return 0; }
         for (int64_t i = 0; i < gguf_get_n_tensors(g); ++i) {
-            names.push_back(gguf_get_tensor_name(g, i));
-            dtypes.insert(ggml_type_name(gguf_get_tensor_type(g, i)));
+            const char *name = gguf_get_tensor_name(g, i);
+            names.push_back(name);
+            const ggml_tensor *t = ggml_get_tensor(meta, name);
+            if (!t) {
+                std::fprintf(stderr, "record_family: no tensor %s in %s's metadata\n", name, gguf.c_str());
+                ggml_free(meta); gguf_free(g); return 0;
+            }
+            if (ggml_n_dims(t) >= 2) dtypes.insert(ggml_type_name(gguf_get_tensor_type(g, i)));
         }
+        ggml_free(meta);
         gguf_free(g);
     }
     dtypes_v.assign(dtypes.begin(), dtypes.end());

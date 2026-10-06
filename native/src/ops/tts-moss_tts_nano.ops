@@ -2,7 +2,7 @@
 # engine: ggml=0.26.0;transcribe=0.3.1;llama=0.6.0;audiocpp=0.9.0+54aa279;lane=cpu-vulkan
 # source: moss-tts-nano-100m-q8_0.gguf
 # recorded-on: vulkan
-# dtypes-in-file: bf16 f16 f32 q8_0
+# dtypes-in-file: f16 f32 q8_0
 op=GET_ROWS params=- dst=f32 src=[WEIGHT,i32,-,-,-] ne0=[768,392,768] max0=[768,16384,1,1] max1=[392,1,1,1] maxd=[768,392,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=13369344
 op=MUL params=- dst=f32 src=[f32,f32,-,-,-] ne0=[768,768,768] max0=[768,392,1,1] max1=[768,392,1,1] maxd=[768,392,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=1204224
 op=ADD params=- dst=f32 src=[f32,f32,-,-,-] ne0=[768,768,768] max0=[768,392,1,1] max1=[768,392,1,1] maxd=[768,392,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=1204224

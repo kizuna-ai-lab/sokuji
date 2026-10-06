@@ -2,7 +2,7 @@
 # engine: ggml=0.26.0;transcribe=0.3.1;llama=0.6.0;audiocpp=0.9.0+54aa279;lane=cpu-vulkan
 # source: omnivoice-q8_0.gguf
 # recorded-on: vulkan
-# dtypes-in-file: f16 f32 i64 q8_0
+# dtypes-in-file: f16 f32 q8_0
 op=IM2COL params=00000001000000000000000300000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 dst=f32 src=[f32,f32,-,-,-] ne0=[7,57600,7] max0=[7,1,64,1] max1=[57600,1,1,1] maxd=[7,57600,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=1612800
 op=MUL_MAT params=- dst=f32 src=[f32,f32,-,-,-] ne0=[7,7,57600] max0=[7,57600,1,1] max1=[7,64,1,1] maxd=[57600,64,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=14745600
 op=REPEAT params=- dst=f32 src=[f32,-,-,-,-] ne0=[1,1,57600] max0=[1,64,1,1] max1=[1,1,1,1] maxd=[57600,64,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=14745600

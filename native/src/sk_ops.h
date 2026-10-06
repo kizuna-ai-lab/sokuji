@@ -11,7 +11,10 @@
 #include <vector>
 
 constexpr int32_t SK_SRC_ABSENT = -1;
-constexpr int32_t SK_SRC_WEIGHT = -2;   // rung-bearing weight (src0 of MUL_MAT / MUL_MAT_ID / GET_ROWS): expanded per dtype at query time
+/* Rung-bearing weight (src0 of MUL_MAT / MUL_MAT_ID / GET_ROWS): expanded per dtype at query
+ * time. The expansion set is the dtypes of the model file's matrix tensors, because a 1-D norm
+ * or bias is never a WEIGHT node (owner's ruling 2026-10-06, op-coverage precision). */
+constexpr int32_t SK_SRC_WEIGHT = -2;
 
 /* EXACT layout of one recorded tensor, replacing the old single "contiguous?" bool.
  *
@@ -69,7 +72,7 @@ struct sk_op_recording {
     /* ggml's device kind the model was loaded on for this recording ("vulkan", "metal",
      * "cpu"). TTS recordings must be taken on a non-host device — see sk_ops.cpp. */
     std::string recorded_on;
-    std::vector<std::string> dtypes_in_file;    // ggml_type_name() of every tensor dtype in the GGUF, sorted
+    std::vector<std::string> dtypes_in_file;    // ggml_type_name() of the GGUF's matrix-tensor (n_dims >= 2) dtypes, sorted
     std::vector<sk_op_desc> nodes;
 };
 

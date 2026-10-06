@@ -270,10 +270,15 @@ copies, each pinned by a test:
 - `_main_gguf` in `python/tests/test_sokuji_native.py`, used by the CPU-family table and the GPU
   gate (pinned by `test_main_gguf_picks_the_largest_gguf_beside_its_companions`).
 
-A recording's weight names, `# source:` and `# dtypes-in-file:` come from the main GGUF. A
-companion's tensors are recorded with their literal dtypes unless that family's own code says
-otherwise. `test_tts`, the parity suite and the single-family Python tests still pass their
-one-file directories as directories, which keeps that form of `model_path` covered.
+A recording's weight names, `# source:` and `# dtypes-in-file:` come from the main GGUF.
+`# dtypes-in-file:` holds the dtypes of that file's matrix tensors (`n_dims >= 2`), which is the
+set `WEIGHT` expands over: a norm or bias is 1-D and never a `WEIGHT` node, so its dtype stays out
+(owner's ruling 2026-10-06). A TTS recording describes the GPU graph it was taken on and is not
+required to be CPU-complete; `test_common`'s CPU sweep asserts full support for asr and translate
+recordings only. A companion's tensors are recorded with their literal dtypes unless that
+family's own code says otherwise. `test_tts`, the parity suite and the single-family Python
+tests still pass their one-file directories as directories, which keeps that form of
+`model_path` covered.
 
 CTest needs two real model directories for `test_tts` (skips with exit code 77 when absent).
 Note: supertonic's Q8_0 GGUF is not currently viable (audio.cpp `docs/gguf.md`: "Q8 blockers
