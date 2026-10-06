@@ -1444,10 +1444,13 @@ def test_tts_asr_loopback_per_family():
     else:
         skipped.append("confucius4_tts" if confucius4_dir else "confucius4_tts (needs supertonic for a reference clip)")
 
-    # magpie_tts (2026-10-06): a baked speaker, chosen through the voice_id option.
+    # magpie_tts (2026-10-06): a baked speaker, chosen through the voice_id option; and, in a leg
+    # of its own, nothing set at all (no preset, no clip), which is what the card's empty
+    # default_preset relies on: the engine's speaker 0 (Aria) answers a bare synth.
     magpie_dir = family_dir("SK_TEST_TTS_MAGPIE_DIR")
     if magpie_dir:
-        attempt("magpie_tts", magpie_dir, lambda m: m.set_preset("Sofia"))
+        attempt("magpie_tts", magpie_dir, lambda m: m.set_preset("Sofia"), note="preset: Sofia")
+        attempt("magpie_tts", magpie_dir, lambda m: None, note="bare: nothing set")
     else:
         skipped.append("magpie_tts")
 

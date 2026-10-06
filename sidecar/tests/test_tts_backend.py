@@ -1790,7 +1790,9 @@ def test_confucius4_card_is_gated_by_r16(native_env):
 
 
 def test_magpie_card_is_not_gated_by_r16(native_env):
-    """Magpie speaks its default speaker (Aria) with nothing set."""
+    """The card is not voice-gated: with no clip and no preset set, the R16 gate lets generate()
+    through to the native layer (mocked here; test_tts_engine's bare loopback leg is what shows
+    the real engine answering a bare synth)."""
     from sokuji_sidecar import catalog
     created, log = native_env
     m = catalog.tts_model("magpie-357m")

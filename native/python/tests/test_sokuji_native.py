@@ -1054,6 +1054,48 @@ def test_tts_magpie_presets_reach_the_engine():
     assert aria.shape != leo.shape or not np.allclose(aria, leo)
 
 
+# The five names of the sidecar card "magpie-357m" (catalog.py, its `presets` tuple): they must
+# match it, since the card offers exactly these and this test is what pins them to the real GGUF.
+MAGPIE_CARD_PRESETS = ("Aria", "Jason", "John", "Leo", "Sofia")
+
+
+@needs_tts_magpie
+def test_tts_magpie_every_card_preset_synthesises():
+    """An unknown voice_id raises ("MagpieTTS voice_id must be a baked voice index or name"), so a
+    preset the card offers that the GGUF does not bake would fail at the user's first synth."""
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    t = sokuji_native.tts_load(_main_gguf(TTS_MAGPIE_DIR), "magpie_tts", cpu)
+    try:
+        for name in MAGPIE_CARD_PRESETS:
+            t.set_preset(name)
+            samples, rate = t.synth("Hello from Magpie.", language="en")
+            assert rate == 22050, name
+            assert 0.3 < samples.shape[0] / rate < 20.0, name
+            assert float(np.max(np.abs(samples))) > 0.01, name
+    finally:
+        t.unload()
+
+
+@needs_tts_magpie
+def test_tts_magpie_a_language_without_a_frontend_fails_cleanly():
+    """audio.cpp has not ported Magpie's Japanese frontend (the vendor lists the language; the
+    card omits it), and its tokenizer throws for any language it has no config for
+    (tokenizer_text.cpp:317). That must surface as a NativeError carrying the engine's message,
+    not a crash, and leave the session usable."""
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    t = sokuji_native.tts_load(_main_gguf(TTS_MAGPIE_DIR), "magpie_tts", cpu)
+    try:
+        with pytest.raises(sokuji_native.NativeError, match="MagpieTTS native tokenizer does not support ja") as e:
+            t.synth("こんにちは、世界。", language="ja")
+        assert e.value.status == sokuji_native._ffi.SK_ERR_BACKEND
+        samples, rate = t.synth("Hello from Magpie.", language="en")
+        assert rate == 22050 and float(np.max(np.abs(samples))) > 0.01
+    finally:
+        t.unload()
+
+
 # --------------------------------------------------------------------------------------
 # TTS on a real GPU device.
 #
