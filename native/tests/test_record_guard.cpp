@@ -5,8 +5,11 @@
  * pocket_tts's out_eos and irodori_tts's token_out_proj) read by MUL_MAT, and an i32 table read
  * by GET_ROWS, which the expansion skips and the set therefore need not hold. Then a model
  * directory with a companion GGUF beside the main one: its set is the union of both files'
- * matrix dtypes, so a WEIGHT read from the companion is accepted. Runs in the SOKUJI_RECORD_OPS
- * configure only, like record_ops. */
+ * matrix dtypes, so a WEIGHT read from the companion is accepted. Last, the set is taken as the
+ * recording device loads it: audio.cpp loads a bf16 weight as f16 on Vulkan and Metal, so for a
+ * tts recording on those a live f16 is covered by the file's bf16 and a live bf16 is not covered
+ * at all; on cpu, and for asr and translate, the set is the file's as it stands. Runs in the
+ * SOKUJI_RECORD_OPS configure only, like record_ops. */
 #undef NDEBUG
 #include <cassert>
 #include <cstdio>
@@ -58,6 +61,27 @@ static void record_main_and_codec(ggml_backend_dev_t dev, ggml_backend_t rec, co
     sk_record_begin(ptrs.data(), (int32_t)ptrs.size(), rung_ops, 3);
     assert(ggml_backend_graph_compute(rec, gf) == GGML_STATUS_SUCCESS);
     assert(sk_record_node_count() == 2);
+    ggml_backend_buffer_free(buf);
+    ggml_free(ctx);
+}
+
+/* Records MUL_MAT(w, x) with the file tensor `w` live in `type`. */
+static void record_weight(ggml_backend_dev_t dev, ggml_backend_t rec, ggml_type type) {
+    ggml_init_params ip = {8 * ggml_tensor_overhead() + ggml_graph_overhead(), nullptr, /*no_alloc*/ true};
+    ggml_context *ctx = ggml_init(ip);
+    ggml_tensor *w = ggml_new_tensor_2d(ctx, type, 32, 4);
+    ggml_set_name(w, "w");
+    ggml_tensor *x = ggml_new_tensor_2d(ctx, GGML_TYPE_F32, 32, 2);
+    ggml_cgraph *gf = ggml_new_graph(ctx);
+    ggml_build_forward_expand(gf, ggml_mul_mat(ctx, w, x));
+    ggml_backend_buffer_t buf = ggml_backend_alloc_ctx_tensors_from_buft(ctx, ggml_backend_dev_buffer_type(dev));
+    assert(buf);
+    ggml_backend_buffer_clear(buf, 0);
+    const char *names[] = {"w"};
+    const char *rung_ops[] = {"MUL_MAT", "MUL_MAT_ID", "GET_ROWS"};
+    sk_record_begin(names, 1, rung_ops, 3);
+    assert(ggml_backend_graph_compute(rec, gf) == GGML_STATUS_SUCCESS);
+    assert(sk_record_node_count() == 1);
     ggml_backend_buffer_free(buf);
     ggml_free(ctx);
 }
@@ -152,6 +176,43 @@ int main(int argc, char **argv) {
                                  both.data(), (int32_t)both.size()) == SK_OK);
     std::filesystem::remove(out);
     fs::remove_all(dir);
+
+    // The set as the recording device loads it. audio.cpp's BackendWeightStore loads a Native
+    // BF16 tensor as F16 when its backend is Vulkan or Metal (backend_weight_store.h:273-286),
+    // so a tts file holding bf16 records f16 WEIGHTs there; llama.cpp and transcribe.cpp load
+    // the file's dtype as is. Every case is run before any is asserted, so one failing case
+    // does not hide the others.
+    struct Case {
+        const char *what, *stage, *recorded_on;
+        ggml_type live;
+        std::vector<const char *> file;
+        sk_status want;
+    };
+    const Case cases[] = {
+        {"tts on vulkan, live f16, file bf16", "tts", "vulkan", GGML_TYPE_F16, {"bf16", "f32"}, SK_OK},
+        {"tts on metal, live f16, file bf16", "tts", "metal", GGML_TYPE_F16, {"bf16", "f32"}, SK_OK},
+        {"tts on cpu, live f16, file bf16", "tts", "cpu", GGML_TYPE_F16, {"bf16", "f32"}, SK_ERR_INVALID_ARGUMENT},
+        {"tts on cpu, live bf16, file bf16", "tts", "cpu", GGML_TYPE_BF16, {"bf16", "f32"}, SK_OK},
+        {"tts on vulkan, live bf16, file bf16", "tts", "vulkan", GGML_TYPE_BF16, {"bf16", "f32"}, SK_ERR_INVALID_ARGUMENT},
+        {"asr on vulkan, live f16, file bf16", "asr", "vulkan", GGML_TYPE_F16, {"bf16"}, SK_ERR_INVALID_ARGUMENT},
+        {"translate on metal, live f16, file bf16", "translate", "metal", GGML_TYPE_F16, {"bf16"}, SK_ERR_INVALID_ARGUMENT},
+    };
+    int failed = 0;
+    for (const Case &c : cases) {
+        record_weight(dev, rec, c.live);
+        const sk_status got = sk_record_end_to_file(out.c_str(), c.stage, "guard_family", "x.gguf", c.recorded_on,
+                                                    c.file.data(), (int32_t)c.file.size());
+        const std::string why = got == SK_OK ? "" : sk_last_error();
+        bool ok = got == c.want;
+        // A refusal names the live dtype it could not place, and writes nothing.
+        if (ok && got != SK_OK)
+            ok = why.find(std::string("holds ") + ggml_type_name(c.live)) != std::string::npos && !std::filesystem::exists(out);
+        std::fprintf(stderr, "test_record_guard: %s: %s (want %s)%s%s\n", c.what, got == SK_OK ? "accepted" : "refused",
+                     c.want == SK_OK ? "accepted" : "refused", why.empty() ? "" : ": ", why.c_str());
+        if (!ok) { std::fprintf(stderr, "test_record_guard: FAILED: %s\n", c.what); ++failed; }
+        std::filesystem::remove(out);
+    }
+    assert(failed == 0);
 
     ggml_backend_free(rec);
     std::printf("test_record_guard: ok\n");

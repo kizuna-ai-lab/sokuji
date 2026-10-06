@@ -27,8 +27,8 @@ std::set<std::string> g_weight_names;
 std::set<int32_t> g_rung_ops;
 std::vector<sk_op_desc> g_nodes;
 /* The live dtype of every source recorded as WEIGHT. sk_record_end_to_file refuses a recording
- * whose WEIGHT dtypes the passed `# dtypes-in-file` set does not cover (owner's ruling
- * 2026-10-06, op-coverage precision). */
+ * whose WEIGHT dtypes the passed `# dtypes-in-file` set, as the recording device loads it, does
+ * not cover (owner's ruling 2026-10-06, op-coverage precision). */
 std::set<int32_t> g_weight_types;
 bool g_recording = false;
 ggml_backend_t g_cpu = nullptr;
@@ -222,18 +222,30 @@ SK_API sk_status sk_record_end_to_file(const char *path, const char *stage, cons
      * 2026-10-06, op-coverage precision). The set holds the matrix-tensor dtypes of the model's
      * GGUFs, the main one and its companions; a 1-D head (pocket_tts's out_eos) passes only
      * because its dtype is a matrix one too. Only the dtypes the expansion asks count: a float or
-     * a quantized type, never an integer table (sk_device_supports_ops skips those). */
+     * a quantized type, never an integer table (sk_device_supports_ops skips those). The set is
+     * taken as `recorded_on` loads it, through the same sk_ops_loaded_weight_dtype the query
+     * maps with (ruling 2026-10-07): on Vulkan or Metal a tts file's bf16 is a live f16, so a
+     * live f16 is covered by it and a live bf16 is covered by nothing, since the query would
+     * never ask it. */
+    std::vector<std::string> loaded;
+    for (const std::string &d : r.dtypes_in_file) {
+        const std::string l = sk_ops_loaded_weight_dtype(r.stage, r.recorded_on, d);
+        if (std::find(loaded.begin(), loaded.end(), l) == loaded.end()) loaded.push_back(l);
+    }
     std::string missing;
     for (int32_t t : weight_types) {
         const ggml_type ty = static_cast<ggml_type>(t);
         if (ty != GGML_TYPE_F32 && ty != GGML_TYPE_F16 && ty != GGML_TYPE_BF16 && !ggml_is_quantized(ty)) continue;
         const std::string name = ggml_type_name(ty);
-        if (std::find(r.dtypes_in_file.begin(), r.dtypes_in_file.end(), name) == r.dtypes_in_file.end())
+        if (std::find(loaded.begin(), loaded.end(), name) == loaded.end())
             missing += (missing.empty() ? "" : " ") + name;
     }
     if (!missing.empty()) {
+        std::string as_loaded;
+        for (const std::string &l : loaded) as_loaded += (as_loaded.empty() ? "" : " ") + l;
         sk::set_error(std::string("sk_record_end_to_file: ") + stage + "/" + family + ": a WEIGHT source holds " +
-                      missing + ", which the dtypes-in-file set does not");
+                      missing + ", which the dtypes-in-file set does not as " + r.recorded_on + " loads it (" +
+                      as_loaded + ")");
         return SK_ERR_INVALID_ARGUMENT;
     }
     std::ofstream f(path);

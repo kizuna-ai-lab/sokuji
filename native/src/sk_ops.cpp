@@ -95,10 +95,18 @@ SK_API sk_status sk_device_supports_ops(int32_t index, const char *stage, const 
     if (!sk::require_init("sk_device_supports_ops")) return SK_ERR_NOT_INITIALISED;
     const auto &devs = sk::devices();
     if (static_cast<size_t>(index) >= devs.size()) { sk::set_error("sk_device_supports_ops: bad index"); return SK_ERR_INVALID_ARGUMENT; }
+    /* Each WEIGHT dtype is asked as the device loads it (sk_ops_loaded_weight_dtype: a tts bf16 is
+     * f16 on Vulkan and Metal), and deduplicated after that mapping, so {bf16, f16} asks f16
+     * once. The device's kind is the one sk_tts.cpp gives audio.cpp as its BackendType
+     * (backend_type_for_kind), spelled in the `# recorded-on` words the helper takes. */
+    const int32_t kind = sk::kind_of(devs[index]);
+    const char *device = kind == SK_DEVICE_VULKAN ? "vulkan" : kind == SK_DEVICE_METAL ? "metal"
+                       : kind == SK_DEVICE_CPU ? "cpu" : "gpu";
     std::vector<int32_t> wtypes;
     for (int32_t i = 0; i < n_weight_dtypes; ++i) {
         int32_t t = weight_dtypes[i] ? type_by_name(weight_dtypes[i]) : -1;
         if (t < 0) { sk::set_error(std::string("sk_device_supports_ops: unknown dtype ") + (weight_dtypes[i] ? weight_dtypes[i] : "NULL")); return SK_ERR_INVALID_ARGUMENT; }
+        t = type_by_name(sk_ops_loaded_weight_dtype(stage, device, weight_dtypes[i]).c_str());
         if (std::find(wtypes.begin(), wtypes.end(), t) == wtypes.end()) wtypes.push_back(t);   // dedupe, first-seen order
     }
     std::string err;

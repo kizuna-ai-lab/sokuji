@@ -284,6 +284,22 @@ sweep asserts full support for asr and translate recordings only. `test_tts`, th
 the single-family Python tests still pass their one-file directories as directories, which keeps
 that form of `model_path` covered.
 
+The gate asks about the dtype a device runs, which for a TTS weight is not always the file's.
+audio.cpp's `BackendWeightStore` loads a tensor with `Native` storage whose file dtype is BF16 as
+F16 when its backend is Vulkan or Metal (`backend_safe_loaded_storage_type`,
+`include/engine/framework/core/backend_weight_store.h:273-286` at the pinned commit); on CPU it
+keeps the file's dtype. The families Sokuji ships load their weights through that store with
+`Native` storage on those backends, which Sokuji never overrides. llama.cpp and transcribe.cpp
+load the file's dtype as is. One helper, `sk_ops_loaded_weight_dtype` (`src/sk_ops.h`), holds the
+rule: for stage `tts` on `vulkan` or `metal`, `bf16` is `f16`; every other dtype, stage and target
+is unchanged. `sk_device_supports_ops` maps each WEIGHT dtype through it and dedupes after
+mapping, so `{bf16, f16}` asks f16 once. `sk_record_end_to_file` maps `# dtypes-in-file:`
+through it for the recording's `# recorded-on:` device before the guard checks the live WEIGHT
+dtypes, so on Vulkan a live f16 is covered by a file's bf16 and a live bf16 is refused, since the
+query would never ask it; a family that kept a bf16 weight as bf16 there would fail its recording,
+not pass the gate unasked. The header itself, the cards' `rung_dtypes` and the sidecar's
+`accel.weight_dtypes` stay the files' own dtypes: the native side maps (ruling 2026-10-07).
+
 CTest needs two real model directories for `test_tts` (skips with exit code 77 when absent).
 Note: supertonic's Q8_0 GGUF is not currently viable (audio.cpp `docs/gguf.md`: "Q8 blockers
 unresolved" in the text/vector graph paths) — F16 is the smallest quant with a passing test

@@ -200,6 +200,12 @@ std::string sk_op_spelling(const sk_op_desc &d, const char *weight) {
     return s + "]->" + type_name(d.dst_type, weight);
 }
 
+std::string sk_ops_loaded_weight_dtype(const std::string &stage, const std::string &device, const std::string &dtype) {
+    // backend_weight_store.h:281-284 (audio.cpp): Vulkan or Metal, and a Native BF16 source.
+    const bool bf16_as_f16 = stage == "tts" && (device == "vulkan" || device == "metal");
+    return bf16_as_f16 && dtype == ggml_type_name(GGML_TYPE_BF16) ? std::string(ggml_type_name(GGML_TYPE_F16)) : dtype;
+}
+
 void sk_ops_add(std::vector<sk_op_desc> &nodes, const sk_op_desc &d) {
     for (auto &n : nodes) {
         if (!n.same_node(d)) continue;

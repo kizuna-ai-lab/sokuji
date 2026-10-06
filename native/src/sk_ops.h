@@ -90,6 +90,21 @@ sk_layout sk_layout_of(const struct ggml_tensor *t);
  * the rebuilt shapes — sk_ops.cpp itself is the library's C ABI and drags the whole runtime. */
 struct ggml_tensor *sk_ops_rebuild_node(struct ggml_context *ctx, const sk_op_desc &d, int32_t weight_type);
 
+/* The dtype a WEIGHT whose file holds `dtype` (a ggml_type_name spelling) is loaded as, and so
+ * the dtype a device is asked about, for `stage` on a device of kind `device` in the
+ * `# recorded-on` vocabulary ("vulkan", "metal", "cpu", "gpu"). audio.cpp's BackendWeightStore
+ * loads a tensor with Native storage whose file dtype is BF16 as F16 when its backend is Vulkan
+ * or Metal (backend_weight_store.h:273-286, backend_safe_loaded_storage_type), on CPU it keeps
+ * the file's dtype, and the families Sokuji ships load their weights through that store with
+ * Native storage on those backends, which Sokuji never overrides; llama.cpp and transcribe.cpp
+ * load the file's dtype as is. So: "bf16" → "f16" for stage "tts" on "vulkan" or "metal", every
+ * other dtype and target unchanged. The one rule both sides use (ruling 2026-10-07, op-coverage
+ * precision): sk_device_supports_ops maps each WEIGHT dtype through it before expanding, and
+ * sk_record_end_to_file maps `# dtypes-in-file` through it before checking the live WEIGHT
+ * dtypes, so a family that ever kept a bf16 weight as bf16 there would be refused at recording,
+ * never asked the wrong question. The header itself keeps the files' own dtypes. */
+std::string sk_ops_loaded_weight_dtype(const std::string &stage, const std::string &device, const std::string &dtype);
+
 std::string sk_ops_format(const sk_op_recording &r);
 bool sk_ops_parse(const std::string &text, sk_op_recording &out, std::string &error);
 /* "OP.param[src0,src1,src2,src3,src4]->dst" with ggml_op_name()/ggml_type_name(); "-" for an

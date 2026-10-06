@@ -234,6 +234,19 @@ int main(int argc, char **argv) {
             assert(sk_device_supports_ops(cpu_index, "tts", "index_tts2", nodup, 2, &cn) == SK_OK);
             assert(cd.n_ops == cn.n_ops);
         }
+
+        // audio.cpp loads a bf16 weight as f16 on Vulkan and Metal only (backend_weight_store.h:
+        // 273-286); a CPU device runs the file's bf16, so it is asked as bf16. WEIGHT is src0, so
+        // "[bf16," is a WEIGHT spelled bf16 (tts/vibevoice holds no literal bf16 source).
+        {
+            const char *bf16[] = {"bf16"};
+            c = {};
+            assert(sk_device_supports_ops(cpu_index, "tts", "vibevoice", bf16, 1, &c) == SK_OK);
+            int bf16_weights = 0;
+            for (int i = 0; i < c.n_ops; ++i) if (std::strstr(c.ops[i].name, "[bf16,") != nullptr) ++bf16_weights;
+            std::fprintf(stderr, "test_common: tts/vibevoice [bf16] on cpu: n_ops=%d, %d WEIGHT entries spelled bf16\n", c.n_ops, bf16_weights);
+            assert(bf16_weights > 0);
+        }
     }
 
     // Fix round 2 addendum: the block-size skip, the integer-dtype skip and the ask()/grow()
@@ -289,6 +302,43 @@ int main(int argc, char **argv) {
                 ++n_swept;
             }
             assert(n_swept == 17);
+
+            // The device runs a tts bf16 weight as f16 (audio.cpp's BackendWeightStore,
+            // backend_weight_store.h:273-286), so the gate asks it as f16: {bf16}, {f16} and
+            // {bf16, f16} are one expansion, entry for entry, with no WEIGHT spelled bf16. WEIGHT
+            // is src0, and vibevoice holds no literal bf16 source, so "[bf16," counts WEIGHT
+            // entries; it does hold literal f16 src0s, so the WEIGHT entries asked as f16 are the
+            // "[f16," entries beyond those an {f32} query spells. asr and translate engines load
+            // the file's dtype as is, so whisper's bf16 is still asked.
+            const char *bf16[] = {"bf16"}, *f16[] = {"f16"}, *both[] = {"bf16", "f16"}, *f32[] = {"f32"};
+            static sk_op_coverage cb = {}, cf = {}, cbf = {}, c32 = {};
+            cb = {}; cf = {}; cbf = {}; c32 = {};
+            assert(sk_device_supports_ops(i, "tts", "vibevoice", bf16, 1, &cb) == SK_OK);
+            assert(sk_device_supports_ops(i, "tts", "vibevoice", f16, 1, &cf) == SK_OK);
+            assert(sk_device_supports_ops(i, "tts", "vibevoice", both, 2, &cbf) == SK_OK);
+            assert(sk_device_supports_ops(i, "tts", "vibevoice", f32, 1, &c32) == SK_OK);
+            auto count = [](const sk_op_coverage &cov, const char *needle) {
+                int k = 0;
+                for (int j = 0; j < cov.n_ops; ++j) if (std::strstr(cov.ops[j].name, needle) != nullptr) ++k;
+                return k;
+            };
+            const int bf16_weights = count(cb, "[bf16,");
+            const int f16_weights = count(cb, "[f16,") - count(c32, "[f16,");
+            std::fprintf(stderr, "test_common: tts/vibevoice [bf16] n_ops=%d all_supported=%d (%d WEIGHT entries spelled bf16, %d f16; [f16] n_ops=%d, [bf16 f16] n_ops=%d) on device %d (%s)\n",
+                         cb.n_ops, cb.all_supported, bf16_weights, f16_weights, cf.n_ops, cbf.n_ops, i, devs[i].description);
+            assert(bf16_weights == 0 && f16_weights > 0);
+            assert(cb.n_ops == cf.n_ops && cbf.n_ops == cf.n_ops);
+            for (int j = 0; j < cf.n_ops; ++j) {
+                assert(std::strcmp(cb.ops[j].name, cf.ops[j].name) == 0 && cb.ops[j].supported == cf.ops[j].supported);
+                assert(std::strcmp(cbf.ops[j].name, cf.ops[j].name) == 0 && cbf.ops[j].supported == cf.ops[j].supported);
+            }
+            if (!paravirtual) assert(cb.all_supported == 1);
+            cb = {};
+            assert(sk_device_supports_ops(i, "asr", "whisper", bf16, 1, &cb) == SK_OK);
+            int asr_bf16 = 0;
+            for (int j = 0; j < cb.n_ops; ++j) if (std::strstr(cb.ops[j].name, "[bf16,") != nullptr) ++asr_bf16;
+            std::fprintf(stderr, "test_common: asr/whisper [bf16] n_ops=%d, %d WEIGHT entries spelled bf16, on device %d\n", cb.n_ops, asr_bf16, i);
+            assert(asr_bf16 > 0);
         }
     }
 
