@@ -220,7 +220,8 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
                 "cosyvoice3",
                 "fireredtts3-base",
                 "moss-tts-local-1.5",
-                "vibevoice-1.5b")
+                "vibevoice-1.5b",
+                "chatterbox")
 
 # The 2026-09-03 batch arrived CPU-ONLY and earned every tier the same evening
 # (commit 2f2b28bc, after the per-family fleet run; catalog._TTS_TIER_OVERRIDES).
@@ -755,7 +756,7 @@ def test_voice_required_families_is_the_single_source_of_truth():
     already decided was fine, or vice versa."""
     from sokuji_sidecar import tts_backend
     assert tts_backend._VOICE_REQUIRED_FAMILIES is catalog.VOICE_REQUIRED_FAMILIES
-    assert catalog.VOICE_REQUIRED_FAMILIES == {"qwen3_tts", "omnivoice", "index_tts2", "cosyvoice3", "fireredtts3"}
+    assert catalog.VOICE_REQUIRED_FAMILIES == {"qwen3_tts", "omnivoice", "index_tts2", "cosyvoice3", "fireredtts3", "chatterbox"}
     for m in catalog.tts_models():
         assert catalog.voice_capability(m)["required"] is m.voice_required, m.id
     # Every card that predates per-card overrides follows its family's rule.
@@ -1288,3 +1289,34 @@ def test_vibevoice_card_and_license():
         "sourceRepo": "audio-cpp/audio.cpp-gguf",
         "attribution": "Microsoft (microsoft/VibeVoice-1.5B)",
     }
+
+
+def test_chatterbox_card():
+    # 2026-10-06: clone-only; the nineteen languages audio.cpp exposes of the vendor's 23
+    # (ruling 9); cpu-only until a fleet run.
+    m = catalog.tts_model("chatterbox")
+    assert m is not None
+    assert (m.family, m.graph_family, m.name) == ("chatterbox", "chatterbox", "Chatterbox")
+    assert m.sort_order == 18 and m.recommended is False
+    assert m.languages == ("ar", "da", "de", "el", "en", "es", "fi", "fr", "hi", "it", "ko", "ms",
+                           "nl", "no", "pl", "pt", "sv", "sw", "tr")
+    assert not {"he", "ja", "ru", "zh"} & set(m.languages)
+    assert m.clones is True and m.transcript_required is False and m.named_voices is False
+    assert m.streaming is False and m.sample_rate == 24000
+    assert m.voice_required is True and m.presets == () and m.default_preset == ""
+    assert "chatterbox" in catalog.VOICE_REQUIRED_FAMILIES
+    assert m.license is None and m.extra_files == ()
+    assert m.family not in catalog._TTS_TIER_OVERRIDES
+    assert {d.tier for d in m.deployments} == {"cpu"}
+    rungs = {d.compute_type: d for d in m.deployments}
+    assert set(rungs) == {"q8_0", "f16"}
+    assert rungs["q8_0"].rank == 2.0 and rungs["f16"].rank == 1.0
+    assert rungs["q8_0"].artifact == "audio-cpp/audio.cpp-gguf/Chatterbox-GGUF/chatterbox-q8_0.gguf"
+    assert rungs["q8_0"].est_bytes == 2_088_393_668
+    assert rungs["f16"].artifact == "audio-cpp/audio.cpp-gguf/Chatterbox-GGUF/chatterbox-f16.gguf"
+    assert rungs["f16"].est_bytes == 3_744_360_386
+    assert m.size_bytes == 2_088_393_668
+    # The matrix dtypes of each rung's published GGUF (no companions), read from the Hub; the
+    # q8_0 file carries f16 matrices beside its q8_0 ones.
+    assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"}),
+                                   "f16": frozenset({"f16"})}

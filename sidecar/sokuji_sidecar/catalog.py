@@ -759,7 +759,10 @@ class TtsModel(_ModelBase):
 #               voice clone requires reference audio" (audio.cpp
 #               src/models/fireredtts3/session.cpp:78-83). Its transcript is required too
 #               (transcript_required).
-VOICE_REQUIRED_FAMILIES = frozenset({"qwen3_tts", "omnivoice", "index_tts2", "cosyvoice3", "fireredtts3"})
+#   chatterbox  (2026-10-06) "Chatterbox prepare requires speaker reference audio" (audio.cpp
+#               src/models/chatterbox/session.cpp:410-412); its session is VoiceCloning only.
+VOICE_REQUIRED_FAMILIES = frozenset({"qwen3_tts", "omnivoice", "index_tts2", "cosyvoice3", "fireredtts3",
+                                     "chatterbox"})
 
 
 def voice_capability(model: "TtsModel") -> dict:
@@ -1505,6 +1508,19 @@ TTS_MODELS: list[TtsModel] = [
             requires_consent=True,
             source_repo=_AUDIOCPP_GGUF_REPO,
             attribution="Microsoft (microsoft/VibeVoice-1.5B)")),
+    # Chatterbox (Resemble AI): clone-only, a VoiceCloning session. The vendor lists 23
+    # languages; audio.cpp exposes 19 and refuses he/ja/ru/zh, so the card has the 19
+    # (ruling 9). English runs its English T3, the rest its multilingual T3.
+    _tts_gguf_row(
+        "chatterbox", "Chatterbox",
+        ("ar", "da", "de", "el", "en", "es", "fi", "fr", "hi", "it", "ko", "ms", "nl", "no",
+         "pl", "pt", "sv", "sw", "tr"),
+        "chatterbox", "Chatterbox-GGUF",
+        {"q8_0": ("chatterbox-q8_0.gguf", 2088393668),
+         "f16": ("chatterbox-f16.gguf", 3744360386)},
+        default_quant="q8_0", order=18, clones=True, streaming=False,
+        sample_rate=24000,
+        rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}, "f16": {"f16"}}),
 ]
 
 

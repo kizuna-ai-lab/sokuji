@@ -152,3 +152,11 @@ describe('VibeVoice 1.5B clip window', () => {
     expect(s.capability.minClipSeconds).toBe(3);
   });
 });
+
+describe('Chatterbox clip window', () => {
+  it('keeps the default 3-20s window (the speaker embedding reads the whole clip)', () => {
+    const s = voiceStoreFor('clip', 'chatterbox')!;
+    expect(s.capability.minClipSeconds).toBe(3);
+    expect(s.capability.maxClipSeconds).toBe(20);
+  });
+});

@@ -1733,3 +1733,13 @@ def test_models_catalog_carries_the_vibevoice_card():
     assert c["repo"] == "audio-cpp/audio.cpp-gguf/VibeVoice-1.5B-GGUF/vibevoice-1.5b-q8_0.gguf"
     assert c["sizeBytes"] == 3224701538
     assert c["license"]["requiresConsent"] is True and c["license"]["nonCommercial"] is False
+
+
+def test_models_catalog_carries_the_chatterbox_card():
+    c = _catalog("tts")["chatterbox"]
+    assert c["order"] == 18 and c["clones"] is True and c["streaming"] is False
+    assert c["voice"]["builtin"] == "none" and c["voice"]["custom"] == "clip"
+    assert c["voice"]["required"] is True and "transcriptRequired" not in c["voice"]
+    assert c["repo"] == "audio-cpp/audio.cpp-gguf/Chatterbox-GGUF/chatterbox-q8_0.gguf"
+    assert c["sizeBytes"] == 2088393668
+    assert "license" not in c

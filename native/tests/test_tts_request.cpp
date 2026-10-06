@@ -434,6 +434,23 @@ void vibevoice_requests() {
     assert(carries_clip(req) && req.text_input->text == "Speaker 1: Hello.");
 }
 
+void chatterbox_requests() {
+    const auto h = handle_for("chatterbox");
+    assert(task_spec_for(*find_family("chatterbox")).task == rt::VoiceTaskKind::VoiceCloning);
+    give_clip(h.get(), "The quick brown fox.");
+    rt::TaskRequest req = build_request(h.get(), "Hallo.", "de", 1.0f);
+    assert(carries_clip(req));
+    // The engine normalises and checks the code itself, so it reaches it as given.
+    assert(req.text_input && req.text_input->language == "de");
+    assert(!has(req, "language"));
+    // Not strict: the transcript goes (and is ignored); sampled T3, its own default. Its
+    // engine turns seed 0 into a random draw, so it alone is given a fixed nonzero seed.
+    assert(opt(req, "reference_text") == "The quick brown fox.");
+    assert(opt(req, "do_sample") == "true" && opt(req, "seed") == "1");
+    const auto other = handle_for("moss_tts_local");
+    assert(opt(build_request(other.get(), "Hello.", "en", 1.0f), "seed") == "0");
+}
+
 }  // namespace
 
 int main() {
@@ -451,6 +468,7 @@ int main() {
     moss_tts_local_requests();
     moss_tts_local_takes_the_vendors_names();
     vibevoice_requests();
+    chatterbox_requests();
     std::puts("test_tts_request ok");
     return 0;
 }

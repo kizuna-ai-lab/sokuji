@@ -97,7 +97,7 @@ def test_audio_families():
     # always compiles silero_vad in regardless of AUDIOCPP_MODELS (see upstreams.cmake), so
     # the family rides along unused, reported by sk_audio_families() but never called.
     required = {"index_tts2", "irodori_tts", "moss_tts_nano", "omnivoice", "pocket_tts",
-                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3", "fireredtts3", "moss_tts_local", "vibevoice"}
+                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3", "fireredtts3", "moss_tts_local", "vibevoice", "chatterbox"}
     assert required <= set(families)
     assert families == sorted(families)
     # Sized from the library's own count, so the binding never cuts the list off.
@@ -413,6 +413,8 @@ TTS_MOSS_LOCAL_DIR = os.environ.get("SK_TEST_TTS_MOSS_LOCAL_DIR")
 needs_tts_moss_local = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_LOCAL_DIR), reason="needs a built tree and SK_TEST_TTS_MOSS_LOCAL_DIR")
 TTS_VIBEVOICE_DIR = os.environ.get("SK_TEST_TTS_VIBEVOICE_DIR")
 needs_tts_vibevoice = pytest.mark.skipif(not (HAVE_TREE and TTS_VIBEVOICE_DIR), reason="needs a built tree and SK_TEST_TTS_VIBEVOICE_DIR")
+TTS_CHATTERBOX_DIR = os.environ.get("SK_TEST_TTS_CHATTERBOX_DIR")
+needs_tts_chatterbox = pytest.mark.skipif(not (HAVE_TREE and TTS_CHATTERBOX_DIR), reason="needs a built tree and SK_TEST_TTS_CHATTERBOX_DIR")
 needs_tts_supertonic = pytest.mark.skipif(not (HAVE_TREE and TTS_SUPERTONIC_DIR), reason="needs a built tree and SK_TEST_TTS_SUPERTONIC_DIR")
 needs_tts_moss = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_DIR), reason="needs a built tree and SK_TEST_TTS_MOSS_DIR")
 needs_tts_index = pytest.mark.skipif(not (HAVE_TREE and TTS_INDEX_DIR), reason="needs a built tree and SK_TEST_TTS_INDEX_DIR")
@@ -625,6 +627,8 @@ NEW_CPU_TTS_FAMILIES = [
     CpuTtsCase("moss_tts_local", "SK_TEST_TTS_MOSS_LOCAL_DIR", TTS_MOSS_LOCAL_DIR, "Hello from MOSS.", "en", 48000, False),
     # vibevoice takes an optional clip; its text is wrapped as a one-speaker script.
     CpuTtsCase("vibevoice", "SK_TEST_TTS_VIBEVOICE_DIR", TTS_VIBEVOICE_DIR, "Hello from VibeVoice.", "en", 24000, False),
+    # chatterbox is clone-only (a VoiceCloning session; no clip, no synth).
+    CpuTtsCase("chatterbox", "SK_TEST_TTS_CHATTERBOX_DIR", TTS_CHATTERBOX_DIR, "Hello from Chatterbox.", "en", 24000, True),
 ]
 
 
@@ -900,6 +904,44 @@ def test_tts_vibevoice_speaks_every_line():
     assert two.shape[0] > one.shape[0] + rate
 
 
+@needs_tts_chatterbox
+def test_tts_chatterbox_without_a_voice_fails_cleanly():
+    """Chatterbox clones or does nothing: its prepare() refuses a request without a clip
+    ("Chatterbox prepare requires speaker reference audio"), which the catalog's
+    VOICE_REQUIRED_FAMILIES pre-empts in the sidecar."""
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    t = sokuji_native.tts_load(_main_gguf(TTS_CHATTERBOX_DIR), "chatterbox", cpu)
+    try:
+        with pytest.raises(sokuji_native.NativeError, match="speaker reference audio"):
+            t.synth("Hello from Chatterbox.", language="en")
+    finally:
+        t.unload()
+
+
+@needs_tts_chatterbox
+def test_tts_chatterbox_languages_are_the_engines_nineteen():
+    """The card lists Chatterbox's nineteen codes. A non-English one runs the multilingual T3
+    (here German); a code outside the nineteen (Japanese, which the vendor lists but audio.cpp
+    does not port) fails cleanly with the engine's own message."""
+    if not TTS_SUPERTONIC_DIR:
+        pytest.skip("needs SK_TEST_TTS_SUPERTONIC_DIR for a real-speech reference clip")
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    pcm, ref_rate, ref_text = _cpu_reference_clip()
+    t = sokuji_native.tts_load(_main_gguf(TTS_CHATTERBOX_DIR), "chatterbox", cpu)
+    try:
+        t.set_voice(pcm, ref_rate, ref_text=ref_text)
+        samples, rate = t.synth("Hallo Welt, wie geht es dir heute?", language="de")
+        with pytest.raises(sokuji_native.NativeError, match="unsupported Chatterbox language"):
+            t.synth("こんにちは。", language="ja")
+    finally:
+        t.unload()
+    assert rate == 24000
+    assert 0.3 < samples.shape[0] / rate < 20.0
+    assert float(np.max(np.abs(samples))) > 0.01
+
+
 # --------------------------------------------------------------------------------------
 # TTS on a real GPU device.
 #
@@ -978,6 +1020,10 @@ GPU_TTS_FAMILIES = {
     "fireredtts3": ("SK_TEST_TTS_FIREREDTTS3_DIR", TTS_FIREREDTTS3_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
     "moss_tts_local": ("SK_TEST_TTS_MOSS_LOCAL_DIR", TTS_MOSS_LOCAL_DIR, None, False, 30.0, GPU_TTS_TEXT, "en"),
     "vibevoice": ("SK_TEST_TTS_VIBEVOICE_DIR", TTS_VIBEVOICE_DIR, None, False, 30.0, GPU_TTS_TEXT, "en"),
+    # German, not the shared English sentence: English runs Chatterbox's English T3, which the op
+    # recording (taken in English) covers; every other language runs its multilingual T3.
+    "chatterbox": ("SK_TEST_TTS_CHATTERBOX_DIR", TTS_CHATTERBOX_DIR, None, True, 30.0,
+                   "Hallo Welt, wie geht es dir heute?", "de"),
 }
 
 # The dirs above hold the DEFAULT rung — the catalog's `default_quant`, which is

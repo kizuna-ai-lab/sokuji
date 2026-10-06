@@ -166,6 +166,11 @@ constexpr FamilyInfo kFamilies[] = {
     // a clip is optional (voice.speaker.audio; cached_voice_id throws, session.cpp:319-321);
     // do_sample defaults to false. Its text is a speaker script (build_request wraps it).
     {"vibevoice",      false, true,  false, 24000, false, false, false, FamilyTask::Tts, nullptr},
+    // chatterbox (audio.cpp src/models/chatterbox/): a VoiceCloning session, offline
+    // (session.cpp:371-377); prepare() refuses a request without a clip (:410-412); do_sample
+    // defaults to true (include/engine/models/chatterbox/tts.h:19-32). The engine normalises
+    // and checks the language code itself (text_tokenizer.cpp:399-416).
+    {"chatterbox",     false, true,  false, 24000, true,  false, false, FamilyTask::VoiceCloning, nullptr},
 };
 
 const FamilyInfo *find_family(const char *name) {
@@ -434,7 +439,7 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
     // decode never reaches this checkpoint's own end-of-content token for ordinary input
     // (measured: 300-frame/24.000s cap, once, E1; corroborated by the pre-existing parity
     // baseline), while sampling does (measured: real EOC, 2.6-3.7s, 3/3, E2a/b/c, full
-    // correct transcript). Seed stays "0" for every family either way — t->sample_decode
+    // correct transcript). Seed stays "0" for every family but chatterbox (see the seed below) either way — t->sample_decode
     // only picks argmax vs. sample for the two-logit stop decision, it does not
     // reintroduce nondeterminism.
     //
@@ -445,7 +450,13 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
     if (!t->strict_options) {
         req.options["do_sample"] = t->sample_decode ? "true" : "false";
     }
-    req.options["seed"] = "0";
+    // chatterbox is the one family given a nonzero seed: audio.cpp's choose_seed turns seed 0
+    // into a std::random_device draw (src/models/chatterbox/component_weights.cpp:7-13), for its
+    // T3 sampler as well as its flow and vocoder noise, so R7(s4)'s deterministic synthesis
+    // needs a nonzero seed there. Every other pinned family randomises only when no seed is
+    // sent, and chatterbox_turbo maps 0 to a constant itself
+    // (src/community_models/chatterbox_turbo/t3_turbo_component.cpp:141).
+    req.options["seed"] = t->family == "chatterbox" ? "1" : "0";
     return req;
 }
 
