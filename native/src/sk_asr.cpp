@@ -3,6 +3,7 @@
 #include "sk_internal.h"
 
 #include "transcribe.h"
+#include "sk_asr_status.h"
 
 #include <cstdint>
 #include <cstring>
@@ -25,9 +26,8 @@ struct sk_asr_model {
 namespace {
 
 sk_status map_status(transcribe_status st) {
+    if (sk::asr_result_bearing(st)) return SK_OK;
     switch (st) {
-        case TRANSCRIBE_OK:
-        case TRANSCRIBE_ERR_OUTPUT_TRUNCATED:       return SK_OK;
         case TRANSCRIBE_ERR_FILE_NOT_FOUND:         return SK_ERR_NOT_FOUND;
         case TRANSCRIBE_ERR_INVALID_ARG:
         case TRANSCRIBE_ERR_BAD_STRUCT_SIZE:
@@ -190,7 +190,7 @@ SK_API sk_status sk_asr_run(sk_asr_model *m, const float *pcm, size_t n, const c
     transcribe_set_abort_callback(m->session, nullptr, nullptr);
 
     if (st == TRANSCRIBE_ERR_ABORTED || ctx.cancelled) { sk::set_error("sk_asr_run: cancelled by the callback"); return SK_ERR_CANCELLED; }
-    if (st != TRANSCRIBE_OK && st != TRANSCRIBE_ERR_OUTPUT_TRUNCATED) return fail("sk_asr_run", st);
+    if (!sk::asr_result_bearing(st)) return fail("sk_asr_run", st);
 
     const char *text = transcribe_full_text(m->session);
     m->run_text = text ? text : "";
@@ -249,7 +249,7 @@ SK_API sk_status sk_asr_stream_finalize(sk_asr_stream *s, sk_text_cb cb, void *u
     transcribe_stream_update_init(&u);
     transcribe_status st = transcribe_stream_finalize(m->session, &u);
     sk_status rc;
-    if (st == TRANSCRIBE_OK || st == TRANSCRIBE_ERR_OUTPUT_TRUNCATED) {
+    if (sk::asr_result_bearing(st)) {
         // Ruling N: the final text is the post-finalize FULL hypothesis. committed_text is
         // a best-effort append-only display prefix that transcribe.cpp never rolls back —
         // on moonshine-streaming-tiny it demonstrably ends stale while full_text is right.

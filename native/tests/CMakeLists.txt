@@ -24,6 +24,11 @@ set_tests_properties(test_asr PROPERTIES
     ENVIRONMENT "GGML_BACKEND_PATH=${CMAKE_BINARY_DIR}/lib"
     SKIP_RETURN_CODE 77)
 
+# Pure test of which transcribe.cpp statuses still carry a transcript: no model, no backend.
+add_executable(test_asr_status test_asr_status.cpp)
+target_include_directories(test_asr_status PRIVATE ../src ${transcribe_SOURCE_DIR}/include)
+add_test(NAME test_asr_status COMMAND test_asr_status)
+
 # Slice 3: translation surface. Needs SK_TEST_TRANSLATE_GGUF (Qwen3-0.6B Q8_0);
 # exit code 77 = skipped, so a developer without the model still gets a green ctest.
 add_executable(test_translate test_translate.cpp)
