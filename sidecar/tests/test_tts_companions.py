@@ -133,7 +133,8 @@ def test_a_rung_missing_one_companion_is_not_downloaded_and_never_chosen(compani
     assert plans[0].tier == "gpu-vulkan"
     assert {p.compute_type for p in plans} == {"q8_0"}
 
-    # Re-downloading the bf16 rung asks the Hub for the missing vocoder only.
+    # Re-downloading the bf16 rung on the unpinned mirror asks the Hub about every file: a
+    # file that is already cached is only re-linked, never fetched again.
     real = huggingface_hub.hf_hub_download
     asked = []
 
@@ -141,11 +142,41 @@ def test_a_rung_missing_one_companion_is_not_downloaded_and_never_chosen(compani
         if local_files_only:
             return real(repo, fname, revision=revision, local_files_only=True)
         asked.append((repo, fname, revision))
-        return add_cached_file(hub_cache, repo, OFFICIAL_SHA, fname)
+        try:
+            return real(repo, fname, revision=revision, local_files_only=True)
+        except Exception:
+            return add_cached_file(hub_cache, repo, OFFICIAL_SHA, fname)
 
     monkeypatch.setattr(huggingface_hub, "hf_hub_download", hub)
     assert asyncio.run(nm.download("companion-test", _send, repo=bf16)) == "ready"
-    assert asked == [(OFFICIAL, "vocoder-bf16.gguf", None)]
+    assert asked == [(OFFICIAL, _MAIN_BF16, None), (OFFICIAL, CODEC, None),
+                     (OFFICIAL, "vocoder-bf16.gguf", None)]
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", real)
+    assert nm.model_status("companion-test", repo=bf16) == "ready"
+
+
+def test_a_retry_on_the_unpinned_mirror_survives_refs_main_moving(companions, hub_cache,
+                                                                  monkeypatch):
+    """The first online fetch of a run writes the mirror's newest commit to refs/main. A file
+    skipped because it was cached at the OLD commit would then be found only under the old
+    snapshot, and the rung would read absent right after a download that returned ready."""
+    import huggingface_hub
+    new_sha = "0123456789abcdef0123456789abcdef01234567"
+    add_cached_file(hub_cache, OFFICIAL, OFFICIAL_SHA, _MAIN_BF16, refs_main=True)
+    add_cached_file(hub_cache, OFFICIAL, OFFICIAL_SHA, CODEC)
+    bf16 = rung(companions, "bf16").artifact
+    assert nm.model_status("companion-test", repo=bf16) == "absent"       # no vocoder yet
+
+    real = huggingface_hub.hf_hub_download
+
+    def hub(repo, fname, revision=None, local_files_only=False):
+        if local_files_only:
+            return real(repo, fname, revision=revision, local_files_only=True)
+        # An online call lands the file under the mirror's newest commit and moves refs/main.
+        return add_cached_file(hub_cache, repo, new_sha, fname, refs_main=True)
+
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", hub)
+    assert asyncio.run(nm.download("companion-test", _send, repo=bf16)) == "ready"
     monkeypatch.setattr(huggingface_hub, "hf_hub_download", real)
     assert nm.model_status("companion-test", repo=bf16) == "ready"
 
@@ -223,6 +254,82 @@ def test_deleting_one_rung_keeps_a_companion_another_rung_still_needs(companions
     nm.delete_model("companion-test")                              # the whole card
     assert not any(os.path.lexists(p) for p in snap.values())
     assert nm.model_status("companion-test") == "absent"
+
+
+_SOLO_REPO = "acme/solo-tts"
+
+
+@pytest.fixture
+def solo_companions(monkeypatch):
+    """A two-rung card alone on its own pinned repo, both rungs sharing one codec GGUF at the
+    repo's root: no other card's files keep the repo alive."""
+    monkeypatch.setitem(catalog.PINNED_REVISIONS, _SOLO_REPO, PIN)
+    card = catalog._tts_gguf_row(
+        "solo-test", "Solo Test", ("en",), "solo_test", "",
+        {"q8_0": ("solo-q8_0.gguf", 11), "bf16": ("solo-bf16.gguf", 22)}, default_quant="q8_0",
+        order=99, repo=_SOLO_REPO,
+        companions={"q8_0": (("codec.gguf", 3),), "bf16": (("codec.gguf", 3),)})
+    monkeypatch.setattr(catalog, "TTS_MODELS", catalog.TTS_MODELS + [card])
+    return card
+
+
+def test_deleting_one_rung_of_a_card_alone_on_its_repo_keeps_the_other_rung(solo_companions,
+                                                                           hub_cache):
+    snap = {rel: add_cached_file(hub_cache, _SOLO_REPO, PIN, rel)
+            for rel in ("solo-q8_0.gguf", "solo-bf16.gguf", "codec.gguf")}
+    staged = os.path.join(hub_cache, catalog.TTS_STAGING_DIRNAME, f"acme--solo-tts__{PIN}")
+    os.makedirs(staged)
+    for rel in ("solo-bf16.gguf", "codec.gguf"):
+        with open(os.path.join(staged, rel), "wb") as f:
+            f.write(b"x")
+    q8, bf16 = rung(solo_companions, "q8_0").artifact, rung(solo_companions, "bf16").artifact
+
+    nm.delete_model("solo-test", repo=bf16)
+    assert not os.path.lexists(snap["solo-bf16.gguf"])
+    assert os.path.exists(snap["solo-q8_0.gguf"])
+    assert os.path.exists(snap["codec.gguf"])                       # the q8_0 rung needs it
+    assert not os.path.exists(os.path.join(staged, "solo-bf16.gguf"))
+    assert os.path.exists(os.path.join(staged, "codec.gguf"))
+    assert nm.model_status("solo-test", repo=q8) == "ready"
+    assert nm.model_status("solo-test", repo=bf16) == "absent"
+
+    nm.delete_model("solo-test")                                    # the whole card
+    assert not any(os.path.lexists(p) for p in snap.values())
+    assert nm.model_status("solo-test") == "absent"
+
+
+def test_deleting_one_pocket_rung_keeps_the_preset_the_other_rung_needs(hub_cache):
+    card = catalog.tts_model("pocket-tts-en")
+    q8, bf16 = rung(card, "q8_0"), rung(card, "bf16")
+    alba = "PocketTTS-GGUF/english/embeddings/alba.safetensors"
+    snap = {rel: add_cached_file(hub_cache, OFFICIAL, OFFICIAL_SHA, rel, refs_main=(i == 0))
+            for i, rel in enumerate([catalog.split_artifact(q8.artifact)[1],
+                                     catalog.split_artifact(bf16.artifact)[1], alba])}
+    bf16_main = snap[catalog.split_artifact(bf16.artifact)[1]]
+    assert nm.model_status("pocket-tts-en", repo=bf16.artifact) == "ready"
+
+    nm.delete_model("pocket-tts-en", repo=bf16.artifact)
+    assert not os.path.lexists(bf16_main)
+    assert os.path.exists(snap[alba])                               # the q8_0 rung needs it
+    assert nm.model_status("pocket-tts-en", repo=q8.artifact) == "ready"
+    assert nm.model_status("pocket-tts-en", repo=bf16.artifact) == "absent"
+
+
+@pytest.mark.parametrize("cached", [
+    (CODEC,),                                    # only the shared codec: another rung's download
+    (_MAIN_BF16,),                               # the main file, no companion yet
+    (_MAIN_BF16, CODEC),                         # the main file and the codec, no vocoder yet
+])
+def test_weight_dtypes_of_a_partly_cached_rung_is_the_fallback(companions, hub_cache,
+                                                               monkeypatch, cached):
+    """A rung's op-coverage question before its download finishes is the wide fallback set,
+    not the narrower union of whichever of its GGUFs happen to be cached."""
+    for i, rel in enumerate(cached):
+        add_cached_file(hub_cache, OFFICIAL, OFFICIAL_SHA, rel, refs_main=(i == 0))
+    monkeypatch.setattr(accel.gguf_header, "read_header", lambda p: accel.gguf_header.GgufHeader(
+        "x", frozenset({"q8_0"}), 1))
+    assert accel.weight_dtypes(companions, "bf16") == \
+        tuple(sorted(catalog.RUNG_FALLBACK_DTYPES["bf16"]))
 
 
 def test_weight_dtypes_reads_every_cached_gguf_of_the_rung(companions, hub_cache, monkeypatch):

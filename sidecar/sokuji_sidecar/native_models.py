@@ -471,7 +471,7 @@ def delete_model(model_id, repo=None):
         from .catalog import tts_model as _tts_model
         _tm = _tts_model(model_id) if model_id else None
         if _tm is not None:
-            # T4ii: pre-seed with what download_specs() already contributed (the default
+            # Pre-seed with what download_specs() already contributed (the default
             # rung), so its files are not listed twice.
             seen = {(r, fname) for r, fname in specs.get("files", [])}
             for dep in _tm.deployments:
@@ -487,15 +487,15 @@ def delete_model(model_id, repo=None):
     files_by_repo = {r: kept for r, fnames in files_by_repo.items()
                      if (kept := [f for f in fnames if (r, f) not in needed])}
 
-    # F4: classify repos into "file-scoped" (shared by >1 catalog card) vs
-    # "whole-revision" (solo owner) BEFORE the cache scan below — this
-    # classification is pure catalog data (_repo_owner_cards never touches the
-    # cache), so it, and the staged-tree prune that follows from it, must not be
-    # skipped just because scan_cache_dir() itself fails.
+    # F4: classify repos into "file-scoped" (shared by >1 catalog card, or holding a file a
+    # rung that stays still needs) vs "whole-revision" (solo owner, nothing kept in it)
+    # BEFORE the cache scan below — this classification is pure catalog data
+    # (_repo_owner_cards never touches the cache), so it, and the staged-tree prune that
+    # follows from it, must not be skipped just because scan_cache_dir() itself fails.
     shared_repo_fnames: dict = {}
     solo_repos = set()
     for r, fnames in files_by_repo.items():
-        if len(_repo_owner_cards(r)) > 1:
+        if len(_repo_owner_cards(r)) > 1 or any(nr == r for nr, _f in needed):
             shared_repo_fnames[r] = fnames
         else:
             solo_repos.add(r)
@@ -669,9 +669,14 @@ async def download(model_id, send, should_cancel=None, repo=None):
     for i, (r, fname) in enumerate(files):
         if cancelled():
             return "cancelled"
-        local = _cached_path(r, fname)
+        # Only a pinned repo is skipped when cached: its snapshot sits under its own commit
+        # and nothing moves it. On the unpinned mirror the first online fetch of a run moves
+        # refs/main to the newest commit, so a file skipped here would exist only under the
+        # old snapshot and read as missing afterwards; the Hub call re-links a cached blob
+        # without downloading it again.
+        local = _cached_path(r, fname) if hub_revision(r) is not None else None
         if local is not None:
-            # Already in the cache at this revision (a re-run after an interrupted
+            # Already in the cache at the pinned commit (a re-run after an interrupted
             # download): count it and ask the Hub only for what is missing.
             try:
                 done_bytes += os.path.getsize(os.path.realpath(local)) if local else 0

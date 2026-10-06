@@ -284,14 +284,15 @@ def _artifact_path(model, compute_type: str):
     return None
 
 
-def _companion_paths(model, compute_type: str) -> list:
-    """Local paths of the rung's cached companion GGUFs (spec stage 2.2). A companion that is
-    not cached, or is not a GGUF, is skipped."""
+def _companion_paths(model, compute_type: str):
+    """Local paths of the rung's companion GGUFs (spec stage 2.2); a companion that is not a
+    GGUF is not listed. None when the rung is unknown or any of its companion GGUFs is not
+    cached: the rung is then only partly on disk and has no complete header set to read."""
     from . import catalog as _cat
     from huggingface_hub import hf_hub_download
     dep = next((d for d in model.deployments if d.compute_type == compute_type), None)
     if dep is None:
-        return []
+        return None
     repo, _fname = _cat.split_artifact(dep.artifact)
     out = []
     for rel, _size in getattr(dep, "companions", ()):
@@ -301,15 +302,16 @@ def _companion_paths(model, compute_type: str) -> list:
             out.append(hf_hub_download(repo, rel, revision=_cat.hub_revision(repo),
                                        local_files_only=True))
         except Exception:
-            pass
+            return None
     return out
 
 
 def weight_dtypes(model, compute_type: str) -> tuple:
     """The dtype set WEIGHT expands over (spec A premise 7): the union of the header sets of
-    the rung's cached GGUFs -- its main file and every companion GGUF (spec stage 2.2: one
-    recording covers the whole model's graph) -- INTERSECTED with the weight-capable types;
-    else the rung's deliberately wide fallback set. Sorted, so it keys.
+    the rung's GGUFs -- its main file and every companion GGUF (spec stage 2.2: one recording
+    covers the whole model's graph) -- INTERSECTED with the weight-capable types, when all of
+    them are on disk; else, with the rung only partly cached, its deliberately wide fallback
+    set. Sorted, so it keys.
 
     The intersection is not cosmetic. A GGUF header also lists its i32/i64 index tables, and a
     WEIGHT node is the src0 of a MUL_MAT/MUL_MAT_ID/GET_ROWS — never an integer tensor. Asking
@@ -319,10 +321,12 @@ def weight_dtypes(model, compute_type: str) -> tuple:
     nothing to ask, so the fallback set stands in."""
     from . import catalog as _cat
     fallback = tuple(sorted(_cat.RUNG_FALLBACK_DTYPES.get(compute_type, frozenset({"f32"}))))
+    main = _artifact_path(model, compute_type)
+    companions = _companion_paths(model, compute_type)
+    if not main or companions is None:
+        return fallback
     header = set()
-    for path in [_artifact_path(model, compute_type)] + _companion_paths(model, compute_type):
-        if not path:
-            continue
+    for path in [main] + companions:
         try:
             header |= gguf_header.read_header(path).tensor_types & _cat.WEIGHT_CAPABLE_DTYPES
         except Exception:
