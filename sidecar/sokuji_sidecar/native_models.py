@@ -3,12 +3,15 @@
 Each native model id maps to a set of HuggingFace repos. status checks they're
 fully cached; download fetches them file-by-file with progress. Mirrors
 LOCAL_INFERENCE's manage-before-use UX, but server-side (HF cache).
+
+Every Hub call here passes revision=catalog.hub_revision(repo) (ruling 4): a pinned
+third-party repo is read at its commit, everything else at the Hub's default branch.
 """
 import fnmatch
 import os
 import shutil
 
-from .catalog import TTS_STAGING_DIRNAME, asr_model as _asr_model, split_artifact
+from .catalog import TTS_STAGING_DIRNAME, asr_model as _asr_model, hub_revision, split_artifact
 
 
 def _ignored(filename, patterns):
@@ -110,7 +113,7 @@ def model_size(model_id):
     repo2, fname = split_artifact(model_id)
     if fname:
         try:
-            infos = api.get_paths_info(repo2, [fname])
+            infos = api.get_paths_info(repo2, [fname], revision=hub_revision(repo2))
             total = sum((getattr(i, "size", 0) or 0) for i in infos)
         except Exception:
             total = 0
@@ -119,7 +122,7 @@ def model_size(model_id):
         ignore = set(specs.get("ignore", []))
         for repo in specs["repos"]:
             try:
-                info = api.repo_info(repo, files_metadata=True)
+                info = api.repo_info(repo, files_metadata=True, revision=hub_revision(repo))
                 total += sum((s.size or 0) for s in (info.siblings or []) if not _ignored(s.rfilename, ignore))
             except Exception:
                 pass
@@ -133,7 +136,7 @@ def _repos_cached(specs) -> bool:
     from huggingface_hub import snapshot_download
     from huggingface_hub.constants import HF_HUB_CACHE
     for r in specs["repos"]:
-        snapshot_download(repo_id=r, local_files_only=True)
+        snapshot_download(repo_id=r, revision=hub_revision(r), local_files_only=True)
         # snapshot_download(local_files_only=True) is satisfied by a PARTIAL cache — offline
         # it can't know the repo's full file list, so an interrupted download (e.g. a session
         # started mid-fetch) reads back as 'ready' and then fails to load. A half-fetched blob
@@ -193,7 +196,7 @@ def _extra_files_present(model_id) -> bool:
     repo, fname = split_artifact(m.deployments[0].artifact)
     for extra in _tts_extra_files(m, fname):
         try:
-            hf_hub_download(repo, extra, local_files_only=True)
+            hf_hub_download(repo, extra, revision=hub_revision(repo), local_files_only=True)
         except Exception:
             return False
     return True
@@ -228,7 +231,7 @@ def model_status(model_id, repo=None):
             def _rung_cached(artifact):
                 r, fname = split_artifact(artifact)
                 try:
-                    hf_hub_download(r, fname, local_files_only=True)
+                    hf_hub_download(r, fname, revision=hub_revision(r), local_files_only=True)
                     return True
                 except Exception:
                     return False
@@ -237,7 +240,7 @@ def model_status(model_id, repo=None):
         elif specs.get("files"):
             from huggingface_hub import hf_hub_download
             for r, fname in specs["files"]:
-                hf_hub_download(r, fname, local_files_only=True)
+                hf_hub_download(r, fname, revision=hub_revision(r), local_files_only=True)
         if not _extra_files_present(model_id):
             return "absent"
         return "ready"
@@ -570,7 +573,8 @@ async def download(model_id, send, should_cancel=None, repo=None):
     files = []
     for r in specs["repos"]:  # `r`, not `repo`, so the variant `repo` param is not shadowed
         try:
-            files.extend((r, f) for f in api.list_repo_files(r) if not _ignored(f, ignore))
+            files.extend((r, f) for f in api.list_repo_files(r, revision=hub_revision(r))
+                         if not _ignored(f, ignore))
         except Exception:
             pass
     # Files-shaped specs (GGUF cards) name their exact (repo, filename) pairs
@@ -605,7 +609,7 @@ async def download(model_id, send, should_cancel=None, repo=None):
             await send({"type": "model_progress", "model": model_id,
                         "downloaded": done_units, "total": total_units})
 
-    async def _fetch(fn, *args, poll_repo=None, est=0):
+    async def _fetch(fn, *args, poll_repo=None, est=0, **kwargs):
         """Run one blocking fetch in a thread; while it runs, stream the
         in-flight blob size (byte mode only). Returns the fetch's result."""
         nonlocal done_bytes, done_units
@@ -625,7 +629,7 @@ async def download(model_id, send, should_cancel=None, repo=None):
 
         poller = asyncio.create_task(_poll()) if (total_bytes and poll_repo) else None
         try:
-            result = await asyncio.to_thread(fn, *args)
+            result = await asyncio.to_thread(fn, *args, **kwargs)
         finally:
             if poller is not None:
                 stop.set()
@@ -643,7 +647,7 @@ async def download(model_id, send, should_cancel=None, repo=None):
     for i, (r, fname) in enumerate(files):
         if cancelled():
             return "cancelled"
-        await _fetch(hf_hub_download, r, fname, poll_repo=r)
+        await _fetch(hf_hub_download, r, fname, revision=hub_revision(r), poll_repo=r)
         await progress(final=i == len(files) - 1)
     return "ready"
 

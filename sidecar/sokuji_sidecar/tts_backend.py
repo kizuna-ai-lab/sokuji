@@ -227,7 +227,7 @@ import numpy as np
 
 from . import native
 from .backends import BackendLoadError, register_backend
-from .catalog import TTS_STAGING_DIRNAME, VOICE_REQUIRED_FAMILIES, split_artifact
+from .catalog import TTS_STAGING_DIRNAME, VOICE_REQUIRED_FAMILIES, hub_revision, split_artifact
 from .planner import PlanConfig
 
 _SENTINEL = object()
@@ -442,7 +442,8 @@ class NativeTtsBackend:
             model_dir = fname.rsplit("/", 1)[0] if "/" in fname else ""
             allow = [f"{model_dir}/*"] if model_dir else [fname]
             from huggingface_hub import snapshot_download
-            snap = snapshot_download(repo, allow_patterns=allow, local_files_only=True)
+            snap = snapshot_download(repo, revision=hub_revision(repo), allow_patterns=allow,
+                                     local_files_only=True)
             # R18: stage the gguf (+ any sidecar, e.g. pocket_tts's
             # embeddings/*.safetensors) as HARD LINKS before ever handing a path to
             # the native layer -- see _stage_for_native()'s docstring and the module

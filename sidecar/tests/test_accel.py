@@ -840,7 +840,7 @@ def test_downloaded_quants_checks_each_tts_artifact_file(monkeypatch):
     from huggingface_hub import constants as _hf_constants  # noqa: F401
     import sokuji_sidecar.accel as accel_mod
 
-    def fake_hf_hub_download(repo, fname, local_files_only=False):
+    def fake_hf_hub_download(repo, fname, local_files_only=False, revision=None):
         # split_artifact("org/fake/repo/fake-q8_0.gguf") -> ("org/fake", "repo/fake-q8_0.gguf")
         # (the first TWO segments are always the repo, everything else is the path).
         if (repo, fname) == ("org/fake", "repo/fake-q8_0.gguf"):

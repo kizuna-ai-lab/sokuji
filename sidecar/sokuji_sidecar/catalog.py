@@ -776,6 +776,34 @@ def license_dict(model: "TtsModel") -> dict | None:
 # (see the pocket-tts-en row below).
 _AUDIOCPP_GGUF_REPO = "audio-cpp/audio.cpp-gguf"
 
+# Ruling 4 (2026-10-06): a GGUF hosted outside audio.cpp's official mirror is downloaded from
+# its own repo, pinned to one commit, so the bytes a card names cannot change under it. Every
+# Hub call the sidecar makes on the TTS path -- download, status, size, delete, load, the
+# load-free voice listing -- passes revision=hub_revision(repo): a download at a commit hash
+# writes snapshots/<sha>/ and no refs/main, so a lookup of "main" would read it as absent
+# forever. The official mirror is not pinned: hub_revision() returns None for it, the Hub's
+# own default, so what users already downloaded keeps resolving through refs/main.
+# Commits read from GET api/models/<repo> on 2026-10-06; every byte count a card carries for
+# one of these repos is read at the same commit
+# (benchmark/qwen3-asr-webgpu/hub_sizes.py <repo> <out.json> <sha>).
+PINNED_REVISIONS: dict[str, str] = {
+    "js-byte/Audio8-TTS-Preview-0.6b-GGUF": "788f6fdb0bbdbbc407c63f3265cea9875b4a7c14",
+    "WalkingCat/Soprano-1.1-80M-GGUF": "36c6f47cf91421b7f0cf3d862d28ae2e41aab3f2",
+    "mirek190/audio.cpp": "94bbade143c5f62c0c842ef5b2119f7880fa9ee4",
+    "dignome/Echo-TTS": "5a7c7c5f510410a8841ba7e46cf6bfd91ea25c21",
+    "dignome/kitten_tts2": "73b762c95b07c4f0675c927c25d65741b8dab7da",
+    "mohammedaly22/VoiceTut-TTS-GGUF": "615457bb2e9043f468e012c159146b28fa8f5959",
+    "LiquidAI/LFM2.5-Audio-1.5B-GGUF": "7d525f883a077e20afb782f2ff618edcae0e39e4",
+    "LiquidAI/LFM2.5-Audio-1.5B-JP-GGUF": "64b96718b341dbd5650f9e85627cecdcbd4ac61b",
+}
+
+
+def hub_revision(repo: str) -> str | None:
+    """The commit every Hub call for `repo` passes as `revision=`, or None (the Hub's default
+    branch) for a repo that is not pinned."""
+    return PINNED_REVISIONS.get(repo)
+
+
 # Ruling R18(s4): name of the sokuji-owned hard-link staging tree tts_backend.py's
 # load() creates as a sibling of HF's own models--*/ directories, directly under the
 # SAME cache root. Shared between tts_backend.py (creates/refreshes staged entries)

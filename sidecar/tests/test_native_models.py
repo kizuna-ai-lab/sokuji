@@ -5,6 +5,20 @@ from sokuji_sidecar import native_models
 from sokuji_sidecar import server
 
 
+def _fetcher(record=None, result=None):
+    """hf_hub_download double for the download tests: nothing is in the local cache (a
+    local_files_only lookup raises FileNotFoundError, as the real call's LocalEntryNotFoundError
+    does) and every fetch is recorded as (repo, fname, revision). `result` is the path a fetch
+    returns, or a callable of the filename that builds it."""
+    def fake(repo, fname, revision=None, local_files_only=False):
+        if local_files_only:
+            raise FileNotFoundError(fname)
+        if record is not None:
+            record.append((repo, fname, revision))
+        return result(fname) if callable(result) else result
+    return fake
+
+
 def test_download_specs_mapping(monkeypatch):
     # download_specs honours the SOKUJI_ASR_REPO override; clear it so the
     # default-repo assertions below are deterministic in any environment.
@@ -77,7 +91,7 @@ def test_download_raises_when_no_files_resolved(monkeypatch):
     import huggingface_hub
 
     class _Api:
-        def list_repo_files(self, repo):
+        def list_repo_files(self, repo, revision=None):
             raise RuntimeError(f"RepositoryNotFoundError: {repo}")
 
     monkeypatch.setattr(nm, 'download_specs', lambda m, repo=None: {'repos': ['bogus/repo'], 'urls': []})
@@ -698,23 +712,23 @@ def test_download_honors_ignore_list(monkeypatch):
     """The ignore list keeps consolidated.safetensors out of the fetched file set,
     so transformers' model.safetensors is fetched but the 8.86GB duplicate is not."""
     import huggingface_hub
-    fetched = []
+    calls = []
 
     class _Api:
-        def list_repo_files(self, repo):
+        def list_repo_files(self, repo, revision=None):
             return ["model.safetensors", "consolidated.safetensors", "config.json", "tekken.json"]
 
     monkeypatch.setattr(nm, "download_specs", lambda m, repo=None: {
         "repos": ["r"], "urls": [], "ignore": ["consolidated.safetensors"]})
     monkeypatch.setattr(huggingface_hub, "HfApi", _Api)
-    monkeypatch.setattr(huggingface_hub, "hf_hub_download",
-                        lambda repo, fname: fetched.append(fname))
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", _fetcher(calls))
 
     async def send(_m):
         pass
 
     status = asyncio.run(nm.download("voxtral-mini-4b-realtime", send))
     assert status == "ready"
+    fetched = [fname for _repo, fname, _rev in calls]
     assert "consolidated.safetensors" not in fetched
     assert "model.safetensors" in fetched and "tekken.json" in fetched
 
@@ -723,25 +737,25 @@ def test_download_glob_excludes_nested_dirs(monkeypatch):
     """A directory glob (train/*) keeps nested training files out of the fetch —
     the exact-match filter this replaced would have downloaded them."""
     import huggingface_hub
-    fetched = []
+    calls = []
 
     class _Api:
-        def list_repo_files(self, repo):
+        def list_repo_files(self, repo, revision=None):
             return ["model.safetensors", "config.json",
                     "train/train.py", "train/deepspeed/ds.json", "imgs/overview.png"]
 
     monkeypatch.setattr(nm, "download_specs", lambda m, repo=None: {
         "repos": ["r"], "urls": [], "ignore": ["train/*", "imgs/*"]})
     monkeypatch.setattr(huggingface_hub, "HfApi", _Api)
-    monkeypatch.setattr(huggingface_hub, "hf_hub_download",
-                        lambda repo, fname: fetched.append(fname))
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", _fetcher(calls))
 
     async def send(_m):
         pass
 
     status = asyncio.run(nm.download("hy-mt2-1.8b", send))
     assert status == "ready"
-    assert fetched == ["model.safetensors", "config.json"]   # nested train/ + imgs/ excluded
+    # nested train/ + imgs/ excluded
+    assert [fname for _repo, fname, _rev in calls] == ["model.safetensors", "config.json"]
 
 
 def test_model_size_excludes_ignored_files(monkeypatch):
@@ -758,7 +772,7 @@ def test_model_size_excludes_ignored_files(monkeypatch):
                     _Sib("config.json", 1000)]
 
     class _Api:
-        def repo_info(self, repo, files_metadata=False):
+        def repo_info(self, repo, files_metadata=False, revision=None):
             return _Info()
 
     monkeypatch.setattr(nm, "download_specs", lambda m: {
@@ -823,15 +837,14 @@ def test_download_fetches_chosen_variant_repo(monkeypatch):
     """download(model, send, repo=...) must fetch files from the CHOSEN variant repo,
     not the model's default — the end-to-end wiring that makes the FP8 quant load."""
     import huggingface_hub
-    fetched = []
+    calls = []
 
     class _Api:
-        def list_repo_files(self, repo):
+        def list_repo_files(self, repo, revision=None):
             return [f"{repo}/model.safetensors", "config.json"]
 
     monkeypatch.setattr(huggingface_hub, "HfApi", _Api)
-    monkeypatch.setattr(huggingface_hub, "hf_hub_download",
-                        lambda repo, fname: fetched.append((repo, fname)))
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", _fetcher(calls))
 
     async def send(_m):
         pass
@@ -839,7 +852,7 @@ def test_download_fetches_chosen_variant_repo(monkeypatch):
     status = asyncio.run(nm.download("hy-mt2-7b", send, repo="tencent/Hy-MT2-7B-FP8"))
     assert status == "ready"
     # Every fetched file came from the FP8 repo, NOT the default bf16 tencent/Hy-MT2-7B.
-    assert fetched and all(repo == "tencent/Hy-MT2-7B-FP8" for repo, _ in fetched)
+    assert calls and all(repo == "tencent/Hy-MT2-7B-FP8" for repo, _f, _rev in calls)
 
 
 def test_h_model_download_passes_repo_through(monkeypatch):
@@ -886,7 +899,7 @@ def test_model_status_repo_override(monkeypatch):
     from sokuji_sidecar import native_models as nm
     seen = {}
 
-    def fake_snapshot(repo_id, local_files_only):
+    def fake_snapshot(repo_id, local_files_only, revision=None):
         seen["repo"] = repo_id
         return "/cache"
     monkeypatch.setattr("huggingface_hub.snapshot_download", fake_snapshot)
@@ -995,8 +1008,9 @@ def test_model_size_file_artifact_uses_get_paths_info(monkeypatch):
             self.size = size
 
     class _Api:
-        def get_paths_info(self, repo_id, paths):
+        def get_paths_info(self, repo_id, paths, revision=None):
             assert repo_id == "unsloth/Qwen3.5-0.8B-GGUF"
+            assert revision is None                     # an unpinned repo: the Hub's default
             assert paths == ["Qwen3.5-0.8B-Q8_0.gguf"]
             return [_Path(811843840)]
 
@@ -1047,7 +1061,7 @@ def test_status_absent_when_gguf_file_missing(monkeypatch):
     must not propagate, it must read back as a normal absent status."""
     import huggingface_hub
 
-    def boom(repo, fname, local_files_only=True):
+    def boom(repo, fname, local_files_only=True, revision=None):
         raise RuntimeError("not cached")
 
     monkeypatch.setattr(huggingface_hub, "hf_hub_download", boom)
@@ -1072,7 +1086,7 @@ def test_download_reports_byte_progress(monkeypatch, tmp_path):
                         lambda mid, repo=None: {"repos": [], "urls": [],
                                                 "files": [("org/r", "a.gguf"), ("org/r", "b.bin")]})
     monkeypatch.setattr(nm, "model_size", lambda mid: 1000)
-    monkeypatch.setattr(huggingface_hub, "hf_hub_download", lambda r, f: paths[f])
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", _fetcher(result=lambda f: paths[f]))
 
     sent = []
     async def send(m): sent.append(m)
@@ -1104,7 +1118,9 @@ def test_download_streams_incomplete_blob_growth(monkeypatch, tmp_path):
     monkeypatch.setattr(nm, "_incomplete_bytes", lambda repo: next(grow))
     big = tmp_path / "big.gguf"
     big.write_bytes(b"z" * 1000)
-    def slow_download(r, f):
+    def slow_download(r, f, revision=None, local_files_only=False):
+        if local_files_only:
+            raise FileNotFoundError(f)
         _time.sleep(0.08)
         return str(big)
     monkeypatch.setattr(huggingface_hub, "hf_hub_download", slow_download)
@@ -1126,7 +1142,7 @@ def test_download_falls_back_to_unit_counting_without_size(monkeypatch, tmp_path
                         lambda mid, repo=None: {"repos": [], "urls": [],
                                                 "files": [("org/r", "a"), ("org/r", "a")]})
     monkeypatch.setattr(nm, "model_size", lambda mid: None)   # size unknown
-    monkeypatch.setattr(huggingface_hub, "hf_hub_download", lambda r, f: str(f1))
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", _fetcher(result=str(f1)))
     sent = []
     async def send(m): sent.append(m)
     assert asyncio.run(nm.download("mystery-model", send)) == "ready"

@@ -266,7 +266,7 @@ def _downloaded_quants(model) -> set:
         if not fname:
             continue
         try:
-            hf_hub_download(repo, fname, local_files_only=True)
+            hf_hub_download(repo, fname, revision=_cat.hub_revision(repo), local_files_only=True)
             out.add(d.compute_type)
         except Exception:
             pass
@@ -284,7 +284,7 @@ def _artifact_path(model, compute_type: str):
         if not fname:
             return None
         try:
-            return hf_hub_download(repo, fname, local_files_only=True)
+            return hf_hub_download(repo, fname, revision=_cat.hub_revision(repo), local_files_only=True)
         except Exception:
             return None
     return None

@@ -19,7 +19,7 @@ none of which audio.cpp exposes built-in voices for) -- has no load-free listing
 (voice cloning only, or no bundled catalogue) and reports []."""
 from pathlib import Path
 
-from .catalog import split_artifact
+from .catalog import hub_revision, split_artifact
 
 # audio.cpp's fixed supertonic preset roster (Task 1's sk_tts_presets() CTest
 # against the shipped GGUF) -- a stable, small, hardcoded set, not something
@@ -36,7 +36,8 @@ _LOAD_FREE_PRESETS = {
 def _scoped_snapshot_dir(repo: str, subdir: str):
     try:
         from huggingface_hub import snapshot_download
-        return Path(snapshot_download(repo, allow_patterns=[f"{subdir}/*"], local_files_only=True))
+        return Path(snapshot_download(repo, revision=hub_revision(repo),
+                                      allow_patterns=[f"{subdir}/*"], local_files_only=True))
     except Exception:
         return None
 

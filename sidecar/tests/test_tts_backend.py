@@ -279,8 +279,9 @@ def native_env(monkeypatch, tmp_path):
 
     created = {"model_factory": _FakeTtsModel, "caps": _caps(), "snap_dir": str(snap_dir)}
 
-    def fake_snapshot_download(repo, allow_patterns=None, local_files_only=None):
+    def fake_snapshot_download(repo, allow_patterns=None, local_files_only=None, revision=None):
         created["snapshot_call"] = (repo, allow_patterns, local_files_only)
+        created["snapshot_revision"] = revision
         return str(snap_dir)
 
     import huggingface_hub
