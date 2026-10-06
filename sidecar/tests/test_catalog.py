@@ -229,7 +229,8 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
                 "kugelaudio-0",
                 "qwen3-tts-1.7b-customvoice",
                 "irodori-tts-500m-v3",
-                "irodori-tts-v4.1-anime")
+                "irodori-tts-v4.1-anime",
+                "higgs-audio-v3-4b")
 
 # The 2026-09-03 batch arrived CPU-ONLY and earned every tier the same evening
 # (commit 2f2b28bc, after the per-family fleet run; catalog._TTS_TIER_OVERRIDES).
@@ -1576,3 +1577,50 @@ def test_irodori_v41_anime_card():
     # speaker-encoder feed-forward matrices (row length 1996, not a multiple of the 32-wide
     # quantisation block) stay bf16, and the codec's matrices are f16, beside the q8_0 ones.
     assert dict(m.rung_dtypes) == {"q8_0": frozenset({"bf16", "f16", "q8_0"})}
+
+
+HIGGS_PICKER_LANGS = ("af", "ar", "az", "bg", "bn", "bs", "ca", "cs", "cy", "da", "de", "el", "en",
+                      "es", "et", "fa", "fi", "fil", "fr", "gl", "gu", "he", "hi", "hr", "hu", "id",
+                      "is", "it", "ja", "jv", "ka", "kk", "kn", "ko", "lb", "lt", "lv", "mk", "ml",
+                      "mn", "mr", "ms", "mt", "ne", "nl", "no", "pl", "ps", "pt", "ro", "ru", "sk",
+                      "sl", "so", "sq", "sr", "sv", "sw", "ta", "te", "th", "tr", "uk", "ur", "uz",
+                      "vi", "zh")
+
+
+def test_higgs_card_and_license():
+    # 2026-10-06: an optional clip (decided by the CPU loopback); the vendor's 102 languages that
+    # the Local Native picker can offer; non-commercial; cpu-only until a fleet run.
+    m = catalog.tts_model("higgs-audio-v3-4b")
+    assert m is not None
+    assert (m.family, m.graph_family, m.name) == ("higgs_audio_tts", "higgs_audio_tts", "Higgs Audio v3 TTS (4B)")
+    assert m.sort_order == 27 and m.recommended is False
+    assert m.languages == catalog.HIGGS_LANGS == HIGGS_PICKER_LANGS
+    assert len(m.languages) == 67 and "tl" not in m.languages
+    assert m.clones is True and m.transcript_required is False and m.named_voices is False
+    assert m.streaming is False and m.sample_rate == 24000
+    assert m.voice_required is False and m.presets == () and m.default_preset == ""
+    assert m.extra_files == ()
+    assert m.family not in catalog._TTS_TIER_OVERRIDES
+    assert {d.tier for d in m.deployments} == {"cpu"}
+    rungs = {d.compute_type: d for d in m.deployments}
+    assert set(rungs) == {"q8_0", "bf16"}
+    assert rungs["q8_0"].rank == 2.0 and rungs["bf16"].rank == 1.0
+    assert rungs["q8_0"].artifact == "audio-cpp/audio.cpp-gguf/Higgs-Audio-v3-TTS-4B-GGUF/higgs-audio-v3-tts-4b-q8_0.gguf"
+    assert rungs["q8_0"].est_bytes == 5_095_354_048
+    assert rungs["bf16"].artifact == "audio-cpp/audio.cpp-gguf/Higgs-Audio-v3-TTS-4B-GGUF/higgs-audio-v3-tts-4b-bf16.gguf"
+    assert rungs["bf16"].est_bytes == 8_501_587_648
+    assert m.size_bytes == 5_095_354_048
+    # The matrix dtypes of each published rung (no companions), read from the Hub: the q8_0 file
+    # holds the 36 decoder layers' matrices as q8_0 and every other matrix (the embeddings, the
+    # codec and its fc layers) as f16, with no f32 matrix; the bf16 file is bf16 throughout.
+    assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "q8_0"}),
+                                   "bf16": frozenset({"bf16"})}
+    assert catalog.license_dict(m) == {
+        "spdx": "LicenseRef-Boson-Higgs-TTS-3-Research-Non-Commercial",
+        "name": "Boson Higgs TTS 3 Research and Non-Commercial License",
+        "url": "https://huggingface.co/bosonai/higgs-tts-3-4b/blob/main/LICENSE",
+        "nonCommercial": True,
+        "requiresConsent": True,
+        "sourceRepo": "audio-cpp/audio.cpp-gguf",
+        "attribution": "Boson AI (bosonai)",
+    }

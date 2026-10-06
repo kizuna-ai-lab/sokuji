@@ -184,3 +184,11 @@ describe('Irodori TTS v4.1 Anime clip window', () => {
     expect(s.capability.minClipSeconds).toBe(3);
   });
 });
+
+describe('Higgs Audio v3 clip window', () => {
+  it('keeps the default 3-20s window (audio.cpp sets no ceiling of its own)', () => {
+    const s = voiceStoreFor('clip', 'higgs-audio-v3-4b')!;
+    expect(s.capability.minClipSeconds).toBe(3);
+    expect(s.capability.maxClipSeconds).toBe(20);
+  });
+});

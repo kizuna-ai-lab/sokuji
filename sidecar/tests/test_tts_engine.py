@@ -1482,6 +1482,15 @@ def test_tts_asr_loopback_per_family():
     else:
         skipped.append("qwen3_tts CustomVoice")
 
+    # higgs_audio_tts (2026-10-06): synthesised with nothing set, the case that decides whether
+    # the card may speak without a clip (audio.cpp's docs call the reference required; its
+    # code does not).
+    higgs_dir = family_dir("SK_TEST_TTS_HIGGS_DIR")
+    if higgs_dir:
+        attempt("higgs_audio_tts", higgs_dir, lambda m: None, note="bare: nothing set")
+    else:
+        skipped.append("higgs_audio_tts")
+
     # pocket_tts (English package): the ONE full-production-chain leg (ruling
     # R17(s4) / I1 point 2; the symlinked-snapshot loading defect it surfaced is
     # fixed by ruling R18's hard-link staging) -- see

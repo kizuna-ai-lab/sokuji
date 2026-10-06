@@ -535,6 +535,17 @@ void kugelaudio_requests() {
     assert(!has(req, "do_sample") && opt(req, "seed") == "0");
 }
 
+void higgs_audio_tts_requests() {
+    const auto h = handle_for("higgs_audio_tts");
+    give_clip(h.get(), "The quick brown fox.");
+    rt::TaskRequest req = build_request(h.get(), "Hello.", "en", 1.0f);
+    assert(carries_clip(req));
+    // Not strict: the transcript goes; do_sample is not read by this family; the seed makes its
+    // sampler the host-side seeded one.
+    assert(opt(req, "reference_text") == "The quick brown fox.");
+    assert(opt(req, "do_sample") == "false" && opt(req, "seed") == "0");
+}
+
 }  // namespace
 
 int main() {
@@ -560,6 +571,7 @@ int main() {
     magpie_tts_requests();
     neutts_requests();
     kugelaudio_requests();
+    higgs_audio_tts_requests();
     std::puts("test_tts_request ok");
     return 0;
 }

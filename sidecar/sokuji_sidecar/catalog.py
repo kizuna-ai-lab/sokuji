@@ -1247,6 +1247,18 @@ SUPERTONIC_LANGS = ("en", "ko", "ja", "ar", "bg", "cs", "da", "de", "el", "es", 
                     "fi", "fr", "hi", "hr", "hu", "id", "it", "lt", "lv", "nl", "pl",
                     "pt", "ro", "ru", "sk", "sl", "sv", "tr", "uk", "vi")
 
+# Higgs Audio v3: audio.cpp exposes "100+ languages" with no list (model_specs/
+# higgs_audio_tts.json); the vendor's card names 102, in two tiers, all under 10% WER/CER.
+# These are the ones the Local Native language picker can offer (getLocalInferenceLanguages,
+# read 2026-10-06), as app codes: Tagalog is "fil". A language the picker cannot offer would
+# be unreachable on this card anyway.
+HIGGS_LANGS = ("af", "ar", "az", "bg", "bn", "bs", "ca", "cs", "cy", "da", "de", "el", "en",
+               "es", "et", "fa", "fi", "fil", "fr", "gl", "gu", "he", "hi", "hr", "hu", "id",
+               "is", "it", "ja", "jv", "ka", "kk", "kn", "ko", "lb", "lt", "lv", "mk", "ml",
+               "mn", "mr", "ms", "mt", "ne", "nl", "no", "pl", "ps", "pt", "ro", "ru", "sk",
+               "sl", "so", "sq", "sr", "sv", "sw", "ta", "te", "th", "tr", "uk", "ur", "uz",
+               "vi", "zh")
+
 TTS_MODELS: list[TtsModel] = [
     # Offline, clones from a reference clip, no presets (sk_tts_presets() ==
     # []). audio.cpp ships Q8_0 (default) and BF16; languages per
@@ -1644,6 +1656,26 @@ TTS_MODELS: list[TtsModel] = [
         default_quant="q8_0", order=26, clones=True, streaming=False,
         sample_rate=48000,
         rung_dtypes={"q8_0": {"bf16", "f16", "q8_0"}}),
+    # Higgs Audio v3 TTS 4B (Boson AI): an optional clip, its transcript optional too. Boson's
+    # Research and Non-Commercial License forbids hosted, SaaS, plug-in, end-user-application
+    # and production use without a separate licence, and using it to train other models: the
+    # non-commercial consent gate.
+    _tts_gguf_row(
+        "higgs-audio-v3-4b", "Higgs Audio v3 TTS (4B)", HIGGS_LANGS,
+        "higgs_audio_tts", "Higgs-Audio-v3-TTS-4B-GGUF",
+        {"q8_0": ("higgs-audio-v3-tts-4b-q8_0.gguf", 5095354048),
+         "bf16": ("higgs-audio-v3-tts-4b-bf16.gguf", 8501587648)},
+        default_quant="q8_0", order=27, clones=True, streaming=False,
+        sample_rate=24000,
+        rung_dtypes={"q8_0": {"f16", "q8_0"}, "bf16": {"bf16"}},
+        license=License(
+            spdx="LicenseRef-Boson-Higgs-TTS-3-Research-Non-Commercial",
+            name="Boson Higgs TTS 3 Research and Non-Commercial License",
+            url="https://huggingface.co/bosonai/higgs-tts-3-4b/blob/main/LICENSE",
+            non_commercial=True,
+            requires_consent=True,
+            source_repo=_AUDIOCPP_GGUF_REPO,
+            attribution="Boson AI (bosonai)")),
 ]
 
 

@@ -198,6 +198,11 @@ constexpr FamilyInfo kFamilies[] = {
     // cached_voice_id (:86-97); strict; 24 kHz (:120). It streams only through a sink, so
     // offline.
     {"kugelaudio",     false, false, false, 24000, false, true,  false, FamilyTask::Tts, nullptr},
+    // higgs_audio_tts (audio.cpp src/models/higgs_audio_tts/): an offline Tts session
+    // (session.cpp:150-156); a clip is optional (generator.cpp:205-221), its transcript too
+    // (session.cpp:253-256); 24 kHz (include/engine/models/higgs_audio_tts/codec.h:81); with a
+    // seed its sampler is the host-side seeded one on every backend.
+    {"higgs_audio_tts", false, true,  false, 24000, false, false, false, FamilyTask::Tts, nullptr},
 };
 
 const FamilyInfo *find_family(const char *name) {
