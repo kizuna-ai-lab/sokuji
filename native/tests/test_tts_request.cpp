@@ -498,6 +498,22 @@ void confucius4_tts_requests() {
     assert(opt(req, "seed") == "0");
 }
 
+void magpie_tts_requests() {
+    const auto h = handle_for("magpie_tts");
+    assert(!h->clones && h->preset_option != nullptr && std::strcmp(h->preset_option, "voice_id") == 0);
+    give_preset(h.get(), "Sofia");
+    rt::TaskRequest req = build_request(h.get(), "Hello.", "pt", 1.0f);
+    assert(opt(req, "voice_id") == "Sofia");
+    assert(!req.voice.has_value());
+    // The engine maps the bare code itself (pt -> pt-BR), from text_input.
+    assert(req.text_input && req.text_input->language == "pt");
+    assert(!has(req, "language") && !has(req, "do_sample"));
+    assert(opt(req, "seed") == "0");
+    const auto bare = handle_for("magpie_tts");
+    req = build_request(bare.get(), "Hello.", "en", 1.0f);
+    assert(!has(req, "voice_id") && !req.voice.has_value());
+}
+
 }  // namespace
 
 int main() {
@@ -520,6 +536,7 @@ int main() {
     chatterbox_requests();
     chatterbox_turbo_requests();
     confucius4_tts_requests();
+    magpie_tts_requests();
     std::puts("test_tts_request ok");
     return 0;
 }

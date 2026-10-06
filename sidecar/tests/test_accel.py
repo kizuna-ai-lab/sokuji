@@ -1763,3 +1763,14 @@ def test_models_catalog_carries_the_confucius4_card():
     assert c["repo"] == "audio-cpp/audio.cpp-gguf/Confucius4-TTS-GGUF/confucius4-tts-orig.gguf"
     assert c["sizeBytes"] == 8192757760
     assert "license" not in c
+
+
+def test_models_catalog_carries_the_magpie_card():
+    c = _catalog("tts")["magpie-357m"]
+    assert c["order"] == 21 and c["clones"] is False and c["streaming"] is False
+    assert c["voice"]["builtin"] == "named" and c["voice"]["custom"] == "none"
+    assert c["voice"]["required"] is False
+    assert c["repo"] == ("audio-cpp/audio.cpp-gguf/MagpieTTS-Multilingual-357M-GGUF/"
+                         "magpie-tts-multilingual-357m-q8_0.gguf")
+    assert c["sizeBytes"] == 1562142912
+    assert c["license"]["requiresConsent"] is True and c["license"]["nonCommercial"] is False

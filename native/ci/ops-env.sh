@@ -20,4 +20,5 @@ export SK_TEST_TTS_VIBEVOICE_DIR=$C/tts/vibevoice-1.5b
 export SK_TEST_TTS_CHATTERBOX_DIR=$C/tts/chatterbox
 export SK_TEST_TTS_CHATTERBOX_TURBO_DIR=$C/tts/chatterbox-turbo
 export SK_TEST_TTS_CONFUCIUS4_DIR=$C/tts/confucius4
+export SK_TEST_TTS_MAGPIE_DIR=$C/tts/magpie-357m
 exec "$@"

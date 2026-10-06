@@ -1545,6 +1545,29 @@ TTS_MODELS: list[TtsModel] = [
         default_quant="orig", order=20, clones=True, streaming=False,
         sample_rate=22050,
         rung_dtypes={"orig": {"f32"}}),
+    # Magpie TTS Multilingual 357M (NVIDIA): five baked speakers (named in the vendor card and in
+    # the GGUF's speakers.json), chosen through the voice_id option; no cloning in this release.
+    # The vendor lists 12 languages and audio.cpp has not ported Japanese, so 11, as the app's
+    # codes (audio.cpp's ar-AE/ar-SA/ar-MSA are "ar", its pt-BR is "pt"). The NVIDIA Open Model
+    # License permits commercial use under its own terms: the conditional consent wording.
+    _tts_gguf_row(
+        "magpie-357m", "Magpie TTS Multilingual (357M)",
+        ("ar", "de", "en", "es", "fr", "hi", "it", "ko", "pt", "vi", "zh"),
+        "magpie_tts", "MagpieTTS-Multilingual-357M-GGUF",
+        {"q8_0": ("magpie-tts-multilingual-357m-q8_0.gguf", 1562142912),
+         "orig": ("magpie-tts-multilingual-357m-orig.gguf", 1912137280)},
+        default_quant="q8_0", order=21, clones=False, streaming=False,
+        sample_rate=22050, named_voices=True,
+        presets=("Aria", "Jason", "John", "Leo", "Sofia"),
+        rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}, "orig": {"f32"}},
+        license=License(
+            spdx="LicenseRef-NVIDIA-Open-Model-License",
+            name="NVIDIA Open Model License",
+            url="https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-open-model-license/",
+            non_commercial=False,
+            requires_consent=True,
+            source_repo=_AUDIOCPP_GGUF_REPO,
+            attribution="NVIDIA")),
 ]
 
 

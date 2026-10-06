@@ -223,7 +223,8 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
                 "vibevoice-1.5b",
                 "chatterbox",
                 "chatterbox-turbo",
-                "confucius4")
+                "confucius4",
+                "magpie-357m")
 
 # The 2026-09-03 batch arrived CPU-ONLY and earned every tier the same evening
 # (commit 2f2b28bc, after the per-family fleet run; catalog._TTS_TIER_OVERRIDES).
@@ -1372,3 +1373,44 @@ def test_confucius4_card():
     assert m.size_bytes == 8_192_757_760
     # The matrix dtypes of the one published rung (F32 only, no companions), read from the Hub.
     assert dict(m.rung_dtypes) == {"orig": frozenset({"f32"})}
+
+
+def test_magpie_card_and_license():
+    # 2026-10-06: five baked speakers, no cloning; 11 languages as app codes (audio.cpp has not
+    # ported the vendor's Japanese); NVIDIA Open Model License behind the conditional gate.
+    m = catalog.tts_model("magpie-357m")
+    assert m is not None
+    assert (m.family, m.graph_family, m.name) == ("magpie_tts", "magpie_tts", "Magpie TTS Multilingual (357M)")
+    assert m.sort_order == 21 and m.recommended is False
+    assert m.languages == ("ar", "de", "en", "es", "fr", "hi", "it", "ko", "pt", "vi", "zh")
+    assert m.clones is False and m.transcript_required is False and m.named_voices is True
+    assert m.streaming is False and m.sample_rate == 22050
+    assert m.voice_required is False and m.default_preset == ""
+    assert m.presets == ("Aria", "Jason", "John", "Leo", "Sofia")
+    cap = catalog.voice_capability(m)
+    assert (cap["builtin"], cap["custom"], cap["required"]) == ("named", "none", False)
+    assert m.extra_files == ()
+    assert m.family not in catalog._TTS_TIER_OVERRIDES
+    assert {d.tier for d in m.deployments} == {"cpu"}
+    rungs = {d.compute_type: d for d in m.deployments}
+    assert set(rungs) == {"q8_0", "orig"}
+    assert rungs["q8_0"].rank == 2.0 and rungs["orig"].rank == 1.0
+    assert rungs["q8_0"].artifact == ("audio-cpp/audio.cpp-gguf/MagpieTTS-Multilingual-357M-GGUF/"
+                                      "magpie-tts-multilingual-357m-q8_0.gguf")
+    assert rungs["q8_0"].est_bytes == 1_562_142_912
+    assert rungs["orig"].artifact == ("audio-cpp/audio.cpp-gguf/MagpieTTS-Multilingual-357M-GGUF/"
+                                      "magpie-tts-multilingual-357m-orig.gguf")
+    assert rungs["orig"].est_bytes == 1_912_137_280
+    assert m.size_bytes == 1_562_142_912
+    assert catalog.license_dict(m) == {
+        "spdx": "LicenseRef-NVIDIA-Open-Model-License",
+        "name": "NVIDIA Open Model License",
+        "url": "https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-open-model-license/",
+        "nonCommercial": False,
+        "requiresConsent": True,
+        "sourceRepo": "audio-cpp/audio.cpp-gguf",
+        "attribution": "NVIDIA",
+    }
+    # The matrix dtypes of each published rung (no companions), read from the Hub: the q8_0 file
+    # keeps f16 tensors beside its q8_0 ones; the orig file is F32 only.
+    assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"}), "orig": frozenset({"f32"})}

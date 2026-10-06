@@ -1444,6 +1444,13 @@ def test_tts_asr_loopback_per_family():
     else:
         skipped.append("confucius4_tts" if confucius4_dir else "confucius4_tts (needs supertonic for a reference clip)")
 
+    # magpie_tts (2026-10-06): a baked speaker, chosen through the voice_id option.
+    magpie_dir = family_dir("SK_TEST_TTS_MAGPIE_DIR")
+    if magpie_dir:
+        attempt("magpie_tts", magpie_dir, lambda m: m.set_preset("Sofia"))
+    else:
+        skipped.append("magpie_tts")
+
     # pocket_tts (English package): the ONE full-production-chain leg (ruling
     # R17(s4) / I1 point 2; the symlinked-snapshot loading defect it surfaced is
     # fixed by ruling R18's hard-link staging) -- see

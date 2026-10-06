@@ -97,7 +97,7 @@ def test_audio_families():
     # always compiles silero_vad in regardless of AUDIOCPP_MODELS (see upstreams.cmake), so
     # the family rides along unused, reported by sk_audio_families() but never called.
     required = {"index_tts2", "irodori_tts", "moss_tts_nano", "omnivoice", "pocket_tts",
-                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3", "fireredtts3", "moss_tts_local", "vibevoice", "chatterbox", "chatterbox_turbo", "confucius4_tts"}
+                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3", "fireredtts3", "moss_tts_local", "vibevoice", "chatterbox", "chatterbox_turbo", "confucius4_tts", "magpie_tts"}
     assert required <= set(families)
     assert families == sorted(families)
     # Sized from the library's own count, so the binding never cuts the list off.
@@ -419,6 +419,8 @@ TTS_CHATTERBOX_TURBO_DIR = os.environ.get("SK_TEST_TTS_CHATTERBOX_TURBO_DIR")
 needs_tts_chatterbox_turbo = pytest.mark.skipif(not (HAVE_TREE and TTS_CHATTERBOX_TURBO_DIR), reason="needs a built tree and SK_TEST_TTS_CHATTERBOX_TURBO_DIR")
 TTS_CONFUCIUS4_DIR = os.environ.get("SK_TEST_TTS_CONFUCIUS4_DIR")
 needs_tts_confucius4 = pytest.mark.skipif(not (HAVE_TREE and TTS_CONFUCIUS4_DIR), reason="needs a built tree and SK_TEST_TTS_CONFUCIUS4_DIR")
+TTS_MAGPIE_DIR = os.environ.get("SK_TEST_TTS_MAGPIE_DIR")
+needs_tts_magpie = pytest.mark.skipif(not (HAVE_TREE and TTS_MAGPIE_DIR), reason="needs a built tree and SK_TEST_TTS_MAGPIE_DIR")
 needs_tts_supertonic = pytest.mark.skipif(not (HAVE_TREE and TTS_SUPERTONIC_DIR), reason="needs a built tree and SK_TEST_TTS_SUPERTONIC_DIR")
 needs_tts_moss = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_DIR), reason="needs a built tree and SK_TEST_TTS_MOSS_DIR")
 needs_tts_index = pytest.mark.skipif(not (HAVE_TREE and TTS_INDEX_DIR), reason="needs a built tree and SK_TEST_TTS_INDEX_DIR")
@@ -638,6 +640,9 @@ NEW_CPU_TTS_FAMILIES = [
                clones=False),
     # confucius4_tts is clone-only (a VoiceCloning session); 22.05 kHz.
     CpuTtsCase("confucius4_tts", "SK_TEST_TTS_CONFUCIUS4_DIR", TTS_CONFUCIUS4_DIR, "Hello from Confucius.", "en", 22050, True),
+    # magpie_tts speaks one of five baked speakers, chosen through the voice_id option; no clip.
+    CpuTtsCase("magpie_tts", "SK_TEST_TTS_MAGPIE_DIR", TTS_MAGPIE_DIR, "Hello from Magpie.", "en", 22050, False,
+               clones=False, preset="Sofia"),
 ]
 
 
@@ -1030,6 +1035,25 @@ def test_tts_confucius4_speaks_the_callers_language_code():
     assert float(np.max(np.abs(samples))) > 0.01
 
 
+@needs_tts_magpie
+def test_tts_magpie_presets_reach_the_engine():
+    """Magpie reads its speaker only from the voice_id request option (FamilyInfo's
+    preset_option) and ignores cached_voice_id, so two of its baked speakers must sound
+    different; through cached_voice_id both would be Aria."""
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    t = sokuji_native.tts_load(_main_gguf(TTS_MAGPIE_DIR), "magpie_tts", cpu)
+    try:
+        t.set_preset("Aria")
+        aria, rate = t.synth("Hello from Magpie.", language="en")
+        t.set_preset("Leo")
+        leo, _rate = t.synth("Hello from Magpie.", language="en")
+    finally:
+        t.unload()
+    assert rate == 22050
+    assert aria.shape != leo.shape or not np.allclose(aria, leo)
+
+
 # --------------------------------------------------------------------------------------
 # TTS on a real GPU device.
 #
@@ -1114,6 +1138,7 @@ GPU_TTS_FAMILIES = {
                    "Hallo Welt, wie geht es dir heute?", "de"),
     "chatterbox_turbo": ("SK_TEST_TTS_CHATTERBOX_TURBO_DIR", TTS_CHATTERBOX_TURBO_DIR, None, False, 30.0, GPU_TTS_TEXT, "en"),
     "confucius4_tts": ("SK_TEST_TTS_CONFUCIUS4_DIR", TTS_CONFUCIUS4_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
+    "magpie_tts": ("SK_TEST_TTS_MAGPIE_DIR", TTS_MAGPIE_DIR, "Sofia", False, 30.0, GPU_TTS_TEXT, "en"),
 }
 
 # The dirs above hold the DEFAULT rung — the catalog's `default_quant`, which is

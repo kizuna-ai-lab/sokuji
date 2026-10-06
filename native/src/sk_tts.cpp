@@ -182,6 +182,12 @@ constexpr FamilyInfo kFamilies[] = {
     // (request.cpp:13-35, tokenizer_text.cpp:283-292). Segment streaming gains nothing on one
     // utterance, so offline.
     {"confucius4_tts", false, true,  false, 22050, false, true,  false, FamilyTask::VoiceCloning, nullptr},
+    // magpie_tts (audio.cpp src/models/magpie_tts/): an offline Tts session (session.cpp:75-80);
+    // five baked speakers and no cloning; the speaker is read only from the voice_id option, a
+    // name or an index (request.cpp:30-52); strict; 22.05 kHz
+    // (include/engine/models/magpie_tts/assets.h:62). The engine maps a bare language code
+    // itself (tokenizer_text.cpp:1140-1165).
+    {"magpie_tts",     false, false, false, 22050, false, true,  false, FamilyTask::Tts, "voice_id"},
 };
 
 const FamilyInfo *find_family(const char *name) {

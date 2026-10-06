@@ -1787,3 +1787,16 @@ def test_confucius4_card_is_gated_by_r16(native_env):
     b.set_voice(np.ones(2400, np.float32), 24000)
     samples, _rate, _ms = b.generate("hello")
     assert samples.dtype == np.float32
+
+
+def test_magpie_card_is_not_gated_by_r16(native_env):
+    """Magpie speaks its default speaker (Aria) with nothing set."""
+    from sokuji_sidecar import catalog
+    created, log = native_env
+    m = catalog.tts_model("magpie-357m")
+    assert m.voice_required is False
+    created["caps"] = _caps(clones=False, sample_rate=22050)
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=m.family, voice_required=m.voice_required))
+    samples, _rate, _ms = b.generate("hello")
+    assert samples.dtype == np.float32
