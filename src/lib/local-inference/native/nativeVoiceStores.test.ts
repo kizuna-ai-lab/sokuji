@@ -176,3 +176,11 @@ describe('Irodori TTS 500M v3 clip window', () => {
     expect(s.capability.maxClipSeconds).toBe(20);
   });
 });
+
+describe('Irodori TTS v4.1 Anime clip window', () => {
+  it('allows 30s, the reference length its model card recommends for cloning', () => {
+    const s = voiceStoreFor('clip', 'irodori-tts-v4.1-anime')!;
+    expect(s.capability.maxClipSeconds).toBe(30);
+    expect(s.capability.minClipSeconds).toBe(3);
+  });
+});

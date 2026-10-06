@@ -1859,3 +1859,15 @@ def test_irodori_500m_v3_card_is_not_gated_by_r16(native_env):
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=m.family, voice_required=m.voice_required))
     samples, _rate, _ms = b.generate("hello")
     assert samples.dtype == np.float32
+
+
+def test_irodori_v41_anime_card_is_not_gated_by_r16(native_env):
+    """Irodori speaks with nothing set (its request default is no reference)."""
+    from sokuji_sidecar import catalog
+    created, log = native_env
+    m = catalog.tts_model("irodori-tts-v4.1-anime")
+    assert m.voice_required is False
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=m.family, voice_required=m.voice_required))
+    samples, _rate, _ms = b.generate("hello")
+    assert samples.dtype == np.float32

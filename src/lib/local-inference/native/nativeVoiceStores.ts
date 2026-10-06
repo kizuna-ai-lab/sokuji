@@ -69,6 +69,9 @@ const MODEL_CLIP_LIMITS: Record<string, { min?: number; max?: number }> = {
   // (src/models/vibevoice/session.cpp:25-26); Sokuji hands it the clip in memory, which skips
   // that cap, so the store applies it.
   'vibevoice-1.5b': { max: 10 },
+  // Irodori v4.1 recommends about 30s or more of clean reference speech for cloning (the
+  // v4.1 model card the GGUF embeds); the default 20s would stop a recording short of it.
+  'irodori-tts-v4.1-anime': { max: 30 },
 };
 
 /** Peak amplitude below this is treated as silence (a muted mic / empty file). */

@@ -1815,3 +1815,13 @@ def test_models_catalog_carries_the_irodori_500m_v3_card():
     assert c["repo"] == "audio-cpp/audio.cpp-gguf/Irodori-TTS-500M-v3-GGUF/irodori-tts-500m-v3-q8_0.gguf"
     assert c["sizeBytes"] == 1093739584
     assert "license" not in c
+
+
+def test_models_catalog_carries_the_irodori_v41_anime_card():
+    c = _catalog("tts")["irodori-tts-v4.1-anime"]
+    assert c["order"] == 26 and c["clones"] is True and c["streaming"] is False
+    assert c["voice"]["builtin"] == "none" and c["voice"]["custom"] == "clip"
+    assert c["voice"]["required"] is False
+    assert c["repo"] == "audio-cpp/audio.cpp-gguf/Irodori-TTS-v4-Small-GGUF/irodori-tts-v4.1-anime-q8_0.gguf"
+    assert c["sizeBytes"] == 1112547264
+    assert "license" not in c

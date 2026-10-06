@@ -228,7 +228,8 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
                 "neutts-2e",
                 "kugelaudio-0",
                 "qwen3-tts-1.7b-customvoice",
-                "irodori-tts-500m-v3")
+                "irodori-tts-500m-v3",
+                "irodori-tts-v4.1-anime")
 
 # The 2026-09-03 batch arrived CPU-ONLY and earned every tier the same evening
 # (commit 2f2b28bc, after the per-family fleet run; catalog._TTS_TIER_OVERRIDES).
@@ -1551,3 +1552,27 @@ def test_irodori_500m_v3_card():
     # keeps f16 and f32 matrices beside its quantised ones; the f16 file is f16 throughout.
     assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"}),
                                    "f16": frozenset({"f16"})}
+
+
+def test_irodori_v41_anime_card():
+    # 2026-10-06: a third irodori_tts card, in v4 Small's Hub folder; MIT by the owner's
+    # ruling; tiers are the family's (_TTS_TIER_OVERRIDES is keyed by family).
+    m = catalog.tts_model("irodori-tts-v4.1-anime")
+    assert m is not None
+    assert (m.family, m.graph_family, m.name) == ("irodori_tts", "irodori_tts", "Irodori TTS v4.1 Anime")
+    assert m.sort_order == 26 and m.recommended is False
+    assert m.languages == ("ja",)
+    assert m.clones is True and m.transcript_required is False and m.named_voices is False
+    assert m.streaming is False and m.sample_rate == 48000
+    assert m.voice_required is False and m.presets == () and m.default_preset == ""
+    assert m.license is None and m.extra_files == ()
+    assert {d.tier for d in m.deployments} == set(catalog._TTS_TIER_OVERRIDES["irodori_tts"])
+    rungs = {d.compute_type: d for d in m.deployments}
+    assert set(rungs) == {"q8_0"} and rungs["q8_0"].rank == 2.0
+    assert rungs["q8_0"].artifact == "audio-cpp/audio.cpp-gguf/Irodori-TTS-v4-Small-GGUF/irodori-tts-v4.1-anime-q8_0.gguf"
+    assert rungs["q8_0"].est_bytes == 1_112_547_264
+    assert m.size_bytes == 1_112_547_264
+    # The matrix dtypes of the one published rung (no companions), read from the Hub: eight
+    # speaker-encoder feed-forward matrices (row length 1996, not a multiple of the 32-wide
+    # quantisation block) stay bf16, and the codec's matrices are f16, beside the q8_0 ones.
+    assert dict(m.rung_dtypes) == {"q8_0": frozenset({"bf16", "f16", "q8_0"})}

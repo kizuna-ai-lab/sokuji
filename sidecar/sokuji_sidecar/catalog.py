@@ -1633,6 +1633,17 @@ TTS_MODELS: list[TtsModel] = [
         default_quant="q8_0", order=25, clones=True, streaming=False,
         sample_rate=48000,
         rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}, "f16": {"f16"}}),
+    # Irodori TTS v4.1 Anime: v4 Small's architecture and request contract, hosted in the same
+    # Hub folder. Japanese only, clip optional, 48 kHz, one q8_0 file. Carded as MIT by the
+    # owner's ruling (2026-10-06): the weights' own repository was unreachable, and the GGUF
+    # embeds the MIT v4.1-Small card. Tiers come from the family.
+    _tts_gguf_row(
+        "irodori-tts-v4.1-anime", "Irodori TTS v4.1 Anime", ("ja",),
+        "irodori_tts", "Irodori-TTS-v4-Small-GGUF",
+        {"q8_0": ("irodori-tts-v4.1-anime-q8_0.gguf", 1112547264)},
+        default_quant="q8_0", order=26, clones=True, streaming=False,
+        sample_rate=48000,
+        rung_dtypes={"q8_0": {"bf16", "f16", "q8_0"}}),
 ]
 
 
