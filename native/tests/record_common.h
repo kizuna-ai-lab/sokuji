@@ -74,7 +74,7 @@ static int record_family(const std::string &stage, const std::string &family, co
     std::vector<const char *> dtype_ptrs; for (auto &s : dtypes_v) dtype_ptrs.push_back(s.c_str());
 
     Clip ref;
-    const bool needs_voice = family == "qwen3_tts" || family == "omnivoice" || family == "index_tts2";
+    const bool needs_voice = family == "qwen3_tts" || family == "omnivoice" || family == "index_tts2" || family == "cosyvoice3";
     if (needs_voice) {
         ref = reference_clip(dev, supertonic_dir);
         // An empty clip would quietly degrade a clone-only family to a no-voice run: index_tts2

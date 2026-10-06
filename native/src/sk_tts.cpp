@@ -148,6 +148,10 @@ constexpr FamilyInfo kFamilies[] = {
     {"voxcpm2",        true,  true,  false, 48000, false, false, false, FamilyTask::Tts, nullptr},
     {"irodori_tts",    false, true,  false, 48000, false, true,  false, FamilyTask::Tts, nullptr},
     {"index_tts2",     false, true,  false, 22050, false, false, false, FamilyTask::Tts, nullptr},
+    // cosyvoice3 (audio.cpp src/models/cosyvoice3/session.cpp): Tts and clone sessions,
+    // offline only (:88-93); the reference clip is mandatory (:170-174); strict options,
+    // declaring reference_text and template_name.
+    {"cosyvoice3",     false, true,  false, 24000, false, true,  true,  FamilyTask::Tts, nullptr},
 };
 
 const FamilyInfo *find_family(const char *name) {
@@ -321,6 +325,12 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
     if (t->family == "voxcpm2" && t->streaming_family) {
         req.options["retry_badcase"] = "false";
     }
+
+    // CosyVoice3's default template, zero_shot, builds its text prompt from the clip's
+    // transcript (audio.cpp src/models/cosyvoice3/session.cpp:180-189); cross_lingual clones
+    // from the clip alone, so a clip without a transcript takes that one.
+    if (t->family == "cosyvoice3" && t->has_clone)
+        req.options["template_name"] = t->clone_ref_text.empty() ? "cross_lingual" : "zero_shot";
 
     // Ruling R7(s4): deterministic synthesis by default — product behavior AND the parity
     // harness's precondition (Task 3 compares this binding's output against the official

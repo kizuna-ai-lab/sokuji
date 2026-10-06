@@ -120,3 +120,11 @@ describe('per-model clip limits', () => {
       .rejects.toMatchObject({ code: 'too_long' });
   });
 });
+
+describe('CosyVoice 3 clip window', () => {
+  it('keeps the default 3-20s window (audio.cpp sets no ceiling of its own)', () => {
+    const s = voiceStoreFor('clip', 'cosyvoice3')!;
+    expect(s.capability.minClipSeconds).toBe(3);
+    expect(s.capability.maxClipSeconds).toBe(20);
+  });
+});

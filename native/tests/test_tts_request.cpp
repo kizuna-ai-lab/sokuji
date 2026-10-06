@@ -263,6 +263,28 @@ void load_language_replaces_the_callers_on_every_synth() {
     assert(opt(req, "language") == "ja");
 }
 
+void cosyvoice3_requests() {
+    // A clip with its transcript: zero_shot, whose prompt is built from reference_text.
+    const auto h = handle_for("cosyvoice3");
+    give_clip(h.get(), "The quick brown fox.");
+    rt::TaskRequest req = build_request(h.get(), "Hello.", "en", 1.0f);
+    assert(carries_clip(req));
+    assert(opt(req, "template_name") == "zero_shot");
+    assert(opt(req, "reference_text") == "The quick brown fox.");
+    assert(!has(req, "do_sample") && opt(req, "seed") == "0");
+    assert(!has(req, "language"));
+    // A clip without one: cross_lingual, which clones from the clip alone.
+    give_clip(h.get(), "");
+    req = build_request(h.get(), "Hello.", "en", 1.0f);
+    assert(opt(req, "template_name") == "cross_lingual");
+    assert(!has(req, "reference_text"));
+    // No clip: no template either; the engine refuses that synth itself.
+    const auto bare = handle_for("cosyvoice3");
+    req = build_request(bare.get(), "Hello.", "en", 1.0f);
+    assert(!has(req, "template_name"));
+    assert(task_spec_for(*find_family("cosyvoice3")).task == rt::VoiceTaskKind::Tts);
+}
+
 }  // namespace
 
 int main() {
@@ -274,6 +296,7 @@ int main() {
     existing_families_build_the_same_requests();
     load_language_is_kept_for_every_family_but_pocket_tts();
     load_language_replaces_the_callers_on_every_synth();
+    cosyvoice3_requests();
     std::puts("test_tts_request ok");
     return 0;
 }

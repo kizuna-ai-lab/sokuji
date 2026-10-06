@@ -13,4 +13,5 @@ export SK_TEST_TTS_VOXCPM1_DIR=$C/tts/voxcpm1-0.5b
 export SK_TEST_TTS_VOXCPM2_DIR=$C/tts/voxcpm2
 export SK_TEST_TTS_IRODORI_DIR=$C/tts/irodori-tts-v4-small
 export SK_TEST_TTS_INDEX_DIR=$C/tts/index-tts2.5
+export SK_TEST_TTS_COSYVOICE3_DIR=$C/tts/cosyvoice3
 exec "$@"

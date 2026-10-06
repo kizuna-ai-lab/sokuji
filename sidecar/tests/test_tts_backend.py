@@ -1675,3 +1675,22 @@ def test_init_measures_a_default_preset_card_and_skips_a_voice_required_one(
         assert generate_calls == []
         assert "rtf" not in eng.resolved
     eng.close()
+
+
+def test_cosyvoice3_card_is_gated_by_r16(native_env):
+    """cosyvoice3 refuses a synth with no reference clip ("CosyVoice3 requires reference
+    audio"), so the card's voice_required gates a bare generate() before the native layer.
+    A clip alone, without a transcript, un-gates it."""
+    from sokuji_sidecar import catalog
+    created, log = native_env
+    m = catalog.tts_model("cosyvoice3")
+    assert m.voice_required is True
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=m.family, voice_required=m.voice_required))
+    with pytest.raises(backends.BackendLoadError, match="cosyvoice3"):
+        b.generate("hello")
+    assert log == []
+    assert b._workers == []
+    b.set_voice(np.ones(2400, np.float32), 24000)
+    samples, _rate, _ms = b.generate("hello")
+    assert samples.dtype == np.float32

@@ -8,6 +8,7 @@ import re
 import subprocess
 import sys
 import warnings
+from typing import NamedTuple
 
 import numpy as np
 import pytest
@@ -96,7 +97,7 @@ def test_audio_families():
     # always compiles silero_vad in regardless of AUDIOCPP_MODELS (see upstreams.cmake), so
     # the family rides along unused, reported by sk_audio_families() but never called.
     required = {"index_tts2", "irodori_tts", "moss_tts_nano", "omnivoice", "pocket_tts",
-                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2"}
+                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3"}
     assert required <= set(families)
     assert families == sorted(families)
     # Sized from the library's own count, so the binding never cuts the list off.
@@ -404,6 +405,8 @@ TTS_VOXCPM1_DIR = os.environ.get("SK_TEST_TTS_VOXCPM1_DIR")
 TTS_VOXCPM2_DIR = os.environ.get("SK_TEST_TTS_VOXCPM2_DIR")
 TTS_IRODORI_DIR = os.environ.get("SK_TEST_TTS_IRODORI_DIR")
 TTS_INDEX_DIR = os.environ.get("SK_TEST_TTS_INDEX_DIR")
+TTS_COSYVOICE3_DIR = os.environ.get("SK_TEST_TTS_COSYVOICE3_DIR")
+needs_tts_cosyvoice3 = pytest.mark.skipif(not (HAVE_TREE and TTS_COSYVOICE3_DIR), reason="needs a built tree and SK_TEST_TTS_COSYVOICE3_DIR")
 needs_tts_supertonic = pytest.mark.skipif(not (HAVE_TREE and TTS_SUPERTONIC_DIR), reason="needs a built tree and SK_TEST_TTS_SUPERTONIC_DIR")
 needs_tts_moss = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_DIR), reason="needs a built tree and SK_TEST_TTS_MOSS_DIR")
 needs_tts_index = pytest.mark.skipif(not (HAVE_TREE and TTS_INDEX_DIR), reason="needs a built tree and SK_TEST_TTS_INDEX_DIR")
@@ -578,19 +581,45 @@ def test_tts_moss_offline_and_clone():
 # cases; the GPU gate for all nine families is test_tts_synthesises_on_a_gpu_device below
 # (their catalog.py _TTS_TIER_OVERRIDES rows came from that fleet run, commit 2f2b28bc).
 #
-# (family, env var, model dir, text, language, expected rate, needs a reference clip).
+# One CpuTtsCase per card (columns below).
 # The text is in a language the family actually covers — irodori_tts is Japanese-only, and
 # for index_tts2 the language is what picks its <|lang|> prefix (left unset its tokenizer
 # guesses "zh for Han text, else en"). index_tts2 is the one family whose reference clip is
 # MANDATORY ("IndexTTS2 request requires --voice-ref or voice.speaker.audio"), and a clone
 # reference has to be real speech, so — exactly like the GPU runner below — supertonic
 # synthesizes one on the CPU device first rather than passing a sine wave off as a voice.
+class CpuTtsCase(NamedTuple):
+    """One CPU synth case. The first seven columns are the 2026-09-03 table's; the rest default
+    to that table's shape (a cloning family, no transcript rule, no preset), so a row states
+    only where its card differs."""
+    family: str
+    env_name: str
+    model_dir: str | None
+    text: str
+    language: str
+    rate: int                          # caps.sample_rate, and the rate the synth returns
+    needs_ref: bool                    # clone-only: a real-speech clip is set before the synth
+    case_id: str = ""                  # pytest id; "" = the family (a second card of one family names itself)
+    clones: bool = True                # caps.clones
+    transcript_required: bool = False  # caps.transcript_required
+    preset: str | None = None          # set before the synth; None = the family's own default voice
+
+
 NEW_CPU_TTS_FAMILIES = [
-    ("voxcpm1", "SK_TEST_TTS_VOXCPM1_DIR", TTS_VOXCPM1_DIR, "Hello from VoxCPM.", "en", 16000, False),
-    ("voxcpm2", "SK_TEST_TTS_VOXCPM2_DIR", TTS_VOXCPM2_DIR, "你好，世界。", "zh", 48000, False),
-    ("irodori_tts", "SK_TEST_TTS_IRODORI_DIR", TTS_IRODORI_DIR, "こんにちは、世界。", "ja", 48000, False),
-    ("index_tts2", "SK_TEST_TTS_INDEX_DIR", TTS_INDEX_DIR, "Hello from IndexTTS.", "en", 22050, True),
+    CpuTtsCase("voxcpm1", "SK_TEST_TTS_VOXCPM1_DIR", TTS_VOXCPM1_DIR, "Hello from VoxCPM.", "en", 16000, False),
+    CpuTtsCase("voxcpm2", "SK_TEST_TTS_VOXCPM2_DIR", TTS_VOXCPM2_DIR, "你好，世界。", "zh", 48000, False),
+    CpuTtsCase("irodori_tts", "SK_TEST_TTS_IRODORI_DIR", TTS_IRODORI_DIR, "こんにちは、世界。", "ja", 48000, False),
+    CpuTtsCase("index_tts2", "SK_TEST_TTS_INDEX_DIR", TTS_INDEX_DIR, "Hello from IndexTTS.", "en", 22050, True),
+    # 2026-10-06 roster expansion. cosyvoice3 is clone-only: no clip, no synth.
+    CpuTtsCase("cosyvoice3", "SK_TEST_TTS_COSYVOICE3_DIR", TTS_COSYVOICE3_DIR, "Hello from CosyVoice.", "en", 24000, True),
 ]
+
+
+def _cpu_case_ids(cases):
+    return [c.case_id or c.family for c in cases]
+
+
+CLONING_CPU_TTS_CASES = [c for c in NEW_CPU_TTS_FAMILIES if c.clones]
 
 
 def _cpu_reference_clip():
@@ -609,32 +638,33 @@ def _cpu_reference_clip():
     return np.ascontiguousarray(pcm, dtype=np.float32), int(rate), ref_text
 
 
-@pytest.mark.parametrize(
-    "family,env_name,model_dir,text,language,rate,needs_ref",
-    NEW_CPU_TTS_FAMILIES,
-    ids=[row[0] for row in NEW_CPU_TTS_FAMILIES],
-)
-def test_tts_new_family_synthesises_on_cpu(family, env_name, model_dir, text, language, rate, needs_ref):
+@pytest.mark.parametrize("case", NEW_CPU_TTS_FAMILIES, ids=_cpu_case_ids(NEW_CPU_TTS_FAMILIES))
+def test_tts_new_family_synthesises_on_cpu(case):
     if not HAVE_TREE:
         pytest.skip("needs a built tree")
-    if not model_dir:
-        pytest.skip(f"needs {env_name}")
-    if needs_ref and not TTS_SUPERTONIC_DIR:
-        pytest.skip(f"{family} is clone-only and needs SK_TEST_TTS_SUPERTONIC_DIR for a reference clip")
+    if not case.model_dir:
+        pytest.skip(f"needs {case.env_name}")
+    if case.needs_ref and not TTS_SUPERTONIC_DIR:
+        pytest.skip(f"{case.family} is clone-only and needs SK_TEST_TTS_SUPERTONIC_DIR for a reference clip")
     sokuji_native.init()
     cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
-    voice = _cpu_reference_clip() if needs_ref else None
+    voice = _cpu_reference_clip() if case.needs_ref else None
+    rate = case.rate
 
-    t = sokuji_native.tts_load(_main_gguf(model_dir), family, cpu)
+    t = sokuji_native.tts_load(_main_gguf(case.model_dir), case.family, cpu)
     try:
         caps = t.capabilities
-        assert caps.clones and not caps.transcript_required
+        assert caps.clones == case.clones
+        assert caps.transcript_required == case.transcript_required
         assert caps.sample_rate == rate
-        # None of the four exposes built-in voices, so the preset list is authoritative-empty.
+        # No family in this table enumerates its presets natively (a card's preset names live in
+        # the sidecar catalog), so the native list is authoritative-empty.
         assert t.presets() == []
+        if case.preset is not None:
+            t.set_preset(case.preset)
         if voice is not None:
             t.set_voice(voice[0], voice[1], ref_text=voice[2])
-        samples, out_rate = t.synth(text, language=language)
+        samples, out_rate = t.synth(case.text, language=case.language)
     finally:
         t.unload()
 
@@ -647,18 +677,13 @@ def test_tts_new_family_synthesises_on_cpu(family, env_name, model_dir, text, la
     assert float(np.max(np.abs(samples))) > 0.01
 
 
-@pytest.mark.parametrize(
-    "family,env_name,model_dir,text,language,rate",
-    [(f, e, d, t, l, r) for f, e, d, t, l, r, _needs_ref in NEW_CPU_TTS_FAMILIES],
-    ids=[row[0] for row in NEW_CPU_TTS_FAMILIES],
-)
-def test_tts_new_family_accepts_a_clip_that_carries_a_transcript(
-        family, env_name, model_dir, text, language, rate):
-    """Every one of the four takes a reference clip, and the renderer attaches a transcript
+@pytest.mark.parametrize("case", CLONING_CPU_TTS_CASES, ids=_cpu_case_ids(CLONING_CPU_TTS_CASES))
+def test_tts_new_family_accepts_a_clip_that_carries_a_transcript(case):
+    """Every cloning family here takes a reference clip, and the renderer attaches a transcript
     to every clip it has one for out of ONE shared clip store (LocalNativeClient's
     setReferenceVoice) — so a clip saved for OmniVoice can be applied to any of these next.
-    None of the four is transcript_required, so the transcript is never NEEDED here; the
-    point is that carrying one must not break the synth.
+    For most the transcript is not NEEDED; the point is that carrying one must not break the
+    synth.
 
     It did: sk_tts_synth forwarded the transcript as the "reference_text" request OPTION for
     every family, and irodori_tts validates request options against its own model spec,
@@ -667,18 +692,19 @@ def test_tts_new_family_accepts_a_clip_that_carries_a_transcript(
     see this, hence this second pass."""
     if not HAVE_TREE:
         pytest.skip("needs a built tree")
-    if not model_dir:
-        pytest.skip(f"needs {env_name}")
+    if not case.model_dir:
+        pytest.skip(f"needs {case.env_name}")
     if not TTS_SUPERTONIC_DIR:
         pytest.skip("needs SK_TEST_TTS_SUPERTONIC_DIR for a real-speech reference clip")
     sokuji_native.init()
     cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
     pcm, ref_rate, ref_text = _cpu_reference_clip()
+    rate = case.rate
 
-    t = sokuji_native.tts_load(_main_gguf(model_dir), family, cpu)
+    t = sokuji_native.tts_load(_main_gguf(case.model_dir), case.family, cpu)
     try:
         t.set_voice(pcm, ref_rate, ref_text=ref_text)
-        samples, out_rate = t.synth(text, language=language)
+        samples, out_rate = t.synth(case.text, language=case.language)
     finally:
         t.unload()
 
@@ -733,6 +759,41 @@ def test_tts_load_language_is_forced_on_every_synth():
     assert rate == 24000
     frames = int(samples.shape[0])
     assert 0.3 < frames / rate < 20.0
+    assert float(np.max(np.abs(samples))) > 0.01
+
+
+@needs_tts_cosyvoice3
+def test_tts_cosyvoice3_without_a_voice_fails_cleanly():
+    """cosyvoice3 has no built-in voice: a synth with no clip is the engine's own clean
+    "CosyVoice3 requires reference audio", which the catalog's VOICE_REQUIRED_FAMILIES
+    pre-empts in the sidecar."""
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    t = sokuji_native.tts_load(_main_gguf(TTS_COSYVOICE3_DIR), "cosyvoice3", cpu)
+    try:
+        with pytest.raises(sokuji_native.NativeError, match="requires reference audio"):
+            t.synth("Hello from CosyVoice.", language="en")
+    finally:
+        t.unload()
+
+
+@needs_tts_cosyvoice3
+def test_tts_cosyvoice3_clones_a_clip_that_has_no_transcript():
+    """The renderer's clip store holds clips without a transcript too. For one of those
+    sk_tts_synth asks for the cross_lingual template, which needs none."""
+    if not TTS_SUPERTONIC_DIR:
+        pytest.skip("needs SK_TEST_TTS_SUPERTONIC_DIR for a real-speech reference clip")
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    pcm, ref_rate, _ref_text = _cpu_reference_clip()
+    t = sokuji_native.tts_load(_main_gguf(TTS_COSYVOICE3_DIR), "cosyvoice3", cpu)
+    try:
+        t.set_voice(pcm, ref_rate)
+        samples, rate = t.synth("Hello from CosyVoice.", language="en")
+    finally:
+        t.unload()
+    assert rate == 24000
+    assert 0.3 < samples.shape[0] / rate < 20.0
     assert float(np.max(np.abs(samples))) > 0.01
 
 
@@ -810,6 +871,7 @@ GPU_TTS_FAMILIES = {
     "irodori_tts": ("SK_TEST_TTS_IRODORI_DIR", TTS_IRODORI_DIR, None, False, 30.0,
                     "こんにちは、世界。今日はいい天気ですね。", "ja"),
     "index_tts2": ("SK_TEST_TTS_INDEX_DIR", TTS_INDEX_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
+    "cosyvoice3": ("SK_TEST_TTS_COSYVOICE3_DIR", TTS_COSYVOICE3_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
 }
 
 # The dirs above hold the DEFAULT rung — the catalog's `default_quant`, which is

@@ -1693,3 +1693,13 @@ def test_models_catalog_tier_unavailable_when_every_rung_is_refused(monkeypatch,
     out = asyncio.run(_call(accel._h_models_catalog, {"type": "models_catalog", "id": 3, "kind": "tts", "models": ["voxcpm2"]}))
     assert next(t for t in out["models"][0]["tiers"] if t["tier"] == "gpu-vulkan")["available"] is False
     assert next(t for t in out["models"][0]["tiers"] if t["tier"] == "cpu")["available"] is True
+
+
+def test_models_catalog_carries_the_cosyvoice3_card():
+    c = _catalog("tts")["cosyvoice3"]
+    assert c["order"] == 14 and c["clones"] is True and c["streaming"] is False
+    assert c["voice"]["builtin"] == "none" and c["voice"]["custom"] == "clip"
+    assert c["voice"]["required"] is True and "transcriptRequired" not in c["voice"]
+    assert c["repo"] == "audio-cpp/audio.cpp-gguf/CosyVoice3-GGUF/cosyvoice3-q8_0.gguf"
+    assert c["sizeBytes"] == 2257658080
+    assert "license" not in c

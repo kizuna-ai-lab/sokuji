@@ -215,7 +215,9 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
                 "omnivoice-0.6b", "pocket-tts-en", "pocket-tts-de", "pocket-tts-es",
                 "pocket-tts-it", "pocket-tts-pt",
                 # 2026-09-03 batch
-                "voxcpm1-0.5b", "voxcpm2", "irodori-tts-v4-small", "index-tts2.5")
+                "voxcpm1-0.5b", "voxcpm2", "irodori-tts-v4-small", "index-tts2.5",
+                # 2026-10-06 roster expansion (sub-project A)
+                "cosyvoice3")
 
 # The 2026-09-03 batch arrived CPU-ONLY and earned every tier the same evening
 # (commit 2f2b28bc, after the per-family fleet run; catalog._TTS_TIER_OVERRIDES).
@@ -223,13 +225,14 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
 NEW_2026_09_03_TTS_CARD_IDS = ("voxcpm1-0.5b", "voxcpm2", "irodori-tts-v4-small", "index-tts2.5")
 
 
-def test_tts_models_are_the_fourteen_native_tts_cards():
+def test_tts_models_are_the_native_tts_cards():
     # 68 rows -> 10, slice 4 (spec §5.4 corrected 2026-08-31): every ONNX/
     # sherpa/MLX backend and its cards died with the ONNX/sherpa/MLX stacks.
-    # 10 -> 14 on 2026-09-03: four more audio.cpp families.
+    # 10 -> 14 on 2026-09-03: four more audio.cpp families. From 2026-10-06 the roster grows
+    # card by card; TTS_CARD_IDS is the one list each new card is added to.
     ids = [m.id for m in catalog.tts_models()]
     assert set(ids) == set(TTS_CARD_IDS)
-    assert len(ids) == len(set(ids)) == 14
+    assert len(ids) == len(set(ids)) == len(TTS_CARD_IDS)
 
 
 def test_tts_models_have_deployments_languages_and_family():
@@ -749,7 +752,7 @@ def test_voice_required_families_is_the_single_source_of_truth():
     already decided was fine, or vice versa."""
     from sokuji_sidecar import tts_backend
     assert tts_backend._VOICE_REQUIRED_FAMILIES is catalog.VOICE_REQUIRED_FAMILIES
-    assert catalog.VOICE_REQUIRED_FAMILIES == {"qwen3_tts", "omnivoice", "index_tts2"}
+    assert catalog.VOICE_REQUIRED_FAMILIES == {"qwen3_tts", "omnivoice", "index_tts2", "cosyvoice3"}
     for m in catalog.tts_models():
         assert catalog.voice_capability(m)["required"] is m.voice_required, m.id
     # Every card that predates per-card overrides follows its family's rule.
@@ -1166,3 +1169,30 @@ def test_reconverted_asr_rows_carry_the_hub_sizes(mid):
     assert by_quant == _RECONVERTED_ASR_SIZES[mid]
     # deployments are default-first, and size_bytes is the default rung's
     assert m.size_bytes == by_quant[m.deployments[0].compute_type.upper()]
+
+
+def test_cosyvoice3_card():
+    # 2026-10-06: clone-only (audio.cpp refuses a synth with no clip), a transcript optional,
+    # cpu-only until a fleet run gives the family GPU tiers.
+    m = catalog.tts_model("cosyvoice3")
+    assert m is not None
+    assert (m.family, m.graph_family, m.name) == ("cosyvoice3", "cosyvoice3", "CosyVoice 3 (0.5B)")
+    assert m.sort_order == 14 and m.recommended is False
+    assert m.languages == ("zh", "en", "ja", "ko", "de", "es", "fr", "it", "ru")
+    assert m.clones is True and m.transcript_required is False and m.named_voices is False
+    assert m.streaming is False and m.sample_rate == 24000
+    assert m.voice_required is True and m.presets == () and m.default_preset == ""
+    assert "cosyvoice3" in catalog.VOICE_REQUIRED_FAMILIES
+    assert m.license is None and m.extra_files == ()
+    assert m.family not in catalog._TTS_TIER_OVERRIDES
+    assert {d.tier for d in m.deployments} == {"cpu"}
+    rungs = {d.compute_type: d for d in m.deployments}
+    assert set(rungs) == {"q8_0", "f32"}
+    assert rungs["q8_0"].rank == 2.0 and rungs["f32"].rank == 1.0
+    assert rungs["q8_0"].artifact == "audio-cpp/audio.cpp-gguf/CosyVoice3-GGUF/cosyvoice3-q8_0.gguf"
+    assert rungs["q8_0"].est_bytes == 2_257_658_080
+    assert rungs["f32"].artifact == "audio-cpp/audio.cpp-gguf/CosyVoice3-GGUF/cosyvoice3-f32.gguf"
+    assert rungs["f32"].est_bytes == 6_995_036_608
+    assert m.size_bytes == 2_257_658_080
+    # The matrix dtypes of each rung's published GGUF (no companions), read from the Hub.
+    assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"}), "f32": frozenset({"f32"})}

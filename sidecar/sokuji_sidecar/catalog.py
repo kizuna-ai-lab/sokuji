@@ -751,7 +751,11 @@ class TtsModel(_ModelBase):
 # Since spec stage 2.3 this set is each card's DEFAULT: TtsModel.voice_required is what the
 # wire and the R16 gate read, and _tts_gguf_row sets it from this set unless the card overrides
 # it (a CustomVoice checkpoint rides qwen3_tts and speaks a preset from load).
-VOICE_REQUIRED_FAMILIES = frozenset({"qwen3_tts", "omnivoice", "index_tts2"})
+# Members added with the 2026-10-06 roster expansion (each refuses a bare synth itself):
+#   cosyvoice3  "CosyVoice3 requires reference audio" (audio.cpp
+#               src/models/cosyvoice3/session.cpp:170-174); no built-in voice. Needs
+#               the clip only: with no transcript it clones cross-lingually.
+VOICE_REQUIRED_FAMILIES = frozenset({"qwen3_tts", "omnivoice", "index_tts2", "cosyvoice3"})
 
 
 def voice_capability(model: "TtsModel") -> dict:
@@ -1427,6 +1431,28 @@ TTS_MODELS: list[TtsModel] = [
             non_commercial=False,
             source_repo=_AUDIOCPP_GGUF_REPO,
             attribution="bilibili IndexTeam")),
+    # ---- 2026-10-06 roster expansion (sub-project A) --------------------------
+    # New audio.cpp families, and new cards on families already compiled in. A new family
+    # arrives cpu-only (no _TTS_TIER_OVERRIDES entry, so `_tts_gguf_row` gives it the default
+    # `_TTS_TIERS = ("cpu",)`) and earns its GPU tiers from one fleet run per lane (ruling 8);
+    # a new card on an already-tiered family (qwen3_tts, irodori_tts) carries that family's
+    # tiers. None is recommended until measured (ruling 7). Byte counts are the exact
+    # `lfs.size` from `GET api/models/audio-cpp/audio.cpp-gguf/tree/main/<dir>`, read
+    # 2026-10-06. A rung above 10 GB is left out, as ruling 2 leaves out families above it.
+    #
+    # CosyVoice 3 (Fun-CosyVoice3-0.5B-2512): clone-only; the transcript is optional
+    # (zero_shot with one, cross_lingual without, native/src/sk_tts.cpp). The vendor's "18+
+    # Chinese dialects" are reached through its instruct template, which Sokuji does not
+    # send, so the tuple holds its nine languages.
+    _tts_gguf_row(
+        "cosyvoice3", "CosyVoice 3 (0.5B)",
+        ("zh", "en", "ja", "ko", "de", "es", "fr", "it", "ru"),
+        "cosyvoice3", "CosyVoice3-GGUF",
+        {"q8_0": ("cosyvoice3-q8_0.gguf", 2257658080),
+         "f32": ("cosyvoice3-f32.gguf", 6995036608)},
+        default_quant="q8_0", order=14, clones=True, streaming=False,
+        sample_rate=24000,
+        rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}, "f32": {"f32"}}),
 ]
 
 

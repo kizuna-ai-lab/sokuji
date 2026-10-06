@@ -1380,6 +1380,16 @@ def test_tts_asr_loopback_per_family():
     else:
         skipped.append("omnivoice" if omnivoice_dir else "omnivoice (needs supertonic for a reference clip)")
 
+    # cosyvoice3 (2026-10-06): clone-only, cloned here WITHOUT a transcript, the path that takes
+    # its cross_lingual template, so this leg is what proves a transcript-less clip speaks.
+    cosyvoice3_dir = family_dir("SK_TEST_TTS_COSYVOICE3_DIR")
+    if cosyvoice3_dir and supertonic_ref:
+        ref_samples, ref_rate, _ref_text = supertonic_ref
+        attempt("cosyvoice3", cosyvoice3_dir,
+                lambda m: m.set_voice(_loopback_mono(ref_samples), ref_rate))
+    else:
+        skipped.append("cosyvoice3" if cosyvoice3_dir else "cosyvoice3 (needs supertonic for a reference clip)")
+
     # pocket_tts (English package): the ONE full-production-chain leg (ruling
     # R17(s4) / I1 point 2; the symlinked-snapshot loading defect it surfaced is
     # fixed by ruling R18's hard-link staging) -- see
