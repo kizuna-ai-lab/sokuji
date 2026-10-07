@@ -1,6 +1,7 @@
 #define SOKUJI_NATIVE_BUILD 1
 #include "sokuji_native.h"
 #include "sk_internal.h"
+#include "sk_tts_companions.h"
 
 #include "engine/framework/core/backend.h"
 #include "engine/framework/runtime/registry.h"
@@ -15,6 +16,7 @@
 #include <filesystem>
 #include <memory>
 #include <mutex>
+#include <stdexcept>
 #include <string>
 #include <system_error>
 #include <utility>
@@ -242,6 +244,12 @@ constexpr FamilyInfo kFamilies[] = {
     //             the voice is the Bruno default (164), a preset through cached_voice_id (168), or
     //             the voice_id option (170), which wins over both.
     {"kitten_tts2",    false, true,  true,  24000, false, true,  true,  FamilyTask::Tts, nullptr},
+    // miotts      models/miotts/session.cpp: offline, Tts only (570-575); a clip is mandatory
+    //             (700-703), no transcript; 44.1 kHz MioCodec; samples by default (its
+    //             generation_config says do_sample=true, read at 166-168), so greedy would be the
+    //             R23 failure mode: sample_decode, seed still fixed; request options not validated.
+    //             Its codec is a companion GGUF (family_load).
+    {"miotts",         false, true,  false, 44100, true,  false, false, FamilyTask::Tts, nullptr},
 };
 
 const FamilyInfo *find_family(const char *name) {
@@ -321,6 +329,27 @@ int backend_relative_index(ggml_backend_dev_t dev) {
     return 0;
 }
 #endif  // SK_TTS_REQUEST_ONLY
+
+// Per-family load setup on top of the row, applied by sk_tts_load: the path audio.cpp loads the
+// model from, and the session options the family needs to find its parts.
+struct FamilyLoad {
+    std::filesystem::path model_path;
+    std::vector<std::pair<std::string, std::string>> session_options;
+};
+
+// A companion the family loads from outside the model's folder (sk_tts_companions.h) is handed
+// over as its session option; a missing one fails here, before the model itself is read.
+FamilyLoad family_load(const FamilyInfo &info, const std::filesystem::path &model_path) {
+    FamilyLoad out{model_path, {}};
+    for (const sk::TtsCompanion &companion : sk::tts_sibling_companions(info.name, model_path)) {
+        std::error_code ec;
+        if (!std::filesystem::is_regular_file(companion.path, ec))
+            throw std::runtime_error(std::string(info.name) + " companion GGUF does not exist: " +
+                                     companion.path.string());
+        out.session_options.emplace_back(companion.session_option, companion.path.string());
+    }
+    return out;
+}
 
 // The bare lower-case primary subtag of a language code: "pt-BR" -> "pt", "ZH_cn" -> "zh".
 std::string base_language_code(const char *language) {
@@ -709,6 +738,8 @@ SK_API sk_status sk_tts_load(const char *model_path, const sk_device *device,
         rt::ModelLoadRequest load_request;
         load_request.model_path = std::filesystem::path(model_path);
         load_request.family_hint = info->name;
+        const FamilyLoad family_setup = family_load(*info, load_request.model_path);
+        load_request.model_path = family_setup.model_path;
         if (std::strcmp(info->name, "pocket_tts") == 0) {
             load_request.options["language"] = (opts->language && *opts->language) ? opts->language : "english";
         }
@@ -720,6 +751,7 @@ SK_API sk_status sk_tts_load(const char *model_path, const sk_device *device,
 
         rt::SessionOptions session_options;
         session_options.backend = backend;
+        for (const auto &[key, value] : family_setup.session_options) session_options.options[key] = value;
         // moss_tts_local's default ("auto") weight type expands the backbone to f32 on a CPU
         // backend (audio.cpp src/models/moss/moss_tts_local/session.cpp:150-183): one CPU synth of
         // the 7.5 GB q8_0 file peaked at 24.2 GB that way and at 13.1 GB with "native", which

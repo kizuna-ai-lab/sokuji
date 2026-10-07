@@ -147,6 +147,10 @@ describe('per-model clip limits', () => {
     expect(s.capability.maxClipSeconds).toBe(20);
     expect(s.capability.minClipSeconds).toBe(3);
   });
+
+  it('MioTTS keeps the 20s default, stated explicitly', () => {
+    expect(voiceStoreFor('clip', 'miotts-1.7b')!.capability.maxClipSeconds).toBe(20);
+  });
 });
 
 describe('CosyVoice 3 clip window', () => {

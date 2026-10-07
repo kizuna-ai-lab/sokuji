@@ -2012,3 +2012,20 @@ def test_voicetut_card_is_gated_and_loads_with_arz(native_env):
     with pytest.raises(backends.BackendLoadError, match="omnivoice"):
         b.generate_stream("hello")
     assert log == []
+
+
+def test_miotts_card_is_gated_by_r16(native_env):
+    """miotts cannot speak without a clip ("MioTTS run() requires voice speaker audio") but needs
+    no transcript, so set_voice() without ref_text un-gates it."""
+    from sokuji_sidecar import catalog
+    created, log = native_env
+    card = catalog.tts_model("miotts-1.7b")
+    assert card.voice_required is True
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=card.family, voice_required=card.voice_required))
+    with pytest.raises(backends.BackendLoadError, match="miotts"):
+        b.generate("hello")
+    assert log == []
+    b.set_voice(np.ones(2400, np.float32), 24000)
+    samples, _rate, _ms = b.generate("hello")
+    assert samples.dtype == np.float32

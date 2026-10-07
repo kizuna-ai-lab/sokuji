@@ -768,8 +768,10 @@ class TtsModel(_ModelBase):
 #               reference audio") and without its transcript; no built-in voice.
 #   echo_tts    (sub-project A) its session is voice-cloning only and refuses without a clip
 #               ("Echo-TTS requires speaker reference audio"). Needs the CLIP only.
+#   miotts      (sub-project A) run() refuses without a clip ("MioTTS run() requires voice
+#               speaker audio"); no built-in voice. Needs the CLIP only.
 VOICE_REQUIRED_FAMILIES = frozenset({"qwen3_tts", "omnivoice", "index_tts2", "cosyvoice3", "fireredtts3",
-                                     "chatterbox", "confucius4_tts", "glm_tts", "echo_tts"})
+                                     "chatterbox", "confucius4_tts", "glm_tts", "echo_tts", "miotts"})
 
 
 def voice_capability(model: "TtsModel") -> dict:
@@ -1284,6 +1286,11 @@ KITTEN_TTS2_VOICES = (
     "Iris", "Frank", "Serena", "Julian", "Eleanor", "Otis", "Vincent", "Martha", "Sable",
     "Victoria", "Arabic", "Hindi", "German", "Spanish", "Italian", "French", "Portuguese",
     "Russian", "Chinese")
+
+# MioTTS's codec: a sibling folder of the same official repo. Every MioTTS rung pairs with this
+# q8_0 file (audio.cpp's own default package), and native looks for it at this repo-relative path
+# next to the model's folder (native/src/sk_tts_companions.h).
+_MIOCODEC_Q8_0 = ("MioCodec-25Hz-44.1kHz-v2-GGUF/miocodec-25hz-44khz-v2-q8_0.gguf", 299066464)
 
 TTS_MODELS: list[TtsModel] = [
     # Offline, clones from a reference clip, no presets (sk_tts_presets() ==
@@ -1876,6 +1883,19 @@ TTS_MODELS: list[TtsModel] = [
             non_commercial=True,
             source_repo="mohammedaly22/VoiceTut-TTS-GGUF",
             attribution="k2-fsa/OmniVoice")),
+    # ---- Sub-project A, batch 5 (2026-10-06) ---------------------------------
+    # MioTTS 1.7B (Apache-2.0) with MioCodec 25 Hz 44.1 kHz v2 (MIT), from audio.cpp's official
+    # mirror (unpinned, like every card from it): English and Japanese, offline, 44.1 kHz,
+    # clone-only from a clip with no transcript (VOICE_REQUIRED_FAMILIES). The codec rides along
+    # with every rung as a companion file.
+    _tts_gguf_row(
+        "miotts-1.7b", "MioTTS 1.7B", ("en", "ja"),
+        "miotts", "MioTTS-1.7B-GGUF",
+        {"q8_0": ("miotts-1.7b-q8_0.gguf", 2197326752),
+         "bf16": ("miotts-1.7b-bf16.gguf", 3518532512)},
+        default_quant="q8_0", order=37, clones=True, streaming=False, sample_rate=44100,
+        companions={"q8_0": (_MIOCODEC_Q8_0,), "bf16": (_MIOCODEC_Q8_0,)},
+        rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}, "bf16": {"bf16", "f16", "f32", "q8_0"}}),
 ]
 
 

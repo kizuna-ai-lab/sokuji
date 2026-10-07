@@ -1898,3 +1898,11 @@ def test_models_catalog_voicetut_is_gated_like_omnivoice():
     assert vt["voice"]["required"] is True and vt["voice"]["transcriptRequired"] is True
     assert vt["license"]["nonCommercial"] is True
     assert vt["license"]["sourceRepo"] == "mohammedaly22/VoiceTut-TTS-GGUF"
+
+
+def test_models_catalog_miotts_needs_a_clip_and_counts_its_codec():
+    mio = _catalog("tts")["miotts-1.7b"]
+    assert mio["voice"]["custom"] == "clip" and mio["voice"]["required"] is True
+    assert "transcriptRequired" not in mio["voice"]
+    assert mio["sizeBytes"] == 2_496_393_216          # LM + the q8_0 codec
+    assert "license" not in mio

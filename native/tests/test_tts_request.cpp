@@ -4,9 +4,13 @@
 // test here.
 #undef NDEBUG
 #include <cassert>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>
+#include <fstream>
 #include <iterator>
+#include <string>
 
 #define SK_TTS_REQUEST_ONLY 1
 #include "sk_env.h"
@@ -731,6 +735,51 @@ void kitten_tts2_speaks_a_language_through_its_named_voice() {
     assert(!has(req, "do_sample") && opt(req, "seed") == "1");
 }
 
+void miotts_finds_its_codec_beside_the_model_folder() {
+    namespace fs = std::filesystem;
+    const fs::path root = fs::temp_directory_path() /
+        ("sk-miotts-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+    fs::create_directories(root / "MioTTS-1.7B-GGUF");
+    fs::create_directories(root / "MioCodec-25Hz-44.1kHz-v2-GGUF");
+    const fs::path lm = root / "MioTTS-1.7B-GGUF" / "miotts-1.7b-q8_0.gguf";
+    const fs::path codec = root / "MioCodec-25Hz-44.1kHz-v2-GGUF" / "miocodec-25hz-44khz-v2-q8_0.gguf";
+    std::ofstream(lm) << "lm";
+    const FamilyInfo *mio = find_family("miotts");
+    assert(mio != nullptr);
+    bool threw = false;
+    try {
+        family_load(*mio, lm);
+    } catch (const std::exception &e) {
+        threw = std::string(e.what()).find("does not exist") != std::string::npos;   // -> SK_ERR_NOT_FOUND
+    }
+    assert(threw);
+    std::ofstream(codec) << "codec";
+    FamilyLoad got = family_load(*mio, lm);
+    assert(got.model_path == lm);
+    assert(got.session_options.size() == 1);
+    assert(got.session_options[0].first == "miotts.codec_model_path");
+    assert(fs::path(got.session_options[0].second) == codec);
+    got = family_load(*mio, lm.parent_path());          // the model's folder works the same
+    assert(fs::path(got.session_options[0].second) == codec);
+    got = family_load(*mio, lm.parent_path() / "");     // and with a trailing separator
+    assert(fs::path(got.session_options[0].second) == codec);
+    // The op recorder reads the same file through the same helper (model_tensors.h).
+    const auto companions = sk::tts_sibling_companions("miotts", lm);
+    assert(companions.size() == 1 && companions[0].path == codec);
+    // Every other family loads its path as given, with no session options.
+    got = family_load(*find_family("audio8_tts"), lm);
+    assert(got.model_path == lm && got.session_options.empty());
+    assert(sk::tts_sibling_companions("audio8_tts", lm).empty());
+    // miotts samples by default (sample_decode), with the fixed seed: its sampler is an
+    // mt19937 seeded with the seed it is sent (models/miotts/causal_lm.cpp:963), random only when
+    // none is (session.cpp:164-165).
+    const auto h = handle_for("miotts");
+    give_clip(h.get(), "");
+    const rt::TaskRequest req = build_request(h.get(), "Hello.", "en", 1.0f);
+    assert(carries_clip(req) && opt(req, "do_sample") == "true" && opt(req, "seed") == "0");
+    fs::remove_all(root);
+}
+
 }  // namespace
 
 int main() {
@@ -766,6 +815,7 @@ int main() {
     outetts_aligns_a_clip_in_one_language_whatever_the_target();
     echo_tts_clones_in_a_voice_cloning_session_with_the_adaptive_window();
     kitten_tts2_speaks_a_language_through_its_named_voice();
+    miotts_finds_its_codec_beside_the_model_folder();
     std::puts("test_tts_request ok");
     return 0;
 }

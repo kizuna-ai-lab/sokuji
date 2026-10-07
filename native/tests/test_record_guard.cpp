@@ -5,7 +5,8 @@
  * pocket_tts's out_eos and irodori_tts's token_out_proj) read by MUL_MAT, and an i32 table read
  * by GET_ROWS, which the expansion skips and the set therefore need not hold. Then a model
  * directory with a companion GGUF beside the main one: its set is the union of both files'
- * matrix dtypes, so a WEIGHT read from the companion is accepted. Last, the set is taken as the
+ * matrix dtypes, so a WEIGHT read from the companion is accepted; the same holds for a companion
+ * a family loads from a sibling of the model's folder (miotts's codec). Last, the set is taken as the
  * device that ran the WEIGHT loads it: audio.cpp loads a bf16 weight as f16 on Vulkan and Metal,
  * so for a tts recording on those a live f16 is covered by the file's bf16 and a live bf16 is
  * not covered at all, unless the family has a raw-typed device weight path, which keeps bf16
@@ -151,8 +152,8 @@ int main(int argc, char **argv) {
     ggml_backend_buffer_free(buf);
     ggml_free(ctx);
 
-    // A model directory as the test cache stages one (MioTTS's shape): a q8_0 main GGUF and an
-    // f16 companion beside it. Its set is both files' matrix dtypes, and its names both files'
+    // A model directory as the test cache stages one: a q8_0 main GGUF and an f16 companion
+    // beside it. Its set is both files' matrix dtypes, and its names both files'
     // tensors; the main file alone has neither the f16 nor the codec's name.
     namespace fs = std::filesystem;
     const fs::path dir = "sk-record-guard-model";
@@ -181,6 +182,40 @@ int main(int argc, char **argv) {
                                  both.data(), (int32_t)both.size()) == SK_OK);
     std::filesystem::remove(out);
     fs::remove_all(dir);
+
+    // MioTTS's layout: its codec is staged in a sibling of the model's folder, where sk_tts_load
+    // points the family at it (sk_tts_companions.h). A miotts recording's set and names take the
+    // codec in through that same helper; the model's folder alone holds neither.
+    const fs::path card = "sk-record-guard-miotts";
+    fs::remove_all(card);
+    fs::create_directories(card / "MioTTS-1.7B-GGUF");
+    fs::create_directories(card / "MioCodec-25Hz-44.1kHz-v2-GGUF");
+    const std::string lm_dir = (card / "MioTTS-1.7B-GGUF").string();
+    const fs::path codec_file = card / "MioCodec-25Hz-44.1kHz-v2-GGUF" / "miocodec-25hz-44khz-v2-q8_0.gguf";
+    write_gguf((card / "MioTTS-1.7B-GGUF" / "miotts-1.7b-q8_0.gguf").string(), "main.w", GGML_TYPE_Q8_0, 32, 64);
+    write_gguf(codec_file.string(), "codec.w", GGML_TYPE_F16, 32, 4);
+    std::vector<std::string> mio_names, lm_names;
+    std::set<std::string> mio_dtypes, lm_dtypes;
+    assert(tts_model_tensors("miotts", lm_dir, mio_names, mio_dtypes));
+    assert((mio_dtypes == std::set<std::string>{"f16", "q8_0"}));
+    assert((std::set<std::string>(mio_names.begin(), mio_names.end()) == std::set<std::string>{"codec.w", "main.w"}));
+    assert(tts_model_tensors("audio8_tts", lm_dir, lm_names, lm_dtypes));   // no companion elsewhere
+    assert((lm_dtypes == std::set<std::string>{"q8_0"}));
+    record_main_and_codec(dev, rec, mio_names);
+    std::vector<const char *> lm_only, mio_set;
+    for (const auto &s : lm_dtypes) lm_only.push_back(s.c_str());
+    for (const auto &s : mio_dtypes) mio_set.push_back(s.c_str());
+    assert(sk_record_end_to_file(out.c_str(), "tts", "miotts", "miotts-1.7b-q8_0.gguf", "vulkan",
+                                 lm_only.data(), (int32_t)lm_only.size()) == SK_ERR_INVALID_ARGUMENT);
+    assert(sk_record_end_to_file(out.c_str(), "tts", "miotts", "miotts-1.7b-q8_0.gguf", "vulkan",
+                                 mio_set.data(), (int32_t)mio_set.size()) == SK_OK);
+    std::filesystem::remove(out);
+    // A codec that is not there fails the read, as it fails sk_tts_load.
+    fs::remove(codec_file);
+    std::vector<std::string> gone_names;
+    std::set<std::string> gone_dtypes;
+    assert(!tts_model_tensors("miotts", lm_dir, gone_names, gone_dtypes));
+    fs::remove_all(card);
 
     // The set as the recording device loads it. audio.cpp's BackendWeightStore loads a Native
     // BF16 tensor as F16 when its backend is Vulkan or Metal (backend_weight_store.h:273-286),

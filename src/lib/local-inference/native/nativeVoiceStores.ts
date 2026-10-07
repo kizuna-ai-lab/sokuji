@@ -91,6 +91,8 @@ const MODEL_CLIP_LIMITS: Record<string, { min?: number; max?: number }> = {
   'kitten-tts2': { max: 20 },
   // VoiceTut is an OmniVoice fine-tune on the same non-AR decoder (omnivoice family).
   'voicetut-tts': { max: 8 },
+  // MioTTS sets no reference ceiling (models/miotts/session.cpp); the default window stands.
+  'miotts-1.7b': { max: 20 },
 };
 
 /** Peak amplitude below this is treated as silence (a muted mic / empty file). */

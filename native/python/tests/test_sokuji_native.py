@@ -133,7 +133,7 @@ def test_audio_families():
     # always compiles silero_vad in regardless of AUDIOCPP_MODELS (see upstreams.cmake), so
     # the family rides along unused, reported by sk_audio_families() but never called.
     required = {"index_tts2", "irodori_tts", "moss_tts_nano", "omnivoice", "pocket_tts",
-                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3", "fireredtts3", "moss_tts_local", "vibevoice", "chatterbox", "chatterbox_turbo", "confucius4_tts", "magpie_tts", "neutts", "kugelaudio", "higgs_audio_tts", "fish_audio", "breeze_tts", "audio8_tts", "soprano_tts", "glm_tts", "outetts", "echo_tts", "kitten_tts2"}
+                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3", "fireredtts3", "moss_tts_local", "vibevoice", "chatterbox", "chatterbox_turbo", "confucius4_tts", "magpie_tts", "neutts", "kugelaudio", "higgs_audio_tts", "fish_audio", "breeze_tts", "audio8_tts", "soprano_tts", "glm_tts", "outetts", "echo_tts", "kitten_tts2", "miotts"}
     assert required <= set(families)
     assert families == sorted(families)
     # Sized from the library's own count, so the binding never cuts the list off.
@@ -492,6 +492,9 @@ needs_tts_kitten2 = pytest.mark.skipif(not (HAVE_TREE and TTS_KITTEN2_DIR and TT
 TTS_VOICETUT_DIR = os.environ.get("SK_TEST_TTS_VOICETUT_DIR")
 needs_tts_voicetut = pytest.mark.skipif(not (HAVE_TREE and TTS_VOICETUT_DIR and TTS_SUPERTONIC_DIR),
                                         reason="needs a built tree, SK_TEST_TTS_VOICETUT_DIR and SK_TEST_TTS_SUPERTONIC_DIR")
+TTS_MIOTTS_DIR = os.environ.get("SK_TEST_TTS_MIOTTS_DIR")
+needs_tts_miotts = pytest.mark.skipif(not (HAVE_TREE and TTS_MIOTTS_DIR and TTS_SUPERTONIC_DIR),
+                                      reason="needs a built tree, SK_TEST_TTS_MIOTTS_DIR and SK_TEST_TTS_SUPERTONIC_DIR")
 needs_tts_supertonic = pytest.mark.skipif(not (HAVE_TREE and TTS_SUPERTONIC_DIR), reason="needs a built tree and SK_TEST_TTS_SUPERTONIC_DIR")
 needs_tts_moss = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_DIR), reason="needs a built tree and SK_TEST_TTS_MOSS_DIR")
 needs_tts_index = pytest.mark.skipif(not (HAVE_TREE and TTS_INDEX_DIR), reason="needs a built tree and SK_TEST_TTS_INDEX_DIR")
@@ -756,6 +759,8 @@ NEW_CPU_TTS_FAMILIES = [
     # kitten_tts2 speaks its default voice with nothing set; a clip it is given needs its transcript.
     CpuTtsCase("kitten_tts2", "SK_TEST_TTS_KITTEN2_DIR", TTS_KITTEN2_DIR, "Hello from Kitten.", "en", 24000, False,
                transcript_required=True),
+    # miotts clones or does nothing, and takes no transcript; its codec sits beside the model folder.
+    CpuTtsCase("miotts", "SK_TEST_TTS_MIOTTS_DIR", TTS_MIOTTS_DIR, "こんにちは、世界。", "ja", 44100, True),
 ]
 
 
@@ -1753,6 +1758,53 @@ def test_tts_voicetut_speaks_through_its_load_language():
     assert rate == 24000
 
 
+@needs_tts_miotts
+def test_tts_miotts_loads_its_codec_and_needs_a_clip():
+    """miotts: the LM loads its MioCodec from the sibling folder the sidecar stages it in;
+    offline, 44.1 kHz; a bare synth fails in the engine, a clip without a transcript clones.
+    Prints the CPU RTF, which decides whether TTS_ASSUMED_RTF must rise (the sidecar cannot
+    measure a family that needs a clip)."""
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    pcm, ref_rate, _ref_text = _cpu_reference_clip()
+    t = sokuji_native.tts_load(_main_gguf(TTS_MIOTTS_DIR), "miotts", cpu)
+    try:
+        caps = t.capabilities
+        assert not caps.streaming and caps.clones and not caps.transcript_required
+        assert caps.sample_rate == 44100
+        assert t.presets() == []
+        with pytest.raises(sokuji_native.NativeError, match="voice speaker audio"):
+            t.synth("Hello from MioTTS.", language="en")
+        t.set_voice(pcm, ref_rate)
+        t0 = time.perf_counter()
+        samples, rate = t.synth("Hello from MioTTS.", language="en")
+        synth_s = time.perf_counter() - t0
+    finally:
+        t.unload()
+    audio_s = samples.shape[0] / rate
+    print(f"\n  cpu-tts miotts {audio_s:.2f}s audio  {synth_s:.2f}s synth  rtf={synth_s / audio_s:.2f}")
+    assert rate == 44100
+    assert 0.3 < audio_s < 20.0
+    assert float(np.max(np.abs(samples))) > 0.01
+
+
+# miotts samples its speech tokens (do_sample) from an mt19937 seeded with the seed it is sent:
+# build_request's fixed seed makes two processes clone the same clip into the same samples.
+@needs_tts_miotts
+def test_tts_miotts_synthesis_is_the_same_in_two_fresh_processes(tmp_path):
+    case = next(c for c in NEW_CPU_TTS_FAMILIES if c.family == "miotts")
+    # Made once, here, and handed to both runs, so both clone the same clip.
+    sokuji_native.init()
+    pcm, clip_rate, _ref_text = _cpu_reference_clip()
+    clip = str(tmp_path / "clip.npy")
+    np.save(clip, pcm)
+    first = _synth_in_fresh_process(case, tmp_path / "first.npy", clip, clip_rate)
+    second = _synth_in_fresh_process(case, tmp_path / "second.npy", clip, clip_rate)
+    assert 0.3 < first.shape[0] / case.rate < 20.0, first.shape
+    assert float(np.max(np.abs(first))) > 0.01
+    assert np.array_equal(first, second)
+
+
 # --------------------------------------------------------------------------------------
 # TTS on a real GPU device.
 #
@@ -1855,6 +1907,7 @@ GPU_TTS_FAMILIES = {
     "outetts": ("SK_TEST_TTS_OUTETTS_DIR", TTS_OUTETTS_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
     "echo_tts": ("SK_TEST_TTS_ECHO_DIR", TTS_ECHO_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
     "kitten_tts2": ("SK_TEST_TTS_KITTEN2_DIR", TTS_KITTEN2_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
+    "miotts": ("SK_TEST_TTS_MIOTTS_DIR", TTS_MIOTTS_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
 }
 
 # A GPU_TTS_FAMILIES key that names a second card of an already-listed family, mapped to the
@@ -1904,6 +1957,8 @@ GPU_TTS_BF16_ENV = {
     "higgs_audio_tts": "SK_TEST_TTS_HIGGS_BF16_DIR",
     "breeze_tts": "SK_TEST_TTS_BREEZE_BF16_DIR",
     "soprano_tts": "SK_TEST_TTS_SOPRANO_BF16_DIR",
+    # A MioTTS-1.7B-GGUF folder holding the bf16 LM, with the q8_0 codec's folder beside it.
+    "miotts": "SK_TEST_TTS_MIOTTS_BF16_DIR",
 }
 
 _GPU_TTS_RUNNER = r'''

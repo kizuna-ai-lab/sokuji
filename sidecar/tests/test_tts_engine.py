@@ -1575,6 +1575,16 @@ def test_tts_asr_loopback_per_family():
     else:
         skipped.append("kitten_tts2")
 
+    # miotts (2026-10-06): clones or does nothing, and reads no transcript. Its MioCodec sits in
+    # a sibling of the model's folder, as the card stages it, where sk_tts_load finds it.
+    miotts_dir = family_dir("SK_TEST_TTS_MIOTTS_DIR")
+    if miotts_dir and supertonic_ref:
+        ref_samples, ref_rate, _ref_text = supertonic_ref
+        attempt("miotts", miotts_dir, lambda m: m.set_voice(_loopback_mono(ref_samples), ref_rate),
+                note="clone: clip without a transcript")
+    else:
+        skipped.append("miotts (needs supertonic for a reference clip)" if miotts_dir else "miotts")
+
     # pocket_tts (English package): the ONE full-production-chain leg (ruling
     # R17(s4) / I1 point 2; the symlinked-snapshot loading defect it surfaced is
     # fixed by ruling R18's hard-link staging) -- see

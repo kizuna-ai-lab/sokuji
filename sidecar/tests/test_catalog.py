@@ -240,7 +240,9 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
                 "outetts-1.0-1b",
                 "echo-tts",
                 "kitten-tts2",
-                "voicetut-tts")
+                "voicetut-tts",
+                # sub-project A, batch 5
+                "miotts-1.7b")
 
 # The 2026-09-03 batch arrived CPU-ONLY and earned every tier the same evening
 # (commit 2f2b28bc, after the per-family fleet run; catalog._TTS_TIER_OVERRIDES).
@@ -775,7 +777,7 @@ def test_voice_required_families_is_the_single_source_of_truth():
     already decided was fine, or vice versa."""
     from sokuji_sidecar import tts_backend
     assert tts_backend._VOICE_REQUIRED_FAMILIES is catalog.VOICE_REQUIRED_FAMILIES
-    assert catalog.VOICE_REQUIRED_FAMILIES == {"qwen3_tts", "omnivoice", "index_tts2", "cosyvoice3", "fireredtts3", "chatterbox", "confucius4_tts", "glm_tts", "echo_tts"}
+    assert catalog.VOICE_REQUIRED_FAMILIES == {"qwen3_tts", "omnivoice", "index_tts2", "cosyvoice3", "fireredtts3", "chatterbox", "confucius4_tts", "glm_tts", "echo_tts", "miotts"}
     for m in catalog.tts_models():
         assert catalog.voice_capability(m)["required"] is m.voice_required, m.id
     # Every card that predates per-card overrides follows its family's rule.
@@ -1064,13 +1066,21 @@ def test_every_tts_card_after_the_fourteen_carries_its_rung_dtypes():
 def _cached_rung_union(m, ct, root):
     """The weight-capable matrix dtypes of rung `ct`'s main GGUF and every companion GGUF, read
     from a test cache under `root` that stages the companions beside the main file (native/
-    README.md, "Test model directories"); None unless all of them are cached there."""
+    README.md, "Test model directories"), or, for a rung that spans folders of its repo (MioTTS's
+    codec), at their repo-relative paths around the main file's folder; None unless all of them
+    are cached there."""
     from sokuji_sidecar import gguf_header
     dep = next(d for d in m.deployments if d.compute_type == ct)
-    main = os.path.basename(catalog.split_artifact(dep.artifact)[1])
-    companions = [os.path.basename(rel) for rel, _n in dep.companions if rel.endswith(".gguf")]
+    main_rel = catalog.split_artifact(dep.artifact)[1]
+    main = os.path.basename(main_rel)
+    companions = [rel for rel, _n in dep.companions if rel.endswith(".gguf")]
     for path in sorted(glob.glob(f"{root}/**/{glob.escape(main)}", recursive=True)):
-        files = [path] + [os.path.join(os.path.dirname(path), c) for c in companions]
+        here = os.path.dirname(path)
+        repo_root = path[:-len(main_rel)] if path.endswith(os.sep + main_rel) else None
+        files = [path]
+        for rel in companions:
+            beside = os.path.join(here, os.path.basename(rel))
+            files.append(os.path.join(repo_root, rel) if repo_root and not os.path.isfile(beside) else beside)
         if all(os.path.isfile(f) for f in files):
             union = set()
             for f in files:
@@ -1094,6 +1104,26 @@ def test_cached_rung_union_reads_the_main_gguf_and_its_companions(tmp_path, monk
     assert _cached_rung_union(m, "bf16", str(tmp_path)) is None              # the codec is not there
     (card_dir / "codec-q8_0.gguf").write_bytes(b"")
     assert _cached_rung_union(m, "bf16", str(tmp_path)) == {"bf16", "f32", "q8_0"}   # i32 dropped
+
+
+def test_cached_rung_union_finds_a_companion_in_its_repo_folder(tmp_path, monkeypatch):
+    """A rung that spans two folders of its repo (MioTTS's codec) is cached as the repo lays it
+    out, the codec's folder beside the model's, which is where native looks for it."""
+    from sokuji_sidecar import gguf_header
+    m = catalog._tts_gguf_row("x", "X", ("en",), "x_family", "X-GGUF", {"bf16": ("x-bf16.gguf", 1)},
+                              default_quant="bf16", order=99,
+                              companions={"bf16": (("Codec-GGUF/codec-q8_0.gguf", 1),)},
+                              rung_dtypes={"bf16": {"bf16", "f32", "q8_0"}})
+    card_dir = tmp_path / "tts" / "x"
+    (card_dir / "X-GGUF").mkdir(parents=True)
+    (card_dir / "X-GGUF" / "x-bf16.gguf").write_bytes(b"")
+    headers = {"x-bf16.gguf": {"bf16", "f32"}, "codec-q8_0.gguf": {"q8_0"}}
+    monkeypatch.setattr(gguf_header, "read_header", lambda p: gguf_header.GgufHeader(
+        "x", frozenset(headers[os.path.basename(p)]), 1, frozenset(headers[os.path.basename(p)])))
+    assert _cached_rung_union(m, "bf16", str(tmp_path)) is None
+    (card_dir / "Codec-GGUF").mkdir()
+    (card_dir / "Codec-GGUF" / "codec-q8_0.gguf").write_bytes(b"")
+    assert _cached_rung_union(m, "bf16", str(tmp_path)) == {"bf16", "f32", "q8_0"}
 
 
 def test_card_rung_dtypes_equal_their_cached_rung_files():
@@ -1895,3 +1925,31 @@ def test_voicetut_card_runs_on_omnivoice_with_arz_forced():
     # pin: the q8_0 file holds quantised matrices beside f16 and f32 ones, the f16 file only f16.
     assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"}),
                                    "f16": frozenset({"f16"})}
+
+
+MIOCODEC = ("MioCodec-25Hz-44.1kHz-v2-GGUF/miocodec-25hz-44khz-v2-q8_0.gguf", 299_066_464)
+
+
+def test_miotts_card_pairs_every_rung_with_the_q8_0_codec():
+    m = catalog.tts_model("miotts-1.7b")
+    assert m is not None and m.family == "miotts" and m.graph_family == "miotts"
+    assert m.languages == ("en", "ja")
+    assert m.clones is True and m.transcript_required is False and m.streaming is False
+    assert m.named_voices is False and m.presets == () and m.default_preset == ""
+    assert m.voice_required is True and "miotts" in catalog.VOICE_REQUIRED_FAMILIES
+    assert m.sample_rate == 44100 and m.recommended is False and m.sort_order == 37
+    assert m.license is None                         # Apache-2.0 (MioTTS), MIT (MioCodec)
+    assert [(d.compute_type, d.artifact, d.est_bytes, d.rank, d.companions) for d in m.deployments] == [
+        ("q8_0", "audio-cpp/audio.cpp-gguf/MioTTS-1.7B-GGUF/miotts-1.7b-q8_0.gguf", 2_496_393_216, 2.0, (MIOCODEC,)),
+        ("bf16", "audio-cpp/audio.cpp-gguf/MioTTS-1.7B-GGUF/miotts-1.7b-bf16.gguf", 3_817_598_976, 1.0, (MIOCODEC,))]
+    # The download the card advertises is its default rung's whole package.
+    assert m.size_bytes == 2_496_393_216
+    assert {d.tier for d in m.deployments} == {"cpu"}
+    assert m.family not in catalog._TTS_TIER_OVERRIDES
+    assert catalog.hub_revision("audio-cpp/audio.cpp-gguf") is None   # the official mirror stays unpinned
+    # native/src/sk_tts_companions.h looks for exactly this file in exactly this folder.
+    assert MIOCODEC[0].split("/") == ["MioCodec-25Hz-44.1kHz-v2-GGUF", "miocodec-25hz-44khz-v2-q8_0.gguf"]
+    # Each rung's LM with the codec, read from the Hub: the q8_0 LM holds f16 and q8_0 matrices,
+    # the bf16 one bf16 only, and the codec f16, f32 and q8_0.
+    assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"}),
+                                   "bf16": frozenset({"bf16", "f16", "f32", "q8_0"})}

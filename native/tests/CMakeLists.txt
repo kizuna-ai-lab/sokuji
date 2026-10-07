@@ -104,6 +104,7 @@ if(SOKUJI_RECORD_OPS)
     # hand-built graph through the recording device, no model.
     add_executable(test_record_guard test_record_guard.cpp)
     target_link_libraries(test_record_guard PRIVATE sokuji_native ggml)
+    target_include_directories(test_record_guard PRIVATE ../src)   # sk_tts_companions.h, via model_tensors.h
     add_test(NAME test_record_guard COMMAND test_record_guard ${CMAKE_BINARY_DIR}/lib)
     set_tests_properties(test_record_guard PROPERTIES ENVIRONMENT "GGML_BACKEND_PATH=${CMAKE_BINARY_DIR}/lib")
 endif()
