@@ -1917,3 +1917,15 @@ def test_breeze_card_is_gated_by_r16(native_env):
     b.set_voice(np.ones(2400, np.float32), 24000, ref_text="hello there")
     samples, _rate, _ms = b.generate("hello")
     assert samples.dtype == np.float32
+
+
+def test_audio8_card_is_not_gated_by_r16(native_env):
+    """audio8_tts speaks with nothing set (its clone is optional), so its card stays out of
+    the voice-required gate and a bare generate() reaches the native layer."""
+    from sokuji_sidecar import catalog
+    card = catalog.tts_model("audio8-tts-0.6b")
+    assert card.voice_required is False
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=card.family, voice_required=card.voice_required))
+    samples, _rate, _ms = b.generate("hello")
+    assert samples.dtype == np.float32

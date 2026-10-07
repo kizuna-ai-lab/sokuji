@@ -323,6 +323,23 @@ static inline struct ggml_tensor *ggml_round_bf16(struct ggml_context *ctx, stru
     return ggml_cast(ctx, ggml_cast(ctx, a, GGML_TYPE_BF16), GGML_TYPE_F32);
 }
 
+/* ===== (F) audio8_tts's fused snake activation =======================================
+ *
+ * Fork ggml.c:3544-3562: dst = a + sin(a * alpha)^2 / alpha, alpha [C,1] broadcast over the
+ * frame axis of a channel-fast [C,T] tensor, as ONE GGML_OP_SNAKE_1D node with CPU and Metal
+ * kernels. Upstream ggml has no such op. audio.cpp calls it from one place,
+ * audio8_tts/codec.cpp:517, inside the decoder it builds only on Metal (codec.cpp:662), so CPU
+ * and Vulkan never execute it — but the object file references it on every lane, so it must
+ * LINK everywhere. The body is the fork's own non-fused fallback (codec.cpp:519-522), which
+ * its comment says differs from the fused kernel by Metal sin ulps only. */
+static inline struct ggml_tensor *ggml_snake_1d(
+        struct ggml_context *ctx, struct ggml_tensor *a, struct ggml_tensor *alpha) {
+    GGML_ASSERT(alpha->ne[0] == a->ne[0]);
+    GGML_ASSERT(alpha->ne[1] == 1 && alpha->ne[2] == 1 && alpha->ne[3] == 1);
+    struct ggml_tensor *s = ggml_sin(ctx, ggml_mul(ctx, a, alpha));   /* alpha repeats along frames */
+    return ggml_add(ctx, a, ggml_div(ctx, ggml_mul(ctx, s, s), alpha));
+}
+
 /* ===== (E) fork ops referenced by engine_core but reachable only from families we do not
  * build: they must link, and reaching one is a bug, not a fallback (same rule as the
  * MiniMax-H3 stubs above). */
@@ -450,6 +467,24 @@ static inline struct ggml_tensor *ggml_gated_delta_net(
         struct ggml_tensor *g, struct ggml_tensor *beta, struct ggml_tensor *state) {
     (void)ctx; (void)q; (void)k; (void)v; (void)g; (void)beta; (void)state;
     GGML_ABORT("ggml_gated_delta_net (fork 7-arg form): Qwen3.5 decoder op, not built in sokuji-native");
+}
+
+/* ===== (G) the fork's 8-argument ggml_ssm_scan ========================================
+ *
+ * Upstream ggml (0.26) takes a trailing snapshot count K (ggml.c:5696-5750): the result is y
+ * followed by K states per sequence, and a Mamba-1 A (A->ne[0] == d_state) must have K == 1.
+ * The fork (external/ggml at 54aa279, ggml.c:6280-6341) takes no K and appends exactly one
+ * state per sequence, which is upstream's K == 1 layout, so the fork's call is upstream's with
+ * a trailing K = 1. Same name, different arity: a C++ overload beside upstream's extern "C"
+ * declaration, placed after (E)'s overload because extern "C" functions cannot be overloaded.
+ * The fork's caller is audio8_tts/ar.cpp:1205 and :1620 (the Falcon mamba block); the rest of
+ * audio.cpp does not reach it. A ggml pin bump must re-check this: a changed K meaning, a new
+ * argument, or an op-params layout change here would silently change what audio8_tts computes.
+ * test_audiocpp_compat.cpp pins the two forms bit for bit. */
+static inline struct ggml_tensor *ggml_ssm_scan(
+        struct ggml_context *ctx, struct ggml_tensor *s, struct ggml_tensor *x, struct ggml_tensor *dt,
+        struct ggml_tensor *A, struct ggml_tensor *B, struct ggml_tensor *C, struct ggml_tensor *ids) {
+    return ggml_ssm_scan(ctx, s, x, dt, A, B, C, ids, 1);
 }
 #endif
 

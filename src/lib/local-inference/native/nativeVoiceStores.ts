@@ -75,6 +75,9 @@ const MODEL_CLIP_LIMITS: Record<string, { min?: number; max?: number }> = {
   // would stop a recording short of what the card asks for.
   'irodori-tts-v4.1-anime': { max: 40 },
   'irodori-tts-v4-small': { max: 40 },
+  // audio8_tts sets no reference ceiling (community_models/audio8_tts/session.cpp); its vendor
+  // card only warns that very long clips reduce stability, so the default ceiling stands.
+  'audio8-tts-0.6b': { max: 20 },
 };
 
 /** Peak amplitude below this is treated as silence (a muted mic / empty file). */

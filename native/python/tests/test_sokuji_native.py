@@ -97,7 +97,7 @@ def test_audio_families():
     # always compiles silero_vad in regardless of AUDIOCPP_MODELS (see upstreams.cmake), so
     # the family rides along unused, reported by sk_audio_families() but never called.
     required = {"index_tts2", "irodori_tts", "moss_tts_nano", "omnivoice", "pocket_tts",
-                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3", "fireredtts3", "moss_tts_local", "vibevoice", "chatterbox", "chatterbox_turbo", "confucius4_tts", "magpie_tts", "neutts", "kugelaudio", "higgs_audio_tts", "fish_audio", "breeze_tts"}
+                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3", "fireredtts3", "moss_tts_local", "vibevoice", "chatterbox", "chatterbox_turbo", "confucius4_tts", "magpie_tts", "neutts", "kugelaudio", "higgs_audio_tts", "fish_audio", "breeze_tts", "audio8_tts"}
     assert required <= set(families)
     assert families == sorted(families)
     # Sized from the library's own count, so the binding never cuts the list off.
@@ -435,6 +435,9 @@ TTS_FISH_DIR = os.environ.get("SK_TEST_TTS_FISH_DIR")
 needs_tts_fish = pytest.mark.skipif(not (HAVE_TREE and TTS_FISH_DIR), reason="needs a built tree and SK_TEST_TTS_FISH_DIR")
 TTS_BREEZE_DIR = os.environ.get("SK_TEST_TTS_BREEZE_DIR")
 needs_tts_breeze = pytest.mark.skipif(not (HAVE_TREE and TTS_BREEZE_DIR), reason="needs a built tree and SK_TEST_TTS_BREEZE_DIR")
+TTS_AUDIO8_DIR = os.environ.get("SK_TEST_TTS_AUDIO8_DIR")
+needs_tts_audio8 = pytest.mark.skipif(not (HAVE_TREE and TTS_AUDIO8_DIR),
+                                      reason="needs a built tree and SK_TEST_TTS_AUDIO8_DIR")
 needs_tts_supertonic = pytest.mark.skipif(not (HAVE_TREE and TTS_SUPERTONIC_DIR), reason="needs a built tree and SK_TEST_TTS_SUPERTONIC_DIR")
 needs_tts_moss = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_DIR), reason="needs a built tree and SK_TEST_TTS_MOSS_DIR")
 needs_tts_index = pytest.mark.skipif(not (HAVE_TREE and TTS_INDEX_DIR), reason="needs a built tree and SK_TEST_TTS_INDEX_DIR")
@@ -681,6 +684,9 @@ NEW_CPU_TTS_FAMILIES = [
     # breeze_tts in clone mode: a clip with its transcript (bare it designs a voice, which the
     # card does not offer).
     CpuTtsCase("breeze_tts", "SK_TEST_TTS_BREEZE_DIR", TTS_BREEZE_DIR, "Hello from Breeze.", "en", 24000, True,
+               transcript_required=True),
+    # audio8_tts speaks with nothing set; a clip it is given needs its exact transcript.
+    CpuTtsCase("audio8_tts", "SK_TEST_TTS_AUDIO8_DIR", TTS_AUDIO8_DIR, "Hello from Audio8.", "en", 44100, False,
                transcript_required=True),
 ]
 
@@ -1349,6 +1355,28 @@ def test_tts_breeze_clone_needs_a_transcript():
         t.unload()
 
 
+@needs_tts_audio8
+def test_tts_audio8_capabilities_and_bare_synth():
+    """audio8_tts: offline, an optional clone whose clip needs its exact transcript, 44.1 kHz,
+    no built-in voices, and a bare synth that works."""
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    t = sokuji_native.tts_load(TTS_AUDIO8_DIR, "audio8_tts", cpu)
+    try:
+        caps = t.capabilities
+        assert not caps.streaming and caps.clones and caps.transcript_required
+        assert caps.sample_rate == 44100
+        assert t.presets() == []
+        with pytest.raises(sokuji_native.NativeError, match="ref_text"):
+            t.set_voice(np.zeros(44100, np.float32), 44100)
+        samples, rate = t.synth("Hello from Audio8.", language="en")
+    finally:
+        t.unload()
+    assert rate == 44100
+    assert 0.3 < samples.shape[0] / rate < 20.0
+    assert float(np.max(np.abs(samples))) > 0.01
+
+
 # --------------------------------------------------------------------------------------
 # TTS on a real GPU device.
 #
@@ -1445,6 +1473,7 @@ GPU_TTS_FAMILIES = {
     "higgs_audio_tts": ("SK_TEST_TTS_HIGGS_DIR", TTS_HIGGS_DIR, None, False, 30.0, GPU_TTS_TEXT, "en"),
     "fish_audio": ("SK_TEST_TTS_FISH_DIR", TTS_FISH_DIR, None, False, 30.0, GPU_TTS_TEXT, "en"),
     "breeze_tts": ("SK_TEST_TTS_BREEZE_DIR", TTS_BREEZE_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
+    "audio8_tts": ("SK_TEST_TTS_AUDIO8_DIR", TTS_AUDIO8_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
 }
 
 # A GPU_TTS_FAMILIES key that names a second card of an already-listed family, mapped to the

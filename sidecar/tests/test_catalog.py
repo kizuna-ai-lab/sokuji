@@ -232,7 +232,9 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
                 "irodori-tts-v4.1-anime",
                 "higgs-audio-v3-4b",
                 "fish-audio-s2-pro",
-                "breeze-tts-2")
+                "breeze-tts-2",
+                # sub-project A, batch 4
+                "audio8-tts-0.6b")
 
 # The 2026-09-03 batch arrived CPU-ONLY and earned every tier the same evening
 # (commit 2f2b28bc, after the per-family fleet run; catalog._TTS_TIER_OVERRIDES).
@@ -1709,3 +1711,24 @@ def test_breeze_card_and_license():
         "sourceRepo": "audio-cpp/audio.cpp-gguf",
         "attribution": "BreezeBlue",
     }
+
+
+def test_audio8_card_shape():
+    m = catalog.tts_model("audio8-tts-0.6b")
+    assert m is not None and m.family == "audio8_tts" and m.graph_family == "audio8_tts"
+    assert m.languages == ("yue", "zh", "nl", "en", "fr", "de", "it", "ja", "ko", "pl", "es")
+    assert m.clones is True and m.transcript_required is True and m.streaming is False
+    assert m.named_voices is False and m.presets == () and m.default_preset == ""
+    assert m.voice_required is False                 # a bare synth works; the clone is optional
+    assert m.sample_rate == 44100 and m.recommended is False and m.sort_order == 30
+    assert m.load_language == ""
+    assert m.license is None                         # Apache-2.0
+    assert m.size_bytes == 1_429_545_312
+    assert [(d.compute_type, d.artifact, d.est_bytes, d.rank, d.companions) for d in m.deployments] == [
+        ("q8_0", "js-byte/Audio8-TTS-Preview-0.6b-GGUF/audio8-tts-preview-0.6b-q8_0.gguf",
+         1_429_545_312, 2.0, ())]
+    assert {d.tier for d in m.deployments} == {"cpu"}   # CPU-only until the fleet runs it
+    assert m.family not in catalog._TTS_TIER_OVERRIDES
+    assert catalog.hub_revision("js-byte/Audio8-TTS-Preview-0.6b-GGUF") == "788f6fdb0bbdbbc407c63f3265cea9875b4a7c14"
+    # The matrix dtypes of the published q8_0 file (no companions), read from the Hub at the pin.
+    assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"})}

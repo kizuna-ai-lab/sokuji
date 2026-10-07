@@ -119,6 +119,12 @@ describe('per-model clip limits', () => {
     await expect(s.onRecord!(new Float32Array(16000 * 10).fill(0.3), 16000))
       .rejects.toMatchObject({ code: 'too_long' });
   });
+
+  it('Audio8 keeps the 20s default, stated explicitly', () => {
+    const s = voiceStoreFor('clip', 'audio8-tts-0.6b')!;
+    expect(s.capability.maxClipSeconds).toBe(20);
+    expect(s.capability.minClipSeconds).toBe(3);
+  });
 });
 
 describe('CosyVoice 3 clip window', () => {

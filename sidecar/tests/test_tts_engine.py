@@ -1508,6 +1508,21 @@ def test_tts_asr_loopback_per_family():
     else:
         skipped.append("breeze_tts" if breeze_dir else "breeze_tts (needs supertonic for a reference clip)")
 
+    # audio8_tts (2026-10-06): speaks with nothing set, and clones from a clip with its exact
+    # transcript. The recording covers the clone path, so both legs run.
+    audio8_dir = family_dir("SK_TEST_TTS_AUDIO8_DIR")
+    if audio8_dir:
+        attempt("audio8_tts", audio8_dir, lambda m: None, note="bare: nothing set")
+        if supertonic_ref:
+            ref_samples, ref_rate, ref_text = supertonic_ref
+            attempt("audio8_tts", audio8_dir,
+                    lambda m: m.set_voice(_loopback_mono(ref_samples), ref_rate, ref_text),
+                    note="clone: clip with its transcript")
+        else:
+            skipped.append("audio8_tts clone (needs supertonic for a reference clip)")
+    else:
+        skipped.append("audio8_tts")
+
     # pocket_tts (English package): the ONE full-production-chain leg (ruling
     # R17(s4) / I1 point 2; the symlinked-snapshot loading defect it surfaced is
     # fixed by ruling R18's hard-link staging) -- see
@@ -1532,3 +1547,43 @@ def test_tts_asr_loopback_per_family():
     # ruling R18) are both fixed now.
     failures = [r for r in results if not r["ok"]]
     assert not failures, f"missed marker words for: {[r['family'] for r in failures]} -- {failures}"
+
+
+# Japanese loopback for audio8_tts. Its request language only switches a Traditional ->
+# Simplified rewrite that would turn Japanese kanji into Chinese glyphs; native maps "ja" to the
+# one value that skips it. Whether Japanese then comes out intelligible decides whether the card
+# lists "ja" (ruling 2026-10-06: a language broken in the CPU loopback leaves the card, the family
+# stays). Cohere Transcribe is the cached ASR model that covers Japanese.
+_JA_LOOPBACK_ASR_GGUF = os.environ.get(
+    "SK_TEST_ASR_JA_GGUF",
+    os.path.expanduser("~/.cache/sokuji-native-tests/cohere-transcribe-03-2026-Q4_K_M.gguf"))
+
+
+@pytest.mark.skipif(
+    os.environ.get("SOKUJI_RUN_TTS_LOOPBACK") != "1",
+    reason="set SOKUJI_RUN_TTS_LOOPBACK=1 (also needs SK_TEST_TTS_AUDIO8_DIR and a Japanese-capable "
+           "SK_TEST_ASR_JA_GGUF, default the cached Cohere Transcribe Q4_K_M)",
+)
+def test_audio8_japanese_loopback():
+    model_dir = os.environ.get("SK_TEST_TTS_AUDIO8_DIR")
+    if not (model_dir and os.path.isdir(model_dir)):
+        pytest.skip("needs SK_TEST_TTS_AUDIO8_DIR")
+    if not os.path.exists(_JA_LOOPBACK_ASR_GGUF):
+        pytest.skip(f"no Japanese ASR model at {_JA_LOOPBACK_ASR_GGUF}")
+    sn = native.module()
+    cpu = next(d for d in sn.devices() if d.kind == "cpu")
+    tts = sn.tts_load(model_dir, "audio8_tts", cpu)
+    try:
+        samples, rate = tts.synth("東京の銀行で働いています。", language="ja")
+    finally:
+        tts.unload()
+    asr = sn.asr_load(_JA_LOOPBACK_ASR_GGUF, cpu)
+    try:
+        mono = _loopback_mono(samples)
+        target = asr.capabilities.native_sample_rate
+        pcm = soxr.resample(mono, rate, target).astype(np.float32) if rate != target else mono
+        transcript = asr.run(pcm, language="ja")
+    finally:
+        asr.unload()
+    print(f"\n  audio8_tts ja: {mono.shape[0] / rate:.2f}s audio, transcript={transcript!r}")
+    assert "東京" in transcript or "銀行" in transcript, transcript

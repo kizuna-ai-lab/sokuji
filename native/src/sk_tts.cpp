@@ -212,6 +212,11 @@ constexpr FamilyInfo kFamilies[] = {
     // (generator.cpp:1062-1064), so a strict family that is sent reference_text; 24 kHz
     // (speech_decoder.cpp:48). Offline: one utterance gains little from its frame streaming.
     {"breeze_tts",     false, true,  true,  24000, false, true,  true,  FamilyTask::Tts, nullptr},
+    // audio8_tts  community_models/audio8_tts/session.cpp: offline chosen of its offline and
+    //             streaming sessions (387-391); clone optional, and a clip needs its exact
+    //             transcript (268-272); 44.1 kHz codec (767); always samples, never reads
+    //             do_sample; request options are not spec-validated.
+    {"audio8_tts",     false, true,  true,  44100, false, false, false, FamilyTask::Tts, nullptr},
 };
 
 const FamilyInfo *find_family(const char *name) {
@@ -351,6 +356,14 @@ std::string vibevoice_script(const std::string &text) {
     return out;
 }
 
+// The primary subtag of a language code, lowercased: "ja-JP" -> "ja", "zh_Hant" -> "zh".
+std::string primary_subtag(const std::string &code) {
+    std::string out = code.substr(0, code.find_first_of("-_"));
+    std::transform(out.begin(), out.end(), out.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    return out;
+}
+
 // Builds the per-call TaskRequest: text, whichever voice state (if any) is stored on the
 // handle, speed (supertonic only, Ruling R6(s4)), and the deterministic-synthesis options
 // that always apply (Ruling R7(s4)). Caller holds t->mutex.
@@ -373,6 +386,14 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
     // demands it.
     const char *resolved_language = (t->family == "qwen3_tts") ? "auto" : language;
     req.text_input = rt::Transcript{text ? text : "", resolved_language ? resolved_language : ""};
+    // audio8_tts reads the request language for one thing only: Traditional -> Simplified
+    // conversion of the text and of the reference transcript, skipped for Cantonese alone
+    // (community_models/audio8_tts/session.cpp:500-507; framework/text/chinese_variant.cpp:111-127).
+    // Japanese kanji share code points with Traditional forms (東, 銀, 語), so a Japanese request
+    // would be rewritten into Simplified glyphs; "yue" is the one value that leaves the text as
+    // written, and nothing else in the family reads it.
+    if (t->family == "audio8_tts" && primary_subtag(req.text_input->language) == "ja")
+        req.text_input->language = "yue";
 
     // Two of the 2026-09-03 families read the language from the REQUEST OPTIONS instead of
     // text_input.language, which they never look at (grep for "language" under

@@ -1,4 +1,4 @@
-// Pins the audio.cpp 0.8.2 compat shims (audiocpp_compat.h sections (D) and (E)) against the
+// Pins the audio.cpp 0.8.2 compat shims (audiocpp_compat.h sections (D), (E), (F) and (G)) against the
 // fork's own documented equivalents, on the CPU backend of the ggml we actually build.
 #undef NDEBUG   // every native test does this: the lanes build Release, and assert() is the test
 #include "audiocpp_compat.h"
@@ -92,6 +92,78 @@ int main(int argc, char **argv) {
         assert(mm->op == GGML_OP_MUL_MAT && std::memcmp(before_mm, mm->op_params, sizeof before_mm) == 0);
         assert(cat->op == GGML_OP_CONCAT && std::memcmp(before_cat, cat->op_params, sizeof before_cat) == 0);
         ggml_free(c);
+    }
+
+    // (F) snake_1d == a + sin(a * alpha)^2 / alpha, alpha [C,1] broadcast over the frames of a [C,T]:
+    // bit for bit against the explicit mul/sin/mul/div/add chain (the fork's own fallback,
+    // audio8_tts/codec.cpp:519-522), and close to the closed form.
+    {
+        const int C = 8, T = 5;
+        auto xs = ramp(C * T, 2.0f);
+        std::vector<float> alpha(C);
+        for (int ch = 0; ch < C; ++ch) alpha[ch] = 0.25f + 0.2f * (float)ch;
+        auto snake = run([&](ggml_context *c, std::vector<ggml_tensor *> &in) {
+            in = {ggml_new_tensor_2d(c, GGML_TYPE_F32, C, T), ggml_new_tensor_2d(c, GGML_TYPE_F32, C, 1)};
+            return ggml_snake_1d(c, in[0], in[1]);
+        }, {{0, xs}, {1, alpha}});
+        auto chain = run([&](ggml_context *c, std::vector<ggml_tensor *> &in) {
+            in = {ggml_new_tensor_2d(c, GGML_TYPE_F32, C, T), ggml_new_tensor_2d(c, GGML_TYPE_F32, C, 1)};
+            ggml_tensor *s = ggml_sin(c, ggml_mul(c, in[0], in[1]));
+            return ggml_add(c, in[0], ggml_div(c, ggml_mul(c, s, s), in[1]));
+        }, {{0, xs}, {1, alpha}});
+        assert(snake.size() == (size_t)(C * T));
+        assert(std::memcmp(snake.data(), chain.data(), snake.size() * sizeof(float)) == 0);
+        for (int t = 0; t < T; ++t)
+            for (int ch = 0; ch < C; ++ch) {
+                const float x = xs[t * C + ch], s = std::sin(x * alpha[ch]);
+                assert(std::fabs(snake[t * C + ch] - (x + s * s / alpha[ch])) < 1e-4f);
+            }
+    }
+
+    // (G) the fork's 8-argument ggml_ssm_scan == upstream's with a trailing K = 1: bit for bit on
+    // the whole result, y followed by one state per sequence. A real scan (3 tokens, 2 sequences
+    // reading states 1 and 0 of a 2-state buffer, Mamba-2 A of [1, n_head]) so both the y values
+    // and the state tail depend on every input.
+    {
+        const int d_state = 6, head_dim = 8, n_head = 4, n_group = 2, T = 3, n_seqs = 2;
+        const size_t n_x = (size_t)head_dim * n_head * T * n_seqs;
+        const size_t n_state = (size_t)d_state * head_dim * n_head;
+        auto s0 = ramp(n_state * 2, 0.5f);                       // two states: ne[3] = 2
+        auto x = ramp(n_x, 1.0f);
+        auto dt = ramp((size_t)n_head * T * n_seqs, 1.0f);
+        std::vector<float> A(n_head);
+        for (int h = 0; h < n_head; ++h) A[h] = -(0.1f + 0.05f * (float)h);
+        auto B = ramp((size_t)d_state * n_group * T * n_seqs, 0.7f);
+        auto C = ramp((size_t)d_state * n_group * T * n_seqs, 0.9f);
+        const int32_t id_values[n_seqs] = {1, 0};
+        std::vector<float> ids(n_seqs);                           // run() uploads float vectors: carry the int32 bits
+        std::memcpy(ids.data(), id_values, sizeof id_values);
+        auto make_inputs = [&](ggml_context *c, std::vector<ggml_tensor *> &in) {
+            in = {ggml_new_tensor_4d(c, GGML_TYPE_F32, d_state, head_dim, n_head, 2),
+                  ggml_new_tensor_4d(c, GGML_TYPE_F32, head_dim, n_head, T, n_seqs),
+                  ggml_new_tensor_3d(c, GGML_TYPE_F32, n_head, T, n_seqs),
+                  ggml_new_tensor_2d(c, GGML_TYPE_F32, 1, n_head),
+                  ggml_new_tensor_4d(c, GGML_TYPE_F32, d_state, n_group, T, n_seqs),
+                  ggml_new_tensor_4d(c, GGML_TYPE_F32, d_state, n_group, T, n_seqs),
+                  ggml_new_tensor_1d(c, GGML_TYPE_I32, n_seqs)};
+        };
+        const std::vector<std::pair<int, std::vector<float>>> feed = {
+            {0, s0}, {1, x}, {2, dt}, {3, A}, {4, B}, {5, C}, {6, ids}};
+        auto fork_form = run([&](ggml_context *c, std::vector<ggml_tensor *> &in) {
+            make_inputs(c, in);
+            return ggml_ssm_scan(c, in[0], in[1], in[2], in[3], in[4], in[5], in[6]);
+        }, feed);
+        auto upstream_k1 = run([&](ggml_context *c, std::vector<ggml_tensor *> &in) {
+            make_inputs(c, in);
+            return ggml_ssm_scan(c, in[0], in[1], in[2], in[3], in[4], in[5], in[6], 1);
+        }, feed);
+        assert(fork_form.size() == n_x + n_state * n_seqs);       // y ++ one state per sequence
+        assert(std::memcmp(fork_form.data(), upstream_k1.data(), fork_form.size() * sizeof(float)) == 0);
+        // The scan did something: the state tail is neither zero nor the state it started from.
+        bool tail_moved = false;
+        for (size_t i = 0; i < n_state; ++i) tail_moved |= fork_form[n_x + i] != s0[n_state + i];
+        assert(tail_moved);
+        for (float v : fork_form) assert(std::isfinite(v));
     }
 
     ggml_backend_free(g_cpu);

@@ -570,6 +570,27 @@ void breeze_tts_requests() {
     assert(task_spec_for(*find_family("breeze_tts")).mode == rt::RunMode::Offline);
 }
 
+void audio8_ja_reaches_the_model_as_yue() {
+    // audio8_tts's request language only switches its Traditional -> Simplified rewrite, which
+    // would turn Japanese kanji into Chinese glyphs; "yue" is the one value that skips it.
+    const auto audio8 = handle_for("audio8_tts");
+    rt::TaskRequest req = build_request(audio8.get(), "Tokyo.", "ja", 1.0f);
+    assert(req.text_input && req.text_input->language == "yue");
+    req = build_request(audio8.get(), "Tokyo.", "ja-JP", 1.0f);
+    assert(req.text_input->language == "yue");
+    req = build_request(audio8.get(), "Ni hao.", "zh", 1.0f);
+    assert(req.text_input->language == "zh");
+    req = build_request(audio8.get(), "Nei hou.", "yue", 1.0f);
+    assert(req.text_input->language == "yue");
+    req = build_request(audio8.get(), "Hello.", "en", 1.0f);
+    assert(req.text_input->language == "en");
+    // Not strict: a clip's transcript goes with it; the seed is fixed.
+    give_clip(audio8.get(), "The quick brown fox.");
+    req = build_request(audio8.get(), "Hello.", "en", 1.0f);
+    assert(carries_clip(req) && opt(req, "reference_text") == "The quick brown fox.");
+    assert(opt(req, "seed") == "0");
+}
+
 }  // namespace
 
 int main() {
@@ -598,6 +619,7 @@ int main() {
     higgs_audio_tts_requests();
     fish_audio_requests();
     breeze_tts_requests();
+    audio8_ja_reaches_the_model_as_yue();
     std::puts("test_tts_request ok");
     return 0;
 }

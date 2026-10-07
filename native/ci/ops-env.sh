@@ -29,4 +29,5 @@ export SK_TEST_TTS_IRODORI_ANIME_DIR=$C/tts/irodori-tts-v4.1-anime
 export SK_TEST_TTS_HIGGS_DIR=$C/tts/higgs-audio-v3-4b
 export SK_TEST_TTS_FISH_DIR=$C/tts/fish-audio-s2-pro
 export SK_TEST_TTS_BREEZE_DIR=$C/tts/breeze-tts-2
+export SK_TEST_TTS_AUDIO8_DIR=$C/tts/audio8-tts-0.6b
 exec "$@"

@@ -1727,6 +1727,25 @@ TTS_MODELS: list[TtsModel] = [
             requires_consent=True,
             source_repo=_AUDIOCPP_GGUF_REPO,
             attribution="BreezeBlue")),
+
+    # ---- Sub-project A, batch 4 (2026-10-06) ---------------------------------
+    # Third-party GGUFs come from their own repos, each pinned to one commit in
+    # PINNED_REVISIONS (ruling 4); every byte count is the exact Hub size AT that commit.
+    # A new family starts CPU-only (no _TTS_TIER_OVERRIDES entry) until the fleet has run it
+    # per lane (ruling 8), and no new card is recommended (ruling 7).
+    #
+    # Audio8 TTS Preview (0.6B), community model, Apache-2.0: offline, 44.1 kHz, a bare synth
+    # or an optional clone from a clip plus its exact transcript. Languages: the vendor's
+    # eleven recommended ones ("auto" in audio.cpp's spec is not a language).
+    _tts_gguf_row(
+        "audio8-tts-0.6b", "Audio8 TTS Preview (0.6B)",
+        ("yue", "zh", "nl", "en", "fr", "de", "it", "ja", "ko", "pl", "es"),
+        "audio8_tts", "",
+        {"q8_0": ("audio8-tts-preview-0.6b-q8_0.gguf", 1429545312)},
+        default_quant="q8_0", order=30, clones=True, streaming=False,
+        sample_rate=44100, transcript_required=True,
+        rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}},
+        repo="js-byte/Audio8-TTS-Preview-0.6b-GGUF"),
 ]
 
 
