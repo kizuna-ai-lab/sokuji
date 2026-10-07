@@ -111,14 +111,14 @@ VAD worker (one per leg)                          Turn worker (one, app-wide)
 ### Settings, UI, session
 
 - `LocalInferenceSettings`: `vadEndOfTurn: 'normal' | 'smart'` (default `'normal'`), `smartTurnCheckAfter: number` (default 0.30 s), `smartTurnThreshold: number` (default 0.50). The fallback is the existing `vadMinSilenceDuration`.
-- `config.ts`: `vad.smartTurn = { checkAfter, threshold }` only when `vadEndOfTurn === 'smart'` and the ASR's worker type is one of the five in scope (`supportsSmartTurn`). `checkAfter` is clamped to `vadMinSilenceDuration − 0.05` s, and Smart is dropped when that leaves under 0.05 s (the fallback would always win).
+- `config.ts`: `vad.smartTurn = { checkAfter, threshold }` only when `vadEndOfTurn === 'smart'` and the ASR's worker type is one of the five in scope (`supportsSmartTurn`). `checkAfter` is clamped to `vadMinSilenceDuration − 0.2` s, and Smart is dropped when that leaves under 0.10 s (a prediction takes up to ~180 ms on one WASM thread, so a smaller margin lets the fallback always win).
 - Effective only in Auto turn mode: the adapter uses it only when `context.turns === 'auto'`, since push-to-talk and push-to-translate end turns by hand and the VAD keeps running under the held key (`adapter.ts:343-352`).
 - The adapter asks the runtime for a port and passes it in the ASR init message (transfer list); no port or a model that is not ready → the gate stays off and the run is Normal.
 - The gate's trigger frames are `ceil(checkAfter / 0.032)`; its threshold is `threshold`.
 - UI, shown only for those five worker types (`supportsSmartTurn`), on every device. `vadIsWebWorker` is not the check: it also covers the streaming Voxtral, which D4 leaves out.
   - `[ Normal ] [ Smart ]` at the top of VAD Settings, copied from `RealtimeTurnDetection.tsx`'s option buttons.
   - Choosing Smart with the model not on disk starts the download with inline progress; the setting becomes `'smart'` only when the model is ready. A failed download leaves Normal and shows the error with a retry.
-  - In Smart: Turn Check After (0.10–0.50 s; its maximum follows Max Wait − 0.05 the way Silence Threshold follows Speech Threshold, and the value shown is the one the session will use) and Turn Threshold (0.30–0.90), above the VAD sliders; Min Silence Duration reads **Max Wait** with its own tooltip.
+  - In Smart: Turn Check After (0.10–0.50 s; its maximum follows Max Wait − 0.2 the way Silence Threshold follows Speech Threshold, and the value shown is the one the session will use) and Turn Threshold (0.30–0.90), above the VAD sliders; Min Silence Duration reads **Max Wait** with its own tooltip.
   - The Speech section's summary reads `VAD Settings · Smart · Max Wait 1.40s` in Smart.
   - Strings in all 30 catalogs; the existing `settings.normal` key is reused for Normal.
 
