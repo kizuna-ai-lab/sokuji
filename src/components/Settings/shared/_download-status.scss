@@ -1,0 +1,64 @@
+@use 'variables' as vars;
+
+@mixin download-column {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+@mixin download-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: vars.$space-2;
+}
+
+@mixin download-bar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+@mixin download-fill {
+  height: 100%;
+  background: vars.$color-primary;
+  border-radius: 2px;
+  transition: width vars.$transition-normal;
+}
+
+@mixin download-text {
+  font-size: vars.$font-caption;
+  color: vars.$text-muted;
+}
+
+@mixin download-error {
+  font-size: vars.$font-caption;
+  color: vars.$color-error;
+  word-break: break-word;
+}
+
+@mixin download-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 4px 8px;
+  font-size: vars.$font-caption;
+  border: 1px solid vars.$border-default;
+  border-radius: vars.$radius-sm;
+  background: vars.$bg-control;
+  color: vars.$text-secondary;
+  cursor: pointer;
+  transition: background vars.$transition-fast, color vars.$transition-fast;
+
+  &:hover:not(:disabled) {
+    background: vars.$bg-hover;
+    color: vars.$text-primary;
+  }
+
+  &:disabled {
+    opacity: vars.$disabled-opacity;
+    cursor: not-allowed;
+  }
+}

@@ -1,4 +1,5 @@
 @use '../shared/variables' as vars;
+@use '../shared/download-status' as download;
 
 // Every row in this section is the same shape: a label (with its tooltip) over
 // a control. One header block serves the mode, the size and both pause
@@ -162,68 +163,33 @@
 }
 
 .sentence-segmentation__progress {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  @include download.download-column;
 }
 
 .sentence-segmentation__progress-bar {
-  height: 4px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
-  overflow: hidden;
+  @include download.download-bar;
 }
 
 .sentence-segmentation__progress-fill {
-  height: 100%;
-  background: vars.$color-primary;
-  border-radius: 2px;
-  transition: width vars.$transition-normal;
+  @include download.download-fill;
 }
 
 .sentence-segmentation__progress-info,
 .sentence-segmentation__pack-line {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: vars.$space-2;
+  @include download.download-row;
 }
 
 .sentence-segmentation__pack-status {
-  font-size: vars.$font-caption;
-  color: vars.$text-muted;
+  @include download.download-text;
 }
 
 .sentence-segmentation__pack-error {
-  font-size: vars.$font-caption;
-  color: vars.$color-error;
-  word-break: break-word;
+  @include download.download-error;
 }
 
 .sentence-segmentation__pack-btn,
 .sentence-segmentation__delete {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-  padding: 4px 8px;
-  font-size: vars.$font-caption;
-  border: 1px solid vars.$border-default;
-  border-radius: vars.$radius-sm;
-  background: vars.$bg-control;
-  color: vars.$text-secondary;
-  cursor: pointer;
-  transition: background vars.$transition-fast, color vars.$transition-fast;
-
-  &:hover:not(:disabled) {
-    background: vars.$bg-hover;
-    color: vars.$text-primary;
-  }
-
-  &:disabled {
-    opacity: vars.$disabled-opacity;
-    cursor: not-allowed;
-  }
+  @include download.download-button;
 }
 
 .sentence-segmentation__delete {
