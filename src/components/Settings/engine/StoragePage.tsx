@@ -161,12 +161,14 @@ export const StoragePage: React.FC<
 
   const rows: Row[] = Object.entries(currentStatuses)
     .filter(([, status]) => (isWasm ? status === 'downloaded' : status === 'ready'))
-    // Punctuation models are managed from the Sentence segmentation section,
-    // never here — modelStore's initialize() scans the whole manifest
-    // (punctuation entries included), so without this filter a downloaded
-    // pack shows up as nameless engine rows a user could delete behind the
-    // feature's back.
-    .filter(([id]) => !(isWasm && getManifestEntry(id)?.type === 'punctuation'))
+    // Punctuation and Smart Turn models are managed from their own settings,
+    // never here — modelStore's initialize() scans the whole manifest, so
+    // without this filter a downloaded one shows up as a nameless engine row a
+    // user could delete behind the feature's back.
+    .filter(([id]) => {
+      const type = getManifestEntry(id)?.type;
+      return !(isWasm && (type === 'punctuation' || type === 'turn'));
+    })
     .map(([id]) => {
       const sizeLabel = isWasm
         ? (() => {
@@ -318,11 +320,9 @@ export const StoragePage: React.FC<
               }}
             >
               <option value="" disabled>{t('engineUi.importChooseModel', 'Choose a model to import')}</option>
-              {/* Punctuation models are managed from the Sentence segmentation
-                  section and downloaded on demand, so they are not importable
-                  here. Without this the picker would offer them as if they
-                  were engines. */}
-              {MODEL_MANIFEST.filter((m) => !m.isCloudModel && m.type !== 'punctuation').map((m) => (
+              {/* Punctuation and Smart Turn models are downloaded on demand by
+                  their own settings, so they are not importable here. */}
+              {MODEL_MANIFEST.filter((m) => !m.isCloudModel && m.type !== 'punctuation' && m.type !== 'turn').map((m) => (
                 <option key={m.id} value={m.id}>{m.name}</option>
               ))}
             </select>
