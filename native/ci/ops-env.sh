@@ -35,5 +35,6 @@ export SK_TEST_TTS_GLM_DIR=$C/tts/glm-tts
 export SK_TEST_TTS_OUTETTS_DIR=$C/tts/outetts-1.0-1b
 export SK_TEST_TTS_ECHO_DIR=$C/tts/echo-tts
 export SK_TEST_TTS_KITTEN2_DIR=$C/tts/kitten-tts2
+export SK_TEST_TTS_VOICETUT_DIR=$C/tts/voicetut-tts
 export SK_TEST_TTS_MIOTTS_DIR=$C/tts/miotts-1.7b/MioTTS-1.7B-GGUF
 exec "$@"
