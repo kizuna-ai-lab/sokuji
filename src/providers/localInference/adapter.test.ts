@@ -975,6 +975,27 @@ describe('the LocalInference adapter — Smart Turn', () => {
     expect(t.turn.releases).toBe(1);
     expect(t.asr.inits).toEqual([]);
   });
+
+  it('loads no ASR when the start is cancelled after the connection was made', async () => {
+    const fakes = createFakeEngines();
+    const controller = new AbortController();
+    let releases = 0;
+    const port = fakes.turn.port;
+    fakes.engines.turn = async () => ({
+      // Read by the adapter right after its own `ended` check.
+      get port() { controller.abort(new Error('cancelled')); return port; },
+      release: () => { releases++; },
+    });
+    const recorder = recordConformance();
+    const starting = createLocalInferenceAdapter(fakes.engines).start(
+      { context: auto, config: smart(), credentials: {}, clock: createVirtualClock(), signal: controller.signal },
+      recorder.events,
+    );
+    await expect(starting).rejects.toThrow('cancelled');
+    await settle();
+    expect(fakes.asr.inits).toEqual([]);
+    expect(releases).toBe(1);
+  });
 });
 
 describe('the LocalInference adapter — errors', () => {

@@ -191,8 +191,10 @@ class LocalSession implements AdapterSession {
         if (!config.vad.smartTurn || request.context.turns !== 'auto' || !this.connectTurn) {
           return this.asr.init(config.asr.modelId, options);
         }
-        return this.openTurn(this.connectTurn).then((turnPort) =>
-          this.asr.init(config.asr.modelId, turnPort ? { ...options, turnPort } : options));
+        return this.openTurn(this.connectTurn).then((turnPort) => {
+          if (this.ended) throw new Error('ended');
+          return this.asr.init(config.asr.modelId, turnPort ? { ...options, turnPort } : options);
+        });
       },
       dispose: () => this.asr.dispose(),
       loaded: () => this.listenToAsr(),
