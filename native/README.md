@@ -329,7 +329,11 @@ line's `maxbytes`, the line also carries the identity's largest real occurrence,
 for a strided layout. The query rebuilds that occurrence instead (`sk_op_uses_largest`,
 `src/sk_ops.h`; ruling 2026-10-07). Every other line is written as before. `test_ops_format`
 rebuilds every node of every shipped recording and fails on one asked about a tensor larger than
-its `maxbytes`, so a recording taken before the rule cannot ship.
+its `maxbytes`, so a recording taken before the rule cannot ship. The occurrence is not the
+identity's least contiguous shape, as the maxima are (an extent-1 axis counts as contiguous), so
+the same test also rebuilds each such node from its maxima and fails a layout predicate that
+differs, unless the op's `supports_op` reads none on Vulkan, Metal and CPU (its allowlist cites
+the pinned source lines).
 
 CTest needs two real model directories for `test_tts` (skips with exit code 77 when absent).
 Note: supertonic's Q8_0 GGUF is not currently viable (audio.cpp `docs/gguf.md`: "Q8 blockers

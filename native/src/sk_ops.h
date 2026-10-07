@@ -111,7 +111,13 @@ sk_layout sk_layout_of(const struct ggml_tensor *t);
  * maxima: the maxima rebuild a src0, src1 or dst whose ggml_nbytes exceeds max_bytes, a tensor
  * larger than any the graph held, and `largest` does not. A WEIGHT source is not compared, since
  * its dtype is the query's choice. Every other node is written, parsed and rebuilt from its
- * maxima, exactly as before the rule (ruling 2026-10-07, op-coverage precision). */
+ * maxima, exactly as before the rule (ruling 2026-10-07, op-coverage precision).
+ *
+ * What the occurrence can miss that the maxima asked: an upper bound on one of ne[1..3] reached
+ * only by a smaller occurrence, which no pinned backend's supports_op has, and non-contiguity,
+ * since an extent-1 axis can make the occurrence contiguous where a smaller one is not (the
+ * maxima are the identity's least contiguous shape). test_ops_format fails a shipped node whose
+ * rebuild flips a layout predicate, outside the ops whose supports_op reads none. */
 bool sk_op_uses_largest(const sk_op_desc &d);
 /* Rebuild one recorded node and its sources in `ctx` (which must be no_alloc): each tensor
  * carries the recorded ne AND the recorded layout, so every predicate a backend's supports_op

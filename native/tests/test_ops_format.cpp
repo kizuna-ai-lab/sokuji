@@ -73,6 +73,89 @@ bool rebuilt_within_max_bytes(const sk_op_desc &d, std::string &why) {
     return ok;
 }
 
+/* ggml-vulkan's own (ggml-vulkan.cpp:6021-6026), read by its quantized MUL_MAT branch at :15459;
+ * it lives in the Vulkan backend, which a CPU-only lane does not build, so it is restated here. */
+bool vk_dim01_contiguous(const ggml_tensor *t) {
+    return t->nb[0] == ggml_type_size(t->type) &&
+           t->nb[1] == (t->nb[0] * t->ne[0]) / ggml_blck_size(t->type) &&
+           (t->ne[3] == 1 || t->nb[3] == t->nb[2] * t->ne[2]);
+}
+
+/* The layout predicates the pinned backends' supports_op read: the four of ggml.c, the transpose
+ * test ggml-metal's MUL_MAT kernel choice reads (ggml_metal_op_mul_mat_use_mm,
+ * ggml-metal-common.cpp:35-42), and ggml-vulkan's dim01 test. */
+struct LayoutPredicate { const char *name; bool (*holds)(const ggml_tensor *); };
+const LayoutPredicate kLayoutPredicates[] = {
+    {"ggml_is_contiguous", ggml_is_contiguous},
+    {"ggml_is_contiguous_1", ggml_is_contiguous_1},
+    {"ggml_is_contiguous_2", ggml_is_contiguous_2},
+    {"ggml_is_contiguous_rows", ggml_is_contiguous_rows},
+    {"ggml_is_transposed", ggml_is_transposed},
+    {"vk_dim01_contiguous", vk_dim01_contiguous},
+};
+
+/* A node rebuilt from its largest occurrence is not the least contiguous shape its identity took,
+ * as the maxima are (an extent-1 axis is skipped by ggml_is_contiguous_m_n, ggml.c:1474-1492), so
+ * a predicate that differs between the two rebuilds could let a GPU accept a node one of whose
+ * smaller occurrences it would refuse. That is harmless only for an op whose supports_op reads
+ * no layout predicate on any backend. These are those ops at the pinned ggml (rebuilt tensors
+ * carry no buffer, so ggml-cpu's extra-buffer check at ggml-cpu.cpp:434-440 never runs):
+ *   - CONT, CPY, DUP with no quantized tensor. ggml-cpu.cpp:443-452 (CPY reads op->type only;
+ *     CONT and DUP reach the default at :484-485); ggml-vulkan.cpp:15585-15649 (contiguity only
+ *     for a quantized same-type copy, :15643-15646); ggml-metal-device.m:1858-1919 (types only).
+ *   - CONCAT with no quantized tensor. ggml-cpu.cpp:484-485 (default); ggml-vulkan.cpp:15740-15742
+ *     calling ggml_vk_concat_supported at :321-333 (contiguous_rows only for a quantized type,
+ *     :331-332); ggml-metal-device.m:1620-1646 (types only).
+ *   - FLASH_ATTN_EXT. ggml-cpu.cpp:484-485 (default); ggml-vulkan.cpp:15475-15522 (head sizes,
+ *     types, device features); ggml-metal-device.m:1726-1770 (head sizes, types).
+ * Before any switch, ggml-vulkan checks tensor bytes (:15331-15352) and ggml-metal bf16 support
+ * (ggml-metal-device.m:1543-1553); neither reads a layout predicate. A flip on any other op fails
+ * the shipped pass: the node is then either wrongly accepted or a ruling is due. */
+bool reads_no_layout_predicate(const sk_op_desc &d) {
+    auto plain = [](int32_t t) { return t == SK_SRC_ABSENT || (t >= 0 && !ggml_is_quantized(static_cast<ggml_type>(t))); };
+    const bool unquantized = plain(d.src_type[0]) && plain(d.src_type[1]) && plain(d.dst_type);
+    switch (d.op) {
+        case GGML_OP_CONT: case GGML_OP_CPY: case GGML_OP_DUP: return unquantized;
+        case GGML_OP_CONCAT:         return unquantized;
+        case GGML_OP_FLASH_ATTN_EXT: return true;
+        default:                     return false;
+    }
+}
+
+/* Rebuild a node from its largest occurrence and from its maxima, and compare every layout
+ * predicate on dst, src0 and src1. Prints each difference; returns the ones outside
+ * reads_no_layout_predicate (failures). */
+int layout_flips(const sk_op_desc &d, const std::string &where, int &allowed) {
+    ggml_init_params ip = { 64 * 1024, nullptr, /*no_alloc*/ true };
+    ggml_context *ctx = ggml_init(ip);
+    sk_op_desc maxima = d;
+    maxima.largest.reset();
+    const ggml_tensor *real = sk_ops_rebuild_node(ctx, d, GGML_TYPE_F32);
+    const ggml_tensor *wide = sk_ops_rebuild_node(ctx, maxima, GGML_TYPE_F32);
+    const char *names[] = {"dst", "src0", "src1"};
+    const ggml_tensor *r[] = {real, real ? real->src[0] : nullptr, real ? real->src[1] : nullptr};
+    const ggml_tensor *w[] = {wide, wide ? wide->src[0] : nullptr, wide ? wide->src[1] : nullptr};
+    int failures = 0;
+    for (int i = 0; i < 3; ++i) {
+        if (!r[i] || !w[i]) continue;
+        for (const LayoutPredicate &p : kLayoutPredicates) {
+            const bool on_real = p.holds(r[i]), on_maxima = p.holds(w[i]);
+            if (on_real == on_maxima) continue;
+            const std::string what = where + " " + sk_op_spelling(d, nullptr) + " " + names[i] + " " + p.name +
+                                     ": maxima " + (on_maxima ? "1" : "0") + ", real " + (on_real ? "1" : "0");
+            if (reads_no_layout_predicate(d)) {
+                std::printf("test_ops_format: allowed layout flip %s\n", what.c_str());
+                ++allowed;
+            } else {
+                check(false, "layout flip outside reads_no_layout_predicate: " + what);
+                ++failures;
+            }
+        }
+    }
+    ggml_free(ctx);
+    return failures;
+}
+
 }  // namespace
 
 int main(int argc, char **argv) {
@@ -328,6 +411,48 @@ int main(int argc, char **argv) {
             check(rebuilt_within_max_bytes(parsed.nodes[0], why), "cont: " + why);
         }
     }
+    /* Strided src1 and dst, and two occurrences of different sizes. The larger, a [64,32] ADD
+     * written through views, is the one kept whichever arrives first, with its own strides for
+     * src1 and dst (not the merged ones: the smaller occurrence's nb[3] is larger). */
+    {
+        sk_op_desc big = occurrence(GGML_OP_ADD, GGML_TYPE_F32, GGML_TYPE_F32, GGML_TYPE_F32,
+                                    {64, 32, 1, 1}, {64, 32, 1, 1}, {64, 32, 1, 1});
+        big.lay_src1.dense = false; big.lay_src1.nb = {4, 1024, 32768, 32768};
+        big.lay_dst.dense = false;  big.lay_dst.nb = {4, 512, 16384, 16384};
+        big.max_bytes = 32000;                               // src1: 4 + 63*4 + 31*1024; src0 8192, dst 16128
+        sk_op_desc small = occurrence(GGML_OP_ADD, GGML_TYPE_F32, GGML_TYPE_F32, GGML_TYPE_F32,
+                                      {64, 1, 16, 1}, {64, 1, 16, 1}, {64, 1, 16, 1});
+        small.lay_src1.dense = false; small.lay_src1.nb = {4, 256, 1024, 65536};
+        small.lay_dst.dense = false;  small.lay_dst.nb = {4, 256, 512, 32768};
+        small.max_bytes = 15616;                             // src1: 4 + 63*4 + 15*1024
+        std::vector<sk_op_desc> v, w;
+        sk_ops_add(v, big); sk_ops_add(v, small);
+        sk_ops_add(w, small); sk_ops_add(w, big);
+        check(v.size() == 1 && w.size() == 1, "views: one identity");
+        const std::string text = format_nodes(v);
+        const std::string want =
+            "op=ADD params=- dst=f32 src=[f32,f32,-,-,-] ne0=[64,64,64] max0=[64,32,16,1] max1=[64,32,16,1] "
+            "maxd=[64,32,16,1] layout=[0123d,0123s,0123s] nb1=[4,1024,32768,65536] nbd=[4,512,16384,32768] "
+            "host=0 maxbytes=32000 real0=[64,32,1,1] real1=[64,32,1,1] reald=[64,32,1,1] "
+            "realnb1=[4,1024,32768,32768] realnbd=[4,512,16384,16384]\n";
+        check(op_line(text) == want, "views: the larger occurrence with its own src1 and dst strides: got " + op_line(text));
+        check(format_nodes(w) == text, "views: larger then smaller and smaller then larger give one line");
+        sk_op_recording parsed; std::string perr;
+        const bool parsed_ok = sk_ops_parse(text, parsed, perr);
+        check(parsed_ok && sk_ops_format(parsed) == text, "views: round trip: " + perr);
+        if (parsed_ok) {
+            ggml_init_params ip = { 1024 * 1024, nullptr, /*no_alloc*/ true };
+            ggml_context *ctx = ggml_init(ip);
+            ggml_tensor *n = sk_ops_rebuild_node(ctx, parsed.nodes[0], -1);
+            check(n && n->ne[1] == 32 && n->ne[2] == 1 && n->nb[1] == 512 && n->nb[3] == 16384,
+                  "views: the dst rebuilds with the real occurrence's strides");
+            check(n && n->src[1] && n->src[1]->nb[1] == 1024 && n->src[1]->nb[3] == 32768,
+                  "views: src1 rebuilds with the real occurrence's strides");
+            ggml_free(ctx);
+            std::string why;
+            check(rebuilt_within_max_bytes(parsed.nodes[0], why), "views: " + why);
+        }
+    }
     /* A merge whose maxima ARE an occurrence (a KV-cache step [d,1,h], then the prompt [d,t,h])
      * fabricates nothing, so its line is written exactly as before this rule, with no new field. */
     {
@@ -391,9 +516,11 @@ int main(int argc, char **argv) {
 
     /* Every shipped recording: no node is asked about a tensor larger than any it saw. A line
      * recorded before this rule, whose maxima fabricate and which carries no real occurrence,
-     * fails here, so a stale recording cannot ship. */
+     * fails here, so a stale recording cannot ship. And every node rebuilt from its largest
+     * occurrence answers each layout predicate as its maxima do, unless its op reads none
+     * (reads_no_layout_predicate). */
     if (argc > 1) {
-        int files = 0, nodes = 0;
+        int files = 0, nodes = 0, from_largest = 0, allowed = 0, flips = 0;
         for (const auto &entry : std::filesystem::directory_iterator(argv[1])) {
             if (entry.path().extension() != ".ops") continue;
             std::ifstream f(entry.path()); std::stringstream ss; ss << f.rdbuf();
@@ -401,14 +528,34 @@ int main(int argc, char **argv) {
             const std::string name = entry.path().filename().string();
             if (!sk_ops_parse(ss.str(), rec, perr)) { check(false, name + " does not parse: " + perr); continue; }
             ++files;
+            // The line each identity first appears on, for the messages (a recording that merges
+            // two lines of one identity, as translate's does, names the first).
+            std::vector<std::pair<int, sk_op_desc>> lines;
+            {
+                std::istringstream ls(ss.str()); std::string l; int no = 0;
+                while (std::getline(ls, l)) {
+                    ++no;
+                    sk_op_recording one; std::string e;
+                    if (l.rfind("op=", 0) == 0 && sk_ops_parse(l + "\n", one, e) && one.nodes.size() == 1)
+                        lines.emplace_back(no, one.nodes[0]);
+                }
+            }
             for (const sk_op_desc &d : rec.nodes) {
                 ++nodes;
+                int line = 0;
+                for (const auto &p : lines) if (p.second.same_node(d)) { line = p.first; break; }
+                const std::string where = name + ":" + std::to_string(line);
                 std::string why;
-                if (!rebuilt_within_max_bytes(d, why)) check(false, name + ": " + sk_op_spelling(d, nullptr) + ": " + why);
+                if (!rebuilt_within_max_bytes(d, why)) check(false, where + ": " + sk_op_spelling(d, nullptr) + ": " + why);
+                if (!sk_op_uses_largest(d)) continue;
+                ++from_largest;
+                flips += layout_flips(d, where, allowed);
             }
         }
         check(files > 0, std::string("no .ops file in ") + argv[1]);
-        std::printf("test_ops_format: %d shipped recordings, %d nodes rebuilt\n", files, nodes);
+        std::printf("test_ops_format: %d shipped recordings, %d nodes rebuilt, %d from their largest occurrence; "
+                    "%d layout flips on allowlisted ops, %d outside the allowlist\n",
+                    files, nodes, from_largest, allowed, flips);
     }
     if (g_failures) std::fprintf(stderr, "test_ops_format: %d failures\n", g_failures);
     return g_failures ? 1 : 0;

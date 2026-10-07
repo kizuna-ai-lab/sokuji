@@ -245,7 +245,9 @@ ggml_tensor *sk_ops_rebuild_node(ggml_context *ctx, const sk_op_desc &d, int32_t
     /* The maxima, unless they describe a tensor larger than any the graph held: then the largest
      * real occurrence (sk_op_uses_largest). That occurrence ran, so it keeps every relation the
      * maxima are taken verbatim to keep (sk_ops.cpp's ask), and a strided layout takes its own
-     * strides, not the merged ones. */
+     * strides, not the merged ones. It is not the least contiguous shape, as the maxima are: an
+     * extent-1 axis can make it contiguous where a smaller occurrence is not. test_ops_format
+     * fails such a flip outside the ops whose supports_op reads no layout predicate. */
     const sk_op_instance in = sk_op_uses_largest(d) ? *d.largest : maxima_of(d);
     auto strides = [](sk_layout lay, const std::array<int64_t, 4> &nb) { if (!lay.dense) lay.nb = nb; return lay; };
     ggml_tensor *node = mk(d.dst_type, in.ne_dst, strides(d.lay_dst, in.nb_dst));

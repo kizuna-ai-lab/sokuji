@@ -54,10 +54,11 @@ int32_t type_by_name(const char *name) {
  *     nbytes of the rebuilt tensor is >= nbytes of any occurrence's. The buffer-range check is
  *     already asked at least as large as anything the graph held.
  *   - stretching each tensor by its own factor breaks the relations the backends check between
- *     them. ggml-vulkan's MUL_MAT requires src0->ne[3] == src1->ne[3] (ggml-vulkan.cpp:18178);
- *     on index_tts2's [64,77,4,1] x [64,1,4,1] matmul the two independent stretches produced
- *     ne[3] = 1 and 77 and the family was refused. Taking the maxima verbatim preserves every
- *     equality and broadcast relation, since an element-wise max of equal values is equal.
+ *     them. ggml-vulkan's MUL_MAT requires src0->ne[3] == src1->ne[3] (ggml-vulkan.cpp:15456;
+ *     the matmul asserts it at :7007); on index_tts2's [64,77,4,1] x [64,1,4,1] matmul the two
+ *     independent stretches produced ne[3] = 1 and 77 and the family was refused. Taking the
+ *     maxima verbatim preserves every equality and broadcast relation, since an element-wise
+ *     max of equal values is equal.
  * max_bytes stays in the format as the merge's record of the largest tensor seen.
  *
  * The maxima stop being a real size when one identity occurs in two orientations: the
@@ -67,10 +68,16 @@ int32_t type_by_name(const char *name) {
  * max_bytes, the node is rebuilt from its largest real occurrence instead (sk_op_uses_largest,
  * sk_ops.h; ruling 2026-10-07, op-coverage precision). That occurrence ran, so it keeps every
  * relation above, and its largest tensor is max_bytes, so a per-tensor byte limit, the way
- * ggml-vulkan bounds size, is still asked at the largest tensor the graph held. What it can miss
- * is an upper bound on one of ne[1..3] that only a smaller occurrence reaches, which the per-axis
- * maxima did ask; at the pinned ggml, neither ggml-vulkan's nor ggml-metal's supports_op has
- * one. */
+ * ggml-vulkan bounds size, is still asked at the largest tensor the graph held. It can miss two
+ * things the per-axis maxima did ask:
+ *   - an upper bound on one of ne[1..3] that only a smaller occurrence reaches; at the pinned
+ *     ggml, neither ggml-vulkan's nor ggml-metal's supports_op has one.
+ *   - non-contiguity. ggml_is_contiguous_m_n (ggml.c:1474-1492) skips an axis of extent 1, and
+ *     an axis is 1 in the maxima only where it is 1 in every occurrence, so the maxima are the
+ *     identity's least contiguous shape; the largest occurrence can be contiguous where a
+ *     smaller one is not, and many supports_op branches read contiguity. test_ops_format
+ *     rebuilds every shipped node both ways and fails a layout predicate that differs, unless
+ *     the op is one whose supports_op reads none on Vulkan, Metal and CPU. */
 bool ask(ggml_backend_dev_t dev, const sk_op_desc &d, int32_t weight_type, std::string &spelling_out) {
     ggml_init_params ip = { 64 * 1024, nullptr, /*no_alloc*/ true };
     ggml_context *ctx = ggml_init(ip);
