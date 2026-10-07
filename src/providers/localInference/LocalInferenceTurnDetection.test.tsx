@@ -15,8 +15,9 @@ vi.mock('../../stores/modelStore', () => ({
 }));
 
 let mockAsrEntry: { type?: string; asrWorkerType?: string } | undefined;
+let mockReverseEntry: { type?: string; asrWorkerType?: string } | undefined;
 vi.mock('../../lib/local-inference/modelManifest', () => ({
-  getManifestEntry: (id: string) => (id === 'asr-model' ? mockAsrEntry : undefined),
+  getManifestEntry: (id: string) => (id === 'asr-model' ? mockAsrEntry : id === 'reverse-asr-model' ? mockReverseEntry : undefined),
 }));
 
 let mockPhase = 'ready';
@@ -24,8 +25,9 @@ let mockBytes = 0;
 let mockError: string | null = null;
 const mockRefresh = vi.fn();
 const mockDownload = vi.fn();
+const mockDismiss = vi.fn();
 vi.mock('../../stores/smartTurnStore', () => {
-  const state = () => ({ phase: mockPhase, downloadedBytes: mockBytes, error: mockError, refresh: mockRefresh, download: mockDownload });
+  const state = () => ({ phase: mockPhase, downloadedBytes: mockBytes, error: mockError, refresh: mockRefresh, download: mockDownload, dismiss: mockDismiss });
   return {
     useSmartTurnStore: Object.assign((select: (s: ReturnType<typeof state>) => unknown) => select(state()), { getState: state }),
     useSmartTurnPhase: () => mockPhase,
@@ -48,7 +50,9 @@ beforeEach(() => {
   mockError = null;
   mockRefresh.mockReset();
   mockDownload.mockReset().mockImplementation(async () => { mockPhase = 'ready'; });
+  mockDismiss.mockReset().mockImplementation(() => { mockPhase = 'missing'; mockError = null; });
   mockAsrEntry = { type: 'asr', asrWorkerType: 'whisper-webgpu' };
+  mockReverseEntry = undefined;
   mockResolve.mockImplementation(() => ({ asr: { modelId: 'asr-model' }, translation: null, tts: null }));
 });
 
@@ -300,5 +304,28 @@ describe('LocalInferenceTurnDetectionControls — Smart Turn', () => {
     render(<LocalInferenceTurnDetectionControls settings={LOCAL_INFERENCE_DEFAULTS} update={() => {}} disabled pair={pair} />);
     expect(button('Normal')).toBeDisabled();
     expect(button('Smart')).toBeDisabled();
+  });
+
+  it('clears a failed download when Normal is chosen, even with Normal already stored', () => {
+    mockPhase = 'error';
+    mockError = 'offline';
+    const props = { settings: LOCAL_INFERENCE_DEFAULTS, update: vi.fn(), pair };
+    const { rerender } = render(<LocalInferenceTurnDetectionControls {...props} />);
+    fireEvent.click(button('Normal'));
+    expect(mockDismiss).toHaveBeenCalledTimes(1);
+    rerender(<LocalInferenceTurnDetectionControls {...props} />);
+    expect(screen.queryByText('Smart Turn model download failed: offline')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+  });
+
+  it('offers the choice when only the reverse direction runs an ASR in scope', () => {
+    mockAsrEntry = { type: 'asr', asrWorkerType: 'sherpa-onnx' };
+    mockReverseEntry = { type: 'asr', asrWorkerType: 'whisper-webgpu' };
+    mockResolve.mockImplementation((source: string) => ({
+      asr: { modelId: source === 'ja' ? 'asr-model' : 'reverse-asr-model' }, translation: null, tts: null,
+    }));
+    render(<LocalInferenceTurnDetectionControls settings={LOCAL_INFERENCE_DEFAULTS} update={() => {}} pair={pair} />);
+    expect(button('Smart')).toBeTruthy();
+    expect(screen.queryByText('Max Speech Duration')).toBeNull();
   });
 });

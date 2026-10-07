@@ -108,4 +108,15 @@ describe('smartTurnStore', () => {
     await refreshing;
     expect(useSmartTurnStore.getState().phase).toBe('downloading');
   });
+
+  it('dismiss: clears a failed download back to missing, and does nothing in any other phase', () => {
+    useSmartTurnStore.setState({ phase: 'error', error: 'offline' });
+    useSmartTurnStore.getState().dismiss();
+    expect(useSmartTurnStore.getState()).toMatchObject({ phase: 'missing', error: null });
+    for (const phase of ['unknown', 'ready', 'downloading'] as const) {
+      useSmartTurnStore.setState({ phase, error: null, downloadedBytes: 5 });
+      useSmartTurnStore.getState().dismiss();
+      expect(useSmartTurnStore.getState()).toMatchObject({ phase, downloadedBytes: 5 });
+    }
+  });
 });

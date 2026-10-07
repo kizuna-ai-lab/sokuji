@@ -22,6 +22,8 @@ interface SmartTurnStore {
   error: string | null;
   /** Ask the disk. Never interrupts a download. */
   refresh(): Promise<void>;
+  /** Forget a failed download: error -> missing. */
+  dismiss(): void;
   /** Fetch the model unless it is on disk. Never rejects: ends 'ready' or 'error'. */
   download(): Promise<void>;
 }
@@ -47,6 +49,10 @@ export const useSmartTurnStore = create<SmartTurnStore>()(
       const ready = await onDisk();
       if (gen !== generation || get().phase === 'downloading') return;
       set({ phase: ready ? 'ready' : 'missing', downloadedBytes: ready ? SMART_TURN_TOTAL_BYTES : 0, error: null });
+    },
+
+    dismiss: () => {
+      if (get().phase === 'error') set({ phase: 'missing', error: null });
     },
 
     download: async () => {

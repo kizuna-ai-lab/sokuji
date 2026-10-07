@@ -39,8 +39,13 @@ function useVadKnobs(settings: S, pair: LanguagePair | undefined) {
     [source, target, settings.selections, modelStatuses],
   );
   const entry = getManifestEntry(asrModelId ?? '');
+  // Config decides Smart per leg, so either direction's ASR can run it.
+  const reverseAsrModelId = useMemo(
+    () => useModelStore.getState().resolve(target, source, settings.selections).asr?.modelId,
+    [source, target, settings.selections, modelStatuses],
+  );
   const phase = useSmartTurnPhase();
-  const smartTurnOffered = supportsSmartTurn(entry);
+  const smartTurnOffered = supportsSmartTurn(entry) || supportsSmartTurn(getManifestEntry(reverseAsrModelId ?? ''));
   useEffect(() => {
     if (smartTurnOffered && phase === 'unknown') void useSmartTurnStore.getState().refresh();
   }, [smartTurnOffered, phase]);
@@ -107,8 +112,9 @@ export function LocalInferenceTurnDetectionControls({ settings, update, disabled
   const choose = (next: VadEndOfTurn) => {
     if (next === 'smart') {
       if (!smart) void enableSmart();
-    } else if (settings.vadEndOfTurn !== 'normal') {
-      update({ vadEndOfTurn: 'normal' });
+    } else {
+      if (phase === 'error') useSmartTurnStore.getState().dismiss();
+      if (settings.vadEndOfTurn !== 'normal') update({ vadEndOfTurn: 'normal' });
     }
   };
 
