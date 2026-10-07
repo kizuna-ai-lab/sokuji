@@ -76,10 +76,22 @@ export class TurnRuntime {
   }
 
   private async open(): Promise<WorkerSession | null> {
-    const backend: Backend = !this.webgpuFailed && (await checkWebGPU()).available ? 'webgpu' : 'wasm';
+    const caps = await checkWebGPU();
+    const backend: Backend = !this.webgpuFailed && caps.available && !caps.softwareOnly ? 'webgpu' : 'wasm';
+    const manager = ModelManager.getInstance();
+    let fileUrls: Record<string, string>;
+    try {
+      fileUrls = await manager.getModelBlobUrls(SMART_TURN_MODEL_ID);
+    } catch (err) {
+      reportWarning('SmartTurn', `Smart Turn could not load; turns end on silence: ${describeCause(err)}`, {
+        cause: err,
+        dedupeKey: 'smart-turn:load',
+      });
+      return null;
+    }
     let session: WorkerSession;
     try {
-      session = await this.start(backend);
+      session = await this.start(backend, fileUrls);
     } catch (err) {
       if (backend === 'webgpu') {
         this.webgpuFailed = true;
@@ -99,12 +111,13 @@ export class TurnRuntime {
     return session;
   }
 
-  private async start(backend: Backend): Promise<WorkerSession> {
+  private async start(backend: Backend, fileUrls: Record<string, string>): Promise<WorkerSession> {
     const manager = ModelManager.getInstance();
-    const fileUrls = await manager.getModelBlobUrls(SMART_TURN_MODEL_ID);
     const session: WorkerSession = new WorkerSession({
       makeWorker: () => createTurnWorker(backend),
-      onMessage: () => {},
+      onMessage: (msg) => {
+        if (msg?.type === 'run-failed') this.crashed(session, backend, String(msg.error));
+      },
       revokeBlobs: () => manager.revokeBlobUrls(fileUrls),
       onFatalError: (message) => this.crashed(session, backend, message),
     });

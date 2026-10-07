@@ -62,6 +62,8 @@ const messageOf = (err: unknown) => (err instanceof Error ? err.message : String
 export function installTurnWorker(deps: TurnCoreDeps, scope: TurnWorkerScope = self as unknown as TurnWorkerScope): void {
   let session: any = null;
   const ports = new Map<number, MessagePort>();
+  const latest = new Map<number, number>();
+  let runFailedPosted = false;
   // ORT sessions are not re-entrant: every load and prediction waits its turn.
   let chain: Promise<void> = Promise.resolve();
   const enqueue = (task: () => Promise<void>) => { chain = chain.then(task); };
@@ -88,7 +90,7 @@ export function installTurnWorker(deps: TurnCoreDeps, scope: TurnWorkerScope = s
   }
 
   async function predict(id: number, port: MessagePort, msg: TurnPredictRequest): Promise<void> {
-    if (ports.get(id) !== port) return;
+    if (ports.get(id) !== port || latest.get(id) !== msg.id) return;
     let answer: TurnPredictAnswer;
     try {
       if (!session) throw new Error('Smart Turn is not loaded');
@@ -97,6 +99,10 @@ export function installTurnWorker(deps: TurnCoreDeps, scope: TurnWorkerScope = s
       answer = { id: msg.id, probability: Number(out.logits.data[0]) };
     } catch (err) {
       answer = { id: msg.id, error: messageOf(err) };
+      if (session && !runFailedPosted) {
+        runFailedPosted = true;
+        scope.postMessage({ type: 'run-failed', error: messageOf(err) });
+      }
     }
     port.postMessage(answer);
   }
@@ -110,17 +116,22 @@ export function installTurnWorker(deps: TurnCoreDeps, scope: TurnWorkerScope = s
       case 'connect': {
         const { id, port } = msg;
         ports.set(id, port);
-        port.onmessage = (e: MessageEvent<TurnPredictRequest>) => enqueue(() => predict(id, port, e.data));
+        port.onmessage = (e: MessageEvent<TurnPredictRequest>) => {
+          latest.set(id, e.data.id);
+          enqueue(() => predict(id, port, e.data));
+        };
         break;
       }
       case 'disconnect':
         ports.get(msg.id)?.close();
         ports.delete(msg.id);
+        latest.delete(msg.id);
         break;
       case 'dispose':
         enqueue(async () => {
           for (const port of ports.values()) port.close();
           ports.clear();
+          latest.clear();
           try {
             await session?.release?.();
           } catch {

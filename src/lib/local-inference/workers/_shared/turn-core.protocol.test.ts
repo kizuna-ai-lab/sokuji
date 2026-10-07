@@ -193,4 +193,37 @@ describe('the Smart Turn worker under failure', () => {
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(h.run).toHaveBeenCalledTimes(1);
   });
+
+  it('tells its owner once that predictions are failing', async () => {
+    const h = harness();
+    await loaded(h);
+    h.run.mockRejectedValue(new Error('device lost'));
+    const a = connect(h, 1);
+    a.predict(1);
+    await vi.waitFor(() => expect(a.answers).toHaveLength(1), SLOW);
+    a.predict(2);
+    await vi.waitFor(() => expect(a.answers).toHaveLength(2), SLOW);
+    expect(h.posted.filter((m) => m.type === 'run-failed')).toEqual([{ type: 'run-failed', error: 'device lost' }]);
+  });
+
+  it('runs only the newest prediction queued on one connection, and leaves other connections alone', async () => {
+    const h = harness();
+    await loaded(h);
+    let finish!: () => void;
+    h.run.mockImplementationOnce(() => new Promise((resolve) => {
+      finish = () => resolve({ logits: { data: Float32Array.of(0.9) } });
+    }));
+    const a = connect(h, 1);
+    const b = connect(h, 2);
+    a.predict(1);
+    await vi.waitFor(() => expect(h.run).toHaveBeenCalledTimes(1), SLOW);
+    a.predict(2);
+    a.predict(3);
+    b.predict(1);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    finish();
+    await vi.waitFor(() => expect([a.answers.length, b.answers.length]).toEqual([2, 1]), SLOW);
+    expect(a.answers.map((x) => x.id)).toEqual([1, 3]);
+    expect(h.run).toHaveBeenCalledTimes(3);
+  });
 });

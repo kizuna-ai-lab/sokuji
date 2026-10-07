@@ -22,6 +22,7 @@ export type TurnWorkerInbound = TurnInitMessage | TurnConnectMessage | TurnDisco
 export type TurnWorkerOutbound =
   | { type: 'ready'; loadTimeMs: number; device: 'webgpu' | 'wasm' }
   | { type: 'error'; error: string }
+  | { type: 'run-failed'; error: string }
   | { type: 'disposed' };
 
 /** VAD worker -> turn worker, on a connected port. */

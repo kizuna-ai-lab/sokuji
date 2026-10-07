@@ -214,4 +214,43 @@ describe('TurnRuntime', () => {
     expect(await new TurnRuntime().connect()).toBeNull();
     expect(createTurnWorker).not.toHaveBeenCalled();
   });
+
+  it('treats a failed prediction like a crash: reports once and loads the next connection on WASM', async () => {
+    const runtime = new TurnRuntime();
+    await connected(runtime);
+    const gpu = await nthWorker(1);
+    gpu.emit({ type: 'ready', loadTimeMs: 5, device: 'webgpu' });
+    await vi.waitFor(() => expect(connects(gpu)).toHaveLength(1));
+    gpu.emit({ type: 'run-failed', error: 'device lost' });
+    gpu.emit({ type: 'run-failed', error: 'device lost' });
+    expect(reportWarning).toHaveBeenCalledTimes(1);
+    expect(reportWarning).toHaveBeenCalledWith(
+      'SmartTurn',
+      'Smart Turn stopped; turns end on silence: device lost',
+      expect.objectContaining({ dedupeKey: 'smart-turn:crash' }),
+    );
+    expect(gpu.terminate).toHaveBeenCalled();
+    await connected(runtime);
+    await nthWorker(2);
+    expect(createTurnWorker).toHaveBeenLastCalledWith('wasm');
+  });
+
+  it('starts on WASM when the only WebGPU adapter is software', async () => {
+    (checkWebGPU as unknown as Mock).mockResolvedValue({ available: true, softwareOnly: true });
+    await connected(new TurnRuntime());
+    await nthWorker(1);
+    expect(createTurnWorker).toHaveBeenCalledWith('wasm');
+  });
+
+  it('does not pin later connections to WASM when the model files could not be read', async () => {
+    vi.spyOn(ModelManager.prototype, 'getModelBlobUrls').mockRejectedValueOnce(new Error('idb'));
+    const runtime = new TurnRuntime();
+    const first = await runtime.connect();
+    if (first) ports.push(first.port);
+    await vi.waitFor(() => expect(reportWarning).toHaveBeenCalled());
+    expect(createTurnWorker).not.toHaveBeenCalled();
+    await connected(runtime);
+    await nthWorker(1);
+    expect(createTurnWorker).toHaveBeenLastCalledWith('webgpu');
+  });
 });
