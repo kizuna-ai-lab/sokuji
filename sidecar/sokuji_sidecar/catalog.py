@@ -1896,6 +1896,42 @@ TTS_MODELS: list[TtsModel] = [
         default_quant="q8_0", order=37, clones=True, streaming=False, sample_rate=44100,
         companions={"q8_0": (_MIOCODEC_Q8_0,), "bf16": (_MIOCODEC_Q8_0,)},
         rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}, "bf16": {"bf16", "f16", "f32", "q8_0"}}),
+    # LFM2.5-Audio 1.5B, English checkpoint, from Liquid AI's own repo at the commit audio.cpp's
+    # spec pins: offline, 24 kHz, no cloning; four voices (us_male, which a bare synth speaks,
+    # us_female, uk_male, uk_female). Every rung is four files at the repo root -- the backbone
+    # (the main file) and its mmproj-, vocoder- and tokenizer- companions -- staged together;
+    # native loads their directory (sk_tts.cpp family_load). The checkpoint accepts only "",
+    # "auto" or its own language, never an app code like en-US, so the load language forces
+    # "auto". LFM Open License v1.0: commercial use only below USD 10M annual revenue, notices
+    # on redistribution -- conditional, so consent is asked.
+    _tts_gguf_row(
+        "lfm2.5-audio-en", "LFM2.5-Audio 1.5B (English)", ("en",),
+        "lfm2_audio", "",
+        {"q8_0": ("LFM2.5-Audio-1.5B-Q8_0.gguf", 1246253280),
+         "f16": ("LFM2.5-Audio-1.5B-F16.gguf", 2343325920),
+         "q4_0": ("LFM2.5-Audio-1.5B-Q4_0.gguf", 695750880)},
+        default_quant="q8_0", order=38, load_language="auto",
+        clones=False, streaming=False, sample_rate=24000, named_voices=True,
+        presets=("us_male", "us_female", "uk_male", "uk_female"),
+        rung_dtypes={"q8_0": {"f32", "q8_0"}, "f16": {"f16", "f32"}, "q4_0": {"f32", "q4_0", "q6_K"}},
+        repo="LiquidAI/LFM2.5-Audio-1.5B-GGUF",
+        companions={
+            "q8_0": (("mmproj-LFM2.5-Audio-1.5B-Q8_0.gguf", 293443936),
+                     ("vocoder-LFM2.5-Audio-1.5B-Q8_0.gguf", 205742272),
+                     ("tokenizer-LFM2.5-Audio-1.5B-Q8_0.gguf", 76957632)),
+            "f16": (("mmproj-LFM2.5-Audio-1.5B-F16.gguf", 458806624),
+                    ("vocoder-LFM2.5-Audio-1.5B-F16.gguf", 387159232),
+                    ("tokenizer-LFM2.5-Audio-1.5B-F16.gguf", 142699392)),
+            "q4_0": (("mmproj-LFM2.5-Audio-1.5B-Q4_0.gguf", 219511136),
+                     ("vocoder-LFM2.5-Audio-1.5B-Q4_0.gguf", 108986560),
+                     ("tokenizer-LFM2.5-Audio-1.5B-Q4_0.gguf", 50546112))},
+        license=License(
+            spdx="LicenseRef-LFM-Open-License-1.0",
+            name="LFM Open License v1.0",
+            url="https://huggingface.co/LiquidAI/LFM2.5-Audio-1.5B-GGUF/blob/7d525f883a077e20afb782f2ff618edcae0e39e4/LICENSE",
+            non_commercial=False,
+            source_repo="LiquidAI/LFM2.5-Audio-1.5B-GGUF",
+            attribution="Liquid AI, LFM2.5-Audio-1.5B")),
 ]
 
 

@@ -780,6 +780,38 @@ void miotts_finds_its_codec_beside_the_model_folder() {
     fs::remove_all(root);
 }
 
+void lfm2_audio_loads_its_package_directory_and_speaks_auto() {
+    namespace fs = std::filesystem;
+    const fs::path root = fs::temp_directory_path() /
+        ("sk-lfm2-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+    fs::create_directories(root);
+    const fs::path backbone = root / "LFM2.5-Audio-1.5B-Q8_0.gguf";
+    std::ofstream(backbone) << "backbone";
+    const FamilyInfo *lfm2 = find_family("lfm2_audio");
+    assert(lfm2 != nullptr);
+    // A backbone file becomes its package directory, the file chosen by session option.
+    FamilyLoad got = family_load(*lfm2, backbone);
+    assert(got.model_path == root);
+    assert(got.session_options.size() == 1);
+    assert(got.session_options[0].first == "lfm2_audio.model_gguf");
+    assert(got.session_options[0].second == "LFM2.5-Audio-1.5B-Q8_0.gguf");
+    // A directory passes through: audio.cpp picks its only backbone.
+    got = family_load(*lfm2, root);
+    assert(got.model_path == root && got.session_options.empty());
+    // The package's parts sit in the backbone's own folder: no companion is looked for outside it.
+    assert(sk::tts_sibling_companions("lfm2_audio", backbone).empty());
+    fs::remove_all(root);
+    // The card's load language "auto" replaces any app code (the checkpoint accepts "", "auto" or
+    // its own); strict: the seed alone; a preset through cached_voice_id.
+    const auto h = handle_for("lfm2_audio", "auto");
+    rt::TaskRequest req = build_request(h.get(), "Hello.", "en-US", 1.0f);
+    assert(req.text_input && req.text_input->language == "auto");
+    assert(opt(req, "seed") == "0" && req.options.size() == 1);
+    give_preset(h.get(), "uk_female");
+    req = build_request(h.get(), "Hello.", "en", 1.0f);
+    assert(cached_voice(req) == "uk_female");
+}
+
 }  // namespace
 
 int main() {
@@ -816,6 +848,7 @@ int main() {
     echo_tts_clones_in_a_voice_cloning_session_with_the_adaptive_window();
     kitten_tts2_speaks_a_language_through_its_named_voice();
     miotts_finds_its_codec_beside_the_model_folder();
+    lfm2_audio_loads_its_package_directory_and_speaks_auto();
     std::puts("test_tts_request ok");
     return 0;
 }

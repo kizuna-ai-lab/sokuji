@@ -250,6 +250,11 @@ constexpr FamilyInfo kFamilies[] = {
     //             R23 failure mode: sample_decode, seed still fixed; request options not validated.
     //             Its codec is a companion GGUF (family_load).
     {"miotts",         false, true,  false, 44100, true,  false, false, FamilyTask::Tts, nullptr},
+    // lfm2_audio  community_models/lfm2_audio/session.cpp: offline chosen of offline and streaming
+    //             (78) — its stream speaks through audio_output, which synth_streaming does not read
+    //             (631-633); no cloning (461-463); 24 kHz (assets.cpp:317); always samples; strict
+    //             (447): seed is declared, do_sample and reference_text are not.
+    {"lfm2_audio",     false, false, false, 24000, false, true,  false, FamilyTask::Tts, nullptr},
 };
 
 const FamilyInfo *find_family(const char *name) {
@@ -339,6 +344,7 @@ struct FamilyLoad {
 
 // A companion the family loads from outside the model's folder (sk_tts_companions.h) is handed
 // over as its session option; a missing one fails here, before the model itself is read.
+// lfm2_audio loads from its package directory (below).
 FamilyLoad family_load(const FamilyInfo &info, const std::filesystem::path &model_path) {
     FamilyLoad out{model_path, {}};
     for (const sk::TtsCompanion &companion : sk::tts_sibling_companions(info.name, model_path)) {
@@ -347,6 +353,19 @@ FamilyLoad family_load(const FamilyInfo &info, const std::filesystem::path &mode
             throw std::runtime_error(std::string(info.name) + " companion GGUF does not exist: " +
                                      companion.path.string());
         out.session_options.emplace_back(companion.session_option, companion.path.string());
+    }
+    std::error_code ec;
+    if (std::strcmp(info.name, "lfm2_audio") == 0 && std::filesystem::is_regular_file(model_path, ec)) {
+        // Liquid's GGUFs embed no audio.cpp model spec, so a file path is refused
+        // (framework/model_spec/package.cpp:538); the model is the package DIRECTORY
+        // (community_models/lfm2_audio/assets.cpp:400-434), its backbone named by
+        // lfm2_audio.model_gguf (assets.cpp:209-224, session.cpp:93-96) so the right quant loads
+        // when several are staged together; mmproj-, vocoder- and tokenizer-<that file> follow by
+        // name (assets.cpp:229-244). A directory passes through as given.
+        std::filesystem::path dir = model_path.parent_path();
+        if (dir.empty()) dir = ".";
+        out.model_path = dir;
+        out.session_options.emplace_back("lfm2_audio.model_gguf", model_path.filename().string());
     }
     return out;
 }

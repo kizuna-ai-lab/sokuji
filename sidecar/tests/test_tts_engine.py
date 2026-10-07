@@ -1262,9 +1262,9 @@ def test_tts_asr_loopback_per_family():
         d = os.environ.get(env_name)
         return d if d and os.path.isdir(d) else None
 
-    def attempt(family, model_dir, setup, note="", language="en", device=None):
+    def attempt(family, model_dir, setup, note="", language="en", device=None, load_language=None):
         t0 = time.monotonic()
-        model = sn.tts_load(model_dir, family, device)
+        model = sn.tts_load(model_dir, family, device, load_language)
         try:
             setup(model)
             samples, rate = model.synth(_LOOPBACK_TEXT, language=language)
@@ -1584,6 +1584,21 @@ def test_tts_asr_loopback_per_family():
                 note="clone: clip without a transcript")
     else:
         skipped.append("miotts (needs supertonic for a reference clip)" if miotts_dir else "miotts")
+
+    # lfm2_audio (2026-10-06): loaded the way the sidecar loads it (the backbone file, which native
+    # turns into the package directory, and the card's load language "auto", which replaces the
+    # app's en-US on every synth). A named voice, then the same model with nothing set, the case
+    # that decides whether its card may leave default_preset empty (the engine speaks us_male,
+    # community_models/lfm2_audio/tts.cpp:28-33).
+    lfm2_dir = family_dir("SK_TEST_TTS_LFM2_DIR")
+    if lfm2_dir:
+        lfm2_backbone = os.path.join(lfm2_dir, "LFM2.5-Audio-1.5B-Q8_0.gguf")
+        attempt("lfm2_audio", lfm2_backbone, lambda m: m.set_preset("uk_female"), language="en-US",
+                load_language="auto", note="preset: uk_female")
+        attempt("lfm2_audio", lfm2_backbone, lambda m: None, language="en-US", load_language="auto",
+                note="bare: nothing set")
+    else:
+        skipped.append("lfm2_audio")
 
     # pocket_tts (English package): the ONE full-production-chain leg (ruling
     # R17(s4) / I1 point 2; the symlinked-snapshot loading defect it surfaced is

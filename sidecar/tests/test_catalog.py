@@ -242,7 +242,8 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
                 "kitten-tts2",
                 "voicetut-tts",
                 # sub-project A, batch 5
-                "miotts-1.7b")
+                "miotts-1.7b",
+                "lfm2.5-audio-en")
 
 # The 2026-09-03 batch arrived CPU-ONLY and earned every tier the same evening
 # (commit 2f2b28bc, after the per-family fleet run; catalog._TTS_TIER_OVERRIDES).
@@ -1953,3 +1954,44 @@ def test_miotts_card_pairs_every_rung_with_the_q8_0_codec():
     # the bf16 one bf16 only, and the codec f16, f32 and q8_0.
     assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"}),
                                    "bf16": frozenset({"bf16", "f16", "f32", "q8_0"})}
+
+
+LFM2_EN_REPO = "LiquidAI/LFM2.5-Audio-1.5B-GGUF"
+
+
+def _lfm2_companions(stem, quant, mmproj, vocoder, tokenizer):
+    return ((f"mmproj-{stem}-{quant}.gguf", mmproj), (f"vocoder-{stem}-{quant}.gguf", vocoder),
+            (f"tokenizer-{stem}-{quant}.gguf", tokenizer))
+
+
+def test_lfm2_english_card_ships_four_files_per_rung():
+    m = catalog.tts_model("lfm2.5-audio-en")
+    assert m is not None and m.family == "lfm2_audio" and m.graph_family == "lfm2_audio"
+    assert m.languages == ("en",) and m.load_language == "auto"
+    assert m.clones is False and m.transcript_required is False and m.streaming is False
+    assert m.named_voices is True and m.default_preset == ""      # a bare synth speaks us_male
+    assert m.presets == ("us_male", "us_female", "uk_male", "uk_female")
+    assert m.voice_required is False
+    assert m.sample_rate == 24000 and m.recommended is False and m.sort_order == 38
+    stem = "LFM2.5-Audio-1.5B"
+    assert [(d.compute_type, d.artifact, d.est_bytes, d.rank, d.companions) for d in m.deployments] == [
+        ("q8_0", f"{LFM2_EN_REPO}/{stem}-Q8_0.gguf", 1_822_397_120, 2.0,
+         _lfm2_companions(stem, "Q8_0", 293_443_936, 205_742_272, 76_957_632)),
+        ("f16", f"{LFM2_EN_REPO}/{stem}-F16.gguf", 3_331_991_168, 1.0,
+         _lfm2_companions(stem, "F16", 458_806_624, 387_159_232, 142_699_392)),
+        ("q4_0", f"{LFM2_EN_REPO}/{stem}-Q4_0.gguf", 1_074_794_688, 1.0,
+         _lfm2_companions(stem, "Q4_0", 219_511_136, 108_986_560, 50_546_112))]
+    assert m.size_bytes == 1_822_397_120             # the default rung's whole package
+    assert {d.tier for d in m.deployments} == {"cpu"}
+    assert m.family not in catalog._TTS_TIER_OVERRIDES
+    assert catalog.hub_revision(LFM2_EN_REPO) == "7d525f883a077e20afb782f2ff618edcae0e39e4"
+    # The Q4_0 backbone stores its token embedding as Q6_K (lfm2_audio.md).
+    assert {"q4_0", "q6_K"} <= catalog.RUNG_FALLBACK_DTYPES["q4_0"]
+    # Each rung's four files read from the Hub at the pin (hub_matrix_dtypes.py): the Q4_0 rung's
+    # q6_K is that token embedding.
+    assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f32", "q8_0"}),
+                                   "f16": frozenset({"f16", "f32"}),
+                                   "q4_0": frozenset({"f32", "q4_0", "q6_K"})}
+    lic = m.license
+    assert lic is not None and lic.spdx == "LicenseRef-LFM-Open-License-1.0"
+    assert lic.non_commercial is False and lic.requires_consent is True and lic.source_repo == LFM2_EN_REPO

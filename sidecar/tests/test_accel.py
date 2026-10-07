@@ -1906,3 +1906,13 @@ def test_models_catalog_miotts_needs_a_clip_and_counts_its_codec():
     assert "transcriptRequired" not in mio["voice"]
     assert mio["sizeBytes"] == 2_496_393_216          # LM + the q8_0 codec
     assert "license" not in mio
+
+
+def test_models_catalog_lfm2_english_offers_four_voices():
+    from sokuji_sidecar import tts_voices
+    lfm2 = _catalog("tts")["lfm2.5-audio-en"]
+    v = lfm2["voice"]
+    assert v["builtin"] == "named" and v["custom"] == "none" and v["required"] is False
+    assert lfm2["sizeBytes"] == 1_822_397_120
+    assert lfm2["license"]["nonCommercial"] is False and lfm2["license"]["requiresConsent"] is True
+    assert tts_voices.list_builtin_voices("lfm2.5-audio-en") == ["us_male", "us_female", "uk_male", "uk_female"]

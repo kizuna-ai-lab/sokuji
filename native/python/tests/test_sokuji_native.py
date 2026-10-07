@@ -133,7 +133,7 @@ def test_audio_families():
     # always compiles silero_vad in regardless of AUDIOCPP_MODELS (see upstreams.cmake), so
     # the family rides along unused, reported by sk_audio_families() but never called.
     required = {"index_tts2", "irodori_tts", "moss_tts_nano", "omnivoice", "pocket_tts",
-                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3", "fireredtts3", "moss_tts_local", "vibevoice", "chatterbox", "chatterbox_turbo", "confucius4_tts", "magpie_tts", "neutts", "kugelaudio", "higgs_audio_tts", "fish_audio", "breeze_tts", "audio8_tts", "soprano_tts", "glm_tts", "outetts", "echo_tts", "kitten_tts2", "miotts"}
+                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3", "fireredtts3", "moss_tts_local", "vibevoice", "chatterbox", "chatterbox_turbo", "confucius4_tts", "magpie_tts", "neutts", "kugelaudio", "higgs_audio_tts", "fish_audio", "breeze_tts", "audio8_tts", "soprano_tts", "glm_tts", "outetts", "echo_tts", "kitten_tts2", "miotts", "lfm2_audio"}
     assert required <= set(families)
     assert families == sorted(families)
     # Sized from the library's own count, so the binding never cuts the list off.
@@ -495,6 +495,9 @@ needs_tts_voicetut = pytest.mark.skipif(not (HAVE_TREE and TTS_VOICETUT_DIR and 
 TTS_MIOTTS_DIR = os.environ.get("SK_TEST_TTS_MIOTTS_DIR")
 needs_tts_miotts = pytest.mark.skipif(not (HAVE_TREE and TTS_MIOTTS_DIR and TTS_SUPERTONIC_DIR),
                                       reason="needs a built tree, SK_TEST_TTS_MIOTTS_DIR and SK_TEST_TTS_SUPERTONIC_DIR")
+TTS_LFM2_DIR = os.environ.get("SK_TEST_TTS_LFM2_DIR")
+needs_tts_lfm2 = pytest.mark.skipif(not (HAVE_TREE and TTS_LFM2_DIR),
+                                    reason="needs a built tree and SK_TEST_TTS_LFM2_DIR")
 needs_tts_supertonic = pytest.mark.skipif(not (HAVE_TREE and TTS_SUPERTONIC_DIR), reason="needs a built tree and SK_TEST_TTS_SUPERTONIC_DIR")
 needs_tts_moss = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_DIR), reason="needs a built tree and SK_TEST_TTS_MOSS_DIR")
 needs_tts_index = pytest.mark.skipif(not (HAVE_TREE and TTS_INDEX_DIR), reason="needs a built tree and SK_TEST_TTS_INDEX_DIR")
@@ -761,6 +764,9 @@ NEW_CPU_TTS_FAMILIES = [
                transcript_required=True),
     # miotts clones or does nothing, and takes no transcript; its codec sits beside the model folder.
     CpuTtsCase("miotts", "SK_TEST_TTS_MIOTTS_DIR", TTS_MIOTTS_DIR, "こんにちは、世界。", "ja", 44100, True),
+    # lfm2_audio (English checkpoint) speaks us_male with nothing set and takes no clip.
+    CpuTtsCase("lfm2_audio", "SK_TEST_TTS_LFM2_DIR", TTS_LFM2_DIR, "Hello from Liquid.", "en", 24000, False,
+               clones=False),
 ]
 
 
@@ -1805,6 +1811,49 @@ def test_tts_miotts_synthesis_is_the_same_in_two_fresh_processes(tmp_path):
     assert np.array_equal(first, second)
 
 
+@needs_tts_lfm2
+def test_tts_lfm2_english_loads_by_backbone_file_and_speaks_its_voices():
+    """lfm2_audio: the backbone file the sidecar hands over loads as its package directory; with
+    the card's load language "auto" an app code like en-US is accepted; offline, 24 kHz, no
+    cloning; the four English voices are presets (us_male when none is set)."""
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    backbone = _main_gguf(TTS_LFM2_DIR)
+    assert pathlib.Path(backbone).name == "LFM2.5-Audio-1.5B-Q8_0.gguf"
+    t = sokuji_native.tts_load(backbone, "lfm2_audio", cpu, language="auto")
+    try:
+        caps = t.capabilities
+        assert not caps.streaming and not caps.clones and not caps.transcript_required
+        assert caps.sample_rate == 24000
+        assert t.presets() == []          # the card lists the four voices
+        with pytest.raises(sokuji_native.NativeError, match="does not support voice cloning"):
+            t.set_voice(np.zeros(24000, np.float32), 24000, ref_text="hi")
+        bare, rate = t.synth("Hello from Liquid.", language="en-US")
+        t.set_preset("uk_female")
+        uk, _ = t.synth("Hello from Liquid.", language="en-US")
+    finally:
+        t.unload()
+    assert rate == 24000
+    for samples in (bare, uk):
+        assert 0.3 < samples.shape[0] / rate < 20.0
+        assert float(np.max(np.abs(samples))) > 0.01
+    # The preset reaches the engine: the same seed and text, another voice, other samples.
+    assert not (bare.shape == uk.shape and np.array_equal(bare, uk))
+
+
+# lfm2_audio samples every frame (temperature 0.8, top_k 64) from an mt19937 seeded with the
+# seed it is sent, random only when none is sent (session.cpp parse_request): build_request's
+# fixed seed makes two processes speak the same samples.
+@needs_tts_lfm2
+def test_tts_lfm2_synthesis_is_the_same_in_two_fresh_processes(tmp_path):
+    case = next(c for c in NEW_CPU_TTS_FAMILIES if c.family == "lfm2_audio")
+    first = _synth_in_fresh_process(case, tmp_path / "first.npy")
+    second = _synth_in_fresh_process(case, tmp_path / "second.npy")
+    assert 0.3 < first.shape[0] / case.rate < 20.0, first.shape
+    assert float(np.max(np.abs(first))) > 0.01
+    assert np.array_equal(first, second)
+
+
 # --------------------------------------------------------------------------------------
 # TTS on a real GPU device.
 #
@@ -1908,6 +1957,8 @@ GPU_TTS_FAMILIES = {
     "echo_tts": ("SK_TEST_TTS_ECHO_DIR", TTS_ECHO_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
     "kitten_tts2": ("SK_TEST_TTS_KITTEN2_DIR", TTS_KITTEN2_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
     "miotts": ("SK_TEST_TTS_MIOTTS_DIR", TTS_MIOTTS_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
+    # Language "auto" so the fleet can point the variable at the Japanese package as well.
+    "lfm2_audio": ("SK_TEST_TTS_LFM2_DIR", TTS_LFM2_DIR, None, False, 30.0, GPU_TTS_TEXT, "auto"),
 }
 
 # A GPU_TTS_FAMILIES key that names a second card of an already-listed family, mapped to the

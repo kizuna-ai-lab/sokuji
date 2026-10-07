@@ -69,6 +69,7 @@ static const Case CASES[] = {
     {"tts", "echo_tts", "SK_TEST_TTS_ECHO_DIR"},
     {"tts", "kitten_tts2", "SK_TEST_TTS_KITTEN2_DIR"},
     {"tts", "miotts", "SK_TEST_TTS_MIOTTS_DIR"},
+    {"tts", "lfm2_audio", "SK_TEST_TTS_LFM2_DIR"},
     {"asr", "whisper", "SK_TEST_ASR_GGUF"},               {"asr", "moonshine_streaming", "SK_TEST_ASR_STREAM_GGUF"},
     {"translate", "qwen3", "SK_TEST_TRANSLATE_GGUF"},
 };
