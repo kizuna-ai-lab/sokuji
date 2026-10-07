@@ -722,15 +722,6 @@ SK_API sk_status sk_tts_load(const char *model_path, const sk_device *device,
         // to native.
         if (std::strcmp(info->name, "moss_tts_local") == 0)
             session_options.options["moss_tts_local.weight_type"] = "native";
-        // breeze_tts on Vulkan: its default policy (breeze_tts/generator.cpp:58-98) casts the
-        // activations to bf16 at every layer, and for the F16 KV cache the cast is an unfused
-        // ggml_cast f16 -> bf16 (framework/modules/transformers/decoder.cpp:272-288, :813-816,
-        // :978-981), a copy ggml-vulkan has no kernel for (ggml-vulkan.cpp:6171, supports_op at
-        // :15585-15647): every Vulkan synth aborts. Upstream's own switch (breeze_tts/session.cpp:
-        // 61-76) turns the policy off. Only Vulkan: the CPU never enables the policy, and Metal's
-        // "auto" is already off.
-        if (std::strcmp(info->name, "breeze_tts") == 0 && backend.type == core::BackendType::Vulkan)
-            session_options.options["breeze_tts.bf16_activations"] = "off";
 
         // Session created AT LOAD (report §9's Xcode precedent): one long-lived session per
         // handle, reused across every sk_tts_synth call.

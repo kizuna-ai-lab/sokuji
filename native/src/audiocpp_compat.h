@@ -323,9 +323,21 @@ static inline struct ggml_tensor *ggml_mul_mat_acc(
 
 /* Fork: a fused GGML_UNARY_OP_ROUND_BF16, always F32 out. Its own header comment and its
  * caller (qwen_decoder.cpp:281-283) define it as the f32 -> bf16 -> f32 cast round trip,
- * which is what this builds. Reached by qwen_decoder (policy.fused_round) and by
- * qwen_causal_decode_runtime's non-Metal bf16 readback rounding. */
+ * which is what this builds. Reached by qwen_decoder (policy.fused_round), by
+ * qwen_causal_decode_runtime's non-Metal bf16 readback rounding, and by breeze_tts's bf16
+ * activation policy (decoder.cpp's activation_cast).
+ *
+ * The fork's op takes an F16 or BF16 input as well as F32 (the fork's ggml.c:3130-3145 asserts
+ * all three; its CPU kernel's F16 -> F32 branch is ggml-cpu/unary-ops.cpp:152-153, its Vulkan
+ * round_bf16_f16 pipeline is picked at ggml-vulkan.cpp:9781-9792 and accepted at :15865-15867,
+ * and that shader reads `float(data_a[i])` before rounding): breeze_tts feeds it its F16 KV
+ * cache. A non-F32 input is therefore widened to F32 first. F16 -> F32 is exact (every F16
+ * value, subnormals included, is an F32 value), so the rounding sees the same float the
+ * fork's kernel does and the result is bit-identical. Casting the F16 straight to BF16 would
+ * be a CPY f16 -> bf16, which the pinned ggml-vulkan has no kernel for (its abort is
+ * ggml-vulkan.cpp:6170-6171). An F32 input builds exactly the two casts it always has. */
 static inline struct ggml_tensor *ggml_round_bf16(struct ggml_context *ctx, struct ggml_tensor *a) {
+    if (a->type != GGML_TYPE_F32) a = ggml_cast(ctx, a, GGML_TYPE_F32);
     return ggml_cast(ctx, ggml_cast(ctx, a, GGML_TYPE_BF16), GGML_TYPE_F32);
 }
 

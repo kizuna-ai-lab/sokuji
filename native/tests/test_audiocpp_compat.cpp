@@ -44,6 +44,50 @@ static std::vector<float> ramp(size_t n, float scale) {
     return v;
 }
 
+// The nodes ggml_round_bf16 builds over one input of `type`, in graph order, and the type of its result.
+struct RoundGraph {
+    std::vector<ggml_op> ops;
+    std::vector<ggml_type> src0, dst;
+    ggml_type result;
+};
+
+static RoundGraph round_bf16_graph(ggml_type type) {
+    ggml_init_params p = {16 * ggml_tensor_overhead() + ggml_graph_overhead(), nullptr, true};
+    ggml_context *ctx = ggml_init(p);
+    ggml_tensor *out = ggml_round_bf16(ctx, ggml_new_tensor_1d(ctx, type, 4));
+    ggml_cgraph *gf = ggml_new_graph(ctx);
+    ggml_build_forward_expand(gf, out);
+    RoundGraph g;
+    g.result = out->type;
+    for (int i = 0; i < ggml_graph_n_nodes(gf); ++i) {
+        const ggml_tensor *n = ggml_graph_node(gf, i);
+        g.ops.push_back(n->op);
+        g.src0.push_back(n->src[0]->type);
+        g.dst.push_back(n->type);
+    }
+    ggml_free(ctx);
+    return g;
+}
+
+// ggml_round_bf16 over `n` elements of `type` holding `data`, computed on the CPU backend.
+static std::vector<float> round_bf16_of(ggml_type type, const void *data, size_t n) {
+    ggml_init_params p = {16 * ggml_tensor_overhead() + ggml_graph_overhead(), nullptr, true};
+    ggml_context *ctx = ggml_init(p);
+    ggml_tensor *in = ggml_new_tensor_1d(ctx, type, (int64_t)n);
+    ggml_tensor *out = ggml_round_bf16(ctx, in);
+    ggml_cgraph *gf = ggml_new_graph(ctx);
+    ggml_build_forward_expand(gf, out);
+    ggml_backend_buffer_t buf = ggml_backend_alloc_ctx_tensors(ctx, g_cpu);
+    ggml_backend_tensor_set(in, data, 0, ggml_nbytes(in));
+    assert(ggml_backend_graph_compute(g_cpu, gf) == GGML_STATUS_SUCCESS);
+    assert(out->type == GGML_TYPE_F32);
+    std::vector<float> r(n);
+    ggml_backend_tensor_get(out, r.data(), 0, r.size() * sizeof(float));
+    ggml_backend_buffer_free(buf);
+    ggml_free(ctx);
+    return r;
+}
+
 int main(int argc, char **argv) {
     ggml_backend_load_all_from_path(argc > 1 ? argv[1] : nullptr);
     g_cpu = ggml_backend_init_by_type(GGML_BACKEND_DEVICE_TYPE_CPU, nullptr);
@@ -76,6 +120,57 @@ int main(int argc, char **argv) {
         assert(std::memcmp(&rounded[i], &want, sizeof(float)) == 0);
     }
     assert(rounded[0] == 1.0f);
+
+    // (D2b) An F32 input builds exactly the two casts it always has, so qwen3_tts's recording does not move.
+    {
+        const RoundGraph g = round_bf16_graph(GGML_TYPE_F32);
+        assert(g.result == GGML_TYPE_F32);
+        assert((g.ops == std::vector<ggml_op>{GGML_OP_CPY, GGML_OP_CPY}));
+        assert((g.src0 == std::vector<ggml_type>{GGML_TYPE_F32, GGML_TYPE_BF16}));
+        assert((g.dst == std::vector<ggml_type>{GGML_TYPE_BF16, GGML_TYPE_F32}));
+    }
+
+    // (D2c) An F16 input (breeze_tts's KV cache) is widened to F32 first: ggml-vulkan has no CPY f16 -> bf16
+    // (ggml-vulkan.cpp:6170-6171), and F16 -> F32 is exact, so the values are the fork's fused kernel's.
+    {
+        const RoundGraph g = round_bf16_graph(GGML_TYPE_F16);
+        assert(g.result == GGML_TYPE_F32);
+        int f16_to_bf16_copies = 0;
+        for (size_t i = 0; i < g.ops.size(); ++i)
+            f16_to_bf16_copies += g.ops[i] == GGML_OP_CPY && g.src0[i] == GGML_TYPE_F16 && g.dst[i] == GGML_TYPE_BF16;
+        assert(f16_to_bf16_copies == 0);
+        assert((g.ops == std::vector<ggml_op>{GGML_OP_CPY, GGML_OP_CPY, GGML_OP_CPY}));
+        assert((g.src0 == std::vector<ggml_type>{GGML_TYPE_F16, GGML_TYPE_F32, GGML_TYPE_BF16}));
+        assert((g.dst == std::vector<ggml_type>{GGML_TYPE_F32, GGML_TYPE_BF16, GGML_TYPE_F32}));
+
+        // Values F16 holds exactly that bf16 does not: 1 + 2^-10 and 1 + 2^-8 (a tie) round down to 1,
+        // 1 + 3 * 2^-9 rounds up, 65504 rounds up across an exponent to 2^16; the smallest normal and
+        // subnormal F16 and -0 widen untouched.
+        const float xs[] = {1.0f + 1.0f / 1024.0f, 1.0f + 1.0f / 256.0f, 1.0f + 3.0f / 512.0f, -3.140625f,
+                            65504.0f, 6.103515625e-05f, 5.9604644775390625e-08f, -0.0f};
+        const size_t n = sizeof xs / sizeof xs[0];
+        std::vector<ggml_fp16_t> h(n);
+        for (size_t i = 0; i < n; ++i) h[i] = ggml_fp32_to_fp16(xs[i]);
+        const auto got = round_bf16_of(GGML_TYPE_F16, h.data(), n);
+        for (size_t i = 0; i < n; ++i) {
+            const float want = ggml_bf16_to_fp32(ggml_fp32_to_bf16(ggml_fp16_to_fp32(h[i])));
+            assert(std::memcmp(&got[i], &want, sizeof(float)) == 0);
+        }
+        assert(got[0] == 1.0f && got[1] == 1.0f && got[2] == 1.0f + 1.0f / 128.0f && got[4] == 65536.0f);
+    }
+
+    // (D2d) A BF16 input is the same rule: widened, then the round trip changes nothing.
+    {
+        const float xs[] = {1.0f, -3.140625f, 65536.0f, 1e-30f};
+        const size_t n = sizeof xs / sizeof xs[0];
+        std::vector<ggml_bf16_t> b(n);
+        for (size_t i = 0; i < n; ++i) b[i] = ggml_fp32_to_bf16(xs[i]);
+        const auto got = round_bf16_of(GGML_TYPE_BF16, b.data(), n);
+        for (size_t i = 0; i < n; ++i) {
+            const float want = ggml_bf16_to_fp32(b[i]);
+            assert(std::memcmp(&got[i], &want, sizeof(float)) == 0);
+        }
+    }
 
     // (D3) two representative lowering hints (mul_mat, concat) are no-ops on this build:
     // op and op_params untouched.
