@@ -160,7 +160,7 @@
     "smartTurn": "Smart",
     "smartTurnCheckAfter": "Prüfung nach",
     "smartTurnCheckAfterTooltip": "Wie lange eine Pause dauert, bevor Smart Turn prüft, ob Sie fertig gesprochen haben. Wenn ja, endet das Segment sofort, statt die max. Wartezeit abzuwarten.",
-    "smartTurnThreshold": "Sprecherwechsel-Schwelle",
+    "smartTurnThreshold": "Schwelle für Redeende",
     "smartTurnThresholdTooltip": "Wie sicher Smart Turn sein muss, dass Sie fertig sind, bevor es das Segment beendet. Niedrigere Werte beenden mehr Segmente früher, schneiden aber auch öfter an Pausen mitten im Satz.",
     "smartTurnMaxWait": "Max. Wartezeit",
     "smartTurnMaxWaitTooltip": "Die längste Stille, bevor ein Segment endet, wenn Smart Turn es nicht vorher beendet hat.",
