@@ -1929,3 +1929,14 @@ def test_audio8_card_is_not_gated_by_r16(native_env):
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=card.family, voice_required=card.voice_required))
     samples, _rate, _ms = b.generate("hello")
     assert samples.dtype == np.float32
+
+
+def test_soprano_card_is_not_gated_by_r16(native_env):
+    """soprano_tts takes no voice at all, so a bare generate() is its only mode."""
+    from sokuji_sidecar import catalog
+    card = catalog.tts_model("soprano-1.1-80m")
+    assert card.voice_required is False
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=card.family, voice_required=card.voice_required))
+    samples, _rate, _ms = b.generate("hello")
+    assert samples.dtype == np.float32

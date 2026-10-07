@@ -591,6 +591,16 @@ void audio8_ja_reaches_the_model_as_yue() {
     assert(opt(req, "seed") == "0");
 }
 
+void soprano_is_sent_only_the_seed() {
+    // soprano_tts validates every request option against its spec (soprano_tts/session.cpp:150,216),
+    // which declares seed but not do_sample, and it takes no voice of any kind.
+    const auto soprano = handle_for("soprano_tts");
+    const rt::TaskRequest req = build_request(soprano.get(), "Hello.", "en", 1.0f);
+    assert(opt(req, "seed") == "0");
+    assert(req.options.size() == 1);
+    assert(!req.voice.has_value());
+}
+
 }  // namespace
 
 int main() {
@@ -620,6 +630,7 @@ int main() {
     fish_audio_requests();
     breeze_tts_requests();
     audio8_ja_reaches_the_model_as_yue();
+    soprano_is_sent_only_the_seed();
     std::puts("test_tts_request ok");
     return 0;
 }

@@ -234,7 +234,8 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
                 "fish-audio-s2-pro",
                 "breeze-tts-2",
                 # sub-project A, batch 4
-                "audio8-tts-0.6b")
+                "audio8-tts-0.6b",
+                "soprano-1.1-80m")
 
 # The 2026-09-03 batch arrived CPU-ONLY and earned every tier the same evening
 # (commit 2f2b28bc, after the per-family fleet run; catalog._TTS_TIER_OVERRIDES).
@@ -1732,3 +1733,28 @@ def test_audio8_card_shape():
     assert catalog.hub_revision("js-byte/Audio8-TTS-Preview-0.6b-GGUF") == "788f6fdb0bbdbbc407c63f3265cea9875b4a7c14"
     # The matrix dtypes of the published q8_0 file (no companions), read from the Hub at the pin.
     assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"})}
+
+
+def test_soprano_card_shape():
+    m = catalog.tts_model("soprano-1.1-80m")
+    assert m is not None and m.family == "soprano_tts" and m.graph_family == "soprano_tts"
+    assert m.languages == ("en",)
+    assert m.clones is False and m.transcript_required is False and m.streaming is False
+    assert m.named_voices is False and m.presets == () and m.default_preset == ""
+    assert m.voice_required is False
+    assert catalog.voice_capability(m)["builtin"] == "none" and catalog.voice_capability(m)["custom"] == "none"
+    assert m.sample_rate == 32000 and m.recommended is False and m.sort_order == 31
+    assert m.license is None                         # Apache-2.0
+    assert m.size_bytes == 123_162_336
+    assert [(d.compute_type, d.artifact, d.est_bytes, d.rank, d.companions) for d in m.deployments] == [
+        ("q8_0", "WalkingCat/Soprano-1.1-80M-GGUF/Soprano-1.1-80M-GGUF/soprano-1.1-80m-q8_0.gguf",
+         123_162_336, 2.0, ()),
+        ("bf16", "WalkingCat/Soprano-1.1-80M-GGUF/Soprano-1.1-80M-GGUF/soprano-1.1-80m-bf16.gguf",
+         221_809_792, 1.0, ())]
+    assert {d.tier for d in m.deployments} == {"cpu"}
+    assert m.family not in catalog._TTS_TIER_OVERRIDES
+    assert catalog.hub_revision("WalkingCat/Soprano-1.1-80M-GGUF") == "36c6f47cf91421b7f0cf3d862d28ae2e41aab3f2"
+    # The matrix dtypes of each published rung (no companions), read from the Hub at the pin: the
+    # q8_0 file holds quantised matrices beside f16 and f32 ones; the bf16 file only bf16.
+    assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"}),
+                                   "bf16": frozenset({"bf16"})}

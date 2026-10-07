@@ -1746,6 +1746,18 @@ TTS_MODELS: list[TtsModel] = [
         sample_rate=44100, transcript_required=True,
         rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}},
         repo="js-byte/Audio8-TTS-Preview-0.6b-GGUF"),
+    # Soprano 1.1 (80M), community model, Apache-2.0: English only, offline, 32 kHz, and no voice
+    # input of any kind (no clip, no presets). Its spec validates every request option, so
+    # sk_tts sends it only the seed.
+    _tts_gguf_row(
+        "soprano-1.1-80m", "Soprano 1.1 (80M)", ("en",),
+        "soprano_tts", "Soprano-1.1-80M-GGUF",
+        {"q8_0": ("soprano-1.1-80m-q8_0.gguf", 123162336),
+         "bf16": ("soprano-1.1-80m-bf16.gguf", 221809792)},
+        default_quant="q8_0", order=31, clones=False, streaming=False,
+        sample_rate=32000,
+        rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}, "bf16": {"bf16"}},
+        repo="WalkingCat/Soprano-1.1-80M-GGUF"),
 ]
 
 

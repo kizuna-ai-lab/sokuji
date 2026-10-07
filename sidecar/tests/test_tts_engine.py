@@ -1523,6 +1523,13 @@ def test_tts_asr_loopback_per_family():
     else:
         skipped.append("audio8_tts")
 
+    # soprano_tts (2026-10-06): English only, takes no voice of any kind, so one bare leg.
+    soprano_dir = family_dir("SK_TEST_TTS_SOPRANO_DIR")
+    if soprano_dir:
+        attempt("soprano_tts", soprano_dir, lambda m: None, note="bare: nothing set")
+    else:
+        skipped.append("soprano_tts")
+
     # pocket_tts (English package): the ONE full-production-chain leg (ruling
     # R17(s4) / I1 point 2; the symlinked-snapshot loading defect it surfaced is
     # fixed by ruling R18's hard-link staging) -- see

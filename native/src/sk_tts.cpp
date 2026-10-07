@@ -217,6 +217,11 @@ constexpr FamilyInfo kFamilies[] = {
     //             transcript (268-272); 44.1 kHz codec (767); always samples, never reads
     //             do_sample; request options are not spec-validated.
     {"audio8_tts",     false, true,  true,  44100, false, false, false, FamilyTask::Tts, nullptr},
+    // soprano_tts community_models/soprano_tts/session.cpp: offline chosen of offline and
+    //             streaming (157, 217); no voice input at all; 32 kHz (vocoder.cpp:440);
+    //             strict: prepare()/start_stream() validate every request option against the
+    //             spec (150, 216), which declares seed but neither do_sample nor reference_text.
+    {"soprano_tts",    false, false, false, 32000, false, true,  false, FamilyTask::Tts, nullptr},
 };
 
 const FamilyInfo *find_family(const char *name) {
