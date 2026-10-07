@@ -16899,6 +16899,323 @@ Expected: one commit.
 
 ---
 
+### Task 17b: chatterbox's T3 KV cache is cleared after allocation (inserted 2026-10-07)
+
+**Why.** The native suite showed a chatterbox "HiFT mel shape mismatch" when other families had loaded
+earlier in the same process. The investigation (`S/chatterbox-flake-report.md`) found the cause:
+- audio.cpp's T3 decode runner allocates its KV cache with `ggml_backend_alloc_ctx_tensors` and never
+  clears it (`src/models/chatterbox/components/t3_runtime.h:824-827`).
+- It masks unwritten slots with a finite -10000 (`:697-710`). ggml's CPU flash-attention skips only an
+  exact -INFINITY (`ggml-cpu/ops.cpp:8968`).
+- Recycled heap garbage therefore reaches the softmax, the logits go NaN, T3 emits no speech tokens,
+  and chatterbox fails.
+- chatterbox_turbo has the same bug (`community_models/chatterbox_turbo/t3_turbo_runtime.h:499-502`,
+  `:587`) and silently emits garbage instead.
+- `MALLOC_PERTURB_=165` reproduces it every time, even with chatterbox alone. A long-lived sidecar
+  that switches models hits it.
+
+**Ruling** (controller, 2026-10-07; the owner was informed):
+1. Add two `native/patches/audio.cpp.json` entries that call `ggml_backend_tensor_memset` on the KV
+   tensors right after allocation, in both T3 runners. Each `new` text carries a `// sokuji-native:`
+   note with the reason and the line citations.
+2. Add a native Python regression test that runs chatterbox and chatterbox_turbo, each in a
+   subprocess, with and without `MALLOC_PERTURB_=165`, and asserts equal samples. Watch it go RED on
+   an unpatched stage and GREEN on the patched one.
+3. Run a one-off sweep of every compiled TTS family that has a cached model: perturbed against
+   unperturbed, bare, plus a clone synth where the clip is optional. Any other uninitialised read gets
+   its own ruling.
+
+Cost if wrong: one memset of the KV cache per synth. The measurement afterwards was about +0.1 s and
++103 MB peak.
+
+**Files:** `native/patches/audio.cpp.json`, `native/python/tests/test_sokuji_native.py`.
+
+**Gates:**
+- CTest cpu 11/11, vulkan 11/11, record-vk 13/13.
+- Ops gate and `--report` all ok, with no recording changed.
+- The native Python suite, run alone, with no chatterbox failure.
+- The sidecar suite.
+- The cost measured.
+
+**Commit:** `fix(native): chatterbox's T3 KV cache is cleared after allocation`.
+
+---
+
+### Task 17c: the `ggml_round_bf16` shim widens an F16 input to F32, so breeze runs upstream's bf16 policy on Vulkan (inserted 2026-10-08)
+
+**Why.** The owner's minimal-repro side task built upstream audio.cpp at `54aa279` with its OWN ggml
+fork, on the GB10 (report: `S/repro-repo-report.md` §4).
+
+Upstream behaviour:
+- breeze_tts on Vulkan synthesises fine with its default bf16 activation policy: 3.76 s, exit 0.
+- A trace of every `activation_cast` call shows breeze takes ONLY the fork's fused `ggml_round_bf16`
+  path, for both its f32 activations and its F16 KV cache. It never reaches the unfused `ggml_cast` in
+  `framework/modules/transformers/decoder.cpp:272-288`.
+
+The "Missing CPY op for types: f16 bf16" abort Sokuji hit is therefore Sokuji's own:
+- The shim `native/src/audiocpp_compat.h:~325-330` builds `ggml_round_bf16(a)` as
+  `ggml_cast(ggml_cast(a, BF16), F32)`. For an F16 `a` (the KV cache), that inner cast is exactly the
+  CPY f16→bf16 that ggml-vulkan has no kernel for (`ggml-vulkan.cpp:6171`).
+- The comment at `native/src/sk_tts.cpp:~725-731` names the wrong source.
+- The workaround it guards, `breeze_tts.bf16_activations=off` on Vulkan, changes the output: 4.00 s
+  against upstream's 3.76 s, same seed. So Sokuji's Breeze on Vulkan does not speak the way the vendor's
+  build does.
+- The repro showed, op level on pristine ggml v0.26.0 Vulkan, that
+  `ggml_cast(ggml_cast(f16, F32), BF16)` → F32 is bit-identical to the fork's fused op on an F16
+  input.
+
+**Ruling** (controller, 2026-10-08): fix the shim, not the family.
+1. `ggml_round_bf16` in `audiocpp_compat.h`:
+   - when `a->type` is not F32, first `ggml_cast` it to F32, then do the existing bf16 round trip;
+   - an F32 input builds exactly the graph it builds today, so qwen3_tts, the shim's other caller, does
+     not change;
+   - correct the shim's comment: the fork's fused op also takes an F16 input (breeze's KV cache). Cite
+     where the fork's kernel accepts it, read from the fork source the repro built
+     (`/home/jiangzhuo/Desktop/kizunaai/audiocpp-repros/work/`, or the upstream clone there), and why
+     F16→F32 is exact.
+2. Delete the breeze Vulkan `bf16_activations=off` override and its comment in `sk_tts.cpp`, so breeze
+   on Vulkan runs upstream's default policy. CPU never enables the policy and Metal's "auto" is off, so
+   only Vulkan output changes.
+3. **Re-record** `tts-breeze_tts.ops` on record-vk: three byte-identical recordings, header unchanged.
+   The new graph carries the bf16 round nodes the old one did not; summarise the diff. Every other
+   recording stays byte-identical. Prove it with the ops gate. If qwen3_tts DIFFs, the F32 path changed:
+   stop.
+
+Cost if wrong: Breeze's Vulkan output changes to the vendor's reference policy, which is the intended
+correction. A device without CPY f32→bf16 / bf16→f32 is asked about it now and refused by the gate,
+which is correct.
+
+**Files**
+- Modify: `native/src/audiocpp_compat.h` (the shim and its comment)
+- Modify: `native/src/sk_tts.cpp` (delete the breeze override and its comment)
+- Modify: `native/tests/test_audiocpp_compat.cpp` (model-free pin)
+- Modify: `native/tests/test_tts_request.cpp` ONLY if it pins the breeze option (grep
+  `bf16_activations`); same for `native/python/tests/test_sokuji_native.py`, the sidecar tests and
+  `native/README.md`
+- Modify: `native/src/ops/tts-breeze_tts.ops`
+
+**Steps**
+- [ ] **Step 1: RED, model-free.** In `test_audiocpp_compat.cpp`, build `ggml_round_bf16` over an F16
+  tensor on a CPU context, and walk the graph.
+  - Assert no node is a CPY or cast whose src0 is F16 and whose dst is BF16.
+  - Assert the result is F32, and equals, element for element, the same values cast F16→F32 and
+    rounded through bf16 by the reference (`ggml_fp32_to_bf16` / `ggml_bf16_to_fp32`) on a handful of
+    values, including ones that round. Compute it on the CPU backend.
+  - An F32-input case asserts the graph is exactly cast→BF16→F32: two nodes, unchanged.
+  - Watch the F16 assertion fail.
+- [ ] **Step 2: GREEN.** Ruling items 1 and 2.
+- [ ] **Step 3: Live Vulkan.** On the vulkan tree, run breeze's GPU case:
+  `SK_TEST_TTS_GPU=1 SK_TEST_TTS_BREEZE_TTS_DIR=…` (the env name is in `native/ci/ops-env.sh`), with
+  `-k "tts_synthesises_on_a_gpu_device and breeze"`. It must pass with the override gone.
+  - Before the shim fix it would abort. Show that once by building without item 1, or quote the
+    pre-existing abort in the ledger's Task 29 entries; do not commit that state.
+  - Quote the clip length.
+  - Then run breeze's Vulkan synth once more and listen to nothing: assert non-silence and a
+    plausible duration, as the GPU case does.
+- [ ] **Step 4: Re-record** breeze (ruling item 3).
+- [ ] **Step 5: Gates.**
+  - CTest cpu 11/11, vulkan 11/11, record-vk 13/13; the Vulkan sweep `all_supported=1` for breeze,
+    with n_ops quoted before and after.
+  - `--report` all ok.
+  - Ops gate: all ok, no DIFF.
+  - The native Python suite, run alone.
+  - The sidecar suite.
+- [ ] **Step 6: Commit.**
+  - Use a pathspec list of exactly the files touched.
+  - Message: `fix(native): the ggml_round_bf16 shim widens an F16 input to F32, so breeze keeps its bf16 policy on Vulkan`.
+  - The body gives the repro's finding (breeze reaches only the fused op; the shim's inner cast was the
+    missing CPY), the dropped override, the output change, and the re-recorded breeze.
+  - Trailer: `Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>`. Do not push.
+
+**Not in scope:**
+- decoder.cpp's unfused path (breeze never reaches it; the repro withdrew its patch);
+- Metal;
+- breeze's catalog tiers (GPU tiers are earned in Task 42).
+
+---
+
+### Task 34b: kitten_tts2 gets seed "1", and Task 34's review Minors (inserted 2026-10-08)
+
+**Why (seed).** Task 17b's perturbation sweep (`S/task-17b-report.md`) ran every family in fresh
+processes. kitten_tts2 was the only family whose output differed between runs of the same input:
+four runs gave four different signals of the same length, max sample difference 1.13. With the random
+source pinned, its outputs were identical.
+- `build_request` sends kitten seed "0".
+- The S3Gen flow stage kitten shares with chatterbox turns seed 0 into a `random_device` draw
+  (audio.cpp `s3gen_inference.cpp:330-335` → `component_weights.cpp:7-13`; verify both cites at the
+  pin).
+- That is the same defect chatterbox and chatterbox_turbo had (Task 17's ruling: they get seed "1").
+- The comment at `native/src/sk_tts.cpp:~565` ("Every other pinned family randomises only when no seed
+  is sent") is now false for kitten.
+- Effect on users: the same sentence in the same voice sounds different every time. R7
+  (reproducibility) is broken.
+
+**Ruling** (controller, 2026-10-08):
+1. kitten_tts2 joins the seed-"1" predicate in `build_request`, beside chatterbox and chatterbox_turbo.
+   Correct the comment so it names all three and cites the S3Gen draw.
+2. The seed also feeds kitten's language-model sampling, so a different token stream follows. Re-check
+   everything that listened to kitten:
+   - the loopback legs (preset Luna, bare Bruno, clone; `sidecar/tests/test_tts_engine.py`, run with
+     `SOKUJI_RUN_TTS_LOOPBACK=1`), all intelligible;
+   - the native Python kitten cases;
+   - the recording. If the ops gate DIFFs, re-record `tts-kitten_tts2.ops` three times byte-identical
+     and summarise the diff.
+3. Pin it model-free and live:
+   - `test_tts_request.cpp`: kitten requests carry seed "1", and Task 34's language-voice cases update
+     from "0".
+   - A native Python subprocess pair proves two fresh-process kitten synths of the same input are
+     equal. Follow the shape of Task 17b's `test_tts_chatterbox_synthesis_is_the_same_over_a_perturbed_heap`.
+     Prove it RED on HEAD before the change.
+
+Plus Task 34's review Minors (ledger: "Task 34: Ruling: Minors 1, 2, 3 and 5"), in a SEPARATE commit:
+- **(M1)** Pin the kitten family clause of the language-voice branch. In `test_tts_request.cpp`,
+  assert there is no `voice_id` on the bare audio8_tts "zh" request (~:598-599), and add a bare magpie
+  "pt" request asserting no `voice_id`. Prove each fails with the `t->family == "kitten_tts2"` clause
+  removed.
+- **(M2)** The echo env wiring test (`native/python/tests/test_sokuji_native.py:~94-107`) runs in
+  subprocesses: one with the variable unset (expects "1"), one pre-set to "0" (expects "0"). That
+  removes its file-order constraint and the vacuity when the harness pre-sets it. Remove the
+  order-guard comment.
+- **(M3)** `test_tts_kitten2_every_card_preset_synthesises` runs by default only Bruno, Luna and the
+  nine language-named voices. All 47 run only under `SK_TEST_TTS_ALL_PRESETS=1`. Say so in the test's
+  docstring, and in `native/README.md`'s list of opt-in variables if it has one.
+- **(M5)** The `sk_tts.cpp` and `test_tts_request.cpp` cites of kitten's `session.cpp`: `voice_id` at
+  `:170`, the Bruno default at `:164`, the 1–30 s window at `:236`.
+
+Cost if wrong: kitten's voice changes once, for the better (deterministic). A renamed preset in a
+future GGUF is caught only by the opt-in run; Task 42 runs it once.
+
+**Files** (report every file touched)
+- Modify: `native/src/sk_tts.cpp`
+- Modify: `native/tests/test_tts_request.cpp`
+- Modify: `native/python/tests/test_sokuji_native.py`
+- Modify: `native/src/ops/tts-kitten_tts2.ops` (only if it DIFFs)
+- Modify: `sidecar/tests/test_tts_engine.py` (only if a loopback expectation must change)
+- Modify: `native/README.md` (M3, if applicable)
+
+**Steps**
+- [ ] **Step 1: RED.** The model-free seed assertion, and the subprocess pair on the current stage.
+  Watch both fail.
+- [ ] **Step 2: GREEN** (ruling item 1). Rebuild cpu, vulkan and record-vk.
+- [ ] **Step 3: Re-check** (ruling item 2). Re-record only on a DIFF.
+- [ ] **Step 4: Gates.**
+  - CTest cpu 11/11, vulkan 11/11, record-vk 13/13.
+  - `--report` 31 ok.
+  - Ops gate 31 ok.
+  - The native Python suite, run ALONE: 116 passed / 62 skipped plus your new cases. It is now
+    shorter, because of M3.
+  - The sidecar suite: 945/14.
+  - The kitten loopback legs.
+- [ ] **Step 5: Commit** in two commits, each with a pathspec list of exactly its files:
+  - `fix(native): kitten_tts2 gets seed 1, since its S3Gen stage draws a random seed for 0`
+  - `test(native): pin kitten's language-voice family clause and the echo env wiring; trim the default preset sweep`
+
+  Trailer: `Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>`. Do not push.
+
+---
+
+### Task 25b: a recording that runs to its limit is kept, not refused as too long (inserted 2026-10-07)
+
+**Why.** The owner ruled it on 2026-10-07: "fix the recording auto-stop overrun in this branch". The bug is
+older than this branch; `main` has the same code.
+
+How recording works today, in `src/components/Settings/sections/VoiceCreateModal.tsx`:
+- `startRecording` (:240-289) captures through a `ScriptProcessor` with 4096-sample buffers. Every
+  `onaudioprocess` pushes a buffer onto `chunks`.
+- The countdown runs at `limit = capability.maxClipSeconds ?? 20` (:278). It is checked on a 250 ms
+  `setInterval`, and when `left <= 0` it calls `stopRecording`.
+- `stopRecording` (:291-331) concatenates EVERY chunk captured until `processor.disconnect()` and hands
+  the whole clip to `onRecord`. Nothing trims it.
+
+So a recording that runs to its limit always carries extra audio past it: up to 250 ms of interval
+lateness, plus whatever buffer is in flight (~85 ms at 48 kHz). Then:
+- **Native clip stores** (`src/lib/local-inference/native/nativeVoiceStores.ts:199-210`) validate with
+  `validateVoiceClip` (:102-120), which returns `'too_long'` for `seconds > maxSeconds`.
+  - A user who records the whole window the countdown offers gets "Recording is too long — keep it
+    under N seconds" and loses the take.
+  - The longer the window, the more users run to it: irodori 40 s, echo/outetts 15 s, glm 10 s.
+- **Soniox** (`SonioxVoiceSection.tsx:556-559`) stages a recording with no client-side duration check.
+  The server accepts an over-long clip at upload and fails it later as `voice_audio_too_long`, after
+  spending one of the organisation's voice slots (`SonioxVoiceSection.tsx:100-108`; the client bound is
+  what stands in front of that).
+
+**Ruling** (controller, 2026-10-07): the clip a recording submits never exceeds the limit its own
+countdown shows.
+
+Concretely:
+1. **Where the trim happens.** `stopRecording` keeps only the first `Math.floor(limit * sampleRate)`
+   samples of the concatenated clip, where `limit` is the SAME value the countdown uses.
+   - Compute the limit once in the component and use it in both places. The two must not drift; a
+     plain `const` is enough, with no helper function.
+   - Keep the HEAD, the first samples. The take starts when the user presses Record, so the overrun is
+     the tail.
+   - A recording stopped before the limit is submitted unchanged.
+   - The trim applies on every stop path that submits: the auto-stop, and a manual Stop pressed after
+     the countdown reached 0 but before the interval fired. The discard paths (`close`,
+     `releaseCapture`) are unchanged.
+2. **No other change.**
+   - `validateVoiceClip`, the stores, the limits, the countdown cadence and the capture graph stay as
+     they are.
+   - `Math.floor` guarantees `clip.length / sampleRate <= limit`, so the store's `seconds > maxSeconds`
+     check passes at exactly the limit.
+3. **Comment.** At the trim, write one or two lines saying why it is there: the auto-stop fires late,
+   and buffers keep arriving until disconnect. Cite no task number and no review.
+
+Cost if wrong: a user who manually stops in the last fraction of a second past the limit loses that
+fraction. That is less than the countdown already promised them.
+
+**Files**
+- Modify: `src/components/Settings/sections/VoiceCreateModal.tsx`
+- Modify: `src/components/Settings/sections/VoiceCreateModal.test.tsx`
+
+**Steps**
+
+- [ ] **Step 1: RED.** In `VoiceCreateModal.test.tsx`, add a describe block of its own. Reuse
+  `installCaptureStubs()`; its `FakeAudioContext` has `sampleRate = 48000`, and its `processor` lets the
+  test call `onaudioprocess` directly. Restore `navigator.mediaDevices` and the stubbed globals in
+  `afterEach`, the way the existing describes do.
+  - Render with `capability={{ importModes: ['record'], maxClipSeconds: 3 }}` and an `onRecord` mock.
+  - Click "Record voice", then wait for "Stop recording".
+  - Feed FOUR buffers of 48000 samples (4 s). Fill each with a distinct value: buffer i gets `(i + 1) / 10`.
+  - Click Stop, then wait for `onRecord`. Assert that:
+    - the clip has exactly `3 * 48000` samples;
+    - `clip[0]` is `0.1` and `clip[3 * 48000 - 1]` is `0.3` (the head is kept);
+    - the sample rate passed is 48000.
+  - Second case, in the same block: limit 3, ONE buffer of 48000 samples fed (1 s). Assert the clip has
+    exactly 48000 samples, untouched.
+  - Third case: with fake timers, drive the auto-stop itself.
+    - Advance past the limit, feeding buffers so the total exceeds it.
+    - Assert `onRecord` received exactly `limit * 48000` samples.
+    - If fake timers fight the async `getUserMedia` / `vi.waitFor` in this harness, say so in the report
+      and drop this case. The first case already covers the trim, because the auto-stop calls the same
+      `stopRecording`.
+  - Run `npx vitest run src/components/Settings/sections/VoiceCreateModal.test.tsx`. The first case (and
+    the third, if kept) must FAIL on the length (4 × 48000 received). The second must PASS. Quote the
+    failure lines.
+- [ ] **Step 2: GREEN.** Implement the ruling. Re-run the file; it must be all green.
+- [ ] **Step 3: Gates.**
+  - `npx vitest run src/components/Settings/sections src/lib/local-inference/native`, with pass counts.
+  - The full renderer suite, `npx vitest run`, run ALONE. Report the pass count, and name any failure,
+    even an unrelated one.
+  - `npx tsc --noEmit -p tsconfig.json`. Check which tsconfig the repo typechecks with (`tsconfig.json`
+    or `tsconfig.app.json`) and say which.
+  - Optional: a jsdom render cannot show the countdown. No visual check is required.
+- [ ] **Step 4: Commit.**
+  - Use a pathspec list of exactly the two files.
+  - Message: `fix(voice): a recording that runs to its limit is trimmed to it, not refused as too long`.
+  - The body says why: the auto-stop fires up to one interval late, and buffers arrive until disconnect,
+    so a full-length take overran the limit. Native stores refused it as too long; Soniox would accept
+    it, then fail it server-side after spending a voice slot.
+  - Trailer: `Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>`. Do not push.
+
+**Not in scope:**
+- the `?? 20` fallback versus `MAX_CLIP_SECONDS` (both are 20 today);
+- trimming imports (an import is validated as-is, and the user picks the file);
+- the countdown cadence;
+- any copy.
+
+---
+
 ### Task 35: VoiceTut — an Egyptian Arabic card on the compiled `omnivoice` family
 
 **Files:**
@@ -18239,6 +18556,160 @@ Expected: one commit.
 ---
 
 ## Follow-ups, documents, fleet and release (Tasks 39–44)
+
+### Task 12e: a clip-optional family's recording covers both its bare and its clone graph (inserted 2026-10-07)
+
+**Why.** The owner ruled it on 2026-10-07 ("补"), answering whether to leave the gap or close it. The
+ledger has the question under "Task 26: OWNER QUESTION".
+
+A TTS family's op recording is ONE synth, taken by `record_family` (`native/tests/record_common.h`):
+- **Families on the hand-kept `needs_voice` list** are recorded with a clip only: the supertonic M1
+  clip from `reference_clip`, plus its transcript.
+- **Every other family** is recorded bare.
+
+For a family that can synth BOTH ways, either choice leaves one graph unasked. The *clip-optional*
+families are those with `clones` true in `kFamilies` (`native/src/sk_tts.cpp`) that are not in the
+sidecar's `VOICE_REQUIRED_FAMILIES` (`sidecar/sokuji_sidecar/catalog.py`). For them:
+- **Recorded bare today:** moss_tts_nano, pocket_tts (preset `alba`), voxcpm1, voxcpm2, irodori_tts,
+  moss_tts_local, vibevoice, higgs_audio_tts, fish_audio. The gate never asks about the clone path's
+  codec-encoder and reference-prep ops.
+- **Recorded clip-only today:** breeze_tts, audio8_tts, outetts, kitten_tts2. The gate never asks about
+  the bare path.
+- **Added after this brief was written:** any Tasks 35–38 family that clones and is not
+  voice-required belongs here too. Check the HEAD you start from.
+
+A user's device that lacks an op used only by the unasked path passes the gate, and then fails at
+synth.
+
+Second, derived F32 weights:
+- Under Native weight storage, audio.cpp derives some WEIGHT tensors as F32 at load
+  (`type_for_derived_storage`).
+- Examples: higgs's clone-path positional-conv weight (`make_f32`,
+  `src/models/higgs_audio_tts/codec.cpp:359-364` at the pin), and qwen3_tts's normalized codebooks
+  (→ GET_ROWS).
+- `# dtypes-in-file` is the union of the GGUFs' matrix dtypes, so for a file with no f32 matrix (higgs:
+  `f16 q8_0`):
+  - the recorder guard (`native/src/sk_ops_record.cpp:~226-257`) would refuse a recording that runs
+    such a derived F32 WEIGHT;
+  - the query (`sk_device_supports_ops`, `native/src/sk_ops.cpp:~116-130`) never asks f32 for it.
+
+Recording higgs's clone path is exactly what makes the guard fire. So the union recordings need this
+fixed first.
+
+**Ruling** (controller, 2026-10-07, from the owner's answer):
+
+1. **The union recording.** In `record_family`, a TTS family is recorded by the synth paths a user can
+   reach, all inside ONE `sk_record_begin` … `sk_record_end_to_file` window, on one loaded handle.
+   - **Voice-required family:** the clip synth only, as today.
+   - **Clip-optional family:** first the BARE synth, then `sk_tts_set_voice` with the M1 clip
+     (+ transcript) and the clip synth.
+     - "Bare" means what a user who picks no voice gets. That is the load-time default preset where the
+       sidecar applies one (`tts_backend._DEFAULT_PRESET_FAMILIES`; today pocket_tts → `alba`, as
+       `record_family` already does), and otherwise nothing set.
+   - **Family that does not clone** (`sk_tts_capabilities(...).clones` false): the bare synth only, as
+     today.
+   - The recorder merges the nodes of both synths by identity (`sk_ops_add`), so the file is their
+     union. 12d's real-instance fields apply to any fabrication that the union creates.
+   - Replace the hand-kept `needs_voice` predicate:
+     - read `clones` from `sk_tts_capabilities` after load;
+     - list the voice-required families explicitly in `record_common.h`, as a named array whose doc
+       comment says it mirrors `VOICE_REQUIRED_FAMILIES`;
+     - add a sidecar test (`sidecar/tests/test_catalog.py` or a neighbour) that parses that array out
+       of `native/tests/record_common.h` and asserts it equals `VOICE_REQUIRED_FAMILIES`, so the two
+       cannot drift. `test_every_tts_family_has_an_op_recording` is the precedent for a sidecar test
+       reading a native file.
+   - Pass the reference clip to every family that clones, so `reference_clip` runs for all of them
+     (it is made BEFORE the window opens, as today).
+2. **f32 is always asked for a TTS WEIGHT.**
+   - In `sk_device_supports_ops`, for stage `tts`, add f32 to the asked WEIGHT set when the caller's
+     set lacks it, after the 12c mapping and dedupe.
+   - In the recorder guard, for stage `tts`, the allowed WEIGHT set is the mapped `# dtypes-in-file`
+     set plus f32.
+   - The `# dtypes-in-file` header itself stays the raw matrix-dtype union. Do not change it, and do not
+     change `model_tensors.h`.
+   - Cite `type_for_derived_storage` at the pin (file:line) in both comments.
+   - Mirror the bound in `native/cmake/gen_ops_data.py`: a TTS recording's expansion can now reach one
+     more dtype than `WIDEST_FALLBACK`.
+     - While there, verify the bound also covers 12c's raw-typed mapping. It asks bf16 AND f16 for
+       `kRawTypedWeightFamilies` on Vulkan and Metal, which is another possible +1.
+     - Fix the bound if it does not, so the generated `static_assert` against `SK_OP_COVERAGE_MAX` is
+       still a true worst case.
+     - If any recording's true worst case now exceeds `SK_OP_COVERAGE_MAX`, STOP and report it. Raising
+       the cap is an ABI change, and that is a ruling.
+3. **Re-record** every clip-optional family with the new recorder on record-vk (GB10 Vulkan). That is
+   the list above plus any from Tasks 35–38.
+   - Make three byte-identical recordings each (`cmp`).
+   - Header unchanged.
+   - The diff against the old file should only ADD nodes, or raise maxima and `max_bytes`. List any node
+     that disappears and explain why; a bare-path node vanishing would be a recorder bug.
+   - Every other recording stays byte-identical.
+
+Cost if wrong:
+- larger recordings;
+- a few more refusals on devices that really lack a clone-path op (the intended correction);
+- f32 asked where no derived weight exists. f32 MUL_MAT and GET_ROWS are universal, so no known device
+  refuses that.
+
+**Files** (expected; report every file touched):
+- Modify: `native/tests/record_common.h` (the union, the voice-required array, `clones` from caps)
+- Modify: `native/src/sk_ops.cpp` (f32 in the TTS asked set)
+- Modify: `native/src/sk_ops_record.cpp` (f32 in the TTS guard's allowed set)
+- Modify: `native/src/sk_ops.h` and/or `native/include/sokuji_native.h` (doc comments that describe the
+  asked set)
+- Modify: `native/cmake/gen_ops_data.py` (the bound)
+- Modify: `native/tests/test_ops_format.cpp` and/or `native/tests/test_record_guard.cpp` (model-free
+  pins, below)
+- Modify: `native/src/ops/tts-<family>.ops` for each clip-optional family
+- Modify: `native/tests/test_common.cpp` only if a count it pins moves
+- Modify: `sidecar/tests/…` (the drift test)
+- Modify: `native/README.md`, op-coverage section: one paragraph (union recordings; f32 always asked
+  for TTS); and remove the "derived F32" known gap if the README states one.
+
+**Steps**
+
+- [ ] **Step 1: RED, model-free.**
+  - (a) In `test_record_guard.cpp`, a TTS recording whose live WEIGHT is f32, with `# dtypes-in-file`
+    `f16 q8_0`, is ACCEPTED. The same for an asr recording is still REFUSED.
+  - (b) A query-side pin, in whatever model-free harness `test_ops_format.cpp` or `test_common.cpp`
+    already uses to exercise the asked set (find the existing 12c pin and extend it). A TTS
+    `sk_device_supports_ops` called with `{q8_0}` asks every WEIGHT node in f32 as well, and an asr
+    one does not.
+  - (c) The sidecar drift test against a deliberately wrong list (prove it fails), then against the
+    real one.
+  - (d) If `gen_ops_data.py` has a Python test, extend it; otherwise run `python3
+    native/cmake/gen_ops_data.py --report …` before and after, and quote both.
+  - Watch (a), (b) and (c) fail.
+- [ ] **Step 2: GREEN.** Implement ruling items 1 and 2. CTest cpu 11/11 and vulkan 11/11, model-free
+  first.
+- [ ] **Step 3: Re-record** (ruling item 3) on record-vk.
+  - Use `native/build/record-vk/lib/record_ops` with `GGML_BACKEND_PATH=native/build/record-vk/lib`.
+    The model paths are in `native/ci/ops-env.sh`.
+  - One family at a time, three times each. Never run two heavy jobs at once on the GB10.
+  - Quote each family's old and new node counts, and its diff summary (added / changed / removed).
+- [ ] **Step 4: Gates.**
+  - CTest record-vk 13/13, cpu 11/11, vulkan 11/11. The Vulkan sweep must still show
+    `all_supported=1` for every TTS family; quote every n_ops that changed. If a family is now refused
+    on GB10 Vulkan, STOP and report the refused ops: a real clone-path gap is a ruling.
+  - `--report`: every line `ok`.
+  - Ops gate, `bash native/ci/ops-env.sh ctest --test-dir native/build/record-vk -R test_ops_coverage
+    -V`: every family ok, no DIFF.
+  - The native Python suite, run alone (quote the counts).
+  - The sidecar suite (quote the counts).
+  - Parity, if quick.
+- [ ] **Step 5: Commit.** One or two commits, each with a pathspec list of exactly its files.
+  - Suggested messages:
+    - `fix(native): a tts WEIGHT is always asked in f32, which audio.cpp derives at load`
+    - `fix(native): a clip-optional family's recording covers both its bare and its clone graph`
+  - Each body says why, and the second names the re-recorded families.
+  - Trailer: `Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>`. Do not push.
+
+**Not in scope:**
+- preset-voice graphs beyond the default preset;
+- a third synth per family;
+- `rung_dtypes` in the catalog (unchanged: f32 is added natively);
+- the voice-required families' recordings (unchanged).
+
+---
 
 ### Task 39: The multitalker ASR card is pinned back to its plain GGUFs
 
