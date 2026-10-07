@@ -378,12 +378,7 @@ describe('VoiceCreateModal — closes after a successful recording', () => {
   });
 });
 
-/**
- * The countdown's auto-stop fires up to one interval late and buffers keep
- * arriving until the graph is disconnected, so a take that runs to the limit
- * used to carry audio past it. A clip never exceeds the limit its own
- * countdown shows.
- */
+/** A submitted recording never exceeds the limit its countdown shows. */
 describe('VoiceCreateModal — a recording is trimmed to its limit', () => {
   const SAMPLE_RATE = 48000;
   const LIMIT = 3;
@@ -408,9 +403,10 @@ describe('VoiceCreateModal — a recording is trimmed to its limit', () => {
         onRecord={onRecord}
       />,
     );
-    const feed = (i: number) =>
-      processor.onaudioprocess?.({ inputBuffer: { getChannelData: () => secondOfAudio(i) } });
-    return { onRecord, feed };
+    const feedBuffer = (buffer: Float32Array) =>
+      processor.onaudioprocess?.({ inputBuffer: { getChannelData: () => buffer } });
+    const feed = (i: number) => feedBuffer(secondOfAudio(i));
+    return { onRecord, feed, feedBuffer };
   };
 
   it('keeps the head of a take that ran past the limit', async () => {
@@ -427,6 +423,25 @@ describe('VoiceCreateModal — a recording is trimmed to its limit', () => {
     expect(clip.length).toBe(LIMIT * SAMPLE_RATE);
     expect(clip[0]).toBe(Math.fround(0.1));
     expect(clip[LIMIT * SAMPLE_RATE - 1]).toBe(Math.fround(0.3));
+  });
+
+  it('cuts inside the buffer that crosses the limit', async () => {
+    const { onRecord, feedBuffer } = mount();
+    fireEvent.click(screen.getByRole('button', { name: /record voice/i }));
+    await vi.waitFor(() => expect(screen.getByRole('button', { name: /stop recording/i })).toBeInTheDocument());
+    // The capture graph's 4096-sample buffers do not divide the limit:
+    // 35 * 4096 = 143360, so buffer 36 contributes 640 of its samples.
+    for (let i = 0; i < 40; i += 1) feedBuffer(new Float32Array(4096).fill((i + 1) / 1000));
+
+    fireEvent.click(screen.getByRole('button', { name: /stop recording/i }));
+    await vi.waitFor(() => expect(onRecord).toHaveBeenCalledTimes(1));
+
+    const [clip] = onRecord.mock.calls[0] as [Float32Array, number];
+    expect(clip.length).toBe(LIMIT * SAMPLE_RATE);
+    expect(clip[0]).toBe(Math.fround(0.001));
+    expect(clip[35 * 4096 - 1]).toBe(Math.fround(0.035));
+    expect(clip[35 * 4096]).toBe(Math.fround(0.036));
+    expect(clip[LIMIT * SAMPLE_RATE - 1]).toBe(Math.fround(0.036));
   });
 
   it('submits a take that stopped before the limit unchanged', async () => {
@@ -466,6 +481,7 @@ describe('VoiceCreateModal — a recording is trimmed to its limit', () => {
     expect(onRecord).toHaveBeenCalledTimes(1);
     const [clip] = onRecord.mock.calls[0] as [Float32Array, number];
     expect(clip.length).toBe(LIMIT * SAMPLE_RATE);
+    expect(clip[0]).toBe(Math.fround(0.1));
     expect(clip[LIMIT * SAMPLE_RATE - 1]).toBe(Math.fround(0.3));
   });
 });
