@@ -1853,6 +1853,29 @@ TTS_MODELS: list[TtsModel] = [
             non_commercial=False,
             source_repo="dignome/kitten_tts2",
             attribution="Stellon Labs Kitten TTS 2. Powered by Stellon Labs")),
+    # VoiceTut TTS: an Egyptian Arabic fine-tune of OmniVoice, run by the omnivoice family that is
+    # already compiled in, so it shares OmniVoice's op recording and, since _TTS_TIER_OVERRIDES is
+    # keyed by family, its GPU tiers -- the same graph, already validated on the fleet. Its card
+    # says "Always pass --language arz" while the app's picker offers "ar", so the load language
+    # forces "arz" on every synth. A clip and its transcript are required, as for OmniVoice.
+    # Licence (ruling 2026-10-06): OmniVoice's own terms -- the repo declares Apache-2.0, but the
+    # weights fine-tune OmniVoice (CC-BY-NC-4.0) -- naming the repo the file downloads from.
+    _tts_gguf_row(
+        "voicetut-tts", "VoiceTut TTS (Egyptian Arabic)", ("ar",),
+        "omnivoice", "",
+        {"q8_0": ("voicetut-tts-q8_0.gguf", 1350264224),
+         "f16": ("voicetut-tts-f16.gguf", 1639524576)},
+        default_quant="q8_0", order=36, load_language="arz",
+        clones=True, streaming=True, sample_rate=24000, transcript_required=True,
+        rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}, "f16": {"f16"}},
+        repo="mohammedaly22/VoiceTut-TTS-GGUF",
+        license=License(
+            spdx="CC-BY-NC-4.0",
+            name="Creative Commons Attribution-NonCommercial 4.0 International",
+            url="https://creativecommons.org/licenses/by-nc/4.0/",
+            non_commercial=True,
+            source_repo="mohammedaly22/VoiceTut-TTS-GGUF",
+            attribution="k2-fsa/OmniVoice")),
 ]
 
 

@@ -489,6 +489,9 @@ needs_tts_echo = pytest.mark.skipif(not (HAVE_TREE and TTS_ECHO_DIR and TTS_SUPE
 TTS_KITTEN2_DIR = os.environ.get("SK_TEST_TTS_KITTEN2_DIR")
 needs_tts_kitten2 = pytest.mark.skipif(not (HAVE_TREE and TTS_KITTEN2_DIR and TTS_SUPERTONIC_DIR),
                                        reason="needs a built tree, SK_TEST_TTS_KITTEN2_DIR and SK_TEST_TTS_SUPERTONIC_DIR")
+TTS_VOICETUT_DIR = os.environ.get("SK_TEST_TTS_VOICETUT_DIR")
+needs_tts_voicetut = pytest.mark.skipif(not (HAVE_TREE and TTS_VOICETUT_DIR and TTS_SUPERTONIC_DIR),
+                                        reason="needs a built tree, SK_TEST_TTS_VOICETUT_DIR and SK_TEST_TTS_SUPERTONIC_DIR")
 needs_tts_supertonic = pytest.mark.skipif(not (HAVE_TREE and TTS_SUPERTONIC_DIR), reason="needs a built tree and SK_TEST_TTS_SUPERTONIC_DIR")
 needs_tts_moss = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_DIR), reason="needs a built tree and SK_TEST_TTS_MOSS_DIR")
 needs_tts_index = pytest.mark.skipif(not (HAVE_TREE and TTS_INDEX_DIR), reason="needs a built tree and SK_TEST_TTS_INDEX_DIR")
@@ -1725,6 +1728,29 @@ def test_tts_kitten2_every_card_preset_synthesises():
             assert float(np.max(np.abs(samples))) > 0.01, name
     finally:
         t.unload()
+
+
+@needs_tts_voicetut
+def test_tts_voicetut_speaks_through_its_load_language():
+    """VoiceTut (an Egyptian Arabic OmniVoice fine-tune) loads as omnivoice with the card's load
+    language "arz"; the app's "ar" — or any language — is replaced by it on every synth."""
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    pcm, ref_rate, ref_text = _cpu_reference_clip()
+    t = sokuji_native.tts_load(TTS_VOICETUT_DIR, "omnivoice", cpu, language="arz")
+    try:
+        caps = t.capabilities
+        assert caps.streaming and caps.clones and caps.transcript_required
+        assert caps.sample_rate == 24000
+        t.set_voice(pcm, ref_rate, ref_text=ref_text)
+        samples, rate = t.synth("أهلاً، إزيك النهارده؟", language="ar")
+        again, _ = t.synth("أهلاً، إزيك النهارده؟", language="not-a-language")
+    finally:
+        t.unload()
+    for s in (samples, again):
+        assert 0.3 < s.shape[0] / rate < 20.0
+        assert float(np.max(np.abs(s))) > 0.01
+    assert rate == 24000
 
 
 # --------------------------------------------------------------------------------------

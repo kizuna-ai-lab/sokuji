@@ -239,7 +239,8 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
                 "glm-tts",
                 "outetts-1.0-1b",
                 "echo-tts",
-                "kitten-tts2")
+                "kitten-tts2",
+                "voicetut-tts")
 
 # The 2026-09-03 batch arrived CPU-ONLY and earned every tier the same evening
 # (commit 2f2b28bc, after the per-family fleet run; catalog._TTS_TIER_OVERRIDES).
@@ -1865,3 +1866,32 @@ def test_kitten_tts2_card_shape_presets_and_license():
     # The matrix dtypes of the one published rung (self-contained: the Qwen3 LM, speaker encoder
     # and S3 decoder in one file), read from the Hub at the pin.
     assert dict(m.rung_dtypes) == {"q8_0": frozenset({"bf16", "f16", "f32", "q8_0"})}
+
+
+def test_voicetut_card_runs_on_omnivoice_with_arz_forced():
+    m = catalog.tts_model("voicetut-tts")
+    omni = catalog.tts_model("omnivoice-0.6b")
+    assert m is not None and m.family == "omnivoice" and m.graph_family == "omnivoice"
+    assert m.languages == ("ar",) and m.load_language == "arz"
+    assert m.clones is True and m.transcript_required is True and m.streaming is True
+    assert m.named_voices is False and m.presets == () and m.default_preset == ""
+    assert m.voice_required is True                  # omnivoice's rule: a clip and its transcript
+    assert m.sample_rate == 24000 and m.recommended is False and m.sort_order == 36
+    assert m.size_bytes == 1_350_264_224
+    assert {(d.compute_type, d.artifact, d.est_bytes, d.rank, d.companions) for d in m.deployments} == {
+        ("q8_0", "mohammedaly22/VoiceTut-TTS-GGUF/voicetut-tts-q8_0.gguf", 1_350_264_224, 2.0, ()),
+        ("f16", "mohammedaly22/VoiceTut-TTS-GGUF/voicetut-tts-f16.gguf", 1_639_524_576, 1.0, ())}
+    # _TTS_TIER_OVERRIDES is keyed by family: the card inherits OmniVoice's fleet-validated tiers.
+    assert {d.tier for d in m.deployments} == set(catalog._TTS_TIER_OVERRIDES["omnivoice"])
+    assert {d.tier for d in m.deployments} == {d.tier for d in omni.deployments}
+    assert catalog.hub_revision("mohammedaly22/VoiceTut-TTS-GGUF") == "615457bb2e9043f468e012c159146b28fa8f5959"
+    # OmniVoice's licence terms (ruling 2026-10-06), naming the repo the file comes from.
+    lic, olic = m.license, omni.license
+    assert lic is not None and olic is not None
+    assert (lic.spdx, lic.name, lic.url, lic.non_commercial, lic.attribution, lic.requires_consent) == \
+           (olic.spdx, olic.name, olic.url, olic.non_commercial, olic.attribution, olic.requires_consent)
+    assert lic.source_repo == "mohammedaly22/VoiceTut-TTS-GGUF"
+    # The matrix dtypes of each published rung (both self-contained), read from the Hub at the
+    # pin: the q8_0 file holds quantised matrices beside f16 and f32 ones, the f16 file only f16.
+    assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"}),
+                                   "f16": frozenset({"f16"})}

@@ -130,6 +130,10 @@ describe('per-model clip limits', () => {
     expect(voiceStoreFor('clip', 'glm-tts')!.capability.maxClipSeconds).toBe(10);
   });
 
+  it('VoiceTut keeps OmniVoice\'s 8s ceiling', () => {
+    expect(voiceStoreFor('clip', 'voicetut-tts')!.capability.maxClipSeconds).toBe(8);
+  });
+
   it('OuteTTS stops at 15s, under its 20s refusal', () => {
     expect(voiceStoreFor('clip', 'outetts-1.0-1b')!.capability.maxClipSeconds).toBe(15);
   });

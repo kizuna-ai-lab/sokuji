@@ -1996,3 +1996,19 @@ def test_kitten_tts2_card_is_not_gated_by_r16(native_env):
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=card.family, voice_required=card.voice_required))
     samples, _rate, _ms = b.generate("hello")
     assert samples.dtype == np.float32
+
+
+def test_voicetut_card_is_gated_and_loads_with_arz(native_env):
+    """VoiceTut runs on omnivoice, so it is voice-required like it; its card's load language
+    reaches tts_load, where native forces it on every synth."""
+    from sokuji_sidecar import catalog
+    created, log = native_env
+    created["caps"] = _caps(streaming=True, transcript_required=True)
+    card = catalog.tts_model("voicetut-tts")
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=card.family, tts_language=card.load_language,
+                                                 voice_required=card.voice_required))
+    assert created["load_call"][1] == "omnivoice" and created["load_call"][3] == "arz"
+    with pytest.raises(backends.BackendLoadError, match="omnivoice"):
+        b.generate_stream("hello")
+    assert log == []

@@ -1890,3 +1890,11 @@ def test_models_catalog_kitten_tts2_offers_named_voices_and_a_clip():
     assert kitten["license"]["nonCommercial"] is False and kitten["license"]["requiresConsent"] is True
     names = tts_voices.list_builtin_voices("kitten-tts2")
     assert len(names) == 47 and "German" in names and "Bruno" in names
+
+
+def test_models_catalog_voicetut_is_gated_like_omnivoice():
+    vt = _catalog("tts")["voicetut-tts"]
+    assert vt["languages"] == ["ar"]
+    assert vt["voice"]["required"] is True and vt["voice"]["transcriptRequired"] is True
+    assert vt["license"]["nonCommercial"] is True
+    assert vt["license"]["sourceRepo"] == "mohammedaly22/VoiceTut-TTS-GGUF"

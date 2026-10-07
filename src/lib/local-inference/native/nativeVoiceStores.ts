@@ -89,6 +89,8 @@ const MODEL_CLIP_LIMITS: Record<string, { min?: number; max?: number }> = {
   // Kitten TTS 2 accepts 1–30 s of reference (community_models/kitten_tts2/session.cpp); the
   // default 3–20 s window sits inside it.
   'kitten-tts2': { max: 20 },
+  // VoiceTut is an OmniVoice fine-tune on the same non-AR decoder (omnivoice family).
+  'voicetut-tts': { max: 8 },
 };
 
 /** Peak amplitude below this is treated as silence (a muted mic / empty file). */
