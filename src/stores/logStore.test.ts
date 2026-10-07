@@ -59,9 +59,10 @@ describe('logStore — per-client event grouping', () => {
     const events = speaker[0].events!;
     expect(events).toHaveLength(MAX_EVENTS_PER_GROUP);
     expect(speaker[0].groupCount).toBe(total);
-    // The newest are kept; the oldest are the ones dropped.
+    // The first and the newest are kept; the ones after the first are dropped.
+    expect((events[0] as any).audio).toBe('chunk-0');
+    expect((events[1] as any).audio).toBe('chunk-51');
     expect((events[events.length - 1] as any).audio).toBe(`chunk-${total - 1}`);
-    expect((events[0] as any).audio).toBe('chunk-50');
   });
 
   it('keeps interleaved clients in separate groups', () => {
@@ -360,6 +361,43 @@ describe('logStore — bounded memory', () => {
     const ids = useLogStore.getState().allLogs.map(l => l.id);
     expect(new Set(ids).size).toBe(ids.length);
     for (let i = 1; i < ids.length; i++) expect(ids[i]).toBeGreaterThan(ids[i - 1]);
+  });
+});
+
+describe('logStore — timing', () => {
+  beforeEach(() => useLogStore.getState().clearLogs());
+  afterEach(() => {
+    useLogStore.getState().clearLogs();
+    vi.restoreAllMocks();
+  });
+
+  it('stamps every realtime event with when it arrived, grouped ones included', () => {
+    const now = vi.spyOn(performance, 'now');
+    now.mockReturnValue(1234.6);
+    useLogStore.getState().addRealtimeEvent({ type: 'session.opened', data: {} } as any, 'server', 'session.opened', 'speaker');
+    now.mockReturnValue(2000.2);
+    useLogStore.getState().addRealtimeEvent({ type: 'tts.audio', data: { bytes: 1 } } as any, 'server', 'tts.audio', 'speaker');
+    now.mockReturnValue(2040.9);
+    useLogStore.getState().addRealtimeEvent({ type: 'tts.audio', data: { bytes: 2 } } as any, 'server', 'tts.audio', 'speaker');
+
+    const [opened, audio] = useLogStore.getState().allLogs;
+    expect(opened.events![0]).toMatchObject({ atMs: 1235, type: 'session.opened' });
+    expect(audio.events!.map(e => e.atMs)).toEqual([2000, 2041]);
+  });
+
+  it("keeps its own stamp, first in the line, over an event's own atMs", () => {
+    vi.spyOn(performance, 'now').mockReturnValue(700);
+    useLogStore.getState().addRealtimeEvent({ type: 'session.opened', data: {}, atMs: 5 } as any, 'server', 'session.opened', 'speaker');
+
+    const event = useLogStore.getState().allLogs[0].events![0];
+    expect(event.atMs).toBe(700);
+    expect(Object.keys(event)[0]).toBe('atMs');
+  });
+
+  it('stamps plain entries too', () => {
+    vi.spyOn(performance, 'now').mockReturnValue(512.4);
+    useLogStore.getState().addLog('settings failed to load', 'error');
+    expect(useLogStore.getState().allLogs[0].atMs).toBe(512);
   });
 });
 

@@ -269,6 +269,19 @@ describe('Utterances', () => {
     expect(tokenFrames([])).toEqual([]);
   });
 
+  it("dates a final transcript by where its last word ends in the stream's audio", () => {
+    expect(tokenFrames([
+      orig('Ja', true, { start_ms: 100, end_ms: 400 }),
+      orig(' nach', true, { start_ms: 450, end_ms: 900 }),
+      tr('Yes', true, 'en'),
+      END,
+    ])).toEqual([
+      { direction: 'in', type: 'stt.transcript', payload: { text: 'Ja nach', endMs: 900 } },
+      { direction: 'in', type: 'stt.translation', payload: { text: 'Yes' } },
+      { direction: 'in', type: 'stt.endpoint' },
+    ]);
+  });
+
   // Late translation tokens and the next utterance's first original in ONE
   // message, the layout continuous speech produces. Against
   // an `endPrevious()` that only closes, 19 sees ref 2 opened and closed with

@@ -24,15 +24,15 @@ const Event: React.FC<{ logEntry: LogEntry }> = memo(({ logEntry }) => {
   const isClient = source === 'client';
   const eventTypeDisplay = eventType || t('logsPanel.unknown');
   const hasMultipleEvents = events.length > 1;
-  // A grouped row keeps only its newest events (logStore's MAX_EVENTS_PER_GROUP);
-  // groupCount is how many it has seen.
+  // A grouped row keeps only its first and newest events (logStore's
+  // MAX_EVENTS_PER_GROUP); groupCount is how many it has seen.
   const total = logEntry.groupCount ?? events.length;
   
   // Get the latest event for display in collapsed view
   const latestEvent = events[events.length - 1];
   
   // The cached JSON describes the events it was built from. A capped group
-  // swaps its oldest event for every new one, so drop the cache whenever the
+  // swaps an old event for every new one, so drop the cache whenever the
   // events change and let the effect below rebuild it while expanded.
   useEffect(() => {
     setJsonString(null);
@@ -85,7 +85,7 @@ const Event: React.FC<{ logEntry: LogEntry }> = memo(({ logEntry }) => {
                 jsonString.split('\n---\n').map((eventStr, index) => (
                   <div key={index} className="grouped-event">
                     <div className="grouped-event-header">
-                      <span className="grouped-event-index">{t('logsPanel.event')} {index + 1 + total - events.length} {t('logsPanel.of')} {total}</span>
+                      <span className="grouped-event-index">{t('logsPanel.event')} {index === 0 ? 1 : index + 1 + total - events.length} {t('logsPanel.of')} {total}</span>
                     </div>
                     <pre>{eventStr}</pre>
                   </div>
@@ -240,6 +240,7 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
       } else {
         lines.push(JSON.stringify({
           id: log.id,
+          atMs: log.atMs,
           ts: log.timestamp,
           level: log.type,
           clientId: log.clientId,

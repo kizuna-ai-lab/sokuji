@@ -145,6 +145,8 @@ export interface LogEntry {
    */
   id: number;
   timestamp: string;
+  /** When the entry was written, in milliseconds of the page clock (see `pageMs`). */
+  atMs?: number;
   message: string;
   type?: 'info' | 'success' | 'warning' | 'error' | 'token';
   events?: EventData[]; // For storing all events (single or grouped)
@@ -153,7 +155,8 @@ export interface LogEntry {
   groupingKey?: string; // Custom grouping key for specific event types
   /**
    * How many events this entry has grouped in total. `events` keeps only the
-   * newest MAX_EVENTS_PER_GROUP of them, so this is the count to show.
+   * first and the newest of them (MAX_EVENTS_PER_GROUP in all), so this is the
+   * count to show.
    */
   groupCount?: number;
   /**
@@ -202,11 +205,23 @@ const MAX_LOG_ENTRIES = 2000;
  * groupingKey, so they land in a single entry for as long as the silence
  * lasts: uncapped, it grew for the whole session and every append copied the
  * entry's entire history (#531).
+ *
+ * The first event stays when the cap is reached: when a burst began (the first
+ * TTS audio of a sentence, the first partial transcript) is what a latency
+ * report needs, and it is the event a newest-only cap would drop first.
  */
 export const MAX_EVENTS_PER_GROUP = 100;
 
 let nextLogId = 0;
 const takeLogId = (): number => ++nextLogId;
+
+/**
+ * Milliseconds since the page loaded, whole. Monotonic, so the gaps between
+ * two stamps survive a system clock change, and it tells no time of day.
+ * `timestamp` is the wall-clock second shown in the panel; this is what an
+ * exported log is timed by.
+ */
+const pageMs = (): number => Math.round(performance.now());
 
 /**
  * Schedule a flush unless one is already pending.
@@ -289,6 +304,7 @@ const useLogStore = create<LogStore>(
       const newLog: LogEntry = {
         id: takeLogId(),
         timestamp,
+        atMs: pageMs(),
         // Redacted at the sink, not at the call site: this also covers the
         // legacy addLog callers and any future bypass. Panel text is
         // clipboard-exportable straight into a bug report.
@@ -318,13 +334,18 @@ const useLogStore = create<LogStore>(
       if (!get().enabled) return;
       const now = new Date();
       const timestamp = now.toLocaleTimeString();
+      // Read here, not at the batched flush: the stamp is when the event arrived.
+      const atMs = pageMs();
       // Undefined stays undefined: an app-scope event (MainPanel's
       // session.init_error / participant.error connect rows) is not a speaker
       // event, and LogsPanel already shows undefined under both tabs.
       const logClientId = clientId;
-      
-      // Sanitize the event to remove binary audio data
-      const sanitizedEvent = sanitizeEvent(event);
+
+      // Sanitize the event to remove binary audio data. The stamp rides inside
+      // the event, since 'copy logs' exports events one per line and a grouped
+      // entry's own `timestamp` is only its newest event's second. First in the
+      // line for reading, and assigned last so an event's own `atMs` cannot win.
+      const sanitizedEvent: EventData = Object.assign({ atMs }, sanitizeEvent(event), { atMs });
       
       // Create a descriptive message for the log entry
       const message = `${source}: ${eventType}`;
@@ -463,15 +484,15 @@ const useLogStore = create<LogStore>(
           groupingKey !== undefined
         ) {
           // Update the log with new event
-          // Keep only the newest MAX_EVENTS_PER_GROUP events, so each append
-          // copies a bounded array instead of the group's whole history;
-          // groupCount keeps the true total for the panel.
+          // Keep the first event and the newest ones, MAX_EVENTS_PER_GROUP in
+          // all, so each append copies a bounded array instead of the group's
+          // whole history; groupCount keeps the true total for the panel.
           const kept = lastLogForClient.events || [];
           const updatedLog = {
             ...lastLogForClient,
             timestamp, // Update timestamp to the latest
             events: kept.length >= MAX_EVENTS_PER_GROUP
-              ? [...kept.slice(kept.length - MAX_EVENTS_PER_GROUP + 1), sanitizedEvent]
+              ? [kept[0], ...kept.slice(kept.length - MAX_EVENTS_PER_GROUP + 2), sanitizedEvent]
               : [...kept, sanitizedEvent],
             groupCount: (lastLogForClient.groupCount ?? kept.length) + 1,
           };
@@ -510,6 +531,7 @@ const useLogStore = create<LogStore>(
         const newLog: LogEntry = {
           id: takeLogId(),
           timestamp,
+          atMs,
           message,
           type: severityForEventType(eventType),
           events: [sanitizedEvent], // Initialize events array with the sanitized event
