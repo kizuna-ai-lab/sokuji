@@ -26,6 +26,8 @@ export interface VadWebConfig {
   preSpeechPadDuration?: number;
   /** Max speech segment duration in seconds before forced split (default 20) */
   maxSpeechDuration?: number;
+  /** Smart Turn: after `checkAfter` s of silence, end the segment when the turn model says above `threshold`. Needs a turn port. */
+  smartTurn?: { checkAfter: number; threshold: number };
 }
 
 /**
