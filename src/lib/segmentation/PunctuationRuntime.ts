@@ -121,7 +121,7 @@ export function isLowMemoryDevice(): boolean {
  *  logits are not bit-identical across thread counts, and a flipped word is a
  *  visible wrong capital. The extension has no COOP/COEP, so it gets one
  *  thread; everywhere else, up to 4. */
-function numThreadsFor(): number {
+export function numThreadsFor(): number {
   const isolated = typeof crossOriginIsolated !== 'undefined' && crossOriginIsolated === true;
   if (!isolated) return 1;
   return Math.min(4, navigator.hardwareConcurrency ?? 1);
