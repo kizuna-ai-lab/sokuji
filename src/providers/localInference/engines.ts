@@ -2,6 +2,7 @@ import { AsrEngine } from '../../lib/local-inference/engine/AsrEngine';
 import { StreamingAsrEngine } from '../../lib/local-inference/engine/StreamingAsrEngine';
 import { TranslationEngine, type TranslationResult } from '../../lib/local-inference/engine/TranslationEngine';
 import { TtsEngine, type AudioChunkCallback, type TtsResult } from '../../lib/local-inference/engine/TtsEngine';
+import { turnRuntime, type TurnConnection } from '../../lib/turn/TurnRuntime';
 import type { VadWebConfig } from '../../lib/local-inference/types';
 import type { LocalInferenceConfig } from './config';
 
@@ -20,6 +21,8 @@ export interface AsrInit {
   translateTo?: string;
   /** The voxtral worker's own sentence endpoint (default on): off only while the adapter's stream shape seals — exactly one layer may cut. */
   punctuationEndpoint?: boolean;
+  /** Smart Turn's port: the vad-web worker asks it whether a pause ends the turn. */
+  turnPort?: MessagePort;
 }
 
 /** `AsrEngine` or `StreamingAsrEngine` behind one shape. */
@@ -68,6 +71,8 @@ export interface LocalEngines {
   asr(config: LocalInferenceConfig['asr']): AsrLike;
   translation(): TranslationLike;
   tts(): TtsLike;
+  /** A connection to the Smart Turn worker; null when it cannot run. */
+  turn?: () => Promise<TurnConnection | null>;
 }
 
 function asrOver(engine: AsrEngine | StreamingAsrEngine): AsrLike {
@@ -77,11 +82,11 @@ function asrOver(engine: AsrEngine | StreamingAsrEngine): AsrLike {
     onSpeechStart: null,
     onError: null,
     onFatal: null,
-    async init(modelId, { vadConfig, language, translateTo, punctuationEndpoint }) {
+    async init(modelId, { vadConfig, language, translateTo, punctuationEndpoint, turnPort }) {
       if (engine instanceof StreamingAsrEngine) {
         await engine.init(modelId, { language, vadConfig, punctuationEndpoint: punctuationEndpoint ?? true });
       } else {
-        await engine.init(modelId, vadConfig, language, translateTo ? { task: 'translate', targetLanguage: translateTo } : undefined);
+        await engine.init(modelId, vadConfig, language, translateTo ? { task: 'translate', targetLanguage: translateTo } : undefined, turnPort);
       }
     },
     feedAudio: (samples, sampleRate) => engine.feedAudio(samples, sampleRate),
@@ -103,4 +108,5 @@ export const defaultEngines: LocalEngines = {
   asr: (config) => asrOver(config.streaming ? new StreamingAsrEngine() : new AsrEngine()),
   translation: () => new TranslationEngine(),
   tts: () => new TtsEngine(),
+  turn: () => turnRuntime.connect(),
 };
