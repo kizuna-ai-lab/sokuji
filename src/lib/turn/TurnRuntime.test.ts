@@ -174,4 +174,44 @@ describe('TurnRuntime', () => {
     await nthWorker(2);
     expect(createTurnWorker).toHaveBeenLastCalledWith('wasm');
   });
+
+  it('forgets the connections a crashed worker held, so they never reach its replacement', async () => {
+    const runtime = new TurnRuntime();
+    const a = await connected(runtime);
+    const gpu = await nthWorker(1);
+    gpu.emit({ type: 'ready', loadTimeMs: 5, device: 'webgpu' });
+    await vi.waitFor(() => expect(connects(gpu)).toHaveLength(1));
+    gpu.emitError('device lost');
+    const b = await connected(runtime);
+    const cpu = await nthWorker(2);
+    cpu.emit({ type: 'ready', loadTimeMs: 40, device: 'wasm' });
+    await vi.waitFor(() => expect(connects(cpu)).toHaveLength(1));
+    a.release();
+    expect(sent(cpu).filter(([m]) => m.type === 'disconnect')).toEqual([]);
+    expect(cpu.terminate).not.toHaveBeenCalled();
+    b.release();
+    expect(cpu.terminate).toHaveBeenCalled();
+  });
+
+  it('releasing twice posts one disconnect', async () => {
+    const runtime = new TurnRuntime();
+    const a = await connected(runtime);
+    const b = await connected(runtime);
+    const worker = await nthWorker(1);
+    worker.emit({ type: 'ready', loadTimeMs: 5, device: 'webgpu' });
+    await vi.waitFor(() => expect(connects(worker)).toHaveLength(2));
+    a.release();
+    expect(() => a.release()).not.toThrow();
+    expect(sent(worker).filter(([m]) => m.type === 'disconnect')).toHaveLength(1);
+    expect(worker.terminate).not.toHaveBeenCalled();
+    b.release();
+    expect(() => b.release()).not.toThrow();
+    expect(worker.terminate).toHaveBeenCalledTimes(1);
+  });
+
+  it('connects nothing when the disk check throws', async () => {
+    vi.spyOn(ModelManager.prototype, 'isModelReady').mockRejectedValue(new Error('idb'));
+    expect(await new TurnRuntime().connect()).toBeNull();
+    expect(createTurnWorker).not.toHaveBeenCalled();
+  });
 });

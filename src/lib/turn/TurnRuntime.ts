@@ -26,7 +26,8 @@ export class TurnRuntime {
   private loading: Promise<WorkerSession | null> | null = null;
   private webgpuFailed = false;
   private nextId = 0;
-  private readonly live = new Set<number>();
+  /** Each open connection and the session holding its port; null until delivered. */
+  private readonly live = new Map<number, WorkerSession | null>();
 
   /** Null without the model on disk: the run is then Normal. */
   async connect(): Promise<TurnConnection | null> {
@@ -39,9 +40,10 @@ export class TurnRuntime {
     if (!onDisk) return null;
     const id = ++this.nextId;
     const channel = new MessageChannel();
-    this.live.add(id);
+    this.live.set(id, null);
     void this.load().then((session) => {
       if (session && this.live.has(id)) {
+        this.live.set(id, session);
         const message: TurnConnectMessage = { type: 'connect', id, port: channel.port2 };
         session.post(message, [channel.port2]);
       } else {
@@ -52,10 +54,14 @@ export class TurnRuntime {
   }
 
   private release(id: number): void {
-    if (!this.live.delete(id) || !this.session) return;
-    const message: TurnDisconnectMessage = { type: 'disconnect', id };
-    this.session.post(message);
-    if (this.live.size === 0) {
+    if (!this.live.has(id)) return;
+    const holder = this.live.get(id);
+    this.live.delete(id);
+    if (holder) {
+      const message: TurnDisconnectMessage = { type: 'disconnect', id };
+      holder.post(message);
+    }
+    if (this.session && ![...this.live.values()].some((s) => s === null || s === this.session)) {
       this.session.dispose();
       this.session = null;
     }
@@ -116,6 +122,7 @@ export class TurnRuntime {
   private crashed(session: WorkerSession, backend: Backend, message: string): void {
     if (this.session !== session) return;
     this.session = null;
+    for (const [id, holder] of this.live) if (holder === session) this.live.delete(id);
     session.dispose();
     if (backend === 'webgpu') this.webgpuFailed = true;
     reportWarning('SmartTurn', `Smart Turn stopped; turns end on silence: ${message}`, { dedupeKey: 'smart-turn:crash' });
