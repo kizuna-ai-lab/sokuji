@@ -176,6 +176,7 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
   // for models that require in-context-learning text (Task 12). Absent/false
   // → no gating, matching pre-Task-12 behavior exactly.
   const transcriptMissing = !!capability.transcriptRequired && transcript.trim().length === 0;
+  const recordLimitSeconds = capability.maxClipSeconds ?? 20;
 
   const handleFiles = useCallback(async (files: FileList | null) => {
     if (!onImport || !files || files.length === 0) return;
@@ -275,18 +276,17 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
       setIsRecording(true);
       // Countdown to the model's clip limit; auto-stop at 0 so the capture
       // can never exceed what the model can actually use.
-      const limit = capability.maxClipSeconds ?? 20;
-      setRecordSecondsLeft(limit);
+      setRecordSecondsLeft(recordLimitSeconds);
       const startedAt = Date.now();
       recTimerRef.current = window.setInterval(() => {
-        const left = limit - (Date.now() - startedAt) / 1000;
+        const left = recordLimitSeconds - (Date.now() - startedAt) / 1000;
         setRecordSecondsLeft(Math.max(0, Math.ceil(left)));
         if (left <= 0) void stopRecordingRef.current?.();
       }, 250);
     } catch (err) {
       console.warn('Recording failed to start:', err);
     }
-  }, [onRecord, transcriptMissing, capability.maxClipSeconds]);
+  }, [onRecord, transcriptMissing, recordLimitSeconds]);
 
   const stopRecording = useCallback(async () => {
     clearRecTimer();
@@ -301,11 +301,20 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
     stream.getTracks().forEach((track) => track.stop());
     const sampleRate = ctx.sampleRate;
     await ctx.close();
-    const total = chunks.reduce((n, c) => n + c.length, 0);
+    // The auto-stop fires late and buffers keep arriving until disconnect, so
+    // keep the head: the clip never exceeds the limit the countdown showed.
+    const total = Math.min(
+      chunks.reduce((n, c) => n + c.length, 0),
+      Math.floor(recordLimitSeconds * sampleRate),
+    );
     if (!onRecord || total === 0) return;
     const clip = new Float32Array(total);
     let offset = 0;
-    for (const c of chunks) { clip.set(c, offset); offset += c.length; }
+    for (const c of chunks) {
+      if (offset >= total) break;
+      clip.set(c.subarray(0, total - offset), offset);
+      offset += c.length;
+    }
     try {
       // Same call-signature rule as handleFiles: only widen to the 3-arg form
       // when the capability requires a transcript.
@@ -328,7 +337,7 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
       setError(err instanceof Error ? err.message : String(err));
       console.warn('Recording handler failed:', err);
     }
-  }, [onRecord, capability.transcriptRequired, transcript, close]);
+  }, [onRecord, capability.transcriptRequired, recordLimitSeconds, transcript, close]);
   // Keep the auto-stop ref pointing at the latest committed closure — written
   // in an effect, not the render body (renders can be replayed/discarded,
   // e.g. under an <Activity> boundary).

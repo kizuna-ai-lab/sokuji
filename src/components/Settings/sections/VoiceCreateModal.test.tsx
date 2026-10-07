@@ -377,3 +377,95 @@ describe('VoiceCreateModal — closes after a successful recording', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });
+
+/**
+ * The countdown's auto-stop fires up to one interval late and buffers keep
+ * arriving until the graph is disconnected, so a take that runs to the limit
+ * used to carry audio past it. A clip never exceeds the limit its own
+ * countdown shows.
+ */
+describe('VoiceCreateModal — a recording is trimmed to its limit', () => {
+  const SAMPLE_RATE = 48000;
+  const LIMIT = 3;
+  const originalMediaDevices = Object.getOwnPropertyDescriptor(navigator, 'mediaDevices');
+  afterEach(() => {
+    vi.useRealTimers();
+    if (originalMediaDevices) Object.defineProperty(navigator, 'mediaDevices', originalMediaDevices);
+    else delete (navigator as { mediaDevices?: unknown }).mediaDevices;
+    vi.unstubAllGlobals();
+  });
+
+  // Buffer i carries (i + 1) / 10, so a trimmed clip shows which end was kept.
+  const secondOfAudio = (i: number) => new Float32Array(SAMPLE_RATE).fill((i + 1) / 10);
+
+  const mount = () => {
+    const { processor } = installCaptureStubs();
+    const onRecord = vi.fn().mockResolvedValue(undefined);
+    render(
+      <VoiceCreateModal
+        {...base}
+        capability={{ importModes: ['record'], maxClipSeconds: LIMIT }}
+        onRecord={onRecord}
+      />,
+    );
+    const feed = (i: number) =>
+      processor.onaudioprocess?.({ inputBuffer: { getChannelData: () => secondOfAudio(i) } });
+    return { onRecord, feed };
+  };
+
+  it('keeps the head of a take that ran past the limit', async () => {
+    const { onRecord, feed } = mount();
+    fireEvent.click(screen.getByRole('button', { name: /record voice/i }));
+    await vi.waitFor(() => expect(screen.getByRole('button', { name: /stop recording/i })).toBeInTheDocument());
+    for (let i = 0; i < 4; i += 1) feed(i);
+
+    fireEvent.click(screen.getByRole('button', { name: /stop recording/i }));
+    await vi.waitFor(() => expect(onRecord).toHaveBeenCalledTimes(1));
+
+    const [clip, sampleRate] = onRecord.mock.calls[0] as [Float32Array, number];
+    expect(sampleRate).toBe(SAMPLE_RATE);
+    expect(clip.length).toBe(LIMIT * SAMPLE_RATE);
+    expect(clip[0]).toBe(Math.fround(0.1));
+    expect(clip[LIMIT * SAMPLE_RATE - 1]).toBe(Math.fround(0.3));
+  });
+
+  it('submits a take that stopped before the limit unchanged', async () => {
+    const { onRecord, feed } = mount();
+    fireEvent.click(screen.getByRole('button', { name: /record voice/i }));
+    await vi.waitFor(() => expect(screen.getByRole('button', { name: /stop recording/i })).toBeInTheDocument());
+    feed(0);
+
+    fireEvent.click(screen.getByRole('button', { name: /stop recording/i }));
+    await vi.waitFor(() => expect(onRecord).toHaveBeenCalledTimes(1));
+
+    const [clip] = onRecord.mock.calls[0] as [Float32Array, number];
+    expect(clip.length).toBe(SAMPLE_RATE);
+    expect(clip[0]).toBe(Math.fround(0.1));
+    expect(clip[SAMPLE_RATE - 1]).toBe(Math.fround(0.1));
+  });
+
+  it('trims the clip the countdown stops by itself', async () => {
+    // Only the interval and the clock are faked: the async getUserMedia and
+    // the stop's awaits run on microtasks, which these leave alone.
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
+    const { onRecord, feed } = mount();
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /record voice/i })); });
+    expect(screen.getByRole('button', { name: /stop recording/i })).toBeInTheDocument();
+
+    // The fourth second lands before the tick that stops at 3 s.
+    feed(0);
+    await act(async () => { vi.advanceTimersByTime(1000); });
+    feed(1);
+    await act(async () => { vi.advanceTimersByTime(1000); });
+    feed(2);
+    await act(async () => { vi.advanceTimersByTime(750); });
+    feed(3);
+    expect(onRecord).not.toHaveBeenCalled();
+    await act(async () => { vi.advanceTimersByTime(250); });
+
+    expect(onRecord).toHaveBeenCalledTimes(1);
+    const [clip] = onRecord.mock.calls[0] as [Float32Array, number];
+    expect(clip.length).toBe(LIMIT * SAMPLE_RATE);
+    expect(clip[LIMIT * SAMPLE_RATE - 1]).toBe(Math.fround(0.3));
+  });
+});
