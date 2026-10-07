@@ -1872,3 +1872,10 @@ def test_models_catalog_outetts_carries_its_non_commercial_license():
     assert oute["license"]["nonCommercial"] is True and oute["license"]["requiresConsent"] is True
     assert oute["license"]["sourceRepo"] == "mirek190/audio.cpp"
     assert oute["voice"]["required"] is False and oute["voice"]["transcriptRequired"] is True
+
+
+def test_models_catalog_echo_tts_needs_a_clip_without_a_transcript():
+    echo = _catalog("tts")["echo-tts"]
+    assert echo["voice"]["custom"] == "clip" and echo["voice"]["required"] is True
+    assert "transcriptRequired" not in echo["voice"]
+    assert echo["license"]["nonCommercial"] is True and echo["license"]["sourceRepo"] == "dignome/Echo-TTS"

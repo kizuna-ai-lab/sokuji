@@ -83,6 +83,9 @@ const MODEL_CLIP_LIMITS: Record<string, { min?: number; max?: number }> = {
   // OuteTTS refuses a reference over 20 s (community_models/outetts/dac.cpp:343-347), and every
   // second of it comes out of the ~42 s generation window (OuteAI/Llama-OuteTTS-1.0-1B card).
   'outetts-1.0-1b': { max: 15 },
+  // Echo-TTS trims a reference to 15 s by default (community_models/echo_tts/session.cpp,
+  // kDefaultReferenceMaxSamples), so a longer recording only costs storage.
+  'echo-tts': { max: 15 },
 };
 
 /** Peak amplitude below this is treated as silence (a muted mic / empty file). */

@@ -5,6 +5,7 @@
 #undef NDEBUG
 #include <cassert>
 #include <cstdio>
+#include <cstdlib>
 #include <iterator>
 
 #define SK_TTS_REQUEST_ONLY 1
@@ -656,6 +657,44 @@ void outetts_aligns_a_clip_in_one_language_whatever_the_target() {
     assert(req.text_input && req.text_input->language == "zh");   // the target still reaches the text
 }
 
+void set_process_env(const char *name, const char *value) {   // value == nullptr: unset
+#if defined(_WIN32)
+    _putenv_s(name, value ? value : "");
+#else
+    if (value) setenv(name, value, 1); else unsetenv(name);
+#endif
+}
+
+void echo_tts_clones_in_a_voice_cloning_session_with_the_adaptive_window() {
+    const FamilyInfo *echo = find_family("echo_tts");
+    assert(echo != nullptr);
+    // Its session refuses a Tts task (echo_tts/session.cpp:229-232).
+    assert(task_spec_for(*echo).task == rt::VoiceTaskKind::VoiceCloning);
+    assert(task_spec_for(*echo).mode == rt::RunMode::Offline);
+    // Strict, and its spec declares no reference_text: the clip goes alone, with the seed.
+    const auto h = handle_for("echo_tts");
+    give_clip(h.get(), "The quick brown fox.");
+    const rt::TaskRequest req = build_request(h.get(), "Hello.", "en", 1.0f);
+    assert(carries_clip(req));
+    assert(!has(req, "reference_text") && !has(req, "do_sample"));
+    assert(opt(req, "seed") == "0");
+    assert(!has(req, "max_duration_sec"));   // the window is sized by the adaptive estimate, not pinned
+    // The adaptive window is switched on at load unless the environment already decided.
+    // The switch is process-wide: put it back as it was, so no other case sees this one's value.
+    const char *kSwitch = "AUDIOCPP_ECHO_TTS_ADAPTIVE_WINDOW";
+    const char *before = std::getenv(kSwitch);
+    const std::string saved = before ? before : "";
+    set_process_env(kSwitch, nullptr);
+    apply_family_env(*find_family("audio8_tts"));
+    assert(std::getenv(kSwitch) == nullptr);
+    apply_family_env(*echo);
+    assert(std::getenv(kSwitch) != nullptr && std::strcmp(std::getenv(kSwitch), "1") == 0);
+    set_process_env(kSwitch, "0");
+    apply_family_env(*echo);
+    assert(std::strcmp(std::getenv(kSwitch), "0") == 0);
+    set_process_env(kSwitch, before ? saved.c_str() : nullptr);
+}
+
 }  // namespace
 
 int main() {
@@ -689,6 +728,7 @@ int main() {
     soprano_is_sent_only_the_seed();
     glm_tts_gets_the_clip_and_its_transcript();
     outetts_aligns_a_clip_in_one_language_whatever_the_target();
+    echo_tts_clones_in_a_voice_cloning_session_with_the_adaptive_window();
     std::puts("test_tts_request ok");
     return 0;
 }

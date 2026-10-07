@@ -237,7 +237,8 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
                 "audio8-tts-0.6b",
                 "soprano-1.1-80m",
                 "glm-tts",
-                "outetts-1.0-1b")
+                "outetts-1.0-1b",
+                "echo-tts")
 
 # The 2026-09-03 batch arrived CPU-ONLY and earned every tier the same evening
 # (commit 2f2b28bc, after the per-family fleet run; catalog._TTS_TIER_OVERRIDES).
@@ -772,7 +773,7 @@ def test_voice_required_families_is_the_single_source_of_truth():
     already decided was fine, or vice versa."""
     from sokuji_sidecar import tts_backend
     assert tts_backend._VOICE_REQUIRED_FAMILIES is catalog.VOICE_REQUIRED_FAMILIES
-    assert catalog.VOICE_REQUIRED_FAMILIES == {"qwen3_tts", "omnivoice", "index_tts2", "cosyvoice3", "fireredtts3", "chatterbox", "confucius4_tts", "glm_tts"}
+    assert catalog.VOICE_REQUIRED_FAMILIES == {"qwen3_tts", "omnivoice", "index_tts2", "cosyvoice3", "fireredtts3", "chatterbox", "confucius4_tts", "glm_tts", "echo_tts"}
     for m in catalog.tts_models():
         assert catalog.voice_capability(m)["required"] is m.voice_required, m.id
     # Every card that predates per-card overrides follows its family's rule.
@@ -1805,3 +1806,29 @@ def test_outetts_card_shape_and_license():
     assert catalog.license_dict(m)["nonCommercial"] is True
     # The matrix dtypes of the published q8_0 file (self-contained), read from the Hub at the pin.
     assert dict(m.rung_dtypes) == {"q8_0": frozenset({"bf16", "f16", "f32", "q8_0"})}
+
+
+def test_echo_tts_card_shape_and_license():
+    m = catalog.tts_model("echo-tts")
+    assert m is not None and m.family == "echo_tts" and m.graph_family == "echo_tts"
+    assert m.languages == ("en",)
+    assert m.clones is True and m.transcript_required is False and m.streaming is False
+    assert m.named_voices is False and m.presets == () and m.default_preset == ""
+    assert m.voice_required is True and "echo_tts" in catalog.VOICE_REQUIRED_FAMILIES
+    assert m.sample_rate == 44100 and m.recommended is False and m.sort_order == 34
+    assert m.size_bytes == 3_028_207_456
+    assert [(d.compute_type, d.artifact, d.est_bytes, d.rank, d.companions) for d in m.deployments] == [
+        ("q8_0", "dignome/Echo-TTS/echo-tts-q8_0.gguf", 3_028_207_456, 2.0, ()),
+        ("f16", "dignome/Echo-TTS/echo-tts-f16.gguf", 5_546_617_696, 1.0, ())]
+    assert {d.tier for d in m.deployments} == {"cpu"}
+    assert m.family not in catalog._TTS_TIER_OVERRIDES
+    assert catalog.hub_revision("dignome/Echo-TTS") == "5a7c7c5f510410a8841ba7e46cf6bfd91ea25c21"
+    lic = m.license
+    assert lic is not None and lic.spdx == "CC-BY-NC-SA-4.0"
+    assert lic.non_commercial is True and lic.requires_consent is True
+    assert lic.source_repo == "dignome/Echo-TTS"
+    # The matrix dtypes of each published rung (both self-contained: DiT, PCA and Fish S1-DAC in
+    # one file), read from the Hub at the pin: the q8_0 file holds quantised matrices beside f16
+    # and f32 ones, the f16 file no quantised ones.
+    assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"}),
+                                   "f16": frozenset({"f16", "f32"})}

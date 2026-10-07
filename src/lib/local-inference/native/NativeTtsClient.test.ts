@@ -214,8 +214,8 @@ describe('NativeTtsClient synthesis budget', () => {
   it('budgets an unreported RTF like the slowest family measured, not like a fast one', async () => {
     const conn = new FakeSidecarConnection();
     const c = await initWithRtf(conn, undefined);
-    void c.generate('z'.repeat(120));                // ~10s x assumed 8 x 2 = 160s
-    expect(budgetOf(conn)).toBe(160_000);
+    void c.generate('z'.repeat(120));                // ~10s x assumed 32 x 2 = 640s, capped at the 300s ceiling
+    expect(budgetOf(conn)).toBe(300_000);
   });
 
   it('a streaming family waits out the first chunk on the same budget, then tightens', async () => {

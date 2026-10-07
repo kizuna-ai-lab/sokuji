@@ -1621,3 +1621,49 @@ def test_audio8_japanese_loopback():
         asr.unload()
     print(f"\n  audio8_tts ja: {mono.shape[0] / rate:.2f}s audio, transcript={transcript!r}")
     assert "東京" in transcript or "銀行" in transcript, transcript
+
+
+@pytest.mark.skipif(
+    os.environ.get("SOKUJI_RUN_TTS_LOOPBACK") != "1",
+    reason="set SOKUJI_RUN_TTS_LOOPBACK=1 (also needs SK_TEST_TTS_ECHO_DIR, SK_TEST_TTS_SUPERTONIC_DIR "
+           "and the whisper-tiny SK_TEST_ASR_GGUF)",
+)
+def test_echo_tts_loopback():
+    """Echo-TTS clones a supertonic clip and speaks the loopback sentence intelligibly on CPU.
+    sk_tts_load turns on audio.cpp's adaptive generation window unless
+    AUDIOCPP_ECHO_TTS_ADAPTIVE_WINDOW is already set, so running this once as is and once with
+    AUDIOCPP_ECHO_TTS_ADAPTIVE_WINDOW=0 compares the adaptive and the full 29.72 s window on the
+    same seed."""
+    model_dir = os.environ.get("SK_TEST_TTS_ECHO_DIR")
+    supertonic_dir = os.environ.get("SK_TEST_TTS_SUPERTONIC_DIR")
+    if not (model_dir and os.path.isdir(model_dir) and supertonic_dir and os.path.isdir(supertonic_dir)):
+        pytest.skip("needs SK_TEST_TTS_ECHO_DIR and SK_TEST_TTS_SUPERTONIC_DIR")
+    if not os.path.exists(_LOOPBACK_ASR_GGUF):
+        pytest.skip(f"no whisper ASR model at {_LOOPBACK_ASR_GGUF}")
+    sn = native.module()
+    cpu = next(d for d in sn.devices() if d.kind == "cpu")
+    ref = sn.tts_load(supertonic_dir, "supertonic", cpu)
+    try:
+        ref.set_preset("M1")
+        ref_samples, ref_rate = ref.synth(
+            "This short recording gives the cloning model a few seconds of real speech to copy.",
+            language="en")
+    finally:
+        ref.unload()
+    tts = sn.tts_load(model_dir, "echo_tts", cpu)
+    try:
+        tts.set_voice(_loopback_mono(ref_samples), ref_rate)
+        t0 = time.monotonic()
+        samples, rate = tts.synth(_LOOPBACK_TEXT, language="en")
+        synth_s = time.monotonic() - t0
+    finally:
+        tts.unload()
+    asr = sn.asr_load(_LOOPBACK_ASR_GGUF, cpu)
+    try:
+        transcript = _loopback_transcribe(asr, samples, rate)
+    finally:
+        asr.unload()
+    window = os.environ.get("AUDIOCPP_ECHO_TTS_ADAPTIVE_WINDOW", "1 (set at load)")
+    print(f"\n  echo_tts adaptive_window={window} {_loopback_mono(samples).shape[0] / rate:.2f}s audio "
+          f"{synth_s:.2f}s synth transcript={transcript!r}")
+    assert _loopback_hit(transcript), transcript

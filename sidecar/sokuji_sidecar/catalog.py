@@ -766,8 +766,10 @@ class TtsModel(_ModelBase):
 #               VoiceCloning session only, and no transcript option.
 #   glm_tts     (sub-project A) run() refuses without a clip ("GLM-TTS requires --voice-ref
 #               reference audio") and without its transcript; no built-in voice.
+#   echo_tts    (sub-project A) its session is voice-cloning only and refuses without a clip
+#               ("Echo-TTS requires speaker reference audio"). Needs the CLIP only.
 VOICE_REQUIRED_FAMILIES = frozenset({"qwen3_tts", "omnivoice", "index_tts2", "cosyvoice3", "fireredtts3",
-                                     "chatterbox", "confucius4_tts", "glm_tts"})
+                                     "chatterbox", "confucius4_tts", "glm_tts", "echo_tts"})
 
 
 def voice_capability(model: "TtsModel") -> dict:
@@ -1795,6 +1797,26 @@ TTS_MODELS: list[TtsModel] = [
             non_commercial=True,
             source_repo="mirek190/audio.cpp",
             attribution="OuteAI, Llama-OuteTTS-1.0-1B. Built with Llama")),
+    # Echo-TTS (2.8B), community model: English, offline, 44.1 kHz, clone-only -- its engine runs
+    # a voice-cloning session and refuses without a clip, but needs no transcript. CC-BY-NC-SA-4.0
+    # (jordand/echo-tts-base; the GGUF's general.license agrees) -- non-commercial, consent gate.
+    # The vendor's README also asks not to use it to impersonate or deceive.
+    _tts_gguf_row(
+        "echo-tts", "Echo-TTS (2.8B)", ("en",),
+        "echo_tts", "",
+        {"q8_0": ("echo-tts-q8_0.gguf", 3028207456),
+         "f16": ("echo-tts-f16.gguf", 5546617696)},
+        default_quant="q8_0", order=34, clones=True, streaming=False,
+        sample_rate=44100,
+        rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}, "f16": {"f16", "f32"}},
+        repo="dignome/Echo-TTS",
+        license=License(
+            spdx="CC-BY-NC-SA-4.0",
+            name="Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International",
+            url="https://creativecommons.org/licenses/by-nc-sa/4.0/",
+            non_commercial=True,
+            source_repo="dignome/Echo-TTS",
+            attribution="Jordan Darefsky, Echo-TTS (jordand/echo-tts-base)")),
 ]
 
 

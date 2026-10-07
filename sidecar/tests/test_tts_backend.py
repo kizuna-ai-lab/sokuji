@@ -1968,3 +1968,20 @@ def test_outetts_card_is_not_gated_by_r16(native_env):
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=card.family, voice_required=card.voice_required))
     samples, _rate, _ms = b.generate("hello")
     assert samples.dtype == np.float32
+
+
+def test_echo_tts_card_is_gated_by_r16(native_env):
+    """echo_tts cannot speak without a clip ("Echo-TTS requires speaker reference audio") but
+    needs no transcript, so set_voice() without ref_text un-gates it."""
+    from sokuji_sidecar import catalog
+    created, log = native_env
+    card = catalog.tts_model("echo-tts")
+    assert card.voice_required is True
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=card.family, voice_required=card.voice_required))
+    with pytest.raises(backends.BackendLoadError, match="echo_tts"):
+        b.generate("hello")
+    assert log == []
+    b.set_voice(np.ones(2400, np.float32), 24000)
+    samples, _rate, _ms = b.generate("hello")
+    assert samples.dtype == np.float32

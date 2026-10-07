@@ -133,6 +133,10 @@ describe('per-model clip limits', () => {
   it('OuteTTS stops at 15s, under its 20s refusal', () => {
     expect(voiceStoreFor('clip', 'outetts-1.0-1b')!.capability.maxClipSeconds).toBe(15);
   });
+
+  it('Echo-TTS stops at 15s, where the engine trims a reference anyway', () => {
+    expect(voiceStoreFor('clip', 'echo-tts')!.capability.maxClipSeconds).toBe(15);
+  });
 });
 
 describe('CosyVoice 3 clip window', () => {
