@@ -31,6 +31,7 @@ function feeder(gate: TurnGate) {
   };
   return {
     idle: (count = 1) => feed(count, SILENCE, false),
+    loudIdle: (count = 1) => feed(count, SPEECH, false),
     speech: (count = 1) => feed(count, SPEECH, true),
     gray: (count = 1) => feed(count, GRAY, true),
     silence: (count = 1) => feed(count, SILENCE, true),
@@ -48,7 +49,9 @@ describe('TurnGate — when it asks', () => {
   });
 
   it('never asks while the processor is not speaking', () => {
-    expect(feeder(gateWith()).idle(50)).toEqual([]);
+    const f = feeder(gateWith());
+    expect(f.loudIdle(5)).toEqual([]);
+    expect(f.idle(50)).toEqual([]);
   });
 
   it('restarts the run on a frame between the thresholds', () => {
@@ -227,7 +230,8 @@ describe('TurnLink', () => {
     const { port, request } = asking();
     expect(port.sent).toHaveLength(1);
     expect(request.type).toBe('predict');
-    expect(port.sent[0].transfer).toEqual([request.window.buffer]);
+    expect(port.sent[0].transfer).toHaveLength(1);
+    expect(port.sent[0].transfer[0]).toBe(request.window.buffer);
   });
 
   it('ends the segment on the frame after a yes, once', () => {
