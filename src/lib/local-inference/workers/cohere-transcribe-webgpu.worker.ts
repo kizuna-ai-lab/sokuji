@@ -26,6 +26,7 @@ import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processo
 import { resolveVadThresholds } from './_shared/vad-thresholds';
 import { resolveMaxSpeechFrames } from './_shared/max-speech-frames';
 import { SileroInput, SILERO_INPUT_SAMPLES } from './_shared/silero-input';
+import { openTurnLink, type TurnLink } from './_shared/turn-gate';
 
 import type {
   CohereTranscribeAsrInitMessage,
@@ -75,6 +76,7 @@ interface VadSession {
 
 let vadSession: VadSession | null = null;
 let frameProcessor: FrameProcessor | null = null;
+let turnLink: TurnLink | null = null;
 let maxSpeechFrames = 625; // ~20s at 32ms/frame
 let speechFramesSinceStart = 0;
 
@@ -259,8 +261,13 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
       const events: FrameProcessorEvent[] = [];
       await frameProcessor.process(frame, (ev) => events.push(ev));
 
+      let speechProbability = 0;
       for (const ev of events) {
         switch (ev.msg) {
+          case Message.FrameProcessed:
+            speechProbability = ev.probs.isSpeech;
+            break;
+
           case Message.SpeechStart:
             speechFramesSinceStart = 0;
             post({ type: 'speech_start' });
@@ -281,6 +288,14 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
         }
       }
 
+      if (turnLink?.afterFrame(frame, speechProbability, frameProcessor.speaking)) {
+        const endEvents: FrameProcessorEvent[] = [];
+        frameProcessor.endSegment((ev) => endEvents.push(ev));
+        for (const ev of endEvents) {
+          if (ev.msg === Message.SpeechEnd) void scheduleTranscription(ev.audio);
+        }
+      }
+
       // Max speech duration cap
       if (frameProcessor.speaking) {
         speechFramesSinceStart++;
@@ -293,6 +308,7 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
               void scheduleTranscription(ev.audio);
             }
           }
+          turnLink?.reset();
           speechFramesSinceStart = 0;
         }
       } else {
@@ -323,6 +339,7 @@ async function handleInit(msg: CohereTranscribeAsrInitMessage): Promise<void> {
     // 1. Init VAD
     post({ type: 'status', message: 'Loading VAD model...' });
     await initVad(msg.vadConfig, msg.vadModelUrl);
+    turnLink = openTurnLink(msg.turnPort, msg.vadConfig, frameProcessor);
 
     // 2. Configure Transformers.js for IndexedDB blob URL cache
     initTransformersEnv(env, msg);
@@ -379,6 +396,7 @@ async function handleFlush(): Promise<void> {
         void scheduleTranscription(ev.audio);
       }
     }
+    turnLink?.reset();
   }
   // Drain the chain: `scheduleTranscription` assigns `currentTranscriptionPromise` before
   // returning, so this picks up the decode just kicked off (behind anything already queued)
@@ -412,6 +430,8 @@ async function handleDispose(): Promise<void> {
 
   // Dispose FrameProcessor
   frameProcessor = null;
+  turnLink?.close();
+  turnLink = null;
   speechFramesSinceStart = 0;
 
   // Dispose VAD

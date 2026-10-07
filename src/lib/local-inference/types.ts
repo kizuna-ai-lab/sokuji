@@ -84,6 +84,8 @@ export interface WhisperAsrInitMessage {
   ortWasmBaseUrl?: string;
   /** Resolved absolute URL for bundled VAD model */
   vadModelUrl?: string;
+  /** Smart Turn's port (transferred); with `vadConfig.smartTurn` it turns the gate on. */
+  turnPort?: MessagePort;
 }
 
 /**
@@ -191,6 +193,8 @@ export interface CohereTranscribeAsrInitMessage {
   vadModelUrl: string;
   /** Resolved absolute URL for bundled ORT WASM files */
   ortWasmBaseUrl?: string;
+  /** Smart Turn's port (transferred); with `vadConfig.smartTurn` it turns the gate on. */
+  turnPort?: MessagePort;
 }
 
 export interface Voxtral3BAsrInitMessage {
@@ -209,6 +213,8 @@ export interface Voxtral3BAsrInitMessage {
   vadModelUrl: string;
   /** Resolved absolute URL for bundled ORT WASM files */
   ortWasmBaseUrl?: string;
+  /** Smart Turn's port (transferred); with `vadConfig.smartTurn` it turns the gate on. */
+  turnPort?: MessagePort;
 }
 
 export interface GraniteSpeechInitMessage {
@@ -231,6 +237,8 @@ export interface GraniteSpeechInitMessage {
   ortWasmBaseUrl?: string;
   /** Resolved absolute URL for bundled VAD model */
   vadModelUrl?: string;
+  /** Smart Turn's port (transferred); with `vadConfig.smartTurn` it turns the gate on. */
+  turnPort?: MessagePort;
 }
 
 // ─── Streaming ASR Worker Messages (Worker → Main) ──────────────────────────

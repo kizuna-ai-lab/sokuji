@@ -135,6 +135,7 @@ describe('ASR worker VAD decode handoff (#470)', () => {
       ['SpeechEnd', sliceBetween(src, name, 'case Message.SpeechEnd:', 'case Message.VADMisfire:')],
       ['max-speech cap', sliceBetween(src, name, 'speechFramesSinceStart >= maxSpeechFrames', 'speechFramesSinceStart = 0;')],
       ['flush', sliceBetween(src, name, 'async function handleFlush', 'async function handleDispose')],
+      ['Smart Turn', sliceBetween(src, name, 'turnLink?.afterFrame(', '// Max speech duration cap')],
     ];
     const voidCall = new RegExp(`\\bvoid\\s+${schedule}\\(`);
     const awaitCall = new RegExp(`\\bawait\\s+${schedule}\\(`);
