@@ -15876,6 +15876,127 @@ Expected: one commit.
 
 ---
 
+### Task 12d: a merged recording node never asks about a tensor larger than any it saw (inserted 2026-10-07)
+
+**Why.**
+
+How the recorder merges today:
+- `sk_ops_add` (`native/src/sk_ops_format.cpp:~271`) merges every node with the same identity
+  (`sk_op_desc::same_node`, `native/src/sk_ops.h:~62`).
+- The identity is op, op_params, dtypes, ne[0] and layout. It does NOT include ne[1..3] or the strides.
+- The merged node keeps the element-wise maxima of `max_ne_src0/src1/dst` and of each layout's `nb`,
+  plus `max_bytes`, the largest real `ggml_nbytes` seen.
+- The query rebuilds every node from those maxima (`sk_ops_rebuild_node`) and asks
+  `supports_op`. `native/src/sk_ops.cpp:50-62` explains why the maxima are taken verbatim.
+
+What goes wrong:
+- When one identity occurs in two axis orientations, the per-axis maxima describe a tensor that never
+  existed.
+- Echo-TTS's Fish S1-DAC codec decodes at its capacity graph (640 latents). It holds REPEAT
+  `[1,1024]→[1280,1024]` and `[1,1,1024]→[1280,1,1024]` under one identity, and the same pair for ADD.
+- Merging them gives `[1280,1024,1024,1]`, which is 5.37 GB, against a largest real tensor of 5.2 MB
+  (`max_bytes`).
+- CONT gets the same fabrication through merged strides: 5.36 GB rebuilt against 333 MB real.
+- ggml-vulkan's `supports_op` refuses a tensor beyond its buffer limit (`ggml-vulkan.cpp:15331-15352`).
+  So the Vulkan GPU sweep refuses `tts/echo_tts` (`CONT`, `REPEAT`, `ADD`, all f32), even though the
+  recording itself was a full Vulkan synth that ran all three ops.
+- Any family whose graph holds one identity in two orientations at a large size will hit this.
+
+**Ruling** (controller, 2026-10-07; the owner's 2026-10-06 "fix the gate's precision first" applied to
+the same class): a node is asked about a tensor that really occurred.
+
+Concretely:
+1. **The recorder.** When `sk_ops_add` merges, it also keeps the shapes of the single LARGEST REAL
+   INSTANCE of the identity: src0, src1 and dst `ne`, plus each layout's `nb` when not dense. "Largest"
+   means the instance whose `max(nbytes(src0), nbytes(src1), nbytes(dst))` is greatest, the same
+   measure `max_bytes` already uses.
+2. **The format.** At format time, if the per-axis maxima rebuild a tensor whose bytes exceed
+   `max_bytes` (any of src0/src1/dst; a FABRICATED node), the `.ops` line carries that real instance as
+   new optional fields.
+   - Choose names that fit the existing key=value style.
+   - A node whose maxima do not fabricate is written exactly as today, with no new fields. So every
+     recording without fabrication stays BYTE-IDENTICAL.
+   - The parser accepts the new fields when present, and validates them as strictly as the existing
+     ones.
+3. **The query.** `sk_device_supports_ops` rebuilds a node from its real-instance fields when present,
+   and from the maxima otherwise.
+   - A real instance always satisfies the op's shape relations (REPEAT multiples, broadcastability,
+     MUL_MAT's `ne[3]` equality), so it cannot break what `sk_ops.cpp:50-62` protects.
+4. **Unchanged.**
+   - The node identity (`same_node`), so node counts do not move and the `SK_OP_COVERAGE_MAX` cap is
+     unaffected.
+   - The maxima and `max_bytes` fields.
+   - The WEIGHT expansion.
+   - The 12c dtype mapping.
+
+Cost if wrong: a fabricated node is asked about its single largest real instance, not the per-axis
+maximum. That could miss a per-axis device limit hit only by a different, smaller instance. Today the
+same node asks a tensor no device could hold, so it is refused on every device.
+
+**Files** (expected; adjust to where the code really is, and report every file touched):
+- Modify: `native/src/sk_ops.h` (the new fields on `sk_op_desc`, and their doc)
+- Modify: `native/src/sk_ops_format.cpp` (`sk_ops_add`, format, parse)
+- Modify: `native/src/sk_ops.cpp` (the rebuild choice)
+- Modify: `native/include/sokuji_native.h` (only if a public doc comment describes the rebuild)
+- Modify: a model-free test of the merge, format and parse round trip, and the rebuild choice
+  (`native/tests/test_ops_format.cpp` or similar)
+- Modify: `native/README.md`, op-coverage section: one paragraph
+- Modify: `native/src/ops/*.ops`, ONLY those whose nodes fabricate (see Step 4); every other recording
+  must stay byte-identical
+
+**Steps**
+
+- [ ] **Step 1: RED, model-free.** Build two `sk_op_desc` instances of one identity in the two
+  orientations of the echo case: REPEAT src0 `[1,1024,1,1]` → dst `[1280,1024,1,1]`, and src0
+  `[1,1,1024,1]` → dst `[1280,1,1024,1]`, f32. `sk_ops_add` them. Assert that:
+  - the formatted line carries the real-instance fields;
+  - those fields parse back;
+  - the node the query would rebuild is the real one, with total bytes ≤ `max_bytes`;
+  - a strided CONT pair whose merged `nb` fabricates (the second echo case) gets the same treatment;
+  - a non-fabricating merge (a KV-cache style `[d,1,h]` then `[d,t,h]`) formats exactly as today, with
+    no new fields.
+  Watch them fail.
+- [ ] **Step 2: GREEN.** Implement steps 1–3 of the ruling.
+- [ ] **Step 3: The query.** On the record-vk tree, query the echo recording parked at
+  `S/task-33-wip-tts-echo_tts.ops`, re-recorded with the new recorder once the echo family is
+  registered. Echo is not registered at HEAD; Task 33 resumes after you.
+  - Instead, prove the query path on one shipped recording that has a fabricated node, if Step 4
+    finds one.
+  - Otherwise prove it on a synthetic recording text through the parse + rebuild path in the
+    model-free test.
+- [ ] **Step 4: Which shipped recordings change.**
+  - Rebuild record-vk.
+  - Run the ops gate with every family's env var: `bash native/ci/ops-env.sh ctest --test-dir
+    native/build/record-vk -R test_ops_coverage -V`. It re-records each family live and compares it
+    with the shipped `.ops`.
+  - A DIFF now means that family's recording has fabricated nodes and gains the new fields. List every
+    DIFF.
+  - For each, re-record the `.ops` with `record_ops`: the model path is in `native/ci/ops-env.sh`, and
+    the command shape is in `native/tests/test_ops_coverage.cpp`. Make three byte-identical recordings
+    (`cmp`).
+  - Confirm that the ONLY differences from the old file are the new optional fields on fabricated
+    lines (diff them).
+  - Every family without a DIFF stays byte-identical. The translate qwen3 recording is a merge of
+    flash-attention on and off; follow the merge `test_ops_coverage.cpp` does.
+- [ ] **Step 5: Gates.**
+  - CTest: cpu 11/11, vulkan 11/11, record-vk 13/13 (or the new count). The Vulkan sweep must still
+    show `all_supported=1` for every TTS family. Quote any n_ops that changed.
+  - `--report`: 29 lines, all `ok` (the expanded counts must not rise).
+  - Ops gate: 29 ok, no DIFF after the re-records.
+  - Native Python suite, run alone: 106 passed, 58 skipped.
+  - Sidecar suite: 939 passed, 13 skipped.
+  - Parity, if quick.
+- [ ] **Step 6: Commit.**
+  - Use a pathspec list of exactly the files touched.
+  - Message: `fix(native): a merged op node is asked about its largest real instance when the maxima fabricate`.
+  - The body says why: an identity in two orientations merges into a tensor no device can hold. It
+    names the recordings that changed.
+  - Trailer: `Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>`. Do not push.
+
+**Not in scope:** the node identity, cap sizing, and Echo-TTS itself (Task 33 resumes after this).
+
+---
+
 ### Task 33: echo_tts — Echo-TTS 2.8B
 
 **Files:**
