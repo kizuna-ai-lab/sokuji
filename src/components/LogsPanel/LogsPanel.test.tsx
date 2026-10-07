@@ -92,6 +92,22 @@ describe('LogsPanel', () => {
         .toEqual(['first', 'session.created', 'third']);
     });
 
+    it('exports when each line happened, in milliseconds of the page clock', () => {
+      const now = vi.spyOn(performance, 'now');
+      write(() => {
+        now.mockReturnValue(100.4);
+        useLogStore.getState().addLog('first', 'error', 'speaker');
+        now.mockReturnValue(350.6);
+        useLogStore.getState().addRealtimeEvent(
+          { type: 'stt.endpoint', data: {} } as never, 'server', 'stt.endpoint', 'speaker'
+        );
+      });
+      const { container } = render(<LogsPanel toggleLogs={() => {}} />);
+
+      const parsed = copy(container).split('\n').filter(Boolean).map(l => JSON.parse(l));
+      expect(parsed.map(p => p.atMs)).toEqual([100, 351]);
+    });
+
     it('exports global entries under either tab', () => {
       write(() => {
         useLogStore.getState().addLog('app-scope failure', 'error');
@@ -231,6 +247,31 @@ describe('LogsPanel', () => {
       const last = rows[rows.length - 1];
       expect(last.querySelector('.grouped-event-index')?.textContent).toContain(`${total + 1}`);
       expect(last.querySelector('pre')?.textContent).toContain(`chunk-${total}`);
+    });
+
+    // A capped group keeps its first event — when a burst began is what a
+    // latency question asks — so the numbering skips from 1 to the newest.
+    it('numbers a capped group from its first event, then its newest', async () => {
+      const total = MAX_EVENTS_PER_GROUP + 5;
+      const settle = () => act(async () => { await new Promise(r => setTimeout(r, 10)); });
+      write(() => {
+        for (let i = 0; i < total; i++) {
+          useLogStore.getState().addRealtimeEvent(
+            { type: 'input_audio_buffer.append', audio: `chunk-${i}` } as never,
+            'client', 'input_audio_buffer.append', 'speaker'
+          );
+        }
+      });
+      const { container } = render(<LogsPanel toggleLogs={() => {}} />);
+      fireEvent.click(container.querySelector('.event-header')!);
+      await settle();
+
+      const rows = container.querySelectorAll('.grouped-event');
+      const label = (row: Element) => row.querySelector('.grouped-event-index')?.textContent;
+      expect(label(rows[0])).toBe(`logsPanel.event 1 logsPanel.of ${total}`);
+      expect(rows[0].querySelector('pre')?.textContent).toContain('"chunk-0"');
+      expect(label(rows[1])).toBe(`logsPanel.event ${total - MAX_EVENTS_PER_GROUP + 2} logsPanel.of ${total}`);
+      expect(rows[1].querySelector('pre')?.textContent).toContain(`"chunk-${total - MAX_EVENTS_PER_GROUP + 1}"`);
     });
   });
 

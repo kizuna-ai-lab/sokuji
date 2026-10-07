@@ -271,6 +271,7 @@ export function tokenFrames(tokens: readonly SonioxToken[]): AdapterFrame[] {
   let finalized = false;
   let allFinal = true;
   let content = false;
+  let endMs: number | undefined;
   for (const token of tokens) {
     const text = token.text ?? '';
     if (text === '<end>') { endpoint = true; continue; }
@@ -278,11 +279,14 @@ export function tokenFrames(tokens: readonly SonioxToken[]): AdapterFrame[] {
     content = true;
     if (!token.is_final) allFinal = false;
     if (token.translation_status === 'translation') translation += text;
-    else transcript += text;
+    else {
+      transcript += text;
+      if (token.end_ms !== undefined) endMs = Math.max(endMs ?? 0, token.end_ms);
+    }
   }
   const out: AdapterFrame[] = [];
   if (content && allFinal) {
-    if (transcript) out.push({ direction: 'in', type: 'stt.transcript', payload: { text: transcript } });
+    if (transcript) out.push({ direction: 'in', type: 'stt.transcript', payload: endMs === undefined ? { text: transcript } : { text: transcript, endMs } });
     if (translation) out.push({ direction: 'in', type: 'stt.translation', payload: { text: translation } });
   } else if (content) {
     out.push({ direction: 'in', type: 'stt.delta', payload: { transcript, translation } });
