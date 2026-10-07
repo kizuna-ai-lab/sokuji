@@ -7,6 +7,7 @@
 #pragma once
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -42,6 +43,13 @@ struct sk_layout {
     bool same_layout(const sk_layout &o) const { return perm == o.perm && dense == o.dense; }
 };
 
+/* One occurrence's shapes: the ne of src0, src1 and dst, and the nb of each one whose layout is
+ * strided (zero where dense, since perm + ne imply it). */
+struct sk_op_instance {
+    std::array<int64_t, 4> ne_src0{1, 1, 1, 1}, ne_src1{1, 1, 1, 1}, ne_dst{1, 1, 1, 1};
+    std::array<int64_t, 4> nb_src0{0, 0, 0, 0}, nb_src1{0, 0, 0, 0}, nb_dst{0, 0, 0, 0};
+};
+
 struct sk_op_desc {
     int32_t op = 0;
     std::array<int32_t, 16> op_params{};
@@ -59,6 +67,24 @@ struct sk_op_desc {
      * not gate one. sk_device_supports_ops skips these unless the target IS a CPU device. */
     bool host = false;
     uint64_t max_bytes = 0;      // largest ggml_nbytes seen among src0/src1/dst for this identity
+    /* The largest real occurrence of this identity: the one whose max(nbytes(src0), nbytes(src1),
+     * nbytes(dst)) is max_bytes; between equal ones, the greater shapes, so the choice does not
+     * depend on the order occurrences arrive in. Not identity.
+     *
+     * Why: the maxima above are per axis, so one identity seen in two orientations merges into a
+     * tensor that never existed. Echo-TTS's codec holds REPEAT [1,1024]->[1280,1024] and
+     * [1,1,1024]->[1280,1,1024], 5.2 MB each, which merge to [1280,1024,1024,1], 5.37 GB, and
+     * ggml-vulkan refuses a tensor past its buffer limit. Where the maxima rebuild such a tensor
+     * (sk_op_uses_largest), the node is written with this occurrence and rebuilt from it (ruling
+     * 2026-10-07, op-coverage precision).
+     *
+     * sk_ops_add sets it on every node it stores: from the descriptor's own when it carries one,
+     * otherwise from its maxima (the recorder hands over one occurrence at a time, whose maxima
+     * ARE that occurrence). sk_ops_parse reads it from a line's real*= fields; a line without
+     * them gets its own maxima, which sk_op_uses_largest never prefers to themselves, so such a
+     * line is rebuilt from its maxima as before. A descriptor that never went through sk_ops_add
+     * has none. */
+    std::optional<sk_op_instance> largest;
     bool same_node(const sk_op_desc &o) const {
         return op == o.op && op_params == o.op_params && dst_type == o.dst_type && src_type == o.src_type &&
                ne0_src0 == o.ne0_src0 && ne0_src1 == o.ne0_src1 && ne0_dst == o.ne0_dst &&
@@ -81,13 +107,21 @@ std::array<int64_t, 4> sk_layout_dense_nb(const std::array<int32_t, 4> &perm,
                                           const std::array<int64_t, 4> &ne, int32_t type);
 /* Read a live tensor's layout (recorder side; also used by the round-trip tests). */
 sk_layout sk_layout_of(const struct ggml_tensor *t);
+/* True when a node is written with, and rebuilt from, its `largest` occurrence instead of its
+ * maxima: the maxima rebuild a src0, src1 or dst whose ggml_nbytes exceeds max_bytes, a tensor
+ * larger than any the graph held, and `largest` does not. A WEIGHT source is not compared, since
+ * its dtype is the query's choice. Every other node is written, parsed and rebuilt from its
+ * maxima, exactly as before the rule (ruling 2026-10-07, op-coverage precision). */
+bool sk_op_uses_largest(const sk_op_desc &d);
 /* Rebuild one recorded node and its sources in `ctx` (which must be no_alloc): each tensor
  * carries the recorded ne AND the recorded layout, so every predicate a backend's supports_op
- * reads answers as it did on the real graph. `weight_type` is the concrete ggml type the
- * WEIGHT sentinel stands for (-1 when the node has none). Returns the node, or nullptr when
- * the descriptor has no dst type. Lives here, beside the text form, rather than in sk_ops.cpp:
- * it touches only ggml's tensor constructors, so the tests can link it directly and assert on
- * the rebuilt shapes — sk_ops.cpp itself is the library's C ABI and drags the whole runtime. */
+ * reads answers as it did on the real graph. The ne (and a strided layout's nb) are the maxima,
+ * or the largest real occurrence where sk_op_uses_largest says so. `weight_type` is the
+ * concrete ggml type the WEIGHT sentinel stands for (-1 when the node has none). Returns the
+ * node, or nullptr when the descriptor has no dst type. Lives here, beside the text form,
+ * rather than in sk_ops.cpp: it touches only ggml's tensor constructors, so the tests can link
+ * it directly and assert on the rebuilt shapes — sk_ops.cpp itself is the library's C ABI and
+ * drags the whole runtime. */
 struct ggml_tensor *sk_ops_rebuild_node(struct ggml_context *ctx, const sk_op_desc &d, int32_t weight_type);
 
 /* The dtypes a WEIGHT whose file holds `dtype` (a ggml_type_name spelling) may be held in, and
@@ -129,5 +163,5 @@ bool sk_ops_parse(const std::string &text, sk_op_recording &out, std::string &er
  * carry their kind after the dot; ROPE its mode; everything else no suffix. */
 std::string sk_op_spelling(const sk_op_desc &d, const char *weight_type_name);
 /* Insert or merge: an equal identity keeps one entry and takes the element-wise max of the
- * ne maxima and max_bytes. */
+ * ne maxima, of a strided layout's nb, and max_bytes, and keeps the larger `largest`. */
 void sk_ops_add(std::vector<sk_op_desc> &nodes, const sk_op_desc &d);

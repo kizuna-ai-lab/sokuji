@@ -317,6 +317,20 @@ Known gap: audio.cpp stores some derived weights as F32 under `Native` storage
 (`type_for_derived_storage`), so a file with no f32 matrix never has those nodes asked in f32.
 f32 is supported on every device, so this changes no answer today.
 
+A recording keeps one line per node identity (op, op params, dtypes, each tensor's `ne[0]` and
+layout, host side). The sequence axes `ne[1..3]` and a strided view's `nb` merge as per-axis
+maxima, and the query rebuilds each node from them, so it is asked at least as large as the
+graph held it. When one identity occurs in two orientations, those maxima describe a tensor that
+never existed: Echo-TTS's codec holds REPEAT `[1,1024]→[1280,1024]` and
+`[1,1,1024]→[1280,1,1024]`, 5.2 MB each, whose maxima rebuild a 5.37 GB tensor that ggml-vulkan
+refuses past its buffer limit. So where the maxima rebuild a src0, src1 or dst larger than the
+line's `maxbytes`, the line also carries the identity's largest real occurrence, the one
+`maxbytes` was measured on: `real0=`, `real1=` and `reald=`, plus `realnb0=`/`realnb1=`/`realnbd=`
+for a strided layout. The query rebuilds that occurrence instead (`sk_op_uses_largest`,
+`src/sk_ops.h`; ruling 2026-10-07). Every other line is written as before. `test_ops_format`
+rebuilds every node of every shipped recording and fails on one asked about a tensor larger than
+its `maxbytes`, so a recording taken before the rule cannot ship.
+
 CTest needs two real model directories for `test_tts` (skips with exit code 77 when absent).
 Note: supertonic's Q8_0 GGUF is not currently viable (audio.cpp `docs/gguf.md`: "Q8 blockers
 unresolved" in the text/vector graph paths) — F16 is the smallest quant with a passing test

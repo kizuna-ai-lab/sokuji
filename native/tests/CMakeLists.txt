@@ -69,7 +69,8 @@ add_test(NAME test_model_path COMMAND test_model_path)
 add_executable(test_ops_format test_ops_format.cpp ../src/sk_ops_format.cpp)
 target_include_directories(test_ops_format PRIVATE ../src ../include)
 target_link_libraries(test_ops_format PRIVATE ggml)
-add_test(NAME test_ops_format COMMAND test_ops_format)
+# The shipped recordings' directory: every node there is rebuilt as the query rebuilds it.
+add_test(NAME test_ops_format COMMAND test_ops_format ${CMAKE_CURRENT_SOURCE_DIR}/../src/ops)
 
 # The audio.cpp compat shims (src/audiocpp_compat.h (D)/(E)) against the fork's documented
 # equivalents, on the ggml we build. Header-only, so compiled straight in, with ggml-impl.h

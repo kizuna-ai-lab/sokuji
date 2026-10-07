@@ -11,6 +11,7 @@
 #include <cstring>
 #include <sstream>
 #include <stdexcept>
+#include <tuple>
 
 namespace {
 
@@ -97,6 +98,82 @@ bool parse_layout(const std::string &s, sk_layout &out) {
     return true;
 }
 
+/* ggml_nbytes (ggml.c) of a `type` tensor with this ne and nb, without building one. */
+uint64_t nbytes_as_ggml(int32_t type, const std::array<int64_t, 4> &ne, const std::array<int64_t, 4> &nb) {
+    for (int64_t n : ne) if (n <= 0) return 0;
+    const ggml_type t = static_cast<ggml_type>(type);
+    const int64_t blck = static_cast<int64_t>(ggml_blck_size(t));
+    int64_t bytes = blck == 1 ? static_cast<int64_t>(ggml_type_size(t)) + (ne[0] - 1) * nb[0] : ne[0] * nb[0] / blck;
+    for (int i = 1; i < 4; ++i) bytes += (ne[i] - 1) * nb[i];
+    return static_cast<uint64_t>(bytes);
+}
+
+/* A node's maxima as an occurrence-shaped value: the shapes a node is rebuilt from by default. */
+sk_op_instance maxima_of(const sk_op_desc &d) {
+    sk_op_instance m;
+    m.ne_src0 = d.max_ne_src0; m.ne_src1 = d.max_ne_src1; m.ne_dst = d.max_ne_dst;
+    if (!d.lay_src0.dense) m.nb_src0 = d.lay_src0.nb;
+    if (!d.lay_src1.dense) m.nb_src1 = d.lay_src1.nb;
+    if (!d.lay_dst.dense)  m.nb_dst = d.lay_dst.nb;
+    return m;
+}
+
+/* Whether src0, src1 and dst at these shapes, with the node's dtypes and layouts, each hold at
+ * most max_bytes: measured by ggml_nbytes, the measure max_bytes was taken with (a dense layout's
+ * strides are the packed ones its rebuild gets). An absent source is skipped, and so is a WEIGHT,
+ * whose dtype the query picks. */
+bool fits(const sk_op_desc &d, const sk_op_instance &in) {
+    struct Tensor { int32_t type; const std::array<int64_t, 4> &ne; const sk_layout &lay; const std::array<int64_t, 4> &nb; };
+    const Tensor tensors[] = {{d.src_type[0], in.ne_src0, d.lay_src0, in.nb_src0},
+                              {d.src_type[1], in.ne_src1, d.lay_src1, in.nb_src1},
+                              {d.dst_type, in.ne_dst, d.lay_dst, in.nb_dst}};
+    for (const Tensor &t : tensors) {
+        if (t.type < 0) continue;                              // SK_SRC_ABSENT or SK_SRC_WEIGHT
+        const std::array<int64_t, 4> nb = t.lay.dense ? sk_layout_dense_nb(t.lay.perm, t.ne, t.type) : t.nb;
+        if (nbytes_as_ggml(t.type, t.ne, nb) > d.max_bytes) return false;
+    }
+    return true;
+}
+
+/* Between occurrences of equal max_bytes, the one kept is the greater by these shapes, so a
+ * merge's result does not depend on the order its occurrences arrive in. */
+bool shapes_less(const sk_op_instance &a, const sk_op_instance &b) {
+    return std::tie(a.ne_dst, a.ne_src0, a.ne_src1, a.nb_dst, a.nb_src0, a.nb_src1) <
+           std::tie(b.ne_dst, b.ne_src0, b.ne_src1, b.nb_dst, b.nb_src0, b.nb_src1);
+}
+
+/* The real*= fields of one parsed line, held to what sk_ops_format can have written: all three
+ * shapes, a stride set exactly for each strided layout, on the identity's own row lengths,
+ * inside the maxima, and only on a line whose maxima exceed maxbytes while the occurrence does
+ * not. `seen` has bit 0/1/2 for real0/real1/reald and 3/4/5 for realnb0/realnb1/realnbd. Returns
+ * the reason the fields are refused, or "". */
+std::string check_largest(const sk_op_desc &d, const sk_op_instance &in, unsigned seen) {
+    if ((seen & 7u) != 7u) return "real0, real1 and reald go together";
+    struct Tensor {
+        const char *suffix; const std::array<int64_t, 4> &ne, &max; int64_t ne0;
+        const sk_layout &lay; const std::array<int64_t, 4> &nb; bool has_nb;
+    };
+    const Tensor tensors[] = {
+        {"0", in.ne_src0, d.max_ne_src0, d.ne0_src0, d.lay_src0, in.nb_src0, (seen & 8u) != 0},
+        {"1", in.ne_src1, d.max_ne_src1, d.ne0_src1, d.lay_src1, in.nb_src1, (seen & 16u) != 0},
+        {"d", in.ne_dst, d.max_ne_dst, d.ne0_dst, d.lay_dst, in.nb_dst, (seen & 32u) != 0},
+    };
+    for (const Tensor &t : tensors) {
+        const std::string real = std::string("real") + t.suffix, realnb = std::string("realnb") + t.suffix;
+        if (t.ne[0] != t.ne0) return real + " is not the identity's ne0";
+        for (int i = 0; i < 4; ++i)
+            if (t.ne[i] < 1 || t.ne[i] > t.max[i]) return real + " is outside max" + t.suffix;
+        if (t.lay.dense && t.has_nb) return realnb + " on a dense layout";
+        if (!t.lay.dense && !t.has_nb) return "a strided layout needs " + realnb;
+        if (t.has_nb)
+            for (int i = 0; i < 4; ++i)
+                if (t.nb[i] < 0 || t.nb[i] > t.lay.nb[i]) return realnb + " is outside nb" + t.suffix;
+    }
+    if (fits(d, maxima_of(d))) return "real fields on a node whose maxima fit maxbytes";
+    if (!fits(d, in)) return "the real occurrence exceeds maxbytes";
+    return "";
+}
+
 }  // namespace
 
 std::array<int64_t, 4> sk_layout_dense_nb(const std::array<int32_t, 4> &perm,
@@ -165,7 +242,13 @@ ggml_tensor *sk_ops_rebuild_node(ggml_context *ctx, const sk_op_desc &d, int32_t
         if (natural) return view;
         return ggml_permute(ctx, view, lay.perm[0], lay.perm[1], lay.perm[2], lay.perm[3]);
     };
-    ggml_tensor *node = mk(d.dst_type, d.max_ne_dst, d.lay_dst);
+    /* The maxima, unless they describe a tensor larger than any the graph held: then the largest
+     * real occurrence (sk_op_uses_largest). That occurrence ran, so it keeps every relation the
+     * maxima are taken verbatim to keep (sk_ops.cpp's ask), and a strided layout takes its own
+     * strides, not the merged ones. */
+    const sk_op_instance in = sk_op_uses_largest(d) ? *d.largest : maxima_of(d);
+    auto strides = [](sk_layout lay, const std::array<int64_t, 4> &nb) { if (!lay.dense) lay.nb = nb; return lay; };
+    ggml_tensor *node = mk(d.dst_type, in.ne_dst, strides(d.lay_dst, in.nb_dst));
     if (!node) return nullptr;
     // The dst carries the recorded ne/nb, but it must present as a plain node, not as a view of
     // the scaffolding that gave it that layout: it is about to become the OP itself, and a
@@ -173,8 +256,8 @@ ggml_tensor *sk_ops_rebuild_node(ggml_context *ctx, const sk_op_desc &d, int32_t
     node->view_src = nullptr; node->view_offs = 0;
     node->op = static_cast<ggml_op>(d.op);
     std::memcpy(node->op_params, d.op_params.data(), sizeof node->op_params);
-    node->src[0] = mk(d.src_type[0], d.max_ne_src0, d.lay_src0);
-    node->src[1] = mk(d.src_type[1], d.max_ne_src1, d.lay_src1);
+    node->src[0] = mk(d.src_type[0], in.ne_src0, strides(d.lay_src0, in.nb_src0));
+    node->src[1] = mk(d.src_type[1], in.ne_src1, strides(d.lay_src1, in.nb_src1));
     for (int i = 2; i < 5; ++i) node->src[i] = mk(d.src_type[i], {d.max_ne_src1[0], 1, 1, 1}, sk_layout{});
     return node;
 }
@@ -268,15 +351,25 @@ const char *sk_ops_device_word(int32_t kind) {
     }
 }
 
+bool sk_op_uses_largest(const sk_op_desc &d) {
+    return d.largest && !fits(d, maxima_of(d)) && fits(d, *d.largest);
+}
+
 void sk_ops_add(std::vector<sk_op_desc> &nodes, const sk_op_desc &d) {
+    // A descriptor without an occurrence of its own is one occurrence: its maxima are its shapes.
+    const sk_op_instance mine = d.largest ? *d.largest : maxima_of(d);
     for (auto &n : nodes) {
         if (!n.same_node(d)) continue;
+        const sk_op_instance kept = n.largest ? *n.largest : maxima_of(n);
+        const bool larger = d.max_bytes > n.max_bytes || (d.max_bytes == n.max_bytes && shapes_less(kept, mine));
+        n.largest = larger ? mine : kept;
         max_into(n.max_ne_src0, d.max_ne_src0); max_into(n.max_ne_src1, d.max_ne_src1); max_into(n.max_ne_dst, d.max_ne_dst);
         max_into(n.lay_src0.nb, d.lay_src0.nb); max_into(n.lay_src1.nb, d.lay_src1.nb); max_into(n.lay_dst.nb, d.lay_dst.nb);
         n.max_bytes = std::max(n.max_bytes, d.max_bytes);
         return;
     }
     nodes.push_back(d);
+    nodes.back().largest = mine;
 }
 
 std::string sk_ops_format(const sk_op_recording &r) {
@@ -299,7 +392,17 @@ std::string sk_ops_format(const sk_op_recording &r) {
         if (!d.lay_src1.dense) s += " nb1=" + ne_str(d.lay_src1.nb);
         if (!d.lay_dst.dense)  s += " nbd=" + ne_str(d.lay_dst.nb);
         s += " host=" + std::to_string(d.host ? 1 : 0);
-        s += " maxbytes=" + std::to_string(d.max_bytes) + "\n";
+        s += " maxbytes=" + std::to_string(d.max_bytes);
+        // Only where the maxima describe a tensor larger than any the graph held: the largest
+        // real occurrence, appended, so every other line reads exactly as before the rule.
+        if (sk_op_uses_largest(d)) {
+            const sk_op_instance &l = *d.largest;
+            s += " real0=" + ne_str(l.ne_src0) + " real1=" + ne_str(l.ne_src1) + " reald=" + ne_str(l.ne_dst);
+            if (!d.lay_src0.dense) s += " realnb0=" + ne_str(l.nb_src0);
+            if (!d.lay_src1.dense) s += " realnb1=" + ne_str(l.nb_src1);
+            if (!d.lay_dst.dense)  s += " realnbd=" + ne_str(l.nb_dst);
+        }
+        s += "\n";
     }
     return s;
 }
@@ -327,6 +430,7 @@ bool sk_ops_parse(const std::string &text, sk_op_recording &out, std::string &er
             continue;
         }
         sk_op_desc d{};
+        sk_op_instance real; unsigned real_seen = 0;   // check_largest's bits
         std::istringstream fs(line); std::string kv; int seen = 0;
         while (fs >> kv) {
             auto eq = kv.find('='); if (eq == std::string::npos) return fail("bad field " + kv);
@@ -368,9 +472,20 @@ bool sk_ops_parse(const std::string &text, sk_op_recording &out, std::string &er
                     return fail("bad maxbytes");
                 }
             }
+            else if (k == "real0")   { if (!parse_ne(v, real.ne_src0)) return fail("bad real0");   real_seen |= 1u; }
+            else if (k == "real1")   { if (!parse_ne(v, real.ne_src1)) return fail("bad real1");   real_seen |= 2u; }
+            else if (k == "reald")   { if (!parse_ne(v, real.ne_dst))  return fail("bad reald");   real_seen |= 4u; }
+            else if (k == "realnb0") { if (!parse_ne(v, real.nb_src0)) return fail("bad realnb0"); real_seen |= 8u; }
+            else if (k == "realnb1") { if (!parse_ne(v, real.nb_src1)) return fail("bad realnb1"); real_seen |= 16u; }
+            else if (k == "realnbd") { if (!parse_ne(v, real.nb_dst))  return fail("bad realnbd"); real_seen |= 32u; }
             else return fail("unknown field " + k);
         }
         if (seen < 2) return fail("op and dst are required");
+        if (real_seen) {
+            const std::string why = check_largest(d, real, real_seen);
+            if (!why.empty()) return fail(why);
+            d.largest = real;
+        }
         sk_ops_add(out.nodes, d);
     }
     return true;

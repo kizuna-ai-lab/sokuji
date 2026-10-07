@@ -58,8 +58,19 @@ int32_t type_by_name(const char *name) {
  *     on index_tts2's [64,77,4,1] x [64,1,4,1] matmul the two independent stretches produced
  *     ne[3] = 1 and 77 and the family was refused. Taking the maxima verbatim preserves every
  *     equality and broadcast relation, since an element-wise max of equal values is equal.
- * max_bytes stays in the format as the merge's record of the largest tensor seen; it is simply
- * not a rebuild input. */
+ * max_bytes stays in the format as the merge's record of the largest tensor seen.
+ *
+ * The maxima stop being a real size when one identity occurs in two orientations: the
+ * element-wise max of [1280,1024,1,1] and [1280,1,1024,1] is [1280,1024,1024,1], a tensor that
+ * never existed, and ggml-vulkan refuses a tensor past its buffer limit
+ * (ggml-vulkan.cpp:15331-15352). So where the maxima rebuild a src0, src1 or dst larger than
+ * max_bytes, the node is rebuilt from its largest real occurrence instead (sk_op_uses_largest,
+ * sk_ops.h; ruling 2026-10-07, op-coverage precision). That occurrence ran, so it keeps every
+ * relation above, and its largest tensor is max_bytes, so a per-tensor byte limit, the way
+ * ggml-vulkan bounds size, is still asked at the largest tensor the graph held. What it can miss
+ * is an upper bound on one of ne[1..3] that only a smaller occurrence reaches, which the per-axis
+ * maxima did ask; at the pinned ggml, neither ggml-vulkan's nor ggml-metal's supports_op has
+ * one. */
 bool ask(ggml_backend_dev_t dev, const sk_op_desc &d, int32_t weight_type, std::string &spelling_out) {
     ggml_init_params ip = { 64 * 1024, nullptr, /*no_alloc*/ true };
     ggml_context *ctx = ggml_init(ip);

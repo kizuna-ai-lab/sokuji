@@ -10,7 +10,7 @@ op=MUL_MAT params=- dst=f32 src=[WEIGHT,f32,-,-,-] ne0=[1024,1024,3072] max0=[10
 op=ADD params=- dst=f32 src=[f32,f32,-,-,-] ne0=[3072,3072,3072] max0=[3072,11,1,1] max1=[3072,1,1,1] maxd=[3072,11,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=135168
 op=CONT params=- dst=f32 src=[f32,-,-,-,-] ne0=[1024,1,1024] max0=[1024,11,1,1] max1=[1,1,1,1] maxd=[1024,11,1,1] layout=[0123s,0123d,0123d] nb0=[4,12288,135168,135168] host=0 maxbytes=126976
 op=SET_ROWS params=- dst=f32 src=[f32,i32,f32,-,-] ne0=[1024,1,1024] max0=[1024,1,1,1] max1=[1,1,1,1] maxd=[1024,1387,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=5681152
-op=CONT params=- dst=f32 src=[f32,-,-,-,-] ne0=[64,1,64] max0=[64,1387,636,1] max1=[1,1,1,1] maxd=[64,1387,636,1] layout=[0213d,0123d,0123d] host=0 maxbytes=5681152
+op=CONT params=- dst=f32 src=[f32,-,-,-,-] ne0=[64,1,64] max0=[64,1387,636,1] max1=[1,1,1,1] maxd=[64,1387,636,1] layout=[0213d,0123d,0123d] host=0 maxbytes=5681152 real0=[64,1387,16,1] real1=[1,1,1,1] reald=[64,1387,16,1]
 op=FLASH_ATTN_EXT params=3e00000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 dst=f32 src=[f32,f32,f32,f16,-] ne0=[64,64,64] max0=[64,1,16,1] max1=[64,1387,16,1] maxd=[64,16,1,1] layout=[0213d,0123d,0123d] host=0 maxbytes=5681152
 op=MUL_MAT params=- dst=f32 src=[WEIGHT,f32,-,-,-] ne0=[1024,1024,1024] max0=[1024,1024,1,1] max1=[1024,11,1,1] maxd=[1024,11,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=1114112
 op=MUL_MAT params=- dst=f32 src=[WEIGHT,f32,-,-,-] ne0=[1024,1024,4096] max0=[1024,4096,1,1] max1=[1024,11,1,1] maxd=[4096,11,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=4456448

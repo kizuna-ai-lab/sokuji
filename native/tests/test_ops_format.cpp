@@ -1,15 +1,81 @@
 /* Spec A §3.2: the .ops text form is the only thing that crosses from the recording build
  * into the shipping library, so it must round-trip exactly — including the WEIGHT sentinel,
- * the op-param blob and the ne maxima the rebuild needs. Pure: no backend, runs everywhere. */
+ * the op-param blob and the ne maxima the rebuild needs. Pure: no backend, runs everywhere.
+ *
+ * argv[1], when given, is the shipped recordings' directory (src/ops): every node of every
+ * recording there is rebuilt the way the query rebuilds it and checked against its maxbytes. */
 #undef NDEBUG
 #include <cassert>
+#include <cstdio>
+#include <filesystem>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
 #include "sokuji_native.h"   // SK_DEVICE_* for sk_ops_device_word
 #include "sk_ops.h"
 #include "ggml.h"
 
-int main() {
+namespace {
+
+int g_failures = 0;
+void check(bool ok, const std::string &what) {
+    if (!ok) { std::fprintf(stderr, "FAIL: %s\n", what.c_str()); ++g_failures; }
+}
+
+/* One occurrence of a node, as the recorder sees it: its own shapes are its maxima. */
+sk_op_desc occurrence(int32_t op, int32_t src0_type, int32_t src1_type, int32_t dst_type,
+                      std::array<int64_t, 4> ne_src0, std::array<int64_t, 4> ne_src1, std::array<int64_t, 4> ne_dst) {
+    sk_op_desc d{};
+    d.op = op; d.dst_type = dst_type;
+    d.src_type = {src0_type, src1_type, SK_SRC_ABSENT, SK_SRC_ABSENT, SK_SRC_ABSENT};
+    d.max_ne_src0 = ne_src0; d.max_ne_src1 = ne_src1; d.max_ne_dst = ne_dst;
+    d.ne0_src0 = ne_src0[0]; d.ne0_src1 = ne_src1[0]; d.ne0_dst = ne_dst[0];
+    return d;
+}
+
+std::string format_nodes(const std::vector<sk_op_desc> &nodes) {
+    sk_op_recording r;
+    r.stage = "tts"; r.family = "echo_tts"; r.engine = "test"; r.source_file = "echo.gguf";
+    r.recorded_on = "vulkan"; r.dtypes_in_file = {"f32"};
+    r.nodes = nodes;
+    return sk_ops_format(r);
+}
+
+/* The node line of a one-node recording's text. */
+std::string op_line(const std::string &text) {
+    const auto p = text.find("op=");
+    return p == std::string::npos ? std::string() : text.substr(p);
+}
+
+/* The bytes of every tensor the query asks for this node, rebuilt exactly as sk_device_supports_ops
+ * rebuilds it, against the node's own record of the largest tensor it saw. A WEIGHT source is
+ * rebuilt as f32 and not compared: its dtype is the query's choice, not a recorded one. */
+bool rebuilt_within_max_bytes(const sk_op_desc &d, std::string &why) {
+    ggml_init_params ip = { 64 * 1024, nullptr, /*no_alloc*/ true };
+    ggml_context *ctx = ggml_init(ip);
+    if (!ctx) { why = "ggml_init"; return false; }
+    ggml_tensor *node = sk_ops_rebuild_node(ctx, d, GGML_TYPE_F32);
+    bool ok = node != nullptr;
+    if (!node) why = "no node";
+    const char *names[] = {"dst", "src0", "src1"};
+    const ggml_tensor *ts[] = {node, node ? node->src[0] : nullptr, node ? node->src[1] : nullptr};
+    const int32_t types[] = {d.dst_type, d.src_type[0], d.src_type[1]};
+    for (int i = 0; ok && i < 3; ++i) {
+        if (!ts[i] || types[i] == SK_SRC_WEIGHT) continue;
+        if (ggml_nbytes(ts[i]) > d.max_bytes) {
+            ok = false;
+            why = std::string(names[i]) + " rebuilds to " + std::to_string(ggml_nbytes(ts[i])) +
+                  " bytes > maxbytes " + std::to_string(d.max_bytes);
+        }
+    }
+    ggml_free(ctx);
+    return ok;
+}
+
+}  // namespace
+
+int main(int argc, char **argv) {
     sk_op_recording r;
     r.stage = "tts"; r.family = "supertonic"; r.engine = "audio.cpp 0.7.1 ; ggml 0.22.0";
     r.source_file = "supertonic-3-f16.gguf"; r.recorded_on = "vulkan"; r.dtypes_in_file = {"f16", "f32"};
@@ -173,5 +239,177 @@ int main() {
     assert(std::string(sk_ops_device_word(SK_DEVICE_METAL)) == "metal");
     assert(std::string(sk_ops_device_word(SK_DEVICE_CPU)) == "cpu");
     assert(std::string(sk_ops_device_word(SK_DEVICE_OTHER)) == "gpu");
-    return 0;
+
+    /* A merged node is asked about a tensor that really occurred (ruling 2026-10-07, op-coverage
+     * precision). The identity leaves ne[1..3] and the strides out, and the merge keeps their
+     * per-axis maxima, so one identity seen in two orientations merges into a tensor that never
+     * existed. Echo-TTS's S1-DAC codec at its 640-latent capacity graph holds REPEAT
+     * [1,1024]->[1280,1024] and [1,1,1024]->[1280,1,1024] under one identity: 5,242,880 bytes each,
+     * merged to [1280,1024,1024,1], 5.37 GB, which ggml-vulkan refuses past its buffer limit. */
+    {
+        const sk_op_desc a = occurrence(GGML_OP_REPEAT, GGML_TYPE_F32, SK_SRC_ABSENT, GGML_TYPE_F32,
+                                        {1, 1024, 1, 1}, {1, 1, 1, 1}, {1280, 1024, 1, 1});
+        const sk_op_desc b = occurrence(GGML_OP_REPEAT, GGML_TYPE_F32, SK_SRC_ABSENT, GGML_TYPE_F32,
+                                        {1, 1, 1024, 1}, {1, 1, 1, 1}, {1280, 1, 1024, 1});
+        sk_op_desc a1 = a, b1 = b;
+        a1.max_bytes = b1.max_bytes = 5242880;
+        std::vector<sk_op_desc> v;
+        sk_ops_add(v, a1); sk_ops_add(v, b1);
+        check(v.size() == 1, "repeat: the two orientations are one identity");
+        const std::string text = format_nodes(v);
+        // The maxima are kept, and the line also carries the largest real occurrence. Both are
+        // 5,242,880 bytes; the tie goes to the greater shapes, so arrival order cannot change it.
+        const std::string want =
+            "op=REPEAT params=- dst=f32 src=[f32,-,-,-,-] ne0=[1,1,1280] max0=[1,1024,1024,1] max1=[1,1,1,1] "
+            "maxd=[1280,1024,1024,1] layout=[0123d,0123d,0123d] host=0 maxbytes=5242880 "
+            "real0=[1,1024,1,1] real1=[1,1,1,1] reald=[1280,1024,1,1]\n";
+        check(op_line(text) == want, "repeat: the line carries the largest real occurrence: got " + op_line(text));
+        std::vector<sk_op_desc> w;
+        sk_ops_add(w, b1); sk_ops_add(w, a1);
+        check(format_nodes(w) == text, "repeat: the line does not depend on arrival order");
+
+        // The fields parse back: formatting the parsed recording gives the same text.
+        sk_op_recording parsed; std::string perr;
+        const bool parsed_ok = sk_ops_parse(text, parsed, perr);
+        check(parsed_ok, "repeat: the line parses: " + perr);
+        if (parsed_ok) {
+            check(sk_ops_format(parsed) == text, "repeat: format(parse(text)) == text");
+            // The node the query rebuilds is that occurrence, no larger than any tensor it saw.
+            ggml_init_params ip = { 1024 * 1024, nullptr, /*no_alloc*/ true };
+            ggml_context *ctx = ggml_init(ip);
+            ggml_tensor *n = sk_ops_rebuild_node(ctx, parsed.nodes[0], -1);
+            check(n && n->ne[0] == 1280 && n->ne[1] == 1024 && n->ne[2] == 1 && n->ne[3] == 1,
+                  "repeat: the dst rebuilds as the real [1280,1024,1,1]");
+            check(n && n->src[0] && n->src[0]->ne[1] == 1024 && n->src[0]->ne[2] == 1,
+                  "repeat: src0 rebuilds as the real [1,1024,1,1]");
+            check(n && ggml_nbytes(n) <= parsed.nodes[0].max_bytes, "repeat: rebuilt dst bytes <= maxbytes");
+            ggml_free(ctx);
+            std::string why;
+            check(rebuilt_within_max_bytes(parsed.nodes[0], why), "repeat: " + why);
+        }
+    }
+    /* The same through merged strides, echo's CONT: one identity (a strided f32 column, layout
+     * 0123s) seen as a 1024-row view with a short row stride and as a 64-row view with a 5 MB
+     * one. ne merges to [1,1024,1,1] and nb to [4,5242880,335544320,335544320], a 5.36 GB span,
+     * against a largest real view of 330 MB. */
+    {
+        sk_op_desc a = occurrence(GGML_OP_CONT, GGML_TYPE_F32, SK_SRC_ABSENT, GGML_TYPE_F32,
+                                  {1, 1024, 1, 1}, {1, 1, 1, 1}, {1, 1024, 1, 1});
+        a.lay_src0.dense = false; a.lay_src0.nb = {4, 8, 8192, 8192};
+        a.max_bytes = 8188;                                  // 4 + 1023 * 8: the view; its dst is 4096
+        sk_op_desc b = occurrence(GGML_OP_CONT, GGML_TYPE_F32, SK_SRC_ABSENT, GGML_TYPE_F32,
+                                  {1, 64, 1, 1}, {1, 1, 1, 1}, {1, 64, 1, 1});
+        b.lay_src0.dense = false; b.lay_src0.nb = {4, 5242880, 335544320, 335544320};
+        b.max_bytes = 330301444;                             // 4 + 63 * 5242880
+        std::vector<sk_op_desc> v;
+        sk_ops_add(v, a); sk_ops_add(v, b);
+        check(v.size() == 1, "cont: one identity");
+        const std::string text = format_nodes(v);
+        const std::string want =
+            "op=CONT params=- dst=f32 src=[f32,-,-,-,-] ne0=[1,1,1] max0=[1,1024,1,1] max1=[1,1,1,1] "
+            "maxd=[1,1024,1,1] layout=[0123s,0123d,0123d] nb0=[4,5242880,335544320,335544320] host=0 "
+            "maxbytes=330301444 real0=[1,64,1,1] real1=[1,1,1,1] reald=[1,64,1,1] "
+            "realnb0=[4,5242880,335544320,335544320]\n";
+        check(op_line(text) == want, "cont: the line carries the real view and its strides: got " + op_line(text));
+        sk_op_recording parsed; std::string perr;
+        const bool parsed_ok = sk_ops_parse(text, parsed, perr);
+        check(parsed_ok, "cont: the line parses: " + perr);
+        if (parsed_ok) {
+            check(sk_ops_format(parsed) == text, "cont: format(parse(text)) == text");
+            ggml_init_params ip = { 1024 * 1024, nullptr, /*no_alloc*/ true };
+            ggml_context *ctx = ggml_init(ip);
+            ggml_tensor *n = sk_ops_rebuild_node(ctx, parsed.nodes[0], -1);
+            const ggml_tensor *s = n ? n->src[0] : nullptr;
+            check(s && s->ne[1] == 64 && s->nb[1] == 5242880 && ggml_nbytes(s) == 330301444,
+                  "cont: src0 rebuilds as the real 64-row view, 330,301,444 bytes");
+            check(n && n->ne[1] == 64, "cont: the dst rebuilds as the real [1,64,1,1]");
+            ggml_free(ctx);
+            std::string why;
+            check(rebuilt_within_max_bytes(parsed.nodes[0], why), "cont: " + why);
+        }
+    }
+    /* A merge whose maxima ARE an occurrence (a KV-cache step [d,1,h], then the prompt [d,t,h])
+     * fabricates nothing, so its line is written exactly as before this rule, with no new field. */
+    {
+        sk_op_desc step = occurrence(GGML_OP_CPY, GGML_TYPE_F32, SK_SRC_ABSENT, GGML_TYPE_F16,
+                                     {64, 1, 8, 1}, {1, 1, 1, 1}, {64, 1, 8, 1});
+        step.max_bytes = 2048;
+        sk_op_desc prompt = occurrence(GGML_OP_CPY, GGML_TYPE_F32, SK_SRC_ABSENT, GGML_TYPE_F16,
+                                       {64, 37, 8, 1}, {1, 1, 1, 1}, {64, 37, 8, 1});
+        prompt.max_bytes = 75776;
+        std::vector<sk_op_desc> v;
+        sk_ops_add(v, step); sk_ops_add(v, prompt);
+        const std::string text = format_nodes(v);
+        check(op_line(text) ==
+                  "op=CPY params=- dst=f16 src=[f32,-,-,-,-] ne0=[64,1,64] max0=[64,37,8,1] max1=[1,1,1,1] "
+                  "maxd=[64,37,8,1] layout=[0123d,0123d,0123d] host=0 maxbytes=75776\n",
+              "kv: a non-fabricating merge is written as before: got " + op_line(text));
+        check(text.find("real") == std::string::npos, "kv: no real-occurrence field");
+        sk_op_recording parsed; std::string perr;
+        check(sk_ops_parse(text, parsed, perr) && sk_ops_format(parsed) == text, "kv: round trip");
+        std::string why;
+        check(parsed.nodes.size() == 1 && rebuilt_within_max_bytes(parsed.nodes[0], why), "kv: " + why);
+    }
+    /* The fields are read as strictly as the others: complete, inside the maxima, on the
+     * identity's own row lengths, strides exactly where the layout is strided, and only on a node
+     * whose maxima do fabricate. */
+    {
+        const std::string repeat =
+            "op=REPEAT params=- dst=f32 src=[f32,-,-,-,-] ne0=[1,1,1280] max0=[1,1024,1024,1] max1=[1,1,1,1] "
+            "maxd=[1280,1024,1024,1] layout=[0123d,0123d,0123d] host=0 maxbytes=5242880";
+        const std::string cont =
+            "op=CONT params=- dst=f32 src=[f32,-,-,-,-] ne0=[1,1,1] max0=[1,1024,1,1] max1=[1,1,1,1] "
+            "maxd=[1,1024,1,1] layout=[0123s,0123d,0123d] nb0=[4,5242880,335544320,335544320] host=0 "
+            "maxbytes=330301444";
+        const std::string kv =
+            "op=CPY params=- dst=f16 src=[f32,-,-,-,-] ne0=[64,1,64] max0=[64,37,8,1] max1=[1,1,1,1] "
+            "maxd=[64,37,8,1] layout=[0123d,0123d,0123d] host=0 maxbytes=75776";
+        sk_op_recording out; std::string e;
+        auto parses = [&](const std::string &line) { e.clear(); return sk_ops_parse(line + "\n", out, e); };
+        check(parses(repeat + " real0=[1,1024,1,1] real1=[1,1,1,1] reald=[1280,1024,1,1]"), "strict: a valid line parses: " + e);
+        check(parses(cont + " real0=[1,64,1,1] real1=[1,1,1,1] reald=[1,64,1,1] realnb0=[4,5242880,335544320,335544320]"),
+              "strict: a valid strided line parses: " + e);
+        // A fabricating line from an older recorder, without the fields, still reads (from its maxima).
+        check(parses(repeat), "strict: a fabricating line without the fields parses: " + e);
+        const char *bad[] = {
+            " real0=[1,1024,1,1]",                                                          // incomplete
+            " real0=[1,1024,1,1] real1=[1,1,1,1]",                                          // incomplete
+            " real0=[1,1024] real1=[1,1,1,1] reald=[1280,1024,1,1]",                        // bad syntax
+            " real0=[1,1024,1,1] real1=[1,1,1,1] reald=[1280,2048,1,1]",                    // outside maxd
+            " real0=[2,1024,1,1] real1=[1,1,1,1] reald=[1280,1024,1,1]",                    // not the identity's ne0
+            " real0=[1,1024,1,1] real1=[1,1,1,1] reald=[1280,1024,1,1] realnb0=[4,4,4,4]",  // strides on a dense layout
+            " real0=[1,1024,2,1] real1=[1,1,1,1] reald=[1280,1024,2,1]",                    // larger than maxbytes
+        };
+        for (const char *b : bad) check(!parses(repeat + b) && !e.empty(), std::string("strict: rejects") + b);
+        check(!parses(cont + " real0=[1,64,1,1] real1=[1,1,1,1] reald=[1,64,1,1]") && !e.empty(),
+              "strict: rejects a strided src0 without realnb0");
+        check(!parses(cont + " real0=[1,64,1,1] real1=[1,1,1,1] reald=[1,64,1,1] realnb0=[4,5242880,671088640,671088640]") && !e.empty(),
+              "strict: rejects realnb0 outside nb0");
+        check(!parses(kv + " real0=[64,37,8,1] real1=[1,1,1,1] reald=[64,37,8,1]") && !e.empty(),
+              "strict: rejects the fields on a node whose maxima fabricate nothing");
+    }
+
+    /* Every shipped recording: no node is asked about a tensor larger than any it saw. A line
+     * recorded before this rule, whose maxima fabricate and which carries no real occurrence,
+     * fails here, so a stale recording cannot ship. */
+    if (argc > 1) {
+        int files = 0, nodes = 0;
+        for (const auto &entry : std::filesystem::directory_iterator(argv[1])) {
+            if (entry.path().extension() != ".ops") continue;
+            std::ifstream f(entry.path()); std::stringstream ss; ss << f.rdbuf();
+            sk_op_recording rec; std::string perr;
+            const std::string name = entry.path().filename().string();
+            if (!sk_ops_parse(ss.str(), rec, perr)) { check(false, name + " does not parse: " + perr); continue; }
+            ++files;
+            for (const sk_op_desc &d : rec.nodes) {
+                ++nodes;
+                std::string why;
+                if (!rebuilt_within_max_bytes(d, why)) check(false, name + ": " + sk_op_spelling(d, nullptr) + ": " + why);
+            }
+        }
+        check(files > 0, std::string("no .ops file in ") + argv[1]);
+        std::printf("test_ops_format: %d shipped recordings, %d nodes rebuilt\n", files, nodes);
+    }
+    if (g_failures) std::fprintf(stderr, "test_ops_format: %d failures\n", g_failures);
+    return g_failures ? 1 : 0;
 }
