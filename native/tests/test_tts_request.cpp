@@ -467,7 +467,7 @@ void chatterbox_requests() {
     assert(req.text_input && req.text_input->language == "de");
     assert(!has(req, "language"));
     // Not strict: the transcript goes (and is ignored); sampled T3, its own default. Its
-    // engine turns seed 0 into a random draw, so it alone is given a fixed nonzero seed.
+    // engine turns seed 0 into a random draw, so it is given a fixed nonzero seed.
     assert(opt(req, "reference_text") == "The quick brown fox.");
     assert(opt(req, "do_sample") == "true" && opt(req, "seed") == "1");
     const auto other = handle_for("moss_tts_local");
@@ -709,17 +709,20 @@ void kitten_tts2_speaks_a_language_through_its_named_voice() {
     assert(!has(req, "voice_id"));                       // the default voice
     req = build_request(kitten.get(), "Konnichiwa.", "ja", 1.0f);
     assert(!has(req, "voice_id"));
-    assert(!has(req, "do_sample") && !has(req, "language") && opt(req, "seed") == "0");   // strict
+    // Strict. Its S3Gen flow noise reuses chatterbox's choose_seed, so it is given the same
+    // fixed nonzero seed (see build_request).
+    assert(!has(req, "do_sample") && !has(req, "language") && opt(req, "seed") == "1");
     // A preset the user chose wins, through cached_voice_id.
     give_preset(kitten.get(), "Bella");
     req = build_request(kitten.get(), "Guten Morgen.", "de", 1.0f);
     assert(cached_voice(req) == "Bella" && !has(req, "voice_id"));
+    assert(opt(req, "seed") == "1");
     // So does a clip, and this strict family is sent its transcript.
     give_clip(kitten.get(), "The quick brown fox.");
     req = build_request(kitten.get(), "Guten Morgen.", "de", 1.0f);
     assert(carries_clip(req) && !has(req, "voice_id"));
     assert(opt(req, "reference_text") == "The quick brown fox.");
-    assert(!has(req, "do_sample"));
+    assert(!has(req, "do_sample") && opt(req, "seed") == "1");
 }
 
 }  // namespace

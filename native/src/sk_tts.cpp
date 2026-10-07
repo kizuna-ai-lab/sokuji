@@ -544,9 +544,9 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
     // decode never reaches this checkpoint's own end-of-content token for ordinary input
     // (measured: 300-frame/24.000s cap, once, E1; corroborated by the pre-existing parity
     // baseline), while sampling does (measured: real EOC, 2.6-3.7s, 3/3, E2a/b/c, full
-    // correct transcript). The seed stays "0" for every family but the two Chatterbox ones
-    // (see the seed below) either way — t->sample_decode only picks argmax vs. sample for the
-    // two-logit stop decision, it does not reintroduce nondeterminism.
+    // correct transcript). The seed stays "0" for every family but the three that draw random
+    // flow noise at seed 0 (see the seed below) either way — t->sample_decode only picks argmax
+    // vs. sample for the two-logit stop decision, it does not reintroduce nondeterminism.
     //
     // `do_sample` is skipped for a strict-options family (see FamilyInfo::strict_options):
     // model_specs/irodori_tts.json declares `seed` but not `do_sample`, and sending it
@@ -555,16 +555,20 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
     if (!t->strict_options) {
         req.options["do_sample"] = t->sample_decode ? "true" : "false";
     }
-    // The two Chatterbox families are given a nonzero seed. audio.cpp's chatterbox choose_seed
-    // turns seed 0 into a std::random_device draw (src/models/chatterbox/component_weights.cpp:
-    // 7-13) for its T3 sampler (components/t3_runtime.h:1416) and for the S3Gen flow noise
-    // (s3gen_inference.cpp:330-335); the HiFT vocoder takes the seed verbatim. chatterbox_turbo
-    // fixes its own T3 at seed 0 (src/community_models/chatterbox_turbo/
-    // t3_turbo_component.cpp:141), but its flow noise reuses chatterbox's choose_seed
-    // (s3gen_turbo.cpp:79-90), so both families need a nonzero seed for R7(s4)'s deterministic
-    // synthesis. Every other pinned family randomises only when no seed is sent.
-    req.options["seed"] =
-        (t->family == "chatterbox" || t->family == "chatterbox_turbo") ? "1" : "0";
+    // The two Chatterbox families and kitten_tts2 are given a nonzero seed. audio.cpp's
+    // chatterbox choose_seed turns seed 0 into a std::random_device draw
+    // (src/models/chatterbox/component_weights.cpp:7-13) for its T3 sampler
+    // (components/t3_runtime.h:1416) and for the S3Gen flow noise (s3gen_inference.cpp:330-335);
+    // the HiFT vocoder takes the seed verbatim. chatterbox_turbo fixes its own T3 at seed 0
+    // (src/community_models/chatterbox_turbo/t3_turbo_component.cpp:141), but its flow noise
+    // reuses chatterbox's choose_seed (s3gen_turbo.cpp:79-90). kitten_tts2 seeds its language
+    // model with the seed it is sent (src/community_models/kitten_tts2/session.cpp:185-195) and
+    // hands seed + chunk index to the same S3Gen stage (session.cpp:200, decoder.cpp:45-47), so at
+    // seed 0 its first chunk gets a random flow noise. All three need a nonzero seed for
+    // R7(s4)'s deterministic synthesis. Every other pinned family randomises only when no seed
+    // is sent.
+    req.options["seed"] = (t->family == "chatterbox" || t->family == "chatterbox_turbo" ||
+                           t->family == "kitten_tts2") ? "1" : "0";
     return req;
 }
 
