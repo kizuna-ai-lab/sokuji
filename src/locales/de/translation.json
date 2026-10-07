@@ -155,6 +155,8 @@
     "vadMinSilenceDurationTooltip": "Minimale Stille zum Aufteilen von Sprachsegmenten. Kürzere Werte teilen Sätze schneller auf, längere Werte warten auf natürlichere Pausen.",
     "vadMaxSpeechDuration": "Max. Sprechdauer",
     "vadMaxSpeechDurationTooltip": "Längste Dauer, die ein einzelnes Sprachsegment laufen kann, bevor es geteilt wird. Manche Modelle teilen früher, bei der längsten Dauer, die sie korrekt transkribieren.",
+    "vadPreSpeechPadDuration": "Vorlauf vor Sprache",
+    "vadPreSpeechPadDurationTooltip": "Audio unmittelbar vor erkannter Sprache wird mit übernommen, damit der erste Laut eines Satzes nicht abgeschnitten wird. Höhere Werte geben auch mehr Geräusche vor dem Sprechen an die Erkennung weiter.",
     "vadMinSpeechDuration": "Min. Sprechdauer",
     "vadMinSpeechDurationTooltip": "Minimale Sprechdauer für gültige Sprache. Filtert sehr kurze Geräusche wie Klicks oder Husten heraus.",
     "geminiVadTooltip": "Steuert, wie Gemini Sprachpausen erkennt, um Gesprächszüge zu trennen. Diese Einstellungen können die Übersetzungsreaktionsfähigkeit bei kontinuierlicher Sprache verbessern. \nPush-to-Talk: Halten Sie eine Taste, um Audio zu senden. \nPush-to-Translate: Wie Push-to-Talk, leitet aber Ihr Roh-Mikrofon im Leerlauf an das virtuelle Mikrofon weiter, sodass Sie ohne Übersetzung direkt sprechen können.",

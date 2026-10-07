@@ -117,6 +117,8 @@ export interface VadValues {
    * 0 means "auto": the worker derives it from vadThreshold.
    */
   vadNegativeThreshold?: number;
+  /** vad-web workers only — omit it and the slider is hidden. */
+  vadPreSpeechPadDuration?: number;
 }
 
 export const VadControl: React.FC<{
@@ -195,6 +197,22 @@ export const VadControl: React.FC<{
           className="slider" disabled={disabled}
         />
       </div>
+      {values.vadPreSpeechPadDuration !== undefined && (
+        <div className="setting-item">
+          <div className="setting-label">
+            <span>
+              {t('settings.vadPreSpeechPadDuration', 'Pre-Speech Padding')}
+              <Tooltip content={t('settings.vadPreSpeechPadDurationTooltip', 'Audio kept from just before speech is detected, so the first sound of a sentence is not cut off. Longer values also pass more of the noise before you speak to recognition.')} position="top">{inlineHelpIcon}</Tooltip>
+            </span>
+            <span className="setting-value">{values.vadPreSpeechPadDuration.toFixed(2)}s</span>
+          </div>
+          <input
+            type="range" min="0" max="2" step="0.05" value={values.vadPreSpeechPadDuration}
+            onChange={(e) => onChange({ vadPreSpeechPadDuration: parseFloat(e.target.value) })}
+            className="slider" disabled={disabled}
+          />
+        </div>
+      )}
       {values.vadMaxSpeechDuration !== undefined && (
         <div className="setting-item">
           <div className="setting-label">

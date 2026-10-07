@@ -24,6 +24,7 @@ export interface LocalInferenceSettings {
   vadMinSilenceDuration: number;
   vadMinSpeechDuration: number;
   vadMaxSpeechDuration: number;
+  vadPreSpeechPadDuration: number;
   /** true = Simple (default), false = Advanced. */
   useTemplateMode: boolean;
   /** Advanced-mode speaker prompt (default ''). */
@@ -42,6 +43,7 @@ export const LOCAL_INFERENCE_DEFAULTS: LocalInferenceSettings = {
   vadMinSilenceDuration: 1.4,
   vadMinSpeechDuration: 0.4,
   vadMaxSpeechDuration: 30,
+  vadPreSpeechPadDuration: 0.8,
   useTemplateMode: true,
   systemPrompt: '',
   participantSystemPrompt: '',

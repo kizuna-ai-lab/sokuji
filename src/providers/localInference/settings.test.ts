@@ -3,6 +3,12 @@ import { parseCode } from '../../lib/language/code';
 import { AUTO } from '../../lib/provider/languages';
 import { LOCAL_INFERENCE_DEFAULTS, localInferenceLanguages } from './settings';
 
+describe('LOCAL_INFERENCE_DEFAULTS', () => {
+  it('pads speech with the 0.8 s every vad-web worker used before the setting existed', () => {
+    expect(LOCAL_INFERENCE_DEFAULTS.vadPreSpeechPadDuration).toBe(0.8);
+  });
+});
+
 describe('localInferenceLanguages', () => {
   it('never offers AUTO as a source', () => {
     const sources = localInferenceLanguages.sources(LOCAL_INFERENCE_DEFAULTS);

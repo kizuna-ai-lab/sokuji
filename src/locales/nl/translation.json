@@ -155,6 +155,8 @@
     "vadMinSilenceDurationTooltip": "Minimale stilteduur om spraaksegmenten te splitsen. Kortere waarden splitsen zinnen sneller, langere waarden wachten op natuurlijkere pauzes.",
     "vadMaxSpeechDuration": "Max. spraakduur",
     "vadMaxSpeechDurationTooltip": "Langste duur van één spraaksegment voordat het wordt gesplitst. Sommige modellen splitsen eerder, bij het langste segment dat ze correct transcriberen.",
+    "vadPreSpeechPadDuration": "Marge vóór spraak",
+    "vadPreSpeechPadDurationTooltip": "Bewaart de audio vlak voordat spraak wordt gedetecteerd, zodat de eerste klank van een zin niet wordt afgekapt. Hogere waarden sturen ook meer geluid van vóór het spreken naar de herkenning.",
     "vadMinSpeechDuration": "Min. spraakduur",
     "vadMinSpeechDurationTooltip": "Minimale duur om als geldige spraak te beschouwen. Filtert zeer korte geluiden zoals klikken of hoesten.",
     "geminiVadTooltip": "Bepaalt hoe Gemini spraakpauzes detecteert om beurten te splitsen. Het aanpassen van deze instellingen kan de vertaalreactiviteit voor doorlopende spraak verbeteren. \nPush-to-Talk: houd een toets ingedrukt om audio te verzenden. \nPush-to-Translate: zoals Push-to-Talk, maar leidt uw onbewerkte microfoon door naar de virtuele microfoon wanneer inactief, zodat u direct kunt spreken zonder vertaling.",
