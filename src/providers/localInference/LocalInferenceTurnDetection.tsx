@@ -23,8 +23,9 @@ const helpIcon = (
  * `ProviderSpecificSettings.tsx`). `showVad` is false only for a streaming
  * ASR that reports no worker type: endpoint detection replaces VAD there.
  * `vadIsWebWorker` adds the three vad-web knobs; the sherpa-onnx engine has
- * its own hysteresis and cuts at a fixed length. `smart` is what a session
- * will run: a stored Smart whose model is not on disk reads as Normal.
+ * its own hysteresis and cuts at a fixed length. `smart`, offered when either
+ * direction's ASR supports it, is what a session will run: a stored Smart
+ * whose model is not on disk reads as Normal.
  */
 function useVadKnobs(settings: S, pair: LanguagePair | undefined) {
   // `localInferenceLanguages.initial()` gives the same fallback; the Speech
