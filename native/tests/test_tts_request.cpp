@@ -570,6 +570,21 @@ void breeze_tts_requests() {
     assert(task_spec_for(*find_family("breeze_tts")).mode == rt::RunMode::Offline);
 }
 
+void audio8_tts_row_columns() {
+    // The row's columns, read off audio.cpp's own sources (see the kFamilies comment): offline
+    // session, optional clone that needs its transcript, 44.1 kHz, always samples, no spec
+    // validation of the request options, a plain Tts session, no preset option.
+    const FamilyInfo *f = find_family("audio8_tts");
+    assert(f != nullptr);
+    assert(!f->streaming && f->clones && f->transcript_required);
+    assert(f->default_rate == 44100);
+    assert(!f->sample_decode);
+    assert(!f->strict_options && !f->strict_sends_ref_text);
+    assert(f->task == FamilyTask::Tts && f->preset_option == nullptr);
+    const rt::TaskSpec spec = task_spec_for(*f);
+    assert(spec.task == rt::VoiceTaskKind::Tts && spec.mode == rt::RunMode::Offline);
+}
+
 void audio8_ja_reaches_the_model_as_yue() {
     // audio8_tts's request language only switches its Traditional -> Simplified rewrite, which
     // would turn Japanese kanji into Chinese glyphs; "yue" is the one value that skips it.
@@ -584,6 +599,13 @@ void audio8_ja_reaches_the_model_as_yue() {
     assert(req.text_input->language == "yue");
     req = build_request(audio8.get(), "Hello.", "en", 1.0f);
     assert(req.text_input->language == "en");
+    // Only audio8_tts is remapped: another family that forwards the caller's language keeps
+    // "ja" (and a region-tagged code) exactly as sent.
+    const auto fish = handle_for("fish_audio");
+    req = build_request(fish.get(), "Tokyo.", "ja", 1.0f);
+    assert(req.text_input->language == "ja");
+    req = build_request(fish.get(), "Tokyo.", "ja-JP", 1.0f);
+    assert(req.text_input->language == "ja-JP");
     // Not strict: a clip's transcript goes with it; the seed is fixed.
     give_clip(audio8.get(), "The quick brown fox.");
     req = build_request(audio8.get(), "Hello.", "en", 1.0f);
@@ -629,6 +651,7 @@ int main() {
     higgs_audio_tts_requests();
     fish_audio_requests();
     breeze_tts_requests();
+    audio8_tts_row_columns();
     audio8_ja_reaches_the_model_as_yue();
     soprano_is_sent_only_the_seed();
     std::puts("test_tts_request ok");

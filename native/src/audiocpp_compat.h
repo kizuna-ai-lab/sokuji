@@ -3,8 +3,8 @@
  * audio.cpp v0.8.2-audio8-perf-hotfix (upstream ac16661d; re-scanned at the 2026-09-25 pin bump)
  * carries a ggml fork (base
  * 0.12.0) that differs from the pristine upstream ggml 0.25.3 we build on in the ways below.
- * This header covers all of these — (A)/(D)/(E) fail to LINK if you get them wrong, (B) fails
- * silently.
+ * This header covers all of these — (A)/(D)/(E) fail to LINK if you get them wrong, (F)/(G) fail
+ * to COMPILE without them (both are header-only), (B) fails silently.
  *
  * (A) SEVEN SYMBOLS THE FORK ADDS. audio.cpp's *framework* code references them
  *     unconditionally, but none of the five original TTS families we build (moss_tts_nano,
@@ -46,6 +46,12 @@
  * (D) shims the reachable ones and (E) stubs the link-only ones; differing shared ggml.c
  * bodies 20 -> 22, the two new ones harmless (ggml_nbytes adds bytes only for the fork-only
  * I8_S/I2_S types; ggml_permute is upstream widening int -> int64_t/size_t). (B) unchanged.
+ *
+ * ADDED 2026-10-07 for audio8_tts (audio.cpp 54aa279 against ggml 0.26.0): (F) ggml_snake_1d, a
+ * fork-only fused op that the audio8_tts codec names on every lane although only its Metal
+ * decoder runs it, and (G) the fork's 8-argument ggml_ssm_scan, which upstream 0.26 declares
+ * with a trailing K. Neither declaration exists in upstream ggml, so without them
+ * audio8_tts/codec.cpp and ar.cpp do not compile; they never get as far as the link.
  *
  * If a family ever fails parity on upstream ggml, port THAT op's kernel or constructor
  * here — do not resurrect the fork. */
@@ -329,9 +335,10 @@ static inline struct ggml_tensor *ggml_round_bf16(struct ggml_context *ctx, stru
  * frame axis of a channel-fast [C,T] tensor, as ONE GGML_OP_SNAKE_1D node with CPU and Metal
  * kernels. Upstream ggml has no such op. audio.cpp calls it from one place,
  * audio8_tts/codec.cpp:517, inside the decoder it builds only on Metal (codec.cpp:662), so CPU
- * and Vulkan never execute it — but the object file references it on every lane, so it must
- * LINK everywhere. The body is the fork's own non-fused fallback (codec.cpp:519-522), which
- * its comment says differs from the fused kernel by Metal sin ulps only. */
+ * and Vulkan never execute it — but the translation unit names it on every lane, so every lane
+ * needs the definition to build. The body is the fork's own non-fused fallback
+ * (codec.cpp:519-522), which its comment says differs from the fused kernel by Metal sin ulps
+ * only. */
 static inline struct ggml_tensor *ggml_snake_1d(
         struct ggml_context *ctx, struct ggml_tensor *a, struct ggml_tensor *alpha) {
     GGML_ASSERT(alpha->ne[0] == a->ne[0]);
@@ -475,12 +482,17 @@ static inline struct ggml_tensor *ggml_gated_delta_net(
  * followed by K states per sequence, and a Mamba-1 A (A->ne[0] == d_state) must have K == 1.
  * The fork (external/ggml at 54aa279, ggml.c:6280-6341) takes no K and appends exactly one
  * state per sequence, which is upstream's K == 1 layout, so the fork's call is upstream's with
- * a trailing K = 1. Same name, different arity: a C++ overload beside upstream's extern "C"
- * declaration, placed after (E)'s overload because extern "C" functions cannot be overloaded.
- * The fork's caller is audio8_tts/ar.cpp:1205 and :1620 (the Falcon mamba block); the rest of
- * audio.cpp does not reach it. A ggml pin bump must re-check this: a changed K meaning, a new
- * argument, or an op-params layout change here would silently change what audio8_tts computes.
- * test_audiocpp_compat.cpp pins the two forms bit for bit. */
+ * a trailing K = 1. That equivalence is read off the two sources, not measured. Same name,
+ * different arity: a C++ overload beside upstream's extern "C" declaration, placed after (E)'s
+ * overload because extern "C" functions cannot be overloaded.
+ * Among the compiled families the fork's callers are audio8_tts/ar.cpp:1205 and :1620 (the
+ * Falcon mamba block). community_models/reuse/runtime.cpp:355 makes the same 8-argument call,
+ * but `reuse` is not in AUDIOCPP_MODELS.
+ * test_audiocpp_compat.cpp pins the argument forwarding (the overload and upstream's call with
+ * K = 1 build the same graph) and the output size, y followed by one state per sequence. It
+ * does not check the scan against a reference. A ggml pin bump must re-verify that K = 1 still
+ * means the fork's single-state scan: a changed K meaning, a new argument or an op-params
+ * layout change would silently change what audio8_tts computes. */
 static inline struct ggml_tensor *ggml_ssm_scan(
         struct ggml_context *ctx, struct ggml_tensor *s, struct ggml_tensor *x, struct ggml_tensor *dt,
         struct ggml_tensor *A, struct ggml_tensor *B, struct ggml_tensor *C, struct ggml_tensor *ids) {

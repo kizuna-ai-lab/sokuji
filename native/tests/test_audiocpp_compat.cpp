@@ -120,10 +120,13 @@ int main(int argc, char **argv) {
             }
     }
 
-    // (G) the fork's 8-argument ggml_ssm_scan == upstream's with a trailing K = 1: bit for bit on
-    // the whole result, y followed by one state per sequence. A real scan (3 tokens, 2 sequences
-    // reading states 1 and 0 of a 2-state buffer, Mamba-2 A of [1, n_head]) so both the y values
-    // and the state tail depend on every input.
+    // (G) pins that the fork's 8-argument ggml_ssm_scan forwards its arguments to upstream's with
+    // a trailing K = 1: the two forms give the same result bit for bit, and its size is y followed
+    // by one state per sequence. It does NOT check the scan's numerics against a reference or
+    // against the fork; that K = 1 means the fork's single-state scan is read off the two sources
+    // (audiocpp_compat.h (G)) and is what a ggml pin bump must re-verify. The inputs are a real
+    // scan (3 tokens, 2 sequences reading states 1 and 0 of a 2-state buffer, Mamba-2 A of
+    // [1, n_head]) so the result is not degenerate.
     {
         const int d_state = 6, head_dim = 8, n_head = 4, n_group = 2, T = 3, n_seqs = 2;
         const size_t n_x = (size_t)head_dim * n_head * T * n_seqs;
