@@ -869,6 +869,81 @@ def test_tts_chatterbox_synthesis_is_reproducible(case):
     assert np.array_equal(first, second)
 
 
+# Both Chatterbox T3 decode runners read KV-cache slots they had not written (zeroed now by
+# native/patches/audio.cpp.json): harmless on a fresh process's zero pages, not on heap memory
+# an earlier model left behind. glibc's MALLOC_PERTURB_ fills every allocation with a nonzero
+# byte, so a perturbed child process must give the same samples as a plain one.
+_PERTURBED_HEAP_RUNNER = r'''
+import json, os, sys
+
+cfg = json.loads(os.environ["SK_PERTURBED_HEAP_CONFIG"])
+sys.path.insert(0, cfg["native_python_dir"])
+import numpy as np
+import sokuji_native as s
+
+s.init()
+cpu = next(d for d in s.devices() if d.kind == "cpu")
+model = s.tts_load(cfg["model_path"], cfg["family"], cpu)
+try:
+    if cfg["clip"]:
+        model.set_voice(np.load(cfg["clip"]), cfg["clip_rate"], ref_text=cfg["ref_text"])
+    samples, rate = model.synth(cfg["text"], language=cfg["language"])
+finally:
+    model.unload()
+np.save(cfg["out"], samples)
+print("SK_PERTURBED_HEAP_RATE " + str(int(rate)))
+'''
+
+
+@pytest.mark.parametrize("case", SEEDED_CPU_TTS_CASES, ids=_cpu_case_ids(SEEDED_CPU_TTS_CASES))
+def test_tts_chatterbox_synthesis_is_the_same_over_a_perturbed_heap(case, tmp_path):
+    if not HAVE_TREE:
+        pytest.skip("needs a built tree")
+    if not sys.platform.startswith("linux"):
+        pytest.skip("MALLOC_PERTURB_ is glibc's; elsewhere both runs would see the same heap")
+    if not case.model_dir:
+        pytest.skip(f"needs {case.env_name}")
+    if case.needs_ref and not TTS_SUPERTONIC_DIR:
+        pytest.skip(f"{case.family} needs SK_TEST_TTS_SUPERTONIC_DIR for a reference clip")
+    clip, clip_rate, ref_text = None, 0, ""
+    if case.needs_ref:
+        # Made once, here, and handed to both runs, so both clone the same clip.
+        sokuji_native.init()
+        pcm, clip_rate, ref_text = _cpu_reference_clip()
+        clip = str(tmp_path / "clip.npy")
+        np.save(clip, pcm)
+
+    out = {}
+    for run, perturb in (("plain", None), ("perturbed", "165")):
+        cfg = {
+            "native_python_dir": str(pathlib.Path(sokuji_native.__file__).resolve().parents[1]),
+            "model_path": _main_gguf(case.model_dir),
+            "family": case.family,
+            "clip": clip,
+            "clip_rate": clip_rate,
+            "ref_text": ref_text,
+            "text": case.text,
+            "language": case.language,
+            "out": str(tmp_path / f"{run}.npy"),
+        }
+        env = {k: v for k, v in os.environ.items() if k != "MALLOC_PERTURB_"}
+        env["SK_PERTURBED_HEAP_CONFIG"] = json.dumps(cfg)
+        if perturb:
+            env["MALLOC_PERTURB_"] = perturb
+        proc = subprocess.run([sys.executable, "-c", _PERTURBED_HEAP_RUNNER],
+                              capture_output=True, text=True, timeout=1800, env=env)
+        tail = "\n".join((proc.stderr or "").strip().splitlines()[-30:])
+        assert proc.returncode == 0, f"{case.family} {run} run failed: exit {proc.returncode}\n{tail}"
+        assert f"SK_PERTURBED_HEAP_RATE {case.rate}" in proc.stdout, proc.stdout
+        out[run] = np.load(cfg["out"])
+
+    plain, perturbed = out["plain"], out["perturbed"]
+    # The perturbed run's own bar first: chatterbox_turbo's failure raised nothing.
+    assert 0.3 < perturbed.shape[0] / case.rate < 20.0, (perturbed.shape, plain.shape)
+    assert float(np.max(np.abs(perturbed))) > 0.01
+    assert np.array_equal(perturbed, plain)
+
+
 @needs_tts_index
 def test_tts_index_tts2_without_a_voice_fails_cleanly():
     """index_tts2 cannot synthesize without a reference clip. The native layer must turn
