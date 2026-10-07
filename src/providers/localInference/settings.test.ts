@@ -7,6 +7,12 @@ describe('LOCAL_INFERENCE_DEFAULTS', () => {
   it('pads speech with the 0.8 s every vad-web worker used before the setting existed', () => {
     expect(LOCAL_INFERENCE_DEFAULTS.vadPreSpeechPadDuration).toBe(0.8);
   });
+
+  it('starts on Normal, with Smart Turn checking after 0.30 s at 0.50', () => {
+    expect(LOCAL_INFERENCE_DEFAULTS.vadEndOfTurn).toBe('normal');
+    expect(LOCAL_INFERENCE_DEFAULTS.smartTurnCheckAfter).toBe(0.3);
+    expect(LOCAL_INFERENCE_DEFAULTS.smartTurnThreshold).toBe(0.5);
+  });
 });
 
 describe('localInferenceLanguages', () => {

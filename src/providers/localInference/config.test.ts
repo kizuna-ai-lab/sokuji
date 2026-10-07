@@ -39,7 +39,7 @@ vi.mock('../../stores/modelStore', () => ({
 
 /** Per-model manifest stub: only the fields `build`/`admit` read. Absent id: a
  *  plain offline ASR entry, no AST capability. */
-let mockManifest: Record<string, { type?: string; asrEngine?: string; astLanguages?: unknown }> = {};
+let mockManifest: Record<string, { type?: string; asrEngine?: string; astLanguages?: unknown; asrWorkerType?: string }> = {};
 /** Per-model memory size in MB, summed by the mocked `estimateModelMemoryByDevice`. */
 let mockSizes: Record<string, number> = {};
 
@@ -221,6 +221,39 @@ describe('buildLocalInference', () => {
       shared({ reversed: true }),
     );
     expect((c as LocalInferenceConfig).translation).toMatchObject({ instructions: 'MINE' });
+  });
+
+  describe('Smart Turn', () => {
+    beforeEach(() => {
+      mockManifest = { a: { type: 'asr', asrWorkerType: 'whisper-webgpu' } };
+      resolved({ 'ja>en': { asr: 'a', translation: 't' } });
+    });
+
+    const build = (over: Partial<LocalInferenceSettings>) =>
+      buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(over), shared()) as LocalInferenceConfig;
+
+    it('carries Smart Turn into vad.smartTurn', () => {
+      expect(build({ vadEndOfTurn: 'smart' }).vad.smartTurn).toEqual({ checkAfter: 0.3, threshold: 0.5 });
+    });
+
+    it('leaves it out under Normal', () => {
+      expect(build({}).vad).not.toHaveProperty('smartTurn');
+    });
+
+    it.each(['sherpa-onnx', 'voxtral-webgpu', undefined])('leaves it out for an ASR whose worker is %s', (asrWorkerType) => {
+      mockManifest = { a: { type: 'asr', asrWorkerType } };
+      expect(build({ vadEndOfTurn: 'smart' }).vad).not.toHaveProperty('smartTurn');
+    });
+
+    it('holds Turn Check After 0.2 s under Max Wait', () => {
+      expect(build({ vadEndOfTurn: 'smart', vadMinSilenceDuration: 0.4, smartTurnCheckAfter: 0.5 }).vad.smartTurn)
+        .toEqual({ checkAfter: 0.2, threshold: 0.5 });
+    });
+
+    it('drops Smart when Max Wait leaves under 0.10 s for it', () => {
+      expect(build({ vadEndOfTurn: 'smart', vadMinSilenceDuration: 0.25 }).vad).not.toHaveProperty('smartTurn');
+      expect(build({ vadEndOfTurn: 'smart', vadMinSilenceDuration: 0.3 }).vad.smartTurn).toEqual({ checkAfter: 0.1, threshold: 0.5 });
+    });
   });
 });
 

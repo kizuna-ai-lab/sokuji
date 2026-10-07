@@ -5,6 +5,7 @@ import { useModelStore } from '../../stores/modelStore';
 import { guardAstCrossStage } from '../../services/providers/astGuard';
 import { getManifestEntry, estimateModelMemoryByDevice } from '../../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
+import { effectiveCheckAfter, supportsSmartTurn } from '../../lib/turn/smartTurn';
 import type { LocalInferenceSettings } from './settings';
 
 /**
@@ -16,7 +17,7 @@ import type { LocalInferenceSettings } from './settings';
  */
 export interface LocalInferenceConfig {
   asr: { modelId: string; streaming: boolean };
-  vad: { threshold: number; negativeThreshold?: number; minSilenceDuration: number; minSpeechDuration: number; maxSpeechDuration: number; preSpeechPadDuration: number };
+  vad: { threshold: number; negativeThreshold?: number; minSilenceDuration: number; minSpeechDuration: number; maxSpeechDuration: number; preSpeechPadDuration: number; smartTurn?: { checkAfter: number; threshold: number } };
   translation:
     | { kind: 'engine'; modelId: string; instructions: string; wrapTranscript: boolean }
     | { kind: 'ast' }
@@ -89,6 +90,10 @@ export function buildLocalInference(
     preSpeechPadDuration: s.vadPreSpeechPadDuration,
   };
   if (s.vadNegativeThreshold) vad.negativeThreshold = s.vadNegativeThreshold;
+  if (s.vadEndOfTurn === 'smart' && supportsSmartTurn(asrEntry)) {
+    const checkAfter = effectiveCheckAfter(s.smartTurnCheckAfter, s.vadMinSilenceDuration);
+    if (checkAfter !== null) vad.smartTurn = { checkAfter, threshold: s.smartTurnThreshold };
+  }
 
   // Today's inference (LocalInferenceClient.ts ~406-408): the ASR model
   // handles translation itself (Granite Speech) when it was also picked,
