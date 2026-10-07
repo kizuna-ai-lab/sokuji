@@ -122,6 +122,8 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
 - `src/sk_selftest.cpp` — `sk_audio_families()`, reporting every family compiled in (companions such as `marblenet_vad` / `moss_tts_local` ride along with the selected ones; the sidecar catalog decides what is supported).
 - `src/sk_internal.h` — internal-only helpers shared by the `sk_*.cpp` files (locking, the
   device table, `own_directory()`, the log sink); never installed.
+- `src/sk_env.h` — the engine environment switches whose defaults sokuji chooses (echo_tts's
+  adaptive window), set once per process by `sk_init`; header-only so the unit test can check it.
 - `src/sk_asr.cpp` — `sk_asr_load/capabilities/run/stream_open/stream_feed/stream_finalize/stream_close/unload`
   over transcribe.cpp.
 - `src/sk_translate.cpp` — `sk_translate_load/chat/complete/unload` over llama.cpp.

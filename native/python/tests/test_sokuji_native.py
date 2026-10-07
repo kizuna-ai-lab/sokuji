@@ -88,6 +88,25 @@ def test_init_and_devices():
     assert lines, "sk_init logs at least one line"
 
 
+# Placed after test_init_and_devices on purpose: that test and the trampoline test below need
+# the process's FIRST sk_init to be theirs, which carries a log sink, so nothing before them
+# may initialise the library.
+@needs_tree
+@pytest.mark.skipif(sys.platform == "win32", reason="ctypes.CDLL(None) has no C runtime to ask on Windows")
+def test_init_sets_the_echo_adaptive_window_default_at_the_c_level():
+    """sk_init switches echo_tts's adaptive window on once per process (sk_env.h), unless the
+    test's own environment already set it. Asked of the C runtime's getenv, since os.environ is a
+    snapshot Python's own putenv calls keep and does not see a C-level setenv. Losing this wiring
+    makes every echo synth about 5x slower."""
+    import ctypes
+    name = "AUDIOCPP_ECHO_TTS_ADAPTIVE_WINDOW"
+    sokuji_native.init()
+    libc = ctypes.CDLL(None)
+    libc.getenv.argtypes = [ctypes.c_char_p]
+    libc.getenv.restype = ctypes.c_char_p
+    assert libc.getenv(name.encode()) == os.environ.get(name, "1").encode()
+
+
 @needs_tree
 def test_audio_families():
     families = sokuji_native.audio_families()

@@ -1,6 +1,7 @@
 #define SOKUJI_NATIVE_BUILD 1
 #include "sokuji_native.h"
 #include "version.h"
+#include "sk_env.h"
 #include "sk_internal.h"
 
 #include "ggml-backend.h"
@@ -175,6 +176,7 @@ SK_API sk_status sk_init(const sk_init_options *options) {
     std::lock_guard<std::mutex> lock(g_mutex);
     if (g_initialised) return SK_OK;
 
+    sk::set_engine_env_defaults();   // here, once per process: a per-load setenv races other threads' getenv
     g_log = options->log;
     g_log_user = options->log_user;
     bool threads_explicit = options->n_threads > 0;

@@ -9,6 +9,7 @@
 #include <iterator>
 
 #define SK_TTS_REQUEST_ONLY 1
+#include "sk_env.h"
 #include "sk_tts.cpp"
 
 namespace {
@@ -679,18 +680,17 @@ void echo_tts_clones_in_a_voice_cloning_session_with_the_adaptive_window() {
     assert(!has(req, "reference_text") && !has(req, "do_sample"));
     assert(opt(req, "seed") == "0");
     assert(!has(req, "max_duration_sec"));   // the window is sized by the adaptive estimate, not pinned
-    // The adaptive window is switched on at load unless the environment already decided.
-    // The switch is process-wide: put it back as it was, so no other case sees this one's value.
+    // sk_init switches the adaptive window on unless the environment already decided (sk_env.h;
+    // the Python suite checks that sk_init calls it). The switch is process-wide: put it back as
+    // it was, so no other case sees this one's value.
     const char *kSwitch = "AUDIOCPP_ECHO_TTS_ADAPTIVE_WINDOW";
     const char *before = std::getenv(kSwitch);
     const std::string saved = before ? before : "";
     set_process_env(kSwitch, nullptr);
-    apply_family_env(*find_family("audio8_tts"));
-    assert(std::getenv(kSwitch) == nullptr);
-    apply_family_env(*echo);
+    sk::set_engine_env_defaults();
     assert(std::getenv(kSwitch) != nullptr && std::strcmp(std::getenv(kSwitch), "1") == 0);
     set_process_env(kSwitch, "0");
-    apply_family_env(*echo);
+    sk::set_engine_env_defaults();
     assert(std::strcmp(std::getenv(kSwitch), "0") == 0);
     set_process_env(kSwitch, before ? saved.c_str() : nullptr);
 }

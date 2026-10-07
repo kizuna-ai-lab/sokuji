@@ -1630,7 +1630,7 @@ def test_audio8_japanese_loopback():
 )
 def test_echo_tts_loopback():
     """Echo-TTS clones a supertonic clip and speaks the loopback sentence intelligibly on CPU.
-    sk_tts_load turns on audio.cpp's adaptive generation window unless
+    sk_init turns on audio.cpp's adaptive generation window unless
     AUDIOCPP_ECHO_TTS_ADAPTIVE_WINDOW is already set, so running this once as is and once with
     AUDIOCPP_ECHO_TTS_ADAPTIVE_WINDOW=0 compares the adaptive and the full 29.72 s window on the
     same seed."""
@@ -1663,7 +1663,7 @@ def test_echo_tts_loopback():
         transcript = _loopback_transcribe(asr, samples, rate)
     finally:
         asr.unload()
-    window = os.environ.get("AUDIOCPP_ECHO_TTS_ADAPTIVE_WINDOW", "1 (set at load)")
+    window = os.environ.get("AUDIOCPP_ECHO_TTS_ADAPTIVE_WINDOW", "1 (set at init)")
     print(f"\n  echo_tts adaptive_window={window} {_loopback_mono(samples).shape[0] / rate:.2f}s audio "
           f"{synth_s:.2f}s synth transcript={transcript!r}")
     assert _loopback_hit(transcript), transcript
