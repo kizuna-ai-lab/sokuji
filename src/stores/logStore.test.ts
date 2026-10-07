@@ -385,6 +385,15 @@ describe('logStore — timing', () => {
     expect(audio.events!.map(e => e.atMs)).toEqual([2000, 2041]);
   });
 
+  it("keeps its own stamp, first in the line, over an event's own atMs", () => {
+    vi.spyOn(performance, 'now').mockReturnValue(700);
+    useLogStore.getState().addRealtimeEvent({ type: 'session.opened', data: {}, atMs: 5 } as any, 'server', 'session.opened', 'speaker');
+
+    const event = useLogStore.getState().allLogs[0].events![0];
+    expect(event.atMs).toBe(700);
+    expect(Object.keys(event)[0]).toBe('atMs');
+  });
+
   it('stamps plain entries too', () => {
     vi.spyOn(performance, 'now').mockReturnValue(512.4);
     useLogStore.getState().addLog('settings failed to load', 'error');

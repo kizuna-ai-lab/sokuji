@@ -343,8 +343,9 @@ const useLogStore = create<LogStore>(
 
       // Sanitize the event to remove binary audio data. The stamp rides inside
       // the event, since 'copy logs' exports events one per line and a grouped
-      // entry's own `timestamp` is only its newest event's second.
-      const sanitizedEvent = { atMs, ...sanitizeEvent(event) };
+      // entry's own `timestamp` is only its newest event's second. First in the
+      // line for reading, and assigned last so an event's own `atMs` cannot win.
+      const sanitizedEvent: EventData = Object.assign({ atMs }, sanitizeEvent(event), { atMs });
       
       // Create a descriptive message for the log entry
       const message = `${source}: ${eventType}`;
