@@ -8,6 +8,7 @@ import { useNativeModelStore, useNativeCatalog } from '../../../stores/nativeMod
 import { useLocalNativeSettings } from '../../../stores/settingsStore';
 import { MODEL_MANIFEST, getManifestEntry, getModelSizeMb } from '../../../lib/local-inference/modelManifest';
 import { useSegmentationStore } from '../../../stores/segmentationStore';
+import { useSmartTurnStore } from '../../../stores/smartTurnStore';
 import { wasmCandidates } from '../../../lib/local-inference/selection/candidates.wasm';
 import { nativeCandidates } from '../../../lib/local-inference/selection/candidates.native';
 import { resolveDirection } from '../../../lib/local-inference/selection/resolveStage';
@@ -200,10 +201,11 @@ export const StoragePage: React.FC<
     setClearAllPending(false);
     if (isWasm) {
       await useModelStore.getState().deleteAllModels();
-      // The clear wipes the whole IndexedDB, punctuation models included —
-      // the segmentation pack's own store must be told, or the Sentence
-      // segmentation section keeps claiming the models are ready.
+      // The clear wipes the whole IndexedDB, punctuation and Smart Turn models
+      // included — their own stores must be told, or their settings keep
+      // claiming the models are ready.
       await useSegmentationStore.getState().refresh();
+      await useSmartTurnStore.getState().refresh();
     } else {
       // Native has no bulk clear — best-effort per-model delete.
       await Promise.all(rows.map((r) => useNativeModelStore.getState().deleteModel(r.id)));

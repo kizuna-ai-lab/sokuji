@@ -213,6 +213,30 @@ describe('StoragePage (wasm)', () => {
     }
   });
 
+  it('re-checks the Smart Turn model after Clear all', async () => {
+    const { useSmartTurnStore } = await import('../../../stores/smartTurnStore');
+    const { useSegmentationStore } = await import('../../../stores/segmentationStore');
+    const originalTurnRefresh = useSmartTurnStore.getState().refresh;
+    const originalPackRefresh = useSegmentationStore.getState().refresh;
+    const originalDeleteAllModels = useModelStore.getState().deleteAllModels;
+    const refresh = vi.fn().mockResolvedValue(undefined);
+    useSmartTurnStore.setState({ refresh });
+    useSegmentationStore.setState({ refresh: vi.fn().mockResolvedValue(undefined) });
+    useModelStore.setState({
+      modelStatuses: { [asrId()]: 'downloaded' }, webgpuAvailable: true, deleteAllModels: vi.fn().mockResolvedValue(undefined),
+    });
+    try {
+      render(<StoragePage provider="wasm" {...WASM} />);
+      fireEvent.click(screen.getByRole('button', { name: /Clear all/ }));
+      fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
+      await waitFor(() => expect(refresh).toHaveBeenCalled());
+    } finally {
+      useSmartTurnStore.setState({ refresh: originalTurnRefresh });
+      useSegmentationStore.setState({ refresh: originalPackRefresh });
+      useModelStore.setState({ deleteAllModels: originalDeleteAllModels });
+    }
+  });
+
   // I4: the delete confirm used to render only the (possibly empty) fallback
   // notes — a model whose delete touches neither live direction (downloaded
   // but not in use) showed a confirm box with NO question at all.
