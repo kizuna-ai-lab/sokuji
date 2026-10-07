@@ -38,4 +38,5 @@ export SK_TEST_TTS_KITTEN2_DIR=$C/tts/kitten-tts2
 export SK_TEST_TTS_VOICETUT_DIR=$C/tts/voicetut-tts
 export SK_TEST_TTS_MIOTTS_DIR=$C/tts/miotts-1.7b/MioTTS-1.7B-GGUF
 export SK_TEST_TTS_LFM2_DIR=$C/tts/lfm2.5-audio-en
+export SK_TEST_TTS_LFM2_JA_DIR=$C/tts/lfm2.5-audio-ja
 exec "$@"

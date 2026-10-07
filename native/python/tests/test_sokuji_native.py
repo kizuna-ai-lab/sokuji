@@ -498,6 +498,9 @@ needs_tts_miotts = pytest.mark.skipif(not (HAVE_TREE and TTS_MIOTTS_DIR and TTS_
 TTS_LFM2_DIR = os.environ.get("SK_TEST_TTS_LFM2_DIR")
 needs_tts_lfm2 = pytest.mark.skipif(not (HAVE_TREE and TTS_LFM2_DIR),
                                     reason="needs a built tree and SK_TEST_TTS_LFM2_DIR")
+TTS_LFM2_JA_DIR = os.environ.get("SK_TEST_TTS_LFM2_JA_DIR")
+needs_tts_lfm2_ja = pytest.mark.skipif(not (HAVE_TREE and TTS_LFM2_JA_DIR),
+                                       reason="needs a built tree and SK_TEST_TTS_LFM2_JA_DIR")
 needs_tts_supertonic = pytest.mark.skipif(not (HAVE_TREE and TTS_SUPERTONIC_DIR), reason="needs a built tree and SK_TEST_TTS_SUPERTONIC_DIR")
 needs_tts_moss = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_DIR), reason="needs a built tree and SK_TEST_TTS_MOSS_DIR")
 needs_tts_index = pytest.mark.skipif(not (HAVE_TREE and TTS_INDEX_DIR), reason="needs a built tree and SK_TEST_TTS_INDEX_DIR")
@@ -1852,6 +1855,30 @@ def test_tts_lfm2_synthesis_is_the_same_in_two_fresh_processes(tmp_path):
     assert 0.3 < first.shape[0] / case.rate < 20.0, first.shape
     assert float(np.max(np.abs(first))) > 0.01
     assert np.array_equal(first, second)
+
+
+@needs_tts_lfm2_ja
+def test_tts_lfm2_japanese_has_one_voice():
+    """The Japanese LFM2.5-Audio checkpoint: loaded by its backbone file with the card's load
+    language "auto", it speaks Japanese for an app code like ja-JP; it has exactly one voice, so
+    any preset makes the synth fail — which is why its card offers none."""
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    backbone = _main_gguf(TTS_LFM2_JA_DIR)
+    assert pathlib.Path(backbone).name == "LFM2.5-Audio-1.5B-JP-Q8_0.gguf"
+    t = sokuji_native.tts_load(backbone, "lfm2_audio", cpu, language="auto")
+    try:
+        caps = t.capabilities
+        assert not caps.streaming and not caps.clones and caps.sample_rate == 24000
+        samples, rate = t.synth("こんにちは、今日はいい天気ですね。", language="ja-JP")
+        t.set_preset("us_male")
+        with pytest.raises(sokuji_native.NativeError, match="one voice"):
+            t.synth("こんにちは。", language="ja")
+    finally:
+        t.unload()
+    assert rate == 24000
+    assert 0.3 < samples.shape[0] / rate < 20.0
+    assert float(np.max(np.abs(samples))) > 0.01
 
 
 # --------------------------------------------------------------------------------------

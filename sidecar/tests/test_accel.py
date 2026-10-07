@@ -1916,3 +1916,14 @@ def test_models_catalog_lfm2_english_offers_four_voices():
     assert lfm2["sizeBytes"] == 1_822_397_120
     assert lfm2["license"]["nonCommercial"] is False and lfm2["license"]["requiresConsent"] is True
     assert tts_voices.list_builtin_voices("lfm2.5-audio-en") == ["us_male", "us_female", "uk_male", "uk_female"]
+
+
+def test_models_catalog_lfm2_japanese_offers_no_voice_choice():
+    from sokuji_sidecar import tts_voices
+    ja = _catalog("tts")["lfm2.5-audio-ja"]
+    assert ja["languages"] == ["ja"]
+    v = ja["voice"]
+    assert v["builtin"] == "none" and v["custom"] == "none" and v["required"] is False
+    assert ja["sizeBytes"] == 1_820_023_680
+    assert ja["license"]["sourceRepo"] == "LiquidAI/LFM2.5-Audio-1.5B-JP-GGUF"
+    assert tts_voices.list_builtin_voices("lfm2.5-audio-ja") == []

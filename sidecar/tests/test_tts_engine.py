@@ -1666,6 +1666,44 @@ def test_audio8_japanese_loopback():
     assert "東京" in transcript or "銀行" in transcript, transcript
 
 
+# The Japanese LFM2.5-Audio card has one voice and no presets, so what a user hears is the bare
+# synth: nothing set. Loaded as the sidecar loads it (the backbone file, the card's load language
+# "auto") and asked in the app's code, ja-JP. Three content words are the markers; two of them
+# back in the transcript make it intelligible.
+_LFM2_JA_TEXT = "今日は天気がいいので、公園を散歩します。"
+_LFM2_JA_MARKERS = ("天気", "公園", "散歩")
+
+
+@pytest.mark.skipif(
+    os.environ.get("SOKUJI_RUN_TTS_LOOPBACK") != "1",
+    reason="set SOKUJI_RUN_TTS_LOOPBACK=1 (also needs SK_TEST_TTS_LFM2_JA_DIR and a Japanese-capable "
+           "SK_TEST_ASR_JA_GGUF, default the cached Cohere Transcribe Q4_K_M)",
+)
+def test_lfm2_japanese_bare_loopback():
+    model_dir = os.environ.get("SK_TEST_TTS_LFM2_JA_DIR")
+    if not (model_dir and os.path.isdir(model_dir)):
+        pytest.skip("needs SK_TEST_TTS_LFM2_JA_DIR")
+    if not os.path.exists(_JA_LOOPBACK_ASR_GGUF):
+        pytest.skip(f"no Japanese ASR model at {_JA_LOOPBACK_ASR_GGUF}")
+    sn = native.module()
+    cpu = next(d for d in sn.devices() if d.kind == "cpu")
+    tts = sn.tts_load(os.path.join(model_dir, "LFM2.5-Audio-1.5B-JP-Q8_0.gguf"), "lfm2_audio", cpu, "auto")
+    try:
+        samples, rate = tts.synth(_LFM2_JA_TEXT, language="ja-JP")
+    finally:
+        tts.unload()
+    asr = sn.asr_load(_JA_LOOPBACK_ASR_GGUF, cpu)
+    try:
+        mono = _loopback_mono(samples)
+        target = asr.capabilities.native_sample_rate
+        pcm = soxr.resample(mono, rate, target).astype(np.float32) if rate != target else mono
+        transcript = asr.run(pcm, language="ja")
+    finally:
+        asr.unload()
+    print(f"\n  lfm2_audio ja bare: {mono.shape[0] / rate:.2f}s audio, transcript={transcript!r}")
+    assert sum(word in transcript for word in _LFM2_JA_MARKERS) >= 2, transcript
+
+
 @pytest.mark.skipif(
     os.environ.get("SOKUJI_RUN_TTS_LOOPBACK") != "1",
     reason="set SOKUJI_RUN_TTS_LOOPBACK=1 (also needs SK_TEST_TTS_ECHO_DIR, SK_TEST_TTS_SUPERTONIC_DIR "

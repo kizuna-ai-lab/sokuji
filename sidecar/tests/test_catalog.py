@@ -243,7 +243,8 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
                 "voicetut-tts",
                 # sub-project A, batch 5
                 "miotts-1.7b",
-                "lfm2.5-audio-en")
+                "lfm2.5-audio-en",
+                "lfm2.5-audio-ja")
 
 # The 2026-09-03 batch arrived CPU-ONLY and earned every tier the same evening
 # (commit 2f2b28bc, after the per-family fleet run; catalog._TTS_TIER_OVERRIDES).
@@ -1995,3 +1996,37 @@ def test_lfm2_english_card_ships_four_files_per_rung():
     lic = m.license
     assert lic is not None and lic.spdx == "LicenseRef-LFM-Open-License-1.0"
     assert lic.non_commercial is False and lic.requires_consent is True and lic.source_repo == LFM2_EN_REPO
+
+
+LFM2_JA_REPO = "LiquidAI/LFM2.5-Audio-1.5B-JP-GGUF"
+
+
+def test_lfm2_japanese_card_has_one_voice_and_no_f32_rung():
+    m = catalog.tts_model("lfm2.5-audio-ja")
+    assert m is not None and m.family == "lfm2_audio" and m.graph_family == "lfm2_audio"
+    assert m.languages == ("ja",) and m.load_language == "auto"
+    assert m.clones is False and m.transcript_required is False and m.streaming is False
+    assert m.named_voices is False and m.presets == () and m.default_preset == ""   # any voice throws
+    assert m.voice_required is False
+    assert catalog.voice_capability(m)["builtin"] == "none"
+    assert m.sample_rate == 24000 and m.recommended is False and m.sort_order == 39
+    stem = "LFM2.5-Audio-1.5B-JP"
+    assert [(d.compute_type, d.artifact, d.est_bytes, d.rank, d.companions) for d in m.deployments] == [
+        ("q8_0", f"{LFM2_JA_REPO}/{stem}-Q8_0.gguf", 1_820_023_680, 2.0,
+         _lfm2_companions(stem, "Q8_0", 293_443_840, 205_742_368, 74_584_224)),
+        ("f16", f"{LFM2_JA_REPO}/{stem}-F16.gguf", 3_302_879_040, 1.0,
+         _lfm2_companions(stem, "F16", 432_067_840, 387_159_328, 140_325_984)),
+        ("q4_0", f"{LFM2_JA_REPO}/{stem}-Q4_0.gguf", 1_072_421_248, 1.0,
+         _lfm2_companions(stem, "Q4_0", 219_511_040, 108_986_656, 48_172_704))]
+    assert "f32" not in {d.compute_type for d in m.deployments}
+    assert m.size_bytes == 1_820_023_680
+    assert {d.tier for d in m.deployments} == {"cpu"}
+    assert catalog.hub_revision(LFM2_JA_REPO) == "64b96718b341dbd5650f9e85627cecdcbd4ac61b"
+    # Each rung's four files read from the Hub at the pin (hub_matrix_dtypes.py): the same sets as
+    # the English checkpoint's, the Q4_0 rung's q6_K being its token embedding.
+    assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f32", "q8_0"}),
+                                   "f16": frozenset({"f16", "f32"}),
+                                   "q4_0": frozenset({"f32", "q4_0", "q6_K"})}
+    lic = m.license
+    assert lic is not None and lic.spdx == "LicenseRef-LFM-Open-License-1.0"
+    assert lic.non_commercial is False and lic.requires_consent is True and lic.source_repo == LFM2_JA_REPO

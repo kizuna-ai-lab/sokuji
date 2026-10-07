@@ -2044,3 +2044,17 @@ def test_lfm2_english_card_loads_with_auto_and_is_not_gated(native_env):
     assert created["load_call"][1] == "lfm2_audio" and created["load_call"][3] == "auto"
     samples, _rate, _ms = b.generate("hello")
     assert samples.dtype == np.float32
+
+
+def test_lfm2_japanese_card_loads_with_auto_and_is_not_gated(native_env):
+    """The Japanese checkpoint speaks its one voice with nothing set."""
+    from sokuji_sidecar import catalog
+    created, log = native_env
+    created["caps"] = _caps(clones=False)
+    card = catalog.tts_model("lfm2.5-audio-ja")
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=card.family, tts_language=card.load_language,
+                                                 voice_required=card.voice_required))
+    assert created["load_call"][3] == "auto"
+    samples, _rate, _ms = b.generate("こんにちは")
+    assert samples.dtype == np.float32

@@ -1932,6 +1932,39 @@ TTS_MODELS: list[TtsModel] = [
             non_commercial=False,
             source_repo="LiquidAI/LFM2.5-Audio-1.5B-GGUF",
             attribution="Liquid AI, LFM2.5-Audio-1.5B")),
+    # LFM2.5-Audio 1.5B, Japanese checkpoint: the same family and package layout as the English
+    # card, at the commit audio.cpp's spec pins. It has ONE voice -- any voice set throws
+    # (community_models/lfm2_audio/tts.cpp:64-69) -- so the card offers none. The load language
+    # forces "auto", as for the English card. The repo's F32 package is left out: it doubles
+    # F16's download for no quality gain, and the planner would pick it on any GPU box with the
+    # memory. LFM Open License v1.0, conditional, so consent is asked.
+    _tts_gguf_row(
+        "lfm2.5-audio-ja", "LFM2.5-Audio 1.5B (Japanese)", ("ja",),
+        "lfm2_audio", "",
+        {"q8_0": ("LFM2.5-Audio-1.5B-JP-Q8_0.gguf", 1246253248),
+         "f16": ("LFM2.5-Audio-1.5B-JP-F16.gguf", 2343325888),
+         "q4_0": ("LFM2.5-Audio-1.5B-JP-Q4_0.gguf", 695750848)},
+        default_quant="q8_0", order=39, load_language="auto",
+        clones=False, streaming=False, sample_rate=24000,
+        rung_dtypes={"q8_0": {"f32", "q8_0"}, "f16": {"f16", "f32"}, "q4_0": {"f32", "q4_0", "q6_K"}},
+        repo="LiquidAI/LFM2.5-Audio-1.5B-JP-GGUF",
+        companions={
+            "q8_0": (("mmproj-LFM2.5-Audio-1.5B-JP-Q8_0.gguf", 293443840),
+                     ("vocoder-LFM2.5-Audio-1.5B-JP-Q8_0.gguf", 205742368),
+                     ("tokenizer-LFM2.5-Audio-1.5B-JP-Q8_0.gguf", 74584224)),
+            "f16": (("mmproj-LFM2.5-Audio-1.5B-JP-F16.gguf", 432067840),
+                    ("vocoder-LFM2.5-Audio-1.5B-JP-F16.gguf", 387159328),
+                    ("tokenizer-LFM2.5-Audio-1.5B-JP-F16.gguf", 140325984)),
+            "q4_0": (("mmproj-LFM2.5-Audio-1.5B-JP-Q4_0.gguf", 219511040),
+                     ("vocoder-LFM2.5-Audio-1.5B-JP-Q4_0.gguf", 108986656),
+                     ("tokenizer-LFM2.5-Audio-1.5B-JP-Q4_0.gguf", 48172704))},
+        license=License(
+            spdx="LicenseRef-LFM-Open-License-1.0",
+            name="LFM Open License v1.0",
+            url="https://huggingface.co/LiquidAI/LFM2.5-Audio-1.5B-JP-GGUF/blob/64b96718b341dbd5650f9e85627cecdcbd4ac61b/LICENSE",
+            non_commercial=False,
+            source_repo="LiquidAI/LFM2.5-Audio-1.5B-JP-GGUF",
+            attribution="Liquid AI, LFM2.5-Audio-1.5B-JP")),
 ]
 
 
