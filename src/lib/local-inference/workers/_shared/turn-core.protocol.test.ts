@@ -145,3 +145,52 @@ describe('the Smart Turn worker', () => {
     expect(h.release).toHaveBeenCalled();
   });
 });
+
+describe('the Smart Turn worker under failure', () => {
+  it('still disposes, and runs later tasks, when release rejects', async () => {
+    const h = harness();
+    await loaded(h);
+    h.release.mockRejectedValueOnce(new Error('release failed'));
+    h.send({ type: 'dispose' });
+    await vi.waitFor(() => expect(h.posted).toContainEqual({ type: 'disposed' }));
+    h.send({ ...INIT, fileUrls: {} });
+    await vi.waitFor(() => expect(h.posted).toContainEqual({ type: 'error', error: expect.stringContaining(SMART_TURN_FILE) }));
+  });
+
+  it('answers the next prediction after a failed one', async () => {
+    const h = harness();
+    await loaded(h);
+    h.run.mockRejectedValueOnce(new Error('bad input'));
+    const a = connect(h, 1);
+    a.predict(1);
+    a.predict(2);
+    await vi.waitFor(() => expect(a.answers).toHaveLength(2), SLOW);
+    expect(a.answers[0]).toEqual({ id: 1, error: 'bad input' });
+    expect(a.answers[1]).toEqual({ id: 2, probability: expect.closeTo(0.8, 5) });
+  });
+
+  it('answers a prediction before the model is loaded with an error', async () => {
+    const h = harness();
+    const a = connect(h, 1);
+    a.predict(5);
+    await vi.waitFor(() => expect(a.answers).toEqual([{ id: 5, error: 'Smart Turn is not loaded' }]), SLOW);
+  });
+
+  it('skips a queued prediction whose port was disconnected', async () => {
+    const h = harness();
+    await loaded(h);
+    let finish!: () => void;
+    h.run.mockImplementationOnce(() => new Promise((resolve) => {
+      finish = () => resolve({ logits: { data: Float32Array.of(0.9) } });
+    }));
+    const a = connect(h, 1);
+    a.predict(1);
+    a.predict(2);
+    await vi.waitFor(() => expect(h.run).toHaveBeenCalledTimes(1), SLOW);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    h.send({ type: 'disconnect', id: 1 });
+    finish();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(h.run).toHaveBeenCalledTimes(1);
+  });
+});

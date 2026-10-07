@@ -87,7 +87,8 @@ export function installTurnWorker(deps: TurnCoreDeps, scope: TurnWorkerScope = s
     }
   }
 
-  async function predict(port: MessagePort, msg: TurnPredictRequest): Promise<void> {
+  async function predict(id: number, port: MessagePort, msg: TurnPredictRequest): Promise<void> {
+    if (ports.get(id) !== port) return;
     let answer: TurnPredictAnswer;
     try {
       if (!session) throw new Error('Smart Turn is not loaded');
@@ -109,7 +110,7 @@ export function installTurnWorker(deps: TurnCoreDeps, scope: TurnWorkerScope = s
       case 'connect': {
         const { id, port } = msg;
         ports.set(id, port);
-        port.onmessage = (e: MessageEvent<TurnPredictRequest>) => enqueue(() => predict(port, e.data));
+        port.onmessage = (e: MessageEvent<TurnPredictRequest>) => enqueue(() => predict(id, port, e.data));
         break;
       }
       case 'disconnect':
@@ -120,7 +121,11 @@ export function installTurnWorker(deps: TurnCoreDeps, scope: TurnWorkerScope = s
         enqueue(async () => {
           for (const port of ports.values()) port.close();
           ports.clear();
-          await session?.release?.();
+          try {
+            await session?.release?.();
+          } catch {
+            // a failed release must not stall the queue or withhold `disposed`
+          }
           session = null;
           scope.postMessage({ type: 'disposed' });
         });
