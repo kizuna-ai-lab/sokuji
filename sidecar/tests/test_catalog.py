@@ -231,7 +231,8 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
                 "irodori-tts-500m-v3",
                 "irodori-tts-v4.1-anime",
                 "higgs-audio-v3-4b",
-                "fish-audio-s2-pro")
+                "fish-audio-s2-pro",
+                "breeze-tts-2")
 
 # The 2026-09-03 batch arrived CPU-ONLY and earned every tier the same evening
 # (commit 2f2b28bc, after the per-family fleet run; catalog._TTS_TIER_OVERRIDES).
@@ -1668,4 +1669,43 @@ def test_fish_card_and_license():
         "requiresConsent": True,
         "sourceRepo": "audio-cpp/audio.cpp-gguf",
         "attribution": "Fish Audio (fishaudio)",
+    }
+
+
+def test_breeze_card_and_license():
+    # 2026-10-06: clone mode only (bare, the engine designs a voice, which is sub-project C's),
+    # so the card itself requires a clip although the family is not voice-required; the clone
+    # needs its transcript; the two packages audio.cpp's spec lists; non-commercial.
+    m = catalog.tts_model("breeze-tts-2")
+    assert m is not None
+    assert (m.family, m.graph_family, m.name) == ("breeze_tts", "breeze_tts", "Breeze-TTS 2")
+    assert m.sort_order == 29 and m.recommended is False
+    assert m.languages == ("zh", "en")
+    assert m.clones is True and m.transcript_required is True and m.named_voices is False
+    assert m.streaming is False and m.sample_rate == 24000
+    assert "breeze_tts" not in catalog.VOICE_REQUIRED_FAMILIES
+    assert m.voice_required is True and m.presets == () and m.default_preset == ""
+    assert m.extra_files == ()
+    assert m.family not in catalog._TTS_TIER_OVERRIDES
+    assert {d.tier for d in m.deployments} == {"cpu"}
+    rungs = {d.compute_type: d for d in m.deployments}
+    assert set(rungs) == {"q8_0", "bf16"}
+    assert rungs["q8_0"].rank == 2.0 and rungs["bf16"].rank == 1.0
+    assert rungs["q8_0"].artifact == "audio-cpp/audio.cpp-gguf/Breeze-TTS-2-GGUF/breeze-tts-2-q8_0.gguf"
+    assert rungs["q8_0"].est_bytes == 5_079_668_352
+    assert rungs["bf16"].artifact == "audio-cpp/audio.cpp-gguf/Breeze-TTS-2-GGUF/breeze-tts-2-bf16.gguf"
+    assert rungs["bf16"].est_bytes == 7_342_916_800
+    assert m.size_bytes == 5_079_668_352
+    # The matrix dtypes of each published rung (no companions), read from the Hub: the q8_0 file
+    # holds its quantised matrices beside bf16, f16 and f32 ones; the bf16 file only bf16 and f16.
+    assert dict(m.rung_dtypes) == {"q8_0": frozenset({"bf16", "f16", "f32", "q8_0"}),
+                                   "bf16": frozenset({"bf16", "f16"})}
+    assert catalog.license_dict(m) == {
+        "spdx": "LicenseRef-BreezeBlue-Research-Non-Commercial",
+        "name": "BreezeBlue Research and Non-Commercial License",
+        "url": "https://huggingface.co/BreezeBlue/Breeze-TTS-2/blob/main/LICENSE",
+        "nonCommercial": True,
+        "requiresConsent": True,
+        "sourceRepo": "audio-cpp/audio.cpp-gguf",
+        "attribution": "BreezeBlue",
     }

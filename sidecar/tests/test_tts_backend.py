@@ -1897,3 +1897,23 @@ def test_fish_card_is_not_gated_by_r16(native_env):
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=m.family, voice_required=m.voice_required))
     samples, _rate, _ms = b.generate("hello")
     assert samples.dtype == np.float32
+
+
+def test_breeze_card_is_gated_by_r16(native_env):
+    """Breeze would run a bare synth as voice design, which the card does not offer, so the
+    card's own voice_required gates a bare generate() although breeze_tts is not a
+    voice-required family; a clip with its transcript un-gates it."""
+    from sokuji_sidecar import catalog
+    created, log = native_env
+    m = catalog.tts_model("breeze-tts-2")
+    assert m.voice_required is True and m.family not in catalog.VOICE_REQUIRED_FAMILIES
+    created["caps"] = _caps(transcript_required=True)
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=m.family, voice_required=m.voice_required))
+    with pytest.raises(backends.BackendLoadError, match="breeze_tts"):
+        b.generate("hello")
+    assert log == []
+    assert b._workers == []
+    b.set_voice(np.ones(2400, np.float32), 24000, ref_text="hello there")
+    samples, _rate, _ms = b.generate("hello")
+    assert samples.dtype == np.float32

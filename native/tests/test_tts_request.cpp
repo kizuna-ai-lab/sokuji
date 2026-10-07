@@ -558,6 +558,18 @@ void fish_audio_requests() {
     assert(opt(req, "seed") == "0");
 }
 
+void breeze_tts_requests() {
+    const auto h = handle_for("breeze_tts");
+    assert(h->transcript_required && h->strict_options && h->strict_sends_ref_text);
+    give_clip(h.get(), "The quick brown fox.");
+    rt::TaskRequest req = build_request(h.get(), "Hello.", "en", 1.0f);
+    assert(carries_clip(req));
+    // Strict, declaring reference_text (its clone needs it) but not do_sample.
+    assert(opt(req, "reference_text") == "The quick brown fox.");
+    assert(!has(req, "do_sample") && opt(req, "seed") == "0");
+    assert(task_spec_for(*find_family("breeze_tts")).mode == rt::RunMode::Offline);
+}
+
 }  // namespace
 
 int main() {
@@ -585,6 +597,7 @@ int main() {
     kugelaudio_requests();
     higgs_audio_tts_requests();
     fish_audio_requests();
+    breeze_tts_requests();
     std::puts("test_tts_request ok");
     return 0;
 }

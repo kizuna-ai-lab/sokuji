@@ -1845,3 +1845,13 @@ def test_models_catalog_carries_the_fish_card():
     assert c["repo"] == "audio-cpp/audio.cpp-gguf/Fish-Audio-S2-Pro-GGUF/fish-audio-s2-pro-q8_0.gguf"
     assert c["sizeBytes"] == 6317911232
     assert c["license"]["requiresConsent"] is True and c["license"]["nonCommercial"] is True
+
+
+def test_models_catalog_carries_the_breeze_card():
+    c = _catalog("tts")["breeze-tts-2"]
+    assert c["order"] == 29 and c["clones"] is True and c["streaming"] is False
+    assert c["voice"]["builtin"] == "none" and c["voice"]["custom"] == "clip"
+    assert c["voice"]["required"] is True and c["voice"]["transcriptRequired"] is True
+    assert c["repo"] == "audio-cpp/audio.cpp-gguf/Breeze-TTS-2-GGUF/breeze-tts-2-q8_0.gguf"
+    assert c["sizeBytes"] == 5079668352
+    assert c["license"]["requiresConsent"] is True and c["license"]["nonCommercial"] is True

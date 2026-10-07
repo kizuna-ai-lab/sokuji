@@ -200,3 +200,11 @@ describe('Fish Audio S2 Pro clip window', () => {
     expect(s.capability.maxClipSeconds).toBe(20);
   });
 });
+
+describe('Breeze-TTS 2 clip window', () => {
+  it('keeps the default 3-20s window (audio.cpp sets no ceiling of its own)', () => {
+    const s = voiceStoreFor('clip', 'breeze-tts-2')!;
+    expect(s.capability.minClipSeconds).toBe(3);
+    expect(s.capability.maxClipSeconds).toBe(20);
+  });
+});

@@ -1498,6 +1498,16 @@ def test_tts_asr_loopback_per_family():
     else:
         skipped.append("fish_audio")
 
+    # breeze_tts (2026-10-06): clone mode, the clip with its transcript, which the clone needs.
+    breeze_dir = family_dir("SK_TEST_TTS_BREEZE_DIR")
+    if breeze_dir and supertonic_ref:
+        ref_samples, ref_rate, ref_text = supertonic_ref
+        attempt("breeze_tts", breeze_dir,
+                lambda m: m.set_voice(_loopback_mono(ref_samples), ref_rate, ref_text),
+                note="clone: clip with its transcript")
+    else:
+        skipped.append("breeze_tts" if breeze_dir else "breeze_tts (needs supertonic for a reference clip)")
+
     # pocket_tts (English package): the ONE full-production-chain leg (ruling
     # R17(s4) / I1 point 2; the symlinked-snapshot loading defect it surfaced is
     # fixed by ruling R18's hard-link staging) -- see

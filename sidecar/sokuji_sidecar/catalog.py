@@ -1705,6 +1705,28 @@ TTS_MODELS: list[TtsModel] = [
             requires_consent=True,
             source_repo=_AUDIOCPP_GGUF_REPO,
             attribution="Fish Audio (fishaudio)")),
+    # Breeze-TTS 2 (BreezeBlue), clone mode only: with a clip it clones and needs the clip's
+    # transcript; with none it designs a voice from an instruction, which is sub-project C's,
+    # so the card itself requires a clip (the engine would not refuse a bare synth, so the
+    # family is not in VOICE_REQUIRED_FAMILIES). The two packages audio.cpp's pinned spec
+    # lists; the Hub folder's newer q4_0 file is not one of them. The BreezeBlue Research and
+    # Non-Commercial License: the non-commercial consent gate.
+    _tts_gguf_row(
+        "breeze-tts-2", "Breeze-TTS 2", ("zh", "en"),
+        "breeze_tts", "Breeze-TTS-2-GGUF",
+        {"q8_0": ("breeze-tts-2-q8_0.gguf", 5079668352),
+         "bf16": ("breeze-tts-2-bf16.gguf", 7342916800)},
+        default_quant="q8_0", order=29, clones=True, streaming=False,
+        sample_rate=24000, transcript_required=True, voice_required=True,
+        rung_dtypes={"q8_0": {"bf16", "f16", "f32", "q8_0"}, "bf16": {"bf16", "f16"}},
+        license=License(
+            spdx="LicenseRef-BreezeBlue-Research-Non-Commercial",
+            name="BreezeBlue Research and Non-Commercial License",
+            url="https://huggingface.co/BreezeBlue/Breeze-TTS-2/blob/main/LICENSE",
+            non_commercial=True,
+            requires_consent=True,
+            source_repo=_AUDIOCPP_GGUF_REPO,
+            attribution="BreezeBlue")),
 ]
 
 
