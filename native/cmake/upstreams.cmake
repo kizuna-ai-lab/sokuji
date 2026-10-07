@@ -140,7 +140,7 @@ set(AUDIOCPP_MODEL_SET "custom" CACHE STRING "" FORCE)
 # through the same audiocpp_add_model() call as the rest, so the custom set resolves it
 # through the same AUDIOCPP_MODEL_ALIAS_* table and no separate knob is needed.
 set(AUDIOCPP_MODELS
-    "moss_tts_nano;qwen3_tts;omnivoice;pocket_tts;supertonic;voxcpm1;voxcpm2;irodori_tts;index_tts2;cosyvoice3;fireredtts3;moss_tts_local;vibevoice;chatterbox;chatterbox_turbo;confucius4_tts;magpie_tts;neutts;kugelaudio;higgs_audio_tts;fish_audio;breeze_tts;audio8_tts;soprano_tts;glm_tts;outetts;echo_tts"
+    "moss_tts_nano;qwen3_tts;omnivoice;pocket_tts;supertonic;voxcpm1;voxcpm2;irodori_tts;index_tts2;cosyvoice3;fireredtts3;moss_tts_local;vibevoice;chatterbox;chatterbox_turbo;confucius4_tts;magpie_tts;neutts;kugelaudio;higgs_audio_tts;fish_audio;breeze_tts;audio8_tts;soprano_tts;glm_tts;outetts;echo_tts;kitten_tts2"
     CACHE STRING "" FORCE)
 set(AUDIOCPP_DEPLOYMENT_BUILD ON CACHE BOOL "" FORCE)        # model specs compiled in: no runtime JSON dir to ship
 set(AUDIOCPP_BUILD_NATIVE_MODEL_MANAGER OFF CACHE BOOL "" FORCE)

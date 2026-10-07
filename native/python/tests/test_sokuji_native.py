@@ -117,7 +117,7 @@ def test_audio_families():
     # always compiles silero_vad in regardless of AUDIOCPP_MODELS (see upstreams.cmake), so
     # the family rides along unused, reported by sk_audio_families() but never called.
     required = {"index_tts2", "irodori_tts", "moss_tts_nano", "omnivoice", "pocket_tts",
-                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3", "fireredtts3", "moss_tts_local", "vibevoice", "chatterbox", "chatterbox_turbo", "confucius4_tts", "magpie_tts", "neutts", "kugelaudio", "higgs_audio_tts", "fish_audio", "breeze_tts", "audio8_tts", "soprano_tts", "glm_tts", "outetts", "echo_tts"}
+                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3", "fireredtts3", "moss_tts_local", "vibevoice", "chatterbox", "chatterbox_turbo", "confucius4_tts", "magpie_tts", "neutts", "kugelaudio", "higgs_audio_tts", "fish_audio", "breeze_tts", "audio8_tts", "soprano_tts", "glm_tts", "outetts", "echo_tts", "kitten_tts2"}
     assert required <= set(families)
     assert families == sorted(families)
     # Sized from the library's own count, so the binding never cuts the list off.
@@ -470,6 +470,9 @@ needs_tts_outetts = pytest.mark.skipif(not (HAVE_TREE and TTS_OUTETTS_DIR and TT
 TTS_ECHO_DIR = os.environ.get("SK_TEST_TTS_ECHO_DIR")
 needs_tts_echo = pytest.mark.skipif(not (HAVE_TREE and TTS_ECHO_DIR and TTS_SUPERTONIC_DIR),
                                     reason="needs a built tree, SK_TEST_TTS_ECHO_DIR and SK_TEST_TTS_SUPERTONIC_DIR")
+TTS_KITTEN2_DIR = os.environ.get("SK_TEST_TTS_KITTEN2_DIR")
+needs_tts_kitten2 = pytest.mark.skipif(not (HAVE_TREE and TTS_KITTEN2_DIR and TTS_SUPERTONIC_DIR),
+                                       reason="needs a built tree, SK_TEST_TTS_KITTEN2_DIR and SK_TEST_TTS_SUPERTONIC_DIR")
 needs_tts_supertonic = pytest.mark.skipif(not (HAVE_TREE and TTS_SUPERTONIC_DIR), reason="needs a built tree and SK_TEST_TTS_SUPERTONIC_DIR")
 needs_tts_moss = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_DIR), reason="needs a built tree and SK_TEST_TTS_MOSS_DIR")
 needs_tts_index = pytest.mark.skipif(not (HAVE_TREE and TTS_INDEX_DIR), reason="needs a built tree and SK_TEST_TTS_INDEX_DIR")
@@ -731,6 +734,9 @@ NEW_CPU_TTS_FAMILIES = [
                transcript_required=True),
     # echo_tts clones or does nothing, and takes no transcript.
     CpuTtsCase("echo_tts", "SK_TEST_TTS_ECHO_DIR", TTS_ECHO_DIR, "Hello from Echo.", "en", 44100, True),
+    # kitten_tts2 speaks its default voice with nothing set; a clip it is given needs its transcript.
+    CpuTtsCase("kitten_tts2", "SK_TEST_TTS_KITTEN2_DIR", TTS_KITTEN2_DIR, "Hello from Kitten.", "en", 24000, False,
+               transcript_required=True),
 ]
 
 
@@ -1529,6 +1535,64 @@ def test_tts_echo_needs_a_clip_and_no_transcript():
     assert float(np.max(np.abs(samples))) > 0.01
 
 
+@needs_tts_kitten2
+def test_tts_kitten2_language_voices_presets_and_clone():
+    """kitten_tts2: offline, 24 kHz, no enumerable presets (the card lists them). A German request
+    with nothing chosen speaks through the German voice, a named preset speaks, and a clip clones
+    only with its transcript — which this strict family must be sent."""
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    pcm, ref_rate, ref_text = _cpu_reference_clip()
+    t = sokuji_native.tts_load(TTS_KITTEN2_DIR, "kitten_tts2", cpu)
+    try:
+        caps = t.capabilities
+        assert not caps.streaming and caps.clones and caps.transcript_required
+        assert caps.sample_rate == 24000
+        assert t.presets() == []
+        german, rate = t.synth("Guten Morgen. Ich wünsche dir einen schönen Tag.", language="de")
+        t.set_preset("Luna")
+        luna, _ = t.synth("Hello from Kitten.", language="en")
+        with pytest.raises(sokuji_native.NativeError, match="ref_text"):
+            t.set_voice(pcm, ref_rate)
+        t.set_voice(pcm, ref_rate, ref_text=ref_text)
+        cloned, _ = t.synth("Hello from Kitten.", language="en")
+    finally:
+        t.unload()
+    assert rate == 24000
+    for samples in (german, luna, cloned):
+        assert 0.3 < samples.shape[0] / rate < 20.0
+        assert float(np.max(np.abs(samples))) > 0.01
+
+
+# The 47 names of the sidecar card "kitten-tts2" (catalog.py, KITTEN_TTS2_VOICES): the GGUF's
+# embedded voices.json holds 48 (the vendor does not list PreparedBruno), and this test is what
+# pins the card's names to the real file, since an unknown voice_id raises "unknown Kitten TTS 2
+# voice" at the user's first synth.
+KITTEN_CARD_PRESETS = (
+    "Bella", "Jasper", "Luna", "Bruno", "Rosie", "Hugo", "Kiki", "Leo", "Matthew", "Elliot",
+    "Willow", "Dolores", "Victor", "Dante", "Alfred", "Saoirse", "Claire", "Raven", "Marcus",
+    "Herbert", "Diana", "Laurence", "Maeve", "Walter", "Edith", "Miles", "Grace", "Reginald",
+    "Iris", "Frank", "Serena", "Julian", "Eleanor", "Otis", "Vincent", "Martha", "Sable",
+    "Victoria", "Arabic", "Hindi", "German", "Spanish", "Italian", "French", "Portuguese",
+    "Russian", "Chinese")
+
+
+@needs_tts_kitten2
+def test_tts_kitten2_every_card_preset_synthesises():
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    t = sokuji_native.tts_load(TTS_KITTEN2_DIR, "kitten_tts2", cpu)
+    try:
+        for name in KITTEN_CARD_PRESETS:
+            t.set_preset(name)
+            samples, rate = t.synth("Hello from Kitten.", language="en")
+            assert rate == 24000, name
+            assert 0.3 < samples.shape[0] / rate < 20.0, name
+            assert float(np.max(np.abs(samples))) > 0.01, name
+    finally:
+        t.unload()
+
+
 # --------------------------------------------------------------------------------------
 # TTS on a real GPU device.
 #
@@ -1630,6 +1694,7 @@ GPU_TTS_FAMILIES = {
     "glm_tts": ("SK_TEST_TTS_GLM_DIR", TTS_GLM_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
     "outetts": ("SK_TEST_TTS_OUTETTS_DIR", TTS_OUTETTS_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
     "echo_tts": ("SK_TEST_TTS_ECHO_DIR", TTS_ECHO_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
+    "kitten_tts2": ("SK_TEST_TTS_KITTEN2_DIR", TTS_KITTEN2_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
 }
 
 # A GPU_TTS_FAMILIES key that names a second card of an already-listed family, mapped to the

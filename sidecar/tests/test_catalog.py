@@ -238,7 +238,8 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
                 "soprano-1.1-80m",
                 "glm-tts",
                 "outetts-1.0-1b",
-                "echo-tts")
+                "echo-tts",
+                "kitten-tts2")
 
 # The 2026-09-03 batch arrived CPU-ONLY and earned every tier the same evening
 # (commit 2f2b28bc, after the per-family fleet run; catalog._TTS_TIER_OVERRIDES).
@@ -1832,3 +1833,35 @@ def test_echo_tts_card_shape_and_license():
     # and f32 ones, the f16 file no quantised ones.
     assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"}),
                                    "f16": frozenset({"f16", "f32"})}
+
+
+KITTEN_VOICES = ("Bella", "Jasper", "Luna", "Bruno", "Rosie", "Hugo", "Kiki", "Leo", "Matthew",
+                 "Elliot", "Willow", "Dolores", "Victor", "Dante", "Alfred", "Saoirse", "Claire",
+                 "Raven", "Marcus", "Herbert", "Diana", "Laurence", "Maeve", "Walter", "Edith",
+                 "Miles", "Grace", "Reginald", "Iris", "Frank", "Serena", "Julian", "Eleanor",
+                 "Otis", "Vincent", "Martha", "Sable", "Victoria", "Arabic", "Hindi", "German",
+                 "Spanish", "Italian", "French", "Portuguese", "Russian", "Chinese")
+
+
+def test_kitten_tts2_card_shape_presets_and_license():
+    m = catalog.tts_model("kitten-tts2")
+    assert m is not None and m.family == "kitten_tts2" and m.graph_family == "kitten_tts2"
+    assert m.languages == ("en", "ar", "zh", "fr", "de", "hi", "it", "pt", "ru", "es")
+    assert m.clones is True and m.transcript_required is True and m.streaming is False
+    assert m.named_voices is True and m.default_preset == ""   # a bare synth speaks Bruno
+    assert m.presets == KITTEN_VOICES and len(m.presets) == 47 and "PreparedBruno" not in m.presets
+    assert m.voice_required is False
+    assert m.sample_rate == 24000 and m.recommended is False and m.sort_order == 35
+    assert m.size_bytes == 3_282_123_776
+    assert [(d.compute_type, d.artifact, d.est_bytes, d.rank, d.companions) for d in m.deployments] == [
+        ("q8_0", "dignome/kitten_tts2/kitten-tts2-native-q8-multilingual.gguf", 3_282_123_776, 2.0, ())]
+    assert {d.tier for d in m.deployments} == {"cpu"}
+    assert m.family not in catalog._TTS_TIER_OVERRIDES
+    assert catalog.hub_revision("dignome/kitten_tts2") == "73b762c95b07c4f0675c927c25d65741b8dab7da"
+    lic = m.license
+    assert lic is not None and lic.spdx == "LicenseRef-Stellon-Labs-Community-License"
+    assert lic.non_commercial is False and lic.requires_consent is True
+    assert lic.source_repo == "dignome/kitten_tts2" and "Powered by Stellon Labs" in lic.attribution
+    # The matrix dtypes of the one published rung (self-contained: the Qwen3 LM, speaker encoder
+    # and S3 decoder in one file), read from the Hub at the pin.
+    assert dict(m.rung_dtypes) == {"q8_0": frozenset({"bf16", "f16", "f32", "q8_0"})}

@@ -86,6 +86,9 @@ const MODEL_CLIP_LIMITS: Record<string, { min?: number; max?: number }> = {
   // Echo-TTS trims a reference to 15 s by default (community_models/echo_tts/session.cpp,
   // kDefaultReferenceMaxSamples), so a longer recording only costs storage.
   'echo-tts': { max: 15 },
+  // Kitten TTS 2 accepts 1–30 s of reference (community_models/kitten_tts2/session.cpp); the
+  // default 3–20 s window sits inside it.
+  'kitten-tts2': { max: 20 },
 };
 
 /** Peak amplitude below this is treated as silence (a muted mic / empty file). */

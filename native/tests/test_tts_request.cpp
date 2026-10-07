@@ -695,6 +695,33 @@ void echo_tts_clones_in_a_voice_cloning_session_with_the_adaptive_window() {
     set_process_env(kSwitch, before ? saved.c_str() : nullptr);
 }
 
+void kitten_tts2_speaks_a_language_through_its_named_voice() {
+    // kitten_tts2 has no language switch; nine voices are named after their language, and the
+    // request option voice_id picks one (kitten_tts2/session.cpp:165-169).
+    const auto kitten = handle_for("kitten_tts2");
+    rt::TaskRequest req = build_request(kitten.get(), "Guten Morgen.", "de", 1.0f);
+    assert(opt(req, "voice_id") == "German");
+    req = build_request(kitten.get(), "Guten Morgen.", "de-AT", 1.0f);
+    assert(opt(req, "voice_id") == "German");
+    req = build_request(kitten.get(), "Ni hao.", "zh", 1.0f);
+    assert(opt(req, "voice_id") == "Chinese");
+    req = build_request(kitten.get(), "Hello.", "en", 1.0f);
+    assert(!has(req, "voice_id"));                       // the default voice
+    req = build_request(kitten.get(), "Konnichiwa.", "ja", 1.0f);
+    assert(!has(req, "voice_id"));
+    assert(!has(req, "do_sample") && !has(req, "language") && opt(req, "seed") == "0");   // strict
+    // A preset the user chose wins, through cached_voice_id.
+    give_preset(kitten.get(), "Bella");
+    req = build_request(kitten.get(), "Guten Morgen.", "de", 1.0f);
+    assert(cached_voice(req) == "Bella" && !has(req, "voice_id"));
+    // So does a clip, and this strict family is sent its transcript.
+    give_clip(kitten.get(), "The quick brown fox.");
+    req = build_request(kitten.get(), "Guten Morgen.", "de", 1.0f);
+    assert(carries_clip(req) && !has(req, "voice_id"));
+    assert(opt(req, "reference_text") == "The quick brown fox.");
+    assert(!has(req, "do_sample"));
+}
+
 }  // namespace
 
 int main() {
@@ -729,6 +756,7 @@ int main() {
     glm_tts_gets_the_clip_and_its_transcript();
     outetts_aligns_a_clip_in_one_language_whatever_the_target();
     echo_tts_clones_in_a_voice_cloning_session_with_the_adaptive_window();
+    kitten_tts2_speaks_a_language_through_its_named_voice();
     std::puts("test_tts_request ok");
     return 0;
 }

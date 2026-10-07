@@ -1557,6 +1557,24 @@ def test_tts_asr_loopback_per_family():
     else:
         skipped.append("outetts")
 
+    # kitten_tts2 (2026-10-06): a named voice (Luna), the same model with nothing set (the case
+    # that decides whether its card may leave default_preset empty: the engine speaks Bruno,
+    # session.cpp:164), and a clip with its transcript, which the clone needs and which this
+    # strict family is sent; all three run.
+    kitten2_dir = family_dir("SK_TEST_TTS_KITTEN2_DIR")
+    if kitten2_dir:
+        attempt("kitten_tts2", kitten2_dir, lambda m: m.set_preset("Luna"), note="preset: Luna")
+        attempt("kitten_tts2", kitten2_dir, lambda m: None, note="bare: nothing set")
+        if supertonic_ref:
+            ref_samples, ref_rate, ref_text = supertonic_ref
+            attempt("kitten_tts2", kitten2_dir,
+                    lambda m: m.set_voice(_loopback_mono(ref_samples), ref_rate, ref_text),
+                    note="clone: clip with its transcript")
+        else:
+            skipped.append("kitten_tts2 clone (needs supertonic for a reference clip)")
+    else:
+        skipped.append("kitten_tts2")
+
     # pocket_tts (English package): the ONE full-production-chain leg (ruling
     # R17(s4) / I1 point 2; the symlinked-snapshot loading defect it surfaced is
     # fixed by ruling R18's hard-link staging) -- see

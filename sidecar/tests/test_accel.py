@@ -1879,3 +1879,14 @@ def test_models_catalog_echo_tts_needs_a_clip_without_a_transcript():
     assert echo["voice"]["custom"] == "clip" and echo["voice"]["required"] is True
     assert "transcriptRequired" not in echo["voice"]
     assert echo["license"]["nonCommercial"] is True and echo["license"]["sourceRepo"] == "dignome/Echo-TTS"
+
+
+def test_models_catalog_kitten_tts2_offers_named_voices_and_a_clip():
+    from sokuji_sidecar import tts_voices
+    kitten = _catalog("tts")["kitten-tts2"]
+    v = kitten["voice"]
+    assert v["builtin"] == "named" and v["custom"] == "clip"
+    assert v["required"] is False and v["transcriptRequired"] is True
+    assert kitten["license"]["nonCommercial"] is False and kitten["license"]["requiresConsent"] is True
+    names = tts_voices.list_builtin_voices("kitten-tts2")
+    assert len(names) == 47 and "German" in names and "Bruno" in names

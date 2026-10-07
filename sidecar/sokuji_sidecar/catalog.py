@@ -1274,6 +1274,17 @@ FISH_LANGS = ("af", "am", "ar", "az", "bg", "bn", "bs", "ca", "cs", "cy", "da", 
               "sk", "sl", "sq", "sr", "sv", "sw", "ta", "te", "th", "tr", "uk", "ur", "vi",
               "zh")
 
+# Kitten TTS 2's voices as its vendor card lists them (KittenML/kitten-tts-2, "Voices": 47).
+# The GGUF's embedded voices.json holds a 48th, PreparedBruno, which the vendor does not list.
+# audio.cpp exposes no enumerator for them, so the card carries the names (TtsModel.presets).
+KITTEN_TTS2_VOICES = (
+    "Bella", "Jasper", "Luna", "Bruno", "Rosie", "Hugo", "Kiki", "Leo", "Matthew", "Elliot",
+    "Willow", "Dolores", "Victor", "Dante", "Alfred", "Saoirse", "Claire", "Raven", "Marcus",
+    "Herbert", "Diana", "Laurence", "Maeve", "Walter", "Edith", "Miles", "Grace", "Reginald",
+    "Iris", "Frank", "Serena", "Julian", "Eleanor", "Otis", "Vincent", "Martha", "Sable",
+    "Victoria", "Arabic", "Hindi", "German", "Spanish", "Italian", "French", "Portuguese",
+    "Russian", "Chinese")
+
 TTS_MODELS: list[TtsModel] = [
     # Offline, clones from a reference clip, no presets (sk_tts_presets() ==
     # []). audio.cpp ships Q8_0 (default) and BF16; languages per
@@ -1817,6 +1828,31 @@ TTS_MODELS: list[TtsModel] = [
             non_commercial=True,
             source_repo="dignome/Echo-TTS",
             attribution="Jordan Darefsky, Echo-TTS (jordand/echo-tts-base)")),
+    # Kitten TTS 2 (1.7B), community model: offline, 24 kHz. No language switch -- the voice
+    # carries the accent: English uses the 38 named English voices, and nine voices named after
+    # a language (Arabic, Chinese, French, German, Hindi, Italian, Portuguese, Russian, Spanish)
+    # reach the other nine; native picks that voice for a request in its language when the user
+    # chose neither a preset nor a clip. Its text normaliser is English-tuned (vendor card), so
+    # numbers in other languages may be read oddly. A clip clones with its exact transcript.
+    # Stellon Labs Community License: free for research and non-commercial use; commercial use
+    # only below USD 1M annual revenue and USD 1M total funding; "Powered by Stellon Labs" must
+    # be displayed; outputs may not train other models -- conditional, so consent is asked.
+    _tts_gguf_row(
+        "kitten-tts2", "Kitten TTS 2 (1.7B)",
+        ("en", "ar", "zh", "fr", "de", "hi", "it", "pt", "ru", "es"),
+        "kitten_tts2", "",
+        {"q8_0": ("kitten-tts2-native-q8-multilingual.gguf", 3282123776)},
+        default_quant="q8_0", order=35, clones=True, streaming=False,
+        sample_rate=24000, named_voices=True, transcript_required=True,
+        rung_dtypes={"q8_0": {"bf16", "f16", "f32", "q8_0"}},
+        repo="dignome/kitten_tts2", presets=KITTEN_TTS2_VOICES,
+        license=License(
+            spdx="LicenseRef-Stellon-Labs-Community-License",
+            name="Stellon Labs Community License",
+            url="https://huggingface.co/dignome/kitten_tts2/blob/73b762c95b07c4f0675c927c25d65741b8dab7da/LICENSE",
+            non_commercial=False,
+            source_repo="dignome/kitten_tts2",
+            attribution="Stellon Labs Kitten TTS 2. Powered by Stellon Labs")),
 ]
 
 

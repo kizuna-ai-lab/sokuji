@@ -137,6 +137,12 @@ describe('per-model clip limits', () => {
   it('Echo-TTS stops at 15s, where the engine trims a reference anyway', () => {
     expect(voiceStoreFor('clip', 'echo-tts')!.capability.maxClipSeconds).toBe(15);
   });
+
+  it('Kitten TTS 2 keeps the 20s default, inside its 1-30s range', () => {
+    const s = voiceStoreFor('clip', 'kitten-tts2')!;
+    expect(s.capability.maxClipSeconds).toBe(20);
+    expect(s.capability.minClipSeconds).toBe(3);
+  });
 });
 
 describe('CosyVoice 3 clip window', () => {

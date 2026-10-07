@@ -34,4 +34,5 @@ export SK_TEST_TTS_SOPRANO_DIR=$C/tts/soprano-1.1-80m
 export SK_TEST_TTS_GLM_DIR=$C/tts/glm-tts
 export SK_TEST_TTS_OUTETTS_DIR=$C/tts/outetts-1.0-1b
 export SK_TEST_TTS_ECHO_DIR=$C/tts/echo-tts
+export SK_TEST_TTS_KITTEN2_DIR=$C/tts/kitten-tts2
 exec "$@"

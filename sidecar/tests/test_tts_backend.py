@@ -1985,3 +1985,14 @@ def test_echo_tts_card_is_gated_by_r16(native_env):
     b.set_voice(np.ones(2400, np.float32), 24000)
     samples, _rate, _ms = b.generate("hello")
     assert samples.dtype == np.float32
+
+
+def test_kitten_tts2_card_is_not_gated_by_r16(native_env):
+    """kitten_tts2 speaks its default voice with nothing set."""
+    from sokuji_sidecar import catalog
+    card = catalog.tts_model("kitten-tts2")
+    assert card.voice_required is False
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=card.family, voice_required=card.voice_required))
+    samples, _rate, _ms = b.generate("hello")
+    assert samples.dtype == np.float32

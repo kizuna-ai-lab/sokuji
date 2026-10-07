@@ -17,6 +17,7 @@
 #include <mutex>
 #include <string>
 #include <system_error>
+#include <utility>
 #include <vector>
 
 namespace rt = engine::runtime;
@@ -235,6 +236,11 @@ constexpr FamilyInfo kFamilies[] = {
     //             (229-232) and a missing clip (586-591), and takes no transcript; 44.1 kHz;
     //             strict (581) — its spec declares seed but neither do_sample nor reference_text.
     {"echo_tts",       false, true,  false, 44100, false, true,  false, FamilyTask::VoiceCloning, nullptr},
+    // kitten_tts2 community_models/kitten_tts2/session.cpp: offline (139-141); 24 kHz (194); a
+    //             clip needs a non-blank transcript (172-175) and 1-30 s of audio (237); strict
+    //             (161) with reference_text and voice_id in its spec, do_sample and language not;
+    //             a preset goes through cached_voice_id (165-169).
+    {"kitten_tts2",    false, true,  true,  24000, false, true,  true,  FamilyTask::Tts, nullptr},
 };
 
 const FamilyInfo *find_family(const char *name) {
@@ -457,6 +463,21 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
             voice.speaker = std::move(ref);
             req.voice = std::move(voice);
         }
+    }
+
+    // kitten_tts2 has no language switch: the voice carries the accent, and nine of its voices
+    // are named after the language they speak (the vendor card's "Voices"; selected through the
+    // voice_id option, community_models/kitten_tts2/session.cpp:165-169). Choice (2026-10-06):
+    // with no clip and no preset chosen, a request in one of those nine languages gets that
+    // voice; any other language keeps the default voice.
+    if (t->family == "kitten_tts2" && !t->has_clone && !t->has_preset) {
+        static const std::pair<const char *, const char *> kLanguageVoices[] = {
+            {"ar", "Arabic"}, {"de", "German"}, {"es", "Spanish"}, {"fr", "French"}, {"hi", "Hindi"},
+            {"it", "Italian"}, {"pt", "Portuguese"}, {"ru", "Russian"}, {"zh", "Chinese"},
+        };
+        const std::string lang = base_language_code(req.text_input->language.c_str());
+        for (const auto &[code, voice] : kLanguageVoices)
+            if (lang == code) { req.options["voice_id"] = voice; break; }
     }
 
     // outetts aligns a reference clip with its embedded Qwen3 forced aligner and caches the
