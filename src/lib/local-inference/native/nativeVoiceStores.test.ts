@@ -177,11 +177,27 @@ describe('Irodori TTS 500M v3 clip window', () => {
   });
 });
 
-describe('Irodori TTS v4.1 Anime clip window', () => {
-  it('allows 30s, the reference length its model card recommends for cloning', () => {
+describe('Irodori TTS v4 clip window', () => {
+  it('allows 40s on the v4.1 Anime card: the v4.1-Small card recommends about 30s or more, and was evaluated on 30-40s references', () => {
     const s = voiceStoreFor('clip', 'irodori-tts-v4.1-anime')!;
-    expect(s.capability.maxClipSeconds).toBe(30);
+    expect(s.capability.maxClipSeconds).toBe(40);
     expect(s.capability.minClipSeconds).toBe(3);
+  });
+
+  it('allows the same 40s on the v4 Small card, whose GGUF embeds the same model card', () => {
+    const s = voiceStoreFor('clip', 'irodori-tts-v4-small')!;
+    expect(s.capability.maxClipSeconds).toBe(40);
+    expect(s.capability.minClipSeconds).toBe(3);
+  });
+
+  it('the clip store accepts a 25s recording and rejects a 41s one as too_long', async () => {
+    const s = voiceStoreFor('clip', 'irodori-tts-v4-small')!;
+    vi.mocked(addNativeVoice).mockClear();
+    await s.onRecord!(new Float32Array(16000 * 25).fill(0.3), 16000);
+    expect(vi.mocked(addNativeVoice)).toHaveBeenCalledTimes(1);
+    await expect(s.onRecord!(new Float32Array(16000 * 41).fill(0.3), 16000))
+      .rejects.toMatchObject({ code: 'too_long' });
+    expect(vi.mocked(addNativeVoice)).toHaveBeenCalledTimes(1);
   });
 });
 
