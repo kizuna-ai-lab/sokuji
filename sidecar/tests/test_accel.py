@@ -1855,3 +1855,13 @@ def test_models_catalog_carries_the_breeze_card():
     assert c["repo"] == "audio-cpp/audio.cpp-gguf/Breeze-TTS-2-GGUF/breeze-tts-2-q8_0.gguf"
     assert c["sizeBytes"] == 5079668352
     assert c["license"]["requiresConsent"] is True and c["license"]["nonCommercial"] is True
+
+
+def test_models_catalog_glm_tts_needs_a_clip_with_its_transcript():
+    tts = _catalog("tts")
+    glm = tts["glm-tts"]
+    v = glm["voice"]
+    assert v["builtin"] == "none" and v["custom"] == "clip"
+    assert v["required"] is True and v["transcriptRequired"] is True
+    assert glm["repo"] == "mirek190/audio.cpp/Text to audio (TTS)/GLM-TTS_Q8.gguf"
+    assert "license" not in glm

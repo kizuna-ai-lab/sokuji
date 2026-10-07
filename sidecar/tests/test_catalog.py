@@ -235,7 +235,8 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
                 "breeze-tts-2",
                 # sub-project A, batch 4
                 "audio8-tts-0.6b",
-                "soprano-1.1-80m")
+                "soprano-1.1-80m",
+                "glm-tts")
 
 # The 2026-09-03 batch arrived CPU-ONLY and earned every tier the same evening
 # (commit 2f2b28bc, after the per-family fleet run; catalog._TTS_TIER_OVERRIDES).
@@ -770,7 +771,7 @@ def test_voice_required_families_is_the_single_source_of_truth():
     already decided was fine, or vice versa."""
     from sokuji_sidecar import tts_backend
     assert tts_backend._VOICE_REQUIRED_FAMILIES is catalog.VOICE_REQUIRED_FAMILIES
-    assert catalog.VOICE_REQUIRED_FAMILIES == {"qwen3_tts", "omnivoice", "index_tts2", "cosyvoice3", "fireredtts3", "chatterbox", "confucius4_tts"}
+    assert catalog.VOICE_REQUIRED_FAMILIES == {"qwen3_tts", "omnivoice", "index_tts2", "cosyvoice3", "fireredtts3", "chatterbox", "confucius4_tts", "glm_tts"}
     for m in catalog.tts_models():
         assert catalog.voice_capability(m)["required"] is m.voice_required, m.id
     # Every card that predates per-card overrides follows its family's rule.
@@ -1758,3 +1759,22 @@ def test_soprano_card_shape():
     # q8_0 file holds quantised matrices beside f16 and f32 ones; the bf16 file only bf16.
     assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"}),
                                    "bf16": frozenset({"bf16"})}
+
+
+def test_glm_tts_card_shape():
+    m = catalog.tts_model("glm-tts")
+    assert m is not None and m.family == "glm_tts" and m.graph_family == "glm_tts"
+    assert m.languages == ("zh", "en")
+    assert m.clones is True and m.transcript_required is True and m.streaming is False
+    assert m.named_voices is False and m.presets == () and m.default_preset == ""
+    assert m.voice_required is True and "glm_tts" in catalog.VOICE_REQUIRED_FAMILIES
+    assert m.sample_rate == 24000 and m.recommended is False and m.sort_order == 32
+    assert m.license is None                         # MIT (zai-org/GLM-TTS)
+    assert m.size_bytes == 5_143_764_640
+    assert [(d.compute_type, d.artifact, d.est_bytes, d.rank, d.companions) for d in m.deployments] == [
+        ("q8_0", "mirek190/audio.cpp/Text to audio (TTS)/GLM-TTS_Q8.gguf", 5_143_764_640, 2.0, ())]
+    assert {d.tier for d in m.deployments} == {"cpu"}
+    assert m.family not in catalog._TTS_TIER_OVERRIDES
+    assert catalog.hub_revision("mirek190/audio.cpp") == "94bbade143c5f62c0c842ef5b2119f7880fa9ee4"
+    # The matrix dtypes of the published q8_0 file (self-contained), read from the Hub at the pin.
+    assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"})}

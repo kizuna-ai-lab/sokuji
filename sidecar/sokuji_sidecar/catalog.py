@@ -764,8 +764,10 @@ class TtsModel(_ModelBase):
 #   confucius4_tts  (2026-10-06) "Confucius4-TTS voice cloning requires speaker reference audio
 #               or cached_voice_id" (audio.cpp src/models/confucius4_tts/request.cpp:140-143); a
 #               VoiceCloning session only, and no transcript option.
+#   glm_tts     (sub-project A) run() refuses without a clip ("GLM-TTS requires --voice-ref
+#               reference audio") and without its transcript; no built-in voice.
 VOICE_REQUIRED_FAMILIES = frozenset({"qwen3_tts", "omnivoice", "index_tts2", "cosyvoice3", "fireredtts3",
-                                     "chatterbox", "confucius4_tts"})
+                                     "chatterbox", "confucius4_tts", "glm_tts"})
 
 
 def voice_capability(model: "TtsModel") -> dict:
@@ -1758,6 +1760,18 @@ TTS_MODELS: list[TtsModel] = [
         sample_rate=32000,
         rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}, "bf16": {"bf16"}},
         repo="WalkingCat/Soprano-1.1-80M-GGUF"),
+    # GLM-TTS, community model, MIT (zai-org/GLM-TTS; the hosting repo's apache-2.0 tag is the
+    # host's own): Chinese and English, offline, 24 kHz. It cannot speak without a clip AND its
+    # exact transcript, so the family is in VOICE_REQUIRED_FAMILIES. mirek190/audio.cpp moves
+    # often and hosts GLM-TTS and OuteTTS under one pin; the file mixes Q8_0 and F16 tensors.
+    _tts_gguf_row(
+        "glm-tts", "GLM-TTS", ("zh", "en"),
+        "glm_tts", "Text to audio (TTS)",
+        {"q8_0": ("GLM-TTS_Q8.gguf", 5143764640)},
+        default_quant="q8_0", order=32, clones=True, streaming=False,
+        sample_rate=24000, transcript_required=True,
+        rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}},
+        repo="mirek190/audio.cpp"),
 ]
 
 

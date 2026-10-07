@@ -78,6 +78,8 @@ const MODEL_CLIP_LIMITS: Record<string, { min?: number; max?: number }> = {
   // audio8_tts sets no reference ceiling (community_models/audio8_tts/session.cpp); its vendor
   // card only warns that very long clips reduce stability, so the default ceiling stands.
   'audio8-tts-0.6b': { max: 20 },
+  // GLM-TTS clones from 3–10 seconds of prompt audio (zai-org/GLM-TTS model card).
+  'glm-tts': { max: 10 },
 };
 
 /** Peak amplitude below this is treated as silence (a muted mic / empty file). */

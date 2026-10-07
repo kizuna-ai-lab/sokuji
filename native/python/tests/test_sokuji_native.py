@@ -7,6 +7,7 @@ import pathlib
 import re
 import subprocess
 import sys
+import time
 import warnings
 from typing import NamedTuple
 
@@ -97,7 +98,7 @@ def test_audio_families():
     # always compiles silero_vad in regardless of AUDIOCPP_MODELS (see upstreams.cmake), so
     # the family rides along unused, reported by sk_audio_families() but never called.
     required = {"index_tts2", "irodori_tts", "moss_tts_nano", "omnivoice", "pocket_tts",
-                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3", "fireredtts3", "moss_tts_local", "vibevoice", "chatterbox", "chatterbox_turbo", "confucius4_tts", "magpie_tts", "neutts", "kugelaudio", "higgs_audio_tts", "fish_audio", "breeze_tts", "audio8_tts", "soprano_tts"}
+                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2", "cosyvoice3", "fireredtts3", "moss_tts_local", "vibevoice", "chatterbox", "chatterbox_turbo", "confucius4_tts", "magpie_tts", "neutts", "kugelaudio", "higgs_audio_tts", "fish_audio", "breeze_tts", "audio8_tts", "soprano_tts", "glm_tts"}
     assert required <= set(families)
     assert families == sorted(families)
     # Sized from the library's own count, so the binding never cuts the list off.
@@ -441,6 +442,9 @@ needs_tts_audio8 = pytest.mark.skipif(not (HAVE_TREE and TTS_AUDIO8_DIR),
 TTS_SOPRANO_DIR = os.environ.get("SK_TEST_TTS_SOPRANO_DIR")
 needs_tts_soprano = pytest.mark.skipif(not (HAVE_TREE and TTS_SOPRANO_DIR),
                                        reason="needs a built tree and SK_TEST_TTS_SOPRANO_DIR")
+TTS_GLM_DIR = os.environ.get("SK_TEST_TTS_GLM_DIR")
+needs_tts_glm = pytest.mark.skipif(not (HAVE_TREE and TTS_GLM_DIR and TTS_SUPERTONIC_DIR),
+                                   reason="needs a built tree, SK_TEST_TTS_GLM_DIR and SK_TEST_TTS_SUPERTONIC_DIR")
 needs_tts_supertonic = pytest.mark.skipif(not (HAVE_TREE and TTS_SUPERTONIC_DIR), reason="needs a built tree and SK_TEST_TTS_SUPERTONIC_DIR")
 needs_tts_moss = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_DIR), reason="needs a built tree and SK_TEST_TTS_MOSS_DIR")
 needs_tts_index = pytest.mark.skipif(not (HAVE_TREE and TTS_INDEX_DIR), reason="needs a built tree and SK_TEST_TTS_INDEX_DIR")
@@ -694,6 +698,9 @@ NEW_CPU_TTS_FAMILIES = [
     # soprano_tts takes no voice of any kind: no clip, no preset.
     CpuTtsCase("soprano_tts", "SK_TEST_TTS_SOPRANO_DIR", TTS_SOPRANO_DIR, "Hello from Soprano.", "en", 32000, False,
                clones=False),
+    # glm_tts cannot speak without a clip and its transcript.
+    CpuTtsCase("glm_tts", "SK_TEST_TTS_GLM_DIR", TTS_GLM_DIR, "你好，欢迎使用语音合成。", "zh", 24000, True,
+               transcript_required=True),
 ]
 
 
@@ -1405,6 +1412,38 @@ def test_tts_soprano_takes_no_voice_and_speaks_bare():
     assert float(np.max(np.abs(samples))) > 0.01
 
 
+@needs_tts_glm
+def test_tts_glm_needs_a_clip_with_its_transcript():
+    """glm_tts: offline, 24 kHz, no built-in voice. A bare synth fails in the engine, a clip
+    without its transcript is refused up front, and a clip with it speaks. Prints the CPU RTF,
+    which decides whether TTS_ASSUMED_RTF must rise (the sidecar cannot measure a family that
+    needs a clip)."""
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    pcm, ref_rate, ref_text = _cpu_reference_clip()
+    t = sokuji_native.tts_load(TTS_GLM_DIR, "glm_tts", cpu)
+    try:
+        caps = t.capabilities
+        assert not caps.streaming and caps.clones and caps.transcript_required
+        assert caps.sample_rate == 24000
+        assert t.presets() == []
+        with pytest.raises(sokuji_native.NativeError, match="voice-ref|reference audio"):
+            t.synth("你好。", language="zh")
+        with pytest.raises(sokuji_native.NativeError, match="ref_text"):
+            t.set_voice(pcm, ref_rate)
+        t.set_voice(pcm, ref_rate, ref_text=ref_text)
+        t0 = time.perf_counter()
+        samples, rate = t.synth("你好，欢迎使用语音合成。", language="zh")
+        synth_s = time.perf_counter() - t0
+    finally:
+        t.unload()
+    audio_s = samples.shape[0] / rate
+    print(f"\n  cpu-tts glm_tts {audio_s:.2f}s audio  {synth_s:.2f}s synth  rtf={synth_s / audio_s:.2f}")
+    assert rate == 24000
+    assert 0.3 < audio_s < 20.0
+    assert float(np.max(np.abs(samples))) > 0.01
+
+
 # --------------------------------------------------------------------------------------
 # TTS on a real GPU device.
 #
@@ -1503,6 +1542,7 @@ GPU_TTS_FAMILIES = {
     "breeze_tts": ("SK_TEST_TTS_BREEZE_DIR", TTS_BREEZE_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
     "audio8_tts": ("SK_TEST_TTS_AUDIO8_DIR", TTS_AUDIO8_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
     "soprano_tts": ("SK_TEST_TTS_SOPRANO_DIR", TTS_SOPRANO_DIR, None, False, 30.0, GPU_TTS_TEXT, "en"),
+    "glm_tts": ("SK_TEST_TTS_GLM_DIR", TTS_GLM_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
 }
 
 # A GPU_TTS_FAMILIES key that names a second card of an already-listed family, mapped to the

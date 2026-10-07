@@ -222,6 +222,10 @@ constexpr FamilyInfo kFamilies[] = {
     //             strict: prepare()/start_stream() validate every request option against the
     //             spec (150, 216), which declares seed but neither do_sample nor reference_text.
     {"soprano_tts",    false, false, false, 32000, false, true,  false, FamilyTask::Tts, nullptr},
+    // glm_tts     community_models/glm_tts/session.cpp: offline only; a clip AND its transcript are
+    //             both mandatory (430-441); 24 kHz HiFT (143); always samples, seed defaults to 0;
+    //             only glm_tts.* session keys are validated (47-58), request options are not.
+    {"glm_tts",        false, true,  true,  24000, false, false, false, FamilyTask::Tts, nullptr},
 };
 
 const FamilyInfo *find_family(const char *name) {

@@ -1530,6 +1530,17 @@ def test_tts_asr_loopback_per_family():
     else:
         skipped.append("soprano_tts")
 
+    # glm_tts (2026-10-06): clone-only, so the one leg gives the clip with its transcript; a bare
+    # synth is refused by the engine (and pinned by the native suite).
+    glm_dir = family_dir("SK_TEST_TTS_GLM_DIR")
+    if glm_dir and supertonic_ref:
+        ref_samples, ref_rate, ref_text = supertonic_ref
+        attempt("glm_tts", glm_dir,
+                lambda m: m.set_voice(_loopback_mono(ref_samples), ref_rate, ref_text),
+                note="clone: clip with its transcript")
+    else:
+        skipped.append("glm_tts (needs supertonic for a reference clip)" if glm_dir else "glm_tts")
+
     # pocket_tts (English package): the ONE full-production-chain leg (ruling
     # R17(s4) / I1 point 2; the symlinked-snapshot loading defect it surfaced is
     # fixed by ruling R18's hard-link staging) -- see

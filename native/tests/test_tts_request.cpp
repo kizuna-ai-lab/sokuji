@@ -621,6 +621,24 @@ void soprano_is_sent_only_the_seed() {
     assert(opt(req, "seed") == "0");
     assert(req.options.size() == 1);
     assert(!req.voice.has_value());
+    // The row's columns, read off the same sources as the options: it takes no clip, does not
+    // stream, writes 32 kHz and opens an offline Tts session.
+    const FamilyInfo *f = find_family("soprano_tts");
+    assert(f != nullptr);
+    assert(!f->clones && !f->streaming);
+    assert(f->default_rate == 32000);
+    assert(task_spec_for(*f).mode == rt::RunMode::Offline);
+}
+
+void glm_tts_gets_the_clip_and_its_transcript() {
+    // glm_tts needs the clip AND its transcript (glm_tts/session.cpp:430-441); it is not strict,
+    // so the transcript travels as reference_text, with do_sample (ignored) and the seed.
+    const auto glm = handle_for("glm_tts");
+    give_clip(glm.get(), "The quick brown fox.");
+    const rt::TaskRequest req = build_request(glm.get(), "Hello.", "zh", 1.0f);
+    assert(carries_clip(req));
+    assert(opt(req, "reference_text") == "The quick brown fox.");
+    assert(opt(req, "do_sample") == "false" && opt(req, "seed") == "0");
 }
 
 }  // namespace
@@ -654,6 +672,7 @@ int main() {
     audio8_tts_row_columns();
     audio8_ja_reaches_the_model_as_yue();
     soprano_is_sent_only_the_seed();
+    glm_tts_gets_the_clip_and_its_transcript();
     std::puts("test_tts_request ok");
     return 0;
 }
