@@ -1865,3 +1865,10 @@ def test_models_catalog_glm_tts_needs_a_clip_with_its_transcript():
     assert v["required"] is True and v["transcriptRequired"] is True
     assert glm["repo"] == "mirek190/audio.cpp/Text to audio (TTS)/GLM-TTS_Q8.gguf"
     assert "license" not in glm
+
+
+def test_models_catalog_outetts_carries_its_non_commercial_license():
+    oute = _catalog("tts")["outetts-1.0-1b"]
+    assert oute["license"]["nonCommercial"] is True and oute["license"]["requiresConsent"] is True
+    assert oute["license"]["sourceRepo"] == "mirek190/audio.cpp"
+    assert oute["voice"]["required"] is False and oute["voice"]["transcriptRequired"] is True

@@ -1541,6 +1541,22 @@ def test_tts_asr_loopback_per_family():
     else:
         skipped.append("glm_tts (needs supertonic for a reference clip)" if glm_dir else "glm_tts")
 
+    # outetts (2026-10-06): speaks with nothing set (the request's fixed seed makes that voice
+    # reproducible), and clones from a clip with its transcript, which its embedded forced aligner
+    # reads; both legs run.
+    outetts_dir = family_dir("SK_TEST_TTS_OUTETTS_DIR")
+    if outetts_dir:
+        attempt("outetts", outetts_dir, lambda m: None, note="bare: nothing set")
+        if supertonic_ref:
+            ref_samples, ref_rate, ref_text = supertonic_ref
+            attempt("outetts", outetts_dir,
+                    lambda m: m.set_voice(_loopback_mono(ref_samples), ref_rate, ref_text),
+                    note="clone: clip with its transcript")
+        else:
+            skipped.append("outetts clone (needs supertonic for a reference clip)")
+    else:
+        skipped.append("outetts")
+
     # pocket_tts (English package): the ONE full-production-chain leg (ruling
     # R17(s4) / I1 point 2; the symlinked-snapshot loading defect it surfaced is
     # fixed by ruling R18's hard-link staging) -- see

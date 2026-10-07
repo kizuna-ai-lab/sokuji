@@ -641,6 +641,21 @@ void glm_tts_gets_the_clip_and_its_transcript() {
     assert(opt(req, "do_sample") == "false" && opt(req, "seed") == "0");
 }
 
+void outetts_aligns_a_clip_in_one_language_whatever_the_target() {
+    // outetts keys a clip's aligned voice profile on reference_language, which otherwise follows
+    // the synthesis target (outetts/session.cpp:603-604, 700-712); it is pinned to "auto".
+    const auto oute = handle_for("outetts");
+    rt::TaskRequest req = build_request(oute.get(), "Hello.", "en", 1.0f);
+    assert(!has(req, "reference_language"));          // no clip: nothing to align
+    give_clip(oute.get(), "The quick brown fox.");
+    req = build_request(oute.get(), "Konnichiwa.", "ja", 1.0f);
+    assert(opt(req, "reference_language") == "auto");
+    assert(opt(req, "reference_text") == "The quick brown fox.");
+    req = build_request(oute.get(), "Ni hao.", "zh", 1.0f);
+    assert(opt(req, "reference_language") == "auto");
+    assert(req.text_input && req.text_input->language == "zh");   // the target still reaches the text
+}
+
 }  // namespace
 
 int main() {
@@ -673,6 +688,7 @@ int main() {
     audio8_ja_reaches_the_model_as_yue();
     soprano_is_sent_only_the_seed();
     glm_tts_gets_the_clip_and_its_transcript();
+    outetts_aligns_a_clip_in_one_language_whatever_the_target();
     std::puts("test_tts_request ok");
     return 0;
 }

@@ -80,6 +80,9 @@ const MODEL_CLIP_LIMITS: Record<string, { min?: number; max?: number }> = {
   'audio8-tts-0.6b': { max: 20 },
   // GLM-TTS clones from 3–10 seconds of prompt audio (zai-org/GLM-TTS model card).
   'glm-tts': { max: 10 },
+  // OuteTTS refuses a reference over 20 s (community_models/outetts/dac.cpp:343-347), and every
+  // second of it comes out of the ~42 s generation window (OuteAI/Llama-OuteTTS-1.0-1B card).
+  'outetts-1.0-1b': { max: 15 },
 };
 
 /** Peak amplitude below this is treated as silence (a muted mic / empty file). */

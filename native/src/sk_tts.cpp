@@ -226,6 +226,10 @@ constexpr FamilyInfo kFamilies[] = {
     //             both mandatory (430-441); 24 kHz HiFT (143); always samples, seed defaults to 0;
     //             only glm_tts.* session keys are validated (47-58), request options are not.
     {"glm_tts",        false, true,  true,  24000, false, false, false, FamilyTask::Tts, nullptr},
+    // outetts     community_models/outetts/session.cpp: offline; bare synth works, a clip is
+    //             optional but needs its transcript (700-703, 731-734); 24 kHz DAC (dac.cpp:663);
+    //             always samples; only outetts.* session keys are validated.
+    {"outetts",        false, true,  true,  24000, false, false, false, FamilyTask::Tts, nullptr},
 };
 
 const FamilyInfo *find_family(const char *name) {
@@ -449,6 +453,16 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
             req.voice = std::move(voice);
         }
     }
+
+    // outetts aligns a reference clip with its embedded Qwen3 forced aligner and caches the
+    // clip's voice profile keyed on the aligner language, which otherwise follows the synthesis
+    // target (community_models/outetts/session.cpp:603-604, 700-712, 731-742). The aligner reads
+    // it only to pick per-character tokenisation for "chinese"/"cantonese"
+    // (models/qwen3_forced_aligner/processor.cpp:176-181), and its other path splits Han
+    // characters one by one as well (processor.cpp:91-131). The clip's own language is unknown
+    // here, so it is pinned: one clip aligns once, whatever language it is spoken into.
+    if (t->family == "outetts" && t->has_clone)
+        req.options["reference_language"] = "auto";
 
     if (t->family == "supertonic" && speed != 1.0f) {
         req.options["speaking_rate"] = std::to_string(speed);

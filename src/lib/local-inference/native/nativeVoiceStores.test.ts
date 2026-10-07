@@ -129,6 +129,10 @@ describe('per-model clip limits', () => {
   it('GLM-TTS takes the 10s its vendor recommends at most', () => {
     expect(voiceStoreFor('clip', 'glm-tts')!.capability.maxClipSeconds).toBe(10);
   });
+
+  it('OuteTTS stops at 15s, under its 20s refusal', () => {
+    expect(voiceStoreFor('clip', 'outetts-1.0-1b')!.capability.maxClipSeconds).toBe(15);
+  });
 });
 
 describe('CosyVoice 3 clip window', () => {

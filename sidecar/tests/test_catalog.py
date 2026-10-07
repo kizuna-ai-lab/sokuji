@@ -236,7 +236,8 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
                 # sub-project A, batch 4
                 "audio8-tts-0.6b",
                 "soprano-1.1-80m",
-                "glm-tts")
+                "glm-tts",
+                "outetts-1.0-1b")
 
 # The 2026-09-03 batch arrived CPU-ONLY and earned every tier the same evening
 # (commit 2f2b28bc, after the per-family fleet run; catalog._TTS_TIER_OVERRIDES).
@@ -1778,3 +1779,29 @@ def test_glm_tts_card_shape():
     assert catalog.hub_revision("mirek190/audio.cpp") == "94bbade143c5f62c0c842ef5b2119f7880fa9ee4"
     # The matrix dtypes of the published q8_0 file (self-contained), read from the Hub at the pin.
     assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"})}
+
+
+OUTETTS_LANGS = ("ar", "be", "bn", "de", "en", "es", "fa", "fr", "hu", "it", "ja", "ka",
+                 "ko", "lt", "lv", "nl", "pl", "pt", "ru", "sw", "ta", "uk", "zh")
+
+
+def test_outetts_card_shape_and_license():
+    m = catalog.tts_model("outetts-1.0-1b")
+    assert m is not None and m.family == "outetts" and m.graph_family == "outetts"
+    assert m.languages == OUTETTS_LANGS
+    assert m.clones is True and m.transcript_required is True and m.streaming is False
+    assert m.named_voices is False and m.presets == () and m.default_preset == ""
+    assert m.voice_required is False                 # a bare synth speaks (a random voice)
+    assert m.sample_rate == 24000 and m.recommended is False and m.sort_order == 33
+    assert m.size_bytes == 3_029_895_456
+    assert [(d.compute_type, d.artifact, d.est_bytes, d.rank, d.companions) for d in m.deployments] == [
+        ("q8_0", "mirek190/audio.cpp/Text to audio (TTS)/Llama-OuteTTS-1.0-1B_Q8.gguf", 3_029_895_456, 2.0, ())]
+    assert {d.tier for d in m.deployments} == {"cpu"}
+    assert m.family not in catalog._TTS_TIER_OVERRIDES
+    lic = m.license
+    assert lic is not None and lic.spdx == "CC-BY-NC-SA-4.0"
+    assert lic.non_commercial is True and lic.requires_consent is True
+    assert lic.source_repo == "mirek190/audio.cpp"
+    assert catalog.license_dict(m)["nonCommercial"] is True
+    # The matrix dtypes of the published q8_0 file (self-contained), read from the Hub at the pin.
+    assert dict(m.rung_dtypes) == {"q8_0": frozenset({"bf16", "f16", "f32", "q8_0"})}

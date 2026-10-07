@@ -32,4 +32,5 @@ export SK_TEST_TTS_BREEZE_DIR=$C/tts/breeze-tts-2
 export SK_TEST_TTS_AUDIO8_DIR=$C/tts/audio8-tts-0.6b
 export SK_TEST_TTS_SOPRANO_DIR=$C/tts/soprano-1.1-80m
 export SK_TEST_TTS_GLM_DIR=$C/tts/glm-tts
+export SK_TEST_TTS_OUTETTS_DIR=$C/tts/outetts-1.0-1b
 exec "$@"

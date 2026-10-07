@@ -1772,6 +1772,29 @@ TTS_MODELS: list[TtsModel] = [
         sample_rate=24000, transcript_required=True,
         rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}},
         repo="mirek190/audio.cpp"),
+    # OuteTTS 1.0 (1B), community model: 23 languages (the vendor card's list, which audio.cpp's
+    # spec repeats), offline, 24 kHz; a bare synth speaks with a random voice, and a clip clones
+    # with its transcript. Licence: CC-BY-NC-SA-4.0 for the fine-tune plus the Llama 3.2
+    # Community License for the initial Llama components (OuteAI/Llama-OuteTTS-1.0-1B,
+    # "License Information") -- non-commercial, so the download asks for consent.
+    _tts_gguf_row(
+        "outetts-1.0-1b", "OuteTTS 1.0 (1B)",
+        ("ar", "be", "bn", "de", "en", "es", "fa", "fr", "hu", "it", "ja", "ka",
+         "ko", "lt", "lv", "nl", "pl", "pt", "ru", "sw", "ta", "uk", "zh"),
+        "outetts", "Text to audio (TTS)",
+        {"q8_0": ("Llama-OuteTTS-1.0-1B_Q8.gguf", 3029895456)},
+        default_quant="q8_0", order=33, clones=True, streaming=False,
+        sample_rate=24000, transcript_required=True,
+        rung_dtypes={"q8_0": {"bf16", "f16", "f32", "q8_0"}},
+        repo="mirek190/audio.cpp",
+        license=License(
+            spdx="CC-BY-NC-SA-4.0",
+            name="Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International "
+                 "(the initial Llama components: Llama 3.2 Community License)",
+            url="https://creativecommons.org/licenses/by-nc-sa/4.0/",
+            non_commercial=True,
+            source_repo="mirek190/audio.cpp",
+            attribution="OuteAI, Llama-OuteTTS-1.0-1B. Built with Llama")),
 ]
 
 
