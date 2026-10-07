@@ -88,23 +88,39 @@ def test_init_and_devices():
     assert lines, "sk_init logs at least one line"
 
 
-# Placed after test_init_and_devices on purpose: that test and the trampoline test below need
-# the process's FIRST sk_init to be theirs, which carries a log sink, so nothing before them
-# may initialise the library.
+# What a fresh process's C runtime reports for the switch once sk_init has run.
+_ECHO_WINDOW_PROBE = r'''
+import ctypes, sys
+sys.path.insert(0, sys.argv[1])
+import sokuji_native
+
+sokuji_native.init()
+libc = ctypes.CDLL(None)
+libc.getenv.argtypes = [ctypes.c_char_p]
+libc.getenv.restype = ctypes.c_char_p
+value = libc.getenv(b"AUDIOCPP_ECHO_TTS_ADAPTIVE_WINDOW")
+print("ECHO_WINDOW " + ("<unset>" if value is None else value.decode()))
+'''
+
+
 @needs_tree
 @pytest.mark.skipif(sys.platform == "win32", reason="ctypes.CDLL(None) has no C runtime to ask on Windows")
-def test_init_sets_the_echo_adaptive_window_default_at_the_c_level():
+@pytest.mark.parametrize("preset, expected", [(None, "1"), ("0", "0")], ids=["unset", "preset-0"])
+def test_init_sets_the_echo_adaptive_window_default_at_the_c_level(preset, expected):
     """sk_init switches echo_tts's adaptive window on once per process (sk_env.h), unless the
-    test's own environment already set it. Asked of the C runtime's getenv, since os.environ is a
-    snapshot Python's own putenv calls keep and does not see a C-level setenv. Losing this wiring
-    makes every echo synth about 5x slower."""
-    import ctypes
+    environment already set it. Asked of a fresh process's C runtime getenv, since os.environ is
+    a snapshot Python's own putenv calls keep and does not see a C-level setenv. Losing this
+    wiring makes every echo synth about 5x slower."""
     name = "AUDIOCPP_ECHO_TTS_ADAPTIVE_WINDOW"
-    sokuji_native.init()
-    libc = ctypes.CDLL(None)
-    libc.getenv.argtypes = [ctypes.c_char_p]
-    libc.getenv.restype = ctypes.c_char_p
-    assert libc.getenv(name.encode()) == os.environ.get(name, "1").encode()
+    env = {k: v for k, v in os.environ.items() if k != name}
+    if preset is not None:
+        env[name] = preset
+    native_python_dir = str(pathlib.Path(sokuji_native.__file__).resolve().parents[1])
+    proc = subprocess.run([sys.executable, "-c", _ECHO_WINDOW_PROBE, native_python_dir],
+                          capture_output=True, text=True, timeout=300, env=env)
+    tail = "\n".join((proc.stderr or "").strip().splitlines()[-30:])
+    assert proc.returncode == 0, f"probe failed: exit {proc.returncode}\n{tail}"
+    assert f"ECHO_WINDOW {expected}" in proc.stdout.splitlines(), proc.stdout
 
 
 @needs_tree
@@ -1683,13 +1699,25 @@ KITTEN_CARD_PRESETS = (
     "Russian", "Chinese")
 
 
+# What a default run synthesises: the default voice, Luna, and the nine voices named after a
+# language, which build_request selects through voice_id.
+KITTEN_DEFAULT_RUN_PRESETS = ("Bruno", "Luna", "Arabic", "Hindi", "German", "Spanish", "Italian",
+                              "French", "Portuguese", "Russian", "Chinese")
+
+
 @needs_tts_kitten2
 def test_tts_kitten2_every_card_preset_synthesises():
+    """By default this synthesises only Bruno, Luna and the nine language-named voices, 11 of the
+    card's 47. SK_TEST_TTS_ALL_PRESETS=1 synthesises all 47: run it when the GGUF or the card's
+    voice list changes."""
+    assert set(KITTEN_DEFAULT_RUN_PRESETS) <= set(KITTEN_CARD_PRESETS)
+    all_presets = os.environ.get("SK_TEST_TTS_ALL_PRESETS") == "1"
+    names = KITTEN_CARD_PRESETS if all_presets else KITTEN_DEFAULT_RUN_PRESETS
     sokuji_native.init()
     cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
     t = sokuji_native.tts_load(TTS_KITTEN2_DIR, "kitten_tts2", cpu)
     try:
-        for name in KITTEN_CARD_PRESETS:
+        for name in names:
             t.set_preset(name)
             samples, rate = t.synth("Hello from Kitten.", language="en")
             assert rate == 24000, name

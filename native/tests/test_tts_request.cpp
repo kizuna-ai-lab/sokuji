@@ -514,6 +514,10 @@ void magpie_tts_requests() {
     const auto bare = handle_for("magpie_tts");
     req = build_request(bare.get(), "Hello.", "en", 1.0f);
     assert(!has(req, "voice_id") && !req.voice.has_value());
+    // Its voice_id is the preset option: a bare request in one of kitten_tts2's nine languages
+    // names no voice.
+    req = build_request(bare.get(), "Hello.", "pt", 1.0f);
+    assert(!has(req, "voice_id") && !req.voice.has_value());
 }
 
 void neutts_requests() {
@@ -597,6 +601,7 @@ void audio8_ja_reaches_the_model_as_yue() {
     assert(req.text_input->language == "yue");
     req = build_request(audio8.get(), "Ni hao.", "zh", 1.0f);
     assert(req.text_input->language == "zh");
+    assert(!has(req, "voice_id"));   // kitten_tts2's named language voices are its alone
     req = build_request(audio8.get(), "Nei hou.", "yue", 1.0f);
     assert(req.text_input->language == "yue");
     req = build_request(audio8.get(), "Hello.", "en", 1.0f);
@@ -697,7 +702,8 @@ void echo_tts_clones_in_a_voice_cloning_session_with_the_adaptive_window() {
 
 void kitten_tts2_speaks_a_language_through_its_named_voice() {
     // kitten_tts2 has no language switch; nine voices are named after their language, and the
-    // request option voice_id picks one (kitten_tts2/session.cpp:165-169).
+    // request option voice_id picks one, over a preset and the Bruno default
+    // (kitten_tts2/session.cpp:170, :168, :164).
     const auto kitten = handle_for("kitten_tts2");
     rt::TaskRequest req = build_request(kitten.get(), "Guten Morgen.", "de", 1.0f);
     assert(opt(req, "voice_id") == "German");
