@@ -297,7 +297,7 @@ does not choose another. llama.cpp and transcribe.cpp load the file's dtype as i
 unchanged. The exception is a family with a raw-typed
 device weight path, one that builds a device weight past that conversion: the file's own type
 handed to `make_tensor` (qwen3_tts's speech-decoder `output_proj`, kugelaudio's `lm_head`), a
-derived tensor stored at the file's dtype (irodori_tts, index_tts2), or a non-Native default
+derived tensor stored at the file's dtype (index_tts2), or a non-Native default
 storage (moss_voicegen). For those a `bf16` is asked both as `bf16` and as `f16`. The list, each
 entry with its audio.cpp source lines, is `kRawTypedWeightFamilies` in `src/sk_ops_format.cpp`;
 it comes from reading every loader under audio.cpp's `src/models` and `src/community_models`,

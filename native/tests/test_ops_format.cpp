@@ -310,12 +310,18 @@ int main(int argc, char **argv) {
     assert((sk_ops_loaded_weight_dtypes("asr", "whisper", "vulkan", "bf16") == V{"bf16"}));
     assert((sk_ops_loaded_weight_dtypes("translate", "qwen3", "metal", "bf16") == V{"bf16"}));
     for (const char *raw : {"audio8_tts", "breeze_tts", "dramabox", "fish_audio", "higgs_audio_tts", "index_tts2",
-                            "irodori_tts", "kugelaudio", "miocodec", "miotts", "moss_voicegen", "qwen3_tts",
-                            "vieneu_v3_turbo"}) {
+                            "kugelaudio", "moss_voicegen", "qwen3_tts", "vieneu_v3_turbo"}) {
         assert((sk_ops_loaded_weight_dtypes("tts", raw, "vulkan", "bf16") == V{"bf16", "f16"}));
         assert((sk_ops_loaded_weight_dtypes("tts", raw, "metal", "bf16") == V{"bf16", "f16"}));
         assert((sk_ops_loaded_weight_dtypes("tts", raw, "cpu", "bf16") == V{"bf16"}));
         assert((sk_ops_loaded_weight_dtypes("tts", raw, "vulkan", "f16") == V{"f16"}));
+    }
+    // Raw-typed paths that never run on Vulkan or Metal: irodori_tts's packed q/k/v/gate is
+    // CUDA-only, miotts loads its codec at F32 storage, and miocodec is no tts family.
+    for (const char *stored : {"irodori_tts", "miotts", "miocodec"}) {
+        assert((sk_ops_loaded_weight_dtypes("tts", stored, "vulkan", "bf16") == V{"f16"}));
+        assert((sk_ops_loaded_weight_dtypes("tts", stored, "metal", "bf16") == V{"f16"}));
+        assert((sk_ops_loaded_weight_dtypes("tts", stored, "cpu", "bf16") == V{"bf16"}));
     }
     // The `# recorded-on` words, one spelling for the query and the recorder.
     assert(std::string(sk_ops_device_word(SK_DEVICE_VULKAN)) == "vulkan");

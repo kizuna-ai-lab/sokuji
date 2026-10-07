@@ -311,15 +311,8 @@ const char *const kRawTypedWeightFamilies[] = {
     // models/index_tts2/gpt.cpp:363-374 (transposed conv1d linear stored at the file's dtype
     // through make_from_f32) and vocoder.cpp:54-65 (BigVGAN storage set to the file's dtype).
     "index_tts2",
-    // models/irodori_tts/rf_dit.cpp:104-113 and 190-194: the packed q/k/v/gate projection is
-    // make_from_f32 at resolve_derived_storage_type, the file's dtype under Native storage.
-    "irodori_tts",
     // models/kugelaudio/ar.cpp:72-80: the four lm_head speech rows, make_tensor(head.type).
     "kugelaudio",
-    // models/miocodec/weights.cpp:191-215: at Native storage the q/k/v rows are packed into
-    // make_tensor(q.type). miotts loads it as its codec (models/miotts/session.cpp).
-    "miocodec",
-    "miotts",
     // community_models/moss_voicegen: weight storage defaults to BF16 (include/engine/
     // community_models/moss_voicegen/session.h:56), a non-Native storage the store never converts.
     "moss_voicegen",
@@ -328,6 +321,12 @@ const char *const kRawTypedWeightFamilies[] = {
     "qwen3_tts",
     // community_models/vieneu_v3_turbo/tokenizer_speech_decoder.cpp:309-326: qwen3_tts's loader.
     "vieneu_v3_turbo",
+    // Not listed, though their sources hold such a path that never runs on Vulkan or Metal:
+    // irodori_tts packs q/k/v/gate at the file's dtype (models/irodori_tts/rf_dit.cpp:164-194)
+    // on CUDA only (:256-259); miotts loads its MioCodec at F32 storage (include/engine/models/
+    // miocodec/weights.h:157, models/miotts/session.cpp:612-616), so the codec's Native q/k/v
+    // packing (models/miocodec/weights.cpp:191-215) never runs for it. miocodec on its own is a
+    // VoiceConversion/SpeechToSpeech family (models/miocodec/loader.cpp:14-16), never a tts one.
 };
 
 }  // namespace
