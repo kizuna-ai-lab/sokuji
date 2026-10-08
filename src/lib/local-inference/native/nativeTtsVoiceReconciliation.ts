@@ -31,7 +31,7 @@ import type { NativeVoiceInfo } from './nativeProtocol';
  *    order the voice picker lists them: `customVoiceIds[0]` IS "the first
  *    eligible clip" the fallback below picks.
  *  - R35: when no builtin default exists either (a clone-only family — no
- *    built-in voice at all, e.g. qwen3_tts, omnivoice — reached this function
+ *    built-in voice at all, e.g. qwen3_tts Base, omnivoice — reached this function
  *    only because the caller's pre-init gate already found ≥1 eligible clip),
  *    an invalid selection falls back to the first eligible custom clip instead
  *    of '' — landing on no reference voice at all for a model that the caller

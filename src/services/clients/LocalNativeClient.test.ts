@@ -1002,7 +1002,7 @@ describe('LocalNativeClient native-vad worker (no worker available)', () => {
 // ── Slice 5: clone-only voice gate (renderer mirror of the sidecar R16 pre-check) ──
 //
 // A model whose catalog entry reports voice.required (the sidecar's
-// catalog.VOICE_REQUIRED_FAMILIES — qwen3_tts, omnivoice, index_tts2) can ONLY
+// catalog.VOICE_REQUIRED_FAMILIES — qwen3_tts Base, omnivoice, index_tts2) can ONLY
 // speak via a cloned voice. Without a stored clip, the sidecar's own
 // tts_backend.py raises a clean error from generate() (R16) — but only once
 // generate() is actually called, per sentence. This gate catches it up front,

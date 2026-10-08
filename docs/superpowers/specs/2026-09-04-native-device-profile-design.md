@@ -388,12 +388,13 @@ skips them for a GPU target and asks them for a CPU one. Each file records its
 non-host device is present. One device recording models every device type. When this was
 written, `is_conv_transpose1d_col2im_fast_path_eligible` (audio.cpp v0.7.1,
 `src/framework/modules/conv_modules.cpp:318-324`) took the `ConvTranspose1d` col2im path on
-CUDA/HIP and Metal only, so a Vulkan recording lacked Metal's `COL2IM_1D` nodes. Since audio.cpp
-0.8.2 it is taken on Vulkan as well, whenever dilation is 1 (`conv_modules.cpp:411-418` at
-54aa279), so the Vulkan recordings carry those nodes: 15 of the 30 tts recordings at
-native-v1.3.0 hold `COL2IM_1D` (audio8_tts, breeze_tts, echo_tts, fish_audio, higgs_audio_tts,
-irodori_tts, kugelaudio, magpie_tts, miotts, omnivoice, pocket_tts, qwen3_tts, vibevoice,
-voxcpm1, voxcpm2), and that path no longer needs Metal recordings of its own.
+CUDA/HIP and Metal only, so a Vulkan recording lacked Metal's `COL2IM_1D` nodes. Since
+audio.cpp v0.7.2 (ff38f154) it is taken on Vulkan as well, whenever dilation is 1
+(`conv_modules.cpp:411-418` at 54aa279), so the Vulkan recordings carry those nodes: 15 of the
+30 tts recordings at native-v1.3.0 hold `COL2IM_1D` (audio8_tts, breeze_tts, echo_tts,
+fish_audio, higgs_audio_tts, irodori_tts, kugelaudio, magpie_tts, miotts, omnivoice,
+pocket_tts, qwen3_tts, vibevoice, voxcpm1, voxcpm2), and that path no longer needs Metal
+recordings of its own.
 
 ```c
 typedef struct sk_op_check { char name[64]; int32_t supported; } sk_op_check;  /* "OP.param[src0,src1,src2,src3,src4]->dst" as recorded */

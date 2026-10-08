@@ -645,19 +645,20 @@ ties broken by the first name (`find_gguf` in `native/tests/model_path.h`, `_mai
    `companions=`, keyed by quant, repo-relative, and counts toward that rung's `est_bytes`. Each
    rung carries `rung_dtypes=`, its main and companion GGUFs' matrix dtypes as
    `benchmark/qwen3-asr-webgpu/hub_matrix_dtypes.py` reads them off the Hub (pinned revision by
-   default), for the pre-download op-coverage query.
-   `VOICE_REQUIRED_FAMILIES` only if a bare synth raises — families that clone but speak with
-   nothing set stay out, and a single card that differs from its family sets `voice_required=`;
-   a card whose engine needs one fixed language sets `load_language=` (forced on every synth).
-   Licence: a non-commercial licence is `license=License(..., non_commercial=True)` and a
-   conditional or custom one `License(..., non_commercial=False)`, both behind the consent gate
-   (`requires_consent`, default True); Apache-2.0/MIT weights carry no `License`. A licence is
-   never by itself a reason to leave a family out.
-   The card starts cpu-only (`_TTS_TIERS`) and joins `_TTS_TIER_OVERRIDES` with its measured
-   RTF table only after step 4. Tests: `test_catalog.py`
-   (`TTS_CARD_IDS`, the card count, the voice-required tuples, a per-card shape test),
-   `test_tts_backend.py` (an R16 gated or not-gated case), `test_accel.py` (`voice.required` on
-   the wire if required). `test_every_tts_family_has_an_op_recording` is why step 2 comes first.
+   default), for the pre-download op-coverage query. `VOICE_REQUIRED_FAMILIES` only if a bare
+   synth raises — families that clone but speak with nothing set stay out, and a single card that
+   differs from its family sets `voice_required=`; a card whose engine needs one fixed language
+   sets `load_language=` (forced on every synth). Licence: a non-commercial licence is
+   `license=License(..., non_commercial=True)` and a conditional or custom one
+   `License(..., non_commercial=False)`, both behind the consent gate (`requires_consent`,
+   default True); Apache-2.0/MIT weights carry no `License`. A licence is never by itself a
+   reason to leave a family out. The card starts cpu-only (`_TTS_TIERS`) and joins
+   `_TTS_TIER_OVERRIDES` with its measured RTF table only after step 4; a new card of a family
+   already there passes `tiers=_TTS_TIERS` and gains a GPU tier per lane the same way, from a
+   fleet run of that card. Tests: `test_catalog.py` (`TTS_CARD_IDS`, the card count, the
+   voice-required tuples, a per-card shape test), `test_tts_backend.py` (an R16 gated or
+   not-gated case), `test_accel.py` (`voice.required` on the wire if required).
+   `test_every_tts_family_has_an_op_recording` is why step 2 comes first.
 4. Fleet: `SK_TEST_TTS_GPU=1 SK_TEST_TTS_<FAMILY>_DIR=… pytest native/python/tests -k
    tts_synthesises_on_a_gpu_device` on GB10/Vulkan, the RTX 4070 SUPER and the M4, with the wheels
    from a `native-build.yml` dry run; optionally a loopback leg in
