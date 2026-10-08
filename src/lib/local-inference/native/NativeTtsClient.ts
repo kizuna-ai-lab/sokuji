@@ -32,9 +32,10 @@ const TTS_BUDGET_SAFETY = 2;
 
 /** Assumed RTF when the sidecar reported none (older sidecar, or a family whose
  *  plan carried no measurement): the slowest family measured on the reference
- *  box (echo_tts, 31.45-31.67 on GB10 CPU), so an unknown model is budgeted like the
- *  worst known one rather than like a fast one. */
-const TTS_ASSUMED_RTF = 32;
+ *  box (confucius4_tts cloning a 20 s reference clip, 37.98 warm on GB10 CPU; a
+ *  card that needs a voice reports no RTF at init), so an unknown model is
+ *  budgeted like the worst known one rather than like a fast one. */
+const TTS_ASSUMED_RTF = 38;
 
 /**
  * The sidecar emits binary PCM as Int16 mono @ 24 kHz.
