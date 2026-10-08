@@ -16,13 +16,13 @@ import {
 const signedOut: AuthContext = { signedIn: false, getToken: async () => null };
 
 describe('SONIOX_DEFAULTS', () => {
-  it('defaults to the US region, Adrian in every region, shared Both on, and Soniox\'s server defaults', () => {
+  it('defaults to the US region, Adrian in every region, split Both, and Soniox\'s server defaults', () => {
     expect(SONIOX_DEFAULTS).toEqual({
       region: 'us',
       voice: 'Adrian',
       voiceEu: 'Adrian',
       voiceJp: 'Adrian',
-      bothModeSharedSession: true,
+      bothModeSharedSession: false,
       vocabularyTerms: '',
       vocabularyTranslations: '',
       contextText: '',
@@ -49,7 +49,7 @@ describe('migrateSonioxSettings', () => {
     });
     expect(wrongTyped.endpointMaxDelayMs).toBe(2000);
     expect(wrongTyped.voiceJp).toBe('Adrian');
-    expect(wrongTyped.bothModeSharedSession).toBe(true);
+    expect(wrongTyped.bothModeSharedSession).toBe(false);
 
     // An unlisted stored field is not carried into the result.
     expect(migrateSonioxSettings({ ...SONIOX_DEFAULTS, model: 'stt-rt-v5' })).not.toHaveProperty('model');

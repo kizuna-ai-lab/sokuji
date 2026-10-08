@@ -167,7 +167,7 @@ describe("Kizuna Soniox lease: each leg's keys", () => {
     expect(split.resources.credentials('participant')).toEqual({ region: 'us', stt: 'k-par_stt', clientReferenceId: 'ref-par_stt', lease: PORT });
 
     // Shared Both: the participant rides the mixed socket, with no key to speak and no port.
-    const shared = await granted(['speaker', 'participant'], ['mix_stt', 'mix_tts']);
+    const shared = await granted(['speaker', 'participant'], ['mix_stt', 'mix_tts'], { settings: { bothModeSharedSession: true } });
     expect(shared.resources.credentials('speaker')).toEqual({ region: 'us', stt: 'k-mix_stt', tts: 'k-mix_tts', clientReferenceId: 'ref-mix_stt', lease: PORT });
     expect(shared.resources.credentials('participant')).toEqual({ region: 'us', stt: 'k-mix_stt', clientReferenceId: 'ref-mix_stt' });
   });
@@ -180,7 +180,7 @@ describe("Kizuna Soniox lease: each leg's keys", () => {
     const participant = await granted(['participant'], ['par_stt', 'par_tts'], { participantSpeech: true });
     expect(participant.resources.credentials('participant')).not.toHaveProperty('tts');
 
-    const shared = await granted(['speaker', 'participant'], ['mix_stt', 'mix_tts', 'par_tts'], { participantSpeech: true });
+    const shared = await granted(['speaker', 'participant'], ['mix_stt', 'mix_tts', 'par_tts'], { participantSpeech: true, settings: { bothModeSharedSession: true } });
     expect(shared.resources.credentials('participant')).not.toHaveProperty('tts');
     expect(shared.resources.credentials('speaker')).toMatchObject({ tts: 'k-mix_tts' });
   });
@@ -195,7 +195,7 @@ describe("Kizuna Soniox lease: each leg's keys", () => {
     expect(participant.resources.credentials('participant')).toEqual({ region: 'us', stt: 'k-par_stt', tts: 'k-par_tts', clientReferenceId: 'ref-par_stt', lease: PORT });
 
     // Shared Both: the `mix_*` bundle stays on the speaker; the participant's one socket is its TTS one, on its own key and reference.
-    const shared = await granted(['speaker', 'participant'], ['mix_stt', 'mix_tts', 'par_tts'], on);
+    const shared = await granted(['speaker', 'participant'], ['mix_stt', 'mix_tts', 'par_tts'], { ...on, settings: { bothModeSharedSession: true } });
     expect(shared.resources.credentials('speaker')).toEqual({ region: 'us', stt: 'k-mix_stt', tts: 'k-mix_tts', clientReferenceId: 'ref-mix_stt', lease: PORT });
     expect(shared.resources.credentials('participant')).toEqual({ region: 'us', stt: 'k-mix_stt', tts: 'k-par_tts', clientReferenceId: 'ref-par_tts' });
   });
@@ -700,7 +700,7 @@ describe("the lease's port (SonioxLeasePort)", () => {
   });
 
   it("shared Both: the speaker's socket reports for the mixed stream; the participant has no port", async () => {
-    const a = await granted(['speaker', 'participant'], ['mix_stt', 'mix_tts']);
+    const a = await granted(['speaker', 'participant'], ['mix_stt', 'mix_tts'], { settings: { bothModeSharedSession: true } });
     const port = a.resources.credentials('speaker').lease;
     expect(port).toBeDefined();
     port!.streamAccepted();

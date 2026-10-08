@@ -44,7 +44,7 @@ export const SONIOX_DEFAULTS: SonioxSettings = {
   voice: SONIOX_DEFAULT_VOICE,
   voiceEu: SONIOX_DEFAULT_VOICE,
   voiceJp: SONIOX_DEFAULT_VOICE,
-  bothModeSharedSession: true,
+  bothModeSharedSession: false,
   vocabularyTerms: '',
   vocabularyTranslations: '',
   contextText: '',
