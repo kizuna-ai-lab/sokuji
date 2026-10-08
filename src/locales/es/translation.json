@@ -653,7 +653,7 @@
     "toggleOff": "Apagar {{label}}",
     "participantSubtitleElectron": "Todo el audio del sistema",
     "participantSubtitleExtension": "Se reproduce por la salida predeterminada",
-    "otherSide": "Dónde está el otro",
+    "otherSide": "¿Dónde está el otro?",
     "otherSideMeeting": "En una reunión",
     "otherSideMeetingHint": "Captura el audio del sistema o de una aplicación",
     "otherSideBeside": "A mi lado",

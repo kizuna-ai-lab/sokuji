@@ -645,7 +645,7 @@
     "deviceSpeakerMonitor": "Högtalarmonitor",
     "notSelected": "Inte vald",
     "deviceParticipantAudio": "Den andras ljud",
-    "faceToFaceTag": "Ansikte mot ansikte"
+    "faceToFaceTag": "På plats"
   },
   "popover": {
     "statusOff": "Av",
@@ -1455,7 +1455,7 @@
     "speakersHint": "En hörsnäcka var fungerar bäst. Med högtalare fångar mikrofonen upp översättningen och översätter den igen.",
     "playedLeft": "Spelades upp i vänster öra",
     "playedRight": "Spelades upp i höger öra",
-    "notPlayed": "Spelades inte upp: den här översättningen är på {{language}}, inte {{target}}, så den läses upp för ingen.",
+    "notPlayed": "Spelades inte upp: den här översättningen är på {{language}}, inte på {{target}}, så den läses inte upp för någon.",
     "legendMe": "{{language}} · jag",
     "legendOther": "{{language}} · den andra"
   }

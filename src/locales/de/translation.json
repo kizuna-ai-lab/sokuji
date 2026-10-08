@@ -295,7 +295,7 @@
     },
     "sonioxSharedSessionFaceToFace": "Bei Gesprächen von Angesicht zu Angesicht wird immer eine gemeinsame Sitzung verwendet: Beide sprechen in dasselbe Mikrofon.",
     "sonioxParticipantVoice": "Stimme des Gegenübers",
-    "sonioxParticipantVoiceTooltip": "Die Stimme, die Ihnen die Worte Ihres Gegenübers in Ihrer Sprache vorliest. Nur integrierte Stimmen."
+    "sonioxParticipantVoiceTooltip": "Die Stimme, die Ihnen die Worte Ihres Gegenübers in Ihrer Sprache vorliest. Nur voreingestellte Stimmen."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch über Ihr Konto authentifiziert",
@@ -645,7 +645,7 @@
     "deviceSpeakerMonitor": "Lautsprecher-Überwachung",
     "notSelected": "Nicht ausgewählt",
     "deviceParticipantAudio": "Audio des Gegenübers",
-    "faceToFaceTag": "Persönlich"
+    "faceToFaceTag": "Vor Ort"
   },
   "popover": {
     "statusOff": "Aus",
@@ -654,7 +654,7 @@
     "participantSubtitleElectron": "Gesamtes Systemaudio",
     "participantSubtitleExtension": "Wiedergabe über Systemstandard",
     "otherSide": "Wo ist das Gegenüber?",
-    "otherSideMeeting": "In einer Besprechung",
+    "otherSideMeeting": "In einem Meeting",
     "otherSideMeetingHint": "Nimmt das Systemaudio oder eine App auf",
     "otherSideBeside": "Neben mir",
     "otherSideBesideHint": "Zwei Personen an einem Mikrofon",

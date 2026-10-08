@@ -293,7 +293,7 @@
       "theySpeak": "nagsasalita sila ng",
       "mirror": "Nagsasalita sila ng {{their}} → binabasa ko sa {{mine}}"
     },
-    "sonioxSharedSessionFaceToFace": "Laging iisang nakabahaging session ang gamit ng magkaharap: parehong tao ay nagsasalita sa iisang mikropono.",
+    "sonioxSharedSessionFaceToFace": "Laging iisang nakabahaging session ang gamit ng magkaharap na usapan: pareho silang nagsasalita sa iisang mikropono.",
     "sonioxParticipantVoice": "Boses ng kausap",
     "sonioxParticipantVoiceTooltip": "Ang boses na bumabasa sa inyo ng sinasabi ng kausap, sa inyong wika. Mga built-in na boses lamang."
   },

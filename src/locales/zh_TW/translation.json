@@ -295,7 +295,7 @@
     },
     "sonioxSharedSessionFaceToFace": "面對面對話一律使用同一個共用工作階段：兩個人對著同一支麥克風說話。",
     "sonioxParticipantVoice": "對方的聲音",
-    "sonioxParticipantVoiceTooltip": "以您的語言唸出對方所說內容的聲音。僅限內建聲音。"
+    "sonioxParticipantVoiceTooltip": "以您的語言唸出對方所說內容的聲音。僅限預設語音。"
   },
   "simpleSettings": {
     "autoAuthenticated": "已通過您的帳戶自動認證",

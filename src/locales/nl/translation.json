@@ -1149,12 +1149,12 @@
       },
       "setsBeside": "Stelt in: {{mode}}-modus, de ander naast mij · {{output}}",
       "face-to-face-voice": {
-        "title": "Gesprek face-to-face",
+        "title": "Face-to-facegesprek",
         "desc": "Twee personen bij één computer, ieder in de eigen taal; ieder draagt één oordopje en hoort alleen de vertaling in de eigen taal."
       },
       "face-to-face-text": {
-        "title": "Gesprek face-to-face, alleen ondertiteling",
-        "desc": "Beiden lezen hetzelfde scherm, of de ander opent de LAN-ondertitelpagina op zijn telefoon."
+        "title": "Face-to-facegesprek, alleen ondertiteling",
+        "desc": "Beiden lezen hetzelfde scherm, of de ander opent de LAN-ondertitelpagina op de eigen telefoon."
       }
     },
     "output": {
@@ -1455,7 +1455,7 @@
     "speakersHint": "Eén oordopje per persoon werkt het best. Via luidsprekers pikt de microfoon de vertaling op en vertaalt die opnieuw.",
     "playedLeft": "Afgespeeld in het linkeroor",
     "playedRight": "Afgespeeld in het rechteroor",
-    "notPlayed": "Niet afgespeeld: deze vertaling is in {{language}}, niet in {{target}}, dus wordt niet aan iemand voorgelezen.",
+    "notPlayed": "Niet afgespeeld: deze vertaling is in {{language}}, niet in {{target}}, dus wordt ze aan niemand voorgelezen.",
     "legendMe": "{{language}} · ik",
     "legendOther": "{{language}} · de ander"
   }

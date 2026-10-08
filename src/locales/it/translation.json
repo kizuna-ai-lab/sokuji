@@ -295,7 +295,7 @@
     },
     "sonioxSharedSessionFaceToFace": "Il faccia a faccia usa sempre una sessione condivisa: le due persone parlano nello stesso microfono.",
     "sonioxParticipantVoice": "Voce dell'altro",
-    "sonioxParticipantVoiceTooltip": "La voce che ti legge, nella tua lingua, ciò che dice l'altro. Solo voci integrate."
+    "sonioxParticipantVoiceTooltip": "La voce che ti legge, nella tua lingua, ciò che dice l'altro. Solo voci preimpostate."
   },
   "simpleSettings": {
     "autoAuthenticated": "Autenticato automaticamente tramite il tuo account",

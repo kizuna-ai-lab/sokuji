@@ -295,7 +295,7 @@
     },
     "sonioxSharedSessionFaceToFace": "対面では常に 1 つの共有セッションを使います。2 人が同じマイクに向かって話すためです。",
     "sonioxParticipantVoice": "相手の声",
-    "sonioxParticipantVoiceTooltip": "あなたの言語で相手の発言を読み上げる声です。内蔵の声のみ選べます。"
+    "sonioxParticipantVoiceTooltip": "あなたの言語で相手の発言を読み上げる声です。プリセット音声のみ選べます。"
   },
   "simpleSettings": {
     "autoAuthenticated": "アカウントで自動的に認証されました",

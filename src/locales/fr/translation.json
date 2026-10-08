@@ -295,7 +295,7 @@
     },
     "sonioxSharedSessionFaceToFace": "Le face à face utilise toujours une session partagée : les deux personnes parlent dans le même micro.",
     "sonioxParticipantVoice": "Voix de l'autre",
-    "sonioxParticipantVoiceTooltip": "La voix qui vous lit, dans votre langue, ce que dit l'autre. Voix intégrées uniquement."
+    "sonioxParticipantVoiceTooltip": "La voix qui vous lit, dans votre langue, ce que dit l'autre. Voix préréglées uniquement."
   },
   "simpleSettings": {
     "autoAuthenticated": "Authentifié automatiquement via votre compte",
@@ -1449,8 +1449,8 @@
     "earRight": "R",
     "meListens": "Moi ({{language}})",
     "otherListens": "L'autre ({{language}})",
-    "previewLeft": "Écouter l'oreille gauche",
-    "previewRight": "Écouter l'oreille droite",
+    "previewLeft": "Tester l'oreille gauche",
+    "previewRight": "Tester l'oreille droite",
     "swap": "Inverser gauche et droite",
     "speakersHint": "Le mieux est un écouteur chacun. Avec des haut-parleurs, le micro capte la traduction et la traduit de nouveau.",
     "playedLeft": "Lu dans l'oreille gauche",
