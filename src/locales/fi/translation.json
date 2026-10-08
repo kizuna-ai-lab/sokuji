@@ -893,7 +893,8 @@
       "fullscreen": "Koko näyttö",
       "exitFullscreen": "Poistu koko näytöstä",
       "lock": "Lukitse sijainti ja koko",
-      "exit": "Poistu tekstitystilasta"
+      "exit": "Poistu tekstitystilasta",
+      "backToMainTitle": "Palaa pääikkunaan (Esc)"
     },
     "settings": {
       "bgOpacity": "Taustan läpinäkyvyys",
@@ -1242,7 +1243,8 @@
       },
       "subtitle": {
         "title": "Tekstitystila",
-        "content": "Avaa kelluvan tekstitysnäkymän — työpöydällä ikkunana, laajennuksessa sivun päällä olevana peittokuvana. OBS ja näytönjako voivat kaapata sen."
+        "content_electron": "Pienentää tämän ikkunan kelluvaksi tekstityspalkiksi, jonka OBS ja näytönjako voivat kaapata. Palkin ”Palaa pääikkunaan” tai Esc palauttaa ikkunan.",
+        "content_extension": "Avaa kelluvat tekstitykset sivun päälle peittokuvana. OBS ja näytönjako voivat kaapata ne."
       },
       "account": {
         "title": "Tilisi",

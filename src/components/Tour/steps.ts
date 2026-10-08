@@ -51,7 +51,12 @@ export const BASICS_STEPS: readonly TourStep[] = [
   },
   // SubtitleEnterButton renders on Electron and in the extension only, and an
   // absent anchor costs the step its full timeout before it skips itself.
-  { id: 'subtitle', anchor: 'subtitle-enter', when: (c) => c.platform !== 'web', prepare: (_c, a) => a.closeSettings(), placement: 'bottom' },
+  // The desktop's bar is the main window itself, shrunk, so its copy says how
+  // to get the window back; the extension's is an overlay on the page.
+  {
+    id: 'subtitle', anchor: 'subtitle-enter', when: (c) => c.platform !== 'web', prepare: (_c, a) => a.closeSettings(), placement: 'bottom',
+    copyVariant: (c) => (c.platform === 'electron' ? 'electron' : 'extension'),
+  },
   {
     id: 'account', anchor: 'account-button', when: (c) => c.providerPath === 'managed', placement: 'bottom',
     copyVariant: (c) => (c.isSignedIn ? null : 'signedOut'),

@@ -893,7 +893,8 @@
       "fullscreen": "Fullscreen",
       "exitFullscreen": "Lumabas sa fullscreen",
       "lock": "I-lock ang posisyon at sukat",
-      "exit": "Lumabas sa subtitle mode"
+      "exit": "Lumabas sa subtitle mode",
+      "backToMainTitle": "Bumalik sa pangunahing window (Esc)"
     },
     "settings": {
       "bgOpacity": "Opacity ng background",
@@ -1242,7 +1243,8 @@
       },
       "subtitle": {
         "title": "Subtitle mode",
-        "content": "Nagbubukas ng lumulutang na subtitle view — isang window sa desktop, isang overlay sa page sa extension. Makukuha ito ng OBS at screen sharing."
+        "content_electron": "Pinapaliit ang window na ito para maging lumulutang na subtitle bar na makukuha ng OBS at screen sharing. Ang “Bumalik sa pangunahing window” sa bar, o Esc, ang magbabalik sa window.",
+        "content_extension": "Nagbubukas ng lumulutang na subtitle bilang overlay sa page. Makukuha ito ng OBS at screen sharing."
       },
       "account": {
         "title": "Ang inyong account",

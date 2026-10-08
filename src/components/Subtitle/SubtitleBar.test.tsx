@@ -220,11 +220,37 @@ describe('SubtitleBar hold-to-talk control', () => {
 });
 
 describe('SubtitleBar exit button', () => {
-  it('✕ calls onExit, on the electron surface', () => {
+  // On the desktop the bar IS the main window, shrunk: a bare ✕ there reads
+  // as "quit the app" (user feedback 2026-10-07), so the exit says where it
+  // goes, and names its key.
+  it('is a labelled "Return to main window" button that calls onExit, on the electron surface', () => {
     const onExit = vi.fn();
     render(<SubtitleBar {...baseProps} surface="electron" onExit={onExit} />);
-    fireEvent.click(screen.getByLabelText('Exit subtitle mode'));
+    const btn = screen.getByRole('button', { name: 'Return to main window' });
+    expect(btn).toHaveTextContent('Return to main window');
+    expect(btn).toHaveAttribute('title', 'Return to main window (Esc)');
+    expect(btn).toHaveAttribute('aria-keyshortcuts', 'Escape');
+    expect(screen.queryByLabelText('Exit subtitle mode')).not.toBeInTheDocument();
+    fireEvent.click(btn);
     expect(onExit).toHaveBeenCalledTimes(1);
+  });
+
+  // Escape is layered (subtitle fullscreen design): in fullscreen the first
+  // press only leaves fullscreen, so the exit does not name it there.
+  it('does not name Esc while the bar is fullscreen', () => {
+    fullscreenValue = true;
+    render(<SubtitleBar {...baseProps} surface="electron" />);
+    const btn = screen.getByRole('button', { name: 'Return to main window' });
+    expect(btn).toHaveAttribute('title', 'Return to main window');
+    expect(btn).not.toHaveAttribute('aria-keyshortcuts');
+  });
+
+  // The overlay closes over the meeting page; the side panel never left, so
+  // there is no main window to return to and ✕ means what it says.
+  it('keeps the ✕ on the extension-overlay surface', () => {
+    render(<SubtitleBar {...baseProps} surface="extension-overlay" />);
+    expect(screen.getByLabelText('Exit subtitle mode')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Return to main window' })).not.toBeInTheDocument();
   });
 
   it('✕ calls onExit, on the extension-overlay surface', () => {

@@ -893,7 +893,8 @@
       "fullscreen": "Pełny ekran",
       "exitFullscreen": "Wyjdź z pełnego ekranu",
       "lock": "Zablokuj pozycję i rozmiar",
-      "exit": "Wyjdź z trybu napisów"
+      "exit": "Wyjdź z trybu napisów",
+      "backToMainTitle": "Powrót do okna głównego (Esc)"
     },
     "settings": {
       "bgOpacity": "Przezroczystość tła",
@@ -1242,7 +1243,8 @@
       },
       "subtitle": {
         "title": "Tryb napisów",
-        "content": "Otwiera unoszące się okno napisów — okno na pulpicie, nakładkę na stronie w rozszerzeniu. OBS i udostępnianie ekranu mogą je przechwycić."
+        "content_electron": "Zmniejsza to okno do pływającego paska napisów, który można przechwycić w OBS lub przy udostępnianiu ekranu. „Powrót do okna głównego” na pasku albo Esc przywraca okno.",
+        "content_extension": "Otwiera pływające napisy jako nakładkę na stronie. OBS i udostępnianie ekranu mogą je przechwycić."
       },
       "account": {
         "title": "Twoje konto",

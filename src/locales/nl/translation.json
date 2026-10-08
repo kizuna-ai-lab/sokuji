@@ -893,7 +893,8 @@
       "fullscreen": "Volledig scherm",
       "exitFullscreen": "Volledig scherm afsluiten",
       "lock": "Positie en grootte vergrendelen",
-      "exit": "Ondertitelmodus afsluiten"
+      "exit": "Ondertitelmodus afsluiten",
+      "backToMainTitle": "Terug naar hoofdvenster (Esc)"
     },
     "settings": {
       "bgOpacity": "Achtergrondtransparantie",
@@ -1242,7 +1243,8 @@
       },
       "subtitle": {
         "title": "Ondertitelmodus",
-        "content": "Opent een zwevende ondertitelweergave — een venster op desktop, een overlay op de pagina in de extensie. OBS en schermdelen kunnen dit vastleggen."
+        "content_electron": "Verkleint dit venster tot een zwevende ondertitelbalk die OBS en schermdelen kunnen vastleggen. ‘Terug naar hoofdvenster’ op de balk, of Esc, haalt het venster terug.",
+        "content_extension": "Opent zwevende ondertitels als overlay op de pagina. OBS en schermdelen kunnen ze vastleggen."
       },
       "account": {
         "title": "Uw account",

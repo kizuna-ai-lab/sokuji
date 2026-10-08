@@ -893,7 +893,8 @@
       "fullscreen": "Schermo intero",
       "exitFullscreen": "Esci da schermo intero",
       "lock": "Blocca posizione e dimensioni",
-      "exit": "Esci dalla modalità sottotitoli"
+      "exit": "Esci dalla modalità sottotitoli",
+      "backToMainTitle": "Torna alla finestra principale (Esc)"
     },
     "settings": {
       "bgOpacity": "Opacità dello sfondo",
@@ -1242,7 +1243,8 @@
       },
       "subtitle": {
         "title": "Modalità sottotitoli",
-        "content": "Apre una vista sottotitoli fluttuante — una finestra sul desktop, una sovrapposizione sulla pagina nell'estensione. OBS e la condivisione schermo possono catturarla."
+        "content_electron": "Riduce questa finestra a una barra di sottotitoli fluttuante, che OBS e la condivisione schermo possono catturare. «Torna alla finestra principale» sulla barra, o Esc, ripristina la finestra.",
+        "content_extension": "Apre i sottotitoli fluttuanti come sovrapposizione sulla pagina. OBS e la condivisione schermo possono catturarli."
       },
       "account": {
         "title": "Il tuo account",

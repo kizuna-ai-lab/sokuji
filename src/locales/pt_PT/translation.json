@@ -893,7 +893,8 @@
       "fullscreen": "Ecrã inteiro",
       "exitFullscreen": "Sair do ecrã inteiro",
       "lock": "Bloquear posição e tamanho",
-      "exit": "Sair do modo de legendas"
+      "exit": "Sair do modo de legendas",
+      "backToMainTitle": "Voltar à janela principal (Esc)"
     },
     "settings": {
       "bgOpacity": "Opacidade do fundo",
@@ -1242,7 +1243,8 @@
       },
       "subtitle": {
         "title": "Modo de legendas",
-        "content": "Abre uma janela de legendas flutuante — uma janela no ambiente de trabalho, uma sobreposição na página na extensão. O OBS e a partilha de ecrã conseguem captá-la."
+        "content_electron": "Reduz esta janela a uma barra de legendas flutuante, que o OBS e a partilha de ecrã conseguem captar. «Voltar à janela principal» na barra, ou Esc, repõe a janela.",
+        "content_extension": "Abre legendas flutuantes como uma sobreposição na página. O OBS e a partilha de ecrã conseguem captá-las."
       },
       "account": {
         "title": "A sua conta",

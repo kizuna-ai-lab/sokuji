@@ -22,7 +22,13 @@ const { useSubtitleChrome, getHighlightOverlayForBg } = await import('./useSubti
 
 function Probe({ surface, onExit, forceVisible }: { surface: 'electron' | 'extension-overlay'; onExit: () => void; forceVisible?: boolean }) {
   const chrome = useSubtitleChrome({ surface, onExit, forceVisible });
-  return <div ref={chrome.rootRef} {...chrome.rootProps}>{chrome.resizeHandles}</div>;
+  return (
+    <div ref={chrome.rootRef} {...chrome.rootProps}>
+      <div className="subtitle-bar"><button type="button" data-testid="bar-button" /></div>
+      <div data-testid="captions" />
+      {chrome.resizeHandles}
+    </div>
+  );
 }
 
 const opacityOf = (root: HTMLElement) => root.style.getPropertyValue('--bar-opacity');
@@ -68,6 +74,57 @@ describe('useSubtitleChrome', () => {
     expect(count('electron')).toBe(0);
     locked = true;
     expect(count('extension-overlay')).toBe(0);
+  });
+
+  // The bar's names live in its buttons' hover tooltips; a pointer resting on
+  // a button to read one must not have the bar fade from under it (user
+  // feedback 2026-10-07).
+  describe('auto-hide while the pointer rests on the bar', () => {
+    beforeEach(() => vi.useFakeTimers());
+
+    it('keeps the bar visible past the idle timeout while the pointer is still over it', () => {
+      const { container, getByTestId } = render(<Probe surface="electron" onExit={() => {}} />);
+      const root = container.firstElementChild as HTMLElement;
+      act(() => { fireEvent.mouseMove(getByTestId('bar-button')); });
+      act(() => { vi.advanceTimersByTime(5000); });
+      expect(opacityOf(root)).toBe('1');
+    });
+
+    it('hides it once the pointer moves off the bar onto the captions', () => {
+      const { container, getByTestId } = render(<Probe surface="electron" onExit={() => {}} />);
+      const root = container.firstElementChild as HTMLElement;
+      act(() => { fireEvent.mouseMove(getByTestId('bar-button')); });
+      act(() => { fireEvent.mouseMove(getByTestId('captions')); });
+      act(() => { vi.advanceTimersByTime(5000); });
+      expect(opacityOf(root)).toBe('0');
+    });
+
+    // A hidden bar takes no pointer events, so a pointer that comes to rest
+    // where it was lands its last move on the captions under it — and the
+    // bar it brought back is under it by the time the countdown runs out.
+    it('keeps the bar up when the pointer came to rest where the hidden bar was', () => {
+      const { container, getByTestId } = render(<Probe surface="electron" onExit={() => {}} />);
+      const root = container.firstElementChild as HTMLElement;
+      // jsdom has no hit testing; this one stands in for the browser's.
+      const doc = document as unknown as { elementFromPoint?: (x: number, y: number) => Element | null };
+      doc.elementFromPoint = (x, y) => (x === 40 && y === 10 ? getByTestId('bar-button') : null);
+      try {
+        act(() => { fireEvent.mouseMove(getByTestId('captions'), { clientX: 40, clientY: 10 }); });
+        act(() => { vi.advanceTimersByTime(5000); });
+        expect(opacityOf(root)).toBe('1');
+      } finally {
+        delete doc.elementFromPoint;
+      }
+    });
+
+    it('hides it once the pointer leaves the window from the bar', () => {
+      const { container, getByTestId } = render(<Probe surface="electron" onExit={() => {}} />);
+      const root = container.firstElementChild as HTMLElement;
+      act(() => { fireEvent.mouseMove(getByTestId('bar-button')); });
+      act(() => { fireEvent.mouseLeave(root); });
+      act(() => { vi.advanceTimersByTime(5000); });
+      expect(opacityOf(root)).toBe('0');
+    });
   });
 
   // Follow-up D: the overlay's hold-to-talk control moved into the bar, which

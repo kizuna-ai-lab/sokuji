@@ -893,7 +893,8 @@
       "fullscreen": "全屏",
       "exitFullscreen": "退出全屏",
       "lock": "锁定位置和尺寸",
-      "exit": "退出字幕模式"
+      "exit": "退出字幕模式",
+      "backToMainTitle": "返回主窗口 (Esc)"
     },
     "settings": {
       "bgOpacity": "背景透明度",
@@ -1242,7 +1243,8 @@
       },
       "subtitle": {
         "title": "字幕模式",
-        "content": "打开悬浮字幕——桌面端是一个窗口，扩展里是页面上的覆盖层。OBS 和屏幕共享都能捕获它。"
+        "content_electron": "把这个窗口缩成悬浮字幕条，OBS 和屏幕共享都能捕获它。点字幕条上的「返回主窗口」或按 Esc，窗口就会恢复。",
+        "content_extension": "在页面上打开悬浮字幕覆盖层，OBS 和屏幕共享都能捕获它。"
       },
       "account": {
         "title": "你的账户",

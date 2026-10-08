@@ -893,7 +893,8 @@
       "fullscreen": "Skrin penuh",
       "exitFullscreen": "Keluar skrin penuh",
       "lock": "Kunci kedudukan dan saiz",
-      "exit": "Keluar mod sari kata"
+      "exit": "Keluar mod sari kata",
+      "backToMainTitle": "Kembali ke tetingkap utama (Esc)"
     },
     "settings": {
       "bgOpacity": "Kelegapan latar",
@@ -1242,7 +1243,8 @@
       },
       "subtitle": {
         "title": "Mod Sari Kata",
-        "content": "Membuka paparan sari kata terapung — tetingkap pada desktop, tindanan pada halaman dalam sambungan pelayar. OBS dan perkongsian skrin boleh menangkapnya."
+        "content_electron": "Mengecilkan tetingkap ini menjadi bar sari kata terapung yang boleh ditangkap oleh OBS dan perkongsian skrin. “Kembali ke tetingkap utama” pada bar, atau Esc, mengembalikan tetingkap.",
+        "content_extension": "Membuka sari kata terapung sebagai tindanan pada halaman. OBS dan perkongsian skrin boleh menangkapnya."
       },
       "account": {
         "title": "Akaun anda",
