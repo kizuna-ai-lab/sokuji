@@ -1057,6 +1057,25 @@ def test_tts_load_language_is_forced_on_every_synth():
     assert float(np.max(np.abs(samples))) > 0.01
 
 
+@needs_tts_omnivoice_clone
+def test_tts_omnivoice_speaks_the_apps_arabic_and_nepali():
+    """OmniVoice refuses the app's "ar" and "ne"; sk_tts sends its own ids, "arb" and "npi"."""
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    pcm, ref_rate, ref_text = _cpu_reference_clip()
+    t = sokuji_native.tts_load(TTS_OMNIVOICE_DIR, "omnivoice", cpu)
+    try:
+        t.set_voice(pcm, ref_rate, ref_text=ref_text)
+        arabic, rate = t.synth("الطقس جميل جدا اليوم.", language="ar")
+        nepali, _ = t.synth("आज मौसम धेरै राम्रो छ।", language="ne")
+    finally:
+        t.unload()
+    assert rate == 24000
+    for samples in (arabic, nepali):
+        assert 0.3 < samples.shape[0] / rate < 20.0
+        assert float(np.max(np.abs(samples))) > 0.01
+
+
 @needs_tts_cosyvoice3
 def test_tts_cosyvoice3_without_a_voice_fails_cleanly():
     """cosyvoice3 has no built-in voice: a synth with no clip is the engine's own clean

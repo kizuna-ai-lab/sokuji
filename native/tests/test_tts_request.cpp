@@ -252,7 +252,7 @@ void load_language_replaces_the_callers_on_every_synth() {
 
     const auto plain = handle_for("omnivoice");
     req = build_request(plain.get(), "Hello.", "ar", 1.0f);
-    assert(req.text_input && req.text_input->language == "ar");
+    assert(req.text_input && req.text_input->language == "arb");   // OmniVoice's id for it
 
     const auto pocket = handle_for("pocket_tts", "english");
     req = build_request(pocket.get(), "Hello.", "en", 1.0f);
@@ -268,6 +268,33 @@ void load_language_replaces_the_callers_on_every_synth() {
     const auto irodori = handle_for("irodori_tts", "en");
     req = build_request(irodori.get(), "Konnichiwa.", "en", 1.0f);
     assert(opt(req, "language") == "ja");
+}
+
+void omnivoice_takes_its_own_ids_for_arabic_and_nepali() {
+    // OmniVoice ids them "arb" and "npi" (omnivoice/language_map.inc:39, :430) and refuses "ar" and
+    // "ne" (prompt_builder.cpp:255-276).
+    const auto omni = handle_for("omnivoice");
+    const auto language = [&](const sk_tts *h, const char *code) {
+        return build_request(h, "Hello.", code, 1.0f).text_input->language;
+    };
+    assert(language(omni.get(), "ar") == "arb");
+    assert(language(omni.get(), "ne") == "npi");
+    assert(language(omni.get(), "ar-EG") == "arb");
+    assert(language(omni.get(), "NE_np") == "npi");
+    assert(language(omni.get(), "arb") == "arb");
+    assert(language(omni.get(), "en") == "en");
+    assert(language(omni.get(), "arz") == "arz");
+    assert(language(omni.get(), nullptr).empty());
+    // VoiceTut's load language replaces the caller's first and is OmniVoice's own Egyptian id.
+    const auto voicetut = handle_for("omnivoice", "arz");
+    assert(language(voicetut.get(), "ar") == "arz");
+    assert(language(voicetut.get(), "ne") == "arz");
+    // Another family keeps the app's codes.
+    for (const char *family : {"fish_audio", "moss_tts_nano", "chatterbox", "confucius4_tts"}) {
+        const auto other = handle_for(family);
+        assert(language(other.get(), "ar") == "ar");
+        assert(language(other.get(), "ne") == "ne");
+    }
 }
 
 void cosyvoice3_requests() {
@@ -1039,6 +1066,7 @@ int main() {
     existing_families_build_the_same_requests();
     load_language_is_kept_for_every_family_but_pocket_tts();
     load_language_replaces_the_callers_on_every_synth();
+    omnivoice_takes_its_own_ids_for_arabic_and_nepali();
     cosyvoice3_requests();
     fireredtts3_requests();
     language_names_match_the_vendors();

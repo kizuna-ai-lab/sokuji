@@ -473,6 +473,14 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
     // written, and nothing else in the family reads it.
     if (t->family == "audio8_tts" && base_language_code(req.text_input->language.c_str()) == "ja")
         req.text_input->language = "yue";
+    // OmniVoice ids Arabic and Nepali as "arb" and "npi" (src/models/omnivoice/language_map.inc:39,
+    // :430) and refuses the app's "ar" and "ne" (prompt_builder.cpp:255-276). A load language was
+    // applied above; VoiceTut's "arz" is OmniVoice's own id and passes unchanged.
+    if (t->family == "omnivoice") {
+        const std::string base = base_language_code(req.text_input->language.c_str());
+        if (base == "ar") req.text_input->language = "arb";
+        else if (base == "ne") req.text_input->language = "npi";
+    }
 
     // Two of the 2026-09-03 families read the language from the REQUEST OPTIONS instead of
     // text_input.language, which they never look at (grep for "language" under
