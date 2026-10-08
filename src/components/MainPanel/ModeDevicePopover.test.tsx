@@ -72,6 +72,9 @@ beforeEach(() => {
   store.sources = [SYSTEM, CHROMIUM];
   store.selected = CHROMIUM;
   store.otherSide = 'meeting';
+  Object.assign(f2f, { offered: true, active: false, swap: false, me: 'ja', other: 'en' });
+  tone.mockClear();
+  routing.setFaceToFaceSwap.mockClear();
   store.setOtherSide.mockReset();
   store.select.mockReset();
   store.setParticipantMuted.mockReset();
@@ -148,7 +151,6 @@ describe('ModeDevicePopover — Both, the other side', () => {
     f2f.offered = false;
     mountBoth();
     expect(screen.queryByRole('radio', { name: /Beside me/ })).toBeNull();
-    f2f.offered = true;
   });
 
   it('beside me: no system-audio row, a headphones row, the two ears with previews and the swap', async () => {
@@ -164,7 +166,27 @@ describe('ModeDevicePopover — Both, the other side', () => {
     await vi.waitFor(() => expect(tone).toHaveBeenCalledWith(undefined, -1));
     fireEvent.click(screen.getByRole('button', { name: /Swap left and right/ }));
     expect(routing.setFaceToFaceSwap).toHaveBeenCalledWith(true);
-    f2f.active = false;
-    store.otherSide = 'meeting';
+  });
+
+  it('the right ear previews panned right', async () => {
+    f2f.active = true;
+    store.otherSide = 'beside';
+    mountBoth();
+    fireEvent.click(screen.getByRole('button', { name: 'Preview the right ear' }));
+    await vi.waitFor(() => expect(tone).toHaveBeenCalledWith(undefined, 1));
+  });
+
+  it('swapped: the left ear is the other person, the right is me, and the swap button turns it back', async () => {
+    f2f.active = true;
+    f2f.swap = true;
+    store.otherSide = 'beside';
+    mountBoth();
+    const ears = Array.from(document.querySelectorAll('.mode-device-popover__ear'));
+    expect(ears[0].className).toContain('--other');
+    expect(ears[1].className).toContain('--me');
+    fireEvent.click(screen.getByRole('button', { name: 'Preview the right ear' }));
+    await vi.waitFor(() => expect(tone).toHaveBeenCalledWith(undefined, 1));
+    fireEvent.click(screen.getByRole('button', { name: /Swap left and right/ }));
+    expect(routing.setFaceToFaceSwap).toHaveBeenCalledWith(false);
   });
 });

@@ -368,7 +368,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
                   <button
                     type="button"
                     className="mode-device-popover__ear-preview"
-                    aria-label={t('faceToFace.previewEar', 'Preview the {{ear}}', { ear: earName.toLowerCase() })}
+                    aria-label={ear === 'left' ? t('faceToFace.previewLeft', 'Preview the left ear') : t('faceToFace.previewRight', 'Preview the right ear')}
                     onClick={() => { void getAppAudio().then((app) => app.testTone(undefined, pan)); }}
                   >
                     <Play size={12} />
