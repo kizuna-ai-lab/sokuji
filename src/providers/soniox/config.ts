@@ -161,10 +161,9 @@ export function buildSoniox(context: SessionContext, s: SonioxSettings, shared: 
     // Face-to-face is one microphone: there is nothing to split.
     sharedBoth: shared.faceToFace === true || s.bothModeSharedSession,
     ...(shared.faceToFace ? { faceToFace: true as const } : {}),
-    // The participant's leg only (D4). The context names no leg, and a pair
-    // into its own language reverses to itself, so its speaker leg passes
-    // `reversed` too: such a pair labels neither.
-    diarize: context.direction.source !== context.direction.target && shared.reversed(context.direction),
+    // The participant's leg (D4). The context names no leg, so a pair into its
+    // own language labels both: a lone voice stays unlabelled anyway.
+    diarize: shared.reversed(context.direction),
   };
 }
 
