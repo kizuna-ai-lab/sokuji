@@ -91,6 +91,20 @@ describe('ProviderOwnSettings', () => {
     expect(seen[0].preview).toBe(appVoicePreview);
   });
 
+  it('hands Settings participantSpeaks: the store\'s switch, unless the provider never speaks the participant', () => {
+    useProviderStore.setState({
+      entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'auto', target: 'en' } } },
+      speech: { textOnly: false, participantSpeech: true },
+    });
+    const seen: SettingsProps<FakeSettings>[] = [];
+    const Settings = (props: SettingsProps<FakeSettings>) => { seen.push(props); return null; };
+    const { rerender } = render(<ProviderOwnSettings providers={[{ ...fakeProvider, Settings }]} auth={AUTH} />);
+    expect(seen[seen.length - 1].participantSpeaks).toBe(true);
+    expect(seen[seen.length - 1].faceToFace).toBe(false);
+    rerender(<ProviderOwnSettings providers={[{ ...fakeProvider, participantSpeech: false, Settings }]} auth={AUTH} />);
+    expect(seen[seen.length - 1].participantSpeaks).toBe(false);
+  });
+
   describe("the account's identity", () => {
     const loadedWith = (credentials: Record<string, string>) =>
       useProviderStore.setState({ entries: { fake: { settings: FAKE_DEFAULTS, credentials, pair: { source: 'auto', target: 'en' } } } });

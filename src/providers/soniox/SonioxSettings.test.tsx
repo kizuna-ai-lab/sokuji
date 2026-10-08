@@ -151,3 +151,30 @@ describe('createSonioxSettingsView', () => {
     expect(seenPort[seenPort.length - 1]).toBeNull();
   });
 });
+
+describe('SonioxSettings, face-to-face', () => {
+  it("shows the other party's voice only when the participant speaks, built-in voices only", () => {
+    const update = vi.fn();
+    const { rerender } = render(<BYOK {...props({ update })} />);
+    expect(screen.queryByLabelText("Other party's voice")).toBeNull();
+    rerender(<BYOK {...props({ update, participantSpeaks: true })} />);
+    const select = screen.getByLabelText("Other party's voice") as HTMLSelectElement;
+    expect(select.value).toBe('Grace');
+    expect([...select.options].map((o) => o.value)).toContain('Kenji');
+    fireEvent.change(select, { target: { value: 'Kenji' } });
+    expect(update).toHaveBeenCalledWith({ participantVoice: 'Kenji' });
+  });
+
+  it('locks the shared-session pills in face-to-face and says why', () => {
+    render(<BYOK {...props({ faceToFace: true, legs: ['speaker', 'participant'] })} />);
+    expect(screen.getByRole('button', { name: 'Enabled' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Disabled' })).toBeDisabled();
+    expect(screen.getByText(/Face-to-face always uses one shared session/)).toBeInTheDocument();
+  });
+
+  it('shows the forced value in face-to-face, not the stored one', () => {
+    render(<BYOK {...props({ faceToFace: true, settings: { ...SONIOX_DEFAULTS, bothModeSharedSession: false } })} />);
+    expect(screen.getByRole('button', { name: 'Enabled' })).toHaveClass('active');
+    expect(screen.getByRole('button', { name: 'Disabled' })).not.toHaveClass('active');
+  });
+});

@@ -165,6 +165,10 @@ export interface SettingsProps<S> {
   preview?: PreviewPort;
   /** The legs a start would open (the audio mode's). Set by `ProviderOwnSettings` for `Settings`: Soniox locks its shared-session choice outside Both. */
   legs?: readonly LegName[];
+  /** The participant leg would speak (face-to-face, or its switch, and the provider allows it). Set by `ProviderOwnSettings` for `Settings`: Soniox shows the participant's voice. */
+  participantSpeaks?: boolean;
+  /** A start would run face-to-face. Set by `ProviderOwnSettings` for `Settings`: Soniox locks its shared-session choice. */
+  faceToFace?: boolean;
 }
 
 /** One slot of a local engine's model management: a stage of one direction (`src→tgt`). */
