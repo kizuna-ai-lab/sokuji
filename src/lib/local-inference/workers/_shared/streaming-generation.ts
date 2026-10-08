@@ -10,14 +10,16 @@
 /**
  * Silence, in tokens, appended at an utterance end so the model decodes its tail.
  *
- * Voxtral Realtime runs NUM_DELAY_TOKENS (6) behind the audio it has been fed,
- * so 6 + 1 is what it takes to flush the words it is still holding. The
- * processor's own `num_right_pad_tokens` is 17 — the extra 10 are
- * OFFLINE_STREAMING_BUFFER_TOKENS, slack for decoding a whole clip at once.
- * Streaming does not need them, and every padded token is real decode work at
- * the end of every utterance.
+ * The processor's `num_right_pad_tokens`: NUM_DELAY_TOKENS (6) + 1 for the BOS
+ * position + OFFLINE_STREAMING_BUFFER_TOKENS (10). The model emits a word only
+ * after the word has ended AND the delay has passed, one piece per 80 ms step,
+ * so an utterance cut on a word still owes that word's pieces after the delay —
+ * mistral-common's "buffer of max word length". With 7 tokens a Japanese or
+ * Chinese segment cut mid-word left its last character for the step after the
+ * audio ran out (docs/superpowers/notes/2026-10-08-voxtral-realtime-ished-root-cause.md,
+ * §5.1); 17 gets every owed piece out while the model still has audio.
  */
-export const TAIL_PAD_TOKENS = 7;
+export const TAIL_PAD_TOKENS = 17;
 
 /** Keep individual audio-encoder calls small even when a backlog accumulated. */
 export const MAX_AUDIO_TOKENS_PER_ENCODER_CALL = 32;
@@ -43,6 +45,46 @@ export function boundedBatchEndSample(
   const extraAvailable = Math.max(0, Math.floor((availableSamples - endNeeded) / samplesPerTok));
   const extraAllowed = Math.max(0, Math.floor(maxTokens) - 1);
   return endNeeded + Math.min(extraAvailable, extraAllowed) * samplesPerTok;
+}
+
+/**
+ * When a generate() run has sampled the token of its last audio position.
+ *
+ * transformers.js discovers that the chunk iterator is exhausted inside the
+ * next forward: it runs the decoder on the text embedding alone, with no audio
+ * added, and streams the token it samples there before its own stopping
+ * criterion ends the run. The model never trained on such an input, and the
+ * step is a near-tie between [STREAMING_PAD], punctuation and word-piece
+ * suffixes — "ished", "ous" — glued to the end of the utterance (the note
+ * above, §4). Python transformers stops before that step; this is the count
+ * that lets the worker do the same.
+ *
+ * The prefill forward consumes `prefillTokens` audio positions and samples the
+ * first token; every later token consumes one more. So after `n` sampled
+ * tokens the run has consumed `prefillTokens - 1 + n` positions, and it is
+ * done when that reaches the audio tokens yielded — not one step earlier,
+ * which drops the last real position's token.
+ */
+export class AudioPositionBudget {
+  private audioTokens = 0;
+  private sampled = 0;
+
+  constructor(private readonly prefillTokens: number) {}
+
+  /** Audio tokens the encoder produces for a chunk the generator yielded. */
+  addChunk(tokens: number): void {
+    this.audioTokens += tokens;
+  }
+
+  /** One token streamed after the prompt echo — [STREAMING_PAD] included. */
+  tokenSampled(): void {
+    this.sampled++;
+  }
+
+  /** Stop now? `noMoreChunks`: the feed is finishing and no further chunk fits. */
+  exhausted(noMoreChunks: boolean): boolean {
+    return noMoreChunks && this.prefillTokens - 1 + this.sampled >= this.audioTokens;
+  }
 }
 
 export type QueuedUtteranceState = 'open' | 'finish' | 'stop';

@@ -41,6 +41,7 @@ import * as T from '@huggingface/transformers';
   T.Qwen3_5ForConditionalGeneration,
   T.Tensor,
   T.DynamicCache,
+  T.StoppingCriteria,
 ];
 
 export {
@@ -59,6 +60,8 @@ export {
   // forward pass directly for chunked prefill (#306).
   Tensor,
   DynamicCache,
+  // voxtral-webgpu.worker.ts: stop generate() before the step that has no audio.
+  StoppingCriteria,
 } from '@huggingface/transformers';
 
 export type {
