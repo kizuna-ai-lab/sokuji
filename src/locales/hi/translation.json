@@ -563,7 +563,8 @@
       "legendSource": "मूल: केवल मूल भाषण",
       "legendTranslation": "अनुवाद: केवल अनुवाद",
       "legendBoth": "दोनों: दोनों पंक्तियाँ",
-      "legendNone": "बंद: इस पक्ष को छिपाएं"
+      "legendNone": "बंद: इस पक्ष को छिपाएं",
+      "person": "वक्ता {{n}}"
     },
     "playItemAudio": "इस आइटम का ऑडियो चलाएँ",
     "backToLatest": "नवीनतम पर लौटें",

@@ -563,7 +563,8 @@
       "legendSource": "Origineel: alleen originele spraak",
       "legendTranslation": "Vertaling: alleen vertaling",
       "legendBoth": "Beide: beide regels",
-      "legendNone": "Uit: deze kant verbergen"
+      "legendNone": "Uit: deze kant verbergen",
+      "person": "Spreker {{n}}"
     },
     "playItemAudio": "Audio van dit item afspelen",
     "backToLatest": "Terug naar nieuwste",

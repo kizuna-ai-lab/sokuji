@@ -563,7 +563,8 @@
       "legendSource": "Original: apenas a fala original",
       "legendTranslation": "Tradução: apenas a tradução",
       "legendBoth": "Ambos: ambas as linhas",
-      "legendNone": "Desligado: ocultar este lado"
+      "legendNone": "Desligado: ocultar este lado",
+      "person": "Orador {{n}}"
     },
     "playItemAudio": "Reproduzir o áudio deste item",
     "backToLatest": "Voltar ao mais recente",

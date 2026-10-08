@@ -563,7 +563,8 @@
       "legendSource": "Origen: solo el habla original",
       "legendTranslation": "Traducción: solo la traducción",
       "legendBoth": "Ambos: ambas líneas",
-      "legendNone": "Apagado: ocultar este lado"
+      "legendNone": "Apagado: ocultar este lado",
+      "person": "Hablante {{n}}"
     },
     "playItemAudio": "Reproducir el audio de este elemento",
     "backToLatest": "Volver a lo más reciente",

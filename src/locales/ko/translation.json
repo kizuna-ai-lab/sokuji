@@ -563,7 +563,8 @@
       "legendSource": "원문: 원본 음성만",
       "legendTranslation": "번역: 번역만",
       "legendBoth": "모두: 두 줄 모두",
-      "legendNone": "끄기: 이쪽 숨기기"
+      "legendNone": "끄기: 이쪽 숨기기",
+      "person": "화자 {{n}}"
     },
     "playItemAudio": "이 항목의 오디오 재생",
     "backToLatest": "최신으로 이동",

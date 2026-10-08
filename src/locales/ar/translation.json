@@ -563,7 +563,8 @@
       "legendSource": "الأصل: الكلام الأصلي فقط",
       "legendTranslation": "الترجمة: الترجمة فقط",
       "legendBoth": "الكل: السطران",
-      "legendNone": "إيقاف: إخفاء هذا الجانب"
+      "legendNone": "إيقاف: إخفاء هذا الجانب",
+      "person": "المتحدث {{n}}"
     },
     "playItemAudio": "تشغيل صوت هذا العنصر",
     "backToLatest": "العودة إلى الأحدث",

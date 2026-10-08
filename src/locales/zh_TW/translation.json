@@ -563,7 +563,8 @@
       "legendSource": "原文：僅原始語音",
       "legendTranslation": "譯文：僅翻譯",
       "legendBoth": "兩者：兩行都顯示",
-      "legendNone": "關閉：隱藏這一側"
+      "legendNone": "關閉：隱藏這一側",
+      "person": "說話者 {{n}}"
     },
     "playItemAudio": "播放此項目的音訊",
     "backToLatest": "回到最新",

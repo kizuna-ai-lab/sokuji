@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowDown, Play, User, Users } from 'lucide-react';
 import type { LegName, SegmentId } from '../../lib/conversation/types';
 import type { DisplayItem, NoticeEntry } from '../../lib/view/filter';
+import { personShade } from '../../lib/view/people';
 import { SystemRow, type NoticeAction } from './SystemRow';
 import { useFollowLatest } from './useFollowLatest';
 import '../MainPanel/MainPanel.scss';
@@ -131,10 +132,12 @@ const RowBubble = memo(function RowBubble({ item, upTo, replaySlot, canReplay, r
   const isTranslation = row.side === 'translation';
   // A detected language wins; otherwise the leg's pair, frozen at start (spec: "The language pair belongs to the leg").
   const lang = row.language || (isTranslation ? languages.target : languages.source);
-  const scopeName = t(
-    leg === 'speaker' ? 'mainPanel.displayMode.speaker' : 'mainPanel.displayMode.participant',
-    leg === 'speaker' ? 'Me' : 'Other',
-  );
+  const scopeName = item.person !== undefined
+    ? t('mainPanel.displayMode.person', { defaultValue: 'Speaker {{n}}', n: item.person })
+    : t(
+      leg === 'speaker' ? 'mainPanel.displayMode.speaker' : 'mainPanel.displayMode.participant',
+      leg === 'speaker' ? 'Me' : 'Other',
+    );
   // Rows tile the segment's text untrimmed; a bubble shows it trimmed, and karaoke counts from the trimmed start.
   const text = row.text.trim();
   const lead = row.text.length - row.text.trimStart().length;
@@ -148,8 +151,10 @@ const RowBubble = memo(function RowBubble({ item, upTo, replaySlot, canReplay, r
     <div className={`conversation-row source-${leg} ${item.header ? 'with-header' : 'grouped'} ${compact ? 'compact' : 'expanded'}`}>
       {!compact && item.header && (
         <div className="row-header">
-          <div className={`row-avatar avatar-${leg}`}>
-            {leg === 'speaker' ? <User size={12} /> : <Users size={12} />}
+          <div className={`row-avatar avatar-${leg}${item.person !== undefined ? ` person-shade-${personShade(item.person)}` : ''}`}>
+            {item.person !== undefined
+              ? <span className="row-avatar__number">{item.person}</span>
+              : leg === 'speaker' ? <User size={12} /> : <Users size={12} />}
           </div>
           <div className="row-name">
             <span className="row-name-text">{scopeName}</span>

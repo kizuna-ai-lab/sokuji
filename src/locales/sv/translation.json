@@ -563,7 +563,8 @@
       "legendSource": "Källa: endast ursprungligt tal",
       "legendTranslation": "Översättning: endast översättning",
       "legendBoth": "Båda: båda raderna",
-      "legendNone": "Av: dölj denna sida"
+      "legendNone": "Av: dölj denna sida",
+      "person": "Talare {{n}}"
     },
     "playItemAudio": "Spela upp ljudet för detta objekt",
     "backToLatest": "Tillbaka till senaste",

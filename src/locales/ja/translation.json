@@ -563,7 +563,8 @@
       "legendSource": "原文: 元の発話のみ",
       "legendTranslation": "訳文: 翻訳のみ",
       "legendBoth": "両方: 両方の行",
-      "legendNone": "オフ: この側を非表示"
+      "legendNone": "オフ: この側を非表示",
+      "person": "話者 {{n}}"
     },
     "playItemAudio": "この項目の音声を再生",
     "backToLatest": "最新に戻る",

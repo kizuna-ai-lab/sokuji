@@ -563,7 +563,8 @@
       "legendSource": "מקור: רק הדיבור המקורי",
       "legendTranslation": "תרגום: רק התרגום",
       "legendBoth": "שניהם: שתי השורות",
-      "legendNone": "כבוי: הסתר צד זה"
+      "legendNone": "כבוי: הסתר צד זה",
+      "person": "דובר {{n}}"
     },
     "playItemAudio": "הפעל את השמע של פריט זה",
     "backToLatest": "חזרה לחדש ביותר",

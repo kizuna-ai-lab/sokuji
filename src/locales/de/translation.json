@@ -563,7 +563,8 @@
       "legendSource": "Original: nur Originalsprache",
       "legendTranslation": "Übersetzung: nur Übersetzung",
       "legendBoth": "Beides: beide Zeilen",
-      "legendNone": "Aus: diese Seite ausblenden"
+      "legendNone": "Aus: diese Seite ausblenden",
+      "person": "Sprecher {{n}}"
     },
     "playItemAudio": "Audio dieses Elements abspielen",
     "backToLatest": "Zurück zum Neuesten",

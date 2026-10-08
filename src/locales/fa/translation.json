@@ -563,7 +563,8 @@
       "legendSource": "اصلی: فقط گفتار اصلی",
       "legendTranslation": "ترجمه: فقط ترجمه",
       "legendBoth": "هر دو: هر دو خط",
-      "legendNone": "خاموش: پنهان کردن این طرف"
+      "legendNone": "خاموش: پنهان کردن این طرف",
+      "person": "گوینده {{n}}"
     },
     "playItemAudio": "پخش صوت این مورد",
     "backToLatest": "بازگشت به جدیدترین",

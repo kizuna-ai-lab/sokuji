@@ -563,7 +563,8 @@
       "legendSource": "Orihinal: orihinal na pananalita lamang",
       "legendTranslation": "Salin: salin lamang",
       "legendBoth": "Parehas: parehong linya",
-      "legendNone": "Patay: itago ang panig na ito"
+      "legendNone": "Patay: itago ang panig na ito",
+      "person": "Tagapagsalita {{n}}"
     },
     "playItemAudio": "I-play ang audio ng item na ito",
     "backToLatest": "Bumalik sa pinakabago",

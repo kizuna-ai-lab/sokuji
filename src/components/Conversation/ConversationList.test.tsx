@@ -6,8 +6,10 @@ import { ConversationList, type ConversationListProps } from './ConversationList
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string, fallback?: string | { defaultValue?: string }) =>
-      typeof fallback === 'string' ? fallback : fallback?.defaultValue ?? key,
+    t: (key: string, fallback?: string | ({ defaultValue?: string } & Record<string, unknown>)) =>
+      typeof fallback === 'string'
+        ? fallback
+        : (fallback?.defaultValue ?? key).replace(/\{\{(\w+)\}\}/g, (m, name: string) => (fallback && name in fallback ? String(fallback[name]) : m)),
   }),
 }));
 
@@ -87,6 +89,33 @@ describe('ConversationList — rows', () => {
     const { container } = render(<ConversationList {...props({ items: [item], lit: new Map([['s:speaker:1', 6]]) })} />);
     expect(container.querySelector('.row-text')?.textContent).toBe('Two.');
     expect(container.querySelector('.karaoke-played')?.textContent).toBe('T');
+  });
+
+  it("names a labelled leg's person in the header, the number in the avatar", () => {
+    const { container } = render(<ConversationList {...props({ items: [rowItem({ leg: 'participant', person: 2 })] })} />);
+    expect(container.querySelector('.row-header .row-name-text')?.textContent).toBe('Speaker 2');
+    expect(container.querySelector('.row-avatar.avatar-participant.person-shade-1 .row-avatar__number')?.textContent).toBe('2');
+  });
+
+  it('cycles the avatar shade by person number', () => {
+    const shade = (person: number) => {
+      const { container } = render(<ConversationList {...props({ items: [rowItem({ person })] })} />);
+      return container.querySelector('.row-avatar')?.className;
+    };
+    expect(shade(1)).toContain('person-shade-0');
+    expect(shade(3)).toContain('person-shade-2');
+    expect(shade(4)).toContain('person-shade-0');
+  });
+
+  it('keeps the leg name and its icon for a row with no person', () => {
+    const { container } = render(<ConversationList {...props()} />);
+    expect(container.querySelector('.row-header .row-name-text')?.textContent).toBe('Me');
+    expect(container.querySelector('.row-avatar__number')).toBeNull();
+  });
+
+  it("names the person on the compact row's dot", () => {
+    const { container } = render(<ConversationList {...props({ compact: true, items: [rowItem({ leg: 'participant', person: 3 })] })} />);
+    expect(container.querySelector('.row-role-dot')?.getAttribute('aria-label')).toBe('Speaker 3');
   });
 });
 

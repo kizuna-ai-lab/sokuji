@@ -563,7 +563,8 @@
       "legendSource": "ต้นฉบับ: เฉพาะคำพูดต้นฉบับ",
       "legendTranslation": "คำแปล: เฉพาะคำแปล",
       "legendBoth": "ทั้งคู่: ทั้งสองบรรทัด",
-      "legendNone": "ปิด: ซ่อนฝั่งนี้"
+      "legendNone": "ปิด: ซ่อนฝั่งนี้",
+      "person": "ผู้พูด {{n}}"
     },
     "playItemAudio": "เล่นเสียงของรายการนี้",
     "backToLatest": "กลับไปที่ล่าสุด",

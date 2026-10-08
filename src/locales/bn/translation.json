@@ -563,7 +563,8 @@
       "legendSource": "মূল: শুধু মূল বক্তব্য",
       "legendTranslation": "অনুবাদ: শুধু অনুবাদ",
       "legendBoth": "উভয়: উভয় লাইন",
-      "legendNone": "বন্ধ: এই দিকটি লুকান"
+      "legendNone": "বন্ধ: এই দিকটি লুকান",
+      "person": "বক্তা {{n}}"
     },
     "playItemAudio": "এই আইটেমের অডিও চালান",
     "backToLatest": "সর্বশেষে ফিরুন",

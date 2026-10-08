@@ -563,7 +563,8 @@
       "legendTranslation": "Trans: only the translation",
       "legendBoth": "Both: both lines",
       "legendNone": "Off: hide this side",
-      "ariaLabel": "{{scope}}: {{mode}} — click to change"
+      "ariaLabel": "{{scope}}: {{mode}} — click to change",
+      "person": "Speaker {{n}}"
     },
     "playItemAudio": "Play this item's audio",
     "backToLatest": "Back to latest",

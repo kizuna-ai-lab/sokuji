@@ -563,7 +563,8 @@
       "legendSource": "Source : discours original seulement",
       "legendTranslation": "Traduction : traduction seulement",
       "legendBoth": "Les deux : les deux lignes",
-      "legendNone": "Arrêt : masquer ce côté"
+      "legendNone": "Arrêt : masquer ce côté",
+      "person": "Intervenant {{n}}"
     },
     "playItemAudio": "Lire l'audio de cet élément",
     "backToLatest": "Revenir au plus récent",

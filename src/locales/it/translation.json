@@ -563,7 +563,8 @@
       "legendSource": "Originale: solo parlato originale",
       "legendTranslation": "Traduzione: solo traduzione",
       "legendBoth": "Entrambi: entrambe le righe",
-      "legendNone": "Spento: nascondi questo lato"
+      "legendNone": "Spento: nascondi questo lato",
+      "person": "Interlocutore {{n}}"
     },
     "playItemAudio": "Riproduci l'audio di questo elemento",
     "backToLatest": "Torna al più recente",

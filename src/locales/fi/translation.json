@@ -563,7 +563,8 @@
       "legendSource": "Lähde: vain alkuperäinen puhe",
       "legendTranslation": "Käännös: vain käännös",
       "legendBoth": "Molemmat: molemmat rivit",
-      "legendNone": "Pois: piilota tämä puoli"
+      "legendNone": "Pois: piilota tämä puoli",
+      "person": "Puhuja {{n}}"
     },
     "playItemAudio": "Toista tämän kohteen ääni",
     "backToLatest": "Takaisin uusimpaan",

@@ -563,7 +563,8 @@
       "legendSource": "原文：仅原始语音",
       "legendTranslation": "译文：仅翻译",
       "legendBoth": "两者：两行都显示",
-      "legendNone": "关闭：隐藏这一侧"
+      "legendNone": "关闭：隐藏这一侧",
+      "person": "说话人 {{n}}"
     },
     "playItemAudio": "播放此条音频",
     "backToLatest": "回到最新",

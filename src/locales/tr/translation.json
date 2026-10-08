@@ -563,7 +563,8 @@
       "legendSource": "Orijinal: yalnızca orijinal konuşma",
       "legendTranslation": "Çeviri: yalnızca çeviri",
       "legendBoth": "Her ikisi: iki satır da",
-      "legendNone": "Kapalı: bu tarafı gizle"
+      "legendNone": "Kapalı: bu tarafı gizle",
+      "person": "Konuşmacı {{n}}"
     },
     "playItemAudio": "Bu öğenin sesini oynat",
     "backToLatest": "En yeniye dön",

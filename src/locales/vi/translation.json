@@ -563,7 +563,8 @@
       "legendSource": "Gốc: chỉ giọng gốc",
       "legendTranslation": "Dịch: chỉ bản dịch",
       "legendBoth": "Cả hai: cả hai dòng",
-      "legendNone": "Tắt: ẩn phía này"
+      "legendNone": "Tắt: ẩn phía này",
+      "person": "Người nói {{n}}"
     },
     "playItemAudio": "Phát âm thanh của mục này",
     "backToLatest": "Về mới nhất",

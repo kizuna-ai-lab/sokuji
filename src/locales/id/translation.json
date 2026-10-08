@@ -563,7 +563,8 @@
       "legendSource": "Asli: hanya ucapan asli",
       "legendTranslation": "Terjemahan: hanya terjemahan",
       "legendBoth": "Keduanya: kedua baris",
-      "legendNone": "Mati: sembunyikan sisi ini"
+      "legendNone": "Mati: sembunyikan sisi ini",
+      "person": "Pembicara {{n}}"
     },
     "playItemAudio": "Putar audio item ini",
     "backToLatest": "Kembali ke terbaru",

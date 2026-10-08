@@ -27,6 +27,15 @@ $color-speaker:      $color-primary;       // read: badges, translated text
 $color-speaker-fill: $color-primary-fill;  // filled: the avatar disc, which carries a glyph
 $color-participant: #f39c12;        // the other side
 
+// A labelled leg's people: the leg's colour family, one shade per person in
+// turn (`personShade` in src/lib/view/people.ts picks the index, 0 → -1).
+$color-speaker-person-1: $color-speaker-fill;
+$color-speaker-person-2: $color-speaker;
+$color-speaker-person-3: #005c45;
+$color-participant-person-1: $color-participant;
+$color-participant-person-2: #f8c471;
+$color-participant-person-3: #ca6f1e;
+
 // ── The amber region ──
 // Four hexes were sharing this space with no rule about which meant what, and
 // #f39c12 was doing two unrelated jobs at once — the person on the other end,
