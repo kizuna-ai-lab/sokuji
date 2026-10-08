@@ -256,6 +256,8 @@ class SonioxCore {
   private sttConfig(): SonioxSttConfig {
     const { context, config, credentials } = this.o.primary;
     const { source, target } = context.direction;
+    // Both languages bias recognition, the source first; an auto source hints nothing, since the target alone would pull an unknown speaker toward the other side.
+    const hints = source === AUTO ? [] : [...new Set([sonioxWire.toWire(source), sonioxWire.toWire(target)])];
     return {
       apiKey: credentials.stt,
       region: credentials.region,
@@ -263,9 +265,8 @@ class SonioxCore {
       sampleRate: SAMPLE_RATE,
       translation: this.o.shared ? { type: 'two_way', language_a: sonioxWire.toWire(source), language_b: sonioxWire.toWire(target) } : { type: 'one_way', target_language: sonioxWire.toWire(target) },
       // D20 keeps an auto source out of Both: the gate refuses the participant leg.
-      ...(this.o.shared
-        ? { languageHints: [sonioxWire.toWire(source), sonioxWire.toWire(target)], enableSpeakerDiarization: true }
-        : source !== AUTO ? { languageHints: [sonioxWire.toWire(source)] } : {}),
+      ...(hints.length ? { languageHints: hints } : {}),
+      ...(this.o.shared ? { enableSpeakerDiarization: true } : {}),
       ...(config.stt.context ? { context: config.stt.context } : {}),
       endpointSensitivity: config.stt.endpointSensitivity,
       endpointLatencyAdjustmentLevel: config.stt.endpointLatencyAdjustmentLevel,

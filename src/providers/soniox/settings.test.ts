@@ -54,6 +54,11 @@ describe('migrateSonioxSettings', () => {
     // An unlisted stored field is not carried into the result.
     expect(migrateSonioxSettings({ ...SONIOX_DEFAULTS, model: 'stt-rt-v5' })).not.toHaveProperty('model');
   });
+
+  it('keeps a stored shared choice: only an unset or wrong-typed value takes the split default', () => {
+    expect(migrateSonioxSettings({ ...SONIOX_DEFAULTS, bothModeSharedSession: true }).bothModeSharedSession).toBe(true);
+    expect(migrateSonioxSettings({}).bothModeSharedSession).toBe(false);
+  });
 });
 
 describe('sonioxCredentials.fields', () => {

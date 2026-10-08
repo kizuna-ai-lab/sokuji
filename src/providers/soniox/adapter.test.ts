@@ -104,7 +104,7 @@ describe('the Soniox adapter: conformance', () => {
 });
 
 describe('the Soniox adapter: one leg', () => {
-  it("sends the leg's direction: one_way to the target, the source as the only hint, the context and the knobs; no diarization, no client reference", async () => {
+  it("sends the leg's direction: one_way to the target, both languages as hints (the source first), the context and the knobs; no diarization, no client reference", async () => {
     const { stt } = await live({ settings: { vocabularyTerms: 'Sokuji', endpointMaxDelayMs: 3000 } });
     const config = stt().sentJson<Json>()[0];
     expect(config).toMatchObject({
@@ -113,7 +113,7 @@ describe('the Soniox adapter: one leg', () => {
       audio_format: 'pcm_s16le',
       sample_rate: 24000,
       translation: { type: 'one_way', target_language: 'ja' },
-      language_hints: ['en'],
+      language_hints: ['en', 'ja'],
       context: { terms: ['Sokuji'] },
       max_endpoint_delay_ms: 3000,
     });
@@ -124,6 +124,11 @@ describe('the Soniox adapter: one leg', () => {
   it('sends no hint for an auto source', async () => {
     const { stt } = await live({ context: { ...AUTO_CTX, direction: { source: 'auto', target: 'ja' } } });
     expect(stt().sentJson<Json>()[0]).not.toHaveProperty('language_hints');
+  });
+
+  it('sends one hint when both languages go out as the same wire code', async () => {
+    const { stt } = await live({ context: { ...AUTO_CTX, direction: { source: 'en', target: 'en' } } });
+    expect(stt().sentJson<Json>()[0]).toMatchObject({ language_hints: ['en'] });
   });
 
   it("opens both sockets at the key's region", async () => {
@@ -629,7 +634,7 @@ describe("the Soniox adapter: Plan B's session seams", () => {
 describe('language codes (unified language codes)', () => {
   it("sends Filipino to Soniox as tl and reads Soniox's tl back as fil", async () => {
     const { stt, tts, of } = await live({ context: { ...AUTO_CTX, direction: { source: 'en', target: 'fil' } } });
-    expect(stt().sentJson<Json>()[0]).toMatchObject({ translation: { type: 'one_way', target_language: 'tl' }, language_hints: ['en'] });
+    expect(stt().sentJson<Json>()[0]).toMatchObject({ translation: { type: 'one_way', target_language: 'tl' }, language_hints: ['en', 'tl'] });
     stt().receive(msg(orig('Hello.'), tr('Kumusta.', 'tl'), END));
     const languages = of('segmentText').map((e) => e.payload.language);
     expect(languages).toContain('fil');

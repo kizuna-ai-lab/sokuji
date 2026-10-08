@@ -83,8 +83,8 @@ describe('Soniox startBoth: split', () => {
     const h = await live({ sharedBoth: false });
     expect(h.sttSockets()).toHaveLength(2);
     const [spk, par] = h.sttSockets().map((x) => x.sentJson<Json>()[0]);
-    expect(spk).toMatchObject({ api_key: 'k-spk', translation: { type: 'one_way', target_language: 'ja' }, language_hints: ['en'] });
-    expect(par).toMatchObject({ api_key: 'k-par', translation: { type: 'one_way', target_language: 'en' }, language_hints: ['ja'] });
+    expect(spk).toMatchObject({ api_key: 'k-spk', translation: { type: 'one_way', target_language: 'ja' }, language_hints: ['en', 'ja'] });
+    expect(par).toMatchObject({ api_key: 'k-par', translation: { type: 'one_way', target_language: 'en' }, language_hints: ['ja', 'en'] });
     expect(spk).not.toHaveProperty('enable_speaker_diarization');
     expect(par).not.toHaveProperty('enable_speaker_diarization');
   });
