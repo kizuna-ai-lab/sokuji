@@ -7,6 +7,7 @@ import type { Side } from '../contract/adapter';
 import type { Languages, LegName } from '../conversation/types';
 import { sameRow } from '../projection/project';
 import type { Entry, Row } from '../projection/types';
+import { entryPerson, people, type People } from './people';
 
 /** Which sides of a leg a surface shows: the same union as the stored display modes. */
 export type SideFilter = 'both' | 'source' | 'translation' | 'none';
@@ -22,10 +23,12 @@ export type DisplayItem =
       languages: Languages;
       /** The group's time: its earliest `openedAt`. */
       t: number;
-      /** A header opens here: the leg changed since the last row drawn. */
+      /** A header opens here: the leg, or a labelled leg's person, changed since the last row drawn. */
       header: boolean;
       /** The last row drawn of its segment: where that segment's replay button goes. */
       endsSegment: boolean;
+      /** The person's display number (`people()`), on a labelled leg. */
+      person?: number;
     }
   | { kind: 'notice'; notice: NoticeEntry };
 
@@ -60,19 +63,25 @@ export function showsSide(filter: SideFilter, side: Side): boolean {
 
 /**
  * The lines a bubble surface draws. Within an exchange the source rows come
- * first. A header opens where the leg changes from the last row drawn; a
+ * first. A header opens where the leg or a labelled leg's person changes from the last row drawn; a
  * notice is drawn under every filter and neither opens nor breaks a header
  * group — today's panel on each count (spec: "UI rules deferred to the UI
  * work"). `previous`, the last call's output, keeps an unchanged line's
  * object, so a memoized row does not re-render (plan 1e-3b-1 ruling 14).
  */
-export function displayItems(entries: readonly Entry[], filters: LegFilters, previous: readonly DisplayItem[] = []): DisplayItem[] {
+export function displayItems(
+  entries: readonly Entry[],
+  filters: LegFilters,
+  previous: readonly DisplayItem[] = [],
+  who: People = people(entries),
+): DisplayItem[] {
   const byKey = new Map<string, DisplayItem>();
   for (const item of previous) {
     byKey.set(item.kind === 'notice' ? `n:${item.notice.id}` : item.row.key, item);
   }
   const out: DisplayItem[] = [];
   let lastLeg: LegName | null = null;
+  let lastPerson: number | undefined;
   for (const entry of entries) {
     if (entry.kind === 'notice') {
       const old = byKey.get(`n:${entry.id}`);
@@ -84,18 +93,20 @@ export function displayItems(entries: readonly Entry[], filters: LegFilters, pre
       ...(showsSide(filter, 'source') ? entry.source : []),
       ...(showsSide(filter, 'translation') ? entry.translation : []),
     ];
+    const person = who.numberOf(entry.leg, entryPerson(entry));
     rows.forEach((row, i) => {
-      const header = lastLeg !== entry.leg;
+      const header = lastLeg !== entry.leg || lastPerson !== person;
       const endsSegment = rows[i + 1]?.segmentId !== row.segmentId;
       const old = byKey.get(row.key);
       out.push(
         old?.kind === 'row' && sameRow(old.row, row) && old.header === header && old.endsSegment === endsSegment
-          && old.t === entry.t && old.leg === entry.leg
+          && old.t === entry.t && old.leg === entry.leg && old.person === person
           && old.languages.source === entry.languages.source && old.languages.target === entry.languages.target
           ? old
-          : { kind: 'row', row, leg: entry.leg, languages: entry.languages, t: entry.t, header, endsSegment },
+          : { kind: 'row', row, leg: entry.leg, languages: entry.languages, t: entry.t, header, endsSegment, person },
       );
       lastLeg = entry.leg;
+      lastPerson = person;
     });
   }
   return out;
