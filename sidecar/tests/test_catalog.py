@@ -1110,7 +1110,7 @@ def test_the_new_rung_labels_have_their_dtype_sets():
 # Weight dtypes of published files at those labels, integer tables dropped (GGUF headers read
 # 2026-10-06; the label is the file name's own suffix).
 _PUBLISHED_RUNG_DTYPES = (
-    ("orig", {"f32"}),                          # confucius4-tts, fireredtts3-base, magpie-tts-multilingual-357m
+    ("orig", {"f32"}),                          # confucius4-tts, fireredtts3-base
     ("orig", {"f32", "bf16"}),                  # neutts-2e
     ("f32", {"f32"}),                           # cosyvoice3
     ("q4_k", {"q4_K", "bf16", "f16"}),          # kugelaudio-0-open
@@ -1561,15 +1561,14 @@ def test_magpie_card_and_license():
     assert m.extra_files == ()
     assert m.family not in catalog._TTS_TIER_OVERRIDES
     assert {d.tier for d in m.deployments} == {"cpu"}
+    # q8_0 is the only rung: the mirror's orig GGUF embeds a spec that declares the preset option
+    # `speaker`, which audio.cpp's validator follows, while the engine reads `voice_id`
+    # (magpie_tts/request.cpp:34), so every preset is refused on it.
     rungs = {d.compute_type: d for d in m.deployments}
-    assert set(rungs) == {"q8_0", "orig"}
-    assert rungs["q8_0"].rank == 2.0 and rungs["orig"].rank == 1.0
+    assert set(rungs) == {"q8_0"} and rungs["q8_0"].rank == 2.0
     assert rungs["q8_0"].artifact == ("audio-cpp/audio.cpp-gguf/MagpieTTS-Multilingual-357M-GGUF/"
                                       "magpie-tts-multilingual-357m-q8_0.gguf")
     assert rungs["q8_0"].est_bytes == 1_562_142_912
-    assert rungs["orig"].artifact == ("audio-cpp/audio.cpp-gguf/MagpieTTS-Multilingual-357M-GGUF/"
-                                      "magpie-tts-multilingual-357m-orig.gguf")
-    assert rungs["orig"].est_bytes == 1_912_137_280
     assert m.size_bytes == 1_562_142_912
     assert catalog.license_dict(m) == {
         "spdx": "LicenseRef-NVIDIA-Open-Model-License",
@@ -1580,9 +1579,9 @@ def test_magpie_card_and_license():
         "sourceRepo": "audio-cpp/audio.cpp-gguf",
         "attribution": "NVIDIA",
     }
-    # The matrix dtypes of each published rung (no companions), read from the Hub: the q8_0 file
-    # keeps f16 tensors beside its q8_0 ones; the orig file is F32 only.
-    assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"}), "orig": frozenset({"f32"})}
+    # The matrix dtypes of the rung (no companions), read from the Hub: the q8_0 file keeps f16
+    # tensors beside its q8_0 ones.
+    assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"})}
 
 
 def test_neutts_card_and_license():
