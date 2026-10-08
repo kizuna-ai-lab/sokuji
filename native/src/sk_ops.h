@@ -149,15 +149,30 @@ struct ggml_tensor *sk_ops_rebuild_node(struct ggml_context *ctx, const sk_op_de
  * sk_ops_format.cpp). That restores the pre-mapping question exactly where the rule does not
  * hold.
  *
- * Both sides use this one helper (ruling 2026-10-07, op-coverage precision):
- * sk_device_supports_ops maps each WEIGHT dtype through it before expanding, and
- * sk_record_end_to_file maps `# dtypes-in-file` through it, for the device that ran each live
- * WEIGHT (a host WEIGHT ran on the CPU), before checking it. The guard sees such a path only when
- * the recorded file holds bf16 there (qwen3_tts is recorded from a file whose output_proj is
- * f32), so the list comes from reading audio.cpp's loaders, not from the recordings. The header
- * itself keeps the files' own dtypes. */
+ * Both sides use this one helper, through sk_ops_asked_weight_dtypes below (ruling 2026-10-07,
+ * op-coverage precision): sk_device_supports_ops maps each WEIGHT dtype through it before
+ * expanding, and sk_record_end_to_file maps `# dtypes-in-file` through it, for the device that
+ * ran each live WEIGHT (a host WEIGHT ran on the CPU), before checking it. The guard sees such a
+ * path only when the recorded file holds bf16 there (qwen3_tts is recorded from a file whose
+ * output_proj is f32), so the list comes from reading audio.cpp's loaders, not from the
+ * recordings. The header itself keeps the files' own dtypes. */
 std::vector<std::string> sk_ops_loaded_weight_dtypes(const std::string &stage, const std::string &family,
                                                      const std::string &device, const std::string &dtype);
+/* The WEIGHT dtypes a device of kind `device` is asked about for `family` of `stage`, given the
+ * file dtypes `dtypes`: each mapped through sk_ops_loaded_weight_dtypes and deduplicated in
+ * first-seen order, then, for stage "tts", f32 when the set lacks it. audio.cpp builds some tts
+ * weights as F32 whatever the file holds, on every backend: make_f32 (higgs_audio_tts's
+ * clone-path positional conv, src/models/higgs_audio_tts/codec.cpp:357-362; qwen3_tts's
+ * normalized codebook table, src/models/qwen3_tts/tokenizer_speech_decoder.cpp:656) and a tensor
+ * derived at Native storage (type_for_derived_storage), include/engine/framework/core/
+ * backend_weight_store.h:133-142 and 246-251 at the pinned commit. So a file with no f32 matrix
+ * still has its WEIGHT nodes asked in f32 (owner's ruling 2026-10-07, op-coverage precision).
+ * llama.cpp and transcribe.cpp load the file's dtypes, so asr and translate get no f32.
+ * sk_device_supports_ops expands WEIGHT over this set, and sk_record_end_to_file refuses a live
+ * WEIGHT dtype outside it; `# dtypes-in-file:` stays the files' own dtypes. An integer dtype
+ * passes through; both callers skip it. */
+std::vector<std::string> sk_ops_asked_weight_dtypes(const std::string &stage, const std::string &family,
+                                                    const std::string &device, const std::vector<std::string> &dtypes);
 /* The `# recorded-on` word for an SK_DEVICE_* kind: "vulkan", "metal", "cpu", else "gpu". The one
  * spelling sk_device_supports_ops and the recorder (record_common.h) both use. */
 const char *sk_ops_device_word(int32_t kind);

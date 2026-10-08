@@ -303,10 +303,11 @@ entry with its audio.cpp source lines, is `kRawTypedWeightFamilies` in `src/sk_o
 it comes from reading every loader under audio.cpp's `src/models` and `src/community_models`,
 not from the recordings, and a pin bump re-reads them.
 
-One helper, `sk_ops_loaded_weight_dtypes` (`src/sk_ops.h`), holds the rule and its exceptions.
-`sk_device_supports_ops` maps each WEIGHT dtype through it and dedupes after mapping, so
-`{bf16, f16}` asks f16 once. `sk_record_end_to_file` maps `# dtypes-in-file:` through it for the
-device that ran each live WEIGHT before the guard checks it. A device WEIGHT ran on the
+One helper, `sk_ops_loaded_weight_dtypes` (`src/sk_ops.h`), holds the rule and its exceptions, and
+`sk_ops_asked_weight_dtypes` applies it to a set, deduplicating after mapping, so `{bf16, f16}`
+asks f16 once. `sk_device_supports_ops` expands WEIGHT over that set. `sk_record_end_to_file`
+takes `# dtypes-in-file:` through it for the device that ran each live WEIGHT before the guard
+checks it. A device WEIGHT ran on the
 recording's `# recorded-on:` device, so on Vulkan a live f16 is covered by a file's bf16 and a
 live bf16 is refused unless the family is on the list. A WEIGHT tagged `host` ran on the CPU and
 is checked against the file's set unmapped. The guard sees a raw-typed path only when the
@@ -315,9 +316,16 @@ while the 1.7B q8_0_v2 and bf16 rungs hold it in bf16. The header itself, the ca
 and the sidecar's `accel.weight_dtypes` stay the files' own dtypes: the native side maps (ruling
 2026-10-07).
 
-Known gap: audio.cpp stores some derived weights as F32 under `Native` storage
-(`type_for_derived_storage`), so a file with no f32 matrix never has those nodes asked in f32.
-f32 is supported on every device, so this changes no answer today.
+A TTS weight can also run in f32 whatever the file holds. audio.cpp builds some weights as F32 on
+every backend: `make_f32`, and a tensor derived at `Native` storage (`type_for_derived_storage`),
+`include/engine/framework/core/backend_weight_store.h:133-142` and `246-251` at the pinned commit.
+higgs_audio_tts's clone-path positional conv (`src/models/higgs_audio_tts/codec.cpp:357-362`) is
+one, in a file with no f32 matrix; qwen3_tts's normalized codebook table is another. So for stage
+`tts`, on every device, `sk_ops_asked_weight_dtypes` adds f32 to the set when it lacks it: the
+query asks every WEIGHT node in f32 as well, and the guard accepts a live f32 WEIGHT. asr and
+translate are unchanged, and `# dtypes-in-file:` stays the files' own dtypes (owner's ruling
+2026-10-07). f32 `MUL_MAT` and `GET_ROWS` are supported on every device, so this lengthens the
+query without changing an answer today.
 
 A recording keeps one line per node identity (op, op params, dtypes, each tensor's `ne[0]` and
 layout, host side). The sequence axes `ne[1..3]` and a strided view's `nb` merge as per-axis
@@ -502,11 +510,14 @@ non-emptiness, never a transcript.
 `sk_op_coverage` carries at most `SK_OP_COVERAGE_MAX` (2048) entries. A recording's worst case
 is fixed at build time: its `op=` lines, with every `WEIGHT` line expanded over the widest
 fallback dtype set (`WIDEST_FALLBACK` in `cmake/gen_ops_data.py`, 7, which is
-`len(RUNG_FALLBACK_DTYPES["q4_k_m"])` in the sidecar's catalog). `gen_ops_data.py` emits one
+`len(RUNG_FALLBACK_DTYPES["q4_k_m"])` in the sidecar's catalog), plus, for a tts recording, the
+two dtypes a tts query can add to the set it is given (`TTS_ADDED_DTYPES`): f32, and f16 beside
+a raw-typed family's bf16. `gen_ops_data.py` emits one
 `static_assert` per recording, so a recording past the cap **fails the build on every lane**
 (`"<file>: N expanded entries exceed SK_OP_COVERAGE_MAX"`). A recording fits while
-7 × `WEIGHT` lines + other `op=` lines ≤ 2048. The widest shipped one, `tts-index_tts2.ops`, is
-at 906 (504 op lines, 67 `WEIGHT`). Check a new recording before committing it:
+7 (asr, translate) or 9 (tts) × `WEIGHT` lines + other `op=` lines ≤ 2048. The widest shipped
+one, `tts-index_tts2.ops`, is at 1040 (504 op lines, 67 `WEIGHT`). Check a new recording before
+committing it:
 
     python3 native/cmake/gen_ops_data.py --report native/src/ops native/include/sokuji_native.h
 

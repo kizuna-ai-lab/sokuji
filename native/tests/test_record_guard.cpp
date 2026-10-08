@@ -11,8 +11,10 @@
  * so for a tts recording on those a live f16 is covered by the file's bf16 and a live bf16 is
  * not covered at all, unless the family has a raw-typed device weight path, which keeps bf16
  * and so is covered both ways. A host WEIGHT ran on the CPU and is held against the file's set
- * as it stands; so is everything on cpu, and for asr and translate. Runs in the
- * SOKUJI_RECORD_OPS configure only, like record_ops. */
+ * as it stands; so is everything on cpu, and for asr and translate. A tts WEIGHT may also be f32
+ * whatever the file holds, since audio.cpp derives some weights as F32 at load, so a live f32 is
+ * covered on every tts device; asr and translate get no such f32. Runs in the SOKUJI_RECORD_OPS
+ * configure only, like record_ops. */
 #undef NDEBUG
 #include <cassert>
 #include <cstdio>
@@ -222,8 +224,11 @@ int main(int argc, char **argv) {
     // so a tts file holding bf16 records f16 WEIGHTs there; llama.cpp and transcribe.cpp load
     // the file's dtype as is. A family with a raw-typed device weight path (qwen3_tts's
     // speech-decoder output_proj, kugelaudio's lm_head) also keeps bf16, so either is covered.
-    // A host WEIGHT runs on the CPU, where nothing is converted. Every case is run before any is
-    // asserted, so one failing case does not hide the others.
+    // A host WEIGHT runs on the CPU, where nothing is converted. audio.cpp builds some weights as
+    // F32 whatever the file holds (make_f32 and type_for_derived_storage, backend_weight_store.h:
+    // 133-142 and 246-251), so a tts set covers f32 on every device even where the file holds
+    // none. Every case is run before any is asserted, so one failing case does not hide the
+    // others.
     ggml_backend_t cpu = ggml_backend_init_by_type(GGML_BACKEND_DEVICE_TYPE_CPU, nullptr);
     assert(cpu);
     ggml_backend_dev_t cpu_dev = ggml_backend_get_device(cpu);
@@ -247,6 +252,11 @@ int main(int argc, char **argv) {
         {"kugelaudio on metal, live bf16, file bf16", "tts", "kugelaudio", "metal", false, GGML_TYPE_BF16, {"bf16", "f32"}, SK_OK},
         {"tts on vulkan, host live bf16, file bf16", "tts", "guard_family", "vulkan", true, GGML_TYPE_BF16, {"bf16"}, SK_OK},
         {"tts on vulkan, host live f16, file bf16", "tts", "guard_family", "vulkan", true, GGML_TYPE_F16, {"bf16"}, SK_ERR_INVALID_ARGUMENT},
+        {"tts on vulkan, live f32, file f16 q8_0", "tts", "guard_family", "vulkan", false, GGML_TYPE_F32, {"f16", "q8_0"}, SK_OK},
+        {"tts on cpu, live f32, file f16 q8_0", "tts", "guard_family", "cpu", false, GGML_TYPE_F32, {"f16", "q8_0"}, SK_OK},
+        {"tts on vulkan, host live f32, file f16 q8_0", "tts", "guard_family", "vulkan", true, GGML_TYPE_F32, {"f16", "q8_0"}, SK_OK},
+        {"asr on vulkan, live f32, file f16 q8_0", "asr", "guard_family", "vulkan", false, GGML_TYPE_F32, {"f16", "q8_0"}, SK_ERR_INVALID_ARGUMENT},
+        {"translate on cpu, live f32, file f16 q8_0", "translate", "guard_family", "cpu", false, GGML_TYPE_F32, {"f16", "q8_0"}, SK_ERR_INVALID_ARGUMENT},
     };
     int failed = 0;
     for (const Case &c : cases) {

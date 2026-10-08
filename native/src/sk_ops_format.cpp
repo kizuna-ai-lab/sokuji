@@ -343,6 +343,21 @@ std::vector<std::string> sk_ops_loaded_weight_dtypes(const std::string &stage, c
     return {f16};
 }
 
+std::vector<std::string> sk_ops_asked_weight_dtypes(const std::string &stage, const std::string &family,
+                                                    const std::string &device, const std::vector<std::string> &dtypes) {
+    std::vector<std::string> out;
+    auto add = [&out](const std::string &held) {
+        if (std::find(out.begin(), out.end(), held) == out.end()) out.push_back(held);
+    };
+    for (const std::string &dtype : dtypes)
+        for (const std::string &held : sk_ops_loaded_weight_dtypes(stage, family, device, dtype)) add(held);
+    // audio.cpp builds some tts weights as F32 whatever the file holds, on every backend:
+    // make_f32, and a tensor derived at Native storage (type_for_derived_storage),
+    // include/engine/framework/core/backend_weight_store.h:133-142 and 246-251.
+    if (stage == "tts") add(ggml_type_name(GGML_TYPE_F32));
+    return out;
+}
+
 const char *sk_ops_device_word(int32_t kind) {
     switch (kind) {
         case SK_DEVICE_VULKAN: return "vulkan";

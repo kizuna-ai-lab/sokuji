@@ -2201,13 +2201,24 @@ def test_every_shipped_op_recording_fits_the_coverage_cap():
 
 
 def test_op_report_flags_a_recording_over_the_cap(tmp_path):
-    # 292 WEIGHT lines x 7 + 4 other lines = 2048 exactly (fits); 293 x 7 = 2051 (does not).
-    edge = [f"op=MUL_MAT src=[WEIGHT,f32] ne0=[{i},1]" for i in range(292)]
-    edge += [f"op=ADD src=[f32,f32] ne0=[{i},1]" for i in range(4)]
-    (tmp_path / "tts-edge.ops").write_text("# stage: tts ; family: edge\n" + "\n".join(edge) + "\n")
-    over = [f"op=MUL_MAT src=[WEIGHT,f32] ne0=[{i},1]" for i in range(293)]
-    (tmp_path / "tts-over.ops").write_text("# stage: tts ; family: over\n" + "\n".join(over) + "\n")
+    def write(name, n_weight, n_other):
+        body = [f"op=MUL_MAT src=[WEIGHT,f32] ne0=[{i},1]" for i in range(n_weight)]
+        body += [f"op=ADD src=[f32,f32] ne0=[{i},1]" for i in range(n_other)]
+        stage, family = name.split("-", 1)
+        (tmp_path / f"{name}.ops").write_text(f"# stage: {stage} ; family: {family}\n" + "\n".join(body) + "\n")
+    # An asr or translate WEIGHT line expands over the widest fallback set, 7 dtypes: 292 x 7 + 4
+    # = 2048 exactly (fits), 293 x 7 = 2051 (does not). A tts one may also be asked f32 and,
+    # for a raw-typed family's bf16, f16 beside it: 9 dtypes, so the same 292 lines do not fit,
+    # and 227 x 9 + 5 = 2048 is the tts edge.
+    write("asr-edge", 292, 4)
+    write("translate-over", 293, 0)
+    write("tts-wide", 292, 4)
+    write("tts-edge", 227, 5)
+    write("tts-over", 228, 0)
     proc = _ops_report(tmp_path)
     assert proc.returncode == 1, proc.stdout + proc.stderr
-    assert "tts-edge.ops: 296 op lines, 292 WEIGHT, 2048 expanded / cap 2048 ok" in proc.stdout
-    assert "tts-over.ops: 293 op lines, 293 WEIGHT, 2051 expanded / cap 2048 OVER" in proc.stdout
+    assert "asr-edge.ops: 296 op lines, 292 WEIGHT, 2048 expanded / cap 2048 ok" in proc.stdout
+    assert "translate-over.ops: 293 op lines, 293 WEIGHT, 2051 expanded / cap 2048 OVER" in proc.stdout
+    assert "tts-wide.ops: 296 op lines, 292 WEIGHT, 2632 expanded / cap 2048 OVER" in proc.stdout
+    assert "tts-edge.ops: 232 op lines, 227 WEIGHT, 2048 expanded / cap 2048 ok" in proc.stdout
+    assert "tts-over.ops: 228 op lines, 228 WEIGHT, 2052 expanded / cap 2048 OVER" in proc.stdout

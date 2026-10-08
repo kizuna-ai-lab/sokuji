@@ -323,6 +323,18 @@ int main(int argc, char **argv) {
         assert((sk_ops_loaded_weight_dtypes("tts", stored, "metal", "bf16") == V{"f16"}));
         assert((sk_ops_loaded_weight_dtypes("tts", stored, "cpu", "bf16") == V{"bf16"}));
     }
+    // The set a device is asked: each file dtype as the device holds it, deduplicated in
+    // first-seen order, and f32 for every tts family on every device, since audio.cpp builds some
+    // weights as F32 whatever the file holds.
+    assert((sk_ops_asked_weight_dtypes("tts", "vibevoice", "vulkan", {"q8_0"}) == V{"q8_0", "f32"}));
+    assert((sk_ops_asked_weight_dtypes("tts", "vibevoice", "vulkan", {"bf16", "f16"}) == V{"f16", "f32"}));
+    assert((sk_ops_asked_weight_dtypes("tts", "qwen3_tts", "metal", {"bf16"}) == V{"bf16", "f16", "f32"}));
+    assert((sk_ops_asked_weight_dtypes("tts", "higgs_audio_tts", "cpu", {"f16", "q8_0"}) == V{"f16", "q8_0", "f32"}));
+    assert((sk_ops_asked_weight_dtypes("tts", "vibevoice", "vulkan", {"f32", "q8_0"}) == V{"f32", "q8_0"}));
+    assert((sk_ops_asked_weight_dtypes("tts", "vibevoice", "cpu", {"q8_0", "i32"}) == V{"q8_0", "i32", "f32"}));
+    assert((sk_ops_asked_weight_dtypes("asr", "whisper", "vulkan", {"q8_0"}) == V{"q8_0"}));
+    assert((sk_ops_asked_weight_dtypes("translate", "qwen3", "metal", {"bf16", "q8_0"}) == V{"bf16", "q8_0"}));
+
     // The `# recorded-on` words, one spelling for the query and the recorder.
     assert(std::string(sk_ops_device_word(SK_DEVICE_VULKAN)) == "vulkan");
     assert(std::string(sk_ops_device_word(SK_DEVICE_METAL)) == "metal");

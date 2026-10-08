@@ -247,6 +247,37 @@ int main(int argc, char **argv) {
             std::fprintf(stderr, "test_common: tts/vibevoice [bf16] on cpu: n_ops=%d, %d WEIGHT entries spelled bf16\n", c.n_ops, bf16_weights);
             assert(bf16_weights > 0);
         }
+
+        // audio.cpp builds some weights as F32 whatever the file holds (make_f32 and
+        // type_for_derived_storage, backend_weight_store.h:133-142 and 246-251), so a tts query
+        // asks every WEIGHT node in f32 too: {q8_0} is the expansion {q8_0, f32} is, entry for
+        // entry, for vibevoice, whose file holds no f32 matrix. An asr query asks only what it is
+        // given: {q8_0, f32} adds one f32 entry per WEIGHT line of whisper's recording.
+        {
+            const char *q8[] = {"q8_0"}, *q8_f32[] = {"q8_0", "f32"};
+            static sk_op_coverage a = {}, b = {};
+            a = {}; b = {};
+            assert(sk_device_supports_ops(cpu_index, "tts", "vibevoice", q8, 1, &a) == SK_OK);
+            assert(sk_device_supports_ops(cpu_index, "tts", "vibevoice", q8_f32, 2, &b) == SK_OK);
+            std::fprintf(stderr, "test_common: tts/vibevoice on cpu: [q8_0] n_ops=%d, [q8_0 f32] n_ops=%d\n", a.n_ops, b.n_ops);
+            assert(a.n_ops == b.n_ops);
+            for (int j = 0; j < a.n_ops; ++j) assert(std::strcmp(a.ops[j].name, b.ops[j].name) == 0);
+            const char *stage = nullptr, *family = nullptr, *text = nullptr;
+            for (int k = 0; k < sk_ops_blob_count(); ++k) {
+                sk_ops_blob_at(k, &stage, &family, &text);
+                if (std::string(stage) == "asr" && std::string(family) == "whisper") break;
+            }
+            assert(std::string(family) == "whisper");
+            int weight_lines = 0;
+            std::istringstream lines(text);
+            for (std::string line; std::getline(lines, line);)
+                if (line.rfind("op=", 0) == 0 && line.find("WEIGHT") != std::string::npos) ++weight_lines;
+            a = {}; b = {};
+            assert(sk_device_supports_ops(cpu_index, "asr", "whisper", q8, 1, &a) == SK_OK);
+            assert(sk_device_supports_ops(cpu_index, "asr", "whisper", q8_f32, 2, &b) == SK_OK);
+            std::fprintf(stderr, "test_common: asr/whisper on cpu: [q8_0] n_ops=%d, [q8_0 f32] n_ops=%d, %d WEIGHT lines\n", a.n_ops, b.n_ops, weight_lines);
+            assert(weight_lines > 0 && b.n_ops == a.n_ops + weight_lines);
+        }
     }
 
     // Fix round 2 addendum: the block-size skip, the integer-dtype skip and the ask()/grow()

@@ -231,18 +231,17 @@ SK_API sk_status sk_record_end_to_file(const char *path, const char *stage, cons
      * a quantized type, never an integer table (sk_device_supports_ops skips those).
      *
      * The set is taken as the device that ran each WEIGHT loads it, through the same
-     * sk_ops_loaded_weight_dtypes the query maps with (ruling 2026-10-07). A device WEIGHT ran on
-     * `recorded_on`: on Vulkan or Metal a tts file's bf16 is a live f16, so a live f16 is covered
-     * by it and a live bf16 by nothing, unless the family keeps bf16 on a raw-typed device weight
-     * path, where both are. A host WEIGHT ran on the CPU (qwen3_tts's voice-prompt stage runs on a
-     * CPU backend inside a Vulkan session, audio.cpp src/models/qwen3_tts/session.cpp:112-118),
-     * which loads the file's dtype as is, and the query asks host nodes only of a CPU device,
-     * unmapped. */
+     * sk_ops_asked_weight_dtypes the query expands over (ruling 2026-10-07). A device WEIGHT ran
+     * on `recorded_on`: on Vulkan or Metal a tts file's bf16 is a live f16, so a live f16 is
+     * covered by it and a live bf16 by nothing, unless the family keeps bf16 on a raw-typed device
+     * weight path, where both are. A host WEIGHT ran on the CPU (qwen3_tts's voice-prompt stage
+     * runs on a CPU backend inside a Vulkan session, audio.cpp src/models/qwen3_tts/
+     * session.cpp:112-118), which loads the file's dtype as is, and the query asks host nodes only
+     * of a CPU device, unmapped. On either side a tts set also covers f32, which audio.cpp builds
+     * some weights in whatever the file holds (make_f32 and type_for_derived_storage,
+     * backend_weight_store.h:133-142 and 246-251; owner's ruling 2026-10-07). */
     auto check = [&](const std::set<int32_t> &live, const std::string &device, const char *kind) {
-        std::vector<std::string> loaded;
-        for (const std::string &d : r.dtypes_in_file)
-            for (const std::string &l : sk_ops_loaded_weight_dtypes(r.stage, r.family, device, d))
-                if (std::find(loaded.begin(), loaded.end(), l) == loaded.end()) loaded.push_back(l);
+        const std::vector<std::string> loaded = sk_ops_asked_weight_dtypes(r.stage, r.family, device, r.dtypes_in_file);
         std::string missing;
         for (int32_t t : live) {
             const ggml_type ty = static_cast<ggml_type>(t);

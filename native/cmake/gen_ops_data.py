@@ -1,6 +1,6 @@
 """Bake native/src/ops/*.ops into one C++ translation unit (parsed at first use by
 sk_ops_parse, so the text format stays the single source of truth) and emit one static_assert
-per recording that its expansion over the widest fallback set fits SK_OP_COVERAGE_MAX.
+per recording that its expansion over the widest set a query can ask fits SK_OP_COVERAGE_MAX.
 usage: gen_ops_data.py <ops-dir> <out.cpp> <sk_ops_data.h path>
        gen_ops_data.py --report <ops-dir> <sokuji_native.h path>
 --report runs the same arithmetic and generates nothing: one line per recording, and exit 1
@@ -11,13 +11,20 @@ import re
 import sys
 
 WIDEST_FALLBACK = 7   # len(RUNG_FALLBACK_DTYPES["q4_k_m"]) in sidecar/sokuji_sidecar/catalog.py — keep in sync
+# What a tts query adds to the set it is given (sk_ops_asked_weight_dtypes, src/sk_ops.h): f32,
+# always asked (owner's ruling 2026-10-07), and f16 beside bf16 for a family on
+# kRawTypedWeightFamilies, on Vulkan and Metal. A family off that list can only gain f32, so for
+# it the bound is one dtype wider than it can reach.
+TTS_ADDED_DTYPES = 2
 
 
 def counts(path: pathlib.Path) -> tuple[int, int, int]:
-    """(op lines, WEIGHT op lines, entries once every WEIGHT line expands over the widest set)."""
+    """(op lines, WEIGHT op lines, entries once every WEIGHT line expands over the widest set
+    a query of the recording's stage can ask)."""
     body = [l for l in path.read_text(encoding="utf-8").splitlines() if l.startswith("op=")]
     weight = sum(1 for l in body if "WEIGHT" in l)
-    return len(body), weight, weight * WIDEST_FALLBACK + (len(body) - weight)
+    widest = WIDEST_FALLBACK + (TTS_ADDED_DTYPES if path.stem.split("-", 1)[0] == "tts" else 0)
+    return len(body), weight, weight * widest + (len(body) - weight)
 
 
 def report(ops_dir: pathlib.Path, header: pathlib.Path) -> int:

@@ -135,8 +135,9 @@ SK_API sk_status sk_device_profile_get(int32_t index, sk_device_profile *out);
  * accepted it rebuilt with its recorded shapes. */
 typedef struct sk_op_check { char name[64]; int32_t supported; } sk_op_check;
 /* Widest shipped recording (tts/index_tts2: 504 identities, 67 WEIGHT) expanded over the
- * widest fallback dtype set (7, gen_ops_data.py's WIDEST_FALLBACK) reaches 906 entries, and
- * over q8_0's 4-dtype rung set still 705 — both exceed 512, so the cap is 2048. The
+ * widest fallback dtype set (7, gen_ops_data.py's WIDEST_FALLBACK) plus the two a tts query may
+ * add (f32, and f16 beside a raw-typed family's bf16) reaches 1040 entries, and over q8_0's
+ * 4-dtype rung set still 705 — both exceed 512, so the cap is 2048. The
  * generated static_assert in sk_ops_data.cpp, not this comment, is the gate. Raising the cap
  * resizes sk_op_coverage, which crosses this ABI: an SK_ABI_VERSION change, never a quiet edit
  * (native/README.md, "The op-coverage cap"). */
@@ -155,7 +156,9 @@ typedef struct sk_op_coverage {
  * "f16"} asks f16 once. The exception is a family with a raw-typed device weight path, one that
  * builds some device weight past that conversion (the list is in native/src/sk_ops_format.cpp,
  * e.g. qwen3_tts, kugelaudio): there a "bf16" is asked both as "bf16" and as "f16". A CPU device, any other device, and the asr and translate stages ask every
- * dtype as given; pass the file's own dtypes either way, the mapping is done here. A WEIGHT node
+ * dtype as given; pass the file's own dtypes either way, the mapping is done here. For stage
+ * "tts", on every device, "f32" is then asked as well when the set lacks it: audio.cpp builds
+ * some weights as f32 whatever the file holds. A WEIGHT node
  * whose recorded row length is not a multiple of a dtype's block size is skipped for that
  * dtype only (no GGUF can hold that tensor in it; f32/f16 have block size 1, so the node is
  * still asked in whichever dtype the real file would use). A dtype that is neither a float
@@ -348,7 +351,8 @@ SK_API void      sk_record_begin(const char *const *weight_names, int32_t n_name
  * "vulkan" or "metal" a bf16 in `dtypes` stands for f16, so a live f16 is covered by it and a
  * live bf16 is refused (the query would never ask it), except for a family with a raw-typed
  * device weight path, where it stands for both. A WEIGHT the recording tagged host ran on the
- * CPU and is held against `dtypes` as given, as is everything on "cpu" and in asr and translate. */
+ * CPU and is held against `dtypes` as given, as is everything on "cpu" and in asr and translate.
+ * A tts recording also accepts a live f32 WEIGHT on every device, as the query asks f32. */
 SK_API sk_status sk_record_end_to_file(const char *path, const char *stage, const char *family,
                                        const char *source_file, const char *recorded_on,
                                        const char *const *dtypes, int32_t n_dtypes);

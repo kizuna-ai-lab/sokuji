@@ -113,21 +113,22 @@ SK_API sk_status sk_device_supports_ops(int32_t index, const char *stage, const 
     if (!sk::require_init("sk_device_supports_ops")) return SK_ERR_NOT_INITIALISED;
     const auto &devs = sk::devices();
     if (static_cast<size_t>(index) >= devs.size()) { sk::set_error("sk_device_supports_ops: bad index"); return SK_ERR_INVALID_ARGUMENT; }
-    /* Each WEIGHT dtype is asked as the device may hold it (sk_ops_loaded_weight_dtypes: a tts
+    /* Each WEIGHT dtype is asked as the device may hold it (sk_ops_asked_weight_dtypes: a tts
      * bf16 is f16 on Vulkan and Metal, or both bf16 and f16 for a family with a raw-typed device
-     * weight path), and deduplicated after that mapping, so {bf16, f16} asks f16 once. The
-     * device's kind is the one sk_tts.cpp gives audio.cpp as its BackendType
-     * (backend_type_for_kind), spelled in the `# recorded-on` words the helper takes. */
+     * weight path), and deduplicated after that mapping, so {bf16, f16} asks f16 once. A tts set
+     * then gains f32 when it lacks it, since audio.cpp builds some weights as F32 whatever the
+     * file holds (make_f32 and type_for_derived_storage, backend_weight_store.h:133-142 and
+     * 246-251; owner's ruling 2026-10-07). The device's kind is the one sk_tts.cpp gives
+     * audio.cpp as its BackendType (backend_type_for_kind), spelled in the `# recorded-on` words
+     * the helper takes. */
     const char *device = sk_ops_device_word(sk::kind_of(devs[index]));
-    std::vector<int32_t> wtypes;
+    std::vector<std::string> given;
     for (int32_t i = 0; i < n_weight_dtypes; ++i) {
-        const int32_t t = weight_dtypes[i] ? type_by_name(weight_dtypes[i]) : -1;
-        if (t < 0) { sk::set_error(std::string("sk_device_supports_ops: unknown dtype ") + (weight_dtypes[i] ? weight_dtypes[i] : "NULL")); return SK_ERR_INVALID_ARGUMENT; }
-        for (const std::string &held : sk_ops_loaded_weight_dtypes(stage, family, device, weight_dtypes[i])) {
-            const int32_t h = type_by_name(held.c_str());
-            if (std::find(wtypes.begin(), wtypes.end(), h) == wtypes.end()) wtypes.push_back(h);   // dedupe, first-seen order
-        }
+        if (!weight_dtypes[i] || type_by_name(weight_dtypes[i]) < 0) { sk::set_error(std::string("sk_device_supports_ops: unknown dtype ") + (weight_dtypes[i] ? weight_dtypes[i] : "NULL")); return SK_ERR_INVALID_ARGUMENT; }
+        given.push_back(weight_dtypes[i]);
     }
+    std::vector<int32_t> wtypes;
+    for (const std::string &asked : sk_ops_asked_weight_dtypes(stage, family, device, given)) wtypes.push_back(type_by_name(asked.c_str()));
     std::string err;
     const sk_op_recording *rec = recording_for(stage, family, err);
     if (!rec) {
