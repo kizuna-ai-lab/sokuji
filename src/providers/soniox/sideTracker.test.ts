@@ -123,6 +123,15 @@ describe('SonioxSideTracker — face-to-face (no energy, language votes)', () =>
     expect(t.inferSide('1', 0, 100, 'participant')).toEqual({ side: 'speaker', tier: 'label' });
   });
 
+  it('a 2-2 tie does not answer by the label: the strict lead is required', () => {
+    const t = new SonioxSideTracker({ energy: false });
+    t.inferSide('1', 0, 100, 'speaker');
+    t.inferSide('1', 0, 100, 'speaker');
+    t.inferSide('1', 0, 100, 'participant'); // answered by the label, 2 to 1
+    t.inferSide('1', 0, 100, 'participant'); // now 2 to 2
+    expect(t.inferSide('1', 0, 100, 'participant')).toEqual({ side: 'participant', tier: 'language' });
+  });
+
   it('forgets every tally on reset (a new socket mints new labels)', () => {
     const t = new SonioxSideTracker({ energy: false });
     t.inferSide('1', 0, 100, 'speaker');

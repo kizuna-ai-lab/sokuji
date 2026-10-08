@@ -24,15 +24,15 @@ const PAR: SonioxCredentials = { region: 'us', stt: 'k-par', tts: 'k-par-tts' };
 /** The app's rule (`shared.ts`): the participant's direction is the pair's reverse. */
 const BOTH_SHARED: SharedSettings = { ...SHARED, reversed: (direction) => direction.source === 'ja' };
 
-function both(o: { sharedBoth?: boolean; participantSpeaks?: boolean; abortFirst?: boolean; faceToFace?: boolean } = {}) {
+function both(o: { sharedBoth?: boolean; participantSpeaks?: boolean; abortFirst?: boolean; faceToFace?: boolean; speakerSource?: string } = {}) {
   const sockets = fakeSockets();
   const { clock, timers } = trackedClock();
   const controller = new AbortController();
   if (o.abortFirst) controller.abort(new Error('cancelled'));
   const s: SonioxSettings = { ...SONIOX_DEFAULTS, bothModeSharedSession: o.sharedBoth ?? true };
   const contexts: Record<LegName, SessionContext> = {
-    speaker: { direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' },
-    participant: { direction: { source: 'ja', target: 'en' }, speech: o.participantSpeaks ?? false, turns: 'auto' },
+    speaker: { direction: { source: o.speakerSource ?? 'en', target: 'ja' }, speech: true, turns: 'auto' },
+    participant: { direction: { source: 'ja', target: o.speakerSource ?? 'en' }, speech: o.participantSpeaks ?? false, turns: 'auto' },
   };
   const rec = { speaker: recordEvents(), participant: recordEvents() };
   const shared = o.faceToFace ? { ...BOTH_SHARED, faceToFace: true } : BOTH_SHARED;
@@ -365,6 +365,15 @@ describe('Soniox startBoth: shared', () => {
   });
 });
 
+describe('Soniox startBoth: shared, wire codes', () => {
+  it("shared: the token and the pair are both in app codes, so Soniox's 'tl' meets the source 'fil'", async () => {
+    const h = await live({ speakerSource: 'fil' });
+    h.sttSockets()[0].receive(msg({ ...orig('Kumusta.'), language: 'tl' }, END));
+    expect(opened(h, 'speaker')).toEqual([1]);
+    expect(opened(h, 'participant')).toEqual([]);
+  });
+});
+
 describe('Soniox startBoth: cancelled', () => {
   it.each([true, false])('a start already cancelled opens nothing (shared: %s)', async (sharedBoth) => {
     const h = both({ sharedBoth, abortFirst: true });
@@ -405,5 +414,20 @@ describe('Soniox startBoth: face-to-face', () => {
     for (const e of [...h.of('speaker', 'segmentOpened'), ...h.of('speaker', 'segmentText')]) {
       expect(e.payload).not.toHaveProperty('person');
     }
+  });
+
+  it('a third language casts no vote: it lands on the speaker with no label, and on the label otherwise', async () => {
+    const h = await live({ faceToFace: true });
+    const stt = h.sttSockets()[0];
+    stt.receive(msg({ ...orig('Guten Tag.'), language: 'de', speaker: '2' }, END));
+    expect(opened(h, 'speaker')).toEqual([1]);
+    // The German line cast no vote: two Japanese lines are the label's first two votes, not its third and fourth.
+    stt.receive(msg({ ...orig('Konnichiwa.'), language: 'ja', speaker: '2' }, END));
+    expect(opened(h, 'participant')).toEqual([2]);
+    stt.receive(msg({ ...orig('Arigatō.'), language: 'ja', speaker: '2' }, END));
+    expect(opened(h, 'participant')).toEqual([2, 3]);
+    // Established as the participant: a third language follows the label.
+    stt.receive(msg({ ...orig('Danke.'), language: 'de', speaker: '2' }, END));
+    expect(opened(h, 'participant')).toEqual([2, 3, 4]);
   });
 });

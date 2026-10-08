@@ -232,10 +232,14 @@ class SonioxCore {
   /** Which leg an utterance belongs to, from its first token: one leg's core has one answer. */
   private legFor(token: SonioxToken): LegName {
     if (!this.tracker) return this.o.legs[0].name;
-    const source = this.o.primary.context.direction.source;
-    // The language, as a witness: face-to-face's tracker votes with it; the energy tracker ignores it.
+    const { source, target } = this.o.primary.context.direction;
+    // The language, as a witness (the token is in app codes by now, as the pair is): face-to-face's tracker votes with it; the energy tracker ignores it.
     const language = token.translation_status === 'translation' ? token.source_language : token.language;
-    const witness = !language ? null : language === sonioxWire.toWire(source) ? 'speaker' : 'participant';
+    // Face-to-face: a language that is neither side's names nobody and casts no vote.
+    const witness = !language ? null
+      : language === source ? 'speaker'
+      : this.o.faceToFace && language !== target ? null
+      : 'participant';
     // An established speaker label, else the channels' energy (or, face-to-face, the language) over the token's window (`SonioxClient.ts:982-998`).
     const evidence = this.tracker.inferSide(token.speaker, token.start_ms, token.end_ms, witness);
     if (evidence) return evidence.side;
