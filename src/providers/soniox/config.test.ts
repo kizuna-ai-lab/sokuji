@@ -181,6 +181,13 @@ describe('buildSoniox — diarize', () => {
     expect(build().diarize).toBe(true);
     expect(build({}, { ...AUTO_CTX, direction: { source: 'en', target: 'ja' } }).diarize).toBe(false);
   });
+
+  it('never labels the speaker leg of a pair into its own language, whose reverse is itself (D4)', () => {
+    const same = { ...AUTO_CTX, direction: { source: 'en', target: 'en' } };
+    // As buildSharedSettings answers for an en → en pair: both legs run en → en.
+    const shared: SharedSettings = { ...SHARED, reversed: (d) => d.source === 'en' && d.target === 'en' };
+    expect(buildSoniox(same, SONIOX_DEFAULTS, shared).diarize).toBe(false);
+  });
 });
 
 describe('describeSoniox', () => {
