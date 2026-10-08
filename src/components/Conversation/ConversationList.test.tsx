@@ -323,9 +323,13 @@ describe('ConversationList — face-to-face ears', () => {
     expect(container.querySelector('.ear-tag--left, .ear-tag--right')).toBeNull();
   });
 
-  it('compares the primary subtag, so a regional variant of the target is still spoken', () => {
-    const item = rowItem({ row: row({ language: 'ja-JP' }) });
-    const { container } = render(<ConversationList {...props({ ears, items: [item] })} />);
+  it('compares app codes exactly, as the adapter does: a zh-Hant translation under a zh-Hans target is not played', () => {
+    const variant = rowItem({ row: row({ language: 'zh-Hant' }), languages: { source: 'en', target: 'zh-Hans' } });
+    const { container, rerender } = render(<ConversationList {...props({ ears, items: [variant] })} />);
+    expect(container.querySelector('.ear-tag--muted')).not.toBeNull();
+    expect(container.querySelector('.ear-tag--left, .ear-tag--right')).toBeNull();
+    const same = rowItem({ row: row({ language: 'zh-Hans' }), languages: { source: 'en', target: 'zh-Hans' } });
+    rerender(<ConversationList {...props({ ears, items: [same] })} />);
     expect(container.querySelector('.ear-tag--muted')).toBeNull();
     expect(container.querySelector('.ear-tag--right')).not.toBeNull();
   });

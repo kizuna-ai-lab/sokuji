@@ -39,13 +39,14 @@ export interface ConversationListProps {
 
 type RowItem = Extract<DisplayItem, { kind: 'row' }>;
 
-/** The primary subtag: `zh-Hans` and Soniox's `zh` are one language here. */
-const base = (code: string) => code.split('-')[0].toLowerCase();
-
-/** A translation's ear, or 'muted' when it is not in its leg's target language: a code-switched line the leg does not speak. */
+/**
+ * A translation's ear, or 'muted' when it is not in its leg's target language: a code-switched line the
+ * adapter skips. Exact app codes, as the adapter compares them (variants such as zh-Hans and zh-Hant are peers).
+ * It states what the adapter will speak, not that audio played: a degraded TTS is not reflected.
+ */
 function earTagOf(item: RowItem, ears: Readonly<Record<LegName, Ear>>): Ear | 'muted' {
   const language = item.row.language || item.languages.target;
-  return base(language) === base(item.languages.target) ? ears[item.leg] : 'muted';
+  return language === item.languages.target ? ears[item.leg] : 'muted';
 }
 
 function formatTime(ts: number): string {
