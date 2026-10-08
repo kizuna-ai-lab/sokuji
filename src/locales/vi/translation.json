@@ -166,6 +166,7 @@
     "smartTurnMaxWaitTooltip": "Khoảng im lặng dài nhất trước khi một đoạn kết thúc khi Smart Turn chưa kết thúc nó trước.",
     "smartTurnDownloading": "Đang tải xuống mô hình Smart Turn: {{done}} trên {{total}}",
     "smartTurnDownloadFailed": "Tải xuống mô hình Smart Turn thất bại: {{error}}",
+    "smartTurnDeleteModel": "Xóa mô hình ({{size}})",
     "vadMinSpeechDuration": "Thời gian nói tối thiểu",
     "vadMinSpeechDurationTooltip": "Thời gian nói tối thiểu để được coi là giọng nói hợp lệ. Lọc bỏ các âm thanh rất ngắn như tiếng click hoặc ho.",
     "geminiVadTooltip": "Kiểm soát cách Gemini phát hiện các khoảng dừng trong giọng nói để phân chia lượt. Điều chỉnh các cài đặt này có thể cải thiện khả năng phản hồi của bản dịch cho giọng nói liên tục. \nNhấn để nói: giữ một phím để gửi âm thanh. \nNhấn để dịch: giống như Nhấn để nói, nhưng định tuyến micrô gốc của bạn đến micrô ảo khi không hoạt động để bạn có thể nói trực tiếp mà không cần dịch.",

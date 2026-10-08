@@ -26,13 +26,20 @@ let mockError: string | null = null;
 const mockRefresh = vi.fn();
 const mockDownload = vi.fn();
 const mockDismiss = vi.fn();
+const mockRemove = vi.fn();
 vi.mock('../../stores/smartTurnStore', () => {
-  const state = () => ({ phase: mockPhase, downloadedBytes: mockBytes, error: mockError, refresh: mockRefresh, download: mockDownload, dismiss: mockDismiss });
+  const state = () => ({ phase: mockPhase, downloadedBytes: mockBytes, error: mockError, refresh: mockRefresh, download: mockDownload, dismiss: mockDismiss, remove: mockRemove });
   return {
     useSmartTurnStore: Object.assign((select: (s: ReturnType<typeof state>) => unknown) => select(state()), { getState: state }),
     useSmartTurnPhase: () => mockPhase,
     SMART_TURN_TOTAL_BYTES: 32_411_198,
   };
+});
+
+const mockReportWarning = vi.fn();
+vi.mock('../../lib/diagnostics/report', async () => {
+  const actual = await vi.importActual<typeof import('../../lib/diagnostics/report')>('../../lib/diagnostics/report');
+  return { ...actual, reportWarning: (...args: unknown[]) => mockReportWarning(...args) };
 });
 
 let mockTurnMode = 'auto';
@@ -65,6 +72,8 @@ beforeEach(() => {
   mockResolve.mockImplementation(() => ({ asr: { modelId: 'asr-model' }, translation: null, tts: null }));
   mockTurnMode = 'auto';
   mockLegs = ['speaker'];
+  mockRemove.mockReset().mockResolvedValue(undefined);
+  mockReportWarning.mockReset();
 });
 
 describe('LocalInferenceTurnDetectionSummary', () => {
@@ -348,6 +357,32 @@ describe('LocalInferenceTurnDetectionControls — Smart Turn', () => {
     rerender(<LocalInferenceTurnDetectionControls {...props} />);
     expect(screen.queryByText('Smart Turn model download failed: offline')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+  });
+
+  describe('deleting the model', () => {
+    it('is offered under Smart and removes the model', () => {
+      render(<LocalInferenceTurnDetectionControls settings={smart} update={() => {}} pair={pair} />);
+      fireEvent.click(button('Delete model (30.9 MB)'));
+      expect(mockRemove).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      ['under Normal', 'normal', 'ready'],
+      ['while the model downloads', 'smart', 'downloading'],
+      ['while the model is missing', 'smart', 'missing'],
+    ] as const)('is not offered %s', (_label, vadEndOfTurn, phase) => {
+      mockPhase = phase;
+      render(<LocalInferenceTurnDetectionControls settings={{ ...LOCAL_INFERENCE_DEFAULTS, vadEndOfTurn }} update={() => {}} pair={pair} />);
+      expect(screen.queryByRole('button', { name: /Delete model/ })).toBeNull();
+    });
+
+    it('reports a failed delete', async () => {
+      mockRemove.mockRejectedValue(new Error('quota'));
+      render(<LocalInferenceTurnDetectionControls settings={smart} update={() => {}} pair={pair} />);
+      fireEvent.click(button('Delete model (30.9 MB)'));
+      await vi.waitFor(() => expect(mockReportWarning).toHaveBeenCalledTimes(1));
+      expect(mockReportWarning.mock.calls[0][2]).toMatchObject({ dedupeKey: 'smart-turn:delete' });
+    });
   });
 
   describe('which legs can run it', () => {

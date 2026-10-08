@@ -23,12 +23,14 @@ const { useSmartTurnStore, SMART_TURN_TOTAL_BYTES } = await import('./smartTurnS
 
 let isModelReady: ReturnType<typeof vi.fn>;
 let downloadModel: ReturnType<typeof vi.fn>;
+let deleteModel: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   vi.clearAllMocks();
   isModelReady = vi.fn().mockResolvedValue(false);
   downloadModel = vi.fn().mockResolvedValue('default');
-  (ModelManager.getInstance as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ isModelReady, downloadModel });
+  deleteModel = vi.fn().mockResolvedValue(undefined);
+  (ModelManager.getInstance as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ isModelReady, downloadModel, deleteModel });
   useSmartTurnStore.setState({ phase: 'unknown', downloadedBytes: 0, error: null });
 });
 
@@ -132,6 +134,16 @@ describe('smartTurnStore', () => {
     mockEstimate.mockResolvedValue(131 * 1024 * 1024);
     await useSmartTurnStore.getState().download();
     expect(useModelStore.getState().storageUsedMb).toBe(131);
+  });
+
+  it('remove: deletes the model, reads the disk again and re-estimates the Storage page figure', async () => {
+    useSmartTurnStore.setState({ phase: 'ready', downloadedBytes: SMART_TURN_TOTAL_BYTES });
+    useModelStore.setState({ storageUsedMb: 131 });
+    mockEstimate.mockResolvedValue(100 * 1024 * 1024);
+    await useSmartTurnStore.getState().remove();
+    expect(deleteModel).toHaveBeenCalledWith('smart-turn-v3.2');
+    expect(useSmartTurnStore.getState()).toMatchObject({ phase: 'missing', downloadedBytes: 0 });
+    expect(useModelStore.getState().storageUsedMb).toBe(100);
   });
 
   it('leaves the Storage page figure alone after a failed download', async () => {

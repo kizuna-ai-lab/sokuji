@@ -166,6 +166,7 @@
     "smartTurnMaxWaitTooltip": "Keheningan terpanjang sebelum segmen berakhir jika Smart Turn belum mengakhirinya lebih dulu.",
     "smartTurnDownloading": "Mengunduh model Smart Turn: {{done}} dari {{total}}",
     "smartTurnDownloadFailed": "Pengunduhan model Smart Turn gagal: {{error}}",
+    "smartTurnDeleteModel": "Hapus model ({{size}})",
     "vadMinSpeechDuration": "Durasi Bicara Minimum",
     "vadMinSpeechDurationTooltip": "Durasi minimum untuk dianggap sebagai ucapan valid. Memfilter suara yang sangat pendek seperti klik atau batuk.",
     "geminiVadTooltip": "Mengontrol cara Gemini mendeteksi jeda bicara untuk membagi giliran. Menyesuaikan pengaturan ini dapat meningkatkan responsivitas terjemahan untuk ucapan yang terus-menerus. \nTekan untuk Bicara: tahan sebuah tombol untuk mengirim audio. \nTekan untuk Terjemahkan: seperti Tekan untuk Bicara, tetapi merutekan mikrofon mentah Anda ke mikrofon virtual saat tidak aktif sehingga Anda dapat berbicara langsung tanpa terjemahan.",

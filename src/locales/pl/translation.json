@@ -166,6 +166,7 @@
     "smartTurnMaxWaitTooltip": "Najdłuższa cisza przed zakończeniem segmentu, gdy Smart Turn nie zakończył go wcześniej.",
     "smartTurnDownloading": "Pobieranie modelu Smart Turn: {{done}} z {{total}}",
     "smartTurnDownloadFailed": "Pobieranie modelu Smart Turn nie powiodło się: {{error}}",
+    "smartTurnDeleteModel": "Usuń model ({{size}})",
     "vadMinSpeechDuration": "Min. czas mowy",
     "vadMinSpeechDurationTooltip": "Minimalna długość mowy uznawanej za prawidłową. Filtruje bardzo krótkie dźwięki, takie jak kliknięcia lub kaszel.",
     "geminiVadTooltip": "Kontroluje sposób wykrywania przez Gemini przerw w mowie w celu podziału na tury. Dostosowanie tych ustawień może poprawić szybkość reagowania tłumaczenia na ciągłą mowę. \nNaciśnij i mów: przytrzymaj klawisz, aby wysłać dźwięk. \nNaciśnij i tłumacz: jak Naciśnij i mów, ale w stanie bezczynności kieruje surowy mikrofon do wirtualnego mikrofonu, dzięki czemu możesz mówić bezpośrednio bez tłumaczenia.",

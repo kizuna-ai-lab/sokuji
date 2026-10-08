@@ -166,6 +166,7 @@
     "smartTurnMaxWaitTooltip": "Smart Turn が先に区切らなかったときに、区切るまで待つ最長の無音時間。",
     "smartTurnDownloading": "Smart Turn モデルをダウンロード中 {{done}} / {{total}}",
     "smartTurnDownloadFailed": "Smart Turn モデルのダウンロードに失敗しました: {{error}}",
+    "smartTurnDeleteModel": "モデルを削除（{{size}}）",
     "vadMinSpeechDuration": "最小発話時間",
     "vadMinSpeechDurationTooltip": "有効な発話として認識する最小時間。クリック音や咳などの短い音をフィルタリングします。",
     "geminiVadTooltip": "Geminiが発話の区切りを検出する方法を制御します。この設定を調整することで、継続的な発話に対する翻訳の応答性を改善できます。\nプッシュトゥトーク：キーを押している間に音声を送信します。\nプッシュトゥトランスレート：プッシュトゥトークと同様ですが、アイドル時に生のマイク音声を仮想マイクへパススルーするので、翻訳せずに直接話せます。",

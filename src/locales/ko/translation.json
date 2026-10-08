@@ -166,6 +166,7 @@
     "smartTurnMaxWaitTooltip": "Smart Turn이 먼저 구간을 끝내지 않았을 때 구간이 끝나기까지 기다리는 가장 긴 무음 시간입니다.",
     "smartTurnDownloading": "Smart Turn 모델 다운로드 중 {{done}} / {{total}}",
     "smartTurnDownloadFailed": "Smart Turn 모델 다운로드 실패: {{error}}",
+    "smartTurnDeleteModel": "모델 삭제({{size}})",
     "vadMinSpeechDuration": "최소 발화 시간",
     "vadMinSpeechDurationTooltip": "유효한 음성으로 인식하기 위한 최소 시간. 클릭이나 기침과 같은 매우 짧은 소리를 필터링합니다.",
     "geminiVadTooltip": "Gemini가 발화 구분을 위해 음성 중단을 감지하는 방식을 제어합니다. 이 설정을 조정하면 연속적인 발화에 대한 번역 응답성을 향상시킬 수 있습니다. \n푸시 투 토크: 키를 눌러 오디오를 전송합니다. \n푸시 투 트랜슬레이트: 푸시 투 토크와 비슷하지만, 유휴 상태일 때 원본 마이크 오디오를 가상 마이크로 패스스루하여 번역 없이 직접 말할 수 있습니다.",

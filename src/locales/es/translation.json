@@ -166,6 +166,7 @@
     "smartTurnMaxWaitTooltip": "El silencio más largo antes de que termine un segmento cuando Smart Turn no lo ha cerrado antes.",
     "smartTurnDownloading": "Descargando el modelo Smart Turn: {{done}} de {{total}}",
     "smartTurnDownloadFailed": "Error al descargar el modelo Smart Turn: {{error}}",
+    "smartTurnDeleteModel": "Eliminar modelo ({{size}})",
     "vadMinSpeechDuration": "Duración mín. de habla",
     "vadMinSpeechDurationTooltip": "Duración mínima para considerar como habla válida. Filtra sonidos muy cortos como clics o tos.",
     "geminiVadTooltip": "Controla cómo Gemini detecta las pausas del habla para dividir los turnos. Ajustar esta configuración puede mejorar la capacidad de respuesta de la traducción para habla continua. \nPulsar para hablar: mantenga una tecla para enviar audio. \nPulsar para traducir: como Pulsar para hablar, pero enruta su micrófono original al micrófono virtual cuando está inactivo para que pueda hablar directamente sin traducción.",

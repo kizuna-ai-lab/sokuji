@@ -9,6 +9,7 @@ import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import { SMART_TURN_MAX_WAIT_MIN, supportsSmartTurn, effectiveCheckAfter, type VadEndOfTurn } from '../../lib/turn/smartTurn';
 import { EndOfTurnControl, VadControl } from '../../components/Settings/sections/LocalSettingsControls';
 import Tooltip from '../../components/Tooltip/Tooltip';
+import { describeCause, reportWarning } from '../../lib/diagnostics/report';
 import type { LanguagePair, SettingsProps } from '../../lib/provider/types';
 import type { LocalInferenceSettings as S } from './settings';
 
@@ -124,6 +125,16 @@ export function LocalInferenceTurnDetectionControls({ settings, update, disabled
       ? { vadEndOfTurn: 'smart', vadMinSilenceDuration: SMART_TURN_MAX_WAIT_MIN }
       : { vadEndOfTurn: 'smart' });
   };
+  const removeModel = () => {
+    // `remove()` awaits ModelManager; a storage failure must reach the
+    // diagnostic log rather than becoming an unhandled rejection.
+    useSmartTurnStore.getState().remove().catch((err: unknown) => {
+      reportWarning('SmartTurn', `Smart Turn model delete failed: ${describeCause(err)}`, {
+        cause: err,
+        dedupeKey: 'smart-turn:delete',
+      });
+    });
+  };
   const choose = (next: VadEndOfTurn) => {
     if (next === 'smart') {
       if (!smart) void enableSmart();
@@ -162,6 +173,7 @@ export function LocalInferenceTurnDetectionControls({ settings, update, disabled
           download={phase === 'downloading' ? { done: downloadedBytes, total: SMART_TURN_TOTAL_BYTES } : undefined}
           error={phase === 'error' ? error : null}
           onRetry={() => { void enableSmart(); }}
+          deletable={smart && phase === 'ready' ? { bytes: SMART_TURN_TOTAL_BYTES, onDelete: removeModel } : undefined}
         />
       ) : undefined}
     />

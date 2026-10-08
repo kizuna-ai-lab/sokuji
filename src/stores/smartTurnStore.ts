@@ -27,6 +27,8 @@ interface SmartTurnStore {
   dismiss(): void;
   /** Fetch the model unless it is on disk. Never rejects: ends 'ready' or 'error'. */
   download(): Promise<void>;
+  /** Delete the model from disk. Rejects when the delete fails; never interrupts a download. */
+  remove(): Promise<void>;
 }
 
 async function onDisk(): Promise<boolean> {
@@ -78,6 +80,13 @@ export const useSmartTurnStore = create<SmartTurnStore>()(
           dedupeKey: 'smart-turn:download',
         });
       }
+    },
+
+    remove: async () => {
+      if (get().phase === 'downloading') return;
+      await ModelManager.getInstance().deleteModel(SMART_TURN_MODEL_ID);
+      await get().refresh();
+      await refreshStorageEstimate();
     },
   })),
 );

@@ -10,7 +10,7 @@
  */
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, CircleHelp, RotateCw } from 'lucide-react';
+import { ChevronDown, ChevronRight, CircleHelp, RotateCw, Trash2 } from 'lucide-react';
 import Tooltip from '../../Tooltip/Tooltip';
 import { formatBytes } from '../../../lib/local-inference/formatBytes';
 import {
@@ -117,7 +117,9 @@ export const EndOfTurnControl: React.FC<{
   /** Why the last download failed. */
   error?: string | null;
   onRetry?: () => void;
-}> = ({ value, onChange, disabled, download, error, onRetry }) => {
+  /** The model is on disk and may be deleted. */
+  deletable?: { bytes: number; onDelete: () => void };
+}> = ({ value, onChange, disabled, download, error, onRetry, deletable }) => {
   const { t } = useTranslation();
   const options: Array<[VadEndOfTurn, string]> = [
     ['normal', t('settings.normal', 'Normal')],
@@ -139,6 +141,12 @@ export const EndOfTurnControl: React.FC<{
             </button>
           ))}
         </div>
+        {deletable && (
+          <button type="button" className="end-of-turn__delete" onClick={deletable.onDelete} disabled={disabled}>
+            <Trash2 size={12} />
+            <span>{t('settings.smartTurnDeleteModel', 'Delete model ({{size}})', { size: formatBytes(deletable.bytes) })}</span>
+          </button>
+        )}
       </div>
       {download && (
         <div className="setting-item end-of-turn__status">

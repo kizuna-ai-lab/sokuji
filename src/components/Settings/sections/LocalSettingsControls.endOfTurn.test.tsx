@@ -49,4 +49,20 @@ describe('EndOfTurnControl', () => {
     expect(button('Smart')).toBeDisabled();
     expect(button('Retry')).toBeDisabled();
   });
+
+  it('offers to delete the model with its size, and disables that while a session runs', () => {
+    const onDelete = vi.fn();
+    const { rerender } = render(
+      <EndOfTurnControl value="smart" onChange={() => {}} disabled={false} deletable={{ bytes: 32_411_198, onDelete }} />,
+    );
+    fireEvent.click(button('Delete model (30.9 MB)'));
+    expect(onDelete).toHaveBeenCalledTimes(1);
+    rerender(<EndOfTurnControl value="smart" onChange={() => {}} disabled deletable={{ bytes: 32_411_198, onDelete }} />);
+    expect(button('Delete model (30.9 MB)')).toBeDisabled();
+  });
+
+  it('offers no delete unless told the model can go', () => {
+    render(<EndOfTurnControl value="smart" onChange={() => {}} disabled={false} />);
+    expect(screen.queryByRole('button', { name: /Delete model/ })).toBeNull();
+  });
 });

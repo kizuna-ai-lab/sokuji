@@ -166,6 +166,7 @@
     "smartTurnMaxWaitTooltip": "The longest silence before a segment ends when Smart Turn has not ended it first.",
     "smartTurnDownloading": "Downloading the Smart Turn model: {{done}} of {{total}}",
     "smartTurnDownloadFailed": "Smart Turn model download failed: {{error}}",
+    "smartTurnDeleteModel": "Delete model ({{size}})",
     "vadMinSpeechDuration": "Min Speech Duration",
     "vadMinSpeechDurationTooltip": "Minimum speech duration to consider as valid speech. Filters out very short sounds like clicks or coughs.",
     "geminiVadTooltip": "Controls how Gemini detects speech pauses to split turns. Adjusting these settings can improve translation responsiveness for continuous speech. \nPush-to-Talk: hold a key to send audio. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.",

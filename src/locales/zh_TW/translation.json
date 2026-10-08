@@ -166,6 +166,7 @@
     "smartTurnMaxWaitTooltip": "Smart Turn 未提前結束片段時，片段結束前允許的最長靜音。",
     "smartTurnDownloading": "正在下載 Smart Turn 模型 {{done}} / {{total}}",
     "smartTurnDownloadFailed": "Smart Turn 模型下載失敗：{{error}}",
+    "smartTurnDeleteModel": "刪除模型（{{size}}）",
     "vadMinSpeechDuration": "最小語音時長",
     "vadMinSpeechDurationTooltip": "被視為有效語音的最小時長。過濾掉非常短的聲音，如點擊聲或咳嗽聲。",
     "geminiVadTooltip": "控制 Gemini 如何偵測語音停頓以分割對話輪次。調整這些設定可改善連續語音的翻譯回應速度。\n按住說話：按住按鍵發送音訊。\n按住翻譯：與按住說話類似，但閒置時將原始麥克風音訊直通到虛擬麥克風，您可以直接說話而不進行翻譯。",

@@ -166,6 +166,7 @@
     "smartTurnMaxWaitTooltip": "Pisin hiljaisuus ennen segmentin päättymistä, kun Smart Turn ei ole päättänyt sitä aiemmin.",
     "smartTurnDownloading": "Ladataan Smart Turn -mallia: {{done}} / {{total}}",
     "smartTurnDownloadFailed": "Smart Turn -mallin lataus epäonnistui: {{error}}",
+    "smartTurnDeleteModel": "Poista malli ({{size}})",
     "vadMinSpeechDuration": "Min. puheaika",
     "vadMinSpeechDurationTooltip": "Vähimmäisaika, jotta puhe tunnistetaan. Suodattaa erittäin lyhyet äänet, kuten napsautukset tai yskähdykset.",
     "geminiVadTooltip": "Hallitsee, miten Gemini havaitsee puhetauot vuorojen jakamiseksi. Näiden asetusten säätäminen voi parantaa käännöksen reagointikykyä jatkuvan puheen osalta. \nPaina ja puhu: pidä näppäintä painettuna lähettääksesi ääntä. \nPaina ja käännä: kuten Paina ja puhu, mutta ohjaa raakamikrofonisi virtuaalimikrofoniin tyhjäkäynnillä, jotta voit puhua suoraan ilman käännöstä.",
