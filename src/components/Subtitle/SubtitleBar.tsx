@@ -315,15 +315,19 @@ const SubtitleBar: React.FC<Props> = ({
         {/* On the desktop the bar is the main window itself, shrunk, and a bare
             ✕ reads as "quit the app" — so the exit says where it goes. The
             overlay closes over the meeting page with the side panel still
-            open, so its ✕ means just what it says. */}
+            open, so its ✕ means just what it says. Escape is layered: in
+            fullscreen the first press only leaves fullscreen
+            (useSubtitleChrome), so the exit names it only when windowed. */}
         {surface === 'electron' ? (
           <button
             type="button"
             className="subtitle-bar__exit"
             onClick={onExit}
-            title={t('subtitle.bar.backToMainTitle', 'Return to main window (Esc)')}
+            title={fullscreen
+              ? t('subtitle.backToMain', 'Return to main window')
+              : t('subtitle.bar.backToMainTitle', 'Return to main window (Esc)')}
             aria-label={t('subtitle.backToMain', 'Return to main window')}
-            aria-keyshortcuts="Escape"
+            aria-keyshortcuts={fullscreen ? undefined : 'Escape'}
           >
             <AppWindow size={14} />
             <span className="subtitle-bar__exit-label">{t('subtitle.backToMain', 'Return to main window')}</span>

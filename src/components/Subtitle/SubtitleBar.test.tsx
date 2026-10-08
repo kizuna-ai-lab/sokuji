@@ -235,6 +235,16 @@ describe('SubtitleBar exit button', () => {
     expect(onExit).toHaveBeenCalledTimes(1);
   });
 
+  // Escape is layered (subtitle fullscreen design): in fullscreen the first
+  // press only leaves fullscreen, so the exit does not name it there.
+  it('does not name Esc while the bar is fullscreen', () => {
+    fullscreenValue = true;
+    render(<SubtitleBar {...baseProps} surface="electron" />);
+    const btn = screen.getByRole('button', { name: 'Return to main window' });
+    expect(btn).toHaveAttribute('title', 'Return to main window');
+    expect(btn).not.toHaveAttribute('aria-keyshortcuts');
+  });
+
   // The overlay closes over the meeting page; the side panel never left, so
   // there is no main window to return to and ✕ means what it says.
   it('keeps the ✕ on the extension-overlay surface', () => {
