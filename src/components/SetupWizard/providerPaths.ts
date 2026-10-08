@@ -46,7 +46,7 @@ export function availablePaths(): ProviderPath[] {
 
 export function providerFits(provider: ProviderType, scenario: ScenarioId): boolean {
   const p = wizardProvider(provider);
-  return p !== undefined && providerFitForScenario(textOnlyCapabilityOf(p), getScenario(scenario)).ok;
+  return p !== undefined && providerFitForScenario(textOnlyCapabilityOf(p), getScenario(scenario), p.faceToFace === true).ok;
 }
 
 /** The registry's own-key providers, in its order, each with its fit for the scenario — unfit ones greyed with the reason, never hidden. */
@@ -54,7 +54,7 @@ export function ownKeyOptions(scenario: ScenarioId): ProviderOption[] {
   const preset = getScenario(scenario);
   return presentProviders()
     .filter((p) => p.kind === 'own-key')
-    .map((p) => ({ id: storedProviderValue(p.id) as ProviderType, fit: providerFitForScenario(textOnlyCapabilityOf(p), preset) }));
+    .map((p) => ({ id: storedProviderValue(p.id) as ProviderType, fit: providerFitForScenario(textOnlyCapabilityOf(p), preset, p.faceToFace === true) }));
 }
 
 /** The managed provider with its fit for the scenario, or null in a build that registers none; judged as the own-key list judges its options. */
@@ -62,12 +62,18 @@ export function managedOption(scenario: ScenarioId): ProviderOption | null {
   const id = managedProvider();
   const p = wizardProvider(id);
   if (!id || !p) return null;
-  return { id, fit: providerFitForScenario(textOnlyCapabilityOf(p), getScenario(scenario)) };
+  return { id, fit: providerFitForScenario(textOnlyCapabilityOf(p), getScenario(scenario), p.faceToFace === true) };
 }
 
 /** The in-app engine; LocalNative returns with Stage 2. */
 export function offlineOptions(): ProviderType[] {
   return [Provider.LOCAL_INFERENCE];
+}
+
+/** The offline path's fit: its engine (`offlineOptions`) offers no face-to-face. */
+export function offlineFit(scenario: ScenarioId): ProviderFit {
+  const p = wizardProvider(offlineOptions()[0]);
+  return p ? providerFitForScenario(textOnlyCapabilityOf(p), getScenario(scenario), p.faceToFace === true) : { ok: true };
 }
 
 /** Whether a stored setup's path and provider are still on offer, so a Help

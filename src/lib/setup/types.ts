@@ -18,7 +18,9 @@ export type ScenarioId =
   | 'be-heard'
   | 'subtitle-myself'
   | 'two-way-voice'
-  | 'two-way-text';
+  | 'two-way-text'
+  | 'face-to-face-voice'
+  | 'face-to-face-text';
 
 export type ProviderPath = 'managed' | 'own-key' | 'offline';
 

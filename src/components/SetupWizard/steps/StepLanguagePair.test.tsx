@@ -53,6 +53,14 @@ describe('StepLanguagePair — the scenario decides whether the run speaks (Stag
     expect(draw('subtitle-myself')).toEqual(['en', 'ja', 'ko']);
   });
 
+  it("voices face-to-face's participant leg whenever the preset speaks, not by the stores' switch", () => {
+    participant.speech = true;
+    expect(draw('face-to-face-text')).toEqual(['en', 'ja', 'ko']);
+    cleanup();
+    participant.speech = false;
+    expect(draw('face-to-face-voice')).toEqual(['en', 'ja']);
+  });
+
   it("reads the participant's own speech switch for a scenario that listens to others", () => {
     expect(draw('understand-others')).toEqual(['en', 'ja', 'ko']);
     participant.speech = true;

@@ -10,7 +10,7 @@ vi.mock('../../utils/environment', async (orig) => ({
 import { Provider, type ProviderType } from '../../types/Provider';
 import {
   availablePaths, managedProvider, managedOption, ownKeyOptions, offlineOptions, providerFits, offersRecord,
-  textOnlyCapabilityOf, wizardProvider,
+  textOnlyCapabilityOf, wizardProvider, offlineFit,
 } from './providerPaths';
 
 describe('providerPaths', () => {
@@ -21,6 +21,17 @@ describe('providerPaths', () => {
 
   it("lists the registered own-key providers in registry order, in the old enum's spelling", () => {
     expect(ownKeyOptions('understand-others').map((o) => o.id)).toEqual(['gemini', 'volcengine_ast2', 'openai', 'openai_translate', 'soniox', 'palabraai', 'fake']);
+  });
+
+  it('greys the offline path for face-to-face: the in-app engine cannot attribute two people', () => {
+    expect(offlineFit('face-to-face-voice')).toEqual({ ok: false, reason: 'cannot-face-to-face' });
+    expect(offlineFit('two-way-voice')).toEqual({ ok: true });
+  });
+
+  it('fits Soniox to face-to-face and greys an own-key provider without it', () => {
+    const options = ownKeyOptions('face-to-face-voice');
+    expect(options.find((o) => o.id === Provider.SONIOX)?.fit).toEqual({ ok: true });
+    expect(options.find((o) => o.id === Provider.OPENAI)?.fit).toEqual({ ok: false, reason: 'cannot-face-to-face' });
   });
 
   it("judges a provider's fit from its speech", () => {
