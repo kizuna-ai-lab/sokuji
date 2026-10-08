@@ -93,6 +93,19 @@ describe('createAudioGraph — routes', () => {
     graph.route([{ from: 'passthrough', to: 'virtual', gain: 0.3 }]);
     expect(reaches(clip('passthrough'), destinationOf(virtualSink))).toBe(true);
   });
+
+  it('pans an edge through a stereo panner, and replaces it when the pan changes (Review Focus 3)', async () => {
+    const { ctx, graph, real, destinationOf, clip } = await setup();
+    graph.route([{ from: 'speaker', to: 'real', gain: 1, pan: 1 }]);
+    const source = clip('speaker');
+    expect(reaches(source, destinationOf(real))).toBe(true);
+    expect(ctx.panners.map((p) => p.pan.value)).toEqual([1]);
+    graph.route([{ from: 'speaker', to: 'real', gain: 1, pan: -1 }]);
+    expect(reaches(source, destinationOf(real))).toBe(true);
+    expect(ctx.panners.map((p) => p.pan.value)).toEqual([1, -1]);
+    // The first panner is out of the path.
+    expect(ctx.panners[0].outputs.size).toBe(0);
+  });
 });
 
 describe('createAudioGraph — outputs', () => {

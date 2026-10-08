@@ -12,6 +12,7 @@ import type { Platform } from '../provider/types';
 import { faceToFaceFromStores } from '../session/appShape';
 import type { TurnMode } from '../session/types';
 import useAudioStore from '../../stores/audioStore';
+import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { getEnvironment } from '../../utils/environment';
@@ -37,7 +38,7 @@ export interface AppAudio {
 
 export function readRouting(
   audio: Pick<AudioState, 'mode' | 'isMonitorMuted' | 'isRealVoicePassthroughEnabled' | 'realVoicePassthroughVolume' | 'selectedMonitorDevice' | 'audioMonitorDevices' | 'selectedParticipantSource'>,
-  switches: { meeting: boolean; participantSpeech: boolean },
+  switches: { meeting: boolean; participantSpeech: boolean; faceToFaceSwap: boolean },
   platform: Platform,
   turnMode: TurnMode,
   faceToFace = false,
@@ -52,8 +53,10 @@ export function readRouting(
     // reason (plan 1e-3b-2 ruling 7, completed: `participantSpeechHeard` is
     // the one predicate this, the switch, the run's shape and the replay
     // slot all share). An application capture that falls back to the whole
-    // system mid-run is not seen here: a follow-up.
-    participantSpeech: switches.participantSpeech && participantSpeechHeard(platform, audio.selectedParticipantSource?.deviceId, faceToFace),
+    // system mid-run is not seen here: a follow-up. Face-to-face captures
+    // nothing system-wide, so its participant is voiced whenever its leg
+    // speaks (the run's shape decides that).
+    participantSpeech: faceToFace || (switches.participantSpeech && participantSpeechHeard(platform, audio.selectedParticipantSource?.deviceId)),
     // 1e-3 ruling 4, today's rule (`isPassthroughActive`): under push-to-translate
     // the original voice is on at full level whenever the key is not held (the
     // route closes while held), whatever the passthrough toggle says. Under
@@ -68,6 +71,7 @@ export function readRouting(
       real: audio.selectedMonitorDevice?.deviceId,
       virtual: platform === 'electron' ? findVirtualSpeaker(audio.audioMonitorDevices) : undefined,
     },
+    ...(faceToFace ? { ears: { swap: switches.faceToFaceSwap } } : {}),
   };
 }
 
@@ -78,10 +82,13 @@ export function createAppRouting(platform: Platform): RoutingSource {
       const offAudio = useAudioStore.subscribe(() => listener());
       const offSwitches = useRoutingStore.subscribe(() => listener());
       const offTurnMode = useTurnModeStore.subscribe(() => listener());
+      // The provider decides whether "beside me" is face-to-face.
+      const offProvider = useProviderStore.subscribe((s, prev) => { if (s.selected !== prev.selected) listener(); });
       return () => {
         offAudio();
         offSwitches();
         offTurnMode();
+        offProvider();
       };
     },
   };

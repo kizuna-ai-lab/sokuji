@@ -240,17 +240,19 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
     };
   };
 
-  const edges = new Map<string, { from: Feed; node: GainNode }>();
+  const edges = new Map<string, { from: Feed; node: GainNode; panner?: StereoPannerNode }>();
   /** What `route` was last asked for: a rebuild applies it to the new context. */
   let lastRoute: readonly Edge[] = [];
   const applyRoute = (next: readonly Edge[]) => {
     const { ctx, feeds, buses } = current;
     const wanted = new Map<string, Edge>();
-    for (const edge of next) if (buses[edge.to]) wanted.set(`${edge.from}>${edge.to}`, edge);
+    // The pan is part of the key: a swapped ear is a new edge, not a retuned one.
+    for (const edge of next) if (buses[edge.to]) wanted.set(`${edge.from}>${edge.to}>${edge.pan ?? 0}`, edge);
     for (const [id, edge] of edges) {
       if (wanted.has(id)) continue;
       feeds[edge.from].disconnect(edge.node);
       edge.node.disconnect();
+      edge.panner?.disconnect();
       edges.delete(id);
     }
     for (const [id, edge] of wanted) {
@@ -261,8 +263,16 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
       }
       const node = gainOn(ctx, edge.gain);
       feeds[edge.from].connect(node);
-      node.connect(buses[edge.to]!);
-      edges.set(id, { from: edge.from, node });
+      let panner: StereoPannerNode | undefined;
+      if (edge.pan !== undefined) {
+        panner = ctx.createStereoPanner();
+        panner.pan.value = edge.pan;
+        node.connect(panner);
+        panner.connect(buses[edge.to]!);
+      } else {
+        node.connect(buses[edge.to]!);
+      }
+      edges.set(id, { from: edge.from, node, ...(panner ? { panner } : {}) });
     }
   };
 

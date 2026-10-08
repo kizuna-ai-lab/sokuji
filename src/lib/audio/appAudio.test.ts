@@ -28,7 +28,7 @@ const AUDIO = {
   ],
   selectedParticipantSource: null as { deviceId: string; label: string } | null,
 };
-const SWITCHES = { meeting: true, participantSpeech: false };
+const SWITCHES = { meeting: true, participantSpeech: false, faceToFaceSwap: false };
 
 describe('readRouting', () => {
   it('maps the stores onto the route settings', () => {
@@ -72,18 +72,18 @@ describe('readRouting', () => {
   // translate it again as Other, so the switch's "on" is honoured only while
   // the chosen source is one application.
   it("blocks participant speech on Electron under a whole-system participant capture, on or with nothing selected", () => {
-    const withSwitch = { meeting: true, participantSpeech: true };
+    const withSwitch = { meeting: true, participantSpeech: true, faceToFaceSwap: false };
     expect(readRouting({ ...AUDIO, selectedParticipantSource: null }, withSwitch, 'electron', 'auto').participantSpeech).toBe(false);
     expect(readRouting({ ...AUDIO, selectedParticipantSource: { deviceId: 'desktop-audio-loopback', label: 'System' } }, withSwitch, 'electron', 'auto').participantSpeech).toBe(false);
   });
 
   it('allows participant speech on Electron once an application source is chosen', () => {
-    const withSwitch = { meeting: true, participantSpeech: true };
+    const withSwitch = { meeting: true, participantSpeech: true, faceToFaceSwap: false };
     expect(readRouting({ ...AUDIO, selectedParticipantSource: { deviceId: 'app:42', label: 'App' } }, withSwitch, 'electron', 'auto').participantSpeech).toBe(true);
   });
 
   it('is unaffected by the participant source outside Electron', () => {
-    const withSwitch = { meeting: true, participantSpeech: true };
+    const withSwitch = { meeting: true, participantSpeech: true, faceToFaceSwap: false };
     expect(readRouting({ ...AUDIO, selectedParticipantSource: null }, withSwitch, 'extension', 'auto').participantSpeech).toBe(true);
     expect(readRouting({ ...AUDIO, selectedParticipantSource: { deviceId: 'desktop-audio-loopback', label: 'System' } }, withSwitch, 'web', 'auto').participantSpeech).toBe(true);
   });
@@ -231,9 +231,21 @@ describe('createAppRouting', () => {
   });
 
   it('routes participant speech to the real device in face-to-face on Electron with a whole-system source', () => {
-    const withSwitch = { meeting: true, participantSpeech: true };
+    const withSwitch = { meeting: true, participantSpeech: true, faceToFaceSwap: false };
     const whole = { ...AUDIO, selectedParticipantSource: { deviceId: 'desktop-audio-loopback', label: 'System' } };
     expect(readRouting(whole, withSwitch, 'electron', 'auto', true).participantSpeech).toBe(true);
     expect(readRouting(whole, withSwitch, 'electron', 'auto', false).participantSpeech).toBe(false);
+  });
+});
+
+describe('readRouting — face-to-face', () => {
+  it('asks for the ears, voices the participant whatever the system-capture rule says, and keeps the swap', () => {
+    const r = readRouting({ ...AUDIO, mode: 'both' }, { meeting: true, participantSpeech: false, faceToFaceSwap: true }, 'electron', 'auto', true);
+    expect(r.ears).toEqual({ swap: true });
+    expect(r.participantSpeech).toBe(true);
+  });
+
+  it('asks for no ears outside face-to-face', () => {
+    expect(readRouting(AUDIO, { meeting: true, participantSpeech: false, faceToFaceSwap: false }, 'electron', 'auto').ears).toBeUndefined();
   });
 });

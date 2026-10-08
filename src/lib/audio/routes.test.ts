@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { routesFor, type RoutingSettings } from './routes';
+import { earsFor, routesFor, type RoutingSettings } from './routes';
 
 const OFF: RoutingSettings = {
   meeting: false,
@@ -49,5 +49,35 @@ describe('routesFor', () => {
 
   it('caps the ratio at unity', () => {
     expect(routesFor({ ...OFF, passthrough: { on: true, ratio: 3 } }, false)).toContainEqual({ from: 'passthrough', to: 'virtual', gain: 1 });
+  });
+});
+
+describe('routesFor — face-to-face ears', () => {
+  const F2F: RoutingSettings = { ...OFF, meeting: true, monitor: true, participantSpeech: true, passthrough: { on: true, ratio: 0.3 }, ears: { swap: false } };
+
+  it('pans my translation to their ear and theirs to mine, and sends nothing into the meeting', () => {
+    expect(routesFor(F2F, false)).toEqual([
+      { from: 'replay', to: 'real', gain: 1 },
+      { from: 'preview', to: 'real', gain: 1 },
+      { from: 'speaker', to: 'real', gain: 1, pan: 1 },
+      { from: 'participant', to: 'real', gain: 1, pan: -1 },
+    ]);
+  });
+
+  it('mirrors both ears on a swap (Review Focus 3)', () => {
+    const swapped = routesFor({ ...F2F, ears: { swap: true } }, false);
+    expect(swapped).toContainEqual({ from: 'speaker', to: 'real', gain: 1, pan: -1 });
+    expect(swapped).toContainEqual({ from: 'participant', to: 'real', gain: 1, pan: 1 });
+  });
+
+  it("drops the participant's edge when it does not speak (Text Only)", () => {
+    expect(routesFor({ ...F2F, participantSpeech: false }, false).some((e) => e.from === 'participant')).toBe(false);
+  });
+});
+
+describe('earsFor', () => {
+  it('puts the participant (my language) left by default', () => {
+    expect(earsFor(false)).toEqual({ speaker: 'right', participant: 'left' });
+    expect(earsFor(true)).toEqual({ speaker: 'left', participant: 'right' });
   });
 });
