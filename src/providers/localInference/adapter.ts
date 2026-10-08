@@ -20,6 +20,7 @@ import { defaultEngines, type AsrInit, type AsrLike, type LocalEngines, type Tra
 import { SentenceCut, runtimeOver } from './sentenceCut';
 import { speakTranslation } from './speech';
 import type { LocalInferenceConfig } from './config';
+import type { SegmentEnd } from '../../lib/local-inference/types';
 
 /**
  * LocalInference on the new contract (spec: "L0 — the client contract"): ASR,
@@ -477,7 +478,7 @@ class LocalSession implements AdapterSession {
    * closing a segment its partials opened with its last text. AST: the final
    * already is the translation — no source segment.
    */
-  private final(result: { text: string; durationMs: number; recognitionTimeMs: number }): void {
+  private final(result: { text: string; durationMs: number; recognitionTimeMs: number } & Partial<SegmentEnd>): void {
     if (this.ended) return;
     const text = result.text.trim();
     if (!text) {
@@ -490,6 +491,10 @@ class LocalSession implements AdapterSession {
       modelId: this.config.asr.modelId,
       durationMs: result.durationMs,
       recognitionTimeMs: result.recognitionTimeMs,
+      ...(result.endedBy ? { endedBy: result.endedBy } : {}),
+      ...(result.smartTurnProbability !== undefined
+        ? { smartTurnProbability: Math.round(result.smartTurnProbability * 100) / 100 }
+        : {}),
     });
     if (this.cut) {
       // The utterance is over whatever the cut did, so a segment still open

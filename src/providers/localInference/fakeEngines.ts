@@ -5,6 +5,7 @@
 import type { TranslationResult } from '../../lib/local-inference/engine/TranslationEngine';
 import type { TurnConnection } from '../../lib/turn/TurnRuntime';
 import type { TtsResult } from '../../lib/local-inference/engine/TtsEngine';
+import type { SegmentEnd } from '../../lib/local-inference/types';
 import type { AsrInit, AsrLike, LocalEngines, TranslationLike, TtsLike, TtsReady } from './engines';
 import type { LocalInferenceConfig } from './config';
 
@@ -56,7 +57,7 @@ export class FakeAsr implements AsrLike {
   dispose(): void { this.disposes++; }
 
   partial(text: string): void { this.onPartialResult?.(text); }
-  final(text: string): void { this.onResult?.({ text, durationMs: 1000, recognitionTimeMs: 100 }); }
+  final(text: string, end?: SegmentEnd): void { this.onResult?.({ text, durationMs: 1000, recognitionTimeMs: 100, ...end }); }
   speechStart(): void { this.onSpeechStart?.(); }
   /** An error message from the ready worker (one utterance). */
   fail(message: string): void { this.onError?.(message); }

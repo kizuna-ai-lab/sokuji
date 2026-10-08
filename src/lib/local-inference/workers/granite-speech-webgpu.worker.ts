@@ -32,6 +32,7 @@ import type {
   AsrAudioMessage,
   AsrDisposeMessage,
   AsrWorkerOutMessage,
+  SegmentEnd,
 } from '../types';
 import { acquireWebGpuAdapter, bindCheckedWebGpuAdapter } from './shaderF16Gate';
 
@@ -241,19 +242,19 @@ async function hasWebGPU(): Promise<boolean> {
  * ORT instance (`_shared/onnxruntime-all`) while the model runs on Transformers.js's — never
  * put a second session on the model's instance while a decode can be in flight (#469).
  */
-function scheduleGraniteInference(audio: Float32Array, startSample: number): Promise<void> {
+function scheduleGraniteInference(audio: Float32Array, startSample: number, end: SegmentEnd): Promise<void> {
   const previousGraniteDecode = pendingGraniteDecode;
   const promise = (async () => {
     if (previousGraniteDecode) {
       try { await previousGraniteDecode; } catch { /* already reported */ }
     }
-    await runGraniteInferenceSegment(audio, startSample);
+    await runGraniteInferenceSegment(audio, startSample, end);
   })();
   pendingGraniteDecode = promise;
   return promise;
 }
 
-async function runGraniteInferenceSegment(audio: Float32Array, startSample: number): Promise<void> {
+async function runGraniteInferenceSegment(audio: Float32Array, startSample: number, end: SegmentEnd): Promise<void> {
   // Capture both references before the first await: handleDispose nulls the module globals
   // and only then drains the decode chain, so a decode already past this guard must not read
   // `model` / `processor` again once it has suspended — it would throw and post a spurious
@@ -329,6 +330,7 @@ async function runGraniteInferenceSegment(audio: Float32Array, startSample: numb
         startSample,
         durationMs,
         recognitionTimeMs,
+        ...end,
       });
     }
   } catch (err: any) {
@@ -376,23 +378,24 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
             // and the guard at the top of this function would drop the audio arriving
             // meanwhile (#470). `scheduleGraniteInference` serializes decodes via
             // `pendingGraniteDecode`.
-            void scheduleGraniteInference(ev.audio, speechStartSample);
+            void scheduleGraniteInference(ev.audio, speechStartSample, { endedBy: 'silence' });
             break;
           case Message.VADMisfire: {
             speechFramesSinceStart = 0;
             // Kept when it follows a Smart end inside the wait Normal would have spanned.
             const rescued = turnLink?.rescue();
-            if (rescued) void scheduleGraniteInference(rescued, speechStartSample);
+            if (rescued) void scheduleGraniteInference(rescued, speechStartSample, { endedBy: 'kept' });
             break;
           }
         }
       }
 
-      if (turnLink?.afterFrame(frame, speechProbability, frameProcessor.speaking)) {
+      const smartTurnProbability = turnLink?.afterFrame(frame, speechProbability, frameProcessor.speaking) ?? null;
+      if (smartTurnProbability !== null) {
         const endEvents: FrameProcessorEvent[] = [];
         frameProcessor.endSegment((ev) => endEvents.push(ev));
         for (const ev of endEvents) {
-          if (ev.msg === Message.SpeechEnd) void scheduleGraniteInference(ev.audio, speechStartSample);
+          if (ev.msg === Message.SpeechEnd) void scheduleGraniteInference(ev.audio, speechStartSample, { endedBy: 'smart', smartTurnProbability });
         }
       }
 
@@ -405,7 +408,7 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
           frameProcessor.endSegment((ev) => endEvents.push(ev));
           for (const ev of endEvents) {
             if (ev.msg === Message.SpeechEnd) {
-              void scheduleGraniteInference(ev.audio, speechStartSample);
+              void scheduleGraniteInference(ev.audio, speechStartSample, { endedBy: 'cap' });
             }
           }
           turnLink?.reset();
@@ -493,10 +496,10 @@ async function handleFlush(): Promise<void> {
     frameProcessor.endSegment((ev) => endEvents.push(ev));
     for (const ev of endEvents) {
       if (ev.msg === Message.SpeechEnd) {
-        void scheduleGraniteInference(ev.audio, speechStartSample);
+        void scheduleGraniteInference(ev.audio, speechStartSample, { endedBy: 'flush' });
       } else if (ev.msg === Message.VADMisfire) {
         const rescued = turnLink?.rescue();
-        if (rescued) void scheduleGraniteInference(rescued, speechStartSample);
+        if (rescued) void scheduleGraniteInference(rescued, speechStartSample, { endedBy: 'kept' });
       }
     }
     turnLink?.reset();

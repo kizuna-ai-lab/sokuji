@@ -31,6 +31,7 @@ import type {
   AsrAudioMessage,
   AsrDisposeMessage,
   AsrWorkerOutMessage,
+  SegmentEnd,
 } from '../types';
 import { acquireWebGpuAdapter, bindCheckedWebGpuAdapter } from './shaderF16Gate';
 import { whisperLanguage } from './whisperLanguage';
@@ -301,20 +302,20 @@ async function hasWebGPU(): Promise<boolean> {
  * ORT instance (`_shared/onnxruntime-all`) while the model runs on Transformers.js's — never
  * put a second session on the model's instance while a decode can be in flight (#469).
  */
-function scheduleWhisper(audio: Float32Array, startSample: number): Promise<void> {
+function scheduleWhisper(audio: Float32Array, startSample: number, end: SegmentEnd): Promise<void> {
   const previousWhisperDecode = pendingWhisperDecode;
   const promise = (async () => {
     if (previousWhisperDecode) {
       try { await previousWhisperDecode; } catch { /* already reported */ }
     }
-    await runWhisperSegment(audio, startSample);
+    await runWhisperSegment(audio, startSample, end);
   })();
   pendingWhisperDecode = promise;
   return promise;
 }
 
 /** Run Whisper on one completed speech segment and post its result. Reports its own errors. */
-async function runWhisperSegment(audio: Float32Array, startSample: number): Promise<void> {
+async function runWhisperSegment(audio: Float32Array, startSample: number, end: SegmentEnd): Promise<void> {
   if (!transcriber) return;
 
   const durationMs = Math.round((audio.length / VAD_SAMPLE_RATE) * 1000);
@@ -352,6 +353,7 @@ async function runWhisperSegment(audio: Float32Array, startSample: number): Prom
         startSample,
         durationMs,
         recognitionTimeMs,
+        ...end,
       });
     }
   } catch (err: any) {
@@ -410,25 +412,26 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
             // Fire-and-forget: awaiting here would hold `processingVad` for the whole decode
             // and the guard at the top of this function would drop the audio arriving
             // meanwhile (#470). `scheduleWhisper` serializes decodes via `pendingWhisperDecode`.
-            void scheduleWhisper(ev.audio, speechStartSample);
+            void scheduleWhisper(ev.audio, speechStartSample, { endedBy: 'silence' });
             break;
 
           case Message.VADMisfire: {
             speechFramesSinceStart = 0;
             // Kept when it follows a Smart end inside the wait Normal would have spanned.
             const rescued = turnLink?.rescue();
-            if (rescued) void scheduleWhisper(rescued, speechStartSample);
+            if (rescued) void scheduleWhisper(rescued, speechStartSample, { endedBy: 'kept' });
             vadLog(rescued ? 'VAD_MISFIRE (kept after a Smart end)' : 'VAD_MISFIRE (too short, discarded)');
             break;
           }
         }
       }
 
-      if (turnLink?.afterFrame(frame, speechProbability, frameProcessor.speaking)) {
+      const smartTurnProbability = turnLink?.afterFrame(frame, speechProbability, frameProcessor.speaking) ?? null;
+      if (smartTurnProbability !== null) {
         const endEvents: FrameProcessorEvent[] = [];
         frameProcessor.endSegment((ev) => endEvents.push(ev));
         for (const ev of endEvents) {
-          if (ev.msg === Message.SpeechEnd) void scheduleWhisper(ev.audio, speechStartSample);
+          if (ev.msg === Message.SpeechEnd) void scheduleWhisper(ev.audio, speechStartSample, { endedBy: 'smart', smartTurnProbability });
         }
       }
 
@@ -442,7 +445,7 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
           frameProcessor.endSegment((ev) => endEvents.push(ev));
           for (const ev of endEvents) {
             if (ev.msg === Message.SpeechEnd) {
-              void scheduleWhisper(ev.audio, speechStartSample);
+              void scheduleWhisper(ev.audio, speechStartSample, { endedBy: 'cap' });
             }
           }
           turnLink?.reset();
@@ -557,10 +560,10 @@ async function handleFlush(): Promise<void> {
     frameProcessor.endSegment((ev) => endEvents.push(ev));
     for (const ev of endEvents) {
       if (ev.msg === Message.SpeechEnd) {
-        void scheduleWhisper(ev.audio, speechStartSample);
+        void scheduleWhisper(ev.audio, speechStartSample, { endedBy: 'flush' });
       } else if (ev.msg === Message.VADMisfire) {
         const rescued = turnLink?.rescue();
-        if (rescued) void scheduleWhisper(rescued, speechStartSample);
+        if (rescued) void scheduleWhisper(rescued, speechStartSample, { endedBy: 'kept' });
       }
     }
     turnLink?.reset();

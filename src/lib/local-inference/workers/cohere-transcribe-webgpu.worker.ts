@@ -33,6 +33,7 @@ import type {
   AsrAudioMessage,
   AsrDisposeMessage,
   StreamingAsrWorkerOutMessage,
+  SegmentEnd,
 } from '../types';
 import { bindCheckedWebGpuAdapter } from './shaderF16Gate';
 
@@ -180,7 +181,7 @@ let currentTranscriptionPromise: Promise<void> | null = null;
  * ORT instance (`_shared/onnxruntime-all`) while the model runs on Transformers.js's — never
  * put a second session on the model's instance while a decode can be in flight (#469).
  */
-function scheduleTranscription(audio: Float32Array): Promise<void> {
+function scheduleTranscription(audio: Float32Array, end: SegmentEnd): Promise<void> {
   const previousTranscription = currentTranscriptionPromise;
   const promise = (async () => {
     if (previousTranscription) {
@@ -227,6 +228,7 @@ function scheduleTranscription(audio: Float32Array): Promise<void> {
           text,
           durationMs,
           recognitionTimeMs,
+          ...end,
         });
       }
     } catch (err: any) {
@@ -279,24 +281,25 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
             // and the guard at the top of this function would drop the audio arriving
             // meanwhile (#470). `scheduleTranscription` serializes decodes via
             // `currentTranscriptionPromise`.
-            void scheduleTranscription(ev.audio);
+            void scheduleTranscription(ev.audio, { endedBy: 'silence' });
             break;
 
           case Message.VADMisfire: {
             speechFramesSinceStart = 0;
             // Kept when it follows a Smart end inside the wait Normal would have spanned.
             const rescued = turnLink?.rescue();
-            if (rescued) void scheduleTranscription(rescued);
+            if (rescued) void scheduleTranscription(rescued, { endedBy: 'kept' });
             break;
           }
         }
       }
 
-      if (turnLink?.afterFrame(frame, speechProbability, frameProcessor.speaking)) {
+      const smartTurnProbability = turnLink?.afterFrame(frame, speechProbability, frameProcessor.speaking) ?? null;
+      if (smartTurnProbability !== null) {
         const endEvents: FrameProcessorEvent[] = [];
         frameProcessor.endSegment((ev) => endEvents.push(ev));
         for (const ev of endEvents) {
-          if (ev.msg === Message.SpeechEnd) void scheduleTranscription(ev.audio);
+          if (ev.msg === Message.SpeechEnd) void scheduleTranscription(ev.audio, { endedBy: 'smart', smartTurnProbability });
         }
       }
 
@@ -309,7 +312,7 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
           frameProcessor.endSegment((ev) => endEvents.push(ev));
           for (const ev of endEvents) {
             if (ev.msg === Message.SpeechEnd) {
-              void scheduleTranscription(ev.audio);
+              void scheduleTranscription(ev.audio, { endedBy: 'cap' });
             }
           }
           turnLink?.reset();
@@ -397,10 +400,10 @@ async function handleFlush(): Promise<void> {
     frameProcessor.endSegment((ev) => endEvents.push(ev));
     for (const ev of endEvents) {
       if (ev.msg === Message.SpeechEnd) {
-        void scheduleTranscription(ev.audio);
+        void scheduleTranscription(ev.audio, { endedBy: 'flush' });
       } else if (ev.msg === Message.VADMisfire) {
         const rescued = turnLink?.rescue();
-        if (rescued) void scheduleTranscription(rescued);
+        if (rescued) void scheduleTranscription(rescued, { endedBy: 'kept' });
       }
     }
     turnLink?.reset();

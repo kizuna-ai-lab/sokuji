@@ -3,7 +3,7 @@ import { StreamingAsrEngine } from '../../lib/local-inference/engine/StreamingAs
 import { TranslationEngine, type TranslationResult } from '../../lib/local-inference/engine/TranslationEngine';
 import { TtsEngine, type AudioChunkCallback, type TtsResult } from '../../lib/local-inference/engine/TtsEngine';
 import { turnRuntime, type TurnConnection } from '../../lib/turn/TurnRuntime';
-import type { VadWebConfig } from '../../lib/local-inference/types';
+import type { SegmentEnd, VadWebConfig } from '../../lib/local-inference/types';
 import type { LocalInferenceConfig } from './config';
 
 /**
@@ -33,7 +33,7 @@ export interface AsrLike {
   dispose(): void;
   /** The cumulative hypothesis for the utterance so far, never a delta. */
   onPartialResult: ((text: string) => void) | null;
-  onResult: ((result: { text: string; durationMs: number; recognitionTimeMs: number }) => void) | null;
+  onResult: ((result: { text: string; durationMs: number; recognitionTimeMs: number } & Partial<SegmentEnd>) => void) | null;
   onSpeechStart: (() => void) | null;
   /** An error message from the ready worker: one utterance failed, the engine goes on. */
   onError: ((error: string) => void) | null;
@@ -94,7 +94,7 @@ function asrOver(engine: AsrEngine | StreamingAsrEngine): AsrLike {
     dispose: () => engine.dispose(),
   };
   engine.onPartialResult = (text) => asr.onPartialResult?.(text);
-  engine.onResult = (result: { text: string; durationMs: number; recognitionTimeMs: number }) => asr.onResult?.(result);
+  engine.onResult = (result: { text: string; durationMs: number; recognitionTimeMs: number } & Partial<SegmentEnd>) => asr.onResult?.(result);
   engine.onSpeechStart = () => asr.onSpeechStart?.();
   // Two failures, kept apart by the engine's own hook: a ready worker's
   // `error` message is one chunk (the streaming worker resets and goes on);

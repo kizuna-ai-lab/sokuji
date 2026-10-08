@@ -151,8 +151,8 @@ export class TurnLink {
     };
   }
 
-  /** True: end the segment now, fire-and-forget, as the max-speech cap does. */
-  afterFrame(frame: Float32Array, probability: number, speaking: boolean): boolean {
+  /** The probability that ended the segment: end it now, fire-and-forget, as the max-speech cap does. Null: carry on. */
+  afterFrame(frame: Float32Array, probability: number, speaking: boolean): number | null {
     const request = this.gate.push(frame, probability, speaking);
     if (request) {
       const message: TurnPredictRequest = { type: 'predict', id: request.id, window: request.window };
@@ -160,9 +160,9 @@ export class TurnLink {
     }
     const answer = this.answer;
     this.answer = null;
-    if (!answer || !this.gate.shouldEnd(answer.id, answer.probability)) return false;
+    if (!answer || !this.gate.shouldEnd(answer.id, answer.probability)) return null;
     this.gate.endedBySmart();
-    return true;
+    return answer.probability;
   }
 
   /** On the processor's VADMisfire, before afterFrame(): the audio to decode anyway, or null. */
