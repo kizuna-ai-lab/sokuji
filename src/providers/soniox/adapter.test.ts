@@ -656,4 +656,12 @@ describe('language codes (unified language codes)', () => {
     expect(of('segmentText').length).toBeGreaterThan(0);
     for (const e of of('segmentText')) expect(e.payload).not.toHaveProperty('language');
   });
+
+  it('labels each segment with its person, and a resumed socket starts a new epoch', async () => {
+    const h = await live({ shared: { ...SHARED, reversed: () => true } });
+    h.stt().receive(msg({ ...orig('Hello.'), speaker: '1' }, tr('こんにちは。'), END));
+    await resumeOnce(h);
+    h.stt().receive(msg({ ...orig('Again.'), speaker: '1' }, tr('また。'), END));
+    expect(h.of('segmentOpened').map((e) => e.payload.person)).toEqual(['1.1', '1.1', '2.1', '2.1']);
+  });
 });

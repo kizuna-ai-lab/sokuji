@@ -50,6 +50,12 @@ export interface UtteranceOptions {
 interface Utterance {
   leg: LegName;
   origin: string;
+  /** The socket its labels belong to: a resumed socket numbers people from 1 again. */
+  epoch: number;
+  /** The first token's speaker label, until final originals outvote it. */
+  firstLabel?: string;
+  /** Final original tokens per speaker label. */
+  labels: Map<string, number>;
   sourceRef?: Ref;
   sourceClosed: boolean;
   sourceFinal: string;
@@ -70,6 +76,25 @@ interface Utterance {
   cancelGrace?: () => void;
 }
 
+/** Who said `u`: the label most of its final originals carry, else its first token's — scoped to its socket. */
+function personOf(u: Utterance): string | undefined {
+  let best = u.firstLabel;
+  let most = best === undefined ? 0 : u.labels.get(best) ?? 0;
+  for (const [label, count] of u.labels) {
+    if (count > most) {
+      best = label;
+      most = count;
+    }
+  }
+  return best === undefined ? undefined : `${u.epoch}.${best}`;
+}
+
+/** The payload field, only when there is a person. */
+function personField(u: Utterance): { person?: string } {
+  const person = personOf(u);
+  return person === undefined ? {} : { person };
+}
+
 export class Utterances {
   private nextRef = 1;
   private count = 0;
@@ -77,6 +102,8 @@ export class Utterances {
   /** The last utterance to end: its translation still takes late tokens, until the next original token (choice 3). */
   private previous: Utterance | null = null;
   private stopped = false;
+  /** Bumped by `abandon()`: the resume's new socket mints its own speaker labels. */
+  private epoch = 1;
 
   constructor(private readonly o: UtteranceOptions) {}
 
@@ -114,8 +141,12 @@ export class Utterances {
         if (token.start_ms !== undefined && u.startMs === undefined) u.startMs = token.start_ms;
         if (token.end_ms !== undefined) u.endMs = token.end_ms;
         this.openSource(u);
-        if (token.is_final) u.sourceFinal += text;
-        else sourcePartial += text;
+        if (token.is_final) {
+          u.sourceFinal += text;
+          if (token.speaker) u.labels.set(token.speaker, (u.labels.get(token.speaker) ?? 0) + 1);
+        } else {
+          sourcePartial += text;
+        }
       }
     }
     // At most one of the two is set (the invariant): the ended utterance, whose
@@ -143,6 +174,7 @@ export class Utterances {
       this.closeTranslation(u);
     }
     this.endPrevious();
+    this.epoch += 1;
   }
 
   stop(): void {
@@ -154,7 +186,7 @@ export class Utterances {
   private begin(token: SonioxToken): Utterance {
     this.count += 1;
     const u: Utterance = {
-      leg: this.o.legFor(token), origin: `u${this.count}`,
+      leg: this.o.legFor(token), origin: `u${this.count}`, epoch: this.epoch, firstLabel: token.speaker, labels: new Map(),
       sourceClosed: false, sourceFinal: '', translation: 'none', translationFinal: '', spokenUpTo: 0,
     };
     this.current = u;
@@ -164,14 +196,14 @@ export class Utterances {
   private openSource(u: Utterance): void {
     if (u.sourceRef !== undefined) return;
     u.sourceRef = this.nextRef++;
-    this.emit(u, { kind: 'segmentOpened', payload: { ref: u.sourceRef, side: 'source', origin: u.origin } });
+    this.emit(u, { kind: 'segmentOpened', payload: { ref: u.sourceRef, side: 'source', origin: u.origin, ...personField(u) } });
   }
 
   private openTranslation(u: Utterance): void {
     if (u.translation !== 'none') return;
     u.translationRef = this.nextRef++;
     u.translation = 'open';
-    this.emit(u, { kind: 'segmentOpened', payload: { ref: u.translationRef, side: 'translation', origin: u.origin } });
+    this.emit(u, { kind: 'segmentOpened', payload: { ref: u.translationRef, side: 'translation', origin: u.origin, ...personField(u) } });
     // Opened after its utterance ended: held for the grace, as after `<fin>`.
     if (u === this.previous) this.armGrace(u);
   }
@@ -239,10 +271,10 @@ export class Utterances {
     if (u.sourceRef !== undefined && !u.sourceClosed) {
       const text = u.sourceFinal + sourcePartial;
       const timing = u.startMs !== undefined && u.endMs !== undefined ? { startMs: u.startMs, endMs: u.endMs } : undefined;
-      const key = JSON.stringify([text, timing, u.sourceLanguage]);
+      const key = JSON.stringify([text, timing, u.sourceLanguage, personOf(u)]);
       if (key !== u.sourceShown) {
         u.sourceShown = key;
-        this.emit(u, { kind: 'segmentText', payload: { ref: u.sourceRef, text, ...(timing ? { timing } : {}), ...(u.sourceLanguage ? { language: u.sourceLanguage } : {}) } });
+        this.emit(u, { kind: 'segmentText', payload: { ref: u.sourceRef, text, ...(timing ? { timing } : {}), ...(u.sourceLanguage ? { language: u.sourceLanguage } : {}), ...personField(u) } });
       }
     }
     this.showTranslation(u, translationPartial);
@@ -251,10 +283,10 @@ export class Utterances {
   private showTranslation(u: Utterance, partial: string): void {
     if (u.translationRef === undefined) return;
     const text = u.translationFinal + partial;
-    const key = JSON.stringify([text, u.translationLanguage]);
+    const key = JSON.stringify([text, u.translationLanguage, personOf(u)]);
     if (key === u.translationShown) return;
     u.translationShown = key;
-    this.emit(u, { kind: 'segmentText', payload: { ref: u.translationRef, text, ...(u.translationLanguage ? { language: u.translationLanguage } : {}) } });
+    this.emit(u, { kind: 'segmentText', payload: { ref: u.translationRef, text, ...(u.translationLanguage ? { language: u.translationLanguage } : {}), ...personField(u) } });
   }
 
   private emit(u: Utterance, event: SegmentEvent): void {
