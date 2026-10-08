@@ -23,6 +23,7 @@ import {
 import { useRoutingStore } from '../../stores/routingStore';
 import { useFaceToFace } from './useFaceToFace';
 import { getAppAudio } from '../../lib/audio/appAudio';
+import { describeCause, reportError } from '../../lib/diagnostics/report';
 import { earsFor } from '../../lib/audio/routes';
 import { useLanguageLabel } from '../../lib/language/useLanguageLabel';
 import { isExtension } from '../../utils/environment';
@@ -376,11 +377,14 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
         })}
         </div>
 
-        {beside && f2f.me && f2f.other && (
+        {/* Under Text Only nothing plays in either ear: no ears, previews or swap. */}
+        {beside && f2f.me && f2f.other && (f2f.speaks.speaker || f2f.speaks.participant) && (
           <div className="mode-device-popover__ears">
             <div className="mode-device-popover__ears-title">{t('faceToFace.earsTitle', 'Left and right · each person hears the translation into their own language')}</div>
             {(['left', 'right'] as const).map((ear) => {
               const mine = earsFor(f2f.swap).participant === ear;
+              // My ear plays the participant leg's translation (into my language); theirs, mine.
+              const voiced = f2f.speaks[mine ? 'participant' : 'speaker'];
               const pan = ear === 'left' ? -1 : 1;
               const earName = ear === 'left' ? t('faceToFace.leftEar', 'Left ear') : t('faceToFace.rightEar', 'Right ear');
               return (
@@ -392,14 +396,23 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
                       ? t('faceToFace.meListens', 'Me ({{language}})', { language: label(f2f.me!) })
                       : t('faceToFace.otherListens', 'Other person ({{language}})', { language: label(f2f.other!) })}
                   </span>
-                  <button
-                    type="button"
-                    className="mode-device-popover__ear-preview"
-                    aria-label={ear === 'left' ? t('faceToFace.previewLeft', 'Preview the left ear') : t('faceToFace.previewRight', 'Preview the right ear')}
-                    onClick={() => { void getAppAudio().then((app) => app.testTone(undefined, pan)); }}
-                  >
-                    <Play size={12} />
-                  </button>
+                  {voiced ? (
+                    <button
+                      type="button"
+                      className="mode-device-popover__ear-preview"
+                      aria-label={ear === 'left' ? t('faceToFace.previewLeft', 'Preview the left ear') : t('faceToFace.previewRight', 'Preview the right ear')}
+                      onClick={() => {
+                        void getAppAudio()
+                          .then((app) => app.testTone(undefined, pan))
+                          .catch((error: unknown) => reportError('ModeDevicePopover', `The ear preview did not play: ${describeCause(error)}`, { cause: error }));
+                      }}
+                    >
+                      <Play size={12} />
+                    </button>
+                  ) : (
+                    // A silent leg (Kizuna Soniox's participant today): nothing plays in this ear.
+                    <span className="mode-device-popover__ear-off">{t('popover.statusOff', 'Off')}</span>
+                  )}
                 </div>
               );
             })}

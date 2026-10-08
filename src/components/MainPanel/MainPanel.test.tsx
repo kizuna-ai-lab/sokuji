@@ -787,10 +787,11 @@ describe('the ears strip (face-to-face)', () => {
     useProviderStore.getState().setPair(fakeProvider, { source: 'en', target: 'ja' });
   });
   afterEach(() => {
-    useProviderStore.getState().setPair(fakeProvider, pair);
     delete (fakeProvider as { faceToFace?: boolean }).faceToFace;
+    delete (fakeProvider as { participantSpeech?: boolean }).participantSpeech;
     // The panel is still mounted here: its cleanup runs after this hook.
     act(() => {
+      useProviderStore.getState().setPair(fakeProvider, pair);
       useAudioStore.setState({ otherSide: useAudioStore.getInitialState().otherSide });
       useSettingsStore.setState({ textOnly: false });
     });
@@ -832,6 +833,47 @@ describe('the ears strip (face-to-face)', () => {
     expect(radios().every((r) => r.disabled)).toBe(true);
     expect(radios()[0].closest('label')?.getAttribute('title')).toBe('modePicker.switchDisabled');
     openPopover();
+    await stop();
+  });
+
+  /** The translation rows of a leg. */
+  const translations = (container: HTMLElement, leg: 'speaker' | 'participant') =>
+    [...container.querySelectorAll(`.conversation-row.source-${leg}`)].filter((row) => row.querySelector('.row-text.tr'));
+
+  // Ruling P7: replay works face-to-face. The participant's slot follows the run's own rule, not the hidden switch.
+  it("gives the other person's translations a replay slot when their leg speaks", async () => {
+    useSettingsStore.setState({ keepReplayAudio: true });
+    const { container } = await renderPanel();
+    await start(container);
+    playFirstExchange();
+    expect(translations(container, 'participant').length).toBeGreaterThan(0);
+    for (const row of translations(container, 'participant')) expect(row.querySelector('.row-play-btn')).not.toBeNull();
+    await stop();
+  });
+
+  // Kizuna Soniox today: the provider's flag keeps the participant's leg silent.
+  it("shows no slot, no ear and no not-played mark on a silent participant leg, and only the speaker's ear in the strip", async () => {
+    Object.assign(fakeProvider, { participantSpeech: false });
+    useSettingsStore.setState({ keepReplayAudio: true });
+    const { container } = await renderPanel();
+    await start(container);
+    playFirstExchange();
+    const theirs = translations(container, 'participant');
+    expect(theirs.length).toBeGreaterThan(0);
+    for (const row of theirs) {
+      expect(row.querySelector('.row-play-btn')).toBeNull();
+      expect(row.querySelector('.ear-tag')).toBeNull();
+    }
+    // My translations still play, in the other person's ear (right, unswapped).
+    const mine = translations(container, 'speaker');
+    expect(mine.length).toBeGreaterThan(0);
+    for (const row of mine) {
+      expect(row.querySelector('.row-play-btn')).not.toBeNull();
+      expect(row.querySelector('.ear-tag--right')).not.toBeNull();
+    }
+    const strip = container.querySelector('.ears-legend')!;
+    expect([...strip.querySelectorAll('.ears-legend__ear')].map((ear) => ear.className)).toEqual(['ears-legend__ear ears-legend__ear--other']);
+    expect(strip.querySelector('.ears-legend__ear-name')?.textContent).toBe('faceToFace.rightEar');
     await stop();
   });
 });

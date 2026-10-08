@@ -13,8 +13,6 @@ import { isDevelopment } from '../../config/analytics';
 import { useAnalytics } from '../../lib/analytics';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause, reportError, reportWarning } from '../../lib/diagnostics/report';
-import { participantSpeechHeard } from '../../lib/modern-audio/participantSource';
-import { isFaceToFace } from '../../lib/session/appShape';
 import { NO_MICROPHONE } from '../../lib/session/shape';
 import type { RunEnd, RunState } from '../../lib/session/types';
 import { displayItems, type DisplayItem, type NoticeEntry } from '../../lib/view/filter';
@@ -22,7 +20,6 @@ import { actionLabel, type NoticeActionSpec } from '../../lib/view/noticeActions
 import { isPanelNoteId, noticeActionSpec, panelNoteEntries } from '../../lib/view/panelNotes';
 import { getProvider } from '../../providers/registry';
 import {
-  default as useAudioStore,
   useIsMicMuted,
   useMode,
   useParticipantSources,
@@ -34,7 +31,6 @@ import { useCleanupAudioSystemListeners, useInitAudioSystemListeners } from '../
 import { useConversationDisplayStore } from '../../stores/conversationDisplayStore';
 import { usePanelNotes, usePanelNotesStore } from '../../stores/panelNotesStore';
 import { useProviderStore } from '../../stores/providerStore';
-import { useRoutingStore } from '../../stores/routingStore';
 import {
   useKeepReplayAudio,
   useNavigateToSettings,
@@ -43,7 +39,6 @@ import {
   useSetAuthOverlay,
   useSpeakerDisplayMode,
   useSubtitleModeActive,
-  useTextOnly,
   useUIMode,
 } from '../../stores/settingsStore';
 import { useSetSubtitleEntryHint } from '../../stores/subtitleStore';
@@ -60,8 +55,7 @@ import { Banners } from '../Banner/useBanners';
 import UpdateDialog from '../UpdateDialog/UpdateDialog';
 import ModeDevicePopover from './ModeDevicePopover';
 import { PanelFooter } from './panel/PanelFooter';
-import { earsFor } from '../../lib/audio/routes';
-import { earsLegend, useFaceToFace } from './useFaceToFace';
+import { earsLegend, useFaceToFace, voicedEars } from './useFaceToFace';
 import PanelToolbar from './panel/PanelToolbar';
 import { replayBlocked } from './panel/replayGate';
 import { useSessionClock } from './panel/sessionClock';
@@ -167,18 +161,15 @@ export default function MainPanel() {
   const setAuthOverlay = useSetAuthOverlay();
   const notes = usePanelNotes();
   const subtitleModeActive = useSubtitleModeActive();
-  const participantSpeech = useRoutingStore((s) => s.participantSpeech);
   const mode = useMode();
   const setMode = useSetMode();
   const micMuted = useIsMicMuted();
   const participantSources = useParticipantSources();
   const participantSource = useSelectedParticipantSource();
   const provider = useProviderStore((s) => (s.selected ? getProvider(s.selected) : undefined));
-  const otherSide = useAudioStore((s) => s.otherSide);
-  const faceToFace = isFaceToFace(provider, mode, otherSide);
+  // Face-to-face and whether each leg is voiced, from one source: the replay gate, the strip and the tags.
   const f2f = useFaceToFace();
-  const textOnly = useTextOnly();
-  const ears = earsLegend(f2f, textOnly);
+  const ears = earsLegend(f2f);
   const providerSettings = useProviderStore((s) => (s.selected ? s.entries[s.selected]?.settings : undefined));
   const display = useConversationDisplayStore();
 
@@ -199,15 +190,17 @@ export default function MainPanel() {
   // reference: a later end is another object and draws again.
   const [dismissedEnd, setDismissedEnd] = useState<RunEnd | null>(null);
   const segments = useMemo(() => new Map(viewState.legs.flatMap((leg) => leg.segments.map((s) => [s.id, s] as const))), [viewState.legs]);
-  // No participant replay slot while the whole-system rule mutes it (ruling
-  // 7, completed): the switch, the run's shape and the route all agree.
-  const heardParticipantSpeech = participantSpeech && participantSpeechHeard(getEnvironment(), participantSource?.deviceId, faceToFace);
-  const replayLegs = useMemo(() => new Set<LegName>(keepReplayAudio ? (heardParticipantSpeech ? ['speaker', 'participant'] : ['speaker']) : []), [keepReplayAudio, heardParticipantSpeech]);
+  // A participant replay slot only while its leg is voiced, by the run's own
+  // rule: its provider's flag, then face-to-face (ruling P7) or the switch
+  // and a source that will not recapture it (ruling 7, completed). The
+  // switch, the run's shape and the route all agree.
+  const participantVoiced = f2f.speaks.participant;
+  const replayLegs = useMemo(() => new Set<LegName>(keepReplayAudio ? (participantVoiced ? ['speaker', 'participant'] : ['speaker']) : []), [keepReplayAudio, participantVoiced]);
   const participantNoticeCodes = useMemo(
     () => viewState.legs.find((leg) => leg.leg === 'participant')?.notices.flatMap((n) => (n.code ? [n.code] : [])) ?? [],
     [viewState.legs],
   );
-  const blocked = replayBlocked({ run, platform: getEnvironment(), participantSourceId: participantSource?.deviceId, participantNoticeCodes, faceToFace })
+  const blocked = replayBlocked({ run, platform: getEnvironment(), participantSourceId: participantSource?.deviceId, participantNoticeCodes, faceToFace: f2f.active })
     ? t('mainPanel.replayBlockedWholeSystem', "Replay is off while Other's audio captures all system sound: it would be translated again.")
     : null;
 
@@ -333,7 +326,7 @@ export default function MainPanel() {
               if (s) audio.playback.replay(leg, s);
             }}
             replayBlocked={blocked} noticeAction={noticeAction}
-            ears={ears ? earsFor(f2f.swap) : null}
+            ears={voicedEars(f2f)}
             compact={display.compactMode} fontSize={display.fontSize}
             empty={<><MessageSquare size={32} /><p>{t('simplePanel.startToBegin', 'Click Start to begin real-time translation')}</p></>}
           />

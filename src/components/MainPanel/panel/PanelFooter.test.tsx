@@ -273,6 +273,16 @@ describe('PanelFooter — the ears legend', () => {
     expect(container.querySelector('.ears-legend')).toBeNull();
   });
 
+  // Kizuna Soniox today: the participant's leg is silent, so my ear plays nothing.
+  it.each(SITES)('%s: leaves out an ear nothing plays in', (site) => {
+    const { container } = render(<PanelFooter {...baseProps(site, { mode: 'both', faceToFace: true, ears: { leftLang: 'ja', rightLang: 'en', leftIsMe: true, silent: 'left' } })} />);
+    const ears = [...container.querySelectorAll('.ears-legend .ears-legend__ear')];
+    expect(ears).toHaveLength(1);
+    expect(ears[0].classList.contains('ears-legend__ear--other')).toBe(true);
+    expect(ears[0].querySelector('.ears-legend__ear-name')?.textContent).toBe('faceToFace.rightEar');
+    expect(container.querySelector('.ears-legend')?.textContent).not.toContain('faceToFace.legendMe');
+  });
+
   it.each(SITES)('%s: is a strip of its own directly above the control footer, never inside it', (site) => {
     const { container, rerender } = render(<PanelFooter {...baseProps(site, { mode: 'both', faceToFace: true, ears: { leftLang: 'ja', rightLang: 'en', leftIsMe: true } })} />);
     const strip = container.querySelector('.ears-legend');

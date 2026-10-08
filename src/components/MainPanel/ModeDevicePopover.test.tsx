@@ -55,12 +55,17 @@ vi.mock('../../stores/audioStore', () => ({
   useSetOtherSide: () => store.setOtherSide,
 }));
 
-const f2f = { offered: true, active: false, swap: false, me: 'ja', other: 'en' };
+const f2f = { offered: true, active: false, swap: false, me: 'ja', other: 'en', speaks: { speaker: true, participant: true } };
 vi.mock('./useFaceToFace', () => ({ useFaceToFace: () => f2f }));
 const routing = { setFaceToFaceSwap: vi.fn() };
 vi.mock('../../stores/routingStore', () => ({ useRoutingStore: (pick: (s: unknown) => unknown) => pick({ faceToFaceSwap: f2f.swap, setFaceToFaceSwap: routing.setFaceToFaceSwap }) }));
-const tone = vi.fn(async () => {});
+const tone = vi.fn(async (_signal?: AbortSignal, _pan?: -1 | 1) => {});
 vi.mock('../../lib/audio/appAudio', () => ({ getAppAudio: async () => ({ testTone: tone }) }));
+const report = vi.hoisted(() => ({ error: vi.fn() }));
+vi.mock('../../lib/diagnostics/report', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/diagnostics/report')>()),
+  reportError: report.error,
+}));
 vi.mock('../../lib/language/useLanguageLabel', () => ({ useLanguageLabel: () => (code: string) => code.toUpperCase() }));
 
 const SYSTEM = { deviceId: 'desktop-audio-loopback', label: 'System Audio (All Applications)' };
@@ -71,8 +76,10 @@ beforeEach(() => {
   store.sources = [SYSTEM, CHROMIUM];
   store.selected = CHROMIUM;
   store.otherSide = 'meeting';
-  Object.assign(f2f, { offered: true, active: false, swap: false, me: 'ja', other: 'en' });
-  tone.mockClear();
+  Object.assign(f2f, { offered: true, active: false, swap: false, me: 'ja', other: 'en', speaks: { speaker: true, participant: true } });
+  tone.mockReset();
+  tone.mockImplementation(async () => {});
+  report.error.mockReset();
   routing.setFaceToFaceSwap.mockClear();
   store.setOtherSide.mockReset();
   store.select.mockReset();
@@ -259,5 +266,45 @@ describe('ModeDevicePopover — Both, the other side', () => {
     await vi.waitFor(() => expect(tone).toHaveBeenCalledWith(undefined, 1));
     fireEvent.click(screen.getByRole('button', { name: /Swap left and right/ }));
     expect(routing.setFaceToFaceSwap).toHaveBeenCalledWith(false);
+  });
+
+  // Kizuna Soniox today: the participant's leg is silent, so my ear (where their translation would play) plays nothing.
+  it("a silent participant leg: my ear has no preview and reads Off; the other person's ear keeps its preview", () => {
+    f2f.active = true;
+    f2f.speaks = { speaker: true, participant: false };
+    store.otherSide = 'beside';
+    mountBoth();
+    const [left, right] = Array.from(document.querySelectorAll('.mode-device-popover__ear'));
+    expect(left.className).toContain('--me');
+    expect(left.querySelector('.mode-device-popover__ear-preview')).toBeNull();
+    expect(left.querySelector('.mode-device-popover__ear-off')?.textContent).toBe('Off');
+    expect(screen.queryByRole('button', { name: 'Preview the left ear' })).toBeNull();
+    expect(right.querySelector('.mode-device-popover__ear-off')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Preview the right ear' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Swap left and right/ })).toBeInTheDocument();
+  });
+
+  it('Text Only: no ears block, no previews and no swap: nothing plays in either ear', () => {
+    f2f.active = true;
+    f2f.speaks = { speaker: false, participant: false };
+    store.otherSide = 'beside';
+    mountBoth();
+    expect(screen.getByText('Headphones')).toBeInTheDocument();
+    expect(document.querySelector('.mode-device-popover__ears')).toBeNull();
+    expect(screen.queryByRole('button', { name: /Preview the/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Swap left and right/ })).toBeNull();
+  });
+
+  it("records a preview that did not play, as the panel's test tone does", async () => {
+    f2f.active = true;
+    store.otherSide = 'beside';
+    tone.mockRejectedValue(new Error('no output device'));
+    mountBoth();
+    fireEvent.click(screen.getByRole('button', { name: 'Preview the left ear' }));
+    await vi.waitFor(() => expect(report.error).toHaveBeenCalledTimes(1));
+    const [source, message, options] = report.error.mock.calls[0];
+    expect(source).toBe('ModeDevicePopover');
+    expect(message).toContain('no output device');
+    expect(options?.cause).toBeInstanceOf(Error);
   });
 });

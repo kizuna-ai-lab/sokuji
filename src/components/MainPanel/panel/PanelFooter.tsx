@@ -32,8 +32,8 @@ export interface PanelFooterProps {
   testTone?: { playing: boolean; toggle(): void };
   /** Both runs face-to-face (Text Only or not): the mode picker tags it. */
   faceToFace?: boolean;
-  /** Face-to-face's ears (slice 3): which language plays in each, and whether the left is mine. Absent or null: nothing plays in an ear. */
-  ears?: { leftLang: string; rightLang: string; leftIsMe: boolean } | null;
+  /** Face-to-face's ears (slice 3): which language plays in each, whether the left is mine, and the ear nothing plays in, if one. Absent or null: nothing plays in an ear. */
+  ears?: { leftLang: string; rightLang: string; leftIsMe: boolean; silent?: 'left' | 'right' } | null;
   /** The advanced footer's input strips and output strip. */
   waveforms?: { input: ReactNode; output: ReactNode };
 }
@@ -61,7 +61,7 @@ export function PanelFooter(props: PanelFooterProps) {
   );
 }
 
-/** Which language plays in each ear, coloured by the person, and the headphones in use: face-to-face's headphones are the monitor device. */
+/** Which language plays in each ear, coloured by the person, and the headphones in use: face-to-face's headphones are the monitor device. An ear nothing plays in is left out. */
 function EarsLegend({ ears }: { ears: NonNullable<PanelFooterProps['ears']> }) {
   const { t } = useTranslation();
   const label = useLanguageLabel();
@@ -82,8 +82,8 @@ function EarsLegend({ ears }: { ears: NonNullable<PanelFooterProps['ears']> }) {
   return (
     <div className="ears-legend">
       <Headphones size={14} aria-hidden="true" />
-      {earNode('left', ears.leftLang, ears.leftIsMe)}
-      {earNode('right', ears.rightLang, !ears.leftIsMe)}
+      {ears.silent !== 'left' && earNode('left', ears.leftLang, ears.leftIsMe)}
+      {ears.silent !== 'right' && earNode('right', ears.rightLang, !ears.leftIsMe)}
       {headphones?.label && <span className="ears-legend__device">{headphones.label}</span>}
     </div>
   );

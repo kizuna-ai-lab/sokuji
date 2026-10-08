@@ -330,6 +330,13 @@
     &:hover { background: #333; color: #fff; }
   }
 
+  // In place of a silent leg's preview: the rows' own "Off".
+  &__ear-off {
+    flex-shrink: 0;
+    color: #888;
+    font-style: italic;
+  }
+
   &__ears-actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 
   &__swap {
