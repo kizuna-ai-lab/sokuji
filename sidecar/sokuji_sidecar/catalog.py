@@ -1322,9 +1322,10 @@ HIGGS_LANGS = ("af", "ar", "az", "bg", "bn", "bs", "ca", "cs", "cy", "da", "de",
 # picker can offer (getLocalInferenceLanguages, read 2026-10-06), as app codes: Tagalog is
 # "fil" and the card's Javanese "jw" is "jv". The engine reads no language (its loader reports
 # en/zh/auto), so this tuple is the picker's gate and nothing more.
+# ml dropped (ruling 2026-10-06): 2026-10-08 loopback sweep, CER 1.00 / 1.16, no Malayalam heard.
 FISH_LANGS = ("af", "am", "ar", "az", "bg", "bn", "bs", "ca", "cs", "cy", "da", "de", "el",
               "en", "es", "et", "fa", "fi", "fil", "fr", "gl", "gu", "he", "hi", "hr", "hu",
-              "id", "is", "it", "ja", "jv", "ka", "kk", "km", "kn", "ko", "lt", "lv", "ml",
+              "id", "is", "it", "ja", "jv", "ka", "kk", "km", "kn", "ko", "lt", "lv",
               "mn", "mr", "ms", "my", "ne", "nl", "no", "pl", "ps", "pt", "ro", "ru", "si",
               "sk", "sl", "sq", "sr", "sv", "sw", "ta", "te", "th", "tr", "uk", "ur", "vi",
               "zh")
@@ -1639,11 +1640,12 @@ TTS_MODELS: list[TtsModel] = [
         sample_rate=24000,
         rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}}),
     # Confucius4-TTS (NetEase Youdao): clone-only (a VoiceCloning session), no transcript; the
-    # vendor's 14 languages, of which en and zh get audio.cpp's dedicated text normalisation and
-    # the rest its generic path. Published as one F32 file ("orig").
+    # vendor's 14 languages less ja, of which en and zh get audio.cpp's dedicated text
+    # normalisation and the rest its generic path. Published as one F32 file ("orig").
     _tts_gguf_row(
         "confucius4", "Confucius4-TTS",
-        ("zh", "en", "ja", "ko", "de", "fr", "es", "id", "it", "th", "pt", "ru", "ms", "vi"),
+        # ja dropped (ruling 2026-10-06): 2026-10-08 loopback sweep, CER 0.39 / 0.45, kanji misread.
+        ("zh", "en", "ko", "de", "fr", "es", "id", "it", "th", "pt", "ru", "ms", "vi"),
         "confucius4_tts", "Confucius4-TTS-GGUF",
         {"orig": ("confucius4-tts-orig.gguf", 8192757760)},
         default_quant="orig", order=20, clones=True, streaming=False,
