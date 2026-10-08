@@ -287,12 +287,14 @@ Not involved: Silero's context (#601), the pre-speech pad (#603), the VAD thresh
 
 ```sh
 mkdir /tmp/vx && cd /tmp/vx && npm i onnxruntime-node @huggingface/transformers@4.2.0
+# Run copies: Node resolves a script's imports from the script's own directory, and the
+# repo's onnxruntime-node is an empty stub.
+cp <repo>/scripts/dev/voxtral-realtime-probe/*.mjs .
 mkdir -p models/onnx-community && ln -s ~/.cache/huggingface/hub/models--onnx-community--Voxtral-Mini-4B-Realtime-2602-ONNX/snapshots/<sha> \
   models/onnx-community/Voxtral-Mini-4B-Realtime-2602-ONNX
-P=<repo>/scripts/dev/voxtral-realtime-probe
-VX_MODEL_DIR=$PWD/models/ VX_CLIP=jfk.wav node $P/probe.mjs B_onset_cut          # shipped behaviour
-FIX=1 VX_MODEL_DIR=$PWD/models/ VX_CLIP=jfk.wav node $P/probe.mjs B_onset_cut    # R1
-VX_MODEL_DIR=$PWD/models/ node $P/sweep.mjs jfk.wav 2.40 3.60 0.08 7             # §5.1
+VX_MODEL_DIR=$PWD/models/ VX_CLIP=jfk.wav node probe.mjs B_onset_cut          # shipped behaviour
+FIX=1 VX_MODEL_DIR=$PWD/models/ VX_CLIP=jfk.wav node probe.mjs B_onset_cut    # R1
+VX_MODEL_DIR=$PWD/models/ node sweep.mjs jfk.wav 2.40 3.60 0.08 7             # §5.1
 ```
 
 A 4.4 s case takes ~15 s on a 20-core GB10 CPU (q4 decoder, 50 steps); the model loads in 3 s.

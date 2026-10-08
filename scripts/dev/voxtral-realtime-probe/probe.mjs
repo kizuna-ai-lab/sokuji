@@ -2,8 +2,9 @@
 // decoder step's top-5 logits, so the token the model picks at each position can be read.
 // Research note: docs/superpowers/notes/2026-10-08-voxtral-realtime-ished-root-cause.md
 //
-// Run from a scratch directory (the repo stubs onnxruntime-node out):
-//   npm i onnxruntime-node @huggingface/transformers@4.2.0
+// Run a COPY from a scratch directory: Node resolves imports from the script's own directory,
+// and the repo's onnxruntime-node is an empty stub.
+//   npm i onnxruntime-node @huggingface/transformers@4.2.0 && cp <repo>/scripts/dev/voxtral-realtime-probe/*.mjs .
 //   VX_MODEL_DIR=<dir> VX_CLIP=<jfk.wav> node probe.mjs [case ...]      (FIX=1 stops before the audio-less step)
 // VX_MODEL_DIR holds onnx-community/Voxtral-Mini-4B-Realtime-2602-ONNX/ (a symlink to the HF
 // snapshot works); VX_CLIP is a 16 kHz mono wav (the cases below assume ggml's jfk.wav).
@@ -20,7 +21,6 @@ env.allowLocalModels = true;
 
 const MODEL = 'onnx-community/Voxtral-Mini-4B-Realtime-2602-ONNX';
 const SR = 16000;
-const PAD_ID = 32n, EOS_ID = 2n;
 const TOK_SAMPLES = 1280; // 80 ms
 
 function wav16k(path) {
