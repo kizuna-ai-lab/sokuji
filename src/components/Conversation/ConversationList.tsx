@@ -177,8 +177,9 @@ const RowBubble = memo(function RowBubble({ item, upTo, replaySlot, canReplay, r
       {!compact && item.header && (
         <div className="row-header">
           <div className={`row-avatar avatar-${leg}${item.person !== undefined ? ` person-shade-${personShade(item.person)}` : ''}`}>
+            {/* The digit repeats the name beside it ("Speaker 2"): read once, there. */}
             {item.person !== undefined
-              ? <span className="row-avatar__number">{item.person}</span>
+              ? <span className="row-avatar__number" aria-hidden="true">{item.person}</span>
               : leg === 'speaker' ? <User size={12} /> : <Users size={12} />}
           </div>
           <div className="row-name">

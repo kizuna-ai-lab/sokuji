@@ -100,6 +100,13 @@ describe('ConversationList — rows', () => {
     expect(container.querySelector('.row-avatar.avatar-participant.person-shade-1 .row-avatar__number')?.textContent).toBe('2');
   });
 
+  it('reads the person once: the avatar digit is decoration beside the name', () => {
+    const { container } = render(<ConversationList {...props({ items: [rowItem({ leg: 'participant', person: 2 })] })} />);
+    expect(container.querySelector('.row-avatar__number')?.getAttribute('aria-hidden')).toBe('true');
+    // The accessible name stays: the header's own words.
+    expect(container.querySelector('.row-name-text')?.closest('[aria-hidden="true"]')).toBeNull();
+  });
+
   it('cycles the avatar shade by person number', () => {
     const shade = (person: number) => {
       const { container } = render(<ConversationList {...props({ items: [rowItem({ person })] })} />);
