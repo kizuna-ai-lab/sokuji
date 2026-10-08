@@ -6,7 +6,7 @@ import SessionCountdown from '../SessionCountdown';
 import { useLanguageLabel } from '../../../lib/language/useLanguageLabel';
 import { startLabel } from './startLabel';
 import type { RunState } from '../../../lib/session/types';
-import type { AudioMode } from '../../../stores/audioStore';
+import { useSelectedMonitorDevice, type AudioMode } from '../../../stores/audioStore';
 import type { LanguagePair } from '../../../lib/provider/types';
 
 export interface PanelFooterProps {
@@ -49,8 +49,48 @@ export interface PanelFooterProps {
  * countdown beside the session clock (Stage 2 Kizuna Soniox). Why Start is
  * off, and a reconnecting leg's words, are the status line's (spec 2026-10-05
  * §3), not this footer's: the button carries no reason, the dot only pulses.
+ * Face-to-face's ears are a strip of their own directly above it (board 2), so
+ * the footer's row never grows with them and Start/Stop stays on screen.
  */
 export function PanelFooter(props: PanelFooterProps) {
+  return (
+    <>
+      {props.ears && <EarsLegend ears={props.ears} />}
+      <ControlFooter {...props} />
+    </>
+  );
+}
+
+/** Which language plays in each ear, coloured by the person, and the headphones in use: face-to-face's headphones are the monitor device. */
+function EarsLegend({ ears }: { ears: NonNullable<PanelFooterProps['ears']> }) {
+  const { t } = useTranslation();
+  const label = useLanguageLabel();
+  const headphones = useSelectedMonitorDevice();
+
+  // The ring letter is decoration: the ear's name is read instead, once.
+  const earNode = (ear: 'left' | 'right', lang: string, mine: boolean) => (
+    <span className={`ears-legend__ear ears-legend__ear--${mine ? 'me' : 'other'}`}>
+      <b aria-hidden="true">{ear === 'left' ? t('faceToFace.earLeft', 'L') : t('faceToFace.earRight', 'R')}</b>
+      <span className="ears-legend__ear-name">{ear === 'left' ? t('faceToFace.leftEar', 'Left ear') : t('faceToFace.rightEar', 'Right ear')}</span>
+      <span className="ears-legend__ear-words">
+        {mine
+          ? t('faceToFace.legendMe', '{{language}} · me', { language: label(lang) })
+          : t('faceToFace.legendOther', '{{language}} · other person', { language: label(lang) })}
+      </span>
+    </span>
+  );
+  return (
+    <div className="ears-legend">
+      <Headphones size={14} aria-hidden="true" />
+      {earNode('left', ears.leftLang, ears.leftIsMe)}
+      {earNode('right', ears.rightLang, !ears.leftIsMe)}
+      {headphones?.label && <span className="ears-legend__device">{headphones.label}</span>}
+    </div>
+  );
+}
+
+/** The control footer's own row: the mode picker, Start/Stop and the metadata. */
+function ControlFooter(props: PanelFooterProps) {
   const { t } = useTranslation();
   const label = useLanguageLabel();
   const {
@@ -73,7 +113,6 @@ export function PanelFooter(props: PanelFooterProps) {
     testTone,
     waveforms,
     faceToFace,
-    ears,
   } = props;
 
   const isIdle = run.phase === 'idle';
@@ -88,24 +127,6 @@ export function PanelFooter(props: PanelFooterProps) {
   const handleActionClick = isIdle ? onStart : onStop;
   const actionDisabled = (isIdle && !canStart) || run.phase === 'stopping';
 
-  // The ring letter is decoration: the ear's name is read instead, once.
-  const earNode = (ear: 'left' | 'right', lang: string, mine: boolean) => (
-    <span className={`ears-legend__ear ears-legend__ear--${mine ? 'me' : 'other'}`}>
-      <b aria-hidden="true">{ear === 'left' ? t('faceToFace.earLeft', 'L') : t('faceToFace.earRight', 'R')}</b>
-      <span className="ears-legend__ear-name">{ear === 'left' ? t('faceToFace.leftEar', 'Left ear') : t('faceToFace.rightEar', 'Right ear')}</span>
-      {mine
-        ? t('faceToFace.legendMe', '{{language}} · me', { language: label(lang) })
-        : t('faceToFace.legendOther', '{{language}} · other person', { language: label(lang) })}
-    </span>
-  );
-  const earsLegendNode = ears && (
-    <span className="ears-legend">
-      <Headphones size={14} aria-hidden="true" />
-      {earNode('left', ears.leftLang, ears.leftIsMe)}
-      {earNode('right', ears.rightLang, !ears.leftIsMe)}
-    </span>
-  );
-
   if (site === 'basic') {
     return (
       <div className="control-footer basic">
@@ -117,7 +138,6 @@ export function PanelFooter(props: PanelFooterProps) {
           onSegmentClick={onModeSegment}
           faceToFace={faceToFace}
         />
-        {earsLegendNode}
 
         <span className="footer-spacer" />
 
@@ -190,7 +210,6 @@ export function PanelFooter(props: PanelFooterProps) {
         onSegmentClick={onModeSegment}
         faceToFace={faceToFace}
       />
-      {earsLegendNode}
 
       {/* Input waveforms (mic + system), when the caller has them (Task 12). */}
       {waveforms?.input}

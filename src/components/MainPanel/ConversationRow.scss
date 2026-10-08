@@ -148,6 +148,15 @@
   font-size: 10px;
   font-weight: 700;
 
+  // Sits on the first line as the replay ▶ and the not-played mark do: they take
+  // their baseline from a 10px icon centred in their box, the letter tag from this
+  // empty 10px item ahead of the letter. The letter's own baseline sat it 2px low.
+  &--left::before,
+  &--right::before {
+    content: '';
+    height: 10px;
+  }
+
   &.listener-speaker {
     border: 1.5px solid tk.$color-speaker;
     color: tk.$color-speaker;

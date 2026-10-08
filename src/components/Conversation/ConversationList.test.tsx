@@ -323,6 +323,19 @@ describe('ConversationList — face-to-face ears', () => {
     expect(container.querySelector('.ear-tag--left, .ear-tag--right')).toBeNull();
   });
 
+  it('offers no replay on a not-played translation, which never has audio; a played one and every row outside face-to-face keep theirs', () => {
+    const own = rowItem({ row: row({ language: 'en' }) }); // the speaker leg's target is 'ja'
+    const { container, rerender } = render(<ConversationList {...props({ ears, items: [own] })} />);
+    expect(container.querySelector('.ear-tag--muted')).not.toBeNull();
+    expect(container.querySelector('.row-play-btn')).toBeNull();
+    rerender(<ConversationList {...props({ ears })} />);
+    expect(container.querySelector('.ear-tag--right')).not.toBeNull();
+    expect(container.querySelector('.row-play-btn')).not.toBeNull();
+    rerender(<ConversationList {...props({ items: [own] })} />);
+    expect(container.querySelector('.ear-tag')).toBeNull();
+    expect(container.querySelector('.row-play-btn')).not.toBeNull();
+  });
+
   it('compares app codes exactly, as the adapter does: a zh-Hant translation under a zh-Hans target is not played', () => {
     const variant = rowItem({ row: row({ language: 'zh-Hant' }), languages: { source: 'en', target: 'zh-Hans' } });
     const { container, rerender } = render(<ConversationList {...props({ ears, items: [variant] })} />);

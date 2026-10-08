@@ -775,3 +775,39 @@ describe('panel notes (spec 2026-10-05 §5)', () => {
     expect(usePanelNotesStore.getState().notes).toEqual([]);
   });
 });
+
+describe('the ears strip (face-to-face)', () => {
+  // The fake offers face-to-face for these cases only.
+  beforeEach(() => {
+    Object.assign(fakeProvider, { faceToFace: true });
+    useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
+  });
+  afterEach(() => {
+    delete (fakeProvider as { faceToFace?: boolean }).faceToFace;
+    // The panel is still mounted here: its cleanup runs after this hook.
+    act(() => {
+      useAudioStore.setState({ otherSide: useAudioStore.getInitialState().otherSide });
+      useSettingsStore.setState({ textOnly: false });
+    });
+  });
+
+  it.each(['basic', 'advanced'] as const)('%s: sits directly above the control footer beside me, and is gone in a meeting and under Text Only', async (site) => {
+    const restoreCanvas = stubCanvas();
+    try {
+      useSettingsStore.setState({ uiMode: site });
+      const { container } = await renderPanel();
+      const strip = container.querySelector('.ears-legend');
+      expect(strip).not.toBeNull();
+      expect(strip!.nextElementSibling?.matches(`.control-footer.${site}`)).toBe(true);
+      expect(container.querySelector('.control-footer .ears-legend')).toBeNull();
+
+      act(() => { useAudioStore.setState({ otherSide: 'meeting' }); });
+      expect(container.querySelector('.ears-legend')).toBeNull();
+
+      act(() => { useAudioStore.setState({ otherSide: 'beside' }); useSettingsStore.setState({ textOnly: true }); });
+      expect(container.querySelector('.ears-legend')).toBeNull();
+    } finally {
+      restoreCanvas();
+    }
+  });
+});

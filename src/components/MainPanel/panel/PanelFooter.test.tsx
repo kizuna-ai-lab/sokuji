@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
 import { PanelFooter, type PanelFooterProps } from './PanelFooter';
+import useAudioStore from '../../../stores/audioStore';
 import { languageLabel } from '../../../lib/language/label';
 import type { RunState } from '../../../lib/session/types';
 
@@ -270,6 +271,28 @@ describe('PanelFooter — the ears legend', () => {
     expect(legend?.querySelector('.ears-legend__ear--me b')?.getAttribute('aria-hidden')).toBe('true');
     rerender(<PanelFooter {...baseProps(site, { mode: 'both', ears: null })} />);
     expect(container.querySelector('.ears-legend')).toBeNull();
+  });
+
+  it.each(SITES)('%s: is a strip of its own directly above the control footer, never inside it', (site) => {
+    const { container, rerender } = render(<PanelFooter {...baseProps(site, { mode: 'both', faceToFace: true, ears: { leftLang: 'ja', rightLang: 'en', leftIsMe: true } })} />);
+    const strip = container.querySelector('.ears-legend');
+    expect(strip).not.toBeNull();
+    expect(strip!.closest('.control-footer')).toBeNull();
+    expect(strip!.nextElementSibling?.matches(`.control-footer.${site}`)).toBe(true);
+    rerender(<PanelFooter {...baseProps(site, { mode: 'both', faceToFace: true, ears: null })} />);
+    expect(container.querySelector('.ears-legend')).toBeNull();
+    expect(container.firstElementChild?.matches(`.control-footer.${site}`)).toBe(true);
+  });
+
+  it.each(SITES)('%s: names the headphones in use at the end of the strip, and nothing when none is picked', (site) => {
+    const ears = { leftLang: 'ja', rightLang: 'en', leftIsMe: true };
+    act(() => { useAudioStore.setState({ selectedMonitorDevice: { deviceId: 'out-1', label: 'AirPods Pro' } }); });
+    const { container } = render(<PanelFooter {...baseProps(site, { mode: 'both', faceToFace: true, ears })} />);
+    const device = container.querySelector('.ears-legend .ears-legend__device');
+    expect(device?.textContent).toBe('AirPods Pro');
+    expect(device).toBe(container.querySelector('.ears-legend')!.lastElementChild);
+    act(() => { useAudioStore.setState({ selectedMonitorDevice: null }); });
+    expect(container.querySelector('.ears-legend__device')).toBeNull();
   });
 
   it.each(SITES)('%s: the tag follows the legend', (site) => {

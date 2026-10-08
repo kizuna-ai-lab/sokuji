@@ -87,13 +87,14 @@ export function ConversationList({
               if (item.kind === 'notice') {
                 return <SystemRow key={item.notice.id} notice={item.notice} action={actionFor(item.notice)} />;
               }
-              // The slot is decided here, session-wide, so a row without one never
-              // re-renders for a replay-state change (plan 1e-3b-1 ruling 14).
-              const slot = !compact && item.row.side === 'translation' && item.endsSegment && replayLegs.has(item.leg);
-              const id = item.row.segmentId;
               const ear = ears && !compact && item.row.side === 'translation' && item.endsSegment
                 ? earTagOf(item, ears)
                 : null;
+              // The slot is decided here, session-wide, so a row without one never
+              // re-renders for a replay-state change (plan 1e-3b-1 ruling 14). A
+              // translation face-to-face does not play has no audio, so no slot either.
+              const slot = !compact && item.row.side === 'translation' && item.endsSegment && replayLegs.has(item.leg) && ear !== 'muted';
+              const id = item.row.segmentId;
               return (
                 <RowBubble
                   key={item.row.key}

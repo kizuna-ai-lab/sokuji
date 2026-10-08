@@ -355,20 +355,33 @@
   &:focus-visible { @include vars.focus-ring; outline-offset: -2px; }
 }
 
-// Face-to-face's ears legend, beside the mode picker. The colour follows the person.
+// Face-to-face's ears: a strip of its own directly above the control footer
+// (board 2), in the status line's geometry, so the footer's row never grows
+// with it. The colour follows the person. The headphones' name sits at the far
+// end; on a narrow panel it wraps to a second line, and a name too long for
+// that line ellipsizes, so the strip never runs off the panel.
 .ears-legend {
-  display: inline-flex;
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  margin-left: 10px;
+  column-gap: 10px;
+  row-gap: 4px;
+  padding: 6px 12px;
+  background: #252525;
+  border-top: 1px solid #333;
   font-size: 12px;
+  line-height: 1.4;
   color: #b8bcc2;
-  white-space: nowrap;
+
+  > svg { flex-shrink: 0; }
 
   &__ear {
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    min-width: 0;
+    white-space: nowrap;
 
     b {
       display: inline-flex;
@@ -385,6 +398,19 @@
     }
     &--me { --ear-colour: #{tk.$color-speaker}; }
     &--other { --ear-colour: #{tk.$color-participant}; }
+  }
+
+  &__ear-words,
+  &__device {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__device {
+    margin-left: auto;
+    color: #9aa0a6;
   }
 
   // Read by screen readers in place of the ring letter.
