@@ -4,6 +4,7 @@ import { getManifestEntry } from '../lib/local-inference/modelManifest';
 import { ModelManager } from '../lib/local-inference/ModelManager';
 import { SMART_TURN_MODEL_ID } from '../lib/turn/smartTurn';
 import { describeCause, reportWarning } from '../lib/diagnostics/report';
+import { refreshStorageEstimate } from './modelStore';
 
 export type SmartTurnPhase = 'unknown' | 'missing' | 'downloading' | 'ready' | 'error';
 
@@ -67,6 +68,7 @@ export const useSmartTurnStore = create<SmartTurnStore>()(
         }
         if (gen !== generation) return;
         set({ phase: 'ready', downloadedBytes: SMART_TURN_TOTAL_BYTES, error: null });
+        await refreshStorageEstimate();
       } catch (err) {
         if (gen !== generation) return;
         const message = describeCause(err);

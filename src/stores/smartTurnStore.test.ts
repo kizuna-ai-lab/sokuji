@@ -4,14 +4,21 @@ vi.mock('../lib/local-inference/ModelManager', () => ({
   ModelManager: { getInstance: vi.fn() },
 }));
 
+vi.mock('../lib/local-inference/modelStorage', async () => {
+  const actual = await vi.importActual<typeof import('../lib/local-inference/modelStorage')>('../lib/local-inference/modelStorage');
+  return { ...actual, estimateStorageUsedBytes: () => mockEstimate() };
+});
+
 vi.mock('../lib/diagnostics/report', async () => {
   const actual = await vi.importActual<typeof import('../lib/diagnostics/report')>('../lib/diagnostics/report');
   return { ...actual, reportWarning: (...args: unknown[]) => mockReportWarning(...args) };
 });
 
 const mockReportWarning = vi.fn();
+const mockEstimate = vi.fn(async () => 0);
 
 const { ModelManager } = await import('../lib/local-inference/ModelManager');
+const { useModelStore } = await import('./modelStore');
 const { useSmartTurnStore, SMART_TURN_TOTAL_BYTES } = await import('./smartTurnStore');
 
 let isModelReady: ReturnType<typeof vi.fn>;
@@ -118,5 +125,20 @@ describe('smartTurnStore', () => {
       useSmartTurnStore.getState().dismiss();
       expect(useSmartTurnStore.getState()).toMatchObject({ phase, downloadedBytes: 5 });
     }
+  });
+
+  it('re-estimates the Storage page figure after a download', async () => {
+    useModelStore.setState({ storageUsedMb: 100 });
+    mockEstimate.mockResolvedValue(131 * 1024 * 1024);
+    await useSmartTurnStore.getState().download();
+    expect(useModelStore.getState().storageUsedMb).toBe(131);
+  });
+
+  it('leaves the Storage page figure alone after a failed download', async () => {
+    useModelStore.setState({ storageUsedMb: 100 });
+    downloadModel.mockRejectedValue(new Error('network unreachable'));
+    await useSmartTurnStore.getState().download();
+    expect(mockEstimate).not.toHaveBeenCalled();
+    expect(useModelStore.getState().storageUsedMb).toBe(100);
   });
 });
