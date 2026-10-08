@@ -33,6 +33,8 @@ export interface SystemAudioSettings {
 export interface ParticipantCapture {
   /** False when it cannot capture (it logs why and cleans up after itself). */
   begin(options?: { deviceId?: string }): Promise<boolean>;
+  /** What the last begin() that returned false failed on, when the recorder knows. */
+  beginFailure?: unknown;
   record(callback: (data: { mono: Int16Array }) => void): Promise<boolean>;
   end(): Promise<void>;
   getStream?(): MediaStream | null;
@@ -178,7 +180,11 @@ export async function openSystemAudio(
     const options = connection.mode === 'app' ? { deviceId: sourceId } : connection.mode === 'device' ? { deviceId: connection.monitorId } : undefined;
     if (!(await next.begin(options))) {
       recorder = null;
-      throw new Error('The system audio capture did not start.');
+      // The recorder's own reason (a DOMException's kind and words, or the
+      // helper's answer) is the only clue to why; without it the start
+      // failure and its telemetry say nothing about the cause.
+      const why = next.beginFailure === undefined ? '' : ` (${describeCause(next.beginFailure)})`;
+      throw new Error(`The system audio capture did not start${why}.`);
     }
     unwatch = core.watch(next.getStream?.() ?? null);
     await next.record((data) => core.deliver(data.mono));

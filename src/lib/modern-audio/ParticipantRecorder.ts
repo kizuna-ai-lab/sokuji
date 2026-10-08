@@ -13,6 +13,12 @@ import { IParticipantAudioRecorder, ParticipantAudioOptions, AudioDataCallback }
 export abstract class ParticipantRecorder extends BaseAudioRecorder implements IParticipantAudioRecorder {
 
   /**
+   * What the last begin() that returned false was rejected with. begin()
+   * answers with a boolean, so this is the one place its caller can learn why.
+   */
+  public beginFailure: unknown = undefined;
+
+  /**
    * Get audio constraints for participant audio capture
    * IMPORTANT: Disable all audio processing for participant audio
    */
@@ -76,6 +82,7 @@ export abstract class ParticipantRecorder extends BaseAudioRecorder implements I
     } catch (error) {
       console.error(`${this.getLogPrefix()} Failed to start capture:`, error);
       await this.cleanup();
+      this.beginFailure = error;
       return false;
     }
   }

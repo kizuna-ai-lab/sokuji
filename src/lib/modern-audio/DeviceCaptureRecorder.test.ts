@@ -68,3 +68,15 @@ describe('DeviceCaptureRecorder.acquireStream', () => {
     expect((rec as any).shouldConnectToDestination()).toBe(false);
   });
 });
+
+describe('DeviceCaptureRecorder.begin', () => {
+  it('keeps the rejection it could not begin on', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const busy = new DOMException('Could not start audio source', 'NotReadableError');
+    getUserMedia.mockRejectedValue(busy);
+    const rec = new DeviceCaptureRecorder(24000);
+
+    expect(await rec.begin({ deviceId: 'x' })).toBe(false);
+    expect(rec.beginFailure).toBe(busy);
+  });
+});
