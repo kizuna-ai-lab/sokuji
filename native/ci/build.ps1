@@ -27,7 +27,7 @@ if ($LASTEXITCODE) { exit $LASTEXITCODE }
 #
 # This is a SECOND full configure+build of ggml and all three engines, so it only runs when it
 # can actually check something: test_ops_coverage hard-requires SK_TEST_TTS_SUPERTONIC_DIR
-# once any model is present (rc 1, not a skip — the clone-only families' reference clip comes
+# once any model is present (rc 1, not a skip — every cloning family's reference clip comes
 # from it), and the variable doubles as the "is the test cache populated at all" probe, so an
 # unset one means the whole tree would be built to prove nothing.
 # SOKUJI_BUILD_RECORD=0 forces it off even when the models are present.

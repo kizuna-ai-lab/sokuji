@@ -58,11 +58,13 @@ static Clip reference_clip(const sk_device *cpu, const std::string &supertonic_d
     return c;
 }
 
-/* The families a user can run only with a reference clip. Mirrors the sidecar's
- * VOICE_REQUIRED_FAMILIES (sidecar/sokuji_sidecar/catalog.py); sidecar/tests/test_catalog.py
- * holds the two equal. */
+/* The families a user can run only with a reference clip: the sidecar's VOICE_REQUIRED_FAMILIES
+ * (sidecar/sokuji_sidecar/catalog.py), plus each family whose every card sets
+ * voice_required=True (breeze_tts, whose one card is clone mode only; ruling 2026-10-08,
+ * op-coverage precision). sidecar/tests/test_catalog.py computes that union from the catalog and
+ * holds this list to it. */
 static const char *const kVoiceRequiredFamilies[] = {
-    "chatterbox", "confucius4_tts", "cosyvoice3", "echo_tts", "fireredtts3",
+    "breeze_tts", "chatterbox", "confucius4_tts", "cosyvoice3", "echo_tts", "fireredtts3",
     "glm_tts", "index_tts2", "miotts", "omnivoice", "qwen3_tts",
 };
 
