@@ -425,6 +425,15 @@ describe('createAudioGraph — clips', () => {
     await expect(shot.ended).resolves.toBeUndefined();
   });
 
+  it('plays a one-shot through a panner when asked for one ear, and drops it at the end', async () => {
+    const { ctx, graph } = await setup();
+    const shot = graph.playOnce(new Float32Array(240), 24_000, -1);
+    expect(ctx.panners.map((p) => p.pan.value)).toEqual([-1]);
+    shot.stop();
+    await shot.ended;
+    expect(ctx.panners[0].outputs.size).toBe(0);
+  });
+
   it('an empty one-shot has ended already and plays nothing', async () => {
     const { ctx, graph } = await setup();
     await expect(graph.playOnce(new Float32Array(0), 48000).ended).resolves.toBeUndefined();

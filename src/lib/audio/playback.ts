@@ -38,6 +38,8 @@ export interface RoutingSource {
 export interface PreviewClip {
   audio: Float32Array;
   sampleRate: number;
+  /** One ear only (face-to-face's per-ear preview). */
+  pan?: -1 | 1;
 }
 
 export interface Playback extends PlaybackPort {
@@ -181,7 +183,7 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
       void graph.resume();
       let shot: OneShot;
       try {
-        shot = graph.playOnce(clip.audio, clip.sampleRate);
+        shot = graph.playOnce(clip.audio, clip.sampleRate, clip.pan);
       } catch (error) {
         // createBuffer rejects a rate outside its supported range: a caller
         // awaiting this promise must see a rejection, not a synchronous throw.

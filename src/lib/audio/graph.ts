@@ -58,8 +58,8 @@ export interface BusMeter {
 export interface AudioGraph {
   /** A timeline playing into a feed: the clip queues' and the passthrough stream's. */
   timeline(feed: 'speaker' | 'participant' | 'replay' | 'passthrough'): AudioTimeline;
-  /** Plays a clip at its own rate on the preview feed. */
-  playOnce(audio: Float32Array, sampleRate: number): OneShot;
+  /** Plays a clip at its own rate on the preview feed, in one ear when given a `pan`. */
+  playOnce(audio: Float32Array, sampleRate: number, pan?: -1 | 1): OneShot;
   /** Makes the edges exactly these; an edge to a bus this platform lacks is ignored. */
   route(edges: readonly Edge[]): void;
   /** Points each bus's element at a device; the virtual one stays silent until it has one. A bus switches one device at a time and ends on the last one asked for; the promise settles once this call's switches have run, and never for a switch that never settles. */
@@ -473,14 +473,26 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
       },
     }),
 
-    playOnce(audio, sampleRate) {
+    playOnce(audio, sampleRate, pan) {
       if (audio.length === 0) return { ended: Promise.resolve(), stop: () => {} };
       const { ctx, feeds } = current;
       const buffer = ctx.createBuffer(1, audio.length, sampleRate);
       buffer.getChannelData(0).set(audio);
       let resolve!: () => void;
       const ended = new Promise<void>((r) => { resolve = r; });
-      const stop = start(ctx, buffer, feeds.preview, ctx.currentTime, resolve);
+      // One ear (the face-to-face preview): a panner of its own, gone with the clip.
+      let into: AudioNode = feeds.preview;
+      let panner: StereoPannerNode | undefined;
+      if (pan !== undefined) {
+        panner = ctx.createStereoPanner();
+        panner.pan.value = pan;
+        panner.connect(feeds.preview);
+        into = panner;
+      }
+      const stop = start(ctx, buffer, into, ctx.currentTime, () => {
+        panner?.disconnect();
+        resolve();
+      });
       return { ended, stop };
     },
 

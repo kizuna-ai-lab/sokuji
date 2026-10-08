@@ -33,7 +33,7 @@ export interface AppAudio {
    * nothing — a stop pressed during the first decode; once playing,
    * `playback.stopPreview()` ends it.
    */
-  testTone(signal?: AbortSignal): Promise<void>;
+  testTone(signal?: AbortSignal, pan?: -1 | 1): Promise<void>;
 }
 
 export function readRouting(
@@ -157,7 +157,7 @@ async function build(): Promise<AppAudio> {
   let tone: Promise<PreviewClip> | null = null;
   return {
     playback,
-    async testTone(signal) {
+    async testTone(signal, pan) {
       // Not on `context`: a rebuild (#246) may have closed it before the first
       // decode, and browsers have differed on decoding on a closed context. An
       // offline context of the same rate decodes to the same samples and is
@@ -168,7 +168,7 @@ async function build(): Promise<AppAudio> {
       });
       const clip = await tone;
       if (signal?.aborted) return;
-      await playback.preview(clip);
+      await playback.preview(pan === undefined ? clip : { ...clip, pan });
     },
   };
 }
