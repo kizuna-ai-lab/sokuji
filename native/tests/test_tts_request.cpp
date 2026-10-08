@@ -10,6 +10,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <set>
 #include <string>
 
 #define SK_TTS_REQUEST_ONLY 1
@@ -812,9 +813,218 @@ void lfm2_audio_loads_its_package_directory_and_speaks_auto() {
     assert(cached_voice(req) == "uk_female");
 }
 
+// Every family's columns, read off audio.cpp 54aa279 and never off kFamilies. Cites are paths in
+// that tree: src/ unless the path starts with include/, spec = model_specs/<family>.json.
+struct ExpectedRow {
+    const char *name;
+    bool streaming, clones, transcript_required;
+    int32_t rate;
+    bool sample_decode, strict, strict_sends_ref_text;
+    FamilyTask task;
+    const char *preset_option;
+};
+constexpr ExpectedRow kExpectedRows[] = {
+    // models/moss/moss_tts_nano/session.cpp:33 48 kHz, :219 Tts or clone;
+    // include/engine/models/moss/moss_tts_nano/types.h:12 samples
+    {"moss_tts_nano",   false, true,  false, 48000, true,  false, false, FamilyTask::Tts, nullptr},
+    // models/qwen3_tts/prompt_tts_voice_clone.cpp:37 ICL clone needs the transcript;
+    // tokenizer_speech_decoder.cpp:45 24 kHz; greedy by R7 although types.h:25 samples
+    {"qwen3_tts",       false, true,  true,  24000, false, false, false, FamilyTask::Tts, nullptr},
+    // models/omnivoice/prompt_builder.cpp:772 a clip needs its transcript; spec lists streaming;
+    // include/engine/models/omnivoice/assets.h:54 24 kHz
+    {"omnivoice",       true,  true,  true,  24000, false, false, false, FamilyTask::Tts, nullptr},
+    // models/pocket_tts/session.cpp:495 Tts; include/engine/models/pocket_tts/types.h:62 24 kHz
+    {"pocket_tts",      false, true,  false, 24000, false, false, false, FamilyTask::Tts, nullptr},
+    // models/supertonic/session.cpp:77 Tts only, no clip; spec lists streaming;
+    // include/engine/models/supertonic/assets.h:14 44.1 kHz
+    {"supertonic",      true,  false, false, 44100, false, false, false, FamilyTask::Tts, nullptr},
+    // community_models/voxcpm1/assets.cpp:121 the checkpoint's out_sample_rate (16000 in the
+    // shipped GGUF); spec lists streaming
+    {"voxcpm1",         true,  true,  false, 16000, false, false, false, FamilyTask::Tts, nullptr},
+    // models/voxcpm2/assets.cpp:119 the checkpoint's out_sample_rate (48000 in the shipped GGUF);
+    // spec lists streaming
+    {"voxcpm2",         true,  true,  false, 48000, false, false, false, FamilyTask::Tts, nullptr},
+    // models/irodori_tts/session.cpp:447 strict, spec declares seed but neither do_sample nor
+    // reference_text; codec.cpp:469 48 kHz
+    {"irodori_tts",     false, true,  false, 48000, false, true,  false, FamilyTask::Tts, nullptr},
+    // models/index_tts2/request.cpp:88 the clip is mandatory, no transcript;
+    // include/engine/models/index_tts2/types.h:70 22.05 kHz; greedy by R7 although :138 samples
+    {"index_tts2",      false, true,  false, 22050, false, false, false, FamilyTask::Tts, nullptr},
+    // models/cosyvoice3/session.cpp:88 Tts or clone, :159 strict, spec declares reference_text;
+    // include/engine/models/cosyvoice3/assets.h:13 24 kHz
+    {"cosyvoice3",      false, true,  false, 24000, false, true,  true,  FamilyTask::Tts, nullptr},
+    // models/fireredtts3/session.cpp:225-237 Base takes a VoiceCloning session, :73-89 the prompt
+    // is built from reference_text, :304 strict
+    {"fireredtts3",     false, true,  true,  24000, false, true,  true,  FamilyTask::VoiceCloning, nullptr},
+    // models/moss/moss_tts_local/loader.cpp:76-79 offline, Tts or clone; session.cpp:33 48 kHz;
+    // generator.h:25 samples
+    {"moss_tts_local",  false, true,  false, 48000, true,  false, false, FamilyTask::Tts, nullptr},
+    // models/vibevoice/loader.cpp:131 Tts only; session.cpp:319-321 a clip is optional;
+    // include/engine/models/vibevoice/types.h:18 greedy, assets.h:83 24 kHz
+    {"vibevoice",       false, true,  false, 24000, false, false, false, FamilyTask::Tts, nullptr},
+    // models/chatterbox/session.cpp:371-377 VoiceCloning only;
+    // include/engine/models/chatterbox/tts.h:30 samples, conditionals.h:17 24 kHz
+    {"chatterbox",      false, true,  false, 24000, true,  false, false, FamilyTask::VoiceCloning, nullptr},
+    // community_models/chatterbox_turbo/session.cpp:54 Tts, :76-84 refuses a clip, :104 24 kHz;
+    // reads no do_sample
+    {"chatterbox_turbo", false, false, false, 24000, false, false, false, FamilyTask::Tts, nullptr},
+    // models/confucius4_tts/session.cpp:173 VoiceCloning only, :229 strict, spec declares seed and
+    // language only; include/engine/models/confucius4_tts/types.h:39 22.05 kHz
+    {"confucius4_tts",  false, true,  false, 22050, false, true,  false, FamilyTask::VoiceCloning, nullptr},
+    // models/magpie_tts/request.cpp:30-52 the speaker is the voice_id option only, session.cpp:75
+    // Tts, :107 strict; include/engine/models/magpie_tts/assets.h:62 22.05 kHz
+    {"magpie_tts",      false, false, false, 22050, false, true,  false, FamilyTask::Tts, "voice_id"},
+    // models/neutts/session.cpp:62-64 the speaker is the voice_id option only, :236 strict,
+    // :281 + include/engine/models/neutts/assets.h:34 24 kHz
+    {"neutts",          false, false, false, 24000, false, true,  false, FamilyTask::Tts, "voice_id"},
+    // models/kugelaudio/session.cpp:24-26 Tts, refuses a clip, :86-97 voice_id or cached_voice_id,
+    // :39 strict, :120 24 kHz
+    {"kugelaudio",      false, false, false, 24000, false, true,  false, FamilyTask::Tts, nullptr},
+    // models/higgs_audio_tts/generator.cpp:205-221 clip optional, session.cpp:253-256 transcript
+    // optional; include/engine/models/higgs_audio_tts/codec.h:81 24 kHz
+    {"higgs_audio_tts", false, true,  false, 24000, false, false, false, FamilyTask::Tts, nullptr},
+    // models/fish_audio/session.cpp:252-259 a clip needs its transcript, :310 Tts;
+    // include/engine/framework/codecs/fish_dac_codec_runtime.h:28 44.1 kHz
+    {"fish_audio",      false, true,  true,  44100, false, false, false, FamilyTask::Tts, nullptr},
+    // models/breeze_tts/session.cpp:113 strict, spec declares reference_text,
+    // generator.cpp:1062-1064 a clip needs its transcript; speech_decoder.cpp:48 24 kHz
+    {"breeze_tts",      false, true,  true,  24000, false, true,  true,  FamilyTask::Tts, nullptr},
+    // community_models/audio8_tts/session.cpp:268-272 a clip needs its transcript, :767 44.1 kHz;
+    // request options are not validated
+    {"audio8_tts",      false, true,  true,  44100, false, false, false, FamilyTask::Tts, nullptr},
+    // community_models/soprano_tts/session.cpp:150 strict, spec declares seed only, no voice;
+    // include/engine/community_models/soprano_tts/assets.h:37 32 kHz
+    {"soprano_tts",     false, false, false, 32000, false, true,  false, FamilyTask::Tts, nullptr},
+    // community_models/glm_tts/session.cpp:430-441 clip and transcript mandatory, :143 24 kHz;
+    // reads no do_sample
+    {"glm_tts",         false, true,  true,  24000, false, false, false, FamilyTask::Tts, nullptr},
+    // community_models/outetts/session.cpp:700-703 a clip needs its transcript; dac.cpp:663 24 kHz;
+    // reads no do_sample; spec declares reference_language
+    {"outetts",         false, true,  true,  24000, false, false, false, FamilyTask::Tts, nullptr},
+    // community_models/echo_tts/session.cpp:229 VoiceCloning only, :581 strict, spec declares seed
+    // only, :586-591 clip mandatory, :64 44.1 kHz
+    {"echo_tts",        false, true,  false, 44100, false, true,  false, FamilyTask::VoiceCloning, nullptr},
+    // community_models/kitten_tts2/session.cpp:161 strict, spec declares reference_text, :172-175
+    // a clip needs its transcript, :194 24 kHz
+    {"kitten_tts2",     false, true,  true,  24000, false, true,  true,  FamilyTask::Tts, nullptr},
+    // models/miotts/session.cpp:570 Tts only, :700-703 clip mandatory; assets.cpp:45 samples;
+    // include/engine/models/miocodec/assets.h:18 44.1 kHz
+    {"miotts",          false, true,  false, 44100, true,  false, false, FamilyTask::Tts, nullptr},
+    // community_models/lfm2_audio/session.cpp:447 strict, spec declares seed and language only,
+    // :461-463 refuses a clip; assets.cpp:317 24 kHz
+    {"lfm2_audio",      false, false, false, 24000, false, true,  false, FamilyTask::Tts, nullptr},
+};
+
+// Collects every disagreement, so one run names each family and column that is off.
+struct Audit {
+    int wrong = 0;
+    void text(const char *family, const std::string &what, const std::string &want, const std::string &got) {
+        if (want == got) return;
+        std::fprintf(stderr, "%s, %s: want \"%s\", got \"%s\"\n", family, what.c_str(), want.c_str(), got.c_str());
+        ++wrong;
+    }
+    void flag(const char *family, const std::string &what, bool want, bool got) {
+        text(family, what, want ? "true" : "false", got ? "true" : "false");
+    }
+};
+
+std::string task_name(FamilyTask task) { return task == FamilyTask::Tts ? "Tts" : "VoiceCloning"; }
+std::string mode_name(rt::RunMode mode) { return mode == rt::RunMode::Streaming ? "Streaming" : "Offline"; }
+std::string text_or_null(const char *s) { return s ? s : "<null>"; }
+
+void family_set_matches_the_table() {
+    Audit a;
+    std::set<std::string> listed;
+    for (const ExpectedRow &e : kExpectedRows) {
+        a.flag(e.name, "listed once in the table", true, listed.insert(e.name).second);
+        a.flag(e.name, "has a kFamilies row", true, find_family(e.name) != nullptr);
+    }
+    for (const FamilyInfo &f : kFamilies)
+        a.flag(f.name, "has a table entry", true, listed.count(f.name) != 0);
+    a.text("kFamilies", "row count", std::to_string(std::size(kExpectedRows)), std::to_string(std::size(kFamilies)));
+    assert(a.wrong == 0);
+}
+
+void row_columns_match_the_table() {
+    Audit a;
+    for (const ExpectedRow &e : kExpectedRows) {
+        const FamilyInfo *f = find_family(e.name);
+        if (!f) continue;   // family_set_matches_the_table names it
+        a.flag(e.name, "streaming", e.streaming, f->streaming);
+        a.flag(e.name, "clones", e.clones, f->clones);
+        a.flag(e.name, "transcript_required", e.transcript_required, f->transcript_required);
+        a.text(e.name, "default_rate", std::to_string(e.rate), std::to_string(f->default_rate));
+        a.flag(e.name, "sample_decode", e.sample_decode, f->sample_decode);
+        a.flag(e.name, "strict_options", e.strict, f->strict_options);
+        a.flag(e.name, "strict_sends_ref_text", e.strict_sends_ref_text, f->strict_sends_ref_text);
+        a.text(e.name, "task", task_name(e.task), task_name(f->task));
+        a.text(e.name, "preset_option", text_or_null(e.preset_option), text_or_null(f->preset_option));
+        // What sk_tts_load opens the session with follows the row.
+        const rt::TaskSpec spec = task_spec_for(*f);
+        a.text(e.name, "session task", task_name(e.task),
+               spec.task == rt::VoiceTaskKind::VoiceCloning ? "VoiceCloning" : "Tts");
+        a.text(e.name, "session mode", e.streaming ? "Streaming" : "Offline", mode_name(spec.mode));
+    }
+    assert(a.wrong == 0);
+}
+
+// A strict family is never sent do_sample; any other is sent it, true only for sample_decode.
+void check_sampling(Audit &a, const ExpectedRow &e, const rt::TaskRequest &req, const char *when) {
+    a.text(e.name, std::string(when) + ": do_sample", e.strict ? "<absent>" : (e.sample_decode ? "true" : "false"),
+           opt(req, "do_sample"));
+}
+
+void requests_honour_each_row() {
+    constexpr const char *kTranscript = "The quick brown fox.";
+    constexpr const char *kPreset = "Aria";
+    Audit a;
+    for (const ExpectedRow &e : kExpectedRows) {
+        {
+            const auto h = handle_for(e.name);
+            const rt::TaskRequest req = build_request(h.get(), "Hello.", "en", 1.0f);
+            check_sampling(a, e, req, "bare");
+            a.flag(e.name, "bare: voice", false, req.voice.has_value());
+            a.flag(e.name, "bare: reference_text", false, has(req, "reference_text"));
+            a.flag(e.name, "bare: reference_language", false, has(req, "reference_language"));
+        }
+        if (e.clones) {
+            const auto h = handle_for(e.name);
+            give_clip(h.get(), kTranscript);
+            rt::TaskRequest req = build_request(h.get(), "Hello.", "en", 1.0f);
+            check_sampling(a, e, req, "clip");
+            a.flag(e.name, "clip: carries the clip", true, carries_clip(req));
+            a.text(e.name, "clip: cached_voice_id", "<none>", cached_voice(req));
+            a.text(e.name, "clip: reference_text", !e.strict || e.strict_sends_ref_text ? kTranscript : "<absent>",
+                   opt(req, "reference_text"));
+            a.text(e.name, "clip: reference_language", std::strcmp(e.name, "outetts") == 0 ? "auto" : "<absent>",
+                   opt(req, "reference_language"));
+            give_clip(h.get(), "");
+            req = build_request(h.get(), "Hello.", "en", 1.0f);
+            a.flag(e.name, "clip without a transcript: reference_text", false, has(req, "reference_text"));
+        }
+        {
+            const auto h = handle_for(e.name);
+            give_preset(h.get(), kPreset);
+            const rt::TaskRequest req = build_request(h.get(), "Hello.", "en", 1.0f);
+            check_sampling(a, e, req, "preset");
+            std::string carriers;   // the options whose value is the preset
+            for (const auto &[key, value] : req.options)
+                if (value == kPreset) carriers += (carriers.empty() ? "" : ",") + key;
+            a.text(e.name, "preset: cached_voice_id", e.preset_option ? "<none>" : kPreset, cached_voice(req));
+            a.text(e.name, "preset: options carrying it", e.preset_option ? e.preset_option : "", carriers);
+            a.flag(e.name, "preset: reference_text", false, has(req, "reference_text"));
+            a.flag(e.name, "preset: reference_language", false, has(req, "reference_language"));
+        }
+    }
+    assert(a.wrong == 0);
+}
+
 }  // namespace
 
 int main() {
+    family_set_matches_the_table();
+    row_columns_match_the_table();
+    requests_honour_each_row();
     existing_rows_are_unchanged();
     task_column_picks_the_session_kind();
     adopt_family_copies_every_column();
