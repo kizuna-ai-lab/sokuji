@@ -1,10 +1,13 @@
-/* One forward pass of one family with the recorder armed. Requires: sk_record_register_device()
- * called BEFORE sk_init, sk_init done, `devs`/`n` from sk_devices(). Writes the .ops file. */
+/* One family's forward passes with the recorder armed: an asr or translate run, or the tts synths
+ * a user can reach (synth_reachable_paths). Requires: sk_record_register_device() called BEFORE
+ * sk_init, sk_init done, `devs`/`n` from sk_devices(). Writes the .ops file. */
 #pragma once
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
+#include <iterator>
 #include <set>
 #include <string>
 #include <vector>
@@ -38,7 +41,10 @@ static const char *device_kind_name(const sk_device *d) {
     return sk_ops_device_word(d ? d->kind : SK_DEVICE_CPU);
 }
 
-/* A real speech clip for the clone-only families: supertonic preset M1, made BEFORE recording
+/* The one sentence every recording speaks, and the transcript of the reference clip. */
+static const char *const kSentence = "The quick brown fox jumps over the lazy dog.";
+
+/* A real speech clip for the families that clone: supertonic preset M1, made BEFORE recording
  * starts so its nodes never leak into the other family's file. Synthesised on the same device
  * the family will be recorded on. */
 static Clip reference_clip(const sk_device *cpu, const std::string &supertonic_dir) {
@@ -47,9 +53,52 @@ static Clip reference_clip(const sk_device *cpu, const std::string &supertonic_d
     sk_tts *m = nullptr;
     if (sk_tts_load(supertonic_dir.c_str(), cpu, &o, &m) != SK_OK) return c;
     sk_tts_set_preset(m, "M1");
-    sk_tts_synth(m, "The quick brown fox jumps over the lazy dog.", "en", 1.0f, grab_audio, &c);
+    sk_tts_synth(m, kSentence, "en", 1.0f, grab_audio, &c);
     sk_tts_unload(m);
     return c;
+}
+
+/* The families a user can run only with a reference clip. Mirrors the sidecar's
+ * VOICE_REQUIRED_FAMILIES (sidecar/sokuji_sidecar/catalog.py); sidecar/tests/test_catalog.py
+ * holds the two equal. */
+static const char *const kVoiceRequiredFamilies[] = {
+    "chatterbox", "confucius4_tts", "cosyvoice3", "echo_tts", "fireredtts3",
+    "glm_tts", "index_tts2", "miotts", "omnivoice", "qwen3_tts",
+};
+
+/* The synths a user of `family` can reach, run on one loaded handle inside one recording window,
+ * so the file is the union of their graphs (owner's ruling 2026-10-07, op-coverage precision):
+ *   - a voice-required family: the clip synth;
+ *   - a family that clones without needing a clip: the bare synth, then the clip synth;
+ *   - a family that does not clone: the bare synth.
+ * Whether it clones is sk_tts_capabilities'. The clip synth carries the clip's transcript. false,
+ * with a stderr line, when a synth, the voice or the preset is refused, or the clip is missing
+ * where the family clones. */
+static bool synth_reachable_paths(sk_tts *m, const std::string &family, const Clip &ref) {
+    sk_tts_caps caps{};
+    if (sk_tts_capabilities(m, &caps) != SK_OK) { std::fprintf(stderr, "tts caps: %s\n", sk_last_error()); return false; }
+    const bool required = std::any_of(std::begin(kVoiceRequiredFamilies), std::end(kVoiceRequiredFamilies),
+                                      [&](const char *f) { return family == f; });
+    if (required && !caps.clones) { std::fprintf(stderr, "record_family: %s is voice-required but does not clone\n", family.c_str()); return false; }
+    // An empty clip would quietly turn a clone path into a no-voice run: index_tts2 accepts a
+    // missing voice, so it would record a graph with none of the clone-path nodes and the diff
+    // against the shipped recording would read as an engine regression. Fail the recording.
+    if (caps.clones && ref.pcm.empty()) { std::fprintf(stderr, "record_family: reference clip failed for %s\n", family.c_str()); return false; }
+    auto synth = [&](const char *path) {
+        if (sk_tts_synth(m, kSentence, "en", 1.0f, ignore_audio, nullptr) == SK_OK) return true;
+        std::fprintf(stderr, "tts %s synth: %s\n", path, sk_last_error());
+        return false;
+    };
+    if (!required) {
+        // The voice a user who picks none speaks with, where the sidecar sets one at load: the
+        // first preset of a family in tts_backend._DEFAULT_PRESET_FAMILIES.
+        const char *preset = family == "pocket_tts" ? "alba" : nullptr;
+        if (preset && sk_tts_set_preset(m, preset) != SK_OK) { std::fprintf(stderr, "tts preset: %s\n", sk_last_error()); return false; }
+        if (!synth("bare")) return false;
+    }
+    if (!caps.clones) return true;
+    if (sk_tts_set_voice(m, ref.pcm.data(), ref.pcm.size(), ref.rate, kSentence) != SK_OK) { std::fprintf(stderr, "tts voice: %s\n", sk_last_error()); return false; }
+    return synth("clip");
 }
 
 /* Returns the node count written (0 = nothing recorded — treat as a failure). */
@@ -59,28 +108,22 @@ static int record_family(const std::string &stage, const std::string &family, co
     // The main GGUF: the file the recording's `# source:` names and the path a tts family is
     // loaded from below. The weight names and `# dtypes-in-file:` come from every GGUF the model
     // path stands for, the main one and any companion staged beside it (model_tensors.h), and for
-    // a tts family any companion it loads from a sibling folder (tts_model_tensors, miotts's
+    // a tts family any companion it loads from a sibling folder (recording_tensors, miotts's
     // codec): the union of their matrix-tensor dtypes is the set WEIGHT expands over, and
     // sk_record_end_to_file refuses a recording whose WEIGHT dtype is outside it (owner's ruling
     // 2026-10-06, op-coverage precision).
     const std::string gguf = find_gguf(model);
     if (gguf.empty()) { std::fprintf(stderr, "record_family: no .gguf in %s\n", model.c_str()); return 0; }
     std::vector<std::string> names, dtypes_v; std::set<std::string> dtypes;
-    if (!(stage == "tts" ? tts_model_tensors(family, model, names, dtypes) : model_tensors(model, names, dtypes))) return 0;
+    if (!recording_tensors(stage, family, model, names, dtypes)) return 0;
     dtypes_v.assign(dtypes.begin(), dtypes.end());
     std::vector<const char *> name_ptrs; for (auto &s : names) name_ptrs.push_back(s.c_str());
     std::vector<const char *> dtype_ptrs; for (auto &s : dtypes_v) dtype_ptrs.push_back(s.c_str());
 
-    Clip ref;
-    const bool needs_voice = family == "qwen3_tts" || family == "omnivoice" || family == "index_tts2" || family == "cosyvoice3" || family == "fireredtts3" || family == "chatterbox" || family == "confucius4_tts" || family == "breeze_tts" || family == "audio8_tts" || family == "glm_tts" || family == "outetts" || family == "echo_tts" || family == "kitten_tts2" || family == "miotts";
-    if (needs_voice) {
-        ref = reference_clip(dev, supertonic_dir);
-        // An empty clip would quietly degrade a clone-only family to a no-voice run: index_tts2
-        // accepts a missing voice, so it would record a graph with none of the clone-path nodes
-        // and the diff against the shipped recording would read as an engine regression. Fail
-        // the recording instead.
-        if (ref.pcm.empty()) { std::fprintf(stderr, "record_family: reference clip failed for %s\n", family.c_str()); return 0; }
-    }
+    // Whether a tts family clones is known only once it is loaded, inside the window, and the
+    // clip has to exist before the window opens: every tts family gets one, and only the
+    // families that clone use it.
+    const Clip ref = stage == "tts" ? reference_clip(dev, supertonic_dir) : Clip{};
 
     sk_record_begin(name_ptrs.data(), (int32_t)name_ptrs.size(), RUNG_OPS, 3);
     if (stage == "tts") {
@@ -89,11 +132,9 @@ static int record_family(const std::string &stage, const std::string &family, co
         // The main GGUF file, as the sidecar hands it over in production: a directory that stages
         // companions beside it is ambiguous to audio.cpp's own resolver.
         if (sk_tts_load(gguf.c_str(), dev, &o, &m) != SK_OK) { std::fprintf(stderr, "tts load: %s\n", sk_last_error()); return 0; }
-        if (needs_voice && !ref.pcm.empty()) sk_tts_set_voice(m, ref.pcm.data(), ref.pcm.size(), ref.rate, "The quick brown fox jumps over the lazy dog.");
-        if (family == "pocket_tts") sk_tts_set_preset(m, "alba");
-        if (sk_tts_synth(m, "The quick brown fox jumps over the lazy dog.", "en", 1.0f, ignore_audio, nullptr) != SK_OK)
-            std::fprintf(stderr, "tts synth: %s\n", sk_last_error());
+        const bool ok = synth_reachable_paths(m, family, ref);
         sk_tts_unload(m);
+        if (!ok) return 0;
     } else if (stage == "asr") {
         sk_asr_model *m = nullptr;
         if (sk_asr_load(gguf.c_str(), dev, &m) != SK_OK) { std::fprintf(stderr, "asr load: %s\n", sk_last_error()); return 0; }

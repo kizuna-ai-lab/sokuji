@@ -203,6 +203,16 @@ int main(int argc, char **argv) {
     assert((std::set<std::string>(mio_names.begin(), mio_names.end()) == std::set<std::string>{"codec.w", "main.w"}));
     assert(tts_model_tensors("audio8_tts", lm_dir, lm_names, lm_dtypes));   // no companion elsewhere
     assert((lm_dtypes == std::set<std::string>{"q8_0"}));
+    // record_family reads its tensors through recording_tensors: a tts recording takes the
+    // family's sibling companions, any other stage the model path alone.
+    {
+        std::vector<std::string> tts_names, asr_names;
+        std::set<std::string> tts_dtypes, asr_dtypes;
+        assert(recording_tensors("tts", "miotts", lm_dir, tts_names, tts_dtypes));
+        assert((tts_dtypes == std::set<std::string>{"f16", "q8_0"}));
+        assert(recording_tensors("asr", "miotts", lm_dir, asr_names, asr_dtypes));
+        assert((asr_dtypes == std::set<std::string>{"q8_0"}));
+    }
     record_main_and_codec(dev, rec, mio_names);
     std::vector<const char *> lm_only, mio_set;
     for (const auto &s : lm_dtypes) lm_only.push_back(s.c_str());

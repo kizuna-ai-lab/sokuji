@@ -52,3 +52,11 @@ static bool tts_model_tensors(const std::string &family, const std::string &path
         if (!model_tensors(companion.path.string(), names, matrix_dtypes)) return false;
     return true;
 }
+
+/* The tensors a recording of `family` in `stage` is taken against, the one call record_family
+ * makes: tts_model_tensors for a tts family, model_tensors for any other stage. */
+static bool recording_tensors(const std::string &stage, const std::string &family, const std::string &path,
+                              std::vector<std::string> &names, std::set<std::string> &matrix_dtypes) {
+    return stage == "tts" ? tts_model_tensors(family, path, names, matrix_dtypes)
+                          : model_tensors(path, names, matrix_dtypes);
+}

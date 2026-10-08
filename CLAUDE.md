@@ -572,8 +572,10 @@ every gate keys on that path.
 2. Record on a real GPU (GB10 Vulkan or M4 Metal), never on the CPU tree — audio.cpp builds a
    different graph on a host backend, so a CPU recording refuses ops the GPU is never asked for:
    `cmake -S native -B native/build/record-vk -DSOKUJI_GPU=vulkan -DSOKUJI_RECORD_OPS=ON &&
-   cmake --build native/build/record-vk -j`; a clone-only family first joins `needs_voice` in
-   `native/tests/record_common.h`; then `native/build/record-vk/lib/record_ops
+   cmake --build native/build/record-vk -j`; a voice-required family first joins
+   `kVoiceRequiredFamilies` in `native/tests/record_common.h`, as it joins
+   `VOICE_REQUIRED_FAMILIES` (a family that clones without needing a clip is recorded bare and with
+   the clip); then `native/build/record-vk/lib/record_ops
    native/build/record-vk/lib tts <family> <model-dir> native/src/ops/tts-<family>.ops
    <supertonic-dir>` — the header must read
    `# recorded-on: vulkan` (or `metal`). In the SAME commit: the `CASES[]` row in

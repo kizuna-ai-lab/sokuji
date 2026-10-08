@@ -286,6 +286,17 @@ sweep asserts full support for asr and translate recordings only. `test_tts`, th
 the single-family Python tests still pass their one-file directories as directories, which keeps
 that form of `model_path` covered.
 
+A TTS recording is the union of the synths a user can reach, run on one loaded handle inside one
+recording window (`synth_reachable_paths`, `tests/record_common.h`; owner's ruling 2026-10-07). A
+voice-required family runs the clip synth only; the list is `kVoiceRequiredFamilies`, the
+sidecar's `VOICE_REQUIRED_FAMILIES`, held equal by `sidecar/tests/test_catalog.py`. A family that
+clones without needing a clip runs the bare synth, with the preset the sidecar sets at load where
+it sets one (pocket_tts's `alba`), then the clip synth, so its recording holds the clone path's
+encoders as well as the bare graph. A family that does not clone (`sk_tts_capabilities`) runs the
+bare synth. The clip is supertonic's preset M1 speaking the recording's sentence, which is also
+its transcript. Whether a family clones is known only once it is loaded, inside the window, so
+the clip is made for every TTS family before the window opens.
+
 The gate asks about the dtype a device runs, which for a TTS weight is not always the file's.
 audio.cpp's `BackendWeightStore` loads a tensor with `Native` storage whose file dtype is BF16 as
 F16 when its backend is Vulkan or Metal (`backend_safe_loaded_storage_type`,

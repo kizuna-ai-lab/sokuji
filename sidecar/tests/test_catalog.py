@@ -886,6 +886,17 @@ def test_every_tts_family_has_an_op_recording():
         assert (_REPO_ROOT / "native" / "src" / "ops" / f"tts-{m.graph_family}.ops").is_file(), m.id
 
 
+def test_the_recorders_voice_required_families_are_the_catalogs():
+    """The op recorder takes a voice-required family's clip synth alone, and a clip-optional
+    family's bare synth and clip synth together (owner's ruling 2026-10-07, op-coverage
+    precision), so its list of the voice-required families is this one."""
+    import re
+    text = (_REPO_ROOT / "native" / "tests" / "record_common.h").read_text()
+    m = re.search(r"kVoiceRequiredFamilies\[\]\s*=\s*\{([^}]*)\}", text)
+    assert m, "kVoiceRequiredFamilies not found in native/tests/record_common.h"
+    assert set(re.findall(r'"([^"]+)"', m.group(1))) == set(catalog.VOICE_REQUIRED_FAMILIES)
+
+
 @pytest.mark.skipif(not os.path.exists(f"{_CACHE}/Qwen3-0.6B-Q8_0.gguf"), reason="cached model absent")
 def test_translate_graph_family_matches_gguf_header():
     from sokuji_sidecar import gguf_header
