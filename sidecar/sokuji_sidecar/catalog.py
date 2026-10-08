@@ -1323,8 +1323,9 @@ HIGGS_LANGS = ("af", "ar", "az", "bg", "bn", "bs", "ca", "cs", "cy", "da", "de",
 # "fil" and the card's Javanese "jw" is "jv". The engine reads no language (its loader reports
 # en/zh/auto), so this tuple is the picker's gate and nothing more.
 # ml dropped (ruling 2026-10-06): 2026-10-08 loopback sweep, CER 1.00 / 1.16, no Malayalam heard.
+# he dropped (ruling 2026-10-06): 2026-10-08 loopback sweep, CER 0.51 / 0.32 / 0.38, 1 pass in 3.
 FISH_LANGS = ("af", "am", "ar", "az", "bg", "bn", "bs", "ca", "cs", "cy", "da", "de", "el",
-              "en", "es", "et", "fa", "fi", "fil", "fr", "gl", "gu", "he", "hi", "hr", "hu",
+              "en", "es", "et", "fa", "fi", "fil", "fr", "gl", "gu", "hi", "hr", "hu",
               "id", "is", "it", "ja", "jv", "ka", "kk", "km", "kn", "ko", "lt", "lv",
               "mn", "mr", "ms", "my", "ne", "nl", "no", "pl", "ps", "pt", "ro", "ru", "si",
               "sk", "sl", "sq", "sr", "sv", "sw", "ta", "te", "th", "tr", "uk", "ur", "vi",
@@ -1558,10 +1559,11 @@ TTS_MODELS: list[TtsModel] = [
     # CosyVoice 3 (Fun-CosyVoice3-0.5B-2512): clone-only; the transcript is optional
     # (zero_shot with one, cross_lingual without, native/src/sk_tts.cpp). The vendor's "18+
     # Chinese dialects" are reached through its instruct template, which Sokuji does not
-    # send, so the tuple holds its nine languages.
+    # send, so the tuple holds its nine languages less ja.
     _tts_gguf_row(
         "cosyvoice3", "CosyVoice 3 (0.5B)",
-        ("zh", "en", "ja", "ko", "de", "es", "fr", "it", "ru"),
+        # ja dropped (ruling 2026-10-06): 2026-10-08 loopback sweep, CER 0.35 / 0.48, kanji misread.
+        ("zh", "en", "ko", "de", "es", "fr", "it", "ru"),
         "cosyvoice3", "CosyVoice3-GGUF",
         {"q8_0": ("cosyvoice3-q8_0.gguf", 2257658080),
          "f32": ("cosyvoice3-f32.gguf", 6995036608)},

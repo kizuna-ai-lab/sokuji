@@ -1349,12 +1349,13 @@ def test_reconverted_asr_rows_carry_the_hub_sizes(mid):
 
 def test_cosyvoice3_card():
     # 2026-10-06: clone-only (audio.cpp refuses a synth with no clip), a transcript optional,
-    # cpu-only until a fleet run gives the family GPU tiers.
+    # cpu-only until a fleet run gives the family GPU tiers; ja left after the 2026-10-08
+    # loopback sweep found it broken.
     m = catalog.tts_model("cosyvoice3")
     assert m is not None
     assert (m.family, m.graph_family, m.name) == ("cosyvoice3", "cosyvoice3", "CosyVoice 3 (0.5B)")
     assert m.sort_order == 14 and m.recommended is False
-    assert m.languages == ("zh", "en", "ja", "ko", "de", "es", "fr", "it", "ru")
+    assert m.languages == ("zh", "en", "ko", "de", "es", "fr", "it", "ru")
     assert m.clones is True and m.transcript_required is False and m.named_voices is False
     assert m.streaming is False and m.sample_rate == 24000
     assert m.voice_required is True and m.presets == () and m.default_preset == ""
@@ -1792,7 +1793,7 @@ def test_higgs_card_and_license():
 
 
 FISH_PICKER_LANGS = ("af", "am", "ar", "az", "bg", "bn", "bs", "ca", "cs", "cy", "da", "de", "el",
-                     "en", "es", "et", "fa", "fi", "fil", "fr", "gl", "gu", "he", "hi", "hr", "hu",
+                     "en", "es", "et", "fa", "fi", "fil", "fr", "gl", "gu", "hi", "hr", "hu",
                      "id", "is", "it", "ja", "jv", "ka", "kk", "km", "kn", "ko", "lt", "lv",
                      "mn", "mr", "ms", "my", "ne", "nl", "no", "pl", "ps", "pt", "ro", "ru", "si",
                      "sk", "sl", "sq", "sr", "sv", "sw", "ta", "te", "th", "tr", "uk", "ur", "vi",
@@ -1801,14 +1802,14 @@ FISH_PICKER_LANGS = ("af", "am", "ar", "az", "bg", "bn", "bs", "ca", "cs", "cy",
 
 def test_fish_card_and_license():
     # 2026-10-06: an optional clip that needs its transcript; the vendor's 83 languages that the
-    # Local Native picker can offer, less ml, which the 2026-10-08 loopback sweep found broken;
-    # non-commercial; q8_0 only (bf16 is above 10 GB).
+    # Local Native picker can offer, less ml and he, which the 2026-10-08 loopback sweep found
+    # broken; non-commercial; q8_0 only (bf16 is above 10 GB).
     m = catalog.tts_model("fish-audio-s2-pro")
     assert m is not None
     assert (m.family, m.graph_family, m.name) == ("fish_audio", "fish_audio", "Fish Audio S2 Pro")
     assert m.sort_order == 28 and m.recommended is False
     assert m.languages == catalog.FISH_LANGS == FISH_PICKER_LANGS
-    assert len(m.languages) == 65 and not {"tl", "jw", "ml"} & set(m.languages)
+    assert len(m.languages) == 64 and not {"tl", "jw", "ml", "he"} & set(m.languages)
     assert m.clones is True and m.transcript_required is True and m.named_voices is False
     assert m.streaming is False and m.sample_rate == 44100
     assert m.voice_required is False and m.presets == () and m.default_preset == ""
