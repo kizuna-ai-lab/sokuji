@@ -47,7 +47,8 @@ set_property(TARGET ggml ggml-base PROPERTY SOVERSION)
 # Three patches (native/patches/transcribe.cpp.json): reuse our ggml if already
 # present instead of transcribe.cpp building its own copy, fix transcribe's own
 # include path, which breaks when it is nested instead of top-level, and drop the
-# backend-registration filter its allowed-backend mask installs (0.3.1, #186): the
+# backend-registration filter its allowed-backend mask installs (0.3.1,
+# handy-computer/transcribe.cpp#186): the
 # hook, ggml_backend_set_reg_filter, exists only in transcribe's own patched ggml.
 FetchContent_Declare(transcribe
     GIT_REPOSITORY https://github.com/handy-computer/transcribe.cpp.git
@@ -132,9 +133,11 @@ set(AUDIOCPP_MODEL_SET "custom" CACHE STRING "" FORCE)
 # registered via audiocpp_add_model(). sk_audio_families() (sk_selftest.cpp) reports the
 # registry verbatim instead — a raw "what got compiled" diagnostic that includes those
 # companions, NOT a support list; which families are supported is the sidecar's Python
-# catalog's job. See that function's own comment for the full story, including
-# "moss_tts_nano" sharing its CMake target/loader list with "moss_tts_local". The nine
-# names selected below currently surface as twelve registry families for that reason.
+# catalog's job. A selected name registers every loader of its CMake target ("moss_tts_nano"
+# and "moss_tts_local" share the "moss" target, and both are selected below); a target a
+# selected family pulls in through DEPENDS (miotts brings "miocodec" and "qwen3_asr") is linked
+# but registers nothing. The thirty names below therefore surface as thirty-two registry
+# families: themselves and the two VADs.
 #
 # "voxcpm1" is a COMMUNITY model (src/community_models/voxcpm1). audio.cpp registers it
 # through the same audiocpp_add_model() call as the rest, so the custom set resolves it

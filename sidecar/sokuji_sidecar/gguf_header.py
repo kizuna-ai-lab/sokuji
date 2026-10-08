@@ -13,8 +13,8 @@ import os
 import struct
 from dataclasses import dataclass
 
-# ggml_type ids -> ggml_type_name() spellings (ggml.h v0.25.3, as of native-v1.2.0; re-verified
-# that 0.22.0 -> 0.25.3 added no id a reader here could meet: the three new ones (NVFP4=40,
+# ggml_type ids -> ggml_type_name() spellings (ggml.h v0.26.0, as of native-v1.3.0; re-verified
+# that 0.22.0 -> 0.26.0 added no id a reader here could meet: the three new ones (NVFP4=40,
 # Q1_0=41, Q2_0=42) are not produced by any dtype in our catalog). Only what a reader may meet.
 GGML_TYPE_NAMES = {
     0: "f32", 1: "f16", 2: "q4_0", 3: "q4_1", 6: "q5_0", 7: "q5_1", 8: "q8_0", 9: "q8_1",

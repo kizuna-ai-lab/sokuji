@@ -1,8 +1,8 @@
 /* audiocpp_compat.h — force-included into every audio.cpp translation unit.
  *
- * audio.cpp v0.8.2-audio8-perf-hotfix (upstream ac16661d; re-scanned at the 2026-09-25 pin bump)
- * carries a ggml fork (base
- * 0.12.0) that differs from the pristine upstream ggml 0.25.3 we build on in the ways below.
+ * audio.cpp main at 54aa279 (0.9.0+54aa279; re-scanned at the 2026-10-06 pin bump) carries a
+ * ggml fork (base 0.12.0) that differs from the pristine upstream ggml 0.26.0 we build on in the
+ * ways below.
  * This header covers all of these — (A)/(D)/(E) fail to LINK if you get them wrong, (F)/(G) fail
  * to COMPILE without them (both are header-only), (B) fails silently.
  *
@@ -12,7 +12,9 @@
  *     time on CPU / Vulkan / Metal — see the spec, §2 and §4.4. The four families added
  *     2026-09-03 (voxcpm1, voxcpm2, irodori_tts, index_tts2) were not re-audited against
  *     this list; they link and synthesize on all three lanes, and their op recordings
- *     (src/ops/tts-*.ops) are the evidence of what they actually execute:
+ *     (src/ops/tts-*.ops) are the evidence of what they actually execute. The families
+ *     added at the 2026-10-06 bump were not re-audited either; their recordings are the
+ *     same evidence:
  *   - col2im_1d is upstream since 0.20.2 (identical signature): nothing to do.
  *     Re-verified 2026-09-01 — the two bodies derive the same output shape from the
  *     same formula; upstream only adds contiguity/dtype/padding asserts the fork
@@ -36,7 +38,8 @@
  *
  * SCAN STATUS (2026-09-01, ruling R11). The public API surface was diffed both ways.
  * Symbols declared only in the fork's ggml.h are exactly the seven in (A), so (A) was
- * provably complete for 0.7.1 — see RESCAN below for 0.8.2, where (D)/(E) cover the rest.
+ * provably complete for 0.7.1 — see the RESCANs below for 0.8.2 and 54aa279, where (D)/(E)
+ * cover the rest.
  * Of the 372 symbols declared in BOTH, 20 have a differing ggml.c
  * body, and the only one that changes VALUES at a call site audio.cpp reaches is the
  * conv family in (B). The residue is recorded in native/README.md's compat-header
@@ -46,6 +49,15 @@
  * (D) shims the reachable ones and (E) stubs the link-only ones; differing shared ggml.c
  * bodies 20 -> 22, the two new ones harmless (ggml_nbytes adds bytes only for the fork-only
  * I8_S/I2_S types; ggml_permute is upstream widening int -> int64_t/size_t). (B) unchanged.
+ *
+ * RESCAN 2026-10-06 (audio.cpp 54aa279 vs ggml 0.26.0): fork-only functions 28 -> 29 and enum
+ * types 7 -> 8 (ggml_ssm_conv_set_fusion and its enum, called only from
+ * src/community_models/reuse, which we do not build). The existing enum ggml_mul_mat_lowering
+ * gains VULKAN_F32_INPUTS = 4, and engine_core now calls the fork's 7-argument
+ * ggml_gated_delta_net; both are below, in (D) and (E). Differing shared ggml.c bodies
+ * 22 -> 23: the new one is ggml_set_input, which upstream now asserts is called on a
+ * GGML_OP_NONE leaf (a robustness check, no value change); the fork's own bodies are unchanged
+ * since ac16661d. (B) and (C) unchanged.
  *
  * ADDED 2026-10-07 for audio8_tts (audio.cpp 54aa279 against ggml 0.26.0): (F) ggml_snake_1d, a
  * fork-only fused op that the audio8_tts codec names on every lane although only its Metal
@@ -104,8 +116,8 @@ static inline struct ggml_tensor *ggml_mul_mat_pack4(
  * the fp16 im2col moved its prediction by 1.77e-4 relative and the WAV by 14 samples
  * (82653 -> 82639). With these shims that case is sample-exact against the official CLI.
  *
- * Bodies are the fork's verbatim (external/ggml/src/ggml.c at the pinned audio.cpp
- * commit: lines 4560, 4611, 4681, 4758). Each was diffed against upstream's definition
+ * Bodies are the fork's verbatim (external/ggml/src/ggml.c at 54aa279: lines 4873, 4924,
+ * 4994, 5078). Each was diffed against upstream's definition
  * line by line: the dtype argument is the ONLY difference, and ggml_im2col /
  * ggml_im2col_3d themselves are byte-identical across the two versions.
  *
@@ -256,16 +268,19 @@ static inline struct ggml_tensor *ggml_convrot_linear(
     GGML_ABORT("ggml_convrot_linear: MiniMax-H3 op, not built in sokuji-native");
 }
 
-/* ===== (D) audio.cpp 0.8.2 fork additions our build reaches ========================
+/* ===== (D) audio.cpp fork additions our build reaches (0.8.2 on) =================
  *
  * The 0.8.2 fork (audio.cpp ac16661d, base still labelled 0.12.0) adds 21 functions and
- * 7 enum types over 0.7.1. Only the ones referenced from engine_core (everything under src/framework,
- * always compiled) or from our nine families are shimmed; the rest live in families we do
+ * 7 enum types over 0.7.1; the fork at 54aa279 adds one more of each, reached only from
+ * families we do not build (RESCAN 2026-10-06 above). Only the ones referenced from engine_core
+ * (everything under src/framework, always compiled) or from the families we build are shimmed;
+ * the rest live in families we do
  * not build and never reach the linker. Survey and reachability: the 2026-09-25 bump plan,
  * docs/superpowers/plans/2026-09-25-native-ggml-0.25-audiocpp-0.8.2-bump.md, fact 6.
  * Pinned by native/tests/test_audiocpp_compat.cpp.
  *
- * Enum values are the fork's verbatim (external/ggml/include/ggml.h at ac16661d). */
+ * Enum values are the fork's verbatim (external/ggml/include/ggml.h at ac16661d, plus
+ * GGML_MUL_MAT_LOWERING_VULKAN_F32_INPUTS at 54aa279). */
 enum ggml_mul_mat_lowering {
     GGML_MUL_MAT_LOWERING_DEFAULT                    = 0,
     GGML_MUL_MAT_LOWERING_CUDA_NVFP4_F16_ACTIVATION  = 2,
@@ -322,10 +337,11 @@ static inline struct ggml_tensor *ggml_mul_mat_acc(
 }
 
 /* Fork: a fused GGML_UNARY_OP_ROUND_BF16, always F32 out. Its own header comment and its
- * caller (qwen_decoder.cpp:281-283) define it as the f32 -> bf16 -> f32 cast round trip,
- * which is what this builds. Reached by qwen_decoder (policy.fused_round), by
- * qwen_causal_decode_runtime's non-Metal bf16 readback rounding, and by breeze_tts's bf16
- * activation policy (decoder.cpp's activation_cast).
+ * caller (framework/modules/transformers/decoder.cpp:279-284 at 54aa279) define it as the
+ * f32 -> bf16 -> f32 cast round trip, which is what this builds. Reached by decoder.cpp's
+ * activation_cast (policy.fused_round; breeze_tts's bf16 activation policy takes it), by
+ * causal_decoder_runtime.cpp:123-129's non-Metal bf16 readback rounding, and by
+ * qwen35_decoder_runtime.cpp:296, which no family we build reaches.
  *
  * The fork's op takes an F16 or BF16 input as well as F32 (the fork's ggml.c:3130-3145 asserts
  * all three; its CPU kernel's F16 -> F32 branch is ggml-cpu/unary-ops.cpp:152-153, its Vulkan

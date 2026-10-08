@@ -100,8 +100,10 @@ Three things this buys:
    because `NORM` is in every family's graph and its absence is what R36 was written
    for.
 7. **A rung is not a dtype.** A Q4_K_M file carries Q6_K and Q5_K tensors; the q8_0
-   files of five of the nine audio.cpp families carry BF16 weight tensors (moss, qwen3,
-   pocket, voxcpm2, index); every file carries F32, and several I32/I64. The weight
+   files of five of the nine audio.cpp families of 2026-09 carry BF16 weight tensors (moss,
+   qwen3, pocket, voxcpm2, index), as do several q8_0 files of the families added at
+   native-v1.3.0 (vibevoice, kugelaudio, fish_audio, breeze_tts, outetts and kitten_tts2, per
+   their cards' `rung_dtypes`); every file carries F32, and several I32/I64. The weight
    dtype set a query expands over is the **GGUF header's** set once the file is on disk,
    **intersected with the weight-capable types** (the floats and the quantized types),
    and a conservative per-rung fallback set — itself weight-capable only — before that.
@@ -244,7 +246,8 @@ Three things this buys:
   use backends such as `"be"` and `"ctranslate2"`. Cached test models:
   `~/.cache/sokuji-native-tests/` holds whisper-tiny, moonshine-streaming-tiny and
   Qwen3-0.6B (all Q8_0; only moonshine-streaming-tiny is itself a catalog card) and,
-  under `tts/` and `tts-bf16/`, **all nine** audio.cpp families.
+  under `tts/` and `tts-bf16/`, **all nine** audio.cpp families of the time (since
+  native-v1.3.0, one `tts/<card-id>/` directory per card).
 
 ## 3. Design
 
@@ -385,8 +388,11 @@ skips them for a GPU target and asks them for a CPU one. Each file records its
 non-host device is present. One device recording models every device type, with one
 known caveat: `is_conv_transpose1d_col2im_fast_path_eligible`
 (`src/framework/modules/conv_modules.cpp:317-323`) is true for CUDA/HIP **and Metal**
-but not Vulkan, so on Metal the five families that use `ConvTranspose1d` (qwen3_tts,
-omnivoice, pocket_tts, voxcpm2, irodori_tts) take a `COL2IM_1D` path a Vulkan recording
+but not Vulkan, so on Metal the families that use `ConvTranspose1d` (qwen3_tts,
+omnivoice, pocket_tts, voxcpm2, irodori_tts when this was written; at audio.cpp 54aa279 also
+voxcpm1 and, of those added at native-v1.3.0, vibevoice, chatterbox, kugelaudio,
+higgs_audio_tts, breeze_tts, audio8_tts, outetts and miotts's codec) take a `COL2IM_1D` path
+a Vulkan recording
 does not contain — Metal needs its own recordings if that path is ever to be gated.
 
 ```c
@@ -434,15 +440,16 @@ predicate is cheap. On no backend does the query execute a graph, so it cannot
 
 #### 3.2.1 Families
 
-The recordings to ship are the catalog's graph families (§3.3): the nine audio.cpp
-families for `tts`; for `translate` the llama.cpp architectures behind the eleven
+The recordings to ship are the catalog's graph families (§3.3): the audio.cpp families
+for `tts` (nine when this was written, thirty since native-v1.3.0 — one per `kFamilies[]`
+row in `native/src/sk_tts.cpp`); for `translate` the llama.cpp architectures behind the eleven
 cards (`qwen2`, `qwen3`, `qwen35`, `gemma3`, `llama` for EuroLLM, `hunyuan` for the
 four Hunyuan cards — the exact `general.architecture` strings are read from the GGUFs
 by the implementation plan and become the keys); for `asr` the transcribe.cpp
 architectures behind the 66 cards, which `sk_asr_caps.arch` reports after a load.
-Recordings land incrementally (§3.3 says what a missing one means); **all nine TTS
-recordings exist before the first release**, because that is the stage the gate fires
-for, and all nine models are cached (§2).
+Recordings land incrementally (§3.3 says what a missing one means); **every TTS family's
+recording exists before the release that ships it**, because that is the stage the gate
+fires for, and every TTS family's model is cached (§2).
 
 #### 3.2.2 Recording
 
@@ -476,7 +483,8 @@ Both mechanisms produce the same descriptor stream; a `--record-ops <stage> <fam
 #### 3.2.3 Keeping recordings honest
 
 - **`test_ops_coverage`** (CTest) re-records every family whose model is cached
-  (**all nine TTS families live on every run**, plus the cached ASR/translate models)
+  (**every TTS family live on every run** — nine at first, thirty since native-v1.3.0 —
+  plus the cached ASR/translate models)
   and asserts the recorded descriptor set **equals** the shipped op recording's set — an
   op added or removed by a pin bump turns the test red naming the line, the same
   discipline as the exact-text patches in `native/patches/`. It also asserts the
@@ -865,8 +873,9 @@ recomputed on every sidecar start and keyed by (hardware, native version, driver
   ggml bump changes it the pinned copy must move with it (the checklist covers it).
   Two physically distinct identical cards under one driver are indistinguishable and
   interchangeable by construction.
-- **Recordings drift with pins.** Mitigated by `test_ops_coverage` (live for all nine
-  TTS families and the cached ASR/translate models) and the pin-bump checklist for
+- **Recordings drift with pins.** Mitigated by `test_ops_coverage` (live for every TTS
+  family whose model is cached — thirty since native-v1.3.0 — and the cached ASR/translate
+  models) and the pin-bump checklist for
   the rest; a stale op recording fails closed on a *new* node only if the test runs — the
   checklist is a procedural gate, not an automatic one.
 - **Missing recordings are silent.** Until an asr/translate architecture has one,

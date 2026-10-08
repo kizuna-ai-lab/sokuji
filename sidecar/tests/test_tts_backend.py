@@ -1,6 +1,6 @@
-"""NativeTtsBackend: sokuji_native's TtsModel faked at the module level (the venv
-wheel is Vulkan-lane 0.4.0 and has no TtsModel yet — Task 3 lands the real 0.5.0
-build). Mirrors test_translate_backend.py's native_env fixture shape."""
+"""NativeTtsBackend: sokuji_native's TtsModel faked at the module level, so these
+tests need no wheel, model or device. Mirrors test_translate_backend.py's native_env
+fixture shape."""
 import asyncio
 import os
 import threading

@@ -302,9 +302,9 @@ export class LocalNativeClient implements IClient {
     this.ttsEnabled = !!config.ttsModelId && !config.textOnly;
     if (this.ttsEnabled) {
       // Renderer-side mirror of the sidecar's R16 pre-check (tts_backend.py's
-      // `_ensure_voice_ready`, over `catalog.VOICE_REQUIRED_FAMILIES`): a model
-      // that reports `voice.required` — qwen3_tts, omnivoice, index_tts2 — can
-      // never speak without a stored clip. That flag comes off the wire; it is
+      // `_ensure_voice_ready`, over each card's `voice_required`): a model that
+      // reports `voice.required` — qwen3_tts, omnivoice, index_tts2 and every
+      // other clone-only family — can never speak without a stored clip. That flag comes off the wire; it is
       // NOT inferred from the voice shape, which looks identical for the
       // families that clone but speak fine with nothing set (MOSS, VoxCPM,
       // Irodori). Checked BEFORE loading the model: catching it

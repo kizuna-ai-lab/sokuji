@@ -155,8 +155,9 @@ typedef struct sk_op_coverage {
  * because audio.cpp's weight store loads a bf16 weight as f16 on those backends, so {"bf16",
  * "f16"} asks f16 once. The exception is a family with a raw-typed device weight path, one that
  * builds some device weight past that conversion (the list is in native/src/sk_ops_format.cpp,
- * e.g. qwen3_tts, kugelaudio): there a "bf16" is asked both as "bf16" and as "f16". A CPU device, any other device, and the asr and translate stages ask every
- * dtype as given; pass the file's own dtypes either way, the mapping is done here. For stage
+ * e.g. qwen3_tts, kugelaudio): there a "bf16" is asked both as "bf16" and as "f16". A CPU
+ * device, any other device, and the asr and translate stages ask every dtype as given; pass the
+ * file's own dtypes either way, the mapping is done here. For stage
  * "tts", on every device, "f32" is then asked as well when the set lacks it: audio.cpp builds
  * some weights as f32 whatever the file holds. A WEIGHT node
  * whose recorded row length is not a multiple of a dtype's block size is skipped for that
@@ -192,13 +193,14 @@ SK_API int32_t     sk_threads(void);   /* resolved n_threads after sk_init (see 
 SK_API int32_t     sk_devices(sk_device *out, int32_t capacity);        /* returns count written; 0 before sk_init */
 SK_API sk_status   sk_device_free_mem(int32_t index, uint64_t *bytes);  /* SK_ERR_NOT_INITIALISED before sk_init */
 SK_API int32_t     sk_abi_version(void);
-SK_API const char *sk_version(void);                                    /* "1.2.0" */
-SK_API const char *sk_engine_versions(void);                            /* "ggml=0.25.3;transcribe=0.2.4;llama=0.5.0;audiocpp=0.8.2;lane=..." */
+SK_API const char *sk_version(void);                                    /* "1.3.0" */
+SK_API const char *sk_engine_versions(void);                            /* "ggml=0.26.0;transcribe=0.3.1;llama=0.6.0;audiocpp=0.9.0+54aa279;lane=..." */
 SK_API const char *sk_last_error(void);                                 /* thread-local, "" when none */
 SK_API void        sk_free(void *p);
 
-/* Names of every audio.cpp model family compiled into this library, sorted. Includes
- * companions that share a build target with a selected family. Diagnostic only: the
+/* Names of every audio.cpp model family compiled into this library, sorted: the loaders
+ * audio.cpp registers, which include its two VADs whatever is selected and leave out a target
+ * a family links only as a dependency (miotts's miocodec). Diagnostic only: the
  * sidecar's catalog decides what is supported. out == NULL or capacity <= 0: returns the
  * total count and writes nothing. Otherwise writes min(capacity, total) entries and returns
  * that number; a short buffer truncates silently, so size it from the count first. */
@@ -296,19 +298,20 @@ SK_API void      sk_translate_unload(sk_translate *);
  * arguments and touch caller-owned state. */
 typedef struct sk_tts sk_tts;
 typedef struct sk_tts_options {
-    const char *family;    /* required: moss_tts_nano | qwen3_tts | omnivoice | pocket_tts |
-                            * supertonic | voxcpm1 | voxcpm2 | irodori_tts | index_tts2 */
+    const char *family;    /* required: a family with a kFamilies[] row in sk_tts.cpp
+                            * (native/README.md lists them) */
     const char *language;  /* pocket_tts: load-time language package ("english", ...). Every other
                             * family: when non-empty, the language every sk_tts_synth on this
                             * handle uses in place of its own `language` argument (a card's load
                             * language). NULL or "" = the caller's language, as before. */
 } sk_tts_options;
 typedef struct sk_tts_caps {
-    bool streaming;            /* omnivoice, supertonic, voxcpm1, voxcpm2 */
-    bool clones;               /* everything except supertonic */
-    bool transcript_required;  /* omnivoice, qwen3_tts: reference_text is mandatory with a ref clip */
-    int32_t sample_rate;       /* family default: 48000 moss+voxcpm2+irodori / 24000 qwen3+omnivoice+pocket /
-                                * 44100 supertonic / 22050 index_tts2 / 16000 voxcpm1 */
+    bool streaming;            /* per kFamilies[]: omnivoice, supertonic, voxcpm1, voxcpm2 */
+    bool clones;               /* per kFamilies[]; false for a qwen3_tts checkpoint with no speaker
+                                * reference (CustomVoice) */
+    bool transcript_required;  /* per kFamilies[], false where clones is: reference_text is
+                                * mandatory with a ref clip */
+    int32_t sample_rate;       /* family default, per kFamilies[] (16000 voxcpm1 up to 48000) */
 } sk_tts_caps;
 typedef bool (*sk_audio_cb)(const float *pcm, size_t n_samples, int32_t sample_rate,
                             int32_t channels, void *user);
@@ -318,10 +321,10 @@ typedef bool (*sk_audio_cb)(const float *pcm, size_t n_samples, int32_t sample_r
 SK_API sk_status sk_tts_load(const char *model_path, const sk_device *device,
                       const sk_tts_options *opts, sk_tts **out);
 SK_API sk_status sk_tts_capabilities(sk_tts *, sk_tts_caps *);
-SK_API sk_status sk_tts_presets(sk_tts *, sk_text_cb on_name, void *user);   /* one call per preset name; supertonic + pocket only, others succeed with zero calls */
+SK_API sk_status sk_tts_presets(sk_tts *, sk_text_cb on_name, void *user);   /* one call per preset name; supertonic + pocket only, others succeed with zero calls (their presets, if any, are the sidecar card's) */
 SK_API sk_status sk_tts_set_voice(sk_tts *, const float *ref_pcm /* MONO f32 PCM; no channels param */,
                            size_t n /* sample count, not byte count */, int32_t sample_rate,
-                           const char *ref_text /* NULL ok except omnivoice */);
+                           const char *ref_text /* NULL ok unless caps.transcript_required */);
 SK_API sk_status sk_tts_set_preset(sk_tts *, const char *name);              /* clears any clone state */
 SK_API sk_status sk_tts_synth(sk_tts *, const char *text, const char *language, float speed,
                        sk_audio_cb on_audio, void *user);

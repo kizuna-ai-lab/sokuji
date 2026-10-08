@@ -1,6 +1,7 @@
-"""Ruling 4: a third-party TTS repo is pinned to one commit, and every Hub call the sidecar
-makes on the TTS path reads that commit. audio.cpp's official mirror stays unpinned: its calls
-pass revision=None, so what users downloaded before still resolves through refs/main."""
+"""Ruling 4: a pinned repo (a third-party TTS repo, or an ASR repo whose head lost a card's
+files) is pinned to one commit, and every Hub call the sidecar makes for a TTS, ASR or
+translation card reads that commit. audio.cpp's official mirror stays unpinned: its calls pass
+revision=None, so what users downloaded before still resolves through refs/main."""
 import ast
 import asyncio
 import importlib.util

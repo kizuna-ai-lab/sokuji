@@ -162,12 +162,13 @@ std::vector<std::string> sk_ops_loaded_weight_dtypes(const std::string &stage, c
  * file dtypes `dtypes`: each mapped through sk_ops_loaded_weight_dtypes and deduplicated in
  * first-seen order, then, for stage "tts", f32 when the set lacks it. audio.cpp builds some tts
  * weights as F32 whatever the file holds, on every backend: make_f32 and a tensor derived at
- * Native storage (type_for_derived_storage), include/engine/framework/core/
- * backend_weight_store.h:133-142 and 246-251 at the pinned commit. One reaches a graph as WEIGHT:
- * qwen3_tts's normalized codebook table (make_f32, src/models/qwen3_tts/
- * tokenizer_speech_decoder.cpp:656) is the src0 of a GET_ROWS, f32 even in a bf16 rung, whose
- * file holds no f32 matrix. So a file with no f32 matrix still has its WEIGHT nodes asked in f32,
- * a safeguard for every such path (owner's ruling 2026-10-07, op-coverage precision).
+ * Native storage (type_for_derived_storage),
+ * include/engine/framework/core/backend_weight_store.h:133-142 and 246-251 at the pinned commit.
+ * One reaches a graph as WEIGHT: qwen3_tts's normalized codebook table (make_f32,
+ * src/models/qwen3_tts/tokenizer_speech_decoder.cpp:656) is the src0 of a GET_ROWS, f32 even in
+ * a bf16 rung whose file holds no f32 matrix. So a file with no f32 matrix still has its WEIGHT
+ * nodes asked in f32, a safeguard for every such path (owner's ruling 2026-10-07, op-coverage
+ * precision).
  * llama.cpp and transcribe.cpp load the file's dtypes, so asr and translate get no f32.
  * sk_device_supports_ops expands WEIGHT over this set, and sk_record_end_to_file refuses a live
  * WEIGHT dtype outside it; `# dtypes-in-file:` stays the files' own dtypes. An integer dtype

@@ -1,5 +1,6 @@
-// Pins the audio.cpp 0.8.2 compat shims (audiocpp_compat.h sections (D), (E), (F) and (G)) against the
-// fork's own documented equivalents, on the CPU backend of the ggml we actually build.
+// Pins the audio.cpp compat shims (audiocpp_compat.h sections (D), (E), (F) and (G), fork at
+// 54aa279) against the fork's own documented equivalents, on the CPU backend of the ggml we
+// actually build.
 #undef NDEBUG   // every native test does this: the lanes build Release, and assert() is the test
 #include "audiocpp_compat.h"
 #include "ggml-alloc.h"

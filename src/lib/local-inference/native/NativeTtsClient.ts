@@ -32,7 +32,7 @@ const TTS_BUDGET_SAFETY = 2;
 
 /** Assumed RTF when the sidecar reported none (older sidecar, or a family whose
  *  plan carried no measurement): the slowest family measured on the reference
- *  box (echo_tts, 31.45 on GB10 CPU), so an unknown model is budgeted like the
+ *  box (echo_tts, 31.45-31.67 on GB10 CPU), so an unknown model is budgeted like the
  *  worst known one rather than like a fast one. */
 const TTS_ASSUMED_RTF = 32;
 
@@ -51,7 +51,7 @@ export interface TtsReady {
   sampleRate: number; loadTimeMs: number;
   backend?: string; device?: string; computeType?: string; rtf?: number;
   streaming: boolean; clones: boolean; memoryBytes?: number; fallbackReason?: string;
-  family?: string;   // the resolved card's family (moss_tts_nano | qwen3_tts | omnivoice | pocket_tts | supertonic)
+  family?: string;   // the resolved card's audio.cpp family (a kFamilies[] name in native/src/sk_tts.cpp)
 }
 
 interface StreamDone { resolve: (m: ServerMsg) => void; reject: (e: Error) => void; bump: () => void; }

@@ -27,7 +27,7 @@ else()
 endif()
 message(STATUS "sokuji-native GPU lane: ${SOKUJI_GPU_RESOLVED}")
 
-# ggml 0.25.3 still hard-codes SME CPU variants on arm64 (re-verified at the native-v1.2.0
+# ggml 0.26.0 still hard-codes SME CPU variants on arm64 (re-verified at the native-v1.3.0
 # bump): two armv9.2 ones on Linux and
 # apple_m4 on macOS. GCC 11/13 reject `+sme` outright, and Apple clang (Xcode 15 and 16)
 # accepts the flag but then rejects the SVE intrinsics ggml's SME paths use under
@@ -53,8 +53,8 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
     endif()
 endif()
 
-# Every lane, every model: ggml 0.25.3's GGUF reader still fills an array KV one element at a
-# time (re-verified at the native-v1.2.0 bump; `gguf_reader::read(std::vector<T>&, n)` loops
+# Every lane, every model: ggml 0.26.0's GGUF reader still fills an array KV one element at a
+# time (re-verified at the native-v1.3.0 bump; `gguf_reader::read(std::vector<T>&, n)` loops
 # `read(dst[i])`, and each of those is a read_raw through the reader callback — one locked
 # fread() per element). audio.cpp
 # stores a model's sidecar files as ONE `audiocpp.embedded_files.data` UINT8 array KV, and
@@ -68,14 +68,14 @@ endif()
 # output for the types it covers: it is a read-shape change only.
 list(APPEND SOKUJI_GGML_PATCH_SPEC "ggml-gguf-bulk-array-read.json")
 
-# ggml 0.25.3's Metal backend still implements no GGML_OP_DIAG_MASK_INF at all (re-verified
-# at the native-v1.2.0 bump) - no supports_op case, no kernel - while ggml-cpu, ggml-vulkan
+# ggml 0.26.0's Metal backend still implements no GGML_OP_DIAG_MASK_INF at all (re-verified
+# at the native-v1.3.0 bump) - no supports_op case, no kernel - while ggml-cpu, ggml-vulkan
 # and ggml-cuda all do. Every audio.cpp
 # attention block reached without an explicit mask builds that op (16 call sites across 13
 # files under audio.cpp 0.7.0's src/, external/ excluded; on our five families the live
-# ones are moss_tts_nano and qwen3_tts), and engine_core and the nine families we build never
-# use ggml_backend_sched (0.8.2 references it only in unbuilt models: moonshine_asr,
-# liveavatar), so there is no per-node CPU fallback: the single missing kernel
+# ones are moss_tts_nano and qwen3_tts), and engine_core and the families we build never
+# use ggml_backend_sched (audio.cpp 54aa279 references it only in unbuilt models:
+# moonshine_asr, liveavatar), so there is no per-node CPU fallback: the single missing kernel
 # aborts the process. The patch re-adds the kernel ggml's own Metal backend carried until
 # llama.cpp moved to masked soft_max_ext, so it restores an op every other backend has
 # rather than inventing one. Metal lane only: it touches src/ggml-metal/, which no other

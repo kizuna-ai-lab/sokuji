@@ -22,8 +22,12 @@ inline void set_env_default(const char *name, const char *value) {
 inline void set_engine_env_defaults() {
     // echo_tts denoises every chunk over the full trained 640-latent (29.72 s) window unless
     // AUDIOCPP_ECHO_TTS_ADAPTIVE_WINDOW is set; the adaptive window sizes it from the text and
-    // retries at full length when that estimate runs out (community_models/echo_tts/
-    // session.cpp:84-112, 485-523). Choice (2026-10-06): on, so a few seconds of translated
+    // retries at full length when that estimate runs out
+    // (community_models/echo_tts/session.cpp:84-112, 503-523). Upstream leaves it off
+    // (session.cpp:485-501): the attention is non-causal, so a narrowed window changes every
+    // position, and a short window that ends in a plausible flat tail is never retried.
+    // Choice (2026-10-06): on, after a one-sentence A/B on a fixed seed (GB10 CPU: the same
+    // 3.25 s and transcript, 51 s of synthesis against 275 s), so a few seconds of translated
     // speech no longer pays for 29.72 s of denoising. A request's max_duration_sec would pin the
     // window and skip that retry (session.cpp:267-279, 503), cutting a long utterance mid-word.
     set_env_default("AUDIOCPP_ECHO_TTS_ADAPTIVE_WINDOW", "1");

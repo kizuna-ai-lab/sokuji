@@ -1,9 +1,9 @@
 # audio.cpp TTS parity gate (spec §9.2)
 
 `libsokuji_native`'s `sk_tts` links audio.cpp against OUR pristine upstream ggml (via
-`native/patches/audio.cpp.json`'s reuse patch, plus `native/src/audiocpp_compat.h`'s shim for
-the eight symbols audio.cpp's own ggml fork adds). This gate proves that swap is behavior
-preserving, by comparing `sk_tts`'s output against the OFFICIAL `audiocpp_cli` — built from
+`native/patches/audio.cpp.json`'s reuse patch, plus `native/src/audiocpp_compat.h`'s shims for
+the symbols audio.cpp's own ggml fork adds that our build reaches). This gate proves that swap
+is behavior preserving, by comparing `sk_tts`'s output against the OFFICIAL `audiocpp_cli` — built from
 the exact same vendored audio.cpp source, but completely unpatched, with audio.cpp's OWN fork
 ggml — on CPU, sample-exact where that is achievable and within a ±1-LSB (16-bit PCM)
 tolerance otherwise (see §3 for which case gets which, and why).
@@ -13,7 +13,7 @@ tolerance otherwise (see §3 for which case gets which, and why).
 found that audio.cpp's forked ggml 0.12.0 has a genuine bug — `ggml_vec_dot_f32`'s SVE
 tail-lane handling (`svmad_f32_m` instead of `svmla_f32_m`) silently corrupts F32 matmul
 accumulators whenever the reduction length isn't a multiple of 4 AND an SVE-capable CPU
-module gets selected. Our upstream ggml (0.25.3 as of native-v1.2.0) already has the fix and
+module gets selected. Our upstream ggml (0.26.0 as of native-v1.3.0) already has the fix and
 is correct. On any
 SVE-capable aarch64 box (this dev box included), that makes the OFFICIAL reference binary
 itself numerically wrong for some shapes — so both sides now run with the SVE-capable CPU

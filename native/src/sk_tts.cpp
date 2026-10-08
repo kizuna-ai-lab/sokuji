@@ -88,10 +88,10 @@ struct FamilyInfo {
     const char *preset_option;
 };
 
-// Baked-in per report §3/§4: streaming = omnivoice+supertonic only (report §2); clones =
-// every family except supertonic ("does not use external speaker references", report §3);
-// transcript_required = omnivoice AND qwen3_tts (ruling R15(s4)): omnivoice's
-// reference_text is mandatory whenever a ref clip is given (report §3); qwen3_tts's ICL
+// The first five rows, baked in per report §3/§4: streaming = omnivoice+supertonic only
+// (report §2); clones = every one except supertonic ("does not use external speaker
+// references", report §3); transcript_required = omnivoice AND qwen3_tts (ruling R15(s4)):
+// omnivoice's reference_text is mandatory whenever a ref clip is given (report §3); qwen3_tts's ICL
 // clone mode separately requires ref_text one level deeper, inside synth() itself, even
 // though this flag used to say otherwise (live-verified, task-7-report.md §3: "Qwen3
 // voice clone ICL mode requires reference text"). Flipping it here makes
@@ -101,8 +101,10 @@ struct FamilyInfo {
 // config-driven and could differ from a future checkpoint).
 //
 // sample_decode (Ruling R23, jiangzhuo 2026-09-01, .superpowers/moss-eoc-verdict.md):
-// moss_tts_nano ONLY. That investigation measured, on audio.cpp's own fork ggml with
-// SVE excluded (so the matmul is provably correct on both sides), that greedy/argmax
+// moss_tts_nano, for the reason below; moss_tts_local, chatterbox and miotts set it as well,
+// because their upstream defaults sample (each row cites where). That investigation
+// measured, on audio.cpp's own fork ggml with SVE excluded (so the matmul is provably
+// correct on both sides), that greedy/argmax
 // decoding of moss_tts_nano's end-of-content decision reaches audio.cpp's 300-frame /
 // 24.000s max_new_frames cap (measured directly once, E1; corroborated by the
 // pre-existing parity baseline's own greedy-decode runaway, not a fresh 3x repeat) for
@@ -113,13 +115,16 @@ struct FamilyInfo {
 // The runaway lives in local_frame_decoder.cpp's argmax-vs-sample choice between the
 // "continue" and "stop" logits, not in anything native/src/sk_tts.cpp or the ggml swap
 // introduced. MOSS is staying in the recommended roster (controller ruling, same date),
-// so it must not run away in production: sample instead of argmax for this family only.
+// so it must not run away in production: sample instead of argmax for this family.
 // Seed stays fixed at "0" regardless (see build_request) — sampling here means "not
 // argmax", not "not reproducible": a fixed seed still makes a given build's RNG stream,
 // and therefore its output, deterministic run to run.
 //
-// The four families below joined in the 2026-09-03 batch. Their flags come from
-// audio.cpp v0.7.1's own sources, not from the upstream model cards:
+// The four families below joined in the 2026-09-03 batch; their flags came from
+// audio.cpp v0.7.1's own sources, not from the upstream model cards. The rows after
+// index_tts2 joined in the 2026-10-06 roster and were read the same way from audio.cpp
+// 54aa279; each carries its own source cites, and where a family needs request handling of
+// its own, the branch in build_request or family_load cites the audio.cpp file it follows:
 //   voxcpm1     src/community_models/voxcpm1/session.cpp  offline+streaming; speaker
 //               reference optional (continuation-mode cloning, transcript optional via
 //               the reference_text request option); 16 kHz.
@@ -132,12 +137,12 @@ struct FamilyInfo {
 //               reference MANDATORY ("IndexTTS2 request requires --voice-ref or
 //               voice.speaker.audio"); 22.05 kHz. transcript_required stays false:
 //               the reference clip needs no transcript, only the clip itself. Making
-//               the missing clip a clean caller error is the sidecar's job
-//               (tts_backend._VOICE_REQUIRED_FAMILIES) — this ABI has no
-//               "clone is mandatory" capability bit to carry it.
+//               the missing clip a clean caller error is the sidecar's job (the card's
+//               voice_required) — this ABI has no "clone is mandatory" capability bit to
+//               carry it.
 //
-// strict_sends_ref_text, task and preset_option are false, Tts and nullptr for all nine rows
-// above: irodori_tts, the one strict family among them, declares no reference_text; every one
+// strict_sends_ref_text, task and preset_option are false, Tts and nullptr for the first nine
+// rows below: irodori_tts, the one strict family among them, declares no reference_text; every one
 // accepts a Tts session; and the three with presets (supertonic, pocket_tts, qwen3_tts
 // CustomVoice) take them through cached_voice_id.
 //
@@ -177,7 +182,8 @@ constexpr FamilyInfo kFamilies[] = {
     {"chatterbox",     false, true,  false, 24000, true,  false, false, FamilyTask::VoiceCloning, nullptr},
     // chatterbox_turbo (audio.cpp src/community_models/chatterbox_turbo/session.cpp): an
     // offline Tts session with one built-in voice; prepare() refuses a clip (:76-84); 24 kHz
-    // (:104); do_sample is not read.
+    // (:104); do_sample is not read. It reads no language: any text goes through its English
+    // BPE, so the card's language tuple and the renderer's filter are the only fence.
     {"chatterbox_turbo", false, false, false, 24000, false, false, false, FamilyTask::Tts, nullptr},
     // confucius4_tts (audio.cpp src/models/confucius4_tts/): a VoiceCloning session only
     // (session.cpp:173-175); the clip is mandatory and no transcript option exists
@@ -195,21 +201,26 @@ constexpr FamilyInfo kFamilies[] = {
     // neutts (audio.cpp src/models/neutts/): built-in speaker prompts read only from the voice_id
     // option, default emily (session.cpp:62-64; an unknown name throws, prompt.cpp:98-100); no
     // cloning in this port; strict; 24 kHz, its codec's output rate (session.cpp:281). Segment
-    // streaming gains nothing on one utterance, so offline.
+    // streaming gains nothing on one utterance, so offline. It reads no language: any text is
+    // tokenised by its English BPE, so the card's ("en",) and the renderer's filter are the only
+    // fence.
     {"neutts",         false, false, false, 24000, false, true,  false, FamilyTask::Tts, "voice_id"},
     // kugelaudio (audio.cpp src/models/kugelaudio/session.cpp): a Tts session that refuses voice
     // cloning (:24-26, a clip throws at :88-90); four preset voices through voice_id or
     // cached_voice_id (:86-97); strict; 24 kHz (:120). It streams only through a sink, so
-    // offline.
+    // offline. It reads no language; the card's tuple is the picker's gate only.
     {"kugelaudio",     false, false, false, 24000, false, true,  false, FamilyTask::Tts, nullptr},
     // higgs_audio_tts (audio.cpp src/models/higgs_audio_tts/): an offline Tts session
     // (session.cpp:150-156); a clip is optional (generator.cpp:205-221), its transcript too
     // (session.cpp:253-256); 24 kHz (include/engine/models/higgs_audio_tts/codec.h:81); with a
-    // seed its sampler is the host-side seeded one on every backend.
+    // seed its sampler is the host-side seeded one on every backend. It reads no language (its
+    // loader reports only "Auto", loader.cpp:33); the card's tuple is the picker's gate only.
     {"higgs_audio_tts", false, true,  false, 24000, false, false, false, FamilyTask::Tts, nullptr},
     // fish_audio (audio.cpp src/models/fish_audio/session.cpp): an offline Tts session only
     // (:306-312); a clip is optional but needs its transcript (:252-259); 44.1 kHz
     // (include/engine/framework/codecs/fish_dac_codec_runtime.h:28); random seed unless sent.
+    // It reads no language (its loader reports en/zh/auto, loader.cpp:27); the card's tuple is
+    // the picker's gate only.
     {"fish_audio",     false, true,  true,  44100, false, false, false, FamilyTask::Tts, nullptr},
     // breeze_tts (audio.cpp src/models/breeze_tts/): Tts, clone or design sessions, offline or
     // streaming (session.cpp:166-178); with a clip it clones and needs the clip's transcript
@@ -225,14 +236,17 @@ constexpr FamilyInfo kFamilies[] = {
     //             streaming (157, 217); no voice input at all; 32 kHz (vocoder.cpp:440);
     //             strict: prepare()/start_stream() validate every request option against the
     //             spec (150, 216), which declares seed but neither do_sample nor reference_text.
+    //             It never reads text_input.language; the card's ("en",) is the only fence.
     {"soprano_tts",    false, false, false, 32000, false, true,  false, FamilyTask::Tts, nullptr},
     // glm_tts     community_models/glm_tts/session.cpp: offline only; a clip AND its transcript are
-    //             both mandatory (430-441); 24 kHz HiFT (143); always samples, seed defaults to 0;
-    //             only glm_tts.* session keys are validated (47-58), request options are not.
+    //             both mandatory (430-441); 24 kHz HiFT (143); always samples (do_sample is not
+    //             read, so the column stays false), seed defaults to 0; only glm_tts.* session
+    //             keys are validated (47-58), request options are not.
     {"glm_tts",        false, true,  true,  24000, false, false, false, FamilyTask::Tts, nullptr},
     // outetts     community_models/outetts/session.cpp: offline; bare synth works, a clip is
     //             optional but needs its transcript (700-703, 731-734); 24 kHz DAC (dac.cpp:663);
-    //             always samples; only outetts.* session keys are validated.
+    //             always samples (do_sample is not read, so the column stays false); only
+    //             outetts.* session keys are validated.
     {"outetts",        false, true,  true,  24000, false, false, false, FamilyTask::Tts, nullptr},
     // echo_tts    community_models/echo_tts/session.cpp: offline; the session refuses a Tts task
     //             (229-232) and a missing clip (586-591), and takes no transcript; 44.1 kHz;
@@ -588,14 +602,16 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
         req.text_input->text = vibevoice_script(req.text_input->text);
 
     // Ruling R7(s4): deterministic synthesis by default — product behavior AND the parity
-    // harness's precondition (Task 3 compares this binding's output against the official
-    // CLI) — EXCEPT moss_tts_nano (Ruling R23, .superpowers/moss-eoc-verdict.md): greedy
-    // decode never reaches this checkpoint's own end-of-content token for ordinary input
-    // (measured: 300-frame/24.000s cap, once, E1; corroborated by the pre-existing parity
-    // baseline), while sampling does (measured: real EOC, 2.6-3.7s, 3/3, E2a/b/c, full
-    // correct transcript). The seed stays "0" for every family but the three that draw random
-    // flow noise at seed 0 (see the seed below) either way — t->sample_decode only picks argmax
-    // vs. sample for the two-logit stop decision, it does not reintroduce nondeterminism.
+    // harness's precondition (native/tests/parity compares this binding's output against the
+    // official CLI) — EXCEPT the sample_decode families: moss_tts_nano (Ruling R23,
+    // .superpowers/moss-eoc-verdict.md): greedy decode never reaches this checkpoint's own
+    // end-of-content token for ordinary input (measured: 300-frame/24.000s cap, once, E1;
+    // corroborated by the pre-existing parity baseline), while sampling does (measured: real
+    // EOC, 2.6-3.7s, 3/3, E2a/b/c, full correct transcript); and moss_tts_local, chatterbox and
+    // miotts, whose upstream defaults sample (their rows above). The seed stays "0" for every
+    // family but the three that draw random flow noise at seed 0 (see the seed below) either
+    // way — t->sample_decode only picks argmax vs. sample, it does not reintroduce
+    // nondeterminism.
     //
     // `do_sample` is skipped for a strict-options family (see FamilyInfo::strict_options):
     // model_specs/irodori_tts.json declares `seed` but not `do_sample`, and sending it
@@ -606,8 +622,9 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
     }
     // The two Chatterbox families and kitten_tts2 are given a nonzero seed. audio.cpp's
     // chatterbox choose_seed turns seed 0 into a std::random_device draw
-    // (src/models/chatterbox/component_weights.cpp:7-13) for its T3 sampler
-    // (components/t3_runtime.h:1416) and for the S3Gen flow noise (s3gen_inference.cpp:330-335);
+    // (src/models/chatterbox/component_weights.cpp:7-13) for its T3 sampler (TorchMt19937,
+    // components/t3_runtime.h:1416 at 54aa279; :1436 once audio.cpp.json's KV-cache patch is
+    // applied) and for the S3Gen flow noise (s3gen_inference.cpp:330-335);
     // the HiFT vocoder takes the seed verbatim. chatterbox_turbo fixes its own T3 at seed 0
     // (src/community_models/chatterbox_turbo/t3_turbo_component.cpp:141), but its flow noise
     // reuses chatterbox's choose_seed (s3gen_turbo.cpp:79-90). kitten_tts2 seeds its language
@@ -774,8 +791,9 @@ SK_API sk_status sk_tts_load(const char *model_path, const sk_device *device,
         // moss_tts_local's default ("auto") weight type expands the backbone to f32 on a CPU
         // backend (audio.cpp src/models/moss/moss_tts_local/session.cpp:150-183): one CPU synth of
         // the 7.5 GB q8_0 file peaked at 24.2 GB that way and at 13.1 GB with "native", which
-        // keeps the file's own weights (measured 2026-10-06). GPU backends already resolve "auto"
-        // to native.
+        // keeps the file's own weights (measured 2026-10-06). Vulkan and Metal already resolve
+        // "auto" to native; CUDA, which this build leaves off (ENGINE_ENABLE_CUDA), would pick
+        // bf16 (session.cpp:154-163).
         if (std::strcmp(info->name, "moss_tts_local") == 0)
             session_options.options["moss_tts_local.weight_type"] = "native";
 
@@ -895,9 +913,10 @@ SK_API sk_status sk_tts_set_preset(sk_tts *t, const char *name) {
     // supertonic's fixed style set via inspect(), pocket_tts's embeddings/ directory) —
     // validate against it so a typo fails immediately with a helpful message instead of
     // surfacing later as an opaque "unsupported speaker"-style exception at synth time.
-    // qwen3_tts (CustomVoice speaker names are not enumerable through this API, report §3),
-    // moss_tts_nano and omnivoice have no discoverable preset list at all, so stay permissive
-    // there and let the engine's own request validation apply at synth.
+    // Every other family has no list this API can enumerate (qwen3_tts's CustomVoice speakers,
+    // report §3, and the presets the sidecar card names for magpie_tts, neutts, kugelaudio,
+    // kitten_tts2 and lfm2_audio), so stay permissive there and let the engine's own request
+    // validation apply at synth.
     if (t->family == "supertonic" || t->family == "pocket_tts") {
         const bool known = std::find(t->preset_names.begin(), t->preset_names.end(), name) != t->preset_names.end();
         if (!known) {

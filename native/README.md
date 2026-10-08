@@ -1,9 +1,13 @@
 # sokuji-native
 
 One native library for the Sokuji sidecar: **transcribe.cpp** (ASR), **llama.cpp**
-(translation) and **audio.cpp** (TTS, nine families: moss_tts_nano, qwen3_tts, omnivoice,
-pocket_tts, supertonic, voxcpm1, voxcpm2, irodori_tts, index_tts2) linked into `libsokuji_native`
-behind the `sk_*` C ABI in `include/sokuji_native.h`, on top of one pristine upstream ggml
+(translation) and **audio.cpp** (TTS, thirty families: moss_tts_nano, qwen3_tts, omnivoice,
+pocket_tts, supertonic, voxcpm1, voxcpm2, irodori_tts, index_tts2, and since native-v1.3.0
+cosyvoice3, fireredtts3, moss_tts_local, vibevoice, chatterbox, chatterbox_turbo,
+confucius4_tts, magpie_tts, neutts, kugelaudio, higgs_audio_tts, fish_audio, breeze_tts,
+audio8_tts, soprano_tts, glm_tts, outetts, echo_tts, kitten_tts2, miotts, lfm2_audio) linked
+into `libsokuji_native` behind the `sk_*` C ABI in `include/sokuji_native.h`, on top of one
+pristine upstream ggml
 with dynamically loaded backends (CPU per-ISA modules, Vulkan on Linux/Windows, Metal on
 Apple Silicon). Design: `docs/superpowers/specs/2026-08-30-sidecar-ggml-only-design.md`.
 VAD lives in the renderer (a Web Worker running Silero VAD over ONNX Runtime), not here —
@@ -63,23 +67,34 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
   - `ggml-drop-sme.json` — drops the Linux armv9.2 +sme CPU variants when the compiler cannot build them
   - `ggml-drop-sme-apple.json` — drops the apple_m4 (+sme) CPU variant; Apple clang cannot build it
   - `ggml-gguf-bulk-array-read.json` — every lane; see [GGUF array reads](#gguf-array-reads)
-  - `ggml-metal-diag-mask-inf.json`, `ggml-metal-pad-leading.json` — metal lane only; see
+  - `ggml-metal-diag-mask-inf.json` — metal lane only; see
     [Metal (Apple Silicon)](#metal-apple-silicon). `SOKUJI_GGML_PATCH_SPEC` (set in
     `cmake/ggml_options.cmake`) is a **list**: ggml can carry an always-on portability spec
     and lane-specific ones at once, and `patch_upstream.py` concatenates every spec it is given.
   - `transcribe.cpp.json` — makes transcribe.cpp reuse our ggml target instead of building its own copy
-  - `audio.cpp.json` — makes audio.cpp reuse our ggml target instead of building its own copy, and
-    keeps its trace-log formatter off `std::to_chars(double)` (macOS 13.3+; the wheels target 11.0)
+  - `audio.cpp.json` — makes audio.cpp reuse our ggml target instead of building its own copy,
+    keeps its trace-log formatter off `std::to_chars(double)` (macOS 13.3+; the wheels target 11.0),
+    copies the fish_dac codec's permuted quantiser input on every backend but Vulkan (CPU binary
+    ops assert a contiguous src0) and its first/last-frame slices on every backend (Vulkan's
+    SCALE needs a contiguous src0), does the same for audio8_tts's copy of those slices, and
+    zeroes the chatterbox and chatterbox_turbo T3 KV caches once after allocation (unwritten
+    slots otherwise reach the attention). Each entry's comment sits inside its `new` text, which
+    `patch_upstream.py` takes as the already-applied marker, so editing one means restoring that
+    upstream file in every tree's `_deps/audiocpp-src` and reconfiguring each tree.
 - `src/audiocpp_compat.h` — the bridge between audio.cpp's forked ggml (base 0.12.0) and the
-  pristine upstream ggml we build on (0.25.3 as of native-v1.2.0). Two kinds of difference, and
+  pristine upstream ggml we build on (0.26.0 as of native-v1.3.0). Two kinds of difference, and
   the second is the dangerous one; read the header comment before touching it.
   - the **seven symbols the fork adds** at the 0.12→0.22 gap (ruling R11), provided here. Two
     of them reproduce the fork's graph node for node rather than aliasing a nearby upstream
     call. native-v1.2.0's audio.cpp bump (0.7.1 → 0.8.2-audio8-perf-hotfix) widened the fork's
-    own private surface to 28 functions and 7 enum types against ggml 0.25.3; section (D) shims
-    the ones our nine families and `engine_core` (`src/framework/**`) actually reach, and
-    section (E) stubs the rest just enough to link — reaching one is a bug, not a fallback, the
-    same rule the MiniMax-H3 stubs in (A) already used.
+    own private surface to 28 functions and 7 enum types against ggml 0.25.3, and
+    native-v1.3.0's (→ main at 54aa279) to 29 and 8 against ggml 0.26.0. The header shims the
+    ones our families and `engine_core` (`src/framework/**`) actually reach — section (D), and
+    since native-v1.3.0 audio8_tts's `ggml_snake_1d` (F) and the fork's 8-argument
+    `ggml_ssm_scan` (G) — and section (E) stubs the rest our build names just enough to link —
+    reaching one is a bug, not a fallback, the same rule the MiniMax-H3 stubs in (A) already
+    used. The fork-only functions left unshimmed are named only by models we never compile
+    (`vibeasr`, `reuse`); a family that names one fails to build.
   - **four shared symbols whose behaviour upstream changed** (`ggml_conv_1d`,
     `ggml_conv_1d_dw`, `ggml_conv_2d`, `ggml_conv_3d`, ruling R11). Upstream materialises
     the conv's im2col buffer in F16 where the fork uses the kernel's dtype — same name, same
@@ -98,7 +113,9 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
     rescan against ggml 0.25.3 found 22 differing bodies (20 → 22); the two new ones are
     harmless (`ggml_nbytes` adds bytes only for the fork's own I8_S/I2_S types, and
     `ggml_permute` is upstream's `int` → `int64_t`/`size_t` widening), so section (B) itself is
-    unchanged.
+    unchanged. The native-v1.3.0 rescan (audio.cpp 54aa279 against ggml 0.26.0) found 23: the
+    new one, `ggml_set_input`, now asserts upstream that its tensor is a `GGML_OP_NONE` leaf —
+    a robustness check that changes no value — so (B) is unchanged again.
 - `src/sokuji_native.map` / `src/sokuji_native.exports` — the exported-symbol lists
   (Linux / macOS) that keep everything but `sk_*` inside the library.
 - `ci/check_single_ggml.py` — run by `build.sh` on Linux and macOS, before `strip`, against the
@@ -119,7 +136,7 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
   plus the headers and CMake config 22.04's own packages lack or don't ship). Point CMake
   at it with `VULKAN_SDK=<prefix>` and `CMAKE_PREFIX_PATH=<prefix>`; see the script's own
   header for the full rationale, exact pins and output layout.
-- `src/sk_selftest.cpp` — `sk_audio_families()`, reporting every family compiled in (companions such as `marblenet_vad` / `moss_tts_local` ride along with the selected ones; the sidecar catalog decides what is supported).
+- `src/sk_selftest.cpp` — `sk_audio_families()`, reporting every loader audio.cpp's registry holds: the selected families' plus `silero_vad` and `marblenet_vad`, which audio.cpp always registers. A target a family's `DEPENDS` links in (miotts's `miocodec` and `qwen3_asr`) registers no loader and is not listed; the sidecar catalog decides what is supported.
 - `src/sk_internal.h` — internal-only helpers shared by the `sk_*.cpp` files (locking, the
   device table, `own_directory()`, the log sink); never installed.
 - `src/sk_env.h` — the engine environment switches whose defaults sokuji chooses (echo_tts's
@@ -191,33 +208,47 @@ CTest needs a real chat GGUF for `test_translate` (skips with exit code 77 when 
 
 ## TTS (slice 4)
 
-**TTS** — seven entry points, one loaded model per handle, over audio.cpp's nine kept
-families (`moss_tts_nano`, `qwen3_tts`, `omnivoice`, `pocket_tts`, `supertonic`, and since
-2026-09-03 `voxcpm1`, `voxcpm2`, `irodori_tts`, `index_tts2`):
+**TTS** — seven entry points, one loaded model per handle, over audio.cpp's thirty kept
+families (`moss_tts_nano`, `qwen3_tts`, `omnivoice`, `pocket_tts`, `supertonic`, since
+2026-09-03 `voxcpm1`, `voxcpm2`, `irodori_tts`, `index_tts2`, and since native-v1.3.0 the
+twenty-one listed at the top of this file), one `kFamilies[]` row each in `src/sk_tts.cpp`:
 `sk_tts_load` opens a model with a REQUIRED `family` (audio.cpp's `family_hint` — always
 pass it explicitly, family auto-detection is fragile and order-dependent) and creates one
 long-lived session at load time, offline or streaming depending on the family
 (`sk_tts_capabilities().streaming`: `omnivoice`, `supertonic`, `voxcpm1` and `voxcpm2`
-stream, the other five are offline-only); `sk_tts_capabilities` reports
-streaming/clones/transcript_required
-and the family's default sample rate (48000 moss+voxcpm2+irodori / 24000
-qwen3+omnivoice+pocket / 44100 supertonic / 22050 index_tts2 / 16000 voxcpm1 — always read
-the rate off each `sk_audio_cb` call too, these are technically
+stream, every other family is offline-only); `sk_tts_capabilities` reports
+streaming/clones/transcript_required (the row's, except that a `qwen3_tts` checkpoint
+advertising no speaker reference, CustomVoice, reports neither clones nor transcript_required)
+and the family's default sample rate (from 16000 for `voxcpm1` to 48000 for `moss_tts_nano`,
+`voxcpm2`, `irodori_tts` and `moss_tts_local`; each family's is its `kFamilies[]` row — always
+read the rate off each `sk_audio_cb` call too, these are technically
 config-driven per checkpoint); `sk_tts_presets` lists named preset voices (supertonic's
-fixed `M1`-`M5`/`F1`-`F5` style set, or pocket_tts's `embeddings/*.safetensors` — the other
-seven families have no enumerable presets and return zero names); `sk_tts_set_voice` stores
-a reference clip (+ optional transcript, mandatory for `omnivoice` and `qwen3_tts` — ruling
-R15(s4): qwen3_tts's ICL clone mode requires it too) and `sk_tts_set_preset`
+fixed `M1`-`M5`/`F1`-`F5` style set, or pocket_tts's `embeddings/*.safetensors` — every other
+family returns zero names, and a card whose engine takes presets this cannot list names them
+in the sidecar card's `presets`); `sk_tts_set_voice` stores
+a reference clip (+ optional transcript, mandatory where `transcript_required` is set:
+`omnivoice`, `qwen3_tts` — ruling R15(s4): qwen3_tts's ICL clone mode requires it too —
+`fireredtts3`, `fish_audio`, `breeze_tts`, `audio8_tts`, `glm_tts`, `outetts` and
+`kitten_tts2`) and `sk_tts_set_preset`
 stores a preset id — both apply to every subsequent `sk_tts_synth` call on the handle until
 the other is set (each clears the other); `sk_tts_synth` runs greedy/deterministic synthesis
-(`seed=0`, `do_sample=false`) for every family EXCEPT `irodori_tts` (which validates every
-request option against its own model spec and does not declare `do_sample`, so only `seed=0`
-is sent — see `sk_tts.cpp`'s `build_request`) and `moss_tts_nano`, which runs sampled
-decoding (`seed=0`, `do_sample=true` — Ruling R23, `.superpowers/moss-eoc-verdict.md`: greedy
+(`seed=0`, `do_sample=false`) for every family EXCEPT two kinds, each a `kFamilies[]` column.
+The `strict_options` families (`irodori_tts`, and twelve in all since native-v1.3.0) validate
+every request option against their own model spec, so `do_sample` is never sent to them —
+only the seed and what the spec declares, e.g. the transcript as `reference_text` where
+`strict_sends_ref_text` is set (see `sk_tts.cpp`'s `build_request`). The `sample_decode`
+families run sampled decoding (`do_sample=true`): `moss_tts_nano` — Ruling R23,
+`.superpowers/moss-eoc-verdict.md`: greedy
 argmax decode never reaches this checkpoint's own end-of-content token for ordinary input,
 running to the 300-frame/24.000s `max_new_frames` cap instead; sampling reaches real EOC in
-2.6-3.7s). The fixed seed keeps output deterministic per build either way — sampling only
-changes argmax-vs-sample for the stop decision, not run-to-run reproducibility. Either way,
+2.6-3.7s — and, since native-v1.3.0, `moss_tts_local`, `chatterbox` and `miotts`, whose
+upstream defaults sample too. Some families added at native-v1.3.0 always sample and never
+read `do_sample` (`audio8_tts`, `glm_tts`, `outetts`, `lfm2_audio`), so their `sample_decode`
+stays false. The seed is `0` for every family but
+`chatterbox`, `chatterbox_turbo` and `kitten_tts2`, which get `1`: their engines turn seed 0
+into a random draw for their flow noise (and chatterbox's for its T3 sampler too). The fixed
+seed keeps output deterministic per build either way — sampling only changes argmax-vs-sample,
+not run-to-run reproducibility. Either way,
 `sk_tts_synth` delivers f32 interleaved PCM through `sk_audio_cb`:
 offline families call it exactly once with the whole buffer, streaming families call it once
 per pulled chunk (audio.cpp's streaming is "pull text-chunks, not push audio-frames" — one
@@ -237,6 +268,17 @@ theirs is a no-op; and `irodori_tts` / `index_tts2` read the `language` REQUEST 
 instead, so `build_request` sets that one for them — fixed `"ja"` for irodori (any other
 value throws) and the caller's lowercased ISO code for index_tts2, without which its 2.5
 tokenizer guesses "zh if the text has Han characters, else en" and mislabels Japanese.
+`chatterbox_turbo`, `neutts`, `kugelaudio`, `higgs_audio_tts`, `fish_audio` and `soprano_tts`
+read no language either: a code their model does not speak is synthesised anyway, so the
+card's language tuple and the renderer's filter are the only fence.
+
+Since native-v1.3.0 a non-empty `sk_tts_options.language` at load is a **forced language**:
+`sk_tts_load` keeps it on the handle and every `sk_tts_synth` uses it in place of the caller's
+`language`, for every family except `pocket_tts`, whose load language is its language package
+(`english`, ...). A card sets it as `load_language` when its engine needs one fixed code the
+app never sends (VoiceTut's Egyptian Arabic `arz`, on `omnivoice`; `auto` for LFM2.5-Audio).
+The other per-family language rules added then are branches in `build_request`; read it
+before changing any route.
 
 Model directories: `sk_tts_load`'s `model_path` may be a `.gguf` file directly, or a
 directory holding exactly one. Self-sufficiency is a **per-file** property, not a per-family
@@ -259,9 +301,20 @@ unchanged here: pass the HF cache's `snapshots/.../*.gguf` symlink path as given
 right `.gguf` extension and audio.cpp's existence check follows symlinks) — never resolve it
 down to the extension-less `blobs/<hash>` file.
 
+Two families since native-v1.3.0 need more than that one file. `miotts` reads its MioCodec
+GGUF through the `miotts.codec_model_path` session option, which `sk_tts_load` sets to the
+codec's path in the sibling `MioCodec-25Hz-44.1kHz-v2-GGUF` folder (`src/sk_tts_companions.h`,
+shared with the op recorder). `lfm2_audio` loads the directory holding its four per-quant
+files, the backbone named by `lfm2_audio.model_gguf` (`family_load` in `src/sk_tts.cpp`). The
+sidecar stages a card's `companions` at their repo-relative paths under the same staging root
+as its main GGUF, so both are where the engine looks.
+
 Test model directories: every `SK_TEST_TTS_<X>_DIR` is `~/.cache/sokuji-native-tests/tts/<card id>/`
 and holds ONE quant of one card. That is its main GGUF plus any companion files the card stages
-beside it (per-quant components, a codec), laid out the way the sidecar stages them. Such a
+beside it (per-quant components, a codec), laid out the way the sidecar stages them. A rung that
+spans two folders of its repo keeps both under the card directory, and the variable names the
+main GGUF's folder: `SK_TEST_TTS_MIOTTS_DIR` is `tts/miotts-1.7b/MioTTS-1.7B-GGUF`, its codec in
+the sibling `MioCodec-25Hz-44.1kHz-v2-GGUF`. Such a
 directory is never handed to `sk_tts_load` as a directory: with more than one `.gguf` in it,
 audio.cpp cannot tell which file is the model. The harness passes the main GGUF *file* instead, as
 the sidecar does in production. The main GGUF is **the largest `.gguf` directly inside the
@@ -307,11 +360,11 @@ keeps the file's dtype. The only weight-type option Sokuji passes is `moss_tts_l
 set to `native`, so every family loads at its own default storage, `Native` wherever a family
 does not choose another. llama.cpp and transcribe.cpp load the file's dtype as is. So for stage
 `tts` on `vulkan` or `metal`, `bf16` is asked as `f16`; every other dtype, stage and target is
-unchanged. The exception is a family with a raw-typed
-device weight path, one that builds a device weight past that conversion: the file's own type
-handed to `make_tensor` (qwen3_tts's speech-decoder `output_proj`, kugelaudio's `lm_head`), a
-derived tensor stored at the file's dtype (index_tts2), or a non-Native default
-storage (moss_voicegen). For those a `bf16` is asked both as `bf16` and as `f16`. The list, each
+unchanged. The exception is a family with a raw-typed device weight path, one that builds a
+device weight past that conversion: the file's own type handed to `make_tensor` (qwen3_tts's
+speech-decoder `output_proj`, kugelaudio's `lm_head`), a derived tensor stored at the file's
+dtype (index_tts2), or a non-Native default storage (moss_voicegen). For those a `bf16` is
+asked both as `bf16` and as `f16`. The list, each
 entry with its audio.cpp source lines, is `kRawTypedWeightFamilies` in `src/sk_ops_format.cpp`;
 it comes from reading every loader under audio.cpp's `src/models` and `src/community_models`,
 not from the recordings, and a pin bump re-reads them.
@@ -320,9 +373,9 @@ One helper, `sk_ops_loaded_weight_dtypes` (`src/sk_ops.h`), holds the rule and i
 `sk_ops_asked_weight_dtypes` applies it to a set, deduplicating after mapping, so `{bf16, f16}`
 asks f16 once. `sk_device_supports_ops` expands WEIGHT over that set. `sk_record_end_to_file`
 takes `# dtypes-in-file:` through it for the device that ran each live WEIGHT before the guard
-checks it. A device WEIGHT ran on the
-recording's `# recorded-on:` device, so on Vulkan a live f16 is covered by a file's bf16 and a
-live bf16 is refused unless the family is on the list. A WEIGHT tagged `host` ran on the CPU and
+checks it. A device WEIGHT ran on the recording's `# recorded-on:` device, so on Vulkan a live
+f16 is covered by a file's bf16 and a live bf16 is refused unless the family is on the list. A
+WEIGHT tagged `host` ran on the CPU and
 is checked against the file's set unmapped. The guard sees a raw-typed path only when the
 recorded file holds bf16 there: qwen3_tts is recorded from a 0.6B file whose `output_proj` is f32,
 while the 1.7B q8_0_v2 and bf16 rungs hold it in bf16. The header itself, the cards' `rung_dtypes`
@@ -340,10 +393,9 @@ a bf16 rung whose file holds no f32 matrix. A convolution kernel is not one: `gg
 higgs_audio_tts's f32 positional conv is recorded as a literal f32 and asked as such. So for
 stage `tts`, on every device, `sk_ops_asked_weight_dtypes` adds f32 to the set when it lacks it,
 a safeguard for every such path: the query asks every WEIGHT node in f32 as well, and the guard
-accepts a live f32 WEIGHT.
-asr and translate are unchanged, and `# dtypes-in-file:` stays the files' own dtypes (owner's
-ruling 2026-10-07). f32 `MUL_MAT` and `GET_ROWS` are supported on every device, so this
-lengthens the query without changing an answer today.
+accepts a live f32 WEIGHT. asr and translate are unchanged, and `# dtypes-in-file:` stays the
+files' own dtypes (owner's ruling 2026-10-07). f32 `MUL_MAT` and `GET_ROWS` are supported on
+every device, so this lengthens the query without changing an answer today.
 
 A recording keeps one line per node identity (op, op params, dtypes, each tensor's `ne[0]` and
 layout, host side). The sequence axes `ne[1..3]` and a strided view's `nb` merge as per-axis
@@ -356,12 +408,13 @@ line's `maxbytes`, the line also carries the identity's largest real occurrence,
 `maxbytes` was measured on: `real0=`, `real1=` and `reald=`, plus `realnb0=`/`realnb1=`/`realnbd=`
 for a strided layout. The query rebuilds that occurrence instead (`sk_op_uses_largest`,
 `src/sk_ops.h`; ruling 2026-10-07). Every other line is written as before. `test_ops_format`
-rebuilds every node of every shipped recording and fails on one asked about a tensor larger than
-its `maxbytes`, so a recording taken before the rule cannot ship. The occurrence is not the
-identity's least contiguous shape, as the maxima are (an extent-1 axis counts as contiguous), so
-the same test also rebuilds each such node from its maxima and fails a layout predicate that
-differs, unless the op's `supports_op` reads none on Vulkan, Metal and CPU (its allowlist cites
-the pinned source lines).
+rebuilds every node of every shipped recording and fails on one whose rebuilt dst, or a src0 or
+src1 that is not a `WEIGHT`, is larger than its `maxbytes`, so a recording taken before the rule
+cannot ship with such a node; a `WEIGHT` takes the query's dtype, so its size is not compared.
+The occurrence is not the identity's least contiguous shape, as the maxima are (an extent-1 axis
+counts as contiguous), so the same test also rebuilds each such node from its maxima and fails a
+layout predicate that differs, unless the op's `supports_op` reads none on Vulkan, Metal and CPU
+(its allowlist cites the pinned source lines).
 
 CTest needs two real model directories for `test_tts` (skips with exit code 77 when absent).
 Note: supertonic's Q8_0 GGUF is not currently viable (audio.cpp `docs/gguf.md`: "Q8 blockers
@@ -384,8 +437,9 @@ binary and run the suite.
 ## GGUF array reads
 
 `ggml-gguf-bulk-array-read.json` is the one **always-on, every-lane** ggml patch. ggml
-0.25.3's GGUF reader still fills an array KV one element at a time (re-verified at the
-native-v1.2.0 bump) —
+0.26.0's GGUF reader still fills an array KV one element at a time (re-verified at the
+native-v1.3.0 bump; 0.26.0's faster GGUF loading replaced the duplicate-key and
+duplicate-tensor-name scans, not this loop) —
 `gguf_reader::read(std::vector<T> &, n)` loops `read(dst[i])`, and each of those is a
 `read_raw` through the reader callback, i.e. one *locked* `fread()` per element. audio.cpp
 stores a model's sidecar files as a single `audiocpp.embedded_files.data` UINT8 array KV
@@ -417,13 +471,13 @@ page-cache reads instead of 57 M stdio calls each, so they no longer dominate.
 
 ## Metal (Apple Silicon)
 
-The metal lane patches **two op kernels back into our vendored upstream ggml**, through the
+The metal lane patches **one op kernel back into our vendored upstream ggml**, through the
 same `native/patches/*.json` mechanism the SME drops use, and only when
-`SOKUJI_GPU_RESOLVED` is `metal` (both specs touch `src/ggml-metal/`, which no other lane
+`SOKUJI_GPU_RESOLVED` is `metal` (the spec touches `src/ggml-metal/`, which no other lane
 compiles):
 
-- **`ggml-metal-diag-mask-inf.json`** — ggml 0.25.3's Metal backend still implements
-  `GGML_OP_DIAG_MASK_INF` *not at all* (re-verified at the native-v1.2.0 bump): no
+- **`ggml-metal-diag-mask-inf.json`** — ggml 0.26.0's Metal backend still implements
+  `GGML_OP_DIAG_MASK_INF` *not at all* (re-verified at the native-v1.3.0 bump): no
   `supports_op` case, no kernel. ggml-cpu,
   ggml-vulkan and ggml-cuda all have it; Metal is the only backend that dropped it, because
   llama.cpp itself moved to masked `soft_max_ext` and stopped needing it. audio.cpp did not:
@@ -432,33 +486,27 @@ compiles):
   ones for our five families are `moss_tts_nano`'s global transformer and local frame decoder
   and `qwen3_tts`'s `qwen_decoder`. The spec restores the kernel Metal used to carry — it is
   still in audio.cpp's own fork — so it puts back an op every other backend has rather than
-  inventing one.
-- **`ggml-metal-pad-leading.json`** — ggml 0.25.3's Metal `GGML_OP_PAD` still pads only at the
-  END of an axis (re-verified at the native-v1.2.0 bump; `supports_op` rejects any non-zero
-  leading pad), while ggml-cpu and ggml-vulkan implement the full lp/rp form `ggml_pad_ext`
-  builds. `qwen3_tts`'s speech-tokenizer decoder
-  pads *causally* (`left_pad = kernel_extent - stride`, `tokenizer_speech_decoder.cpp`'s
-  `causal_conv1d`), so every one of its depthwise convs is a leading pad. The spec teaches
-  `kernel_pad_impl` the leading pads with exactly ggml-cpu's non-circular semantics —
-  including walking `src0` through `nb00` instead of assuming an element stride of
-  `sizeof(T)`, which a permuted `src0` really does reach here; circular padding stays
-  unimplemented, as upstream leaves it. Both kernels were checked against the CPU reference
-  with ggml's own `test-backend-ops` — DIAG_MASK_INF 3/3, PAD 21/21 non-circular (the 6
-  `circular=1` cases report "not supported", as they do upstream). Those runs were made
-  during the experiment phase on an Apple M4, from a ggml tree patched with the
-  diag-mask-inf spec **byte for byte as it ships here** and the pad spec differing only by a
-  later-added `GGML_ASSERT(args.lp0 % 4 == 0)` inside the `pipeline.c4` branch, which ggml
-  0.22.0 never enters (`is_c4` is hard-coded `false`) — so the kernels measured are the
-  kernels built. They are not re-run per build: treat them as evidence about the kernels,
-  not as a gate that runs in CI.
+  inventing one. At audio.cpp 54aa279 the framework's attention and decoder modules still
+  build it, and so do six of the families added at native-v1.3.0 (`vibevoice`,
+  `confucius4_tts`, `chatterbox`, `chatterbox_turbo`, `miotts`, `lfm2_audio`). It was checked
+  against the CPU reference with ggml's own `test-backend-ops` (DIAG_MASK_INF 3/3), on an
+  Apple M4 during the experiment phase, from a ggml 0.22.0 tree patched with the spec **byte
+  for byte as it ships here**; that run is evidence about the kernel, not a gate that runs in CI.
+
+The second gap the same families hit, a leading-edge `GGML_OP_PAD` (`qwen3_tts`'s
+speech-tokenizer decoder pads causally, so every one of its depthwise convs is a leading pad),
+is upstream since ggml 0.26.0 (46fc5b3b, "metal: support left and circular padding in
+GGML_OP_PAD", which also reads a permuted source through `nb00`), so the spec that carried it
+is gone. Upstream's own `test-backend-ops` gained the leading-pad case; it is the check to run
+on an M4 if `qwen3_tts` misbehaves on Metal.
 
 **Why a single missing kernel is fatal here and nowhere else.** transcribe.cpp and llama.cpp
 drive ggml through `ggml_backend_sched`, which splits an unsupported node onto CPU. audio.cpp
 0.7.0 has **zero** references to it: every runtime pins weights plus its `ggml_gallocr`
 compute buffer to one backend and calls `ggml_backend_graph_compute` directly, so
 `ggml_metal_op_encode_impl` logs `unsupported op '<OP>'` and calls `GGML_ABORT` — SIGABRT of
-the whole process, not a catchable `NativeError`. That structural gap is not closed by these
-patches; they close the two holes our five families actually hit.
+the whole process, not a catchable `NativeError`. That structural gap is not closed by this
+patch; it and upstream's leading-edge PAD close the two holes our five original families hit.
 
 Two supporting changes ride along: `sokuji_ggml_sub` (in `src/audiocpp_compat.h`) now
 `ggml_cont`s **`src1`** as well as `src0` — Metal's `supports_op` demands
@@ -489,9 +537,10 @@ despite reporting `Apple7`, the fix is scoped — drop that family's `gpu-metal`
 Every "five families" claim in this GPU section is the **original** five as measured on
 2026-09-02. The four added on 2026-09-03 (`voxcpm1`, `voxcpm2`, `irodori_tts`, `index_tts2`)
 arrived cpu-only and earned their `gpu-vulkan`/`gpu-metal` rows the same evening (commit
-2f2b28bc) the same way — one fleet run per family per lane — so all nine are in
-`_TTS_TIER_OVERRIDES` today (the
-measured RTF table sits beside that dict). The next family starts cpu-only again.
+2f2b28bc) the same way — one fleet run per family per lane — so those nine are in
+`_TTS_TIER_OVERRIDES` (the measured RTF table sits beside that dict). The twenty-one families
+added at native-v1.3.0 arrived cpu-only too and earn a lane's row only from their own fleet
+run on it; that dict, not this file, says where each may run.
 
 The gate itself is `test_tts_synthesises_on_a_gpu_device` in
 `python/tests/test_sokuji_native.py`: gated on `SK_TEST_TTS_GPU=1`, it places each family
@@ -560,10 +609,14 @@ together. That is the owner's decision. Stop and report the family's counts inst
    version, and the tag/version match is checked by `native-build.yml`.
 5. Op recordings (`src/ops/*.ops`, spec A §3.2): configure `build/record` with
    `-DSOKUJI_RECORD_OPS=ON`, run `bash ci/ops-env.sh ctest --test-dir build/record -R test_ops_coverage`
-   with every cached model present — a DIFF means the engine's graph changed; re-record that
-   family with `build/record/lib/record_ops` (see tests/record_ops.cpp for the argument order)
-   and commit the new .ops file with the bump. **TTS re-recording happens on a GPU box**: the
-   nine tts recordings are taken with the model on a real non-host device, because audio.cpp
+   with every cached model present. The gate compares each node's spelling (op, params,
+   dtypes), its src0 `ne[0]` and its host side, so a DIFF means one of those moved: the
+   engine's graph changed, or, when the "now uses" and "no longer uses" lines differ only in
+   shapes, the run did (a seed the family turns into a random draw, or an intended seed or LM
+   change). Re-record that family with `build/record/lib/record_ops` (see tests/record_ops.cpp
+   for the argument order), twice more into scratch files, and commit the new .ops file with the
+   bump only when all three are byte-identical (`cmp`). **TTS re-recording happens on a GPU box**:
+   every tts recording is taken with the model on a real non-host device, because audio.cpp
    builds a different graph for a host backend than for a device one (`uses_host_graph_plan` /
    `is_host_backend`: f16 conv kernels and bf16→f16 casts on host, f32 on a device). Configure
    `build/record-vk` with `-DSOKUJI_GPU=vulkan -DSOKUJI_RECORD_OPS=ON` (or `metal` on macOS)
@@ -574,10 +627,11 @@ together. That is the owner's decision. Stop and report the family's counts inst
    included, is re-recorded on every bump (2026-10-06 ruling), so each file's `# engine:` line
    names the engines it was last checked against; a re-recording that did not drift changes
    only that line.
-   All nine TTS families are cached under
-   `~/.cache/sokuji-native-tests/tts/` — `ci/ops-env.sh` reads that path from
+   Every TTS family's test model is cached under
+   `~/.cache/sokuji-native-tests/tts/<card-id>/` — `ci/ops-env.sh` reads that root from
    `$SOKUJI_NATIVE_TEST_CACHE`, defaulting to `$HOME/.cache/sokuji-native-tests`, so set the
-   variable if the cache lives elsewhere — and MUST be re-recorded on every bump.
+   variable if the cache lives elsewhere — and every family MUST be re-recorded on every bump,
+   so each family's model has to be present when a pin moves.
    `test_ops_coverage` gates every family whose `SK_TEST_*` model is set — on a CPU-only tree
    that is asr/translate — and a family with a model but no `.ops` file FAILS the gate;
    asr/translate families are recorded as their models become available, and the sidecar-side
@@ -593,6 +647,19 @@ together. That is the owner's decision. Stop and report the family's counts inst
    transcribe.cpp did to v0.2.4 on 2026-09-25), pin the release **commit** instead of the tag
    and drop `GIT_SHALLOW` for that one upstream, so a shallow fetch does not go looking for a
    commit the tag no longer names.
+7. Re-read what no test re-derives, against the new sources:
+   - `kRawTypedWeightFamilies` (`src/sk_ops_format.cpp`), against every loader under audio.cpp's
+     `src/models` and `src/community_models`;
+   - the layout allowlist in `tests/test_ops_format.cpp` (`reads_no_layout_predicate`), against
+     the CPU, Vulkan and Metal `supports_op` branches it cites;
+   - `src/audiocpp_compat.h`'s rescan (its header says how), including that upstream
+     `ggml_ssm_scan` with K = 1 still means the fork's single-state scan (G), and that
+     `ggml_snake_1d` is still fork-only and its caller's non-fused fallback still the body (F)
+     copies;
+   - `moss_tts_local.weight_type=native`, which `sk_tts_load` sets so a CPU load keeps the file's
+     weights instead of expanding them to f32: that the option and its `native` value still exist
+     (`src/models/moss/moss_tts_local/session.cpp`). No test checks the CPU memory, and "auto"
+     resolves to native only on Vulkan and Metal (CUDA, which this build leaves off, picks bf16).
 
 ## Release
 
@@ -622,5 +689,18 @@ transcribe.cpp's v0.2.4 tag was re-pointed twice upstream on 2026-09-25 (CI/pack
 commits), so that pin alone is the release commit `7d37cea2` fetched WITHOUT
 `GIT_SHALLOW`; the other three pins stay shallow. `sk_asr` leaves PnC/ITN at `DEFAULT`
 (unchanged); transcribe.cpp 0.2.4 turns `DEFAULT` on for sensevoice/canary (#157), so those
-two now output cased, punctuated text by default. Current native version is 1.2.0 (ABI
-unchanged at 2).
+two now output cased, punctuated text by default. `native-v1.3.0` moves ggml to 0.26.0,
+transcribe.cpp to 0.3.1, llama.cpp to v0.6.0 and audio.cpp to main at 54aa279 (version string
+`0.9.0+54aa279`; no tag names that commit, so it is fetched without `GIT_SHALLOW`, like
+transcribe.cpp), and compiles twenty-one more TTS families, thirty in all. Engine side:
+`transcribe.cpp.json` gains a third hunk dropping transcribe.cpp's backend-registration filter
+(handy-computer/transcribe.cpp#186; its hook exists only in transcribe's own patched ggml);
+`sk_asr` keeps the transcript of a run transcribe.cpp 0.3's repetition guard cut short
+(`TRANSCRIBE_ERR_OUTPUT_REPETITION`) instead of failing it; `audiocpp_compat.h` gains the fork's
+`GGML_MUL_MAT_LOWERING_VULKAN_F32_INPUTS`, an aborting 7-argument `ggml_gated_delta_net`
+(reached only by models we do not build), audio8_tts's `ggml_snake_1d` and the fork's
+8-argument `ggml_ssm_scan`; `audio.cpp.json` gains the fish_dac, audio8_tts and chatterbox
+entries; the Metal leading-pad patch is gone, upstream since ggml 0.26.0; `sk_tts` gains three
+`kFamilies[]` columns (`strict_sends_ref_text`, `task`, `preset_option`) and a forced load
+language; and every op recording was re-recorded at the bump. Current native version is 1.3.0
+(ABI unchanged at 2).

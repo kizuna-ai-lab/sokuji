@@ -39,8 +39,10 @@ class PlanConfig:
     """Declarative per-load hints, read from the resolved catalog card and the rung a Plan
     loads, consumed by backends at load time: native_translate reads the two thinking flags
     and prompt_family (which of its three prompt strategies to use); native_tts reads
-    tts_family (sk_tts_load's required family_hint), tts_language (pocket_tts's load-time
-    language package, e.g. "english"; ignored by every other family), and tts_extra_files
+    tts_family (sk_tts_load's required family_hint), tts_language (the card's load_language:
+    pocket_tts's load-time language package, e.g. "english"; for any other family a language
+    sk_tts uses in place of the caller's on every synth, e.g. VoiceTut's "arz"), and
+    tts_extra_files
     (ruling R18(s4)): the repo-relative (path, bytes) of every file the rung needs
     hard-link-staged beside its gguf -- its own companions (spec stage 2.2) and the card's
     extra_files, e.g. pocket-tts-en's PocketTTS-GGUF/english/embeddings/alba.safetensors (see

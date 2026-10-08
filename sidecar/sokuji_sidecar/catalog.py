@@ -97,11 +97,12 @@ RUNG_FALLBACK_DTYPES: dict[str, frozenset[str]] = {
     "q8_0":   frozenset({"q8_0", "bf16", "f16", "f32"}),
     "f16":    frozenset({"f16", "f32"}),
     "bf16":   frozenset({"bf16", "f16", "f32"}),
-    # Rung labels audio.cpp's own conversions use (sub-project A's cards), each set read from
-    # the published files' headers on 2026-10-06: an `orig` file keeps the checkpoint's own
-    # float types (f32, or f32+bf16 for NeuTTS-2E); `f32` is all f32 (CosyVoice3);
-    # KugelAudio's `q4_k` holds q4_K+bf16+f16; Breeze-TTS-2's `q4_0` holds q4_0+bf16+f16+f32,
-    # and LFM2.5-Audio's Q4_0 keeps its token embedding at q6_K (its own documentation).
+    # Rung labels audio.cpp's own conversions use (the cards added 2026-10-06). Each set covers
+    # what the published files' headers held on 2026-10-06, widened to every float type a rung
+    # of that label may carry: an `orig` file keeps the checkpoint's own float types (f32, or
+    # f32+bf16 for NeuTTS-2E); `f32` is all f32 (CosyVoice3); KugelAudio's `q4_k` holds
+    # q4_K+bf16+f16; Breeze-TTS-2's `q4_0` holds q4_0+bf16+f16+f32, and LFM2.5-Audio's Q4_0
+    # keeps its token embedding at q6_K (its own documentation).
     "orig":   frozenset({"bf16", "f16", "f32"}),
     "f32":    frozenset({"f32"}),
     "q4_k":   frozenset({"q4_K", "bf16", "f16", "f32"}),
@@ -687,14 +688,18 @@ class License:
 
 @dataclass(frozen=True)
 class TtsModel(_ModelBase):
-    family: str = ""                  # sk_tts_load's family_hint: moss_tts_nano | qwen3_tts | omnivoice |
-                                      # pocket_tts | supertonic | voxcpm1 | voxcpm2 | irodori_tts | index_tts2
-    load_language: str = ""           # pocket_tts's load-time language package ("english", ...); "" elsewhere
+    family: str = ""                  # sk_tts_load's family_hint: a kFamilies[] name in
+                                      # native/src/sk_tts.cpp (native/README.md lists them)
+    load_language: str = ""           # pocket_tts: its load-time language package ("english", ...).
+                                      # Any other family: a forced language sk_tts uses in place of
+                                      # the caller's on every synth (VoiceTut: "arz"); "" = none.
     clones: bool = False              # zero-shot voice cloning from a reference clip (sk_tts_set_voice)
     streaming: bool = False           # intra-utterance audio-delta streaming (R5: MOSS is offline-only)
     sample_rate: int = 24000          # audio.cpp's native rate for this family
     named_voices: bool = False        # sk_tts_presets returns a non-empty, curated list (dropdown)
-    transcript_required: bool = False  # sk_tts_set_voice's ref_text is mandatory (omnivoice, qwen3_tts -- R15(s4))
+    transcript_required: bool = False  # sk_tts_set_voice's ref_text is mandatory for this card's clips
+                                       # (omnivoice, qwen3_tts's Base cards -- R15(s4) -- and every
+                                       # family whose kFamilies[] row sets it)
     license: License | None = None    # non-standard license terms; None = no restriction
     # (relative-to-artifact-dir filename, size_bytes) sidecar assets sk_tts_presets
     # discovers next to the loaded gguf (pocket-tts-en's embeddings/alba.safetensors);
@@ -712,8 +717,8 @@ class TtsModel(_ModelBase):
     default_preset: str = ""
     # (rung, dtypes) the pre-download op-coverage query expands WEIGHT over for that rung, read
     # from the matrix tensors of the published main GGUF and its companion GGUFs; a rung
-    # without an entry asks RUNG_FALLBACK_DTYPES. () for the cards that predate sub-project A
-    # (owner's ruling 2026-10-06, op-coverage precision).
+    # without an entry asks RUNG_FALLBACK_DTYPES. () for the fourteen cards that predate the
+    # 2026-10-06 roster (owner's ruling 2026-10-06, op-coverage precision).
     rung_dtypes: tuple[tuple[str, frozenset[str]], ...] = ()
 
 
@@ -764,12 +769,14 @@ class TtsModel(_ModelBase):
 #   confucius4_tts  (2026-10-06) "Confucius4-TTS voice cloning requires speaker reference audio
 #               or cached_voice_id" (audio.cpp src/models/confucius4_tts/request.cpp:140-143); a
 #               VoiceCloning session only, and no transcript option.
-#   glm_tts     (sub-project A) run() refuses without a clip ("GLM-TTS requires --voice-ref
+#   glm_tts     (2026-10-06) run() refuses without a clip ("GLM-TTS requires --voice-ref
 #               reference audio") and without its transcript; no built-in voice.
-#   echo_tts    (sub-project A) its session is voice-cloning only and refuses without a clip
+#   echo_tts    (2026-10-06) its session is voice-cloning only and refuses without a clip
 #               ("Echo-TTS requires speaker reference audio"). Needs the CLIP only.
-#   miotts      (sub-project A) run() refuses without a clip ("MioTTS run() requires voice
+#   miotts      (2026-10-06) run() refuses without a clip ("MioTTS run() requires voice
 #               speaker audio"); no built-in voice. Needs the CLIP only.
+# breeze_tts is not a member: its engine designs a voice when given no clip, so its card
+# requires one instead (voice_required=True).
 VOICE_REQUIRED_FAMILIES = frozenset({"qwen3_tts", "omnivoice", "index_tts2", "cosyvoice3", "fireredtts3",
                                      "chatterbox", "confucius4_tts", "glm_tts", "echo_tts", "miotts"})
 
@@ -785,8 +792,9 @@ def voice_capability(model: "TtsModel") -> dict:
     `required` is its own axis and always present, because it is NOT derivable
     from the other two: moss_tts_nano, voxcpm1, voxcpm2 and irodori_tts all
     report builtin=none + custom=clip (they clone and expose no presets) and yet
-    speak fine with nothing set, while qwen3_tts/omnivoice/index_tts2 report the
-    identical shape and cannot. The renderer's pre-init gate used to infer it
+    speak fine with nothing set, while qwen3_tts's Base cards, omnivoice, index_tts2
+    and the other voice-required cards report the identical shape and cannot. The
+    renderer's pre-init gate used to infer it
     from that shape and so refused to start TTS for the four ungated ones. It is
     emitted unconditionally (unlike transcriptRequired) so an absent field means
     "sidecar too old to say", not "false"."""
@@ -816,10 +824,10 @@ def license_dict(model: "TtsModel") -> dict | None:
     }
 
 
-# The fourteen cards that predate sub-project A are single-file GGUFs from audio.cpp's official
-# mirror, verified 2026-09-01 (the first ten) and 2026-09-03 (the four added then) via the HF
-# tree API (`GET api/models/audio-cpp/audio.cpp-gguf/tree/main/<dir>`) — every (dir, file) pair
-# below resolves to a real LFS object and the byte count shown is its exact `lfs.size`.
+# The fourteen cards that predate the 2026-10-06 roster are single-file GGUFs from audio.cpp's
+# official mirror, verified 2026-09-01 (the first ten) and 2026-09-03 (the four added then) via
+# the HF tree API (`GET api/models/audio-cpp/audio.cpp-gguf/tree/main/<dir>`) — every (dir,
+# file) pair below resolves to a real LFS object and the byte count shown is its exact `lfs.size`.
 # Cross-checked against the repo's own `model_specs/<family>.json` package list (vendored at
 # native/build/cpu/_deps/audiocpp-src/model_specs/) for the curated default per family and, for
 # pocket_tts, exactly which languages ship a preset asset (see the pocket-tts-en row below).
@@ -829,14 +837,15 @@ def license_dict(model: "TtsModel") -> dict | None:
 _AUDIOCPP_GGUF_REPO = "audio-cpp/audio.cpp-gguf"
 
 # Ruling 4 (2026-10-06): a GGUF hosted outside audio.cpp's official mirror is downloaded from
-# its own repo, pinned to one commit, so the bytes a card names cannot change under it. Every
-# Hub call the sidecar makes on the TTS path -- download, status, size, delete, load, the
-# load-free voice listing -- passes revision=hub_revision(repo): a download at a commit hash
-# writes snapshots/<sha>/ and no refs/main, so a lookup of "main" would read it as absent
-# forever. The official mirror is not pinned: hub_revision() returns None for it, the Hub's
-# own default, so what users already downloaded keeps resolving through refs/main.
-# Commits read from GET api/models/<repo> on 2026-10-06; every byte count a card carries for
-# one of these repos is read at the same commit
+# its own repo, pinned to one commit, so the bytes a card names cannot change under it; an ASR
+# or translation repo is pinned the same way when its head no longer holds a card's files.
+# Every Hub call the sidecar makes for a native TTS, ASR or translation card -- download,
+# status, size, delete, load, the load-free voice listing -- passes
+# revision=hub_revision(repo): a download at a commit hash writes snapshots/<sha>/ and no
+# refs/main, so a lookup of "main" would read it as absent forever. The official mirror is not
+# pinned: hub_revision() returns None for it, the Hub's own default, so what users already
+# downloaded keeps resolving through refs/main. Every byte count a card carries for one of
+# these repos is read at its pinned commit
 # (benchmark/qwen3-asr-webgpu/hub_sizes.py <repo> <out.json> <sha>).
 PINNED_REVISIONS: dict[str, str] = {
     "js-byte/Audio8-TTS-Preview-0.6b-GGUF": "788f6fdb0bbdbbc407c63f3265cea9875b4a7c14",
@@ -888,12 +897,13 @@ TTS_STAGING_DIRNAME = "sokuji-tts-staging"
 # GGML_OP_NORM gate, not a real-hardware finding.)
 #
 # `_TTS_TIERS` below is the cpu-only default for any family not listed in
-# `_TTS_TIER_OVERRIDES` — it exists for the NEXT family, which starts cpu-only
-# until it, too, earns a tier through real-GPU evidence (one fleet run per
-# family per lane, R19). Today it is dormant: all nine shipped families are in
-# that dict — the four added on 2026-09-03 (voxcpm1, voxcpm2, irodori_tts,
-# index_tts2) arrived cpu-only and earned their rows the same evening (commit
-# 2f2b28bc) once the native-1.0.2 wheels were validated per family on the fleet. A family that
+# `_TTS_TIER_OVERRIDES` — every new family starts cpu-only until it, too, earns
+# a tier through real-GPU evidence (one fleet run per family per lane, R19). The
+# nine families shipped before native 1.3.0 are all in that dict — the four added
+# on 2026-09-03 (voxcpm1, voxcpm2, irodori_tts, index_tts2) arrived cpu-only and
+# earned their rows the same evening (commit 2f2b28bc) once the native-1.0.2 wheels
+# were validated per family on the fleet. Each family added with native 1.3.0
+# arrived cpu-only too and joins that dict only through its own fleet run. A family that
 # fails every GPU lane loses its card rather than keeping a tier it cannot serve.
 _TTS_TIERS = ("cpu",)
 
@@ -1011,7 +1021,8 @@ _TTS_TIERS = ("cpu",)
 # The mac row holds only AFTER slice-5b task 1's two Metal kernel patches
 # (before them moss/qwen3/omnivoice aborted): the resurrected
 # GGML_OP_DIAG_MASK_INF/PAD kernels (ruling R30 — native/patches/ggml-metal-
-# {diag-mask-inf,pad-leading}.json) plus audiocpp_compat.h's ggml_sub now
+# diag-mask-inf.json, and a leading-pad spec beside it until ggml 0.26.0 took that
+# kernel upstream) plus audiocpp_compat.h's ggml_sub now
 # ggml_cont-ing src1 too (Metal wants both operands row-contiguous) took the
 # M4 from 2/5 aborting to 5/5 clean.
 #
@@ -1096,8 +1107,8 @@ _TTS_TIERS = ("cpu",)
 #   supertonic      NO (f16 only)       n/a           n/a
 #
 # 4/4 on both devices, so no family loses its bf16 GPU rung; the ladders below
-# are unchanged. qwen3-tts-1.7b was not loaded — same family, same graph, same
-# tensor types as the 0.6b that was. Numbers:
+# are unchanged. qwen3-tts-1.7b was not loaded — same family and graph as the
+# 0.6b that was, though its rungs hold no f32 matrix where the 0.6b's do. Numbers:
 # .superpowers/sdd/2026-09-02-sidecar-ggml-only-slice5b-debt/final-fixwave-report.md.
 _TTS_TIER_OVERRIDES: dict[str, tuple[str, ...]] = {
     "moss_tts_nano": ("gpu-vulkan", "gpu-metal", "cpu"),
@@ -1261,7 +1272,8 @@ SUPERTONIC_LANGS = ("en", "ko", "ja", "ar", "bg", "cs", "da", "de", "el", "es", 
 # higgs_audio_tts.json); the vendor's card names 102, in two tiers, all under 10% WER/CER.
 # These are the ones the Local Native language picker can offer (getLocalInferenceLanguages,
 # read 2026-10-06), as app codes: Tagalog is "fil". A language the picker cannot offer would
-# be unreachable on this card anyway.
+# be unreachable on this card anyway. The engine reads no language (its loader reports only
+# "Auto"), so this tuple is the picker's gate and nothing more.
 HIGGS_LANGS = ("af", "ar", "az", "bg", "bn", "bs", "ca", "cs", "cy", "da", "de", "el", "en",
                "es", "et", "fa", "fi", "fil", "fr", "gl", "gu", "he", "hi", "hr", "hu", "id",
                "is", "it", "ja", "jv", "ka", "kk", "kn", "ko", "lb", "lt", "lv", "mk", "ml",
@@ -1272,7 +1284,8 @@ HIGGS_LANGS = ("af", "ar", "az", "bg", "bn", "bs", "ca", "cs", "cy", "da", "de",
 # Fish Audio S2 Pro: audio.cpp exposes "80+ languages" with no list (model_specs/
 # fish_audio.json); the vendor's card names 83. These are the ones the Local Native language
 # picker can offer (getLocalInferenceLanguages, read 2026-10-06), as app codes: Tagalog is
-# "fil" and the card's Javanese "jw" is "jv".
+# "fil" and the card's Javanese "jw" is "jv". The engine reads no language (its loader reports
+# en/zh/auto), so this tuple is the picker's gate and nothing more.
 FISH_LANGS = ("af", "am", "ar", "az", "bg", "bn", "bs", "ca", "cs", "cy", "da", "de", "el",
               "en", "es", "et", "fa", "fi", "fil", "fr", "gl", "gu", "he", "hi", "hr", "hu",
               "id", "is", "it", "ja", "jv", "ka", "kk", "km", "kn", "ko", "lt", "lv", "ml",
@@ -1322,9 +1335,9 @@ TTS_MODELS: list[TtsModel] = [
         {"f16": ("supertonic-3-f16.gguf", 312784196)},
         default_quant="f16", order=1, clones=False, streaming=True,
         sample_rate=44100, named_voices=True, recommended=True),
-    # Base checkpoint (audio.cpp's dedicated "...-Base-GGUF" repo — NOT
-    # CustomVoice/VoiceDesign, which are separate GGUF repos/families as far
-    # as sk_tts_load's family_hint is concerned): clones from a reference
+    # Base checkpoint (audio.cpp's dedicated "...-Base-GGUF" folder; the
+    # CustomVoice checkpoint, a card of its own below, loads under the same
+    # qwen3_tts family_hint): clones from a reference
     # clip, no discoverable presets. ref_text IS mandatory (R15(s4)) — the
     # base checkpoint has no default built-in voice at all (it must always
     # clone) and its ICL clone mode separately requires ref_text one level
@@ -1462,8 +1475,8 @@ TTS_MODELS: list[TtsModel] = [
          "f16": ("irodori-tts-v4-small-f16.gguf", 1762148352)},
         default_quant="q8_0", order=12, clones=True, streaming=False,
         sample_rate=48000),
-    # IndexTTS 2.5: offline, 22.05 kHz, and the only card here whose reference
-    # clip is MANDATORY -- audio.cpp exposes no built-in voices for it and its
+    # IndexTTS 2.5: offline, 22.05 kHz, and the first card here whose reference
+    # clip is MANDATORY without a transcript -- audio.cpp exposes no built-in voices for it and its
     # request parser refuses without one, so the card's voice_required (its family's rule)
     # makes tts_backend raise a clean error before the native layer. `clones=True` with
     # `transcript_required=False`: it needs the clip, not a transcript of it.
@@ -1490,7 +1503,7 @@ TTS_MODELS: list[TtsModel] = [
             non_commercial=False,
             source_repo=_AUDIOCPP_GGUF_REPO,
             attribution="bilibili IndexTeam")),
-    # ---- 2026-10-06 roster expansion (sub-project A) --------------------------
+    # ---- 2026-10-06 roster expansion -----------------------------------------
     # New audio.cpp families, and new cards on families already compiled in. A new family
     # arrives cpu-only (no _TTS_TIER_OVERRIDES entry, so `_tts_gguf_row` gives it the default
     # `_TTS_TIERS = ("cpu",)`) and earns its GPU tiers from one fleet run per lane (ruling 8);
@@ -1526,7 +1539,7 @@ TTS_MODELS: list[TtsModel] = [
         rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}}),
     # MOSS-TTS-Local v1.5: speaks with nothing set; a clip is optional and needs no
     # transcript; 48 kHz stereo. Its 31 languages are the vendor's table, with Tagalog as the
-    # app's "fil" (the code Intl gives "tl"). bf16 (13.4 GB) is left out.
+    # app's "fil" (audio.cpp's spec calls it "tl"). bf16 (13.4 GB) is left out.
     _tts_gguf_row(
         "moss-tts-local-1.5", "MOSS-TTS-Local v1.5",
         ("zh", "yue", "en", "ar", "cs", "da", "nl", "fi", "fr", "de", "el", "he", "hi", "hu",
@@ -1584,8 +1597,8 @@ TTS_MODELS: list[TtsModel] = [
         sample_rate=24000,
         rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}}),
     # Confucius4-TTS (NetEase Youdao): clone-only (a VoiceCloning session), no transcript; the
-    # vendor's 14 languages, of which audio.cpp normalises text for en and zh and runs the rest
-    # as its own best-effort cross-language paths. Published as one F32 file ("orig").
+    # vendor's 14 languages, of which en and zh get audio.cpp's dedicated text normalisation and
+    # the rest its generic path. Published as one F32 file ("orig").
     _tts_gguf_row(
         "confucius4", "Confucius4-TTS",
         ("zh", "en", "ja", "ko", "de", "fr", "es", "id", "it", "th", "pt", "ru", "ms", "vi"),
@@ -1640,8 +1653,9 @@ TTS_MODELS: list[TtsModel] = [
             attribution="Neuphonic")),
     # KugelAudio 0 Open: four preset voices (default and clear are German, english_female and
     # english_male British English, per its card), no cloning; the vendor's 23 European
-    # languages, strongest in es/fr/en/de. q8_0 is audio.cpp's default package; q4_k is the
-    # smaller rung; bf16 (17.3 GB) is left out.
+    # languages, strongest in es/fr/en/de. The engine reads no language, so the tuple is the
+    # picker's gate only. q8_0 is audio.cpp's default package; q4_k is the smaller rung; bf16
+    # (17.3 GB) is left out.
     _tts_gguf_row(
         "kugelaudio-0", "KugelAudio 0 Open",
         ("en", "de", "fr", "es", "it", "pt", "nl", "pl", "ru", "uk", "cs", "ro", "hu", "sv",
@@ -1732,7 +1746,7 @@ TTS_MODELS: list[TtsModel] = [
             source_repo=_AUDIOCPP_GGUF_REPO,
             attribution="Fish Audio (fishaudio)")),
     # Breeze-TTS 2 (BreezeBlue), clone mode only: with a clip it clones and needs the clip's
-    # transcript; with none it designs a voice from an instruction, which is sub-project C's,
+    # transcript; with none it designs a voice from an instruction, which the app does not offer,
     # so the card itself requires a clip (the engine would not refuse a bare synth, so the
     # family is not in VOICE_REQUIRED_FAMILIES). The two packages audio.cpp's pinned spec
     # lists; the Hub folder's newer q4_0 file is not one of them. The BreezeBlue Research and
@@ -1754,7 +1768,7 @@ TTS_MODELS: list[TtsModel] = [
             source_repo=_AUDIOCPP_GGUF_REPO,
             attribution="BreezeBlue")),
 
-    # ---- Sub-project A, batch 4 (2026-10-06) ---------------------------------
+    # ---- 2026-10-06 roster expansion, third-party repos -----------------------
     # Third-party GGUFs come from their own repos, each pinned to one commit in
     # PINNED_REVISIONS (ruling 4); every byte count is the exact Hub size AT that commit.
     # A new family starts CPU-only (no _TTS_TIER_OVERRIDES entry) until the fleet has run it
@@ -1887,7 +1901,7 @@ TTS_MODELS: list[TtsModel] = [
             non_commercial=True,
             source_repo="mohammedaly22/VoiceTut-TTS-GGUF",
             attribution="k2-fsa/OmniVoice")),
-    # ---- Sub-project A, batch 5 (2026-10-06) ---------------------------------
+    # ---- 2026-10-06 roster expansion, multi-file rungs ------------------------
     # MioTTS 1.7B (Apache-2.0) with MioCodec 25 Hz 44.1 kHz v2 (MIT), from audio.cpp's official
     # mirror (unpinned, like every card from it): English and Japanese, offline, 44.1 kHz,
     # clone-only from a clip with no transcript (VOICE_REQUIRED_FAMILIES). The codec rides along

@@ -290,8 +290,9 @@ int main(int argc, char **argv) {
     // proved nothing about the real sets — every family holds i32/i64 index tables, and ggml's
     // Vulkan backend refuses to MUL_MAT those.
     //
-    // Every one of the nine families is asserted: all nine synthesise on this fleet's real GPUs,
-    // so all_supported == 1 is the ground truth and there is no may-refuse list. Round 2 removed
+    // Every family is asserted. The nine of native-v1.2.0 synthesise on this fleet's real GPUs
+    // and every later family's recording was taken on one, so all_supported == 1 is the ground
+    // truth and there is no may-refuse list. Round 2 removed
     // the two exceptions round 1 had to carry, by fixing what produced them:
     //   * pocket_tts refused CONV_TRANSPOSE_1D[f16,f32] and CPY[bf16,f16] because the recording
     //     was taken with the model on the CPU — audio.cpp keeps f16 conv kernels and casts

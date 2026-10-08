@@ -126,9 +126,9 @@ def test_init_sets_the_echo_adaptive_window_default_at_the_c_level(preset, expec
 @needs_tree
 def test_audio_families():
     families = sokuji_native.audio_families()
-    # This build compiles in every audio.cpp family, including companions that ride
-    # along with a selected one (controller Ruling 8), so the exact list is longer than
-    # our ten targets — assert the ten required names are present and the list is sorted.
+    # The registry also holds audio.cpp's two always-registered VADs, so the exact list is
+    # longer than our TTS families — assert every kFamilies[] name and silero_vad are present
+    # and the list is sorted.
     # "silero_vad" stays in this set even though sokuji-native dropped sk_vad_*: audio.cpp
     # always compiles silero_vad in regardless of AUDIOCPP_MODELS (see upstreams.cmake), so
     # the family rides along unused, reported by sk_audio_families() but never called.
@@ -672,7 +672,7 @@ def test_tts_moss_offline_and_clone():
 
 # The four families added on 2026-09-03. One CPU synth per family, same shape as the two
 # hand-written tests above and pinned to the CPU device because these ARE the CPU synth
-# cases; the GPU gate for all nine families is test_tts_synthesises_on_a_gpu_device below
+# cases; the GPU gate for every family is test_tts_synthesises_on_a_gpu_device below
 # (their catalog.py _TTS_TIER_OVERRIDES rows came from that fleet run, commit 2f2b28bc).
 #
 # One CpuTtsCase per card (columns below).
@@ -872,8 +872,9 @@ def test_tts_new_family_accepts_a_clip_that_carries_a_transcript(case):
     assert float(np.max(np.abs(samples))) > 0.01
 
 
-# Both Chatterbox families draw their noise from audio.cpp's chatterbox choose_seed, which
-# turns seed 0 into a random draw: build_request gives each a fixed nonzero seed, so two
+# Both Chatterbox families draw their S3Gen flow noise (and chatterbox its T3 sampling too;
+# chatterbox_turbo fixes its own T3 at seed 0) through audio.cpp's chatterbox choose_seed,
+# which turns seed 0 into a random draw: build_request gives each a fixed nonzero seed, so two
 # synths of the same text on one session are sample-identical (ruling R7(s4)).
 SEEDED_CPU_TTS_CASES = [c for c in NEW_CPU_TTS_FAMILIES if c.family in ("chatterbox", "chatterbox_turbo")]
 

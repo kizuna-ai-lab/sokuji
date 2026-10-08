@@ -90,7 +90,7 @@ fi
 
 JOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu)"
 
-# ggml 0.25.3 (as of native-v1.2.0) hard-codes two armv9.2+sme CPU-kernel variants on
+# ggml 0.26.0 (as of native-v1.3.0) hard-codes two armv9.2+sme CPU-kernel variants on
 # arm64/Linux. GCC (11 and 13,
 # at least) rejects `+sme` outright — native/cmake/ggml_options.cmake documents the same wall
 # for OUR separately-fetched ggml copy and works around it by applying
@@ -112,8 +112,8 @@ fi
 # Flags mirror native/cmake/upstreams.cmake's audio.cpp block as closely as a standalone
 # configure allows, so the only deliberate difference from our own build is the ggml source:
 #   - AUDIOCPP_MODEL_SET/MODELS: the five families the parity suite compares — a subset of
-#     the nine sokuji_native links (native/cmake/upstreams.cmake AUDIOCPP_MODELS); the four
-#     2026-09-03 families have no parity case yet.
+#     the families sokuji_native links (native/cmake/upstreams.cmake AUDIOCPP_MODELS); the
+#     others, from voxcpm1 on, have no parity case yet.
 #   - CPU only, deployment build, no native model manager: matches upstreams.cmake verbatim.
 #   - ENGINE_ENABLE_CPU_ALL_VARIANTS=ON (audio.cpp's own default is OFF): our build gets this
 #     behavior for free because native/cmake/ggml_options.cmake configures ggml itself, before

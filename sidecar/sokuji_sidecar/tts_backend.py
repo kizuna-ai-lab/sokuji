@@ -1,14 +1,15 @@
 """Native TTS backend (spec §5.3/§5.5): sokuji_native's TtsModel wraps audio.cpp's
-nine families in-process (moss_tts_nano, qwen3_tts, omnivoice, pocket_tts,
-supertonic, voxcpm1, voxcpm2, irodori_tts, index_tts2). One class covers every
+TTS families in-process (every family with a kFamilies[] row in native/src/sk_tts.cpp;
+native/README.md lists them). One class covers every
 family: capability differences (streaming vs offline, clones or not, native sample
 rate) are read off the loaded model's `.capabilities` once, at load(), and stored as
 instance attributes that shadow the class defaults — tts_engine reads
 STREAMING/CLONES/sample_rate per instance, exactly so a single `native_tts` NAME can
-serve all nine families. Which family loads is
+serve every family. Which family loads is
 picked by the catalog card via PlanConfig.tts_family (sk_tts_load's required
-family_hint); PlanConfig.tts_language is pocket_tts's load-time language package
-("english", ...), ignored by every other family.
+family_hint); PlanConfig.tts_language is the card's load_language: pocket_tts's
+load-time language package ("english", ...), and for any other family a language
+sk_tts uses in place of the caller's on every synth.
 
 model_ref is the artifact "org/repo/<dir>/<file>.gguf" (or "org/repo/<file>.gguf" at a
 repo's root) the catalog resolves to. The files a rung needs besides it arrive in
@@ -696,7 +697,8 @@ class NativeTtsBackend:
         """Store the per-synth language hint (sk_tts_synth's own `language`
         argument) — passed on every subsequent generate()/generate_stream() call,
         not load-time state on the handle. Distinct from PlanConfig.tts_language,
-        pocket_tts's LOAD-time package choice already consumed by load()."""
+        the card's LOAD-time language already handed to load(): pocket_tts's package
+        choice, or a forced language sk_tts uses in place of this one."""
         self._language = lang or None
 
     def list_builtin_voices(self) -> list:

@@ -62,8 +62,8 @@ export const MAX_CLIP_SECONDS = 20;
  *  auto-stop, import rejection). Models not listed use the defaults above. */
 const MODEL_CLIP_LIMITS: Record<string, { min?: number; max?: number }> = {
   // OmniVoice's non-AR decode degrades past ~8s of reference (garbled words,
-  // then collapse) — the sidecar caps at 8s (higgs.MAX_REF_SECONDS), so let
-  // users record/import only what will actually be used.
+  // then collapse; seen on the ONNX-era backend, not re-measured on audio.cpp).
+  // Nothing downstream trims a longer clip, so the store caps it.
   'omnivoice-0.6b': { max: 8 },
   // audio.cpp caps a VibeVoice voice prompt at 10s on every backend but CUDA/HIP
   // (src/models/vibevoice/session.cpp:25-26); Sokuji hands it the clip in memory, which skips

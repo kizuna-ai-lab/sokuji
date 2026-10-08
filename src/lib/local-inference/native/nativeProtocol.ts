@@ -3,7 +3,7 @@ export interface ReadyMsg {
   type: 'ready'; id: number; sampleRate?: number; loadTimeMs: number;   // sampleRate only on audio (ASR/TTS) ready; translate_init omits it
   backend?: string; device?: string; computeType?: string; rtf?: number; tokensPerSec?: number; memoryBytes?: number; fallbackReason?: string;
   streaming?: boolean; clones?: boolean;
-  family?: string;   // native_tts only: the resolved card's family (moss_tts_nano | qwen3_tts | omnivoice | pocket_tts | supertonic | voxcpm1 | voxcpm2 | irodori_tts | index_tts2)
+  family?: string;   // native_tts only: the resolved card's audio.cpp family (a kFamilies[] name in native/src/sk_tts.cpp)
 }
 export interface NativeTier { tier: string; backend: string; available: boolean; }
 /** Non-standard license terms on a model card, as catalog.license_dict emits them.
@@ -26,10 +26,12 @@ export interface NativeModelInfo {
   order: number; repo: string; kind: 'asr' | 'translate' | 'tts';
   clones?: boolean; streaming?: boolean;   // tts only
   /** tts only; native_tts has no style-vector custom voice equivalent.
-   *  `required` (catalog.VOICE_REQUIRED_FAMILIES) is its OWN axis, not a shape
+   *  `required` (the card's voice_required, by default
+   *  catalog.VOICE_REQUIRED_FAMILIES) is its OWN axis, not a shape
    *  inference: moss_tts_nano, voxcpm1, voxcpm2 and irodori_tts all report
    *  builtin 'none' + custom 'clip' and still speak with nothing set, while
-   *  qwen3_tts/omnivoice/index_tts2 report the identical shape and cannot.
+   *  qwen3_tts's Base cards, omnivoice, index_tts2 and the other clone-only
+   *  families report the identical shape and cannot.
    *  Optional here only because a sidecar older than 2026-09-03 does not send
    *  it — absent means "cannot say", not "false" (see requiresVoiceClip). */
   voice?: { builtin: 'none' | 'named'; custom: 'none' | 'clip'; required?: boolean; transcriptRequired?: boolean };

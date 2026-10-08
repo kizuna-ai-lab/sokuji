@@ -53,9 +53,10 @@ export type VoiceCustom = 'none' | 'clip';
 export interface VoiceCapability {
   builtin: VoiceBuiltin;
   custom: VoiceCustom;
-  /** The model cannot speak until a clip/preset is set (the sidecar's R16
-   *  `catalog.VOICE_REQUIRED_FAMILIES`). Optional: a sidecar older than
-   *  2026-09-03 does not send it, and absent means "cannot say". */
+  /** The model cannot speak until a clip/preset is set (the sidecar's R16: the
+   *  card's `voice_required`, by default `catalog.VOICE_REQUIRED_FAMILIES`).
+   *  Optional: a sidecar older than 2026-09-03 does not send it, and absent
+   *  means "cannot say". */
   required?: boolean;
   transcriptRequired?: boolean;
 }
@@ -76,8 +77,9 @@ export function voiceCapability(model: NativeModelInfo | undefined): VoiceCapabi
 }
 
 /** True when a TTS model produces no audio at all until the user records/imports
- *  a usable clip — the sidecar's R16 `catalog.VOICE_REQUIRED_FAMILIES`
- *  (qwen3_tts, omnivoice, index_tts2), reported on the wire as
+ *  a usable clip — the sidecar's R16 card flag `voice_required` (by default
+ *  `catalog.VOICE_REQUIRED_FAMILIES`: qwen3_tts, omnivoice, index_tts2 and the
+ *  clone-only families added with native 1.3.0), reported on the wire as
  *  `voice.required`. Pairs with an eligible-clip count (respecting
  *  `transcriptRequired` — a clip with no transcript doesn't count for a model
  *  that needs one) to decide whether that clip actually exists yet.
