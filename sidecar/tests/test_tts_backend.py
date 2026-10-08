@@ -280,7 +280,7 @@ def native_env(monkeypatch, tmp_path):
     # calling tts_load() -- that needs a REAL file on disk, not a bare string.
     # Pre-create every path this test file's two fixed model_ref shapes (REF, and
     # the bare-filename artifact) ever resolve to, as a SYMLINK into a separate
-    # blobs/ directory -- exactly the shape a real HF snapshot_download() produces
+    # blobs/ directory -- exactly the shape a real HF cache lookup returns
     # (a content-addressed blob store the snapshot symlinks into), not a plain
     # file. This is deliberate, not incidental: a plain file would have hidden the
     # platform-specific os.link()-vs-symlink bug _stage_for_native() now works
@@ -301,15 +301,19 @@ def native_env(monkeypatch, tmp_path):
     import huggingface_hub.constants as _hfc
     monkeypatch.setattr(_hfc, "HF_HUB_CACHE", str(tmp_path / "hub"))
 
-    created = {"model_factory": _FakeTtsModel, "caps": _caps(), "snap_dir": str(snap_dir)}
+    created = {"model_factory": _FakeTtsModel, "caps": _caps(), "snap_dir": str(snap_dir),
+               "lookups": []}
 
-    def fake_snapshot_download(repo, allow_patterns=None, local_files_only=None, revision=None):
-        created["snapshot_call"] = (repo, allow_patterns, local_files_only)
-        created["snapshot_revision"] = revision
-        return str(snap_dir)
+    def fake_hf_hub_download(repo, fname, revision=None, local_files_only=False):
+        # The snapshot's files, looked up locally; the snapshot's directory name, "snap", is
+        # the staging key's revision.
+        created["lookups"].append((repo, fname, revision, local_files_only))
+        if not (snap_dir / fname).exists():
+            raise FileNotFoundError(fname)
+        return str(snap_dir / fname)
 
     import huggingface_hub
-    monkeypatch.setattr(huggingface_hub, "snapshot_download", fake_snapshot_download)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", fake_hf_hub_download)
 
     def fake_tts_load(path, family, device=None, language=None):
         created["load_call"] = (path, family, device, language)
@@ -331,7 +335,7 @@ def test_registry_has_native_tts():
     assert b.is_loaded is False
 
 
-def test_load_resolves_scoped_snapshot_and_stages_gguf_before_loading(native_env):
+def test_load_resolves_the_cached_file_and_stages_gguf_before_loading(native_env):
     """R18: load() no longer passes the raw snapshot path straight through -- a real
     HF snapshot's file is a symlink into the content-addressed blob store, which
     breaks audio.cpp's own canonicalizing model loader (see tts_backend.py's module
@@ -340,7 +344,7 @@ def test_load_resolves_scoped_snapshot_and_stages_gguf_before_loading(native_env
     created, _log = native_env
     b = backends.make_backend("native_tts")
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="pocket_tts"))
-    assert created["snapshot_call"] == ("acme/pocket-tts-en-gguf", ["pocket_tts-en/*"], True)
+    assert created["lookups"] == [("acme/pocket-tts-en-gguf", "pocket_tts-en/model.gguf", None, True)]
     staged_path = created["load_call"][0]
     source_path = f"{created['snap_dir']}/pocket_tts-en/model.gguf"
     assert staged_path != source_path
@@ -350,11 +354,11 @@ def test_load_resolves_scoped_snapshot_and_stages_gguf_before_loading(native_env
     assert b.is_loaded
 
 
-def test_load_falls_back_to_bare_filename_pattern_when_artifact_has_no_dir(native_env):
+def test_load_resolves_a_file_at_the_repo_root(native_env):
     created, _log = native_env
     b = backends.make_backend("native_tts")
     b.load("acme/flat-repo/model.gguf", "cpu", "q8_0", config=PlanConfig(tts_family="moss_tts_nano"))
-    assert created["snapshot_call"] == ("acme/flat-repo", ["model.gguf"], True)
+    assert created["lookups"] == [("acme/flat-repo", "model.gguf", None, True)]
     staged_path = created["load_call"][0]
     assert staged_path != f"{created['snap_dir']}/model.gguf"
     assert staged_path.endswith("/model.gguf")
@@ -1229,7 +1233,8 @@ def test_load_stages_pocket_extra_files_alongside_the_gguf(native_env):
     staged_extra = os.path.join(os.path.dirname(staged_gguf), "embeddings", "alba.safetensors")
     assert os.path.isfile(staged_extra)
     assert os.path.samefile(staged_extra, extra_source)
-    assert created["snapshot_call"] == ("acme/pocket-tts-en-gguf", ["pocket_tts-en/*"], True)
+    assert created["lookups"] == [("acme/pocket-tts-en-gguf", "pocket_tts-en/model.gguf", None, True),
+                                  ("acme/pocket-tts-en-gguf", extra_rel, None, True)]
 
 
 def test_load_staging_is_idempotent_across_repeated_loads(native_env):

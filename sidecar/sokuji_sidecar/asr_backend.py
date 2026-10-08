@@ -12,7 +12,8 @@ import numpy as np
 
 from . import native
 from .backends import AsrResult, BackendLoadError, register_backend
-from .catalog import hub_revision, split_artifact
+from .catalog import split_artifact
+from .native_models import cached_path
 
 # Plan device -> sokuji_native device kind. (cuda/dml tiers never existed for ASR.)
 _DEVICE_KIND = {"cpu": "cpu", "vulkan": "vulkan", "metal": "metal"}
@@ -31,11 +32,13 @@ class NativeAsrBackend:
     def load(self, model_ref: str, device: str, compute_type: str, config=None) -> None:
         self.unload()
         try:
-            from huggingface_hub import hf_hub_download
             repo, fname = split_artifact(model_ref)
             if not fname:
                 raise BackendLoadError(f"native_asr needs an 'org/repo/file.gguf' artifact, got {model_ref!r}")
-            path = hf_hub_download(repo, fname, revision=hub_revision(repo), local_files_only=True)
+            # Where status found it: an unpinned repo's file may sit under an earlier snapshot.
+            path = cached_path(repo, fname)
+            if not path:
+                raise BackendLoadError(f"{model_ref} is not downloaded")
             kind = _DEVICE_KIND.get(device)
             if kind is None:
                 raise BackendLoadError(f"unknown device for native_asr: {device!r}")

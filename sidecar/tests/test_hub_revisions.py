@@ -1,7 +1,8 @@
 """Ruling 4: a pinned repo (a third-party TTS repo, or an ASR repo whose head lost a card's
 files) is pinned to one commit, and every Hub call the sidecar makes for a TTS, ASR or
 translation card reads that commit. audio.cpp's official mirror stays unpinned: its calls pass
-revision=None, so what users downloaded before still resolves through refs/main."""
+revision=None, so what users downloaded before still resolves through refs/main, or through the
+earlier snapshot that holds it once a later download has moved refs/main."""
 import ast
 import asyncio
 import importlib.util
@@ -14,7 +15,8 @@ import types
 
 import pytest
 
-from sokuji_sidecar import accel, backends, catalog, tts_backend, tts_voices  # noqa: F401 (tts_backend registers native_tts)
+from sokuji_sidecar import accel, backends, catalog, planner, tts_backend, tts_voices  # noqa: F401 (tts_backend registers native_tts)
+from sokuji_sidecar import asr_backend, translate_backend  # noqa: F401 (they register their backends)
 from sokuji_sidecar import native_models as nm
 from sokuji_sidecar.planner import PlanConfig
 from _tts_cards import (CPU_MACHINE, OFFICIAL_SHA, PIN, PINNED_REPO, add_cached_file,  # noqa: F401
@@ -54,33 +56,40 @@ def test_hub_revision_is_the_pin_or_none():
     assert catalog.hub_revision("handy-computer/whisper-base-gguf") is None
 
 
-def _hub_calls(path, functions=None):
-    """{line: (enclosing function, passes revision=)} for every Hub call in `path`: a call of
-    one of _HUB_FUNCS, or a call that hands one of them to a helper (download's _fetch).
-    Optionally only inside the named functions."""
+def _calls(path, functions=None):
+    """(enclosing function, Call node, callee name) for every call in `path`, optionally only
+    inside the named functions."""
     tree = ast.parse(pathlib.Path(path).read_text())
-    found = {}
     for fn in ast.walk(tree):
         if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
         if functions is not None and fn.name not in functions:
             continue
         for node in ast.walk(fn):
-            if not isinstance(node, ast.Call):
-                continue
-            callee = (node.func.attr if isinstance(node.func, ast.Attribute)
-                      else getattr(node.func, "id", None))
-            hands_one_over = any(isinstance(a, ast.Name) and a.id in _HUB_FUNCS for a in node.args)
-            if callee in _HUB_FUNCS or hands_one_over:
-                found[node.lineno] = (fn.name, any(k.arg == "revision" for k in node.keywords))
+            if isinstance(node, ast.Call):
+                yield fn, node, (node.func.attr if isinstance(node.func, ast.Attribute)
+                                 else getattr(node.func, "id", None))
+
+
+def _callees(path, functions=None):
+    return {callee for _fn, _node, callee in _calls(path, functions)}
+
+
+def _hub_calls(path, functions=None):
+    """{line: (enclosing function, passes revision=)} for every Hub call in `path`: a call of
+    one of _HUB_FUNCS, or a call that hands one of them to a helper (download's _fetch).
+    Optionally only inside the named functions."""
+    found = {}
+    for fn, node, callee in _calls(path, functions):
+        hands_one_over = any(isinstance(a, ast.Name) and a.id in _HUB_FUNCS for a in node.args)
+        if callee in _HUB_FUNCS or hands_one_over:
+            found[node.lineno] = (fn.name, any(k.arg == "revision" for k in node.keywords))
     return found
 
 
 @pytest.mark.parametrize("module, functions", [
     ("native_models.py", None),
-    ("tts_backend.py", None),
     ("tts_voices.py", None),
-    ("accel.py", {"_downloaded_quants", "_artifact_path", "_companion_paths"}),
 ])
 def test_every_tts_path_hub_call_passes_a_revision(module, functions):
     """A pinned download writes snapshots/<sha>/ and no refs/main, so ONE lookup of "main"
@@ -234,6 +243,114 @@ def test_an_existing_official_download_still_reads_downloaded(hub_cache):
         "snapshots", OFFICIAL_SHA, "MOSS-TTS-Nano-100M-GGUF", "moss-tts-nano-100m-bf16.gguf"))
 
 
+# Three commits of one unpinned repo, oldest first.
+_S1 = "1111111111111111111111111111111111111111"
+_S2 = "2222222222222222222222222222222222222222"
+_S3 = "3333333333333333333333333333333333333333"
+_SUPERTONIC = "Supertonic-3-GGUF/supertonic-3-f16.gguf"
+
+
+def _snapshot_dir(cache_root, repo, rev):
+    return os.path.join(cache_root, f"models--{repo.replace('/', '--')}", "snapshots", rev)
+
+
+def _later_download(cache_root):
+    """What an online download of another official-mirror card leaves: its file under the Hub's
+    newest commit, and refs/main moved there."""
+    cosy = catalog.tts_model("cosyvoice3").deployments[0].artifact
+    add_cached_file(cache_root, _OFFICIAL, _S2, catalog.split_artifact(cosy)[1], refs_main=True)
+
+
+def test_an_earlier_download_still_reads_downloaded_after_refs_main_moves(hub_cache, monkeypatch):
+    """A file downloaded from the unpinned mirror under an earlier commit is not in the snapshot
+    a later download moved refs/main to. Status, the planner's downloaded rungs, the op gate's
+    header read and the load all find it in the snapshot that holds it."""
+    add_cached_file(hub_cache, _OFFICIAL, _S1, _SUPERTONIC, content=b"supertonic", refs_main=True)
+    _later_download(hub_cache)
+    card = catalog.tts_model("supertonic-3")
+    assert nm.model_status("supertonic-3") == "ready"
+    assert nm.model_status("supertonic-3", repo=card.deployments[0].artifact) == "ready"
+    assert accel._downloaded_quants(card) == {"f16"}
+    assert accel._artifact_path(card, "f16") == os.path.join(
+        _snapshot_dir(hub_cache, _OFFICIAL, _S1), *_SUPERTONIC.split("/"))
+    loads = fake_native(monkeypatch)
+    b = backends.make_backend("native_tts")
+    b.load(card.deployments[0].artifact, "cpu", "f16", config=planner._plan_config(card))
+    assert loads[0].endswith(os.path.join(f"audio-cpp--audio.cpp-gguf__{_S1}", *_SUPERTONIC.split("/")))
+    with open(loads[0], "rb") as f:
+        assert f.read() == b"supertonic"
+    b.unload()
+
+
+def test_the_load_free_voice_listing_finds_an_earlier_snapshot(hub_cache):
+    add_cached_file(hub_cache, _OFFICIAL, _S1, "PocketTTS-GGUF/english/embeddings/alba.safetensors",
+                    refs_main=True)
+    _later_download(hub_cache)
+    assert tts_voices.list_builtin_voices("pocket-tts-en", None) == ["alba"]
+
+
+@pytest.mark.parametrize("model_id, quant, backend", [
+    ("whisper-base", "q8_0", "native_asr"),
+    ("qwen2.5-0.5b", "q8_0", "native_translate"),
+])
+def test_an_earlier_asr_or_translate_download_loads_from_its_snapshot(hub_cache, monkeypatch,
+                                                                       model_id, quant, backend):
+    """An unpinned ASR or translation repo moves its refs/main the same way when the user
+    downloads another quant after the repo's head moved: the earlier quant still reads ready and
+    loads from the snapshot that holds it."""
+    from sokuji_sidecar import native
+    card = catalog.asr_model(model_id) or catalog.translate_model(model_id)
+    earlier = next(d for d in card.deployments if d.compute_type == quant)
+    later = next(d for d in card.deployments if d.compute_type != quant)
+    repo, fname = catalog.split_artifact(earlier.artifact)
+    snap = add_cached_file(hub_cache, repo, _S1, fname, refs_main=True)
+    add_cached_file(hub_cache, repo, _S2, catalog.split_artifact(later.artifact)[1], refs_main=True)
+    assert nm.model_status(model_id, repo=earlier.artifact) == "ready"
+    assert quant in accel._downloaded_quants(card)
+    loads = []
+    monkeypatch.setattr(native, "module", lambda: types.SimpleNamespace(
+        asr_load=lambda path, device: loads.append(path) or object(),
+        translate_load=lambda path, device: loads.append(path) or object()))
+    monkeypatch.setattr(native, "device_for", lambda kind: f"dev:{kind}")
+    backends.make_backend(backend).load(earlier.artifact, "cpu", quant)
+    assert loads == [snap]
+
+
+def test_the_newest_snapshot_holding_a_file_wins_after_the_refs_main_one(hub_cache):
+    """The cache records no commit order, so "newest" is the snapshot directory's mtime: on an
+    unpinned repo a snapshot only gains files while refs/main names it. The snapshot refs/main
+    names is asked first, however old its directory."""
+    card = catalog.tts_model("supertonic-3")
+    s1 = add_cached_file(hub_cache, _OFFICIAL, _S1, _SUPERTONIC)
+    s3 = add_cached_file(hub_cache, _OFFICIAL, _S3, _SUPERTONIC)
+    _later_download(hub_cache)
+    os.utime(_snapshot_dir(hub_cache, _OFFICIAL, _S1), (1_000, 1_000))
+    os.utime(_snapshot_dir(hub_cache, _OFFICIAL, _S3), (2_000, 2_000))
+    assert accel._artifact_path(card, "f16") == s3
+    os.utime(_snapshot_dir(hub_cache, _OFFICIAL, _S1), (3_000, 3_000))
+    assert accel._artifact_path(card, "f16") == s1
+    s2 = add_cached_file(hub_cache, _OFFICIAL, _S2, _SUPERTONIC)
+    os.utime(_snapshot_dir(hub_cache, _OFFICIAL, _S2), (1, 1))
+    assert accel._artifact_path(card, "f16") == s2
+
+
+def test_a_pinned_repo_never_falls_back_to_another_snapshot(hub_cache, pinned, monkeypatch):
+    """A pinned card loads exactly its pinned commit: the same files under any other snapshot
+    are not its download."""
+    other = "f" * 40
+    add_cached_file(hub_cache, PINNED_REPO, other, "pinned-q8_0.gguf", refs_main=True)
+    add_cached_file(hub_cache, PINNED_REPO, other, "embeddings/alba.safetensors")
+    assert nm.model_status("pinned-test") == "absent"
+    assert accel._downloaded_quants(pinned) == set()
+    assert accel._artifact_path(pinned, "q8_0") is None
+    assert tts_voices.list_builtin_voices("pinned-test", None) == []
+    loads = fake_native(monkeypatch)
+    with pytest.raises(backends.BackendLoadError):
+        backends.make_backend("native_tts").load(f"{PINNED_REPO}/pinned-q8_0.gguf", "cpu", "q8_0",
+                                                 config=PlanConfig(tts_family="moss_tts_nano"))
+    assert loads == []
+
+
 def test_a_vanished_pinned_repo_fails_like_any_download_and_breaks_no_reader(hub_cache, pinned,
                                                                               monkeypatch):
     """A pinned repo or commit that has gone makes the Hub raise RepositoryNotFoundError or
@@ -329,14 +446,20 @@ def test_hub_sizes_reads_the_given_revision(monkeypatch, tmp_path):
     assert seen[-1] == ("WalkingCat/Soprano-1.1-80M-GGUF", None, True)
 
 
-@pytest.mark.parametrize("module", ["asr_backend.py", "translate_backend.py"])
-def test_every_asr_and_translate_load_hub_call_passes_a_revision(module):
-    """The load paths resolve the GGUF the status call found; a pinned ASR or translation repo
-    (the multitalker card) has no refs/main, so a revision-less lookup here would find nothing."""
-    calls = _hub_calls(_PKG / module)
-    assert calls, f"no Hub call found in {module}: the scan is not looking"
-    missing = sorted(f"{module}:{line} {fn}" for line, (fn, ok) in calls.items() if not ok)
-    assert missing == []
+@pytest.mark.parametrize("module, functions", [
+    ("tts_backend.py", None),
+    ("asr_backend.py", None),
+    ("translate_backend.py", None),
+    ("accel.py", {"_downloaded_quants", "_artifact_path", "_companion_paths"}),
+])
+def test_the_load_paths_find_a_cached_file_only_through_cached_path(module, functions):
+    """The planner, the op gate and every load path resolve a cached file the way status does,
+    through native_models.cached_path (or rung_cached, built on it): the one place the lookup
+    order lives. A Hub call of their own would look elsewhere, and a card would read downloaded
+    and then fail to load."""
+    assert _hub_calls(_PKG / module, functions) == {}
+    assert _callees(_PKG / module, functions) & {"cached_path", "rung_cached"}, \
+        f"no cached_path call found in {module}: the scan is not looking"
 
 
 def test_a_pinned_asr_card_loads_from_its_pinned_snapshot(hub_cache, monkeypatch):

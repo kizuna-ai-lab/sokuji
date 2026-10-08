@@ -111,7 +111,8 @@ import time
 
 from . import native
 from .backends import BackendLoadError, register_backend
-from .catalog import hub_revision, split_artifact
+from .catalog import split_artifact
+from .native_models import cached_path
 from .planner import PlanConfig
 
 _TRANSCRIPT_TAG = re.compile(r"</?transcript>", re.IGNORECASE)
@@ -276,12 +277,14 @@ class NativeTranslateBackend:
                 # tests, and any future local-file catalog entry).
                 path = model_ref
             else:
-                from huggingface_hub import hf_hub_download
                 repo, fname = split_artifact(model_ref)
                 if not fname:
                     raise BackendLoadError(
                         f"native_translate needs an 'org/repo/file.gguf' artifact, got {model_ref!r}")
-                path = hf_hub_download(repo, fname, revision=hub_revision(repo), local_files_only=True)
+                # Where status found it: an unpinned repo's file may sit under an earlier snapshot.
+                path = cached_path(repo, fname)
+                if not path:
+                    raise BackendLoadError(f"{model_ref} is not downloaded")
             # Always resolve an explicit device — including "cpu": passing NULL to
             # sk_translate_load leaves llama's defaults (n_gpu_layers=-1, all
             # devices), which fully offloads a cpu-resolved plan to the GPU on the

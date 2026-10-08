@@ -5,7 +5,9 @@ fully cached; download fetches them file-by-file with progress. Mirrors
 LOCAL_INFERENCE's manage-before-use UX, but server-side (HF cache).
 
 Every Hub call here passes revision=catalog.hub_revision(repo) (ruling 4): a pinned
-third-party repo is read at its commit, everything else at the Hub's default branch.
+third-party repo is read at its commit, everything else at the Hub's default branch. A local
+lookup (cached_path) of an unpinned repo also tries its other local snapshots
+(lookup_revisions).
 """
 import fnmatch
 import os
@@ -45,15 +47,41 @@ def _rung_files(m, dep):
     return list(dict.fromkeys(files))
 
 
-def _cached_path(repo, fname):
-    """Local path of one file in the HF cache at the repo's revision (hub_revision), or None
-    when it is not cached. A local lookup: never touches the network."""
-    from huggingface_hub import hf_hub_download
+def lookup_revisions(repo):
+    """The revisions a cached file of `repo` is looked for at, in order. A pinned repo: its
+    commit only, so a pinned card loads exactly that commit. An unpinned one: refs/main (None),
+    then every other local snapshot, newest first. An online download from an unpinned repo
+    moves refs/main to the Hub's newest commit, and a file downloaded under an earlier one is
+    not in that snapshot. The cache records no commit order, so newest is the snapshot
+    directory's mtime: an unpinned snapshot gains files only while refs/main names it."""
+    pin = hub_revision(repo)
+    if pin is not None:
+        yield pin
+        return
+    yield None
+    from huggingface_hub import constants
+    snapshots = os.path.join(constants.HF_HUB_CACHE, f"models--{repo.replace('/', '--')}",
+                             "snapshots")
     try:
-        return hf_hub_download(repo, fname, revision=hub_revision(repo),
-                               local_files_only=True) or ""
-    except Exception:
-        return None
+        entries = sorted(((e.stat().st_mtime_ns, e.name) for e in os.scandir(snapshots)
+                          if e.is_dir()), reverse=True)
+    except OSError:
+        return
+    yield from (name for _mtime, name in entries)
+
+
+def cached_path(repo, fname):
+    """Local path of one file in the HF cache, at the first of lookup_revisions(repo) that holds
+    it, or None when none does. A local lookup: never touches the network. Status, the planner,
+    the op gate and every load path resolve a file through this, so a card that reads
+    downloaded loads the file the status found."""
+    from huggingface_hub import hf_hub_download
+    for rev in lookup_revisions(repo):
+        try:
+            return hf_hub_download(repo, fname, revision=rev, local_files_only=True) or ""
+        except Exception:
+            continue
+    return None
 
 
 def rung_cached(m, dep) -> bool:
@@ -61,7 +89,7 @@ def rung_cached(m, dep) -> bool:
     the card's extra files. A rung an interrupted download left without a companion is not
     downloaded: it would fail to stage at load."""
     files = _rung_files(m, dep)
-    return bool(files) and all(_cached_path(r, f) is not None for r, f in files)
+    return bool(files) and all(cached_path(r, f) is not None for r, f in files)
 
 
 def _catalog_card(model_id):
@@ -252,7 +280,7 @@ def model_status(model_id, repo=None):
             if not any(rung_cached(m, d) for d in rungs):
                 return "absent"
         elif specs.get("files"):
-            if any(_cached_path(r, fname) is None for r, fname in specs["files"]):
+            if any(cached_path(r, fname) is None for r, fname in specs["files"]):
                 return "absent"
         return "ready"
     except Exception:
@@ -671,10 +699,9 @@ async def download(model_id, send, should_cancel=None, repo=None):
             return "cancelled"
         # Only a pinned repo is skipped when cached: its snapshot sits under its own commit
         # and nothing moves it. On the unpinned mirror the first online fetch of a run moves
-        # refs/main to the newest commit, so a file skipped here would exist only under the
-        # old snapshot and read as missing afterwards; the Hub call re-links a cached blob
-        # without downloading it again.
-        local = _cached_path(r, fname) if hub_revision(r) is not None else None
+        # refs/main to the newest commit; the Hub call puts every file of the rung under that
+        # snapshot, re-linking a cached blob without downloading it again.
+        local = cached_path(r, fname) if hub_revision(r) is not None else None
         if local is not None:
             # Already in the cache at the pinned commit (a re-run after an interrupted
             # download): count it and ask the Hub only for what is missing.

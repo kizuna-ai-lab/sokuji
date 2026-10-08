@@ -19,7 +19,8 @@ none of which audio.cpp exposes built-in voices for) -- has no load-free listing
 (voice cloning only, or no bundled catalogue) and reports []."""
 from pathlib import Path
 
-from .catalog import hub_revision, split_artifact
+from .catalog import split_artifact
+from .native_models import lookup_revisions
 
 # audio.cpp's fixed supertonic preset roster (Task 1's sk_tts_presets() CTest
 # against the shipped GGUF) -- a stable, small, hardcoded set, not something
@@ -34,12 +35,18 @@ _LOAD_FREE_PRESETS = {
 
 
 def _scoped_snapshot_dir(repo: str, subdir: str):
-    try:
-        from huggingface_hub import snapshot_download
-        return Path(snapshot_download(repo, revision=hub_revision(repo),
-                                      allow_patterns=[f"{subdir}/*"], local_files_only=True))
-    except Exception:
-        return None
+    """The local snapshot that holds `subdir`, at the first of native_models.lookup_revisions
+    that has it (the order every cached file is looked up in), or None."""
+    from huggingface_hub import snapshot_download
+    for rev in lookup_revisions(repo):
+        try:
+            root = Path(snapshot_download(repo, revision=rev, allow_patterns=[f"{subdir}/*"],
+                                          local_files_only=True))
+        except Exception:
+            continue
+        if (root / subdir).is_dir():
+            return root
+    return None
 
 
 def list_builtin_voices(model_id: str | None = None, engine=None) -> list:

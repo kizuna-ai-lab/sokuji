@@ -268,19 +268,15 @@ def _downloaded_quants(model) -> set:
 
 
 def _artifact_path(model, compute_type: str):
-    """Local path of the rung's GGUF if it is in the HF cache, else None."""
+    """Local path of the rung's GGUF if it is in the HF cache (native_models.cached_path, the
+    lookup status uses), else None."""
     from . import catalog as _cat
-    from huggingface_hub import hf_hub_download
+    from .native_models import cached_path
     for d in model.deployments:
         if d.compute_type != compute_type:
             continue
         repo, fname = _cat.split_artifact(d.artifact)
-        if not fname:
-            return None
-        try:
-            return hf_hub_download(repo, fname, revision=_cat.hub_revision(repo), local_files_only=True)
-        except Exception:
-            return None
+        return cached_path(repo, fname) if fname else None
     return None
 
 
@@ -289,7 +285,7 @@ def _companion_paths(model, compute_type: str):
     GGUF is not listed. None when the rung is unknown or any of its companion GGUFs is not
     cached: the rung is then only partly on disk and has no complete header set to read."""
     from . import catalog as _cat
-    from huggingface_hub import hf_hub_download
+    from .native_models import cached_path
     dep = next((d for d in model.deployments if d.compute_type == compute_type), None)
     if dep is None:
         return None
@@ -298,11 +294,10 @@ def _companion_paths(model, compute_type: str):
     for rel, _size in getattr(dep, "companions", ()):
         if not rel.endswith(".gguf"):
             continue
-        try:
-            out.append(hf_hub_download(repo, rel, revision=_cat.hub_revision(repo),
-                                       local_files_only=True))
-        except Exception:
+        path = cached_path(repo, rel)
+        if path is None:
             return None
+        out.append(path)
     return out
 
 

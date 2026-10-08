@@ -15,9 +15,9 @@ model_ref is the artifact "org/repo/<dir>/<file>.gguf" (or "org/repo/<file>.gguf
 repo's root) the catalog resolves to. The files a rung needs besides it arrive in
 PlanConfig.tts_extra_files as repo-relative paths: the card's extra_files under the same
 <dir> (pocket_tts's embeddings) and the rung's own companions, which may sit in another
-folder of the repo or at its root (spec stage 2.2). load() resolves a SCOPED local
-snapshot at the repo's revision (catalog.hub_revision) covering <dir> and those paths,
-not the whole repo.
+folder of the repo or at its root (spec stage 2.2). load() resolves the main file and each
+of those paths in the local cache through native_models.cached_path, the lookup status
+uses, never the whole repo.
 
 Ruling R18(s4) — SUPERSEDES the prior "no hard-links" ruling: the gguf (and, for
 pocket_tts, its embeddings/*.safetensors sidecar) are hard-link-staged into a small
@@ -243,7 +243,8 @@ import numpy as np
 
 from . import native
 from .backends import BackendLoadError, register_backend
-from .catalog import TTS_STAGING_DIRNAME, VOICE_REQUIRED_FAMILIES, hub_revision, split_artifact
+from .catalog import TTS_STAGING_DIRNAME, VOICE_REQUIRED_FAMILIES, split_artifact
+from .native_models import cached_path
 from .planner import PlanConfig
 
 _SENTINEL = object()
@@ -453,25 +454,28 @@ class NativeTtsBackend:
             if not fname:
                 raise BackendLoadError(
                     f"native_tts needs an 'org/repo/dir/file.gguf' artifact, got {model_ref!r}")
-            model_dir = fname.rsplit("/", 1)[0] if "/" in fname else ""
             # Repo-relative (planner._plan_config): the rung's companions and the card's
             # extra_files beside the main file.
             extras = [rel for rel, _size in cfg.tts_extra_files]
-            allow = [f"{model_dir}/*"] if model_dir else [fname]
-            allow += [rel for rel in extras if not (model_dir and rel.startswith(f"{model_dir}/"))]
-            from huggingface_hub import snapshot_download
-            snap = snapshot_download(repo, revision=hub_revision(repo), allow_patterns=allow,
-                                     local_files_only=True)
+            # Each file is found where status found it (native_models.cached_path): an unpinned
+            # repo's files may sit under different snapshots.
+            sources = {rel: cached_path(repo, rel) for rel in [fname, *extras]}
+            missing = [rel for rel, src in sources.items() if not src]
+            if missing:
+                raise BackendLoadError(f"{repo}: not downloaded: {', '.join(missing)}")
             # R18: stage the gguf and every file the rung needs beside it as HARD LINKS
             # before ever handing a path to the native layer, each at its repo-relative
-            # path under one <repo>__<rev> root, so the engine finds a companion where the
-            # repo puts it relative to the main GGUF -- see _stage_for_native()'s docstring
-            # and the module docstring's R18 paragraph for why a real HF snapshot's
-            # symlinked path breaks audio.cpp's own model loader.
+            # path under one <repo>__<rev> root (the main file's snapshot), so the engine
+            # finds a companion where the repo puts it relative to the main GGUF -- see
+            # _stage_for_native()'s docstring and the module docstring's R18 paragraph for
+            # why a real HF snapshot's symlinked path breaks audio.cpp's own model loader.
+            snap = sources[fname]
+            for _ in fname.split("/"):
+                snap = os.path.dirname(snap)
             rev = os.path.basename(snap)
-            path = _stage_for_native(repo, rev, fname, f"{snap}/{fname}")
+            path = _stage_for_native(repo, rev, fname, sources[fname])
             for rel in extras:
-                _stage_for_native(repo, rev, rel, f"{snap}/{rel}")
+                _stage_for_native(repo, rev, rel, sources[rel])
             # Always resolve an explicit device — including "cpu" (the slice-3 F1
             # lesson, translate_backend.load carries the same comment): passing
             # NULL leaves the native default in place, which can silently place a
