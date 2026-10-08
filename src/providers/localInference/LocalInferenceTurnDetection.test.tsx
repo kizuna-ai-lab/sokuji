@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -35,6 +35,15 @@ vi.mock('../../stores/smartTurnStore', () => {
   };
 });
 
+let mockTurnMode = 'auto';
+let mockLegs: string[] = ['speaker'];
+vi.mock('../../stores/turnModeStore', () => ({
+  useTurnModeStore: (select: (s: { turnMode: string }) => unknown) => select({ turnMode: mockTurnMode }),
+}));
+vi.mock('../../stores/providerStore', () => ({
+  useProviderStore: (select: (s: { legs: string[] }) => unknown) => select({ legs: mockLegs }),
+}));
+
 import { LocalInferenceTurnDetectionControls, LocalInferenceTurnDetectionHelp, LocalInferenceTurnDetectionSummary } from './LocalInferenceTurnDetection';
 import { LOCAL_INFERENCE_DEFAULTS } from './settings';
 
@@ -54,6 +63,8 @@ beforeEach(() => {
   mockAsrEntry = { type: 'asr', asrWorkerType: 'whisper-webgpu' };
   mockReverseEntry = undefined;
   mockResolve.mockImplementation(() => ({ asr: { modelId: 'asr-model' }, translation: null, tts: null }));
+  mockTurnMode = 'auto';
+  mockLegs = ['speaker'];
 });
 
 describe('LocalInferenceTurnDetectionSummary', () => {
@@ -339,14 +350,48 @@ describe('LocalInferenceTurnDetectionControls — Smart Turn', () => {
     expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
   });
 
-  it('offers the choice when only the reverse direction runs an ASR in scope', () => {
-    mockAsrEntry = { type: 'asr', asrWorkerType: 'sherpa-onnx' };
-    mockReverseEntry = { type: 'asr', asrWorkerType: 'whisper-webgpu' };
-    mockResolve.mockImplementation((source: string) => ({
-      asr: { modelId: source === 'ja' ? 'asr-model' : 'reverse-asr-model' }, translation: null, tts: null,
-    }));
-    render(<LocalInferenceTurnDetectionControls settings={LOCAL_INFERENCE_DEFAULTS} update={() => {}} pair={pair} />);
-    expect(button('Smart')).toBeTruthy();
-    expect(screen.queryByText('Max Speech Duration')).toBeNull();
+  describe('which legs can run it', () => {
+    const reverseOnly = () => {
+      mockAsrEntry = { type: 'asr', asrWorkerType: 'sherpa-onnx' };
+      mockReverseEntry = { type: 'asr', asrWorkerType: 'whisper-webgpu' };
+      mockResolve.mockImplementation((source: string) => ({
+        asr: { modelId: source === 'ja' ? 'asr-model' : 'reverse-asr-model' }, translation: null, tts: null,
+      }));
+    };
+
+    it('offers the choice when only the participant leg runs an ASR in scope', () => {
+      reverseOnly();
+      mockLegs = ['speaker', 'participant'];
+      render(<LocalInferenceTurnDetectionControls settings={LOCAL_INFERENCE_DEFAULTS} update={() => {}} pair={pair} />);
+      expect(button('Smart')).toBeTruthy();
+      expect(screen.queryByText('Max Speech Duration')).toBeNull();
+    });
+
+    it('offers no choice for the reverse ASR when no participant leg runs', () => {
+      reverseOnly();
+      render(<LocalInferenceTurnDetectionControls settings={LOCAL_INFERENCE_DEFAULTS} update={() => {}} pair={pair} />);
+      expect(screen.queryByRole('button', { name: 'Smart' })).toBeNull();
+    });
+
+    it.each(['push-to-talk', 'push-to-translate'])('offers no choice under %s with no participant leg, and the summary reads Normal', (turnMode) => {
+      mockTurnMode = turnMode;
+      render(<LocalInferenceTurnDetectionControls settings={smart} update={() => {}} pair={pair} />);
+      expect(screen.queryByRole('button', { name: 'Smart' })).toBeNull();
+      expect(screen.queryByText('Turn Check After')).toBeNull();
+      cleanup();
+      render(<LocalInferenceTurnDetectionSummary settings={smart} update={() => {}} pair={pair} />);
+      expect(screen.getByText('VAD Settings · Min Silence Duration: 1.40s')).toBeTruthy();
+    });
+
+    it('offers it under push-to-talk when the participant leg runs an ASR in scope', () => {
+      mockTurnMode = 'push-to-talk';
+      mockLegs = ['speaker', 'participant'];
+      mockReverseEntry = { type: 'asr', asrWorkerType: 'whisper-webgpu' };
+      mockResolve.mockImplementation((source: string) => ({
+        asr: { modelId: source === 'ja' ? 'asr-model' : 'reverse-asr-model' }, translation: null, tts: null,
+      }));
+      render(<LocalInferenceTurnDetectionControls settings={LOCAL_INFERENCE_DEFAULTS} update={() => {}} pair={pair} />);
+      expect(button('Smart')).toBeTruthy();
+    });
   });
 });

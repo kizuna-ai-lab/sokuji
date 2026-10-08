@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CircleHelp } from 'lucide-react';
 import { useModelStore, useModelStatuses } from '../../stores/modelStore';
+import { useProviderStore } from '../../stores/providerStore';
+import { useTurnModeStore } from '../../stores/turnModeStore';
 import { SMART_TURN_TOTAL_BYTES, useSmartTurnPhase, useSmartTurnStore } from '../../stores/smartTurnStore';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import { SMART_TURN_MAX_WAIT_MIN, supportsSmartTurn, effectiveCheckAfter, type VadEndOfTurn } from '../../lib/turn/smartTurn';
@@ -23,9 +25,9 @@ const helpIcon = (
  * `ProviderSpecificSettings.tsx`). `showVad` is false only for a streaming
  * ASR that reports no worker type: endpoint detection replaces VAD there.
  * `vadIsWebWorker` adds the three vad-web knobs; the sherpa-onnx engine has
- * its own hysteresis and cuts at a fixed length. `smart`, offered when either
- * direction's ASR supports it, is what a session will run: a stored Smart
- * whose model is not on disk reads as Normal.
+ * its own hysteresis and cuts at a fixed length. `smart`, offered when a leg
+ * with automatic turns has an ASR that supports it, is what a session will
+ * run: a stored Smart whose model is not on disk reads as Normal.
  */
 function useVadKnobs(settings: S, pair: LanguagePair | undefined) {
   // `localInferenceLanguages.initial()` gives the same fallback; the Speech
@@ -40,13 +42,18 @@ function useVadKnobs(settings: S, pair: LanguagePair | undefined) {
     [source, target, settings.selections, modelStatuses],
   );
   const entry = getManifestEntry(asrModelId ?? '');
-  // Config decides Smart per leg, so either direction's ASR can run it.
   const reverseAsrModelId = useMemo(
     () => useModelStore.getState().resolve(target, source, settings.selections).asr?.modelId,
     [source, target, settings.selections, modelStatuses],
   );
   const phase = useSmartTurnPhase();
-  const smartTurnOffered = supportsSmartTurn(entry) || supportsSmartTurn(getManifestEntry(reverseAsrModelId ?? ''));
+  const turnMode = useTurnModeStore((s) => s.turnMode);
+  const legs = useProviderStore((s) => s.legs);
+  // Smart runs on a leg that takes automatic turns (shape.ts `contextsFor`):
+  // the speaker under Auto, the participant always.
+  const smartTurnOffered =
+    (legs.includes('speaker') && turnMode === 'auto' && supportsSmartTurn(entry))
+    || (legs.includes('participant') && supportsSmartTurn(getManifestEntry(reverseAsrModelId ?? '')));
   useEffect(() => {
     if (smartTurnOffered && phase === 'unknown') void useSmartTurnStore.getState().refresh();
   }, [smartTurnOffered, phase]);
