@@ -720,3 +720,33 @@ describe('Conversation — every notice is redacted', () => {
     expect(conv.snapshot().notices[0].message).toBe('bad frame');
   });
 });
+
+describe('Conversation — person', () => {
+  it('records the person given at open; a later defined one replaces it, an absent one keeps it', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source', person: '1.1' } });
+    expect(conv.snapshot().segments[0].person).toBe('1.1');
+    apply({ kind: 'segmentText', payload: { ref: 1, text: 'Hi', person: '1.2' } });
+    expect(conv.snapshot().segments[0].person).toBe('1.2');
+    apply({ kind: 'segmentText', payload: { ref: 1, text: 'Hi there' } });
+    expect(conv.snapshot().segments[0].person).toBe('1.2');
+  });
+
+  it('takes a person-only snapshot as a change, with no growth mark', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source', person: '1.1' } });
+    apply({ kind: 'segmentText', payload: { ref: 1, text: 'Hello' } });
+    const before = conv.snapshot();
+    apply({ kind: 'segmentText', payload: { ref: 1, text: 'Hello', person: '1.2' } });
+    const after = conv.snapshot();
+    expect(after).not.toBe(before);
+    expect(after.segments[0].person).toBe('1.2');
+    expect(after.segments[0].marks).toHaveLength(before.segments[0].marks.length);
+  });
+
+  it('has no person for a segment the adapter never labelled', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source' } }, { kind: 'segmentText', payload: { ref: 1, text: 'Hi' } });
+    expect(conv.snapshot().segments[0].person).toBeUndefined();
+  });
+});
