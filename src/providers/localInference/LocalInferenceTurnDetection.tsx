@@ -7,11 +7,27 @@ import { useTurnModeStore } from '../../stores/turnModeStore';
 import { SMART_TURN_TOTAL_BYTES, useSmartTurnPhase, useSmartTurnStore } from '../../stores/smartTurnStore';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import { SMART_TURN_MAX_WAIT_MIN, supportsSmartTurn, effectiveCheckAfter, type VadEndOfTurn } from '../../lib/turn/smartTurn';
-import { EndOfTurnControl, VadControl } from '../../components/Settings/sections/LocalSettingsControls';
+import { EndOfTurnControl, VadControl, type VadValues } from '../../components/Settings/sections/LocalSettingsControls';
 import Tooltip from '../../components/Tooltip/Tooltip';
 import { describeCause, reportWarning } from '../../lib/diagnostics/report';
 import type { LanguagePair, SettingsProps } from '../../lib/provider/types';
-import type { LocalInferenceSettings as S } from './settings';
+import { LOCAL_INFERENCE_DEFAULTS, type LocalInferenceSettings as S } from './settings';
+
+/** Every slider the VAD block can show. Restore defaults puts all of them back; Normal / Smart is a choice, not a slider. */
+const SLIDER_KEYS = [
+  'vadThreshold',
+  'vadNegativeThreshold',
+  'vadMinSilenceDuration',
+  'vadMinSpeechDuration',
+  'vadMaxSpeechDuration',
+  'vadPreSpeechPadDuration',
+  'smartTurnCheckAfter',
+  'smartTurnThreshold',
+] as const satisfies readonly (keyof VadValues & keyof S)[];
+
+const SLIDER_DEFAULTS = Object.fromEntries(
+  SLIDER_KEYS.map((key) => [key, LOCAL_INFERENCE_DEFAULTS[key]]),
+) as Pick<S, (typeof SLIDER_KEYS)[number]>;
 
 // Matches `LocalSettingsControls.tsx`'s own inline help icon — the same
 // tooltip trigger VadControl's heading carries, repeated on the Speech
@@ -144,27 +160,32 @@ export function LocalInferenceTurnDetectionControls({ settings, update, disabled
     }
   };
 
+  const values: VadValues = {
+    vadThreshold: settings.vadThreshold,
+    vadMinSilenceDuration: settings.vadMinSilenceDuration,
+    vadMinSpeechDuration: settings.vadMinSpeechDuration,
+    // vad-web workers only — the sherpa-onnx engine has its own
+    // hysteresis and cuts at a fixed length.
+    ...(vadIsWebWorker
+      ? {
+          vadMaxSpeechDuration: settings.vadMaxSpeechDuration,
+          vadNegativeThreshold: settings.vadNegativeThreshold,
+          vadPreSpeechPadDuration: settings.vadPreSpeechPadDuration,
+        }
+      : {}),
+    ...(smart
+      ? { smartTurnCheckAfter: settings.smartTurnCheckAfter, smartTurnThreshold: settings.smartTurnThreshold }
+      : {}),
+  };
+  // Only the sliders on show decide whether Restore defaults appears.
+  const offDefault = SLIDER_KEYS.some((key) => key in values && values[key] !== LOCAL_INFERENCE_DEFAULTS[key]);
+
   return (
     <VadControl
-      values={{
-        vadThreshold: settings.vadThreshold,
-        vadMinSilenceDuration: settings.vadMinSilenceDuration,
-        vadMinSpeechDuration: settings.vadMinSpeechDuration,
-        // vad-web workers only — the sherpa-onnx engine has its own
-        // hysteresis and cuts at a fixed length.
-        ...(vadIsWebWorker
-          ? {
-              vadMaxSpeechDuration: settings.vadMaxSpeechDuration,
-              vadNegativeThreshold: settings.vadNegativeThreshold,
-              vadPreSpeechPadDuration: settings.vadPreSpeechPadDuration,
-            }
-          : {}),
-        ...(smart
-          ? { smartTurnCheckAfter: settings.smartTurnCheckAfter, smartTurnThreshold: settings.smartTurnThreshold }
-          : {}),
-      }}
+      values={values}
       onChange={(patch) => update(patch)}
       disabled={disabled}
+      onRestoreDefaults={offDefault ? () => update(SLIDER_DEFAULTS) : undefined}
       endOfTurn={smartTurnOffered ? (
         <EndOfTurnControl
           value={smart ? 'smart' : 'normal'}

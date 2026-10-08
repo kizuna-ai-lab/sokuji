@@ -362,7 +362,7 @@ describe('LocalInferenceTurnDetectionControls — Smart Turn', () => {
   describe('deleting the model', () => {
     it('is offered under Smart and removes the model', () => {
       render(<LocalInferenceTurnDetectionControls settings={smart} update={() => {}} pair={pair} />);
-      fireEvent.click(button('Delete model (30.9 MB)'));
+      fireEvent.click(button('Delete'));
       expect(mockRemove).toHaveBeenCalledTimes(1);
     });
 
@@ -373,15 +373,53 @@ describe('LocalInferenceTurnDetectionControls — Smart Turn', () => {
     ] as const)('is not offered %s', (_label, vadEndOfTurn, phase) => {
       mockPhase = phase;
       render(<LocalInferenceTurnDetectionControls settings={{ ...LOCAL_INFERENCE_DEFAULTS, vadEndOfTurn }} update={() => {}} pair={pair} />);
-      expect(screen.queryByRole('button', { name: /Delete model/ })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
     });
 
     it('reports a failed delete', async () => {
       mockRemove.mockRejectedValue(new Error('quota'));
       render(<LocalInferenceTurnDetectionControls settings={smart} update={() => {}} pair={pair} />);
-      fireEvent.click(button('Delete model (30.9 MB)'));
+      fireEvent.click(button('Delete'));
       await vi.waitFor(() => expect(mockReportWarning).toHaveBeenCalledTimes(1));
       expect(mockReportWarning.mock.calls[0][2]).toMatchObject({ dedupeKey: 'smart-turn:delete' });
+    });
+  });
+
+  describe('restoring the defaults', () => {
+    const restore = () => screen.queryByRole('button', { name: 'Restore defaults' });
+
+    it('is not offered while every slider is at its default', () => {
+      render(<LocalInferenceTurnDetectionControls settings={smart} update={() => {}} pair={pair} />);
+      expect(restore()).toBeNull();
+    });
+
+    it('is offered once a slider on show moves, and puts every slider back without touching Normal / Smart', () => {
+      const update = vi.fn();
+      const moved = { ...smart, vadThreshold: 0.5, vadMinSilenceDuration: 0.8, vadPreSpeechPadDuration: 0.4, smartTurnThreshold: 0.7 };
+      render(<LocalInferenceTurnDetectionControls settings={moved} update={update} pair={pair} />);
+      fireEvent.click(restore()!);
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(update).toHaveBeenCalledWith({
+        vadThreshold: LOCAL_INFERENCE_DEFAULTS.vadThreshold,
+        vadNegativeThreshold: LOCAL_INFERENCE_DEFAULTS.vadNegativeThreshold,
+        vadMinSilenceDuration: LOCAL_INFERENCE_DEFAULTS.vadMinSilenceDuration,
+        vadMinSpeechDuration: LOCAL_INFERENCE_DEFAULTS.vadMinSpeechDuration,
+        vadMaxSpeechDuration: LOCAL_INFERENCE_DEFAULTS.vadMaxSpeechDuration,
+        vadPreSpeechPadDuration: LOCAL_INFERENCE_DEFAULTS.vadPreSpeechPadDuration,
+        smartTurnCheckAfter: LOCAL_INFERENCE_DEFAULTS.smartTurnCheckAfter,
+        smartTurnThreshold: LOCAL_INFERENCE_DEFAULTS.smartTurnThreshold,
+      });
+    });
+
+    it('counts only the sliders on show', () => {
+      mockAsrEntry = { type: 'asr', asrWorkerType: 'sherpa-onnx' };
+      render(<LocalInferenceTurnDetectionControls settings={{ ...LOCAL_INFERENCE_DEFAULTS, vadPreSpeechPadDuration: 0.4, smartTurnThreshold: 0.7 }} update={() => {}} pair={pair} />);
+      expect(restore()).toBeNull();
+    });
+
+    it('counts the Smart sliders only under Smart', () => {
+      render(<LocalInferenceTurnDetectionControls settings={{ ...LOCAL_INFERENCE_DEFAULTS, smartTurnCheckAfter: 0.2 }} update={() => {}} pair={pair} />);
+      expect(restore()).toBeNull();
     });
   });
 
