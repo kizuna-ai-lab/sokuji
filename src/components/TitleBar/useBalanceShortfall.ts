@@ -6,7 +6,7 @@
  * frozen wallet is not a low balance.
  */
 import { balanceRefusal, BALANCE_BELOW_FLOOR } from '../../lib/session/shape';
-import { legsFor, participantSpeechFromStores, selectedFromStores } from '../../lib/session/appShape';
+import { faceToFaceFromStores, legsFor, participantSpeechFromStores, selectedFromStores } from '../../lib/session/appShape';
 import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
@@ -18,6 +18,8 @@ export function useBalanceShortfall(): boolean {
   useProviderStore((s) => s.selected);
   useProviderStore((s) => s.entries);
   const mode = useAudioStore((s) => s.mode);
+  // Face-to-face reads the mode and this, so the dot follows the other side too.
+  useAudioStore((s) => s.otherSide);
   const textOnly = useSettingsStore((s) => s.textOnly);
   const account = useAccountStore((s) => s.account);
   // What `participantSpeechFromStores` reads, subscribed so the dot follows the switch and the source.
@@ -28,5 +30,5 @@ export function useBalanceShortfall(): boolean {
   if (!found) return false;
   const { provider, entry } = found;
   const participantSpeech = participantSpeechFromStores(provider);
-  return balanceRefusal({ provider, settings: entry.settings, legs: legsFor(mode), textOnly, participantSpeech, account })?.code === BALANCE_BELOW_FLOOR;
+  return balanceRefusal({ provider, settings: entry.settings, legs: legsFor(mode), textOnly, participantSpeech, faceToFace: faceToFaceFromStores(), account })?.code === BALANCE_BELOW_FLOOR;
 }
