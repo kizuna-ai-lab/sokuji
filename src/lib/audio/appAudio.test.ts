@@ -229,4 +229,11 @@ describe('createAppRouting', () => {
     expect(heard).toHaveBeenCalledTimes(1);
     expect(routing.get().passthrough).toEqual({ on: true, ratio: 1, gate: 'idle' });
   });
+
+  it('routes participant speech to the real device in face-to-face on Electron with a whole-system source', () => {
+    const withSwitch = { meeting: true, participantSpeech: true };
+    const whole = { ...AUDIO, selectedParticipantSource: { deviceId: 'desktop-audio-loopback', label: 'System' } };
+    expect(readRouting(whole, withSwitch, 'electron', 'auto', true).participantSpeech).toBe(true);
+    expect(readRouting(whole, withSwitch, 'electron', 'auto', false).participantSpeech).toBe(false);
+  });
 });

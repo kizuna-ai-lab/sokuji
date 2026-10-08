@@ -13,7 +13,7 @@ import { redact } from '../lib/diagnostics/redact';
 import { describeCause, reportWarning } from '../lib/diagnostics/report';
 import { autoSaveConversation } from '../lib/export/appAutoSave';
 import type { AuthContext } from '../lib/provider/types';
-import { appReplayAudio, ensureReadyFromStores, persistIfUnchanged, readShapeFromStores, watchLegsFromStores, watchSpeechFromStores } from '../lib/session/appShape';
+import { appReplayAudio, ensureReadyFromStores, faceToFaceFromStores, persistIfUnchanged, readShapeFromStores, watchLegsFromStores, watchSpeechFromStores } from '../lib/session/appShape';
 import type { AnalyticsPort, ControlMethod, FramePort } from '../lib/session/ports';
 import { createRunner, type Runner } from '../lib/session/runner';
 import type { OpenSource } from '../lib/session/source';
@@ -194,6 +194,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
           // (the owner's rule, 2026-09-26): flat under push-to-talk until a
           // turn is held; the participant's strip shows what it captures.
           meterGate: (leg) => leg !== 'speaker' || runner.speakerAudioInUse(),
+          participantBeside: faceToFaceFromStores,
         });
         playback = app.playback;
         openLeg = options.capture ? options.capture(capture.openSource) : capture.openSource;

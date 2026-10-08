@@ -8,6 +8,8 @@ export interface ReplayGateInput {
   platform: Platform;
   participantSourceId: string | undefined;
   participantNoticeCodes: readonly string[];
+  /** Face-to-face: the participant leg captures nothing, so a replay is never recaptured. */
+  faceToFace?: boolean;
 }
 
 /**
@@ -18,7 +20,8 @@ export interface ReplayGateInput {
  * source is the whole system unless it names one application (`app:…`) or
  * that application's capture fell back to the whole system this run.
  */
-export function replayBlocked({ run, platform, participantSourceId, participantNoticeCodes }: ReplayGateInput): boolean {
+export function replayBlocked({ run, platform, participantSourceId, participantNoticeCodes, faceToFace }: ReplayGateInput): boolean {
+  if (faceToFace) return false;
   if (run.phase !== 'running' || !run.legs.participant || platform !== 'electron') return false;
   if (!isApplicationSource(participantSourceId)) return true;
   return participantNoticeCodes.some((code) => code === APP_CAPTURE_LOST || code === APP_MONITOR_MISSING);

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveParticipantSourceId, isApplicationSource, needsLoopbackStream, SYSTEM_PARTICIPANT_SOURCE_ID } from './participantSource';
+import { resolveParticipantSourceId, isApplicationSource, needsLoopbackStream, participantSpeechHeard, SYSTEM_PARTICIPANT_SOURCE_ID } from './participantSource';
 
 describe('resolveParticipantSourceId', () => {
   it('returns the selected application source id', () => {
@@ -69,5 +69,12 @@ describe('needsLoopbackStream', () => {
   it('does NOT need one for whole-system capture on macOS', () => {
     setPlatform('MacIntel');
     expect(needsLoopbackStream(SYSTEM_PARTICIPANT_SOURCE_ID)).toBe(false);
+  });
+});
+
+describe('participantSpeechHeard', () => {
+  it('hears the participant in face-to-face even on Electron with a whole-system source', () => {
+    expect(participantSpeechHeard('electron', 'desktop-audio-loopback', true)).toBe(true);
+    expect(participantSpeechHeard('electron', 'desktop-audio-loopback', false)).toBe(false);
   });
 });

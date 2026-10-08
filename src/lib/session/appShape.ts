@@ -40,9 +40,13 @@ export function selectedFromStores(): { provider: AnyProvider; entry: ProviderEn
  * stored "beside me" under a provider without it is ordinary Both.
  */
 export function faceToFaceFromStores(): boolean {
-  const selected = selectedFromStores();
   const { mode, otherSide } = useAudioStore.getState();
-  return selected?.provider.faceToFace === true && mode === 'both' && otherSide === 'beside';
+  return isFaceToFace(selectedFromStores()?.provider, mode, otherSide);
+}
+
+/** `faceToFaceFromStores`' rule over given values, for a surface that subscribes to them. */
+export function isFaceToFace(provider: { faceToFace?: boolean } | undefined, mode: AudioMode, otherSide: string): boolean {
+  return provider?.faceToFace === true && mode === 'both' && otherSide === 'beside';
 }
 
 /**

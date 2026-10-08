@@ -9,6 +9,7 @@
 import { SAMPLE_RATE } from '../contract/adapter';
 import { participantSpeechHeard } from '../modern-audio/participantSource';
 import type { Platform } from '../provider/types';
+import { faceToFaceFromStores } from '../session/appShape';
 import type { TurnMode } from '../session/types';
 import useAudioStore from '../../stores/audioStore';
 import { useRoutingStore } from '../../stores/routingStore';
@@ -39,6 +40,7 @@ export function readRouting(
   switches: { meeting: boolean; participantSpeech: boolean },
   platform: Platform,
   turnMode: TurnMode,
+  faceToFace = false,
 ): RoutingSettings {
   return {
     meeting: switches.meeting,
@@ -51,7 +53,7 @@ export function readRouting(
     // the one predicate this, the switch, the run's shape and the replay
     // slot all share). An application capture that falls back to the whole
     // system mid-run is not seen here: a follow-up.
-    participantSpeech: switches.participantSpeech && participantSpeechHeard(platform, audio.selectedParticipantSource?.deviceId),
+    participantSpeech: switches.participantSpeech && participantSpeechHeard(platform, audio.selectedParticipantSource?.deviceId, faceToFace),
     // 1e-3 ruling 4, today's rule (`isPassthroughActive`): under push-to-translate
     // the original voice is on at full level whenever the key is not held (the
     // route closes while held), whatever the passthrough toggle says. Under
@@ -71,7 +73,7 @@ export function readRouting(
 
 export function createAppRouting(platform: Platform): RoutingSource {
   return {
-    get: () => readRouting(useAudioStore.getState(), useRoutingStore.getState(), platform, useTurnModeStore.getState().turnMode),
+    get: () => readRouting(useAudioStore.getState(), useRoutingStore.getState(), platform, useTurnModeStore.getState().turnMode, faceToFaceFromStores()),
     subscribe(listener) {
       const offAudio = useAudioStore.subscribe(() => listener());
       const offSwitches = useRoutingStore.subscribe(() => listener());

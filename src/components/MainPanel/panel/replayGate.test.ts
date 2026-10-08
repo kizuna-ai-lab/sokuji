@@ -78,4 +78,14 @@ describe('replayBlocked', () => {
       participantNoticeCodes: [],
     })).toBe(false);
   });
+
+  it('never blocks in face-to-face: the participant captures nothing', () => {
+    expect(replayBlocked({
+      run: running,
+      platform: 'electron',
+      participantSourceId: 'desktop-audio-loopback',
+      participantNoticeCodes: [],
+      faceToFace: true,
+    })).toBe(false);
+  });
 });

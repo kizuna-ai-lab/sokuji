@@ -14,6 +14,7 @@ import { useAnalytics } from '../../lib/analytics';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause, reportError, reportWarning } from '../../lib/diagnostics/report';
 import { participantSpeechHeard } from '../../lib/modern-audio/participantSource';
+import { isFaceToFace } from '../../lib/session/appShape';
 import { NO_MICROPHONE } from '../../lib/session/shape';
 import type { RunEnd, RunState } from '../../lib/session/types';
 import { displayItems, type DisplayItem, type NoticeEntry } from '../../lib/view/filter';
@@ -21,6 +22,7 @@ import { actionLabel, type NoticeActionSpec } from '../../lib/view/noticeActions
 import { isPanelNoteId, noticeActionSpec, panelNoteEntries } from '../../lib/view/panelNotes';
 import { getProvider } from '../../providers/registry';
 import {
+  default as useAudioStore,
   useIsMicMuted,
   useMode,
   useParticipantSources,
@@ -169,6 +171,8 @@ export default function MainPanel() {
   const participantSources = useParticipantSources();
   const participantSource = useSelectedParticipantSource();
   const provider = useProviderStore((s) => (s.selected ? getProvider(s.selected) : undefined));
+  const otherSide = useAudioStore((s) => s.otherSide);
+  const faceToFace = isFaceToFace(provider, mode, otherSide);
   const providerSettings = useProviderStore((s) => (s.selected ? s.entries[s.selected]?.settings : undefined));
   const display = useConversationDisplayStore();
 
@@ -191,13 +195,13 @@ export default function MainPanel() {
   const segments = useMemo(() => new Map(viewState.legs.flatMap((leg) => leg.segments.map((s) => [s.id, s] as const))), [viewState.legs]);
   // No participant replay slot while the whole-system rule mutes it (ruling
   // 7, completed): the switch, the run's shape and the route all agree.
-  const heardParticipantSpeech = participantSpeech && participantSpeechHeard(getEnvironment(), participantSource?.deviceId);
+  const heardParticipantSpeech = participantSpeech && participantSpeechHeard(getEnvironment(), participantSource?.deviceId, faceToFace);
   const replayLegs = useMemo(() => new Set<LegName>(keepReplayAudio ? (heardParticipantSpeech ? ['speaker', 'participant'] : ['speaker']) : []), [keepReplayAudio, heardParticipantSpeech]);
   const participantNoticeCodes = useMemo(
     () => viewState.legs.find((leg) => leg.leg === 'participant')?.notices.flatMap((n) => (n.code ? [n.code] : [])) ?? [],
     [viewState.legs],
   );
-  const blocked = replayBlocked({ run, platform: getEnvironment(), participantSourceId: participantSource?.deviceId, participantNoticeCodes })
+  const blocked = replayBlocked({ run, platform: getEnvironment(), participantSourceId: participantSource?.deviceId, participantNoticeCodes, faceToFace })
     ? t('mainPanel.replayBlockedWholeSystem', "Replay is off while Other's audio captures all system sound: it would be translated again.")
     : null;
 
