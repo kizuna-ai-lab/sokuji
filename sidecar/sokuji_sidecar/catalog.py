@@ -1162,7 +1162,7 @@ _TTS_RAM_FACTORS: dict[str, float] = {
     "fish-audio-s2-pro": 1.3,       # 7,767,820 kB on 6,317,911,232 B (1.26x)
     "audio8-tts-0.6b": 1.6,         # 2,221,020 kB on 1,429,545,312 B (1.59x)
     "soprano-1.1-80m": 4.6,         # 546,304 kB on 123,162,336 B (4.54x)
-    "outetts-1.0-1b": 1.3,          # 3,709,076 kB, bare then clone, on 3,029,895,456 B (1.25x)
+    "outetts-1.0-1b": 1.4,          # 3,989,980 kB, bare then clone, on 3,029,895,456 B (1.35x)
     "echo-tts": 1.9,                # 5,555,704 kB on 3,028,207,456 B (1.88x)
     "voicetut-tts": 1.3,            # 1,613,196 kB on 1,350,264,224 B (1.22x)
     "miotts-1.7b": 1.8,             # 4,298,480 kB on 2,496,393,216 B package (1.76x)

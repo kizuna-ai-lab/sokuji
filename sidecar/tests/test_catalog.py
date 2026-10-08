@@ -436,7 +436,7 @@ MEASURED_CPU_PEAKS_KB = {
     "audio8-tts-0.6b": ("q8_0", 2221020),
     "soprano-1.1-80m": ("q8_0", 546304),
     "glm-tts": ("q8_0", 5363276),
-    "outetts-1.0-1b": ("q8_0", 3709076),     # the bare-then-clone run; a bare synth alone: 2509256
+    "outetts-1.0-1b": ("q8_0", 3989980),     # the bare-then-clone run; a bare synth alone: 2582236
     "echo-tts": ("q8_0", 5555704),
     "kitten-tts2": ("q8_0", 3716020),
     "voicetut-tts": ("q8_0", 1613196),
