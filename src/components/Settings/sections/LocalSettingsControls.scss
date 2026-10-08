@@ -26,11 +26,37 @@
   @include download.download-error;
 }
 
-.end-of-turn__retry {
+.end-of-turn__action {
   @include download.download-button;
 }
 
-.end-of-turn__delete {
-  @include download.download-button;
-  margin-top: vars.$space-3;
+// A quiet text action in the VAD heading, in the help icon's grey: the heading
+// names its scope, and its line height stays the heading's own.
+.vad-settings__restore {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline-start: auto;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: vars.$font-caption;
+  font-weight: normal;
+  line-height: 1;
+  color: vars.$text-muted;
+  cursor: pointer;
+  transition: color vars.$transition-fast;
+
+  &:hover:not(:disabled) {
+    color: vars.$text-secondary;
+  }
+
+  &:focus-visible {
+    @include vars.focus-ring;
+  }
+
+  &:disabled {
+    opacity: vars.$disabled-opacity;
+    cursor: not-allowed;
+  }
 }

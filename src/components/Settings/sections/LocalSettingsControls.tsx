@@ -10,7 +10,7 @@
  */
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, CircleHelp, RotateCw, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, CircleHelp, RotateCcw, RotateCw, Trash2 } from 'lucide-react';
 import Tooltip from '../../Tooltip/Tooltip';
 import { formatBytes } from '../../../lib/local-inference/formatBytes';
 import {
@@ -141,13 +141,18 @@ export const EndOfTurnControl: React.FC<{
             </button>
           ))}
         </div>
-        {deletable && (
-          <button type="button" className="end-of-turn__delete" onClick={deletable.onDelete} disabled={disabled}>
-            <Trash2 size={12} />
-            <span>{t('settings.smartTurnDeleteModel', 'Delete model ({{size}})', { size: formatBytes(deletable.bytes) })}</span>
-          </button>
-        )}
       </div>
+      {deletable && (
+        <div className="setting-item end-of-turn__status end-of-turn__status--line">
+          <span className="end-of-turn__text">
+            {t('settings.smartTurnModelOnDisk', 'Smart Turn model: {{size}}', { size: formatBytes(deletable.bytes) })}
+          </span>
+          <button type="button" className="end-of-turn__action" onClick={deletable.onDelete} disabled={disabled}>
+            <Trash2 size={12} />
+            <span>{t('models.delete', 'Delete')}</span>
+          </button>
+        </div>
+      )}
       {download && (
         <div className="setting-item end-of-turn__status">
           <div className="end-of-turn__progress-bar">
@@ -166,7 +171,7 @@ export const EndOfTurnControl: React.FC<{
           <span className="end-of-turn__error">
             {t('settings.smartTurnDownloadFailed', 'Smart Turn model download failed: {{error}}', { error })}
           </span>
-          <button type="button" className="end-of-turn__retry" onClick={onRetry} disabled={disabled}>
+          <button type="button" className="end-of-turn__action" onClick={onRetry} disabled={disabled}>
             <RotateCw size={12} />
             <span>{t('common.retry', 'Retry')}</span>
           </button>
@@ -209,7 +214,9 @@ export const VadControl: React.FC<{
   disabled: boolean;
   /** Rendered under the heading, above every slider. */
   endOfTurn?: React.ReactNode;
-}> = ({ values, onChange, disabled, endOfTurn }) => {
+  /** Shown in the heading while a slider is off its default; omit it and the action is hidden. */
+  onRestoreDefaults?: () => void;
+}> = ({ values, onChange, disabled, endOfTurn, onRestoreDefaults }) => {
   const { t } = useTranslation();
   const smart = values.smartTurnCheckAfter !== undefined && values.smartTurnThreshold !== undefined
     ? { checkAfter: values.smartTurnCheckAfter, threshold: values.smartTurnThreshold }
@@ -224,6 +231,12 @@ export const VadControl: React.FC<{
       <h2>
         {t('settings.vadSettings', 'VAD Settings')}
         <Tooltip content={t('settings.vadSettingsTooltip', 'Voice Activity Detection parameters. Controls how speech segments are detected and split. Changes take effect on next session start.')} position="top">{helpIcon}</Tooltip>
+        {onRestoreDefaults && (
+          <button type="button" className="vad-settings__restore" onClick={onRestoreDefaults} disabled={disabled}>
+            <RotateCcw size={12} />
+            <span>{t('settings.vadRestoreDefaults', 'Restore defaults')}</span>
+          </button>
+        )}
       </h2>
       {endOfTurn}
       {smart && (

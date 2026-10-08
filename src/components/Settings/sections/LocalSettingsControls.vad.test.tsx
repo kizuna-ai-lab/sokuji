@@ -140,3 +140,21 @@ describe('VadControl Smart Turn sliders', () => {
     expect(order & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });
+
+describe('VadControl restore defaults', () => {
+  it('sits in the heading only when the provider passes a handler, and reports a click', () => {
+    const { rerender } = render(<VadControl values={BASE} onChange={() => {}} disabled={false} />);
+    expect(screen.queryByRole('button', { name: 'Restore defaults' })).toBeNull();
+    const onRestoreDefaults = vi.fn();
+    rerender(<VadControl values={BASE} onChange={() => {}} disabled={false} onRestoreDefaults={onRestoreDefaults} />);
+    const restore = screen.getByRole('button', { name: 'Restore defaults' });
+    expect(restore.closest('h2')).toBe(screen.getByText('VAD Settings').closest('h2'));
+    fireEvent.click(restore);
+    expect(onRestoreDefaults).toHaveBeenCalledTimes(1);
+  });
+
+  it('is disabled while a session runs', () => {
+    render(<VadControl values={BASE} onChange={() => {}} disabled onRestoreDefaults={() => {}} />);
+    expect(screen.getByRole('button', { name: 'Restore defaults' })).toBeDisabled();
+  });
+});

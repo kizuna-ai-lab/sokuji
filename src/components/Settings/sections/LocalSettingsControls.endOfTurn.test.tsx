@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { EndOfTurnControl } from './LocalSettingsControls';
 
 vi.mock('react-i18next', () => ({
@@ -50,19 +50,21 @@ describe('EndOfTurnControl', () => {
     expect(button('Retry')).toBeDisabled();
   });
 
-  it('offers to delete the model with its size, and disables that while a session runs', () => {
+  it('shows the model on disk with its size and a Delete, disabled while a session runs', () => {
     const onDelete = vi.fn();
     const { rerender } = render(
       <EndOfTurnControl value="smart" onChange={() => {}} disabled={false} deletable={{ bytes: 32_411_198, onDelete }} />,
     );
-    fireEvent.click(button('Delete model (30.9 MB)'));
+    const line = screen.getByText('Smart Turn model: 30.9 MB').closest('.setting-item')!;
+    fireEvent.click(within(line as HTMLElement).getByRole('button', { name: 'Delete' }));
     expect(onDelete).toHaveBeenCalledTimes(1);
     rerender(<EndOfTurnControl value="smart" onChange={() => {}} disabled deletable={{ bytes: 32_411_198, onDelete }} />);
-    expect(button('Delete model (30.9 MB)')).toBeDisabled();
+    expect(button('Delete')).toBeDisabled();
   });
 
-  it('offers no delete unless told the model can go', () => {
+  it('shows no model line unless told the model can go', () => {
     render(<EndOfTurnControl value="smart" onChange={() => {}} disabled={false} />);
-    expect(screen.queryByRole('button', { name: /Delete model/ })).toBeNull();
+    expect(screen.queryByText(/Smart Turn model:/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
   });
 });
