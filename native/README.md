@@ -288,14 +288,16 @@ that form of `model_path` covered.
 
 A TTS recording is the union of the synths a user can reach, run on one loaded handle inside one
 recording window (`synth_reachable_paths`, `tests/record_common.h`; owner's ruling 2026-10-07). A
-voice-required family runs the clip synth only; the list is `kVoiceRequiredFamilies`, the
-sidecar's `VOICE_REQUIRED_FAMILIES`, held equal by `sidecar/tests/test_catalog.py`. A family that
-clones without needing a clip runs the bare synth, with the preset the sidecar sets at load where
-it sets one (pocket_tts's `alba`), then the clip synth, so its recording holds the clone path's
-encoders as well as the bare graph. A family that does not clone (`sk_tts_capabilities`) runs the
-bare synth. The clip is supertonic's preset M1 speaking the recording's sentence, which is also
-its transcript. Whether a family clones is known only once it is loaded, inside the window, so
-the clip is made for every TTS family before the window opens.
+voice-required family runs the clip synth only; the list is `kVoiceRequiredFamilies`: the
+sidecar's `VOICE_REQUIRED_FAMILIES` plus each family whose every card sets `voice_required=True`
+(breeze_tts), a union `sidecar/tests/test_catalog.py` computes from the catalog and holds the
+list to. A family that clones without needing a clip runs the bare synth, with the preset the
+sidecar sets at load where it sets one (pocket_tts's `alba`), then the clip synth, so its
+recording holds the clone path's encoders as well as the bare graph. A family that does not
+clone (`sk_tts_capabilities`) runs the bare synth. The clip is supertonic's preset M1 speaking
+the recording's sentence, which is also its transcript. Whether a family clones is known only
+once it is loaded, inside the window, so the clip is made for every TTS family before the window
+opens.
 
 The gate asks about the dtype a device runs, which for a TTS weight is not always the file's.
 audio.cpp's `BackendWeightStore` loads a tensor with `Native` storage whose file dtype is BF16 as
@@ -330,13 +332,18 @@ and the sidecar's `accel.weight_dtypes` stay the files' own dtypes: the native s
 A TTS weight can also run in f32 whatever the file holds. audio.cpp builds some weights as F32 on
 every backend: `make_f32`, and a tensor derived at `Native` storage (`type_for_derived_storage`),
 `include/engine/framework/core/backend_weight_store.h:133-142` and `246-251` at the pinned commit.
-higgs_audio_tts's clone-path positional conv (`src/models/higgs_audio_tts/codec.cpp:357-362`) is
-one, in a file with no f32 matrix; qwen3_tts's normalized codebook table is another. So for stage
-`tts`, on every device, `sk_ops_asked_weight_dtypes` adds f32 to the set when it lacks it: the
-query asks every WEIGHT node in f32 as well, and the guard accepts a live f32 WEIGHT. asr and
-translate are unchanged, and `# dtypes-in-file:` stays the files' own dtypes (owner's ruling
-2026-10-07). f32 `MUL_MAT` and `GET_ROWS` are supported on every device, so this lengthens the
-query without changing an answer today.
+Such a weight is a `WEIGHT` when it is the src0 of a `MUL_MAT`, `MUL_MAT_ID` or `GET_ROWS`:
+qwen3_tts's normalized codebook table (`make_f32`,
+`src/models/qwen3_tts/tokenizer_speech_decoder.cpp:656`) is the src0 of a `GET_ROWS`, f32 even in
+a bf16 rung whose file holds no f32 matrix. A convolution kernel is not one: `ggml_conv_1d`
+(and its shim in `src/audiocpp_compat.h`) makes it `IM2COL`'s src0 and the `MUL_MAT`'s src1, so
+higgs_audio_tts's f32 positional conv is recorded as a literal f32 and asked as such. So for
+stage `tts`, on every device, `sk_ops_asked_weight_dtypes` adds f32 to the set when it lacks it,
+a safeguard for every such path: the query asks every WEIGHT node in f32 as well, and the guard
+accepts a live f32 WEIGHT.
+asr and translate are unchanged, and `# dtypes-in-file:` stays the files' own dtypes (owner's
+ruling 2026-10-07). f32 `MUL_MAT` and `GET_ROWS` are supported on every device, so this
+lengthens the query without changing an answer today.
 
 A recording keeps one line per node identity (op, op params, dtypes, each tensor's `ne[0]` and
 layout, host side). The sequence axes `ne[1..3]` and a strided view's `nb` merge as per-axis

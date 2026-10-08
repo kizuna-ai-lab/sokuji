@@ -334,6 +334,15 @@ int main(int argc, char **argv) {
     assert((sk_ops_asked_weight_dtypes("tts", "vibevoice", "cpu", {"q8_0", "i32"}) == V{"q8_0", "i32", "f32"}));
     assert((sk_ops_asked_weight_dtypes("asr", "whisper", "vulkan", {"q8_0"}) == V{"q8_0"}));
     assert((sk_ops_asked_weight_dtypes("translate", "qwen3", "metal", {"bf16", "q8_0"}) == V{"bf16", "q8_0"}));
+    // The widest a tts set can grow: seven dtypes (gen_ops_data.py's WIDEST_FALLBACK) holding
+    // bf16 but neither f16 nor f32, for a raw-typed family on vulkan, gain f16 and f32. That +2 is
+    // gen_ops_data.py's TTS_ADDED_DTYPES; change one, change the other.
+    {
+        const V seven = {"q4_0", "q4_1", "q5_0", "q5_1", "q6_K", "q8_0", "bf16"};
+        const V asked = sk_ops_asked_weight_dtypes("tts", "qwen3_tts", "vulkan", seven);
+        assert(asked.size() == seven.size() + 2);
+        assert((asked == V{"q4_0", "q4_1", "q5_0", "q5_1", "q6_K", "q8_0", "bf16", "f16", "f32"}));
+    }
 
     // The `# recorded-on` words, one spelling for the query and the recorder.
     assert(std::string(sk_ops_device_word(SK_DEVICE_VULKAN)) == "vulkan");
