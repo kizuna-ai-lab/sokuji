@@ -81,3 +81,40 @@ describe('buildBands', () => {
     expect(bands[0].pieces.map((piece) => [piece.text, piece.start])).toEqual([['Hi.', 3]]);
   });
 });
+
+const said = (r: Row, person: string): Row => ({ ...r, person });
+const dots = (band: Band) => band.pieces.map((piece) => (piece.mark ? String(piece.person) : '-'));
+
+describe('buildBands — people', () => {
+  it('marks the first run of each change of person on a labelled leg, the same number on both bands', () => {
+    const bands = buildBands([
+      exchange('a', 'participant', [said(row('s1', 0, 0, 'One.'), '1.1')], [said(row('t1', 0, 0, '一。', 'translation'), '1.1')]),
+      exchange('b', 'participant', [said(row('s2', 0, 0, 'Two.'), '1.2')], [said(row('t2', 0, 0, '二。', 'translation'), '1.2')]),
+      exchange('c', 'participant', [said(row('s3', 0, 0, 'Three.'), '1.2')], [said(row('t3', 0, 0, '三。', 'translation'), '1.2')]),
+    ], both, words);
+    expect(bands.map((band) => [band.id, dots(band)])).toEqual([
+      ['participant-source', ['1', '2', '-']],
+      ['participant-translation', ['1', '2', '-']],
+    ]);
+  });
+
+  it('marks nothing while the leg has had one person', () => {
+    const bands = buildBands([
+      exchange('a', 'participant', [said(row('s1', 0, 0, 'One.'), '1.1')]),
+      exchange('b', 'participant', [said(row('s2', 0, 0, 'Two.'), '1.1')]),
+    ], both, words);
+    expect(dots(bands[0])).toEqual(['-', '-']);
+  });
+
+  it('draws no second dot across a notice, and keeps later dots when the cap cuts the first', () => {
+    const notice: Entry = { kind: 'notice', id: 'n', leg: 'participant', severity: 'warning', message: 'w', at: 0 };
+    const entries = [
+      exchange('a', 'participant', [], [said(row('t1', 0, 0, 'A long first line.', 'translation'), '1.1')]),
+      notice,
+      exchange('b', 'participant', [], [said(row('t2', 0, 0, 'Same.', 'translation'), '1.1')]),
+      exchange('c', 'participant', [], [said(row('t3', 0, 0, 'Other.', 'translation'), '1.2')]),
+    ];
+    expect(dots(buildBands(entries, both, words)[0])).toEqual(['1', '-', '-', '2']);
+    expect(dots(buildBands(entries, both, words, 12)[0])).toEqual(['-', '2']);
+  });
+});

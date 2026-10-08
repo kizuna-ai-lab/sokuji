@@ -5,6 +5,7 @@ import type { Entry } from '../../lib/projection/types';
 import { buildBands, type BandPiece } from '../../lib/subtitle/bands';
 import { displayItems, type LegFilters } from '../../lib/view/filter';
 import { noticeText } from '../../lib/view/noticeText';
+import { personShade } from '../../lib/view/people';
 import { ConversationList, type ConversationListProps } from '../Conversation/ConversationList';
 import { useVisibleEntries } from '../Conversation/useVisibleEntries';
 import './SubtitleStream.scss';
@@ -112,6 +113,7 @@ function SubtitleBands({ entries, lit, filters, newItemHighlightEnabled }: Pick<
                 run={run}
                 lit={lit}
                 isNew={newItemHighlightEnabled && stateOf(run.key) === 'new'}
+                mark={run.mark && run.person !== undefined ? t('mainPanel.displayMode.person', { defaultValue: 'Speaker {{n}}', n: run.person }) : null}
               />
             ))}
           </p>
@@ -128,6 +130,9 @@ interface RunOf {
   segmentId?: SegmentId;
   before: string;
   pieces: BandPiece[];
+  /** The run's person and whether a dot goes before it (`buildBands`). */
+  person?: number;
+  mark: boolean;
 }
 
 /**
@@ -142,18 +147,21 @@ function runsOf(pieces: readonly BandPiece[]): RunOf[] {
     if (last && piece.segmentId !== undefined && last.segmentId === piece.segmentId) {
       last.pieces.push(piece);
     } else {
-      runs.push({ key: piece.segmentId ?? piece.key, segmentId: piece.segmentId, before: piece.before, pieces: [piece] });
+      runs.push({ key: piece.segmentId ?? piece.key, segmentId: piece.segmentId, before: piece.before, pieces: [piece], person: piece.person, mark: piece.mark === true });
     }
   }
   return runs;
 }
 
-function Run({ run, lit, isNew }: { run: RunOf; lit: ReadonlyMap<SegmentId, number>; isNew: boolean }) {
+function Run({ run, lit, isNew, mark }: { run: RunOf; lit: ReadonlyMap<SegmentId, number>; isNew: boolean; mark: string | null }) {
   const className = isNew ? 'subtitle-stream__item subtitle-stream__item--new' : 'subtitle-stream__item';
   const upTo = run.segmentId === undefined ? undefined : lit.get(run.segmentId);
   return (
     <span className={className} data-segment={run.segmentId}>
       {run.before}
+      {mark !== null && run.person !== undefined && (
+        <span className={`subtitle-stream__person person-shade-${personShade(run.person)}`} role="img" aria-label={mark}>{run.person}</span>
+      )}
       {run.pieces.map((piece) => <Stretch key={piece.key} piece={piece} upTo={upTo} />)}
     </span>
   );

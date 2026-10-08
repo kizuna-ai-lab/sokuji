@@ -68,6 +68,34 @@
       padding-left: 6px;
       border-left: 2px solid rgba(tk.$color-speaker, 0.6);
     }
+
+    // A labelled leg's person changes here: a numbered dot in the leg's shade
+    // for that person, scaled with the text. Digit colours match the list's avatars.
+    .subtitle-stream__person {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.05em;
+      height: 1.05em;
+      margin-right: 0.25em;
+      border-radius: 50%;
+      font-size: 0.62em;
+      font-style: normal;
+      font-weight: 700;
+      vertical-align: 0.15em;
+      color: #fff;
+    }
+    .subtitle-stream__line--speaker .subtitle-stream__person {
+      &.person-shade-0 { background: tk.$color-speaker-person-1; }
+      &.person-shade-1 { background: tk.$color-speaker-person-2; color: #1a1a1a; }
+      &.person-shade-2 { background: tk.$color-speaker-person-3; }
+    }
+    .subtitle-stream__line--participant .subtitle-stream__person {
+      color: #1a1a1a;
+      &.person-shade-0 { background: tk.$color-participant-person-1; }
+      &.person-shade-1 { background: tk.$color-participant-person-2; }
+      &.person-shade-2 { background: tk.$color-participant-person-3; }
+    }
   }
 
   // ------------------------------------------------------------------
