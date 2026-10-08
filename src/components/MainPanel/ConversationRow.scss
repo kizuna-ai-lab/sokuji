@@ -136,6 +136,33 @@
   }
 }
 
+.ear-tag {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: 4px;
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: 700;
+
+  &.listener-speaker {
+    border: 1.5px solid tk.$color-speaker;
+    color: tk.$color-speaker;
+  }
+  &.listener-participant {
+    border: 1.5px solid tk.$color-participant;
+    color: tk.$color-participant;
+  }
+  &--muted {
+    border: 1px dashed #777;
+    color: #b0b5ba;
+    background: #262626;
+  }
+}
+
 .row-play-btn {
   flex-shrink: 0;
   display: inline-flex;

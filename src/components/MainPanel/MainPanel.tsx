@@ -60,6 +60,7 @@ import { Banners } from '../Banner/useBanners';
 import UpdateDialog from '../UpdateDialog/UpdateDialog';
 import ModeDevicePopover from './ModeDevicePopover';
 import { PanelFooter } from './panel/PanelFooter';
+import { earsFor } from '../../lib/audio/routes';
 import { earsLegend, useFaceToFace } from './useFaceToFace';
 import PanelToolbar from './panel/PanelToolbar';
 import { replayBlocked } from './panel/replayGate';
@@ -332,6 +333,7 @@ export default function MainPanel() {
               if (s) audio.playback.replay(leg, s);
             }}
             replayBlocked={blocked} noticeAction={noticeAction}
+            ears={ears ? earsFor(f2f.swap) : null}
             compact={display.compactMode} fontSize={display.fontSize}
             empty={<><MessageSquare size={32} /><p>{t('simplePanel.startToBegin', 'Click Start to begin real-time translation')}</p></>}
           />

@@ -2,9 +2,12 @@ import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, render } from '@testing-library/react';
 import type { Row } from '../../lib/projection/types';
 import type { DisplayItem } from '../../lib/view/filter';
+import { earsFor } from '../../lib/audio/routes';
+import { earsLegend } from '../MainPanel/useFaceToFace';
 import { ConversationList, type ConversationListProps } from './ConversationList';
 
 vi.mock('react-i18next', () => ({
+  initReactI18next: { type: '3rdParty', init: () => {} }, // the stores earsLegend's module reads pull in the real i18n setup
   useTranslation: () => ({
     t: (key: string, fallback?: string | ({ defaultValue?: string } & Record<string, unknown>)) =>
       typeof fallback === 'string'
@@ -295,5 +298,57 @@ describe('ConversationList — system rows (spec 2026-10-05 §2)', () => {
   it('draws no link when the caller gives no action', () => {
     const { container } = render(<ConversationList {...props({ items: [noticeItem()], noticeAction: () => null })} />);
     expect(container.querySelector('.sys-row__action')).toBeNull();
+  });
+});
+
+describe('ConversationList — face-to-face ears', () => {
+  const ears = { speaker: 'right', participant: 'left' } as const;
+
+  it('tags a spoken translation with the ear it played in, coloured by who heard it', () => {
+    const { container } = render(<ConversationList {...props({ ears })} />);
+    const tag = container.querySelector('.ear-tag');
+    expect(tag?.classList.contains('ear-tag--right')).toBe(true);
+    expect(tag?.classList.contains('listener-participant')).toBe(true);
+    expect(tag?.textContent).toBe('R');
+  });
+
+  it("marks a translation outside the leg's target as not played, the reason on hover", () => {
+    const own = rowItem({ row: row({ language: 'en' }) }); // the speaker leg's target is 'ja'
+    const { container } = render(<ConversationList {...props({ ears, items: [own] })} />);
+    const tag = container.querySelector('.ear-tag--muted');
+    expect(tag).not.toBeNull();
+    expect(tag?.textContent).toBe('');
+    expect(tag?.getAttribute('title')).toMatch(/Not played/);
+    expect(tag?.getAttribute('aria-label')).toMatch(/Not played/);
+    expect(container.querySelector('.ear-tag--left, .ear-tag--right')).toBeNull();
+  });
+
+  it('compares the primary subtag, so a regional variant of the target is still spoken', () => {
+    const item = rowItem({ row: row({ language: 'ja-JP' }) });
+    const { container } = render(<ConversationList {...props({ ears, items: [item] })} />);
+    expect(container.querySelector('.ear-tag--muted')).toBeNull();
+    expect(container.querySelector('.ear-tag--right')).not.toBeNull();
+  });
+
+  it('draws no ear tag outside face-to-face, on a source row, or when compact', () => {
+    const { container, rerender } = render(<ConversationList {...props()} />);
+    expect(container.querySelector('.ear-tag')).toBeNull();
+    rerender(<ConversationList {...props({ ears, items: [rowItem({ row: row({ side: 'source' }) })] })} />);
+    expect(container.querySelector('.ear-tag')).toBeNull();
+    rerender(<ConversationList {...props({ ears, compact: true })} />);
+    expect(container.querySelector('.ear-tag')).toBeNull();
+  });
+
+  it('shares one source of truth with the footer legend: the participant leg is my ear', () => {
+    for (const swap of [false, true]) {
+      const view = { offered: true, active: true, swap, me: 'ja', other: 'en' };
+      const legend = earsLegend(view, false)!;
+      const myEar = legend.leftIsMe ? 'left' : 'right';
+      const item = rowItem({ leg: 'participant', languages: { source: 'en', target: 'ja' } });
+      const { container } = render(<ConversationList {...props({ ears: earsFor(swap), items: [item], replayLegs: new Set() })} />);
+      const tag = container.querySelector('.ear-tag');
+      expect(tag?.classList.contains(`ear-tag--${myEar}`)).toBe(true);
+      expect(myEar).toBe(earsFor(swap).participant);
+    }
   });
 });

@@ -1,3 +1,4 @@
+import { earsFor } from '../../lib/audio/routes';
 import { presentProviders } from '../../providers/registry';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
@@ -38,9 +39,11 @@ export function useFaceToFace(): FaceToFaceView {
 /** The footer's ears legend: which language plays in each ear, and whether the left is mine. Absent when nothing plays in an ear: not face-to-face, or Text Only. */
 export function earsLegend(view: FaceToFaceView, textOnly: boolean): { leftLang: string; rightLang: string; leftIsMe: boolean } | null {
   if (!view.active || textOnly || !view.me || !view.other) return null;
+  // My ear is where the participant leg's translation (into my language) plays.
+  const leftIsMe = earsFor(view.swap).participant === 'left';
   return {
-    leftLang: view.swap ? view.other : view.me,
-    rightLang: view.swap ? view.me : view.other,
-    leftIsMe: !view.swap,
+    leftLang: leftIsMe ? view.me : view.other,
+    rightLang: leftIsMe ? view.other : view.me,
+    leftIsMe,
   };
 }

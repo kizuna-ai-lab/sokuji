@@ -1,6 +1,7 @@
 import { memo, useCallback, useRef, type CSSProperties, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowDown, Play, User, Users } from 'lucide-react';
+import { ArrowDown, Play, User, Users, VolumeX } from 'lucide-react';
+import type { Ear } from '../../lib/audio/routes';
 import type { LegName, SegmentId } from '../../lib/conversation/types';
 import type { DisplayItem, NoticeEntry } from '../../lib/view/filter';
 import { personShade } from '../../lib/view/people';
@@ -25,6 +26,8 @@ export interface ConversationListProps {
   onReplay(leg: LegName, segmentId: SegmentId): void;
   /** Set while replay is gated session-wide (plan 1e-3b-1 ruling 15): every slot is disabled and shows this as its title. */
   replayBlocked?: string | null;
+  /** Face-to-face (slice 3): the ear each leg's translation plays in. Absent or null: no ear tags. */
+  ears?: Readonly<Record<LegName, Ear>> | null;
   /** The action a notice's bubble offers, if any (plan 1e-3b-1 ruling 13). */
   noticeAction?(notice: NoticeEntry): NoticeAction | null;
   compact: boolean;
@@ -36,13 +39,22 @@ export interface ConversationListProps {
 
 type RowItem = Extract<DisplayItem, { kind: 'row' }>;
 
+/** The primary subtag: `zh-Hans` and Soniox's `zh` are one language here. */
+const base = (code: string) => code.split('-')[0].toLowerCase();
+
+/** A translation's ear, or 'muted' when it is not in its leg's target language: a code-switched line the leg does not speak. */
+function earTagOf(item: RowItem, ears: Readonly<Record<LegName, Ear>>): Ear | 'muted' {
+  const language = item.row.language || item.languages.target;
+  return base(language) === base(item.languages.target) ? ears[item.leg] : 'muted';
+}
+
 function formatTime(ts: number): string {
   const d = new Date(ts);
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
 export function ConversationList({
-  items, lit, replaying, replayLegs, canReplay, onReplay, replayBlocked, noticeAction, compact, fontSize, empty,
+  items, lit, replaying, replayLegs, canReplay, onReplay, replayBlocked, noticeAction, ears, compact, fontSize, empty,
 }: ConversationListProps) {
   const display = useRef<HTMLDivElement>(null);
   // The newest line stays in view while the reader is at the bottom; reading back
@@ -78,6 +90,9 @@ export function ConversationList({
               // re-renders for a replay-state change (plan 1e-3b-1 ruling 14).
               const slot = !compact && item.row.side === 'translation' && item.endsSegment && replayLegs.has(item.leg);
               const id = item.row.segmentId;
+              const ear = ears && !compact && item.row.side === 'translation' && item.endsSegment
+                ? earTagOf(item, ears)
+                : null;
               return (
                 <RowBubble
                   key={item.row.key}
@@ -89,6 +104,7 @@ export function ConversationList({
                   replayingOther={slot && replaying !== null && replaying !== id}
                   blocked={slot ? replayBlocked ?? null : null}
                   onReplay={replay}
+                  ear={ear}
                   compact={compact}
                 />
               );
@@ -123,10 +139,11 @@ interface RowBubbleProps {
   replayingOther: boolean;
   blocked: string | null;
   onReplay(leg: LegName, segmentId: SegmentId): void;
+  ear: Ear | 'muted' | null;
   compact: boolean;
 }
 
-const RowBubble = memo(function RowBubble({ item, upTo, replaySlot, canReplay, replayingThis, replayingOther, blocked, onReplay, compact }: RowBubbleProps) {
+const RowBubble = memo(function RowBubble({ item, upTo, replaySlot, canReplay, replayingThis, replayingOther, blocked, onReplay, ear, compact }: RowBubbleProps) {
   const { t } = useTranslation();
   const { row, leg, languages } = item;
   const isTranslation = row.side === 'translation';
@@ -146,6 +163,12 @@ const RowBubble = memo(function RowBubble({ item, upTo, replaySlot, canReplay, r
   // The tint marks only the row that holds the karaoke boundary — not every
   // row of a segment lit is on, or a row karaoke has already passed.
   const isPlayingRow = upTo !== undefined && ((upTo >= row.start && upTo < row.end) || (item.endsSegment && upTo >= row.end));
+
+  const notPlayed = t(
+    'faceToFace.notPlayed',
+    'Not played: this translation is in {{language}}, not {{target}}, so it is read to no one.',
+    { language: lang.toUpperCase(), target: languages.target.toUpperCase() },
+  );
 
   return (
     <div className={`conversation-row source-${leg} ${item.header ? 'with-header' : 'grouped'} ${compact ? 'compact' : 'expanded'}`}>
@@ -181,6 +204,25 @@ const RowBubble = memo(function RowBubble({ item, upTo, replaySlot, canReplay, r
             </>
           )}
         </span>
+        {ear === 'muted' && (
+          <span
+            className="ear-tag ear-tag--muted"
+            role="img"
+            aria-label={notPlayed}
+            title={notPlayed}
+          >
+            <VolumeX size={10} aria-hidden="true" />
+          </span>
+        )}
+        {(ear === 'left' || ear === 'right') && (
+          // Coloured by the listener: a speaker-leg translation is heard by the other person.
+          <span
+            className={`ear-tag ear-tag--${ear} listener-${leg === 'speaker' ? 'participant' : 'speaker'}`}
+            title={ear === 'left' ? t('faceToFace.playedLeft', 'Played in the left ear') : t('faceToFace.playedRight', 'Played in the right ear')}
+          >
+            {ear === 'left' ? t('faceToFace.earLeft', 'L') : t('faceToFace.earRight', 'R')}
+          </span>
+        )}
         {replaySlot && (
           // The slot's presence depends on the session-wide setting only, never on
           // whether this segment kept pcm, so no row reflows when its audio lands
