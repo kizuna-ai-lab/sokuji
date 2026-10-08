@@ -665,8 +665,9 @@ def _gib_floor(n: int) -> str:
     return f"{int(n) * 10 // (1 << 30) / 10:.1f}"
 
 
-# Slab on top of rung x ram_factor that free system RAM must also cover before a cpu (or
-# unified-memory Metal) load: the runtime's own working set, the interpreter, the audio path.
+# Slab on top of the rung's size (x ram_factor, on the CPU) that free system RAM must also cover
+# before a cpu (or unified-memory Metal) load: the runtime's own working set, the interpreter,
+# the audio path.
 _RAM_HEADROOM_BYTES = 512 << 20
 
 
@@ -676,8 +677,10 @@ def load_with_fallback(plans: list):
 
     A plan whose weights live in system RAM (cpu, and Metal: Apple silicon's unified
     memory is the same pool) is refused, not attempted, when free RAM is below its rung's
-    est_bytes x the card's ram_factor + _RAM_HEADROOM_BYTES: the OS would kill the sidecar
-    or swap the machine to a crawl mid-load. Unknown free RAM (no psutil) or an unknown
+    est_bytes x factor + _RAM_HEADROOM_BYTES: the OS would kill the sidecar or swap the
+    machine to a crawl mid-load. The factor is the card's ram_factor on the CPU, which is
+    where it was measured, and 1.0 on Metal (moss-tts-local peaks at 13,060,424 kB on the CPU
+    and held about 8.7 GiB on an M4's Metal). Unknown free RAM (no psutil) or an unknown
     rung size skips the check. A plan the check refuses is skipped like the VRAM gate's;
     if none loads and the last plan was a refusal, the error names the memory it needs and
     the memory free (a plan attempted after a refusal and failing otherwise is reported instead).
@@ -703,7 +706,8 @@ def load_with_fallback(plans: list):
         # (_llamacpp_variant_row). The proactive gate is for discrete VRAM.
         unified = plan.device == "metal"
         if plan.device in ("cpu", "metal") and plan.config.rung_bytes > 0:
-            ram_need = int(plan.config.rung_bytes * plan.config.ram_factor) + _RAM_HEADROOM_BYTES
+            ram_factor = plan.config.ram_factor if plan.device == "cpu" else 1.0
+            ram_need = int(plan.config.rung_bytes * ram_factor) + _RAM_HEADROOM_BYTES
             ram_free = ram_free_bytes()
             if ram_free is not None and ram_free < ram_need:
                 ram_short = (ram_need, ram_free)

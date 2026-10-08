@@ -66,8 +66,9 @@ class PlanConfig:
     # would take (every family but supertonic clones). True is the inert default.
     tts_clones: bool = True
     # What accel.load_with_fallback's RAM fit check judges a cpu (or unified-memory Metal)
-    # load by: the rung's catalog est_bytes (main file plus companions) and its card's
-    # ram_factor. 0 bytes = unknown, and the check leaves the plan alone.
+    # load by: the rung's catalog est_bytes (main file plus companions) and, for a cpu plan, its
+    # card's ram_factor (a Metal plan uses 1.0). 0 bytes = unknown, and the check leaves the
+    # plan alone.
     rung_bytes: int = 0
     ram_factor: float = 1.0
 

@@ -251,9 +251,12 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      is applied before it) to pay the driver's
      one-time pipeline-compile cost at load, not on the user's first utterance.
    - **RAM gate**: `accel.load_with_fallback` skips a cpu or Metal plan whose rung `est_bytes` ×
-     the card's `ram_factor` (1.0 unless `catalog._TTS_RAM_FACTORS` lists it) + 512 MiB exceeds
-     free RAM (psutil; no check without it); when that refusal was the last plan, the sidecar
-     replies "Not enough memory to load this model…" through its ordinary `error` message.
+     a factor + 512 MiB exceeds free RAM (psutil; no check without it). The factor is the
+     card's `ram_factor` for a cpu plan (1.0 unless `catalog._TTS_RAM_FACTORS` lists it; those
+     are CPU peak-RSS measurements) and 1.0 for a Metal plan: the M4 ran moss-tts-local on Metal
+     at about 8.7 GiB against its 1.8× CPU factor. When that refusal was the last plan, the
+     sidecar replies "Not enough memory to load this model…" through its ordinary `error`
+     message.
    - **Voice rules** are per card (`TtsModel.voice_required`, `transcript_required`,
      `presets` and `default_preset` in `catalog.py`, consumed by `tts_backend.py`;
      `voice_required` defaults to `family in VOICE_REQUIRED_FAMILIES`, ten families). Clone-only

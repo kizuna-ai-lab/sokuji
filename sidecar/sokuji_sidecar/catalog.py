@@ -51,8 +51,8 @@ class _ModelBase:
     graph_family: str = ""
     # How much system RAM a CPU load needs per byte of the rung's est_bytes: 1.0 unless a
     # measured CPU peak was above 1.2x or at most 0.9x its rung (_TTS_RAM_FACTORS, below).
-    # accel.load_with_fallback refuses a cpu or Metal load whose rung x factor plus headroom
-    # exceeds free memory.
+    # accel.load_with_fallback refuses a cpu load whose rung x factor plus headroom exceeds free
+    # memory, and a Metal load whose rung (factor 1.0) plus headroom does.
     ram_factor: float = 1.0
 
 
@@ -1151,7 +1151,9 @@ _TTS_TIER_OVERRIDES: dict[str, tuple[str, ...]] = {
 # 1.2x that rung's est_bytes, or at most 0.9x it (a flat 1.0 would refuse a machine that could
 # load a card needing less than its file): peak / est_bytes, rounded UP to one decimal. A card
 # with no measured peak, or one between 0.9x and 1.2x, keeps 1.0 and is not listed. A rung with
-# no measurement is judged by its file alone, so the table errs low.
+# no measurement is judged by its file alone, so the table errs low. These are CPU measurements:
+# a Metal plan is judged at 1.0 whatever the card lists (accel.load_with_fallback; the M4 ran
+# moss-tts-local on Metal at about 8.7 GiB against a 13,060,424 kB CPU peak).
 _TTS_RAM_FACTORS: dict[str, float] = {
     "moss-tts-local-1.5": 1.8,      # 13,060,424 kB on 7,512,220,768 B (1.78x)
     "chatterbox-turbo": 5.3,        # 3,607,324 kB on 699,101,408 B (5.28x)

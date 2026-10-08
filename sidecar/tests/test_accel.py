@@ -218,7 +218,7 @@ def test_gpu_only_oom_raises_honest_vram_message(monkeypatch):
 # A plan's PlanConfig carries its rung's est_bytes and its card's ram_factor; the load
 # needs rung x factor + 512 MiB (accel._RAM_HEADROOM_BYTES). cpu plans and Metal (Apple
 # silicon's unified memory is the same pool) are checked; a discrete GPU's plan is the
-# VRAM gate's.
+# VRAM gate's. The factor is a CPU measurement: a Metal plan uses 1.0.
 
 
 def _ram_plan(device, rung_gib=4.0, factor=1.0, artifact="repo/x.gguf"):
@@ -302,6 +302,39 @@ def test_ram_gate_scales_the_rung_by_the_cards_factor(monkeypatch):
         accel.load_with_fallback([_ram_plan("cpu", rung_gib=4.0, factor=1.8)])
     assert rec.attempted == []
     assert "about 7.7 GiB" in str(ei.value) and "6.0 GiB is free" in str(ei.value)
+
+
+def test_ram_gate_judges_a_metal_plan_at_the_file_size_not_the_cards_cpu_factor(monkeypatch):
+    # moss-tts-local on a 16 GiB M4 (fleet run, 2026-10-08): 7.0 GiB rung, factor 1.8 (its CPU
+    # peak), 12.47 GiB available. Metal held it at about 8.7 GiB, so it must load there.
+    free = int(12.47 * _GIB)
+    monkeypatch.setattr(accel, "ram_free_bytes", lambda: free)
+    rec = _LoadRecorder(monkeypatch)
+    _b, plan, notice = accel.load_with_fallback([_ram_plan("metal", rung_gib=7.0, factor=1.8)])
+    assert plan.device == "metal" and notice is None and len(rec.attempted) == 1
+
+
+def test_ram_gate_still_judges_a_cpu_plan_at_the_cards_factor(monkeypatch):
+    # The same card and the same free memory on the CPU: 7.0 GiB x 1.8 + 512 MiB = 13.1 GiB.
+    monkeypatch.setattr(accel, "ram_free_bytes", lambda: int(12.47 * _GIB))
+    rec = _LoadRecorder(monkeypatch)
+    with pytest.raises(accel.AllPlansFailed) as ei:
+        accel.load_with_fallback([_ram_plan("cpu", rung_gib=7.0, factor=1.8)])
+    assert rec.attempted == []
+    assert "about 13.1 GiB" in str(ei.value) and "12.4 GiB is free" in str(ei.value)
+
+
+def test_ram_gate_metal_need_is_the_file_plus_headroom_whatever_the_factor(monkeypatch):
+    # To the byte: rung x 1.0 + the headroom is enough on Metal, one byte less is not.
+    need = 7 * _GIB + accel._RAM_HEADROOM_BYTES
+    rec = _LoadRecorder(monkeypatch)
+    monkeypatch.setattr(accel, "ram_free_bytes", lambda: need)
+    _b, plan, _n = accel.load_with_fallback([_ram_plan("metal", rung_gib=7.0, factor=1.8)])
+    assert plan.device == "metal" and len(rec.attempted) == 1
+    monkeypatch.setattr(accel, "ram_free_bytes", lambda: need - 1)
+    with pytest.raises(accel.AllPlansFailed) as ei:
+        accel.load_with_fallback([_ram_plan("metal", rung_gib=7.0, factor=1.8)])
+    assert len(rec.attempted) == 1 and "about 7.5 GiB" in str(ei.value)
 
 
 def test_ram_gate_leaves_a_discrete_gpu_plan_to_the_vram_gate(monkeypatch):
