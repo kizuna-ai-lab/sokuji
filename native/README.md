@@ -232,7 +232,7 @@ a reference clip (+ optional transcript, mandatory where `transcript_required` i
 `kitten_tts2`) and `sk_tts_set_preset`
 stores a preset id — both apply to every subsequent `sk_tts_synth` call on the handle until
 the other is set (each clears the other); `sk_tts_synth` runs greedy/deterministic synthesis
-(`seed=0`, `do_sample=false`) for every family EXCEPT two kinds, each a `kFamilies[]` column.
+(a fixed seed, `do_sample=false`) for every family EXCEPT two kinds, each a `kFamilies[]` column.
 The `strict_options` families (`irodori_tts`, and twelve in all since native-v1.3.0) validate
 every request option against their own model spec, so `do_sample` is never sent to them —
 only the seed and what the spec declares, e.g. the transcript as `reference_text` where
