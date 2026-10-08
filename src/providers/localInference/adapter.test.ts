@@ -912,6 +912,92 @@ describe('the LocalInference adapter — loading', () => {
   });
 });
 
+describe('the LocalInference adapter — Smart Turn', () => {
+  const smart = () => makeConfig({ vad: { ...makeConfig().vad, smartTurn: { checkAfter: 0.3, threshold: 0.5 } } });
+  const turnFrames = (log: ConformanceLog) => ofKind(log, 'frame').filter((f) => f.type === 'local.turn').map((f) => f.payload);
+
+  it('hands the ASR a Smart Turn port under Auto turns', async () => {
+    const t = await open(smart());
+    expect(t.turn.connects).toBe(1);
+    expect(t.asr.inits[0].options.turnPort).toBe(t.turn.port);
+    expect(turnFrames(t.log)).toEqual([{ smart: true }]);
+    expectConformant(t.log, t.context);
+  });
+
+  it('connects nothing under manual turns: the held key ends the turn', async () => {
+    const t = await open(smart(), { ...auto, turns: 'manual' });
+    expect(t.turn.connects).toBe(0);
+    expect(t.asr.inits[0].options.turnPort).toBeUndefined();
+    expect(turnFrames(t.log)).toEqual([]);
+  });
+
+  it('connects nothing when Smart Turn is off', async () => {
+    const t = await open();
+    expect(t.turn.connects).toBe(0);
+    expect(turnFrames(t.log)).toEqual([]);
+  });
+
+  it('runs Normal when the runtime has no port for it', async () => {
+    const fakes = createFakeEngines();
+    fakes.turn.available = false;
+    const recorder = recordConformance();
+    const starting = createLocalInferenceAdapter(fakes.engines).start(
+      { context: auto, config: smart(), credentials: {}, clock: createVirtualClock(), signal: new AbortController().signal },
+      recorder.events,
+    );
+    fakes.asr.ready();
+    fakes.translation.ready();
+    await starting;
+    expect(fakes.asr.inits[0].options.turnPort).toBeUndefined();
+    expect(turnFrames(recorder.log)).toEqual([{ smart: false }]);
+  });
+
+  it('releases the connection when the session stops', async () => {
+    const t = await open(smart());
+    await t.session.stop();
+    expect(t.turn.releases).toBe(1);
+  });
+
+  it('releases it when the start fails', async () => {
+    const t = begin(smart());
+    t.asr.failInit('boom');
+    await t.starting.catch(() => {});
+    expect(t.turn.releases).toBe(1);
+  });
+
+  it('releases a connection that arrives after the start was cancelled', async () => {
+    const controller = new AbortController();
+    const t = begin(smart(), auto, controller.signal);
+    controller.abort(new Error('cancelled'));
+    await expect(t.starting).rejects.toThrow('cancelled');
+    await settle();
+    expect(t.turn.connects).toBe(1);
+    expect(t.turn.releases).toBe(1);
+    expect(t.asr.inits).toEqual([]);
+  });
+
+  it('loads no ASR when the start is cancelled after the connection was made', async () => {
+    const fakes = createFakeEngines();
+    const controller = new AbortController();
+    let releases = 0;
+    const port = fakes.turn.port;
+    fakes.engines.turn = async () => ({
+      // Read by the adapter right after its own `ended` check.
+      get port() { controller.abort(new Error('cancelled')); return port; },
+      release: () => { releases++; },
+    });
+    const recorder = recordConformance();
+    const starting = createLocalInferenceAdapter(fakes.engines).start(
+      { context: auto, config: smart(), credentials: {}, clock: createVirtualClock(), signal: controller.signal },
+      recorder.events,
+    );
+    await expect(starting).rejects.toThrow('cancelled');
+    await settle();
+    expect(fakes.asr.inits).toEqual([]);
+    expect(releases).toBe(1);
+  });
+});
+
 describe('the LocalInference adapter — errors', () => {
   it('a translation that rejects says translation_failed, humanized, and the next utterance is still translated', async () => {
     const t = await open();

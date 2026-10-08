@@ -15,7 +15,8 @@ import type { TranslationResult } from '../../lib/local-inference/engine/Transla
 import { countSkeleton } from '../../lib/segmentation/sealCursor';
 import { gateChars, type SealedChunk } from '../../lib/segmentation/SentenceStream';
 import { DEFAULT_CHUNK_SENTENCES } from '../../lib/segmentation/segmentationMode';
-import { defaultEngines, type AsrLike, type LocalEngines, type TranslationLike, type TtsLike, type TtsReady } from './engines';
+import type { TurnConnection } from '../../lib/turn/TurnRuntime';
+import { defaultEngines, type AsrInit, type AsrLike, type LocalEngines, type TranslationLike, type TtsLike, type TtsReady } from './engines';
 import { SentenceCut, runtimeOver } from './sentenceCut';
 import { speakTranslation } from './speech';
 import type { LocalInferenceConfig } from './config';
@@ -108,6 +109,8 @@ class LocalSession implements AdapterSession {
   private readonly asr: AsrLike;
   private readonly translation: TranslationLike | null;
   private tts: TtsLike | null;
+  private readonly connectTurn: LocalEngines['turn'];
+  private turn: TurnConnection | null = null;
 
   /** Set by `stop()`, `failed`, or a start that did not open: nothing is emitted after it. */
   private ended = false;
@@ -145,6 +148,7 @@ class LocalSession implements AdapterSession {
   ) {
     this.config = request.config;
     this.asr = engines.asr(this.config.asr);
+    this.connectTurn = engines.turn;
     this.translation = this.config.translation.kind === 'engine' ? engines.translation() : null;
     this.tts = this.config.tts ? engines.tts() : null;
     this.ttsDeath = new Promise<void>((resolve) => { this.ttsDeathSettle = resolve; });
@@ -175,13 +179,23 @@ class LocalSession implements AdapterSession {
     inits.push({
       stage: 'asr',
       model: config.asr.modelId,
-      load: () => this.asr.init(config.asr.modelId, {
-        vadConfig: config.vad,
-        language: source,
-        translateTo: config.translation.kind === 'ast' ? target : undefined,
-        // Exactly one layer may cut (ruling 10): the worker's own sentence endpoint stays on unless the stream shape seals.
-        punctuationEndpoint: this.cut === null,
-      }),
+      load: () => {
+        const options: AsrInit = {
+          vadConfig: config.vad,
+          language: source,
+          translateTo: config.translation.kind === 'ast' ? target : undefined,
+          // Exactly one layer may cut (ruling 10): the worker's own sentence endpoint stays on unless the stream shape seals.
+          punctuationEndpoint: this.cut === null,
+        };
+        // Under manual turns the held key ends the turn.
+        if (!config.vad.smartTurn || request.context.turns !== 'auto' || !this.connectTurn) {
+          return this.asr.init(config.asr.modelId, options);
+        }
+        return this.openTurn(this.connectTurn).then((turnPort) => {
+          if (this.ended) throw new Error('ended');
+          return this.asr.init(config.asr.modelId, turnPort ? { ...options, turnPort } : options);
+        });
+      },
       dispose: () => this.asr.dispose(),
       loaded: () => this.listenToAsr(),
     });
@@ -363,6 +377,20 @@ class LocalSession implements AdapterSession {
     this.asr.dispose();
     this.translation?.dispose();
     this.tts?.dispose();
+    this.turn?.release();
+    this.turn = null;
+  }
+
+  /** A Smart Turn port for the ASR, or none: the run is then Normal. */
+  private async openTurn(connect: () => Promise<TurnConnection | null>): Promise<MessagePort | undefined> {
+    const turn = await connect().catch(() => null);
+    if (this.ended) {
+      turn?.release();
+      throw new Error('ended');
+    }
+    this.turn = turn;
+    this.frame('out', 'local.turn', { smart: turn !== null });
+    return turn?.port;
   }
 
   /** ASR's callbacks, once its engine loaded: before that, its errors reject the start instead. */

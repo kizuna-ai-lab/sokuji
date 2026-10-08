@@ -1,0 +1,36 @@
+@use '../shared/variables' as vars;
+@use '../shared/download-status' as download;
+
+.end-of-turn__status {
+  @include download.download-column;
+}
+
+.end-of-turn__status--line {
+  flex-direction: row;
+  @include download.download-row;
+}
+
+.end-of-turn__progress-bar {
+  @include download.download-bar;
+}
+
+.end-of-turn__progress-fill {
+  @include download.download-fill;
+}
+
+.end-of-turn__text {
+  @include download.download-text;
+}
+
+.end-of-turn__error {
+  @include download.download-error;
+}
+
+.end-of-turn__retry {
+  @include download.download-button;
+}
+
+.end-of-turn__delete {
+  @include download.download-button;
+  margin-top: vars.$space-3;
+}

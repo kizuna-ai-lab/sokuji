@@ -25,6 +25,7 @@ import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processo
 import { resolveVadThresholds } from './_shared/vad-thresholds';
 import { resolveMaxSpeechFrames } from './_shared/max-speech-frames';
 import { SileroInput, SILERO_INPUT_SAMPLES } from './_shared/silero-input';
+import { openTurnLink, type TurnLink } from './_shared/turn-gate';
 
 import type {
   GraniteSpeechInitMessage,
@@ -81,6 +82,7 @@ interface VadSession {
 
 let vadSession: VadSession | null = null;
 let frameProcessor: FrameProcessor | null = null;
+let turnLink: TurnLink | null = null;
 
 let maxSpeechFrames = 625; // ~20s at 32ms/frame
 let speechFramesSinceStart = 0;
@@ -356,8 +358,13 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
       const events: FrameProcessorEvent[] = [];
       await frameProcessor.process(frame, (ev) => events.push(ev));
 
+      let speechProbability = 0;
       for (const ev of events) {
         switch (ev.msg) {
+          case Message.FrameProcessed:
+            speechProbability = ev.probs.isSpeech;
+            break;
+
           case Message.SpeechStart:
             speechStartSample = totalSamplesFed - VAD_FRAME_SAMPLES;
             speechFramesSinceStart = 0;
@@ -371,9 +378,21 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
             // `pendingGraniteDecode`.
             void scheduleGraniteInference(ev.audio, speechStartSample);
             break;
-          case Message.VADMisfire:
+          case Message.VADMisfire: {
             speechFramesSinceStart = 0;
+            // Kept when it follows a Smart end inside the wait Normal would have spanned.
+            const rescued = turnLink?.rescue();
+            if (rescued) void scheduleGraniteInference(rescued, speechStartSample);
             break;
+          }
+        }
+      }
+
+      if (turnLink?.afterFrame(frame, speechProbability, frameProcessor.speaking)) {
+        const endEvents: FrameProcessorEvent[] = [];
+        frameProcessor.endSegment((ev) => endEvents.push(ev));
+        for (const ev of endEvents) {
+          if (ev.msg === Message.SpeechEnd) void scheduleGraniteInference(ev.audio, speechStartSample);
         }
       }
 
@@ -389,6 +408,7 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
               void scheduleGraniteInference(ev.audio, speechStartSample);
             }
           }
+          turnLink?.reset();
           speechFramesSinceStart = 0;
         }
       } else {
@@ -424,6 +444,7 @@ async function handleInit(msg: GraniteSpeechInitMessage): Promise<void> {
       msg.vadModelUrl,
       msg.task === 'translate' ? GRANITE_TRANSLATE_MAX_SPEECH_SECONDS : GRANITE_MAX_SPEECH_SECONDS,
     );
+    turnLink = openTurnLink(msg.turnPort, msg.vadConfig, frameProcessor);
 
     // Configure Transformers.js for IndexedDB blob URL cache
     initTransformersEnv(env, msg);
@@ -473,8 +494,12 @@ async function handleFlush(): Promise<void> {
     for (const ev of endEvents) {
       if (ev.msg === Message.SpeechEnd) {
         void scheduleGraniteInference(ev.audio, speechStartSample);
+      } else if (ev.msg === Message.VADMisfire) {
+        const rescued = turnLink?.rescue();
+        if (rescued) void scheduleGraniteInference(rescued, speechStartSample);
       }
     }
+    turnLink?.reset();
   }
   // Drain the chain: `scheduleGraniteInference` assigns `pendingGraniteDecode` before
   // returning, so this picks up the decode just kicked off (behind anything already queued)
@@ -507,6 +532,8 @@ async function handleDispose(): Promise<void> {
   }
 
   frameProcessor = null;
+  turnLink?.close();
+  turnLink = null;
   speechFramesSinceStart = 0;
 
   if (vadSession?.session) {

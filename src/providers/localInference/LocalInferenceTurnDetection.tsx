@@ -1,10 +1,15 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CircleHelp } from 'lucide-react';
 import { useModelStore, useModelStatuses } from '../../stores/modelStore';
+import { useProviderStore } from '../../stores/providerStore';
+import { useTurnModeStore } from '../../stores/turnModeStore';
+import { SMART_TURN_TOTAL_BYTES, useSmartTurnPhase, useSmartTurnStore } from '../../stores/smartTurnStore';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
-import { VadControl } from '../../components/Settings/sections/LocalSettingsControls';
+import { SMART_TURN_MAX_WAIT_MIN, supportsSmartTurn, effectiveCheckAfter, type VadEndOfTurn } from '../../lib/turn/smartTurn';
+import { EndOfTurnControl, VadControl } from '../../components/Settings/sections/LocalSettingsControls';
 import Tooltip from '../../components/Tooltip/Tooltip';
+import { describeCause, reportWarning } from '../../lib/diagnostics/report';
 import type { LanguagePair, SettingsProps } from '../../lib/provider/types';
 import type { LocalInferenceSettings as S } from './settings';
 
@@ -21,9 +26,11 @@ const helpIcon = (
  * `ProviderSpecificSettings.tsx`). `showVad` is false only for a streaming
  * ASR that reports no worker type: endpoint detection replaces VAD there.
  * `vadIsWebWorker` adds the three vad-web knobs; the sherpa-onnx engine has
- * its own hysteresis and cuts at a fixed length.
+ * its own hysteresis and cuts at a fixed length. `smart`, offered when a leg
+ * with automatic turns has an ASR that supports it, is what a session will
+ * run: a stored Smart whose model is not on disk reads as Normal.
  */
-function useVadKnobs(settings: S, pair: LanguagePair | undefined): { showVad: boolean; vadIsWebWorker: boolean } {
+function useVadKnobs(settings: S, pair: LanguagePair | undefined) {
   // `localInferenceLanguages.initial()` gives the same fallback; the Speech
   // section always supplies `pair` in the app, so this only matters standalone.
   const source = pair?.source ?? 'ja';
@@ -36,9 +43,26 @@ function useVadKnobs(settings: S, pair: LanguagePair | undefined): { showVad: bo
     [source, target, settings.selections, modelStatuses],
   );
   const entry = getManifestEntry(asrModelId ?? '');
+  const reverseAsrModelId = useMemo(
+    () => useModelStore.getState().resolve(target, source, settings.selections).asr?.modelId,
+    [source, target, settings.selections, modelStatuses],
+  );
+  const phase = useSmartTurnPhase();
+  const turnMode = useTurnModeStore((s) => s.turnMode);
+  const legs = useProviderStore((s) => s.legs);
+  // Smart runs on a leg that takes automatic turns (shape.ts `contextsFor`):
+  // the speaker under Auto, the participant always.
+  const smartTurnOffered =
+    (legs.includes('speaker') && turnMode === 'auto' && supportsSmartTurn(entry))
+    || (legs.includes('participant') && supportsSmartTurn(getManifestEntry(reverseAsrModelId ?? '')));
+  useEffect(() => {
+    if (smartTurnOffered && phase === 'unknown') void useSmartTurnStore.getState().refresh();
+  }, [smartTurnOffered, phase]);
   return {
     showVad: !(entry?.type === 'asr-stream' && !entry?.asrWorkerType),
     vadIsWebWorker: !!entry?.asrWorkerType && entry.asrWorkerType !== 'sherpa-onnx',
+    smartTurnOffered,
+    smart: smartTurnOffered && settings.vadEndOfTurn === 'smart' && (phase === 'ready' || phase === 'unknown'),
   };
 }
 
@@ -51,9 +75,14 @@ function useVadKnobs(settings: S, pair: LanguagePair | undefined): { showVad: bo
  */
 export function LocalInferenceTurnDetectionSummary({ settings, pair }: SettingsProps<S>) {
   const { t } = useTranslation();
-  const { showVad } = useVadKnobs(settings, pair);
+  const { showVad, smart } = useVadKnobs(settings, pair);
   if (!showVad) return null;
-  return <>{`${t('settings.vadSettings', 'VAD Settings')} · ${t('settings.vadMinSilenceDuration', 'Min Silence Duration')}: ${settings.vadMinSilenceDuration.toFixed(2)}s`}</>;
+  const heading = t('settings.vadSettings', 'VAD Settings');
+  const seconds = `${settings.vadMinSilenceDuration.toFixed(2)}s`;
+  if (smart && effectiveCheckAfter(settings.smartTurnCheckAfter, settings.vadMinSilenceDuration) !== null) {
+    return <>{`${heading} · ${t('settings.smartTurn', 'Smart')} · ${t('settings.smartTurnMaxWait', 'Max Wait')} ${seconds}`}</>;
+  }
+  return <>{`${heading} · ${t('settings.vadMinSilenceDuration', 'Min Silence Duration')}: ${seconds}`}</>;
 }
 
 /**
@@ -73,13 +102,48 @@ export function LocalInferenceTurnDetectionHelp({ settings, pair }: SettingsProp
 }
 
 /**
- * The VAD knobs, heading included, moved here unchanged from LocalInference's
- * own `Settings`: the Provider tab draws them as their own block, where the
- * Speech section's summary links.
+ * The VAD knobs, heading included: the Provider tab draws them as their own
+ * block, where the Speech section's summary links. Normal / Smart sits on top
+ * for an ASR that runs Smart Turn's gate.
  */
 export function LocalInferenceTurnDetectionControls({ settings, update, disabled = false, pair }: SettingsProps<S>) {
-  const { showVad, vadIsWebWorker } = useVadKnobs(settings, pair);
+  const { showVad, vadIsWebWorker, smartTurnOffered, smart } = useVadKnobs(settings, pair);
+  const phase = useSmartTurnPhase();
+  const downloadedBytes = useSmartTurnStore((s) => s.downloadedBytes);
+  const error = useSmartTurnStore((s) => s.error);
+  // Read when the download ends: Max Wait may have moved meanwhile.
+  const maxWait = useRef(settings.vadMinSilenceDuration);
+  useEffect(() => { maxWait.current = settings.vadMinSilenceDuration; }, [settings.vadMinSilenceDuration]);
   if (!showVad) return null;
+
+  // The setting turns Smart only once the model is on disk, with a Max Wait
+  // that leaves Turn Check After room to run.
+  const enableSmart = async () => {
+    await useSmartTurnStore.getState().download();
+    if (useSmartTurnStore.getState().phase !== 'ready') return;
+    update(maxWait.current < SMART_TURN_MAX_WAIT_MIN
+      ? { vadEndOfTurn: 'smart', vadMinSilenceDuration: SMART_TURN_MAX_WAIT_MIN }
+      : { vadEndOfTurn: 'smart' });
+  };
+  const removeModel = () => {
+    // `remove()` awaits ModelManager; a storage failure must reach the
+    // diagnostic log rather than becoming an unhandled rejection.
+    useSmartTurnStore.getState().remove().catch((err: unknown) => {
+      reportWarning('SmartTurn', `Smart Turn model delete failed: ${describeCause(err)}`, {
+        cause: err,
+        dedupeKey: 'smart-turn:delete',
+      });
+    });
+  };
+  const choose = (next: VadEndOfTurn) => {
+    if (next === 'smart') {
+      if (!smart) void enableSmart();
+    } else {
+      if (phase === 'error') useSmartTurnStore.getState().dismiss();
+      if (settings.vadEndOfTurn !== 'normal') update({ vadEndOfTurn: 'normal' });
+    }
+  };
+
   return (
     <VadControl
       values={{
@@ -95,9 +159,23 @@ export function LocalInferenceTurnDetectionControls({ settings, update, disabled
               vadPreSpeechPadDuration: settings.vadPreSpeechPadDuration,
             }
           : {}),
+        ...(smart
+          ? { smartTurnCheckAfter: settings.smartTurnCheckAfter, smartTurnThreshold: settings.smartTurnThreshold }
+          : {}),
       }}
       onChange={(patch) => update(patch)}
       disabled={disabled}
+      endOfTurn={smartTurnOffered ? (
+        <EndOfTurnControl
+          value={smart ? 'smart' : 'normal'}
+          onChange={choose}
+          disabled={disabled}
+          download={phase === 'downloading' ? { done: downloadedBytes, total: SMART_TURN_TOTAL_BYTES } : undefined}
+          error={phase === 'error' ? error : null}
+          onRetry={() => { void enableSmart(); }}
+          deletable={smart && phase === 'ready' ? { bytes: SMART_TURN_TOTAL_BYTES, onDelete: removeModel } : undefined}
+        />
+      ) : undefined}
     />
   );
 }

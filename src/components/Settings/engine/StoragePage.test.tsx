@@ -166,6 +166,42 @@ describe('StoragePage (wasm)', () => {
     expect(screen.queryByTestId(`storage-row-${punctId}`)).toBeNull();
   });
 
+  it('does not list the Smart Turn model among the downloaded rows', () => {
+    const turnId = getManifestByType('turn')[0].id;
+    useModelStore.setState({
+      modelStatuses: { [asrId()]: 'downloaded', [turnId]: 'downloaded' }, webgpuAvailable: true,
+    });
+    render(<StoragePage provider="wasm" {...WASM} />);
+    expect(screen.getByTestId(`storage-row-${asrId()}`)).toBeInTheDocument();
+    expect(screen.queryByTestId(`storage-row-${turnId}`)).toBeNull();
+  });
+
+  // Clear all is the only way to remove the Smart Turn model, so it must stay
+  // when that model is the only thing on disk.
+  it('offers Clear all when only the Smart Turn model is downloaded', () => {
+    const turnId = getManifestByType('turn')[0].id;
+    useModelStore.setState({ modelStatuses: { [turnId]: 'downloaded' }, webgpuAvailable: true });
+    render(<StoragePage provider="wasm" {...WASM} />);
+    expect(screen.queryByTestId(`storage-row-${turnId}`)).toBeNull();
+    expect(screen.getByRole('button', { name: /Clear all/ })).toBeInTheDocument();
+  });
+
+  it('offers no Clear all when nothing is downloaded', () => {
+    useModelStore.setState({ modelStatuses: {}, webgpuAvailable: true });
+    render(<StoragePage provider="wasm" {...WASM} />);
+    expect(screen.queryByRole('button', { name: /Clear all/ })).toBeNull();
+  });
+
+  it('offers neither punctuation nor Smart Turn models for import', () => {
+    expect(getManifestByType('turn')).toHaveLength(1);
+    render(<StoragePage provider="wasm" {...WASM} />);
+    fireEvent.click(screen.getByRole('button', { name: /Import/ }));
+    const offered = [...(screen.getByRole('combobox') as HTMLSelectElement).options].map((o) => o.value);
+    for (const m of [...getManifestByType('punctuation'), ...getManifestByType('turn')]) {
+      expect(offered).not.toContain(m.id);
+    }
+  });
+
   // Clear all wipes the whole IndexedDB, punctuation models included — the
   // segmentation pack's own store must be told, or the Sentence segmentation
   // section keeps claiming the models are ready after they are gone.
@@ -189,6 +225,30 @@ describe('StoragePage (wasm)', () => {
       await waitFor(() => expect(refresh).toHaveBeenCalled());
     } finally {
       useSegmentationStore.setState({ refresh: originalRefresh });
+      useModelStore.setState({ deleteAllModels: originalDeleteAllModels });
+    }
+  });
+
+  it('re-checks the Smart Turn model after Clear all', async () => {
+    const { useSmartTurnStore } = await import('../../../stores/smartTurnStore');
+    const { useSegmentationStore } = await import('../../../stores/segmentationStore');
+    const originalTurnRefresh = useSmartTurnStore.getState().refresh;
+    const originalPackRefresh = useSegmentationStore.getState().refresh;
+    const originalDeleteAllModels = useModelStore.getState().deleteAllModels;
+    const refresh = vi.fn().mockResolvedValue(undefined);
+    useSmartTurnStore.setState({ refresh });
+    useSegmentationStore.setState({ refresh: vi.fn().mockResolvedValue(undefined) });
+    useModelStore.setState({
+      modelStatuses: { [asrId()]: 'downloaded' }, webgpuAvailable: true, deleteAllModels: vi.fn().mockResolvedValue(undefined),
+    });
+    try {
+      render(<StoragePage provider="wasm" {...WASM} />);
+      fireEvent.click(screen.getByRole('button', { name: /Clear all/ }));
+      fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
+      await waitFor(() => expect(refresh).toHaveBeenCalled());
+    } finally {
+      useSmartTurnStore.setState({ refresh: originalTurnRefresh });
+      useSegmentationStore.setState({ refresh: originalPackRefresh });
       useModelStore.setState({ deleteAllModels: originalDeleteAllModels });
     }
   });

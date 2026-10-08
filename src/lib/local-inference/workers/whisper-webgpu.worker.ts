@@ -23,6 +23,7 @@ import {FrameProcessor, Message} from '@ricky0123/vad-web';
 import {resolveVadThresholds} from './_shared/vad-thresholds';
 import {resolveMaxSpeechFrames} from './_shared/max-speech-frames';
 import {SileroInput, SILERO_INPUT_SAMPLES} from './_shared/silero-input';
+import {openTurnLink, type TurnLink} from './_shared/turn-gate';
 import type {FrameProcessorEvent} from '@ricky0123/vad-web/dist/frame-processor';
 
 import type {
@@ -80,6 +81,7 @@ interface VadSession {
 
 let vadSession: VadSession | null = null;
 let frameProcessor: FrameProcessor | null = null;
+let turnLink: TurnLink | null = null;
 
 // Max speech duration cap (not built into FrameProcessor)
 let maxSpeechFrames = 625; // ~20s at 32ms/frame
@@ -387,8 +389,13 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
       await frameProcessor.process(frame, (ev) => events.push(ev));
 
       // Handle events
+      let speechProbability = 0;
       for (const ev of events) {
         switch (ev.msg) {
+          case Message.FrameProcessed:
+            speechProbability = ev.probs.isSpeech;
+            break;
+
           case Message.SpeechStart:
             speechStartSample = totalSamplesFed - VAD_FRAME_SAMPLES;
             speechFramesSinceStart = 0;
@@ -406,10 +413,22 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
             void scheduleWhisper(ev.audio, speechStartSample);
             break;
 
-          case Message.VADMisfire:
+          case Message.VADMisfire: {
             speechFramesSinceStart = 0;
-            vadLog('VAD_MISFIRE (too short, discarded)');
+            // Kept when it follows a Smart end inside the wait Normal would have spanned.
+            const rescued = turnLink?.rescue();
+            if (rescued) void scheduleWhisper(rescued, speechStartSample);
+            vadLog(rescued ? 'VAD_MISFIRE (kept after a Smart end)' : 'VAD_MISFIRE (too short, discarded)');
             break;
+          }
+        }
+      }
+
+      if (turnLink?.afterFrame(frame, speechProbability, frameProcessor.speaking)) {
+        const endEvents: FrameProcessorEvent[] = [];
+        frameProcessor.endSegment((ev) => endEvents.push(ev));
+        for (const ev of endEvents) {
+          if (ev.msg === Message.SpeechEnd) void scheduleWhisper(ev.audio, speechStartSample);
         }
       }
 
@@ -426,6 +445,7 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
               void scheduleWhisper(ev.audio, speechStartSample);
             }
           }
+          turnLink?.reset();
           speechFramesSinceStart = 0;
         }
       } else {
@@ -458,6 +478,7 @@ async function handleInit(msg: WhisperAsrInitMessage): Promise<void> {
     // 2. Init Silero VAD + FrameProcessor
     post({type: 'status', message: 'Loading VAD model...'});
     await initVad(msg.vadConfig, msg.vadModelUrl);
+    turnLink = openTurnLink(msg.turnPort, msg.vadConfig, frameProcessor);
 
     // 3. Fix incompatible configs before Transformers.js loads them.
     // Some ONNX conversions (e.g., lite-whisper-*-ONNX) have custom model_type
@@ -537,8 +558,12 @@ async function handleFlush(): Promise<void> {
     for (const ev of endEvents) {
       if (ev.msg === Message.SpeechEnd) {
         void scheduleWhisper(ev.audio, speechStartSample);
+      } else if (ev.msg === Message.VADMisfire) {
+        const rescued = turnLink?.rescue();
+        if (rescued) void scheduleWhisper(rescued, speechStartSample);
       }
     }
+    turnLink?.reset();
     speechFramesSinceStart = 0;
   }
   if (pendingWhisperDecode) {
@@ -570,6 +595,8 @@ async function handleDispose(): Promise<void> {
 
   // Dispose FrameProcessor
   frameProcessor = null;
+  turnLink?.close();
+  turnLink = null;
   speechFramesSinceStart = 0;
 
   // Dispose VAD ORT session

@@ -64,6 +64,8 @@ const EXEMPT: Record<string, { reason: string; stillHolds: (source: string) => b
 
 const LOADS_A_MODEL = /from_pretrained\(|pipeline as any\)\(|await pipeline\(|InferenceSession\.create\(/;
 
+const IMPORTS_WEBGPU_ORT = /from '\.\/_shared\/onnxruntime-webgpu'/;
+
 function workerSources(): { name: string; source: string }[] {
   return readdirSync(WORKERS_DIR)
     .filter(f => f.endsWith('.worker.ts'))
@@ -72,7 +74,8 @@ function workerSources(): { name: string; source: string }[] {
 
 function candidates() {
   return workerSources().filter(
-    w => w.source.toLowerCase().includes('webgpu') && LOADS_A_MODEL.test(w.source),
+    w => (w.source.toLowerCase().includes('webgpu') && LOADS_A_MODEL.test(w.source))
+      || IMPORTS_WEBGPU_ORT.test(w.source),
   );
 }
 
@@ -81,6 +84,7 @@ describe('the shader-f16 gate covers every WebGPU worker', () => {
     // Guards the guard: a predicate that matched nothing would pass every
     // assertion below without checking anything.
     expect(candidates().length).toBeGreaterThanOrEqual(12);
+    expect(candidates().map(w => w.name)).toContain('turn-webgpu.worker.ts');
   });
 
   it('every WebGPU worker calls assertShaderF16Supported', () => {

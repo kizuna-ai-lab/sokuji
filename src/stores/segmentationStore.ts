@@ -6,8 +6,7 @@ import type { SegmentationMode } from '../lib/segmentation/segmentationMode';
 import { MODEL_IDS } from '../lib/segmentation/PunctuationRuntime';
 import { getManifestEntry } from '../lib/local-inference/modelManifest';
 import { ModelManager } from '../lib/local-inference/ModelManager';
-import * as modelStorage from '../lib/local-inference/modelStorage';
-import { useModelStore } from './modelStore';
+import { refreshStorageEstimate } from './modelStore';
 import { reportWarning, describeCause } from '../lib/diagnostics/report';
 
 /**
@@ -105,23 +104,6 @@ interface SegmentationStore {
   cancel(): void;
   /** Delete all three models' files. */
   deleteModels(): Promise<void>;
-}
-
-/**
- * Best-effort refresh of the Storage page's used-storage figure.
- *
- * The pack's download and delete go straight to `ModelManager`, so nothing
- * updates `modelStore`'s own estimate; without this it stays at whatever
- * `modelStore.initialize()` measured at launch and drifts by up to 402 MB for
- * the rest of it. Same call and same rounding `modelStore` uses, and swallowed
- * the same way: the figure is cosmetic and the operation that just succeeded is
- * not failed over it.
- */
-async function refreshStorageEstimate(): Promise<void> {
-  try {
-    const usedBytes = await modelStorage.estimateStorageUsedBytes();
-    useModelStore.setState({ storageUsedMb: Math.round(usedBytes / (1024 * 1024)) });
-  } catch { /* estimate is cosmetic */ }
 }
 
 /** `isModelReady` reaches IndexedDB; a storage failure means "not usable", not a crash. */

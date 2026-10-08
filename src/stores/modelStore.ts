@@ -371,6 +371,23 @@ export const useModelStore = create<ModelStoreState>()(
   })),
 );
 
+/**
+ * Best-effort refresh of the Storage page's used-storage figure.
+ *
+ * The punctuation pack's and Smart Turn's downloads and deletes go straight to
+ * `ModelManager`, so nothing updates this store's own estimate; without this it
+ * stays at whatever `initialize()` measured at launch and drifts by up to
+ * 402 MB for the rest of it. Same call and same rounding as `initialize()`, and
+ * swallowed: the figure is cosmetic and the operation that just succeeded is
+ * not failed over it.
+ */
+export async function refreshStorageEstimate(): Promise<void> {
+  try {
+    const usedBytes = await modelStorage.estimateStorageUsedBytes();
+    useModelStore.setState({ storageUsedMb: Math.round(usedBytes / (1024 * 1024)) });
+  } catch { /* estimate is cosmetic */ }
+}
+
 // ─── Selector Hooks ──────────────────────────────────────────────────────────
 
 export const useModelStatuses = () => useModelStore(s => s.modelStatuses);
