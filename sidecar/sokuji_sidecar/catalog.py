@@ -1562,7 +1562,7 @@ TTS_MODELS: list[TtsModel] = [
     # send, so the tuple holds its nine languages less ja.
     _tts_gguf_row(
         "cosyvoice3", "CosyVoice 3 (0.5B)",
-        # ja dropped (ruling 2026-10-06): 2026-10-08 loopback sweep, CER 0.35 / 0.48, kanji misread.
+        # ja dropped (ruling 2026-10-06): 2026-10-08 loopback sweep, CER 0.345 / 0.48, kanji misread.
         ("zh", "en", "ko", "de", "es", "fr", "it", "ru"),
         "cosyvoice3", "CosyVoice3-GGUF",
         {"q8_0": ("cosyvoice3-q8_0.gguf", 2257658080),
