@@ -36,6 +36,12 @@ interface ModeDevicePopoverProps {
   open: boolean;
   anchorEl: HTMLElement | null;
   onClose: () => void;
+  /**
+   * A run is live, as the mode picker's `locked`: the other side is the run's
+   * (its shape and capture froze at Start), so its choice is locked too. The
+   * swap stays live: everything reads it live.
+   */
+  locked: boolean;
 }
 
 type ChannelKey = 'mic' | 'participant' | 'monitor';
@@ -60,7 +66,7 @@ interface ChannelRowSpec {
   isMissing: boolean;
 }
 
-const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, anchorEl, onClose }) => {
+const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, anchorEl, onClose, locked }) => {
   const { t } = useTranslation();
   const navigateToSettings = useNavigateToSettings();
 
@@ -270,10 +276,14 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
         <Users size={14} className="mode-device-popover__row-icon" aria-hidden="true" />
         <span className="mode-device-popover__row-label">{t('popover.otherSide', 'Other side')}</span>
       </div>
-      <div className="mode-device-popover__sides" role="radiogroup" aria-labelledby={otherSideHeadingId}>
+      <div className={`mode-device-popover__sides${locked ? ' mode-device-popover__sides--locked' : ''}`} role="radiogroup" aria-labelledby={otherSideHeadingId}>
         {(['meeting', 'beside'] as const).map((side) => (
-          <label key={side} className={`mode-device-popover__side${otherSide === side ? ' mode-device-popover__side--active' : ''}`}>
-            <input type="radio" name="other-side" checked={otherSide === side} onChange={() => setOtherSide(side)} />
+          <label
+            key={side}
+            className={`mode-device-popover__side${otherSide === side ? ' mode-device-popover__side--active' : ''}`}
+            title={locked ? t('modePicker.switchDisabled', 'Mode is locked during a session.') : undefined}
+          >
+            <input type="radio" name="other-side" checked={otherSide === side} disabled={locked} onChange={() => setOtherSide(side)} />
             <span className="mode-device-popover__side-title">
               {side === 'meeting' ? t('popover.otherSideMeeting', 'In a meeting') : t('popover.otherSideBeside', 'Beside me')}
             </span>

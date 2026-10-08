@@ -84,7 +84,7 @@ const mount = () => {
   const anchor = document.createElement('div');
   document.body.appendChild(anchor);
   return render(
-    <ModeDevicePopover mode="participant" open={true} anchorEl={anchor} onClose={vi.fn()} />
+    <ModeDevicePopover mode="participant" open={true} anchorEl={anchor} onClose={vi.fn()} locked={false} />
   );
 };
 
@@ -134,16 +134,46 @@ describe('ModeDevicePopover participant row', () => {
 });
 
 describe('ModeDevicePopover — Both, the other side', () => {
-  const mountBoth = () => {
+  const mountBoth = (locked = false) => {
     const anchor = document.createElement('div');
     document.body.appendChild(anchor);
-    return render(<ModeDevicePopover mode="both" open={true} anchorEl={anchor} onClose={vi.fn()} />);
+    return render(<ModeDevicePopover mode="both" open={true} anchorEl={anchor} onClose={vi.fn()} locked={locked} />);
   };
 
   it('offers "In a meeting" and "Beside me" and stores the choice', () => {
     mountBoth();
     fireEvent.click(screen.getByRole('radio', { name: /Beside me/ }));
     expect(store.setOtherSide).toHaveBeenCalledWith('beside');
+  });
+
+  // The run's shape and capture are frozen at Start; the routing reads the choice live.
+  it("locks the choice during a run, with the mode picker's own words, and frees it when idle", () => {
+    const { unmount } = mountBoth(true);
+    const radios = screen.getAllByRole('radio');
+    expect(radios).toHaveLength(2);
+    for (const radio of radios) {
+      expect(radio).toBeDisabled();
+      expect(radio.closest('label')?.getAttribute('title')).toBe('Mode is locked during a session.');
+    }
+    fireEvent.click(screen.getByRole('radio', { name: /In a meeting/ }));
+    expect(store.setOtherSide).not.toHaveBeenCalled();
+    unmount();
+
+    mountBoth(false);
+    for (const radio of screen.getAllByRole('radio')) {
+      expect(radio).toBeEnabled();
+      expect(radio.closest('label')?.hasAttribute('title')).toBe(false);
+    }
+  });
+
+  it('keeps the swap live during a run: it is read live everywhere', () => {
+    f2f.active = true;
+    store.otherSide = 'beside';
+    mountBoth(true);
+    const swap = screen.getByRole('button', { name: /Swap left and right/ });
+    expect(swap).toBeEnabled();
+    fireEvent.click(swap);
+    expect(routing.setFaceToFaceSwap).toHaveBeenCalledWith(true);
   });
 
   // Board 1's order: the microphone, the choice under its own heading, then the row the choice decides.

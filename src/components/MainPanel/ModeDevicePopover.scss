@@ -243,6 +243,16 @@
     }
   }
 
+  // During a run, as the mode picker's lock: the run's side stays lit, the
+  // other is dimmed, and neither takes a click.
+  &__sides--locked &__side {
+    cursor: not-allowed;
+
+    input { cursor: not-allowed; }
+
+    &:not(.mode-device-popover__side--active) { opacity: 0.55; }
+  }
+
   &__side-title { font-weight: 600; font-size: 12px; }
 
   &__side-hint {

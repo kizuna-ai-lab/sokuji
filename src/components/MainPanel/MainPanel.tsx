@@ -350,7 +350,7 @@ export default function MainPanel() {
           ? t('audioPanel.screenRecordingHasAlternative', 'You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.')
           : null}
       />
-      {popover && <ModeDevicePopover mode={mode} open anchorEl={popover} onClose={() => setPopover(null)} />}
+      {popover && <ModeDevicePopover mode={mode} open anchorEl={popover} onClose={() => setPopover(null)} locked={run.phase !== 'idle'} />}
     </div>
   );
 }

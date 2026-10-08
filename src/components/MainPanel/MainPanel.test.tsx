@@ -137,6 +137,7 @@ vi.mock('../Settings/shared/WarningModal', () => ({
 import { configureAppSession, getAppSession } from '../../app/session';
 import { createVirtualClock } from '../../lib/contract/clock';
 import { PunctuationRuntime } from '../../lib/segmentation/PunctuationRuntime';
+import type { LanguagePair } from '../../lib/provider/types';
 import type { AnalyticsPort } from '../../lib/session/ports';
 import { VIEW_INTERVAL_MS } from '../../lib/view/conversationView';
 import { TRANSIENT_NOTICE_MS } from '../../lib/view/filter';
@@ -777,12 +778,16 @@ describe('panel notes (spec 2026-10-05 §5)', () => {
 });
 
 describe('the ears strip (face-to-face)', () => {
-  // The fake offers face-to-face for these cases only.
+  // The fake offers face-to-face for these cases only, on a pair that reverses (D20).
+  let pair: LanguagePair;
   beforeEach(() => {
     Object.assign(fakeProvider, { faceToFace: true });
     useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
+    pair = useProviderStore.getState().entries.fake!.pair;
+    useProviderStore.getState().setPair(fakeProvider, { source: 'en', target: 'ja' });
   });
   afterEach(() => {
+    useProviderStore.getState().setPair(fakeProvider, pair);
     delete (fakeProvider as { faceToFace?: boolean }).faceToFace;
     // The panel is still mounted here: its cleanup runs after this hook.
     act(() => {
@@ -809,5 +814,24 @@ describe('the ears strip (face-to-face)', () => {
     } finally {
       restoreCanvas();
     }
+  });
+
+  // The run's shape and capture are frozen at Start; the routing reads the other side live.
+  it('locks the other side in the popover while a run is live, and frees it when idle', async () => {
+    const { container } = await renderPanel();
+    const openPopover = () => fireEvent.click(container.querySelector('.mode-picker__segment--active')!);
+    const radios = () => [...document.querySelectorAll<HTMLInputElement>('input[name="other-side"]')];
+    openPopover();
+    expect(radios()).toHaveLength(2);
+    expect(radios().every((r) => !r.disabled)).toBe(true);
+    openPopover(); // closes it
+
+    await start(container);
+    openPopover();
+    expect(radios()).toHaveLength(2);
+    expect(radios().every((r) => r.disabled)).toBe(true);
+    expect(radios()[0].closest('label')?.getAttribute('title')).toBe('modePicker.switchDisabled');
+    openPopover();
+    await stop();
   });
 });
