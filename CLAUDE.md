@@ -253,10 +253,10 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
    - **RAM gate**: `accel.load_with_fallback` skips a cpu or Metal plan whose rung `est_bytes` ×
      a factor + 512 MiB exceeds free RAM (psutil; no check without it). The factor is the
      card's `ram_factor` for a cpu plan (1.0 unless `catalog._TTS_RAM_FACTORS` lists it; those
-     are CPU peak-RSS measurements) and 1.0 for a Metal plan: the M4 ran moss-tts-local on Metal
-     at about 8.7 GiB against its 1.8× CPU factor. When that refusal was the last plan, the
-     sidecar replies "Not enough memory to load this model…" through its ordinary `error`
-     message.
+     are product-shaped CPU peak-RSS measurements: a full sentence, with a clip where the card
+     clones) and 1.0 for a Metal plan: the M4 ran moss-tts-local bare on Metal at about 8.7 GiB,
+     where its CPU factor is 2.6×. When that refusal was the last plan, the sidecar replies
+     "Not enough memory to load this model…" through its ordinary `error` message.
    - **Voice rules** are per card (`TtsModel.voice_required`, `transcript_required`,
      `presets` and `default_preset` in `catalog.py`, consumed by `tts_backend.py`;
      `voice_required` defaults to `family in VOICE_REQUIRED_FAMILIES`, ten families). Clone-only
@@ -662,9 +662,11 @@ ties broken by the first name (`find_gguf` in `native/tests/model_path.h`, `_mai
    reason to leave a family out. The card starts cpu-only (`_TTS_TIERS`) and joins
    `_TTS_TIER_OVERRIDES` with its measured RTF table only after step 4; a new card of a family
    already there passes `tiers=_TTS_TIERS` and gains a GPU tier per lane the same way, from a
-   fleet run of that card. Measure the card's CPU peak RSS (`/usr/bin/time -v` on its CPU synth
-   case) against the rung's `est_bytes`: above 1.2x or at most 0.9x, add a `_TTS_RAM_FACTORS`
-   entry (the ratio rounded up to one decimal, the figures in a comment) and its
+   fleet run of that card. Measure the card's product-shaped CPU peak RSS (`/usr/bin/time -v` on
+   a warm-up, then a ~20-word sentence, bare and, for a card that clones, again in a second
+   process with a ~3 s reference clip; the larger peak) against its default rung's `est_bytes`:
+   above 1.2x or at most 0.9x, add a `_TTS_RAM_FACTORS` entry (the ratio rounded up to one
+   decimal, the figures in a comment) and its
    `MEASURED_CPU_PEAKS_KB` row in `test_catalog.py`. Tests: `test_catalog.py` (`TTS_CARD_IDS`,
    the card count, the voice-required tuples, a per-card shape test), `test_tts_backend.py` (an
    R16 gated or not-gated case), `test_accel.py` (`voice.required` on the wire if required).

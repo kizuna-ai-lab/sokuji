@@ -415,34 +415,38 @@ def test_tts_tier_overrides_default_is_cpu_only_for_unknown_family():
 
 
 # Measured CPU peaks (card -> (rung measured, peak RSS in kB as `/usr/bin/time -v` reports it,
-# which is KiB)): one load and one synth of the card's test model, from the roster expansion's
-# per-card runs. A card whose peak is above 1.2x its rung's est_bytes, or at most 0.9x it,
-# carries ram_factor = ceil(peak / est_bytes, to one decimal); every other card keeps 1.0.
+# which is KiB)), product-shaped (ruling 2026-10-09): a warm-up sentence, then a 21-word one (40
+# Japanese characters for the Japanese cards, 15 Arabic words for VoiceTut), bare, and again in
+# another process with a 3.1 s reference clip for a card that clones; the larger peak is the one
+# recorded. A card whose peak is above 1.2x its rung's est_bytes, or at most 0.9x it, carries
+# ram_factor = ceil(peak / est_bytes, to one decimal); every other card keeps 1.0.
 MEASURED_CPU_PEAKS_KB = {
-    "moss-tts-local-1.5": ("q8_0", 13060424),
-    "vibevoice-1.5b": ("q8_0", 3546932),
-    "chatterbox": ("q8_0", 1977312),
-    "chatterbox-turbo": ("q8_0", 3607324),
-    "confucius4": ("orig", 6788072),
-    "magpie-357m": ("q8_0", 1203312),
-    "neutts-2e": ("orig", 2495772),
-    "kugelaudio-0": ("q8_0", 10089468),
-    "qwen3-tts-1.7b-customvoice": ("q8_0", 3209920),
-    "irodori-tts-500m-v3": ("q8_0", 1590748),
-    "irodori-tts-v4.1-anime": ("q8_0", 1782652),
-    "higgs-audio-v3-4b": ("q8_0", 5276676),
-    "fish-audio-s2-pro": ("q8_0", 7767820),
-    "breeze-tts-2": ("q8_0", 5276172),
-    "audio8-tts-0.6b": ("q8_0", 2221020),
-    "soprano-1.1-80m": ("q8_0", 546304),
-    "glm-tts": ("q8_0", 5363276),
-    "outetts-1.0-1b": ("q8_0", 3989980),     # the bare-then-clone run; a bare synth alone: 2582236
-    "echo-tts": ("q8_0", 5555704),
-    "kitten-tts2": ("q8_0", 3716020),
-    "voicetut-tts": ("q8_0", 1613196),
-    "miotts-1.7b": ("q8_0", 4298480),
-    "lfm2.5-audio-en": ("q8_0", 1679640),
-    "lfm2.5-audio-ja": ("q8_0", 1681564),
+    "cosyvoice3": ("q8_0", 2652720),                  # with the clip (voice required)
+    "fireredtts3-base": ("q8_0", 4631620),            # with the clip (voice required)
+    "moss-tts-local-1.5": ("q8_0", 18521960),         # with the clip; bare 13198220
+    "vibevoice-1.5b": ("q8_0", 4066124),              # with the clip; bare 3863200
+    "chatterbox": ("q8_0", 2914832),                  # with the clip (voice required)
+    "chatterbox-turbo": ("q8_0", 4338656),            # bare (no clone path)
+    "confucius4": ("orig", 6776376),                  # with the clip (voice required)
+    "magpie-357m": ("q8_0", 1312452),                 # bare (no clone path)
+    "neutts-2e": ("orig", 2539620),                   # bare (no clone path)
+    "kugelaudio-0": ("q8_0", 10104348),               # bare (no clone path)
+    "qwen3-tts-1.7b-customvoice": ("q8_0", 4074512),  # its default preset (no clone path)
+    "irodori-tts-500m-v3": ("q8_0", 2720656),         # with the clip; bare 2614688
+    "irodori-tts-v4.1-anime": ("q8_0", 2927036),      # with the clip; bare 2781980
+    "higgs-audio-v3-4b": ("q8_0", 6369076),           # with the clip; bare 5487188
+    "fish-audio-s2-pro": ("q8_0", 8771944),           # with the clip; bare 8614776
+    "breeze-tts-2": ("q8_0", 5355484),                # with the clip (voice required)
+    "audio8-tts-0.6b": ("q8_0", 2948800),             # bare; with the clip 2867508
+    "soprano-1.1-80m": ("q8_0", 544772),              # bare (no clone path)
+    "glm-tts": ("q8_0", 5509516),                     # with the clip (voice required)
+    "outetts-1.0-1b": ("q8_0", 4216684),              # with the clip; bare 3036760
+    "echo-tts": ("q8_0", 6110784),                    # with the clip (voice required)
+    "kitten-tts2": ("q8_0", 4353760),                 # with the clip; bare 4265356
+    "voicetut-tts": ("q8_0", 1816688),                # with the clip (voice required)
+    "miotts-1.7b": ("q8_0", 4687080),                 # with the clip (voice required)
+    "lfm2.5-audio-en": ("q8_0", 1697700),             # bare (no clone path)
+    "lfm2.5-audio-ja": ("q8_0", 1704176),             # bare (no clone path)
 }
 
 
@@ -475,9 +479,10 @@ def test_only_a_card_measured_above_1_2x_or_at_most_0_9x_carries_a_factor():
 
 
 def test_a_measured_card_between_0_9x_and_1_2x_keeps_1_0():
-    # chatterbox (0.97x), lfm2.5-audio (0.94x), vibevoice (1.13x), kitten-tts2 (1.16x) are
-    # measured but inside the band where a flat 1.0 is close enough.
-    for mid in ("chatterbox", "lfm2.5-audio-en", "lfm2.5-audio-ja", "vibevoice-1.5b", "kitten-tts2"):
+    # fireredtts3 (1.13x), kugelaudio (1.06x), breeze (1.08x), glm (1.10x) and lfm2.5-audio
+    # (0.95x, 0.96x) are measured but inside the band where a flat 1.0 is close enough.
+    for mid in ("fireredtts3-base", "kugelaudio-0", "breeze-tts-2", "glm-tts", "lfm2.5-audio-en",
+                "lfm2.5-audio-ja"):
         assert mid in MEASURED_CPU_PEAKS_KB and mid not in catalog._TTS_RAM_FACTORS
         assert catalog.tts_model(mid).ram_factor == 1.0, mid
 

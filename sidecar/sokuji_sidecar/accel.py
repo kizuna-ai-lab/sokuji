@@ -679,8 +679,8 @@ def load_with_fallback(plans: list):
     memory is the same pool) is refused, not attempted, when free RAM is below its rung's
     est_bytes x factor + _RAM_HEADROOM_BYTES: the OS would kill the sidecar or swap the
     machine to a crawl mid-load. The factor is the card's ram_factor on the CPU, which is
-    where it was measured, and 1.0 on Metal (moss-tts-local peaks at 13,060,424 kB on the CPU
-    and held about 8.7 GiB on an M4's Metal). Unknown free RAM (no psutil) or an unknown
+    where it was measured, and 1.0 on Metal (a bare moss-tts-local synth peaked at 13,060,424 kB
+    on the CPU and held about 8.7 GiB on an M4's Metal). Unknown free RAM (no psutil) or an unknown
     rung size skips the check. A plan the check refuses is skipped like the VRAM gate's;
     if none loads and the last plan was a refusal, the error names the memory it needs and
     the memory free (a plan attempted after a refusal and failing otherwise is reported instead).
