@@ -15,6 +15,7 @@
 
 import {
   BaseStreamer,
+  StoppingCriteria,
   VoxtralRealtimeForConditionalGeneration,
   VoxtralRealtimeProcessor,
   env,
@@ -28,6 +29,7 @@ import { resolveVadThresholds } from './_shared/vad-thresholds';
 import { resolveMaxSpeechFrames } from './_shared/max-speech-frames';
 import { SileroInput, SILERO_INPUT_SAMPLES } from './_shared/silero-input';
 import {
+  AudioPositionBudget,
   boundedBatchEndSample,
   promoteQueued,
   QueuedUtterance,
@@ -89,21 +91,22 @@ let speechFramesSinceStart = 0;
 
 // The longest speech one generate() run is fed. No text is lost past it — a
 // 60 s run transcribes completely — but the run has to stay under 512 audio
-// tokens (80 ms each: 2.56 s left pad + 0.8 s pre-roll + speech + 0.56 s tail
+// tokens (80 ms each: 2.56 s left pad + 0.8 s pre-roll + speech + 1.36 s tail
 // pad) to keep up with real time. Past that the float32 decoder KV tensors
 // leave the 2 MiB allocation class and every token costs ~130 ms more: on a
 // GB10 a 40 s run finished 10 s late and a 60 s one 38-59 s late, and Stop
-// pressed while it lags discards the backlog. 35 s is 488-489 tokens. Not
+// pressed while it lags discards the backlog. 35 s is 498-499 tokens. Not
 // lower — each forced cut damages about one word. Measured on q4 only;
 // q4f16's float16 KV is predicted to reach the step at ~78 s, which nobody
 // has run.
 //
-// The 24 tokens of headroom are not all slack: an utterance that starts while
+// The 13 tokens of headroom are not all slack: an utterance that starts while
 // the previous run is still draining is staged untrimmed, so it carries every
 // sample since the last endpoint instead of the 0.8 s pre-roll (the idle trim
 // at feedAudio is gated on `!isGenerating`). A drain longer than ~2.8 s then
-// pushes the carrying run past 512 — 513 to 527 tokens in simulation at a
-// drain of 4.6 s, against the 1.2-2.65 s measured on the GB10. Latency only,
+// pushes the carrying run past 512 — 523 to 537 tokens at a drain of 4.6 s
+// (the 2026-09 simulation gave 513-527 with the 7-token tail of the time),
+// against the 1.2-2.65 s measured on the GB10. Latency only,
 // no text lost, and the same at any cap; trimming the staged buffer is a
 // separate change.
 const VOXTRAL_REALTIME_MAX_SPEECH_SECONDS = 35;
@@ -218,7 +221,7 @@ const audioFeed = new StreamingAudioFeed();
  * non-streaming path pads on the right for exactly this reason. Cutting the
  * feed at the VAD endpoint instead leaves the last words of every utterance
  * undecoded — the audio was buffered but never turned into tokens.
- * See TAIL_PAD_TOKENS for why this is shorter than `num_right_pad_tokens`.
+ * TAIL_PAD_TOKENS is the processor's `num_right_pad_tokens`.
  */
 function utterancePadSamples(): number {
   if (!voxtralProcessor) return 0;
@@ -263,6 +266,16 @@ async function runVoxtralGenerate(): Promise<void> {
     const { hop_length, n_fft } = featureExtractor.config;
     const winHalf = Math.floor(n_fft / 2);
     const samplesPerTok = voxtralProcessor.audio_length_per_tok * hop_length;
+    const tokensIn = (features: any): number => features.dims[2] / voxtralProcessor.audio_length_per_tok;
+
+    // Audio positions against sampled tokens, so the run stops on the last
+    // audio position instead of decoding one step with no audio.
+    const budget = new AudioPositionBudget(firstChunkInputs.input_ids.dims[1]);
+    budget.addChunk(tokensIn(firstChunkInputs.input_features));
+    // Where the chunk after the ones yielded would end. Once the feed is
+    // finishing and that lies past its length, no chunk is coming.
+    let nextEndNeeded = voxtralProcessor.num_mel_frames_first_audio_chunk * hop_length - winHalf
+      + voxtralProcessor.num_samples_per_audio_chunk;
 
     async function* inputFeaturesGenerator() {
       yield firstChunkInputs.input_features;
@@ -276,7 +289,8 @@ async function runVoxtralGenerate(): Promise<void> {
         await waitUntil(() => audioFeed.readyFor(endNeeded));
         if (audioFeed.stopped) break;
         // Graceful finish: keep consuming whole chunks until the padded tail is
-        // drained, then let generate() end so the streamer flushes its last tokens.
+        // drained. The stop criterion then ends generate() on the last audio
+        // position and the streamer flushes its last tokens.
         if (!audioFeed.hasSamples(endNeeded)) break;
 
         const batchEndSample = boundedBatchEndSample(endNeeded, audio().length, samplesPerTok);
@@ -286,12 +300,23 @@ async function runVoxtralGenerate(): Promise<void> {
           { is_streaming: true, is_first_audio_chunk: false },
         );
 
-        yield chunkInputs.input_features;
-
         melFrameIdx += chunkInputs.input_features.dims[2];
         startIdx = melFrameIdx * hop_length - winHalf;
+        // Counted before the yield: the step that pulls this chunk encodes it
+        // and is judged against it.
+        budget.addChunk(tokensIn(chunkInputs.input_features));
+        nextEndNeeded = startIdx + voxtralProcessor.num_samples_per_audio_chunk;
+
+        yield chunkInputs.input_features;
       }
     }
+
+    const noMoreChunks = () => audioFeed.stopped || (audioFeed.finishing && !audioFeed.hasSamples(nextEndNeeded));
+    const stopAtLastAudio = new (class extends StoppingCriteria {
+      _call(inputIds: number[][]): boolean[] {
+        return inputIds.map(() => budget.exhausted(noMoreChunks()));
+      }
+    })();
 
     const tokenizer = voxtralProcessor.tokenizer;
     const specialIds = new Set(tokenizer.all_special_ids.map(BigInt));
@@ -325,6 +350,7 @@ async function runVoxtralGenerate(): Promise<void> {
       put(value: bigint[][]) {
         if (audioFeed.stopped) return;
         if (isPrompt) { isPrompt = false; return; }
+        budget.tokenSampled();
         const tokens = value[0];
         if (tokens.length === 1 && specialIds.has(tokens[0])) return;
         accumulator!.push(tokens);
@@ -342,6 +368,7 @@ async function runVoxtralGenerate(): Promise<void> {
       input_features: inputFeaturesGenerator(),
       max_new_tokens: 4096,
       streamer: streamer as any,
+      stopping_criteria: stopAtLastAudio,
     });
   } catch (err: any) {
     if (!audioFeed.stopped) {

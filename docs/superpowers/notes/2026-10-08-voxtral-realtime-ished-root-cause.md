@@ -209,6 +209,9 @@ nothing for the junk: the audio-less step stays a lottery however long the silen
 
 The two findings of §5 call for two changes together: the tail must be long enough that every owed
 piece comes out during real (silent) audio steps, and the audio-less step must not be streamed.
+Both are implemented on this branch: `TAIL_PAD_TOKENS` is 17, and `AudioPositionBudget`
+(`_shared/streaming-generation.ts`) backs a `StoppingCriteria` the worker hands to `generate()`;
+`audioPositionBudget.consistency.test.ts` holds the wiring in place.
 Either alone is wrong — R1 alone loses owed CJK characters (8 of 13 Chinese cuts, 3 of 8
 Japanese), R3 alone still streams the lottery step (6 of 16 English cuts junk, with 7 or 17
 tokens alike).
