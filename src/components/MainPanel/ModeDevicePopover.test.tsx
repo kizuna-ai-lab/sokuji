@@ -26,6 +26,8 @@ vi.mock('../../stores/settingsStore', () => ({
 }));
 
 const store = {
+  otherSide: 'meeting' as 'meeting' | 'beside',
+  setOtherSide: vi.fn(),
   sources: [] as Array<{ deviceId: string; label: string }>,
   selected: null as { deviceId: string; label: string } | null,
   select: vi.fn(),
@@ -50,7 +52,17 @@ vi.mock('../../stores/audioStore', () => ({
   useParticipantSources: () => store.sources,
   useSelectedParticipantSource: () => store.selected,
   useSelectParticipantSource: () => store.select,
+  useOtherSide: () => store.otherSide,
+  useSetOtherSide: () => store.setOtherSide,
 }));
+
+const f2f = { offered: true, active: false, swap: false, me: 'ja', other: 'en' };
+vi.mock('./useFaceToFace', () => ({ useFaceToFace: () => f2f }));
+const routing = { setFaceToFaceSwap: vi.fn() };
+vi.mock('../../stores/routingStore', () => ({ useRoutingStore: (pick: (s: unknown) => unknown) => pick({ faceToFaceSwap: f2f.swap, setFaceToFaceSwap: routing.setFaceToFaceSwap }) }));
+const tone = vi.fn(async () => {});
+vi.mock('../../lib/audio/appAudio', () => ({ getAppAudio: async () => ({ testTone: tone }) }));
+vi.mock('../../lib/language/useLanguageLabel', () => ({ useLanguageLabel: () => (code: string) => code.toUpperCase() }));
 
 const SYSTEM = { deviceId: 'desktop-audio-loopback', label: 'System Audio (All Applications)' };
 const CHROMIUM = { deviceId: 'app:pid:205', label: 'Chromium' };
@@ -59,6 +71,8 @@ beforeEach(() => {
   env.extension = false;
   store.sources = [SYSTEM, CHROMIUM];
   store.selected = CHROMIUM;
+  store.otherSide = 'meeting';
+  store.setOtherSide.mockReset();
   store.select.mockReset();
   store.setParticipantMuted.mockReset();
 });
@@ -114,5 +128,43 @@ describe('ModeDevicePopover participant row', () => {
     mount();
     expect(screen.getByText('Plays via system default')).toBeInTheDocument();
     expect(screen.queryByText('Chromium')).toBeNull();
+  });
+});
+
+describe('ModeDevicePopover — Both, the other side', () => {
+  const mountBoth = () => {
+    const anchor = document.createElement('div');
+    document.body.appendChild(anchor);
+    return render(<ModeDevicePopover mode="both" open={true} anchorEl={anchor} onClose={vi.fn()} />);
+  };
+
+  it('offers "In a meeting" and "Beside me" and stores the choice', () => {
+    mountBoth();
+    fireEvent.click(screen.getByRole('radio', { name: /Beside me/ }));
+    expect(store.setOtherSide).toHaveBeenCalledWith('beside');
+  });
+
+  it('hides the choice under a provider without face-to-face', () => {
+    f2f.offered = false;
+    mountBoth();
+    expect(screen.queryByRole('radio', { name: /Beside me/ })).toBeNull();
+    f2f.offered = true;
+  });
+
+  it('beside me: no system-audio row, a headphones row, the two ears with previews and the swap', async () => {
+    f2f.active = true;
+    store.otherSide = 'beside';
+    mountBoth();
+    expect(screen.queryByText("Other's audio")).toBeNull();
+    expect(screen.getByText('Headphones')).toBeInTheDocument();
+    expect(screen.getByText('Left ear')).toBeInTheDocument();
+    expect(screen.getByText('Right ear')).toBeInTheDocument();
+    // The left ear's preview plays the tone panned left.
+    fireEvent.click(screen.getAllByRole('button', { name: /Preview the/ })[0]);
+    await vi.waitFor(() => expect(tone).toHaveBeenCalledWith(undefined, -1));
+    fireEvent.click(screen.getByRole('button', { name: /Swap left and right/ }));
+    expect(routing.setFaceToFaceSwap).toHaveBeenCalledWith(true);
+    f2f.active = false;
+    store.otherSide = 'meeting';
   });
 });

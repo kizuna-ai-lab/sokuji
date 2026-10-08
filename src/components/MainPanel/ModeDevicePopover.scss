@@ -180,6 +180,141 @@
     flex-shrink: 0;
   }
 
+  // Both: who the other person is. Two radio tiles; the real input is visually
+  // hidden but stays focusable, and the tile shows its focus ring.
+  &__other-side {
+    flex-shrink: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin: 8px 14px;
+    border: 1px solid #444;
+    border-radius: 7px;
+    overflow: hidden;
+  }
+
+  &__side {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 7px 10px;
+    cursor: pointer;
+    color: #ccc;
+
+    & + & { border-left: 1px solid #444; }
+
+    input {
+      position: absolute;
+      opacity: 0;
+      inset: 0;
+      margin: 0;
+      cursor: pointer;
+    }
+
+    &:focus-within { outline: 2px solid tk.$color-primary; outline-offset: -2px; }
+
+    &--active {
+      background: tk.$color-primary-fill;
+      color: tk.$color-on-primary;
+    }
+  }
+
+  &__side-title { font-weight: 600; font-size: 12px; }
+
+  &__side-hint {
+    font-size: 10px;
+    color: #aaa;
+
+    .mode-device-popover__side--active & { color: tk.$color-on-primary; }
+  }
+
+  // Both, beside me: one row per ear.
+  &__ears {
+    flex-shrink: 0;
+    border-top: 1px solid #3a3a3a;
+    background: #242424;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__ears-title { color: #aaa; font-size: 11px; }
+
+  &__ear {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+
+    // The colour follows the person: me the speaker colour, the other the participant colour.
+    &--me { --ear-colour: #{tk.$color-speaker}; }
+    &--other { --ear-colour: #{tk.$color-participant}; }
+  }
+
+  &__ear-letter {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--ear-colour);
+    color: var(--ear-colour);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  &__ear-name { flex-shrink: 0; color: #ccc; }
+
+  &__ear-who {
+    flex: 1;
+    min-width: 0;
+    color: var(--ear-colour);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__ear-preview {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid #555;
+    border-radius: 50%;
+    color: #ccc;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover { background: #333; color: #fff; }
+  }
+
+  &__ears-actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+
+  &__swap {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: transparent;
+    border: 1px solid #555;
+    border-radius: 6px;
+    color: #ccc;
+    font-size: 12px;
+    cursor: pointer;
+
+    &:hover { background: #333; color: #fff; }
+  }
+
+  &__ears-hint { color: #f59e0b; font-size: 11px; }
+
   &__divider {
     border-top: 1px solid #3a3a3a;
     flex-shrink: 0;
