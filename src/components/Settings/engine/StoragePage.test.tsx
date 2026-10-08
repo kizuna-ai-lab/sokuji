@@ -176,6 +176,22 @@ describe('StoragePage (wasm)', () => {
     expect(screen.queryByTestId(`storage-row-${turnId}`)).toBeNull();
   });
 
+  // Clear all is the only way to remove the Smart Turn model, so it must stay
+  // when that model is the only thing on disk.
+  it('offers Clear all when only the Smart Turn model is downloaded', () => {
+    const turnId = getManifestByType('turn')[0].id;
+    useModelStore.setState({ modelStatuses: { [turnId]: 'downloaded' }, webgpuAvailable: true });
+    render(<StoragePage provider="wasm" {...WASM} />);
+    expect(screen.queryByTestId(`storage-row-${turnId}`)).toBeNull();
+    expect(screen.getByRole('button', { name: /Clear all/ })).toBeInTheDocument();
+  });
+
+  it('offers no Clear all when nothing is downloaded', () => {
+    useModelStore.setState({ modelStatuses: {}, webgpuAvailable: true });
+    render(<StoragePage provider="wasm" {...WASM} />);
+    expect(screen.queryByRole('button', { name: /Clear all/ })).toBeNull();
+  });
+
   it('offers neither punctuation nor Smart Turn models for import', () => {
     expect(getManifestByType('turn')).toHaveLength(1);
     render(<StoragePage provider="wasm" {...WASM} />);

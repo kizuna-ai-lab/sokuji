@@ -183,7 +183,11 @@ export const StoragePage: React.FC<
       return { id, name: displayName(id), sizeLabel, inUse: inUseIds.has(id) };
     });
 
-  const hasModels = rows.length > 0;
+  // Clear all also removes the models kept out of the rows, and is the only way
+  // to remove Smart Turn's, so it counts them too.
+  const canClearAll = isWasm
+    ? Object.values(currentStatuses).some((status) => status === 'downloaded')
+    : rows.length > 0;
   const storageMb = isWasm
     ? wasmStorageMb
     : Math.round(rows.reduce((sum, r) => sum + (nativeCatalog[r.id]?.sizeBytes ?? 0), 0) / (1024 * 1024));
@@ -286,7 +290,7 @@ export const StoragePage: React.FC<
       ))}
 
       <div className="engine-storage-page__actions">
-        {hasModels && (
+        {canClearAll && (
           clearAllPending ? (
             <div className="engine-storage-confirm" data-testid="storage-confirm">
               <p>{t('models.confirmClearAll', 'Delete all models?')}</p>
