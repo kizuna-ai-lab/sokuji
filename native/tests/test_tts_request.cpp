@@ -10,8 +10,11 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <map>
 #include <set>
+#include <stdexcept>
 #include <string>
+#include <vector>
 
 #define SK_TTS_REQUEST_ONLY 1
 #include "sk_env.h"
@@ -584,6 +587,100 @@ void higgs_audio_tts_requests() {
     assert(opt(req, "do_sample") == "false" && opt(req, "seed") == "0");
 }
 
+void higgs_max_tokens_scales_with_the_text() {
+    // 15 frames a codepoint, between 256 and the engine's default 2048.
+    assert(higgs_max_tokens("") == 256);
+    assert(higgs_max_tokens("Hello.") == 256);
+    assert(higgs_max_tokens(std::string(17, 'a')) == 256);
+    assert(higgs_max_tokens(std::string(18, 'a')) == 270);
+    assert(higgs_max_tokens(std::string(136, 'a')) == 2040);
+    assert(higgs_max_tokens(std::string(137, 'a')) == 2048);
+    assert(higgs_max_tokens(std::string(5000, 'a')) == 2048);
+    // Codepoints, not bytes: 19 Han characters and punctuation (57 bytes).
+    assert(higgs_max_tokens("今天天气很好，我们一起去公园散散步吧。") == 285);
+    const auto h = handle_for("higgs_audio_tts");
+    const char *az = "Bu gün hava çox gözəldir, gəlin parkda gəzintiyə çıxaq.";   // 55 codepoints, 64 bytes
+    rt::TaskRequest req = build_request(h.get(), az, "az", 1.0f);
+    assert(opt(req, "max_tokens") == "825" && opt(req, "seed") == "0");
+    give_clip(h.get(), "The quick brown fox.");
+    req = build_request(h.get(), az, "az", 1.0f);
+    assert(opt(req, "max_tokens") == "825" && opt(req, "seed") == "0");
+}
+
+// The engine's own words when a take spends max_tokens without its end-of-content code
+// (higgs_audio_tts/generator.cpp:542-548).
+std::string higgs_runaway(int max_tokens) {
+    return "Higgs TTS generation reached max_tokens (" + std::to_string(max_tokens) +
+           ") before EOC for this text chunk; raise it with --max-tokens on the CLI or the \"max_tokens\" "
+           "request option on the server, or lower --text-chunk-size / \"text_chunk_size\" so each chunk "
+           "needs fewer generated frames";
+}
+
+// Stands in for prepare + run: records each attempt's seed and max_tokens, throws the error listed
+// for its seed, and otherwise returns the seed it ran with.
+struct FakeRun {
+    std::map<std::string, std::string> errors;
+    std::vector<std::string> seeds;
+    std::vector<std::string> caps;
+    int operator()(const rt::TaskRequest &r) {
+        seeds.push_back(opt(r, "seed"));
+        caps.push_back(opt(r, "max_tokens"));
+        if (const auto it = errors.find(seeds.back()); it != errors.end()) throw std::runtime_error(it->second);
+        return std::stoi(seeds.back());
+    }
+};
+
+std::string attempt_error(const sk_tts *t, const rt::TaskRequest &req, FakeRun &run) {
+    try {
+        run_retrying_runaway(t, req, run);
+    } catch (const std::exception &ex) {
+        return ex.what();
+    }
+    return "<none>";
+}
+
+void higgs_runaway_retries_with_the_next_seeds() {
+    assert(is_higgs_runaway(higgs_runaway(2048)) && is_higgs_runaway(higgs_runaway(825)));
+    assert(!is_higgs_runaway("Higgs TTS max_tokens exceeds model max_position_embeddings"));
+    assert(!is_higgs_runaway("Higgs TTS generation exceeds text model max_position_embeddings"));
+    assert(!is_higgs_runaway("OuteTTS reached max_tokens before an audio end token and cannot split the "
+                             "remaining text further; increase max_tokens"));
+    assert(!is_higgs_runaway("sk_tts_synth: audiocpp: " + higgs_runaway(2048)));
+
+    const auto h = handle_for("higgs_audio_tts");
+    const rt::TaskRequest req = build_request(h.get(), "Dina iki cuacane apik banget.", "jv", 1.0f);
+    const std::vector<std::string> cap(3, opt(req, "max_tokens"));
+    // Seed 0 stops: one attempt.
+    FakeRun stops;
+    assert(run_retrying_runaway(h.get(), req, stops) == 0);
+    assert((stops.seeds == std::vector<std::string>{"0"}));
+    // Seed 0 runs away, seed 1 stops; seed 1's audio, the same cap.
+    FakeRun once{{{"0", higgs_runaway(435)}}};
+    assert(run_retrying_runaway(h.get(), req, once) == 1);
+    assert((once.seeds == std::vector<std::string>{"0", "1"}));
+    assert((once.caps == std::vector<std::string>(cap.begin(), cap.begin() + 2)));
+    // Seeds 0 and 1 run away, seed 2 stops.
+    FakeRun twice{{{"0", higgs_runaway(435)}, {"1", higgs_runaway(435)}}};
+    assert(run_retrying_runaway(h.get(), req, twice) == 2);
+    assert((twice.seeds == std::vector<std::string>{"0", "1", "2"}) && twice.caps == cap);
+    // All three run away: seed 0's error, and no fourth attempt.
+    FakeRun always{{{"0", higgs_runaway(435) + " [seed 0]"}, {"1", higgs_runaway(435)}, {"2", higgs_runaway(435)}}};
+    assert(attempt_error(h.get(), req, always) == higgs_runaway(435) + " [seed 0]");
+    assert((always.seeds == std::vector<std::string>{"0", "1", "2"}));
+    // Any other error is not retried, first attempt or later.
+    FakeRun other{{{"0", "Higgs TTS requires text input"}}};
+    assert(attempt_error(h.get(), req, other) == "Higgs TTS requires text input");
+    assert((other.seeds == std::vector<std::string>{"0"}));
+    FakeRun later{{{"0", higgs_runaway(435)}, {"1", "Higgs TTS AR cache cannot grow"}}};
+    assert(attempt_error(h.get(), req, later) == "Higgs TTS AR cache cannot grow");
+    assert((later.seeds == std::vector<std::string>{"0", "1"}));
+    // Another family is never retried, even on these words.
+    const auto fish = handle_for("fish_audio");
+    FakeRun not_higgs{{{"0", higgs_runaway(2048)}}};
+    assert(attempt_error(fish.get(), build_request(fish.get(), "Hello.", "en", 1.0f), not_higgs) == higgs_runaway(2048));
+    assert((not_higgs.seeds == std::vector<std::string>{"0"}));
+}
+
 void fish_audio_requests() {
     const auto h = handle_for("fish_audio");
     assert(h->transcript_required);
@@ -1019,10 +1116,12 @@ void check_sampling(Audit &a, const ExpectedRow &e, const rt::TaskRequest &req, 
            opt(req, "do_sample"));
 }
 
-// max_tokens goes to outetts alone, whatever the voice.
+// max_tokens goes to outetts, fixed, and to higgs_audio_tts, scaled to the text ("Hello." is under
+// its floor), whatever the voice; to no other family.
 void check_max_tokens(Audit &a, const ExpectedRow &e, const rt::TaskRequest &req, const char *when) {
-    a.text(e.name, std::string(when) + ": max_tokens", std::strcmp(e.name, "outetts") == 0 ? "2048" : "<absent>",
-           opt(req, "max_tokens"));
+    const std::string name = e.name;
+    a.text(e.name, std::string(when) + ": max_tokens",
+           name == "outetts" ? "2048" : name == "higgs_audio_tts" ? "256" : "<absent>", opt(req, "max_tokens"));
 }
 
 void requests_honour_each_row() {
@@ -1103,6 +1202,8 @@ int main() {
     neutts_requests();
     kugelaudio_requests();
     higgs_audio_tts_requests();
+    higgs_max_tokens_scales_with_the_text();
+    higgs_runaway_retries_with_the_next_seeds();
     fish_audio_requests();
     breeze_tts_requests();
     audio8_tts_row_columns();

@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <exception>
 #include <filesystem>
 #include <memory>
 #include <mutex>
@@ -214,7 +215,9 @@ constexpr FamilyInfo kFamilies[] = {
     // (session.cpp:150-156); a clip is optional (generator.cpp:205-221), its transcript too
     // (session.cpp:253-256); 24 kHz (include/engine/models/higgs_audio_tts/codec.h:81); with a
     // seed its sampler is the host-side seeded one on every backend. It reads no language (its
-    // loader reports only "Auto", loader.cpp:33); the card's tuple is the picker's gate only.
+    // loader reports only "Auto", loader.cpp:33); the card's tuple is the picker's gate only. It
+    // is sent a max_tokens scaled to the text, and a runaway is retried at the next seeds
+    // (higgs_max_tokens, run_retrying_runaway).
     {"higgs_audio_tts", false, true,  false, 24000, false, false, false, FamilyTask::Tts, nullptr},
     // fish_audio (audio.cpp src/models/fish_audio/session.cpp): an offline Tts session only
     // (:306-312); a clip is optional but needs its transcript (:252-259); 44.1 kHz
@@ -443,6 +446,17 @@ std::string vibevoice_script(const std::string &text) {
     return out;
 }
 
+// The max_tokens a higgs_audio_tts request is sent, so a runaway (run_retrying_runaway) stops
+// early: the engine's default, 2048 frames (src/models/higgs_audio_tts/session.cpp:102), cost 42 s
+// of a GB10 GPU. The most frames a codepoint any take used, measured 2026-10-08 over 67 languages,
+// was 4.9 (Chinese; 25 frames a second); 15 is three times that, between 256 and 2048.
+int64_t higgs_max_tokens(const std::string &text) {
+    int64_t codepoints = 0;
+    for (const unsigned char c : text)
+        if ((c & 0xC0) != 0x80) ++codepoints;
+    return std::clamp<int64_t>(15 * codepoints, 256, 2048);
+}
+
 // Builds the per-call TaskRequest: text, whichever voice state (if any) is stored on the
 // handle, speed (supertonic only, Ruling R6(s4)), and the deterministic-synthesis options
 // that always apply (Ruling R7(s4)). Caller holds t->mutex.
@@ -567,6 +581,10 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
     // (model_specs/outetts.json:48) replaces that budget (session.cpp:172-180).
     if (t->family == "outetts")
         req.options["max_tokens"] = "2048";
+    // See higgs_max_tokens. Read at src/models/higgs_audio_tts/session.cpp:107-114; request
+    // options are not validated.
+    if (t->family == "higgs_audio_tts")
+        req.options["max_tokens"] = std::to_string(higgs_max_tokens(req.text_input->text));
 
     if (t->family == "supertonic" && speed != 1.0f) {
         req.options["speaking_rate"] = std::to_string(speed);
@@ -652,12 +670,51 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
     return req;
 }
 
+// The seeds a higgs_audio_tts runaway is retried with, in order, after build_request's "0".
+constexpr const char *kHiggsRetrySeeds[] = {"1", "2"};
+
+// The engine's throw for a take that spends max_tokens frames without sampling its end-of-content
+// code (src/models/higgs_audio_tts/generator.cpp:542-548), matched on its own words only.
+bool is_higgs_runaway(const std::string &what) {
+    return what.rfind("Higgs TTS generation reached max_tokens (", 0) == 0 &&
+           what.find(") before EOC for this text chunk;") != std::string::npos;
+}
+
+// Runs one synth (run: prepare + run on the session). higgs_audio_tts samples every take, and at
+// seed 0 some texts never stop: an error with no audio. The two such sentences measured on
+// 2026-10-08 stopped at seeds 1 and 2, so a runaway is retried with those seeds, in that order,
+// and the first error stands when all three run away. The order is fixed, so a text still gets
+// the same audio every time (R7(s4)). No other error and no other family is retried.
+template <class Run>
+auto run_retrying_runaway(const sk_tts *t, const rt::TaskRequest &request, Run &&run) -> decltype(run(request)) {
+    if (t->family != "higgs_audio_tts") return run(request);
+    std::exception_ptr first;
+    try {
+        return run(request);
+    } catch (const std::exception &ex) {
+        if (!is_higgs_runaway(ex.what())) throw;
+        first = std::current_exception();
+    }
+    rt::TaskRequest retry = request;
+    for (const char *seed : kHiggsRetrySeeds) {
+        retry.options["seed"] = seed;
+        try {
+            return run(retry);
+        } catch (const std::exception &ex) {
+            if (!is_higgs_runaway(ex.what())) throw;
+        }
+    }
+    std::rethrow_exception(first);
+}
+
 #ifndef SK_TTS_REQUEST_ONLY
 sk_status synth_offline(sk_tts *t, const rt::TaskRequest &request, sk_audio_cb cb, void *user) {
     sk_status rc = SK_OK;
     try {
-        t->session->prepare(rt::build_preparation_request(request));
-        rt::TaskResult result = t->offline->run(request);
+        rt::TaskResult result = run_retrying_runaway(t, request, [t](const rt::TaskRequest &r) {
+            t->session->prepare(rt::build_preparation_request(r));
+            return t->offline->run(r);
+        });
         if (!result.audio_output.has_value()) {
             sk::set_error("sk_tts_synth: no audio produced");
             rc = SK_ERR_BACKEND;
