@@ -364,10 +364,10 @@ unchanged. The exception is a family with a raw-typed device weight path, one th
 device weight past that conversion: the file's own type handed to `make_tensor` (qwen3_tts's
 speech-decoder `output_proj`, kugelaudio's `lm_head`), a derived tensor stored at the file's
 dtype (index_tts2), or a non-Native default storage (moss_voicegen). For those a `bf16` is
-asked both as `bf16` and as `f16`. The list, each
-entry with its audio.cpp source lines, is `kRawTypedWeightFamilies` in `src/sk_ops_format.cpp`;
-it comes from reading every loader under audio.cpp's `src/models` and `src/community_models`,
-not from the recordings, and a pin bump re-reads them.
+asked both as `bf16` and as `f16`. The list, each entry with its audio.cpp source lines, is
+`kRawTypedWeightFamilies` in `src/sk_ops_format.cpp`; it comes from reading every loader under
+audio.cpp's `src/models` and `src/community_models`, not from the recordings, and a pin bump
+re-reads them.
 
 One helper, `sk_ops_loaded_weight_dtypes` (`src/sk_ops.h`), holds the rule and its exceptions, and
 `sk_ops_asked_weight_dtypes` applies it to a set, deduplicating after mapping, so `{bf16, f16}`
@@ -375,12 +375,11 @@ asks f16 once. `sk_device_supports_ops` expands WEIGHT over that set. `sk_record
 takes `# dtypes-in-file:` through it for the device that ran each live WEIGHT before the guard
 checks it. A device WEIGHT ran on the recording's `# recorded-on:` device, so on Vulkan a live
 f16 is covered by a file's bf16 and a live bf16 is refused unless the family is on the list. A
-WEIGHT tagged `host` ran on the CPU and
-is checked against the file's set unmapped. The guard sees a raw-typed path only when the
-recorded file holds bf16 there: qwen3_tts is recorded from a 0.6B file whose `output_proj` is f32,
-while the 1.7B q8_0_v2 and bf16 rungs hold it in bf16. The header itself, the cards' `rung_dtypes`
-and the sidecar's `accel.weight_dtypes` stay the files' own dtypes: the native side maps (ruling
-2026-10-07).
+WEIGHT tagged `host` ran on the CPU and is checked against the file's set unmapped. The guard
+sees a raw-typed path only when the recorded file holds bf16 there: qwen3_tts is recorded from a
+0.6B file whose `output_proj` is f32, while the 1.7B q8_0_v2 and bf16 rungs hold it in bf16. The
+header itself, the cards' `rung_dtypes` and the sidecar's `accel.weight_dtypes` stay the files'
+own dtypes: the native side maps (ruling 2026-10-07).
 
 A TTS weight can also run in f32 whatever the file holds. audio.cpp builds some weights as F32 on
 every backend: `make_f32`, and a tensor derived at `Native` storage (`type_for_derived_storage`),

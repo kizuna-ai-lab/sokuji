@@ -440,12 +440,13 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
 
   // Renderer-side mirror of the sidecar's R16 pre-check (tts_backend.py's
   // `_ensure_voice_ready`, over each card's `voice_required`, read off the
-  // wire as `voice.required`): a model that requires a clip — qwen3_tts,
+  // wire as `voice.required`): a model that requires a clip — qwen3_tts Base,
   // omnivoice, index_tts2 and every other clone-only family — can't speak
-  // until at least one eligible clip exists. Families that merely clone (MOSS, VoxCPM, Irodori) do not qualify,
-  // even though their voice shape is identical. Same eligibility filter as the pickable list
-  // above (transcriptRequired models don't count a clip with no transcript),
-  // so this banner and the dropdown's actual contents never disagree.
+  // until at least one eligible clip exists. Families that merely clone (MOSS,
+  // VoxCPM, Irodori) do not qualify, even though their voice shape is
+  // identical. Same eligibility filter as the pickable list above
+  // (transcriptRequired models don't count a clip with no transcript), so
+  // this banner and the dropdown's actual contents never disagree.
   const eligibleCustom = eligibleCustomVoices(customVoices, capability.transcriptRequired);
   const eligibleCustomVoiceCount = eligibleCustom.length;
   const needsClipBeforeUse = requiresVoiceClip(capability) && eligibleCustomVoiceCount === 0;

@@ -649,9 +649,12 @@ ties broken by the first name (`find_gguf` in `native/tests/model_path.h`, `_mai
    `VOICE_REQUIRED_FAMILIES` only if a bare synth raises — families that clone but speak with
    nothing set stay out, and a single card that differs from its family sets `voice_required=`;
    a card whose engine needs one fixed language sets `load_language=` (forced on every synth).
-   The card starts cpu-only (`_TTS_TIERS`): carve it out of
-   `test_tts_quant_ladder_shape` the way `NEW_2026_09_03_TTS_CARD_IDS` once did, and add it to
-   `_TTS_TIER_OVERRIDES` with its measured RTF table only after step 4. Tests: `test_catalog.py`
+   Licence: a non-commercial licence is `license=License(..., non_commercial=True)` and a
+   conditional or custom one `License(..., non_commercial=False)`, both behind the consent gate
+   (`requires_consent`, default True); Apache-2.0/MIT weights carry no `License`. A licence is
+   never by itself a reason to leave a family out.
+   The card starts cpu-only (`_TTS_TIERS`) and joins `_TTS_TIER_OVERRIDES` with its measured
+   RTF table only after step 4. Tests: `test_catalog.py`
    (`TTS_CARD_IDS`, the card count, the voice-required tuples, a per-card shape test),
    `test_tts_backend.py` (an R16 gated or not-gated case), `test_accel.py` (`voice.required` on
    the wire if required). `test_every_tts_family_has_an_op_recording` is why step 2 comes first.
@@ -665,7 +668,7 @@ ties broken by the first name (`find_gguf` in `native/tests/model_path.h`, `_mai
    renderer values to check: the per-card `MODEL_CLIP_LIMITS` in
    `src/lib/local-inference/native/nativeVoiceStores.ts` (reference-clip ceiling) and the single
    global `TTS_ASSUMED_RTF` in `NativeTtsClient.ts` (raise it if the family is slower than
-   echo_tts, the slowest on CPU today).
+   echo_tts, the slowest measured on CPU).
 6. Release, in the order the Versions bullet fixes: native version + tag → wheels → pins,
    `test_runtime_gate.py` and `sidecarVersion` in one commit on main → sidecar tag → smoke the
    published bundles with `PYTHONNOUSERSITE=1` (the bundled interpreter honours user

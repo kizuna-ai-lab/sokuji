@@ -823,7 +823,11 @@ struct ExpectedRow {
     FamilyTask task;
     const char *preset_option;
 };
+// streaming=false is a choice, not a missing mode, for the eight families whose spec lists
+// streaming but which sokuji opens offline (one utterance gains little from it): pocket_tts,
+// confucius4_tts, neutts, kugelaudio, breeze_tts, audio8_tts, soprano_tts, lfm2_audio.
 constexpr ExpectedRow kExpectedRows[] = {
+    //   name              stream clones transcr rate   sample strict refText task             preset_option
     // models/moss/moss_tts_nano/session.cpp:33 48 kHz, :219 Tts or clone;
     // include/engine/models/moss/moss_tts_nano/types.h:12 samples
     {"moss_tts_nano",   false, true,  false, 48000, true,  false, false, FamilyTask::Tts, nullptr},
@@ -854,10 +858,11 @@ constexpr ExpectedRow kExpectedRows[] = {
     // include/engine/models/cosyvoice3/assets.h:13 24 kHz
     {"cosyvoice3",      false, true,  false, 24000, false, true,  true,  FamilyTask::Tts, nullptr},
     // models/fireredtts3/session.cpp:225-237 Base takes a VoiceCloning session, :73-89 the prompt
-    // is built from reference_text, :304 strict
+    // is built from reference_text, :304 strict;
+    // include/engine/models/fireredtts3/assets.h:40 24 kHz
     {"fireredtts3",     false, true,  true,  24000, false, true,  true,  FamilyTask::VoiceCloning, nullptr},
     // models/moss/moss_tts_local/loader.cpp:76-79 offline, Tts or clone; session.cpp:33 48 kHz;
-    // generator.h:25 samples
+    // include/engine/models/moss/moss_tts_local/generator.h:25 samples
     {"moss_tts_local",  false, true,  false, 48000, true,  false, false, FamilyTask::Tts, nullptr},
     // models/vibevoice/loader.cpp:131 Tts only; session.cpp:319-321 a clip is optional;
     // include/engine/models/vibevoice/types.h:18 greedy, assets.h:83 24 kHz
@@ -868,8 +873,8 @@ constexpr ExpectedRow kExpectedRows[] = {
     // community_models/chatterbox_turbo/session.cpp:54 Tts, :76-84 refuses a clip, :104 24 kHz;
     // reads no do_sample
     {"chatterbox_turbo", false, false, false, 24000, false, false, false, FamilyTask::Tts, nullptr},
-    // models/confucius4_tts/session.cpp:173 VoiceCloning only, :229 strict, spec declares seed and
-    // language only; include/engine/models/confucius4_tts/types.h:39 22.05 kHz
+    // models/confucius4_tts/session.cpp:173 VoiceCloning only, :229 strict, spec declares neither
+    // do_sample nor reference_text; include/engine/models/confucius4_tts/types.h:39 22.05 kHz
     {"confucius4_tts",  false, true,  false, 22050, false, true,  false, FamilyTask::VoiceCloning, nullptr},
     // models/magpie_tts/request.cpp:30-52 the speaker is the voice_id option only, session.cpp:75
     // Tts, :107 strict; include/engine/models/magpie_tts/assets.h:62 22.05 kHz
@@ -892,7 +897,8 @@ constexpr ExpectedRow kExpectedRows[] = {
     // community_models/audio8_tts/session.cpp:268-272 a clip needs its transcript, :767 44.1 kHz;
     // request options are not validated
     {"audio8_tts",      false, true,  true,  44100, false, false, false, FamilyTask::Tts, nullptr},
-    // community_models/soprano_tts/session.cpp:150 strict, spec declares seed only, no voice;
+    // community_models/soprano_tts/session.cpp:150 strict, spec declares neither do_sample nor
+    // reference_text, no voice;
     // include/engine/community_models/soprano_tts/assets.h:37 32 kHz
     {"soprano_tts",     false, false, false, 32000, false, true,  false, FamilyTask::Tts, nullptr},
     // community_models/glm_tts/session.cpp:430-441 clip and transcript mandatory, :143 24 kHz;
@@ -901,8 +907,8 @@ constexpr ExpectedRow kExpectedRows[] = {
     // community_models/outetts/session.cpp:700-703 a clip needs its transcript; dac.cpp:663 24 kHz;
     // reads no do_sample; spec declares reference_language
     {"outetts",         false, true,  true,  24000, false, false, false, FamilyTask::Tts, nullptr},
-    // community_models/echo_tts/session.cpp:229 VoiceCloning only, :581 strict, spec declares seed
-    // only, :586-591 clip mandatory, :64 44.1 kHz
+    // community_models/echo_tts/session.cpp:229 VoiceCloning only, :581 strict, spec declares
+    // neither do_sample nor reference_text, :586-591 clip mandatory, :64 44.1 kHz
     {"echo_tts",        false, true,  false, 44100, false, true,  false, FamilyTask::VoiceCloning, nullptr},
     // community_models/kitten_tts2/session.cpp:161 strict, spec declares reference_text, :172-175
     // a clip needs its transcript, :194 24 kHz
@@ -910,8 +916,8 @@ constexpr ExpectedRow kExpectedRows[] = {
     // models/miotts/session.cpp:570 Tts only, :700-703 clip mandatory; assets.cpp:45 samples;
     // include/engine/models/miocodec/assets.h:18 44.1 kHz
     {"miotts",          false, true,  false, 44100, true,  false, false, FamilyTask::Tts, nullptr},
-    // community_models/lfm2_audio/session.cpp:447 strict, spec declares seed and language only,
-    // :461-463 refuses a clip; assets.cpp:317 24 kHz
+    // community_models/lfm2_audio/session.cpp:447 strict, spec declares neither do_sample nor
+    // reference_text, :461-463 refuses a clip; assets.cpp:317 24 kHz
     {"lfm2_audio",      false, false, false, 24000, false, true,  false, FamilyTask::Tts, nullptr},
 };
 

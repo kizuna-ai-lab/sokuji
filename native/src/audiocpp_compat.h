@@ -274,9 +274,8 @@ static inline struct ggml_tensor *ggml_convrot_linear(
  * 7 enum types over 0.7.1; the fork at 54aa279 adds one more of each, reached only from
  * families we do not build (RESCAN 2026-10-06 above). Only the ones referenced from engine_core
  * (everything under src/framework, always compiled) or from the families we build are shimmed;
- * the rest live in families we do
- * not build and never reach the linker. Survey and reachability: the 2026-09-25 bump plan,
- * docs/superpowers/plans/2026-09-25-native-ggml-0.25-audiocpp-0.8.2-bump.md, fact 6.
+ * the rest live in families we do not build and never reach the linker. Reachability is each
+ * fork-only name grepped across src/framework and the AUDIOCPP_MODELS families' sources.
  * Pinned by native/tests/test_audiocpp_compat.cpp.
  *
  * Enum values are the fork's verbatim (external/ggml/include/ggml.h at ac16661d, plus

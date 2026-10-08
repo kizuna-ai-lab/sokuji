@@ -78,8 +78,8 @@ export function voiceCapability(model: NativeModelInfo | undefined): VoiceCapabi
 
 /** True when a TTS model produces no audio at all until the user records/imports
  *  a usable clip — the sidecar's R16 card flag `voice_required` (by default
- *  `catalog.VOICE_REQUIRED_FAMILIES`: qwen3_tts, omnivoice, index_tts2 and the
- *  clone-only families added with native 1.3.0), reported on the wire as
+ *  `catalog.VOICE_REQUIRED_FAMILIES`: qwen3_tts Base, omnivoice, index_tts2 and
+ *  the clone-only families added with native 1.3.0), reported on the wire as
  *  `voice.required`. Pairs with an eligible-clip count (respecting
  *  `transcriptRequired` — a clip with no transcript doesn't count for a model
  *  that needs one) to decide whether that clip actually exists yet.

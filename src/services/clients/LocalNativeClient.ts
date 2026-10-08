@@ -303,17 +303,17 @@ export class LocalNativeClient implements IClient {
     if (this.ttsEnabled) {
       // Renderer-side mirror of the sidecar's R16 pre-check (tts_backend.py's
       // `_ensure_voice_ready`, over each card's `voice_required`): a model that
-      // reports `voice.required` — qwen3_tts, omnivoice, index_tts2 and every
-      // other clone-only family — can never speak without a stored clip. That flag comes off the wire; it is
-      // NOT inferred from the voice shape, which looks identical for the
-      // families that clone but speak fine with nothing set (MOSS, VoxCPM,
-      // Irodori). Checked BEFORE loading the model: catching it
-      // here turns what would otherwise be a `tts_degraded` diagnostic on
-      // EVERY sentence of the session into one clear, up-front notice, and
-      // skips a model load that could only ever fail to synthesize. Skipped
-      // entirely when the catalog hasn't loaded yet (voiceCapability then
-      // resolves to none/none) — the unchanged init path below still applies
-      // in that case, same as before this check existed.
+      // reports `voice.required` — qwen3_tts Base, omnivoice, index_tts2 and
+      // every other clone-only family — can never speak without a stored clip.
+      // That flag comes off the wire; it is NOT inferred from the voice shape,
+      // which looks identical for the families that clone but speak fine with
+      // nothing set (MOSS, VoxCPM, Irodori). Checked BEFORE loading the model:
+      // catching it here turns what would otherwise be a `tts_degraded`
+      // diagnostic on EVERY sentence of the session into one clear, up-front
+      // notice, and skips a model load that could only ever fail to
+      // synthesize. Skipped entirely when the catalog hasn't loaded yet
+      // (voiceCapability then resolves to none/none) — the unchanged init path
+      // below still applies in that case, same as before this check existed.
       const gateCap = voiceCapability(store.catalog[config.ttsModelId!]);
       if (requiresVoiceClip(gateCap)) {
         const gateStore = voiceStoreFor(gateCap.custom, config.ttsModelId!);

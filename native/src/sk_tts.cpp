@@ -623,8 +623,8 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
     // The two Chatterbox families and kitten_tts2 are given a nonzero seed. audio.cpp's
     // chatterbox choose_seed turns seed 0 into a std::random_device draw
     // (src/models/chatterbox/component_weights.cpp:7-13) for its T3 sampler (TorchMt19937,
-    // components/t3_runtime.h:1416 at 54aa279; :1436 once audio.cpp.json's KV-cache patch is
-    // applied) and for the S3Gen flow noise (s3gen_inference.cpp:330-335);
+    // components/t3_runtime.h:1416 at 54aa279) and for the S3Gen flow noise
+    // (s3gen_inference.cpp:330-335);
     // the HiFT vocoder takes the seed verbatim. chatterbox_turbo fixes its own T3 at seed 0
     // (src/community_models/chatterbox_turbo/t3_turbo_component.cpp:141), but its flow noise
     // reuses chatterbox's choose_seed (s3gen_turbo.cpp:79-90). kitten_tts2 seeds its language

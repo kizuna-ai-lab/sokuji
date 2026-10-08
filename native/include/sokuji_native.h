@@ -309,8 +309,8 @@ typedef struct sk_tts_caps {
     bool streaming;            /* per kFamilies[]: omnivoice, supertonic, voxcpm1, voxcpm2 */
     bool clones;               /* per kFamilies[]; false for a qwen3_tts checkpoint with no speaker
                                 * reference (CustomVoice) */
-    bool transcript_required;  /* per kFamilies[], false where clones is: reference_text is
-                                * mandatory with a ref clip */
+    bool transcript_required;  /* per kFamilies[], false where clones is false: reference_text
+                                * is mandatory with a ref clip */
     int32_t sample_rate;       /* family default, per kFamilies[] (16000 voxcpm1 up to 48000) */
 } sk_tts_caps;
 typedef bool (*sk_audio_cb)(const float *pcm, size_t n_samples, int32_t sample_rate,
