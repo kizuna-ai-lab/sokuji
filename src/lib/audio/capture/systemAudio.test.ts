@@ -9,11 +9,12 @@ import {
 } from './systemAudio';
 
 /** A participant recorder that records its calls; `push` delivers a chunk while it records. */
-function fakeCapture(o: { begins?: boolean; stream?: MediaStream } = {}) {
+function fakeCapture(o: { begins?: boolean; stream?: MediaStream; failure?: unknown } = {}) {
   let callback: ((data: { mono: Int16Array }) => void) | null = null;
   const capture = {
     begun: [] as Array<{ deviceId?: string } | undefined>,
     ended: 0,
+    beginFailure: o.failure,
     onLost: null as (() => void) | null,
     onWarning: null as ((code: string) => void) | null,
     onAudioSeen: null as (() => void) | null,
@@ -160,6 +161,19 @@ describe('openSystemAudio — opening', () => {
     const s = setup({ loopback: fakeCapture({ begins: false }) });
     await expect(openSystemAudio(s.settings, live(), s.deps)).rejects.toThrow();
     expect(s.invoked.map(([c]) => c)).toEqual(['connect-system-audio-source', 'disconnect-system-audio-source']);
+  });
+
+  it("names the recorder's own reason when it will not begin", async () => {
+    const failure = new DOMException('Could not start audio source', 'NotReadableError');
+    const s = setup({ loopback: fakeCapture({ begins: false, failure }) });
+    await expect(openSystemAudio(s.settings, live(), s.deps)).rejects.toThrow(
+      'The system audio capture did not start (NotReadableError: Could not start audio source).',
+    );
+  });
+
+  it('says only that it did not start when the recorder gives no reason', async () => {
+    const s = setup({ loopback: fakeCapture({ begins: false }) });
+    await expect(openSystemAudio(s.settings, live(), s.deps)).rejects.toThrow(/^The system audio capture did not start\.$/);
   });
 
   it('stops what it opened when the run was cancelled while it opened', async () => {

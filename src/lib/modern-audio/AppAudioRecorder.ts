@@ -81,6 +81,13 @@ export class AppAudioRecorder implements IParticipantAudioRecorder {
    */
   public onAudioSeen: (() => void) | null = null;
 
+  /**
+   * Why the last begin() returned false: the main process's answer or the
+   * request's rejection. begin() answers with a boolean, so this is the one
+   * place its caller can learn why.
+   */
+  public beginFailure: unknown = undefined;
+
   constructor(private readonly sampleRate: number = 24000) {}
 
   getSampleRate(): number {
@@ -128,11 +135,13 @@ export class AppAudioRecorder implements IParticipantAudioRecorder {
       // would leak them and take the session start down with it.
       console.error('[Sokuji] [AppAudioRecorder] Capture request failed:', error);
       await this.end();
+      this.beginFailure = error;
       return false;
     }
     if (!result?.ok) {
       console.error('[Sokuji] [AppAudioRecorder] Failed to start capture:', result?.error);
       await this.end();
+      this.beginFailure = result?.error;
       return false;
     }
 
