@@ -1948,8 +1948,9 @@ def test_glm_tts_card_shape():
     assert dict(m.rung_dtypes) == {"q8_0": frozenset({"f16", "f32", "q8_0"})}
 
 
+# The vendor's 23 less ta, which the 2026-10-09 re-judge found unintelligible without a clip.
 OUTETTS_LANGS = ("ar", "be", "bn", "de", "en", "es", "fa", "fr", "hu", "it", "ja", "ka",
-                 "ko", "lt", "lv", "nl", "pl", "pt", "ru", "sw", "ta", "uk", "zh")
+                 "ko", "lt", "lv", "nl", "pl", "pt", "ru", "sw", "uk", "zh")
 
 
 def test_outetts_card_shape_and_license():
