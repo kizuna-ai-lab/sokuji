@@ -133,6 +133,8 @@ export interface SharedSettings {
   reversed(direction: SessionContext['direction']): boolean;
   /** The display segmentation as stored: a provider that cuts its own jobs follows it (LocalInference). */
   segmentation: { mode: 'off' | 'pause' | 'sentences'; sentencesPerRow: number };
+  /** Face-to-face: a builder that can run it forces its shared socket. Absent: false. */
+  faceToFace?: boolean;
   /** The models this run's own readiness check found (F2): the list its settings component was shown, for the same effective-model function. */
   models: readonly ModelOption[];
 }

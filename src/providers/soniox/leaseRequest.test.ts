@@ -57,3 +57,18 @@ describe('the session-key request, the participant-speech flag on', () => {
     expect(PARTICIPANT_SPEECH_FIELD).toBe('participantSpeech');
   });
 });
+
+describe('leaseRequest — face-to-face', () => {
+  const split = { region: 'us' as const, bothModeSharedSession: false };
+
+  it('is always one shared stream, whatever the setting says', () => {
+    const r = leaseRequest({ legs: ['speaker', 'participant'], textOnly: false, participantSpeech: true, faceToFace: true }, split, true);
+    expect(r.bothSplit).toBe(false);
+    expect(requestedRoles(r)).toEqual(['mix_stt', 'mix_tts', 'par_tts']);
+  });
+
+  it('asks for no voice at all with Text Only on (Review Focus 2)', () => {
+    const r = leaseRequest({ legs: ['speaker', 'participant'], textOnly: true, participantSpeech: false, faceToFace: true }, split, true);
+    expect(requestedRoles(r)).toEqual(['mix_stt']);
+  });
+});

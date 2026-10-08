@@ -34,6 +34,18 @@ export function selectedFromStores(): { provider: AnyProvider; entry: ProviderEn
 }
 
 /**
+ * Face-to-face (spec 2026-10-08, slice 3): Both, the other side beside me,
+ * under a provider that offers it. The one predicate the run's shape, the
+ * capture, the routing and every surface read, so they never disagree; a
+ * stored "beside me" under a provider without it is ordinary Both.
+ */
+export function faceToFaceFromStores(): boolean {
+  const selected = selectedFromStores();
+  const { mode, otherSide } = useAudioStore.getState();
+  return selected?.provider.faceToFace === true && mode === 'both' && otherSide === 'beside';
+}
+
+/**
  * Whether the participant leg would speak, as the stores stand: its
  * provider's flag on (Stage 2 Kizuna Soniox, ruling 2), its switch on,
  * and — 1e-3b-2 ruling 7, completed — its source not a whole-system
@@ -43,7 +55,10 @@ export function selectedFromStores(): { provider: AnyProvider; entry: ProviderEn
  * read it, so they price the same legs.
  */
 export function participantSpeechFromStores(provider: Pick<AnyProvider, 'participantSpeech'>): boolean {
-  return provider.participantSpeech !== false && participantSpeechSwitchFromStores();
+  if (provider.participantSpeech === false) return false;
+  // Face-to-face voices the other person whenever anything is voiced: their
+  // translation is what I hear. The hidden switch has no say there.
+  return faceToFaceFromStores() ? !useSettingsStore.getState().textOnly : participantSpeechSwitchFromStores();
 }
 
 /** The participant's speech before its provider's flag: its switch on, and a source that will not recapture it. */
@@ -59,7 +74,8 @@ export function participantSpeechSwitchFromStores(): boolean {
  * keeps it for the language offer (Stage 2 Volcengine AST2, choice 1).
  */
 export function speechInputsFromStores(): SpeechInputs {
-  return { textOnly: useSettingsStore.getState().textOnly, participantSpeech: participantSpeechSwitchFromStores() };
+  const { textOnly } = useSettingsStore.getState();
+  return { textOnly, participantSpeech: faceToFaceFromStores() ? !textOnly : participantSpeechSwitchFromStores() };
 }
 
 /** Keeps the provider store's speech inputs on the stores', now and on every change, so each provider's pair is one its run could start. Returns the unsubscribe. */
@@ -67,7 +83,13 @@ export function watchSpeechFromStores(): () => void {
   const apply = () => useProviderStore.getState().setSpeech(speechInputsFromStores());
   apply();
   // Whole-store listeners: `setSpeech` ignores inputs that did not change.
-  const offs = [useSettingsStore.subscribe(apply), useRoutingStore.subscribe(apply), useAudioStore.subscribe(apply)];
+  // A provider change can turn face-to-face on or off.
+  const offs = [
+    useSettingsStore.subscribe(apply),
+    useRoutingStore.subscribe(apply),
+    useAudioStore.subscribe(apply),
+    useProviderStore.subscribe((state, prev) => { if (state.selected !== prev.selected) apply(); }),
+  ];
   return () => { for (const off of offs) off(); };
 }
 
@@ -76,6 +98,7 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
   if (!selected) return null;
   const { provider, entry } = selected;
   const st = useSettingsStore.getState();
+  const faceToFace = faceToFaceFromStores();
   return {
     provider,
     settings: entry.settings,
@@ -85,11 +108,13 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
     turnMode: useTurnModeStore.getState().turnMode,
     textOnly: st.textOnly,
     participantSpeech: participantSpeechFromStores(provider),
+    faceToFace,
     keepReplayAudio: st.keepReplayAudio,
     shared: buildSharedSettings(
       reversedPair(provider, entry.settings, entry.pair),
       { sourceSeconds: st.segmentationSourcePause, translationSeconds: st.segmentationTranslationPause },
       { mode: st.segmentationMode, sentencesPerRow: st.sentenceSegmentationChunkSentences },
+      faceToFace,
     ),
     auth,
     account: useAccountStore.getState().account,
@@ -117,6 +142,7 @@ export function liveGate(platform: Platform = getEnvironment()): Refusal | null 
     turnMode: useTurnModeStore.getState().turnMode,
     textOnly: useSettingsStore.getState().textOnly,
     participantSpeech: participantSpeechFromStores(selected.provider),
+    faceToFace: faceToFaceFromStores(),
     account: useAccountStore.getState().account,
   }, platform);
 }

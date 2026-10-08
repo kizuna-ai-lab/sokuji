@@ -42,7 +42,7 @@ export interface LeaseRequest {
 
 /** This start's request: its legs; the speaker's speech; split Both from the settings `startBoth` reads; the settings' region; and, the flag on, whether the participant speaks. */
 export function leaseRequest(
-  shape: Pick<RunShape, 'legs' | 'textOnly' | 'participantSpeech'>,
+  shape: Pick<RunShape, 'legs' | 'textOnly' | 'participantSpeech' | 'faceToFace'>,
   s: Pick<SonioxSettings, 'region' | 'bothModeSharedSession'>,
   participantSpeech: boolean,
 ): LeaseRequest {
@@ -50,8 +50,9 @@ export function leaseRequest(
   return {
     mode: both ? 'both' : shape.legs[0] === 'participant' ? 'participant' : 'speaker',
     textOnly: !shape.legs.includes('speaker') || shape.textOnly,
-    // Must agree with the adapter's `config.sharedBoth` (`startBoth`): both read the settings the run built from.
-    bothSplit: both && !s.bothModeSharedSession,
+    // Must agree with the adapter's `config.sharedBoth` (`startBoth`): both read the settings the run built from,
+    // and face-to-face is always one shared stream (`buildSoniox`).
+    bothSplit: both && !shape.faceToFace && !s.bothModeSharedSession,
     region: asSonioxRegion(s.region),
     ...(participantSpeech ? { participantSpeaks: shape.legs.includes('participant') && shape.participantSpeech } : {}),
   };
