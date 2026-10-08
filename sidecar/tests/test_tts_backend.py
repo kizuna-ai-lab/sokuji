@@ -1596,6 +1596,31 @@ def test_a_voice_the_card_does_not_offer_is_refused_and_the_default_stays(native
     assert log[-1] == ("synth", "hello", None, 1.0, False)
 
 
+def test_a_voice_name_on_a_card_that_offers_none_is_refused_and_the_clip_stays(native_env):
+    """A card that lists no presets, of a family the native layer cannot list either, offers no
+    voice by name. A name is refused before the native layer, with the same clean
+    BackendLoadError: on a voice-required card it neither passes for a voice nor clears the
+    clip already set."""
+    created, log = native_env
+    created["model_factory"] = _NoBareSynthModel                # sk_tts_presets lists nothing
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="clone_family", voice_required=True))
+    model = created["model"]
+    with pytest.raises(backends.BackendLoadError, match=r"no voice named 'Vivian'"):
+        b.set_builtin_voice("Vivian")
+    assert b._voice_set is False
+    with pytest.raises(backends.BackendLoadError, match="clone_family requires a voice clip"):
+        b.generate("hello")
+    b.set_voice(np.ones(2400, np.float32), 24000, ref_text="hi")
+    with pytest.raises(backends.BackendLoadError, match=r"no voice named 'Vivian'"):
+        b.set_builtin_voice("Vivian")
+    assert model.preset_calls == []                    # set_preset never saw a name
+    assert model.voice == (2400, 24000, "hi") and b._voice_set is True
+    samples, _rate, _ms = b.generate("hello")
+    assert samples.dtype == np.float32
+    assert log[-1] == ("synth", "hello", None, 1.0, False)
+
+
 _PRESET_ONLY_CONFIG = dict(_PRESET_CONFIG, tts_clones=False)   # a CustomVoice-style card
 
 

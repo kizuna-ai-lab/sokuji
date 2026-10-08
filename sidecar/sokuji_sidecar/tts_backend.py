@@ -690,10 +690,16 @@ class NativeTtsBackend:
             raise BackendLoadError("native_tts not loaded")
         # Spec stage 2.3: a card that lists its presets refuses any other name here, before the
         # native layer -- a stale pick from another model's picker would otherwise reach the
-        # engine and fail at synth time. The voice already set stays.
+        # engine and fail at synth time. The voice already set stays. A card that lists none,
+        # of a family sk_tts_presets cannot list either, offers no name at all: the native
+        # layer would take one, clearing a clip and passing the R16 gate. Where sk_tts_presets
+        # lists the family's presets (supertonic, pocket_tts), the native layer checks the name.
         if self._presets and name not in self._presets:
             raise BackendLoadError(
                 f"{self._family} has no voice named {name!r} (its voices: {', '.join(self._presets)})")
+        if not self._presets and not self._model.presets():
+            raise BackendLoadError(
+                f"{self._family} has no voice named {name!r} (it has no built-in voices)")
         self._model.set_preset(name)
         self._voice_set = True   # R16
 
