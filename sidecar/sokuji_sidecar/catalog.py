@@ -1498,12 +1498,12 @@ TTS_MODELS: list[TtsModel] = [
     # VoxCPM2: the same lineage at 48 kHz across 30 languages
     # (model_specs/voxcpm2.json lists 31 entries; the non-code "zh dialects" one
     # is dropped here because these tuples are BCP-47-ish codes the renderer
-    # matches against, not prose).
+    # matches against, not prose). Tagalog is the app's "fil" (the spec's "tl").
     _tts_gguf_row(
         "voxcpm2", "VoxCPM2",
         ("ar", "my", "zh", "da", "nl", "en", "fi", "fr", "de", "el", "he", "hi",
          "id", "it", "ja", "km", "ko", "lo", "ms", "no", "pl", "pt", "ru", "es",
-         "sw", "sv", "tl", "th", "tr", "vi"),
+         "sw", "sv", "fil", "th", "tr", "vi"),
         "voxcpm2", "VoxCPM2-GGUF",
         {"q8_0": ("voxcpm2-q8_0.gguf", 2955000480),
          "bf16": ("voxcpm2-bf16.gguf", 4772288288)},

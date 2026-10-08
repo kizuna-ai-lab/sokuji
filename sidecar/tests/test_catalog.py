@@ -572,6 +572,8 @@ def test_voxcpm_cards_shape():
     assert v2 is not None
     assert v2.family == "voxcpm2"
     assert len(v2.languages) == 30 and "ja" in v2.languages and "zh" in v2.languages
+    # Tagalog as the app's code (the spec's "tl"); the engine reads no language.
+    assert "fil" in v2.languages and "tl" not in v2.languages
     # model_specs/voxcpm2.json's 31st entry is the non-code "zh dialects"; these
     # tuples carry language CODES the renderer matches on, so it is dropped.
     assert all(" " not in code for code in v2.languages)
