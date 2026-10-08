@@ -1982,6 +1982,14 @@ def _lfm2_companions(stem, quant, mmproj, vocoder, tokenizer):
             (f"tokenizer-{stem}-{quant}.gguf", tokenizer))
 
 
+def _assert_lfm2_credits_cc_by_sources(lic, stem):
+    # CC-BY 4.0 asks for attribution: both cards name the canary-180m-flash checkpoint and the
+    # Mimi weights beside Liquid AI.
+    assert lic.attribution.startswith(f"Liquid AI, {stem}. ")
+    assert "NVIDIA's canary-180m-flash" in lic.attribution and "Kyutai's Mimi" in lic.attribution
+    assert lic.attribution.count("CC-BY 4.0") == 2
+
+
 def test_lfm2_english_card_ships_four_files_per_rung():
     m = catalog.tts_model("lfm2.5-audio-en")
     assert m is not None and m.family == "lfm2_audio" and m.graph_family == "lfm2_audio"
@@ -2013,6 +2021,7 @@ def test_lfm2_english_card_ships_four_files_per_rung():
     lic = m.license
     assert lic is not None and lic.spdx == "LicenseRef-LFM-Open-License-1.0"
     assert lic.non_commercial is False and lic.requires_consent is True and lic.source_repo == LFM2_EN_REPO
+    _assert_lfm2_credits_cc_by_sources(lic, stem)
 
 
 LFM2_JA_REPO = "LiquidAI/LFM2.5-Audio-1.5B-JP-GGUF"
@@ -2047,3 +2056,4 @@ def test_lfm2_japanese_card_has_one_voice_and_no_f32_rung():
     lic = m.license
     assert lic is not None and lic.spdx == "LicenseRef-LFM-Open-License-1.0"
     assert lic.non_commercial is False and lic.requires_consent is True and lic.source_repo == LFM2_JA_REPO
+    _assert_lfm2_credits_cc_by_sources(lic, stem)

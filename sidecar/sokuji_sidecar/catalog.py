@@ -1309,6 +1309,12 @@ KITTEN_TTS2_VOICES = (
 # next to the model's folder (native/src/sk_tts_companions.h).
 _MIOCODEC_Q8_0 = ("MioCodec-25Hz-44.1kHz-v2-GGUF/miocodec-25hz-44khz-v2-q8_0.gguf", 299066464)
 
+# What both LFM2.5-Audio cards credit beside Liquid AI: its model cards license the audio
+# encoder's canary-180m-flash checkpoint and the redistributed Mimi weights under CC-BY 4.0,
+# which asks for attribution.
+_LFM2_CC_BY_CREDIT = ("Audio encoder based on NVIDIA's canary-180m-flash checkpoint (CC-BY 4.0); "
+                      "redistributes Kyutai's Mimi weights (CC-BY 4.0)")
+
 TTS_MODELS: list[TtsModel] = [
     # Offline, clones from a reference clip, no presets (sk_tts_presets() ==
     # []). audio.cpp ships Q8_0 (default) and BF16; languages per
@@ -1949,7 +1955,7 @@ TTS_MODELS: list[TtsModel] = [
             url="https://huggingface.co/LiquidAI/LFM2.5-Audio-1.5B-GGUF/blob/7d525f883a077e20afb782f2ff618edcae0e39e4/LICENSE",
             non_commercial=False,
             source_repo="LiquidAI/LFM2.5-Audio-1.5B-GGUF",
-            attribution="Liquid AI, LFM2.5-Audio-1.5B")),
+            attribution=f"Liquid AI, LFM2.5-Audio-1.5B. {_LFM2_CC_BY_CREDIT}")),
     # LFM2.5-Audio 1.5B, Japanese checkpoint: the same family and package layout as the English
     # card, at the commit audio.cpp's spec pins. It has ONE voice -- any voice set throws
     # (community_models/lfm2_audio/tts.cpp:64-69) -- so the card offers none. The load language
@@ -1982,7 +1988,7 @@ TTS_MODELS: list[TtsModel] = [
             url="https://huggingface.co/LiquidAI/LFM2.5-Audio-1.5B-JP-GGUF/blob/64b96718b341dbd5650f9e85627cecdcbd4ac61b/LICENSE",
             non_commercial=False,
             source_repo="LiquidAI/LFM2.5-Audio-1.5B-JP-GGUF",
-            attribution="Liquid AI, LFM2.5-Audio-1.5B-JP")),
+            attribution=f"Liquid AI, LFM2.5-Audio-1.5B-JP. {_LFM2_CC_BY_CREDIT}")),
 ]
 
 
