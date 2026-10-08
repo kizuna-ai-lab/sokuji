@@ -54,6 +54,14 @@ describe('Smart Turn gate wiring', () => {
         expect(between(source, 'async function handleFlush', 'async function handleDispose')).toMatch(/turnLink\?\.reset\(\)/);
       });
 
+      it('decodes a misfire the gate hands back, on a frame and in a flush, without awaiting it', () => {
+        const rescue = /const rescued = turnLink\?\.rescue\(\);\s*if \(rescued\) void \w+\(rescued/;
+        expect(between(source, 'case Message.VADMisfire', 'break;')).toMatch(rescue);
+        const flush = between(source, 'async function handleFlush', 'turnLink?.reset()');
+        expect(flush).toMatch(/Message\.VADMisfire/);
+        expect(flush).toMatch(rescue);
+      });
+
       it('closes the link on dispose', () => {
         expect(source.slice(source.indexOf('async function handleDispose'))).toMatch(/turnLink\?\.close\(\)/);
       });

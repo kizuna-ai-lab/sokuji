@@ -378,9 +378,13 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
             // `pendingGraniteDecode`.
             void scheduleGraniteInference(ev.audio, speechStartSample);
             break;
-          case Message.VADMisfire:
+          case Message.VADMisfire: {
             speechFramesSinceStart = 0;
+            // Kept when it follows a Smart end inside the wait Normal would have spanned.
+            const rescued = turnLink?.rescue();
+            if (rescued) void scheduleGraniteInference(rescued, speechStartSample);
             break;
+          }
         }
       }
 
@@ -490,6 +494,9 @@ async function handleFlush(): Promise<void> {
     for (const ev of endEvents) {
       if (ev.msg === Message.SpeechEnd) {
         void scheduleGraniteInference(ev.audio, speechStartSample);
+      } else if (ev.msg === Message.VADMisfire) {
+        const rescued = turnLink?.rescue();
+        if (rescued) void scheduleGraniteInference(rescued, speechStartSample);
       }
     }
     turnLink?.reset();

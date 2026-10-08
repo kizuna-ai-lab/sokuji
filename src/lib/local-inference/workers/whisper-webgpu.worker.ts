@@ -413,10 +413,14 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
             void scheduleWhisper(ev.audio, speechStartSample);
             break;
 
-          case Message.VADMisfire:
+          case Message.VADMisfire: {
             speechFramesSinceStart = 0;
-            vadLog('VAD_MISFIRE (too short, discarded)');
+            // Kept when it follows a Smart end inside the wait Normal would have spanned.
+            const rescued = turnLink?.rescue();
+            if (rescued) void scheduleWhisper(rescued, speechStartSample);
+            vadLog(rescued ? 'VAD_MISFIRE (kept after a Smart end)' : 'VAD_MISFIRE (too short, discarded)');
             break;
+          }
         }
       }
 
@@ -554,6 +558,9 @@ async function handleFlush(): Promise<void> {
     for (const ev of endEvents) {
       if (ev.msg === Message.SpeechEnd) {
         void scheduleWhisper(ev.audio, speechStartSample);
+      } else if (ev.msg === Message.VADMisfire) {
+        const rescued = turnLink?.rescue();
+        if (rescued) void scheduleWhisper(rescued, speechStartSample);
       }
     }
     turnLink?.reset();

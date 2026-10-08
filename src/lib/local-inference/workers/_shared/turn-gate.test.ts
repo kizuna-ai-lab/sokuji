@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { FrameProcessor, type FrameProcessorOptions } from '@ricky0123/vad-web/dist/frame-processor';
+import { Message } from '@ricky0123/vad-web/dist/messages';
 import { TurnGate, TurnLink, openTurnLink, type TurnGateOptions, type TurnRequest } from './turn-gate';
 import type { TurnPredictRequest } from './turn-protocol';
 
@@ -15,6 +16,7 @@ const gateWith = (over: Partial<TurnGateOptions> = {}) => new TurnGate({
   negativeThreshold: 0.35,
   preSpeechPadFrames: 2,
   minSpeechFrames: 1,
+  redemptionFrames: 10,
   ...over,
 });
 
@@ -285,6 +287,136 @@ describe('TurnLink', () => {
   });
 });
 
+// Normal would have kept a reply that starts within Max Wait of the last
+// speech, as part of that segment; after a Smart end it is its own segment, and
+// one too short for the processor would be dropped as a misfire.
+describe('TurnLink — a short reply after a Smart end', () => {
+  /** Ends a segment by Smart with 4 frames of silence counted: Normal (10) would wait 6 more. */
+  function endedBySmart() {
+    const port = new FakePort();
+    const link = new TurnLink(port as unknown as MessagePort, gateWith({ minSpeechFrames: 3 }));
+    for (let i = 0; i < 3; i++) link.afterFrame(frame(), SPEECH, true);
+    for (let i = 0; i < 3; i++) link.afterFrame(frame(), SILENCE, true);
+    port.answer({ id: port.sent[0].message.id, probability: 0.9 });
+    expect(link.afterFrame(frame(), SILENCE, true)).toBe(true);
+    return link;
+  }
+
+  it('hands back a reply that starts before Normal would have ended the segment', () => {
+    const link = endedBySmart();
+    for (let i = 0; i < 5; i++) link.afterFrame(frame(), SILENCE, false);
+    link.afterFrame(frame(), SPEECH, true);
+    link.afterFrame(frame(), SILENCE, true);
+    expect(link.rescue()).toHaveLength((2 + 1 + 1) * FRAME);
+  });
+
+  it('hands back nothing once Normal would have ended the segment', () => {
+    const link = endedBySmart();
+    for (let i = 0; i < 6; i++) link.afterFrame(frame(), SILENCE, false);
+    link.afterFrame(frame(), SPEECH, true);
+    expect(link.rescue()).toBeNull();
+  });
+
+  it('counts only the frames Normal counts: those under the silence threshold', () => {
+    const link = endedBySmart();
+    for (let i = 0; i < 20; i++) link.afterFrame(frame(), GRAY, false);
+    link.afterFrame(frame(), SPEECH, true);
+    expect(link.rescue()).not.toBeNull();
+  });
+
+  it('hands it back once', () => {
+    const link = endedBySmart();
+    link.afterFrame(frame(), SPEECH, true);
+    expect(link.rescue()).not.toBeNull();
+    expect(link.rescue()).toBeNull();
+  });
+
+  it('hands back nothing after a segment the processor ended itself', () => {
+    const link = new TurnLink(new FakePort() as unknown as MessagePort, gateWith({ minSpeechFrames: 3 }));
+    for (let i = 0; i < 3; i++) link.afterFrame(frame(), SPEECH, true);
+    for (let i = 0; i < 10; i++) link.afterFrame(frame(), SILENCE, true);
+    link.afterFrame(frame(), SILENCE, false);
+    link.afterFrame(frame(), SPEECH, true);
+    expect(link.rescue()).toBeNull();
+  });
+
+  it('hands back nothing after the worker ended the segment itself', () => {
+    const link = endedBySmart();
+    link.reset();
+    link.afterFrame(frame(), SPEECH, true);
+    expect(link.rescue()).toBeNull();
+  });
+
+  describe('against the real FrameProcessor', () => {
+    /**
+     * Drives frames the way a vad-web worker does: process(), then afterFrame(),
+     * endSegment() on a Smart end, rescue() on a misfire. Every request is
+     * answered "complete" before the next frame.
+     */
+    async function drive(probs: number[]) {
+      const port = new FakePort();
+      let i = 0;
+      const processor = new FrameProcessor(
+        async () => ({ isSpeech: probs[i], notSpeech: 1 - probs[i] }),
+        () => {},
+        { positiveSpeechThreshold: 0.5, negativeSpeechThreshold: 0.35, redemptionMs: 320, minSpeechMs: 96, preSpeechPadMs: 64, submitUserSpeechOnPause: false },
+        32,
+      );
+      processor.resume();
+      const link = openTurnLink(port as unknown as MessagePort, { smartTurn: { checkAfter: 0.1, threshold: 0.5 } }, processor)!;
+      const seen: string[] = [];
+      let answered = 0;
+      for (i = 0; i < probs.length; i++) {
+        const f = frame();
+        let probability = 0;
+        await processor.process(f, (ev) => {
+          if (ev.msg === Message.FrameProcessed) probability = ev.probs.isSpeech;
+          if (ev.msg === Message.SpeechEnd) seen.push('end');
+          if (ev.msg === Message.VADMisfire) seen.push(link.rescue() ? 'misfire kept' : 'misfire dropped');
+        });
+        if (link.afterFrame(f, probability, processor.speaking)) {
+          processor.endSegment(() => {});
+          seen.push('smart end');
+        }
+        for (; answered < port.sent.length; answered++) port.answer({ id: port.sent[answered].message.id, probability: 0.9 });
+      }
+      return seen;
+    }
+
+    const sentence = [...Array(5).fill(SPEECH), ...Array(5).fill(SILENCE)];
+    const reply = [SPEECH, SPEECH, ...Array(12).fill(SILENCE)];
+
+    it('keeps a reply that starts inside the wait the processor would have spanned', async () => {
+      expect(await drive([...sentence, SILENCE, SILENCE, ...reply])).toEqual(['smart end', 'misfire kept']);
+    });
+
+    it('drops it as before once that wait is over', async () => {
+      expect(await drive([...sentence, ...Array(6).fill(SILENCE), ...reply])).toEqual(['smart end', 'misfire dropped']);
+    });
+
+    it('under Normal, the same reply is part of the sentence', async () => {
+      const normal = new FrameProcessor(
+        async () => ({ isSpeech: 0, notSpeech: 1 }),
+        () => {},
+        { positiveSpeechThreshold: 0.5, negativeSpeechThreshold: 0.35, redemptionMs: 320, minSpeechMs: 96, preSpeechPadMs: 64, submitUserSpeechOnPause: false },
+        32,
+      );
+      const probs = [...sentence, SILENCE, SILENCE, ...reply];
+      let i = 0;
+      normal.modelProcessFunc = async () => ({ isSpeech: probs[i], notSpeech: 1 - probs[i] });
+      normal.resume();
+      const seen: string[] = [];
+      for (i = 0; i < probs.length; i++) {
+        await normal.process(frame(), (ev) => {
+          if (ev.msg === Message.SpeechEnd) seen.push('end');
+          if (ev.msg === Message.VADMisfire) seen.push('misfire');
+        });
+      }
+      expect(seen).toEqual(['end']);
+    });
+  });
+});
+
 describe('openTurnLink', () => {
   const smart = { checkAfter: 0.3, threshold: 0.5 };
   const processor = (over: Partial<FrameProcessorOptions> = {}) => new FrameProcessor(
@@ -348,5 +480,22 @@ describe('openTurnLink', () => {
     link.afterFrame(frame(), SPEECH, true);
     for (let i = 0; i < 4; i++) link.afterFrame(frame(), SILENCE, true);
     expect(port.sent).toHaveLength(1);
+  });
+
+  it("takes Normal's wait from the processor's redemption", () => {
+    // Smart ends after 5 quiet frames; then one more quiet frame and a reply.
+    const replyAfterSmartEnd = (redemptionMs: number) => {
+      const port = new FakePort();
+      const link = open(port, 0.1, { redemptionMs });
+      link.afterFrame(frame(), SPEECH, true);
+      for (let i = 0; i < 4; i++) link.afterFrame(frame(), SILENCE, true);
+      port.answer({ id: port.sent[0].message.id, probability: 0.9 });
+      expect(link.afterFrame(frame(), SILENCE, true)).toBe(true);
+      link.afterFrame(frame(), SILENCE, false);
+      link.afterFrame(frame(), SPEECH, true);
+      return link.rescue();
+    };
+    expect(replyAfterSmartEnd(192)).toBeNull();
+    expect(replyAfterSmartEnd(1400)).not.toBeNull();
   });
 });

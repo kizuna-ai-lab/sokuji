@@ -16,11 +16,14 @@ export interface TurnGateOptions {
   preSpeechPadFrames: number;
   /** The FrameProcessor's misfire floor: with fewer speech frames it would drop the segment. */
   minSpeechFrames: number;
+  /** The FrameProcessor's redemption: the frames under the negative threshold Normal waits for. */
+  redemptionFrames: number;
 }
 
 export interface FrameProcessorParams {
   preSpeechPadFrames: number;
   minSpeechFrames: number;
+  redemptionFrames: number;
   options: { positiveSpeechThreshold: number; negativeSpeechThreshold: number };
 }
 
@@ -39,6 +42,12 @@ export class TurnGate {
   /** Frames at or above the positive threshold since the segment started, as the processor counts them. */
   private speechFrames = 0;
   private silentRun = 0;
+  /** The FrameProcessor's redemption counter, kept the same way. */
+  private quiet = 0;
+  /** After a Smart end: the frames under the negative threshold Normal would still have waited. */
+  private owed = 0;
+  /** This segment started while Normal would still have been waiting. */
+  private rescuable = false;
   private lastId = 0;
   private openId: number | null = null;
 
@@ -53,6 +62,8 @@ export class TurnGate {
       this.speaking = false;
       this.silentRun = 0;
       this.openId = null;
+      this.rescuable = false;
+      if (this.owed > 0 && probability < this.opts.negativeThreshold) this.owed--;
       return null;
     }
     if (!this.speaking) {
@@ -60,10 +71,14 @@ export class TurnGate {
       this.segmentStart = frameStart - this.padFrames * frame.length;
       this.speechFrames = 0;
       this.silentRun = 0;
+      this.quiet = 0;
+      this.rescuable = this.owed > 0;
+      this.owed = 0;
     }
     if (probability >= this.opts.positiveThreshold) {
       this.speechFrames++;
       this.silentRun = 0;
+      this.quiet = 0;
       this.openId = null;
       return null;
     }
@@ -71,6 +86,7 @@ export class TurnGate {
       this.silentRun = 0;
       return null;
     }
+    this.quiet++;
     if (++this.silentRun !== this.opts.triggerFrames || this.speechFrames < this.opts.minSpeechFrames) return null;
     this.openId = ++this.lastId;
     return { id: this.openId, window: this.window() };
@@ -80,12 +96,33 @@ export class TurnGate {
     return this.speaking && id === this.openId && probability > this.opts.threshold;
   }
 
+  /** Smart ended the segment: a reply that starts before Normal would have ended it can be handed back. */
+  endedBySmart(): void {
+    const owed = this.opts.redemptionFrames - this.quiet;
+    this.reset();
+    this.owed = Math.max(owed, 0);
+  }
+
+  /**
+   * The segment the processor is dropping as a misfire, when Normal would have
+   * kept it inside the segment Smart ended; null otherwise. Call before this
+   * frame's push().
+   */
+  rescue(): Float32Array | null {
+    if (!this.speaking || !this.rescuable) return null;
+    this.rescuable = false;
+    return this.window();
+  }
+
   /** The worker ended the segment with endSegment(): the FrameProcessor holds nothing now. */
   reset(): void {
     this.speaking = false;
     this.padFrames = 0;
     this.speechFrames = 0;
     this.silentRun = 0;
+    this.quiet = 0;
+    this.owed = 0;
+    this.rescuable = false;
     this.openId = null;
   }
 
@@ -124,8 +161,13 @@ export class TurnLink {
     const answer = this.answer;
     this.answer = null;
     if (!answer || !this.gate.shouldEnd(answer.id, answer.probability)) return false;
-    this.gate.reset();
+    this.gate.endedBySmart();
     return true;
+  }
+
+  /** On the processor's VADMisfire, before afterFrame(): the audio to decode anyway, or null. */
+  rescue(): Float32Array | null {
+    return this.gate.rescue();
   }
 
   /** The worker ended the segment itself (the cap, a flush). */
@@ -154,5 +196,6 @@ export function openTurnLink(
     negativeThreshold: processor.options.negativeSpeechThreshold,
     preSpeechPadFrames: processor.preSpeechPadFrames,
     minSpeechFrames: processor.minSpeechFrames,
+    redemptionFrames: processor.redemptionFrames,
   }));
 }
