@@ -10,7 +10,7 @@ import type { TurnMode } from '../../../lib/session/types';
 import { presentProviders } from '../../../providers/registry';
 import { useMode } from '../../../stores/audioStore';
 import { useProviderStore } from '../../../stores/providerStore';
-import { useKeepReplayAudio, useNavigateToSettings, useSetKeepReplayAudio, useSetTextOnly, useSetUIMode, useTextOnly } from '../../../stores/settingsStore';
+import { useKeepReplayAudio, useNavigateToSettings, useSetKeepReplayAudio, useSetTextOnly, useSetTranscriptionOnly, useSetUIMode, useTextOnly, useTranscriptionOnly } from '../../../stores/settingsStore';
 import { useTurnModeStore } from '../../../stores/turnModeStore';
 import { effectiveTextOnly } from '../../../utils/effectiveTextOnly';
 
@@ -158,6 +158,8 @@ export function OutputToggles({ locked }: { locked: boolean }) {
   const mode = useMode();
   const textOnly = useTextOnly();
   const setTextOnly = useSetTextOnly();
+  const transcriptionOnly = useTranscriptionOnly();
+  const setTranscriptionOnly = useSetTranscriptionOnly();
   const keepReplayAudio = useKeepReplayAudio();
   const setKeepReplayAudio = useSetKeepReplayAudio();
 
@@ -168,10 +170,10 @@ export function OutputToggles({ locked }: { locked: boolean }) {
     <div className="config-section output-section" id="output-section">
       {speech === 'optional' && (
         <ToggleSwitch
-          checked={effectiveTextOnly({ speakerLegRuns, textOnly })}
+          checked={Boolean(selection?.provider.transcribeOnly && transcriptionOnly) || effectiveTextOnly({ speakerLegRuns, textOnly })}
           onChange={() => setTextOnly(!textOnly)}
           label={t('simpleConfig.textOnly', 'Text Only')}
-          disabled={locked || !speakerLegRuns}
+          disabled={locked || !speakerLegRuns || Boolean(selection?.provider.transcribeOnly && transcriptionOnly)}
           tooltip={
             speakerLegRuns
               ? t('simpleConfig.textOnlyDesc', 'Show translation as text only, without generating an audio response')
@@ -182,6 +184,16 @@ export function OutputToggles({ locked }: { locked: boolean }) {
                   defaultValue: '"{{mode}}" mode turns what participants say into text for you and never generates audio, so Text Only stays on. Switch the translation mode to translate your own voice with speech.',
                 })
           }
+        />
+      )}
+
+      {selection?.provider.transcribeOnly && (
+        <ToggleSwitch
+          checked={transcriptionOnly}
+          onChange={() => setTranscriptionOnly(!transcriptionOnly)}
+          label={t('simpleConfig.transcriptionOnly', 'Transcription only')}
+          disabled={locked}
+          tooltip={t('simpleConfig.transcriptionOnlyDesc', 'Only transcribe what is said, with no translation and no audio response.')}
         />
       )}
 

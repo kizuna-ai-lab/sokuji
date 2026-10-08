@@ -5,7 +5,7 @@
  * runner owns the phases and ends a run through `close()`.
  */
 import type { AnalyticsEvents } from '../analytics';
-import type { AdapterEvents, AdapterSession, Punctuator, StartRequest } from '../contract/adapter';
+import type { AdapterEvents, AdapterSession, Punctuator, Ref, StartRequest } from '../contract/adapter';
 import { LegStartError } from '../contract/adapter';
 import { eventsFrom, type AdapterEvent } from '../contract/events';
 import { Conversation, DEFAULT_RETENTION, DEGRADED_DEDUPE_MS, type Retention } from '../conversation/Conversation';
@@ -501,12 +501,37 @@ export class Run {
     return eventsFrom((event) => this.onEvent(leg, event));
   }
 
+  /** Translation-side segment refs per leg, held while the run is transcription-only: what the provider still sends of them is dropped. */
+  private readonly droppedTranslation = new Map<LegName, Set<Ref>>();
+
+  /** Transcription only, for a provider that asks nothing of its wire for it: the translation side and every clip never reach L1 or playback. True when the event is dropped. */
+  private dropsForTranscriptionOnly(leg: LegName, event: AdapterEvent): boolean {
+    if (!this.shape.transcriptionOnly || !this.shape.provider.transcribeOnly) return false;
+    let refs = this.droppedTranslation.get(leg);
+    switch (event.kind) {
+      case 'segmentOpened':
+        if (event.payload.side !== 'translation') return false;
+        if (!refs) this.droppedTranslation.set(leg, (refs = new Set()));
+        refs.add(event.payload.ref);
+        return true;
+      case 'segmentText':
+      case 'segmentClosed':
+      case 'speechRanges':
+        return refs?.has(event.payload.ref) ?? false;
+      case 'audio':
+        return true;
+      default:
+        return false;
+    }
+  }
+
   private onEvent(leg: LegName, event: AdapterEvent): void {
     if (this.finished) return;
     if (event.kind === 'frame') {
       this.deps.frames?.frame(leg, event.payload);
       return;
     }
+    if (this.dropsForTranscriptionOnly(leg, event)) return;
     this.conversations.get(leg)?.apply(event);
     if (this.ending) return;
     const { playback, analytics } = this.deps;

@@ -65,6 +65,7 @@ export interface CommonSettings {
   uiLanguage: string;
   uiMode: 'basic' | 'advanced';
   textOnly: boolean;
+  transcriptionOnly: boolean;
   keepReplayAudio: boolean;
   autoSaveOnStop: boolean;
   diagnosticLogs: boolean;
@@ -160,6 +161,7 @@ const defaultCommonSettings: CommonSettings = {
   uiLanguage: 'en',
   uiMode: 'basic',
   textOnly: false,
+  transcriptionOnly: false,
   keepReplayAudio: false,
   autoSaveOnStop: false,
   diagnosticLogs: false,
@@ -216,6 +218,9 @@ export interface SettingsStore {
   // Text-only mode (no audio output)
   textOnly: boolean;
 
+  // Transcription only: no translation at all (honoured by providers that can transcribe alone)
+  transcriptionOnly: boolean;
+
   // Keep per-item PCM audio in memory so the inline replay button works.
   // Off by default — reduces memory use during long sessions. Cached by
   // provider clients at session start; mid-session changes take effect
@@ -263,6 +268,7 @@ export interface SettingsStore {
   setUILanguage: (lang: string) => Promise<void>;
   setUIMode: (mode: 'basic' | 'advanced') => void;
   setTextOnly: (textOnly: boolean) => void;
+  setTranscriptionOnly: (transcriptionOnly: boolean) => Promise<void>;
   setKeepReplayAudio: (keepReplayAudio: boolean) => Promise<void>;
   setAutoSaveOnStop: (autoSaveOnStop: boolean) => Promise<void>;
   setDiagnosticLogs: (diagnosticLogs: boolean) => Promise<void>;
@@ -437,6 +443,14 @@ const useSettingsStore = create<SettingsStore>()(
       set({textOnly});
       if (!await persistSetting('settings.common.textOnly', textOnly)) {
         set({textOnly: previous});
+      }
+    },
+
+    setTranscriptionOnly: async (transcriptionOnly) => {
+      const previous = get().transcriptionOnly;
+      set({transcriptionOnly});
+      if (!await persistSetting('settings.common.transcriptionOnly', transcriptionOnly)) {
+        set({transcriptionOnly: previous});
       }
     },
 
@@ -666,6 +680,7 @@ const useSettingsStore = create<SettingsStore>()(
         const uiLanguage = await service.getSetting('settings.common.uiLanguage', defaultCommonSettings.uiLanguage);
         const uiMode = await service.getSetting('settings.common.uiMode', defaultCommonSettings.uiMode);
         const textOnly = await service.getSetting('settings.common.textOnly', defaultCommonSettings.textOnly);
+        const transcriptionOnly = await service.getSetting('settings.common.transcriptionOnly', defaultCommonSettings.transcriptionOnly);
         const keepReplayAudio = await service.getSetting('settings.common.keepReplayAudio', defaultCommonSettings.keepReplayAudio);
         const autoSaveOnStop = await service.getSetting('settings.common.autoSaveOnStop', defaultCommonSettings.autoSaveOnStop);
         const segmentationMode = SENTENCE_SEGMENTATION_SHOWN
@@ -710,6 +725,7 @@ const useSettingsStore = create<SettingsStore>()(
           uiLanguage,
           uiMode,
           textOnly,
+          transcriptionOnly,
           keepReplayAudio,
           autoSaveOnStop,
           diagnosticLogs,
@@ -838,6 +854,8 @@ export const useSettingsLoaded = () => useSettingsStore((state) => state.setting
 
 // Actions
 export const useTextOnly = () => useSettingsStore((state) => state.textOnly);
+export const useTranscriptionOnly = () => useSettingsStore((state) => state.transcriptionOnly);
+export const useSetTranscriptionOnly = () => useSettingsStore((state) => state.setTranscriptionOnly);
 export const useKeepReplayAudio = () => useSettingsStore((state) => state.keepReplayAudio);
 export const useAutoSaveOnStop = () => useSettingsStore((state) => state.autoSaveOnStop);
 export const useDiagnosticLogs = () => useSettingsStore((state) => state.diagnosticLogs);

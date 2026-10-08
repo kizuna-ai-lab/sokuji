@@ -43,7 +43,7 @@ export interface GeminiSetup {
     };
     systemInstruction?: { parts: Array<{ text: string }> };
     inputAudioTranscription: Record<string, never>;
-    outputAudioTranscription: Record<string, never>;
+    outputAudioTranscription?: Record<string, never>;
     realtimeInputConfig: {
       activityHandling: GeminiConfig['activityHandling'];
       automaticActivityDetection:
@@ -72,7 +72,7 @@ export function setupFrame(c: GeminiConfig, handle: string | null): GeminiSetup 
       },
       ...(c.instructions !== undefined ? { systemInstruction: { parts: [{ text: c.instructions }] } } : {}),
       inputAudioTranscription: {},
-      outputAudioTranscription: {},
+      ...(c.transcribeOnly ? {} : { outputAudioTranscription: {} }),
       realtimeInputConfig: {
         // Per model family (Gemini/AST2 follow-up, ruling 5), where the old client hard-coded `NO_INTERRUPTION` (`GeminiClient.ts:496`).
         activityHandling: c.activityHandling,

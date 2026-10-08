@@ -38,6 +38,8 @@ export const sonioxProvider: Provider<SonioxSettings, SonioxCredentials, SonioxC
   languages: sonioxLanguages,
 
   speech: 'optional',
+  // The STT config's `translation` is optional: left out, the socket only transcribes.
+  transcribeOnly: true,
   // Soniox's STT socket takes no text.
   textInput: () => false,
   // The server's endpoint model ends a segment (`<end>`, `<fin>`).

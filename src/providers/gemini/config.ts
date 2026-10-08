@@ -39,11 +39,16 @@ export interface GeminiConfig {
   activityHandling: GeminiActivityHandling;
   /** Typed text sent alone under manual turns: wrapped in activity marks, by the model's family — a 3.x model refuses them with no audio (the owner's text probe, 2026-09-30). */
   textInMarks: boolean;
+  /** Transcription only (`context.translate === false`): no translation or voice asked for, and the model's output is ignored. */
+  transcribeOnly?: boolean;
   /** Live Translate only: each side's silence timer (the old continuous segmentation) and the mid-sentence deferral (choice 7). */
   silence?: { sourceMs: number; translationMs: number; deferMidSentence: boolean };
 }
 
 const clamp = (v: number, min: number, max: number, fallback: number) => (Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : fallback);
+
+/** Gemini Live cannot be told to produce nothing (native-audio models require AUDIO), so a dialogue model is told to stay silent. */
+const TRANSCRIBE_ONLY_INSTRUCTIONS = 'You are a silent transcriber. Never answer, translate or speak; produce no output.';
 
 export function buildGemini(context: SessionContext, s: GeminiSettings, shared: SharedSettings): GeminiConfig | ProviderRefusal {
   const model = effectiveGeminiModel(s, shared.models);
@@ -51,14 +56,15 @@ export function buildGemini(context: SessionContext, s: GeminiSettings, shared: 
   if (!model) return { refused: 'No Gemini Live model is available to this key.', code: 'models_required' };
   const kind = isGeminiTranslateModel(model) ? 'translate' : 'dialogue';
   const dialogue = kind === 'dialogue';
+  const transcribeOnly = context.translate === false;
   const { source, target } = context.direction;
   // The offer follows the saved model; a saved dialogue model the check no longer lists runs as the default, Live Translate,
   // whose targets are fewer: such a target is refused in words, never sent (Gemini/AST2 follow-up, choice 18).
-  if (!dialogue && !GEMINI_TRANSLATE_TARGETS.some((o) => o.value === target)) {
+  if (!dialogue && !transcribeOnly && !GEMINI_TRANSLATE_TARGETS.some((o) => o.value === target)) {
     return { refused: `Live Translate does not translate into ${geminiLanguageName(target)}: choose another language, or a dialogue model.` };
   }
   // The participant's direction reads Other's prompt, as LocalInference's builder does (`localInference/config.ts:47-56`).
-  const instructions = resolveInstructions(s, { participant: shared.reversed(context.direction), source: geminiLanguageName(source), target: geminiLanguageName(target) });
+  const instructions = transcribeOnly ? TRANSCRIBE_ONLY_INSTRUCTIONS : resolveInstructions(s, { participant: shared.reversed(context.direction), source: geminiLanguageName(source), target: geminiLanguageName(target) });
   const activity: GeminiConfig['activity'] = context.turns === 'manual'
     ? { manual: true }
     : {
@@ -73,7 +79,7 @@ export function buildGemini(context: SessionContext, s: GeminiSettings, shared: 
     kind,
     ...(instructions.trim() ? { instructions } : {}),
     // Live Translate reproduces the speaker's own voice and ignores a voice (`geminiTranslateModel.ts:25-27`); neither kind is voiced for a leg that does not speak.
-    ...(dialogue && context.speech ? { voice: s.voice || GEMINI_DEFAULT_VOICE } : {}),
+    ...(dialogue && context.speech && !transcribeOnly ? { voice: s.voice || GEMINI_DEFAULT_VOICE } : {}),
     ...(dialogue ? { temperature: clamp(s.temperature, GEMINI_TEMPERATURE_RANGE.min, GEMINI_TEMPERATURE_RANGE.max, GEMINI_DEFAULTS.temperature) } : {}),
     // Every knob falls back to its default on a non-finite value; the
     // default here is 'inf' (unlimited), so a non-finite maxTokens omits
@@ -81,8 +87,9 @@ export function buildGemini(context: SessionContext, s: GeminiSettings, shared: 
     ...(dialogue && s.maxTokens !== 'inf' && Number.isFinite(s.maxTokens)
       ? { maxOutputTokens: Math.round(clamp(s.maxTokens, GEMINI_MAX_TOKENS_RANGE.min, GEMINI_MAX_TOKENS_RANGE.max, GEMINI_MAX_TOKENS_RANGE.max)) }
       : {}),
+    ...(transcribeOnly ? { transcribeOnly: true } : {}),
     ...(dialogue ? {} : {
-      translationTargetCode: geminiLanguages.wire.toWire(target),
+      ...(transcribeOnly ? {} : { translationTargetCode: geminiLanguages.wire.toWire(target) }),
       silence: {
         sourceMs: clampSegmentPauseMs(segmentPauseMs(shared.pauses.sourceSeconds)),
         translationMs: clampSegmentPauseMs(segmentPauseMs(shared.pauses.translationSeconds)),

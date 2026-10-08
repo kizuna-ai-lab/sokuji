@@ -300,7 +300,7 @@ class GeminiSession {
         this.hold?.input();
       }
     }
-    const output = c.outputTranscription;
+    const output = this.request.config.transcribeOnly ? undefined : c.outputTranscription;
     if (output) {
       this.frame('in', 'server_content.output_transcription', transcriptionFrame(output));
       if (output.text) {
@@ -309,7 +309,7 @@ class GeminiSession {
         this.hold?.output();
       }
     }
-    if (c.modelTurn?.parts) this.onModelTurn(c.modelTurn.parts);
+    if (c.modelTurn?.parts && !this.request.config.transcribeOnly) this.onModelTurn(c.modelTurn.parts);
     if (c.generationComplete) this.frame('in', 'server_content.generation_complete');
     if (c.interrupted) {
       this.frame('in', 'server_content.interrupted');

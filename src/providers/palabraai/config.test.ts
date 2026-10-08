@@ -29,6 +29,11 @@ describe("Palabra AI's builder", () => {
     expect(buildPalabra(ctx('auto', 'es'), PALABRA_DEFAULTS, SHARED)).toMatchObject({ source: 'auto', target: 'es' });
   });
 
+  it('asks for no translation and no speech when transcribing only', () => {
+    const c = buildPalabra(ctx('ja', 'en', { translate: false }), PALABRA_DEFAULTS, SHARED);
+    expect(c).toMatchObject({ speech: false, transcribeOnly: true });
+  });
+
   it('refuses a direction its lists do not offer, a guard the store and the gate keep unreachable', () => {
     expect(buildPalabra(ctx('ja', 'bn'), PALABRA_DEFAULTS, SHARED)).toEqual({ refused: 'Palabra AI does not translate ja → bn.' });
     expect(buildPalabra(ctx('en-US', 'ja'), PALABRA_DEFAULTS, SHARED)).toEqual({ refused: 'Palabra AI does not translate en-US → ja.' });

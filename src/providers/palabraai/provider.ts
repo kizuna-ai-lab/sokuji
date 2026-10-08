@@ -44,6 +44,8 @@ export const palabraProvider: Provider<PalabraSettings, PalabraCredentials, Pala
 
   // A leg that does not speak asks for text alone (ruling 7): Text only is offered.
   speech: 'optional',
+  // Transcription only: the runner keeps the translation side and the audio out of the conversation.
+  transcribeOnly: true,
   // It takes audio only (parity).
   textInput: () => false,
   // A validated transcription ends a segment (the old offer: pause off, auto and sizes on).

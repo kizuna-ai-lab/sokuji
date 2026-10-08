@@ -530,6 +530,19 @@ describe('the OpenAI Realtime adapter: what comes down', () => {
     expect(h.of('segmentText').map((e) => e.payload)).toEqual([{ ref: 2, text: '{"final_text": "Hi.' }, { ref: 2, text: '{"final_text": "Hi."}' }, { ref: 2, text: 'Hi.' }]);
   });
 
+  it('transcription only: the session asks for no response, text alone, and a manual commit and typed text ask none either', async () => {
+    const h = await liveRealtime({ context: { ...MANUAL_CTX, translate: false } });
+    expect(h.sent()[0]).toMatchObject({ session: { output_modalities: ['text'], audio: { input: { turn_detection: null } } } });
+    expect(sessionUpdate(configFor({ ...AUTO_CTX, translate: false })).session.audio.input.turn_detection).toMatchObject({ create_response: false });
+    expect(sessionUpdate(configFor()).session.audio.input.turn_detection).toMatchObject({ create_response: true });
+    h.session.endTurn();
+    h.session.appendText('typed');
+    const types = h.said().map((m) => m.type);
+    expect(types).toContain('input_audio_buffer.commit');
+    expect(types).not.toContain('response.create');
+    expect(types).not.toContain('conversation.item.create');
+  });
+
   it("settles a translation's final text unwrapped and trimmed, stating its ranges again within it (choice 9)", async () => {
     const h = await liveRealtime();
     h.receive(SERVER.responseCreated('resp_1'), SERVER.outputItemAdded('resp_1', 'item_out_1'), SERVER.itemAdded('item_out_1', 'assistant', null));

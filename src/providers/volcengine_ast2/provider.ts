@@ -40,6 +40,8 @@ export const volcengineAst2Provider: Provider<Ast2Settings, Ast2Credentials, Ast
   languages: ast2Languages,
 
   speech: 'optional',
+  // Transcription only: the runner keeps the translation side and the audio out of the conversation.
+  transcribeOnly: true,
   // Doubao's session takes audio only.
   textInput: () => false,
   // The server's End phase ends a segment (the old offer: pause off, auto and sizes on).

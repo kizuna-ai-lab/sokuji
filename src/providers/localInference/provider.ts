@@ -47,6 +47,8 @@ export const localInferenceProvider: Provider<LocalInferenceSettings, LocalCrede
   languages: localInferenceLanguages,
 
   speech: 'optional',
+  // Transcription only: the translation stage is left out (config.ts), and the runner drops what remains.
+  transcribeOnly: true,
   textInput: () => true,
   boundaries: () => 'provider',
   turns: () => ['auto', 'manual'],

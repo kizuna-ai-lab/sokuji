@@ -14,6 +14,8 @@ export interface PalabraConfig {
   target: string;
   /** Translated speech at all: without it the task's `output_stream` is null, and Palabra sends the text alone (ruling 7; the owner's probe). */
   speech: boolean;
+  /** Transcription only (`context.translate === false`): the task names no translation and no output stream, so Palabra sends the source text alone. */
+  transcribeOnly?: true;
   voiceId: PalabraVoice;
   /** Clamped to the API's range (ruling 10). */
   silenceThreshold: number;
@@ -30,7 +32,8 @@ export function buildPalabra(context: SessionContext, s: PalabraSettings, _share
   return {
     source: palabraLanguages.wire.toWire(source),
     target: palabraLanguages.wire.toWire(target),
-    speech: context.speech,
+    speech: context.speech && context.translate !== false,
+    ...(context.translate === false ? { transcribeOnly: true as const } : {}),
     voiceId: s.voiceId,
     silenceThreshold: effectiveThreshold(s),
     sentenceSplitter: s.sentenceSplitterEnabled,

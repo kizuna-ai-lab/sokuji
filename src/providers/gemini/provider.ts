@@ -48,6 +48,8 @@ export const geminiProvider: Provider<GeminiSettings, GeminiCredentials, GeminiC
   languages: geminiLanguages,
 
   speech: 'optional',
+  // Transcription only: the runner keeps the translation side and the audio out of the conversation.
+  transcribeOnly: true,
   // The dialogue models answer typed text; Live Translate ignores it (the owner's live test, 2026-09-30), so it offers
   // none, the box hidden as on every other continuous interpreter. No model chosen reads as Live Translate, as the offer does.
   textInput: (s) => !offersTranslate(s),

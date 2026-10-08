@@ -706,3 +706,21 @@ describe('the Gemini adapter: through L1 and L2', () => {
     ]);
   });
 });
+
+describe('the Gemini adapter: transcription only', () => {
+  it('asks for no output transcription and surfaces only the source side', async () => {
+    const h = await liveGemini({ context: { ...AUTO_CTX, translate: false } });
+    const setup = (h.sent()[0] as { setup: Record<string, unknown> }).setup;
+    expect(setup).toHaveProperty('inputAudioTranscription');
+    expect(setup).not.toHaveProperty('outputAudioTranscription');
+    expect(JSON.stringify(setup)).not.toContain('translationConfig');
+    h.socket().receive(SERVER.input('Hello.'));
+    h.socket().receive(SERVER.output('こんにちは。'));
+    h.socket().receive(SERVER.audio());
+    h.socket().receive(SERVER.turnComplete());
+    await flush();
+    expect(h.of('audio')).toEqual([]);
+    expect(h.of('segmentOpened').map((e) => e.payload.side)).toEqual(['source']);
+    expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['Hello.']);
+  });
+});

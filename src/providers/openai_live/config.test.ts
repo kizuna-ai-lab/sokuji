@@ -3,7 +3,7 @@ import type { SessionContext } from '../../lib/contract/adapter';
 import { INSTRUCTIONS_TEMPLATE } from '../../lib/provider/instructions';
 import { AUTO } from '../../lib/provider/languages';
 import type { SharedSettings } from '../../lib/provider/types';
-import { buildLive, describeLive } from './config';
+import { buildLive, describeLive, TRANSCRIBE_ONLY_INSTRUCTIONS, type LiveConfig } from './config';
 import { LIVE_DEFAULTS } from './settings';
 
 const SHARED: SharedSettings = {
@@ -23,8 +23,16 @@ describe("OpenAI Live's builder", () => {
       voice: 'cedar',
       silence: { sourceMs: 1500, translationMs: 2000, deferMidSentence: false },
       sentencesPerSegment: 1,
+      transcribeOnly: false,
       transport: 'websocket',
     });
+  });
+
+  it('transcription only: the model is told to stay silent, no translating prompt, and the config says so', () => {
+    const c = buildLive({ ...SPEAKER, translate: false }, LIVE_DEFAULTS, SHARED) as LiveConfig;
+    expect(c.transcribeOnly).toBe(true);
+    expect(c.instructions).toBe(TRANSCRIBE_ONLY_INSTRUCTIONS);
+    expect(c.instructions).not.toMatch(/translat\w+ (from|into)/i);
   });
 
   it("cuts every N sentences by sentence, N the display's own (ruling 4) — none at 0 — and one when the display cuts nothing", () => {

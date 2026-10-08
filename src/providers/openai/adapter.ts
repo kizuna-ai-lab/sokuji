@@ -195,6 +195,7 @@ class RealtimeLeg implements AdapterSession {
     const trimmed = text.trim();
     if (this.phase !== 'live' || !trimmed) return;
     const itemId = `sokuji_text_${++this.ids}`;
+    if (this.request.config.transcribeOnly) return;
     this.items.typed(itemId, trimmed);
     this.queue.push({ kind: 'text', itemId, text: trimmed });
   }
@@ -208,7 +209,8 @@ class RealtimeLeg implements AdapterSession {
     // A commit that did not go up made no input: no response is asked for it.
     if (!this.send(JSON.stringify(COMMIT))) return;
     this.frame('out', 'input_audio_buffer.commit');
-    this.queue.push({ kind: 'turn' });
+    // Transcription only: the commit makes the input item and its transcript; no response is asked for it.
+    if (!this.request.config.transcribeOnly) this.queue.push({ kind: 'turn' });
   }
 
   /** A release without speech: the press's audio is cleared, never left to join the next turn (spec, "Defects removed by construction"; choice 12). */
@@ -451,7 +453,7 @@ class RealtimeLeg implements AdapterSession {
    * request of the queue's: nothing waits for it, and it waits for nothing.
    */
   private anchor(): void {
-    if (this.phase !== 'live' || this.anchoredAt === this.completed) return;
+    if (this.phase !== 'live' || this.request.config.transcribeOnly || this.anchoredAt === this.completed) return;
     this.anchoredAt = this.completed;
     const eventId = `sokuji_${++this.ids}`;
     if (!this.send(JSON.stringify(anchorResponse(eventId, this.request.config.instructions)))) return;

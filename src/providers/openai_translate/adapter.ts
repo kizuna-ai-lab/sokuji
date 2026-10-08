@@ -309,7 +309,7 @@ class TranslateLeg implements AdapterSession {
     this.frame('in', e.type, { samples: pcm.length, rms: Math.round(computeRms(pcm) * 10_000) / 10_000, elapsedMs: elapsedMsOf(e), sampleRate: rate });
     if (rate !== OUTPUT_RATE) this.foreignRate(rate);
     // Played only on a leg that speaks, at the contract's rate; above the noise floor it holds the translation either way (choices 5, 16; translation cuts, choice 11).
-    this.segments.audio(pcm, this.request.context.speech && rate === OUTPUT_RATE);
+    this.segments.audio(pcm, this.request.context.speech && !this.request.config.transcribeOnly && rate === OUTPUT_RATE);
     this.tail.output();
   }
 
@@ -321,7 +321,7 @@ class TranslateLeg implements AdapterSession {
 
   /** Audio at a rate this app does not play is skipped; a speaking leg says so once (choice 16). */
   private foreignRate(rate: number): void {
-    if (this.rateWarned || !this.request.context.speech) return;
+    if (this.rateWarned || !this.request.context.speech || this.request.config.transcribeOnly) return;
     this.rateWarned = true;
     this.events.degraded({
       code: 'tts_degraded',

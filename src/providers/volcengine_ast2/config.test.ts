@@ -90,4 +90,10 @@ describe("Doubao AST 2.0's builder", () => {
   it('describes no model (choice 7)', () => {
     expect(describeAst2(build())).toEqual({});
   });
+
+  it('runs text mode with no voice when transcribing only', () => {
+    const c = buildAst2({ direction: { source: 'zh', target: 'en' }, speech: true, translate: false, turns: 'auto' }, AST2_DEFAULTS, SHARED) as Ast2Config;
+    expect(c).toMatchObject({ mode: 's2t', transcribeOnly: true });
+    expect(c.voice).toBeUndefined();
+  });
 });
