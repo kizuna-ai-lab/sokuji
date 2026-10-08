@@ -381,3 +381,29 @@ describe('Soniox startBoth: cancelled', () => {
     for (const x of h.sockets.all) expect(x.closedByClient).not.toBeNull();
   });
 });
+
+describe('Soniox startBoth: face-to-face', () => {
+  it('attributes by label and language, not energy: a code-switched line stays with its speaker', async () => {
+    const h = await live({ faceToFace: true });
+    const stt = h.sttSockets()[0];
+    // The participant's channel is silent in face-to-face; the speaker's carries both people.
+    speak(h, 'speaker', 10);
+    stt.receive(msg({ ...orig('Hello.'), language: 'en', speaker: '1' }, END));
+    stt.receive(msg({ ...orig('Thanks.'), language: 'en', speaker: '1' }, END));
+    stt.receive(msg({ ...orig('Konnichiwa.'), language: 'ja', speaker: '2' }, END));
+    stt.receive(msg({ ...orig('Arigatō.'), language: 'ja', speaker: '2' }, END));
+    // Speaker 1 now says a Japanese line: the label, established, keeps it on the speaker's leg.
+    stt.receive(msg({ ...orig('Daijōbu.'), language: 'ja', speaker: '1' }, END));
+    // One ref per utterance (no translation tokens here), numbered across the shared core.
+    expect(opened(h, 'speaker')).toEqual([1, 2, 5]);
+    expect(opened(h, 'participant')).toEqual([3, 4]);
+  });
+
+  it('emits no person label in face-to-face', async () => {
+    const h = await live({ faceToFace: true });
+    h.sttSockets()[0].receive(msg({ ...orig('Hello.'), language: 'en', speaker: '1' }, END));
+    for (const e of [...h.of('speaker', 'segmentOpened'), ...h.of('speaker', 'segmentText')]) {
+      expect(e.payload).not.toHaveProperty('person');
+    }
+  });
+});

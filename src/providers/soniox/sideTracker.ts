@@ -14,13 +14,18 @@
  *   3. null — the caller falls back to the legacy language comparison,
  *      which never votes (in the same-language case it is exactly the
  *      unreliable witness this class exists to replace).
+ *
+ * Face-to-face (`energy: false`): both people are on channel A, so energy
+ * says nothing. The caller's language witness is tallied per label instead;
+ * a label answers once its leading side has `establishNet` votes and leads,
+ * judged before this call's vote, so a code-switched line keeps its label.
  */
 
 export type UtteranceSide = 'speaker' | 'participant';
 
 export interface SideEvidence {
   side: UtteranceSide;
-  tier: 'label' | 'energy';
+  tier: 'label' | 'energy' | 'language';
 }
 
 interface SideTrackerOptions {
@@ -28,6 +33,8 @@ interface SideTrackerOptions {
   capacity?: number;
   energyRatio?: number;
   establishNet?: number;
+  /** false: face-to-face — no energy verdicts; the caller's witness votes instead. */
+  energy?: boolean;
 }
 
 const FRAME_MS = 100;
@@ -40,6 +47,7 @@ export class SonioxSideTracker {
   private readonly capacity: number;
   private readonly energyRatio: number;
   private readonly establishNet: number;
+  private readonly energy: boolean;
 
   private framesA: number[] = [];
   private framesB: number[] = [];
@@ -47,12 +55,15 @@ export class SonioxSideTracker {
   // Net energy-backed votes per speaker label: positive = 'speaker' (A),
   // negative = 'participant' (B).
   private votes = new Map<string, number>();
+  // Face-to-face only: per label, how many utterances' language named each side.
+  private tallies = new Map<string, Record<UtteranceSide, number>>();
 
   constructor(options: SideTrackerOptions = {}) {
     this.frameMs = options.frameMs ?? FRAME_MS;
     this.capacity = options.capacity ?? CAPACITY_FRAMES;
     this.energyRatio = options.energyRatio ?? ENERGY_RATIO;
     this.establishNet = options.establishNet ?? ESTABLISH_NET;
+    this.energy = options.energy ?? true;
   }
 
   recordFrame(energyA: number, energyB: number): void {
@@ -69,8 +80,10 @@ export class SonioxSideTracker {
   inferSide(
     speaker: string | undefined,
     startMs: number | undefined,
-    endMs: number | undefined
+    endMs: number | undefined,
+    witness: UtteranceSide | null = null,
   ): SideEvidence | null {
+    if (!this.energy) return this.byLanguage(speaker, witness);
     const energySide = this.energyVerdict(startMs, endMs);
     if (speaker && energySide) {
       this.votes.set(speaker, (this.votes.get(speaker) ?? 0) + (energySide === 'speaker' ? 1 : -1));
@@ -90,6 +103,23 @@ export class SonioxSideTracker {
     this.framesB = [];
     this.baseIndex = 0;
     this.votes.clear();
+    this.tallies.clear();
+  }
+
+  /** Face-to-face: the label's answer from the votes so far, then this utterance's vote. */
+  private byLanguage(speaker: string | undefined, witness: UtteranceSide | null): SideEvidence | null {
+    const tally = speaker ? this.tallies.get(speaker) ?? { speaker: 0, participant: 0 } : null;
+    let answer: SideEvidence | null = null;
+    if (tally) {
+      const lead: UtteranceSide = tally.speaker >= tally.participant ? 'speaker' : 'participant';
+      const trail = tally[lead === 'speaker' ? 'participant' : 'speaker'];
+      if (tally[lead] >= this.establishNet && tally[lead] > trail) answer = { side: lead, tier: 'label' };
+    }
+    if (speaker && tally && witness) {
+      tally[witness] += 1;
+      this.tallies.set(speaker, tally);
+    }
+    return answer ?? (witness ? { side: witness, tier: 'language' } : null);
   }
 
   private energyVerdict(startMs: number | undefined, endMs: number | undefined): UtteranceSide | null {

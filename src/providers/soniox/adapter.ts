@@ -86,6 +86,13 @@ function emitSegment(events: AdapterEvents, event: SegmentEvent): void {
   }
 }
 
+/** Face-to-face's sides are its two people: a diarization label would only ever name a phantom (spec, slice 3). */
+function withoutPerson(event: SegmentEvent): SegmentEvent {
+  if (event.kind === 'segmentClosed' || !('person' in event.payload)) return event;
+  const { person: _person, ...payload } = event.payload;
+  return { ...event, payload } as SegmentEvent;
+}
+
 function coreLeg(name: LegName, request: StartRequest<SonioxConfig, SonioxCredentials>, events: AdapterEvents, openSocket: OpenSocket): CoreLeg {
   const tts = request.config.tts;
   const key = request.credentials.tts;
@@ -103,6 +110,8 @@ interface CoreOptions {
   openSocket: OpenSocket;
   /** Shared Both (D23): both legs' audio mixed onto this one socket, each utterance given to the leg the side tracker names. */
   shared?: true;
+  /** Face-to-face (slice 3): one microphone, so the tracker votes by language, and no person label leaves the core. */
+  faceToFace?: true;
 }
 
 class SonioxCore {
@@ -119,7 +128,7 @@ class SonioxCore {
   private readonly mixer: PcmMixer | null;
 
   constructor(private readonly o: CoreOptions) {
-    this.tracker = o.shared ? new SonioxSideTracker() : null;
+    this.tracker = o.shared ? new SonioxSideTracker({ energy: !o.faceToFace }) : null;
     this.mixer = o.shared
       ? new PcmMixer({
         clock: o.primary.clock,
@@ -137,7 +146,7 @@ class SonioxCore {
     this.utterances = new Utterances({
       clock: o.primary.clock,
       sink: {
-        segment: (leg, event) => { if (!this.ended) emitSegment(this.leg(leg).events, event); },
+        segment: (leg, event) => { if (!this.ended) emitSegment(this.leg(leg).events, this.o.faceToFace ? withoutPerson(event) : event); },
         speak: (leg, ref, text, span, language) => { if (!this.ended) this.leg(leg).speech?.speak(ref, text, span, sonioxWire.toWire(language)); },
         endSpeech: (leg) => { if (!this.ended) this.leg(leg).speech?.endUtterance(); },
       },
@@ -223,16 +232,17 @@ class SonioxCore {
   /** Which leg an utterance belongs to, from its first token: one leg's core has one answer. */
   private legFor(token: SonioxToken): LegName {
     if (!this.tracker) return this.o.legs[0].name;
-    // An established speaker label, else the channels' energy over the token's window (`SonioxClient.ts:982-998`).
-    const evidence = this.tracker.inferSide(token.speaker, token.start_ms, token.end_ms);
+    const source = this.o.primary.context.direction.source;
+    // The language, as a witness: face-to-face's tracker votes with it; the energy tracker ignores it.
+    const language = token.translation_status === 'translation' ? token.source_language : token.language;
+    const witness = !language ? null : language === sonioxWire.toWire(source) ? 'speaker' : 'participant';
+    // An established speaker label, else the channels' energy (or, face-to-face, the language) over the token's window (`SonioxClient.ts:982-998`).
+    const evidence = this.tracker.inferSide(token.speaker, token.start_ms, token.end_ms, witness);
     if (evidence) return evidence.side;
-    // The language, which never votes; the speaker's leg when nothing can tell.
+    // The language, which never votes in the energy tracker; the speaker's leg when nothing can tell.
     // Latched at this first token: the diarization design's accepted limitation
     // (docs/superpowers/specs/2026-07-30-soniox-diarization-attribution-design.md, "decided once per utterance").
-    const source = this.o.primary.context.direction.source;
-    if (token.translation_status !== 'translation' && token.language) return token.language === source ? 'speaker' : 'participant';
-    if (token.translation_status === 'translation' && token.source_language) return token.source_language === source ? 'speaker' : 'participant';
-    return 'speaker';
+    return witness ?? 'speaker';
   }
 
   private appendAudio(name: LegName, pcm: Int16Array): void {
@@ -515,6 +525,7 @@ export function createSonioxAdapter(deps: Partial<SonioxAdapterDeps> = {}): Soni
         ],
         openSocket,
         shared: true,
+        ...(requests.speaker.config.faceToFace ? { faceToFace: true as const } : {}),
       });
       try {
         await core.open(signal);
