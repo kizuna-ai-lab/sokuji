@@ -596,10 +596,16 @@ void higgs_max_tokens_scales_with_the_text() {
     assert(higgs_max_tokens(std::string(136, 'a')) == 2040);
     assert(higgs_max_tokens(std::string(137, 'a')) == 2048);
     assert(higgs_max_tokens(std::string(5000, 'a')) == 2048);
-    // Codepoints, not bytes: 19 Han characters and punctuation (57 bytes).
-    assert(higgs_max_tokens("今天天气很好，我们一起去公园散散步吧。") == 285);
+    // Codepoints, not bytes: 19 Han characters and punctuation (57 bytes), "Jintian tianqi hen hao,
+    // women yiqi qu gongyuan sansan bu ba." The UTF-8 is spelled in escapes so the file stays ASCII.
+    assert(higgs_max_tokens("\xE4\xBB\x8A\xE5\xA4\xA9\xE5\xA4\xA9\xE6\xB0\x94\xE5\xBE\x88\xE5\xA5\xBD\xEF\xBC\x8C"
+                            "\xE6\x88\x91\xE4\xBB\xAC\xE4\xB8\x80\xE8\xB5\xB7\xE5\x8E\xBB\xE5\x85\xAC\xE5\x9B\xAD"
+                            "\xE6\x95\xA3\xE6\x95\xA3\xE6\xAD\xA5\xE5\x90\xA7\xE3\x80\x82") == 285);
     const auto h = handle_for("higgs_audio_tts");
-    const char *az = "Bu gün hava çox gözəldir, gəlin parkda gəzintiyə çıxaq.";   // 55 codepoints, 64 bytes
+    // "Bu gun hava cox gozeldir, gelin parkda gezintiye cixaq." with its Azerbaijani letters:
+    // 55 codepoints, 64 bytes.
+    const char *az = "Bu g\xC3\xBCn hava \xC3\xA7ox g\xC3\xB6z\xC9\x99ldir, g\xC9\x99lin parkda g\xC9\x99zintiy\xC9\x99 "
+                     "\xC3\xA7\xC4\xB1xaq.";
     rt::TaskRequest req = build_request(h.get(), az, "az", 1.0f);
     assert(opt(req, "max_tokens") == "825" && opt(req, "seed") == "0");
     give_clip(h.get(), "The quick brown fox.");
@@ -608,12 +614,33 @@ void higgs_max_tokens_scales_with_the_text() {
 }
 
 // The engine's own words when a take spends max_tokens without its end-of-content code
-// (higgs_audio_tts/generator.cpp:542-548).
+// (higgs_audio_tts/generator.cpp:542-548): the literal before the cap and the one after it, the
+// two pieces is_higgs_runaway matches.
+constexpr const char *kRunawayHead = "Higgs TTS generation reached max_tokens (";
+constexpr const char *kRunawayTail = ") before EOC for this text chunk; raise it with --max-tokens on the CLI or ";
+
 std::string higgs_runaway(int max_tokens) {
-    return "Higgs TTS generation reached max_tokens (" + std::to_string(max_tokens) +
-           ") before EOC for this text chunk; raise it with --max-tokens on the CLI or the \"max_tokens\" "
-           "request option on the server, or lower --text-chunk-size / \"text_chunk_size\" so each chunk "
-           "needs fewer generated frames";
+    return kRunawayHead + std::to_string(max_tokens) + kRunawayTail +
+           "the \"max_tokens\" request option on the server, or lower --text-chunk-size / \"text_chunk_size\" "
+           "so each chunk needs fewer generated frames";
+}
+
+// A pin bump that rewords the throw would silently turn the retry off: both literals must still be
+// in the pinned audio.cpp's generator.cpp, spelled as above.
+void higgs_runaway_text_is_the_pinned_sources() {
+    const std::string path = std::string(SK_AUDIOCPP_SOURCE_DIR) + "/src/models/higgs_audio_tts/generator.cpp";
+    std::ifstream in(path, std::ios::binary);
+    if (!in.good()) std::fprintf(stderr, "cannot read %s\n", path.c_str());
+    assert(in.good());
+    const std::string source((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    int missing = 0;
+    for (const char *literal : {kRunawayHead, kRunawayTail}) {
+        if (source.find('"' + std::string(literal) + '"') == std::string::npos) {
+            std::fprintf(stderr, "%s no longer spells the literal \"%s\"\n", path.c_str(), literal);
+            ++missing;
+        }
+    }
+    assert(missing == 0);
 }
 
 // Stands in for prepare + run: records each attempt's seed and max_tokens, throws the error listed
@@ -796,7 +823,12 @@ void outetts_gets_a_token_budget_that_fits_cjk() {
     // Its own estimate gives unspaced text 12 tokens a codepoint (outetts/tokenizer.cpp:117-141);
     // the explicit max_tokens its spec declares replaces it, with or without a clip.
     const auto oute = handle_for("outetts");
-    rt::TaskRequest req = build_request(oute.get(), "姉は駅の近くの小さなパン屋で焼きたてのパンを買いました。", "ja", 1.0f);
+    // "Ane wa eki no chikaku no chiisana panya de yakitate no pan wo kaimashita." in kanji and kana.
+    const char *ja = "\xE5\xA7\x89\xE3\x81\xAF\xE9\xA7\x85\xE3\x81\xAE\xE8\xBF\x91\xE3\x81\x8F\xE3\x81\xAE\xE5\xB0\x8F"
+                     "\xE3\x81\x95\xE3\x81\xAA\xE3\x83\x91\xE3\x83\xB3\xE5\xB1\x8B\xE3\x81\xA7\xE7\x84\xBC\xE3\x81\x8D"
+                     "\xE3\x81\x9F\xE3\x81\xA6\xE3\x81\xAE\xE3\x83\x91\xE3\x83\xB3\xE3\x82\x92\xE8\xB2\xB7\xE3\x81\x84"
+                     "\xE3\x81\xBE\xE3\x81\x97\xE3\x81\x9F\xE3\x80\x82";
+    rt::TaskRequest req = build_request(oute.get(), ja, "ja", 1.0f);
     assert(opt(req, "max_tokens") == "2048");
     give_clip(oute.get(), "The quick brown fox.");
     req = build_request(oute.get(), "Hello.", "en", 1.0f);
@@ -1203,6 +1235,7 @@ int main() {
     kugelaudio_requests();
     higgs_audio_tts_requests();
     higgs_max_tokens_scales_with_the_text();
+    higgs_runaway_text_is_the_pinned_sources();
     higgs_runaway_retries_with_the_next_seeds();
     fish_audio_requests();
     breeze_tts_requests();

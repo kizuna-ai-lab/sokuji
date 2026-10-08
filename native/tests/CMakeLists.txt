@@ -56,6 +56,8 @@ set_tests_properties(test_tts PROPERTIES
 add_executable(test_tts_request test_tts_request.cpp)
 target_include_directories(test_tts_request PRIVATE ../src ../include ${audiocpp_SOURCE_DIR}/include)
 target_link_libraries(test_tts_request PRIVATE ggml)
+# The pinned audio.cpp's sources, for the engine message sk_tts.cpp matches on.
+target_compile_definitions(test_tts_request PRIVATE SK_AUDIOCPP_SOURCE_DIR="${audiocpp_SOURCE_DIR}")
 add_test(NAME test_tts_request COMMAND test_tts_request)
 
 # The test cache's main-GGUF rule (model_path.h), which record_ops and test_ops_coverage share.
