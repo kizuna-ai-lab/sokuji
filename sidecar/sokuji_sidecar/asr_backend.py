@@ -12,7 +12,7 @@ import numpy as np
 
 from . import native
 from .backends import AsrResult, BackendLoadError, register_backend
-from .catalog import split_artifact
+from .catalog import hub_revision, split_artifact
 
 # Plan device -> sokuji_native device kind. (cuda/dml tiers never existed for ASR.)
 _DEVICE_KIND = {"cpu": "cpu", "vulkan": "vulkan", "metal": "metal"}
@@ -35,7 +35,7 @@ class NativeAsrBackend:
             repo, fname = split_artifact(model_ref)
             if not fname:
                 raise BackendLoadError(f"native_asr needs an 'org/repo/file.gguf' artifact, got {model_ref!r}")
-            path = hf_hub_download(repo, fname, local_files_only=True)
+            path = hf_hub_download(repo, fname, revision=hub_revision(repo), local_files_only=True)
             kind = _DEVICE_KIND.get(device)
             if kind is None:
                 raise BackendLoadError(f"unknown device for native_asr: {device!r}")

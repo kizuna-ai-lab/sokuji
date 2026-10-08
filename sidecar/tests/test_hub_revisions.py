@@ -36,6 +36,10 @@ def test_pinned_revisions_are_the_third_party_repos_at_their_commits():
         "mohammedaly22/VoiceTut-TTS-GGUF": "615457bb2e9043f468e012c159146b28fa8f5959",
         "LiquidAI/LFM2.5-Audio-1.5B-GGUF": "7d525f883a077e20afb782f2ff618edcae0e39e4",
         "LiquidAI/LFM2.5-Audio-1.5B-JP-GGUF": "64b96718b341dbd5650f9e85627cecdcbd4ac61b",
+        # Not third-party, but the same need: the repo removed its plain GGUFs on 2026-09-12
+        # (bundle/ only since); 1a9defe9 is the last commit that has them, at the card's sizes.
+        "handy-computer/multitalker-parakeet-streaming-0.6b-v1-gguf":
+            "1a9defe9bb8f2a7ca2110454f6920f794e45df11",
     }
     for repo, sha in catalog.PINNED_REVISIONS.items():
         assert re.fullmatch(r"[0-9a-f]{40}", sha), repo
@@ -322,3 +326,32 @@ def test_hub_sizes_reads_the_given_revision(monkeypatch, tmp_path):
     # Without a revision the repo's head is read, as before.
     assert mod.main(["WalkingCat/Soprano-1.1-80M-GGUF", str(out)]) == 0
     assert seen[-1] == ("WalkingCat/Soprano-1.1-80M-GGUF", None, True)
+
+
+@pytest.mark.parametrize("module", ["asr_backend.py", "translate_backend.py"])
+def test_every_asr_and_translate_load_hub_call_passes_a_revision(module):
+    """The load paths resolve the GGUF the status call found; a pinned ASR or translation repo
+    (the multitalker card) has no refs/main, so a revision-less lookup here would find nothing."""
+    calls = _hub_calls(_PKG / module)
+    assert calls, f"no Hub call found in {module}: the scan is not looking"
+    missing = sorted(f"{module}:{line} {fn}" for line, (fn, ok) in calls.items() if not ok)
+    assert missing == []
+
+
+def test_a_pinned_asr_card_loads_from_its_pinned_snapshot(hub_cache, monkeypatch):
+    from sokuji_sidecar import asr_backend, native
+    repo = "acme/pinned-asr-gguf"
+    monkeypatch.setitem(catalog.PINNED_REVISIONS, repo, PIN)
+    snap = add_cached_file(hub_cache, repo, PIN, "pinned-asr-Q8_0.gguf")      # no refs/main
+    loads = []
+    monkeypatch.setattr(native, "module", lambda: types.SimpleNamespace(
+        asr_load=lambda path, device: loads.append(path) or object()))
+    monkeypatch.setattr(native, "device_for", lambda kind: f"dev:{kind}")
+    asr_backend.NativeAsrBackend().load(f"{repo}/pinned-asr-Q8_0.gguf", "cpu", "q8_0")
+    assert loads == [snap]
+
+
+def test_the_multitalker_card_is_pinned_to_its_last_plain_gguf_commit():
+    m = catalog.asr_model("multitalker-parakeet-streaming-0.6b-v1")
+    repo, _fname = catalog.split_artifact(m.deployments[0].artifact)
+    assert catalog.hub_revision(repo) == "1a9defe9bb8f2a7ca2110454f6920f794e45df11"

@@ -111,7 +111,7 @@ import time
 
 from . import native
 from .backends import BackendLoadError, register_backend
-from .catalog import split_artifact
+from .catalog import hub_revision, split_artifact
 from .planner import PlanConfig
 
 _TRANSCRIPT_TAG = re.compile(r"</?transcript>", re.IGNORECASE)
@@ -281,7 +281,7 @@ class NativeTranslateBackend:
                 if not fname:
                     raise BackendLoadError(
                         f"native_translate needs an 'org/repo/file.gguf' artifact, got {model_ref!r}")
-                path = hf_hub_download(repo, fname, local_files_only=True)
+                path = hf_hub_download(repo, fname, revision=hub_revision(repo), local_files_only=True)
             # Always resolve an explicit device — including "cpu": passing NULL to
             # sk_translate_load leaves llama's defaults (n_gpu_layers=-1, all
             # devices), which fully offloads a cpu-resolved plan to the GPU on the

@@ -847,6 +847,10 @@ PINNED_REVISIONS: dict[str, str] = {
     "mohammedaly22/VoiceTut-TTS-GGUF": "615457bb2e9043f468e012c159146b28fa8f5959",
     "LiquidAI/LFM2.5-Audio-1.5B-GGUF": "7d525f883a077e20afb782f2ff618edcae0e39e4",
     "LiquidAI/LFM2.5-Audio-1.5B-JP-GGUF": "64b96718b341dbd5650f9e85627cecdcbd4ac61b",
+    # The ASR card multitalker-parakeet-streaming-0.6b-v1: its repo removed the root-level
+    # plain GGUFs on 2026-09-12 (bundle/ twins only, which embed a diarizer the stream API never
+    # uses); 1a9defe9 is the last commit holding them, at exactly the card's byte counts.
+    "handy-computer/multitalker-parakeet-streaming-0.6b-v1-gguf": "1a9defe9bb8f2a7ca2110454f6920f794e45df11",
 }
 
 
