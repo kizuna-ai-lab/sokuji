@@ -146,6 +146,21 @@ describe('smartTurnStore', () => {
     expect(useModelStore.getState().storageUsedMb).toBe(100);
   });
 
+  it('remove: reads the disk again even when the delete fails, and still rejects', async () => {
+    useSmartTurnStore.setState({ phase: 'ready', downloadedBytes: SMART_TURN_TOTAL_BYTES });
+    deleteModel.mockRejectedValue(new Error('quota'));
+    isModelReady.mockResolvedValue(false);
+    await expect(useSmartTurnStore.getState().remove()).rejects.toThrow('quota');
+    expect(useSmartTurnStore.getState().phase).toBe('missing');
+  });
+
+  it('remove: does nothing while the model downloads', async () => {
+    useSmartTurnStore.setState({ phase: 'downloading' });
+    await useSmartTurnStore.getState().remove();
+    expect(deleteModel).not.toHaveBeenCalled();
+    expect(useSmartTurnStore.getState().phase).toBe('downloading');
+  });
+
   it('leaves the Storage page figure alone after a failed download', async () => {
     useModelStore.setState({ storageUsedMb: 100 });
     downloadModel.mockRejectedValue(new Error('network unreachable'));

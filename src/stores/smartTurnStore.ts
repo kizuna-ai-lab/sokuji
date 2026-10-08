@@ -84,9 +84,13 @@ export const useSmartTurnStore = create<SmartTurnStore>()(
 
     remove: async () => {
       if (get().phase === 'downloading') return;
-      await ModelManager.getInstance().deleteModel(SMART_TURN_MODEL_ID);
-      await get().refresh();
-      await refreshStorageEstimate();
+      try {
+        await ModelManager.getInstance().deleteModel(SMART_TURN_MODEL_ID);
+      } finally {
+        // A delete can fail halfway (files gone, metadata kept): ask the disk either way.
+        await get().refresh();
+        await refreshStorageEstimate();
+      }
     },
   })),
 );

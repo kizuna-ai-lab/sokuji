@@ -383,25 +383,18 @@ describe('TurnLink — a short reply after a Smart end', () => {
       return seen;
     }
 
+    // Smart ends the sentence on its 5th quiet frame; the processor's redemption is 10.
     const sentence = [...Array(5).fill(SPEECH), ...Array(5).fill(SILENCE)];
     const reply = [SPEECH, SPEECH, ...Array(12).fill(SILENCE)];
+    const quiet = (n: number) => Array(n).fill(SILENCE);
 
-    it('keeps a reply that starts inside the wait the processor would have spanned', async () => {
-      expect(await drive([...sentence, SILENCE, SILENCE, ...reply])).toEqual(['smart end', 'misfire kept']);
-    });
-
-    it('drops it as before once that wait is over', async () => {
-      expect(await drive([...sentence, ...Array(6).fill(SILENCE), ...reply])).toEqual(['smart end', 'misfire dropped']);
-    });
-
-    it('under Normal, the same reply is part of the sentence', async () => {
+    async function underNormal(probs: number[]) {
       const normal = new FrameProcessor(
         async () => ({ isSpeech: 0, notSpeech: 1 }),
         () => {},
         { positiveSpeechThreshold: 0.5, negativeSpeechThreshold: 0.35, redemptionMs: 320, minSpeechMs: 96, preSpeechPadMs: 64, submitUserSpeechOnPause: false },
         32,
       );
-      const probs = [...sentence, SILENCE, SILENCE, ...reply];
       let i = 0;
       normal.modelProcessFunc = async () => ({ isSpeech: probs[i], notSpeech: 1 - probs[i] });
       normal.resume();
@@ -412,7 +405,17 @@ describe('TurnLink — a short reply after a Smart end', () => {
           if (ev.msg === Message.VADMisfire) seen.push('misfire');
         });
       }
-      expect(seen).toEqual(['end']);
+      return seen;
+    }
+
+    it('keeps a reply that starts on the last frame Normal would still have waited', async () => {
+      expect(await underNormal([...sentence, ...quiet(4), ...reply])).toEqual(['end']);
+      expect(await drive([...sentence, ...quiet(4), ...reply])).toEqual(['smart end', 'misfire kept']);
+    });
+
+    it('drops it as before from the frame Normal would have ended the sentence', async () => {
+      expect(await underNormal([...sentence, ...quiet(5), ...reply])).toEqual(['end', 'misfire']);
+      expect(await drive([...sentence, ...quiet(5), ...reply])).toEqual(['smart end', 'misfire dropped']);
     });
   });
 });
