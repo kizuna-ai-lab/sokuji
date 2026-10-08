@@ -24,7 +24,7 @@ const PAR: SonioxCredentials = { region: 'us', stt: 'k-par', tts: 'k-par-tts' };
 /** The app's rule (`shared.ts`): the participant's direction is the pair's reverse. */
 const BOTH_SHARED: SharedSettings = { ...SHARED, reversed: (direction) => direction.source === 'ja' };
 
-function both(o: { sharedBoth?: boolean; participantSpeaks?: boolean; abortFirst?: boolean } = {}) {
+function both(o: { sharedBoth?: boolean; participantSpeaks?: boolean; abortFirst?: boolean; faceToFace?: boolean } = {}) {
   const sockets = fakeSockets();
   const { clock, timers } = trackedClock();
   const controller = new AbortController();
@@ -35,8 +35,9 @@ function both(o: { sharedBoth?: boolean; participantSpeaks?: boolean; abortFirst
     participant: { direction: { source: 'ja', target: 'en' }, speech: o.participantSpeaks ?? false, turns: 'auto' },
   };
   const rec = { speaker: recordEvents(), participant: recordEvents() };
+  const shared = o.faceToFace ? { ...BOTH_SHARED, faceToFace: true } : BOTH_SHARED;
   const request = (leg: LegName, credentials: SonioxCredentials): StartRequest<SonioxConfig, SonioxCredentials> =>
-    ({ context: contexts[leg], config: buildSoniox(contexts[leg], s, BOTH_SHARED), credentials, clock, signal: controller.signal });
+    ({ context: contexts[leg], config: buildSoniox(contexts[leg], s, shared), credentials, clock, signal: controller.signal });
   const starting = createSonioxAdapter({ openSocket: sockets.create }).startBoth(
     { speaker: request('speaker', SPK), participant: request('participant', PAR) },
     { speaker: rec.speaker.events, participant: rec.participant.events },
@@ -145,6 +146,13 @@ describe('Soniox startBoth: split', () => {
 });
 
 describe('Soniox startBoth: shared', () => {
+  it("shared: the participant speaks in its own voice, never the speaker's", async () => {
+    const h = await live({ participantSpeaks: true });
+    h.sttSockets()[0].receive(msg({ ...orig('Ohayō.'), language: 'ja' }, tr('Good morning.', 'en', 'ja'), END));
+    const [, participantTts] = h.ttsSockets();
+    expect(participantTts.sentJson<Json>()).toContainEqual(expect.objectContaining({ voice: 'Grace', language: 'en' }));
+  });
+
   it("shared: one STT socket, two_way on the speaker's pair, both hints, diarization, the speaker's key", async () => {
     const h = await live();
     expect(h.sttSockets()).toHaveLength(1);

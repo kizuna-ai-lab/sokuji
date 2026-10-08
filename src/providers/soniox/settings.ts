@@ -9,7 +9,7 @@
 import { AUTO } from '../../lib/provider/languages';
 import type { CredentialsMissing, Provider } from '../../lib/provider/types';
 import { asSonioxRegion, DEFAULT_SONIOX_REGION, type SonioxRegion } from '../../lib/soniox/regions';
-import { SONIOX_DEFAULT_VOICE } from '../../lib/soniox/ttsCatalog';
+import { SONIOX_DEFAULT_VOICE, SONIOX_PARTICIPANT_DEFAULT_VOICE, SONIOX_VOICES } from '../../lib/soniox/ttsCatalog';
 import { SONIOX_LANGUAGES, sonioxWire } from './languages';
 
 export { SONIOX_LANGUAGES };
@@ -21,6 +21,8 @@ export interface SonioxSettings {
   voice: string;
   voiceEu: string;
   voiceJp: string;
+  /** The voice that reads the other person's words to me: built-in only, one for every region (D12). */
+  participantVoice: string;
   /** Both mode on one shared two_way session (true) or two sessions (false). */
   bothModeSharedSession: boolean;
   /** Custom vocabulary, one term per line (→ context.terms). */
@@ -44,6 +46,7 @@ export const SONIOX_DEFAULTS: SonioxSettings = {
   voice: SONIOX_DEFAULT_VOICE,
   voiceEu: SONIOX_DEFAULT_VOICE,
   voiceJp: SONIOX_DEFAULT_VOICE,
+  participantVoice: SONIOX_PARTICIPANT_DEFAULT_VOICE,
   bothModeSharedSession: false,
   vocabularyTerms: '',
   vocabularyTranslations: '',
@@ -69,6 +72,10 @@ export function migrateSonioxSettings(stored: Readonly<Record<string, unknown>>)
     voice: str('voice'),
     voiceEu: str('voiceEu'),
     voiceJp: str('voiceJp'),
+    // Built-in voices only: a clone id (or anything else) falls to the default, never into the participant's mouth.
+    participantVoice: typeof stored.participantVoice === 'string' && SONIOX_VOICES.some((v) => v.value === stored.participantVoice)
+      ? stored.participantVoice
+      : SONIOX_DEFAULTS.participantVoice,
     bothModeSharedSession: typeof stored.bothModeSharedSession === 'boolean' ? stored.bothModeSharedSession : SONIOX_DEFAULTS.bothModeSharedSession,
     vocabularyTerms: str('vocabularyTerms'),
     vocabularyTranslations: str('vocabularyTranslations'),
@@ -78,6 +85,13 @@ export function migrateSonioxSettings(stored: Readonly<Record<string, unknown>>)
     endpointMaxDelayMs: num('endpointMaxDelayMs'),
     ttsSpeed: num('ttsSpeed'),
   };
+}
+
+/** The participant's voice for a run: the choice, unless it is the speaker's own — then the other default, so the two people never sound alike. */
+export function participantVoiceFor(s: Pick<SonioxSettings, 'participantVoice'>, speakerVoice: string): string {
+  const chosen = s.participantVoice || SONIOX_PARTICIPANT_DEFAULT_VOICE;
+  if (chosen !== speakerVoice) return chosen;
+  return chosen === SONIOX_PARTICIPANT_DEFAULT_VOICE ? SONIOX_DEFAULT_VOICE : SONIOX_PARTICIPANT_DEFAULT_VOICE;
 }
 
 export type SonioxKeyField = 'apiKey' | 'apiKeyEu' | 'apiKeyJp';

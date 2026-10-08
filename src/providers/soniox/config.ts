@@ -10,7 +10,7 @@ import { reportWarning } from '../../lib/diagnostics/report';
 import type { SharedSettings } from '../../lib/provider/types';
 import { asSonioxRegion } from '../../lib/soniox/regions';
 import { SONIOX_DEFAULT_VOICE, SONIOX_TTS_MODEL } from '../../lib/soniox/ttsCatalog';
-import { sonioxVoiceField, type SonioxSettings } from './settings';
+import { participantVoiceFor, sonioxVoiceField, type SonioxSettings } from './settings';
 
 export const SONIOX_STT_MODEL = 'stt-rt-v5';
 
@@ -30,10 +30,12 @@ export interface SonioxConfig {
     endpointLatencyAdjustmentLevel: number;
     endpointMaxDelayMs: number;
   };
-  /** Present when this leg speaks. */
-  tts?: { voice: string; speed: number };
+  /** Present when this leg speaks. The participant leg speaks in `participantVoice`. */
+  tts?: { voice: string; participantVoice: string; speed: number };
   /** Both mode on one mixed socket (D23); read by `startBoth`. */
   sharedBoth: boolean;
+  /** Face-to-face: two people at one microphone (slice 3). Absent: false. */
+  faceToFace?: true;
   /** The participant's leg: its own socket labels its people (the shared socket always does). */
   diarize: boolean;
 }
@@ -144,6 +146,7 @@ export function buildSoniox(context: SessionContext, s: SonioxSettings, shared: 
     ...(translationTerms.length ? { translation_terms: translationTerms } : {}),
     ...(text ? { text } : {}),
   };
+  const voice = s[sonioxVoiceField(asSonioxRegion(s.region))] || SONIOX_DEFAULT_VOICE;
   return {
     stt: {
       model: SONIOX_STT_MODEL,
@@ -153,9 +156,11 @@ export function buildSoniox(context: SessionContext, s: SonioxSettings, shared: 
       endpointMaxDelayMs: Math.round(clampNumber(s.endpointMaxDelayMs, 500, 3000, 2000)),
     },
     ...(context.speech
-      ? { tts: { voice: s[sonioxVoiceField(asSonioxRegion(s.region))] || SONIOX_DEFAULT_VOICE, speed: clampNumber(s.ttsSpeed, 0.7, 1.3, 1.0) } }
+      ? { tts: { voice, participantVoice: participantVoiceFor(s, voice), speed: clampNumber(s.ttsSpeed, 0.7, 1.3, 1.0) } }
       : {}),
-    sharedBoth: s.bothModeSharedSession,
+    // Face-to-face is one microphone: there is nothing to split.
+    sharedBoth: shared.faceToFace === true || s.bothModeSharedSession,
+    ...(shared.faceToFace ? { faceToFace: true as const } : {}),
     diarize: shared.reversed(context.direction),
   };
 }

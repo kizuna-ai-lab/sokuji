@@ -155,16 +155,24 @@ describe('buildSoniox — stt', () => {
 });
 
 describe('buildSoniox — tts', () => {
-  it("speaks only when the context speaks: the region's voice, the speed clamped", () => {
+  it("speaks only when the context speaks: the region's voice, the participant's own, the speed clamped", () => {
     expect(build({}, { ...AUTO_CTX, speech: false }).tts).toBeUndefined();
-    expect(build({ region: 'jp', voiceJp: 'Clone-UUID' }).tts).toEqual({ voice: 'Clone-UUID', speed: 1 });
+    expect(build({ region: 'jp', voiceJp: 'Clone-UUID' }).tts).toEqual({ voice: 'Clone-UUID', participantVoice: 'Grace', speed: 1 });
     expect(build({ region: 'eu', voiceEu: '' }).tts?.voice).toBe('Adrian');
+    expect(build({ voice: 'Grace' }).tts?.participantVoice).toBe('Adrian');
   });
 });
 
 describe('buildSoniox — sharedBoth', () => {
   it('carries the shared-Both choice', () => {
     expect(build({ bothModeSharedSession: false }).sharedBoth).toBe(false);
+    expect(build().faceToFace).toBeUndefined();
+  });
+
+  it('is always shared in face-to-face, and says so', () => {
+    const c = buildSoniox(AUTO_CTX, { ...SONIOX_DEFAULTS, bothModeSharedSession: false }, { ...SHARED, faceToFace: true });
+    expect(c.sharedBoth).toBe(true);
+    expect(c.faceToFace).toBe(true);
   });
 });
 

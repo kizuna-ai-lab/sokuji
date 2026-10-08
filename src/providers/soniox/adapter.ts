@@ -90,7 +90,7 @@ function coreLeg(name: LegName, request: StartRequest<SonioxConfig, SonioxCreden
   const tts = request.config.tts;
   const key = request.credentials.tts;
   const speech = tts && key
-    ? new LegSpeech({ region: request.credentials.region, key, clientReferenceId: request.credentials.clientReferenceId, voice: tts.voice, speed: tts.speed, events, clock: request.clock, openSocket })
+    ? new LegSpeech({ region: request.credentials.region, key, clientReferenceId: request.credentials.clientReferenceId, voice: name === 'participant' ? tts.participantVoice : tts.voice, speed: tts.speed, events, clock: request.clock, openSocket })
     : null;
   return { name, events, context: request.context, speech, noTtsKey: tts !== undefined && !key };
 }
