@@ -1150,34 +1150,35 @@ _TTS_TIER_OVERRIDES: dict[str, tuple[str, ...]] = {
 # default rung's est_bytes, rounded UP to one decimal, where that is above 1.2x or at most 0.9x (a
 # flat 1.0 would refuse a machine that could load a card needing less than its file). The peak is
 # product-shaped (ruling 2026-10-09): `/usr/bin/time -v` on one process that synthesises a short
-# warm-up sentence, then a 21-word sentence (Japanese cards: a 40-character one; VoiceTut: a
+# warm-up sentence, then a 22-word sentence (Japanese cards: a 40-character one; VoiceTut: a
 # 15-word Arabic one), bare, and in a second process with a 3.1 s reference clip for a card that
 # clones; the larger of the two governs. A card with no measured peak, or one between 0.9x and
 # 1.2x, keeps 1.0 and is not listed; another rung of a card uses the card's factor. These are CPU
 # measurements: a Metal plan is judged at 1.0 whatever the card lists (accel.load_with_fallback;
 # the M4 ran moss-tts-local bare on Metal at about 8.7 GiB, where a bare CPU synth peaked at
 # 13,060,424 kB).
+# A 3.1 s clip is the basis; longer allowed clips peak higher (moss 19.9 s: 20.39 GiB vs an 18.69 GiB need).
 _TTS_RAM_FACTORS: dict[str, float] = {
-    "cosyvoice3": 1.3,              # 2,652,720 kB, 21 words, 3.1 s clip, on 2,257,658,080 B (1.203x)
-    "moss-tts-local-1.5": 2.6,      # 18,521,960 kB, 21 words, 3.1 s clip, on 7,512,220,768 B (2.52x)
-    "vibevoice-1.5b": 1.3,          # 4,066,124 kB, 21 words, 3.1 s clip, on 3,224,701,538 B (1.29x)
-    "chatterbox": 1.5,              # 2,914,832 kB, 21 words, 3.1 s clip, on 2,088,393,668 B (1.43x)
-    "chatterbox-turbo": 6.4,        # 4,338,656 kB, 21 words, bare, on 699,101,408 B (6.35x)
-    "confucius4": 0.9,              # 6,776,376 kB, 21 words, 3.1 s clip, on 8,192,757,760 B `orig` (0.85x)
-    "magpie-357m": 0.9,             # 1,312,452 kB, 21 words, bare, on 1,562,142,912 B (0.86x)
-    "neutts-2e": 0.9,               # 2,539,620 kB, 21 words, bare, on 3,016,181,288 B `orig` (0.86x)
-    "qwen3-tts-1.7b-customvoice": 1.5,  # 4,074,512 kB, 21 words, preset Vivian, on 2,817,044,064 B (1.48x)
+    "cosyvoice3": 1.3,              # 2,652,720 kB, 22 words, 3.1 s clip, on 2,257,658,080 B (1.203x)
+    "moss-tts-local-1.5": 2.6,      # 18,521,960 kB, 22 words, 3.1 s clip, on 7,512,220,768 B (2.52x)
+    "vibevoice-1.5b": 1.3,          # 4,066,124 kB, 22 words, 3.1 s clip, on 3,224,701,538 B (1.29x)
+    "chatterbox": 1.5,              # 2,914,832 kB, 22 words, 3.1 s clip, on 2,088,393,668 B (1.43x)
+    "chatterbox-turbo": 6.4,        # 4,338,656 kB, 22 words, bare, on 699,101,408 B (6.35x)
+    "confucius4": 0.9,              # 6,776,376 kB, 22 words, 3.1 s clip, on 8,192,757,760 B `orig` (0.85x)
+    "magpie-357m": 0.9,             # 1,312,452 kB, 22 words, bare, on 1,562,142,912 B (0.86x)
+    "neutts-2e": 0.9,               # 2,539,620 kB, 22 words, bare, on 3,016,181,288 B `orig` (0.86x)
+    "qwen3-tts-1.7b-customvoice": 1.5,  # 4,074,512 kB, 22 words, preset Vivian, on 2,817,044,064 B (1.48x)
     "irodori-tts-500m-v3": 2.6,     # 2,720,656 kB, 40 characters, 3.1 s clip, on 1,093,739,584 B (2.55x)
     "irodori-tts-v4.1-anime": 2.7,  # 2,927,036 kB, 40 characters, 3.1 s clip, on 1,112,547,264 B (2.69x)
-    "higgs-audio-v3-4b": 1.3,       # 6,369,076 kB, 21 words, 3.1 s clip, on 5,095,354,048 B (1.28x)
-    "fish-audio-s2-pro": 1.5,       # 8,771,944 kB, 21 words, 3.1 s clip, on 6,317,911,232 B (1.42x)
-    "audio8-tts-0.6b": 2.2,         # 2,948,800 kB, 21 words, bare, on 1,429,545,312 B (2.11x)
-    "soprano-1.1-80m": 4.6,         # 544,772 kB, 21 words, bare, on 123,162,336 B (4.53x)
-    "outetts-1.0-1b": 1.5,          # 4,216,684 kB, 21 words, 3.1 s clip, on 3,029,895,456 B (1.43x)
-    "echo-tts": 2.1,                # 6,110,784 kB, 21 words, 3.1 s clip, on 3,028,207,456 B (2.07x)
-    "kitten-tts2": 1.4,             # 4,353,760 kB, 21 words, 3.1 s clip, on 3,282,123,776 B (1.36x)
+    "higgs-audio-v3-4b": 1.3,       # 6,369,076 kB, 22 words, 3.1 s clip, on 5,095,354,048 B (1.28x)
+    "fish-audio-s2-pro": 1.5,       # 8,771,944 kB, 22 words, 3.1 s clip, on 6,317,911,232 B (1.42x)
+    "audio8-tts-0.6b": 2.2,         # 2,948,800 kB, 22 words, bare, on 1,429,545,312 B (2.11x)
+    "soprano-1.1-80m": 4.6,         # 544,772 kB, 22 words, bare, on 123,162,336 B (4.53x)
+    "outetts-1.0-1b": 1.5,          # 4,216,684 kB, 22 words, 3.1 s clip, on 3,029,895,456 B (1.43x)
+    "echo-tts": 2.1,                # 6,110,784 kB, 22 words, 3.1 s clip, on 3,028,207,456 B (2.07x)
+    "kitten-tts2": 1.4,             # 4,353,760 kB, 22 words, 3.1 s clip, on 3,282,123,776 B (1.36x)
     "voicetut-tts": 1.4,            # 1,816,688 kB, 15 Arabic words, 3.1 s clip, on 1,350,264,224 B (1.38x)
-    "miotts-1.7b": 2.0,             # 4,687,080 kB, 21 words, 3.1 s clip, on 2,496,393,216 B package (1.92x)
+    "miotts-1.7b": 2.0,             # 4,687,080 kB, 22 words, 3.1 s clip, on 2,496,393,216 B package (1.92x)
 }
 
 

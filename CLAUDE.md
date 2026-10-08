@@ -663,13 +663,14 @@ ties broken by the first name (`find_gguf` in `native/tests/model_path.h`, `_mai
    `_TTS_TIER_OVERRIDES` with its measured RTF table only after step 4; a new card of a family
    already there passes `tiers=_TTS_TIERS` and gains a GPU tier per lane the same way, from a
    fleet run of that card. Measure the card's product-shaped CPU peak RSS (`/usr/bin/time -v` on
-   a warm-up, then a ~20-word sentence, bare and, for a card that clones, again in a second
-   process with a ~3 s reference clip; the larger peak) against its default rung's `est_bytes`:
-   above 1.2x or at most 0.9x, add a `_TTS_RAM_FACTORS` entry (the ratio rounded up to one
-   decimal, the figures in a comment) and its
-   `MEASURED_CPU_PEAKS_KB` row in `test_catalog.py`. Tests: `test_catalog.py` (`TTS_CARD_IDS`,
-   the card count, the voice-required tuples, a per-card shape test), `test_tts_backend.py` (an
-   R16 gated or not-gated case), `test_accel.py` (`voice.required` on the wire if required).
+   a warm-up, then the 22-word sentence `_TTS_RAM_FACTORS` names, bare and, for a card that
+   clones, again in a second process with a ~3 s reference clip; a voice-required card has only
+   the clip run; the larger peak) against its default rung's `est_bytes`: above 1.2x or at most
+   0.9x, add a `_TTS_RAM_FACTORS` entry (the ratio rounded up to one decimal, the figures in a
+   comment) and its `MEASURED_CPU_PEAKS_KB` row in `test_catalog.py`. Tests: `test_catalog.py`
+   (`TTS_CARD_IDS`, the card count, the voice-required tuples, a per-card shape test),
+   `test_tts_backend.py` (an R16 gated or not-gated case), `test_accel.py` (`voice.required` on
+   the wire if required).
    `test_every_tts_family_has_an_op_recording` is why step 2 comes first.
 4. Fleet: `SK_TEST_TTS_GPU=1 SK_TEST_TTS_<FAMILY>_DIR=… pytest native/python/tests -k
    tts_synthesises_on_a_gpu_device` on GB10/Vulkan, the RTX 4070 SUPER and the M4, with the wheels
@@ -680,8 +681,8 @@ ties broken by the first name (`find_gguf` in `native/tests/model_path.h`, `_mai
    `native/include/sokuji_native.h` and `src/lib/local-inference/native/nativeProtocol.ts`. Two
    renderer values to check: the per-card `MODEL_CLIP_LIMITS` in
    `src/lib/local-inference/native/nativeVoiceStores.ts` (reference-clip ceiling) and the single
-   global `TTS_ASSUMED_RTF` in `NativeTtsClient.ts` (raise it if the family is slower than
-   echo_tts, the slowest measured on CPU).
+   global `TTS_ASSUMED_RTF` in `NativeTtsClient.ts`, 50 (raise it if the family is slower than
+   confucius4_tts cloning a 20 s clip, the slowest measured on CPU at 49.17).
 6. Release, in the order the Versions bullet fixes: native version + tag → wheels → pins,
    `test_runtime_gate.py` and `sidecarVersion` in one commit on main → sidecar tag → smoke the
    published bundles with `PYTHONNOUSERSITE=1` (the bundled interpreter honours user

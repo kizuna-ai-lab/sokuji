@@ -415,7 +415,7 @@ def test_tts_tier_overrides_default_is_cpu_only_for_unknown_family():
 
 
 # Measured CPU peaks (card -> (rung measured, peak RSS in kB as `/usr/bin/time -v` reports it,
-# which is KiB)), product-shaped (ruling 2026-10-09): a warm-up sentence, then a 21-word one (40
+# which is KiB)), product-shaped (ruling 2026-10-09): a warm-up sentence, then a 22-word one (40
 # Japanese characters for the Japanese cards, 15 Arabic words for VoiceTut), bare, and again in
 # another process with a 3.1 s reference clip for a card that clones; the larger peak is the one
 # recorded. A card whose peak is above 1.2x its rung's est_bytes, or at most 0.9x it, carries

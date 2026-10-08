@@ -30,12 +30,14 @@ const CHARS_PER_SECOND_OF_SPEECH = 12;
  *  different sentence than this one and the machine being busier now. */
 const TTS_BUDGET_SAFETY = 2;
 
-/** Assumed RTF when the sidecar reported none (older sidecar, or a family whose
- *  plan carried no measurement): the slowest family measured on the reference
- *  box (confucius4_tts cloning a 20 s reference clip, 37.98 warm on GB10 CPU; a
- *  card that needs a voice reports no RTF at init), so an unknown model is
- *  budgeted like the worst known one rather than like a fast one. */
-const TTS_ASSUMED_RTF = 38;
+/** Assumed RTF when the sidecar reported none (older sidecar, or a card that needs
+ *  a voice, which reports no RTF at init): the slowest measured on the reference
+ *  box, rounded up, so an unknown model is budgeted like the worst known one rather
+ *  than like a fast one. That is confucius4_tts cloning a 20 s reference clip on
+ *  GB10 CPU, 49.17 for a 3.6 s sentence (clip-cpu-confucius4-20s, sentence A). Its
+ *  cost is affine, about 100 s of clip work per synth plus a per-second cost, so a
+ *  short utterance outlives its budget whatever this constant is. */
+const TTS_ASSUMED_RTF = 50;
 
 /**
  * The sidecar emits binary PCM as Int16 mono @ 24 kHz.
