@@ -225,8 +225,8 @@ describe('writes', () => {
   });
 
   it('persists a pick under the old enum spelling; a load writes nothing', async () => {
-    useProviderStore.getState().select('localInference', 'pick');
-    expect(useProviderStore.getState().selected).toBe('localInference');
+    useProviderStore.getState().select('local_inference', 'pick');
+    expect(useProviderStore.getState().selected).toBe('local_inference');
     await vi.waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.common.provider', 'local_inference'));
 
     setSetting.mockClear();
@@ -234,8 +234,8 @@ describe('writes', () => {
     await vi.waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.common.provider', 'fake'));
 
     setSetting.mockClear();
-    useProviderStore.getState().select('localInference');
-    useProviderStore.getState().select('localInference', 'load');
+    useProviderStore.getState().select('local_inference');
+    useProviderStore.getState().select('local_inference', 'load');
     expect(setSetting).not.toHaveBeenCalled();
   });
 

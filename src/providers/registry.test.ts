@@ -4,7 +4,7 @@ import { AUTO, normalizePair } from '../lib/provider/languages';
 import type { AnyProvider, AuthContext } from '../lib/provider/types';
 import { parseCode } from '../lib/language/code';
 import en from '../locales/en/translation.json';
-import { LEGACY_SLICE_KEYS, storedProviderValue } from '../lib/session/storedSettings';
+import { LEGACY_SLICE_KEYS } from '../lib/session/storedSettings';
 import { isKizunaAIEnabled } from '../utils/environment';
 import { fakeLeasedProvider } from './fake/leased';
 import { fakeProvider } from './fake/provider';
@@ -134,7 +134,7 @@ describe('the invariants every provider meets (F17)', () => {
   const signedIn: AuthContext = { signedIn: true, getToken: async () => 'token' };
 
   it('lets only LocalInference read the pair and the legs in its check, so a pick or an audio-mode switch checks no network provider again', () => {
-    expect(PROVIDERS.filter((p) => p.checkReadsDirection).map((p) => p.id)).toEqual(['localInference']);
+    expect(PROVIDERS.filter((p) => p.checkReadsDirection).map((p) => p.id)).toEqual(['local_inference']);
   });
 
   it('declares the settings each own-key check reads, so an edit to any other field checks nothing again', () => {
@@ -152,17 +152,17 @@ describe('the invariants every provider meets (F17)', () => {
   });
 
   it("every released id is the old Provider enum's spelling (controller ruling 2)", () => {
-    for (const p of released) expect(Object.keys(LEGACY_SLICE_KEYS), p.id).toContain(storedProviderValue(p.id));
+    for (const p of released) expect(Object.keys(LEGACY_SLICE_KEYS), p.id).toContain(p.id);
   });
 
   it('a provider that existed before keeps its storage prefix', () => {
-    for (const p of released) expect(p.settings.key, p.id).toBe(LEGACY_SLICE_KEYS[storedProviderValue(p.id)]);
+    for (const p of released) expect(p.settings.key, p.id).toBe(LEGACY_SLICE_KEYS[p.id]);
   });
 
-  it('every released provider has a name and a description in en, under its locale key', () => {
+  it('every released provider has a name and a description in en, under its id', () => {
     // The two fakes are exempt (D24: never localized).
     for (const p of released) {
-      const key = p.i18nKey ?? p.id;
+      const key = p.id;
       expect(at(en, `providers.${key}.name`), p.id).toEqual(expect.any(String));
       expect(at(en, `providers.${key}.name`), p.id).not.toBe('');
       expect(at(en, `providers.${key}.description`), p.id).toEqual(expect.any(String));
@@ -342,7 +342,7 @@ describe('the invariants every provider meets (F17)', () => {
     // each provider plan adds its id where the owner orders it (spec: "one line in the order test").
     // Kizuna Soniox first, unflagged (Stage 2 Kizuna Soniox, ruling 6): the owner's 2026-09-12
     // product order put the managed provider first; then LocalInference, Gemini (Stage 2 Gemini, ruling 6), Doubao AST 2.0 (Stage 2 Volcengine AST2, ruling 5), OpenAI Realtime (Stage 2 OpenAI Realtime, ruling 18), OpenAI Translate (Stage 2 OpenAI Translate, ruling 11), OpenAI Live (Stage 2 OpenAI Live, ruling 9), Soniox with your own key, and Palabra AI last (Stage 2 Palabra, ruling 14).
-    expect(releaseBuild.PROVIDERS.map((p) => p.id)).toEqual(['kizunaai_soniox', 'localInference', 'gemini', 'volcengine_ast2', 'openai', 'openai_translate', 'openai_live', 'soniox', 'palabraai']);
+    expect(releaseBuild.PROVIDERS.map((p) => p.id)).toEqual(['kizunaai_soniox', 'local_inference', 'gemini', 'volcengine_ast2', 'openai', 'openai_translate', 'openai_live', 'soniox', 'palabraai']);
   });
 
   it('a development build adds exactly the two fakes', () => {

@@ -48,7 +48,7 @@
  *   SOKUJI_DEV_NO_ELECTRON=1 npx vite --port 5199 --strictPort    # another shell
  *   node scripts/dev/spine-local-probe.mjs [url] [seconds]
  *
- * Default url: http://localhost:5199/?preview=spine&provider=localInference
+ * Default url: http://localhost:5199/?preview=spine&provider=local_inference
  * &capture=device&autostart=1&models=moonshine-tiny-en-quant,opus-mt-en-jap
  * &pair=en:ja&cut=off
  *
@@ -121,7 +121,7 @@ const jobTmpDir = process.env.CLAUDE_JOB_DIR ? join(process.env.CLAUDE_JOB_DIR, 
 const PROFILE_DIR = join(jobTmpDir, 'spine-local-probe-profile');
 mkdirSync(PROFILE_DIR, { recursive: true });
 
-const BASE_URL = `http://localhost:5199/?preview=spine&provider=localInference&capture=device&autostart=1&models=${DEFAULT_MODELS}&pair=en:ja`;
+const BASE_URL = `http://localhost:5199/?preview=spine&provider=local_inference&capture=device&autostart=1&models=${DEFAULT_MODELS}&pair=en:ja`;
 // Each mode names its own cut: the stored one persists in the shared profile.
 const DEFAULT_URL = `${BASE_URL}&cut=off`;
 const SENTENCES_URL = `${BASE_URL}&cut=sentences:1&punctuation=1`;

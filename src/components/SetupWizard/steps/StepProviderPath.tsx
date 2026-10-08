@@ -34,7 +34,7 @@ const StepProviderPath: React.FC<Props> = ({ draft, dispatch }) => {
   const scenario = draft.scenario!;
   const nameOf = (id: ProviderType) => {
     const p = wizardProvider(id);
-    const key = p?.i18nKey ?? p?.id ?? id;
+    const key = p?.id ?? id;
     return t(`providers.${key}.name`, key);
   };
   const reasonOf = (reason: 'cannot-speak' | 'cannot-be-text-only') => reason === 'cannot-speak'

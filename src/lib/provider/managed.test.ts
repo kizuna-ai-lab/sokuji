@@ -65,9 +65,9 @@ describe('managed', () => {
   });
 
   it("leaves the base's guide, locale key and presence knobs behind", () => {
-    const base = { ...fakeProvider, guideUrl: 'https://example.com/guide', i18nKey: 'fakeKey', flagged: true as const, testerSwitch: 'debug:fake' };
+    const base = { ...fakeProvider, guideUrl: 'https://example.com/guide', flagged: true as const, testerSwitch: 'debug:fake' };
     const twin = managed(base, OVERRIDES);
-    for (const member of ['guideUrl', 'i18nKey', 'flagged', 'testerSwitch'] as const) expect(twin, member).not.toHaveProperty(member);
+    for (const member of ['guideUrl', 'flagged', 'testerSwitch'] as const) expect(twin, member).not.toHaveProperty(member);
   });
 
   it("takes no settings member or hook of the base it does not name: they are spelled out, not spread", () => {

@@ -311,7 +311,7 @@ export function SpinePreview() {
   // provider (plan 1e-2 ruling 10, `&provider=<id>`). ProviderPanel is a
   // child, so its own mount effect selects nothing (1e-3b-2 Task 1, P3) — this
   // effect, together with `loadSessionStores` below, owns the page's
-  // selection; covering the `localInference` case too (not just "nothing
+  // selection; covering the `local_inference` case too (not just "nothing
   // selected yet") undoes LocalInference's stored default, and `&provider=`
   // overrides it the other way.
   useEffect(() => {
@@ -322,7 +322,7 @@ export function SpinePreview() {
       return;
     }
     const selected = useProviderStore.getState().selected;
-    if (selected === null || selected === 'localInference') {
+    if (selected === null || selected === 'local_inference') {
       useProviderStore.getState().select('fake');
     }
   }, [providers]);
@@ -457,9 +457,9 @@ export function SpinePreview() {
       }
       if (pairParam) {
         const [source, target] = pairParam.split(':');
-        const localInference = providers.find((p) => p.id === 'localInference');
+        const localInference = providers.find((p) => p.id === 'local_inference');
         // `setPair` throws on an unloaded entry — only reachable once
-        // `ProviderPanel` has loaded it, i.e. `&provider=localInference` was
+        // `ProviderPanel` has loaded it, i.e. `&provider=local_inference` was
         // also given (the probe's own usage).
         const loaded = localInference && useProviderStore.getState().entries[localInference.id];
         if (source && target && localInference && loaded) {

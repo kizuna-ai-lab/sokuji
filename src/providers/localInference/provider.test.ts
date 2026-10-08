@@ -39,7 +39,7 @@ beforeEach(() => {
 
 describe('localInferenceProvider', () => {
   it('identifies itself: local, on every platform, with no credentials to fill or read', () => {
-    expect(localInferenceProvider.id).toBe('localInference');
+    expect(localInferenceProvider.id).toBe('local_inference');
     expect(localInferenceProvider.kind).toBe('local');
     expect(localInferenceProvider.platforms).toEqual(['electron', 'extension', 'web']);
     expect(localInferenceProvider.settings.key).toBe('localInference');
@@ -93,7 +93,7 @@ describe('localInferenceProvider', () => {
   });
 
   it('follows Kizuna Soniox in the registry (Stage 2 Kizuna Soniox, ruling 6)', () => {
-    expect(PROVIDERS.slice(0, 2).map((p) => p.id)).toEqual(['kizunaai_soniox', 'localInference']);
+    expect(PROVIDERS.slice(0, 2).map((p) => p.id)).toEqual(['kizunaai_soniox', 'local_inference']);
   });
 
   it('shows its EngineSummary under the picker', () => {

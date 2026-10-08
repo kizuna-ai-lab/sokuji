@@ -13,7 +13,6 @@ import { useEffect, useRef } from 'react';
 import { useAnalytics } from '../../lib/analytics';
 import { useAuth } from '../../lib/auth/hooks';
 import type { AnyProvider } from '../../lib/provider/types';
-import { storedProviderValue } from '../../lib/session/storedSettings';
 import { presentProviders } from '../../providers/registry';
 import { useProviderStore } from '../../stores/providerStore';
 import { useUIMode } from '../../stores/settingsStore';
@@ -57,8 +56,8 @@ export function useSignInProviderSwitch(wizardOnScreen: boolean): void {
     if (!useProviderStore.getState().entries[target.id]) void useProviderStore.getState().load(target);
     trackEvent('settings_modified', {
       setting_name: 'provider',
-      new_value: storedProviderValue(target.id),
-      old_value: from === null ? undefined : storedProviderValue(from),
+      new_value: target.id,
+      old_value: from ?? undefined,
       category: 'api',
     });
   }, [isLoaded, isSignedIn, error, uiMode, wizardOnScreen, trackEvent]);

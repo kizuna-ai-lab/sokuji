@@ -76,8 +76,8 @@ describe('loadSessionStores', () => {
 
     await loadSessionStores();
 
-    expect(useProviderStore.getState().selected).toBe('localInference');
-    expect(useProviderStore.getState().entries.localInference).toBeDefined();
+    expect(useProviderStore.getState().selected).toBe('local_inference');
+    expect(useProviderStore.getState().entries.local_inference).toBeDefined();
     expect(setSetting).not.toHaveBeenCalledWith('settings.common.provider', expect.anything());
   });
 

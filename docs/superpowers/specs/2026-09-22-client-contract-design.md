@@ -2539,7 +2539,10 @@ went (ruling 6).
 (`docs/superpowers/plans/2026-09-26-client-contract-stage2-foundation.md`).
 LocalInference, the precise extreme, landed in Stage 1. Provider ids are the
 old `Provider` enum's spellings, so stored selections, analytics and locale keys
-need no mapping; LocalInference keeps `localInference`, mapped since Stage 1.
+need no mapping; LocalInference kept Stage 1's `localInference` behind a
+mapping until 2026-10-09, when the runner's analytics were found to report the
+unmapped id (v0.42.1–v0.43.3) and the owner had it renamed to `local_inference`,
+the mapping and `i18nKey` retired; its settings keep the `localInference` slice.
 The order (the owner may overrule it):
 
 1. **Soniox** (`soniox`) — the richest: per-token language, provider timing,

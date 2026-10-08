@@ -45,7 +45,7 @@ const SECTION_IDS = ['languages-section', 'provider-section', 'output-section', 
 beforeEach(() => {
   stored.clear();
   setSetting.mockClear();
-  useProviderStore.setState({ selected: 'localInference', entries: { localInference: entry() }, readiness: {}, legs: ['speaker'] });
+  useProviderStore.setState({ selected: 'local_inference', entries: { local_inference: entry() }, readiness: {}, legs: ['speaker'] });
   useAudioStore.setState({ mode: 'speaker' } as Partial<ReturnType<typeof useAudioStore.getState>>);
   useSettingsStore.setState({ textOnly: false, engineSlotTarget: null } as Partial<ReturnType<typeof useSettingsStore.getState>>);
   useTurnModeStore.setState({ turnMode: 'auto' });

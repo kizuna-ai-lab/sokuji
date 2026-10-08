@@ -48,7 +48,7 @@ beforeEach(() => {
   trackEvent.mockClear();
   reportWarning.mockClear();
   auth = { isLoaded: true, isSignedIn: false };
-  useProviderStore.setState({ selected: 'localInference', selectionLocked: false, entries: {} });
+  useProviderStore.setState({ selected: 'local_inference', selectionLocked: false, entries: {} });
   useSettingsStore.setState({ uiMode: 'basic' });
 });
 
@@ -74,7 +74,7 @@ describe('useSignInProviderSwitch', () => {
     auth = { isLoaded: true, isSignedIn: true };
     rerender({ wizard: false });
 
-    expect(useProviderStore.getState().selected).toBe('localInference');
+    expect(useProviderStore.getState().selected).toBe('local_inference');
     expect(trackEvent).not.toHaveBeenCalled();
   });
 
@@ -82,12 +82,12 @@ describe('useSignInProviderSwitch', () => {
     const { rerender } = renderSwitch(true);
     auth = { isLoaded: true, isSignedIn: true };
     rerender({ wizard: true });
-    expect(useProviderStore.getState().selected).toBe('localInference');
+    expect(useProviderStore.getState().selected).toBe('local_inference');
 
     // The wizard closes afterward: the flip that happened underneath it is
     // spent, not merely deferred.
     rerender({ wizard: false });
-    expect(useProviderStore.getState().selected).toBe('localInference');
+    expect(useProviderStore.getState().selected).toBe('local_inference');
     expect(trackEvent).not.toHaveBeenCalled();
   });
 
@@ -107,7 +107,7 @@ describe('useSignInProviderSwitch', () => {
     auth = { isLoaded: true, isSignedIn: true };
     rerender({ wizard: false });
 
-    expect(useProviderStore.getState().selected).toBe('localInference');
+    expect(useProviderStore.getState().selected).toBe('local_inference');
     expect(trackEvent).not.toHaveBeenCalled();
   });
 
@@ -122,7 +122,7 @@ describe('useSignInProviderSwitch', () => {
     auth = { isLoaded: true, isSignedIn: true };
     rerender({ wizard: false });
 
-    expect(useProviderStore.getState().selected).toBe('localInference');
+    expect(useProviderStore.getState().selected).toBe('local_inference');
     expect(trackEvent).not.toHaveBeenCalled();
   });
 
@@ -150,7 +150,7 @@ describe('useSignInProviderSwitch', () => {
     auth = { isLoaded: true, isSignedIn: true };
     rerender({ wizard: false });
 
-    expect(useProviderStore.getState().selected).toBe('localInference');
+    expect(useProviderStore.getState().selected).toBe('local_inference');
     expect(trackEvent).not.toHaveBeenCalled();
     expect(loadSpy).not.toHaveBeenCalled();
     useProviderStore.setState({ load: realLoad });
@@ -185,8 +185,8 @@ describe('useSignInProviderSwitch', () => {
 describe('signInSwitchTarget', () => {
   it('names the first managed provider unless one is selected', () => {
     const offered = presentProviders();
-    expect(signInSwitchTarget(offered, 'localInference')?.id).toBe('kizunaai_soniox');
+    expect(signInSwitchTarget(offered, 'local_inference')?.id).toBe('kizunaai_soniox');
     expect(signInSwitchTarget(offered, 'kizunaai_soniox')).toBeNull();
-    expect(signInSwitchTarget([localInferenceProvider], 'localInference')).toBeNull();
+    expect(signInSwitchTarget([localInferenceProvider], 'local_inference')).toBeNull();
   });
 });

@@ -55,7 +55,7 @@ beforeEach(() => {
   cleanup();
   startSpy.mockClear();
   setShowSettings.mockClear();
-  useProviderStore.setState({ selected: 'localInference' });
+  useProviderStore.setState({ selected: 'local_inference' });
 });
 
 describe('useStartBasicsTour', () => {

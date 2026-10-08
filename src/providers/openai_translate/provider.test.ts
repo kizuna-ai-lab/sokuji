@@ -55,7 +55,7 @@ describe('the OpenAI Translate definition', () => {
       build: buildTranslate,
       describe: describeTranslate,
     });
-    for (const absent of ['flagged', 'i18nKey', 'TurnDetection', 'session', 'participantSpeech'] as const) {
+    for (const absent of ['flagged', 'TurnDetection', 'session', 'participantSpeech'] as const) {
       expect(openaiTranslateProvider, absent).not.toHaveProperty(absent);
     }
   });
