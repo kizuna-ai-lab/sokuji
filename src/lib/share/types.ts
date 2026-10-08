@@ -14,6 +14,8 @@ export interface ViewerEntry {
   languages: { source: string; target: string };
   source: ViewerRow[];
   translation: ViewerRow[];
+  /** The person's display number, on a labelled leg (`people()`). */
+  person?: number;
 }
 
 export interface ShareState {

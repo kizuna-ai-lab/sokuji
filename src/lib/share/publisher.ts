@@ -9,6 +9,7 @@ import type { Readable } from '../view/conversationView';
 import { describeCause, reportError } from '../diagnostics/report';
 import { applyDiff, diffEntries, type EntryDiff, type ShareItem } from './diff';
 import type { ResetReason, ShareState } from './types';
+import { entryPerson, people } from '../view/people';
 import { toViewerEntry } from './viewerEntry';
 
 export interface SharePort {
@@ -25,7 +26,7 @@ export interface PublisherSources {
 
 export function startSharePublisher(sources: PublisherSources, port: SharePort): () => void {
   const acked = new Map<string, string>();
-  const cache = new WeakMap<Entry, ShareItem | null>();
+  const cache = new WeakMap<Entry, { person: number | undefined; item: ShareItem | null }>();
   let failing = false;
   let stopped = false;
   // Bumped by every reset: a patch acknowledged after one belongs to the page
@@ -41,14 +42,18 @@ export function startSharePublisher(sources: PublisherSources, port: SharePort):
 
   const items = (): ShareItem[] => {
     const out: ShareItem[] = [];
-    for (const entry of sources.view.get().entries) {
-      let item = cache.get(entry);
-      if (item === undefined) {
-        const viewer = toViewerEntry(entry);
-        item = viewer ? { entry: viewer, json: JSON.stringify(viewer) } : null;
-        cache.set(entry, item);
+    const entries = sources.view.get().entries;
+    const who = people(entries);
+    for (const entry of entries) {
+      const person = entry.kind === 'exchange' ? who.numberOf(entry.leg, entryPerson(entry)) : undefined;
+      // An entry's number can change without the entry changing (its leg gains a second person).
+      let hit = cache.get(entry);
+      if (hit === undefined || hit.person !== person) {
+        const viewer = toViewerEntry(entry, person);
+        hit = { person, item: viewer ? { entry: viewer, json: JSON.stringify(viewer) } : null };
+        cache.set(entry, hit);
       }
-      if (item) out.push(item);
+      if (hit.item) out.push(hit.item);
     }
     return out;
   };

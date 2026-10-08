@@ -119,4 +119,23 @@ describe('startSharePublisher', () => {
     expect(lastOf(h.port.patch.mock.calls)![0].upsert.map((e) => e.id)).toEqual(['a']);
     h.stop();
   });
+
+  it('re-sends an earlier entry once its leg has a second person', async () => {
+    const said = (id: string, person: string): Entry => {
+      const e = exchange(id, '1') as Extract<Entry, { kind: 'exchange' }>;
+      return { ...e, leg: 'participant', source: e.source.map((r) => ({ ...r, person })) };
+    };
+    const h = harness();
+    await flush(); // the initial publish is acknowledged before anything changes
+    const a = said('pa', '1.1');
+    h.view.set({ entries: [a] });
+    await flush();
+    expect(lastOf(h.port.patch.mock.calls)![0].upsert.map((e) => [e.id, e.person])).toEqual([['pa', undefined]]);
+    const calls = h.port.patch.mock.calls.length;
+    h.view.set({ entries: [a, said('pb', '1.2')] });
+    await flush();
+    expect(h.port.patch.mock.calls.length).toBe(calls + 1);
+    expect(lastOf(h.port.patch.mock.calls)![0].upsert.map((e) => [e.id, e.person])).toEqual([['pa', 1], ['pb', 2]]);
+    h.stop();
+  });
 });
