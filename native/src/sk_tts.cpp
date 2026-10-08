@@ -246,7 +246,7 @@ constexpr FamilyInfo kFamilies[] = {
     // outetts     community_models/outetts/session.cpp: offline; bare synth works, a clip is
     //             optional but needs its transcript (700-703, 731-734); 24 kHz DAC (dac.cpp:663);
     //             always samples (do_sample is not read, so the column stays false); only
-    //             outetts.* session keys are validated.
+    //             outetts.* session keys are validated; build_request sends it max_tokens.
     {"outetts",        false, true,  true,  24000, false, false, false, FamilyTask::Tts, nullptr},
     // echo_tts    community_models/echo_tts/session.cpp: offline; the session refuses a Tts task
     //             (229-232) and a missing clip (586-591), and takes no transcript; 44.1 kHz;
@@ -560,6 +560,13 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
     // here, so it is pinned: one clip aligns once, whatever language it is spoken into.
     if (t->family == "outetts" && t->has_clone)
         req.options["reference_language"] = "auto";
+    // outetts budgets unspaced text about 15 tokens a codepoint (community_models/outetts/
+    // tokenizer.cpp:117-141, session.cpp:77-81), where Japanese and Chinese took 35-39 (measured
+    // 2026-10-08), and its retry splits only at spaces or punctuation (session.cpp:862-884): a
+    // clause without either failed, clip or not. The max_tokens its spec declares
+    // (model_specs/outetts.json:48) replaces that budget (session.cpp:172-180).
+    if (t->family == "outetts")
+        req.options["max_tokens"] = "2048";
 
     if (t->family == "supertonic" && speed != 1.0f) {
         req.options["speaking_rate"] = std::to_string(speed);

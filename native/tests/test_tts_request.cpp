@@ -695,6 +695,18 @@ void outetts_aligns_a_clip_in_one_language_whatever_the_target() {
     assert(req.text_input && req.text_input->language == "zh");   // the target still reaches the text
 }
 
+void outetts_gets_a_token_budget_that_fits_cjk() {
+    // Its own estimate gives unspaced text 12 tokens a codepoint (outetts/tokenizer.cpp:117-141);
+    // the explicit max_tokens its spec declares replaces it, with or without a clip.
+    const auto oute = handle_for("outetts");
+    rt::TaskRequest req = build_request(oute.get(), "姉は駅の近くの小さなパン屋で焼きたてのパンを買いました。", "ja", 1.0f);
+    assert(opt(req, "max_tokens") == "2048");
+    give_clip(oute.get(), "The quick brown fox.");
+    req = build_request(oute.get(), "Hello.", "en", 1.0f);
+    assert(opt(req, "max_tokens") == "2048");
+    assert(opt(req, "seed") == "0" && opt(req, "do_sample") == "false");
+}
+
 void set_process_env(const char *name, const char *value) {   // value == nullptr: unset
 #if defined(_WIN32)
     _putenv_s(name, value ? value : "");
@@ -1007,6 +1019,12 @@ void check_sampling(Audit &a, const ExpectedRow &e, const rt::TaskRequest &req, 
            opt(req, "do_sample"));
 }
 
+// max_tokens goes to outetts alone, whatever the voice.
+void check_max_tokens(Audit &a, const ExpectedRow &e, const rt::TaskRequest &req, const char *when) {
+    a.text(e.name, std::string(when) + ": max_tokens", std::strcmp(e.name, "outetts") == 0 ? "2048" : "<absent>",
+           opt(req, "max_tokens"));
+}
+
 void requests_honour_each_row() {
     constexpr const char *kTranscript = "The quick brown fox.";
     constexpr const char *kPreset = "Aria";
@@ -1016,6 +1034,7 @@ void requests_honour_each_row() {
             const auto h = handle_for(e.name);
             const rt::TaskRequest req = build_request(h.get(), "Hello.", "en", 1.0f);
             check_sampling(a, e, req, "bare");
+            check_max_tokens(a, e, req, "bare");
             a.flag(e.name, "bare: voice", false, req.voice.has_value());
             a.flag(e.name, "bare: reference_text", false, has(req, "reference_text"));
             a.flag(e.name, "bare: reference_language", false, has(req, "reference_language"));
@@ -1025,6 +1044,7 @@ void requests_honour_each_row() {
             give_clip(h.get(), kTranscript);
             rt::TaskRequest req = build_request(h.get(), "Hello.", "en", 1.0f);
             check_sampling(a, e, req, "clip");
+            check_max_tokens(a, e, req, "clip");
             a.flag(e.name, "clip: carries the clip", true, carries_clip(req));
             a.text(e.name, "clip: cached_voice_id", "<none>", cached_voice(req));
             a.text(e.name, "clip: reference_text", !e.strict || e.strict_sends_ref_text ? kTranscript : "<absent>",
@@ -1040,6 +1060,7 @@ void requests_honour_each_row() {
             give_preset(h.get(), kPreset);
             const rt::TaskRequest req = build_request(h.get(), "Hello.", "en", 1.0f);
             check_sampling(a, e, req, "preset");
+            check_max_tokens(a, e, req, "preset");
             std::string carriers;   // the options whose value is the preset
             for (const auto &[key, value] : req.options)
                 if (value == kPreset) carriers += (carriers.empty() ? "" : ",") + key;
@@ -1089,6 +1110,7 @@ int main() {
     soprano_is_sent_only_the_seed();
     glm_tts_gets_the_clip_and_its_transcript();
     outetts_aligns_a_clip_in_one_language_whatever_the_target();
+    outetts_gets_a_token_budget_that_fits_cjk();
     echo_tts_clones_in_a_voice_cloning_session_with_the_adaptive_window();
     kitten_tts2_speaks_a_language_through_its_named_voice();
     miotts_finds_its_codec_beside_the_model_folder();
