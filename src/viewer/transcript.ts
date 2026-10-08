@@ -12,7 +12,7 @@ export function transcriptText(entries: readonly ViewerEntry[], choice: Choice, 
     const first = piecesText(piecesOf(primary, false));
     const second = choice.both ? piecesText(piecesOf(secondary, false)) : '';
     if (first === '' && second === '') continue;
-    lines.push(`[${formatLocalTime(entry.t)}]`);
+    lines.push(entry.person !== undefined ? `[${formatLocalTime(entry.t)}] ${t('viewer.legend.person', { n: entry.person })}` : `[${formatLocalTime(entry.t)}]`);
     if (first) lines.push(first);
     if (second) lines.push(second);
     lines.push('');

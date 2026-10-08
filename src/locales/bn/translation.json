@@ -1336,7 +1336,8 @@
     },
     "legend": {
       "onSite": "উপস্থিত",
-      "remote": "অনলাইন"
+      "remote": "অনলাইন",
+      "person": "বক্তা {{n}}"
     },
     "backToLive": "লাইভে ফিরুন",
     "dock": {

@@ -1336,7 +1336,8 @@
     },
     "legend": {
       "onSite": "Presencial",
-      "remote": "Remoto"
+      "remote": "Remoto",
+      "person": "Orador {{n}}"
     },
     "backToLive": "Voltar ao direto",
     "dock": {

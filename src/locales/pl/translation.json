@@ -1336,7 +1336,8 @@
     },
     "legend": {
       "onSite": "Na miejscu",
-      "remote": "Zdalnie"
+      "remote": "Zdalnie",
+      "person": "Mówca {{n}}"
     },
     "backToLive": "Wróć do bieżących",
     "dock": {

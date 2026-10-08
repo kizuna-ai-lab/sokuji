@@ -1336,7 +1336,8 @@
     },
     "legend": {
       "onSite": "Ter plaatse",
-      "remote": "Online"
+      "remote": "Online",
+      "person": "Spreker {{n}}"
     },
     "backToLive": "Terug naar live",
     "dock": {

@@ -1336,7 +1336,8 @@
     },
     "legend": {
       "onSite": "Tại chỗ",
-      "remote": "Trực tuyến"
+      "remote": "Trực tuyến",
+      "person": "Người nói {{n}}"
     },
     "backToLive": "Về mới nhất",
     "dock": {

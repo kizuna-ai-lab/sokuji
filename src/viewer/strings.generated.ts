@@ -25,7 +25,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "حضوري",
-      "remote": "عن بُعد"
+      "remote": "عن بُعد",
+      "person": "المتحدث {{n}}"
     },
     "backToLive": "العودة إلى المباشر",
     "dock": {
@@ -100,7 +101,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "উপস্থিত",
-      "remote": "অনলাইন"
+      "remote": "অনলাইন",
+      "person": "বক্তা {{n}}"
     },
     "backToLive": "লাইভে ফিরুন",
     "dock": {
@@ -175,7 +177,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "Vor Ort",
-      "remote": "Online"
+      "remote": "Online",
+      "person": "Sprecher {{n}}"
     },
     "backToLive": "Zurück zu Live",
     "dock": {
@@ -250,7 +253,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "On site",
-      "remote": "Remote"
+      "remote": "Remote",
+      "person": "Speaker {{n}}"
     },
     "backToLive": "Back to live",
     "dock": {
@@ -325,7 +329,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "Presencial",
-      "remote": "En línea"
+      "remote": "En línea",
+      "person": "Hablante {{n}}"
     },
     "backToLive": "Volver al directo",
     "dock": {
@@ -400,7 +405,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "حضوری",
-      "remote": "از راه دور"
+      "remote": "از راه دور",
+      "person": "گوینده {{n}}"
     },
     "backToLive": "بازگشت به پخش زنده",
     "dock": {
@@ -475,7 +481,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "Paikan päällä",
-      "remote": "Etänä"
+      "remote": "Etänä",
+      "person": "Puhuja {{n}}"
     },
     "backToLive": "Takaisin uusimpaan",
     "dock": {
@@ -550,7 +557,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "Onsite",
-      "remote": "Online"
+      "remote": "Online",
+      "person": "Tagapagsalita {{n}}"
     },
     "backToLive": "Bumalik sa live",
     "dock": {
@@ -625,7 +633,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "Sur place",
-      "remote": "À distance"
+      "remote": "À distance",
+      "person": "Intervenant {{n}}"
     },
     "backToLive": "Revenir au direct",
     "dock": {
@@ -700,7 +709,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "במקום",
-      "remote": "מרחוק"
+      "remote": "מרחוק",
+      "person": "דובר {{n}}"
     },
     "backToLive": "חזרה לשידור החי",
     "dock": {
@@ -775,7 +785,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "उपस्थित",
-      "remote": "ऑनलाइन"
+      "remote": "ऑनलाइन",
+      "person": "वक्ता {{n}}"
     },
     "backToLive": "लाइव पर लौटें",
     "dock": {
@@ -850,7 +861,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "Di lokasi",
-      "remote": "Online"
+      "remote": "Online",
+      "person": "Pembicara {{n}}"
     },
     "backToLive": "Ke terbaru",
     "dock": {
@@ -925,7 +937,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "In presenza",
-      "remote": "Da remoto"
+      "remote": "Da remoto",
+      "person": "Interlocutore {{n}}"
     },
     "backToLive": "Torna alla diretta",
     "dock": {
@@ -1000,7 +1013,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "対面",
-      "remote": "オンライン"
+      "remote": "オンライン",
+      "person": "話者 {{n}}"
     },
     "backToLive": "最新に戻る",
     "dock": {
@@ -1075,7 +1089,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "현장",
-      "remote": "온라인"
+      "remote": "온라인",
+      "person": "화자 {{n}}"
     },
     "backToLive": "최신으로 이동",
     "dock": {
@@ -1150,7 +1165,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "Di lokasi",
-      "remote": "Dalam talian"
+      "remote": "Dalam talian",
+      "person": "Penutur {{n}}"
     },
     "backToLive": "Ke terkini",
     "dock": {
@@ -1225,7 +1241,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "Ter plaatse",
-      "remote": "Online"
+      "remote": "Online",
+      "person": "Spreker {{n}}"
     },
     "backToLive": "Terug naar live",
     "dock": {
@@ -1300,7 +1317,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "Na miejscu",
-      "remote": "Zdalnie"
+      "remote": "Zdalnie",
+      "person": "Mówca {{n}}"
     },
     "backToLive": "Wróć do bieżących",
     "dock": {
@@ -1375,7 +1393,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "Presencial",
-      "remote": "Remoto"
+      "remote": "Remoto",
+      "person": "Falante {{n}}"
     },
     "backToLive": "Voltar ao vivo",
     "dock": {
@@ -1450,7 +1469,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "Presencial",
-      "remote": "Remoto"
+      "remote": "Remoto",
+      "person": "Orador {{n}}"
     },
     "backToLive": "Voltar ao direto",
     "dock": {
@@ -1525,7 +1545,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "Очно",
-      "remote": "Онлайн"
+      "remote": "Онлайн",
+      "person": "Говорящий {{n}}"
     },
     "backToLive": "К прямому эфиру",
     "dock": {
@@ -1600,7 +1621,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "På plats",
-      "remote": "På distans"
+      "remote": "På distans",
+      "person": "Talare {{n}}"
     },
     "backToLive": "Tillbaka till live",
     "dock": {
@@ -1675,7 +1697,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "நேரில்",
-      "remote": "ஆன்லைன்"
+      "remote": "ஆன்லைன்",
+      "person": "பேச்சாளர் {{n}}"
     },
     "backToLive": "நேரலைக்குத் திரும்பு",
     "dock": {
@@ -1750,7 +1773,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "ప్రత్యక్షంగా",
-      "remote": "ఆన్‌లైన్"
+      "remote": "ఆన్‌లైన్",
+      "person": "వక్త {{n}}"
     },
     "backToLive": "లైవ్‌కు తిరిగి వెళ్ళు",
     "dock": {
@@ -1825,7 +1849,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "ในสถานที่",
-      "remote": "ออนไลน์"
+      "remote": "ออนไลน์",
+      "person": "ผู้พูด {{n}}"
     },
     "backToLive": "ไปที่ล่าสุด",
     "dock": {
@@ -1900,7 +1925,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "Yüz yüze",
-      "remote": "Çevrim içi"
+      "remote": "Çevrim içi",
+      "person": "Konuşmacı {{n}}"
     },
     "backToLive": "Canlıya dön",
     "dock": {
@@ -1975,7 +2001,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "Очно",
-      "remote": "Онлайн"
+      "remote": "Онлайн",
+      "person": "Мовець {{n}}"
     },
     "backToLive": "До прямого ефіру",
     "dock": {
@@ -2050,7 +2077,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "Tại chỗ",
-      "remote": "Trực tuyến"
+      "remote": "Trực tuyến",
+      "person": "Người nói {{n}}"
     },
     "backToLive": "Về mới nhất",
     "dock": {
@@ -2125,7 +2153,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "现场",
-      "remote": "线上"
+      "remote": "线上",
+      "person": "说话人 {{n}}"
     },
     "backToLive": "回到当前",
     "dock": {
@@ -2200,7 +2229,8 @@ export const VIEWER_WORDS: Record<string, unknown> = {
     },
     "legend": {
       "onSite": "現場",
-      "remote": "線上"
+      "remote": "線上",
+      "person": "說話者 {{n}}"
     },
     "backToLive": "回到最新",
     "dock": {

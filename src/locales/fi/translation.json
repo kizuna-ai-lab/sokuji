@@ -1336,7 +1336,8 @@
     },
     "legend": {
       "onSite": "Paikan päällä",
-      "remote": "Etänä"
+      "remote": "Etänä",
+      "person": "Puhuja {{n}}"
     },
     "backToLive": "Takaisin uusimpaan",
     "dock": {

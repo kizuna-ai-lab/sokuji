@@ -1336,7 +1336,8 @@
     },
     "legend": {
       "onSite": "Очно",
-      "remote": "Онлайн"
+      "remote": "Онлайн",
+      "person": "Говорящий {{n}}"
     },
     "backToLive": "К прямому эфиру",
     "dock": {

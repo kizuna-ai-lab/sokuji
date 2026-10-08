@@ -1336,7 +1336,8 @@
     },
     "legend": {
       "onSite": "현장",
-      "remote": "온라인"
+      "remote": "온라인",
+      "person": "화자 {{n}}"
     },
     "backToLive": "최신으로 이동",
     "dock": {

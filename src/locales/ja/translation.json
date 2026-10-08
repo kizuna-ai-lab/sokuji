@@ -1336,7 +1336,8 @@
     },
     "legend": {
       "onSite": "対面",
-      "remote": "オンライン"
+      "remote": "オンライン",
+      "person": "話者 {{n}}"
     },
     "backToLive": "最新に戻る",
     "dock": {

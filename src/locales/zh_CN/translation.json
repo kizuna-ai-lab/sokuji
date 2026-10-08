@@ -1336,7 +1336,8 @@
     },
     "legend": {
       "onSite": "现场",
-      "remote": "线上"
+      "remote": "线上",
+      "person": "说话人 {{n}}"
     },
     "backToLive": "回到当前",
     "dock": {

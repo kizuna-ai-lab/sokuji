@@ -1336,7 +1336,8 @@
     },
     "legend": {
       "onSite": "Sur place",
-      "remote": "À distance"
+      "remote": "À distance",
+      "person": "Intervenant {{n}}"
     },
     "backToLive": "Revenir au direct",
     "dock": {

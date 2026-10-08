@@ -1336,7 +1336,8 @@
     },
     "legend": {
       "onSite": "In presenza",
-      "remote": "Da remoto"
+      "remote": "Da remoto",
+      "person": "Interlocutore {{n}}"
     },
     "backToLive": "Torna alla diretta",
     "dock": {

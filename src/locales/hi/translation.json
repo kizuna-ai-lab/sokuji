@@ -1336,7 +1336,8 @@
     },
     "legend": {
       "onSite": "उपस्थित",
-      "remote": "ऑनलाइन"
+      "remote": "ऑनलाइन",
+      "person": "वक्ता {{n}}"
     },
     "backToLive": "लाइव पर लौटें",
     "dock": {

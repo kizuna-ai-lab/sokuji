@@ -1336,7 +1336,8 @@
     },
     "legend": {
       "onSite": "Presencial",
-      "remote": "En línea"
+      "remote": "En línea",
+      "person": "Hablante {{n}}"
     },
     "backToLive": "Volver al directo",
     "dock": {

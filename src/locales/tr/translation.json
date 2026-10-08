@@ -1336,7 +1336,8 @@
     },
     "legend": {
       "onSite": "Yüz yüze",
-      "remote": "Çevrim içi"
+      "remote": "Çevrim içi",
+      "person": "Konuşmacı {{n}}"
     },
     "backToLive": "Canlıya dön",
     "dock": {

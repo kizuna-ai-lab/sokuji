@@ -1336,7 +1336,8 @@
     },
     "legend": {
       "onSite": "Di lokasi",
-      "remote": "Dalam talian"
+      "remote": "Dalam talian",
+      "person": "Penutur {{n}}"
     },
     "backToLive": "Ke terkini",
     "dock": {

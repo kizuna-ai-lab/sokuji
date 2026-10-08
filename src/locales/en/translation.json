@@ -1369,7 +1369,8 @@
     },
     "legend": {
       "onSite": "On site",
-      "remote": "Remote"
+      "remote": "Remote",
+      "person": "Speaker {{n}}"
     },
     "backToLive": "Back to live",
     "dock": {

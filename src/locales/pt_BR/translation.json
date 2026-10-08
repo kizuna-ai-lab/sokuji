@@ -1336,7 +1336,8 @@
     },
     "legend": {
       "onSite": "Presencial",
-      "remote": "Remoto"
+      "remote": "Remoto",
+      "person": "Falante {{n}}"
     },
     "backToLive": "Voltar ao vivo",
     "dock": {

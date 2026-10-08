@@ -1336,7 +1336,8 @@
     },
     "legend": {
       "onSite": "現場",
-      "remote": "線上"
+      "remote": "線上",
+      "person": "說話者 {{n}}"
     },
     "backToLive": "回到最新",
     "dock": {

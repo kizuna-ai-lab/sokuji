@@ -1336,7 +1336,8 @@
     },
     "legend": {
       "onSite": "Di lokasi",
-      "remote": "Online"
+      "remote": "Online",
+      "person": "Pembicara {{n}}"
     },
     "backToLive": "Ke terbaru",
     "dock": {

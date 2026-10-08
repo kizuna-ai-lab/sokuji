@@ -1336,7 +1336,8 @@
     },
     "legend": {
       "onSite": "במקום",
-      "remote": "מרחוק"
+      "remote": "מרחוק",
+      "person": "דובר {{n}}"
     },
     "backToLive": "חזרה לשידור החי",
     "dock": {

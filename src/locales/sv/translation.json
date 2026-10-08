@@ -1336,7 +1336,8 @@
     },
     "legend": {
       "onSite": "På plats",
-      "remote": "På distans"
+      "remote": "På distans",
+      "person": "Talare {{n}}"
     },
     "backToLive": "Tillbaka till live",
     "dock": {

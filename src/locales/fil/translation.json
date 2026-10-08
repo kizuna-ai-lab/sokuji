@@ -1336,7 +1336,8 @@
     },
     "legend": {
       "onSite": "Onsite",
-      "remote": "Online"
+      "remote": "Online",
+      "person": "Tagapagsalita {{n}}"
     },
     "backToLive": "Bumalik sa live",
     "dock": {
