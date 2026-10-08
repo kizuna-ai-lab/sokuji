@@ -366,7 +366,7 @@ describe('Soniox startBoth: shared', () => {
 });
 
 describe('Soniox startBoth: shared, languages', () => {
-  it("shared: a translation into the speaker's own language is not spoken (a code-switched line; Review Focus 4)", async () => {
+  it("shared: a translation into the speaker's own language is not spoken, and the leg still speaks after it", async () => {
     const h = await live();
     speak(h, 'speaker', 10);
     // The speaker's source is 'en'; they said a Japanese line, so Soniox translated it into English.
@@ -374,6 +374,9 @@ describe('Soniox startBoth: shared, languages', () => {
     expect(opened(h, 'speaker')).toEqual([1, 2]);
     const [speakerTts] = h.ttsSockets();
     expect(speakerTts.sentJson<Json>().some((m) => m.text === 'It is fine.')).toBe(false);
+    // A normal line afterwards is spoken: the skip did not close the leg's speech.
+    h.sttSockets()[0].receive(msg(orig('Good morning.'), tr('おはよう。'), END));
+    expect(speakerTts.sentJson<Json>().some((m) => m.text === 'おはよう。')).toBe(true);
   });
 
   it("shared: the token and the pair are both in app codes, so Soniox's 'tl' meets the source 'fil'", async () => {
@@ -402,7 +405,7 @@ describe('Soniox startBoth: cancelled', () => {
 });
 
 describe('Soniox startBoth: face-to-face', () => {
-  it("face-to-face: the other person's code-switched line is not read back to them (Review Focus 4)", async () => {
+  it("face-to-face: the other person's code-switched line is not read back to them, and they are still spoken to after it", async () => {
     const h = await live({ faceToFace: true, participantSpeaks: true });
     const stt = h.sttSockets()[0];
     // Label '2' speaks Japanese (the participant's source): two lines establish it as the participant.
@@ -412,6 +415,9 @@ describe('Soniox startBoth: face-to-face', () => {
     stt.receive(msg({ ...orig('Thank you.'), language: 'en', speaker: '2' }, tr('Dōmo arigatō.', 'ja', 'en'), END));
     expect(opened(h, 'participant')).toEqual([1, 2, 3, 4]);
     for (const tts of h.ttsSockets()) expect(tts.sentJson<Json>().some((m) => m.text === 'Dōmo arigatō.')).toBe(false);
+    // A normal line afterwards is spoken to the speaker: the skip did not close the participant's speech.
+    stt.receive(msg({ ...orig('Mata ne.'), language: 'ja', speaker: '2' }, tr('See you.', 'en', 'ja'), END));
+    expect(h.ttsSockets().some((tts) => tts.sentJson<Json>().some((m) => m.text === 'See you.'))).toBe(true);
   });
 
   it('attributes by label and language, not energy: a code-switched line stays with its speaker', async () => {
@@ -438,18 +444,20 @@ describe('Soniox startBoth: face-to-face', () => {
     }
   });
 
-  it('a third language casts no vote: it lands on the speaker with no label, and on the label otherwise', async () => {
+  it('a third language casts no vote: it follows the established label, and answers the speaker with none', async () => {
     const h = await live({ faceToFace: true });
     const stt = h.sttSockets()[0];
-    stt.receive(msg({ ...orig('Guten Tag.'), language: 'de', speaker: '2' }, END));
-    expect(opened(h, 'speaker')).toEqual([1]);
-    // The German line cast no vote: two Japanese lines are the label's first two votes, not its third and fourth.
-    stt.receive(msg({ ...orig('Konnichiwa.'), language: 'ja', speaker: '2' }, END));
-    expect(opened(h, 'participant')).toEqual([2]);
-    stt.receive(msg({ ...orig('Arigatō.'), language: 'ja', speaker: '2' }, END));
-    expect(opened(h, 'participant')).toEqual([2, 3]);
-    // Established as the participant: a third language follows the label.
-    stt.receive(msg({ ...orig('Danke.'), language: 'de', speaker: '2' }, END));
-    expect(opened(h, 'participant')).toEqual([2, 3, 4]);
+    const say = (text: string, language: string) => stt.receive(msg({ ...orig(text), language, speaker: '2' }, END));
+    // Two German lines: with no label and no witness each lands on the speaker.
+    say('Guten Tag.', 'de');
+    say('Wie geht es?', 'de');
+    expect(opened(h, 'speaker')).toEqual([1, 2]);
+    // Two Japanese lines establish the label as the participant. Were German a speaker vote, this would tie 2-2 and not establish.
+    say('Konnichiwa.', 'ja');
+    say('Arigatō.', 'ja');
+    expect(opened(h, 'participant')).toEqual([3, 4]);
+    // A third language now follows the established label.
+    say('Danke.', 'de');
+    expect(opened(h, 'participant')).toEqual([3, 4, 5]);
   });
 });

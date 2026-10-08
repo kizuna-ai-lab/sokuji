@@ -429,6 +429,12 @@ describe('the Soniox adapter: one leg', () => {
     expect(log.length).toBe(n + 1);
   });
 
+  it('a same-language pair (ja to ja) speaks its translations: a leg speaks into its target, whatever its source', async () => {
+    const { stt, tts } = await live({ context: { direction: { source: 'ja', target: 'ja' }, speech: true, turns: 'auto' } });
+    stt().receive(msg({ ...orig('Ohayō.'), language: 'ja' }, tr('おはよう。', 'ja', 'en'), END));
+    expect(tts().sentJson<Json>().some((m) => m.text === 'おはよう。')).toBe(true);
+  });
+
   it('stop ends a TTS stream still speaking with text_end, framed after the STT stream\'s end (Stage 2 session end, ruling 2 (ii))', async () => {
     const { session, stt, tts, log } = await live();
     // A final translation with no sentence end and no <end> yet: its TTS stream is still open.
