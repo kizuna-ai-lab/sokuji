@@ -205,6 +205,26 @@ drop one character at each of the eight.
 So the 10-token "max word length" buffer is exactly the room the owed pieces need, and it does
 nothing for the junk: the audio-less step stays a lottery however long the silence before it.
 
+### 5.2 The real worker on the GPU
+
+The #536 harness page (a throwaway Vite build of `voxtral-webgpu.worker.ts` driven the way
+`StreamingAsrEngine` drives it, headless Chromium, WebGPU/Vulkan on the GB10, q4) fed 5 s of
+silence, `jfk.wav`, then `ja-cv2.wav`, once with the worker's default 1.4 s `minSilenceDuration`
+and once with 0.3 s, for `main` at `a7758923` ("base") and this branch ("fix"):
+
+| run | results, in order |
+|---|---|
+| base, 1.4 s | `And so, my fellow Americans, ask not what your country can do for you.` · `Ask what you can do for your country.` · `いくら山を掘り返してもどこかで見たような面白みのないものしか見つからなかった。` |
+| fix, 1.4 s | identical |
+| base, 0.3 s | `And so, my fellow Americans,` · `Ask not.` · **`.`** · `What your country can do for you.` · `Ask what you can do for your country.` · **`ch`** · `いくら山を…見つからなかった。` |
+| fix, 0.3 s | `And so, my fellow Americans,` · `Ask not.` · `What your country can do for you.` · `Ask what you can do for your country.` · `いくら山を…見つからなかった。` |
+
+With the short silence the shipped worker emits the lottery token as a result of its own — `.`
+60 ms after `Ask not.`, `ch` 60 ms after the last English sentence — which is the one-word segment
+users report; the branch emits the same real results and nothing else, and the Japanese sentence
+keeps its final `。` in both. With 1.4 s both are clean on this clip: the lottery landed on
+`[STREAMING_PAD]`, as the A/C/K cases of §5 would predict, not because the step was absent.
+
 ## 6. Remedies
 
 The two findings of §5 call for two changes together: the tail must be long enough that every owed
