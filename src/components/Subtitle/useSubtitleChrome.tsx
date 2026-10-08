@@ -5,7 +5,7 @@
  * bounds are mirrored into the stores, and the overlay gets its resize
  * handles. None of it touches conversation data.
  */
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type MutableRefObject, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type MutableRefObject, type ReactNode } from 'react';
 import useSettingsStore, { useSetSubtitleFullscreen, useSubtitleFullscreen } from '../../stores/settingsStore';
 import { useSaveSubtitleWindowBounds, useSubtitlePositionLocked, useSubtitleSettings } from '../../stores/subtitleStore';
 import { useOverlayDragResize } from './useOverlayDragResize';
@@ -54,8 +54,8 @@ export interface SubtitleChrome {
   rootProps: {
     className: string;
     style: CSSProperties;
-    onMouseEnter: () => void;
-    onMouseMove: () => void;
+    onMouseEnter: (e: ReactMouseEvent) => void;
+    onMouseMove: (e: ReactMouseEvent) => void;
     onMouseLeave: () => void;
   };
   /** The overlay's eight resize handles, or null. */
@@ -92,6 +92,21 @@ export function useSubtitleChrome({ surface, onExit, forceVisible = false }: {
   // if the timer was armed by mouse movement that happened during the hold.
   const forceVisibleRef = useRef(forceVisible);
   forceVisibleRef.current = forceVisible;
+  // Where the pointer last moved, and whether that move landed on the bar
+  // (SubtitleBar's root, `.subtitle-bar`); null once it left the window. The
+  // bar's controls are named only in their hover tooltips, so a pointer
+  // resting on the bar to read one keeps it up.
+  const pointerRef = useRef<{ x: number; y: number; onBar: boolean } | null>(null);
+  // Asked when the countdown runs out, not at the last move: a hidden bar
+  // takes no pointer events, so a pointer that came to rest where it was
+  // landed its last move on the captions underneath — yet the bar it brought
+  // back is under it now. Without a hit test (jsdom) the last move decides.
+  const pointerOnBar = useCallback(() => {
+    const p = pointerRef.current;
+    if (!p) return false;
+    const hit = rootRef.current?.ownerDocument.elementFromPoint?.(p.x, p.y);
+    return hit ? hit.closest('.subtitle-bar') !== null : p.onBar;
+  }, []);
   // Reveal the bar and (re)arm an inactivity timer that hides it after
   // AUTO_HIDE_MS. Driven by mouse MOVEMENT, not just enter/leave: in
   // fullscreen the root fills the entire screen, so the pointer never
@@ -101,11 +116,20 @@ export function useSubtitleChrome({ surface, onExit, forceVisible = false }: {
     if (hideTimer.current) clearTimeout(hideTimer.current);
     setBarVisible(true);
     hideTimer.current = setTimeout(() => {
-      if (forceVisibleRef.current) return;
+      if (forceVisibleRef.current || pointerOnBar()) return;
       setBarVisible(false);
     }, AUTO_HIDE_MS);
-  }, []);
+  }, [pointerOnBar]);
+  const onPointerActivity = (e: ReactMouseEvent) => {
+    pointerRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      onBar: e.target instanceof Element && e.target.closest('.subtitle-bar') !== null,
+    };
+    revealBar();
+  };
   const onMouseLeave = () => {
+    pointerRef.current = null;
     if (hideTimer.current) clearTimeout(hideTimer.current);
     hideTimer.current = setTimeout(() => {
       if (forceVisibleRef.current) return;
@@ -225,8 +249,8 @@ export function useSubtitleChrome({ surface, onExit, forceVisible = false }: {
     rootProps: {
       className: `subtitle-app${fullscreen ? ' fullscreen' : ''}`,
       style: rootStyle,
-      onMouseEnter: revealBar,
-      onMouseMove: revealBar,
+      onMouseEnter: onPointerActivity,
+      onMouseMove: onPointerActivity,
       onMouseLeave,
     },
     resizeHandles: showResizeHandles ? (
