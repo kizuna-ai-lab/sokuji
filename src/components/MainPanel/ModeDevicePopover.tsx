@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useId, useState, useMemo } from 'react';
 import {
   useFloating,
   useDismiss,
@@ -10,7 +10,7 @@ import {
   size,
   autoUpdate,
 } from '@floating-ui/react';
-import { Mic, AudioLines, Volume2, Headphones, ArrowLeftRight, Play, Power, PowerOff, ChevronDown, ChevronUp } from 'lucide-react';
+import { Mic, AudioLines, Volume2, Headphones, Users, ArrowLeftRight, Play, Power, PowerOff, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -89,6 +89,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
   const setSwap = useRoutingStore((s) => s.setFaceToFaceSwap);
   const label = useLanguageLabel();
   const beside = mode === 'both' && f2f.active;
+  const otherSideHeadingId = useId();
 
   // Only one row expanded at a time. Default: none expanded.
   const [expanded, setExpanded] = useState<ChannelKey | null>(null);
@@ -109,12 +110,16 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
       // scrollable middle section handles overflow internally.
       size({
         padding: 8,
-        apply({ availableHeight, elements }) {
+        apply({ availableWidth, availableHeight, elements }) {
           // Clamp to availableHeight so the popover never exceeds the viewport
           // (an internal scroll handles overflow). The Math.max with 0 guards
-          // against floating-ui handing us a transient negative value.
+          // against floating-ui handing us a transient negative value. The
+          // width too: on a panel narrower than the popover (300px) it keeps
+          // 8px from each edge and its rows ellipsize; on a wider one it keeps
+          // its own width.
           Object.assign(elements.floating.style, {
             maxHeight: `${Math.max(0, availableHeight)}px`,
+            maxWidth: `${Math.max(0, availableWidth)}px`,
           });
         },
       }),
@@ -257,6 +262,30 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     return { text: row.selectedDevice.label || row.selectedDevice.deviceId, cls: '' };
   };
 
+  // Both: where the other person is, between the microphone and the row it decides (board 1):
+  // a heading styled as the rows' labels, which also names the radio group.
+  const otherSideChoice = mode === 'both' && f2f.offered && (
+    <div className="mode-device-popover__other-side">
+      <div id={otherSideHeadingId} className="mode-device-popover__other-side-heading">
+        <Users size={14} className="mode-device-popover__row-icon" aria-hidden="true" />
+        <span className="mode-device-popover__row-label">{t('popover.otherSide', 'Other side')}</span>
+      </div>
+      <div className="mode-device-popover__sides" role="radiogroup" aria-labelledby={otherSideHeadingId}>
+        {(['meeting', 'beside'] as const).map((side) => (
+          <label key={side} className={`mode-device-popover__side${otherSide === side ? ' mode-device-popover__side--active' : ''}`}>
+            <input type="radio" name="other-side" checked={otherSide === side} onChange={() => setOtherSide(side)} />
+            <span className="mode-device-popover__side-title">
+              {side === 'meeting' ? t('popover.otherSideMeeting', 'In a meeting') : t('popover.otherSideBeside', 'Beside me')}
+            </span>
+            <span className="mode-device-popover__side-hint">
+              {side === 'meeting' ? t('popover.otherSideMeetingHint', 'Captures the system audio or an app') : t('popover.otherSideBesideHint', 'Two people at one microphone')}
+            </span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <FloatingPortal>
       <div
@@ -308,6 +337,8 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
                   {row.isMuted ? <PowerOff size={14} /> : <Power size={14} />}
                 </button>
                 )}
+                {/* No switch (face-to-face's headphones), but its column stays, so the summary and chevron line up with the rows above. */}
+                {!row.onMuteToggle && <span className="mode-device-popover__mute-slot" aria-hidden="true" />}
               </div>
 
               {isExpanded && canExpand && (
@@ -328,26 +359,12 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
                   })}
                 </div>
               )}
+
+              {row.key === 'mic' && otherSideChoice}
             </React.Fragment>
           );
         })}
         </div>
-
-        {mode === 'both' && f2f.offered && (
-          <div className="mode-device-popover__other-side" role="radiogroup" aria-label={t('popover.otherSide', 'Other side')}>
-            {(['meeting', 'beside'] as const).map((side) => (
-              <label key={side} className={`mode-device-popover__side${otherSide === side ? ' mode-device-popover__side--active' : ''}`}>
-                <input type="radio" name="other-side" checked={otherSide === side} onChange={() => setOtherSide(side)} />
-                <span className="mode-device-popover__side-title">
-                  {side === 'meeting' ? t('popover.otherSideMeeting', 'In a meeting') : t('popover.otherSideBeside', 'Beside me')}
-                </span>
-                <span className="mode-device-popover__side-hint">
-                  {side === 'meeting' ? t('popover.otherSideMeetingHint', 'Captures the system audio or an app') : t('popover.otherSideBesideHint', 'Two people at one microphone')}
-                </span>
-              </label>
-            ))}
-          </div>
-        )}
 
         {beside && f2f.me && f2f.other && (
           <div className="mode-device-popover__ears">

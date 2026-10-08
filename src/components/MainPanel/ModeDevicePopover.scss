@@ -7,7 +7,10 @@
   background: #2a2a2a;
   border: 1px solid #444;
   border-radius: 8px;
-  width: 320px;
+  // 320px inside its 1px border. Border-box, so the max-width floating-ui's
+  // size() sets on a narrow panel bounds the whole popover.
+  box-sizing: border-box;
+  width: 322px;
   font-size: 12px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
   color: #ccc;
@@ -136,6 +139,13 @@
     }
   }
 
+  // A row with no switch (face-to-face's headphones) keeps the switch's column,
+  // so its summary and chevron end where the other rows' do.
+  &__mute-slot {
+    flex-shrink: 0;
+    width: 32px;
+  }
+
   // Participant row has no expand action — remove pointer cursor and hover background.
   &__row--participant &__row-main {
     cursor: default;
@@ -180,13 +190,27 @@
     flex-shrink: 0;
   }
 
-  // Both: who the other person is. Two radio tiles; the real input is visually
-  // hidden but stays focusable, and the tile shows its focus ring.
+  // Both: who the other person is, a section between the device rows with
+  // their divider and their left edge. Its heading is a row's icon and label;
+  // under it, two radio tiles. The real input is visually hidden but stays
+  // focusable, and the tile shows its focus ring.
   &__other-side {
-    flex-shrink: 0;
+    border-top: 1px solid #3a3a3a;
+    padding: 8px 14px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__other-side-heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__sides {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    margin: 8px 14px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     border: 1px solid #444;
     border-radius: 7px;
     overflow: hidden;

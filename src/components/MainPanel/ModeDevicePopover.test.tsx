@@ -6,7 +6,6 @@
  * subtitle becomes a lie, so the row gains a real picker when - and only when -
  * a per-application helper actually reported sources.
  */
-import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import ModeDevicePopover from './ModeDevicePopover';
@@ -145,6 +144,48 @@ describe('ModeDevicePopover — Both, the other side', () => {
     mountBoth();
     fireEvent.click(screen.getByRole('radio', { name: /Beside me/ }));
     expect(store.setOtherSide).toHaveBeenCalledWith('beside');
+  });
+
+  // Board 1's order: the microphone, the choice under its own heading, then the row the choice decides.
+  const order = () => Array.from(document.querySelectorAll('.mode-device-popover__row .mode-device-popover__row-label, [role="radiogroup"], .mode-device-popover__ears'))
+    .map((el) => (el.getAttribute('role') === 'radiogroup' ? 'choice' : el.classList.contains('mode-device-popover__ears') ? 'ears' : el.textContent));
+
+  it('in a meeting: the microphone, the choice, then the system-audio row', () => {
+    mountBoth();
+    expect(order()).toEqual(['Microphone', 'choice', "Other's audio"]);
+  });
+
+  it('beside me: the microphone, the choice, the headphones, then the ears', () => {
+    f2f.active = true;
+    store.otherSide = 'beside';
+    mountBoth();
+    expect(order()).toEqual(['Microphone', 'choice', 'Headphones', 'ears']);
+  });
+
+  it('labels the choice by its visible heading, not by a second copy of the words', () => {
+    mountBoth();
+    const group = screen.getByRole('radiogroup', { name: 'Other side' });
+    expect(group.hasAttribute('aria-label')).toBe(false);
+    const heading = document.getElementById(group.getAttribute('aria-labelledby')!);
+    expect(heading?.textContent).toBe('Other side');
+    expect(heading?.closest('[role="radiogroup"]')).toBeNull();
+  });
+
+  it('beside me: the headphones row has no switch, but keeps its column so the summary lines up with the microphone row', () => {
+    f2f.active = true;
+    store.otherSide = 'beside';
+    mountBoth();
+    const rows = Array.from(document.querySelectorAll('.mode-device-popover__row'));
+    const phones = rows.find((r) => r.textContent?.includes('Headphones'))!;
+    expect(phones.querySelector('.mode-device-popover__mute-btn')).toBeNull();
+    const slot = phones.querySelector('.mode-device-popover__mute-slot');
+    expect(slot).not.toBeNull();
+    expect(slot?.getAttribute('aria-hidden')).toBe('true');
+    expect(slot).toBe(phones.lastElementChild);
+    // The microphone row keeps its real switch, and no placeholder.
+    const mic = rows.find((r) => r.textContent?.includes('Microphone'))!;
+    expect(mic.querySelector('.mode-device-popover__mute-btn')).not.toBeNull();
+    expect(mic.querySelector('.mode-device-popover__mute-slot')).toBeNull();
   });
 
   it('hides the choice under a provider without face-to-face', () => {
