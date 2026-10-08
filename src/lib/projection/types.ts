@@ -19,6 +19,8 @@ export interface Row {
   final: boolean;
   /** The segment's detected language, when the provider reported one. */
   language?: string;
+  /** The segment's person (`Segment.person`), when the adapter labels people. */
+  person?: string;
 }
 
 export type Pairing = 'stated' | 'inferred' | 'none';

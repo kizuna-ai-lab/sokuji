@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Leg, Segment, Notice } from '../conversation/types';
-import { createProjector, DEFAULT_PROJECTION } from './project';
+import { createProjector, DEFAULT_PROJECTION, sameRow } from './project';
 import type { Entry } from './types';
 
 let n = 0;
@@ -126,5 +126,14 @@ describe('createProjector', () => {
     const second = projector.project([legOf('speaker', [{ ...open, final: true }])], DEFAULT_PROJECTION);
     expect(second[0]).not.toBe(first[0]);
     expect(exchanges(second)[0].source[0]).toMatchObject({ text: 'x.', final: true });
+  });
+});
+
+describe('sameRow', () => {
+  it('tells two rows apart by their person', () => {
+    const r = { key: 'a:0', segmentId: 'a', side: 'source' as const, start: 0, end: 1, text: 'x', final: true };
+    expect(sameRow({ ...r, person: '1.1' }, { ...r, person: '1.1' })).toBe(true);
+    expect(sameRow({ ...r, person: '1.1' }, { ...r, person: '1.2' })).toBe(false);
+    expect(sameRow(r, { ...r, person: '1.1' })).toBe(false);
   });
 });
