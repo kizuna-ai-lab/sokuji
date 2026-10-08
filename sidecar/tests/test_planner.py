@@ -1112,6 +1112,48 @@ def test_resolve_tts_plans_carry_the_rung_bytes_and_the_cards_factor():
         assert (p.config.rung_bytes, p.config.ram_factor) == (d.est_bytes, card.ram_factor)
 
 
+# Each resolve path builds its Plans with the rung it picked: `_plan_config(model, d)`. A path
+# that dropped `d` would fall back to the card's FIRST rung (the default one), so these pin a
+# NON-default rung (or, where a pin narrows the card to one rung, resolve every rung).
+
+
+def _own_rung_bytes(card, plan):
+    return next(d.est_bytes for d in card.deployments
+                if d.artifact == plan.artifact and d.tier == plan.tier)
+
+
+def test_resolve_tts_auto_pinned_to_a_non_default_rung_carries_that_rungs_bytes():
+    card = catalog.tts_model("higgs-audio-v3-4b")
+    default, bf16 = card.deployments[0], next(d for d in card.deployments if d.compute_type == "bf16")
+    assert default.compute_type != "bf16" and default.est_bytes != bf16.est_bytes
+    plans = planner.resolve_tts(card.id, machine=CPU_ONLY, platform="linux", cache={}, pin="bf16")
+    assert [p.compute_type for p in plans] == ["bf16"]
+    assert plans[0].config.rung_bytes == bf16.est_bytes
+
+
+def test_resolve_translate_auto_pinned_to_a_non_default_rung_carries_that_rungs_bytes():
+    card = catalog.translate_model("qwen3-0.6b")
+    default = card.deployments[0]
+    q4 = next(d for d in card.deployments if d.compute_type == "q4_k_m")
+    assert default.compute_type != "q4_k_m" and default.est_bytes != q4.est_bytes
+    plans = planner.resolve_translate(card.id, "auto", machine=CUDA_12GB, platform="linux", cache={},
+                                      downloaded=set(), pin="q4_k_m",
+                                      est_bytes=lambda d: d.est_bytes, format_ready=lambda ct: True)
+    assert len(plans) >= 2 and {p.compute_type for p in plans} == {"q4_k_m"}   # the GPU pick and its cpu floor
+    for p in plans:
+        assert p.config.rung_bytes == q4.est_bytes == _own_rung_bytes(card, p)
+
+
+def test_resolve_override_carries_each_rungs_own_bytes():
+    # The device-override path (resolve_deployments) lists every rung of the card.
+    card = catalog.tts_model("higgs-audio-v3-4b")
+    plans = planner.resolve_tts(card.id, "cpu", machine=CPU_ONLY, platform="linux", cache={})
+    assert {p.compute_type for p in plans} == {d.compute_type for d in card.deployments}
+    assert len({p.config.rung_bytes for p in plans}) > 1
+    for p in plans:
+        assert p.config.rung_bytes == _own_rung_bytes(card, p)
+
+
 def test_resolve_translate_propagates_qwen3_thinking_config():
     # Resolve-level propagation: a real resolve() call, not a hand-built Plan,
     # must carry the card's derived PlanConfig through to the Plan it returns.

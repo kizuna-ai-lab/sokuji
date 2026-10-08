@@ -50,8 +50,9 @@ class _ModelBase:
     # TranslateModel.prompt_family).
     graph_family: str = ""
     # How much system RAM a CPU load needs per byte of the rung's est_bytes: 1.0 unless a
-    # measured CPU peak exceeded 1.2x its rung (_TTS_RAM_FACTORS, below). accel.load_with_fallback
-    # refuses a cpu or Metal load whose rung x factor plus headroom exceeds free memory.
+    # measured CPU peak was above 1.2x or at most 0.9x its rung (_TTS_RAM_FACTORS, below).
+    # accel.load_with_fallback refuses a cpu or Metal load whose rung x factor plus headroom
+    # exceeds free memory.
     ram_factor: float = 1.0
 
 
@@ -1145,11 +1146,12 @@ _TTS_TIER_OVERRIDES: dict[str, tuple[str, ...]] = {
     "index_tts2": ("gpu-vulkan", "gpu-metal", "cpu"),
 }
 
-# RAM a CPU load needs per byte of the rung (TtsModel.ram_factor), for the cards whose measured
-# CPU peak RSS (`/usr/bin/time -v`, one load and synth of the q8_0 test model) exceeded 1.2x
-# that rung's est_bytes: peak / est_bytes, rounded UP to one decimal. A card with no measured
-# peak, or one at or below 1.2x, keeps 1.0 and is not listed. The factor errs low on purpose:
-# a rung with no measurement is judged by its file alone.
+# RAM a CPU load needs per byte of the rung (ram_factor), for the cards whose measured CPU peak
+# RSS (`/usr/bin/time -v`, one load and synth of the q8_0 test model unless marked) was above
+# 1.2x that rung's est_bytes, or at most 0.9x it (a flat 1.0 would refuse a machine that could
+# load a card needing less than its file): peak / est_bytes, rounded UP to one decimal. A card
+# with no measured peak, or one between 0.9x and 1.2x, keeps 1.0 and is not listed. A rung with
+# no measurement is judged by its file alone, so the table errs low.
 _TTS_RAM_FACTORS: dict[str, float] = {
     "moss-tts-local-1.5": 1.8,      # 13,060,424 kB on 7,512,220,768 B (1.78x)
     "chatterbox-turbo": 5.3,        # 3,607,324 kB on 699,101,408 B (5.28x)
@@ -1162,6 +1164,9 @@ _TTS_RAM_FACTORS: dict[str, float] = {
     "echo-tts": 1.9,                # 5,555,704 kB on 3,028,207,456 B (1.88x)
     "voicetut-tts": 1.3,            # 1,613,196 kB on 1,350,264,224 B (1.22x)
     "miotts-1.7b": 1.8,             # 4,298,480 kB on 2,496,393,216 B package (1.76x)
+    "confucius4": 0.9,              # 6,788,072 kB on 8,192,757,760 B `orig` rung (0.85x)
+    "neutts-2e": 0.9,               # 2,495,772 kB on 3,016,181,288 B `orig` rung (0.85x)
+    "magpie-357m": 0.8,             # 1,203,312 kB on 1,562,142,912 B (0.79x)
 }
 
 

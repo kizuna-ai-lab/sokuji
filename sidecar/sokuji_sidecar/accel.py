@@ -657,6 +657,14 @@ def _gib(n: float) -> str:
     return f"{n / (1 << 30):.1f}"
 
 
+def _gib_ceil(n: int) -> str:
+    return f"{-(-int(n) * 10 // (1 << 30)) / 10:.1f}"
+
+
+def _gib_floor(n: int) -> str:
+    return f"{int(n) * 10 // (1 << 30) / 10:.1f}"
+
+
 # Slab on top of rung x ram_factor that free system RAM must also cover before a cpu (or
 # unified-memory Metal) load: the runtime's own working set, the interpreter, the audio path.
 _RAM_HEADROOM_BYTES = 512 << 20
@@ -671,7 +679,8 @@ def load_with_fallback(plans: list):
     est_bytes x the card's ram_factor + _RAM_HEADROOM_BYTES: the OS would kill the sidecar
     or swap the machine to a crawl mid-load. Unknown free RAM (no psutil) or an unknown
     rung size skips the check. A plan the check refuses is skipped like the VRAM gate's;
-    if no later plan loads, the error names the memory it needs and the memory free.
+    if none loads and the last plan was a refusal, the error names the memory it needs and
+    the memory free (a plan attempted after a refusal and failing otherwise is reported instead).
 
     Two VRAM-aware safeguards layer on top of plain try/next:
       • Proactive gate — before a GPU plan that still has a CPU plan after it,
@@ -684,7 +693,7 @@ def load_with_fallback(plans: list):
     notice = None
     oom = False
     oom_need = oom_free = None  # weights estimate + free VRAM seen just before an OOM
-    ram_short = None            # (needed, free) system RAM behind the last RAM refusal
+    ram_short = None            # (needed, free) RAM behind a refusal that no later attempt followed
     for i, plan in enumerate(plans):
         has_cpu_fallback = any(p.device == "cpu" for p in plans[i + 1:])
         is_gpu = plan.device != "cpu"
@@ -698,8 +707,8 @@ def load_with_fallback(plans: list):
             ram_free = ram_free_bytes()
             if ram_free is not None and ram_free < ram_need:
                 ram_short = (ram_need, ram_free)
-                notice = (f"{plan.device} skipped (needs ~{_gib(ram_need)} GiB of memory, "
-                          f"{_gib(ram_free)} GiB free)")
+                notice = (f"{plan.device} skipped (needs ~{_gib_ceil(ram_need)} GiB of memory, "
+                          f"{_gib_floor(ram_free)} GiB free)")
                 continue
         # Read free VRAM and weights estimate ONCE per GPU plan; both the
         # proactive gate and the honest OOM message reuse them. Capture free
@@ -724,6 +733,7 @@ def load_with_fallback(plans: list):
             backend.load(plan.artifact, plan.device, plan.compute_type, plan.config)
             return backend, plan, notice
         except BackendLoadError as e:
+            ram_short = None    # a plan was attempted after any refusal: that failure is the news
             notice = f"{plan.device} unavailable ({e.reason}); falling back"
             # String-matched, not device-gated: ggml/Vulkan/Metal allocation
             # failures don't share one exception type across platforms, but do
@@ -735,11 +745,13 @@ def load_with_fallback(plans: list):
                 oom, oom_need, oom_free = True, budget, free
             continue
     if ram_short is not None:
-        # Ahead of the GPU message, which advises switching to CPU: the CPU plan was refused too.
+        # The last plan was refused for memory. Ahead of the GPU message, which advises
+        # switching to CPU: the CPU plan was refused too. Need rounds up and free down, so
+        # the two figures never read as equal.
         need, free = ram_short
         raise AllPlansFailed(
-            f"Not enough memory to load this model: it needs about {_gib(need)} GiB and "
-            f"{_gib(free)} GiB is free. Close other applications or pick a smaller model.")
+            f"Not enough memory to load this model: it needs about {_gib_ceil(need)} GiB and "
+            f"{_gib_floor(free)} GiB is free. Close other applications or pick a smaller model.")
     if oom:
         if oom_need is not None and oom_free is not None:
             short = f" It needs ~{_gib(oom_need)} GiB but only {_gib(oom_free)} GiB is free."

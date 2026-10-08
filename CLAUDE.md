@@ -250,6 +250,10 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      (skipped on CPU and for every card whose `voice_required` is set; a card's default preset
      is applied before it) to pay the driver's
      one-time pipeline-compile cost at load, not on the user's first utterance.
+   - **RAM gate**: `accel.load_with_fallback` skips a cpu or Metal plan whose rung `est_bytes` ×
+     the card's `ram_factor` (1.0 unless `catalog._TTS_RAM_FACTORS` lists it) + 512 MiB exceeds
+     free RAM (psutil; no check without it); when that refusal was the last plan, the sidecar
+     replies "Not enough memory to load this model…" through its ordinary `error` message.
    - **Voice rules** are per card (`TtsModel.voice_required`, `transcript_required`,
      `presets` and `default_preset` in `catalog.py`, consumed by `tts_backend.py`;
      `voice_required` defaults to `family in VOICE_REQUIRED_FAMILIES`, ten families). Clone-only
@@ -655,9 +659,12 @@ ties broken by the first name (`find_gguf` in `native/tests/model_path.h`, `_mai
    reason to leave a family out. The card starts cpu-only (`_TTS_TIERS`) and joins
    `_TTS_TIER_OVERRIDES` with its measured RTF table only after step 4; a new card of a family
    already there passes `tiers=_TTS_TIERS` and gains a GPU tier per lane the same way, from a
-   fleet run of that card. Tests: `test_catalog.py` (`TTS_CARD_IDS`, the card count, the
-   voice-required tuples, a per-card shape test), `test_tts_backend.py` (an R16 gated or
-   not-gated case), `test_accel.py` (`voice.required` on the wire if required).
+   fleet run of that card. Measure the card's CPU peak RSS (`/usr/bin/time -v` on its CPU synth
+   case) against the rung's `est_bytes`: above 1.2x or at most 0.9x, add a `_TTS_RAM_FACTORS`
+   entry (the ratio rounded up to one decimal, the figures in a comment) and its
+   `MEASURED_CPU_PEAKS_KB` row in `test_catalog.py`. Tests: `test_catalog.py` (`TTS_CARD_IDS`,
+   the card count, the voice-required tuples, a per-card shape test), `test_tts_backend.py` (an
+   R16 gated or not-gated case), `test_accel.py` (`voice.required` on the wire if required).
    `test_every_tts_family_has_an_op_recording` is why step 2 comes first.
 4. Fleet: `SK_TEST_TTS_GPU=1 SK_TEST_TTS_<FAMILY>_DIR=… pytest native/python/tests -k
    tts_synthesises_on_a_gpu_device` on GB10/Vulkan, the RTX 4070 SUPER and the M4, with the wheels

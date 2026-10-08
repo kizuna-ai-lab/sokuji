@@ -416,8 +416,8 @@ def test_tts_tier_overrides_default_is_cpu_only_for_unknown_family():
 
 # Measured CPU peaks (card -> (rung measured, peak RSS in kB as `/usr/bin/time -v` reports it,
 # which is KiB)): one load and one synth of the card's test model, from the roster expansion's
-# per-card runs. A card whose peak exceeds 1.2x its rung's est_bytes carries
-# ram_factor = ceil(peak / est_bytes, to one decimal); every other card keeps 1.0.
+# per-card runs. A card whose peak is above 1.2x its rung's est_bytes, or at most 0.9x it,
+# carries ram_factor = ceil(peak / est_bytes, to one decimal); every other card keeps 1.0.
 MEASURED_CPU_PEAKS_KB = {
     "moss-tts-local-1.5": ("q8_0", 13060424),
     "vibevoice-1.5b": ("q8_0", 3546932),
@@ -451,7 +451,7 @@ def _expected_ram_factor(mid):
     est = next(d.est_bytes for d in catalog.tts_model(mid).deployments
                if d.tier == "cpu" and d.compute_type == rung)
     peak = peak_kb * 1024
-    if peak * 10 <= est * 12:                        # not above 1.2x
+    if est * 9 < peak * 10 <= est * 12:              # above 0.9x and not above 1.2x
         return 1.0
     return -(-peak * 10 // est) / 10                 # ceil to one decimal, integer arithmetic
 
@@ -462,13 +462,24 @@ def test_ram_factor_pins_each_card_to_its_measured_cpu_peak():
         assert catalog.tts_model(mid).ram_factor == _expected_ram_factor(mid), mid
 
 
-def test_only_a_card_whose_measured_peak_exceeds_1_2x_carries_a_factor():
+def test_only_a_card_measured_above_1_2x_or_at_most_0_9x_carries_a_factor():
     carrying = {m.id for m in catalog.tts_models() if m.ram_factor != 1.0}
     assert carrying == {mid for mid in MEASURED_CPU_PEAKS_KB if _expected_ram_factor(mid) != 1.0}
     assert carrying                                   # the rule is exercised, not vacuous
     assert set(catalog._TTS_RAM_FACTORS) == carrying  # one table, nothing set elsewhere
     for mid, f in catalog._TTS_RAM_FACTORS.items():
-        assert f > 1.2 and round(f, 1) == f, mid
+        assert (f > 1.2 or f <= 0.9) and round(f, 1) == f, mid
+    # both sides of the rule are populated: cards that need more than their file and less
+    assert any(f > 1.2 for f in catalog._TTS_RAM_FACTORS.values())
+    assert any(f <= 0.9 for f in catalog._TTS_RAM_FACTORS.values())
+
+
+def test_a_measured_card_between_0_9x_and_1_2x_keeps_1_0():
+    # chatterbox (0.97x), lfm2.5-audio (0.94x), vibevoice (1.13x), kitten-tts2 (1.16x) are
+    # measured but inside the band where a flat 1.0 is close enough.
+    for mid in ("chatterbox", "lfm2.5-audio-en", "lfm2.5-audio-ja", "vibevoice-1.5b", "kitten-tts2"):
+        assert mid in MEASURED_CPU_PEAKS_KB and mid not in catalog._TTS_RAM_FACTORS
+        assert catalog.tts_model(mid).ram_factor == 1.0, mid
 
 
 def test_every_other_card_estimates_its_memory_from_the_file_alone():
