@@ -903,8 +903,10 @@ TTS_STAGING_DIRNAME = "sokuji-tts-staging"
 # on 2026-09-03 (voxcpm1, voxcpm2, irodori_tts, index_tts2) arrived cpu-only and
 # earned their rows the same evening (commit 2f2b28bc) once the native-1.0.2 wheels
 # were validated per family on the fleet. Each family added with native 1.3.0
-# arrived cpu-only too and joins that dict only through its own fleet run. A family that
-# fails every GPU lane loses its card rather than keeping a tier it cannot serve.
+# arrived cpu-only too and joins that dict only through its own fleet run. A new card of
+# a family already in that dict passes `tiers=_TTS_TIERS` to `_tts_gguf_row` and gains a
+# GPU tier the same way, from a fleet run of that card. A family that fails every GPU lane
+# loses its card rather than keeping a tier it cannot serve.
 _TTS_TIERS = ("cpu",)
 
 # R19 follow-up / ruling R25 (2026-09-01, task 8): the first real Vulkan TTS
@@ -1151,7 +1153,7 @@ def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
                   sample_rate=24000, named_voices=False, transcript_required=False,
                   recommended=False, extra_files=(), license=None,
                   repo=_AUDIOCPP_GGUF_REPO, companions=None, voice_required=None, presets=(),
-                  default_preset="", rung_dtypes=None):
+                  default_preset="", rung_dtypes=None, tiers=None):
     """One native_tts card. `quants` maps QUANT token (the filename's own
     suffix, e.g. "q8_0") -> (filename, bytes) under `dir_` in `repo`: audio.cpp's
     official mirror unless the card names a third-party repo, which must be pinned
@@ -1182,7 +1184,9 @@ def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
     after load (spec stage 2.3). Tiers come
     from `_TTS_TIER_OVERRIDES.get(family, _TTS_TIERS)` — cpu-only by default,
     gpu-vulkan and gpu-metal added back per family once GB10/M4-validated (see
-    that dict's own comment, R19/R25/R36).
+    that dict's own comment, R19/R25/R36) — unless the card passes its own `tiers`:
+    a new card of a family that already has GPU tiers starts on `_TTS_TIERS` and
+    gains a GPU tier per lane only from a fleet run of that card (R19, per card).
 
     `rung_dtypes` maps a QUANT token to the ggml dtypes of the matrix tensors of
     that rung's published main GGUF and companion GGUFs together
@@ -1242,7 +1246,7 @@ def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
         raise ValueError(f"{mid}: a default preset makes the card speak from load; "
                          "voice_required must be False")
     deps = []
-    tiers = _TTS_TIER_OVERRIDES.get(family, _TTS_TIERS)
+    tiers = _TTS_TIER_OVERRIDES.get(family, _TTS_TIERS) if tiers is None else tuple(tiers)
     prefix = f"{repo}/{dir_}/" if dir_ else f"{repo}/"
     order_keys = [default_quant] + [q for q in quants if q != default_quant]
     for i, q in enumerate(order_keys):
@@ -1678,7 +1682,8 @@ TTS_MODELS: list[TtsModel] = [
     # clones=false for it), so the card needs no voice although qwen3_tts is in
     # VOICE_REQUIRED_FAMILIES: the speaker is mandatory, and default_preset gives it the
     # vendor's first-listed one at load. Every speaker speaks every one of the ten languages.
-    # Tiers come from the family (_TTS_TIER_OVERRIDES is keyed by family).
+    # CPU tier only until the fleet runs this card (R19, per card): the qwen3_tts recording is
+    # the Base checkpoint's clip synth, not this card's preset graph.
     _tts_gguf_row(
         "qwen3-tts-1.7b-customvoice", "Qwen3-TTS 1.7B CustomVoice",
         ("zh", "en", "ja", "ko", "de", "fr", "ru", "pt", "es", "it"),
@@ -1690,10 +1695,11 @@ TTS_MODELS: list[TtsModel] = [
         presets=("Vivian", "Serena", "Uncle_Fu", "Dylan", "Eric", "Ryan", "Aiden",
                  "Ono_Anna", "Sohee"),
         default_preset="Vivian",
-        rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}, "bf16": {"bf16"}}),
+        rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}, "bf16": {"bf16"}},
+        tiers=_TTS_TIERS),
     # Irodori TTS 500M v3: an older irodori_tts checkpoint (its embedded request contract
     # declares `caption`, not `instruction`; Sokuji sends neither). Japanese only, clip
-    # optional, 48 kHz. Tiers come from the family.
+    # optional, 48 kHz. CPU tier only until the fleet runs this card (R19, per card).
     _tts_gguf_row(
         "irodori-tts-500m-v3", "Irodori TTS 500M v3", ("ja",),
         "irodori_tts", "Irodori-TTS-500M-v3-GGUF",
@@ -1701,18 +1707,20 @@ TTS_MODELS: list[TtsModel] = [
          "f16": ("irodori-tts-500m-v3-f16.gguf", 1254813120)},
         default_quant="q8_0", order=25, clones=True, streaming=False,
         sample_rate=48000,
-        rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}, "f16": {"f16"}}),
+        rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}, "f16": {"f16"}},
+        tiers=_TTS_TIERS),
     # Irodori TTS v4.1 Anime: v4 Small's architecture and request contract, hosted in the same
-    # Hub folder. Japanese only, clip optional, 48 kHz, one q8_0 file. Carded as MIT by the
-    # owner's ruling (2026-10-06): the weights' own repository was unreachable, and the GGUF
-    # embeds the MIT v4.1-Small card. Tiers come from the family.
+    # Hub folder. Japanese only, clip optional, 48 kHz, one q8_0 file, CPU tier only until the
+    # fleet runs this card (R19, per card). Carded as MIT by the owner's ruling (2026-10-06):
+    # the weights' own repository was unreachable, and the GGUF embeds the MIT v4.1-Small card.
     _tts_gguf_row(
         "irodori-tts-v4.1-anime", "Irodori TTS v4.1 Anime", ("ja",),
         "irodori_tts", "Irodori-TTS-v4-Small-GGUF",
         {"q8_0": ("irodori-tts-v4.1-anime-q8_0.gguf", 1112547264)},
         default_quant="q8_0", order=26, clones=True, streaming=False,
         sample_rate=48000,
-        rung_dtypes={"q8_0": {"bf16", "f16", "q8_0"}}),
+        rung_dtypes={"q8_0": {"bf16", "f16", "q8_0"}},
+        tiers=_TTS_TIERS),
     # Higgs Audio v3 TTS 4B (Boson AI): an optional clip, its transcript optional too. Boson's
     # Research and Non-Commercial License forbids hosted, SaaS, plug-in, end-user-application
     # and production use without a separate licence, and using it to train other models: the
@@ -1885,10 +1893,10 @@ TTS_MODELS: list[TtsModel] = [
             source_repo="dignome/kitten_tts2",
             attribution="Stellon Labs Kitten TTS 2. Powered by Stellon Labs")),
     # VoiceTut TTS: an Egyptian Arabic fine-tune of OmniVoice, run by the omnivoice family that is
-    # already compiled in, so it shares OmniVoice's op recording and, since _TTS_TIER_OVERRIDES is
-    # keyed by family, its GPU tiers -- the same graph, already validated on the fleet. Its card
-    # says "Always pass --language arz" while the app's picker offers "ar", so the load language
-    # forces "arz" on every synth. A clip and its transcript are required, as for OmniVoice.
+    # already compiled in, so it shares OmniVoice's op recording; CPU tier only until the fleet
+    # runs this card (R19, per card). Its card says "Always pass --language arz" while the
+    # app's picker offers "ar", so the load language forces "arz" on every synth. A clip and
+    # its transcript are required, as for OmniVoice.
     # Licence (ruling 2026-10-06): OmniVoice's own terms -- the repo declares Apache-2.0, but the
     # weights fine-tune OmniVoice (CC-BY-NC-4.0) -- naming the repo the file downloads from.
     _tts_gguf_row(
@@ -1899,6 +1907,7 @@ TTS_MODELS: list[TtsModel] = [
         default_quant="q8_0", order=36, load_language="arz",
         clones=True, streaming=True, sample_rate=24000, transcript_required=True,
         rung_dtypes={"q8_0": {"f16", "f32", "q8_0"}, "f16": {"f16"}},
+        tiers=_TTS_TIERS,
         repo="mohammedaly22/VoiceTut-TTS-GGUF",
         license=License(
             spdx="CC-BY-NC-4.0",

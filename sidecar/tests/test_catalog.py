@@ -324,12 +324,14 @@ def test_tts_system_has_cpu_floor_and_unique_ids():
 
 def _assert_tts_ladder(m):
     """The two-rung shape every TTS card shares: one rank-2.0 default, any alt at rank 1.0,
-    and every quant on exactly its family's tier set (_TTS_TIER_OVERRIDES, else cpu only -- a
-    new family starts there until the fleet has run it, R19)."""
-    want = set(catalog._TTS_TIER_OVERRIDES.get(m.family, catalog._TTS_TIERS))
+    and every quant on one and the same tier set, with a cpu floor. Which set is pinned per
+    card: every tier for the fourteen that predate sub-project A, cpu only for a card added
+    since until the fleet has run it (R19)."""
     by_ct = {}
     for d in m.deployments:
         by_ct.setdefault(d.compute_type, set()).add(d.tier)
+    want = by_ct[m.deployments[0].compute_type]
+    assert "cpu" in want, (m.id, sorted(want))
     for ct, tiers in by_ct.items():
         assert tiers == want, (m.id, ct, sorted(tiers))
     ranks = {d.compute_type: d.rank for d in m.deployments}
@@ -347,6 +349,29 @@ def test_tts_quant_ladder_shape():
         for ct in {d.compute_type for d in m.deployments}:
             assert {d.tier for d in m.deployments if d.compute_type == ct} == \
                 {"cpu", "gpu-vulkan", "gpu-metal"}, (mid, ct)
+
+
+def test_every_card_added_in_sub_project_a_starts_on_the_cpu_tier():
+    """A new card starts on the CPU tier, whatever its family's tiers, and gains a GPU tier only
+    for a lane the fleet has run that card on (R19, per card): a card of a family that already
+    has GPU tiers is no exception."""
+    assert len(A_TTS_CARD_IDS) == len(TTS_CARD_IDS) - len(PRE_A_TTS_CARD_IDS) > 0
+    inheriting = [mid for mid in A_TTS_CARD_IDS
+                  if catalog.tts_model(mid).family in catalog._TTS_TIER_OVERRIDES]
+    assert inheriting                       # the rule is exercised, not vacuous
+    for mid in A_TTS_CARD_IDS:
+        assert {d.tier for d in catalog.tts_model(mid).deployments} == {"cpu"}, mid
+
+
+def test_a_cards_own_tiers_override_its_familys():
+    def card(**kw):
+        return catalog._tts_gguf_row("x", "X", ("en",), "qwen3_tts", "X-GGUF",
+                                     {"q8_0": ("x-q8_0.gguf", 1), "bf16": ("x-bf16.gguf", 2)},
+                                     default_quant="q8_0", order=99, **kw)
+    assert {d.tier for d in card().deployments} == set(catalog._TTS_TIER_OVERRIDES["qwen3_tts"])
+    own = card(tiers=catalog._TTS_TIERS)
+    _assert_tts_ladder(own)
+    assert {d.tier for d in own.deployments} == {"cpu"}
 
 
 def test_the_ladder_rule_accepts_a_cpu_only_new_family_and_refuses_mixed_tiers():
@@ -770,6 +795,8 @@ def test_voice_required_is_its_own_axis_not_a_shape_inference():
 # The fourteen cards that predate sub-project A, kept apart from TTS_CARD_IDS, which every
 # 2026-10-06 card is appended to: assertions true only of these fourteen iterate this tuple.
 PRE_A_TTS_CARD_IDS = TTS_CARD_IDS[:14]
+# Every card sub-project A added: the rest of TTS_CARD_IDS.
+A_TTS_CARD_IDS = TTS_CARD_IDS[14:]
 
 
 def test_voice_required_families_is_the_single_source_of_truth():
@@ -1554,7 +1581,8 @@ def test_kugelaudio_card():
 def test_qwen3_customvoice_card():
     # 2026-10-06: the qwen3_tts CustomVoice checkpoint: nine built-in speakers, no cloning, and
     # a default speaker applied at load, so the card needs no voice although its family does.
-    # Tiers are the family's (_TTS_TIER_OVERRIDES is keyed by family).
+    # It starts on the CPU tier although its family has GPU tiers: the qwen3_tts recording is
+    # the Base checkpoint's clip synth, not this card's preset graph.
     m = catalog.tts_model("qwen3-tts-1.7b-customvoice")
     assert m is not None
     assert (m.family, m.graph_family, m.name) == ("qwen3_tts", "qwen3_tts", "Qwen3-TTS 1.7B CustomVoice")
@@ -1570,7 +1598,8 @@ def test_qwen3_customvoice_card():
     cap = catalog.voice_capability(m)
     assert (cap["builtin"], cap["custom"], cap["required"]) == ("named", "none", False)
     assert m.license is None and m.extra_files == ()
-    assert {d.tier for d in m.deployments} == set(catalog._TTS_TIER_OVERRIDES["qwen3_tts"])
+    assert set(catalog._TTS_TIER_OVERRIDES["qwen3_tts"]) > {"cpu"}
+    assert {d.tier for d in m.deployments} == {"cpu"}
     rungs = {d.compute_type: d for d in m.deployments}
     assert set(rungs) == {"q8_0", "bf16"}
     assert rungs["q8_0"].rank == 2.0 and rungs["bf16"].rank == 1.0
@@ -1588,8 +1617,8 @@ def test_qwen3_customvoice_card():
 
 
 def test_irodori_500m_v3_card():
-    # 2026-10-06: a second irodori_tts card; Japanese, clip optional, 48 kHz; tiers are the
-    # family's (_TTS_TIER_OVERRIDES is keyed by family).
+    # 2026-10-06: a second irodori_tts card; Japanese, clip optional, 48 kHz; it starts on the
+    # CPU tier although its family has GPU tiers.
     m = catalog.tts_model("irodori-tts-500m-v3")
     assert m is not None
     assert (m.family, m.graph_family, m.name) == ("irodori_tts", "irodori_tts", "Irodori TTS 500M v3")
@@ -1599,7 +1628,8 @@ def test_irodori_500m_v3_card():
     assert m.streaming is False and m.sample_rate == 48000
     assert m.voice_required is False and m.presets == () and m.default_preset == ""
     assert m.license is None and m.extra_files == ()
-    assert {d.tier for d in m.deployments} == set(catalog._TTS_TIER_OVERRIDES["irodori_tts"])
+    assert set(catalog._TTS_TIER_OVERRIDES["irodori_tts"]) > {"cpu"}
+    assert {d.tier for d in m.deployments} == {"cpu"}
     rungs = {d.compute_type: d for d in m.deployments}
     assert set(rungs) == {"q8_0", "f16"}
     assert rungs["q8_0"].rank == 2.0 and rungs["f16"].rank == 1.0
@@ -1616,7 +1646,7 @@ def test_irodori_500m_v3_card():
 
 def test_irodori_v41_anime_card():
     # 2026-10-06: a third irodori_tts card, in v4 Small's Hub folder; MIT by the owner's
-    # ruling; tiers are the family's (_TTS_TIER_OVERRIDES is keyed by family).
+    # ruling; it starts on the CPU tier although its family has GPU tiers.
     m = catalog.tts_model("irodori-tts-v4.1-anime")
     assert m is not None
     assert (m.family, m.graph_family, m.name) == ("irodori_tts", "irodori_tts", "Irodori TTS v4.1 Anime")
@@ -1626,7 +1656,7 @@ def test_irodori_v41_anime_card():
     assert m.streaming is False and m.sample_rate == 48000
     assert m.voice_required is False and m.presets == () and m.default_preset == ""
     assert m.license is None and m.extra_files == ()
-    assert {d.tier for d in m.deployments} == set(catalog._TTS_TIER_OVERRIDES["irodori_tts"])
+    assert {d.tier for d in m.deployments} == {"cpu"}
     rungs = {d.compute_type: d for d in m.deployments}
     assert set(rungs) == {"q8_0"} and rungs["q8_0"].rank == 2.0
     assert rungs["q8_0"].artifact == "audio-cpp/audio.cpp-gguf/Irodori-TTS-v4-Small-GGUF/irodori-tts-v4.1-anime-q8_0.gguf"
@@ -1930,9 +1960,9 @@ def test_voicetut_card_runs_on_omnivoice_with_arz_forced():
     assert {(d.compute_type, d.artifact, d.est_bytes, d.rank, d.companions) for d in m.deployments} == {
         ("q8_0", "mohammedaly22/VoiceTut-TTS-GGUF/voicetut-tts-q8_0.gguf", 1_350_264_224, 2.0, ()),
         ("f16", "mohammedaly22/VoiceTut-TTS-GGUF/voicetut-tts-f16.gguf", 1_639_524_576, 1.0, ())}
-    # _TTS_TIER_OVERRIDES is keyed by family: the card inherits OmniVoice's fleet-validated tiers.
-    assert {d.tier for d in m.deployments} == set(catalog._TTS_TIER_OVERRIDES["omnivoice"])
-    assert {d.tier for d in m.deployments} == {d.tier for d in omni.deployments}
+    # OmniVoice's GPU tiers are not inherited: the card starts on the CPU tier.
+    assert {d.tier for d in omni.deployments} > {"cpu"}
+    assert {d.tier for d in m.deployments} == {"cpu"}
     assert catalog.hub_revision("mohammedaly22/VoiceTut-TTS-GGUF") == "615457bb2e9043f468e012c159146b28fa8f5959"
     # OmniVoice's licence terms (ruling 2026-10-06), naming the repo the file comes from.
     lic, olic = m.license, omni.license
