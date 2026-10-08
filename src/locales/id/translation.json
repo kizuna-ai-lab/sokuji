@@ -893,7 +893,8 @@
       "fullscreen": "Layar penuh",
       "exitFullscreen": "Keluar layar penuh",
       "lock": "Kunci posisi dan ukuran",
-      "exit": "Keluar mode subtitle"
+      "exit": "Keluar mode subtitle",
+      "backToMainTitle": "Kembali ke jendela utama (Esc)"
     },
     "settings": {
       "bgOpacity": "Opasitas latar",

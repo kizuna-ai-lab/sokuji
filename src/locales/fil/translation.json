@@ -893,7 +893,8 @@
       "fullscreen": "Fullscreen",
       "exitFullscreen": "Lumabas sa fullscreen",
       "lock": "I-lock ang posisyon at sukat",
-      "exit": "Lumabas sa subtitle mode"
+      "exit": "Lumabas sa subtitle mode",
+      "backToMainTitle": "Bumalik sa pangunahing window (Esc)"
     },
     "settings": {
       "bgOpacity": "Opacity ng background",

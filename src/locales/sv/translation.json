@@ -893,7 +893,8 @@
       "fullscreen": "Helskärm",
       "exitFullscreen": "Avsluta helskärm",
       "lock": "Lås position och storlek",
-      "exit": "Avsluta undertextläge"
+      "exit": "Avsluta undertextläge",
+      "backToMainTitle": "Tillbaka till huvudfönstret (Esc)"
     },
     "settings": {
       "bgOpacity": "Bakgrundsopacitet",

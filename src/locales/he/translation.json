@@ -893,7 +893,8 @@
       "fullscreen": "מסך מלא",
       "exitFullscreen": "יציאה ממסך מלא",
       "lock": "נעילת מיקום וגודל",
-      "exit": "יציאה ממצב כתוביות"
+      "exit": "יציאה ממצב כתוביות",
+      "backToMainTitle": "חזרה לחלון הראשי (Esc)"
     },
     "settings": {
       "bgOpacity": "אטימות רקע",

@@ -893,7 +893,8 @@
       "fullscreen": "Tela cheia",
       "exitFullscreen": "Sair da tela cheia",
       "lock": "Bloquear posição e tamanho",
-      "exit": "Sair do modo de legendas"
+      "exit": "Sair do modo de legendas",
+      "backToMainTitle": "Voltar à janela principal (Esc)"
     },
     "settings": {
       "bgOpacity": "Opacidade do fundo",

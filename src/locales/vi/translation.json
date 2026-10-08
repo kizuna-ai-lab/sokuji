@@ -893,7 +893,8 @@
       "fullscreen": "Toàn màn hình",
       "exitFullscreen": "Thoát toàn màn hình",
       "lock": "Khóa vị trí và kích thước",
-      "exit": "Thoát chế độ phụ đề"
+      "exit": "Thoát chế độ phụ đề",
+      "backToMainTitle": "Quay lại cửa sổ chính (Esc)"
     },
     "settings": {
       "bgOpacity": "Độ trong suốt nền",

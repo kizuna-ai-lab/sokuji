@@ -893,7 +893,8 @@
       "fullscreen": "全画面表示",
       "exitFullscreen": "全画面表示を終了",
       "lock": "位置とサイズをロック",
-      "exit": "字幕モードを終了"
+      "exit": "字幕モードを終了",
+      "backToMainTitle": "メイン画面に戻る (Esc)"
     },
     "settings": {
       "bgOpacity": "背景の透明度",

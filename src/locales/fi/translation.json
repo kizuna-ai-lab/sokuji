@@ -893,7 +893,8 @@
       "fullscreen": "Koko näyttö",
       "exitFullscreen": "Poistu koko näytöstä",
       "lock": "Lukitse sijainti ja koko",
-      "exit": "Poistu tekstitystilasta"
+      "exit": "Poistu tekstitystilasta",
+      "backToMainTitle": "Palaa pääikkunaan (Esc)"
     },
     "settings": {
       "bgOpacity": "Taustan läpinäkyvyys",

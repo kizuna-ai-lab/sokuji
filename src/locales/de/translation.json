@@ -893,7 +893,8 @@
       "fullscreen": "Vollbild",
       "exitFullscreen": "Vollbild beenden",
       "lock": "Position und Größe sperren",
-      "exit": "Untertitel-Modus beenden"
+      "exit": "Untertitel-Modus beenden",
+      "backToMainTitle": "Zurück zum Hauptfenster (Esc)"
     },
     "settings": {
       "bgOpacity": "Hintergrund-Transparenz",

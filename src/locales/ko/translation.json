@@ -893,7 +893,8 @@
       "fullscreen": "전체 화면",
       "exitFullscreen": "전체 화면 종료",
       "lock": "위치 및 크기 잠금",
-      "exit": "자막 모드 종료"
+      "exit": "자막 모드 종료",
+      "backToMainTitle": "메인 창으로 돌아가기 (Esc)"
     },
     "settings": {
       "bgOpacity": "배경 투명도",

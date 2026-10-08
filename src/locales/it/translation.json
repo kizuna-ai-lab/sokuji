@@ -893,7 +893,8 @@
       "fullscreen": "Schermo intero",
       "exitFullscreen": "Esci da schermo intero",
       "lock": "Blocca posizione e dimensioni",
-      "exit": "Esci dalla modalità sottotitoli"
+      "exit": "Esci dalla modalità sottotitoli",
+      "backToMainTitle": "Torna alla finestra principale (Esc)"
     },
     "settings": {
       "bgOpacity": "Opacità dello sfondo",

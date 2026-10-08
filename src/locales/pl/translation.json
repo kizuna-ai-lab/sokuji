@@ -893,7 +893,8 @@
       "fullscreen": "Pełny ekran",
       "exitFullscreen": "Wyjdź z pełnego ekranu",
       "lock": "Zablokuj pozycję i rozmiar",
-      "exit": "Wyjdź z trybu napisów"
+      "exit": "Wyjdź z trybu napisów",
+      "backToMainTitle": "Powrót do okna głównego (Esc)"
     },
     "settings": {
       "bgOpacity": "Przezroczystość tła",

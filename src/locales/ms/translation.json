@@ -893,7 +893,8 @@
       "fullscreen": "Skrin penuh",
       "exitFullscreen": "Keluar skrin penuh",
       "lock": "Kunci kedudukan dan saiz",
-      "exit": "Keluar mod sari kata"
+      "exit": "Keluar mod sari kata",
+      "backToMainTitle": "Kembali ke tetingkap utama (Esc)"
     },
     "settings": {
       "bgOpacity": "Kelegapan latar",

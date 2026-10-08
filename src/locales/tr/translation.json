@@ -893,7 +893,8 @@
       "fullscreen": "Tam ekran",
       "exitFullscreen": "Tam ekrandan çık",
       "lock": "Konum ve boyutu kilitle",
-      "exit": "Altyazı modundan çık"
+      "exit": "Altyazı modundan çık",
+      "backToMainTitle": "Ana pencereye dön (Esc)"
     },
     "settings": {
       "bgOpacity": "Arka plan opaklığı",

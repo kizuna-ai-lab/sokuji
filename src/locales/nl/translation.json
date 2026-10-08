@@ -893,7 +893,8 @@
       "fullscreen": "Volledig scherm",
       "exitFullscreen": "Volledig scherm afsluiten",
       "lock": "Positie en grootte vergrendelen",
-      "exit": "Ondertitelmodus afsluiten"
+      "exit": "Ondertitelmodus afsluiten",
+      "backToMainTitle": "Terug naar hoofdvenster (Esc)"
     },
     "settings": {
       "bgOpacity": "Achtergrondtransparantie",

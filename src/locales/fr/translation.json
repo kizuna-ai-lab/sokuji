@@ -893,7 +893,8 @@
       "fullscreen": "Plein écran",
       "exitFullscreen": "Quitter le plein écran",
       "lock": "Verrouiller la position et la taille",
-      "exit": "Quitter le mode sous-titres"
+      "exit": "Quitter le mode sous-titres",
+      "backToMainTitle": "Retour à la fenêtre principale (Esc)"
     },
     "settings": {
       "bgOpacity": "Opacité du fond",

@@ -893,7 +893,8 @@
       "fullscreen": "全螢幕",
       "exitFullscreen": "退出全螢幕",
       "lock": "鎖定位置與大小",
-      "exit": "退出字幕模式"
+      "exit": "退出字幕模式",
+      "backToMainTitle": "返回主視窗 (Esc)"
     },
     "settings": {
       "bgOpacity": "背景透明度",

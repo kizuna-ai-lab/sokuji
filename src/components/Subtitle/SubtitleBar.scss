@@ -14,6 +14,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  // Only felt when the window is narrower than the controls: the tools' cut
+  // edge then stays clear of the centre text.
+  column-gap: 12px;
   height: 36px;
   padding: 0 12px;
   background: rgba(20, 20, 20, 0.95);
@@ -50,6 +53,31 @@
     // dividers) stay in the drag region so the user can grab almost any
     // visible part of the bar to move the window. Interactive elements
     // below opt out individually with -webkit-app-region: no-drag.
+  }
+
+  // A window narrower than the bar's controls: the left and centre segments
+  // stay whole and the tools give way, cut from their start edge, so the exit
+  // at the end of the bar is the last control the window can lose. The
+  // padding (offset by the margin) is room for the end button's focus ring,
+  // 2px + 1px offset, on every side but the cut one, which stays clean.
+  .subtitle-bar__left,
+  .subtitle-bar__center {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .subtitle-bar__right {
+    min-width: 0;
+    overflow: clip;
+    justify-content: flex-end;
+    padding-block: 3px;
+    padding-inline-end: 3px;
+    margin-block: -3px;
+    margin-inline-end: -3px;
+
+    > * {
+      flex-shrink: 0;
+    }
   }
 
   .subtitle-bar__logo {
@@ -118,6 +146,57 @@
     &:disabled {
       opacity: 0.5;
       cursor: not-allowed;
+    }
+  }
+
+  // The Electron bar's exit, "Return to main window" (the overlay keeps a
+  // plain ✕): the bar's icon-and-label box (.subtitle-bar__hold) in the
+  // bordered fill of the idle view's own return button
+  // (.subtitle-idle__return, SubtitleApp.scss). 3px vertical padding plus
+  // the 1px border gives the 22px height of the bar's icon buttons.
+  .subtitle-bar__exit {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 4px;
+    font: inherit;
+    font-size: 12px;
+    line-height: 14px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease;
+    -webkit-app-region: no-drag;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.28);
+    }
+
+    &:active {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    &:focus-visible {
+      outline: 2px solid rgba(108, 197, 255, 0.6);
+      outline-offset: 1px;
+    }
+  }
+
+  // Wider than the bar needs with the label shown in every locale (713px for
+  // zh up to 898px for ta, measured 2026-10-08), so below it the label goes
+  // before anything else has to squeeze; the icon stays.
+  @media (max-width: 900px) {
+    .subtitle-bar__exit {
+      padding: 3px 4px;
+    }
+
+    .subtitle-bar__exit-label {
+      display: none;
     }
   }
 
