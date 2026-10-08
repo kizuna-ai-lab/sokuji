@@ -30,4 +30,5 @@ for seconds in (2, 8, 12):
                          max_length=N, truncation=True, do_normalize=True).input_features[0]
     windows.append({"seconds": seconds, "points": [[m, t, round(float(features[m, t]), 6)] for m in MELS for t in FRAMES]})
 
-json.dump({"_generator": "benchmark/smart-turn/make_turn_features_fixture.py", "windows": windows}, open(sys.argv[1], "w"))
+with open(sys.argv[1], "w") as out:
+    json.dump({"_generator": "benchmark/smart-turn/make_turn_features_fixture.py", "windows": windows}, out)
