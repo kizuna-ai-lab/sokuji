@@ -1337,3 +1337,22 @@ describe('the LocalInference adapter — frames', () => {
     expectConformant(t.log, t.context);
   });
 });
+
+describe('the LocalInference adapter — how a segment ended', () => {
+  it('logs endedBy on local.asr.end, with the Smart Turn probability to two places', async () => {
+    const t = await open();
+    t.asr.final('はい', { endedBy: 'smart', smartTurnProbability: 0.8347 });
+    await settle();
+    const end = ofKind(t.log, 'frame').find((f) => f.type === 'local.asr.end')!.payload;
+    expect(end).toMatchObject({ text: 'はい', endedBy: 'smart', smartTurnProbability: 0.83 });
+  });
+
+  it('leaves both out when the engine did not say', async () => {
+    const t = await open();
+    t.asr.final('はい');
+    await settle();
+    const end = ofKind(t.log, 'frame').find((f) => f.type === 'local.asr.end')!.payload;
+    expect(end).not.toHaveProperty('endedBy');
+    expect(end).not.toHaveProperty('smartTurnProbability');
+  });
+});

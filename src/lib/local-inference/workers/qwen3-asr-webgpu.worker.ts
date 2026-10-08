@@ -45,6 +45,7 @@ import type {
   AsrAudioMessage,
   AsrDisposeMessage,
   AsrWorkerOutMessage,
+  SegmentEnd,
 } from '../types';
 import { acquireWebGpuAdapter, bindCheckedWebGpuAdapter } from './shaderF16Gate';
 
@@ -263,19 +264,19 @@ function asRunnable(session: InferenceSession): RunnableSession {
  * decodes strictly ordered and never overlapping on the shared sessions and KV buffers.
  * The returned promise never rejects: `transcribeSegment` reports its own errors.
  */
-function transcribe(audio: Float32Array, startSample: number, warmup = false): Promise<void> {
+function transcribe(audio: Float32Array, startSample: number, end: SegmentEnd | null, warmup = false): Promise<void> {
   const previous = currentDecodePromise;
   const promise = (async () => {
     if (previous) {
       try { await previous; } catch { /* already reported by its own catch */ }
     }
-    await transcribeSegment(audio, startSample, warmup);
+    await transcribeSegment(audio, startSample, end, warmup);
   })();
   currentDecodePromise = promise;
   return promise;
 }
 
-async function transcribeSegment(audio: Float32Array, startSample: number, warmup = false): Promise<void> {
+async function transcribeSegment(audio: Float32Array, startSample: number, end: SegmentEnd | null, warmup = false): Promise<void> {
   const m = model;
   if (!m) return;
 
@@ -317,7 +318,7 @@ async function transcribeSegment(audio: Float32Array, startSample: number, warmu
     const recognitionTimeMs = Math.round(performance.now() - startTime);
 
     if (!warmup && text) {
-      post({ type: 'result', text, startSample, durationMs, recognitionTimeMs });
+      post({ type: 'result', text, startSample, durationMs, recognitionTimeMs, ...end });
     }
     void forced;
   } catch (err) {
@@ -364,23 +365,24 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
             // Fire-and-forget: awaiting here would hold `processingVad` for the whole decode
             // and the guard at the top of this function would drop the audio arriving
             // meanwhile. `transcribe` serializes decodes via `currentDecodePromise`.
-            void transcribe(ev.audio, speechStartSample);
+            void transcribe(ev.audio, speechStartSample, { endedBy: 'silence' });
             break;
           case Message.VADMisfire: {
             speechFramesSinceStart = 0;
             // Kept when it follows a Smart end inside the wait Normal would have spanned.
             const rescued = turnLink?.rescue();
-            if (rescued) void transcribe(rescued, speechStartSample);
+            if (rescued) void transcribe(rescued, speechStartSample, { endedBy: 'kept' });
             break;
           }
         }
       }
 
-      if (turnLink?.afterFrame(frame, speechProbability, frameProcessor.speaking)) {
+      const smartTurnProbability = turnLink?.afterFrame(frame, speechProbability, frameProcessor.speaking) ?? null;
+      if (smartTurnProbability !== null) {
         const endEvents: FrameProcessorEvent[] = [];
         frameProcessor.endSegment((ev) => endEvents.push(ev));
         for (const ev of endEvents) {
-          if (ev.msg === Message.SpeechEnd) void transcribe(ev.audio, speechStartSample);
+          if (ev.msg === Message.SpeechEnd) void transcribe(ev.audio, speechStartSample, { endedBy: 'smart', smartTurnProbability });
         }
       }
 
@@ -393,7 +395,7 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
           for (const ev of endEvents) {
             if (ev.msg === Message.SpeechEnd) {
               // See the SpeechEnd comment above: fire-and-forget so no audio is dropped.
-              void transcribe(ev.audio, speechStartSample);
+              void transcribe(ev.audio, speechStartSample, { endedBy: 'cap' });
             }
           }
           turnLink?.reset();
@@ -502,7 +504,7 @@ async function handleInit(msg: Qwen3AsrInitMessage): Promise<void> {
 
     // WebGPU warmup: compile the shaders on 1 s of silence so the first utterance is not slow.
     post({ type: 'status', message: 'Warming up WebGPU shaders...' });
-    await transcribe(new Float32Array(VAD_SAMPLE_RATE), 0, true);
+    await transcribe(new Float32Array(VAD_SAMPLE_RATE), 0, null, true);
 
     audioBuffer = new Float32Array(0);
 
@@ -522,10 +524,10 @@ async function handleFlush(): Promise<void> {
     frameProcessor.endSegment((ev) => endEvents.push(ev));
     for (const ev of endEvents) {
       if (ev.msg === Message.SpeechEnd) {
-        void transcribe(ev.audio, speechStartSample);
+        void transcribe(ev.audio, speechStartSample, { endedBy: 'flush' });
       } else if (ev.msg === Message.VADMisfire) {
         const rescued = turnLink?.rescue();
-        if (rescued) void transcribe(rescued, speechStartSample);
+        if (rescued) void transcribe(rescued, speechStartSample, { endedBy: 'kept' });
       }
     }
     turnLink?.reset();

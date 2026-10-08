@@ -236,27 +236,27 @@ describe('TurnLink', () => {
     expect(port.sent[0].transfer[0]).toBe(request.window.buffer);
   });
 
-  it('ends the segment on the frame after a yes, once', () => {
+  it('ends the segment on the frame after a yes, once, returning that probability', () => {
     const { port, link, request } = asking();
     port.answer({ id: request.id, probability: 0.9 });
-    expect(link.afterFrame(frame(), SILENCE, true)).toBe(true);
+    expect(link.afterFrame(frame(), SILENCE, true)).toBe(0.9);
     port.answer({ id: request.id, probability: 0.9 });
-    expect(link.afterFrame(frame(), SILENCE, true)).toBe(false);
+    expect(link.afterFrame(frame(), SILENCE, true)).toBeNull();
   });
 
   it('changes nothing on a no or a failed prediction', () => {
     const { port, link, request } = asking();
     port.answer({ id: request.id, probability: 0.2 });
-    expect(link.afterFrame(frame(), SILENCE, true)).toBe(false);
+    expect(link.afterFrame(frame(), SILENCE, true)).toBeNull();
     port.answer({ id: request.id, error: 'bad input' });
-    expect(link.afterFrame(frame(), SILENCE, true)).toBe(false);
+    expect(link.afterFrame(frame(), SILENCE, true)).toBeNull();
   });
 
   it('drops an answer that arrived before the worker ended the segment itself', () => {
     const { port, link, request } = asking();
     port.answer({ id: request.id, probability: 0.9 });
     link.reset();
-    expect(link.afterFrame(frame(), SILENCE, true)).toBe(false);
+    expect(link.afterFrame(frame(), SILENCE, true)).toBeNull();
   });
 
   it('asks nothing after speech under the minimum, so a "complete" answer cannot end it', () => {
@@ -266,7 +266,7 @@ describe('TurnLink', () => {
     for (let i = 0; i < 10; i++) link.afterFrame(frame(), SILENCE, true);
     expect(port.sent).toHaveLength(0);
     port.answer({ id: 1, probability: 0.99 });
-    expect(link.afterFrame(frame(), SILENCE, true)).toBe(false);
+    expect(link.afterFrame(frame(), SILENCE, true)).toBeNull();
   });
 
   it('asks once the speech reached the minimum, and a "complete" answer ends it', () => {
@@ -276,7 +276,7 @@ describe('TurnLink', () => {
     for (let i = 0; i < 3; i++) link.afterFrame(frame(), SILENCE, true);
     expect(port.sent).toHaveLength(1);
     port.answer({ id: port.sent[0].message.id, probability: 0.99 });
-    expect(link.afterFrame(frame(), SILENCE, true)).toBe(true);
+    expect(link.afterFrame(frame(), SILENCE, true)).toBe(0.99);
   });
 
   it('stops listening and closes the port', () => {
@@ -298,7 +298,7 @@ describe('TurnLink — a short reply after a Smart end', () => {
     for (let i = 0; i < 3; i++) link.afterFrame(frame(), SPEECH, true);
     for (let i = 0; i < 3; i++) link.afterFrame(frame(), SILENCE, true);
     port.answer({ id: port.sent[0].message.id, probability: 0.9 });
-    expect(link.afterFrame(frame(), SILENCE, true)).toBe(true);
+    expect(link.afterFrame(frame(), SILENCE, true)).toBe(0.9);
     return link;
   }
 
@@ -493,7 +493,7 @@ describe('openTurnLink', () => {
       link.afterFrame(frame(), SPEECH, true);
       for (let i = 0; i < 4; i++) link.afterFrame(frame(), SILENCE, true);
       port.answer({ id: port.sent[0].message.id, probability: 0.9 });
-      expect(link.afterFrame(frame(), SILENCE, true)).toBe(true);
+      expect(link.afterFrame(frame(), SILENCE, true)).toBe(0.9);
       link.afterFrame(frame(), SILENCE, false);
       link.afterFrame(frame(), SPEECH, true);
       return link.rescue();

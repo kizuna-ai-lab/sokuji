@@ -10,7 +10,7 @@
  * - granite-speech-webgpu (module Worker): VAD + Granite Speech via Transformers.js/WebGPU
  */
 
-import type { AsrWorkerOutMessage, StreamingAsrWorkerOutMessage, VadWebConfig } from '../types';
+import type { AsrWorkerOutMessage, SegmentEnd, StreamingAsrWorkerOutMessage, VadWebConfig } from '../types';
 import {
   getManifestEntry,
   getManifestByType,
@@ -20,7 +20,7 @@ import {
 import { ModelManager } from '../ModelManager';
 import { WorkerSession } from './WorkerSession';
 
-export interface AsrResult {
+export interface AsrResult extends Partial<SegmentEnd> {
   text: string;
   startSample?: number;
   durationMs: number;
@@ -185,6 +185,10 @@ export class AsrEngine {
               startSample: 'startSample' in msg ? msg.startSample : undefined,
               durationMs: msg.durationMs,
               recognitionTimeMs: msg.recognitionTimeMs,
+              ...('endedBy' in msg && msg.endedBy ? { endedBy: msg.endedBy } : {}),
+              ...('smartTurnProbability' in msg && msg.smartTurnProbability !== undefined
+                ? { smartTurnProbability: msg.smartTurnProbability }
+                : {}),
             });
             break;
 

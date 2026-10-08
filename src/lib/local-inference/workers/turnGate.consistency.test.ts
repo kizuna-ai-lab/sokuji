@@ -62,6 +62,20 @@ describe('Smart Turn gate wiring', () => {
         expect(flush).toMatch(rescue);
       });
 
+      it('tells each decode how its segment ended, and posts that with the result', () => {
+        const ended = (by: string) => new RegExp(`endedBy: '${by}'`);
+        expect(between(source, 'case Message.SpeechEnd', 'break;')).toMatch(ended('silence'));
+        expect(between(source, 'case Message.VADMisfire', 'break;')).toMatch(ended('kept'));
+        const smart = between(source, 'turnLink?.afterFrame(', '// Max speech duration cap');
+        expect(smart).toMatch(ended('smart'));
+        expect(smart).toMatch(/smartTurnProbability/);
+        expect(between(source, 'speechFramesSinceStart >= maxSpeechFrames', 'speechFramesSinceStart = 0;')).toMatch(ended('cap'));
+        const flush = between(source, 'async function handleFlush', 'turnLink?.reset()');
+        expect(flush).toMatch(ended('flush'));
+        expect(flush).toMatch(ended('kept'));
+        expect(between(source, "type: 'result'", '}')).toMatch(/\.\.\.end\b/);
+      });
+
       it('closes the link on dispose', () => {
         expect(source.slice(source.indexOf('async function handleDispose'))).toMatch(/turnLink\?\.close\(\)/);
       });

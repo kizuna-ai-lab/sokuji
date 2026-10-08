@@ -110,7 +110,19 @@ export interface AsrStatusMessage {
   message: string;
 }
 
-export interface AsrResultMessage {
+/**
+ * How a vad-web worker's speech segment ended, for the Logs panel: the
+ * FrameProcessor's silence rule, Smart Turn, the max-speech cap, a flush
+ * (push-to-talk release, session end), or a short reply after a Smart end
+ * that the processor dropped and Smart Turn's gate handed back.
+ */
+export interface SegmentEnd {
+  endedBy: 'silence' | 'smart' | 'cap' | 'flush' | 'kept';
+  /** Smart Turn's probability that the speaker was done; `smart` only. */
+  smartTurnProbability?: number;
+}
+
+export interface AsrResultMessage extends Partial<SegmentEnd> {
   type: 'result';
   text: string;
   /** Start sample index of the speech segment from VAD */
@@ -251,7 +263,7 @@ export interface StreamingAsrPartialMessage {
 }
 
 /** Streaming ASR: final result (at endpoint) */
-export interface StreamingAsrResultMessage {
+export interface StreamingAsrResultMessage extends Partial<SegmentEnd> {
   type: 'result';
   text: string;
   durationMs: number;
