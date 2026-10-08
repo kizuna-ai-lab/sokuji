@@ -49,6 +49,10 @@ class _ModelBase:
     # for translate, audio.cpp's family for TTS. Not a prompt strategy (that is
     # TranslateModel.prompt_family).
     graph_family: str = ""
+    # How much system RAM a CPU load needs per byte of the rung's est_bytes: 1.0 unless a
+    # measured CPU peak exceeded 1.2x its rung (_TTS_RAM_FACTORS, below). accel.load_with_fallback
+    # refuses a cpu or Metal load whose rung x factor plus headroom exceeds free memory.
+    ram_factor: float = 1.0
 
 
 @dataclass(frozen=True)
@@ -1141,6 +1145,25 @@ _TTS_TIER_OVERRIDES: dict[str, tuple[str, ...]] = {
     "index_tts2": ("gpu-vulkan", "gpu-metal", "cpu"),
 }
 
+# RAM a CPU load needs per byte of the rung (TtsModel.ram_factor), for the cards whose measured
+# CPU peak RSS (`/usr/bin/time -v`, one load and synth of the q8_0 test model) exceeded 1.2x
+# that rung's est_bytes: peak / est_bytes, rounded UP to one decimal. A card with no measured
+# peak, or one at or below 1.2x, keeps 1.0 and is not listed. The factor errs low on purpose:
+# a rung with no measurement is judged by its file alone.
+_TTS_RAM_FACTORS: dict[str, float] = {
+    "moss-tts-local-1.5": 1.8,      # 13,060,424 kB on 7,512,220,768 B (1.78x)
+    "chatterbox-turbo": 5.3,        # 3,607,324 kB on 699,101,408 B (5.28x)
+    "irodori-tts-500m-v3": 1.5,     # 1,590,748 kB on 1,093,739,584 B (1.49x)
+    "irodori-tts-v4.1-anime": 1.7,  # 1,782,652 kB on 1,112,547,264 B (1.64x)
+    "fish-audio-s2-pro": 1.3,       # 7,767,820 kB on 6,317,911,232 B (1.26x)
+    "audio8-tts-0.6b": 1.6,         # 2,221,020 kB on 1,429,545,312 B (1.59x)
+    "soprano-1.1-80m": 4.6,         # 546,304 kB on 123,162,336 B (4.54x)
+    "outetts-1.0-1b": 1.3,          # 3,709,076 kB, bare then clone, on 3,029,895,456 B (1.25x)
+    "echo-tts": 1.9,                # 5,555,704 kB on 3,028,207,456 B (1.88x)
+    "voicetut-tts": 1.3,            # 1,613,196 kB on 1,350,264,224 B (1.22x)
+    "miotts-1.7b": 1.8,             # 4,298,480 kB on 2,496,393,216 B package (1.76x)
+}
+
 
 def _repo_path(path: str) -> bool:
     """A path inside a Hub repo: not empty, no leading, trailing or doubled slash, no '.' or
@@ -1186,7 +1209,8 @@ def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
     gpu-vulkan and gpu-metal added back per family once GB10/M4-validated (see
     that dict's own comment, R19/R25/R36) — unless the card passes its own `tiers`:
     a new card of a family that already has GPU tiers starts on `_TTS_TIERS` and
-    gains a GPU tier per lane only from a fleet run of that card (R19, per card).
+    gains a GPU tier per lane only from a fleet run of that card (R19, per card). Its
+    `ram_factor` is `_TTS_RAM_FACTORS.get(mid, 1.0)`.
 
     `rung_dtypes` maps a QUANT token to the ggml dtypes of the matrix tensors of
     that rung's published main GGUF and companion GGUFs together
@@ -1265,7 +1289,8 @@ def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
                     sort_order=order, size_bytes=total_bytes, extra_files=extra_files,
                     license=license, graph_family=family, voice_required=required,
                     presets=presets, default_preset=default_preset,
-                    rung_dtypes=tuple((q, rung_dtypes[q]) for q in order_keys if q in rung_dtypes))
+                    rung_dtypes=tuple((q, rung_dtypes[q]) for q in order_keys if q in rung_dtypes),
+                    ram_factor=_TTS_RAM_FACTORS.get(mid, 1.0))
 
 
 SUPERTONIC_LANGS = ("en", "ko", "ja", "ar", "bg", "cs", "da", "de", "el", "es", "et",

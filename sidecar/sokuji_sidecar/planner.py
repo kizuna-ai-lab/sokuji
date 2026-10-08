@@ -65,6 +65,11 @@ class PlanConfig:
     # otherwise and its CLONES reports it, so a card can narrow what its family's engine
     # would take (every family but supertonic clones). True is the inert default.
     tts_clones: bool = True
+    # What accel.load_with_fallback's RAM fit check judges a cpu (or unified-memory Metal)
+    # load by: the rung's catalog est_bytes (main file plus companions) and its card's
+    # ram_factor. 0 bytes = unknown, and the check leaves the plan alone.
+    rung_bytes: int = 0
+    ram_factor: float = 1.0
 
 
 @dataclass(frozen=True)
@@ -116,6 +121,8 @@ def _plan_config(model, deployment=None) -> PlanConfig:
         tts_presets=tuple(getattr(model, "presets", ())),
         tts_default_preset=getattr(model, "default_preset", ""),
         tts_clones=getattr(model, "clones", True),
+        rung_bytes=int(getattr(deployment, "est_bytes", 0) or 0),
+        ram_factor=getattr(model, "ram_factor", 1.0),
     )
 
 

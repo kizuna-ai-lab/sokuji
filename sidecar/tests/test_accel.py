@@ -214,6 +214,137 @@ def test_gpu_only_oom_raises_honest_vram_message(monkeypatch):
     assert "GPU memory" in msg and "falling back" not in msg
 
 
+# ── RAM fit check: weights that live in system memory must fit what is free ──
+# A plan's PlanConfig carries its rung's est_bytes and its card's ram_factor; the load
+# needs rung x factor + 512 MiB (accel._RAM_HEADROOM_BYTES). cpu plans and Metal (Apple
+# silicon's unified memory is the same pool) are checked; a discrete GPU's plan is the
+# VRAM gate's.
+
+
+def _ram_plan(device, rung_gib=4.0, factor=1.0, artifact="repo/x.gguf"):
+    tier = {"cpu": "cpu", "metal": "gpu-metal"}.get(device, "gpu-vulkan")
+    return accel.Plan("native_tts", tier, device, "q8_0", artifact, 1.0,
+                      accel.planner.PlanConfig(rung_bytes=int(rung_gib * _GIB), ram_factor=factor))
+
+
+class _LoadRecorder:
+    """make_backend double that records which plans were really loaded."""
+    def __init__(self, monkeypatch, fail=()):
+        self.attempted = []
+        self.fail = set(fail)
+        recorder = self
+
+        class FakeBackend:
+            def load(self, artifact, device, ct, config=None):
+                recorder.attempted.append((device, artifact))
+                if device in recorder.fail:
+                    raise backends.BackendLoadError(f"{device} out of memory")
+        monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
+
+
+def test_ram_gate_refuses_a_cpu_load_that_cannot_fit_free_memory(monkeypatch):
+    monkeypatch.setattr(accel, "ram_free_bytes", lambda: 3 * _GIB)
+    rec = _LoadRecorder(monkeypatch)
+    with pytest.raises(accel.AllPlansFailed) as ei:
+        accel.load_with_fallback([_ram_plan("cpu", rung_gib=4.0)])
+    assert rec.attempted == []
+    msg = str(ei.value)
+    assert "about 4.5 GiB" in msg and "3.0 GiB is free" in msg      # 4 GiB + 512 MiB headroom
+    assert msg.startswith("Not enough memory to load this model")
+
+
+def test_ram_gate_loads_when_free_memory_covers_the_estimate(monkeypatch):
+    monkeypatch.setattr(accel, "ram_free_bytes", lambda: 6 * _GIB)
+    rec = _LoadRecorder(monkeypatch)
+    _b, plan, notice = accel.load_with_fallback([_ram_plan("cpu", rung_gib=4.0)])
+    assert plan.device == "cpu" and notice is None and len(rec.attempted) == 1
+
+
+def test_ram_gate_is_inert_without_psutil(monkeypatch):
+    # ram_free_bytes() is None when psutil is missing: like the VRAM gate, skip the check.
+    monkeypatch.setattr(accel, "ram_free_bytes", lambda: None)
+    rec = _LoadRecorder(monkeypatch)
+    _b, plan, notice = accel.load_with_fallback([_ram_plan("cpu", rung_gib=64.0)])
+    assert plan.device == "cpu" and notice is None and len(rec.attempted) == 1
+
+
+def test_ram_gate_is_inert_for_a_plan_with_no_size(monkeypatch):
+    # A bare PlanConfig (rung_bytes 0: unknown) is never judged, and free memory is not read.
+    def boom(): raise AssertionError("free memory must not be read for a plan with no size")
+    monkeypatch.setattr(accel, "ram_free_bytes", boom)
+    rec = _LoadRecorder(monkeypatch)
+    _b, plan, notice = accel.load_with_fallback([_plan("cpu")])
+    assert plan.device == "cpu" and notice is None and len(rec.attempted) == 1
+
+
+def test_ram_gate_checks_metal_like_cpu(monkeypatch):
+    # Metal's unified memory is system RAM: a Metal plan that cannot fit is refused too.
+    monkeypatch.setattr(accel, "ram_free_bytes", lambda: 3 * _GIB)
+    rec = _LoadRecorder(monkeypatch)
+    with pytest.raises(accel.AllPlansFailed) as ei:
+        accel.load_with_fallback([_ram_plan("metal", rung_gib=4.0)])
+    assert rec.attempted == [] and "Not enough memory" in str(ei.value)
+    monkeypatch.setattr(accel, "ram_free_bytes", lambda: 6 * _GIB)
+    _b, plan, _n = accel.load_with_fallback([_ram_plan("metal", rung_gib=4.0)])
+    assert plan.device == "metal"
+
+
+def test_ram_gate_scales_the_rung_by_the_cards_factor(monkeypatch):
+    # 4 GiB x 1.0 + 512 MiB = 4.5 GiB fits 6 GiB free; 4 GiB x 1.8 + 512 MiB = 7.7 GiB does not.
+    monkeypatch.setattr(accel, "ram_free_bytes", lambda: 6 * _GIB)
+    rec = _LoadRecorder(monkeypatch)
+    _b, plan, _n = accel.load_with_fallback([_ram_plan("cpu", rung_gib=4.0, factor=1.0)])
+    assert plan.device == "cpu"
+    rec.attempted.clear()
+    with pytest.raises(accel.AllPlansFailed) as ei:
+        accel.load_with_fallback([_ram_plan("cpu", rung_gib=4.0, factor=1.8)])
+    assert rec.attempted == []
+    assert "about 7.7 GiB" in str(ei.value) and "6.0 GiB is free" in str(ei.value)
+
+
+def test_ram_gate_leaves_a_discrete_gpu_plan_to_the_vram_gate(monkeypatch):
+    def boom(): raise AssertionError("a vulkan plan is not RAM-checked")
+    monkeypatch.setattr(accel, "ram_free_bytes", boom)
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: None)
+    rec = _LoadRecorder(monkeypatch)
+    _b, plan, notice = accel.load_with_fallback([_ram_plan("vulkan", rung_gib=64.0)])
+    assert plan.device == "vulkan" and notice is None and len(rec.attempted) == 1
+
+
+def test_ram_gate_exhaustion_is_the_honest_message_not_no_plans(monkeypatch):
+    # The refused plan was the only one: not "no plans to load", and not the skip notice either.
+    monkeypatch.setattr(accel, "ram_free_bytes", lambda: 1 * _GIB)
+    _LoadRecorder(monkeypatch)
+    with pytest.raises(accel.AllPlansFailed) as ei:
+        accel.load_with_fallback([_ram_plan("cpu", rung_gib=8.0)])
+    msg = str(ei.value)
+    assert msg != "no plans to load" and "skipped" not in msg
+    assert msg == ("Not enough memory to load this model: it needs about 8.5 GiB and 1.0 GiB "
+                   "is free. Close other applications or pick a smaller model.")
+
+
+def test_ram_gate_skips_to_the_next_plan_with_a_notice(monkeypatch):
+    # A smaller rung later in the list still loads; the skip is reported like the VRAM gate's.
+    monkeypatch.setattr(accel, "ram_free_bytes", lambda: 4 * _GIB)
+    rec = _LoadRecorder(monkeypatch)
+    big = _ram_plan("cpu", rung_gib=8.0, artifact="repo/big.gguf")
+    small = _ram_plan("cpu", rung_gib=2.0, artifact="repo/small.gguf")
+    _b, plan, notice = accel.load_with_fallback([big, small])
+    assert plan is small and rec.attempted == [("cpu", "repo/small.gguf")]
+    assert notice and "cpu skipped" in notice and "8.5 GiB" in notice and "4.0 GiB free" in notice
+
+
+def test_ram_gate_message_wins_over_a_gpu_oom_when_the_cpu_floor_is_refused(monkeypatch):
+    # The GPU OOM message advises switching to CPU; with the CPU floor refused too, that advice is wrong.
+    monkeypatch.setattr(accel, "ram_free_bytes", lambda: 3 * _GIB)
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: None)
+    rec = _LoadRecorder(monkeypatch, fail={"vulkan"})
+    with pytest.raises(accel.AllPlansFailed) as ei:
+        accel.load_with_fallback([_ram_plan("vulkan", rung_gib=4.0), _ram_plan("cpu", rung_gib=4.0)])
+    assert [d for d, _a in rec.attempted] == ["vulkan"]
+    assert "Not enough memory" in str(ei.value) and "GPU memory" not in str(ei.value)
+
+
 def test_load_measured_reports_vram_delta_for_gpu(monkeypatch):
     free = iter([10 * _GIB, 2 * _GIB])  # before, after -> 8 GiB used
     monkeypatch.setattr(accel, "device_free_bytes", lambda: next(free))

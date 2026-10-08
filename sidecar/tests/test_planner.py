@@ -1015,14 +1015,16 @@ def test_plan_config_qwen3_06b_disables_thinking_and_appends_no_think():
     # switch AND the /no_think soft switch (see catalog.TranslateModel docstring).
     card = catalog.translate_model("qwen3-0.6b")
     assert planner._plan_config(card) == planner.PlanConfig(
-        disable_thinking=True, append_no_think=True, prompt_family="qwen")
+        disable_thinking=True, append_no_think=True, prompt_family="qwen",
+        rung_bytes=card.deployments[0].est_bytes)
 
 
 def test_plan_config_qwen35_08b_disables_thinking_without_no_think():
     # qwen3.5 only needs the chat-template switch -- append_no_think stays False.
     card = catalog.translate_model("qwen3.5-0.8b")
     assert planner._plan_config(card) == planner.PlanConfig(
-        disable_thinking=True, append_no_think=False, prompt_family="qwen")
+        disable_thinking=True, append_no_think=False, prompt_family="qwen",
+        rung_bytes=card.deployments[0].est_bytes)
 
 
 def test_plan_config_qwen25_05b_is_fully_inert():
@@ -1032,7 +1034,8 @@ def test_plan_config_qwen25_05b_is_fully_inert():
     # fall back to anyway — see NativeTranslateBackend.load's unknown-family
     # default).
     card = catalog.translate_model("qwen2.5-0.5b")
-    assert planner._plan_config(card) == planner.PlanConfig(prompt_family="qwen")
+    assert planner._plan_config(card) == planner.PlanConfig(
+        prompt_family="qwen", rung_bytes=card.deployments[0].est_bytes)
 
 
 def test_plan_config_reads_tts_family_and_load_language(monkeypatch):
@@ -1071,16 +1074,60 @@ def test_plan_config_tts_extra_files_defaults_inert_for_cards_without_one():
     assert cfg.tts_extra_files == ()
 
 
+def test_plan_config_carries_the_rungs_own_bytes_for_the_ram_fit_check():
+    # accel.load_with_fallback judges a CPU load by its rung's catalog est_bytes (main file plus
+    # companions, the figure the UI shows): each rung of one card carries its own.
+    card = catalog.tts_model("qwen3-tts-0.6b")
+    sizes = {d.compute_type: d.est_bytes for d in card.deployments}
+    assert len(set(sizes.values())) > 1
+    for d in card.deployments:
+        assert planner._plan_config(card, d).rung_bytes == d.est_bytes
+    # a card with no rung in view (a bare double) is unknown: 0, which the check skips
+    import types
+    assert planner._plan_config(types.SimpleNamespace(family="x")).rung_bytes == 0
+
+
+def test_plan_config_carries_every_stages_rung_bytes():
+    for card in (catalog.asr_model("sense-voice"), catalog.translate_model("qwen3-0.6b")):
+        d = card.deployments[0]
+        assert d.est_bytes
+        assert planner._plan_config(card, d).rung_bytes == d.est_bytes, card.id
+
+
+def test_plan_config_ram_factor_comes_from_the_card_and_defaults_to_one():
+    card = catalog.tts_model("pocket-tts-en")
+    assert planner._plan_config(card).ram_factor == 1.0
+    assert planner._plan_config(dataclasses.replace(card, ram_factor=1.8)).ram_factor == 1.8
+    import types
+    assert planner._plan_config(types.SimpleNamespace(family="x")).ram_factor == 1.0
+
+
+def test_resolve_tts_plans_carry_the_rung_bytes_and_the_cards_factor():
+    card = catalog.tts_model("moss-tts-local-1.5")
+    assert card.ram_factor != 1.0                      # the card under test carries a factor
+    plans = planner.resolve_tts(card.id, machine=CPU_ONLY, platform="linux", cache={})
+    assert plans and all(p.device == "cpu" for p in plans)
+    for p in plans:
+        d = next(d for d in card.deployments if d.artifact == p.artifact and d.tier == p.tier)
+        assert (p.config.rung_bytes, p.config.ram_factor) == (d.est_bytes, card.ram_factor)
+
+
 def test_resolve_translate_propagates_qwen3_thinking_config():
     # Resolve-level propagation: a real resolve() call, not a hand-built Plan,
     # must carry the card's derived PlanConfig through to the Plan it returns.
     plans = planner.resolve_translate("qwen3-0.6b", "auto", machine=CUDA_12GB, platform="linux",
                                       cache={}, downloaded=set(),
                                       est_bytes=lambda d: d.est_bytes, format_ready=lambda ct: True)
+    card = catalog.translate_model("qwen3-0.6b")
+    own_bytes = {p.artifact: next(d.est_bytes for d in card.deployments if d.artifact == p.artifact)
+                 for p in plans}
     assert plans[0].config == planner.PlanConfig(
-        disable_thinking=True, append_no_think=True, prompt_family="qwen")
-    # every plan for this model shares the same card-derived config.
-    assert all(p.config == plans[0].config for p in plans)
+        disable_thinking=True, append_no_think=True, prompt_family="qwen",
+        rung_bytes=own_bytes[plans[0].artifact])
+    # every plan for this model shares the card-derived config; only the rung's bytes are its own.
+    assert all(dataclasses.replace(p.config, rung_bytes=0) == dataclasses.replace(plans[0].config, rung_bytes=0)
+               for p in plans)
+    assert all(p.config.rung_bytes == own_bytes[p.artifact] for p in plans)
 
 
 # ── _deployment_available: the op-coverage gate (spec A §3.3) ────────────

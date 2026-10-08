@@ -414,6 +414,72 @@ def test_tts_tier_overrides_default_is_cpu_only_for_unknown_family():
     assert "some_future_unvalidated_family" not in catalog._TTS_TIER_OVERRIDES
 
 
+# Measured CPU peaks (card -> (rung measured, peak RSS in kB as `/usr/bin/time -v` reports it,
+# which is KiB)): one load and one synth of the card's test model, from the roster expansion's
+# per-card runs. A card whose peak exceeds 1.2x its rung's est_bytes carries
+# ram_factor = ceil(peak / est_bytes, to one decimal); every other card keeps 1.0.
+MEASURED_CPU_PEAKS_KB = {
+    "moss-tts-local-1.5": ("q8_0", 13060424),
+    "vibevoice-1.5b": ("q8_0", 3546932),
+    "chatterbox": ("q8_0", 1977312),
+    "chatterbox-turbo": ("q8_0", 3607324),
+    "confucius4": ("orig", 6788072),
+    "magpie-357m": ("q8_0", 1203312),
+    "neutts-2e": ("orig", 2495772),
+    "kugelaudio-0": ("q8_0", 10089468),
+    "qwen3-tts-1.7b-customvoice": ("q8_0", 3209920),
+    "irodori-tts-500m-v3": ("q8_0", 1590748),
+    "irodori-tts-v4.1-anime": ("q8_0", 1782652),
+    "higgs-audio-v3-4b": ("q8_0", 5276676),
+    "fish-audio-s2-pro": ("q8_0", 7767820),
+    "breeze-tts-2": ("q8_0", 5276172),
+    "audio8-tts-0.6b": ("q8_0", 2221020),
+    "soprano-1.1-80m": ("q8_0", 546304),
+    "glm-tts": ("q8_0", 5363276),
+    "outetts-1.0-1b": ("q8_0", 3709076),     # the bare-then-clone run; a bare synth alone: 2509256
+    "echo-tts": ("q8_0", 5555704),
+    "kitten-tts2": ("q8_0", 3716020),
+    "voicetut-tts": ("q8_0", 1613196),
+    "miotts-1.7b": ("q8_0", 4298480),
+    "lfm2.5-audio-en": ("q8_0", 1679640),
+    "lfm2.5-audio-ja": ("q8_0", 1681564),
+}
+
+
+def _expected_ram_factor(mid):
+    rung, peak_kb = MEASURED_CPU_PEAKS_KB[mid]
+    est = next(d.est_bytes for d in catalog.tts_model(mid).deployments
+               if d.tier == "cpu" and d.compute_type == rung)
+    peak = peak_kb * 1024
+    if peak * 10 <= est * 12:                        # not above 1.2x
+        return 1.0
+    return -(-peak * 10 // est) / 10                 # ceil to one decimal, integer arithmetic
+
+
+def test_ram_factor_pins_each_card_to_its_measured_cpu_peak():
+    assert set(MEASURED_CPU_PEAKS_KB) <= set(TTS_CARD_IDS)
+    for mid in MEASURED_CPU_PEAKS_KB:
+        assert catalog.tts_model(mid).ram_factor == _expected_ram_factor(mid), mid
+
+
+def test_only_a_card_whose_measured_peak_exceeds_1_2x_carries_a_factor():
+    carrying = {m.id for m in catalog.tts_models() if m.ram_factor != 1.0}
+    assert carrying == {mid for mid in MEASURED_CPU_PEAKS_KB if _expected_ram_factor(mid) != 1.0}
+    assert carrying                                   # the rule is exercised, not vacuous
+    assert set(catalog._TTS_RAM_FACTORS) == carrying  # one table, nothing set elsewhere
+    for mid, f in catalog._TTS_RAM_FACTORS.items():
+        assert f > 1.2 and round(f, 1) == f, mid
+
+
+def test_every_other_card_estimates_its_memory_from_the_file_alone():
+    for m in [*catalog.asr_models(), *catalog.translate_models()]:
+        assert m.ram_factor == 1.0, m.id
+    unmeasured = set(TTS_CARD_IDS) - set(MEASURED_CPU_PEAKS_KB)
+    assert unmeasured                                 # cards with no recorded peak
+    for mid in unmeasured:
+        assert catalog.tts_model(mid).ram_factor == 1.0, mid
+
+
 def test_omnivoice_card_shape():
     m = catalog.tts_model("omnivoice-0.6b")
     assert m is not None
