@@ -1243,7 +1243,8 @@
       },
       "subtitle": {
         "title": "Chế độ phụ đề",
-        "content": "Mở một khung phụ đề nổi — một cửa sổ riêng trên máy tính, hoặc lớp phủ trên trang khi dùng tiện ích mở rộng. OBS và chia sẻ màn hình đều có thể ghi lại nó."
+        "content_electron": "Thu nhỏ cửa sổ này thành một thanh phụ đề nổi mà OBS và chia sẻ màn hình đều có thể ghi lại. Nhấn “Quay lại cửa sổ chính” trên thanh, hoặc Esc, để đưa cửa sổ trở lại.",
+        "content_extension": "Mở phụ đề nổi dưới dạng lớp phủ trên trang. OBS và chia sẻ màn hình đều có thể ghi lại nó."
       },
       "account": {
         "title": "Tài khoản của bạn",

@@ -1243,7 +1243,8 @@
       },
       "subtitle": {
         "title": "Mode subtitle",
-        "content": "Membuka tampilan subtitle mengambang — berupa jendela di desktop, overlay di halaman pada ekstensi. OBS dan berbagi layar dapat menangkapnya."
+        "content_electron": "Memperkecil jendela ini menjadi bilah subtitle mengambang yang dapat ditangkap OBS dan berbagi layar. “Kembali ke jendela utama” di bilah, atau Esc, mengembalikan jendela.",
+        "content_extension": "Membuka subtitle mengambang sebagai overlay di halaman. OBS dan berbagi layar dapat menangkapnya."
       },
       "account": {
         "title": "Akun Anda",

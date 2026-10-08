@@ -1243,7 +1243,8 @@
       },
       "subtitle": {
         "title": "Untertitel-Modus",
-        "content": "Öffnet eine schwebende Untertitel-Ansicht — ein Fenster auf dem Desktop, ein Overlay auf der Seite in der Erweiterung. OBS und Bildschirmfreigabe können sie aufnehmen."
+        "content_electron": "Verkleinert dieses Fenster zu einer schwebenden Untertitelleiste, die OBS und Bildschirmfreigabe aufnehmen können. „Zurück zum Hauptfenster“ in der Leiste oder Esc holt das Fenster zurück.",
+        "content_extension": "Öffnet schwebende Untertitel als Overlay auf der Seite. OBS und Bildschirmfreigabe können sie aufnehmen."
       },
       "account": {
         "title": "Ihr Konto",

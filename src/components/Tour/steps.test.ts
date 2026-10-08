@@ -85,6 +85,14 @@ describe('contentKey — copy variants', () => {
     expect(contentKey(step('participant-source'), ctxFor('understand-others', 'managed', web))).toBe('tour.steps.participant-source.content_extension');
   });
 
+  // The desktop's subtitle bar is the main window itself, shrunk, and its copy
+  // says how to get the window back (user feedback 2026-10-07); the
+  // extension's is an overlay on the meeting page.
+  it('subtitle varies by platform', () => {
+    expect(contentKey(step('subtitle'), ctxFor('understand-others', 'managed', electron))).toBe('tour.steps.subtitle.content_electron');
+    expect(contentKey(step('subtitle'), ctxFor('understand-others', 'managed', extension))).toBe('tour.steps.subtitle.content_extension');
+  });
+
   it('account, provider-settings and start vary by readiness', () => {
     expect(contentKey(step('account'), ctxFor('be-heard', 'managed', electron, { isSignedIn: false }))).toBe('tour.steps.account.content_signedOut');
     expect(contentKey(step('account'), ctxFor('be-heard', 'managed'))).toBe('tour.steps.account.content');

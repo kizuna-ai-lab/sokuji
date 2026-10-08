@@ -1243,7 +1243,8 @@
       },
       "subtitle": {
         "title": "Mode sous-titres",
-        "content": "Ouvre une vue de sous-titres flottante — une fenêtre sur le bureau, une superposition sur la page dans l'extension. OBS et le partage d'écran peuvent la capturer."
+        "content_electron": "Réduit cette fenêtre en une barre de sous-titres flottante, que l’on peut capturer avec OBS ou le partage d’écran. « Retour à la fenêtre principale » sur la barre, ou Esc, ramène la fenêtre.",
+        "content_extension": "Ouvre des sous-titres flottants en superposition sur la page. OBS et le partage d’écran peuvent les capturer."
       },
       "account": {
         "title": "Votre compte",

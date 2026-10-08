@@ -1243,7 +1243,8 @@
       },
       "subtitle": {
         "title": "Altyazı modu",
-        "content": "Yüzen bir altyazı görünümü açar — masaüstünde bir pencere, uzantıda ise sayfa üzerinde bir katman. OBS ve ekran paylaşımı bunu yakalayabilir."
+        "content_electron": "Bu pencereyi, OBS ve ekran paylaşımının yakalayabileceği yüzen bir altyazı çubuğuna küçültür. Çubuktaki “Ana pencereye dön” veya Esc pencereyi geri getirir.",
+        "content_extension": "Yüzen altyazıları sayfa üzerinde bir katman olarak açar. OBS ve ekran paylaşımı bunları yakalayabilir."
       },
       "account": {
         "title": "Hesabınız",

@@ -1243,7 +1243,8 @@
       },
       "subtitle": {
         "title": "Modo de legendas",
-        "content": "Abre uma visualização de legendas flutuante — uma janela no desktop, uma sobreposição na página na extensão. OBS e compartilhamento de tela conseguem capturá-la."
+        "content_electron": "Reduz esta janela a uma barra de legendas flutuante, que o OBS e o compartilhamento de tela conseguem capturar. “Voltar à janela principal” na barra, ou Esc, traz a janela de volta.",
+        "content_extension": "Abre legendas flutuantes como uma sobreposição na página. O OBS e o compartilhamento de tela conseguem capturá-las."
       },
       "account": {
         "title": "Sua conta",

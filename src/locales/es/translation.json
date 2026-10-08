@@ -1243,7 +1243,8 @@
       },
       "subtitle": {
         "title": "Modo subtítulos",
-        "content": "Abre una vista de subtítulos flotante — una ventana en el escritorio, una superposición en la página en la extensión. OBS y la pantalla compartida pueden capturarla."
+        "content_electron": "Reduce esta ventana a una barra de subtítulos flotante que OBS y la pantalla compartida pueden capturar. «Volver a la ventana principal» en la barra, o Esc, recupera la ventana.",
+        "content_extension": "Abre subtítulos flotantes como una superposición en la página. OBS y la pantalla compartida pueden capturarlos."
       },
       "account": {
         "title": "Tu cuenta",

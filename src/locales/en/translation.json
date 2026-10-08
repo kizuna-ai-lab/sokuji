@@ -837,7 +837,8 @@
       },
       "subtitle": {
         "title": "Subtitle mode",
-        "content": "Opens a floating subtitle view — a window on desktop, an overlay on the page in the extension. OBS and screen sharing can capture it."
+        "content_electron": "Shrinks this window into a floating subtitle bar that OBS and screen sharing can capture. “Return to main window” on the bar, or Esc, brings the window back.",
+        "content_extension": "Opens floating subtitles as an overlay on the page. OBS and screen sharing can capture it."
       },
       "account": {
         "title": "Your account",

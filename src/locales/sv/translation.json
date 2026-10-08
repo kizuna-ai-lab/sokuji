@@ -1243,7 +1243,8 @@
       },
       "subtitle": {
         "title": "Undertextläge",
-        "content": "Öppnar en flytande undertextvy — ett fönster på skrivbordet, ett överlägg på sidan i tillägget. OBS och skärmdelning kan fånga den."
+        "content_electron": "Krymper det här fönstret till en flytande undertextlist som OBS och skärmdelning kan fånga. ”Tillbaka till huvudfönstret” i listen, eller Esc, tar tillbaka fönstret.",
+        "content_extension": "Öppnar flytande undertexter som ett överlägg på sidan. OBS och skärmdelning kan fånga dem."
       },
       "account": {
         "title": "Ditt konto",
