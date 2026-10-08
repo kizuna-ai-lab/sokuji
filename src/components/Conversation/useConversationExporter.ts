@@ -7,7 +7,7 @@ import { getAppVersion } from '../../utils/conversationExport';
 /** The export menu's exporter over a conversation view: a new one only when the view's legs, entries or info change. */
 export function useConversationExporter({ legs, entries, info }: ConversationViewState): Exporter {
   const { t } = useTranslation();
-  const words = useMemo(() => exportWords((key, defaultValue) => t(key, defaultValue)), [t]);
+  const words = useMemo(() => exportWords((key, defaultValue, params) => t(key, { defaultValue, ...params })), [t]);
   return useMemo(
     () => conversationExporter({ entries, legs, info, words, appVersion: getAppVersion(), now: Date.now }),
     [entries, legs, info, words],

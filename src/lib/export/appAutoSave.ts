@@ -29,7 +29,7 @@ export async function autoSaveConversation(
       entries: createProjector().project(legs, DEFAULT_PROJECTION),
       legs,
       info,
-      words: exportWords((key, defaultValue) => i18n.t(key, { defaultValue })),
+      words: exportWords((key, defaultValue, params) => i18n.t(key, { defaultValue, ...params })),
       appVersion: getAppVersion(),
       now,
     });

@@ -25,7 +25,7 @@ const entries: Entry[] = [
   { kind: 'exchange', id: 'c', leg: 'speaker', languages: legs[0].languages, pairing: 'none', source: rows(lone), translation: [], t: 13_000 },
 ];
 const options = {
-  labels: { me: 'Me', other: 'Other', noTranslation: '(no translation)', noSource: '(no source)' },
+  labels: { me: 'Me', other: 'Other', noTranslation: '(no translation)', noSource: '(no source)', person: (n: number) => `Speaker ${n}` },
   formatTime: (ms: number) => `[t${ms}]`,
 };
 
@@ -154,5 +154,26 @@ describe('renderTranscriptJson — notice params', () => {
   it('keeps a transient notice, whatever its age', () => {
     const json = renderTranscriptJson([{ kind: 'notice', id: 'n3', leg: 'speaker', severity: 'info', message: 'now using', code: 'mic_now_using', params: { device: 'USB Mic' }, lifetime: 'transient', at: 1 }], []);
     expect(json.notices).toEqual([expect.objectContaining({ id: 'n3', code: 'mic_now_using', params: { device: 'USB Mic' } })]);
+  });
+});
+
+describe('people', () => {
+  const said = (s: Segment, person: string) => rows(s).map((r) => ({ ...r, person }));
+  const p1 = seg('participant', { text: 'First.', openedAt: 20_000 });
+  const p2 = seg('participant', { text: 'Second.', openedAt: 21_000 });
+  const labelled: Entry[] = [
+    { kind: 'exchange', id: 'p1', leg: 'participant', languages: legs[1].languages, pairing: 'stated', source: said(p1, '1.1'), translation: [], t: 20_000 },
+    { kind: 'exchange', id: 'p2', leg: 'participant', languages: legs[1].languages, pairing: 'stated', source: said(p2, '1.2'), translation: [], t: 21_000 },
+  ];
+  const peopleLegs: Leg[] = [{ ...legs[1], segments: [p1, p2] }];
+
+  it("writes a labelled leg's person in the JSON, and nothing for an unlabelled one", () => {
+    expect(renderTranscriptJson(labelled, peopleLegs).groups.map((g) => g.person)).toEqual([1, 2]);
+    expect(renderTranscriptJson(entries, legs).groups.every((g) => !('person' in g))).toBe(true);
+  });
+
+  it("heads each block with the person's name, whatever the scope", () => {
+    expect(renderTranscriptTxt(labelled, peopleLegs, options)).toContain('[t20000] Speaker 1\n');
+    expect(renderTranscriptTxt(labelled, peopleLegs, { ...options, scope: { speaker: 'both', participant: 'source' } })).toContain('[t21000] Speaker 2\n');
   });
 });

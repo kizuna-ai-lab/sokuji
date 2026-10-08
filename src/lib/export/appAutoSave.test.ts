@@ -100,4 +100,18 @@ describe('autoSaveConversation', () => {
     expect(reportError).toHaveBeenCalledTimes(1);
     expect(note.mock.calls[0][0]).toMatchObject({ severity: 'warning', code: 'autosave_failed' });
   });
+
+  it("names each person of a labelled leg in the saved text", async () => {
+    const people: Leg = {
+      ...participantLeg,
+      segments: [
+        seg({ id: 'r:participant:1', text: 'One.', origin: 'q1', openedAt: 1_700_000_010_000, person: '1.1' }),
+        seg({ id: 'r:participant:2', text: 'Two.', origin: 'q2', openedAt: 1_700_000_011_000, person: '1.2' }),
+      ],
+    };
+    expect(await autoSaveConversation([people], info, { note })).toBe('saved');
+    const [content] = downloadFile.mock.calls[0];
+    expect(content).toMatch(/\] Speaker 1\n {2}One\.\n/);
+    expect(content).toMatch(/\] Speaker 2\n {2}Two\.\n/);
+  });
 });

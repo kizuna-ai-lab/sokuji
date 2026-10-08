@@ -7,6 +7,7 @@
 import type { Languages, Leg, LegName, Segment, SegmentId } from '../conversation/types';
 import type { Entry, Pairing, Row } from '../projection/types';
 import { joinSegmentTexts } from '../projection/join';
+import { entryPerson, people } from '../view/people';
 import { showsSide, type LegFilters } from '../view/filter';
 
 export interface TranscriptLabels {
@@ -14,6 +15,8 @@ export interface TranscriptLabels {
   other: string;
   noTranslation: string;
   noSource: string;
+  /** A labelled leg's person, by display number. */
+  person(n: number): string;
 }
 
 /** Which sides of each leg an export writes: the display modes' union, per leg (today's four checkboxes). */
@@ -62,6 +65,8 @@ export interface TranscriptGroup {
   leg: LegName;
   t: number;
   pairing: Pairing;
+  /** The person's display number, on a labelled leg. */
+  person?: number;
   /** absent: not in the export's scope; null: none was produced */
   source?: TranscriptSide | null;
   /** absent: not in the export's scope; null: none was produced */
@@ -138,13 +143,15 @@ export function renderTranscriptJson(
   const index = segmentIndex(legs);
   const groups: TranscriptGroup[] = [];
   const notices: TranscriptJson['notices'] = [];
+  const who = people(entries);
   for (const e of entries) {
     if (e.kind === 'notice') {
       notices.push({ id: e.id, leg: e.leg, at: e.at, severity: e.severity, message: e.message, code: e.code, params: e.params });
       continue;
     }
     const filter = scope[e.leg];
-    const group: TranscriptGroup = { id: e.id, leg: e.leg, t: e.t, pairing: e.pairing };
+    const person = who.numberOf(e.leg, entryPerson(e));
+    const group: TranscriptGroup = { id: e.id, leg: e.leg, t: e.t, pairing: e.pairing, ...(person !== undefined ? { person } : {}) };
     if (showsSide(filter, 'source')) group.source = sideOf(e.source, index);
     if (showsSide(filter, 'translation')) group.translation = sideOf(e.translation, index);
     if (group.source == null && group.translation == null) continue;
@@ -170,7 +177,8 @@ export function renderTranscriptTxt(entries: readonly Entry[], legs: readonly Le
   const { groups } = renderTranscriptJson(entries, legs, { scope });
   const lines: string[] = o.header ? headerLines(o.header, legs, isNarrowed(scope)) : [];
   for (const g of groups) {
-    lines.push(`${o.formatTime(g.t)} ${g.leg === 'speaker' ? o.labels.me : o.labels.other}`);
+    const who = g.person !== undefined ? o.labels.person(g.person) : g.leg === 'speaker' ? o.labels.me : o.labels.other;
+    lines.push(`${o.formatTime(g.t)} ${who}`);
     if ('source' in g) lines.push(`  ${g.source ? g.source.text : o.labels.noSource}`);
     if ('translation' in g) lines.push(`  ${g.translation ? `${ARROW} ${g.translation.text}` : o.labels.noTranslation}`);
     lines.push('');
