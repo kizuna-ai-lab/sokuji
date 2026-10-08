@@ -147,7 +147,14 @@ class SonioxCore {
       clock: o.primary.clock,
       sink: {
         segment: (leg, event) => { if (!this.ended) emitSegment(this.leg(leg).events, this.o.faceToFace ? withoutPerson(event) : event); },
-        speak: (leg, ref, text, span, language) => { if (!this.ended) this.leg(leg).speech?.speak(ref, text, span, sonioxWire.toWire(language)); },
+        speak: (leg, ref, text, span, language) => {
+          if (this.ended) return;
+          const core = this.leg(leg);
+          // A leg speaks only into its own target: a translation into its source is the
+          // speaker's own language (they code-switched), and nobody needs it read aloud.
+          if (sonioxWire.toWire(language) === sonioxWire.toWire(core.context.direction.source)) return;
+          core.speech?.speak(ref, text, span, sonioxWire.toWire(language));
+        },
         endSpeech: (leg) => { if (!this.ended) this.leg(leg).speech?.endUtterance(); },
       },
       legFor: (token) => this.legFor(token),

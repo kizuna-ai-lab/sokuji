@@ -365,7 +365,17 @@ describe('Soniox startBoth: shared', () => {
   });
 });
 
-describe('Soniox startBoth: shared, wire codes', () => {
+describe('Soniox startBoth: shared, languages', () => {
+  it("shared: a translation into the speaker's own language is not spoken (a code-switched line; Review Focus 4)", async () => {
+    const h = await live();
+    speak(h, 'speaker', 10);
+    // The speaker's source is 'en'; they said a Japanese line, so Soniox translated it into English.
+    h.sttSockets()[0].receive(msg({ ...orig('Daijōbu.'), language: 'ja' }, tr('It is fine.', 'en', 'ja'), END));
+    expect(opened(h, 'speaker')).toEqual([1, 2]);
+    const [speakerTts] = h.ttsSockets();
+    expect(speakerTts.sentJson<Json>().some((m) => m.text === 'It is fine.')).toBe(false);
+  });
+
   it("shared: the token and the pair are both in app codes, so Soniox's 'tl' meets the source 'fil'", async () => {
     const h = await live({ speakerSource: 'fil' });
     h.sttSockets()[0].receive(msg({ ...orig('Kumusta.'), language: 'tl' }, END));
@@ -392,6 +402,18 @@ describe('Soniox startBoth: cancelled', () => {
 });
 
 describe('Soniox startBoth: face-to-face', () => {
+  it("face-to-face: the other person's code-switched line is not read back to them (Review Focus 4)", async () => {
+    const h = await live({ faceToFace: true, participantSpeaks: true });
+    const stt = h.sttSockets()[0];
+    // Label '2' speaks Japanese (the participant's source): two lines establish it as the participant.
+    stt.receive(msg({ ...orig('Konnichiwa.'), language: 'ja', speaker: '2' }, END));
+    stt.receive(msg({ ...orig('Arigatō.'), language: 'ja', speaker: '2' }, END));
+    // They now say an English line; Soniox translates it into Japanese — their own language.
+    stt.receive(msg({ ...orig('Thank you.'), language: 'en', speaker: '2' }, tr('Dōmo arigatō.', 'ja', 'en'), END));
+    expect(opened(h, 'participant')).toEqual([1, 2, 3, 4]);
+    for (const tts of h.ttsSockets()) expect(tts.sentJson<Json>().some((m) => m.text === 'Dōmo arigatō.')).toBe(false);
+  });
+
   it('attributes by label and language, not energy: a code-switched line stays with its speaker', async () => {
     const h = await live({ faceToFace: true });
     const stt = h.sttSockets()[0];
