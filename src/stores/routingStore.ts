@@ -3,6 +3,7 @@
  * "Playback" → "Routing"): whether the meeting hears the speaker's
  * translation (on by default), and the participant-TTS opt-in (off). The
  * monitor switch and passthrough stay in `audioStore`, where they live today.
+ * Face-to-face's ear swap lives here too: it is routing.
  */
 import { create } from 'zustand';
 import { persistSetting } from '../services/persistSetting';
@@ -10,6 +11,7 @@ import { ServiceFactory } from '../services/ServiceFactory';
 
 const MEETING = 'settings.routing.meeting';
 const PARTICIPANT_SPEECH = 'settings.routing.participantSpeech';
+const FACE_TO_FACE_SWAP = 'settings.routing.faceToFaceSwap';
 
 /**
  * Whether the participant-speech switch shows. The owner's choice of
@@ -25,23 +27,29 @@ export const PARTICIPANT_SPEECH_SHOWN = false;
 interface RoutingStore {
   meeting: boolean;
   participantSpeech: boolean;
+  /** Face-to-face: my translation in the right ear and theirs in the left, instead of the reverse. */
+  faceToFaceSwap: boolean;
   load(): Promise<void>;
   setMeeting(on: boolean): void;
   setParticipantSpeech(on: boolean): void;
+  setFaceToFaceSwap(on: boolean): void;
 }
 
 export const useRoutingStore = create<RoutingStore>()((set) => ({
   meeting: true,
   participantSpeech: false,
+  faceToFaceSwap: false,
   async load() {
     const settings = ServiceFactory.getSettingsService();
-    const [meeting, participantSpeech] = await Promise.all([
+    const [meeting, participantSpeech, faceToFaceSwap] = await Promise.all([
       settings.getSetting(MEETING, true),
       PARTICIPANT_SPEECH_SHOWN ? settings.getSetting(PARTICIPANT_SPEECH, false) : false,
+      settings.getSetting(FACE_TO_FACE_SWAP, false),
     ]);
     set({
       meeting: typeof meeting === 'boolean' ? meeting : true,
       participantSpeech: typeof participantSpeech === 'boolean' ? participantSpeech : false,
+      faceToFaceSwap: faceToFaceSwap === true,
     });
   },
   setMeeting(on) {
@@ -51,5 +59,9 @@ export const useRoutingStore = create<RoutingStore>()((set) => ({
   setParticipantSpeech(on) {
     set({ participantSpeech: on });
     void persistSetting(PARTICIPANT_SPEECH, on);
+  },
+  setFaceToFaceSwap(on) {
+    set({ faceToFaceSwap: on });
+    void persistSetting(FACE_TO_FACE_SWAP, on);
   },
 }));

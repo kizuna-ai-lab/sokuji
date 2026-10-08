@@ -364,6 +364,13 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
    * when its switch is on.
    */
   participantSpeech?: boolean;
+  /**
+   * Whether Both may run face-to-face (spec 2026-10-08, slice 3): two people
+   * at one microphone, attributed by speaker label and language on one
+   * shared socket. Absent: the Both popover never offers "beside me", and a
+   * stored choice is ignored.
+   */
+  faceToFace?: boolean;
 
   // one leg's session; `C` has no `refused` member — the type parameter's constraint enforces it
   build(context: SessionContext, s: S, shared: SharedSettings): C | ProviderRefusal;

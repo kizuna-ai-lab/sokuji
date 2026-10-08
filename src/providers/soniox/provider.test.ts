@@ -26,6 +26,10 @@ vi.mock('./check', async (importOriginal) => ({
 }));
 
 describe('sonioxProvider', () => {
+  it('offers face-to-face (a shared two_way socket with diarization)', () => {
+    expect(sonioxProvider.faceToFace).toBe(true);
+  });
+
   it("is Soniox with the user's own key, on every platform, not flagged, under the old enum's id and slice", () => {
     expect(sonioxProvider).toMatchObject({
       id: 'soniox',

@@ -18,7 +18,7 @@ import { useRoutingStore } from './routingStore';
 beforeEach(() => {
   stored.clear();
   setSetting.mockClear();
-  useRoutingStore.setState({ meeting: true, participantSpeech: false });
+  useRoutingStore.setState({ meeting: true, participantSpeech: false, faceToFaceSwap: false });
 });
 
 describe('routingStore', () => {
@@ -55,5 +55,23 @@ describe('routingStore', () => {
       expect(setSetting).toHaveBeenCalledWith('settings.routing.meeting', false);
       expect(setSetting).toHaveBeenCalledWith('settings.routing.participantSpeech', true);
     });
+  });
+});
+
+describe('routingStore — face-to-face ears', () => {
+  it('keeps my ear on the left by default and persists a swap', async () => {
+    expect(useRoutingStore.getState().faceToFaceSwap).toBe(false);
+    useRoutingStore.getState().setFaceToFaceSwap(true);
+    expect(useRoutingStore.getState().faceToFaceSwap).toBe(true);
+    await vi.waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.routing.faceToFaceSwap', true));
+  });
+
+  it('loads a saved swap, and a non-boolean as no swap', async () => {
+    stored.set('settings.routing.faceToFaceSwap', true);
+    await useRoutingStore.getState().load();
+    expect(useRoutingStore.getState().faceToFaceSwap).toBe(true);
+    stored.set('settings.routing.faceToFaceSwap', 'yes');
+    await useRoutingStore.getState().load();
+    expect(useRoutingStore.getState().faceToFaceSwap).toBe(false);
   });
 });

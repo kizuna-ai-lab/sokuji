@@ -31,6 +31,7 @@ describe('kizunaSonioxProvider', () => {
       vendor: 'Soniox',
       platforms: ['electron', 'extension', 'web'],
       participantSpeech: false,
+      faceToFace: true,
     });
     expect(kizunaSonioxProvider.guideUrl).toBeUndefined();
     expect(kizunaSonioxProvider.flagged).toBeUndefined();
