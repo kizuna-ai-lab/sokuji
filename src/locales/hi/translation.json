@@ -292,7 +292,10 @@
       "theyRead": "वे पढ़ते हैं",
       "theySpeak": "वे बोलते हैं",
       "mirror": "वे {{their}} बोलते हैं → मैं {{mine}} पढ़ता/पढ़ती हूं"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "आमने-सामने में हमेशा एक साझा सत्र इस्तेमाल होता है: दोनों लोग एक ही माइक्रोफ़ोन में बोलते हैं।",
+    "sonioxParticipantVoice": "दूसरे पक्ष की आवाज़",
+    "sonioxParticipantVoiceTooltip": "वह आवाज़ जो दूसरे व्यक्ति की बात आपकी भाषा में आपको सुनाती है। केवल बिल्ट-इन आवाज़ें।"
   },
   "simpleSettings": {
     "autoAuthenticated": "आपके खाते के माध्यम से स्वचालित रूप से प्रमाणित",
@@ -641,14 +644,21 @@
     "deviceMic": "माइक्रोफ़ोन",
     "deviceSpeakerMonitor": "स्पीकर मॉनिटर",
     "notSelected": "चयनित नहीं",
-    "deviceParticipantAudio": "दूसरे का ऑडियो"
+    "deviceParticipantAudio": "दूसरे का ऑडियो",
+    "faceToFaceTag": "आमने-सामने"
   },
   "popover": {
     "statusOff": "बंद",
     "toggleOn": "{{label}} चालू करें",
     "toggleOff": "{{label}} बंद करें",
     "participantSubtitleElectron": "सभी सिस्टम ऑडियो",
-    "participantSubtitleExtension": "सिस्टम डिफ़ॉल्ट के माध्यम से चलता है"
+    "participantSubtitleExtension": "सिस्टम डिफ़ॉल्ट के माध्यम से चलता है",
+    "otherSide": "दूसरा पक्ष",
+    "otherSideMeeting": "मीटिंग में",
+    "otherSideMeetingHint": "सिस्टम ऑडियो या किसी ऐप को कैप्चर करता है",
+    "otherSideBeside": "मेरे पास",
+    "otherSideBesideHint": "एक माइक्रोफ़ोन पर दो लोग",
+    "headphones": "हेडफ़ोन"
   },
   "simplePanel": {
     "clickToConfigLanguages": "भाषाओं को कॉन्फ़िगर करने के लिए क्लिक करें",
@@ -1136,6 +1146,15 @@
       "two-way-text": {
         "title": "दोतरफ़ा ऑनलाइन बातचीत, केवल सबटाइटल",
         "desc": "द्विभाषी कैप्शन, मीटिंग मिनट्स — दोनों पक्ष टेक्स्ट के रूप में, कोई सिंथेटिक आवाज़ नहीं।"
+      },
+      "setsBeside": "सेट करता है: {{mode}} मोड, दूसरा पक्ष मेरे पास · {{output}}",
+      "face-to-face-voice": {
+        "title": "आमने-सामने बातचीत",
+        "desc": "एक कंप्यूटर पर दो लोग, हर कोई अपनी भाषा में बोलता है; हर कोई एक ईयरबड पहनता है और केवल अपनी भाषा में अनुवाद सुनता है।"
+      },
+      "face-to-face-text": {
+        "title": "आमने-सामने बातचीत, केवल सबटाइटल",
+        "desc": "दोनों एक ही स्क्रीन पढ़ते हैं, या दूसरा व्यक्ति अपने फ़ोन पर LAN कैप्शन पेज खोलता है।"
       }
     },
     "output": {
@@ -1168,7 +1187,8 @@
     },
     "fit": {
       "cannotSpeak": "यह प्रदाता बोला गया अनुवाद नहीं दे सकता।",
-      "cannotBeTextOnly": "यह प्रदाता हमेशा बोलता है; यह केवल सबटाइटल मोड में नहीं चल सकता।"
+      "cannotBeTextOnly": "यह प्रदाता हमेशा बोलता है; यह केवल सबटाइटल मोड में नहीं चल सकता।",
+      "cannotFaceToFace": "यह प्रदाता एक माइक्रोफ़ोन पर दो लोगों का अनुवाद नहीं कर सकता।"
     },
     "credentials": {
       "apiKey": "API कुंजी",
@@ -1420,5 +1440,23 @@
     "warnAddressChanged": "नेटवर्क बदल गया है। अब पता {{address}} है: लिंक फिर से भेजें या प्रोजेक्टर पेज दोबारा खोलें।",
     "errorPortsBusy": "शेयरिंग शुरू नहीं हो सकी: पोर्ट 7788–7797 सभी उपयोग में हैं।",
     "errorListen": "शेयरिंग शुरू नहीं हो सकी: {{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "बायाँ और दायाँ · हर व्यक्ति अपनी भाषा में अनुवाद सुनता है",
+    "leftEar": "बायाँ कान",
+    "rightEar": "दायाँ कान",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "मैं ({{language}})",
+    "otherListens": "दूसरा व्यक्ति ({{language}})",
+    "previewLeft": "बाएँ कान में सुनकर देखें",
+    "previewRight": "दाएँ कान में सुनकर देखें",
+    "swap": "बायाँ और दायाँ बदलें",
+    "speakersHint": "हर व्यक्ति के लिए एक ईयरबड सबसे अच्छा रहता है। स्पीकर पर माइक्रोफ़ोन अनुवाद को भी सुन लेता है और उसका फिर से अनुवाद कर देता है।",
+    "playedLeft": "बाएँ कान में चलाया गया",
+    "playedRight": "दाएँ कान में चलाया गया",
+    "notPlayed": "चलाया नहीं गया: यह अनुवाद {{target}} के बजाय {{language}} में है, इसलिए इसे किसी को नहीं सुनाया जाता।",
+    "legendMe": "{{language}} · मैं",
+    "legendOther": "{{language}} · दूसरा व्यक्ति"
   }
 }

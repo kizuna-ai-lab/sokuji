@@ -292,7 +292,10 @@
       "theyRead": "তারা পড়ে",
       "theySpeak": "তারা বলে",
       "mirror": "তারা {{their}} বলে → আমি {{mine}} পড়ি"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "মুখোমুখিতে সবসময় একটি ভাগ করা সেশন ব্যবহার হয়: দুজনেই একই মাইক্রোফোনে কথা বলেন।",
+    "sonioxParticipantVoice": "অপর পক্ষের কণ্ঠ",
+    "sonioxParticipantVoiceTooltip": "যে কণ্ঠ অপর ব্যক্তির কথা আপনার ভাষায় আপনাকে পড়ে শোনায়। শুধু বিল্ট-ইন কণ্ঠ।"
   },
   "simpleSettings": {
     "autoAuthenticated": "আপনার অ্যাকাউন্টের মাধ্যমে স্বয়ংক্রিয়ভাবে প্রমাণীকৃত",
@@ -641,14 +644,21 @@
     "deviceMic": "মাইক্রোফোন",
     "deviceSpeakerMonitor": "স্পিকার মনিটর",
     "notSelected": "নির্বাচিত নয়",
-    "deviceParticipantAudio": "অন্যের অডিও"
+    "deviceParticipantAudio": "অন্যের অডিও",
+    "faceToFaceTag": "মুখোমুখি"
   },
   "popover": {
     "statusOff": "বন্ধ",
     "toggleOn": "{{label}} চালু করুন",
     "toggleOff": "{{label}} বন্ধ করুন",
     "participantSubtitleElectron": "সমস্ত সিস্টেম অডিও",
-    "participantSubtitleExtension": "সিস্টেম ডিফল্টের মাধ্যমে চলে"
+    "participantSubtitleExtension": "সিস্টেম ডিফল্টের মাধ্যমে চলে",
+    "otherSide": "অপর পক্ষ",
+    "otherSideMeeting": "মিটিংয়ে",
+    "otherSideMeetingHint": "সিস্টেম অডিও বা কোনো অ্যাপ ক্যাপচার করে",
+    "otherSideBeside": "আমার পাশে",
+    "otherSideBesideHint": "একটি মাইক্রোফোনে দুজন",
+    "headphones": "হেডফোন"
   },
   "simplePanel": {
     "clickToConfigLanguages": "ভাষা কনফিগার করতে ক্লিক করুন",
@@ -1136,6 +1146,15 @@
       "two-way-text": {
         "title": "দ্বিমুখী অনলাইন কথোপকথন, শুধুমাত্র সাবটাইটেল",
         "desc": "দ্বিভাষিক ক্যাপশন, মিটিং মিনিটস — উভয় পক্ষই টেক্সট আকারে, কোনো কৃত্রিম কণ্ঠস্বর নেই।"
+      },
+      "setsBeside": "সেট করে: {{mode}} মোড, অপর পক্ষ আমার পাশে · {{output}}",
+      "face-to-face-voice": {
+        "title": "মুখোমুখি কথোপকথন",
+        "desc": "একটি কম্পিউটারে দুজন, প্রত্যেকে নিজের ভাষায় কথা বলেন; প্রত্যেকে একটি করে ইয়ারবাড পরেন এবং শুধু নিজের ভাষার অনুবাদ শোনেন।"
+      },
+      "face-to-face-text": {
+        "title": "মুখোমুখি কথোপকথন, শুধুমাত্র সাবটাইটেল",
+        "desc": "দুজনেই একই স্ক্রিন পড়েন, অথবা অপর ব্যক্তি নিজের ফোনে LAN ক্যাপশন পেজ খোলেন।"
       }
     },
     "output": {
@@ -1168,7 +1187,8 @@
     },
     "fit": {
       "cannotSpeak": "এই প্রদানকারী কথ্য অনুবাদ তৈরি করতে পারে না।",
-      "cannotBeTextOnly": "এই প্রদানকারী সবসময় কথা বলে; এটি শুধুমাত্র সাবটাইটেল মোডে চলতে পারে না।"
+      "cannotBeTextOnly": "এই প্রদানকারী সবসময় কথা বলে; এটি শুধুমাত্র সাবটাইটেল মোডে চলতে পারে না।",
+      "cannotFaceToFace": "এই প্রদানকারী একটি মাইক্রোফোনে দুজনের অনুবাদ করতে পারে না।"
     },
     "credentials": {
       "apiKey": "API কী",
@@ -1420,5 +1440,23 @@
     "warnAddressChanged": "নেটওয়ার্ক বদলে গেছে। এখন ঠিকানা {{address}}: লিংকটি আবার পাঠান অথবা প্রজেক্টর পেজ আবার খুলুন।",
     "errorPortsBusy": "শেয়ারিং শুরু করা যায়নি: 7788–7797 পোর্টগুলোর সবই ব্যবহৃত হচ্ছে।",
     "errorListen": "শেয়ারিং শুরু করা যায়নি: {{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "বাম ও ডান · প্রত্যেকে নিজের ভাষায় অনুবাদ শোনে",
+    "leftEar": "বাম কান",
+    "rightEar": "ডান কান",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "আমি ({{language}})",
+    "otherListens": "অপর ব্যক্তি ({{language}})",
+    "previewLeft": "বাম কানে প্রিভিউ শুনুন",
+    "previewRight": "ডান কানে প্রিভিউ শুনুন",
+    "swap": "বাম-ডান অদলবদল করুন",
+    "speakersHint": "প্রত্যেকের জন্য একটি করে ইয়ারবাড সবচেয়ে ভালো কাজ করে। স্পিকারে মাইক্রোফোন অনুবাদটিও ধরে ফেলে এবং আবার অনুবাদ করে।",
+    "playedLeft": "বাম কানে চালানো হয়েছে",
+    "playedRight": "ডান কানে চালানো হয়েছে",
+    "notPlayed": "চালানো হয়নি: এই অনুবাদ {{target}} নয়, {{language}} ভাষায়, তাই এটি কাউকে পড়ে শোনানো হয় না।",
+    "legendMe": "{{language}} · আমি",
+    "legendOther": "{{language}} · অপর ব্যক্তি"
   }
 }

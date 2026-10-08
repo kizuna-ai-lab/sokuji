@@ -292,7 +292,10 @@
       "theyRead": "binabasa nila sa",
       "theySpeak": "nagsasalita sila ng",
       "mirror": "Nagsasalita sila ng {{their}} → binabasa ko sa {{mine}}"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "Laging iisang nakabahaging session ang gamit ng magkaharap: parehong tao ay nagsasalita sa iisang mikropono.",
+    "sonioxParticipantVoice": "Boses ng kausap",
+    "sonioxParticipantVoiceTooltip": "Ang boses na bumabasa sa inyo ng sinasabi ng kausap, sa inyong wika. Mga built-in na boses lamang."
   },
   "simpleSettings": {
     "autoAuthenticated": "Awtomatikong na-authenticate sa pamamagitan ng iyong account",
@@ -641,14 +644,21 @@
     "deviceMic": "Mikropono",
     "deviceSpeakerMonitor": "Monitor ng speaker",
     "notSelected": "Hindi napili",
-    "deviceParticipantAudio": "Audio ng kausap"
+    "deviceParticipantAudio": "Audio ng kausap",
+    "faceToFaceTag": "Magkaharap"
   },
   "popover": {
     "statusOff": "Patay",
     "toggleOn": "I-on ang {{label}}",
     "toggleOff": "I-off ang {{label}}",
     "participantSubtitleElectron": "Lahat ng audio ng system",
-    "participantSubtitleExtension": "Tumutugtog sa default ng system"
+    "participantSubtitleExtension": "Tumutugtog sa default ng system",
+    "otherSide": "Nasaan ang kausap",
+    "otherSideMeeting": "Nasa meeting",
+    "otherSideMeetingHint": "Kinukuha ang audio ng system o ng isang app",
+    "otherSideBeside": "Katabi ko",
+    "otherSideBesideHint": "Dalawang tao, iisang mikropono",
+    "headphones": "Mga headphone"
   },
   "simplePanel": {
     "clickToConfigLanguages": "I-click upang i-configure ang mga wika",
@@ -1136,6 +1146,15 @@
       "two-way-text": {
         "title": "Two-way na online na usapan, subtitle lamang",
         "desc": "Bilingual na caption, minuto ng meeting — parehong panig bilang teksto, walang synthetic na boses."
+      },
+      "setsBeside": "Itinatakda: {{mode}} mode, katabi ko ang kausap · {{output}}",
+      "face-to-face-voice": {
+        "title": "Magkaharap na usapan",
+        "desc": "Dalawang tao sa iisang computer, bawat isa ay nagsasalita sa sarili niyang wika; bawat isa ay may suot na isang earbud at ang salin lang sa sarili niyang wika ang naririnig."
+      },
+      "face-to-face-text": {
+        "title": "Magkaharap na usapan, subtitle lamang",
+        "desc": "Parehong nagbabasa sa iisang screen, o binubuksan ng kausap ang LAN caption page sa kanyang telepono."
       }
     },
     "output": {
@@ -1168,7 +1187,8 @@
     },
     "fit": {
       "cannotSpeak": "Hindi kayang gumawa ng binibigkas na pagsasalin ang provider na ito.",
-      "cannotBeTextOnly": "Laging may boses ang provider na ito; hindi ito puwedeng tumakbo nang subtitle lamang."
+      "cannotBeTextOnly": "Laging may boses ang provider na ito; hindi ito puwedeng tumakbo nang subtitle lamang.",
+      "cannotFaceToFace": "Hindi kayang isalin ng provider na ito ang dalawang taong nasa iisang mikropono."
     },
     "credentials": {
       "apiKey": "API key",
@@ -1420,5 +1440,23 @@
     "warnAddressChanged": "Nagbago ang network. {{address}} na ang address: ipadala muli ang link o buksan muli ang projector page.",
     "errorPortsBusy": "Hindi masimulan ang pagbabahagi: ginagamit na ang lahat ng port 7788–7797.",
     "errorListen": "Hindi masimulan ang pagbabahagi: {{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "Kaliwa at kanan · naririnig ng bawat isa ang salin sa sarili niyang wika",
+    "leftEar": "Kaliwang tainga",
+    "rightEar": "Kanang tainga",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "Ako ({{language}})",
+    "otherListens": "Kausap ({{language}})",
+    "previewLeft": "I-preview ang kaliwang tainga",
+    "previewRight": "I-preview ang kanang tainga",
+    "swap": "Ipagpalit ang kaliwa at kanan",
+    "speakersHint": "Pinakamainam ang tig-isang earbud. Sa mga speaker, nakukuha ng mikropono ang salin at isinasalin itong muli.",
+    "playedLeft": "Pinatugtog sa kaliwang tainga",
+    "playedRight": "Pinatugtog sa kanang tainga",
+    "notPlayed": "Hindi pinatugtog: ang salin na ito ay sa {{language}}, hindi sa {{target}}, kaya hindi ito binabasa sa kahit sino.",
+    "legendMe": "{{language}} · ako",
+    "legendOther": "{{language}} · kausap"
   }
 }

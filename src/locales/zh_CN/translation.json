@@ -292,7 +292,10 @@
       "theyRead": "对方读到",
       "theySpeak": "对方说",
       "mirror": "对方说 {{their}} → 我阅读 {{mine}}"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "面对面对话始终使用同一个共享会话：两个人对着同一个麦克风说话。",
+    "sonioxParticipantVoice": "对方的声音",
+    "sonioxParticipantVoiceTooltip": "用你的语言读出对方所说内容的声音。仅限内置声音。"
   },
   "simpleSettings": {
     "autoAuthenticated": "已通过您的账户自动认证",
@@ -641,14 +644,21 @@
     "deviceMic": "麦克风",
     "deviceSpeakerMonitor": "扬声器监听",
     "notSelected": "未选择",
-    "deviceParticipantAudio": "对方音频"
+    "deviceParticipantAudio": "对方音频",
+    "faceToFaceTag": "面对面"
   },
   "popover": {
     "statusOff": "关闭",
     "toggleOn": "打开{{label}}",
     "toggleOff": "关闭{{label}}",
     "participantSubtitleElectron": "所有系统音频",
-    "participantSubtitleExtension": "通过系统默认输出播放"
+    "participantSubtitleExtension": "通过系统默认输出播放",
+    "otherSide": "对方在哪里",
+    "otherSideMeeting": "在线会议",
+    "otherSideMeetingHint": "捕获系统音频或某个应用的音频",
+    "otherSideBeside": "就在身边",
+    "otherSideBesideHint": "两个人共用一个麦克风",
+    "headphones": "耳机"
   },
   "simplePanel": {
     "clickToConfigLanguages": "点击配置语言",
@@ -1136,6 +1146,15 @@
       "two-way-text": {
         "title": "在线双向对话，只要字幕",
         "desc": "双语字幕、会议记录——双方都以文字呈现，不使用合成语音。"
+      },
+      "setsBeside": "将设置：{{mode}}模式，对方在身边 · {{output}}",
+      "face-to-face-voice": {
+        "title": "面对面对话",
+        "desc": "两个人在同一台电脑前，各说各的语言；每人戴一只耳机，只听到翻译成自己语言的内容。"
+      },
+      "face-to-face-text": {
+        "title": "面对面对话，只要字幕",
+        "desc": "两人看同一块屏幕，或者对方在手机上打开 LAN 字幕页面。"
       }
     },
     "output": {
@@ -1168,7 +1187,8 @@
     },
     "fit": {
       "cannotSpeak": "该服务不能生成语音翻译。",
-      "cannotBeTextOnly": "该服务始终出声，不支持仅字幕。"
+      "cannotBeTextOnly": "该服务始终出声，不支持仅字幕。",
+      "cannotFaceToFace": "该服务无法翻译共用一个麦克风的两个人。"
     },
     "credentials": {
       "apiKey": "API 密钥",
@@ -1420,5 +1440,23 @@
     "warnAddressChanged": "网络变了，地址已经换成 {{address}}，请重新发链接或重新投屏。",
     "errorPortsBusy": "没能开启分享：端口 7788–7797 都被占用了。",
     "errorListen": "没能开启分享：{{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "左右耳 · 每个人听到翻译成自己语言的内容",
+    "leftEar": "左耳",
+    "rightEar": "右耳",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "我（{{language}}）",
+    "otherListens": "对方（{{language}}）",
+    "previewLeft": "试听左耳",
+    "previewRight": "试听右耳",
+    "swap": "左右互换",
+    "speakersHint": "最好一人戴一只耳机。使用扬声器时，麦克风会拾取译音并再次翻译。",
+    "playedLeft": "已在左耳播放",
+    "playedRight": "已在右耳播放",
+    "notPlayed": "未播放：这条译文是 {{language}}，不是 {{target}}，因此不会读给任何人听。",
+    "legendMe": "{{language}} · 我",
+    "legendOther": "{{language}} · 对方"
   }
 }

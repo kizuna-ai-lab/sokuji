@@ -292,7 +292,10 @@
       "theyRead": "آن‌ها می‌خوانند",
       "theySpeak": "آن‌ها صحبت می‌کنند",
       "mirror": "آن‌ها به {{their}} صحبت می‌کنند → من به {{mine}} می‌خوانم"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "در حالت رو در رو همیشه یک نشست مشترک استفاده می‌شود: هر دو نفر در یک میکروفون صحبت می‌کنند.",
+    "sonioxParticipantVoice": "صدای طرف مقابل",
+    "sonioxParticipantVoiceTooltip": "صدایی که سخنان طرف مقابل را به زبان شما برایتان می‌خواند. فقط صداهای داخلی."
   },
   "simpleSettings": {
     "autoAuthenticated": "به طور خودکار از طریق حساب کاربری شما احراز هویت شده",
@@ -641,14 +644,21 @@
     "deviceMic": "میکروفون",
     "deviceSpeakerMonitor": "نظارت بلندگو",
     "notSelected": "انتخاب نشده",
-    "deviceParticipantAudio": "صدای طرف مقابل"
+    "deviceParticipantAudio": "صدای طرف مقابل",
+    "faceToFaceTag": "رو در رو"
   },
   "popover": {
     "statusOff": "خاموش",
     "toggleOn": "روشن کردن {{label}}",
     "toggleOff": "خاموش کردن {{label}}",
     "participantSubtitleElectron": "تمام صدای سیستم",
-    "participantSubtitleExtension": "از طریق پیش‌فرض سیستم پخش می‌شود"
+    "participantSubtitleExtension": "از طریق پیش‌فرض سیستم پخش می‌شود",
+    "otherSide": "طرف مقابل کجاست",
+    "otherSideMeeting": "در یک جلسه",
+    "otherSideMeetingHint": "صدای سیستم یا یک برنامه را دریافت می‌کند",
+    "otherSideBeside": "کنار من",
+    "otherSideBesideHint": "دو نفر پشت یک میکروفون",
+    "headphones": "هدفون"
   },
   "simplePanel": {
     "clickToConfigLanguages": "برای پیکربندی زبان‌ها کلیک کنید",
@@ -1136,6 +1146,15 @@
       "two-way-text": {
         "title": "گفت‌وگوی آنلاین دوطرفه، فقط زیرنویس",
         "desc": "زیرنویس دوزبانه، صورت‌جلسه — هر دو طرف به صورت متن، بدون صدای مصنوعی."
+      },
+      "setsBeside": "تنظیم می‌کند: حالت {{mode}}، طرف مقابل کنار من · {{output}}",
+      "face-to-face-voice": {
+        "title": "گفت‌وگوی رو در رو",
+        "desc": "دو نفر پشت یک رایانه، هر کدام به زبان خودش؛ هر کس یک گوشی در گوش دارد و فقط ترجمه به زبان خودش را می‌شنود."
+      },
+      "face-to-face-text": {
+        "title": "گفت‌وگوی رو در رو، فقط زیرنویس",
+        "desc": "هر دو یک صفحه را می‌خوانند، یا طرف مقابل صفحهٔ زیرنویس LAN را روی تلفن خود باز می‌کند."
       }
     },
     "output": {
@@ -1168,7 +1187,8 @@
     },
     "fit": {
       "cannotSpeak": "این ارائه‌دهنده نمی‌تواند ترجمهٔ گفتاری تولید کند.",
-      "cannotBeTextOnly": "این ارائه‌دهنده همیشه صحبت می‌کند؛ نمی‌تواند فقط با زیرنویس اجرا شود."
+      "cannotBeTextOnly": "این ارائه‌دهنده همیشه صحبت می‌کند؛ نمی‌تواند فقط با زیرنویس اجرا شود.",
+      "cannotFaceToFace": "این ارائه‌دهنده نمی‌تواند ترجمهٔ دو نفر پشت یک میکروفون را انجام دهد."
     },
     "credentials": {
       "apiKey": "کلید API",
@@ -1420,5 +1440,23 @@
     "warnAddressChanged": "شبکه تغییر کرد و آدرس اکنون {{address}} است: پیوند را دوباره بفرستید یا صفحهٔ پروژکتور را دوباره باز کنید.",
     "errorPortsBusy": "اشتراک‌گذاری شروع نشد: پورت‌های 7788–7797 همه در حال استفاده‌اند.",
     "errorListen": "اشتراک‌گذاری شروع نشد: {{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "چپ و راست · هر کس ترجمه را به زبان خودش می‌شنود",
+    "leftEar": "گوش چپ",
+    "rightEar": "گوش راست",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "من ({{language}})",
+    "otherListens": "طرف مقابل ({{language}})",
+    "previewLeft": "پیش‌نمایش گوش چپ",
+    "previewRight": "پیش‌نمایش گوش راست",
+    "swap": "جابه‌جایی چپ و راست",
+    "speakersHint": "بهتر است هر نفر یک گوشی داشته باشد. با بلندگو، میکروفون ترجمه را می‌گیرد و دوباره ترجمه می‌کند.",
+    "playedLeft": "در گوش چپ پخش شد",
+    "playedRight": "در گوش راست پخش شد",
+    "notPlayed": "پخش نشد: این ترجمه به {{language}} است، نه {{target}}، پس برای کسی خوانده نمی‌شود.",
+    "legendMe": "{{language}} · من",
+    "legendOther": "{{language}} · طرف مقابل"
   }
 }

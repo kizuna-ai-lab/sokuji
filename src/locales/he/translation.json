@@ -292,7 +292,10 @@
       "theyRead": "הם קוראים",
       "theySpeak": "הם מדברים",
       "mirror": "הם מדברים {{their}} → אני קורא {{mine}}"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "במצב פנים אל פנים תמיד נעשה שימוש במפגש משותף אחד: שני האנשים מדברים לאותו מיקרופון.",
+    "sonioxParticipantVoice": "קול הצד השני",
+    "sonioxParticipantVoiceTooltip": "הקול שמקריא לך את דברי הצד השני בשפתך. קולות מובנים בלבד."
   },
   "simpleSettings": {
     "autoAuthenticated": "אומת אוטומטית דרך החשבון שלך",
@@ -641,14 +644,21 @@
     "deviceMic": "מיקרופון",
     "deviceSpeakerMonitor": "ניטור רמקול",
     "notSelected": "לא נבחר",
-    "deviceParticipantAudio": "שמע הצד השני"
+    "deviceParticipantAudio": "שמע הצד השני",
+    "faceToFaceTag": "פנים אל פנים"
   },
   "popover": {
     "statusOff": "כבוי",
     "toggleOn": "הפעל {{label}}",
     "toggleOff": "כבה {{label}}",
     "participantSubtitleElectron": "כל שמע המערכת",
-    "participantSubtitleExtension": "מתנגן דרך ברירת המחדל של המערכת"
+    "participantSubtitleExtension": "מתנגן דרך ברירת המחדל של המערכת",
+    "otherSide": "היכן הצד השני",
+    "otherSideMeeting": "בפגישה",
+    "otherSideMeetingHint": "לוכד את שמע המערכת או אפליקציה",
+    "otherSideBeside": "לידי",
+    "otherSideBesideHint": "שני אנשים על מיקרופון אחד",
+    "headphones": "אוזניות"
   },
   "simplePanel": {
     "clickToConfigLanguages": "לחץ כדי להגדיר שפות",
@@ -1136,6 +1146,15 @@
       "two-way-text": {
         "title": "שיחה מקוונת דו-כיוונית, כתוביות בלבד",
         "desc": "כתוביות דו-לשוניות, סיכומי פגישות — שני הצדדים כטקסט, ללא קול סינתטי."
+      },
+      "setsBeside": "מגדיר: מצב {{mode}}, הצד השני לידי · {{output}}",
+      "face-to-face-voice": {
+        "title": "שיחה פנים אל פנים",
+        "desc": "שני אנשים ליד מחשב אחד, כל אחד מדבר בשפתו; כל אחד עונד אוזנייה אחת ושומע רק את התרגום לשפתו."
+      },
+      "face-to-face-text": {
+        "title": "שיחה פנים אל פנים, כתוביות בלבד",
+        "desc": "שניהם קוראים את אותו מסך, או שהצד השני פותח בטלפון שלו את דף הכתוביות ב-LAN."
       }
     },
     "output": {
@@ -1168,7 +1187,8 @@
     },
     "fit": {
       "cannotSpeak": "ספק זה אינו יכול להפיק תרגום מדובר.",
-      "cannotBeTextOnly": "ספק זה תמיד מדבר; הוא אינו יכול לפעול במצב כתוביות בלבד."
+      "cannotBeTextOnly": "ספק זה תמיד מדבר; הוא אינו יכול לפעול במצב כתוביות בלבד.",
+      "cannotFaceToFace": "ספק זה אינו יכול לתרגם שני אנשים על מיקרופון אחד."
     },
     "credentials": {
       "apiKey": "מפתח API",
@@ -1420,5 +1440,23 @@
     "warnAddressChanged": "הרשת השתנתה. הכתובת היא עכשיו {{address}}: שלח שוב את הקישור או פתח מחדש את דף ההקרנה.",
     "errorPortsBusy": "לא ניתן להתחיל לשתף: כל הפורטים 7788–7797 תפוסים.",
     "errorListen": "לא ניתן להתחיל לשתף: {{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "שמאל וימין · כל אחד שומע את התרגום בשפתו",
+    "leftEar": "אוזן שמאל",
+    "rightEar": "אוזן ימין",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "אני ({{language}})",
+    "otherListens": "הצד השני ({{language}})",
+    "previewLeft": "תצוגה מקדימה של אוזן שמאל",
+    "previewRight": "תצוגה מקדימה של אוזן ימין",
+    "swap": "החלפה בין שמאל לימין",
+    "speakersHint": "הכי טוב אוזנייה אחת לכל אחד. ברמקולים המיקרופון קולט את התרגום ומתרגם אותו שוב.",
+    "playedLeft": "הושמע באוזן שמאל",
+    "playedRight": "הושמע באוזן ימין",
+    "notPlayed": "לא הושמע: התרגום הזה הוא ל-{{language}} ולא ל-{{target}}, ולכן הוא לא מוקרא לאף אחד.",
+    "legendMe": "{{language}} · אני",
+    "legendOther": "{{language}} · הצד השני"
   }
 }

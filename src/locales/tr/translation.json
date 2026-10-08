@@ -292,7 +292,10 @@
       "theyRead": "onlar okuyor",
       "theySpeak": "onlar konuşuyor",
       "mirror": "Onlar {{their}} konuşuyor → ben {{mine}} okuyorum"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "Yüz yüze modu her zaman tek bir paylaşılan oturum kullanır: iki kişi de aynı mikrofona konuşur.",
+    "sonioxParticipantVoice": "Karşı tarafın sesi",
+    "sonioxParticipantVoiceTooltip": "Karşı tarafın söylediklerini size kendi dilinizde okuyan ses. Yalnızca yerleşik sesler."
   },
   "simpleSettings": {
     "autoAuthenticated": "Hesabınız üzerinden otomatik olarak doğrulandı",
@@ -641,14 +644,21 @@
     "deviceMic": "Mikrofon",
     "deviceSpeakerMonitor": "Hoparlör izleme",
     "notSelected": "Seçilmedi",
-    "deviceParticipantAudio": "Karşı tarafın sesi"
+    "deviceParticipantAudio": "Karşı tarafın sesi",
+    "faceToFaceTag": "Yüz yüze"
   },
   "popover": {
     "statusOff": "Kapalı",
     "toggleOn": "{{label}} aç",
     "toggleOff": "{{label}} kapat",
     "participantSubtitleElectron": "Tüm sistem sesi",
-    "participantSubtitleExtension": "Sistem varsayılanı üzerinden çalar"
+    "participantSubtitleExtension": "Sistem varsayılanı üzerinden çalar",
+    "otherSide": "Karşı taraf nerede",
+    "otherSideMeeting": "Bir toplantıda",
+    "otherSideMeetingHint": "Sistem sesini veya bir uygulamayı yakalar",
+    "otherSideBeside": "Yanımda",
+    "otherSideBesideHint": "Tek mikrofonda iki kişi",
+    "headphones": "Kulaklık"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Dilleri yapılandırmak için tıklayın",
@@ -1136,6 +1146,15 @@
       "two-way-text": {
         "title": "Çevrimiçi karşılıklı konuşma, yalnızca altyazı",
         "desc": "İki dilli altyazılar, toplantı notları — her iki taraf da metin olarak, yapay ses yok."
+      },
+      "setsBeside": "Ayar: {{mode}} modu, karşı taraf yanımda · {{output}}",
+      "face-to-face-voice": {
+        "title": "Yüz yüze konuşma",
+        "desc": "Aynı bilgisayarda iki kişi, her biri kendi dilinde konuşur; her biri tek kulaklık takar ve yalnızca kendi diline çeviriyi duyar."
+      },
+      "face-to-face-text": {
+        "title": "Yüz yüze konuşma, yalnızca altyazı",
+        "desc": "İkisi de aynı ekranı okur ya da karşı taraf LAN altyazı sayfasını telefonunda açar."
       }
     },
     "output": {
@@ -1168,7 +1187,8 @@
     },
     "fit": {
       "cannotSpeak": "Bu sağlayıcı sesli çeviri üretemez.",
-      "cannotBeTextOnly": "Bu sağlayıcı her zaman konuşur; yalnızca altyazı modunda çalışamaz."
+      "cannotBeTextOnly": "Bu sağlayıcı her zaman konuşur; yalnızca altyazı modunda çalışamaz.",
+      "cannotFaceToFace": "Bu sağlayıcı tek mikrofondaki iki kişiyi çeviremez."
     },
     "credentials": {
       "apiKey": "API anahtarı",
@@ -1420,5 +1440,23 @@
     "warnAddressChanged": "Ağ değişti. Yeni adres {{address}}: bağlantıyı yeniden gönderin veya projeksiyon sayfasını yeniden açın.",
     "errorPortsBusy": "Paylaşım başlatılamadı: 7788–7797 bağlantı noktalarının hepsi kullanımda.",
     "errorListen": "Paylaşım başlatılamadı: {{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "Sol ve sağ · herkes çeviriyi kendi dilinde duyar",
+    "leftEar": "Sol kulak",
+    "rightEar": "Sağ kulak",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "Ben ({{language}})",
+    "otherListens": "Karşı taraf ({{language}})",
+    "previewLeft": "Sol kulağı önizle",
+    "previewRight": "Sağ kulağı önizle",
+    "swap": "Sol ile sağı değiştir",
+    "speakersHint": "Kişi başına bir kulaklık en iyi sonucu verir. Hoparlörde mikrofon çeviriyi alır ve yeniden çevirir.",
+    "playedLeft": "Sol kulakta oynatıldı",
+    "playedRight": "Sağ kulakta oynatıldı",
+    "notPlayed": "Oynatılmadı: bu çeviri {{target}} değil, {{language}} dilinde; bu yüzden kimseye okunmaz.",
+    "legendMe": "{{language}} · ben",
+    "legendOther": "{{language}} · karşı taraf"
   }
 }

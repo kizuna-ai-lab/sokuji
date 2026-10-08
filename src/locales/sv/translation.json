@@ -292,7 +292,10 @@
       "theyRead": "de läser",
       "theySpeak": "de talar",
       "mirror": "De talar {{their}} → jag läser {{mine}}"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "Ansikte mot ansikte använder alltid en delad session: båda talar i samma mikrofon.",
+    "sonioxParticipantVoice": "Den andras röst",
+    "sonioxParticipantVoiceTooltip": "Rösten som läser upp den andras ord för dig, på ditt språk. Endast inbyggda röster."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatiskt autentiserad via ditt konto",
@@ -641,14 +644,21 @@
     "deviceMic": "Mikrofon",
     "deviceSpeakerMonitor": "Högtalarmonitor",
     "notSelected": "Inte vald",
-    "deviceParticipantAudio": "Den andras ljud"
+    "deviceParticipantAudio": "Den andras ljud",
+    "faceToFaceTag": "Ansikte mot ansikte"
   },
   "popover": {
     "statusOff": "Av",
     "toggleOn": "Slå på {{label}}",
     "toggleOff": "Stäng av {{label}}",
     "participantSubtitleElectron": "Allt systemljud",
-    "participantSubtitleExtension": "Spelas upp via systemets standardutgång"
+    "participantSubtitleExtension": "Spelas upp via systemets standardutgång",
+    "otherSide": "Var finns den andra",
+    "otherSideMeeting": "På ett möte",
+    "otherSideMeetingHint": "Fångar systemljud eller en app",
+    "otherSideBeside": "Bredvid mig",
+    "otherSideBesideHint": "Två personer vid en mikrofon",
+    "headphones": "Hörlurar"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Klicka för att konfigurera språk",
@@ -1136,6 +1146,15 @@
       "two-way-text": {
         "title": "Tvåvägs onlinesamtal, endast undertexter",
         "desc": "Tvåspråkiga undertexter, mötesanteckningar — båda sidor som text, ingen syntetisk röst."
+      },
+      "setsBeside": "Anger: {{mode}}-läge, den andra bredvid mig · {{output}}",
+      "face-to-face-voice": {
+        "title": "Samtal ansikte mot ansikte",
+        "desc": "Två personer vid en dator, var och en talar sitt eget språk; var och en bär en hörsnäcka och hör bara översättningen till sitt språk."
+      },
+      "face-to-face-text": {
+        "title": "Samtal ansikte mot ansikte, endast undertexter",
+        "desc": "Båda läser samma skärm, eller så öppnar den andra LAN-undertextsidan på sin telefon."
       }
     },
     "output": {
@@ -1168,7 +1187,8 @@
     },
     "fit": {
       "cannotSpeak": "Den här leverantören kan inte producera talad översättning.",
-      "cannotBeTextOnly": "Den här leverantören talar alltid; den kan inte köras med endast undertexter."
+      "cannotBeTextOnly": "Den här leverantören talar alltid; den kan inte köras med endast undertexter.",
+      "cannotFaceToFace": "Den här leverantören kan inte översätta två personer vid en mikrofon."
     },
     "credentials": {
       "apiKey": "API-nyckel",
@@ -1420,5 +1440,23 @@
     "warnAddressChanged": "Nätverket har ändrats. Adressen är nu {{address}}: skicka länken igen eller öppna projektorsidan på nytt.",
     "errorPortsBusy": "Det gick inte att börja dela: portarna 7788–7797 är alla upptagna.",
     "errorListen": "Det gick inte att börja dela: {{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "Vänster och höger · var och en hör översättningen på sitt eget språk",
+    "leftEar": "Vänster öra",
+    "rightEar": "Höger öra",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "Jag ({{language}})",
+    "otherListens": "Den andra ({{language}})",
+    "previewLeft": "Förhandslyssna på vänster öra",
+    "previewRight": "Förhandslyssna på höger öra",
+    "swap": "Byt vänster och höger",
+    "speakersHint": "En hörsnäcka var fungerar bäst. Med högtalare fångar mikrofonen upp översättningen och översätter den igen.",
+    "playedLeft": "Spelades upp i vänster öra",
+    "playedRight": "Spelades upp i höger öra",
+    "notPlayed": "Spelades inte upp: den här översättningen är på {{language}}, inte {{target}}, så den läses upp för ingen.",
+    "legendMe": "{{language}} · jag",
+    "legendOther": "{{language}} · den andra"
   }
 }

@@ -292,7 +292,10 @@
       "theyRead": "sie lesen",
       "theySpeak": "sie sprechen",
       "mirror": "Sie sprechen {{their}} → ich lese {{mine}}"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "Bei Gesprächen von Angesicht zu Angesicht wird immer eine gemeinsame Sitzung verwendet: Beide sprechen in dasselbe Mikrofon.",
+    "sonioxParticipantVoice": "Stimme des Gegenübers",
+    "sonioxParticipantVoiceTooltip": "Die Stimme, die Ihnen die Worte Ihres Gegenübers in Ihrer Sprache vorliest. Nur integrierte Stimmen."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch über Ihr Konto authentifiziert",
@@ -641,14 +644,21 @@
     "deviceMic": "Mikrofon",
     "deviceSpeakerMonitor": "Lautsprecher-Überwachung",
     "notSelected": "Nicht ausgewählt",
-    "deviceParticipantAudio": "Audio des Gegenübers"
+    "deviceParticipantAudio": "Audio des Gegenübers",
+    "faceToFaceTag": "Persönlich"
   },
   "popover": {
     "statusOff": "Aus",
     "toggleOn": "{{label}} einschalten",
     "toggleOff": "{{label}} ausschalten",
     "participantSubtitleElectron": "Gesamtes Systemaudio",
-    "participantSubtitleExtension": "Wiedergabe über Systemstandard"
+    "participantSubtitleExtension": "Wiedergabe über Systemstandard",
+    "otherSide": "Wo ist das Gegenüber?",
+    "otherSideMeeting": "In einer Besprechung",
+    "otherSideMeetingHint": "Nimmt das Systemaudio oder eine App auf",
+    "otherSideBeside": "Neben mir",
+    "otherSideBesideHint": "Zwei Personen an einem Mikrofon",
+    "headphones": "Kopfhörer"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Klicken Sie, um Sprachen zu konfigurieren",
@@ -1136,6 +1146,15 @@
       "two-way-text": {
         "title": "Zweiseitiges Online-Gespräch, nur Untertitel",
         "desc": "Zweisprachige Untertitel, Sitzungsprotokolle — beide Seiten als Text, ohne synthetische Stimme."
+      },
+      "setsBeside": "Legt fest: {{mode}}-Modus, Gegenüber neben mir · {{output}}",
+      "face-to-face-voice": {
+        "title": "Gespräch von Angesicht zu Angesicht",
+        "desc": "Zwei Personen an einem Computer, jede spricht ihre eigene Sprache; jede trägt einen Ohrhörer und hört nur die Übersetzung in ihre Sprache."
+      },
+      "face-to-face-text": {
+        "title": "Gespräch von Angesicht zu Angesicht, nur Untertitel",
+        "desc": "Beide lesen denselben Bildschirm, oder das Gegenüber öffnet die LAN-Untertitelseite auf dem Smartphone."
       }
     },
     "output": {
@@ -1168,7 +1187,8 @@
     },
     "fit": {
       "cannotSpeak": "Dieser Anbieter kann keine gesprochene Übersetzung erzeugen.",
-      "cannotBeTextOnly": "Dieser Anbieter spricht immer; er kann nicht nur mit Untertiteln laufen."
+      "cannotBeTextOnly": "Dieser Anbieter spricht immer; er kann nicht nur mit Untertiteln laufen.",
+      "cannotFaceToFace": "Dieser Anbieter kann nicht zwei Personen an einem Mikrofon übersetzen."
     },
     "credentials": {
       "apiKey": "API-Schlüssel",
@@ -1420,5 +1440,23 @@
     "warnAddressChanged": "Das Netzwerk hat sich geändert. Die Adresse lautet jetzt {{address}}: Senden Sie den Link erneut oder öffnen Sie die Projektionsseite neu.",
     "errorPortsBusy": "Teilen konnte nicht gestartet werden: Die Ports 7788–7797 sind alle belegt.",
     "errorListen": "Teilen konnte nicht gestartet werden: {{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "Links und rechts · jede Person hört die Übersetzung in ihre eigene Sprache",
+    "leftEar": "Linkes Ohr",
+    "rightEar": "Rechtes Ohr",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "Ich ({{language}})",
+    "otherListens": "Gegenüber ({{language}})",
+    "previewLeft": "Linkes Ohr testen",
+    "previewRight": "Rechtes Ohr testen",
+    "swap": "Links und rechts tauschen",
+    "speakersHint": "Am besten funktioniert je ein Ohrhörer pro Person. Über Lautsprecher nimmt das Mikrofon die Übersetzung auf und übersetzt sie erneut.",
+    "playedLeft": "Im linken Ohr abgespielt",
+    "playedRight": "Im rechten Ohr abgespielt",
+    "notPlayed": "Nicht abgespielt: Diese Übersetzung ist auf {{language}}, nicht auf {{target}}, und wird daher niemandem vorgelesen.",
+    "legendMe": "{{language}} · ich",
+    "legendOther": "{{language}} · Gegenüber"
   }
 }

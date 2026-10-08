@@ -292,7 +292,10 @@
       "theyRead": "lezen zij",
       "theySpeak": "spreken zij",
       "mirror": "Zij spreken {{their}} → ik lees {{mine}}"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "Face-to-face gebruikt altijd één gedeelde sessie: beide personen spreken in dezelfde microfoon.",
+    "sonioxParticipantVoice": "Stem van de ander",
+    "sonioxParticipantVoiceTooltip": "De stem die u de woorden van de ander voorleest, in uw taal. Alleen ingebouwde stemmen."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch geauthenticeerd via uw account",
@@ -641,14 +644,21 @@
     "deviceMic": "Microfoon",
     "deviceSpeakerMonitor": "Luidsprekermonitor",
     "notSelected": "Niet geselecteerd",
-    "deviceParticipantAudio": "Audio van de ander"
+    "deviceParticipantAudio": "Audio van de ander",
+    "faceToFaceTag": "Face-to-face"
   },
   "popover": {
     "statusOff": "Uit",
     "toggleOn": "{{label}} inschakelen",
     "toggleOff": "{{label}} uitschakelen",
     "participantSubtitleElectron": "Alle systeemaudio",
-    "participantSubtitleExtension": "Speelt af via systeemstandaard"
+    "participantSubtitleExtension": "Speelt af via systeemstandaard",
+    "otherSide": "Waar is de ander",
+    "otherSideMeeting": "In een vergadering",
+    "otherSideMeetingHint": "Legt systeemaudio of een app vast",
+    "otherSideBeside": "Naast mij",
+    "otherSideBesideHint": "Twee personen bij één microfoon",
+    "headphones": "Koptelefoon"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Klik om talen te configureren",
@@ -1136,6 +1146,15 @@
       "two-way-text": {
         "title": "Online gesprek in twee richtingen, alleen ondertiteling",
         "desc": "Tweetalige ondertiteling, notulen — beide kanten als tekst, geen synthetische stem."
+      },
+      "setsBeside": "Stelt in: {{mode}}-modus, de ander naast mij · {{output}}",
+      "face-to-face-voice": {
+        "title": "Gesprek face-to-face",
+        "desc": "Twee personen bij één computer, ieder in de eigen taal; ieder draagt één oordopje en hoort alleen de vertaling in de eigen taal."
+      },
+      "face-to-face-text": {
+        "title": "Gesprek face-to-face, alleen ondertiteling",
+        "desc": "Beiden lezen hetzelfde scherm, of de ander opent de LAN-ondertitelpagina op zijn telefoon."
       }
     },
     "output": {
@@ -1168,7 +1187,8 @@
     },
     "fit": {
       "cannotSpeak": "Deze provider kan geen gesproken vertaling produceren.",
-      "cannotBeTextOnly": "Deze provider spreekt altijd en kan niet met alleen ondertiteling werken."
+      "cannotBeTextOnly": "Deze provider spreekt altijd en kan niet met alleen ondertiteling werken.",
+      "cannotFaceToFace": "Deze provider kan geen twee personen bij één microfoon vertalen."
     },
     "credentials": {
       "apiKey": "API-sleutel",
@@ -1420,5 +1440,23 @@
     "warnAddressChanged": "Het netwerk is gewijzigd. Het adres is nu {{address}}: stuur de link opnieuw of open de projectiepagina opnieuw.",
     "errorPortsBusy": "Delen kon niet starten: de poorten 7788–7797 zijn allemaal in gebruik.",
     "errorListen": "Delen kon niet starten: {{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "Links en rechts · ieder hoort de vertaling in de eigen taal",
+    "leftEar": "Linkeroor",
+    "rightEar": "Rechteroor",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "Ik ({{language}})",
+    "otherListens": "Ander ({{language}})",
+    "previewLeft": "Linkeroor beluisteren",
+    "previewRight": "Rechteroor beluisteren",
+    "swap": "Links en rechts omwisselen",
+    "speakersHint": "Eén oordopje per persoon werkt het best. Via luidsprekers pikt de microfoon de vertaling op en vertaalt die opnieuw.",
+    "playedLeft": "Afgespeeld in het linkeroor",
+    "playedRight": "Afgespeeld in het rechteroor",
+    "notPlayed": "Niet afgespeeld: deze vertaling is in {{language}}, niet in {{target}}, dus wordt niet aan iemand voorgelezen.",
+    "legendMe": "{{language}} · ik",
+    "legendOther": "{{language}} · de ander"
   }
 }

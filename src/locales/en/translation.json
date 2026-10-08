@@ -209,6 +209,9 @@
     "sonioxSharedSession": "Shared session in Both mode",
     "sonioxSharedSessionTooltip": "Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic voice separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode.",
     "sonioxSharedSessionManagedCost": "Kizuna AI supports both. Disabled runs two sessions at once — about twice the cost per minute, so your session allowance runs out in about half the time and a higher balance is needed to start.",
+    "sonioxSharedSessionFaceToFace": "Face-to-face always uses one shared session: both people speak into the same microphone.",
+    "sonioxParticipantVoice": "Other party's voice",
+    "sonioxParticipantVoiceTooltip": "The voice that reads the other person's words to you, in your language. Built-in voices only.",
     "sonioxVocabulary": "Custom Vocabulary",
     "sonioxVocabularyTooltip": "Bias recognition toward important names and jargon, and steer how specific terms are translated. Applies from the next session.",
     "sonioxVocabularyTerms": "Terms",
@@ -641,14 +644,39 @@
     "deviceMic": "Microphone",
     "deviceSpeakerMonitor": "Speaker monitor",
     "notSelected": "Not selected",
-    "deviceParticipantAudio": "Other's audio"
+    "deviceParticipantAudio": "Other's audio",
+    "faceToFaceTag": "Face-to-face"
   },
   "popover": {
     "statusOff": "Off",
     "toggleOn": "Turn on {{label}}",
     "toggleOff": "Turn off {{label}}",
     "participantSubtitleElectron": "All system audio",
-    "participantSubtitleExtension": "Plays via system default"
+    "participantSubtitleExtension": "Plays via system default",
+    "otherSide": "Other side",
+    "otherSideMeeting": "In a meeting",
+    "otherSideMeetingHint": "Captures the system audio or an app",
+    "otherSideBeside": "Beside me",
+    "otherSideBesideHint": "Two people at one microphone",
+    "headphones": "Headphones"
+  },
+  "faceToFace": {
+    "earsTitle": "Left and right · each person hears the translation into their own language",
+    "leftEar": "Left ear",
+    "rightEar": "Right ear",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "Me ({{language}})",
+    "otherListens": "Other person ({{language}})",
+    "previewLeft": "Preview the left ear",
+    "previewRight": "Preview the right ear",
+    "swap": "Swap left and right",
+    "speakersHint": "One earbud each works best. On speakers, the microphone picks up the translation and translates it again.",
+    "playedLeft": "Played in the left ear",
+    "playedRight": "Played in the right ear",
+    "notPlayed": "Not played: this translation is in {{language}}, not {{target}}, so it is read to no one.",
+    "legendMe": "{{language}} · me",
+    "legendOther": "{{language}} · other person"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Click to configure languages",
@@ -712,6 +740,7 @@
     },
     "scenarios": {
       "sets": "Sets: {{mode}} mode · {{output}}",
+      "setsBeside": "Sets: {{mode}} mode, other side beside me · {{output}}",
       "understand-others": {
         "title": "Understand what others say",
         "desc": "Online meetings, classes, talks, videos, streams — read a live translation of what you hear."
@@ -731,6 +760,14 @@
       "two-way-text": {
         "title": "Two-way online conversation, subtitles only",
         "desc": "Bilingual captions, meeting minutes — both sides as text, no synthetic voice."
+      },
+      "face-to-face-voice": {
+        "title": "Face-to-face conversation",
+        "desc": "Two people at one computer, each speaking their own language; each wears one earbud and hears only the translation into their language."
+      },
+      "face-to-face-text": {
+        "title": "Face-to-face conversation, subtitles only",
+        "desc": "Both read the same screen, or the other person opens the LAN caption page on their phone."
       }
     },
     "output": {
@@ -763,7 +800,8 @@
     },
     "fit": {
       "cannotSpeak": "This provider cannot produce spoken translation.",
-      "cannotBeTextOnly": "This provider always speaks; it cannot run subtitles-only."
+      "cannotBeTextOnly": "This provider always speaks; it cannot run subtitles-only.",
+      "cannotFaceToFace": "This provider cannot translate two people at one microphone."
     },
     "credentials": {
       "apiKey": "API key",

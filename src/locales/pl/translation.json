@@ -292,7 +292,10 @@
       "theyRead": "oni czytają",
       "theySpeak": "oni mówią",
       "mirror": "Oni mówią {{their}} → ja czytam {{mine}}"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "Rozmowa twarzą w twarz zawsze używa jednej współdzielonej sesji: obie osoby mówią do tego samego mikrofonu.",
+    "sonioxParticipantVoice": "Głos rozmówcy",
+    "sonioxParticipantVoiceTooltip": "Głos, który czyta Ci wypowiedzi rozmówcy w Twoim języku. Tylko wbudowane głosy."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatycznie uwierzytelniono za pomocą konta",
@@ -641,14 +644,21 @@
     "deviceMic": "Mikrofon",
     "deviceSpeakerMonitor": "Monitor głośnika",
     "notSelected": "Nie wybrano",
-    "deviceParticipantAudio": "Dźwięk rozmówcy"
+    "deviceParticipantAudio": "Dźwięk rozmówcy",
+    "faceToFaceTag": "Twarzą w twarz"
   },
   "popover": {
     "statusOff": "Wyłącz",
     "toggleOn": "Włącz {{label}}",
     "toggleOff": "Wyłącz {{label}}",
     "participantSubtitleElectron": "Cały dźwięk systemowy",
-    "participantSubtitleExtension": "Odtwarzane przez domyślne wyjście systemu"
+    "participantSubtitleExtension": "Odtwarzane przez domyślne wyjście systemu",
+    "otherSide": "Gdzie jest rozmówca",
+    "otherSideMeeting": "Na spotkaniu",
+    "otherSideMeetingHint": "Przechwytuje dźwięk systemu lub aplikacji",
+    "otherSideBeside": "Obok mnie",
+    "otherSideBesideHint": "Dwie osoby przy jednym mikrofonie",
+    "headphones": "Słuchawki"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Kliknij, aby skonfigurować języki",
@@ -1136,6 +1146,15 @@
       "two-way-text": {
         "title": "Dwukierunkowa rozmowa online, tylko napisy",
         "desc": "Dwujęzyczne napisy, notatki ze spotkania — obie strony w formie tekstu, bez syntetycznego głosu."
+      },
+      "setsBeside": "Ustawia: tryb {{mode}}, rozmówca obok mnie · {{output}}",
+      "face-to-face-voice": {
+        "title": "Rozmowa twarzą w twarz",
+        "desc": "Dwie osoby przy jednym komputerze, każda mówi w swoim języku; każda ma jedną słuchawkę i słyszy tylko tłumaczenie na swój język."
+      },
+      "face-to-face-text": {
+        "title": "Rozmowa twarzą w twarz, tylko napisy",
+        "desc": "Obie osoby czytają ten sam ekran albo rozmówca otwiera na telefonie stronę napisów w sieci LAN."
       }
     },
     "output": {
@@ -1168,7 +1187,8 @@
     },
     "fit": {
       "cannotSpeak": "Ten dostawca nie potrafi tworzyć tłumaczenia głosowego.",
-      "cannotBeTextOnly": "Ten dostawca zawsze mówi — nie może działać w trybie „tylko napisy”."
+      "cannotBeTextOnly": "Ten dostawca zawsze mówi — nie może działać w trybie „tylko napisy”.",
+      "cannotFaceToFace": "Ten dostawca nie potrafi tłumaczyć dwóch osób przy jednym mikrofonie."
     },
     "credentials": {
       "apiKey": "Klucz API",
@@ -1420,5 +1440,23 @@
     "warnAddressChanged": "Sieć się zmieniła. Nowy adres to {{address}}: wyślij link ponownie albo otwórz stronę projektora jeszcze raz.",
     "errorPortsBusy": "Nie udało się rozpocząć udostępniania: wszystkie porty 7788–7797 są zajęte.",
     "errorListen": "Nie udało się rozpocząć udostępniania: {{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "Lewe i prawe ucho · każdy słyszy tłumaczenie w swoim języku",
+    "leftEar": "Lewe ucho",
+    "rightEar": "Prawe ucho",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "Ja ({{language}})",
+    "otherListens": "Rozmówca ({{language}})",
+    "previewLeft": "Odsłuchaj lewe ucho",
+    "previewRight": "Odsłuchaj prawe ucho",
+    "swap": "Zamień lewe z prawym",
+    "speakersHint": "Najlepiej po jednej słuchawce na osobę. Przy głośnikach mikrofon łapie tłumaczenie i tłumaczy je ponownie.",
+    "playedLeft": "Odtworzono w lewym uchu",
+    "playedRight": "Odtworzono w prawym uchu",
+    "notPlayed": "Nie odtworzono: to tłumaczenie jest na {{language}}, a nie na {{target}}, więc nikt go nie usłyszy.",
+    "legendMe": "{{language}} · ja",
+    "legendOther": "{{language}} · rozmówca"
   }
 }

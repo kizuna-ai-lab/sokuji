@@ -292,7 +292,10 @@
       "theyRead": "eles leem",
       "theySpeak": "eles falam",
       "mirror": "Eles falam {{their}} → eu leio {{mine}}"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "O cara a cara usa sempre uma sessão partilhada: as duas pessoas falam para o mesmo microfone.",
+    "sonioxParticipantVoice": "Voz do outro",
+    "sonioxParticipantVoiceTooltip": "A voz que lhe lê, no seu idioma, o que o outro diz. Apenas vozes integradas."
   },
   "simpleSettings": {
     "autoAuthenticated": "Autenticado automaticamente através da sua conta",
@@ -641,14 +644,21 @@
     "deviceMic": "Microfone",
     "deviceSpeakerMonitor": "Monitor de altifalante",
     "notSelected": "Não selecionado",
-    "deviceParticipantAudio": "Áudio do outro"
+    "deviceParticipantAudio": "Áudio do outro",
+    "faceToFaceTag": "Cara a cara"
   },
   "popover": {
     "statusOff": "Desligado",
     "toggleOn": "Ligar {{label}}",
     "toggleOff": "Desligar {{label}}",
     "participantSubtitleElectron": "Todo o áudio do sistema",
-    "participantSubtitleExtension": "Reproduz na saída predefinida do sistema"
+    "participantSubtitleExtension": "Reproduz na saída predefinida do sistema",
+    "otherSide": "Onde está o outro",
+    "otherSideMeeting": "Numa reunião",
+    "otherSideMeetingHint": "Capta o áudio do sistema ou de uma aplicação",
+    "otherSideBeside": "Ao meu lado",
+    "otherSideBesideHint": "Duas pessoas num só microfone",
+    "headphones": "Auscultadores"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Clique para configurar idiomas",
@@ -1136,6 +1146,15 @@
       "two-way-text": {
         "title": "Conversa online bidirecional, apenas legendas",
         "desc": "Legendas bilingues, atas de reunião — ambos os lados em texto, sem voz sintética."
+      },
+      "setsBeside": "Define: modo {{mode}}, o outro ao meu lado · {{output}}",
+      "face-to-face-voice": {
+        "title": "Conversa cara a cara",
+        "desc": "Duas pessoas num mesmo computador, cada uma a falar o seu idioma; cada uma usa um auricular e ouve só a tradução no seu idioma."
+      },
+      "face-to-face-text": {
+        "title": "Conversa cara a cara, apenas legendas",
+        "desc": "Ambos leem o mesmo ecrã, ou o outro abre a página de legendas LAN no telemóvel."
       }
     },
     "output": {
@@ -1168,7 +1187,8 @@
     },
     "fit": {
       "cannotSpeak": "Este fornecedor não consegue produzir tradução falada.",
-      "cannotBeTextOnly": "Este fornecedor fala sempre; não pode funcionar apenas com legendas."
+      "cannotBeTextOnly": "Este fornecedor fala sempre; não pode funcionar apenas com legendas.",
+      "cannotFaceToFace": "Este fornecedor não consegue traduzir duas pessoas num só microfone."
     },
     "credentials": {
       "apiKey": "Chave de API",
@@ -1420,5 +1440,23 @@
     "warnAddressChanged": "A rede mudou. O endereço é agora {{address}}: envie novamente a ligação ou volte a abrir a página de projeção.",
     "errorPortsBusy": "Não foi possível iniciar a partilha: as portas 7788–7797 estão todas ocupadas.",
     "errorListen": "Não foi possível iniciar a partilha: {{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "Esquerda e direita · cada pessoa ouve a tradução no seu próprio idioma",
+    "leftEar": "Ouvido esquerdo",
+    "rightEar": "Ouvido direito",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "Eu ({{language}})",
+    "otherListens": "O outro ({{language}})",
+    "previewLeft": "Ouvir o ouvido esquerdo",
+    "previewRight": "Ouvir o ouvido direito",
+    "swap": "Trocar esquerda e direita",
+    "speakersHint": "O melhor é um auricular para cada um. Com altifalantes, o microfone capta a tradução e volta a traduzi-la.",
+    "playedLeft": "Reproduzido no ouvido esquerdo",
+    "playedRight": "Reproduzido no ouvido direito",
+    "notPlayed": "Não reproduzido: esta tradução está em {{language}}, não em {{target}}, por isso não é lida a ninguém.",
+    "legendMe": "{{language}} · eu",
+    "legendOther": "{{language}} · o outro"
   }
 }

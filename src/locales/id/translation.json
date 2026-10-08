@@ -292,7 +292,10 @@
       "theyRead": "mereka membaca",
       "theySpeak": "mereka berbicara",
       "mirror": "Mereka berbicara {{their}} → saya membaca {{mine}}"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "Tatap muka selalu memakai satu sesi bersama: kedua orang berbicara ke mikrofon yang sama.",
+    "sonioxParticipantVoice": "Suara lawan bicara",
+    "sonioxParticipantVoiceTooltip": "Suara yang membacakan ucapan lawan bicara kepada Anda dalam bahasa Anda. Hanya suara bawaan."
   },
   "simpleSettings": {
     "autoAuthenticated": "Otomatis terautentikasi melalui akun Anda",
@@ -641,14 +644,21 @@
     "deviceMic": "Mikrofon",
     "deviceSpeakerMonitor": "Monitor speaker",
     "notSelected": "Tidak dipilih",
-    "deviceParticipantAudio": "Audio lawan bicara"
+    "deviceParticipantAudio": "Audio lawan bicara",
+    "faceToFaceTag": "Tatap muka"
   },
   "popover": {
     "statusOff": "Mati",
     "toggleOn": "Nyalakan {{label}}",
     "toggleOff": "Matikan {{label}}",
     "participantSubtitleElectron": "Semua audio sistem",
-    "participantSubtitleExtension": "Diputar melalui default sistem"
+    "participantSubtitleExtension": "Diputar melalui default sistem",
+    "otherSide": "Posisi lawan bicara",
+    "otherSideMeeting": "Dalam rapat",
+    "otherSideMeetingHint": "Menangkap audio sistem atau aplikasi",
+    "otherSideBeside": "Di samping saya",
+    "otherSideBesideHint": "Dua orang, satu mikrofon",
+    "headphones": "Headphone"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Klik untuk mengonfigurasi bahasa",
@@ -1136,6 +1146,15 @@
       "two-way-text": {
         "title": "Percakapan online dua arah, hanya subtitle",
         "desc": "Teks dwibahasa, notulen rapat — kedua sisi sebagai teks, tanpa suara sintetis."
+      },
+      "setsBeside": "Mengatur: mode {{mode}}, lawan bicara di samping saya · {{output}}",
+      "face-to-face-voice": {
+        "title": "Percakapan tatap muka",
+        "desc": "Dua orang di satu komputer, masing-masing berbicara dalam bahasanya sendiri; masing-masing memakai satu earbud dan hanya mendengar terjemahan ke bahasanya."
+      },
+      "face-to-face-text": {
+        "title": "Percakapan tatap muka, hanya subtitle",
+        "desc": "Keduanya membaca layar yang sama, atau lawan bicara membuka halaman teks LAN di ponselnya."
       }
     },
     "output": {
@@ -1168,7 +1187,8 @@
     },
     "fit": {
       "cannotSpeak": "Penyedia ini tidak dapat menghasilkan terjemahan suara.",
-      "cannotBeTextOnly": "Penyedia ini selalu menghasilkan suara; tidak dapat dijalankan hanya dengan subtitle."
+      "cannotBeTextOnly": "Penyedia ini selalu menghasilkan suara; tidak dapat dijalankan hanya dengan subtitle.",
+      "cannotFaceToFace": "Penyedia ini tidak dapat menerjemahkan dua orang yang memakai satu mikrofon."
     },
     "credentials": {
       "apiKey": "API key",
@@ -1420,5 +1440,23 @@
     "warnAddressChanged": "Jaringan berubah. Alamatnya sekarang {{address}}: kirim ulang tautannya atau buka lagi halaman proyektor.",
     "errorPortsBusy": "Tidak dapat mulai berbagi: port 7788–7797 semuanya sedang dipakai.",
     "errorListen": "Tidak dapat mulai berbagi: {{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "Kiri dan kanan · masing-masing mendengar terjemahan ke bahasanya sendiri",
+    "leftEar": "Telinga kiri",
+    "rightEar": "Telinga kanan",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "Saya ({{language}})",
+    "otherListens": "Lawan bicara ({{language}})",
+    "previewLeft": "Pratinjau telinga kiri",
+    "previewRight": "Pratinjau telinga kanan",
+    "swap": "Tukar kiri dan kanan",
+    "speakersHint": "Satu earbud per orang paling baik. Pada speaker, mikrofon menangkap terjemahan lalu menerjemahkannya lagi.",
+    "playedLeft": "Diputar di telinga kiri",
+    "playedRight": "Diputar di telinga kanan",
+    "notPlayed": "Tidak diputar: terjemahan ini dalam bahasa {{language}}, bukan {{target}}, sehingga tidak dibacakan kepada siapa pun.",
+    "legendMe": "{{language}} · saya",
+    "legendOther": "{{language}} · lawan bicara"
   }
 }

@@ -292,7 +292,10 @@
       "theyRead": "ellos leen",
       "theySpeak": "ellos hablan",
       "mirror": "Ellos hablan {{their}} → yo leo {{mine}}"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "El modo cara a cara siempre usa una sesión compartida: las dos personas hablan al mismo micrófono.",
+    "sonioxParticipantVoice": "Voz del otro",
+    "sonioxParticipantVoiceTooltip": "La voz que te lee, en tu idioma, lo que dice el otro. Solo voces integradas."
   },
   "simpleSettings": {
     "autoAuthenticated": "Autenticado automáticamente a través de tu cuenta",
@@ -641,14 +644,21 @@
     "deviceMic": "Micrófono",
     "deviceSpeakerMonitor": "Monitor de altavoz",
     "notSelected": "No seleccionado",
-    "deviceParticipantAudio": "Audio del otro"
+    "deviceParticipantAudio": "Audio del otro",
+    "faceToFaceTag": "Cara a cara"
   },
   "popover": {
     "statusOff": "Apagado",
     "toggleOn": "Encender {{label}}",
     "toggleOff": "Apagar {{label}}",
     "participantSubtitleElectron": "Todo el audio del sistema",
-    "participantSubtitleExtension": "Se reproduce por la salida predeterminada"
+    "participantSubtitleExtension": "Se reproduce por la salida predeterminada",
+    "otherSide": "Dónde está el otro",
+    "otherSideMeeting": "En una reunión",
+    "otherSideMeetingHint": "Captura el audio del sistema o de una aplicación",
+    "otherSideBeside": "A mi lado",
+    "otherSideBesideHint": "Dos personas con un solo micrófono",
+    "headphones": "Auriculares"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Haz clic para configurar idiomas",
@@ -1136,6 +1146,15 @@
       "two-way-text": {
         "title": "Conversación en línea bidireccional, solo subtítulos",
         "desc": "Subtítulos bilingües, actas de reuniones — ambos lados como texto, sin voz sintética."
+      },
+      "setsBeside": "Configura: modo {{mode}}, el otro a mi lado · {{output}}",
+      "face-to-face-voice": {
+        "title": "Conversación cara a cara",
+        "desc": "Dos personas ante un mismo ordenador, cada una hablando su idioma; cada una lleva un auricular y oye solo la traducción a su idioma."
+      },
+      "face-to-face-text": {
+        "title": "Conversación cara a cara, solo subtítulos",
+        "desc": "Ambos leen la misma pantalla, o el otro abre la página de subtítulos LAN en su teléfono."
       }
     },
     "output": {
@@ -1168,7 +1187,8 @@
     },
     "fit": {
       "cannotSpeak": "Este proveedor no puede producir traducción hablada.",
-      "cannotBeTextOnly": "Este proveedor siempre habla; no puede funcionar solo con subtítulos."
+      "cannotBeTextOnly": "Este proveedor siempre habla; no puede funcionar solo con subtítulos.",
+      "cannotFaceToFace": "Este proveedor no puede traducir a dos personas con un solo micrófono."
     },
     "credentials": {
       "apiKey": "Clave API",
@@ -1420,5 +1440,23 @@
     "warnAddressChanged": "La red ha cambiado. La dirección ahora es {{address}}: vuelve a enviar el enlace o abre de nuevo la página de proyección.",
     "errorPortsBusy": "No se pudo empezar a compartir: los puertos 7788–7797 están todos en uso.",
     "errorListen": "No se pudo empezar a compartir: {{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "Izquierda y derecha · cada persona oye la traducción a su propio idioma",
+    "leftEar": "Oído izquierdo",
+    "rightEar": "Oído derecho",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "Yo ({{language}})",
+    "otherListens": "El otro ({{language}})",
+    "previewLeft": "Probar el oído izquierdo",
+    "previewRight": "Probar el oído derecho",
+    "swap": "Intercambiar izquierda y derecha",
+    "speakersHint": "Lo mejor es un auricular para cada uno. Con altavoces, el micrófono capta la traducción y la vuelve a traducir.",
+    "playedLeft": "Reproducido en el oído izquierdo",
+    "playedRight": "Reproducido en el oído derecho",
+    "notPlayed": "No reproducido: esta traducción está en {{language}}, no en {{target}}, así que no se lee a nadie.",
+    "legendMe": "{{language}} · yo",
+    "legendOther": "{{language}} · el otro"
   }
 }

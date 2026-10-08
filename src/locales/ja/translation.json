@@ -292,7 +292,10 @@
       "theyRead": "相手が読む言語",
       "theySpeak": "相手が話す言語",
       "mirror": "相手は{{their}}を話す → 自分は{{mine}}で読む"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "対面では常に 1 つの共有セッションを使います。2 人が同じマイクに向かって話すためです。",
+    "sonioxParticipantVoice": "相手の声",
+    "sonioxParticipantVoiceTooltip": "あなたの言語で相手の発言を読み上げる声です。内蔵の声のみ選べます。"
   },
   "simpleSettings": {
     "autoAuthenticated": "アカウントで自動的に認証されました",
@@ -641,14 +644,21 @@
     "deviceMic": "マイク",
     "deviceSpeakerMonitor": "スピーカーモニター",
     "notSelected": "未選択",
-    "deviceParticipantAudio": "相手の音声"
+    "deviceParticipantAudio": "相手の音声",
+    "faceToFaceTag": "対面"
   },
   "popover": {
     "statusOff": "オフ",
     "toggleOn": "{{label}}をオンにする",
     "toggleOff": "{{label}}をオフにする",
     "participantSubtitleElectron": "すべてのシステム音声",
-    "participantSubtitleExtension": "システムの既定の出力から再生"
+    "participantSubtitleExtension": "システムの既定の出力から再生",
+    "otherSide": "相手の場所",
+    "otherSideMeeting": "オンライン会議",
+    "otherSideMeetingHint": "システム音声またはアプリの音声を取り込みます",
+    "otherSideBeside": "隣にいる",
+    "otherSideBesideHint": "1 台のマイクを 2 人で使います",
+    "headphones": "ヘッドホン"
   },
   "simplePanel": {
     "clickToConfigLanguages": "言語を設定するにはクリック",
@@ -1136,6 +1146,15 @@
       "two-way-text": {
         "title": "オンラインで双方向に会話（字幕のみ）",
         "desc": "二か国語字幕や議事録——双方ともテキストで、合成音声は使いません。"
+      },
+      "setsBeside": "設定内容：{{mode}}モード、相手は隣 · {{output}}",
+      "face-to-face-voice": {
+        "title": "対面で会話",
+        "desc": "2 人が 1 台のパソコンでそれぞれの言語で話し、各自が片耳のイヤホンで自分の言語の翻訳だけを聞きます。"
+      },
+      "face-to-face-text": {
+        "title": "対面で会話（字幕のみ）",
+        "desc": "2 人で同じ画面を見るか、相手がスマートフォンで LAN 字幕ページを開きます。"
       }
     },
     "output": {
@@ -1168,7 +1187,8 @@
     },
     "fit": {
       "cannotSpeak": "このプロバイダーは音声翻訳を生成できません。",
-      "cannotBeTextOnly": "このプロバイダーは常に音声を出すため、字幕のみでは使えません。"
+      "cannotBeTextOnly": "このプロバイダーは常に音声を出すため、字幕のみでは使えません。",
+      "cannotFaceToFace": "このプロバイダーは、1 台のマイクを使う 2 人の会話を翻訳できません。"
     },
     "credentials": {
       "apiKey": "API キー",
@@ -1420,5 +1440,23 @@
     "warnAddressChanged": "ネットワークが変わり、アドレスが {{address}} になりました。リンクを送り直すか、投影ページを開き直してください。",
     "errorPortsBusy": "共有を開始できませんでした：ポート 7788–7797 はすべて使用中です。",
     "errorListen": "共有を開始できませんでした：{{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "左右の耳 · それぞれが自分の言語の翻訳を聞きます",
+    "leftEar": "左耳",
+    "rightEar": "右耳",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "自分（{{language}}）",
+    "otherListens": "相手（{{language}}）",
+    "previewLeft": "左耳を試聴",
+    "previewRight": "右耳を試聴",
+    "swap": "左右を入れ替える",
+    "speakersHint": "イヤホンは片耳ずつ使うのが最適です。スピーカーでは、マイクが翻訳音声を拾ってもう一度翻訳してしまいます。",
+    "playedLeft": "左耳で再生",
+    "playedRight": "右耳で再生",
+    "notPlayed": "再生されません：この翻訳は {{target}} ではなく {{language}} のため、誰にも読み上げられません。",
+    "legendMe": "{{language}} · 自分",
+    "legendOther": "{{language}} · 相手"
   }
 }

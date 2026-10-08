@@ -292,7 +292,10 @@
       "theyRead": "พวกเขาอ่าน",
       "theySpeak": "พวกเขาพูด",
       "mirror": "พวกเขาพูด {{their}} → ฉันอ่าน {{mine}}"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "โหมดเผชิญหน้าใช้เซสชันที่ใช้ร่วมกันเสมอ เพราะทั้งสองคนพูดเข้าไมโครโฟนตัวเดียวกัน",
+    "sonioxParticipantVoice": "เสียงของอีกฝ่าย",
+    "sonioxParticipantVoiceTooltip": "เสียงที่อ่านคำพูดของอีกฝ่ายให้คุณฟังเป็นภาษาของคุณ ใช้ได้เฉพาะเสียงในตัว"
   },
   "simpleSettings": {
     "autoAuthenticated": "ตรวจสอบสิทธิ์อัตโนมัติผ่านบัญชีของคุณ",
@@ -641,14 +644,21 @@
     "deviceMic": "ไมโครโฟน",
     "deviceSpeakerMonitor": "มอนิเตอร์ลำโพง",
     "notSelected": "ไม่ได้เลือก",
-    "deviceParticipantAudio": "เสียงอีกฝ่าย"
+    "deviceParticipantAudio": "เสียงอีกฝ่าย",
+    "faceToFaceTag": "เผชิญหน้า"
   },
   "popover": {
     "statusOff": "ปิด",
     "toggleOn": "เปิด {{label}}",
     "toggleOff": "ปิด {{label}}",
     "participantSubtitleElectron": "เสียงระบบทั้งหมด",
-    "participantSubtitleExtension": "เล่นผ่านเอาต์พุตเริ่มต้นของระบบ"
+    "participantSubtitleExtension": "เล่นผ่านเอาต์พุตเริ่มต้นของระบบ",
+    "otherSide": "อีกฝ่าย",
+    "otherSideMeeting": "อยู่ในการประชุม",
+    "otherSideMeetingHint": "จับเสียงระบบหรือเสียงจากแอป",
+    "otherSideBeside": "อยู่ข้างฉัน",
+    "otherSideBesideHint": "สองคนใช้ไมโครโฟนตัวเดียว",
+    "headphones": "หูฟัง"
   },
   "simplePanel": {
     "clickToConfigLanguages": "คลิกเพื่อกำหนดค่าภาษา",
@@ -1136,6 +1146,15 @@
       "two-way-text": {
         "title": "บทสนทนาออนไลน์สองทาง แบบคำบรรยายเท่านั้น",
         "desc": "คำบรรยายสองภาษา บันทึกการประชุม — ทั้งสองฝ่ายเป็นข้อความ ไม่มีเสียงสังเคราะห์"
+      },
+      "setsBeside": "ตั้งค่า: โหมด {{mode}} อีกฝ่ายอยู่ข้างฉัน · {{output}}",
+      "face-to-face-voice": {
+        "title": "สนทนาเผชิญหน้า",
+        "desc": "สองคนที่คอมพิวเตอร์เครื่องเดียวกัน ต่างพูดภาษาของตัวเอง แต่ละคนใส่หูฟังข้างเดียวและได้ยินเฉพาะคำแปลเป็นภาษาของตัวเอง"
+      },
+      "face-to-face-text": {
+        "title": "สนทนาเผชิญหน้า แบบคำบรรยายเท่านั้น",
+        "desc": "ทั้งสองคนอ่านหน้าจอเดียวกัน หรืออีกฝ่ายเปิดหน้าคำบรรยาย LAN บนโทรศัพท์ของตัวเอง"
       }
     },
     "output": {
@@ -1168,7 +1187,8 @@
     },
     "fit": {
       "cannotSpeak": "ผู้ให้บริการนี้ไม่สามารถสร้างคำแปลแบบเสียงพูดได้",
-      "cannotBeTextOnly": "ผู้ให้บริการนี้พูดเสมอ ไม่สามารถทำงานแบบคำบรรยายเท่านั้นได้"
+      "cannotBeTextOnly": "ผู้ให้บริการนี้พูดเสมอ ไม่สามารถทำงานแบบคำบรรยายเท่านั้นได้",
+      "cannotFaceToFace": "ผู้ให้บริการนี้ไม่สามารถแปลให้สองคนที่ใช้ไมโครโฟนตัวเดียวกันได้"
     },
     "credentials": {
       "apiKey": "คีย์ API",
@@ -1420,5 +1440,23 @@
     "warnAddressChanged": "เครือข่ายเปลี่ยนไป ที่อยู่ใหม่คือ {{address}} โปรดส่งลิงก์อีกครั้งหรือเปิดหน้าโปรเจกเตอร์ใหม่",
     "errorPortsBusy": "เริ่มแชร์ไม่ได้: พอร์ต 7788–7797 ถูกใช้งานอยู่ทั้งหมด",
     "errorListen": "เริ่มแชร์ไม่ได้: {{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "ซ้ายและขวา · แต่ละคนได้ยินคำแปลเป็นภาษาของตัวเอง",
+    "leftEar": "หูซ้าย",
+    "rightEar": "หูขวา",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "ฉัน ({{language}})",
+    "otherListens": "อีกฝ่าย ({{language}})",
+    "previewLeft": "ฟังตัวอย่างหูซ้าย",
+    "previewRight": "ฟังตัวอย่างหูขวา",
+    "swap": "สลับซ้ายและขวา",
+    "speakersHint": "ใช้หูฟังข้างละคนจะดีที่สุด หากใช้ลำโพง ไมโครโฟนจะรับเสียงแปลเข้าไปแล้วแปลซ้ำอีกครั้ง",
+    "playedLeft": "เล่นในหูซ้าย",
+    "playedRight": "เล่นในหูขวา",
+    "notPlayed": "ไม่ได้เล่น: คำแปลนี้เป็นภาษา {{language}} ไม่ใช่ {{target}} จึงไม่มีการอ่านให้ใครฟัง",
+    "legendMe": "{{language}} · ฉัน",
+    "legendOther": "{{language}} · อีกฝ่าย"
   }
 }

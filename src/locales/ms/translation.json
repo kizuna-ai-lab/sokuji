@@ -292,7 +292,10 @@
       "theyRead": "mereka baca",
       "theySpeak": "mereka bertutur",
       "mirror": "Mereka bertutur {{their}} → Saya baca {{mine}}"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "Bersemuka sentiasa menggunakan satu sesi dikongsi: kedua-dua orang bercakap ke dalam mikrofon yang sama.",
+    "sonioxParticipantVoice": "Suara pihak lain",
+    "sonioxParticipantVoiceTooltip": "Suara yang membacakan kata-kata pihak lain kepada anda dalam bahasa anda. Suara terbina dalam sahaja."
   },
   "simpleSettings": {
     "autoAuthenticated": "Disahkan secara automatik melalui akaun anda",
@@ -641,14 +644,21 @@
     "deviceMic": "Mikrofon",
     "deviceSpeakerMonitor": "Pemantau pembesar suara",
     "notSelected": "Tidak dipilih",
-    "deviceParticipantAudio": "Audio pihak lain"
+    "deviceParticipantAudio": "Audio pihak lain",
+    "faceToFaceTag": "Bersemuka"
   },
   "popover": {
     "statusOff": "Mati",
     "toggleOn": "Hidupkan {{label}}",
     "toggleOff": "Matikan {{label}}",
     "participantSubtitleElectron": "Semua audio sistem",
-    "participantSubtitleExtension": "Dimainkan melalui output lalai sistem"
+    "participantSubtitleExtension": "Dimainkan melalui output lalai sistem",
+    "otherSide": "Kedudukan pihak lain",
+    "otherSideMeeting": "Dalam mesyuarat",
+    "otherSideMeetingHint": "Menangkap audio sistem atau sesuatu aplikasi",
+    "otherSideBeside": "Di sebelah saya",
+    "otherSideBesideHint": "Dua orang, satu mikrofon",
+    "headphones": "Fon kepala"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Klik untuk mengkonfigurasi bahasa",
@@ -1136,6 +1146,15 @@
       "two-way-text": {
         "title": "Perbualan dalam talian dua hala, sari kata sahaja",
         "desc": "Kapsyen dwibahasa, minit mesyuarat — kedua-dua pihak sebagai teks, tiada suara sintetik."
+      },
+      "setsBeside": "Menetapkan: mod {{mode}}, pihak lain di sebelah saya · {{output}}",
+      "face-to-face-voice": {
+        "title": "Perbualan bersemuka",
+        "desc": "Dua orang pada satu komputer, masing-masing bercakap dalam bahasa sendiri; setiap orang memakai satu fon telinga dan hanya mendengar terjemahan ke bahasanya."
+      },
+      "face-to-face-text": {
+        "title": "Perbualan bersemuka, sari kata sahaja",
+        "desc": "Kedua-duanya membaca skrin yang sama, atau pihak lain membuka halaman kapsyen LAN pada telefonnya."
       }
     },
     "output": {
@@ -1168,7 +1187,8 @@
     },
     "fit": {
       "cannotSpeak": "Penyedia ini tidak dapat menghasilkan terjemahan suara.",
-      "cannotBeTextOnly": "Penyedia ini sentiasa bertutur; ia tidak boleh dijalankan dalam mod sari kata sahaja."
+      "cannotBeTextOnly": "Penyedia ini sentiasa bertutur; ia tidak boleh dijalankan dalam mod sari kata sahaja.",
+      "cannotFaceToFace": "Penyedia ini tidak dapat menterjemah dua orang pada satu mikrofon."
     },
     "credentials": {
       "apiKey": "Kunci API",
@@ -1420,5 +1440,23 @@
     "warnAddressChanged": "Rangkaian telah berubah. Alamat kini {{address}}: hantar semula pautan atau buka semula halaman projektor.",
     "errorPortsBusy": "Tidak dapat mula berkongsi: port 7788–7797 semuanya sedang digunakan.",
     "errorListen": "Tidak dapat mula berkongsi: {{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "Kiri dan kanan · setiap orang mendengar terjemahan ke bahasanya sendiri",
+    "leftEar": "Telinga kiri",
+    "rightEar": "Telinga kanan",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "Saya ({{language}})",
+    "otherListens": "Pihak lain ({{language}})",
+    "previewLeft": "Pratonton telinga kiri",
+    "previewRight": "Pratonton telinga kanan",
+    "swap": "Tukar kiri dan kanan",
+    "speakersHint": "Satu fon telinga seorang paling sesuai. Pada pembesar suara, mikrofon menangkap terjemahan lalu menterjemahkannya semula.",
+    "playedLeft": "Dimainkan di telinga kiri",
+    "playedRight": "Dimainkan di telinga kanan",
+    "notPlayed": "Tidak dimainkan: terjemahan ini dalam bahasa {{language}}, bukan {{target}}, jadi tidak dibacakan kepada sesiapa.",
+    "legendMe": "{{language}} · saya",
+    "legendOther": "{{language}} · pihak lain"
   }
 }

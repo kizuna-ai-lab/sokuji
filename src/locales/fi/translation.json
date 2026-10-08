@@ -292,7 +292,10 @@
       "theyRead": "he lukevat",
       "theySpeak": "he puhuvat",
       "mirror": "He puhuvat {{their}} → luen {{mine}}"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "Kasvokkain-tila käyttää aina yhtä jaettua istuntoa: molemmat puhuvat samaan mikrofoniin.",
+    "sonioxParticipantVoice": "Toisen osapuolen ääni",
+    "sonioxParticipantVoiceTooltip": "Ääni, joka lukee toisen sanat sinulle omalla kielelläsi. Vain sisäänrakennetut äänet."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automaattisesti todennettu tilisi kautta",
@@ -641,14 +644,21 @@
     "deviceMic": "Mikrofoni",
     "deviceSpeakerMonitor": "Kaiuttimen valvonta",
     "notSelected": "Ei valittu",
-    "deviceParticipantAudio": "Toisen ääni"
+    "deviceParticipantAudio": "Toisen ääni",
+    "faceToFaceTag": "Kasvokkain"
   },
   "popover": {
     "statusOff": "Pois",
     "toggleOn": "Ota {{label}} käyttöön",
     "toggleOff": "Poista {{label}} käytöstä",
     "participantSubtitleElectron": "Kaikki järjestelmän ääni",
-    "participantSubtitleExtension": "Toistetaan järjestelmän oletuksen kautta"
+    "participantSubtitleExtension": "Toistetaan järjestelmän oletuksen kautta",
+    "otherSide": "Missä toinen on",
+    "otherSideMeeting": "Kokouksessa",
+    "otherSideMeetingHint": "Tallentaa järjestelmän äänen tai sovelluksen",
+    "otherSideBeside": "Vieressäni",
+    "otherSideBesideHint": "Kaksi ihmistä yhdellä mikrofonilla",
+    "headphones": "Kuulokkeet"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Napsauta määrittääksesi kielet",
@@ -1136,6 +1146,15 @@
       "two-way-text": {
         "title": "Kaksisuuntainen verkkokeskustelu, vain tekstitys",
         "desc": "Kaksikieliset tekstitykset, kokousmuistiot — molemmat puolet tekstinä, ei synteettistä ääntä."
+      },
+      "setsBeside": "Asettaa: {{mode}}-tila, toinen vieressäni · {{output}}",
+      "face-to-face-voice": {
+        "title": "Keskustelu kasvokkain",
+        "desc": "Kaksi ihmistä yhdellä tietokoneella, kumpikin puhuu omaa kieltään; kummallakin on yksi nappikuuloke ja hän kuulee vain käännöksen omalle kielelleen."
+      },
+      "face-to-face-text": {
+        "title": "Keskustelu kasvokkain, vain tekstitys",
+        "desc": "Molemmat lukevat samaa ruutua, tai toinen avaa LAN-tekstityssivun puhelimellaan."
       }
     },
     "output": {
@@ -1168,7 +1187,8 @@
     },
     "fit": {
       "cannotSpeak": "Tämä tarjoaja ei pysty tuottamaan puhuttua käännöstä.",
-      "cannotBeTextOnly": "Tämä tarjoaja puhuu aina; se ei voi toimia vain tekstityksellä."
+      "cannotBeTextOnly": "Tämä tarjoaja puhuu aina; se ei voi toimia vain tekstityksellä.",
+      "cannotFaceToFace": "Tämä tarjoaja ei pysty kääntämään kahta ihmistä yhdellä mikrofonilla."
     },
     "credentials": {
       "apiKey": "API-avain",
@@ -1420,5 +1440,23 @@
     "warnAddressChanged": "Verkko vaihtui. Osoite on nyt {{address}}: lähetä linkki uudelleen tai avaa projektorisivu uudelleen.",
     "errorPortsBusy": "Jakamista ei voitu aloittaa: portit 7788–7797 ovat kaikki käytössä.",
     "errorListen": "Jakamista ei voitu aloittaa: {{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "Vasen ja oikea · kumpikin kuulee käännöksen omalla kielellään",
+    "leftEar": "Vasen korva",
+    "rightEar": "Oikea korva",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "Minä ({{language}})",
+    "otherListens": "Toinen ({{language}})",
+    "previewLeft": "Esikuuntele vasen korva",
+    "previewRight": "Esikuuntele oikea korva",
+    "swap": "Vaihda vasen ja oikea",
+    "speakersHint": "Yksi nappikuuloke kummallekin toimii parhaiten. Kaiuttimilla mikrofoni poimii käännöksen ja kääntää sen uudelleen.",
+    "playedLeft": "Toistettu vasemmassa korvassa",
+    "playedRight": "Toistettu oikeassa korvassa",
+    "notPlayed": "Ei toistettu: tämä käännös on kielellä {{language}}, ei kielellä {{target}}, joten sitä ei lueta kenellekään.",
+    "legendMe": "{{language}} · minä",
+    "legendOther": "{{language}} · toinen"
   }
 }

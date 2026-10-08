@@ -292,7 +292,10 @@
       "theyRead": "loro leggono",
       "theySpeak": "loro parlano",
       "mirror": "Loro parlano {{their}} → io leggo {{mine}}"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "Il faccia a faccia usa sempre una sessione condivisa: le due persone parlano nello stesso microfono.",
+    "sonioxParticipantVoice": "Voce dell'altro",
+    "sonioxParticipantVoiceTooltip": "La voce che ti legge, nella tua lingua, ciò che dice l'altro. Solo voci integrate."
   },
   "simpleSettings": {
     "autoAuthenticated": "Autenticato automaticamente tramite il tuo account",
@@ -641,14 +644,21 @@
     "deviceMic": "Microfono",
     "deviceSpeakerMonitor": "Monitoraggio altoparlante",
     "notSelected": "Non selezionato",
-    "deviceParticipantAudio": "Audio dell'altro"
+    "deviceParticipantAudio": "Audio dell'altro",
+    "faceToFaceTag": "Faccia a faccia"
   },
   "popover": {
     "statusOff": "Spento",
     "toggleOn": "Attiva {{label}}",
     "toggleOff": "Disattiva {{label}}",
     "participantSubtitleElectron": "Tutto l'audio di sistema",
-    "participantSubtitleExtension": "Riprodotto tramite l'uscita predefinita del sistema"
+    "participantSubtitleExtension": "Riprodotto tramite l'uscita predefinita del sistema",
+    "otherSide": "Dov'è l'altro",
+    "otherSideMeeting": "In una riunione",
+    "otherSideMeetingHint": "Cattura l'audio di sistema o di un'app",
+    "otherSideBeside": "Accanto a me",
+    "otherSideBesideHint": "Due persone con un solo microfono",
+    "headphones": "Cuffie"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Clicca per configurare le lingue",
@@ -1136,6 +1146,15 @@
       "two-way-text": {
         "title": "Conversazione online bidirezionale, solo sottotitoli",
         "desc": "Sottotitoli bilingue, verbali di riunione — entrambe le parti come testo, senza voce sintetica."
+      },
+      "setsBeside": "Imposta: modalità {{mode}}, l'altro accanto a me · {{output}}",
+      "face-to-face-voice": {
+        "title": "Conversazione faccia a faccia",
+        "desc": "Due persone davanti allo stesso computer, ognuna parla la propria lingua; ognuna indossa un auricolare e sente solo la traduzione nella propria lingua."
+      },
+      "face-to-face-text": {
+        "title": "Conversazione faccia a faccia, solo sottotitoli",
+        "desc": "Entrambi leggono lo stesso schermo, oppure l'altro apre la pagina dei sottotitoli LAN sul telefono."
       }
     },
     "output": {
@@ -1168,7 +1187,8 @@
     },
     "fit": {
       "cannotSpeak": "Questo fornitore non può produrre traduzione parlata.",
-      "cannotBeTextOnly": "Questo fornitore parla sempre; non può funzionare in modalità solo sottotitoli."
+      "cannotBeTextOnly": "Questo fornitore parla sempre; non può funzionare in modalità solo sottotitoli.",
+      "cannotFaceToFace": "Questo fornitore non può tradurre due persone con un solo microfono."
     },
     "credentials": {
       "apiKey": "Chiave API",
@@ -1420,5 +1440,23 @@
     "warnAddressChanged": "La rete è cambiata. Ora l'indirizzo è {{address}}: invia di nuovo il link o riapri la pagina di proiezione.",
     "errorPortsBusy": "Impossibile avviare la condivisione: le porte 7788–7797 sono tutte occupate.",
     "errorListen": "Impossibile avviare la condivisione: {{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "Sinistra e destra · ognuno sente la traduzione nella propria lingua",
+    "leftEar": "Orecchio sinistro",
+    "rightEar": "Orecchio destro",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "Io ({{language}})",
+    "otherListens": "L'altro ({{language}})",
+    "previewLeft": "Ascolta l'orecchio sinistro",
+    "previewRight": "Ascolta l'orecchio destro",
+    "swap": "Scambia sinistra e destra",
+    "speakersHint": "Funziona meglio un auricolare a testa. Con gli altoparlanti, il microfono capta la traduzione e la traduce di nuovo.",
+    "playedLeft": "Riprodotto nell'orecchio sinistro",
+    "playedRight": "Riprodotto nell'orecchio destro",
+    "notPlayed": "Non riprodotto: questa traduzione è in {{language}}, non in {{target}}, quindi non viene letta a nessuno.",
+    "legendMe": "{{language}} · io",
+    "legendOther": "{{language}} · l'altro"
   }
 }
