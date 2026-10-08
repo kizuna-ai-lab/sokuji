@@ -355,6 +355,53 @@
   &:focus-visible { @include vars.focus-ring; outline-offset: -2px; }
 }
 
+// Face-to-face's ears legend, beside the mode picker. The colour follows the person.
+.ears-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 10px;
+  font-size: 12px;
+  color: #b8bcc2;
+  white-space: nowrap;
+
+  &__ear {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    b {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      box-sizing: border-box;
+      border-radius: 50%;
+      border: 1.5px solid var(--ear-colour);
+      color: var(--ear-colour);
+      font-size: 9px;
+      margin-right: 2px;
+    }
+    &--me { --ear-colour: #{tk.$color-speaker}; }
+    &--other { --ear-colour: #{tk.$color-participant}; }
+  }
+
+  // Read by screen readers in place of the ring letter.
+  &__ear-name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+@container (max-width: 768px) {
+  .ears-legend__ear { gap: 2px; }
+}
+
 // ═══════════════════════════════════════════════════
 // Control Footer — shared base + mode variants
 // ═══════════════════════════════════════════════════

@@ -260,3 +260,20 @@ describe('PanelFooter — waveforms', () => {
     expect(basicContainer.querySelector('[data-testid="wf-output"]')).toBeNull();
   });
 });
+
+describe('PanelFooter — the ears legend', () => {
+  it.each(SITES)('%s: names each ear and its listener in face-to-face, and nothing otherwise', (site) => {
+    const { container, rerender } = render(<PanelFooter {...baseProps(site, { mode: 'both', ears: { leftLang: 'ja', rightLang: 'en', leftIsMe: true } })} />);
+    const legend = container.querySelector('.ears-legend');
+    expect(legend?.textContent).toContain('faceToFace.legendMe');
+    expect(legend?.textContent).toContain('faceToFace.legendOther');
+    expect(legend?.querySelector('.ears-legend__ear--me b')?.getAttribute('aria-hidden')).toBe('true');
+    rerender(<PanelFooter {...baseProps(site, { mode: 'both', ears: null })} />);
+    expect(container.querySelector('.ears-legend')).toBeNull();
+  });
+
+  it.each(SITES)('%s: the tag follows the legend', (site) => {
+    const { container } = render(<PanelFooter {...baseProps(site, { mode: 'both', faceToFace: true, ears: null })} />);
+    expect(container.querySelector('.mode-picker__tag')).not.toBeNull();
+  });
+});

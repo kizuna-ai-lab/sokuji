@@ -56,4 +56,14 @@ describe('ModePicker', () => {
     const speakerSeg = screen.getByRole('button', { name: /Me|我/ });
     expect(speakerSeg.className).toMatch(/warn/);
   });
+
+  it('tags Both as face-to-face when it runs so', () => {
+    render(<ModePicker mode="both" locked={false} missingDeviceForMode={null} onSegmentClick={() => {}} faceToFace />);
+    expect(screen.getByRole('button', { name: /Both|双向/ }).querySelector('.mode-picker__tag')?.textContent).toMatch(/Face-to-face|modePicker\.faceToFaceTag/);
+  });
+
+  it('shows no tag otherwise', () => {
+    const { container } = render(<ModePicker mode="both" locked={false} missingDeviceForMode={null} onSegmentClick={() => {}} />);
+    expect(container.querySelector('.mode-picker__tag')).toBeNull();
+  });
 });

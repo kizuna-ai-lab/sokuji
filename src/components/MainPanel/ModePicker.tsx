@@ -10,6 +10,8 @@ interface ModePickerProps {
   locked: boolean;
   missingDeviceForMode: 'speaker' | 'participant' | 'both' | null;
   onSegmentClick: (segment: 'speaker' | 'participant' | 'both', el: HTMLElement) => void;
+  /** Both runs face-to-face: the segment carries a tag. */
+  faceToFace?: boolean;
 }
 
 const SEGMENTS: Array<'speaker' | 'participant' | 'both'> = ['speaker', 'participant', 'both'];
@@ -23,7 +25,7 @@ const SEGMENT_ICONS: Record<'speaker' | 'participant' | 'both', React.ComponentT
   both: SideBothIcon,
 };
 
-const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForMode, onSegmentClick }) => {
+const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForMode, onSegmentClick, faceToFace }) => {
   const { t } = useTranslation();
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
 
@@ -98,6 +100,7 @@ const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForM
           >
             <Icon size={14} />
             <span className="mode-picker__label">{label}</span>
+            {seg === 'both' && faceToFace && <span className="mode-picker__tag">{t('modePicker.faceToFaceTag', 'Face-to-face')}</span>}
           </button>
         );
       })}

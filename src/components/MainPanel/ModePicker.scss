@@ -40,6 +40,16 @@
 
     svg { flex-shrink: 0; }
 
+    // The pill on Both when it runs face-to-face. On the active fill it is a darker wash, so the
+    // text keeps the segment's own on-primary contrast.
+    .mode-picker__tag {
+      padding: 2px 5px;
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.28);
+      font-size: 10px;
+      white-space: nowrap;
+    }
+
     &:not(:last-child) {
       border-right: 1px solid var(--border-color, #444);
     }
@@ -94,7 +104,7 @@
 // buttons collapse to icon-only. Keeps the whole footer's "compact"
 // transition synchronized.
 @container (max-width: 768px) {
-  .mode-picker__label { display: none; }
+  .mode-picker__label, .mode-picker__tag { display: none; }
   .mode-picker__segment {
     padding: 0 10px;
     gap: 0;

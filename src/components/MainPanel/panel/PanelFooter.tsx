@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Zap, Mic, Loader, Wrench } from 'lucide-react';
+import { X, Zap, Mic, Loader, Wrench, Headphones } from 'lucide-react';
 import ModePicker from '../ModePicker';
 import SessionCountdown from '../SessionCountdown';
 import { useLanguageLabel } from '../../../lib/language/useLanguageLabel';
@@ -30,6 +30,10 @@ export interface PanelFooterProps {
   onLanguages(): void;
   /** Development builds: the test tone. */
   testTone?: { playing: boolean; toggle(): void };
+  /** Both runs face-to-face (Text Only or not): the mode picker tags it. */
+  faceToFace?: boolean;
+  /** Face-to-face's ears (slice 3): which language plays in each, and whether the left is mine. Absent or null: nothing plays in an ear. */
+  ears?: { leftLang: string; rightLang: string; leftIsMe: boolean } | null;
   /** The advanced footer's input strips and output strip. */
   waveforms?: { input: ReactNode; output: ReactNode };
 }
@@ -68,6 +72,8 @@ export function PanelFooter(props: PanelFooterProps) {
     onLanguages,
     testTone,
     waveforms,
+    faceToFace,
+    ears,
   } = props;
 
   const isIdle = run.phase === 'idle';
@@ -82,6 +88,24 @@ export function PanelFooter(props: PanelFooterProps) {
   const handleActionClick = isIdle ? onStart : onStop;
   const actionDisabled = (isIdle && !canStart) || run.phase === 'stopping';
 
+  // The ring letter is decoration: the ear's name is read instead, once.
+  const earNode = (ear: 'left' | 'right', lang: string, mine: boolean) => (
+    <span className={`ears-legend__ear ears-legend__ear--${mine ? 'me' : 'other'}`}>
+      <b aria-hidden="true">{ear === 'left' ? t('faceToFace.earLeft', 'L') : t('faceToFace.earRight', 'R')}</b>
+      <span className="ears-legend__ear-name">{ear === 'left' ? t('faceToFace.leftEar', 'Left ear') : t('faceToFace.rightEar', 'Right ear')}</span>
+      {mine
+        ? t('faceToFace.legendMe', '{{language}} · me', { language: label(lang) })
+        : t('faceToFace.legendOther', '{{language}} · other person', { language: label(lang) })}
+    </span>
+  );
+  const earsLegendNode = ears && (
+    <span className="ears-legend">
+      <Headphones size={14} aria-hidden="true" />
+      {earNode('left', ears.leftLang, ears.leftIsMe)}
+      {earNode('right', ears.rightLang, !ears.leftIsMe)}
+    </span>
+  );
+
   if (site === 'basic') {
     return (
       <div className="control-footer basic">
@@ -91,7 +115,9 @@ export function PanelFooter(props: PanelFooterProps) {
           locked={!isIdle}
           missingDeviceForMode={missingDevice}
           onSegmentClick={onModeSegment}
+          faceToFace={faceToFace}
         />
+        {earsLegendNode}
 
         <span className="footer-spacer" />
 
@@ -162,7 +188,9 @@ export function PanelFooter(props: PanelFooterProps) {
         locked={!isIdle}
         missingDeviceForMode={missingDevice}
         onSegmentClick={onModeSegment}
+        faceToFace={faceToFace}
       />
+      {earsLegendNode}
 
       {/* Input waveforms (mic + system), when the caller has them (Task 12). */}
       {waveforms?.input}

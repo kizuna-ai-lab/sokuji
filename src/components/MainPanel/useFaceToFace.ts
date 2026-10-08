@@ -34,3 +34,13 @@ export function useFaceToFace(): FaceToFaceView {
     other: pair?.target ?? null,
   };
 }
+
+/** The footer's ears legend: which language plays in each ear, and whether the left is mine. Absent when nothing plays in an ear: not face-to-face, or Text Only. */
+export function earsLegend(view: FaceToFaceView, textOnly: boolean): { leftLang: string; rightLang: string; leftIsMe: boolean } | null {
+  if (!view.active || textOnly || !view.me || !view.other) return null;
+  return {
+    leftLang: view.swap ? view.other : view.me,
+    rightLang: view.swap ? view.me : view.other,
+    leftIsMe: !view.swap,
+  };
+}

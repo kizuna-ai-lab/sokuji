@@ -43,6 +43,7 @@ import {
   useSetAuthOverlay,
   useSpeakerDisplayMode,
   useSubtitleModeActive,
+  useTextOnly,
   useUIMode,
 } from '../../stores/settingsStore';
 import { useSetSubtitleEntryHint } from '../../stores/subtitleStore';
@@ -59,6 +60,7 @@ import { Banners } from '../Banner/useBanners';
 import UpdateDialog from '../UpdateDialog/UpdateDialog';
 import ModeDevicePopover from './ModeDevicePopover';
 import { PanelFooter } from './panel/PanelFooter';
+import { earsLegend, useFaceToFace } from './useFaceToFace';
 import PanelToolbar from './panel/PanelToolbar';
 import { replayBlocked } from './panel/replayGate';
 import { useSessionClock } from './panel/sessionClock';
@@ -173,6 +175,9 @@ export default function MainPanel() {
   const provider = useProviderStore((s) => (s.selected ? getProvider(s.selected) : undefined));
   const otherSide = useAudioStore((s) => s.otherSide);
   const faceToFace = isFaceToFace(provider, mode, otherSide);
+  const f2f = useFaceToFace();
+  const textOnly = useTextOnly();
+  const ears = earsLegend(f2f, textOnly);
   const providerSettings = useProviderStore((s) => (s.selected ? s.entries[s.selected]?.settings : undefined));
   const display = useConversationDisplayStore();
 
@@ -285,7 +290,7 @@ export default function MainPanel() {
       site={site} run={run} mode={mode} missingDevice={missingDevice}
       canStart={subtitle.canStart}
       holdToTalk={speakerLive && subtitle.holdToTalk} held={ptt.held} micMuted={micMuted}
-      pair={subtitle.pair} duration={duration}
+      pair={subtitle.pair} duration={duration} faceToFace={f2f.active} ears={ears}
       // Ruling 11: `session.start` is the one start every surface calls — never a start while the gate is shut, the button is off then; this also holds for a click that beat its render (as the takeover's Start).
       onStart={() => void session.start('button')}
       onStop={() => void runner.stop('button')}
