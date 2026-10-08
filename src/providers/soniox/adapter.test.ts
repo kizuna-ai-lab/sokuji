@@ -8,6 +8,7 @@
  * timers, no stubbed global.
  */
 import { describe, it, expect, vi } from 'vitest';
+import type { SharedSettings } from '../../lib/provider/types';
 import { AdapterStartError, type SessionContext } from '../../lib/contract/adapter';
 import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
 import { FakeSocket, fakeSockets } from '../../lib/contract/testing/fakeSocket';
@@ -18,14 +19,14 @@ import { buildSoniox, type SonioxConfig } from './config';
 import { SONIOX_DEFAULTS, type SonioxCredentials, type SonioxSettings } from './settings';
 import { AUTO_CTX, b64, END, ERROR_503, FIN, isStt, KEY, msg, orig, SHARED, tr, trackedClock, type Json } from './testing';
 
-function started(o: { context?: SessionContext; settings?: Partial<SonioxSettings>; credentials?: SonioxCredentials } = {}) {
+function started(o: { context?: SessionContext; settings?: Partial<SonioxSettings>; credentials?: SonioxCredentials; shared?: SharedSettings } = {}) {
   const sockets = fakeSockets();
   const { clock, timers } = trackedClock();
   const { events, log } = recordEvents();
   const controller = new AbortController();
   const context = o.context ?? AUTO_CTX;
   const starting = createSonioxAdapter({ openSocket: sockets.create }).start(
-    { context, config: buildSoniox(context, { ...SONIOX_DEFAULTS, ...o.settings }, SHARED), credentials: o.credentials ?? KEY, clock, signal: controller.signal },
+    { context, config: buildSoniox(context, { ...SONIOX_DEFAULTS, ...o.settings }, o.shared ?? SHARED), credentials: o.credentials ?? KEY, clock, signal: controller.signal },
     events,
   );
   const stt = () => sockets.all.filter(isStt).slice(-1)[0];
@@ -104,6 +105,13 @@ describe('the Soniox adapter: conformance', () => {
 });
 
 describe('the Soniox adapter: one leg', () => {
+  it("asks the participant's own socket for diarization, and never the speaker's", async () => {
+    const participant = await live({ shared: { ...SHARED, reversed: () => true } });
+    expect(participant.stt().sentJson<Json>()[0]).toMatchObject({ enable_speaker_diarization: true });
+    const speaker = await live();
+    expect(speaker.stt().sentJson<Json>()[0]).not.toHaveProperty('enable_speaker_diarization');
+  });
+
   it("sends the leg's direction: one_way to the target, both languages as hints (the source first), the context and the knobs; no diarization, no client reference", async () => {
     const { stt } = await live({ settings: { vocabularyTerms: 'Sokuji', endpointMaxDelayMs: 3000 } });
     const config = stt().sentJson<Json>()[0];

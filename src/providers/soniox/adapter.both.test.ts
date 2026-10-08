@@ -7,6 +7,7 @@
  * `FakeSocket` and a virtual clock from the first run — no network.
  */
 import { describe, it, expect } from 'vitest';
+import type { SharedSettings } from '../../lib/provider/types';
 import { AdapterStartError, LegStartError, type SessionContext, type StartRequest } from '../../lib/contract/adapter';
 import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
 import { FakeSocket, fakeSockets } from '../../lib/contract/testing/fakeSocket';
@@ -20,6 +21,9 @@ import { b64, END, ERROR_503, isStt, msg, orig, SHARED, tr, trackedClock, type J
 const SPK: SonioxCredentials = { region: 'us', stt: 'k-spk', tts: 'k-spk' };
 const PAR: SonioxCredentials = { region: 'us', stt: 'k-par', tts: 'k-par-tts' };
 
+/** The app's rule (`shared.ts`): the participant's direction is the pair's reverse. */
+const BOTH_SHARED: SharedSettings = { ...SHARED, reversed: (direction) => direction.source === 'ja' };
+
 function both(o: { sharedBoth?: boolean; participantSpeaks?: boolean; abortFirst?: boolean } = {}) {
   const sockets = fakeSockets();
   const { clock, timers } = trackedClock();
@@ -32,7 +36,7 @@ function both(o: { sharedBoth?: boolean; participantSpeaks?: boolean; abortFirst
   };
   const rec = { speaker: recordEvents(), participant: recordEvents() };
   const request = (leg: LegName, credentials: SonioxCredentials): StartRequest<SonioxConfig, SonioxCredentials> =>
-    ({ context: contexts[leg], config: buildSoniox(contexts[leg], s, SHARED), credentials, clock, signal: controller.signal });
+    ({ context: contexts[leg], config: buildSoniox(contexts[leg], s, BOTH_SHARED), credentials, clock, signal: controller.signal });
   const starting = createSonioxAdapter({ openSocket: sockets.create }).startBoth(
     { speaker: request('speaker', SPK), participant: request('participant', PAR) },
     { speaker: rec.speaker.events, participant: rec.participant.events },
@@ -79,14 +83,14 @@ function establishTwoAsParticipant(h: Live): void {
 }
 
 describe('Soniox startBoth: split', () => {
-  it('split: two sessions on two STT sockets, each on its own direction and key', async () => {
+  it("split: two sessions on two STT sockets, each on its own direction and key; the participant's labels its people", async () => {
     const h = await live({ sharedBoth: false });
     expect(h.sttSockets()).toHaveLength(2);
     const [spk, par] = h.sttSockets().map((x) => x.sentJson<Json>()[0]);
     expect(spk).toMatchObject({ api_key: 'k-spk', translation: { type: 'one_way', target_language: 'ja' }, language_hints: ['en', 'ja'] });
     expect(par).toMatchObject({ api_key: 'k-par', translation: { type: 'one_way', target_language: 'en' }, language_hints: ['ja', 'en'] });
     expect(spk).not.toHaveProperty('enable_speaker_diarization');
-    expect(par).not.toHaveProperty('enable_speaker_diarization');
+    expect(par).toMatchObject({ enable_speaker_diarization: true });
   });
 
   it('split: the legs stop apart', async () => {

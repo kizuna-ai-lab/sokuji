@@ -34,6 +34,8 @@ export interface SonioxConfig {
   tts?: { voice: string; speed: number };
   /** Both mode on one mixed socket (D23); read by `startBoth`. */
   sharedBoth: boolean;
+  /** The participant's leg: its own socket labels its people (the shared socket always does). */
+  diarize: boolean;
 }
 
 /** One term per line; trimmed, empties dropped, duplicates removed. */
@@ -131,7 +133,7 @@ function fitContextToBudget(
   return { terms, translationTerms, text };
 }
 
-export function buildSoniox(context: SessionContext, s: SonioxSettings, _shared: SharedSettings): SonioxConfig {
+export function buildSoniox(context: SessionContext, s: SonioxSettings, shared: SharedSettings): SonioxConfig {
   const { terms, translationTerms, text } = fitContextToBudget(
     parseVocabularyTerms(s.vocabularyTerms ?? ''),
     parseVocabularyTranslations(s.vocabularyTranslations ?? ''),
@@ -154,6 +156,7 @@ export function buildSoniox(context: SessionContext, s: SonioxSettings, _shared:
       ? { tts: { voice: s[sonioxVoiceField(asSonioxRegion(s.region))] || SONIOX_DEFAULT_VOICE, speed: clampNumber(s.ttsSpeed, 0.7, 1.3, 1.0) } }
       : {}),
     sharedBoth: s.bothModeSharedSession,
+    diarize: shared.reversed(context.direction),
   };
 }
 

@@ -168,6 +168,13 @@ describe('buildSoniox — sharedBoth', () => {
   });
 });
 
+describe('buildSoniox — diarize', () => {
+  it("labels people on the participant's leg only", () => {
+    expect(build().diarize).toBe(true);
+    expect(build({}, { ...AUTO_CTX, direction: { source: 'en', target: 'ja' } }).diarize).toBe(false);
+  });
+});
+
 describe('describeSoniox', () => {
   it('describes the STT model always, and the TTS model only for a leg that speaks', () => {
     expect(describeSoniox(build())).toEqual({ asrModel: 'stt-rt-v5', ttsModel: 'tts-rt-v2' });

@@ -266,7 +266,8 @@ class SonioxCore {
       translation: this.o.shared ? { type: 'two_way', language_a: sonioxWire.toWire(source), language_b: sonioxWire.toWire(target) } : { type: 'one_way', target_language: sonioxWire.toWire(target) },
       // D20 keeps an auto source out of Both: the gate refuses the participant leg.
       ...(hints.length ? { languageHints: hints } : {}),
-      ...(this.o.shared ? { enableSpeakerDiarization: true } : {}),
+      // The shared socket always labels its people; the participant's own one-way socket does too.
+      ...(this.o.shared || config.diarize ? { enableSpeakerDiarization: true } : {}),
       ...(config.stt.context ? { context: config.stt.context } : {}),
       endpointSensitivity: config.stt.endpointSensitivity,
       endpointLatencyAdjustmentLevel: config.stt.endpointLatencyAdjustmentLevel,
