@@ -241,6 +241,27 @@ describe('LocalInferenceTurnDetectionControls — Smart Turn', () => {
     await vi.waitFor(() => expect(update).toHaveBeenCalledWith({ vadEndOfTurn: 'smart' }));
   });
 
+  it('raises Max Wait to 0.30 s with Smart when it was lower', async () => {
+    mockPhase = 'missing';
+    mockDownload.mockImplementation(async () => { mockPhase = 'ready'; });
+    const update = vi.fn();
+    render(<LocalInferenceTurnDetectionControls settings={{ ...LOCAL_INFERENCE_DEFAULTS, vadMinSilenceDuration: 0.25 }} update={update} pair={pair} />);
+    fireEvent.click(button('Smart'));
+    await vi.waitFor(() => expect(update).toHaveBeenCalledWith({ vadEndOfTurn: 'smart', vadMinSilenceDuration: 0.3 }));
+  });
+
+  it('keeps a Max Wait raised while the model downloaded', async () => {
+    mockPhase = 'missing';
+    let finish!: () => void;
+    mockDownload.mockImplementation(() => new Promise<void>((resolve) => { finish = () => { mockPhase = 'ready'; resolve(); }; }));
+    const update = vi.fn();
+    const { rerender } = render(<LocalInferenceTurnDetectionControls settings={{ ...LOCAL_INFERENCE_DEFAULTS, vadMinSilenceDuration: 0.25 }} update={update} pair={pair} />);
+    fireEvent.click(button('Smart'));
+    rerender(<LocalInferenceTurnDetectionControls settings={{ ...LOCAL_INFERENCE_DEFAULTS, vadMinSilenceDuration: 0.8 }} update={update} pair={pair} />);
+    finish();
+    await vi.waitFor(() => expect(update).toHaveBeenCalledWith({ vadEndOfTurn: 'smart' }));
+  });
+
   it('stays on Normal when the download fails', async () => {
     mockPhase = 'missing';
     mockDownload.mockImplementation(async () => { mockPhase = 'error'; mockError = 'offline'; });

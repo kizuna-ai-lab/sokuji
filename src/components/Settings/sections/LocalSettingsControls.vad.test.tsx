@@ -106,6 +106,14 @@ describe('VadControl Smart Turn sliders', () => {
     expect([sliderFor('Turn Threshold').min, sliderFor('Turn Threshold').max]).toEqual(['0.3', '0.9']);
   });
 
+  it('hold Max Wait at 0.30 s or more, and give Min Silence its full range under Normal', () => {
+    const { unmount } = render(<VadControl values={SMART} onChange={() => {}} disabled={false} />);
+    expect(sliderFor('Max Wait').min).toBe('0.3');
+    unmount();
+    render(<VadControl values={BASE} onChange={() => {}} disabled={false} />);
+    expect(sliderFor('Min Silence Duration').min).toBe('0.05');
+  });
+
   it('hold Turn Check After 0.2 s under Max Wait, showing what the session will use', () => {
     render(<VadControl values={{ ...SMART, vadMinSilenceDuration: 0.4, smartTurnCheckAfter: 0.5 }} onChange={() => {}} disabled={false} />);
     expect(sliderFor('Turn Check After').max).toBe('0.2');

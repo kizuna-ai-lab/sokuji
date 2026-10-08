@@ -15,6 +15,7 @@ import Tooltip from '../../Tooltip/Tooltip';
 import { formatBytes } from '../../../lib/local-inference/formatBytes';
 import {
   SMART_TURN_CHECK_AFTER_RANGE,
+  SMART_TURN_MAX_WAIT_MIN,
   SMART_TURN_THRESHOLD_RANGE,
   effectiveCheckAfter,
   type VadEndOfTurn,
@@ -303,7 +304,7 @@ export const VadControl: React.FC<{
           <span className="setting-value">{values.vadMinSilenceDuration.toFixed(2)}s</span>
         </div>
         <input
-          type="range" min="0.05" max="2.0" step="0.05" value={values.vadMinSilenceDuration}
+          type="range" min={smart ? SMART_TURN_MAX_WAIT_MIN : 0.05} max="2.0" step="0.05" value={values.vadMinSilenceDuration}
           onChange={(e) => onChange({ vadMinSilenceDuration: parseFloat(e.target.value) })}
           className="slider" disabled={disabled}
         />

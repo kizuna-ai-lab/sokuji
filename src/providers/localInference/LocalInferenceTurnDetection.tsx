@@ -1,10 +1,10 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CircleHelp } from 'lucide-react';
 import { useModelStore, useModelStatuses } from '../../stores/modelStore';
 import { SMART_TURN_TOTAL_BYTES, useSmartTurnPhase, useSmartTurnStore } from '../../stores/smartTurnStore';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
-import { supportsSmartTurn, effectiveCheckAfter, type VadEndOfTurn } from '../../lib/turn/smartTurn';
+import { SMART_TURN_MAX_WAIT_MIN, supportsSmartTurn, effectiveCheckAfter, type VadEndOfTurn } from '../../lib/turn/smartTurn';
 import { EndOfTurnControl, VadControl } from '../../components/Settings/sections/LocalSettingsControls';
 import Tooltip from '../../components/Tooltip/Tooltip';
 import type { LanguagePair, SettingsProps } from '../../lib/provider/types';
@@ -103,12 +103,19 @@ export function LocalInferenceTurnDetectionControls({ settings, update, disabled
   const phase = useSmartTurnPhase();
   const downloadedBytes = useSmartTurnStore((s) => s.downloadedBytes);
   const error = useSmartTurnStore((s) => s.error);
+  // Read when the download ends: Max Wait may have moved meanwhile.
+  const maxWait = useRef(settings.vadMinSilenceDuration);
+  useEffect(() => { maxWait.current = settings.vadMinSilenceDuration; }, [settings.vadMinSilenceDuration]);
   if (!showVad) return null;
 
-  // The setting turns Smart only once the model is on disk.
+  // The setting turns Smart only once the model is on disk, with a Max Wait
+  // that leaves Turn Check After room to run.
   const enableSmart = async () => {
     await useSmartTurnStore.getState().download();
-    if (useSmartTurnStore.getState().phase === 'ready') update({ vadEndOfTurn: 'smart' });
+    if (useSmartTurnStore.getState().phase !== 'ready') return;
+    update(maxWait.current < SMART_TURN_MAX_WAIT_MIN
+      ? { vadEndOfTurn: 'smart', vadMinSilenceDuration: SMART_TURN_MAX_WAIT_MIN }
+      : { vadEndOfTurn: 'smart' });
   };
   const choose = (next: VadEndOfTurn) => {
     if (next === 'smart') {

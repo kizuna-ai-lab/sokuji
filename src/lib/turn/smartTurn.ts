@@ -16,6 +16,9 @@ export const SMART_TURN_WORKER_TYPES = [
 export const SMART_TURN_CHECK_AFTER_RANGE = { min: 0.1, max: 0.5, step: 0.05 } as const;
 export const SMART_TURN_THRESHOLD_RANGE = { min: 0.3, max: 0.9, step: 0.05 } as const;
 
+/** The lowest Max Wait that still leaves Turn Check After its minimum (see `effectiveCheckAfter`). */
+export const SMART_TURN_MAX_WAIT_MIN = 0.3;
+
 export function supportsSmartTurn(entry: { asrWorkerType?: string } | undefined): boolean {
   return (SMART_TURN_WORKER_TYPES as readonly string[]).includes(entry?.asrWorkerType ?? '');
 }
