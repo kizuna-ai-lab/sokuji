@@ -1157,7 +1157,8 @@ _TTS_TIER_OVERRIDES: dict[str, tuple[str, ...]] = {
 # measurements: a Metal plan is judged at 1.0 whatever the card lists (accel.load_with_fallback;
 # the M4 ran moss-tts-local bare on Metal at about 8.7 GiB, where a bare CPU synth peaked at
 # 13,060,424 kB).
-# A 3.1 s clip is the basis; longer allowed clips peak higher (moss 19.9 s: 20.39 GiB vs an 18.69 GiB need).
+# A 3.1 s clip is the basis; longer allowed clips peak higher (moss 19.9 s: 20.39 GiB vs an 18.69 GiB
+# need; OmniVoice and VoiceTut 19.9 s: 2.70 / 2.73 GB vs 1.70 / 1.82 GB at 3.1 s).
 _TTS_RAM_FACTORS: dict[str, float] = {
     "cosyvoice3": 1.3,              # 2,652,720 kB, 22 words, 3.1 s clip, on 2,257,658,080 B (1.203x)
     "moss-tts-local-1.5": 2.6,      # 18,521,960 kB, 22 words, 3.1 s clip, on 7,512,220,768 B (2.52x)
@@ -1423,7 +1424,8 @@ TTS_MODELS: list[TtsModel] = [
     # k2-fsa/OmniVoice ships under CC-BY-NC-4.0 — non-commercial only. This
     # descriptor is DATA the download gate reads generically; it isn't a
     # Sokuji-specific restriction.
-    # The languages OmniVoice documents (src/models/omnivoice/language_map.inc), ruling 2026-10-09.
+    # The app codes OmniVoice documents: those resolving in src/models/omnivoice/language_map.inc,
+    # ar and ne through the arb/npi alias; su has no entry (ruling 2026-10-09).
     _tts_gguf_row(
         "omnivoice-0.6b", "OmniVoice 0.6B",
         ("af", "am", "ar", "az", "bg", "bn", "bs", "ca", "cs", "cy", "da", "de", "el", "en", "es",

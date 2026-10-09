@@ -149,8 +149,8 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
   }, [reloadCustomVoices]);
 
   const clipErrorMessage = useCallback((reason: ClipValidationError): string => {
-    // The limits are per-model (VoiceLibraryCapability) — e.g. OmniVoice
-    // accepts at most 8s while others take 20s — so the message must quote
+    // The limits are per-model (VoiceLibraryCapability) — e.g. VibeVoice
+    // accepts at most 10s while others take 20s — so the message must quote
     // the store's actual bound, not the global default.
     const minS = store?.capability.minClipSeconds ?? MIN_CLIP_SECONDS;
     const maxS = store?.capability.maxClipSeconds ?? MAX_CLIP_SECONDS;
