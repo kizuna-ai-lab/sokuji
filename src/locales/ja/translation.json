@@ -376,7 +376,7 @@
     "audioCaptureUnprovenTitle": "選択したソースからまだ音声が届いていません",
     "audioCaptureUnprovenText1": "ソースが再生中なのに翻訳されない場合、macOS が無音を返している可能性があります。アプリの音声を取得するには「システムオーディオ録音のみ」の権限が必要で、権限がないとエラーは出ず、無音になるだけです。",
     "audioCaptureUnprovenText3Named": "「{{app}}」は一度取得を試みた後にのみそのリストに表示されます（今その試行を行いました）。有効にしたら、セッションをもう一度開始してください。ソースが単に無音だっただけなら、何も変更する必要はありません。",
-    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
+    "otherSideBesideNote": "相手はあなたのマイクを共有します。システム音声はキャプチャされません。"
   },
   "auth": {
     "signIn": "サインイン",
@@ -451,8 +451,8 @@
     "textOnlyForcedByMode": "「{{mode}}」モードは参加者の発言をテキストにするだけで音声は生成しないため、「テキストのみ」は常にオンになります。自分の声を音声付きで翻訳するには翻訳モードを切り替えてください。",
     "keepReplayAudio": "再生用に音声を保持",
     "keepReplayAudioDesc": "翻訳された音声をメモリに保存し、後から各メッセージで再生できるようにします。長時間のセッションでのメモリ使用量を抑えるため、既定ではオフです。",
-    "output": "Output",
-    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
+    "output": "出力",
+    "outputDesc": "翻訳された音声をあなたに再生するデバイスです。「自分」モードではオフにできます。その場合も、会議には仮想マイク経由で翻訳が届きます。"
   },
   "providers": {
     "kizunaai_soniox": {
@@ -658,7 +658,7 @@
     "notSelected": "未選択",
     "deviceParticipantAudio": "相手の音声",
     "faceToFaceTag": "対面",
-    "descBothBeside": "Also for two people at one computer (face-to-face)."
+    "descBothBeside": "1 台のコンピューターを 2 人で使う場合（対面）にも使えます。"
   },
   "popover": {
     "statusOff": "オフ",
@@ -671,7 +671,7 @@
     "otherSideMeetingHint": "システム音声またはアプリの音声を取り込みます",
     "otherSideBeside": "隣にいる",
     "otherSideBesideHint": "1 台のマイクを 2 人で使います",
-    "output": "Output"
+    "output": "出力"
   },
   "simplePanel": {
     "clickToConfigLanguages": "言語を設定するにはクリック",

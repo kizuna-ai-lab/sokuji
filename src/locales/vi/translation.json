@@ -376,7 +376,7 @@
     "audioCaptureUnprovenTitle": "Chưa có âm thanh nào từ nguồn đã chọn",
     "audioCaptureUnprovenText1": "Nếu nguồn đang phát mà không có gì được dịch, nhiều khả năng macOS đang trả về im lặng: thu âm thanh của một ứng dụng cần quyền \"System Audio Recording Only\", và không có quyền này thì sẽ không có lỗi, chỉ có im lặng.",
     "audioCaptureUnprovenText3Named": "\"{{app}}\" chỉ xuất hiện trong danh sách đó sau khi đã thử thu một lần, và điều đó vừa xảy ra. Sau khi bật, hãy bắt đầu lại phiên. Nếu nguồn chỉ đơn giản là im lặng thì không cần thay đổi gì.",
-    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
+    "otherSideBesideNote": "Người kia dùng chung micro với bạn; âm thanh hệ thống không được thu."
   },
   "auth": {
     "signIn": "Đăng nhập",
@@ -451,8 +451,8 @@
     "textOnlyForcedByMode": "Chế độ \"{{mode}}\" chỉ chuyển lời người tham gia thành văn bản cho bạn và không bao giờ tạo âm thanh, nên \"Chỉ văn bản\" luôn bật. Hãy chuyển chế độ dịch để dịch giọng nói của bạn kèm âm thanh.",
     "keepReplayAudio": "Giữ âm thanh để phát lại",
     "keepReplayAudioDesc": "Lưu âm thanh đã dịch trong bộ nhớ để bạn có thể phát lại sau từ mỗi tin nhắn. Tắt theo mặc định để giảm sử dụng bộ nhớ trong các phiên dài.",
-    "output": "Output",
-    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
+    "output": "Đầu ra",
+    "outputDesc": "Thiết bị phát giọng đã dịch cho bạn nghe. Ở chế độ “Tôi”, bạn có thể tắt; cuộc họp vẫn nghe bản dịch qua micro ảo."
   },
   "providers": {
     "kizunaai_soniox": {
@@ -658,7 +658,7 @@
     "notSelected": "Chưa chọn",
     "deviceParticipantAudio": "Âm thanh đối phương",
     "faceToFaceTag": "Mặt đối mặt",
-    "descBothBeside": "Also for two people at one computer (face-to-face)."
+    "descBothBeside": "Cũng dùng cho hai người trên một máy tính (mặt đối mặt)."
   },
   "popover": {
     "statusOff": "Tắt",
@@ -671,7 +671,7 @@
     "otherSideMeetingHint": "Thu âm thanh hệ thống hoặc một ứng dụng",
     "otherSideBeside": "Ngay bên cạnh tôi",
     "otherSideBesideHint": "Hai người dùng chung một micro",
-    "output": "Output"
+    "output": "Đầu ra"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Nhấp để cấu hình ngôn ngữ",

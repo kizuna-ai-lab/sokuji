@@ -376,7 +376,7 @@
     "audioCaptureUnprovenTitle": "নির্বাচিত উৎস থেকে এখনও কোনো অডিও আসেনি",
     "audioCaptureUnprovenText1": "উৎসটি চলছে অথচ কিছুই অনুবাদ হচ্ছে না হলে, macOS সম্ভবত নীরবতা পাঠাচ্ছে: কোনো অ্যাপ ক্যাপচার করতে \"System Audio Recording Only\" অনুমতি লাগে, আর সেটি না থাকলে কোনো ত্রুটি দেখায় না, শুধু নীরবতা থাকে।",
     "audioCaptureUnprovenText3Named": "\"{{app}}\" একবার ক্যাপচারের চেষ্টা করার পরেই ওই তালিকায় দেখা যায়, যা এইমাত্র হয়েছে। সক্রিয় করার পর সেশনটি আবার শুরু করুন। উৎসটি যদি কেবল নীরব থাকে, তাহলে কিছু বদলানোর দরকার নেই।",
-    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
+    "otherSideBesideNote": "অন্য ব্যক্তি আপনার মাইক্রোফোন ভাগ করে নেন; সিস্টেম অডিও ধারণ করা হয় না।"
   },
   "auth": {
     "signIn": "সাইন ইন",
@@ -451,8 +451,8 @@
     "textOnlyForcedByMode": "\"{{mode}}\" মোড অংশগ্রহণকারীদের কথা শুধু আপনার জন্য পাঠ্যে রূপান্তর করে এবং কখনও অডিও তৈরি করে না, তাই \"শুধু পাঠ্য\" সবসময় চালু থাকে। নিজের কণ্ঠ শব্দসহ অনুবাদ করতে অনুবাদ মোড পরিবর্তন করুন।",
     "keepReplayAudio": "প্লেব্যাকের জন্য অডিও সংরক্ষণ করুন",
     "keepReplayAudioDesc": "অনুবাদিত অডিও মেমরিতে সংরক্ষণ করুন যাতে আপনি পরে প্রতিটি বার্তা থেকে এটি আবার চালাতে পারেন। দীর্ঘ সেশনের সময় মেমরি ব্যবহার কমাতে ডিফল্টভাবে বন্ধ।",
-    "output": "Output",
-    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
+    "output": "আউটপুট",
+    "outputDesc": "যে ডিভাইসটি অনূদিত কণ্ঠ আপনাকে শোনায়। «আমি» মোডে এটি বন্ধ করা যায়; মিটিং তবুও ভার্চুয়াল মাইক্রোফোনের মাধ্যমে অনুবাদ শুনতে পায়।"
   },
   "providers": {
     "kizunaai_soniox": {
@@ -658,7 +658,7 @@
     "notSelected": "নির্বাচিত নয়",
     "deviceParticipantAudio": "অন্যের অডিও",
     "faceToFaceTag": "মুখোমুখি",
-    "descBothBeside": "Also for two people at one computer (face-to-face)."
+    "descBothBeside": "একটি কম্পিউটারে দুজনের জন্যও (মুখোমুখি)।"
   },
   "popover": {
     "statusOff": "বন্ধ",
@@ -671,7 +671,7 @@
     "otherSideMeetingHint": "সিস্টেম অডিও বা কোনো অ্যাপ ক্যাপচার করে",
     "otherSideBeside": "আমার পাশে",
     "otherSideBesideHint": "একটি মাইক্রোফোনে দুজন",
-    "output": "Output"
+    "output": "আউটপুট"
   },
   "simplePanel": {
     "clickToConfigLanguages": "ভাষা কনফিগার করতে ক্লিক করুন",

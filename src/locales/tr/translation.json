@@ -376,7 +376,7 @@
     "audioCaptureUnprovenTitle": "Seçilen kaynaktan henüz ses gelmedi",
     "audioCaptureUnprovenText1": "Kaynak oynatılıyor ve hiçbir şey çevrilmiyorsa macOS büyük olasılıkla sessizlik iletiyordur: bir uygulamayı yakalamak \"Yalnızca Sistem Sesi Kaydı\" iznini gerektirir ve bu izin olmadan hata oluşmaz, yalnızca sessizlik olur.",
     "audioCaptureUnprovenText3Named": "\"{{app}}\" bu listede yalnızca bir kez yakalama denendikten sonra görünür; bu deneme az önce yapıldı. Etkinleştirdikten sonra oturumu yeniden başlatın. Kaynak yalnızca sessizse hiçbir şeyi değiştirmeniz gerekmez.",
-    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
+    "otherSideBesideNote": "Karşı taraf mikrofonunuzu paylaşıyor; sistem sesi yakalanmaz."
   },
   "auth": {
     "signIn": "Giriş Yap",
@@ -451,8 +451,8 @@
     "textOnlyForcedByMode": "\"{{mode}}\" modu katılımcıların söylediklerini yalnızca sizin için metne dönüştürür ve hiçbir zaman ses üretmez; bu nedenle \"Yalnızca metin\" açık kalır. Kendi sesinizi konuşmayla çevirmek için çeviri modunu değiştirin.",
     "keepReplayAudio": "Sesi yeniden oynatma için sakla",
     "keepReplayAudioDesc": "Çevrilen sesi bellekte saklayın, böylece her mesajdan daha sonra yeniden oynatabilirsiniz. Uzun oturumlarda bellek kullanımını azaltmak için varsayılan olarak kapalıdır.",
-    "output": "Output",
-    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
+    "output": "Çıkış",
+    "outputDesc": "Çevrilen konuşmayı size dinleten aygıt. „Ben“ modunda kapatabilirsiniz; toplantı çeviriyi yine sanal mikrofon üzerinden duyar."
   },
   "providers": {
     "kizunaai_soniox": {
@@ -658,7 +658,7 @@
     "notSelected": "Seçilmedi",
     "deviceParticipantAudio": "Karşı tarafın sesi",
     "faceToFaceTag": "Yüz yüze",
-    "descBothBeside": "Also for two people at one computer (face-to-face)."
+    "descBothBeside": "Tek bilgisayarda iki kişi için de uygundur (yüz yüze)."
   },
   "popover": {
     "statusOff": "Kapalı",
@@ -671,7 +671,7 @@
     "otherSideMeetingHint": "Sistem sesini veya bir uygulamayı yakalar",
     "otherSideBeside": "Yanımda",
     "otherSideBesideHint": "Tek mikrofonda iki kişi",
-    "output": "Output"
+    "output": "Çıkış"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Dilleri yapılandırmak için tıklayın",

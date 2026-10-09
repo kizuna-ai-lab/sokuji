@@ -376,7 +376,7 @@
     "audioCaptureUnprovenTitle": "Belum ada audio yang masuk dari sumber yang dipilih",
     "audioCaptureUnprovenText1": "Jika sumber sedang diputar tetapi tidak ada yang diterjemahkan, macOS kemungkinan mengirimkan keheningan: menangkap sebuah aplikasi memerlukan izin \"System Audio Recording Only\", dan tanpa izin itu tidak ada kesalahan, hanya keheningan.",
     "audioCaptureUnprovenText3Named": "\"{{app}}\" baru muncul di daftar itu setelah mencoba menangkap satu kali, yang baru saja terjadi. Mulai sesi lagi setelah mengaktifkannya. Jika sumber memang hening, tidak ada yang perlu diubah.",
-    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
+    "otherSideBesideNote": "Lawan bicara berbagi mikrofon Anda; audio sistem tidak direkam."
   },
   "auth": {
     "signIn": "Masuk",
@@ -451,8 +451,8 @@
     "textOnlyForcedByMode": "Mode \"{{mode}}\" hanya mengubah ucapan peserta menjadi teks untuk Anda dan tidak pernah menghasilkan audio, jadi \"Teks saja\" tetap aktif. Ubah mode terjemahan untuk menerjemahkan suara Anda sendiri dengan ucapan.",
     "keepReplayAudio": "Simpan audio untuk diputar ulang",
     "keepReplayAudioDesc": "Simpan audio terjemahan di memori sehingga Anda dapat memutarnya kembali nanti dari setiap pesan. Nonaktif secara default untuk mengurangi penggunaan memori selama sesi yang panjang.",
-    "output": "Output",
-    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
+    "output": "Keluaran",
+    "outputDesc": "Perangkat yang memutar suara terjemahan untuk Anda. Pada mode “Saya” Anda dapat mematikannya; rapat tetap mendengar terjemahan melalui mikrofon virtual."
   },
   "providers": {
     "kizunaai_soniox": {
@@ -658,7 +658,7 @@
     "notSelected": "Tidak dipilih",
     "deviceParticipantAudio": "Audio lawan bicara",
     "faceToFaceTag": "Tatap muka",
-    "descBothBeside": "Also for two people at one computer (face-to-face)."
+    "descBothBeside": "Juga untuk dua orang di satu komputer (tatap muka)."
   },
   "popover": {
     "statusOff": "Mati",
@@ -671,7 +671,7 @@
     "otherSideMeetingHint": "Menangkap audio sistem atau aplikasi",
     "otherSideBeside": "Di samping saya",
     "otherSideBesideHint": "Dua orang, satu mikrofon",
-    "output": "Output"
+    "output": "Keluaran"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Klik untuk mengonfigurasi bahasa",

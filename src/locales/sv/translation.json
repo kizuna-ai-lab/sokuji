@@ -376,7 +376,7 @@
     "audioCaptureUnprovenTitle": "Inget ljud har kommit från den valda källan ännu",
     "audioCaptureUnprovenText1": "Om källan spelar upp och inget översätts levererar macOS troligen tystnad: att fånga en app kräver behörigheten \"Endast inspelning av systemljud\", och utan den uppstår inget fel, bara tystnad.",
     "audioCaptureUnprovenText3Named": "\"{{app}}\" visas i den listan först efter ett försök att fånga ljud, vilket precis gjordes. Starta sessionen igen när du har aktiverat den. Om källan bara var tyst behöver inget ändras.",
-    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
+    "otherSideBesideNote": "Den andra personen delar din mikrofon; ingen systemljud fångas."
   },
   "auth": {
     "signIn": "Logga in",
@@ -451,8 +451,8 @@
     "textOnlyForcedByMode": "Läget \"{{mode}}\" gör bara om det deltagarna säger till text åt dig och genererar aldrig ljud, så \"Endast text\" förblir på. Byt översättningsläge för att översätta din egen röst med tal.",
     "keepReplayAudio": "Behåll ljud för uppspelning",
     "keepReplayAudioDesc": "Spara översatt ljud i minnet så att du kan spela upp det senare från varje meddelande. Av som standard för att minska minnesanvändningen under långa sessioner.",
-    "output": "Output",
-    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
+    "output": "Utgång",
+    "outputDesc": "Enheten som spelar upp det översatta talet för dig. I läget ”Jag” kan du stänga av den; mötet hör fortfarande översättningen via den virtuella mikrofonen."
   },
   "providers": {
     "kizunaai_soniox": {
@@ -658,7 +658,7 @@
     "notSelected": "Inte vald",
     "deviceParticipantAudio": "Den andras ljud",
     "faceToFaceTag": "På plats",
-    "descBothBeside": "Also for two people at one computer (face-to-face)."
+    "descBothBeside": "Även för två personer vid en dator (på plats)."
   },
   "popover": {
     "statusOff": "Av",
@@ -671,7 +671,7 @@
     "otherSideMeetingHint": "Fångar systemljud eller en app",
     "otherSideBeside": "Bredvid mig",
     "otherSideBesideHint": "Två personer vid en mikrofon",
-    "output": "Output"
+    "output": "Utgång"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Klicka för att konfigurera språk",

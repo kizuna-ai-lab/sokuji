@@ -376,7 +376,7 @@
     "audioCaptureUnprovenTitle": "עדיין לא הגיע שמע מהמקור שנבחר",
     "audioCaptureUnprovenText1": "אם המקור מנגן ושום דבר לא מתורגם, macOS כנראה מספק שקט: לכידת אפליקציה דורשת את ההרשאה \"הקלטת שמע מערכת בלבד\", ובלעדיה אין שגיאה, רק שקט.",
     "audioCaptureUnprovenText3Named": "\"{{app}}\" מופיע ברשימה זו רק לאחר ניסיון לכידה אחד, שזה עתה בוצע. התחילו את ההפעלה מחדש לאחר ההפעלה של ההרשאה. אם המקור פשוט היה שקט, אין צורך לשנות דבר.",
-    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
+    "otherSideBesideNote": "הצד השני משתף איתך את המיקרופון; לא נקלט שמע מערכת."
   },
   "auth": {
     "signIn": "התחבר",
@@ -451,8 +451,8 @@
     "textOnlyForcedByMode": "מצב \"{{mode}}\" הופך את דברי המשתתפים לטקסט עבורך בלבד ולעולם אינו מפיק אודיו, ולכן \"טקסט בלבד\" נשאר מופעל. החלף את מצב התרגום כדי לתרגם את קולך שלך עם דיבור.",
     "keepReplayAudio": "שמור אודיו להפעלה חוזרת",
     "keepReplayAudioDesc": "שמירת האודיו המתורגם בזיכרון כדי שתוכל להפעיל אותו שוב מאוחר יותר מכל הודעה. כבוי כברירת מחדל כדי לצמצם את השימוש בזיכרון בסשנים ארוכים.",
-    "output": "Output",
-    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
+    "output": "פלט",
+    "outputDesc": "ההתקן שמשמיע לך את הדיבור המתורגם. במצב „אני“ אפשר לכבות אותו; הפגישה עדיין שומעת את התרגום דרך המיקרופון הווירטואלי."
   },
   "providers": {
     "kizunaai_soniox": {
@@ -658,7 +658,7 @@
     "notSelected": "לא נבחר",
     "deviceParticipantAudio": "שמע הצד השני",
     "faceToFaceTag": "פנים אל פנים",
-    "descBothBeside": "Also for two people at one computer (face-to-face)."
+    "descBothBeside": "מתאים גם לשני אנשים ליד מחשב אחד (פנים אל פנים)."
   },
   "popover": {
     "statusOff": "כבוי",
@@ -671,7 +671,7 @@
     "otherSideMeetingHint": "לוכד את שמע המערכת או אפליקציה",
     "otherSideBeside": "לידי",
     "otherSideBesideHint": "שני אנשים על מיקרופון אחד",
-    "output": "Output"
+    "output": "פלט"
   },
   "simplePanel": {
     "clickToConfigLanguages": "לחץ כדי להגדיר שפות",

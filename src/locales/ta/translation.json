@@ -376,7 +376,7 @@
     "audioCaptureUnprovenTitle": "தேர்ந்தெடுத்த மூலத்திலிருந்து இன்னும் ஆடியோ எதுவும் வரவில்லை",
     "audioCaptureUnprovenText1": "மூலம் இயங்கிக்கொண்டிருந்தும் எதுவும் மொழிபெயர்க்கப்படவில்லை என்றால், macOS அமைதியையே அனுப்புகிறது என்பதே சாத்தியம்: ஒரு பயன்பாட்டைப் பிடிக்க \"System Audio Recording Only\" அனுமதி தேவை, அது இல்லாவிட்டால் பிழை ஏதும் இல்லை, அமைதி மட்டுமே.",
     "audioCaptureUnprovenText3Named": "\"{{app}}\" ஒரு முறை பிடிக்க முயன்ற பிறகுதான் அந்தப் பட்டியலில் தோன்றும்; அது இப்போதுதான் நடந்தது. இயக்கிய பிறகு அமர்வை மீண்டும் தொடங்கவும். மூலம் வெறுமனே அமைதியாக இருந்திருந்தால், எதையும் மாற்றத் தேவையில்லை.",
-    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
+    "otherSideBesideNote": "மற்றவர் உங்கள் மைக்ரோஃபோனைப் பகிர்கிறார்; கணினி ஒலி பதிவு செய்யப்படாது."
   },
   "auth": {
     "signIn": "உள்நுழை",
@@ -451,8 +451,8 @@
     "textOnlyForcedByMode": "\"{{mode}}\" பயன்முறை பங்கேற்பாளர்கள் சொல்வதை உங்களுக்கு உரையாக மட்டுமே மாற்றுகிறது, ஒருபோதும் ஒலியை உருவாக்குவதில்லை; எனவே \"உரை மட்டும்\" எப்போதும் இயக்கத்தில் இருக்கும். உங்கள் சொந்தக் குரலை ஒலியுடன் மொழிபெயர்க்க மொழிபெயர்ப்பு பயன்முறையை மாற்றவும்.",
     "keepReplayAudio": "மீண்டும் இயக்க ஆடியோவை வைத்திரு",
     "keepReplayAudioDesc": "மொழிபெயர்க்கப்பட்ட ஆடியோவை நினைவகத்தில் சேமிக்கவும், அதன் மூலம் ஒவ்வொரு செய்தியிலிருந்தும் பின்னர் அதை மீண்டும் இயக்கலாம். நீண்ட அமர்வுகளில் நினைவக பயன்பாட்டைக் குறைக்க இயல்பாக அணைக்கப்பட்டுள்ளது.",
-    "output": "Output",
-    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
+    "output": "வெளியீடு",
+    "outputDesc": "மொழிபெயர்க்கப்பட்ட குரலை உங்களுக்கு ஒலிக்கும் சாதனம். «நான்» பயன்முறையில் இதை அணைக்கலாம்; கூட்டம் மெய்நிகர் மைக்ரோஃபோன் வழியாக மொழிபெயர்ப்பை இன்னும் கேட்கும்."
   },
   "providers": {
     "kizunaai_soniox": {
@@ -658,7 +658,7 @@
     "notSelected": "தேர்ந்தெடுக்கப்படவில்லை",
     "deviceParticipantAudio": "மற்றவரின் ஆடியோ",
     "faceToFaceTag": "நேருக்கு நேர்",
-    "descBothBeside": "Also for two people at one computer (face-to-face)."
+    "descBothBeside": "ஒரே கணினியில் இருவருக்கும் (நேருக்கு நேர்) பொருந்தும்."
   },
   "popover": {
     "statusOff": "முடக்கப்பட்டது",
@@ -671,7 +671,7 @@
     "otherSideMeetingHint": "கணினி ஆடியோவை அல்லது ஒரு பயன்பாட்டைப் பதிவு செய்கிறது",
     "otherSideBeside": "என் அருகில்",
     "otherSideBesideHint": "ஒரே மைக்ரோஃபோனில் இருவர்",
-    "output": "Output"
+    "output": "வெளியீடு"
   },
   "simplePanel": {
     "clickToConfigLanguages": "மொழிகளை உள்ளமைக்க கிளிக் செய்யவும்",

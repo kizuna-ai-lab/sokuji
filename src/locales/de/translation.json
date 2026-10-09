@@ -376,7 +376,7 @@
     "audioCaptureUnprovenTitle": "Von der ausgewählten Quelle ist noch kein Audio angekommen",
     "audioCaptureUnprovenText1": "Wenn die Quelle abspielt und nichts übersetzt wird, liefert macOS wahrscheinlich Stille: Das Erfassen einer App erfordert die Berechtigung „Nur Systemaudioaufnahme“, und ohne sie gibt es keinen Fehler, nur Stille.",
     "audioCaptureUnprovenText3Named": "„{{app}}“ erscheint in dieser Liste erst, nachdem einmal eine Erfassung versucht wurde, und das ist gerade geschehen. Starten Sie die Sitzung nach dem Aktivieren erneut. War die Quelle einfach nur still, muss nichts geändert werden.",
-    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
+    "otherSideBesideNote": "Die andere Person teilt sich Ihr Mikrofon; es wird kein Systemaudio aufgenommen."
   },
   "auth": {
     "signIn": "Anmelden",
@@ -451,8 +451,8 @@
     "textOnlyForcedByMode": "Der Modus \"{{mode}}\" wandelt das, was die Teilnehmer sagen, nur in Text für Sie um und erzeugt nie Audio — deshalb bleibt \"Nur Text\" aktiviert. Wechseln Sie den Übersetzungsmodus, um Ihre eigene Stimme mit Sprachausgabe zu übersetzen.",
     "keepReplayAudio": "Audio für Wiedergabe behalten",
     "keepReplayAudioDesc": "Übersetztes Audio im Speicher behalten, damit Sie es später aus jeder Nachricht erneut abspielen können. Standardmäßig deaktiviert, um den Speicherverbrauch bei langen Sitzungen zu reduzieren.",
-    "output": "Output",
-    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
+    "output": "Ausgabe",
+    "outputDesc": "Das Gerät, das Ihnen die übersetzte Sprache vorspielt. Im Modus „Ich“ können Sie es ausschalten; die Besprechung hört die Übersetzung weiterhin über das virtuelle Mikrofon."
   },
   "providers": {
     "kizunaai_soniox": {
@@ -658,7 +658,7 @@
     "notSelected": "Nicht ausgewählt",
     "deviceParticipantAudio": "Audio des Gegenübers",
     "faceToFaceTag": "Vor Ort",
-    "descBothBeside": "Also for two people at one computer (face-to-face)."
+    "descBothBeside": "Auch für zwei Personen an einem Computer (Vor Ort)."
   },
   "popover": {
     "statusOff": "Aus",
@@ -671,7 +671,7 @@
     "otherSideMeetingHint": "Nimmt das Systemaudio oder eine App auf",
     "otherSideBeside": "Neben mir",
     "otherSideBesideHint": "Zwei Personen an einem Mikrofon",
-    "output": "Output"
+    "output": "Ausgabe"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Klicken Sie, um Sprachen zu konfigurieren",

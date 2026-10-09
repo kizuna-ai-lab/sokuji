@@ -376,7 +376,7 @@
     "audioCaptureUnprovenTitle": "لم يصل أي صوت من المصدر المحدد بعد",
     "audioCaptureUnprovenText1": "إذا كان المصدر يعمل ولا تتم ترجمة أي شيء، فالأرجح أن macOS يقدّم صمتًا: يتطلب التقاط صوت تطبيق إذن \"تسجيل صوت النظام فقط\"، وبدونه لا يظهر خطأ، بل صمت فقط.",
     "audioCaptureUnprovenText3Named": "لا يظهر \"{{app}}\" في تلك القائمة إلا بعد محاولة التقاط واحدة، وقد تمت للتو. ابدأ الجلسة من جديد بعد تفعيله. أما إذا كان المصدر صامتًا فحسب، فلا حاجة لتغيير أي شيء.",
-    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
+    "otherSideBesideNote": "الشخص الآخر يشاركك الميكروفون؛ ولا يتم التقاط صوت النظام."
   },
   "auth": {
     "signIn": "تسجيل الدخول",
@@ -451,8 +451,8 @@
     "textOnlyForcedByMode": "يحوّل وضع \"{{mode}}\" ما يقوله المشاركون إلى نص لك فقط ولا ينشئ صوتًا أبدًا، لذا يبقى \"نص فقط\" مفعّلًا. بدّل وضع الترجمة لترجمة صوتك أنت مع النطق.",
     "keepReplayAudio": "احتفظ بالصوت لإعادة التشغيل",
     "keepReplayAudioDesc": "تخزين الصوت المُترجَم في الذاكرة لتتمكن من إعادة تشغيله لاحقًا من كل رسالة. مُعطَّل افتراضيًا لتقليل استخدام الذاكرة خلال الجلسات الطويلة.",
-    "output": "Output",
-    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
+    "output": "الإخراج",
+    "outputDesc": "الجهاز الذي يشغّل لك الكلام المترجم. في وضع «أنا» يمكنك إيقافه؛ وسيظل الاجتماع يسمع الترجمة عبر الميكروفون الافتراضي."
   },
   "providers": {
     "kizunaai_soniox": {
@@ -658,7 +658,7 @@
     "notSelected": "غير محدد",
     "deviceParticipantAudio": "صوت الآخر",
     "faceToFaceTag": "وجهًا لوجه",
-    "descBothBeside": "Also for two people at one computer (face-to-face)."
+    "descBothBeside": "ومناسب أيضًا لشخصين على جهاز كمبيوتر واحد (وجهًا لوجه)."
   },
   "popover": {
     "statusOff": "إيقاف",
@@ -671,7 +671,7 @@
     "otherSideMeetingHint": "يلتقط صوت النظام أو تطبيقًا",
     "otherSideBeside": "بجانبي",
     "otherSideBesideHint": "شخصان على ميكروفون واحد",
-    "output": "Output"
+    "output": "الإخراج"
   },
   "simplePanel": {
     "clickToConfigLanguages": "انقر لتكوين اللغات",

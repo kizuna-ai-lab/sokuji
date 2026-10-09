@@ -376,7 +376,7 @@
     "audioCaptureUnprovenTitle": "所选来源尚未传来任何音频",
     "audioCaptureUnprovenText1": "如果来源正在播放却没有译文，很可能是 macOS 只给出了静音：捕获某个应用的音频需要“仅系统录音”权限，没有该权限时不会报错，只会是静音。",
     "audioCaptureUnprovenText3Named": "“{{app}}”只有在尝试过一次捕获之后才会出现在该列表中，刚才已经尝试过了。启用后请重新开始会话。如果来源本来就是静音的，则无需任何更改。",
-    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
+    "otherSideBesideNote": "对方与您共用麦克风，不会捕获系统音频。"
   },
   "auth": {
     "signIn": "登录",
@@ -451,8 +451,8 @@
     "textOnlyForcedByMode": "「{{mode}}」模式只把参会者说的话转成文字给你看，不会生成语音，因此「仅文本」始终开启。切换翻译模式即可让自己的语音带声音输出。",
     "keepReplayAudio": "保留音频以便重播",
     "keepReplayAudioDesc": "将翻译的音频保存在内存中，以便您之后可以从每条消息重新播放。默认关闭以减少长时间会话中的内存占用。",
-    "output": "Output",
-    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
+    "output": "输出",
+    "outputDesc": "向您播放翻译语音的设备。在“我”模式下可以关闭；会议仍会通过虚拟麦克风听到翻译。"
   },
   "providers": {
     "kizunaai_soniox": {
@@ -658,7 +658,7 @@
     "notSelected": "未选择",
     "deviceParticipantAudio": "对方音频",
     "faceToFaceTag": "面对面",
-    "descBothBeside": "Also for two people at one computer (face-to-face)."
+    "descBothBeside": "也适用于两个人共用一台电脑的情况（面对面）。"
   },
   "popover": {
     "statusOff": "关闭",
@@ -671,7 +671,7 @@
     "otherSideMeetingHint": "捕获系统音频或某个应用的音频",
     "otherSideBeside": "就在身边",
     "otherSideBesideHint": "两个人共用一个麦克风",
-    "output": "Output"
+    "output": "输出"
   },
   "simplePanel": {
     "clickToConfigLanguages": "点击配置语言",

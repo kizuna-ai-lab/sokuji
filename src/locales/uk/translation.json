@@ -376,7 +376,7 @@
     "audioCaptureUnprovenTitle": "З вибраного джерела звук ще не надходив",
     "audioCaptureUnprovenText1": "Якщо джерело відтворює, а переклад не з'являється, macOS, найімовірніше, передає тишу: для захоплення застосунку потрібен дозвіл «Лише запис системного звуку», а без нього не буде помилки, лише тиша.",
     "audioCaptureUnprovenText3Named": "«{{app}}» з'являється в цьому списку лише після першої спроби захоплення, яка щойно відбулася. Після ввімкнення запустіть сеанс знову. Якщо джерело просто мовчало, нічого змінювати не потрібно.",
-    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
+    "otherSideBesideNote": "Співрозмовник користується вашим мікрофоном; системний звук не захоплюється."
   },
   "auth": {
     "signIn": "Увійти",
@@ -451,8 +451,8 @@
     "textOnlyForcedByMode": "Режим «{{mode}}» лише перетворює слова учасників на текст для вас і ніколи не створює звук, тому «Лише текст» завжди увімкнено. Перемкніть режим перекладу, щоб перекладати власний голос з озвученням.",
     "keepReplayAudio": "Зберігати аудіо для відтворення",
     "keepReplayAudioDesc": "Зберігайте перекладене аудіо в пам'яті, щоб ви могли пізніше відтворити його з кожного повідомлення. Вимкнено за замовчуванням, щоб зменшити використання пам'яті під час тривалих сесій.",
-    "output": "Output",
-    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
+    "output": "Виведення",
+    "outputDesc": "Пристрій, що відтворює для вас перекладене мовлення. У режимі «Я» його можна вимкнути; учасники зустрічі й надалі чують переклад через віртуальний мікрофон."
   },
   "providers": {
     "kizunaai_soniox": {
@@ -658,7 +658,7 @@
     "notSelected": "Не вибрано",
     "deviceParticipantAudio": "Аудіо співрозмовника",
     "faceToFaceTag": "Віч-на-віч",
-    "descBothBeside": "Also for two people at one computer (face-to-face)."
+    "descBothBeside": "Також для двох людей за одним комп'ютером (віч-на-віч)."
   },
   "popover": {
     "statusOff": "Вимкнено",
@@ -671,7 +671,7 @@
     "otherSideMeetingHint": "Захоплює системне аудіо або застосунок",
     "otherSideBeside": "Поруч зі мною",
     "otherSideBesideHint": "Двоє біля одного мікрофона",
-    "output": "Output"
+    "output": "Виведення"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Натисніть для налаштування мов",

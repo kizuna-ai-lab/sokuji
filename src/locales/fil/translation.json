@@ -376,7 +376,7 @@
     "audioCaptureUnprovenTitle": "Wala pang audio na dumarating mula sa napiling source",
     "audioCaptureUnprovenText1": "Kung tumutugtog ang source at walang naisasalin, malamang na katahimikan ang ibinibigay ng macOS: kailangan ng pahintulot na \"System Audio Recording Only\" para makuha ang audio ng isang app, at kung wala ito ay walang error, katahimikan lang.",
     "audioCaptureUnprovenText3Named": "Lumalabas lang ang \"{{app}}\" sa listahang iyon pagkatapos nitong subukang kumuha nang isang beses, na katatapos lang. Simulan muli ang session pagkatapos itong paganahin. Kung tahimik lang talaga ang source, walang kailangang baguhin.",
-    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
+    "otherSideBesideNote": "Ibinabahagi ng kausap ang mikropono mo; hindi kinukuha ang system audio."
   },
   "auth": {
     "signIn": "Mag-sign In",
@@ -452,7 +452,7 @@
     "keepReplayAudio": "Itago ang audio para sa muling pagpapatugtog",
     "keepReplayAudioDesc": "Mag-imbak ng isinaling audio sa memorya upang maaari mong patugtugin muli mamaya mula sa bawat mensahe. Naka-off bilang default upang mabawasan ang paggamit ng memorya sa mahahabang sesyon.",
     "output": "Output",
-    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
+    "outputDesc": "Ang device na nagpapatugtog sa iyo ng isinaling boses. Sa mode na “Ako” maaari mo itong i-off; maririnig pa rin ng meeting ang salin sa pamamagitan ng virtual na mikropono."
   },
   "providers": {
     "kizunaai_soniox": {
@@ -658,7 +658,7 @@
     "notSelected": "Hindi napili",
     "deviceParticipantAudio": "Audio ng kausap",
     "faceToFaceTag": "Magkaharap",
-    "descBothBeside": "Also for two people at one computer (face-to-face)."
+    "descBothBeside": "Para rin sa dalawang tao sa iisang computer (magkaharap)."
   },
   "popover": {
     "statusOff": "Patay",

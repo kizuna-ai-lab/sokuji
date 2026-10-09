@@ -376,7 +376,7 @@
     "audioCaptureUnprovenTitle": "Valitusta lähteestä ei ole vielä tullut ääntä",
     "audioCaptureUnprovenText1": "Jos lähde toistaa eikä mitään käännetä, macOS toimittaa todennäköisesti hiljaisuutta: sovelluksen kaappaaminen vaatii käyttöoikeuden \"Vain järjestelmän äänen tallennus\", ja ilman sitä ei tule virhettä, vain hiljaisuutta.",
     "audioCaptureUnprovenText3Named": "\"{{app}}\" näkyy luettelossa vasta yhden kaappausyrityksen jälkeen, joka juuri tehtiin. Aloita istunto uudelleen, kun olet ottanut sen käyttöön. Jos lähde oli vain hiljainen, mitään ei tarvitse muuttaa.",
-    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
+    "otherSideBesideNote": "Toinen henkilö käyttää mikrofoniasi; järjestelmän ääntä ei tallenneta."
   },
   "auth": {
     "signIn": "Kirjaudu sisään",
@@ -451,8 +451,8 @@
     "textOnlyForcedByMode": "Tila \"{{mode}}\" muuttaa osallistujien puheen vain tekstiksi sinulle eikä koskaan tuota ääntä, joten \"Vain teksti\" pysyy päällä. Vaihda käännöstilaa kääntääksesi oman äänesi puheena.",
     "keepReplayAudio": "Säilytä ääni toistoa varten",
     "keepReplayAudioDesc": "Säilytä käännetty ääni muistissa, jotta voit toistaa sen myöhemmin jokaisesta viestistä. Oletuksena pois päältä, jotta muistinkäyttö pysyy pienenä pitkissä istunnoissa.",
-    "output": "Output",
-    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
+    "output": "Ulostulo",
+    "outputDesc": "Laite, joka toistaa käännetyn puheen sinulle. Minä-tilassa sen voi kytkeä pois; kokous kuulee käännöksen silti virtuaalimikrofonin kautta."
   },
   "providers": {
     "kizunaai_soniox": {
@@ -658,7 +658,7 @@
     "notSelected": "Ei valittu",
     "deviceParticipantAudio": "Toisen ääni",
     "faceToFaceTag": "Kasvokkain",
-    "descBothBeside": "Also for two people at one computer (face-to-face)."
+    "descBothBeside": "Sopii myös kahdelle ihmiselle yhdellä tietokoneella (kasvokkain)."
   },
   "popover": {
     "statusOff": "Pois",
@@ -671,7 +671,7 @@
     "otherSideMeetingHint": "Kaappaa järjestelmän äänen tai sovelluksen äänen",
     "otherSideBeside": "Vieressäni",
     "otherSideBesideHint": "Kaksi ihmistä yhdellä mikrofonilla",
-    "output": "Output"
+    "output": "Ulostulo"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Napsauta määrittääksesi kielet",

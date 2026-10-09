@@ -376,7 +376,7 @@
     "audioCaptureUnprovenTitle": "चुने गए स्रोत से अभी तक कोई ऑडियो नहीं आया है",
     "audioCaptureUnprovenText1": "यदि स्रोत चल रहा है और कुछ भी अनुवादित नहीं हो रहा, तो macOS शायद केवल मौन दे रहा है: किसी ऐप को कैप्चर करने के लिए \"System Audio Recording Only\" अनुमति चाहिए, और उसके बिना कोई त्रुटि नहीं आती, केवल मौन रहता है।",
     "audioCaptureUnprovenText3Named": "\"{{app}}\" उस सूची में तभी दिखता है जब उसने एक बार कैप्चर करने की कोशिश की हो, जो अभी हुई है। इसे सक्षम करने के बाद सत्र दोबारा शुरू करें। यदि स्रोत बस मौन था, तो कुछ बदलने की ज़रूरत नहीं है।",
-    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
+    "otherSideBesideNote": "दूसरा व्यक्ति आपका माइक्रोफ़ोन साझा करता है; सिस्टम ऑडियो कैप्चर नहीं किया जाता।"
   },
   "auth": {
     "signIn": "साइन इन",
@@ -451,8 +451,8 @@
     "textOnlyForcedByMode": "\"{{mode}}\" मोड प्रतिभागियों की बातों को केवल आपके लिए पाठ में बदलता है और कभी ऑडियो नहीं बनाता, इसलिए \"केवल पाठ\" हमेशा चालू रहता है। अपनी आवाज़ को बोली के साथ अनुवाद करने के लिए अनुवाद मोड बदलें।",
     "keepReplayAudio": "रीप्ले के लिए ऑडियो रखें",
     "keepReplayAudioDesc": "अनुवादित ऑडियो को मेमोरी में संग्रहीत करें ताकि आप इसे बाद में प्रत्येक संदेश से फिर से चला सकें। लंबे सत्रों के दौरान मेमोरी उपयोग कम करने के लिए डिफ़ॉल्ट रूप से बंद।",
-    "output": "Output",
-    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
+    "output": "आउटपुट",
+    "outputDesc": "वह डिवाइस जो अनुवादित आवाज़ आपको सुनाता है। «मैं» मोड में आप इसे बंद कर सकते हैं; मीटिंग को अनुवाद फिर भी वर्चुअल माइक्रोफ़ोन से सुनाई देता है।"
   },
   "providers": {
     "kizunaai_soniox": {
@@ -658,7 +658,7 @@
     "notSelected": "चयनित नहीं",
     "deviceParticipantAudio": "दूसरे का ऑडियो",
     "faceToFaceTag": "आमने-सामने",
-    "descBothBeside": "Also for two people at one computer (face-to-face)."
+    "descBothBeside": "एक कंप्यूटर पर दो लोगों के लिए भी (आमने-सामने)।"
   },
   "popover": {
     "statusOff": "बंद",
@@ -671,7 +671,7 @@
     "otherSideMeetingHint": "सिस्टम ऑडियो या किसी ऐप को कैप्चर करता है",
     "otherSideBeside": "मेरे बगल में",
     "otherSideBesideHint": "एक माइक्रोफ़ोन पर दो लोग",
-    "output": "Output"
+    "output": "आउटपुट"
   },
   "simplePanel": {
     "clickToConfigLanguages": "भाषाओं को कॉन्फ़िगर करने के लिए क्लिक करें",

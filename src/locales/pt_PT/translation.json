@@ -376,7 +376,7 @@
     "audioCaptureUnprovenTitle": "Ainda não chegou áudio da fonte selecionada",
     "audioCaptureUnprovenText1": "Se a fonte estiver a reproduzir e nada for traduzido, o macOS está provavelmente a entregar silêncio: capturar uma aplicação exige a permissão \"Apenas gravação de áudio do sistema\" e, sem ela, não há erro, apenas silêncio.",
     "audioCaptureUnprovenText3Named": "\"{{app}}\" só aparece nessa lista depois de tentar capturar uma vez, o que acabou de acontecer. Inicie a sessão novamente depois de a ativar. Se a fonte estava simplesmente em silêncio, nada precisa de mudar.",
-    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
+    "otherSideBesideNote": "A outra pessoa partilha o seu microfone; o áudio do sistema não é captado."
   },
   "auth": {
     "signIn": "Iniciar sessão",
@@ -451,8 +451,8 @@
     "textOnlyForcedByMode": "O modo \"{{mode}}\" transforma o que os participantes dizem em texto para si e nunca gera áudio, por isso \"Apenas texto\" permanece ativado. Mude o modo de tradução para traduzir a sua própria voz com fala.",
     "keepReplayAudio": "Manter áudio para reprodução",
     "keepReplayAudioDesc": "Armazenar o áudio traduzido na memória para o poder reproduzir mais tarde a partir de cada mensagem. Desativado por predefinição para reduzir o uso de memória em sessões longas.",
-    "output": "Output",
-    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
+    "output": "Saída",
+    "outputDesc": "O dispositivo que reproduz a voz traduzida para si. No modo «Eu» pode desativá-lo; a reunião continua a ouvir a tradução através do microfone virtual."
   },
   "providers": {
     "kizunaai_soniox": {
@@ -658,7 +658,7 @@
     "notSelected": "Não selecionado",
     "deviceParticipantAudio": "Áudio do outro",
     "faceToFaceTag": "Cara a cara",
-    "descBothBeside": "Also for two people at one computer (face-to-face)."
+    "descBothBeside": "Também para duas pessoas num mesmo computador (cara a cara)."
   },
   "popover": {
     "statusOff": "Desligado",
@@ -671,7 +671,7 @@
     "otherSideMeetingHint": "Capta o áudio do sistema ou de uma aplicação",
     "otherSideBeside": "Ao meu lado",
     "otherSideBesideHint": "Duas pessoas num só microfone",
-    "output": "Output"
+    "output": "Saída"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Clique para configurar idiomas",

@@ -376,7 +376,7 @@
     "audioCaptureUnprovenTitle": "Er is nog geen audio van de geselecteerde bron binnengekomen",
     "audioCaptureUnprovenText1": "Speelt de bron af en wordt er niets vertaald, dan levert macOS waarschijnlijk stilte: het vastleggen van een app vereist de toestemming 'Alleen systeemaudio-opname', en zonder die toestemming is er geen fout, alleen stilte.",
     "audioCaptureUnprovenText3Named": "'{{app}}' verschijnt pas in die lijst nadat er één keer is geprobeerd vast te leggen, wat zojuist is gebeurd. Start de sessie opnieuw nadat u die hebt ingeschakeld. Was de bron gewoon stil, dan hoeft er niets te veranderen.",
-    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
+    "otherSideBesideNote": "De ander deelt jouw microfoon; er wordt geen systeemaudio opgenomen."
   },
   "auth": {
     "signIn": "Inloggen",
@@ -451,8 +451,8 @@
     "textOnlyForcedByMode": "De modus \"{{mode}}\" zet alleen om wat deelnemers zeggen in tekst voor jou en genereert nooit audio, dus \"Alleen tekst\" blijft aan. Wissel van vertaalmodus om je eigen stem met spraak te vertalen.",
     "keepReplayAudio": "Audio bewaren voor herhaling",
     "keepReplayAudioDesc": "Vertaalde audio in het geheugen bewaren zodat u deze later vanuit elk bericht opnieuw kunt afspelen. Standaard uitgeschakeld om geheugengebruik tijdens lange sessies te beperken.",
-    "output": "Output",
-    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
+    "output": "Uitvoer",
+    "outputDesc": "Het apparaat dat de vertaalde spraak voor jou afspeelt. In de modus „Ik” kun je het uitzetten; de vergadering hoort de vertaling nog steeds via de virtuele microfoon."
   },
   "providers": {
     "kizunaai_soniox": {
@@ -658,7 +658,7 @@
     "notSelected": "Niet geselecteerd",
     "deviceParticipantAudio": "Audio van de ander",
     "faceToFaceTag": "Face-to-face",
-    "descBothBeside": "Also for two people at one computer (face-to-face)."
+    "descBothBeside": "Ook voor twee mensen aan één computer (face-to-face)."
   },
   "popover": {
     "statusOff": "Uit",
@@ -671,7 +671,7 @@
     "otherSideMeetingHint": "Legt systeemaudio of een app vast",
     "otherSideBeside": "Naast mij",
     "otherSideBesideHint": "Twee personen bij één microfoon",
-    "output": "Output"
+    "output": "Uitvoer"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Klik om talen te configureren",
