@@ -84,23 +84,25 @@ describe('useBalanceShortfall', () => {
     expect(result.current).toBe(true);
   });
 
-  it('prices face-to-face as one shared stream, like the start gate', () => {
+  it('prices face-to-face as one shared stream with both voices, like the start gate', () => {
     useProviderStore.setState({
       selected: 'kizunaai_soniox',
       entries: { kizunaai_soniox: { settings: { ...SONIOX_DEFAULTS, bothModeSharedSession: false }, credentials: {}, pair: { source: 'ja', target: 'en' } } },
     });
-    const shared = sonioxRolesFloorMicroUsd(['mix_stt', 'mix_tts']);
-    expect(sonioxRolesFloorMicroUsd(['spk_stt', 'spk_tts', 'par_stt'])).toBeGreaterThan(shared);
-    useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
-    useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: shared, frozen: false } });
+    const faceToFace = sonioxRolesFloorMicroUsd(['mix_stt', 'mix_tts', 'par_tts']);
+    const meeting = sonioxRolesFloorMicroUsd(['spk_stt', 'spk_tts', 'par_stt']);
+    expect(faceToFace).toBeGreaterThan(meeting);
+    useAudioStore.setState({ mode: 'both', otherSide: 'meeting' });
+    useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: meeting, frozen: false } });
     const { result } = renderHook(() => useBalanceShortfall());
     expect(result.current).toBe(false);
     expect(liveGate('electron')).toBeNull();
 
     act(() => {
-      useAudioStore.setState({ otherSide: 'meeting' });
+      useAudioStore.setState({ otherSide: 'beside' });
     });
     expect(result.current).toBe(true);
+    expect(liveGate('electron')).not.toBeNull();
   });
 
   it('is never short signed out, for a wallet loading or unknown, an own-key provider, or a frozen wallet', () => {

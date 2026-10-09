@@ -30,7 +30,7 @@ describe('kizunaSonioxProvider', () => {
       kind: 'managed',
       vendor: 'Soniox',
       platforms: ['electron', 'extension', 'web'],
-      participantSpeech: false,
+      participantSpeech: true,
       faceToFace: true,
     });
     expect(kizunaSonioxProvider.guideUrl).toBeUndefined();
@@ -60,9 +60,9 @@ describe('kizunaSonioxProvider', () => {
     const session = kizunaSonioxProvider.session!;
     expect(session.prepare).toBeTypeOf('function');
     expect(session.acquire).toBeTypeOf('function');
-    // The flag is off: the participant's wish prices nothing.
-    expect(session.minimumBalance!({ legs: ['speaker', 'participant'], textOnly: false, participantSpeech: true }, { ...SONIOX_DEFAULTS, bothModeSharedSession: false })).toBe(60_000);
-    expect(KIZUNA_PARTICIPANT_SPEECH).toBe(false);
+    // The flag is on: a voiced participant adds par_tts to split Both's floor.
+    expect(session.minimumBalance!({ legs: ['speaker', 'participant'], textOnly: false, participantSpeech: true }, { ...SONIOX_DEFAULTS, bothModeSharedSession: false })).toBe(83_334);
+    expect(KIZUNA_PARTICIPANT_SPEECH).toBe(true);
   });
 
   it("its Settings is Soniox's view in the managed flavour", () => {

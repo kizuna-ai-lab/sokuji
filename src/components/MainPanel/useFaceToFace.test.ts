@@ -38,11 +38,11 @@ describe('useFaceToFace', () => {
     expect(result.current.speaks).toEqual({ speaker: false, participant: false });
   });
 
-  it("keeps the participant silent under a provider whose participant does not speak (Kizuna Soniox today)", () => {
+  it('voices both legs under Kizuna AI too, now that its participant speaks', () => {
     pick('kizunaai_soniox');
     const { result } = renderHook(() => useFaceToFace());
     expect(result.current.active).toBe(true);
-    expect(result.current.speaks).toEqual({ speaker: true, participant: false });
+    expect(result.current.speaks).toEqual({ speaker: true, participant: true });
   });
 
   it("in a meeting, follows the participant's switch, live", () => {

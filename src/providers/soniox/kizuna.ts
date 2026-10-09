@@ -11,14 +11,12 @@ import { createKizunaVoiceClaim } from './voiceClaim';
 export const KizunaSonioxSettingsView = createSonioxSettingsView({ managed: true, useVoiceSource: useManagedVoiceSource });
 
 /**
- * Managed participant speech (ruling 2): built end to end — the
- * request's intent, the participant's `par_tts` key in every mode, the
- * floors from the roles — and shipped off until the backend mints
- * `par_tts`. Turning it on is the roadmap's checklist ("Scheduled by the
- * Stage 2 Kizuna Soniox plan"): the backend first, then the request
- * field's name (`PARTICIPANT_SPEECH_FIELD`), then this line.
+ * Managed participant speech (ruling 2): on since sokuji-backend mints
+ * `par_tts` (sokuji-backend#94). The participant's speech key in every
+ * mode, priced at the TTS rate; face-to-face is what voices it, the
+ * participant-speech switch staying hidden.
  */
-export const KIZUNA_PARTICIPANT_SPEECH = false;
+export const KIZUNA_PARTICIPANT_SPEECH = true;
 
 /**
  * Kizuna AI's managed Soniox (spec: "Managed twins are composition"):

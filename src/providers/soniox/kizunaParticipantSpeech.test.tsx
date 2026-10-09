@@ -1,9 +1,9 @@
 /**
- * Kizuna Soniox's participant speech, built end to end and shipped off
- * (Stage 2 Kizuna Soniox, ruling 2): the shipped definition against a
- * test-only twin with the flag on, through the switch, the leg's
- * context, the session-key body, the floors, and the lease's keys into
- * the adapter in split Both, shared Both and participant-only.
+ * Kizuna Soniox's participant speech (Stage 2 Kizuna Soniox, ruling 2;
+ * on since sokuji-backend mints `par_tts`): the flag on and a test-only
+ * twin with it off, through the switch, the leg's context, the
+ * session-key body, the floors, and the lease's keys into the adapter in
+ * split Both, shared Both and participant-only.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
@@ -55,6 +55,7 @@ import { SONIOX_DEFAULTS, type SonioxCredentials, type SonioxSettings } from './
 import { END, isStt, msg, orig, SHARED, tr, type Json } from './testing';
 
 const speaking = createKizunaSonioxProvider({ participantSpeech: true });
+const silent = createKizunaSonioxProvider({ participantSpeech: false });
 
 let answer: unknown = null;
 const bodies: string[] = [];
@@ -130,7 +131,8 @@ describe('the switch', () => {
     entries: { kizunaai_soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
   });
 
-  it('shipped, the flag off: off and disabled with the "not yet" tooltip, the stored choice kept', () => {
+  it('the flag off: off and disabled with the "not yet" tooltip, the stored choice kept', () => {
+    standIn.provider = silent;
     useRoutingStore.setState({ participantSpeech: true });
     selectKizuna();
     render(<ParticipantSpeechSwitch locked={false} />);
@@ -153,9 +155,9 @@ describe('the switch', () => {
   });
 });
 
-describe('the flag off (as shipped)', () => {
+describe('the flag off (a test-only twin from the same factory)', () => {
   it('the participant leg asks for no speech, and the body is today\'s, with no field', async () => {
-    const r = await run(kizunaSonioxProvider, ['speaker', 'participant'], false, ['spk_stt', 'spk_tts', 'par_stt']);
+    const r = await run(silent, ['speaker', 'participant'], false, ['spk_stt', 'spk_tts', 'par_stt']);
     expect(r.contexts.participant?.speech).toBe(false);
     expect(bodies).toEqual(['{"mode":"both","textOnly":false,"bothSplit":true,"region":"us"}']);
     expect(JSON.parse(bodies[0])).not.toHaveProperty(PARTICIPANT_SPEECH_FIELD);
@@ -166,7 +168,7 @@ describe('the flag off (as shipped)', () => {
     ['shared Both', ['speaker', 'participant'] as LegName[], true, ['mix_stt', 'mix_tts', 'par_tts'], 1],
     ['participant only', ['participant'] as LegName[], true, ['par_stt', 'par_tts'], 0],
   ])('%s: a stray par_tts is ignored, and the participant stays text-only', async (_name, legs, shared, roles, ttsSockets) => {
-    const r = await run(kizunaSonioxProvider, legs, shared, roles);
+    const r = await run(silent, legs, shared, roles);
     expect(r.lease.credentials('participant')).not.toHaveProperty('tts');
     expect(r.tts).toHaveLength(ttsSockets);
     participantSays(r);
@@ -175,11 +177,15 @@ describe('the flag off (as shipped)', () => {
   });
 
   it("the floor prices no participant speech", () => {
-    expect(kizunaSonioxProvider.session!.minimumBalance!({ legs: ['speaker', 'participant'], textOnly: false, participantSpeech: true }, { ...SONIOX_DEFAULTS, bothModeSharedSession: false })).toBe(60_000);
+    expect(silent.session!.minimumBalance!({ legs: ['speaker', 'participant'], textOnly: false, participantSpeech: true }, { ...SONIOX_DEFAULTS, bothModeSharedSession: false })).toBe(60_000);
   });
 });
 
-describe('the flag on (a test-only twin from the same factory)', () => {
+describe('the flag on (as shipped)', () => {
+  it('is the shipped definition', () => {
+    expect(kizunaSonioxProvider.participantSpeech).toBe(true);
+  });
+
   it('the participant leg asks for speech, and the body carries the field', async () => {
     const r = await run(speaking, ['speaker', 'participant'], false, ['spk_stt', 'spk_tts', 'par_stt', 'par_tts']);
     expect(r.contexts.participant?.speech).toBe(true);

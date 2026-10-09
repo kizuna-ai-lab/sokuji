@@ -16,10 +16,8 @@ import { asSonioxRegion, type SonioxRegion } from '../../lib/soniox/regions';
 import type { SonioxSettings } from './settings';
 
 /**
- * The body field asking for the participant's speech stream. The backend
- * reads fields by name and ignores unknown ones
- * (`BE:routes/soniox.ts:254-280`), but the name is its choice when it
- * mints `par_tts`: confirm it then ("turning it on", roadmap).
+ * The body field asking for the participant's speech stream: sokuji-backend
+ * reads it by this name (`normalizeSessionShape`, sokuji-backend#94).
  */
 export const PARTICIPANT_SPEECH_FIELD = 'participantSpeech';
 
