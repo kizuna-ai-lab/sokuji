@@ -119,7 +119,8 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
    - `ModernAudioRecorder` (`src/lib/modern-audio/`): captures the microphone with echo
      cancellation and noise suppression, AudioWorklet with a ScriptProcessor fallback
    - Playback (`src/lib/audio/playback.ts`): a clip queue per leg and one for replay, the
-     routes kept live from the routing settings, the passthrough stream
+     routes kept live from the routing settings, the passthrough stream; replay and preview
+     play on the outlet of their row
    - `src/lib/audio/appAudio.ts`: one graph per page, and the virtual output per platform
      (Electron's virtual speaker, the extension's tabs, nothing on the web)
 
@@ -140,7 +141,12 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      and system audio, each following its device or source during a run; a tab, fixed
      when it opens
    - The page's playback (`appAudio.ts`, `playback.ts`), the routing read live from
-     `audioStore`, `routingStore` and `turnModeStore`
+     `audioStore`, `routingStore`, `settingsStore` and `turnModeStore` through `speechFromStores`
+     (`src/lib/session/appShape.ts`): who hears what
+   - `src/lib/audio/outlets.ts`: the outlets — `other` (face-to-face's other person), `me`
+     (我也听), `them` (我听到的翻译) — each a stored device and channel (`audio.outlet.<name>.*`)
+     resolved to a sink; `graph.ts` keeps one `<audio>` element per outlet and the virtual one,
+     the pan on the outlet's path
 
 6. **Native runtime (`native/`)**
    - One CMake super-project builds three engines on ONE pristine upstream ggml 0.25 behind
