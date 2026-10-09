@@ -669,7 +669,7 @@
     "otherSideMeetingHint": "صدای سیستم یا یک برنامه را دریافت می‌کند",
     "otherSideBeside": "کنار من",
     "otherSideBesideHint": "دو نفر پشت یک میکروفون",
-    "headphones": "هدفون"
+    "output": "Output"
   },
   "simplePanel": {
     "clickToConfigLanguages": "برای پیکربندی زبان‌ها کلیک کنید",

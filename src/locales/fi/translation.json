@@ -669,7 +669,7 @@
     "otherSideMeetingHint": "Kaappaa järjestelmän äänen tai sovelluksen äänen",
     "otherSideBeside": "Vieressäni",
     "otherSideBesideHint": "Kaksi ihmistä yhdellä mikrofonilla",
-    "headphones": "Kuulokkeet"
+    "output": "Output"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Napsauta määrittääksesi kielet",

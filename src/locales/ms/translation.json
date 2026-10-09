@@ -669,7 +669,7 @@
     "otherSideMeetingHint": "Menangkap audio sistem atau sesuatu aplikasi",
     "otherSideBeside": "Di sebelah saya",
     "otherSideBesideHint": "Dua orang, satu mikrofon",
-    "headphones": "Fon kepala"
+    "output": "Output"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Klik untuk mengkonfigurasi bahasa",

@@ -669,7 +669,7 @@
     "otherSideMeetingHint": "सिस्टम ऑडियो या किसी ऐप को कैप्चर करता है",
     "otherSideBeside": "मेरे बगल में",
     "otherSideBesideHint": "एक माइक्रोफ़ोन पर दो लोग",
-    "headphones": "हेडफ़ोन"
+    "output": "Output"
   },
   "simplePanel": {
     "clickToConfigLanguages": "भाषाओं को कॉन्फ़िगर करने के लिए क्लिक करें",

@@ -669,7 +669,7 @@
     "otherSideMeetingHint": "Captures the system audio or an app",
     "otherSideBeside": "Beside me",
     "otherSideBesideHint": "Two people at one microphone",
-    "headphones": "Headphones"
+    "output": "Output"
   },
   "faceToFace": {
     "earsTitle": "Left and right · each person hears the translation into their own language",

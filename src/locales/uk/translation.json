@@ -669,7 +669,7 @@
     "otherSideMeetingHint": "Захоплює системне аудіо або застосунок",
     "otherSideBeside": "Поруч зі мною",
     "otherSideBesideHint": "Двоє біля одного мікрофона",
-    "headphones": "Навушники"
+    "output": "Output"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Натисніть для налаштування мов",

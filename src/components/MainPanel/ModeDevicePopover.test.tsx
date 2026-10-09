@@ -192,11 +192,11 @@ describe('ModeDevicePopover — Both, the other side', () => {
     expect(order()).toEqual(['Microphone', 'choice', "Other's audio"]);
   });
 
-  it('beside me: the microphone, the choice, the headphones, then the ears', () => {
+  it('beside me: the microphone, the choice, the output, then the ears', () => {
     f2f.active = true;
     store.otherSide = 'beside';
     mountBoth();
-    expect(order()).toEqual(['Microphone', 'choice', 'Headphones', 'ears']);
+    expect(order()).toEqual(['Microphone', 'choice', 'Output', 'ears']);
   });
 
   it('labels the choice by its visible heading, not by a second copy of the words', () => {
@@ -213,7 +213,7 @@ describe('ModeDevicePopover — Both, the other side', () => {
     store.otherSide = 'beside';
     mountBoth();
     const rows = Array.from(document.querySelectorAll('.mode-device-popover__row'));
-    const phones = rows.find((r) => r.textContent?.includes('Headphones'))!;
+    const phones = rows.find((r) => r.textContent?.includes('Output'))!;
     expect(phones.querySelector('.mode-device-popover__mute-btn')).toBeNull();
     const slot = phones.querySelector('.mode-device-popover__mute-slot');
     expect(slot).not.toBeNull();
@@ -236,7 +236,7 @@ describe('ModeDevicePopover — Both, the other side', () => {
     store.otherSide = 'beside';
     mountBoth();
     expect(screen.queryByText("Other's audio")).toBeNull();
-    expect(screen.getByText('Headphones')).toBeInTheDocument();
+    expect(screen.getByText('Output')).toBeInTheDocument();
     expect(screen.getByText('Left ear')).toBeInTheDocument();
     expect(screen.getByText('Right ear')).toBeInTheDocument();
     // The left ear's preview plays the chime panned left.
@@ -259,7 +259,7 @@ describe('ModeDevicePopover — Both, the other side', () => {
     f2f.swap = true;
     store.otherSide = 'beside';
     mountBoth();
-    const ears = Array.from(document.querySelectorAll('.mode-device-popover__ear'));
+    const ears = Array.from(document.querySelectorAll('.ears-block__ear'));
     expect(ears[0].className).toContain('--other');
     expect(ears[1].className).toContain('--me');
     fireEvent.click(screen.getByRole('button', { name: 'Preview the right ear' }));
@@ -274,12 +274,12 @@ describe('ModeDevicePopover — Both, the other side', () => {
     f2f.speaks = { speaker: true, participant: false };
     store.otherSide = 'beside';
     mountBoth();
-    const [left, right] = Array.from(document.querySelectorAll('.mode-device-popover__ear'));
+    const [left, right] = Array.from(document.querySelectorAll('.ears-block__ear'));
     expect(left.className).toContain('--me');
-    expect(left.querySelector('.mode-device-popover__ear-preview')).toBeNull();
-    expect(left.querySelector('.mode-device-popover__ear-off')?.textContent).toBe('Off');
+    expect(left.querySelector('.ears-block__ear-preview')).toBeNull();
+    expect(left.querySelector('.ears-block__ear-off')?.textContent).toBe('Off');
     expect(screen.queryByRole('button', { name: 'Preview the left ear' })).toBeNull();
-    expect(right.querySelector('.mode-device-popover__ear-off')).toBeNull();
+    expect(right.querySelector('.ears-block__ear-off')).toBeNull();
     expect(screen.getByRole('button', { name: 'Preview the right ear' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Swap left and right/ })).toBeInTheDocument();
   });
@@ -289,7 +289,7 @@ describe('ModeDevicePopover — Both, the other side', () => {
     f2f.speaks = { speaker: false, participant: false };
     store.otherSide = 'beside';
     mountBoth();
-    expect(screen.getByText('Headphones')).toBeInTheDocument();
+    expect(screen.getByText('Output')).toBeInTheDocument();
     expect(document.querySelector('.mode-device-popover__ears')).toBeNull();
     expect(screen.queryByRole('button', { name: /Preview the/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /Swap left and right/ })).toBeNull();
@@ -303,7 +303,7 @@ describe('ModeDevicePopover — Both, the other side', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Preview the left ear' }));
     await vi.waitFor(() => expect(report.error).toHaveBeenCalledTimes(1));
     const [source, message, options] = report.error.mock.calls[0];
-    expect(source).toBe('ModeDevicePopover');
+    expect(source).toBe('EarsBlock');
     expect(message).toContain('no output device');
     expect(options?.cause).toBeInstanceOf(Error);
   });

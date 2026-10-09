@@ -669,7 +669,7 @@
     "otherSideMeetingHint": "捕获系统音频或某个应用的音频",
     "otherSideBeside": "就在身边",
     "otherSideBesideHint": "两个人共用一个麦克风",
-    "headphones": "耳机"
+    "output": "Output"
   },
   "simplePanel": {
     "clickToConfigLanguages": "点击配置语言",

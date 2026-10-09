@@ -669,7 +669,7 @@
     "otherSideMeetingHint": "จับเสียงระบบหรือเสียงจากแอป",
     "otherSideBeside": "อยู่ข้างฉัน",
     "otherSideBesideHint": "สองคนใช้ไมโครโฟนตัวเดียว",
-    "headphones": "หูฟัง"
+    "output": "Output"
   },
   "simplePanel": {
     "clickToConfigLanguages": "คลิกเพื่อกำหนดค่าภาษา",

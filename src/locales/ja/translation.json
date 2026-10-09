@@ -669,7 +669,7 @@
     "otherSideMeetingHint": "システム音声またはアプリの音声を取り込みます",
     "otherSideBeside": "隣にいる",
     "otherSideBesideHint": "1 台のマイクを 2 人で使います",
-    "headphones": "ヘッドホン"
+    "output": "Output"
   },
   "simplePanel": {
     "clickToConfigLanguages": "言語を設定するにはクリック",

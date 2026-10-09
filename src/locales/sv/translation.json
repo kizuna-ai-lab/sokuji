@@ -669,7 +669,7 @@
     "otherSideMeetingHint": "Fångar systemljud eller en app",
     "otherSideBeside": "Bredvid mig",
     "otherSideBesideHint": "Två personer vid en mikrofon",
-    "headphones": "Hörlurar"
+    "output": "Output"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Klicka för att konfigurera språk",

@@ -669,7 +669,7 @@
     "otherSideMeetingHint": "Przechwytuje dźwięk systemu lub aplikacji",
     "otherSideBeside": "Obok mnie",
     "otherSideBesideHint": "Dwie osoby przy jednym mikrofonie",
-    "headphones": "Słuchawki"
+    "output": "Output"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Kliknij, aby skonfigurować języki",

@@ -669,7 +669,7 @@
     "otherSideMeetingHint": "Sistem sesini veya bir uygulamayı yakalar",
     "otherSideBeside": "Yanımda",
     "otherSideBesideHint": "Tek mikrofonda iki kişi",
-    "headphones": "Kulaklık"
+    "output": "Output"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Dilleri yapılandırmak için tıklayın",

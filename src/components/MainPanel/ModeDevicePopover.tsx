@@ -1,4 +1,4 @@
-import React, { useId, useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   useFloating,
   useDismiss,
@@ -10,7 +10,7 @@ import {
   size,
   autoUpdate,
 } from '@floating-ui/react';
-import { Mic, AudioLines, Volume2, Headphones, Users, ArrowLeftRight, Play, Power, PowerOff, ChevronDown, ChevronUp } from 'lucide-react';
+import { Mic, AudioLines, Volume2, Headphones, Power, PowerOff, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -18,14 +18,10 @@ import {
   useIsMicMuted, useIsMonitorMuted, useIsParticipantMuted,
   useSetMicMuted, useSetMonitorMuted, useSetParticipantMuted,
   useParticipantSources, useSelectedParticipantSource, useSelectParticipantSource,
-  useOtherSide, useSetOtherSide,
 } from '../../stores/audioStore';
-import { useRoutingStore } from '../../stores/routingStore';
 import { useFaceToFace } from './useFaceToFace';
-import { getAppAudio } from '../../lib/audio/appAudio';
-import { describeCause, reportError } from '../../lib/diagnostics/report';
-import { earsFor } from '../../lib/audio/routes';
-import { useLanguageLabel } from '../../lib/language/useLanguageLabel';
+import OtherSideChoice from '../FaceToFace/OtherSideChoice';
+import EarsBlock from '../FaceToFace/EarsBlock';
 import { isExtension } from '../../utils/environment';
 import { useNavigateToSettings } from '../../stores/settingsStore';
 import { isVirtualDevice, type AudioDevice } from '../Settings/shared/hooks';
@@ -91,12 +87,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
   const setParticipantMuted = useSetParticipantMuted();
 
   const f2f = useFaceToFace();
-  const otherSide = useOtherSide();
-  const setOtherSide = useSetOtherSide();
-  const setSwap = useRoutingStore((s) => s.setFaceToFaceSwap);
-  const label = useLanguageLabel();
   const beside = mode === 'both' && f2f.active;
-  const otherSideHeadingId = useId();
 
   // Only one row expanded at a time. Default: none expanded.
   const [expanded, setExpanded] = useState<ChannelKey | null>(null);
@@ -186,7 +177,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
         ? {
           key: 'monitor',
           icon: Headphones,
-          label: t('popover.headphones', 'Headphones'),
+          label: t('popover.output', 'Output'),
           devices: filteredMonitorDevices,
           selectedDevice: selectedMonitorDevice,
           isMuted: false,
@@ -269,33 +260,8 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     return { text: row.selectedDevice.label || row.selectedDevice.deviceId, cls: '' };
   };
 
-  // Both: where the other person is, between the microphone and the row it decides (board 1):
-  // a heading styled as the rows' labels, which also names the radio group.
-  const otherSideChoice = mode === 'both' && f2f.offered && (
-    <div className="mode-device-popover__other-side">
-      <div id={otherSideHeadingId} className="mode-device-popover__other-side-heading">
-        <Users size={14} className="mode-device-popover__row-icon" aria-hidden="true" />
-        <span className="mode-device-popover__row-label">{t('popover.otherSide', 'Other side')}</span>
-      </div>
-      <div className={`mode-device-popover__sides${locked ? ' mode-device-popover__sides--locked' : ''}`} role="radiogroup" aria-labelledby={otherSideHeadingId}>
-        {(['meeting', 'beside'] as const).map((side) => (
-          <label
-            key={side}
-            className={`mode-device-popover__side${otherSide === side ? ' mode-device-popover__side--active' : ''}`}
-            title={locked ? t('modePicker.switchDisabled', 'Mode is locked during a session.') : undefined}
-          >
-            <input type="radio" name="other-side" checked={otherSide === side} disabled={locked} onChange={() => setOtherSide(side)} />
-            <span className="mode-device-popover__side-title">
-              {side === 'meeting' ? t('popover.otherSideMeeting', 'In a meeting') : t('popover.otherSideBeside', 'Beside me')}
-            </span>
-            <span className="mode-device-popover__side-hint">
-              {side === 'meeting' ? t('popover.otherSideMeetingHint', 'Captures the system audio or an app') : t('popover.otherSideBesideHint', 'Two people at one microphone')}
-            </span>
-          </label>
-        ))}
-      </div>
-    </div>
-  );
+  // Both: where the other person is, between the microphone and the row it decides (board 1).
+  const otherSideChoice = mode === 'both' && f2f.offered && <OtherSideChoice locked={locked} className="mode-device-popover__other-side" />;
 
   return (
     <FloatingPortal>
@@ -377,54 +343,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
         })}
         </div>
 
-        {/* Under Text Only nothing plays in either ear: no ears, previews or swap. */}
-        {beside && f2f.me && f2f.other && (f2f.speaks.speaker || f2f.speaks.participant) && (
-          <div className="mode-device-popover__ears">
-            <div className="mode-device-popover__ears-title">{t('faceToFace.earsTitle', 'Left and right · each person hears the translation into their own language')}</div>
-            {(['left', 'right'] as const).map((ear) => {
-              const mine = earsFor(f2f.swap).participant === ear;
-              // My ear plays the participant leg's translation (into my language); theirs, mine.
-              const voiced = f2f.speaks[mine ? 'participant' : 'speaker'];
-              const pan = ear === 'left' ? -1 : 1;
-              const earName = ear === 'left' ? t('faceToFace.leftEar', 'Left ear') : t('faceToFace.rightEar', 'Right ear');
-              return (
-                <div key={ear} className={`mode-device-popover__ear mode-device-popover__ear--${mine ? 'me' : 'other'}`}>
-                  <span className="mode-device-popover__ear-letter">{ear === 'left' ? t('faceToFace.earLeft', 'L') : t('faceToFace.earRight', 'R')}</span>
-                  <span className="mode-device-popover__ear-name">{earName}</span>
-                  <span className="mode-device-popover__ear-who">
-                    {mine
-                      ? t('faceToFace.meListens', 'Me ({{language}})', { language: label(f2f.me!) })
-                      : t('faceToFace.otherListens', 'Other person ({{language}})', { language: label(f2f.other!) })}
-                  </span>
-                  {voiced ? (
-                    <button
-                      type="button"
-                      className="mode-device-popover__ear-preview"
-                      aria-label={ear === 'left' ? t('faceToFace.previewLeft', 'Preview the left ear') : t('faceToFace.previewRight', 'Preview the right ear')}
-                      onClick={() => {
-                        void getAppAudio()
-                          .then((app) => app.earPreview(pan))
-                          .catch((error: unknown) => reportError('ModeDevicePopover', `The ear preview did not play: ${describeCause(error)}`, { cause: error }));
-                      }}
-                    >
-                      <Play size={12} />
-                    </button>
-                  ) : (
-                    // A silent leg (Kizuna Soniox's participant today): nothing plays in this ear.
-                    <span className="mode-device-popover__ear-off">{t('popover.statusOff', 'Off')}</span>
-                  )}
-                </div>
-              );
-            })}
-            <div className="mode-device-popover__ears-actions">
-              <button type="button" className="mode-device-popover__swap" onClick={() => setSwap(!f2f.swap)}>
-                <ArrowLeftRight size={14} />
-                {t('faceToFace.swap', 'Swap left and right')}
-              </button>
-              <span className="mode-device-popover__ears-hint">{t('faceToFace.speakersHint', 'Use headphones, one side each. Any speaker lets the microphone pick up the translation and translate it again.')}</span>
-            </div>
-          </div>
-        )}
+        {mode === 'both' && <EarsBlock className="mode-device-popover__ears" />}
 
         <div className="mode-device-popover__divider" />
         <div className="mode-device-popover__footer">

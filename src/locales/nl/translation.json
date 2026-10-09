@@ -669,7 +669,7 @@
     "otherSideMeetingHint": "Legt systeemaudio of een app vast",
     "otherSideBeside": "Naast mij",
     "otherSideBesideHint": "Twee personen bij één microfoon",
-    "headphones": "Koptelefoon"
+    "output": "Output"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Klik om talen te configureren",

@@ -669,7 +669,7 @@
     "otherSideMeetingHint": "擷取系統音訊或某個應用程式的音訊",
     "otherSideBeside": "就在身邊",
     "otherSideBesideHint": "兩個人共用一支麥克風",
-    "headphones": "耳機"
+    "output": "Output"
   },
   "simplePanel": {
     "clickToConfigLanguages": "點擊配置語言",

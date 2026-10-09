@@ -669,7 +669,7 @@
     "otherSideMeetingHint": "Захватывает системный звук или приложение",
     "otherSideBeside": "Рядом со мной",
     "otherSideBesideHint": "Двое у одного микрофона",
-    "headphones": "Наушники"
+    "output": "Output"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Нажмите для настройки языков",

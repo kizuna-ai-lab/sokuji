@@ -669,7 +669,7 @@
     "otherSideMeetingHint": "يلتقط صوت النظام أو تطبيقًا",
     "otherSideBeside": "بجانبي",
     "otherSideBesideHint": "شخصان على ميكروفون واحد",
-    "headphones": "سماعات الرأس"
+    "output": "Output"
   },
   "simplePanel": {
     "clickToConfigLanguages": "انقر لتكوين اللغات",
