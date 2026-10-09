@@ -16,8 +16,8 @@ function fakeGraph() {
   let closedCount = 0;
   const plays: Array<{ feed: string; pcm: Int16Array; at: number; onEnded: () => void; done: boolean }> = [];
   const routes: Edge[][] = [];
-  const sinks: Array<{ real?: string; virtual?: string }> = [];
-  const shots: Array<{ audio: Float32Array; sampleRate: number; pan?: -1 | 1; stopped: boolean; end: () => void }> = [];
+  const sinks: Array<Parameters<AudioGraph['setSinks']>[0]> = [];
+  const shots: Array<{ audio: Float32Array; sampleRate: number; stopped: boolean; end: () => void }> = [];
   const resets = new Set<() => void>();
   const graph: AudioGraph & { readonly suspended: number; readonly closed: number } = {
     timeline: (feed) => ({
@@ -32,10 +32,10 @@ function fakeGraph() {
         };
       },
     }),
-    playOnce(audio, sampleRate, pan) {
+    playOnce(audio, sampleRate) {
       let end!: () => void;
       const ended = new Promise<void>((resolve) => { end = resolve; });
-      const shot = { audio, sampleRate, pan, stopped: false, end };
+      const shot = { audio, sampleRate, stopped: false, end };
       shots.push(shot);
       return { ended, stop: () => { shot.stopped = true; end(); } };
     },
@@ -69,19 +69,19 @@ function fakeGraph() {
 
 /** As `fakeGraph`, but wired through `createPlayback` with a virtual clock the test drives by hand. */
 function build(routingSettings: RoutingSettings = ROUTING) {
-  const { graph, plays, advance, resumed } = fakeGraph();
+  const { graph, plays, routes, advance, resumed } = fakeGraph();
   const clock = createVirtualClock(0);
   const playback = createPlayback(graph, routing(routingSettings).source, clock);
   const passthroughPlayed = () => plays.filter((p) => p.feed === 'passthrough').length;
-  return { playback, graph, clock, plays, advance, resumed, passthroughPlayed };
+  return { playback, graph, clock, plays, routes, advance, resumed, passthroughPlayed };
 }
 
 const ROUTING: RoutingSettings = {
   meeting: true,
-  monitor: false,
-  participantSpeech: false,
+  faceToFace: false,
+  speak: { other: true, me: false, them: false },
   passthrough: { on: true, ratio: 0.2 },
-  sinks: { real: 'monitor-1' },
+  sinks: { other: {}, me: { device: 'monitor-1' }, them: {} },
 };
 
 function routing(initial: RoutingSettings = ROUTING) {
@@ -151,13 +151,6 @@ describe('createPlayback — live audio', () => {
     expect(playback.queues.speaker.position()?.key).toBe('speaker:2:0');
   });
 
-  it("hands a clip's pan to the graph", () => {
-    const { graph, shots } = fakeGraph();
-    const playback = createPlayback(graph, routing().source);
-    void playback.preview({ audio: new Float32Array(10), sampleRate: 24_000, pan: 1 });
-    expect(shots[0].pan).toBe(1);
-  });
-
   it('a context reset drops what was queued but not the clip indices', async () => {
     const { graph, plays, shots, advance, reset } = fakeGraph();
     const playback = createPlayback(graph, routing().source);
@@ -182,14 +175,16 @@ describe('createPlayback — live audio', () => {
 });
 
 describe('createPlayback — routes', () => {
-  it('applies the route table and the sinks at once, and again whenever the routing changes', () => {
+  it('applies the route table plus the replay and preview edges, and again whenever the routing changes', () => {
     const { graph, routes, sinks } = fakeGraph();
     const r = routing();
     createPlayback(graph, r.source);
-    expect(routes).toEqual([routesFor(ROUTING, false)]);
-    expect(sinks).toEqual([{ real: 'monitor-1' }]);
-    r.set({ monitor: true });
-    expect(routes[1]).toContainEqual({ from: 'speaker', to: 'real', gain: 1 });
+    const withFixed = (settings: RoutingSettings) => [...routesFor(settings, false), { from: 'replay', to: 'me', gain: 1 }, { from: 'preview', to: 'me', gain: 1 }];
+    expect(routes).toEqual([withFixed(ROUTING)]);
+    expect(sinks).toEqual([ROUTING.sinks]);
+    r.set({ speak: { other: true, me: true, them: false } });
+    expect(routes[1]).toEqual(withFixed({ ...ROUTING, speak: { other: true, me: true, them: false } }));
+    expect(sinks[1]).toEqual(ROUTING.sinks);
   });
 
   it("opens passthrough only while push-to-talk's key is held", () => {
@@ -219,7 +214,7 @@ describe('createPlayback — routes', () => {
     const r = routing();
     const playback = createPlayback(graph, r.source);
     await playback.dispose();
-    r.set({ monitor: true });
+    r.set({ speak: { other: true, me: true, them: false } });
     expect(routes.length).toBe(1);
   });
 });
@@ -236,6 +231,30 @@ describe('createPlayback — replay', () => {
     expect(playback.queues.replay.position()?.key).toBe('speaker:4:2');
   });
 
+  it("routes a replay to the outlet of the row it belongs to: mine to me, the other's to them", () => {
+    const { graph, routes } = fakeGraph();
+    const playback = createPlayback(graph, routing().source);
+    playback.replay('speaker', translation(4, [{ pcm: pcm(100) }]));
+    expect(routes.at(-1)).toContainEqual({ from: 'replay', to: 'me', gain: 1 });
+    playback.replay('participant', translation(5, [{ pcm: pcm(100) }]));
+    expect(routes.at(-1)).toContainEqual({ from: 'replay', to: 'them', gain: 1 });
+    expect(routes.at(-1)!.filter((e) => e.from === 'replay')).toHaveLength(1);
+  });
+
+  it('replays my translation on the other person\'s outlet in face-to-face', () => {
+    const { graph, routes } = fakeGraph();
+    const playback = createPlayback(graph, routing({ ...ROUTING, faceToFace: true }).source);
+    playback.replay('speaker', translation(4, [{ pcm: pcm(100) }]));
+    expect(routes.at(-1)).toContainEqual({ from: 'replay', to: 'other', gain: 1 });
+  });
+
+  it('replays my translation on me whatever the live routes say (我也听 off) (Review Focus 3)', () => {
+    const { graph, routes } = fakeGraph();
+    const playback = createPlayback(graph, routing({ ...ROUTING, speak: { other: false, me: false, them: false }, passthrough: { on: false, ratio: 0 } }).source);
+    playback.replay('speaker', translation(4, [{ pcm: pcm(100) }]));
+    expect(routes.at(-1)).toEqual([{ from: 'replay', to: 'me', gain: 1 }, { from: 'preview', to: 'me', gain: 1 }]);
+  });
+
   it('replaces a replay in progress, and stops on request', () => {
     const { graph, plays } = fakeGraph();
     const playback = createPlayback(graph, routing().source);
@@ -249,6 +268,19 @@ describe('createPlayback — replay', () => {
 });
 
 describe('createPlayback — preview', () => {
+  it('plays a preview on the outlet asked for, me by default', async () => {
+    const { graph, routes, shots } = fakeGraph();
+    const playback = createPlayback(graph, routing().source);
+    const first = playback.preview({ audio: new Float32Array(10), sampleRate: 44100 }, 'them');
+    expect(routes.at(-1)).toContainEqual({ from: 'preview', to: 'them', gain: 1 });
+    shots[0].end();
+    await first;
+    const second = playback.preview({ audio: new Float32Array(10), sampleRate: 44100 });
+    expect(routes.at(-1)).toContainEqual({ from: 'preview', to: 'me', gain: 1 });
+    shots[1].end();
+    await second;
+  });
+
   it('plays one clip at a time and resolves when it ends', async () => {
     const { graph, shots } = fakeGraph();
     const playback = createPlayback(graph, routing().source);

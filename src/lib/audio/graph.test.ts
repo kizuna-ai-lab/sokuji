@@ -728,7 +728,7 @@ describe('createAudioGraph — a wedged context (#246)', () => {
     const { first, contexts, clock, graph, flush } = await setupRecovering();
     // Speaker clips reach the outlets, passthrough the virtual one.
     const routing: RoutingSource = {
-      get: () => ({ meeting: false, monitor: true, participantSpeech: false, passthrough: { on: true, ratio: 1 }, sinks: {} }),
+      get: () => ({ meeting: true, faceToFace: false, speak: { other: true, me: false, them: false }, passthrough: { on: true, ratio: 1 }, sinks: { other: {}, me: {}, them: {} } }),
       subscribe: () => () => {},
     };
     const playback = createPlayback(graph, routing, clock);
