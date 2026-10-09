@@ -145,6 +145,7 @@ import { fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource } from '../../providers/fake/source';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { useRoutingStore } from '../../stores/routingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useSubtitleStore } from '../../stores/subtitleStore';
 import { usePanelNotesStore } from '../../stores/panelNotesStore';
@@ -794,6 +795,7 @@ describe('the ears strip (face-to-face)', () => {
       useProviderStore.getState().setPair(fakeProvider, pair);
       useAudioStore.setState({ otherSide: useAudioStore.getInitialState().otherSide });
       useSettingsStore.setState({ textOnly: false });
+      useRoutingStore.setState({ participantSpeech: null });
     });
   });
 
@@ -810,7 +812,8 @@ describe('the ears strip (face-to-face)', () => {
       act(() => { useAudioStore.setState({ otherSide: 'meeting' }); });
       expect(container.querySelector('.ears-legend')).toBeNull();
 
-      act(() => { useAudioStore.setState({ otherSide: 'beside' }); useSettingsStore.setState({ textOnly: true }); });
+      // Text Only silences mine; theirs keeps playing on auto until its switch is off.
+      act(() => { useAudioStore.setState({ otherSide: 'beside' }); useSettingsStore.setState({ textOnly: true }); useRoutingStore.setState({ participantSpeech: false }); });
       expect(container.querySelector('.ears-legend')).toBeNull();
     } finally {
       restoreCanvas();

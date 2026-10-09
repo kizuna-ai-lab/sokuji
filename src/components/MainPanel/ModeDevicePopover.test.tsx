@@ -31,6 +31,7 @@ const store = {
   selected: null as { deviceId: string; label: string } | null,
   select: vi.fn(),
   setParticipantMuted: vi.fn(),
+  setOutletChannel: vi.fn(),
 };
 
 vi.mock('../../stores/audioStore', () => ({
@@ -48,6 +49,7 @@ vi.mock('../../stores/audioStore', () => ({
   useSetMicMuted: () => vi.fn(),
   useSetMonitorMuted: () => vi.fn(),
   useSetParticipantMuted: () => store.setParticipantMuted,
+  useSetOutletChannel: () => store.setOutletChannel,
   useParticipantSources: () => store.sources,
   useSelectedParticipantSource: () => store.selected,
   useSelectParticipantSource: () => store.select,
@@ -55,11 +57,9 @@ vi.mock('../../stores/audioStore', () => ({
   useSetOtherSide: () => store.setOtherSide,
 }));
 
-const f2f = { offered: true, active: false, swap: false, me: 'ja', other: 'en', speaks: { speaker: true, participant: true } };
+const f2f = { offered: true, active: false, swap: false, ears: { speaker: 'right', participant: 'left' }, me: 'ja', other: 'en', speaks: { speaker: true, participant: true } };
 vi.mock('./useFaceToFace', () => ({ useFaceToFace: () => f2f }));
-const routing = { setFaceToFaceSwap: vi.fn() };
-vi.mock('../../stores/routingStore', () => ({ useRoutingStore: (pick: (s: unknown) => unknown) => pick({ faceToFaceSwap: f2f.swap, setFaceToFaceSwap: routing.setFaceToFaceSwap }) }));
-const tone = vi.fn(async (_pan?: -1 | 1) => {});
+const tone = vi.fn(async (_outlet: 'other' | 'me' | 'them') => {});
 vi.mock('../../lib/audio/appAudio', () => ({ getAppAudio: async () => ({ earPreview: tone }) }));
 const report = vi.hoisted(() => ({ error: vi.fn() }));
 vi.mock('../../lib/diagnostics/report', async (importOriginal) => ({
@@ -76,11 +76,11 @@ beforeEach(() => {
   store.sources = [SYSTEM, CHROMIUM];
   store.selected = CHROMIUM;
   store.otherSide = 'meeting';
-  Object.assign(f2f, { offered: true, active: false, swap: false, me: 'ja', other: 'en', speaks: { speaker: true, participant: true } });
+  Object.assign(f2f, { offered: true, active: false, swap: false, ears: { speaker: 'right', participant: 'left' }, me: 'ja', other: 'en', speaks: { speaker: true, participant: true } });
   tone.mockReset();
   tone.mockImplementation(async () => {});
   report.error.mockReset();
-  routing.setFaceToFaceSwap.mockClear();
+  store.setOutletChannel.mockClear();
   store.setOtherSide.mockReset();
   store.select.mockReset();
   store.setParticipantMuted.mockReset();
@@ -180,7 +180,8 @@ describe('ModeDevicePopover — Both, the other side', () => {
     const swap = screen.getByRole('button', { name: /Swap left and right/ });
     expect(swap).toBeEnabled();
     fireEvent.click(swap);
-    expect(routing.setFaceToFaceSwap).toHaveBeenCalledWith(true);
+    expect(store.setOutletChannel).toHaveBeenCalledWith('other', 'left');
+    expect(store.setOutletChannel).toHaveBeenCalledWith('them', 'right');
   });
 
   // Board 1's order: the microphone, the choice under its own heading, then the row the choice decides.
@@ -241,9 +242,9 @@ describe('ModeDevicePopover — Both, the other side', () => {
     expect(screen.getByText('Right ear')).toBeInTheDocument();
     // The left ear's preview plays the chime panned left.
     fireEvent.click(screen.getAllByRole('button', { name: /Preview the/ })[0]);
-    await vi.waitFor(() => expect(tone).toHaveBeenCalledWith(-1));
+    await vi.waitFor(() => expect(tone).toHaveBeenCalledWith('them'));
     fireEvent.click(screen.getByRole('button', { name: /Swap left and right/ }));
-    expect(routing.setFaceToFaceSwap).toHaveBeenCalledWith(true);
+    expect(store.setOutletChannel).toHaveBeenCalledWith('other', 'left');
   });
 
   it('the right ear previews panned right', async () => {
@@ -251,21 +252,23 @@ describe('ModeDevicePopover — Both, the other side', () => {
     store.otherSide = 'beside';
     mountBoth();
     fireEvent.click(screen.getByRole('button', { name: 'Preview the right ear' }));
-    await vi.waitFor(() => expect(tone).toHaveBeenCalledWith(1));
+    await vi.waitFor(() => expect(tone).toHaveBeenCalledWith('other'));
   });
 
   it('swapped: the left ear is the other person, the right is me, and the swap button turns it back', async () => {
     f2f.active = true;
     f2f.swap = true;
+    f2f.ears = { speaker: 'left', participant: 'right' };
     store.otherSide = 'beside';
     mountBoth();
     const ears = Array.from(document.querySelectorAll('.ears-block__ear'));
     expect(ears[0].className).toContain('--other');
     expect(ears[1].className).toContain('--me');
     fireEvent.click(screen.getByRole('button', { name: 'Preview the right ear' }));
-    await vi.waitFor(() => expect(tone).toHaveBeenCalledWith(1));
+    await vi.waitFor(() => expect(tone).toHaveBeenCalledWith('them'));
     fireEvent.click(screen.getByRole('button', { name: /Swap left and right/ }));
-    expect(routing.setFaceToFaceSwap).toHaveBeenCalledWith(false);
+    expect(store.setOutletChannel).toHaveBeenCalledWith('other', 'right');
+    expect(store.setOutletChannel).toHaveBeenCalledWith('them', 'left');
   });
 
   // Kizuna Soniox today: the participant's leg is silent, so my ear (where their translation would play) plays nothing.

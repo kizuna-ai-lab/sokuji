@@ -2,7 +2,6 @@ import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, render } from '@testing-library/react';
 import type { Row } from '../../lib/projection/types';
 import type { DisplayItem } from '../../lib/view/filter';
-import { earsFor } from '../../lib/audio/routes';
 import { earsLegend, voicedEars } from '../MainPanel/useFaceToFace';
 import { ConversationList, type ConversationListProps } from './ConversationList';
 
@@ -378,14 +377,14 @@ describe('ConversationList — face-to-face ears', () => {
 
   it('shares one source of truth with the footer legend: the participant leg is my ear', () => {
     for (const swap of [false, true]) {
-      const view = { offered: true, active: true, swap, me: 'ja', other: 'en', speaks: { speaker: true, participant: true } };
+      const view = { offered: true, active: true, swap, me: 'ja', other: 'en', ears: (swap ? { speaker: 'left', participant: 'right' } : { speaker: 'right', participant: 'left' }) as Record<'speaker' | 'participant', 'left' | 'right'>, speaks: { speaker: true, participant: true } };
       const legend = earsLegend(view)!;
       const myEar = legend.leftIsMe ? 'left' : 'right';
       const item = rowItem({ leg: 'participant', languages: { source: 'en', target: 'ja' } });
       const { container } = render(<ConversationList {...props({ ears: voicedEars(view), items: [item], replayLegs: new Set() })} />);
       const tag = container.querySelector('.ear-tag');
       expect(tag?.classList.contains(`ear-tag--${myEar}`)).toBe(true);
-      expect(myEar).toBe(earsFor(swap).participant);
+      expect(myEar).toBe(swap ? 'right' : 'left');
     }
   });
 });

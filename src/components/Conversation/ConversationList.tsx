@@ -1,7 +1,7 @@
 import { memo, useCallback, useRef, type CSSProperties, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowDown, Play, User, Users, VolumeX } from 'lucide-react';
-import type { Ear } from '../../lib/audio/routes';
+import type { Ear } from '../MainPanel/useFaceToFace';
 import type { LegName, SegmentId } from '../../lib/conversation/types';
 import type { DisplayItem, NoticeEntry } from '../../lib/view/filter';
 import { personShade } from '../../lib/view/people';

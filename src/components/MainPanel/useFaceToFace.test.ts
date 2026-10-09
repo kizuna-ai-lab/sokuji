@@ -13,14 +13,15 @@ describe('useFaceToFace', () => {
   } as never);
   beforeEach(() => {
     useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
-    useRoutingStore.setState({ faceToFaceSwap: false, participantSpeech: false });
+    useRoutingStore.setState({ participantSpeech: null });
+    useAudioStore.setState({ outlets: { other: { device: null, channel: 'auto' }, me: { device: null, channel: 'auto' }, them: { device: null, channel: 'auto' } }, isMonitorMuted: true });
     useSettingsStore.setState({ textOnly: false });
   });
 
   it('is offered and active under Soniox in Both, beside me, with my language and theirs', () => {
     pick('soniox');
     const { result } = renderHook(() => useFaceToFace());
-    expect(result.current).toEqual({ offered: true, active: true, swap: false, me: 'ja', other: 'en', speaks: { speaker: true, participant: true } });
+    expect(result.current).toEqual({ offered: true, active: true, swap: false, ears: { speaker: 'right', participant: 'left' }, me: 'ja', other: 'en', speaks: { speaker: true, participant: true } });
   });
 
   it('is neither under a provider without it (Review Focus 1)', () => {
@@ -29,13 +30,22 @@ describe('useFaceToFace', () => {
     expect(result.current).toMatchObject({ offered: false, active: false });
   });
 
-  // The run's own rule (`participantSpeechFromStores`): face-to-face voices the other person whatever the hidden switch says.
-  it('voices both legs face-to-face with the participant switch off, and neither under Text Only', () => {
+  it('voices both legs face-to-face on auto; Text Only silences mine, the switch theirs', () => {
     pick('soniox');
     const { result } = renderHook(() => useFaceToFace());
     expect(result.current.speaks).toEqual({ speaker: true, participant: true });
     act(() => { useSettingsStore.setState({ textOnly: true }); });
+    expect(result.current.speaks).toEqual({ speaker: false, participant: true });
+    act(() => { useRoutingStore.setState({ participantSpeech: false }); });
     expect(result.current.speaks).toEqual({ speaker: false, participant: false });
+  });
+
+  it('reads the ears from the outlets: a channel picked for them swaps them, live', () => {
+    pick('soniox');
+    const { result } = renderHook(() => useFaceToFace());
+    expect(result.current).toMatchObject({ swap: false, ears: { speaker: 'right', participant: 'left' } });
+    act(() => { useAudioStore.getState().setOutletChannel('them', 'right'); useAudioStore.getState().setOutletChannel('other', 'left'); });
+    expect(result.current).toMatchObject({ swap: true, ears: { speaker: 'left', participant: 'right' } });
   });
 
   it('voices both legs under Kizuna AI too, now that its participant speaks', () => {
@@ -56,10 +66,10 @@ describe('useFaceToFace', () => {
 });
 
 describe('earsLegend', () => {
-  const view: FaceToFaceView = { offered: true, active: true, swap: false, me: 'ja', other: 'en', speaks: { speaker: true, participant: true } };
+  const view: FaceToFaceView = { offered: true, active: true, swap: false, ears: { speaker: 'right', participant: 'left' }, me: 'ja', other: 'en', speaks: { speaker: true, participant: true } };
   it('puts my language in the left ear unless swapped', () => {
     expect(earsLegend(view)).toEqual({ leftLang: 'ja', rightLang: 'en', leftIsMe: true });
-    expect(earsLegend({ ...view, swap: true })).toEqual({ leftLang: 'en', rightLang: 'ja', leftIsMe: false });
+    expect(earsLegend({ ...view, swap: true, ears: { speaker: 'left', participant: 'right' } })).toEqual({ leftLang: 'en', rightLang: 'ja', leftIsMe: false });
   });
   it('is absent when face-to-face is off', () => {
     expect(earsLegend({ ...view, active: false })).toBeNull();
@@ -70,15 +80,15 @@ describe('earsLegend', () => {
   it("names the ear of a silent leg: mine when the participant's leg is silent", () => {
     const silent = { ...view, speaks: { speaker: true, participant: false } };
     expect(earsLegend(silent)).toEqual({ leftLang: 'ja', rightLang: 'en', leftIsMe: true, silent: 'left' });
-    expect(earsLegend({ ...silent, swap: true })).toEqual({ leftLang: 'en', rightLang: 'ja', leftIsMe: false, silent: 'right' });
+    expect(earsLegend({ ...silent, swap: true, ears: { speaker: 'left', participant: 'right' } })).toEqual({ leftLang: 'en', rightLang: 'ja', leftIsMe: false, silent: 'right' });
   });
 });
 
 describe('voicedEars', () => {
-  const view: FaceToFaceView = { offered: true, active: true, swap: false, me: 'ja', other: 'en', speaks: { speaker: true, participant: true } };
+  const view: FaceToFaceView = { offered: true, active: true, swap: false, ears: { speaker: 'right', participant: 'left' }, me: 'ja', other: 'en', speaks: { speaker: true, participant: true } };
   it('gives each voiced leg its ear', () => {
     expect(voicedEars(view)).toEqual({ speaker: 'right', participant: 'left' });
-    expect(voicedEars({ ...view, swap: true })).toEqual({ speaker: 'left', participant: 'right' });
+    expect(voicedEars({ ...view, swap: true, ears: { speaker: 'left', participant: 'right' } })).toEqual({ speaker: 'left', participant: 'right' });
   });
   it('gives a silent leg none', () => {
     expect(voicedEars({ ...view, speaks: { speaker: true, participant: false } })).toEqual({ speaker: 'right' });

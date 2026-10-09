@@ -63,7 +63,7 @@ function usePlaybackProbe(
       const tapped = playback.ttsTap.read();
       for (const sample of tapped) peak = Math.max(peak, Math.abs(sample));
       gapCounter.push(tapped);
-      for (const sample of playback.meter('real')?.read() ?? []) busPeak = Math.max(busPeak, sample);
+      for (const sample of playback.meter('them')?.read() ?? []) busPeak = Math.max(busPeak, sample);
       const seen = captureRef.current?.();
       const captureChanged = seen && (seen.chunks !== last.chunks || seen.peak !== last.peak);
       const gaps = gapCounter.read();
@@ -140,7 +140,7 @@ export function SessionControls({ runner, turnMode, audio, capture }: SessionCon
             Monitor
           </label>
           <label>
-            <input type="checkbox" checked={participantSpeech} onChange={(e) => useRoutingStore.getState().setParticipantSpeech(e.target.checked)} />
+            <input type="checkbox" checked={participantSpeech === true} onChange={(e) => useRoutingStore.getState().setParticipantSpeech(e.target.checked)} />
             Participant speech
           </label>
           <label>

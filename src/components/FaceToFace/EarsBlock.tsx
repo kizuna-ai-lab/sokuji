@@ -1,11 +1,10 @@
 import React from 'react';
 import { ArrowLeftRight, Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useRoutingStore } from '../../stores/routingStore';
+import { useSetOutletChannel } from '../../stores/audioStore';
 import { useFaceToFace } from '../MainPanel/useFaceToFace';
 import { getAppAudio } from '../../lib/audio/appAudio';
 import { describeCause, reportError } from '../../lib/diagnostics/report';
-import { earsFor } from '../../lib/audio/routes';
 import { useLanguageLabel } from '../../lib/language/useLanguageLabel';
 import './EarsBlock.scss';
 
@@ -21,7 +20,7 @@ interface EarsBlockProps {
 const EarsBlock: React.FC<EarsBlockProps> = ({ className }) => {
   const { t } = useTranslation();
   const f2f = useFaceToFace();
-  const setSwap = useRoutingStore((s) => s.setFaceToFaceSwap);
+  const setOutletChannel = useSetOutletChannel();
   const label = useLanguageLabel();
 
   if (!(f2f.active && f2f.me && f2f.other && (f2f.speaks.speaker || f2f.speaks.participant))) return null;
@@ -30,10 +29,10 @@ const EarsBlock: React.FC<EarsBlockProps> = ({ className }) => {
     <div className={`ears-block${className ? ` ${className}` : ''}`}>
       <div className="ears-block__title">{t('faceToFace.earsTitle', 'Left and right · each person hears the translation into their own language')}</div>
       {(['left', 'right'] as const).map((ear) => {
-        const mine = earsFor(f2f.swap).participant === ear;
+        const mine = f2f.ears.participant === ear;
         // My ear plays the participant leg's translation (into my language); theirs, mine.
         const voiced = f2f.speaks[mine ? 'participant' : 'speaker'];
-        const pan = ear === 'left' ? -1 : 1;
+        const outlet = mine ? 'them' : 'other';
         const earName = ear === 'left' ? t('faceToFace.leftEar', 'Left ear') : t('faceToFace.rightEar', 'Right ear');
         return (
           <div key={ear} className={`ears-block__ear ears-block__ear--${mine ? 'me' : 'other'}`}>
@@ -51,7 +50,7 @@ const EarsBlock: React.FC<EarsBlockProps> = ({ className }) => {
                 aria-label={ear === 'left' ? t('faceToFace.previewLeft', 'Preview the left ear') : t('faceToFace.previewRight', 'Preview the right ear')}
                 onClick={() => {
                   void getAppAudio()
-                    .then((app) => app.earPreview(pan))
+                    .then((app) => app.earPreview(outlet))
                     .catch((error: unknown) => reportError('EarsBlock', `The ear preview did not play: ${describeCause(error)}`, { cause: error }));
                 }}
               >
@@ -65,7 +64,12 @@ const EarsBlock: React.FC<EarsBlockProps> = ({ className }) => {
         );
       })}
       <div className="ears-block__actions">
-        <button type="button" className="ears-block__swap" onClick={() => setSwap(!f2f.swap)}>
+        <button type="button" className="ears-block__swap" onClick={() => {
+            // Each outlet takes the other one's ear.
+            setOutletChannel('other', f2f.ears.participant);
+            setOutletChannel('them', f2f.ears.speaker);
+          }}
+        >
           <ArrowLeftRight size={14} />
           {t('faceToFace.swap', 'Swap left and right')}
         </button>

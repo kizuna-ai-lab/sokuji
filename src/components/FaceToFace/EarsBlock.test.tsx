@@ -8,13 +8,13 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-const f2f = { offered: true, active: true, swap: false, me: 'ja', other: 'en', speaks: { speaker: true, participant: true } };
+const f2f = { offered: true, active: true, swap: false, ears: { speaker: 'right', participant: 'left' }, me: 'ja', other: 'en', speaks: { speaker: true, participant: true } };
 vi.mock('../MainPanel/useFaceToFace', () => ({ useFaceToFace: () => f2f }));
-const routing = { setFaceToFaceSwap: vi.fn() };
-vi.mock('../../stores/routingStore', () => ({
-  useRoutingStore: (pick: (s: unknown) => unknown) => pick({ faceToFaceSwap: f2f.swap, setFaceToFaceSwap: routing.setFaceToFaceSwap }),
+const outlets = { setOutletChannel: vi.fn() };
+vi.mock('../../stores/audioStore', () => ({
+  useSetOutletChannel: () => outlets.setOutletChannel,
 }));
-const tone = vi.fn(async (_pan?: -1 | 1) => {});
+const tone = vi.fn(async (_outlet: 'other' | 'me' | 'them') => {});
 vi.mock('../../lib/audio/appAudio', () => ({ getAppAudio: async () => ({ earPreview: tone }) }));
 const report = vi.hoisted(() => ({ error: vi.fn() }));
 vi.mock('../../lib/diagnostics/report', async (importOriginal) => ({
@@ -24,11 +24,11 @@ vi.mock('../../lib/diagnostics/report', async (importOriginal) => ({
 vi.mock('../../lib/language/useLanguageLabel', () => ({ useLanguageLabel: () => (code: string) => code.toUpperCase() }));
 
 beforeEach(() => {
-  Object.assign(f2f, { offered: true, active: true, swap: false, me: 'ja', other: 'en', speaks: { speaker: true, participant: true } });
+  Object.assign(f2f, { offered: true, active: true, swap: false, ears: { speaker: 'right', participant: 'left' }, me: 'ja', other: 'en', speaks: { speaker: true, participant: true } });
   tone.mockReset();
   tone.mockImplementation(async () => {});
   report.error.mockReset();
-  routing.setFaceToFaceSwap.mockClear();
+  outlets.setOutletChannel.mockClear();
 });
 
 describe('EarsBlock', () => {
@@ -43,6 +43,7 @@ describe('EarsBlock', () => {
 
   it('swapped: the left ear is the other person', () => {
     f2f.swap = true;
+    f2f.ears = { speaker: 'left', participant: 'right' };
     render(<EarsBlock />);
     const [left, right] = Array.from(document.querySelectorAll('.ears-block__ear'));
     expect(left.className).toContain('--other');
@@ -52,15 +53,16 @@ describe('EarsBlock', () => {
   it('previews each ear panned to its side', async () => {
     render(<EarsBlock />);
     fireEvent.click(screen.getByRole('button', { name: 'Preview the left ear' }));
-    await vi.waitFor(() => expect(tone).toHaveBeenCalledWith(-1));
+    await vi.waitFor(() => expect(tone).toHaveBeenCalledWith('them'));
     fireEvent.click(screen.getByRole('button', { name: 'Preview the right ear' }));
-    await vi.waitFor(() => expect(tone).toHaveBeenCalledWith(1));
+    await vi.waitFor(() => expect(tone).toHaveBeenCalledWith('other'));
   });
 
-  it('the swap button writes the opposite', () => {
+  it('the swap button writes each outlet the other one\'s channel', () => {
     render(<EarsBlock />);
-    fireEvent.click(screen.getByRole('button', { name: /Swap left and right/ }));
-    expect(routing.setFaceToFaceSwap).toHaveBeenCalledWith(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Swap left and right' }));
+    expect(outlets.setOutletChannel).toHaveBeenCalledWith('other', 'left');
+    expect(outlets.setOutletChannel).toHaveBeenCalledWith('them', 'right');
   });
 
   it('a silent participant leg: my ear reads Off with no preview', () => {
