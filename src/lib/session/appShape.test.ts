@@ -23,6 +23,7 @@ import type { AnyProvider, CheckContext } from '../provider/types';
 import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS, FAKE_LEASED_DEFAULTS } from '../../providers/fake/settings';
 import { PALABRA_DEFAULTS } from '../../providers/palabraai/settings';
+import { SONIOX_DEFAULTS } from '../../providers/soniox/settings';
 import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
@@ -243,6 +244,16 @@ describe('speechInputsFromStores and watchSpeechFromStores (Stage 2 Volcengine A
     unwatch();
     useSettingsStore.setState({ textOnly: true });
     expect(useProviderStore.getState().speech).toEqual({ textOnly: false, participantSpeech: false });
+  });
+
+  it("follows face-to-face when the picked provider's entry loads after the pick", () => {
+    useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
+    useProviderStore.setState({ selected: 'soniox', entries: {} });
+    const unwatch = watchSpeechFromStores();
+    expect(useProviderStore.getState().speech.participantSpeech).toBe(false);
+    useProviderStore.setState({ entries: { soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } } });
+    expect(useProviderStore.getState().speech.participantSpeech).toBe(true);
+    unwatch();
   });
 });
 

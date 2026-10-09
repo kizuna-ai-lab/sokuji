@@ -79,11 +79,17 @@ export function createAppRouting(platform: Platform): RoutingSource {
   return {
     get: () => readRouting(useAudioStore.getState(), useRoutingStore.getState(), platform, useTurnModeStore.getState().turnMode, faceToFaceFromStores()),
     subscribe(listener) {
-      const offAudio = useAudioStore.subscribe(() => listener());
-      const offSwitches = useRoutingStore.subscribe(() => listener());
-      const offTurnMode = useTurnModeStore.subscribe(() => listener());
-      // The provider decides whether "beside me" is face-to-face.
-      const offProvider = useProviderStore.subscribe((s, prev) => { if (s.selected !== prev.selected) listener(); });
+      // The provider decides whether "beside me" is face-to-face, and only
+      // once its entry has loaded, which lands after the pick.
+      let faceToFace = faceToFaceFromStores();
+      const notify = () => {
+        faceToFace = faceToFaceFromStores();
+        listener();
+      };
+      const offAudio = useAudioStore.subscribe(notify);
+      const offSwitches = useRoutingStore.subscribe(notify);
+      const offTurnMode = useTurnModeStore.subscribe(notify);
+      const offProvider = useProviderStore.subscribe(() => { if (faceToFaceFromStores() !== faceToFace) notify(); });
       return () => {
         offAudio();
         offSwitches();

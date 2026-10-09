@@ -87,12 +87,13 @@ export function watchSpeechFromStores(): () => void {
   const apply = () => useProviderStore.getState().setSpeech(speechInputsFromStores());
   apply();
   // Whole-store listeners: `setSpeech` ignores inputs that did not change.
-  // A provider change can turn face-to-face on or off.
+  // A provider change, or its entry landing after the pick, can turn
+  // face-to-face on or off.
   const offs = [
     useSettingsStore.subscribe(apply),
     useRoutingStore.subscribe(apply),
     useAudioStore.subscribe(apply),
-    useProviderStore.subscribe((state, prev) => { if (state.selected !== prev.selected) apply(); }),
+    useProviderStore.subscribe(apply),
   ];
   return () => { for (const off of offs) off(); };
 }

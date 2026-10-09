@@ -13,6 +13,7 @@ import { SAMPLE_RATE } from '../contract/adapter';
 import useAudioStore from '../../stores/audioStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
+import { useProviderStore } from '../../stores/providerStore';
 import { createAppRouting, readRouting } from './appAudio';
 import { FakeAudioContext, FakeSink, FakeWorkletNode } from './fakeWebAudio';
 
@@ -228,6 +229,21 @@ describe('createAppRouting', () => {
     useTurnModeStore.getState().setTurnMode('push-to-translate');
     expect(heard).toHaveBeenCalledTimes(1);
     expect(routing.get().passthrough).toEqual({ on: true, ratio: 1, gate: 'idle' });
+  });
+
+  it("re-reads when the picked provider's entry loads after the pick: only then is beside me face-to-face", () => {
+    useAudioStore.setState({ ...AUDIO, mode: 'both', otherSide: 'beside' });
+    useProviderStore.setState({ selected: 'soniox', entries: {} });
+    const routing = createAppRouting('electron');
+    const heard = vi.fn();
+    routing.subscribe(heard);
+    expect(routing.get().ears).toBeUndefined();
+    useProviderStore.setState({ entries: { soniox: {} as never } });
+    expect(heard).toHaveBeenCalledTimes(1);
+    expect(routing.get().ears).toEqual({ swap: false });
+    // An edit to the loaded entry leaves face-to-face as it was: no re-read.
+    useProviderStore.setState({ entries: { soniox: {} as never } });
+    expect(heard).toHaveBeenCalledTimes(1);
   });
 
   it('routes participant speech to the real device in face-to-face on Electron with a whole-system source', () => {
