@@ -500,7 +500,15 @@ def test_omnivoice_card_shape():
     m = catalog.tts_model("omnivoice-0.6b")
     assert m is not None
     assert m.family == "omnivoice"
-    assert m.languages == ("multi",)
+    # The app's 74 codes less su, which OmniVoice's language_map.inc has under no id or name
+    # (2026-10-09); ar and ne reach it as arb and npi (sk_tts.cpp).
+    assert m.languages == (
+        "af", "am", "ar", "az", "bg", "bn", "bs", "ca", "cs", "cy", "da", "de", "el", "en", "es",
+        "et", "fa", "fi", "fil", "fr", "gl", "gu", "he", "hi", "hr", "hu", "id", "is", "it", "ja",
+        "jv", "ka", "kk", "km", "kn", "ko", "lb", "lo", "lt", "lv", "mk", "ml", "mn", "mr", "ms",
+        "mt", "my", "ne", "nl", "no", "pl", "ps", "pt", "ro", "ru", "si", "sk", "sl", "so", "sq",
+        "sr", "sv", "sw", "ta", "te", "th", "tr", "uk", "ur", "uz", "vi", "yue", "zh")
+    assert "su" not in m.languages and "multi" not in m.languages
     assert m.clones
     assert m.transcript_required is True   # ref_text mandatory (also qwen3_tts, R15(s4))
     assert m.named_voices is False         # no discoverable presets

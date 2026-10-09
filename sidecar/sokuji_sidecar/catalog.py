@@ -1423,8 +1423,14 @@ TTS_MODELS: list[TtsModel] = [
     # k2-fsa/OmniVoice ships under CC-BY-NC-4.0 — non-commercial only. This
     # descriptor is DATA the download gate reads generically; it isn't a
     # Sokuji-specific restriction.
+    # The languages OmniVoice documents (src/models/omnivoice/language_map.inc), ruling 2026-10-09.
     _tts_gguf_row(
-        "omnivoice-0.6b", "OmniVoice 0.6B", ("multi",),
+        "omnivoice-0.6b", "OmniVoice 0.6B",
+        ("af", "am", "ar", "az", "bg", "bn", "bs", "ca", "cs", "cy", "da", "de", "el", "en", "es",
+         "et", "fa", "fi", "fil", "fr", "gl", "gu", "he", "hi", "hr", "hu", "id", "is", "it", "ja",
+         "jv", "ka", "kk", "km", "kn", "ko", "lb", "lo", "lt", "lv", "mk", "ml", "mn", "mr", "ms",
+         "mt", "my", "ne", "nl", "no", "pl", "ps", "pt", "ro", "ru", "si", "sk", "sl", "so", "sq",
+         "sr", "sv", "sw", "ta", "te", "th", "tr", "uk", "ur", "uz", "vi", "yue", "zh"),
         "omnivoice", "OmniVoice-GGUF",
         {"q8_0": ("omnivoice-q8_0.gguf", 1350288416),
          "bf16": ("omnivoice-bf16.gguf", 1639548640)},
