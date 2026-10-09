@@ -8,6 +8,7 @@ import { listAudioDevices, listSystemAudioSources } from '../lib/audio/devices';
 import { isVirtualDevice } from '../components/Settings/shared/hooks';
 import { isLoopbackInput } from '../utils/audioDevices';
 import { pickDefaultInputDevice, chooseInput, chooseOutput } from '../lib/audio/deviceChoice';
+import { DEFAULT_OUTLET_CHOICE, isChannelChoice, OUTLET_NAMES, type ChannelChoice, type OutletChoice, type OutletName } from '../lib/audio/outlets';
 
 export { pickDefaultInputDevice };
 
@@ -41,6 +42,10 @@ const STORAGE_KEYS = {
   // machine. Gates the "System Audio Recording" permission modal (#492).
   PARTICIPANT_TAP_AUDIO_SEEN: 'audio.participantTapAudioSeen',
 };
+
+/** Per outlet (spec 2026-10-10 §3): `audio.outlet.<name>.device` and `.channel`. */
+const outletKey = (name: OutletName, field: 'device' | 'channel') => `audio.outlet.${name}.${field}`;
+const defaultOutlets = (): Record<OutletName, OutletChoice> => ({ other: { ...DEFAULT_OUTLET_CHOICE }, me: { ...DEFAULT_OUTLET_CHOICE }, them: { ...DEFAULT_OUTLET_CHOICE } });
 
 export interface AudioDevice {
   deviceId: string;
@@ -132,6 +137,10 @@ interface AudioStore {
   setMode: (mode: AudioMode) => void;
   setOtherSide: (side: OtherSide) => void;
   setBothPopoverSeen: (seen: boolean) => void;
+  /** Each spoken row's output: a device (null: the default playback device) and a channel. */
+  outlets: Record<OutletName, OutletChoice>;
+  setOutletDevice: (name: OutletName, device: string | null) => void;
+  setOutletChannel: (name: OutletName, channel: ChannelChoice) => void;
   setMicMuted: (muted: boolean) => void;
   setMonitorMuted: (muted: boolean) => void;
   setParticipantMuted: (muted: boolean) => void;
@@ -177,6 +186,7 @@ const useAudioStore = create<AudioStore>()(
     mode: 'speaker' as AudioMode,
     otherSide: 'meeting' as OtherSide,
     bothPopoverSeen: false,
+    outlets: defaultOutlets(),
     isMicMuted: false,      // default: mic unmuted
     isMonitorMuted: true,   // default: monitor off (opt-in audio)
     isParticipantMuted: false, // default: participant unmuted
@@ -284,6 +294,14 @@ const useAudioStore = create<AudioStore>()(
     setBothPopoverSeen: (seen) => {
       set({ bothPopoverSeen: seen });
       void persistSetting(STORAGE_KEYS.BOTH_POPOVER_SEEN, seen);
+    },
+    setOutletDevice: (name, device) => {
+      set((state) => ({ outlets: { ...state.outlets, [name]: { ...state.outlets[name], device } } }));
+      void persistSetting(outletKey(name, 'device'), device);
+    },
+    setOutletChannel: (name, channel) => {
+      set((state) => ({ outlets: { ...state.outlets, [name]: { ...state.outlets[name], channel } } }));
+      void persistSetting(outletKey(name, 'channel'), channel);
     },
 
     setMode: (target) => {
@@ -468,6 +486,15 @@ const useAudioStore = create<AudioStore>()(
         const savedBothPopoverSeen = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.BOTH_POPOVER_SEEN, null);
         set({ bothPopoverSeen: savedBothPopoverSeen === true });
 
+        const outlets = defaultOutlets();
+        for (const name of OUTLET_NAMES) {
+          const device = await settingsService.getSetting<unknown>(outletKey(name, 'device'), null);
+          const channel = await settingsService.getSetting<unknown>(outletKey(name, 'channel'), 'auto');
+          // A device that is not plugged in stays stored: `resolveOutlet` follows the default until it returns.
+          outlets[name] = { device: typeof device === 'string' && device !== '' ? device : null, channel: isChannelChoice(channel) ? channel : 'auto' };
+        }
+        set({ outlets });
+
         const savedIsMicMuted = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.IS_MIC_MUTED, null);
         if (typeof savedIsMicMuted === 'boolean') {
           set({ isMicMuted: savedIsMicMuted });
@@ -643,6 +670,9 @@ export const useOtherSide = () => useAudioStore((state) => state.otherSide);
 export const useBothPopoverSeen = () => useAudioStore((state) => state.bothPopoverSeen);
 export const useSetBothPopoverSeen = () => useAudioStore((state) => state.setBothPopoverSeen);
 export const useSetOtherSide = () => useAudioStore((state) => state.setOtherSide);
+export const useOutlets = () => useAudioStore((state) => state.outlets);
+export const useSetOutletDevice = () => useAudioStore((state) => state.setOutletDevice);
+export const useSetOutletChannel = () => useAudioStore((state) => state.setOutletChannel);
 export const useSetMicMuted = () => useAudioStore((state) => state.setMicMuted);
 export const useSetMonitorMuted = () => useAudioStore((state) => state.setMonitorMuted);
 export const useSetParticipantMuted = () => useAudioStore((state) => state.setParticipantMuted);
