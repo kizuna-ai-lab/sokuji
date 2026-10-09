@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Headphones } from 'lucide-react';
+import { FaceToFaceIcon } from '../FaceToFace/FaceToFaceIcon';
 import { SideMeIcon, SideOtherIcon, SideBothIcon } from '../Icons/SideIcons';
 import './ModePicker.scss';
 
@@ -108,7 +108,7 @@ const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForM
             {seg === 'both' && faceToFace && (
               <span className="mode-picker__tag" title={faceToFaceTag}>
                 <span className="mode-picker__tag-word">{faceToFaceTag}</span>
-                <span className="mode-picker__tag-glyph" aria-hidden="true"><Headphones size={12} aria-hidden="true" /></span>
+                <span className="mode-picker__tag-glyph" aria-hidden="true"><FaceToFaceIcon size={12} aria-hidden="true" /></span>
               </span>
             )}
           </button>

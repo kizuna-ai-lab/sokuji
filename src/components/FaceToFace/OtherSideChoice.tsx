@@ -1,5 +1,5 @@
 import React, { useId } from 'react';
-import { Users } from 'lucide-react';
+import { FaceToFaceIcon } from './FaceToFaceIcon';
 import { useTranslation } from 'react-i18next';
 import { useOtherSide, useSetOtherSide } from '../../stores/audioStore';
 import './OtherSideChoice.scss';
@@ -24,7 +24,7 @@ const OtherSideChoice: React.FC<OtherSideChoiceProps> = ({ locked, className }) 
   return (
     <div className={`other-side-choice${className ? ` ${className}` : ''}`}>
       <div id={headingId} className="other-side-choice__heading">
-        <Users size={14} className="other-side-choice__icon" aria-hidden="true" />
+        <FaceToFaceIcon size={14} className="other-side-choice__icon" aria-hidden="true" />
         <span className="other-side-choice__label">{t('popover.otherSide', 'Other side')}</span>
       </div>
       <div className={`other-side-choice__sides${locked ? ' other-side-choice__sides--locked' : ''}`} role="radiogroup" aria-labelledby={headingId}>
