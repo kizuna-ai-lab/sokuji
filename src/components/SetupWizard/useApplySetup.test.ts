@@ -67,8 +67,8 @@ describe("useApplySetup's applyProvider (review Minor 4)", () => {
 
     await result.current(draft({}));
 
-    expect(useProviderStore.getState().selected).toBe('localInference');
-    expect(useProviderStore.getState().entries.localInference?.pair).toEqual({ source: 'en', target: 'ja' });
+    expect(useProviderStore.getState().selected).toBe('local_inference');
+    expect(useProviderStore.getState().entries.local_inference?.pair).toEqual({ source: 'en', target: 'ja' });
     expect(setSetting).toHaveBeenCalledWith('settings.common.provider', 'local_inference');
     expect(setSetting).toHaveBeenCalledWith('settings.common.sourceLanguage', 'en');
     expect(setSetting).toHaveBeenCalledWith('settings.common.targetLanguage', 'ja');
@@ -95,7 +95,7 @@ describe("useApplySetup's applyProvider (review Minor 4)", () => {
 
     await result.current(draft({ providerPath: 'own-key', credentials: { apiKey: 'sk-1' } }));
 
-    expect(useProviderStore.getState().entries.localInference?.credentials).toEqual({});
+    expect(useProviderStore.getState().entries.local_inference?.credentials).toEqual({});
     expect(setSetting).not.toHaveBeenCalledWith('settings.localInference.apiKey', expect.anything());
   });
 

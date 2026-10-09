@@ -147,6 +147,7 @@
     "ttsSpeed": "Bilis ng Pagsasalita",
     "vadSettings": "Mga Setting ng VAD",
     "vadSettingsTooltip": "Voice Activity Detection configuration. Ayusin ang mga setting na ito para ma-optimize ang speech detection para sa iyong kapaligiran.",
+    "vadRestoreDefaults": "I-reset",
     "vadThresholdTooltip": "Sensitivity ng speech detection. Ang mas mataas na halaga ay nangangailangan ng mas malakas/malinaw na pagsasalita. Ang mas mababang halaga ay mas sensitibo sa mahihinang pagsasalita.",
     "vadNegativeThreshold": "Prag ng Katahimikan",
     "vadNegativeThresholdTooltip": "Probabilidad kung saan magsisimulang bilangin ang katahimikan tungo sa pagtatapos ng segment. Pinapanatili ito ng Awtomatiko na 0.15 na mas mababa kaysa sa VAD Threshold. Hindi ito kailanman inilalapat nang mas mataas sa VAD Threshold, dahil hindi na matatapos ang mga segment.",
@@ -157,6 +158,16 @@
     "vadMaxSpeechDurationTooltip": "Pinakamahabang tagal ng isang segment ng pagsasalita bago ito hatiin. May mga modelong mas maagang naghahati, sa pinakamahabang segment na tumpak nilang naisusulat.",
     "vadPreSpeechPadDuration": "Palugit Bago Magsalita",
     "vadPreSpeechPadDurationTooltip": "Itinatabi rin ang audio bago pa ma-detect ang pagsasalita, para hindi maputol ang unang tunog ng pangungusap. Ang mas mataas na halaga ay nagpapadala rin sa pagkilala ng mas maraming ingay bago ka magsalita.",
+    "smartTurn": "Matalino",
+    "smartTurnCheckAfter": "Suriin Pagkatapos",
+    "smartTurnCheckAfterTooltip": "Gaano katagal ang isang paghinto bago suriin ng Smart Turn kung tapos ka nang magsalita. Kung tapos na, agad na magtatapos ang segment sa halip na hintayin ang Pinakamahabang Paghihintay.",
+    "smartTurnThreshold": "Prag ng Pagtatapos ng Turno",
+    "smartTurnThresholdTooltip": "Gaano dapat katiyak ang Smart Turn na tapos ka na bago nito tapusin ang segment. Ang mas mababang value ay nagtatapos ng mas maraming segment nang maaga, pero mas madalas ding pumuputol sa mga paghinto sa gitna ng pangungusap.",
+    "smartTurnMaxWait": "Pinakamahabang Paghihintay",
+    "smartTurnMaxWaitTooltip": "Ang pinakamahabang katahimikan bago magtapos ang isang segment kapag hindi ito tinapos muna ng Smart Turn.",
+    "smartTurnDownloading": "Dina-download ang Smart Turn model: {{done}} sa {{total}}",
+    "smartTurnDownloadFailed": "Nabigo ang pag-download ng Smart Turn model: {{error}}",
+    "smartTurnModelOnDisk": "Smart Turn model: {{size}}",
     "vadMinSpeechDuration": "Min. Tagal ng Pagsasalita",
     "vadMinSpeechDurationTooltip": "Minimum na tagal para ituring na valid na pagsasalita. Sinasala ang napakaikling tunog tulad ng mga click o ubo.",
     "geminiVadTooltip": "Kinokontrol kung paano natutuklas ng Gemini ang mga pag-pause sa pagsasalita upang hatiin ang mga turn. Ang pag-aayos ng mga setting na ito ay maaaring mapabuti ang pagiging responsibo ng pagsasalin para sa tuloy-tuloy na pagsasalita. \nPush-to-Talk: pindutin nang matagal ang isang key para magpadala ng audio. \nPush-to-Translate: tulad ng Push-to-Talk, ngunit ipinapadala ang iyong raw mic sa virtual mic kapag idle para makapagsalita ka nang direkta nang walang pagsasalin.",
@@ -904,7 +915,8 @@
       "fullscreen": "Fullscreen",
       "exitFullscreen": "Lumabas sa fullscreen",
       "lock": "I-lock ang posisyon at sukat",
-      "exit": "Lumabas sa subtitle mode"
+      "exit": "Lumabas sa subtitle mode",
+      "backToMainTitle": "Bumalik sa pangunahing window (Esc)"
     },
     "settings": {
       "bgOpacity": "Opacity ng background",
@@ -1263,7 +1275,8 @@
       },
       "subtitle": {
         "title": "Subtitle mode",
-        "content": "Nagbubukas ng lumulutang na subtitle view — isang window sa desktop, isang overlay sa page sa extension. Makukuha ito ng OBS at screen sharing."
+        "content_electron": "Pinapaliit ang window na ito para maging lumulutang na subtitle bar na makukuha ng OBS at screen sharing. Ang “Bumalik sa pangunahing window” sa bar, o Esc, ang magbabalik sa window.",
+        "content_extension": "Nagbubukas ng lumulutang na subtitle bilang overlay sa page. Makukuha ito ng OBS at screen sharing."
       },
       "account": {
         "title": "Ang inyong account",

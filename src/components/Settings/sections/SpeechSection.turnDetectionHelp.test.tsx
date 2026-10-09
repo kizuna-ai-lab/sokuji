@@ -31,7 +31,7 @@ const originalResolve = useModelStore.getState().resolve;
 const originalSetUIMode = useSettingsStore.getState().setUIMode;
 
 beforeEach(() => {
-  useProviderStore.setState({ selected: 'localInference', entries: { localInference: localEntry() }, readiness: {} });
+  useProviderStore.setState({ selected: 'local_inference', entries: { local_inference: localEntry() }, readiness: {} });
   useSettingsStore.setState({ settingsNavigationTarget: null, setUIMode: originalSetUIMode } as Partial<ReturnType<typeof useSettingsStore.getState>>);
   useTurnModeStore.setState({ turnMode: 'auto' });
   asr.entry = { type: 'asr', asrWorkerType: 'whisper-webgpu' };

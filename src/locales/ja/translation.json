@@ -147,6 +147,7 @@
     "ttsSpeed": "話速",
     "vadSettings": "VAD設定",
     "vadSettingsTooltip": "音声活動検出の設定。環境に合わせて音声検出を最適化するためにこれらの設定を調整してください。",
+    "vadRestoreDefaults": "デフォルトに戻す",
     "vadThresholdTooltip": "音声検出の感度。値が高いほど認識にはっきりした声が必要になります。値が低いほど小さな声にも反応します。",
     "vadNegativeThreshold": "沈黙のしきい値",
     "vadNegativeThresholdTooltip": "この確率を下回ると、無音がセグメント終了のためにカウントされ始めます。自動では VADしきい値 より 0.15 低い値に保たれます。VADしきい値 より高い値が適用されることはありません。その場合、セグメントが終わらなくなるためです。",
@@ -157,6 +158,16 @@
     "vadMaxSpeechDurationTooltip": "1つの発話区間が分割されるまでの最長時間。モデルによっては、正しく文字起こしできる最長の長さでそれより早く分割します。",
     "vadPreSpeechPadDuration": "発話前バッファ",
     "vadPreSpeechPadDurationTooltip": "音声を検出する直前の音もあわせて残し、文の最初の音が欠けないようにします。長くすると、話し始める前の雑音も認識に渡されやすくなります。",
+    "smartTurn": "スマート",
+    "smartTurnCheckAfter": "判定開始までの無音",
+    "smartTurnCheckAfterTooltip": "Smart Turn が話し終えたかどうかを確認するまでの無音の長さ。話し終えていれば、最大待機時間を待たずにすぐ区切ります。",
+    "smartTurnThreshold": "話し終わりのしきい値",
+    "smartTurnThresholdTooltip": "区切る前に、Smart Turn が話し終えたとどれだけ確信している必要があるか。低くすると早めに区切れる文が増えますが、文の途中の間で区切ることも増えます。",
+    "smartTurnMaxWait": "最大待機時間",
+    "smartTurnMaxWaitTooltip": "Smart Turn が先に区切らなかったときに、区切るまで待つ最長の無音時間。",
+    "smartTurnDownloading": "Smart Turn モデルをダウンロード中 {{done}} / {{total}}",
+    "smartTurnDownloadFailed": "Smart Turn モデルのダウンロードに失敗しました: {{error}}",
+    "smartTurnModelOnDisk": "Smart Turn モデル：{{size}}",
     "vadMinSpeechDuration": "最小発話時間",
     "vadMinSpeechDurationTooltip": "有効な発話として認識する最小時間。クリック音や咳などの短い音をフィルタリングします。",
     "geminiVadTooltip": "Geminiが発話の区切りを検出する方法を制御します。この設定を調整することで、継続的な発話に対する翻訳の応答性を改善できます。\nプッシュトゥトーク：キーを押している間に音声を送信します。\nプッシュトゥトランスレート：プッシュトゥトークと同様ですが、アイドル時に生のマイク音声を仮想マイクへパススルーするので、翻訳せずに直接話せます。",
@@ -904,7 +915,8 @@
       "fullscreen": "全画面表示",
       "exitFullscreen": "全画面表示を終了",
       "lock": "位置とサイズをロック",
-      "exit": "字幕モードを終了"
+      "exit": "字幕モードを終了",
+      "backToMainTitle": "メイン画面に戻る (Esc)"
     },
     "settings": {
       "bgOpacity": "背景の透明度",
@@ -1263,7 +1275,8 @@
       },
       "subtitle": {
         "title": "字幕モード",
-        "content": "フローティング字幕を開きます——デスクトップでは別ウィンドウ、拡張機能ではページ上のオーバーレイです。OBS や画面共有でキャプチャできます。"
+        "content_electron": "このウィンドウをフローティング字幕バーに縮小します。OBS や画面共有でキャプチャできます。バーの「メイン画面に戻る」か Esc キーで元のウィンドウに戻ります。",
+        "content_extension": "ページ上にフローティング字幕をオーバーレイ表示します。OBS や画面共有でキャプチャできます。"
       },
       "account": {
         "title": "アカウント",

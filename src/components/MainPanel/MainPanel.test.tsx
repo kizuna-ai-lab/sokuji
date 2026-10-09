@@ -298,7 +298,7 @@ describe('MainPanel', () => {
     try {
       await act(async () => {
         // Selected, not loaded: the gate shuts, and the button is not drawn off yet.
-        useProviderStore.setState({ selected: 'localInference' });
+        useProviderStore.setState({ selected: 'local_inference' });
         expect(getAppSession().subtitle.get().canStart).toBe(false);
         expect(mainAction(container).disabled).toBe(false);
         fireEvent.click(mainAction(container));

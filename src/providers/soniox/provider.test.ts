@@ -38,7 +38,6 @@ describe('sonioxProvider', () => {
       guideUrl: 'https://sokuji.kizuna.ai/docs/tutorials/soniox-setup',
     });
     expect(sonioxProvider.flagged).toBeUndefined();
-    expect(sonioxProvider.i18nKey).toBeUndefined();
     expect(sonioxProvider.icon).toBe(SonioxIcon);
     // An own key names no vendor: that is a managed provider's (Kizuna Soniox, Plan B).
     expect(sonioxProvider).not.toHaveProperty('vendor');

@@ -138,4 +138,15 @@ describe('defaultEngines over the real engine classes', () => {
       await expect(generating).rejects.toThrow('tts crashed');
     });
   });
+
+  it('ASR: a Smart Turn port reaches the vad-web worker in its init message, transferred', async () => {
+    const asr = defaultEngines.asr({ modelId: 'granite-speech', streaming: false });
+    const { port1, port2 } = new MessageChannel();
+    const worker = await ready(asr.init('granite-speech', { vadConfig: vad, language: 'ja', turnPort: port1 }));
+    const call = worker.postMessage.mock.calls.find((c) => (c[0] as { type?: string }).type === 'init')!;
+    expect((call[0] as { turnPort?: MessagePort }).turnPort).toBe(port1);
+    expect(call[1]).toEqual([port1]);
+    port1.close();
+    port2.close();
+  });
 });

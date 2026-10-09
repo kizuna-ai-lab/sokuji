@@ -10,7 +10,7 @@
  * - granite-speech-webgpu (module Worker): VAD + Granite Speech via Transformers.js/WebGPU
  */
 
-import type { AsrWorkerOutMessage, StreamingAsrWorkerOutMessage, VadWebConfig } from '../types';
+import type { AsrWorkerOutMessage, SegmentEnd, StreamingAsrWorkerOutMessage, VadWebConfig } from '../types';
 import {
   getManifestEntry,
   getManifestByType,
@@ -20,7 +20,7 @@ import {
 import { ModelManager } from '../ModelManager';
 import { WorkerSession } from './WorkerSession';
 
-export interface AsrResult {
+export interface AsrResult extends Partial<SegmentEnd> {
   text: string;
   startSample?: number;
   durationMs: number;
@@ -52,9 +52,10 @@ export class AsrEngine {
    * Downloads WASM and model data, creates VAD + OfflineRecognizer.
    *
    * @param modelId - Model identifier (e.g. 'sensevoice-int8', 'moonshine-tiny-en-quant')
+   * @param turnPort - Smart Turn's port for a vad-web worker, transferred with its init message
    * @returns Promise that resolves with load time when ready
    */
-  async init(modelId: string, vadConfig?: VadWebConfig, language?: string, taskConfig?: { task: 'transcribe' | 'translate'; targetLanguage?: string }): Promise<{ loadTimeMs: number }> {
+  async init(modelId: string, vadConfig?: VadWebConfig, language?: string, taskConfig?: { task: 'transcribe' | 'translate'; targetLanguage?: string }, turnPort?: MessagePort): Promise<{ loadTimeMs: number }> {
     const model = getManifestEntry(modelId);
     if (!model || model.type !== 'asr') {
       const available = getManifestByType('asr').map(m => m.id).join(', ');
@@ -184,6 +185,10 @@ export class AsrEngine {
               startSample: 'startSample' in msg ? msg.startSample : undefined,
               durationMs: msg.durationMs,
               recognitionTimeMs: msg.recognitionTimeMs,
+              ...('endedBy' in msg && msg.endedBy ? { endedBy: msg.endedBy } : {}),
+              ...('smartTurnProbability' in msg && msg.smartTurnProbability !== undefined
+                ? { smartTurnProbability: msg.smartTurnProbability }
+                : {}),
             });
             break;
 
@@ -210,7 +215,8 @@ export class AsrEngine {
         dtype,
         ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
         vadModelUrl: new URL('./wasm/vad/silero_vad_v5.onnx', window.location.href).href,
-      });
+        turnPort,
+      }, turnPort ? [turnPort] : undefined);
     } else if (workerType === 'granite-speech-webgpu') {
       ready = await session.start({
         type: 'init',
@@ -223,7 +229,8 @@ export class AsrEngine {
         dtype,
         ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
         vadModelUrl: new URL('./wasm/vad/silero_vad_v5.onnx', window.location.href).href,
-      });
+        turnPort,
+      }, turnPort ? [turnPort] : undefined);
     } else {
       // sherpa-onnx: dataFileUrls/dataPackageMetadata were loaded above,
       // before the WorkerSession was constructed.

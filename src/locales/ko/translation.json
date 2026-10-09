@@ -147,6 +147,7 @@
     "ttsSpeed": "말하기 속도",
     "vadSettings": "VAD 설정",
     "vadSettingsTooltip": "음성 활동 감지 설정. 환경에 맞게 음성 감지를 최적화하려면 이 설정을 조정하세요.",
+    "vadRestoreDefaults": "기본값으로 복원",
     "vadThresholdTooltip": "음성 감지 민감도. 값이 높을수록 인식을 위해 더 크고 명확한 음성이 필요합니다. 값이 낮을수록 조용한 음성에 더 민감합니다.",
     "vadNegativeThreshold": "침묵 임계값",
     "vadNegativeThresholdTooltip": "이 확률 아래로 내려가면 무음이 구간 종료를 위해 카운트되기 시작합니다. 자동은 VAD 임계값보다 0.15 낮게 유지합니다. VAD 임계값보다 높게 적용되는 일은 없습니다. 그러면 구간이 끝나지 않기 때문입니다.",
@@ -157,6 +158,16 @@
     "vadMaxSpeechDurationTooltip": "하나의 발화 구간이 분할되기까지의 최대 길이입니다. 일부 모델은 정확하게 전사할 수 있는 최대 길이에서 더 일찍 분할합니다.",
     "vadPreSpeechPadDuration": "발화 전 버퍼",
     "vadPreSpeechPadDurationTooltip": "음성이 감지되기 직전의 소리도 함께 남겨 문장의 첫소리가 잘리지 않게 합니다. 값을 크게 하면 말하기 전의 잡음도 인식에 더 많이 전달됩니다.",
+    "smartTurn": "스마트",
+    "smartTurnCheckAfter": "판단 전 대기",
+    "smartTurnCheckAfterTooltip": "Smart Turn이 말을 마쳤는지 확인하기까지의 멈춤 길이입니다. 말을 마쳤다면 최대 대기 시간을 기다리지 않고 바로 구간을 끝냅니다.",
+    "smartTurnThreshold": "턴 종료 임계값",
+    "smartTurnThresholdTooltip": "구간을 끝내기 전에 Smart Turn이 말을 마쳤다고 얼마나 확신해야 하는지 정합니다. 낮을수록 더 많은 구간이 일찍 끝나지만, 문장 중간의 멈춤에서 끊기는 경우도 늘어납니다.",
+    "smartTurnMaxWait": "최대 대기 시간",
+    "smartTurnMaxWaitTooltip": "Smart Turn이 먼저 구간을 끝내지 않았을 때 구간이 끝나기까지 기다리는 가장 긴 무음 시간입니다.",
+    "smartTurnDownloading": "Smart Turn 모델 다운로드 중 {{done}} / {{total}}",
+    "smartTurnDownloadFailed": "Smart Turn 모델 다운로드 실패: {{error}}",
+    "smartTurnModelOnDisk": "Smart Turn 모델: {{size}}",
     "vadMinSpeechDuration": "최소 발화 시간",
     "vadMinSpeechDurationTooltip": "유효한 음성으로 인식하기 위한 최소 시간. 클릭이나 기침과 같은 매우 짧은 소리를 필터링합니다.",
     "geminiVadTooltip": "Gemini가 발화 구분을 위해 음성 중단을 감지하는 방식을 제어합니다. 이 설정을 조정하면 연속적인 발화에 대한 번역 응답성을 향상시킬 수 있습니다. \n푸시 투 토크: 키를 눌러 오디오를 전송합니다. \n푸시 투 트랜슬레이트: 푸시 투 토크와 비슷하지만, 유휴 상태일 때 원본 마이크 오디오를 가상 마이크로 패스스루하여 번역 없이 직접 말할 수 있습니다.",
@@ -904,7 +915,8 @@
       "fullscreen": "전체 화면",
       "exitFullscreen": "전체 화면 종료",
       "lock": "위치 및 크기 잠금",
-      "exit": "자막 모드 종료"
+      "exit": "자막 모드 종료",
+      "backToMainTitle": "메인 창으로 돌아가기 (Esc)"
     },
     "settings": {
       "bgOpacity": "배경 투명도",
@@ -1263,7 +1275,8 @@
       },
       "subtitle": {
         "title": "자막 모드",
-        "content": "떠 있는 자막 화면을 엽니다 — 데스크톱에서는 창으로, 확장 프로그램에서는 페이지 위 오버레이로 표시됩니다. OBS와 화면 공유로 캡처할 수 있습니다."
+        "content_electron": "이 창을 떠 있는 자막 바로 줄입니다. OBS와 화면 공유로 캡처할 수 있습니다. 바의 ‘메인 창으로 돌아가기’를 누르거나 Esc 키를 누르면 원래 창으로 돌아옵니다.",
+        "content_extension": "페이지 위에 떠 있는 자막을 오버레이로 표시합니다. OBS와 화면 공유로 캡처할 수 있습니다."
       },
       "account": {
         "title": "내 계정",

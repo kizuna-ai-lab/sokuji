@@ -62,7 +62,7 @@ describe('the Palabra AI definition', () => {
       describe: describePalabra,
     });
     // No `legacyKeys`, nothing converted (ruling 2); unflagged (ruling 14).
-    for (const absent of ['flagged', 'i18nKey', 'session', 'participantSpeech', 'testerSwitch'] as const) expect(palabraProvider, absent).not.toHaveProperty(absent);
+    for (const absent of ['flagged', 'session', 'participantSpeech', 'testerSwitch'] as const) expect(palabraProvider, absent).not.toHaveProperty(absent);
     expect(palabraProvider.settings).not.toHaveProperty('legacyKeys');
     expect(palabraProvider.TurnDetection).not.toHaveProperty('Help');
   });

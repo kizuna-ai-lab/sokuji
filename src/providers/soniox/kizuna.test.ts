@@ -35,7 +35,6 @@ describe('kizunaSonioxProvider', () => {
     });
     expect(kizunaSonioxProvider.guideUrl).toBeUndefined();
     expect(kizunaSonioxProvider.flagged).toBeUndefined();
-    expect(kizunaSonioxProvider.i18nKey).toBeUndefined();
     expect(kizunaSonioxProvider.settings).toEqual({ key: 'kizunaSoniox', defaults: SONIOX_DEFAULTS, migrate: migrateSonioxSettings });
     expect(kizunaSonioxProvider.icon).toBeTypeOf('function');
   });

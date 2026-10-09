@@ -10,8 +10,17 @@
  */
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, CircleHelp } from 'lucide-react';
+import { ChevronDown, ChevronRight, CircleHelp, RotateCcw, RotateCw, Trash2 } from 'lucide-react';
 import Tooltip from '../../Tooltip/Tooltip';
+import { formatBytes } from '../../../lib/local-inference/formatBytes';
+import {
+  SMART_TURN_CHECK_AFTER_RANGE,
+  SMART_TURN_MAX_WAIT_MIN,
+  SMART_TURN_THRESHOLD_RANGE,
+  effectiveCheckAfter,
+  type VadEndOfTurn,
+} from '../../../lib/turn/smartTurn';
+import './LocalSettingsControls.scss';
 
 export type SpeechMode = 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
 
@@ -97,6 +106,81 @@ export const SpeechModeControl: React.FC<{
   );
 };
 
+// ─── End of turn (LocalInference's Normal / Smart) ──────────────────────────
+
+export const EndOfTurnControl: React.FC<{
+  value: VadEndOfTurn;
+  onChange: (next: VadEndOfTurn) => void;
+  disabled: boolean;
+  /** While the Smart Turn model downloads. */
+  download?: { done: number; total: number };
+  /** Why the last download failed. */
+  error?: string | null;
+  onRetry?: () => void;
+  /** The model is on disk and may be deleted. */
+  deletable?: { bytes: number; onDelete: () => void };
+}> = ({ value, onChange, disabled, download, error, onRetry, deletable }) => {
+  const { t } = useTranslation();
+  const options: Array<[VadEndOfTurn, string]> = [
+    ['normal', t('settings.normal', 'Normal')],
+    ['smart', t('settings.smartTurn', 'Smart')],
+  ];
+  return (
+    <>
+      <div className="setting-item">
+        <div className="turn-detection-options">
+          {options.map(([mode, label]) => (
+            <button
+              key={mode}
+              type="button"
+              className={`option-button ${value === mode ? 'active' : ''}`}
+              onClick={() => onChange(mode)}
+              disabled={disabled || download !== undefined}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {deletable && (
+        <div className="setting-item end-of-turn__status end-of-turn__status--line">
+          <span className="end-of-turn__text">
+            {t('settings.smartTurnModelOnDisk', 'Smart Turn model: {{size}}', { size: formatBytes(deletable.bytes) })}
+          </span>
+          <button type="button" className="end-of-turn__action" onClick={deletable.onDelete} disabled={disabled}>
+            <Trash2 size={12} />
+            <span>{t('models.delete', 'Delete')}</span>
+          </button>
+        </div>
+      )}
+      {download && (
+        <div className="setting-item end-of-turn__status">
+          <div className="end-of-turn__progress-bar">
+            <div className="end-of-turn__progress-fill" style={{ width: `${(download.done / download.total) * 100}%` }} />
+          </div>
+          <span className="end-of-turn__text">
+            {t('settings.smartTurnDownloading', 'Downloading the Smart Turn model: {{done}} of {{total}}', {
+              done: formatBytes(download.done),
+              total: formatBytes(download.total),
+            })}
+          </span>
+        </div>
+      )}
+      {error && (
+        <div className="setting-item end-of-turn__status end-of-turn__status--line">
+          <span className="end-of-turn__error">
+            {t('settings.smartTurnDownloadFailed', 'Smart Turn model download failed: {{error}}', { error })}
+          </span>
+          <button type="button" className="end-of-turn__action" onClick={onRetry} disabled={disabled}>
+            <RotateCw size={12} />
+            <span>{t('common.retry', 'Retry')}</span>
+          </button>
+        </div>
+      )}
+    </>
+  );
+};
+
 // ─── VAD sliders ─────────────────────────────────────────────────────────────
 
 export interface VadValues {
@@ -119,20 +203,76 @@ export interface VadValues {
   vadNegativeThreshold?: number;
   /** vad-web workers only — omit it and the slider is hidden. */
   vadPreSpeechPadDuration?: number;
+  /** Smart Turn only — omit both and their sliders are hidden and Min Silence keeps its name. */
+  smartTurnCheckAfter?: number;
+  smartTurnThreshold?: number;
 }
 
 export const VadControl: React.FC<{
   values: VadValues;
   onChange: (patch: Partial<VadValues>) => void;
   disabled: boolean;
-}> = ({ values, onChange, disabled }) => {
+  /** Rendered under the heading, above every slider. */
+  endOfTurn?: React.ReactNode;
+  /** Shown in the heading while a slider is off its default; omit it and the action is hidden. */
+  onRestoreDefaults?: () => void;
+}> = ({ values, onChange, disabled, endOfTurn, onRestoreDefaults }) => {
   const { t } = useTranslation();
+  const smart = values.smartTurnCheckAfter !== undefined && values.smartTurnThreshold !== undefined
+    ? { checkAfter: values.smartTurnCheckAfter, threshold: values.smartTurnThreshold }
+    : null;
+  const checkAfterMax = Math.max(
+    SMART_TURN_CHECK_AFTER_RANGE.min,
+    effectiveCheckAfter(SMART_TURN_CHECK_AFTER_RANGE.max, values.vadMinSilenceDuration) ?? 0,
+  );
+  const checkAfterUsed = smart ? effectiveCheckAfter(smart.checkAfter, values.vadMinSilenceDuration) : null;
   return (
     <div className="settings-section">
       <h2>
         {t('settings.vadSettings', 'VAD Settings')}
         <Tooltip content={t('settings.vadSettingsTooltip', 'Voice Activity Detection parameters. Controls how speech segments are detected and split. Changes take effect on next session start.')} position="top">{helpIcon}</Tooltip>
+        {onRestoreDefaults && (
+          <button type="button" className="vad-settings__restore" onClick={onRestoreDefaults} disabled={disabled}>
+            <RotateCcw size={12} />
+            <span>{t('settings.vadRestoreDefaults', 'Restore defaults')}</span>
+          </button>
+        )}
       </h2>
+      {endOfTurn}
+      {smart && (
+        <>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>
+                {t('settings.smartTurnCheckAfter', 'Turn Check After')}
+                <Tooltip content={t('settings.smartTurnCheckAfterTooltip', 'How long a pause lasts before Smart Turn checks whether you have finished speaking. If you have, the segment ends at once instead of waiting for Max Wait.')} position="top">{inlineHelpIcon}</Tooltip>
+              </span>
+              <span className="setting-value">{checkAfterUsed === null ? '—' : `${checkAfterUsed.toFixed(2)}s`}</span>
+            </div>
+            <input
+              type="range" min={SMART_TURN_CHECK_AFTER_RANGE.min} max={checkAfterMax} step={SMART_TURN_CHECK_AFTER_RANGE.step}
+              value={Math.min(smart.checkAfter, checkAfterMax)}
+              onChange={(e) => onChange({ smartTurnCheckAfter: parseFloat(e.target.value) })}
+              className="slider" disabled={disabled}
+            />
+          </div>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>
+                {t('settings.smartTurnThreshold', 'Turn Threshold')}
+                <Tooltip content={t('settings.smartTurnThresholdTooltip', 'How sure Smart Turn must be that you have finished before it ends the segment. Lower values end more segments early, but also cut more pauses in the middle of a sentence.')} position="top">{inlineHelpIcon}</Tooltip>
+              </span>
+              <span className="setting-value">{smart.threshold.toFixed(2)}</span>
+            </div>
+            <input
+              type="range" min={SMART_TURN_THRESHOLD_RANGE.min} max={SMART_TURN_THRESHOLD_RANGE.max} step={SMART_TURN_THRESHOLD_RANGE.step}
+              value={smart.threshold}
+              onChange={(e) => onChange({ smartTurnThreshold: parseFloat(e.target.value) })}
+              className="slider" disabled={disabled}
+            />
+          </div>
+        </>
+      )}
       <div className="setting-item">
         <div className="setting-label">
           <span>
@@ -172,13 +312,20 @@ export const VadControl: React.FC<{
       <div className="setting-item">
         <div className="setting-label">
           <span>
-            {t('settings.vadMinSilenceDuration', 'Min Silence Duration')}
-            <Tooltip content={t('settings.vadMinSilenceDurationTooltip', 'Minimum silence duration to split speech segments. Shorter values split sentences faster, longer values wait for more natural pauses.')} position="top">{inlineHelpIcon}</Tooltip>
+            {smart ? t('settings.smartTurnMaxWait', 'Max Wait') : t('settings.vadMinSilenceDuration', 'Min Silence Duration')}
+            <Tooltip
+              content={smart
+                ? t('settings.smartTurnMaxWaitTooltip', 'The longest silence before a segment ends when Smart Turn has not ended it first.')
+                : t('settings.vadMinSilenceDurationTooltip', 'Minimum silence duration to split speech segments. Shorter values split sentences faster, longer values wait for more natural pauses.')}
+              position="top"
+            >
+              {inlineHelpIcon}
+            </Tooltip>
           </span>
           <span className="setting-value">{values.vadMinSilenceDuration.toFixed(2)}s</span>
         </div>
         <input
-          type="range" min="0.05" max="2.0" step="0.05" value={values.vadMinSilenceDuration}
+          type="range" min={smart ? SMART_TURN_MAX_WAIT_MIN : 0.05} max="2.0" step="0.05" value={values.vadMinSilenceDuration}
           onChange={(e) => onChange({ vadMinSilenceDuration: parseFloat(e.target.value) })}
           className="slider" disabled={disabled}
         />

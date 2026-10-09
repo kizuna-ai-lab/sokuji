@@ -75,7 +75,7 @@ beforeEach(() => {
 
 describe('SimpleSettings — engine host', () => {
   it("a provider with an Engine and a set engineSlotTarget renders the engine page on that slot, and clears the signal", () => {
-    useProviderStore.setState({ selected: 'localInference' });
+    useProviderStore.setState({ selected: 'local_inference' });
     useSettingsStore.getState().setEngineSlotTarget({ dir: 'ja→en', stage: 'asr' });
 
     render(<SimpleSettings />);
@@ -89,7 +89,7 @@ describe('SimpleSettings — engine host', () => {
 
   it('renders the session banner above the engine page while the run is locked, and hands the page the lock', () => {
     run.locked = true;
-    useProviderStore.setState({ selected: 'localInference' });
+    useProviderStore.setState({ selected: 'local_inference' });
     useSettingsStore.getState().setEngineSlotTarget({ dir: 'ja→en', stage: 'asr' });
 
     const { container } = render(<SimpleSettings />);
@@ -103,7 +103,7 @@ describe('SimpleSettings — engine host', () => {
   });
 
   it('the back row returns to the section list', () => {
-    useProviderStore.setState({ selected: 'localInference' });
+    useProviderStore.setState({ selected: 'local_inference' });
     useSettingsStore.getState().setEngineSlotTarget({ dir: 'ja→en', stage: 'asr' });
 
     render(<SimpleSettings />);

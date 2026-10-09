@@ -81,7 +81,7 @@ const { default: SimpleSettings } = await import('./SimpleSettings');
 beforeEach(async () => {
   useSettingsStore.setState({ engineSlotTarget: null });
   await useProviderStore.getState().load(localInferenceProvider);
-  useProviderStore.getState().select('localInference');
+  useProviderStore.getState().select('local_inference');
 });
 
 const sectionIds = () => {

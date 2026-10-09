@@ -147,6 +147,7 @@
     "ttsSpeed": "Vitesse de parole",
     "vadSettings": "Paramètres VAD",
     "vadSettingsTooltip": "Configuration de la détection d'activité vocale. Ajustez ces paramètres pour optimiser la détection vocale dans votre environnement.",
+    "vadRestoreDefaults": "Réinitialiser",
     "vadThresholdTooltip": "Sensibilité de détection vocale. Des valeurs plus élevées nécessitent une parole plus forte/claire. Des valeurs plus basses sont plus sensibles aux voix faibles.",
     "vadNegativeThreshold": "Seuil de Silence",
     "vadNegativeThresholdTooltip": "Probabilité en dessous de laquelle le silence commence à compter pour la fin d'un segment. Auto le maintient 0,15 sous le Seuil VAD. Il ne s'applique jamais au-dessus du Seuil VAD, sinon les segments ne se termineraient jamais.",
@@ -157,6 +158,16 @@
     "vadMaxSpeechDurationTooltip": "Durée maximale d'un segment de parole avant qu'il ne soit découpé. Certains modèles découpent plus tôt, au plus long segment qu'ils transcrivent correctement.",
     "vadPreSpeechPadDuration": "Marge avant la parole",
     "vadPreSpeechPadDurationTooltip": "Conserve l'audio juste avant la détection de la parole, pour ne pas couper le premier son d'une phrase. Une valeur plus élevée transmet aussi à la reconnaissance davantage du bruit qui précède votre prise de parole.",
+    "smartTurn": "Intelligent",
+    "smartTurnCheckAfter": "Vérifier après",
+    "smartTurnCheckAfterTooltip": "Durée d'une pause avant que Smart Turn vérifie si vous avez fini de parler. Si c'est le cas, le segment se termine aussitôt au lieu d'attendre l'attente max.",
+    "smartTurnThreshold": "Seuil de fin de tour",
+    "smartTurnThresholdTooltip": "À quel point Smart Turn doit être sûr que vous avez fini avant de terminer le segment. Des valeurs plus basses terminent plus de segments en avance, mais coupent aussi davantage de pauses en milieu de phrase.",
+    "smartTurnMaxWait": "Attente max.",
+    "smartTurnMaxWaitTooltip": "Le silence le plus long avant la fin d'un segment lorsque Smart Turn ne l'a pas terminé avant.",
+    "smartTurnDownloading": "Téléchargement du modèle Smart Turn : {{done}} sur {{total}}",
+    "smartTurnDownloadFailed": "Échec du téléchargement du modèle Smart Turn : {{error}}",
+    "smartTurnModelOnDisk": "Modèle Smart Turn : {{size}}",
     "vadMinSpeechDuration": "Durée min. de parole",
     "vadMinSpeechDurationTooltip": "Durée minimale pour considérer comme parole valide. Filtre les sons très courts comme les clics ou la toux.",
     "geminiVadTooltip": "Contrôle la façon dont Gemini détecte les pauses de parole pour diviser les tours. Ajuster ces paramètres peut améliorer la réactivité de la traduction pour la parole continue. \nAppuyer pour parler: maintenez une touche pour envoyer l'audio. \nAppuyer pour traduire: comme Appuyer pour parler, mais achemine votre micro brut vers le micro virtuel en veille pour que vous puissiez parler directement sans traduction.",
@@ -904,7 +915,8 @@
       "fullscreen": "Plein écran",
       "exitFullscreen": "Quitter le plein écran",
       "lock": "Verrouiller la position et la taille",
-      "exit": "Quitter le mode sous-titres"
+      "exit": "Quitter le mode sous-titres",
+      "backToMainTitle": "Retour à la fenêtre principale (Esc)"
     },
     "settings": {
       "bgOpacity": "Opacité du fond",
@@ -1263,7 +1275,8 @@
       },
       "subtitle": {
         "title": "Mode sous-titres",
-        "content": "Ouvre une vue de sous-titres flottante — une fenêtre sur le bureau, une superposition sur la page dans l'extension. OBS et le partage d'écran peuvent la capturer."
+        "content_electron": "Réduit cette fenêtre en une barre de sous-titres flottante, que l’on peut capturer avec OBS ou le partage d’écran. « Retour à la fenêtre principale » sur la barre, ou Esc, ramène la fenêtre.",
+        "content_extension": "Ouvre des sous-titres flottants en superposition sur la page. OBS et le partage d’écran peuvent les capturer."
       },
       "account": {
         "title": "Votre compte",

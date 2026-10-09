@@ -26,12 +26,14 @@ import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processo
 import { resolveVadThresholds } from './_shared/vad-thresholds';
 import { resolveMaxSpeechFrames } from './_shared/max-speech-frames';
 import { SileroInput, SILERO_INPUT_SAMPLES } from './_shared/silero-input';
+import { openTurnLink, type TurnLink } from './_shared/turn-gate';
 
 import type {
   CohereTranscribeAsrInitMessage,
   AsrAudioMessage,
   AsrDisposeMessage,
   StreamingAsrWorkerOutMessage,
+  SegmentEnd,
 } from '../types';
 import { bindCheckedWebGpuAdapter } from './shaderF16Gate';
 
@@ -75,6 +77,7 @@ interface VadSession {
 
 let vadSession: VadSession | null = null;
 let frameProcessor: FrameProcessor | null = null;
+let turnLink: TurnLink | null = null;
 let maxSpeechFrames = 625; // ~20s at 32ms/frame
 let speechFramesSinceStart = 0;
 
@@ -178,7 +181,7 @@ let currentTranscriptionPromise: Promise<void> | null = null;
  * ORT instance (`_shared/onnxruntime-all`) while the model runs on Transformers.js's — never
  * put a second session on the model's instance while a decode can be in flight (#469).
  */
-function scheduleTranscription(audio: Float32Array): Promise<void> {
+function scheduleTranscription(audio: Float32Array, end: SegmentEnd): Promise<void> {
   const previousTranscription = currentTranscriptionPromise;
   const promise = (async () => {
     if (previousTranscription) {
@@ -225,6 +228,7 @@ function scheduleTranscription(audio: Float32Array): Promise<void> {
           text,
           durationMs,
           recognitionTimeMs,
+          ...end,
         });
       }
     } catch (err: any) {
@@ -259,8 +263,13 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
       const events: FrameProcessorEvent[] = [];
       await frameProcessor.process(frame, (ev) => events.push(ev));
 
+      let speechProbability = 0;
       for (const ev of events) {
         switch (ev.msg) {
+          case Message.FrameProcessed:
+            speechProbability = ev.probs.isSpeech;
+            break;
+
           case Message.SpeechStart:
             speechFramesSinceStart = 0;
             post({ type: 'speech_start' });
@@ -272,12 +281,25 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
             // and the guard at the top of this function would drop the audio arriving
             // meanwhile (#470). `scheduleTranscription` serializes decodes via
             // `currentTranscriptionPromise`.
-            void scheduleTranscription(ev.audio);
+            void scheduleTranscription(ev.audio, { endedBy: 'silence' });
             break;
 
-          case Message.VADMisfire:
+          case Message.VADMisfire: {
             speechFramesSinceStart = 0;
+            // Kept when it follows a Smart end inside the wait Normal would have spanned.
+            const rescued = turnLink?.rescue();
+            if (rescued) void scheduleTranscription(rescued, { endedBy: 'kept' });
             break;
+          }
+        }
+      }
+
+      const smartTurnProbability = turnLink?.afterFrame(frame, speechProbability, frameProcessor.speaking) ?? null;
+      if (smartTurnProbability !== null) {
+        const endEvents: FrameProcessorEvent[] = [];
+        frameProcessor.endSegment((ev) => endEvents.push(ev));
+        for (const ev of endEvents) {
+          if (ev.msg === Message.SpeechEnd) void scheduleTranscription(ev.audio, { endedBy: 'smart', smartTurnProbability });
         }
       }
 
@@ -290,9 +312,10 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
           frameProcessor.endSegment((ev) => endEvents.push(ev));
           for (const ev of endEvents) {
             if (ev.msg === Message.SpeechEnd) {
-              void scheduleTranscription(ev.audio);
+              void scheduleTranscription(ev.audio, { endedBy: 'cap' });
             }
           }
+          turnLink?.reset();
           speechFramesSinceStart = 0;
         }
       } else {
@@ -323,6 +346,7 @@ async function handleInit(msg: CohereTranscribeAsrInitMessage): Promise<void> {
     // 1. Init VAD
     post({ type: 'status', message: 'Loading VAD model...' });
     await initVad(msg.vadConfig, msg.vadModelUrl);
+    turnLink = openTurnLink(msg.turnPort, msg.vadConfig, frameProcessor);
 
     // 2. Configure Transformers.js for IndexedDB blob URL cache
     initTransformersEnv(env, msg);
@@ -376,9 +400,13 @@ async function handleFlush(): Promise<void> {
     frameProcessor.endSegment((ev) => endEvents.push(ev));
     for (const ev of endEvents) {
       if (ev.msg === Message.SpeechEnd) {
-        void scheduleTranscription(ev.audio);
+        void scheduleTranscription(ev.audio, { endedBy: 'flush' });
+      } else if (ev.msg === Message.VADMisfire) {
+        const rescued = turnLink?.rescue();
+        if (rescued) void scheduleTranscription(rescued, { endedBy: 'kept' });
       }
     }
+    turnLink?.reset();
   }
   // Drain the chain: `scheduleTranscription` assigns `currentTranscriptionPromise` before
   // returning, so this picks up the decode just kicked off (behind anything already queued)
@@ -412,6 +440,8 @@ async function handleDispose(): Promise<void> {
 
   // Dispose FrameProcessor
   frameProcessor = null;
+  turnLink?.close();
+  turnLink = null;
   speechFramesSinceStart = 0;
 
   // Dispose VAD

@@ -5,7 +5,6 @@ import Tooltip from '../../Tooltip/Tooltip';
 import ToggleSwitch from '../shared/ToggleSwitch';
 import { ownProps, useSelectedProvider } from '../../providers/useSelectedProvider';
 import { useAnalytics } from '../../../lib/analytics';
-import { storedProviderValue } from '../../../lib/session/storedSettings';
 import type { TurnMode } from '../../../lib/session/types';
 import { presentProviders } from '../../../providers/registry';
 import { useMode } from '../../../stores/audioStore';
@@ -39,7 +38,7 @@ export function TurnModeControl({ locked }: { locked: boolean }) {
             disabled={locked}
             onClick={() => {
               if (mode === turnMode) return;
-              trackEvent('speech_mode_changed', { provider: storedProviderValue(selected ?? ''), from_mode: LEGACY_NAME[turnMode], to_mode: LEGACY_NAME[mode] });
+              trackEvent('speech_mode_changed', { provider: selected ?? '', from_mode: LEGACY_NAME[turnMode], to_mode: LEGACY_NAME[mode] });
               useTurnModeStore.getState().setTurnMode(mode);
             }}
           >

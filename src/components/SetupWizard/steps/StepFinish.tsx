@@ -14,7 +14,7 @@ const StepFinish: React.FC<Props> = ({ draft, isSignedIn, error }) => {
   const label = useLanguageLabel();
   const preset = getScenario(draft.scenario!);
   const p = wizardProvider(draft.provider)!;
-  const providerName = t(`providers.${p.i18nKey ?? p.id}.name`, p.id);
+  const providerName = t(`providers.${p.id}.name`, p.id);
   const sourceName = draft.sourceLanguage ? label(draft.sourceLanguage) : '';
   const targetName = draft.targetLanguage ? label(draft.targetLanguage) : '';
   // The pair reads as the sentence the pair step and Settings both print,

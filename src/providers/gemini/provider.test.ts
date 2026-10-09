@@ -56,7 +56,6 @@ describe('the Gemini definition', () => {
       describe: describeGemini,
     });
     expect(geminiProvider).not.toHaveProperty('flagged');
-    expect(geminiProvider).not.toHaveProperty('i18nKey');
   });
 
   it('speaks optionally, cuts on silence (parity), offers both turn modes, and needs no session hook', () => {
@@ -73,7 +72,7 @@ describe('the Gemini definition', () => {
   });
 
   it('sits after LocalInference (ruling 6)', () => {
-    expect(PROVIDERS.slice(0, 3).map((p) => p.id)).toEqual(['kizunaai_soniox', 'localInference', 'gemini']);
+    expect(PROVIDERS.slice(0, 3).map((p) => p.id)).toEqual(['kizunaai_soniox', 'local_inference', 'gemini']);
   });
 
   it("lets the participant speak when its switch is on, voiced with Gemini's own voice (ruling 5)", () => {

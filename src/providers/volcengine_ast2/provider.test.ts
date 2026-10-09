@@ -52,7 +52,7 @@ describe('the Doubao AST 2.0 definition', () => {
       build: buildAst2,
       describe: describeAst2,
     });
-    for (const absent of ['flagged', 'i18nKey', 'TurnDetection', 'session', 'participantSpeech'] as const) {
+    for (const absent of ['flagged', 'TurnDetection', 'session', 'participantSpeech'] as const) {
       expect(volcengineAst2Provider, absent).not.toHaveProperty(absent);
     }
   });

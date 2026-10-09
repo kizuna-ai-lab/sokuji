@@ -2,7 +2,8 @@ import { AsrEngine } from '../../lib/local-inference/engine/AsrEngine';
 import { StreamingAsrEngine } from '../../lib/local-inference/engine/StreamingAsrEngine';
 import { TranslationEngine, type TranslationResult } from '../../lib/local-inference/engine/TranslationEngine';
 import { TtsEngine, type AudioChunkCallback, type TtsResult } from '../../lib/local-inference/engine/TtsEngine';
-import type { VadWebConfig } from '../../lib/local-inference/types';
+import { turnRuntime, type TurnConnection } from '../../lib/turn/TurnRuntime';
+import type { SegmentEnd, VadWebConfig } from '../../lib/local-inference/types';
 import type { LocalInferenceConfig } from './config';
 
 /**
@@ -20,6 +21,8 @@ export interface AsrInit {
   translateTo?: string;
   /** The voxtral worker's own sentence endpoint (default on): off only while the adapter's stream shape seals — exactly one layer may cut. */
   punctuationEndpoint?: boolean;
+  /** Smart Turn's port: the vad-web worker asks it whether a pause ends the turn. */
+  turnPort?: MessagePort;
 }
 
 /** `AsrEngine` or `StreamingAsrEngine` behind one shape. */
@@ -30,7 +33,7 @@ export interface AsrLike {
   dispose(): void;
   /** The cumulative hypothesis for the utterance so far, never a delta. */
   onPartialResult: ((text: string) => void) | null;
-  onResult: ((result: { text: string; durationMs: number; recognitionTimeMs: number }) => void) | null;
+  onResult: ((result: { text: string; durationMs: number; recognitionTimeMs: number } & Partial<SegmentEnd>) => void) | null;
   onSpeechStart: (() => void) | null;
   /** An error message from the ready worker: one utterance failed, the engine goes on. */
   onError: ((error: string) => void) | null;
@@ -68,6 +71,8 @@ export interface LocalEngines {
   asr(config: LocalInferenceConfig['asr']): AsrLike;
   translation(): TranslationLike;
   tts(): TtsLike;
+  /** A connection to the Smart Turn worker; null when it cannot run. */
+  turn?: () => Promise<TurnConnection | null>;
 }
 
 function asrOver(engine: AsrEngine | StreamingAsrEngine): AsrLike {
@@ -77,11 +82,11 @@ function asrOver(engine: AsrEngine | StreamingAsrEngine): AsrLike {
     onSpeechStart: null,
     onError: null,
     onFatal: null,
-    async init(modelId, { vadConfig, language, translateTo, punctuationEndpoint }) {
+    async init(modelId, { vadConfig, language, translateTo, punctuationEndpoint, turnPort }) {
       if (engine instanceof StreamingAsrEngine) {
         await engine.init(modelId, { language, vadConfig, punctuationEndpoint: punctuationEndpoint ?? true });
       } else {
-        await engine.init(modelId, vadConfig, language, translateTo ? { task: 'translate', targetLanguage: translateTo } : undefined);
+        await engine.init(modelId, vadConfig, language, translateTo ? { task: 'translate', targetLanguage: translateTo } : undefined, turnPort);
       }
     },
     feedAudio: (samples, sampleRate) => engine.feedAudio(samples, sampleRate),
@@ -89,7 +94,7 @@ function asrOver(engine: AsrEngine | StreamingAsrEngine): AsrLike {
     dispose: () => engine.dispose(),
   };
   engine.onPartialResult = (text) => asr.onPartialResult?.(text);
-  engine.onResult = (result: { text: string; durationMs: number; recognitionTimeMs: number }) => asr.onResult?.(result);
+  engine.onResult = (result: { text: string; durationMs: number; recognitionTimeMs: number } & Partial<SegmentEnd>) => asr.onResult?.(result);
   engine.onSpeechStart = () => asr.onSpeechStart?.();
   // Two failures, kept apart by the engine's own hook: a ready worker's
   // `error` message is one chunk (the streaming worker resets and goes on);
@@ -103,4 +108,5 @@ export const defaultEngines: LocalEngines = {
   asr: (config) => asrOver(config.streaming ? new StreamingAsrEngine() : new AsrEngine()),
   translation: () => new TranslationEngine(),
   tts: () => new TtsEngine(),
+  turn: () => turnRuntime.connect(),
 };

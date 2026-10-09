@@ -106,21 +106,8 @@ export class LoopbackRecorder extends ParticipantRecorder {
         console.warn(`${this.getLogPrefix()} Failed to disable loopback audio:`, disableError);
       }
 
-      // Handle specific error types
-      if (error instanceof Error) {
-        if (error.name === 'NotAllowedError') {
-          console.warn(`${this.getLogPrefix()} User cancelled screen picker or permission denied`);
-          throw new Error('Screen capture permission denied. Please allow screen sharing to capture system audio.');
-        }
-        if (error.name === 'NotFoundError') {
-          console.warn(`${this.getLogPrefix()} No suitable capture source found`);
-          throw new Error('No screen source available for audio capture.');
-        }
-        if (error.name === 'NotSupportedError') {
-          console.warn(`${this.getLogPrefix()} getDisplayMedia not supported`);
-          throw new Error('System audio capture not supported. Ensure Electron is properly configured.');
-        }
-      }
+      // Rethrown as getDisplayMedia gave it: its kind is what the start failure
+      // shows, and words written for one platform misled on the others.
       throw error;
     }
   }

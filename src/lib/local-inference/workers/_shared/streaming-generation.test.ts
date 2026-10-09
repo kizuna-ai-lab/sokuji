@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { Tokenizer } from '@huggingface/tokenizers';
 import {
+  AudioPositionBudget,
   boundedBatchEndSample,
   promoteQueued,
   QueuedUtterance,
@@ -21,12 +22,51 @@ describe('tailPadSamples', () => {
   // Voxtral Realtime: AUDIO_LENGTH_PER_TOK(8) * whisper hop_length(160).
   const RAW_AUDIO_LENGTH_PER_TOK = 1280;
 
-  it('pads just past the model delay — about 560ms at 16kHz', () => {
-    expect(tailPadSamples(RAW_AUDIO_LENGTH_PER_TOK) / 16000).toBeCloseTo(0.56, 2);
+  it('pads the model delay plus the reference word-length buffer — 1.36 s at 16 kHz', () => {
+    expect(tailPadSamples(RAW_AUDIO_LENGTH_PER_TOK) / 16000).toBeCloseTo(1.36, 2);
   });
 
   it('has nothing to pad when the token length is unknown', () => {
     expect(tailPadSamples(0)).toBe(0);
+  });
+});
+
+describe('AudioPositionBudget', () => {
+  // A Voxtral Realtime prefill is 39 input ids over 39 audio tokens; every later audio
+  // token is one decoder step.
+  const PREFILL = 39;
+
+  it('keeps generating while another chunk can still arrive', () => {
+    const budget = new AudioPositionBudget(PREFILL);
+    budget.addChunk(39);
+    budget.addChunk(8);
+    for (let i = 0; i < 9; i++) budget.tokenSampled();
+    expect(budget.exhausted(false)).toBe(false);
+  });
+
+  it('stops once the token of the last audio position has been sampled', () => {
+    const budget = new AudioPositionBudget(PREFILL);
+    budget.addChunk(39);
+    budget.addChunk(8);
+    // The prefill forward samples token 1 from positions 0..38; tokens 2..9 consume 39..46.
+    for (let i = 0; i < 9; i++) budget.tokenSampled();
+    expect(budget.exhausted(true)).toBe(true);
+  });
+
+  it('does not stop one step short — the last audio position still has a token to give', () => {
+    const budget = new AudioPositionBudget(PREFILL);
+    budget.addChunk(39);
+    budget.addChunk(8);
+    for (let i = 0; i < 8; i++) budget.tokenSampled();
+    expect(budget.exhausted(true)).toBe(false);
+  });
+
+  it('stops on the step a late finish arrives, once every chunk was consumed', () => {
+    const budget = new AudioPositionBudget(PREFILL);
+    budget.addChunk(39);
+    for (let i = 0; i < 1; i++) budget.tokenSampled();
+    expect(budget.exhausted(false)).toBe(false);
+    expect(budget.exhausted(true)).toBe(true);
   });
 });
 

@@ -3,7 +3,9 @@
  * shapes (`engines.ts`). Each `init` stays pending until the test settles it.
  */
 import type { TranslationResult } from '../../lib/local-inference/engine/TranslationEngine';
+import type { TurnConnection } from '../../lib/turn/TurnRuntime';
 import type { TtsResult } from '../../lib/local-inference/engine/TtsEngine';
+import type { SegmentEnd } from '../../lib/local-inference/types';
 import type { AsrInit, AsrLike, LocalEngines, TranslationLike, TtsLike, TtsReady } from './engines';
 import type { LocalInferenceConfig } from './config';
 
@@ -55,7 +57,7 @@ export class FakeAsr implements AsrLike {
   dispose(): void { this.disposes++; }
 
   partial(text: string): void { this.onPartialResult?.(text); }
-  final(text: string): void { this.onResult?.({ text, durationMs: 1000, recognitionTimeMs: 100 }); }
+  final(text: string, end?: SegmentEnd): void { this.onResult?.({ text, durationMs: 1000, recognitionTimeMs: 100, ...end }); }
   speechStart(): void { this.onSpeechStart?.(); }
   /** An error message from the ready worker (one utterance). */
   fail(message: string): void { this.onError?.(message); }
@@ -182,16 +184,32 @@ export class FakeTts implements TtsLike {
   }
 }
 
+/** Smart Turn's runtime as the adapter sees it: a connection per ASR load, null when it cannot run. */
+export class FakeTurn {
+  connects = 0;
+  releases = 0;
+  available = true;
+  readonly port = {} as MessagePort;
+
+  connect(): Promise<TurnConnection | null> {
+    this.connects++;
+    if (!this.available) return Promise.resolve(null);
+    return Promise.resolve({ port: this.port, release: () => { this.releases++; } });
+  }
+}
+
 /** One of each fake, and the `LocalEngines` that hands them out; `created` lists what the adapter asked for. */
 export function createFakeEngines() {
   const asr = new FakeAsr();
   const translation = new FakeTranslation();
   const tts = new FakeTts();
+  const turn = new FakeTurn();
   const created: Array<'asr' | 'translation' | 'tts'> = [];
   const engines: LocalEngines = {
     asr: (config) => { created.push('asr'); asr.config = config; return asr; },
     translation: () => { created.push('translation'); return translation; },
     tts: () => { created.push('tts'); return tts; },
+    turn: () => turn.connect(),
   };
-  return { engines, asr, translation, tts, created };
+  return { engines, asr, translation, tts, turn, created };
 }

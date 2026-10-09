@@ -147,6 +147,7 @@
     "ttsSpeed": "Szybkość mowy",
     "vadSettings": "Ustawienia VAD",
     "vadSettingsTooltip": "Konfiguracja wykrywania aktywności głosowej. Dostosuj te ustawienia, aby zoptymalizować wykrywanie mowy w swoim środowisku.",
+    "vadRestoreDefaults": "Przywróć",
     "vadThresholdTooltip": "Czułość wykrywania mowy. Wyższe wartości wymagają głośniejszej/wyraźniejszej mowy. Niższe wartości są bardziej wrażliwe na cichą mowę.",
     "vadNegativeThreshold": "Próg Ciszy",
     "vadNegativeThresholdTooltip": "Prawdopodobieństwo, poniżej którego cisza zaczyna się liczyć do zakończenia segmentu. Auto utrzymuje go 0,15 poniżej Progu VAD. Nigdy nie jest stosowany powyżej Progu VAD, bo segmenty nigdy by się nie kończyły.",
@@ -157,6 +158,16 @@
     "vadMaxSpeechDurationTooltip": "Najdłuższy czas trwania pojedynczego segmentu mowy przed podziałem. Niektóre modele dzielą wcześniej, przy najdłuższym segmencie, który transkrybują poprawnie.",
     "vadPreSpeechPadDuration": "Margines przed mową",
     "vadPreSpeechPadDurationTooltip": "Zachowuje dźwięk tuż przed wykryciem mowy, aby nie ucinać pierwszego dźwięku zdania. Większe wartości przekazują też do rozpoznawania więcej szumu sprzed rozpoczęcia mówienia.",
+    "smartTurn": "Inteligentny",
+    "smartTurnCheckAfter": "Sprawdź po",
+    "smartTurnCheckAfterTooltip": "Jak długo trwa pauza, zanim Smart Turn sprawdzi, czy skończyłeś mówić. Jeśli tak, segment kończy się od razu, bez czekania na maks. oczekiwanie.",
+    "smartTurnThreshold": "Próg końca wypowiedzi",
+    "smartTurnThresholdTooltip": "Jak pewny musi być Smart Turn, że skończyłeś, zanim zakończy segment. Niższe wartości kończą wcześniej więcej segmentów, ale też częściej przerywają pauzy w środku zdania.",
+    "smartTurnMaxWait": "Maks. oczekiwanie",
+    "smartTurnMaxWaitTooltip": "Najdłuższa cisza przed zakończeniem segmentu, gdy Smart Turn nie zakończył go wcześniej.",
+    "smartTurnDownloading": "Pobieranie modelu Smart Turn: {{done}} z {{total}}",
+    "smartTurnDownloadFailed": "Pobieranie modelu Smart Turn nie powiodło się: {{error}}",
+    "smartTurnModelOnDisk": "Model Smart Turn: {{size}}",
     "vadMinSpeechDuration": "Min. czas mowy",
     "vadMinSpeechDurationTooltip": "Minimalna długość mowy uznawanej za prawidłową. Filtruje bardzo krótkie dźwięki, takie jak kliknięcia lub kaszel.",
     "geminiVadTooltip": "Kontroluje sposób wykrywania przez Gemini przerw w mowie w celu podziału na tury. Dostosowanie tych ustawień może poprawić szybkość reagowania tłumaczenia na ciągłą mowę. \nNaciśnij i mów: przytrzymaj klawisz, aby wysłać dźwięk. \nNaciśnij i tłumacz: jak Naciśnij i mów, ale w stanie bezczynności kieruje surowy mikrofon do wirtualnego mikrofonu, dzięki czemu możesz mówić bezpośrednio bez tłumaczenia.",
@@ -904,7 +915,8 @@
       "fullscreen": "Pełny ekran",
       "exitFullscreen": "Wyjdź z pełnego ekranu",
       "lock": "Zablokuj pozycję i rozmiar",
-      "exit": "Wyjdź z trybu napisów"
+      "exit": "Wyjdź z trybu napisów",
+      "backToMainTitle": "Powrót do okna głównego (Esc)"
     },
     "settings": {
       "bgOpacity": "Przezroczystość tła",
@@ -1263,7 +1275,8 @@
       },
       "subtitle": {
         "title": "Tryb napisów",
-        "content": "Otwiera unoszące się okno napisów — okno na pulpicie, nakładkę na stronie w rozszerzeniu. OBS i udostępnianie ekranu mogą je przechwycić."
+        "content_electron": "Zmniejsza to okno do pływającego paska napisów, który można przechwycić w OBS lub przy udostępnianiu ekranu. „Powrót do okna głównego” na pasku albo Esc przywraca okno.",
+        "content_extension": "Otwiera pływające napisy jako nakładkę na stronie. OBS i udostępnianie ekranu mogą je przechwycić."
       },
       "account": {
         "title": "Twoje konto",

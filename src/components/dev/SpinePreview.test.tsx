@@ -120,7 +120,7 @@ describe('SpinePreview', () => {
   // first) would otherwise leave `localInference` selected — this page's
   // probes must still land on the fake.
   it('opens on the fake even when localInference was left selected', async () => {
-    useProviderStore.setState({ selected: 'localInference' });
+    useProviderStore.setState({ selected: 'local_inference' });
     render(<SpinePreview />);
     expect(await screen.findByLabelText('Script')).toBeInTheDocument();
   });
@@ -129,7 +129,7 @@ describe('SpinePreview', () => {
   // the exception the mount effect carves out of ruling 10's default.
   it('selects the provider named by &provider= instead of the fake', async () => {
     const before = window.location.href;
-    window.history.replaceState(null, '', '/?preview=spine&provider=localInference');
+    window.history.replaceState(null, '', '/?preview=spine&provider=local_inference');
     try {
       render(<SpinePreview />);
       // This page's i18n mock returns the raw key (no fallback), unlike
@@ -307,9 +307,9 @@ describe('SpinePreview', () => {
   // `&settings=advanced` draws Advanced's Provider tab alone: the General
   // tab's blocks (its own #provider-section) are &settings=simple's, so this
   // page never doubles the id.
-  it('with &settings=advanced&provider=localInference, draws only the Advanced Provider tab', async () => {
+  it('with &settings=advanced&provider=local_inference, draws only the Advanced Provider tab', async () => {
     const before = window.location.href;
-    window.history.replaceState(null, '', '/?preview=spine&settings=advanced&provider=localInference');
+    window.history.replaceState(null, '', '/?preview=spine&settings=advanced&provider=local_inference');
     try {
       const { container } = render(<SpinePreview />);
       await waitFor(() => expect(container.querySelector('.engine-surface')).not.toBeNull());

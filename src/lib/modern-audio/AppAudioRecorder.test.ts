@@ -58,6 +58,23 @@ describe('AppAudioRecorder.begin', () => {
     expect(await rec.begin({ deviceId: 'app:pid:42' })).toBe(false);
     expect(handlers['app-audio:pcm']).toBeUndefined();
   });
+
+  it("keeps the main process's reason when the helper does not start", async () => {
+    invoke.mockResolvedValue({ ok: false, error: 'Capture helper unavailable' });
+    const rec = new AppAudioRecorder(24000);
+
+    expect(await rec.begin({ deviceId: 'app:pid:42' })).toBe(false);
+    expect(rec.beginFailure).toBe('Capture helper unavailable');
+  });
+
+  it('keeps the rejection when the capture request itself fails', async () => {
+    const broken = new Error('No handler registered for start-app-audio-capture');
+    invoke.mockRejectedValue(broken);
+    const rec = new AppAudioRecorder(24000);
+
+    expect(await rec.begin({ deviceId: 'app:pid:42' })).toBe(false);
+    expect(rec.beginFailure).toBe(broken);
+  });
 });
 
 describe('AppAudioRecorder PCM handling', () => {

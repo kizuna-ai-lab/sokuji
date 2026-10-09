@@ -1,28 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { Provider } from '../../types/Provider';
 import {
-  LEGACY_PROVIDER_IDS,
   LEGACY_SLICE_KEYS,
   legacyTurnModeKey,
   migrateTurnMode,
   providerIdFromStored,
   selectionFromStored,
   selectionToPersist,
-  storedProviderValue,
   turnModeFromLegacy,
 } from './storedSettings';
 
 describe('providerIdFromStored', () => {
-  it('maps a legacy id to the registry spelling', () => {
-    expect(providerIdFromStored('local_inference')).toBe('localInference');
-  });
-
-  it('passes through a value that is already the registry spelling', () => {
-    expect(providerIdFromStored('localInference')).toBe('localInference');
-  });
-
-  it('passes through a value with no legacy mapping', () => {
+  it('passes a stored id through as it is: every registered id is the old enum spelling', () => {
+    expect(providerIdFromStored('local_inference')).toBe('local_inference');
     expect(providerIdFromStored('soniox')).toBe('soniox');
+  });
+
+  it('passes through a value this build may not offer, for Stage 2 to find', () => {
+    expect(providerIdFromStored('openai_compatible')).toBe('openai_compatible');
   });
 
   it.each([['', null], ['  ', null], [undefined, null], [42, null]] as const)(
@@ -33,39 +28,23 @@ describe('providerIdFromStored', () => {
   );
 });
 
-describe('storedProviderValue', () => {
-  it('maps the registry spelling back to the legacy id', () => {
-    expect(storedProviderValue('localInference')).toBe('local_inference');
-  });
-
-  it('passes through an id with no legacy mapping', () => {
-    expect(storedProviderValue('fake')).toBe('fake');
-  });
-
-  it('round-trips every LEGACY_PROVIDER_IDS entry', () => {
-    for (const legacy of Object.keys(LEGACY_PROVIDER_IDS)) {
-      expect(storedProviderValue(providerIdFromStored(legacy)!)).toBe(legacy);
-    }
-  });
-});
-
 describe('selectionFromStored', () => {
-  const offered = ['localInference', 'fake'];
+  const offered = ['local_inference', 'fake'];
 
-  it('selects the stored provider when offered, in its legacy spelling', () => {
-    expect(selectionFromStored('local_inference', offered)).toEqual({ id: 'localInference', fromStorage: true });
+  it('selects the stored provider when offered', () => {
+    expect(selectionFromStored('local_inference', offered)).toEqual({ id: 'local_inference', fromStorage: true });
   });
 
-  it('selects the stored provider when offered, already in registry spelling', () => {
+  it('selects the stored development provider when offered', () => {
     expect(selectionFromStored('fake', offered)).toEqual({ id: 'fake', fromStorage: true });
   });
 
   it('falls back to the first offered provider when the stored one is not offered', () => {
-    expect(selectionFromStored('soniox', offered)).toEqual({ id: 'localInference', fromStorage: false });
+    expect(selectionFromStored('soniox', offered)).toEqual({ id: 'local_inference', fromStorage: false });
   });
 
   it('falls back to the first offered provider when nothing is stored', () => {
-    expect(selectionFromStored(undefined, offered)).toEqual({ id: 'localInference', fromStorage: false });
+    expect(selectionFromStored(undefined, offered)).toEqual({ id: 'local_inference', fromStorage: false });
   });
 
   it('returns null when nothing is offered', () => {
@@ -74,40 +53,37 @@ describe('selectionFromStored', () => {
 
   it('sends a stored managed id this build does not port to the default managed provider', () => {
     // The managed default is NOT the first offered id, so a plain fallback to
-    // offered[0] would land on 'localInference' — only the legacy-managed
+    // offered[0] would land on 'local_inference' — only the legacy-managed
     // branch reaches 'kizunaai_soniox' here.
-    const managedOffered = ['localInference', 'kizunaai_soniox'];
+    const managedOffered = ['local_inference', 'kizunaai_soniox'];
     expect(selectionFromStored('kizunaai', managedOffered, 'kizunaai_soniox')).toEqual({ id: 'kizunaai_soniox', fromStorage: false });
     expect(selectionFromStored('kizunaai_openai_translate', managedOffered, 'kizunaai_soniox')).toEqual({ id: 'kizunaai_soniox', fromStorage: false });
     expect(selectionFromStored('kizunaai_volcengine_ast2', managedOffered, 'kizunaai_soniox')).toEqual({ id: 'kizunaai_soniox', fromStorage: false });
   });
 
   it('falls back to the first offered when no managed provider is offered', () => {
-    expect(selectionFromStored('kizunaai', ['localInference'], null)).toEqual({ id: 'localInference', fromStorage: false });
+    expect(selectionFromStored('kizunaai', ['local_inference'], null)).toEqual({ id: 'local_inference', fromStorage: false });
   });
 
   it('keeps a stored managed provider that is offered', () => {
-    expect(selectionFromStored('kizunaai_soniox', ['kizunaai_soniox', 'localInference'], 'kizunaai_soniox')).toEqual({ id: 'kizunaai_soniox', fromStorage: true });
+    expect(selectionFromStored('kizunaai_soniox', ['kizunaai_soniox', 'local_inference'], 'kizunaai_soniox')).toEqual({ id: 'kizunaai_soniox', fromStorage: true });
   });
 
   it('an unrelated stored id still falls back to the first offered', () => {
     // Same offered/managedDefault as the legacy-managed case above: an id
     // outside MANAGED_LEGACY_IDS must not also ride the managed-default branch.
-    expect(selectionFromStored('openai', ['localInference', 'kizunaai_soniox'], 'kizunaai_soniox')).toEqual({ id: 'localInference', fromStorage: false });
+    expect(selectionFromStored('openai', ['local_inference', 'kizunaai_soniox'], 'kizunaai_soniox')).toEqual({ id: 'local_inference', fromStorage: false });
   });
 });
 
 describe('selectionToPersist', () => {
-  it('writes nothing for a load, even when the id has a legacy spelling', () => {
-    expect(selectionToPersist('localInference', 'load')).toBeNull();
-  });
-
-  it('writes nothing for a load, for an id with no legacy spelling', () => {
+  it('writes nothing for a load', () => {
+    expect(selectionToPersist('local_inference', 'load')).toBeNull();
     expect(selectionToPersist('fake', 'load')).toBeNull();
   });
 
-  it('writes the legacy spelling for an explicit pick', () => {
-    expect(selectionToPersist('localInference', 'pick')).toBe('local_inference');
+  it('writes the id for an explicit pick', () => {
+    expect(selectionToPersist('local_inference', 'pick')).toBe('local_inference');
   });
 
   it('writes the id itself for an explicit pick when it has no legacy spelling', () => {
@@ -134,10 +110,6 @@ describe('legacyTurnModeKey', () => {
 
   it('finds the slice for the legacy spelling of local inference', () => {
     expect(legacyTurnModeKey('local_inference')).toBe('settings.localInference.turnDetectionMode');
-  });
-
-  it('finds the slice for the registry spelling of local inference', () => {
-    expect(legacyTurnModeKey('localInference')).toBe('settings.localInference.turnDetectionMode');
   });
 
   it('returns null for a provider with no old turn-mode slice', () => {

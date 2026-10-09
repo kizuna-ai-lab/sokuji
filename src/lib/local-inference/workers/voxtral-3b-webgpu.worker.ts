@@ -31,12 +31,14 @@ import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processo
 import { resolveVadThresholds } from './_shared/vad-thresholds';
 import { resolveMaxSpeechFrames } from './_shared/max-speech-frames';
 import { SileroInput, SILERO_INPUT_SAMPLES } from './_shared/silero-input';
+import { openTurnLink, type TurnLink } from './_shared/turn-gate';
 
 import type {
   Voxtral3BAsrInitMessage,
   AsrAudioMessage,
   AsrDisposeMessage,
   StreamingAsrWorkerOutMessage,
+  SegmentEnd,
 } from '../types';
 import { bindCheckedWebGpuAdapter } from './shaderF16Gate';
 
@@ -80,6 +82,7 @@ interface VadSession {
 
 let vadSession: VadSession | null = null;
 let frameProcessor: FrameProcessor | null = null;
+let turnLink: TurnLink | null = null;
 let maxSpeechFrames = 625; // ~20s at 32ms/frame
 let speechFramesSinceStart = 0;
 
@@ -191,7 +194,7 @@ function normalizeToIso639_1(lang: string | undefined): string {
  * Serializes decode calls via currentDecodePromise to prevent overlapping
  * generate() invocations if VAD end-events arrive back-to-back.
  */
-function runVoxtral3B(audio: Float32Array): Promise<void> {
+function runVoxtral3B(audio: Float32Array, end: SegmentEnd): Promise<void> {
   const promise = (async () => {
     if (currentDecodePromise) {
       try { await currentDecodePromise; } catch { /* already reported */ }
@@ -262,6 +265,7 @@ function runVoxtral3B(audio: Float32Array): Promise<void> {
           text: finalText,
           durationMs,
           recognitionTimeMs: Math.round(performance.now() - startTime),
+          ...end,
         });
       }
     } catch (err: any) {
@@ -296,8 +300,13 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
       const events: FrameProcessorEvent[] = [];
       await frameProcessor.process(frame, (ev) => events.push(ev));
 
+      let speechProbability = 0;
       for (const ev of events) {
         switch (ev.msg) {
+          case Message.FrameProcessed:
+            speechProbability = ev.probs.isSpeech;
+            break;
+
           case Message.SpeechStart:
             speechFramesSinceStart = 0;
             post({ type: 'speech_start' });
@@ -310,12 +319,25 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
             // incoming audio messages would be dropped by the guard at the top
             // of this function. `runVoxtral3B` self-serializes via
             // `currentDecodePromise` so overlapping calls queue correctly.
-            void runVoxtral3B(ev.audio);
+            void runVoxtral3B(ev.audio, { endedBy: 'silence' });
             break;
 
-          case Message.VADMisfire:
+          case Message.VADMisfire: {
             speechFramesSinceStart = 0;
+            // Kept when it follows a Smart end inside the wait Normal would have spanned.
+            const rescued = turnLink?.rescue();
+            if (rescued) void runVoxtral3B(rescued, { endedBy: 'kept' });
             break;
+          }
+        }
+      }
+
+      const smartTurnProbability = turnLink?.afterFrame(frame, speechProbability, frameProcessor.speaking) ?? null;
+      if (smartTurnProbability !== null) {
+        const endEvents: FrameProcessorEvent[] = [];
+        frameProcessor.endSegment((ev) => endEvents.push(ev));
+        for (const ev of endEvents) {
+          if (ev.msg === Message.SpeechEnd) void runVoxtral3B(ev.audio, { endedBy: 'smart', smartTurnProbability });
         }
       }
 
@@ -328,9 +350,10 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
           for (const ev of endEvents) {
             if (ev.msg === Message.SpeechEnd) {
               // See SpeechEnd comment above: fire-and-forget to avoid dropping audio.
-              void runVoxtral3B(ev.audio);
+              void runVoxtral3B(ev.audio, { endedBy: 'cap' });
             }
           }
+          turnLink?.reset();
           speechFramesSinceStart = 0;
         }
       } else {
@@ -357,6 +380,7 @@ async function handleInit(msg: Voxtral3BAsrInitMessage): Promise<void> {
     // 1. Init VAD
     post({ type: 'status', message: 'Loading VAD model...' });
     await initVad(msg.vadConfig, msg.vadModelUrl);
+    turnLink = openTurnLink(msg.turnPort, msg.vadConfig, frameProcessor);
 
     // 2. Configure Transformers.js for IndexedDB blob URL cache
     initTransformersEnv(env, msg);
@@ -433,9 +457,13 @@ async function handleFlush(): Promise<void> {
     frameProcessor.endSegment((ev) => endEvents.push(ev));
     for (const ev of endEvents) {
       if (ev.msg === Message.SpeechEnd) {
-        void runVoxtral3B(ev.audio);
+        void runVoxtral3B(ev.audio, { endedBy: 'flush' });
+      } else if (ev.msg === Message.VADMisfire) {
+        const rescued = turnLink?.rescue();
+        if (rescued) void runVoxtral3B(rescued, { endedBy: 'kept' });
       }
     }
+    turnLink?.reset();
   }
   // Wait for any in-flight decode to complete
   if (currentDecodePromise) {
@@ -456,7 +484,7 @@ async function handleDispose(): Promise<void> {
     frameProcessor.endSegment((ev) => endEvents.push(ev));
     for (const ev of endEvents) {
       if (ev.msg === Message.SpeechEnd) {
-        void runVoxtral3B(ev.audio);
+        void runVoxtral3B(ev.audio, { endedBy: 'flush' });
       }
     }
   }
@@ -469,6 +497,8 @@ async function handleDispose(): Promise<void> {
 
   // Dispose FrameProcessor
   frameProcessor = null;
+  turnLink?.close();
+  turnLink = null;
   speechFramesSinceStart = 0;
 
   // Dispose VAD

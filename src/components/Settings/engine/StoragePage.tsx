@@ -8,6 +8,7 @@ import { useNativeModelStore, useNativeCatalog } from '../../../stores/nativeMod
 import { useLocalNativeSettings } from '../../../stores/settingsStore';
 import { MODEL_MANIFEST, getManifestEntry, getModelSizeMb } from '../../../lib/local-inference/modelManifest';
 import { useSegmentationStore } from '../../../stores/segmentationStore';
+import { useSmartTurnStore } from '../../../stores/smartTurnStore';
 import { wasmCandidates } from '../../../lib/local-inference/selection/candidates.wasm';
 import { nativeCandidates } from '../../../lib/local-inference/selection/candidates.native';
 import { resolveDirection } from '../../../lib/local-inference/selection/resolveStage';
@@ -161,12 +162,14 @@ export const StoragePage: React.FC<
 
   const rows: Row[] = Object.entries(currentStatuses)
     .filter(([, status]) => (isWasm ? status === 'downloaded' : status === 'ready'))
-    // Punctuation models are managed from the Sentence segmentation section,
-    // never here — modelStore's initialize() scans the whole manifest
-    // (punctuation entries included), so without this filter a downloaded
-    // pack shows up as nameless engine rows a user could delete behind the
-    // feature's back.
-    .filter(([id]) => !(isWasm && getManifestEntry(id)?.type === 'punctuation'))
+    // Punctuation and Smart Turn models are managed from their own settings,
+    // never here — modelStore's initialize() scans the whole manifest, so
+    // without this filter a downloaded one shows up as a nameless engine row a
+    // user could delete behind the feature's back.
+    .filter(([id]) => {
+      const type = getManifestEntry(id)?.type;
+      return !(isWasm && (type === 'punctuation' || type === 'turn'));
+    })
     .map(([id]) => {
       const sizeLabel = isWasm
         ? (() => {
@@ -180,7 +183,11 @@ export const StoragePage: React.FC<
       return { id, name: displayName(id), sizeLabel, inUse: inUseIds.has(id) };
     });
 
-  const hasModels = rows.length > 0;
+  // Clear all also removes the models kept out of the rows, and is the only way
+  // to remove Smart Turn's, so it counts them too.
+  const canClearAll = isWasm
+    ? Object.values(currentStatuses).some((status) => status === 'downloaded')
+    : rows.length > 0;
   const storageMb = isWasm
     ? wasmStorageMb
     : Math.round(rows.reduce((sum, r) => sum + (nativeCatalog[r.id]?.sizeBytes ?? 0), 0) / (1024 * 1024));
@@ -198,10 +205,11 @@ export const StoragePage: React.FC<
     setClearAllPending(false);
     if (isWasm) {
       await useModelStore.getState().deleteAllModels();
-      // The clear wipes the whole IndexedDB, punctuation models included —
-      // the segmentation pack's own store must be told, or the Sentence
-      // segmentation section keeps claiming the models are ready.
+      // The clear wipes the whole IndexedDB, punctuation and Smart Turn models
+      // included — their own stores must be told, or their settings keep
+      // claiming the models are ready.
       await useSegmentationStore.getState().refresh();
+      await useSmartTurnStore.getState().refresh();
     } else {
       // Native has no bulk clear — best-effort per-model delete.
       await Promise.all(rows.map((r) => useNativeModelStore.getState().deleteModel(r.id)));
@@ -282,7 +290,7 @@ export const StoragePage: React.FC<
       ))}
 
       <div className="engine-storage-page__actions">
-        {hasModels && (
+        {canClearAll && (
           clearAllPending ? (
             <div className="engine-storage-confirm" data-testid="storage-confirm">
               <p>{t('models.confirmClearAll', 'Delete all models?')}</p>
@@ -318,11 +326,9 @@ export const StoragePage: React.FC<
               }}
             >
               <option value="" disabled>{t('engineUi.importChooseModel', 'Choose a model to import')}</option>
-              {/* Punctuation models are managed from the Sentence segmentation
-                  section and downloaded on demand, so they are not importable
-                  here. Without this the picker would offer them as if they
-                  were engines. */}
-              {MODEL_MANIFEST.filter((m) => !m.isCloudModel && m.type !== 'punctuation').map((m) => (
+              {/* Punctuation and Smart Turn models are downloaded on demand by
+                  their own settings, so they are not importable here. */}
+              {MODEL_MANIFEST.filter((m) => !m.isCloudModel && m.type !== 'punctuation' && m.type !== 'turn').map((m) => (
                 <option key={m.id} value={m.id}>{m.name}</option>
               ))}
             </select>

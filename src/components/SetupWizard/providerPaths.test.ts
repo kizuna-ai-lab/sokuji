@@ -99,7 +99,7 @@ describe('providerPaths', () => {
   });
 
   it("wizardProvider reads a draft's old spelling", () => {
-    expect(wizardProvider('local_inference')?.id).toBe('localInference');
+    expect(wizardProvider('local_inference')?.id).toBe('local_inference');
     expect(wizardProvider('soniox')?.id).toBe('soniox');
     expect(wizardProvider('kizunaai_soniox')?.kind).toBe('managed');
     expect(wizardProvider('openai')?.id).toBe('openai');

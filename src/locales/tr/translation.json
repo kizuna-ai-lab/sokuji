@@ -147,6 +147,7 @@
     "ttsSpeed": "Konuşma Hızı",
     "vadSettings": "VAD Ayarları",
     "vadSettingsTooltip": "Ses etkinliği algılama yapılandırması. Ortamınız için ses algılamayı optimize etmek üzere bu ayarları düzenleyin.",
+    "vadRestoreDefaults": "Varsayılana dön",
     "vadThresholdTooltip": "Konuşma algılama hassasiyeti. Yüksek değerler daha yüksek/net konuşma gerektirir. Düşük değerler sessiz konuşmaya daha duyarlıdır.",
     "vadNegativeThreshold": "Sessizlik Eşiği",
     "vadNegativeThresholdTooltip": "Sessizliğin segmenti bitirmek üzere sayılmaya başladığı olasılık. Otomatik, bu değeri VAD Eşiğinin 0,15 altında tutar. VAD Eşiğinin üzerinde asla uygulanmaz; aksi hâlde segmentler hiç bitmezdi.",
@@ -157,6 +158,16 @@
     "vadMaxSpeechDurationTooltip": "Tek bir konuşma bölümünün bölünmeden önce sürebileceği en uzun süre. Bazı modeller daha erken böler; doğru yazıya döktükleri en uzun bölümde.",
     "vadPreSpeechPadDuration": "Konuşma Öncesi Pay",
     "vadPreSpeechPadDurationTooltip": "Konuşma algılanmadan hemen önceki sesi de tutar, böylece cümlenin ilk sesi kesilmez. Daha yüksek değerler, konuşmaya başlamadan önceki gürültüyü de tanımaya daha çok iletir.",
+    "smartTurn": "Akıllı",
+    "smartTurnCheckAfter": "Kontrol Gecikmesi",
+    "smartTurnCheckAfterTooltip": "Smart Turn'ün konuşmanızı bitirip bitirmediğini kontrol etmesinden önce bir duraklamanın ne kadar sürdüğü. Bitirdiyseniz segment, Maks. Bekleme'yi beklemeden hemen sona erer.",
+    "smartTurnThreshold": "Sıra Sonu Eşiği",
+    "smartTurnThresholdTooltip": "Smart Turn'ün segmenti bitirmeden önce konuşmanızı bitirdiğinizden ne kadar emin olması gerektiği. Düşük değerler daha fazla segmenti erken bitirir, ancak cümle ortasındaki duraklamalarda da daha sık keser.",
+    "smartTurnMaxWait": "Maks. Bekleme",
+    "smartTurnMaxWaitTooltip": "Smart Turn segmenti daha önce bitirmediğinde, segment bitmeden önceki en uzun sessizlik.",
+    "smartTurnDownloading": "Smart Turn modeli indiriliyor: {{done}} / {{total}}",
+    "smartTurnDownloadFailed": "Smart Turn modeli indirilemedi: {{error}}",
+    "smartTurnModelOnDisk": "Smart Turn modeli: {{size}}",
     "vadMinSpeechDuration": "Min. Konuşma Süresi",
     "vadMinSpeechDurationTooltip": "Geçerli konuşma olarak kabul edilecek minimum süre. Tıklama veya öksürük gibi çok kısa sesleri filtreler.",
     "geminiVadTooltip": "Gemini'nin sıraları bölmek için konuşma duraklamalarını nasıl algıladığını kontrol eder. Bu ayarların düzenlenmesi, sürekli konuşma için çeviri yanıt hızını iyileştirebilir. \nBas-Konuş: ses göndermek için bir tuşu basılı tutun. \nBas-Çevir: Bas-Konuş gibi ancak boştayken ham mikrofonunuzu sanal mikrofona yönlendirir, böylece çeviri olmadan doğrudan konuşabilirsiniz.",
@@ -904,7 +915,8 @@
       "fullscreen": "Tam ekran",
       "exitFullscreen": "Tam ekrandan çık",
       "lock": "Konum ve boyutu kilitle",
-      "exit": "Altyazı modundan çık"
+      "exit": "Altyazı modundan çık",
+      "backToMainTitle": "Ana pencereye dön (Esc)"
     },
     "settings": {
       "bgOpacity": "Arka plan opaklığı",
@@ -1263,7 +1275,8 @@
       },
       "subtitle": {
         "title": "Altyazı modu",
-        "content": "Yüzen bir altyazı görünümü açar — masaüstünde bir pencere, uzantıda ise sayfa üzerinde bir katman. OBS ve ekran paylaşımı bunu yakalayabilir."
+        "content_electron": "Bu pencereyi, OBS ve ekran paylaşımının yakalayabileceği yüzen bir altyazı çubuğuna küçültür. Çubuktaki “Ana pencereye dön” veya Esc pencereyi geri getirir.",
+        "content_extension": "Yüzen altyazıları sayfa üzerinde bir katman olarak açar. OBS ve ekran paylaşımı bunları yakalayabilir."
       },
       "account": {
         "title": "Hesabınız",

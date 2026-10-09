@@ -25,12 +25,14 @@ import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processo
 import { resolveVadThresholds } from './_shared/vad-thresholds';
 import { resolveMaxSpeechFrames } from './_shared/max-speech-frames';
 import { SileroInput, SILERO_INPUT_SAMPLES } from './_shared/silero-input';
+import { openTurnLink, type TurnLink } from './_shared/turn-gate';
 
 import type {
   GraniteSpeechInitMessage,
   AsrAudioMessage,
   AsrDisposeMessage,
   AsrWorkerOutMessage,
+  SegmentEnd,
 } from '../types';
 import { acquireWebGpuAdapter, bindCheckedWebGpuAdapter } from './shaderF16Gate';
 
@@ -81,6 +83,7 @@ interface VadSession {
 
 let vadSession: VadSession | null = null;
 let frameProcessor: FrameProcessor | null = null;
+let turnLink: TurnLink | null = null;
 
 let maxSpeechFrames = 625; // ~20s at 32ms/frame
 let speechFramesSinceStart = 0;
@@ -239,19 +242,19 @@ async function hasWebGPU(): Promise<boolean> {
  * ORT instance (`_shared/onnxruntime-all`) while the model runs on Transformers.js's — never
  * put a second session on the model's instance while a decode can be in flight (#469).
  */
-function scheduleGraniteInference(audio: Float32Array, startSample: number): Promise<void> {
+function scheduleGraniteInference(audio: Float32Array, startSample: number, end: SegmentEnd): Promise<void> {
   const previousGraniteDecode = pendingGraniteDecode;
   const promise = (async () => {
     if (previousGraniteDecode) {
       try { await previousGraniteDecode; } catch { /* already reported */ }
     }
-    await runGraniteInferenceSegment(audio, startSample);
+    await runGraniteInferenceSegment(audio, startSample, end);
   })();
   pendingGraniteDecode = promise;
   return promise;
 }
 
-async function runGraniteInferenceSegment(audio: Float32Array, startSample: number): Promise<void> {
+async function runGraniteInferenceSegment(audio: Float32Array, startSample: number, end: SegmentEnd): Promise<void> {
   // Capture both references before the first await: handleDispose nulls the module globals
   // and only then drains the decode chain, so a decode already past this guard must not read
   // `model` / `processor` again once it has suspended — it would throw and post a spurious
@@ -327,6 +330,7 @@ async function runGraniteInferenceSegment(audio: Float32Array, startSample: numb
         startSample,
         durationMs,
         recognitionTimeMs,
+        ...end,
       });
     }
   } catch (err: any) {
@@ -356,8 +360,13 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
       const events: FrameProcessorEvent[] = [];
       await frameProcessor.process(frame, (ev) => events.push(ev));
 
+      let speechProbability = 0;
       for (const ev of events) {
         switch (ev.msg) {
+          case Message.FrameProcessed:
+            speechProbability = ev.probs.isSpeech;
+            break;
+
           case Message.SpeechStart:
             speechStartSample = totalSamplesFed - VAD_FRAME_SAMPLES;
             speechFramesSinceStart = 0;
@@ -369,11 +378,24 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
             // and the guard at the top of this function would drop the audio arriving
             // meanwhile (#470). `scheduleGraniteInference` serializes decodes via
             // `pendingGraniteDecode`.
-            void scheduleGraniteInference(ev.audio, speechStartSample);
+            void scheduleGraniteInference(ev.audio, speechStartSample, { endedBy: 'silence' });
             break;
-          case Message.VADMisfire:
+          case Message.VADMisfire: {
             speechFramesSinceStart = 0;
+            // Kept when it follows a Smart end inside the wait Normal would have spanned.
+            const rescued = turnLink?.rescue();
+            if (rescued) void scheduleGraniteInference(rescued, speechStartSample, { endedBy: 'kept' });
             break;
+          }
+        }
+      }
+
+      const smartTurnProbability = turnLink?.afterFrame(frame, speechProbability, frameProcessor.speaking) ?? null;
+      if (smartTurnProbability !== null) {
+        const endEvents: FrameProcessorEvent[] = [];
+        frameProcessor.endSegment((ev) => endEvents.push(ev));
+        for (const ev of endEvents) {
+          if (ev.msg === Message.SpeechEnd) void scheduleGraniteInference(ev.audio, speechStartSample, { endedBy: 'smart', smartTurnProbability });
         }
       }
 
@@ -386,9 +408,10 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
           frameProcessor.endSegment((ev) => endEvents.push(ev));
           for (const ev of endEvents) {
             if (ev.msg === Message.SpeechEnd) {
-              void scheduleGraniteInference(ev.audio, speechStartSample);
+              void scheduleGraniteInference(ev.audio, speechStartSample, { endedBy: 'cap' });
             }
           }
+          turnLink?.reset();
           speechFramesSinceStart = 0;
         }
       } else {
@@ -424,6 +447,7 @@ async function handleInit(msg: GraniteSpeechInitMessage): Promise<void> {
       msg.vadModelUrl,
       msg.task === 'translate' ? GRANITE_TRANSLATE_MAX_SPEECH_SECONDS : GRANITE_MAX_SPEECH_SECONDS,
     );
+    turnLink = openTurnLink(msg.turnPort, msg.vadConfig, frameProcessor);
 
     // Configure Transformers.js for IndexedDB blob URL cache
     initTransformersEnv(env, msg);
@@ -472,9 +496,13 @@ async function handleFlush(): Promise<void> {
     frameProcessor.endSegment((ev) => endEvents.push(ev));
     for (const ev of endEvents) {
       if (ev.msg === Message.SpeechEnd) {
-        void scheduleGraniteInference(ev.audio, speechStartSample);
+        void scheduleGraniteInference(ev.audio, speechStartSample, { endedBy: 'flush' });
+      } else if (ev.msg === Message.VADMisfire) {
+        const rescued = turnLink?.rescue();
+        if (rescued) void scheduleGraniteInference(rescued, speechStartSample, { endedBy: 'kept' });
       }
     }
+    turnLink?.reset();
   }
   // Drain the chain: `scheduleGraniteInference` assigns `pendingGraniteDecode` before
   // returning, so this picks up the decode just kicked off (behind anything already queued)
@@ -507,6 +535,8 @@ async function handleDispose(): Promise<void> {
   }
 
   frameProcessor = null;
+  turnLink?.close();
+  turnLink = null;
   speechFramesSinceStart = 0;
 
   if (vadSession?.session) {

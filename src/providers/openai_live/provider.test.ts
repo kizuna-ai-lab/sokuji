@@ -59,7 +59,7 @@ describe('the OpenAI Live definition', () => {
       build: buildLive,
       describe: describeLive,
     });
-    for (const absent of ['flagged', 'i18nKey', 'TurnDetection', 'session', 'participantSpeech'] as const) {
+    for (const absent of ['flagged', 'TurnDetection', 'session', 'participantSpeech'] as const) {
       expect(openaiLiveProvider, absent).not.toHaveProperty(absent);
     }
   });

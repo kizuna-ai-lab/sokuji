@@ -147,6 +147,7 @@
     "ttsSpeed": "Spraaksnelheid",
     "vadSettings": "VAD-instellingen",
     "vadSettingsTooltip": "Configuratie van spraakactiviteitsdetectie. Pas deze instellingen aan om spraakdetectie te optimaliseren voor uw omgeving.",
+    "vadRestoreDefaults": "Herstellen",
     "vadThresholdTooltip": "Gevoeligheid van spraakdetectie. Hogere waarden vereisen luidere/duidelijkere spraak. Lagere waarden zijn gevoeliger voor zachte spraak.",
     "vadNegativeThreshold": "Stiltedrempel",
     "vadNegativeThresholdTooltip": "Waarschijnlijkheid waaronder stilte begint mee te tellen voor het einde van een segment. Auto houdt deze 0,15 onder de VAD-drempel. Hij wordt nooit boven de VAD-drempel toegepast, want dan zouden segmenten nooit eindigen.",
@@ -157,6 +158,16 @@
     "vadMaxSpeechDurationTooltip": "Langste duur van één spraaksegment voordat het wordt gesplitst. Sommige modellen splitsen eerder, bij het langste segment dat ze correct transcriberen.",
     "vadPreSpeechPadDuration": "Marge vóór spraak",
     "vadPreSpeechPadDurationTooltip": "Bewaart de audio vlak voordat spraak wordt gedetecteerd, zodat de eerste klank van een zin niet wordt afgekapt. Hogere waarden sturen ook meer geluid van vóór het spreken naar de herkenning.",
+    "smartTurn": "Slim",
+    "smartTurnCheckAfter": "Controleren na",
+    "smartTurnCheckAfterTooltip": "Hoe lang een pauze duurt voordat Smart Turn controleert of je klaar bent met praten. Zo ja, dan eindigt het segment meteen in plaats van de max. wachttijd af te wachten.",
+    "smartTurnThreshold": "Beurtdrempel",
+    "smartTurnThresholdTooltip": "Hoe zeker Smart Turn moet zijn dat je klaar bent voordat het het segment beëindigt. Lagere waarden beëindigen meer segmenten eerder, maar knippen ook vaker bij pauzes midden in een zin.",
+    "smartTurnMaxWait": "Max. wachttijd",
+    "smartTurnMaxWaitTooltip": "De langste stilte voordat een segment eindigt als Smart Turn het niet eerder heeft beëindigd.",
+    "smartTurnDownloading": "Smart Turn-model downloaden: {{done}} van {{total}}",
+    "smartTurnDownloadFailed": "Downloaden van het Smart Turn-model mislukt: {{error}}",
+    "smartTurnModelOnDisk": "Smart Turn-model: {{size}}",
     "vadMinSpeechDuration": "Min. spraakduur",
     "vadMinSpeechDurationTooltip": "Minimale duur om als geldige spraak te beschouwen. Filtert zeer korte geluiden zoals klikken of hoesten.",
     "geminiVadTooltip": "Bepaalt hoe Gemini spraakpauzes detecteert om beurten te splitsen. Het aanpassen van deze instellingen kan de vertaalreactiviteit voor doorlopende spraak verbeteren. \nPush-to-Talk: houd een toets ingedrukt om audio te verzenden. \nPush-to-Translate: zoals Push-to-Talk, maar leidt uw onbewerkte microfoon door naar de virtuele microfoon wanneer inactief, zodat u direct kunt spreken zonder vertaling.",
@@ -904,7 +915,8 @@
       "fullscreen": "Volledig scherm",
       "exitFullscreen": "Volledig scherm afsluiten",
       "lock": "Positie en grootte vergrendelen",
-      "exit": "Ondertitelmodus afsluiten"
+      "exit": "Ondertitelmodus afsluiten",
+      "backToMainTitle": "Terug naar hoofdvenster (Esc)"
     },
     "settings": {
       "bgOpacity": "Achtergrondtransparantie",
@@ -1263,7 +1275,8 @@
       },
       "subtitle": {
         "title": "Ondertitelmodus",
-        "content": "Opent een zwevende ondertitelweergave — een venster op desktop, een overlay op de pagina in de extensie. OBS en schermdelen kunnen dit vastleggen."
+        "content_electron": "Verkleint dit venster tot een zwevende ondertitelbalk die OBS en schermdelen kunnen vastleggen. ‘Terug naar hoofdvenster’ op de balk, of Esc, haalt het venster terug.",
+        "content_extension": "Opent zwevende ondertitels als overlay op de pagina. OBS en schermdelen kunnen ze vastleggen."
       },
       "account": {
         "title": "Uw account",

@@ -147,6 +147,7 @@
     "ttsSpeed": "Puheen nopeus",
     "vadSettings": "VAD-asetukset",
     "vadSettingsTooltip": "Ääniaktiivisuuden tunnistuksen asetukset. Säädä näitä asetuksia optimoidaksesi puheentunnistuksen ympäristöllesi.",
+    "vadRestoreDefaults": "Palauta oletukset",
     "vadThresholdTooltip": "Puheentunnistuksen herkkyys. Korkeammat arvot vaativat voimakkaampaa/selkeämpää puhetta. Matalammat arvot ovat herkempiä hiljaiselle puheelle.",
     "vadNegativeThreshold": "Hiljaisuuden kynnys",
     "vadNegativeThresholdTooltip": "Todennäköisyys, jonka alapuolella hiljaisuus alkaa kerryttää segmentin lopetusta. Auto pitää sen 0,15 VAD-kynnyksen alapuolella. Sitä ei koskaan käytetä VAD-kynnystä suurempana, koska silloin segmentit eivät päättyisi koskaan.",
@@ -157,6 +158,16 @@
     "vadMaxSpeechDurationTooltip": "Pisin aika, jonka yksittäinen puhejakso voi kestää ennen jakamista. Osa malleista jakaa aiemmin, pisimpään jaksoon, jonka ne litteroivat oikein.",
     "vadPreSpeechPadDuration": "Marginaali ennen puhetta",
     "vadPreSpeechPadDurationTooltip": "Säilyttää äänen juuri ennen kuin puhe havaitaan, jotta lauseen ensimmäinen äänne ei leikkaudu pois. Suuremmat arvot välittävät tunnistukseen myös enemmän ennen puhetta olevaa kohinaa.",
+    "smartTurn": "Älykäs",
+    "smartTurnCheckAfter": "Tarkistusviive",
+    "smartTurnCheckAfterTooltip": "Kuinka pitkä tauon on oltava, ennen kuin Smart Turn tarkistaa, oletko lopettanut puhumisen. Jos olet, segmentti päättyy heti eikä odota enimmäisodotusta.",
+    "smartTurnThreshold": "Vuoron päättymisen kynnys",
+    "smartTurnThresholdTooltip": "Kuinka varma Smart Turnin on oltava siitä, että olet lopettanut, ennen kuin se päättää segmentin. Pienemmät arvot päättävät useampia segmenttejä aiemmin, mutta katkaisevat myös useammin lauseen keskellä olevista tauoista.",
+    "smartTurnMaxWait": "Enimmäisodotus",
+    "smartTurnMaxWaitTooltip": "Pisin hiljaisuus ennen segmentin päättymistä, kun Smart Turn ei ole päättänyt sitä aiemmin.",
+    "smartTurnDownloading": "Ladataan Smart Turn -mallia: {{done}} / {{total}}",
+    "smartTurnDownloadFailed": "Smart Turn -mallin lataus epäonnistui: {{error}}",
+    "smartTurnModelOnDisk": "Smart Turn -malli: {{size}}",
     "vadMinSpeechDuration": "Min. puheaika",
     "vadMinSpeechDurationTooltip": "Vähimmäisaika, jotta puhe tunnistetaan. Suodattaa erittäin lyhyet äänet, kuten napsautukset tai yskähdykset.",
     "geminiVadTooltip": "Hallitsee, miten Gemini havaitsee puhetauot vuorojen jakamiseksi. Näiden asetusten säätäminen voi parantaa käännöksen reagointikykyä jatkuvan puheen osalta. \nPaina ja puhu: pidä näppäintä painettuna lähettääksesi ääntä. \nPaina ja käännä: kuten Paina ja puhu, mutta ohjaa raakamikrofonisi virtuaalimikrofoniin tyhjäkäynnillä, jotta voit puhua suoraan ilman käännöstä.",
@@ -904,7 +915,8 @@
       "fullscreen": "Koko näyttö",
       "exitFullscreen": "Poistu koko näytöstä",
       "lock": "Lukitse sijainti ja koko",
-      "exit": "Poistu tekstitystilasta"
+      "exit": "Poistu tekstitystilasta",
+      "backToMainTitle": "Palaa pääikkunaan (Esc)"
     },
     "settings": {
       "bgOpacity": "Taustan läpinäkyvyys",
@@ -1263,7 +1275,8 @@
       },
       "subtitle": {
         "title": "Tekstitystila",
-        "content": "Avaa kelluvan tekstitysnäkymän — työpöydällä ikkunana, laajennuksessa sivun päällä olevana peittokuvana. OBS ja näytönjako voivat kaapata sen."
+        "content_electron": "Pienentää tämän ikkunan kelluvaksi tekstityspalkiksi, jonka OBS ja näytönjako voivat kaapata. Palkin ”Palaa pääikkunaan” tai Esc palauttaa ikkunan.",
+        "content_extension": "Avaa kelluvat tekstitykset sivun päälle peittokuvana. OBS ja näytönjako voivat kaapata ne."
       },
       "account": {
         "title": "Tilisi",

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
   AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown,
   Pin, Lock, X, Settings, Trash2, Maximize, Minimize,
-  Play, Square, Loader,
+  Play, Square, Loader, AppWindow,
 } from 'lucide-react';
 import {
   useFloating, useClick, useDismiss, useRole, useInteractions, offset, flip, shift, size,
@@ -46,7 +46,7 @@ interface Props {
   /** The new subtitle view's export (plan 1d-3): the menu over its conversation's exporter. */
   exportMenu?: Omit<ExportMenuButtonProps, 'popoverHost'>;
   surface?: SubtitleSurfaceKind;
-  /** Routes the ✕ button through `SubtitleControls.exit`. */
+  /** Routes the exit button (Electron: "Return to main window"; overlay: ✕) through `SubtitleControls.exit`. */
   onExit: () => void;
   /**
    * Session start/stop, Electron surface only. Absent on the extension
@@ -312,15 +312,37 @@ const SubtitleBar: React.FC<Props> = ({
         >
           <Lock size={14} />
         </button>
-        <button
-          type="button"
-          className="subtitle-bar__btn"
-          onClick={onExit}
-          title={t('subtitle.bar.exit', 'Exit subtitle mode')}
-          aria-label={t('subtitle.bar.exit', 'Exit subtitle mode')}
-        >
-          <X size={14} />
-        </button>
+        {/* On the desktop the bar is the main window itself, shrunk, and a bare
+            ✕ reads as "quit the app" — so the exit says where it goes. The
+            overlay closes over the meeting page with the side panel still
+            open, so its ✕ means just what it says. Escape is layered: in
+            fullscreen the first press only leaves fullscreen
+            (useSubtitleChrome), so the exit names it only when windowed. */}
+        {surface === 'electron' ? (
+          <button
+            type="button"
+            className="subtitle-bar__exit"
+            onClick={onExit}
+            title={fullscreen
+              ? t('subtitle.backToMain', 'Return to main window')
+              : t('subtitle.bar.backToMainTitle', 'Return to main window (Esc)')}
+            aria-label={t('subtitle.backToMain', 'Return to main window')}
+            aria-keyshortcuts={fullscreen ? undefined : 'Escape'}
+          >
+            <AppWindow size={14} />
+            <span className="subtitle-bar__exit-label">{t('subtitle.backToMain', 'Return to main window')}</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="subtitle-bar__btn"
+            onClick={onExit}
+            title={t('subtitle.bar.exit', 'Exit subtitle mode')}
+            aria-label={t('subtitle.bar.exit', 'Exit subtitle mode')}
+          >
+            <X size={14} />
+          </button>
+        )}
       </div>
 
       {childWindowHost ? (

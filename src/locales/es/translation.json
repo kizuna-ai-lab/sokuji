@@ -147,6 +147,7 @@
     "ttsSpeed": "Velocidad del habla",
     "vadSettings": "Configuración VAD",
     "vadSettingsTooltip": "Configuración de detección de actividad de voz. Ajuste estos parámetros para optimizar la detección de voz en su entorno.",
+    "vadRestoreDefaults": "Restablecer",
     "vadThresholdTooltip": "Sensibilidad de detección de voz. Valores más altos requieren voz más fuerte/clara. Valores más bajos son más sensibles a voz baja.",
     "vadNegativeThreshold": "Umbral de Silencio",
     "vadNegativeThresholdTooltip": "Probabilidad por debajo de la cual el silencio empieza a contar para terminar el segmento. Auto lo mantiene 0,15 por debajo del Umbral VAD. Nunca se aplica por encima del Umbral VAD, ya que los segmentos no terminarían nunca.",
@@ -157,6 +158,16 @@
     "vadMaxSpeechDurationTooltip": "Duración máxima de un segmento de voz antes de dividirse. Algunos modelos lo dividen antes, en el segmento más largo que transcriben correctamente.",
     "vadPreSpeechPadDuration": "Margen previo al habla",
     "vadPreSpeechPadDurationTooltip": "Conserva el audio justo antes de que se detecte el habla, para que no se corte el primer sonido de la frase. Los valores altos también envían al reconocimiento más ruido previo a que hables.",
+    "smartTurn": "Inteligente",
+    "smartTurnCheckAfter": "Comprobar tras",
+    "smartTurnCheckAfterTooltip": "Cuánto dura una pausa antes de que Smart Turn compruebe si has terminado de hablar. Si es así, el segmento termina enseguida en lugar de esperar a la espera máxima.",
+    "smartTurnThreshold": "Umbral de turno",
+    "smartTurnThresholdTooltip": "Qué tan seguro debe estar Smart Turn de que has terminado antes de cerrar el segmento. Los valores más bajos cierran antes más segmentos, pero también cortan más pausas a mitad de frase.",
+    "smartTurnMaxWait": "Espera máxima",
+    "smartTurnMaxWaitTooltip": "El silencio más largo antes de que termine un segmento cuando Smart Turn no lo ha cerrado antes.",
+    "smartTurnDownloading": "Descargando el modelo Smart Turn: {{done}} de {{total}}",
+    "smartTurnDownloadFailed": "Error al descargar el modelo Smart Turn: {{error}}",
+    "smartTurnModelOnDisk": "Modelo Smart Turn: {{size}}",
     "vadMinSpeechDuration": "Duración mín. de habla",
     "vadMinSpeechDurationTooltip": "Duración mínima para considerar como habla válida. Filtra sonidos muy cortos como clics o tos.",
     "geminiVadTooltip": "Controla cómo Gemini detecta las pausas del habla para dividir los turnos. Ajustar esta configuración puede mejorar la capacidad de respuesta de la traducción para habla continua. \nPulsar para hablar: mantenga una tecla para enviar audio. \nPulsar para traducir: como Pulsar para hablar, pero enruta su micrófono original al micrófono virtual cuando está inactivo para que pueda hablar directamente sin traducción.",
@@ -904,7 +915,8 @@
       "fullscreen": "Pantalla completa",
       "exitFullscreen": "Salir de pantalla completa",
       "lock": "Bloquear posición y tamaño",
-      "exit": "Salir del modo subtítulos"
+      "exit": "Salir del modo subtítulos",
+      "backToMainTitle": "Volver a la ventana principal (Esc)"
     },
     "settings": {
       "bgOpacity": "Opacidad del fondo",
@@ -1263,7 +1275,8 @@
       },
       "subtitle": {
         "title": "Modo subtítulos",
-        "content": "Abre una vista de subtítulos flotante — una ventana en el escritorio, una superposición en la página en la extensión. OBS y la pantalla compartida pueden capturarla."
+        "content_electron": "Reduce esta ventana a una barra de subtítulos flotante que OBS y la pantalla compartida pueden capturar. «Volver a la ventana principal» en la barra, o Esc, recupera la ventana.",
+        "content_extension": "Abre subtítulos flotantes como una superposición en la página. OBS y la pantalla compartida pueden capturarlos."
       },
       "account": {
         "title": "Tu cuenta",

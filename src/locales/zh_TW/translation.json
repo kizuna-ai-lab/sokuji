@@ -147,6 +147,7 @@
     "ttsSpeed": "語速",
     "vadSettings": "VAD 設定",
     "vadSettingsTooltip": "語音活動偵測設定。調整這些設定以優化您環境中的語音偵測。",
+    "vadRestoreDefaults": "還原預設",
     "vadThresholdTooltip": "語音偵測靈敏度。值越高，需要越響亮/清晰的語音才能觸發辨識。值越低，對較輕的語音越敏感。",
     "vadNegativeThreshold": "靜音閾值",
     "vadNegativeThresholdTooltip": "低於此機率時，靜音開始計入分段結束。自動模式會維持比 VAD 閾值低 0.15。此值永遠不會高於 VAD 閾值，否則分段將永遠不會結束。",
@@ -157,6 +158,16 @@
     "vadMaxSpeechDurationTooltip": "單一語音片段被切分前可持續的最長時間。部分模型會更早切分，切在它能準確轉寫的最長長度上。",
     "vadPreSpeechPadDuration": "語音前緩衝",
     "vadPreSpeechPadDurationTooltip": "保留偵測到語音之前的一小段音訊，避免句子開頭的音被截掉。值越大，說話前的雜音也會更多地送去辨識。",
+    "smartTurn": "智慧",
+    "smartTurnCheckAfter": "判斷前等待",
+    "smartTurnCheckAfterTooltip": "停頓持續多久後，Smart Turn 開始判斷你是否已說完。若已說完，片段會立即結束，不必等到最長等待。",
+    "smartTurnThreshold": "輪次結束閾值",
+    "smartTurnThresholdTooltip": "Smart Turn 需要多確定你已說完才會結束片段。數值越低，提前結束的片段越多，但在句中停頓處切斷的情況也越多。",
+    "smartTurnMaxWait": "最長等待",
+    "smartTurnMaxWaitTooltip": "Smart Turn 未提前結束片段時，片段結束前允許的最長靜音。",
+    "smartTurnDownloading": "正在下載 Smart Turn 模型 {{done}} / {{total}}",
+    "smartTurnDownloadFailed": "Smart Turn 模型下載失敗：{{error}}",
+    "smartTurnModelOnDisk": "Smart Turn 模型：{{size}}",
     "vadMinSpeechDuration": "最小語音時長",
     "vadMinSpeechDurationTooltip": "被視為有效語音的最小時長。過濾掉非常短的聲音，如點擊聲或咳嗽聲。",
     "geminiVadTooltip": "控制 Gemini 如何偵測語音停頓以分割對話輪次。調整這些設定可改善連續語音的翻譯回應速度。\n按住說話：按住按鍵發送音訊。\n按住翻譯：與按住說話類似，但閒置時將原始麥克風音訊直通到虛擬麥克風，您可以直接說話而不進行翻譯。",
@@ -904,7 +915,8 @@
       "fullscreen": "全螢幕",
       "exitFullscreen": "退出全螢幕",
       "lock": "鎖定位置與大小",
-      "exit": "退出字幕模式"
+      "exit": "退出字幕模式",
+      "backToMainTitle": "返回主視窗 (Esc)"
     },
     "settings": {
       "bgOpacity": "背景透明度",
@@ -1263,7 +1275,8 @@
       },
       "subtitle": {
         "title": "字幕模式",
-        "content": "開啟浮動字幕檢視 — 桌面版是一個獨立視窗，瀏覽器擴充功能版則是頁面上的浮層。OBS 與螢幕分享都能擷取到它。"
+        "content_electron": "把這個視窗縮成浮動字幕條，OBS 與螢幕分享都能擷取到它。點字幕條上的「返回主視窗」或按 Esc，視窗就會恢復。",
+        "content_extension": "在頁面上開啟浮動字幕浮層，OBS 與螢幕分享都能擷取到它。"
       },
       "account": {
         "title": "您的帳戶",

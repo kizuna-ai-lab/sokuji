@@ -26,6 +26,8 @@ export interface VadWebConfig {
   preSpeechPadDuration?: number;
   /** Max speech segment duration in seconds before forced split (default 20) */
   maxSpeechDuration?: number;
+  /** Smart Turn: after `checkAfter` s of silence, end the segment when the turn model says above `threshold`. Needs a turn port. */
+  smartTurn?: { checkAfter: number; threshold: number };
 }
 
 /**
@@ -82,6 +84,8 @@ export interface WhisperAsrInitMessage {
   ortWasmBaseUrl?: string;
   /** Resolved absolute URL for bundled VAD model */
   vadModelUrl?: string;
+  /** Smart Turn's port (transferred); with `vadConfig.smartTurn` it turns the gate on. */
+  turnPort?: MessagePort;
 }
 
 /**
@@ -106,7 +110,19 @@ export interface AsrStatusMessage {
   message: string;
 }
 
-export interface AsrResultMessage {
+/**
+ * How a vad-web worker's speech segment ended, for the Logs panel: the
+ * FrameProcessor's silence rule, Smart Turn, the max-speech cap, a flush
+ * (push-to-talk release, session end), or a short reply after a Smart end
+ * that the processor dropped and Smart Turn's gate handed back.
+ */
+export interface SegmentEnd {
+  endedBy: 'silence' | 'smart' | 'cap' | 'flush' | 'kept';
+  /** Smart Turn's probability that the speaker was done; `smart` only. */
+  smartTurnProbability?: number;
+}
+
+export interface AsrResultMessage extends Partial<SegmentEnd> {
   type: 'result';
   text: string;
   /** Start sample index of the speech segment from VAD */
@@ -189,6 +205,8 @@ export interface CohereTranscribeAsrInitMessage {
   vadModelUrl: string;
   /** Resolved absolute URL for bundled ORT WASM files */
   ortWasmBaseUrl?: string;
+  /** Smart Turn's port (transferred); with `vadConfig.smartTurn` it turns the gate on. */
+  turnPort?: MessagePort;
 }
 
 export interface Voxtral3BAsrInitMessage {
@@ -207,6 +225,8 @@ export interface Voxtral3BAsrInitMessage {
   vadModelUrl: string;
   /** Resolved absolute URL for bundled ORT WASM files */
   ortWasmBaseUrl?: string;
+  /** Smart Turn's port (transferred); with `vadConfig.smartTurn` it turns the gate on. */
+  turnPort?: MessagePort;
 }
 
 export interface GraniteSpeechInitMessage {
@@ -229,6 +249,8 @@ export interface GraniteSpeechInitMessage {
   ortWasmBaseUrl?: string;
   /** Resolved absolute URL for bundled VAD model */
   vadModelUrl?: string;
+  /** Smart Turn's port (transferred); with `vadConfig.smartTurn` it turns the gate on. */
+  turnPort?: MessagePort;
 }
 
 // ─── Streaming ASR Worker Messages (Worker → Main) ──────────────────────────
@@ -241,7 +263,7 @@ export interface StreamingAsrPartialMessage {
 }
 
 /** Streaming ASR: final result (at endpoint) */
-export interface StreamingAsrResultMessage {
+export interface StreamingAsrResultMessage extends Partial<SegmentEnd> {
   type: 'result';
   text: string;
   durationMs: number;

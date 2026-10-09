@@ -511,8 +511,8 @@ describe('attach', () => {
     const { session, clock } = await setup();
     const spy = vi.fn(async () => ({ state: 'unknown' as const }));
     useProviderStore.setState({
-      selected: 'localInference',
-      entries: { localInference: { settings: {}, credentials: {}, pair: { source: 'ja', target: 'en' } } },
+      selected: 'local_inference',
+      entries: { local_inference: { settings: {}, credentials: {}, pair: { source: 'ja', target: 'en' } } },
       readiness: {},
       refreshReadiness: spy,
     });
@@ -798,15 +798,15 @@ describe('attach', () => {
 
     await session.runner.start();
     expect(session.runner.state.getState().phase).toBe('running');
-    useProviderStore.getState().select('localInference');
+    useProviderStore.getState().select('local_inference');
     expect(useProviderStore.getState().selected).toBe('fake');
     await settleReports();
     expect(useLogStore.getState().logs.filter((l) => l.type === 'warning' && l.message.includes('cannot change during a session'))).toHaveLength(1);
 
     await session.runner.stop();
     await session.runner.settled();
-    useProviderStore.getState().select('localInference');
-    expect(useProviderStore.getState().selected).toBe('localInference');
+    useProviderStore.getState().select('local_inference');
+    expect(useProviderStore.getState().selected).toBe('local_inference');
 
     detach();
   });

@@ -147,6 +147,7 @@
     "ttsSpeed": "Kecepatan Bicara",
     "vadSettings": "Pengaturan VAD",
     "vadSettingsTooltip": "Konfigurasi Deteksi Aktivitas Suara. Sesuaikan pengaturan ini untuk mengoptimalkan deteksi ucapan di lingkungan Anda.",
+    "vadRestoreDefaults": "Pulihkan default",
     "vadThresholdTooltip": "Sensitivitas deteksi ucapan. Nilai lebih tinggi membutuhkan ucapan yang lebih keras/jelas. Nilai lebih rendah lebih sensitif terhadap ucapan pelan.",
     "vadNegativeThreshold": "Ambang Batas Hening",
     "vadNegativeThresholdTooltip": "Probabilitas yang di bawahnya keheningan mulai dihitung untuk mengakhiri segmen. Otomatis menjaganya 0,15 di bawah Ambang VAD. Nilai ini tidak pernah diterapkan di atas Ambang VAD, karena segmen tidak akan pernah berakhir.",
@@ -157,6 +158,16 @@
     "vadMaxSpeechDurationTooltip": "Durasi terpanjang satu segmen ucapan sebelum dipecah. Sebagian model memecah lebih awal, pada segmen terpanjang yang dapat ditranskripsikan dengan benar.",
     "vadPreSpeechPadDuration": "Penyangga Sebelum Bicara",
     "vadPreSpeechPadDurationTooltip": "Menyimpan audio tepat sebelum ucapan terdeteksi, agar bunyi pertama kalimat tidak terpotong. Nilai yang lebih besar juga mengirim lebih banyak derau sebelum Anda berbicara ke pengenalan.",
+    "smartTurn": "Pintar",
+    "smartTurnCheckAfter": "Periksa Setelah",
+    "smartTurnCheckAfterTooltip": "Berapa lama jeda berlangsung sebelum Smart Turn memeriksa apakah Anda sudah selesai berbicara. Jika sudah, segmen langsung berakhir tanpa menunggu Tunggu Maksimum.",
+    "smartTurnThreshold": "Ambang Akhir Giliran",
+    "smartTurnThresholdTooltip": "Seberapa yakin Smart Turn harus bahwa Anda sudah selesai sebelum mengakhiri segmen. Nilai yang lebih rendah mengakhiri lebih banyak segmen lebih awal, tetapi juga lebih sering memotong jeda di tengah kalimat.",
+    "smartTurnMaxWait": "Tunggu Maksimum",
+    "smartTurnMaxWaitTooltip": "Keheningan terpanjang sebelum segmen berakhir jika Smart Turn belum mengakhirinya lebih dulu.",
+    "smartTurnDownloading": "Mengunduh model Smart Turn: {{done}} dari {{total}}",
+    "smartTurnDownloadFailed": "Pengunduhan model Smart Turn gagal: {{error}}",
+    "smartTurnModelOnDisk": "Model Smart Turn: {{size}}",
     "vadMinSpeechDuration": "Durasi Bicara Minimum",
     "vadMinSpeechDurationTooltip": "Durasi minimum untuk dianggap sebagai ucapan valid. Memfilter suara yang sangat pendek seperti klik atau batuk.",
     "geminiVadTooltip": "Mengontrol cara Gemini mendeteksi jeda bicara untuk membagi giliran. Menyesuaikan pengaturan ini dapat meningkatkan responsivitas terjemahan untuk ucapan yang terus-menerus. \nTekan untuk Bicara: tahan sebuah tombol untuk mengirim audio. \nTekan untuk Terjemahkan: seperti Tekan untuk Bicara, tetapi merutekan mikrofon mentah Anda ke mikrofon virtual saat tidak aktif sehingga Anda dapat berbicara langsung tanpa terjemahan.",
@@ -904,7 +915,8 @@
       "fullscreen": "Layar penuh",
       "exitFullscreen": "Keluar layar penuh",
       "lock": "Kunci posisi dan ukuran",
-      "exit": "Keluar mode subtitle"
+      "exit": "Keluar mode subtitle",
+      "backToMainTitle": "Kembali ke jendela utama (Esc)"
     },
     "settings": {
       "bgOpacity": "Opasitas latar",
@@ -1263,7 +1275,8 @@
       },
       "subtitle": {
         "title": "Mode subtitle",
-        "content": "Membuka tampilan subtitle mengambang — berupa jendela di desktop, overlay di halaman pada ekstensi. OBS dan berbagi layar dapat menangkapnya."
+        "content_electron": "Memperkecil jendela ini menjadi bilah subtitle mengambang yang dapat ditangkap OBS dan berbagi layar. “Kembali ke jendela utama” di bilah, atau Esc, mengembalikan jendela.",
+        "content_extension": "Membuka subtitle mengambang sebagai overlay di halaman. OBS dan berbagi layar dapat menangkapnya."
       },
       "account": {
         "title": "Akun Anda",

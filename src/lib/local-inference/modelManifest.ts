@@ -14,7 +14,7 @@ export interface ModelFileEntry {
   sizeBytes: number;
 }
 
-export type ModelType = 'asr' | 'asr-stream' | 'tts' | 'translation' | 'punctuation';
+export type ModelType = 'asr' | 'asr-stream' | 'tts' | 'translation' | 'punctuation' | 'turn';
 export type ModelStatus = 'not_downloaded' | 'downloading' | 'downloaded' | 'error';
 
 /** A dtype variant of a model, with its own file list and optional GPU feature requirements. */
@@ -3384,6 +3384,24 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
           { filename: 'model.onnx', sizeBytes: 241_945_842 },
           { filename: 'tokenizer.json', sizeBytes: 9_096_718 },
         ],
+      },
+    },
+  },
+
+  // ─── Turn detection (Smart Turn) ───────────────────────────────────────
+  // Not an engine: downloaded from Local Inference's VAD settings and loaded by TurnRuntime.
+  {
+    id: 'smart-turn-v3.2',
+    type: 'turn',
+    name: 'Smart Turn v3.2',
+    languages: ['multilingual'],
+    multilingual: true,
+    hfModelId: 'pipecat-ai/smart-turn-v3',
+    hfRevision: 'f766f81d3cfdf7737ac64aad813d91bbfd56bf93',
+    variants: {
+      default: {
+        dtype: 'default',
+        files: [{ filename: 'smart-turn-v3.2-gpu.onnx', sizeBytes: 32_411_198 }],
       },
     },
   },
