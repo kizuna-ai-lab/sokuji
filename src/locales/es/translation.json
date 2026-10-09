@@ -923,6 +923,7 @@
     "clipTooLong": "La grabación es demasiado larga — mantenla por debajo de {seconds} segundos.",
     "clipTooShort": "La grabación es demasiado corta — habla durante al menos {seconds} segundos.",
     "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
+    "clipInTargetLanguage": "Este modelo clona mejor a partir de un clip en el idioma al que vas a traducir.",
     "decodeFailed": "No se pudo leer ese archivo de audio — prueba con WAV, MP3 u otro formato común.",
     "delete": "Eliminar",
     "deleteBody": "¿Eliminar \"{name}\"? Esto también elimina la grabación de referencia guardada en este dispositivo.",

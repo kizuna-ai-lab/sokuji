@@ -923,6 +923,7 @@
     "clipTooLong": "Rakaman terlalu panjang — pastikan ia kurang daripada {seconds} saat.",
     "clipTooShort": "Rakaman terlalu pendek — bercakap sekurang-kurangnya {seconds} saat.",
     "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
+    "clipInTargetLanguage": "Model ini mengklon dengan terbaik daripada klip dalam bahasa sasaran terjemahan anda.",
     "decodeFailed": "Tidak dapat membaca fail audio itu — cuba WAV, MP3 atau format biasa yang lain.",
     "delete": "Padam",
     "deleteBody": "Padam \"{name}\"? Ini juga akan memadam rakaman rujukan yang disimpan pada peranti ini.",

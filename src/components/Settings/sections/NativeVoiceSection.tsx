@@ -29,6 +29,10 @@ import { reportError, describeCause } from '../../../lib/diagnostics/report';
 // NativeTtsClient.generate's own default.
 const PREVIEW_SPEED = 1;
 
+// FireRedTTS-3 Base takes one language tag for a clip's transcript and the text (audio.cpp), so
+// its clone is clear only from a clip in the language it will speak.
+const CLIP_IN_TARGET_LANGUAGE_MODELS: ReadonlySet<string> = new Set(['fireredtts3-base']);
+
 // validateVoiceClip now lives in nativeVoiceStores.ts (shared with the
 // NativeVoiceStore abstraction). Re-exported here so this file's own test
 // keeps working.
@@ -494,6 +498,9 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
         onDelete={handleDelete}
         onPreview={handlePreview}
         previewUnavailableReason={previewUnavailableReason}
+        manageNote={CLIP_IN_TARGET_LANGUAGE_MODELS.has(ttsModelId)
+          ? t('voiceLibrary.clipInTargetLanguage', "This model clones best from a clip in the language you'll translate into.")
+          : undefined}
         capability={libraryCapability}
         isSessionActive={isSessionActive}
       />

@@ -923,6 +923,7 @@
     "clipTooLong": "रिकॉर्डिंग बहुत लंबी है — इसे {seconds} सेकंड से कम रखें।",
     "clipTooShort": "रिकॉर्डिंग बहुत छोटी है — कम से कम {seconds} सेकंड बोलें।",
     "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
+    "clipInTargetLanguage": "यह मॉडल उस भाषा की क्लिप से सबसे अच्छा क्लोन करता है जिसमें आप अनुवाद करेंगे।",
     "decodeFailed": "वह ऑडियो फ़ाइल पढ़ी नहीं जा सकी — WAV, MP3 या कोई अन्य सामान्य प्रारूप आज़माएं।",
     "delete": "हटाएं",
     "deleteBody": "\"{name}\" हटाएं? इससे इस डिवाइस पर सहेजी गई संदर्भ रिकॉर्डिंग भी हट जाएगी।",

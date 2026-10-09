@@ -923,6 +923,7 @@
     "clipTooLong": "Inspelningen är för lång — håll den under {seconds} sekunder.",
     "clipTooShort": "Inspelningen är för kort — tala i minst {seconds} sekunder.",
     "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
+    "clipInTargetLanguage": "Den här modellen klonar bäst från ett klipp på det språk du översätter till.",
     "decodeFailed": "Kunde inte läsa den ljudfilen — prova WAV, MP3 eller ett annat vanligt format.",
     "delete": "Radera",
     "deleteBody": "Radera \"{name}\"? Detta tar även bort referensinspelningen som sparats på den här enheten.",

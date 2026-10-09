@@ -923,6 +923,7 @@
     "clipTooLong": "ההקלטה ארוכה מדי — שמור אותה מתחת ל-{seconds} שניות.",
     "clipTooShort": "ההקלטה קצרה מדי — דבר לפחות {seconds} שניות.",
     "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
+    "clipInTargetLanguage": "המודל הזה משכפל בצורה הטובה ביותר מקליפ בשפה שאליה אתה מתרגם.",
     "decodeFailed": "לא ניתן לקרוא את קובץ השמע הזה — נסה WAV, MP3 או פורמט נפוץ אחר.",
     "delete": "מחק",
     "deleteBody": "למחוק את \"{name}\"? פעולה זו תמחק גם את הקלטת הייחוס השמורה במכשיר זה.",

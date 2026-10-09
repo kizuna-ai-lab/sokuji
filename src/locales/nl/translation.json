@@ -923,6 +923,7 @@
     "clipTooLong": "Opname is te lang — houd deze onder {seconds} seconden.",
     "clipTooShort": "Opname is te kort — spreek minstens {seconds} seconden.",
     "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
+    "clipInTargetLanguage": "Dit model kloont het best vanaf een clip in de taal waarnaar u vertaalt.",
     "decodeFailed": "Kon dat audiobestand niet lezen — probeer een WAV, MP3 of ander gangbaar formaat.",
     "delete": "Verwijderen",
     "deleteBody": "\"{name}\" verwijderen? Dit verwijdert ook de referentieopname die op dit apparaat is opgeslagen.",

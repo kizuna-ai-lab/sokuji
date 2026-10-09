@@ -923,6 +923,7 @@
     "clipTooLong": "Tallenne on liian pitkä — pidä se alle {seconds} sekunnissa.",
     "clipTooShort": "Tallenne on liian lyhyt — puhu vähintään {seconds} sekuntia.",
     "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
+    "clipInTargetLanguage": "Tämä malli kloonaa parhaiten klipistä, joka on kielellä, jolle käännät.",
     "decodeFailed": "Äänitiedostoa ei voitu lukea — kokeile WAV-, MP3- tai muuta yleistä muotoa.",
     "delete": "Poista",
     "deleteBody": "Poistetaanko \"{name}\"? Tämä poistaa myös tälle laitteelle tallennetun viitetallenteen.",

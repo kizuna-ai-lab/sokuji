@@ -923,6 +923,7 @@
     "clipTooLong": "Bản ghi quá dài — hãy giữ dưới {seconds} giây.",
     "clipTooShort": "Bản ghi quá ngắn — hãy nói ít nhất {seconds} giây.",
     "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
+    "clipInTargetLanguage": "Mô hình này nhân bản giọng tốt nhất từ đoạn ghi âm bằng ngôn ngữ bạn dịch sang.",
     "decodeFailed": "Không thể đọc tệp âm thanh đó — hãy thử WAV, MP3 hoặc định dạng phổ biến khác.",
     "delete": "Xóa",
     "deleteBody": "Xóa \"{name}\"? Thao tác này cũng sẽ xóa bản ghi tham chiếu được lưu trên thiết bị này.",

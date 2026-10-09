@@ -923,6 +923,7 @@
     "clipTooLong": "Masyadong mahaba ang recording — panatilihin itong wala pang {seconds} segundo.",
     "clipTooShort": "Masyadong maikli ang recording — magsalita nang hindi bababa sa {seconds} segundo.",
     "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
+    "clipInTargetLanguage": "Pinakamahusay mag-clone ang modelong ito mula sa clip na nasa wikang pagsasalinan mo.",
     "decodeFailed": "Hindi mabasa ang audio file na iyon — subukan ang WAV, MP3, o ibang karaniwang format.",
     "delete": "I-delete",
     "deleteBody": "I-delete ang \"{name}\"? Tatanggalin din nito ang reference recording na naka-imbak sa device na ito.",

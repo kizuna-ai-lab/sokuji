@@ -923,6 +923,7 @@
     "clipTooLong": "التسجيل طويل جدًا — أبقِه أقل من {seconds} ثانية.",
     "clipTooShort": "التسجيل قصير جدًا — تحدّث لمدة {seconds} ثانية على الأقل.",
     "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
+    "clipInTargetLanguage": "يستنسخ هذا النموذج الصوت بأفضل شكل من مقطع صوتي باللغة التي ستترجم إليها.",
     "decodeFailed": "تعذّرت قراءة ذلك الملف الصوتي — جرّب WAV أو MP3 أو تنسيقًا شائعًا آخر.",
     "delete": "حذف",
     "deleteBody": "حذف \"{name}\"؟ سيؤدي هذا أيضًا إلى حذف التسجيل المرجعي المخزَّن على هذا الجهاز.",

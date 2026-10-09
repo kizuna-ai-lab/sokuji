@@ -923,6 +923,7 @@
     "clipTooLong": "錄音太長 — 請控制在 {seconds} 秒以內。",
     "clipTooShort": "錄音太短 — 請至少說滿 {seconds} 秒。",
     "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
+    "clipInTargetLanguage": "此模型使用翻譯目標語言的片段進行複製時效果最佳。",
     "decodeFailed": "無法讀取該音訊檔案 — 請改用 WAV、MP3 或其他常見格式。",
     "delete": "刪除",
     "deleteBody": "刪除「{name}」？這台裝置上儲存的參考錄音也會被刪除。",
