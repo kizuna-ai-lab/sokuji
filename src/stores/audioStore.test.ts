@@ -607,6 +607,26 @@ describe('audioStore — refreshDevices and the saved device', () => {
   });
 });
 
+describe('the Both popover seen flag', () => {
+  const KEY = 'audio.bothPopoverSeen';
+
+  it('defaults to false, persists, and restores', async () => {
+    useAudioStore.setState({ bothPopoverSeen: false });
+    useAudioStore.getState().setBothPopoverSeen(true);
+    expect(await ServiceFactory.getSettingsService().getSetting<boolean>(KEY, false)).toBe(true);
+    useAudioStore.setState({ bothPopoverSeen: false });
+    await useAudioStore.getState().refreshDevices();
+    expect(useAudioStore.getState().bothPopoverSeen).toBe(true);
+  });
+
+  it('reads anything but true as false', async () => {
+    await ServiceFactory.getSettingsService().setSetting(KEY, 'yes');
+    useAudioStore.setState({ bothPopoverSeen: true });
+    await useAudioStore.getState().refreshDevices();
+    expect(useAudioStore.getState().bothPopoverSeen).toBe(false);
+  });
+});
+
 describe('the other side (face-to-face)', () => {
   const KEY = 'audio.otherSide';
 

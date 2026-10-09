@@ -32,6 +32,8 @@ export interface PanelFooterProps {
   testTone?: { playing: boolean; toggle(): void };
   /** Both runs face-to-face (Text Only or not): the mode picker tags it. */
   faceToFace?: boolean;
+  /** The provider offers face-to-face: Both's tooltip says so. */
+  faceToFaceOffered?: boolean;
   /** Face-to-face's ears (slice 3): which language plays in each, whether the left is mine, and the ear nothing plays in, if one. Absent or null: nothing plays in an ear. */
   ears?: { leftLang: string; rightLang: string; leftIsMe: boolean; silent?: 'left' | 'right' } | null;
   /** The advanced footer's input strips and output strip. */
@@ -113,6 +115,7 @@ function ControlFooter(props: PanelFooterProps) {
     testTone,
     waveforms,
     faceToFace,
+    faceToFaceOffered,
   } = props;
 
   const isIdle = run.phase === 'idle';
@@ -137,6 +140,7 @@ function ControlFooter(props: PanelFooterProps) {
           missingDeviceForMode={missingDevice}
           onSegmentClick={onModeSegment}
           faceToFace={faceToFace}
+          faceToFaceOffered={faceToFaceOffered}
         />
 
         <span className="footer-spacer" />
@@ -209,6 +213,7 @@ function ControlFooter(props: PanelFooterProps) {
         missingDeviceForMode={missingDevice}
         onSegmentClick={onModeSegment}
         faceToFace={faceToFace}
+        faceToFaceOffered={faceToFaceOffered}
       />
 
       {/* Input waveforms (mic + system), when the caller has them (Task 12). */}

@@ -37,6 +37,22 @@ describe('ModePicker', () => {
     expect(onSegmentClick).not.toHaveBeenCalled();
   });
 
+  it("adds the face-to-face sentence to Both's tooltip only when it is offered", () => {
+    const { rerender } = render(<ModePicker mode="speaker" locked={false} missingDeviceForMode={null} onSegmentClick={() => {}} />);
+    expect(screen.getByRole('button', { name: /Both|双向/ }).title).not.toContain('face-to-face');
+    rerender(<ModePicker mode="speaker" locked={false} missingDeviceForMode={null} onSegmentClick={() => {}} faceToFaceOffered />);
+    const title = screen.getByRole('button', { name: /Both|双向/ }).title;
+    expect(title).toContain("Two-way. Translate your voice and the other side's at the same time.\nAlso for two people at one computer (face-to-face).");
+  });
+
+  // jsdom has no container queries: the tag's visibility at narrow widths is the stylesheet's.
+  it('renders the tag whenever Both runs face-to-face', () => {
+    const { container, rerender } = render(<ModePicker mode="both" locked={false} missingDeviceForMode={null} onSegmentClick={() => {}} faceToFace />);
+    expect(container.querySelector('.mode-picker__tag')).not.toBeNull();
+    rerender(<ModePicker mode="both" locked={false} missingDeviceForMode={null} onSegmentClick={() => {}} />);
+    expect(container.querySelector('.mode-picker__tag')).toBeNull();
+  });
+
   it('renders one side icon per segment, Me and Other in their both form', () => {
     render(<ModePicker mode="both" locked={false} missingDeviceForMode={null} onSegmentClick={() => {}} />);
     const iconIn = (name: RegExp) => screen.getByRole('button', { name }).querySelector('svg')!;

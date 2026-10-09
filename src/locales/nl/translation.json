@@ -656,7 +656,8 @@
     "deviceSpeakerMonitor": "Luidsprekermonitor",
     "notSelected": "Niet geselecteerd",
     "deviceParticipantAudio": "Audio van de ander",
-    "faceToFaceTag": "Face-to-face"
+    "faceToFaceTag": "Face-to-face",
+    "descBothBeside": "Also for two people at one computer (face-to-face)."
   },
   "popover": {
     "statusOff": "Uit",

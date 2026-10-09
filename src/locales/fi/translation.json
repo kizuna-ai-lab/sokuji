@@ -656,7 +656,8 @@
     "deviceSpeakerMonitor": "Kaiuttimen valvonta",
     "notSelected": "Ei valittu",
     "deviceParticipantAudio": "Toisen ääni",
-    "faceToFaceTag": "Kasvokkain"
+    "faceToFaceTag": "Kasvokkain",
+    "descBothBeside": "Also for two people at one computer (face-to-face)."
   },
   "popover": {
     "statusOff": "Pois",

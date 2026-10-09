@@ -25,6 +25,8 @@ import {
   useParticipantSources,
   useSelectedParticipantSource,
   useSetMode,
+  useBothPopoverSeen,
+  useSetBothPopoverSeen,
   type AudioMode,
 } from '../../stores/audioStore';
 import { useCleanupAudioSystemListeners, useInitAudioSystemListeners } from '../../stores/audioSystemStore';
@@ -163,6 +165,8 @@ export default function MainPanel() {
   const subtitleModeActive = useSubtitleModeActive();
   const mode = useMode();
   const setMode = useSetMode();
+  const bothPopoverSeen = useBothPopoverSeen();
+  const setBothPopoverSeen = useSetBothPopoverSeen();
   const micMuted = useIsMicMuted();
   const participantSources = useParticipantSources();
   const participantSource = useSelectedParticipantSource();
@@ -246,8 +250,14 @@ export default function MainPanel() {
   const onModeSegment = useCallback((target: AudioMode, el: HTMLElement) => {
     if (target === mode) { setPopover((open) => (open ? null : el)); return; }
     if (run.phase === 'idle') setMode(target);
+    // The first pick of Both opens its popover once, so face-to-face is not left to be found.
+    if (run.phase === 'idle' && target === 'both' && f2f.offered && !bothPopoverSeen) {
+      setBothPopoverSeen(true);
+      setPopover(el);
+      return;
+    }
     setPopover(null);
-  }, [mode, run.phase, setMode]);
+  }, [mode, run.phase, setMode, f2f.offered, bothPopoverSeen, setBothPopoverSeen]);
 
   const { notice: echo, dismiss: dismissEcho } = useEchoNotice(
     useMemo(() => (audio ? echoSource(audio.capture.echo) : null), [audio]),
@@ -284,7 +294,7 @@ export default function MainPanel() {
       site={site} run={run} mode={mode} missingDevice={missingDevice}
       canStart={subtitle.canStart}
       holdToTalk={speakerLive && subtitle.holdToTalk} held={ptt.held} micMuted={micMuted}
-      pair={subtitle.pair} duration={duration} faceToFace={f2f.active} ears={ears}
+      pair={subtitle.pair} duration={duration} faceToFace={f2f.active} faceToFaceOffered={f2f.offered} ears={ears}
       // Ruling 11: `session.start` is the one start every surface calls — never a start while the gate is shut, the button is off then; this also holds for a click that beat its render (as the takeover's Start).
       onStart={() => void session.start('button')}
       onStop={() => void runner.stop('button')}

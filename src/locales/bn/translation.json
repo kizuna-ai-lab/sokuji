@@ -656,7 +656,8 @@
     "deviceSpeakerMonitor": "স্পিকার মনিটর",
     "notSelected": "নির্বাচিত নয়",
     "deviceParticipantAudio": "অন্যের অডিও",
-    "faceToFaceTag": "মুখোমুখি"
+    "faceToFaceTag": "মুখোমুখি",
+    "descBothBeside": "Also for two people at one computer (face-to-face)."
   },
   "popover": {
     "statusOff": "বন্ধ",

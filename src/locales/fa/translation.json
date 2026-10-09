@@ -656,7 +656,8 @@
     "deviceSpeakerMonitor": "نظارت بلندگو",
     "notSelected": "انتخاب نشده",
     "deviceParticipantAudio": "صدای طرف مقابل",
-    "faceToFaceTag": "رو در رو"
+    "faceToFaceTag": "رو در رو",
+    "descBothBeside": "Also for two people at one computer (face-to-face)."
   },
   "popover": {
     "statusOff": "خاموش",

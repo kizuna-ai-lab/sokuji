@@ -836,6 +836,47 @@ describe('the ears strip (face-to-face)', () => {
     await stop();
   });
 
+  describe('the one-time popover on the first pick of Both', () => {
+    const bothSegment = (container: HTMLElement) => container.querySelectorAll<HTMLElement>('.mode-picker__segment')[2];
+    const radios = () => document.querySelectorAll('input[name="other-side"]');
+    beforeEach(() => { useAudioStore.setState({ mode: 'speaker', bothPopoverSeen: false }); });
+    afterEach(() => { act(() => { useAudioStore.setState({ bothPopoverSeen: false }); }); });
+
+    it('opens the popover and sets the flag on the first pick, then switches without opening on the next', async () => {
+      const { container } = await renderPanel();
+      fireEvent.click(bothSegment(container));
+      expect(useAudioStore.getState().mode).toBe('both');
+      expect(radios()).toHaveLength(2);
+      expect(useAudioStore.getState().bothPopoverSeen).toBe(true);
+
+      fireEvent.click(container.querySelectorAll<HTMLElement>('.mode-picker__segment')[0]);
+      expect(useAudioStore.getState().mode).toBe('speaker');
+      expect(radios()).toHaveLength(0);
+      fireEvent.click(bothSegment(container));
+      expect(useAudioStore.getState().mode).toBe('both');
+      expect(radios()).toHaveLength(0);
+    });
+
+    it('does nothing of the kind when face-to-face is not offered', async () => {
+      delete (fakeProvider as { faceToFace?: boolean }).faceToFace;
+      const { container } = await renderPanel();
+      fireEvent.click(bothSegment(container));
+      expect(useAudioStore.getState().mode).toBe('both');
+      expect(radios()).toHaveLength(0);
+      expect(useAudioStore.getState().bothPopoverSeen).toBe(false);
+    });
+
+    it('leaves a pick during a run unchanged', async () => {
+      const { container } = await renderPanel();
+      await start(container);
+      fireEvent.click(bothSegment(container));
+      expect(useAudioStore.getState().mode).toBe('speaker');
+      expect(radios()).toHaveLength(0);
+      expect(useAudioStore.getState().bothPopoverSeen).toBe(false);
+      await stop();
+    });
+  });
+
   /** The translation rows of a leg. */
   const translations = (container: HTMLElement, leg: 'speaker' | 'participant') =>
     [...container.querySelectorAll(`.conversation-row.source-${leg}`)].filter((row) => row.querySelector('.row-text.tr'));

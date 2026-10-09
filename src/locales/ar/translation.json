@@ -656,7 +656,8 @@
     "deviceSpeakerMonitor": "مراقبة السماعة",
     "notSelected": "غير محدد",
     "deviceParticipantAudio": "صوت الآخر",
-    "faceToFaceTag": "وجهًا لوجه"
+    "faceToFaceTag": "وجهًا لوجه",
+    "descBothBeside": "Also for two people at one computer (face-to-face)."
   },
   "popover": {
     "statusOff": "إيقاف",

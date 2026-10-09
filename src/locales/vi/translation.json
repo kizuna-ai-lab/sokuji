@@ -656,7 +656,8 @@
     "deviceSpeakerMonitor": "Giám sát loa",
     "notSelected": "Chưa chọn",
     "deviceParticipantAudio": "Âm thanh đối phương",
-    "faceToFaceTag": "Mặt đối mặt"
+    "faceToFaceTag": "Mặt đối mặt",
+    "descBothBeside": "Also for two people at one computer (face-to-face)."
   },
   "popover": {
     "statusOff": "Tắt",

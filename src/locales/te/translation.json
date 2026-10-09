@@ -656,7 +656,8 @@
     "deviceSpeakerMonitor": "స్పీకర్ మానిటర్",
     "notSelected": "ఎంచుకోబడలేదు",
     "deviceParticipantAudio": "ఇతరుల ఆడియో",
-    "faceToFaceTag": "ముఖాముఖి"
+    "faceToFaceTag": "ముఖాముఖి",
+    "descBothBeside": "Also for two people at one computer (face-to-face)."
   },
   "popover": {
     "statusOff": "ఆఫ్",

@@ -656,7 +656,8 @@
     "deviceSpeakerMonitor": "Hoparlör izleme",
     "notSelected": "Seçilmedi",
     "deviceParticipantAudio": "Karşı tarafın sesi",
-    "faceToFaceTag": "Yüz yüze"
+    "faceToFaceTag": "Yüz yüze",
+    "descBothBeside": "Also for two people at one computer (face-to-face)."
   },
   "popover": {
     "statusOff": "Kapalı",

@@ -645,6 +645,7 @@
     "descYou": "Your voice → translated for the other side. Translate what you say so they understand you.",
     "descOthers": "The other side's voice → translated for you. Translate what they say so you understand them.",
     "descBoth": "Two-way. Translate your voice and the other side's at the same time.",
+    "descBothBeside": "Also for two people at one computer (face-to-face).",
     "switchDisabled": "Mode is locked during a session.",
     "configureDevices": "Click to configure devices.",
     "missingDevice": "Configure devices for this mode to start.",

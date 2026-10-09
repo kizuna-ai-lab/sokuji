@@ -656,7 +656,8 @@
     "deviceSpeakerMonitor": "Мониторинг динамика",
     "notSelected": "Не выбрано",
     "deviceParticipantAudio": "Аудио собеседника",
-    "faceToFaceTag": "Лицом к лицу"
+    "faceToFaceTag": "Лицом к лицу",
+    "descBothBeside": "Also for two people at one computer (face-to-face)."
   },
   "popover": {
     "statusOff": "Отключено",

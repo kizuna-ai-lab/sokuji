@@ -656,7 +656,8 @@
     "deviceSpeakerMonitor": "スピーカーモニター",
     "notSelected": "未選択",
     "deviceParticipantAudio": "相手の音声",
-    "faceToFaceTag": "対面"
+    "faceToFaceTag": "対面",
+    "descBothBeside": "Also for two people at one computer (face-to-face)."
   },
   "popover": {
     "statusOff": "オフ",

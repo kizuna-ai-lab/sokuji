@@ -104,9 +104,11 @@
 // buttons collapse to icon-only. Keeps the whole footer's "compact"
 // transition synchronized.
 @container (max-width: 768px) {
-  .mode-picker__label, .mode-picker__tag { display: none; }
+  .mode-picker__label { display: none; }
   .mode-picker__segment {
     padding: 0 10px;
     gap: 0;
   }
+  // The tag stays; with the label gone it sits beside the icon.
+  .mode-picker__tag { margin-left: 5px; }
 }
