@@ -6,7 +6,7 @@
  * frozen wallet is not a low balance.
  */
 import { balanceRefusal, BALANCE_BELOW_FLOOR } from '../../lib/session/shape';
-import { faceToFaceFromStores, legsFor, participantSpeechFromStores, selectedFromStores } from '../../lib/session/appShape';
+import { faceToFaceFromStores, legsFor, selectedFromStores, speechFromStores } from '../../lib/session/appShape';
 import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
@@ -22,13 +22,13 @@ export function useBalanceShortfall(): boolean {
   useAudioStore((s) => s.otherSide);
   const textOnly = useSettingsStore((s) => s.textOnly);
   const account = useAccountStore((s) => s.account);
-  // What `participantSpeechFromStores` reads, subscribed so the dot follows the switch and the source.
+  // What `speechFromStores` reads, subscribed so the dot follows the switch and the source.
   useRoutingStore((s) => s.participantSpeech);
   useAudioStore((s) => s.selectedParticipantSource?.deviceId);
   // The provider exactly as the live gate finds it (`selectedFromStores`: the selected one, else the first present), so before the load selects one the dot and Start still agree.
   const found = selectedFromStores();
   if (!found) return false;
   const { provider, entry } = found;
-  const participantSpeech = participantSpeechFromStores(provider);
+  const participantSpeech = speechFromStores(provider).them;
   return balanceRefusal({ provider, settings: entry.settings, legs: legsFor(mode), textOnly, participantSpeech, faceToFace: faceToFaceFromStores(), account })?.code === BALANCE_BELOW_FLOOR;
 }

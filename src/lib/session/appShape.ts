@@ -4,6 +4,7 @@
  * writes a `prepare` patch back without overwriting a change the user made
  * during the run.
  */
+import type { Speak } from '../audio/outlets';
 import type { LegName } from '../conversation/types';
 import { participantSpeechHeard } from '../modern-audio/participantSource';
 import { reversedPair } from '../provider/languages';
@@ -17,7 +18,7 @@ import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { getEnvironment } from '../../utils/environment';
 import { buildSharedSettings } from './shared';
-import { gate, type Refusal, type SpeechInputs } from './shape';
+import { gate, participantSpeechInput, speakFor, type Refusal, type SpeechInputs } from './shape';
 import type { RunShape } from './types';
 
 export function legsFor(mode: 'speaker' | 'participant' | 'both'): LegName[] {
@@ -49,26 +50,30 @@ export function isFaceToFace(provider: { faceToFace?: boolean } | undefined, mod
   return provider?.faceToFace === true && mode === 'both' && otherSide === 'beside';
 }
 
-/**
- * Whether the participant leg would speak, as the stores stand: its
- * provider's flag on (Stage 2 Kizuna Soniox, ruling 2), its switch on,
- * and — 1e-3b-2 ruling 7, completed — its source not a whole-system
- * capture on Electron that would recapture it and translate it again as
- * Other: the same predicate `readRouting` and the switch itself use. The
- * run's shape, the live gate's floor and the account button's floor all
- * read it, so they price the same legs.
- */
-export function participantSpeechFromStores(provider: Pick<AnyProvider, 'participantSpeech'>): boolean {
-  if (provider.participantSpeech === false) return false;
-  // Face-to-face voices the other person whenever anything is voiced: their
-  // translation is what I hear. The hidden switch has no say there.
-  return faceToFaceFromStores() ? !useSettingsStore.getState().textOnly : participantSpeechSwitchFromStores();
+/** `participantSpeechHeard` over the stores: the other's translation, spoken to me, is not recaptured by the participant source. */
+function heardFromStores(faceToFace: boolean): boolean {
+  return participantSpeechHeard(getEnvironment(), useAudioStore.getState().selectedParticipantSource?.deviceId, faceToFace);
 }
 
-/** The participant's speech before its provider's flag: its switch on, and a source that will not recapture it. */
-export function participantSpeechSwitchFromStores(): boolean {
-  return useRoutingStore.getState().participantSpeech
-    && participantSpeechHeard(getEnvironment(), useAudioStore.getState().selectedParticipantSource?.deviceId);
+/**
+ * Who hears what, as the stores stand (spec 2026-10-10 §4): the selected
+ * provider's flags over the switches, the mode, face-to-face and the
+ * recapture rule. The run's shape, the live gate's floor, the account
+ * button's floor, the routing and every surface read it, so they price
+ * and play the same legs. Before a provider has loaded it answers as an
+ * optional-speech provider would.
+ */
+export function speechFromStores(provider: Pick<AnyProvider, 'speech' | 'participantSpeech'> | undefined = selectedFromStores()?.provider): Speak {
+  const audio = useAudioStore.getState();
+  const faceToFace = faceToFaceFromStores();
+  return speakFor(provider ?? { speech: 'optional' }, {
+    textOnly: useSettingsStore.getState().textOnly,
+    participantSpeech: useRoutingStore.getState().participantSpeech,
+    isMonitorMuted: audio.isMonitorMuted,
+    legs: legsFor(audio.mode),
+    faceToFace,
+    heard: heardFromStores(faceToFace),
+  });
 }
 
 /**
@@ -78,8 +83,11 @@ export function participantSpeechSwitchFromStores(): boolean {
  * keeps it for the language offer (Stage 2 Volcengine AST2, choice 1).
  */
 export function speechInputsFromStores(): SpeechInputs {
-  const { textOnly } = useSettingsStore.getState();
-  return { textOnly, participantSpeech: faceToFaceFromStores() ? !textOnly : participantSpeechSwitchFromStores() };
+  const faceToFace = faceToFaceFromStores();
+  return {
+    textOnly: useSettingsStore.getState().textOnly,
+    participantSpeech: participantSpeechInput({ participantSpeech: useRoutingStore.getState().participantSpeech, faceToFace, heard: heardFromStores(faceToFace) }),
+  };
 }
 
 /** Keeps the provider store's speech inputs on the stores', now and on every change, so each provider's pair is one its run could start. Returns the unsubscribe. */
@@ -112,7 +120,7 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
     legs: legsFor(useAudioStore.getState().mode),
     turnMode: useTurnModeStore.getState().turnMode,
     textOnly: st.textOnly,
-    participantSpeech: participantSpeechFromStores(provider),
+    participantSpeech: speechFromStores(provider).them,
     faceToFace,
     keepReplayAudio: st.keepReplayAudio,
     shared: buildSharedSettings(
@@ -146,7 +154,7 @@ export function liveGate(platform: Platform = getEnvironment()): Refusal | null 
     legs: legsFor(useAudioStore.getState().mode),
     turnMode: useTurnModeStore.getState().turnMode,
     textOnly: useSettingsStore.getState().textOnly,
-    participantSpeech: participantSpeechFromStores(selected.provider),
+    participantSpeech: speechFromStores(selected.provider).them,
     faceToFace: faceToFaceFromStores(),
     account: useAccountStore.getState().account,
   }, platform);

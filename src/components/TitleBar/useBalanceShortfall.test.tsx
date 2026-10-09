@@ -29,7 +29,7 @@ describe('useBalanceShortfall', () => {
   beforeEach(() => {
     useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null, legs: ['speaker'] });
     useAudioStore.setState({ mode: 'speaker', otherSide: 'meeting', selectedParticipantSource: useAudioStore.getInitialState().selectedParticipantSource });
-    useRoutingStore.setState({ participantSpeech: false });
+    useRoutingStore.setState({ participantSpeech: null });
     useSettingsStore.setState({ textOnly: false });
     useAccountStore.setState({ account: null });
   });

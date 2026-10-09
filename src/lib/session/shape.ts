@@ -1,4 +1,5 @@
 import type { SessionContext } from '../contract/adapter';
+import type { Speak } from '../audio/outlets';
 import type { LegName } from '../conversation/types';
 import { reversedPair, reverseSupported } from '../provider/languages';
 import type { AnyProvider, LanguageContext, Platform } from '../provider/types';
@@ -23,13 +24,48 @@ export interface SpeechInputs { textOnly: boolean; participantSpeech: boolean }
 type Speaking = Pick<AnyProvider, 'speech' | 'participantSpeech'>;
 
 /** Whether a leg speaks: the one rule `contextsFor`, the gate and the language offer read. */
-function legSpeaks(p: Speaking, leg: LegName, inputs: SpeechInputs): boolean {
+export function legSpeaks(p: Speaking, leg: LegName, inputs: SpeechInputs): boolean {
   const speaks = (wanted: boolean) => p.speech === 'always' || (p.speech === 'optional' && wanted);
   if (leg === 'speaker') return speaks(!inputs.textOnly);
   // While its provider's participant-speech flag is off (Kizuna Soniox
   // until the backend mints a participant speech key, Stage 2 ruling 2)
   // the participant stays text-only whatever the switch says.
   return p.participantSpeech === false ? false : speaks(inputs.participantSpeech);
+}
+
+/** What `speakFor` reads from the stores (`appShape.ts`'s `speechFromStores`). */
+export interface SpeakInputs {
+  textOnly: boolean;
+  /** 我听到的翻译 as stored: null = auto. */
+  participantSpeech: boolean | null;
+  /** 我也听 off (today's monitor mute). */
+  isMonitorMuted: boolean;
+  legs: readonly LegName[];
+  faceToFace: boolean;
+  /** `participantSpeechHeard` for the platform and source: the other's translation is not recaptured. */
+  heard: boolean;
+}
+
+/** 我听到的翻译 before the provider's own flags: the switch resolved (auto = face-to-face), and a source that will not recapture it. */
+export function participantSpeechInput(i: Pick<SpeakInputs, 'participantSpeech' | 'faceToFace' | 'heard'>): boolean {
+  return (i.participantSpeech ?? i.faceToFace) && i.heard;
+}
+
+/**
+ * Who hears what (spec 2026-10-10 §4): the three rows of the Audio page's
+ * 语音 block, gated by the provider's flags, the mode, face-to-face and the
+ * recapture rule. The route table, the run's shape, the balance floor and
+ * every surface read this one function.
+ */
+export function speakFor(p: Speaking, i: SpeakInputs): Speak {
+  const inputs: SpeechInputs = { textOnly: i.textOnly, participantSpeech: participantSpeechInput(i) };
+  const other = legSpeaks(p, 'speaker', inputs);
+  const them = legSpeaks(p, 'participant', inputs);
+  // 我也听 is a sub-row of 对方听到的翻译; face-to-face has no monitor of my own
+  // voice; in Both a whole-system capture would recapture it (D12).
+  const both = i.legs.includes('speaker') && i.legs.includes('participant');
+  const me = !i.isMonitorMuted && other && !i.faceToFace && (!both || i.heard);
+  return { other, me, them };
 }
 
 /** The language context of a run over these legs (Stage 2 Volcengine AST2, choice 1): it speaks when any leg it opens does. */
