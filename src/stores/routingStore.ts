@@ -1,9 +1,10 @@
 /**
- * The two routing switches that did not exist before plan 1c-2 (spec:
- * "Playback" → "Routing"): whether the meeting hears the speaker's
- * translation (on by default), and the participant-TTS opt-in (off). The
- * monitor switch and passthrough stay in `audioStore`, where they live today.
- * Face-to-face's ear swap lives here too: it is routing.
+ * The two routing switches (spec 2026-10-10 §3): whether the meeting hears
+ * the speaker's translation (on by default; a dev switch), and 我听到的翻译 —
+ * the other's translation spoken to me. The latter is `null` until the user
+ * touches it: on in face-to-face, off in a meeting (`shape.ts`'s
+ * `participantSpeechInput`, ruling 1). The monitor (我也听) and passthrough
+ * stay in `audioStore`; each outlet's device and channel too.
  */
 import { create } from 'zustand';
 import { persistSetting } from '../services/persistSetting';
@@ -11,45 +12,36 @@ import { ServiceFactory } from '../services/ServiceFactory';
 
 const MEETING = 'settings.routing.meeting';
 const PARTICIPANT_SPEECH = 'settings.routing.participantSpeech';
-const FACE_TO_FACE_SWAP = 'settings.routing.faceToFaceSwap';
 
 /**
- * Whether the participant-speech switch shows. The owner's choice of
- * 2026-10-01: hidden, and participant speech kept off, until the translated
- * audio's playback is reworked — an application capture that widens to the
- * whole system mid-run would still play Other's translation on the real
- * device. While off, `load()` does not read the saved choice, so one saved
- * while the switch showed cannot turn speech on unseen; the saved value is
- * left as it was, not rewritten. Showing it again is this line.
+ * Whether the old participant-speech switch (`ParticipantSpeechSwitch`)
+ * renders. Hidden since 2026-10-01; slice 2 of the 2026-10-10 spec replaces
+ * it with the 我听到的翻译 row and deletes this with it. The store reads the
+ * saved value regardless.
  */
 export const PARTICIPANT_SPEECH_SHOWN = false;
 
 interface RoutingStore {
   meeting: boolean;
-  participantSpeech: boolean;
-  /** Face-to-face: my translation in the right ear and theirs in the left, instead of the reverse. */
-  faceToFaceSwap: boolean;
+  /** 我听到的翻译: true/false as chosen; null = auto (on in face-to-face, off elsewhere). */
+  participantSpeech: boolean | null;
   load(): Promise<void>;
   setMeeting(on: boolean): void;
-  setParticipantSpeech(on: boolean): void;
-  setFaceToFaceSwap(on: boolean): void;
+  setParticipantSpeech(on: boolean | null): void;
 }
 
 export const useRoutingStore = create<RoutingStore>()((set) => ({
   meeting: true,
-  participantSpeech: false,
-  faceToFaceSwap: false,
+  participantSpeech: null,
   async load() {
     const settings = ServiceFactory.getSettingsService();
-    const [meeting, participantSpeech, faceToFaceSwap] = await Promise.all([
+    const [meeting, participantSpeech] = await Promise.all([
       settings.getSetting(MEETING, true),
-      PARTICIPANT_SPEECH_SHOWN ? settings.getSetting(PARTICIPANT_SPEECH, false) : false,
-      settings.getSetting(FACE_TO_FACE_SWAP, false),
+      settings.getSetting<unknown>(PARTICIPANT_SPEECH, null),
     ]);
     set({
       meeting: typeof meeting === 'boolean' ? meeting : true,
-      participantSpeech: typeof participantSpeech === 'boolean' ? participantSpeech : false,
-      faceToFaceSwap: faceToFaceSwap === true,
+      participantSpeech: typeof participantSpeech === 'boolean' ? participantSpeech : null,
     });
   },
   setMeeting(on) {
@@ -59,9 +51,5 @@ export const useRoutingStore = create<RoutingStore>()((set) => ({
   setParticipantSpeech(on) {
     set({ participantSpeech: on });
     void persistSetting(PARTICIPANT_SPEECH, on);
-  },
-  setFaceToFaceSwap(on) {
-    set({ faceToFaceSwap: on });
-    void persistSetting(FACE_TO_FACE_SWAP, on);
   },
 }));
