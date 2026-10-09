@@ -1,7 +1,8 @@
 # Audio Settings Rearrangement — Design
 
 **Date**: 2026-10-10
-**Status**: boards approved on the canvas (owner, 2026-10-10); written spec pending review.
+**Status**: boards approved on the canvas (owner, 2026-10-10); spec approved with the five
+rulings under "Open questions" (owner, 2026-10-10).
 **Scope**: the Audio settings page (Advanced's Audio tab and the Simple list), the mode picker's
 device popover, the playback routing behind them, the setup wizard's presets, and the conversation
 surfaces that read the routing (ear tags, the ears strip, replay). Every provider; every platform.
@@ -368,9 +369,9 @@ The Tour's monitor step text and `settings.participantSectionDescriptionExtensio
 |---|---|---|---|
 | Electron | 「虚拟麦克风 · \<name\>」, the name the user picks in their meeting app: Linux `Sokuji_Virtual_Mic`, macOS `SokujiVirtualAudio`, Windows `CABLE Output (VB-Audio Virtual Cable)` — from one table beside `findVirtualSpeaker`, not from the device list | a device (`findVirtualSpeaker`) | applies |
 | Extension | 「虚拟麦克风 · 会议标签页」 (`virtualMicTabs`) | the tabs tap, unchanged | never blocks |
-| Web | 「网页版没有虚拟麦克风，只有我也听」 (`virtualMicNone`); the switch still decides whether my translation is spoken at all | none | never blocks |
 
-On the web 原声直通 is hidden (nothing to pass through to). The extension's tab passthrough
+There is no web build (owner, 2026-10-10): where the graph has no virtual bus the field and
+原声直通 are simply not rendered, with no string of their own. The extension's tab passthrough
 (`TabAudioRecorder.setSinkId`) keeps using 默认播放设备.
 
 ## 8. Tests
@@ -409,16 +410,15 @@ rendering, tooltips present, the 试听 outlet; a render check against boards 1�
 Each slice merges on its own; slice 1 changes no visible behaviour except that face-to-face's swap
 now writes channels.
 
-## Open questions
+## Open questions — ruled (owner, 2026-10-10)
 
-1. **我听到的翻译's default (D13).** Proposed: `null` = on in face-to-face, off in a meeting, so #613's
-   behaviour (the other person is voiced unless Text Only) survives and meetings stay silent until
-   asked. The alternative, off everywhere, makes every face-to-face user find the switch.
-2. **Channel auto (D14).** Proposed: face-to-face gives the other the right channel and me the left
-   (today's unswapped ears); both channels elsewhere. A channel picked in a meeting applies in
-   face-to-face too, and the other way round.
-3. **Popover rows** for 对方 and 两者·在线会议 (§6.3) — not drawn on the canvas.
-4. **Field text** on the extension and the web (§7), and whether Windows shows VB-Cable's exact
-   label.
-5. **我也听's default.** Today the monitor is off until turned on (`isMonitorMuted: true`); the
-   boards drew it on. Proposed: keep today's default.
+1. **我听到的翻译's default (D13).** As proposed: `null` = on in face-to-face, off in a meeting, so
+   #613's behaviour (the other person is voiced unless Text Only) survives and meetings stay silent
+   until asked.
+2. **Channel auto (D14).** As proposed: face-to-face gives the other the right channel and me the
+   left; both channels elsewhere. A channel picked in a meeting applies in face-to-face too, and
+   the other way round.
+3. **Popover rows** for 对方 and 两者·在线会议: as §6.3.
+4. **Field text**: the extension's 「虚拟麦克风 · 会议标签页」 and Windows' `CABLE Output (VB-Audio
+   Virtual Cable)` stand; there is no web build, so no web wording (§7).
+5. **我也听's default**: off, as today (`isMonitorMuted: true`).
