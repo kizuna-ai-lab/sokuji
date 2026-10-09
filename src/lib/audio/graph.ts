@@ -1,6 +1,7 @@
 /**
  * One Web Audio graph for everything the app plays (spec: "Playback"): five
- * feeds, two buses, the route table applied as a diff of gain edges, and a
+ * feeds, one bus per outlet and one for the meeting, the route table applied
+ * as a diff of gain edges, each outlet's pan on its own path, and a
  * tap of the translated speech for the echo monitor. Output leaves through
  * `<audio>` elements, as the old `ModernAudioPlayer`'s did (deleted in plan
  * 1e-3c), so the browser's echo canceller sees it; the context runs at
@@ -13,7 +14,8 @@ import { realClock, type Clock } from '../contract/clock';
 import { describeCause, reportError, reportWarning } from '../diagnostics/report';
 import type { AudioTimeline } from './clipQueue';
 import { createPcmTap, TAP_CHUNK_SAMPLES, type PcmTap } from './pcmTap';
-import type { Bus, Edge, Feed } from './routes';
+import { OUTLET_NAMES, type OutletName, type OutletSink } from './outlets';
+import type { Edge, Feed, Outlet } from './routes';
 
 /** An output element: an `HTMLAudioElement` in the app. */
 export interface SinkElement {
@@ -58,12 +60,12 @@ export interface BusMeter {
 export interface AudioGraph {
   /** A timeline playing into a feed: the clip queues' and the passthrough stream's. */
   timeline(feed: 'speaker' | 'participant' | 'replay' | 'passthrough'): AudioTimeline;
-  /** Plays a clip at its own rate on the preview feed, in one ear when given a `pan`. */
-  playOnce(audio: Float32Array, sampleRate: number, pan?: -1 | 1): OneShot;
+  /** Plays a clip at its own rate on the preview feed; the outlet it is routed to pans it. */
+  playOnce(audio: Float32Array, sampleRate: number): OneShot;
   /** Makes the edges exactly these; an edge to a bus this platform lacks is ignored. */
   route(edges: readonly Edge[]): void;
-  /** Points each bus's element at a device; the virtual one stays silent until it has one. A bus switches one device at a time and ends on the last one asked for; the promise settles once this call's switches have run, and never for a switch that never settles. */
-  setSinks(sinks: { real?: string; virtual?: string }): Promise<void>;
+  /** Points each element at its device and gives each outlet its pan; the virtual one stays silent until it has a device. A bus switches one device at a time and ends on the last one asked for; the promise settles once this call's switches have run, and never for a switch that never settles. */
+  setSinks(sinks: { virtual?: string } & Record<OutletName, OutletSink>): Promise<void>;
   /** The translated speech the graph plays (speaker, participant, replay), before any route: the echo monitor's reference. */
   readonly ttsTap: PcmTap;
   /**
@@ -71,7 +73,7 @@ export interface AudioGraph {
    * null where this platform lacks the bus. The same object every time it is
    * asked for, and it keeps reading across a rebuild (#246).
    */
-  meter(bus: Bus): BusMeter | null;
+  meter(bus: Outlet): BusMeter | null;
   /** Resumes a suspended context (once any suspend still in flight has landed) and restarts an output the browser paused (autoplay). */
   resume(): Promise<void>;
   /** Pauses rendering while nothing plays; `resume()` undoes it. */
@@ -101,12 +103,16 @@ interface Built {
   /** Where every tap (and meter) ends so the render graph pulls it; the user never hears it. */
   muted: GainNode;
   feeds: Record<Feed, GainNode>;
-  buses: Partial<Record<Bus, GainNode>>;
+  buses: Partial<Record<Outlet, GainNode>>;
   /** The stream each output element plays, per bus that has an element. */
-  outs: Partial<Record<Bus, MediaStreamAudioDestinationNode>>;
+  outs: Partial<Record<Outlet, MediaStreamAudioDestinationNode>>;
   taps: AudioWorkletNode[];
   /** One per bus a meter has been asked for (`metered`); a rebuild recreates them. */
-  analysers: Partial<Record<Bus, AnalyserNode>>;
+  analysers: Partial<Record<Outlet, AnalyserNode>>;
+  /** One per outlet, in the path only while the outlet has a channel. */
+  panners: Record<OutletName, StereoPannerNode>;
+  /** What each outlet's path is wired for right now. */
+  wired: Partial<Record<OutletName, -1 | 1>>;
 }
 
 function gainOn(ctx: AudioContext, value = 1): GainNode {
@@ -121,11 +127,34 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
   const ttsTap = createPcmTap();
   const virtual = deps.virtual;
   /** Created by the first build; a rebuild's swap points them at the new streams, so they keep their devices. */
-  const elements: Partial<Record<Bus, SinkElement>> = {};
+  const elements: Partial<Record<Outlet, SinkElement>> = {};
   /** Buses a meter has been asked for; a build wires an analyser for each. */
-  const metered = new Set<Bus>();
+  const metered = new Set<Outlet>();
+  /** Each outlet's pan as last asked for; a rebuild wires it again. */
+  const pans: Partial<Record<OutletName, -1 | 1>> = {};
+  /**
+   * Wires an outlet's path for a pan: bus → panner → stream while it has one,
+   * bus → stream otherwise. A centred clip never crosses a panner: at 0 a
+   * StereoPannerNode plays a mono clip at -3 dB in each ear.
+   */
+  const wirePan = (built: Built, name: OutletName, pan: -1 | 1 | undefined): void => {
+    const node = built.buses[name]!;
+    const out = built.outs[name]!;
+    const panner = built.panners[name];
+    if (built.wired[name] === pan) return;
+    if (built.wired[name] === undefined) node.disconnect(out);
+    else { node.disconnect(panner); panner.disconnect(out); }
+    if (pan === undefined) {
+      node.connect(out);
+    } else {
+      panner.pan.value = pan;
+      node.connect(panner);
+      panner.connect(out);
+    }
+    built.wired[name] = pan;
+  };
   /** Wires `bus`'s analyser once, pulled through the muted path like a tap. */
-  const wireAnalyser = (built: Built, bus: Bus): void => {
+  const wireAnalyser = (built: Built, bus: Outlet): void => {
     const busNode = built.buses[bus];
     if (!busNode || built.analysers[bus]) return;
     const analyser = built.ctx.createAnalyser();
@@ -165,9 +194,10 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
     feeds.replay.connect(tts);
     tapInto(tts, (chunk) => ttsTap.push(chunk));
 
-    const buses: Partial<Record<Bus, GainNode>> = {};
-    const outs: Partial<Record<Bus, MediaStreamAudioDestinationNode>> = {};
-    const toElement = (bus: Bus) => {
+    const buses: Partial<Record<Outlet, GainNode>> = {};
+    const outs: Partial<Record<Outlet, MediaStreamAudioDestinationNode>> = {};
+    const panners = {} as Record<OutletName, StereoPannerNode>;
+    const toElement = (bus: Outlet) => {
       const node = gain();
       const out = ctx.createMediaStreamDestination();
       node.connect(out);
@@ -177,7 +207,10 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
       // until its swap, so a build that throws leaves them where they were.
       elements[bus] ??= deps.createSink(out.stream);
     };
-    toElement('real');
+    for (const name of OUTLET_NAMES) {
+      toElement(name);
+      panners[name] = ctx.createStereoPanner();
+    }
     if (virtual.kind === 'device') toElement('virtual');
     if (virtual.kind === 'tabs') {
       const node = gain();
@@ -185,7 +218,8 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
       tapInto(node, (chunk) => virtual.send(chunk));
     }
 
-    const built: Built = { ctx, muted, feeds, buses, outs, taps, analysers: {} };
+    const built: Built = { ctx, muted, feeds, buses, outs, taps, analysers: {}, panners, wired: {} };
+    for (const name of OUTLET_NAMES) wirePan(built, name, pans[name]);
     for (const bus of metered) wireAnalyser(built, bus);
     return built;
   };
@@ -198,11 +232,11 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
   // device the element happened to be on before (F1). A bus's switches run
   // one at a time (`switchBus` below), so only the latest request's switch
   // sets `applied`, or forgets `requested` when it fails.
-  const requested: Partial<Record<Bus, string>> = {};
-  const applied: Partial<Record<Bus, string>> = {};
+  const requested: Partial<Record<Outlet, string>> = {};
+  const applied: Partial<Record<Outlet, string>> = {};
   // An output that will not start is reported once per failing streak, not once per chunk/resume.
-  const playFailing: Partial<Record<Bus, boolean>> = {};
-  const play = (bus: Bus) => {
+  const playFailing: Partial<Record<Outlet, boolean>> = {};
+  const play = (bus: Outlet) => {
     const element = elements[bus];
     if (!element || !element.paused) return;
     if (bus === 'virtual' && (applied.virtual === undefined || applied.virtual !== requested.virtual)) return;
@@ -217,7 +251,7 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
       },
     );
   };
-  play('real');
+  for (const name of OUTLET_NAMES) play(name);
 
   /** Starts a buffer into `into`; `onEnded` fires once, on its end or on stop. */
   const start = (ctx: AudioContext, buffer: AudioBuffer, into: AudioNode, at: number, onEnded: () => void): (() => void) => {
@@ -240,19 +274,17 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
     };
   };
 
-  const edges = new Map<string, { from: Feed; node: GainNode; panner?: StereoPannerNode }>();
+  const edges = new Map<string, { from: Feed; node: GainNode }>();
   /** What `route` was last asked for: a rebuild applies it to the new context. */
   let lastRoute: readonly Edge[] = [];
   const applyRoute = (next: readonly Edge[]) => {
     const { ctx, feeds, buses } = current;
     const wanted = new Map<string, Edge>();
-    // The pan is part of the key: a swapped ear is a new edge, not a retuned one.
-    for (const edge of next) if (buses[edge.to]) wanted.set(`${edge.from}>${edge.to}>${edge.pan ?? 0}`, edge);
+    for (const edge of next) if (buses[edge.to]) wanted.set(`${edge.from}>${edge.to}`, edge);
     for (const [id, edge] of edges) {
       if (wanted.has(id)) continue;
       feeds[edge.from].disconnect(edge.node);
       edge.node.disconnect();
-      edge.panner?.disconnect();
       edges.delete(id);
     }
     for (const [id, edge] of wanted) {
@@ -263,16 +295,8 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
       }
       const node = gainOn(ctx, edge.gain);
       feeds[edge.from].connect(node);
-      let panner: StereoPannerNode | undefined;
-      if (edge.pan !== undefined) {
-        panner = ctx.createStereoPanner();
-        panner.pan.value = edge.pan;
-        node.connect(panner);
-        panner.connect(buses[edge.to]!);
-      } else {
-        node.connect(buses[edge.to]!);
-      }
-      edges.set(id, { from: edge.from, node, ...(panner ? { panner } : {}) });
+      node.connect(buses[edge.to]!);
+      edges.set(id, { from: edge.from, node });
     }
   };
 
@@ -302,8 +326,8 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
    * stops holding the next one; if it then lands after a newer switch, the
    * bus switches to the newest request again.
    */
-  const switching: Partial<Record<Bus, Promise<void>>> = {};
-  const switchBus = (bus: Bus, element: SinkElement, id: string | undefined): Promise<void> => {
+  const switching: Partial<Record<Outlet, Promise<void>>> = {};
+  const switchBus = (bus: Outlet, element: SinkElement, id: string | undefined): Promise<void> => {
     const stale = () => closing !== null || requested[bus] !== id;
     let turnOver!: () => void;
     const over = new Promise<void>((resolve) => { turnOver = resolve; });
@@ -326,7 +350,7 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
           element.pause();
           return;
         }
-        // The real element keeps playing wherever it was — the user still
+        // An outlet's element keeps playing wherever it was — the user still
         // hears their audio — so it plays as on success.
         play(bus);
         return;
@@ -419,7 +443,7 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
       for (const tap of old.taps) tap.port.onmessage = null;
       // Swap first: from here every queue's clock is the new context's.
       current = next;
-      for (const bus of ['real', 'virtual'] as const) {
+      for (const bus of Object.keys(elements) as Outlet[]) {
         const element = elements[bus];
         const out = next.outs[bus];
         if (element && out) element.srcObject = out.stream;
@@ -438,8 +462,7 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
         try { listener(); } catch (error) { reportError('AudioGraph', `A reset listener threw: ${describeCause(error)}`, { cause: error, dedupeKey: 'graph:reset-listener' }); }
       }
       reportWarning('AudioGraph', `The audio output stopped responding and was rebuilt (attempt ${rebuilds} of ${MAX_REBUILDS})`, { dedupeKey: 'graph:rebuild' });
-      play('real');
-      play('virtual');
+      for (const bus of Object.keys(elements) as Outlet[]) play(bus);
       // A wedged context may never settle its close(), as it may never settle
       // resume(): it is abandoned, never awaited, so recovery cannot hang on it.
       void old.ctx.close().catch(() => {});
@@ -450,8 +473,8 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
   // One `BusMeter` per bus ever asked for; its `read()` looks up `current`
   // each time, so it keeps reading across a rebuild (`metered` above is what
   // makes `build()` recreate the analyser it reads).
-  const meters = new Map<Bus, BusMeter>();
-  const readMeter = (bus: Bus): Float32Array => {
+  const meters = new Map<Outlet, BusMeter>();
+  const readMeter = (bus: Outlet): Float32Array => {
     const analyser = current.analysers[bus];
     if (!analyser) return new Float32Array(0);
     const raw = new Uint8Array(analyser.frequencyBinCount);
@@ -473,26 +496,14 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
       },
     }),
 
-    playOnce(audio, sampleRate, pan) {
+    playOnce(audio, sampleRate) {
       if (audio.length === 0) return { ended: Promise.resolve(), stop: () => {} };
       const { ctx, feeds } = current;
       const buffer = ctx.createBuffer(1, audio.length, sampleRate);
       buffer.getChannelData(0).set(audio);
       let resolve!: () => void;
       const ended = new Promise<void>((r) => { resolve = r; });
-      // One ear (the face-to-face preview): a panner of its own, gone with the clip.
-      let into: AudioNode = feeds.preview;
-      let panner: StereoPannerNode | undefined;
-      if (pan !== undefined) {
-        panner = ctx.createStereoPanner();
-        panner.pan.value = pan;
-        panner.connect(feeds.preview);
-        into = panner;
-      }
-      const stop = start(ctx, buffer, into, ctx.currentTime, () => {
-        panner?.disconnect();
-        resolve();
-      });
+      const stop = start(ctx, buffer, feeds.preview, ctx.currentTime, resolve);
       return { ended, stop };
     },
 
@@ -515,10 +526,18 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
 
     async setSinks(sinks) {
       const switches: Promise<void>[] = [];
-      for (const bus of ['real', 'virtual'] as const) {
+      for (const bus of ['virtual', ...OUTLET_NAMES] as const) {
         const element = elements[bus];
-        const id = sinks[bus];
-        if (!element || id === requested[bus]) continue;
+        if (!element) continue;
+        if (bus !== 'virtual') {
+          const pan = sinks[bus].pan;
+          if (pans[bus] !== pan) {
+            pans[bus] = pan;
+            wirePan(current, bus, pan);
+          }
+        }
+        const id = bus === 'virtual' ? sinks.virtual : sinks[bus].device;
+        if (id === requested[bus]) continue;
         requested[bus] = id;
         if (bus === 'virtual') {
           // Never play the meeting's audio on whatever device the element is
@@ -559,8 +578,7 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
           resumeFailing = true;
         }
       }
-      play('real');
-      play('virtual');
+      for (const bus of Object.keys(elements) as Outlet[]) play(bus);
     },
 
     suspend() {
