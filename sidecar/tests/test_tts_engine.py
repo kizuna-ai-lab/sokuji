@@ -1345,18 +1345,17 @@ def test_tts_asr_loopback_per_family():
     #
     # language="en" (the SAME ISO code every other family gets, via attempt()'s
     # default) -- NOT the hand-picked "auto" this leg used before ruling R14(s4)
-    # landed. Before R14, qwen3_tts's talker rejected ISO codes outright
-    # ("Qwen3 talker unsupported language: en") because it resolves `language`
-    # against a per-checkpoint codec_language_id table keyed by full language
-    # NAMES baked into the GGUF's own metadata, not ISO codes -- "auto" is a
-    # dedicated sentinel (qwen3_tts/talker.cpp) that skips that lookup entirely,
-    # and production (LocalNativeClient.ts -> tts_engine.py -> tts_backend.py)
-    # always sends an ISO code, never "auto" (C1's production-path mismatch).
-    # R14 now maps ANY incoming language to "auto" internally, in
-    # native/src/sk_tts.cpp's build_request(), so this leg passing "en" like
-    # every other family IS what now reaches the talker as "auto" -- this is
-    # C1's permanent regression gate: a real checkpoint, on real hardware,
-    # synthesizing correctly from the SAME language argument production sends.
+    # landed. qwen3_tts's talker rejects ISO codes outright ("Qwen3 talker
+    # unsupported language: en") because it resolves `language` against a
+    # per-checkpoint codec_language_id table keyed by full language NAMES baked
+    # into the GGUF's own metadata, and production (LocalNativeClient.ts ->
+    # tts_engine.py -> tts_backend.py) always sends an ISO code. R14 (revised
+    # 2026-10-09) maps the ten codes the checkpoints carry to those names, and any
+    # other to the talker's "auto" sentinel, in native/src/sk_tts.cpp's
+    # build_request(), so this leg passing "en" like every other family reaches
+    # the talker as "english" -- this is C1's permanent regression gate: a real
+    # checkpoint, on real hardware, synthesizing correctly from the SAME language
+    # argument production sends.
     qwen3_dir = family_dir("SK_TEST_TTS_QWEN3_DIR")
     if qwen3_dir and supertonic_ref:
         ref_samples, ref_rate, ref_text = supertonic_ref

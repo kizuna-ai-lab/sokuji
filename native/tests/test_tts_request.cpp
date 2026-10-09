@@ -195,11 +195,12 @@ void existing_families_build_the_same_requests() {
     assert(carries_clip(req) && !has(req, "reference_text"));
     assert(!has(req, "do_sample") && opt(req, "seed") == "0");
 
-    // qwen3_tts: any language becomes "auto" (R14(s4)); the transcript goes; greedy.
+    // qwen3_tts: an app code becomes its checkpoint's language name (R14(s4), revised
+    // 2026-10-09); the transcript goes; greedy.
     const auto qwen3 = handle_for("qwen3_tts");
     give_clip(qwen3.get(), "The quick brown fox.");
     req = build_request(qwen3.get(), "Hello.", "en", 1.0f);
-    assert(req.text_input && req.text_input->language == "auto");
+    assert(req.text_input && req.text_input->language == "english");
     assert(opt(req, "reference_text") == "The quick brown fox.");
     assert(opt(req, "do_sample") == "false");
 
@@ -264,7 +265,7 @@ void load_language_replaces_the_callers_on_every_synth() {
     // The family rules apply to whatever language the load left in force.
     const auto qwen3 = handle_for("qwen3_tts", "en");
     req = build_request(qwen3.get(), "Hello.", "zh", 1.0f);
-    assert(req.text_input && req.text_input->language == "auto");
+    assert(req.text_input && req.text_input->language == "english");
     const auto index = handle_for("index_tts2", "JA");
     req = build_request(index.get(), "Hello.", "en", 1.0f);
     assert(opt(req, "language") == "ja");
@@ -297,6 +298,64 @@ void omnivoice_takes_its_own_ids_for_arabic_and_nepali() {
         const auto other = handle_for(family);
         assert(language(other.get(), "ar") == "ar");
         assert(language(other.get(), "ne") == "ne");
+    }
+}
+
+// The ten names in the qwen3_tts checkpoints' talker_config.codec_language_id, read off the
+// 0.6B and 1.7B Base and the 1.7B CustomVoice GGUFs (the same ten in each), never off sk_tts.cpp.
+constexpr LanguageName kQwen3CheckpointNames[] = {
+    {"zh", "chinese"}, {"en", "english"}, {"ja", "japanese"}, {"ko", "korean"},
+    {"de", "german"},  {"fr", "french"},  {"ru", "russian"},  {"pt", "portuguese"},
+    {"es", "spanish"}, {"it", "italian"},
+};
+// The app's 74 base codes (src/lib/local-inference/modelManifest.languages.test.ts).
+constexpr const char *kAppCodes[] = {
+    "af", "am", "ar", "az", "bg", "bn", "bs", "ca", "cs", "cy", "da", "de", "el", "en", "es",
+    "et", "fa", "fi", "fil", "fr", "gl", "gu", "he", "hi", "hr", "hu", "id", "is", "it", "ja",
+    "jv", "ka", "kk", "km", "kn", "ko", "lb", "lo", "lt", "lv", "mk", "ml", "mn", "mr", "ms",
+    "mt", "my", "ne", "nl", "no", "pl", "ps", "pt", "ro", "ru", "si", "sk", "sl", "so", "sq",
+    "sr", "su", "sv", "sw", "ta", "te", "th", "tr", "uk", "ur", "uz", "vi", "yue", "zh",
+};
+static_assert(std::size(kQwen3CheckpointNames) == 10 && std::size(kAppCodes) == 74, "a list was mistyped");
+
+// Ruling R14(s4), revised 2026-10-09: qwen3_tts is handed its checkpoint's name for the ten
+// languages it carries, and "auto" for any other app code.
+void qwen3_tts_takes_its_checkpoints_language_names() {
+    const auto h = handle_for("qwen3_tts");
+    give_clip(h.get(), "The quick brown fox.");
+    const auto language = [](const sk_tts *handle, const char *code) {
+        const rt::TaskRequest req = build_request(handle, "Hello.", code, 1.0f);
+        assert(!has(req, "language"));   // the name rides text_input, as "auto" did
+        return req.text_input ? req.text_input->language : std::string("<no text_input>");
+    };
+    int wrong = 0;
+    for (const char *code : kAppCodes) {
+        std::string want = "auto";
+        for (const auto &pair : kQwen3CheckpointNames)
+            if (std::string(pair.code) == code) want = pair.name;
+        const std::string got = language(h.get(), code);
+        if (got != want) {
+            std::fprintf(stderr, "qwen3_tts, code \"%s\": want \"%s\", got \"%s\"\n", code, want.c_str(), got.c_str());
+            ++wrong;
+        }
+    }
+    assert(wrong == 0);
+    // A region subtag or another case reaches the same name.
+    assert(language(h.get(), "ko-KR") == "korean");
+    assert(language(h.get(), "PT_br") == "portuguese");
+    assert(language(h.get(), "zh-Hant") == "chinese");
+    // An unknown code and no code keep "auto".
+    assert(language(h.get(), "xx") == "auto");
+    assert(language(h.get(), "") == "auto");
+    assert(language(h.get(), nullptr) == "auto");
+    // The CustomVoice checkpoint's preset path follows the same rule.
+    const auto custom_voice = handle_for("qwen3_tts");
+    give_preset(custom_voice.get(), "Vivian");
+    assert(language(custom_voice.get(), "ja") == "japanese");
+    // Other families keep the app's code.
+    for (const char *family : {"omnivoice", "fish_audio", "moss_tts_nano", "audio8_tts"}) {
+        const auto other = handle_for(family);
+        assert(build_request(other.get(), "Hello.", "ko", 1.0f).text_input->language == "ko");
     }
 }
 
@@ -1156,6 +1215,16 @@ void check_max_tokens(Audit &a, const ExpectedRow &e, const rt::TaskRequest &req
            name == "outetts" ? "2048" : name == "higgs_audio_tts" ? "256" : "<absent>", opt(req, "max_tokens"));
 }
 
+// The app's "ko" reaches text_input as a name for the two families whose prompt is tagged with
+// one, and as given for every other.
+void check_text_language(Audit &a, const ExpectedRow &e, const sk_tts *h) {
+    const std::string name = e.name;
+    const rt::TaskRequest req = build_request(h, "Hello.", "ko", 1.0f);
+    a.text(e.name, "bare: text language for ko",
+           name == "qwen3_tts" ? "korean" : name == "moss_tts_local" ? "Korean" : "ko",
+           req.text_input ? req.text_input->language : std::string("<no text_input>"));
+}
+
 void requests_honour_each_row() {
     constexpr const char *kTranscript = "The quick brown fox.";
     constexpr const char *kPreset = "Aria";
@@ -1166,6 +1235,7 @@ void requests_honour_each_row() {
             const rt::TaskRequest req = build_request(h.get(), "Hello.", "en", 1.0f);
             check_sampling(a, e, req, "bare");
             check_max_tokens(a, e, req, "bare");
+            check_text_language(a, e, h.get());
             a.flag(e.name, "bare: voice", false, req.voice.has_value());
             a.flag(e.name, "bare: reference_text", false, has(req, "reference_text"));
             a.flag(e.name, "bare: reference_language", false, has(req, "reference_language"));
@@ -1219,6 +1289,7 @@ int main() {
     load_language_is_kept_for_every_family_but_pocket_tts();
     load_language_replaces_the_callers_on_every_synth();
     omnivoice_takes_its_own_ids_for_arabic_and_nepali();
+    qwen3_tts_takes_its_checkpoints_language_names();
     cosyvoice3_requests();
     fireredtts3_requests();
     language_names_match_the_vendors();

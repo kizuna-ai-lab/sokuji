@@ -262,7 +262,9 @@ offline families, which cannot be interrupted mid-run. `speed` only affects `sup
 `.unload()`).
 
 `language` reaches each family by whichever route that family actually reads. Most take it
-on `text_input.language`; `qwen3_tts` is forced to its own `"auto"` sentinel (Ruling R14(s4));
+on `text_input.language`; `qwen3_tts` gets its checkpoint's language name (`"korean"`) for the
+ten languages it carries and its `"auto"` sentinel for any other (Ruling R14(s4), revised
+2026-10-09: with `"auto"` a clip in another language than the text can run to the frame cap);
 `voxcpm1` and `voxcpm2` read no language at all (both advertise `languages = {"Auto"}`), so
 theirs is a no-op; and `irodori_tts` / `index_tts2` read the `language` REQUEST OPTION
 instead, so `build_request` sets that one for them — fixed `"ja"` for irodori (any other

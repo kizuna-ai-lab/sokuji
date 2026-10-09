@@ -423,6 +423,24 @@ const char *english_language_name(const std::string &code) {
     return nullptr;
 }
 
+// The names qwen3_tts's checkpoints key their language tokens by (talker_config.codec_language_id;
+// the same ten in the 0.6B and 1.7B Base and the 1.7B CustomVoice GGUFs, whose two dialect entries
+// no app code names). The talker lower-cases its language before the lookup
+// (src/models/qwen3_tts/talker.cpp:434).
+constexpr LanguageName kQwen3Languages[] = {
+    {"zh", "chinese"}, {"en", "english"}, {"ja", "japanese"}, {"ko", "korean"},
+    {"de", "german"},  {"fr", "french"},  {"ru", "russian"},  {"pt", "portuguese"},
+    {"es", "spanish"}, {"it", "italian"},
+};
+
+// The name for a code the checkpoints carry, else "auto".
+const char *qwen3_language(const char *language) {
+    const std::string code = base_language_code(language);
+    for (const auto &entry : kQwen3Languages)
+        if (code == entry.code) return entry.name;
+    return "auto";
+}
+
 // VibeVoice's speaker script for one plain utterance: every non-blank line, trimmed, becomes
 // "Speaker 1: <line>"; blank lines are dropped. A line ends at an LF or a CR (a CRLF is a break
 // and an empty piece, which is skipped): the engine's pattern refuses a CR inside a line
@@ -463,21 +481,19 @@ int64_t higgs_max_tokens(const std::string &text) {
 rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *language, float speed) {
     rt::TaskRequest req;
     // A load-time forced language wins over the caller's (adopt_family). The family rules
-    // below (qwen3_tts's "auto", irodori_tts's "ja", index_tts2's option) apply to it as they
+    // below (qwen3_tts's names, irodori_tts's "ja", index_tts2's option) apply to it as they
     // would to the caller's.
     if (!t->forced_language.empty()) language = t->forced_language.c_str();
-    // Ruling R14(s4): qwen3_tts resolves `language` against a per-checkpoint
-    // codec_language_id table keyed by FULL LANGUAGE NAMES baked into the GGUF's own
-    // metadata (qwen3_tts/talker.cpp), not ISO codes -- an ISO code like "en" throws
-    // "Qwen3 talker unsupported language: en" (live-verified, task-7-report.md §3).
-    // "auto" is the talker's own sentinel that skips that lookup entirely via a
-    // "nothink" codec prefix. The production caller always passes an ISO code
-    // (LocalNativeClient.ts -> tts_engine.set_language -> tts_backend.synth), so map
-    // ANY incoming language to "auto" here for this family rather than pass it
-    // through -- proven correct output on a real checkpoint by the T7/fix-round
-    // loopbacks. Refine to a full-name mapping later only if per-language quality
-    // demands it.
-    const char *resolved_language = (t->family == "qwen3_tts") ? "auto" : language;
+    // Ruling R14(s4), revised by the owner 2026-10-09: qwen3_tts gets its checkpoint's language
+    // name (kQwen3Languages) for the ten languages it carries, and "auto" for any other code. An
+    // ISO code throws ("Qwen3 talker unsupported language",
+    // src/models/qwen3_tts/talker.cpp:462-464). "auto" sends no language token (:455-460), so a
+    // clip in another language than the text makes the model speak the clip's language and miss
+    // its stop token, running to the checkpoint's 8192-frame cap: with an English clip and a
+    // Korean sentence the 1.7B Base ran away on 5 of 8 seeds with "auto" and on 0 of 8 with
+    // "korean" (measured 2026-10-09).
+    const char *resolved_language =
+        (t->family == "qwen3_tts") ? qwen3_language(language) : language;
     req.text_input = rt::Transcript{text ? text : "", resolved_language ? resolved_language : ""};
     // audio8_tts reads the request language for one thing only: Traditional -> Simplified
     // conversion of the text and of the reference transcript, skipped for Cantonese alone
