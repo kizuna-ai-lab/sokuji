@@ -403,7 +403,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
                       aria-label={ear === 'left' ? t('faceToFace.previewLeft', 'Preview the left ear') : t('faceToFace.previewRight', 'Preview the right ear')}
                       onClick={() => {
                         void getAppAudio()
-                          .then((app) => app.testTone(undefined, pan))
+                          .then((app) => app.earPreview(pan))
                           .catch((error: unknown) => reportError('ModeDevicePopover', `The ear preview did not play: ${describeCause(error)}`, { cause: error }));
                       }}
                     >

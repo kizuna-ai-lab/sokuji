@@ -59,8 +59,8 @@ const f2f = { offered: true, active: false, swap: false, me: 'ja', other: 'en', 
 vi.mock('./useFaceToFace', () => ({ useFaceToFace: () => f2f }));
 const routing = { setFaceToFaceSwap: vi.fn() };
 vi.mock('../../stores/routingStore', () => ({ useRoutingStore: (pick: (s: unknown) => unknown) => pick({ faceToFaceSwap: f2f.swap, setFaceToFaceSwap: routing.setFaceToFaceSwap }) }));
-const tone = vi.fn(async (_signal?: AbortSignal, _pan?: -1 | 1) => {});
-vi.mock('../../lib/audio/appAudio', () => ({ getAppAudio: async () => ({ testTone: tone }) }));
+const tone = vi.fn(async (_pan?: -1 | 1) => {});
+vi.mock('../../lib/audio/appAudio', () => ({ getAppAudio: async () => ({ earPreview: tone }) }));
 const report = vi.hoisted(() => ({ error: vi.fn() }));
 vi.mock('../../lib/diagnostics/report', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/diagnostics/report')>()),
@@ -239,9 +239,9 @@ describe('ModeDevicePopover — Both, the other side', () => {
     expect(screen.getByText('Headphones')).toBeInTheDocument();
     expect(screen.getByText('Left ear')).toBeInTheDocument();
     expect(screen.getByText('Right ear')).toBeInTheDocument();
-    // The left ear's preview plays the tone panned left.
+    // The left ear's preview plays the chime panned left.
     fireEvent.click(screen.getAllByRole('button', { name: /Preview the/ })[0]);
-    await vi.waitFor(() => expect(tone).toHaveBeenCalledWith(undefined, -1));
+    await vi.waitFor(() => expect(tone).toHaveBeenCalledWith(-1));
     fireEvent.click(screen.getByRole('button', { name: /Swap left and right/ }));
     expect(routing.setFaceToFaceSwap).toHaveBeenCalledWith(true);
   });
@@ -251,7 +251,7 @@ describe('ModeDevicePopover — Both, the other side', () => {
     store.otherSide = 'beside';
     mountBoth();
     fireEvent.click(screen.getByRole('button', { name: 'Preview the right ear' }));
-    await vi.waitFor(() => expect(tone).toHaveBeenCalledWith(undefined, 1));
+    await vi.waitFor(() => expect(tone).toHaveBeenCalledWith(1));
   });
 
   it('swapped: the left ear is the other person, the right is me, and the swap button turns it back', async () => {
@@ -263,7 +263,7 @@ describe('ModeDevicePopover — Both, the other side', () => {
     expect(ears[0].className).toContain('--other');
     expect(ears[1].className).toContain('--me');
     fireEvent.click(screen.getByRole('button', { name: 'Preview the right ear' }));
-    await vi.waitFor(() => expect(tone).toHaveBeenCalledWith(undefined, 1));
+    await vi.waitFor(() => expect(tone).toHaveBeenCalledWith(1));
     fireEvent.click(screen.getByRole('button', { name: /Swap left and right/ }));
     expect(routing.setFaceToFaceSwap).toHaveBeenCalledWith(false);
   });

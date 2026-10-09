@@ -20,6 +20,7 @@ import { createAudioGraph, type VirtualOutput } from './graph';
 import { createPlayback, type Playback, type PreviewClip, type RoutingSource } from './playback';
 import type { RoutingSettings } from './routes';
 import { sendToTabs, targetTabIdFromSearch, toPcmDataMessage, type TabsApi } from './tabMicrophone';
+import { earTone } from './earTone';
 import { loadTestTone } from './testTone';
 import { findVirtualSpeaker } from './virtualSpeaker';
 
@@ -34,6 +35,8 @@ export interface AppAudio {
    * `playback.stopPreview()` ends it.
    */
   testTone(signal?: AbortSignal, pan?: -1 | 1): Promise<void>;
+  /** Plays the synthesized chime in one ear, on the real device (face-to-face's ear preview). */
+  earPreview(pan: -1 | 1): Promise<void>;
 }
 
 export function readRouting(
@@ -176,6 +179,7 @@ async function build(): Promise<AppAudio> {
       if (signal?.aborted) return;
       await playback.preview(pan === undefined ? clip : { ...clip, pan });
     },
+    earPreview: (pan) => playback.preview({ ...earTone(), pan }),
   };
 }
 
