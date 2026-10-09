@@ -235,24 +235,24 @@ describe('createPlayback — replay', () => {
     const { graph, routes } = fakeGraph();
     const playback = createPlayback(graph, routing().source);
     playback.replay('speaker', translation(4, [{ pcm: pcm(100) }]));
-    expect(routes.at(-1)).toContainEqual({ from: 'replay', to: 'me', gain: 1 });
+    expect(routes[routes.length - 1]).toContainEqual({ from: 'replay', to: 'me', gain: 1 });
     playback.replay('participant', translation(5, [{ pcm: pcm(100) }]));
-    expect(routes.at(-1)).toContainEqual({ from: 'replay', to: 'them', gain: 1 });
-    expect(routes.at(-1)!.filter((e) => e.from === 'replay')).toHaveLength(1);
+    expect(routes[routes.length - 1]).toContainEqual({ from: 'replay', to: 'them', gain: 1 });
+    expect(routes[routes.length - 1]!.filter((e) => e.from === 'replay')).toHaveLength(1);
   });
 
   it('replays my translation on the other person\'s outlet in face-to-face', () => {
     const { graph, routes } = fakeGraph();
     const playback = createPlayback(graph, routing({ ...ROUTING, faceToFace: true }).source);
     playback.replay('speaker', translation(4, [{ pcm: pcm(100) }]));
-    expect(routes.at(-1)).toContainEqual({ from: 'replay', to: 'other', gain: 1 });
+    expect(routes[routes.length - 1]).toContainEqual({ from: 'replay', to: 'other', gain: 1 });
   });
 
   it('replays my translation on me whatever the live routes say (我也听 off) (Review Focus 3)', () => {
     const { graph, routes } = fakeGraph();
     const playback = createPlayback(graph, routing({ ...ROUTING, speak: { other: false, me: false, them: false }, passthrough: { on: false, ratio: 0 } }).source);
     playback.replay('speaker', translation(4, [{ pcm: pcm(100) }]));
-    expect(routes.at(-1)).toEqual([{ from: 'replay', to: 'me', gain: 1 }, { from: 'preview', to: 'me', gain: 1 }]);
+    expect(routes[routes.length - 1]).toEqual([{ from: 'replay', to: 'me', gain: 1 }, { from: 'preview', to: 'me', gain: 1 }]);
   });
 
   it('replaces a replay in progress, and stops on request', () => {
@@ -272,11 +272,11 @@ describe('createPlayback — preview', () => {
     const { graph, routes, shots } = fakeGraph();
     const playback = createPlayback(graph, routing().source);
     const first = playback.preview({ audio: new Float32Array(10), sampleRate: 44100 }, 'them');
-    expect(routes.at(-1)).toContainEqual({ from: 'preview', to: 'them', gain: 1 });
+    expect(routes[routes.length - 1]).toContainEqual({ from: 'preview', to: 'them', gain: 1 });
     shots[0].end();
     await first;
     const second = playback.preview({ audio: new Float32Array(10), sampleRate: 44100 });
-    expect(routes.at(-1)).toContainEqual({ from: 'preview', to: 'me', gain: 1 });
+    expect(routes[routes.length - 1]).toContainEqual({ from: 'preview', to: 'me', gain: 1 });
     shots[1].end();
     await second;
   });

@@ -24,7 +24,7 @@ vi.mock('../providerPaths', () => ({ wizardProvider: () => moody, textOnlyCapabi
 const participant = vi.hoisted(() => ({ speech: false }));
 vi.mock('../../../lib/session/appShape', () => ({
   legsFor: (mode: string) => (mode === 'both' ? ['speaker', 'participant'] : [mode]),
-  participantSpeechSwitchFromStores: () => participant.speech,
+  speechInputsFromStores: () => ({ textOnly: false, participantSpeech: participant.speech }),
 }));
 
 import { PIN_SEPARATOR } from '../../../lib/language/order';

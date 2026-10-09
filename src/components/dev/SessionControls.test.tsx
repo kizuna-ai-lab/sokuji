@@ -185,12 +185,12 @@ describe('SessionControls — playback', () => {
     }
   });
 
-  it('shows the peak the them-outlet bus meter reads', () => {
+  it('shows the peak the me-outlet bus meter reads', () => {
     vi.useFakeTimers();
     try {
       const { runner } = fakeRunner();
       const audio = fakeAudio();
-      Object.assign(audio.playback, { meter: (bus: string) => (bus === 'them' ? { read: () => Float32Array.of(0.1, 0.4) } : null) });
+      Object.assign(audio.playback, { meter: (bus: string) => (bus === 'me' ? { read: () => Float32Array.of(0.1, 0.4) } : null) });
       render(<SessionControls runner={runner} turnMode="auto" audio={audio} />);
       act(() => { vi.advanceTimersByTime(100); });
       expect(document.querySelector('[data-probe="playback"]')?.textContent).toBe('heard: - · tap peak: 0.000 · bus peak: 0.400 · gaps: 0 (0 ms) at -');
@@ -205,7 +205,7 @@ describe('SessionControls — playback', () => {
       const { runner } = fakeRunner();
       const audio = fakeAudio();
       let busLevel = Float32Array.of(0.6);
-      Object.assign(audio.playback, { meter: (bus: string) => (bus === 'them' ? { read: () => busLevel } : null) });
+      Object.assign(audio.playback, { meter: (bus: string) => (bus === 'me' ? { read: () => busLevel } : null) });
       render(<SessionControls runner={runner} turnMode="auto" audio={audio} />);
       act(() => { vi.advanceTimersByTime(100); });
       // The bus has gone quiet: the analyser now reads zeros, as it does once
