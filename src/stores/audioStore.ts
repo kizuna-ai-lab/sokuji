@@ -325,13 +325,11 @@ const useAudioStore = create<AudioStore>()(
         // mode, so the binding only flows mode -> participant, never reverse.
         patch.isParticipantMuted = !nextParticipantInScope;
 
-        // Monitor <-> participant mutex: the monitor is audible ONLY in pure
-        // speaker mode. isMonitorMuted is left untouched here (it's the
-        // user's sticky opt-in preference, restored when we return to
-        // speaker) — the actual playback volume is re-gated on mode by
-        // `appAudio.readRouting`, which reads `mode` and `isMonitorMuted`
-        // live, so nothing needs to happen in this action beyond the mode
-        // change itself.
+        // The monitor (我也听) is gated by `speakFor` (src/lib/session/shape.ts):
+        // off under Text Only, in face-to-face, and in Both when the other
+        // side's source would recapture it. The stored isMonitorMuted is left
+        // as it is (the user's sticky preference); nothing needs to happen in
+        // this action beyond the mode change itself.
 
         // Auto-pick first device for channels newly in scope without a selection.
         // Prefer non-virtual devices so we don't accidentally pick a Sokuji

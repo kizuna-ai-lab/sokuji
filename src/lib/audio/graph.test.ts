@@ -123,6 +123,20 @@ describe('createAudioGraph — routes', () => {
     expect(ctx.panners[0].outputs.size).toBe(1);
     expect(ctx.panners[2].outputs.size).toBe(1);
   });
+
+  it('re-pans an outlet from one ear to the other without leaving the old wiring behind (the swap)', async () => {
+    const { ctx, graph, other, destinationOf, clip } = await setup();
+    graph.route([{ from: 'speaker', to: 'other', gain: 1 }]);
+    const source = clip('speaker');
+    await graph.setSinks({ other: { pan: 1 }, me: {}, them: {} });
+    await graph.setSinks({ other: { pan: -1 }, me: {}, them: {} });
+    expect(ctx.panners[0].pan.value).toBe(-1);
+    expect(reaches(source, ctx.panners[0])).toBe(true);
+    expect(reaches(ctx.panners[0], destinationOf(other))).toBe(true);
+    // One panner, in the path exactly once: the bus feeds it, it feeds the stream.
+    expect(ctx.panners[0].outputs.size).toBe(1);
+    expect(ctx.panners).toHaveLength(3);
+  });
 });
 
 describe('createAudioGraph — outputs', () => {

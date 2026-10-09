@@ -50,6 +50,12 @@ describe('readRouting', () => {
     expect(sinks.me).toEqual({ device: 'monitor-1', pan: 1 });
   });
 
+  it('never routes an outlet to the virtual speaker, even when its stored device is that one', () => {
+    const outlets = { ...AUDIO.outlets, them: { device: 'cable-1', channel: 'auto' as const } };
+    const { sinks } = readRouting({ ...AUDIO, outlets }, SPEAK, true, 'electron', 'auto');
+    expect(sinks.them).toEqual({ device: 'monitor-1' });
+  });
+
   it('resolves auto channels per face-to-face: the other right, me left, centred in a meeting (Review Focus 2)', () => {
     const f2f = readRouting(AUDIO, SPEAK, true, 'electron', 'auto', true);
     expect(f2f.faceToFace).toBe(true);

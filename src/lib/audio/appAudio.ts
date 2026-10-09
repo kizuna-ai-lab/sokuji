@@ -50,7 +50,8 @@ export function readRouting(
 ): RoutingSettings {
   const context = {
     defaultDevice: audio.selectedMonitorDevice?.deviceId,
-    present: new Set(audio.audioMonitorDevices.map((d) => d.deviceId)),
+    // A stored outlet device that is the virtual speaker must never route the user's outlet into the meeting.
+    present: new Set(audio.audioMonitorDevices.filter((d) => !d.isVirtual).map((d) => d.deviceId)),
     faceToFace,
   };
   const sinks = {

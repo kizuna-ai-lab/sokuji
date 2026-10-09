@@ -44,7 +44,7 @@ export function ParticipantSpeechSwitch({ locked }: { locked: boolean }) {
   const heard = participantSpeechHeard(isElectron() ? 'electron' : 'other', selectedParticipantSource?.deviceId);
   return (
     <ToggleSwitch
-      checked={participantSpeech && heard && offered}
+      checked={participantSpeech === true && heard && offered}
       onChange={() => useRoutingStore.getState().setParticipantSpeech(!participantSpeech)}
       label={t('audioPanel.participantSpeech')}
       disabled={locked || !heard || !offered}
