@@ -821,7 +821,7 @@ describe('the ears strip (face-to-face)', () => {
   it('locks the other side in the popover while a run is live, and frees it when idle', async () => {
     const { container } = await renderPanel();
     const openPopover = () => fireEvent.click(container.querySelector('.mode-picker__segment--active')!);
-    const radios = () => [...document.querySelectorAll<HTMLInputElement>('input[name="other-side"]')];
+    const radios = () => [...document.querySelectorAll<HTMLInputElement>('.other-side-choice input[type="radio"]')];
     openPopover();
     expect(radios()).toHaveLength(2);
     expect(radios().every((r) => !r.disabled)).toBe(true);
@@ -838,7 +838,7 @@ describe('the ears strip (face-to-face)', () => {
 
   describe('the one-time popover on the first pick of Both', () => {
     const bothSegment = (container: HTMLElement) => container.querySelectorAll<HTMLElement>('.mode-picker__segment')[2];
-    const radios = () => document.querySelectorAll('input[name="other-side"]');
+    const radios = () => document.querySelectorAll('.other-side-choice input[type="radio"]');
     beforeEach(() => { useAudioStore.setState({ mode: 'speaker', bothPopoverSeen: false }); });
     afterEach(() => { act(() => { useAudioStore.setState({ bothPopoverSeen: false }); }); });
 
@@ -854,6 +854,18 @@ describe('the ears strip (face-to-face)', () => {
       expect(radios()).toHaveLength(0);
       fireEvent.click(bothSegment(container));
       expect(useAudioStore.getState().mode).toBe('both');
+      expect(radios()).toHaveLength(0);
+    });
+
+    it('opening the popover by hand on Both marks it seen, so a later switch back does not open it', async () => {
+      useAudioStore.setState({ mode: 'both', bothPopoverSeen: false });
+      const { container } = await renderPanel();
+      fireEvent.click(bothSegment(container));
+      expect(radios()).toHaveLength(2);
+      expect(useAudioStore.getState().bothPopoverSeen).toBe(true);
+      fireEvent.click(bothSegment(container));
+      fireEvent.click(container.querySelectorAll<HTMLElement>('.mode-picker__segment')[0]);
+      fireEvent.click(bothSegment(container));
       expect(radios()).toHaveLength(0);
     });
 

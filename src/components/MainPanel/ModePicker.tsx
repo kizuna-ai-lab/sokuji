@@ -94,7 +94,7 @@ const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForM
             type="button"
             className={classes}
             aria-pressed={isActive}
-            aria-label={label}
+            aria-label={seg === 'both' && faceToFace ? `${label} · ${faceToFaceTag}` : label}
             disabled={isDisabled}
             title={titleFor(seg)}
             onClick={() => {
@@ -106,7 +106,7 @@ const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForM
             <Icon size={14} />
             <span className="mode-picker__label">{label}</span>
             {seg === 'both' && faceToFace && (
-              <span className="mode-picker__tag" aria-label={faceToFaceTag} title={faceToFaceTag}>
+              <span className="mode-picker__tag" title={faceToFaceTag}>
                 <span className="mode-picker__tag-word">{faceToFaceTag}</span>
                 <span className="mode-picker__tag-glyph" aria-hidden="true"><Headphones size={12} aria-hidden="true" /></span>
               </span>

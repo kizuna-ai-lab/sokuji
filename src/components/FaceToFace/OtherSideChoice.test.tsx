@@ -57,4 +57,16 @@ describe('OtherSideChoice', () => {
     expect(heading?.textContent).toBe('Other side');
     expect(heading?.closest('[role="radiogroup"]')).toBeNull();
   });
+
+  it('gives each instance its own radio group', () => {
+    store.otherSide = 'beside';
+    render(<><OtherSideChoice locked={false} /><OtherSideChoice locked={false} /></>);
+    const [first, second] = screen.getAllByRole('radiogroup').map((g) => Array.from(g.querySelectorAll('input')));
+    expect(first[0].name).not.toBe(second[0].name);
+    expect(first[0].name).toBe(first[1].name);
+    // Each copy shows the store's choice though both are mounted at once.
+    expect(first[1]).toBeChecked();
+    expect(second[1]).toBeChecked();
+    expect(first[0]).not.toBeChecked();
+  });
 });

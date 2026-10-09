@@ -130,7 +130,8 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
       return;
     }
 
-    if (isMonitorMuted) {
+    // Face-to-face plays on its own; the Me-mode monitor's mute is not this pick's to undo.
+    if (isMonitorMuted && !faceToFace) {
       setMonitorMuted(false);
     }
     selectMonitorDevice(device);

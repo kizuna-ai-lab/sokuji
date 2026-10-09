@@ -248,7 +248,12 @@ export default function MainPanel() {
   // Mode picker: the active segment toggles its device popover; another segment switches the mode while idle.
   const [popover, setPopover] = useState<HTMLElement | null>(null);
   const onModeSegment = useCallback((target: AudioMode, el: HTMLElement) => {
-    if (target === mode) { setPopover((open) => (open ? null : el)); return; }
+    if (target === mode) {
+      // Opening Both's popover by hand is seeing it: a later switch back does not open it again.
+      if (target === 'both' && f2f.offered && !popover) setBothPopoverSeen(true);
+      setPopover((open) => (open ? null : el));
+      return;
+    }
     if (run.phase === 'idle') setMode(target);
     // The first pick of Both opens its popover once, so face-to-face is not left to be found.
     if (run.phase === 'idle' && target === 'both' && f2f.offered && !bothPopoverSeen) {
@@ -257,7 +262,7 @@ export default function MainPanel() {
       return;
     }
     setPopover(null);
-  }, [mode, run.phase, setMode, f2f.offered, bothPopoverSeen, setBothPopoverSeen]);
+  }, [mode, popover, run.phase, setMode, f2f.offered, bothPopoverSeen, setBothPopoverSeen]);
 
   const { notice: echo, dismiss: dismissEcho } = useEchoNotice(
     useMemo(() => (audio ? echoSource(audio.capture.echo) : null), [audio]),

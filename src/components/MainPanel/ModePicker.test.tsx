@@ -56,8 +56,10 @@ describe('ModePicker', () => {
   it('the tag carries the accessible name, with a word and an icon-only glyph', () => {
     const { container } = render(<ModePicker mode="both" locked={false} missingDeviceForMode={null} onSegmentClick={() => {}} faceToFace />);
     const tag = container.querySelector('.mode-picker__tag')!;
-    expect(tag.getAttribute('aria-label')).toMatch(/Face-to-face|modePicker\.faceToFaceTag/);
-    expect(tag.getAttribute('title')).toBe(tag.getAttribute('aria-label'));
+    // The button's own aria-label overrides its content, so the word is folded into it.
+    expect(tag.closest('button')!.getAttribute('aria-label')).toMatch(/Face-to-face|modePicker\.faceToFaceTag/);
+    expect(tag.getAttribute('aria-label')).toBeNull();
+    expect(tag.getAttribute('title')).toMatch(/Face-to-face|modePicker\.faceToFaceTag/);
     expect(tag.querySelector('.mode-picker__tag-word')).not.toBeNull();
     expect(tag.querySelector('.mode-picker__tag-glyph')?.getAttribute('aria-hidden')).toBe('true');
     expect(tag.querySelector('.mode-picker__tag-glyph svg')).not.toBeNull();

@@ -34,7 +34,7 @@ const OtherSideChoice: React.FC<OtherSideChoiceProps> = ({ locked, className }) 
             className={`other-side-choice__side${otherSide === side ? ' other-side-choice__side--active' : ''}`}
             title={locked ? t('modePicker.switchDisabled', 'Mode is locked during a session.') : undefined}
           >
-            <input type="radio" name="other-side" checked={otherSide === side} disabled={locked} onChange={() => setOtherSide(side)} />
+            <input type="radio" name={headingId} checked={otherSide === side} disabled={locked} onChange={() => setOtherSide(side)} />
             <span className="other-side-choice__side-title">
               {side === 'meeting' ? t('popover.otherSideMeeting', 'In a meeting') : t('popover.otherSideBeside', 'Beside me')}
             </span>
