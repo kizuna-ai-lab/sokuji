@@ -61,7 +61,7 @@ describe('the OpenAI Realtime definition', () => {
       build: buildRealtime,
       describe: describeRealtime,
     });
-    for (const absent of ['flagged', 'i18nKey', 'session', 'participantSpeech'] as const) {
+    for (const absent of ['flagged', 'session', 'participantSpeech'] as const) {
       expect(openaiProvider, absent).not.toHaveProperty(absent);
     }
   });

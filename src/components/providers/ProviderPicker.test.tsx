@@ -88,15 +88,9 @@ describe('ProviderPicker', () => {
     expect(setSetting).not.toHaveBeenCalledWith('settings.common.provider', expect.anything());
   });
 
-  it("reads LocalInference's option under the old enum's spelling", async () => {
+  it("reads LocalInference's option under its id, the old enum's spelling", async () => {
     render(<ProviderPicker providers={[localInferenceProvider]} auth={noAuth} />);
     expect(await screen.findByRole('option', { name: 'providers.local_inference.name' })).toBeTruthy();
-  });
-
-  it("reads a provider's name under its i18nKey when it has one", async () => {
-    const openaiCompatible = { ...fakeProvider, id: 'openai_compatible', i18nKey: 'openaiCompatible', settings: { ...fakeProvider.settings, key: 'openaiCompatible' } };
-    render(<ProviderPicker providers={[openaiCompatible]} auth={noAuth} />);
-    expect(await screen.findByRole('option', { name: 'providers.openaiCompatible.name' })).toBeTruthy();
   });
 
   it("draws a provider's credential choice and writes it as a setting: the other option's fields show (F4)", async () => {
@@ -169,7 +163,7 @@ describe('ProviderPicker', () => {
     render(<ProviderPicker providers={[localInferenceProvider]} auth={noAuth} />);
     act(() => {
       useProviderStore.setState((st) => ({
-        readiness: { ...st.readiness, localInference: { state: 'not-ready', reason: 'x', code: 'local_models_missing' } },
+        readiness: { ...st.readiness, local_inference: { state: 'not-ready', reason: 'x', code: 'local_models_missing' } },
       }));
     });
     expect(await screen.findByText('notices.local_models_missing')).toHaveClass('validation-message', 'error');
@@ -361,7 +355,7 @@ describe('ProviderPicker', () => {
 
       // LocalInference: icon + name + description, no engine credit — it has
       // no `vendor` (no third-party engine to credit).
-      const localOption = document.querySelector('.provider-select option[value="localInference"]');
+      const localOption = document.querySelector('.provider-select option[value="local_inference"]');
       expect(localOption?.querySelector('.provider-select__icon')?.firstElementChild).not.toBeNull();
       expect(localOption?.querySelector('.provider-select__name')?.textContent).toBe('providers.local_inference.name');
       expect(localOption?.querySelector('.provider-select__description')?.textContent).toBe('providers.local_inference.description');
@@ -384,7 +378,7 @@ describe('ProviderPicker', () => {
       render(<ProviderPicker providers={[localInferenceProvider, fakeProvider]} auth={noAuth} />);
       await screen.findByLabelText('simpleSettings.provider');
 
-      const localOption = document.querySelector('.provider-select option[value="localInference"]');
+      const localOption = document.querySelector('.provider-select option[value="local_inference"]');
       expect(localOption?.querySelector('span')).toBeNull();
       expect(localOption?.textContent).toBe('providers.local_inference.name');
 

@@ -65,7 +65,7 @@ const switchByLabel = (label: string) => screen.getAllByRole('switch').find((el)
 beforeEach(() => {
   trackEvent.mockClear();
   tooltipContents.length = 0;
-  useProviderStore.setState({ selected: 'localInference', entries: { localInference: localEntry() }, readiness: {} });
+  useProviderStore.setState({ selected: 'local_inference', entries: { local_inference: localEntry() }, readiness: {} });
   useSettingsStore.setState({ textOnly: false, keepReplayAudio: false, settingsNavigationTarget: null, uiMode: 'basic', setUIMode: originalSetUIMode } as Partial<ReturnType<typeof useSettingsStore.getState>>);
   useTurnModeStore.setState({ turnMode: 'auto' });
   useAudioStore.setState({ mode: 'speaker' } as Partial<ReturnType<typeof useAudioStore.getState>>);
@@ -209,7 +209,7 @@ describe("SpeechSection — the provider's turn-detection tuning", () => {
     const block = container.querySelector<HTMLElement>('#turn-detection-tuning-section')!;
     const minSilence = within(block).getByText('Min Silence Duration').closest('.setting-item')!.querySelector('input[type="range"]')!;
     fireEvent.change(minSilence, { target: { value: '0.5' } });
-    expect((useProviderStore.getState().entries.localInference.settings as typeof LOCAL_INFERENCE_DEFAULTS).vadMinSilenceDuration).toBe(0.5);
+    expect((useProviderStore.getState().entries.local_inference.settings as typeof LOCAL_INFERENCE_DEFAULTS).vadMinSilenceDuration).toBe(0.5);
     expect(link(container)!.textContent).toBe('VAD Settings · Min Silence Duration: 0.50s');
   });
 

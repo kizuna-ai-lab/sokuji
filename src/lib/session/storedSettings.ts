@@ -5,27 +5,16 @@
  */
 import type { TurnMode } from './types';
 
-/** The old `Provider` enum's spelling (`src/types/Provider.ts`) of every registered provider id that differs from it. */
-export const LEGACY_PROVIDER_IDS: Readonly<Record<string, string>> = {
-  local_inference: 'localInference',
-};
-
-/** A stored `settings.common.provider` value in the registry's spelling; null when nothing usable is stored. */
-export function providerIdFromStored(stored: unknown): string | null {
-  if (typeof stored !== 'string' || stored.trim() === '') return null;
-  return LEGACY_PROVIDER_IDS[stored] ?? stored;
-}
-
 /**
- * What `settings.common.provider` holds for a provider: the old enum's
- * spelling where one exists — the value every install already has. The old
- * settings store, kept for Local Native until kizuna-ai-lab/sokuji#578,
+ * The provider id a stored `settings.common.provider` value names; null when
+ * nothing usable is stored. Every registered id is the old `Provider` enum's
+ * spelling (registry invariant), so the stored value is the id itself. The
+ * old settings store, kept for Local Native until kizuna-ai-lab/sokuji#578,
  * reads a value its registry does not hold as its inert default (Stage 2
  * deletion, choice 4).
  */
-export function storedProviderValue(id: string): string {
-  for (const [legacy, current] of Object.entries(LEGACY_PROVIDER_IDS)) if (current === id) return legacy;
-  return id;
+export function providerIdFromStored(stored: unknown): string | null {
+  return typeof stored === 'string' && stored.trim() !== '' ? stored : null;
 }
 
 export interface StoredSelection {
@@ -50,11 +39,11 @@ export function selectionFromStored(stored: unknown, offered: readonly string[],
 
 /**
  * What a selection writes under `settings.common.provider`: an explicit pick
- * writes its stored spelling; a load writes nothing — the stored value, even
- * one naming a provider this build lacks, stays for Stage 2 to find (ruling 2).
+ * writes the id; a load writes nothing — the stored value, even one naming a
+ * provider this build lacks, stays for Stage 2 to find (ruling 2).
  */
 export function selectionToPersist(id: string, how: 'load' | 'pick'): string | null {
-  return how === 'pick' ? storedProviderValue(id) : null;
+  return how === 'pick' ? id : null;
 }
 
 /** The slice each old `Provider` value kept its settings under (its descriptor's `settingsSliceKey`). */
@@ -77,7 +66,7 @@ export const LEGACY_SLICE_KEYS: Readonly<Record<string, string>> = {
 /** Where the stored provider kept its turn mode; null when the value names no old provider. */
 export function legacyTurnModeKey(storedProvider: unknown): string | null {
   if (typeof storedProvider !== 'string') return null;
-  const slice = LEGACY_SLICE_KEYS[storedProvider] ?? LEGACY_SLICE_KEYS[storedProviderValue(storedProvider)];
+  const slice = LEGACY_SLICE_KEYS[storedProvider];
   return slice ? `settings.${slice}.turnDetectionMode` : null;
 }
 

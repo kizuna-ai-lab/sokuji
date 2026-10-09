@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
 import type { AnyProvider, AuthContext, EngineSlot } from '../../lib/provider/types';
-import { storedProviderValue } from '../../lib/session/storedSettings';
 import { supportsBaseSelect } from '../../utils/supportsBaseSelect';
 import { openExternalUrl } from '../../utils/openExternalUrl';
 import { useProviderStore } from '../../stores/providerStore';
@@ -77,9 +76,8 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
   const recommendedId = providers.find((p) => p.kind === 'managed')?.id;
   const recommendedLabel = t('simpleSettings.recommended', 'Recommended');
 
-  // Today's `ProviderSection.tsx` keys dismissal by the old enum's spelling
-  // (e.g. `local_inference`), so a dismissal made there carries over.
-  const storedProviderId = storedProviderValue(provider.id);
+  // Dismissal is keyed by the id — the old enum's spelling, so a dismissal
+  // the old `ProviderSection.tsx` made carries over.
   const dismissTutorial = (id: string) => {
     const updated = new Set(dismissedTutorials);
     updated.add(id);
@@ -89,17 +87,15 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
 
   // One renderer for every provider option — ports ProviderSection.tsx's
   // renderProviderOption (~:551-586) over the new registry: name/description
-  // key comes straight off the definition (`i18nKey`, falling back to `id` —
-  // controller ruling 2), not off `storedProviderValue`, which only maps the
-  // id onto its stored spelling; a provider whose keys are missing falls back
-  // to its id for the name (as today) and no description line at all. The
-  // icon and vendor come straight off the definition (`p.icon`, `p.vendor`)
-  // rather than a separate UI-layer lookup table.
+  // keys sit under the id (every id is the old enum's spelling — controller
+  // ruling 2); a provider whose keys are missing falls back to its id for the
+  // name (as today) and no description line at all. The icon and vendor come
+  // straight off the definition (`p.icon`, `p.vendor`) rather than a separate
+  // UI-layer lookup table.
   //
   // The first managed provider offered carries "Recommended" (Stage 2 Kizuna Soniox).
   const renderProviderOption = (p: AnyProvider) => {
-    const localeKey = p.i18nKey ?? p.id;
-    const name = t(`providers.${localeKey}.name`, p.id);
+    const name = t(`providers.${p.id}.name`, p.id);
     if (!richSelect) {
       // Chrome below 135 renders <option>{text}</option> and drops every
       // child element, so on the extension's floor (116) the option holds
@@ -110,7 +106,7 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
         </option>
       );
     }
-    const description = t(`providers.${localeKey}.description`, '');
+    const description = t(`providers.${p.id}.description`, '');
     const vendor = p.vendor;
     return (
       <option key={p.id} value={p.id}>
@@ -172,8 +168,8 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
           onChange={(e) => {
             const next = e.target.value;
             // Today's series (ProviderSection.tsx:512-520). A pick is refused during a run (1e-3b-1 ruling 7), so never during one.
-            trackEvent('provider_switched', { from_provider: storedProviderValue(provider.id), to_provider: storedProviderValue(next), during_session: false });
-            // A person's pick: it persists, in the old enum's spelling (1e-3b-1 ruling 8).
+            trackEvent('provider_switched', { from_provider: provider.id, to_provider: next, during_session: false });
+            // A person's pick: it persists (1e-3b-1 ruling 8).
             select(next, 'pick');
           }}
           aria-label={t('simpleSettings.provider')}
@@ -208,7 +204,7 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
               if (answer.state === 'unknown' || answer.state === 'checking') return;
               // Today's event (ProviderSection.tsx's handleValidateApiKey), for the button a person pressed.
               trackEvent('api_key_validated', {
-                provider: storedProviderValue(provider.id),
+                provider: provider.id,
                 success: answer.state === 'ready',
                 ...(answer.state === 'not-ready' && answer.code ? { error_type: answer.code } : {}),
               });
@@ -220,13 +216,13 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
       {openSlot && provider.EngineSummary && entry && (
         <provider.EngineSummary {...ownProps(selection, entry, disabled)} legs={legs} openSlot={openSlot} />
       )}
-      {provider.guideUrl && !dismissedTutorials.has(storedProviderId) && (
+      {provider.guideUrl && !dismissedTutorials.has(provider.id) && (
         <div className="tutorial-link">
           <a href={provider.guideUrl} onClick={(e) => { e.preventDefault(); openExternalUrl(provider.guideUrl!); }}>
             <ExternalLink size={12} />
             {t('simpleSettings.setupGuide', 'Setup guide')}
           </a>
-          <button type="button" className="tutorial-dismiss" onClick={() => dismissTutorial(storedProviderId)} title={t('common.dismiss', 'Dismiss')}>
+          <button type="button" className="tutorial-dismiss" onClick={() => dismissTutorial(provider.id)} title={t('common.dismiss', 'Dismiss')}>
             <X size={12} />
           </button>
         </div>

@@ -475,8 +475,7 @@ What the spec's "What adding a provider then touches" lists
    may pin its place. `src/providers/sessionSide.consistency.test.ts` holds its adapter
    automatically (it walks every `src/providers/*` folder); pin its session side there, as
    the ports did.
-3. `providers.<id>.name` and `.description` in the 30 locale catalogs — or under the
-   definition's `i18nKey` where the catalogs already spell it otherwise — only when new.
+3. `providers.<id>.name` and `.description` in the 30 locale catalogs — only when new.
 4. The extension manifest, when it uses a host the manifest does not list yet: MV3
    declares hosts statically (`host_permissions`, and the CSP's `connect-src`).
 5. When it is flagged, its id in `VITE_ENABLED_PROVIDERS` at release.

@@ -6,7 +6,6 @@ import { useAuth } from '../../lib/auth/hooks';
 import { useSetupStore } from '../../stores/setupStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useProviderStore } from '../../stores/providerStore';
-import { storedProviderValue } from '../../lib/session/storedSettings';
 import { useLayoutStore } from '../../stores/layoutStore';
 import useAudioStore from '../../stores/audioStore';   // default export only
 import { isElectron, isExtension, isLinux, isMacOS, isWindows } from '../../utils/environment';
@@ -26,9 +25,9 @@ export function useStartBasicsTour(): () => void {
     const s = useSettingsStore.getState();
     start(buildTourCtx({
       record: useSetupStore.getState().setup,
-      // The selected provider, in the old enum's spelling — never the record's,
-      // which is wizard-time history (tourContext.ts).
-      provider: storedProviderValue(useProviderStore.getState().selected ?? '') as ProviderType,
+      // The selected provider — never the record's, which is wizard-time
+      // history (tourContext.ts).
+      provider: (useProviderStore.getState().selected ?? '') as ProviderType,
       mode: useAudioStore.getState().mode,
       textOnly: s.textOnly,
       isSignedIn,

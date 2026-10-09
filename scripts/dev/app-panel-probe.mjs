@@ -30,7 +30,7 @@
  * Provider tab's VAD block (#turn-detection-tuning-section) with its sliders
  * — from Simple mode by way of a switch to Advanced (`--app` only).
  * `--preview` opens `&settings=simple` then `&settings=advanced`, both on
- * `&provider=localInference` (the chips are LocalInference's; the advanced
+ * `&provider=local_inference` (the chips are LocalInference's; the advanced
  * page draws the Speech section's Advanced layout above the Provider tab,
  * VAD block included, with no tab bar to switch);
  * `--app` seeds LocalInference (not the fake — its chips) and Auto, opens
@@ -188,7 +188,7 @@ function settingsPreviewUrl(mode) {
   const params = new URLSearchParams();
   params.set('preview', 'spine');
   params.set('settings', mode);
-  params.set('provider', 'localInference');
+  params.set('provider', 'local_inference');
   return `${origin}/?${params.toString()}`;
 }
 

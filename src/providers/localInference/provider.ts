@@ -16,15 +16,16 @@ const adapter = createLocalInferenceAdapter();
  * it needs no credentials (`kind: 'local'`) and offers itself on every
  * platform. Ruling 10: first in UI order among the released providers.
  */
-export const localInferenceProvider: Provider<LocalInferenceSettings, LocalCredentials, LocalInferenceConfig> & { id: 'localInference' } = {
-  id: 'localInference',
+export const localInferenceProvider: Provider<LocalInferenceSettings, LocalCredentials, LocalInferenceConfig> & { id: 'local_inference' } = {
+  // The old enum's spelling, as every provider's id is (controller ruling 2
+  // of the Stage 2 foundation): what every install stores, what analytics
+  // report, and the segment its locale keys sit under. Stage 1 named it
+  // `localInference` and mapped it; the rename retired the mapping. Its
+  // settings keep the old slice key below.
+  id: 'local_inference',
   kind: 'local',
   platforms: ['electron', 'extension', 'web'],
   icon: KizunaAIIcon,
-  // The old enum's spelling (controller ruling 2): the picker reads
-  // `providers.<i18nKey ?? id>.*` from the definition now, not from
-  // `storedProviderValue`.
-  i18nKey: 'local_inference',
   // Today's TUTORIAL_URLS value (`services/providers/tutorialUrls.ts`), as a
   // literal: that module is under `src/services`, the old provider layer
   // this rewrite is replacing, and this provider's own code should not
