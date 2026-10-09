@@ -1465,7 +1465,7 @@
     "previewLeft": "Linkes Ohr testen",
     "previewRight": "Rechtes Ohr testen",
     "swap": "Links und rechts tauschen",
-    "speakersHint": "Am besten funktioniert je ein Ohrhörer pro Person. Über Lautsprecher nimmt das Mikrofon die Übersetzung auf und übersetzt sie erneut.",
+    "speakersHint": "Nutzt Kopfhörer, jeder eine Seite. Über jeden Lautsprecher nimmt das Mikrofon die Übersetzung auf und übersetzt sie erneut.",
     "playedLeft": "Im linken Ohr abgespielt",
     "playedRight": "Im rechten Ohr abgespielt",
     "notPlayed": "Nicht abgespielt: Diese Übersetzung ist auf {{language}}, nicht auf {{target}}, und wird daher niemandem vorgelesen.",

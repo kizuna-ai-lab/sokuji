@@ -1465,7 +1465,7 @@
     "previewLeft": "Nghe thử tai trái",
     "previewRight": "Nghe thử tai phải",
     "swap": "Đổi tai trái và phải",
-    "speakersHint": "Mỗi người đeo một bên tai nghe là tốt nhất. Với loa ngoài, micro sẽ thu cả bản dịch và dịch lại lần nữa.",
+    "speakersHint": "Hãy dùng tai nghe, mỗi người một bên. Với bất kỳ loa nào, micro sẽ thu cả bản dịch và dịch lại lần nữa.",
     "playedLeft": "Đã phát ở tai trái",
     "playedRight": "Đã phát ở tai phải",
     "notPlayed": "Không phát: bản dịch này bằng {{language}}, không phải {{target}}, nên không được đọc cho ai.",

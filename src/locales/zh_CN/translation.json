@@ -1465,7 +1465,7 @@
     "previewLeft": "试听左耳",
     "previewRight": "试听右耳",
     "swap": "左右互换",
-    "speakersHint": "最好一人戴一只耳机。使用扬声器时，麦克风会拾取译音并再次翻译。",
+    "speakersHint": "请使用耳机，一人戴一侧。只要用扬声器，麦克风就会拾取译音并再次翻译。",
     "playedLeft": "已在左耳播放",
     "playedRight": "已在右耳播放",
     "notPlayed": "未播放：这条译文是 {{language}}，不是 {{target}}，因此不会读给任何人听。",

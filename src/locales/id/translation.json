@@ -1465,7 +1465,7 @@
     "previewLeft": "Pratinjau telinga kiri",
     "previewRight": "Pratinjau telinga kanan",
     "swap": "Tukar kiri dan kanan",
-    "speakersHint": "Satu earbud per orang paling baik. Pada speaker, mikrofon menangkap terjemahan lalu menerjemahkannya lagi.",
+    "speakersHint": "Gunakan headphone, satu sisi per orang. Dengan speaker apa pun, mikrofon menangkap terjemahan lalu menerjemahkannya lagi.",
     "playedLeft": "Diputar di telinga kiri",
     "playedRight": "Diputar di telinga kanan",
     "notPlayed": "Tidak diputar: terjemahan ini dalam bahasa {{language}}, bukan {{target}}, sehingga tidak dibacakan kepada siapa pun.",

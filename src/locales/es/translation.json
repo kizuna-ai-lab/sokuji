@@ -1465,7 +1465,7 @@
     "previewLeft": "Probar el oído izquierdo",
     "previewRight": "Probar el oído derecho",
     "swap": "Intercambiar izquierda y derecha",
-    "speakersHint": "Lo mejor es un auricular para cada uno. Con altavoces, el micrófono capta la traducción y la vuelve a traducir.",
+    "speakersHint": "Usen auriculares, un lado cada uno. Con cualquier altavoz, el micrófono capta la traducción y la vuelve a traducir.",
     "playedLeft": "Reproducido en el oído izquierdo",
     "playedRight": "Reproducido en el oído derecho",
     "notPlayed": "No reproducido: esta traducción está en {{language}}, no en {{target}}, así que no se lee a nadie.",

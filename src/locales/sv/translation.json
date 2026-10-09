@@ -1465,7 +1465,7 @@
     "previewLeft": "Förhandslyssna på vänster öra",
     "previewRight": "Förhandslyssna på höger öra",
     "swap": "Byt vänster och höger",
-    "speakersHint": "En hörsnäcka var fungerar bäst. Med högtalare fångar mikrofonen upp översättningen och översätter den igen.",
+    "speakersHint": "Använd hörlurar, en sida var. Med vilken högtalare som helst fångar mikrofonen upp översättningen och översätter den igen.",
     "playedLeft": "Spelades upp i vänster öra",
     "playedRight": "Spelades upp i höger öra",
     "notPlayed": "Spelades inte upp: den här översättningen är på {{language}}, inte på {{target}}, så den läses inte upp för någon.",

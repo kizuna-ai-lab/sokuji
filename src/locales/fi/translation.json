@@ -1465,7 +1465,7 @@
     "previewLeft": "Esikuuntele vasen korva",
     "previewRight": "Esikuuntele oikea korva",
     "swap": "Vaihda vasen ja oikea",
-    "speakersHint": "Yksi nappikuuloke kummallekin toimii parhaiten. Kaiuttimilla mikrofoni poimii käännöksen ja kääntää sen uudelleen.",
+    "speakersHint": "Käyttäkää kuulokkeita, kumpikin yhtä puolta. Mikä tahansa kaiutin saa mikrofonin poimimaan käännöksen ja kääntämään sen uudelleen.",
     "playedLeft": "Toistettu vasemmassa korvassa",
     "playedRight": "Toistettu oikeassa korvassa",
     "notPlayed": "Ei toistettu: tämä käännös on kielellä {{language}}, ei kielellä {{target}}, joten sitä ei lueta kenellekään.",

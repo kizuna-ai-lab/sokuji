@@ -421,7 +421,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
                 <ArrowLeftRight size={14} />
                 {t('faceToFace.swap', 'Swap left and right')}
               </button>
-              <span className="mode-device-popover__ears-hint">{t('faceToFace.speakersHint', 'One earbud each works best. On speakers, the microphone picks up the translation and translates it again.')}</span>
+              <span className="mode-device-popover__ears-hint">{t('faceToFace.speakersHint', 'Use headphones, one side each. Any speaker lets the microphone pick up the translation and translate it again.')}</span>
             </div>
           </div>
         )}

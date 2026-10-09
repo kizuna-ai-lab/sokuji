@@ -1465,7 +1465,7 @@
     "previewLeft": "Tester l'oreille gauche",
     "previewRight": "Tester l'oreille droite",
     "swap": "Inverser gauche et droite",
-    "speakersHint": "Le mieux est un écouteur chacun. Avec des haut-parleurs, le micro capte la traduction et la traduit de nouveau.",
+    "speakersHint": "Utilisez un casque, un côté chacun. Avec n'importe quel haut-parleur, le micro capte la traduction et la traduit de nouveau.",
     "playedLeft": "Lu dans l'oreille gauche",
     "playedRight": "Lu dans l'oreille droite",
     "notPlayed": "Non lu : cette traduction est en {{language}} et non en {{target}}, elle n'est donc lue à personne.",

@@ -682,7 +682,7 @@
     "previewLeft": "Preview the left ear",
     "previewRight": "Preview the right ear",
     "swap": "Swap left and right",
-    "speakersHint": "One earbud each works best. On speakers, the microphone picks up the translation and translates it again.",
+    "speakersHint": "Use headphones, one side each. Any speaker lets the microphone pick up the translation and translate it again.",
     "playedLeft": "Played in the left ear",
     "playedRight": "Played in the right ear",
     "notPlayed": "Not played: this translation is in {{language}}, not {{target}}, so it is read to no one.",

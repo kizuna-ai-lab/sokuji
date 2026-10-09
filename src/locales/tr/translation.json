@@ -1465,7 +1465,7 @@
     "previewLeft": "Sol kulağı önizle",
     "previewRight": "Sağ kulağı önizle",
     "swap": "Sol ile sağı değiştir",
-    "speakersHint": "Kişi başına bir kulaklık en iyi sonucu verir. Hoparlörde mikrofon çeviriyi alır ve yeniden çevirir.",
+    "speakersHint": "Kulaklık kullanın, herkes bir tarafını taksın. Herhangi bir hoparlörde mikrofon çeviriyi alır ve yeniden çevirir.",
     "playedLeft": "Sol kulakta oynatıldı",
     "playedRight": "Sağ kulakta oynatıldı",
     "notPlayed": "Oynatılmadı: bu çeviri {{target}} dilinde değil, {{language}} dilinde; bu yüzden kimseye okunmaz.",

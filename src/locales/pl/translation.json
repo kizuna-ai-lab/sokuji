@@ -1465,7 +1465,7 @@
     "previewLeft": "Odsłuchaj lewe ucho",
     "previewRight": "Odsłuchaj prawe ucho",
     "swap": "Zamień lewe z prawym",
-    "speakersHint": "Najlepiej po jednej słuchawce na osobę. Przy głośnikach mikrofon łapie tłumaczenie i tłumaczy je ponownie.",
+    "speakersHint": "Używajcie słuchawek, każdy po jednej stronie. Przy dowolnym głośniku mikrofon łapie tłumaczenie i tłumaczy je ponownie.",
     "playedLeft": "Odtworzono w lewym uchu",
     "playedRight": "Odtworzono w prawym uchu",
     "notPlayed": "Nie odtworzono: to tłumaczenie jest na {{language}}, a nie na {{target}}, więc nikt go nie usłyszy.",

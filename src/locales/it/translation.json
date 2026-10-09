@@ -1465,7 +1465,7 @@
     "previewLeft": "Ascolta l'orecchio sinistro",
     "previewRight": "Ascolta l'orecchio destro",
     "swap": "Scambia sinistra e destra",
-    "speakersHint": "Funziona meglio un auricolare a testa. Con gli altoparlanti, il microfono capta la traduzione e la traduce di nuovo.",
+    "speakersHint": "Usate le cuffie, un lato a testa. Con qualsiasi altoparlante, il microfono capta la traduzione e la traduce di nuovo.",
     "playedLeft": "Riprodotto nell'orecchio sinistro",
     "playedRight": "Riprodotto nell'orecchio destro",
     "notPlayed": "Non riprodotto: questa traduzione è in {{language}}, non in {{target}}, quindi non viene letta a nessuno.",

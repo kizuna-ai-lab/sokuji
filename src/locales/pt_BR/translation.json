@@ -1465,7 +1465,7 @@
     "previewLeft": "Testar o ouvido esquerdo",
     "previewRight": "Testar o ouvido direito",
     "swap": "Trocar esquerda e direita",
-    "speakersHint": "O melhor é um fone para cada um. Com alto-falantes, o microfone capta a tradução e a traduz de novo.",
+    "speakersHint": "Use fones de ouvido, um lado para cada um. Com qualquer alto-falante, o microfone capta a tradução e a traduz de novo.",
     "playedLeft": "Reproduzido no ouvido esquerdo",
     "playedRight": "Reproduzido no ouvido direito",
     "notPlayed": "Não reproduzido: esta tradução está em {{language}}, não em {{target}}, então não é lida para ninguém.",

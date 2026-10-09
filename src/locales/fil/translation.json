@@ -1465,7 +1465,7 @@
     "previewLeft": "I-preview ang kaliwang tainga",
     "previewRight": "I-preview ang kanang tainga",
     "swap": "Ipagpalit ang kaliwa at kanan",
-    "speakersHint": "Pinakamainam ang tig-isang earbud. Sa mga speaker, nakukuha ng mikropono ang salin at isinasalin itong muli.",
+    "speakersHint": "Gumamit ng headphone, tig-isang gilid bawat tao. Sa anumang speaker, nakukuha ng mikropono ang salin at isinasalin itong muli.",
     "playedLeft": "Pinatugtog sa kaliwang tainga",
     "playedRight": "Pinatugtog sa kanang tainga",
     "notPlayed": "Hindi pinatugtog: ang salin na ito ay sa {{language}}, hindi sa {{target}}, kaya hindi ito binabasa sa kahit sino.",

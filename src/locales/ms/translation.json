@@ -1465,7 +1465,7 @@
     "previewLeft": "Pratonton telinga kiri",
     "previewRight": "Pratonton telinga kanan",
     "swap": "Tukar kiri dan kanan",
-    "speakersHint": "Satu fon telinga seorang paling sesuai. Pada pembesar suara, mikrofon menangkap terjemahan lalu menterjemahkannya semula.",
+    "speakersHint": "Gunakan fon kepala, satu sisi seorang. Dengan mana-mana pembesar suara, mikrofon menangkap terjemahan lalu menterjemahkannya semula.",
     "playedLeft": "Dimainkan di telinga kiri",
     "playedRight": "Dimainkan di telinga kanan",
     "notPlayed": "Tidak dimainkan: terjemahan ini dalam bahasa {{language}}, bukan {{target}}, jadi tidak dibacakan kepada sesiapa.",
