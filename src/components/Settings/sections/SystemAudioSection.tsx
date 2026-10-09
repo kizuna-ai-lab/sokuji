@@ -117,7 +117,7 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
           </button>
         )}
       </h3>
-      {mode === 'both' && faceToFace.offered && <OtherSideChoice locked={locked} />}
+      {mode === 'both' && faceToFace.offered && <OtherSideChoice locked={isSessionActive} />}
       {besideMe ? (
         <p className="setting-description">{t('audioPanel.otherSideBesideNote', 'The other person shares your microphone; no system audio is captured.')}</p>
       ) : showSourcePicker ? (

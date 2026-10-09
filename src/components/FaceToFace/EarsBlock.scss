@@ -1,10 +1,21 @@
 @use '../../styles/tokens' as tk;
+@use '../Settings/shared/variables' as vars;
 
 // One row per ear. The caller sets the surface and the spacing around it.
 .ears-block {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  // Sized here, so Settings and the popover draw it alike.
+  font-size: 12px;
+
+  // In Settings, as a box on the panel.
+  &--boxed {
+    padding: 12px 14px;
+    border: 1px solid vars.$border-default;
+    border-radius: 8px;
+    background: vars.$bg-surface;
+  }
 
   &__title { color: #aaa; font-size: 11px; }
 

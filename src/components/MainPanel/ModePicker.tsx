@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Headphones } from 'lucide-react';
 import { SideMeIcon, SideOtherIcon, SideBothIcon } from '../Icons/SideIcons';
 import './ModePicker.scss';
 
@@ -29,6 +30,7 @@ const SEGMENT_ICONS: Record<'speaker' | 'participant' | 'both', React.ComponentT
 
 const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForMode, onSegmentClick, faceToFace, faceToFaceOffered }) => {
   const { t } = useTranslation();
+  const faceToFaceTag = t('modePicker.faceToFaceTag', 'Face-to-face');
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const labelFor = (seg: 'speaker' | 'participant' | 'both') => {
@@ -103,7 +105,12 @@ const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForM
           >
             <Icon size={14} />
             <span className="mode-picker__label">{label}</span>
-            {seg === 'both' && faceToFace && <span className="mode-picker__tag">{t('modePicker.faceToFaceTag', 'Face-to-face')}</span>}
+            {seg === 'both' && faceToFace && (
+              <span className="mode-picker__tag" aria-label={faceToFaceTag} title={faceToFaceTag}>
+                <span className="mode-picker__tag-word">{faceToFaceTag}</span>
+                <span className="mode-picker__tag-glyph" aria-hidden="true"><Headphones size={12} aria-hidden="true" /></span>
+              </span>
+            )}
           </button>
         );
       })}

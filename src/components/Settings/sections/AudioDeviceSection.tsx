@@ -290,7 +290,7 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
             ariaDescribedBy={reasonIdFor('speaker')}
           />
 
-          <EarsBlock />
+          <EarsBlock className="ears-block--boxed" />
         </div>
       )}
     </>

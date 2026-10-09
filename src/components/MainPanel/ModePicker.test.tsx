@@ -53,6 +53,16 @@ describe('ModePicker', () => {
     expect(container.querySelector('.mode-picker__tag')).toBeNull();
   });
 
+  it('the tag carries the accessible name, with a word and an icon-only glyph', () => {
+    const { container } = render(<ModePicker mode="both" locked={false} missingDeviceForMode={null} onSegmentClick={() => {}} faceToFace />);
+    const tag = container.querySelector('.mode-picker__tag')!;
+    expect(tag.getAttribute('aria-label')).toMatch(/Face-to-face|modePicker\.faceToFaceTag/);
+    expect(tag.getAttribute('title')).toBe(tag.getAttribute('aria-label'));
+    expect(tag.querySelector('.mode-picker__tag-word')).not.toBeNull();
+    expect(tag.querySelector('.mode-picker__tag-glyph')?.getAttribute('aria-hidden')).toBe('true');
+    expect(tag.querySelector('.mode-picker__tag-glyph svg')).not.toBeNull();
+  });
+
   it('renders one side icon per segment, Me and Other in their both form', () => {
     render(<ModePicker mode="both" locked={false} missingDeviceForMode={null} onSegmentClick={() => {}} />);
     const iconIn = (name: RegExp) => screen.getByRole('button', { name }).querySelector('svg')!;

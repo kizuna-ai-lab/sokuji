@@ -10,7 +10,7 @@ import {
   size,
   autoUpdate,
 } from '@floating-ui/react';
-import { Mic, AudioLines, Volume2, Headphones, Power, PowerOff, ChevronDown, ChevronUp } from 'lucide-react';
+import { Mic, AudioLines, Volume2, Power, PowerOff, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -176,7 +176,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
       list.push(beside
         ? {
           key: 'monitor',
-          icon: Headphones,
+          icon: Volume2,
           label: t('popover.output', 'Output'),
           devices: filteredMonitorDevices,
           selectedDevice: selectedMonitorDevice,

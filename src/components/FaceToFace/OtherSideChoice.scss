@@ -6,6 +6,8 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  // Sized here, so Settings and the popover draw it alike.
+  font-size: 12px;
 
   &__heading {
     display: flex;

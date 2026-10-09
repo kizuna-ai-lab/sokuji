@@ -203,9 +203,13 @@ describe('SystemAudioSection: the Other side choice', () => {
     expect(screen.queryByTestId('other-side-choice')).toBeNull();
   });
 
-  it('passes the lock through', () => {
-    mount({ isLocked: true });
+  it("locks with the run, not the channel's mode scope", () => {
+    const { rerender } = mount({ isSessionActive: true });
     expect(screen.getByTestId('other-side-choice')).toHaveAttribute('data-locked', 'true');
+    rerender(<SystemAudioSection isSessionActive={false} />);
+    expect(screen.getByTestId('other-side-choice')).toHaveAttribute('data-locked', 'false');
+    rerender(<SystemAudioSection isSessionActive={false} isLocked />);
+    expect(screen.getByTestId('other-side-choice')).toHaveAttribute('data-locked', 'false');
   });
 
   it('beside me: the note replaces the picker, the refresh button and the speech switch', () => {
