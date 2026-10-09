@@ -390,7 +390,7 @@ useSettingsStore.subscribe(
 - Audio playback uses queue-based system with event-driven processing
 - Passthrough: the microphone's processed voice, under the translation, into the meeting (the virtual output) on its own `passthrough` feed (`src/lib/audio/routes.ts`); off by default, its volume `audioStore`'s `realVoicePassthroughVolume`, default 0.2 — the settings show 20%, on a 0–60% slider
 - AudioWorklet preferred for processing, falls back to ScriptProcessor for compatibility
-- Echo cancellation enabled by default with modern browser APIs
+- Echo cancellation on by default, requesting the `'all'` mode (every sound the system plays, a meeting app's far end included — `AUDIO_CONSTRAINT_PROFILES` in `src/lib/config/performance.js`); Chromium 141+ grants it on Windows and macOS and falls back to `true` on Linux, an older browser reads the string as `true`, and `track.getSettings().echoCancellation` (logged at `begin()`) says which took effect
 
 ## Testing and Quality
 
