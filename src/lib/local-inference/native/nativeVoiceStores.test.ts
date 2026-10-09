@@ -100,9 +100,9 @@ describe('normalizePeak', () => {
 });
 
 describe('per-model clip limits', () => {
-  it('OmniVoice declares an 8s max; unlisted models keep the 20s default', () => {
+  it('OmniVoice takes the 20s default, stated explicitly; unlisted models keep it too', () => {
     const omni = voiceStoreFor('clip', 'omnivoice-0.6b')!;
-    expect(omni.capability.maxClipSeconds).toBe(8);
+    expect(omni.capability.maxClipSeconds).toBe(20);
     expect(omni.capability.minClipSeconds).toBe(3);
     const other = voiceStoreFor('clip', 'qwen3-tts-0.6b')!;
     expect(other.capability.maxClipSeconds).toBe(20);
@@ -114,10 +114,14 @@ describe('per-model clip limits', () => {
     expect(validateVoiceClip(clip, 16000, 8)).toBe('too_long');
   });
 
-  it('the omnivoice clip store rejects a 10s recording as too_long', async () => {
+  it('the omnivoice clip store accepts a 19.9s recording and rejects a 21s one as too_long', async () => {
     const s = voiceStoreFor('clip', 'omnivoice-0.6b')!;
-    await expect(s.onRecord!(new Float32Array(16000 * 10).fill(0.3), 16000))
+    vi.mocked(addNativeVoice).mockClear();
+    await s.onRecord!(new Float32Array(Math.round(16000 * 19.9)).fill(0.3), 16000);
+    expect(vi.mocked(addNativeVoice)).toHaveBeenCalledTimes(1);
+    await expect(s.onRecord!(new Float32Array(16000 * 21).fill(0.3), 16000))
       .rejects.toMatchObject({ code: 'too_long' });
+    expect(vi.mocked(addNativeVoice)).toHaveBeenCalledTimes(1);
   });
 
   it('Audio8 keeps the 20s default, stated explicitly', () => {
@@ -130,8 +134,8 @@ describe('per-model clip limits', () => {
     expect(voiceStoreFor('clip', 'glm-tts')!.capability.maxClipSeconds).toBe(10);
   });
 
-  it('VoiceTut keeps OmniVoice\'s 8s ceiling', () => {
-    expect(voiceStoreFor('clip', 'voicetut-tts')!.capability.maxClipSeconds).toBe(8);
+  it('VoiceTut takes the same 20s as OmniVoice', () => {
+    expect(voiceStoreFor('clip', 'voicetut-tts')!.capability.maxClipSeconds).toBe(20);
   });
 
   it('OuteTTS stops at 15s, under its 20s refusal', () => {

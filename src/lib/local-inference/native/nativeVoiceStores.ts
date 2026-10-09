@@ -61,10 +61,10 @@ export const MAX_CLIP_SECONDS = 20;
  *  UI via `VoiceLibraryCapability.maxClipSeconds` (recording countdown +
  *  auto-stop, import rejection). Models not listed use the defaults above. */
 const MODEL_CLIP_LIMITS: Record<string, { min?: number; max?: number }> = {
-  // OmniVoice's non-AR decode degrades past ~8s of reference (garbled words,
-  // then collapse; seen on the ONNX-era backend, not re-measured on audio.cpp).
-  // Nothing downstream trims a longer clip, so the store caps it.
-  'omnivoice-0.6b': { max: 8 },
+  // OmniVoice on audio.cpp speaks cleanly from clips up to 19.9s (CER 0 on CPU and Vulkan,
+  // measured 2026-10-09; a longer clip only costs decode time), so the default ceiling stands
+  // (ruling 2026-10-09). Nothing downstream trims a clip.
+  'omnivoice-0.6b': { max: 20 },
   // audio.cpp caps a VibeVoice voice prompt at 10s on every backend but CUDA/HIP
   // (src/models/vibevoice/session.cpp:25-26); Sokuji hands it the clip in memory, which skips
   // that cap, so the store applies it.
@@ -89,8 +89,9 @@ const MODEL_CLIP_LIMITS: Record<string, { min?: number; max?: number }> = {
   // Kitten TTS 2 accepts 1–30 s of reference (community_models/kitten_tts2/session.cpp); the
   // default 3–20 s window sits inside it.
   'kitten-tts2': { max: 20 },
-  // VoiceTut is an OmniVoice fine-tune on the same non-AR decoder (omnivoice family).
-  'voicetut-tts': { max: 8 },
+  // VoiceTut, an OmniVoice fine-tune on the same decoder, measured the same way: clean up to
+  // 19.9s, CER 0-0.075 (2026-10-09).
+  'voicetut-tts': { max: 20 },
   // MioTTS sets no reference ceiling (models/miotts/session.cpp); the default window stands.
   'miotts-1.7b': { max: 20 },
 };
