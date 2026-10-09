@@ -1,32 +1,35 @@
+// src/lib/audio/routes.test.ts
 import { describe, it, expect } from 'vitest';
-import { earsFor, routesFor, type RoutingSettings } from './routes';
+import { routesFor, type RoutingSettings } from './routes';
 
 const OFF: RoutingSettings = {
   meeting: false,
-  monitor: false,
-  participantSpeech: false,
+  faceToFace: false,
+  speak: { other: false, me: false, them: false },
   passthrough: { on: false, ratio: 0.2 },
-  sinks: {},
+  sinks: { other: {}, me: {}, them: {} },
 };
+const ALL = { other: true, me: true, them: true };
 
 describe('routesFor', () => {
-  it('always routes replay and preview to the real device, and nothing into the meeting', () => {
-    expect(routesFor(OFF, false)).toEqual([
-      { from: 'replay', to: 'real', gain: 1 },
-      { from: 'preview', to: 'real', gain: 1 },
-    ]);
+  it('routes nothing by itself: replay and preview are the playback\'s to add', () => {
+    expect(routesFor(OFF, false)).toEqual([]);
   });
 
-  it("routes the speaker's translation to the meeting and to the monitor, each by its own switch", () => {
-    expect(routesFor({ ...OFF, meeting: true }, false)).toContainEqual({ from: 'speaker', to: 'virtual', gain: 1 });
-    expect(routesFor({ ...OFF, meeting: true }, false)).not.toContainEqual(expect.objectContaining({ from: 'speaker', to: 'real' }));
-    expect(routesFor({ ...OFF, monitor: true }, false)).toContainEqual({ from: 'speaker', to: 'real', gain: 1 });
+  it('sends my translation into the meeting only when the meeting switch and 对方听到的翻译 are both on', () => {
+    expect(routesFor({ ...OFF, meeting: true, speak: { ...OFF.speak, other: true } }, false)).toEqual([{ from: 'speaker', to: 'virtual', gain: 1 }]);
+    expect(routesFor({ ...OFF, meeting: true }, false)).toEqual([]);
+    expect(routesFor({ ...OFF, speak: { ...OFF.speak, other: true } }, false)).toEqual([]);
   });
 
-  it("routes the participant's translation to the real device only with the opt-in, and never into the meeting", () => {
-    expect(routesFor(OFF, false).some((e) => e.from === 'participant')).toBe(false);
-    const on = routesFor({ ...OFF, participantSpeech: true }, false).filter((e) => e.from === 'participant');
-    expect(on).toEqual([{ from: 'participant', to: 'real', gain: 1 }]);
+  it('sends my translation to me (我也听) only under 对方听到的翻译', () => {
+    expect(routesFor({ ...OFF, speak: { other: true, me: true, them: false } }, false)).toContainEqual({ from: 'speaker', to: 'me', gain: 1 });
+    expect(routesFor({ ...OFF, speak: { other: false, me: true, them: false } }, false)).toEqual([]);
+  });
+
+  it("sends the other's translation to them (我听到的翻译) by its own switch, never into the meeting", () => {
+    const edges = routesFor({ ...OFF, meeting: true, speak: { other: false, me: false, them: true } }, false);
+    expect(edges).toEqual([{ from: 'participant', to: 'them', gain: 1 }]);
   });
 
   it('mixes passthrough into the meeting at its ratio, and closes it while push-to-translate is held', () => {
@@ -52,32 +55,18 @@ describe('routesFor', () => {
   });
 });
 
-describe('routesFor — face-to-face ears', () => {
-  const F2F: RoutingSettings = { ...OFF, meeting: true, monitor: true, participantSpeech: true, passthrough: { on: true, ratio: 0.3 }, ears: { swap: false } };
+describe('routesFor — face-to-face', () => {
+  const F2F: RoutingSettings = { ...OFF, meeting: true, faceToFace: true, speak: ALL, passthrough: { on: true, ratio: 0.3 } };
 
-  it('pans my translation to their ear and theirs to mine, and sends nothing into the meeting', () => {
+  it('sends my translation to the other person and theirs to me; nothing into the meeting, to me, or passed through', () => {
     expect(routesFor(F2F, false)).toEqual([
-      { from: 'replay', to: 'real', gain: 1 },
-      { from: 'preview', to: 'real', gain: 1 },
-      { from: 'speaker', to: 'real', gain: 1, pan: 1 },
-      { from: 'participant', to: 'real', gain: 1, pan: -1 },
+      { from: 'speaker', to: 'other', gain: 1 },
+      { from: 'participant', to: 'them', gain: 1 },
     ]);
   });
 
-  it('mirrors both ears on a swap (Review Focus 3)', () => {
-    const swapped = routesFor({ ...F2F, ears: { swap: true } }, false);
-    expect(swapped).toContainEqual({ from: 'speaker', to: 'real', gain: 1, pan: -1 });
-    expect(swapped).toContainEqual({ from: 'participant', to: 'real', gain: 1, pan: 1 });
-  });
-
-  it("drops the participant's edge when it does not speak (Text Only)", () => {
-    expect(routesFor({ ...F2F, participantSpeech: false }, false).some((e) => e.from === 'participant')).toBe(false);
-  });
-});
-
-describe('earsFor', () => {
-  it('puts the participant (my language) left by default', () => {
-    expect(earsFor(false)).toEqual({ speaker: 'right', participant: 'left' });
-    expect(earsFor(true)).toEqual({ speaker: 'left', participant: 'right' });
+  it('drops each edge with its switch', () => {
+    expect(routesFor({ ...F2F, speak: { ...ALL, other: false } }, false)).toEqual([{ from: 'participant', to: 'them', gain: 1 }]);
+    expect(routesFor({ ...F2F, speak: { ...ALL, them: false } }, false)).toEqual([{ from: 'speaker', to: 'other', gain: 1 }]);
   });
 });

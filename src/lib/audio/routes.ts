@@ -1,39 +1,34 @@
+// src/lib/audio/routes.ts
 /**
- * The route table (spec: "Playback" → "Routing"). Three things, three
- * natures: a route is a switch; the one mix gain is passthrough's ratio (only
- * the virtual device carries a deliberate mix, translation with the original
- * voice underneath); nothing else has a volume.
+ * The route table (spec 2026-10-10 §2.2). Three things, three natures: a
+ * route is a switch; the one mix gain is passthrough's ratio (only the
+ * virtual device carries a deliberate mix, translation with the original
+ * voice underneath); nothing else has a volume. A route ends in an outlet
+ * (`outlets.ts`), whose device and channel are the outlet's, not the
+ * edge's. Replay and preview are not routed here: the playback adds their
+ * edges per clip (`playback.ts`).
  */
+import type { OutletName, OutletSink, Speak } from './outlets';
 
-/** What plays. The test tone is a preview. */
+/** What plays. The test tone and a voice sample are previews. */
 export type Feed = 'speaker' | 'participant' | 'replay' | 'preview' | 'passthrough';
 
-/** Where it goes: the user's output device, or the one the meeting hears. */
-export type Bus = 'real' | 'virtual';
+/** Where it goes: the meeting's virtual microphone, or one of the user's outlets. */
+export type Outlet = 'virtual' | OutletName;
 
 export interface Edge {
   from: Feed;
-  to: Bus;
+  to: Outlet;
   gain: number;
-  /** Face-to-face's ears: -1 the left channel, 1 the right. Absent: centred. */
-  pan?: -1 | 1;
-}
-
-/** One ear of the real device's two (face-to-face). */
-export type Ear = 'left' | 'right';
-
-/** The ear each leg's translation plays in: the participant's (into my language) is mine, left unless swapped. */
-export function earsFor(swap: boolean): Record<'speaker' | 'participant', Ear> {
-  return swap ? { speaker: 'left', participant: 'right' } : { speaker: 'right', participant: 'left' };
 }
 
 export interface RoutingSettings {
-  /** Speaker translation → the virtual device: the meeting hears it. On by default (new). */
+  /** Speaker translation → the virtual device: the meeting hears it. On by default (a dev switch). */
   meeting: boolean;
-  /** Speaker translation → the real device: the user monitors it. */
-  monitor: boolean;
-  /** Participant translation → the real device: the participant-TTS opt-in, off by default. */
-  participantSpeech: boolean;
+  /** Two people at one computer (spec 2026-10-08, slice 3): no meeting, no 我也听, no passthrough. */
+  faceToFace: boolean;
+  /** The three switches, already gated by mode, source and provider (`shape.ts`'s `speakFor`). */
+  speak: Speak;
   /**
    * The microphone → the virtual device, under the translation, at `ratio` (0–1).
    * `gate`, under a manual turn mode, ties the route to the key: `'idle'` opens it
@@ -41,31 +36,23 @@ export interface RoutingSettings {
    * (push-to-talk, as 0.41.1 did). Absent, the key does not matter.
    */
   passthrough: { on: boolean; ratio: number; gate?: 'idle' | 'held' };
-  /** Output device ids: the monitor device, and the virtual speaker where one exists (Electron). */
-  sinks: { real?: string; virtual?: string };
-  /** Face-to-face (slice 3): both translations on the real device, one per ear; no meeting. Absent: not face-to-face. */
-  ears?: { swap: boolean };
+  /** The virtual speaker where one exists (Electron), and each outlet resolved. */
+  sinks: { virtual?: string } & Record<OutletName, OutletSink>;
 }
 
-/** Every edge the settings ask for. `held`: a manual turn's key is down, which the passthrough's `gate` reads. */
+/** Every live edge the settings ask for. `held`: a manual turn's key is down, which the passthrough's `gate` reads. */
 export function routesFor(s: RoutingSettings, held: boolean): Edge[] {
-  // Replay and preview are fixed routes to the real device, never into the meeting.
-  const edges: Edge[] = [
-    { from: 'replay', to: 'real', gain: 1 },
-    { from: 'preview', to: 'real', gain: 1 },
-  ];
-  if (s.ears) {
-    // Two people at one computer: no meeting, no monitor of my own voice, no passthrough —
-    // each translation goes to the ear of the person whose language it is in.
-    const ears = earsFor(s.ears.swap);
-    const pan = (ear: Ear): -1 | 1 => (ear === 'left' ? -1 : 1);
-    edges.push({ from: 'speaker', to: 'real', gain: 1, pan: pan(ears.speaker) });
-    if (s.participantSpeech) edges.push({ from: 'participant', to: 'real', gain: 1, pan: pan(ears.participant) });
+  const edges: Edge[] = [];
+  if (s.faceToFace) {
+    // Each translation goes to the ear of the person whose language it is in.
+    if (s.speak.other) edges.push({ from: 'speaker', to: 'other', gain: 1 });
+    if (s.speak.them) edges.push({ from: 'participant', to: 'them', gain: 1 });
     return edges;
   }
-  if (s.meeting) edges.push({ from: 'speaker', to: 'virtual', gain: 1 });
-  if (s.monitor) edges.push({ from: 'speaker', to: 'real', gain: 1 });
-  if (s.participantSpeech) edges.push({ from: 'participant', to: 'real', gain: 1 });
+  if (s.meeting && s.speak.other) edges.push({ from: 'speaker', to: 'virtual', gain: 1 });
+  // 我也听 is a sub-row of 对方听到的翻译: nothing to hear while that is off.
+  if (s.speak.other && s.speak.me) edges.push({ from: 'speaker', to: 'me', gain: 1 });
+  if (s.speak.them) edges.push({ from: 'participant', to: 'them', gain: 1 });
   const { gate } = s.passthrough;
   if (s.passthrough.on && s.passthrough.ratio > 0 && (gate === undefined || held === (gate === 'held'))) {
     edges.push({ from: 'passthrough', to: 'virtual', gain: Math.min(1, s.passthrough.ratio) });
