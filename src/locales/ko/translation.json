@@ -375,7 +375,8 @@
     "audioCaptureUnprovenNotice": "아직 캡처된 오디오가 없습니다",
     "audioCaptureUnprovenTitle": "선택한 소스에서 아직 오디오가 들어오지 않았습니다",
     "audioCaptureUnprovenText1": "소스가 재생 중인데도 번역되지 않는다면 macOS가 무음을 전달하고 있을 가능성이 큽니다. 앱의 오디오를 캡처하려면 \"시스템 오디오 녹음만\" 권한이 필요하며, 이 권한이 없으면 오류 없이 무음만 전달됩니다.",
-    "audioCaptureUnprovenText3Named": "\"{{app}}\"은(는) 한 번 캡처를 시도한 뒤에야 그 목록에 나타나며, 방금 시도했습니다. 활성화한 뒤 세션을 다시 시작하세요. 소스가 단순히 무음이었다면 아무것도 바꿀 필요가 없습니다."
+    "audioCaptureUnprovenText3Named": "\"{{app}}\"은(는) 한 번 캡처를 시도한 뒤에야 그 목록에 나타나며, 방금 시도했습니다. 활성화한 뒤 세션을 다시 시작하세요. 소스가 단순히 무음이었다면 아무것도 바꿀 필요가 없습니다.",
+    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
   },
   "auth": {
     "signIn": "로그인",
@@ -444,14 +445,14 @@
     "targetLanguage": "상대방 언어",
     "microphone": "마이크",
     "microphoneDesc": "음성을 캡처할 마이크를 선택하세요. 이 마이크에 당신의 언어로 말하면, Sokuji가 들리는 모든 것을 실시간으로 번역합니다.",
-    "speaker": "스피커",
-    "speakerDesc": "번역된 출력을 모니터링할 스피커를 선택하세요. 번역이 어떻게 들리는지 확인할 수 있습니다. 모니터링이 필요하지 않으면 끌 수 있습니다. 켜져 있든 꺼져 있든, 번역된 오디오는 항상 가상 마이크로 전송되어 다른 참가자들이 들을 수 있습니다.",
     "swapLanguages": "언어 전환",
     "textOnly": "텍스트만",
     "textOnlyDesc": "텍스트로만 번역 — 음성 출력 없음",
     "textOnlyForcedByMode": "\"{{mode}}\" 모드는 참가자의 말을 텍스트로만 보여주고 음성을 생성하지 않으므로 \"텍스트만\"이 항상 켜져 있습니다. 자신의 음성을 소리로 번역하려면 번역 모드를 전환하세요.",
     "keepReplayAudio": "재생을 위해 오디오 유지",
-    "keepReplayAudioDesc": "번역된 오디오를 메모리에 저장하여 각 메시지에서 나중에 다시 재생할 수 있도록 합니다. 긴 세션 동안 메모리 사용을 줄이기 위해 기본적으로 꺼져 있습니다."
+    "keepReplayAudioDesc": "번역된 오디오를 메모리에 저장하여 각 메시지에서 나중에 다시 재생할 수 있도록 합니다. 긴 세션 동안 메모리 사용을 줄이기 위해 기본적으로 꺼져 있습니다.",
+    "output": "Output",
+    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
   },
   "providers": {
     "kizunaai_soniox": {

@@ -375,7 +375,8 @@
     "audioCaptureUnprovenNotice": "Chưa thu được gì",
     "audioCaptureUnprovenTitle": "Chưa có âm thanh nào từ nguồn đã chọn",
     "audioCaptureUnprovenText1": "Nếu nguồn đang phát mà không có gì được dịch, nhiều khả năng macOS đang trả về im lặng: thu âm thanh của một ứng dụng cần quyền \"System Audio Recording Only\", và không có quyền này thì sẽ không có lỗi, chỉ có im lặng.",
-    "audioCaptureUnprovenText3Named": "\"{{app}}\" chỉ xuất hiện trong danh sách đó sau khi đã thử thu một lần, và điều đó vừa xảy ra. Sau khi bật, hãy bắt đầu lại phiên. Nếu nguồn chỉ đơn giản là im lặng thì không cần thay đổi gì."
+    "audioCaptureUnprovenText3Named": "\"{{app}}\" chỉ xuất hiện trong danh sách đó sau khi đã thử thu một lần, và điều đó vừa xảy ra. Sau khi bật, hãy bắt đầu lại phiên. Nếu nguồn chỉ đơn giản là im lặng thì không cần thay đổi gì.",
+    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
   },
   "auth": {
     "signIn": "Đăng nhập",
@@ -444,14 +445,14 @@
     "targetLanguage": "Ngôn ngữ đối phương",
     "microphone": "Microphone",
     "microphoneDesc": "Chọn microphone để ghi lại giọng nói của bạn. Nói bằng ngôn ngữ của bạn vào microphone này, và Sokuji sẽ dịch mọi thứ nó nghe thấy theo thời gian thực.",
-    "speaker": "Loa",
-    "speakerDesc": "Chọn loa để giám sát đầu ra đã dịch. Điều này cho phép bạn nghe bản dịch như thế nào. Bạn có thể tắt nó nếu không cần giám sát. Dù bật hay tắt, âm thanh đã dịch luôn được gửi tới microphone ảo để những người tham gia khác có thể nghe.",
     "swapLanguages": "Đổi ngôn ngữ",
     "textOnly": "Chỉ văn bản",
     "textOnlyDesc": "Chỉ dịch sang văn bản — không phát âm thanh",
     "textOnlyForcedByMode": "Chế độ \"{{mode}}\" chỉ chuyển lời người tham gia thành văn bản cho bạn và không bao giờ tạo âm thanh, nên \"Chỉ văn bản\" luôn bật. Hãy chuyển chế độ dịch để dịch giọng nói của bạn kèm âm thanh.",
     "keepReplayAudio": "Giữ âm thanh để phát lại",
-    "keepReplayAudioDesc": "Lưu âm thanh đã dịch trong bộ nhớ để bạn có thể phát lại sau từ mỗi tin nhắn. Tắt theo mặc định để giảm sử dụng bộ nhớ trong các phiên dài."
+    "keepReplayAudioDesc": "Lưu âm thanh đã dịch trong bộ nhớ để bạn có thể phát lại sau từ mỗi tin nhắn. Tắt theo mặc định để giảm sử dụng bộ nhớ trong các phiên dài.",
+    "output": "Output",
+    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
   },
   "providers": {
     "kizunaai_soniox": {

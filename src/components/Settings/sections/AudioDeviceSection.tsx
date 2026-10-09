@@ -7,6 +7,8 @@ import WarningModal from '../shared/WarningModal';
 import { useFilteredDevices, WarningType, AudioDevice, isVirtualMic } from '../shared/hooks';
 import { useAudioContext, useNoiseSuppressionMode, useSetNoiseSuppressionMode, useIsMonitorChannelInScope, NoiseSuppressionMode } from '../../../stores/audioStore';
 import { useAnalytics } from '../../../lib/analytics';
+import { useFaceToFace } from '../../MainPanel/useFaceToFace';
+import EarsBlock from '../../FaceToFace/EarsBlock';
 
 interface AudioDeviceSectionProps {
   /** Real session-active state — used for analytics (during_session) only. */
@@ -36,6 +38,8 @@ interface AudioDeviceSectionProps {
   onSpeakerMutualExclusivity?: () => void;
   /** Additional class name */
   className?: string;
+  /** Rendered at the end of the microphone section (the passthrough, in Advanced). */
+  children?: React.ReactNode;
 }
 
 const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
@@ -46,14 +50,17 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
   showSpeaker = true,
   isSystemAudioEnabled = false,
   onSpeakerMutualExclusivity,
-  className = ''
+  className = '',
+  children
 }) => {
-  const locked = isLocked ?? isSessionActive;
+  // Face-to-face plays on this device, always on, so the monitor's mode lock and its Off row do not apply.
+  const faceToFace = useFaceToFace().active;
+  const locked = (isLocked ?? isSessionActive) && !(faceToFace && !showMicrophone);
   const reactId = useId();
   // Only referenced (and only rendered) while locked, so an unlocked list stays
   // undescribed rather than pointing at an absent element. Both sections can be
   // shown at once, so the id is per-channel to keep it unique.
-  const showReason = locked && !!lockedReason;
+  const showReason = locked && !!lockedReason && !faceToFace;
   const reasonIdFor = (channel: 'mic' | 'speaker') =>
     showReason ? `${reactId}-${channel}-locked-reason` : undefined;
   const renderReason = (channel: 'mic' | 'speaker') => showReason && (
@@ -237,6 +244,8 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
               ))}
             </div>
           </div>
+
+          {children}
         </div>
       )}
 
@@ -245,9 +254,9 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
         <div className={`config-section speaker-section ${className}`} id="speaker-section" data-tour="speaker-section">
           <h3>
             <Volume2 size={18} />
-            <span>{t('simpleConfig.speaker')}</span>
+            <span>{t('simpleConfig.output', 'Output')}</span>
             <Tooltip
-              content={t('simpleConfig.speakerDesc')}
+              content={t('simpleConfig.outputDesc', 'The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone.')}
               position="top"
               icon="help"
               maxWidth={300}
@@ -267,9 +276,9 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
           <DeviceList
             devices={filteredMonitorDevices}
             selectedDevice={selectedMonitorDevice}
-            isDeviceOn={!isMonitorMuted && monitorInScope}
+            isDeviceOn={faceToFace || (!isMonitorMuted && monitorInScope)}
             onSelect={handleMonitorDeviceSelect}
-            onToggleOff={() => setMonitorMuted(!isMonitorMuted)}
+            onToggleOff={faceToFace ? undefined : () => setMonitorMuted(!isMonitorMuted)}
             disabled={locked}
             deviceType="output"
             filterVirtual={false}
@@ -280,6 +289,8 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
               : t('audioPanel.turnOffMonitor', 'Turn off speaker monitor')}
             ariaDescribedBy={reasonIdFor('speaker')}
           />
+
+          <EarsBlock />
         </div>
       )}
     </>

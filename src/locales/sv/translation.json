@@ -375,7 +375,8 @@
     "audioCaptureUnprovenNotice": "Inget har fångats ännu",
     "audioCaptureUnprovenTitle": "Inget ljud har kommit från den valda källan ännu",
     "audioCaptureUnprovenText1": "Om källan spelar upp och inget översätts levererar macOS troligen tystnad: att fånga en app kräver behörigheten \"Endast inspelning av systemljud\", och utan den uppstår inget fel, bara tystnad.",
-    "audioCaptureUnprovenText3Named": "\"{{app}}\" visas i den listan först efter ett försök att fånga ljud, vilket precis gjordes. Starta sessionen igen när du har aktiverat den. Om källan bara var tyst behöver inget ändras."
+    "audioCaptureUnprovenText3Named": "\"{{app}}\" visas i den listan först efter ett försök att fånga ljud, vilket precis gjordes. Starta sessionen igen när du har aktiverat den. Om källan bara var tyst behöver inget ändras.",
+    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
   },
   "auth": {
     "signIn": "Logga in",
@@ -444,14 +445,14 @@
     "targetLanguage": "Den andras språk",
     "microphone": "Mikrofon",
     "microphoneDesc": "Välj mikrofon för att fånga ditt tal. Tala ditt språk i denna mikrofon, och Sokuji kommer att översätta allt den hör i realtid.",
-    "speaker": "Högtalare",
-    "speakerDesc": "Välj en högtalare för att övervaka den översatta utmatningen. Detta låter dig höra hur översättningen låter. Du kan stänga av den om övervakning inte behövs. Oavsett om den är på eller av, skickas det översatta ljudet alltid till den virtuella mikrofonen för andra deltagare att höra.",
     "swapLanguages": "Byt språk",
     "textOnly": "Endast text",
     "textOnlyDesc": "Översätt till text — inget talat ljud",
     "textOnlyForcedByMode": "Läget \"{{mode}}\" gör bara om det deltagarna säger till text åt dig och genererar aldrig ljud, så \"Endast text\" förblir på. Byt översättningsläge för att översätta din egen röst med tal.",
     "keepReplayAudio": "Behåll ljud för uppspelning",
-    "keepReplayAudioDesc": "Spara översatt ljud i minnet så att du kan spela upp det senare från varje meddelande. Av som standard för att minska minnesanvändningen under långa sessioner."
+    "keepReplayAudioDesc": "Spara översatt ljud i minnet så att du kan spela upp det senare från varje meddelande. Av som standard för att minska minnesanvändningen under långa sessioner.",
+    "output": "Output",
+    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
   },
   "providers": {
     "kizunaai_soniox": {

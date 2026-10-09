@@ -375,7 +375,8 @@
     "audioCaptureUnprovenNotice": "尚未捕获到音频",
     "audioCaptureUnprovenTitle": "所选来源尚未传来任何音频",
     "audioCaptureUnprovenText1": "如果来源正在播放却没有译文，很可能是 macOS 只给出了静音：捕获某个应用的音频需要“仅系统录音”权限，没有该权限时不会报错，只会是静音。",
-    "audioCaptureUnprovenText3Named": "“{{app}}”只有在尝试过一次捕获之后才会出现在该列表中，刚才已经尝试过了。启用后请重新开始会话。如果来源本来就是静音的，则无需任何更改。"
+    "audioCaptureUnprovenText3Named": "“{{app}}”只有在尝试过一次捕获之后才会出现在该列表中，刚才已经尝试过了。启用后请重新开始会话。如果来源本来就是静音的，则无需任何更改。",
+    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
   },
   "auth": {
     "signIn": "登录",
@@ -444,14 +445,14 @@
     "targetLanguage": "对方语言",
     "microphone": "麦克风",
     "microphoneDesc": "选择用于捕获您语音的麦克风。对着此麦克风说您的语言，Sokuji会实时翻译麦克风接收到的所有内容。",
-    "speaker": "扬声器",
-    "speakerDesc": "选择用于监听翻译输出的扬声器。这让您能听到翻译的效果。如果不需要监听可以关闭。无论开启或关闭，翻译的音频都会发送到虚拟麦克风供其他参与者听到。",
     "swapLanguages": "交换语言",
     "textOnly": "仅文本",
     "textOnlyDesc": "仅翻译为文本 — 不生成语音",
     "textOnlyForcedByMode": "「{{mode}}」模式只把参会者说的话转成文字给你看，不会生成语音，因此「仅文本」始终开启。切换翻译模式即可让自己的语音带声音输出。",
     "keepReplayAudio": "保留音频以便重播",
-    "keepReplayAudioDesc": "将翻译的音频保存在内存中，以便您之后可以从每条消息重新播放。默认关闭以减少长时间会话中的内存占用。"
+    "keepReplayAudioDesc": "将翻译的音频保存在内存中，以便您之后可以从每条消息重新播放。默认关闭以减少长时间会话中的内存占用。",
+    "output": "Output",
+    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
   },
   "providers": {
     "kizunaai_soniox": {

@@ -375,7 +375,8 @@
     "audioCaptureUnprovenNotice": "Henüz hiçbir şey yakalanmadı",
     "audioCaptureUnprovenTitle": "Seçilen kaynaktan henüz ses gelmedi",
     "audioCaptureUnprovenText1": "Kaynak oynatılıyor ve hiçbir şey çevrilmiyorsa macOS büyük olasılıkla sessizlik iletiyordur: bir uygulamayı yakalamak \"Yalnızca Sistem Sesi Kaydı\" iznini gerektirir ve bu izin olmadan hata oluşmaz, yalnızca sessizlik olur.",
-    "audioCaptureUnprovenText3Named": "\"{{app}}\" bu listede yalnızca bir kez yakalama denendikten sonra görünür; bu deneme az önce yapıldı. Etkinleştirdikten sonra oturumu yeniden başlatın. Kaynak yalnızca sessizse hiçbir şeyi değiştirmeniz gerekmez."
+    "audioCaptureUnprovenText3Named": "\"{{app}}\" bu listede yalnızca bir kez yakalama denendikten sonra görünür; bu deneme az önce yapıldı. Etkinleştirdikten sonra oturumu yeniden başlatın. Kaynak yalnızca sessizse hiçbir şeyi değiştirmeniz gerekmez.",
+    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
   },
   "auth": {
     "signIn": "Giriş Yap",
@@ -444,14 +445,14 @@
     "targetLanguage": "Karşı tarafın dili",
     "microphone": "Mikrofon",
     "microphoneDesc": "Konuşmanızı yakalamak için mikrofonu seçin. Bu mikrofona dilinizle konuşun, Sokuji duyduğu her şeyi gerçek zamanda çevirecektir.",
-    "speaker": "Hoparlör",
-    "speakerDesc": "Çevrilmiş çıktıyı izlemek için bir hoparlör seçin. Bu, çevirinin nasıl geldiğini duymanızı sağlar. İzleme gerekmiyorsa kapatabilirsiniz. Açık veya kapalı olsun, çevrilmiş ses her zaman sanal mikrofona gönderilir ve diğer katılımcılar duyar.",
     "swapLanguages": "Dilleri değiştir",
     "textOnly": "Yalnızca metin",
     "textOnlyDesc": "Yalnızca metin olarak çevir — sesli çıkış yok",
     "textOnlyForcedByMode": "\"{{mode}}\" modu katılımcıların söylediklerini yalnızca sizin için metne dönüştürür ve hiçbir zaman ses üretmez; bu nedenle \"Yalnızca metin\" açık kalır. Kendi sesinizi konuşmayla çevirmek için çeviri modunu değiştirin.",
     "keepReplayAudio": "Sesi yeniden oynatma için sakla",
-    "keepReplayAudioDesc": "Çevrilen sesi bellekte saklayın, böylece her mesajdan daha sonra yeniden oynatabilirsiniz. Uzun oturumlarda bellek kullanımını azaltmak için varsayılan olarak kapalıdır."
+    "keepReplayAudioDesc": "Çevrilen sesi bellekte saklayın, böylece her mesajdan daha sonra yeniden oynatabilirsiniz. Uzun oturumlarda bellek kullanımını azaltmak için varsayılan olarak kapalıdır.",
+    "output": "Output",
+    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
   },
   "providers": {
     "kizunaai_soniox": {

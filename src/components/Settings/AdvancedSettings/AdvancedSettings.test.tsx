@@ -23,6 +23,9 @@ vi.mock('../../../services/ServiceFactory', () => ({
   },
 }));
 
+const f2f = vi.hoisted(() => ({ active: false }));
+vi.mock('../../MainPanel/useFaceToFace', () => ({ useFaceToFace: () => ({ active: f2f.active }) }));
+
 const run = vi.hoisted(() => ({ locked: false }));
 vi.mock('../../../app/useRun', () => ({ useSessionLocked: () => run.locked }));
 
@@ -44,7 +47,9 @@ vi.mock('../ProviderArea', () => ({
 }));
 
 vi.mock('../sections', () => ({
-  AudioDeviceSection: () => <div data-testid="audio-device-section" />,
+  AudioDeviceSection: ({ showMicrophone, children }: { showMicrophone?: boolean; children?: React.ReactNode }) => (
+    <div data-testid={showMicrophone ? 'microphone-section' : 'speaker-section'}>{children}</div>
+  ),
   SystemAudioSection: () => <div data-testid="system-audio-section" />,
   VoicePassthroughSection: () => <div data-testid="voice-passthrough-section" />,
   HelpSection: () => <div data-testid="help-section" />,
@@ -55,6 +60,7 @@ const { default: AdvancedSettings } = await import('./AdvancedSettings');
 
 beforeEach(() => {
   run.locked = false;
+  f2f.active = false;
   blocks.general.length = 0;
   useSettingsStore.setState({ engineSlotTarget: null, settingsNavigationTarget: null });
 });
@@ -79,5 +85,18 @@ describe("AdvancedSettings — the General tab's chip deep-links to the Provider
   it('hands SessionSettingsGeneral the Advanced layout', () => {
     render(<AdvancedSettings activeTab="general" />);
     expect(blocks.general[blocks.general.length - 1].layout).toBe('advanced');
+  });
+});
+
+describe('AdvancedSettings: the Audio tab passthrough', () => {
+  it('renders inside the microphone section', () => {
+    render(<AdvancedSettings activeTab="audio" />);
+    expect(screen.getByTestId('microphone-section')).toContainElement(screen.getByTestId('voice-passthrough-section'));
+  });
+
+  it('is hidden under face-to-face', () => {
+    f2f.active = true;
+    render(<AdvancedSettings activeTab="audio" />);
+    expect(screen.queryByTestId('voice-passthrough-section')).toBeNull();
   });
 });

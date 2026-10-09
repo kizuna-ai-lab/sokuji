@@ -25,6 +25,10 @@ vi.mock('../../../lib/analytics', () => ({
   useAnalytics: () => ({ trackEvent: vi.fn() }),
 }));
 
+const f2f = vi.hoisted(() => ({ active: false }));
+vi.mock('../../MainPanel/useFaceToFace', () => ({ useFaceToFace: () => ({ active: f2f.active }) }));
+vi.mock('../../FaceToFace/EarsBlock', () => ({ default: () => <div data-testid="ears-block" /> }));
+
 const devices = [{ deviceId: 'spk-1', label: 'Headphones' }];
 
 vi.mock('../../../stores/audioStore', () => ({
@@ -162,5 +166,28 @@ describe('AudioDeviceSection renders no participant UI', () => {
     expect(container.querySelector('#participant-section')).toBeNull();
     expect(container.querySelector('#participant-source-section')).toBeNull();
     expect(container.querySelector('.participant-source-picker')).toBeNull();
+  });
+});
+
+describe('AudioDeviceSection: the Output section', () => {
+  it('is headed Output', () => {
+    renderSpeaker();
+    expect(screen.getByRole('heading', { name: /Output/ })).toBeInTheDocument();
+  });
+
+  it('in Me mode keeps the Off row', () => {
+    f2f.active = false;
+    renderSpeaker({ isLocked: false });
+    expect(screen.getByText('Off')).toBeInTheDocument();
+  });
+
+  it('under face-to-face: no Off row, no lock or reason, the ears block', () => {
+    f2f.active = true;
+    renderSpeaker({ isLocked: true, lockedReason: REASON });
+    f2f.active = false;
+    expect(screen.queryByText('Off')).toBeNull();
+    expect(screen.queryByText(REASON)).toBeNull();
+    expect(screen.getByRole('listbox')).not.toHaveAttribute('aria-disabled');
+    expect(screen.getByTestId('ears-block')).toBeInTheDocument();
   });
 });

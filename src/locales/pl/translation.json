@@ -375,7 +375,8 @@
     "audioCaptureUnprovenNotice": "Nic jeszcze nie przechwycono",
     "audioCaptureUnprovenTitle": "Z wybranego źródła nie dotarł jeszcze żaden dźwięk",
     "audioCaptureUnprovenText1": "Jeśli źródło odtwarza, a nic nie jest tłumaczone, macOS prawdopodobnie dostarcza ciszę: przechwytywanie aplikacji wymaga uprawnienia „Tylko nagrywanie dźwięku systemowego”, a bez niego nie ma błędu, tylko cisza.",
-    "audioCaptureUnprovenText3Named": "„{{app}}” pojawia się na tej liście dopiero po pierwszej próbie przechwytywania, która właśnie się odbyła. Po włączeniu uruchom sesję ponownie. Jeśli źródło było po prostu ciche, nic nie trzeba zmieniać."
+    "audioCaptureUnprovenText3Named": "„{{app}}” pojawia się na tej liście dopiero po pierwszej próbie przechwytywania, która właśnie się odbyła. Po włączeniu uruchom sesję ponownie. Jeśli źródło było po prostu ciche, nic nie trzeba zmieniać.",
+    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
   },
   "auth": {
     "signIn": "Zaloguj się",
@@ -444,14 +445,14 @@
     "targetLanguage": "Język rozmówcy",
     "microphone": "Mikrofon",
     "microphoneDesc": "Wybierz mikrofon do przechwytywania swojej mowy. Mów w swoim języku do tego mikrofonu, a Sokuji będzie tłumaczyć wszystko co usłyszy w czasie rzeczywistym.",
-    "speaker": "Głośnik",
-    "speakerDesc": "Wybierz głośnik do monitorowania przetłumaczonego wyjścia. Pozwala to słyszeć jak brzmi tłumaczenie. Możesz to wyłączyć jeśli monitorowanie nie jest potrzebne. Niezależnie od tego czy jest włączone czy wyłączone, przetłumaczone audio jest zawsze wysyłane do wirtualnego mikrofonu aby inni uczestnicy mogli je słyszeć.",
     "swapLanguages": "Zamień języki",
     "textOnly": "Tylko tekst",
     "textOnlyDesc": "Tłumacz tylko na tekst — bez wyjścia głosowego",
     "textOnlyForcedByMode": "Tryb \"{{mode}}\" zamienia to, co mówią uczestnicy, wyłącznie w tekst dla Ciebie i nigdy nie generuje dźwięku, dlatego \"Tylko tekst\" pozostaje włączony. Zmień tryb tłumaczenia, aby tłumaczyć własny głos z mową.",
     "keepReplayAudio": "Zachowaj dźwięk do powtórnego odtworzenia",
-    "keepReplayAudioDesc": "Przechowuj przetłumaczony dźwięk w pamięci, abyś mógł go później odtworzyć z każdej wiadomości. Domyślnie wyłączone, aby zmniejszyć zużycie pamięci podczas długich sesji."
+    "keepReplayAudioDesc": "Przechowuj przetłumaczony dźwięk w pamięci, abyś mógł go później odtworzyć z każdej wiadomości. Domyślnie wyłączone, aby zmniejszyć zużycie pamięci podczas długich sesji.",
+    "output": "Output",
+    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
   },
   "providers": {
     "kizunaai_soniox": {

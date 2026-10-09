@@ -9,7 +9,8 @@ interface DeviceListProps {
   selectedDevice: AudioDevice | null;
   isDeviceOn: boolean;
   onSelect: (device: AudioDevice) => void;
-  onToggleOff: () => void;
+  /** Absent: the device is always on, and the list has no Off row. */
+  onToggleOff?: () => void;
   disabled?: boolean;
   /** 'input' for microphone, 'output' for speaker */
   deviceType: 'input' | 'output';
@@ -85,7 +86,7 @@ const DeviceList: React.FC<DeviceListProps> = ({
   const handleOffClick = () => {
     if (disabled) return;
     if (isDeviceOn) {
-      onToggleOff();
+      onToggleOff?.();
     }
   };
 
@@ -100,7 +101,7 @@ const DeviceList: React.FC<DeviceListProps> = ({
     <div
       className={`device-list ${className}`}
       role="listbox"
-      aria-label={deviceType === 'input' ? t('simpleConfig.microphone') : t('simpleConfig.speaker')}
+      aria-label={deviceType === 'input' ? t('simpleConfig.microphone') : t('simpleConfig.output')}
       aria-describedby={ariaDescribedBy}
       // Disabled drops every option to tabIndex -1, which would leave nothing in
       // the widget to focus — a keyboard user would tab straight past it and
@@ -111,7 +112,7 @@ const DeviceList: React.FC<DeviceListProps> = ({
       aria-disabled={disabled || undefined}
     >
       {/* Off option */}
-      <div
+      {onToggleOff && <div
         className={`device-option ${!isDeviceOn ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}
         onClick={handleOffClick}
         onKeyDown={(e) => handleKeyDown(e, handleOffClick)}
@@ -122,7 +123,7 @@ const DeviceList: React.FC<DeviceListProps> = ({
         tabIndex={disabled ? -1 : 0}
       >
         <span>{t('common.off', 'Off')}</span>
-      </div>
+      </div>}
 
       {/* Device options */}
       {filteredDevices.map((device) => {

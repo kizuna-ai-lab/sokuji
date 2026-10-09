@@ -375,7 +375,8 @@
     "audioCaptureUnprovenNotice": "Nog niets vastgelegd",
     "audioCaptureUnprovenTitle": "Er is nog geen audio van de geselecteerde bron binnengekomen",
     "audioCaptureUnprovenText1": "Speelt de bron af en wordt er niets vertaald, dan levert macOS waarschijnlijk stilte: het vastleggen van een app vereist de toestemming 'Alleen systeemaudio-opname', en zonder die toestemming is er geen fout, alleen stilte.",
-    "audioCaptureUnprovenText3Named": "'{{app}}' verschijnt pas in die lijst nadat er één keer is geprobeerd vast te leggen, wat zojuist is gebeurd. Start de sessie opnieuw nadat u die hebt ingeschakeld. Was de bron gewoon stil, dan hoeft er niets te veranderen."
+    "audioCaptureUnprovenText3Named": "'{{app}}' verschijnt pas in die lijst nadat er één keer is geprobeerd vast te leggen, wat zojuist is gebeurd. Start de sessie opnieuw nadat u die hebt ingeschakeld. Was de bron gewoon stil, dan hoeft er niets te veranderen.",
+    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
   },
   "auth": {
     "signIn": "Inloggen",
@@ -444,14 +445,14 @@
     "targetLanguage": "Taal van de ander",
     "microphone": "Microfoon",
     "microphoneDesc": "Selecteer de microfoon om uw spraak op te vangen. Spreek uw taal in deze microfoon, en Sokuji zal alles wat het hoort in realtime vertalen.",
-    "speaker": "Luidspreker",
-    "speakerDesc": "Selecteer een luidspreker om de vertaalde uitvoer te monitoren. Hiermee kunt u horen hoe de vertaling klinkt. U kunt het uitschakelen als monitoring niet nodig is. Of het nu aan of uit staat, de vertaalde audio wordt altijd naar de virtuele microfoon gestuurd zodat andere deelnemers het kunnen horen.",
     "swapLanguages": "Talen wisselen",
     "textOnly": "Alleen tekst",
     "textOnlyDesc": "Vertaal alleen naar tekst — geen spraakuitvoer",
     "textOnlyForcedByMode": "De modus \"{{mode}}\" zet alleen om wat deelnemers zeggen in tekst voor jou en genereert nooit audio, dus \"Alleen tekst\" blijft aan. Wissel van vertaalmodus om je eigen stem met spraak te vertalen.",
     "keepReplayAudio": "Audio bewaren voor herhaling",
-    "keepReplayAudioDesc": "Vertaalde audio in het geheugen bewaren zodat u deze later vanuit elk bericht opnieuw kunt afspelen. Standaard uitgeschakeld om geheugengebruik tijdens lange sessies te beperken."
+    "keepReplayAudioDesc": "Vertaalde audio in het geheugen bewaren zodat u deze later vanuit elk bericht opnieuw kunt afspelen. Standaard uitgeschakeld om geheugengebruik tijdens lange sessies te beperken.",
+    "output": "Output",
+    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
   },
   "providers": {
     "kizunaai_soniox": {

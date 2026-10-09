@@ -375,7 +375,8 @@
     "audioCaptureUnprovenNotice": "Nada capturado ainda",
     "audioCaptureUnprovenTitle": "Ainda não chegou áudio da fonte selecionada",
     "audioCaptureUnprovenText1": "Se a fonte está tocando e nada é traduzido, o macOS provavelmente está entregando silêncio: capturar um aplicativo exige a permissão \"Apenas Gravação de Áudio do Sistema\" e, sem ela, não há erro, apenas silêncio.",
-    "audioCaptureUnprovenText3Named": "\"{{app}}\" só aparece nessa lista depois de tentar capturar uma vez, o que acabou de acontecer. Inicie a sessão novamente após ativá-la. Se a fonte estava simplesmente em silêncio, nada precisa mudar."
+    "audioCaptureUnprovenText3Named": "\"{{app}}\" só aparece nessa lista depois de tentar capturar uma vez, o que acabou de acontecer. Inicie a sessão novamente após ativá-la. Se a fonte estava simplesmente em silêncio, nada precisa mudar.",
+    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
   },
   "auth": {
     "signIn": "Entrar",
@@ -444,14 +445,14 @@
     "targetLanguage": "Idioma do outro",
     "microphone": "Microfone",
     "microphoneDesc": "Selecione o microfone para capturar sua fala. Fale seu idioma neste microfone, e o Sokuji traduzirá tudo que ouvir em tempo real.",
-    "speaker": "Alto-falante",
-    "speakerDesc": "Selecione um alto-falante para monitorar a saída traduzida. Isso permite ouvir como a tradução soa. Você pode desligar se o monitoramento não for necessário. Ligado ou desligado, o áudio traduzido sempre é enviado para o microfone virtual para outros participantes ouvirem.",
     "swapLanguages": "Trocar idiomas",
     "textOnly": "Somente texto",
     "textOnlyDesc": "Traduzir apenas para texto — sem saída de voz",
     "textOnlyForcedByMode": "O modo \"{{mode}}\" transforma o que os participantes dizem em texto para você e nunca gera áudio, por isso \"Somente texto\" permanece ativado. Mude o modo de tradução para traduzir sua própria voz com fala.",
     "keepReplayAudio": "Manter áudio para reprodução",
-    "keepReplayAudioDesc": "Armazenar o áudio traduzido na memória para que você possa reproduzi-lo depois a partir de cada mensagem. Desativado por padrão para reduzir o uso de memória em sessões longas."
+    "keepReplayAudioDesc": "Armazenar o áudio traduzido na memória para que você possa reproduzi-lo depois a partir de cada mensagem. Desativado por padrão para reduzir o uso de memória em sessões longas.",
+    "output": "Output",
+    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
   },
   "providers": {
     "kizunaai_soniox": {

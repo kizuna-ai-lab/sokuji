@@ -375,7 +375,8 @@
     "audioCaptureUnprovenNotice": "尚未擷取到音訊",
     "audioCaptureUnprovenTitle": "所選來源尚未傳來任何音訊",
     "audioCaptureUnprovenText1": "如果來源正在播放卻沒有譯文，很可能是 macOS 只給出了靜音：擷取某個應用程式的音訊需要「僅系統錄音」權限，沒有該權限時不會報錯，只會是靜音。",
-    "audioCaptureUnprovenText3Named": "「{{app}}」只有在嘗試過一次擷取之後才會出現在該清單中，剛才已經嘗試過了。啟用後請重新開始。如果來源本來就是靜音的，則無需任何更改。"
+    "audioCaptureUnprovenText3Named": "「{{app}}」只有在嘗試過一次擷取之後才會出現在該清單中，剛才已經嘗試過了。啟用後請重新開始。如果來源本來就是靜音的，則無需任何更改。",
+    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
   },
   "auth": {
     "signIn": "登入",
@@ -444,14 +445,14 @@
     "targetLanguage": "對方語言",
     "microphone": "麥克風",
     "microphoneDesc": "選擇麥克風來捕捉您的語音。對著這個麥克風說您的語言，Sokuji 會即時翻譯它聽到的一切。",
-    "speaker": "揚聲器",
-    "speakerDesc": "選擇揚聲器來監聽翻譯輸出。這讓您能聽到翻譯的聲音效果。如果不需要監聽，可以關閉。無論開啟或關閉，翻譯的音訊都會發送到虛擬麥克風供其他參與者聽到。",
     "swapLanguages": "交換語言",
     "textOnly": "僅文字",
     "textOnlyDesc": "僅翻譯為文字 — 不產生語音",
     "textOnlyForcedByMode": "「{{mode}}」模式只會把參與者說的話轉成文字給你看，不會產生語音，因此「僅文字」始終開啟。切換翻譯模式即可讓自己的語音帶聲音輸出。",
     "keepReplayAudio": "保留音訊以便重播",
-    "keepReplayAudioDesc": "將翻譯的音訊保存在記憶體中，以便您之後可以從每則訊息重新播放。預設關閉以減少長時間工作階段中的記憶體用量。"
+    "keepReplayAudioDesc": "將翻譯的音訊保存在記憶體中，以便您之後可以從每則訊息重新播放。預設關閉以減少長時間工作階段中的記憶體用量。",
+    "output": "Output",
+    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
   },
   "providers": {
     "kizunaai_soniox": {

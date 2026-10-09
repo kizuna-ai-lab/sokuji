@@ -375,7 +375,8 @@
     "audioCaptureUnprovenNotice": "Wala pang nakukuha",
     "audioCaptureUnprovenTitle": "Wala pang audio na dumarating mula sa napiling source",
     "audioCaptureUnprovenText1": "Kung tumutugtog ang source at walang naisasalin, malamang na katahimikan ang ibinibigay ng macOS: kailangan ng pahintulot na \"System Audio Recording Only\" para makuha ang audio ng isang app, at kung wala ito ay walang error, katahimikan lang.",
-    "audioCaptureUnprovenText3Named": "Lumalabas lang ang \"{{app}}\" sa listahang iyon pagkatapos nitong subukang kumuha nang isang beses, na katatapos lang. Simulan muli ang session pagkatapos itong paganahin. Kung tahimik lang talaga ang source, walang kailangang baguhin."
+    "audioCaptureUnprovenText3Named": "Lumalabas lang ang \"{{app}}\" sa listahang iyon pagkatapos nitong subukang kumuha nang isang beses, na katatapos lang. Simulan muli ang session pagkatapos itong paganahin. Kung tahimik lang talaga ang source, walang kailangang baguhin.",
+    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
   },
   "auth": {
     "signIn": "Mag-sign In",
@@ -444,14 +445,14 @@
     "targetLanguage": "Wika ng kausap",
     "microphone": "Microphone",
     "microphoneDesc": "Piliin ang microphone para ma-capture ang inyong pagsasalita. Magsalita sa inyong wika sa microphone na ito, at i-translate ng Sokuji ang lahat ng maririnig niya nang real-time.",
-    "speaker": "Speaker",
-    "speakerDesc": "Piliin ang speaker para ma-monitor ang translated na output. Pinapahintulutan ninyo nitong marinig kung paano tumutunog ang translation. Pwede ninyong i-off ito kung hindi kailangan ang monitoring. Naka-on man o naka-off, laging napapadala ang translated na audio sa virtual microphone para marinig ng ibang participants.",
     "swapLanguages": "Palitan ang mga wika",
     "textOnly": "Teksto lamang",
     "textOnlyDesc": "Isalin sa teksto lamang — walang boses na output",
     "textOnlyForcedByMode": "Ang mode na \"{{mode}}\" ay ginagawa lang na teksto para sa iyo ang sinasabi ng mga kalahok at hindi kailanman gumagawa ng audio, kaya nananatiling naka-on ang \"Teksto lamang\". Palitan ang translation mode para isalin ang sarili mong boses nang may tunog.",
     "keepReplayAudio": "Itago ang audio para sa muling pagpapatugtog",
-    "keepReplayAudioDesc": "Mag-imbak ng isinaling audio sa memorya upang maaari mong patugtugin muli mamaya mula sa bawat mensahe. Naka-off bilang default upang mabawasan ang paggamit ng memorya sa mahahabang sesyon."
+    "keepReplayAudioDesc": "Mag-imbak ng isinaling audio sa memorya upang maaari mong patugtugin muli mamaya mula sa bawat mensahe. Naka-off bilang default upang mabawasan ang paggamit ng memorya sa mahahabang sesyon.",
+    "output": "Output",
+    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
   },
   "providers": {
     "kizunaai_soniox": {

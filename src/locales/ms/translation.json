@@ -375,7 +375,8 @@
     "audioCaptureUnprovenNotice": "Belum ada yang ditangkap",
     "audioCaptureUnprovenTitle": "Belum ada audio diterima daripada sumber yang dipilih",
     "audioCaptureUnprovenText1": "Jika sumber sedang dimainkan tetapi tiada apa yang diterjemahkan, macOS berkemungkinan menghantar kesenyapan: menangkap sesebuah aplikasi memerlukan kebenaran \"System Audio Recording Only\", dan tanpanya tiada ralat, hanya kesenyapan.",
-    "audioCaptureUnprovenText3Named": "\"{{app}}\" hanya muncul dalam senarai itu selepas cuba menangkap sekali, yang baru sahaja berlaku. Mulakan sesi semula selepas mendayakannya. Jika sumber itu sekadar senyap, tiada apa yang perlu diubah."
+    "audioCaptureUnprovenText3Named": "\"{{app}}\" hanya muncul dalam senarai itu selepas cuba menangkap sekali, yang baru sahaja berlaku. Mulakan sesi semula selepas mendayakannya. Jika sumber itu sekadar senyap, tiada apa yang perlu diubah.",
+    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
   },
   "auth": {
     "signIn": "Log Masuk",
@@ -444,14 +445,14 @@
     "targetLanguage": "Bahasa pihak lain",
     "microphone": "Mikrofon",
     "microphoneDesc": "Pilih mikrofon untuk menangkap pertuturan anda. Bercakap dalam bahasa anda ke mikrofon ini, dan Sokuji akan menterjemah semua yang didengarinya dalam masa nyata.",
-    "speaker": "Pembesar Suara",
-    "speakerDesc": "Pilih pembesar suara untuk memantau output terjemahan. Ini membolehkan anda mendengar bagaimana terjemahan kedengaran. Anda boleh mematikannya jika pemantauan tidak diperlukan. Sama ada hidup atau mati, audio terjemahan sentiasa dihantar ke mikrofon maya agar peserta lain dapat mendengar.",
     "swapLanguages": "Tukar bahasa",
     "textOnly": "Teks sahaja",
     "textOnlyDesc": "Terjemah ke teks sahaja — tiada output suara",
     "textOnlyForcedByMode": "Mod \"{{mode}}\" hanya menukar apa yang diucapkan peserta kepada teks untuk anda dan tidak pernah menghasilkan audio, jadi \"Teks sahaja\" kekal dihidupkan. Tukar mod terjemahan untuk menterjemah suara anda sendiri dengan pertuturan.",
     "keepReplayAudio": "Simpan audio untuk main semula",
-    "keepReplayAudioDesc": "Simpan audio terjemahan dalam memori supaya anda boleh memainkannya semula kemudian daripada setiap mesej. Dimatikan secara lalai untuk mengurangkan penggunaan memori semasa sesi panjang."
+    "keepReplayAudioDesc": "Simpan audio terjemahan dalam memori supaya anda boleh memainkannya semula kemudian daripada setiap mesej. Dimatikan secara lalai untuk mengurangkan penggunaan memori semasa sesi panjang.",
+    "output": "Output",
+    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
   },
   "providers": {
     "kizunaai_soniox": {

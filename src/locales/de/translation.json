@@ -375,7 +375,8 @@
     "audioCaptureUnprovenNotice": "Noch nichts erfasst",
     "audioCaptureUnprovenTitle": "Von der ausgewählten Quelle ist noch kein Audio angekommen",
     "audioCaptureUnprovenText1": "Wenn die Quelle abspielt und nichts übersetzt wird, liefert macOS wahrscheinlich Stille: Das Erfassen einer App erfordert die Berechtigung „Nur Systemaudioaufnahme“, und ohne sie gibt es keinen Fehler, nur Stille.",
-    "audioCaptureUnprovenText3Named": "„{{app}}“ erscheint in dieser Liste erst, nachdem einmal eine Erfassung versucht wurde, und das ist gerade geschehen. Starten Sie die Sitzung nach dem Aktivieren erneut. War die Quelle einfach nur still, muss nichts geändert werden."
+    "audioCaptureUnprovenText3Named": "„{{app}}“ erscheint in dieser Liste erst, nachdem einmal eine Erfassung versucht wurde, und das ist gerade geschehen. Starten Sie die Sitzung nach dem Aktivieren erneut. War die Quelle einfach nur still, muss nichts geändert werden.",
+    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
   },
   "auth": {
     "signIn": "Anmelden",
@@ -444,14 +445,14 @@
     "targetLanguage": "Sprache des Gegenübers",
     "microphone": "Mikrofon",
     "microphoneDesc": "Wählen Sie das Mikrofon zur Aufnahme Ihrer Sprache. Sprechen Sie in Ihrer Sprache in dieses Mikrofon, und Sokuji wird alles, was es hört, in Echtzeit übersetzen.",
-    "speaker": "Lautsprecher",
-    "speakerDesc": "Wählen Sie einen Lautsprecher zur Überwachung der übersetzten Ausgabe. Damit können Sie hören, wie die Übersetzung klingt. Sie können es ausschalten, wenn keine Überwachung erforderlich ist. Ob ein- oder ausgeschaltet, das übersetzte Audio wird immer an das virtuelle Mikrofon gesendet, damit andere Teilnehmer es hören können.",
     "swapLanguages": "Sprachen tauschen",
     "textOnly": "Nur Text",
     "textOnlyDesc": "Nur als Text übersetzen — keine Sprachausgabe",
     "textOnlyForcedByMode": "Der Modus \"{{mode}}\" wandelt das, was die Teilnehmer sagen, nur in Text für Sie um und erzeugt nie Audio — deshalb bleibt \"Nur Text\" aktiviert. Wechseln Sie den Übersetzungsmodus, um Ihre eigene Stimme mit Sprachausgabe zu übersetzen.",
     "keepReplayAudio": "Audio für Wiedergabe behalten",
-    "keepReplayAudioDesc": "Übersetztes Audio im Speicher behalten, damit Sie es später aus jeder Nachricht erneut abspielen können. Standardmäßig deaktiviert, um den Speicherverbrauch bei langen Sitzungen zu reduzieren."
+    "keepReplayAudioDesc": "Übersetztes Audio im Speicher behalten, damit Sie es später aus jeder Nachricht erneut abspielen können. Standardmäßig deaktiviert, um den Speicherverbrauch bei langen Sitzungen zu reduzieren.",
+    "output": "Output",
+    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
   },
   "providers": {
     "kizunaai_soniox": {

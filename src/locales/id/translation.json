@@ -375,7 +375,8 @@
     "audioCaptureUnprovenNotice": "Belum ada yang ditangkap",
     "audioCaptureUnprovenTitle": "Belum ada audio yang masuk dari sumber yang dipilih",
     "audioCaptureUnprovenText1": "Jika sumber sedang diputar tetapi tidak ada yang diterjemahkan, macOS kemungkinan mengirimkan keheningan: menangkap sebuah aplikasi memerlukan izin \"System Audio Recording Only\", dan tanpa izin itu tidak ada kesalahan, hanya keheningan.",
-    "audioCaptureUnprovenText3Named": "\"{{app}}\" baru muncul di daftar itu setelah mencoba menangkap satu kali, yang baru saja terjadi. Mulai sesi lagi setelah mengaktifkannya. Jika sumber memang hening, tidak ada yang perlu diubah."
+    "audioCaptureUnprovenText3Named": "\"{{app}}\" baru muncul di daftar itu setelah mencoba menangkap satu kali, yang baru saja terjadi. Mulai sesi lagi setelah mengaktifkannya. Jika sumber memang hening, tidak ada yang perlu diubah.",
+    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
   },
   "auth": {
     "signIn": "Masuk",
@@ -444,14 +445,14 @@
     "targetLanguage": "Bahasa lawan bicara",
     "microphone": "Mikrofon",
     "microphoneDesc": "Pilih mikrofon untuk menangkap ucapan Anda. Berbicara dalam bahasa Anda ke mikrofon ini, dan Sokuji akan menerjemahkan semua yang didengarnya secara real-time.",
-    "speaker": "Speaker",
-    "speakerDesc": "Pilih speaker untuk memantau output terjemahan. Ini memungkinkan Anda mendengar bagaimana terjemahan terdengar. Anda dapat mematikannya jika pemantauan tidak diperlukan. Baik hidup atau mati, audio terjemahan selalu dikirim ke mikrofon virtual agar peserta lain dapat mendengar.",
     "swapLanguages": "Tukar bahasa",
     "textOnly": "Teks saja",
     "textOnlyDesc": "Terjemahkan ke teks saja — tanpa keluaran suara",
     "textOnlyForcedByMode": "Mode \"{{mode}}\" hanya mengubah ucapan peserta menjadi teks untuk Anda dan tidak pernah menghasilkan audio, jadi \"Teks saja\" tetap aktif. Ubah mode terjemahan untuk menerjemahkan suara Anda sendiri dengan ucapan.",
     "keepReplayAudio": "Simpan audio untuk diputar ulang",
-    "keepReplayAudioDesc": "Simpan audio terjemahan di memori sehingga Anda dapat memutarnya kembali nanti dari setiap pesan. Nonaktif secara default untuk mengurangi penggunaan memori selama sesi yang panjang."
+    "keepReplayAudioDesc": "Simpan audio terjemahan di memori sehingga Anda dapat memutarnya kembali nanti dari setiap pesan. Nonaktif secara default untuk mengurangi penggunaan memori selama sesi yang panjang.",
+    "output": "Output",
+    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
   },
   "providers": {
     "kizunaai_soniox": {

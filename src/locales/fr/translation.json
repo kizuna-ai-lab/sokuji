@@ -375,7 +375,8 @@
     "audioCaptureUnprovenNotice": "Rien n'a encore été capturé",
     "audioCaptureUnprovenTitle": "Aucun audio n'est encore arrivé de la source sélectionnée",
     "audioCaptureUnprovenText1": "Si la source est en lecture et que rien n'est traduit, macOS fournit probablement du silence : capturer une application nécessite l'autorisation « Enregistrement audio du système uniquement », et sans elle il n'y a pas d'erreur, seulement du silence.",
-    "audioCaptureUnprovenText3Named": "« {{app}} » n'apparaît dans cette liste qu'après une première tentative de capture, qui vient d'avoir lieu. Relancez la session après l'avoir activée. Si la source était simplement silencieuse, il n'y a rien à changer."
+    "audioCaptureUnprovenText3Named": "« {{app}} » n'apparaît dans cette liste qu'après une première tentative de capture, qui vient d'avoir lieu. Relancez la session après l'avoir activée. Si la source était simplement silencieuse, il n'y a rien à changer.",
+    "otherSideBesideNote": "The other person shares your microphone; no system audio is captured."
   },
   "auth": {
     "signIn": "Se connecter",
@@ -444,14 +445,14 @@
     "targetLanguage": "Langue de l'autre",
     "microphone": "Microphone",
     "microphoneDesc": "Sélectionnez le microphone pour capturer votre parole. Parlez dans votre langue dans ce microphone, et Sokuji traduira tout ce qu'il entend en temps réel.",
-    "speaker": "Haut-parleur",
-    "speakerDesc": "Sélectionnez un haut-parleur pour surveiller la sortie traduite. Cela vous permet d'entendre comment sonne la traduction. Vous pouvez l'éteindre si la surveillance n'est pas nécessaire. Qu'il soit allumé ou éteint, l'audio traduit est toujours envoyé au microphone virtuel pour que les autres participants l'entendent.",
     "swapLanguages": "Inverser les langues",
     "textOnly": "Texte uniquement",
     "textOnlyDesc": "Traduire en texte uniquement — pas de sortie vocale",
     "textOnlyForcedByMode": "Le mode « {{mode}} » transforme uniquement ce que disent les participants en texte pour vous et ne génère jamais d'audio : « Texte uniquement » reste donc activé. Changez de mode de traduction pour traduire votre propre voix avec la parole.",
     "keepReplayAudio": "Conserver l'audio pour la relecture",
-    "keepReplayAudioDesc": "Stocker l'audio traduit en mémoire pour pouvoir le rejouer plus tard depuis chaque message. Désactivé par défaut afin de réduire l'utilisation de la mémoire pendant les longues sessions."
+    "keepReplayAudioDesc": "Stocker l'audio traduit en mémoire pour pouvoir le rejouer plus tard depuis chaque message. Désactivé par défaut afin de réduire l'utilisation de la mémoire pendant les longues sessions.",
+    "output": "Output",
+    "outputDesc": "The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone."
   },
   "providers": {
     "kizunaai_soniox": {
