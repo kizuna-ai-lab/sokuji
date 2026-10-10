@@ -19,11 +19,10 @@ interface AudioDeviceSectionProps {
    */
   isLocked?: boolean;
   /**
-   * Why the channel is locked (i18n string). Rendered under the section
-   * heading while `isLocked` holds. Greying a control without stating the
-   * reason invites the interaction it then refuses — worse still when the lock
-   * is persistent (the monitor stays locked outside 'You' mode across
-   * restarts), where it reads as broken rather than locked.
+   * Why the microphone list is locked (i18n string): a run in progress, or the
+   * participant-only mode. Rendered under the section heading while locked and
+   * wired to the listbox as its aria-describedby, so a greyed list states its
+   * reason rather than reading as broken.
    */
   lockedReason?: string;
   /** Additional class name */

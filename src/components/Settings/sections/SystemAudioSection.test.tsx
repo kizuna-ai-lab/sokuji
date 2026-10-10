@@ -3,11 +3,10 @@
  * (issue #335).
  *
  * Regression guard: the picker was first added to AudioDeviceSection, which the
- * settings views render TWICE (once for the microphone, once for the speaker).
- * Because it sat outside both `showMicrophone`/`showSpeaker` guards it appeared
- * in both instances, giving the user two "Participant audio" sections whose
- * lock state disagreed - each instance receives a different isLocked prop.
- * The picker belongs here, in the one real participant section.
+ * settings views once rendered twice (microphone and speaker instances).
+ * Because it sat outside both instances' guards it appeared in both, giving
+ * the user two "Participant audio" sections whose lock state disagreed. The
+ * picker belongs here, in the one real participant section.
  */
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';

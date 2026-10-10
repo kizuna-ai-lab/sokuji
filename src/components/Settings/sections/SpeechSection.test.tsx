@@ -29,8 +29,6 @@ vi.mock('../../../providers/registry', async () => {
     presentProviders: () => [
       localInferenceProvider,
       fakeProvider,
-      { ...fakeProvider, id: 'always-provider', speech: 'always' as const },
-      { ...fakeProvider, id: 'never-provider', speech: 'never' as const },
     ],
   };
 });
@@ -58,8 +56,6 @@ const entry = () => ({ settings: FAKE_DEFAULTS, credentials: {}, pair: { source:
 const localEntry = () => ({ settings: { ...LOCAL_INFERENCE_DEFAULTS }, credentials: {}, pair: { source: 'ja', target: 'en' } });
 const originalResolve = useModelStore.getState().resolve;
 const originalSetUIMode = useSettingsStore.getState().setUIMode;
-
-/** The switch labeled `label`, out of every switch on the page. */
 
 beforeEach(() => {
   trackEvent.mockClear();

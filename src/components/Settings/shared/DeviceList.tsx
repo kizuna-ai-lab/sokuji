@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { AudioDevice, isVirtualMic, isVirtualSpeaker, isLoopbackInput } from './hooks';
+import { AudioDevice, isVirtualMic, isLoopbackInput } from './hooks';
 import { describeDeviceOnHover } from '../../../utils/audioDevices';
 
 interface DeviceListProps {
@@ -12,8 +12,8 @@ interface DeviceListProps {
   /** Absent: the device is always on, and the list has no Off row. */
   onToggleOff?: () => void;
   disabled?: boolean;
-  /** 'input' for microphone, 'output' for speaker */
-  deviceType: 'input' | 'output';
+  /** The microphone list; the only kind of device list left. */
+  deviceType: 'input';
   /** Filter out virtual devices from the list */
   filterVirtual?: boolean;
   /** Show virtual device indicators */
@@ -38,7 +38,6 @@ const DeviceList: React.FC<DeviceListProps> = ({
   onSelect,
   onToggleOff,
   disabled = false,
-  deviceType,
   filterVirtual = false,
   showVirtualIndicators = true,
   onVirtualDeviceClick,
@@ -48,9 +47,7 @@ const DeviceList: React.FC<DeviceListProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  const isVirtual = (device: AudioDevice) => {
-    return deviceType === 'input' ? isVirtualMic(device) : isVirtualSpeaker(device);
-  };
+  const isVirtual = (device: AudioDevice) => isVirtualMic(device);
 
   const filteredDevices = filterVirtual
     ? devices.filter(device => !isVirtual(device))
@@ -69,7 +66,7 @@ const DeviceList: React.FC<DeviceListProps> = ({
     // re-capture what the machine is playing — Sokuji's own TTS included.
     // Warn, but unlike Sokuji's own virtual devices do NOT block: loopback
     // routing can be a deliberate setup, so the selection falls through.
-    if (showVirtualIndicators && deviceType === 'input' && isLoopbackInput(device) && onVirtualDeviceClick) {
+    if (showVirtualIndicators && isLoopbackInput(device) && onVirtualDeviceClick) {
       onVirtualDeviceClick(device);
     }
 
@@ -101,7 +98,7 @@ const DeviceList: React.FC<DeviceListProps> = ({
     <div
       className={`device-list ${className}`}
       role="listbox"
-      aria-label={deviceType === 'input' ? t('simpleConfig.microphone') : t('audioPanel.defaultPlayback', 'Default playback device')}
+      aria-label={t('simpleConfig.microphone')}
       aria-describedby={ariaDescribedBy}
       // Disabled drops every option to tabIndex -1, which would leave nothing in
       // the widget to focus — a keyboard user would tab straight past it and
@@ -147,10 +144,7 @@ const DeviceList: React.FC<DeviceListProps> = ({
             {virtual && (
               <div
                 className="virtual-indicator"
-                title={deviceType === 'input'
-                  ? t('audioPanel.virtualMicrophone')
-                  : t('audioPanel.virtualSpeaker')
-                }
+                title={t('audioPanel.virtualMicrophone')}
               >
                 <AlertTriangle size={14} />
               </div>

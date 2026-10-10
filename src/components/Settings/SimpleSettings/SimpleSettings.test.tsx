@@ -59,10 +59,9 @@ vi.mock('../../../stores/settingsStore', () => ({
 // Real child sections pull in ServiceFactory/TourProvider/per-provider
 // wiring this effect doesn't touch — stub them to id-bearing markers instead.
 // Only 'microphone' and 'participant' matter here since that's what this
-// effect targets; ids verified against the real sections:
-// AudioDeviceSection.tsx:167 (`id="microphone-section"`) and
-// SystemAudioSection.tsx:86 (`id="participant-section"`) — re-check these
-// line numbers if either section is restructured.
+// effect targets; the ids match the real sections' (`id="microphone-section"`
+// in AudioDeviceSection, `id="participant-section"` in SystemAudioSection) —
+// re-check them if either section is restructured.
 vi.mock('../sections', () => ({
   AudioDeviceSection: () => <div id="microphone-section" />,
   SpeechOutputSection: () => <div id="speech-section" />,
