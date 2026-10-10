@@ -233,6 +233,13 @@ describe('speakFor — who hears what (spec 2026-10-10 §4)', () => {
     expect(speakFor(optional, { ...base, faceToFace: true, participantSpeech: false }).them).toBe(false);
   });
 
+  it("an always-speaking provider is still not recaptured: the gate is outside its policy", () => {
+    const always = { speech: 'always' as const, participantSpeech: true };
+    const both = { ...base, legs: ['speaker', 'participant'] as const };
+    expect(speakFor(always, { ...both, heard: false })).toMatchObject({ other: true, them: false });
+    expect(speakFor(always, { ...both, heard: true }).them).toBe(true);
+  });
+
   it("a whole-system source keeps them off whatever the switch says (Review Focus 4)", () => {
     expect(speakFor(optional, { ...base, participantSpeech: true, heard: false }).them).toBe(false);
   });

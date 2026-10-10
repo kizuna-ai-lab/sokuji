@@ -60,7 +60,8 @@ export function participantSpeechInput(i: Pick<SpeakInputs, 'participantSpeech' 
 export function speakFor(p: Speaking, i: SpeakInputs): Speak {
   const inputs: SpeechInputs = { textOnly: i.textOnly, participantSpeech: participantSpeechInput(i) };
   const other = legSpeaks(p, 'speaker', inputs);
-  const them = legSpeaks(p, 'participant', inputs);
+  // The recapture rule is a safety gate outside the provider's policy: 'always' means it speaks whenever it may be heard, never that it may be recaptured.
+  const them = legSpeaks(p, 'participant', inputs) && i.heard;
   // 我也听 is a sub-row of 对方听到的翻译; face-to-face has no monitor of my own
   // voice; in Both a whole-system capture would recapture it (D12).
   const both = i.legs.includes('speaker') && i.legs.includes('participant');
