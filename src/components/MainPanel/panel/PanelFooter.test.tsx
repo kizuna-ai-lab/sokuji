@@ -77,6 +77,7 @@ describe('PanelFooter — starting', () => {
     const onStop = vi.fn();
     const run: RunState = {
       phase: 'starting',
+      participantSpeech: false,
       step: 'opening',
       loading: { leg: 'speaker', stage: 'asr', done: 1, total: 3 },
     };
@@ -96,7 +97,7 @@ describe('PanelFooter — starting', () => {
 describe('PanelFooter — running / stopping', () => {
   it.each(SITES)('%s: running shows the Stop variant, calls onStop, active dot, duration', (site) => {
     const onStop = vi.fn();
-    const run: RunState = { phase: 'running', since: 0, legs: {} };
+    const run: RunState = { phase: 'running', participantSpeech: false, since: 0, legs: {} };
     const { container } = render(<PanelFooter {...baseProps(site, { run, onStop, duration: '00:05' })} />);
     const btn = actionButton(container);
     if (site === 'basic') {
@@ -113,7 +114,7 @@ describe('PanelFooter — running / stopping', () => {
   });
 
   it.each(SITES)('%s: stopping shows the same Stop variant, disabled, no active dot, no duration', (site) => {
-    const run: RunState = { phase: 'stopping' };
+    const run: RunState = { phase: 'stopping', participantSpeech: false };
     const { container } = render(<PanelFooter {...baseProps(site, { run, duration: '00:05' })} />);
     const btn = actionButton(container);
     if (site === 'basic') {
@@ -129,7 +130,7 @@ describe('PanelFooter — running / stopping', () => {
 
 describe('PanelFooter — reconnecting', () => {
   it.each(SITES)('%s: a reconnecting leg marks the dot; no label in the footer', (site) => {
-    const { container } = render(<PanelFooter {...baseProps(site, { run: { phase: 'running', since: 0, legs: { speaker: 'reconnecting' } } })} />);
+    const { container } = render(<PanelFooter {...baseProps(site, { run: { phase: 'running', participantSpeech: false, since: 0, legs: { speaker: 'reconnecting' } } })} />);
     expect(container.querySelector('.status-dot.reconnecting')).not.toBeNull();
     expect(container.querySelector('.reconnecting-label')).toBeNull();
   });
@@ -173,7 +174,7 @@ describe('PanelFooter — mode picker', () => {
   });
 
   it.each(SITES)('%s: a run that is not idle locks the picker', (site) => {
-    const run: RunState = { phase: 'starting', step: 'checking' };
+    const run: RunState = { phase: 'starting', participantSpeech: false, step: 'checking' };
     const { container } = render(<PanelFooter {...baseProps(site, { run })} />);
     expect(container.querySelector('.mode-picker')?.className).toContain('mode-picker--locked');
   });
@@ -225,6 +226,7 @@ describe("PanelFooter — the lease's countdown", () => {
   it.each(SITES)('%s: shows the countdown beside the duration while a leased run runs', (site) => {
     const run: RunState = {
       phase: 'running',
+      participantSpeech: false,
       since: 0,
       legs: { speaker: 'live' },
       budget: { totalMs: 60_000, endsAt: Date.now() + 30_000 },
@@ -235,7 +237,7 @@ describe("PanelFooter — the lease's countdown", () => {
   });
 
   it.each(SITES)('%s: none without a budget, or while idle', (site) => {
-    const runWithoutBudget: RunState = { phase: 'running', since: 0, legs: { speaker: 'live' } };
+    const runWithoutBudget: RunState = { phase: 'running', participantSpeech: false, since: 0, legs: { speaker: 'live' } };
     const { container } = render(<PanelFooter {...baseProps(site, { run: runWithoutBudget, duration: '00:30' })} />);
     expect(container.querySelector('.session-remaining-time')).toBeNull();
 

@@ -252,7 +252,7 @@ describe('MainPanel before its playback has loaded', () => {
       expect(capture.echo.onNotice).not.toHaveBeenCalled();
 
       // A start retries the load (the runner's own call); the panel asks again when the phase moves.
-      act(() => { runner().state.setState({ phase: 'starting', step: 'checking' }, true); });
+      act(() => { runner().state.setState({ phase: 'starting', participantSpeech: false, step: 'checking' }, true); });
       // The load the panel's own call began: its answer reaches the panel first.
       await act(() => getAppSession().audio());
       expect(capture.echo.onNotice).toHaveBeenCalledWith(expect.any(Function));
@@ -368,7 +368,7 @@ describe('MainPanel', () => {
     useTurnModeStore.setState({ turnMode: 'push-to-talk' });
     const { container } = await renderPanel();
     for (const legs of [{ participant: 'live' }, { speaker: 'reconnecting', participant: 'live' }] as const) {
-      act(() => { runner().state.setState({ phase: 'running', since: 0, legs }, true); });
+      act(() => { runner().state.setState({ phase: 'running', participantSpeech: false, since: 0, legs }, true); });
       expect(container.querySelector('[data-tour="main-action"]')?.textContent).toContain('simplePanel.stop');
       expect(container.querySelector('.push-to-talk-btn')).toBeNull();
       expect(container.querySelector('.text-input')).toBeNull();
@@ -381,7 +381,7 @@ describe('MainPanel', () => {
     const textInput = vi.spyOn(fakeProvider, 'textInput').mockReturnValue(false);
     try {
       const { container } = await renderPanel();
-      act(() => { runner().state.setState({ phase: 'running', since: 0, legs: { speaker: 'live' } }, true); });
+      act(() => { runner().state.setState({ phase: 'running', participantSpeech: false, since: 0, legs: { speaker: 'live' } }, true); });
       expect(container.querySelector('[data-tour="main-action"]')?.textContent).toContain('simplePanel.stop');
       expect(container.querySelector('.text-input')).toBeNull();
       expect(textInput).toHaveBeenCalledWith(useProviderStore.getState().entries.fake!.settings);
@@ -631,7 +631,7 @@ describe('MainPanel', () => {
     const { container } = await renderPanel();
     try {
       act(() => {
-        runner().state.setState({ phase: 'running', since: 0, legs: { speaker: 'live' } }, true);
+        runner().state.setState({ phase: 'running', participantSpeech: false, since: 0, legs: { speaker: 'live' } }, true);
         useSubtitleStore.setState({ entryHint: 'refresh' });
       });
       expect(container.querySelector('[data-status="subtitle-entry"]')).not.toBeNull();
@@ -650,7 +650,7 @@ describe('MainPanel', () => {
     useAudioStore.setState({ selectedInputDevice: null });
     try {
       const { container } = await renderPanel();
-      act(() => { runner().state.setState({ phase: 'running', since: 0, legs: { speaker: 'live' } }, true); });
+      act(() => { runner().state.setState({ phase: 'running', participantSpeech: false, since: 0, legs: { speaker: 'live' } }, true); });
       expect(container.querySelector('.status-line')?.getAttribute('data-status')).toBe('mic-waiting');
     } finally {
       act(() => {
@@ -758,7 +758,7 @@ describe('panel notes (spec 2026-10-05 §5)', () => {
     usePanelNotesStore.getState().add({ severity: 'info', code: 'export_copied', message: 'copied', lifetime: 'transient' });
     const { container } = await renderPanel();
     try {
-      act(() => { runner().state.setState({ phase: 'running', since: 0, legs: { speaker: 'live' } }, true); });
+      act(() => { runner().state.setState({ phase: 'running', participantSpeech: false, since: 0, legs: { speaker: 'live' } }, true); });
       const placeholder = container.querySelector('.conversation-display > .empty-state')!;
       expect(placeholder.querySelector('p')?.textContent).toContain('mainPanel.subtitleTakeover');
       const row = placeholder.querySelector('.sys-row--info');

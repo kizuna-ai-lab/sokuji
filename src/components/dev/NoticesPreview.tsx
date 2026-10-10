@@ -81,7 +81,7 @@ function ended(end: RunEnd): StatusLineInput {
 }
 
 function running(over: Partial<StatusLineInput> = {}, legs: Extract<RunState, { phase: 'running' }>['legs'] = { speaker: 'live' }): StatusLineInput {
-  return { ...IDLE, run: { phase: 'running', since: 0, legs }, ...over };
+  return { ...IDLE, run: { phase: 'running', participantSpeech: false, since: 0, legs }, ...over };
 }
 
 const echo = (cause: EchoCause): EchoNoticeState => ({ cause, lagMs: 120, rho: 0.8 });

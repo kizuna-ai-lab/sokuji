@@ -360,7 +360,7 @@ describe('driveReadiness', () => {
   it('waits for idle: a reset while starting is not checked until the runner is idle again', async () => {
     const { provider, check } = makeProbe();
     setupStore(provider);
-    const runnerStore = createStore<RunState>(() => ({ phase: 'starting', step: 'checking' }));
+    const runnerStore = createStore<RunState>(() => ({ phase: 'starting', participantSpeech: false, step: 'checking' }));
     const runner = { state: runnerStore };
     const clock = createVirtualClock(0);
     const detach = driveReadiness({ runner, providers: () => [provider], auth: () => auth, clock });
@@ -410,7 +410,7 @@ describe('driveReadiness', () => {
     await flush();
     expect(check).toHaveBeenCalledTimes(1);
 
-    runnerStore.setState({ phase: 'starting', step: 'checking' });
+    runnerStore.setState({ phase: 'starting', participantSpeech: false, step: 'checking' });
     fire();
     clock.advance(1000);
     await flush();
