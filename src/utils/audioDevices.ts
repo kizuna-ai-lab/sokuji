@@ -32,6 +32,15 @@ export const describeDeviceOnHover = (device: HoverableDevice): string | undefin
 };
 
 /**
+ * The PipeWire per-application capture (electron/pipewire-app-audio.js): the
+ * null sink an application is tapped into, and the remapped source over its
+ * monitor, both described `Sokuji_App_Capture`. Chromium lists the sink as an
+ * output and the source as an input. The runner finds the source by this label
+ * itself; no picker offers either.
+ */
+const APP_CAPTURE_LABEL = 'sokuji_app_capture';
+
+/**
  * Check if a device is a virtual device that should be filtered or warned about
  */
 export const isVirtualDevice = (device: LabeledDevice): boolean => {
@@ -40,6 +49,7 @@ export const isVirtualDevice = (device: LabeledDevice): boolean => {
          label.includes('sokuji_virtual_speaker') ||
          label.includes('sokuji virtual output') || // Windows display name
          label.includes('sokujivirtualaudio') || // Mac virtual device
+         label.includes(APP_CAPTURE_LABEL) ||
          label.includes('cable');
 };
 
@@ -54,6 +64,8 @@ export const isVirtualMic = (device: LabeledDevice): boolean => {
          // verbatim; used as the mic it is a guaranteed feedback loop.
          label.includes('sokuji_virtual_speaker') ||
          label.includes('sokujivirtualaudio') ||
+         // The other application's audio, never the user's voice.
+         label.includes(APP_CAPTURE_LABEL) ||
          label.includes('cable');
 };
 
@@ -88,5 +100,6 @@ export const isVirtualSpeaker = (device: LabeledDevice): boolean => {
   return label.includes('sokuji_virtual_speaker') ||
          label.includes('sokuji virtual output') || // Windows display name
          label.includes('sokujivirtualaudio') ||
+         label.includes(APP_CAPTURE_LABEL) ||
          label.includes('cable');
 };
