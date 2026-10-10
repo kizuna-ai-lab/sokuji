@@ -30,13 +30,13 @@ type AudioState = ReturnType<typeof useAudioStore.getState>;
 export interface AppAudio {
   playback: Playback;
   /**
-   * Plays the bundled test tone on 我也听's outlet: a fixed route, never into
+   * Plays the bundled test tone on I hear it too's outlet: a fixed route, never into
    * the meeting. A `signal` that aborts before the tone has decoded plays
    * nothing — a stop pressed during the first decode; once playing,
    * `playback.stopPreview()` ends it.
    */
   testTone(signal?: AbortSignal): Promise<void>;
-  /** Plays the synthesized chime on an outlet, as its row's 试听 (face-to-face's ear preview today). */
+  /** Plays the synthesized chime on an outlet, as its row's Preview (face-to-face's ear preview today). */
   earPreview(outlet: OutletName): Promise<void>;
 }
 

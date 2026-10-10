@@ -22,13 +22,13 @@ import { getEnvironment } from '../../../utils/environment';
 import { useFaceToFace } from '../../MainPanel/useFaceToFace';
 
 export interface SpeechOutputSectionProps {
-  /** A run is live: 对方听到的翻译 and 我听到的翻译 froze into its shape. */
+  /** A run is live: Translation the other side hears and Translation I hear froze into its shape. */
   isSessionActive: boolean;
   className?: string;
 }
 
 /**
- * The 语音 block (spec 2026-10-10 §1): who hears what, each row with its
+ * The Speech block (spec 2026-10-10 §1): who hears what, each row with its
  * own output. Every row reads and writes the stores slice 1 taught the
  * model to read, so what the page shows is what the routing does.
  */
@@ -93,7 +93,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
       .catch((error: unknown) => reportError('SpeechOutputSection', `The preview did not play: ${describeCause(error)}`, { cause: error }));
   };
 
-  /** An outlet's device·channel select (spec §1.3), and face-to-face's 试听 beside it. */
+  /** An outlet's device·channel select (spec §1.3), and face-to-face's Preview beside it. */
   const outletSelect = (name: OutletName, rowLabel: string, withPreview: boolean) => (
     <>
       <select

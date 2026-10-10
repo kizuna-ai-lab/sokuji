@@ -5,7 +5,7 @@
 // leg should speak. It sets no display mode: which half of a bilingual
 // utterance each leg shows stays the user's, a re-run of the wizard included
 // (Stage 2 session end, ruling 1).
-// The participant leg speaks in a Both scenario when asked (我听到的翻译): on
+// The participant leg speaks in a Both scenario when asked (Translation I hear): on
 // with voice, off with text; so `participant` alone has no voice variant.
 //
 // Local unions rather than the stores' types: this module must stay a leaf.
@@ -19,7 +19,7 @@ export interface ScenarioPreset {
   textOnly: boolean;
   /** Both with the other side beside me (face-to-face). Absent: a meeting. */
   otherSide?: 'beside';
-  /** 我听到的翻译 for the Both scenarios: on with voice, off with text. Absent: the wizard leaves it as it is. */
+  /** Translation I hear for the Both scenarios: on with voice, off with text. Absent: the wizard leaves it as it is. */
   participantSpeech?: boolean;
 }
 

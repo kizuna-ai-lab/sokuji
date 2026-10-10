@@ -91,7 +91,7 @@ describe("useApplySetup's applyProvider (review Minor 4)", () => {
     }
   });
 
-  it("binds setParticipantSpeech to the routing store: a Both voice scenario turns 我听到的翻译 on", async () => {
+  it("binds setParticipantSpeech to the routing store: a Both voice scenario turns Translation I hear on", async () => {
     const before = useRoutingStore.getState().participantSpeech;
     try {
       useRoutingStore.getState().setParticipantSpeech(false);

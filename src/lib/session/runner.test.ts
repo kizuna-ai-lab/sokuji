@@ -458,7 +458,7 @@ describe('runner — punctuation readiness (ruling 2)', () => {
   });
 });
 
-describe("runner — the run's frozen 我听到的翻译", () => {
+describe("runner — the run's frozen Translation I hear", () => {
   it("starting, running and stopping carry the shape's participantSpeech", async () => {
     const { runner, clock } = setup({ shape: { participantSpeech: true }, settings: { startDelayMs: 2000 } });
     const starting = runner.start();

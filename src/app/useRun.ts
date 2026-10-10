@@ -20,7 +20,7 @@ export function useSessionLocked(): boolean {
   return useRunPhase() !== 'idle';
 }
 
-/** The run's frozen 我听到的翻译 while a run is not idle, else null: what the open participant leg actually does, whatever the live stores say now (the source picker stays live during a run). */
+/** The run's frozen Translation I hear while a run is not idle, else null: what the open participant leg actually does, whatever the live stores say now (the source picker stays live during a run). */
 export function useRunParticipantSpeech(): boolean | null {
   return useStore(getAppSession().runner.state, (s) => (s.phase === 'idle' ? null : s.participantSpeech));
 }

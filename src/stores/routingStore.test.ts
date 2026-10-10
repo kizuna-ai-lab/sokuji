@@ -23,7 +23,7 @@ beforeEach(() => {
 });
 
 describe('routingStore', () => {
-  it('lets the meeting hear the translation, and leaves 我听到的翻译 on auto, until something was saved', async () => {
+  it('lets the meeting hear the translation, and leaves Translation I hear on auto, until something was saved', async () => {
     await useRoutingStore.getState().load();
     expect(useRoutingStore.getState()).toMatchObject({ meeting: true, participantSpeech: null });
     stored.set('settings.routing.meeting', false);

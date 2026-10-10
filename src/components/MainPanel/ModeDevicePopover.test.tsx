@@ -301,7 +301,7 @@ describe('ModeDevicePopover — the speech rows in Me and Other', () => {
     return render(<ModeDevicePopover mode={mode} open={true} anchorEl={anchor} onClose={vi.fn()} locked={false} />);
   };
 
-  it('Me: the microphone, then 我也听 with the monitor switch and its device', () => {
+  it('Me: the microphone, then I hear it too with the monitor switch and its device', () => {
     mount('speaker');
     const labels = Array.from(document.querySelectorAll('.mode-device-popover__row-label')).map((el) => el.textContent);
     expect(labels).toEqual(['Microphone', 'I hear it too']);
@@ -309,7 +309,7 @@ describe('ModeDevicePopover — the speech rows in Me and Other', () => {
     expect(monitor.setMuted).toHaveBeenCalledWith(true);
   });
 
-  it('Me: under Text Only 我也听 is off and disabled with the page\'s reason', () => {
+  it('Me: under Text Only I hear it too is off and disabled with the page\'s reason', () => {
     settings.textOnly = true;
     mount('speaker');
     const button = screen.getByRole('button', { name: 'Turn on I hear it too' });
@@ -328,7 +328,7 @@ describe('ModeDevicePopover — the speech rows in Me and Other', () => {
     }
   });
 
-  it("Other: the system-audio row, then 我听到的翻译 whose switch writes participantSpeech", () => {
+  it("Other: the system-audio row, then Translation I hear whose switch writes participantSpeech", () => {
     store.selected = CHROMIUM;
     mount('participant');
     const labels = Array.from(document.querySelectorAll('.mode-device-popover__row-label')).map((el) => el.textContent);
@@ -337,7 +337,7 @@ describe('ModeDevicePopover — the speech rows in Me and Other', () => {
     expect(routing.setParticipantSpeech).toHaveBeenCalledWith(true);
   });
 
-  it('a pick in 我也听 writes the outlet and leaves the monitor switch alone', () => {
+  it('a pick in I hear it too writes the outlet and leaves the monitor switch alone', () => {
     mount('speaker');
     fireEvent.click(screen.getByText('I hear it too').closest('button')!);
     fireEvent.click(screen.getByText('MacBook Pro Speakers · left channel'));
@@ -346,7 +346,7 @@ describe('ModeDevicePopover — the speech rows in Me and Other', () => {
     expect(monitor.setMuted).not.toHaveBeenCalled();
   });
 
-  it('a pick in 我听到的翻译 leaves participantSpeech alone', () => {
+  it('a pick in Translation I hear leaves participantSpeech alone', () => {
     store.selected = CHROMIUM;
     mount('participant');
     fireEvent.click(screen.getByText('Translation I hear').closest('button')!);

@@ -28,7 +28,7 @@ const draft = (over: Partial<SetupDraft>): SetupDraft => ({
 });
 
 describe('applySetupDraft (spec §1.5)', () => {
-  it('writes 我听到的翻译 for the Both scenarios only: on for voice, off for text, untouched elsewhere (Review Focus 3)', async () => {
+  it('writes Translation I hear for the Both scenarios only: on for voice, off for text, untouched elsewhere (Review Focus 3)', async () => {
     const voice = deps();
     await applySetupDraft(draft({ scenario: 'two-way-voice' }), voice);
     expect(voice.setParticipantSpeech).toHaveBeenCalledWith(true);

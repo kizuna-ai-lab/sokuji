@@ -110,7 +110,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
   const participantSpeech = useRoutingStore((s) => s.participantSpeech);
   const setParticipantSpeech = useRoutingStore((s) => s.setParticipantSpeech);
   const textOnly = useSettingsStore((s) => s.textOnly);
-  // The twin of the page's: a run's frozen 我听到的翻译 wins over the live stores.
+  // The twin of the page's: a run's frozen Translation I hear wins over the live stores.
   const runSpeech = useRunParticipantSpeech();
   // Subscribed so the blocked state follows a capture that widens mid-run.
   useParticipantCaptureWidened();
@@ -225,7 +225,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     }
 
     if (mode === 'speaker') {
-      // The twin of SpeechOutputSection's 我也听 row: off while the translation is not spoken (`otherOn` there).
+      // The twin of SpeechOutputSection's I hear it too row: off while the translation is not spoken (`otherOn` there).
       const speech = provider?.speech ?? 'optional';
       const otherOn = speech === 'always' ? true : speech === 'never' ? false : !textOnly;
       list.push(outletRow('me', 'me', t('audioPanel.meToo', 'I hear it too'), {
@@ -263,7 +263,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     }
 
     if (mode === 'participant') {
-      // The twin of SpeechOutputSection's 我听到的翻译 switch: keep the two in step.
+      // The twin of SpeechOutputSection's Translation I hear switch: keep the two in step.
       const speech = provider?.speech ?? 'optional';
       const offered = provider?.participantSpeech !== false;
       const on = runSpeech ?? (offered && heard && speech !== 'never' && (speech === 'always' || (participantSpeech ?? false)));

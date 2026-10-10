@@ -36,9 +36,9 @@ export function legSpeaks(p: Speaking, leg: LegName, inputs: SpeechInputs): bool
 /** What `speakFor` reads from the stores (`appShape.ts`'s `speechFromStores`). */
 export interface SpeakInputs {
   textOnly: boolean;
-  /** 我听到的翻译 as stored: null = auto. */
+  /** Translation I hear as stored: null = auto. */
   participantSpeech: boolean | null;
-  /** 我也听 off (today's monitor mute). */
+  /** I hear it too off (today's monitor mute). */
   isMonitorMuted: boolean;
   legs: readonly LegName[];
   faceToFace: boolean;
@@ -46,14 +46,14 @@ export interface SpeakInputs {
   heard: boolean;
 }
 
-/** 我听到的翻译 before the provider's own flags: the switch resolved (auto = face-to-face), and a source that will not recapture it. */
+/** Translation I hear before the provider's own flags: the switch resolved (auto = face-to-face), and a source that will not recapture it. */
 export function participantSpeechInput(i: Pick<SpeakInputs, 'participantSpeech' | 'faceToFace' | 'heard'>): boolean {
   return (i.participantSpeech ?? i.faceToFace) && i.heard;
 }
 
 /**
  * Who hears what (spec 2026-10-10 §4): the three rows of the Audio page's
- * 语音 block, gated by the provider's flags, the mode, face-to-face and the
+ * Speech block, gated by the provider's flags, the mode, face-to-face and the
  * recapture rule. The route table, the run's shape, the balance floor and
  * every surface read this one function.
  */
@@ -62,7 +62,7 @@ export function speakFor(p: Speaking, i: SpeakInputs): Speak {
   const other = legSpeaks(p, 'speaker', inputs);
   // The recapture rule is a safety gate outside the provider's policy: 'always' means it speaks whenever it may be heard, never that it may be recaptured.
   const them = legSpeaks(p, 'participant', inputs) && i.heard;
-  // 我也听 is a sub-row of 对方听到的翻译; face-to-face has no monitor of my own
+  // I hear it too is a sub-row of Translation the other side hears; face-to-face has no monitor of my own
   // voice; in Both a whole-system capture would recapture it (D12).
   const both = i.legs.includes('speaker') && i.legs.includes('participant');
   const me = !i.isMonitorMuted && other && !i.faceToFace && (!both || i.heard);

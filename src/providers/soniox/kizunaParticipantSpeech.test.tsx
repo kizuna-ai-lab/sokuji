@@ -137,7 +137,7 @@ describe('the switch', () => {
     });
   };
 
-  it('the flag off: 我听到的翻译 off and disabled with the "not offered" tooltip, the stored choice kept', () => {
+  it('the flag off: Translation I hear off and disabled with the "not offered" tooltip, the stored choice kept', () => {
     standIn.provider = silent;
     useRoutingStore.setState({ participantSpeech: true });
     selectKizuna();

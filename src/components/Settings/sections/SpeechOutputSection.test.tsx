@@ -1,6 +1,6 @@
 // src/components/Settings/sections/SpeechOutputSection.test.tsx
 /**
- * The 语音 block (spec 2026-10-10 §1.1–1.2): six two-line rows named by who
+ * The Speech block (spec 2026-10-10 §1.1–1.2): six two-line rows named by who
  * hears what, each with its own device and channel, greyed / blocked /
  * hidden per mode as the table says.
  */
@@ -104,7 +104,7 @@ const sw = (label: string) => screen.getByRole('switch', { name: label });
 const greyed = (label: string) => row(label).classList.contains('setting-row--greyed');
 
 describe('SpeechOutputSection — the rows', () => {
-  it('is the speech section, with the six rows in order, under the 语音 heading', () => {
+  it('is the speech section, with the six rows in order, under the Speech heading', () => {
     mount();
     expect(document.getElementById('speech-section')).not.toBeNull();
     expect(screen.getByRole('heading', { name: /Speech/ })).toBeInTheDocument();
@@ -121,7 +121,7 @@ describe('SpeechOutputSection — the rows', () => {
     expect(refreshDevices).toHaveBeenCalledTimes(1);
   });
 
-  it('默认播放设备 is a select over the devices, writing the monitor device', () => {
+  it('Default playback device is a select over the devices, writing the monitor device', () => {
     mount();
     const select = within(row('Default playback device')).getByRole('combobox');
     expect((select as HTMLSelectElement).value).toBe('airpods');
@@ -129,7 +129,7 @@ describe('SpeechOutputSection — the rows', () => {
     expect(useAudioStore.getState().selectedMonitorDevice).toEqual(MBP);
   });
 
-  it('对方听到的翻译 is Text Only inverted, and shows the virtual microphone\'s name as a read-only field', () => {
+  it('Translation the other side hears is Text Only inverted, and shows the virtual microphone\'s name as a read-only field', () => {
     mount();
     expect(sw('Translation the other side hears')).toHaveAttribute('aria-checked', 'true');
     const field = row('Translation the other side hears').querySelector('.setting-row__field') as HTMLElement;
@@ -154,7 +154,7 @@ describe('SpeechOutputSection — the rows', () => {
     expect(row('Translation the other side hears').querySelector('.setting-row__field')?.textContent).toBe('Virtual microphone · the meeting tab');
   });
 
-  it('我也听 is the monitor inverted, with its own device select; the select lists follow-default and each device three ways', () => {
+  it('I hear it too is the monitor inverted, with its own device select; the select lists follow-default and each device three ways', () => {
     mount();
     expect(sw('I hear it too')).toHaveAttribute('aria-checked', 'false');
     fireEvent.click(sw('I hear it too'));
@@ -171,7 +171,7 @@ describe('SpeechOutputSection — the rows', () => {
     expect(useAudioStore.getState().outlets.me).toEqual({ device: null, channel: 'auto' });
   });
 
-  it('greys 我也听 and 原声直通 when 对方听到的翻译 is off, keeping their values', () => {
+  it('greys I hear it too and Passthrough when Translation the other side hears is off, keeping their values', () => {
     useSettingsStore.setState({ textOnly: true });
     mount();
     expect(greyed('I hear it too')).toBe(true);
@@ -184,14 +184,14 @@ describe('SpeechOutputSection — the rows', () => {
     expect(useAudioStore.getState().isMonitorMuted).toBe(true);
   });
 
-  it('原声直通 is live again with Text Only off', () => {
+  it('Passthrough is live again with Text Only off', () => {
     useSettingsStore.setState({ textOnly: false });
     mount();
     expect(greyed('Passthrough')).toBe(false);
     expect(within(row('Passthrough')).getByRole('slider')).not.toBeDisabled();
   });
 
-  it('greys 保留回放 when no leg is spoken (Me mode, Text Only), keeping its value', () => {
+  it('greys Keep spoken translations for replay when no leg is spoken (Me mode, Text Only), keeping its value', () => {
     useSettingsStore.setState({ textOnly: true, keepReplayAudio: true });
     mount();
     expect(greyed('Keep spoken translations for replay')).toBe(true);
@@ -199,7 +199,7 @@ describe('SpeechOutputSection — the rows', () => {
     expect(useSettingsStore.getState().keepReplayAudio).toBe(true);
   });
 
-  it('keeps 保留回放 live under Text Only while the other side is still spoken to me', () => {
+  it('keeps Keep spoken translations for replay live under Text Only while the other side is still spoken to me', () => {
     useSettingsStore.setState({ textOnly: true });
     useAudioStore.setState({ mode: 'both', otherSide: 'meeting', selectedParticipantSource: ZOOM });
     useRoutingStore.setState({ participantSpeech: true });
@@ -207,7 +207,7 @@ describe('SpeechOutputSection — the rows', () => {
     expect(greyed('Keep spoken translations for replay')).toBe(false);
   });
 
-  it('原声直通: its switch, a slider labelled Volume N%, and the push-to-translate lock', () => {
+  it('Passthrough: its switch, a slider labelled Volume N%, and the push-to-translate lock', () => {
     mount();
     expect(sw('Passthrough')).toHaveAttribute('aria-checked', 'true');
     const slider = within(row('Passthrough')).getByRole('slider') as HTMLInputElement;
@@ -223,20 +223,20 @@ describe('SpeechOutputSection — the rows', () => {
     expect(within(row('Passthrough')).queryByRole('slider')).toBeNull();
   });
 
-  it('我听到的翻译 is greyed in Me mode (the other side\'s leg does not run)', () => {
+  it('Translation I hear is greyed in Me mode (the other side\'s leg does not run)', () => {
     mount();
     expect(greyed('Translation I hear')).toBe(true);
     expect(row('Translation I hear').getAttribute('title')).toBe('Not in "Me" mode. Your setting is kept.');
   });
 
-  it('保留译音以便回放 toggles the setting and is never locked', () => {
+  it('Keep spoken translations for replay toggles the setting and is never locked', () => {
     mount(true);
     fireEvent.click(sw('Keep spoken translations for replay'));
     expect(useSettingsStore.getState().keepReplayAudio).toBe(true);
   });
 });
 
-describe("SpeechOutputSection — the run's frozen 我听到的翻译", () => {
+describe("SpeechOutputSection — the run's frozen Translation I hear", () => {
   it('shows the run\'s value while it runs, whatever the stores say now', () => {
     useAudioStore.setState({ mode: 'both', selectedParticipantSource: ZOOM });
     useRoutingStore.setState({ participantSpeech: true });
@@ -251,7 +251,7 @@ describe("SpeechOutputSection — the run's frozen 我听到的翻译", () => {
 });
 
 describe('SpeechOutputSection — per mode (spec §1.2)', () => {
-  it('对方: 对方听到的翻译 and its sub-rows greyed; 我听到的翻译 blocked on a whole-system source with the reason line (Review Focus 4)', () => {
+  it('Other: Translation the other side hears and its sub-rows greyed; Translation I hear blocked on a whole-system source with the reason line (Review Focus 4)', () => {
     useAudioStore.setState({ mode: 'participant' });
     mount();
     expect(greyed('Translation the other side hears')).toBe(true);
@@ -264,7 +264,7 @@ describe('SpeechOutputSection — per mode (spec §1.2)', () => {
     expect(screen.queryByText(/All system sound is being captured/)).toBeNull();
   });
 
-  it('两者 · 在线会议 · 整个系统: 我也听 and 我听到的翻译 blocked, one reason line; 原声直通 free', () => {
+  it('Both · in a meeting · whole system: I hear it too and Translation I hear blocked, one reason line; Passthrough free', () => {
     useAudioStore.setState({ mode: 'both' });
     mount();
     expect(sw('I hear it too')).toHaveAttribute('aria-disabled', 'true');
@@ -288,7 +288,7 @@ describe('SpeechOutputSection — per mode (spec §1.2)', () => {
     expect(screen.getAllByText(/All system sound is being captured/)).toHaveLength(1);
   });
 
-  it('an application capture that widens mid-run blocks 我听到的翻译 live, and unblocks when it narrows', () => {
+  it('an application capture that widens mid-run blocks Translation I hear live, and unblocks when it narrows', () => {
     useAudioStore.setState({ mode: 'both', otherSide: 'meeting', selectedParticipantSource: ZOOM });
     useRoutingStore.setState({ participantSpeech: true });
     mount();
@@ -304,7 +304,7 @@ describe('SpeechOutputSection — per mode (spec §1.2)', () => {
     expect(sw('Translation I hear')).toHaveAttribute('aria-checked', 'true');
   });
 
-  it('extension, 对方, whole-system source: nothing is blocked', () => {
+  it('extension, Other, whole-system source: nothing is blocked', () => {
     env.platform = 'extension';
     useAudioStore.setState({ mode: 'participant' });
     mount();
@@ -319,7 +319,7 @@ describe('SpeechOutputSection — per mode (spec §1.2)', () => {
     expect(select.value).toBe(outletSelectValue('me', { device: null, channel: 'auto' }, false));
   });
 
-  it('两者 · 在线会议 · 应用: nothing blocked; 我听到的翻译 off until switched, then on', () => {
+  it('Both · in a meeting · application: nothing blocked; Translation I hear off until switched, then on', () => {
     useAudioStore.setState({ mode: 'both', selectedParticipantSource: ZOOM });
     mount();
     expect(sw('I hear it too')).not.toHaveAttribute('aria-disabled', 'true');
@@ -329,7 +329,7 @@ describe('SpeechOutputSection — per mode (spec §1.2)', () => {
     expect(sw('Translation I hear')).toHaveAttribute('aria-checked', 'true');
   });
 
-  it('两者 · 就在身边: device·channel selects with previews on both rows, no 我也听, no 原声直通, the headphones hint; 我听到的翻译 on by auto', () => {
+  it('Both · beside me: device·channel selects with previews on both rows, no I hear it too, no Passthrough, the headphones hint; Translation I hear on by auto', () => {
     useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
     mount();
     expect(screen.queryByText('I hear it too')).toBeNull();
@@ -353,7 +353,7 @@ describe('SpeechOutputSection — per mode (spec §1.2)', () => {
     await vi.waitFor(() => expect(preview).toHaveBeenCalledWith('other'));
   });
 
-  it('a run locks 对方听到的翻译 and 我听到的翻译, with the reason, and leaves the selects live', () => {
+  it('a run locks Translation the other side hears and Translation I hear, with the reason, and leaves the selects live', () => {
     useAudioStore.setState({ mode: 'both', selectedParticipantSource: ZOOM });
     mount(true);
     expect(sw('Translation the other side hears')).toHaveAttribute('aria-disabled', 'true');
@@ -368,7 +368,7 @@ describe('SpeechOutputSection — per mode (spec §1.2)', () => {
     expect(within(row('Translation I hear')).getByRole('combobox')).not.toBeDisabled();
   });
 
-  it("a provider that always speaks shows 对方听到的翻译 on and disabled; one whose participant never speaks disables 我听到的翻译", () => {
+  it("a provider that always speaks shows Translation the other side hears on and disabled; one whose participant never speaks disables Translation I hear", () => {
     useAudioStore.setState({ mode: 'both', selectedParticipantSource: ZOOM });
     shapeOverride.provider = { id: 'x', speech: 'always', participantSpeech: true };
     const first = mount();

@@ -248,7 +248,7 @@ describe('createPlayback — replay', () => {
     expect(routes[routes.length - 1]).toContainEqual({ from: 'replay', to: 'other', gain: 1 });
   });
 
-  it('replays my translation on me whatever the live routes say (我也听 off) (Review Focus 3)', () => {
+  it('replays my translation on me whatever the live routes say (I hear it too off) (Review Focus 3)', () => {
     const { graph, routes } = fakeGraph();
     const playback = createPlayback(graph, routing({ ...ROUTING, speak: { other: false, me: false, them: false }, passthrough: { on: false, ratio: 0 } }).source);
     playback.replay('speaker', translation(4, [{ pcm: pcm(100) }]));

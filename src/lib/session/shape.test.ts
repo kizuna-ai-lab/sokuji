@@ -219,14 +219,14 @@ describe('speakFor — who hears what (spec 2026-10-10 §4)', () => {
   const optional = { speech: 'optional' as const };
   const base = { textOnly: false, participantSpeech: null, isMonitorMuted: false, legs: ['speaker'] as const, faceToFace: false, heard: true };
 
-  it('对方听到的翻译 is Text Only inverted, unless the provider always or never speaks', () => {
+  it('Translation the other side hears is Text Only inverted, unless the provider always or never speaks', () => {
     expect(speakFor(optional, base).other).toBe(true);
     expect(speakFor(optional, { ...base, textOnly: true }).other).toBe(false);
     expect(speakFor({ speech: 'always' }, { ...base, textOnly: true }).other).toBe(true);
     expect(speakFor({ speech: 'never' }, base).other).toBe(false);
   });
 
-  it('我听到的翻译 on auto: on in face-to-face, off in a meeting (ruling 1)', () => {
+  it('Translation I hear on auto: on in face-to-face, off in a meeting (ruling 1)', () => {
     expect(speakFor(optional, { ...base, faceToFace: true }).them).toBe(true);
     expect(speakFor(optional, base).them).toBe(false);
     expect(speakFor(optional, { ...base, participantSpeech: true }).them).toBe(true);
@@ -250,14 +250,14 @@ describe('speakFor — who hears what (spec 2026-10-10 §4)', () => {
     expect(speakFor({ speech: 'never' }, { ...base, participantSpeech: true }).them).toBe(false);
   });
 
-  it('我也听 needs the monitor on and 对方听到的翻译 on, and is never face-to-face', () => {
+  it('I hear it too needs the monitor on and Translation the other side hears on, and is never face-to-face', () => {
     expect(speakFor(optional, base).me).toBe(true);
     expect(speakFor(optional, { ...base, isMonitorMuted: true }).me).toBe(false);
     expect(speakFor(optional, { ...base, textOnly: true }).me).toBe(false);
     expect(speakFor(optional, { ...base, faceToFace: true }).me).toBe(false);
   });
 
-  it('我也听 in Both is blocked by a source that would recapture it (D12)', () => {
+  it('I hear it too in Both is blocked by a source that would recapture it (D12)', () => {
     const both = ['speaker', 'participant'] as const;
     expect(speakFor(optional, { ...base, legs: both, heard: true }).me).toBe(true);
     expect(speakFor(optional, { ...base, legs: both, heard: false }).me).toBe(false);

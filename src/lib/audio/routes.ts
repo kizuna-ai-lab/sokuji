@@ -25,7 +25,7 @@ export interface Edge {
 export interface RoutingSettings {
   /** Speaker translation → the virtual device: the meeting hears it. On by default (a dev switch). */
   meeting: boolean;
-  /** Two people at one computer (spec 2026-10-08, slice 3): no meeting, no 我也听, no passthrough. */
+  /** Two people at one computer (spec 2026-10-08, slice 3): no meeting, no I hear it too, no passthrough. */
   faceToFace: boolean;
   /** The three switches, already gated by mode, source and provider (`shape.ts`'s `speakFor`). */
   speak: Speak;
@@ -50,11 +50,11 @@ export function routesFor(s: RoutingSettings, held: boolean): Edge[] {
     return edges;
   }
   if (s.meeting && s.speak.other) edges.push({ from: 'speaker', to: 'virtual', gain: 1 });
-  // 我也听 is a sub-row of 对方听到的翻译: nothing to hear while that is off.
+  // I hear it too is a sub-row of Translation the other side hears: nothing to hear while that is off.
   if (s.speak.other && s.speak.me) edges.push({ from: 'speaker', to: 'me', gain: 1 });
   if (s.speak.them) edges.push({ from: 'participant', to: 'them', gain: 1 });
   const { gate } = s.passthrough;
-  // 原声直通 is a sub-row of 对方听到的翻译 too: nothing passes while that is off, push-to-translate's managed one included.
+  // Passthrough is a sub-row of Translation the other side hears too: nothing passes while that is off, push-to-translate's managed one included.
   if (s.speak.other && s.passthrough.on && s.passthrough.ratio > 0 && (gate === undefined || held === (gate === 'held'))) {
     edges.push({ from: 'passthrough', to: 'virtual', gain: Math.min(1, s.passthrough.ratio) });
   }

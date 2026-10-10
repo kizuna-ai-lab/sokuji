@@ -46,7 +46,7 @@ export interface AnalyticsEvents {
     platform?: string;
     input_device_on?: boolean;
     monitor_device_on?: boolean;
-    /** 我听到的翻译 at start (spec 2026-10-10 §6.4). */
+    /** Translation I hear at start (spec 2026-10-10 §6.4). */
     participant_speech?: boolean;
     /** Each outlet's resolved channel at start. */
     outlet_channels?: Record<'other' | 'me' | 'them', 'both' | 'left' | 'right'>;

@@ -6,7 +6,7 @@ describe('resolveChannel', () => {
     for (const name of OUTLET_NAMES) expect(resolveChannel(name, 'auto', false)).toBe('both');
   });
 
-  it('auto in face-to-face: the other person right, me left, 我也听 centred (ruling 2)', () => {
+  it('auto in face-to-face: the other person right, me left, I hear it too centred (ruling 2)', () => {
     expect(resolveChannel('other', 'auto', true)).toBe('right');
     expect(resolveChannel('them', 'auto', true)).toBe('left');
     expect(resolveChannel('me', 'auto', true)).toBe('both');

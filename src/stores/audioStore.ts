@@ -340,7 +340,7 @@ const useAudioStore = create<AudioStore>()(
         // mode, so the binding only flows mode -> participant, never reverse.
         patch.isParticipantMuted = !nextParticipantInScope;
 
-        // The monitor (我也听) is gated by `speakFor` (src/lib/session/shape.ts):
+        // The monitor (I hear it too) is gated by `speakFor` (src/lib/session/shape.ts):
         // off under Text Only, in face-to-face, and in Both when the other
         // side's source would recapture it. The stored isMonitorMuted is left
         // as it is (the user's sticky preference); nothing needs to happen in

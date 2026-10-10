@@ -1,7 +1,7 @@
 /**
  * The outlets (spec 2026-10-10 §2): where the user hears things, one per
  * spoken row of the Audio page — the other person's ear (`other`,
- * face-to-face only), my own playback of my translation (`me`, "我也听")
+ * face-to-face only), my own playback of my translation (`me`, "I hear it too")
  * and the other's translation spoken to me (`them`). Each has a device
  * (null: follow the default playback device) and a channel; `resolveOutlet`
  * turns a stored choice into the sink the graph points at.

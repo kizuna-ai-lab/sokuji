@@ -259,7 +259,7 @@ describe('createAppRouting', () => {
     expect(heard).toHaveBeenCalledTimes(1);
   });
 
-  it("notifies when 对方听到的翻译 flips, and when the provider's speech flags land (Review Focus 5)", () => {
+  it("notifies when Translation the other side hears flips, and when the provider's speech flags land (Review Focus 5)", () => {
     const source = createAppRouting('electron');
     const listener = vi.fn();
     const off = source.subscribe(listener);
@@ -270,7 +270,7 @@ describe('createAppRouting', () => {
     off();
   });
 
-  it('a capture that widens to the whole system silences 我听到的翻译 live, and clearing it restores the edge', () => {
+  it('a capture that widens to the whole system silences Translation I hear live, and clearing it restores the edge', () => {
     environment.value = 'electron';
     try {
       useAudioStore.setState({ ...AUDIO, mode: 'both', otherSide: 'meeting', selectedParticipantSource: { deviceId: 'app:42', label: 'App' }, participantCaptureWidened: false } as never);

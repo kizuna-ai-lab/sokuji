@@ -16,18 +16,18 @@ describe('routesFor', () => {
     expect(routesFor(OFF, false)).toEqual([]);
   });
 
-  it('sends my translation into the meeting only when the meeting switch and 对方听到的翻译 are both on', () => {
+  it('sends my translation into the meeting only when the meeting switch and Translation the other side hears are both on', () => {
     expect(routesFor({ ...OFF, meeting: true, speak: { ...OFF.speak, other: true } }, false)).toEqual([{ from: 'speaker', to: 'virtual', gain: 1 }]);
     expect(routesFor({ ...OFF, meeting: true }, false)).toEqual([]);
     expect(routesFor({ ...OFF, speak: { ...OFF.speak, other: true } }, false)).toEqual([]);
   });
 
-  it('sends my translation to me (我也听) only under 对方听到的翻译', () => {
+  it('sends my translation to me (I hear it too) only under Translation the other side hears', () => {
     expect(routesFor({ ...OFF, speak: { other: true, me: true, them: false } }, false)).toContainEqual({ from: 'speaker', to: 'me', gain: 1 });
     expect(routesFor({ ...OFF, speak: { other: false, me: true, them: false } }, false)).toEqual([]);
   });
 
-  it("sends the other's translation to them (我听到的翻译) by its own switch, never into the meeting", () => {
+  it("sends the other's translation to them (Translation I hear) by its own switch, never into the meeting", () => {
     const edges = routesFor({ ...OFF, meeting: true, speak: { other: false, me: false, them: true } }, false);
     expect(edges).toEqual([{ from: 'participant', to: 'them', gain: 1 }]);
   });
@@ -43,7 +43,7 @@ describe('routesFor', () => {
     expect(routesFor({ ...s, passthrough: { on: false, ratio: 0.3 } }, false).some((e) => e.from === 'passthrough')).toBe(false);
   });
 
-  it('cuts passthrough while 对方听到的翻译 is off, push-to-translate\'s managed one included', () => {
+  it('cuts passthrough while Translation the other side hears is off, push-to-translate\'s managed one included', () => {
     const plain = { ...OFF, passthrough: { on: true, ratio: 0.3 } };
     expect(routesFor(plain, false).some((e) => e.from === 'passthrough')).toBe(false);
     const idle = { ...OFF, passthrough: { on: true, ratio: 1, gate: 'idle' as const } };
