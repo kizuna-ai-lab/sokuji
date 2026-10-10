@@ -932,4 +932,25 @@ describe('the ears strip (face-to-face)', () => {
     expect(strip.querySelector('.ears-legend__ear-name')?.textContent).toBe('faceToFace.rightEar');
     await stop();
   });
+
+  // The two legs read the same rule: a leg that is not voiced has no ear and no slot. Text Only silences mine.
+  it("shows no slot and no ear on my translations under Text Only, while the other person's keep both", async () => {
+    useSettingsStore.setState({ keepReplayAudio: true, textOnly: true });
+    const { container } = await renderPanel();
+    await start(container);
+    playFirstExchange();
+    const mine = translations(container, 'speaker');
+    expect(mine.length).toBeGreaterThan(0);
+    for (const row of mine) {
+      expect(row.querySelector('.row-play-btn')).toBeNull();
+      expect(row.querySelector('.ear-tag')).toBeNull();
+    }
+    const theirs = translations(container, 'participant');
+    expect(theirs.length).toBeGreaterThan(0);
+    for (const row of theirs) {
+      expect(row.querySelector('.row-play-btn')).not.toBeNull();
+      expect(row.querySelector('.ear-tag--left')).not.toBeNull();
+    }
+    await stop();
+  });
 });
