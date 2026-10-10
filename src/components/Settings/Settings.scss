@@ -2468,14 +2468,18 @@
       top: -4px;
       width: 10px;
       height: 16px;
-      border-left: 2px solid #888;
-      border-bottom: 2px solid #888;
+      border-left: 2px solid vars.$border-default;
+      border-bottom: 2px solid vars.$border-default;
       border-bottom-left-radius: 3px;
     }
   }
+  // Dim the parts, not the row: opacity on the row would also dim the help
+  // icon, since a child's opacity multiplies with its parent's.
   &--greyed {
-    opacity: 0.5;
-
-    .tooltip-trigger { opacity: 1; pointer-events: auto; }
+    .setting-row__label,
+    .setting-row__switch,
+    .setting-row__control {
+      opacity: 0.5;
+    }
   }
 }

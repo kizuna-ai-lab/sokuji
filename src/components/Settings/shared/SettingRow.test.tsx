@@ -36,6 +36,8 @@ describe('SettingRow', () => {
     expect(row.getAttribute('title')).toBe('Not in Me mode.');
     expect(row.getAttribute('aria-disabled')).toBe('true');
     expect(screen.getByRole('switch')).toHaveAttribute('aria-disabled', 'true');
+    // The switch's title sits on its wrapper (ToggleSwitch), not on role="switch".
+    expect(screen.getByRole('switch').closest('.toggle-switch-component')?.getAttribute('title')).toBe('Not in Me mode.');
     fireEvent.click(screen.getByRole('switch'));
     expect(onChange).not.toHaveBeenCalled();
     expect(screen.getByLabelText('device')).toBeDisabled();
