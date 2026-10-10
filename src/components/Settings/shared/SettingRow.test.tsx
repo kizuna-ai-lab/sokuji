@@ -28,6 +28,11 @@ describe('SettingRow', () => {
     expect(document.querySelector('.setting-row')?.classList.contains('setting-row--sub')).toBe(true);
   });
 
+  it('greyed: the switch shows off even when its stored value is on', () => {
+    render(<SettingRow label="Keep for replay" tooltip="…" greyed="Nothing is spoken." switch={{ checked: true, onChange: vi.fn() }} />);
+    expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'false');
+  });
+
   it('greyed: the reason is the row\'s title, the switch is disabled, the control is inert', () => {
     const onChange = vi.fn();
     render(<SettingRow label="Translation I hear" tooltip="…" greyed="Not in Me mode." switch={{ checked: false, onChange }}><select aria-label="device" /></SettingRow>);

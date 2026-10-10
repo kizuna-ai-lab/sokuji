@@ -315,7 +315,7 @@ describe('ModeDevicePopover — the speech rows in Me and Other', () => {
     const button = screen.getByRole('button', { name: 'Turn on I hear it too' });
     expect(button).toBeDisabled();
     expect(button.getAttribute('aria-pressed')).toBe('false');
-    expect(button.getAttribute('title')).toBe('Nothing to hear while the translation is not spoken.');
+    expect(button.getAttribute('title')).toBe('Nothing to hear while the translation is not spoken. Your setting is kept.');
   });
 
   it("the footer link lands on the speech rows in every mode", () => {

@@ -82,7 +82,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
   const pushToTranslate = turnMode === 'push-to-translate';
 
   const modeName = mode === 'speaker' ? t('modePicker.modeYou', 'Me') : mode === 'participant' ? t('modePicker.modeParticipants', 'Other') : t('modePicker.modeBoth', 'Both');
-  const notInMode = t('audioPanel.lockedByMode', { mode: modeName, defaultValue: 'Not in "{{mode}}" mode.' });
+  const notInMode = t('audioPanel.lockedByMode', { mode: modeName, defaultValue: 'Not in "{{mode}}" mode. Your setting is kept.' });
   const blockedWholeSystem = t('audioPanel.blockedWholeSystem', 'All system sound is being captured: these playback options are off, so the translation is not translated again.');
   const lockedByRun = t('audioPanel.rowLockedByRun', 'Fixed for this session; stop it to change.');
   const channelName = (channel: 'left' | 'right') => (channel === 'left' ? t('audioPanel.channelLeft', 'left channel') : t('audioPanel.channelRight', 'right channel'));
@@ -189,7 +189,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
           label={meLabel}
           tooltip={t('audioPanel.meTooTip', 'Also plays the translation the other side hears on my side (the spoken translation, not my own voice).')}
           sub
-          greyed={!myLegRuns ? notInMode : recaptured ? blockedWholeSystem : !otherOn ? t('audioPanel.needsOtherHears', 'Nothing to hear while the translation is not spoken.') : undefined}
+          greyed={!myLegRuns ? notInMode : recaptured ? blockedWholeSystem : !otherOn ? t('audioPanel.needsOtherHears', 'Nothing to hear while the translation is not spoken. Your setting is kept.') : undefined}
           switch={{ checked: !isMonitorMuted && !(recaptured && mode === 'both'), onChange: () => setMonitorMuted(!isMonitorMuted), disabled: recaptured && mode === 'both', describedBy: recaptured && mode === 'both' ? reasonId : undefined }}
         >
           {outletSelect('me', meLabel, false)}
@@ -201,7 +201,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
           label={passthroughLabel}
           tooltip={pushToTranslate ? t('audioPanel.passthroughManagedByPushToTranslate') : t('audioPanel.passthroughTip', 'Mixes my own voice, at a lower level, under the translation into the virtual microphone. 60% at most.')}
           sub
-          greyed={!myLegRuns ? notInMode : !otherOn ? t('audioPanel.needsOtherHears', 'Nothing to hear while the translation is not spoken.') : undefined}
+          greyed={!myLegRuns ? notInMode : !otherOn ? t('audioPanel.needsOtherHears', 'Nothing to hear while the translation is not spoken. Your setting is kept.') : undefined}
           switch={{
             checked: isRealVoicePassthroughEnabled || pushToTranslate,
             onChange: () => {
@@ -259,7 +259,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
       <SettingRow
         label={t('audioPanel.keepReplay', 'Keep spoken translations for replay')}
         tooltip={t('audioPanel.keepReplayTip', "Keeps the spoken translations in memory so each message's ▶ works; a long session uses more memory.")}
-        greyed={(myLegRuns && otherOn) || (theirLegRuns && themOn) ? undefined : t('audioPanel.keepReplayNothingSpoken', 'Nothing is spoken, so there is nothing to keep.')}
+        greyed={(myLegRuns && otherOn) || (theirLegRuns && themOn) ? undefined : t('audioPanel.keepReplayNothingSpoken', 'Nothing is spoken, so there is nothing to keep. Your setting is kept.')}
         switch={{ checked: keepReplayAudio, onChange: () => setKeepReplayAudio(!keepReplayAudio) }}
       />
     </div>

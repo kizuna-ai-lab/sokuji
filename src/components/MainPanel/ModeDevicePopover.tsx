@@ -231,7 +231,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
       list.push(outletRow('me', 'me', t('audioPanel.meToo', 'I hear it too'), {
         isMuted: isMonitorMuted || !otherOn,
         onMuteToggle: () => setMonitorMuted(!isMonitorMuted),
-        ...(otherOn ? {} : { disabledReason: t('audioPanel.needsOtherHears', 'Nothing to hear while the translation is not spoken.') }),
+        ...(otherOn ? {} : { disabledReason: t('audioPanel.needsOtherHears', 'Nothing to hear while the translation is not spoken. Your setting is kept.') }),
       }));
     }
 

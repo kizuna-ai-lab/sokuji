@@ -42,7 +42,8 @@ const SettingRow: React.FC<SettingRowProps> = ({ label, tooltip, sub, greyed, sw
         {sw && (
           <ToggleSwitch
             className="setting-row__switch"
-            checked={sw.checked}
+            // A greyed row does nothing right now, so its switch shows off; the stored value is kept and returns when the row is live again (owner, 2026-10-11).
+            checked={greyed ? false : sw.checked}
             onChange={sw.onChange}
             disabled={sw.disabled || !!greyed}
             label=""

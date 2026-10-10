@@ -178,7 +178,7 @@ describe('SpeechOutputSection — the rows', () => {
     expect(greyed('Passthrough')).toBe(true);
     expect(sw('Translation the other side hears')).toHaveAttribute('aria-checked', 'false');
     expect(sw('Passthrough')).toHaveAttribute('aria-disabled', 'true');
-    expect(sw('Passthrough')).toHaveAttribute('aria-checked', 'true');
+    expect(sw('Passthrough')).toHaveAttribute('aria-checked', 'false');
     expect(within(row('Passthrough')).getByRole('slider')).toBeDisabled();
     expect(useAudioStore.getState().isRealVoicePassthroughEnabled).toBe(true);
     expect(useAudioStore.getState().isMonitorMuted).toBe(true);
@@ -195,7 +195,7 @@ describe('SpeechOutputSection — the rows', () => {
     useSettingsStore.setState({ textOnly: true, keepReplayAudio: true });
     mount();
     expect(greyed('Keep spoken translations for replay')).toBe(true);
-    expect(sw('Keep spoken translations for replay')).toHaveAttribute('aria-checked', 'true');
+    expect(sw('Keep spoken translations for replay')).toHaveAttribute('aria-checked', 'false');
     expect(useSettingsStore.getState().keepReplayAudio).toBe(true);
   });
 
@@ -226,7 +226,7 @@ describe('SpeechOutputSection — the rows', () => {
   it('我听到的翻译 is greyed in Me mode (the other side\'s leg does not run)', () => {
     mount();
     expect(greyed('Translation I hear')).toBe(true);
-    expect(row('Translation I hear').getAttribute('title')).toBe('Not in "Me" mode.');
+    expect(row('Translation I hear').getAttribute('title')).toBe('Not in "Me" mode. Your setting is kept.');
   });
 
   it('保留译音以便回放 toggles the setting and is never locked', () => {
