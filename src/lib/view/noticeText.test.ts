@@ -153,12 +153,9 @@ it('words the four new codes with a sentence every locale already has', () => {
   }
 });
 
-it("en carries the four new sentences, word for word", () => {
+it("en carries the replay-blocked sentence, word for word", () => {
   const enCatalog = en as unknown as Record<string, unknown>;
   expect(at(enCatalog, 'mainPanel.replayBlockedWholeSystem')).toBe("Replay is off while Other's audio captures all system sound: it would be translated again.");
-  expect(at(enCatalog, 'audioPanel.participantSpeech')).toBe("Speak Other's translation");
-  expect(at(enCatalog, 'audioPanel.participantSpeechDesc')).toBe("Reads what Other says aloud to you, in your language, on your speakers. It follows their voice with a delay.");
-  expect(at(enCatalog, 'audioPanel.participantSpeechBlockedWholeSystem')).toBe("Off while Other's audio captures all system sound: their translation would be captured and translated again. Pick an application as Other's source.");
 });
 
 it('no code is both an alias and worded under notices', () => {

@@ -22,7 +22,7 @@ describe('useSessionClock', () => {
   });
 
   it('formats the elapsed time from the given now', () => {
-    const run: RunState = { phase: 'running', since: 1_000, legs: {} };
+    const run: RunState = { phase: 'running', participantSpeech: false, since: 1_000, legs: {} };
     const { result } = renderHook(() => useSessionClock(run, () => 62_000));
     expect(result.current).toBe('01:01');
   });
@@ -30,7 +30,7 @@ describe('useSessionClock', () => {
   it('re-renders once a second while running', () => {
     vi.useFakeTimers();
     let now = 1_000;
-    const run: RunState = { phase: 'running', since: 0, legs: {} };
+    const run: RunState = { phase: 'running', participantSpeech: false, since: 0, legs: {} };
     const { result } = renderHook(() => useSessionClock(run, () => now));
     expect(result.current).toBe('00:01');
 
@@ -48,7 +48,7 @@ describe('useSessionClock', () => {
     let now = 1_000;
     const { result, rerender } = renderHook(
       ({ run }: { run: RunState }) => useSessionClock(run, () => now),
-      { initialProps: { run: { phase: 'running', since: 0, legs: {} } as RunState } },
+      { initialProps: { run: { phase: 'running', participantSpeech: false, since: 0, legs: {} } as RunState } },
     );
     expect(result.current).toBe('00:01');
 

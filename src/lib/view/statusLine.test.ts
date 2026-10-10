@@ -5,7 +5,7 @@ import { statusLine, type StatusLineInput } from './statusLine';
 
 const idleRun: RunState = { phase: 'idle' };
 const running = (legs: Partial<Record<'speaker' | 'participant', 'opening' | 'live' | 'reconnecting'>> = { speaker: 'live' }): RunState =>
-  ({ phase: 'running', since: 0, legs });
+  ({ phase: 'running', participantSpeech: false, since: 0, legs });
 const echo: EchoNoticeState = { cause: 'tts-echo', lagMs: 120, rho: 0.7 } as EchoNoticeState;
 const input = (over: Partial<StatusLineInput> = {}): StatusLineInput => ({
   run: idleRun, idle: { kind: 'ready' }, canStart: true, dismissedEnd: null,
@@ -54,7 +54,7 @@ describe('statusLine — cannot start (priority 1)', () => {
     expect(statusLine(input({ run: { phase: 'idle', lastEnd }, canStart: false, idle: { kind: 'unready', message: 'm', code: 'no_microphone' } }))?.key).toBe('unready:no_microphone');
   });
   it('is quiet while starting', () => {
-    expect(statusLine(input({ run: { phase: 'starting', step: 'checking' }, idle: { kind: 'starting' }, canStart: false }))).toBeNull();
+    expect(statusLine(input({ run: { phase: 'starting', participantSpeech: false, step: 'checking' }, idle: { kind: 'starting' }, canStart: false }))).toBeNull();
   });
 });
 
@@ -75,7 +75,7 @@ describe('statusLine — while running (priorities 2–5)', () => {
   // Ruling 11: the overlay opens only while a run is live, so the hint is a running line.
   it('the subtitle layer’s hint only while running', () => {
     expect(statusLine(input({ subtitleEntryHint: true }))).toBeNull();
-    expect(statusLine(input({ run: { phase: 'starting', step: 'checking' }, idle: { kind: 'starting' }, canStart: false, subtitleEntryHint: true }))).toBeNull();
+    expect(statusLine(input({ run: { phase: 'starting', participantSpeech: false, step: 'checking' }, idle: { kind: 'starting' }, canStart: false, subtitleEntryHint: true }))).toBeNull();
   });
   it('echo last, dismissible, with its cause', () => {
     expect(statusLine(input({ run: running(), echo }))).toMatchObject({ key: 'echo:tts-echo', icon: 'triangle-alert', words: { kind: 'echo', cause: 'tts-echo' }, dismiss: 'echo' });

@@ -1,14 +1,12 @@
 import React, { useEffect, useId, useState } from 'react';
-import { Mic, Volume2, RefreshCw } from 'lucide-react';
+import { Mic, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import DeviceList from '../shared/DeviceList';
 import WarningModal from '../shared/WarningModal';
 import { useFilteredDevices, WarningType, AudioDevice, isVirtualMic } from '../shared/hooks';
-import { useAudioContext, useNoiseSuppressionMode, useSetNoiseSuppressionMode, useIsMonitorChannelInScope, NoiseSuppressionMode } from '../../../stores/audioStore';
+import { useAudioContext, useNoiseSuppressionMode, useSetNoiseSuppressionMode, NoiseSuppressionMode } from '../../../stores/audioStore';
 import { useAnalytics } from '../../../lib/analytics';
-import { useFaceToFace } from '../../MainPanel/useFaceToFace';
-import EarsBlock from '../../FaceToFace/EarsBlock';
 
 interface AudioDeviceSectionProps {
   /** Real session-active state — used for analytics (during_session) only. */
@@ -21,59 +19,33 @@ interface AudioDeviceSectionProps {
    */
   isLocked?: boolean;
   /**
-   * Why the channel is locked (i18n string). Rendered under the section
-   * heading while `isLocked` holds. Greying a control without stating the
-   * reason invites the interaction it then refuses — worse still when the lock
-   * is persistent (the monitor stays locked outside 'You' mode across
-   * restarts), where it reads as broken rather than locked.
+   * Why the microphone list is locked (i18n string): a run in progress, or the
+   * participant-only mode. Rendered under the section heading while locked and
+   * wired to the listbox as its aria-describedby, so a greyed list states its
+   * reason rather than reading as broken.
    */
   lockedReason?: string;
-  /** Show microphone section */
-  showMicrophone?: boolean;
-  /** Show speaker section */
-  showSpeaker?: boolean;
-  /** If system audio is enabled (for mutual exclusivity check) */
-  isSystemAudioEnabled?: boolean;
-  /** Callback when speaker is clicked while system audio is on */
-  onSpeakerMutualExclusivity?: () => void;
   /** Additional class name */
   className?: string;
-  /** Rendered at the end of the microphone section (the passthrough, in Advanced). */
-  children?: React.ReactNode;
 }
 
 const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
   isSessionActive,
   isLocked,
   lockedReason,
-  showMicrophone = true,
-  showSpeaker = true,
-  isSystemAudioEnabled = false,
-  onSpeakerMutualExclusivity,
-  className = '',
-  children
+  className = ''
 }) => {
-  // Face-to-face plays on this device, always on, so the monitor's mode lock and its Off row do not apply.
-  const faceToFace = useFaceToFace().active;
-  const locked = (isLocked ?? isSessionActive) && !(faceToFace && !showMicrophone);
+  const locked = isLocked ?? isSessionActive;
   const reactId = useId();
   // Only referenced (and only rendered) while locked, so an unlocked list stays
-  // undescribed rather than pointing at an absent element. Both sections can be
-  // shown at once, so the id is per-channel to keep it unique.
-  const showReason = locked && !!lockedReason && !faceToFace;
-  const reasonIdFor = (channel: 'mic' | 'speaker') =>
-    showReason ? `${reactId}-${channel}-locked-reason` : undefined;
-  const renderReason = (channel: 'mic' | 'speaker') => showReason && (
-    <span className="setting-description section-locked-reason" id={reasonIdFor(channel)}>
+  // undescribed rather than pointing at an absent element.
+  const showReason = locked && !!lockedReason;
+  const reasonId = showReason ? `${reactId}-mic-locked-reason` : undefined;
+  const renderReason = () => showReason && (
+    <span className="setting-description section-locked-reason" id={reasonId}>
       {lockedReason}
     </span>
   );
-  // Monitor is in scope only in pure speaker mode (mutex with participant).
-  // Out of scope the monitor toggle reads Off even though the user's saved
-  // preference (isMonitorMuted) is preserved underneath and restored when they
-  // return to speaker mode — keeps the displayed state honest (the monitor is
-  // silenced) without destroying the preference.
-  const monitorInScope = useIsMonitorChannelInScope();
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
   const noiseSuppressionMode = useNoiseSuppressionMode();
@@ -81,22 +53,16 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
 
   const {
     audioInputDevices,
-    audioMonitorDevices,
     selectedInputDevice,
-    selectedMonitorDevice,
     isMicMuted,
-    isMonitorMuted,
     isLoading,
     selectInputDevice,
-    selectMonitorDevice,
     setMicMuted,
-    setMonitorMuted,
     refreshDevices
   } = useAudioContext();
 
   // Filter out virtual devices
   const filteredInputDevices = useFilteredDevices(audioInputDevices);
-  const filteredMonitorDevices = useFilteredDevices(audioMonitorDevices);
 
   // Warning modal state
   const [warningType, setWarningType] = useState<WarningType | null>(null);
@@ -119,30 +85,6 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
     });
   };
 
-  const handleMonitorDeviceSelect = (device: AudioDevice) => {
-    // Check mutual exclusivity with system audio
-    if (isSystemAudioEnabled) {
-      if (onSpeakerMutualExclusivity) {
-        onSpeakerMutualExclusivity();
-      } else {
-        setWarningType('mutual-exclusivity-speaker');
-      }
-      return;
-    }
-
-    // Face-to-face plays on its own; the Me-mode monitor's mute is not this pick's to undo.
-    if (isMonitorMuted && !faceToFace) {
-      setMonitorMuted(false);
-    }
-    selectMonitorDevice(device);
-    trackEvent('audio_device_changed', {
-      device_type: 'output',
-      device_name: device.label,
-      change_type: 'selected',
-      during_session: isSessionActive
-    });
-  };
-
   const handleInputVirtualDeviceClick = (device: AudioDevice) => {
     // DeviceList routes two kinds of risky input picks here: Sokuji's own
     // virtual devices (selection blocked) and OS loopback-style inputs
@@ -150,14 +92,6 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
     setWarningType(isVirtualMic(device) ? 'virtual-mic' : 'loopback-mic');
     trackEvent('virtual_device_warning', {
       device_type: 'input',
-      action_taken: 'ignored'
-    });
-  };
-
-  const handleOutputVirtualDeviceClick = () => {
-    setWarningType('virtual-speaker');
-    trackEvent('virtual_device_warning', {
-      device_type: 'output',
       action_taken: 'ignored'
     });
   };
@@ -171,129 +105,80 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
       />
 
       {/* Microphone Section */}
-      {showMicrophone && (
-        <div className={`config-section microphone-section ${className}`} id="microphone-section" data-tour="microphone-section">
-          <h3>
-            <Mic size={18} />
-            <span>{t('simpleConfig.microphone')}</span>
+      <div className={`config-section microphone-section ${className}`} id="microphone-section" data-tour="microphone-section">
+        <h3>
+          <Mic size={18} />
+          <span>{t('simpleConfig.microphone')}</span>
+          <Tooltip
+            content={t('simpleConfig.microphoneDesc')}
+            position="top"
+            icon="help"
+            maxWidth={300}
+          />
+          <button
+            className="section-refresh-button"
+            onClick={refreshDevices}
+            disabled={isLoading}
+            title={t('audioPanel.refreshDevices')}
+          >
+            <RefreshCw size={14} className={isLoading ? 'spinning' : ''} />
+          </button>
+        </h3>
+
+        {renderReason()}
+
+        <DeviceList
+          devices={filteredInputDevices}
+          selectedDevice={selectedInputDevice}
+          isDeviceOn={!isMicMuted}
+          onSelect={handleInputDeviceSelect}
+          onToggleOff={() => setMicMuted(!isMicMuted)}
+          disabled={locked}
+          deviceType="input"
+          filterVirtual={false}
+          showVirtualIndicators={true}
+          onVirtualDeviceClick={handleInputVirtualDeviceClick}
+          toggleAriaLabel={isMicMuted
+            ? t('audioPanel.turnOnMicrophone', 'Turn on microphone')
+            : t('audioPanel.turnOffMicrophone', 'Turn off microphone')}
+          ariaDescribedBy={reasonId}
+        />
+
+        {/* Noise Suppression Mode */}
+        <div className="noise-suppression-control">
+          <div className="noise-suppression-header">
+            <span className="noise-suppression-label">{t('settings.noiseSuppression')}</span>
             <Tooltip
-              content={t('simpleConfig.microphoneDesc')}
+              content={
+                `${t('settings.noiseSuppressionTooltip.off')}\n\n` +
+                `${t('settings.noiseSuppressionTooltip.standard')}\n\n` +
+                `${t('settings.noiseSuppressionTooltip.enhanced')}`
+              }
               position="top"
               icon="help"
-              maxWidth={300}
+              maxWidth={350}
             />
-            <button
-              className="section-refresh-button"
-              onClick={refreshDevices}
-              disabled={isLoading}
-              title={t('audioPanel.refreshDevices')}
-            >
-              <RefreshCw size={14} className={isLoading ? 'spinning' : ''} />
-            </button>
-          </h3>
-
-          {renderReason('mic')}
-
-          <DeviceList
-            devices={filteredInputDevices}
-            selectedDevice={selectedInputDevice}
-            isDeviceOn={!isMicMuted}
-            onSelect={handleInputDeviceSelect}
-            onToggleOff={() => setMicMuted(!isMicMuted)}
-            disabled={locked}
-            deviceType="input"
-            filterVirtual={false}
-            showVirtualIndicators={true}
-            onVirtualDeviceClick={handleInputVirtualDeviceClick}
-            toggleAriaLabel={isMicMuted
-              ? t('audioPanel.turnOnMicrophone', 'Turn on microphone')
-              : t('audioPanel.turnOffMicrophone', 'Turn off microphone')}
-            ariaDescribedBy={reasonIdFor('mic')}
-          />
-
-          {/* Noise Suppression Mode */}
-          <div className="noise-suppression-control">
-            <div className="noise-suppression-header">
-              <span className="noise-suppression-label">{t('settings.noiseSuppression')}</span>
-              <Tooltip
-                content={
-                  `${t('settings.noiseSuppressionTooltip.off')}\n\n` +
-                  `${t('settings.noiseSuppressionTooltip.standard')}\n\n` +
-                  `${t('settings.noiseSuppressionTooltip.enhanced')}`
-                }
-                position="top"
-                icon="help"
-                maxWidth={350}
-              />
-            </div>
-            <div className="segmented-control noise-suppression-modes">
-              {(['off', 'standard', 'enhanced'] as NoiseSuppressionMode[]).map((mode) => (
-                <button
-                  key={mode}
-                  className={`segmented-option ${noiseSuppressionMode === mode ? 'active' : ''}`}
-                  onClick={() => {
-                    setNoiseSuppressionMode(mode);
-                    trackEvent('noise_suppression_toggled', {
-                      enabled: mode !== 'off',
-                      mode,
-                      during_session: isSessionActive
-                    });
-                  }}
-                >
-                  {t(`settings.noiseSuppressionMode.${mode}`)}
-                </button>
-              ))}
-            </div>
           </div>
-
-          {children}
+          <div className="segmented-control noise-suppression-modes">
+            {(['off', 'standard', 'enhanced'] as NoiseSuppressionMode[]).map((mode) => (
+              <button
+                key={mode}
+                className={`segmented-option ${noiseSuppressionMode === mode ? 'active' : ''}`}
+                onClick={() => {
+                  setNoiseSuppressionMode(mode);
+                  trackEvent('noise_suppression_toggled', {
+                    enabled: mode !== 'off',
+                    mode,
+                    during_session: isSessionActive
+                  });
+                }}
+              >
+                {t(`settings.noiseSuppressionMode.${mode}`)}
+              </button>
+            ))}
+          </div>
         </div>
-      )}
-
-      {/* Speaker Section */}
-      {showSpeaker && (
-        <div className={`config-section speaker-section ${className}`} id="speaker-section" data-tour="speaker-section">
-          <h3>
-            <Volume2 size={18} />
-            <span>{t('simpleConfig.output', 'Output')}</span>
-            <Tooltip
-              content={t('simpleConfig.outputDesc', 'The device that plays the translated speech to you. In Me mode you can turn it off; the meeting still hears the translation through the virtual microphone.')}
-              position="top"
-              icon="help"
-              maxWidth={300}
-            />
-            <button
-              className="section-refresh-button"
-              onClick={refreshDevices}
-              disabled={isLoading || isSystemAudioEnabled}
-              title={t('audioPanel.refreshDevices')}
-            >
-              <RefreshCw size={14} className={isLoading ? 'spinning' : ''} />
-            </button>
-          </h3>
-
-          {renderReason('speaker')}
-
-          <DeviceList
-            devices={filteredMonitorDevices}
-            selectedDevice={selectedMonitorDevice}
-            isDeviceOn={faceToFace || (!isMonitorMuted && monitorInScope)}
-            onSelect={handleMonitorDeviceSelect}
-            onToggleOff={faceToFace ? undefined : () => setMonitorMuted(!isMonitorMuted)}
-            disabled={locked}
-            deviceType="output"
-            filterVirtual={false}
-            showVirtualIndicators={true}
-            onVirtualDeviceClick={handleOutputVirtualDeviceClick}
-            toggleAriaLabel={isMonitorMuted
-              ? t('audioPanel.turnOnMonitor', 'Turn on speaker monitor')
-              : t('audioPanel.turnOffMonitor', 'Turn off speaker monitor')}
-            ariaDescribedBy={reasonIdFor('speaker')}
-          />
-
-          <EarsBlock className="ears-block--boxed" />
-        </div>
-      )}
+      </div>
     </>
   );
 };

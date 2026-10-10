@@ -124,7 +124,7 @@ describe('runner — starting', () => {
   it('starts every leg it was asked for, goes running, and folds the script into the conversation', async () => {
     const { runner, clock, events } = setup({ shape: { legs: ['speaker', 'participant'] } });
     await runner.start();
-    expect(runner.state.getState()).toEqual({ phase: 'running', since: 0, legs: { speaker: 'live', participant: 'live' } });
+    expect(runner.state.getState()).toEqual({ phase: 'running', participantSpeech: false, since: 0, legs: { speaker: 'live', participant: 'live' } });
     clock.advance(600);
     const legs = runner.conversation.snapshot();
     expect(legs.map((l) => l.leg)).toEqual(['speaker', 'participant']);
@@ -361,7 +361,7 @@ describe('runner — starting', () => {
     const { runner } = setup({ shape: { provider } });
     const started = runner.start();
     await flush();
-    expect(runner.state.getState()).toEqual({ phase: 'starting', step: 'opening', loading: { leg: 'speaker', stage: 'asr', done: 1, total: 3 } });
+    expect(runner.state.getState()).toEqual({ phase: 'starting', participantSpeech: false, step: 'opening', loading: { leg: 'speaker', stage: 'asr', done: 1, total: 3 } });
     open();
     await started;
     expect(runner.state.getState().phase).toBe('running');
@@ -458,12 +458,27 @@ describe('runner — punctuation readiness (ruling 2)', () => {
   });
 });
 
+describe("runner — the run's frozen Translation I hear", () => {
+  it("starting, running and stopping carry the shape's participantSpeech", async () => {
+    const { runner, clock } = setup({ shape: { participantSpeech: true }, settings: { startDelayMs: 2000 } });
+    const starting = runner.start();
+    await flush();
+    expect(runner.state.getState()).toMatchObject({ phase: 'starting', step: 'opening', participantSpeech: true });
+    clock.advance(2000);
+    await starting;
+    expect(runner.state.getState()).toMatchObject({ phase: 'running', participantSpeech: true });
+    const stopping = runner.stop();
+    expect(runner.state.getState()).toMatchObject({ phase: 'stopping', participantSpeech: true });
+    await stopping;
+  });
+});
+
 describe('runner — stopping', () => {
   it('a stop during a slow start cancels it: nothing stays open, nothing plays', async () => {
     const { runner, clock, sources, playback, events } = setup({ settings: { startDelayMs: 2000 } });
     const starting = runner.start();
     await flush();
-    expect(runner.state.getState()).toEqual({ phase: 'starting', step: 'opening' });
+    expect(runner.state.getState()).toEqual({ phase: 'starting', participantSpeech: false, step: 'opening' });
     await runner.stop();
     await starting;
     expect(runner.state.getState()).toEqual({ phase: 'idle', lastEnd: { reason: 'user' } });

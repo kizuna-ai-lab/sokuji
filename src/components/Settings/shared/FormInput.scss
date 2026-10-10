@@ -3,7 +3,7 @@
 .settings-input {
   width: 100%;
   box-sizing: border-box;
-  padding: vars.$space-2 10px;
+  padding: 6px 10px;
   @include vars.control-base;
 
   &::placeholder {

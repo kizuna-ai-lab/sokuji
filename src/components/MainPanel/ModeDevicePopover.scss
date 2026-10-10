@@ -121,9 +121,14 @@
     justify-content: center;
     transition: background 0.15s ease, color 0.15s ease;
 
-    &:hover {
+    &:hover:not(:disabled) {
       background: #333;
       color: #ddd;
+    }
+
+    // Blocked or locked: it reads as off and does not invite a click.
+    &:disabled {
+      cursor: default;
     }
 
     // Off state: icon is dimmed to signal the channel is silent.
@@ -131,7 +136,7 @@
       color: #666;
       opacity: 0.6;
 
-      &:hover {
+      &:hover:not(:disabled) {
         background: #333;
         color: #999;
         opacity: 1;
@@ -139,17 +144,23 @@
     }
   }
 
-  // A row with no switch (face-to-face's headphones) keeps the switch's column,
-  // so its summary and chevron end where the other rows' do.
-  &__mute-slot {
-    flex-shrink: 0;
-    width: 32px;
-  }
-
   // Participant row has no expand action — remove pointer cursor and hover background.
   &__row--participant &__row-main {
     cursor: default;
     &:hover { background: transparent; }
+  }
+
+  // An outlet row's value is what the user needs: the label shrinks and ellipsizes first, the summary keeps up to 60%.
+  &__row--outlet &__row-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  &__row--outlet &__summary {
+    flex: 0 1 auto;
+    max-width: 60%;
   }
 
   // Expanded inline DeviceList — mirrors the settings .device-list pattern
@@ -197,13 +208,7 @@
     padding: 8px 14px 10px;
   }
 
-  // Both, beside me: the ears under the rows.
-  &__ears {
-    flex-shrink: 0;
-    border-top: 1px solid #3a3a3a;
-    background: #242424;
-    padding: 12px 14px;
-  }
+  &__preview-btn { color: #ddd; }
 
   &__divider {
     border-top: 1px solid #3a3a3a;

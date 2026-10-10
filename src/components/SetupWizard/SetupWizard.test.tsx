@@ -63,6 +63,8 @@ vi.mock('../../stores/settingsStore', () => ({
   useSetAuthOverlay: () => setAuthOverlay,
   useAuthOverlay: () => authOverlayState,
   useProvider: () => 'openai',
+  // `speechInputsFromStores` reads Text Only through the store itself.
+  useSettingsStore: { getState: () => ({ textOnly: false }) },
 }));
 // The record a Help re-run pre-fills from. Mutable: with it fixed at null the
 // isProviderSupported-guarded prefill branch never ran in any test.

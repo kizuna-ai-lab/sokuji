@@ -38,9 +38,8 @@ import { SessionEnginePage, SessionSettingsGeneral, SessionSettingsProvider } fr
 
 const entry = () => ({ settings: { ...LOCAL_INFERENCE_DEFAULTS }, credentials: {}, pair: { source: 'ja', target: 'en' } });
 
-// The owner's order of 2026-10-01: the pair, the provider, Text only and
-// Keep audio, then the speech mode.
-const SECTION_IDS = ['languages-section', 'provider-section', 'output-section', 'turn-detection-section'];
+// The owner's order of 2026-10-01: the pair, the provider, then the speech mode.
+const SECTION_IDS = ['languages-section', 'provider-section', 'turn-detection-section'];
 
 beforeEach(() => {
   stored.clear();

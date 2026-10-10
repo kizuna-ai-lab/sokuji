@@ -59,25 +59,6 @@ const WarningModal: React.FC<WarningModalProps> = ({ isOpen, onClose, type, note
             t('audioPanel.loopbackMicWarningText2', 'The device stays selected in case this routing is intentional, but for normal use please pick a physical microphone instead.')
           ]
         };
-      case 'virtual-speaker':
-        return {
-          title: t('audioPanel.virtualSpeakerNotice'),
-          titleText: t('audioPanel.virtualSpeakerWarningTitle'),
-          paragraphs: [
-            t('audioPanel.virtualSpeakerWarningText1'),
-            t('audioPanel.virtualSpeakerWarningText2'),
-            t('audioPanel.virtualSpeakerWarningText3'),
-            t('audioPanel.virtualSpeakerWarningText4')
-          ]
-        };
-      case 'mutual-exclusivity-speaker':
-        return {
-          title: t('audioPanel.mutualExclusivityNotice', 'Audio Conflict'),
-          titleText: t('audioPanel.mutualExclusivitySpeakerTitle', 'Cannot enable the speaker monitor'),
-          paragraphs: [
-            t('audioPanel.mutualExclusivitySpeakerText', "Please turn off Other's audio before enabling the speaker monitor.")
-          ]
-        };
       case 'mutual-exclusivity-participant':
         return {
           title: t('audioPanel.mutualExclusivityNotice', 'Audio Conflict'),

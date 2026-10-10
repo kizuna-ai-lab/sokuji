@@ -9,84 +9,88 @@ vi.mock('../../services/ServiceFactory', () => ({
   },
 }));
 
+const environment = vi.hoisted(() => ({ value: 'web' as 'web' | 'electron' | 'extension' }));
+vi.mock('../../utils/environment', async (importOriginal) => ({ ...(await importOriginal<typeof import('../../utils/environment')>()), getEnvironment: () => environment.value }));
+
 import { SAMPLE_RATE } from '../contract/adapter';
 import useAudioStore from '../../stores/audioStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { useSettingsStore } from '../../stores/settingsStore';
+import { DEFAULT_OUTLET_CHOICE } from './outlets';
 import { createAppRouting, readRouting } from './appAudio';
+import { routesFor } from './routes';
 import { FakeAudioContext, FakeSink, FakeWorkletNode } from './fakeWebAudio';
 
 const AUDIO = {
-  mode: 'speaker' as const,
-  isMonitorMuted: false,
   isRealVoicePassthroughEnabled: true,
   realVoicePassthroughVolume: 0.3,
   selectedMonitorDevice: { deviceId: 'monitor-1', label: 'Headphones' },
   audioMonitorDevices: [
     { deviceId: 'monitor-1', label: 'Headphones' },
+    { deviceId: 'usb-1', label: 'USB speakers' },
     { deviceId: 'cable-1', label: 'CABLE Input (VB-Audio Virtual Cable)', isVirtual: true },
   ],
-  selectedParticipantSource: null as { deviceId: string; label: string } | null,
+  outlets: { other: { ...DEFAULT_OUTLET_CHOICE }, me: { ...DEFAULT_OUTLET_CHOICE }, them: { ...DEFAULT_OUTLET_CHOICE } },
 };
-const SWITCHES = { meeting: true, participantSpeech: false, faceToFaceSwap: false };
+const SPEAK = { other: true, me: true, them: false };
 
 describe('readRouting', () => {
-  it('maps the stores onto the route settings', () => {
-    expect(readRouting(AUDIO, SWITCHES, 'electron', 'auto')).toEqual({
+  it('maps the stores onto the route settings: every outlet follows the default device, centred', () => {
+    expect(readRouting(AUDIO, SPEAK, true, 'electron', 'auto')).toEqual({
       meeting: true,
-      monitor: true,
-      participantSpeech: false,
+      faceToFace: false,
+      speak: SPEAK,
       passthrough: { on: true, ratio: 0.3 },
-      sinks: { real: 'monitor-1', virtual: 'cable-1' },
+      sinks: { virtual: 'cable-1', other: { device: 'monitor-1' }, me: { device: 'monitor-1' }, them: { device: 'monitor-1' } },
     });
   });
 
-  it('hears the monitor only in speaker mode, as today', () => {
-    expect(readRouting({ ...AUDIO, mode: 'both' }, SWITCHES, 'electron', 'auto').monitor).toBe(false);
-    expect(readRouting({ ...AUDIO, mode: 'participant' }, SWITCHES, 'electron', 'auto').monitor).toBe(false);
-    expect(readRouting({ ...AUDIO, isMonitorMuted: true }, SWITCHES, 'electron', 'auto').monitor).toBe(false);
+  it('gives an outlet its own device and channel, and follows the default for one that is not present', () => {
+    const outlets = { ...AUDIO.outlets, them: { device: 'usb-1', channel: 'left' as const }, me: { device: 'usb-gone', channel: 'right' as const } };
+    const { sinks } = readRouting({ ...AUDIO, outlets }, SPEAK, true, 'electron', 'auto');
+    expect(sinks.them).toEqual({ device: 'usb-1', pan: -1 });
+    expect(sinks.me).toEqual({ device: 'monitor-1', pan: 1 });
+  });
+
+  it('never routes an outlet to the virtual speaker, even when its stored device is that one', () => {
+    const outlets = { ...AUDIO.outlets, them: { device: 'cable-1', channel: 'auto' as const } };
+    const { sinks } = readRouting({ ...AUDIO, outlets }, SPEAK, true, 'electron', 'auto');
+    expect(sinks.them).toEqual({ device: 'monitor-1' });
+  });
+
+  it('resolves auto channels per face-to-face: the other right, me left, centred in a meeting (Review Focus 2)', () => {
+    const f2f = readRouting(AUDIO, SPEAK, true, 'electron', 'auto', true);
+    expect(f2f.faceToFace).toBe(true);
+    expect(f2f.sinks.other).toEqual({ device: 'monitor-1', pan: 1 });
+    expect(f2f.sinks.them).toEqual({ device: 'monitor-1', pan: -1 });
+    expect(f2f.sinks.me).toEqual({ device: 'monitor-1' });
+    expect(readRouting(AUDIO, SPEAK, true, 'electron', 'auto', false).sinks.other).toEqual({ device: 'monitor-1' });
+  });
+
+  it('no default device: the outlets fall to the browser default', () => {
+    expect(readRouting({ ...AUDIO, selectedMonitorDevice: null }, SPEAK, true, 'electron', 'auto').sinks.me).toEqual({});
   });
 
   it('looks for a virtual speaker device only in Electron', () => {
-    expect(readRouting(AUDIO, SWITCHES, 'extension', 'auto').sinks.virtual).toBeUndefined();
-    expect(readRouting(AUDIO, SWITCHES, 'web', 'auto').sinks.virtual).toBeUndefined();
-    expect(readRouting({ ...AUDIO, audioMonitorDevices: [AUDIO.audioMonitorDevices[0]] }, SWITCHES, 'electron', 'auto').sinks.virtual).toBeUndefined();
+    expect(readRouting(AUDIO, SPEAK, true, 'extension', 'auto').sinks.virtual).toBeUndefined();
+    expect(readRouting(AUDIO, SPEAK, true, 'web', 'auto').sinks.virtual).toBeUndefined();
+    expect(readRouting({ ...AUDIO, audioMonitorDevices: [AUDIO.audioMonitorDevices[0]] }, SPEAK, true, 'electron', 'auto').sinks.virtual).toBeUndefined();
   });
 
   it('forces the original voice on at full level under push-to-translate, whatever the toggle says, open while idle (1e-3 ruling 4)', () => {
-    expect(readRouting({ ...AUDIO, isRealVoicePassthroughEnabled: false, realVoicePassthroughVolume: 0.2 }, SWITCHES, 'electron', 'push-to-translate').passthrough)
+    expect(readRouting({ ...AUDIO, isRealVoicePassthroughEnabled: false, realVoicePassthroughVolume: 0.2 }, SPEAK, true, 'electron', 'push-to-translate').passthrough)
       .toEqual({ on: true, ratio: 1, gate: 'idle' });
-    expect(readRouting({ ...AUDIO, isRealVoicePassthroughEnabled: false, realVoicePassthroughVolume: 0.2 }, SWITCHES, 'electron', 'auto').passthrough)
+    expect(readRouting({ ...AUDIO, isRealVoicePassthroughEnabled: false, realVoicePassthroughVolume: 0.2 }, SPEAK, true, 'electron', 'auto').passthrough)
       .toEqual({ on: false, ratio: 0.2 });
   });
 
   it('follows the toggle under push-to-talk, open only while the key is held, as 0.41.1 did', () => {
-    expect(readRouting({ ...AUDIO, isRealVoicePassthroughEnabled: true, realVoicePassthroughVolume: 0.2 }, SWITCHES, 'electron', 'push-to-talk').passthrough)
+    expect(readRouting({ ...AUDIO, isRealVoicePassthroughEnabled: true, realVoicePassthroughVolume: 0.2 }, SPEAK, true, 'electron', 'push-to-talk').passthrough)
       .toEqual({ on: true, ratio: 0.2, gate: 'held' });
-    expect(readRouting({ ...AUDIO, isRealVoicePassthroughEnabled: false, realVoicePassthroughVolume: 0.2 }, SWITCHES, 'electron', 'push-to-talk').passthrough)
+    expect(readRouting({ ...AUDIO, isRealVoicePassthroughEnabled: false, realVoicePassthroughVolume: 0.2 }, SPEAK, true, 'electron', 'push-to-talk').passthrough)
       .toEqual({ on: false, ratio: 0.2, gate: 'held' });
-  });
-
-  // 1e-3b-2 ruling 7: a whole-system participant capture on Electron would
-  // recapture Other's own translation played on the real device and
-  // translate it again as Other, so the switch's "on" is honoured only while
-  // the chosen source is one application.
-  it("blocks participant speech on Electron under a whole-system participant capture, on or with nothing selected", () => {
-    const withSwitch = { meeting: true, participantSpeech: true, faceToFaceSwap: false };
-    expect(readRouting({ ...AUDIO, selectedParticipantSource: null }, withSwitch, 'electron', 'auto').participantSpeech).toBe(false);
-    expect(readRouting({ ...AUDIO, selectedParticipantSource: { deviceId: 'desktop-audio-loopback', label: 'System' } }, withSwitch, 'electron', 'auto').participantSpeech).toBe(false);
-  });
-
-  it('allows participant speech on Electron once an application source is chosen', () => {
-    const withSwitch = { meeting: true, participantSpeech: true, faceToFaceSwap: false };
-    expect(readRouting({ ...AUDIO, selectedParticipantSource: { deviceId: 'app:42', label: 'App' } }, withSwitch, 'electron', 'auto').participantSpeech).toBe(true);
-  });
-
-  it('is unaffected by the participant source outside Electron', () => {
-    const withSwitch = { meeting: true, participantSpeech: true, faceToFaceSwap: false };
-    expect(readRouting({ ...AUDIO, selectedParticipantSource: null }, withSwitch, 'extension', 'auto').participantSpeech).toBe(true);
-    expect(readRouting({ ...AUDIO, selectedParticipantSource: { deviceId: 'desktop-audio-loopback', label: 'System' } }, withSwitch, 'web', 'auto').participantSpeech).toBe(true);
   });
 });
 
@@ -198,13 +202,22 @@ describe('getAppAudio', () => {
     live[0].advance(1);
     await playing;
   });
+
+  it('plays the ear preview on the outlet asked for', async () => {
+    const { audio, live } = await toneAudio();
+    const playing = audio.earPreview('them');
+    await vi.waitFor(() => expect(live[0].sources).toHaveLength(1));
+    live[0].advance(1);
+    await playing;
+  });
 });
 
 describe('createAppRouting', () => {
   beforeEach(() => {
     useAudioStore.setState(AUDIO);
-    useRoutingStore.setState(SWITCHES);
+    useRoutingStore.setState({ meeting: true });
     useTurnModeStore.setState({ turnMode: 'auto' });
+    useSettingsStore.setState({ textOnly: false });
   });
 
   it('reads the live stores, and tells its listener when either changes', () => {
@@ -214,9 +227,9 @@ describe('createAppRouting', () => {
     useRoutingStore.getState().setMeeting(false);
     expect(heard).toHaveBeenCalledTimes(1);
     expect(routing.get().meeting).toBe(false);
-    useAudioStore.setState({ isMonitorMuted: true });
+    useAudioStore.getState().setOutletChannel('them', 'right');
     expect(heard).toHaveBeenCalledTimes(2);
-    expect(routing.get().monitor).toBe(false);
+    expect(routing.get().sinks.them.pan).toBe(1);
     off();
     useRoutingStore.getState().setMeeting(true);
     expect(heard).toHaveBeenCalledTimes(2);
@@ -237,31 +250,47 @@ describe('createAppRouting', () => {
     const routing = createAppRouting('electron');
     const heard = vi.fn();
     routing.subscribe(heard);
-    expect(routing.get().ears).toBeUndefined();
+    expect(routing.get().faceToFace).toBe(false);
     useProviderStore.setState({ entries: { soniox: {} as never } });
     expect(heard).toHaveBeenCalledTimes(1);
-    expect(routing.get().ears).toEqual({ swap: false });
+    expect(routing.get().faceToFace).toBe(true);
     // An edit to the loaded entry leaves face-to-face as it was: no re-read.
     useProviderStore.setState({ entries: { soniox: {} as never } });
     expect(heard).toHaveBeenCalledTimes(1);
   });
 
-  it('routes participant speech to the real device in face-to-face on Electron with a whole-system source', () => {
-    const withSwitch = { meeting: true, participantSpeech: true, faceToFaceSwap: false };
-    const whole = { ...AUDIO, selectedParticipantSource: { deviceId: 'desktop-audio-loopback', label: 'System' } };
-    expect(readRouting(whole, withSwitch, 'electron', 'auto', true).participantSpeech).toBe(true);
-    expect(readRouting(whole, withSwitch, 'electron', 'auto', false).participantSpeech).toBe(false);
-  });
-});
-
-describe('readRouting — face-to-face', () => {
-  it('asks for the ears, voices the participant whatever the system-capture rule says, and keeps the swap', () => {
-    const r = readRouting({ ...AUDIO, mode: 'both' }, { meeting: true, participantSpeech: false, faceToFaceSwap: true }, 'electron', 'auto', true);
-    expect(r.ears).toEqual({ swap: true });
-    expect(r.participantSpeech).toBe(true);
+  it("notifies when Translation the other side hears flips, and when the provider's speech flags land (Review Focus 5)", () => {
+    const source = createAppRouting('electron');
+    const listener = vi.fn();
+    const off = source.subscribe(listener);
+    useSettingsStore.setState({ textOnly: true });
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(source.get().speak.other).toBe(false);
+    useSettingsStore.setState({ textOnly: false });
+    off();
   });
 
-  it('asks for no ears outside face-to-face', () => {
-    expect(readRouting(AUDIO, { meeting: true, participantSpeech: false, faceToFaceSwap: false }, 'electron', 'auto').ears).toBeUndefined();
+  it('a capture that widens to the whole system silences Translation I hear live, and clearing it restores the edge', () => {
+    environment.value = 'electron';
+    try {
+      useAudioStore.setState({ ...AUDIO, mode: 'both', otherSide: 'meeting', selectedParticipantSource: { deviceId: 'app:42', label: 'App' }, participantCaptureWidened: false } as never);
+      useRoutingStore.setState({ participantSpeech: true });
+      const routing = createAppRouting('electron');
+      const heard = vi.fn();
+      const off = routing.subscribe(heard);
+      expect(routing.get().speak.them).toBe(true);
+      expect(routesFor(routing.get(), false)).toContainEqual({ from: 'participant', to: 'them', gain: 1 });
+      useAudioStore.setState({ participantCaptureWidened: true });
+      expect(heard).toHaveBeenCalledTimes(1);
+      expect(routing.get().speak.them).toBe(false);
+      expect(routesFor(routing.get(), false).some((e) => e.from === 'participant' && e.to === 'them')).toBe(false);
+      useAudioStore.setState({ participantCaptureWidened: false });
+      expect(heard).toHaveBeenCalledTimes(2);
+      expect(routing.get().speak.them).toBe(true);
+      expect(routesFor(routing.get(), false)).toContainEqual({ from: 'participant', to: 'them', gain: 1 });
+      off();
+    } finally {
+      environment.value = 'web';
+    }
   });
 });

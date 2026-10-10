@@ -62,7 +62,7 @@ import { fakeProvider } from '../providers/fake/provider';
 import { createFakeSource } from '../providers/fake/source';
 import { useProviderStore } from '../stores/providerStore';
 import { configureAppSession, getAppSession } from './session';
-import { useSessionLocked } from './useRun';
+import { useRunParticipantSpeech, useSessionLocked } from './useRun';
 
 const clock = createVirtualClock(0);
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -109,5 +109,27 @@ describe('useSessionLocked', () => {
     await act(async () => { await stopping; });
     expect(runner.state.getState().phase).toBe('idle');
     expect(result.current).toBe(false);
+  });
+});
+
+describe('useRunParticipantSpeech', () => {
+  it("is null while idle and the run's frozen value while it is not", async () => {
+    const { runner } = getAppSession();
+    const { result } = renderHook(() => useRunParticipantSpeech());
+    expect(result.current).toBeNull();
+
+    let starting!: Promise<void>;
+    act(() => { starting = runner.start(); });
+    expect(result.current).toBe(false);
+
+    await act(async () => {
+      await flush();
+      clock.advance(500);
+      await starting;
+    });
+    expect(result.current).toBe(false);
+
+    await act(async () => { await runner.stop(); });
+    expect(result.current).toBeNull();
   });
 });

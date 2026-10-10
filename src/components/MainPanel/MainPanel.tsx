@@ -194,12 +194,16 @@ export default function MainPanel() {
   // reference: a later end is another object and draws again.
   const [dismissedEnd, setDismissedEnd] = useState<RunEnd | null>(null);
   const segments = useMemo(() => new Map(viewState.legs.flatMap((leg) => leg.segments.map((s) => [s.id, s] as const))), [viewState.legs]);
-  // A participant replay slot only while its leg is voiced, by the run's own
-  // rule: its provider's flag, then face-to-face (ruling P7) or the switch
-  // and a source that will not recapture it (ruling 7, completed). The
-  // switch, the run's shape and the route all agree.
+  // A replay slot only on a leg that is voiced, by the run's own rule (`speakFor`,
+  // the same the ear tags read): mine under Translation the other side hears, the
+  // other person's under its provider's flag, then face-to-face (ruling P7) or the
+  // switch and a source that will not recapture it (ruling 7, completed).
+  const speakerVoiced = f2f.speaks.speaker;
   const participantVoiced = f2f.speaks.participant;
-  const replayLegs = useMemo(() => new Set<LegName>(keepReplayAudio ? (participantVoiced ? ['speaker', 'participant'] : ['speaker']) : []), [keepReplayAudio, participantVoiced]);
+  const replayLegs = useMemo(
+    () => new Set<LegName>(keepReplayAudio ? [...(speakerVoiced ? ['speaker' as const] : []), ...(participantVoiced ? ['participant' as const] : [])] : []),
+    [keepReplayAudio, speakerVoiced, participantVoiced],
+  );
   const participantNoticeCodes = useMemo(
     () => viewState.legs.find((leg) => leg.leg === 'participant')?.notices.flatMap((n) => (n.code ? [n.code] : [])) ?? [],
     [viewState.legs],

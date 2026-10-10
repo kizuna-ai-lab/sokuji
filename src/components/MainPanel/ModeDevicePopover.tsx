@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useRunParticipantSpeech } from '../../app/useRun';
 import {
   useFloating,
   useDismiss,
@@ -10,20 +11,27 @@ import {
   size,
   autoUpdate,
 } from '@floating-ui/react';
-import { Mic, AudioLines, Volume2, Power, PowerOff, ChevronDown, ChevronUp } from 'lucide-react';
+import { Mic, AudioLines, Volume2, Power, PowerOff, Play, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { LucideIcon } from 'lucide-react';
 import {
   useAudioContext,
   useIsMicMuted, useIsMonitorMuted, useIsParticipantMuted,
   useSetMicMuted, useSetMonitorMuted, useSetParticipantMuted,
-  useParticipantSources, useSelectedParticipantSource, useSelectParticipantSource,
+  useParticipantCaptureWidened, useParticipantSources, useSelectedParticipantSource, useSelectParticipantSource,
+  useOutlets, useSetOutletDevice, useSetOutletChannel, useSelectedMonitorDevice,
 } from '../../stores/audioStore';
 import { useFaceToFace } from './useFaceToFace';
 import OtherSideChoice from '../FaceToFace/OtherSideChoice';
-import EarsBlock from '../FaceToFace/EarsBlock';
+import { getAppAudio } from '../../lib/audio/appAudio';
+import { entryValue, outletEntries, outletSelectValue, parseEntryValue } from '../../lib/audio/outletOptions';
+import type { OutletName } from '../../lib/audio/outlets';
+import { describeCause, reportError } from '../../lib/diagnostics/report';
+import { heardFromStores, selectedFromStores } from '../../lib/session/appShape';
+import { useProviderStore } from '../../stores/providerStore';
+import { useRoutingStore } from '../../stores/routingStore';
 import { isExtension } from '../../utils/environment';
-import { useNavigateToSettings } from '../../stores/settingsStore';
+import { useNavigateToSettings, useSettingsStore } from '../../stores/settingsStore';
 import { isVirtualDevice, type AudioDevice } from '../Settings/shared/hooks';
 import { describeDeviceOnHover } from '../../utils/audioDevices';
 import './ModeDevicePopover.scss';
@@ -35,13 +43,13 @@ interface ModeDevicePopoverProps {
   onClose: () => void;
   /**
    * A run is live, as the mode picker's `locked`: the other side is the run's
-   * (its shape and capture froze at Start), so its choice is locked too. The
-   * swap stays live: everything reads it live.
+   * (its shape and capture froze at Start), so its choice is locked too, and so
+   * is the Other mode's translation switch.
    */
   locked: boolean;
 }
 
-type ChannelKey = 'mic' | 'participant' | 'monitor';
+type ChannelKey = 'mic' | 'participant' | 'me' | 'other' | 'them';
 
 interface ChannelRowSpec {
   key: ChannelKey;
@@ -55,10 +63,14 @@ interface ChannelRowSpec {
   /** Shown in place of a device name when the row has no picker. */
   subtitle?: string;
   isMuted: boolean;
-  /** Absent: the row has no power switch — face-to-face's headphones play whenever a translation is spoken. */
+  /** Absent: the row has no power switch — the outlet rows beside me have a preview instead. */
   onMuteToggle?: () => void;
   /** Absent on rows that have no picker (participant without a per-app helper). */
   onSelectDevice?: (d: AudioDevice) => void;
+  /** A ▶ in the switch's column: plays the chime on this row's outlet (face-to-face). */
+  onPreview?: () => void;
+  /** The power button is disabled, and this is why (its title). */
+  disabledReason?: string;
   /** True when row is in scope and has no device picked. */
   isMissing: boolean;
 }
@@ -71,9 +83,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     audioInputDevices,
     audioMonitorDevices,
     selectedInputDevice,
-    selectedMonitorDevice,
     selectInputDevice,
-    selectMonitorDevice,
   } = useAudioContext();
 
   const isMicMuted = useIsMicMuted();
@@ -88,6 +98,30 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
 
   const f2f = useFaceToFace();
   const beside = mode === 'both' && f2f.active;
+
+  const outlets = useOutlets();
+  const setOutletDevice = useSetOutletDevice();
+  const setOutletChannel = useSetOutletChannel();
+  const defaultDevice = useSelectedMonitorDevice();
+  // Subscribed so a provider change in settings reaches a popover that stays mounted while closed.
+  useProviderStore((s) => s.selected);
+  useProviderStore((s) => s.entries);
+  const provider = selectedFromStores()?.provider;
+  const participantSpeech = useRoutingStore((s) => s.participantSpeech);
+  const setParticipantSpeech = useRoutingStore((s) => s.setParticipantSpeech);
+  const textOnly = useSettingsStore((s) => s.textOnly);
+  // The twin of the page's: a run's frozen Translation I hear wins over the live stores.
+  const runSpeech = useRunParticipantSpeech();
+  // Subscribed so the blocked state follows a capture that widens mid-run.
+  useParticipantCaptureWidened();
+  const heard = heardFromStores(beside);
+  const blockedReason = t('audioPanel.blockedWholeSystem', 'All system sound is being captured: these playback options are off, so the translation is not translated again.');
+  const channelName = (c: 'left' | 'right') => (c === 'left' ? t('audioPanel.channelLeft', 'left channel') : t('audioPanel.channelRight', 'right channel'));
+  const previewOn = (outlet: OutletName) => {
+    void getAppAudio()
+      .then((app) => app.earPreview(outlet))
+      .catch((error: unknown) => reportError('ModeDevicePopover', `The preview did not play: ${describeCause(error)}`, { cause: error }));
+  };
 
   // Only one row expanded at a time. Default: none expanded.
   const [expanded, setExpanded] = useState<ChannelKey | null>(null);
@@ -137,26 +171,44 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
   });
   const { getFloatingProps } = useInteractions([dismiss]);
 
+  // Hide Sokuji virtual devices from the device lists — they're not
+  // user-selectable (they're internal routing). Mirrors what
+  // AudioDeviceSection's DeviceList does in Settings.
+  const filteredInputDevices = audioInputDevices.filter(d => !isVirtualDevice(d as any));
+  const filteredMonitorDevices = audioMonitorDevices.filter(d => !isVirtualDevice(d as any));
+
+  /** An outlet row's list: the page's device·channel entries as pseudo-devices, the selected one by its value. */
+  const outletRow = (name: OutletName, key: ChannelKey, label: string, rest: Partial<ChannelRowSpec>): ChannelRowSpec => {
+    const entries = outletEntries(filteredMonitorDevices).map((entry) => {
+      const base = entry.device === null
+        ? (entry.channel === 'auto' && defaultDevice ? t('audioPanel.followDefaultNamed', { device: defaultDevice.label, defaultValue: 'Follow default ({{device}})' }) : t('audioPanel.followDefault', 'Follow default'))
+        : entry.label!;
+      const text = entry.channel === 'left' || entry.channel === 'right' ? `${base} · ${channelName(entry.channel)}` : base;
+      return { deviceId: entryValue(entry), label: text };
+    });
+    const value = outletSelectValue(name, outlets[name], beside, filteredMonitorDevices);
+    return {
+      key, icon: Volume2, label,
+      devices: entries,
+      selectedDevice: entries.find((d) => d.deviceId === value) ?? null,
+      isMuted: false,
+      onSelectDevice: (d) => {
+        const { device, channel } = parseEntryValue(d.deviceId);
+        setOutletDevice(name, device);
+        setOutletChannel(name, channel);
+      },
+      isMissing: false,
+      ...rest,
+    };
+  };
+
   // Build the list of rows the popover should render based on mode.
-  // Channel order: mic → monitor → participant
+  // Channel order: mic → me → participant → them / other
   const rows = useMemo<ChannelRowSpec[]>(() => {
     const list: ChannelRowSpec[] = [];
 
     const showMic = mode === 'speaker' || mode === 'both';
-    // Speaker monitor is mutually exclusive with participant capture
-    // (enforced in audioStore). In Both mode participant is always on,
-    // so monitor cannot be on — hide the row entirely to avoid showing
-    // a permanently-muted control.
-    // Face-to-face (beside me) is the exception: the translation plays on the
-    // headphones and the other person is not captured from system audio.
-    const showMonitor = mode === 'speaker' || beside;
     const showParticipant = mode === 'participant' || (mode === 'both' && !beside);
-
-    // Hide Sokuji virtual devices from the device lists — they're not
-    // user-selectable (they're internal routing). Mirrors what
-    // AudioDeviceSection's DeviceList does in Settings.
-    const filteredInputDevices = audioInputDevices.filter(d => !isVirtualDevice(d as any));
-    const filteredMonitorDevices = audioMonitorDevices.filter(d => !isVirtualDevice(d as any));
 
     if (showMic) {
       list.push({
@@ -172,29 +224,15 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
       });
     }
 
-    if (showMonitor) {
-      list.push(beside
-        ? {
-          key: 'monitor',
-          icon: Volume2,
-          label: t('popover.output', 'Output'),
-          devices: filteredMonitorDevices,
-          selectedDevice: selectedMonitorDevice,
-          isMuted: false,
-          onSelectDevice: (d) => selectMonitorDevice(d),
-          isMissing: false,
-        }
-        : {
-          key: 'monitor',
-          icon: Volume2,
-          label: t('modePicker.deviceSpeakerMonitor', 'Speaker monitor'),
-          devices: filteredMonitorDevices,
-          selectedDevice: selectedMonitorDevice,
-          isMuted: isMonitorMuted,
-          onMuteToggle: () => setMonitorMuted(!isMonitorMuted),
-          onSelectDevice: (d) => { selectMonitorDevice(d); setMonitorMuted(false); },
-          isMissing: false, // monitor is optional
-        });
+    if (mode === 'speaker') {
+      // The twin of SpeechOutputSection's I hear it too row: off while the translation is not spoken (`otherOn` there).
+      const speech = provider?.speech ?? 'optional';
+      const otherOn = speech === 'always' ? true : speech === 'never' ? false : !textOnly;
+      list.push(outletRow('me', 'me', t('audioPanel.meToo', 'I hear it too'), {
+        isMuted: isMonitorMuted || !otherOn,
+        onMuteToggle: () => setMonitorMuted(!isMonitorMuted),
+        ...(otherOn ? {} : { disabledReason: t('audioPanel.needsOtherHears', 'Nothing to hear while the translation is not spoken. Your setting is kept.') }),
+      }));
     }
 
     if (showParticipant) {
@@ -224,14 +262,39 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
       });
     }
 
+    if (mode === 'participant') {
+      // The twin of SpeechOutputSection's Translation I hear switch: keep the two in step.
+      const speech = provider?.speech ?? 'optional';
+      const offered = provider?.participantSpeech !== false;
+      const on = runSpeech ?? (offered && heard && speech !== 'never' && (speech === 'always' || (participantSpeech ?? false)));
+      const disabledReason = !heard ? blockedReason
+        : locked ? t('audioPanel.rowLockedByRun', 'Fixed for this session; stop it to change.')
+        : !offered ? t('audioPanel.iHearNotOffered', "This service does not speak the other side's translation.")
+        : speech !== 'optional' ? (speech === 'always' ? t('audioPanel.otherHearsAlwaysSpeaks', 'This service always speaks.') : t('audioPanel.otherHearsNeverSpeaks', 'This service never speaks.'))
+        : undefined;
+      list.push(outletRow('them', 'them', t('audioPanel.iHear', 'Translation I hear'), {
+        isMuted: !on,
+        onMuteToggle: () => setParticipantSpeech(!(participantSpeech ?? false)),
+        ...(disabledReason ? { disabledReason } : {}),
+      }));
+    }
+
+    if (beside) {
+      list.push(outletRow('other', 'other', t('audioPanel.otherHears', 'Translation the other side hears'), { onPreview: () => previewOn('other') }));
+      list.push(outletRow('them', 'them', t('audioPanel.iHear', 'Translation I hear'), { onPreview: () => previewOn('them') }));
+    }
+
     return list;
+    // outletRow and previewOn close over the values listed here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    mode, beside,
+    mode, beside, locked, provider, textOnly, outlets, defaultDevice, participantSpeech, heard, runSpeech,
     audioInputDevices, selectedInputDevice, isMicMuted,
-    audioMonitorDevices, selectedMonitorDevice, isMonitorMuted,
+    audioMonitorDevices, isMonitorMuted,
     isParticipantMuted, participantSources, selectedParticipantSource,
-    selectInputDevice, selectMonitorDevice, selectParticipantSource,
+    selectInputDevice, selectParticipantSource,
     setMicMuted, setMonitorMuted, setParticipantMuted,
+    setOutletDevice, setOutletChannel, setParticipantSpeech,
     t,
   ]);
 
@@ -286,7 +349,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
 
           return (
             <React.Fragment key={row.key}>
-              <div className={`mode-device-popover__row${isExpanded ? ' mode-device-popover__row--expanded' : ''}${row.key === 'participant' ? ' mode-device-popover__row--participant' : ''}`}>
+              <div className={`mode-device-popover__row${isExpanded ? ' mode-device-popover__row--expanded' : ''}${row.key === 'participant' ? ' mode-device-popover__row--participant' : ''}${row.key === 'me' || row.key === 'other' || row.key === 'them' ? ' mode-device-popover__row--outlet' : ''}`}>
                 <button
                   type="button"
                   className="mode-device-popover__row-main"
@@ -303,19 +366,29 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
                   type="button"
                   className={`mode-device-popover__mute-btn${row.isMuted ? ' mode-device-popover__mute-btn--off' : ''}`}
                   onClick={(e) => { e.stopPropagation(); row.onMuteToggle?.(); }}
+                  disabled={!!row.disabledReason}
                   aria-pressed={!row.isMuted}
                   aria-label={row.isMuted
                     ? t('popover.toggleOn', 'Turn on {{label}}', { label: row.label })
                     : t('popover.toggleOff', 'Turn off {{label}}', { label: row.label })}
-                  title={row.isMuted
+                  title={row.disabledReason ?? (row.isMuted
                     ? t('popover.toggleOn', 'Turn on {{label}}', { label: row.label })
-                    : t('popover.toggleOff', 'Turn off {{label}}', { label: row.label })}
+                    : t('popover.toggleOff', 'Turn off {{label}}', { label: row.label }))}
                 >
                   {row.isMuted ? <PowerOff size={14} /> : <Power size={14} />}
                 </button>
                 )}
-                {/* No switch (face-to-face's headphones), but its column stays, so the summary and chevron line up with the rows above. */}
-                {!row.onMuteToggle && <span className="mode-device-popover__mute-slot" aria-hidden="true" />}
+                {row.onPreview && (
+                  <button
+                    type="button"
+                    className="mode-device-popover__mute-btn mode-device-popover__preview-btn"
+                    onClick={(e) => { e.stopPropagation(); row.onPreview?.(); }}
+                    aria-label={t('audioPanel.previewRow', { row: row.label, defaultValue: 'Preview {{row}}' })}
+                    title={t('audioPanel.preview', 'Preview')}
+                  >
+                    <Play size={14} />
+                  </button>
+                )}
               </div>
 
               {isExpanded && canExpand && (
@@ -343,8 +416,6 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
         })}
         </div>
 
-        {mode === 'both' && <EarsBlock className="mode-device-popover__ears" />}
-
         <div className="mode-device-popover__divider" />
         <div className="mode-device-popover__footer">
           <button
@@ -352,13 +423,9 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
             className="mode-device-popover__footer-link"
             onClick={() => {
               // navigateToSettings(null) is a no-op — MainLayout opens the
-              // panel only on a truthy target. Pass the popover's current
-              // mode as the section anchor so the user lands on the most
-              // relevant section.
-              const target = mode === 'speaker' ? 'microphone'
-                : mode === 'participant' ? 'participant'
-                : 'microphone';
-              navigateToSettings(target);
+              // panel only on a truthy target. The speech rows are what the
+              // popover lacks, so every mode lands on them.
+              navigateToSettings('speech');
               onClose();
             }}
           >

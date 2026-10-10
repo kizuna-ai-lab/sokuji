@@ -119,7 +119,8 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
    - `ModernAudioRecorder` (`src/lib/modern-audio/`): captures the microphone with echo
      cancellation and noise suppression, AudioWorklet with a ScriptProcessor fallback
    - Playback (`src/lib/audio/playback.ts`): a clip queue per leg and one for replay, the
-     routes kept live from the routing settings, the passthrough stream
+     routes kept live from the routing settings, the passthrough stream; replay and preview
+     play on the outlet of their row
    - `src/lib/audio/appAudio.ts`: one graph per page, and the virtual output per platform
      (Electron's virtual speaker, the extension's tabs, nothing on the web)
 
@@ -140,7 +141,14 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      and system audio, each following its device or source during a run; a tab, fixed
      when it opens
    - The page's playback (`appAudio.ts`, `playback.ts`), the routing read live from
-     `audioStore`, `routingStore` and `turnModeStore`
+     `audioStore`, `routingStore`, `settingsStore` and `turnModeStore` through `speechFromStores`
+     (`src/lib/session/appShape.ts`): who hears what. The system-audio source tells the audio store when an application
+     capture widened to the whole system (`participantCaptureWidened`); `heardFromStores`
+     reads it, so Translation I hear falls silent live instead of being recaptured.
+   - `src/lib/audio/outlets.ts`: the outlets — `other` (face-to-face's other person), `me`
+     (I hear it too), `them` (Translation I hear) — each a stored device and channel (`audio.outlet.<name>.*`)
+     resolved to a sink; `graph.ts` keeps one `<audio>` element per outlet and the virtual one,
+     the pan on the outlet's path
 
 6. **Native runtime (`native/`)**
    - One CMake super-project builds three engines on ONE pristine upstream ggml 0.25 behind
@@ -388,7 +396,7 @@ useSettingsStore.subscribe(
 ### Audio Handling
 - Capture through the runner's sources (`src/lib/audio/capture/`, the microphone over `ModernAudioRecorder`); play through `src/lib/audio/playback.ts`
 - Audio playback uses queue-based system with event-driven processing
-- Passthrough: the microphone's processed voice, under the translation, into the meeting (the virtual output) on its own `passthrough` feed (`src/lib/audio/routes.ts`); off by default, its volume `audioStore`'s `realVoicePassthroughVolume`, default 0.2 — the settings show 20%, on a 0–60% slider
+- Passthrough: the microphone's processed voice, under the translation, into the meeting (the virtual output) on its own `passthrough` feed (`src/lib/audio/routes.ts`); off by default, its volume `audioStore`'s `realVoicePassthroughVolume`, default 0.2 — the settings show 20%, on a 0–60% slider; its switch and slider are the Passthrough sub-row of Translation the other side hears in the Speech block (hidden in face-to-face), greyed and silent while Translation the other side hears is off
 - AudioWorklet preferred for processing, falls back to ScriptProcessor for compatibility
 - Echo cancellation enabled by default with modern browser APIs
 
@@ -656,7 +664,7 @@ corrected on 2026-09-05.
 ## UI Components
 
 ### Simple Mode Components
-- **SimpleSettings** (`src/components/Settings/SimpleSettings/SimpleSettings.tsx`): the simple layout's settings — the session settings (`SessionSettingsGeneral` in `ProviderArea.tsx`, shared with Advanced's General tab: languages, the provider picker, output switches, speech; sentence segmentation is hidden and held at Off while `SENTENCE_SEGMENTATION_SHOWN` in `settingsStore.ts` is false), the microphone and speaker, system audio (its participant-speech switch hidden and held off while `PARTICIPANT_SPEECH_SHOWN` in `routingStore.ts` is false), help
+- **SimpleSettings** (`src/components/Settings/SimpleSettings/SimpleSettings.tsx`): the simple layout's settings — the session settings (`SessionSettingsGeneral` in `ProviderArea.tsx`, shared with Advanced's General tab: languages, the provider picker, speech; sentence segmentation is hidden and held at Off while `SENTENCE_SEGMENTATION_SHOWN` in `settingsStore.ts` is false), the microphone, the Speech block (`SpeechOutputSection`: who hears what, each row with its own output device and channel; `textOnly` shows inverted as Translation the other side hears, the monitor as I hear it too, the participant-speech switch as Translation I hear), the other side's audio, help. The mode popover's rows mirror the Speech block (a pick in an outlet row writes the outlet and never flips its switch); the face-to-face ears strip and the conversation's ear tags read the outlets (a centred outlet gives no tag); the wizard's Both scenarios write Translation I hear (voice on, text off)
 - **MainPanel**: Unified conversation panel with `uiMode`-driven layout (basic: bubble messages + status footer, advanced: bubble messages + waveform footer with controls)
 - **Tooltip**: @floating-ui/react powered tooltips with hover/click/focus triggers
 - **ConnectionStatus**: Real-time connection state indicator

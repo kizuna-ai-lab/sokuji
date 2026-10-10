@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { BASICS_STEPS, visibleSteps, contentKey } from './steps';
 import { buildTourCtx } from './tourContext';
 import type { TourCtx } from './tourContext';
@@ -64,6 +64,16 @@ describe('visibleSteps — the spec §2.2 table', () => {
       expect(list.slice(0, 2)).toEqual(['welcome', 'mode-picker']);
       expect(list.slice(-2)).toEqual(['start', 'done']);
     }
+  });
+});
+
+describe('the monitor step', () => {
+  it('anchors the speech block and opens it', () => {
+    const step = BASICS_STEPS.find((s) => s.id === 'monitor')!;
+    expect(step.anchor).toBe('speech-section');
+    const openSettings = vi.fn();
+    step.prepare!(ctxFor('be-heard', 'managed'), { openSettings } as never);
+    expect(openSettings).toHaveBeenCalledWith('speech');
   });
 });
 

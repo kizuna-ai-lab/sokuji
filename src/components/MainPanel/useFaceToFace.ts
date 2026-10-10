@@ -1,29 +1,29 @@
-import { earsFor, type Ear } from '../../lib/audio/routes';
+import { useRunParticipantSpeech } from '../../app/useRun';
+import { resolveOutlet } from '../../lib/audio/outlets';
 import type { LegName } from '../../lib/conversation/types';
-import { participantSpeechFromStores } from '../../lib/session/appShape';
+import { speechFromStores } from '../../lib/session/appShape';
 import { presentProviders } from '../../providers/registry';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 
+/** One ear of a stereo device. */
+export type Ear = 'left' | 'right';
+
 export interface FaceToFaceView {
   /** The selected provider can run face-to-face: the Both popover offers "beside me". */
   offered: boolean;
   /** Face-to-face is on: Both, beside me, under a provider that offers it (`faceToFaceFromStores`'s rule, live). */
   active: boolean;
-  /** My translation goes right, theirs left. */
-  swap: boolean;
+  /** The ear each leg's translation plays in; absent when its outlet is centred. speaker → `other`, participant → `them`. */
+  ears: Readonly<Partial<Record<LegName, Ear>>>;
+  /** The resolved device label of each face-to-face outlet; null when none is known. */
+  outletDevices: Readonly<Record<'other' | 'them', string | null>>;
   /** My language and theirs: the selected entry's pair. */
   me: string | null;
   other: string | null;
-  /**
-   * Whether each leg's translation is voiced in a run started now, in any
-   * mode: the participant's by the run's own rule (`participantSpeechFromStores`:
-   * its provider's flag, then Text Only face-to-face, its switch elsewhere),
-   * mine unless Text Only. The replay slots, the ear tags, the strip and the
-   * popover's ears all read it, so none offers an ear that plays nothing.
-   */
+  /** Whether each leg's translation is voiced in a run started now: `speakFor`'s `other` and `them`. */
   speaks: Readonly<Record<LegName, boolean>>;
 }
 
@@ -33,51 +33,69 @@ export function useFaceToFace(): FaceToFaceView {
   const entries = useProviderStore((s) => s.entries);
   const mode = useAudioStore((s) => s.mode);
   const otherSide = useAudioStore((s) => s.otherSide);
-  const swap = useRoutingStore((s) => s.faceToFaceSwap);
-  const textOnly = useSettingsStore((s) => s.textOnly);
-  // The rest of what `participantSpeechFromStores` reads, subscribed so `speaks` follows the switch and the source.
+  const outlets = useAudioStore((s) => s.outlets);
+  const devices = useAudioStore((s) => s.audioMonitorDevices);
+  const defaultDevice = useAudioStore((s) => s.selectedMonitorDevice);
+  // The rest of what `speechFromStores` reads, subscribed so `speaks` follows the switches and the source.
+  useSettingsStore((s) => s.textOnly);
   useRoutingStore((s) => s.participantSpeech);
+  useAudioStore((s) => s.isMonitorMuted);
   useAudioStore((s) => s.selectedParticipantSource?.deviceId);
+  useAudioStore((s) => s.participantCaptureWidened);
   const providers = presentProviders();
   const provider = providers.find((p) => p.id === selected) ?? providers[0];
   const pair = provider ? entries[provider.id]?.pair ?? null : null;
   const offered = provider?.faceToFace === true && pair !== null;
+  const active = offered && mode === 'both' && otherSide === 'beside';
+  // The routing's own rule (`readRouting`): the same `present` set and default device, so a centred pick whose device is unplugged reads as auto here too.
+  const present = new Set(devices.filter((d) => !d.isVirtual).map((d) => d.deviceId));
+  const earOf = (name: 'other' | 'them'): Ear | undefined => {
+    const { pan } = resolveOutlet(name, outlets[name], { defaultDevice: defaultDevice?.deviceId, present, faceToFace: active });
+    return pan === -1 ? 'left' : pan === 1 ? 'right' : undefined;
+  };
+  const otherEar = earOf('other');
+  const themEar = earOf('them');
+  const ears: Partial<Record<LegName, Ear>> = {
+    ...(otherEar ? { speaker: otherEar } : {}),
+    ...(themEar ? { participant: themEar } : {}),
+  };
+  const labelOf = (name: 'other' | 'them'): string | null => {
+    const own = outlets[name].device ? devices.find((d) => d.deviceId === outlets[name].device) : undefined;
+    return own?.label ?? defaultDevice?.label ?? null;
+  };
+  // The run's frozen value wins while a run is not idle: the open participant leg does what it was told at Start.
+  const runSpeech = useRunParticipantSpeech();
+  const speak = speechFromStores(provider);
   return {
     offered,
-    active: offered && mode === 'both' && otherSide === 'beside',
-    swap,
+    active,
     me: pair?.source ?? null,
     other: pair?.target ?? null,
-    speaks: { speaker: !textOnly, participant: provider ? participantSpeechFromStores(provider) : false },
+    speaks: { speaker: speak.other, participant: runSpeech ?? speak.them },
+    ears,
+    outletDevices: { other: labelOf('other'), them: labelOf('them') },
   };
 }
 
-/**
- * The footer's ears legend: which language plays in each ear, whether the left is mine, and the
- * ear nothing plays in when one leg is silent (Kizuna Soniox's participant today). Absent when
- * nothing plays in an ear: not face-to-face, or Text Only.
- */
-export function earsLegend(view: FaceToFaceView): { leftLang: string; rightLang: string; leftIsMe: boolean; silent?: Ear } | null {
+export interface EarsLegendEntry { who: 'me' | 'other'; lang: string; ear?: Ear; device: string | null }
+
+/** The footer's ears strip: one entry per voiced leg — who, their language, the ear when the outlet has one, the device. The left ear first; otherwise me first. */
+export function earsLegend(view: FaceToFaceView): EarsLegendEntry[] | null {
   if (!view.active || !view.me || !view.other) return null;
-  if (!view.speaks.speaker && !view.speaks.participant) return null;
-  const ears = earsFor(view.swap);
-  // My ear is where the participant leg's translation (into my language) plays.
-  const leftIsMe = ears.participant === 'left';
-  const silent = !view.speaks.participant ? ears.participant : !view.speaks.speaker ? ears.speaker : undefined;
-  return {
-    leftLang: leftIsMe ? view.me : view.other,
-    rightLang: leftIsMe ? view.other : view.me,
-    leftIsMe,
-    ...(silent ? { silent } : {}),
-  };
+  const entries: EarsLegendEntry[] = [];
+  // My ear is where the participant leg's translation (into my language) plays; theirs, the speaker leg's.
+  if (view.speaks.participant) entries.push({ who: 'me', lang: view.me, ...(view.ears.participant ? { ear: view.ears.participant } : {}), device: view.outletDevices.them });
+  if (view.speaks.speaker) entries.push({ who: 'other', lang: view.other, ...(view.ears.speaker ? { ear: view.ears.speaker } : {}), device: view.outletDevices.other });
+  if (entries.length === 0) return null;
+  const rank = (e: EarsLegendEntry) => (e.ear === 'left' ? 0 : e.ear === 'right' ? 2 : 1);
+  return entries.sort((a, b) => rank(a) - rank(b));
 }
 
-/** The conversation's ear tags: the ear each voiced leg's translation plays in. A silent leg has none. Absent outside face-to-face, or when no leg is voiced. */
-export function voicedEars(view: FaceToFaceView): Partial<Record<LegName, Ear>> | null {
+/** The conversation's ear tags: every voiced leg has an entry, its ear when the outlet is panned and 'centre' when it is not; a silent leg has none. */
+export function voicedEars(view: FaceToFaceView): Partial<Record<LegName, Ear | 'centre'>> | null {
   if (!view.active || (!view.speaks.speaker && !view.speaks.participant)) return null;
-  const ears = earsFor(view.swap);
   return {
-    ...(view.speaks.speaker ? { speaker: ears.speaker } : {}),
-    ...(view.speaks.participant ? { participant: ears.participant } : {}),
+    ...(view.speaks.speaker ? { speaker: view.ears.speaker ?? 'centre' } : {}),
+    ...(view.speaks.participant ? { participant: view.ears.participant ?? 'centre' } : {}),
   };
 }

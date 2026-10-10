@@ -50,13 +50,13 @@ describe('SessionControls', () => {
     render(<SessionControls runner={runner} turnMode="auto" />);
     fireEvent.click(screen.getByRole('button', { name: 'Start' }));
     expect(runner.start).toHaveBeenCalled();
-    act(() => { state.setState({ phase: 'running', since: 0, legs: { speaker: 'live' } }, true); });
+    act(() => { state.setState({ phase: 'running', participantSpeech: false, since: 0, legs: { speaker: 'live' } }, true); });
     fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
     expect(runner.stop).toHaveBeenCalled();
   });
 
   it('holds a turn with the pointer, releasing on up, leave and cancel', () => {
-    const { runner } = fakeRunner({ phase: 'running', since: 0, legs: { speaker: 'live' } });
+    const { runner } = fakeRunner({ phase: 'running', participantSpeech: false, since: 0, legs: { speaker: 'live' } });
     render(<SessionControls runner={runner} turnMode="push-to-talk" />);
     const hold = screen.getByRole('button', { name: 'Hold to talk' });
     fireEvent.pointerDown(hold);
@@ -70,13 +70,13 @@ describe('SessionControls', () => {
   });
 
   it('offers no hold button under automatic turns', () => {
-    const { runner } = fakeRunner({ phase: 'running', since: 0, legs: { speaker: 'live' } });
+    const { runner } = fakeRunner({ phase: 'running', participantSpeech: false, since: 0, legs: { speaker: 'live' } });
     render(<SessionControls runner={runner} turnMode="auto" />);
     expect(screen.queryByRole('button', { name: 'Hold to talk' })).toBeNull();
   });
 
   it('sends typed text and clears', () => {
-    const { runner } = fakeRunner({ phase: 'running', since: 0, legs: { speaker: 'live' } });
+    const { runner } = fakeRunner({ phase: 'running', participantSpeech: false, since: 0, legs: { speaker: 'live' } });
     render(<SessionControls runner={runner} turnMode="auto" />);
     fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'hello' } });
     fireEvent.click(screen.getByRole('button', { name: 'Send' }));
@@ -185,12 +185,12 @@ describe('SessionControls — playback', () => {
     }
   });
 
-  it('shows the peak the real bus meter reads', () => {
+  it('shows the peak the me-outlet bus meter reads', () => {
     vi.useFakeTimers();
     try {
       const { runner } = fakeRunner();
       const audio = fakeAudio();
-      Object.assign(audio.playback, { meter: (bus: string) => (bus === 'real' ? { read: () => Float32Array.of(0.1, 0.4) } : null) });
+      Object.assign(audio.playback, { meter: (bus: string) => (bus === 'me' ? { read: () => Float32Array.of(0.1, 0.4) } : null) });
       render(<SessionControls runner={runner} turnMode="auto" audio={audio} />);
       act(() => { vi.advanceTimersByTime(100); });
       expect(document.querySelector('[data-probe="playback"]')?.textContent).toBe('heard: - · tap peak: 0.000 · bus peak: 0.400 · gaps: 0 (0 ms) at -');
@@ -205,7 +205,7 @@ describe('SessionControls — playback', () => {
       const { runner } = fakeRunner();
       const audio = fakeAudio();
       let busLevel = Float32Array.of(0.6);
-      Object.assign(audio.playback, { meter: (bus: string) => (bus === 'real' ? { read: () => busLevel } : null) });
+      Object.assign(audio.playback, { meter: (bus: string) => (bus === 'me' ? { read: () => busLevel } : null) });
       render(<SessionControls runner={runner} turnMode="auto" audio={audio} />);
       act(() => { vi.advanceTimersByTime(100); });
       // The bus has gone quiet: the analyser now reads zeros, as it does once

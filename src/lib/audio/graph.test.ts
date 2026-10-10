@@ -34,27 +34,29 @@ async function setup(virtual: 'device' | 'tabs' | 'none' = 'device') {
     },
     virtual: virtual === 'tabs' ? { kind: 'tabs', send: (chunk) => { sent.push(chunk); } } : { kind: virtual },
   });
-  // The real element is created first, then the virtual one (Electron).
-  const [real, virtualSink] = sinks;
+  // One element per outlet, in OUTLET_NAMES order, then the virtual one (Electron).
+  const [other, me, them, virtualSink] = sinks;
+  /** Sinks for one outlet device, the others following the browser default. */
+  const on = (device: string | undefined, virtual?: string) => ({ virtual, other: {}, me: { device }, them: {} });
   const destinationOf = (sink: FakeSink): FakeNode => ctx.destinations.find((d) => d.stream === sink.srcObject)!;
   /** Plays a clip into a feed; returns its source node. */
   const clip = (feed: 'speaker' | 'participant' | 'replay' | 'passthrough'): FakeBufferSource => {
     graph.timeline(feed).play(new Int16Array(2400), 0, () => {});
     return ctx.sources[ctx.sources.length - 1];
   };
-  return { ctx, graph, sinks, real, virtualSink, taps, sent, destinationOf, clip };
+  return { ctx, graph, sinks, other, me, them, virtualSink, on, taps, sent, destinationOf, clip };
 }
 
 describe('createAudioGraph — routes', () => {
   it("sends the speaker's translation only where the edges say", async () => {
-    const { graph, real, virtualSink, destinationOf, clip } = await setup();
+    const { graph, me, virtualSink, destinationOf, clip } = await setup();
     graph.route([{ from: 'speaker', to: 'virtual', gain: 1 }]);
     const source = clip('speaker');
     expect(reaches(source, destinationOf(virtualSink))).toBe(true);
-    expect(reaches(source, destinationOf(real))).toBe(false);
-    graph.route([{ from: 'speaker', to: 'real', gain: 1 }]);
+    expect(reaches(source, destinationOf(me))).toBe(false);
+    graph.route([{ from: 'speaker', to: 'me', gain: 1 }]);
     expect(reaches(source, destinationOf(virtualSink))).toBe(false);
-    expect(reaches(source, destinationOf(real))).toBe(true);
+    expect(reaches(source, destinationOf(me))).toBe(true);
   });
 
   it('applies a diff: a changed gain is updated in place, a missing edge is disconnected', async () => {
@@ -72,10 +74,10 @@ describe('createAudioGraph — routes', () => {
   });
 
   it('ignores an edge to a bus this platform lacks (the web build has no virtual device)', async () => {
-    const { graph, sinks, real, destinationOf, clip } = await setup('none');
-    expect(sinks).toHaveLength(1);
+    const { graph, sinks, me, destinationOf, clip } = await setup('none');
+    expect(sinks).toHaveLength(3);
     graph.route([{ from: 'speaker', to: 'virtual', gain: 1 }]);
-    expect(reaches(clip('speaker'), destinationOf(real))).toBe(false);
+    expect(reaches(clip('speaker'), destinationOf(me))).toBe(false);
   });
 
   it("sends the extension's virtual bus to the tabs", async () => {
@@ -94,67 +96,103 @@ describe('createAudioGraph — routes', () => {
     expect(reaches(clip('passthrough'), destinationOf(virtualSink))).toBe(true);
   });
 
-  it('pans an edge through a stereo panner, and replaces it when the pan changes (Review Focus 3)', async () => {
-    const { ctx, graph, real, destinationOf, clip } = await setup();
-    graph.route([{ from: 'speaker', to: 'real', gain: 1, pan: 1 }]);
+  it('puts a panner in an outlet\'s path only while it has a channel, and re-wires it from panned to centred and back (Review Focus 2)', async () => {
+    const { ctx, graph, other, destinationOf, clip } = await setup();
+    graph.route([{ from: 'speaker', to: 'other', gain: 1 }]);
     const source = clip('speaker');
-    expect(reaches(source, destinationOf(real))).toBe(true);
-    expect(ctx.panners.map((p) => p.pan.value)).toEqual([1]);
-    graph.route([{ from: 'speaker', to: 'real', gain: 1, pan: -1 }]);
-    expect(reaches(source, destinationOf(real))).toBe(true);
-    expect(ctx.panners.map((p) => p.pan.value)).toEqual([1, -1]);
-    // The first panner is out of the path.
+    // Centred: no panner between the bus and its stream.
+    expect(ctx.panners.map((p) => p.pan.value)).toEqual([0, 0, 0]);
+    expect(ctx.panners.every((p) => p.outputs.size === 0)).toBe(true);
+    expect(reaches(source, destinationOf(other))).toBe(true);
+    await graph.setSinks({ other: { pan: 1 }, me: {}, them: {} });
+    expect(ctx.panners[0].pan.value).toBe(1);
+    expect(reaches(source, ctx.panners[0])).toBe(true);
+    expect(reaches(ctx.panners[0], destinationOf(other))).toBe(true);
+    await graph.setSinks({ other: {}, me: {}, them: {} });
     expect(ctx.panners[0].outputs.size).toBe(0);
+    expect(reaches(source, destinationOf(other))).toBe(true);
+    expect(reaches(source, ctx.panners[0])).toBe(false);
+  });
+
+  it('pans each outlet on its own, and keeps a pan across an unchanged setSinks', async () => {
+    const { ctx, graph } = await setup();
+    await graph.setSinks({ other: { pan: 1 }, me: {}, them: { pan: -1 } });
+    expect(ctx.panners.map((p) => p.pan.value)).toEqual([1, 0, -1]);
+    expect(ctx.panners[1].outputs.size).toBe(0);
+    await graph.setSinks({ other: { pan: 1 }, me: {}, them: { pan: -1 } });
+    expect(ctx.panners[0].outputs.size).toBe(1);
+    expect(ctx.panners[2].outputs.size).toBe(1);
+  });
+
+  it('re-pans an outlet from one ear to the other without leaving the old wiring behind (the swap)', async () => {
+    const { ctx, graph, other, destinationOf, clip } = await setup();
+    graph.route([{ from: 'speaker', to: 'other', gain: 1 }]);
+    const source = clip('speaker');
+    await graph.setSinks({ other: { pan: 1 }, me: {}, them: {} });
+    await graph.setSinks({ other: { pan: -1 }, me: {}, them: {} });
+    expect(ctx.panners[0].pan.value).toBe(-1);
+    expect(reaches(source, ctx.panners[0])).toBe(true);
+    expect(reaches(ctx.panners[0], destinationOf(other))).toBe(true);
+    // One panner, in the path exactly once: the bus feeds it, it feeds the stream.
+    expect(ctx.panners[0].outputs.size).toBe(1);
+    expect(ctx.panners).toHaveLength(3);
   });
 });
 
 describe('createAudioGraph — outputs', () => {
-  it('plays the real element from the start, on the monitor device once one is set', async () => {
-    const { graph, real } = await setup();
-    expect(real.paused).toBe(false);
-    await graph.setSinks({ real: 'monitor-1' });
-    expect(real.sinkId).toBe('monitor-1');
+  it('plays every outlet element from the start, each on its own device', async () => {
+    const { graph, other, me, them } = await setup();
+    expect([other.paused, me.paused, them.paused]).toEqual([false, false, false]);
+    await graph.setSinks({ other: { device: 'usb' }, me: { device: 'airpods' }, them: { device: 'airpods' } });
+    expect([other.sinkId, me.sinkId, them.sinkId]).toEqual(['usb', 'airpods', 'airpods']);
+  });
+
+  it('plays the me element from the start, on the monitor device once one is set', async () => {
+    const { graph, me, on } = await setup();
+    expect(me.paused).toBe(false);
+    await graph.setSinks(on('monitor-1'));
+    expect(me.sinkId).toBe('monitor-1');
   });
 
   it('retries a monitor device whose switch failed once it is asked for again', async () => {
-    const { graph, real } = await setup();
+    const { graph, me, on } = await setup();
     let fail = true;
-    real.setSinkId = async (id: string) => {
+    me.setSinkId = async (id: string) => {
       if (fail) throw new Error('NotFoundError');
-      real.sinkId = id;
+      me.sinkId = id;
     };
-    await graph.setSinks({ real: 'monitor-1' });
-    expect(real.sinkId).toBe('');
-    expect(real.paused).toBe(false);
+    await graph.setSinks(on('monitor-1'));
+    expect(me.sinkId).toBe('');
+    expect(me.paused).toBe(false);
     fail = false;
-    await graph.setSinks({ real: 'monitor-1' });
-    expect(real.sinkId).toBe('monitor-1');
+    await graph.setSinks(on('monitor-1'));
+    expect(me.sinkId).toBe('monitor-1');
   });
 
   it('keeps the virtual element silent until it points at a virtual device, and silent again without one', async () => {
-    const { graph, virtualSink } = await setup();
+    const { graph, virtualSink, on } = await setup();
     expect(virtualSink.paused).toBe(true);
-    await graph.setSinks({ virtual: 'cable-1' });
+    await graph.setSinks(on(undefined, 'cable-1'));
     expect(virtualSink.sinkId).toBe('cable-1');
     expect(virtualSink.paused).toBe(false);
-    await graph.setSinks({ virtual: undefined });
+    await graph.setSinks(on(undefined, undefined));
     expect(virtualSink.paused).toBe(true);
   });
 
   it('keeps the virtual element silent when pointing it at its device fails', async () => {
-    const { graph, virtualSink } = await setup();
+    const { graph, virtualSink, on } = await setup();
     virtualSink.setSinkId = async () => { throw new Error('NotFoundError'); };
-    await graph.setSinks({ virtual: 'cable-1' });
+    await graph.setSinks(on(undefined, 'cable-1'));
     expect(virtualSink.paused).toBe(true);
   });
 
   it('the virtual element does not start while its device switch is pending, even when resumed', async () => {
-    const { graph, virtualSink } = await setup();
+    const { graph, virtualSink, on } = await setup();
     let resolveSwitch!: () => void;
     virtualSink.setSinkId = (id: string) => new Promise<void>((resolve) => {
       resolveSwitch = () => { virtualSink.sinkId = id; resolve(); };
     });
-    const switching = graph.setSinks({ virtual: 'cable-1' });
+    const switching = graph.setSinks(on(undefined, 'cable-1'));
     await graph.resume();
     expect(virtualSink.paused).toBe(true);
     resolveSwitch();
@@ -164,9 +202,9 @@ describe('createAudioGraph — outputs', () => {
   });
 
   it('a virtual element that cannot choose its device never plays', async () => {
-    const { graph, virtualSink } = await setup();
+    const { graph, virtualSink, on } = await setup();
     (virtualSink as { setSinkId?: unknown }).setSinkId = undefined;
-    await graph.setSinks({ virtual: 'cable-1' });
+    await graph.setSinks(on(undefined, 'cable-1'));
     await graph.resume();
     expect(virtualSink.paused).toBe(true);
   });
@@ -178,17 +216,17 @@ describe('createAudioGraph — outputs', () => {
   // a request overtaken in the same tick never reaches the element at all.
 
   it('switches one device at a time per bus, and skips a switch a newer one overtook before its turn', async () => {
-    const { graph, real } = await setup();
+    const { graph, me, on } = await setup();
     const calls: string[] = [];
     const land: Array<() => void> = [];
-    real.setSinkId = (id: string) => {
+    me.setSinkId = (id: string) => {
       calls.push(id);
-      return new Promise<void>((resolve) => { land.push(() => { real.sinkId = id; resolve(); }); });
+      return new Promise<void>((resolve) => { land.push(() => { me.sinkId = id; resolve(); }); });
     };
-    const first = graph.setSinks({ real: 'monitor-a' });
+    const first = graph.setSinks(on('monitor-a'));
     await settle();
-    const second = graph.setSinks({ real: 'monitor-b' });
-    const third = graph.setSinks({ real: 'monitor-c' });
+    const second = graph.setSinks(on('monitor-b'));
+    const third = graph.setSinks(on('monitor-c'));
     await settle();
     // monitor-b and monitor-c wait for monitor-a: no two switches overlap on one element.
     expect(calls).toEqual(['monitor-a']);
@@ -199,22 +237,22 @@ describe('createAudioGraph — outputs', () => {
     expect(calls).toEqual(['monitor-a', 'monitor-c']);
     land.shift()!();
     await Promise.all([second, third]);
-    expect(real.sinkId).toBe('monitor-c');
+    expect(me.sinkId).toBe('monitor-c');
     // monitor-a settled within its turn, so nothing switches again.
     await settle();
     expect(calls).toEqual(['monitor-a', 'monitor-c']);
   });
 
   it("a stale switch's failure neither forgets nor pauses the newer selection", async () => {
-    const { graph, virtualSink } = await setup();
+    const { graph, virtualSink, on } = await setup();
     const outcome: Record<string, { ok: () => void; fail: () => void }> = {};
     virtualSink.setSinkId = (id: string) => new Promise<void>((resolve, reject) => {
       outcome[id] = { ok: () => { virtualSink.sinkId = id; resolve(); }, fail: () => reject(new Error('NotFoundError')) };
     });
     reportWarningSpy.mockClear();
-    const first = graph.setSinks({ virtual: 'cable-1' });
+    const first = graph.setSinks(on(undefined, 'cable-1'));
     await settle();
-    const second = graph.setSinks({ virtual: 'cable-2' });
+    const second = graph.setSinks(on(undefined, 'cable-2'));
     outcome['cable-1'].fail();
     await first;
     await settle();
@@ -229,12 +267,12 @@ describe('createAudioGraph — outputs', () => {
   });
 
   it('turning the virtual output off while a switch is pending keeps it silent when that switch lands', async () => {
-    const { graph, virtualSink } = await setup();
+    const { graph, virtualSink, on } = await setup();
     let land!: () => void;
     virtualSink.setSinkId = (id: string) => new Promise<void>((resolve) => { land = () => { virtualSink.sinkId = id; resolve(); }; });
-    const first = graph.setSinks({ virtual: 'cable-1' });
+    const first = graph.setSinks(on(undefined, 'cable-1'));
     await settle();
-    await graph.setSinks({ virtual: undefined });
+    await graph.setSinks(on(undefined, undefined));
     land();
     await first;
     await graph.resume();
@@ -242,16 +280,16 @@ describe('createAudioGraph — outputs', () => {
   });
 
   it('a switch landing or still queued at close() neither reaches nor starts the element', async () => {
-    const { graph, real } = await setup();
+    const { graph, me, on } = await setup();
     const calls: string[] = [];
     const land: Array<() => void> = [];
-    real.setSinkId = (id: string) => {
+    me.setSinkId = (id: string) => {
       calls.push(id);
-      return new Promise<void>((resolve) => { land.push(() => { real.sinkId = id; resolve(); }); });
+      return new Promise<void>((resolve) => { land.push(() => { me.sinkId = id; resolve(); }); });
     };
-    const first = graph.setSinks({ real: 'monitor-a' });
+    const first = graph.setSinks(on('monitor-a'));
     await settle();
-    const second = graph.setSinks({ real: 'monitor-b' });
+    const second = graph.setSinks(on('monitor-b'));
     const closed = graph.close();
     for (const release of land.splice(0)) release();
     await settle();
@@ -259,29 +297,29 @@ describe('createAudioGraph — outputs', () => {
     // Whatever did reach the element lands too, so a regression fails above instead of hanging here.
     for (const release of land.splice(0)) release();
     await Promise.all([first, second, closed]);
-    expect(real.paused).toBe(true);
+    expect(me.paused).toBe(true);
   });
 
   it('ignores an interrupted play() (AbortError), but reports any other failure to start', async () => {
-    const { graph, real } = await setup();
+    const { graph, me } = await setup();
     reportWarningSpy.mockClear();
-    real.pause();
-    real.play = async () => { throw new DOMException('interrupted', 'AbortError'); };
+    me.pause();
+    me.play = async () => { throw new DOMException('interrupted', 'AbortError'); };
     await graph.resume();
     expect(reportWarningSpy.mock.calls.some(([, message]) => String(message).includes('did not start'))).toBe(false);
-    real.pause();
-    real.play = async () => { throw new Error('NotAllowedError'); };
+    me.pause();
+    me.play = async () => { throw new Error('NotAllowedError'); };
     await graph.resume();
     expect(reportWarningSpy.mock.calls.some(([, message]) => String(message).includes('did not start'))).toBe(true);
   });
 
-  it('resume() resumes a suspended context and restarts a paused real element', async () => {
-    const { ctx, graph, real, virtualSink } = await setup();
+  it('resume() resumes a suspended context and restarts a paused me element', async () => {
+    const { ctx, graph, me, virtualSink } = await setup();
     ctx.state = 'suspended';
-    real.pause();
+    me.pause();
     await graph.resume();
     expect(ctx.resumed).toBe(1);
-    expect(real.paused).toBe(false);
+    expect(me.paused).toBe(false);
     expect(virtualSink.paused).toBe(true);
   });
 
@@ -293,10 +331,10 @@ describe('createAudioGraph — outputs', () => {
   });
 
   it('close() pauses the outputs and closes the context', async () => {
-    const { ctx, graph, real } = await setup();
+    const { ctx, graph, me } = await setup();
     await graph.close();
-    expect(real.paused).toBe(true);
-    expect(real.srcObject).toBeNull();
+    expect(me.paused).toBe(true);
+    expect(me.srcObject).toBeNull();
     expect(ctx.closed).toBe(1);
   });
 
@@ -331,10 +369,10 @@ describe('createAudioGraph — outputs', () => {
   });
 
   it('reports an output that will not start once per failing streak, not per chunk', async () => {
-    const { graph, real } = await setup();
+    const { graph, me } = await setup();
     reportWarningSpy.mockClear();
-    real.pause();
-    real.play = () => Promise.reject(new DOMException('blocked', 'NotAllowedError'));
+    me.pause();
+    me.play = () => Promise.reject(new DOMException('blocked', 'NotAllowedError'));
     await graph.resume();
     await graph.resume();
     await graph.resume();
@@ -371,9 +409,9 @@ describe('createAudioGraph — the tts tap', () => {
 describe('createAudioGraph — meters', () => {
   it('meter(bus) connects an analyser from the bus to the destination (the muted path)', async () => {
     const { ctx, graph, clip } = await setup();
-    const meter = graph.meter('real');
+    const meter = graph.meter('me');
     expect(meter).not.toBeNull();
-    graph.route([{ from: 'speaker', to: 'real', gain: 1 }]);
+    graph.route([{ from: 'speaker', to: 'me', gain: 1 }]);
     const source = clip('speaker');
     expect(reaches(source, ctx.analysers[0])).toBe(true);
   });
@@ -381,19 +419,20 @@ describe('createAudioGraph — meters', () => {
   it('is null where the platform lacks the bus', async () => {
     const { graph } = await setup('none');
     expect(graph.meter('virtual')).toBeNull();
+    expect(graph.meter('me')).not.toBeNull();
   });
 
   it('returns the same object and one analyser however often it is asked', async () => {
     const { ctx, graph } = await setup();
-    const first = graph.meter('real');
-    const second = graph.meter('real');
+    const first = graph.meter('me');
+    const second = graph.meter('me');
     expect(second).toBe(first);
     expect(ctx.analysers).toHaveLength(1);
   });
 
   it("reads the analyser's level, scaled to 0-1", async () => {
     const { ctx, graph } = await setup();
-    const meter = graph.meter('real')!;
+    const meter = graph.meter('me')!;
     ctx.analysers[0].level = 0.5;
     expect([...meter.read()]).toEqual(new Array(16).fill(Math.fround(128 / 255)));
   });
@@ -425,13 +464,13 @@ describe('createAudioGraph — clips', () => {
     await expect(shot.ended).resolves.toBeUndefined();
   });
 
-  it('plays a one-shot through a panner when asked for one ear, and drops it at the end', async () => {
+  it('plays a one-shot on the preview feed with no panner of its own: the outlet pans it', async () => {
     const { ctx, graph } = await setup();
-    const shot = graph.playOnce(new Float32Array(240), 24_000, -1);
-    expect(ctx.panners.map((p) => p.pan.value)).toEqual([-1]);
+    const before = ctx.panners.length;
+    const shot = graph.playOnce(new Float32Array(240), 24_000);
+    expect(ctx.panners).toHaveLength(before);
     shot.stop();
     await shot.ended;
-    expect(ctx.panners[0].outputs.size).toBe(0);
   });
 
   it('an empty one-shot has ended already and plays nothing', async () => {
@@ -509,13 +548,15 @@ async function setupRecovering({ replace = true, virtual = 'device' }: { replace
         }
       : {}),
   });
-  const [real, virtualSink] = sinks;
+  const [other, me, them, virtualSink] = sinks;
+  /** Sinks for one outlet device, the others following the browser default. */
+  const on = (device: string | undefined, virtual?: string) => ({ virtual, other: {}, me: { device }, them: {} });
   /** The stream destination a sink plays, on the given context (undefined when it plays another context's). */
   const destinationOn = (ctx: FakeAudioContext, sink: FakeSink): FakeNode | undefined =>
     ctx.destinations.find((d) => d.stream === sink.srcObject);
   const tapsOn = (ctx: FakeAudioContext) => taps.filter((t) => t.ctx === ctx.asContext()).map((t) => t.node);
   const flush = () => new Promise((r) => setTimeout(r, 0));
-  return { first, contexts, clock, graph, sinks, real, virtualSink, sent, control, destinationOn, tapsOn, flush };
+  return { first, contexts, clock, graph, sinks, other, me, them, virtualSink, on, sent, control, destinationOn, tapsOn, flush };
 }
 
 /** Wedges a context (the newest by default) so that resuming it never lands, and lets the watch run its course. */
@@ -536,7 +577,7 @@ const rebuildFailures = () => withKey(reportErrorSpy, 'graph:rebuild-failed');
 
 describe('createAudioGraph — a wedged context (#246)', () => {
   it('rebuilds a context left suspended by something else', async () => {
-    const { first, contexts, clock, graph, real, destinationOn, flush } = await setupRecovering();
+    const { first, contexts, clock, graph, me, destinationOn, flush } = await setupRecovering();
     first.stuck = true;
     first.wedge();
     clock.advance(249);
@@ -547,8 +588,8 @@ describe('createAudioGraph — a wedged context (#246)', () => {
     await flush();
     expect(first.closed).toBe(1);
     expect(contexts).toHaveLength(2);
-    expect(destinationOn(contexts[1], real)).toBeDefined();
-    expect(destinationOn(first, real)).toBeUndefined();
+    expect(destinationOn(contexts[1], me)).toBeDefined();
+    expect(destinationOn(first, me)).toBeUndefined();
     graph.timeline('speaker').play(new Int16Array(2400), 0, () => {});
     expect(contexts[1].sources).toHaveLength(1);
     expect(first.sources).toHaveLength(0);
@@ -556,13 +597,13 @@ describe('createAudioGraph — a wedged context (#246)', () => {
 
   it('keeps the routes across a rebuild', async () => {
     const setup = await setupRecovering();
-    const { contexts, graph, real, virtualSink, destinationOn } = setup;
-    graph.route([{ from: 'speaker', to: 'real', gain: 1 }]);
+    const { contexts, graph, me, virtualSink, destinationOn } = setup;
+    graph.route([{ from: 'speaker', to: 'me', gain: 1 }]);
     await wedgeFor(setup);
     expect(contexts).toHaveLength(2);
     graph.timeline('speaker').play(new Int16Array(2400), 0, () => {});
     const source = contexts[1].sources[contexts[1].sources.length - 1];
-    expect(reaches(source, destinationOn(contexts[1], real)!)).toBe(true);
+    expect(reaches(source, destinationOn(contexts[1], me)!)).toBe(true);
     expect(reaches(source, destinationOn(contexts[1], virtualSink)!)).toBe(false);
   });
 
@@ -689,19 +730,19 @@ describe('createAudioGraph — a wedged context (#246)', () => {
   });
 
   it('close() does not hang on a context whose close never settles', async () => {
-    const { first, clock, graph, real } = await setupRecovering();
+    const { first, clock, graph, me } = await setupRecovering();
     first.close = () => new Promise<void>(() => {});
     const closed = graph.close();
     clock.advance(CLOSE_WAIT_MS);
     await expect(closed).resolves.toBeUndefined();
-    expect(real.srcObject).toBeNull();
+    expect(me.srcObject).toBeNull();
   });
 
   it('starts on the new clock what was scheduled while the rebuild ran', async () => {
     const { first, contexts, clock, graph, flush } = await setupRecovering();
-    // Speaker clips reach the real bus, passthrough the virtual one.
+    // Speaker clips reach the outlets, passthrough the virtual one.
     const routing: RoutingSource = {
-      get: () => ({ meeting: false, monitor: true, participantSpeech: false, passthrough: { on: true, ratio: 1 }, sinks: {} }),
+      get: () => ({ meeting: true, faceToFace: false, speak: { other: true, me: false, them: false }, passthrough: { on: true, ratio: 1 }, sinks: { other: {}, me: {}, them: {} } }),
       subscribe: () => () => {},
     };
     const playback = createPlayback(graph, routing, clock);
@@ -736,21 +777,23 @@ describe('createAudioGraph — a wedged context (#246)', () => {
     expect(contexts).toHaveLength(3);
   });
 
-  it('keeps both outputs on their devices and playing across a rebuild', async () => {
+  it('keeps the me outlet and the virtual output on their devices, the them pan, and both playing across a rebuild', async () => {
     const setup = await setupRecovering();
-    const { contexts, graph, real, virtualSink, destinationOn } = setup;
-    await graph.setSinks({ real: 'monitor-1', virtual: 'cable-1' });
-    const before = { real: real.plays, virtual: virtualSink.plays };
+    const { contexts, graph, me, virtualSink, on, destinationOn } = setup;
+    await graph.setSinks({ ...on('monitor-1', 'cable-1'), them: { pan: -1 } });
+    const before = { me: me.plays, virtual: virtualSink.plays };
     await wedgeFor(setup);
-    expect(destinationOn(contexts[1], real)).toBeDefined();
+    expect(destinationOn(contexts[1], me)).toBeDefined();
     expect(destinationOn(contexts[1], virtualSink)).toBeDefined();
     // A new source pauses an element, as a browser's load algorithm does: the rebuild plays both again.
-    expect(real.paused).toBe(false);
+    expect(me.paused).toBe(false);
     expect(virtualSink.paused).toBe(false);
-    expect(real.plays).toBe(before.real + 1);
+    expect(me.plays).toBe(before.me + 1);
     expect(virtualSink.plays).toBe(before.virtual + 1);
-    expect(real.sinkId).toBe('monitor-1');
+    expect(me.sinkId).toBe('monitor-1');
     expect(virtualSink.sinkId).toBe('cable-1');
+    expect(contexts[1].panners.map((p) => p.pan.value)).toEqual([0, 0, -1]);
+    expect(contexts[1].panners[2].outputs.size).toBe(1);
   });
 
   it('moves the tts tap and the tabs bus to the new context', async () => {
@@ -776,7 +819,7 @@ describe('createAudioGraph — a wedged context (#246)', () => {
   it('keeps a bus meter across a rebuild, reading an analyser on the new context', async () => {
     const setup = await setupRecovering();
     const { contexts, graph } = setup;
-    const meter = graph.meter('real');
+    const meter = graph.meter('me');
     await wedgeFor(setup);
     expect(contexts).toHaveLength(2);
     expect(contexts[1].analysers).toHaveLength(1);
@@ -830,8 +873,8 @@ describe('createAudioGraph — a wedged context (#246)', () => {
 
   it('a build that throws leaves every output on the context it keeps', async () => {
     const setup = await setupRecovering();
-    const { first, contexts, real, virtualSink, control, destinationOn, flush } = setup;
-    // The replacement's second stream destination (the virtual bus's) fails, after the real one was made.
+    const { first, contexts, me, virtualSink, control, destinationOn, flush } = setup;
+    // The replacement's second stream destination (the second outlet's) fails, after the first outlet's was made.
     control.onNew = (ctx) => {
       let made = 0;
       const create = ctx.createMediaStreamDestination.bind(ctx);
@@ -853,7 +896,7 @@ describe('createAudioGraph — a wedged context (#246)', () => {
     }
     expect(contexts[1].closed).toBe(1);
     expect(rebuildFailures()).toHaveLength(1);
-    expect(destinationOn(first, real)).toBeDefined();
+    expect(destinationOn(first, me)).toBeDefined();
     expect(destinationOn(first, virtualSink)).toBeDefined();
   });
 
@@ -898,60 +941,60 @@ describe('createAudioGraph — a wedged context (#246)', () => {
   });
 
   it('a device switch that never settles holds its bus only until the deadline', async () => {
-    const { graph, real, clock, flush } = await setupRecovering();
+    const { graph, me, clock, flush, on } = await setupRecovering();
     const calls: string[] = [];
-    real.setSinkId = (id: string) => {
+    me.setSinkId = (id: string) => {
       calls.push(id);
-      return id === 'gone' ? new Promise<void>(() => {}) : Promise.resolve().then(() => { real.sinkId = id; });
+      return id === 'gone' ? new Promise<void>(() => {}) : Promise.resolve().then(() => { me.sinkId = id; });
     };
-    void graph.setSinks({ real: 'gone' });
+    void graph.setSinks(on('gone'));
     await flush();
-    const next = graph.setSinks({ real: 'monitor-b' });
+    const next = graph.setSinks(on('monitor-b'));
     await flush();
     expect(calls).toEqual(['gone']);
     clock.advance(SINK_SWITCH_DEADLINE_MS);
     await flush();
     expect(calls).toEqual(['gone', 'monitor-b']);
     await next;
-    expect(real.sinkId).toBe('monitor-b');
+    expect(me.sinkId).toBe('monitor-b');
     expect(clock.pending).toBe(0);
   });
 
   it('a switch that overran its deadline and lands after the newer one is undone: the bus ends on the newer device', async () => {
-    const { graph, real, clock, flush } = await setupRecovering();
+    const { graph, me, clock, flush, on } = await setupRecovering();
     const calls: string[] = [];
     let landSlow!: () => void;
-    real.setSinkId = (id: string) => {
+    me.setSinkId = (id: string) => {
       calls.push(id);
-      if (id === 'bt-headset') return new Promise<void>((resolve) => { landSlow = () => { real.sinkId = id; resolve(); }; });
-      return Promise.resolve().then(() => { real.sinkId = id; });
+      if (id === 'bt-headset') return new Promise<void>((resolve) => { landSlow = () => { me.sinkId = id; resolve(); }; });
+      return Promise.resolve().then(() => { me.sinkId = id; });
     };
-    void graph.setSinks({ real: 'bt-headset' });
+    void graph.setSinks(on('bt-headset'));
     await flush();
-    const next = graph.setSinks({ real: 'speakers' });
+    const next = graph.setSinks(on('speakers'));
     clock.advance(SINK_SWITCH_DEADLINE_MS);
     await flush();
     await next;
-    expect(real.sinkId).toBe('speakers');
+    expect(me.sinkId).toBe('speakers');
     // The slow switch lands late and moves the element back…
     landSlow();
     await flush();
     // …and the bus switches to the newest request again.
-    expect(real.sinkId).toBe('speakers');
+    expect(me.sinkId).toBe('speakers');
     expect(calls).toEqual(['bt-headset', 'speakers', 'speakers']);
     expect(clock.pending).toBe(0);
   });
 
   it('on the meeting bus, a late landing pauses the output until the newer device is back', async () => {
-    const { graph, virtualSink, clock, flush } = await setupRecovering();
+    const { graph, virtualSink, clock, flush, on } = await setupRecovering();
     let landSlow!: () => void;
     virtualSink.setSinkId = (id: string) => {
       if (id === 'cable-1') return new Promise<void>((resolve) => { landSlow = () => { virtualSink.sinkId = id; resolve(); }; });
       return Promise.resolve().then(() => { virtualSink.sinkId = id; });
     };
-    void graph.setSinks({ virtual: 'cable-1' });
+    void graph.setSinks(on(undefined, 'cable-1'));
     await flush();
-    const next = graph.setSinks({ virtual: 'cable-2' });
+    const next = graph.setSinks(on(undefined, 'cable-2'));
     clock.advance(SINK_SWITCH_DEADLINE_MS);
     await flush();
     await next;
@@ -967,17 +1010,17 @@ describe('createAudioGraph — a wedged context (#246)', () => {
   });
 
   it('a late landing after the meeting output was turned off leaves it off, and switches nothing', async () => {
-    const { graph, virtualSink, clock, flush } = await setupRecovering();
+    const { graph, virtualSink, clock, flush, on } = await setupRecovering();
     const calls: string[] = [];
     let landSlow!: () => void;
     virtualSink.setSinkId = (id: string) => {
       calls.push(id);
       return new Promise<void>((resolve) => { landSlow = () => { virtualSink.sinkId = id; resolve(); }; });
     };
-    void graph.setSinks({ virtual: 'cable-1' });
+    void graph.setSinks(on(undefined, 'cable-1'));
     await flush();
     clock.advance(SINK_SWITCH_DEADLINE_MS);
-    await graph.setSinks({ virtual: undefined });
+    await graph.setSinks(on(undefined, undefined));
     landSlow();
     await flush();
     expect(calls).toEqual(['cable-1']);

@@ -45,6 +45,10 @@ describe('chooseOutput', () => {
     expect(chooseOutput({ devices: [virtualSpeaker], savedId: null, currentId: null })?.deviceId).toBe('vs');
     expect(chooseOutput({ devices: [], savedId: null, currentId: null })).toBeNull();
   });
+
+  it('refuses a saved virtual output', () => {
+    expect(chooseOutput({ devices: [virtualSpeaker, real('c')], savedId: 'vs', currentId: null })?.deviceId).toBe('c');
+  });
 });
 
 describe('pickDefaultInputDevice', () => {

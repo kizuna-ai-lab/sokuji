@@ -56,7 +56,7 @@
   // truncating.
   &__label {
     flex: 0 0 128px;
-    font-size: vars.$font-caption;
+    font-size: vars.$font-body;
     color: vars.$text-secondary;
   }
 
@@ -74,21 +74,12 @@
     position: relative;
   }
 
-  // Doubled class beats the base .select-dropdown rule regardless of which
-  // stylesheet lands later in the bundle — plain .engine-slot__select ties
-  // it on specificity and silently loses to import order (measured: the
-  // 14px/8px base values were winning).
+  // The base .select-dropdown is 13px/6px app-wide since 2026-10-10, so no
+  // size is set here. The doubled class stays for `min-width: 0` and the
+  // `--missing` / `--badged` modifiers, which must win over the base rule
+  // whichever stylesheet lands later in the bundle.
   &__select.engine-slot__select {
     min-width: 0;
-    // The app-wide .select-dropdown look, one size down from the Provider
-    // control (body 13px, not title 14px, tighter padding) so five of these
-    // read as rows, not five heroes — matching .model-card__name and the
-    // option-row family's rhythm. No explicit line-height anywhere in this
-    // area: the rest of the app's rows ride the browser's normal, and a
-    // hand-set 1.4 made these rows visibly taller than their own labels.
-    font-size: vars.$font-body;
-    padding: 6px 10px;
-
     &.engine-slot__select--missing {
       color: vars.$color-error;
       border-color: rgba(vars.$color-error, 0.45);

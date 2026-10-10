@@ -1,7 +1,7 @@
 import { memo, useCallback, useRef, type CSSProperties, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowDown, Play, User, Users, VolumeX } from 'lucide-react';
-import type { Ear } from '../../lib/audio/routes';
+import type { Ear } from '../MainPanel/useFaceToFace';
 import type { LegName, SegmentId } from '../../lib/conversation/types';
 import type { DisplayItem, NoticeEntry } from '../../lib/view/filter';
 import { personShade } from '../../lib/view/people';
@@ -26,8 +26,8 @@ export interface ConversationListProps {
   onReplay(leg: LegName, segmentId: SegmentId): void;
   /** Set while replay is gated session-wide (plan 1e-3b-1 ruling 15): every slot is disabled and shows this as its title. */
   replayBlocked?: string | null;
-  /** Face-to-face (slice 3): the ear each voiced leg's translation plays in; a leg with none is never voiced. Absent or null: no ear tags. */
-  ears?: Readonly<Partial<Record<LegName, Ear>>> | null;
+  /** Face-to-face (slice 3): the ear each voiced leg's translation plays in; a voiced leg on a centred outlet is 'centre'; a leg with no entry is never voiced. Absent or null: no ear tags. */
+  ears?: Readonly<Partial<Record<LegName, Ear | 'centre'>>> | null;
   /** The action a notice's bubble offers, if any (plan 1e-3b-1 ruling 13). */
   noticeAction?(notice: NoticeEntry): NoticeAction | null;
   compact: boolean;
@@ -45,7 +45,7 @@ type RowItem = Extract<DisplayItem, { kind: 'row' }>;
  * It states what the adapter will speak, not that audio played: a degraded TTS is not reflected.
  * Null on a leg that is never voiced: nothing on it plays, so nothing on it is "not played" either.
  */
-function earTagOf(item: RowItem, ears: Readonly<Partial<Record<LegName, Ear>>>): Ear | 'muted' | null {
+function earTagOf(item: RowItem, ears: Readonly<Partial<Record<LegName, Ear | 'centre'>>>): Ear | 'centre' | 'muted' | null {
   const ear = ears[item.leg];
   if (!ear) return null;
   const language = item.row.language || item.languages.target;
@@ -144,7 +144,7 @@ interface RowBubbleProps {
   replayingOther: boolean;
   blocked: string | null;
   onReplay(leg: LegName, segmentId: SegmentId): void;
-  ear: Ear | 'muted' | null;
+  ear: Ear | 'centre' | 'muted' | null;
   compact: boolean;
 }
 

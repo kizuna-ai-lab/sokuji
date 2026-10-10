@@ -19,6 +19,7 @@ export interface ApplySetupDeps {
   /** A face-to-face scenario has met Both's other side already: its popover need not open by itself. */
   setBothPopoverSeen: (seen: boolean) => void;
   setTextOnly: (v: boolean) => void;
+  setParticipantSpeech: (on: boolean | null) => void;
   /** The provider, its pair and — on the own-key path — its credentials and
    *  the credential choice its step showed (a settings patch; F4), written
    *  where the session reads them; the one write the wizard makes besides
@@ -44,6 +45,7 @@ export async function applySetupDraft(draft: SetupDraft, deps: ApplySetupDeps): 
   deps.setOtherSide(preset.otherSide ?? 'meeting');
   if (preset.otherSide === 'beside') deps.setBothPopoverSeen(true);
   deps.setTextOnly(preset.textOnly);
+  if (preset.participantSpeech !== undefined) deps.setParticipantSpeech(preset.participantSpeech);
 
   const credentials = providerPath === 'own-key' && !draft.credentialsPending ? draft.credentials : {};
   // The credential choice the step showed is written even when the key was

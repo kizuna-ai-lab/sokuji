@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { replayBlocked } from './replayGate';
 import type { RunState } from '../../../lib/session/types';
 
-const running: RunState = { phase: 'running', since: 0, legs: { participant: 'live' } };
-const speakerOnly: RunState = { phase: 'running', since: 0, legs: { speaker: 'live' } };
+const running: RunState = { phase: 'running', participantSpeech: false, since: 0, legs: { participant: 'live' } };
+const speakerOnly: RunState = { phase: 'running', participantSpeech: false, since: 0, legs: { speaker: 'live' } };
 const idle: RunState = { phase: 'idle' };
 
 describe('replayBlocked', () => {

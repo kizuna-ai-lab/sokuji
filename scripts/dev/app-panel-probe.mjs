@@ -22,7 +22,7 @@
  * `--settings` (plan 1e-3b-2 Task 3) is a separate flow, run instead of the
  * steps below (never combined with --advanced/--ptt/--long/--refuse — exits
  * 2). It checks the Settings blocks `ProviderArea.tsx` composes (the
- * language pair, the global turn mode, the headless Output block, sentence
+ * language pair, the global turn mode, the speech block, sentence
  * segmentation, the provider picker with its chips), a chip's push-and-back
  * flow, that a language pick writes through exactly one path, and — under
  * Auto — LocalInference's speech-detection tuning in #turn-detection-section:
@@ -206,7 +206,7 @@ const SETTINGS_SEED_SCRIPT = `(() => {
 
 /**
  * The blocks a Simple page (or, in `--app`, Advanced's General tab too)
- * shows: the language pair, the global turn mode, the headless Output
+ * shows: the language pair, the global turn mode, the speech
  * block, sentence segmentation, and the provider picker with LocalInference's
  * chips. Static only — the interactive checks are `checkChipFlow` (the
  * Simple page alone: ruling 3, Advanced's General tab sends a chip click to
@@ -238,12 +238,11 @@ async function checkGeneralStatic(send, failures, prefix) {
     failures.push(`${prefix}: #turn-detection-section had ${turn?.count ?? 0} buttons (${turn?.active ?? 0} active), expected 3 (1 active)`);
   }
 
-  const output = await evaluate(send, `({
-    switches: document.querySelectorAll('#output-section input[type="checkbox"]').length,
-    heading: !!document.querySelector('#output-section h3'),
+  const speech = await evaluate(send, `({
+    switches: document.querySelectorAll('#speech-section [role="switch"]').length,
   })`);
-  if (!output || output.switches !== 2 || output.heading) {
-    failures.push(`${prefix}: #output-section had ${output?.switches ?? 0} switches and heading=${output?.heading}, expected 2 switches and no heading`);
+  if (!speech || speech.switches < 4) {
+    failures.push(`${prefix}: #speech-section had ${speech?.switches ?? 0} switches, expected at least 4`);
   }
 
   if (!(await evaluate(send, `!!document.querySelector('#sentence-segmentation-section')`))) {

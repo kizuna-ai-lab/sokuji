@@ -6,7 +6,8 @@ import SessionCountdown from '../SessionCountdown';
 import { useLanguageLabel } from '../../../lib/language/useLanguageLabel';
 import { startLabel } from './startLabel';
 import type { RunState } from '../../../lib/session/types';
-import { useSelectedMonitorDevice, type AudioMode } from '../../../stores/audioStore';
+import type { AudioMode } from '../../../stores/audioStore';
+import type { EarsLegendEntry } from '../useFaceToFace';
 import type { LanguagePair } from '../../../lib/provider/types';
 
 export interface PanelFooterProps {
@@ -34,8 +35,8 @@ export interface PanelFooterProps {
   faceToFace?: boolean;
   /** The provider offers face-to-face: Both's tooltip says so. */
   faceToFaceOffered?: boolean;
-  /** Face-to-face's ears (slice 3): which language plays in each, whether the left is mine, and the ear nothing plays in, if one. Absent or null: nothing plays in an ear. */
-  ears?: { leftLang: string; rightLang: string; leftIsMe: boolean; silent?: 'left' | 'right' } | null;
+  /** Face-to-face's ears strip: one entry per voiced leg, with its ear (when the outlet has one) and device. Absent or null: nothing plays in an ear. */
+  ears?: EarsLegendEntry[] | null;
   /** The advanced footer's input strips and output strip. */
   waveforms?: { input: ReactNode; output: ReactNode };
 }
@@ -63,30 +64,26 @@ export function PanelFooter(props: PanelFooterProps) {
   );
 }
 
-/** Which language plays in each ear, coloured by the person, and the headphones in use: face-to-face's headphones are the monitor device. An ear nothing plays in is left out. */
-function EarsLegend({ ears }: { ears: NonNullable<PanelFooterProps['ears']> }) {
+/** One entry per voiced leg, coloured by the person: the ear (when its outlet has one), the language and the device it plays on. */
+function EarsLegend({ ears }: { ears: EarsLegendEntry[] }) {
   const { t } = useTranslation();
   const label = useLanguageLabel();
-  const headphones = useSelectedMonitorDevice();
-
-  // The ring letter is decoration: the ear's name is read instead, once.
-  const earNode = (ear: 'left' | 'right', lang: string, mine: boolean) => (
-    <span className={`ears-legend__ear ears-legend__ear--${mine ? 'me' : 'other'}`}>
-      <b aria-hidden="true">{ear === 'left' ? t('faceToFace.earLeft', 'L') : t('faceToFace.earRight', 'R')}</b>
-      <span className="ears-legend__ear-name">{ear === 'left' ? t('faceToFace.leftEar', 'Left ear') : t('faceToFace.rightEar', 'Right ear')}</span>
-      <span className="ears-legend__ear-words">
-        {mine
-          ? t('faceToFace.legendMe', '{{language}} · me', { language: label(lang) })
-          : t('faceToFace.legendOther', '{{language}} · other person', { language: label(lang) })}
-      </span>
-    </span>
-  );
   return (
     <div className="ears-legend">
       <Headphones size={14} aria-hidden="true" />
-      {ears.silent !== 'left' && earNode('left', ears.leftLang, ears.leftIsMe)}
-      {ears.silent !== 'right' && earNode('right', ears.rightLang, !ears.leftIsMe)}
-      {headphones?.label && <span className="ears-legend__device">{headphones.label}</span>}
+      {ears.map((entry) => (
+        <span key={entry.who} className={`ears-legend__ear ears-legend__ear--${entry.who}`}>
+          {/* The ring letter is decoration: the ear's name is read instead, once. */}
+          {entry.ear && <b aria-hidden="true">{entry.ear === 'left' ? t('faceToFace.earLeft', 'L') : t('faceToFace.earRight', 'R')}</b>}
+          {entry.ear && <span className="ears-legend__ear-name">{entry.ear === 'left' ? t('faceToFace.leftEar', 'Left ear') : t('faceToFace.rightEar', 'Right ear')}</span>}
+          <span className="ears-legend__ear-words">
+            {entry.who === 'me'
+              ? t('faceToFace.legendMe', '{{language}} · me', { language: label(entry.lang) })
+              : t('faceToFace.legendOther', '{{language}} · other person', { language: label(entry.lang) })}
+          </span>
+          {entry.device && <span className="ears-legend__device">{entry.device}</span>}
+        </span>
+      ))}
     </div>
   );
 }

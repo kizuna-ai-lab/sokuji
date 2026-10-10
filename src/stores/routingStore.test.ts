@@ -1,3 +1,4 @@
+// src/stores/routingStore.test.ts
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 const { stored, setSetting } = vi.hoisted(() => {
@@ -18,60 +19,42 @@ import { useRoutingStore } from './routingStore';
 beforeEach(() => {
   stored.clear();
   setSetting.mockClear();
-  useRoutingStore.setState({ meeting: true, participantSpeech: false, faceToFaceSwap: false });
+  useRoutingStore.setState({ meeting: true, participantSpeech: null });
 });
 
 describe('routingStore', () => {
-  it('lets the meeting hear the translation and keeps participant speech off, until something was saved', async () => {
+  it('lets the meeting hear the translation, and leaves Translation I hear on auto, until something was saved', async () => {
     await useRoutingStore.getState().load();
-    expect(useRoutingStore.getState()).toMatchObject({ meeting: true, participantSpeech: false });
+    expect(useRoutingStore.getState()).toMatchObject({ meeting: true, participantSpeech: null });
     stored.set('settings.routing.meeting', false);
-    await useRoutingStore.getState().load();
-    expect(useRoutingStore.getState()).toMatchObject({ meeting: false, participantSpeech: false });
-  });
-
-  // The owner, 2026-10-01: the switch is hidden and participant speech stays
-  // off, so a choice saved while it showed must not turn it on unseen. The
-  // saved value is left as it was, not rewritten.
-  it('keeps participant speech off while its switch is hidden, whatever was saved', async () => {
     stored.set('settings.routing.participantSpeech', true);
     await useRoutingStore.getState().load();
-    expect(useRoutingStore.getState().participantSpeech).toBe(false);
-    expect(stored.get('settings.routing.participantSpeech')).toBe(true);
-    expect(setSetting).not.toHaveBeenCalled();
+    expect(useRoutingStore.getState()).toMatchObject({ meeting: false, participantSpeech: true });
   });
 
   it('ignores a saved value that is not a boolean', async () => {
     stored.set('settings.routing.meeting', 'yes');
+    stored.set('settings.routing.participantSpeech', 'yes');
     await useRoutingStore.getState().load();
-    expect(useRoutingStore.getState().meeting).toBe(true);
+    expect(useRoutingStore.getState()).toMatchObject({ meeting: true, participantSpeech: null });
   });
 
-  it('saves each switch', async () => {
+  it('saves each switch, auto included', async () => {
     useRoutingStore.getState().setMeeting(false);
-    useRoutingStore.getState().setParticipantSpeech(true);
-    expect(useRoutingStore.getState()).toMatchObject({ meeting: false, participantSpeech: true });
+    useRoutingStore.getState().setParticipantSpeech(false);
+    expect(useRoutingStore.getState()).toMatchObject({ meeting: false, participantSpeech: false });
+    useRoutingStore.getState().setParticipantSpeech(null);
+    expect(useRoutingStore.getState().participantSpeech).toBeNull();
     await vi.waitFor(() => {
       expect(setSetting).toHaveBeenCalledWith('settings.routing.meeting', false);
-      expect(setSetting).toHaveBeenCalledWith('settings.routing.participantSpeech', true);
+      expect(setSetting).toHaveBeenCalledWith('settings.routing.participantSpeech', false);
+      expect(setSetting).toHaveBeenCalledWith('settings.routing.participantSpeech', null);
     });
   });
-});
 
-describe('routingStore — face-to-face ears', () => {
-  it('keeps my ear on the left by default and persists a swap', async () => {
-    expect(useRoutingStore.getState().faceToFaceSwap).toBe(false);
-    useRoutingStore.getState().setFaceToFaceSwap(true);
-    expect(useRoutingStore.getState().faceToFaceSwap).toBe(true);
-    await vi.waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.routing.faceToFaceSwap', true));
-  });
-
-  it('loads a saved swap, and a non-boolean as no swap', async () => {
+  it('knows nothing of a face-to-face swap any more', async () => {
     stored.set('settings.routing.faceToFaceSwap', true);
     await useRoutingStore.getState().load();
-    expect(useRoutingStore.getState().faceToFaceSwap).toBe(true);
-    stored.set('settings.routing.faceToFaceSwap', 'yes');
-    await useRoutingStore.getState().load();
-    expect(useRoutingStore.getState().faceToFaceSwap).toBe(false);
+    expect('faceToFaceSwap' in useRoutingStore.getState()).toBe(false);
   });
 });

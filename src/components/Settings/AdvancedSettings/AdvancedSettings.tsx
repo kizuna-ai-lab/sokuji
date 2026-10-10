@@ -5,16 +5,14 @@ import { useSessionLocked } from '../../../app/useRun';
 import type { EngineSlot } from '../../../lib/provider/types';
 import { useMode } from '../../../stores/audioStore';
 import { useNavigateToSettings, useSetEngineSlotTarget } from '../../../stores/settingsStore';
-import { useTurnModeStore } from '../../../stores/turnModeStore';
 import WarningModal from '../shared/WarningModal';
 import { WarningType } from '../shared/hooks';
 import {
   AudioDeviceSection,
   SystemAudioSection,
-  VoicePassthroughSection,
+  SpeechOutputSection,
   HelpSection
 } from '../sections';
-import { useFaceToFace } from '../../MainPanel/useFaceToFace';
 import { SessionSettingsGeneral, SessionSettingsProvider } from '../ProviderArea';
 import './AdvancedSettings.scss';
 
@@ -27,10 +25,6 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings, act
   const { t } = useTranslation();
   const locked = useSessionLocked();
   const mode = useMode();
-  const faceToFace = useFaceToFace().active;
-  // The global turn mode — used to disable VoicePassthroughSection when
-  // Push-to-Translate is in effect (mutual exclusion, 1e-3 ruling 4).
-  const turnMode = useTurnModeStore((s) => s.turnMode);
   const setEngineSlotTarget = useSetEngineSlotTarget();
   const navigateToSettings = useNavigateToSettings();
 
@@ -40,21 +34,12 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings, act
     navigateToSettings('provider');
   }, [setEngineSlotTarget, navigateToSettings]);
 
-  // Per-channel lock derivation: a section out of the mode's scope is visible
-  // but disabled (greyed), so the mode picker is the master control. The mode
+  // Per-channel lock derivation: the participant block is visible but disabled
+  // (greyed) in 'You' mode, so the mode picker is the master control. The mode
   // picker is locked while a run is not idle, so the audio mode is the run's
-  // (spec: "State"). Monitor is in scope ONLY in pure speaker mode (mutex
-  // with participant) — locked in Both/Participant before and during a run so
-  // it can't be enabled where it would violate the mutex.
+  // (spec: "State"). The speech block carries its own locks.
   const lockMic = locked && mode === 'participant';
-  const lockMonitor = mode !== 'speaker';
   const lockParticipant = mode === 'speaker';
-
-  // The monitor lock survives restarts (mode is persisted), so without a stated
-  // reason the greyed section reads as broken rather than locked. Name the mode
-  // through modePicker's own key so the reason and the picker segment can't
-  // drift apart in a locale.
-  const monitorLockedReason = t('audioPanel.monitorLockedByMode', { mode: t('modePicker.modeYou') });
 
   // State
   const [warningType, setWarningType] = useState<WarningType | null>(null);
@@ -87,7 +72,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings, act
       >
         {activeTab === 'general' && (
           <>
-            {/* The pair, the provider with its chips, the output toggles, the speech mode — same as Simple mode */}
+            {/* The pair, the provider with its chips, the speech mode — same as Simple mode */}
             <SessionSettingsGeneral locked={locked} layout="advanced" onOpenSlot={openSlot} />
 
             {/* Help & Updates */}
@@ -99,29 +84,8 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings, act
           <div className="settings-section audio-section">
             <h2>{t('audioPanel.title', 'Audio Settings')}</h2>
 
-            <AudioDeviceSection
-              isSessionActive={locked}
-              isLocked={lockMic}
-              showMicrophone={true}
-              showSpeaker={false}
-            >
-              {/* Face-to-face has no meeting to pass the voice through to. */}
-              {!faceToFace && (
-                <VoicePassthroughSection
-                  disabled={turnMode === 'push-to-translate'}
-                  disabledReason={t('audioPanel.passthroughManagedByPushToTranslate')}
-                />
-              )}
-            </AudioDeviceSection>
-
-            <AudioDeviceSection
-              isSessionActive={locked}
-              isLocked={lockMonitor}
-              lockedReason={lockMonitor ? monitorLockedReason : undefined}
-              showMicrophone={false}
-              showSpeaker={true}
-            />
-
+            <AudioDeviceSection isSessionActive={locked} isLocked={lockMic} />
+            <SpeechOutputSection isSessionActive={locked} />
             <SystemAudioSection
               isSessionActive={locked}
               isLocked={lockParticipant}

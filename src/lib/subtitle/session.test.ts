@@ -7,7 +7,7 @@ const input = { run: idle, readiness: { state: 'ready' as const, models: [] }, p
 
 describe('idleOf', () => {
   it('shows a start under way first', () => {
-    expect(idleOf({ phase: 'starting', step: 'opening' }, { state: 'not-ready', reason: 'no model' })).toEqual({ kind: 'starting' });
+    expect(idleOf({ phase: 'starting', participantSpeech: false, step: 'opening' }, { state: 'not-ready', reason: 'no model' })).toEqual({ kind: 'starting' });
   });
 
   it("puts a provider that is not ready before an older failure", () => {
@@ -29,7 +29,7 @@ describe('idleOf', () => {
   it('calls any other end an ending — a run that failed mid-way included — and stopping too', () => {
     expect(idleOf({ phase: 'idle', lastEnd: { reason: 'user' } }, undefined)).toEqual({ kind: 'ended' });
     expect(idleOf({ phase: 'idle', lastEnd: { reason: 'leg-failed', notice: { code: 'leg_failed', message: 'x' } } }, undefined)).toEqual({ kind: 'ended' });
-    expect(idleOf({ phase: 'stopping' }, undefined)).toEqual({ kind: 'ended' });
+    expect(idleOf({ phase: 'stopping', participantSpeech: false }, undefined)).toEqual({ kind: 'ended' });
   });
 
   it('is ready before any run', () => {
@@ -39,18 +39,18 @@ describe('idleOf', () => {
 
 describe('subtitleSession', () => {
   it('carries the phase, the time the run went live, and offers hold-to-talk only while running with manual turns', () => {
-    const running: RunState = { phase: 'running', since: 1000, legs: { speaker: 'live' } };
+    const running: RunState = { phase: 'running', participantSpeech: false, since: 1000, legs: { speaker: 'live' } };
     expect(subtitleSession({ ...input, run: running, turnMode: 'push-to-talk' })).toMatchObject({ phase: 'running', since: 1000, holdToTalk: true });
     expect(subtitleSession({ ...input, run: running }).holdToTalk).toBe(false);
     expect(subtitleSession({ ...input, turnMode: 'push-to-talk' })).toMatchObject({ since: null, holdToTalk: false });
   });
 
   it('offers hold-to-talk only when the run has a speaker leg (plan 1e-4 ruling 8)', () => {
-    const participantOnly: RunState = { phase: 'running', since: 1000, legs: { participant: 'live' } };
+    const participantOnly: RunState = { phase: 'running', participantSpeech: false, since: 1000, legs: { participant: 'live' } };
     expect(subtitleSession({ ...input, run: participantOnly, turnMode: 'push-to-talk' }).holdToTalk).toBe(false);
-    const both: RunState = { phase: 'running', since: 1000, legs: { speaker: 'live', participant: 'live' } };
+    const both: RunState = { phase: 'running', participantSpeech: false, since: 1000, legs: { speaker: 'live', participant: 'live' } };
     expect(subtitleSession({ ...input, run: both, turnMode: 'push-to-translate' }).holdToTalk).toBe(true);
-    const reconnecting: RunState = { phase: 'running', since: 1000, legs: { speaker: 'reconnecting' } };
+    const reconnecting: RunState = { phase: 'running', participantSpeech: false, since: 1000, legs: { speaker: 'reconnecting' } };
     expect(subtitleSession({ ...input, run: reconnecting, turnMode: 'push-to-talk' }).holdToTalk).toBe(true);
   });
 
@@ -59,7 +59,7 @@ describe('subtitleSession', () => {
     expect(subtitleSession({ ...input, readiness: undefined }).canStart).toBe(true);
     expect(subtitleSession({ ...input, readiness: { state: 'not-ready', reason: 'x' } }).canStart).toBe(false);
     expect(subtitleSession({ ...input, readiness: { state: 'checking' } }).canStart).toBe(false);
-    expect(subtitleSession({ ...input, run: { phase: 'starting', step: 'checking' } }).canStart).toBe(false);
+    expect(subtitleSession({ ...input, run: { phase: 'starting', participantSpeech: false, step: 'checking' } }).canStart).toBe(false);
   });
 
   it('keeps Start off until the provider has loaded, without touching the idle body (1e-3b-1 ruling 11)', () => {
@@ -76,7 +76,7 @@ describe('subtitleSession', () => {
       canStart: false,
       idle: { kind: 'unready', message: expect.any(String), code: 'no_microphone' },
     });
-    expect(subtitleSession({ ...input, microphoneMissing: true, run: { phase: 'starting', step: 'checking' } }).idle).toEqual({ kind: 'starting' });
+    expect(subtitleSession({ ...input, microphoneMissing: true, run: { phase: 'starting', participantSpeech: false, step: 'checking' } }).idle).toEqual({ kind: 'starting' });
     expect(subtitleSession({ ...input, microphoneMissing: false }).canStart).toBe(true);
   });
 
@@ -99,7 +99,7 @@ describe('subtitleSession', () => {
     // Characterization: a start under way already wins; this pins that the
     // refusal's branch comes after it.
     it('a start under way outranks it', () => {
-      expect(subtitleSession({ ...refused, run: { phase: 'starting', step: 'checking' } }).idle.kind).toBe('starting');
+      expect(subtitleSession({ ...refused, run: { phase: 'starting', participantSpeech: false, step: 'checking' } }).idle.kind).toBe('starting');
     });
   });
 });

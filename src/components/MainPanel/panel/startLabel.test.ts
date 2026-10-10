@@ -13,23 +13,24 @@ describe('startLabel', () => {
   });
 
   it('is null while running or stopping', () => {
-    expect(startLabel(t, { phase: 'running', since: 0, legs: {} }, 'basic')).toBeNull();
-    expect(startLabel(t, { phase: 'stopping' }, 'advanced')).toBeNull();
+    expect(startLabel(t, { phase: 'running', participantSpeech: false, since: 0, legs: {} }, 'basic')).toBeNull();
+    expect(startLabel(t, { phase: 'stopping', participantSpeech: false }, 'advanced')).toBeNull();
   });
 
   it('shows the basic site\'s connecting word while checking', () => {
-    const run: RunState = { phase: 'starting', step: 'checking' };
+    const run: RunState = { phase: 'starting', participantSpeech: false, step: 'checking' };
     expect(startLabel(t, run, 'basic')).toBe('Connecting...');
   });
 
   it('shows the advanced site\'s initializing word while checking', () => {
-    const run: RunState = { phase: 'starting', step: 'checking' };
+    const run: RunState = { phase: 'starting', participantSpeech: false, step: 'checking' };
     expect(startLabel(t, run, 'advanced')).toBe('Initializing...');
   });
 
   it('shows loading progress on both sites', () => {
     const run: RunState = {
       phase: 'starting',
+      participantSpeech: false,
       step: 'opening',
       loading: { leg: 'speaker', stage: 'asr', done: 1, total: 3 },
     };
@@ -38,7 +39,7 @@ describe('startLabel', () => {
   });
 
   it('names the voice claim while preparing, on both sites', () => {
-    const run: RunState = { phase: 'starting', step: 'preparing' };
+    const run: RunState = { phase: 'starting', participantSpeech: false, step: 'preparing' };
     expect(startLabel(t, run, 'basic')).toBe('Preparing your voice…');
     expect(startLabel(t, run, 'advanced')).toBe('Preparing your voice…');
   });

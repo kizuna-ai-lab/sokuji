@@ -27,6 +27,8 @@ export interface SystemAudioSettings {
   subscribe(listener: () => void): () => void;
   /** The helper heard audible audio: remembered, so a later silence reads as a permission problem (#492). */
   audioSeen(): void;
+  /** The capture widened to the whole system although an application was chosen (true), or is no longer widened: it closed, or a switch landed on what was chosen (false). While on, the other's translation played on the real device would be recaptured. */
+  widened(on: boolean): void;
 }
 
 /** The part of a participant recorder this source drives. */
@@ -114,6 +116,7 @@ export async function openSystemAudio(
 
   const close = async () => {
     await stopRecorder();
+    settings.widened(false);
     if (!connected) return;
     connected = false;
     try {
@@ -151,6 +154,7 @@ export async function openSystemAudio(
       const monitorId = await findMonitor(answer.monitorLabel);
       if (monitorId) return { mode: 'device', monitorId };
       // Widening from one application to the whole system must be visible.
+      settings.widened(true);
       core.degrade({ code: APP_MONITOR_MISSING, message: 'The application capture did not appear, so all system audio is being translated instead.' });
     }
     return { mode: 'loopback' };
@@ -198,6 +202,7 @@ export async function openSystemAudio(
   const fallBack = async (lost: ParticipantCapture) => {
     if (core.stopped || core.ended || recorder !== lost) return;
     core.degrade({ code: APP_CAPTURE_LOST, message: 'The application capture stopped, so all system audio is being translated instead.' });
+    settings.widened(true);
     await stopRecorder();
     await record({ mode: 'loopback' });
   };

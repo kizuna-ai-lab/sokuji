@@ -121,7 +121,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
           // A refused start opened nothing and played nothing: straight back to
           // idle, leaving a replay of the kept conversation playing.
           const refused = result.reason === 'refused';
-          if (!refused) set({ phase: 'stopping' });
+          if (!refused) set({ phase: 'stopping', participantSpeech: run.shape.participantSpeech });
           // Captured before `run.close()`, so teardown time (a hung release,
           // the bounded wait for fill-in) is never counted as session duration.
           const endedAt = deps.clock.now();
@@ -175,7 +175,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
 
   const hostFor = (run: Run): RunHost => ({
     step: (step) => {
-      if (run === current && state.getState().phase === 'starting') set({ phase: 'starting', step });
+      if (run === current && state.getState().phase === 'starting') set({ phase: 'starting', participantSpeech: run.shape.participantSpeech, step });
     },
     legState: () => {
       const now = state.getState();
@@ -206,7 +206,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
     }
     const run = new Run(deps, hostFor, shape);
     current = run;
-    set({ phase: 'starting', step: 'checking' });
+    set({ phase: 'starting', participantSpeech: shape.participantSpeech, step: 'checking' });
     try {
       await run.open();
     } catch (error) {
@@ -253,7 +253,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
     // Before the state says running: a subscriber that stops the run at once
     // must leave playback not live, not live again after its stop.
     deps.playback.live(true);
-    set({ phase: 'running', since: run.liveSince!, legs: legs(run), ...(run.budget ? { budget: run.budget } : {}) });
+    set({ phase: 'running', participantSpeech: run.shape.participantSpeech, since: run.liveSince!, legs: legs(run), ...(run.budget ? { budget: run.budget } : {}) });
     deps.analytics.track('translation_session_start', {
       session_id: run.id,
       provider: shape.provider.id,

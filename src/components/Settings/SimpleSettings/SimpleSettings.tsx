@@ -14,6 +14,7 @@ import useSettingsStore, {
 } from '../../../stores/settingsStore';
 import {
   AudioDeviceSection,
+  SpeechOutputSection,
   SystemAudioSection,
   HelpSection
 } from '../sections';
@@ -47,22 +48,12 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
     setEngineSlotTarget(null);
   }, [engineSlotTarget, hasEngine, setEngineSlotTarget]);
 
-  // Per-channel lock derivation. A section is locked (greyed/disabled) when
-  // its channel is out of the mode's scope, so the mode picker is the master
-  // control. The mode picker is locked while a run is not idle, so the audio
-  // mode is the run's (spec: "State"). The monitor <-> participant mutual
-  // exclusivity is enforced by mode scope: monitor is in scope ONLY in pure
-  // speaker mode, so it is locked in Both/Participant, before and during a
-  // run, where it would violate the mutex.
+  // Per-channel lock derivation. The participant block is locked (greyed) in
+  // 'You' mode, so the mode picker is the master control. The mode picker is
+  // locked while a run is not idle, so the audio mode is the run's (spec:
+  // "State"). The speech block carries its own locks.
   const lockMic = locked && mode === 'participant';
-  const lockMonitor = mode !== 'speaker';
   const lockParticipant = mode === 'speaker';
-
-  // The monitor lock survives restarts (mode is persisted), so without a stated
-  // reason the greyed section reads as broken rather than locked. Name the mode
-  // through modePicker's own key so the reason and the picker segment can't
-  // drift apart in a locale.
-  const monitorLockedReason = t('audioPanel.monitorLockedByMode', { mode: t('modePicker.modeYou') });
 
   // Handle scrolling and highlighting when highlightSection or
   // settingsNavigationTarget changes. Mirrors Settings.tsx:101-121 (advanced
@@ -163,25 +154,14 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
       <div className="settings-content">
         {banner}
 
-        {/* The pair, the provider with its chips, the output toggles, the speech mode */}
+        {/* The pair, the provider with its chips, the speech mode */}
         <SessionSettingsGeneral locked={locked} layout="simple" onOpenSlot={setEngineSlotTarget} />
 
         {/* Microphone */}
-        <AudioDeviceSection
-          isSessionActive={locked}
-          isLocked={lockMic}
-          showMicrophone={true}
-          showSpeaker={false}
-        />
+        <AudioDeviceSection isSessionActive={locked} isLocked={lockMic} />
 
-        {/* Speaker monitor */}
-        <AudioDeviceSection
-          isSessionActive={locked}
-          isLocked={lockMonitor}
-          lockedReason={lockMonitor ? monitorLockedReason : undefined}
-          showMicrophone={false}
-          showSpeaker={true}
-        />
+        {/* Speech: who hears the translation */}
+        <SpeechOutputSection isSessionActive={locked} />
 
         {/* Participant audio (system audio capture) */}
         <SystemAudioSection
