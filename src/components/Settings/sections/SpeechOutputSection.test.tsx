@@ -107,7 +107,9 @@ describe('SpeechOutputSection — the rows', () => {
   it('对方听到的翻译 is Text Only inverted, and shows the virtual microphone\'s name as a read-only field', () => {
     mount();
     expect(sw('Translation the other side hears')).toHaveAttribute('aria-checked', 'true');
-    expect(row('Translation the other side hears').querySelector('.setting-row__field')?.textContent).toBe('Virtual microphone · SokujiVirtualAudio');
+    const field = row('Translation the other side hears').querySelector('.setting-row__field') as HTMLElement;
+    expect(field.textContent).toBe('Virtual microphone · SokujiVirtualAudio');
+    expect(field.getAttribute('title')).toBe(field.textContent);
     fireEvent.click(sw('Translation the other side hears'));
     expect(useSettingsStore.getState().textOnly).toBe(true);
     expect(sw('Translation the other side hears')).toHaveAttribute('aria-checked', 'false');
@@ -144,11 +146,15 @@ describe('SpeechOutputSection — the rows', () => {
     expect(useAudioStore.getState().outlets.me).toEqual({ device: null, channel: 'auto' });
   });
 
-  it('greys 我也听 and 原声直通 when 对方听到的翻译 is off, keeping their values (Review Focus 1)', () => {
+  it('greys 我也听 when 对方听到的翻译 is off, keeping its value; 原声直通 stays live under Text Only', () => {
     useSettingsStore.setState({ textOnly: true });
     mount();
     expect(greyed('I hear it too')).toBe(true);
-    expect(greyed('Passthrough')).toBe(true);
+    expect(greyed('Passthrough')).toBe(false);
+    expect(sw('Translation the other side hears')).toHaveAttribute('aria-checked', 'false');
+    expect(sw('Passthrough')).not.toHaveAttribute('aria-disabled', 'true');
+    expect(sw('Passthrough')).toHaveAttribute('aria-checked', 'true');
+    expect(within(row('Passthrough')).getByRole('slider')).not.toBeDisabled();
     expect(useAudioStore.getState().isRealVoicePassthroughEnabled).toBe(true);
     expect(useAudioStore.getState().isMonitorMuted).toBe(true);
   });
@@ -276,6 +282,12 @@ describe('SpeechOutputSection — per mode (spec §1.2)', () => {
     expect(sw('Translation I hear')).toHaveAttribute('aria-disabled', 'true');
     expect(sw('Translation I hear').closest('.toggle-switch-component')?.getAttribute('title')).toBe('Fixed for this session; stop it to change.');
     expect(within(row('I hear it too')).getByRole('combobox')).not.toBeDisabled();
+    // Only the two spoken-translation switches lock (spec §1.2).
+    expect(sw('I hear it too')).not.toHaveAttribute('aria-disabled', 'true');
+    expect(sw('Passthrough')).not.toHaveAttribute('aria-disabled', 'true');
+    expect(within(row('Passthrough')).getByRole('slider')).not.toBeDisabled();
+    expect(within(row('Default playback device')).getByRole('combobox')).not.toBeDisabled();
+    expect(within(row('Translation I hear')).getByRole('combobox')).not.toBeDisabled();
   });
 
   it("a provider that always speaks shows 对方听到的翻译 on and disabled; one whose participant never speaks disables 我听到的翻译", () => {

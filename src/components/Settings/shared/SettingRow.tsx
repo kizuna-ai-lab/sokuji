@@ -47,7 +47,7 @@ const SettingRow: React.FC<SettingRowProps> = ({ label, tooltip, sub, greyed, sw
             disabled={sw.disabled || !!greyed}
             label=""
             ariaLabel={label}
-            title={sw.title ?? greyed}
+            title={greyed ?? sw.title}
             ariaDescribedBy={sw.describedBy}
           />
         )}

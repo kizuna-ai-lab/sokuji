@@ -122,6 +122,10 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
   const otherLabel = t('audioPanel.otherHears', 'Translation the other side hears');
   const themLabel = t('audioPanel.iHear', 'Translation I hear');
   const meLabel = t('audioPanel.meToo', 'I hear it too');
+  // The field is nowrap + ellipsis; its title keeps the full text reachable.
+  const virtualMicField = platform === 'extension'
+    ? t('audioPanel.virtualMicTabs', 'Virtual microphone · the meeting tab')
+    : `${t('audioPanel.virtualMicrophone', 'Virtual microphone')} · ${virtualMicrophoneName()}`;
   const passthroughLabel = t('audioPanel.realVoicePassthrough', 'Passthrough');
 
   return (
@@ -158,9 +162,9 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
         {faceToFace
           ? outletSelect('other', otherLabel, true)
           : hasVirtualBus && (
-            <div className="setting-row__field">
+            <div className="setting-row__field" title={virtualMicField}>
               {platform === 'extension'
-                ? t('audioPanel.virtualMicTabs', 'Virtual microphone · the meeting tab')
+                ? virtualMicField
                 : <>{t('audioPanel.virtualMicrophone', 'Virtual microphone')}<span className="muted"> · {virtualMicrophoneName()}</span></>}
             </div>
           )}
@@ -183,7 +187,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
           label={passthroughLabel}
           tooltip={pushToTranslate ? t('audioPanel.passthroughManagedByPushToTranslate') : t('audioPanel.passthroughTip', 'Mixes my own voice, at a lower level, under the translation into the virtual microphone. 60% at most.')}
           sub
-          greyed={!myLegRuns ? notInMode : !otherOn && !pushToTranslate ? t('audioPanel.needsOtherHears', 'Nothing to hear while the translation is not spoken.') : undefined}
+          greyed={!myLegRuns ? notInMode : undefined}
           switch={{
             checked: isRealVoicePassthroughEnabled || pushToTranslate,
             onChange: () => {

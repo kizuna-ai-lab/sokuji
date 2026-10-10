@@ -48,6 +48,11 @@ describe('SettingRow', () => {
     expect(screen.getByRole('switch')).toHaveAttribute('aria-describedby', 'why');
   });
 
+  it('a greyed row names the greyed reason over the switch\'s own title', () => {
+    render(<SettingRow label="X" tooltip="…" greyed="Not in Me mode." switch={{ checked: true, onChange: () => {}, disabled: true, title: 'Fixed for this session' }} />);
+    expect(screen.getByRole('switch').closest('.toggle-switch-component')?.getAttribute('title')).toBe('Not in Me mode.');
+  });
+
   it('a switch with its own title (locked by the run) keeps it', () => {
     render(<SettingRow label="X" tooltip="…" switch={{ checked: true, onChange: () => {}, disabled: true, title: 'Fixed for this session' }} />);
     expect(screen.getByRole('switch').closest('.toggle-switch-component')?.getAttribute('title')).toBe('Fixed for this session');

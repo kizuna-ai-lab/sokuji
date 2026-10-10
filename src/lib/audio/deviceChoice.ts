@@ -48,5 +48,7 @@ export function chooseInput({ devices, savedId, currentId, unusable = new Set() 
 /** The monitor output to use: the saved one, else the current one, else the first non-virtual, else any. */
 export function chooseOutput({ devices, savedId, currentId }: DeviceChoice): AudioDevice | null {
   const byId = (id: string | null) => (id ? devices.find((device) => device.deviceId === id) : undefined);
-  return byId(savedId) ?? byId(currentId) ?? devices.find((device) => !device.isVirtual) ?? devices[0] ?? null;
+  // A saved virtual device is refused, as chooseInput does.
+  const saved = savedId ? devices.find((device) => device.deviceId === savedId && !device.isVirtual) : undefined;
+  return saved ?? byId(currentId) ?? devices.find((device) => !device.isVirtual) ?? devices[0] ?? null;
 }
