@@ -93,6 +93,8 @@ vi.mock('../../stores/providerStore', async () => {
   const { create: make } = await import('zustand');
   return { useProviderStore: make(() => ({ selected: 'p', entries: {} as Record<string, unknown> })) };
 });
+const runSpeech = vi.hoisted(() => ({ value: null as boolean | null }));
+vi.mock('../../app/useRun', () => ({ useRunParticipantSpeech: () => runSpeech.value }));
 const providerState = { participantSpeech: undefined as boolean | undefined };
 vi.mock('../../lib/session/appShape', () => ({ heardFromStores: (faceToFace: boolean) => (faceToFace || env.extension || (store.selected?.deviceId ?? '').startsWith('app:')) && !widened.value, selectedFromStores: () => ({ provider: { speech: 'optional', participantSpeech: providerState.participantSpeech } }) }));
 
@@ -107,6 +109,7 @@ beforeEach(() => {
   store.otherSide = 'meeting';
   Object.assign(f2f, { offered: true, active: false, me: 'ja', other: 'en', speaks: { speaker: true, participant: true }, ears: {}, outletDevices: { other: 'AirPods Pro', them: 'AirPods Pro' } });
   providerState.participantSpeech = undefined;
+  runSpeech.value = null;
   settings.textOnly = false;
   settings.navigate.mockReset();
   routing.participantSpeech = null;
@@ -360,6 +363,17 @@ describe('ModeDevicePopover — the speech rows in Me and Other', () => {
     const button = screen.getByRole('button', { name: 'Turn on Translation I hear' });
     expect(button).toBeDisabled();
     expect(button.getAttribute('title')).toBe('Fixed for this session; stop it to change.');
+  });
+
+  it("while a run is live the row shows the run's frozen value, not the stores'", () => {
+    routing.participantSpeech = true;
+    runSpeech.value = false;
+    const anchor = document.createElement('div');
+    document.body.appendChild(anchor);
+    render(<ModeDevicePopover mode="participant" open={true} anchorEl={anchor} onClose={vi.fn()} locked={true} />);
+    const button = screen.getByRole('button', { name: 'Turn on Translation I hear' });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('a provider that does not speak the other side: disabled and not checked', () => {

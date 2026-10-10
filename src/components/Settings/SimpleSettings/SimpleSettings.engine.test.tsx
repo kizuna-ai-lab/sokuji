@@ -34,7 +34,7 @@ vi.mock('../../../services/ServiceFactory', () => ({
 }));
 
 const run = vi.hoisted(() => ({ locked: false }));
-vi.mock('../../../app/useRun', () => ({ useSessionLocked: () => run.locked }));
+vi.mock('../../../app/useRun', () => ({ useSessionLocked: () => run.locked, useRunParticipantSpeech: () => null }));
 
 // What each block was handed, by render.
 const blocks = vi.hoisted(() => ({

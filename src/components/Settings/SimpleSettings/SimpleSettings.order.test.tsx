@@ -55,7 +55,7 @@ vi.mock('../../../lib/analytics', () => ({
 }));
 
 // The run's lock: no run here.
-vi.mock('../../../app/useRun', () => ({ useSessionLocked: () => false }));
+vi.mock('../../../app/useRun', () => ({ useSessionLocked: () => false, useRunParticipantSpeech: () => null }));
 
 // The chips' memory estimate - irrelevant to the order.
 vi.mock('../../../lib/local-inference/modelManifest', async (importOriginal) => ({

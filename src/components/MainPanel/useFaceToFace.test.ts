@@ -4,6 +4,8 @@ import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+const runSpeech = vi.hoisted(() => ({ value: null as boolean | null }));
+vi.mock('../../app/useRun', () => ({ useRunParticipantSpeech: () => runSpeech.value }));
 const environment = vi.hoisted(() => ({ value: 'web' as 'web' | 'electron' | 'extension' }));
 vi.mock('../../utils/environment', async (importOriginal) => ({ ...(await importOriginal<typeof import('../../utils/environment')>()), getEnvironment: () => environment.value }));
 import { useFaceToFace, earsLegend, voicedEars, type FaceToFaceView } from './useFaceToFace';
@@ -19,6 +21,7 @@ describe('useFaceToFace', () => {
     useAudioStore.setState({ audioMonitorDevices: [{ deviceId: 'out-1', label: 'AirPods Pro' }] as never, selectedMonitorDevice: { deviceId: 'out-1', label: 'AirPods Pro' } as never, outlets: { other: { device: null, channel: 'auto' }, me: { device: null, channel: 'auto' }, them: { device: null, channel: 'auto' } }, isMonitorMuted: true });
     useSettingsStore.setState({ textOnly: false });
     environment.value = 'web';
+    runSpeech.value = null;
     useAudioStore.setState({ participantCaptureWidened: false, selectedParticipantSource: null });
   });
 
@@ -52,6 +55,18 @@ describe('useFaceToFace', () => {
     const { result } = renderHook(() => useFaceToFace());
     expect(result.current.speaks.participant).toBe(true);
     act(() => { useAudioStore.setState({ participantCaptureWidened: true }); });
+    expect(result.current.speaks.participant).toBe(false);
+  });
+
+  it("speaks.participant is the run's frozen value while a run is live, the stores' when idle", () => {
+    pick('soniox');
+    environment.value = 'electron';
+    useAudioStore.setState({ otherSide: 'meeting', selectedParticipantSource: { deviceId: 'app:42', label: 'App' } });
+    useRoutingStore.setState({ participantSpeech: true });
+    const { result, rerender } = renderHook(() => useFaceToFace());
+    expect(result.current.speaks.participant).toBe(true);
+    runSpeech.value = false;
+    rerender();
     expect(result.current.speaks.participant).toBe(false);
   });
 

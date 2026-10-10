@@ -1,3 +1,4 @@
+import { useRunParticipantSpeech } from '../../app/useRun';
 import { resolveOutlet } from '../../lib/audio/outlets';
 import type { LegName } from '../../lib/conversation/types';
 import { speechFromStores } from '../../lib/session/appShape';
@@ -62,13 +63,15 @@ export function useFaceToFace(): FaceToFaceView {
     const own = outlets[name].device ? devices.find((d) => d.deviceId === outlets[name].device) : undefined;
     return own?.label ?? defaultDevice?.label ?? null;
   };
+  // The run's frozen value wins while a run is not idle: the open participant leg does what it was told at Start.
+  const runSpeech = useRunParticipantSpeech();
   const speak = speechFromStores(provider);
   return {
     offered,
     active,
     me: pair?.source ?? null,
     other: pair?.target ?? null,
-    speaks: { speaker: speak.other, participant: speak.them },
+    speaks: { speaker: speak.other, participant: runSpeech ?? speak.them },
     ears,
     outletDevices: { other: labelOf('other'), them: labelOf('them') },
   };

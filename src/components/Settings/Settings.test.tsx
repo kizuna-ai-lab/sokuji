@@ -14,7 +14,7 @@ vi.mock('../../stores/settingsStore', () => ({
   useSettingsNavigationTarget: () => null,
 }));
 
-vi.mock('../../app/useRun', () => ({ useSessionLocked: () => false }));
+vi.mock('../../app/useRun', () => ({ useSessionLocked: () => false, useRunParticipantSpeech: () => null }));
 
 vi.mock('../../lib/analytics', () => ({
   useAnalytics: () => ({ trackEvent: vi.fn() }),

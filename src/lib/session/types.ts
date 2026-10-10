@@ -134,6 +134,6 @@ export interface LoadingProgress {
 
 export type RunState =
   | { phase: 'idle'; lastEnd?: RunEnd }
-  | { phase: 'starting'; step: 'checking' | 'preparing' | 'opening'; loading?: LoadingProgress }
-  | { phase: 'running'; since: number; legs: Partial<Record<LegName, LegState>>; budget?: Budget }
-  | { phase: 'stopping' };
+  | { phase: 'starting'; participantSpeech: boolean; step: 'checking' | 'preparing' | 'opening'; loading?: LoadingProgress }
+  | { phase: 'running'; participantSpeech: boolean; since: number; legs: Partial<Record<LegName, LegState>>; budget?: Budget }
+  | { phase: 'stopping'; participantSpeech: boolean };

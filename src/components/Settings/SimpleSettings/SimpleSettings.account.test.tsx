@@ -58,7 +58,7 @@ vi.mock('../ProviderArea', () => ({
   SessionEnginePage: () => null,
 }));
 
-vi.mock('../../../app/useRun', () => ({ useSessionLocked: () => false }));
+vi.mock('../../../app/useRun', () => ({ useSessionLocked: () => false, useRunParticipantSpeech: () => null }));
 
 // Heavy Library sections - never reached by this test.
 vi.mock('../sections/ModelManagementSection', () => ({ ModelManagementSection: () => null }));

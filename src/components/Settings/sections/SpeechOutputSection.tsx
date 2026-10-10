@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import SettingRow from '../shared/SettingRow';
 import { useFilteredDevices } from '../shared/hooks';
+import { useRunParticipantSpeech } from '../../../app/useRun';
 import { getAppAudio } from '../../../lib/audio/appAudio';
 import { entryValue, outletEntries, outletSelectValue, parseEntryValue } from '../../../lib/audio/outletOptions';
 import type { OutletName } from '../../../lib/audio/outlets';
@@ -74,7 +75,9 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
   // The recapture rule (D10): a whole-system capture would translate the playback again.
   const recaptured = theirLegRuns && !faceToFace && !heard;
   const otherOn = speech === 'always' ? true : speech === 'never' ? false : !textOnly;
-  const themOn = participantOffered && !recaptured && speech !== 'never' && (speech === 'always' || (participantSpeech ?? faceToFace));
+  // A run's open participant leg froze its speech at Start; the source picker stays live, so the stores can say otherwise.
+  const runSpeech = useRunParticipantSpeech();
+  const themOn = runSpeech ?? (participantOffered && !recaptured && speech !== 'never' && (speech === 'always' || (participantSpeech ?? faceToFace)));
   const hasVirtualBus = platform !== 'web';
   const pushToTranslate = turnMode === 'push-to-translate';
 

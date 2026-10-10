@@ -32,7 +32,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (_k: string, d?: string) => d ?? _k }),
 }));
 
-vi.mock('../../../app/useRun', () => ({ useSessionLocked: () => false }));
+vi.mock('../../../app/useRun', () => ({ useSessionLocked: () => false, useRunParticipantSpeech: () => null }));
 
 vi.mock('../../../stores/audioStore', () => ({
   useMode: () => 'speaker',

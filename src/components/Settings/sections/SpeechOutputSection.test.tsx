@@ -21,6 +21,8 @@ vi.mock('../../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi
 vi.mock('../../../services/ServiceFactory', () => ({
   ServiceFactory: { getSettingsService: () => ({ getSetting: async (_k: string, d: unknown) => d, setSetting: async () => ({ success: true }) }) },
 }));
+const runSpeech = vi.hoisted(() => ({ value: null as boolean | null }));
+vi.mock('../../../app/useRun', () => ({ useRunParticipantSpeech: () => runSpeech.value }));
 const shapeOverride = vi.hoisted(() => ({ provider: null as null | { id: string; speech: 'always' | 'optional' | 'never'; participantSpeech?: boolean } }));
 vi.mock('../../../lib/session/appShape', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../lib/session/appShape')>();
@@ -78,6 +80,7 @@ const pick = (id: string) => useProviderStore.setState({
 
 beforeEach(() => {
   shapeOverride.provider = null;
+  runSpeech.value = null;
   tooltips.length = 0;
   env.platform = 'electron';
   env.os = 'mac';
@@ -207,6 +210,20 @@ describe('SpeechOutputSection — the rows', () => {
     mount(true);
     fireEvent.click(sw('Keep spoken translations for replay'));
     expect(useSettingsStore.getState().keepReplayAudio).toBe(true);
+  });
+});
+
+describe("SpeechOutputSection — the run's frozen 我听到的翻译", () => {
+  it('shows the run\'s value while it runs, whatever the stores say now', () => {
+    useAudioStore.setState({ mode: 'both', selectedParticipantSource: ZOOM });
+    useRoutingStore.setState({ participantSpeech: true });
+    const { unmount } = mount(true);
+    expect(sw('Translation I hear')).toHaveAttribute('aria-checked', 'true');
+    unmount();
+    runSpeech.value = false;
+    mount(true);
+    expect(sw('Translation I hear')).toHaveAttribute('aria-checked', 'false');
+    expect(sw('Translation I hear')).toHaveAttribute('aria-disabled', 'true');
   });
 });
 
