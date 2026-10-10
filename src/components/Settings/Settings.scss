@@ -1156,60 +1156,49 @@
   to { transform: rotate(360deg); }
 }
 
-// Volume control styles
-.volume-control {
-  margin-top: 12px;
-  padding: 12px;
-  background: vars.$bg-surface;
-  border-radius: vars.$radius-md;
+// The passthrough volume slider: line 2 of the 原声直通 row (`.setting-row__slider`),
+// once the Output block's boxed `.volume-control`. The same track and thumb as
+// `.settings-section .setting-item .slider`, which a `.config-section` row is not
+// inside (SentenceSegmentationSection.scss spells its pause slider out the same way).
+.volume-slider {
+  width: 100%;
+  height: 4px;
+  background: vars.$bg-elevated;
+  border-radius: 2px;
+  appearance: none;
+  cursor: pointer;
 
-  .setting-label {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-    font-size: vars.$font-body;
-    color: vars.$text-secondary;
-
-    .setting-value {
-      color: vars.$color-primary;
-      font-weight: 500;
-    }
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    background: vars.$color-primary;
+    border-radius: 50%;
+    cursor: pointer;
   }
 
-  .volume-slider {
-    width: 100%;
-    height: 4px;
-    background: vars.$bg-elevated;
-    border-radius: 2px;
-    appearance: none;
+  &::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: vars.$color-primary;
+    border-radius: 50%;
     cursor: pointer;
+    border: none;
+  }
+
+  &:disabled {
+    @include vars.disabled-state;
+    opacity: 0.6;
 
     &::-webkit-slider-thumb {
-      appearance: none;
-      width: 16px;
-      height: 16px;
-      background: vars.$color-primary;
-      border-radius: 50%;
-      cursor: pointer;
+      background: vars.$text-disabled;
+      cursor: not-allowed;
     }
 
     &::-moz-range-thumb {
-      width: 16px;
-      height: 16px;
-      background: vars.$color-primary;
-      border-radius: 50%;
-      cursor: pointer;
-      border: none;
+      background: vars.$text-disabled;
+      cursor: not-allowed;
     }
-  }
-
-  .volume-limits {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 4px;
-    font-size: vars.$font-caption;
-    color: vars.$text-disabled;
   }
 }
 
@@ -2380,9 +2369,11 @@
     gap: 6px;
     min-height: 24px;
   }
+  // The look of the labels around it: `.noise-suppression-label` above, the
+  // `.setting-item .setting-label` rows elsewhere — 13px, secondary colour.
   &__label {
-    font-size: vars.$font-title;
-    color: vars.$text-primary;
+    font-size: vars.$font-body;
+    color: vars.$text-secondary;
   }
   &__switch {
     margin-left: auto;
@@ -2438,7 +2429,8 @@
     gap: 8px;
 
     input[type='range'] { flex: 1; min-width: 0; }
-    .setting-value { color: vars.$color-primary; font-size: vars.$font-caption; white-space: nowrap; }
+    // The value beside a control reads muted, as `.setting-item .setting-label .setting-value` does.
+    .setting-value { color: vars.$text-muted; font-size: vars.$font-caption; white-space: nowrap; }
   }
   // Doubled with .setting-description: `.config-section .setting-description` sets display: block.
   &__reason.setting-description {
