@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { LayoutGrid, Sliders, Settings as SettingsIcon, Headphones, Cpu } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import useSettingsStore, { useUIMode, useSetUIMode, useNavigateToSettings, useSettingsNavigationTarget } from '../../stores/settingsStore';
@@ -78,11 +78,16 @@ const Settings: React.FC<SettingsProps> = ({ toggleSettings, highlightSection })
     sessionStorage.setItem(TAB_STORAGE_KEY, activeTab);
   }, [activeTab]);
 
+  // Counts the navigation effect's runs, so a cleanup can tell afterwards
+  // whether another run took over (see the cleanup below).
+  const navigationRun = useRef(0);
+
   // Advanced-only: switch to the target tab and scroll/highlight its section.
   // Quick mode highlights via SimpleSettings' highlightSection instead.
   useEffect(() => {
     if (isSimpleMode) return;
     if (!settingsNavigationTarget) return;
+    const run = ++navigationRun.current;
     const targetTab = NAVIGATION_TAB_MAP[settingsNavigationTarget];
     if (targetTab && targetTab !== activeTab) {
       setActiveTab(targetTab);
@@ -126,18 +131,22 @@ const Settings: React.FC<SettingsProps> = ({ toggleSettings, highlightSection })
       if (highlightTimer) clearTimeout(highlightTimer);
       // The DOM persists across panel hides (<Activity>), so a highlight
       // interrupted mid-animation must be removed here, not just its timer.
-      const wasHighlighted = highlightedEl !== null;
       highlightedEl?.classList.remove('highlight');
-      // Nothing else clears the target: a panel hidden inside the 3s window
-      // cancelled the timer that would have, so the next navigation to the
-      // SAME target was a no-op set and MainLayout never reopened the panel.
-      // Only if the store still holds THIS target (a retarget must keep the
-      // newer value) and only if the highlight landed (StrictMode's dev-only
-      // remount runs this before the scroll delay; clearing then would make
-      // the re-created effect bail). Mirrors SimpleSettings' cleanup.
-      if (wasHighlighted && useSettingsStore.getState().settingsNavigationTarget === settingsNavigationTarget) {
-        navigateToSettings(null);
-      }
+      // Nothing else clears the target: a panel hidden before the timers
+      // above fired cancelled the one that would have, so the next navigation
+      // to the SAME target was a no-op set and MainLayout never reopened the
+      // panel. Deferred a microtask: StrictMode's dev-only rehearsal runs this
+      // cleanup and the effect again synchronously, and clearing under it
+      // would make the re-run bail and drop the highlight. By the microtask a
+      // rehearsal, a retarget or a reopened panel has claimed a newer run; a
+      // real hide or unmount has not. The store check keeps a target that
+      // moved on meanwhile.
+      queueMicrotask(() => {
+        if (navigationRun.current !== run) return;
+        if (useSettingsStore.getState().settingsNavigationTarget === settingsNavigationTarget) {
+          navigateToSettings(null);
+        }
+      });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settingsNavigationTarget, navigateToSettings, isSimpleMode]);
