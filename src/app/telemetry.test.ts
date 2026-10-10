@@ -303,6 +303,18 @@ describe('appStartInputs', () => {
     expect(inputs.channels).toEqual({ other: 'both', me: 'both', them: 'both' });
   });
 
+  it('resolves the channels as the routing does: an unplugged centred pick reads as auto, a present one keeps both', () => {
+    useProviderStore.setState({ selected: 'soniox', entries: { soniox: { settings: {}, credentials: {}, pair: { source: 'ja', target: 'en' } } } } as never);
+    const dev = { deviceId: 'out-1', label: 'Out' } as never;
+    useAudioStore.setState({
+      mode: 'both', otherSide: 'beside', audioMonitorDevices: [dev], selectedMonitorDevice: dev,
+      outlets: { other: { device: null, channel: 'auto' }, me: { device: null, channel: 'auto' }, them: { device: 'gone', channel: 'both' } },
+    } as never);
+    expect(appStartInputs(false).channels.them).toBe('left');
+    useAudioStore.setState({ outlets: { other: { device: null, channel: 'auto' }, me: { device: null, channel: 'auto' }, them: { device: 'out-1', channel: 'both' } } } as never);
+    expect(appStartInputs(false).channels.them).toBe('both');
+  });
+
   it('answers with no provider loaded (Review Focus 5)', () => {
     useProviderStore.setState({ selected: null, entries: {} });
     expect(() => appStartInputs(false)).not.toThrow();

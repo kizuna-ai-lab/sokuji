@@ -5,7 +5,7 @@
  */
 import type { AnalyticsEvents } from '../lib/analytics';
 import type { LegName } from '../lib/conversation/types';
-import { OUTLET_NAMES, resolveChannel, type Channel, type OutletName, type Speak } from '../lib/audio/outlets';
+import { OUTLET_NAMES, resolveOutlet, type Channel, type OutletName, type Speak } from '../lib/audio/outlets';
 import { faceToFaceFromStores, speechFromStores } from '../lib/session/appShape';
 import { describeCause, reportWarning } from '../lib/diagnostics/report';
 import { sentenceEnds, skeleton } from '../lib/segmentation/sentenceEnd';
@@ -208,7 +208,12 @@ export function appStartInputs(punctuationActive: boolean): StartInputs {
   const offer = offerFor(selectedBoundaries());
   const faceToFace = faceToFaceFromStores();
   const channels = {} as Record<OutletName, Channel>;
-  for (const name of OUTLET_NAMES) channels[name] = resolveChannel(name, audio.outlets[name].channel, faceToFace);
+  // The routing's own rule (`readRouting`): `resolveOutlet` with the same `present` set, so an unplugged centred pick reads as auto here too.
+  const present = new Set(audio.audioMonitorDevices.filter((d) => !d.isVirtual).map((d) => d.deviceId));
+  for (const name of OUTLET_NAMES) {
+    const { pan } = resolveOutlet(name, audio.outlets[name], { defaultDevice: audio.selectedMonitorDevice?.deviceId, present, faceToFace });
+    channels[name] = pan === -1 ? 'left' : pan === 1 ? 'right' : 'both';
+  }
   return {
     audio,
     speak: speechFromStores(),

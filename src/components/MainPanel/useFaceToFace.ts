@@ -1,4 +1,4 @@
-import { resolveChannel } from '../../lib/audio/outlets';
+import { resolveOutlet } from '../../lib/audio/outlets';
 import type { LegName } from '../../lib/conversation/types';
 import { speechFromStores } from '../../lib/session/appShape';
 import { presentProviders } from '../../providers/registry';
@@ -46,13 +46,17 @@ export function useFaceToFace(): FaceToFaceView {
   const pair = provider ? entries[provider.id]?.pair ?? null : null;
   const offered = provider?.faceToFace === true && pair !== null;
   const active = offered && mode === 'both' && otherSide === 'beside';
+  // The routing's own rule (`readRouting`): the same `present` set and default device, so a centred pick whose device is unplugged reads as auto here too.
+  const present = new Set(devices.filter((d) => !d.isVirtual).map((d) => d.deviceId));
   const earOf = (name: 'other' | 'them'): Ear | undefined => {
-    const channel = resolveChannel(name, outlets[name].channel, active);
-    return channel === 'both' ? undefined : channel;
+    const { pan } = resolveOutlet(name, outlets[name], { defaultDevice: defaultDevice?.deviceId, present, faceToFace: active });
+    return pan === -1 ? 'left' : pan === 1 ? 'right' : undefined;
   };
+  const otherEar = earOf('other');
+  const themEar = earOf('them');
   const ears: Partial<Record<LegName, Ear>> = {
-    ...(earOf('other') ? { speaker: earOf('other') } : {}),
-    ...(earOf('them') ? { participant: earOf('them') } : {}),
+    ...(otherEar ? { speaker: otherEar } : {}),
+    ...(themEar ? { participant: themEar } : {}),
   };
   const labelOf = (name: 'other' | 'them'): string | null => {
     const own = outlets[name].device ? devices.find((d) => d.deviceId === outlets[name].device) : undefined;
@@ -84,11 +88,11 @@ export function earsLegend(view: FaceToFaceView): EarsLegendEntry[] | null {
   return entries.sort((a, b) => rank(a) - rank(b));
 }
 
-/** The conversation's ear tags: the ear each voiced leg's translation plays in; a centred outlet or a silent leg has none. */
-export function voicedEars(view: FaceToFaceView): Partial<Record<LegName, Ear>> | null {
+/** The conversation's ear tags: every voiced leg has an entry, its ear when the outlet is panned and 'centre' when it is not; a silent leg has none. */
+export function voicedEars(view: FaceToFaceView): Partial<Record<LegName, Ear | 'centre'>> | null {
   if (!view.active || (!view.speaks.speaker && !view.speaks.participant)) return null;
   return {
-    ...(view.speaks.speaker && view.ears.speaker ? { speaker: view.ears.speaker } : {}),
-    ...(view.speaks.participant && view.ears.participant ? { participant: view.ears.participant } : {}),
+    ...(view.speaks.speaker ? { speaker: view.ears.speaker ?? 'centre' } : {}),
+    ...(view.speaks.participant ? { participant: view.ears.participant ?? 'centre' } : {}),
   };
 }

@@ -375,6 +375,18 @@ describe('ConversationList — face-to-face ears', () => {
     expect(mine.querySelector('.ear-tag--right')).not.toBeNull();
   });
 
+  it("keeps the not-played mark on a voiced leg whose outlet is centred, and draws no letter on a played line", () => {
+    const centred = { speaker: 'centre', participant: 'centre' } as const;
+    const codeSwitched = rowItem({ leg: 'participant', languages: { source: 'ja', target: 'en' }, row: row({ language: 'ja' }) });
+    const { container, rerender } = render(<ConversationList {...props({ ears: centred, items: [codeSwitched], replayLegs: new Set(['participant']) })} />);
+    expect(container.querySelector('.ear-tag--muted')).not.toBeNull();
+    expect(container.querySelector('.row-play-btn')).toBeNull();
+    const normal = rowItem({ leg: 'participant', languages: { source: 'ja', target: 'en' }, row: row({ language: 'en' }) });
+    rerender(<ConversationList {...props({ ears: centred, items: [normal], replayLegs: new Set(['participant']) })} />);
+    expect(container.querySelector('.ear-tag')).toBeNull();
+    expect(container.querySelector('.row-play-btn')).not.toBeNull();
+  });
+
   it('shares one source of truth with the footer legend: the participant leg is my ear', () => {
     for (const swap of [false, true]) {
       const view = { offered: true, active: true, me: 'ja', other: 'en', ears: (swap ? { speaker: 'left', participant: 'right' } : { speaker: 'right', participant: 'left' }) as Record<'speaker' | 'participant', 'left' | 'right'>, speaks: { speaker: true, participant: true }, outletDevices: { other: null, them: null } };
