@@ -77,6 +77,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
 
   const modeName = mode === 'speaker' ? t('modePicker.modeYou', 'Me') : mode === 'participant' ? t('modePicker.modeParticipants', 'Other') : t('modePicker.modeBoth', 'Both');
   const notInMode = t('audioPanel.lockedByMode', { mode: modeName, defaultValue: 'Not in "{{mode}}" mode.' });
+  const blockedWholeSystem = t('audioPanel.blockedWholeSystem', 'All system sound is being captured: these playback options are off, so the translation is not translated again.');
   const lockedByRun = t('audioPanel.rowLockedByRun', 'Fixed for this session; stop it to change.');
   const channelName = (channel: 'left' | 'right') => (channel === 'left' ? t('audioPanel.channelLeft', 'left channel') : t('audioPanel.channelRight', 'right channel'));
 
@@ -170,7 +171,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
           label={meLabel}
           tooltip={t('audioPanel.meTooTip', 'Also plays the translation the other side hears on my side (the spoken translation, not my own voice).')}
           sub
-          greyed={!myLegRuns ? notInMode : !otherOn ? t('audioPanel.needsOtherHears', 'Nothing to hear while the translation is not spoken.') : undefined}
+          greyed={!myLegRuns ? notInMode : recaptured ? blockedWholeSystem : !otherOn ? t('audioPanel.needsOtherHears', 'Nothing to hear while the translation is not spoken.') : undefined}
           switch={{ checked: !isMonitorMuted && !(recaptured && mode === 'both'), onChange: () => setMonitorMuted(!isMonitorMuted), disabled: recaptured && mode === 'both', describedBy: recaptured && mode === 'both' ? reasonId : undefined }}
         >
           {outletSelect('me', meLabel, false)}
@@ -213,7 +214,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
       <SettingRow
         label={themLabel}
         tooltip={!participantOffered ? t('audioPanel.iHearNotOffered', "This service does not speak the other side's translation.") : t('audioPanel.iHearTip', 'What the other side says, translated and read aloud to me.')}
-        greyed={theirLegRuns ? undefined : notInMode}
+        greyed={!theirLegRuns ? notInMode : recaptured ? blockedWholeSystem : undefined}
         switch={{
           checked: themOn,
           onChange: () => setParticipantSpeech(!(participantSpeech ?? faceToFace)),
@@ -228,7 +229,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
       {recaptured && (
         <p className="setting-description setting-row__reason" id={reasonId}>
           <Info size={14} aria-hidden="true" />
-          <span>{t('audioPanel.blockedWholeSystem', 'All system sound is being captured: these playback options are off, so the translation is not translated again.')}</span>
+          <span>{blockedWholeSystem}</span>
         </p>
       )}
 

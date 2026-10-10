@@ -2440,11 +2440,15 @@
     input[type='range'] { flex: 1; min-width: 0; }
     .setting-value { color: vars.$color-primary; font-size: vars.$font-caption; white-space: nowrap; }
   }
-  &__reason {
+  // Doubled with .setting-description: `.config-section .setting-description` sets display: block.
+  &__reason.setting-description {
     display: flex;
     align-items: flex-start;
     gap: 6px;
     margin-top: 8px;
+
+    svg { flex-shrink: 0; margin-top: 2px; }
+    span { flex: 1; min-width: 0; }
   }
 
   &--sub {
@@ -2471,4 +2475,10 @@
       opacity: 0.5;
     }
   }
+}
+
+// The face-to-face headphones hint under the two ear rows: a warning, as on the board.
+.speech-section .setting-description.ears-hint {
+  color: vars.$color-warning;
+  margin-top: 8px;
 }
