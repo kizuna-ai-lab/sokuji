@@ -77,12 +77,8 @@
 // The two pause sliders. The seconds sit at the right end of the label row,
 // the way every other value in Settings.scss's `.setting-label` does.
 //
-// The track and thumb are spelled out here rather than reusing Settings.scss's
-// `.slider`: that rule is nested under `.settings-section .setting-item`, which
-// this section is not inside — it is a `.config-section`, so an `input.slider`
-// here would render as the unstyled browser default. `.volume-control
-// .volume-slider` in Settings.scss is the same control in the same position,
-// inside a `.config-section`, and this is its geometry and colour.
+// The track and thumb come from the shared top-level `.slider` in
+// Settings.scss (the element carries both classes); this class keeps the layout.
 .sentence-segmentation__pause {
   .sentence-segmentation__row-header {
     justify-content: space-between;
@@ -95,36 +91,6 @@
 }
 
 .sentence-segmentation__pause-slider {
-  width: 100%;
-  height: 4px;
-  background: vars.$bg-elevated;
-  border-radius: 2px;
-  appearance: none;
-  cursor: pointer;
-
-  &::-webkit-slider-thumb {
-    appearance: none;
-    width: 16px;
-    height: 16px;
-    background: vars.$color-primary;
-    border-radius: 50%;
-    cursor: pointer;
-  }
-
-  &::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    background: vars.$color-primary;
-    border-radius: 50%;
-    cursor: pointer;
-    border: none;
-  }
-
-  &:disabled {
-    opacity: vars.$disabled-opacity;
-    cursor: not-allowed;
-  }
-
   + .sentence-segmentation__row-header {
     margin-top: vars.$space-2;
   }

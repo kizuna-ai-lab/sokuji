@@ -344,9 +344,11 @@
       align-items: center;
       margin-bottom: 6px;
       font-size: vars.$font-body;
+      color: vars.$text-secondary;
 
       .setting-value {
         color: vars.$text-muted;
+        font-size: vars.$font-caption;
       }
 
       .preview-toggle {
@@ -458,52 +460,6 @@
       }
     }
 
-    // Range slider
-    .slider {
-      -webkit-appearance: none;
-      -moz-appearance: none;
-      appearance: none;
-      width: 100%;
-      height: 4px;
-      border-radius: 2px;
-      background: vars.$bg-elevated;
-      outline: none;
-
-      &::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 14px;
-        height: 14px;
-        border-radius: 50%;
-        background: vars.$color-primary;
-        cursor: pointer;
-      }
-
-      &::-moz-range-thumb {
-        width: 14px;
-        height: 14px;
-        border-radius: 50%;
-        background: vars.$color-primary;
-        cursor: pointer;
-        border: none;
-      }
-
-      &:disabled {
-        @include vars.disabled-state;
-        opacity: 0.6;
-
-        &::-webkit-slider-thumb {
-          background: vars.$text-disabled;
-          cursor: not-allowed;
-        }
-
-        &::-moz-range-thumb {
-          background: vars.$text-disabled;
-          cursor: not-allowed;
-        }
-      }
-    }
-
     // Turn detection options
     .turn-detection-options {
       display: flex;
@@ -515,9 +471,9 @@
       .option-button {
         flex: 1;
         background-color: vars.$bg-control;
-        color: vars.$text-primary;
+        color: vars.$text-secondary;
         border: none;
-        padding: 8px 0;
+        padding: 6px 0;
         font-size: vars.$font-body;
         cursor: pointer;
         transition: background-color vars.$transition-fast;
@@ -527,7 +483,7 @@
         }
 
         &.active {
-          background-color: vars.$color-primary;
+          @include vars.state-selected-fill;
         }
 
         &:hover:not(.active):not(:disabled) {
@@ -1156,32 +1112,34 @@
   to { transform: rotate(360deg); }
 }
 
-// The passthrough volume slider: line 2 of the 原声直通 row (`.setting-row__slider`),
-// once the Output block's boxed `.volume-control`. The same track and thumb as
-// `.settings-section .setting-item .slider`, which a `.config-section` row is not
-// inside (SentenceSegmentationSection.scss spells its pause slider out the same way).
-.volume-slider {
+// The one range slider, top level so a `.config-section` row gets it as well as a
+// `.settings-section .setting-item` (the passthrough volume, the segmentation pauses).
+.slider {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
   width: 100%;
   height: 4px;
-  background: vars.$bg-elevated;
   border-radius: 2px;
-  appearance: none;
+  background: vars.$bg-elevated;
+  outline: none;
   cursor: pointer;
 
   &::-webkit-slider-thumb {
+    -webkit-appearance: none;
     appearance: none;
-    width: 14px;
-    height: 14px;
-    background: vars.$color-primary;
+    width: vars.$slider-thumb-size;
+    height: vars.$slider-thumb-size;
     border-radius: 50%;
+    background: vars.$color-primary;
     cursor: pointer;
   }
 
   &::-moz-range-thumb {
-    width: 14px;
-    height: 14px;
-    background: vars.$color-primary;
+    width: vars.$slider-thumb-size;
+    height: vars.$slider-thumb-size;
     border-radius: 50%;
+    background: vars.$color-primary;
     cursor: pointer;
     border: none;
   }
@@ -1189,6 +1147,7 @@
   &:disabled {
     @include vars.disabled-state;
     opacity: 0.6;
+    cursor: not-allowed;
 
     &::-webkit-slider-thumb {
       background: vars.$text-disabled;
@@ -1214,10 +1173,10 @@
     flex-direction: column;
 
     label {
-      font-size: vars.$font-title;
+      font-size: vars.$font-body;
       color: vars.$text-secondary;
       margin-bottom: 6px;
-      font-weight: 500;
+      font-weight: vars.$weight-normal;
     }
   }
 
@@ -1305,9 +1264,9 @@
   background: vars.$bg-control;
   border: 1px solid vars.$border-default;
   color: vars.$text-primary;
-  padding: 8px 10px;
+  padding: 6px 10px;
   border-radius: vars.$radius-sm;
-  font-size: vars.$font-title;
+  font-size: vars.$font-body;
   cursor: pointer;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -1632,9 +1591,9 @@
     background: vars.$bg-control;
     border: 1px solid vars.$border-default;
     color: vars.$text-primary;
-    padding: 8px 10px;
+    padding: 6px 10px;
     border-radius: vars.$radius-sm;
-    font-size: vars.$font-title;
+    font-size: vars.$font-body;
     transition: all vars.$transition-fast;
 
     &:focus {
@@ -1664,9 +1623,9 @@
     background: vars.$color-primary-fill;
     border: none;
     color: vars.$color-on-primary;
-    padding: 8px 16px;
+    padding: 6px 14px;
     border-radius: vars.$radius-sm;
-    font-size: vars.$font-title;
+    font-size: vars.$font-body;
     font-weight: 500;
     cursor: pointer;
     transition: all vars.$transition-fast;
@@ -2294,19 +2253,19 @@
 }
 
 .noise-suppression-control {
-  margin-top: 8px;
+  margin-top: 12px;
 
   .noise-suppression-header {
     display: flex;
     align-items: center;
     gap: 6px;
     margin-bottom: 6px;
-    font-size: 13px;
-    color: var(--text-secondary, #aaa);
+    font-size: vars.$font-body;
+    color: vars.$text-secondary;
   }
 
   .noise-suppression-label {
-    font-size: 13px;
+    font-size: vars.$font-body;
   }
 
   .segmented-control {
@@ -2318,25 +2277,24 @@
     .segmented-option {
       flex: 1;
       padding: 6px 12px;
-      font-size: 12px;
+      font-size: vars.$font-body;
       border: none;
-      background: var(--bg-secondary, #333);
-      color: var(--text-secondary, #aaa);
+      background: vars.$bg-control;
+      color: vars.$text-secondary;
       cursor: pointer;
       transition: all 0.15s ease;
 
       &:not(:last-child) {
-        border-right: 1px solid var(--border-color, #444);
+        border-right: 1px solid vars.$border-default;
       }
 
       &:hover:not(.active) {
-        background: var(--bg-hover, #3a3a3a);
+        background: vars.$bg-hover;
       }
 
       &.active {
-        background: tk.$color-primary-fill;
-        color: tk.$color-on-primary;
-        font-weight: 500;
+        @include vars.state-selected-fill;
+        font-weight: vars.$weight-medium;
       }
     }
   }
@@ -2360,7 +2318,7 @@
 
 // ── Two-line setting rows (spec 2026-10-10 D4) ───────────────────────────
 .setting-row {
-  margin-top: 10px;
+  margin-top: 12px;
   position: relative;
 
   &__head {
@@ -2396,11 +2354,11 @@
   &__field {
     flex: 1;
     min-width: 0;
-    padding: 8px 10px;
+    padding: 6px 10px;
     background: vars.$bg-control;
     border: 1px solid vars.$border-default;
     border-radius: vars.$radius-sm;
-    font-size: vars.$font-title;
+    font-size: vars.$font-body;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -2417,7 +2375,7 @@
     border-radius: vars.$radius-sm;
     background: vars.$bg-control;
     color: vars.$text-primary;
-    font-size: vars.$font-caption;
+    font-size: vars.$font-body;
     cursor: pointer;
 
     &:hover { border-color: vars.$color-primary; }

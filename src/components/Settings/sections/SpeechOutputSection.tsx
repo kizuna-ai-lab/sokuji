@@ -1,6 +1,6 @@
 // src/components/Settings/sections/SpeechOutputSection.tsx
 import React, { useId } from 'react';
-import { Info, Play, Volume2 } from 'lucide-react';
+import { Info, Play, RefreshCw, Volume2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import SettingRow from '../shared/SettingRow';
@@ -56,6 +56,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
     audioMonitorDevices, selectedMonitorDevice, selectMonitorDevice,
     isMonitorMuted, setMonitorMuted,
     isRealVoicePassthroughEnabled, realVoicePassthroughVolume, toggleRealVoicePassthrough, setRealVoicePassthroughVolume,
+    refreshDevices, isLoading,
   } = useAudioContext();
   const outlets = useOutlets();
   const setOutletDevice = useSetOutletDevice();
@@ -136,6 +137,14 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
         <Volume2 size={18} />
         <span>{t('audioPanel.speechTitle', 'Speech')}</span>
         <Tooltip content={t('audioPanel.speechTooltip', 'Which translations are spoken, to whom, and on which device.')} position="top" icon="help" maxWidth={300} />
+        <button
+          className="section-refresh-button"
+          onClick={refreshDevices}
+          disabled={isLoading}
+          title={t('audioPanel.refreshDevices')}
+        >
+          <RefreshCw size={14} className={isLoading ? 'spinning' : ''} />
+        </button>
       </h3>
 
       <SettingRow label={t('audioPanel.defaultPlayback', 'Default playback device')} tooltip={t('audioPanel.defaultPlaybackTip', 'Sounds with no device of their own play here.')}>
@@ -209,7 +218,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
                 value={realVoicePassthroughVolume}
                 onChange={(e) => setRealVoicePassthroughVolume(parseFloat(e.target.value))}
                 onMouseUp={(e) => trackEvent('ui_interaction', { component: 'SpeechOutputSection', action: 'passthrough_volume_changed', element: 'volume_slider', value: parseFloat((e.target as HTMLInputElement).value) })}
-                className="volume-slider"
+                className="slider"
               />
               <span className="setting-value">{t('audioPanel.passthroughVolume', { percent: Math.round(realVoicePassthroughVolume * 100), defaultValue: 'Volume {{percent}}%' })}</span>
             </div>

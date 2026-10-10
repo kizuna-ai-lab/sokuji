@@ -110,6 +110,14 @@ describe('SpeechOutputSection — the rows', () => {
     expect(document.querySelectorAll('.setting-row__head .tooltip-trigger')).toHaveLength(6);
   });
 
+  it('refreshes the device lists from the heading button, once per click', () => {
+    const refreshDevices = vi.fn(async () => ({ defaultInputDevice: null, defaultMonitorDevice: null }));
+    useAudioStore.setState({ refreshDevices, isLoading: false } as never);
+    mount();
+    fireEvent.click(screen.getByTitle('audioPanel.refreshDevices'));
+    expect(refreshDevices).toHaveBeenCalledTimes(1);
+  });
+
   it('默认播放设备 is a select over the devices, writing the monitor device', () => {
     mount();
     const select = within(row('Default playback device')).getByRole('combobox');
