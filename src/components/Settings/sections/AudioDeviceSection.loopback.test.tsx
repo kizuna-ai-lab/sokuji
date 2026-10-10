@@ -16,7 +16,6 @@ vi.mock('react-i18next', () => ({
 }));
 
 vi.mock('../../MainPanel/useFaceToFace', () => ({ useFaceToFace: () => ({ active: false }) }));
-vi.mock('../../FaceToFace/EarsBlock', () => ({ default: () => null }));
 
 vi.mock('../../../lib/analytics', () => ({
   useAnalytics: () => ({ trackEvent: vi.fn() }),

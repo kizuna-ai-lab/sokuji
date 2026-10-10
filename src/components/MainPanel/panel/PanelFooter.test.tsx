@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { PanelFooter, type PanelFooterProps } from './PanelFooter';
-import useAudioStore from '../../../stores/audioStore';
 import { languageLabel } from '../../../lib/language/label';
+import type { EarsLegendEntry } from '../useFaceToFace';
 import type { RunState } from '../../../lib/session/types';
 
 // react-i18next: return the key itself, so every assertion below is against
@@ -264,7 +264,7 @@ describe('PanelFooter — waveforms', () => {
 
 describe('PanelFooter — the ears legend', () => {
   it.each(SITES)('%s: names each ear and its listener in face-to-face, and nothing otherwise', (site) => {
-    const { container, rerender } = render(<PanelFooter {...baseProps(site, { mode: 'both', ears: { leftLang: 'ja', rightLang: 'en', leftIsMe: true } })} />);
+    const { container, rerender } = render(<PanelFooter {...baseProps(site, { mode: 'both', ears: [{ who: 'me', lang: 'ja', ear: 'left', device: 'AirPods Pro' }, { who: 'other', lang: 'en', ear: 'right', device: 'AirPods Pro' }] })} />);
     const legend = container.querySelector('.ears-legend');
     expect(legend?.textContent).toContain('faceToFace.legendMe');
     expect(legend?.textContent).toContain('faceToFace.legendOther');
@@ -275,7 +275,7 @@ describe('PanelFooter — the ears legend', () => {
 
   // Kizuna Soniox today: the participant's leg is silent, so my ear plays nothing.
   it.each(SITES)('%s: leaves out an ear nothing plays in', (site) => {
-    const { container } = render(<PanelFooter {...baseProps(site, { mode: 'both', faceToFace: true, ears: { leftLang: 'ja', rightLang: 'en', leftIsMe: true, silent: 'left' } })} />);
+    const { container } = render(<PanelFooter {...baseProps(site, { mode: 'both', faceToFace: true, ears: [{ who: 'other', lang: 'en', ear: 'right', device: 'AirPods Pro' }] })} />);
     const ears = [...container.querySelectorAll('.ears-legend .ears-legend__ear')];
     expect(ears).toHaveLength(1);
     expect(ears[0].classList.contains('ears-legend__ear--other')).toBe(true);
@@ -284,7 +284,7 @@ describe('PanelFooter — the ears legend', () => {
   });
 
   it.each(SITES)('%s: is a strip of its own directly above the control footer, never inside it', (site) => {
-    const { container, rerender } = render(<PanelFooter {...baseProps(site, { mode: 'both', faceToFace: true, ears: { leftLang: 'ja', rightLang: 'en', leftIsMe: true } })} />);
+    const { container, rerender } = render(<PanelFooter {...baseProps(site, { mode: 'both', faceToFace: true, ears: [{ who: 'me', lang: 'ja', ear: 'left', device: 'AirPods Pro' }, { who: 'other', lang: 'en', ear: 'right', device: 'AirPods Pro' }] })} />);
     const strip = container.querySelector('.ears-legend');
     expect(strip).not.toBeNull();
     expect(strip!.closest('.control-footer')).toBeNull();
@@ -294,15 +294,20 @@ describe('PanelFooter — the ears legend', () => {
     expect(container.firstElementChild?.matches(`.control-footer.${site}`)).toBe(true);
   });
 
-  it.each(SITES)('%s: names the headphones in use at the end of the strip, and nothing when none is picked', (site) => {
-    const ears = { leftLang: 'ja', rightLang: 'en', leftIsMe: true };
-    act(() => { useAudioStore.setState({ selectedMonitorDevice: { deviceId: 'out-1', label: 'AirPods Pro' } }); });
-    const { container } = render(<PanelFooter {...baseProps(site, { mode: 'both', faceToFace: true, ears })} />);
-    const device = container.querySelector('.ears-legend .ears-legend__device');
-    expect(device?.textContent).toBe('AirPods Pro');
-    expect(device).toBe(container.querySelector('.ears-legend')!.lastElementChild);
-    act(() => { useAudioStore.setState({ selectedMonitorDevice: null }); });
+  it.each(SITES)('%s: names the headphones of each entry, and nothing when none is known', (site) => {
+    const ears: EarsLegendEntry[] = [{ who: 'me', lang: 'ja', ear: 'left', device: 'AirPods Pro' }, { who: 'other', lang: 'en', ear: 'right', device: 'AirPods Pro' }];
+    const { container, rerender } = render(<PanelFooter {...baseProps(site, { mode: 'both', faceToFace: true, ears })} />);
+    const devices = [...container.querySelectorAll('.ears-legend__ear .ears-legend__device')];
+    expect(devices.map((d) => d.textContent)).toEqual(['AirPods Pro', 'AirPods Pro']);
+    rerender(<PanelFooter {...baseProps(site, { mode: 'both', faceToFace: true, ears: ears.map((e) => ({ ...e, device: null })) })} />);
     expect(container.querySelector('.ears-legend__device')).toBeNull();
+  });
+
+  it.each(SITES)('%s: a centred entry has no ring letter and no ear name', (site) => {
+    const { container } = render(<PanelFooter {...baseProps(site, { mode: 'both', faceToFace: true, ears: [{ who: 'me', lang: 'ja', device: null }] })} />);
+    expect(container.querySelector('.ears-legend__ear')).not.toBeNull();
+    expect(container.querySelector('.ears-legend b')).toBeNull();
+    expect(container.querySelector('.ears-legend__ear-name')).toBeNull();
   });
 
   it.each(SITES)('%s: the tag follows the legend', (site) => {
