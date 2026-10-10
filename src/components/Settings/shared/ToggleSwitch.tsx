@@ -10,6 +10,9 @@ interface ToggleSwitchProps {
   tooltip?: string;
   tooltipMaxWidth?: number;
   className?: string;
+  /** Accessible name for the switch; needed when `label` is empty. */
+  ariaLabel?: string;
+  title?: string;
 }
 
 const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
@@ -19,7 +22,9 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
   disabled = false,
   tooltip,
   tooltipMaxWidth = 300,
-  className = ''
+  className = '',
+  ariaLabel,
+  title
 }) => {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === ' ' || e.key === 'Enter') {
@@ -29,12 +34,13 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
   };
 
   return (
-    <div className={`toggle-switch-component ${className}`}>
+    <div className={`toggle-switch-component ${className}`} title={title}>
       <div
         className={`toggle-switch-label ${disabled ? 'disabled' : ''}`}
         onClick={disabled ? undefined : onChange}
         onKeyDown={disabled ? undefined : handleKeyDown}
         role="switch"
+        aria-label={ariaLabel}
         aria-checked={checked}
         aria-disabled={disabled}
         tabIndex={disabled ? -1 : 0}
@@ -49,7 +55,7 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
           />
           <span className="toggle-track" />
         </div>
-        <span className={`toggle-label-text ${checked ? 'active' : ''}`}>{label}</span>
+        {label !== '' && <span className={`toggle-label-text ${checked ? 'active' : ''}`}>{label}</span>}
       </div>
       {tooltip && (
         <Tooltip

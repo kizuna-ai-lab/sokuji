@@ -2379,3 +2379,103 @@
     }
   }
 }
+
+// ── Two-line setting rows (spec 2026-10-10 D4) ───────────────────────────
+.setting-row {
+  margin-top: 10px;
+  position: relative;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 24px;
+  }
+  &__label {
+    font-size: vars.$font-title;
+    color: vars.$text-primary;
+  }
+  &__switch {
+    margin-left: auto;
+  }
+  &__control {
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .select-dropdown { flex: 1; min-width: 0; }
+  }
+  &__inert {
+    display: contents;
+    border: 0;
+    padding: 0;
+    margin: 0;
+  }
+  // A read-only box the same height as a closed select.
+  &__field {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 10px;
+    background: vars.$bg-control;
+    border: 1px solid vars.$border-default;
+    border-radius: vars.$radius-sm;
+    font-size: vars.$font-title;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    .muted { color: vars.$text-secondary; }
+  }
+  &__preview {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    padding: 6px 10px;
+    border: 1px solid vars.$border-default;
+    border-radius: vars.$radius-sm;
+    background: vars.$bg-control;
+    color: vars.$text-primary;
+    font-size: vars.$font-caption;
+    cursor: pointer;
+
+    &:hover { border-color: vars.$color-primary; }
+  }
+  &__slider {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    input[type='range'] { flex: 1; min-width: 0; }
+    .setting-value { color: vars.$color-primary; font-size: vars.$font-caption; white-space: nowrap; }
+  }
+  &__reason {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  &--sub {
+    margin-left: 30px;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: -18px;
+      top: -4px;
+      width: 10px;
+      height: 16px;
+      border-left: 2px solid #888;
+      border-bottom: 2px solid #888;
+      border-bottom-left-radius: 3px;
+    }
+  }
+  &--greyed {
+    opacity: 0.5;
+
+    .tooltip-trigger { opacity: 1; pointer-events: auto; }
+  }
+}
