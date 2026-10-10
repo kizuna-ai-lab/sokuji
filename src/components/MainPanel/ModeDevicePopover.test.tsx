@@ -7,7 +7,8 @@
  * a per-application helper actually reported sources.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
+import { useProviderStore as useProviderStoreMock } from '../../stores/providerStore';
 import ModeDevicePopover from './ModeDevicePopover';
 
 vi.mock('react-i18next', () => ({
@@ -84,6 +85,10 @@ vi.mock('../../lib/diagnostics/report', async (importOriginal) => ({
 }));
 vi.mock('../../lib/language/useLanguageLabel', () => ({ useLanguageLabel: () => (code: string) => code.toUpperCase() }));
 
+vi.mock('../../stores/providerStore', async () => {
+  const { create: make } = await import('zustand');
+  return { useProviderStore: make(() => ({ selected: 'p', entries: {} as Record<string, unknown> })) };
+});
 const providerState = { participantSpeech: undefined as boolean | undefined };
 vi.mock('../../lib/session/appShape', () => ({ selectedFromStores: () => ({ provider: { speech: 'optional', participantSpeech: providerState.participantSpeech } }) }));
 
@@ -336,6 +341,18 @@ describe('ModeDevicePopover — the speech rows in Me and Other', () => {
     providerState.participantSpeech = false;
     routing.participantSpeech = true;
     mount('participant');
+    const button = screen.getByRole('button', { name: 'Turn on Translation I hear' });
+    expect(button).toBeDisabled();
+    expect(button.getAttribute('title')).toMatch(/does not speak/);
+  });
+
+  it('a provider change while the popover stays mounted updates the switch', () => {
+    store.selected = CHROMIUM;
+    providerState.participantSpeech = true;
+    mount('participant');
+    expect(screen.getByRole('button', { name: 'Turn on Translation I hear' })).toBeEnabled();
+    providerState.participantSpeech = false;
+    act(() => useProviderStoreMock.setState({ entries: { ...useProviderStoreMock.getState().entries } }));
     const button = screen.getByRole('button', { name: 'Turn on Translation I hear' });
     expect(button).toBeDisabled();
     expect(button.getAttribute('title')).toMatch(/does not speak/);

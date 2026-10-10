@@ -28,6 +28,7 @@ import type { OutletName } from '../../lib/audio/outlets';
 import { describeCause, reportError } from '../../lib/diagnostics/report';
 import { selectedFromStores } from '../../lib/session/appShape';
 import { participantSpeechHeard } from '../../lib/modern-audio/participantSource';
+import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { getEnvironment, isExtension } from '../../utils/environment';
 import { useNavigateToSettings } from '../../stores/settingsStore';
@@ -102,6 +103,10 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
   const setOutletDevice = useSetOutletDevice();
   const setOutletChannel = useSetOutletChannel();
   const defaultDevice = useSelectedMonitorDevice();
+  // Subscribed so a provider change in settings reaches a popover that stays mounted while closed.
+  useProviderStore((s) => s.selected);
+  useProviderStore((s) => s.entries);
+  const provider = selectedFromStores()?.provider;
   const participantSpeech = useRoutingStore((s) => s.participantSpeech);
   const setParticipantSpeech = useRoutingStore((s) => s.setParticipantSpeech);
   const heard = participantSpeechHeard(getEnvironment(), selectedParticipantSource?.deviceId, beside);
@@ -250,7 +255,6 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
 
     if (mode === 'participant') {
       // The twin of SpeechOutputSection's 我听到的翻译 switch: keep the two in step.
-      const provider = selectedFromStores()?.provider;
       const speech = provider?.speech ?? 'optional';
       const offered = provider?.participantSpeech !== false;
       const on = offered && heard && speech !== 'never' && (speech === 'always' || (participantSpeech ?? false));
@@ -275,7 +279,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     // outletRow and previewOn close over the values listed here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    mode, beside, locked, outlets, defaultDevice, participantSpeech, heard,
+    mode, beside, locked, provider, outlets, defaultDevice, participantSpeech, heard,
     audioInputDevices, selectedInputDevice, isMicMuted,
     audioMonitorDevices, isMonitorMuted,
     isParticipantMuted, participantSources, selectedParticipantSource,
