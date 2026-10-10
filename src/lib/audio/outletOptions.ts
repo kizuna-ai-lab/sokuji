@@ -45,7 +45,8 @@ export function parseEntryValue(value: string): { device: string | null; channel
  * resolves to face-to-face; a device on auto shows its resolved channel, so
  * the value is always an entry the list has. With `devices` given, a stored
  * device that is no longer listed reads as follow-default with its channel
- * kept, which is what the routing resolves.
+ * kept, which is what the routing resolves. A centred pick belongs to its
+ * device, so without one it is void and reads as auto.
  */
 export function outletSelectValue(
   name: OutletName,
@@ -54,7 +55,8 @@ export function outletSelectValue(
   devices?: readonly { deviceId: string }[],
 ): string {
   const gone = devices !== undefined && stored.device !== null && !devices.some((d) => d.deviceId === stored.device);
-  const choice: OutletChoice = gone ? { device: null, channel: stored.channel } : stored;
+  const device = gone ? null : stored.device;
+  const choice: OutletChoice = { device, channel: device === null && stored.channel === 'both' ? 'auto' : stored.channel };
   if (choice.device === null && choice.channel === 'auto' && !faceToFace) return entryValue(choice);
   return entryValue({ device: choice.device, channel: resolveChannel(name, choice.channel, faceToFace) });
 }

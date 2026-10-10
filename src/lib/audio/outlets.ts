@@ -66,6 +66,8 @@ export interface OutletContext {
 export function resolveOutlet(name: OutletName, choice: OutletChoice, context: OutletContext): OutletSink {
   const own = choice.device !== null && context.present.has(choice.device) ? choice.device : undefined;
   const device = own ?? context.defaultDevice;
-  const pan = panOf(resolveChannel(name, choice.channel, context.faceToFace));
+  // A centred pick belongs to its device; without it, auto.
+  const channel = own === undefined && choice.channel === 'both' ? 'auto' : choice.channel;
+  const pan = panOf(resolveChannel(name, channel, context.faceToFace));
   return { ...(device !== undefined ? { device } : {}), ...(pan !== undefined ? { pan } : {}) };
 }

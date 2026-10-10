@@ -229,10 +229,10 @@ describe('SpeechOutputSection — per mode (spec §1.2)', () => {
   });
 
   it('a stored device that is no longer listed shows the follow-default entry', () => {
-    useAudioStore.setState({ outlets: { other: { device: null, channel: 'auto' }, me: { device: 'gone', channel: 'left' }, them: { device: null, channel: 'auto' } } });
+    useAudioStore.setState({ outlets: { other: { device: null, channel: 'auto' }, me: { device: 'gone', channel: 'both' }, them: { device: null, channel: 'auto' } } });
     mount();
     const select = within(row('I hear it too')).getByRole('combobox') as HTMLSelectElement;
-    expect(select.value).toBe(outletSelectValue('me', { device: null, channel: 'left' }, false));
+    expect(select.value).toBe(outletSelectValue('me', { device: null, channel: 'auto' }, false));
   });
 
   it('两者 · 在线会议 · 应用: nothing blocked; 我听到的翻译 off until switched, then on', () => {

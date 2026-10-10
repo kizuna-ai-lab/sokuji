@@ -46,6 +46,12 @@ describe('resolveOutlet', () => {
     expect(resolveOutlet('them', { device: null, channel: 'auto' }, { defaultDevice: undefined, present, faceToFace: true })).toEqual({ pan: -1 });
   });
 
+  it('a centred pick without its device is void: auto, in both contexts', () => {
+    const choice = { device: 'gone', channel: 'both' as const };
+    expect(resolveOutlet('other', choice, { defaultDevice: 'd', present: new Set(['d']), faceToFace: true })).toEqual({ device: 'd', pan: 1 });
+    expect(resolveOutlet('other', choice, { defaultDevice: 'd', present: new Set(['d']), faceToFace: false })).toEqual({ device: 'd' });
+  });
+
   it('carries the resolved channel as a pan', () => {
     expect(resolveOutlet('other', DEFAULT_OUTLET_CHOICE, { defaultDevice: 'airpods', present, faceToFace: true })).toEqual({ device: 'airpods', pan: 1 });
     expect(resolveOutlet('other', { device: null, channel: 'left' }, { defaultDevice: 'airpods', present, faceToFace: false })).toEqual({ device: 'airpods', pan: -1 });

@@ -65,4 +65,9 @@ describe('outletSelectValue — a stored device that is no longer listed', () =>
   it('keeps the stored id without a devices argument', () => {
     expect(outletSelectValue('me', { device: 'gone', channel: 'left' }, false)).toBe('gone#left');
   });
+  it('a centred pick without its device reads as auto', () => {
+    expect(outletSelectValue('me', { device: 'gone', channel: 'both' }, false, [{ deviceId: 'airpods' }])).toBe('#auto');
+    expect(outletSelectValue('other', { device: null, channel: 'both' }, true))
+      .toBe(outletSelectValue('other', { device: null, channel: 'auto' }, true));
+  });
 });
