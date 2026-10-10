@@ -53,8 +53,6 @@ describe('face-to-face scenarios', () => {
   it('are Both beside me, with and without voice', () => {
     expect(getScenario('face-to-face-voice')).toEqual({ id: 'face-to-face-voice', mode: 'both', textOnly: false, otherSide: 'beside', participantSpeech: true });
     expect(getScenario('face-to-face-text')).toEqual({ id: 'face-to-face-text', mode: 'both', textOnly: true, otherSide: 'beside', participantSpeech: false });
-    expect(getScenario('face-to-face-voice')).toMatchObject({ participantSpeech: true });
-    expect(getScenario('face-to-face-text')).toMatchObject({ participantSpeech: false });
   });
 
   it('fit only a provider that offers face-to-face', () => {

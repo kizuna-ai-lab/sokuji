@@ -346,7 +346,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
 
           return (
             <React.Fragment key={row.key}>
-              <div className={`mode-device-popover__row${isExpanded ? ' mode-device-popover__row--expanded' : ''}${row.key === 'participant' ? ' mode-device-popover__row--participant' : ''}`}>
+              <div className={`mode-device-popover__row${isExpanded ? ' mode-device-popover__row--expanded' : ''}${row.key === 'participant' ? ' mode-device-popover__row--participant' : ''}${row.key === 'me' || row.key === 'other' || row.key === 'them' ? ' mode-device-popover__row--outlet' : ''}`}>
                 <button
                   type="button"
                   className="mode-device-popover__row-main"

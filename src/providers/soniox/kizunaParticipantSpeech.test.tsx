@@ -157,6 +157,8 @@ describe('the switch', () => {
     const sw = screen.getByRole('switch', { name: 'audioPanel.iHear' });
     expect(sw.getAttribute('aria-checked')).toBe('true');
     expect(sw.getAttribute('aria-disabled')).not.toBe('true');
+    expect(tooltips).toContain('audioPanel.iHearTip');
+    expect(tooltips).not.toContain('audioPanel.iHearNotOffered');
   });
 });
 

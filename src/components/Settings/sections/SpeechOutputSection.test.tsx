@@ -41,6 +41,19 @@ vi.mock('../../../utils/environment', async (importOriginal) => ({
   isWindows: () => env.os === 'win',
   isLinux: () => env.os === 'linux',
 }));
+// Each row's help text, as the section hands it to the tooltip.
+const tooltips = vi.hoisted(() => [] as unknown[]);
+vi.mock('../../Tooltip/Tooltip', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../Tooltip/Tooltip')>();
+  const Real = actual.default;
+  return {
+    ...actual,
+    default: (props: React.ComponentProps<typeof Real>) => {
+      tooltips.push(props.content);
+      return Real(props);
+    },
+  };
+});
 const preview = vi.hoisted(() => vi.fn(async (_outlet: string) => {}));
 vi.mock('../../../lib/audio/appAudio', () => ({ getAppAudio: async () => ({ earPreview: preview }) }));
 
@@ -65,6 +78,7 @@ const pick = (id: string) => useProviderStore.setState({
 
 beforeEach(() => {
   shapeOverride.provider = null;
+  tooltips.length = 0;
   env.platform = 'electron';
   env.os = 'mac';
   preview.mockClear();
@@ -317,5 +331,15 @@ describe('SpeechOutputSection — per mode (spec §1.2)', () => {
     mount();
     expect(sw('Translation I hear')).toHaveAttribute('aria-checked', 'false');
     expect(sw('Translation I hear')).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it("on the whole-system source a provider that does not speak for the participant still names itself: the tooltip is the not-offered text, beside the one reason line (the section's precedence)", () => {
+    useAudioStore.setState({ mode: 'participant' }); // the whole-system source is the beforeEach's
+    shapeOverride.provider = { id: 'x', speech: 'optional', participantSpeech: false };
+    mount();
+    expect(sw('Translation I hear')).toHaveAttribute('aria-disabled', 'true');
+    expect(tooltips).toContain("This service does not speak the other side's translation.");
+    expect(tooltips).not.toContain('What the other side says, translated and read aloud to me.');
+    expect(screen.getAllByText(/All system sound is being captured/)).toHaveLength(1);
   });
 });

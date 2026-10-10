@@ -289,8 +289,7 @@ describe('sessionEndProperties', () => {
 describe('appStartInputs', () => {
   it('reads the audio, settings and provider stores', () => {
     useAudioStore.setState({ noiseSuppressionMode: 'off', isMicMuted: true, isMonitorMuted: true, mode: 'speaker' });
-    useSettingsStore.setState({ textOnly: false });
-    useSettingsStore.setState({ segmentationMode: 'sentences', sentenceSegmentationChunkSentences: 3 });
+    useSettingsStore.setState({ textOnly: false, segmentationMode: 'sentences', sentenceSegmentationChunkSentences: 3 });
     useProviderStore.setState({ selected: null, entries: {} });
 
     const inputs = appStartInputs(true);
@@ -316,8 +315,12 @@ describe('appStartInputs', () => {
   });
 
   it('answers with no provider loaded (Review Focus 5)', () => {
+    // With no provider `speechFromStores` answers as an optional-speech one would: from the stores set here.
+    useAudioStore.setState({ mode: 'speaker', isMonitorMuted: true });
+    useSettingsStore.setState({ textOnly: false });
     useProviderStore.setState({ selected: null, entries: {} });
     expect(() => appStartInputs(false)).not.toThrow();
+    expect(appStartInputs(false).speak).toEqual({ other: true, me: false, them: false });
   });
 });
 

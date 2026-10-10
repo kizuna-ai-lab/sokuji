@@ -69,12 +69,14 @@ describe('StepLanguagePair — the scenario decides whether the run speaks (Stag
     expect(draw('understand-others')).toEqual(['en', 'ja']);
   });
 
-  it("takes the participant's speech from the scenario when its preset carries it: two-way-text offers as silent, two-way-voice as speaking, understand-others as the stores say", () => {
+  it("takes the participant's speech from the preset, not the stores' switch: two-way-text offers as silent with the switch on, two-way-voice as speaking with it off; understand-others follows the stores", () => {
     participant.speech = true;
     expect(draw('two-way-text')).toEqual(['en', 'ja', 'ko']);
     cleanup();
+    participant.speech = false;
     expect(draw('two-way-voice')).toEqual(['en', 'ja']);
     cleanup();
+    participant.speech = true;
     expect(draw('understand-others')).toEqual(['en', 'ja']);
   });
 

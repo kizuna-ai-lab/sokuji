@@ -55,6 +55,16 @@ describe('useFaceToFace', () => {
     expect(result.current.speaks.participant).toBe(false);
   });
 
+  it("tells an outlet's own device from the default fallback, and a stale id falls back to the default", () => {
+    pick('soniox');
+    useAudioStore.setState({ audioMonitorDevices: [{ deviceId: 'out-1', label: 'AirPods Pro' }, { deviceId: 'out-2', label: 'USB Speakers' }] as never });
+    const { result } = renderHook(() => useFaceToFace());
+    act(() => { useAudioStore.getState().setOutletDevice('other', 'out-2'); });
+    expect(result.current.outletDevices).toEqual({ other: 'USB Speakers', them: 'AirPods Pro' });
+    act(() => { useAudioStore.getState().setOutletDevice('them', 'gone'); });
+    expect(result.current.outletDevices.them).toBe('AirPods Pro');
+  });
+
   it('reads the ears and the devices from the outlets, live', () => {
     pick('soniox');
     const { result } = renderHook(() => useFaceToFace());

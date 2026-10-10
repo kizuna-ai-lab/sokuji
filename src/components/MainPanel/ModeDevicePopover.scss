@@ -150,6 +150,19 @@
     &:hover { background: transparent; }
   }
 
+  // An outlet row's value is what the user needs: the label shrinks and ellipsizes first, the summary keeps up to 60%.
+  &__row--outlet &__row-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  &__row--outlet &__summary {
+    flex: 0 1 auto;
+    max-width: 60%;
+  }
+
   // Expanded inline DeviceList — mirrors the settings .device-list pattern
   &__device-list {
     background: #1f1f1f;
