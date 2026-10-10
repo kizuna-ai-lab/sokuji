@@ -29,8 +29,10 @@ vi.mock('../../utils/environment', () => ({
   getEnvironment: () => (env.extension ? 'extension' : 'electron'),
 }));
 
+const settings = { textOnly: false, navigate: vi.fn() };
 vi.mock('../../stores/settingsStore', () => ({
-  useNavigateToSettings: () => vi.fn(),
+  useNavigateToSettings: () => settings.navigate,
+  useSettingsStore: (pick: (s: unknown) => unknown) => pick({ textOnly: settings.textOnly }),
 }));
 
 const store = {
@@ -105,6 +107,8 @@ beforeEach(() => {
   store.otherSide = 'meeting';
   Object.assign(f2f, { offered: true, active: false, me: 'ja', other: 'en', speaks: { speaker: true, participant: true }, ears: {}, outletDevices: { other: 'AirPods Pro', them: 'AirPods Pro' } });
   providerState.participantSpeech = undefined;
+  settings.textOnly = false;
+  settings.navigate.mockReset();
   routing.participantSpeech = null;
   routing.setParticipantSpeech.mockReset();
   monitor.setMuted.mockReset();
@@ -300,6 +304,25 @@ describe('ModeDevicePopover — the speech rows in Me and Other', () => {
     expect(labels).toEqual(['Microphone', 'I hear it too']);
     fireEvent.click(screen.getByRole('button', { name: 'Turn off I hear it too' }));
     expect(monitor.setMuted).toHaveBeenCalledWith(true);
+  });
+
+  it('Me: under Text Only 我也听 is off and disabled with the page\'s reason', () => {
+    settings.textOnly = true;
+    mount('speaker');
+    const button = screen.getByRole('button', { name: 'Turn on I hear it too' });
+    expect(button).toBeDisabled();
+    expect(button.getAttribute('aria-pressed')).toBe('false');
+    expect(button.getAttribute('title')).toBe('Nothing to hear while the translation is not spoken.');
+  });
+
+  it("the footer link lands on the speech rows in every mode", () => {
+    for (const mode of ['speaker', 'participant'] as const) {
+      settings.navigate.mockReset();
+      const { unmount } = mount(mode);
+      fireEvent.click(screen.getByText('Full settings →'));
+      expect(settings.navigate).toHaveBeenCalledWith('speech');
+      unmount();
+    }
   });
 
   it("Other: the system-audio row, then 我听到的翻译 whose switch writes participantSpeech", () => {

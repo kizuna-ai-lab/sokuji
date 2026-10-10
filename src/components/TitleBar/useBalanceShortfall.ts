@@ -25,6 +25,7 @@ export function useBalanceShortfall(): boolean {
   // What `speechFromStores` reads, subscribed so the dot follows the switch and the source.
   useRoutingStore((s) => s.participantSpeech);
   useAudioStore((s) => s.selectedParticipantSource?.deviceId);
+  useAudioStore((s) => s.participantCaptureWidened);
   // The provider exactly as the live gate finds it (`selectedFromStores`: the selected one, else the first present), so before the load selects one the dot and Start still agree.
   const found = selectedFromStores();
   if (!found) return false;

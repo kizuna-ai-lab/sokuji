@@ -777,7 +777,7 @@ describe('createAudioGraph — a wedged context (#246)', () => {
     expect(contexts).toHaveLength(3);
   });
 
-  it('keeps both outputs on their devices and playing across a rebuild', async () => {
+  it('keeps the me outlet and the virtual output on their devices, the them pan, and both playing across a rebuild', async () => {
     const setup = await setupRecovering();
     const { contexts, graph, me, virtualSink, on, destinationOn } = setup;
     await graph.setSinks({ ...on('monitor-1', 'cable-1'), them: { pan: -1 } });

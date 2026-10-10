@@ -9,6 +9,9 @@ vi.mock('../../services/ServiceFactory', () => ({
   },
 }));
 
+const environment = vi.hoisted(() => ({ value: 'web' as 'web' | 'electron' | 'extension' }));
+vi.mock('../../utils/environment', async (importOriginal) => ({ ...(await importOriginal<typeof import('../../utils/environment')>()), getEnvironment: () => environment.value }));
+
 import { SAMPLE_RATE } from '../contract/adapter';
 import useAudioStore from '../../stores/audioStore';
 import { useRoutingStore } from '../../stores/routingStore';
@@ -17,6 +20,7 @@ import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { DEFAULT_OUTLET_CHOICE } from './outlets';
 import { createAppRouting, readRouting } from './appAudio';
+import { routesFor } from './routes';
 import { FakeAudioContext, FakeSink, FakeWorkletNode } from './fakeWebAudio';
 
 const AUDIO = {
@@ -264,5 +268,29 @@ describe('createAppRouting', () => {
     expect(source.get().speak.other).toBe(false);
     useSettingsStore.setState({ textOnly: false });
     off();
+  });
+
+  it('a capture that widens to the whole system silences 我听到的翻译 live, and clearing it restores the edge', () => {
+    environment.value = 'electron';
+    try {
+      useAudioStore.setState({ ...AUDIO, mode: 'both', otherSide: 'meeting', selectedParticipantSource: { deviceId: 'app:42', label: 'App' }, participantCaptureWidened: false } as never);
+      useRoutingStore.setState({ participantSpeech: true });
+      const routing = createAppRouting('electron');
+      const heard = vi.fn();
+      const off = routing.subscribe(heard);
+      expect(routing.get().speak.them).toBe(true);
+      expect(routesFor(routing.get(), false)).toContainEqual({ from: 'participant', to: 'them', gain: 1 });
+      useAudioStore.setState({ participantCaptureWidened: true });
+      expect(heard).toHaveBeenCalledTimes(1);
+      expect(routing.get().speak.them).toBe(false);
+      expect(routesFor(routing.get(), false).some((e) => e.from === 'participant' && e.to === 'them')).toBe(false);
+      useAudioStore.setState({ participantCaptureWidened: false });
+      expect(heard).toHaveBeenCalledTimes(2);
+      expect(routing.get().speak.them).toBe(true);
+      expect(routesFor(routing.get(), false)).toContainEqual({ from: 'participant', to: 'them', gain: 1 });
+      off();
+    } finally {
+      environment.value = 'web';
+    }
   });
 });

@@ -30,7 +30,7 @@ import { heardFromStores, selectedFromStores } from '../../lib/session/appShape'
 import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { isExtension } from '../../utils/environment';
-import { useNavigateToSettings } from '../../stores/settingsStore';
+import { useNavigateToSettings, useSettingsStore } from '../../stores/settingsStore';
 import { isVirtualDevice, type AudioDevice } from '../Settings/shared/hooks';
 import { describeDeviceOnHover } from '../../utils/audioDevices';
 import './ModeDevicePopover.scss';
@@ -108,6 +108,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
   const provider = selectedFromStores()?.provider;
   const participantSpeech = useRoutingStore((s) => s.participantSpeech);
   const setParticipantSpeech = useRoutingStore((s) => s.setParticipantSpeech);
+  const textOnly = useSettingsStore((s) => s.textOnly);
   // Subscribed so the blocked state follows a capture that widens mid-run.
   useParticipantCaptureWidened();
   const heard = heardFromStores(beside);
@@ -221,9 +222,13 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     }
 
     if (mode === 'speaker') {
+      // The twin of SpeechOutputSection's 我也听 row: off while the translation is not spoken (`otherOn` there).
+      const speech = provider?.speech ?? 'optional';
+      const otherOn = speech === 'always' ? true : speech === 'never' ? false : !textOnly;
       list.push(outletRow('me', 'me', t('audioPanel.meToo', 'I hear it too'), {
-        isMuted: isMonitorMuted,
+        isMuted: isMonitorMuted || !otherOn,
         onMuteToggle: () => setMonitorMuted(!isMonitorMuted),
+        ...(otherOn ? {} : { disabledReason: t('audioPanel.needsOtherHears', 'Nothing to hear while the translation is not spoken.') }),
       }));
     }
 
@@ -280,7 +285,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     // outletRow and previewOn close over the values listed here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    mode, beside, locked, provider, outlets, defaultDevice, participantSpeech, heard,
+    mode, beside, locked, provider, textOnly, outlets, defaultDevice, participantSpeech, heard,
     audioInputDevices, selectedInputDevice, isMicMuted,
     audioMonitorDevices, isMonitorMuted,
     isParticipantMuted, participantSources, selectedParticipantSource,
@@ -415,13 +420,9 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
             className="mode-device-popover__footer-link"
             onClick={() => {
               // navigateToSettings(null) is a no-op — MainLayout opens the
-              // panel only on a truthy target. Pass the popover's current
-              // mode as the section anchor so the user lands on the most
-              // relevant section.
-              const target = mode === 'speaker' ? 'microphone'
-                : mode === 'participant' ? 'participant'
-                : 'microphone';
-              navigateToSettings(target);
+              // panel only on a truthy target. The speech rows are what the
+              // popover lacks, so every mode lands on them.
+              navigateToSettings('speech');
               onClose();
             }}
           >
