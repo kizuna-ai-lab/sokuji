@@ -18,6 +18,7 @@
  * value — Settings.test.tsx's fixed `() => null` mock can't.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { StrictMode } from 'react';
 import { render } from '@testing-library/react';
 import Settings from './Settings';
 
@@ -30,6 +31,7 @@ let mockUIMode: 'basic' | 'advanced' = 'advanced';
 const navigateToSettings = vi.fn((target: string | null) => { mockTarget = target; });
 
 vi.mock('../../stores/settingsStore', () => ({
+  default: { getState: () => ({ settingsNavigationTarget: mockTarget }) },
   useUIMode: () => mockUIMode,
   useSetUIMode: () => vi.fn(),
   useNavigateToSettings: () => navigateToSettings,
@@ -156,5 +158,65 @@ describe("Settings — the 'provider' navigation target switches tabs without fl
 
     vi.advanceTimersByTime(200);
     expect(navigateToSettings).toHaveBeenCalledWith(null);
+  });
+
+  // The panel closing (its <Activity> hides, running this cleanup) inside the
+  // 3000ms highlight window cancelled the timer that would have cleared the
+  // target, and nothing else clears it: the next navigateToSettings with the
+  // SAME target was a no-op set, so MainLayout's effect never re-fired and the
+  // panel stayed shut. The popover's "Full settings →" after a quick close was
+  // how it showed. SimpleSettings' effect already clears on this path.
+  // The clear is deferred a microtask (see the StrictMode case below), so the
+  // cleanup's effect shows after one.
+  const flushMicrotasks = () => Promise.resolve();
+
+  it("the panel hiding mid-highlight clears the target, so the same target can reopen it", async () => {
+    mockTarget = 'microphone';
+    const { getByTestId, unmount } = render(<Settings />);
+    vi.advanceTimersByTime(200);
+    expect(getByTestId('microphone-section-el').classList.contains('highlight')).toBe(true);
+
+    unmount();
+    await flushMicrotasks();
+    expect(navigateToSettings).toHaveBeenCalledWith(null);
+  });
+
+  // Codex on #616: a close inside the 150ms scroll delay is the same stale
+  // target — the highlight never landing is no reason to keep it.
+  it("the panel hiding before the highlight landed clears the target too", async () => {
+    mockTarget = 'microphone';
+    const { unmount } = render(<Settings />);
+    vi.advanceTimersByTime(50);
+    unmount();
+    await flushMicrotasks();
+    expect(navigateToSettings).toHaveBeenCalledWith(null);
+  });
+
+  it("retargeting mid-highlight does not clobber the newer target", async () => {
+    mockTarget = 'microphone';
+    const { getByTestId, rerender } = render(<Settings />);
+    vi.advanceTimersByTime(200);
+    expect(getByTestId('microphone-section-el').classList.contains('highlight')).toBe(true);
+
+    mockTarget = 'turn-detection-tuning';
+    rerender(<Settings />);
+    await flushMicrotasks();
+    expect(getByTestId('microphone-section-el').classList.contains('highlight')).toBe(false);
+    expect(navigateToSettings).not.toHaveBeenCalledWith(null);
+    vi.advanceTimersByTime(200);
+    expect(getByTestId('turn-detection-tuning-el').classList.contains('highlight')).toBe(true);
+  });
+
+  // StrictMode's dev-only rehearsal runs the cleanup and the effect again,
+  // synchronously, before the 150ms scroll delay. That cleanup must not clear
+  // the target, or the re-run effect's own navigation bails and the highlight
+  // is silently dropped in development.
+  it("StrictMode's effect rehearsal leaves the target alone and the highlight still lands", async () => {
+    mockTarget = 'microphone';
+    const { getByTestId } = render(<StrictMode><Settings /></StrictMode>);
+    await flushMicrotasks();
+    expect(navigateToSettings).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(200);
+    expect(getByTestId('microphone-section-el').classList.contains('highlight')).toBe(true);
   });
 });
