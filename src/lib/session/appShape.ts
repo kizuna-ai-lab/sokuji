@@ -51,7 +51,7 @@ export function isFaceToFace(provider: { faceToFace?: boolean } | undefined, mod
 }
 
 /** `participantSpeechHeard` over the stores: the other's translation, spoken to me, is not recaptured by the participant source. */
-function heardFromStores(faceToFace: boolean): boolean {
+export function heardFromStores(faceToFace: boolean): boolean {
   return participantSpeechHeard(getEnvironment(), useAudioStore.getState().selectedParticipantSource?.deviceId, faceToFace);
 }
 

@@ -12,6 +12,7 @@ function deps(overrides: Partial<ApplySetupDeps> = {}): ApplySetupDeps {
     setOtherSide: vi.fn(),
     setBothPopoverSeen: vi.fn(),
     setTextOnly: vi.fn(),
+    setParticipantSpeech: vi.fn(),
     applyProvider: vi.fn(async () => {}),
     completeSetup: vi.fn(async () => {}),
     ...overrides,
@@ -27,6 +28,18 @@ const draft = (over: Partial<SetupDraft>): SetupDraft => ({
 });
 
 describe('applySetupDraft (spec §1.5)', () => {
+  it('writes 我听到的翻译 for the Both scenarios only: on for voice, off for text, untouched elsewhere (Review Focus 3)', async () => {
+    const voice = deps();
+    await applySetupDraft(draft({ scenario: 'two-way-voice' }), voice);
+    expect(voice.setParticipantSpeech).toHaveBeenCalledWith(true);
+    const text = deps();
+    await applySetupDraft(draft({ scenario: 'face-to-face-text' }), text);
+    expect(text.setParticipantSpeech).toHaveBeenCalledWith(false);
+    const listen = deps();
+    await applySetupDraft(draft({ scenario: 'understand-others', providerPath: 'managed', provider: Provider.KIZUNA_AI_SONIOX, credentials: {} }), listen);
+    expect(listen.setParticipantSpeech).not.toHaveBeenCalled();
+  });
+
   it('writes preset, provider, record — in that order — and not uiMode', async () => {
     const d = deps();
     await applySetupDraft(draft({}), d);

@@ -25,6 +25,7 @@ const participant = vi.hoisted(() => ({ speech: false }));
 vi.mock('../../../lib/session/appShape', () => ({
   legsFor: (mode: string) => (mode === 'both' ? ['speaker', 'participant'] : [mode]),
   speechInputsFromStores: () => ({ textOnly: false, participantSpeech: participant.speech }),
+  heardFromStores: () => true,
 }));
 
 import { PIN_SEPARATOR } from '../../../lib/language/order';
@@ -64,6 +65,15 @@ describe('StepLanguagePair — the scenario decides whether the run speaks (Stag
   it("reads the participant's own speech switch for a scenario that listens to others", () => {
     expect(draw('understand-others')).toEqual(['en', 'ja', 'ko']);
     participant.speech = true;
+    cleanup();
+    expect(draw('understand-others')).toEqual(['en', 'ja']);
+  });
+
+  it("takes the participant's speech from the scenario when its preset carries it: two-way-text offers as silent, two-way-voice as speaking, understand-others as the stores say", () => {
+    participant.speech = true;
+    expect(draw('two-way-text')).toEqual(['en', 'ja', 'ko']);
+    cleanup();
+    expect(draw('two-way-voice')).toEqual(['en', 'ja']);
     cleanup();
     expect(draw('understand-others')).toEqual(['en', 'ja']);
   });
