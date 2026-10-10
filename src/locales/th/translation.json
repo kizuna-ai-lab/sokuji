@@ -206,7 +206,7 @@
     "translateModelNotAvailable": "API key ใช้งานได้ แต่ไม่สามารถเข้าถึง gpt-realtime-translate ด้วย key นี้",
     "participantSectionHeader": "เสียงอีกฝ่าย",
     "participantSectionDescriptionElectron": "แปลเสียงจากแอปพลิเคชันใดก็ตามที่กำลังเล่นบนระบบนี้",
-    "participantSectionDescriptionExtension": "แปลเสียงจากแท็บเบราว์เซอร์ที่ใช้งานอยู่ เสียงต้นฉบับจะเล่นผ่านเอาต์พุตเริ่มต้นของระบบ",
+    "participantSectionDescriptionExtension": "แปลเสียงจากแท็บเบราว์เซอร์ที่ใช้งานอยู่ เสียงต้นฉบับจะเล่นผ่านอุปกรณ์เล่นเสียงเริ่มต้นที่คุณเลือก",
     "edgeTtsNoVoicesForLanguage": "ไม่มีเสียงสำหรับภาษานี้",
     "edgeTtsVoiceLoadError": "โหลดเสียงไม่สำเร็จ — ตรวจสอบ LogsPanel",
     "localNativeAsrIncompatible": "เลือกโมเดลการรู้จำเสียงพูดสำหรับ \"ภาษาของฉัน\"",
@@ -386,7 +386,6 @@
     "participantSpeech": "พูดคำแปลของอีกฝ่ายออกเสียง",
     "participantSpeechDesc": "อ่านสิ่งที่อีกฝ่ายพูดออกเสียงให้คุณฟัง เป็นภาษาของคุณ ผ่านลำโพงของคุณ โดยตามเสียงของพวกเขาด้วยความล่าช้าเล็กน้อย",
     "participantSpeechBlockedWholeSystem": "ปิดอยู่ในขณะที่เสียงอีกฝ่ายกำลังจับเสียงระบบทั้งหมด เพราะคำแปลของพวกเขาจะถูกจับและแปลซ้ำอีกครั้ง เลือกแอปพลิเคชันเป็นแหล่งของอีกฝ่าย",
-    "participantSpeechNotYetAvailable": "ยังไม่พร้อมใช้งานกับผู้ให้บริการนี้ คำแปลของอีกฝ่ายจะแสดงเป็นข้อความเท่านั้น",
     "audioCaptureUnprovenNotice": "ยังไม่ได้จับเสียงใดๆ",
     "audioCaptureUnprovenTitle": "ยังไม่มีเสียงเข้ามาจากแหล่งที่เลือก",
     "audioCaptureUnprovenText1": "หากแหล่งกำลังเล่นอยู่แต่ไม่มีการแปล macOS อาจกำลังส่งความเงียบมา: การจับเสียงจากแอปต้องใช้สิทธิ์ \"System Audio Recording Only\" และหากไม่มีสิทธิ์นี้จะไม่มีข้อผิดพลาด มีเพียงความเงียบ",
@@ -667,7 +666,6 @@
     "popoverHeaderBoth": "ทั้งคู่ — อุปกรณ์",
     "popoverFooter": "การตั้งค่าทั้งหมด →",
     "deviceMic": "ไมโครโฟน",
-    "deviceSpeakerMonitor": "มอนิเตอร์ลำโพง",
     "notSelected": "ไม่ได้เลือก",
     "deviceParticipantAudio": "เสียงอีกฝ่าย",
     "faceToFaceTag": "เผชิญหน้า",
@@ -678,13 +676,12 @@
     "toggleOn": "เปิด {{label}}",
     "toggleOff": "ปิด {{label}}",
     "participantSubtitleElectron": "เสียงระบบทั้งหมด",
-    "participantSubtitleExtension": "เล่นผ่านเอาต์พุตเริ่มต้นของระบบ",
+    "participantSubtitleExtension": "เล่นผ่านอุปกรณ์เล่นเสียงเริ่มต้นที่เลือก",
     "otherSide": "อีกฝ่าย",
     "otherSideMeeting": "อยู่ในการประชุม",
     "otherSideMeetingHint": "จับเสียงระบบหรือเสียงจากแอป",
     "otherSideBeside": "อยู่ข้างฉัน",
-    "otherSideBesideHint": "สองคนใช้ไมโครโฟนตัวเดียว",
-    "output": "เอาต์พุต"
+    "otherSideBesideHint": "สองคนใช้ไมโครโฟนตัวเดียว"
   },
   "simplePanel": {
     "clickToConfigLanguages": "คลิกเพื่อกำหนดค่าภาษา",
@@ -1262,7 +1259,7 @@
       },
       "mode-picker": {
         "title": "โหมดการแปล",
-        "content": "ตั้งค่านี้ไว้ให้คุณแล้ว และคุณสามารถสลับได้ทุกเมื่อ คำแปลจะปรากฏเป็นข้อความที่นี่เสมอ ส่วนโหมดร่วมกับสวิตช์ \"ข้อความเท่านั้น\" จะเป็นตัวกำหนดว่าจะมีการพูดออกเสียงด้วยหรือไม่",
+        "content": "ตั้งค่านี้ไว้ให้คุณแล้ว และคุณสามารถสลับได้ทุกเมื่อ คำแปลจะปรากฏเป็นข้อความที่นี่เสมอ ส่วนโหมดร่วมกับสวิตช์ \"คำแปลที่อีกฝ่ายได้ยิน\" ในส่วน \"เสียงพูด\" จะเป็นตัวกำหนดว่าจะมีการพูดออกเสียงด้วยหรือไม่",
         "modeMe": "ฉัน — สิ่งที่คุณพูดจะถูกแปลให้อีกฝ่าย",
         "modeOthers": "อีกฝ่าย — สิ่งที่พวกเขาพูดจะถูกแปลให้คุณ",
         "modeBoth": "ทั้งคู่ — ทั้งสองทิศทางพร้อมกัน"
@@ -1470,16 +1467,10 @@
     "errorListen": "เริ่มแชร์ไม่ได้: {{reason}}"
   },
   "faceToFace": {
-    "earsTitle": "ซ้ายและขวา · แต่ละคนได้ยินคำแปลเป็นภาษาของตัวเอง",
     "leftEar": "หูซ้าย",
     "rightEar": "หูขวา",
     "earLeft": "L",
     "earRight": "R",
-    "meListens": "ฉัน ({{language}})",
-    "otherListens": "อีกฝ่าย ({{language}})",
-    "previewLeft": "ฟังตัวอย่างหูซ้าย",
-    "previewRight": "ฟังตัวอย่างหูขวา",
-    "swap": "สลับซ้ายและขวา",
     "speakersHint": "ใช้หูฟังโดยให้แต่ละคนใช้คนละข้าง หากมีลำโพงตัวใดก็ตามดังอยู่ ไมโครโฟนจะรับเสียงแปลเข้าไปแล้วแปลซ้ำอีกครั้ง",
     "playedLeft": "เล่นในหูซ้าย",
     "playedRight": "เล่นในหูขวา",

@@ -206,7 +206,7 @@
     "translateModelNotAvailable": "Kunci API berfungsi, tetapi gpt-realtime-translate tidak boleh diakses dengan kunci ini.",
     "participantSectionHeader": "Audio pihak lain",
     "participantSectionDescriptionElectron": "Terjemahkan audio daripada mana-mana aplikasi yang dimainkan pada sistem ini.",
-    "participantSectionDescriptionExtension": "Terjemahkan audio daripada tab pelayar aktif. Audio asal dimainkan melalui output lalai sistem anda.",
+    "participantSectionDescriptionExtension": "Terjemahkan audio daripada tab pelayar aktif. Audio asal dimainkan melalui peranti main balik lalai yang anda pilih.",
     "edgeTtsNoVoicesForLanguage": "Tiada suara tersedia untuk bahasa ini",
     "edgeTtsVoiceLoadError": "Gagal memuatkan suara — semak LogsPanel",
     "localNativeAsrIncompatible": "Pilih model pengecaman pertuturan untuk \"Bahasa saya\"",
@@ -386,7 +386,6 @@
     "participantSpeech": "Sebutkan terjemahan pihak lain",
     "participantSpeechDesc": "Membacakan dengan kuat apa yang pihak lain katakan, dalam bahasa anda, melalui pembesar suara anda. Ia mengikuti suara mereka dengan sedikit kelewatan.",
     "participantSpeechBlockedWholeSystem": "Dimatikan semasa audio pihak lain menangkap semua audio sistem: terjemahan mereka akan ditangkap dan diterjemah semula. Pilih aplikasi sebagai sumber pihak lain.",
-    "participantSpeechNotYetAvailable": "Belum tersedia dengan penyedia ini: terjemahan pihak lain dipaparkan sebagai teks sahaja.",
     "audioCaptureUnprovenNotice": "Belum ada yang ditangkap",
     "audioCaptureUnprovenTitle": "Belum ada audio diterima daripada sumber yang dipilih",
     "audioCaptureUnprovenText1": "Jika sumber sedang dimainkan tetapi tiada apa yang diterjemahkan, macOS berkemungkinan menghantar kesenyapan: menangkap sesebuah aplikasi memerlukan kebenaran \"System Audio Recording Only\", dan tanpanya tiada ralat, hanya kesenyapan.",
@@ -667,7 +666,6 @@
     "popoverHeaderBoth": "Kedua-duanya — peranti",
     "popoverFooter": "Tetapan penuh →",
     "deviceMic": "Mikrofon",
-    "deviceSpeakerMonitor": "Pemantau pembesar suara",
     "notSelected": "Tidak dipilih",
     "deviceParticipantAudio": "Audio pihak lain",
     "faceToFaceTag": "Bersemuka",
@@ -678,13 +676,12 @@
     "toggleOn": "Hidupkan {{label}}",
     "toggleOff": "Matikan {{label}}",
     "participantSubtitleElectron": "Semua audio sistem",
-    "participantSubtitleExtension": "Dimainkan melalui output lalai sistem",
+    "participantSubtitleExtension": "Dimainkan melalui peranti main balik lalai yang dipilih",
     "otherSide": "Kedudukan pihak lain",
     "otherSideMeeting": "Dalam mesyuarat",
     "otherSideMeetingHint": "Menangkap audio sistem atau sesuatu aplikasi",
     "otherSideBeside": "Di sebelah saya",
-    "otherSideBesideHint": "Dua orang, satu mikrofon",
-    "output": "Keluaran"
+    "otherSideBesideHint": "Dua orang, satu mikrofon"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Klik untuk mengkonfigurasi bahasa",
@@ -1262,7 +1259,7 @@
       },
       "mode-picker": {
         "title": "Mod terjemahan",
-        "content": "Ini ditetapkan untuk anda, dan anda boleh menukarnya bila-bila masa. Terjemahan sentiasa dipaparkan di sini sebagai teks; mod ini, bersama-sama suis Teks sahaja, menentukan sama ada ia turut dituturkan.",
+        "content": "Ini ditetapkan untuk anda, dan anda boleh menukarnya bila-bila masa. Terjemahan sentiasa dipaparkan di sini sebagai teks; mod ini, bersama-sama suis \"Terjemahan yang didengar pihak lain\" dalam blok Pertuturan, menentukan sama ada ia turut dituturkan.",
         "modeMe": "Saya — apa yang anda katakan diterjemah untuk pihak lain.",
         "modeOthers": "Pihak lain — apa yang mereka katakan diterjemah untuk anda.",
         "modeBoth": "Kedua-duanya — kedua-dua arah serentak."
@@ -1470,16 +1467,10 @@
     "errorListen": "Tidak dapat mula berkongsi: {{reason}}"
   },
   "faceToFace": {
-    "earsTitle": "Kiri dan kanan · setiap orang mendengar terjemahan ke bahasanya sendiri",
     "leftEar": "Telinga kiri",
     "rightEar": "Telinga kanan",
     "earLeft": "L",
     "earRight": "R",
-    "meListens": "Saya ({{language}})",
-    "otherListens": "Pihak lain ({{language}})",
-    "previewLeft": "Pratonton telinga kiri",
-    "previewRight": "Pratonton telinga kanan",
-    "swap": "Tukar kiri dan kanan",
     "speakersHint": "Gunakan fon kepala, satu sisi seorang. Dengan mana-mana pembesar suara, mikrofon menangkap terjemahan lalu menterjemahkannya semula.",
     "playedLeft": "Dimainkan di telinga kiri",
     "playedRight": "Dimainkan di telinga kanan",

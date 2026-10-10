@@ -11,16 +11,14 @@ import {
 } from '../../../stores/audioStore';
 import DeviceList from '../shared/DeviceList';
 import { useAnalytics } from '../../../lib/analytics';
-import { ParticipantSpeechSwitch } from './ParticipantSpeechSwitch';
-import { PARTICIPANT_SPEECH_SHOWN } from '../../../stores/routingStore';
 import { isExtension, isElectron } from '../../../utils/environment';
 import { useFaceToFace } from '../../MainPanel/useFaceToFace';
 import OtherSideChoice from '../../FaceToFace/OtherSideChoice';
 
 interface SystemAudioSectionProps {
-  /** Real session-active state. Locks the participant-speech switch
-   *  (ParticipantSpeechSwitch) for the run's whole shape — unlike `isLocked`
-   *  below, this one never varies by mode scope. */
+  /** Real session-active state. Locks the other-side choice for the run's
+   *  whole shape — unlike `isLocked` below, this one never varies by mode
+   *  scope. */
   isSessionActive: boolean;
   /**
    * Lock the picker. Callers pass a mode-scope lock; the participant channel is
@@ -141,11 +139,6 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
           disabled={locked}
         />
       )}
-      {/* Locked by the run, not by the mode-scope `locked` above (ruling 8):
-          the participant-TTS opt-in freezes for the run's whole shape, not
-          only while this channel is scoped out. Hidden while
-          `PARTICIPANT_SPEECH_SHOWN` is off. */}
-      {!besideMe && PARTICIPANT_SPEECH_SHOWN && <ParticipantSpeechSwitch locked={isSessionActive} />}
     </div>
   );
 };

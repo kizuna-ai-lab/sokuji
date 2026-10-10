@@ -206,7 +206,7 @@
     "translateModelNotAvailable": "Khóa API hoạt động, nhưng không thể truy cập gpt-realtime-translate với khóa này.",
     "participantSectionHeader": "Âm thanh đối phương",
     "participantSectionDescriptionElectron": "Dịch âm thanh từ bất kỳ ứng dụng nào đang phát trên hệ thống này.",
-    "participantSectionDescriptionExtension": "Dịch âm thanh từ tab trình duyệt đang hoạt động. Âm thanh gốc phát qua đầu ra mặc định của hệ thống.",
+    "participantSectionDescriptionExtension": "Dịch âm thanh từ tab trình duyệt đang hoạt động. Âm thanh gốc phát qua thiết bị phát mặc định mà bạn đã chọn.",
     "edgeTtsNoVoicesForLanguage": "Không có giọng nói nào cho ngôn ngữ này",
     "edgeTtsVoiceLoadError": "Tải giọng nói thất bại — kiểm tra LogsPanel",
     "localNativeAsrIncompatible": "Chọn mô hình nhận dạng giọng nói cho \"Ngôn ngữ của tôi\"",
@@ -386,7 +386,6 @@
     "participantSpeech": "Đọc to bản dịch của đối phương",
     "participantSpeechDesc": "Đọc to cho bạn nghe những gì đối phương nói, bằng ngôn ngữ của bạn, qua loa của bạn. Nó theo sát giọng nói của họ với một độ trễ.",
     "participantSpeechBlockedWholeSystem": "Bị tắt trong khi âm thanh đối phương đang thu toàn bộ âm thanh hệ thống: bản dịch của họ sẽ bị thu và dịch lại. Hãy chọn một ứng dụng làm nguồn của đối phương.",
-    "participantSpeechNotYetAvailable": "Chưa khả dụng với nhà cung cấp này: bản dịch của đối phương chỉ hiển thị dưới dạng văn bản.",
     "audioCaptureUnprovenNotice": "Chưa thu được gì",
     "audioCaptureUnprovenTitle": "Chưa có âm thanh nào từ nguồn đã chọn",
     "audioCaptureUnprovenText1": "Nếu nguồn đang phát mà không có gì được dịch, nhiều khả năng macOS đang trả về im lặng: thu âm thanh của một ứng dụng cần quyền \"System Audio Recording Only\", và không có quyền này thì sẽ không có lỗi, chỉ có im lặng.",
@@ -667,7 +666,6 @@
     "popoverHeaderBoth": "Cả hai — thiết bị",
     "popoverFooter": "Toàn bộ cài đặt →",
     "deviceMic": "Micro",
-    "deviceSpeakerMonitor": "Giám sát loa",
     "notSelected": "Chưa chọn",
     "deviceParticipantAudio": "Âm thanh đối phương",
     "faceToFaceTag": "Mặt đối mặt",
@@ -678,13 +676,12 @@
     "toggleOn": "Bật {{label}}",
     "toggleOff": "Tắt {{label}}",
     "participantSubtitleElectron": "Toàn bộ âm thanh hệ thống",
-    "participantSubtitleExtension": "Phát qua đầu ra mặc định của hệ thống",
+    "participantSubtitleExtension": "Phát qua thiết bị phát mặc định đã chọn",
     "otherSide": "Phía bên kia",
     "otherSideMeeting": "Trong cuộc họp",
     "otherSideMeetingHint": "Thu âm thanh hệ thống hoặc một ứng dụng",
     "otherSideBeside": "Ngay bên cạnh tôi",
-    "otherSideBesideHint": "Hai người dùng chung một micro",
-    "output": "Đầu ra"
+    "otherSideBesideHint": "Hai người dùng chung một micro"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Nhấp để cấu hình ngôn ngữ",
@@ -1262,7 +1259,7 @@
       },
       "mode-picker": {
         "title": "Chế độ dịch",
-        "content": "Chế độ này đã được đặt sẵn cho bạn, và bạn có thể chuyển đổi bất cứ lúc nào. Bản dịch luôn hiển thị ở đây dưới dạng văn bản; chế độ, cùng với công tắc Chỉ văn bản, quyết định liệu nó có được đọc to hay không.",
+        "content": "Chế độ này đã được đặt sẵn cho bạn, và bạn có thể chuyển đổi bất cứ lúc nào. Bản dịch luôn hiển thị ở đây dưới dạng văn bản; chế độ, cùng với công tắc \"Bản dịch bên kia nghe\" trong khối Giọng nói, quyết định liệu nó có được đọc to hay không.",
         "modeMe": "Tôi — những gì bạn nói được dịch cho đối phương.",
         "modeOthers": "Đối phương — những gì họ nói được dịch cho bạn.",
         "modeBoth": "Cả hai — cả hai chiều cùng lúc."
@@ -1470,16 +1467,10 @@
     "errorListen": "Không thể bắt đầu chia sẻ: {{reason}}"
   },
   "faceToFace": {
-    "earsTitle": "Trái và phải · mỗi người nghe bản dịch sang ngôn ngữ của mình",
     "leftEar": "Tai trái",
     "rightEar": "Tai phải",
     "earLeft": "L",
     "earRight": "R",
-    "meListens": "Tôi ({{language}})",
-    "otherListens": "Đối phương ({{language}})",
-    "previewLeft": "Nghe thử tai trái",
-    "previewRight": "Nghe thử tai phải",
-    "swap": "Đổi tai trái và phải",
     "speakersHint": "Hãy dùng tai nghe, mỗi người một bên. Với bất kỳ loa nào, micro sẽ thu cả bản dịch và dịch lại lần nữa.",
     "playedLeft": "Đã phát ở tai trái",
     "playedRight": "Đã phát ở tai phải",

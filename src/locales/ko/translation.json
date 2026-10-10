@@ -206,7 +206,7 @@
     "translateModelNotAvailable": "API 키는 유효하지만 현재 키로 gpt-realtime-translate에 접근할 수 없습니다.",
     "participantSectionHeader": "상대방 오디오",
     "participantSectionDescriptionElectron": "이 시스템에서 재생 중인 모든 애플리케이션의 오디오를 번역합니다.",
-    "participantSectionDescriptionExtension": "활성 브라우저 탭의 오디오를 번역합니다. 원본 오디오는 시스템 기본 출력으로 재생됩니다.",
+    "participantSectionDescriptionExtension": "활성 브라우저 탭의 오디오를 번역합니다. 원본 오디오는 선택한 기본 재생 장치로 재생됩니다.",
     "edgeTtsNoVoicesForLanguage": "이 언어에 사용 가능한 음성이 없습니다",
     "edgeTtsVoiceLoadError": "음성을 불러오지 못했습니다 — LogsPanel을 확인하세요",
     "localNativeAsrIncompatible": "내 언어용 음성 인식(ASR) 모델을 선택하세요",
@@ -386,7 +386,6 @@
     "participantSpeech": "상대방 번역 소리 내어 읽기",
     "participantSpeechDesc": "상대방이 말하는 내용을 당신의 언어로, 당신의 스피커를 통해 소리 내어 읽어줍니다. 약간의 지연을 두고 상대방의 목소리를 따라갑니다.",
     "participantSpeechBlockedWholeSystem": "상대방 오디오가 시스템 오디오 전체를 캡처하는 동안에는 꺼집니다. 상대방의 번역이 다시 캡처되어 번역되기 때문입니다. 애플리케이션을 상대방 소스로 선택하세요.",
-    "participantSpeechNotYetAvailable": "이 제공자에서는 아직 사용할 수 없습니다. 상대방 번역은 텍스트로만 표시됩니다.",
     "audioCaptureUnprovenNotice": "아직 캡처된 오디오가 없습니다",
     "audioCaptureUnprovenTitle": "선택한 소스에서 아직 오디오가 들어오지 않았습니다",
     "audioCaptureUnprovenText1": "소스가 재생 중인데도 번역되지 않는다면 macOS가 무음을 전달하고 있을 가능성이 큽니다. 앱의 오디오를 캡처하려면 \"시스템 오디오 녹음만\" 권한이 필요하며, 이 권한이 없으면 오류 없이 무음만 전달됩니다.",
@@ -667,7 +666,6 @@
     "popoverHeaderBoth": "모두 — 장치",
     "popoverFooter": "전체 설정 →",
     "deviceMic": "마이크",
-    "deviceSpeakerMonitor": "스피커 모니터",
     "notSelected": "선택 안 됨",
     "deviceParticipantAudio": "상대방 오디오",
     "faceToFaceTag": "대면",
@@ -678,13 +676,12 @@
     "toggleOn": "{{label}} 켜기",
     "toggleOff": "{{label}} 끄기",
     "participantSubtitleElectron": "모든 시스템 오디오",
-    "participantSubtitleExtension": "시스템 기본 출력으로 재생",
+    "participantSubtitleExtension": "선택한 기본 재생 장치로 재생",
     "otherSide": "상대방 위치",
     "otherSideMeeting": "온라인 회의",
     "otherSideMeetingHint": "시스템 오디오 또는 앱 오디오를 캡처합니다",
     "otherSideBeside": "내 옆",
-    "otherSideBesideHint": "마이크 하나를 두 사람이 사용합니다",
-    "output": "출력"
+    "otherSideBesideHint": "마이크 하나를 두 사람이 사용합니다"
   },
   "simplePanel": {
     "clickToConfigLanguages": "언어를 구성하려면 클릭",
@@ -1262,7 +1259,7 @@
       },
       "mode-picker": {
         "title": "번역 모드",
-        "content": "이 설정은 자동으로 되어 있으며 언제든 전환할 수 있습니다. 번역은 항상 이곳에 텍스트로 표시되며, 모드와 '텍스트만' 스위치가 함께 음성으로도 출력할지를 결정합니다.",
+        "content": "이 설정은 자동으로 되어 있으며 언제든 전환할 수 있습니다. 번역은 항상 이곳에 텍스트로 표시되며, 모드와 '음성' 블록의 '상대방에게 들리는 번역' 스위치가 함께 음성으로도 출력할지를 결정합니다.",
         "modeMe": "나 — 내가 하는 말이 상대방을 위해 번역됩니다.",
         "modeOthers": "상대방 — 상대방이 하는 말이 나를 위해 번역됩니다.",
         "modeBoth": "모두 — 양방향을 동시에 번역합니다."
@@ -1470,16 +1467,10 @@
     "errorListen": "공유를 시작하지 못했습니다: {{reason}}"
   },
   "faceToFace": {
-    "earsTitle": "왼쪽과 오른쪽 · 각자 자기 언어로 번역된 소리를 듣습니다",
     "leftEar": "왼쪽 귀",
     "rightEar": "오른쪽 귀",
     "earLeft": "L",
     "earRight": "R",
-    "meListens": "나({{language}})",
-    "otherListens": "상대방({{language}})",
-    "previewLeft": "왼쪽 귀 미리 듣기",
-    "previewRight": "오른쪽 귀 미리 듣기",
-    "swap": "왼쪽과 오른쪽 바꾸기",
     "speakersHint": "헤드폰을 사용하고 한쪽씩 나눠 쓰세요. 스피커가 있으면 마이크가 번역 음성을 다시 받아 한 번 더 번역합니다.",
     "playedLeft": "왼쪽 귀로 재생됨",
     "playedRight": "오른쪽 귀로 재생됨",

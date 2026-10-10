@@ -206,7 +206,7 @@
     "translateModelNotAvailable": "A chave de API funciona, mas gpt-realtime-translate não está acessível com essa chave.",
     "participantSectionHeader": "Áudio do outro",
     "participantSectionDescriptionElectron": "Traduza o áudio de qualquer aplicativo reproduzido neste sistema.",
-    "participantSectionDescriptionExtension": "Traduza o áudio da aba ativa do navegador. O áudio original é reproduzido pela saída padrão do seu sistema.",
+    "participantSectionDescriptionExtension": "Traduza o áudio da aba ativa do navegador. O áudio original é reproduzido pelo dispositivo de reprodução padrão que você escolheu.",
     "edgeTtsNoVoicesForLanguage": "Nenhuma voz disponível para este idioma",
     "edgeTtsVoiceLoadError": "Falha ao carregar as vozes — verifique o LogsPanel",
     "localNativeAsrIncompatible": "Selecione um modelo de reconhecimento de fala para \"Meu idioma\"",
@@ -386,7 +386,6 @@
     "participantSpeech": "Ler a tradução do outro em voz alta",
     "participantSpeechDesc": "Lê em voz alta o que o outro diz, no seu idioma, pelos seus alto-falantes. Acompanha a voz dele com um atraso.",
     "participantSpeechBlockedWholeSystem": "Desativado enquanto o áudio do outro captura todo o áudio do sistema: a tradução dele seria capturada e traduzida novamente. Escolha um aplicativo como fonte do outro.",
-    "participantSpeechNotYetAvailable": "Ainda indisponível com este provedor: a tradução do outro é exibida apenas como texto.",
     "audioCaptureUnprovenNotice": "Nada capturado ainda",
     "audioCaptureUnprovenTitle": "Ainda não chegou áudio da fonte selecionada",
     "audioCaptureUnprovenText1": "Se a fonte está tocando e nada é traduzido, o macOS provavelmente está entregando silêncio: capturar um aplicativo exige a permissão \"Apenas Gravação de Áudio do Sistema\" e, sem ela, não há erro, apenas silêncio.",
@@ -667,7 +666,6 @@
     "popoverHeaderBoth": "Ambos — dispositivos",
     "popoverFooter": "Configurações completas →",
     "deviceMic": "Microfone",
-    "deviceSpeakerMonitor": "Monitor de alto-falante",
     "notSelected": "Não selecionado",
     "deviceParticipantAudio": "Áudio do outro",
     "faceToFaceTag": "Cara a cara",
@@ -678,13 +676,12 @@
     "toggleOn": "Ligar {{label}}",
     "toggleOff": "Desligar {{label}}",
     "participantSubtitleElectron": "Todo o áudio do sistema",
-    "participantSubtitleExtension": "Reproduz pela saída padrão do sistema",
+    "participantSubtitleExtension": "Reproduz pelo dispositivo de reprodução padrão escolhido",
     "otherSide": "Onde está o outro",
     "otherSideMeeting": "Em uma reunião",
     "otherSideMeetingHint": "Captura o áudio do sistema ou de um app",
     "otherSideBeside": "Ao meu lado",
-    "otherSideBesideHint": "Duas pessoas em um só microfone",
-    "output": "Saída"
+    "otherSideBesideHint": "Duas pessoas em um só microfone"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Clique para configurar idiomas",
@@ -1262,7 +1259,7 @@
       },
       "mode-picker": {
         "title": "Modo de tradução",
-        "content": "Isso já está definido para você, e você pode trocar quando quiser. A tradução sempre aparece aqui como texto; o modo, junto com a opção Somente texto, decide se ela também é falada em voz alta.",
+        "content": "Isso já está definido para você, e você pode trocar quando quiser. A tradução sempre aparece aqui como texto; o modo, junto com a opção \"Tradução que o outro lado ouve\" do bloco Voz, decide se ela também é falada em voz alta.",
         "modeMe": "Eu — o que você diz é traduzido para o outro.",
         "modeOthers": "Outro — o que o outro diz é traduzido para você.",
         "modeBoth": "Ambos — os dois sentidos ao mesmo tempo."
@@ -1470,16 +1467,10 @@
     "errorListen": "Não foi possível iniciar o compartilhamento: {{reason}}"
   },
   "faceToFace": {
-    "earsTitle": "Esquerda e direita · cada pessoa ouve a tradução no próprio idioma",
     "leftEar": "Ouvido esquerdo",
     "rightEar": "Ouvido direito",
     "earLeft": "L",
     "earRight": "R",
-    "meListens": "Eu ({{language}})",
-    "otherListens": "O outro ({{language}})",
-    "previewLeft": "Testar o ouvido esquerdo",
-    "previewRight": "Testar o ouvido direito",
-    "swap": "Trocar esquerda e direita",
     "speakersHint": "Use fones de ouvido, um lado para cada um. Com qualquer alto-falante, o microfone capta a tradução e a traduz de novo.",
     "playedLeft": "Reproduzido no ouvido esquerdo",
     "playedRight": "Reproduzido no ouvido direito",

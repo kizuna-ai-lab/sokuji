@@ -206,7 +206,7 @@
     "translateModelNotAvailable": "API-sleutel werkt, maar gpt-realtime-translate is niet toegankelijk met deze sleutel.",
     "participantSectionHeader": "Audio van de ander",
     "participantSectionDescriptionElectron": "Vertaal audio van elke applicatie die op dit systeem wordt afgespeeld.",
-    "participantSectionDescriptionExtension": "Vertaal audio van het actieve browsertabblad. De originele audio wordt afgespeeld via de standaarduitvoer van uw systeem.",
+    "participantSectionDescriptionExtension": "Vertaal audio van het actieve browsertabblad. De originele audio wordt afgespeeld via het standaardapparaat voor weergave dat u hebt gekozen.",
     "edgeTtsNoVoicesForLanguage": "Geen stemmen beschikbaar voor deze taal",
     "edgeTtsVoiceLoadError": "Laden van stemmen mislukt — controleer LogsPanel",
     "localNativeAsrIncompatible": "Selecteer een spraakherkenningsmodel voor 'Mijn taal'",
@@ -386,7 +386,6 @@
     "participantSpeech": "Vertaling van de ander hardop voorlezen",
     "participantSpeechDesc": "Leest u hardop voor wat de ander zegt, in uw taal, via uw luidsprekers. Het volgt hun stem met een vertraging.",
     "participantSpeechBlockedWholeSystem": "Uitgeschakeld zolang de audio van de ander alle systeemaudio vastlegt: hun vertaling zou opnieuw worden vastgelegd en vertaald. Kies een applicatie als bron van de ander.",
-    "participantSpeechNotYetAvailable": "Nog niet beschikbaar bij deze provider: de vertaling van de ander wordt alleen als tekst getoond.",
     "audioCaptureUnprovenNotice": "Nog niets vastgelegd",
     "audioCaptureUnprovenTitle": "Er is nog geen audio van de geselecteerde bron binnengekomen",
     "audioCaptureUnprovenText1": "Speelt de bron af en wordt er niets vertaald, dan levert macOS waarschijnlijk stilte: het vastleggen van een app vereist de toestemming 'Alleen systeemaudio-opname', en zonder die toestemming is er geen fout, alleen stilte.",
@@ -667,7 +666,6 @@
     "popoverHeaderBoth": "Beide — apparaten",
     "popoverFooter": "Alle instellingen →",
     "deviceMic": "Microfoon",
-    "deviceSpeakerMonitor": "Luidsprekermonitor",
     "notSelected": "Niet geselecteerd",
     "deviceParticipantAudio": "Audio van de ander",
     "faceToFaceTag": "Face-to-face",
@@ -678,13 +676,12 @@
     "toggleOn": "{{label}} inschakelen",
     "toggleOff": "{{label}} uitschakelen",
     "participantSubtitleElectron": "Alle systeemaudio",
-    "participantSubtitleExtension": "Speelt af via systeemstandaard",
+    "participantSubtitleExtension": "Speelt af via het gekozen standaardapparaat voor weergave",
     "otherSide": "Waar is de ander",
     "otherSideMeeting": "In een vergadering",
     "otherSideMeetingHint": "Legt systeemaudio of een app vast",
     "otherSideBeside": "Naast mij",
-    "otherSideBesideHint": "Twee personen bij één microfoon",
-    "output": "Uitvoer"
+    "otherSideBesideHint": "Twee personen bij één microfoon"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Klik om talen te configureren",
@@ -1262,7 +1259,7 @@
       },
       "mode-picker": {
         "title": "Vertaalmodus",
-        "content": "Dit is al voor u ingesteld, en u kunt het op elk moment wijzigen. De vertaling verschijnt hier altijd als tekst; de modus bepaalt, samen met de schakelaar Alleen tekst, of deze ook hardop wordt uitgesproken.",
+        "content": "Dit is al voor u ingesteld, en u kunt het op elk moment wijzigen. De vertaling verschijnt hier altijd als tekst; de modus bepaalt, samen met de schakelaar \"Vertaling die de ander hoort\" in het blok Spraak, of deze ook hardop wordt uitgesproken.",
         "modeMe": "Ik — wat u zegt wordt vertaald voor de ander.",
         "modeOthers": "Ander — wat zij zeggen wordt voor u vertaald.",
         "modeBoth": "Beide — beide richtingen tegelijk."
@@ -1470,16 +1467,10 @@
     "errorListen": "Delen kon niet starten: {{reason}}"
   },
   "faceToFace": {
-    "earsTitle": "Links en rechts · ieder hoort de vertaling in de eigen taal",
     "leftEar": "Linkeroor",
     "rightEar": "Rechteroor",
     "earLeft": "L",
     "earRight": "R",
-    "meListens": "Ik ({{language}})",
-    "otherListens": "Ander ({{language}})",
-    "previewLeft": "Linkeroor beluisteren",
-    "previewRight": "Rechteroor beluisteren",
-    "swap": "Links en rechts omwisselen",
     "speakersHint": "Gebruik een koptelefoon, ieder één kant. Via welke luidspreker dan ook pikt de microfoon de vertaling op en vertaalt die opnieuw.",
     "playedLeft": "Afgespeeld in het linkeroor",
     "playedRight": "Afgespeeld in het rechteroor",

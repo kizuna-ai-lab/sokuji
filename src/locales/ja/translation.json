@@ -206,7 +206,7 @@
     "translateModelNotAvailable": "APIキーは有効ですが、このキーでは gpt-realtime-translate にアクセスできません。",
     "participantSectionHeader": "相手の音声",
     "participantSectionDescriptionElectron": "このシステムで再生されている任意のアプリケーションの音声を翻訳します。",
-    "participantSectionDescriptionExtension": "アクティブなブラウザタブの音声を翻訳します。元の音声はシステムの既定の出力から再生されます。",
+    "participantSectionDescriptionExtension": "アクティブなブラウザタブの音声を翻訳します。元の音声は選んだ既定の再生デバイスから再生されます。",
     "edgeTtsNoVoicesForLanguage": "この言語で利用できる音声がありません",
     "edgeTtsVoiceLoadError": "音声の読み込みに失敗しました — LogsPanel を確認してください",
     "localNativeAsrIncompatible": "「自分の言語」の音声認識（ASR）モデルを選択してください",
@@ -386,7 +386,6 @@
     "participantSpeech": "相手の翻訳を読み上げる",
     "participantSpeechDesc": "相手が話した内容を、あなたの言語で、あなたのスピーカーから読み上げます。相手の声に少し遅れて続きます。",
     "participantSpeechBlockedWholeSystem": "相手の音声がシステム音声全体をキャプチャしている間はオフになります。相手の翻訳が再びキャプチャされ、翻訳されてしまうためです。アプリケーションを相手のソースとして選んでください。",
-    "participantSpeechNotYetAvailable": "このプロバイダーではまだ利用できません。相手の翻訳はテキストのみで表示されます。",
     "audioCaptureUnprovenNotice": "まだ音声を取得できていません",
     "audioCaptureUnprovenTitle": "選択したソースからまだ音声が届いていません",
     "audioCaptureUnprovenText1": "ソースが再生中なのに翻訳されない場合、macOS が無音を返している可能性があります。アプリの音声を取得するには「システムオーディオ録音のみ」の権限が必要で、権限がないとエラーは出ず、無音になるだけです。",
@@ -667,7 +666,6 @@
     "popoverHeaderBoth": "両方 — デバイス",
     "popoverFooter": "すべての設定 →",
     "deviceMic": "マイク",
-    "deviceSpeakerMonitor": "スピーカーモニター",
     "notSelected": "未選択",
     "deviceParticipantAudio": "相手の音声",
     "faceToFaceTag": "対面",
@@ -678,13 +676,12 @@
     "toggleOn": "{{label}}をオンにする",
     "toggleOff": "{{label}}をオフにする",
     "participantSubtitleElectron": "すべてのシステム音声",
-    "participantSubtitleExtension": "システムの既定の出力から再生",
+    "participantSubtitleExtension": "選んだ既定の再生デバイスから再生",
     "otherSide": "相手の場所",
     "otherSideMeeting": "オンライン会議",
     "otherSideMeetingHint": "システム音声またはアプリの音声を取り込みます",
     "otherSideBeside": "隣にいる",
-    "otherSideBesideHint": "1 台のマイクを 2 人で使います",
-    "output": "出力"
+    "otherSideBesideHint": "1 台のマイクを 2 人で使います"
   },
   "simplePanel": {
     "clickToConfigLanguages": "言語を設定するにはクリック",
@@ -1262,7 +1259,7 @@
       },
       "mode-picker": {
         "title": "翻訳モード",
-        "content": "すでに設定済みで、いつでも切り替えられます。翻訳は常にここにテキストで表示され、音声も出すかどうかはモードと「テキストのみ」スイッチで決まります。",
+        "content": "すでに設定済みで、いつでも切り替えられます。翻訳は常にここにテキストで表示され、音声も出すかどうかはモードと「音声」ブロックの「相手に聞こえる翻訳」スイッチで決まります。",
         "modeMe": "「自分」——あなたの発言を相手向けに翻訳します。",
         "modeOthers": "「相手」——相手の発言をあなた向けに翻訳します。",
         "modeBoth": "「両方」——両方向を同時に翻訳します。"
@@ -1470,16 +1467,10 @@
     "errorListen": "共有を開始できませんでした：{{reason}}"
   },
   "faceToFace": {
-    "earsTitle": "左右の耳 · それぞれが自分の言語の翻訳を聞きます",
     "leftEar": "左耳",
     "rightEar": "右耳",
     "earLeft": "L",
     "earRight": "R",
-    "meListens": "自分（{{language}}）",
-    "otherListens": "相手（{{language}}）",
-    "previewLeft": "左耳を試聴",
-    "previewRight": "右耳を試聴",
-    "swap": "左右を入れ替える",
     "speakersHint": "ヘッドホンを使い、片側ずつ分けて着けてください。スピーカーが鳴っていると、マイクが翻訳音声を拾ってもう一度翻訳してしまいます。",
     "playedLeft": "左耳で再生",
     "playedRight": "右耳で再生",

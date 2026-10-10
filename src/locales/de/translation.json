@@ -206,7 +206,7 @@
     "translateModelNotAvailable": "Der API-Schlüssel funktioniert, aber gpt-realtime-translate ist mit diesem Schlüssel nicht zugänglich.",
     "participantSectionHeader": "Audio des Gegenübers",
     "participantSectionDescriptionElectron": "Audio von jeder auf diesem System laufenden Anwendung übersetzen.",
-    "participantSectionDescriptionExtension": "Audio des aktiven Browser-Tabs übersetzen. Das Original-Audio wird über die Standardausgabe Ihres Systems wiedergegeben.",
+    "participantSectionDescriptionExtension": "Audio des aktiven Browser-Tabs übersetzen. Das Original-Audio wird über das von Ihnen gewählte Standard-Wiedergabegerät wiedergegeben.",
     "edgeTtsNoVoicesForLanguage": "Keine Stimmen für diese Sprache verfügbar",
     "edgeTtsVoiceLoadError": "Stimmen konnten nicht geladen werden — siehe LogsPanel",
     "localNativeAsrIncompatible": "Wählen Sie ein Spracherkennung (ASR)-Modell für „Meine Sprache“",
@@ -386,7 +386,6 @@
     "participantSpeech": "Übersetzung des Gegenübers vorlesen",
     "participantSpeechDesc": "Liest Ihnen laut vor, was das Gegenüber sagt, in Ihrer Sprache, über Ihre Lautsprecher. Es folgt der Stimme mit einer Verzögerung.",
     "participantSpeechBlockedWholeSystem": "Deaktiviert, solange das Audio des Gegenübers das gesamte Systemaudio erfasst: Die Übersetzung würde erneut erfasst und übersetzt. Wählen Sie eine Anwendung als Quelle des Gegenübers.",
-    "participantSpeechNotYetAvailable": "Bei diesem Anbieter noch nicht verfügbar: Die Übersetzung des Gegenübers wird nur als Text angezeigt.",
     "audioCaptureUnprovenNotice": "Noch nichts erfasst",
     "audioCaptureUnprovenTitle": "Von der ausgewählten Quelle ist noch kein Audio angekommen",
     "audioCaptureUnprovenText1": "Wenn die Quelle abspielt und nichts übersetzt wird, liefert macOS wahrscheinlich Stille: Das Erfassen einer App erfordert die Berechtigung „Nur Systemaudioaufnahme“, und ohne sie gibt es keinen Fehler, nur Stille.",
@@ -667,7 +666,6 @@
     "popoverHeaderBoth": "Beides — Geräte",
     "popoverFooter": "Vollständige Einstellungen →",
     "deviceMic": "Mikrofon",
-    "deviceSpeakerMonitor": "Lautsprecher-Überwachung",
     "notSelected": "Nicht ausgewählt",
     "deviceParticipantAudio": "Audio des Gegenübers",
     "faceToFaceTag": "Vor Ort",
@@ -678,13 +676,12 @@
     "toggleOn": "{{label}} einschalten",
     "toggleOff": "{{label}} ausschalten",
     "participantSubtitleElectron": "Gesamtes Systemaudio",
-    "participantSubtitleExtension": "Wiedergabe über Systemstandard",
+    "participantSubtitleExtension": "Wiedergabe über das gewählte Standard-Wiedergabegerät",
     "otherSide": "Wo ist das Gegenüber?",
     "otherSideMeeting": "In einem Meeting",
     "otherSideMeetingHint": "Nimmt das Systemaudio oder eine App auf",
     "otherSideBeside": "Neben mir",
-    "otherSideBesideHint": "Zwei Personen an einem Mikrofon",
-    "output": "Ausgabe"
+    "otherSideBesideHint": "Zwei Personen an einem Mikrofon"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Klicken Sie, um Sprachen zu konfigurieren",
@@ -1262,7 +1259,7 @@
       },
       "mode-picker": {
         "title": "Übersetzungsmodus",
-        "content": "Das ist für Sie bereits eingestellt, und Sie können es jederzeit wechseln. Die Übersetzung erscheint hier immer als Text; der Modus entscheidet zusammen mit dem Schalter \"Nur Text\", ob sie auch laut gesprochen wird.",
+        "content": "Das ist für Sie bereits eingestellt, und Sie können es jederzeit wechseln. Die Übersetzung erscheint hier immer als Text; der Modus entscheidet zusammen mit dem Schalter \"Übersetzung, die das Gegenüber hört\" im Block \"Sprache\", ob sie auch laut gesprochen wird.",
         "modeMe": "Ich — was Sie sagen, wird für Ihr Gegenüber übersetzt.",
         "modeOthers": "Gegenüber — was Ihr Gegenüber sagt, wird für Sie übersetzt.",
         "modeBoth": "Beides — beide Richtungen gleichzeitig."
@@ -1470,16 +1467,10 @@
     "errorListen": "Teilen konnte nicht gestartet werden: {{reason}}"
   },
   "faceToFace": {
-    "earsTitle": "Links und rechts · jede Person hört die Übersetzung in ihre eigene Sprache",
     "leftEar": "Linkes Ohr",
     "rightEar": "Rechtes Ohr",
     "earLeft": "L",
     "earRight": "R",
-    "meListens": "Ich ({{language}})",
-    "otherListens": "Gegenüber ({{language}})",
-    "previewLeft": "Linkes Ohr testen",
-    "previewRight": "Rechtes Ohr testen",
-    "swap": "Links und rechts tauschen",
     "speakersHint": "Nutzt Kopfhörer, jeder eine Seite. Über jeden Lautsprecher nimmt das Mikrofon die Übersetzung auf und übersetzt sie erneut.",
     "playedLeft": "Im linken Ohr abgespielt",
     "playedRight": "Im rechten Ohr abgespielt",

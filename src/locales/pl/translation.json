@@ -206,7 +206,7 @@
     "translateModelNotAvailable": "Klucz API działa, ale gpt-realtime-translate jest niedostępny z tym kluczem.",
     "participantSectionHeader": "Dźwięk rozmówcy",
     "participantSectionDescriptionElectron": "Tłumacz dźwięk z dowolnej aplikacji odtwarzanej w tym systemie.",
-    "participantSectionDescriptionExtension": "Tłumacz dźwięk z aktywnej karty przeglądarki. Oryginalny dźwięk jest odtwarzany przez domyślne wyjście systemu.",
+    "participantSectionDescriptionExtension": "Tłumacz dźwięk z aktywnej karty przeglądarki. Oryginalny dźwięk jest odtwarzany przez wybrane przez Ciebie domyślne urządzenie odtwarzania.",
     "edgeTtsNoVoicesForLanguage": "Brak dostępnych głosów dla tego języka",
     "edgeTtsVoiceLoadError": "Nie udało się załadować głosów — sprawdź LogsPanel",
     "localNativeAsrIncompatible": "Wybierz model rozpoznawania mowy dla „Mojego języka”",
@@ -386,7 +386,6 @@
     "participantSpeech": "Odczytaj na głos tłumaczenie rozmówcy",
     "participantSpeechDesc": "Czyta na głos to, co mówi rozmówca, w twoim języku, przez twoje głośniki. Podąża za jego głosem z opóźnieniem.",
     "participantSpeechBlockedWholeSystem": "Wyłączone, gdy dźwięk rozmówcy przechwytuje cały dźwięk systemowy: jego tłumaczenie zostałoby ponownie przechwycone i przetłumaczone. Wybierz aplikację jako źródło rozmówcy.",
-    "participantSpeechNotYetAvailable": "Jeszcze niedostępne u tego dostawcy: tłumaczenie rozmówcy jest wyświetlane tylko jako tekst.",
     "audioCaptureUnprovenNotice": "Nic jeszcze nie przechwycono",
     "audioCaptureUnprovenTitle": "Z wybranego źródła nie dotarł jeszcze żaden dźwięk",
     "audioCaptureUnprovenText1": "Jeśli źródło odtwarza, a nic nie jest tłumaczone, macOS prawdopodobnie dostarcza ciszę: przechwytywanie aplikacji wymaga uprawnienia „Tylko nagrywanie dźwięku systemowego”, a bez niego nie ma błędu, tylko cisza.",
@@ -667,7 +666,6 @@
     "popoverHeaderBoth": "Oba — urządzenia",
     "popoverFooter": "Pełne ustawienia →",
     "deviceMic": "Mikrofon",
-    "deviceSpeakerMonitor": "Monitor głośnika",
     "notSelected": "Nie wybrano",
     "deviceParticipantAudio": "Dźwięk rozmówcy",
     "faceToFaceTag": "Twarzą w twarz",
@@ -678,13 +676,12 @@
     "toggleOn": "Włącz {{label}}",
     "toggleOff": "Wyłącz {{label}}",
     "participantSubtitleElectron": "Cały dźwięk systemowy",
-    "participantSubtitleExtension": "Odtwarzane przez domyślne wyjście systemu",
+    "participantSubtitleExtension": "Odtwarzane przez wybrane domyślne urządzenie odtwarzania",
     "otherSide": "Gdzie jest rozmówca",
     "otherSideMeeting": "Na spotkaniu",
     "otherSideMeetingHint": "Przechwytuje dźwięk systemu lub aplikacji",
     "otherSideBeside": "Obok mnie",
-    "otherSideBesideHint": "Dwie osoby przy jednym mikrofonie",
-    "output": "Wyjście"
+    "otherSideBesideHint": "Dwie osoby przy jednym mikrofonie"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Kliknij, aby skonfigurować języki",
@@ -1262,7 +1259,7 @@
       },
       "mode-picker": {
         "title": "Tryb tłumaczenia",
-        "content": "To jest ustawione za Ciebie i możesz to zmienić w każdej chwili. Tłumaczenie zawsze pojawia się tutaj jako tekst; tryb, razem z przełącznikiem Tylko tekst, decyduje, czy jest też odczytywane na głos.",
+        "content": "To jest ustawione za Ciebie i możesz to zmienić w każdej chwili. Tłumaczenie zawsze pojawia się tutaj jako tekst; tryb, razem z przełącznikiem „Tłumaczenie, które słyszy druga strona” w bloku Mowa, decyduje, czy jest też odczytywane na głos.",
         "modeMe": "Ja — to, co mówisz, jest tłumaczone dla drugiej strony.",
         "modeOthers": "Rozmówca — to, co mówi, jest tłumaczone dla Ciebie.",
         "modeBoth": "Oba — obydwa kierunki naraz."
@@ -1470,16 +1467,10 @@
     "errorListen": "Nie udało się rozpocząć udostępniania: {{reason}}"
   },
   "faceToFace": {
-    "earsTitle": "Lewe i prawe ucho · każdy słyszy tłumaczenie w swoim języku",
     "leftEar": "Lewe ucho",
     "rightEar": "Prawe ucho",
     "earLeft": "L",
     "earRight": "R",
-    "meListens": "Ja ({{language}})",
-    "otherListens": "Rozmówca ({{language}})",
-    "previewLeft": "Odsłuchaj lewe ucho",
-    "previewRight": "Odsłuchaj prawe ucho",
-    "swap": "Zamień lewe z prawym",
     "speakersHint": "Używajcie słuchawek, każdy po jednej stronie. Przy dowolnym głośniku mikrofon łapie tłumaczenie i tłumaczy je ponownie.",
     "playedLeft": "Odtworzono w lewym uchu",
     "playedRight": "Odtworzono w prawym uchu",

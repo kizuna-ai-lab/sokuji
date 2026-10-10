@@ -206,7 +206,7 @@
     "translateModelNotAvailable": "API-avain toimii, mutta gpt-realtime-translate ei ole käytettävissä tällä avaimella.",
     "participantSectionHeader": "Toisen ääni",
     "participantSectionDescriptionElectron": "Käännä ääni mistä tahansa tässä järjestelmässä toistettavasta sovelluksesta.",
-    "participantSectionDescriptionExtension": "Käännä ääni aktiivisesta selainvälilehdestä. Alkuperäinen ääni toistetaan järjestelmäsi oletuslähdön kautta.",
+    "participantSectionDescriptionExtension": "Käännä ääni aktiivisesta selainvälilehdestä. Alkuperäinen ääni toistetaan valitsemasi oletustoistolaitteen kautta.",
     "edgeTtsNoVoicesForLanguage": "Tälle kielelle ei ole ääniä saatavilla",
     "edgeTtsVoiceLoadError": "Äänien lataus epäonnistui — tarkista LogsPanel",
     "localNativeAsrIncompatible": "Valitse puheentunnistusmalli kielelle \"Minun kieleni\"",
@@ -386,7 +386,6 @@
     "participantSpeech": "Lue toisen käännös ääneen",
     "participantSpeechDesc": "Lukee ääneen, mitä toinen sanoo, sinun kielelläsi, kaiuttimistasi. Se seuraa heidän ääntään viiveellä.",
     "participantSpeechBlockedWholeSystem": "Pois päältä, kun toisen ääni kaappaa koko järjestelmän äänen: heidän käännöksensä kaapattaisiin ja käännettäisiin uudelleen. Valitse sovellus toisen äänilähteeksi.",
-    "participantSpeechNotYetAvailable": "Ei vielä käytettävissä tällä tarjoajalla: toisen käännös näytetään vain tekstinä.",
     "audioCaptureUnprovenNotice": "Mitään ei ole vielä kaapattu",
     "audioCaptureUnprovenTitle": "Valitusta lähteestä ei ole vielä tullut ääntä",
     "audioCaptureUnprovenText1": "Jos lähde toistaa eikä mitään käännetä, macOS toimittaa todennäköisesti hiljaisuutta: sovelluksen kaappaaminen vaatii käyttöoikeuden \"Vain järjestelmän äänen tallennus\", ja ilman sitä ei tule virhettä, vain hiljaisuutta.",
@@ -667,7 +666,6 @@
     "popoverHeaderBoth": "Molemmat — laitteet",
     "popoverFooter": "Kaikki asetukset →",
     "deviceMic": "Mikrofoni",
-    "deviceSpeakerMonitor": "Kaiuttimen valvonta",
     "notSelected": "Ei valittu",
     "deviceParticipantAudio": "Toisen ääni",
     "faceToFaceTag": "Kasvokkain",
@@ -678,13 +676,12 @@
     "toggleOn": "Ota {{label}} käyttöön",
     "toggleOff": "Poista {{label}} käytöstä",
     "participantSubtitleElectron": "Kaikki järjestelmän ääni",
-    "participantSubtitleExtension": "Toistetaan järjestelmän oletuksen kautta",
+    "participantSubtitleExtension": "Toistetaan valitsemasi oletustoistolaitteen kautta",
     "otherSide": "Missä toinen on",
     "otherSideMeeting": "Kokouksessa",
     "otherSideMeetingHint": "Kaappaa järjestelmän äänen tai sovelluksen äänen",
     "otherSideBeside": "Vieressäni",
-    "otherSideBesideHint": "Kaksi ihmistä yhdellä mikrofonilla",
-    "output": "Ulostulo"
+    "otherSideBesideHint": "Kaksi ihmistä yhdellä mikrofonilla"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Napsauta määrittääksesi kielet",
@@ -1262,7 +1259,7 @@
       },
       "mode-picker": {
         "title": "Käännöstila",
-        "content": "Tämä on asetettu sinulle valmiiksi, ja voit vaihtaa sitä milloin tahansa. Käännös näkyy täällä aina tekstinä; tila yhdessä Vain teksti -kytkimen kanssa määrää, luetaanko se myös ääneen.",
+        "content": "Tämä on asetettu sinulle valmiiksi, ja voit vaihtaa sitä milloin tahansa. Käännös näkyy täällä aina tekstinä; tila yhdessä Puhe-osion Käännös, jonka toinen osapuoli kuulee -kytkimen kanssa määrää, luetaanko se myös ääneen.",
         "modeMe": "Minä — se, mitä sanot, käännetään toiselle.",
         "modeOthers": "Toinen — se, mitä he sanovat, käännetään sinulle.",
         "modeBoth": "Molemmat — molemmat suunnat samanaikaisesti."
@@ -1470,16 +1467,10 @@
     "errorListen": "Jakamista ei voitu aloittaa: {{reason}}"
   },
   "faceToFace": {
-    "earsTitle": "Vasen ja oikea · kumpikin kuulee käännöksen omalla kielellään",
     "leftEar": "Vasen korva",
     "rightEar": "Oikea korva",
     "earLeft": "L",
     "earRight": "R",
-    "meListens": "Minä ({{language}})",
-    "otherListens": "Toinen ({{language}})",
-    "previewLeft": "Esikuuntele vasen korva",
-    "previewRight": "Esikuuntele oikea korva",
-    "swap": "Vaihda vasen ja oikea",
     "speakersHint": "Käyttäkää kuulokkeita, kumpikin yhtä puolta. Mikä tahansa kaiutin saa mikrofonin poimimaan käännöksen ja kääntämään sen uudelleen.",
     "playedLeft": "Toistettu vasemmassa korvassa",
     "playedRight": "Toistettu oikeassa korvassa",

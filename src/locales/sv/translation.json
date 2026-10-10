@@ -206,7 +206,7 @@
     "translateModelNotAvailable": "API-nyckeln fungerar, men gpt-realtime-translate är inte tillgänglig med den här nyckeln.",
     "participantSectionHeader": "Den andras ljud",
     "participantSectionDescriptionElectron": "Översätt ljud från valfri applikation som spelas upp på detta system.",
-    "participantSectionDescriptionExtension": "Översätt ljud från den aktiva webbläsarfliken. Originalljudet spelas upp via systemets standardutgång.",
+    "participantSectionDescriptionExtension": "Översätt ljud från den aktiva webbläsarfliken. Originalljudet spelas upp via den standarduppspelningsenhet du valt.",
     "edgeTtsNoVoicesForLanguage": "Inga röster tillgängliga för detta språk",
     "edgeTtsVoiceLoadError": "Kunde inte ladda röster — kontrollera LogsPanel",
     "localNativeAsrIncompatible": "Välj en taligenkänningsmodell för 'Mitt språk'",
@@ -386,7 +386,6 @@
     "participantSpeech": "Läs upp den andras översättning",
     "participantSpeechDesc": "Läser högt för dig vad den andra säger, på ditt språk, genom dina högtalare. Det följer deras röst med en fördröjning.",
     "participantSpeechBlockedWholeSystem": "Avstängt medan den andras ljud fångar allt systemljud: deras översättning skulle fångas och översättas igen. Välj ett program som den andras källa.",
-    "participantSpeechNotYetAvailable": "Inte tillgängligt än med den här leverantören: den andras översättning visas endast som text.",
     "audioCaptureUnprovenNotice": "Inget har fångats ännu",
     "audioCaptureUnprovenTitle": "Inget ljud har kommit från den valda källan ännu",
     "audioCaptureUnprovenText1": "Om källan spelar upp och inget översätts levererar macOS troligen tystnad: att fånga en app kräver behörigheten \"Endast inspelning av systemljud\", och utan den uppstår inget fel, bara tystnad.",
@@ -667,7 +666,6 @@
     "popoverHeaderBoth": "Båda — enheter",
     "popoverFooter": "Fullständiga inställningar →",
     "deviceMic": "Mikrofon",
-    "deviceSpeakerMonitor": "Högtalarmonitor",
     "notSelected": "Inte vald",
     "deviceParticipantAudio": "Den andras ljud",
     "faceToFaceTag": "På plats",
@@ -678,13 +676,12 @@
     "toggleOn": "Slå på {{label}}",
     "toggleOff": "Stäng av {{label}}",
     "participantSubtitleElectron": "Allt systemljud",
-    "participantSubtitleExtension": "Spelas upp via systemets standardutgång",
+    "participantSubtitleExtension": "Spelas upp via den valda standarduppspelningsenheten",
     "otherSide": "Var finns den andra",
     "otherSideMeeting": "På ett möte",
     "otherSideMeetingHint": "Fångar systemljud eller en app",
     "otherSideBeside": "Bredvid mig",
-    "otherSideBesideHint": "Två personer vid en mikrofon",
-    "output": "Utgång"
+    "otherSideBesideHint": "Två personer vid en mikrofon"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Klicka för att konfigurera språk",
@@ -1262,7 +1259,7 @@
       },
       "mode-picker": {
         "title": "Översättningsläge",
-        "content": "Detta är förinställt åt dig, och du kan byta det när som helst. Översättningen visas alltid här som text; läget, tillsammans med reglaget Endast text, avgör om den också uttalas.",
+        "content": "Detta är förinställt åt dig, och du kan byta det när som helst. Översättningen visas alltid här som text; läget, tillsammans med reglaget \"Översättning som motparten hör\" i blocket Tal, avgör om den också uttalas.",
         "modeMe": "Jag — det du säger översätts för den andra.",
         "modeOthers": "Den andra — det den andra säger översätts för dig.",
         "modeBoth": "Båda — båda riktningarna samtidigt."
@@ -1470,16 +1467,10 @@
     "errorListen": "Det gick inte att börja dela: {{reason}}"
   },
   "faceToFace": {
-    "earsTitle": "Vänster och höger · var och en hör översättningen på sitt eget språk",
     "leftEar": "Vänster öra",
     "rightEar": "Höger öra",
     "earLeft": "L",
     "earRight": "R",
-    "meListens": "Jag ({{language}})",
-    "otherListens": "Den andra ({{language}})",
-    "previewLeft": "Förhandslyssna på vänster öra",
-    "previewRight": "Förhandslyssna på höger öra",
-    "swap": "Byt vänster och höger",
     "speakersHint": "Använd hörlurar, en sida var. Med vilken högtalare som helst fångar mikrofonen upp översättningen och översätter den igen.",
     "playedLeft": "Spelades upp i vänster öra",
     "playedRight": "Spelades upp i höger öra",

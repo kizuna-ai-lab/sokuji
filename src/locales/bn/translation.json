@@ -206,7 +206,7 @@
     "translateModelNotAvailable": "API কী কাজ করে, কিন্তু এই কী দিয়ে gpt-realtime-translate অ্যাক্সেস করা যায় না।",
     "participantSectionHeader": "অন্যের অডিও",
     "participantSectionDescriptionElectron": "এই সিস্টেমে চলমান যেকোনো অ্যাপ্লিকেশন থেকে অডিও অনুবাদ করুন।",
-    "participantSectionDescriptionExtension": "সক্রিয় ব্রাউজার ট্যাব থেকে অডিও অনুবাদ করুন। মূল অডিও আপনার সিস্টেমের ডিফল্ট আউটপুটের মাধ্যমে চলে।",
+    "participantSectionDescriptionExtension": "সক্রিয় ব্রাউজার ট্যাব থেকে অডিও অনুবাদ করুন। মূল অডিও আপনার বেছে নেওয়া ডিফল্ট প্লেব্যাক ডিভাইসের মাধ্যমে চলে।",
     "edgeTtsNoVoicesForLanguage": "এই ভাষার জন্য কোনো কণ্ঠস্বর উপলব্ধ নেই",
     "edgeTtsVoiceLoadError": "কণ্ঠস্বর লোড করতে ব্যর্থ — LogsPanel দেখুন",
     "localNativeAsrIncompatible": "\"আমার ভাষা\"-র জন্য একটি বাক স্বীকৃতি (ASR) মডেল নির্বাচন করুন",
@@ -386,7 +386,6 @@
     "participantSpeech": "অন্যের অনুবাদ জোরে বলুন",
     "participantSpeechDesc": "অন্য যা বলে তা আপনার ভাষায়, আপনার স্পিকারে জোরে পড়ে শোনায়। এটি বিলম্বে তাদের কণ্ঠ অনুসরণ করে।",
     "participantSpeechBlockedWholeSystem": "অন্যের অডিও পুরো সিস্টেম অডিও ক্যাপচার করা অবস্থায় বন্ধ থাকে: তাদের অনুবাদ আবার ক্যাপচার হয়ে অনুবাদ হয়ে যাবে। অন্যের উৎস হিসেবে একটি অ্যাপ্লিকেশন বেছে নিন।",
-    "participantSpeechNotYetAvailable": "এই প্রদানকারীর সাথে এখনও উপলব্ধ নয়: অন্যের অনুবাদ শুধু লেখা হিসেবে দেখানো হয়।",
     "audioCaptureUnprovenNotice": "এখনও কিছু ক্যাপচার হয়নি",
     "audioCaptureUnprovenTitle": "নির্বাচিত উৎস থেকে এখনও কোনো অডিও আসেনি",
     "audioCaptureUnprovenText1": "উৎসটি চলছে অথচ কিছুই অনুবাদ হচ্ছে না হলে, macOS সম্ভবত নীরবতা পাঠাচ্ছে: কোনো অ্যাপ ক্যাপচার করতে \"System Audio Recording Only\" অনুমতি লাগে, আর সেটি না থাকলে কোনো ত্রুটি দেখায় না, শুধু নীরবতা থাকে।",
@@ -667,7 +666,6 @@
     "popoverHeaderBoth": "উভয় — ডিভাইস",
     "popoverFooter": "সম্পূর্ণ সেটিংস →",
     "deviceMic": "মাইক্রোফোন",
-    "deviceSpeakerMonitor": "স্পিকার মনিটর",
     "notSelected": "নির্বাচিত নয়",
     "deviceParticipantAudio": "অন্যের অডিও",
     "faceToFaceTag": "মুখোমুখি",
@@ -678,13 +676,12 @@
     "toggleOn": "{{label}} চালু করুন",
     "toggleOff": "{{label}} বন্ধ করুন",
     "participantSubtitleElectron": "সমস্ত সিস্টেম অডিও",
-    "participantSubtitleExtension": "সিস্টেম ডিফল্টের মাধ্যমে চলে",
+    "participantSubtitleExtension": "আপনার বেছে নেওয়া ডিফল্ট প্লেব্যাক ডিভাইসের মাধ্যমে চলে",
     "otherSide": "অপর পক্ষ",
     "otherSideMeeting": "মিটিংয়ে",
     "otherSideMeetingHint": "সিস্টেম অডিও বা কোনো অ্যাপ ক্যাপচার করে",
     "otherSideBeside": "আমার পাশে",
-    "otherSideBesideHint": "একটি মাইক্রোফোনে দুজন",
-    "output": "আউটপুট"
+    "otherSideBesideHint": "একটি মাইক্রোফোনে দুজন"
   },
   "simplePanel": {
     "clickToConfigLanguages": "ভাষা কনফিগার করতে ক্লিক করুন",
@@ -1262,7 +1259,7 @@
       },
       "mode-picker": {
         "title": "অনুবাদ মোড",
-        "content": "এটি আপনার জন্য সেট করা আছে, এবং আপনি যেকোনো সময় এটি পরিবর্তন করতে পারেন। অনুবাদ সবসময় এখানে টেক্সট হিসেবে দেখা যায়; মোড, \"শুধু পাঠ্য\" সুইচের সাথে একত্রে, তা জোরে বলা হবে কিনা তা ঠিক করে।",
+        "content": "এটি আপনার জন্য সেট করা আছে, এবং আপনি যেকোনো সময় এটি পরিবর্তন করতে পারেন। অনুবাদ সবসময় এখানে টেক্সট হিসেবে দেখা যায়; মোড, \"ভয়েস\" ব্লকের \"অপর পক্ষ যে অনুবাদ শোনে\" সুইচের সাথে একত্রে, তা জোরে বলা হবে কিনা তা ঠিক করে।",
         "modeMe": "আমি — আপনি যা বলেন তা অন্য পক্ষের জন্য অনুবাদ করা হয়।",
         "modeOthers": "অন্য — তারা যা বলে তা আপনার জন্য অনুবাদ করা হয়।",
         "modeBoth": "উভয় — একসাথে উভয় দিক।"
@@ -1470,16 +1467,10 @@
     "errorListen": "শেয়ারিং শুরু করা যায়নি: {{reason}}"
   },
   "faceToFace": {
-    "earsTitle": "বাম ও ডান · প্রত্যেকে নিজের ভাষায় অনুবাদ শোনে",
     "leftEar": "বাম কান",
     "rightEar": "ডান কান",
     "earLeft": "L",
     "earRight": "R",
-    "meListens": "আমি ({{language}})",
-    "otherListens": "অপর ব্যক্তি ({{language}})",
-    "previewLeft": "বাম কানে প্রিভিউ শুনুন",
-    "previewRight": "ডান কানে প্রিভিউ শুনুন",
-    "swap": "বাম-ডান অদলবদল করুন",
     "speakersHint": "হেডফোন ব্যবহার করুন, প্রত্যেকে একটি করে পাশ নিন। যেকোনো স্পিকারে মাইক্রোফোন অনুবাদটিও ধরে ফেলে এবং আবার অনুবাদ করে।",
     "playedLeft": "বাম কানে চালানো হয়েছে",
     "playedRight": "ডান কানে চালানো হয়েছে",

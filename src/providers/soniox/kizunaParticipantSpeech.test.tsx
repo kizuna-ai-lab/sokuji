@@ -21,6 +21,8 @@ vi.mock('react-i18next', async (importOriginal) => {
   return { ...actual, useTranslation: () => ({ t: (key: string) => key }) };
 });
 const tooltips = vi.hoisted(() => [] as unknown[]);
+vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
+vi.mock('../../lib/audio/appAudio', () => ({ getAppAudio: async () => ({ earPreview: vi.fn(async () => {}) }) }));
 vi.mock('../../components/Tooltip/Tooltip', () => ({
   default: ({ content }: { content: unknown }) => {
     tooltips.push(content);
@@ -35,7 +37,7 @@ vi.mock('../registry', async (importOriginal) => {
   return { ...actual, presentProviders: (...args: Parameters<typeof actual.presentProviders>) => actual.presentProviders(...args).map(swap) };
 });
 
-import { ParticipantSpeechSwitch } from '../../components/Settings/sections/ParticipantSpeechSwitch';
+import SpeechOutputSection from '../../components/Settings/sections/SpeechOutputSection';
 import type { StartRequest } from '../../lib/contract/adapter';
 import { createVirtualClock } from '../../lib/contract/clock';
 import { recordEvents } from '../../lib/contract/events';
@@ -45,6 +47,7 @@ import type { LegName } from '../../lib/conversation/types';
 import type { AnyProvider } from '../../lib/provider/types';
 import { contextsFor } from '../../lib/session/shape';
 import type { LeaseContext, RunShape } from '../../lib/session/types';
+import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { createSonioxAdapter } from './adapter';
@@ -126,20 +129,23 @@ const degraded = (r: Ran) => r.rec.participant.log.filter((e) => e.kind === 'deg
 
 describe('the switch', () => {
   /** Kizuna Soniox selected, its entry loaded: the provider a run would start. */
-  const selectKizuna = () => useProviderStore.setState({
-    selected: 'kizunaai_soniox',
-    entries: { kizunaai_soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
-  });
+  const selectKizuna = () => {
+    useAudioStore.setState({ mode: 'both', selectedParticipantSource: { deviceId: 'app:1', label: 'Zoom' } });
+    useProviderStore.setState({
+      selected: 'kizunaai_soniox',
+      entries: { kizunaai_soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
+    });
+  };
 
-  it('the flag off: off and disabled with the "not yet" tooltip, the stored choice kept', () => {
+  it('the flag off: 我听到的翻译 off and disabled with the "not offered" tooltip, the stored choice kept', () => {
     standIn.provider = silent;
     useRoutingStore.setState({ participantSpeech: true });
     selectKizuna();
-    render(<ParticipantSpeechSwitch locked={false} />);
-    const sw = screen.getByRole('switch');
+    render(<SpeechOutputSection isSessionActive={false} />);
+    const sw = screen.getByRole('switch', { name: 'audioPanel.iHear' });
     expect(sw.getAttribute('aria-checked')).toBe('false');
     expect(sw.getAttribute('aria-disabled')).toBe('true');
-    expect(tooltips).toContain('audioPanel.participantSpeechNotYetAvailable');
+    expect(tooltips).toContain('audioPanel.iHearNotOffered');
     expect(useRoutingStore.getState().participantSpeech).toBe(true);
   });
 
@@ -147,11 +153,10 @@ describe('the switch', () => {
     standIn.provider = speaking;
     useRoutingStore.setState({ participantSpeech: true });
     selectKizuna();
-    render(<ParticipantSpeechSwitch locked={false} />);
-    const sw = screen.getByRole('switch');
+    render(<SpeechOutputSection isSessionActive={false} />);
+    const sw = screen.getByRole('switch', { name: 'audioPanel.iHear' });
     expect(sw.getAttribute('aria-checked')).toBe('true');
     expect(sw.getAttribute('aria-disabled')).not.toBe('true');
-    expect(tooltips).toContain('audioPanel.participantSpeechDesc');
   });
 });
 

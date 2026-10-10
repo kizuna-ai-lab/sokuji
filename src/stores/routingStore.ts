@@ -13,14 +13,6 @@ import { ServiceFactory } from '../services/ServiceFactory';
 const MEETING = 'settings.routing.meeting';
 const PARTICIPANT_SPEECH = 'settings.routing.participantSpeech';
 
-/**
- * Whether the old participant-speech switch (`ParticipantSpeechSwitch`)
- * renders. Hidden since 2026-10-01; slice 2 of the 2026-10-10 spec replaces
- * it with the 我听到的翻译 row and deletes this with it. The store reads the
- * saved value regardless.
- */
-export const PARTICIPANT_SPEECH_SHOWN = false;
-
 interface RoutingStore {
   meeting: boolean;
   /** 我听到的翻译: true/false as chosen; null = auto (on in face-to-face, off elsewhere). */

@@ -206,7 +206,7 @@
     "translateModelNotAvailable": "מפתח API עובד, אך gpt-realtime-translate אינו נגיש עם מפתח זה.",
     "participantSectionHeader": "שמע הצד השני",
     "participantSectionDescriptionElectron": "תרגם שמע מכל יישום שמתנגן במערכת זו.",
-    "participantSectionDescriptionExtension": "תרגם שמע מלשונית הדפדפן הפעילה. השמע המקורי מתנגן דרך פלט ברירת המחדל של המערכת שלך.",
+    "participantSectionDescriptionExtension": "תרגם שמע מלשונית הדפדפן הפעילה. השמע המקורי מתנגן דרך התקן ההשמעה המוגדר כברירת מחדל שבחרת.",
     "edgeTtsNoVoicesForLanguage": "אין קולות זמינים עבור שפה זו",
     "edgeTtsVoiceLoadError": "טעינת הקולות נכשלה — בדוק את LogsPanel",
     "localNativeAsrIncompatible": "בחר מודל זיהוי דיבור עבור \"השפה שלי\"",
@@ -386,7 +386,6 @@
     "participantSpeech": "הקראת תרגום הצד השני",
     "participantSpeechDesc": "מקריא לך בקול את מה שהצד השני אומר, בשפה שלך, דרך הרמקולים שלך. הוא עוקב אחרי הקול שלו בעיכוב.",
     "participantSpeechBlockedWholeSystem": "כבוי כל עוד שמע הצד השני לוכד את כל שמע המערכת: התרגום שלו יילכד ויתורגם שוב. בחרו אפליקציה כמקור של הצד השני.",
-    "participantSpeechNotYetAvailable": "עדיין לא זמין עם ספק זה: תרגום הצד השני מוצג כטקסט בלבד.",
     "audioCaptureUnprovenNotice": "עדיין לא נקלט דבר",
     "audioCaptureUnprovenTitle": "עדיין לא הגיע שמע מהמקור שנבחר",
     "audioCaptureUnprovenText1": "אם המקור מנגן ושום דבר לא מתורגם, macOS כנראה מספק שקט: לכידת אפליקציה דורשת את ההרשאה \"הקלטת שמע מערכת בלבד\", ובלעדיה אין שגיאה, רק שקט.",
@@ -667,7 +666,6 @@
     "popoverHeaderBoth": "שניהם — התקנים",
     "popoverFooter": "הגדרות מלאות →",
     "deviceMic": "מיקרופון",
-    "deviceSpeakerMonitor": "ניטור רמקול",
     "notSelected": "לא נבחר",
     "deviceParticipantAudio": "שמע הצד השני",
     "faceToFaceTag": "פנים אל פנים",
@@ -678,13 +676,12 @@
     "toggleOn": "הפעל {{label}}",
     "toggleOff": "כבה {{label}}",
     "participantSubtitleElectron": "כל שמע המערכת",
-    "participantSubtitleExtension": "מתנגן דרך ברירת המחדל של המערכת",
+    "participantSubtitleExtension": "מתנגן דרך התקן ההשמעה המוגדר כברירת מחדל שבחרת",
     "otherSide": "היכן הצד השני",
     "otherSideMeeting": "בפגישה",
     "otherSideMeetingHint": "לוכד את שמע המערכת או אפליקציה",
     "otherSideBeside": "לידי",
-    "otherSideBesideHint": "שני אנשים על מיקרופון אחד",
-    "output": "פלט"
+    "otherSideBesideHint": "שני אנשים על מיקרופון אחד"
   },
   "simplePanel": {
     "clickToConfigLanguages": "לחץ כדי להגדיר שפות",
@@ -1262,7 +1259,7 @@
       },
       "mode-picker": {
         "title": "מצב תרגום",
-        "content": "זה מוגדר עבורך, ואפשר להחליף בכל עת. התרגום תמיד מופיע כאן כטקסט; המצב, יחד עם המתג \"טקסט בלבד\", קובע אם הוא גם מופק כפלט קולי.",
+        "content": "זה מוגדר עבורך, ואפשר להחליף בכל עת. התרגום תמיד מופיע כאן כטקסט; המצב, יחד עם המתג \"התרגום שהצד השני שומע\" בבלוק \"דיבור\", קובע אם הוא גם מופק כפלט קולי.",
         "modeMe": "אני — מה שאתה אומר מתורגם עבור הצד השני.",
         "modeOthers": "הצד השני — מה שהם אומרים מתורגם עבורך.",
         "modeBoth": "שניהם — שני הכיוונים בו-זמנית."
@@ -1470,16 +1467,10 @@
     "errorListen": "לא ניתן להתחיל לשתף: {{reason}}"
   },
   "faceToFace": {
-    "earsTitle": "שמאל וימין · כל אחד שומע את התרגום בשפתו",
     "leftEar": "אוזן שמאל",
     "rightEar": "אוזן ימין",
     "earLeft": "L",
     "earRight": "R",
-    "meListens": "אני ({{language}})",
-    "otherListens": "הצד השני ({{language}})",
-    "previewLeft": "תצוגה מקדימה של אוזן שמאל",
-    "previewRight": "תצוגה מקדימה של אוזן ימין",
-    "swap": "החלפה בין שמאל לימין",
     "speakersHint": "השתמשו באוזניות, צד אחד לכל אחד. עם כל רמקול המיקרופון קולט את התרגום ומתרגם אותו שוב.",
     "playedLeft": "הושמע באוזן שמאל",
     "playedRight": "הושמע באוזן ימין",

@@ -206,7 +206,7 @@
     "translateModelNotAvailable": "Gumagana ang API key, ngunit hindi ma-access ang gpt-realtime-translate gamit ang key na ito.",
     "participantSectionHeader": "Audio ng kausap",
     "participantSectionDescriptionElectron": "Isalin ang audio mula sa anumang application na tumutugtog sa system na ito.",
-    "participantSectionDescriptionExtension": "Isalin ang audio mula sa aktibong browser tab. Ang orihinal na audio ay tumutugtog sa default na output ng iyong system.",
+    "participantSectionDescriptionExtension": "Isalin ang audio mula sa aktibong browser tab. Ang orihinal na audio ay tumutugtog sa default na playback device na pinili ninyo.",
     "edgeTtsNoVoicesForLanguage": "Walang available na boses para sa wikang ito",
     "edgeTtsVoiceLoadError": "Hindi na-load ang mga boses — suriin ang LogsPanel",
     "localNativeAsrIncompatible": "Pumili ng modelo ng pagkilala sa pagsasalita para sa \"Aking wika\"",
@@ -386,7 +386,6 @@
     "participantSpeech": "Bigkasin nang malakas ang salin ng kausap",
     "participantSpeechDesc": "Binabasa nang malakas sa inyo ang sinasabi ng kausap, sa inyong wika, sa inyong speaker. Sinusundan nito ang kanilang boses nang may kaunting antala.",
     "participantSpeechBlockedWholeSystem": "Naka-off habang kinukuha ng audio ng kausap ang buong system audio: makukuha at isasalin muli ang kanilang salin. Pumili ng application bilang pinagmulan ng kausap.",
-    "participantSpeechNotYetAvailable": "Hindi pa available sa provider na ito: ipinapakita lang bilang teksto ang salin ng kausap.",
     "audioCaptureUnprovenNotice": "Wala pang nakukuha",
     "audioCaptureUnprovenTitle": "Wala pang audio na dumarating mula sa napiling source",
     "audioCaptureUnprovenText1": "Kung tumutugtog ang source at walang naisasalin, malamang na katahimikan ang ibinibigay ng macOS: kailangan ng pahintulot na \"System Audio Recording Only\" para makuha ang audio ng isang app, at kung wala ito ay walang error, katahimikan lang.",
@@ -667,7 +666,6 @@
     "popoverHeaderBoth": "Pareho — mga device",
     "popoverFooter": "Buong mga setting →",
     "deviceMic": "Mikropono",
-    "deviceSpeakerMonitor": "Monitor ng speaker",
     "notSelected": "Hindi napili",
     "deviceParticipantAudio": "Audio ng kausap",
     "faceToFaceTag": "Magkaharap",
@@ -678,13 +676,12 @@
     "toggleOn": "I-on ang {{label}}",
     "toggleOff": "I-off ang {{label}}",
     "participantSubtitleElectron": "Lahat ng audio ng system",
-    "participantSubtitleExtension": "Tumutugtog sa default ng system",
+    "participantSubtitleExtension": "Tumutugtog sa default na playback device na pinili ninyo",
     "otherSide": "Nasaan ang kausap",
     "otherSideMeeting": "Nasa meeting",
     "otherSideMeetingHint": "Kinukuha ang audio ng system o ng isang app",
     "otherSideBeside": "Katabi ko",
-    "otherSideBesideHint": "Dalawang tao, iisang mikropono",
-    "output": "Output"
+    "otherSideBesideHint": "Dalawang tao, iisang mikropono"
   },
   "simplePanel": {
     "clickToConfigLanguages": "I-click upang i-configure ang mga wika",
@@ -1262,7 +1259,7 @@
       },
       "mode-picker": {
         "title": "Mode ng pagsasalin",
-        "content": "Naka-set na ito para sa inyo, at puwede ninyo itong palitan anumang oras. Palaging lumalabas dito ang salin bilang teksto; ang mode, kasama ang switch na \"Teksto lamang\", ang nagpapasya kung ito ay binibigkas din nang malakas.",
+        "content": "Naka-set na ito para sa inyo, at puwede ninyo itong palitan anumang oras. Palaging lumalabas dito ang salin bilang teksto; ang mode, kasama ang switch na \"Salin na naririnig ng kabilang panig\" sa bahaging Pananalita, ang nagpapasya kung ito ay binibigkas din nang malakas.",
         "modeMe": "Ako — isinasalin ang sinasabi ninyo para sa kausap.",
         "modeOthers": "Kausap — isinasalin ang sinasabi nila para sa inyo.",
         "modeBoth": "Pareho — dalawang direksyon nang sabay."
@@ -1470,16 +1467,10 @@
     "errorListen": "Hindi masimulan ang pagbabahagi: {{reason}}"
   },
   "faceToFace": {
-    "earsTitle": "Kaliwa at kanan · naririnig ng bawat isa ang salin sa sarili niyang wika",
     "leftEar": "Kaliwang tainga",
     "rightEar": "Kanang tainga",
     "earLeft": "L",
     "earRight": "R",
-    "meListens": "Ako ({{language}})",
-    "otherListens": "Kausap ({{language}})",
-    "previewLeft": "I-preview ang kaliwang tainga",
-    "previewRight": "I-preview ang kanang tainga",
-    "swap": "Ipagpalit ang kaliwa at kanan",
     "speakersHint": "Gumamit ng headphone, tig-isang gilid bawat tao. Sa anumang speaker, nakukuha ng mikropono ang salin at isinasalin itong muli.",
     "playedLeft": "Pinatugtog sa kaliwang tainga",
     "playedRight": "Pinatugtog sa kanang tainga",

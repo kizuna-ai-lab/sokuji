@@ -206,7 +206,7 @@
     "translateModelNotAvailable": "API anahtarı çalışıyor ancak bu anahtarla gpt-realtime-translate erişilebilir değil.",
     "participantSectionHeader": "Karşı tarafın sesi",
     "participantSectionDescriptionElectron": "Bu sistemde çalan herhangi bir uygulamadan gelen sesi çevirin.",
-    "participantSectionDescriptionExtension": "Etkin tarayıcı sekmesinden gelen sesi çevirin. Orijinal ses, sistem varsayılan çıkışınızdan çalar.",
+    "participantSectionDescriptionExtension": "Etkin tarayıcı sekmesinden gelen sesi çevirin. Orijinal ses, seçtiğiniz varsayılan oynatma cihazından çalar.",
     "edgeTtsNoVoicesForLanguage": "Bu dil için kullanılabilir ses yok",
     "edgeTtsVoiceLoadError": "Sesler yüklenemedi — LogsPanel'i kontrol edin",
     "localNativeAsrIncompatible": "\"Benim dilim\" için bir konuşma tanıma (ASR) modeli seçin",
@@ -386,7 +386,6 @@
     "participantSpeech": "Karşı tarafın çevirisini sesli oku",
     "participantSpeechDesc": "Karşı tarafın söylediklerini sizin dilinizde, hoparlörlerinizden sesli olarak okur. Onun sesini bir gecikmeyle takip eder.",
     "participantSpeechBlockedWholeSystem": "Karşı tarafın sesi tüm sistem sesini yakalarken kapalıdır: çevirisi tekrar yakalanıp çevrilmiş olurdu. Karşı tarafın kaynağı olarak bir uygulama seçin.",
-    "participantSpeechNotYetAvailable": "Bu sağlayıcıda henüz kullanılamıyor: karşı tarafın çevirisi yalnızca metin olarak gösterilir.",
     "audioCaptureUnprovenNotice": "Henüz hiçbir şey yakalanmadı",
     "audioCaptureUnprovenTitle": "Seçilen kaynaktan henüz ses gelmedi",
     "audioCaptureUnprovenText1": "Kaynak oynatılıyor ve hiçbir şey çevrilmiyorsa macOS büyük olasılıkla sessizlik iletiyordur: bir uygulamayı yakalamak \"Yalnızca Sistem Sesi Kaydı\" iznini gerektirir ve bu izin olmadan hata oluşmaz, yalnızca sessizlik olur.",
@@ -667,7 +666,6 @@
     "popoverHeaderBoth": "Her ikisi — cihazlar",
     "popoverFooter": "Tüm ayarlar →",
     "deviceMic": "Mikrofon",
-    "deviceSpeakerMonitor": "Hoparlör izleme",
     "notSelected": "Seçilmedi",
     "deviceParticipantAudio": "Karşı tarafın sesi",
     "faceToFaceTag": "Yüz yüze",
@@ -678,13 +676,12 @@
     "toggleOn": "{{label}} aç",
     "toggleOff": "{{label}} kapat",
     "participantSubtitleElectron": "Tüm sistem sesi",
-    "participantSubtitleExtension": "Sistem varsayılanı üzerinden çalar",
+    "participantSubtitleExtension": "Seçtiğiniz varsayılan oynatma cihazından çalar",
     "otherSide": "Karşı taraf nerede",
     "otherSideMeeting": "Bir toplantıda",
     "otherSideMeetingHint": "Sistem sesini veya bir uygulamayı yakalar",
     "otherSideBeside": "Yanımda",
-    "otherSideBesideHint": "Tek mikrofonda iki kişi",
-    "output": "Çıkış"
+    "otherSideBesideHint": "Tek mikrofonda iki kişi"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Dilleri yapılandırmak için tıklayın",
@@ -1262,7 +1259,7 @@
       },
       "mode-picker": {
         "title": "Çeviri modu",
-        "content": "Bu sizin için ayarlanmıştır ve istediğiniz zaman değiştirebilirsiniz. Çeviri burada her zaman metin olarak görünür; mod, Yalnızca metin anahtarıyla birlikte, ayrıca sesli okunup okunmayacağını belirler.",
+        "content": "Bu sizin için ayarlanmıştır ve istediğiniz zaman değiştirebilirsiniz. Çeviri burada her zaman metin olarak görünür; mod, Konuşma bölümündeki \"Karşı tarafın duyduğu çeviri\" anahtarıyla birlikte, ayrıca sesli okunup okunmayacağını belirler.",
         "modeMe": "Ben — söylediğiniz karşı taraf için çevrilir.",
         "modeOthers": "Karşı taraf — onların söyledikleri sizin için çevrilir.",
         "modeBoth": "Her ikisi — iki yön birden."
@@ -1470,16 +1467,10 @@
     "errorListen": "Paylaşım başlatılamadı: {{reason}}"
   },
   "faceToFace": {
-    "earsTitle": "Sol ve sağ · herkes çeviriyi kendi dilinde duyar",
     "leftEar": "Sol kulak",
     "rightEar": "Sağ kulak",
     "earLeft": "L",
     "earRight": "R",
-    "meListens": "Ben ({{language}})",
-    "otherListens": "Karşı taraf ({{language}})",
-    "previewLeft": "Sol kulağı önizle",
-    "previewRight": "Sağ kulağı önizle",
-    "swap": "Sol ile sağı değiştir",
     "speakersHint": "Kulaklık kullanın, herkes bir tarafını taksın. Herhangi bir hoparlörde mikrofon çeviriyi alır ve yeniden çevirir.",
     "playedLeft": "Sol kulakta oynatıldı",
     "playedRight": "Sağ kulakta oynatıldı",

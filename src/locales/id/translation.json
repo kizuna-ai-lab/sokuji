@@ -206,7 +206,7 @@
     "translateModelNotAvailable": "Kunci API berfungsi, tetapi gpt-realtime-translate tidak dapat diakses dengan kunci ini.",
     "participantSectionHeader": "Audio lawan bicara",
     "participantSectionDescriptionElectron": "Terjemahkan audio dari aplikasi apa pun yang diputar di sistem ini.",
-    "participantSectionDescriptionExtension": "Terjemahkan audio dari tab browser aktif. Audio asli diputar melalui output default sistem Anda.",
+    "participantSectionDescriptionExtension": "Terjemahkan audio dari tab browser aktif. Audio asli diputar melalui perangkat pemutaran default yang Anda pilih.",
     "edgeTtsNoVoicesForLanguage": "Tidak ada suara tersedia untuk bahasa ini",
     "edgeTtsVoiceLoadError": "Gagal memuat suara — periksa LogsPanel",
     "localNativeAsrIncompatible": "Pilih model pengenalan ucapan untuk \"Bahasa saya\"",
@@ -386,7 +386,6 @@
     "participantSpeech": "Ucapkan terjemahan lawan bicara",
     "participantSpeechDesc": "Membacakan dengan suara keras apa yang dikatakan lawan bicara, dalam bahasa Anda, melalui speaker Anda. Ini mengikuti suara mereka dengan sedikit jeda.",
     "participantSpeechBlockedWholeSystem": "Dimatikan selama audio lawan bicara menangkap seluruh audio sistem: terjemahannya akan ditangkap dan diterjemahkan lagi. Pilih aplikasi sebagai sumber lawan bicara.",
-    "participantSpeechNotYetAvailable": "Belum tersedia dengan penyedia ini: terjemahan lawan bicara hanya ditampilkan sebagai teks.",
     "audioCaptureUnprovenNotice": "Belum ada yang ditangkap",
     "audioCaptureUnprovenTitle": "Belum ada audio yang masuk dari sumber yang dipilih",
     "audioCaptureUnprovenText1": "Jika sumber sedang diputar tetapi tidak ada yang diterjemahkan, macOS kemungkinan mengirimkan keheningan: menangkap sebuah aplikasi memerlukan izin \"System Audio Recording Only\", dan tanpa izin itu tidak ada kesalahan, hanya keheningan.",
@@ -667,7 +666,6 @@
     "popoverHeaderBoth": "Keduanya — perangkat",
     "popoverFooter": "Pengaturan lengkap →",
     "deviceMic": "Mikrofon",
-    "deviceSpeakerMonitor": "Monitor speaker",
     "notSelected": "Tidak dipilih",
     "deviceParticipantAudio": "Audio lawan bicara",
     "faceToFaceTag": "Tatap muka",
@@ -678,13 +676,12 @@
     "toggleOn": "Nyalakan {{label}}",
     "toggleOff": "Matikan {{label}}",
     "participantSubtitleElectron": "Semua audio sistem",
-    "participantSubtitleExtension": "Diputar melalui default sistem",
+    "participantSubtitleExtension": "Diputar melalui perangkat pemutaran default yang dipilih",
     "otherSide": "Posisi lawan bicara",
     "otherSideMeeting": "Dalam rapat",
     "otherSideMeetingHint": "Menangkap audio sistem atau aplikasi",
     "otherSideBeside": "Di samping saya",
-    "otherSideBesideHint": "Dua orang, satu mikrofon",
-    "output": "Keluaran"
+    "otherSideBesideHint": "Dua orang, satu mikrofon"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Klik untuk mengonfigurasi bahasa",
@@ -1262,7 +1259,7 @@
       },
       "mode-picker": {
         "title": "Mode terjemahan",
-        "content": "Ini sudah diatur otomatis untuk Anda, dan Anda dapat menggantinya kapan saja. Terjemahan selalu muncul di sini sebagai teks; mode ini, bersama sakelar Teks saja, menentukan apakah terjemahan juga diucapkan.",
+        "content": "Ini sudah diatur otomatis untuk Anda, dan Anda dapat menggantinya kapan saja. Terjemahan selalu muncul di sini sebagai teks; mode ini, bersama sakelar \"Terjemahan yang didengar pihak lain\" di blok Suara, menentukan apakah terjemahan juga diucapkan.",
         "modeMe": "Saya — apa yang Anda katakan diterjemahkan untuk lawan bicara.",
         "modeOthers": "Lawan bicara — apa yang dikatakan lawan bicara diterjemahkan untuk Anda.",
         "modeBoth": "Keduanya — kedua arah sekaligus."
@@ -1470,16 +1467,10 @@
     "errorListen": "Tidak dapat mulai berbagi: {{reason}}"
   },
   "faceToFace": {
-    "earsTitle": "Kiri dan kanan · masing-masing mendengar terjemahan ke bahasanya sendiri",
     "leftEar": "Telinga kiri",
     "rightEar": "Telinga kanan",
     "earLeft": "L",
     "earRight": "R",
-    "meListens": "Saya ({{language}})",
-    "otherListens": "Lawan bicara ({{language}})",
-    "previewLeft": "Pratinjau telinga kiri",
-    "previewRight": "Pratinjau telinga kanan",
-    "swap": "Tukar kiri dan kanan",
     "speakersHint": "Gunakan headphone, satu sisi per orang. Dengan speaker apa pun, mikrofon menangkap terjemahan lalu menerjemahkannya lagi.",
     "playedLeft": "Diputar di telinga kiri",
     "playedRight": "Diputar di telinga kanan",

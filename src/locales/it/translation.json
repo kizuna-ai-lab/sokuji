@@ -206,7 +206,7 @@
     "translateModelNotAvailable": "La chiave API funziona, ma gpt-realtime-translate non è accessibile con questa chiave.",
     "participantSectionHeader": "Audio dell'altro",
     "participantSectionDescriptionElectron": "Traduci l'audio di qualsiasi applicazione in riproduzione su questo sistema.",
-    "participantSectionDescriptionExtension": "Traduci l'audio della scheda del browser attiva. L'audio originale viene riprodotto tramite l'uscita predefinita del tuo sistema.",
+    "participantSectionDescriptionExtension": "Traduci l'audio della scheda del browser attiva. L'audio originale viene riprodotto tramite il dispositivo di riproduzione predefinito che hai scelto.",
     "edgeTtsNoVoicesForLanguage": "Nessuna voce disponibile per questa lingua",
     "edgeTtsVoiceLoadError": "Impossibile caricare le voci — controlla LogsPanel",
     "localNativeAsrIncompatible": "Seleziona un modello di riconoscimento vocale per «La mia lingua»",
@@ -386,7 +386,6 @@
     "participantSpeech": "Leggi ad alta voce la traduzione dell'altro",
     "participantSpeechDesc": "Ti legge ad alta voce quello che dice l'altro, nella tua lingua, dai tuoi altoparlanti. Segue la sua voce con un ritardo.",
     "participantSpeechBlockedWholeSystem": "Disattivato finché l'audio dell'altro cattura tutto l'audio di sistema: la sua traduzione verrebbe catturata e tradotta di nuovo. Scegli un'applicazione come sorgente dell'altro.",
-    "participantSpeechNotYetAvailable": "Non ancora disponibile con questo fornitore: la traduzione dell'altro viene mostrata solo come testo.",
     "audioCaptureUnprovenNotice": "Ancora nulla acquisito",
     "audioCaptureUnprovenTitle": "Dalla sorgente selezionata non è ancora arrivato alcun audio",
     "audioCaptureUnprovenText1": "Se la sorgente sta riproducendo e non viene tradotto nulla, macOS sta probabilmente fornendo silenzio: acquisire un'applicazione richiede l'autorizzazione \"Solo registrazione audio di sistema\" e senza di essa non c'è alcun errore, solo silenzio.",
@@ -667,7 +666,6 @@
     "popoverHeaderBoth": "Entrambi — dispositivi",
     "popoverFooter": "Impostazioni complete →",
     "deviceMic": "Microfono",
-    "deviceSpeakerMonitor": "Monitoraggio altoparlante",
     "notSelected": "Non selezionato",
     "deviceParticipantAudio": "Audio dell'altro",
     "faceToFaceTag": "Faccia a faccia",
@@ -678,13 +676,12 @@
     "toggleOn": "Attiva {{label}}",
     "toggleOff": "Disattiva {{label}}",
     "participantSubtitleElectron": "Tutto l'audio di sistema",
-    "participantSubtitleExtension": "Riprodotto tramite l'uscita predefinita del sistema",
+    "participantSubtitleExtension": "Riprodotto tramite il dispositivo di riproduzione predefinito scelto",
     "otherSide": "Dov'è l'altro",
     "otherSideMeeting": "In una riunione",
     "otherSideMeetingHint": "Cattura l'audio di sistema o di un'app",
     "otherSideBeside": "Accanto a me",
-    "otherSideBesideHint": "Due persone con un solo microfono",
-    "output": "Uscita"
+    "otherSideBesideHint": "Due persone con un solo microfono"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Clicca per configurare le lingue",
@@ -1262,7 +1259,7 @@
       },
       "mode-picker": {
         "title": "Modalità di traduzione",
-        "content": "Questo è già impostato per te, e puoi cambiarlo in qualsiasi momento. La traduzione appare sempre qui come testo; la modalità, insieme all'interruttore «Solo testo», decide se viene anche pronunciata ad alta voce.",
+        "content": "Questo è già impostato per te, e puoi cambiarlo in qualsiasi momento. La traduzione appare sempre qui come testo; la modalità, insieme all'interruttore «Traduzione che sente l'altra parte» del blocco Voce, decide se viene anche pronunciata ad alta voce.",
         "modeMe": "Io — quello che dici viene tradotto per l'altra parte.",
         "modeOthers": "Altro — quello che dice l'altro viene tradotto per te.",
         "modeBoth": "Entrambi — entrambe le direzioni contemporaneamente."
@@ -1470,16 +1467,10 @@
     "errorListen": "Impossibile avviare la condivisione: {{reason}}"
   },
   "faceToFace": {
-    "earsTitle": "Sinistra e destra · ognuno sente la traduzione nella propria lingua",
     "leftEar": "Orecchio sinistro",
     "rightEar": "Orecchio destro",
     "earLeft": "L",
     "earRight": "R",
-    "meListens": "Io ({{language}})",
-    "otherListens": "L'altro ({{language}})",
-    "previewLeft": "Ascolta l'orecchio sinistro",
-    "previewRight": "Ascolta l'orecchio destro",
-    "swap": "Scambia sinistra e destra",
     "speakersHint": "Usate le cuffie, un lato a testa. Con qualsiasi altoparlante, il microfono capta la traduzione e la traduce di nuovo.",
     "playedLeft": "Riprodotto nell'orecchio sinistro",
     "playedRight": "Riprodotto nell'orecchio destro",

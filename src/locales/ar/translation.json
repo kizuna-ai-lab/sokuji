@@ -206,7 +206,7 @@
     "translateModelNotAvailable": "مفتاح API يعمل، ولكن gpt-realtime-translate غير متاح مع هذا المفتاح.",
     "participantSectionHeader": "صوت الآخر",
     "participantSectionDescriptionElectron": "ترجمة الصوت من أي تطبيق يعمل على هذا النظام.",
-    "participantSectionDescriptionExtension": "ترجمة الصوت من علامة تبويب المتصفح النشطة. يُشغَّل الصوت الأصلي عبر مخرج النظام الافتراضي.",
+    "participantSectionDescriptionExtension": "ترجمة الصوت من علامة تبويب المتصفح النشطة. يُشغَّل الصوت الأصلي عبر جهاز التشغيل الافتراضي الذي اخترته.",
     "edgeTtsNoVoicesForLanguage": "لا توجد أصوات متاحة لهذه اللغة",
     "edgeTtsVoiceLoadError": "فشل تحميل الأصوات — تحقق من LogsPanel",
     "localNativeAsrIncompatible": "اختر نموذج التعرف على الكلام لـ«لغتي»",
@@ -386,7 +386,6 @@
     "participantSpeech": "نطق ترجمة الآخر",
     "participantSpeechDesc": "يقرأ لك بصوت عالٍ ما يقوله الآخر، بلغتك، عبر سماعاتك. يتبع صوته بتأخير.",
     "participantSpeechBlockedWholeSystem": "متوقف أثناء التقاط صوت الآخر لكل صوت النظام: ستُلتقط ترجمته وتُترجَم مرة أخرى. اختر تطبيقًا كمصدر لصوت الآخر.",
-    "participantSpeechNotYetAvailable": "غير متاح بعد مع هذا المزود: تُعرض ترجمة الآخر كنص فقط.",
     "audioCaptureUnprovenNotice": "لم يتم التقاط أي شيء بعد",
     "audioCaptureUnprovenTitle": "لم يصل أي صوت من المصدر المحدد بعد",
     "audioCaptureUnprovenText1": "إذا كان المصدر يعمل ولا تتم ترجمة أي شيء، فالأرجح أن macOS يقدّم صمتًا: يتطلب التقاط صوت تطبيق إذن \"تسجيل صوت النظام فقط\"، وبدونه لا يظهر خطأ، بل صمت فقط.",
@@ -667,7 +666,6 @@
     "popoverHeaderBoth": "الكل — الأجهزة",
     "popoverFooter": "الإعدادات الكاملة ←",
     "deviceMic": "ميكروفون",
-    "deviceSpeakerMonitor": "مراقبة السماعة",
     "notSelected": "غير محدد",
     "deviceParticipantAudio": "صوت الآخر",
     "faceToFaceTag": "وجهًا لوجه",
@@ -678,13 +676,12 @@
     "toggleOn": "تشغيل {{label}}",
     "toggleOff": "إيقاف {{label}}",
     "participantSubtitleElectron": "كل صوت النظام",
-    "participantSubtitleExtension": "يُشغَّل عبر مخرج النظام الافتراضي",
+    "participantSubtitleExtension": "يُشغَّل عبر جهاز التشغيل الافتراضي الذي اخترته",
     "otherSide": "مكان الطرف الآخر",
     "otherSideMeeting": "في اجتماع",
     "otherSideMeetingHint": "يلتقط صوت النظام أو تطبيقًا",
     "otherSideBeside": "بجانبي",
-    "otherSideBesideHint": "شخصان على ميكروفون واحد",
-    "output": "الإخراج"
+    "otherSideBesideHint": "شخصان على ميكروفون واحد"
   },
   "simplePanel": {
     "clickToConfigLanguages": "انقر لتكوين اللغات",
@@ -1262,7 +1259,7 @@
       },
       "mode-picker": {
         "title": "وضع الترجمة",
-        "content": "تم ضبط هذا نيابة عنك، ويمكنك تبديله في أي وقت. تظهر الترجمة هنا دائماً كنص؛ ويحدد الوضع، إلى جانب مفتاح «نص فقط»، ما إذا كانت تُنطق أيضاً بصوت مسموع.",
+        "content": "تم ضبط هذا نيابة عنك، ويمكنك تبديله في أي وقت. تظهر الترجمة هنا دائماً كنص؛ ويحدد الوضع، إلى جانب مفتاح «الترجمة التي يسمعها الطرف الآخر» في قسم «الكلام»، ما إذا كانت تُنطق أيضاً بصوت مسموع.",
         "modeMe": "أنا — يُترجَم ما تقوله للآخر.",
         "modeOthers": "الآخر — يُترجَم ما يقوله لك.",
         "modeBoth": "الكل — كلا الاتجاهين في آن واحد."
@@ -1470,16 +1467,10 @@
     "errorListen": "تعذّر بدء المشاركة: {{reason}}"
   },
   "faceToFace": {
-    "earsTitle": "اليسار واليمين · يسمع كل شخص الترجمة بلغته",
     "leftEar": "الأذن اليسرى",
     "rightEar": "الأذن اليمنى",
     "earLeft": "L",
     "earRight": "R",
-    "meListens": "أنا ({{language}})",
-    "otherListens": "الآخر ({{language}})",
-    "previewLeft": "معاينة الأذن اليسرى",
-    "previewRight": "معاينة الأذن اليمنى",
-    "swap": "تبديل اليسار واليمين",
     "speakersHint": "استخدما سماعات الرأس، لكل شخص جانب واحد. مع أي مكبّر صوت يلتقط الميكروفون الترجمة ويترجمها مرة أخرى.",
     "playedLeft": "تم التشغيل في الأذن اليسرى",
     "playedRight": "تم التشغيل في الأذن اليمنى",
