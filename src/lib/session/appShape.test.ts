@@ -40,7 +40,7 @@ beforeEach(() => {
   useTurnModeStore.setState({ turnMode: 'auto' });
   useRoutingStore.setState({ participantSpeech: null });
   useAudioStore.setState({ selectedParticipantSource: useAudioStore.getInitialState().selectedParticipantSource });
-  useAudioStore.setState({ isMonitorMuted: true, mode: 'speaker', otherSide: 'meeting' });
+  useAudioStore.setState({ isMonitorMuted: true, mode: 'speaker', otherSide: 'meeting', participantCaptureWidened: false });
   useAccountStore.setState({ account: null });
   useSettingsStore.setState({ textOnly: false });
   environment.value = 'web';

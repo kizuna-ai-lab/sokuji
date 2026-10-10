@@ -142,7 +142,9 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      when it opens
    - The page's playback (`appAudio.ts`, `playback.ts`), the routing read live from
      `audioStore`, `routingStore`, `settingsStore` and `turnModeStore` through `speechFromStores`
-     (`src/lib/session/appShape.ts`): who hears what. The system-audio source tells the audio store when an application capture widened to the whole system (`participantCaptureWidened`); `heardFromStores` reads it, so 我听到的翻译 falls silent live instead of being recaptured.
+     (`src/lib/session/appShape.ts`): who hears what. The system-audio source tells the audio store when an application
+     capture widened to the whole system (`participantCaptureWidened`); `heardFromStores`
+     reads it, so 我听到的翻译 falls silent live instead of being recaptured.
    - `src/lib/audio/outlets.ts`: the outlets — `other` (face-to-face's other person), `me`
      (我也听), `them` (我听到的翻译) — each a stored device and channel (`audio.outlet.<name>.*`)
      resolved to a sink; `graph.ts` keeps one `<audio>` element per outlet and the virtual one,

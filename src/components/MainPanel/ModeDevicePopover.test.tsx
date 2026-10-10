@@ -22,6 +22,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 const env = { extension: false };
+const widened = vi.hoisted(() => ({ value: false }));
 vi.mock('../../utils/environment', () => ({
   isExtension: () => env.extension,
   isElectron: () => !env.extension,
@@ -68,7 +69,7 @@ vi.mock('../../stores/audioStore', () => ({
   useSetOutletChannel: () => outletsState.setChannel,
   useSelectedMonitorDevice: () => store.monitor,
   useParticipantSources: () => store.sources,
-  useParticipantCaptureWidened: () => false,
+  useParticipantCaptureWidened: () => widened.value,
   useSelectedParticipantSource: () => store.selected,
   useSelectParticipantSource: () => store.select,
   useOtherSide: () => store.otherSide,
@@ -91,13 +92,14 @@ vi.mock('../../stores/providerStore', async () => {
   return { useProviderStore: make(() => ({ selected: 'p', entries: {} as Record<string, unknown> })) };
 });
 const providerState = { participantSpeech: undefined as boolean | undefined };
-vi.mock('../../lib/session/appShape', () => ({ heardFromStores: (faceToFace: boolean) => faceToFace || env.extension || (store.selected?.deviceId ?? '').startsWith('app:'), selectedFromStores: () => ({ provider: { speech: 'optional', participantSpeech: providerState.participantSpeech } }) }));
+vi.mock('../../lib/session/appShape', () => ({ heardFromStores: (faceToFace: boolean) => (faceToFace || env.extension || (store.selected?.deviceId ?? '').startsWith('app:')) && !widened.value, selectedFromStores: () => ({ provider: { speech: 'optional', participantSpeech: providerState.participantSpeech } }) }));
 
 const SYSTEM = { deviceId: 'desktop-audio-loopback', label: 'System Audio (All Applications)' };
 const CHROMIUM = { deviceId: 'app:pid:205', label: 'Chromium' };
 
 beforeEach(() => {
   env.extension = false;
+  widened.value = false;
   store.sources = [SYSTEM, CHROMIUM];
   store.selected = CHROMIUM;
   store.otherSide = 'meeting';
@@ -357,6 +359,16 @@ describe('ModeDevicePopover — the speech rows in Me and Other', () => {
     const button = screen.getByRole('button', { name: 'Turn on Translation I hear' });
     expect(button).toBeDisabled();
     expect(button.getAttribute('title')).toMatch(/does not speak/);
+  });
+
+  it('blocked: an application capture that widened to the whole system disables the switch with the reason, live', () => {
+    store.selected = { deviceId: 'app:7', label: 'Zoom' };
+    widened.value = true;
+    mount('participant');
+    const button = screen.getByRole('button', { name: 'Turn on Translation I hear' });
+    expect(button).toBeDisabled();
+    expect(button.getAttribute('title')).toMatch(/All system sound is being captured/);
+    expect(button).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('blocked: on a whole-system source the power button is disabled with the reason (Review Focus 2)', () => {

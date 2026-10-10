@@ -73,7 +73,7 @@ beforeEach(() => {
     mode: 'speaker', otherSide: 'meeting',
     audioMonitorDevices: [AIRPODS, MBP], selectedMonitorDevice: AIRPODS,
     isMonitorMuted: true, isRealVoicePassthroughEnabled: true, realVoicePassthroughVolume: 0.2,
-    participantSources: [SYSTEM, ZOOM], selectedParticipantSource: SYSTEM,
+    participantSources: [SYSTEM, ZOOM], selectedParticipantSource: SYSTEM, participantCaptureWidened: false,
     outlets: { other: { device: null, channel: 'auto' }, me: { device: null, channel: 'auto' }, them: { device: null, channel: 'auto' } },
   });
   useRoutingStore.setState({ participantSpeech: null });
@@ -224,6 +224,22 @@ describe('SpeechOutputSection — per mode (spec §1.2)', () => {
     expect(sw('Translation I hear')).toHaveAttribute('aria-describedby', reason.id);
     expect(sw('I hear it too')).toHaveAttribute('aria-describedby', reason.id);
     expect(screen.getAllByText(/All system sound is being captured/)).toHaveLength(1);
+  });
+
+  it('an application capture that widens mid-run blocks 我听到的翻译 live, and unblocks when it narrows', () => {
+    useAudioStore.setState({ mode: 'both', otherSide: 'meeting', selectedParticipantSource: ZOOM });
+    useRoutingStore.setState({ participantSpeech: true });
+    mount();
+    expect(sw('Translation I hear')).not.toHaveAttribute('aria-disabled', 'true');
+    expect(sw('Translation I hear')).toHaveAttribute('aria-checked', 'true');
+    act(() => { useAudioStore.setState({ participantCaptureWidened: true }); });
+    expect(sw('Translation I hear')).toHaveAttribute('aria-disabled', 'true');
+    expect(sw('Translation I hear')).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getAllByText(/All system sound is being captured/)).toHaveLength(1);
+    act(() => { useAudioStore.setState({ participantCaptureWidened: false }); });
+    expect(screen.queryByText(/All system sound is being captured/)).toBeNull();
+    expect(sw('Translation I hear')).not.toHaveAttribute('aria-disabled', 'true');
+    expect(sw('Translation I hear')).toHaveAttribute('aria-checked', 'true');
   });
 
   it('extension, 对方, whole-system source: nothing is blocked', () => {

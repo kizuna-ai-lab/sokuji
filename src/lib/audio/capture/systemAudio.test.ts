@@ -364,6 +364,14 @@ describe('openSystemAudio — the widening flag', () => {
     expect(app.widened).not.toHaveBeenCalledWith(true);
   });
 
+  it('clears it when the open fails after the flag was raised', async () => {
+    const s = setup({ sourceId: 'app:7', answer: { success: true, monitorLabel: 'Sokuji Capture' }, screenRecording: 'denied' });
+    const error = await openSystemAudio(s.settings, live(), s.deps).catch((e: unknown) => e);
+    expect((error as InstanceType<typeof SourceOpenError>).code).toBe(LOOPBACK_DENIED);
+    expect(s.widened).toHaveBeenCalledWith(true);
+    expect(s.widened).toHaveBeenLastCalledWith(false);
+  });
+
   it('clears it when a switch lands on a working application capture', async () => {
     const s = setup({ sourceId: 'app:7', answer: [{ success: true, monitorLabel: 'Sokuji Capture' }, { success: true, capture: 'app' }] });
     await openSystemAudio(s.settings, live(), s.deps);
