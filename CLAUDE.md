@@ -394,7 +394,7 @@ useSettingsStore.subscribe(
 ### Audio Handling
 - Capture through the runner's sources (`src/lib/audio/capture/`, the microphone over `ModernAudioRecorder`); play through `src/lib/audio/playback.ts`
 - Audio playback uses queue-based system with event-driven processing
-- Passthrough: the microphone's processed voice, under the translation, into the meeting (the virtual output) on its own `passthrough` feed (`src/lib/audio/routes.ts`); off by default, its volume `audioStore`'s `realVoicePassthroughVolume`, default 0.2 — the settings show 20%, on a 0–60% slider
+- Passthrough: the microphone's processed voice, under the translation, into the meeting (the virtual output) on its own `passthrough` feed (`src/lib/audio/routes.ts`); off by default, its volume `audioStore`'s `realVoicePassthroughVolume`, default 0.2 — the settings show 20%, on a 0–60% slider; its switch and slider are the 原声直通 sub-row of 对方听到的翻译 in the 语音 block (hidden in face-to-face)
 - AudioWorklet preferred for processing, falls back to ScriptProcessor for compatibility
 - Echo cancellation enabled by default with modern browser APIs
 
@@ -662,7 +662,7 @@ corrected on 2026-09-05.
 ## UI Components
 
 ### Simple Mode Components
-- **SimpleSettings** (`src/components/Settings/SimpleSettings/SimpleSettings.tsx`): the simple layout's settings — the session settings (`SessionSettingsGeneral` in `ProviderArea.tsx`, shared with Advanced's General tab: languages, the provider picker, output switches, speech; sentence segmentation is hidden and held at Off while `SENTENCE_SEGMENTATION_SHOWN` in `settingsStore.ts` is false), the microphone and speaker, system audio (its participant-speech switch hidden and held off while `PARTICIPANT_SPEECH_SHOWN` in `routingStore.ts` is false), help
+- **SimpleSettings** (`src/components/Settings/SimpleSettings/SimpleSettings.tsx`): the simple layout's settings — the session settings (`SessionSettingsGeneral` in `ProviderArea.tsx`, shared with Advanced's General tab: languages, the provider picker, output switches, speech; sentence segmentation is hidden and held at Off while `SENTENCE_SEGMENTATION_SHOWN` in `settingsStore.ts` is false), the microphone, the 语音 block (`SpeechOutputSection`: who hears what, each row with its own output device and channel; `textOnly` shows inverted as 对方听到的翻译, the monitor as 我也听, the participant-speech switch as 我听到的翻译), the other side's audio (its participant-speech switch hidden and held off while `PARTICIPANT_SPEECH_SHOWN` in `routingStore.ts` is false), help
 - **MainPanel**: Unified conversation panel with `uiMode`-driven layout (basic: bubble messages + status footer, advanced: bubble messages + waveform footer with controls)
 - **Tooltip**: @floating-ui/react powered tooltips with hover/click/focus triggers
 - **ConnectionStatus**: Real-time connection state indicator
