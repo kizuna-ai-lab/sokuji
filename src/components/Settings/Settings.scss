@@ -1682,6 +1682,10 @@
 
     .segmented-option {
       @include vars.segmented-option;
+
+      // This control sizes to its content: a heavier active label would move
+      // its divider on every toggle, so the weight stays put here.
+      &.active { font-weight: inherit; }
     }
   }
 }
