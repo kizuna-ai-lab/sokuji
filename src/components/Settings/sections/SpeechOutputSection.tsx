@@ -71,7 +71,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
   // The recapture rule (D10): a whole-system capture would translate the playback again.
   const recaptured = theirLegRuns && !faceToFace && !heard;
   const otherOn = speech === 'always' ? true : speech === 'never' ? false : !textOnly;
-  const themOn = participantOffered && speech !== 'never' && (speech === 'always' || (participantSpeech ?? faceToFace));
+  const themOn = participantOffered && !recaptured && speech !== 'never' && (speech === 'always' || (participantSpeech ?? faceToFace));
   const hasVirtualBus = platform !== 'web';
   const pushToTranslate = turnMode === 'push-to-translate';
 
@@ -92,7 +92,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
       <select
         className="select-dropdown"
         aria-label={rowLabel}
-        value={outletSelectValue(name, outlets[name], faceToFace)}
+        value={outletSelectValue(name, outlets[name], faceToFace, devices)}
         onChange={(e) => {
           const { device, channel } = parseEntryValue(e.target.value);
           setOutletDevice(name, device);
@@ -171,7 +171,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
           tooltip={t('audioPanel.meTooTip', 'Also plays the translation the other side hears on my side (the spoken translation, not my own voice).')}
           sub
           greyed={!myLegRuns ? notInMode : !otherOn ? t('audioPanel.needsOtherHears', 'Nothing to hear while the translation is not spoken.') : undefined}
-          switch={{ checked: !isMonitorMuted, onChange: () => setMonitorMuted(!isMonitorMuted), disabled: recaptured && mode === 'both' }}
+          switch={{ checked: !isMonitorMuted && !(recaptured && mode === 'both'), onChange: () => setMonitorMuted(!isMonitorMuted), disabled: recaptured && mode === 'both', describedBy: recaptured && mode === 'both' ? reasonId : undefined }}
         >
           {outletSelect('me', meLabel, false)}
         </SettingRow>
@@ -219,9 +219,10 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
           onChange: () => setParticipantSpeech(!(participantSpeech ?? faceToFace)),
           disabled: isSessionActive || recaptured || !participantOffered || speech !== 'optional',
           title: isSessionActive ? lockedByRun : undefined,
+          describedBy: recaptured ? reasonId : undefined,
         }}
       >
-        {faceToFace ? outletSelect('them', themLabel, true) : outletSelect('them', themLabel, false)}
+        {outletSelect('them', themLabel, faceToFace)}
       </SettingRow>
 
       {recaptured && (

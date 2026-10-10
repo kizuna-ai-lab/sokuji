@@ -50,6 +50,7 @@ import { useRoutingStore } from '../../../stores/routingStore';
 import { useSettingsStore } from '../../../stores/settingsStore';
 import { useTurnModeStore } from '../../../stores/turnModeStore';
 import { SONIOX_DEFAULTS } from '../../../providers/soniox/settings';
+import { outletSelectValue } from '../../../lib/audio/outletOptions';
 import SpeechOutputSection from './SpeechOutputSection';
 
 const AIRPODS = { deviceId: 'airpods', label: 'AirPods Pro' };
@@ -202,6 +203,36 @@ describe('SpeechOutputSection — per mode (spec §1.2)', () => {
     expect(sw('Translation I hear')).toHaveAttribute('aria-disabled', 'true');
     expect(sw('Passthrough')).not.toHaveAttribute('aria-disabled', 'true');
     expect(screen.getAllByText(/All system sound is being captured/)).toHaveLength(1);
+  });
+
+  it('a blocked switch shows off whatever is stored, wired to the one reason line', () => {
+    useAudioStore.setState({ mode: 'both' });
+    useRoutingStore.setState({ participantSpeech: true });
+    useAudioStore.setState({ isMonitorMuted: false });
+    mount();
+    for (const label of ['I hear it too', 'Translation I hear']) {
+      expect(sw(label)).toHaveAttribute('aria-checked', 'false');
+      expect(sw(label)).toHaveAttribute('aria-disabled', 'true');
+    }
+    const reason = screen.getByText(/All system sound is being captured/).closest('.setting-row__reason') as HTMLElement;
+    expect(sw('Translation I hear')).toHaveAttribute('aria-describedby', reason.id);
+    expect(sw('I hear it too')).toHaveAttribute('aria-describedby', reason.id);
+    expect(screen.getAllByText(/All system sound is being captured/)).toHaveLength(1);
+  });
+
+  it('extension, 对方, whole-system source: nothing is blocked', () => {
+    env.platform = 'extension';
+    useAudioStore.setState({ mode: 'participant' });
+    mount();
+    expect(screen.queryByText(/All system sound is being captured/)).toBeNull();
+    expect(sw('Translation I hear')).not.toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('a stored device that is no longer listed shows the follow-default entry', () => {
+    useAudioStore.setState({ outlets: { other: { device: null, channel: 'auto' }, me: { device: 'gone', channel: 'left' }, them: { device: null, channel: 'auto' } } });
+    mount();
+    const select = within(row('I hear it too')).getByRole('combobox') as HTMLSelectElement;
+    expect(select.value).toBe(outletSelectValue('me', { device: null, channel: 'left' }, false));
   });
 
   it('两者 · 在线会议 · 应用: nothing blocked; 我听到的翻译 off until switched, then on', () => {

@@ -43,6 +43,11 @@ describe('SettingRow', () => {
     expect(screen.getByLabelText('device')).toBeDisabled();
   });
 
+  it('describedBy reaches the switch element', () => {
+    render(<SettingRow label="X" tooltip="…" switch={{ checked: false, onChange: () => {}, describedBy: 'why' }} />);
+    expect(screen.getByRole('switch')).toHaveAttribute('aria-describedby', 'why');
+  });
+
   it('a switch with its own title (locked by the run) keeps it', () => {
     render(<SettingRow label="X" tooltip="…" switch={{ checked: true, onChange: () => {}, disabled: true, title: 'Fixed for this session' }} />);
     expect(screen.getByRole('switch').closest('.toggle-switch-component')?.getAttribute('title')).toBe('Fixed for this session');

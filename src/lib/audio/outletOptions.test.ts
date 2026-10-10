@@ -53,3 +53,16 @@ describe('outletSelectValue — which entry the select shows', () => {
     expect(outletSelectValue('them', { device: 'airpods', channel: 'auto' }, true)).toBe('airpods#left');
   });
 });
+
+describe('outletSelectValue — a stored device that is no longer listed', () => {
+  const listed = [{ deviceId: 'airpods' }];
+  it('reads as follow-default with its channel kept', () => {
+    expect(outletSelectValue('me', { device: 'gone', channel: 'left' }, false, listed)).toBe('#left');
+  });
+  it('keeps a listed device', () => {
+    expect(outletSelectValue('me', { device: 'airpods', channel: 'left' }, false, listed)).toBe('airpods#left');
+  });
+  it('keeps the stored id without a devices argument', () => {
+    expect(outletSelectValue('me', { device: 'gone', channel: 'left' }, false)).toBe('gone#left');
+  });
+});

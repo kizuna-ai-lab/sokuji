@@ -43,9 +43,18 @@ export function parseEntryValue(value: string): { device: string | null; channel
  * Which entry shows for a stored choice. An auto channel shows as the plain
  * follow-default entry in a meeting (where auto is centred) and as the ear it
  * resolves to face-to-face; a device on auto shows its resolved channel, so
- * the value is always an entry the list has.
+ * the value is always an entry the list has. With `devices` given, a stored
+ * device that is no longer listed reads as follow-default with its channel
+ * kept, which is what the routing resolves.
  */
-export function outletSelectValue(name: OutletName, choice: OutletChoice, faceToFace: boolean): string {
+export function outletSelectValue(
+  name: OutletName,
+  stored: OutletChoice,
+  faceToFace: boolean,
+  devices?: readonly { deviceId: string }[],
+): string {
+  const gone = devices !== undefined && stored.device !== null && !devices.some((d) => d.deviceId === stored.device);
+  const choice: OutletChoice = gone ? { device: null, channel: stored.channel } : stored;
   if (choice.device === null && choice.channel === 'auto' && !faceToFace) return entryValue(choice);
   return entryValue({ device: choice.device, channel: resolveChannel(name, choice.channel, faceToFace) });
 }

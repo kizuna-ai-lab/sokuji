@@ -13,6 +13,8 @@ interface ToggleSwitchProps {
   /** Accessible name for the switch; needed when `label` is empty. */
   ariaLabel?: string;
   title?: string;
+  /** Id of the element that explains the switch (a blocked reason), set on the role="switch" element. */
+  ariaDescribedBy?: string;
 }
 
 const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
@@ -24,7 +26,8 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
   tooltipMaxWidth = 300,
   className = '',
   ariaLabel,
-  title
+  title,
+  ariaDescribedBy
 }) => {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === ' ' || e.key === 'Enter') {
@@ -41,6 +44,7 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
         onKeyDown={disabled ? undefined : handleKeyDown}
         role="switch"
         aria-label={ariaLabel}
+        aria-describedby={ariaDescribedBy}
         aria-checked={checked}
         aria-disabled={disabled}
         tabIndex={disabled ? -1 : 0}

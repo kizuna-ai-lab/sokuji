@@ -9,6 +9,8 @@ export interface SettingRowSwitch {
   disabled?: boolean;
   /** Why the switch is disabled while the row is not greyed (a run froze it). */
   title?: string;
+  /** Id of the line that says why the switch is blocked. */
+  describedBy?: string;
 }
 
 export interface SettingRowProps {
@@ -46,6 +48,7 @@ const SettingRow: React.FC<SettingRowProps> = ({ label, tooltip, sub, greyed, sw
             label=""
             ariaLabel={label}
             title={sw.title ?? greyed}
+            ariaDescribedBy={sw.describedBy}
           />
         )}
       </div>
