@@ -6,8 +6,11 @@ import { SubtitleBody, type SubtitleBodyProps } from './SubtitleBands';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string, fallback?: string | { defaultValue?: string }) =>
-      typeof fallback === 'string' ? fallback : fallback?.defaultValue ?? key,
+    t: (key: string, fallback?: string | { defaultValue?: string; [k: string]: unknown }) => {
+      let s = typeof fallback === 'string' ? fallback : fallback?.defaultValue ?? key;
+      if (fallback && typeof fallback === 'object') for (const [k, v] of Object.entries(fallback)) s = s.replace(`{{${k}}}`, String(v));
+      return s;
+    },
   }),
 }));
 
@@ -129,5 +132,21 @@ describe('SubtitleBody — a transient notice (#481)', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('SubtitleBody — compact, people', () => {
+  it("draws a numbered dot where a labelled leg's person changes", () => {
+    const said = (r: Row, person: string): Row => ({ ...r, person });
+    const other = (id: string, source: Row[], translation: Row[]): Entry =>
+      ({ kind: 'exchange', id, leg: 'participant', languages: { source: 'en', target: 'ja' }, pairing: 'stated', source, translation, t: 0 });
+    const entries = [
+      other('a', [said(row('s1', 0, 0, 'One.'), '1.1')], [said(row('t1', 0, 0, '一。', 'translation'), '1.1')]),
+      other('b', [said(row('s2', 0, 0, 'Two.'), '1.2')], [said(row('t2', 0, 0, '二。', 'translation'), '1.2')]),
+    ];
+    const { container } = render(<SubtitleBody {...props({ entries })} />);
+    const marks = [...container.querySelectorAll('.subtitle-stream__line--translation .subtitle-stream__person')];
+    expect(marks.map((m) => [m.textContent, m.getAttribute('aria-label')])).toEqual([['1', 'Speaker 1'], ['2', 'Speaker 2']]);
+    expect(container.querySelectorAll('.subtitle-stream__person')).toHaveLength(4);
   });
 });

@@ -1,13 +1,13 @@
 // src/lib/setup/scenarios.ts
 //
-// The five first-run scenarios and what each one sets. This is the whole
+// The seven first-run scenarios and what each one sets. This is the whole
 // "preset" concept: a scenario is a translation mode plus whether the speaker
 // leg should speak. It sets no display mode: which half of a bilingual
 // utterance each leg shows stays the user's, a re-run of the wizard included
 // (Stage 2 session end, ruling 1).
-// The participant leg never speaks (every descriptor's
-// buildParticipantSessionConfig forces textOnly, see utils/effectiveTextOnly),
-// so `participant` has no voice variant.
+// The participant leg speaks only face-to-face (slice 3), where the
+// other person's translation is what I hear; so `participant` alone has no
+// voice variant.
 //
 // Local unions rather than the stores' types: this module must stay a leaf.
 import type { ScenarioId } from './types';
@@ -18,6 +18,8 @@ export interface ScenarioPreset {
   id: ScenarioId;
   mode: ScenarioMode;
   textOnly: boolean;
+  /** Both with the other side beside me (face-to-face). Absent: a meeting. */
+  otherSide?: 'beside';
 }
 
 export const SCENARIOS: readonly ScenarioPreset[] = [
@@ -26,6 +28,8 @@ export const SCENARIOS: readonly ScenarioPreset[] = [
   { id: 'subtitle-myself', mode: 'speaker', textOnly: true },
   { id: 'two-way-voice', mode: 'both', textOnly: false },
   { id: 'two-way-text', mode: 'both', textOnly: true },
+  { id: 'face-to-face-voice', mode: 'both', textOnly: false, otherSide: 'beside' },
+  { id: 'face-to-face-text', mode: 'both', textOnly: true, otherSide: 'beside' },
 ];
 
 export function getScenario(id: ScenarioId): ScenarioPreset {
@@ -46,10 +50,11 @@ export function scenarioWantsTextOnly(s: ScenarioPreset): boolean {
 
 export type ProviderFit =
   | { ok: true }
-  | { ok: false; reason: 'cannot-speak' | 'cannot-be-text-only' };
+  | { ok: false; reason: 'cannot-speak' | 'cannot-be-text-only' | 'cannot-face-to-face' };
 
 /** Whether a provider can serve a scenario, judged on its
- *  ProviderCapabilities.textOnlyCapability alone (spec §1.2, step 2).
+ *  ProviderCapabilities.textOnlyCapability and, for a face-to-face scenario, its
+ *  `faceToFace` capability (spec §1.2, step 2).
  *  No registered provider currently carries 'always' — the last two that did
  *  (Zoom AI, Volcengine ST) were removed on 2026-09-20 — so no live provider
  *  reaches the 'cannot-speak' branch today; scenarios.test.ts does exercise it
@@ -59,7 +64,11 @@ export type ProviderFit =
 export function providerFitForScenario(
   textOnlyCapability: 'always' | 'optional' | 'never',
   scenario: ScenarioPreset,
+  faceToFace = false,
 ): ProviderFit {
+  if (scenario.otherSide === 'beside' && !faceToFace) {
+    return { ok: false, reason: 'cannot-face-to-face' };
+  }
   if (textOnlyCapability === 'always' && scenarioSpeaks(scenario)) {
     return { ok: false, reason: 'cannot-speak' };
   }

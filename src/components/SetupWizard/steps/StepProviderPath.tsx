@@ -6,7 +6,7 @@ import { openExternalUrl } from '../../../utils/openExternalUrl';
 import { Provider } from '../../../types/Provider';
 import type { ProviderType } from '../../../types/Provider';
 import type { ProviderPath } from '../../../lib/setup/types';
-import { availablePaths, managedProvider, managedOption, ownKeyOptions, offlineOptions, wizardProvider } from '../providerPaths';
+import { availablePaths, managedProvider, managedOption, ownKeyOptions, offlineOptions, offlineFit, wizardProvider } from '../providerPaths';
 import type { SetupAction, SetupDraft } from '../setupDraft';
 
 interface Props { draft: SetupDraft; dispatch: React.Dispatch<SetupAction> }
@@ -37,13 +37,16 @@ const StepProviderPath: React.FC<Props> = ({ draft, dispatch }) => {
     const key = p?.id ?? id;
     return t(`providers.${key}.name`, key);
   };
-  const reasonOf = (reason: 'cannot-speak' | 'cannot-be-text-only') => reason === 'cannot-speak'
+  const reasonOf = (reason: 'cannot-speak' | 'cannot-be-text-only' | 'cannot-face-to-face') => reason === 'cannot-speak'
     ? t('setup.fit.cannotSpeak', 'This provider cannot produce spoken translation.')
-    : t('setup.fit.cannotBeTextOnly', 'This provider always speaks; it cannot run subtitles-only.');
+    : reason === 'cannot-face-to-face'
+      ? t('setup.fit.cannotFaceToFace', 'This provider cannot translate two people at one microphone.')
+      : t('setup.fit.cannotBeTextOnly', 'This provider always speaks; it cannot run subtitles-only.');
 
-  // Only the managed path resolves to one fixed provider, so it is the only
-  // path whose fitness for the scenario is known before the user picks it.
+  // The managed and offline paths each resolve to one fixed provider, so their
+  // fitness for the scenario is known before the user picks them.
   const managedFit = managedOption(scenario)?.fit ?? { ok: true as const };
+  const offline = offlineFit(scenario);
 
   const choosePath = (path: ProviderPath) => {
     if (path === 'managed') dispatch({ type: 'setPath', path, provider: managedProvider() });
@@ -56,7 +59,7 @@ const StepProviderPath: React.FC<Props> = ({ draft, dispatch }) => {
       <h2>{t('setup.steps.path.title', 'Choose an AI service provider')}</h2>
       <div className="setup-cards" role="radiogroup" aria-label={t('setup.steps.path.title', 'Choose an AI service provider')}>
         {availablePaths().map((path) => {
-          const unfit = path === 'managed' && !managedFit.ok ? managedFit : null;
+          const unfit = path === 'managed' && !managedFit.ok ? managedFit : path === 'offline' && !offline.ok ? offline : null;
           return (
             <label key={path} className={`setup-card${draft.providerPath === path ? ' is-selected' : ''}${unfit ? ' is-disabled' : ''}`}>
               <input type="radio" name="path" value={path} checked={draft.providerPath === path} disabled={!!unfit}

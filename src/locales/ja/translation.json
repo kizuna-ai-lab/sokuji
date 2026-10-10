@@ -303,7 +303,10 @@
       "theyRead": "相手が読む言語",
       "theySpeak": "相手が話す言語",
       "mirror": "相手は{{their}}を話す → 自分は{{mine}}で読む"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "対面では常に 1 つの共有セッションを使います。2 人が同じマイクに向かって話すためです。",
+    "sonioxParticipantVoice": "相手の声",
+    "sonioxParticipantVoiceTooltip": "あなたの言語で相手の発言を読み上げる声です。プリセット音声のみ選べます。"
   },
   "simpleSettings": {
     "autoAuthenticated": "アカウントで自動的に認証されました",
@@ -372,7 +375,8 @@
     "audioCaptureUnprovenNotice": "まだ音声を取得できていません",
     "audioCaptureUnprovenTitle": "選択したソースからまだ音声が届いていません",
     "audioCaptureUnprovenText1": "ソースが再生中なのに翻訳されない場合、macOS が無音を返している可能性があります。アプリの音声を取得するには「システムオーディオ録音のみ」の権限が必要で、権限がないとエラーは出ず、無音になるだけです。",
-    "audioCaptureUnprovenText3Named": "「{{app}}」は一度取得を試みた後にのみそのリストに表示されます（今その試行を行いました）。有効にしたら、セッションをもう一度開始してください。ソースが単に無音だっただけなら、何も変更する必要はありません。"
+    "audioCaptureUnprovenText3Named": "「{{app}}」は一度取得を試みた後にのみそのリストに表示されます（今その試行を行いました）。有効にしたら、セッションをもう一度開始してください。ソースが単に無音だっただけなら、何も変更する必要はありません。",
+    "otherSideBesideNote": "相手はあなたのマイクを共有します。システム音声はキャプチャされません。"
   },
   "auth": {
     "signIn": "サインイン",
@@ -441,14 +445,14 @@
     "targetLanguage": "相手の言語",
     "microphone": "マイクロフォン",
     "microphoneDesc": "音声を取り込むマイクを選択してください。このマイクに向かってあなたの言語で話すと、Sokujiがリアルタイムで聞こえるすべてを翻訳します。",
-    "speaker": "スピーカー",
-    "speakerDesc": "翻訳された出力を監視するためのスピーカーを選択してください。これにより翻訳がどのように聞こえるかを確認できます。監視が不要な場合はオフにできます。オンでもオフでも、翻訳された音声は常に仮想マイクに送信され、他の参加者が聞くことができます。",
     "swapLanguages": "言語を入れ替え",
     "textOnly": "テキストのみ",
     "textOnlyDesc": "テキストのみに翻訳 — 音声出力なし",
     "textOnlyForcedByMode": "「{{mode}}」モードは参加者の発言をテキストにするだけで音声は生成しないため、「テキストのみ」は常にオンになります。自分の声を音声付きで翻訳するには翻訳モードを切り替えてください。",
     "keepReplayAudio": "再生用に音声を保持",
-    "keepReplayAudioDesc": "翻訳された音声をメモリに保存し、後から各メッセージで再生できるようにします。長時間のセッションでのメモリ使用量を抑えるため、既定ではオフです。"
+    "keepReplayAudioDesc": "翻訳された音声をメモリに保存し、後から各メッセージで再生できるようにします。長時間のセッションでのメモリ使用量を抑えるため、既定ではオフです。",
+    "output": "出力",
+    "outputDesc": "翻訳された音声をあなたに再生するデバイスです。「自分」モードではオフにできます。その場合も、会議には仮想マイク経由で翻訳が届きます。"
   },
   "providers": {
     "kizunaai_soniox": {
@@ -574,7 +578,8 @@
       "legendSource": "原文: 元の発話のみ",
       "legendTranslation": "訳文: 翻訳のみ",
       "legendBoth": "両方: 両方の行",
-      "legendNone": "オフ: この側を非表示"
+      "legendNone": "オフ: この側を非表示",
+      "person": "話者 {{n}}"
     },
     "playItemAudio": "この項目の音声を再生",
     "backToLatest": "最新に戻る",
@@ -651,14 +656,22 @@
     "deviceMic": "マイク",
     "deviceSpeakerMonitor": "スピーカーモニター",
     "notSelected": "未選択",
-    "deviceParticipantAudio": "相手の音声"
+    "deviceParticipantAudio": "相手の音声",
+    "faceToFaceTag": "対面",
+    "descBothBeside": "1 台のコンピューターを 2 人で使う場合（対面）にも使えます。"
   },
   "popover": {
     "statusOff": "オフ",
     "toggleOn": "{{label}}をオンにする",
     "toggleOff": "{{label}}をオフにする",
     "participantSubtitleElectron": "すべてのシステム音声",
-    "participantSubtitleExtension": "システムの既定の出力から再生"
+    "participantSubtitleExtension": "システムの既定の出力から再生",
+    "otherSide": "相手の場所",
+    "otherSideMeeting": "オンライン会議",
+    "otherSideMeetingHint": "システム音声またはアプリの音声を取り込みます",
+    "otherSideBeside": "隣にいる",
+    "otherSideBesideHint": "1 台のマイクを 2 人で使います",
+    "output": "出力"
   },
   "simplePanel": {
     "clickToConfigLanguages": "言語を設定するにはクリック",
@@ -1147,6 +1160,15 @@
       "two-way-text": {
         "title": "オンラインで双方向に会話（字幕のみ）",
         "desc": "二か国語字幕や議事録——双方ともテキストで、合成音声は使いません。"
+      },
+      "setsBeside": "設定内容：{{mode}}モード、相手は隣 · {{output}}",
+      "face-to-face-voice": {
+        "title": "対面で会話",
+        "desc": "2 人が 1 台のパソコンでそれぞれの言語で話し、各自が片耳のイヤホンで自分の言語の翻訳だけを聞きます。"
+      },
+      "face-to-face-text": {
+        "title": "対面で会話（字幕のみ）",
+        "desc": "2 人で同じ画面を見るか、相手がスマートフォンで LAN 字幕ページを開きます。"
       }
     },
     "output": {
@@ -1179,7 +1201,8 @@
     },
     "fit": {
       "cannotSpeak": "このプロバイダーは音声翻訳を生成できません。",
-      "cannotBeTextOnly": "このプロバイダーは常に音声を出すため、字幕のみでは使えません。"
+      "cannotBeTextOnly": "このプロバイダーは常に音声を出すため、字幕のみでは使えません。",
+      "cannotFaceToFace": "このプロバイダーは、1 台のマイクを使う 2 人の会話を翻訳できません。"
     },
     "credentials": {
       "apiKey": "API キー",
@@ -1348,7 +1371,8 @@
     },
     "legend": {
       "onSite": "対面",
-      "remote": "オンライン"
+      "remote": "オンライン",
+      "person": "話者 {{n}}"
     },
     "backToLive": "最新に戻る",
     "dock": {
@@ -1431,5 +1455,23 @@
     "warnAddressChanged": "ネットワークが変わり、アドレスが {{address}} になりました。リンクを送り直すか、投影ページを開き直してください。",
     "errorPortsBusy": "共有を開始できませんでした：ポート 7788–7797 はすべて使用中です。",
     "errorListen": "共有を開始できませんでした：{{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "左右の耳 · それぞれが自分の言語の翻訳を聞きます",
+    "leftEar": "左耳",
+    "rightEar": "右耳",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "自分（{{language}}）",
+    "otherListens": "相手（{{language}}）",
+    "previewLeft": "左耳を試聴",
+    "previewRight": "右耳を試聴",
+    "swap": "左右を入れ替える",
+    "speakersHint": "ヘッドホンを使い、片側ずつ分けて着けてください。スピーカーが鳴っていると、マイクが翻訳音声を拾ってもう一度翻訳してしまいます。",
+    "playedLeft": "左耳で再生",
+    "playedRight": "右耳で再生",
+    "notPlayed": "再生されません：この翻訳は {{target}} ではなく {{language}} のため、誰にも読み上げられません。",
+    "legendMe": "{{language}} · 自分",
+    "legendOther": "{{language}} · 相手"
   }
 }

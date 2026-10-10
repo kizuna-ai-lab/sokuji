@@ -14,6 +14,10 @@ import type { SetupDraft } from './setupDraft';
 
 export interface ApplySetupDeps {
   setMode: (m: 'speaker' | 'participant' | 'both') => void;
+  /** Both's other side: every scenario says, so a re-run never leaves a stale "beside me". */
+  setOtherSide: (side: 'meeting' | 'beside') => void;
+  /** A face-to-face scenario has met Both's other side already: its popover need not open by itself. */
+  setBothPopoverSeen: (seen: boolean) => void;
   setTextOnly: (v: boolean) => void;
   /** The provider, its pair and — on the own-key path — its credentials and
    *  the credential choice its step showed (a settings patch; F4), written
@@ -37,6 +41,8 @@ export async function applySetupDraft(draft: SetupDraft, deps: ApplySetupDeps): 
   const preset = getScenario(scenario);
 
   deps.setMode(preset.mode);
+  deps.setOtherSide(preset.otherSide ?? 'meeting');
+  if (preset.otherSide === 'beside') deps.setBothPopoverSeen(true);
   deps.setTextOnly(preset.textOnly);
 
   const credentials = providerPath === 'own-key' && !draft.credentialsPending ? draft.credentials : {};

@@ -46,4 +46,16 @@ describe('CaptionList', () => {
     expect(screen.queryByText('nothing yet')).toBeNull();
     expect(screen.getByText('全')).toBeTruthy();
   });
+
+  it("names the person at each change, on a single leg too", () => {
+    const said = (id: string, tr: string, person: number): ViewerEntry => ({ ...entry(id, tr), leg: 'participant', person });
+    render(
+      <CaptionList
+        t={(key, params) => (params ? `${key}:${params.n}` : key)} entries={[said('e1', '一', 1), said('e2', '二', 1), said('e3', '三', 2)]}
+        choice={{ code: 'zh-CN', both: false }} completeOnly={false} layout="phone" twoLegs={false}
+        notice={null} emptyText="nothing yet" following onFollowingChange={() => {}}
+      />,
+    );
+    expect([...document.querySelectorAll('.viewer-entry__side')].map((n) => n.textContent)).toEqual(['viewer.legend.person:1', 'viewer.legend.person:2']);
+  });
 });

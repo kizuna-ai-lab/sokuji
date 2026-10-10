@@ -26,4 +26,12 @@ describe('toViewerEntry', () => {
     const notice: Entry = { kind: 'notice', id: 'speaker:n:1', leg: 'speaker', severity: 'error', message: 'x', at: 1 };
     expect(toViewerEntry(notice)).toBeNull();
   });
+  it("carries the person's display number when there is one", () => {
+    const entry: Entry = {
+      kind: 'exchange', id: 'participant:s:r1:participant:1', leg: 'participant', languages: { source: 'en', target: 'ja' },
+      pairing: 'stated', t: 1000, source: [row('r1:participant:1:0', 'Hi', true)], translation: [],
+    };
+    expect(toViewerEntry(entry, 2)).toMatchObject({ person: 2 });
+    expect(toViewerEntry(entry)).not.toHaveProperty('person');
+  });
 });

@@ -606,3 +606,46 @@ describe('audioStore — refreshDevices and the saved device', () => {
     expect(s.devicesLoaded).toBe(true);
   });
 });
+
+describe('the Both popover seen flag', () => {
+  const KEY = 'audio.bothPopoverSeen';
+
+  it('defaults to false, persists, and restores', async () => {
+    useAudioStore.setState({ bothPopoverSeen: false });
+    useAudioStore.getState().setBothPopoverSeen(true);
+    expect(await ServiceFactory.getSettingsService().getSetting<boolean>(KEY, false)).toBe(true);
+    useAudioStore.setState({ bothPopoverSeen: false });
+    await useAudioStore.getState().refreshDevices();
+    expect(useAudioStore.getState().bothPopoverSeen).toBe(true);
+  });
+
+  it('reads anything but true as false', async () => {
+    await ServiceFactory.getSettingsService().setSetting(KEY, 'yes');
+    useAudioStore.setState({ bothPopoverSeen: true });
+    await useAudioStore.getState().refreshDevices();
+    expect(useAudioStore.getState().bothPopoverSeen).toBe(false);
+  });
+});
+
+describe('the other side (face-to-face)', () => {
+  const KEY = 'audio.otherSide';
+
+  it('defaults to a meeting, persists a choice, and restores it', async () => {
+    useAudioStore.setState({ otherSide: 'meeting' });
+    expect(useAudioStore.getState().otherSide).toBe('meeting');
+    useAudioStore.getState().setOtherSide('beside');
+    expect(useAudioStore.getState().otherSide).toBe('beside');
+    expect(await ServiceFactory.getSettingsService().getSetting<string>(KEY, '')).toBe('beside');
+
+    useAudioStore.setState({ otherSide: 'meeting' });
+    await useAudioStore.getState().refreshDevices();
+    expect(useAudioStore.getState().otherSide).toBe('beside');
+  });
+
+  it('reads an unknown stored value as a meeting', async () => {
+    await ServiceFactory.getSettingsService().setSetting(KEY, 'hallway');
+    useAudioStore.setState({ otherSide: 'beside' });
+    await useAudioStore.getState().refreshDevices();
+    expect(useAudioStore.getState().otherSide).toBe('meeting');
+  });
+});

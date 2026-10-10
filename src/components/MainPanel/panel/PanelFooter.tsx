@@ -1,12 +1,12 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Zap, Mic, Loader, Wrench } from 'lucide-react';
+import { X, Zap, Mic, Loader, Wrench, Headphones } from 'lucide-react';
 import ModePicker from '../ModePicker';
 import SessionCountdown from '../SessionCountdown';
 import { useLanguageLabel } from '../../../lib/language/useLanguageLabel';
 import { startLabel } from './startLabel';
 import type { RunState } from '../../../lib/session/types';
-import type { AudioMode } from '../../../stores/audioStore';
+import { useSelectedMonitorDevice, type AudioMode } from '../../../stores/audioStore';
 import type { LanguagePair } from '../../../lib/provider/types';
 
 export interface PanelFooterProps {
@@ -30,6 +30,12 @@ export interface PanelFooterProps {
   onLanguages(): void;
   /** Development builds: the test tone. */
   testTone?: { playing: boolean; toggle(): void };
+  /** Both runs face-to-face (Text Only or not): the mode picker tags it. */
+  faceToFace?: boolean;
+  /** The provider offers face-to-face: Both's tooltip says so. */
+  faceToFaceOffered?: boolean;
+  /** Face-to-face's ears (slice 3): which language plays in each, whether the left is mine, and the ear nothing plays in, if one. Absent or null: nothing plays in an ear. */
+  ears?: { leftLang: string; rightLang: string; leftIsMe: boolean; silent?: 'left' | 'right' } | null;
   /** The advanced footer's input strips and output strip. */
   waveforms?: { input: ReactNode; output: ReactNode };
 }
@@ -45,8 +51,48 @@ export interface PanelFooterProps {
  * countdown beside the session clock (Stage 2 Kizuna Soniox). Why Start is
  * off, and a reconnecting leg's words, are the status line's (spec 2026-10-05
  * §3), not this footer's: the button carries no reason, the dot only pulses.
+ * Face-to-face's ears are a strip of their own directly above it (board 2), so
+ * the footer's row never grows with them and Start/Stop stays on screen.
  */
 export function PanelFooter(props: PanelFooterProps) {
+  return (
+    <>
+      {props.ears && <EarsLegend ears={props.ears} />}
+      <ControlFooter {...props} />
+    </>
+  );
+}
+
+/** Which language plays in each ear, coloured by the person, and the headphones in use: face-to-face's headphones are the monitor device. An ear nothing plays in is left out. */
+function EarsLegend({ ears }: { ears: NonNullable<PanelFooterProps['ears']> }) {
+  const { t } = useTranslation();
+  const label = useLanguageLabel();
+  const headphones = useSelectedMonitorDevice();
+
+  // The ring letter is decoration: the ear's name is read instead, once.
+  const earNode = (ear: 'left' | 'right', lang: string, mine: boolean) => (
+    <span className={`ears-legend__ear ears-legend__ear--${mine ? 'me' : 'other'}`}>
+      <b aria-hidden="true">{ear === 'left' ? t('faceToFace.earLeft', 'L') : t('faceToFace.earRight', 'R')}</b>
+      <span className="ears-legend__ear-name">{ear === 'left' ? t('faceToFace.leftEar', 'Left ear') : t('faceToFace.rightEar', 'Right ear')}</span>
+      <span className="ears-legend__ear-words">
+        {mine
+          ? t('faceToFace.legendMe', '{{language}} · me', { language: label(lang) })
+          : t('faceToFace.legendOther', '{{language}} · other person', { language: label(lang) })}
+      </span>
+    </span>
+  );
+  return (
+    <div className="ears-legend">
+      <Headphones size={14} aria-hidden="true" />
+      {ears.silent !== 'left' && earNode('left', ears.leftLang, ears.leftIsMe)}
+      {ears.silent !== 'right' && earNode('right', ears.rightLang, !ears.leftIsMe)}
+      {headphones?.label && <span className="ears-legend__device">{headphones.label}</span>}
+    </div>
+  );
+}
+
+/** The control footer's own row: the mode picker, Start/Stop and the metadata. */
+function ControlFooter(props: PanelFooterProps) {
   const { t } = useTranslation();
   const label = useLanguageLabel();
   const {
@@ -68,6 +114,8 @@ export function PanelFooter(props: PanelFooterProps) {
     onLanguages,
     testTone,
     waveforms,
+    faceToFace,
+    faceToFaceOffered,
   } = props;
 
   const isIdle = run.phase === 'idle';
@@ -91,6 +139,8 @@ export function PanelFooter(props: PanelFooterProps) {
           locked={!isIdle}
           missingDeviceForMode={missingDevice}
           onSegmentClick={onModeSegment}
+          faceToFace={faceToFace}
+          faceToFaceOffered={faceToFaceOffered}
         />
 
         <span className="footer-spacer" />
@@ -162,6 +212,8 @@ export function PanelFooter(props: PanelFooterProps) {
         locked={!isIdle}
         missingDeviceForMode={missingDevice}
         onSegmentClick={onModeSegment}
+        faceToFace={faceToFace}
+        faceToFaceOffered={faceToFaceOffered}
       />
 
       {/* Input waveforms (mic + system), when the caller has them (Task 12). */}

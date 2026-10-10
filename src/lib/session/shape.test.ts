@@ -120,6 +120,11 @@ describe('gate', () => {
     expect(gate(shape({ legs: ['speaker', 'participant'] }), 'web')).toMatchObject({ code: 'participant_source_unavailable', leg: 'participant' });
   });
 
+  it('lets face-to-face open the participant leg on the web: its source is silent (Review Focus 5)', () => {
+    expect(gate(shape({ legs: ['speaker', 'participant'], faceToFace: true }), 'web')).toBeNull();
+    expect(gate(shape({ legs: ['speaker', 'participant'], faceToFace: false }), 'web')).toMatchObject({ code: 'participant_source_unavailable' });
+  });
+
   it('refuses a turn mode the provider does not offer', () => {
     const manualOnly = { ...fakeProvider, turns: () => ['manual' as const] };
     expect(gate(shape({ provider: manualOnly }), 'electron')).toMatchObject({ code: 'turn_mode_unsupported', leg: 'speaker' });

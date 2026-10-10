@@ -13,10 +13,12 @@ export function buildSharedSettings(
   participant: LanguagePair | null,
   pauses: SharedSettings['pauses'],
   segmentation: SharedSettings['segmentation'],
+  faceToFace = false,
 ): Omit<SharedSettings, 'models'> {
   return {
     pauses,
     segmentation,
     reversed: (direction) => participant !== null && direction.source === participant.source && direction.target === participant.target,
+    ...(faceToFace ? { faceToFace: true } : {}),
   };
 }

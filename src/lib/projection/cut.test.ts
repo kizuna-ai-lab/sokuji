@@ -54,6 +54,12 @@ describe('cutSegment', () => {
     expect(cutSegment(seg({ text: 'One.' }), off)[0]).not.toHaveProperty('language');
   });
 
+  it("gives every row the segment's person, and leaves it off a segment that has none", () => {
+    const rows = cutSegment(seg({ text: 'One. Two.', person: '1.2' }), sentences);
+    expect(rows.map((r) => r.person)).toEqual(['1.2', '1.2']);
+    expect(cutSegment(seg({ text: 'One.' }), off)[0]).not.toHaveProperty('person');
+  });
+
   it('cuts an open segment like a closed one, its last row the live one', () => {
     const rows = cutSegment(seg({ text: 'One. Tw', final: false }), sentences);
     expect(rows.map((r) => [r.start, r.end, r.final])).toEqual([[0, 4, false], [4, 7, false]]);

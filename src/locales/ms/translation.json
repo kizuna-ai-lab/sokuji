@@ -303,7 +303,10 @@
       "theyRead": "mereka baca",
       "theySpeak": "mereka bertutur",
       "mirror": "Mereka bertutur {{their}} → Saya baca {{mine}}"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "Bersemuka sentiasa menggunakan satu sesi dikongsi: kedua-dua orang bercakap ke dalam mikrofon yang sama.",
+    "sonioxParticipantVoice": "Suara pihak lain",
+    "sonioxParticipantVoiceTooltip": "Suara yang membacakan kata-kata pihak lain kepada anda dalam bahasa anda. Suara terbina dalam sahaja."
   },
   "simpleSettings": {
     "autoAuthenticated": "Disahkan secara automatik melalui akaun anda",
@@ -372,7 +375,8 @@
     "audioCaptureUnprovenNotice": "Belum ada yang ditangkap",
     "audioCaptureUnprovenTitle": "Belum ada audio diterima daripada sumber yang dipilih",
     "audioCaptureUnprovenText1": "Jika sumber sedang dimainkan tetapi tiada apa yang diterjemahkan, macOS berkemungkinan menghantar kesenyapan: menangkap sesebuah aplikasi memerlukan kebenaran \"System Audio Recording Only\", dan tanpanya tiada ralat, hanya kesenyapan.",
-    "audioCaptureUnprovenText3Named": "\"{{app}}\" hanya muncul dalam senarai itu selepas cuba menangkap sekali, yang baru sahaja berlaku. Mulakan sesi semula selepas mendayakannya. Jika sumber itu sekadar senyap, tiada apa yang perlu diubah."
+    "audioCaptureUnprovenText3Named": "\"{{app}}\" hanya muncul dalam senarai itu selepas cuba menangkap sekali, yang baru sahaja berlaku. Mulakan sesi semula selepas mendayakannya. Jika sumber itu sekadar senyap, tiada apa yang perlu diubah.",
+    "otherSideBesideNote": "Pihak lain berkongsi mikrofon anda; audio sistem tidak dirakam."
   },
   "auth": {
     "signIn": "Log Masuk",
@@ -441,14 +445,14 @@
     "targetLanguage": "Bahasa pihak lain",
     "microphone": "Mikrofon",
     "microphoneDesc": "Pilih mikrofon untuk menangkap pertuturan anda. Bercakap dalam bahasa anda ke mikrofon ini, dan Sokuji akan menterjemah semua yang didengarinya dalam masa nyata.",
-    "speaker": "Pembesar Suara",
-    "speakerDesc": "Pilih pembesar suara untuk memantau output terjemahan. Ini membolehkan anda mendengar bagaimana terjemahan kedengaran. Anda boleh mematikannya jika pemantauan tidak diperlukan. Sama ada hidup atau mati, audio terjemahan sentiasa dihantar ke mikrofon maya agar peserta lain dapat mendengar.",
     "swapLanguages": "Tukar bahasa",
     "textOnly": "Teks sahaja",
     "textOnlyDesc": "Terjemah ke teks sahaja — tiada output suara",
     "textOnlyForcedByMode": "Mod \"{{mode}}\" hanya menukar apa yang diucapkan peserta kepada teks untuk anda dan tidak pernah menghasilkan audio, jadi \"Teks sahaja\" kekal dihidupkan. Tukar mod terjemahan untuk menterjemah suara anda sendiri dengan pertuturan.",
     "keepReplayAudio": "Simpan audio untuk main semula",
-    "keepReplayAudioDesc": "Simpan audio terjemahan dalam memori supaya anda boleh memainkannya semula kemudian daripada setiap mesej. Dimatikan secara lalai untuk mengurangkan penggunaan memori semasa sesi panjang."
+    "keepReplayAudioDesc": "Simpan audio terjemahan dalam memori supaya anda boleh memainkannya semula kemudian daripada setiap mesej. Dimatikan secara lalai untuk mengurangkan penggunaan memori semasa sesi panjang.",
+    "output": "Keluaran",
+    "outputDesc": "Peranti yang memainkan suara terjemahan untuk anda. Dalam mod “Saya” anda boleh mematikannya; mesyuarat masih mendengar terjemahan melalui mikrofon maya."
   },
   "providers": {
     "kizunaai_soniox": {
@@ -574,7 +578,8 @@
       "legendSource": "Asal: ucapan asal sahaja",
       "legendTranslation": "Terjemahan: terjemahan sahaja",
       "legendBoth": "Kedua-duanya: kedua-dua baris",
-      "legendNone": "Mati: sembunyikan sisi ini"
+      "legendNone": "Mati: sembunyikan sisi ini",
+      "person": "Penutur {{n}}"
     },
     "playItemAudio": "Main audio item ini",
     "backToLatest": "Kembali ke terkini",
@@ -651,14 +656,22 @@
     "deviceMic": "Mikrofon",
     "deviceSpeakerMonitor": "Pemantau pembesar suara",
     "notSelected": "Tidak dipilih",
-    "deviceParticipantAudio": "Audio pihak lain"
+    "deviceParticipantAudio": "Audio pihak lain",
+    "faceToFaceTag": "Bersemuka",
+    "descBothBeside": "Juga untuk dua orang pada satu komputer (bersemuka)."
   },
   "popover": {
     "statusOff": "Mati",
     "toggleOn": "Hidupkan {{label}}",
     "toggleOff": "Matikan {{label}}",
     "participantSubtitleElectron": "Semua audio sistem",
-    "participantSubtitleExtension": "Dimainkan melalui output lalai sistem"
+    "participantSubtitleExtension": "Dimainkan melalui output lalai sistem",
+    "otherSide": "Kedudukan pihak lain",
+    "otherSideMeeting": "Dalam mesyuarat",
+    "otherSideMeetingHint": "Menangkap audio sistem atau sesuatu aplikasi",
+    "otherSideBeside": "Di sebelah saya",
+    "otherSideBesideHint": "Dua orang, satu mikrofon",
+    "output": "Keluaran"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Klik untuk mengkonfigurasi bahasa",
@@ -1147,6 +1160,15 @@
       "two-way-text": {
         "title": "Perbualan dalam talian dua hala, sari kata sahaja",
         "desc": "Kapsyen dwibahasa, minit mesyuarat — kedua-dua pihak sebagai teks, tiada suara sintetik."
+      },
+      "setsBeside": "Menetapkan: mod {{mode}}, pihak lain di sebelah saya · {{output}}",
+      "face-to-face-voice": {
+        "title": "Perbualan bersemuka",
+        "desc": "Dua orang pada satu komputer, masing-masing bercakap dalam bahasa sendiri; setiap orang memakai satu fon telinga dan hanya mendengar terjemahan ke bahasanya."
+      },
+      "face-to-face-text": {
+        "title": "Perbualan bersemuka, sari kata sahaja",
+        "desc": "Kedua-duanya membaca skrin yang sama, atau pihak lain membuka halaman kapsyen LAN pada telefonnya."
       }
     },
     "output": {
@@ -1179,7 +1201,8 @@
     },
     "fit": {
       "cannotSpeak": "Penyedia ini tidak dapat menghasilkan terjemahan suara.",
-      "cannotBeTextOnly": "Penyedia ini sentiasa bertutur; ia tidak boleh dijalankan dalam mod sari kata sahaja."
+      "cannotBeTextOnly": "Penyedia ini sentiasa bertutur; ia tidak boleh dijalankan dalam mod sari kata sahaja.",
+      "cannotFaceToFace": "Penyedia ini tidak dapat menterjemah dua orang pada satu mikrofon."
     },
     "credentials": {
       "apiKey": "Kunci API",
@@ -1348,7 +1371,8 @@
     },
     "legend": {
       "onSite": "Di lokasi",
-      "remote": "Dalam talian"
+      "remote": "Dalam talian",
+      "person": "Penutur {{n}}"
     },
     "backToLive": "Ke terkini",
     "dock": {
@@ -1431,5 +1455,23 @@
     "warnAddressChanged": "Rangkaian telah berubah. Alamat kini {{address}}: hantar semula pautan atau buka semula halaman projektor.",
     "errorPortsBusy": "Tidak dapat mula berkongsi: port 7788–7797 semuanya sedang digunakan.",
     "errorListen": "Tidak dapat mula berkongsi: {{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "Kiri dan kanan · setiap orang mendengar terjemahan ke bahasanya sendiri",
+    "leftEar": "Telinga kiri",
+    "rightEar": "Telinga kanan",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "Saya ({{language}})",
+    "otherListens": "Pihak lain ({{language}})",
+    "previewLeft": "Pratonton telinga kiri",
+    "previewRight": "Pratonton telinga kanan",
+    "swap": "Tukar kiri dan kanan",
+    "speakersHint": "Gunakan fon kepala, satu sisi seorang. Dengan mana-mana pembesar suara, mikrofon menangkap terjemahan lalu menterjemahkannya semula.",
+    "playedLeft": "Dimainkan di telinga kiri",
+    "playedRight": "Dimainkan di telinga kanan",
+    "notPlayed": "Tidak dimainkan: terjemahan ini dalam bahasa {{language}}, bukan {{target}}, jadi tidak dibacakan kepada sesiapa.",
+    "legendMe": "{{language}} · saya",
+    "legendOther": "{{language}} · pihak lain"
   }
 }

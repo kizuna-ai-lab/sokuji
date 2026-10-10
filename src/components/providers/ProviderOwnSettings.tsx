@@ -2,6 +2,7 @@ import { useLayoutEffect, useMemo, useRef } from 'react';
 import type { AnyProvider, AuthContext, EngineSlot } from '../../lib/provider/types';
 import { useProviderStore } from '../../stores/providerStore';
 import { appVoicePreview } from '../../app/voicePreview';
+import { useFaceToFace } from '../MainPanel/useFaceToFace';
 import { ownProps, useSelectedProvider } from './useSelectedProvider';
 
 interface ProviderOwnSettingsProps {
@@ -14,6 +15,8 @@ interface ProviderOwnSettingsProps {
 export function ProviderOwnSettings({ providers, auth, disabled }: ProviderOwnSettingsProps & { auth: AuthContext }) {
   const selection = useSelectedProvider(providers);
   const legs = useProviderStore((s) => s.legs);
+  const speechParticipant = useProviderStore((s) => s.speech.participantSpeech);
+  const faceToFace = useFaceToFace().active;
   const credentials = selection?.entry?.credentials;
   // The hosts' `auth` is a new object on every render (`useAuth` makes
   // `getToken` inline), so the account never keys on it. Its `getToken`
@@ -35,7 +38,8 @@ export function ProviderOwnSettings({ providers, auth, disabled }: ProviderOwnSe
   );
   if (!selection?.entry) return null;
   const Settings = selection.provider.Settings;
-  return <Settings {...ownProps(selection, selection.entry, disabled)} account={account} legs={legs} preview={appVoicePreview} />;
+  const participantSpeaks = selection.provider.participantSpeech !== false && speechParticipant;
+  return <Settings {...ownProps(selection, selection.entry, disabled)} account={account} legs={legs} participantSpeaks={participantSpeaks} faceToFace={faceToFace} preview={appVoicePreview} />;
 }
 
 /**

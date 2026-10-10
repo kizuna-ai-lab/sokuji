@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { FaceToFaceIcon } from '../FaceToFace/FaceToFaceIcon';
 import { SideMeIcon, SideOtherIcon, SideBothIcon } from '../Icons/SideIcons';
 import './ModePicker.scss';
 
@@ -10,6 +11,10 @@ interface ModePickerProps {
   locked: boolean;
   missingDeviceForMode: 'speaker' | 'participant' | 'both' | null;
   onSegmentClick: (segment: 'speaker' | 'participant' | 'both', el: HTMLElement) => void;
+  /** Both runs face-to-face: the segment carries a tag. */
+  faceToFace?: boolean;
+  /** The provider offers face-to-face: Both's tooltip says so. */
+  faceToFaceOffered?: boolean;
 }
 
 const SEGMENTS: Array<'speaker' | 'participant' | 'both'> = ['speaker', 'participant', 'both'];
@@ -23,8 +28,9 @@ const SEGMENT_ICONS: Record<'speaker' | 'participant' | 'both', React.ComponentT
   both: SideBothIcon,
 };
 
-const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForMode, onSegmentClick }) => {
+const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForMode, onSegmentClick, faceToFace, faceToFaceOffered }) => {
   const { t } = useTranslation();
+  const faceToFaceTag = t('modePicker.faceToFaceTag', 'Face-to-face');
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const labelFor = (seg: 'speaker' | 'participant' | 'both') => {
@@ -39,7 +45,8 @@ const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForM
   const descFor = (seg: 'speaker' | 'participant' | 'both') => {
     if (seg === 'speaker') return t('modePicker.descYou', 'Your voice → translated for the other side. Translate what you say so they understand you.');
     if (seg === 'participant') return t('modePicker.descOthers', "The other side's voice → translated for you. Translate what they say so you understand them.");
-    return t('modePicker.descBoth', "Two-way. Translate your voice and the other side's at the same time.");
+    const both = t('modePicker.descBoth', "Two-way. Translate your voice and the other side's at the same time.");
+    return faceToFaceOffered ? `${both}\n${t('modePicker.descBothBeside', 'Also for two people at one computer (face-to-face).')}` : both;
   };
 
   const titleFor = (seg: 'speaker' | 'participant' | 'both') => {
@@ -87,7 +94,7 @@ const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForM
             type="button"
             className={classes}
             aria-pressed={isActive}
-            aria-label={label}
+            aria-label={seg === 'both' && faceToFace ? `${label} · ${faceToFaceTag}` : label}
             disabled={isDisabled}
             title={titleFor(seg)}
             onClick={() => {
@@ -98,6 +105,12 @@ const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForM
           >
             <Icon size={14} />
             <span className="mode-picker__label">{label}</span>
+            {seg === 'both' && faceToFace && (
+              <span className="mode-picker__tag" title={faceToFaceTag}>
+                <span className="mode-picker__tag-word">{faceToFaceTag}</span>
+                <span className="mode-picker__tag-glyph" aria-hidden="true"><FaceToFaceIcon size={12} aria-hidden="true" /></span>
+              </span>
+            )}
           </button>
         );
       })}

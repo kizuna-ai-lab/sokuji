@@ -303,7 +303,10 @@
       "theyRead": "de läser",
       "theySpeak": "de talar",
       "mirror": "De talar {{their}} → jag läser {{mine}}"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "Ansikte mot ansikte använder alltid en delad session: båda talar i samma mikrofon.",
+    "sonioxParticipantVoice": "Den andras röst",
+    "sonioxParticipantVoiceTooltip": "Rösten som läser upp den andras ord för dig, på ditt språk. Endast inbyggda röster."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatiskt autentiserad via ditt konto",
@@ -372,7 +375,8 @@
     "audioCaptureUnprovenNotice": "Inget har fångats ännu",
     "audioCaptureUnprovenTitle": "Inget ljud har kommit från den valda källan ännu",
     "audioCaptureUnprovenText1": "Om källan spelar upp och inget översätts levererar macOS troligen tystnad: att fånga en app kräver behörigheten \"Endast inspelning av systemljud\", och utan den uppstår inget fel, bara tystnad.",
-    "audioCaptureUnprovenText3Named": "\"{{app}}\" visas i den listan först efter ett försök att fånga ljud, vilket precis gjordes. Starta sessionen igen när du har aktiverat den. Om källan bara var tyst behöver inget ändras."
+    "audioCaptureUnprovenText3Named": "\"{{app}}\" visas i den listan först efter ett försök att fånga ljud, vilket precis gjordes. Starta sessionen igen när du har aktiverat den. Om källan bara var tyst behöver inget ändras.",
+    "otherSideBesideNote": "Den andra personen delar din mikrofon; ingen systemljud fångas."
   },
   "auth": {
     "signIn": "Logga in",
@@ -441,14 +445,14 @@
     "targetLanguage": "Den andras språk",
     "microphone": "Mikrofon",
     "microphoneDesc": "Välj mikrofon för att fånga ditt tal. Tala ditt språk i denna mikrofon, och Sokuji kommer att översätta allt den hör i realtid.",
-    "speaker": "Högtalare",
-    "speakerDesc": "Välj en högtalare för att övervaka den översatta utmatningen. Detta låter dig höra hur översättningen låter. Du kan stänga av den om övervakning inte behövs. Oavsett om den är på eller av, skickas det översatta ljudet alltid till den virtuella mikrofonen för andra deltagare att höra.",
     "swapLanguages": "Byt språk",
     "textOnly": "Endast text",
     "textOnlyDesc": "Översätt till text — inget talat ljud",
     "textOnlyForcedByMode": "Läget \"{{mode}}\" gör bara om det deltagarna säger till text åt dig och genererar aldrig ljud, så \"Endast text\" förblir på. Byt översättningsläge för att översätta din egen röst med tal.",
     "keepReplayAudio": "Behåll ljud för uppspelning",
-    "keepReplayAudioDesc": "Spara översatt ljud i minnet så att du kan spela upp det senare från varje meddelande. Av som standard för att minska minnesanvändningen under långa sessioner."
+    "keepReplayAudioDesc": "Spara översatt ljud i minnet så att du kan spela upp det senare från varje meddelande. Av som standard för att minska minnesanvändningen under långa sessioner.",
+    "output": "Utgång",
+    "outputDesc": "Enheten som spelar upp det översatta talet för dig. I läget ”Jag” kan du stänga av den; mötet hör fortfarande översättningen via den virtuella mikrofonen."
   },
   "providers": {
     "kizunaai_soniox": {
@@ -574,7 +578,8 @@
       "legendSource": "Källa: endast ursprungligt tal",
       "legendTranslation": "Översättning: endast översättning",
       "legendBoth": "Båda: båda raderna",
-      "legendNone": "Av: dölj denna sida"
+      "legendNone": "Av: dölj denna sida",
+      "person": "Talare {{n}}"
     },
     "playItemAudio": "Spela upp ljudet för detta objekt",
     "backToLatest": "Tillbaka till senaste",
@@ -651,14 +656,22 @@
     "deviceMic": "Mikrofon",
     "deviceSpeakerMonitor": "Högtalarmonitor",
     "notSelected": "Inte vald",
-    "deviceParticipantAudio": "Den andras ljud"
+    "deviceParticipantAudio": "Den andras ljud",
+    "faceToFaceTag": "På plats",
+    "descBothBeside": "Även för två personer vid en dator (på plats)."
   },
   "popover": {
     "statusOff": "Av",
     "toggleOn": "Slå på {{label}}",
     "toggleOff": "Stäng av {{label}}",
     "participantSubtitleElectron": "Allt systemljud",
-    "participantSubtitleExtension": "Spelas upp via systemets standardutgång"
+    "participantSubtitleExtension": "Spelas upp via systemets standardutgång",
+    "otherSide": "Var finns den andra",
+    "otherSideMeeting": "På ett möte",
+    "otherSideMeetingHint": "Fångar systemljud eller en app",
+    "otherSideBeside": "Bredvid mig",
+    "otherSideBesideHint": "Två personer vid en mikrofon",
+    "output": "Utgång"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Klicka för att konfigurera språk",
@@ -1147,6 +1160,15 @@
       "two-way-text": {
         "title": "Tvåvägs onlinesamtal, endast undertexter",
         "desc": "Tvåspråkiga undertexter, mötesanteckningar — båda sidor som text, ingen syntetisk röst."
+      },
+      "setsBeside": "Anger: {{mode}}-läge, den andra bredvid mig · {{output}}",
+      "face-to-face-voice": {
+        "title": "Samtal ansikte mot ansikte",
+        "desc": "Två personer vid en dator, var och en talar sitt eget språk; var och en bär en hörsnäcka och hör bara översättningen till sitt språk."
+      },
+      "face-to-face-text": {
+        "title": "Samtal ansikte mot ansikte, endast undertexter",
+        "desc": "Båda läser samma skärm, eller så öppnar den andra LAN-undertextsidan på sin telefon."
       }
     },
     "output": {
@@ -1179,7 +1201,8 @@
     },
     "fit": {
       "cannotSpeak": "Den här leverantören kan inte producera talad översättning.",
-      "cannotBeTextOnly": "Den här leverantören talar alltid; den kan inte köras med endast undertexter."
+      "cannotBeTextOnly": "Den här leverantören talar alltid; den kan inte köras med endast undertexter.",
+      "cannotFaceToFace": "Den här leverantören kan inte översätta två personer vid en mikrofon."
     },
     "credentials": {
       "apiKey": "API-nyckel",
@@ -1348,7 +1371,8 @@
     },
     "legend": {
       "onSite": "På plats",
-      "remote": "På distans"
+      "remote": "På distans",
+      "person": "Talare {{n}}"
     },
     "backToLive": "Tillbaka till live",
     "dock": {
@@ -1431,5 +1455,23 @@
     "warnAddressChanged": "Nätverket har ändrats. Adressen är nu {{address}}: skicka länken igen eller öppna projektorsidan på nytt.",
     "errorPortsBusy": "Det gick inte att börja dela: portarna 7788–7797 är alla upptagna.",
     "errorListen": "Det gick inte att börja dela: {{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "Vänster och höger · var och en hör översättningen på sitt eget språk",
+    "leftEar": "Vänster öra",
+    "rightEar": "Höger öra",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "Jag ({{language}})",
+    "otherListens": "Den andra ({{language}})",
+    "previewLeft": "Förhandslyssna på vänster öra",
+    "previewRight": "Förhandslyssna på höger öra",
+    "swap": "Byt vänster och höger",
+    "speakersHint": "Använd hörlurar, en sida var. Med vilken högtalare som helst fångar mikrofonen upp översättningen och översätter den igen.",
+    "playedLeft": "Spelades upp i vänster öra",
+    "playedRight": "Spelades upp i höger öra",
+    "notPlayed": "Spelades inte upp: den här översättningen är på {{language}}, inte på {{target}}, så den läses inte upp för någon.",
+    "legendMe": "{{language}} · jag",
+    "legendOther": "{{language}} · den andra"
   }
 }

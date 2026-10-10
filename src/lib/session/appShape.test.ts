@@ -23,13 +23,14 @@ import type { AnyProvider, CheckContext } from '../provider/types';
 import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS, FAKE_LEASED_DEFAULTS } from '../../providers/fake/settings';
 import { PALABRA_DEFAULTS } from '../../providers/palabraai/settings';
+import { SONIOX_DEFAULTS } from '../../providers/soniox/settings';
 import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useRoutingStore } from '../../stores/routingStore';
-import { ensureReadyFromStores, legsFor, liveGate, participantSpeechFromStores, participantSpeechSwitchFromStores, persistIfUnchanged, readShapeFromStores, speechInputsFromStores, watchLegsFromStores, watchSpeechFromStores } from './appShape';
+import { ensureReadyFromStores, faceToFaceFromStores, legsFor, liveGate, participantSpeechFromStores, participantSpeechSwitchFromStores, persistIfUnchanged, readShapeFromStores, speechInputsFromStores, watchLegsFromStores, watchSpeechFromStores } from './appShape';
 import type { RunShape } from './types';
 
 const auth = { signedIn: false, getToken: async () => null };
@@ -244,6 +245,16 @@ describe('speechInputsFromStores and watchSpeechFromStores (Stage 2 Volcengine A
     useSettingsStore.setState({ textOnly: true });
     expect(useProviderStore.getState().speech).toEqual({ textOnly: false, participantSpeech: false });
   });
+
+  it("follows face-to-face when the picked provider's entry loads after the pick", () => {
+    useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
+    useProviderStore.setState({ selected: 'soniox', entries: {} });
+    const unwatch = watchSpeechFromStores();
+    expect(useProviderStore.getState().speech.participantSpeech).toBe(false);
+    useProviderStore.setState({ entries: { soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } } });
+    expect(useProviderStore.getState().speech.participantSpeech).toBe(true);
+    unwatch();
+  });
 });
 
 // Stage 2 foundation, F7: the runner's start gate over the stores as they
@@ -306,5 +317,43 @@ describe('liveGate', () => {
     expect(liveGate()?.code).toBe('quota_unknown');
     useAccountStore.setState({ account: null });
     expect(liveGate()).toBeNull();
+  });
+});
+
+describe('face-to-face from the stores', () => {
+  const pick = (selected: string) => useProviderStore.setState({
+    selected,
+    entries: { [selected]: { settings: {}, credentials: {}, pair: { source: 'ja', target: 'en' } } },
+  });
+  beforeEach(() => useAudioStore.setState({ otherSide: 'meeting' }));
+
+  it('is on only for Both, beside me, under a provider that offers it', () => {
+    pick('soniox');
+    useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
+    expect(faceToFaceFromStores()).toBe(true);
+    useAudioStore.setState({ mode: 'speaker' });
+    expect(faceToFaceFromStores()).toBe(false);
+    useAudioStore.setState({ mode: 'both', otherSide: 'meeting' });
+    expect(faceToFaceFromStores()).toBe(false);
+  });
+
+  it('is off under a provider that does not offer it, whatever is stored (Review Focus 1)', () => {
+    pick('openai');
+    useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
+    expect(faceToFaceFromStores()).toBe(false);
+  });
+
+  it('voices the participant unless Text Only is on (Review Focus 2)', () => {
+    pick('soniox');
+    useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
+    useRoutingStore.setState({ participantSpeech: false });
+    useSettingsStore.setState({ textOnly: false });
+    expect(participantSpeechFromStores({})).toBe(true);
+    expect(speechInputsFromStores().participantSpeech).toBe(true);
+    useSettingsStore.setState({ textOnly: true });
+    expect(participantSpeechFromStores({})).toBe(false);
+    // A provider whose participant never speaks stays silent here too.
+    useSettingsStore.setState({ textOnly: false });
+    expect(participantSpeechFromStores({ participantSpeech: false })).toBe(false);
   });
 });

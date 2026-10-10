@@ -29,6 +29,15 @@ export class FakeGain extends FakeNode {
   };
 }
 
+export class FakeStereoPanner extends FakeNode {
+  readonly pan = {
+    value: 0,
+    setValueAtTime(value: number): void {
+      this.value = value;
+    },
+  };
+}
+
 export class FakeBuffer {
   private readonly data: Float32Array;
 
@@ -111,6 +120,7 @@ export class FakeAudioContext {
   readonly destinations: FakeStreamDestination[] = [];
   readonly streamSources: FakeStreamSource[] = [];
   readonly analysers: FakeAnalyser[] = [];
+  readonly panners: FakeStereoPanner[] = [];
   resumed = 0;
   suspended = 0;
   /** How many times `close()` has actually closed the context (never more than one, as a real context refuses a second). */
@@ -151,6 +161,12 @@ export class FakeAudioContext {
 
   createGain(): FakeGain {
     return new FakeGain();
+  }
+
+  createStereoPanner(): FakeStereoPanner {
+    const panner = new FakeStereoPanner();
+    this.panners.push(panner);
+    return panner;
   }
 
   createBuffer(channels: number, length: number, sampleRate: number): FakeBuffer {

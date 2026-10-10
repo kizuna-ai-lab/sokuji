@@ -8,6 +8,7 @@
  * timers, no stubbed global.
  */
 import { describe, it, expect, vi } from 'vitest';
+import type { SharedSettings } from '../../lib/provider/types';
 import { AdapterStartError, type SessionContext } from '../../lib/contract/adapter';
 import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
 import { FakeSocket, fakeSockets } from '../../lib/contract/testing/fakeSocket';
@@ -18,14 +19,14 @@ import { buildSoniox, type SonioxConfig } from './config';
 import { SONIOX_DEFAULTS, type SonioxCredentials, type SonioxSettings } from './settings';
 import { AUTO_CTX, b64, END, ERROR_503, FIN, isStt, KEY, msg, orig, SHARED, tr, trackedClock, type Json } from './testing';
 
-function started(o: { context?: SessionContext; settings?: Partial<SonioxSettings>; credentials?: SonioxCredentials } = {}) {
+function started(o: { context?: SessionContext; settings?: Partial<SonioxSettings>; credentials?: SonioxCredentials; shared?: SharedSettings } = {}) {
   const sockets = fakeSockets();
   const { clock, timers } = trackedClock();
   const { events, log } = recordEvents();
   const controller = new AbortController();
   const context = o.context ?? AUTO_CTX;
   const starting = createSonioxAdapter({ openSocket: sockets.create }).start(
-    { context, config: buildSoniox(context, { ...SONIOX_DEFAULTS, ...o.settings }, SHARED), credentials: o.credentials ?? KEY, clock, signal: controller.signal },
+    { context, config: buildSoniox(context, { ...SONIOX_DEFAULTS, ...o.settings }, o.shared ?? SHARED), credentials: o.credentials ?? KEY, clock, signal: controller.signal },
     events,
   );
   const stt = () => sockets.all.filter(isStt).slice(-1)[0];
@@ -104,7 +105,14 @@ describe('the Soniox adapter: conformance', () => {
 });
 
 describe('the Soniox adapter: one leg', () => {
-  it("sends the leg's direction: one_way to the target, the source as the only hint, the context and the knobs; no diarization, no client reference", async () => {
+  it("asks the participant's own socket for diarization, and never the speaker's", async () => {
+    const participant = await live({ shared: { ...SHARED, reversed: () => true } });
+    expect(participant.stt().sentJson<Json>()[0]).toMatchObject({ enable_speaker_diarization: true });
+    const speaker = await live();
+    expect(speaker.stt().sentJson<Json>()[0]).not.toHaveProperty('enable_speaker_diarization');
+  });
+
+  it("sends the leg's direction: one_way to the target, both languages as hints (the source first), the context and the knobs; no diarization, no client reference", async () => {
     const { stt } = await live({ settings: { vocabularyTerms: 'Sokuji', endpointMaxDelayMs: 3000 } });
     const config = stt().sentJson<Json>()[0];
     expect(config).toMatchObject({
@@ -113,7 +121,7 @@ describe('the Soniox adapter: one leg', () => {
       audio_format: 'pcm_s16le',
       sample_rate: 24000,
       translation: { type: 'one_way', target_language: 'ja' },
-      language_hints: ['en'],
+      language_hints: ['en', 'ja'],
       context: { terms: ['Sokuji'] },
       max_endpoint_delay_ms: 3000,
     });
@@ -124,6 +132,11 @@ describe('the Soniox adapter: one leg', () => {
   it('sends no hint for an auto source', async () => {
     const { stt } = await live({ context: { ...AUTO_CTX, direction: { source: 'auto', target: 'ja' } } });
     expect(stt().sentJson<Json>()[0]).not.toHaveProperty('language_hints');
+  });
+
+  it('sends one hint when both languages go out as the same wire code', async () => {
+    const { stt } = await live({ context: { ...AUTO_CTX, direction: { source: 'en', target: 'en' } } });
+    expect(stt().sentJson<Json>()[0]).toMatchObject({ language_hints: ['en'] });
   });
 
   it("opens both sockets at the key's region", async () => {
@@ -416,6 +429,12 @@ describe('the Soniox adapter: one leg', () => {
     expect(log.length).toBe(n + 1);
   });
 
+  it('a same-language pair (ja to ja) speaks its translations: a leg speaks into its target, whatever its source', async () => {
+    const { stt, tts } = await live({ context: { direction: { source: 'ja', target: 'ja' }, speech: true, turns: 'auto' } });
+    stt().receive(msg({ ...orig('Ohayō.'), language: 'ja' }, tr('おはよう。', 'ja', 'en'), END));
+    expect(tts().sentJson<Json>().some((m) => m.text === 'おはよう。')).toBe(true);
+  });
+
   it('stop ends a TTS stream still speaking with text_end, framed after the STT stream\'s end (Stage 2 session end, ruling 2 (ii))', async () => {
     const { session, stt, tts, log } = await live();
     // A final translation with no sentence end and no <end> yet: its TTS stream is still open.
@@ -629,7 +648,7 @@ describe("the Soniox adapter: Plan B's session seams", () => {
 describe('language codes (unified language codes)', () => {
   it("sends Filipino to Soniox as tl and reads Soniox's tl back as fil", async () => {
     const { stt, tts, of } = await live({ context: { ...AUTO_CTX, direction: { source: 'en', target: 'fil' } } });
-    expect(stt().sentJson<Json>()[0]).toMatchObject({ translation: { type: 'one_way', target_language: 'tl' }, language_hints: ['en'] });
+    expect(stt().sentJson<Json>()[0]).toMatchObject({ translation: { type: 'one_way', target_language: 'tl' }, language_hints: ['en', 'tl'] });
     stt().receive(msg(orig('Hello.'), tr('Kumusta.', 'tl'), END));
     const languages = of('segmentText').map((e) => e.payload.language);
     expect(languages).toContain('fil');
@@ -642,5 +661,13 @@ describe('language codes (unified language codes)', () => {
     stt().receive(msg({ ...orig('Hello.'), language: 'xx' }, END));
     expect(of('segmentText').length).toBeGreaterThan(0);
     for (const e of of('segmentText')) expect(e.payload).not.toHaveProperty('language');
+  });
+
+  it('labels each segment with its person, and a resumed socket starts a new epoch', async () => {
+    const h = await live({ shared: { ...SHARED, reversed: () => true } });
+    h.stt().receive(msg({ ...orig('Hello.'), speaker: '1' }, tr('こんにちは。'), END));
+    await resumeOnce(h);
+    h.stt().receive(msg({ ...orig('Again.'), speaker: '1' }, tr('また。'), END));
+    expect(h.of('segmentOpened').map((e) => e.payload.person)).toEqual(['1.1', '1.1', '2.1', '2.1']);
   });
 });

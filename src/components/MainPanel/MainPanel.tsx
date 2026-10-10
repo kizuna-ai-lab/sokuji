@@ -13,7 +13,6 @@ import { isDevelopment } from '../../config/analytics';
 import { useAnalytics } from '../../lib/analytics';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause, reportError, reportWarning } from '../../lib/diagnostics/report';
-import { participantSpeechHeard } from '../../lib/modern-audio/participantSource';
 import { NO_MICROPHONE } from '../../lib/session/shape';
 import type { RunEnd, RunState } from '../../lib/session/types';
 import { displayItems, type DisplayItem, type NoticeEntry } from '../../lib/view/filter';
@@ -26,13 +25,14 @@ import {
   useParticipantSources,
   useSelectedParticipantSource,
   useSetMode,
+  useBothPopoverSeen,
+  useSetBothPopoverSeen,
   type AudioMode,
 } from '../../stores/audioStore';
 import { useCleanupAudioSystemListeners, useInitAudioSystemListeners } from '../../stores/audioSystemStore';
 import { useConversationDisplayStore } from '../../stores/conversationDisplayStore';
 import { usePanelNotes, usePanelNotesStore } from '../../stores/panelNotesStore';
 import { useProviderStore } from '../../stores/providerStore';
-import { useRoutingStore } from '../../stores/routingStore';
 import {
   useKeepReplayAudio,
   useNavigateToSettings,
@@ -57,6 +57,7 @@ import { Banners } from '../Banner/useBanners';
 import UpdateDialog from '../UpdateDialog/UpdateDialog';
 import ModeDevicePopover from './ModeDevicePopover';
 import { PanelFooter } from './panel/PanelFooter';
+import { earsLegend, useFaceToFace, voicedEars } from './useFaceToFace';
 import PanelToolbar from './panel/PanelToolbar';
 import { replayBlocked } from './panel/replayGate';
 import { useSessionClock } from './panel/sessionClock';
@@ -162,13 +163,17 @@ export default function MainPanel() {
   const setAuthOverlay = useSetAuthOverlay();
   const notes = usePanelNotes();
   const subtitleModeActive = useSubtitleModeActive();
-  const participantSpeech = useRoutingStore((s) => s.participantSpeech);
   const mode = useMode();
   const setMode = useSetMode();
+  const bothPopoverSeen = useBothPopoverSeen();
+  const setBothPopoverSeen = useSetBothPopoverSeen();
   const micMuted = useIsMicMuted();
   const participantSources = useParticipantSources();
   const participantSource = useSelectedParticipantSource();
   const provider = useProviderStore((s) => (s.selected ? getProvider(s.selected) : undefined));
+  // Face-to-face and whether each leg is voiced, from one source: the replay gate, the strip and the tags.
+  const f2f = useFaceToFace();
+  const ears = earsLegend(f2f);
   const providerSettings = useProviderStore((s) => (s.selected ? s.entries[s.selected]?.settings : undefined));
   const display = useConversationDisplayStore();
 
@@ -189,15 +194,17 @@ export default function MainPanel() {
   // reference: a later end is another object and draws again.
   const [dismissedEnd, setDismissedEnd] = useState<RunEnd | null>(null);
   const segments = useMemo(() => new Map(viewState.legs.flatMap((leg) => leg.segments.map((s) => [s.id, s] as const))), [viewState.legs]);
-  // No participant replay slot while the whole-system rule mutes it (ruling
-  // 7, completed): the switch, the run's shape and the route all agree.
-  const heardParticipantSpeech = participantSpeech && participantSpeechHeard(getEnvironment(), participantSource?.deviceId);
-  const replayLegs = useMemo(() => new Set<LegName>(keepReplayAudio ? (heardParticipantSpeech ? ['speaker', 'participant'] : ['speaker']) : []), [keepReplayAudio, heardParticipantSpeech]);
+  // A participant replay slot only while its leg is voiced, by the run's own
+  // rule: its provider's flag, then face-to-face (ruling P7) or the switch
+  // and a source that will not recapture it (ruling 7, completed). The
+  // switch, the run's shape and the route all agree.
+  const participantVoiced = f2f.speaks.participant;
+  const replayLegs = useMemo(() => new Set<LegName>(keepReplayAudio ? (participantVoiced ? ['speaker', 'participant'] : ['speaker']) : []), [keepReplayAudio, participantVoiced]);
   const participantNoticeCodes = useMemo(
     () => viewState.legs.find((leg) => leg.leg === 'participant')?.notices.flatMap((n) => (n.code ? [n.code] : [])) ?? [],
     [viewState.legs],
   );
-  const blocked = replayBlocked({ run, platform: getEnvironment(), participantSourceId: participantSource?.deviceId, participantNoticeCodes })
+  const blocked = replayBlocked({ run, platform: getEnvironment(), participantSourceId: participantSource?.deviceId, participantNoticeCodes, faceToFace: f2f.active })
     ? t('mainPanel.replayBlockedWholeSystem', "Replay is off while Other's audio captures all system sound: it would be translated again.")
     : null;
 
@@ -241,10 +248,21 @@ export default function MainPanel() {
   // Mode picker: the active segment toggles its device popover; another segment switches the mode while idle.
   const [popover, setPopover] = useState<HTMLElement | null>(null);
   const onModeSegment = useCallback((target: AudioMode, el: HTMLElement) => {
-    if (target === mode) { setPopover((open) => (open ? null : el)); return; }
+    if (target === mode) {
+      // Opening Both's popover by hand is seeing it: a later switch back does not open it again.
+      if (target === 'both' && f2f.offered && !popover) setBothPopoverSeen(true);
+      setPopover((open) => (open ? null : el));
+      return;
+    }
     if (run.phase === 'idle') setMode(target);
+    // The first pick of Both opens its popover once, so face-to-face is not left to be found.
+    if (run.phase === 'idle' && target === 'both' && f2f.offered && !bothPopoverSeen) {
+      setBothPopoverSeen(true);
+      setPopover(el);
+      return;
+    }
     setPopover(null);
-  }, [mode, run.phase, setMode]);
+  }, [mode, popover, run.phase, setMode, f2f.offered, bothPopoverSeen, setBothPopoverSeen]);
 
   const { notice: echo, dismiss: dismissEcho } = useEchoNotice(
     useMemo(() => (audio ? echoSource(audio.capture.echo) : null), [audio]),
@@ -281,7 +299,7 @@ export default function MainPanel() {
       site={site} run={run} mode={mode} missingDevice={missingDevice}
       canStart={subtitle.canStart}
       holdToTalk={speakerLive && subtitle.holdToTalk} held={ptt.held} micMuted={micMuted}
-      pair={subtitle.pair} duration={duration}
+      pair={subtitle.pair} duration={duration} faceToFace={f2f.active} faceToFaceOffered={f2f.offered} ears={ears}
       // Ruling 11: `session.start` is the one start every surface calls — never a start while the gate is shut, the button is off then; this also holds for a click that beat its render (as the takeover's Start).
       onStart={() => void session.start('button')}
       onStop={() => void runner.stop('button')}
@@ -323,6 +341,7 @@ export default function MainPanel() {
               if (s) audio.playback.replay(leg, s);
             }}
             replayBlocked={blocked} noticeAction={noticeAction}
+            ears={voicedEars(f2f)}
             compact={display.compactMode} fontSize={display.fontSize}
             empty={<><MessageSquare size={32} /><p>{t('simplePanel.startToBegin', 'Click Start to begin real-time translation')}</p></>}
           />
@@ -339,7 +358,7 @@ export default function MainPanel() {
           ? t('audioPanel.screenRecordingHasAlternative', 'You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.')
           : null}
       />
-      {popover && <ModeDevicePopover mode={mode} open anchorEl={popover} onClose={() => setPopover(null)} />}
+      {popover && <ModeDevicePopover mode={mode} open anchorEl={popover} onClose={() => setPopover(null)} locked={run.phase !== 'idle'} />}
     </div>
   );
 }

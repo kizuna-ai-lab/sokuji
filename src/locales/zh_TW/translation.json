@@ -303,7 +303,10 @@
       "theyRead": "對方讀到",
       "theySpeak": "對方說",
       "mirror": "對方說 {{their}} → 我閱讀 {{mine}}"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "面對面對話一律使用同一個共用工作階段：兩個人對著同一支麥克風說話。",
+    "sonioxParticipantVoice": "對方的聲音",
+    "sonioxParticipantVoiceTooltip": "以您的語言唸出對方所說內容的聲音。僅限預設語音。"
   },
   "simpleSettings": {
     "autoAuthenticated": "已通過您的帳戶自動認證",
@@ -372,7 +375,8 @@
     "audioCaptureUnprovenNotice": "尚未擷取到音訊",
     "audioCaptureUnprovenTitle": "所選來源尚未傳來任何音訊",
     "audioCaptureUnprovenText1": "如果來源正在播放卻沒有譯文，很可能是 macOS 只給出了靜音：擷取某個應用程式的音訊需要「僅系統錄音」權限，沒有該權限時不會報錯，只會是靜音。",
-    "audioCaptureUnprovenText3Named": "「{{app}}」只有在嘗試過一次擷取之後才會出現在該清單中，剛才已經嘗試過了。啟用後請重新開始。如果來源本來就是靜音的，則無需任何更改。"
+    "audioCaptureUnprovenText3Named": "「{{app}}」只有在嘗試過一次擷取之後才會出現在該清單中，剛才已經嘗試過了。啟用後請重新開始。如果來源本來就是靜音的，則無需任何更改。",
+    "otherSideBesideNote": "對方與您共用麥克風，不會擷取系統音訊。"
   },
   "auth": {
     "signIn": "登入",
@@ -441,14 +445,14 @@
     "targetLanguage": "對方語言",
     "microphone": "麥克風",
     "microphoneDesc": "選擇麥克風來捕捉您的語音。對著這個麥克風說您的語言，Sokuji 會即時翻譯它聽到的一切。",
-    "speaker": "揚聲器",
-    "speakerDesc": "選擇揚聲器來監聽翻譯輸出。這讓您能聽到翻譯的聲音效果。如果不需要監聽，可以關閉。無論開啟或關閉，翻譯的音訊都會發送到虛擬麥克風供其他參與者聽到。",
     "swapLanguages": "交換語言",
     "textOnly": "僅文字",
     "textOnlyDesc": "僅翻譯為文字 — 不產生語音",
     "textOnlyForcedByMode": "「{{mode}}」模式只會把參與者說的話轉成文字給你看，不會產生語音，因此「僅文字」始終開啟。切換翻譯模式即可讓自己的語音帶聲音輸出。",
     "keepReplayAudio": "保留音訊以便重播",
-    "keepReplayAudioDesc": "將翻譯的音訊保存在記憶體中，以便您之後可以從每則訊息重新播放。預設關閉以減少長時間工作階段中的記憶體用量。"
+    "keepReplayAudioDesc": "將翻譯的音訊保存在記憶體中，以便您之後可以從每則訊息重新播放。預設關閉以減少長時間工作階段中的記憶體用量。",
+    "output": "輸出",
+    "outputDesc": "向您播放翻譯語音的裝置。在「我」模式下可以關閉；會議仍會透過虛擬麥克風聽到翻譯。"
   },
   "providers": {
     "kizunaai_soniox": {
@@ -574,7 +578,8 @@
       "legendSource": "原文：僅原始語音",
       "legendTranslation": "譯文：僅翻譯",
       "legendBoth": "兩者：兩行都顯示",
-      "legendNone": "關閉：隱藏這一側"
+      "legendNone": "關閉：隱藏這一側",
+      "person": "說話者 {{n}}"
     },
     "playItemAudio": "播放此項目的音訊",
     "backToLatest": "回到最新",
@@ -651,14 +656,22 @@
     "deviceMic": "麥克風",
     "deviceSpeakerMonitor": "揚聲器監聽",
     "notSelected": "未選擇",
-    "deviceParticipantAudio": "對方音訊"
+    "deviceParticipantAudio": "對方音訊",
+    "faceToFaceTag": "面對面",
+    "descBothBeside": "也適用於兩個人共用一部電腦的情況（面對面）。"
   },
   "popover": {
     "statusOff": "關閉",
     "toggleOn": "開啟{{label}}",
     "toggleOff": "關閉{{label}}",
     "participantSubtitleElectron": "所有系統音訊",
-    "participantSubtitleExtension": "透過系統預設輸出播放"
+    "participantSubtitleExtension": "透過系統預設輸出播放",
+    "otherSide": "對方在哪裡",
+    "otherSideMeeting": "線上會議",
+    "otherSideMeetingHint": "擷取系統音訊或某個應用程式的音訊",
+    "otherSideBeside": "就在身邊",
+    "otherSideBesideHint": "兩個人共用一支麥克風",
+    "output": "輸出"
   },
   "simplePanel": {
     "clickToConfigLanguages": "點擊配置語言",
@@ -1147,6 +1160,15 @@
       "two-way-text": {
         "title": "線上雙向對話，只有字幕",
         "desc": "雙語字幕、會議記錄 — 雙方都以文字呈現，不使用合成語音。"
+      },
+      "setsBeside": "將設定：{{mode}}模式，對方在身邊 · {{output}}",
+      "face-to-face-voice": {
+        "title": "面對面對話",
+        "desc": "兩個人在同一台電腦前，各說各的語言；每人戴一邊耳機，只聽到翻譯成自己語言的內容。"
+      },
+      "face-to-face-text": {
+        "title": "面對面對話，只有字幕",
+        "desc": "兩人看同一個螢幕，或讓對方在手機上開啟 LAN 字幕頁面。"
       }
     },
     "output": {
@@ -1179,7 +1201,8 @@
     },
     "fit": {
       "cannotSpeak": "此提供商無法產生語音翻譯。",
-      "cannotBeTextOnly": "此提供商一律會發聲，無法僅顯示字幕。"
+      "cannotBeTextOnly": "此提供商一律會發聲，無法僅顯示字幕。",
+      "cannotFaceToFace": "此提供商無法翻譯共用一支麥克風的兩個人。"
     },
     "credentials": {
       "apiKey": "API 金鑰",
@@ -1348,7 +1371,8 @@
     },
     "legend": {
       "onSite": "現場",
-      "remote": "線上"
+      "remote": "線上",
+      "person": "說話者 {{n}}"
     },
     "backToLive": "回到最新",
     "dock": {
@@ -1431,5 +1455,23 @@
     "warnAddressChanged": "網路變了，網址已換成 {{address}}，請重新傳送連結或重新開啟投影頁。",
     "errorPortsBusy": "無法開啟分享：連接埠 7788–7797 都被占用了。",
     "errorListen": "無法開啟分享：{{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "左右耳 · 每個人聽到翻譯成自己語言的內容",
+    "leftEar": "左耳",
+    "rightEar": "右耳",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "我（{{language}}）",
+    "otherListens": "對方（{{language}}）",
+    "previewLeft": "試聽左耳",
+    "previewRight": "試聽右耳",
+    "swap": "左右互換",
+    "speakersHint": "請使用耳機，一人戴一邊。只要使用揚聲器，麥克風就會收到譯音並再次翻譯。",
+    "playedLeft": "已在左耳播放",
+    "playedRight": "已在右耳播放",
+    "notPlayed": "未播放：這則譯文是 {{language}}，不是 {{target}}，因此不會唸給任何人聽。",
+    "legendMe": "{{language}} · 我",
+    "legendOther": "{{language}} · 對方"
   }
 }

@@ -13,6 +13,8 @@ export { pickDefaultInputDevice };
 
 export type NoiseSuppressionMode = 'off' | 'standard' | 'enhanced';
 export type AudioMode = 'speaker' | 'participant' | 'both';
+/** Where Both's other side is: on the far end of a meeting (system audio), or beside me on my microphone (face-to-face). */
+export type OtherSide = 'meeting' | 'beside';
 
 // Storage keys for persisting audio device preferences
 const STORAGE_KEYS = {
@@ -30,6 +32,8 @@ const STORAGE_KEYS = {
   IS_SYSTEM_AUDIO_CAPTURE_ENABLED: 'audio.isSystemAudioCaptureEnabled',
   // New fields (Phase 2 additions)
   MODE: 'audio.mode',
+  OTHER_SIDE: 'audio.otherSide',
+  BOTH_POPOVER_SEEN: 'audio.bothPopoverSeen',
   IS_MIC_MUTED: 'audio.isMicMuted',
   IS_MONITOR_MUTED: 'audio.isMonitorMuted',
   IS_PARTICIPANT_MUTED: 'audio.isParticipantMuted',
@@ -94,6 +98,10 @@ interface AudioStore {
 
   // Symmetric mode + per-channel mute flags
   mode: AudioMode;
+  /** Both mode's other side; read only where the provider offers face-to-face. */
+  otherSide: OtherSide;
+  /** The device popover has opened by itself once on picking Both. */
+  bothPopoverSeen: boolean;
   isMicMuted: boolean;
   isMonitorMuted: boolean;
   isParticipantMuted: boolean;
@@ -122,6 +130,8 @@ interface AudioStore {
 
   // Mode + mute setters
   setMode: (mode: AudioMode) => void;
+  setOtherSide: (side: OtherSide) => void;
+  setBothPopoverSeen: (seen: boolean) => void;
   setMicMuted: (muted: boolean) => void;
   setMonitorMuted: (muted: boolean) => void;
   setParticipantMuted: (muted: boolean) => void;
@@ -165,6 +175,8 @@ const useAudioStore = create<AudioStore>()(
 
     // Mode + per-channel mute flags
     mode: 'speaker' as AudioMode,
+    otherSide: 'meeting' as OtherSide,
+    bothPopoverSeen: false,
     isMicMuted: false,      // default: mic unmuted
     isMonitorMuted: true,   // default: monitor off (opt-in audio)
     isParticipantMuted: false, // default: participant unmuted
@@ -264,6 +276,15 @@ const useAudioStore = create<AudioStore>()(
     },
 
     // Mode + per-channel mute setters
+
+    setOtherSide: (side) => {
+      set({ otherSide: side });
+      void persistSetting(STORAGE_KEYS.OTHER_SIDE, side);
+    },
+    setBothPopoverSeen: (seen) => {
+      set({ bothPopoverSeen: seen });
+      void persistSetting(STORAGE_KEYS.BOTH_POPOVER_SEEN, seen);
+    },
 
     setMode: (target) => {
       set((state) => {
@@ -441,6 +462,12 @@ const useAudioStore = create<AudioStore>()(
           void persistSetting(STORAGE_KEYS.IS_SYSTEM_AUDIO_CAPTURE_ENABLED, null, { silent: true });
         }
 
+        const savedOtherSide = await settingsService.getSetting<string | null>(STORAGE_KEYS.OTHER_SIDE, null);
+        set({ otherSide: savedOtherSide === 'beside' ? 'beside' : 'meeting' });
+
+        const savedBothPopoverSeen = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.BOTH_POPOVER_SEEN, null);
+        set({ bothPopoverSeen: savedBothPopoverSeen === true });
+
         const savedIsMicMuted = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.IS_MIC_MUTED, null);
         if (typeof savedIsMicMuted === 'boolean') {
           set({ isMicMuted: savedIsMicMuted });
@@ -612,6 +639,10 @@ export const useIsMicMuted = () => useAudioStore((state) => state.isMicMuted);
 export const useIsMonitorMuted = () => useAudioStore((state) => state.isMonitorMuted);
 export const useIsParticipantMuted = () => useAudioStore((state) => state.isParticipantMuted);
 export const useSetMode = () => useAudioStore((state) => state.setMode);
+export const useOtherSide = () => useAudioStore((state) => state.otherSide);
+export const useBothPopoverSeen = () => useAudioStore((state) => state.bothPopoverSeen);
+export const useSetBothPopoverSeen = () => useAudioStore((state) => state.setBothPopoverSeen);
+export const useSetOtherSide = () => useAudioStore((state) => state.setOtherSide);
 export const useSetMicMuted = () => useAudioStore((state) => state.setMicMuted);
 export const useSetMonitorMuted = () => useAudioStore((state) => state.setMonitorMuted);
 export const useSetParticipantMuted = () => useAudioStore((state) => state.setParticipantMuted);

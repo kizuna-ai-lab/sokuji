@@ -64,7 +64,7 @@ export function contextsFor(shape: RunShape): Partial<Record<LegName, SessionCon
 }
 
 /** What the start gate reads (F7): a run's frozen shape satisfies it, and so do the stores as they stand. `textOnly`, `participantSpeech` and `account` feed a managed provider's balance floor (Stage 2 Kizuna Soniox); absent, nothing is gated on a balance. */
-export type GateInput = Pick<RunShape, 'provider' | 'settings' | 'pair' | 'legs' | 'turnMode'> & Partial<Pick<RunShape, 'textOnly' | 'participantSpeech' | 'account'>>;
+export type GateInput = Pick<RunShape, 'provider' | 'settings' | 'pair' | 'legs' | 'turnMode'> & Partial<Pick<RunShape, 'textOnly' | 'participantSpeech' | 'faceToFace' | 'account'>>;
 
 /** A start refused below a managed provider's floor: worded by the old gate's "Insufficient balance: {{balance}}" (ruling 6). */
 export const BALANCE_BELOW_FLOOR = 'balance_below_floor';
@@ -82,14 +82,14 @@ export const QUOTA_UNKNOWN = 'quota_unknown';
  * speaks, or none wired — or when the provider names no floor. The
  * backend's 402 still words a balance that changed since the fetch.
  */
-export function balanceRefusal(input: Pick<GateInput, 'provider' | 'settings' | 'legs' | 'textOnly' | 'participantSpeech' | 'account'>): Refusal | null {
+export function balanceRefusal(input: Pick<GateInput, 'provider' | 'settings' | 'legs' | 'textOnly' | 'participantSpeech' | 'faceToFace' | 'account'>): Refusal | null {
   const floorFor = input.provider.session?.minimumBalance;
   const account = input.account;
   if (!floorFor || !account) return null;
   if (account.status === 'loading') return { code: QUOTA_PENDING, message: 'The wallet is still loading.' };
   if (account.status === 'unknown') return { code: QUOTA_UNKNOWN, message: 'The wallet could not be loaded.' };
   if (account.frozen) return { code: 'wallet_frozen', message: 'The wallet is frozen.' };
-  const floor = floorFor({ legs: input.legs, textOnly: input.textOnly ?? false, participantSpeech: input.participantSpeech ?? false }, input.settings);
+  const floor = floorFor({ legs: input.legs, textOnly: input.textOnly ?? false, participantSpeech: input.participantSpeech ?? false, faceToFace: input.faceToFace ?? false }, input.settings);
   if (account.balanceMicroUsd >= floor) return null;
   return {
     code: BALANCE_BELOW_FLOOR,
@@ -120,7 +120,8 @@ export function gate(shape: GateInput, platform: Platform): Refusal | null {
     if (!offered.includes('auto')) {
       return { code: 'turn_mode_unsupported' satisfies RunNoticeCode, message: `${p.id} does not offer automatic turns, which the participant leg needs.`, leg: 'participant' };
     }
-    if (platform === 'web') {
+    // Face-to-face's participant hears through my microphone: its source is silent, and the web can open it.
+    if (platform === 'web' && !shape.faceToFace) {
       return { code: 'participant_source_unavailable' satisfies RunNoticeCode, message: 'This build has no participant source.', leg: 'participant' };
     }
     // D20: the participant leg runs the reversed pair, in the languages its own speech offers (Stage 2 Volcengine AST2, choice 1); an auto source never reverses.

@@ -148,6 +148,6 @@ function sameRows(a: readonly Row[], b: readonly Row[]): boolean {
 export function sameRow(a: Row, b: Row): boolean {
   if (a === b) return true;
   if (a.key !== b.key || a.segmentId !== b.segmentId || a.side !== b.side || a.start !== b.start || a.end !== b.end) return false;
-  if (a.text !== b.text || a.final !== b.final || a.language !== b.language) return false;
+  if (a.text !== b.text || a.final !== b.final || a.language !== b.language || a.person !== b.person) return false;
   return true;
 }

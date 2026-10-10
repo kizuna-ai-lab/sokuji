@@ -7,6 +7,7 @@
  * `FakeSocket` and a virtual clock from the first run — no network.
  */
 import { describe, it, expect } from 'vitest';
+import type { SharedSettings } from '../../lib/provider/types';
 import { AdapterStartError, LegStartError, type SessionContext, type StartRequest } from '../../lib/contract/adapter';
 import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
 import { FakeSocket, fakeSockets } from '../../lib/contract/testing/fakeSocket';
@@ -20,19 +21,23 @@ import { b64, END, ERROR_503, isStt, msg, orig, SHARED, tr, trackedClock, type J
 const SPK: SonioxCredentials = { region: 'us', stt: 'k-spk', tts: 'k-spk' };
 const PAR: SonioxCredentials = { region: 'us', stt: 'k-par', tts: 'k-par-tts' };
 
-function both(o: { sharedBoth?: boolean; participantSpeaks?: boolean; abortFirst?: boolean } = {}) {
+/** The app's rule (`shared.ts`): the participant's direction is the pair's reverse. */
+const BOTH_SHARED: SharedSettings = { ...SHARED, reversed: (direction) => direction.source === 'ja' };
+
+function both(o: { sharedBoth?: boolean; participantSpeaks?: boolean; abortFirst?: boolean; faceToFace?: boolean; speakerSource?: string } = {}) {
   const sockets = fakeSockets();
   const { clock, timers } = trackedClock();
   const controller = new AbortController();
   if (o.abortFirst) controller.abort(new Error('cancelled'));
   const s: SonioxSettings = { ...SONIOX_DEFAULTS, bothModeSharedSession: o.sharedBoth ?? true };
   const contexts: Record<LegName, SessionContext> = {
-    speaker: { direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' },
-    participant: { direction: { source: 'ja', target: 'en' }, speech: o.participantSpeaks ?? false, turns: 'auto' },
+    speaker: { direction: { source: o.speakerSource ?? 'en', target: 'ja' }, speech: true, turns: 'auto' },
+    participant: { direction: { source: 'ja', target: o.speakerSource ?? 'en' }, speech: o.participantSpeaks ?? false, turns: 'auto' },
   };
   const rec = { speaker: recordEvents(), participant: recordEvents() };
+  const shared = o.faceToFace ? { ...BOTH_SHARED, faceToFace: true } : BOTH_SHARED;
   const request = (leg: LegName, credentials: SonioxCredentials): StartRequest<SonioxConfig, SonioxCredentials> =>
-    ({ context: contexts[leg], config: buildSoniox(contexts[leg], s, SHARED), credentials, clock, signal: controller.signal });
+    ({ context: contexts[leg], config: buildSoniox(contexts[leg], s, shared), credentials, clock, signal: controller.signal });
   const starting = createSonioxAdapter({ openSocket: sockets.create }).startBoth(
     { speaker: request('speaker', SPK), participant: request('participant', PAR) },
     { speaker: rec.speaker.events, participant: rec.participant.events },
@@ -79,14 +84,14 @@ function establishTwoAsParticipant(h: Live): void {
 }
 
 describe('Soniox startBoth: split', () => {
-  it('split: two sessions on two STT sockets, each on its own direction and key', async () => {
+  it("split: two sessions on two STT sockets, each on its own direction and key; the participant's labels its people", async () => {
     const h = await live({ sharedBoth: false });
     expect(h.sttSockets()).toHaveLength(2);
     const [spk, par] = h.sttSockets().map((x) => x.sentJson<Json>()[0]);
-    expect(spk).toMatchObject({ api_key: 'k-spk', translation: { type: 'one_way', target_language: 'ja' }, language_hints: ['en'] });
-    expect(par).toMatchObject({ api_key: 'k-par', translation: { type: 'one_way', target_language: 'en' }, language_hints: ['ja'] });
+    expect(spk).toMatchObject({ api_key: 'k-spk', translation: { type: 'one_way', target_language: 'ja' }, language_hints: ['en', 'ja'] });
+    expect(par).toMatchObject({ api_key: 'k-par', translation: { type: 'one_way', target_language: 'en' }, language_hints: ['ja', 'en'] });
     expect(spk).not.toHaveProperty('enable_speaker_diarization');
-    expect(par).not.toHaveProperty('enable_speaker_diarization');
+    expect(par).toMatchObject({ enable_speaker_diarization: true });
   });
 
   it('split: the legs stop apart', async () => {
@@ -141,6 +146,13 @@ describe('Soniox startBoth: split', () => {
 });
 
 describe('Soniox startBoth: shared', () => {
+  it("shared: the participant speaks in its own voice, never the speaker's", async () => {
+    const h = await live({ participantSpeaks: true });
+    h.sttSockets()[0].receive(msg({ ...orig('Ohayō.'), language: 'ja' }, tr('Good morning.', 'en', 'ja'), END));
+    const [, participantTts] = h.ttsSockets();
+    expect(participantTts.sentJson<Json>()).toContainEqual(expect.objectContaining({ voice: 'Grace', language: 'en' }));
+  });
+
   it("shared: one STT socket, two_way on the speaker's pair, both hints, diarization, the speaker's key", async () => {
     const h = await live();
     expect(h.sttSockets()).toHaveLength(1);
@@ -353,6 +365,28 @@ describe('Soniox startBoth: shared', () => {
   });
 });
 
+describe('Soniox startBoth: shared, languages', () => {
+  it("shared: a translation into the speaker's own language is not spoken, and the leg still speaks after it", async () => {
+    const h = await live();
+    speak(h, 'speaker', 10);
+    // The speaker's source is 'en'; they said a Japanese line, so Soniox translated it into English.
+    h.sttSockets()[0].receive(msg({ ...orig('Daijōbu.'), language: 'ja' }, tr('It is fine.', 'en', 'ja'), END));
+    expect(opened(h, 'speaker')).toEqual([1, 2]);
+    const [speakerTts] = h.ttsSockets();
+    expect(speakerTts.sentJson<Json>().some((m) => m.text === 'It is fine.')).toBe(false);
+    // A normal line afterwards is spoken: the skip did not close the leg's speech.
+    h.sttSockets()[0].receive(msg(orig('Good morning.'), tr('おはよう。'), END));
+    expect(speakerTts.sentJson<Json>().some((m) => m.text === 'おはよう。')).toBe(true);
+  });
+
+  it("shared: the token and the pair are both in app codes, so Soniox's 'tl' meets the source 'fil'", async () => {
+    const h = await live({ speakerSource: 'fil' });
+    h.sttSockets()[0].receive(msg({ ...orig('Kumusta.'), language: 'tl' }, END));
+    expect(opened(h, 'speaker')).toEqual([1]);
+    expect(opened(h, 'participant')).toEqual([]);
+  });
+});
+
 describe('Soniox startBoth: cancelled', () => {
   it.each([true, false])('a start already cancelled opens nothing (shared: %s)', async (sharedBoth) => {
     const h = both({ sharedBoth, abortFirst: true });
@@ -367,5 +401,63 @@ describe('Soniox startBoth: cancelled', () => {
     expect(error).not.toBeInstanceOf(LegStartError);
     expect(String(error)).toMatch(/cancelled/);
     for (const x of h.sockets.all) expect(x.closedByClient).not.toBeNull();
+  });
+});
+
+describe('Soniox startBoth: face-to-face', () => {
+  it("face-to-face: the other person's code-switched line is not read back to them, and they are still spoken to after it", async () => {
+    const h = await live({ faceToFace: true, participantSpeaks: true });
+    const stt = h.sttSockets()[0];
+    // Label '2' speaks Japanese (the participant's source): two lines establish it as the participant.
+    stt.receive(msg({ ...orig('Konnichiwa.'), language: 'ja', speaker: '2' }, END));
+    stt.receive(msg({ ...orig('Arigatō.'), language: 'ja', speaker: '2' }, END));
+    // They now say an English line; Soniox translates it into Japanese — their own language.
+    stt.receive(msg({ ...orig('Thank you.'), language: 'en', speaker: '2' }, tr('Dōmo arigatō.', 'ja', 'en'), END));
+    expect(opened(h, 'participant')).toEqual([1, 2, 3, 4]);
+    for (const tts of h.ttsSockets()) expect(tts.sentJson<Json>().some((m) => m.text === 'Dōmo arigatō.')).toBe(false);
+    // A normal line afterwards is spoken to the speaker: the skip did not close the participant's speech.
+    stt.receive(msg({ ...orig('Mata ne.'), language: 'ja', speaker: '2' }, tr('See you.', 'en', 'ja'), END));
+    expect(h.ttsSockets().some((tts) => tts.sentJson<Json>().some((m) => m.text === 'See you.'))).toBe(true);
+  });
+
+  it('attributes by label and language, not energy: a code-switched line stays with its speaker', async () => {
+    const h = await live({ faceToFace: true });
+    const stt = h.sttSockets()[0];
+    // The participant's channel is silent in face-to-face; the speaker's carries both people.
+    speak(h, 'speaker', 10);
+    stt.receive(msg({ ...orig('Hello.'), language: 'en', speaker: '1' }, END));
+    stt.receive(msg({ ...orig('Thanks.'), language: 'en', speaker: '1' }, END));
+    stt.receive(msg({ ...orig('Konnichiwa.'), language: 'ja', speaker: '2' }, END));
+    stt.receive(msg({ ...orig('Arigatō.'), language: 'ja', speaker: '2' }, END));
+    // Speaker 1 now says a Japanese line: the label, established, keeps it on the speaker's leg.
+    stt.receive(msg({ ...orig('Daijōbu.'), language: 'ja', speaker: '1' }, END));
+    // One ref per utterance (no translation tokens here), numbered across the shared core.
+    expect(opened(h, 'speaker')).toEqual([1, 2, 5]);
+    expect(opened(h, 'participant')).toEqual([3, 4]);
+  });
+
+  it('emits no person label in face-to-face', async () => {
+    const h = await live({ faceToFace: true });
+    h.sttSockets()[0].receive(msg({ ...orig('Hello.'), language: 'en', speaker: '1' }, END));
+    for (const e of [...h.of('speaker', 'segmentOpened'), ...h.of('speaker', 'segmentText')]) {
+      expect(e.payload).not.toHaveProperty('person');
+    }
+  });
+
+  it('a third language casts no vote: it follows the established label, and answers the speaker with none', async () => {
+    const h = await live({ faceToFace: true });
+    const stt = h.sttSockets()[0];
+    const say = (text: string, language: string) => stt.receive(msg({ ...orig(text), language, speaker: '2' }, END));
+    // Two German lines: with no label and no witness each lands on the speaker.
+    say('Guten Tag.', 'de');
+    say('Wie geht es?', 'de');
+    expect(opened(h, 'speaker')).toEqual([1, 2]);
+    // Two Japanese lines establish the label as the participant. Were German a speaker vote, this would tie 2-2 and not establish.
+    say('Konnichiwa.', 'ja');
+    say('Arigatō.', 'ja');
+    expect(opened(h, 'participant')).toEqual([3, 4]);
+    // A third language now follows the established label.
+    say('Danke.', 'de');
+    expect(opened(h, 'participant')).toEqual([3, 4, 5]);
   });
 });

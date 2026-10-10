@@ -59,6 +59,9 @@ export const SONIOX_REDUCE_SILENCE = true;
 /** Present in the v2 roster, so it survives the migration. */
 export const SONIOX_DEFAULT_VOICE = 'Adrian';
 
+/** The participant's default voice (spec 2026-10-08, D12): built-in, and unlike the speaker's default. */
+export const SONIOX_PARTICIPANT_DEFAULT_VOICE = 'Grace';
+
 /**
  * Built-in voices, in the order Soniox returns them (grouped by accent family).
  *

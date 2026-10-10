@@ -33,14 +33,15 @@ export interface ExportWords {
   header: TranscriptHeaderLabels;
 }
 
-/** The words an export writes: today's `mainPanel.export.*` keys, plus the two for a missing side. */
-export function exportWords(t: (key: string, defaultValue: string) => string): ExportWords {
+/** The words an export writes: today's `mainPanel.export.*` keys, plus the two for a missing side and the person's (the conversation's own key). */
+export function exportWords(t: (key: string, defaultValue: string, params?: Record<string, string | number>) => string): ExportWords {
   return {
     labels: {
       me: t('mainPanel.export.speakerYou', 'Me'),
       other: t('mainPanel.export.speakerOther', 'Other'),
       noTranslation: t('mainPanel.export.noTranslation', '(no translation)'),
       noSource: t('mainPanel.export.noSource', '(no source)'),
+      person: (n) => t('mainPanel.displayMode.person', 'Speaker {{n}}', { n }),
     },
     header: {
       title: t('mainPanel.export.headerTitle', 'Sokuji conversation export'),

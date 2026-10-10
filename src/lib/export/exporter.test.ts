@@ -76,14 +76,16 @@ describe('conversationExporter', () => {
 });
 
 describe('exportWords', () => {
-  it("reads today's export keys, and the two new ones", () => {
-    const keyed = exportWords((key, defaultValue) => `${key}|${defaultValue}`);
-    expect(keyed.labels).toEqual({
+  it("reads today's export keys, the two new ones, and the person's", () => {
+    const keyed = exportWords((key, defaultValue, params) => `${key}|${defaultValue}${params ? `|${JSON.stringify(params)}` : ''}`);
+    const { person, ...labels } = keyed.labels;
+    expect(labels).toEqual({
       me: 'mainPanel.export.speakerYou|Me',
       other: 'mainPanel.export.speakerOther|Other',
       noTranslation: 'mainPanel.export.noTranslation|(no translation)',
       noSource: 'mainPanel.export.noSource|(no source)',
     });
+    expect(person(3)).toBe('mainPanel.displayMode.person|Speaker {{n}}|{"n":3}');
     expect(keyed.header.narrowed).toBe('mainPanel.export.headerNarrowed|Note: this export was narrowed at export time — some lines were left out.');
   });
 });

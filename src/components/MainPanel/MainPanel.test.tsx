@@ -137,6 +137,7 @@ vi.mock('../Settings/shared/WarningModal', () => ({
 import { configureAppSession, getAppSession } from '../../app/session';
 import { createVirtualClock } from '../../lib/contract/clock';
 import { PunctuationRuntime } from '../../lib/segmentation/PunctuationRuntime';
+import type { LanguagePair } from '../../lib/provider/types';
 import type { AnalyticsPort } from '../../lib/session/ports';
 import { VIEW_INTERVAL_MS } from '../../lib/view/conversationView';
 import { TRANSIENT_NOTICE_MS } from '../../lib/view/filter';
@@ -773,5 +774,159 @@ describe('panel notes (spec 2026-10-05 §5)', () => {
     expect(container.querySelector('.sys-row--info')).not.toBeNull();
     fireEvent.click(container.querySelector('.clear-conversation-btn')!);
     expect(usePanelNotesStore.getState().notes).toEqual([]);
+  });
+});
+
+describe('the ears strip (face-to-face)', () => {
+  // The fake offers face-to-face for these cases only, on a pair that reverses (D20).
+  let pair: LanguagePair;
+  beforeEach(() => {
+    Object.assign(fakeProvider, { faceToFace: true });
+    useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
+    pair = useProviderStore.getState().entries.fake!.pair;
+    useProviderStore.getState().setPair(fakeProvider, { source: 'en', target: 'ja' });
+  });
+  afterEach(() => {
+    delete (fakeProvider as { faceToFace?: boolean }).faceToFace;
+    delete (fakeProvider as { participantSpeech?: boolean }).participantSpeech;
+    // The panel is still mounted here: its cleanup runs after this hook.
+    act(() => {
+      useProviderStore.getState().setPair(fakeProvider, pair);
+      useAudioStore.setState({ otherSide: useAudioStore.getInitialState().otherSide });
+      useSettingsStore.setState({ textOnly: false });
+    });
+  });
+
+  it.each(['basic', 'advanced'] as const)('%s: sits directly above the control footer beside me, and is gone in a meeting and under Text Only', async (site) => {
+    const restoreCanvas = stubCanvas();
+    try {
+      useSettingsStore.setState({ uiMode: site });
+      const { container } = await renderPanel();
+      const strip = container.querySelector('.ears-legend');
+      expect(strip).not.toBeNull();
+      expect(strip!.nextElementSibling?.matches(`.control-footer.${site}`)).toBe(true);
+      expect(container.querySelector('.control-footer .ears-legend')).toBeNull();
+
+      act(() => { useAudioStore.setState({ otherSide: 'meeting' }); });
+      expect(container.querySelector('.ears-legend')).toBeNull();
+
+      act(() => { useAudioStore.setState({ otherSide: 'beside' }); useSettingsStore.setState({ textOnly: true }); });
+      expect(container.querySelector('.ears-legend')).toBeNull();
+    } finally {
+      restoreCanvas();
+    }
+  });
+
+  // The run's shape and capture are frozen at Start; the routing reads the other side live.
+  it('locks the other side in the popover while a run is live, and frees it when idle', async () => {
+    const { container } = await renderPanel();
+    const openPopover = () => fireEvent.click(container.querySelector('.mode-picker__segment--active')!);
+    const radios = () => [...document.querySelectorAll<HTMLInputElement>('.other-side-choice input[type="radio"]')];
+    openPopover();
+    expect(radios()).toHaveLength(2);
+    expect(radios().every((r) => !r.disabled)).toBe(true);
+    openPopover(); // closes it
+
+    await start(container);
+    openPopover();
+    expect(radios()).toHaveLength(2);
+    expect(radios().every((r) => r.disabled)).toBe(true);
+    expect(radios()[0].closest('label')?.getAttribute('title')).toBe('modePicker.switchDisabled');
+    openPopover();
+    await stop();
+  });
+
+  describe('the one-time popover on the first pick of Both', () => {
+    const bothSegment = (container: HTMLElement) => container.querySelectorAll<HTMLElement>('.mode-picker__segment')[2];
+    const radios = () => document.querySelectorAll('.other-side-choice input[type="radio"]');
+    beforeEach(() => { useAudioStore.setState({ mode: 'speaker', bothPopoverSeen: false }); });
+    afterEach(() => { act(() => { useAudioStore.setState({ bothPopoverSeen: false }); }); });
+
+    it('opens the popover and sets the flag on the first pick, then switches without opening on the next', async () => {
+      const { container } = await renderPanel();
+      fireEvent.click(bothSegment(container));
+      expect(useAudioStore.getState().mode).toBe('both');
+      expect(radios()).toHaveLength(2);
+      expect(useAudioStore.getState().bothPopoverSeen).toBe(true);
+
+      fireEvent.click(container.querySelectorAll<HTMLElement>('.mode-picker__segment')[0]);
+      expect(useAudioStore.getState().mode).toBe('speaker');
+      expect(radios()).toHaveLength(0);
+      fireEvent.click(bothSegment(container));
+      expect(useAudioStore.getState().mode).toBe('both');
+      expect(radios()).toHaveLength(0);
+    });
+
+    it('opening the popover by hand on Both marks it seen, so a later switch back does not open it', async () => {
+      useAudioStore.setState({ mode: 'both', bothPopoverSeen: false });
+      const { container } = await renderPanel();
+      fireEvent.click(bothSegment(container));
+      expect(radios()).toHaveLength(2);
+      expect(useAudioStore.getState().bothPopoverSeen).toBe(true);
+      fireEvent.click(bothSegment(container));
+      fireEvent.click(container.querySelectorAll<HTMLElement>('.mode-picker__segment')[0]);
+      fireEvent.click(bothSegment(container));
+      expect(radios()).toHaveLength(0);
+    });
+
+    it('does nothing of the kind when face-to-face is not offered', async () => {
+      delete (fakeProvider as { faceToFace?: boolean }).faceToFace;
+      const { container } = await renderPanel();
+      fireEvent.click(bothSegment(container));
+      expect(useAudioStore.getState().mode).toBe('both');
+      expect(radios()).toHaveLength(0);
+      expect(useAudioStore.getState().bothPopoverSeen).toBe(false);
+    });
+
+    it('leaves a pick during a run unchanged', async () => {
+      const { container } = await renderPanel();
+      await start(container);
+      fireEvent.click(bothSegment(container));
+      expect(useAudioStore.getState().mode).toBe('speaker');
+      expect(radios()).toHaveLength(0);
+      expect(useAudioStore.getState().bothPopoverSeen).toBe(false);
+      await stop();
+    });
+  });
+
+  /** The translation rows of a leg. */
+  const translations = (container: HTMLElement, leg: 'speaker' | 'participant') =>
+    [...container.querySelectorAll(`.conversation-row.source-${leg}`)].filter((row) => row.querySelector('.row-text.tr'));
+
+  // Ruling P7: replay works face-to-face. The participant's slot follows the run's own rule, not the hidden switch.
+  it("gives the other person's translations a replay slot when their leg speaks", async () => {
+    useSettingsStore.setState({ keepReplayAudio: true });
+    const { container } = await renderPanel();
+    await start(container);
+    playFirstExchange();
+    expect(translations(container, 'participant').length).toBeGreaterThan(0);
+    for (const row of translations(container, 'participant')) expect(row.querySelector('.row-play-btn')).not.toBeNull();
+    await stop();
+  });
+
+  // Kizuna Soniox today: the provider's flag keeps the participant's leg silent.
+  it("shows no slot, no ear and no not-played mark on a silent participant leg, and only the speaker's ear in the strip", async () => {
+    Object.assign(fakeProvider, { participantSpeech: false });
+    useSettingsStore.setState({ keepReplayAudio: true });
+    const { container } = await renderPanel();
+    await start(container);
+    playFirstExchange();
+    const theirs = translations(container, 'participant');
+    expect(theirs.length).toBeGreaterThan(0);
+    for (const row of theirs) {
+      expect(row.querySelector('.row-play-btn')).toBeNull();
+      expect(row.querySelector('.ear-tag')).toBeNull();
+    }
+    // My translations still play, in the other person's ear (right, unswapped).
+    const mine = translations(container, 'speaker');
+    expect(mine.length).toBeGreaterThan(0);
+    for (const row of mine) {
+      expect(row.querySelector('.row-play-btn')).not.toBeNull();
+      expect(row.querySelector('.ear-tag--right')).not.toBeNull();
+    }
+    const strip = container.querySelector('.ears-legend')!;
+    expect([...strip.querySelectorAll('.ears-legend__ear')].map((ear) => ear.className)).toEqual(['ears-legend__ear ears-legend__ear--other']);
+    expect(strip.querySelector('.ears-legend__ear-name')?.textContent).toBe('faceToFace.rightEar');
+    await stop();
   });
 });

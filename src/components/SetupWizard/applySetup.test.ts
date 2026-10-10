@@ -9,6 +9,8 @@ import { Provider } from '../../types/Provider';
 function deps(overrides: Partial<ApplySetupDeps> = {}): ApplySetupDeps {
   return {
     setMode: vi.fn(),
+    setOtherSide: vi.fn(),
+    setBothPopoverSeen: vi.fn(),
     setTextOnly: vi.fn(),
     applyProvider: vi.fn(async () => {}),
     completeSetup: vi.fn(async () => {}),
@@ -95,5 +97,24 @@ describe('applySetupDraft (spec §1.5)', () => {
   it('refuses an incomplete draft', async () => {
     await expect(applySetupDraft(draft({ scenario: null }), deps())).rejects.toThrow(/incomplete/);
     await expect(applySetupDraft(draft({ targetLanguage: null }), deps())).rejects.toThrow(/incomplete/);
+  });
+
+  it('writes the other side: beside me for face-to-face, a meeting for every other scenario', async () => {
+    const d = deps();
+    await applySetupDraft(draft({ scenario: 'face-to-face-voice' }), d);
+    expect(d.setMode).toHaveBeenCalledWith('both');
+    expect(d.setOtherSide).toHaveBeenCalledWith('beside');
+    const again = deps();
+    await applySetupDraft(draft({ scenario: 'two-way-voice' }), again);
+    expect(again.setOtherSide).toHaveBeenCalledWith('meeting');
+  });
+
+  it('counts a face-to-face scenario as having seen the Both popover, and a meeting scenario not', async () => {
+    const f2f = deps();
+    await applySetupDraft(draft({ scenario: 'face-to-face-voice' }), f2f);
+    expect(f2f.setBothPopoverSeen).toHaveBeenCalledWith(true);
+    const meeting = deps();
+    await applySetupDraft(draft({ scenario: 'two-way-voice' }), meeting);
+    expect(meeting.setBothPopoverSeen).not.toHaveBeenCalled();
   });
 });

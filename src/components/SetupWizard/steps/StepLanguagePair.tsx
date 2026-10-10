@@ -26,7 +26,7 @@ const StepLanguagePair: React.FC<Props> = ({ draft, dispatch }) => {
   const s = useProviderStore((st) => st.entries[p.id]?.settings) ?? p.settings.defaults;
   // The scenario's legs and text-only answer whether the run would speak, so the lists are the offer for it (Stage 2 Volcengine AST2, choice 1); the participant's own switch is the stores'.
   const preset = getScenario(draft.scenario!);
-  const speech = languageContext(p, legsFor(preset.mode), { textOnly: preset.textOnly, participantSpeech: participantSpeechSwitchFromStores() }).speech;
+  const speech = languageContext(p, legsFor(preset.mode), { textOnly: preset.textOnly, participantSpeech: preset.otherSide === 'beside' ? !preset.textOnly : participantSpeechSwitchFromStores() }).speech;
   const sources = useMemo(() => [...p.languages.sources(s, { speech })], [p, s, speech]);
   const targetsFor = (src: string) => [...p.languages.targets(src, s, { speech })];
 

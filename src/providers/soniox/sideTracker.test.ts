@@ -110,3 +110,45 @@ describe('SonioxSideTracker', () => {
     expect(t.inferSide('2', 0, 100)).toBeNull(); // no label memory, ambiguous energy
   });
 });
+
+describe('SonioxSideTracker — face-to-face (no energy, language votes)', () => {
+  it('answers by the language witness until a label has two votes, then by the label', () => {
+    const t = new SonioxSideTracker({ energy: false });
+    t.recordFrame(0, 500); // ignored: one microphone carries both people
+    expect(t.inferSide('1', 0, 100, 'speaker')).toEqual({ side: 'speaker', tier: 'language' });
+    expect(t.inferSide('1', 0, 100, 'speaker')).toEqual({ side: 'speaker', tier: 'language' });
+    // Established on two votes. A code-switched line: its language says participant, its label still says speaker.
+    expect(t.inferSide('1', 0, 100, 'participant')).toEqual({ side: 'speaker', tier: 'label' });
+    // One contrary vote does not unseat the label (2 to 1).
+    expect(t.inferSide('1', 0, 100, 'participant')).toEqual({ side: 'speaker', tier: 'label' });
+  });
+
+  it('a 2-2 tie does not answer by the label: the strict lead is required', () => {
+    const t = new SonioxSideTracker({ energy: false });
+    t.inferSide('1', 0, 100, 'speaker');
+    t.inferSide('1', 0, 100, 'speaker');
+    t.inferSide('1', 0, 100, 'participant'); // answered by the label, 2 to 1
+    t.inferSide('1', 0, 100, 'participant'); // now 2 to 2
+    expect(t.inferSide('1', 0, 100, 'participant')).toEqual({ side: 'participant', tier: 'language' });
+  });
+
+  it('forgets every tally on reset (a new socket mints new labels)', () => {
+    const t = new SonioxSideTracker({ energy: false });
+    t.inferSide('1', 0, 100, 'speaker');
+    t.inferSide('1', 0, 100, 'speaker');
+    t.reset();
+    expect(t.inferSide('1', 0, 100, 'participant')).toEqual({ side: 'participant', tier: 'language' });
+  });
+
+  it('returns null with no witness and no established label', () => {
+    const t = new SonioxSideTracker({ energy: false });
+    expect(t.inferSide('2', 0, 100, null)).toBeNull();
+    expect(t.inferSide(undefined, 0, 100)).toBeNull();
+  });
+
+  it('ignores a witness in energy mode', () => {
+    const t = new SonioxSideTracker();
+    t.recordFrame(0, 500);
+    expect(t.inferSide(undefined, 0, 100, 'speaker')).toEqual({ side: 'participant', tier: 'energy' });
+  });
+});

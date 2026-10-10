@@ -58,8 +58,8 @@ export interface BusMeter {
 export interface AudioGraph {
   /** A timeline playing into a feed: the clip queues' and the passthrough stream's. */
   timeline(feed: 'speaker' | 'participant' | 'replay' | 'passthrough'): AudioTimeline;
-  /** Plays a clip at its own rate on the preview feed. */
-  playOnce(audio: Float32Array, sampleRate: number): OneShot;
+  /** Plays a clip at its own rate on the preview feed, in one ear when given a `pan`. */
+  playOnce(audio: Float32Array, sampleRate: number, pan?: -1 | 1): OneShot;
   /** Makes the edges exactly these; an edge to a bus this platform lacks is ignored. */
   route(edges: readonly Edge[]): void;
   /** Points each bus's element at a device; the virtual one stays silent until it has one. A bus switches one device at a time and ends on the last one asked for; the promise settles once this call's switches have run, and never for a switch that never settles. */
@@ -240,17 +240,19 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
     };
   };
 
-  const edges = new Map<string, { from: Feed; node: GainNode }>();
+  const edges = new Map<string, { from: Feed; node: GainNode; panner?: StereoPannerNode }>();
   /** What `route` was last asked for: a rebuild applies it to the new context. */
   let lastRoute: readonly Edge[] = [];
   const applyRoute = (next: readonly Edge[]) => {
     const { ctx, feeds, buses } = current;
     const wanted = new Map<string, Edge>();
-    for (const edge of next) if (buses[edge.to]) wanted.set(`${edge.from}>${edge.to}`, edge);
+    // The pan is part of the key: a swapped ear is a new edge, not a retuned one.
+    for (const edge of next) if (buses[edge.to]) wanted.set(`${edge.from}>${edge.to}>${edge.pan ?? 0}`, edge);
     for (const [id, edge] of edges) {
       if (wanted.has(id)) continue;
       feeds[edge.from].disconnect(edge.node);
       edge.node.disconnect();
+      edge.panner?.disconnect();
       edges.delete(id);
     }
     for (const [id, edge] of wanted) {
@@ -261,8 +263,16 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
       }
       const node = gainOn(ctx, edge.gain);
       feeds[edge.from].connect(node);
-      node.connect(buses[edge.to]!);
-      edges.set(id, { from: edge.from, node });
+      let panner: StereoPannerNode | undefined;
+      if (edge.pan !== undefined) {
+        panner = ctx.createStereoPanner();
+        panner.pan.value = edge.pan;
+        node.connect(panner);
+        panner.connect(buses[edge.to]!);
+      } else {
+        node.connect(buses[edge.to]!);
+      }
+      edges.set(id, { from: edge.from, node, ...(panner ? { panner } : {}) });
     }
   };
 
@@ -463,14 +473,26 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
       },
     }),
 
-    playOnce(audio, sampleRate) {
+    playOnce(audio, sampleRate, pan) {
       if (audio.length === 0) return { ended: Promise.resolve(), stop: () => {} };
       const { ctx, feeds } = current;
       const buffer = ctx.createBuffer(1, audio.length, sampleRate);
       buffer.getChannelData(0).set(audio);
       let resolve!: () => void;
       const ended = new Promise<void>((r) => { resolve = r; });
-      const stop = start(ctx, buffer, feeds.preview, ctx.currentTime, resolve);
+      // One ear (the face-to-face preview): a panner of its own, gone with the clip.
+      let into: AudioNode = feeds.preview;
+      let panner: StereoPannerNode | undefined;
+      if (pan !== undefined) {
+        panner = ctx.createStereoPanner();
+        panner.pan.value = pan;
+        panner.connect(feeds.preview);
+        into = panner;
+      }
+      const stop = start(ctx, buffer, into, ctx.currentTime, () => {
+        panner?.disconnect();
+        resolve();
+      });
       return { ended, stop };
     },
 

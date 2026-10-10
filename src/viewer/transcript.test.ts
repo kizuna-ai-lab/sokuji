@@ -4,7 +4,7 @@ import type { ViewerEntry } from '../lib/share/types';
 import { makeT } from './strings';
 import { transcriptText } from './transcript';
 
-const t = makeT({ transcript: { header: 'Saved {{time}}' } }, undefined);
+const t = makeT({ transcript: { header: 'Saved {{time}}' }, legend: { person: 'Speaker {{n}}' } }, undefined);
 const at = new Date(2026, 9, 4, 19, 12, 5).getTime();
 const e = (id: string, src: string, tr: string): ViewerEntry => ({
   id, leg: 'speaker', t: at, languages: { source: 'ja', target: 'zh-CN' },
@@ -19,5 +19,10 @@ describe('transcriptText', () => {
 
   it('one language only', () => {
     expect(transcriptText([e('a', '今日は', '今天')], { code: 'ja', both: false }, t, at)).toBe('Saved 2026-10-04 19:12:05\n\n[19:12:05]\n今日は\n');
+  });
+
+  it("names the entry's person on its time line", () => {
+    const text = transcriptText([{ ...e('a', 'Hi', '你好'), person: 2 }], { code: 'zh-CN', both: false }, t, at);
+    expect(text).toBe('Saved 2026-10-04 19:12:05\n\n[19:12:05] Speaker 2\n你好\n');
   });
 });

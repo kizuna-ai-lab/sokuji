@@ -16,6 +16,7 @@ import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { sonioxRolesFloorMicroUsd } from '../../providers/soniox/kizunaBudget';
 import { liveGate } from '../../lib/session/appShape';
 import { useBalanceShortfall } from './useBalanceShortfall';
 
@@ -27,7 +28,7 @@ import { useBalanceShortfall } from './useBalanceShortfall';
 describe('useBalanceShortfall', () => {
   beforeEach(() => {
     useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null, legs: ['speaker'] });
-    useAudioStore.setState({ mode: 'speaker', selectedParticipantSource: useAudioStore.getInitialState().selectedParticipantSource });
+    useAudioStore.setState({ mode: 'speaker', otherSide: 'meeting', selectedParticipantSource: useAudioStore.getInitialState().selectedParticipantSource });
     useRoutingStore.setState({ participantSpeech: false });
     useSettingsStore.setState({ textOnly: false });
     useAccountStore.setState({ account: null });
@@ -81,6 +82,27 @@ describe('useBalanceShortfall', () => {
     });
     rerender();
     expect(result.current).toBe(true);
+  });
+
+  it('prices face-to-face as one shared stream with both voices, like the start gate', () => {
+    useProviderStore.setState({
+      selected: 'kizunaai_soniox',
+      entries: { kizunaai_soniox: { settings: { ...SONIOX_DEFAULTS, bothModeSharedSession: false }, credentials: {}, pair: { source: 'ja', target: 'en' } } },
+    });
+    const faceToFace = sonioxRolesFloorMicroUsd(['mix_stt', 'mix_tts', 'par_tts']);
+    const meeting = sonioxRolesFloorMicroUsd(['spk_stt', 'spk_tts', 'par_stt']);
+    expect(faceToFace).toBeGreaterThan(meeting);
+    useAudioStore.setState({ mode: 'both', otherSide: 'meeting' });
+    useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: meeting, frozen: false } });
+    const { result } = renderHook(() => useBalanceShortfall());
+    expect(result.current).toBe(false);
+    expect(liveGate('electron')).toBeNull();
+
+    act(() => {
+      useAudioStore.setState({ otherSide: 'beside' });
+    });
+    expect(result.current).toBe(true);
+    expect(liveGate('electron')).not.toBeNull();
   });
 
   it('is never short signed out, for a wallet loading or unknown, an own-key provider, or a frozen wallet', () => {

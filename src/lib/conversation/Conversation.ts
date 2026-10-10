@@ -82,8 +82,8 @@ export class Conversation {
 
   private dispatch(event: AdapterEvent): void {
     switch (event.kind) {
-      case 'segmentOpened': return this.open(event.payload.ref, event.payload.side, event.payload.origin);
-      case 'segmentText': return this.text(event.payload.ref, event.payload.text, event.payload.timing, event.payload.language);
+      case 'segmentOpened': return this.open(event.payload.ref, event.payload.side, event.payload.origin, event.payload.person);
+      case 'segmentText': return this.text(event.payload.ref, event.payload.text, event.payload.timing, event.payload.language, event.payload.person);
       case 'segmentClosed': return this.close(event.payload.ref, event.payload.origin);
       case 'audio': return this.audio(event.payload.ref, event.payload.range, event.payload.pcm);
       case 'speechRanges': return this.ranges(event.payload.ref, event.payload.ranges);
@@ -198,7 +198,7 @@ export class Conversation {
 
   // ---- events ----
 
-  private open(ref: number, side: Segment['side'], origin?: string): void {
+  private open(ref: number, side: Segment['side'], origin?: string, person?: string): void {
     if (this.indexByRef.has(ref)) return this.violation(`ref ${ref} opened twice`);
     const n = ++this.counter;
     const speech = this.pending.get(ref) ?? [];
@@ -206,7 +206,7 @@ export class Conversation {
     const seg: Segment = {
       id: `${this.opts.session}:${this.opts.leg}:${n}`,
       ref, side, text: '', final: false,
-      openedAt: this.opts.clock.now(), marks: [], origin, speech,
+      openedAt: this.opts.clock.now(), marks: [], origin, person, speech,
     };
     this.indexByRef.set(ref, this.segments.length);
     this.segments.push(seg);
@@ -214,16 +214,17 @@ export class Conversation {
     this.touch();
   }
 
-  private text(ref: number, text: string, timing?: SegmentTiming, language?: string): void {
+  private text(ref: number, text: string, timing?: SegmentTiming, language?: string, person?: string): void {
     this.unfilled.delete(ref);
     const i = this.indexByRef.get(ref);
     if (i === undefined) return this.violation(`text for ref ${ref} before it opened`);
     const seg = this.segments[i];
-    if (seg.text === text && sameTiming(seg.timing, timing ?? seg.timing) && (language ?? seg.language) === seg.language) return;
-    // A timing- or language-only snapshot is not growth: a mark there would
-    // read as the end of a pause to L2's cut.
+    if (seg.text === text && sameTiming(seg.timing, timing ?? seg.timing) && (language ?? seg.language) === seg.language
+      && (person ?? seg.person) === seg.person) return;
+    // A timing-, language- or person-only snapshot is not growth: a mark there
+    // would read as the end of a pause to L2's cut.
     const revision = seg.final;
-    this.replaceText(i, text, { timing, language, mark: seg.text !== text });
+    this.replaceText(i, text, { timing, language, person, mark: seg.text !== text });
     if (revision) this.clampRanges(i);
   }
 
@@ -330,7 +331,7 @@ export class Conversation {
   // ---- hooks ----
 
   /** Replaces a segment's text, re-anchoring its speech ranges and extending the growth trace. */
-  private replaceText(i: number, text: string, o: { timing?: SegmentTiming; language?: string; mark: boolean }): void {
+  private replaceText(i: number, text: string, o: { timing?: SegmentTiming; language?: string; person?: string; mark: boolean }): void {
     const seg = this.segments[i];
     const ranges = reanchorRanges(seg.text, text, seg.speech.map((s) => s.range));
     const speech = seg.speech.map((s, k) => (ranges[k] === s.range ? s : { ...s, range: ranges[k] }));
@@ -339,7 +340,7 @@ export class Conversation {
       ? seg.marks
       : seg.marks.map((m) => ({ at: m.at, len: Math.min(text.length, offsetAfterSkeleton(text, countSkeleton(seg.text.slice(0, m.len)))) }));
     const marks = o.mark ? pushMark(remapped, this.opts.clock.now(), text.length) : remapped;
-    this.replace(i, { ...seg, text, timing: o.timing ?? seg.timing, language: o.language ?? seg.language, marks, speech });
+    this.replace(i, { ...seg, text, timing: o.timing ?? seg.timing, language: o.language ?? seg.language, person: o.person ?? seg.person, marks, speech });
   }
 
   /** Marks a segment final, checks its ranges against the now-settled text, and starts punctuation fill-in for it. */

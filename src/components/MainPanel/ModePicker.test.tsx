@@ -37,6 +37,34 @@ describe('ModePicker', () => {
     expect(onSegmentClick).not.toHaveBeenCalled();
   });
 
+  it("adds the face-to-face sentence to Both's tooltip only when it is offered", () => {
+    const { rerender } = render(<ModePicker mode="speaker" locked={false} missingDeviceForMode={null} onSegmentClick={() => {}} />);
+    expect(screen.getByRole('button', { name: /Both|双向/ }).title).not.toContain('face-to-face');
+    rerender(<ModePicker mode="speaker" locked={false} missingDeviceForMode={null} onSegmentClick={() => {}} faceToFaceOffered />);
+    const title = screen.getByRole('button', { name: /Both|双向/ }).title;
+    expect(title).toContain("Two-way. Translate your voice and the other side's at the same time.\nAlso for two people at one computer (face-to-face).");
+  });
+
+  // jsdom has no container queries: the tag's visibility at narrow widths is the stylesheet's.
+  it('renders the tag whenever Both runs face-to-face', () => {
+    const { container, rerender } = render(<ModePicker mode="both" locked={false} missingDeviceForMode={null} onSegmentClick={() => {}} faceToFace />);
+    expect(container.querySelector('.mode-picker__tag')).not.toBeNull();
+    rerender(<ModePicker mode="both" locked={false} missingDeviceForMode={null} onSegmentClick={() => {}} />);
+    expect(container.querySelector('.mode-picker__tag')).toBeNull();
+  });
+
+  it('the tag carries the accessible name, with a word and an icon-only glyph', () => {
+    const { container } = render(<ModePicker mode="both" locked={false} missingDeviceForMode={null} onSegmentClick={() => {}} faceToFace />);
+    const tag = container.querySelector('.mode-picker__tag')!;
+    // The button's own aria-label overrides its content, so the word is folded into it.
+    expect(tag.closest('button')!.getAttribute('aria-label')).toMatch(/Face-to-face|modePicker\.faceToFaceTag/);
+    expect(tag.getAttribute('aria-label')).toBeNull();
+    expect(tag.getAttribute('title')).toMatch(/Face-to-face|modePicker\.faceToFaceTag/);
+    expect(tag.querySelector('.mode-picker__tag-word')).not.toBeNull();
+    expect(tag.querySelector('.mode-picker__tag-glyph')?.getAttribute('aria-hidden')).toBe('true');
+    expect(tag.querySelector('.mode-picker__tag-glyph svg')).not.toBeNull();
+  });
+
   it('renders one side icon per segment, Me and Other in their both form', () => {
     render(<ModePicker mode="both" locked={false} missingDeviceForMode={null} onSegmentClick={() => {}} />);
     const iconIn = (name: RegExp) => screen.getByRole('button', { name }).querySelector('svg')!;
@@ -55,5 +83,15 @@ describe('ModePicker', () => {
     render(<ModePicker mode="both" locked={false} missingDeviceForMode="speaker" onSegmentClick={() => {}} />);
     const speakerSeg = screen.getByRole('button', { name: /Me|我/ });
     expect(speakerSeg.className).toMatch(/warn/);
+  });
+
+  it('tags Both as face-to-face when it runs so', () => {
+    render(<ModePicker mode="both" locked={false} missingDeviceForMode={null} onSegmentClick={() => {}} faceToFace />);
+    expect(screen.getByRole('button', { name: /Both|双向/ }).querySelector('.mode-picker__tag')?.textContent).toMatch(/Face-to-face|modePicker\.faceToFaceTag/);
+  });
+
+  it('shows no tag otherwise', () => {
+    const { container } = render(<ModePicker mode="both" locked={false} missingDeviceForMode={null} onSegmentClick={() => {}} />);
+    expect(container.querySelector('.mode-picker__tag')).toBeNull();
   });
 });

@@ -1,0 +1,78 @@
+@use '../../styles/tokens' as tk;
+
+// Two radio tiles under a heading. The real input is visually hidden but stays
+// focusable, and the tile shows its focus ring. The caller sets the spacing around it.
+.other-side-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  // Sized here, so Settings and the popover draw it alike.
+  font-size: 12px;
+
+  &__heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__icon { color: #aaa; flex-shrink: 0; }
+
+  &__label {
+    color: #aaa;
+    flex-shrink: 0;
+  }
+
+  &__sides {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border: 1px solid #444;
+    border-radius: 7px;
+    overflow: hidden;
+  }
+
+  &__side {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 7px 10px;
+    cursor: pointer;
+    color: #ccc;
+
+    & + & { border-left: 1px solid #444; }
+
+    input {
+      position: absolute;
+      opacity: 0;
+      inset: 0;
+      margin: 0;
+      cursor: pointer;
+    }
+
+    &:focus-within { outline: 2px solid tk.$color-primary; outline-offset: -2px; }
+
+    &--active {
+      background: tk.$color-primary-fill;
+      color: tk.$color-on-primary;
+    }
+  }
+
+  // During a run, as the mode picker's lock: the run's side stays lit, the
+  // other is dimmed, and neither takes a click.
+  &__sides--locked &__side {
+    cursor: not-allowed;
+
+    input { cursor: not-allowed; }
+
+    &:not(.other-side-choice__side--active) { opacity: 0.55; }
+  }
+
+  &__side-title { font-weight: 600; font-size: 12px; }
+
+  &__side-hint {
+    font-size: 10px;
+    color: #aaa;
+
+    .other-side-choice__side--active & { color: tk.$color-on-primary; }
+  }
+}

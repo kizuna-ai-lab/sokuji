@@ -19,6 +19,8 @@ export function useApplySetup(): (draft: SetupDraft) => Promise<void> {
     const s = useSettingsStore.getState();
     await applySetupDraft(draft, {
       setMode: useAudioStore.getState().setMode,
+      setOtherSide: useAudioStore.getState().setOtherSide,
+      setBothPopoverSeen: useAudioStore.getState().setBothPopoverSeen,
       setTextOnly: s.setTextOnly,
       applyProvider: async (provider, pair, credentials, settings) => {
         const id = providerIdFromStored(provider);

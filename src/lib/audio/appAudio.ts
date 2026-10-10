@@ -9,8 +9,10 @@
 import { SAMPLE_RATE } from '../contract/adapter';
 import { participantSpeechHeard } from '../modern-audio/participantSource';
 import type { Platform } from '../provider/types';
+import { faceToFaceFromStores } from '../session/appShape';
 import type { TurnMode } from '../session/types';
 import useAudioStore from '../../stores/audioStore';
+import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { getEnvironment } from '../../utils/environment';
@@ -18,6 +20,7 @@ import { createAudioGraph, type VirtualOutput } from './graph';
 import { createPlayback, type Playback, type PreviewClip, type RoutingSource } from './playback';
 import type { RoutingSettings } from './routes';
 import { sendToTabs, targetTabIdFromSearch, toPcmDataMessage, type TabsApi } from './tabMicrophone';
+import { earTone } from './earTone';
 import { loadTestTone } from './testTone';
 import { findVirtualSpeaker } from './virtualSpeaker';
 
@@ -31,14 +34,17 @@ export interface AppAudio {
    * nothing — a stop pressed during the first decode; once playing,
    * `playback.stopPreview()` ends it.
    */
-  testTone(signal?: AbortSignal): Promise<void>;
+  testTone(signal?: AbortSignal, pan?: -1 | 1): Promise<void>;
+  /** Plays the synthesized chime in one ear, on the real device (face-to-face's ear preview). */
+  earPreview(pan: -1 | 1): Promise<void>;
 }
 
 export function readRouting(
   audio: Pick<AudioState, 'mode' | 'isMonitorMuted' | 'isRealVoicePassthroughEnabled' | 'realVoicePassthroughVolume' | 'selectedMonitorDevice' | 'audioMonitorDevices' | 'selectedParticipantSource'>,
-  switches: { meeting: boolean; participantSpeech: boolean },
+  switches: { meeting: boolean; participantSpeech: boolean; faceToFaceSwap: boolean },
   platform: Platform,
   turnMode: TurnMode,
+  faceToFace = false,
 ): RoutingSettings {
   return {
     meeting: switches.meeting,
@@ -50,8 +56,10 @@ export function readRouting(
     // reason (plan 1e-3b-2 ruling 7, completed: `participantSpeechHeard` is
     // the one predicate this, the switch, the run's shape and the replay
     // slot all share). An application capture that falls back to the whole
-    // system mid-run is not seen here: a follow-up.
-    participantSpeech: switches.participantSpeech && participantSpeechHeard(platform, audio.selectedParticipantSource?.deviceId),
+    // system mid-run is not seen here: a follow-up. Face-to-face captures
+    // nothing system-wide, so its participant is voiced whenever its leg
+    // speaks (the run's shape decides that).
+    participantSpeech: faceToFace || (switches.participantSpeech && participantSpeechHeard(platform, audio.selectedParticipantSource?.deviceId)),
     // 1e-3 ruling 4, today's rule (`isPassthroughActive`): under push-to-translate
     // the original voice is on at full level whenever the key is not held (the
     // route closes while held), whatever the passthrough toggle says. Under
@@ -66,20 +74,30 @@ export function readRouting(
       real: audio.selectedMonitorDevice?.deviceId,
       virtual: platform === 'electron' ? findVirtualSpeaker(audio.audioMonitorDevices) : undefined,
     },
+    ...(faceToFace ? { ears: { swap: switches.faceToFaceSwap } } : {}),
   };
 }
 
 export function createAppRouting(platform: Platform): RoutingSource {
   return {
-    get: () => readRouting(useAudioStore.getState(), useRoutingStore.getState(), platform, useTurnModeStore.getState().turnMode),
+    get: () => readRouting(useAudioStore.getState(), useRoutingStore.getState(), platform, useTurnModeStore.getState().turnMode, faceToFaceFromStores()),
     subscribe(listener) {
-      const offAudio = useAudioStore.subscribe(() => listener());
-      const offSwitches = useRoutingStore.subscribe(() => listener());
-      const offTurnMode = useTurnModeStore.subscribe(() => listener());
+      // The provider decides whether "beside me" is face-to-face, and only
+      // once its entry has loaded, which lands after the pick.
+      let faceToFace = faceToFaceFromStores();
+      const notify = () => {
+        faceToFace = faceToFaceFromStores();
+        listener();
+      };
+      const offAudio = useAudioStore.subscribe(notify);
+      const offSwitches = useRoutingStore.subscribe(notify);
+      const offTurnMode = useTurnModeStore.subscribe(notify);
+      const offProvider = useProviderStore.subscribe(() => { if (faceToFaceFromStores() !== faceToFace) notify(); });
       return () => {
         offAudio();
         offSwitches();
         offTurnMode();
+        offProvider();
       };
     },
   };
@@ -148,7 +166,7 @@ async function build(): Promise<AppAudio> {
   let tone: Promise<PreviewClip> | null = null;
   return {
     playback,
-    async testTone(signal) {
+    async testTone(signal, pan) {
       // Not on `context`: a rebuild (#246) may have closed it before the first
       // decode, and browsers have differed on decoding on a closed context. An
       // offline context of the same rate decodes to the same samples and is
@@ -159,8 +177,9 @@ async function build(): Promise<AppAudio> {
       });
       const clip = await tone;
       if (signal?.aborted) return;
-      await playback.preview(clip);
+      await playback.preview(pan === undefined ? clip : { ...clip, pan });
     },
+    earPreview: (pan) => playback.preview({ ...earTone(), pan }),
   };
 }
 

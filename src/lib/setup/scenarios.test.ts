@@ -2,12 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { SCENARIOS, getScenario, providerFitForScenario } from './scenarios';
 
 describe('scenario presets', () => {
-  it('enumerates every meaningful mode × textOnly combination exactly once', () => {
-    const combos = SCENARIOS.map((s) => `${s.mode}:${s.textOnly}`);
+  it('enumerates every meaningful mode × textOnly × other side combination exactly once', () => {
+    const combos = SCENARIOS.map((s) => `${s.mode}:${s.textOnly}:${s.otherSide ?? 'meeting'}`);
     // participant is text-only by construction (the leg never speaks), so it
-    // appears once; speaker and both appear with both toggle values.
+    // appears once; speaker and both appear with both toggle values, and both
+    // again with the other side beside me.
     expect(combos.sort()).toEqual([
-      'both:false', 'both:true', 'participant:true', 'speaker:false', 'speaker:true',
+      'both:false:beside', 'both:false:meeting', 'both:true:beside', 'both:true:meeting',
+      'participant:true:meeting', 'speaker:false:meeting', 'speaker:true:meeting',
     ]);
   });
 
@@ -41,7 +43,21 @@ describe('providerFitForScenario', () => {
     expect(providerFitForScenario('optional', listens)).toEqual({ ok: true });
   });
 
-  it('accepts an optional provider everywhere', () => {
-    for (const s of SCENARIOS) expect(providerFitForScenario('optional', s)).toEqual({ ok: true });
+  it('accepts an optional provider in every meeting scenario, and in every scenario when it offers face-to-face', () => {
+    for (const s of SCENARIOS.filter((x) => !x.otherSide)) expect(providerFitForScenario('optional', s)).toEqual({ ok: true });
+    for (const s of SCENARIOS) expect(providerFitForScenario('optional', s, true)).toEqual({ ok: true });
+  });
+});
+
+describe('face-to-face scenarios', () => {
+  it('are Both beside me, with and without voice', () => {
+    expect(getScenario('face-to-face-voice')).toEqual({ id: 'face-to-face-voice', mode: 'both', textOnly: false, otherSide: 'beside' });
+    expect(getScenario('face-to-face-text')).toEqual({ id: 'face-to-face-text', mode: 'both', textOnly: true, otherSide: 'beside' });
+  });
+
+  it('fit only a provider that offers face-to-face', () => {
+    expect(providerFitForScenario('optional', getScenario('face-to-face-voice'), false)).toEqual({ ok: false, reason: 'cannot-face-to-face' });
+    expect(providerFitForScenario('optional', getScenario('face-to-face-voice'), true)).toEqual({ ok: true });
+    expect(providerFitForScenario('optional', getScenario('two-way-voice'), false)).toEqual({ ok: true });
   });
 });

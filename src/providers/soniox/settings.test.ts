@@ -4,6 +4,7 @@ import { reverseSupported } from '../../lib/provider/languages';
 import type { AuthContext } from '../../lib/provider/types';
 import {
   SONIOX_DEFAULTS,
+  participantVoiceFor,
   SONIOX_KEY_FIELDS,
   migrateSonioxSettings,
   sonioxCredentials,
@@ -16,13 +17,14 @@ import {
 const signedOut: AuthContext = { signedIn: false, getToken: async () => null };
 
 describe('SONIOX_DEFAULTS', () => {
-  it('defaults to the US region, Adrian in every region, shared Both on, and Soniox\'s server defaults', () => {
+  it('defaults to the US region, Adrian in every region, split Both, and Soniox\'s server defaults', () => {
     expect(SONIOX_DEFAULTS).toEqual({
       region: 'us',
       voice: 'Adrian',
       voiceEu: 'Adrian',
       voiceJp: 'Adrian',
-      bothModeSharedSession: true,
+      participantVoice: 'Grace',
+      bothModeSharedSession: false,
       vocabularyTerms: '',
       vocabularyTranslations: '',
       contextText: '',
@@ -49,10 +51,15 @@ describe('migrateSonioxSettings', () => {
     });
     expect(wrongTyped.endpointMaxDelayMs).toBe(2000);
     expect(wrongTyped.voiceJp).toBe('Adrian');
-    expect(wrongTyped.bothModeSharedSession).toBe(true);
+    expect(wrongTyped.bothModeSharedSession).toBe(false);
 
     // An unlisted stored field is not carried into the result.
     expect(migrateSonioxSettings({ ...SONIOX_DEFAULTS, model: 'stt-rt-v5' })).not.toHaveProperty('model');
+  });
+
+  it('keeps a stored shared choice: only an unset or wrong-typed value takes the split default', () => {
+    expect(migrateSonioxSettings({ ...SONIOX_DEFAULTS, bothModeSharedSession: true }).bothModeSharedSession).toBe(true);
+    expect(migrateSonioxSettings({}).bothModeSharedSession).toBe(false);
   });
 });
 
@@ -126,4 +133,19 @@ it('offers app codes; Tagalog is fil here and tl at Soniox (unified language cod
   expect(values).not.toContain('tl');
   expect(sonioxLanguages.wire?.toWire('fil')).toBe('tl');
   expect(sonioxLanguages.wire?.fromWire('tl')).toBe('fil');
+});
+
+describe('the participant voice', () => {
+  it('keeps a stored built-in voice and drops anything else to Grace', () => {
+    expect(migrateSonioxSettings({ ...SONIOX_DEFAULTS, participantVoice: 'Kenji' }).participantVoice).toBe('Kenji');
+    expect(migrateSonioxSettings({ ...SONIOX_DEFAULTS, participantVoice: 'a1b2-clone-uuid' }).participantVoice).toBe('Grace');
+    expect(migrateSonioxSettings({ ...SONIOX_DEFAULTS, participantVoice: 7 }).participantVoice).toBe('Grace');
+  });
+
+  it("never matches the speaker's voice by default", () => {
+    expect(participantVoiceFor({ participantVoice: 'Grace' }, 'Adrian')).toBe('Grace');
+    expect(participantVoiceFor({ participantVoice: 'Grace' }, 'Grace')).toBe('Adrian');
+    expect(participantVoiceFor({ participantVoice: 'Adrian' }, 'Adrian')).toBe('Grace');
+    expect(participantVoiceFor({ participantVoice: 'Kenji' }, 'Grace')).toBe('Kenji');
+  });
 });

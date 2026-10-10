@@ -303,7 +303,10 @@
       "theyRead": "he lukevat",
       "theySpeak": "he puhuvat",
       "mirror": "He puhuvat {{their}} → luen {{mine}}"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "Kasvokkain-tila käyttää aina yhtä jaettua istuntoa: molemmat puhuvat samaan mikrofoniin.",
+    "sonioxParticipantVoice": "Toisen osapuolen ääni",
+    "sonioxParticipantVoiceTooltip": "Ääni, joka lukee toisen sanat sinulle omalla kielelläsi. Vain sisäänrakennetut äänet."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automaattisesti todennettu tilisi kautta",
@@ -372,7 +375,8 @@
     "audioCaptureUnprovenNotice": "Mitään ei ole vielä kaapattu",
     "audioCaptureUnprovenTitle": "Valitusta lähteestä ei ole vielä tullut ääntä",
     "audioCaptureUnprovenText1": "Jos lähde toistaa eikä mitään käännetä, macOS toimittaa todennäköisesti hiljaisuutta: sovelluksen kaappaaminen vaatii käyttöoikeuden \"Vain järjestelmän äänen tallennus\", ja ilman sitä ei tule virhettä, vain hiljaisuutta.",
-    "audioCaptureUnprovenText3Named": "\"{{app}}\" näkyy luettelossa vasta yhden kaappausyrityksen jälkeen, joka juuri tehtiin. Aloita istunto uudelleen, kun olet ottanut sen käyttöön. Jos lähde oli vain hiljainen, mitään ei tarvitse muuttaa."
+    "audioCaptureUnprovenText3Named": "\"{{app}}\" näkyy luettelossa vasta yhden kaappausyrityksen jälkeen, joka juuri tehtiin. Aloita istunto uudelleen, kun olet ottanut sen käyttöön. Jos lähde oli vain hiljainen, mitään ei tarvitse muuttaa.",
+    "otherSideBesideNote": "Toinen henkilö käyttää mikrofoniasi; järjestelmän ääntä ei tallenneta."
   },
   "auth": {
     "signIn": "Kirjaudu sisään",
@@ -441,14 +445,14 @@
     "targetLanguage": "Toisen kieli",
     "microphone": "Mikrofoni",
     "microphoneDesc": "Valitse mikrofoni puheesi kaappaamiseen. Puhu kielelläsi tähän mikrofoniin, niin Sokuji kääntää kaiken mitä se kuulee reaaliajassa.",
-    "speaker": "Kaiutin",
-    "speakerDesc": "Valitse kaiutin käännetyn tulosteen valvomiseen. Tämä antaa sinun kuulla miltä käännös kuulostaa. Voit sammuttaa sen, jos valvonta ei ole tarpeen. Oli se päällä tai pois, käännetty ääni lähetetään aina virtuaaliseen mikrofoniin muiden osallistujien kuultavaksi.",
     "swapLanguages": "Vaihda kielet",
     "textOnly": "Vain teksti",
     "textOnlyDesc": "Käännä vain tekstiksi — ei puhuttua ääntä",
     "textOnlyForcedByMode": "Tila \"{{mode}}\" muuttaa osallistujien puheen vain tekstiksi sinulle eikä koskaan tuota ääntä, joten \"Vain teksti\" pysyy päällä. Vaihda käännöstilaa kääntääksesi oman äänesi puheena.",
     "keepReplayAudio": "Säilytä ääni toistoa varten",
-    "keepReplayAudioDesc": "Säilytä käännetty ääni muistissa, jotta voit toistaa sen myöhemmin jokaisesta viestistä. Oletuksena pois päältä, jotta muistinkäyttö pysyy pienenä pitkissä istunnoissa."
+    "keepReplayAudioDesc": "Säilytä käännetty ääni muistissa, jotta voit toistaa sen myöhemmin jokaisesta viestistä. Oletuksena pois päältä, jotta muistinkäyttö pysyy pienenä pitkissä istunnoissa.",
+    "output": "Ulostulo",
+    "outputDesc": "Laite, joka toistaa käännetyn puheen sinulle. Minä-tilassa sen voi kytkeä pois; kokous kuulee käännöksen silti virtuaalimikrofonin kautta."
   },
   "providers": {
     "kizunaai_soniox": {
@@ -574,7 +578,8 @@
       "legendSource": "Lähde: vain alkuperäinen puhe",
       "legendTranslation": "Käännös: vain käännös",
       "legendBoth": "Molemmat: molemmat rivit",
-      "legendNone": "Pois: piilota tämä puoli"
+      "legendNone": "Pois: piilota tämä puoli",
+      "person": "Puhuja {{n}}"
     },
     "playItemAudio": "Toista tämän kohteen ääni",
     "backToLatest": "Takaisin uusimpaan",
@@ -651,14 +656,22 @@
     "deviceMic": "Mikrofoni",
     "deviceSpeakerMonitor": "Kaiuttimen valvonta",
     "notSelected": "Ei valittu",
-    "deviceParticipantAudio": "Toisen ääni"
+    "deviceParticipantAudio": "Toisen ääni",
+    "faceToFaceTag": "Kasvokkain",
+    "descBothBeside": "Sopii myös kahdelle ihmiselle yhdellä tietokoneella (kasvokkain)."
   },
   "popover": {
     "statusOff": "Pois",
     "toggleOn": "Ota {{label}} käyttöön",
     "toggleOff": "Poista {{label}} käytöstä",
     "participantSubtitleElectron": "Kaikki järjestelmän ääni",
-    "participantSubtitleExtension": "Toistetaan järjestelmän oletuksen kautta"
+    "participantSubtitleExtension": "Toistetaan järjestelmän oletuksen kautta",
+    "otherSide": "Missä toinen on",
+    "otherSideMeeting": "Kokouksessa",
+    "otherSideMeetingHint": "Kaappaa järjestelmän äänen tai sovelluksen äänen",
+    "otherSideBeside": "Vieressäni",
+    "otherSideBesideHint": "Kaksi ihmistä yhdellä mikrofonilla",
+    "output": "Ulostulo"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Napsauta määrittääksesi kielet",
@@ -1147,6 +1160,15 @@
       "two-way-text": {
         "title": "Kaksisuuntainen verkkokeskustelu, vain tekstitys",
         "desc": "Kaksikieliset tekstitykset, kokousmuistiot — molemmat puolet tekstinä, ei synteettistä ääntä."
+      },
+      "setsBeside": "Asettaa: {{mode}}-tila, toinen vieressäni · {{output}}",
+      "face-to-face-voice": {
+        "title": "Keskustelu kasvokkain",
+        "desc": "Kaksi ihmistä yhdellä tietokoneella, kumpikin puhuu omaa kieltään; kummallakin on yksi nappikuuloke ja hän kuulee vain käännöksen omalle kielelleen."
+      },
+      "face-to-face-text": {
+        "title": "Keskustelu kasvokkain, vain tekstitys",
+        "desc": "Molemmat lukevat samaa ruutua, tai toinen avaa LAN-tekstityssivun puhelimellaan."
       }
     },
     "output": {
@@ -1179,7 +1201,8 @@
     },
     "fit": {
       "cannotSpeak": "Tämä tarjoaja ei pysty tuottamaan puhuttua käännöstä.",
-      "cannotBeTextOnly": "Tämä tarjoaja puhuu aina; se ei voi toimia vain tekstityksellä."
+      "cannotBeTextOnly": "Tämä tarjoaja puhuu aina; se ei voi toimia vain tekstityksellä.",
+      "cannotFaceToFace": "Tämä tarjoaja ei pysty kääntämään kahta ihmistä yhdellä mikrofonilla."
     },
     "credentials": {
       "apiKey": "API-avain",
@@ -1348,7 +1371,8 @@
     },
     "legend": {
       "onSite": "Paikan päällä",
-      "remote": "Etänä"
+      "remote": "Etänä",
+      "person": "Puhuja {{n}}"
     },
     "backToLive": "Takaisin uusimpaan",
     "dock": {
@@ -1431,5 +1455,23 @@
     "warnAddressChanged": "Verkko vaihtui. Osoite on nyt {{address}}: lähetä linkki uudelleen tai avaa projektorisivu uudelleen.",
     "errorPortsBusy": "Jakamista ei voitu aloittaa: portit 7788–7797 ovat kaikki käytössä.",
     "errorListen": "Jakamista ei voitu aloittaa: {{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "Vasen ja oikea · kumpikin kuulee käännöksen omalla kielellään",
+    "leftEar": "Vasen korva",
+    "rightEar": "Oikea korva",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "Minä ({{language}})",
+    "otherListens": "Toinen ({{language}})",
+    "previewLeft": "Esikuuntele vasen korva",
+    "previewRight": "Esikuuntele oikea korva",
+    "swap": "Vaihda vasen ja oikea",
+    "speakersHint": "Käyttäkää kuulokkeita, kumpikin yhtä puolta. Mikä tahansa kaiutin saa mikrofonin poimimaan käännöksen ja kääntämään sen uudelleen.",
+    "playedLeft": "Toistettu vasemmassa korvassa",
+    "playedRight": "Toistettu oikeassa korvassa",
+    "notPlayed": "Ei toistettu: tämä käännös on kielellä {{language}}, ei kielellä {{target}}, joten sitä ei lueta kenellekään.",
+    "legendMe": "{{language}} · minä",
+    "legendOther": "{{language}} · toinen"
   }
 }

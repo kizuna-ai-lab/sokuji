@@ -11,8 +11,8 @@
  * their justification for screen readers rather than just going quiet.
  */
 import React from 'react';
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import AudioDeviceSection from './AudioDeviceSection';
 
 // Resolve to the inline default when the call site has one, else echo the key —
@@ -24,6 +24,11 @@ vi.mock('react-i18next', () => ({
 vi.mock('../../../lib/analytics', () => ({
   useAnalytics: () => ({ trackEvent: vi.fn() }),
 }));
+
+const f2f = vi.hoisted(() => ({ active: false }));
+const mon = vi.hoisted(() => ({ muted: false, select: vi.fn(), setMuted: vi.fn() }));
+vi.mock('../../MainPanel/useFaceToFace', () => ({ useFaceToFace: () => ({ active: f2f.active }) }));
+vi.mock('../../FaceToFace/EarsBlock', () => ({ default: () => <div data-testid="ears-block" /> }));
 
 const devices = [{ deviceId: 'spk-1', label: 'Headphones' }];
 
@@ -37,12 +42,12 @@ vi.mock('../../../stores/audioStore', () => ({
     selectedInputDevice: null,
     selectedMonitorDevice: devices[0],
     isMicMuted: false,
-    isMonitorMuted: false,
+    isMonitorMuted: mon.muted,
     isLoading: false,
     selectInputDevice: vi.fn(),
-    selectMonitorDevice: vi.fn(),
+    selectMonitorDevice: mon.select,
     setMicMuted: vi.fn(),
-    setMonitorMuted: vi.fn(),
+    setMonitorMuted: mon.setMuted,
     refreshDevices: vi.fn(),
   }),
 }));
@@ -162,5 +167,51 @@ describe('AudioDeviceSection renders no participant UI', () => {
     expect(container.querySelector('#participant-section')).toBeNull();
     expect(container.querySelector('#participant-source-section')).toBeNull();
     expect(container.querySelector('.participant-source-picker')).toBeNull();
+  });
+});
+
+describe('AudioDeviceSection: the Output section', () => {
+  it('is headed Output', () => {
+    renderSpeaker();
+    expect(screen.getByRole('heading', { name: /Output/ })).toBeInTheDocument();
+  });
+
+  it('in Me mode keeps the Off row', () => {
+    f2f.active = false;
+    renderSpeaker({ isLocked: false });
+    expect(screen.getByText('Off')).toBeInTheDocument();
+  });
+
+  it('under face-to-face: no Off row, no lock or reason, the ears block', () => {
+    f2f.active = true;
+    renderSpeaker({ isLocked: true, lockedReason: REASON });
+    f2f.active = false;
+    expect(screen.queryByText('Off')).toBeNull();
+    expect(screen.queryByText(REASON)).toBeNull();
+    expect(screen.getByRole('listbox')).not.toHaveAttribute('aria-disabled');
+    expect(screen.getByTestId('ears-block')).toBeInTheDocument();
+  });
+});
+
+describe('AudioDeviceSection: picking an Output device', () => {
+  const pick = () => {
+    renderSpeaker({ isLocked: false });
+    fireEvent.click(screen.getByText('Headphones'));
+  };
+  beforeEach(() => { mon.muted = true; mon.select.mockReset(); mon.setMuted.mockReset(); });
+  afterEach(() => { mon.muted = false; f2f.active = false; });
+
+  it('in Me mode unmutes the monitor', () => {
+    f2f.active = false;
+    pick();
+    expect(mon.select).toHaveBeenCalled();
+    expect(mon.setMuted).toHaveBeenCalledWith(false);
+  });
+
+  it('under face-to-face leaves the Me-mode monitor muted', () => {
+    f2f.active = true;
+    pick();
+    expect(mon.select).toHaveBeenCalled();
+    expect(mon.setMuted).not.toHaveBeenCalled();
   });
 });

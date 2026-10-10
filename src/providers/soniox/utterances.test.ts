@@ -378,4 +378,43 @@ describe('Utterances', () => {
       { leg: 'speaker', endSpeech: 2 },
     ]);
   });
+
+  it("labels the source and its translation with the first token's speaker, scoped to the socket", () => {
+    const { machine, segments } = setup();
+    machine.message([orig('Hello', true, { speaker: '2' }), tr('こんにちは')]);
+    expect(segments()).toEqual([
+      { kind: 'segmentOpened', payload: { ref: 1, side: 'source', origin: 'u1', person: '1.2' } },
+      { kind: 'segmentOpened', payload: { ref: 2, side: 'translation', origin: 'u1', person: '1.2' } },
+      { kind: 'segmentText', payload: { ref: 1, text: 'Hello', language: 'en', person: '1.2' } },
+      { kind: 'segmentText', payload: { ref: 2, text: 'こんにちは', language: 'ja', person: '1.2' } },
+    ]);
+  });
+
+  it("lets the final originals outvote an early label, and re-sends the text for it alone", () => {
+    const { machine, segments, textsOf } = setup();
+    machine.message([orig('Yes', false, { speaker: '2' })]);
+    machine.message([orig('Yes', true, { speaker: '1' }), orig(' I', true, { speaker: '1' }), tr('はい')]);
+    expect(textsOf(1).map((p) => p.person)).toEqual(['1.2', '1.1']);
+    const translationOpen = segments().find((s) => s.kind === 'segmentOpened' && s.payload.side === 'translation');
+    expect(translationOpen?.payload).toMatchObject({ person: '1.1' });
+    machine.message([orig('.', true, { speaker: '2' }), END]);
+    // Two votes to one: the new text keeps the person.
+    expect(textsOf(1).map((p) => [p.text, p.person])).toEqual([['Yes', '1.2'], ['Yes I', '1.1'], ['Yes I.', '1.1']]);
+  });
+
+  it('sends a change of person alone as a new snapshot', () => {
+    const { machine, textsOf } = setup();
+    machine.message([orig('Hi', false, { speaker: '2' })]);
+    machine.message([orig('Hi', true, { speaker: '1' })]);
+    expect(textsOf(1).map((p) => [p.text, p.person])).toEqual([['Hi', '1.2'], ['Hi', '1.1']]);
+  });
+
+  it('starts a new epoch after a resume: the same label on the new socket is someone new', () => {
+    const { machine, segments } = setup();
+    machine.message([orig('A', true, { speaker: '1' })]);
+    machine.abandon();
+    machine.message([orig('B', true, { speaker: '1' })]);
+    const opened = segments().filter((s) => s.kind === 'segmentOpened').map((s) => (s.payload as { person?: string }).person);
+    expect(opened).toEqual(['1.1', '2.1']);
+  });
 });

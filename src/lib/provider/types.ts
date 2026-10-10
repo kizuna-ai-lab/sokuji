@@ -133,6 +133,8 @@ export interface SharedSettings {
   reversed(direction: SessionContext['direction']): boolean;
   /** The display segmentation as stored: a provider that cuts its own jobs follows it (LocalInference). */
   segmentation: { mode: 'off' | 'pause' | 'sentences'; sentencesPerRow: number };
+  /** Face-to-face: a builder that can run it forces its shared socket. Absent: false. */
+  faceToFace?: boolean;
   /** The models this run's own readiness check found (F2): the list its settings component was shown, for the same effective-model function. */
   models: readonly ModelOption[];
 }
@@ -163,6 +165,10 @@ export interface SettingsProps<S> {
   preview?: PreviewPort;
   /** The legs a start would open (the audio mode's). Set by `ProviderOwnSettings` for `Settings`: Soniox locks its shared-session choice outside Both. */
   legs?: readonly LegName[];
+  /** The participant leg would speak (face-to-face, or its switch, and the provider allows it). Set by `ProviderOwnSettings` for `Settings`: Soniox shows the participant's voice. */
+  participantSpeaks?: boolean;
+  /** A start would run face-to-face. Set by `ProviderOwnSettings` for `Settings`: Soniox locks its shared-session choice. */
+  faceToFace?: boolean;
 }
 
 /** One slot of a local engine's model management: a stage of one direction (`src→tgt`). */
@@ -358,6 +364,13 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
    * when its switch is on.
    */
   participantSpeech?: boolean;
+  /**
+   * Whether Both may run face-to-face (spec 2026-10-08, slice 3): two people
+   * at one microphone, attributed by speaker label and language on one
+   * shared socket. Absent: the Both popover never offers "beside me", and a
+   * stored choice is ignored.
+   */
+  faceToFace?: boolean;
 
   // one leg's session; `C` has no `refused` member — the type parameter's constraint enforces it
   build(context: SessionContext, s: S, shared: SharedSettings): C | ProviderRefusal;

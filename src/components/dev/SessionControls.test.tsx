@@ -104,7 +104,7 @@ function fakeAudio(): AppAudio & { playback: Playback } {
     meter: () => null,
     dispose: vi.fn(async () => {}),
   } as unknown as Playback;
-  return { playback, testTone: vi.fn(async () => {}) };
+  return { playback, testTone: vi.fn(async () => {}), earPreview: vi.fn(async () => {}) };
 }
 
 describe('SessionControls — playback', () => {

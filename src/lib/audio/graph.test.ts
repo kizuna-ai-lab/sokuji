@@ -93,6 +93,19 @@ describe('createAudioGraph — routes', () => {
     graph.route([{ from: 'passthrough', to: 'virtual', gain: 0.3 }]);
     expect(reaches(clip('passthrough'), destinationOf(virtualSink))).toBe(true);
   });
+
+  it('pans an edge through a stereo panner, and replaces it when the pan changes (Review Focus 3)', async () => {
+    const { ctx, graph, real, destinationOf, clip } = await setup();
+    graph.route([{ from: 'speaker', to: 'real', gain: 1, pan: 1 }]);
+    const source = clip('speaker');
+    expect(reaches(source, destinationOf(real))).toBe(true);
+    expect(ctx.panners.map((p) => p.pan.value)).toEqual([1]);
+    graph.route([{ from: 'speaker', to: 'real', gain: 1, pan: -1 }]);
+    expect(reaches(source, destinationOf(real))).toBe(true);
+    expect(ctx.panners.map((p) => p.pan.value)).toEqual([1, -1]);
+    // The first panner is out of the path.
+    expect(ctx.panners[0].outputs.size).toBe(0);
+  });
 });
 
 describe('createAudioGraph — outputs', () => {
@@ -410,6 +423,15 @@ describe('createAudioGraph — clips', () => {
     expect(ctx.sources[0].buffer!.sampleRate).toBe(48000);
     ctx.advance(0.2);
     await expect(shot.ended).resolves.toBeUndefined();
+  });
+
+  it('plays a one-shot through a panner when asked for one ear, and drops it at the end', async () => {
+    const { ctx, graph } = await setup();
+    const shot = graph.playOnce(new Float32Array(240), 24_000, -1);
+    expect(ctx.panners.map((p) => p.pan.value)).toEqual([-1]);
+    shot.stop();
+    await shot.ended;
+    expect(ctx.panners[0].outputs.size).toBe(0);
   });
 
   it('an empty one-shot has ended already and plays nothing', async () => {

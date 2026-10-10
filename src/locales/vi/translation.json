@@ -303,7 +303,10 @@
       "theyRead": "họ đọc",
       "theySpeak": "họ nói",
       "mirror": "Họ nói {{their}} → tôi đọc {{mine}}"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "Chế độ mặt đối mặt luôn dùng một phiên dùng chung: cả hai người nói vào cùng một micro.",
+    "sonioxParticipantVoice": "Giọng của đối phương",
+    "sonioxParticipantVoiceTooltip": "Giọng đọc lời của đối phương cho bạn bằng ngôn ngữ của bạn. Chỉ dùng giọng có sẵn."
   },
   "simpleSettings": {
     "autoAuthenticated": "Tự động xác thực qua tài khoản của bạn",
@@ -372,7 +375,8 @@
     "audioCaptureUnprovenNotice": "Chưa thu được gì",
     "audioCaptureUnprovenTitle": "Chưa có âm thanh nào từ nguồn đã chọn",
     "audioCaptureUnprovenText1": "Nếu nguồn đang phát mà không có gì được dịch, nhiều khả năng macOS đang trả về im lặng: thu âm thanh của một ứng dụng cần quyền \"System Audio Recording Only\", và không có quyền này thì sẽ không có lỗi, chỉ có im lặng.",
-    "audioCaptureUnprovenText3Named": "\"{{app}}\" chỉ xuất hiện trong danh sách đó sau khi đã thử thu một lần, và điều đó vừa xảy ra. Sau khi bật, hãy bắt đầu lại phiên. Nếu nguồn chỉ đơn giản là im lặng thì không cần thay đổi gì."
+    "audioCaptureUnprovenText3Named": "\"{{app}}\" chỉ xuất hiện trong danh sách đó sau khi đã thử thu một lần, và điều đó vừa xảy ra. Sau khi bật, hãy bắt đầu lại phiên. Nếu nguồn chỉ đơn giản là im lặng thì không cần thay đổi gì.",
+    "otherSideBesideNote": "Người kia dùng chung micro với bạn; âm thanh hệ thống không được thu."
   },
   "auth": {
     "signIn": "Đăng nhập",
@@ -441,14 +445,14 @@
     "targetLanguage": "Ngôn ngữ đối phương",
     "microphone": "Microphone",
     "microphoneDesc": "Chọn microphone để ghi lại giọng nói của bạn. Nói bằng ngôn ngữ của bạn vào microphone này, và Sokuji sẽ dịch mọi thứ nó nghe thấy theo thời gian thực.",
-    "speaker": "Loa",
-    "speakerDesc": "Chọn loa để giám sát đầu ra đã dịch. Điều này cho phép bạn nghe bản dịch như thế nào. Bạn có thể tắt nó nếu không cần giám sát. Dù bật hay tắt, âm thanh đã dịch luôn được gửi tới microphone ảo để những người tham gia khác có thể nghe.",
     "swapLanguages": "Đổi ngôn ngữ",
     "textOnly": "Chỉ văn bản",
     "textOnlyDesc": "Chỉ dịch sang văn bản — không phát âm thanh",
     "textOnlyForcedByMode": "Chế độ \"{{mode}}\" chỉ chuyển lời người tham gia thành văn bản cho bạn và không bao giờ tạo âm thanh, nên \"Chỉ văn bản\" luôn bật. Hãy chuyển chế độ dịch để dịch giọng nói của bạn kèm âm thanh.",
     "keepReplayAudio": "Giữ âm thanh để phát lại",
-    "keepReplayAudioDesc": "Lưu âm thanh đã dịch trong bộ nhớ để bạn có thể phát lại sau từ mỗi tin nhắn. Tắt theo mặc định để giảm sử dụng bộ nhớ trong các phiên dài."
+    "keepReplayAudioDesc": "Lưu âm thanh đã dịch trong bộ nhớ để bạn có thể phát lại sau từ mỗi tin nhắn. Tắt theo mặc định để giảm sử dụng bộ nhớ trong các phiên dài.",
+    "output": "Đầu ra",
+    "outputDesc": "Thiết bị phát giọng đã dịch cho bạn nghe. Ở chế độ “Tôi”, bạn có thể tắt; cuộc họp vẫn nghe bản dịch qua micro ảo."
   },
   "providers": {
     "kizunaai_soniox": {
@@ -574,7 +578,8 @@
       "legendSource": "Gốc: chỉ giọng gốc",
       "legendTranslation": "Dịch: chỉ bản dịch",
       "legendBoth": "Cả hai: cả hai dòng",
-      "legendNone": "Tắt: ẩn phía này"
+      "legendNone": "Tắt: ẩn phía này",
+      "person": "Người nói {{n}}"
     },
     "playItemAudio": "Phát âm thanh của mục này",
     "backToLatest": "Về mới nhất",
@@ -651,14 +656,22 @@
     "deviceMic": "Micro",
     "deviceSpeakerMonitor": "Giám sát loa",
     "notSelected": "Chưa chọn",
-    "deviceParticipantAudio": "Âm thanh đối phương"
+    "deviceParticipantAudio": "Âm thanh đối phương",
+    "faceToFaceTag": "Mặt đối mặt",
+    "descBothBeside": "Cũng dùng cho hai người trên một máy tính (mặt đối mặt)."
   },
   "popover": {
     "statusOff": "Tắt",
     "toggleOn": "Bật {{label}}",
     "toggleOff": "Tắt {{label}}",
     "participantSubtitleElectron": "Toàn bộ âm thanh hệ thống",
-    "participantSubtitleExtension": "Phát qua đầu ra mặc định của hệ thống"
+    "participantSubtitleExtension": "Phát qua đầu ra mặc định của hệ thống",
+    "otherSide": "Phía bên kia",
+    "otherSideMeeting": "Trong cuộc họp",
+    "otherSideMeetingHint": "Thu âm thanh hệ thống hoặc một ứng dụng",
+    "otherSideBeside": "Ngay bên cạnh tôi",
+    "otherSideBesideHint": "Hai người dùng chung một micro",
+    "output": "Đầu ra"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Nhấp để cấu hình ngôn ngữ",
@@ -1147,6 +1160,15 @@
       "two-way-text": {
         "title": "Trò chuyện trực tuyến hai chiều, chỉ phụ đề",
         "desc": "Phụ đề song ngữ, biên bản cuộc họp — cả hai bên đều ở dạng văn bản, không có giọng nói tổng hợp."
+      },
+      "setsBeside": "Thiết lập: chế độ {{mode}}, đối phương ngồi cạnh tôi · {{output}}",
+      "face-to-face-voice": {
+        "title": "Trò chuyện mặt đối mặt",
+        "desc": "Hai người dùng chung một máy tính, mỗi người nói ngôn ngữ của mình; mỗi người đeo một tai nghe và chỉ nghe bản dịch sang ngôn ngữ của mình."
+      },
+      "face-to-face-text": {
+        "title": "Trò chuyện mặt đối mặt, chỉ phụ đề",
+        "desc": "Cả hai cùng đọc một màn hình, hoặc đối phương mở trang phụ đề LAN trên điện thoại."
       }
     },
     "output": {
@@ -1179,7 +1201,8 @@
     },
     "fit": {
       "cannotSpeak": "Nhà cung cấp này không thể tạo bản dịch bằng giọng nói.",
-      "cannotBeTextOnly": "Nhà cung cấp này luôn tạo giọng nói; không thể chạy ở chế độ chỉ phụ đề."
+      "cannotBeTextOnly": "Nhà cung cấp này luôn tạo giọng nói; không thể chạy ở chế độ chỉ phụ đề.",
+      "cannotFaceToFace": "Nhà cung cấp này không thể dịch cho hai người dùng chung một micro."
     },
     "credentials": {
       "apiKey": "Khóa API",
@@ -1348,7 +1371,8 @@
     },
     "legend": {
       "onSite": "Tại chỗ",
-      "remote": "Trực tuyến"
+      "remote": "Trực tuyến",
+      "person": "Người nói {{n}}"
     },
     "backToLive": "Về mới nhất",
     "dock": {
@@ -1431,5 +1455,23 @@
     "warnAddressChanged": "Mạng đã thay đổi. Địa chỉ mới là {{address}}: hãy gửi lại liên kết hoặc mở lại trang trình chiếu.",
     "errorPortsBusy": "Không thể bắt đầu chia sẻ: các cổng 7788–7797 đều đang được sử dụng.",
     "errorListen": "Không thể bắt đầu chia sẻ: {{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "Trái và phải · mỗi người nghe bản dịch sang ngôn ngữ của mình",
+    "leftEar": "Tai trái",
+    "rightEar": "Tai phải",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "Tôi ({{language}})",
+    "otherListens": "Đối phương ({{language}})",
+    "previewLeft": "Nghe thử tai trái",
+    "previewRight": "Nghe thử tai phải",
+    "swap": "Đổi tai trái và phải",
+    "speakersHint": "Hãy dùng tai nghe, mỗi người một bên. Với bất kỳ loa nào, micro sẽ thu cả bản dịch và dịch lại lần nữa.",
+    "playedLeft": "Đã phát ở tai trái",
+    "playedRight": "Đã phát ở tai phải",
+    "notPlayed": "Không phát: bản dịch này bằng {{language}}, không phải {{target}}, nên không được đọc cho ai.",
+    "legendMe": "{{language}} · tôi",
+    "legendOther": "{{language}} · đối phương"
   }
 }

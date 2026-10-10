@@ -36,6 +36,8 @@ export interface RunShape {
   textOnly: boolean;
   /** The participant-TTS opt-in; off until plan 1c-2's routing adds the switch. */
   participantSpeech: boolean;
+  /** Both with the other side beside me, under a provider that offers it (spec 2026-10-08, slice 3). Absent: false. */
+  faceToFace?: boolean;
   keepReplayAudio: boolean;
   /** What every builder may read, less `models`, which the run adds from its own readiness answer (F2). */
   shared: Omit<SharedSettings, 'models'>;
@@ -61,7 +63,7 @@ export interface Prepared<S> {
 }
 
 /** What a managed provider's start floor depends on: the legs, whether the speaker speaks, and whether the participant would. */
-export type BalanceShape = Pick<RunShape, 'legs' | 'textOnly' | 'participantSpeech'>;
+export type BalanceShape = Pick<RunShape, 'legs' | 'textOnly' | 'participantSpeech'> & Partial<Pick<RunShape, 'faceToFace'>>;
 
 /** A lease's granted time: the countdown's whole, and when it ends on the run's clock. */
 export interface Budget {

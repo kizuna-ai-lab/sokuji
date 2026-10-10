@@ -6,7 +6,6 @@
  * subtitle becomes a lie, so the row gains a real picker when - and only when -
  * a per-application helper actually reported sources.
  */
-import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import ModeDevicePopover from './ModeDevicePopover';
@@ -26,6 +25,8 @@ vi.mock('../../stores/settingsStore', () => ({
 }));
 
 const store = {
+  otherSide: 'meeting' as 'meeting' | 'beside',
+  setOtherSide: vi.fn(),
   sources: [] as Array<{ deviceId: string; label: string }>,
   selected: null as { deviceId: string; label: string } | null,
   select: vi.fn(),
@@ -50,7 +51,22 @@ vi.mock('../../stores/audioStore', () => ({
   useParticipantSources: () => store.sources,
   useSelectedParticipantSource: () => store.selected,
   useSelectParticipantSource: () => store.select,
+  useOtherSide: () => store.otherSide,
+  useSetOtherSide: () => store.setOtherSide,
 }));
+
+const f2f = { offered: true, active: false, swap: false, me: 'ja', other: 'en', speaks: { speaker: true, participant: true } };
+vi.mock('./useFaceToFace', () => ({ useFaceToFace: () => f2f }));
+const routing = { setFaceToFaceSwap: vi.fn() };
+vi.mock('../../stores/routingStore', () => ({ useRoutingStore: (pick: (s: unknown) => unknown) => pick({ faceToFaceSwap: f2f.swap, setFaceToFaceSwap: routing.setFaceToFaceSwap }) }));
+const tone = vi.fn(async (_pan?: -1 | 1) => {});
+vi.mock('../../lib/audio/appAudio', () => ({ getAppAudio: async () => ({ earPreview: tone }) }));
+const report = vi.hoisted(() => ({ error: vi.fn() }));
+vi.mock('../../lib/diagnostics/report', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/diagnostics/report')>()),
+  reportError: report.error,
+}));
+vi.mock('../../lib/language/useLanguageLabel', () => ({ useLanguageLabel: () => (code: string) => code.toUpperCase() }));
 
 const SYSTEM = { deviceId: 'desktop-audio-loopback', label: 'System Audio (All Applications)' };
 const CHROMIUM = { deviceId: 'app:pid:205', label: 'Chromium' };
@@ -59,6 +75,13 @@ beforeEach(() => {
   env.extension = false;
   store.sources = [SYSTEM, CHROMIUM];
   store.selected = CHROMIUM;
+  store.otherSide = 'meeting';
+  Object.assign(f2f, { offered: true, active: false, swap: false, me: 'ja', other: 'en', speaks: { speaker: true, participant: true } });
+  tone.mockReset();
+  tone.mockImplementation(async () => {});
+  report.error.mockReset();
+  routing.setFaceToFaceSwap.mockClear();
+  store.setOtherSide.mockReset();
   store.select.mockReset();
   store.setParticipantMuted.mockReset();
 });
@@ -68,7 +91,7 @@ const mount = () => {
   const anchor = document.createElement('div');
   document.body.appendChild(anchor);
   return render(
-    <ModeDevicePopover mode="participant" open={true} anchorEl={anchor} onClose={vi.fn()} />
+    <ModeDevicePopover mode="participant" open={true} anchorEl={anchor} onClose={vi.fn()} locked={false} />
   );
 };
 
@@ -114,5 +137,174 @@ describe('ModeDevicePopover participant row', () => {
     mount();
     expect(screen.getByText('Plays via system default')).toBeInTheDocument();
     expect(screen.queryByText('Chromium')).toBeNull();
+  });
+});
+
+describe('ModeDevicePopover — Both, the other side', () => {
+  const mountBoth = (locked = false) => {
+    const anchor = document.createElement('div');
+    document.body.appendChild(anchor);
+    return render(<ModeDevicePopover mode="both" open={true} anchorEl={anchor} onClose={vi.fn()} locked={locked} />);
+  };
+
+  it('offers "In a meeting" and "Beside me" and stores the choice', () => {
+    mountBoth();
+    fireEvent.click(screen.getByRole('radio', { name: /Beside me/ }));
+    expect(store.setOtherSide).toHaveBeenCalledWith('beside');
+  });
+
+  // The run's shape and capture are frozen at Start; the routing reads the choice live.
+  it("locks the choice during a run, with the mode picker's own words, and frees it when idle", () => {
+    const { unmount } = mountBoth(true);
+    const radios = screen.getAllByRole('radio');
+    expect(radios).toHaveLength(2);
+    for (const radio of radios) {
+      expect(radio).toBeDisabled();
+      expect(radio.closest('label')?.getAttribute('title')).toBe('Mode is locked during a session.');
+    }
+    fireEvent.click(screen.getByRole('radio', { name: /In a meeting/ }));
+    expect(store.setOtherSide).not.toHaveBeenCalled();
+    unmount();
+
+    mountBoth(false);
+    for (const radio of screen.getAllByRole('radio')) {
+      expect(radio).toBeEnabled();
+      expect(radio.closest('label')?.hasAttribute('title')).toBe(false);
+    }
+  });
+
+  it('keeps the swap live during a run: it is read live everywhere', () => {
+    f2f.active = true;
+    store.otherSide = 'beside';
+    mountBoth(true);
+    const swap = screen.getByRole('button', { name: /Swap left and right/ });
+    expect(swap).toBeEnabled();
+    fireEvent.click(swap);
+    expect(routing.setFaceToFaceSwap).toHaveBeenCalledWith(true);
+  });
+
+  // Board 1's order: the microphone, the choice under its own heading, then the row the choice decides.
+  const order = () => Array.from(document.querySelectorAll('.mode-device-popover__row .mode-device-popover__row-label, [role="radiogroup"], .mode-device-popover__ears'))
+    .map((el) => (el.getAttribute('role') === 'radiogroup' ? 'choice' : el.classList.contains('mode-device-popover__ears') ? 'ears' : el.textContent));
+
+  it('in a meeting: the microphone, the choice, then the system-audio row', () => {
+    mountBoth();
+    expect(order()).toEqual(['Microphone', 'choice', "Other's audio"]);
+  });
+
+  it('beside me: the microphone, the choice, the output, then the ears', () => {
+    f2f.active = true;
+    store.otherSide = 'beside';
+    mountBoth();
+    expect(order()).toEqual(['Microphone', 'choice', 'Output', 'ears']);
+  });
+
+  it('labels the choice by its visible heading, not by a second copy of the words', () => {
+    mountBoth();
+    const group = screen.getByRole('radiogroup', { name: 'Other side' });
+    expect(group.hasAttribute('aria-label')).toBe(false);
+    const heading = document.getElementById(group.getAttribute('aria-labelledby')!);
+    expect(heading?.textContent).toBe('Other side');
+    expect(heading?.closest('[role="radiogroup"]')).toBeNull();
+  });
+
+  it('beside me: the headphones row has no switch, but keeps its column so the summary lines up with the microphone row', () => {
+    f2f.active = true;
+    store.otherSide = 'beside';
+    mountBoth();
+    const rows = Array.from(document.querySelectorAll('.mode-device-popover__row'));
+    const phones = rows.find((r) => r.textContent?.includes('Output'))!;
+    expect(phones.querySelector('.mode-device-popover__mute-btn')).toBeNull();
+    const slot = phones.querySelector('.mode-device-popover__mute-slot');
+    expect(slot).not.toBeNull();
+    expect(slot?.getAttribute('aria-hidden')).toBe('true');
+    expect(slot).toBe(phones.lastElementChild);
+    // The microphone row keeps its real switch, and no placeholder.
+    const mic = rows.find((r) => r.textContent?.includes('Microphone'))!;
+    expect(mic.querySelector('.mode-device-popover__mute-btn')).not.toBeNull();
+    expect(mic.querySelector('.mode-device-popover__mute-slot')).toBeNull();
+  });
+
+  it('hides the choice under a provider without face-to-face', () => {
+    f2f.offered = false;
+    mountBoth();
+    expect(screen.queryByRole('radio', { name: /Beside me/ })).toBeNull();
+  });
+
+  it('beside me: no system-audio row, a headphones row, the two ears with previews and the swap', async () => {
+    f2f.active = true;
+    store.otherSide = 'beside';
+    mountBoth();
+    expect(screen.queryByText("Other's audio")).toBeNull();
+    expect(screen.getByText('Output')).toBeInTheDocument();
+    expect(screen.getByText('Left ear')).toBeInTheDocument();
+    expect(screen.getByText('Right ear')).toBeInTheDocument();
+    // The left ear's preview plays the chime panned left.
+    fireEvent.click(screen.getAllByRole('button', { name: /Preview the/ })[0]);
+    await vi.waitFor(() => expect(tone).toHaveBeenCalledWith(-1));
+    fireEvent.click(screen.getByRole('button', { name: /Swap left and right/ }));
+    expect(routing.setFaceToFaceSwap).toHaveBeenCalledWith(true);
+  });
+
+  it('the right ear previews panned right', async () => {
+    f2f.active = true;
+    store.otherSide = 'beside';
+    mountBoth();
+    fireEvent.click(screen.getByRole('button', { name: 'Preview the right ear' }));
+    await vi.waitFor(() => expect(tone).toHaveBeenCalledWith(1));
+  });
+
+  it('swapped: the left ear is the other person, the right is me, and the swap button turns it back', async () => {
+    f2f.active = true;
+    f2f.swap = true;
+    store.otherSide = 'beside';
+    mountBoth();
+    const ears = Array.from(document.querySelectorAll('.ears-block__ear'));
+    expect(ears[0].className).toContain('--other');
+    expect(ears[1].className).toContain('--me');
+    fireEvent.click(screen.getByRole('button', { name: 'Preview the right ear' }));
+    await vi.waitFor(() => expect(tone).toHaveBeenCalledWith(1));
+    fireEvent.click(screen.getByRole('button', { name: /Swap left and right/ }));
+    expect(routing.setFaceToFaceSwap).toHaveBeenCalledWith(false);
+  });
+
+  // Kizuna Soniox today: the participant's leg is silent, so my ear (where their translation would play) plays nothing.
+  it("a silent participant leg: my ear has no preview and reads Off; the other person's ear keeps its preview", () => {
+    f2f.active = true;
+    f2f.speaks = { speaker: true, participant: false };
+    store.otherSide = 'beside';
+    mountBoth();
+    const [left, right] = Array.from(document.querySelectorAll('.ears-block__ear'));
+    expect(left.className).toContain('--me');
+    expect(left.querySelector('.ears-block__ear-preview')).toBeNull();
+    expect(left.querySelector('.ears-block__ear-off')?.textContent).toBe('Off');
+    expect(screen.queryByRole('button', { name: 'Preview the left ear' })).toBeNull();
+    expect(right.querySelector('.ears-block__ear-off')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Preview the right ear' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Swap left and right/ })).toBeInTheDocument();
+  });
+
+  it('Text Only: no ears block, no previews and no swap: nothing plays in either ear', () => {
+    f2f.active = true;
+    f2f.speaks = { speaker: false, participant: false };
+    store.otherSide = 'beside';
+    mountBoth();
+    expect(screen.getByText('Output')).toBeInTheDocument();
+    expect(document.querySelector('.mode-device-popover__ears')).toBeNull();
+    expect(screen.queryByRole('button', { name: /Preview the/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Swap left and right/ })).toBeNull();
+  });
+
+  it("records a preview that did not play, as the panel's test tone does", async () => {
+    f2f.active = true;
+    store.otherSide = 'beside';
+    tone.mockRejectedValue(new Error('no output device'));
+    mountBoth();
+    fireEvent.click(screen.getByRole('button', { name: 'Preview the left ear' }));
+    await vi.waitFor(() => expect(report.error).toHaveBeenCalledTimes(1));
+    const [source, message, options] = report.error.mock.calls[0];
+    expect(source).toBe('EarsBlock');
+    expect(message).toContain('no output device');
+    expect(options?.cause).toBeInstanceOf(Error);
   });
 });

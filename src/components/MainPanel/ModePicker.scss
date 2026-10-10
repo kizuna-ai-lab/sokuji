@@ -40,6 +40,19 @@
 
     svg { flex-shrink: 0; }
 
+    // The pill on Both when it runs face-to-face. On the active fill it is a darker wash, so the
+    // text keeps the segment's own on-primary contrast.
+    .mode-picker__tag {
+      padding: 2px 5px;
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.28);
+      font-size: 10px;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+    }
+    .mode-picker__tag-glyph { display: none; }
+
     &:not(:last-child) {
       border-right: 1px solid var(--border-color, #444);
     }
@@ -98,5 +111,18 @@
   .mode-picker__segment {
     padding: 0 10px;
     gap: 0;
+
+    // The tag stays as a ring around its glyph; the word would push the footer's controls off.
+    // Nested under the segment, as the base rules are, so these win on specificity.
+    .mode-picker__tag {
+      margin-left: 5px;
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      justify-content: center;
+      border-radius: 50%;
+    }
+    .mode-picker__tag-word { display: none; }
+    .mode-picker__tag-glyph { display: inline-flex; }
   }
 }

@@ -17,7 +17,7 @@ function fakeGraph() {
   const plays: Array<{ feed: string; pcm: Int16Array; at: number; onEnded: () => void; done: boolean }> = [];
   const routes: Edge[][] = [];
   const sinks: Array<{ real?: string; virtual?: string }> = [];
-  const shots: Array<{ audio: Float32Array; sampleRate: number; stopped: boolean; end: () => void }> = [];
+  const shots: Array<{ audio: Float32Array; sampleRate: number; pan?: -1 | 1; stopped: boolean; end: () => void }> = [];
   const resets = new Set<() => void>();
   const graph: AudioGraph & { readonly suspended: number; readonly closed: number } = {
     timeline: (feed) => ({
@@ -32,10 +32,10 @@ function fakeGraph() {
         };
       },
     }),
-    playOnce(audio, sampleRate) {
+    playOnce(audio, sampleRate, pan) {
       let end!: () => void;
       const ended = new Promise<void>((resolve) => { end = resolve; });
-      const shot = { audio, sampleRate, stopped: false, end };
+      const shot = { audio, sampleRate, pan, stopped: false, end };
       shots.push(shot);
       return { ended, stop: () => { shot.stopped = true; end(); } };
     },
@@ -149,6 +149,13 @@ describe('createPlayback — live audio', () => {
     playback.audio('speaker', 2, pcm(100));
     advance(LEAD_S + 0.01);
     expect(playback.queues.speaker.position()?.key).toBe('speaker:2:0');
+  });
+
+  it("hands a clip's pan to the graph", () => {
+    const { graph, shots } = fakeGraph();
+    const playback = createPlayback(graph, routing().source);
+    void playback.preview({ audio: new Float32Array(10), sampleRate: 24_000, pan: 1 });
+    expect(shots[0].pan).toBe(1);
   });
 
   it('a context reset drops what was queued but not the clip indices', async () => {

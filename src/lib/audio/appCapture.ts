@@ -11,6 +11,7 @@ import useAudioStore from '../../stores/audioStore';
 import { getEnvironment } from '../../utils/environment';
 import { createEchoWatch, type EchoWatch } from './capture/echoWatch';
 import { openMic, type MicSettings } from './capture/mic';
+import { silentSource } from './capture/silent';
 import { openSystemAudio, type SystemAudioSettings } from './capture/systemAudio';
 import { openTab, type TabSettings } from './capture/tab';
 import { createLevelMeter, type LevelMeter } from './levelMeter';
@@ -78,15 +79,18 @@ function withCleanup(source: Source, cleanup: () => void): Source {
 export interface AppCaptureOptions {
   /** Checked per chunk: false, and the leg's meter reads flat. Absent: every chunk moves it. */
   meterGate?(leg: LegName): boolean;
+  /** Read at open: the participant is beside me (face-to-face) and captures nothing. Absent: never. */
+  participantBeside?(): boolean;
 }
 
 export function createAppCapture(playback: Playback, platform: Platform = getEnvironment(), options: AppCaptureOptions = {}): AppCapture {
-  const { meterGate } = options;
+  const { meterGate, participantBeside } = options;
   const echo = createEchoWatch(playback.ttsTap);
   const levels: Record<LegName, LevelMeter> = { speaker: createLevelMeter(), participant: createLevelMeter() };
 
   const open = (leg: LegName, signal: AbortSignal): Promise<Source> => {
     if (leg === 'speaker') return openMic(micSettings(), signal);
+    if (participantBeside?.()) return Promise.resolve(silentSource());
     if (platform === 'electron') return openSystemAudio(systemAudioSettings(), signal);
     if (platform === 'extension') return openTab(tabSettings(), signal);
     return Promise.reject(new Error('This build has no participant source.'));

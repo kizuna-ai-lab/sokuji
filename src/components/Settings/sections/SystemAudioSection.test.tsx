@@ -45,6 +45,13 @@ vi.mock('../../../stores/audioStore', () => ({
   useSelectParticipantSource: () => store.select,
   useRefreshDevices: () => store.refresh,
   useIsAudioLoading: () => false,
+  useMode: () => f2f.mode,
+}));
+
+const f2f = vi.hoisted(() => ({ mode: 'both' as string, offered: true, active: false }));
+vi.mock('../../MainPanel/useFaceToFace', () => ({ useFaceToFace: () => ({ offered: f2f.offered, active: f2f.active }) }));
+vi.mock('../../FaceToFace/OtherSideChoice', () => ({
+  default: ({ locked }: { locked: boolean }) => <div data-testid="other-side-choice" data-locked={String(locked)} />,
 }));
 
 // The section reads `PARTICIPANT_SPEECH_SHOWN` from the routing store; these
@@ -74,6 +81,9 @@ beforeEach(() => {
   store.select.mockReset();
   store.setMuted.mockReset();
   store.refresh.mockReset();
+  f2f.mode = 'both';
+  f2f.offered = true;
+  f2f.active = false;
 });
 
 const mount = (props: Record<string, unknown> = {}) =>
@@ -172,5 +182,44 @@ describe('SystemAudioSection', () => {
   it('shows no Gemini token warning any more; the section no longer reads the provider', () => {
     mount();
     expect(screen.queryByText(/Gemini generates audio responses/)).toBeNull();
+  });
+});
+
+describe('SystemAudioSection: the Other side choice', () => {
+  it('shows the choice in Both under a provider that offers face-to-face', () => {
+    mount();
+    expect(screen.getByTestId('other-side-choice')).toBeInTheDocument();
+  });
+
+  it.each(['speaker', 'participant'])('does not show it in %s mode', (mode) => {
+    f2f.mode = mode;
+    mount();
+    expect(screen.queryByTestId('other-side-choice')).toBeNull();
+  });
+
+  it('does not show it under a provider without face-to-face', () => {
+    f2f.offered = false;
+    mount();
+    expect(screen.queryByTestId('other-side-choice')).toBeNull();
+  });
+
+  it("locks with the run, not the channel's mode scope", () => {
+    const { rerender } = mount({ isSessionActive: true });
+    expect(screen.getByTestId('other-side-choice')).toHaveAttribute('data-locked', 'true');
+    rerender(<SystemAudioSection isSessionActive={false} />);
+    expect(screen.getByTestId('other-side-choice')).toHaveAttribute('data-locked', 'false');
+    rerender(<SystemAudioSection isSessionActive={false} isLocked />);
+    expect(screen.getByTestId('other-side-choice')).toHaveAttribute('data-locked', 'false');
+  });
+
+  it('beside me: the note replaces the picker, the refresh button and the speech switch', () => {
+    f2f.active = true;
+    const { container } = mount();
+    expect(screen.getByText('The other person shares your microphone; no system audio is captured.')).toBeInTheDocument();
+    expect(screen.queryByText('Chromium')).toBeNull();
+    expect(container.querySelector('.section-refresh-button')).toBeNull();
+    expect(screen.queryByTestId('participant-speech-switch')).toBeNull();
+    expect(container.querySelector('.toggle-switch-component')).toBeNull();
+    expect(screen.getByTestId('other-side-choice')).toBeInTheDocument();
   });
 });

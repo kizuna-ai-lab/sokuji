@@ -27,6 +27,8 @@ export interface Segment {
   marks: readonly Mark[];
   timing?: SegmentTiming;
   language?: string;
+  /** Who said it, as the adapter labels people (diarization): a scoped label, never a name. */
+  person?: string;
   /** Stated by the adapter only; inference lives in L2. */
   origin?: string;
   speech: readonly Speech[];

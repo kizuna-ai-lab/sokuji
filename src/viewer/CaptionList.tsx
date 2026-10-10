@@ -79,19 +79,27 @@ const CaptionList: React.FC<CaptionListProps> = ({ t, entries, choice, completeO
     if (el) onFollowingChange(atLiveEdge(el.scrollTop, el.clientHeight, el.scrollHeight));
   };
 
-  // A turn starts where the side differs from the last line shown. Visibility
-  // is read cheaply (no pieces), so unchanged lines still skip re-rendering.
+  // A turn starts where the side, or a labelled side's person, differs from the
+  // last line shown. Visibility is read cheaply (no pieces), so unchanged lines
+  // still skip re-rendering.
   let lastLeg: ViewerEntry['leg'] | null = null;
+  let lastPerson: number | undefined;
   const rows = entries.map((entry) => {
     const { primary, secondary } = sidesFor(entry, choice.code);
     const visible = shows(primary, completeOnly) || (choice.both && shows(secondary, completeOnly));
-    const turn = visible && entry.leg !== lastLeg;
-    if (visible) lastLeg = entry.leg;
+    const turn = visible && (entry.leg !== lastLeg || entry.person !== lastPerson);
+    if (visible) {
+      lastLeg = entry.leg;
+      lastPerson = entry.person;
+    }
+    const side = !turn ? null
+      : entry.person !== undefined ? t('viewer.legend.person', { n: entry.person })
+        : twoLegs ? t(SIDE_KEYS[entry.leg]) : null;
     return (
       <CaptionRow
         key={entry.id} entry={entry} code={choice.code} both={choice.both}
         completeOnly={completeOnly} desktop={layout === 'desktop'}
-        side={twoLegs && turn ? t(SIDE_KEYS[entry.leg]) : null}
+        side={side}
       />
     );
   });

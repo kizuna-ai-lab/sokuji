@@ -57,6 +57,7 @@ export function needsLoopbackStream(deviceId: string | null | undefined): boolea
  * `readRouting`) and the replay slot (`MainPanel.tsx`'s `replayLegs`) all
  * share, so what the switch shows is what the run does.
  */
-export function participantSpeechHeard(platform: string, participantSourceId: string | null | undefined): boolean {
-  return platform !== 'electron' || isApplicationSource(participantSourceId);
+export function participantSpeechHeard(platform: string, participantSourceId: string | null | undefined, faceToFace = false): boolean {
+  // Face-to-face captures no system audio (its participant source is silent), so nothing recaptures the playback.
+  return faceToFace || platform !== 'electron' || isApplicationSource(participantSourceId);
 }

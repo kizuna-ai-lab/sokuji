@@ -2300,8 +2300,23 @@
   color: vars.$text-muted;
 }
 
+.config-section > .other-side-choice {
+  margin-bottom: vars.$space-3;
+}
+
+.config-section > .ears-block--boxed {
+  margin-top: vars.$space-3;
+}
+
 .noise-suppression-control {
   margin-top: 8px;
+
+  // Passthrough follows in the same section: the section's item gap and a rule keep it off this control.
+  & ~ .voice-passthrough-section {
+    margin-top: vars.$space-3;
+    padding-top: vars.$space-3;
+    border-top: 1px solid vars.$border-subtle;
+  }
 
   .noise-suppression-header {
     display: flex;

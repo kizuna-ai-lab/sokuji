@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Entry, Row } from '../projection/types';
+import type { People } from './people';
 import { displayItems, nextNoticeExpiry, TRANSIENT_NOTICE_MS, visibleEntries, type LegFilters } from './filter';
 
 const row = (segmentId: string, side: 'source' | 'translation', k = 0, text = 'x'): Row =>
@@ -9,6 +10,9 @@ const exchange = (id: string, leg: 'speaker' | 'participant', source: Row[], tra
 const both: LegFilters = { speaker: 'both', participant: 'both' };
 const shape = (items: ReturnType<typeof displayItems>) =>
   items.map((i) => (i.kind === 'notice' ? 'notice' : `${i.row.key}${i.header ? '+h' : ''}${i.endsSegment ? '+e' : ''}`));
+
+const said = (r: Row, person: string): Row => ({ ...r, person });
+const numbers = (items: ReturnType<typeof displayItems>) => items.map((i) => (i.kind === 'row' ? i.person ?? null : 'notice'));
 
 describe('displayItems', () => {
   it("draws an exchange's source rows before its translation rows, and opens a header where the leg changes", () => {
@@ -41,6 +45,54 @@ describe('displayItems', () => {
     ];
     expect(shape(displayItems(entries, both))).toEqual(['s1:0+h+e', 'notice', 's2:0+e']);
     expect(shape(displayItems(entries, { ...both, speaker: 'none' }))).toEqual(['notice']);
+  });
+
+  it('opens a header where the person changes inside a labelled leg, and numbers its rows', () => {
+    const entries = [
+      exchange('a', 'participant', [said(row('p1', 'source'), '1.1')], [said(row('p2', 'translation'), '1.1')]),
+      exchange('b', 'participant', [said(row('p3', 'source'), '1.2')], []),
+      exchange('c', 'participant', [said(row('p4', 'source'), '1.2')], []),
+    ];
+    const items = displayItems(entries, both);
+    expect(shape(items)).toEqual(['p1:0+h+e', 'p2:0+e', 'p3:0+h+e', 'p4:0+e']);
+    expect(numbers(items)).toEqual([1, 1, 2, 2]);
+  });
+
+  it('numbers nothing and opens no extra header while a leg has had one person', () => {
+    const entries = [
+      exchange('a', 'participant', [said(row('p1', 'source'), '1.1')], []),
+      exchange('b', 'participant', [said(row('p2', 'source'), '1.1')], []),
+    ];
+    const items = displayItems(entries, both);
+    expect(shape(items)).toEqual(['p1:0+h+e', 'p2:0+e']);
+    expect(numbers(items)).toEqual([null, null]);
+  });
+
+  it('re-draws rows already drawn once a second person appears', () => {
+    const first = [exchange('a', 'participant', [said(row('p1', 'source'), '1.1')], [])];
+    const before = displayItems(first, both);
+    const after = displayItems([...first, exchange('b', 'participant', [said(row('p2', 'source'), '1.2')], [])], both, before);
+    expect(after[0]).not.toBe(before[0]);
+    expect(numbers(after)).toEqual([1, 2]);
+  });
+
+  it('opens the person header on the translation side alone too', () => {
+    const entries = [
+      exchange('a', 'participant', [said(row('p1', 'source'), '1.1')], [said(row('p2', 'translation'), '1.1')]),
+      exchange('b', 'participant', [said(row('p3', 'source'), '1.2')], [said(row('p4', 'translation'), '1.2')]),
+    ];
+    expect(shape(displayItems(entries, { ...both, participant: 'translation' }))).toEqual(['p2:0+h+e', 'p4:0+h+e']);
+  });
+
+  it('takes a People that turns labels off', () => {
+    const entries = [
+      exchange('a', 'participant', [said(row('p1', 'source'), '1.1')], []),
+      exchange('b', 'participant', [said(row('p2', 'source'), '1.2')], []),
+    ];
+    const nobody: People = { labelled: () => false, numberOf: () => undefined };
+    const items = displayItems(entries, both, [], nobody);
+    expect(shape(items)).toEqual(['p1:0+h+e', 'p2:0+e']);
+    expect(numbers(items)).toEqual([null, null]);
   });
 });
 

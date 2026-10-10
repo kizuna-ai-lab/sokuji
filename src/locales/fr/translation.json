@@ -303,7 +303,10 @@
       "theyRead": "ils lisent",
       "theySpeak": "ils parlent",
       "mirror": "Ils parlent {{their}} → je lis {{mine}}"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "Le face à face utilise toujours une session partagée : les deux personnes parlent dans le même micro.",
+    "sonioxParticipantVoice": "Voix de l'autre",
+    "sonioxParticipantVoiceTooltip": "La voix qui vous lit, dans votre langue, ce que dit l'autre. Voix préréglées uniquement."
   },
   "simpleSettings": {
     "autoAuthenticated": "Authentifié automatiquement via votre compte",
@@ -372,7 +375,8 @@
     "audioCaptureUnprovenNotice": "Rien n'a encore été capturé",
     "audioCaptureUnprovenTitle": "Aucun audio n'est encore arrivé de la source sélectionnée",
     "audioCaptureUnprovenText1": "Si la source est en lecture et que rien n'est traduit, macOS fournit probablement du silence : capturer une application nécessite l'autorisation « Enregistrement audio du système uniquement », et sans elle il n'y a pas d'erreur, seulement du silence.",
-    "audioCaptureUnprovenText3Named": "« {{app}} » n'apparaît dans cette liste qu'après une première tentative de capture, qui vient d'avoir lieu. Relancez la session après l'avoir activée. Si la source était simplement silencieuse, il n'y a rien à changer."
+    "audioCaptureUnprovenText3Named": "« {{app}} » n'apparaît dans cette liste qu'après une première tentative de capture, qui vient d'avoir lieu. Relancez la session après l'avoir activée. Si la source était simplement silencieuse, il n'y a rien à changer.",
+    "otherSideBesideNote": "L'autre personne partage votre microphone ; aucun audio système n'est capturé."
   },
   "auth": {
     "signIn": "Se connecter",
@@ -441,14 +445,14 @@
     "targetLanguage": "Langue de l'autre",
     "microphone": "Microphone",
     "microphoneDesc": "Sélectionnez le microphone pour capturer votre parole. Parlez dans votre langue dans ce microphone, et Sokuji traduira tout ce qu'il entend en temps réel.",
-    "speaker": "Haut-parleur",
-    "speakerDesc": "Sélectionnez un haut-parleur pour surveiller la sortie traduite. Cela vous permet d'entendre comment sonne la traduction. Vous pouvez l'éteindre si la surveillance n'est pas nécessaire. Qu'il soit allumé ou éteint, l'audio traduit est toujours envoyé au microphone virtuel pour que les autres participants l'entendent.",
     "swapLanguages": "Inverser les langues",
     "textOnly": "Texte uniquement",
     "textOnlyDesc": "Traduire en texte uniquement — pas de sortie vocale",
     "textOnlyForcedByMode": "Le mode « {{mode}} » transforme uniquement ce que disent les participants en texte pour vous et ne génère jamais d'audio : « Texte uniquement » reste donc activé. Changez de mode de traduction pour traduire votre propre voix avec la parole.",
     "keepReplayAudio": "Conserver l'audio pour la relecture",
-    "keepReplayAudioDesc": "Stocker l'audio traduit en mémoire pour pouvoir le rejouer plus tard depuis chaque message. Désactivé par défaut afin de réduire l'utilisation de la mémoire pendant les longues sessions."
+    "keepReplayAudioDesc": "Stocker l'audio traduit en mémoire pour pouvoir le rejouer plus tard depuis chaque message. Désactivé par défaut afin de réduire l'utilisation de la mémoire pendant les longues sessions.",
+    "output": "Sortie",
+    "outputDesc": "L'appareil qui vous fait entendre la voix traduite. En mode « Moi », vous pouvez le désactiver ; la réunion entend toujours la traduction via le microphone virtuel."
   },
   "providers": {
     "kizunaai_soniox": {
@@ -574,7 +578,8 @@
       "legendSource": "Source : discours original seulement",
       "legendTranslation": "Traduction : traduction seulement",
       "legendBoth": "Les deux : les deux lignes",
-      "legendNone": "Arrêt : masquer ce côté"
+      "legendNone": "Arrêt : masquer ce côté",
+      "person": "Intervenant {{n}}"
     },
     "playItemAudio": "Lire l'audio de cet élément",
     "backToLatest": "Revenir au plus récent",
@@ -651,14 +656,22 @@
     "deviceMic": "Microphone",
     "deviceSpeakerMonitor": "Surveillance du haut-parleur",
     "notSelected": "Non sélectionné",
-    "deviceParticipantAudio": "Audio de l'autre"
+    "deviceParticipantAudio": "Audio de l'autre",
+    "faceToFaceTag": "Face à face",
+    "descBothBeside": "Aussi pour deux personnes sur un même ordinateur (face à face)."
   },
   "popover": {
     "statusOff": "Arrêt",
     "toggleOn": "Activer {{label}}",
     "toggleOff": "Désactiver {{label}}",
     "participantSubtitleElectron": "Tout l'audio du système",
-    "participantSubtitleExtension": "Diffusé via la sortie par défaut du système"
+    "participantSubtitleExtension": "Diffusé via la sortie par défaut du système",
+    "otherSide": "Où est l'autre ?",
+    "otherSideMeeting": "En réunion",
+    "otherSideMeetingHint": "Capte l'audio du système ou d'une application",
+    "otherSideBeside": "À côté de moi",
+    "otherSideBesideHint": "Deux personnes devant un seul micro",
+    "output": "Sortie"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Cliquez pour configurer les langues",
@@ -1147,6 +1160,15 @@
       "two-way-text": {
         "title": "Conversation en ligne bidirectionnelle, sous-titres uniquement",
         "desc": "Sous-titres bilingues, comptes-rendus de réunion — les deux côtés en texte, sans voix synthétique."
+      },
+      "setsBeside": "Définit : mode {{mode}}, l'autre à côté de moi · {{output}}",
+      "face-to-face-voice": {
+        "title": "Conversation en face à face",
+        "desc": "Deux personnes devant un même ordinateur, chacune parlant sa langue ; chacune porte un écouteur et n'entend que la traduction dans sa langue."
+      },
+      "face-to-face-text": {
+        "title": "Conversation en face à face, sous-titres uniquement",
+        "desc": "Les deux lisent le même écran, ou l'autre ouvre la page de sous-titres LAN sur son téléphone."
       }
     },
     "output": {
@@ -1179,7 +1201,8 @@
     },
     "fit": {
       "cannotSpeak": "Ce fournisseur ne peut pas produire de traduction parlée.",
-      "cannotBeTextOnly": "Ce fournisseur parle toujours ; il ne peut pas fonctionner en mode sous-titres uniquement."
+      "cannotBeTextOnly": "Ce fournisseur parle toujours ; il ne peut pas fonctionner en mode sous-titres uniquement.",
+      "cannotFaceToFace": "Ce fournisseur ne peut pas traduire deux personnes devant un seul micro."
     },
     "credentials": {
       "apiKey": "Clé API",
@@ -1348,7 +1371,8 @@
     },
     "legend": {
       "onSite": "Sur place",
-      "remote": "À distance"
+      "remote": "À distance",
+      "person": "Intervenant {{n}}"
     },
     "backToLive": "Revenir au direct",
     "dock": {
@@ -1431,5 +1455,23 @@
     "warnAddressChanged": "Le réseau a changé. La nouvelle adresse est {{address}} : renvoyez le lien ou rouvrez la page de projection.",
     "errorPortsBusy": "Impossible de lancer le partage : les ports 7788–7797 sont tous occupés.",
     "errorListen": "Impossible de lancer le partage : {{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "Gauche et droite · chacun entend la traduction dans sa propre langue",
+    "leftEar": "Oreille gauche",
+    "rightEar": "Oreille droite",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "Moi ({{language}})",
+    "otherListens": "L'autre ({{language}})",
+    "previewLeft": "Tester l'oreille gauche",
+    "previewRight": "Tester l'oreille droite",
+    "swap": "Inverser gauche et droite",
+    "speakersHint": "Utilisez un casque, un côté chacun. Avec n'importe quel haut-parleur, le micro capte la traduction et la traduit de nouveau.",
+    "playedLeft": "Lu dans l'oreille gauche",
+    "playedRight": "Lu dans l'oreille droite",
+    "notPlayed": "Non lu : cette traduction est en {{language}} et non en {{target}}, elle n'est donc lue à personne.",
+    "legendMe": "{{language}} · moi",
+    "legendOther": "{{language}} · l'autre"
   }
 }

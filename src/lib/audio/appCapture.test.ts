@@ -191,4 +191,23 @@ describe('the settings the sources follow', () => {
     useAudioStore.setState({ isMicMuted: true });
     expect(listener).toHaveBeenCalledTimes(1);
   });
+
+  it('opens a silent source for a participant beside me, on every platform, and no capture (Review Focus 5)', async () => {
+    for (const platform of ['electron', 'extension', 'web'] as const) {
+      opened.calls.length = 0;
+      const source = await createAppCapture(fakePlayback(), platform, { participantBeside: () => true }).openSource('participant', live());
+      expect(opened.calls).toEqual([]);
+      const pcm = vi.fn();
+      source.onPcm(pcm);
+      expect(pcm).not.toHaveBeenCalled();
+      await source.stop();
+    }
+  });
+
+  it('captures as usual when the participant is not beside me (Review Focus 1)', async () => {
+    opened.sources.push(createFakeSource(clock));
+    opened.calls.length = 0;
+    await createAppCapture(fakePlayback(), 'electron', { participantBeside: () => false }).openSource('participant', live());
+    expect(opened.calls).toEqual(['system']);
+  });
 });

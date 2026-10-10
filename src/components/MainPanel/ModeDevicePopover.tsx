@@ -19,6 +19,9 @@ import {
   useSetMicMuted, useSetMonitorMuted, useSetParticipantMuted,
   useParticipantSources, useSelectedParticipantSource, useSelectParticipantSource,
 } from '../../stores/audioStore';
+import { useFaceToFace } from './useFaceToFace';
+import OtherSideChoice from '../FaceToFace/OtherSideChoice';
+import EarsBlock from '../FaceToFace/EarsBlock';
 import { isExtension } from '../../utils/environment';
 import { useNavigateToSettings } from '../../stores/settingsStore';
 import { isVirtualDevice, type AudioDevice } from '../Settings/shared/hooks';
@@ -30,6 +33,12 @@ interface ModeDevicePopoverProps {
   open: boolean;
   anchorEl: HTMLElement | null;
   onClose: () => void;
+  /**
+   * A run is live, as the mode picker's `locked`: the other side is the run's
+   * (its shape and capture froze at Start), so its choice is locked too. The
+   * swap stays live: everything reads it live.
+   */
+  locked: boolean;
 }
 
 type ChannelKey = 'mic' | 'participant' | 'monitor';
@@ -46,14 +55,15 @@ interface ChannelRowSpec {
   /** Shown in place of a device name when the row has no picker. */
   subtitle?: string;
   isMuted: boolean;
-  onMuteToggle: () => void;
+  /** Absent: the row has no power switch — face-to-face's headphones play whenever a translation is spoken. */
+  onMuteToggle?: () => void;
   /** Absent on rows that have no picker (participant without a per-app helper). */
   onSelectDevice?: (d: AudioDevice) => void;
   /** True when row is in scope and has no device picked. */
   isMissing: boolean;
 }
 
-const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, anchorEl, onClose }) => {
+const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, anchorEl, onClose, locked }) => {
   const { t } = useTranslation();
   const navigateToSettings = useNavigateToSettings();
 
@@ -76,6 +86,9 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
   const setMonitorMuted = useSetMonitorMuted();
   const setParticipantMuted = useSetParticipantMuted();
 
+  const f2f = useFaceToFace();
+  const beside = mode === 'both' && f2f.active;
+
   // Only one row expanded at a time. Default: none expanded.
   const [expanded, setExpanded] = useState<ChannelKey | null>(null);
 
@@ -95,12 +108,16 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
       // scrollable middle section handles overflow internally.
       size({
         padding: 8,
-        apply({ availableHeight, elements }) {
+        apply({ availableWidth, availableHeight, elements }) {
           // Clamp to availableHeight so the popover never exceeds the viewport
           // (an internal scroll handles overflow). The Math.max with 0 guards
-          // against floating-ui handing us a transient negative value.
+          // against floating-ui handing us a transient negative value. The
+          // width too: on a panel narrower than the popover (300px) it keeps
+          // 8px from each edge and its rows ellipsize; on a wider one it keeps
+          // its own width.
           Object.assign(elements.floating.style, {
             maxHeight: `${Math.max(0, availableHeight)}px`,
+            maxWidth: `${Math.max(0, availableWidth)}px`,
           });
         },
       }),
@@ -130,8 +147,10 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     // (enforced in audioStore). In Both mode participant is always on,
     // so monitor cannot be on — hide the row entirely to avoid showing
     // a permanently-muted control.
-    const showMonitor = mode === 'speaker';
-    const showParticipant = mode === 'participant' || mode === 'both';
+    // Face-to-face (beside me) is the exception: the translation plays on the
+    // headphones and the other person is not captured from system audio.
+    const showMonitor = mode === 'speaker' || beside;
+    const showParticipant = mode === 'participant' || (mode === 'both' && !beside);
 
     // Hide Sokuji virtual devices from the device lists — they're not
     // user-selectable (they're internal routing). Mirrors what
@@ -154,17 +173,28 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     }
 
     if (showMonitor) {
-      list.push({
-        key: 'monitor',
-        icon: Volume2,
-        label: t('modePicker.deviceSpeakerMonitor', 'Speaker monitor'),
-        devices: filteredMonitorDevices,
-        selectedDevice: selectedMonitorDevice,
-        isMuted: isMonitorMuted,
-        onMuteToggle: () => setMonitorMuted(!isMonitorMuted),
-        onSelectDevice: (d) => { selectMonitorDevice(d); setMonitorMuted(false); },
-        isMissing: false, // monitor is optional
-      });
+      list.push(beside
+        ? {
+          key: 'monitor',
+          icon: Volume2,
+          label: t('popover.output', 'Output'),
+          devices: filteredMonitorDevices,
+          selectedDevice: selectedMonitorDevice,
+          isMuted: false,
+          onSelectDevice: (d) => selectMonitorDevice(d),
+          isMissing: false,
+        }
+        : {
+          key: 'monitor',
+          icon: Volume2,
+          label: t('modePicker.deviceSpeakerMonitor', 'Speaker monitor'),
+          devices: filteredMonitorDevices,
+          selectedDevice: selectedMonitorDevice,
+          isMuted: isMonitorMuted,
+          onMuteToggle: () => setMonitorMuted(!isMonitorMuted),
+          onSelectDevice: (d) => { selectMonitorDevice(d); setMonitorMuted(false); },
+          isMissing: false, // monitor is optional
+        });
     }
 
     if (showParticipant) {
@@ -196,7 +226,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
 
     return list;
   }, [
-    mode,
+    mode, beside,
     audioInputDevices, selectedInputDevice, isMicMuted,
     audioMonitorDevices, selectedMonitorDevice, isMonitorMuted,
     isParticipantMuted, participantSources, selectedParticipantSource,
@@ -229,6 +259,9 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     }
     return { text: row.selectedDevice.label || row.selectedDevice.deviceId, cls: '' };
   };
+
+  // Both: where the other person is, between the microphone and the row it decides (board 1).
+  const otherSideChoice = mode === 'both' && f2f.offered && <OtherSideChoice locked={locked} className="mode-device-popover__other-side" />;
 
   return (
     <FloatingPortal>
@@ -265,10 +298,11 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
                   <span className={`mode-device-popover__summary ${summary.cls}`}>{summary.text}</span>
                   {canExpand ? (isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />) : null}
                 </button>
+                {row.onMuteToggle && (
                 <button
                   type="button"
                   className={`mode-device-popover__mute-btn${row.isMuted ? ' mode-device-popover__mute-btn--off' : ''}`}
-                  onClick={(e) => { e.stopPropagation(); row.onMuteToggle(); }}
+                  onClick={(e) => { e.stopPropagation(); row.onMuteToggle?.(); }}
                   aria-pressed={!row.isMuted}
                   aria-label={row.isMuted
                     ? t('popover.toggleOn', 'Turn on {{label}}', { label: row.label })
@@ -279,6 +313,9 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
                 >
                   {row.isMuted ? <PowerOff size={14} /> : <Power size={14} />}
                 </button>
+                )}
+                {/* No switch (face-to-face's headphones), but its column stays, so the summary and chevron line up with the rows above. */}
+                {!row.onMuteToggle && <span className="mode-device-popover__mute-slot" aria-hidden="true" />}
               </div>
 
               {isExpanded && canExpand && (
@@ -299,10 +336,14 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
                   })}
                 </div>
               )}
+
+              {row.key === 'mic' && otherSideChoice}
             </React.Fragment>
           );
         })}
         </div>
+
+        {mode === 'both' && <EarsBlock className="mode-device-popover__ears" />}
 
         <div className="mode-device-popover__divider" />
         <div className="mode-device-popover__footer">

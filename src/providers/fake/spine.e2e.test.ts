@@ -11,7 +11,7 @@ import { longScript } from './generate';
 
 const context = { direction: { source: 'ja', target: 'en' }, speech: true, turns: 'auto' as const };
 const options = {
-  labels: { me: 'Me', other: 'Other', noTranslation: '(no translation)', noSource: '(no source)' },
+  labels: { me: 'Me', other: 'Other', noTranslation: '(no translation)', noSource: '(no source)', person: (n: number) => `Speaker ${n}` },
   formatTime: (ms: number) => `[${ms}]`,
 };
 

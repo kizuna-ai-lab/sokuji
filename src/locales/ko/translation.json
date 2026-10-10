@@ -303,7 +303,10 @@
       "theyRead": "상대방이 읽는 언어",
       "theySpeak": "상대방이 말하는 언어",
       "mirror": "상대방은 {{their}}로 말함 → 나는 {{mine}}로 읽음"
-    }
+    },
+    "sonioxSharedSessionFaceToFace": "마주 보고 대화할 때는 항상 하나의 공유 세션을 사용합니다. 두 사람이 같은 마이크에 대고 말하기 때문입니다.",
+    "sonioxParticipantVoice": "상대방 목소리",
+    "sonioxParticipantVoiceTooltip": "상대방의 말을 내 언어로 읽어 주는 목소리입니다. 프리셋 음성만 사용할 수 있습니다."
   },
   "simpleSettings": {
     "autoAuthenticated": "계정을 통해 자동으로 인증됨",
@@ -372,7 +375,8 @@
     "audioCaptureUnprovenNotice": "아직 캡처된 오디오가 없습니다",
     "audioCaptureUnprovenTitle": "선택한 소스에서 아직 오디오가 들어오지 않았습니다",
     "audioCaptureUnprovenText1": "소스가 재생 중인데도 번역되지 않는다면 macOS가 무음을 전달하고 있을 가능성이 큽니다. 앱의 오디오를 캡처하려면 \"시스템 오디오 녹음만\" 권한이 필요하며, 이 권한이 없으면 오류 없이 무음만 전달됩니다.",
-    "audioCaptureUnprovenText3Named": "\"{{app}}\"은(는) 한 번 캡처를 시도한 뒤에야 그 목록에 나타나며, 방금 시도했습니다. 활성화한 뒤 세션을 다시 시작하세요. 소스가 단순히 무음이었다면 아무것도 바꿀 필요가 없습니다."
+    "audioCaptureUnprovenText3Named": "\"{{app}}\"은(는) 한 번 캡처를 시도한 뒤에야 그 목록에 나타나며, 방금 시도했습니다. 활성화한 뒤 세션을 다시 시작하세요. 소스가 단순히 무음이었다면 아무것도 바꿀 필요가 없습니다.",
+    "otherSideBesideNote": "상대방이 내 마이크를 함께 사용하므로 시스템 오디오는 캡처하지 않습니다."
   },
   "auth": {
     "signIn": "로그인",
@@ -441,14 +445,14 @@
     "targetLanguage": "상대방 언어",
     "microphone": "마이크",
     "microphoneDesc": "음성을 캡처할 마이크를 선택하세요. 이 마이크에 당신의 언어로 말하면, Sokuji가 들리는 모든 것을 실시간으로 번역합니다.",
-    "speaker": "스피커",
-    "speakerDesc": "번역된 출력을 모니터링할 스피커를 선택하세요. 번역이 어떻게 들리는지 확인할 수 있습니다. 모니터링이 필요하지 않으면 끌 수 있습니다. 켜져 있든 꺼져 있든, 번역된 오디오는 항상 가상 마이크로 전송되어 다른 참가자들이 들을 수 있습니다.",
     "swapLanguages": "언어 전환",
     "textOnly": "텍스트만",
     "textOnlyDesc": "텍스트로만 번역 — 음성 출력 없음",
     "textOnlyForcedByMode": "\"{{mode}}\" 모드는 참가자의 말을 텍스트로만 보여주고 음성을 생성하지 않으므로 \"텍스트만\"이 항상 켜져 있습니다. 자신의 음성을 소리로 번역하려면 번역 모드를 전환하세요.",
     "keepReplayAudio": "재생을 위해 오디오 유지",
-    "keepReplayAudioDesc": "번역된 오디오를 메모리에 저장하여 각 메시지에서 나중에 다시 재생할 수 있도록 합니다. 긴 세션 동안 메모리 사용을 줄이기 위해 기본적으로 꺼져 있습니다."
+    "keepReplayAudioDesc": "번역된 오디오를 메모리에 저장하여 각 메시지에서 나중에 다시 재생할 수 있도록 합니다. 긴 세션 동안 메모리 사용을 줄이기 위해 기본적으로 꺼져 있습니다.",
+    "output": "출력",
+    "outputDesc": "번역된 음성을 내게 재생하는 장치입니다. '나' 모드에서는 끌 수 있으며, 회의에서는 가상 마이크를 통해 계속 번역을 들을 수 있습니다."
   },
   "providers": {
     "kizunaai_soniox": {
@@ -574,7 +578,8 @@
       "legendSource": "원문: 원본 음성만",
       "legendTranslation": "번역: 번역만",
       "legendBoth": "모두: 두 줄 모두",
-      "legendNone": "끄기: 이쪽 숨기기"
+      "legendNone": "끄기: 이쪽 숨기기",
+      "person": "화자 {{n}}"
     },
     "playItemAudio": "이 항목의 오디오 재생",
     "backToLatest": "최신으로 이동",
@@ -651,14 +656,22 @@
     "deviceMic": "마이크",
     "deviceSpeakerMonitor": "스피커 모니터",
     "notSelected": "선택 안 됨",
-    "deviceParticipantAudio": "상대방 오디오"
+    "deviceParticipantAudio": "상대방 오디오",
+    "faceToFaceTag": "대면",
+    "descBothBeside": "한 컴퓨터를 두 사람이 사용하는 경우(대면)에도 쓸 수 있습니다."
   },
   "popover": {
     "statusOff": "끄기",
     "toggleOn": "{{label}} 켜기",
     "toggleOff": "{{label}} 끄기",
     "participantSubtitleElectron": "모든 시스템 오디오",
-    "participantSubtitleExtension": "시스템 기본 출력으로 재생"
+    "participantSubtitleExtension": "시스템 기본 출력으로 재생",
+    "otherSide": "상대방 위치",
+    "otherSideMeeting": "온라인 회의",
+    "otherSideMeetingHint": "시스템 오디오 또는 앱 오디오를 캡처합니다",
+    "otherSideBeside": "내 옆",
+    "otherSideBesideHint": "마이크 하나를 두 사람이 사용합니다",
+    "output": "출력"
   },
   "simplePanel": {
     "clickToConfigLanguages": "언어를 구성하려면 클릭",
@@ -1147,6 +1160,15 @@
       "two-way-text": {
         "title": "양방향 온라인 대화, 자막만",
         "desc": "이중 언어 자막, 회의록 — 양쪽 모두 텍스트로, 합성 음성 없음."
+      },
+      "setsBeside": "설정: {{mode}} 모드, 상대방은 내 옆 · {{output}}",
+      "face-to-face-voice": {
+        "title": "마주 보고 대화",
+        "desc": "한 대의 컴퓨터 앞에서 두 사람이 각자의 언어로 말합니다. 각자 이어버드를 한쪽씩 끼고 자기 언어로 된 번역만 듣습니다."
+      },
+      "face-to-face-text": {
+        "title": "마주 보고 대화, 자막만",
+        "desc": "둘이 같은 화면을 보거나, 상대방이 휴대폰으로 LAN 자막 페이지를 엽니다."
       }
     },
     "output": {
@@ -1179,7 +1201,8 @@
     },
     "fit": {
       "cannotSpeak": "이 제공자는 음성 번역을 생성할 수 없습니다.",
-      "cannotBeTextOnly": "이 제공자는 항상 음성으로 말하므로 '자막만'으로는 실행할 수 없습니다."
+      "cannotBeTextOnly": "이 제공자는 항상 음성으로 말하므로 '자막만'으로는 실행할 수 없습니다.",
+      "cannotFaceToFace": "이 제공자는 마이크 하나를 쓰는 두 사람의 대화를 번역할 수 없습니다."
     },
     "credentials": {
       "apiKey": "API 키",
@@ -1348,7 +1371,8 @@
     },
     "legend": {
       "onSite": "현장",
-      "remote": "온라인"
+      "remote": "온라인",
+      "person": "화자 {{n}}"
     },
     "backToLive": "최신으로 이동",
     "dock": {
@@ -1431,5 +1455,23 @@
     "warnAddressChanged": "네트워크가 바뀌어 주소가 {{address}}(으)로 변경되었습니다. 링크를 다시 보내거나 프로젝터 화면을 다시 여세요.",
     "errorPortsBusy": "공유를 시작하지 못했습니다: 포트 7788–7797이 모두 사용 중입니다.",
     "errorListen": "공유를 시작하지 못했습니다: {{reason}}"
+  },
+  "faceToFace": {
+    "earsTitle": "왼쪽과 오른쪽 · 각자 자기 언어로 번역된 소리를 듣습니다",
+    "leftEar": "왼쪽 귀",
+    "rightEar": "오른쪽 귀",
+    "earLeft": "L",
+    "earRight": "R",
+    "meListens": "나({{language}})",
+    "otherListens": "상대방({{language}})",
+    "previewLeft": "왼쪽 귀 미리 듣기",
+    "previewRight": "오른쪽 귀 미리 듣기",
+    "swap": "왼쪽과 오른쪽 바꾸기",
+    "speakersHint": "헤드폰을 사용하고 한쪽씩 나눠 쓰세요. 스피커가 있으면 마이크가 번역 음성을 다시 받아 한 번 더 번역합니다.",
+    "playedLeft": "왼쪽 귀로 재생됨",
+    "playedRight": "오른쪽 귀로 재생됨",
+    "notPlayed": "재생되지 않음: 이 번역은 {{target}}이(가) 아니라 {{language}}이므로 아무에게도 읽어 주지 않습니다.",
+    "legendMe": "{{language}} · 나",
+    "legendOther": "{{language}} · 상대방"
   }
 }

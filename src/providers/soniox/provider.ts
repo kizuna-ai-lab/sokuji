@@ -38,6 +38,7 @@ export const sonioxProvider: Provider<SonioxSettings, SonioxCredentials, SonioxC
   languages: sonioxLanguages,
 
   speech: 'optional',
+  faceToFace: true,
   // Soniox's STT socket takes no text.
   textInput: () => false,
   // The server's endpoint model ends a segment (`<end>`, `<fin>`).

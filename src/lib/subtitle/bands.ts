@@ -13,6 +13,7 @@ import type { LegName, SegmentId } from '../conversation/types';
 import { needsSpace } from '../projection/join';
 import type { Entry } from '../projection/types';
 import { showsSide, type LegFilters, type NoticeEntry } from '../view/filter';
+import { entryPerson, people, type People } from '../view/people';
 
 /** One stretch of a band. */
 export interface BandPiece {
@@ -28,6 +29,10 @@ export interface BandPiece {
   start?: number;
   /** Set on a notice's piece. */
   notice?: NoticeEntry;
+  /** The person's display number, on a labelled leg's row. */
+  person?: number;
+  /** The first piece of a run whose person differs from the band's previous run: a numbered dot goes before it. */
+  mark?: true;
 }
 
 export interface Band {
@@ -54,6 +59,7 @@ interface Item {
   segmentId?: SegmentId;
   start?: number;
   notice?: NoticeEntry;
+  person?: number;
 }
 
 export function buildBands(
@@ -61,6 +67,7 @@ export function buildBands(
   filters: LegFilters,
   words: (notice: NoticeEntry) => string,
   maxChars = BAND_MAX_CHARS,
+  who: People = people(entries),
 ): Band[] {
   const items = new Map<string, Item[]>(ORDER.map(({ leg, side }) => [`${leg}-${side}`, []]));
   for (const entry of entries) {
@@ -68,11 +75,12 @@ export function buildBands(
       items.get(`${entry.leg}-translation`)!.push({ key: entry.id, text: words(entry), notice: entry });
       continue;
     }
+    const person = who.numberOf(entry.leg, entryPerson(entry));
     for (const side of ['source', 'translation'] as const) {
       if (!showsSide(filters[entry.leg], side)) continue;
       const band = items.get(`${entry.leg}-${side}`)!;
       for (const row of side === 'source' ? entry.source : entry.translation) {
-        band.push({ key: row.key, text: row.text, segmentId: row.segmentId, start: row.start });
+        band.push({ key: row.key, text: row.text, segmentId: row.segmentId, start: row.start, ...(person !== undefined ? { person } : {}) });
       }
     }
   }
@@ -87,7 +95,8 @@ export function buildBands(
  * joined text's outer whitespace goes — each row keeps the part of itself
  * inside the trimmed stretch, so blank rows at either edge vanish whole. A
  * run's first piece gets a separator only where `needsSpace` says; inside a
- * run there is none. Then only the newest `maxChars` are kept.
+ * run there is none. A run whose person differs from the previous run's (a
+ * notice is not a run of anyone) gets a mark on its first piece. Then only the newest `maxChars` are kept.
  */
 function piecesOf(items: readonly Item[], maxChars: number): BandPiece[] {
   const runs: Item[][] = [];
@@ -97,10 +106,14 @@ function piecesOf(items: readonly Item[], maxChars: number): BandPiece[] {
     else runs.push([item]);
   }
   const pieces: BandPiece[] = [];
+  let previousPerson: number | undefined;
   for (const run of runs) {
     const whole = run.map((item) => item.text).join('');
     const from = whole.length - whole.trimStart().length;
     const to = whole.trimEnd().length;
+    const person = run[0].person;
+    const marked = run[0].segmentId !== undefined && person !== undefined && person !== previousPerson;
+    if (run[0].segmentId !== undefined) previousPerson = person;
     let at = 0;
     let first = true;
     for (const item of run) {
@@ -116,6 +129,8 @@ function piecesOf(items: readonly Item[], maxChars: number): BandPiece[] {
           before,
           ...(item.segmentId !== undefined ? { segmentId: item.segmentId, start: (item.start ?? 0) + (start - at) } : {}),
           ...(item.notice ? { notice: item.notice } : {}),
+          ...(item.person !== undefined ? { person: item.person } : {}),
+          ...(first && marked ? { mark: true as const } : {}),
         });
         first = false;
       }

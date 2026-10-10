@@ -4,8 +4,8 @@ import type { ViewerEntry, ViewerRow } from './types';
 
 const row = (r: Row): ViewerRow => ({ key: r.key, text: r.text, final: r.final });
 
-/** What a viewer reads of one entry; notices stay with the host (spec 2026-10-04 §3.1). */
-export function toViewerEntry(entry: Entry): ViewerEntry | null {
+/** What a viewer reads of one entry, with its person's display number when its leg is labelled; notices stay with the host (spec 2026-10-04 §3.1). */
+export function toViewerEntry(entry: Entry, person?: number): ViewerEntry | null {
   if (entry.kind !== 'exchange') return null;
   return {
     id: entry.id,
@@ -14,5 +14,6 @@ export function toViewerEntry(entry: Entry): ViewerEntry | null {
     languages: { source: entry.languages.source, target: entry.languages.target },
     source: entry.source.map(row),
     translation: entry.translation.map(row),
+    ...(person !== undefined ? { person } : {}),
   };
 }

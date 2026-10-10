@@ -45,11 +45,11 @@ describe('Kizuna Soniox floors and caps mirror the backend', () => {
     expect(sonioxRolesFloorMicroUsd(['spk_stt', 'spk_tts', 'par_stt'])).toBe(60_000);
   });
 
-  it("names today's floor for the start, the participant-speech flag off: split Both opens a second STT stream, only the speaker speaks", () => {
+  it("names the floor for the start with the participant-speech flag off: split Both opens a second STT stream, only the speaker speaks", () => {
     const shared = { ...SONIOX_DEFAULTS, bothModeSharedSession: true };
     const split = { ...SONIOX_DEFAULTS, bothModeSharedSession: false };
     const at = (legs: LegName[], textOnly: boolean, s = shared) => kizunaSonioxMinimumBalance({ legs, textOnly, participantSpeech: true }, s);
-    // `participantSpeech: true` in every shape: with the flag off (the default) it prices nothing.
+    // `participantSpeech: true` in every shape: with the flag off (the parameter's default) it prices nothing.
     expect(at(['speaker'], false)).toBe(41_667);
     expect(at(['speaker'], true)).toBe(18_334);
     expect(at(['participant'], false)).toBe(18_334);
@@ -60,10 +60,9 @@ describe('Kizuna Soniox floors and caps mirror the backend', () => {
     expect(at(['speaker'], true, split)).toBe(18_334);
   });
 
-  it("prices the participant's speech stream once the flag is on — a role the backend has no floor for yet", () => {
-    // The backend mints no `par_tts` today, so it prices none: these are
-    // this formula's answers, which its floor must match when it does
-    // (the "turning it on" checklist updates this test then).
+  it("prices the participant's speech stream as the backend does (par_tts at the TTS rate)", () => {
+    // sokuji-backend `sonioxStartFloorMicroUsd` sums per-kind conservative rates:
+    // par_tts is a `tts` role, so these are its floors (sokuji-backend#94).
     const shared = { ...SONIOX_DEFAULTS, bothModeSharedSession: true };
     const split = { ...SONIOX_DEFAULTS, bothModeSharedSession: false };
     const on = (legs: LegName[], textOnly: boolean, s = shared) => kizunaSonioxMinimumBalance({ legs, textOnly, participantSpeech: true }, s, true);

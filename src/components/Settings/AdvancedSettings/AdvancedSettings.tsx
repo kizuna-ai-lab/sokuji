@@ -14,6 +14,7 @@ import {
   VoicePassthroughSection,
   HelpSection
 } from '../sections';
+import { useFaceToFace } from '../../MainPanel/useFaceToFace';
 import { SessionSettingsGeneral, SessionSettingsProvider } from '../ProviderArea';
 import './AdvancedSettings.scss';
 
@@ -26,6 +27,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings, act
   const { t } = useTranslation();
   const locked = useSessionLocked();
   const mode = useMode();
+  const faceToFace = useFaceToFace().active;
   // The global turn mode — used to disable VoicePassthroughSection when
   // Push-to-Translate is in effect (mutual exclusion, 1e-3 ruling 4).
   const turnMode = useTurnModeStore((s) => s.turnMode);
@@ -102,7 +104,15 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings, act
               isLocked={lockMic}
               showMicrophone={true}
               showSpeaker={false}
-            />
+            >
+              {/* Face-to-face has no meeting to pass the voice through to. */}
+              {!faceToFace && (
+                <VoicePassthroughSection
+                  disabled={turnMode === 'push-to-translate'}
+                  disabledReason={t('audioPanel.passthroughManagedByPushToTranslate')}
+                />
+              )}
+            </AudioDeviceSection>
 
             <AudioDeviceSection
               isSessionActive={locked}
@@ -115,11 +125,6 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings, act
             <SystemAudioSection
               isSessionActive={locked}
               isLocked={lockParticipant}
-            />
-
-            <VoicePassthroughSection
-              disabled={turnMode === 'push-to-translate'}
-              disabledReason={t('audioPanel.passthroughManagedByPushToTranslate')}
             />
           </div>
         )}

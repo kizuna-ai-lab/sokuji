@@ -6,7 +6,7 @@ import ToggleSwitch from '../shared/ToggleSwitch';
 import {
   useIsParticipantMuted, useSetParticipantMuted,
   useParticipantSources, useSelectedParticipantSource, useSelectParticipantSource,
-  useRefreshDevices, useIsAudioLoading,
+  useRefreshDevices, useIsAudioLoading, useMode,
   type AudioDevice,
 } from '../../../stores/audioStore';
 import DeviceList from '../shared/DeviceList';
@@ -14,6 +14,8 @@ import { useAnalytics } from '../../../lib/analytics';
 import { ParticipantSpeechSwitch } from './ParticipantSpeechSwitch';
 import { PARTICIPANT_SPEECH_SHOWN } from '../../../stores/routingStore';
 import { isExtension, isElectron } from '../../../utils/environment';
+import { useFaceToFace } from '../../MainPanel/useFaceToFace';
+import OtherSideChoice from '../../FaceToFace/OtherSideChoice';
 
 interface SystemAudioSectionProps {
   /** Real session-active state. Locks the participant-speech switch
@@ -50,13 +52,16 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
   const refreshDevices = useRefreshDevices();
   const isLoading = useIsAudioLoading();
   const locked = isLocked ?? false;
+  const mode = useMode();
+  const faceToFace = useFaceToFace();
+  const besideMe = faceToFace.active;
 
   // On Electron the source list replaces the on/off toggle entirely: its own
   // "Off" row is the control, so it must render even when the only source is
   // whole-system capture, or the channel could never be turned back on.
   // The extension has no source concept (tab capture is already scoped), so it
   // keeps the plain toggle.
-  const showSourcePicker = isElectron() && participantSources.length > 0;
+  const showSourcePicker = !besideMe && isElectron() && participantSources.length > 0;
 
   const handleSourceSelect = (device: AudioDevice) => {
     // `locked` is about mode scope, not the session: picking a source during
@@ -112,7 +117,10 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
           </button>
         )}
       </h3>
-      {showSourcePicker ? (
+      {mode === 'both' && faceToFace.offered && <OtherSideChoice locked={isSessionActive} />}
+      {besideMe ? (
+        <p className="setting-description">{t('audioPanel.otherSideBesideNote', 'The other person shares your microphone; no system audio is captured.')}</p>
+      ) : showSourcePicker ? (
         <DeviceList
           devices={participantSources}
           selectedDevice={selectedParticipantSource}
@@ -137,7 +145,7 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
           the participant-TTS opt-in freezes for the run's whole shape, not
           only while this channel is scoped out. Hidden while
           `PARTICIPANT_SPEECH_SHOWN` is off. */}
-      {PARTICIPANT_SPEECH_SHOWN && <ParticipantSpeechSwitch locked={isSessionActive} />}
+      {!besideMe && PARTICIPANT_SPEECH_SHOWN && <ParticipantSpeechSwitch locked={isSessionActive} />}
     </div>
   );
 };

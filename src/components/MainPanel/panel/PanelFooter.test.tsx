@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
 import { PanelFooter, type PanelFooterProps } from './PanelFooter';
+import useAudioStore from '../../../stores/audioStore';
 import { languageLabel } from '../../../lib/language/label';
 import type { RunState } from '../../../lib/session/types';
 
@@ -258,5 +259,54 @@ describe('PanelFooter — waveforms', () => {
     const { container: basicContainer } = render(<PanelFooter {...baseProps('basic', { waveforms })} />);
     expect(basicContainer.querySelector('[data-testid="wf-input"]')).toBeNull();
     expect(basicContainer.querySelector('[data-testid="wf-output"]')).toBeNull();
+  });
+});
+
+describe('PanelFooter — the ears legend', () => {
+  it.each(SITES)('%s: names each ear and its listener in face-to-face, and nothing otherwise', (site) => {
+    const { container, rerender } = render(<PanelFooter {...baseProps(site, { mode: 'both', ears: { leftLang: 'ja', rightLang: 'en', leftIsMe: true } })} />);
+    const legend = container.querySelector('.ears-legend');
+    expect(legend?.textContent).toContain('faceToFace.legendMe');
+    expect(legend?.textContent).toContain('faceToFace.legendOther');
+    expect(legend?.querySelector('.ears-legend__ear--me b')?.getAttribute('aria-hidden')).toBe('true');
+    rerender(<PanelFooter {...baseProps(site, { mode: 'both', ears: null })} />);
+    expect(container.querySelector('.ears-legend')).toBeNull();
+  });
+
+  // Kizuna Soniox today: the participant's leg is silent, so my ear plays nothing.
+  it.each(SITES)('%s: leaves out an ear nothing plays in', (site) => {
+    const { container } = render(<PanelFooter {...baseProps(site, { mode: 'both', faceToFace: true, ears: { leftLang: 'ja', rightLang: 'en', leftIsMe: true, silent: 'left' } })} />);
+    const ears = [...container.querySelectorAll('.ears-legend .ears-legend__ear')];
+    expect(ears).toHaveLength(1);
+    expect(ears[0].classList.contains('ears-legend__ear--other')).toBe(true);
+    expect(ears[0].querySelector('.ears-legend__ear-name')?.textContent).toBe('faceToFace.rightEar');
+    expect(container.querySelector('.ears-legend')?.textContent).not.toContain('faceToFace.legendMe');
+  });
+
+  it.each(SITES)('%s: is a strip of its own directly above the control footer, never inside it', (site) => {
+    const { container, rerender } = render(<PanelFooter {...baseProps(site, { mode: 'both', faceToFace: true, ears: { leftLang: 'ja', rightLang: 'en', leftIsMe: true } })} />);
+    const strip = container.querySelector('.ears-legend');
+    expect(strip).not.toBeNull();
+    expect(strip!.closest('.control-footer')).toBeNull();
+    expect(strip!.nextElementSibling?.matches(`.control-footer.${site}`)).toBe(true);
+    rerender(<PanelFooter {...baseProps(site, { mode: 'both', faceToFace: true, ears: null })} />);
+    expect(container.querySelector('.ears-legend')).toBeNull();
+    expect(container.firstElementChild?.matches(`.control-footer.${site}`)).toBe(true);
+  });
+
+  it.each(SITES)('%s: names the headphones in use at the end of the strip, and nothing when none is picked', (site) => {
+    const ears = { leftLang: 'ja', rightLang: 'en', leftIsMe: true };
+    act(() => { useAudioStore.setState({ selectedMonitorDevice: { deviceId: 'out-1', label: 'AirPods Pro' } }); });
+    const { container } = render(<PanelFooter {...baseProps(site, { mode: 'both', faceToFace: true, ears })} />);
+    const device = container.querySelector('.ears-legend .ears-legend__device');
+    expect(device?.textContent).toBe('AirPods Pro');
+    expect(device).toBe(container.querySelector('.ears-legend')!.lastElementChild);
+    act(() => { useAudioStore.setState({ selectedMonitorDevice: null }); });
+    expect(container.querySelector('.ears-legend__device')).toBeNull();
+  });
+
+  it.each(SITES)('%s: the tag follows the legend', (site) => {
+    const { container } = render(<PanelFooter {...baseProps(site, { mode: 'both', faceToFace: true, ears: null })} />);
+    expect(container.querySelector('.mode-picker__tag')).not.toBeNull();
   });
 });

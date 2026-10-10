@@ -16,10 +16,8 @@ import { asSonioxRegion, type SonioxRegion } from '../../lib/soniox/regions';
 import type { SonioxSettings } from './settings';
 
 /**
- * The body field asking for the participant's speech stream. The backend
- * reads fields by name and ignores unknown ones
- * (`BE:routes/soniox.ts:254-280`), but the name is its choice when it
- * mints `par_tts`: confirm it then ("turning it on", roadmap).
+ * The body field asking for the participant's speech stream: sokuji-backend
+ * reads it by this name (`normalizeSessionShape`, sokuji-backend#94).
  */
 export const PARTICIPANT_SPEECH_FIELD = 'participantSpeech';
 
@@ -42,7 +40,7 @@ export interface LeaseRequest {
 
 /** This start's request: its legs; the speaker's speech; split Both from the settings `startBoth` reads; the settings' region; and, the flag on, whether the participant speaks. */
 export function leaseRequest(
-  shape: Pick<RunShape, 'legs' | 'textOnly' | 'participantSpeech'>,
+  shape: Pick<RunShape, 'legs' | 'textOnly' | 'participantSpeech' | 'faceToFace'>,
   s: Pick<SonioxSettings, 'region' | 'bothModeSharedSession'>,
   participantSpeech: boolean,
 ): LeaseRequest {
@@ -50,8 +48,9 @@ export function leaseRequest(
   return {
     mode: both ? 'both' : shape.legs[0] === 'participant' ? 'participant' : 'speaker',
     textOnly: !shape.legs.includes('speaker') || shape.textOnly,
-    // Must agree with the adapter's `config.sharedBoth` (`startBoth`): both read the settings the run built from.
-    bothSplit: both && !s.bothModeSharedSession,
+    // Must agree with the adapter's `config.sharedBoth` (`startBoth`): both read the settings the run built from,
+    // and face-to-face is always one shared stream (`buildSoniox`).
+    bothSplit: both && !shape.faceToFace && !s.bothModeSharedSession,
     region: asSonioxRegion(s.region),
     ...(participantSpeech ? { participantSpeaks: shape.legs.includes('participant') && shape.participantSpeech } : {}),
   };
