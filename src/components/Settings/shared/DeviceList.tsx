@@ -101,7 +101,7 @@ const DeviceList: React.FC<DeviceListProps> = ({
     <div
       className={`device-list ${className}`}
       role="listbox"
-      aria-label={deviceType === 'input' ? t('simpleConfig.microphone') : t('simpleConfig.output')}
+      aria-label={deviceType === 'input' ? t('simpleConfig.microphone') : t('audioPanel.defaultPlayback', 'Default playback device')}
       aria-describedby={ariaDescribedBy}
       // Disabled drops every option to tabIndex -1, which would leave nothing in
       // the widget to focus — a keyboard user would tab straight past it and

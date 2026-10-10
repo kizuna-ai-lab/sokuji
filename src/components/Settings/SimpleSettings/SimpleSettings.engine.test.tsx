@@ -55,6 +55,7 @@ vi.mock('../ProviderArea', () => ({
 // SimpleSettings' remaining sections aren't what's under test here.
 vi.mock('../sections', () => ({
   AudioDeviceSection: () => <div data-testid="audio-device-section" />,
+  SpeechOutputSection: () => <div data-testid="speech-output-section" />,
   SystemAudioSection: () => <div data-testid="system-audio-section" />,
   HelpSection: () => <div data-testid="help-section" />,
 }));

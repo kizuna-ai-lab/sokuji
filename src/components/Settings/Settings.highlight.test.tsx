@@ -48,6 +48,7 @@ vi.mock('./AdvancedSettings/AdvancedSettings', () => ({
     <div data-testid="advanced-body" data-active-tab={activeTab}>
       <div id="provider-section" data-testid="provider-section-el" />
       <div id="microphone-section" data-testid="microphone-section-el" />
+      <div id="speech-section" data-testid="speech-section-el" />
       <div id="turn-detection-tuning-section" data-testid="turn-detection-tuning-el" />
     </div>
   ),
@@ -100,6 +101,24 @@ describe("Settings — the 'provider' navigation target switches tabs without fl
     // Past the 3000ms highlight window: it's removed and the target clears.
     vi.advanceTimersByTime(3000);
     expect(getByTestId('microphone-section-el').classList.contains('highlight')).toBe(false);
+    expect(navigateToSettings).toHaveBeenCalledWith(null);
+  });
+
+  it("target='speech' maps to the audio tab and highlights #speech-section", () => {
+    mockTarget = 'speech';
+    const { getByTestId } = render(<Settings />);
+
+    expect(getByTestId('advanced-body')).toHaveAttribute('data-active-tab', 'audio');
+    expect(getByTestId('speech-section-el').classList.contains('highlight')).toBe(false);
+
+    // Past the 150ms scroll delay: highlight lands.
+    vi.advanceTimersByTime(200);
+    expect(getByTestId('speech-section-el').classList.contains('highlight')).toBe(true);
+    expect(navigateToSettings).not.toHaveBeenCalled();
+
+    // Past the 3000ms highlight window: it's removed and the target clears.
+    vi.advanceTimersByTime(3000);
+    expect(getByTestId('speech-section-el').classList.contains('highlight')).toBe(false);
     expect(navigateToSettings).toHaveBeenCalledWith(null);
   });
 

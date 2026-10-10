@@ -92,14 +92,13 @@ const sectionIds = () => {
 
 describe('SimpleSettings - section order', () => {
   // The owner's order of 2026-10-01; sentence segmentation is hidden.
-  it('leads with the pair, the provider, the output toggles and the speech mode, then the audio sections, and ends with help', () => {
+  it('leads with the pair, the provider and the speech mode, then the audio sections, and ends with help', () => {
     expect(sectionIds()).toEqual([
       'languages-section',
       'provider-section',
-      'output-section',
       'turn-detection-section',
       'microphone-section',
-      'speaker-section',
+      'speech-section',
       'participant-section',
       'help-section',
     ]);

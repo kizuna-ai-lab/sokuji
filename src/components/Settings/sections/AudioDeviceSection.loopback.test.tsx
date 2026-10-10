@@ -33,32 +33,22 @@ const { inputDevices, selectInputDevice } = vi.hoisted(() => ({
 }));
 
 vi.mock('../../../stores/audioStore', () => ({
-  useIsMonitorChannelInScope: () => true,
   useNoiseSuppressionMode: () => 'off',
   useSetNoiseSuppressionMode: () => vi.fn(),
   useAudioContext: () => ({
     audioInputDevices: inputDevices,
-    audioMonitorDevices: [],
     selectedInputDevice: null,
-    selectedMonitorDevice: null,
     isMicMuted: false,
-    isMonitorMuted: false,
     isLoading: false,
     selectInputDevice,
-    selectMonitorDevice: vi.fn(),
     setMicMuted: vi.fn(),
-    setMonitorMuted: vi.fn(),
     refreshDevices: vi.fn(),
   }),
 }));
 
 const renderMic = () =>
   render(
-    <AudioDeviceSection
-      isSessionActive={false}
-      showMicrophone={true}
-      showSpeaker={false}
-    />
+    <AudioDeviceSection isSessionActive={false} />
   );
 
 beforeEach(() => {

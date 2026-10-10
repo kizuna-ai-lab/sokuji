@@ -64,8 +64,8 @@ vi.mock('../../../stores/settingsStore', () => ({
 // SystemAudioSection.tsx:86 (`id="participant-section"`) — re-check these
 // line numbers if either section is restructured.
 vi.mock('../sections', () => ({
-  AudioDeviceSection: ({ showMicrophone }: { showMicrophone?: boolean }) =>
-    showMicrophone ? <div id="microphone-section" /> : <div id="speaker-section" />,
+  AudioDeviceSection: () => <div id="microphone-section" />,
+  SpeechOutputSection: () => <div id="speech-section" />,
   SystemAudioSection: () => <div id="participant-section" />,
   HelpSection: () => null,
 }));

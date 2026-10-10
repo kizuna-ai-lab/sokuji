@@ -36,7 +36,7 @@ export const BASICS_STEPS: readonly TourStep[] = [
   { id: 'welcome' },
   { id: 'mode-picker', anchor: 'mode-picker', placement: 'top', bullets: ['modeMe', 'modeOthers', 'modeBoth'] },
   { id: 'microphone', anchor: 'microphone-section', when: hasMic, prepare: (_c, a) => a.openSettings('microphone'), placement: 'left' },
-  { id: 'monitor', anchor: 'speaker-section', when: (c) => c.mode === 'speaker' && !c.textOnly, prepare: (_c, a) => a.openSettings('speaker'), placement: 'left' },
+  { id: 'monitor', anchor: 'speech-section', when: (c) => c.mode === 'speaker' && !c.textOnly, prepare: (_c, a) => a.openSettings('speech'), placement: 'left' },
   {
     id: 'output-routing', when: speaks,
     // Electron is the only platform whose routing depends on the OS; web reads

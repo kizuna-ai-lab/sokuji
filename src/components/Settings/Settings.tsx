@@ -37,7 +37,7 @@ const NAVIGATION_TAB_MAP: Record<string, string> = {
   'languages': 'general',
   'sentence-segmentation': 'general',
   'microphone': 'audio',
-  'speaker': 'audio',
+  'speech': 'audio',
   'system-audio': 'audio',
   'participant': 'audio',
   // Engine chips (Task 10) deep-link here to switch to the provider tab

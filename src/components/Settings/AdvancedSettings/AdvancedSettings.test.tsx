@@ -23,9 +23,6 @@ vi.mock('../../../services/ServiceFactory', () => ({
   },
 }));
 
-const f2f = vi.hoisted(() => ({ active: false }));
-vi.mock('../../MainPanel/useFaceToFace', () => ({ useFaceToFace: () => ({ active: f2f.active }) }));
-
 const run = vi.hoisted(() => ({ locked: false }));
 vi.mock('../../../app/useRun', () => ({ useSessionLocked: () => run.locked }));
 
@@ -47,11 +44,9 @@ vi.mock('../ProviderArea', () => ({
 }));
 
 vi.mock('../sections', () => ({
-  AudioDeviceSection: ({ showMicrophone, children }: { showMicrophone?: boolean; children?: React.ReactNode }) => (
-    <div data-testid={showMicrophone ? 'microphone-section' : 'speaker-section'}>{children}</div>
-  ),
-  SystemAudioSection: () => <div data-testid="system-audio-section" />,
-  VoicePassthroughSection: () => <div data-testid="voice-passthrough-section" />,
+  AudioDeviceSection: () => <div className="config-section" id="microphone-section" />,
+  SpeechOutputSection: () => <div className="config-section" id="speech-section" />,
+  SystemAudioSection: () => <div className="config-section" id="participant-section" />,
   HelpSection: () => <div data-testid="help-section" />,
 }));
 
@@ -60,7 +55,6 @@ const { default: AdvancedSettings } = await import('./AdvancedSettings');
 
 beforeEach(() => {
   run.locked = false;
-  f2f.active = false;
   blocks.general.length = 0;
   useSettingsStore.setState({ engineSlotTarget: null, settingsNavigationTarget: null });
 });
@@ -88,15 +82,16 @@ describe("AdvancedSettings — the General tab's chip deep-links to the Provider
   });
 });
 
-describe('AdvancedSettings: the Audio tab passthrough', () => {
-  it('renders inside the microphone section', () => {
+describe('AdvancedSettings: the Audio tab', () => {
+  it("renders the microphone, then the speech block, then the other side's audio", () => {
     render(<AdvancedSettings activeTab="audio" />);
-    expect(screen.getByTestId('microphone-section')).toContainElement(screen.getByTestId('voice-passthrough-section'));
+    const ids = Array.from(document.querySelectorAll('.audio-section .config-section')).map((el) => el.id);
+    expect(ids).toEqual(['microphone-section', 'speech-section', 'participant-section']);
   });
 
-  it('is hidden under face-to-face', () => {
-    f2f.active = true;
+  it('has no output block and no passthrough of its own', () => {
     render(<AdvancedSettings activeTab="audio" />);
-    expect(screen.queryByTestId('voice-passthrough-section')).toBeNull();
+    expect(document.getElementById('speaker-section')).toBeNull();
+    expect(document.querySelector('.voice-passthrough-section')).toBeNull();
   });
 });
