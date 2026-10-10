@@ -21,6 +21,8 @@ export function outletEntries(devices: readonly { deviceId: string; label: strin
     { device: null, channel: 'right' },
   ];
   for (const d of devices) {
+    // Before the microphone permission a browser lists devices with an empty id: nothing to target, and its values would collide with follow-default's.
+    if (d.deviceId === '') continue;
     for (const channel of ['both', 'left', 'right'] as const) entries.push({ device: d.deviceId, channel, label: d.label });
   }
   return entries;

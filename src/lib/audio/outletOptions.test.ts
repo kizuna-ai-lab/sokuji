@@ -21,6 +21,12 @@ describe('outletEntries', () => {
   it('with no devices, only the follow-default entries', () => {
     expect(outletEntries([])).toHaveLength(3);
   });
+
+  it('skips a device with an empty id (listed before the microphone permission): its values would collide with follow-default\'s', () => {
+    const entries = outletEntries([{ deviceId: '', label: 'Default' }, { deviceId: 'a', label: 'A' }]);
+    expect(entries).toHaveLength(6);
+    expect(new Set(entries.map((e) => `${e.device ?? ''}#${e.channel}`)).size).toBe(6);
+  });
 });
 
 describe('entryValue / parseEntryValue', () => {
