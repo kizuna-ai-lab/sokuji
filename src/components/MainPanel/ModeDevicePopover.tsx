@@ -26,6 +26,7 @@ import { getAppAudio } from '../../lib/audio/appAudio';
 import { entryValue, outletEntries, outletSelectValue, parseEntryValue } from '../../lib/audio/outletOptions';
 import type { OutletName } from '../../lib/audio/outlets';
 import { describeCause, reportError } from '../../lib/diagnostics/report';
+import { selectedFromStores } from '../../lib/session/appShape';
 import { participantSpeechHeard } from '../../lib/modern-audio/participantSource';
 import { useRoutingStore } from '../../stores/routingStore';
 import { getEnvironment, isExtension } from '../../utils/environment';
@@ -41,8 +42,8 @@ interface ModeDevicePopoverProps {
   onClose: () => void;
   /**
    * A run is live, as the mode picker's `locked`: the other side is the run's
-   * (its shape and capture froze at Start), so its choice is locked too. The
-   * swap stays live: everything reads it live.
+   * (its shape and capture froze at Start), so its choice is locked too, and so
+   * is the Other mode's translation switch.
    */
   locked: boolean;
 }
@@ -61,7 +62,7 @@ interface ChannelRowSpec {
   /** Shown in place of a device name when the row has no picker. */
   subtitle?: string;
   isMuted: boolean;
-  /** Absent: the row has no power switch — face-to-face's headphones play whenever a translation is spoken. */
+  /** Absent: the row has no power switch — the outlet rows beside me have a preview instead. */
   onMuteToggle?: () => void;
   /** Absent on rows that have no picker (participant without a per-app helper). */
   onSelectDevice?: (d: AudioDevice) => void;
@@ -248,11 +249,20 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     }
 
     if (mode === 'participant') {
-      const on = participantSpeech ?? false;
+      // The twin of SpeechOutputSection's 我听到的翻译 switch: keep the two in step.
+      const provider = selectedFromStores()?.provider;
+      const speech = provider?.speech ?? 'optional';
+      const offered = provider?.participantSpeech !== false;
+      const on = offered && heard && speech !== 'never' && (speech === 'always' || (participantSpeech ?? false));
+      const disabledReason = !heard ? blockedReason
+        : locked ? t('audioPanel.rowLockedByRun', 'Fixed for this session; stop it to change.')
+        : !offered ? t('audioPanel.iHearNotOffered', "This service does not speak the other side's translation.")
+        : speech !== 'optional' ? (speech === 'always' ? t('audioPanel.otherHearsAlwaysSpeaks', 'This service always speaks.') : t('audioPanel.otherHearsNeverSpeaks', 'This service never speaks.'))
+        : undefined;
       list.push(outletRow('them', 'them', t('audioPanel.iHear', 'Translation I hear'), {
-        isMuted: !on || !heard,
-        onMuteToggle: () => setParticipantSpeech(!on),
-        ...(heard ? {} : { disabledReason: blockedReason }),
+        isMuted: !on,
+        onMuteToggle: () => setParticipantSpeech(!(participantSpeech ?? false)),
+        ...(disabledReason ? { disabledReason } : {}),
       }));
     }
 
@@ -265,7 +275,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     // outletRow and previewOn close over the values listed here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    mode, beside, outlets, defaultDevice, participantSpeech, heard,
+    mode, beside, locked, outlets, defaultDevice, participantSpeech, heard,
     audioInputDevices, selectedInputDevice, isMicMuted,
     audioMonitorDevices, isMonitorMuted,
     isParticipantMuted, participantSources, selectedParticipantSource,
@@ -366,8 +376,6 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
                     <Play size={14} />
                   </button>
                 )}
-                {/* No switch and no preview, but the column stays, so the summary and chevron line up with the rows above. */}
-                {!row.onMuteToggle && !row.onPreview && <span className="mode-device-popover__mute-slot" aria-hidden="true" />}
               </div>
 
               {isExpanded && canExpand && (

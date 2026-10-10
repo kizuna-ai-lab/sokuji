@@ -121,9 +121,14 @@
     justify-content: center;
     transition: background 0.15s ease, color 0.15s ease;
 
-    &:hover {
+    &:hover:not(:disabled) {
       background: #333;
       color: #ddd;
+    }
+
+    // Blocked or locked: it reads as off and does not invite a click.
+    &:disabled {
+      cursor: default;
     }
 
     // Off state: icon is dimmed to signal the channel is silent.
@@ -131,19 +136,12 @@
       color: #666;
       opacity: 0.6;
 
-      &:hover {
+      &:hover:not(:disabled) {
         background: #333;
         color: #999;
         opacity: 1;
       }
     }
-  }
-
-  // A row with no switch (face-to-face's headphones) keeps the switch's column,
-  // so its summary and chevron end where the other rows' do.
-  &__mute-slot {
-    flex-shrink: 0;
-    width: 32px;
   }
 
   // Participant row has no expand action — remove pointer cursor and hover background.

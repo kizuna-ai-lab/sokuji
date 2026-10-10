@@ -38,6 +38,7 @@ const store = {
   selected: null as { deviceId: string; label: string } | null,
   select: vi.fn(),
   setParticipantMuted: vi.fn(),
+  setMicMuted: vi.fn(),
   monitor: { deviceId: 'out-1', label: 'AirPods Pro' } as { deviceId: string; label: string } | null,
 };
 const monitor = { setMuted: vi.fn() };
@@ -58,7 +59,7 @@ vi.mock('../../stores/audioStore', () => ({
   useIsMicMuted: () => false,
   useIsMonitorMuted: () => false,
   useIsParticipantMuted: () => false,
-  useSetMicMuted: () => vi.fn(),
+  useSetMicMuted: () => store.setMicMuted,
   useSetMonitorMuted: () => monitor.setMuted,
   useSetParticipantMuted: () => store.setParticipantMuted,
   useOutlets: () => outletsState.outlets,
@@ -83,6 +84,9 @@ vi.mock('../../lib/diagnostics/report', async (importOriginal) => ({
 }));
 vi.mock('../../lib/language/useLanguageLabel', () => ({ useLanguageLabel: () => (code: string) => code.toUpperCase() }));
 
+const providerState = { participantSpeech: undefined as boolean | undefined };
+vi.mock('../../lib/session/appShape', () => ({ selectedFromStores: () => ({ provider: { speech: 'optional', participantSpeech: providerState.participantSpeech } }) }));
+
 const SYSTEM = { deviceId: 'desktop-audio-loopback', label: 'System Audio (All Applications)' };
 const CHROMIUM = { deviceId: 'app:pid:205', label: 'Chromium' };
 
@@ -92,6 +96,7 @@ beforeEach(() => {
   store.selected = CHROMIUM;
   store.otherSide = 'meeting';
   Object.assign(f2f, { offered: true, active: false, me: 'ja', other: 'en', speaks: { speaker: true, participant: true }, ears: {}, outletDevices: { other: 'AirPods Pro', them: 'AirPods Pro' } });
+  providerState.participantSpeech = undefined;
   routing.participantSpeech = null;
   routing.setParticipantSpeech.mockReset();
   monitor.setMuted.mockReset();
@@ -105,6 +110,7 @@ beforeEach(() => {
   store.setOtherSide.mockReset();
   store.select.mockReset();
   store.setParticipantMuted.mockReset();
+  store.setMicMuted.mockReset();
 });
 
 // The popover renders against an anchor element; a detached div is enough.
@@ -251,7 +257,10 @@ describe('ModeDevicePopover — Both, the other side', () => {
     mountBoth();
     fireEvent.click(screen.getByRole('button', { name: 'Preview Translation I hear' }));
     await vi.waitFor(() => expect(report.error).toHaveBeenCalledTimes(1));
-    expect(report.error.mock.calls[0][0]).toBe('ModeDevicePopover');
+    const [source, message, options] = report.error.mock.calls[0];
+    expect(source).toBe('ModeDevicePopover');
+    expect(message).toContain('no output device');
+    expect(options?.cause).toBeInstanceOf(Error);
   });
 
   it('labels the choice by its visible heading, not by a second copy of the words', () => {
@@ -292,6 +301,44 @@ describe('ModeDevicePopover — the speech rows in Me and Other', () => {
     expect(labels).toEqual(["Other's audio", 'Translation I hear']);
     fireEvent.click(screen.getByRole('button', { name: 'Turn on Translation I hear' }));
     expect(routing.setParticipantSpeech).toHaveBeenCalledWith(true);
+  });
+
+  it('a pick in 我也听 writes the outlet and leaves the monitor switch alone', () => {
+    mount('speaker');
+    fireEvent.click(screen.getByText('I hear it too').closest('button')!);
+    fireEvent.click(screen.getByText('MacBook Pro Speakers · left channel'));
+    expect(outletsState.setDevice).toHaveBeenCalledWith('me', 'out-2');
+    expect(outletsState.setChannel).toHaveBeenCalledWith('me', 'left');
+    expect(monitor.setMuted).not.toHaveBeenCalled();
+  });
+
+  it('a pick in 我听到的翻译 leaves participantSpeech alone', () => {
+    store.selected = CHROMIUM;
+    mount('participant');
+    fireEvent.click(screen.getByText('Translation I hear').closest('button')!);
+    fireEvent.click(screen.getByText('AirPods Pro · right channel'));
+    expect(outletsState.setDevice).toHaveBeenCalledWith('them', 'out-1');
+    expect(routing.setParticipantSpeech).not.toHaveBeenCalled();
+  });
+
+  it('locked during a run: the switch is disabled with the run-lock title', () => {
+    store.selected = CHROMIUM;
+    const anchor = document.createElement('div');
+    document.body.appendChild(anchor);
+    render(<ModeDevicePopover mode="participant" open={true} anchorEl={anchor} onClose={vi.fn()} locked={true} />);
+    const button = screen.getByRole('button', { name: 'Turn on Translation I hear' });
+    expect(button).toBeDisabled();
+    expect(button.getAttribute('title')).toBe('Fixed for this session; stop it to change.');
+  });
+
+  it('a provider that does not speak the other side: disabled and not checked', () => {
+    store.selected = CHROMIUM;
+    providerState.participantSpeech = false;
+    routing.participantSpeech = true;
+    mount('participant');
+    const button = screen.getByRole('button', { name: 'Turn on Translation I hear' });
+    expect(button).toBeDisabled();
+    expect(button.getAttribute('title')).toMatch(/does not speak/);
   });
 
   it('blocked: on a whole-system source the power button is disabled with the reason (Review Focus 2)', () => {
