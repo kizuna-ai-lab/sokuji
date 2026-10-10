@@ -2318,20 +2318,23 @@
 
     .muted { color: vars.$text-secondary; }
   }
+  // The voice list's play key (`.voice-row__btn`), squared to the select's height.
   &__preview {
+    flex: none;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    flex-shrink: 0;
-    padding: 6px 10px;
-    border: 1px solid vars.$border-default;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: transparent;
+    color: vars.$text-secondary;
+    border: 1px solid vars.$border-strong;
     border-radius: vars.$radius-sm;
-    background: vars.$bg-control;
-    color: vars.$text-primary;
-    font-size: vars.$font-body;
     cursor: pointer;
 
-    &:hover { border-color: vars.$color-primary; }
+    &:hover:not(:disabled) { color: vars.$text-primary; border-color: vars.$text-secondary; }
+    &:disabled { cursor: not-allowed; }
   }
   &__slider {
     flex: 1;

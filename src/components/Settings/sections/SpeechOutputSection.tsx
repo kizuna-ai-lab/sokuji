@@ -117,9 +117,9 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
         })}
       </select>
       {withPreview && (
-        <button type="button" className="setting-row__preview" aria-label={t('audioPanel.previewRow', { row: rowLabel, defaultValue: 'Preview {{row}}' })} onClick={() => previewOn(name)}>
-          <Play size={12} />
-          {t('audioPanel.preview', 'Preview')}
+        // Icon-only, as the voice list's and the popover's preview keys are (owner, 2026-10-11); the label is its name and title.
+        <button type="button" className="setting-row__preview" aria-label={t('audioPanel.previewRow', { row: rowLabel, defaultValue: 'Preview {{row}}' })} title={t('audioPanel.previewRow', { row: rowLabel, defaultValue: 'Preview {{row}}' })} onClick={() => previewOn(name)}>
+          <Play size={13} />
         </button>
       )}
     </>
