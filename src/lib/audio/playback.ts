@@ -10,7 +10,8 @@ import { ClipQueue, type QueueView } from './clipQueue';
 import type { AudioGraph, BusMeter, OneShot } from './graph';
 import { LiveStream } from './liveStream';
 import type { PcmTap } from './pcmTap';
-import { routesFor, type RoutingSettings, type Bus } from './routes';
+import type { OutletName } from './outlets';
+import { routesFor, type Edge, type Outlet, type RoutingSettings } from './routes';
 
 /** How long playback must be quiet — no run live, nothing queued, no preview — before its context rests. */
 export const QUIET_MS = 5_000;
@@ -38,24 +39,22 @@ export interface RoutingSource {
 export interface PreviewClip {
   audio: Float32Array;
   sampleRate: number;
-  /** One ear only (face-to-face's per-ear preview). */
-  pan?: -1 | 1;
 }
 
 export interface Playback extends PlaybackPort {
   readonly queues: Readonly<Record<'speaker' | 'participant' | 'replay', QueueView<ClipKey>>>;
-  /** Plays a segment's kept speech on the real device, replacing any replay in progress. */
+  /** Plays a segment's kept speech on the outlet of its row — mine on me (the other person's in face-to-face), the other's on them — replacing any replay in progress. */
   replay(leg: LegName, segment: Segment): void;
   stopReplay(): void;
-  /** Plays a clip on the real device, stopping the previous one; resolves when it ends or is stopped. */
-  preview(clip: PreviewClip): Promise<void>;
+  /** Plays a clip on an outlet (me unless told otherwise), stopping the previous one; resolves when it ends or is stopped. */
+  preview(clip: PreviewClip, outlet?: OutletName): Promise<void>;
   stopPreview(): void;
   /** The microphone's chunk, processed: the original voice under the translation. The passthrough route and its ratio decide whether the meeting hears it. */
   passthrough(pcm: Int16Array): void;
   /** The translated speech as played, before any route: the echo monitor's reference. */
   readonly ttsTap: PcmTap;
-  /** What a bus carries, for a waveform: the virtual one is what the meeting hears. */
-  meter(bus: Bus): BusMeter | null;
+  /** What an outlet carries, for a waveform: the virtual one is what the meeting hears. */
+  meter(bus: Outlet): BusMeter | null;
   dispose(): Promise<void>;
 }
 
@@ -72,6 +71,9 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
    */
   const counts = new Map<string, number>();
   let held = false;
+  /** Where the replay and preview feeds go: the outlet of the row the clip belongs to. */
+  let replayOutlet: OutletName = 'me';
+  let previewOutlet: OutletName = 'me';
   let current: OneShot | null = null;
   let live = false;
   let rest: (() => void) | null = null;
@@ -101,7 +103,11 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
 
   const apply = () => {
     const settings = routing.get();
-    const edges = routesFor(settings, held);
+    const edges: Edge[] = [
+      ...routesFor(settings, held),
+      { from: 'replay', to: replayOutlet, gain: 1 },
+      { from: 'preview', to: previewOutlet, gain: 1 },
+    ];
     const open = edges.some((e) => e.from === 'passthrough');
     if (passthroughOpen && !open) passthroughStream.clear();
     passthroughOpen = open;
@@ -168,6 +174,11 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
 
     replay(leg, segment) {
       replayQueue.clear();
+      const outlet: OutletName = leg === 'participant' ? 'them' : routing.get().faceToFace ? 'other' : 'me';
+      if (outlet !== replayOutlet) {
+        replayOutlet = outlet;
+        apply();
+      }
       void graph.resume();
       segment.speech.forEach((entry, index) => {
         // An entry whose pcm retention dropped plays nothing, but keeps its index.
@@ -177,13 +188,17 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
 
     stopReplay: () => replayQueue.clear(),
 
-    preview(clip) {
+    preview(clip, outlet = 'me') {
       stopPreview();
       if (clip.audio.length === 0) return Promise.resolve();
+      if (outlet !== previewOutlet) {
+        previewOutlet = outlet;
+        apply();
+      }
       void graph.resume();
       let shot: OneShot;
       try {
-        shot = graph.playOnce(clip.audio, clip.sampleRate, clip.pan);
+        shot = graph.playOnce(clip.audio, clip.sampleRate);
       } catch (error) {
         // createBuffer rejects a rate outside its supported range: a caller
         // awaiting this promise must see a rejection, not a synchronous throw.

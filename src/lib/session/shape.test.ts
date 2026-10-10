@@ -5,7 +5,7 @@ import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import { formatUsdFloor } from '../../utils/formatters';
 import type { LegName } from '../conversation/types';
 import type { LanguageContext } from '../provider/types';
-import { balanceRefusal, BALANCE_BELOW_FLOOR, contextsFor, gate, languageContext, microphoneMissing, QUOTA_PENDING, QUOTA_UNKNOWN } from './shape';
+import { balanceRefusal, BALANCE_BELOW_FLOOR, contextsFor, gate, languageContext, microphoneMissing, participantSpeechInput, QUOTA_PENDING, QUOTA_UNKNOWN, speakFor } from './shape';
 import type { BalanceShape, RunShape } from './types';
 
 const shape = (patch: Partial<RunShape> = {}): RunShape => ({
@@ -212,5 +212,62 @@ describe('balanceRefusal and the gate (Stage 2 Kizuna Soniox, rulings 5, 6)', ()
     expect(gate(shape({ provider: leased, account: known(0) }), 'electron')).toMatchObject({ code: BALANCE_BELOW_FLOOR });
     expect(gate(shape({ provider: leased, account: { status: 'unknown' } }), 'electron')).toMatchObject({ code: QUOTA_UNKNOWN });
     expect(gate(shape({ provider: leased }), 'electron')).toBeNull();
+  });
+});
+
+describe('speakFor — who hears what (spec 2026-10-10 §4)', () => {
+  const optional = { speech: 'optional' as const };
+  const base = { textOnly: false, participantSpeech: null, isMonitorMuted: false, legs: ['speaker'] as const, faceToFace: false, heard: true };
+
+  it('Translation the other side hears is Text Only inverted, unless the provider always or never speaks', () => {
+    expect(speakFor(optional, base).other).toBe(true);
+    expect(speakFor(optional, { ...base, textOnly: true }).other).toBe(false);
+    expect(speakFor({ speech: 'always' }, { ...base, textOnly: true }).other).toBe(true);
+    expect(speakFor({ speech: 'never' }, base).other).toBe(false);
+  });
+
+  it('Translation I hear on auto: on in face-to-face, off in a meeting (ruling 1)', () => {
+    expect(speakFor(optional, { ...base, faceToFace: true }).them).toBe(true);
+    expect(speakFor(optional, base).them).toBe(false);
+    expect(speakFor(optional, { ...base, participantSpeech: true }).them).toBe(true);
+    expect(speakFor(optional, { ...base, faceToFace: true, participantSpeech: false }).them).toBe(false);
+  });
+
+  it("an always-speaking provider is still not recaptured: the gate is outside its policy", () => {
+    const always = { speech: 'always' as const, participantSpeech: true };
+    const both = { ...base, legs: ['speaker', 'participant'] as const };
+    expect(speakFor(always, { ...both, heard: false })).toMatchObject({ other: true, them: false });
+    expect(speakFor(always, { ...both, heard: true }).them).toBe(true);
+  });
+
+  it("a whole-system source keeps them off whatever the switch says (Review Focus 4)", () => {
+    expect(speakFor(optional, { ...base, participantSpeech: true, heard: false }).them).toBe(false);
+  });
+
+  it("them follows the provider's participant flag and its speech", () => {
+    expect(speakFor({ speech: 'optional', participantSpeech: false }, { ...base, participantSpeech: true }).them).toBe(false);
+    expect(speakFor({ speech: 'always' }, base).them).toBe(true);
+    expect(speakFor({ speech: 'never' }, { ...base, participantSpeech: true }).them).toBe(false);
+  });
+
+  it('I hear it too needs the monitor on and Translation the other side hears on, and is never face-to-face', () => {
+    expect(speakFor(optional, base).me).toBe(true);
+    expect(speakFor(optional, { ...base, isMonitorMuted: true }).me).toBe(false);
+    expect(speakFor(optional, { ...base, textOnly: true }).me).toBe(false);
+    expect(speakFor(optional, { ...base, faceToFace: true }).me).toBe(false);
+  });
+
+  it('I hear it too in Both is blocked by a source that would recapture it (D12)', () => {
+    const both = ['speaker', 'participant'] as const;
+    expect(speakFor(optional, { ...base, legs: both, heard: true }).me).toBe(true);
+    expect(speakFor(optional, { ...base, legs: both, heard: false }).me).toBe(false);
+    // In Me mode the participant source is not captured at all.
+    expect(speakFor(optional, { ...base, legs: ['speaker'], heard: false }).me).toBe(true);
+  });
+
+  it('participantSpeechInput is the switch resolved and the recapture rule, without the provider', () => {
+    expect(participantSpeechInput({ participantSpeech: null, faceToFace: true, heard: true })).toBe(true);
+    expect(participantSpeechInput({ participantSpeech: null, faceToFace: false, heard: true })).toBe(false);
+    expect(participantSpeechInput({ participantSpeech: true, faceToFace: false, heard: false })).toBe(false);
   });
 });

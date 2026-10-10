@@ -6,6 +6,7 @@
 // readiness re-checks on the store's own reset.
 import { useCallback } from 'react';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { useRoutingStore } from '../../stores/routingStore';
 import useAudioStore from '../../stores/audioStore';   // default export only — there is no named useAudioStore
 import { useSetupStore, SetupPersistError } from '../../stores/setupStore';
 import { PAIR_FIELDS, useProviderStore } from '../../stores/providerStore';
@@ -22,6 +23,7 @@ export function useApplySetup(): (draft: SetupDraft) => Promise<void> {
       setOtherSide: useAudioStore.getState().setOtherSide,
       setBothPopoverSeen: useAudioStore.getState().setBothPopoverSeen,
       setTextOnly: s.setTextOnly,
+      setParticipantSpeech: useRoutingStore.getState().setParticipantSpeech,
       applyProvider: async (provider, pair, credentials, settings) => {
         const id = providerIdFromStored(provider);
         const p = presentProviders().find((candidate) => candidate.id === id);

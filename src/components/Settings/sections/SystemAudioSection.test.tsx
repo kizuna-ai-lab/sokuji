@@ -3,11 +3,10 @@
  * (issue #335).
  *
  * Regression guard: the picker was first added to AudioDeviceSection, which the
- * settings views render TWICE (once for the microphone, once for the speaker).
- * Because it sat outside both `showMicrophone`/`showSpeaker` guards it appeared
- * in both instances, giving the user two "Participant audio" sections whose
- * lock state disagreed - each instance receives a different isLocked prop.
- * The picker belongs here, in the one real participant section.
+ * settings views once rendered twice (microphone and speaker instances).
+ * Because it sat outside both instances' guards it appeared in both, giving
+ * the user two "Participant audio" sections whose lock state disagreed. The
+ * picker belongs here, in the one real participant section.
  */
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -54,20 +53,10 @@ vi.mock('../../FaceToFace/OtherSideChoice', () => ({
   default: ({ locked }: { locked: boolean }) => <div data-testid="other-side-choice" data-locked={String(locked)} />,
 }));
 
-// The section reads `PARTICIPANT_SPEECH_SHOWN` from the routing store; these
-// keep the store's services (and, behind them, the locales) out of the test, so
-// the real flag is what the section sees.
+// The section reads the routing store; these keep the store's services (and,
+// behind them, the locales) out of the test.
 vi.mock('../../../services/ServiceFactory', () => ({ ServiceFactory: {} }));
 vi.mock('../../../services/persistSetting', () => ({ persistSetting: vi.fn() }));
-
-// A marker only: locked is the one prop this section wires through, and the
-// switch's own behaviour (the whole-system rule, the tooltip) is covered by
-// ParticipantSpeechSwitch.test.tsx.
-vi.mock('./ParticipantSpeechSwitch', () => ({
-  ParticipantSpeechSwitch: ({ locked }: { locked: boolean }) => (
-    <div data-testid="participant-speech-switch" data-locked={String(locked)} />
-  ),
-}));
 
 const SYSTEM = { deviceId: 'desktop-audio-loopback', label: 'System Audio (All Applications)' };
 const CHROMIUM = { deviceId: 'app:pid:205', label: 'Chromium' };
@@ -170,15 +159,6 @@ describe('SystemAudioSection', () => {
     expect(container.querySelector('.toggle-switch-component')).not.toBeNull();
   });
 
-  // The owner, 2026-10-01: hidden, with participant speech kept off.
-  it('does not render the participant-speech switch', () => {
-    const { rerender } = mount({ isSessionActive: false });
-    expect(screen.queryByTestId('participant-speech-switch')).toBeNull();
-
-    rerender(<SystemAudioSection isSessionActive={true} />);
-    expect(screen.queryByTestId('participant-speech-switch')).toBeNull();
-  });
-
   it('shows no Gemini token warning any more; the section no longer reads the provider', () => {
     mount();
     expect(screen.queryByText(/Gemini generates audio responses/)).toBeNull();
@@ -212,13 +192,12 @@ describe('SystemAudioSection: the Other side choice', () => {
     expect(screen.getByTestId('other-side-choice')).toHaveAttribute('data-locked', 'false');
   });
 
-  it('beside me: the note replaces the picker, the refresh button and the speech switch', () => {
+  it('beside me: the note replaces the picker and the refresh button', () => {
     f2f.active = true;
     const { container } = mount();
     expect(screen.getByText('The other person shares your microphone; no system audio is captured.')).toBeInTheDocument();
     expect(screen.queryByText('Chromium')).toBeNull();
     expect(container.querySelector('.section-refresh-button')).toBeNull();
-    expect(screen.queryByTestId('participant-speech-switch')).toBeNull();
     expect(container.querySelector('.toggle-switch-component')).toBeNull();
     expect(screen.getByTestId('other-side-choice')).toBeInTheDocument();
   });

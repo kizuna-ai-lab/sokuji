@@ -30,7 +30,7 @@ import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useRoutingStore } from '../../stores/routingStore';
-import { ensureReadyFromStores, faceToFaceFromStores, legsFor, liveGate, participantSpeechFromStores, participantSpeechSwitchFromStores, persistIfUnchanged, readShapeFromStores, speechInputsFromStores, watchLegsFromStores, watchSpeechFromStores } from './appShape';
+import { ensureReadyFromStores, faceToFaceFromStores, legsFor, liveGate, persistIfUnchanged, readShapeFromStores, speechFromStores, speechInputsFromStores, watchLegsFromStores, watchSpeechFromStores } from './appShape';
 import type { RunShape } from './types';
 
 const auth = { signedIn: false, getToken: async () => null };
@@ -38,8 +38,9 @@ const auth = { signedIn: false, getToken: async () => null };
 beforeEach(() => {
   useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null, legs: ['speaker'], speech: { textOnly: false, participantSpeech: false } });
   useTurnModeStore.setState({ turnMode: 'auto' });
-  useRoutingStore.setState({ participantSpeech: false });
+  useRoutingStore.setState({ participantSpeech: null });
   useAudioStore.setState({ selectedParticipantSource: useAudioStore.getInitialState().selectedParticipantSource });
+  useAudioStore.setState({ isMonitorMuted: true, mode: 'speaker', otherSide: 'meeting', participantCaptureWidened: false });
   useAccountStore.setState({ account: null });
   useSettingsStore.setState({ textOnly: false });
   environment.value = 'web';
@@ -151,6 +152,15 @@ describe("readShapeFromStores — participant speech follows the whole-system ru
     useRoutingStore.setState({ participantSpeech: true });
   });
 
+  it('is off, live, while the application capture has widened to the whole system (slice 1 final review, Important 2)', () => {
+    environment.value = 'electron';
+    useAudioStore.setState({ mode: 'both', selectedParticipantSource: { deviceId: 'app:42', label: 'App' }, participantCaptureWidened: true });
+    expect(speechFromStores(fakeProvider).them).toBe(false);
+    expect(speechInputsFromStores().participantSpeech).toBe(false);
+    useAudioStore.setState({ participantCaptureWidened: false });
+    expect(speechFromStores(fakeProvider).them).toBe(true);
+  });
+
   it('is off on Electron under a whole-system participant source', () => {
     environment.value = 'electron';
     useAudioStore.setState({ selectedParticipantSource: { deviceId: 'desktop-audio-loopback', label: 'System' } });
@@ -181,11 +191,11 @@ describe("readShapeFromStores — participant speech follows the whole-system ru
     }
   });
 
-  it('participantSpeechFromStores is the shape\'s own answer', () => {
-    expect(participantSpeechFromStores({ participantSpeech: false })).toBe(false);
-    expect(participantSpeechFromStores({})).toBe(readShapeFromStores(auth)?.participantSpeech);
+  it('speechFromStores is the shape\'s own answer', () => {
+    expect(speechFromStores({ speech: 'optional', participantSpeech: false }).them).toBe(false);
+    expect(speechFromStores({ speech: 'optional' }).them).toBe(readShapeFromStores(auth)?.participantSpeech);
     useRoutingStore.setState({ participantSpeech: false });
-    expect(participantSpeechFromStores({})).toBe(readShapeFromStores(auth)?.participantSpeech);
+    expect(speechFromStores({ speech: 'optional' }).them).toBe(readShapeFromStores(auth)?.participantSpeech);
   });
 });
 
@@ -220,14 +230,14 @@ describe('watchLegsFromStores', () => {
 describe('speechInputsFromStores and watchSpeechFromStores (Stage 2 Volcengine AST2, choice 1)', () => {
   it("reads the text-only switch and the participant's speech: its switch, and a source that will not recapture it", () => {
     expect(speechInputsFromStores()).toEqual({ textOnly: false, participantSpeech: false });
-    expect(participantSpeechSwitchFromStores()).toBe(false);
+    expect(speechFromStores({ speech: 'optional' }).them).toBe(false);
     useSettingsStore.setState({ textOnly: true });
     useRoutingStore.setState({ participantSpeech: true });
     expect(speechInputsFromStores()).toEqual({ textOnly: true, participantSpeech: true });
     environment.value = 'electron';
     useAudioStore.setState({ selectedParticipantSource: { deviceId: 'desktop-audio-loopback', label: 'System' } });
     expect(speechInputsFromStores().participantSpeech).toBe(false);
-    expect(participantSpeechSwitchFromStores()).toBe(false);
+    expect(speechFromStores({ speech: 'optional' }).them).toBe(false);
   });
 
   it("keeps the provider store's speech inputs on the stores', now and on every change, until unsubscribed", () => {
@@ -343,17 +353,26 @@ describe('face-to-face from the stores', () => {
     expect(faceToFaceFromStores()).toBe(false);
   });
 
-  it('voices the participant unless Text Only is on (Review Focus 2)', () => {
+  it('voices the participant on auto in face-to-face, and only by the switch in a meeting (ruling 1)', () => {
     pick('soniox');
     useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
-    useRoutingStore.setState({ participantSpeech: false });
-    useSettingsStore.setState({ textOnly: false });
-    expect(participantSpeechFromStores({})).toBe(true);
+    useRoutingStore.setState({ participantSpeech: null });
+    expect(speechFromStores({ speech: 'optional' }).them).toBe(true);
     expect(speechInputsFromStores().participantSpeech).toBe(true);
+    useRoutingStore.setState({ participantSpeech: false });
+    expect(speechFromStores({ speech: 'optional' }).them).toBe(false);
+    useAudioStore.setState({ otherSide: 'meeting' });
+    useRoutingStore.setState({ participantSpeech: null });
+    expect(speechFromStores({ speech: 'optional' }).them).toBe(false);
+    // A provider whose participant never speaks stays silent everywhere.
+    useAudioStore.setState({ otherSide: 'beside' });
+    expect(speechFromStores({ speech: 'optional', participantSpeech: false }).them).toBe(false);
+  });
+
+  it('speechFromStores reads the selected provider by default, and treats none as optional', () => {
     useSettingsStore.setState({ textOnly: true });
-    expect(participantSpeechFromStores({})).toBe(false);
-    // A provider whose participant never speaks stays silent here too.
+    expect(speechFromStores().other).toBe(false);
     useSettingsStore.setState({ textOnly: false });
-    expect(participantSpeechFromStores({ participantSpeech: false })).toBe(false);
+    expect(speechFromStores().other).toBe(true);
   });
 });

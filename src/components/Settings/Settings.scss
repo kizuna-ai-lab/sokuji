@@ -120,7 +120,7 @@
     }
   }
 
-  // Why a channel is greyed (e.g. the speaker monitor outside 'You' mode). Sits
+  // Why a row is greyed (e.g. I hear it too while the translation is not spoken). Sits
   // between the heading and the control it justifies so the reason is read
   // before the user tries the control, not after it refuses. Pulled up against
   // the heading's own margin-bottom to read as part of it.
@@ -344,9 +344,11 @@
       align-items: center;
       margin-bottom: 6px;
       font-size: vars.$font-body;
+      color: vars.$text-secondary;
 
       .setting-value {
         color: vars.$text-muted;
+        font-size: vars.$font-caption;
       }
 
       .preview-toggle {
@@ -458,52 +460,6 @@
       }
     }
 
-    // Range slider
-    .slider {
-      -webkit-appearance: none;
-      -moz-appearance: none;
-      appearance: none;
-      width: 100%;
-      height: 4px;
-      border-radius: 2px;
-      background: vars.$bg-elevated;
-      outline: none;
-
-      &::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 14px;
-        height: 14px;
-        border-radius: 50%;
-        background: vars.$color-primary;
-        cursor: pointer;
-      }
-
-      &::-moz-range-thumb {
-        width: 14px;
-        height: 14px;
-        border-radius: 50%;
-        background: vars.$color-primary;
-        cursor: pointer;
-        border: none;
-      }
-
-      &:disabled {
-        @include vars.disabled-state;
-        opacity: 0.6;
-
-        &::-webkit-slider-thumb {
-          background: vars.$text-disabled;
-          cursor: not-allowed;
-        }
-
-        &::-moz-range-thumb {
-          background: vars.$text-disabled;
-          cursor: not-allowed;
-        }
-      }
-    }
-
     // Turn detection options
     .turn-detection-options {
       display: flex;
@@ -515,9 +471,9 @@
       .option-button {
         flex: 1;
         background-color: vars.$bg-control;
-        color: vars.$text-primary;
+        color: vars.$text-secondary;
         border: none;
-        padding: 8px 0;
+        padding: 6px 0;
         font-size: vars.$font-body;
         cursor: pointer;
         transition: background-color vars.$transition-fast;
@@ -527,7 +483,7 @@
         }
 
         &.active {
-          background-color: vars.$color-primary;
+          @include vars.state-selected-fill;
         }
 
         &:hover:not(.active):not(:disabled) {
@@ -1156,60 +1112,52 @@
   to { transform: rotate(360deg); }
 }
 
-// Volume control styles
-.volume-control {
-  margin-top: 12px;
-  padding: 12px;
-  background: vars.$bg-surface;
-  border-radius: vars.$radius-md;
+// The one range slider, top level so a `.config-section` row gets it as well as a
+// `.settings-section .setting-item` (the passthrough volume, the segmentation pauses).
+.slider {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: vars.$bg-elevated;
+  outline: none;
+  cursor: pointer;
 
-  .setting-label {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-    font-size: vars.$font-body;
-    color: vars.$text-secondary;
-
-    .setting-value {
-      color: vars.$color-primary;
-      font-weight: 500;
-    }
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: vars.$slider-thumb-size;
+    height: vars.$slider-thumb-size;
+    border-radius: 50%;
+    background: vars.$color-primary;
+    cursor: pointer;
   }
 
-  .volume-slider {
-    width: 100%;
-    height: 4px;
-    background: vars.$bg-elevated;
-    border-radius: 2px;
-    appearance: none;
+  &::-moz-range-thumb {
+    width: vars.$slider-thumb-size;
+    height: vars.$slider-thumb-size;
+    border-radius: 50%;
+    background: vars.$color-primary;
     cursor: pointer;
+    border: none;
+  }
+
+  &:disabled {
+    @include vars.disabled-state;
+    opacity: 0.6;
+    cursor: not-allowed;
 
     &::-webkit-slider-thumb {
-      appearance: none;
-      width: 16px;
-      height: 16px;
-      background: vars.$color-primary;
-      border-radius: 50%;
-      cursor: pointer;
+      background: vars.$text-disabled;
+      cursor: not-allowed;
     }
 
     &::-moz-range-thumb {
-      width: 16px;
-      height: 16px;
-      background: vars.$color-primary;
-      border-radius: 50%;
-      cursor: pointer;
-      border: none;
+      background: vars.$text-disabled;
+      cursor: not-allowed;
     }
-  }
-
-  .volume-limits {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 4px;
-    font-size: vars.$font-caption;
-    color: vars.$text-disabled;
   }
 }
 
@@ -1225,10 +1173,10 @@
     flex-direction: column;
 
     label {
-      font-size: vars.$font-title;
+      font-size: vars.$font-body;
       color: vars.$text-secondary;
       margin-bottom: 6px;
-      font-weight: 500;
+      font-weight: vars.$weight-normal;
     }
   }
 
@@ -1316,9 +1264,9 @@
   background: vars.$bg-control;
   border: 1px solid vars.$border-default;
   color: vars.$text-primary;
-  padding: 8px 10px;
+  padding: 6px 10px;
   border-radius: vars.$radius-sm;
-  font-size: vars.$font-title;
+  font-size: vars.$font-body;
   cursor: pointer;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -1643,9 +1591,9 @@
     background: vars.$bg-control;
     border: 1px solid vars.$border-default;
     color: vars.$text-primary;
-    padding: 8px 10px;
+    padding: 6px 10px;
     border-radius: vars.$radius-sm;
-    font-size: vars.$font-title;
+    font-size: vars.$font-body;
     transition: all vars.$transition-fast;
 
     &:focus {
@@ -1675,9 +1623,9 @@
     background: vars.$color-primary-fill;
     border: none;
     color: vars.$color-on-primary;
-    padding: 8px 16px;
+    padding: 6px 14px;
     border-radius: vars.$radius-sm;
-    font-size: vars.$font-title;
+    font-size: vars.$font-body;
     font-weight: 500;
     cursor: pointer;
     transition: all vars.$transition-fast;
@@ -1722,50 +1670,22 @@
     }
   }
 
-  // Mirrors the app's segmented-control archetype (ModePicker.scss and the
-  // noise-suppression control further down this file — both scope their rules
-  // to their own section, hence this local copy). Active = fill, per the
-  // state-selected-fill convention in _variables.scss. Like ModePicker, no
-  // font-weight change on active: the two labels differ in width and the
-  // control must not resize when the user switches modes.
+  // The shared segmented look (vars.segmented-option); only the layout is
+  // local, since ModePicker and the noise-suppression control scope their own.
   .segmented-control {
     display: inline-flex;
     align-items: stretch;
     align-self: flex-start;
-    height: 28px;
     border: 1px solid vars.$border-default;
     border-radius: vars.$radius-md;
     overflow: hidden;
 
     .segmented-option {
-      display: inline-flex;
-      align-items: center;
-      padding: 0 12px;
-      font-size: vars.$font-caption;
-      line-height: 1;
-      border: none;
-      background: vars.$bg-control;
-      color: #aaa;
-      cursor: pointer;
-      transition: all 0.15s ease;
+      @include vars.segmented-option;
 
-      &:not(:last-child) {
-        border-right: 1px solid vars.$border-default;
-      }
-
-      &:hover:not(.active):not(:disabled) {
-        background: vars.$bg-hover;
-      }
-
-      &.active {
-        background: vars.$color-primary-fill;
-        color: vars.$color-on-primary;
-      }
-
-      &:disabled {
-        opacity: vars.$disabled-opacity;
-        cursor: not-allowed;
-      }
+      // This control sizes to its content: a heavier active label would move
+      // its divider on every toggle, so the weight stays put here.
+      &.active { font-weight: inherit; }
     }
   }
 }
@@ -2304,31 +2224,20 @@
   margin-bottom: vars.$space-3;
 }
 
-.config-section > .ears-block--boxed {
-  margin-top: vars.$space-3;
-}
-
 .noise-suppression-control {
-  margin-top: 8px;
-
-  // Passthrough follows in the same section: the section's item gap and a rule keep it off this control.
-  & ~ .voice-passthrough-section {
-    margin-top: vars.$space-3;
-    padding-top: vars.$space-3;
-    border-top: 1px solid vars.$border-subtle;
-  }
+  margin-top: 12px;
 
   .noise-suppression-header {
     display: flex;
     align-items: center;
     gap: 6px;
     margin-bottom: 6px;
-    font-size: 13px;
-    color: var(--text-secondary, #aaa);
+    font-size: vars.$font-body;
+    color: vars.$text-secondary;
   }
 
   .noise-suppression-label {
-    font-size: 13px;
+    font-size: vars.$font-body;
   }
 
   .segmented-control {
@@ -2338,28 +2247,8 @@
     border: 1px solid var(--border-color, #444);
 
     .segmented-option {
+      @include vars.segmented-option;
       flex: 1;
-      padding: 6px 12px;
-      font-size: 12px;
-      border: none;
-      background: var(--bg-secondary, #333);
-      color: var(--text-secondary, #aaa);
-      cursor: pointer;
-      transition: all 0.15s ease;
-
-      &:not(:last-child) {
-        border-right: 1px solid var(--border-color, #444);
-      }
-
-      &:hover:not(.active) {
-        background: var(--bg-hover, #3a3a3a);
-      }
-
-      &.active {
-        background: tk.$color-primary-fill;
-        color: tk.$color-on-primary;
-        font-weight: 500;
-      }
     }
   }
 }
@@ -2378,4 +2267,124 @@
       }
     }
   }
+}
+
+// ── Two-line setting rows (spec 2026-10-10 D4) ───────────────────────────
+.setting-row {
+  margin-top: 12px;
+  position: relative;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 24px;
+  }
+  // The look of the labels around it: `.noise-suppression-label` above, the
+  // `.setting-item .setting-label` rows elsewhere — 13px, secondary colour.
+  &__label {
+    font-size: vars.$font-body;
+    color: vars.$text-secondary;
+  }
+  &__switch {
+    margin-left: auto;
+  }
+  &__control {
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .select-dropdown { flex: 1; min-width: 0; }
+  }
+  &__inert {
+    display: contents;
+    border: 0;
+    padding: 0;
+    margin: 0;
+  }
+  // A read-only box the same height as a closed select.
+  &__field {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 10px;
+    background: vars.$bg-control;
+    border: 1px solid vars.$border-default;
+    border-radius: vars.$radius-sm;
+    font-size: vars.$font-body;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    .muted { color: vars.$text-secondary; }
+  }
+  // The voice list's play key (`.voice-row__btn`), squared to the select's height.
+  &__preview {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: transparent;
+    color: vars.$text-secondary;
+    border: 1px solid vars.$border-strong;
+    border-radius: vars.$radius-sm;
+    cursor: pointer;
+
+    &:hover:not(:disabled) { color: vars.$text-primary; border-color: vars.$text-secondary; }
+    &:disabled { cursor: not-allowed; }
+  }
+  &__slider {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    input[type='range'] { flex: 1; min-width: 0; }
+    // The value beside a control reads muted, as `.setting-item .setting-label .setting-value` does.
+    .setting-value { color: vars.$text-muted; font-size: vars.$font-caption; white-space: nowrap; }
+  }
+  // Doubled with .setting-description: `.config-section .setting-description` sets display: block.
+  &__reason.setting-description {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 8px;
+
+    svg { flex-shrink: 0; margin-top: 2px; }
+    span { flex: 1; min-width: 0; }
+  }
+
+  &--sub {
+    margin-left: 30px;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: -18px;
+      top: -4px;
+      width: 10px;
+      height: 16px;
+      border-left: 2px solid vars.$border-default;
+      border-bottom: 2px solid vars.$border-default;
+      border-bottom-left-radius: 3px;
+    }
+  }
+  // Dim the parts, not the row: opacity on the row would also dim the help
+  // icon, since a child's opacity multiplies with its parent's.
+  &--greyed {
+    .setting-row__label,
+    .setting-row__switch,
+    .setting-row__control {
+      opacity: 0.5;
+    }
+  }
+}
+
+// The face-to-face headphones hint under the two ear rows: a warning, as on the board.
+.speech-section .setting-description.ears-hint {
+  color: vars.$color-warning;
+  margin-top: 8px;
 }

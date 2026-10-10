@@ -2,17 +2,13 @@
  * Tests for AudioDeviceSection's `lockedReason` — the explanation rendered when
  * a channel section is locked (issue #314).
  *
- * The Speaker section greys out whenever the translation mode isn't 'You'
- * (monitor is mutually exclusive with participant capture, to prevent an echo
- * loop). The lock is intentional; what was missing is any statement of *why*
- * it's locked or *how* to re-enable it — so a user who once switched to
- * 'Others'/'Both' saw a permanently dead control. The reason is also wired to
+ * A locked section needs a statement of *why* it's locked, or a greyed
+ * control reads as broken. The reason is also wired to
  * the device list via aria-describedby, so the `aria-disabled` options carry
  * their justification for screen readers rather than just going quiet.
  */
-import React from 'react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import AudioDeviceSection from './AudioDeviceSection';
 
 // Resolve to the inline default when the call site has one, else echo the key —
@@ -25,63 +21,48 @@ vi.mock('../../../lib/analytics', () => ({
   useAnalytics: () => ({ trackEvent: vi.fn() }),
 }));
 
-const f2f = vi.hoisted(() => ({ active: false }));
-const mon = vi.hoisted(() => ({ muted: false, select: vi.fn(), setMuted: vi.fn() }));
-vi.mock('../../MainPanel/useFaceToFace', () => ({ useFaceToFace: () => ({ active: f2f.active }) }));
-vi.mock('../../FaceToFace/EarsBlock', () => ({ default: () => <div data-testid="ears-block" /> }));
-
-const devices = [{ deviceId: 'spk-1', label: 'Headphones' }];
+const devices = [
+  { deviceId: 'mic-1', label: 'Built-in Microphone' },
+  { deviceId: 'loop-1', label: 'Stereo Mix (Realtek High Definition Audio)' },
+];
 
 vi.mock('../../../stores/audioStore', () => ({
-  useIsMonitorChannelInScope: () => false,
   useNoiseSuppressionMode: () => 'off',
   useSetNoiseSuppressionMode: () => vi.fn(),
   useAudioContext: () => ({
-    audioInputDevices: [],
-    audioMonitorDevices: devices,
-    selectedInputDevice: null,
-    selectedMonitorDevice: devices[0],
+    audioInputDevices: devices,
+    selectedInputDevice: devices[0],
     isMicMuted: false,
-    isMonitorMuted: mon.muted,
     isLoading: false,
     selectInputDevice: vi.fn(),
-    selectMonitorDevice: mon.select,
     setMicMuted: vi.fn(),
-    setMonitorMuted: mon.setMuted,
     refreshDevices: vi.fn(),
   }),
 }));
 
-const REASON = 'Speaker monitoring is only available in "You" mode.';
+const REASON = 'The microphone is not used in this mode.';
 
-const renderSpeaker = (props: Record<string, unknown> = {}) =>
-  render(
-    <AudioDeviceSection
-      isSessionActive={false}
-      showMicrophone={false}
-      showSpeaker={true}
-      {...props}
-    />
-  );
+const renderMic = (props: Record<string, unknown> = {}) =>
+  render(<AudioDeviceSection isSessionActive={false} {...props} />);
 
 describe('AudioDeviceSection lockedReason', () => {
   it('renders the reason when the section is locked', () => {
-    renderSpeaker({ isLocked: true, lockedReason: REASON });
+    renderMic({ isLocked: true, lockedReason: REASON });
     expect(screen.getByText(REASON)).toBeInTheDocument();
   });
 
   it('omits the reason when the section is unlocked', () => {
-    renderSpeaker({ isLocked: false, lockedReason: REASON });
+    renderMic({ isLocked: false, lockedReason: REASON });
     expect(screen.queryByText(REASON)).not.toBeInTheDocument();
   });
 
   it('renders nothing extra when locked without a reason', () => {
-    const { container } = renderSpeaker({ isLocked: true });
+    const { container } = renderMic({ isLocked: true });
     expect(container.querySelector('.section-locked-reason')).toBeNull();
   });
 
   it('describes the locked device list with the reason', () => {
-    renderSpeaker({ isLocked: true, lockedReason: REASON });
+    renderMic({ isLocked: true, lockedReason: REASON });
     const list = screen.getByRole('listbox');
     const describedBy = list.getAttribute('aria-describedby');
     expect(describedBy).toBeTruthy();
@@ -89,7 +70,7 @@ describe('AudioDeviceSection lockedReason', () => {
   });
 
   it('leaves an unlocked device list undescribed', () => {
-    renderSpeaker({ isLocked: false, lockedReason: REASON });
+    renderMic({ isLocked: false, lockedReason: REASON });
     expect(screen.getByRole('listbox')).not.toHaveAttribute('aria-describedby');
   });
 
@@ -99,14 +80,14 @@ describe('AudioDeviceSection lockedReason', () => {
   // disabled control focusable is what lets a keyboard user discover why it
   // won't respond.
   it('keeps the locked list reachable by keyboard so the reason is announced', () => {
-    renderSpeaker({ isLocked: true, lockedReason: REASON });
+    renderMic({ isLocked: true, lockedReason: REASON });
     const list = screen.getByRole('listbox');
     expect(list).toHaveAttribute('tabindex', '0');
     expect(list).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('keeps the unlocked list out of the tab order — its options carry it', () => {
-    renderSpeaker({ isLocked: false });
+    renderMic({ isLocked: false });
     const list = screen.getByRole('listbox');
     expect(list).not.toHaveAttribute('tabindex');
     expect(list).not.toHaveAttribute('aria-disabled');
@@ -123,19 +104,13 @@ describe('AudioDeviceSection warning modal under Activity hide', () => {
     const { fireEvent } = await import('@testing-library/react');
     const ui = (mode: 'visible' | 'hidden') => (
       <Activity mode={mode}>
-        <AudioDeviceSection
-          isSessionActive={false}
-          showMicrophone={false}
-          showSpeaker={true}
-          isSystemAudioEnabled={true}
-        />
+        <AudioDeviceSection isSessionActive={false} />
       </Activity>
     );
     const { rerender } = render(ui('visible'));
 
-    // Selecting a speaker while system audio is on triggers the
-    // mutual-exclusivity warning modal.
-    fireEvent.click(screen.getByText('Headphones'));
+    // Picking a loopback-style input opens the warning modal.
+    fireEvent.click(screen.getByText('Stereo Mix (Realtek High Definition Audio)'));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     rerender(ui('hidden'));
@@ -144,74 +119,13 @@ describe('AudioDeviceSection warning modal under Activity hide', () => {
   });
 });
 
-// Regression guard (issue #335): the settings views mount AudioDeviceSection
-// TWICE - once with showMicrophone, once with showSpeaker. Anything rendered
-// outside those two guards therefore appears twice. A participant-audio source
-// picker was briefly added here and showed up as two "Participant audio"
-// sections whose lock state disagreed, because each instance receives a
-// different isLocked prop. Participant UI belongs in SystemAudioSection.
+// Regression guard (issue #335): participant UI belongs in SystemAudioSection;
+// the microphone section must not render any of it.
 describe('AudioDeviceSection renders no participant UI', () => {
-  it('renders nothing participant-related in the microphone instance', () => {
-    const { container } = render(
-      <AudioDeviceSection isSessionActive={false} showMicrophone={true} showSpeaker={false} />
-    );
+  it('renders nothing participant-related', () => {
+    const { container } = render(<AudioDeviceSection isSessionActive={false} />);
     expect(container.querySelector('#participant-section')).toBeNull();
     expect(container.querySelector('#participant-source-section')).toBeNull();
     expect(container.querySelector('.participant-source-picker')).toBeNull();
-  });
-
-  it('renders nothing participant-related in the speaker instance', () => {
-    const { container } = render(
-      <AudioDeviceSection isSessionActive={false} showMicrophone={false} showSpeaker={true} />
-    );
-    expect(container.querySelector('#participant-section')).toBeNull();
-    expect(container.querySelector('#participant-source-section')).toBeNull();
-    expect(container.querySelector('.participant-source-picker')).toBeNull();
-  });
-});
-
-describe('AudioDeviceSection: the Output section', () => {
-  it('is headed Output', () => {
-    renderSpeaker();
-    expect(screen.getByRole('heading', { name: /Output/ })).toBeInTheDocument();
-  });
-
-  it('in Me mode keeps the Off row', () => {
-    f2f.active = false;
-    renderSpeaker({ isLocked: false });
-    expect(screen.getByText('Off')).toBeInTheDocument();
-  });
-
-  it('under face-to-face: no Off row, no lock or reason, the ears block', () => {
-    f2f.active = true;
-    renderSpeaker({ isLocked: true, lockedReason: REASON });
-    f2f.active = false;
-    expect(screen.queryByText('Off')).toBeNull();
-    expect(screen.queryByText(REASON)).toBeNull();
-    expect(screen.getByRole('listbox')).not.toHaveAttribute('aria-disabled');
-    expect(screen.getByTestId('ears-block')).toBeInTheDocument();
-  });
-});
-
-describe('AudioDeviceSection: picking an Output device', () => {
-  const pick = () => {
-    renderSpeaker({ isLocked: false });
-    fireEvent.click(screen.getByText('Headphones'));
-  };
-  beforeEach(() => { mon.muted = true; mon.select.mockReset(); mon.setMuted.mockReset(); });
-  afterEach(() => { mon.muted = false; f2f.active = false; });
-
-  it('in Me mode unmutes the monitor', () => {
-    f2f.active = false;
-    pick();
-    expect(mon.select).toHaveBeenCalled();
-    expect(mon.setMuted).toHaveBeenCalledWith(false);
-  });
-
-  it('under face-to-face leaves the Me-mode monitor muted', () => {
-    f2f.active = true;
-    pick();
-    expect(mon.select).toHaveBeenCalled();
-    expect(mon.setMuted).not.toHaveBeenCalled();
   });
 });

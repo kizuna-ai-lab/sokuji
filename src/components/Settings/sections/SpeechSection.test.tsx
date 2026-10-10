@@ -29,8 +29,6 @@ vi.mock('../../../providers/registry', async () => {
     presentProviders: () => [
       localInferenceProvider,
       fakeProvider,
-      { ...fakeProvider, id: 'always-provider', speech: 'always' as const },
-      { ...fakeProvider, id: 'never-provider', speech: 'never' as const },
     ],
   };
 });
@@ -52,15 +50,12 @@ import { useProviderStore } from '../../../stores/providerStore';
 import { useSettingsStore } from '../../../stores/settingsStore';
 import { useTurnModeStore } from '../../../stores/turnModeStore';
 import { ProviderTurnDetectionControls } from '../../providers/ProviderOwnSettings';
-import { OutputToggles, SpeechSection } from './SpeechSection';
+import { SpeechSection } from './SpeechSection';
 
 const entry = () => ({ settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'auto', target: 'en' } });
 const localEntry = () => ({ settings: { ...LOCAL_INFERENCE_DEFAULTS }, credentials: {}, pair: { source: 'ja', target: 'en' } });
 const originalResolve = useModelStore.getState().resolve;
 const originalSetUIMode = useSettingsStore.getState().setUIMode;
-
-/** The switch labeled `label`, out of every switch on the page. */
-const switchByLabel = (label: string) => screen.getAllByRole('switch').find((el) => el.textContent?.includes(label))!;
 
 beforeEach(() => {
   trackEvent.mockClear();
@@ -125,19 +120,12 @@ describe('SpeechSection', () => {
     expect(useTurnModeStore.getState().turnMode).toBe('auto');
   });
 
-  it("locked disables the three turn-mode buttons, and OutputToggles' Text only — Keep audio for replay stays enabled", () => {
-    render(
-      <>
-        <SpeechSection locked={true} layout="simple" />
-        <OutputToggles locked={true} />
-      </>,
-    );
+  it('locked disables the three turn-mode buttons', () => {
+    render(<SpeechSection locked={true} layout="simple" />);
     // The three turn modes — the tuning summary's link below them only
     // navigates, and stays enabled (its own case below).
     const modes = ['Auto', 'Push-to-Talk', 'Push-to-Translate'].map((label) => screen.getByRole('button', { name: label }));
     for (const button of modes) expect(button).toBeDisabled();
-    expect(switchByLabel('Text Only').getAttribute('aria-disabled')).toBe('true');
-    expect(switchByLabel('Keep audio for replay').getAttribute('aria-disabled')).toBe('false');
   });
 });
 
@@ -284,56 +272,5 @@ describe("SpeechSection — the provider's turn-detection tuning", () => {
     const { css } = compile(resolve(__dirname, '../Settings.scss'));
     expect(css).toMatch(/\.config-section \.setting-item\.turn-detection-tuning,\s*\.settings-section \.setting-item\.turn-detection-tuning\s*\{[^}]*margin-bottom:\s*0;/);
     expect(css).toMatch(/\.config-section \.setting-item\.turn-detection-tuning \.setting-label,\s*\.settings-section \.setting-item\.turn-detection-tuning \.setting-label\s*\{[^}]*margin-bottom:\s*0;/);
-  });
-});
-
-describe('OutputToggles', () => {
-  it('is one config-section with no heading, holding the two switches', () => {
-    const { container } = render(<OutputToggles locked={false} />);
-    const section = container.querySelector('#output-section');
-    expect(section).toBeTruthy();
-    expect(section?.className).toContain('config-section');
-    expect(section?.querySelector('h3')).toBeNull();
-    expect(section!.querySelectorAll('[role="switch"]')).toHaveLength(2);
-  });
-
-  it("toggles Text Only for LocalInference (speech: 'optional')", () => {
-    render(<OutputToggles locked={false} />);
-    const sw = switchByLabel('Text Only');
-    expect(sw.getAttribute('aria-checked')).toBe('false');
-    fireEvent.click(sw);
-    expect(useSettingsStore.getState().textOnly).toBe(true);
-  });
-
-  it('shows Text Only on and disabled in participant mode, with the forced-by-mode tooltip', () => {
-    useAudioStore.setState({ mode: 'participant' } as Partial<ReturnType<typeof useAudioStore.getState>>);
-    render(<OutputToggles locked={false} />);
-    const sw = switchByLabel('Text Only');
-    expect(sw.getAttribute('aria-checked')).toBe('true');
-    expect(sw.getAttribute('aria-disabled')).toBe('true');
-    expect(tooltipContents).toContain('simpleConfig.textOnlyForcedByMode');
-  });
-
-  it("hides Text Only for a provider with speech: 'always'", () => {
-    useProviderStore.setState({ selected: 'always-provider', entries: { 'always-provider': entry() } });
-    render(<OutputToggles locked={false} />);
-    expect(screen.queryByText('Text Only')).toBeNull();
-    expect(screen.getAllByRole('switch')).toHaveLength(1);
-  });
-
-  it("shows Text Only on and disabled for a provider with speech: 'never'", () => {
-    useProviderStore.setState({ selected: 'never-provider', entries: { 'never-provider': entry() } });
-    render(<OutputToggles locked={false} />);
-    const sw = switchByLabel('Text Only');
-    expect(sw.getAttribute('aria-checked')).toBe('true');
-    expect(sw.getAttribute('aria-disabled')).toBe('true');
-  });
-
-  it('toggles Keep audio for replay', () => {
-    render(<OutputToggles locked={false} />);
-    const sw = switchByLabel('Keep audio for replay');
-    expect(sw.getAttribute('aria-checked')).toBe('false');
-    fireEvent.click(sw);
-    expect(useSettingsStore.getState().keepReplayAudio).toBe(true);
   });
 });

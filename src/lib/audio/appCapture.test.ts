@@ -183,6 +183,15 @@ describe('the settings the sources follow', () => {
     expect(useAudioStore.getState().participantTapAudioSeen).toBe(true);
   });
 
+  it('marks the participant capture widened, and unmarks it', () => {
+    const settings = systemAudioSettings();
+    useAudioStore.setState({ participantCaptureWidened: false });
+    settings.widened(true);
+    expect(useAudioStore.getState().participantCaptureWidened).toBe(true);
+    settings.widened(false);
+    expect(useAudioStore.getState().participantCaptureWidened).toBe(false);
+  });
+
   it('tells the sources when the audio store changes', () => {
     const listener = vi.fn();
     const off = micSettings().subscribe(listener);

@@ -56,8 +56,6 @@ export const useVirtualDeviceCheck = () => {
 export type WarningType =
   | 'virtual-mic'
   | 'loopback-mic'
-  | 'virtual-speaker'
-  | 'mutual-exclusivity-speaker'
   | 'mutual-exclusivity-participant'
   | 'screen-recording-denied'
   | 'audio-capture-denied';
@@ -71,8 +69,6 @@ export const useWarningModal = () => {
   return {
     types: {
       VIRTUAL_MIC: 'virtual-mic' as WarningType,
-      VIRTUAL_SPEAKER: 'virtual-speaker' as WarningType,
-      MUTUAL_EXCLUSIVITY_SPEAKER: 'mutual-exclusivity-speaker' as WarningType,
       MUTUAL_EXCLUSIVITY_PARTICIPANT: 'mutual-exclusivity-participant' as WarningType,
       SCREEN_RECORDING_DENIED: 'screen-recording-denied' as WarningType,
       AUDIO_CAPTURE_DENIED: 'audio-capture-denied' as WarningType

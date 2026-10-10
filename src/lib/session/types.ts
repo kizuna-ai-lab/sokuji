@@ -34,7 +34,7 @@ export interface RunShape {
   turnMode: TurnMode;
   /** The speaker leg produces no translated speech (unless the provider always speaks). */
   textOnly: boolean;
-  /** The participant-TTS opt-in; off until plan 1c-2's routing adds the switch. */
+  /** Translation I hear: the other's translation is spoken to me (the switch, the provider's flags and the recapture rule applied — `speakFor`). */
   participantSpeech: boolean;
   /** Both with the other side beside me, under a provider that offers it (spec 2026-10-08, slice 3). Absent: false. */
   faceToFace?: boolean;
@@ -134,6 +134,6 @@ export interface LoadingProgress {
 
 export type RunState =
   | { phase: 'idle'; lastEnd?: RunEnd }
-  | { phase: 'starting'; step: 'checking' | 'preparing' | 'opening'; loading?: LoadingProgress }
-  | { phase: 'running'; since: number; legs: Partial<Record<LegName, LegState>>; budget?: Budget }
-  | { phase: 'stopping' };
+  | { phase: 'starting'; participantSpeech: boolean; step: 'checking' | 'preparing' | 'opening'; loading?: LoadingProgress }
+  | { phase: 'running'; participantSpeech: boolean; since: number; legs: Partial<Record<LegName, LegState>>; budget?: Budget }
+  | { phase: 'stopping'; participantSpeech: boolean };

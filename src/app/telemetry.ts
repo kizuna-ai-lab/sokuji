@@ -5,6 +5,8 @@
  */
 import type { AnalyticsEvents } from '../lib/analytics';
 import type { LegName } from '../lib/conversation/types';
+import { OUTLET_NAMES, resolveOutlet, type Channel, type OutletName, type Speak } from '../lib/audio/outlets';
+import { faceToFaceFromStores, speechFromStores } from '../lib/session/appShape';
 import { describeCause, reportWarning } from '../lib/diagnostics/report';
 import { sentenceEnds, skeleton } from '../lib/segmentation/sentenceEnd';
 import {
@@ -117,6 +119,8 @@ export interface StartInputs {
     ReturnType<typeof useAudioStore.getState>,
     'noiseSuppressionMode' | 'isRealVoicePassthroughEnabled' | 'isMicMuted' | 'isMonitorMuted'
   >;
+  speak: Speak;
+  channels: Record<OutletName, Channel>;
   segmentation: { mode: SegmentationMode; size: SegmentationSize };
   punctuationActive: boolean;
 }
@@ -126,7 +130,7 @@ export interface StartInputs {
 export function sessionStartProperties(i: StartInputs): Pick<
   AnalyticsEvents['translation_session_start'],
   | 'noise_suppression_enabled' | 'noise_suppression_mode' | 'real_voice_passthrough_enabled'
-  | 'input_device_on' | 'monitor_device_on'
+  | 'input_device_on' | 'monitor_device_on' | 'participant_speech' | 'outlet_channels'
   | 'sentence_segmentation_enabled' | 'sentence_segmentation_active' | 'sentence_segmentation_chunk_sentences'
 > {
   return {
@@ -135,6 +139,8 @@ export function sessionStartProperties(i: StartInputs): Pick<
     real_voice_passthrough_enabled: i.audio.isRealVoicePassthroughEnabled,
     input_device_on: !i.audio.isMicMuted,
     monitor_device_on: !i.audio.isMonitorMuted,
+    participant_speech: i.speak.them,
+    outlet_channels: i.channels,
     sentence_segmentation_enabled: i.segmentation.mode === 'sentences',
     sentence_segmentation_active: i.punctuationActive,
     sentence_segmentation_chunk_sentences: i.segmentation.size,
@@ -200,8 +206,18 @@ export function appStartInputs(punctuationActive: boolean): StartInputs {
   const audio = useAudioStore.getState();
   const s = useSettingsStore.getState();
   const offer = offerFor(selectedBoundaries());
+  const faceToFace = faceToFaceFromStores();
+  const channels = {} as Record<OutletName, Channel>;
+  // The routing's own rule (`readRouting`): `resolveOutlet` with the same `present` set, so an unplugged centred pick reads as auto here too.
+  const present = new Set(audio.audioMonitorDevices.filter((d) => !d.isVirtual).map((d) => d.deviceId));
+  for (const name of OUTLET_NAMES) {
+    const { pan } = resolveOutlet(name, audio.outlets[name], { defaultDevice: audio.selectedMonitorDevice?.deviceId, present, faceToFace });
+    channels[name] = pan === -1 ? 'left' : pan === 1 ? 'right' : 'both';
+  }
   return {
     audio,
+    speak: speechFromStores(),
+    channels,
     segmentation: {
       mode: resolveSegmentationMode(s.segmentationMode, offer),
       size: resolveSegmentationSize(s.sentenceSegmentationChunkSentences, offer),

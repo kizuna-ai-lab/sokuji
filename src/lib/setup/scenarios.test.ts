@@ -17,8 +17,8 @@ describe('scenario presets', () => {
     expect(getScenario('understand-others')).toEqual({ id: 'understand-others', mode: 'participant', textOnly: true });
     expect(getScenario('be-heard')).toEqual({ id: 'be-heard', mode: 'speaker', textOnly: false });
     expect(getScenario('subtitle-myself')).toEqual({ id: 'subtitle-myself', mode: 'speaker', textOnly: true });
-    expect(getScenario('two-way-voice')).toEqual({ id: 'two-way-voice', mode: 'both', textOnly: false });
-    expect(getScenario('two-way-text')).toEqual({ id: 'two-way-text', mode: 'both', textOnly: true });
+    expect(getScenario('two-way-voice')).toEqual({ id: 'two-way-voice', mode: 'both', textOnly: false, participantSpeech: true });
+    expect(getScenario('two-way-text')).toEqual({ id: 'two-way-text', mode: 'both', textOnly: true, participantSpeech: false });
   });
 });
 
@@ -51,8 +51,8 @@ describe('providerFitForScenario', () => {
 
 describe('face-to-face scenarios', () => {
   it('are Both beside me, with and without voice', () => {
-    expect(getScenario('face-to-face-voice')).toEqual({ id: 'face-to-face-voice', mode: 'both', textOnly: false, otherSide: 'beside' });
-    expect(getScenario('face-to-face-text')).toEqual({ id: 'face-to-face-text', mode: 'both', textOnly: true, otherSide: 'beside' });
+    expect(getScenario('face-to-face-voice')).toEqual({ id: 'face-to-face-voice', mode: 'both', textOnly: false, otherSide: 'beside', participantSpeech: true });
+    expect(getScenario('face-to-face-text')).toEqual({ id: 'face-to-face-text', mode: 'both', textOnly: true, otherSide: 'beside', participantSpeech: false });
   });
 
   it('fit only a provider that offers face-to-face', () => {

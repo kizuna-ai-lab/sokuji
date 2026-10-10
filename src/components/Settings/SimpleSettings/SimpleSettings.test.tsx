@@ -32,7 +32,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (_k: string, d?: string) => d ?? _k }),
 }));
 
-vi.mock('../../../app/useRun', () => ({ useSessionLocked: () => false }));
+vi.mock('../../../app/useRun', () => ({ useSessionLocked: () => false, useRunParticipantSpeech: () => null }));
 
 vi.mock('../../../stores/audioStore', () => ({
   useMode: () => 'speaker',
@@ -59,13 +59,12 @@ vi.mock('../../../stores/settingsStore', () => ({
 // Real child sections pull in ServiceFactory/TourProvider/per-provider
 // wiring this effect doesn't touch — stub them to id-bearing markers instead.
 // Only 'microphone' and 'participant' matter here since that's what this
-// effect targets; ids verified against the real sections:
-// AudioDeviceSection.tsx:167 (`id="microphone-section"`) and
-// SystemAudioSection.tsx:86 (`id="participant-section"`) — re-check these
-// line numbers if either section is restructured.
+// effect targets; the ids match the real sections' (`id="microphone-section"`
+// in AudioDeviceSection, `id="participant-section"` in SystemAudioSection) —
+// re-check them if either section is restructured.
 vi.mock('../sections', () => ({
-  AudioDeviceSection: ({ showMicrophone }: { showMicrophone?: boolean }) =>
-    showMicrophone ? <div id="microphone-section" /> : <div id="speaker-section" />,
+  AudioDeviceSection: () => <div id="microphone-section" />,
+  SpeechOutputSection: () => <div id="speech-section" />,
   SystemAudioSection: () => <div id="participant-section" />,
   HelpSection: () => null,
 }));

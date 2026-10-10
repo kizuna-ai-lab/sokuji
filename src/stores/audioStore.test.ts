@@ -400,6 +400,30 @@ describe('audioStore - participant source survives a restart', () => {
   });
 });
 
+describe('audioStore - participant capture widened', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useAudioStore.setState({ participantCaptureWidened: false } as any);
+  });
+
+  it('starts out not widened, follows the setter, and is never persisted', () => {
+    expect(useAudioStore.getState().participantCaptureWidened).toBe(false);
+    useAudioStore.getState().setParticipantCaptureWidened(true);
+    expect(useAudioStore.getState().participantCaptureWidened).toBe(true);
+    useAudioStore.getState().setParticipantCaptureWidened(false);
+    expect(useAudioStore.getState().participantCaptureWidened).toBe(false);
+    expect(localStorage.length).toBe(0);
+  });
+
+  it('is a no-op when unchanged, so the routing is not rebuilt for nothing', () => {
+    const listener = vi.fn();
+    const off = useAudioStore.subscribe(listener);
+    useAudioStore.getState().setParticipantCaptureWidened(false);
+    off();
+    expect(listener).not.toHaveBeenCalled();
+  });
+});
+
 describe('audioStore - participant tap audio seen', () => {
   const KEY = 'audio.participantTapAudioSeen';
 
@@ -647,5 +671,53 @@ describe('the other side (face-to-face)', () => {
     useAudioStore.setState({ otherSide: 'beside' });
     await useAudioStore.getState().refreshDevices();
     expect(useAudioStore.getState().otherSide).toBe('meeting');
+  });
+});
+
+describe('the outlets (spec 2026-10-10 §3)', () => {
+  const fresh = () => useAudioStore.setState({ outlets: { other: { device: null, channel: 'auto' }, me: { device: null, channel: 'auto' }, them: { device: null, channel: 'auto' } } });
+
+  it('follows the default device on auto channels until something is chosen', () => {
+    fresh();
+    expect(useAudioStore.getState().outlets).toEqual({
+      other: { device: null, channel: 'auto' }, me: { device: null, channel: 'auto' }, them: { device: null, channel: 'auto' },
+    });
+  });
+
+  it('persists a device and a channel per outlet, and restores them', async () => {
+    fresh();
+    useAudioStore.getState().setOutletDevice('them', 'usb-1');
+    useAudioStore.getState().setOutletChannel('them', 'left');
+    const service = ServiceFactory.getSettingsService();
+    expect(await service.getSetting<string | null>('audio.outlet.them.device', null)).toBe('usb-1');
+    expect(await service.getSetting<string>('audio.outlet.them.channel', '')).toBe('left');
+    fresh();
+    await useAudioStore.getState().refreshDevices();
+    expect(useAudioStore.getState().outlets.them).toEqual({ device: 'usb-1', channel: 'left' });
+    expect(useAudioStore.getState().outlets.me).toEqual({ device: null, channel: 'auto' });
+  });
+
+  it('keeps a stored device the list lacks: the choice is kept, following the default until it returns (Review Focus 1)', async () => {
+    fresh();
+    await ServiceFactory.getSettingsService().setSetting('audio.outlet.me.device', 'usb-gone');
+    await useAudioStore.getState().refreshDevices();
+    expect(useAudioStore.getState().outlets.me.device).toBe('usb-gone');
+  });
+
+  it('reads an unknown channel as auto and a non-string device as none', async () => {
+    fresh();
+    const service = ServiceFactory.getSettingsService();
+    await service.setSetting('audio.outlet.other.channel', 'centre');
+    await service.setSetting('audio.outlet.other.device', 42);
+    await useAudioStore.getState().refreshDevices();
+    expect(useAudioStore.getState().outlets.other).toEqual({ device: null, channel: 'auto' });
+  });
+
+  it('back to following the default: a null device is stored as null', async () => {
+    fresh();
+    useAudioStore.getState().setOutletDevice('me', 'usb-1');
+    useAudioStore.getState().setOutletDevice('me', null);
+    expect(useAudioStore.getState().outlets.me.device).toBeNull();
+    expect(await ServiceFactory.getSettingsService().getSetting<string | null | number>('audio.outlet.me.device', -1)).toBeNull();
   });
 });

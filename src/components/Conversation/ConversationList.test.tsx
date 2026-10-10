@@ -2,8 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, render } from '@testing-library/react';
 import type { Row } from '../../lib/projection/types';
 import type { DisplayItem } from '../../lib/view/filter';
-import { earsFor } from '../../lib/audio/routes';
-import { earsLegend, voicedEars } from '../MainPanel/useFaceToFace';
+import { earsLegend, voicedEars, type FaceToFaceView } from '../MainPanel/useFaceToFace';
 import { ConversationList, type ConversationListProps } from './ConversationList';
 
 vi.mock('react-i18next', () => ({
@@ -376,16 +375,28 @@ describe('ConversationList — face-to-face ears', () => {
     expect(mine.querySelector('.ear-tag--right')).not.toBeNull();
   });
 
+  it("keeps the not-played mark on a voiced leg whose outlet is centred, and draws no letter on a played line", () => {
+    const centred = { speaker: 'centre', participant: 'centre' } as const;
+    const codeSwitched = rowItem({ leg: 'participant', languages: { source: 'ja', target: 'en' }, row: row({ language: 'ja' }) });
+    const { container, rerender } = render(<ConversationList {...props({ ears: centred, items: [codeSwitched], replayLegs: new Set(['participant']) })} />);
+    expect(container.querySelector('.ear-tag--muted')).not.toBeNull();
+    expect(container.querySelector('.row-play-btn')).toBeNull();
+    const normal = rowItem({ leg: 'participant', languages: { source: 'ja', target: 'en' }, row: row({ language: 'en' }) });
+    rerender(<ConversationList {...props({ ears: centred, items: [normal], replayLegs: new Set(['participant']) })} />);
+    expect(container.querySelector('.ear-tag')).toBeNull();
+    expect(container.querySelector('.row-play-btn')).not.toBeNull();
+  });
+
   it('shares one source of truth with the footer legend: the participant leg is my ear', () => {
-    for (const swap of [false, true]) {
-      const view = { offered: true, active: true, swap, me: 'ja', other: 'en', speaks: { speaker: true, participant: true } };
+    for (const meLeft of [true, false]) {
+      const view: FaceToFaceView = { offered: true, active: true, me: 'ja', other: 'en', ears: meLeft ? { speaker: 'right', participant: 'left' } : { speaker: 'left', participant: 'right' }, speaks: { speaker: true, participant: true }, outletDevices: { other: null, them: null } };
       const legend = earsLegend(view)!;
-      const myEar = legend.leftIsMe ? 'left' : 'right';
+      const myEar = legend.find((e) => e.who === 'me')!.ear;
       const item = rowItem({ leg: 'participant', languages: { source: 'en', target: 'ja' } });
       const { container } = render(<ConversationList {...props({ ears: voicedEars(view), items: [item], replayLegs: new Set() })} />);
       const tag = container.querySelector('.ear-tag');
       expect(tag?.classList.contains(`ear-tag--${myEar}`)).toBe(true);
-      expect(myEar).toBe(earsFor(swap).participant);
+      expect(myEar).toBe(meLeft ? 'left' : 'right');
     }
   });
 });

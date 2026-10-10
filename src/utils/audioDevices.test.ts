@@ -53,3 +53,20 @@ describe('isLoopbackInput', () => {
     expect(isVirtualDevice(real) || isVirtualMic(real) || isVirtualSpeaker(real) || isLoopbackInput(real)).toBe(false);
   });
 });
+
+describe('the application-capture sink (PipeWire, electron/pipewire-app-audio.js)', () => {
+  // `Sokuji_App_Capture` is the null sink the per-application capture taps an
+  // application into, and the remapped source over its monitor carries the same
+  // description. Chromium lists the sink as an output and the source as an input;
+  // neither is a device the user may play to or speak into.
+  it('is a virtual speaker, so no output picker lists it', () => {
+    expect(isVirtualSpeaker(d('Sokuji_App_Capture'))).toBe(true);
+    expect(isVirtualDevice(d('Sokuji_App_Capture'))).toBe(true);
+  });
+
+  it('is a virtual microphone: its source is the other application\'s audio, never the user\'s voice', () => {
+    expect(isVirtualMic(d('Sokuji_App_Capture'))).toBe(true);
+    expect(isVirtualMic(d('Monitor of Sokuji_App_Capture'))).toBe(true);
+    expect(isVirtualDevice(d('Monitor of Sokuji_App_Capture'))).toBe(true);
+  });
+});

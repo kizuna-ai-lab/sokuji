@@ -21,6 +21,6 @@ describe('earTone', () => {
   it('defaults to the pipeline rate and carries no pan of its own', () => {
     const clip = earTone();
     expect(clip.sampleRate).toBe(24000);
-    expect(clip.pan).toBeUndefined();
+    expect(clip).not.toHaveProperty('pan');
   });
 });

@@ -30,6 +30,7 @@ import { volcengineAst2Provider } from '../../providers/volcengine_ast2/provider
 import { localInferenceProvider } from '../../providers/localInference/provider';
 import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { useRoutingStore } from '../../stores/routingStore';
 import { SetupPersistError } from '../../stores/setupStore';
 import { useApplySetup } from './useApplySetup';
 import { initialDraft } from './setupDraft';
@@ -87,6 +88,18 @@ describe("useApplySetup's applyProvider (review Minor 4)", () => {
       expect(setSetting).not.toHaveBeenCalledWith('settings.common.participantDisplayMode', expect.anything());
     } finally {
       useSettingsStore.setState({ speakerDisplayMode: 'both', participantDisplayMode: 'both' });
+    }
+  });
+
+  it("binds setParticipantSpeech to the routing store: a Both voice scenario turns Translation I hear on", async () => {
+    const before = useRoutingStore.getState().participantSpeech;
+    try {
+      useRoutingStore.getState().setParticipantSpeech(false);
+      const { result } = renderHook(() => useApplySetup());
+      await result.current(draft({ scenario: 'two-way-voice' }));
+      expect(useRoutingStore.getState().participantSpeech).toBe(true);
+    } finally {
+      useRoutingStore.getState().setParticipantSpeech(before);
     }
   });
 

@@ -24,7 +24,7 @@ function setup(startResult: unknown = STATUS) {
   const entries: Entry[] = [];
   const listeners = new Set<() => void>();
   const view = { get: () => ({ entries }), subscribe: (l: () => void) => { listeners.add(l); return () => listeners.delete(l); } };
-  const run = createStore<RunState>(() => ({ phase: 'running', since: 0, legs: {} }));
+  const run = createStore<RunState>(() => ({ phase: 'running', participantSpeech: false, since: 0, legs: {} }));
   const controller = createCaptionShareController({
     ipc,
     view,

@@ -48,6 +48,7 @@ export function systemAudioSettings(): SystemAudioSettings {
     muted: () => audio().isParticipantMuted,
     subscribe: onAudioChange,
     audioSeen: () => audio().markParticipantTapAudioSeen(),
+    widened: (on) => audio().setParticipantCaptureWidened(on),
   };
 }
 

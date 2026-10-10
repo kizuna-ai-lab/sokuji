@@ -363,7 +363,7 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
                 min={MIN_SEGMENT_PAUSE_SECONDS}
                 max={MAX_SEGMENT_PAUSE_SECONDS}
                 step="0.1"
-                className="sentence-segmentation__pause-slider"
+                className="slider sentence-segmentation__pause-slider"
                 data-testid="segmentation-source-pause"
                 value={sourcePause}
                 onChange={(e) => void setSourcePause(parseFloat(e.target.value))}
@@ -381,7 +381,7 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
             min={MIN_SEGMENT_PAUSE_SECONDS}
             max={MAX_SEGMENT_PAUSE_SECONDS}
             step="0.1"
-            className="sentence-segmentation__pause-slider"
+            className="slider sentence-segmentation__pause-slider"
             data-testid="segmentation-translation-pause"
             value={translationPause}
             onChange={(e) => void setTranslationPause(parseFloat(e.target.value))}
