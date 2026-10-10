@@ -50,9 +50,16 @@ export function isFaceToFace(provider: { faceToFace?: boolean } | undefined, mod
   return provider?.faceToFace === true && mode === 'both' && otherSide === 'beside';
 }
 
-/** `participantSpeechHeard` over the stores: the other's translation, spoken to me, is not recaptured by the participant source. */
+/**
+ * `participantSpeechHeard` over the stores, and the capture's own word: the
+ * other's translation, played to me, is not recaptured by the participant
+ * source. An application capture that widened to the whole system mid-run
+ * (`audioStore`'s `participantCaptureWidened`) recaptures it, whatever the
+ * chosen source says.
+ */
 export function heardFromStores(faceToFace: boolean): boolean {
-  return participantSpeechHeard(getEnvironment(), useAudioStore.getState().selectedParticipantSource?.deviceId, faceToFace);
+  const audio = useAudioStore.getState();
+  return participantSpeechHeard(getEnvironment(), audio.selectedParticipantSource?.deviceId, faceToFace) && !audio.participantCaptureWidened;
 }
 
 /**

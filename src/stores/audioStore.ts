@@ -120,6 +120,15 @@ interface AudioStore {
    * Persisted, so the modal is a first-run experience, not a per-session one.
    */
   participantTapAudioSeen: boolean;
+  /**
+   * The participant capture has widened to the whole system although an
+   * application was chosen (its monitor never appeared, or the helper died):
+   * the other's translation played on the real device would be recaptured,
+   * so `heardFromStores` answers false while this is on. Raised by the
+   * system-audio source through `appCapture`'s binding, cleared when it
+   * closes; never persisted.
+   */
+  participantCaptureWidened: boolean;
 
   // Actions
   setInputDevices: (devices: AudioDevice[]) => void;
@@ -146,6 +155,7 @@ interface AudioStore {
   setParticipantMuted: (muted: boolean) => void;
   /** Record that a tap has delivered audio; idempotent, persisted. */
   markParticipantTapAudioSeen: () => void;
+  setParticipantCaptureWidened: (on: boolean) => void;
 
   // Complex actions
   refreshDevices: () => Promise<{ defaultInputDevice: AudioDevice | null; defaultMonitorDevice: AudioDevice | null }>;
@@ -191,8 +201,13 @@ const useAudioStore = create<AudioStore>()(
     isMonitorMuted: true,   // default: monitor off (opt-in audio)
     isParticipantMuted: false, // default: participant unmuted
     participantTapAudioSeen: false,
+    participantCaptureWidened: false,
 
     // Basic setters
+    setParticipantCaptureWidened: (on) => {
+      if (get().participantCaptureWidened !== on) set({ participantCaptureWidened: on });
+    },
+
     markParticipantTapAudioSeen: () => {
       if (get().participantTapAudioSeen) return;
       set({ participantTapAudioSeen: true });
@@ -652,6 +667,7 @@ export const useToggleNoiseSuppression = () => {
 export const useSelectInputDevice = () => useAudioStore((state) => state.selectInputDevice);
 export const useSelectMonitorDevice = () => useAudioStore((state) => state.selectMonitorDevice);
 export const useParticipantSources = () => useAudioStore((state) => state.participantSources);
+export const useParticipantCaptureWidened = () => useAudioStore((state) => state.participantCaptureWidened);
 export const useSelectedParticipantSource = () => useAudioStore((state) => state.selectedParticipantSource);
 export const useSelectParticipantSource = () => useAudioStore((state) => state.selectParticipantSource);
 export const useToggleRealVoicePassthrough = () => useAudioStore((state) => state.toggleRealVoicePassthrough);

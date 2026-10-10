@@ -11,9 +11,8 @@ import type { OutletName } from '../../../lib/audio/outlets';
 import { virtualMicrophoneName } from '../../../lib/audio/virtualSpeaker';
 import { describeCause, reportError } from '../../../lib/diagnostics/report';
 import { useAnalytics } from '../../../lib/analytics';
-import { participantSpeechHeard } from '../../../lib/modern-audio/participantSource';
-import { selectedFromStores } from '../../../lib/session/appShape';
-import { useAudioContext, useMode, useOutlets, useSelectedParticipantSource, useSetOutletChannel, useSetOutletDevice } from '../../../stores/audioStore';
+import { heardFromStores, selectedFromStores } from '../../../lib/session/appShape';
+import { useAudioContext, useMode, useParticipantCaptureWidened, useOutlets, useSelectedParticipantSource, useSetOutletChannel, useSetOutletDevice } from '../../../stores/audioStore';
 import { useProviderStore } from '../../../stores/providerStore';
 import { useRoutingStore } from '../../../stores/routingStore';
 import { useKeepReplayAudio, useSetKeepReplayAudio, useSetTextOnly, useTextOnly } from '../../../stores/settingsStore';
@@ -61,13 +60,16 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
   const outlets = useOutlets();
   const setOutletDevice = useSetOutletDevice();
   const setOutletChannel = useSetOutletChannel();
-  const source = useSelectedParticipantSource();
+  // Subscribed: `heardFromStores` reads the source from the store, not from render.
+  useSelectedParticipantSource();
   const devices = useFilteredDevices(audioMonitorDevices);
   const reasonId = useId();
 
   const myLegRuns = mode !== 'participant';
   const theirLegRuns = mode !== 'speaker';
-  const heard = participantSpeechHeard(platform, source?.deviceId, faceToFace);
+  // Subscribed so the blocked state follows a capture that widens mid-run.
+  useParticipantCaptureWidened();
+  const heard = heardFromStores(faceToFace);
   // The recapture rule (D10): a whole-system capture would translate the playback again.
   const recaptured = theirLegRuns && !faceToFace && !heard;
   const otherOn = speech === 'always' ? true : speech === 'never' ? false : !textOnly;

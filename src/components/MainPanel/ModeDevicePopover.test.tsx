@@ -68,6 +68,7 @@ vi.mock('../../stores/audioStore', () => ({
   useSetOutletChannel: () => outletsState.setChannel,
   useSelectedMonitorDevice: () => store.monitor,
   useParticipantSources: () => store.sources,
+  useParticipantCaptureWidened: () => false,
   useSelectedParticipantSource: () => store.selected,
   useSelectParticipantSource: () => store.select,
   useOtherSide: () => store.otherSide,
@@ -90,7 +91,7 @@ vi.mock('../../stores/providerStore', async () => {
   return { useProviderStore: make(() => ({ selected: 'p', entries: {} as Record<string, unknown> })) };
 });
 const providerState = { participantSpeech: undefined as boolean | undefined };
-vi.mock('../../lib/session/appShape', () => ({ selectedFromStores: () => ({ provider: { speech: 'optional', participantSpeech: providerState.participantSpeech } }) }));
+vi.mock('../../lib/session/appShape', () => ({ heardFromStores: (faceToFace: boolean) => faceToFace || env.extension || (store.selected?.deviceId ?? '').startsWith('app:'), selectedFromStores: () => ({ provider: { speech: 'optional', participantSpeech: providerState.participantSpeech } }) }));
 
 const SYSTEM = { deviceId: 'desktop-audio-loopback', label: 'System Audio (All Applications)' };
 const CHROMIUM = { deviceId: 'app:pid:205', label: 'Chromium' };

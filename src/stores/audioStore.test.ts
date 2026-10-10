@@ -400,6 +400,30 @@ describe('audioStore - participant source survives a restart', () => {
   });
 });
 
+describe('audioStore - participant capture widened', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useAudioStore.setState({ participantCaptureWidened: false } as any);
+  });
+
+  it('starts out not widened, follows the setter, and is never persisted', () => {
+    expect(useAudioStore.getState().participantCaptureWidened).toBe(false);
+    useAudioStore.getState().setParticipantCaptureWidened(true);
+    expect(useAudioStore.getState().participantCaptureWidened).toBe(true);
+    useAudioStore.getState().setParticipantCaptureWidened(false);
+    expect(useAudioStore.getState().participantCaptureWidened).toBe(false);
+    expect(localStorage.length).toBe(0);
+  });
+
+  it('is a no-op when unchanged, so the routing is not rebuilt for nothing', () => {
+    const listener = vi.fn();
+    const off = useAudioStore.subscribe(listener);
+    useAudioStore.getState().setParticipantCaptureWidened(false);
+    off();
+    expect(listener).not.toHaveBeenCalled();
+  });
+});
+
 describe('audioStore - participant tap audio seen', () => {
   const KEY = 'audio.participantTapAudioSeen';
 

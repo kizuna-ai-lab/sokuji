@@ -1,9 +1,11 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+const environment = vi.hoisted(() => ({ value: 'web' as 'web' | 'electron' | 'extension' }));
+vi.mock('../../utils/environment', async (importOriginal) => ({ ...(await importOriginal<typeof import('../../utils/environment')>()), getEnvironment: () => environment.value }));
 import { useFaceToFace, earsLegend, voicedEars, type FaceToFaceView } from './useFaceToFace';
 
 describe('useFaceToFace', () => {
@@ -16,6 +18,8 @@ describe('useFaceToFace', () => {
     useRoutingStore.setState({ participantSpeech: null });
     useAudioStore.setState({ audioMonitorDevices: [{ deviceId: 'out-1', label: 'AirPods Pro' }] as never, selectedMonitorDevice: { deviceId: 'out-1', label: 'AirPods Pro' } as never, outlets: { other: { device: null, channel: 'auto' }, me: { device: null, channel: 'auto' }, them: { device: null, channel: 'auto' } }, isMonitorMuted: true });
     useSettingsStore.setState({ textOnly: false });
+    environment.value = 'web';
+    useAudioStore.setState({ participantCaptureWidened: false, selectedParticipantSource: null });
   });
 
   it('is offered and active under Soniox in Both, beside me, with my language and theirs', () => {
@@ -38,6 +42,17 @@ describe('useFaceToFace', () => {
     expect(result.current.speaks).toEqual({ speaker: false, participant: true });
     act(() => { useRoutingStore.setState({ participantSpeech: false }); });
     expect(result.current.speaks).toEqual({ speaker: false, participant: false });
+  });
+
+  it('follows an application capture that widens to the whole system, live', () => {
+    pick('soniox');
+    environment.value = 'electron';
+    useAudioStore.setState({ otherSide: 'meeting', selectedParticipantSource: { deviceId: 'app:42', label: 'App' } });
+    useRoutingStore.setState({ participantSpeech: true });
+    const { result } = renderHook(() => useFaceToFace());
+    expect(result.current.speaks.participant).toBe(true);
+    act(() => { useAudioStore.setState({ participantCaptureWidened: true }); });
+    expect(result.current.speaks.participant).toBe(false);
   });
 
   it('reads the ears and the devices from the outlets, live', () => {

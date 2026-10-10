@@ -17,7 +17,7 @@ import {
   useAudioContext,
   useIsMicMuted, useIsMonitorMuted, useIsParticipantMuted,
   useSetMicMuted, useSetMonitorMuted, useSetParticipantMuted,
-  useParticipantSources, useSelectedParticipantSource, useSelectParticipantSource,
+  useParticipantCaptureWidened, useParticipantSources, useSelectedParticipantSource, useSelectParticipantSource,
   useOutlets, useSetOutletDevice, useSetOutletChannel, useSelectedMonitorDevice,
 } from '../../stores/audioStore';
 import { useFaceToFace } from './useFaceToFace';
@@ -26,11 +26,10 @@ import { getAppAudio } from '../../lib/audio/appAudio';
 import { entryValue, outletEntries, outletSelectValue, parseEntryValue } from '../../lib/audio/outletOptions';
 import type { OutletName } from '../../lib/audio/outlets';
 import { describeCause, reportError } from '../../lib/diagnostics/report';
-import { selectedFromStores } from '../../lib/session/appShape';
-import { participantSpeechHeard } from '../../lib/modern-audio/participantSource';
+import { heardFromStores, selectedFromStores } from '../../lib/session/appShape';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
-import { getEnvironment, isExtension } from '../../utils/environment';
+import { isExtension } from '../../utils/environment';
 import { useNavigateToSettings } from '../../stores/settingsStore';
 import { isVirtualDevice, type AudioDevice } from '../Settings/shared/hooks';
 import { describeDeviceOnHover } from '../../utils/audioDevices';
@@ -109,7 +108,9 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
   const provider = selectedFromStores()?.provider;
   const participantSpeech = useRoutingStore((s) => s.participantSpeech);
   const setParticipantSpeech = useRoutingStore((s) => s.setParticipantSpeech);
-  const heard = participantSpeechHeard(getEnvironment(), selectedParticipantSource?.deviceId, beside);
+  // Subscribed so the blocked state follows a capture that widens mid-run.
+  useParticipantCaptureWidened();
+  const heard = heardFromStores(beside);
   const blockedReason = t('audioPanel.blockedWholeSystem', 'All system sound is being captured: these playback options are off, so the translation is not translated again.');
   const channelName = (c: 'left' | 'right') => (c === 'left' ? t('audioPanel.channelLeft', 'left channel') : t('audioPanel.channelRight', 'right channel'));
   const previewOn = (outlet: OutletName) => {

@@ -69,6 +69,7 @@ function setup(o: {
   let current = { sourceId: o.sourceId ?? 'desktop-audio-loopback', muted: false };
   const listeners = new Set<() => void>();
   const audioSeen = vi.fn();
+  const widened = vi.fn();
   const settings: SystemAudioSettings = {
     sourceId: () => current.sourceId,
     muted: () => current.muted,
@@ -77,12 +78,13 @@ function setup(o: {
       return () => { listeners.delete(listener); };
     },
     audioSeen,
+    widened,
   };
   const set = (patch: Partial<typeof current>) => {
     current = { ...current, ...patch };
     for (const listener of listeners) listener();
   };
-  return { deps, settings, set, invoked, app, device, loopback, wait, audioSeen, screenRecording };
+  return { deps, settings, set, invoked, app, device, loopback, wait, audioSeen, widened, screenRecording };
 }
 
 const settle = async () => {
@@ -276,6 +278,7 @@ describe('openSystemAudio — running', () => {
       muted: () => current.muted,
       subscribe: (listener) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
       audioSeen: () => {},
+      widened: () => {},
     };
     const set = (patch: Partial<typeof current>) => { current = { ...current, ...patch }; for (const listener of listeners) listener(); };
 
@@ -331,5 +334,42 @@ describe('electronSystemAudio', () => {
       delete (window as { electron?: unknown }).electron;
       useLogStore.getState().setEnabled(false);
     }
+  });
+});
+
+describe('openSystemAudio — the widening flag', () => {
+  it("flags the capture as widened when the tap's monitor never appears, and clears it when the source stops", async () => {
+    const s = setup({ sourceId: 'app:7', answer: { success: true, monitorLabel: 'Sokuji Capture' } });
+    const source = await openSystemAudio(s.settings, live(), s.deps);
+    expect(s.widened).toHaveBeenLastCalledWith(true);
+    await source.stop();
+    expect(s.widened).toHaveBeenLastCalledWith(false);
+  });
+
+  it('flags it when the helper dies and the capture falls back to the whole system', async () => {
+    const s = setup({ sourceId: 'app:42', answer: { success: true, capture: 'app' } });
+    await openSystemAudio(s.settings, live(), s.deps);
+    expect(s.widened).not.toHaveBeenCalledWith(true);
+    s.app.onLost?.();
+    await settle();
+    expect(s.widened).toHaveBeenLastCalledWith(true);
+  });
+
+  it('never flags a whole-system source chosen as such, nor an application capture that works', async () => {
+    const whole = setup({ sourceId: 'desktop-audio-loopback' });
+    await openSystemAudio(whole.settings, live(), whole.deps);
+    expect(whole.widened).not.toHaveBeenCalledWith(true);
+    const app = setup({ sourceId: 'app:42', answer: { success: true, capture: 'app' } });
+    await openSystemAudio(app.settings, live(), app.deps);
+    expect(app.widened).not.toHaveBeenCalledWith(true);
+  });
+
+  it('clears it when a switch lands on a working application capture', async () => {
+    const s = setup({ sourceId: 'app:7', answer: [{ success: true, monitorLabel: 'Sokuji Capture' }, { success: true, capture: 'app' }] });
+    await openSystemAudio(s.settings, live(), s.deps);
+    expect(s.widened).toHaveBeenLastCalledWith(true);
+    s.set({ sourceId: 'app:9' });
+    await settle();
+    expect(s.widened).toHaveBeenLastCalledWith(false);
   });
 });

@@ -40,6 +40,7 @@ export function useFaceToFace(): FaceToFaceView {
   useRoutingStore((s) => s.participantSpeech);
   useAudioStore((s) => s.isMonitorMuted);
   useAudioStore((s) => s.selectedParticipantSource?.deviceId);
+  useAudioStore((s) => s.participantCaptureWidened);
   const providers = presentProviders();
   const provider = providers.find((p) => p.id === selected) ?? providers[0];
   const pair = provider ? entries[provider.id]?.pair ?? null : null;

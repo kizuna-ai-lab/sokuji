@@ -152,6 +152,15 @@ describe("readShapeFromStores — participant speech follows the whole-system ru
     useRoutingStore.setState({ participantSpeech: true });
   });
 
+  it('is off, live, while the application capture has widened to the whole system (slice 1 final review, Important 2)', () => {
+    environment.value = 'electron';
+    useAudioStore.setState({ mode: 'both', selectedParticipantSource: { deviceId: 'app:42', label: 'App' }, participantCaptureWidened: true });
+    expect(speechFromStores(fakeProvider).them).toBe(false);
+    expect(speechInputsFromStores().participantSpeech).toBe(false);
+    useAudioStore.setState({ participantCaptureWidened: false });
+    expect(speechFromStores(fakeProvider).them).toBe(true);
+  });
+
   it('is off on Electron under a whole-system participant source', () => {
     environment.value = 'electron';
     useAudioStore.setState({ selectedParticipantSource: { deviceId: 'desktop-audio-loopback', label: 'System' } });
