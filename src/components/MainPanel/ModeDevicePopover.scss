@@ -197,13 +197,7 @@
     padding: 8px 14px 10px;
   }
 
-  // Both, beside me: the ears under the rows.
-  &__ears {
-    flex-shrink: 0;
-    border-top: 1px solid #3a3a3a;
-    background: #242424;
-    padding: 12px 14px;
-  }
+  &__preview-btn { color: #ddd; }
 
   &__divider {
     border-top: 1px solid #3a3a3a;
