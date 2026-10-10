@@ -36,11 +36,17 @@ export const PERFORMANCE_CONFIG = {
   BASE64_CHUNK_SIZE: 0x8000, // 32KB chunks
 };
 
-// Audio constraints profiles
+// Audio constraints profiles.
+// echoCancellation 'all' asks for every sound the system plays to be cancelled,
+// a meeting app's far end included; `true` leaves the choice to the browser,
+// and Chrome then cancels only what Chrome plays. Chromium 152 grants 'all' on
+// Windows and macOS and falls back to `true` on Linux; an older browser reads
+// the string as `true`. The value that took effect is what track.getSettings()
+// reports (logged at begin()).
 export const AUDIO_CONSTRAINT_PROFILES = {
   // High quality mode (default)
   HIGH_QUALITY: {
-    echoCancellation: true,
+    echoCancellation: 'all',
     echoCancellationType: 'system',
     noiseSuppression: true,
     autoGainControl: true,
@@ -55,7 +61,7 @@ export const AUDIO_CONSTRAINT_PROFILES = {
   
   // Performance mode (reduced processing)
   PERFORMANCE: {
-    echoCancellation: true,
+    echoCancellation: 'all',
     noiseSuppression: false,
     autoGainControl: true,
     suppressLocalAudioPlayback: true,

@@ -130,3 +130,36 @@ describe('ModernAudioRecorder — the MediaRecorder output is not retained (#531
     expect(typeof rec.mediaRecorder.onerror).toBe('function');
   });
 });
+
+// `echoCancellation: true` leaves the browser to choose what it cancels, and
+// Chrome cancels only what Chrome itself plays: a meeting app's far end coming
+// out of the speakers reaches the microphone and is translated as me. Since
+// Chrome 141 the constraint also takes "all" (every sound the system plays) and
+// "remote-only"; Chromium 152 grants "all" on Windows and macOS and falls back
+// to `true` on Linux, and an older browser reads the string as `true`.
+describe('ModernAudioRecorder.begin — asks to cancel all system playout', () => {
+  // Stops begin() right after getUserMedia, which is all these cases look at.
+  const captureThenStop = () => {
+    const track = { stop: vi.fn(), getSettings: () => ({ echoCancellation: 'all' }) };
+    getUserMedia.mockResolvedValue({ getAudioTracks: () => [track], getTracks: () => [track] });
+    vi.stubGlobal('AudioContext', class {
+      constructor() { throw new Error('stop here'); }
+    });
+  };
+
+  const requestedAudio = async (performanceMode: 'high_quality' | 'performance' | 'minimal') => {
+    captureThenStop();
+    await new ModernAudioRecorder({ performanceMode }).begin('mic-1').catch(() => undefined);
+    return getUserMedia.mock.calls[0][0].audio;
+  };
+
+  it.each(['high_quality', 'performance'] as const)('with the %s profile', async (performanceMode) => {
+    const audio = await requestedAudio(performanceMode);
+    expect(audio.echoCancellation).toBe('all');
+    expect(audio.deviceId).toEqual({ exact: 'mic-1' });
+  });
+
+  it('not with the minimal profile, which turns processing off', async () => {
+    expect((await requestedAudio('minimal')).echoCancellation).toBe(false);
+  });
+});
