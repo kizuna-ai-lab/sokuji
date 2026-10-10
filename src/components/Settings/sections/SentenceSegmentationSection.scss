@@ -35,34 +35,9 @@
   border: 1px solid vars.$border-default;
 
   .segmented-option {
+    @include vars.segmented-option;
     flex: 1;
-    padding: 6px 12px;
-    font-size: vars.$font-caption;
     text-align: center;
-    border: none;
-    background: vars.$bg-control;
-    color: vars.$text-secondary;
-    cursor: pointer;
-    transition: background vars.$transition-fast, color vars.$transition-fast;
-
-    &:not(:last-child) {
-      border-right: 1px solid vars.$border-default;
-    }
-
-    &:hover:not(.active):not(:disabled) {
-      background: vars.$bg-hover;
-    }
-
-    &.active {
-      background: vars.$color-primary-fill;
-      color: vars.$color-on-primary;
-      font-weight: vars.$weight-medium;
-    }
-
-    &:disabled {
-      opacity: vars.$disabled-opacity;
-      cursor: not-allowed;
-    }
   }
 }
 

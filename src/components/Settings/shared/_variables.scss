@@ -176,6 +176,39 @@ $toggle-bg-on:    $color-primary;
   color: $color-on-primary;
 }
 
+// --- Segmented option ---------------------------------------------
+// The one look of a segmented option (the noise-suppression control, the
+// credential choice, the segmentation mode and chunk rows): 13px, 6px 12px,
+// secondary text at rest, the selected fill when active. Layout (flex, widths)
+// stays with each caller.
+@mixin segmented-option {
+  padding: 6px 12px;
+  font-size: $font-body;
+  border: none;
+  background: $bg-control;
+  color: $text-secondary;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:not(:last-child) {
+    border-right: 1px solid $border-default;
+  }
+
+  &:hover:not(.active):not(:disabled) {
+    background: $bg-hover;
+  }
+
+  &.active {
+    @include state-selected-fill;
+    font-weight: $weight-medium;
+  }
+
+  &:disabled {
+    opacity: $disabled-opacity;
+    cursor: not-allowed;
+  }
+}
+
 // --- Selectable option row --------------------------------------
 // The single dialect for single-select list rows (settings device
 // lists + the engine picker): transparent fill, hairline border,
