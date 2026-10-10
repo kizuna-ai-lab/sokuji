@@ -346,6 +346,7 @@
     "iHearNotOffered": "이 서비스는 상대방의 번역을 읽어 주지 않습니다.",
     "keepReplay": "다시 듣기용으로 번역 음성 보관",
     "keepReplayTip": "읽어 준 번역 음성을 메모리에 보관해 각 메시지의 ▶가 동작하게 합니다. 세션이 길면 메모리를 더 사용합니다.",
+    "keepReplayNothingSpoken": "읽어 주는 음성이 없어 보관할 것이 없습니다.",
     "followDefault": "기본값 따르기",
     "followDefaultNamed": "기본값 따르기({{device}})",
     "channelLeft": "왼쪽 채널",

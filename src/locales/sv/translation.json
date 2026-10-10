@@ -346,6 +346,7 @@
     "iHearNotOffered": "Den här tjänsten läser inte upp motpartens översättning.",
     "keepReplay": "Behåll talade översättningar för uppspelning",
     "keepReplayTip": "Behåller de talade översättningarna i minnet så att ▶ vid varje meddelande fungerar; en lång session använder mer minne.",
+    "keepReplayNothingSpoken": "Inget läses upp, så det finns inget att spara.",
     "followDefault": "Följ standard",
     "followDefaultNamed": "Följ standard ({{device}})",
     "channelLeft": "vänster kanal",

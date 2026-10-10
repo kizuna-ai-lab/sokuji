@@ -346,6 +346,7 @@
     "iHearNotOffered": "Perkhidmatan ini tidak membacakan terjemahan pihak lain.",
     "keepReplay": "Simpan terjemahan yang dituturkan untuk main semula",
     "keepReplayTip": "Menyimpan terjemahan yang dituturkan dalam memori supaya ▶ pada setiap mesej berfungsi; sesi yang panjang menggunakan lebih banyak memori.",
+    "keepReplayNothingSpoken": "Tiada apa yang dibacakan, jadi tiada apa yang perlu disimpan.",
     "followDefault": "Ikut lalai",
     "followDefaultNamed": "Ikut lalai ({{device}})",
     "channelLeft": "saluran kiri",

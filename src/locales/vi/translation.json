@@ -346,6 +346,7 @@
     "iHearNotOffered": "Dịch vụ này không đọc bản dịch của bên kia.",
     "keepReplay": "Giữ bản dịch đã đọc để phát lại",
     "keepReplayTip": "Giữ các bản dịch đã đọc trong bộ nhớ để nút ▶ của từng tin nhắn hoạt động; phiên dài dùng nhiều bộ nhớ hơn.",
+    "keepReplayNothingSpoken": "Không có gì được đọc lên, nên không có gì để giữ lại.",
     "followDefault": "Theo mặc định",
     "followDefaultNamed": "Theo mặc định ({{device}})",
     "channelLeft": "kênh trái",

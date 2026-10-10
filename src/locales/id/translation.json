@@ -346,6 +346,7 @@
     "iHearNotOffered": "Layanan ini tidak membacakan terjemahan pihak lain.",
     "keepReplay": "Simpan terjemahan yang diucapkan untuk diputar ulang",
     "keepReplayTip": "Menyimpan terjemahan yang diucapkan di memori agar ▶ pada setiap pesan berfungsi; sesi yang panjang memakai lebih banyak memori.",
+    "keepReplayNothingSpoken": "Tidak ada yang dibacakan, jadi tidak ada yang perlu disimpan.",
     "followDefault": "Ikuti default",
     "followDefaultNamed": "Ikuti default ({{device}})",
     "channelLeft": "kanal kiri",

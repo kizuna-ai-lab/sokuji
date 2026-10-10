@@ -346,6 +346,7 @@
     "iHearNotOffered": "Bu hizmet karşı tarafın çevirisini sesli okumaz.",
     "keepReplay": "Sesli çevirileri tekrar için sakla",
     "keepReplayTip": "Sesli çevirileri bellekte tutar, böylece her iletinin ▶ düğmesi çalışır; uzun bir oturum daha fazla bellek kullanır.",
+    "keepReplayNothingSpoken": "Hiçbir şey seslendirilmiyor, bu yüzden saklanacak bir şey yok.",
     "followDefault": "Varsayılanı izle",
     "followDefaultNamed": "Varsayılanı izle ({{device}})",
     "channelLeft": "sol kanal",

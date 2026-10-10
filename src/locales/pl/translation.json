@@ -346,6 +346,7 @@
     "iHearNotOffered": "Ta usługa nie odczytuje tłumaczenia drugiej strony.",
     "keepReplay": "Zachowuj odczytane tłumaczenia do odtworzenia",
     "keepReplayTip": "Trzyma odczytane tłumaczenia w pamięci, aby ▶ przy każdej wiadomości działało; długa sesja zużywa więcej pamięci.",
+    "keepReplayNothingSpoken": "Nic nie jest odczytywane, więc nie ma czego zachować.",
     "followDefault": "Zgodnie z domyślnym",
     "followDefaultNamed": "Zgodnie z domyślnym ({{device}})",
     "channelLeft": "lewy kanał",

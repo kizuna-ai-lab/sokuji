@@ -346,6 +346,7 @@
     "iHearNotOffered": "このサービスは相手の翻訳を読み上げません。",
     "keepReplay": "再生用に音声を保持",
     "keepReplayTip": "読み上げた翻訳音声をメモリに保持し、各メッセージの ▶ で再生できるようにします。長いセッションではメモリを多く使います。",
+    "keepReplayNothingSpoken": "読み上げがないため、保持する音声がありません。",
     "followDefault": "既定に従う",
     "followDefaultNamed": "既定に従う（{{device}}）",
     "channelLeft": "左チャンネル",

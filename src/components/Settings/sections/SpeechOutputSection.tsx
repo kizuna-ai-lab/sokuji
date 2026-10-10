@@ -255,9 +255,11 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
         <p className="setting-description ears-hint">{t('faceToFace.speakersHint', 'Use headphones, one side each. Any speaker lets the microphone pick up the translation and translate it again.')}</p>
       )}
 
+      {/* Replay keeps spoken clips: with no leg spoken, there is nothing to keep (owner, 2026-10-11). */}
       <SettingRow
         label={t('audioPanel.keepReplay', 'Keep spoken translations for replay')}
         tooltip={t('audioPanel.keepReplayTip', "Keeps the spoken translations in memory so each message's ▶ works; a long session uses more memory.")}
+        greyed={(myLegRuns && otherOn) || (theirLegRuns && themOn) ? undefined : t('audioPanel.keepReplayNothingSpoken', 'Nothing is spoken, so there is nothing to keep.')}
         switch={{ checked: keepReplayAudio, onChange: () => setKeepReplayAudio(!keepReplayAudio) }}
       />
     </div>

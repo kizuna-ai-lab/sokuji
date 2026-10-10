@@ -346,6 +346,7 @@
     "iHearNotOffered": "Tämä palvelu ei puhu toisen osapuolen käännöstä.",
     "keepReplay": "Säilytä puhutut käännökset uudelleentoistoa varten",
     "keepReplayTip": "Pitää puhutut käännökset muistissa, jotta jokaisen viestin ▶ toimii; pitkä istunto käyttää enemmän muistia.",
+    "keepReplayNothingSpoken": "Mitään ei puhuta, joten säilytettävää ei ole.",
     "followDefault": "Noudata oletusta",
     "followDefaultNamed": "Noudata oletusta ({{device}})",
     "channelLeft": "vasen kanava",

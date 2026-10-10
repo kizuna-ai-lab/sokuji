@@ -346,6 +346,7 @@
     "iHearNotOffered": "Este serviço não fala a tradução do outro lado.",
     "keepReplay": "Guardar traduções faladas para reprodução",
     "keepReplayTip": "Guarda as traduções faladas na memória para que o ▶ de cada mensagem funcione; uma sessão longa usa mais memória.",
+    "keepReplayNothingSpoken": "Nada é dito em voz alta, pelo que não há nada para guardar.",
     "followDefault": "Seguir o predefinido",
     "followDefaultNamed": "Seguir o predefinido ({{device}})",
     "channelLeft": "canal esquerdo",

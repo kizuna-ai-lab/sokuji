@@ -346,6 +346,7 @@
     "iHearNotOffered": "Hindi binabasa ng serbisyong ito ang salin ng kabilang panig.",
     "keepReplay": "Itago ang mga binasang salin para mapakinggan muli",
     "keepReplayTip": "Itinatago ang mga binasang salin sa memorya para gumana ang ▶ ng bawat mensahe; mas maraming memorya ang gamit ng mahabang session.",
+    "keepReplayNothingSpoken": "Walang binibigkas, kaya walang itatabi.",
     "followDefault": "Sundin ang default",
     "followDefaultNamed": "Sundin ang default ({{device}})",
     "channelLeft": "kaliwang channel",

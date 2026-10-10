@@ -346,6 +346,7 @@
     "iHearNotOffered": "此服務不朗讀對方的翻譯。",
     "keepReplay": "保留譯音以便回放",
     "keepReplayTip": "譯音留在記憶體裡，每則訊息的 ▶ 才能用；長時間的會話會多佔記憶體。",
+    "keepReplayNothingSpoken": "沒有朗讀，也就沒有可保留的譯音。",
     "followDefault": "跟隨預設",
     "followDefaultNamed": "跟隨預設（{{device}}）",
     "channelLeft": "左聲道",

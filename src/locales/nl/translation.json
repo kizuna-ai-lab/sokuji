@@ -346,6 +346,7 @@
     "iHearNotOffered": "Deze dienst spreekt de vertaling van de ander niet uit.",
     "keepReplay": "Gesproken vertalingen bewaren voor herhaling",
     "keepReplayTip": "Bewaart de gesproken vertalingen in het geheugen zodat de ▶ bij elk bericht werkt; een lange sessie gebruikt meer geheugen.",
+    "keepReplayNothingSpoken": "Er wordt niets uitgesproken, dus er is niets om te bewaren.",
     "followDefault": "Standaard volgen",
     "followDefaultNamed": "Standaard volgen ({{device}})",
     "channelLeft": "linkerkanaal",

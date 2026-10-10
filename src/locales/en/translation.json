@@ -350,6 +350,7 @@
     "iHearNotOffered": "This service does not speak the other side's translation.",
     "keepReplay": "Keep spoken translations for replay",
     "keepReplayTip": "Keeps the spoken translations in memory so each message's ▶ works; a long session uses more memory.",
+    "keepReplayNothingSpoken": "Nothing is spoken, so there is nothing to keep.",
     "followDefault": "Follow default",
     "followDefaultNamed": "Follow default ({{device}})",
     "channelLeft": "left channel",

@@ -191,6 +191,22 @@ describe('SpeechOutputSection — the rows', () => {
     expect(within(row('Passthrough')).getByRole('slider')).not.toBeDisabled();
   });
 
+  it('greys 保留回放 when no leg is spoken (Me mode, Text Only), keeping its value', () => {
+    useSettingsStore.setState({ textOnly: true, keepReplayAudio: true });
+    mount();
+    expect(greyed('Keep spoken translations for replay')).toBe(true);
+    expect(sw('Keep spoken translations for replay')).toHaveAttribute('aria-checked', 'true');
+    expect(useSettingsStore.getState().keepReplayAudio).toBe(true);
+  });
+
+  it('keeps 保留回放 live under Text Only while the other side is still spoken to me', () => {
+    useSettingsStore.setState({ textOnly: true });
+    useAudioStore.setState({ mode: 'both', otherSide: 'meeting', selectedParticipantSource: ZOOM });
+    useRoutingStore.setState({ participantSpeech: true });
+    mount();
+    expect(greyed('Keep spoken translations for replay')).toBe(false);
+  });
+
   it('原声直通: its switch, a slider labelled Volume N%, and the push-to-translate lock', () => {
     mount();
     expect(sw('Passthrough')).toHaveAttribute('aria-checked', 'true');
