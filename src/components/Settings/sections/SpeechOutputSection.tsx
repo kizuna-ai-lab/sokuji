@@ -201,7 +201,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
           label={passthroughLabel}
           tooltip={pushToTranslate ? t('audioPanel.passthroughManagedByPushToTranslate') : t('audioPanel.passthroughTip', 'Mixes my own voice, at a lower level, under the translation into the virtual microphone. 60% at most.')}
           sub
-          greyed={!myLegRuns ? notInMode : undefined}
+          greyed={!myLegRuns ? notInMode : !otherOn ? t('audioPanel.needsOtherHears', 'Nothing to hear while the translation is not spoken.') : undefined}
           switch={{
             checked: isRealVoicePassthroughEnabled || pushToTranslate,
             onChange: () => {

@@ -171,17 +171,24 @@ describe('SpeechOutputSection — the rows', () => {
     expect(useAudioStore.getState().outlets.me).toEqual({ device: null, channel: 'auto' });
   });
 
-  it('greys 我也听 when 对方听到的翻译 is off, keeping its value; 原声直通 stays live under Text Only', () => {
+  it('greys 我也听 and 原声直通 when 对方听到的翻译 is off, keeping their values', () => {
     useSettingsStore.setState({ textOnly: true });
     mount();
     expect(greyed('I hear it too')).toBe(true);
-    expect(greyed('Passthrough')).toBe(false);
+    expect(greyed('Passthrough')).toBe(true);
     expect(sw('Translation the other side hears')).toHaveAttribute('aria-checked', 'false');
-    expect(sw('Passthrough')).not.toHaveAttribute('aria-disabled', 'true');
+    expect(sw('Passthrough')).toHaveAttribute('aria-disabled', 'true');
     expect(sw('Passthrough')).toHaveAttribute('aria-checked', 'true');
-    expect(within(row('Passthrough')).getByRole('slider')).not.toBeDisabled();
+    expect(within(row('Passthrough')).getByRole('slider')).toBeDisabled();
     expect(useAudioStore.getState().isRealVoicePassthroughEnabled).toBe(true);
     expect(useAudioStore.getState().isMonitorMuted).toBe(true);
+  });
+
+  it('原声直通 is live again with Text Only off', () => {
+    useSettingsStore.setState({ textOnly: false });
+    mount();
+    expect(greyed('Passthrough')).toBe(false);
+    expect(within(row('Passthrough')).getByRole('slider')).not.toBeDisabled();
   });
 
   it('原声直通: its switch, a slider labelled Volume N%, and the push-to-translate lock', () => {

@@ -54,7 +54,8 @@ export function routesFor(s: RoutingSettings, held: boolean): Edge[] {
   if (s.speak.other && s.speak.me) edges.push({ from: 'speaker', to: 'me', gain: 1 });
   if (s.speak.them) edges.push({ from: 'participant', to: 'them', gain: 1 });
   const { gate } = s.passthrough;
-  if (s.passthrough.on && s.passthrough.ratio > 0 && (gate === undefined || held === (gate === 'held'))) {
+  // 原声直通 is a sub-row of 对方听到的翻译 too: nothing passes while that is off, push-to-translate's managed one included.
+  if (s.speak.other && s.passthrough.on && s.passthrough.ratio > 0 && (gate === undefined || held === (gate === 'held'))) {
     edges.push({ from: 'passthrough', to: 'virtual', gain: Math.min(1, s.passthrough.ratio) });
   }
   return edges;

@@ -396,7 +396,7 @@ useSettingsStore.subscribe(
 ### Audio Handling
 - Capture through the runner's sources (`src/lib/audio/capture/`, the microphone over `ModernAudioRecorder`); play through `src/lib/audio/playback.ts`
 - Audio playback uses queue-based system with event-driven processing
-- Passthrough: the microphone's processed voice, under the translation, into the meeting (the virtual output) on its own `passthrough` feed (`src/lib/audio/routes.ts`); off by default, its volume `audioStore`'s `realVoicePassthroughVolume`, default 0.2 — the settings show 20%, on a 0–60% slider; its switch and slider are the 原声直通 sub-row of 对方听到的翻译 in the 语音 block (hidden in face-to-face)
+- Passthrough: the microphone's processed voice, under the translation, into the meeting (the virtual output) on its own `passthrough` feed (`src/lib/audio/routes.ts`); off by default, its volume `audioStore`'s `realVoicePassthroughVolume`, default 0.2 — the settings show 20%, on a 0–60% slider; its switch and slider are the 原声直通 sub-row of 对方听到的翻译 in the 语音 block (hidden in face-to-face), greyed and silent while 对方听到的翻译 is off
 - AudioWorklet preferred for processing, falls back to ScriptProcessor for compatibility
 - Echo cancellation enabled by default with modern browser APIs
 
