@@ -30,6 +30,7 @@
 3. A wizard re-run from a voice scenario to `understand-others`: `participantSpeech` must stay as it was (the preset is silent on it), while `two-way-text` must write `false` — Task 3's two cases.
 4. The popover's outlet row when the stored device is unplugged: the summary must read the resolved (default) device, not "Not selected" — Task 1's "an absent device shows the default".
 5. Telemetry when no provider entry has loaded yet (a start pressed early): `appStartInputs` must not throw (`speechFromStores` answers as optional) — Task 4's "answers with no provider loaded".
+6. An application capture that widens to the whole system mid-run (its monitor never appears, or the helper dies): 我听到的翻译 must fall silent live, not play into the capture and be translated again — Task 6's "off, live, while the capture has widened" (slice 1's final review, Important 2).
 
 ---
 
@@ -482,12 +483,14 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ### Task 3: The setup wizard writes 我听到的翻译
 
 **Files:**
-- Modify: `src/lib/setup/scenarios.ts`, `src/components/SetupWizard/applySetup.ts`, `src/components/SetupWizard/useApplySetup.ts`
-- Test: `src/lib/setup/scenarios.test.ts`, `src/components/SetupWizard/applySetup.test.ts`, `src/components/SetupWizard/useApplySetup.test.ts`
+- Modify: `src/lib/setup/scenarios.ts`, `src/components/SetupWizard/applySetup.ts`, `src/components/SetupWizard/useApplySetup.ts`, `src/components/SetupWizard/steps/StepLanguagePair.tsx`, `src/lib/session/appShape.ts` (export `heardFromStores`)
+- Test: `src/lib/setup/scenarios.test.ts`, `src/components/SetupWizard/applySetup.test.ts`, `src/components/SetupWizard/useApplySetup.test.ts`, `src/components/SetupWizard/steps/StepLanguagePair.test.tsx`
 
 **Interfaces:**
 - `ScenarioPreset.participantSpeech?: boolean` — present on the four Both scenarios.
 - `ApplySetupDeps.setParticipantSpeech: (on: boolean | null) => void`; `applySetupDraft` calls it only when the preset carries the field, after `setTextOnly`.
+- `heardFromStores(faceToFace: boolean): boolean` becomes an export of `appShape.ts` (unchanged body; Task 6 extends it).
+- The language step's offer: a preset that carries `participantSpeech` answers for the participant leg through `participantSpeechInput` (`shape.ts`) with that value, face-to-face when `otherSide === 'beside'`, and `heardFromStores(beside)`; a preset silent on it keeps `speechInputsFromStores().participantSpeech`.
 
 - [ ] **Step 1: Tests**
 
@@ -509,7 +512,21 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
 `useApplySetup.test.ts`: where it asserts the deps bound to the stores, add that `setParticipantSpeech` is `useRoutingStore.getState().setParticipantSpeech` (follow the file's existing pattern for `setTextOnly`).
 
-- [ ] **Step 2: Run to verify failure** — `vitest run src/lib/setup src/components/SetupWizard/applySetup.test.ts src/components/SetupWizard/useApplySetup.test.ts` → FAIL.
+`StepLanguagePair.test.tsx` mocks `appShape` (`speechInputsFromStores: () => ({ textOnly: false, participantSpeech: participant.speech })`); extend that mock with `heardFromStores: () => true` and add, beside the test that reads the participant's speech from the stores:
+```tsx
+  it("takes the participant's speech from the scenario when its preset carries it: two-way-text offers as silent, two-way-voice as speaking, understand-others as the stores say", () => {
+    participant.speech = true;
+    const contexts: Array<{ participantSpeech: boolean }> = [];
+    languageContextMock.mockImplementation((_p, _legs, ctx) => { contexts.push(ctx); return original(_p, _legs, ctx); });
+    renderStep({ scenario: 'two-way-text' });
+    renderStep({ scenario: 'two-way-voice' });
+    renderStep({ scenario: 'understand-others' });
+    expect(contexts.map((c) => c.participantSpeech)).toEqual([false, true, true]);
+  });
+```
+where `languageContextMock` / `original` / `renderStep` are whatever the file already uses to spy on `languageContext` and render the step with a draft — if it spies on nothing, add `vi.mock('../../../lib/session/shape', async (importOriginal) => { const actual = await importOriginal<typeof import('../../../lib/session/shape')>(); return { ...actual, languageContext: vi.fn(actual.languageContext) }; })` at the top and read the spy's calls through `vi.mocked(languageContext).mock.calls.map(([, , ctx]) => ctx.participantSpeech)` instead of `contexts`.
+
+- [ ] **Step 2: Run to verify failure** — `vitest run src/lib/setup src/components/SetupWizard/applySetup.test.ts src/components/SetupWizard/useApplySetup.test.ts src/components/SetupWizard/steps/StepLanguagePair.test.tsx` → FAIL.
 
 - [ ] **Step 3: Implement**
 
@@ -519,10 +536,23 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 `useApplySetup.ts`: `import { useRoutingStore } from '../../stores/routingStore';` and `setParticipantSpeech: useRoutingStore.getState().setParticipantSpeech,`.
 
+`appShape.ts`: `function heardFromStores(` → `export function heardFromStores(` (body unchanged).
+
+`StepLanguagePair.tsx`: the `speech` line becomes
+```ts
+  const beside = preset.otherSide === 'beside';
+  // A preset that carries the participant's speech answers for that leg (two-way-text offers as silent); one silent on it keeps the stores' answer.
+  const participantSpeech = preset.participantSpeech === undefined
+    ? speechInputsFromStores().participantSpeech
+    : participantSpeechInput({ participantSpeech: preset.participantSpeech, faceToFace: beside, heard: heardFromStores(beside) });
+  const speech = languageContext(p, legsFor(preset.mode), { textOnly: preset.textOnly, participantSpeech }).speech;
+```
+with `heardFromStores` added to the `appShape` import and `participantSpeechInput` to the `shape` import. The old `preset.otherSide === 'beside' ? !preset.textOnly : …` special case goes: the face-to-face presets now carry the answer.
+
 - [ ] **Step 4: Run** — PASS. **Step 5: Commit**
 
 ```bash
-git add src/lib/setup src/components/SetupWizard
+git add src/lib/setup src/components/SetupWizard src/lib/session/appShape.ts
 git commit -m "feat(wizard): the Both scenarios write 我听到的翻译
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
@@ -646,7 +676,179 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 ---
 
-### Task 6: The whole suite, the builds, the PR notes
+### Task 6: The capture's widening silences 我听到的翻译, live
+
+Slice 1's final review (Important 2): on Electron, `participantSpeechHeard` answers true for an application source (`app:…`) because its tap does not capture Sokuji's own playback. But the system-audio source widens to whole-system capture mid-run — `APP_MONITOR_MISSING` when the tap's monitor never appears at connect, `APP_CAPTURE_LOST` when the helper dies — and from then on the other's translation played on the real device IS recaptured and translated again as Other, the loop the recapture rule exists to prevent, while `heard` still reads true from the stored source id. The run's shape stays frozen (the leg still runs); the routing, the replay slot and the surfaces follow a store flag the source raises.
+
+**Files:**
+- Modify: `src/lib/audio/capture/systemAudio.ts`, `src/lib/audio/appCapture.ts`, `src/stores/audioStore.ts`, `src/lib/session/appShape.ts`, `src/components/Settings/sections/SpeechOutputSection.tsx` (slice 2), `src/components/MainPanel/ModeDevicePopover.tsx` (Task 1), `src/components/MainPanel/useFaceToFace.ts`, `CLAUDE.md`
+- Test: `src/lib/audio/capture/systemAudio.test.ts`, `src/lib/audio/appCapture.test.ts`, `src/stores/audioStore.test.ts`, `src/lib/session/appShape.test.ts`, `src/components/MainPanel/useFaceToFace.test.ts`
+
+**Interfaces:**
+- Consumes: `SystemAudioSettings` (`systemAudio.ts`), `systemAudioSettings()` (`appCapture.ts`), `heardFromStores` (exported by Task 3), `participantSpeechHeard`.
+- Produces: `SystemAudioSettings.widened(on: boolean): void`; `audioStore.participantCaptureWidened: boolean` (never persisted) and `setParticipantCaptureWidened(on: boolean)`; `heardFromStores(faceToFace)` now `participantSpeechHeard(…) && !participantCaptureWidened`.
+
+- [ ] **Step 1: Tests**
+
+`systemAudio.test.ts` — in `setup()`, beside `audioSeen`: `const widened = vi.fn();`, add `widened,` to the `settings` object and to the returned record. New describe:
+```ts
+describe('openSystemAudio — the widening flag', () => {
+  it("flags the capture as widened when the tap's monitor never appears, and clears it when the source stops", async () => {
+    const s = setup({ sourceId: 'app:7', answer: { success: true, monitorLabel: 'Sokuji Capture' } });
+    const source = await openSystemAudio(s.settings, live(), s.deps);
+    expect(s.widened).toHaveBeenLastCalledWith(true);
+    await source.stop();
+    expect(s.widened).toHaveBeenLastCalledWith(false);
+  });
+
+  it('flags it when the helper dies and the capture falls back to the whole system', async () => {
+    const s = setup({ sourceId: 'app:42', answer: { success: true, capture: 'app' } });
+    await openSystemAudio(s.settings, live(), s.deps);
+    expect(s.widened).not.toHaveBeenCalledWith(true);
+    s.app.onLost?.();
+    await settle();
+    expect(s.widened).toHaveBeenLastCalledWith(true);
+  });
+
+  it('never flags a whole-system source chosen as such, nor an application capture that works', async () => {
+    const whole = setup({ sourceId: 'desktop-audio-loopback' });
+    await openSystemAudio(whole.settings, live(), whole.deps);
+    expect(whole.widened).not.toHaveBeenCalledWith(true);
+    const app = setup({ sourceId: 'app:42', answer: { success: true, capture: 'app' } });
+    await openSystemAudio(app.settings, live(), app.deps);
+    expect(app.widened).not.toHaveBeenCalledWith(true);
+  });
+
+  it('clears it when a switch lands on a working application capture', async () => {
+    const s = setup({ sourceId: 'app:7', answer: [{ success: true, monitorLabel: 'Sokuji Capture' }, { success: true, capture: 'app' }] });
+    await openSystemAudio(s.settings, live(), s.deps);
+    expect(s.widened).toHaveBeenLastCalledWith(true);
+    s.set({ sourceId: 'app:9' });
+    await settle();
+    expect(s.widened).toHaveBeenLastCalledWith(false);
+  });
+});
+```
+
+`appCapture.test.ts`, in the `createAppCapture` describe after 'reads the participant source…':
+```ts
+  it('marks the participant capture widened, and unmarks it', () => {
+    const settings = systemAudioSettings();
+    useAudioStore.setState({ participantCaptureWidened: false });
+    settings.widened(true);
+    expect(useAudioStore.getState().participantCaptureWidened).toBe(true);
+    settings.widened(false);
+    expect(useAudioStore.getState().participantCaptureWidened).toBe(false);
+  });
+```
+
+`audioStore.test.ts`, after the 'participant tap audio seen' describe:
+```ts
+describe('audioStore - participant capture widened', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useAudioStore.setState({ participantCaptureWidened: false } as any);
+  });
+
+  it('starts out not widened, follows the setter, and is never persisted', () => {
+    expect(useAudioStore.getState().participantCaptureWidened).toBe(false);
+    useAudioStore.getState().setParticipantCaptureWidened(true);
+    expect(useAudioStore.getState().participantCaptureWidened).toBe(true);
+    useAudioStore.getState().setParticipantCaptureWidened(false);
+    expect(useAudioStore.getState().participantCaptureWidened).toBe(false);
+    expect(localStorage.length).toBe(0);
+  });
+
+  it('is a no-op when unchanged, so the routing is not rebuilt for nothing', () => {
+    const listener = vi.fn();
+    const off = useAudioStore.subscribe(listener);
+    useAudioStore.getState().setParticipantCaptureWidened(false);
+    off();
+    expect(listener).not.toHaveBeenCalled();
+  });
+});
+```
+
+`appShape.test.ts`, in the describe "readShapeFromStores — participant speech follows the whole-system rule":
+```ts
+  it('is off, live, while the application capture has widened to the whole system (slice 1 final review, Important 2)', () => {
+    environment.value = 'electron';
+    useAudioStore.setState({ mode: 'both', selectedParticipantSource: { deviceId: 'app:42', label: 'App' }, participantCaptureWidened: true });
+    expect(speechFromStores(fakeProvider).them).toBe(false);
+    expect(speechInputsFromStores().participantSpeech).toBe(false);
+    useAudioStore.setState({ participantCaptureWidened: false });
+    expect(speechFromStores(fakeProvider).them).toBe(true);
+  });
+```
+(import `speechFromStores` and `speechInputsFromStores` from `./appShape` if the file does not already.)
+
+`useFaceToFace.test.ts`, beside the test that `speaks` follows the switches (the one asserting `{ speaker: false, participant: true }` then `{ speaker: false, participant: false }`): a case that, in a meeting on Electron with an application source and 我听到的翻译 on, `result.current.speaks.participant` is true, and after `act(() => useAudioStore.setState({ participantCaptureWidened: true }))` it is false — follow that test's own setup for the environment mock and the provider.
+
+- [ ] **Step 2: Run to verify failure** — `vitest run src/lib/audio/capture/systemAudio.test.ts src/lib/audio/appCapture.test.ts src/stores/audioStore.test.ts src/lib/session/appShape.test.ts src/components/MainPanel/useFaceToFace.test.ts` → FAIL (`widened` is not a function; `setParticipantCaptureWidened` undefined; `them` true).
+
+- [ ] **Step 3: Implement**
+
+`systemAudio.ts` — `SystemAudioSettings` gains, after `audioSeen`:
+```ts
+  /** The capture widened to the whole system although an application was chosen (true), or is no longer widened: it closed, or a switch landed on what was chosen (false). While on, the other's translation played on the real device would be recaptured. */
+  widened(on: boolean): void;
+```
+In `connect`, the line before `core.degrade({ code: APP_MONITOR_MISSING, … })`: `settings.widened(true);`. In `fallBack`, the line after its `core.degrade({ code: APP_CAPTURE_LOST, … })`: `settings.widened(true);`. In `close`, after `await stopRecorder();`: `settings.widened(false);` (closing ends whatever was captured; a switch reconnects and sets it again if it must).
+
+`appCapture.ts`, `systemAudioSettings()`: `widened: (on) => audio().setParticipantCaptureWidened(on),`.
+
+`audioStore.ts` — state, after `participantTapAudioSeen`:
+```ts
+  /**
+   * The participant capture has widened to the whole system although an
+   * application was chosen (its monitor never appeared, or the helper died):
+   * the other's translation played on the real device would be recaptured,
+   * so `heardFromStores` answers false while this is on. Raised by the
+   * system-audio source through `appCapture`'s binding, cleared when it
+   * closes; never persisted.
+   */
+  participantCaptureWidened: boolean;
+```
+actions, after `markParticipantTapAudioSeen`: `setParticipantCaptureWidened: (on: boolean) => void;`; the initial state `participantCaptureWidened: false,`; the action:
+```ts
+    setParticipantCaptureWidened: (on) => {
+      if (get().participantCaptureWidened !== on) set({ participantCaptureWidened: on });
+    },
+```
+
+`appShape.ts` — `heardFromStores` (exported since Task 3):
+```ts
+/**
+ * `participantSpeechHeard` over the stores, and the capture's own word: the
+ * other's translation, played to me, is not recaptured by the participant
+ * source. An application capture that widened to the whole system mid-run
+ * (`audioStore`'s `participantCaptureWidened`) recaptures it, whatever the
+ * chosen source says.
+ */
+export function heardFromStores(faceToFace: boolean): boolean {
+  const audio = useAudioStore.getState();
+  return participantSpeechHeard(getEnvironment(), audio.selectedParticipantSource?.deviceId, faceToFace) && !audio.participantCaptureWidened;
+}
+```
+
+`SpeechOutputSection.tsx`: `const heard = participantSpeechHeard(platform, source?.deviceId, faceToFace);` → `const heard = heardFromStores(faceToFace);` with `useAudioStore((s) => s.participantCaptureWidened);` beside the section's other store subscriptions (so the blocked state follows the flag), importing `heardFromStores` from `../../../lib/session/appShape`; drop the `participantSpeechHeard` import if nothing else uses it. `ModeDevicePopover.tsx`: the same for `const heard = participantSpeechHeard(getEnvironment(), selectedParticipantSource?.deviceId, beside);` → `heardFromStores(beside)` plus the subscription. `useFaceToFace.ts`: `useAudioStore((s) => s.participantCaptureWidened);` after the `selectedParticipantSource?.deviceId` subscription, so `speaks` (and MainPanel's replay slot) follows. Both tests' environment mocks reach `heardFromStores`, which reads the same `getEnvironment()`.
+
+`CLAUDE.md`, the routing sentence at the end of "5. Audio": add "The system-audio source tells the audio store when an application capture widened to the whole system (`participantCaptureWidened`); `heardFromStores` reads it, so 我听到的翻译 falls silent live instead of being recaptured."
+
+- [ ] **Step 4: Run** — the Step 2 command → PASS; `vitest run src/components/Settings/sections src/components/MainPanel` → PASS; tsc: no error in a changed file.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/lib/audio/capture/systemAudio.ts src/lib/audio/capture/systemAudio.test.ts src/lib/audio/appCapture.ts src/lib/audio/appCapture.test.ts src/stores/audioStore.ts src/stores/audioStore.test.ts src/lib/session/appShape.ts src/lib/session/appShape.test.ts src/components/Settings/sections/SpeechOutputSection.tsx src/components/MainPanel/ModeDevicePopover.tsx src/components/MainPanel/useFaceToFace.ts src/components/MainPanel/useFaceToFace.test.ts CLAUDE.md
+git commit -m "fix(audio): an application capture widening to the whole system silences 我听到的翻译, live
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 7: The whole suite, the builds, the PR notes
 
 - [ ] **Step 1: Everything**
 
