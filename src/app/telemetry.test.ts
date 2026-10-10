@@ -210,6 +210,8 @@ describe('sessionStartProperties', () => {
   it('maps the audio, segmentation and punctuator inputs to the kept properties', () => {
     expect(sessionStartProperties({
       audio: { noiseSuppressionMode: 'standard', isRealVoicePassthroughEnabled: true, isMicMuted: false, isMonitorMuted: true },
+      speak: { other: true, me: false, them: true },
+      channels: { other: 'both', me: 'both', them: 'left' },
       segmentation: { mode: 'sentences', size: 2 },
       punctuationActive: true,
     })).toEqual({
@@ -218,6 +220,8 @@ describe('sessionStartProperties', () => {
       real_voice_passthrough_enabled: true,
       input_device_on: true,
       monitor_device_on: false,
+      participant_speech: true,
+      outlet_channels: { other: 'both', me: 'both', them: 'left' },
       sentence_segmentation_enabled: true,
       sentence_segmentation_active: true,
       sentence_segmentation_chunk_sentences: 2,
@@ -227,6 +231,8 @@ describe('sessionStartProperties', () => {
   it("reads noise_suppression_enabled false for mode 'off'", () => {
     expect(sessionStartProperties({
       audio: { noiseSuppressionMode: 'off', isRealVoicePassthroughEnabled: false, isMicMuted: false, isMonitorMuted: false },
+      speak: { other: true, me: false, them: false },
+      channels: { other: 'both' as const, me: 'both' as const, them: 'both' as const },
       segmentation: { mode: 'off', size: 0 },
       punctuationActive: false,
     })).toMatchObject({ noise_suppression_enabled: false, noise_suppression_mode: 'off' });
@@ -282,7 +288,8 @@ describe('sessionEndProperties', () => {
 
 describe('appStartInputs', () => {
   it('reads the audio, settings and provider stores', () => {
-    useAudioStore.setState({ noiseSuppressionMode: 'off', isMicMuted: true });
+    useAudioStore.setState({ noiseSuppressionMode: 'off', isMicMuted: true, isMonitorMuted: true, mode: 'speaker' });
+    useSettingsStore.setState({ textOnly: false });
     useSettingsStore.setState({ segmentationMode: 'sentences', sentenceSegmentationChunkSentences: 3 });
     useProviderStore.setState({ selected: null, entries: {} });
 
@@ -292,6 +299,13 @@ describe('appStartInputs', () => {
     expect(inputs.punctuationActive).toBe(true);
     expect(inputs.audio.noiseSuppressionMode).toBe('off');
     expect(inputs.audio.isMicMuted).toBe(true);
+    expect(inputs.speak).toEqual({ other: true, me: false, them: false });
+    expect(inputs.channels).toEqual({ other: 'both', me: 'both', them: 'both' });
+  });
+
+  it('answers with no provider loaded (Review Focus 5)', () => {
+    useProviderStore.setState({ selected: null, entries: {} });
+    expect(() => appStartInputs(false)).not.toThrow();
   });
 });
 
@@ -311,6 +325,8 @@ describe('decorateSessionAnalytics', () => {
     const frames = fakeFrameLog(emptyTally());
     const startInputs = () => ({
       audio: { noiseSuppressionMode: 'off' as const, isRealVoicePassthroughEnabled: false, isMicMuted: false, isMonitorMuted: false },
+      speak: { other: true, me: false, them: false },
+      channels: { other: 'both' as const, me: 'both' as const, them: 'both' as const },
       segmentation: { mode: 'off' as const, size: 0 as const },
       punctuationActive: false,
     });
@@ -342,6 +358,8 @@ describe('decorateSessionAnalytics', () => {
     const frames = fakeFrameLog(tally);
     const startInputs = () => ({
       audio: { noiseSuppressionMode: 'off' as const, isRealVoicePassthroughEnabled: false, isMicMuted: false, isMonitorMuted: false },
+      speak: { other: true, me: false, them: false },
+      channels: { other: 'both' as const, me: 'both' as const, them: 'both' as const },
       segmentation: { mode: 'off' as const, size: 0 as const },
       punctuationActive: false,
     });
@@ -373,6 +391,8 @@ describe('decorateSessionAnalytics', () => {
     const frames = fakeFrameLog(emptyTally());
     const analytics = decorateSessionAnalytics(() => track, { frames, startInputs: () => ({
       audio: { noiseSuppressionMode: 'off' as const, isRealVoicePassthroughEnabled: false, isMicMuted: false, isMonitorMuted: false },
+      speak: { other: true, me: false, them: false },
+      channels: { other: 'both' as const, me: 'both' as const, them: 'both' as const },
       segmentation: { mode: 'off' as const, size: 0 as const },
       punctuationActive: false,
     }) });
@@ -409,6 +429,8 @@ describe('decorateSessionAnalytics', () => {
     frames.snapshot = () => { throw new Error('boom'); };
     const startInputs = () => ({
       audio: { noiseSuppressionMode: 'off' as const, isRealVoicePassthroughEnabled: false, isMicMuted: false, isMonitorMuted: false },
+      speak: { other: true, me: false, them: false },
+      channels: { other: 'both' as const, me: 'both' as const, them: 'both' as const },
       segmentation: { mode: 'off' as const, size: 0 as const },
       punctuationActive: false,
     });
@@ -431,6 +453,8 @@ describe('decorateSessionAnalytics', () => {
     const frames = fakeFrameLog(emptyTally());
     const startInputs = () => ({
       audio: { noiseSuppressionMode: 'off' as const, isRealVoicePassthroughEnabled: false, isMicMuted: false, isMonitorMuted: false },
+      speak: { other: true, me: false, them: false },
+      channels: { other: 'both' as const, me: 'both' as const, them: 'both' as const },
       segmentation: { mode: 'off' as const, size: 0 as const },
       punctuationActive: false,
     });
