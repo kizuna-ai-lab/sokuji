@@ -30,6 +30,7 @@ let mockUIMode: 'basic' | 'advanced' = 'advanced';
 const navigateToSettings = vi.fn((target: string | null) => { mockTarget = target; });
 
 vi.mock('../../stores/settingsStore', () => ({
+  default: { getState: () => ({ settingsNavigationTarget: mockTarget }) },
   useUIMode: () => mockUIMode,
   useSetUIMode: () => vi.fn(),
   useNavigateToSettings: () => navigateToSettings,
@@ -156,5 +157,45 @@ describe("Settings — the 'provider' navigation target switches tabs without fl
 
     vi.advanceTimersByTime(200);
     expect(navigateToSettings).toHaveBeenCalledWith(null);
+  });
+
+  // The panel closing (its <Activity> hides, running this cleanup) inside the
+  // 3000ms highlight window cancelled the timer that would have cleared the
+  // target, and nothing else clears it: the next navigateToSettings with the
+  // SAME target was a no-op set, so MainLayout's effect never re-fired and the
+  // panel stayed shut. The popover's "Full settings →" after a quick close was
+  // how it showed. SimpleSettings' effect already clears on this path.
+  it("the panel hiding mid-highlight clears the target, so the same target can reopen it", () => {
+    mockTarget = 'microphone';
+    const { getByTestId, unmount } = render(<Settings />);
+    vi.advanceTimersByTime(200);
+    expect(getByTestId('microphone-section-el').classList.contains('highlight')).toBe(true);
+
+    unmount();
+    expect(navigateToSettings).toHaveBeenCalledWith(null);
+  });
+
+  it("retargeting mid-highlight does not clobber the newer target", () => {
+    mockTarget = 'microphone';
+    const { getByTestId, rerender } = render(<Settings />);
+    vi.advanceTimersByTime(200);
+    expect(getByTestId('microphone-section-el').classList.contains('highlight')).toBe(true);
+
+    mockTarget = 'turn-detection-tuning';
+    rerender(<Settings />);
+    expect(getByTestId('microphone-section-el').classList.contains('highlight')).toBe(false);
+    expect(navigateToSettings).not.toHaveBeenCalledWith(null);
+    vi.advanceTimersByTime(200);
+    expect(getByTestId('turn-detection-tuning-el').classList.contains('highlight')).toBe(true);
+  });
+
+  // StrictMode's dev-only simulated remount runs the cleanup before the 150ms
+  // scroll delay: clearing there would make the re-created effect bail.
+  it("a cleanup before the highlight landed leaves the target alone", () => {
+    mockTarget = 'microphone';
+    const { unmount } = render(<Settings />);
+    vi.advanceTimersByTime(50);
+    unmount();
+    expect(navigateToSettings).not.toHaveBeenCalled();
   });
 });
