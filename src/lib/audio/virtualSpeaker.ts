@@ -1,3 +1,5 @@
+import { isLinux, isWindows } from '../../utils/environment';
+
 /**
  * The output device a meeting app hears as a microphone (Electron), found by
  * label in this order: Linux's PulseAudio sink, macOS's driver, Windows'
@@ -10,4 +12,15 @@ export function findVirtualSpeaker(outputs: readonly { deviceId: string; label: 
     ?? outputs.find((d) => d.label.includes('SokujiVirtualAudio'))
     ?? outputs.find((d) => d.label.toUpperCase().includes('CABLE'));
   return match?.deviceId;
+}
+
+/**
+ * The virtual microphone's name as the user's meeting app lists it (spec
+ * 2026-10-10 §7): the input side of the device `findVirtualSpeaker` plays
+ * into. Linux's PulseAudio remap, macOS's driver, Windows' VB-Cable.
+ */
+export function virtualMicrophoneName(): string {
+  if (isLinux()) return 'Sokuji_Virtual_Mic';
+  if (isWindows()) return 'CABLE Output (VB-Audio Virtual Cable)';
+  return 'SokujiVirtualAudio';
 }
