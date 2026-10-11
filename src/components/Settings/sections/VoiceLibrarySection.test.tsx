@@ -201,6 +201,44 @@ describe('VoiceLibrarySection', () => {
     expect(mockSource.start).not.toHaveBeenCalled();
   });
 
+  it('two rows side by side never preview at once: opening the second closes the first, cancelling its request', async () => {
+    const { mockSource } = stubWebAudio();
+    const signals: AbortSignal[] = [];
+    let resolveFirst: (v: { audio: Float32Array; sampleRate: number }) => void = () => {};
+    const first = vi.fn((_id: string, signal?: AbortSignal) => {
+      if (signal) signals.push(signal);
+      return new Promise<{ audio: Float32Array; sampleRate: number }>((resolve) => { resolveFirst = resolve; });
+    });
+    const second = vi.fn(async () => ({ audio: new Float32Array(2048), sampleRate: 24000 }));
+    const voices = [{ id: 'builtin:Ava', label: 'Ava', group: 'builtin' as const, removable: false, previewable: true }];
+    render(
+      <>
+        <VoiceLibrarySection {...base} voices={voices} capability={{ importModes: [] }} onPreview={first} label="Mine" />
+        <VoiceLibrarySection {...base} voices={voices} capability={{ importModes: [] }} onPreview={second} label="Theirs" />
+      </>,
+    );
+    const trigger = (name: string) => screen.getByRole('group', { name }).querySelector('.voice-picker__trigger') as HTMLElement;
+
+    fireEvent.click(trigger('Mine'));
+    fireEvent.click(screen.getByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(signals).toHaveLength(1));
+
+    // A press on the other row's trigger is outside the open popover: it closes, and its preview is cancelled.
+    fireEvent.pointerDown(trigger('Theirs'));
+    fireEvent.click(trigger('Theirs'));
+    expect(signals[0].aborted).toBe(true);
+    expect(screen.getAllByRole('grid')).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(mockSource.start).toHaveBeenCalledTimes(1));
+    // The first request resolving late plays nothing over the second.
+    resolveFirst({ audio: new Float32Array(2048), sampleRate: 24000 });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(mockSource.start).toHaveBeenCalledTimes(1);
+    expect(second).toHaveBeenCalledTimes(1);
+  });
+
   it('gates the play control on previewable, reaching the picker unchanged', () => {
     render(
       <VoiceLibrarySection
