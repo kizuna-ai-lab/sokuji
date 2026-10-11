@@ -478,6 +478,9 @@ What the spec's "What adding a provider then touches" lists
    when it reads keys an older build stored — credentials, languages, `check`,
    `session`), `adapter.ts` (the L0 client, `src/lib/contract/adapter.ts`, passing the
    conformance suite `src/lib/contract/conformance.ts`), its `Settings` view, and tests.
+   A provider that speaks in a chosen voice also gives a `VoiceSummary` (each spoken leg's
+   voice by name, drawn under its Speech row as a link to `#voice-settings-section`, which
+   its voice field carries).
 2. One line in `src/providers/registry.ts`, whose order is the picker's, and the order
    tests: `registry.test.ts` pins the whole list, and a neighbour's `provider.test.ts`
    may pin its place. `src/providers/sessionSide.consistency.test.ts` holds its adapter
