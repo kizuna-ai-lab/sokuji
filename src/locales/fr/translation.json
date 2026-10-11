@@ -305,8 +305,10 @@
       "mirror": "Ils parlent {{their}} → je lis {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Le face à face utilise toujours une session partagée : les deux personnes parlent dans le même micro.",
-    "sonioxParticipantVoice": "Voix de l'autre",
-    "sonioxParticipantVoiceTooltip": "La voix qui vous lit, dans votre langue, ce que dit l'autre. Voix préréglées uniquement."
+    "voiceTheyHear": "Voix entendue par l'autre",
+    "voiceIHear": "Voix que j'entends",
+    "voiceIHearSame": "C'est la voix entendue par l'autre, donc {{voice}} lit à sa place.",
+    "voiceCustom": "Voix personnalisée"
   },
   "simpleSettings": {
     "autoAuthenticated": "Authentifié automatiquement via votre compte",
@@ -342,6 +344,7 @@
     "passthroughTip": "Mélange ma propre voix, à un niveau plus bas, sous la traduction dans le micro virtuel. 60 % au maximum.",
     "passthroughVolume": "Volume {{percent}} %",
     "iHear": "Traduction que j'entends",
+    "voiceLine": "Voix",
     "iHearTip": "Ce que dit l'autre, traduit et lu à voix haute pour moi.",
     "iHearNotOffered": "Ce service ne lit pas la traduction de l'autre.",
     "keepReplay": "Conserver les traductions parlées pour les réécouter",

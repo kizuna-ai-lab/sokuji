@@ -305,8 +305,10 @@
       "mirror": "Mereka bertutur {{their}} → Saya baca {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Bersemuka sentiasa menggunakan satu sesi dikongsi: kedua-dua orang bercakap ke dalam mikrofon yang sama.",
-    "sonioxParticipantVoice": "Suara pihak lain",
-    "sonioxParticipantVoiceTooltip": "Suara yang membacakan kata-kata pihak lain kepada anda dalam bahasa anda. Suara terbina dalam sahaja."
+    "voiceTheyHear": "Suara yang didengar pihak lain",
+    "voiceIHear": "Suara yang saya dengar",
+    "voiceIHearSame": "Sama dengan suara yang didengar pihak lain, jadi {{voice}} membaca sebagai gantinya.",
+    "voiceCustom": "Suara tersuai"
   },
   "simpleSettings": {
     "autoAuthenticated": "Disahkan secara automatik melalui akaun anda",
@@ -342,6 +344,7 @@
     "passthroughTip": "Mencampurkan suara saya sendiri, pada tahap lebih rendah, di bawah terjemahan ke mikrofon maya. Maksimum 60%.",
     "passthroughVolume": "Kelantangan {{percent}}%",
     "iHear": "Terjemahan yang saya dengar",
+    "voiceLine": "Suara",
     "iHearTip": "Apa yang pihak lain cakap, diterjemah dan dibacakan kepada saya.",
     "iHearNotOffered": "Perkhidmatan ini tidak membacakan terjemahan pihak lain.",
     "keepReplay": "Simpan terjemahan yang dituturkan untuk main semula",

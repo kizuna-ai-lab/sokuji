@@ -43,6 +43,25 @@ describe('SonioxVoiceField', () => {
     expect(update).toHaveBeenCalledWith({ voiceJp: 'Other' });
   });
 
+  it("hands the section the other party's voice only while it is spoken: the choice, what a run speaks, my language, and its own field", () => {
+    const update = vi.fn();
+    const field = (over: object) => (
+      <SonioxVoiceField settings={SONIOX_DEFAULTS} update={update} disabled={false} target="en" pairSource="ja" managed={false} useVoiceSource={() => null} {...over} />
+    );
+    const { rerender } = render(field({}));
+    expect(seen[seen.length - 1].participant).toBeUndefined();
+
+    rerender(field({ participantSpeaks: true, settings: { ...SONIOX_DEFAULTS, voice: 'Adrian', participantVoice: 'Kenji' } }));
+    const p = seen[seen.length - 1].participant!;
+    expect(p).toMatchObject({ voice: 'Kenji', effective: 'Kenji', language: 'ja' });
+    p.onSelect('Nina');
+    expect(update).toHaveBeenCalledWith({ participantVoice: 'Nina' });
+
+    // My own voice chosen for them: a run speaks the other default (participantVoiceFor), read off the region's voice.
+    rerender(field({ participantSpeaks: true, settings: { ...SONIOX_DEFAULTS, region: 'eu', voice: 'Adrian', voiceEu: 'Grace', participantVoice: 'Grace' } }));
+    expect(seen[seen.length - 1].participant).toMatchObject({ voice: 'Grace', effective: 'Adrian' });
+  });
+
   it("passes an injected source and the managed flag through (Plan B's seam)", () => {
     const stubSource: VoiceLibrarySource = {
       list: async () => [],

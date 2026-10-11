@@ -18,7 +18,18 @@ vi.mock('../../Settings/sections/VoiceLibrarySection', () => ({
 }));
 const libraryProps = () => library[library.length - 1];
 
-import { PresetVoiceField, presetVoice } from './PresetVoiceField';
+import { PresetVoiceField, presetVoice, presetVoiceSummary } from './PresetVoiceField';
+
+describe('presetVoiceSummary: a one-voice provider names that voice under every spoken row', () => {
+  it("names the voice `voiceOf` picks by the list's name; an id the list lacks as itself; nothing when it picks none", () => {
+    const Summary = presetVoiceSummary<{ voice: string }>([{ value: 'aoede', name: 'Aoede' }], ({ settings }) => settings.voice || undefined);
+    const text = (voice: string, leg: 'speaker' | 'participant') => render(<Summary settings={{ voice }} update={() => {}} leg={leg} />).container.textContent;
+    expect(text('aoede', 'speaker')).toBe('Aoede');
+    expect(text('aoede', 'participant')).toBe('Aoede');
+    expect(text('retired', 'speaker')).toBe('retired');
+    expect(text('', 'speaker')).toBe('');
+  });
+});
 
 const voices = [
   { id: 'Aoede', label: 'Aoede', group: 'builtin' as const, removable: false, previewable: true },

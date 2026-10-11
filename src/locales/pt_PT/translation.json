@@ -305,8 +305,10 @@
       "mirror": "Eles falam {{their}} → eu leio {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "O cara a cara usa sempre uma sessão partilhada: as duas pessoas falam para o mesmo microfone.",
-    "sonioxParticipantVoice": "Voz do outro",
-    "sonioxParticipantVoiceTooltip": "A voz que lhe lê, no seu idioma, o que o outro diz. Apenas vozes integradas."
+    "voiceTheyHear": "Voz que o outro lado ouve",
+    "voiceIHear": "Voz que eu ouço",
+    "voiceIHearSame": "É a mesma voz que o outro lado ouve, por isso {{voice}} lê em vez dela.",
+    "voiceCustom": "Voz personalizada"
   },
   "simpleSettings": {
     "autoAuthenticated": "Autenticado automaticamente através da sua conta",
@@ -342,6 +344,7 @@
     "passthroughTip": "Mistura a minha própria voz, a um nível mais baixo, sob a tradução no microfone virtual. No máximo 60%.",
     "passthroughVolume": "Volume {{percent}}%",
     "iHear": "Tradução que eu ouço",
+    "voiceLine": "Voz",
     "iHearTip": "O que o outro lado diz, traduzido e lido em voz alta para mim.",
     "iHearNotOffered": "Este serviço não fala a tradução do outro lado.",
     "keepReplay": "Guardar traduções faladas para reprodução",

@@ -30,7 +30,7 @@ const libraryProps = () => library[library.length - 1];
 
 import type { SettingsProps } from '../../lib/provider/types';
 import { GEMINI_DEFAULTS, GEMINI_VOICES, type GeminiSettings } from './settings';
-import { GeminiSettingsView } from './GeminiSettings';
+import { GeminiSettingsView, GeminiVoiceSummary } from './GeminiSettings';
 
 const DIALOGUE = 'gemini-2.5-flash-native-audio-preview-12-2025';
 const TRANSLATE = 'gemini-3.5-live-translate-preview';
@@ -151,5 +151,16 @@ describe('GeminiSettingsView', () => {
     expect(screen.getByLabelText('settings.model')).toBeDisabled();
     expect(screen.getByLabelText('settings.temperature')).toBeDisabled();
     expect(screen.getByLabelText('Unlimited')).toBeDisabled();
+  });
+});
+
+describe('GeminiVoiceSummary', () => {
+  it('names the one voice under both legs, the default when none is stored; nothing on Live Translate, which has none to choose', () => {
+    const text = (settings: Partial<GeminiSettings>, leg: 'speaker' | 'participant') =>
+      render(<GeminiVoiceSummary {...props({ settings: { ...GEMINI_DEFAULTS, ...settings } })} leg={leg} />).container.textContent;
+    expect(text({ model: DIALOGUE, voice: 'Puck' }, 'speaker')).toBe('Puck');
+    expect(text({ model: DIALOGUE, voice: 'Puck' }, 'participant')).toBe('Puck');
+    expect(text({ model: DIALOGUE, voice: '' }, 'speaker')).toBe('Aoede');
+    expect(text({ model: TRANSLATE }, 'speaker')).toBe('');
   });
 });

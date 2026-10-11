@@ -171,6 +171,11 @@ export interface SettingsProps<S> {
   faceToFace?: boolean;
 }
 
+/** What a `VoiceSummary` is handed besides its settings: the leg whose row it names. */
+export interface VoiceSummaryProps<S> extends SettingsProps<S> {
+  leg: LegName;
+}
+
 /** One slot of a local engine's model management: a stage of one direction (`src→tgt`). */
 export interface EngineSlot { dir: string; stage: 'asr' | 'translation' | 'tts' }
 
@@ -271,6 +276,14 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
      */
     Help?: ComponentType<SettingsProps<S>>;
   };
+  /**
+   * The voice a spoken leg reads in, by name: the Speech section draws it
+   * under that leg's row as a link to the voice settings on Advanced's
+   * Provider tab (from Simple it switches to Advanced first). Text only;
+   * renders nothing for a leg it cannot name, and the row then shows no
+   * line. Absent: no line, as for a provider whose voices sit with its models.
+   */
+  VoiceSummary?: ComponentType<VoiceSummaryProps<S>>;
 
   // credentials — stored apart from settings
   credentials: {

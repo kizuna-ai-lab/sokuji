@@ -305,8 +305,10 @@
       "mirror": "He puhuvat {{their}} → luen {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Kasvokkain-tila käyttää aina yhtä jaettua istuntoa: molemmat puhuvat samaan mikrofoniin.",
-    "sonioxParticipantVoice": "Toisen osapuolen ääni",
-    "sonioxParticipantVoiceTooltip": "Ääni, joka lukee toisen sanat sinulle omalla kielelläsi. Vain sisäänrakennetut äänet."
+    "voiceTheyHear": "Ääni, jonka toinen osapuoli kuulee",
+    "voiceIHear": "Ääni, jonka kuulen",
+    "voiceIHearSame": "Sama kuin ääni, jonka toinen osapuoli kuulee, joten sen sijaan lukee {{voice}}.",
+    "voiceCustom": "Mukautettu ääni"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automaattisesti todennettu tilisi kautta",
@@ -342,6 +344,7 @@
     "passthroughTip": "Sekoittaa oman ääneni hiljaisemmalla tasolla käännöksen alle virtuaalimikrofoniin. Enintään 60 %.",
     "passthroughVolume": "Äänenvoimakkuus {{percent}} %",
     "iHear": "Käännös, jonka kuulen",
+    "voiceLine": "Ääni",
     "iHearTip": "Se, mitä toinen osapuoli sanoo, käännettynä ja luettuna ääneen minulle.",
     "iHearNotOffered": "Tämä palvelu ei puhu toisen osapuolen käännöstä.",
     "keepReplay": "Säilytä puhutut käännökset uudelleentoistoa varten",

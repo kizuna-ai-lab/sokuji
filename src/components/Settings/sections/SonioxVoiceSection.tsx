@@ -88,7 +88,23 @@ export interface SonioxVoiceSectionProps {
    *  voices itself). */
   managed: boolean;
   isSessionActive: boolean;
+  /** Present while the other party is spoken too: a second row, built-in voices only. */
+  participant?: SonioxParticipantVoice;
 }
+
+/** The other party's voice (`SonioxSettings.participantVoice`), the second row. */
+export interface SonioxParticipantVoice {
+  /** The stored choice. */
+  voice: string;
+  /** What a run speaks in (`participantVoiceFor`): another voice when the choice is the speaker's own. */
+  effective: string;
+  /** What it reads in: my language, the pair's source. */
+  language: string;
+  onSelect(id: string): void;
+}
+
+/** No delete: the second row lists built-in voices only. */
+const NO_DELETE = async () => {};
 
 // Read from the roster rather than the descriptor's `voices`, which projects
 // away the metadata (gender, age, accent, use-case and style tags) the facet
@@ -183,6 +199,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   source,
   managed,
   isSessionActive,
+  participant,
 }) => {
   const { t } = useTranslation();
   // Latest-value ref so an in-flight `refresh()` can tell, at resolution
@@ -412,7 +429,8 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
 
   const handlePreview = useCallback(async (
     id: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    language: string = settings.targetLanguage
   ): Promise<{ audio: Float32Array; sampleRate: number } | null> => {
     // Pinned for the post-await staleness check below — same guard the
     // list/create paths use via sourceRef. Narrowed via THIS reference (not
@@ -430,7 +448,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
     // language with English then the table as fallbacks. A preset id IS the
     // `voice` field of the TTS request, so nothing here needs to know which
     // kind it is.
-    const sample = resolvePreviewSample(settings.targetLanguage, null);
+    const sample = resolvePreviewSample(language, null);
     // Cannot be null for a null `speaks` predicate (see resolvePreviewSample's
     // docstring), but narrowed here rather than asserted.
     if (!sample) return null;
@@ -814,7 +832,8 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   }, [clones, managed, managedName, managedListKnown, settings.voice, listState, source, t]);
 
   return (
-    <div className="settings-section" id="soniox-voice-section">
+    // `#voice-settings-section` is Settings' `voice-settings` target (`Settings.tsx:51`), the Speech rows' voice links.
+    <div className="settings-section" id="voice-settings-section">
       <h2>{t('settings.voiceSettings', 'Voice Settings')}</h2>
       {listState === 'error' && (
         <div className="setting-item">
@@ -829,6 +848,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         </div>
       )}
       <VoiceLibrarySection
+        label={participant ? t('settings.voiceTheyHear', 'Voice the other side hears') : undefined}
         voices={entries}
         selectedId={settings.voice}
         onSelect={(id) => onUpdate({ voice: id })}
@@ -896,6 +916,21 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
           onClose: closeModal,
         }}
       />
+      {participant && (
+        <VoiceLibrarySection
+          label={t('settings.voiceIHear', 'Voice I hear')}
+          voices={entries.filter((e) => e.group === 'builtin')}
+          selectedId={participant.voice}
+          onSelect={participant.onSelect}
+          onDelete={NO_DELETE}
+          onPreview={source?.preview ? (id, signal) => handlePreview(id, signal, participant.language) : undefined}
+          capability={{ importModes: [], facetFilter: true }}
+          isSessionActive={isSessionActive}
+          note={participant.effective !== participant.voice
+            ? t('settings.voiceIHearSame', 'Same as the voice the other side hears, so {{voice}} reads instead.', { voice: participant.effective })
+            : undefined}
+        />
+      )}
       {captureError && (
         <div className="voice-capture-error" role="alert">{captureError}</div>
       )}

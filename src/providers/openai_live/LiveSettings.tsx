@@ -1,10 +1,14 @@
 import { useTranslation } from 'react-i18next';
 import { InstructionsField } from '../../components/providers/fields/InstructionsField';
-import { PresetVoiceField, presetVoice } from '../../components/providers/fields/PresetVoiceField';
+import { PresetVoiceField, presetVoice, presetVoiceSummary } from '../../components/providers/fields/PresetVoiceField';
 import { resolveInstructions } from '../../lib/provider/instructions';
 import type { SettingsProps } from '../../lib/provider/types';
 import { previewLiveVoice } from './preview';
-import { LIVE_VOICES, liveLanguageName, liveLanguages, type LiveSettings as S } from './settings';
+import { LIVE_DEFAULT_VOICE, LIVE_VOICES, liveLanguageName, liveLanguages, type LiveSettings as S } from './settings';
+
+/** Both legs speak the one voice; one the list no longer has falls to the default (`config.ts`). */
+export const LiveVoiceSummary = presetVoiceSummary<S>(LIVE_VOICES, ({ settings }) =>
+  LIVE_VOICES.some((v) => v.value === settings.voice) ? settings.voice : LIVE_DEFAULT_VOICE);
 
 /**
  * OpenAI Live's own settings (D18): what the old tab showed for it once the

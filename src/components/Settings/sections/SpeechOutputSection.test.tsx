@@ -391,3 +391,41 @@ describe('SpeechOutputSection — per mode (spec §1.2)', () => {
     expect(screen.getAllByText(/All system sound is being captured/)).toHaveLength(1);
   });
 });
+
+describe('SpeechOutputSection — the voice each spoken row reads in', () => {
+  const voiceLine = (label: string) => row(label).querySelector('.setting-row__voice');
+
+  it("names the voice under each spoken row: mine, and the other party's", () => {
+    useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
+    mount();
+    const named = (label: string) => {
+      const line = voiceLine(label) as HTMLElement;
+      expect(line.firstElementChild).toHaveTextContent('Voice');
+      return within(line).getByRole('button').textContent;
+    };
+    expect(named('Translation the other side hears')).toBe('Adrian');
+    expect(named('Translation I hear')).toBe('Grace');
+  });
+
+  it('draws no line under a row that is off or not in this mode', () => {
+    mount();
+    expect(voiceLine('Translation the other side hears')).not.toBeNull();
+    expect(voiceLine('Translation I hear')).toBeNull();
+    act(() => useSettingsStore.setState({ textOnly: true }));
+    expect(voiceLine('Translation the other side hears')).toBeNull();
+  });
+
+  it('the name opens the voice settings, switching Quick to Advanced first; a run leaves it usable', () => {
+    useSettingsStore.setState({ uiMode: 'basic', settingsNavigationTarget: null });
+    mount(true);
+    fireEvent.click(within(voiceLine('Translation the other side hears') as HTMLElement).getByRole('button', { name: 'Adrian' }));
+    expect(useSettingsStore.getState().uiMode).toBe('advanced');
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('voice-settings');
+  });
+
+  it('a provider with no voice summary draws no line', () => {
+    pick('openai_translate');
+    mount();
+    expect(document.querySelector('.setting-row__voice')).toBeNull();
+  });
+});

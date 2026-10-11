@@ -6,7 +6,7 @@ vi.mock('react-i18next', async (importOriginal) => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-import { PalabraSettingsView } from './PalabraSettings';
+import { PalabraSettingsView, PalabraVoiceSummary } from './PalabraSettings';
 import { PALABRA_DEFAULTS } from './settings';
 
 const slider = (label: string) => screen.getByLabelText(label) as HTMLInputElement;
@@ -68,5 +68,14 @@ describe("Palabra AI's settings view (D18)", () => {
     for (const label of ['settings.sentenceSplitter', 'settings.translatePartialTranscriptions', 'settings.autoTempo']) {
       for (const b of buttons(label)) expect(b).toBeDisabled();
     }
+  });
+});
+
+describe('PalabraVoiceSummary', () => {
+  it('names the one voice under both legs', () => {
+    const text = (leg: 'speaker' | 'participant') =>
+      render(<PalabraVoiceSummary settings={{ ...PALABRA_DEFAULTS, voiceId: 'default_high' }} update={() => {}} leg={leg} />).container.textContent;
+    expect(text('speaker')).toBe('Default High');
+    expect(text('participant')).toBe('Default High');
   });
 });

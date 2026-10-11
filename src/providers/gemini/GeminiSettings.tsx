@@ -2,16 +2,20 @@ import { useTranslation } from 'react-i18next';
 import { InstructionsField } from '../../components/providers/fields/InstructionsField';
 import { ModelConfigurationField } from '../../components/providers/fields/ModelConfigurationField';
 import { ModelField } from '../../components/providers/fields/ModelField';
-import { PresetVoiceField, presetVoice } from '../../components/providers/fields/PresetVoiceField';
+import { PresetVoiceField, presetVoice, presetVoiceSummary } from '../../components/providers/fields/PresetVoiceField';
 import { resolveInstructions } from '../../lib/provider/instructions';
 import type { SettingsProps } from '../../lib/provider/types';
 import { previewGeminiVoice } from './preview';
 import {
-  effectiveGeminiModel, geminiCredentials, geminiLanguageName, geminiLanguages, GEMINI_MAX_TOKENS_RANGE, GEMINI_TEMPERATURE_RANGE, GEMINI_VOICES,
+  effectiveGeminiModel, geminiCredentials, geminiLanguageName, geminiLanguages, GEMINI_DEFAULT_VOICE, GEMINI_MAX_TOKENS_RANGE, GEMINI_TEMPERATURE_RANGE, GEMINI_VOICES,
   isGeminiTranslateModel, type GeminiSettings as S,
 } from './settings';
 
 const VOICES = GEMINI_VOICES.map(presetVoice);
+
+/** Both legs speak the one voice, on a dialogue model only: Live Translate has none to choose (`config.ts`). */
+export const GeminiVoiceSummary = presetVoiceSummary<S>(GEMINI_VOICES, ({ settings, models }) =>
+  isGeminiTranslateModel(effectiveGeminiModel(settings, models ?? [])) ? undefined : settings.voice || GEMINI_DEFAULT_VOICE);
 
 /**
  * Gemini's own settings (D18), the old UI's Gemini sections

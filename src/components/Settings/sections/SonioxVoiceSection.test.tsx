@@ -330,6 +330,65 @@ describe('SonioxVoiceSection', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Me' })).toBeInTheDocument());
   });
 
+  it('one row, "Voice", in the section the Settings deep link lands on', () => {
+    const { container } = mount();
+    expect(container.querySelector('#voice-settings-section')).not.toBeNull();
+    expect(screen.getByRole('group', { name: 'Voice' })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Voice I hear' })).toBeNull();
+  });
+
+  describe('with the other party spoken', () => {
+    const participant = (over: object = {}) => ({ voice: 'Grace', effective: 'Grace', language: 'zh', onSelect: vi.fn(), ...over });
+    // By class: while the popover is open, floating-ui's focus guards sit beside the trigger.
+    const triggerIn = (name: string) => screen.getByRole('group', { name }).querySelector('.voice-picker__trigger') as HTMLElement;
+    const openIn = (name: string) => fireEvent.click(triggerIn(name));
+
+    it('names both rows by who hears them, and the second lists the built-in voices only', async () => {
+      listMock.mockResolvedValue([cloned()]);
+      const p = participant();
+      mount({ participant: p });
+      expect(triggerIn('Voice the other side hears')).toHaveTextContent(SONIOX_DEFAULT_VOICE);
+      expect(triggerIn('Voice I hear')).toHaveTextContent('Grace');
+      // The clone reaches my picker…
+      openIn('Voice the other side hears');
+      await waitFor(() => expect(inGrid().getByRole('button', { name: 'Me' })).toBeInTheDocument());
+      fireEvent.click(triggerIn('Voice the other side hears'));
+      // …and never the other party's, which has no add row either.
+      openIn('Voice I hear');
+      expect(inGrid().getByRole('button', { name: 'Daniel' })).toBeInTheDocument();
+      expect(inGrid().queryByRole('button', { name: 'Me' })).toBeNull();
+      expect(screen.queryByRole('button', { name: /add a voice/i })).toBeNull();
+      fireEvent.click(inGrid().getByRole('button', { name: 'Daniel' }));
+      expect(p.onSelect).toHaveBeenCalledWith('Daniel');
+    });
+
+    it("previews the other party's voice in the language it reads to me in", async () => {
+      mount({ participant: participant({ language: 'zh' }) });
+      openIn('Voice I hear');
+      fireEvent.click(within(rowFor('Daniel')).getByRole('button', { name: /^play$/i }));
+      await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
+      expect(synthesizeMock.mock.calls[0][0]).toMatchObject({ voice: 'Daniel', language: 'zh', text: '你好，这是这个声音的简短试听。' });
+    });
+
+    it('says so when the choice is my own voice, which the run swaps for another', () => {
+      const { container, rerender } = mount({ participant: participant({ voice: 'Adrian', effective: 'Grace' }) });
+      const note = () => within(screen.getByRole('group', { name: 'Voice I hear' })).queryByText(/Same as the voice the other side hears/);
+      expect(note()).toBeInTheDocument();
+      rerender(
+        <SonioxVoiceSection
+          settings={{ voice: SONIOX_DEFAULT_VOICE, apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 }}
+          onUpdate={vi.fn()}
+          source={fakeSource()}
+          managed={false}
+          isSessionActive={false}
+          participant={participant()}
+        />
+      );
+      expect(note()).toBeNull();
+      expect(container.querySelectorAll('#voice-settings-section')).toHaveLength(1);
+    });
+  });
+
   it('selecting a cloned voice writes the UUID through onUpdate', async () => {
     listMock.mockResolvedValue([cloned()]);
     const { onUpdate } = mount();

@@ -305,8 +305,10 @@
       "mirror": "הם מדברים {{their}} → אני קורא {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "במצב פנים אל פנים תמיד נעשה שימוש במפגש משותף אחד: שני האנשים מדברים לאותו מיקרופון.",
-    "sonioxParticipantVoice": "קול הצד השני",
-    "sonioxParticipantVoiceTooltip": "הקול שמקריא לך את דברי הצד השני בשפתך. קולות מובנים בלבד."
+    "voiceTheyHear": "הקול שהצד השני שומע",
+    "voiceIHear": "הקול שאני שומע",
+    "voiceIHearSame": "זהה לקול שהצד השני שומע, ולכן {{voice}} יקריא במקומו.",
+    "voiceCustom": "קול מותאם אישית"
   },
   "simpleSettings": {
     "autoAuthenticated": "אומת אוטומטית דרך החשבון שלך",
@@ -342,6 +344,7 @@
     "passthroughTip": "מערבב את הקול שלי, ברמה נמוכה יותר, מתחת לתרגום אל המיקרופון הווירטואלי. עד 60%.",
     "passthroughVolume": "עוצמה {{percent}}%",
     "iHear": "התרגום שאני שומע",
+    "voiceLine": "קול",
     "iHearTip": "מה שהצד השני אומר, מתורגם ומוקרא לי.",
     "iHearNotOffered": "שירות זה אינו מקריא את התרגום של הצד השני.",
     "keepReplay": "שמירת תרגומים מוקראים להשמעה חוזרת",

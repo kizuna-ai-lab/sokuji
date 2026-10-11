@@ -5,10 +5,12 @@ import { createKizunaLease } from './lease';
 import { useManagedVoiceSource } from './managedVoiceSource';
 import { sonioxProvider } from './provider';
 import { createSonioxSettingsView } from './SonioxSettings';
+import { createSonioxVoiceSummary } from './SonioxVoiceSummary';
 import { createKizunaVoiceClaim } from './voiceClaim';
 
 /** Kizuna Soniox's settings: Soniox's own, with the managed copy and the account's one cached voice (Plan A choice 12). */
 export const KizunaSonioxSettingsView = createSonioxSettingsView({ managed: true, useVoiceSource: useManagedVoiceSource });
+const KizunaSonioxVoiceSummary = createSonioxVoiceSummary({ managed: true });
 
 /**
  * Managed participant speech (ruling 2): on since sokuji-backend mints
@@ -34,6 +36,7 @@ export function createKizunaSonioxProvider({ participantSpeech }: { participantS
     icon: kizunaHostedIcon(SonioxIcon),
     settingsKey: 'kizunaSoniox',
     Settings: KizunaSonioxSettingsView,
+    VoiceSummary: KizunaSonioxVoiceSummary,
     signedOut: 'Sign in to use Kizuna AI Soniox.',
     participantSpeech,
     session: {

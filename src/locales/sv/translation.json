@@ -305,8 +305,10 @@
       "mirror": "De talar {{their}} → jag läser {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Ansikte mot ansikte använder alltid en delad session: båda talar i samma mikrofon.",
-    "sonioxParticipantVoice": "Den andras röst",
-    "sonioxParticipantVoiceTooltip": "Rösten som läser upp den andras ord för dig, på ditt språk. Endast inbyggda röster."
+    "voiceTheyHear": "Röst som motparten hör",
+    "voiceIHear": "Röst som jag hör",
+    "voiceIHearSame": "Samma röst som motparten hör, så {{voice}} läser i stället.",
+    "voiceCustom": "Anpassad röst"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatiskt autentiserad via ditt konto",
@@ -342,6 +344,7 @@
     "passthroughTip": "Blandar in min egen röst, på lägre nivå, under översättningen i den virtuella mikrofonen. Högst 60 %.",
     "passthroughVolume": "Volym {{percent}} %",
     "iHear": "Översättning som jag hör",
+    "voiceLine": "Röst",
     "iHearTip": "Det motparten säger, översatt och uppläst för mig.",
     "iHearNotOffered": "Den här tjänsten läser inte upp motpartens översättning.",
     "keepReplay": "Behåll talade översättningar för uppspelning",

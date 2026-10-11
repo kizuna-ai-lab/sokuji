@@ -305,8 +305,10 @@
       "mirror": "Zij spreken {{their}} → ik lees {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Face-to-face gebruikt altijd één gedeelde sessie: beide personen spreken in dezelfde microfoon.",
-    "sonioxParticipantVoice": "Stem van de ander",
-    "sonioxParticipantVoiceTooltip": "De stem die u de woorden van de ander voorleest, in uw taal. Alleen ingebouwde stemmen."
+    "voiceTheyHear": "Stem die de ander hoort",
+    "voiceIHear": "Stem die ik hoor",
+    "voiceIHearSame": "Dezelfde stem als die de ander hoort, dus leest {{voice}} in plaats daarvan.",
+    "voiceCustom": "Aangepaste stem"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch geauthenticeerd via uw account",
@@ -342,6 +344,7 @@
     "passthroughTip": "Mengt mijn eigen stem, op lager niveau, onder de vertaling in de virtuele microfoon. Maximaal 60%.",
     "passthroughVolume": "Volume {{percent}}%",
     "iHear": "Vertaling die ik hoor",
+    "voiceLine": "Stem",
     "iHearTip": "Wat de ander zegt, vertaald en aan mij voorgelezen.",
     "iHearNotOffered": "Deze dienst spreekt de vertaling van de ander niet uit.",
     "keepReplay": "Gesproken vertalingen bewaren voor herhaling",

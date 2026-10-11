@@ -1,22 +1,25 @@
 // src/components/Settings/sections/SpeechOutputSection.tsx
-import React, { useId } from 'react';
+import React, { useId, useMemo } from 'react';
 import { Info, Play, RefreshCw, Volume2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import SettingRow from '../shared/SettingRow';
 import { useFilteredDevices } from '../shared/hooks';
+import { ownProps, useSelectedProvider } from '../../providers/useSelectedProvider';
 import { useRunParticipantSpeech } from '../../../app/useRun';
 import { getAppAudio } from '../../../lib/audio/appAudio';
 import { entryValue, outletEntries, outletSelectValue, parseEntryValue } from '../../../lib/audio/outletOptions';
 import type { OutletName } from '../../../lib/audio/outlets';
 import { virtualMicrophoneName } from '../../../lib/audio/virtualSpeaker';
+import type { LegName } from '../../../lib/conversation/types';
 import { describeCause, reportError } from '../../../lib/diagnostics/report';
 import { useAnalytics } from '../../../lib/analytics';
 import { heardFromStores, selectedFromStores } from '../../../lib/session/appShape';
 import { useAudioContext, useMode, useParticipantCaptureWidened, useOutlets, useSelectedParticipantSource, useSetOutletChannel, useSetOutletDevice } from '../../../stores/audioStore';
 import { useProviderStore } from '../../../stores/providerStore';
 import { useRoutingStore } from '../../../stores/routingStore';
-import { useKeepReplayAudio, useSetKeepReplayAudio, useSetTextOnly, useTextOnly } from '../../../stores/settingsStore';
+import { presentProviders } from '../../../providers/registry';
+import { useKeepReplayAudio, useNavigateToSettings, useSetKeepReplayAudio, useSetTextOnly, useSetUIMode, useTextOnly, useUIMode } from '../../../stores/settingsStore';
 import { useTurnModeStore } from '../../../stores/turnModeStore';
 import { getEnvironment } from '../../../utils/environment';
 import { useFaceToFace } from '../../MainPanel/useFaceToFace';
@@ -25,6 +28,44 @@ export interface SpeechOutputSectionProps {
   /** A run is live: Translation the other side hears and Translation I hear froze into its shape. */
   isSessionActive: boolean;
   className?: string;
+}
+
+/**
+ * The voice a spoken row reads in (the provider's `VoiceSummary`), as a link
+ * to the voice settings on Advanced's Provider tab: the turn-detection
+ * summary's pattern (`SpeechSection.tsx`), its `settings_mode_switched`
+ * event included when it leaves Simple. Nothing for a provider without one;
+ * a summary that renders nothing leaves the link empty, and Settings.scss
+ * hides the line. Usable during a run: it only navigates.
+ */
+function VoiceLine({ leg, locked }: { leg: LegName; locked: boolean }) {
+  const { t } = useTranslation();
+  const { trackEvent } = useAnalytics();
+  const providers = useMemo(() => presentProviders(), []);
+  const selection = useSelectedProvider(providers);
+  const uiMode = useUIMode();
+  const setUIMode = useSetUIMode();
+  const navigateToSettings = useNavigateToSettings();
+  const Summary = selection?.provider.VoiceSummary;
+  if (!selection?.entry || !Summary) return null;
+
+  const openVoices = () => {
+    if (uiMode === 'basic') {
+      // The Settings panel's own mode toggle, analytics event included.
+      setUIMode('advanced');
+      trackEvent('settings_mode_switched', { from_mode: 'basic', to_mode: 'advanced', during_session: locked });
+    }
+    navigateToSettings('voice-settings');
+  };
+
+  return (
+    <div className="setting-row__voice">
+      <span>{t('audioPanel.voiceLine', 'Voice')}</span>
+      <button type="button" className="setting-row__voice-link" onClick={openVoices}>
+        <Summary {...ownProps(selection, selection.entry, locked)} leg={leg} />
+      </button>
+    </div>
+  );
 }
 
 /**
@@ -172,6 +213,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
         tooltip={speech === 'always' ? t('audioPanel.otherHearsAlwaysSpeaks', 'This service always speaks.') : speech === 'never' ? t('audioPanel.otherHearsNeverSpeaks', 'This service never speaks.') : t('audioPanel.otherHearsTip', 'What I say, translated and read aloud to the other side. Into the virtual microphone: the other side picks it as the microphone in their own app.')}
         greyed={myLegRuns ? undefined : notInMode}
         switch={{ checked: otherOn, onChange: () => setTextOnly(!textOnly), disabled: isSessionActive || speech !== 'optional', title: isSessionActive ? lockedByRun : undefined }}
+        footer={otherOn && <VoiceLine leg="speaker" locked={isSessionActive} />}
       >
         {faceToFace
           ? outletSelect('other', otherLabel, true)
@@ -240,6 +282,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
           title: isSessionActive ? lockedByRun : undefined,
           describedBy: recaptured ? reasonId : undefined,
         }}
+        footer={themOn && <VoiceLine leg="participant" locked={isSessionActive} />}
       >
         {outletSelect('them', themLabel, faceToFace)}
       </SettingRow>

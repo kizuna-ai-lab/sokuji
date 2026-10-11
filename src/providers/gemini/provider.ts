@@ -3,7 +3,7 @@ import type { Provider } from '../../lib/provider/types';
 import { createGeminiAdapter } from './adapter';
 import { checkGemini } from './check';
 import { buildGemini, describeGemini, type GeminiConfig } from './config';
-import { GeminiSettingsView } from './GeminiSettings';
+import { GeminiSettingsView, GeminiVoiceSummary } from './GeminiSettings';
 import { GeminiTurnDetectionControls, GeminiTurnDetectionHelp, GeminiTurnDetectionSummary } from './GeminiTurnDetection';
 import {
   GEMINI_DEFAULTS,
@@ -37,6 +37,8 @@ export const geminiProvider: Provider<GeminiSettings, GeminiCredentials, GeminiC
 
   settings: { key: 'gemini', defaults: GEMINI_DEFAULTS, legacyKeys: GEMINI_LEGACY_KEYS, migrate: migrateGeminiSettings },
   Settings: GeminiSettingsView,
+  // The one voice, under each spoken Speech row.
+  VoiceSummary: GeminiVoiceSummary,
   // The server's activity-detection knobs: summarized in the Speech section under Auto, drawn on Advanced's Provider tab.
   TurnDetection: { Summary: GeminiTurnDetectionSummary, Controls: GeminiTurnDetectionControls, Help: GeminiTurnDetectionHelp },
 

@@ -305,8 +305,10 @@
       "mirror": "相手は{{their}}を話す → 自分は{{mine}}で読む"
     },
     "sonioxSharedSessionFaceToFace": "対面では常に 1 つの共有セッションを使います。2 人が同じマイクに向かって話すためです。",
-    "sonioxParticipantVoice": "相手の声",
-    "sonioxParticipantVoiceTooltip": "あなたの言語で相手の発言を読み上げる声です。プリセット音声のみ選べます。"
+    "voiceTheyHear": "相手に聞こえる音声",
+    "voiceIHear": "自分に聞こえる音声",
+    "voiceIHearSame": "相手に聞こえる音声と同じため、代わりに {{voice}} が読み上げます。",
+    "voiceCustom": "カスタム音声"
   },
   "simpleSettings": {
     "autoAuthenticated": "アカウントで自動的に認証されました",
@@ -342,6 +344,7 @@
     "passthroughTip": "自分の原音を小さめの音量で翻訳音声の下に混ぜ、仮想マイクに送ります。最大60%。",
     "passthroughVolume": "音量 {{percent}}%",
     "iHear": "自分に聞こえる翻訳",
+    "voiceLine": "音声",
     "iHearTip": "相手の発言を翻訳して自分に読み上げます。",
     "iHearNotOffered": "このサービスは相手の翻訳を読み上げません。",
     "keepReplay": "再生用に音声を保持",

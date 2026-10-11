@@ -305,8 +305,10 @@
       "mirror": "Mereka berbicara {{their}} → saya membaca {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Tatap muka selalu memakai satu sesi bersama: kedua orang berbicara ke mikrofon yang sama.",
-    "sonioxParticipantVoice": "Suara lawan bicara",
-    "sonioxParticipantVoiceTooltip": "Suara yang membacakan ucapan lawan bicara kepada Anda dalam bahasa Anda. Hanya suara bawaan."
+    "voiceTheyHear": "Suara yang didengar pihak lain",
+    "voiceIHear": "Suara yang saya dengar",
+    "voiceIHearSame": "Sama dengan suara yang didengar pihak lain, jadi {{voice}} yang membacakan.",
+    "voiceCustom": "Suara kustom"
   },
   "simpleSettings": {
     "autoAuthenticated": "Otomatis terautentikasi melalui akun Anda",
@@ -342,6 +344,7 @@
     "passthroughTip": "Mencampur suara saya sendiri, pada level lebih rendah, di bawah terjemahan ke mikrofon virtual. Maksimal 60%.",
     "passthroughVolume": "Volume {{percent}}%",
     "iHear": "Terjemahan yang saya dengar",
+    "voiceLine": "Suara",
     "iHearTip": "Apa yang diucapkan pihak lain, diterjemahkan dan dibacakan kepada saya.",
     "iHearNotOffered": "Layanan ini tidak membacakan terjemahan pihak lain.",
     "keepReplay": "Simpan terjemahan yang diucapkan untuk diputar ulang",

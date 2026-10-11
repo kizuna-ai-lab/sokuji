@@ -3,7 +3,7 @@ import type { Provider } from '../../lib/provider/types';
 import { createLiveAdapter } from './adapter';
 import { checkLive } from './check';
 import { buildLive, describeLive, type LiveConfig } from './config';
-import { LiveSettingsView } from './LiveSettings';
+import { LiveSettingsView, LiveVoiceSummary } from './LiveSettings';
 import {
   LIVE_DEFAULTS,
   LIVE_LEGACY_KEYS,
@@ -37,6 +37,8 @@ export const openaiLiveProvider: Provider<LiveSettings, LiveCredentials, LiveCon
 
   settings: { key: 'openaiLive', defaults: LIVE_DEFAULTS, legacyKeys: LIVE_LEGACY_KEYS, migrate: migrateLiveSettings },
   Settings: LiveSettingsView,
+  // The one voice, under each spoken Speech row.
+  VoiceSummary: LiveVoiceSummary,
 
   credentials: liveCredentials,
   check: (k, s, ctx) => checkLive(k, s, ctx),

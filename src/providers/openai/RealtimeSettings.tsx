@@ -2,18 +2,21 @@ import { InstructionsField } from '../../components/providers/fields/Instruction
 import { ModelConfigurationField } from '../../components/providers/fields/ModelConfigurationField';
 import { ModelField } from '../../components/providers/fields/ModelField';
 import { NoiseReductionField } from '../../components/providers/fields/NoiseReductionField';
-import { PresetVoiceField, presetVoice } from '../../components/providers/fields/PresetVoiceField';
+import { PresetVoiceField, presetVoice, presetVoiceSummary } from '../../components/providers/fields/PresetVoiceField';
 import { resolveInstructions } from '../../lib/provider/instructions';
 import type { SettingsProps } from '../../lib/provider/types';
 import { previewRealtimeVoice } from './preview';
 import { ReasoningEffortField } from './ReasoningEffortField';
 import {
-  effectiveRealtimeModel, NOISE_REDUCTIONS, realtimeLanguageName, realtimeLanguages, REALTIME_MAX_TOKENS_RANGE, REALTIME_VOICES, takesReasoning,
+  effectiveRealtimeModel, NOISE_REDUCTIONS, realtimeLanguageName, realtimeLanguages, REALTIME_DEFAULT_VOICE, REALTIME_MAX_TOKENS_RANGE, REALTIME_VOICES, takesReasoning,
   type RealtimeSettings as S,
 } from './settings';
 import { TranscriptionField } from './TranscriptionField';
 
 const VOICES = REALTIME_VOICES.map(presetVoice);
+
+/** Both legs speak the one voice (`config.ts`). */
+export const RealtimeVoiceSummary = presetVoiceSummary<S>(REALTIME_VOICES, ({ settings }) => settings.voice || REALTIME_DEFAULT_VOICE);
 
 /**
  * OpenAI Realtime's own settings (D18), the old UI's OpenAI sections

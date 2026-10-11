@@ -305,8 +305,10 @@
       "mirror": "Nagsasalita sila ng {{their}} → binabasa ko sa {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Laging iisang nakabahaging session ang gamit ng magkaharap na usapan: pareho silang nagsasalita sa iisang mikropono.",
-    "sonioxParticipantVoice": "Boses ng kausap",
-    "sonioxParticipantVoiceTooltip": "Ang boses na bumabasa sa inyo ng sinasabi ng kausap, sa inyong wika. Mga built-in na boses lamang."
+    "voiceTheyHear": "Boses na naririnig ng kabilang panig",
+    "voiceIHear": "Boses na naririnig ko",
+    "voiceIHearSame": "Kapareho ng boses na naririnig ng kabilang panig, kaya {{voice}} ang babasa sa halip.",
+    "voiceCustom": "Custom na boses"
   },
   "simpleSettings": {
     "autoAuthenticated": "Awtomatikong na-authenticate sa pamamagitan ng iyong account",
@@ -342,6 +344,7 @@
     "passthroughTip": "Hinahalo ang sarili kong boses, sa mas mababang antas, sa ilalim ng salin papunta sa virtual na mikropono. Hanggang 60% lang.",
     "passthroughVolume": "Lakas ng tunog {{percent}}%",
     "iHear": "Salin na naririnig ko",
+    "voiceLine": "Boses",
     "iHearTip": "Ang sinasabi ng kabilang panig, isinalin at binabasa nang malakas sa akin.",
     "iHearNotOffered": "Hindi binabasa ng serbisyong ito ang salin ng kabilang panig.",
     "keepReplay": "Itago ang mga binasang salin para mapakinggan muli",

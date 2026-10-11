@@ -8,9 +8,8 @@
 import type { SessionContext } from '../../lib/contract/adapter';
 import { reportWarning } from '../../lib/diagnostics/report';
 import type { SharedSettings } from '../../lib/provider/types';
-import { asSonioxRegion } from '../../lib/soniox/regions';
-import { SONIOX_DEFAULT_VOICE, SONIOX_TTS_MODEL } from '../../lib/soniox/ttsCatalog';
-import { participantVoiceFor, sonioxVoiceField, type SonioxSettings } from './settings';
+import { SONIOX_TTS_MODEL } from '../../lib/soniox/ttsCatalog';
+import { participantVoiceFor, sonioxSpeakerVoice, type SonioxSettings } from './settings';
 
 export const SONIOX_STT_MODEL = 'stt-rt-v5';
 
@@ -146,7 +145,7 @@ export function buildSoniox(context: SessionContext, s: SonioxSettings, shared: 
     ...(translationTerms.length ? { translation_terms: translationTerms } : {}),
     ...(text ? { text } : {}),
   };
-  const voice = s[sonioxVoiceField(asSonioxRegion(s.region))] || SONIOX_DEFAULT_VOICE;
+  const voice = sonioxSpeakerVoice(s);
   return {
     stt: {
       model: SONIOX_STT_MODEL,

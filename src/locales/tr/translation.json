@@ -305,8 +305,10 @@
       "mirror": "Onlar {{their}} konuşuyor → ben {{mine}} okuyorum"
     },
     "sonioxSharedSessionFaceToFace": "Yüz yüze modu her zaman tek bir paylaşılan oturum kullanır: iki kişi de aynı mikrofona konuşur.",
-    "sonioxParticipantVoice": "Karşı tarafın sesi",
-    "sonioxParticipantVoiceTooltip": "Karşı tarafın söylediklerini size kendi dilinizde okuyan ses. Yalnızca yerleşik sesler."
+    "voiceTheyHear": "Karşı tarafın duyduğu ses",
+    "voiceIHear": "Duyduğum ses",
+    "voiceIHearSame": "Karşı tarafın duyduğu sesle aynı, bu yüzden onun yerine {{voice}} okur.",
+    "voiceCustom": "Özel ses"
   },
   "simpleSettings": {
     "autoAuthenticated": "Hesabınız üzerinden otomatik olarak doğrulandı",
@@ -342,6 +344,7 @@
     "passthroughTip": "Kendi sesimi daha düşük seviyede çevirinin altına karıştırıp sanal mikrofona gönderir. En fazla %60.",
     "passthroughVolume": "Ses düzeyi %{{percent}}",
     "iHear": "Duyduğum çeviri",
+    "voiceLine": "Ses",
     "iHearTip": "Karşı tarafın söyledikleri çevrilip bana sesli okunur.",
     "iHearNotOffered": "Bu hizmet karşı tarafın çevirisini sesli okumaz.",
     "keepReplay": "Sesli çevirileri tekrar için sakla",

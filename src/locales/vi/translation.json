@@ -305,8 +305,10 @@
       "mirror": "Họ nói {{their}} → tôi đọc {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Chế độ mặt đối mặt luôn dùng một phiên dùng chung: cả hai người nói vào cùng một micro.",
-    "sonioxParticipantVoice": "Giọng của đối phương",
-    "sonioxParticipantVoiceTooltip": "Giọng đọc lời của đối phương cho bạn bằng ngôn ngữ của bạn. Chỉ dùng giọng có sẵn."
+    "voiceTheyHear": "Giọng bên kia nghe",
+    "voiceIHear": "Giọng tôi nghe",
+    "voiceIHearSame": "Trùng với giọng bên kia nghe, nên {{voice}} sẽ đọc thay.",
+    "voiceCustom": "Giọng tùy chỉnh"
   },
   "simpleSettings": {
     "autoAuthenticated": "Tự động xác thực qua tài khoản của bạn",
@@ -342,6 +344,7 @@
     "passthroughTip": "Trộn giọng của tôi, ở mức thấp hơn, bên dưới bản dịch vào micro ảo. Tối đa 60%.",
     "passthroughVolume": "Âm lượng {{percent}}%",
     "iHear": "Bản dịch tôi nghe",
+    "voiceLine": "Giọng",
     "iHearTip": "Những gì bên kia nói, được dịch và đọc to cho tôi.",
     "iHearNotOffered": "Dịch vụ này không đọc bản dịch của bên kia.",
     "keepReplay": "Giữ bản dịch đã đọc để phát lại",

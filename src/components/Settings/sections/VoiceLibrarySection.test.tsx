@@ -220,6 +220,26 @@ describe('VoiceLibrarySection', () => {
     expect(screen.getAllByRole('button', { name: /^play$/i })).toHaveLength(1);
   });
 
+  it('names its row "Voice", or `label`, and groups the picker under that name', () => {
+    const voices = [{ id: 'builtin:Ava', label: 'Ava', group: 'builtin' as const, removable: false }];
+    const { rerender } = render(<VoiceLibrarySection {...base} voices={voices} capability={{ importModes: [] }} />);
+    expect(within(screen.getByRole('group', { name: 'Voice' })).getByRole('button', { expanded: false })).toHaveTextContent('Ava');
+
+    rerender(<VoiceLibrarySection {...base} voices={voices} capability={{ importModes: [] }} label="Voice I hear" />);
+    expect(within(screen.getByRole('group', { name: 'Voice I hear' })).getByRole('button', { expanded: false })).toHaveTextContent('Ava');
+    expect(screen.queryByRole('group', { name: 'Voice' })).toBeNull();
+  });
+
+  it("a note takes the selected voice's description line", () => {
+    const voices = [{ id: 'builtin:Ava', label: 'Ava', group: 'builtin' as const, removable: false, meta: { facets: { description: 'A calm voice.' } } }];
+    const { rerender, container } = render(<VoiceLibrarySection {...base} voices={voices} capability={{ importModes: [] }} />);
+    expect(container.querySelector('.voice-selected-description')).toHaveTextContent('A calm voice.');
+
+    rerender(<VoiceLibrarySection {...base} voices={voices} capability={{ importModes: [] }} note="Same as the other voice." />);
+    expect(container.querySelectorAll('.voice-selected-description')).toHaveLength(1);
+    expect(container.querySelector('.voice-selected-description')).toHaveTextContent('Same as the other voice.');
+  });
+
   it('offers the add-voice row iff importModes is non-empty', () => {
     const { rerender } = render(
       <VoiceLibrarySection

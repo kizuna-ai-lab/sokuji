@@ -87,6 +87,11 @@ export function migrateSonioxSettings(stored: Readonly<Record<string, unknown>>)
   };
 }
 
+/** The speaker's voice for a run: the active region's voice, or the default when none is stored. */
+export function sonioxSpeakerVoice(s: Pick<SonioxSettings, 'region' | 'voice' | 'voiceEu' | 'voiceJp'>): string {
+  return s[sonioxVoiceField(asSonioxRegion(s.region))] || SONIOX_DEFAULT_VOICE;
+}
+
 /** The participant's voice for a run: the choice, unless it is the speaker's own — then the other default, so the two people never sound alike. */
 export function participantVoiceFor(s: Pick<SonioxSettings, 'participantVoice'>, speakerVoice: string): string {
   const chosen = s.participantVoice || SONIOX_PARTICIPANT_DEFAULT_VOICE;

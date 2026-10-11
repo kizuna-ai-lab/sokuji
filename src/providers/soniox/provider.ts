@@ -4,6 +4,7 @@ import { createSonioxAdapter } from './adapter';
 import { checkSoniox } from './check';
 import { buildSoniox, describeSoniox, type SonioxConfig } from './config';
 import { SonioxSettingsView } from './SonioxSettings';
+import { SonioxVoiceSummary } from './SonioxVoiceSummary';
 import { SonioxTurnDetectionControls, SonioxTurnDetectionSummary } from './SonioxTurnDetection';
 import { migrateSonioxSettings, SONIOX_DEFAULTS, sonioxCredentials, sonioxLanguages, type SonioxCredentials, type SonioxSettings } from './settings';
 
@@ -29,6 +30,8 @@ export const sonioxProvider: Provider<SonioxSettings, SonioxCredentials, SonioxC
   Settings: SonioxSettingsView,
   // The endpoint knobs: summarized in the Speech section under Auto, drawn on Advanced's Provider tab.
   TurnDetection: { Summary: SonioxTurnDetectionSummary, Controls: SonioxTurnDetectionControls },
+  // Each spoken leg's voice, under its Speech row.
+  VoiceSummary: SonioxVoiceSummary,
 
   credentials: sonioxCredentials,
   check: (k, s, ctx) => checkSoniox(k, s, ctx),

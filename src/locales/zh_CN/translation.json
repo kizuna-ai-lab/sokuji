@@ -305,8 +305,10 @@
       "mirror": "对方说 {{their}} → 我阅读 {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "面对面对话始终使用同一个共享会话：两个人对着同一个麦克风说话。",
-    "sonioxParticipantVoice": "对方的声音",
-    "sonioxParticipantVoiceTooltip": "用您的语言读出对方所说内容的声音。仅限预设声音。"
+    "voiceTheyHear": "对方听到的声音",
+    "voiceIHear": "我听到的声音",
+    "voiceIHearSame": "和对方听到的声音相同，朗读时改用 {{voice}}。",
+    "voiceCustom": "自定义声音"
   },
   "simpleSettings": {
     "autoAuthenticated": "已通过您的账户自动认证",
@@ -342,6 +344,7 @@
     "passthroughTip": "把我的原声以较低音量混在译音下面，一起送进虚拟麦克风。最大 60%。",
     "passthroughVolume": "音量 {{percent}}%",
     "iHear": "我听到的翻译",
+    "voiceLine": "声音",
     "iHearTip": "对方说的话翻译后朗读给我。",
     "iHearNotOffered": "此服务不朗读对方的翻译。",
     "keepReplay": "保留译音以便回放",

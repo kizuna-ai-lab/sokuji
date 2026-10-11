@@ -1,7 +1,11 @@
 import { useTranslation } from 'react-i18next';
+import { presetVoiceSummary } from '../../components/providers/fields/PresetVoiceField';
 import { VoiceField } from '../../components/providers/fields/VoiceField';
 import type { SettingsProps } from '../../lib/provider/types';
 import { DESIRED_QUEUE_RANGE, effectiveQueue, MAX_QUEUE_RANGE, maxQueueFloor, PALABRA_VOICES, type PalabraSettings as S, type PalabraVoice } from './settings';
+
+/** Both legs speak the one voice (`config.ts`). */
+export const PalabraVoiceSummary = presetVoiceSummary<S>(PALABRA_VOICES, ({ settings }) => settings.voiceId);
 
 /** An Enabled / Disabled pair, as the old block drew each of its three switches (`ProviderSpecificSettings.tsx:1341-1382, 1446-1461`). */
 function OnOff({ label, value, onChange, disabled }: { label: string; value: boolean; onChange(value: boolean): void; disabled: boolean }) {

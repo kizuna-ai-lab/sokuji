@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { PreviewPort } from '../../../lib/provider/types';
+import type { PreviewPort, VoiceSummaryProps } from '../../../lib/provider/types';
 import type { VoiceLibraryCapability } from '../../../types/VoiceLibrary';
 import VoiceLibrarySection, { type VoiceEntry, type VoiceLibrarySectionProps } from '../../Settings/sections/VoiceLibrarySection';
 import { VoicePreviewContext } from '../VoicePreviewContext';
@@ -30,6 +30,23 @@ export function presetVoice({ value, name, gender, style, description }: PresetV
       ...(gender ? { gender: gender === 'female' ? 'F' as const : 'M' as const } : {}),
       facets: { ...(gender ? { gender } : {}), ...(style ? { style: [style] } : {}), ...(description ? { description } : {}) },
     },
+  };
+}
+
+/**
+ * A `VoiceSummary` for a provider with one voice setting, which both legs
+ * speak in: the name its list gives the voice `voiceOf` picks, as its run
+ * resolves it; nothing when it picks none (that provider's run speaks no
+ * chosen voice then).
+ */
+export function presetVoiceSummary<S>(
+  voices: readonly { value: string; name: string }[],
+  voiceOf: (props: VoiceSummaryProps<S>) => string | undefined,
+): ComponentType<VoiceSummaryProps<S>> {
+  return function PresetVoiceSummary(props: VoiceSummaryProps<S>) {
+    const id = voiceOf(props);
+    if (!id) return null;
+    return <>{voices.find((v) => v.value === id)?.name ?? id}</>;
   };
 }
 

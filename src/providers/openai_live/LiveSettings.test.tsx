@@ -28,7 +28,7 @@ vi.mock('./preview', () => ({ previewLiveVoice }));
 const libraryProps = () => library[library.length - 1];
 
 import type { SettingsProps } from '../../lib/provider/types';
-import { LiveSettingsView } from './LiveSettings';
+import { LiveSettingsView, LiveVoiceSummary } from './LiveSettings';
 import { LIVE_DEFAULTS, LIVE_VOICES, type LiveSettings } from './settings';
 
 const props = (patch: Partial<SettingsProps<LiveSettings>> = {}): SettingsProps<LiveSettings> => ({
@@ -100,5 +100,15 @@ describe('LiveSettingsView (choice 17)', () => {
     const signal = new AbortController().signal;
     await library.onPreview!('cinder', signal);
     expect(previewLiveVoice).toHaveBeenCalledWith('cinder', signal);
+  });
+});
+
+describe('LiveVoiceSummary', () => {
+  it('names the one voice under both legs; one the list no longer has reads as the default, as a run speaks it', () => {
+    const text = (voice: string, leg: 'speaker' | 'participant') =>
+      render(<LiveVoiceSummary settings={{ ...LIVE_DEFAULTS, voice }} update={() => {}} leg={leg} />).container.textContent;
+    const quartz = LIVE_VOICES.find((v) => v.value === 'quartz')!.name;
+    expect(text('quartz', 'participant')).toBe(quartz);
+    expect(text('retired', 'speaker')).toBe(LIVE_VOICES.find((v) => v.value === 'marin')!.name);
   });
 });

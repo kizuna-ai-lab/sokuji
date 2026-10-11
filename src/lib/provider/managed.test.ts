@@ -83,6 +83,15 @@ describe('managed', () => {
     expect(twin.session).toEqual({ acquire });
   });
 
+  it("carries its own voice summary, else the base's, else none", () => {
+    const BaseSummary = () => null;
+    const TwinSummary = () => null;
+    const base = { ...fakeProvider, VoiceSummary: BaseSummary } as Provider<FakeSettings, FakeCredentials, FakeConfig>;
+    expect(managed(base, { ...OVERRIDES, VoiceSummary: TwinSummary }).VoiceSummary).toBe(TwinSummary);
+    expect(managed(base, OVERRIDES).VoiceSummary).toBe(BaseSummary);
+    expect('VoiceSummary' in managed(fakeProvider, OVERRIDES)).toBe(false);
+  });
+
   it('carries the participant-speech flag as given, and nothing when none is', () => {
     expect(managed(fakeProvider, OVERRIDES)).not.toHaveProperty('participantSpeech');
     expect(managed(fakeProvider, { ...OVERRIDES, participantSpeech: false }).participantSpeech).toBe(false);

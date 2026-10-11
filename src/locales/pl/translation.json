@@ -305,8 +305,10 @@
       "mirror": "Oni mówią {{their}} → ja czytam {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Rozmowa twarzą w twarz zawsze używa jednej współdzielonej sesji: obie osoby mówią do tego samego mikrofonu.",
-    "sonioxParticipantVoice": "Głos rozmówcy",
-    "sonioxParticipantVoiceTooltip": "Głos, który czyta Ci wypowiedzi rozmówcy w Twoim języku. Tylko wbudowane głosy."
+    "voiceTheyHear": "Głos, który słyszy druga strona",
+    "voiceIHear": "Głos, który słyszę",
+    "voiceIHearSame": "To ten sam głos, który słyszy druga strona, więc zamiast niego czyta {{voice}}.",
+    "voiceCustom": "Niestandardowy głos"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatycznie uwierzytelniono za pomocą konta",
@@ -342,6 +344,7 @@
     "passthroughTip": "Miksuje mój własny głos, ciszej, pod tłumaczeniem w wirtualnym mikrofonie. Maksymalnie 60%.",
     "passthroughVolume": "Głośność {{percent}}%",
     "iHear": "Tłumaczenie, które słyszę",
+    "voiceLine": "Głos",
     "iHearTip": "To, co mówi druga strona, przetłumaczone i odczytane mnie.",
     "iHearNotOffered": "Ta usługa nie odczytuje tłumaczenia drugiej strony.",
     "keepReplay": "Zachowuj odczytane tłumaczenia do odtworzenia",

@@ -305,8 +305,10 @@
       "mirror": "Sie sprechen {{their}} → ich lese {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Bei Gesprächen von Angesicht zu Angesicht wird immer eine gemeinsame Sitzung verwendet: Beide sprechen in dasselbe Mikrofon.",
-    "sonioxParticipantVoice": "Stimme des Gegenübers",
-    "sonioxParticipantVoiceTooltip": "Die Stimme, die Ihnen die Worte Ihres Gegenübers in Ihrer Sprache vorliest. Nur voreingestellte Stimmen."
+    "voiceTheyHear": "Stimme, die das Gegenüber hört",
+    "voiceIHear": "Stimme, die ich höre",
+    "voiceIHearSame": "Dieselbe Stimme, die das Gegenüber hört, daher liest stattdessen {{voice}}.",
+    "voiceCustom": "Benutzerdefinierte Stimme"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch über Ihr Konto authentifiziert",
@@ -342,6 +344,7 @@
     "passthroughTip": "Mischt meine eigene Stimme leiser unter die Übersetzung ins virtuelle Mikrofon. Höchstens 60 %.",
     "passthroughVolume": "Lautstärke {{percent}} %",
     "iHear": "Übersetzung, die ich höre",
+    "voiceLine": "Stimme",
     "iHearTip": "Was das Gegenüber sagt, übersetzt und mir vorgelesen.",
     "iHearNotOffered": "Dieser Dienst spricht die Übersetzung des Gegenübers nicht.",
     "keepReplay": "Gesprochene Übersetzungen zur Wiedergabe behalten",

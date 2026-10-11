@@ -29,7 +29,7 @@ vi.mock('./preview', () => ({ previewRealtimeVoice }));
 const libraryProps = () => library[library.length - 1];
 
 import type { SettingsProps } from '../../lib/provider/types';
-import { RealtimeSettingsView } from './RealtimeSettings';
+import { RealtimeSettingsView, RealtimeVoiceSummary } from './RealtimeSettings';
 import { REALTIME_DEFAULTS, REALTIME_VOICES, type RealtimeSettings } from './settings';
 
 const props = (patch: Partial<SettingsProps<RealtimeSettings>> = {}): SettingsProps<RealtimeSettings> => ({
@@ -131,5 +131,15 @@ describe('RealtimeSettingsView (choice 17)', () => {
       expect(screen.getByLabelText(label), label).toBeDisabled();
     }
     expect(screen.getByRole('button', { name: 'settings.advanced' })).toBeDisabled();
+  });
+});
+
+describe('RealtimeVoiceSummary', () => {
+  it("names the one voice under both legs by its list's name, the default when none is stored", () => {
+    const text = (voice: string, leg: 'speaker' | 'participant') =>
+      render(<RealtimeVoiceSummary settings={{ ...REALTIME_DEFAULTS, voice }} update={() => {}} leg={leg} />).container.textContent;
+    expect(text('ash', 'speaker')).toBe('Ash');
+    expect(text('ash', 'participant')).toBe('Ash');
+    expect(text('', 'speaker')).toBe('Alloy');
   });
 });
