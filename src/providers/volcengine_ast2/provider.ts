@@ -1,7 +1,7 @@
 import { VolcengineIcon } from '../../components/Icons/ProviderIcons';
 import type { Provider } from '../../lib/provider/types';
 import { createAst2Adapter } from './adapter';
-import { Ast2SettingsView } from './Ast2Settings';
+import { Ast2SettingsView, Ast2VoiceSummary } from './Ast2Settings';
 import { checkAst2 } from './check';
 import { buildAst2, describeAst2, type Ast2Config } from './config';
 import { AST2_DEFAULTS, ast2Credentials, ast2Languages, migrateAst2Settings, type Ast2Credentials, type Ast2Settings } from './settings';
@@ -29,6 +29,8 @@ export const volcengineAst2Provider: Provider<Ast2Settings, Ast2Credentials, Ast
 
   settings: { key: 'volcengineAST2', defaults: AST2_DEFAULTS, migrate: migrateAst2Settings },
   Settings: Ast2SettingsView,
+  // Each spoken leg's voice, under its Speech row: its own direction's slot.
+  VoiceSummary: Ast2VoiceSummary,
 
   // Two credential modes (ruling 1): the choice sits above the fields, in both layouts.
   credentials: ast2Credentials,

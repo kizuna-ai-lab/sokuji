@@ -511,7 +511,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "Stem van de spreker klonen",
-      "voiceGroupClone": "Stem klonen"
+      "voiceGroupClone": "Stem klonen",
+      "voiceSharedZhEn": "Chinees↔Engels: deze keuze geldt voor beide kanten.",
+      "voiceSummaryCloneMine": "Je eigen stem (gekloond)",
+      "voiceSummaryCloneTheirs": "De eigen stem van de ander (gekloond)"
     },
     "local_inference": {
       "name": "Gratis",

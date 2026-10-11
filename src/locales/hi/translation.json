@@ -511,7 +511,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "ऐप ID + एक्सेस टोकन",
       "voiceClone": "वक्ता की आवाज़ क्लोन करें",
-      "voiceGroupClone": "आवाज़ क्लोनिंग"
+      "voiceGroupClone": "आवाज़ क्लोनिंग",
+      "voiceSharedZhEn": "चीनी↔अंग्रेज़ी: यह चुनाव दोनों पक्षों के लिए है।",
+      "voiceSummaryCloneMine": "आपकी अपनी आवाज़ (क्लोन)",
+      "voiceSummaryCloneTheirs": "सामने वाले की अपनी आवाज़ (क्लोन)"
     },
     "local_inference": {
       "name": "मुफ़्त",

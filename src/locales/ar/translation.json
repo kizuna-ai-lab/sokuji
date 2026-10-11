@@ -511,7 +511,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "استنساخ صوت المتحدث",
-      "voiceGroupClone": "استنساخ الصوت"
+      "voiceGroupClone": "استنساخ الصوت",
+      "voiceSharedZhEn": "الصينية↔الإنجليزية: هذا الاختيار للطرفين معًا.",
+      "voiceSummaryCloneMine": "صوتك أنت (مستنسخ)",
+      "voiceSummaryCloneTheirs": "صوت الطرف الآخر نفسه (مستنسخ)"
     },
     "local_inference": {
       "name": "مجاني",

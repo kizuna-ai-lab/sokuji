@@ -511,7 +511,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "โคลนเสียงผู้พูด",
-      "voiceGroupClone": "การโคลนเสียง"
+      "voiceGroupClone": "การโคลนเสียง",
+      "voiceSharedZhEn": "จีน↔อังกฤษ: ตัวเลือกนี้ใช้กับทั้งสองฝ่าย",
+      "voiceSummaryCloneMine": "เสียงของคุณเอง (โคลน)",
+      "voiceSummaryCloneTheirs": "เสียงของอีกฝ่ายเอง (โคลน)"
     },
     "local_inference": {
       "name": "ฟรี",

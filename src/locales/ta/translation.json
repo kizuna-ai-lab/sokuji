@@ -511,7 +511,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "பேசுபவரின் குரலை நகலெடு",
-      "voiceGroupClone": "குரல் நகலாக்கம்"
+      "voiceGroupClone": "குரல் நகலாக்கம்",
+      "voiceSharedZhEn": "சீனம்↔ஆங்கிலம்: இந்தத் தேர்வு இரு தரப்புக்கும் பொருந்தும்.",
+      "voiceSummaryCloneMine": "உங்கள் சொந்தக் குரல் (நகல்)",
+      "voiceSummaryCloneTheirs": "எதிர்த்தரப்பின் சொந்தக் குரல் (நகல்)"
     },
     "local_inference": {
       "name": "இலவசம்",

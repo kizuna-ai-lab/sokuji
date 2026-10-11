@@ -511,7 +511,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "複製說話者的聲音",
-      "voiceGroupClone": "聲音複製"
+      "voiceGroupClone": "聲音複製",
+      "voiceSharedZhEn": "中英互譯時，雙方共用這一項。",
+      "voiceSummaryCloneMine": "我自己的聲音（複製）",
+      "voiceSummaryCloneTheirs": "對方自己的聲音（複製）"
     },
     "local_inference": {
       "name": "免費",

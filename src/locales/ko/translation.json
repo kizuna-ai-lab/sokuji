@@ -511,7 +511,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "화자 목소리 복제",
-      "voiceGroupClone": "목소리 복제"
+      "voiceGroupClone": "목소리 복제",
+      "voiceSharedZhEn": "중국어↔영어: 이 선택이 양쪽 모두에 쓰입니다.",
+      "voiceSummaryCloneMine": "내 목소리 (복제)",
+      "voiceSummaryCloneTheirs": "상대방 본인의 목소리 (복제)"
     },
     "local_inference": {
       "name": "무료",

@@ -511,7 +511,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "Клонувати голос мовця",
-      "voiceGroupClone": "Клонування голосу"
+      "voiceGroupClone": "Клонування голосу",
+      "voiceSharedZhEn": "Китайська↔англійська: цей вибір спільний для обох сторін.",
+      "voiceSummaryCloneMine": "Ваш власний голос (клон)",
+      "voiceSummaryCloneTheirs": "Власний голос співрозмовника (клон)"
     },
     "local_inference": {
       "name": "Безкоштовний",

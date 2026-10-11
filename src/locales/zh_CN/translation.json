@@ -511,7 +511,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "应用 ID + 访问令牌",
       "voiceClone": "复刻说话人的声音",
-      "voiceGroupClone": "声音复刻"
+      "voiceGroupClone": "声音复刻",
+      "voiceSharedZhEn": "中英互译时，双方共用这一项。",
+      "voiceSummaryCloneMine": "我自己的声音（复刻）",
+      "voiceSummaryCloneTheirs": "对方自己的声音（复刻）"
     },
     "local_inference": {
       "name": "免费",

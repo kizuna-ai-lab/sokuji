@@ -511,7 +511,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "APP ID + Access Token",
       "voiceClone": "Klona talarens röst",
-      "voiceGroupClone": "Röstkloning"
+      "voiceGroupClone": "Röstkloning",
+      "voiceSharedZhEn": "Kinesiska↔engelska: valet gäller båda sidor.",
+      "voiceSummaryCloneMine": "Din egen röst (klonad)",
+      "voiceSummaryCloneTheirs": "Motpartens egen röst (klonad)"
     },
     "local_inference": {
       "name": "Gratis",

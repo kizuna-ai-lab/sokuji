@@ -17,7 +17,7 @@ vi.mock('../../components/Settings/sections/VoiceLibrarySection', () => ({
 vi.mock('./preview', () => ({ previewVoice }));
 const libraryProps = () => library[library.length - 1];
 
-import { Ast2SettingsView } from './Ast2Settings';
+import { Ast2SettingsView, Ast2VoiceSummary } from './Ast2Settings';
 import { AST2_DEFAULTS } from './settings';
 import { voicesFor } from './catalog';
 
@@ -113,10 +113,62 @@ describe("Doubao AST 2.0's settings view", () => {
     expect(previewVoice).toHaveBeenCalledWith('ja_female_bv024_uranus_bigtts', 'ja', undefined);
   });
 
+  it('one row while only my leg speaks, in the section the Settings deep link lands on', () => {
+    const { container } = render(<Ast2SettingsView settings={AST2_DEFAULTS} update={vi.fn()} pair={{ source: 'zh', target: 'ja' }} />);
+    expect(library).toHaveLength(1);
+    expect(libraryProps().label).toBeUndefined();
+    expect(container.querySelector('#voice-settings-section')).not.toBeNull();
+  });
+
+  it("with the other party spoken, a second row: my language's voices, cloning where it runs the reverse, written to my language's slot", async () => {
+    const update = vi.fn();
+    const settings = { ...AST2_DEFAULTS, voices: { ja: 'ja_female_bv024_uranus_bigtts' } };
+    render(<Ast2SettingsView settings={settings} update={update} pair={{ source: 'zh', target: 'ja' }} participantSpeaks />);
+    const [mine, theirs] = library.slice(-2);
+    expect(mine.label).toBe('settings.voiceTheyHear');
+    expect(mine.selectedId).toBe('ja_female_bv024_uranus_bigtts');
+    expect(theirs.label).toBe('settings.voiceIHear');
+    expect(theirs.voices[0]).toMatchObject({ id: 'clone', label: 'providers.volcengine_ast2.voiceClone' });
+    expect(theirs.voices.slice(1).map((v) => v.id)).toEqual(voicesFor('zh').map((v) => v.id));
+    // Nothing chosen for Chinese: the reverse (ja → zh) clones, so I hear the other person's own voice.
+    expect(theirs.selectedId).toBe('clone');
+    theirs.onSelect('zh_female_vv_uranus_bigtts');
+    expect(update).toHaveBeenCalledWith({ voices: { ja: 'ja_female_bv024_uranus_bigtts', zh: 'zh_female_vv_uranus_bigtts' } });
+    await theirs.onPreview!('zh_female_vv_uranus_bigtts');
+    expect(previewVoice).toHaveBeenCalledWith('zh_female_vv_uranus_bigtts', 'zh', undefined);
+  });
+
+  it('Chinese↔English reads one slot for both sides: one row, which says so', () => {
+    render(<Ast2SettingsView settings={AST2_DEFAULTS} update={vi.fn()} pair={{ source: 'zh+en', target: 'zh+en' }} participantSpeaks />);
+    expect(library).toHaveLength(1);
+    expect(libraryProps().label).toBeUndefined();
+    expect(libraryProps().note).toBe('providers.volcengine_ast2.voiceSharedZhEn');
+  });
+
   it('locks the three library-id fields while disabled', () => {
     render(<Ast2SettingsView settings={AST2_DEFAULTS} update={vi.fn()} disabled />);
     for (const label of ['settings.volcengineAST2HotWordLibraryId', 'settings.volcengineAST2ReplacementLibraryId', 'settings.volcengineAST2GlossaryLibraryId']) {
       expect(screen.getByLabelText(label)).toBeDisabled();
     }
+  });
+});
+
+describe('Ast2VoiceSummary', () => {
+  const text = (settings: typeof AST2_DEFAULTS, pair: { source: string; target: string }, leg: 'speaker' | 'participant') =>
+    render(<Ast2VoiceSummary settings={settings} update={() => {}} pair={pair} leg={leg} />).container.textContent;
+
+  it("names each leg's voice by its own direction: the catalog's name, or whose own voice is cloned", () => {
+    const jaVoice = voicesFor('ja').find((v) => v.id === 'ja_female_bv024_uranus_bigtts')!.name;
+    const settings = { ...AST2_DEFAULTS, voices: { ja: 'ja_female_bv024_uranus_bigtts' } };
+    expect(text(settings, { source: 'zh', target: 'ja' }, 'speaker')).toBe(jaVoice);
+    // ja → zh: nothing chosen for Chinese, and cloning runs it.
+    expect(text(settings, { source: 'zh', target: 'ja' }, 'participant')).toBe('providers.volcengine_ast2.voiceSummaryCloneTheirs');
+    expect(text(AST2_DEFAULTS, { source: 'zh', target: 'en' }, 'speaker')).toBe('providers.volcengine_ast2.voiceSummaryCloneMine');
+    // en → ko: cloning does not run it, so Korean's first catalog voice.
+    expect(text(AST2_DEFAULTS, { source: 'ko', target: 'en' }, 'participant')).toBe(voicesFor('ko')[0].name);
+  });
+
+  it('names nothing for a target no voice speaks', () => {
+    expect(text(AST2_DEFAULTS, { source: 'zh', target: 'ru' }, 'speaker')).toBe('');
   });
 });

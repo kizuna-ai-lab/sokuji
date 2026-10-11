@@ -511,7 +511,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "Konuşanın sesini klonla",
-      "voiceGroupClone": "Ses klonlama"
+      "voiceGroupClone": "Ses klonlama",
+      "voiceSharedZhEn": "Çince↔İngilizce: bu seçim iki taraf için de geçerli.",
+      "voiceSummaryCloneMine": "Kendi sesiniz (klonlanmış)",
+      "voiceSummaryCloneTheirs": "Karşı tarafın kendi sesi (klonlanmış)"
     },
     "local_inference": {
       "name": "Ücretsiz",

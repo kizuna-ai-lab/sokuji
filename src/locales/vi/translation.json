@@ -511,7 +511,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "Sao chép giọng người nói",
-      "voiceGroupClone": "Sao chép giọng"
+      "voiceGroupClone": "Sao chép giọng",
+      "voiceSharedZhEn": "Trung↔Anh: lựa chọn này dùng cho cả hai bên.",
+      "voiceSummaryCloneMine": "Giọng của chính bạn (sao chép)",
+      "voiceSummaryCloneTheirs": "Giọng của chính bên kia (sao chép)"
     },
     "local_inference": {
       "name": "Miễn phí",

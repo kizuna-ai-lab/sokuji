@@ -511,7 +511,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "شبیه‌سازی صدای گوینده",
-      "voiceGroupClone": "شبیه‌سازی صدا"
+      "voiceGroupClone": "شبیه‌سازی صدا",
+      "voiceSharedZhEn": "چینی↔انگلیسی: این انتخاب برای هر دو طرف است.",
+      "voiceSummaryCloneMine": "صدای خودتان (شبیه‌سازی‌شده)",
+      "voiceSummaryCloneTheirs": "صدای خود طرف مقابل (شبیه‌سازی‌شده)"
     },
     "local_inference": {
       "name": "رایگان",

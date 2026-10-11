@@ -511,7 +511,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "বক্তার কণ্ঠ ক্লোন করুন",
-      "voiceGroupClone": "কণ্ঠ ক্লোনিং"
+      "voiceGroupClone": "কণ্ঠ ক্লোনিং",
+      "voiceSharedZhEn": "চীনা↔ইংরেজি: এই পছন্দ দুই পক্ষের জন্যই।",
+      "voiceSummaryCloneMine": "আপনার নিজের কণ্ঠ (ক্লোন)",
+      "voiceSummaryCloneTheirs": "অপর পক্ষের নিজের কণ্ঠ (ক্লোন)"
     },
     "local_inference": {
       "name": "বিনামূল্যে",

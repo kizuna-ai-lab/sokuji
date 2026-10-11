@@ -511,7 +511,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "Klonuj głos mówcy",
-      "voiceGroupClone": "Klonowanie głosu"
+      "voiceGroupClone": "Klonowanie głosu",
+      "voiceSharedZhEn": "Chiński↔angielski: ten wybór dotyczy obu stron.",
+      "voiceSummaryCloneMine": "Twój własny głos (sklonowany)",
+      "voiceSummaryCloneTheirs": "Własny głos rozmówcy (sklonowany)"
     },
     "local_inference": {
       "name": "Darmowy",

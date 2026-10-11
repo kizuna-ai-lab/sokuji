@@ -511,7 +511,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "Kloning suara pembicara",
-      "voiceGroupClone": "Kloning suara"
+      "voiceGroupClone": "Kloning suara",
+      "voiceSharedZhEn": "Mandarin↔Inggris: pilihan ini berlaku untuk kedua pihak.",
+      "voiceSummaryCloneMine": "Suara Anda sendiri (dikloning)",
+      "voiceSummaryCloneTheirs": "Suara pihak lain sendiri (dikloning)"
     },
     "local_inference": {
       "name": "Gratis",

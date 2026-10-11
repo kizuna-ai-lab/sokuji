@@ -511,7 +511,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "Kloonaa puhujan ääni",
-      "voiceGroupClone": "Äänen kloonaus"
+      "voiceGroupClone": "Äänen kloonaus",
+      "voiceSharedZhEn": "Kiina↔englanti: tämä valinta koskee molempia osapuolia.",
+      "voiceSummaryCloneMine": "Oma äänesi (kloonattu)",
+      "voiceSummaryCloneTheirs": "Toisen osapuolen oma ääni (kloonattu)"
     },
     "local_inference": {
       "name": "Ilmainen",

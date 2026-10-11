@@ -511,7 +511,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "アプリ ID + アクセストークン",
       "voiceClone": "話者の声を複製",
-      "voiceGroupClone": "声の複製"
+      "voiceGroupClone": "声の複製",
+      "voiceSharedZhEn": "中国語↔英語では、この選択が双方に使われます。",
+      "voiceSummaryCloneMine": "自分の声（複製）",
+      "voiceSummaryCloneTheirs": "相手自身の声（複製）"
     },
     "local_inference": {
       "name": "無料",

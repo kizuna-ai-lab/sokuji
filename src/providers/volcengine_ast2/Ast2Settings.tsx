@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { TextField } from '../../components/providers/fields/TextField';
 import { VoicePreviewContext } from '../../components/providers/VoicePreviewContext';
 import VoiceLibrarySection, { type VoiceEntry } from '../../components/Settings/sections/VoiceLibrarySection';
-import type { SettingsProps } from '../../lib/provider/types';
+import type { LanguagePair, SettingsProps, VoiceSummaryProps } from '../../lib/provider/types';
 import type { VoiceLibraryCapability } from '../../types/VoiceLibrary';
 import { voicesFor } from './catalog';
 import { previewVoice } from './preview';
@@ -17,6 +17,28 @@ const CONSOLE = 'https://console.volcengine.com/speech';
 const CAPABILITY: VoiceLibraryCapability = { importModes: [], facetFilter: true };
 const NO_DELETE = async () => {};
 
+/** The participant's direction: the pair reversed (Doubao has no `reverse` hook). Its voice is my language's slot. */
+const reversed = ({ source, target }: LanguagePair): LanguagePair => ({ source: target, target: source });
+
+/**
+ * The voice a spoken leg reads in, for the Speech rows: each leg's own
+ * direction through `effectiveVoice` — the catalog's name, or whose own
+ * voice is cloned (the speaker's on my leg, the other person's on theirs).
+ */
+export function Ast2VoiceSummary({ settings, pair, leg }: VoiceSummaryProps<S>) {
+  const { t } = useTranslation();
+  if (!pair) return null;
+  const direction = leg === 'participant' ? reversed(pair) : pair;
+  const id = effectiveVoice(direction, settings);
+  if (!id) return null;
+  if (id === CLONE) {
+    return <>{leg === 'participant'
+      ? t('providers.volcengine_ast2.voiceSummaryCloneTheirs', 'Their own voice (cloned)')
+      : t('providers.volcengine_ast2.voiceSummaryCloneMine', 'Your own voice (cloned)')}</>;
+  }
+  return <>{voicesFor(direction.target).find((v) => v.id === id)?.name ?? id}</>;
+}
+
 /**
  * Doubao AST 2.0's own settings (D18; choice 16): the old UI's Custom
  * Vocabulary and info blocks (`ProviderSpecificSettings.tsx:1603-1716`), the
@@ -24,19 +46,21 @@ const NO_DELETE = async () => {};
  * the speech mode the Speech section's, the credentials and their mode the
  * credential form's; there are no turn-detection knobs. The voice (#577
  * catalog §3) is the shared voice library, listing the run's target's
- * voices; picking one writes that target's slot only.
+ * voices; picking one writes that target's slot only. While the participant
+ * speaks, a second row lists my language's voices and writes its slot: the
+ * one the reversed direction reads (zh+en reverses to itself, so one row).
  */
-export function Ast2SettingsView({ settings, update, disabled = false, pair, preview }: SettingsProps<S>) {
+export function Ast2SettingsView({ settings, update, disabled = false, pair, participantSpeaks = false, preview }: SettingsProps<S>) {
   const { t } = useTranslation();
   // Every host passes the shown pair; only a component's own test omits it.
   const shown = pair ?? { source: 'zh', target: 'en' };
-  const voices: VoiceEntry[] = [
-    // Cloning under a heading of its own, the catalog under "Presets" (decision 2026-10-03).
-    ...(clonable(shown) ? [{
+  // A direction's list: cloning under a heading of its own where cloning runs it, then the catalog under "Presets" (decision 2026-10-03).
+  const voicesOf = (direction: LanguagePair): VoiceEntry[] => [
+    ...(clonable(direction) ? [{
       id: CLONE, label: t('providers.volcengine_ast2.voiceClone', "Clone the speaker's voice"), group: 'builtin' as const, removable: false,
       section: t('providers.volcengine_ast2.voiceGroupClone', 'Voice cloning'),
     }] : []),
-    ...voicesFor(shown.target).map((v): VoiceEntry => ({
+    ...voicesFor(direction.target).map((v): VoiceEntry => ({
       id: v.id,
       label: v.name,
       group: 'builtin',
@@ -49,21 +73,40 @@ export function Ast2SettingsView({ settings, update, disabled = false, pair, pre
       },
     })),
   ];
+  const theirs = reversed(shown);
+  // zh+en reverses to itself: both legs read one slot, so it stays one row.
+  const sharedSlot = theirs.target === shown.target;
+  const mine = voicesOf(shown);
+  const theirVoices = participantSpeaks && !sharedSlot ? voicesOf(theirs) : [];
+  const write = (target: string, id: string) => update({ voices: { ...settings.voices, [target]: id } });
   return (
     <>
-      {/* A text-only target no voice speaks and cloning cannot run (zh → ru) has nothing to pick: no section, not an empty one. */}
-      {voices.length > 0 && <VoicePreviewContext.Provider value={preview ?? null}>
-        <div className="settings-section" id="volcengine-ast2-voice-section">
+      {/* A text-only target no voice speaks and cloning cannot run (zh → ru) has nothing to pick: no row, and no section without one. */}
+      {(mine.length > 0 || theirVoices.length > 0) && <VoicePreviewContext.Provider value={preview ?? null}>
+        {/* `#voice-settings-section` is Settings' `voice-settings` target (`Settings.tsx:51`), the Speech rows' voice links. */}
+        <div className="settings-section" id="voice-settings-section">
           <h2>{t('settings.voiceSettings', 'Voice Settings')}</h2>
-          <VoiceLibrarySection
-            voices={voices}
+          {mine.length > 0 && <VoiceLibrarySection
+            label={theirVoices.length > 0 ? t('settings.voiceTheyHear', 'Voice the other side hears') : undefined}
+            voices={mine}
             selectedId={effectiveVoice(shown, settings) ?? ''}
-            onSelect={(id) => update({ voices: { ...settings.voices, [shown.target]: id } })}
+            onSelect={(id) => write(shown.target, id)}
             onDelete={NO_DELETE}
             onPreview={(id, signal) => previewVoice(id, shown.target, signal)}
             capability={CAPABILITY}
             isSessionActive={disabled}
-          />
+            note={participantSpeaks && sharedSlot ? t('providers.volcengine_ast2.voiceSharedZhEn', 'Chinese↔English: this choice serves both sides.') : undefined}
+          />}
+          {theirVoices.length > 0 && <VoiceLibrarySection
+            label={t('settings.voiceIHear', 'Voice I hear')}
+            voices={theirVoices}
+            selectedId={effectiveVoice(theirs, settings) ?? ''}
+            onSelect={(id) => write(theirs.target, id)}
+            onDelete={NO_DELETE}
+            onPreview={(id, signal) => previewVoice(id, theirs.target, signal)}
+            capability={CAPABILITY}
+            isSessionActive={disabled}
+          />}
         </div>
       </VoicePreviewContext.Provider>}
       <div className="settings-section">

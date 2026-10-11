@@ -511,7 +511,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "שכפול קול הדובר",
-      "voiceGroupClone": "שכפול קול"
+      "voiceGroupClone": "שכפול קול",
+      "voiceSharedZhEn": "סינית↔אנגלית: הבחירה הזו משמשת את שני הצדדים.",
+      "voiceSummaryCloneMine": "הקול שלך (משוכפל)",
+      "voiceSummaryCloneTheirs": "הקול של הצד השני עצמו (משוכפל)"
     },
     "local_inference": {
       "name": "חינמי",
