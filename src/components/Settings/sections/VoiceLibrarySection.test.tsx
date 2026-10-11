@@ -268,6 +268,16 @@ describe('VoiceLibrarySection', () => {
     expect(screen.queryByRole('group', { name: 'Voice' })).toBeNull();
   });
 
+  it('counts the custom voices against a limit beside their heading, when one is given', () => {
+    const voices = [{ id: 'custom:1', label: 'Mine', group: 'custom' as const, removable: true }];
+    const { rerender } = render(<VoiceLibrarySection {...base} voices={voices} capability={{ importModes: [] }} />);
+    openPicker();
+    expect(screen.getByRole('columnheader', { name: 'Custom voices' })).toBeInTheDocument();
+
+    rerender(<VoiceLibrarySection {...base} voices={voices} capability={{ importModes: [] }} customQuota={{ used: 1, limit: 1 }} />);
+    expect(screen.getByRole('columnheader', { name: 'Custom voices (1/1)' })).toBeInTheDocument();
+  });
+
   it("a note takes the selected voice's description line", () => {
     const voices = [{ id: 'builtin:Ava', label: 'Ava', group: 'builtin' as const, removable: false, meta: { facets: { description: 'A calm voice.' } } }];
     const { rerender, container } = render(<VoiceLibrarySection {...base} voices={voices} capability={{ importModes: [] }} />);

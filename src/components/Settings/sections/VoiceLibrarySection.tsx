@@ -126,6 +126,8 @@ export interface VoiceLibrarySectionProps {
   label?: string;
   /** Shown in place of the selected voice's description: something about this choice the description cannot say. */
   note?: string;
+  /** How many custom voices the account holds of how many it may, when the provider knows its limit. */
+  customQuota?: { used: number; limit: number };
 }
 
 const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
@@ -146,6 +148,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   isSessionActive = false,
   label,
   note,
+  customQuota,
 }) => {
   const { t } = useTranslation();
   const labelId = useId();
@@ -328,6 +331,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
           refreshing={refreshing}
           capability={capability}
           isSessionActive={isSessionActive}
+          customQuota={customQuota}
         />
         {(note ?? selectedDescription) && (
           <div className="voice-selected-description">{note ?? selectedDescription}</div>

@@ -725,8 +725,9 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   // gone at Soniox or terminally failed. Offering record/import here would
   // therefore report success, overwrite the on-device clip, hand back the
   // same voice id — and change nothing the user can hear, with nothing to
-  // explain why. Hide the create affordances and say what is actually true:
-  // the current voice has to be deleted first.
+  // explain why. Hide the create affordances; the count beside "Custom
+  // voices" (`customQuota`, 1/1) says the one slot is taken, so the current
+  // voice has to be deleted first.
   //
   // Deliberately NOT a delete-then-create flow: a delete that succeeds
   // followed by a create that fails would leave the user with no voice at all
@@ -858,33 +859,28 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         onPreview={source?.preview ? handlePreview : undefined}
         onRefresh={source ? () => void refresh() : undefined}
         refreshing={listState === 'loading'}
-        // Footnote, not a standalone setting: it describes controls that live
-        // inside the expanded manage body (the per-row preview button, the
-        // record/import buttons), so it belongs there rather than above the
-        // collapsed expander where they aren't even visible. `managed` can
-        // now preview too, so the two cases are no longer mutually
-        // exclusive by construction — `managedVoiceBlocksCreate` still takes
-        // priority, because a managed account with an existing voice has
-        // nothing to gain from the preview cost hint while create is
-        // withdrawn anyway.
+        // What a preview costs, a footnote in the add-a-voice dialog. Only
+        // while that dialog is reachable: with create withdrawn the library
+        // draws it under the picker instead, between the two voice rows, and
+        // the count beside "Custom voices" says why there is no add row
+        // (owner, 2026-10-12).
         manageNote={
-          managedVoiceBlocksCreate
-            ? t(
-                'settings.sonioxManagedVoiceReplaceHint',
-                'Delete this voice before recording a new one — recording again on its own keeps the voice you already have.'
-              )
-            : source?.preview
-              ? managed
-                ? t(
-                    'voiceLibrary.previewChargedToBalance',
-                    'Previewing synthesizes a short sample and is charged to your account balance.'
-                  )
-                : t(
-                    'settings.sonioxVoicePreviewCostHint',
-                    'Previewing a voice synthesizes a short clip using your own Soniox quota.'
-                  )
-              : undefined
+          canCreate && source?.preview
+            ? managed
+              ? t(
+                  'voiceLibrary.previewChargedToBalance',
+                  'Previewing synthesizes a short sample and is charged to your account balance.'
+                )
+              : t(
+                  'settings.sonioxVoicePreviewCostHint',
+                  'Previewing a voice synthesizes a short clip using your own Soniox quota.'
+                )
+            : undefined
         }
+        // A managed account holds one voice; a failed one does not take the
+        // slot (re-recording rebuilds it). An own key's limit is its Soniox
+        // project's, unknown here, so no count.
+        customQuota={managed && source && managedListKnown ? { used: clones.filter((v) => !isFailed(v)).length, limit: 1 } : undefined}
         capability={{
           importModes: canCreate ? ['record', 'upload'] : [],
           // 200 built-in voices as of 2026-09-10: too many to scan in a flat

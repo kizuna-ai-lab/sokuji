@@ -72,12 +72,14 @@ export interface VoicePickerProps {
   refreshing?: boolean;
   capability: VoiceLibraryCapability;
   isSessionActive?: boolean;
+  /** How many custom voices the account holds of how many it may: shown beside their heading. */
+  customQuota?: { used: number; limit: number };
 }
 
 const VoicePicker: React.FC<VoicePickerProps> = ({
   voices, selectedId, onSelect, onPreview, previewUnavailableReason,
   playingId, loadingId, onRename, onAskDelete, onAddVoice, onRefresh, refreshing,
-  capability, isSessionActive = false,
+  capability, isSessionActive = false, customQuota,
 }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -908,7 +910,19 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
                 a "Custom voices" heading over nothing at all. */}
             {(!!onAddVoice || clones.length > 0) && (
               <div role="row" className="voice-pop__group">
-                <div role="columnheader">{t('voiceLibrary.myVoices', 'Custom voices')}</div>
+                <div role="columnheader">
+                  {t('voiceLibrary.myVoices', 'Custom voices')}
+                  {customQuota && (
+                    <span className="voice-pop__count">
+                      {' '}
+                      <span className="voice-pop__count-value">
+                        {t('voiceLibrary.customQuota', '({used}/{limit})')
+                          .replace('{used}', String(customQuota.used))
+                          .replace('{limit}', String(customQuota.limit))}
+                      </span>
+                    </span>
+                  )}
+                </div>
               </div>
             )}
             {onAddVoice && (
