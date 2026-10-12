@@ -1,6 +1,6 @@
 # Local inference: the other side's speech (#619)
 
-Status: design approved section by section (2026-10-12); this file is for the owner's review.
+Status: implemented on `feat/local-inference-participant-tts` (plan `docs/superpowers/plans/2026-10-12-local-inference-participant-tts.md`).
 Issue: kizuna-ai-lab/sokuji#619.
 
 ## Goal
