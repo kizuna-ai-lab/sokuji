@@ -152,6 +152,7 @@ export default defineConfig(({ command, mode }) => {
             'sandbox-recovery': 'electron/sandbox-recovery.js',
             'single-instance': 'electron/single-instance.js',
             'windows-audio-utils': 'electron/windows-audio-utils.js',
+            'mic-users-win': 'electron/mic-users-win.js',
             'audio-host': 'electron/audio-host.js',
             'audio-host-path': 'electron/audio-host-path.js',
             'own-app-source': 'electron/own-app-source.js',

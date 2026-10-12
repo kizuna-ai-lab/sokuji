@@ -1238,6 +1238,47 @@ ipcMain.handle('get-tcc-display-name', async () => {
   return { name: isDev ? 'Electron' : app.getName(), isDev };
 });
 
+/**
+ * The applications using a microphone that would not open (Windows): see
+ * mic-users-win.js. Sokuji's own processes are left out, so its own capture on
+ * the same device never reads as the culprit.
+ */
+ipcMain.handle('list-microphone-users', async (event, label) => {
+  if (process.platform !== 'win32') return { ok: false, error: 'Windows only' };
+  if (typeof label !== 'string' || label === '') return { ok: false, error: 'No device label' };
+  const { listMicrophoneUsers } = require('./mic-users-win');
+  return listMicrophoneUsers(label, { ownPids: app.getAppMetrics().map((m) => m.pid) });
+});
+
+/**
+ * The Windows settings a microphone notice points at: the privacy page that
+ * lets desktop apps use the microphone, and the classic Sound panel's
+ * Recording tab, where a device's exclusive mode is switched.
+ */
+ipcMain.handle('open-windows-settings', async (event, page) => {
+  if (process.platform !== 'win32') return { ok: false, error: 'Windows only' };
+  try {
+    if (page === 'microphone-privacy') {
+      await shell.openExternal('ms-settings:privacy-microphone');
+    } else if (page === 'sound-recording') {
+      // control.exe exits 1 even when the panel opens, so only a failure to
+      // launch counts. No windowsHide: it would reach the panel's own window.
+      const { spawn } = require('child_process');
+      await new Promise((resolve, reject) => {
+        const child = spawn('control.exe', ['mmsys.cpl,,1'], { detached: true, stdio: 'ignore' });
+        child.once('error', reject);
+        child.once('spawn', () => { child.unref(); resolve(); });
+      });
+    } else {
+      return { ok: false, error: `Unknown Windows settings page: ${page}` };
+    }
+    return { ok: true };
+  } catch (error) {
+    console.error('[Sokuji] [Main] Failed to open Windows settings:', error);
+    return { ok: false, error: error.message };
+  }
+});
+
 ipcMain.handle('open-privacy-settings', async (event, pane) => {
   if (process.platform !== 'darwin') {
     return { ok: false, error: 'Privacy panes are macOS-only' };

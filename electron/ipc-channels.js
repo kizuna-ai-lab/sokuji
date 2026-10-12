@@ -53,6 +53,9 @@ export const INVOKE_CHANNELS = [
   // Deep-link into the macOS privacy pane a denied capture needs
   'open-privacy-settings',
   'get-tcc-display-name',
+  // Windows: who holds a microphone that would not open, and the settings that fix it
+  'list-microphone-users',
+  'open-windows-settings',
   // Screen recording permission (macOS)
   'check-screen-recording-permission',
   // Linux: fix PipeWire monitor source volume after loopback capture starts
