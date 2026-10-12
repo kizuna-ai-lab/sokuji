@@ -142,6 +142,7 @@ describe('the invariants every provider meets (F17)', () => {
     expect(Object.fromEntries(ownKey.map((p) => [p.id, p.checkReads]))).toEqual({
       gemini: [],
       volcengine_ast2: ['authMode'],
+      qwen_livetranslate: [],
       openai: [],
       openai_translate: [],
       openai_live: [],
@@ -151,12 +152,17 @@ describe('the invariants every provider meets (F17)', () => {
     });
   });
 
-  it("every released id is the old Provider enum's spelling (controller ruling 2)", () => {
-    for (const p of released) expect(Object.keys(LEGACY_SLICE_KEYS), p.id).toContain(p.id);
+  // The providers the old path had: a provider new since (Qwen LiveTranslate) has no old spelling and no stored slice.
+  const PORTED = ['kizunaai_soniox', 'local_inference', 'gemini', 'volcengine_ast2', 'openai', 'openai_translate', 'openai_live', 'soniox', 'palabraai'];
+  const ported = released.filter((p) => PORTED.includes(p.id));
+
+  it("every ported id is the old Provider enum's spelling (controller ruling 2)", () => {
+    expect(ported.map((p) => p.id)).toEqual(PORTED);
+    for (const p of ported) expect(Object.keys(LEGACY_SLICE_KEYS), p.id).toContain(p.id);
   });
 
   it('a provider that existed before keeps its storage prefix', () => {
-    for (const p of released) expect(p.settings.key, p.id).toBe(LEGACY_SLICE_KEYS[p.id]);
+    for (const p of ported) expect(p.settings.key, p.id).toBe(LEGACY_SLICE_KEYS[p.id]);
   });
 
   it('every released provider has a name and a description in en, under its id', () => {
@@ -341,8 +347,8 @@ describe('the invariants every provider meets (F17)', () => {
     const releaseBuild = await import('./registry');
     // each provider plan adds its id where the owner orders it (spec: "one line in the order test").
     // Kizuna Soniox first, unflagged (Stage 2 Kizuna Soniox, ruling 6): the owner's 2026-09-12
-    // product order put the managed provider first; then LocalInference, Gemini (Stage 2 Gemini, ruling 6), Doubao AST 2.0 (Stage 2 Volcengine AST2, ruling 5), OpenAI Realtime (Stage 2 OpenAI Realtime, ruling 18), OpenAI Translate (Stage 2 OpenAI Translate, ruling 11), OpenAI Live (Stage 2 OpenAI Live, ruling 9), Soniox with your own key, and Palabra AI last (Stage 2 Palabra, ruling 14).
-    expect(releaseBuild.PROVIDERS.map((p) => p.id)).toEqual(['kizunaai_soniox', 'local_inference', 'gemini', 'volcengine_ast2', 'openai', 'openai_translate', 'openai_live', 'soniox', 'palabraai']);
+    // product order put the managed provider first; then LocalInference, Gemini (Stage 2 Gemini, ruling 6), Doubao AST 2.0 (Stage 2 Volcengine AST2, ruling 5), Qwen LiveTranslate (spec 2026-10-13 §8, flagged), OpenAI Realtime (Stage 2 OpenAI Realtime, ruling 18), OpenAI Translate (Stage 2 OpenAI Translate, ruling 11), OpenAI Live (Stage 2 OpenAI Live, ruling 9), Soniox with your own key, and Palabra AI last (Stage 2 Palabra, ruling 14).
+    expect(releaseBuild.PROVIDERS.map((p) => p.id)).toEqual(['kizunaai_soniox', 'local_inference', 'gemini', 'volcengine_ast2', 'qwen_livetranslate', 'openai', 'openai_translate', 'openai_live', 'soniox', 'palabraai']);
   });
 
   it('a development build adds exactly the two fakes', () => {

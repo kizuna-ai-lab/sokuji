@@ -73,9 +73,9 @@ describe('the OpenAI Realtime definition', () => {
     expect(openaiProvider.turns(REALTIME_DEFAULTS)).toEqual(['auto', 'manual']);
   });
 
-  it('sits after Doubao AST 2.0 and before OpenAI Translate, and OpenAI Compatible is registered nowhere (rulings 18, 1)', () => {
+  it('sits after Qwen LiveTranslate and before OpenAI Translate, and OpenAI Compatible is registered nowhere (rulings 18, 1)', () => {
     const ids = PROVIDERS.map((p) => p.id);
-    expect(ids.indexOf('openai')).toBe(ids.indexOf('volcengine_ast2') + 1);
+    expect(ids.indexOf('openai')).toBe(ids.indexOf('qwen_livetranslate') + 1);
     expect(ids.indexOf('openai')).toBe(ids.indexOf('openai_translate') - 1);
     expect(ids).not.toContain('openai_compatible');
   });

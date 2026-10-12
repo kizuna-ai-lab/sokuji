@@ -273,6 +273,15 @@ describe('a provider session side', () => {
       'src/providers/openai_live/segments.ts',
       'src/providers/openai_live/wire.ts',
     ]);
+
+    // Qwen LiveTranslate's sockets come from the header seam too. Its storefront detection reaches the adapter as a dependency, so the check stays on the settings side; the builder, the settings, the view, the definition and the fixtures are not the session's.
+    const qwen = sessionSide(REPO_ROOT, 'src/providers/qwen_livetranslate');
+    expect(qwen).toEqual([
+      'src/providers/qwen_livetranslate/adapter.ts',
+      'src/providers/qwen_livetranslate/endpoints.ts',
+      'src/providers/qwen_livetranslate/segments.ts',
+      'src/providers/qwen_livetranslate/wire.ts',
+    ]);
   });
 
   it('reads imports the way the compiler does', () => {
