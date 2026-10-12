@@ -1359,7 +1359,10 @@
     "loopback_denied": "El Audio del otro requiere el permiso de Grabación de Pantalla para capturar el audio del sistema.",
     "mic_lost_using_other": "El micrófono «{{lost}}» se desconectó, así que ahora se usa «{{device}}».",
     "mic_lost_waiting": "El micrófono se desconectó. La traducción de tu voz se reanudará cuando se conecte un micrófono.",
-    "mic_now_using": "Ahora se usa el micrófono «{{device}}»."
+    "mic_now_using": "Ahora se usa el micrófono «{{device}}».",
+    "speaker_tts_missing": "La traducción que oye la otra parte se muestra solo como texto: ningún modelo de voz habla {{target}}.",
+    "participant_tts_missing": "La traducción que yo oigo se muestra solo como texto: ningún modelo de voz habla {{target}}.",
+    "participant_tts_over_budget": "La traducción que yo oigo se muestra solo como texto: no hay memoria suficiente para cargar también el modelo de voz de la otra parte."
   },
   "viewer": {
     "title": "Subtítulos de Sokuji",

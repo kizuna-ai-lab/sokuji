@@ -1359,7 +1359,10 @@
     "loopback_denied": "對方音訊需要螢幕錄製權限才能擷取系統音訊。",
     "mic_lost_using_other": "麥克風「{{lost}}」已中斷連線，現在改用「{{device}}」。",
     "mic_lost_waiting": "麥克風已中斷連線。接上麥克風後會自動繼續翻譯你說的話。",
-    "mic_now_using": "現在使用麥克風「{{device}}」。"
+    "mic_now_using": "現在使用麥克風「{{device}}」。",
+    "speaker_tts_missing": "對方聽到的翻譯只顯示文字：沒有能說{{target}}的語音模型。",
+    "participant_tts_missing": "我聽到的翻譯只顯示文字：沒有能說{{target}}的語音模型。",
+    "participant_tts_over_budget": "我聽到的翻譯只顯示文字：記憶體不足，無法同時載入對方的語音模型。"
   },
   "viewer": {
     "title": "Sokuji 字幕",

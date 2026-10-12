@@ -1359,7 +1359,10 @@
     "loopback_denied": "Âm thanh đối phương cần quyền Ghi Màn Hình để thu âm thanh hệ thống.",
     "mic_lost_using_other": "Micrô “{{lost}}” đã bị ngắt kết nối, nên “{{device}}” đang được dùng thay thế.",
     "mic_lost_waiting": "Micrô đã bị ngắt kết nối. Việc dịch giọng nói của bạn sẽ tiếp tục khi có micrô được kết nối.",
-    "mic_now_using": "Đang dùng micrô “{{device}}”."
+    "mic_now_using": "Đang dùng micrô “{{device}}”.",
+    "speaker_tts_missing": "Bản dịch bên kia nghe chỉ hiển thị chữ: không có mô hình giọng nói nào nói được {{target}}.",
+    "participant_tts_missing": "Bản dịch tôi nghe chỉ hiển thị chữ: không có mô hình giọng nói nào nói được {{target}}.",
+    "participant_tts_over_budget": "Bản dịch tôi nghe chỉ hiển thị chữ: không đủ bộ nhớ để tải thêm mô hình giọng nói của bên kia."
   },
   "viewer": {
     "title": "Phụ đề Sokuji",

@@ -1371,7 +1371,10 @@
     "loopback_denied": "Other's audio requires Screen Recording permission to capture system audio.",
     "mic_lost_using_other": "The microphone “{{lost}}” went away, so “{{device}}” is being used instead.",
     "mic_lost_waiting": "The microphone went away. Translation of your speech resumes when a microphone is connected.",
-    "mic_now_using": "Now using the microphone “{{device}}”."
+    "mic_now_using": "Now using the microphone “{{device}}”.",
+    "speaker_tts_missing": "Translation the other side hears is text only: no speech model speaks {{target}}.",
+    "participant_tts_missing": "Translation I hear is text only: no speech model speaks {{target}}.",
+    "participant_tts_over_budget": "Translation I hear is text only: not enough memory to load the other side's speech model too."
   },
   "captionShare": {
     "button": "Share captions",

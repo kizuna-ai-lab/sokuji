@@ -1359,7 +1359,10 @@
     "loopback_denied": "Den andras ljud kräver behörighet för skärminspelning för att fånga systemljud.",
     "mic_lost_using_other": "Mikrofonen ”{{lost}}” kopplades från, så ”{{device}}” används i stället.",
     "mic_lost_waiting": "Mikrofonen kopplades från. Översättningen av ditt tal fortsätter när en mikrofon ansluts.",
-    "mic_now_using": "Nu används mikrofonen ”{{device}}”."
+    "mic_now_using": "Nu används mikrofonen ”{{device}}”.",
+    "speaker_tts_missing": "Översättning som motparten hör visas bara som text: ingen talmodell talar {{target}}.",
+    "participant_tts_missing": "Översättning som jag hör visas bara som text: ingen talmodell talar {{target}}.",
+    "participant_tts_over_budget": "Översättning som jag hör visas bara som text: inte tillräckligt med minne för att även läsa in motpartens talmodell."
   },
   "viewer": {
     "title": "Sokuji-undertexter",

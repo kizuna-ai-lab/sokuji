@@ -42,6 +42,12 @@ export const CLIENT_DIAGNOSTICS = {
   tts_segment_lost: { severity: 'warning' },
   /** Spoken translation has stopped; transcription and text translation go on. */
   tts_stopped: { severity: 'warning' },
+  /** Local inference: Translation the other side hears is text only, no speech model speaking its language (#619). */
+  speaker_tts_missing: { severity: 'warning' },
+  /** Local inference: Translation I hear is text only, no speech model speaking my language (#619). */
+  participant_tts_missing: { severity: 'warning' },
+  /** Local inference: Translation I hear is text only, its speech model dropped to fit the memory budget (#619). */
+  participant_tts_over_budget: { severity: 'warning' },
 } satisfies Record<string, { severity: 'error' | 'warning' }>;
 
 export type ClientDiagnosticCode = keyof typeof CLIENT_DIAGNOSTICS;

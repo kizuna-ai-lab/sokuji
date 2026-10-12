@@ -1359,7 +1359,10 @@
     "loopback_denied": "Kailangan ng Audio ng kausap ang pahintulot sa Screen Recording para makuha ang system audio.",
     "mic_lost_using_other": "Nadiskonekta ang mikroponong “{{lost}}”, kaya “{{device}}” na ang ginagamit.",
     "mic_lost_waiting": "Nadiskonekta ang mikropono. Magpapatuloy ang pagsasalin ng iyong pananalita kapag may nakakonektang mikropono.",
-    "mic_now_using": "Ginagamit na ngayon ang mikroponong “{{device}}”."
+    "mic_now_using": "Ginagamit na ngayon ang mikroponong “{{device}}”.",
+    "speaker_tts_missing": "Teksto lang ang salin na naririnig ng kabilang panig: walang modelo ng pananalita na nagsasalita ng {{target}}.",
+    "participant_tts_missing": "Teksto lang ang salin na naririnig ko: walang modelo ng pananalita na nagsasalita ng {{target}}.",
+    "participant_tts_over_budget": "Teksto lang ang salin na naririnig ko: kulang ang memory para i-load din ang modelo ng pananalita ng kabilang panig."
   },
   "viewer": {
     "title": "Mga subtitle ng Sokuji",

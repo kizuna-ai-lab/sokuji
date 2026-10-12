@@ -1359,7 +1359,10 @@
     "loopback_denied": "Karşı tarafın sesi, sistem sesini yakalamak için Ekran Kaydı izni gerektirir.",
     "mic_lost_using_other": "“{{lost}}” mikrofonunun bağlantısı kesildi, bu yüzden bunun yerine “{{device}}” kullanılıyor.",
     "mic_lost_waiting": "Mikrofonun bağlantısı kesildi. Bir mikrofon bağlandığında konuşmanızın çevirisi devam edecek.",
-    "mic_now_using": "Artık “{{device}}” mikrofonu kullanılıyor."
+    "mic_now_using": "Artık “{{device}}” mikrofonu kullanılıyor.",
+    "speaker_tts_missing": "Karşı tarafın duyduğu çeviri yalnızca metin: {{target}} konuşan bir ses modeli yok.",
+    "participant_tts_missing": "Duyduğum çeviri yalnızca metin: {{target}} konuşan bir ses modeli yok.",
+    "participant_tts_over_budget": "Duyduğum çeviri yalnızca metin: karşı tarafın ses modelini de yüklemeye yetecek bellek yok."
   },
   "viewer": {
     "title": "Sokuji altyazıları",
