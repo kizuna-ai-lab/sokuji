@@ -7,6 +7,7 @@ import { noticeActionSpec, panelNoteEntries } from '../../lib/view/panelNotes';
 import { usePanelNotes } from '../../stores/panelNotesStore';
 import { useExitSubtitleMode, useNavigateToSettings } from '../../stores/settingsStore';
 import { isElectron } from '../../utils/environment';
+import { openTtsSlot } from '../providers/openTtsSlot';
 import { useConversationExporter } from '../Conversation/useConversationExporter';
 import { useReadable } from '../Conversation/useReadable';
 import type { NoticeAction } from '../Conversation/SystemRow';
@@ -48,19 +49,21 @@ export function SubtitleTakeover() {
     exit: () => void exitSubtitleMode(),
     openSettings,
   }), [session, exitSubtitleMode, openSettings]);
-  // The expanded list's actions (Ruling 8): what this window can honour — Settings, leaving
-  // subtitle mode first, and a note's Show in folder. The others belong to the title bar,
+  // The expanded list's actions (Ruling 8): what this window can honour — Settings and an
+  // engine's TTS slot (#619), each leaving subtitle mode first, and a note's Show in folder. The others belong to the title bar,
   // which the takeover hides (as `TakeoverStatusLine`). Rebuilt whenever the notes change,
   // which drops the list's per-notice cache with it.
   const noticeAction = useCallback((notice: NoticeEntry): NoticeAction | null => {
     const spec = noticeActionSpec(notice, notes);
-    if (spec?.kind !== 'settings' && spec?.kind !== 'show-in-folder') return null;
+    if (spec?.kind !== 'settings' && spec?.kind !== 'show-in-folder' && spec?.kind !== 'engine-slot') return null;
     const { key, fallback } = actionLabel(spec);
     const run = spec.kind === 'settings'
       ? () => openSettings(spec.target)
-      : () => { if (isElectron()) void window.electron.invoke('open-directory', spec.dir); };
+      : spec.kind === 'engine-slot'
+        ? () => { void exitSubtitleMode(); openTtsSlot(spec.leg); }
+        : () => { if (isElectron()) void window.electron.invoke('open-directory', spec.dir); };
     return { label: t(key, fallback), run };
-  }, [t, notes, openSettings]);
+  }, [t, notes, openSettings, exitSubtitleMode]);
   return (
     <SubtitleView
       surface="electron"

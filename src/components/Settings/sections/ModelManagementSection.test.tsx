@@ -425,6 +425,18 @@ describe('ModelManagementSection — voices per direction (#619)', () => {
     expect(voiceWrites()[0]).toEqual({ 'en→ja': { edge: 'ja-JP-NanamiNeural' }, 'ja→en': { edge: 'en-US-AriaNeural' } });
   });
 
+  it("a reversed-direction Library opened from the translation slot writes no voice", async () => {
+    mockSettings.sourceLanguage = 'en';
+    mockSettings.targetLanguage = 'ja';
+    mockSettings.voices = { 'en→ja': { edge: 'ja-JP-NanamiNeural' } };
+
+    render(<ModelManagementSection isSessionActive={false} {...slice()} stageFilter="translation" direction="ja→en" />);
+    await new Promise((r) => setTimeout(r, 0));
+    if (mockGetEdgeTtsVoices.mock.calls.length > 0) await mockGetEdgeTtsVoices.mock.results[0].value;
+    await new Promise((r) => setTimeout(r, 0));
+    expect(voiceWrites()).toEqual([]);
+  });
+
   it("a reversed-direction TTS Library edits that direction's voice", async () => {
     mockSettings.sourceLanguage = 'en';
     mockSettings.targetLanguage = 'ja';

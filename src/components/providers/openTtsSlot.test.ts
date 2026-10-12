@@ -4,6 +4,7 @@ vi.mock('../../services/ServiceFactory', () => ({
   ServiceFactory: { getSettingsService: () => ({ getSetting: async (_k: string, d: unknown) => d, setSetting: async () => ({ success: true }) }) },
 }));
 
+import { selectedFromStores } from '../../lib/session/appShape';
 import { LOCAL_INFERENCE_DEFAULTS } from '../../providers/localInference/settings';
 import { SONIOX_DEFAULTS } from '../../providers/soniox/settings';
 import { useProviderStore } from '../../stores/providerStore';
@@ -35,6 +36,7 @@ describe('openTtsSlot', () => {
 
   it('under a provider with no engine, opens the Provider tab and leaves no slot target behind', () => {
     select('soniox', SONIOX_DEFAULTS);
+    expect(selectedFromStores()?.provider.id).toBe('soniox');
     openTtsSlot('participant');
     expect(useSettingsStore.getState().engineSlotTarget).toBeNull();
     expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider');

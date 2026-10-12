@@ -677,11 +677,14 @@ export function ModelManagementSection({
   // same way, with the same first voice, so the two writers of one entry
   // always agree (the 2026-08-23 freeze needed two targets for ONE field).
   const edgeVoice = voice.edge;
+  // Only where the TTS card is shown: a Library opened from the ASR or translation slot
+  // of a leg that does not speak writes nothing to that direction's voice.
+  const showsTts = !stageFilter || stageFilter === 'tts';
   useEffect(() => {
-    if (!isEdgeTtsSelected || filteredVoices.length === 0) return;
+    if (!showsTts || !isEdgeTtsSelected || filteredVoices.length === 0) return;
     if (filteredVoices.some((v) => v.ShortName === edgeVoice)) return;
     writeVoice({ edge: filteredVoices[0].ShortName });
-  }, [isEdgeTtsSelected, filteredVoices, edgeVoice, writeVoice]);
+  }, [showsTts, isEdgeTtsSelected, filteredVoices, edgeVoice, writeVoice]);
 
   // A failed initialize() (e.g. IndexedDB VersionError when another build
   // upgraded the shared DB in this profile) must surface an actionable error

@@ -25,7 +25,6 @@ export function LocalInferenceVoiceSummary({ settings, pair = FALLBACK_PAIR, leg
   const [src, tgt] = leg === 'speaker' ? [pair.source, pair.target] : [pair.target, pair.source];
   const ttsId = useMemo(
     () => useModelStore.getState().resolve(src, tgt, settings.selections).tts?.modelId,
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- a download changes what resolves
     [src, tgt, settings.selections, modelStatuses],
   );
   if (!ttsId) return null;
