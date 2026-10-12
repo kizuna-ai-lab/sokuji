@@ -8,7 +8,7 @@ Worktree directory: `.claude/worktrees/` (gitignored)
 
 ## Project Overview
 
-Sokuji is a real-time AI-powered translation application available as both an Electron desktop app and a browser extension. It provides live speech translation through Kizuna AI (managed Soniox), free on-device inference, Google Gemini, Doubao AST 2.0, OpenAI Realtime, OpenAI Translate, OpenAI Live, Soniox and Palabra AI, with modern audio processing capabilities. Local Native, the Electron sidecar, still runs on the old provider path until kizuna-ai-lab/sokuji#578.
+Sokuji is a real-time AI-powered translation application available as both an Electron desktop app and a browser extension. It provides live speech translation through Kizuna AI (managed Soniox), free on-device inference, Google Gemini, Doubao AST 2.0, Qwen LiveTranslate (flagged until its live test passes), OpenAI Realtime, OpenAI Translate, OpenAI Live, Soniox and Palabra AI, with modern audio processing capabilities. Local Native, the Electron sidecar, still runs on the old provider path until kizuna-ai-lab/sokuji#578.
 
 ## Development Commands
 
@@ -428,7 +428,7 @@ useSettingsStore.subscribe(
 - `VITE_ENABLED_PROVIDERS`: the comma-separated ids of the `flagged` providers a release
   offers (`enabledProviderIds` in `src/utils/environment.ts`, read by `isPresent`);
   development builds offer every flagged provider regardless, and a definition's tester
-  switch offers it on one device. No provider is flagged today
+  switch offers it on one device. Qwen LiveTranslate (`qwen_livetranslate`) is flagged until its live test passes
 - `VITE_ENABLE_LOCAL_NATIVE`: Register the Local Native (Electron sidecar) provider in
   production builds; unset in releases. Temporary run-time alternative for testers on a
   packaged Electron build: DevTools → `localStorage.setItem('debug:local-native', '1')` →
@@ -725,7 +725,7 @@ are still manual.
 
 ### Security Policy
 - Strict CSP configuration for extension pages
-- Allowed connections to AI provider APIs (OpenAI, Google, Doubao, Soniox, Palabra, Kizuna AI)
+- Allowed connections to AI provider APIs (OpenAI, Google, Doubao, Qwen, Soniox, Palabra, Kizuna AI)
 - PostHog analytics integration for usage tracking
 
 ## Authentication and API Key Management
@@ -737,7 +737,7 @@ are still manual.
 - **Cross-Platform**: Authentication works across Electron and browser extension
 
 ### API Key Types
-1. **User-Managed Keys**: OpenAI (Realtime, Translate, Live), Gemini, Doubao AST 2.0, Soniox, Palabra AI - users input their own keys
+1. **User-Managed Keys**: OpenAI (Realtime, Translate, Live), Gemini, Doubao AST 2.0, Qwen LiveTranslate, Soniox, Palabra AI - users input their own keys
 2. **Backend-Managed Keys**: Kizuna AI - keys fetched from authenticated backend service
 
 ### Authentication Flow for Kizuna AI
