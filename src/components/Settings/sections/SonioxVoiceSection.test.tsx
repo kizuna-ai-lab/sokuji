@@ -330,6 +330,65 @@ describe('SonioxVoiceSection', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Me' })).toBeInTheDocument());
   });
 
+  it('one row, "Voice", in the section the Settings deep link lands on', () => {
+    const { container } = mount();
+    expect(container.querySelector('#voice-settings-section')).not.toBeNull();
+    expect(screen.getByRole('group', { name: 'Voice' })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Voice I hear' })).toBeNull();
+  });
+
+  describe('with the other party spoken', () => {
+    const participant = (over: object = {}) => ({ voice: 'Grace', effective: 'Grace', language: 'zh', onSelect: vi.fn(), ...over });
+    // By class: while the popover is open, floating-ui's focus guards sit beside the trigger.
+    const triggerIn = (name: string) => screen.getByRole('group', { name }).querySelector('.voice-picker__trigger') as HTMLElement;
+    const openIn = (name: string) => fireEvent.click(triggerIn(name));
+
+    it('names both rows by who hears them, and the second lists the built-in voices only', async () => {
+      listMock.mockResolvedValue([cloned()]);
+      const p = participant();
+      mount({ participant: p });
+      expect(triggerIn('Voice the other side hears')).toHaveTextContent(SONIOX_DEFAULT_VOICE);
+      expect(triggerIn('Voice I hear')).toHaveTextContent('Grace');
+      // The clone reaches my picker…
+      openIn('Voice the other side hears');
+      await waitFor(() => expect(inGrid().getByRole('button', { name: 'Me' })).toBeInTheDocument());
+      fireEvent.click(triggerIn('Voice the other side hears'));
+      // …and never the other party's, which has no add row either.
+      openIn('Voice I hear');
+      expect(inGrid().getByRole('button', { name: 'Daniel' })).toBeInTheDocument();
+      expect(inGrid().queryByRole('button', { name: 'Me' })).toBeNull();
+      expect(screen.queryByRole('button', { name: /add a voice/i })).toBeNull();
+      fireEvent.click(inGrid().getByRole('button', { name: 'Daniel' }));
+      expect(p.onSelect).toHaveBeenCalledWith('Daniel');
+    });
+
+    it("previews the other party's voice in the language it reads to me in", async () => {
+      mount({ participant: participant({ language: 'zh' }) });
+      openIn('Voice I hear');
+      fireEvent.click(within(rowFor('Daniel')).getByRole('button', { name: /^play$/i }));
+      await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
+      expect(synthesizeMock.mock.calls[0][0]).toMatchObject({ voice: 'Daniel', language: 'zh', text: '你好，这是这个声音的简短试听。' });
+    });
+
+    it('says so when the choice is my own voice, which the run swaps for another', () => {
+      const { container, rerender } = mount({ participant: participant({ voice: 'Adrian', effective: 'Grace' }) });
+      const note = () => within(screen.getByRole('group', { name: 'Voice I hear' })).queryByText(/Same as the voice the other side hears/);
+      expect(note()).toBeInTheDocument();
+      rerender(
+        <SonioxVoiceSection
+          settings={{ voice: SONIOX_DEFAULT_VOICE, apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 }}
+          onUpdate={vi.fn()}
+          source={fakeSource()}
+          managed={false}
+          isSessionActive={false}
+          participant={participant()}
+        />
+      );
+      expect(note()).toBeNull();
+      expect(container.querySelectorAll('#voice-settings-section')).toHaveLength(1);
+    });
+  });
+
   it('selecting a cloned voice writes the UUID through onUpdate', async () => {
     listMock.mockResolvedValue([cloned()]);
     const { onUpdate } = mount();
@@ -930,25 +989,33 @@ describe('SonioxVoiceSection', () => {
   // ignores the uploaded clip, rebuilding only when the voice is gone at
   // Soniox or terminally failed. Offering the affordance anyway would report
   // success and change nothing audible.
-  it('managed mode withdraws the add-voice affordance while a healthy voice exists', async () => {
-    // NOTE (see task-7-report.md): design §4.2 says an empty `importModes`
-    // hides the "+ Add a voice…" row entirely, and SonioxVoiceSection ties
-    // `importModes` 1:1 to `canCreate`. So in the redesigned picker, the
-    // former explanatory copy ("Delete this voice before recording a new
-    // one…") — computed as `manageNote` and rendered only inside
-    // VoiceCreateModal — has become UNREACHABLE in this exact scenario: there
-    // is no row left to open that modal from. This asserts what remains true
-    // (no way to create, delete still offered) rather than the vanished
-    // "and says why" half, which is flagged as a finding, not silently
-    // dropped.
+  it('managed mode withdraws the add-voice affordance while a healthy voice exists, and its count says the one slot is taken', async () => {
+    // The count beside "Custom voices" is what says why there is no add row:
+    // the account's one voice slot is in use (owner, 2026-10-12). No note
+    // under the picker: with two rows it would sit between them.
     listMock.mockResolvedValue([cloned()]);
-    mount({ managed: true, source: fakeSource({ canPreview: false }) });
+    const { container } = mount({ managed: true, source: fakeSource() });
     await waitFor(() => expect(listMock).toHaveBeenCalled());
     openPicker();
     expect(screen.queryByRole('button', { name: /add a voice/i })).toBeNull();
     // The delete button is the way forward, so it must still be there.
     await waitFor(() => expect(screen.getByRole('button', { name: 'My voice' })).toBeInTheDocument());
     expect(within(rowFor('My voice')).getByRole('button', { name: /^delete$/i })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Custom voices (1/1)' })).toBeInTheDocument();
+    expect(container.querySelector('.voice-library-info')).toBeNull();
+  });
+
+  it('managed mode counts an empty slot, and an own key shows no count: its limit is the Soniox project\'s, unknown here', async () => {
+    const managedMount = mount({ managed: true, source: fakeSource() });
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('columnheader', { name: 'Custom voices (0/1)' })).toBeInTheDocument());
+    managedMount.unmount();
+
+    mount();
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));
+    openPicker();
+    expect(screen.getByRole('columnheader', { name: 'Custom voices' })).toBeInTheDocument();
   });
 
   it('managed mode keeps record/import when the existing voice terminally failed', async () => {

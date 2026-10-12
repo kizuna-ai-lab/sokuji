@@ -30,7 +30,7 @@ const libraryProps = () => library[library.length - 1];
 
 import type { SettingsProps } from '../../lib/provider/types';
 import { GEMINI_DEFAULTS, GEMINI_VOICES, type GeminiSettings } from './settings';
-import { GeminiSettingsView } from './GeminiSettings';
+import { GeminiSettingsView, GeminiVoiceSummary } from './GeminiSettings';
 
 const DIALOGUE = 'gemini-2.5-flash-native-audio-preview-12-2025';
 const TRANSLATE = 'gemini-3.5-live-translate-preview';
@@ -151,5 +151,38 @@ describe('GeminiSettingsView', () => {
     expect(screen.getByLabelText('settings.model')).toBeDisabled();
     expect(screen.getByLabelText('settings.temperature')).toBeDisabled();
     expect(screen.getByLabelText('Unlimited')).toBeDisabled();
+  });
+});
+
+describe('GeminiVoiceSummary', () => {
+  it('names the one voice under both legs, the default when none is stored; nothing on Live Translate, which has none to choose', () => {
+    const text = (settings: Partial<GeminiSettings>, leg: 'speaker' | 'participant') =>
+      render(<GeminiVoiceSummary {...props({ settings: { ...GEMINI_DEFAULTS, ...settings } })} leg={leg} />).container.textContent;
+    expect(text({ model: DIALOGUE, voice: 'Puck' }, 'speaker')).toBe('Puck');
+    expect(text({ model: DIALOGUE, voice: 'Aoede', participantVoice: 'Kore' }, 'participant')).toBe('Kore');
+    // My own voice chosen for them: a run swaps it, and the line names what it speaks.
+    expect(text({ model: DIALOGUE, voice: 'Puck', participantVoice: 'Puck' }, 'participant')).toBe('Aoede');
+    expect(text({ model: DIALOGUE, voice: '' }, 'speaker')).toBe('Aoede');
+    expect(text({ model: TRANSLATE }, 'speaker')).toBe('');
+  });
+});
+
+describe('GeminiSettingsView, the participant spoken', () => {
+  it("adds the other party's row on a dialogue model, previewing in my language and writing its own field", async () => {
+    const update = vi.fn();
+    render(<GeminiSettingsView {...props({ update, participantSpeaks: true, account: { credentials: { apiKey: 'k' }, auth: signedOut } })} />);
+    const [mine, theirs] = library.slice(-2);
+    expect(mine.label).toBe('Voice the other side hears');
+    expect(theirs.label).toBe('Voice I hear');
+    expect(theirs.selectedId).toBe('Puck');
+    theirs.onSelect('Kore');
+    expect(update).toHaveBeenCalledWith({ participantVoice: 'Kore' });
+    await theirs.onPreview!('Kore');
+    expect(previewGeminiVoice).toHaveBeenCalledWith({ voice: 'Kore', target: 'en', apiKey: 'k' }, undefined);
+  });
+
+  it('shows no voice row on Live Translate, the participant spoken or not', () => {
+    render(<GeminiSettingsView {...props({ participantSpeaks: true, settings: { ...GEMINI_DEFAULTS, model: TRANSLATE } })} />);
+    expect(library).toHaveLength(0);
   });
 });

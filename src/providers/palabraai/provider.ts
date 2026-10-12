@@ -3,7 +3,7 @@ import type { Provider } from '../../lib/provider/types';
 import { createPalabraAdapter } from './adapter';
 import { checkPalabra } from './check';
 import { buildPalabra, describePalabra, type PalabraConfig } from './config';
-import { PalabraSettingsView } from './PalabraSettings';
+import { PalabraSettingsView, PalabraVoiceSummary } from './PalabraSettings';
 import { PalabraTurnDetectionControls, PalabraTurnDetectionSummary } from './PalabraTurnDetection';
 import { migratePalabraSettings, PALABRA_DEFAULTS, palabraCredentials, palabraLanguages, type PalabraCredentials, type PalabraSettings } from './settings';
 
@@ -32,6 +32,8 @@ export const palabraProvider: Provider<PalabraSettings, PalabraCredentials, Pala
   // No `legacyKeys`: nothing stored is converted (ruling 2).
   settings: { key: 'palabraai', defaults: PALABRA_DEFAULTS, migrate: migratePalabraSettings },
   Settings: PalabraSettingsView,
+  // The one voice, under each spoken Speech row.
+  VoiceSummary: PalabraVoiceSummary,
   TurnDetection: { Summary: PalabraTurnDetectionSummary, Controls: PalabraTurnDetectionControls },
 
   credentials: palabraCredentials,

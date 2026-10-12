@@ -250,7 +250,6 @@
     "sonioxVoiceNamePlaceholder": "Naam voor een nieuwe gekloonde stem (optioneel)",
     "sonioxVoiceDefaultName": "Mijn stem {{n}}",
     "sonioxManagedVoiceName": "Mijn stem",
-    "sonioxManagedVoiceReplaceHint": "Verwijder deze stem voordat u een nieuwe opneemt — opnieuw opnemen alleen behoudt de stem die u al hebt.",
     "sonioxVoiceDeletedPlaceholder": "(verwijderde stem)",
     "sonioxVoiceDeleteInUse": "Deze stem wordt gebruikt door de actieve sessie — beëindig de sessie voordat u deze verwijdert",
     "sonioxVoiceProcessingBadge": "wordt verwerkt…",
@@ -305,8 +304,10 @@
       "mirror": "Zij spreken {{their}} → ik lees {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Face-to-face gebruikt altijd één gedeelde sessie: beide personen spreken in dezelfde microfoon.",
-    "sonioxParticipantVoice": "Stem van de ander",
-    "sonioxParticipantVoiceTooltip": "De stem die u de woorden van de ander voorleest, in uw taal. Alleen ingebouwde stemmen."
+    "voiceTheyHear": "Stem die de ander hoort",
+    "voiceIHear": "Stem die ik hoor",
+    "voiceIHearSame": "Dezelfde stem als die de ander hoort, dus leest {{voice}} in plaats daarvan.",
+    "voiceCustom": "Aangepaste stem"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch geauthenticeerd via uw account",
@@ -342,6 +343,7 @@
     "passthroughTip": "Mengt mijn eigen stem, op lager niveau, onder de vertaling in de virtuele microfoon. Maximaal 60%.",
     "passthroughVolume": "Volume {{percent}}%",
     "iHear": "Vertaling die ik hoor",
+    "voiceLine": "Stem",
     "iHearTip": "Wat de ander zegt, vertaald en aan mij voorgelezen.",
     "iHearNotOffered": "Deze dienst spreekt de vertaling van de ander niet uit.",
     "keepReplay": "Gesproken vertalingen bewaren voor herhaling",
@@ -508,7 +510,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "Stem van de spreker klonen",
-      "voiceGroupClone": "Stem klonen"
+      "voiceGroupClone": "Stem klonen",
+      "voiceSharedZhEn": "Chinees↔Engels: deze keuze geldt voor beide kanten.",
+      "voiceSummaryCloneMine": "Je eigen stem (gekloond)",
+      "voiceSummaryCloneTheirs": "De eigen stem van de ander (gekloond)"
     },
     "local_inference": {
       "name": "Gratis",
@@ -968,6 +973,7 @@
     "importError": "Importeren mislukt: {error}",
     "importVoice": "Stem importeren…",
     "myVoices": "Aangepaste stemmen",
+    "customQuota": "({used}/{limit})",
     "play": "Afspelen",
     "presets": "Presets",
     "previewChargedToBalance": "Het beluisteren van een voorbeeld synthetiseert een kort fragment en wordt van uw accountsaldo afgeschreven.",

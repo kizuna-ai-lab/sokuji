@@ -250,7 +250,6 @@
     "sonioxVoiceNamePlaceholder": "Nom pour une nouvelle voix clonée (facultatif)",
     "sonioxVoiceDefaultName": "Ma voix {{n}}",
     "sonioxManagedVoiceName": "Ma voix",
-    "sonioxManagedVoiceReplaceHint": "Supprimez cette voix avant d'en enregistrer une nouvelle — un simple réenregistrement conserve la voix que vous avez déjà.",
     "sonioxVoiceDeletedPlaceholder": "(voix supprimée)",
     "sonioxVoiceDeleteInUse": "Cette voix est utilisée par la session active — terminez la session avant de la supprimer",
     "sonioxVoiceProcessingBadge": "traitement en cours…",
@@ -305,8 +304,10 @@
       "mirror": "Ils parlent {{their}} → je lis {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Le face à face utilise toujours une session partagée : les deux personnes parlent dans le même micro.",
-    "sonioxParticipantVoice": "Voix de l'autre",
-    "sonioxParticipantVoiceTooltip": "La voix qui vous lit, dans votre langue, ce que dit l'autre. Voix préréglées uniquement."
+    "voiceTheyHear": "Voix entendue par l'autre",
+    "voiceIHear": "Voix que j'entends",
+    "voiceIHearSame": "C'est la voix entendue par l'autre, donc {{voice}} lit à sa place.",
+    "voiceCustom": "Voix personnalisée"
   },
   "simpleSettings": {
     "autoAuthenticated": "Authentifié automatiquement via votre compte",
@@ -342,6 +343,7 @@
     "passthroughTip": "Mélange ma propre voix, à un niveau plus bas, sous la traduction dans le micro virtuel. 60 % au maximum.",
     "passthroughVolume": "Volume {{percent}} %",
     "iHear": "Traduction que j'entends",
+    "voiceLine": "Voix",
     "iHearTip": "Ce que dit l'autre, traduit et lu à voix haute pour moi.",
     "iHearNotOffered": "Ce service ne lit pas la traduction de l'autre.",
     "keepReplay": "Conserver les traductions parlées pour les réécouter",
@@ -508,7 +510,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "Cloner la voix de l'orateur",
-      "voiceGroupClone": "Clonage de voix"
+      "voiceGroupClone": "Clonage de voix",
+      "voiceSharedZhEn": "Chinois↔anglais : ce choix vaut pour les deux côtés.",
+      "voiceSummaryCloneMine": "Votre propre voix (clonée)",
+      "voiceSummaryCloneTheirs": "La voix de l'autre (clonée)"
     },
     "local_inference": {
       "name": "Gratuit",
@@ -968,6 +973,7 @@
     "importError": "Échec de l'importation : {error}",
     "importVoice": "Importer une voix…",
     "myVoices": "Voix personnalisées",
+    "customQuota": "({used}/{limit})",
     "play": "Lire",
     "presets": "Préréglages",
     "previewChargedToBalance": "L'écoute d'un aperçu synthétise un court échantillon et est facturée sur le solde de votre compte.",

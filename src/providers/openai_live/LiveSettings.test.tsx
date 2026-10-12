@@ -28,7 +28,7 @@ vi.mock('./preview', () => ({ previewLiveVoice }));
 const libraryProps = () => library[library.length - 1];
 
 import type { SettingsProps } from '../../lib/provider/types';
-import { LiveSettingsView } from './LiveSettings';
+import { LiveSettingsView, LiveVoiceSummary } from './LiveSettings';
 import { LIVE_DEFAULTS, LIVE_VOICES, type LiveSettings } from './settings';
 
 const props = (patch: Partial<SettingsProps<LiveSettings>> = {}): SettingsProps<LiveSettings> => ({
@@ -100,5 +100,30 @@ describe('LiveSettingsView (choice 17)', () => {
     const signal = new AbortController().signal;
     await library.onPreview!('cinder', signal);
     expect(previewLiveVoice).toHaveBeenCalledWith('cinder', signal);
+  });
+});
+
+describe('LiveVoiceSummary', () => {
+  it("names each leg's voice as a run speaks it; one the list no longer has reads as the default", () => {
+    const text = (settings: Partial<LiveSettings>, leg: 'speaker' | 'participant') =>
+      render(<LiveVoiceSummary settings={{ ...LIVE_DEFAULTS, ...settings }} update={() => {}} leg={leg} />).container.textContent;
+    const name = (value: string) => LIVE_VOICES.find((v) => v.value === value)!.name;
+    expect(text({ voice: 'quartz' }, 'speaker')).toBe(name('quartz'));
+    expect(text({ voice: 'marin', participantVoice: 'quartz' }, 'participant')).toBe(name('quartz'));
+    expect(text({ voice: 'retired' }, 'speaker')).toBe(name('marin'));
+  });
+});
+
+describe('LiveSettingsView, the participant spoken', () => {
+  it("adds the other party's row, auditioning the same published samples, writing its own field", () => {
+    const update = vi.fn();
+    render(<LiveSettingsView {...props({ update, participantSpeaks: true })} />);
+    const [mine, theirs] = library.slice(-2);
+    expect(mine.label).toBe('Voice the other side hears');
+    expect(theirs.label).toBe('Voice I hear');
+    expect(theirs.selectedId).toBe('cedar');
+    expect(theirs.onPreview).toBe(mine.onPreview);
+    theirs.onSelect('quartz');
+    expect(update).toHaveBeenCalledWith({ participantVoice: 'quartz' });
   });
 });

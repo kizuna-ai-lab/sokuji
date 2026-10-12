@@ -250,7 +250,6 @@
     "sonioxVoiceNamePlaceholder": "نام برای صدای شبیه‌سازی‌شده جدید (اختیاری)",
     "sonioxVoiceDefaultName": "صدای من {{n}}",
     "sonioxManagedVoiceName": "صدای من",
-    "sonioxManagedVoiceReplaceHint": "پیش از ضبط صدای جدید، این صدا را حذف کنید — ضبط دوباره به‌تنهایی همان صدای فعلی را نگه می‌دارد.",
     "sonioxVoiceDeletedPlaceholder": "(صدای حذف‌شده)",
     "sonioxVoiceDeleteInUse": "این صدا در جلسه فعال استفاده می‌شود — پیش از حذف، جلسه را پایان دهید",
     "sonioxVoiceProcessingBadge": "در حال پردازش…",
@@ -305,8 +304,10 @@
       "mirror": "آن‌ها به {{their}} صحبت می‌کنند → من به {{mine}} می‌خوانم"
     },
     "sonioxSharedSessionFaceToFace": "در حالت رو در رو همیشه یک نشست مشترک استفاده می‌شود: هر دو نفر در یک میکروفون صحبت می‌کنند.",
-    "sonioxParticipantVoice": "صدای طرف مقابل",
-    "sonioxParticipantVoiceTooltip": "صدایی که سخنان طرف مقابل را به زبان شما برایتان می‌خواند. فقط صداهای داخلی."
+    "voiceTheyHear": "صدایی که طرف مقابل می‌شنود",
+    "voiceIHear": "صدایی که من می‌شنوم",
+    "voiceIHearSame": "همان صدایی است که طرف مقابل می‌شنود، پس به‌جای آن {{voice}} می‌خواند.",
+    "voiceCustom": "صدای سفارشی"
   },
   "simpleSettings": {
     "autoAuthenticated": "به طور خودکار از طریق حساب کاربری شما احراز هویت شده",
@@ -342,6 +343,7 @@
     "passthroughTip": "صدای خودم را با سطحی پایین‌تر زیر ترجمه به میکروفون مجازی می‌فرستد. حداکثر ۶۰٪.",
     "passthroughVolume": "بلندی صدا {{percent}}٪",
     "iHear": "ترجمه‌ای که من می‌شنوم",
+    "voiceLine": "صدا",
     "iHearTip": "آنچه طرف مقابل می‌گوید، ترجمه‌شده و با صدای بلند برای من خوانده می‌شود.",
     "iHearNotOffered": "این سرویس ترجمهٔ طرف مقابل را نمی‌خواند.",
     "keepReplay": "نگه‌داشتن ترجمه‌های گفتاری برای پخش دوباره",
@@ -508,7 +510,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "شبیه‌سازی صدای گوینده",
-      "voiceGroupClone": "شبیه‌سازی صدا"
+      "voiceGroupClone": "شبیه‌سازی صدا",
+      "voiceSharedZhEn": "چینی↔انگلیسی: این انتخاب برای هر دو طرف است.",
+      "voiceSummaryCloneMine": "صدای خودتان (شبیه‌سازی‌شده)",
+      "voiceSummaryCloneTheirs": "صدای خود طرف مقابل (شبیه‌سازی‌شده)"
     },
     "local_inference": {
       "name": "رایگان",
@@ -968,6 +973,7 @@
     "importError": "وارد کردن ناموفق بود: {error}",
     "importVoice": "وارد کردن صدا…",
     "myVoices": "صداهای سفارشی",
+    "customQuota": "({used}/{limit})",
     "play": "پخش",
     "presets": "پیش‌تنظیم‌ها",
     "previewChargedToBalance": "پیش‌نمایش یک نمونه کوتاه تولید می‌کند و هزینه آن از موجودی حساب شما کسر می‌شود.",

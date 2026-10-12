@@ -250,7 +250,6 @@
     "sonioxVoiceNamePlaceholder": "ชื่อสำหรับเสียงโคลนใหม่ (ไม่บังคับ)",
     "sonioxVoiceDefaultName": "เสียงของฉัน {{n}}",
     "sonioxManagedVoiceName": "เสียงของฉัน",
-    "sonioxManagedVoiceReplaceHint": "ลบเสียงนี้ก่อนบันทึกเสียงใหม่ — การบันทึกใหม่เพียงอย่างเดียวจะยังคงใช้เสียงเดิมที่คุณมีอยู่",
     "sonioxVoiceDeletedPlaceholder": "(เสียงที่ถูกลบ)",
     "sonioxVoiceDeleteInUse": "เสียงนี้กำลังถูกใช้ในเซสชันที่ทำงานอยู่ — จบเซสชันก่อนลบ",
     "sonioxVoiceProcessingBadge": "กำลังประมวลผล…",
@@ -305,8 +304,10 @@
       "mirror": "พวกเขาพูด {{their}} → ฉันอ่าน {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "โหมดเผชิญหน้าใช้เซสชันที่ใช้ร่วมกันเสมอ เพราะทั้งสองคนพูดเข้าไมโครโฟนตัวเดียวกัน",
-    "sonioxParticipantVoice": "เสียงของอีกฝ่าย",
-    "sonioxParticipantVoiceTooltip": "เสียงที่อ่านคำพูดของอีกฝ่ายให้คุณฟังเป็นภาษาของคุณ ใช้ได้เฉพาะเสียงในตัว"
+    "voiceTheyHear": "เสียงที่อีกฝ่ายได้ยิน",
+    "voiceIHear": "เสียงที่ฉันได้ยิน",
+    "voiceIHearSame": "เป็นเสียงเดียวกับที่อีกฝ่ายได้ยิน จึงใช้ {{voice}} อ่านแทน",
+    "voiceCustom": "เสียงที่กำหนดเอง"
   },
   "simpleSettings": {
     "autoAuthenticated": "ตรวจสอบสิทธิ์อัตโนมัติผ่านบัญชีของคุณ",
@@ -342,6 +343,7 @@
     "passthroughTip": "ผสมเสียงของฉันที่ระดับเบากว่าไว้ใต้คำแปล แล้วส่งเข้าไมโครโฟนเสมือน สูงสุด 60%",
     "passthroughVolume": "ระดับเสียง {{percent}}%",
     "iHear": "คำแปลที่ฉันได้ยิน",
+    "voiceLine": "เสียง",
     "iHearTip": "สิ่งที่อีกฝ่ายพูด แปลแล้วอ่านออกเสียงให้ฉันฟัง",
     "iHearNotOffered": "บริการนี้ไม่อ่านคำแปลของอีกฝ่ายออกเสียง",
     "keepReplay": "เก็บเสียงคำแปลไว้เล่นซ้ำ",
@@ -508,7 +510,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "โคลนเสียงผู้พูด",
-      "voiceGroupClone": "การโคลนเสียง"
+      "voiceGroupClone": "การโคลนเสียง",
+      "voiceSharedZhEn": "จีน↔อังกฤษ: ตัวเลือกนี้ใช้กับทั้งสองฝ่าย",
+      "voiceSummaryCloneMine": "เสียงของคุณเอง (โคลน)",
+      "voiceSummaryCloneTheirs": "เสียงของอีกฝ่ายเอง (โคลน)"
     },
     "local_inference": {
       "name": "ฟรี",
@@ -968,6 +973,7 @@
     "importError": "นำเข้าไม่สำเร็จ: {error}",
     "importVoice": "นำเข้าเสียง…",
     "myVoices": "เสียงที่กำหนดเอง",
+    "customQuota": "({used}/{limit})",
     "play": "เล่น",
     "presets": "พรีเซ็ต",
     "previewChargedToBalance": "การฟังตัวอย่างจะสังเคราะห์คลิปสั้น ๆ และจะถูกเรียกเก็บจากยอดคงเหลือในบัญชีของคุณ",

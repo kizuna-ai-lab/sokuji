@@ -48,8 +48,11 @@ describe("OpenAI Realtime's builder", () => {
     // The mechanism and knobs are the user's own setting, not forced by the leg: the default (Normal/server VAD) reaches the participant untouched.
     expect(build({}, PARTICIPANT).turnDetection).toEqual({ type: 'server_vad', threshold: 0.49, prefixPaddingMs: 500, silenceDurationMs: 500 });
     expect(build(s).instructions).toBe('Mine.');
-    // Its switch on: it speaks, in the same voice (ruling 15).
-    expect(build(s, { ...PARTICIPANT, speech: true })).toMatchObject({ modalities: ['audio'], voice: 'alloy' });
+    // Its switch on: it speaks (ruling 15), in its own voice (2026-10-12).
+    expect(build(s, { ...PARTICIPANT, speech: true })).toMatchObject({ modalities: ['audio'], voice: 'ash' });
+    expect(build({ voice: 'alloy', participantVoice: 'coral' }, { ...PARTICIPANT, speech: true }).voice).toBe('coral');
+    expect(build({ voice: 'coral', participantVoice: 'coral' }, { ...PARTICIPANT, speech: true }).voice).toBe('ash');
+    expect(build({ voice: 'alloy', participantVoice: 'coral' }).voice).toBe('alloy');
   });
 
   it('under manual turns asks for no detection: the client commits', () => {

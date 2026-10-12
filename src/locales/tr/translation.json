@@ -250,7 +250,6 @@
     "sonioxVoiceNamePlaceholder": "Yeni klonlanmış ses için ad (isteğe bağlı)",
     "sonioxVoiceDefaultName": "Sesim {{n}}",
     "sonioxManagedVoiceName": "Sesim",
-    "sonioxManagedVoiceReplaceHint": "Yeni bir ses kaydetmeden önce bu sesi silin — yalnızca yeniden kaydetmek mevcut sesinizi korur.",
     "sonioxVoiceDeletedPlaceholder": "(silinmiş ses)",
     "sonioxVoiceDeleteInUse": "Bu ses etkin oturum tarafından kullanılıyor — silmeden önce oturumu sonlandırın",
     "sonioxVoiceProcessingBadge": "işleniyor…",
@@ -305,8 +304,10 @@
       "mirror": "Onlar {{their}} konuşuyor → ben {{mine}} okuyorum"
     },
     "sonioxSharedSessionFaceToFace": "Yüz yüze modu her zaman tek bir paylaşılan oturum kullanır: iki kişi de aynı mikrofona konuşur.",
-    "sonioxParticipantVoice": "Karşı tarafın sesi",
-    "sonioxParticipantVoiceTooltip": "Karşı tarafın söylediklerini size kendi dilinizde okuyan ses. Yalnızca yerleşik sesler."
+    "voiceTheyHear": "Karşı tarafın duyduğu ses",
+    "voiceIHear": "Duyduğum ses",
+    "voiceIHearSame": "Karşı tarafın duyduğu sesle aynı, bu yüzden onun yerine {{voice}} okur.",
+    "voiceCustom": "Özel ses"
   },
   "simpleSettings": {
     "autoAuthenticated": "Hesabınız üzerinden otomatik olarak doğrulandı",
@@ -342,6 +343,7 @@
     "passthroughTip": "Kendi sesimi daha düşük seviyede çevirinin altına karıştırıp sanal mikrofona gönderir. En fazla %60.",
     "passthroughVolume": "Ses düzeyi %{{percent}}",
     "iHear": "Duyduğum çeviri",
+    "voiceLine": "Ses",
     "iHearTip": "Karşı tarafın söyledikleri çevrilip bana sesli okunur.",
     "iHearNotOffered": "Bu hizmet karşı tarafın çevirisini sesli okumaz.",
     "keepReplay": "Sesli çevirileri tekrar için sakla",
@@ -508,7 +510,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "Konuşanın sesini klonla",
-      "voiceGroupClone": "Ses klonlama"
+      "voiceGroupClone": "Ses klonlama",
+      "voiceSharedZhEn": "Çince↔İngilizce: bu seçim iki taraf için de geçerli.",
+      "voiceSummaryCloneMine": "Kendi sesiniz (klonlanmış)",
+      "voiceSummaryCloneTheirs": "Karşı tarafın kendi sesi (klonlanmış)"
     },
     "local_inference": {
       "name": "Ücretsiz",
@@ -968,6 +973,7 @@
     "importError": "İçe aktarma başarısız: {error}",
     "importVoice": "Ses içe aktar…",
     "myVoices": "Özel sesler",
+    "customQuota": "({used}/{limit})",
     "play": "Oynat",
     "presets": "Hazır ayarlar",
     "previewChargedToBalance": "Önizlemeyi dinlemek kısa bir örnek sentezler ve hesap bakiyenizden düşülür.",

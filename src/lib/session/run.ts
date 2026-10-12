@@ -165,7 +165,8 @@ export class Run {
     const contexts = contextsFor(shape);
     const configs: Partial<Record<LegName, unknown>> = {};
     for (const leg of shape.legs) {
-      const built = p.build(contexts[leg]!, settings, shared);
+      // Which leg this is, told outright: a same-language pair (en → en) gives both legs one direction, which no direction test can tell apart.
+      const built = p.build(contexts[leg]!, settings, { ...shared, reversed: () => leg === 'participant' });
       // `C` has no `refused` member (the provider type's constraint), so this tells a refusal from a config.
       if (typeof built?.refused === 'string') {
         throw new RefusedError({

@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { PreviewPort } from '../../../lib/provider/types';
+import type { PreviewPort, VoiceSummaryProps } from '../../../lib/provider/types';
 import type { VoiceLibraryCapability } from '../../../types/VoiceLibrary';
 import VoiceLibrarySection, { type VoiceEntry, type VoiceLibrarySectionProps } from '../../Settings/sections/VoiceLibrarySection';
 import { VoicePreviewContext } from '../VoicePreviewContext';
@@ -33,6 +33,23 @@ export function presetVoice({ value, name, gender, style, description }: PresetV
   };
 }
 
+/**
+ * A `VoiceSummary` for a provider with one voice setting, which both legs
+ * speak in: the name its list gives the voice `voiceOf` picks, as its run
+ * resolves it; nothing when it picks none (that provider's run speaks no
+ * chosen voice then).
+ */
+export function presetVoiceSummary<S>(
+  voices: readonly { value: string; name: string }[],
+  voiceOf: (props: VoiceSummaryProps<S>) => string | undefined,
+): ComponentType<VoiceSummaryProps<S>> {
+  return function PresetVoiceSummary(props: VoiceSummaryProps<S>) {
+    const id = voiceOf(props);
+    if (!id) return null;
+    return <>{voices.find((v) => v.value === id)?.name ?? id}</>;
+  };
+}
+
 export interface PresetVoiceFieldProps {
   voices: VoiceEntry[];
   value: string;
@@ -46,6 +63,20 @@ export interface PresetVoiceFieldProps {
   /** The host's voice-preview route (`SettingsProps.preview`). */
   preview?: PreviewPort;
   disabled?: boolean;
+  /** The other party's row, while it is spoken: the same list, its own choice. */
+  participant?: ParticipantVoice & {
+    /** Its audition, when it reads in another language than mine; absent, the first row's. */
+    onPreview?: VoiceLibrarySectionProps['onPreview'];
+  };
+}
+
+/** The other party's voice, as a second voice row takes it. */
+export interface ParticipantVoice {
+  /** The stored choice. */
+  value: string;
+  /** What a run speaks in (`distinctVoice`): another voice when the choice is the speaker's own. */
+  effective: string;
+  onChange(voice: string): void;
 }
 
 /**
@@ -55,23 +86,43 @@ export interface PresetVoiceFieldProps {
  * `#voice-settings-section` is Settings' `voice-settings` target
  * (`Settings.tsx:51`), as the old select's section was.
  */
-export function PresetVoiceField({ voices, value, onChange, onPreview, previewUnavailableReason, note, preview, disabled = false }: PresetVoiceFieldProps) {
+export function PresetVoiceField({ voices, value, onChange, onPreview, previewUnavailableReason, note, preview, disabled = false, participant }: PresetVoiceFieldProps) {
   const { t } = useTranslation();
+  const nameOf = (id: string) => voices.find((v) => v.id === id)?.label ?? id;
   return (
     <VoicePreviewContext.Provider value={preview ?? null}>
       <div className="settings-section voice-settings-section" id="voice-settings-section">
         <h2>{t('settings.voiceSettings', 'Voice Settings')}</h2>
         <VoiceLibrarySection
+          label={participant ? t('settings.voiceTheyHear', 'Voice the other side hears') : undefined}
           voices={voices}
           selectedId={value}
           onSelect={onChange}
           onDelete={NO_DELETE}
           onPreview={onPreview}
           previewUnavailableReason={previewUnavailableReason}
-          manageNote={note}
+          // The cost note goes under the last row, after both pickers it describes.
+          manageNote={participant ? undefined : note}
           capability={CAPABILITY}
           isSessionActive={disabled}
         />
+        {participant && (
+          <VoiceLibrarySection
+            label={t('settings.voiceIHear', 'Voice I hear')}
+            voices={voices}
+            selectedId={participant.value}
+            onSelect={participant.onChange}
+            onDelete={NO_DELETE}
+            onPreview={participant.onPreview ?? onPreview}
+            previewUnavailableReason={previewUnavailableReason}
+            manageNote={note}
+            capability={CAPABILITY}
+            isSessionActive={disabled}
+            note={participant.effective !== participant.value
+              ? t('settings.voiceIHearSame', 'Same as the voice the other side hears, so {{voice}} reads instead.', { voice: nameOf(participant.effective) })
+              : undefined}
+          />
+        )}
       </div>
     </VoicePreviewContext.Provider>
   );

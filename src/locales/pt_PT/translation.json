@@ -250,7 +250,6 @@
     "sonioxVoiceNamePlaceholder": "Nome para uma nova voz clonada (opcional)",
     "sonioxVoiceDefaultName": "A Minha Voz {{n}}",
     "sonioxManagedVoiceName": "A minha voz",
-    "sonioxManagedVoiceReplaceHint": "Elimine esta voz antes de gravar uma nova — voltar a gravar por si só mantém a voz que já tem.",
     "sonioxVoiceDeletedPlaceholder": "(voz eliminada)",
     "sonioxVoiceDeleteInUse": "Esta voz está a ser usada pela sessão ativa — termine a sessão antes de a eliminar",
     "sonioxVoiceProcessingBadge": "a processar…",
@@ -305,8 +304,10 @@
       "mirror": "Eles falam {{their}} → eu leio {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "O cara a cara usa sempre uma sessão partilhada: as duas pessoas falam para o mesmo microfone.",
-    "sonioxParticipantVoice": "Voz do outro",
-    "sonioxParticipantVoiceTooltip": "A voz que lhe lê, no seu idioma, o que o outro diz. Apenas vozes integradas."
+    "voiceTheyHear": "Voz que o outro lado ouve",
+    "voiceIHear": "Voz que eu ouço",
+    "voiceIHearSame": "É a mesma voz que o outro lado ouve, por isso {{voice}} lê em vez dela.",
+    "voiceCustom": "Voz personalizada"
   },
   "simpleSettings": {
     "autoAuthenticated": "Autenticado automaticamente através da sua conta",
@@ -342,6 +343,7 @@
     "passthroughTip": "Mistura a minha própria voz, a um nível mais baixo, sob a tradução no microfone virtual. No máximo 60%.",
     "passthroughVolume": "Volume {{percent}}%",
     "iHear": "Tradução que eu ouço",
+    "voiceLine": "Voz",
     "iHearTip": "O que o outro lado diz, traduzido e lido em voz alta para mim.",
     "iHearNotOffered": "Este serviço não fala a tradução do outro lado.",
     "keepReplay": "Guardar traduções faladas para reprodução",
@@ -508,7 +510,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "Clonar a voz de quem fala",
-      "voiceGroupClone": "Clonagem de voz"
+      "voiceGroupClone": "Clonagem de voz",
+      "voiceSharedZhEn": "Chinês↔inglês: esta escolha vale para os dois lados.",
+      "voiceSummaryCloneMine": "A sua própria voz (clonada)",
+      "voiceSummaryCloneTheirs": "A própria voz do outro (clonada)"
     },
     "local_inference": {
       "name": "Gratuito",
@@ -968,6 +973,7 @@
     "importError": "Falha na importação: {error}",
     "importVoice": "Importar voz…",
     "myVoices": "Vozes personalizadas",
+    "customQuota": "({used}/{limit})",
     "play": "Reproduzir",
     "presets": "Predefinições",
     "previewChargedToBalance": "Ouvir a pré-visualização sintetiza uma pequena amostra e é cobrada do saldo da sua conta.",

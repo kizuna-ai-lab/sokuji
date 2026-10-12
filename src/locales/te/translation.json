@@ -250,7 +250,6 @@
     "sonioxVoiceNamePlaceholder": "కొత్త క్లోన్ చేసిన వాయిస్ కోసం పేరు (ఐచ్ఛికం)",
     "sonioxVoiceDefaultName": "నా వాయిస్ {{n}}",
     "sonioxManagedVoiceName": "నా వాయిస్",
-    "sonioxManagedVoiceReplaceHint": "కొత్త వాయిస్‌ను రికార్డ్ చేసే ముందు ఈ వాయిస్‌ను తొలగించండి — మళ్ళీ రికార్డ్ చేయడం మాత్రమే మీ ప్రస్తుత వాయిస్‌నే ఉంచుతుంది.",
     "sonioxVoiceDeletedPlaceholder": "(తొలగించిన వాయిస్)",
     "sonioxVoiceDeleteInUse": "ఈ వాయిస్ యాక్టివ్ సెషన్‌లో ఉపయోగంలో ఉంది — తొలగించే ముందు సెషన్‌ను ముగించండి",
     "sonioxVoiceProcessingBadge": "ప్రాసెస్ అవుతోంది…",
@@ -305,8 +304,10 @@
       "mirror": "వారు {{their}} మాట్లాడతారు → నేను {{mine}} చదువుతాను"
     },
     "sonioxSharedSessionFaceToFace": "ముఖాముఖిలో ఎల్లప్పుడూ ఒకే భాగస్వామ్య సెషన్ వాడబడుతుంది: ఇద్దరూ ఒకే మైక్రోఫోన్‌లో మాట్లాడతారు.",
-    "sonioxParticipantVoice": "అవతలి వైపు స్వరం",
-    "sonioxParticipantVoiceTooltip": "అవతలి వ్యక్తి మాటలను మీ భాషలో మీకు చదివి వినిపించే స్వరం. ప్రీసెట్ వాయిస్‌లు మాత్రమే."
+    "voiceTheyHear": "అవతలి వైపు వినే వాయిస్",
+    "voiceIHear": "నేను వినే వాయిస్",
+    "voiceIHearSame": "అవతలి వైపు వినే వాయిస్ ఇదే, కాబట్టి దీనికి బదులుగా {{voice}} చదువుతుంది.",
+    "voiceCustom": "అనుకూల వాయిస్"
   },
   "simpleSettings": {
     "autoAuthenticated": "మీ ఖాతా ద్వారా స్వయంచాలకంగా ప్రామాణీకరించబడింది",
@@ -342,6 +343,7 @@
     "passthroughTip": "నా సొంత గొంతును తక్కువ స్థాయిలో అనువాదం కింద కలిపి వర్చువల్ మైక్రోఫోన్‌కు పంపుతుంది. గరిష్టంగా 60%.",
     "passthroughVolume": "వాల్యూమ్ {{percent}}%",
     "iHear": "నేను వినే అనువాదం",
+    "voiceLine": "వాయిస్",
     "iHearTip": "అవతలి వైపు చెప్పేది అనువదించి నాకు చదివి వినిపిస్తుంది.",
     "iHearNotOffered": "ఈ సేవ అవతలి వైపు అనువాదాన్ని చదవదు.",
     "keepReplay": "మళ్లీ వినడానికి చదివిన అనువాదాలను ఉంచు",
@@ -508,7 +510,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "యాప్ ID + యాక్సెస్ టోకెన్",
       "voiceClone": "మాట్లాడేవారి గొంతును క్లోన్ చేయి",
-      "voiceGroupClone": "గొంతు క్లోనింగ్"
+      "voiceGroupClone": "గొంతు క్లోనింగ్",
+      "voiceSharedZhEn": "చైనీస్↔ఇంగ్లీష్: ఈ ఎంపిక ఇరు వైపులకూ వర్తిస్తుంది.",
+      "voiceSummaryCloneMine": "మీ సొంత గొంతు (క్లోన్)",
+      "voiceSummaryCloneTheirs": "అవతలి వైపు వారి సొంత గొంతు (క్లోన్)"
     },
     "local_inference": {
       "name": "ఉచిత",
@@ -968,6 +973,7 @@
     "importError": "దిగుమతి విఫలమైంది: {error}",
     "importVoice": "వాయిస్ దిగుమతి చేయి…",
     "myVoices": "అనుకూల వాయిస్‌లు",
+    "customQuota": "({used}/{limit})",
     "play": "ప్లే చేయి",
     "presets": "ప్రీసెట్‌లు",
     "previewChargedToBalance": "ప్రివ్యూ వినడం ఒక చిన్న నమూనాను సంశ్లేషిస్తుంది మరియు మీ ఖాతా బ్యాలెన్స్ నుండి ఛార్జ్ చేయబడుతుంది.",

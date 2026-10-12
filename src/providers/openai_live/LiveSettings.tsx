@@ -1,10 +1,14 @@
 import { useTranslation } from 'react-i18next';
 import { InstructionsField } from '../../components/providers/fields/InstructionsField';
-import { PresetVoiceField, presetVoice } from '../../components/providers/fields/PresetVoiceField';
+import { PresetVoiceField, presetVoice, presetVoiceSummary } from '../../components/providers/fields/PresetVoiceField';
 import { resolveInstructions } from '../../lib/provider/instructions';
 import type { SettingsProps } from '../../lib/provider/types';
 import { previewLiveVoice } from './preview';
-import { LIVE_VOICES, liveLanguageName, liveLanguages, type LiveSettings as S } from './settings';
+import { LIVE_VOICES, liveLanguageName, liveLanguages, liveParticipantVoice, liveSpeakerVoice, type LiveSettings as S } from './settings';
+
+/** Both legs speak the one voice; one the list no longer has falls to the default (`config.ts`). */
+export const LiveVoiceSummary = presetVoiceSummary<S>(LIVE_VOICES, ({ settings, leg }) =>
+  leg === 'participant' ? liveParticipantVoice(settings) : liveSpeakerVoice(settings));
 
 /**
  * OpenAI Live's own settings (D18): what the old tab showed for it once the
@@ -16,7 +20,7 @@ import { LIVE_VOICES, liveLanguageName, liveLanguages, type LiveSettings as S } 
  * labels (decision 2026-10-03). No model (it is fixed), no turn detection,
  * no noise reduction: the endpoint has none of them.
  */
-export function LiveSettingsView({ settings, update, disabled = false, pair, preview: port }: SettingsProps<S>) {
+export function LiveSettingsView({ settings, update, disabled = false, pair, participantSpeaks = false, preview: port }: SettingsProps<S>) {
   const { t } = useTranslation();
   const headings = {
     realtime: t('providers.openai_live.voiceGroupRealtime', 'Same as Realtime'),
@@ -30,7 +34,11 @@ export function LiveSettingsView({ settings, update, disabled = false, pair, pre
   return (
     <>
       <InstructionsField value={settings} onChange={update} preview={preview} disabled={disabled} />
-      <PresetVoiceField voices={voices} value={settings.voice} onChange={(voice) => update({ voice })} onPreview={previewLiveVoice} preview={port} disabled={disabled} />
+      <PresetVoiceField
+        voices={voices} value={settings.voice} onChange={(voice) => update({ voice })} onPreview={previewLiveVoice} preview={port} disabled={disabled}
+        // The published samples are one clip per voice: the second row auditions the same way.
+        participant={participantSpeaks ? { value: settings.participantVoice, effective: liveParticipantVoice(settings), onChange: (participantVoice) => update({ participantVoice }) } : undefined}
+      />
     </>
   );
 }

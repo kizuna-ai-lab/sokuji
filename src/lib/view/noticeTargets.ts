@@ -28,8 +28,8 @@ export const NOTICE_TARGETS: Readonly<Record<string, string>> = {
   no_translate_model: 'provider',
   region_unsupported: 'provider',
   // The run continues on another voice (spec 2026-10-05 §2): the voice picker is the provider
-  // section's. Not `voice-settings`: that id is only the prebuilt-voice field, and Soniox's
-  // custom voice and the local voices are not drawn there.
+  // section's. Not `voice-settings`: that id is the prebuilt-voice fields' and Soniox's voice
+  // section, and the local voices are not drawn there.
   voice_clip_missing: 'provider',
   voice_pool_busy: 'provider',
   voice_build_failed: 'provider',

@@ -250,7 +250,6 @@
     "sonioxVoiceNamePlaceholder": "新克隆声音的名称（可选）",
     "sonioxVoiceDefaultName": "我的声音 {{n}}",
     "sonioxManagedVoiceName": "我的声音",
-    "sonioxManagedVoiceReplaceHint": "录制新声音前请先删除此声音 — 仅重新录制仍会保留您现有的声音。",
     "sonioxVoiceDeletedPlaceholder": "（已删除的声音）",
     "sonioxVoiceDeleteInUse": "此声音正在被当前会话使用 — 请先结束会话再删除",
     "sonioxVoiceProcessingBadge": "处理中…",
@@ -305,8 +304,10 @@
       "mirror": "对方说 {{their}} → 我阅读 {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "面对面对话始终使用同一个共享会话：两个人对着同一个麦克风说话。",
-    "sonioxParticipantVoice": "对方的声音",
-    "sonioxParticipantVoiceTooltip": "用您的语言读出对方所说内容的声音。仅限预设声音。"
+    "voiceTheyHear": "对方听到的声音",
+    "voiceIHear": "我听到的声音",
+    "voiceIHearSame": "和对方听到的声音相同，朗读时改用 {{voice}}。",
+    "voiceCustom": "自定义声音"
   },
   "simpleSettings": {
     "autoAuthenticated": "已通过您的账户自动认证",
@@ -342,6 +343,7 @@
     "passthroughTip": "把我的原声以较低音量混在译音下面，一起送进虚拟麦克风。最大 60%。",
     "passthroughVolume": "音量 {{percent}}%",
     "iHear": "我听到的翻译",
+    "voiceLine": "声音",
     "iHearTip": "对方说的话翻译后朗读给我。",
     "iHearNotOffered": "此服务不朗读对方的翻译。",
     "keepReplay": "保留译音以便回放",
@@ -508,7 +510,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "应用 ID + 访问令牌",
       "voiceClone": "复刻说话人的声音",
-      "voiceGroupClone": "声音复刻"
+      "voiceGroupClone": "声音复刻",
+      "voiceSharedZhEn": "中英互译时，双方共用这一项。",
+      "voiceSummaryCloneMine": "我自己的声音（复刻）",
+      "voiceSummaryCloneTheirs": "对方自己的声音（复刻）"
     },
     "local_inference": {
       "name": "免费",
@@ -968,6 +973,7 @@
     "importError": "导入失败：{error}",
     "importVoice": "导入声音…",
     "myVoices": "自定义声音",
+    "customQuota": "（{used}/{limit}）",
     "play": "播放",
     "presets": "预设",
     "previewChargedToBalance": "试听会合成一小段样本，并从您的账户余额中扣费。",

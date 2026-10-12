@@ -250,7 +250,6 @@
     "sonioxVoiceNamePlaceholder": "Nama untuk suara klon baharu (pilihan)",
     "sonioxVoiceDefaultName": "Suara Saya {{n}}",
     "sonioxManagedVoiceName": "Suara saya",
-    "sonioxManagedVoiceReplaceHint": "Padam suara ini sebelum merakam yang baharu — merakam semula sahaja akan mengekalkan suara yang sedia ada.",
     "sonioxVoiceDeletedPlaceholder": "(suara dipadam)",
     "sonioxVoiceDeleteInUse": "Suara ini sedang digunakan oleh sesi aktif — tamatkan sesi sebelum memadamkannya",
     "sonioxVoiceProcessingBadge": "memproses…",
@@ -305,8 +304,10 @@
       "mirror": "Mereka bertutur {{their}} → Saya baca {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Bersemuka sentiasa menggunakan satu sesi dikongsi: kedua-dua orang bercakap ke dalam mikrofon yang sama.",
-    "sonioxParticipantVoice": "Suara pihak lain",
-    "sonioxParticipantVoiceTooltip": "Suara yang membacakan kata-kata pihak lain kepada anda dalam bahasa anda. Suara terbina dalam sahaja."
+    "voiceTheyHear": "Suara yang didengar pihak lain",
+    "voiceIHear": "Suara yang saya dengar",
+    "voiceIHearSame": "Sama dengan suara yang didengar pihak lain, jadi {{voice}} membaca sebagai gantinya.",
+    "voiceCustom": "Suara tersuai"
   },
   "simpleSettings": {
     "autoAuthenticated": "Disahkan secara automatik melalui akaun anda",
@@ -342,6 +343,7 @@
     "passthroughTip": "Mencampurkan suara saya sendiri, pada tahap lebih rendah, di bawah terjemahan ke mikrofon maya. Maksimum 60%.",
     "passthroughVolume": "Kelantangan {{percent}}%",
     "iHear": "Terjemahan yang saya dengar",
+    "voiceLine": "Suara",
     "iHearTip": "Apa yang pihak lain cakap, diterjemah dan dibacakan kepada saya.",
     "iHearNotOffered": "Perkhidmatan ini tidak membacakan terjemahan pihak lain.",
     "keepReplay": "Simpan terjemahan yang dituturkan untuk main semula",
@@ -508,7 +510,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "APP ID + Access Token",
       "voiceClone": "Klon suara penutur",
-      "voiceGroupClone": "Pengklonan suara"
+      "voiceGroupClone": "Pengklonan suara",
+      "voiceSharedZhEn": "Cina↔Inggeris: pilihan ini untuk kedua-dua pihak.",
+      "voiceSummaryCloneMine": "Suara anda sendiri (diklon)",
+      "voiceSummaryCloneTheirs": "Suara pihak lain sendiri (diklon)"
     },
     "local_inference": {
       "name": "Percuma",
@@ -968,6 +973,7 @@
     "importError": "Import gagal: {error}",
     "importVoice": "Import suara…",
     "myVoices": "Suara Tersuai",
+    "customQuota": "({used}/{limit})",
     "play": "Main",
     "presets": "Pratetap",
     "previewChargedToBalance": "Pratonton mensintesis klip pendek dan dicaj daripada baki akaun anda.",

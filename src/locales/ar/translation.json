@@ -250,7 +250,6 @@
     "sonioxVoiceNamePlaceholder": "اسم للصوت المستنسخ الجديد (اختياري)",
     "sonioxVoiceDefaultName": "صوتي {{n}}",
     "sonioxManagedVoiceName": "صوتي",
-    "sonioxManagedVoiceReplaceHint": "احذف هذا الصوت قبل تسجيل صوت جديد — إعادة التسجيل وحدها تُبقي الصوت الحالي كما هو.",
     "sonioxVoiceDeletedPlaceholder": "(صوت محذوف)",
     "sonioxVoiceDeleteInUse": "هذا الصوت قيد الاستخدام في الجلسة النشطة — أنهِ الجلسة قبل حذفه",
     "sonioxVoiceProcessingBadge": "قيد المعالجة…",
@@ -305,8 +304,10 @@
       "mirror": "يتحدثون {{their}} ← أقرأ {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "وضع وجهًا لوجه يستخدم دائمًا جلسة مشتركة واحدة: يتحدث الشخصان في الميكروفون نفسه.",
-    "sonioxParticipantVoice": "صوت الطرف الآخر",
-    "sonioxParticipantVoiceTooltip": "الصوت الذي يقرأ لك كلام الطرف الآخر بلغتك. الأصوات المدمجة فقط."
+    "voiceTheyHear": "الصوت الذي يسمعه الطرف الآخر",
+    "voiceIHear": "الصوت الذي أسمعه",
+    "voiceIHearSame": "هو نفس الصوت الذي يسمعه الطرف الآخر، لذا يقرأ {{voice}} بدلًا منه.",
+    "voiceCustom": "صوت مخصص"
   },
   "simpleSettings": {
     "autoAuthenticated": "تمت المصادقة تلقائيًا عبر حسابك",
@@ -342,6 +343,7 @@
     "passthroughTip": "يمزج صوتي بمستوى أخفض تحت الترجمة في الميكروفون الافتراضي. بحد أقصى 60%.",
     "passthroughVolume": "مستوى الصوت {{percent}}%",
     "iHear": "الترجمة التي أسمعها",
+    "voiceLine": "الصوت",
     "iHearTip": "ما يقوله الطرف الآخر، مترجمًا ومقروءًا بصوت عالٍ لي.",
     "iHearNotOffered": "هذه الخدمة لا تنطق ترجمة الطرف الآخر.",
     "keepReplay": "الاحتفاظ بالترجمات المنطوقة لإعادة التشغيل",
@@ -508,7 +510,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "استنساخ صوت المتحدث",
-      "voiceGroupClone": "استنساخ الصوت"
+      "voiceGroupClone": "استنساخ الصوت",
+      "voiceSharedZhEn": "الصينية↔الإنجليزية: هذا الاختيار للطرفين معًا.",
+      "voiceSummaryCloneMine": "صوتك أنت (مستنسخ)",
+      "voiceSummaryCloneTheirs": "صوت الطرف الآخر نفسه (مستنسخ)"
     },
     "local_inference": {
       "name": "مجاني",
@@ -968,6 +973,7 @@
     "importError": "فشل الاستيراد: {error}",
     "importVoice": "استيراد صوت…",
     "myVoices": "الأصوات المخصصة",
+    "customQuota": "({used}/{limit})",
     "play": "تشغيل",
     "presets": "الإعدادات المسبقة",
     "previewChargedToBalance": "تُنتج المعاينة مقطعًا صوتيًا قصيرًا ويُخصم من رصيد حسابك.",

@@ -6,7 +6,6 @@ import { LinesField } from '../../components/providers/fields/LinesField';
 import { VoicePreviewContext } from '../../components/providers/VoicePreviewContext';
 import Tooltip from '../../components/Tooltip/Tooltip';
 import type { SettingsProps } from '../../lib/provider/types';
-import { SONIOX_VOICES } from '../../lib/soniox/ttsCatalog';
 import { asSonioxRegion, SONIOX_REGION_LABELS, SONIOX_REGIONS } from '../../lib/soniox/regions';
 import { SonioxVoiceField, useByokVoiceSource, type VoiceSourceHook } from './SonioxVoiceField';
 import type { SonioxSettings as S } from './settings';
@@ -61,28 +60,7 @@ export function createSonioxSettingsView({ managed, useVoiceSource }: SonioxSett
           </div>
         </div>
 
-        <SonioxVoiceField settings={settings} update={update} disabled={disabled} target={pair?.target ?? 'en'} account={account} managed={managed} useVoiceSource={useVoiceSource} />
-
-        {participantSpeaks && (
-          <div className="settings-section" id="soniox-participant-voice-section">
-            <h2>
-              {t('settings.sonioxParticipantVoice', "Other party's voice")}
-              <Tooltip content={t('settings.sonioxParticipantVoiceTooltip', "The voice that reads the other person's words to you, in your language. Built-in voices only.")} position="top">{helpIcon}</Tooltip>
-            </h2>
-            <div className="setting-item">
-              <select
-                id="soniox-participant-voice-select"
-                className="select-dropdown"
-                aria-label={t('settings.sonioxParticipantVoice', "Other party's voice")}
-                value={settings.participantVoice}
-                disabled={disabled}
-                onChange={(e) => update({ participantVoice: e.target.value })}
-              >
-                {SONIOX_VOICES.map((v) => <option key={v.value} value={v.value}>{v.name}</option>)}
-              </select>
-            </div>
-          </div>
-        )}
+        <SonioxVoiceField settings={settings} update={update} disabled={disabled} target={pair?.target ?? 'en'} pairSource={pair?.source} participantSpeaks={participantSpeaks} account={account} managed={managed} useVoiceSource={useVoiceSource} />
 
         <TtsSpeedControl value={settings.ttsSpeed} onChange={(ttsSpeed) => update({ ttsSpeed })} disabled={disabled} min={0.7} max={1.3} step={0.05} />
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import './VoiceLibrarySection.scss';
 import type { VoiceLibraryCapability, VoiceFacets } from '../../../types/VoiceLibrary';
@@ -122,6 +122,12 @@ export interface VoiceLibrarySectionProps {
    *  already initialized) but leaves import / rename / delete available so
    *  users can stage voices for their next session. */
   isSessionActive?: boolean;
+  /** The row's name; absent, "Voice". Soniox names its two rows by who hears them. */
+  label?: string;
+  /** Shown in place of the selected voice's description: something about this choice the description cannot say. */
+  note?: string;
+  /** How many custom voices the account holds of how many it may, when the provider knows its limit. */
+  customQuota?: { used: number; limit: number };
 }
 
 const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
@@ -140,8 +146,12 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   manageNote,
   capability,
   isSessionActive = false,
+  label,
+  note,
+  customQuota,
 }) => {
   const { t } = useTranslation();
+  const labelId = useId();
 
   // ---- local playback (listen back to a voice's sample) -------------------
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -302,9 +312,9 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
 
   return (
     <div className="voice-library-section">
-      <div className="setting-item">
+      <div className="setting-item" role="group" aria-labelledby={labelId}>
         <div className="setting-label">
-          <span>{t('voiceLibrary.voice', 'Voice')}</span>
+          <span id={labelId}>{label ?? t('voiceLibrary.voice', 'Voice')}</span>
         </div>
         <VoicePicker
           voices={voices}
@@ -321,9 +331,10 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
           refreshing={refreshing}
           capability={capability}
           isSessionActive={isSessionActive}
+          customQuota={customQuota}
         />
-        {selectedDescription && (
-          <div className="voice-selected-description">{selectedDescription}</div>
+        {(note ?? selectedDescription) && (
+          <div className="voice-selected-description">{note ?? selectedDescription}</div>
         )}
       </div>
 

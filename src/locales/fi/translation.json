@@ -250,7 +250,6 @@
     "sonioxVoiceNamePlaceholder": "Nimi uudelle kloonatulle äänelle (valinnainen)",
     "sonioxVoiceDefaultName": "Oma ääni {{n}}",
     "sonioxManagedVoiceName": "Oma ääni",
-    "sonioxManagedVoiceReplaceHint": "Poista tämä ääni ennen uuden nauhoittamista — pelkkä uusi nauhoitus säilyttää nykyisen äänen.",
     "sonioxVoiceDeletedPlaceholder": "(poistettu ääni)",
     "sonioxVoiceDeleteInUse": "Tämä ääni on aktiivisen istunnon käytössä — lopeta istunto ennen sen poistamista",
     "sonioxVoiceProcessingBadge": "käsitellään…",
@@ -305,8 +304,10 @@
       "mirror": "He puhuvat {{their}} → luen {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Kasvokkain-tila käyttää aina yhtä jaettua istuntoa: molemmat puhuvat samaan mikrofoniin.",
-    "sonioxParticipantVoice": "Toisen osapuolen ääni",
-    "sonioxParticipantVoiceTooltip": "Ääni, joka lukee toisen sanat sinulle omalla kielelläsi. Vain sisäänrakennetut äänet."
+    "voiceTheyHear": "Ääni, jonka toinen osapuoli kuulee",
+    "voiceIHear": "Ääni, jonka kuulen",
+    "voiceIHearSame": "Sama kuin ääni, jonka toinen osapuoli kuulee, joten sen sijaan lukee {{voice}}.",
+    "voiceCustom": "Mukautettu ääni"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automaattisesti todennettu tilisi kautta",
@@ -342,6 +343,7 @@
     "passthroughTip": "Sekoittaa oman ääneni hiljaisemmalla tasolla käännöksen alle virtuaalimikrofoniin. Enintään 60 %.",
     "passthroughVolume": "Äänenvoimakkuus {{percent}} %",
     "iHear": "Käännös, jonka kuulen",
+    "voiceLine": "Ääni",
     "iHearTip": "Se, mitä toinen osapuoli sanoo, käännettynä ja luettuna ääneen minulle.",
     "iHearNotOffered": "Tämä palvelu ei puhu toisen osapuolen käännöstä.",
     "keepReplay": "Säilytä puhutut käännökset uudelleentoistoa varten",
@@ -508,7 +510,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "Kloonaa puhujan ääni",
-      "voiceGroupClone": "Äänen kloonaus"
+      "voiceGroupClone": "Äänen kloonaus",
+      "voiceSharedZhEn": "Kiina↔englanti: tämä valinta koskee molempia osapuolia.",
+      "voiceSummaryCloneMine": "Oma äänesi (kloonattu)",
+      "voiceSummaryCloneTheirs": "Toisen osapuolen oma ääni (kloonattu)"
     },
     "local_inference": {
       "name": "Ilmainen",
@@ -968,6 +973,7 @@
     "importError": "Tuonti epäonnistui: {error}",
     "importVoice": "Tuo ääni…",
     "myVoices": "Mukautetut äänet",
+    "customQuota": "({used}/{limit})",
     "play": "Toista",
     "presets": "Esiasetukset",
     "previewChargedToBalance": "Esikatselu syntetisoi lyhyen näytteen, ja sen hinta veloitetaan saldostasi.",

@@ -250,7 +250,6 @@
     "sonioxVoiceNamePlaceholder": "Name für eine neue geklonte Stimme (optional)",
     "sonioxVoiceDefaultName": "Meine Stimme {{n}}",
     "sonioxManagedVoiceName": "Meine Stimme",
-    "sonioxManagedVoiceReplaceHint": "Löschen Sie diese Stimme, bevor Sie eine neue aufnehmen — eine erneute Aufnahme allein behält die vorhandene Stimme bei.",
     "sonioxVoiceDeletedPlaceholder": "(gelöschte Stimme)",
     "sonioxVoiceDeleteInUse": "Diese Stimme wird von der aktiven Sitzung verwendet — beenden Sie die Sitzung, bevor Sie sie löschen",
     "sonioxVoiceProcessingBadge": "wird verarbeitet…",
@@ -305,8 +304,10 @@
       "mirror": "Sie sprechen {{their}} → ich lese {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Bei Gesprächen von Angesicht zu Angesicht wird immer eine gemeinsame Sitzung verwendet: Beide sprechen in dasselbe Mikrofon.",
-    "sonioxParticipantVoice": "Stimme des Gegenübers",
-    "sonioxParticipantVoiceTooltip": "Die Stimme, die Ihnen die Worte Ihres Gegenübers in Ihrer Sprache vorliest. Nur voreingestellte Stimmen."
+    "voiceTheyHear": "Stimme, die das Gegenüber hört",
+    "voiceIHear": "Stimme, die ich höre",
+    "voiceIHearSame": "Dieselbe Stimme, die das Gegenüber hört, daher liest stattdessen {{voice}}.",
+    "voiceCustom": "Benutzerdefinierte Stimme"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch über Ihr Konto authentifiziert",
@@ -342,6 +343,7 @@
     "passthroughTip": "Mischt meine eigene Stimme leiser unter die Übersetzung ins virtuelle Mikrofon. Höchstens 60 %.",
     "passthroughVolume": "Lautstärke {{percent}} %",
     "iHear": "Übersetzung, die ich höre",
+    "voiceLine": "Stimme",
     "iHearTip": "Was das Gegenüber sagt, übersetzt und mir vorgelesen.",
     "iHearNotOffered": "Dieser Dienst spricht die Übersetzung des Gegenübers nicht.",
     "keepReplay": "Gesprochene Übersetzungen zur Wiedergabe behalten",
@@ -508,7 +510,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "Stimme des Sprechers klonen",
-      "voiceGroupClone": "Stimmklonen"
+      "voiceGroupClone": "Stimmklonen",
+      "voiceSharedZhEn": "Chinesisch↔Englisch: Diese Wahl gilt für beide Seiten.",
+      "voiceSummaryCloneMine": "Ihre eigene Stimme (geklont)",
+      "voiceSummaryCloneTheirs": "Die eigene Stimme des Gegenübers (geklont)"
     },
     "local_inference": {
       "name": "Kostenlos",
@@ -968,6 +973,7 @@
     "importError": "Import fehlgeschlagen: {error}",
     "importVoice": "Stimme importieren…",
     "myVoices": "Benutzerdefinierte Stimmen",
+    "customQuota": "({used}/{limit})",
     "play": "Abspielen",
     "presets": "Voreinstellungen",
     "previewChargedToBalance": "Das Anhören einer Vorschau synthetisiert eine kurze Hörprobe und wird von Ihrem Kontoguthaben abgebucht.",

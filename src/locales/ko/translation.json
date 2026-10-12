@@ -250,7 +250,6 @@
     "sonioxVoiceNamePlaceholder": "새로 복제할 음성 이름(선택 사항)",
     "sonioxVoiceDefaultName": "내 음성 {{n}}",
     "sonioxManagedVoiceName": "내 음성",
-    "sonioxManagedVoiceReplaceHint": "새 음성을 녹음하기 전에 이 음성을 삭제하세요 — 다시 녹음하는 것만으로는 기존 음성이 그대로 유지됩니다.",
     "sonioxVoiceDeletedPlaceholder": "(삭제된 음성)",
     "sonioxVoiceDeleteInUse": "이 음성은 활성 세션에서 사용 중입니다 — 삭제하기 전에 세션을 종료하세요",
     "sonioxVoiceProcessingBadge": "처리 중…",
@@ -305,8 +304,10 @@
       "mirror": "상대방은 {{their}}로 말함 → 나는 {{mine}}로 읽음"
     },
     "sonioxSharedSessionFaceToFace": "마주 보고 대화할 때는 항상 하나의 공유 세션을 사용합니다. 두 사람이 같은 마이크에 대고 말하기 때문입니다.",
-    "sonioxParticipantVoice": "상대방 목소리",
-    "sonioxParticipantVoiceTooltip": "상대방의 말을 내 언어로 읽어 주는 목소리입니다. 프리셋 음성만 사용할 수 있습니다."
+    "voiceTheyHear": "상대방에게 들리는 음성",
+    "voiceIHear": "내가 듣는 음성",
+    "voiceIHearSame": "상대방에게 들리는 음성과 같아서 대신 {{voice}} 음성으로 읽습니다.",
+    "voiceCustom": "사용자 정의 음성"
   },
   "simpleSettings": {
     "autoAuthenticated": "계정을 통해 자동으로 인증됨",
@@ -342,6 +343,7 @@
     "passthroughTip": "내 원음을 낮은 음량으로 번역 음성 아래에 섞어 가상 마이크로 보냅니다. 최대 60%.",
     "passthroughVolume": "음량 {{percent}}%",
     "iHear": "내가 듣는 번역",
+    "voiceLine": "음성",
     "iHearTip": "상대방이 한 말을 번역해 나에게 읽어 줍니다.",
     "iHearNotOffered": "이 서비스는 상대방의 번역을 읽어 주지 않습니다.",
     "keepReplay": "다시 듣기용으로 번역 음성 보관",
@@ -508,7 +510,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "화자 목소리 복제",
-      "voiceGroupClone": "목소리 복제"
+      "voiceGroupClone": "목소리 복제",
+      "voiceSharedZhEn": "중국어↔영어: 이 선택이 양쪽 모두에 쓰입니다.",
+      "voiceSummaryCloneMine": "내 목소리 (복제)",
+      "voiceSummaryCloneTheirs": "상대방 본인의 목소리 (복제)"
     },
     "local_inference": {
       "name": "무료",
@@ -968,6 +973,7 @@
     "importError": "가져오기 실패: {error}",
     "importVoice": "음성 가져오기…",
     "myVoices": "사용자 정의 음성",
+    "customQuota": "({used}/{limit})",
     "play": "재생",
     "presets": "프리셋",
     "previewChargedToBalance": "미리 듣기를 하면 짧은 샘플이 합성되며 계정 잔액에서 차감됩니다.",

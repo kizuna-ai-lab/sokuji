@@ -60,3 +60,11 @@ describe("OpenAI Live's builder", () => {
     expect(describeLive(c)).toEqual({ translationModel: 'gpt-live-1', asrModel: 'gpt-live-1' });
   });
 });
+
+describe("OpenAI Live's builder, the participant's voice", () => {
+  it('speaks the participant leg in its own voice, and never in mine', () => {
+    expect(buildLive(PARTICIPANT, { ...LIVE_DEFAULTS, voice: 'marin', participantVoice: 'quartz' }, SHARED)).toMatchObject({ voice: 'quartz' });
+    expect(buildLive(PARTICIPANT, { ...LIVE_DEFAULTS, voice: 'quartz', participantVoice: 'quartz' }, SHARED)).toMatchObject({ voice: 'cedar' });
+    expect(buildLive(SPEAKER, { ...LIVE_DEFAULTS, voice: 'marin', participantVoice: 'quartz' }, SHARED)).toMatchObject({ voice: 'marin' });
+  });
+});

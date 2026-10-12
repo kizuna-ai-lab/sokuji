@@ -2,16 +2,20 @@ import { useTranslation } from 'react-i18next';
 import { InstructionsField } from '../../components/providers/fields/InstructionsField';
 import { ModelConfigurationField } from '../../components/providers/fields/ModelConfigurationField';
 import { ModelField } from '../../components/providers/fields/ModelField';
-import { PresetVoiceField, presetVoice } from '../../components/providers/fields/PresetVoiceField';
+import { PresetVoiceField, presetVoice, presetVoiceSummary } from '../../components/providers/fields/PresetVoiceField';
 import { resolveInstructions } from '../../lib/provider/instructions';
 import type { SettingsProps } from '../../lib/provider/types';
 import { previewGeminiVoice } from './preview';
 import {
-  effectiveGeminiModel, geminiCredentials, geminiLanguageName, geminiLanguages, GEMINI_MAX_TOKENS_RANGE, GEMINI_TEMPERATURE_RANGE, GEMINI_VOICES,
+  effectiveGeminiModel, geminiCredentials, geminiLanguageName, geminiLanguages, geminiParticipantVoice, geminiSpeakerVoice, GEMINI_MAX_TOKENS_RANGE, GEMINI_TEMPERATURE_RANGE, GEMINI_VOICES,
   isGeminiTranslateModel, type GeminiSettings as S,
 } from './settings';
 
 const VOICES = GEMINI_VOICES.map(presetVoice);
+
+/** Each leg's voice as its run speaks it, on a dialogue model only: Live Translate has none to choose (`config.ts`). */
+export const GeminiVoiceSummary = presetVoiceSummary<S>(GEMINI_VOICES, ({ settings, models, leg }) =>
+  isGeminiTranslateModel(effectiveGeminiModel(settings, models ?? [])) ? undefined : leg === 'participant' ? geminiParticipantVoice(settings) : geminiSpeakerVoice(settings));
 
 /**
  * Gemini's own settings (D18), the old UI's Gemini sections
@@ -23,7 +27,7 @@ const VOICES = GEMINI_VOICES.map(presetVoice);
  * the voice library; a preview reads the target's sentence on the saved key
  * (decision 2026-10-03).
  */
-export function GeminiSettingsView({ settings, update, disabled = false, pair, models = [], account, preview: port }: SettingsProps<S>) {
+export function GeminiSettingsView({ settings, update, disabled = false, pair, models = [], account, participantSpeaks = false, preview: port }: SettingsProps<S>) {
   const { t } = useTranslation();
   const model = effectiveGeminiModel(settings, models);
   const dialogue = !isGeminiTranslateModel(model);
@@ -46,6 +50,13 @@ export function GeminiSettingsView({ settings, update, disabled = false, pair, m
           note={t('settings.geminiVoicePreviewNote', 'Previewing a voice synthesizes one short sentence with your Gemini API key, which Google may bill.')}
           preview={port}
           disabled={disabled}
+          participant={participantSpeaks ? {
+            value: settings.participantVoice,
+            effective: geminiParticipantVoice(settings),
+            onChange: (participantVoice) => update({ participantVoice }),
+            // It reads the other person's words to me: my language's sentence.
+            onPreview: (voice, signal) => previewGeminiVoice({ voice, target: source, apiKey }, signal),
+          } : undefined}
         />
       )}
       <ModelField value={model} models={models} onChange={(m) => update({ model: m })} disabled={disabled} />

@@ -88,7 +88,23 @@ export interface SonioxVoiceSectionProps {
    *  voices itself). */
   managed: boolean;
   isSessionActive: boolean;
+  /** Present while the other party is spoken too: a second row, built-in voices only. */
+  participant?: SonioxParticipantVoice;
 }
+
+/** The other party's voice (`SonioxSettings.participantVoice`), the second row. */
+export interface SonioxParticipantVoice {
+  /** The stored choice. */
+  voice: string;
+  /** What a run speaks in (`participantVoiceFor`): another voice when the choice is the speaker's own. */
+  effective: string;
+  /** What it reads in: my language, the pair's source. */
+  language: string;
+  onSelect(id: string): void;
+}
+
+/** No delete: the second row lists built-in voices only. */
+const NO_DELETE = async () => {};
 
 // Read from the roster rather than the descriptor's `voices`, which projects
 // away the metadata (gender, age, accent, use-case and style tags) the facet
@@ -183,6 +199,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   source,
   managed,
   isSessionActive,
+  participant,
 }) => {
   const { t } = useTranslation();
   // Latest-value ref so an in-flight `refresh()` can tell, at resolution
@@ -412,7 +429,8 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
 
   const handlePreview = useCallback(async (
     id: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    language: string = settings.targetLanguage
   ): Promise<{ audio: Float32Array; sampleRate: number } | null> => {
     // Pinned for the post-await staleness check below — same guard the
     // list/create paths use via sourceRef. Narrowed via THIS reference (not
@@ -430,7 +448,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
     // language with English then the table as fallbacks. A preset id IS the
     // `voice` field of the TTS request, so nothing here needs to know which
     // kind it is.
-    const sample = resolvePreviewSample(settings.targetLanguage, null);
+    const sample = resolvePreviewSample(language, null);
     // Cannot be null for a null `speaks` predicate (see resolvePreviewSample's
     // docstring), but narrowed here rather than asserted.
     if (!sample) return null;
@@ -707,8 +725,9 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   // gone at Soniox or terminally failed. Offering record/import here would
   // therefore report success, overwrite the on-device clip, hand back the
   // same voice id — and change nothing the user can hear, with nothing to
-  // explain why. Hide the create affordances and say what is actually true:
-  // the current voice has to be deleted first.
+  // explain why. Hide the create affordances; the count beside "Custom
+  // voices" (`customQuota`, 1/1) says the one slot is taken, so the current
+  // voice has to be deleted first.
   //
   // Deliberately NOT a delete-then-create flow: a delete that succeeds
   // followed by a create that fails would leave the user with no voice at all
@@ -814,7 +833,8 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   }, [clones, managed, managedName, managedListKnown, settings.voice, listState, source, t]);
 
   return (
-    <div className="settings-section" id="soniox-voice-section">
+    // `#voice-settings-section` is Settings' `voice-settings` target (`Settings.tsx:51`), the Speech rows' voice links.
+    <div className="settings-section" id="voice-settings-section">
       <h2>{t('settings.voiceSettings', 'Voice Settings')}</h2>
       {listState === 'error' && (
         <div className="setting-item">
@@ -829,6 +849,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         </div>
       )}
       <VoiceLibrarySection
+        label={participant ? t('settings.voiceTheyHear', 'Voice the other side hears') : undefined}
         voices={entries}
         selectedId={settings.voice}
         onSelect={(id) => onUpdate({ voice: id })}
@@ -838,33 +859,28 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         onPreview={source?.preview ? handlePreview : undefined}
         onRefresh={source ? () => void refresh() : undefined}
         refreshing={listState === 'loading'}
-        // Footnote, not a standalone setting: it describes controls that live
-        // inside the expanded manage body (the per-row preview button, the
-        // record/import buttons), so it belongs there rather than above the
-        // collapsed expander where they aren't even visible. `managed` can
-        // now preview too, so the two cases are no longer mutually
-        // exclusive by construction — `managedVoiceBlocksCreate` still takes
-        // priority, because a managed account with an existing voice has
-        // nothing to gain from the preview cost hint while create is
-        // withdrawn anyway.
+        // What a preview costs, a footnote in the add-a-voice dialog. Only
+        // while that dialog is reachable: with create withdrawn the library
+        // draws it under the picker instead, between the two voice rows, and
+        // the count beside "Custom voices" says why there is no add row
+        // (owner, 2026-10-12).
         manageNote={
-          managedVoiceBlocksCreate
-            ? t(
-                'settings.sonioxManagedVoiceReplaceHint',
-                'Delete this voice before recording a new one — recording again on its own keeps the voice you already have.'
-              )
-            : source?.preview
-              ? managed
-                ? t(
-                    'voiceLibrary.previewChargedToBalance',
-                    'Previewing synthesizes a short sample and is charged to your account balance.'
-                  )
-                : t(
-                    'settings.sonioxVoicePreviewCostHint',
-                    'Previewing a voice synthesizes a short clip using your own Soniox quota.'
-                  )
-              : undefined
+          canCreate && source?.preview
+            ? managed
+              ? t(
+                  'voiceLibrary.previewChargedToBalance',
+                  'Previewing synthesizes a short sample and is charged to your account balance.'
+                )
+              : t(
+                  'settings.sonioxVoicePreviewCostHint',
+                  'Previewing a voice synthesizes a short clip using your own Soniox quota.'
+                )
+            : undefined
         }
+        // A managed account holds one voice; a failed one does not take the
+        // slot (re-recording rebuilds it). An own key's limit is its Soniox
+        // project's, unknown here, so no count.
+        customQuota={managed && source && managedListKnown ? { used: clones.filter((v) => !isFailed(v)).length, limit: 1 } : undefined}
         capability={{
           importModes: canCreate ? ['record', 'upload'] : [],
           // 200 built-in voices as of 2026-09-10: too many to scan in a flat
@@ -896,6 +912,21 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
           onClose: closeModal,
         }}
       />
+      {participant && (
+        <VoiceLibrarySection
+          label={t('settings.voiceIHear', 'Voice I hear')}
+          voices={entries.filter((e) => e.group === 'builtin')}
+          selectedId={participant.voice}
+          onSelect={participant.onSelect}
+          onDelete={NO_DELETE}
+          onPreview={source?.preview ? (id, signal) => handlePreview(id, signal, participant.language) : undefined}
+          capability={{ importModes: [], facetFilter: true }}
+          isSessionActive={isSessionActive}
+          note={participant.effective !== participant.voice
+            ? t('settings.voiceIHearSame', 'Same as the voice the other side hears, so {{voice}} reads instead.', { voice: participant.effective })
+            : undefined}
+        />
+      )}
       {captureError && (
         <div className="voice-capture-error" role="alert">{captureError}</div>
       )}

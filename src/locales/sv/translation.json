@@ -250,7 +250,6 @@
     "sonioxVoiceNamePlaceholder": "Namn för en ny klonad röst (valfritt)",
     "sonioxVoiceDefaultName": "Min röst {{n}}",
     "sonioxManagedVoiceName": "Min röst",
-    "sonioxManagedVoiceReplaceHint": "Ta bort den här rösten innan du spelar in en ny — att bara spela in igen behåller rösten du redan har.",
     "sonioxVoiceDeletedPlaceholder": "(borttagen röst)",
     "sonioxVoiceDeleteInUse": "Den här rösten används av den aktiva sessionen — avsluta sessionen innan du tar bort den",
     "sonioxVoiceProcessingBadge": "bearbetar…",
@@ -305,8 +304,10 @@
       "mirror": "De talar {{their}} → jag läser {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Ansikte mot ansikte använder alltid en delad session: båda talar i samma mikrofon.",
-    "sonioxParticipantVoice": "Den andras röst",
-    "sonioxParticipantVoiceTooltip": "Rösten som läser upp den andras ord för dig, på ditt språk. Endast inbyggda röster."
+    "voiceTheyHear": "Röst som motparten hör",
+    "voiceIHear": "Röst som jag hör",
+    "voiceIHearSame": "Samma röst som motparten hör, så {{voice}} läser i stället.",
+    "voiceCustom": "Anpassad röst"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatiskt autentiserad via ditt konto",
@@ -342,6 +343,7 @@
     "passthroughTip": "Blandar in min egen röst, på lägre nivå, under översättningen i den virtuella mikrofonen. Högst 60 %.",
     "passthroughVolume": "Volym {{percent}} %",
     "iHear": "Översättning som jag hör",
+    "voiceLine": "Röst",
     "iHearTip": "Det motparten säger, översatt och uppläst för mig.",
     "iHearNotOffered": "Den här tjänsten läser inte upp motpartens översättning.",
     "keepReplay": "Behåll talade översättningar för uppspelning",
@@ -508,7 +510,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "APP ID + Access Token",
       "voiceClone": "Klona talarens röst",
-      "voiceGroupClone": "Röstkloning"
+      "voiceGroupClone": "Röstkloning",
+      "voiceSharedZhEn": "Kinesiska↔engelska: valet gäller båda sidor.",
+      "voiceSummaryCloneMine": "Din egen röst (klonad)",
+      "voiceSummaryCloneTheirs": "Motpartens egen röst (klonad)"
     },
     "local_inference": {
       "name": "Gratis",
@@ -968,6 +973,7 @@
     "importError": "Importen misslyckades: {error}",
     "importVoice": "Importera röst…",
     "myVoices": "Anpassade röster",
+    "customQuota": "({used}/{limit})",
     "play": "Spela upp",
     "presets": "Förinställningar",
     "previewChargedToBalance": "Att lyssna på en förhandsgranskning syntetiserar ett kort ljudklipp och debiteras ditt kontosaldo.",

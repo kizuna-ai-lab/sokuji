@@ -18,7 +18,18 @@ vi.mock('../../Settings/sections/VoiceLibrarySection', () => ({
 }));
 const libraryProps = () => library[library.length - 1];
 
-import { PresetVoiceField, presetVoice } from './PresetVoiceField';
+import { PresetVoiceField, presetVoice, presetVoiceSummary } from './PresetVoiceField';
+
+describe('presetVoiceSummary: a one-voice provider names that voice under every spoken row', () => {
+  it("names the voice `voiceOf` picks by the list's name; an id the list lacks as itself; nothing when it picks none", () => {
+    const Summary = presetVoiceSummary<{ voice: string }>([{ value: 'aoede', name: 'Aoede' }], ({ settings }) => settings.voice || undefined);
+    const text = (voice: string, leg: 'speaker' | 'participant') => render(<Summary settings={{ voice }} update={() => {}} leg={leg} />).container.textContent;
+    expect(text('aoede', 'speaker')).toBe('Aoede');
+    expect(text('aoede', 'participant')).toBe('Aoede');
+    expect(text('retired', 'speaker')).toBe('retired');
+    expect(text('', 'speaker')).toBe('');
+  });
+});
 
 const voices = [
   { id: 'Aoede', label: 'Aoede', group: 'builtin' as const, removable: false, previewable: true },
@@ -58,6 +69,27 @@ describe("PresetVoiceField: a provider's prebuilt voices in the shared voice lib
     expect(props.previewUnavailableReason).toBe('why');
     expect(props.manageNote).toBe('it costs');
     expect(props.port).toBe(port);
+  });
+
+  it("with the other party spoken, a second row over the same list: its own choice, its audition, the cost note under it, and a note when a run swaps it", () => {
+    const onChange = vi.fn();
+    const onPreview = vi.fn(async () => null);
+    const theirPreview = vi.fn(async () => null);
+    const { rerender } = render(
+      <PresetVoiceField voices={voices} value="Aoede" onChange={vi.fn()} onPreview={onPreview} note="it costs" participant={{ value: 'Puck', effective: 'Puck', onChange, onPreview: theirPreview }} />
+    );
+    const [mine, theirs] = library.slice(-2);
+    expect(mine).toMatchObject({ label: 'settings.voiceTheyHear', selectedId: 'Aoede', manageNote: undefined });
+    expect(theirs).toMatchObject({ label: 'settings.voiceIHear', selectedId: 'Puck', manageNote: 'it costs', note: undefined });
+    expect(theirs.voices).toBe(voices);
+    expect(theirs.onPreview).toBe(theirPreview);
+    theirs.onSelect('Aoede');
+    expect(onChange).toHaveBeenCalledWith('Aoede');
+
+    rerender(<PresetVoiceField voices={voices} value="Aoede" onChange={vi.fn()} onPreview={onPreview} participant={{ value: 'Aoede', effective: 'Puck', onChange }} />);
+    const swapped = libraryProps();
+    expect(swapped.note).toBe('settings.voiceIHearSame');
+    expect(swapped.onPreview).toBe(onPreview);
   });
 
   it('makes a list entry an auditionable prebuilt voice, carrying only what the vendor documents', () => {

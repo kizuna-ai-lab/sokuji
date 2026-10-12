@@ -201,6 +201,44 @@ describe('VoiceLibrarySection', () => {
     expect(mockSource.start).not.toHaveBeenCalled();
   });
 
+  it('two rows side by side never preview at once: opening the second closes the first, cancelling its request', async () => {
+    const { mockSource } = stubWebAudio();
+    const signals: AbortSignal[] = [];
+    let resolveFirst: (v: { audio: Float32Array; sampleRate: number }) => void = () => {};
+    const first = vi.fn((_id: string, signal?: AbortSignal) => {
+      if (signal) signals.push(signal);
+      return new Promise<{ audio: Float32Array; sampleRate: number }>((resolve) => { resolveFirst = resolve; });
+    });
+    const second = vi.fn(async () => ({ audio: new Float32Array(2048), sampleRate: 24000 }));
+    const voices = [{ id: 'builtin:Ava', label: 'Ava', group: 'builtin' as const, removable: false, previewable: true }];
+    render(
+      <>
+        <VoiceLibrarySection {...base} voices={voices} capability={{ importModes: [] }} onPreview={first} label="Mine" />
+        <VoiceLibrarySection {...base} voices={voices} capability={{ importModes: [] }} onPreview={second} label="Theirs" />
+      </>,
+    );
+    const trigger = (name: string) => screen.getByRole('group', { name }).querySelector('.voice-picker__trigger') as HTMLElement;
+
+    fireEvent.click(trigger('Mine'));
+    fireEvent.click(screen.getByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(signals).toHaveLength(1));
+
+    // A press on the other row's trigger is outside the open popover: it closes, and its preview is cancelled.
+    fireEvent.pointerDown(trigger('Theirs'));
+    fireEvent.click(trigger('Theirs'));
+    expect(signals[0].aborted).toBe(true);
+    expect(screen.getAllByRole('grid')).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(mockSource.start).toHaveBeenCalledTimes(1));
+    // The first request resolving late plays nothing over the second.
+    resolveFirst({ audio: new Float32Array(2048), sampleRate: 24000 });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(mockSource.start).toHaveBeenCalledTimes(1);
+    expect(second).toHaveBeenCalledTimes(1);
+  });
+
   it('gates the play control on previewable, reaching the picker unchanged', () => {
     render(
       <VoiceLibrarySection
@@ -218,6 +256,36 @@ describe('VoiceLibrarySection', () => {
     );
     openPicker();
     expect(screen.getAllByRole('button', { name: /^play$/i })).toHaveLength(1);
+  });
+
+  it('names its row "Voice", or `label`, and groups the picker under that name', () => {
+    const voices = [{ id: 'builtin:Ava', label: 'Ava', group: 'builtin' as const, removable: false }];
+    const { rerender } = render(<VoiceLibrarySection {...base} voices={voices} capability={{ importModes: [] }} />);
+    expect(within(screen.getByRole('group', { name: 'Voice' })).getByRole('button', { expanded: false })).toHaveTextContent('Ava');
+
+    rerender(<VoiceLibrarySection {...base} voices={voices} capability={{ importModes: [] }} label="Voice I hear" />);
+    expect(within(screen.getByRole('group', { name: 'Voice I hear' })).getByRole('button', { expanded: false })).toHaveTextContent('Ava');
+    expect(screen.queryByRole('group', { name: 'Voice' })).toBeNull();
+  });
+
+  it('counts the custom voices against a limit beside their heading, when one is given', () => {
+    const voices = [{ id: 'custom:1', label: 'Mine', group: 'custom' as const, removable: true }];
+    const { rerender } = render(<VoiceLibrarySection {...base} voices={voices} capability={{ importModes: [] }} />);
+    openPicker();
+    expect(screen.getByRole('columnheader', { name: 'Custom voices' })).toBeInTheDocument();
+
+    rerender(<VoiceLibrarySection {...base} voices={voices} capability={{ importModes: [] }} customQuota={{ used: 1, limit: 1 }} />);
+    expect(screen.getByRole('columnheader', { name: 'Custom voices (1/1)' })).toBeInTheDocument();
+  });
+
+  it("a note takes the selected voice's description line", () => {
+    const voices = [{ id: 'builtin:Ava', label: 'Ava', group: 'builtin' as const, removable: false, meta: { facets: { description: 'A calm voice.' } } }];
+    const { rerender, container } = render(<VoiceLibrarySection {...base} voices={voices} capability={{ importModes: [] }} />);
+    expect(container.querySelector('.voice-selected-description')).toHaveTextContent('A calm voice.');
+
+    rerender(<VoiceLibrarySection {...base} voices={voices} capability={{ importModes: [] }} note="Same as the other voice." />);
+    expect(container.querySelectorAll('.voice-selected-description')).toHaveLength(1);
+    expect(container.querySelector('.voice-selected-description')).toHaveTextContent('Same as the other voice.');
   });
 
   it('offers the add-voice row iff importModes is non-empty', () => {

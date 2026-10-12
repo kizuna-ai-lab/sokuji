@@ -13,18 +13,23 @@ import { AUTO } from '../../lib/provider/languages';
 import { identityWire } from '../../lib/language/wire';
 import { englishLanguageName } from '../../lib/language/label';
 import { INSTRUCTION_LEGACY_KEYS, INSTRUCTIONS_DEFAULTS, migrateInstructions, type InstructionsSettings } from '../../lib/provider/instructions';
+import { distinctVoice } from '../../lib/provider/voices';
 import type { CredentialsMissing, LanguageOption, MigrationInputs, Provider } from '../../lib/provider/types';
 
 export interface LiveSettings extends InstructionsSettings {
   /** One of `LIVE_VOICES`: the voice `session.start` asks for. */
   voice: string;
+  /** The voice that reads the other person's words to me: one of `LIVE_VOICES`. */
+  participantVoice: string;
 }
 
 /** The model every session runs (`OpenAILiveProviderConfig.ts:79`): the check requires it, nothing chooses it. */
 export const LIVE_MODEL = 'gpt-live-1';
 export const LIVE_DEFAULT_VOICE = 'marin';
 
-export const LIVE_DEFAULTS: LiveSettings = { ...INSTRUCTIONS_DEFAULTS, voice: LIVE_DEFAULT_VOICE };
+/** The voice OpenAI pairs with marin, so the two people never sound alike by default. */
+export const LIVE_PARTICIPANT_DEFAULT_VOICE = 'cedar';
+export const LIVE_DEFAULTS: LiveSettings = { ...INSTRUCTIONS_DEFAULTS, voice: LIVE_DEFAULT_VOICE, participantVoice: LIVE_PARTICIPANT_DEFAULT_VOICE };
 
 /** The instructions' legacy keys (Stage 2 Gemini, choice 1): nothing else is read that `S` does not name. */
 export const LIVE_LEGACY_KEYS: readonly string[] = INSTRUCTION_LEGACY_KEYS;
@@ -82,8 +87,19 @@ export const LIVE_VOICES: readonly LiveVoice[] = [
  * owner's rule).
  */
 export function migrateLiveSettings(stored: Readonly<Record<string, unknown>>, inputs: MigrationInputs): LiveSettings {
-  const voice = LIVE_VOICES.some((v) => v.value === stored.voice) ? (stored.voice as string) : LIVE_DEFAULT_VOICE;
-  return { ...migrateInstructions(stored, inputs.legacy), voice };
+  const listed = (v: unknown, fallback: string) => (LIVE_VOICES.some((o) => o.value === v) ? (v as string) : fallback);
+  return { ...migrateInstructions(stored, inputs.legacy), voice: listed(stored.voice, LIVE_DEFAULT_VOICE), participantVoice: listed(stored.participantVoice, LIVE_PARTICIPANT_DEFAULT_VOICE) };
+}
+
+/** My voice for a run: the choice while the list has it, else marin. */
+export function liveSpeakerVoice(s: Pick<LiveSettings, 'voice'>): string {
+  return LIVE_VOICES.some((v) => v.value === s.voice) ? s.voice : LIVE_DEFAULT_VOICE;
+}
+
+/** The other party's voice for a run: never mine (`distinctVoice`). */
+export function liveParticipantVoice(s: Pick<LiveSettings, 'voice' | 'participantVoice'>): string {
+  const chosen = LIVE_VOICES.some((v) => v.value === s.participantVoice) ? s.participantVoice : LIVE_PARTICIPANT_DEFAULT_VOICE;
+  return distinctVoice(chosen, liveSpeakerVoice(s), { participant: LIVE_PARTICIPANT_DEFAULT_VOICE, speaker: LIVE_DEFAULT_VOICE });
 }
 
 /** The 55 languages the old provider offered (`OpenAIProviderConfig.LANGUAGES`, `OpenAILiveProviderConfig.ts:112`): every one a source and a target. */

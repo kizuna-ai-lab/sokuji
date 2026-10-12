@@ -11,6 +11,7 @@ import { RUN_NOTICE_CODES } from './codes';
 import { SourceOpenError, type OpenSource, type Source } from './source';
 import type { FramePort, PlaybackPort } from './ports';
 import { createRunner } from './runner';
+import { buildSharedSettings } from './shared';
 import type { RunEnd, RunNotice, RunShape } from './types';
 
 // A bare spy: `describeCause`/`reportWarning` stay real (many assertions below
@@ -170,6 +171,19 @@ describe('runner — starting', () => {
     expect(both).toHaveBeenCalledTimes(2);
     expect(both.mock.calls[0][2].models).toEqual([{ id: 'm2' }, { id: 'm1' }]);
     expect(both.mock.calls[1][2].models).toBe(both.mock.calls[0][2].models);
+  });
+
+  it("tells each leg's build whether it is the participant's, even when a same-language pair gives both legs one direction", async () => {
+    const build = vi.fn(fakeProvider.build);
+    const pair = { source: 'en', target: 'en' };
+    // As appShape builds it: by direction, which en → en cannot tell apart.
+    const byDirection = buildSharedSettings(pair, { sourceSeconds: 1, translationSeconds: 1 }, { mode: 'off', sentencesPerRow: 0 });
+    // A source as its own target, as OpenAI Realtime, OpenAI Live, Gemini and Palabra offer.
+    const languages = { ...fakeProvider.languages, targets: () => [{ value: 'en' }, { value: 'ja' }] };
+    const { runner } = setup({ shape: { provider: { ...fakeProvider, build, languages } as AnyProvider, legs: ['speaker', 'participant'], pair, shared: byDirection } });
+    await runner.start();
+    const answer = (n: number) => build.mock.calls[n][2].reversed(build.mock.calls[n][0].direction);
+    expect(build.mock.calls.map((c, n) => [c[0].direction, answer(n)])).toEqual([[pair, false], [pair, true]]);
   });
 
   it('refuses the participant leg of an auto source before checking anything (D20)', async () => {

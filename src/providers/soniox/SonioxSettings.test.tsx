@@ -153,16 +153,16 @@ describe('createSonioxSettingsView', () => {
 });
 
 describe('SonioxSettings, face-to-face', () => {
-  it("shows the other party's voice only when the participant speaks, built-in voices only", () => {
+  it("hands the voice library the other party's voice only when the participant speaks, read in the pair's source; no section of its own", () => {
     const update = vi.fn();
-    const { rerender } = render(<BYOK {...props({ update })} />);
-    expect(screen.queryByLabelText("Other party's voice")).toBeNull();
+    const { rerender, container } = render(<BYOK {...props({ update })} />);
+    expect(seenVoiceSection[seenVoiceSection.length - 1].participant).toBeUndefined();
     rerender(<BYOK {...props({ update, participantSpeaks: true })} />);
-    const select = screen.getByLabelText("Other party's voice") as HTMLSelectElement;
-    expect(select.value).toBe('Grace');
-    expect([...select.options].map((o) => o.value)).toContain('Kenji');
-    fireEvent.change(select, { target: { value: 'Kenji' } });
+    const p = seenVoiceSection[seenVoiceSection.length - 1].participant!;
+    expect(p).toMatchObject({ voice: 'Grace', language: 'ja' });
+    p.onSelect('Kenji');
     expect(update).toHaveBeenCalledWith({ participantVoice: 'Kenji' });
+    expect(container.querySelectorAll('select')).toHaveLength(1); // the region's
   });
 
   it('locks the shared-session pills in face-to-face and says why', () => {

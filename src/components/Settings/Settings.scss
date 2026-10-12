@@ -2356,6 +2356,31 @@
     svg { flex-shrink: 0; margin-top: 2px; }
     span { flex: 1; min-width: 0; }
   }
+  // The voice a spoken row reads in (`VoiceLine`): a caption whose name is a link to the voice settings.
+  &__voice {
+    margin-top: 6px;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    font-size: vars.$font-caption;
+    color: vars.$text-muted;
+
+    // A summary that renders nothing leaves the link empty, and the line goes with it.
+    &:has(.setting-row__voice-link:empty) { display: none; }
+  }
+  // The in-settings deep-link look, as `.turn-detection-link` (that rule is scoped to `.settings-section`).
+  &__voice-link {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: vars.$color-primary;
+    text-decoration: underline;
+    cursor: pointer;
+
+    &:hover { opacity: 0.8; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
 
   &--sub {
     margin-left: 30px;

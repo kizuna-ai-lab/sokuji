@@ -29,7 +29,7 @@ vi.mock('./preview', () => ({ previewRealtimeVoice }));
 const libraryProps = () => library[library.length - 1];
 
 import type { SettingsProps } from '../../lib/provider/types';
-import { RealtimeSettingsView } from './RealtimeSettings';
+import { RealtimeSettingsView, RealtimeVoiceSummary } from './RealtimeSettings';
 import { REALTIME_DEFAULTS, REALTIME_VOICES, type RealtimeSettings } from './settings';
 
 const props = (patch: Partial<SettingsProps<RealtimeSettings>> = {}): SettingsProps<RealtimeSettings> => ({
@@ -131,5 +131,30 @@ describe('RealtimeSettingsView (choice 17)', () => {
       expect(screen.getByLabelText(label), label).toBeDisabled();
     }
     expect(screen.getByRole('button', { name: 'settings.advanced' })).toBeDisabled();
+  });
+});
+
+describe('RealtimeVoiceSummary', () => {
+  it("names the one voice under both legs by its list's name, the default when none is stored", () => {
+    const text = (voice: string, leg: 'speaker' | 'participant') =>
+      render(<RealtimeVoiceSummary settings={{ ...REALTIME_DEFAULTS, voice }} update={() => {}} leg={leg} />).container.textContent;
+    expect(text('ash', 'speaker')).toBe('Ash');
+    // The participant's default is ash: my own voice, so a run swaps it.
+    expect(text('ash', 'participant')).toBe('Alloy');
+    expect(text('', 'speaker')).toBe('Alloy');
+  });
+});
+
+describe('RealtimeSettingsView, the participant spoken', () => {
+  it("adds the other party's row, auditioning the same published samples, writing its own field", () => {
+    const update = vi.fn();
+    render(<RealtimeSettingsView {...props({ update, participantSpeaks: true })} />);
+    const [mine, theirs] = library.slice(-2);
+    expect(mine.label).toBe('Voice the other side hears');
+    expect(theirs.label).toBe('Voice I hear');
+    expect(theirs.selectedId).toBe('ash');
+    expect(theirs.onPreview).toBe(mine.onPreview);
+    theirs.onSelect('coral');
+    expect(update).toHaveBeenCalledWith({ participantVoice: 'coral' });
   });
 });

@@ -250,7 +250,6 @@
     "sonioxVoiceNamePlaceholder": "नई क्लोन की गई आवाज़ के लिए नाम (वैकल्पिक)",
     "sonioxVoiceDefaultName": "मेरी आवाज़ {{n}}",
     "sonioxManagedVoiceName": "मेरी आवाज़",
-    "sonioxManagedVoiceReplaceHint": "नई आवाज़ रिकॉर्ड करने से पहले इस आवाज़ को हटाएँ — केवल दोबारा रिकॉर्ड करने से आपकी मौजूदा आवाज़ ही बनी रहती है।",
     "sonioxVoiceDeletedPlaceholder": "(हटाई गई आवाज़)",
     "sonioxVoiceDeleteInUse": "यह आवाज़ सक्रिय सत्र में उपयोग हो रही है — हटाने से पहले सत्र समाप्त करें",
     "sonioxVoiceProcessingBadge": "प्रोसेस हो रहा है…",
@@ -305,8 +304,10 @@
       "mirror": "वे {{their}} बोलते हैं → मैं {{mine}} पढ़ता/पढ़ती हूं"
     },
     "sonioxSharedSessionFaceToFace": "आमने-सामने में हमेशा एक साझा सत्र इस्तेमाल होता है: दोनों लोग एक ही माइक्रोफ़ोन में बोलते हैं।",
-    "sonioxParticipantVoice": "दूसरे पक्ष की आवाज़",
-    "sonioxParticipantVoiceTooltip": "वह आवाज़ जो दूसरे व्यक्ति की बात आपकी भाषा में आपको सुनाती है। केवल बिल्ट-इन आवाज़ें।"
+    "voiceTheyHear": "सामने वाले को सुनाई देने वाली आवाज़",
+    "voiceIHear": "मुझे सुनाई देने वाली आवाज़",
+    "voiceIHearSame": "यह वही आवाज़ है जो सामने वाले को सुनाई देती है, इसलिए इसकी जगह {{voice}} पढ़ेगी।",
+    "voiceCustom": "कस्टम आवाज़"
   },
   "simpleSettings": {
     "autoAuthenticated": "आपके खाते के माध्यम से स्वचालित रूप से प्रमाणित",
@@ -342,6 +343,7 @@
     "passthroughTip": "मेरी अपनी आवाज़ को कम स्तर पर अनुवाद के नीचे मिलाकर वर्चुअल माइक्रोफ़ोन में भेजता है। अधिकतम 60%।",
     "passthroughVolume": "वॉल्यूम {{percent}}%",
     "iHear": "मुझे सुनाई देने वाला अनुवाद",
+    "voiceLine": "आवाज़",
     "iHearTip": "सामने वाला जो कहता है, उसका अनुवाद करके मुझे पढ़कर सुनाया जाता है।",
     "iHearNotOffered": "यह सेवा सामने वाले का अनुवाद नहीं बोलती।",
     "keepReplay": "दोबारा सुनने के लिए बोले गए अनुवाद सहेजें",
@@ -508,7 +510,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "ऐप ID + एक्सेस टोकन",
       "voiceClone": "वक्ता की आवाज़ क्लोन करें",
-      "voiceGroupClone": "आवाज़ क्लोनिंग"
+      "voiceGroupClone": "आवाज़ क्लोनिंग",
+      "voiceSharedZhEn": "चीनी↔अंग्रेज़ी: यह चुनाव दोनों पक्षों के लिए है।",
+      "voiceSummaryCloneMine": "आपकी अपनी आवाज़ (क्लोन)",
+      "voiceSummaryCloneTheirs": "सामने वाले की अपनी आवाज़ (क्लोन)"
     },
     "local_inference": {
       "name": "मुफ़्त",
@@ -968,6 +973,7 @@
     "importError": "आयात विफल: {error}",
     "importVoice": "आवाज़ आयात करें…",
     "myVoices": "कस्टम आवाज़ें",
+    "customQuota": "({used}/{limit})",
     "play": "चलाएं",
     "presets": "प्रीसेट",
     "previewChargedToBalance": "पूर्वावलोकन सुनने पर एक छोटा नमूना संश्लेषित होता है और आपके खाते के बैलेंस से शुल्क लिया जाता है।",

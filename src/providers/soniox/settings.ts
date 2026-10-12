@@ -8,6 +8,7 @@
  */
 import { AUTO } from '../../lib/provider/languages';
 import type { CredentialsMissing, Provider } from '../../lib/provider/types';
+import { distinctVoice } from '../../lib/provider/voices';
 import { asSonioxRegion, DEFAULT_SONIOX_REGION, type SonioxRegion } from '../../lib/soniox/regions';
 import { SONIOX_DEFAULT_VOICE, SONIOX_PARTICIPANT_DEFAULT_VOICE, SONIOX_VOICES } from '../../lib/soniox/ttsCatalog';
 import { SONIOX_LANGUAGES, sonioxWire } from './languages';
@@ -87,11 +88,14 @@ export function migrateSonioxSettings(stored: Readonly<Record<string, unknown>>)
   };
 }
 
+/** The speaker's voice for a run: the active region's voice, or the default when none is stored. */
+export function sonioxSpeakerVoice(s: Pick<SonioxSettings, 'region' | 'voice' | 'voiceEu' | 'voiceJp'>): string {
+  return s[sonioxVoiceField(asSonioxRegion(s.region))] || SONIOX_DEFAULT_VOICE;
+}
+
 /** The participant's voice for a run: the choice, unless it is the speaker's own — then the other default, so the two people never sound alike. */
 export function participantVoiceFor(s: Pick<SonioxSettings, 'participantVoice'>, speakerVoice: string): string {
-  const chosen = s.participantVoice || SONIOX_PARTICIPANT_DEFAULT_VOICE;
-  if (chosen !== speakerVoice) return chosen;
-  return chosen === SONIOX_PARTICIPANT_DEFAULT_VOICE ? SONIOX_DEFAULT_VOICE : SONIOX_PARTICIPANT_DEFAULT_VOICE;
+  return distinctVoice(s.participantVoice || SONIOX_PARTICIPANT_DEFAULT_VOICE, speakerVoice, { participant: SONIOX_PARTICIPANT_DEFAULT_VOICE, speaker: SONIOX_DEFAULT_VOICE });
 }
 
 export type SonioxKeyField = 'apiKey' | 'apiKeyEu' | 'apiKeyJp';

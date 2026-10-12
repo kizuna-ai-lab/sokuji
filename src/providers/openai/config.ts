@@ -11,7 +11,7 @@ import type { SessionContext } from '../../lib/contract/adapter';
 import { resolveInstructions } from '../../lib/provider/instructions';
 import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
 import {
-  effectiveRealtimeModel, realtimeLanguageName, REALTIME_DEFAULTS, REALTIME_DEFAULT_VOICE, REALTIME_MAX_TOKENS_RANGE, REALTIME_PREFIX_RANGE,
+  effectiveRealtimeModel, realtimeLanguageName, realtimeParticipantVoice, realtimeSpeakerVoice, REALTIME_DEFAULTS, REALTIME_MAX_TOKENS_RANGE, REALTIME_PREFIX_RANGE,
   REALTIME_SILENCE_RANGE, REALTIME_THRESHOLD_RANGE, takesReasoning, type NoiseReduction, type ReasoningEffort, type RealtimeSettings,
 } from './settings';
 import { buildTranscriptionHint, type TranscriptionHint } from './transcription';
@@ -73,7 +73,8 @@ export function buildRealtime(context: SessionContext, s: RealtimeSettings, shar
     model,
     instructions,
     modalities: context.speech ? ['audio'] : ['text'],
-    ...(context.speech ? { voice: s.voice || REALTIME_DEFAULT_VOICE } : {}),
+    // Each leg its own voice: the participant's never mine.
+    ...(context.speech ? { voice: shared.reversed(context.direction) ? realtimeParticipantVoice(s) : realtimeSpeakerVoice(s) } : {}),
     // Every knob falls back to its default on a value that is not a finite number; maxTokens' default is 'inf' (unlimited).
     maxTokens: s.maxTokens === 'inf' || !Number.isFinite(s.maxTokens) ? 'inf' : Math.round(clamp(s.maxTokens, REALTIME_MAX_TOKENS_RANGE, REALTIME_MAX_TOKENS_RANGE.max)),
     turnDetection,

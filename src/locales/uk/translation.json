@@ -250,7 +250,6 @@
     "sonioxVoiceNamePlaceholder": "Ім'я для нового клонованого голосу (необов'язково)",
     "sonioxVoiceDefaultName": "Мій голос {{n}}",
     "sonioxManagedVoiceName": "Мій голос",
-    "sonioxManagedVoiceReplaceHint": "Видаліть цей голос перед записом нового — самий лише повторний запис залишить наявний голос без змін.",
     "sonioxVoiceDeletedPlaceholder": "(видалений голос)",
     "sonioxVoiceDeleteInUse": "Цей голос використовується в активній сесії — завершіть сесію перед його видаленням",
     "sonioxVoiceProcessingBadge": "обробка…",
@@ -305,8 +304,10 @@
       "mirror": "Вони говорять {{their}} → я читаю {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "У режимі «віч-на-віч» завжди використовується один спільний сеанс: обоє говорять в один мікрофон.",
-    "sonioxParticipantVoice": "Голос співрозмовника",
-    "sonioxParticipantVoiceTooltip": "Голос, що озвучує для вас слова співрозмовника вашою мовою. Лише вбудовані голоси."
+    "voiceTheyHear": "Голос, який чує співрозмовник",
+    "voiceIHear": "Голос, який чую я",
+    "voiceIHearSame": "Це той самий голос, який чує співрозмовник, тому замість нього читає {{voice}}.",
+    "voiceCustom": "Користувацький голос"
   },
   "simpleSettings": {
     "autoAuthenticated": "Автоматично автентифіковано через ваш обліковий запис",
@@ -342,6 +343,7 @@
     "passthroughTip": "Підмішує мій власний голос тихіше під переклад у віртуальний мікрофон. Не більше 60%.",
     "passthroughVolume": "Гучність {{percent}}%",
     "iHear": "Переклад, який чую я",
+    "voiceLine": "Голос",
     "iHearTip": "Те, що каже співрозмовник, перекладається й зачитується мені.",
     "iHearNotOffered": "Ця служба не озвучує переклад мовлення співрозмовника.",
     "keepReplay": "Зберігати озвучені переклади для повтору",
@@ -508,7 +510,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "Клонувати голос мовця",
-      "voiceGroupClone": "Клонування голосу"
+      "voiceGroupClone": "Клонування голосу",
+      "voiceSharedZhEn": "Китайська↔англійська: цей вибір спільний для обох сторін.",
+      "voiceSummaryCloneMine": "Ваш власний голос (клон)",
+      "voiceSummaryCloneTheirs": "Власний голос співрозмовника (клон)"
     },
     "local_inference": {
       "name": "Безкоштовний",
@@ -968,6 +973,7 @@
     "importError": "Помилка імпорту: {error}",
     "importVoice": "Імпортувати голос…",
     "myVoices": "Користувацькі голоси",
+    "customQuota": "({used}/{limit})",
     "play": "Відтворити",
     "presets": "Пресети",
     "previewChargedToBalance": "Прослуховування прев'ю синтезує короткий зразок і списується з балансу вашого акаунта.",

@@ -3,7 +3,7 @@ import type { Provider } from '../../lib/provider/types';
 import { createRealtimeAdapter } from './adapter';
 import { checkRealtime } from './check';
 import { buildRealtime, describeRealtime, type RealtimeConfig } from './config';
-import { RealtimeSettingsView } from './RealtimeSettings';
+import { RealtimeSettingsView, RealtimeVoiceSummary } from './RealtimeSettings';
 import { RealtimeTurnDetectionControls, RealtimeTurnDetectionHelp, RealtimeTurnDetectionSummary } from './RealtimeTurnDetection';
 import {
   migrateRealtimeSettings,
@@ -41,6 +41,8 @@ export const openaiProvider: Provider<RealtimeSettings, RealtimeCredentials, Rea
 
   settings: { key: 'openai', defaults: REALTIME_DEFAULTS, legacyKeys: REALTIME_LEGACY_KEYS, migrate: migrateRealtimeSettings },
   Settings: RealtimeSettingsView,
+  // The one voice, under each spoken Speech row.
+  VoiceSummary: RealtimeVoiceSummary,
   TurnDetection: { Summary: RealtimeTurnDetectionSummary, Controls: RealtimeTurnDetectionControls, Help: RealtimeTurnDetectionHelp },
 
   credentials: realtimeCredentials,

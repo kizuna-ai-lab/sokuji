@@ -250,7 +250,6 @@
     "sonioxVoiceNamePlaceholder": "নতুন ক্লোন করা কণ্ঠস্বরের জন্য নাম (ঐচ্ছিক)",
     "sonioxVoiceDefaultName": "আমার কণ্ঠস্বর {{n}}",
     "sonioxManagedVoiceName": "আমার কণ্ঠস্বর",
-    "sonioxManagedVoiceReplaceHint": "নতুন কণ্ঠস্বর রেকর্ড করার আগে এই কণ্ঠস্বরটি মুছে ফেলুন — শুধু আবার রেকর্ড করলে আপনার বর্তমান কণ্ঠস্বরই থেকে যাবে।",
     "sonioxVoiceDeletedPlaceholder": "(মুছে ফেলা কণ্ঠস্বর)",
     "sonioxVoiceDeleteInUse": "এই কণ্ঠস্বরটি সক্রিয় সেশনে ব্যবহৃত হচ্ছে — মুছে ফেলার আগে সেশনটি শেষ করুন",
     "sonioxVoiceProcessingBadge": "প্রক্রিয়াকরণ চলছে…",
@@ -305,8 +304,10 @@
       "mirror": "তারা {{their}} বলে → আমি {{mine}} পড়ি"
     },
     "sonioxSharedSessionFaceToFace": "মুখোমুখিতে সবসময় একটি ভাগ করা সেশন ব্যবহার হয়: দুজনেই একই মাইক্রোফোনে কথা বলেন।",
-    "sonioxParticipantVoice": "অপর পক্ষের কণ্ঠ",
-    "sonioxParticipantVoiceTooltip": "যে কণ্ঠ অপর ব্যক্তির কথা আপনার ভাষায় আপনাকে পড়ে শোনায়। শুধু বিল্ট-ইন কণ্ঠ।"
+    "voiceTheyHear": "অপর পক্ষ যে কণ্ঠ শোনে",
+    "voiceIHear": "আমি যে কণ্ঠ শুনি",
+    "voiceIHearSame": "অপর পক্ষ যে কণ্ঠ শোনে সেটির মতোই, তাই এর বদলে {{voice}} পড়বে।",
+    "voiceCustom": "কাস্টম কণ্ঠ"
   },
   "simpleSettings": {
     "autoAuthenticated": "আপনার অ্যাকাউন্টের মাধ্যমে স্বয়ংক্রিয়ভাবে প্রমাণীকৃত",
@@ -342,6 +343,7 @@
     "passthroughTip": "আমার নিজের কণ্ঠ কম মাত্রায় অনুবাদের নিচে মিশিয়ে ভার্চুয়াল মাইক্রোফোনে পাঠায়। সর্বোচ্চ ৬০%।",
     "passthroughVolume": "ভলিউম {{percent}}%",
     "iHear": "আমি যে অনুবাদ শুনি",
+    "voiceLine": "কণ্ঠ",
     "iHearTip": "অপর পক্ষ যা বলে, তার অনুবাদ করে আমাকে পড়ে শোনানো হয়।",
     "iHearNotOffered": "এই পরিষেবা অপর পক্ষের অনুবাদ পড়ে শোনায় না।",
     "keepReplay": "আবার শোনার জন্য পড়ে শোনানো অনুবাদ রাখুন",
@@ -508,7 +510,10 @@
       "accessTokenPlaceholder": "Access Token",
       "authModeApp": "App ID + Access Token",
       "voiceClone": "বক্তার কণ্ঠ ক্লোন করুন",
-      "voiceGroupClone": "কণ্ঠ ক্লোনিং"
+      "voiceGroupClone": "কণ্ঠ ক্লোনিং",
+      "voiceSharedZhEn": "চীনা↔ইংরেজি: এই পছন্দ দুই পক্ষের জন্যই।",
+      "voiceSummaryCloneMine": "আপনার নিজের কণ্ঠ (ক্লোন)",
+      "voiceSummaryCloneTheirs": "অপর পক্ষের নিজের কণ্ঠ (ক্লোন)"
     },
     "local_inference": {
       "name": "বিনামূল্যে",
@@ -968,6 +973,7 @@
     "importError": "ইমপোর্ট ব্যর্থ: {error}",
     "importVoice": "কণ্ঠস্বর ইমপোর্ট করুন…",
     "myVoices": "কাস্টম কণ্ঠস্বর",
+    "customQuota": "({used}/{limit})",
     "play": "চালান",
     "presets": "প্রিসেট",
     "previewChargedToBalance": "প্রিভিউ করলে একটি সংক্ষিপ্ত নমুনা সংশ্লেষিত হয় এবং তা আপনার অ্যাকাউন্ট ব্যালেন্স থেকে কাটা হয়।",

@@ -8,7 +8,7 @@
  */
 import type { ComponentType } from 'react';
 import type { SessionHooks } from '../session/types';
-import type { AuthContext, CredentialsMissing, Provider, SettingsProps } from './types';
+import type { AuthContext, CredentialsMissing, Provider, SettingsProps, VoiceSummaryProps } from './types';
 
 /** What a managed `read` answers (the read type `R`, choice 1): the sign-in, never a key — the lease mints those. */
 export interface ManagedSignIn {
@@ -29,6 +29,8 @@ export interface ManagedOverrides<S, K, C, Id extends string> {
   settingsKey: string;
   /** The base's settings component in its managed flavour. */
   Settings: ComponentType<SettingsProps<S>>;
+  /** The base's voice summary in its managed flavour; absent, the base's own, if it has one. */
+  VoiceSummary?: ComponentType<VoiceSummaryProps<S>>;
   /** Diagnostic English for a signed-out `read`; the user reads `sign_in_required`'s words. */
   signedOut: string;
   /** The participant-speech flag (ruling 2); absent, the twin carries the base's own flag, if it has one. */
@@ -53,6 +55,7 @@ export function managed<S, K extends { missing?: never } & object, C extends { r
     settings: { key: o.settingsKey, defaults: base.settings.defaults, ...(base.settings.migrate ? { migrate: base.settings.migrate } : {}) },
     Settings: o.Settings,
     ...(base.TurnDetection ? { TurnDetection: base.TurnDetection } : {}),
+    ...((o.VoiceSummary ?? base.VoiceSummary) ? { VoiceSummary: o.VoiceSummary ?? base.VoiceSummary } : {}),
     credentials: { keys: [], fields: () => [], read: (_values, auth) => readSignIn(auth, o.signedOut) },
     // Static: the sign-in is `read`'s to see, the balance the start gate's (spec: "Readiness is one check").
     check: async () => ({ ok: true }),
