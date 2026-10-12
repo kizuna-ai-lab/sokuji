@@ -515,6 +515,16 @@
       "voiceSummaryCloneMine": "Oma äänesi (kloonattu)",
       "voiceSummaryCloneTheirs": "Toisen osapuolen oma ääni (kloonattu)"
     },
+    "qwen_livetranslate": {
+      "name": "Qwen LiveTranslate",
+      "description": "Qwen3.8-simultaanitulkkaus, 60 kieltä (29 puhuttuna)",
+      "voiceClone": "Kloonaa puhujan ääni",
+      "voiceGroupClone": "Äänen kloonaus",
+      "voiceSummaryCloneMine": "Oma äänesi (kloonattu)",
+      "voiceSummaryCloneTheirs": "Toisen osapuolen oma ääni (kloonattu)",
+      "storefrontIntl": "Avain palvelusta QwenCloud (kansainvälinen)",
+      "storefrontCn": "Avain palvelusta 千问云 (Manner-Kiina)"
+    },
     "local_inference": {
       "name": "Ilmainen",
       "description": "Ilmainen puheentunnistus (ASR) + Käännös + puhesynteesi (TTS)",

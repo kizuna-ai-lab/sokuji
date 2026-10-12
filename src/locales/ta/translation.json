@@ -515,6 +515,16 @@
       "voiceSummaryCloneMine": "உங்கள் சொந்தக் குரல் (நகல்)",
       "voiceSummaryCloneTheirs": "எதிர்த்தரப்பின் சொந்தக் குரல் (நகல்)"
     },
+    "qwen_livetranslate": {
+      "name": "Qwen LiveTranslate",
+      "description": "Qwen3.8 ஒரே நேர மொழிபெயர்ப்பு, 60 மொழிகள் (29 குரலுடன்)",
+      "voiceClone": "பேசுபவரின் குரலை நகலெடு",
+      "voiceGroupClone": "குரல் நகலாக்கம்",
+      "voiceSummaryCloneMine": "உங்கள் சொந்தக் குரல் (நகல்)",
+      "voiceSummaryCloneTheirs": "எதிர்த்தரப்பின் சொந்தக் குரல் (நகல்)",
+      "storefrontIntl": "QwenCloud (சர்வதேச) விசை",
+      "storefrontCn": "千问云 (சீனப் பெருநிலம்) விசை"
+    },
     "local_inference": {
       "name": "இலவசம்",
       "description": "இலவச பேச்சு அங்கீகாரம் (ASR) + மொழிபெயர்ப்பு + பேச்சு தொகுப்பு (TTS)",

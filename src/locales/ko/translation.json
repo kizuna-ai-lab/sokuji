@@ -515,6 +515,16 @@
       "voiceSummaryCloneMine": "내 목소리 (복제)",
       "voiceSummaryCloneTheirs": "상대방 본인의 목소리 (복제)"
     },
+    "qwen_livetranslate": {
+      "name": "Qwen LiveTranslate",
+      "description": "Qwen3.8 동시 통역, 60개 언어(음성 29개)",
+      "voiceClone": "화자 목소리 복제",
+      "voiceGroupClone": "목소리 복제",
+      "voiceSummaryCloneMine": "내 목소리 (복제)",
+      "voiceSummaryCloneTheirs": "상대방 본인의 목소리 (복제)",
+      "storefrontIntl": "QwenCloud(국제) 키",
+      "storefrontCn": "千问云(중국 본토) 키"
+    },
     "local_inference": {
       "name": "무료",
       "description": "무료 음성 인식(ASR) + 번역 + 음성 합성(TTS)",

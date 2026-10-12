@@ -515,6 +515,16 @@
       "voiceSummaryCloneMine": "Din egen röst (klonad)",
       "voiceSummaryCloneTheirs": "Motpartens egen röst (klonad)"
     },
+    "qwen_livetranslate": {
+      "name": "Qwen LiveTranslate",
+      "description": "Qwen3.8 simultantolkning, 60 språk (29 med röst)",
+      "voiceClone": "Klona talarens röst",
+      "voiceGroupClone": "Röstkloning",
+      "voiceSummaryCloneMine": "Din egen röst (klonad)",
+      "voiceSummaryCloneTheirs": "Motpartens egen röst (klonad)",
+      "storefrontIntl": "Nyckel från QwenCloud (internationell)",
+      "storefrontCn": "Nyckel från 千问云 (Fastlandskina)"
+    },
     "local_inference": {
       "name": "Gratis",
       "description": "Gratis taligenkänning (ASR) + Översättning + talsyntes (TTS)",

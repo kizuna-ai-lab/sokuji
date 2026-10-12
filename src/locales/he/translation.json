@@ -515,6 +515,16 @@
       "voiceSummaryCloneMine": "הקול שלך (משוכפל)",
       "voiceSummaryCloneTheirs": "הקול של הצד השני עצמו (משוכפל)"
     },
+    "qwen_livetranslate": {
+      "name": "Qwen LiveTranslate",
+      "description": "תרגום סימולטני Qwen3.8, 60 שפות (29 בקול)",
+      "voiceClone": "שכפול קול הדובר",
+      "voiceGroupClone": "שכפול קול",
+      "voiceSummaryCloneMine": "הקול שלך (משוכפל)",
+      "voiceSummaryCloneTheirs": "הקול של הצד השני עצמו (משוכפל)",
+      "storefrontIntl": "מפתח מ-QwenCloud (בינלאומי)",
+      "storefrontCn": "מפתח מ-千问云 (סין היבשתית)"
+    },
     "local_inference": {
       "name": "חינמי",
       "description": "זיהוי דיבור חינמי (ASR) + תרגום + סינתזת דיבור (TTS)",

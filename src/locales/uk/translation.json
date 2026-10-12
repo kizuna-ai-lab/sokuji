@@ -515,6 +515,16 @@
       "voiceSummaryCloneMine": "Ваш власний голос (клон)",
       "voiceSummaryCloneTheirs": "Власний голос співрозмовника (клон)"
     },
+    "qwen_livetranslate": {
+      "name": "Qwen LiveTranslate",
+      "description": "Синхронний переклад Qwen3.8, 60 мов (29 з озвученням)",
+      "voiceClone": "Клонувати голос мовця",
+      "voiceGroupClone": "Клонування голосу",
+      "voiceSummaryCloneMine": "Ваш власний голос (клон)",
+      "voiceSummaryCloneTheirs": "Власний голос співрозмовника (клон)",
+      "storefrontIntl": "Ключ QwenCloud (міжнародний)",
+      "storefrontCn": "Ключ 千问云 (материковий Китай)"
+    },
     "local_inference": {
       "name": "Безкоштовний",
       "description": "Безкоштовне розпізнавання мовлення (ASR) + Переклад + синтез мовлення (TTS)",

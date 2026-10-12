@@ -515,6 +515,16 @@
       "voiceSummaryCloneMine": "Suara anda sendiri (diklon)",
       "voiceSummaryCloneTheirs": "Suara pihak lain sendiri (diklon)"
     },
+    "qwen_livetranslate": {
+      "name": "Qwen LiveTranslate",
+      "description": "Tafsiran serentak Qwen3.8, 60 bahasa (29 dengan suara)",
+      "voiceClone": "Klon suara penutur",
+      "voiceGroupClone": "Pengklonan suara",
+      "voiceSummaryCloneMine": "Suara anda sendiri (diklon)",
+      "voiceSummaryCloneTheirs": "Suara pihak lain sendiri (diklon)",
+      "storefrontIntl": "Kunci daripada QwenCloud (antarabangsa)",
+      "storefrontCn": "Kunci daripada 千问云 (tanah besar China)"
+    },
     "local_inference": {
       "name": "Percuma",
       "description": "Pengecaman pertuturan percuma (ASR) + Terjemahan + Sintesis pertuturan (TTS)",

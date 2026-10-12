@@ -515,6 +515,16 @@
       "voiceSummaryCloneMine": "Giọng của chính bạn (sao chép)",
       "voiceSummaryCloneTheirs": "Giọng của chính bên kia (sao chép)"
     },
+    "qwen_livetranslate": {
+      "name": "Qwen LiveTranslate",
+      "description": "Phiên dịch đồng thời Qwen3.8, 60 ngôn ngữ (29 có giọng nói)",
+      "voiceClone": "Sao chép giọng người nói",
+      "voiceGroupClone": "Sao chép giọng",
+      "voiceSummaryCloneMine": "Giọng của chính bạn (sao chép)",
+      "voiceSummaryCloneTheirs": "Giọng của chính bên kia (sao chép)",
+      "storefrontIntl": "Khóa từ QwenCloud (quốc tế)",
+      "storefrontCn": "Khóa từ 千问云 (Trung Quốc đại lục)"
+    },
     "local_inference": {
       "name": "Miễn phí",
       "description": "Nhận dạng giọng nói miễn phí (ASR) + Dịch + Tổng hợp giọng nói (TTS)",

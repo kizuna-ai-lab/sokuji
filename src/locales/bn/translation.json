@@ -515,6 +515,16 @@
       "voiceSummaryCloneMine": "আপনার নিজের কণ্ঠ (ক্লোন)",
       "voiceSummaryCloneTheirs": "অপর পক্ষের নিজের কণ্ঠ (ক্লোন)"
     },
+    "qwen_livetranslate": {
+      "name": "Qwen LiveTranslate",
+      "description": "Qwen3.8 সিমালটেনিয়াস ইন্টারপ্রিটেশন, 60টি ভাষা (29টিতে কণ্ঠ)",
+      "voiceClone": "বক্তার কণ্ঠ ক্লোন করুন",
+      "voiceGroupClone": "কণ্ঠ ক্লোনিং",
+      "voiceSummaryCloneMine": "আপনার নিজের কণ্ঠ (ক্লোন)",
+      "voiceSummaryCloneTheirs": "অপর পক্ষের নিজের কণ্ঠ (ক্লোন)",
+      "storefrontIntl": "QwenCloud (আন্তর্জাতিক)-এর কী",
+      "storefrontCn": "千问云 (মূল ভূখণ্ড চীন)-এর কী"
+    },
     "local_inference": {
       "name": "বিনামূল্যে",
       "description": "বিনামূল্যে বাক স্বীকৃতি (ASR) + অনুবাদ + বাক সংশ্লেষণ (TTS)",

@@ -515,6 +515,16 @@
       "voiceSummaryCloneMine": "आपकी अपनी आवाज़ (क्लोन)",
       "voiceSummaryCloneTheirs": "सामने वाले की अपनी आवाज़ (क्लोन)"
     },
+    "qwen_livetranslate": {
+      "name": "Qwen LiveTranslate",
+      "description": "Qwen3.8 सिमल्टेनियस इंटरप्रिटेशन, 60 भाषाएँ (29 में आवाज़)",
+      "voiceClone": "वक्ता की आवाज़ क्लोन करें",
+      "voiceGroupClone": "आवाज़ क्लोनिंग",
+      "voiceSummaryCloneMine": "आपकी अपनी आवाज़ (क्लोन)",
+      "voiceSummaryCloneTheirs": "सामने वाले की अपनी आवाज़ (क्लोन)",
+      "storefrontIntl": "QwenCloud (अंतरराष्ट्रीय) की कुंजी",
+      "storefrontCn": "千问云 (मुख्यभूमि चीन) की कुंजी"
+    },
     "local_inference": {
       "name": "मुफ़्त",
       "description": "मुफ़्त वाक् पहचान (ASR) + अनुवाद + वाक् संश्लेषण (TTS)",

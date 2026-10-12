@@ -515,6 +515,16 @@
       "voiceSummaryCloneMine": "Je eigen stem (gekloond)",
       "voiceSummaryCloneTheirs": "De eigen stem van de ander (gekloond)"
     },
+    "qwen_livetranslate": {
+      "name": "Qwen LiveTranslate",
+      "description": "Qwen3.8-simultaantolken, 60 talen (29 gesproken)",
+      "voiceClone": "Stem van de spreker klonen",
+      "voiceGroupClone": "Stem klonen",
+      "voiceSummaryCloneMine": "Je eigen stem (gekloond)",
+      "voiceSummaryCloneTheirs": "De eigen stem van de ander (gekloond)",
+      "storefrontIntl": "Sleutel van QwenCloud (internationaal)",
+      "storefrontCn": "Sleutel van 千问云 (Chinees vasteland)"
+    },
     "local_inference": {
       "name": "Gratis",
       "description": "Gratis spraakherkenning (ASR) + Vertaling + spraaksynthese (TTS)",

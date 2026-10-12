@@ -515,6 +515,16 @@
       "voiceSummaryCloneMine": "మీ సొంత గొంతు (క్లోన్)",
       "voiceSummaryCloneTheirs": "అవతలి వైపు వారి సొంత గొంతు (క్లోన్)"
     },
+    "qwen_livetranslate": {
+      "name": "Qwen LiveTranslate",
+      "description": "Qwen3.8 సైమల్టేనియస్ ఇంటర్‌ప్రిటేషన్, 60 భాషలు (29 గొంతుతో)",
+      "voiceClone": "మాట్లాడేవారి గొంతును క్లోన్ చేయి",
+      "voiceGroupClone": "గొంతు క్లోనింగ్",
+      "voiceSummaryCloneMine": "మీ సొంత గొంతు (క్లోన్)",
+      "voiceSummaryCloneTheirs": "అవతలి వైపు వారి సొంత గొంతు (క్లోన్)",
+      "storefrontIntl": "QwenCloud (అంతర్జాతీయ) కీ",
+      "storefrontCn": "千问云 (చైనా ప్రధాన భూభాగం) కీ"
+    },
     "local_inference": {
       "name": "ఉచిత",
       "description": "ఉచిత వాక్ గుర్తింపు (ASR) + అనువాదం + వాక్ సంశ్లేషణ (TTS)",

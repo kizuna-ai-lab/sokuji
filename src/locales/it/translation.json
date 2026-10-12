@@ -515,6 +515,16 @@
       "voiceSummaryCloneMine": "La tua voce (clonata)",
       "voiceSummaryCloneTheirs": "La voce dell'altro (clonata)"
     },
+    "qwen_livetranslate": {
+      "name": "Qwen LiveTranslate",
+      "description": "Interpretariato simultaneo Qwen3.8, 60 lingue (29 parlate)",
+      "voiceClone": "Clona la voce di chi parla",
+      "voiceGroupClone": "Clonazione della voce",
+      "voiceSummaryCloneMine": "La tua voce (clonata)",
+      "voiceSummaryCloneTheirs": "La voce dell'altro (clonata)",
+      "storefrontIntl": "Chiave di QwenCloud (internazionale)",
+      "storefrontCn": "Chiave di 千问云 (Cina continentale)"
+    },
     "local_inference": {
       "name": "Gratuito",
       "description": "Riconoscimento vocale gratuito (ASR) + Traduzione + Sintesi vocale (TTS)",

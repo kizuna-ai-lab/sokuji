@@ -515,6 +515,16 @@
       "voiceSummaryCloneMine": "صدای خودتان (شبیه‌سازی‌شده)",
       "voiceSummaryCloneTheirs": "صدای خود طرف مقابل (شبیه‌سازی‌شده)"
     },
+    "qwen_livetranslate": {
+      "name": "Qwen LiveTranslate",
+      "description": "ترجمه همزمان Qwen3.8، 60 زبان (29 با صدا)",
+      "voiceClone": "شبیه‌سازی صدای گوینده",
+      "voiceGroupClone": "شبیه‌سازی صدا",
+      "voiceSummaryCloneMine": "صدای خودتان (شبیه‌سازی‌شده)",
+      "voiceSummaryCloneTheirs": "صدای خود طرف مقابل (شبیه‌سازی‌شده)",
+      "storefrontIntl": "کلید از QwenCloud (بین‌المللی)",
+      "storefrontCn": "کلید از 千问云 (سرزمین اصلی چین)"
+    },
     "local_inference": {
       "name": "رایگان",
       "description": "تشخیص گفتار رایگان (ASR) + ترجمه + تبدیل متن به گفتار (TTS)",

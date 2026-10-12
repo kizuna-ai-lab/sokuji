@@ -515,6 +515,16 @@
       "voiceSummaryCloneMine": "เสียงของคุณเอง (โคลน)",
       "voiceSummaryCloneTheirs": "เสียงของอีกฝ่ายเอง (โคลน)"
     },
+    "qwen_livetranslate": {
+      "name": "Qwen LiveTranslate",
+      "description": "ล่ามแปลพร้อมกัน Qwen3.8 60 ภาษา (มีเสียง 29 ภาษา)",
+      "voiceClone": "โคลนเสียงผู้พูด",
+      "voiceGroupClone": "การโคลนเสียง",
+      "voiceSummaryCloneMine": "เสียงของคุณเอง (โคลน)",
+      "voiceSummaryCloneTheirs": "เสียงของอีกฝ่ายเอง (โคลน)",
+      "storefrontIntl": "คีย์จาก QwenCloud (นานาชาติ)",
+      "storefrontCn": "คีย์จาก 千问云 (จีนแผ่นดินใหญ่)"
+    },
     "local_inference": {
       "name": "ฟรี",
       "description": "การรู้จำเสียงพูดฟรี (ASR) + แปล + การสังเคราะห์เสียงพูด (TTS)",

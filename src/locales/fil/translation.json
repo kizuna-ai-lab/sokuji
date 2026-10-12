@@ -515,6 +515,16 @@
       "voiceSummaryCloneMine": "Sarili mong boses (na-clone)",
       "voiceSummaryCloneTheirs": "Sariling boses ng kausap (na-clone)"
     },
+    "qwen_livetranslate": {
+      "name": "Qwen LiveTranslate",
+      "description": "Qwen3.8 sabay-sabay na pagsasalin, 60 wika (29 may boses)",
+      "voiceClone": "I-clone ang boses ng nagsasalita",
+      "voiceGroupClone": "Pag-clone ng boses",
+      "voiceSummaryCloneMine": "Sarili mong boses (na-clone)",
+      "voiceSummaryCloneTheirs": "Sariling boses ng kausap (na-clone)",
+      "storefrontIntl": "Key mula sa QwenCloud (internasyonal)",
+      "storefrontCn": "Key mula sa 千问云 (mainland China)"
+    },
     "local_inference": {
       "name": "Libre",
       "description": "Libreng pagkilala sa pagsasalita (ASR) + Pagsasalin + sintesis ng pagsasalita (TTS)",
