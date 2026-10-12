@@ -129,7 +129,7 @@ export type Readiness =
 export interface SharedSettings {
   /** The segmentation pauses, in seconds, as stored. */
   pauses: { sourceSeconds: number; translationSeconds: number };
-  /** This is the participant's direction: the pair's reverse. */
+  /** This is the participant's direction: the pair's reverse. A run answers it by leg, so a same-language pair (en → en), one direction for both legs, still tells them apart. */
   reversed(direction: SessionContext['direction']): boolean;
   /** The display segmentation as stored: a provider that cuts its own jobs follows it (LocalInference). */
   segmentation: { mode: 'off' | 'pause' | 'sentences'; sentencesPerRow: number };
