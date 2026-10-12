@@ -1252,26 +1252,13 @@ ipcMain.handle('list-microphone-users', async (event, label) => {
 
 /**
  * The Windows settings a microphone notice points at: the privacy page that
- * lets desktop apps use the microphone, and the classic Sound panel's
- * Recording tab, where a device's exclusive mode is switched.
+ * lets desktop apps use the microphone.
  */
 ipcMain.handle('open-windows-settings', async (event, page) => {
   if (process.platform !== 'win32') return { ok: false, error: 'Windows only' };
+  if (page !== 'microphone-privacy') return { ok: false, error: `Unknown Windows settings page: ${page}` };
   try {
-    if (page === 'microphone-privacy') {
-      await shell.openExternal('ms-settings:privacy-microphone');
-    } else if (page === 'sound-recording') {
-      // control.exe exits 1 even when the panel opens, so only a failure to
-      // launch counts. No windowsHide: it would reach the panel's own window.
-      const { spawn } = require('child_process');
-      await new Promise((resolve, reject) => {
-        const child = spawn('control.exe', ['mmsys.cpl,,1'], { detached: true, stdio: 'ignore' });
-        child.once('error', reject);
-        child.once('spawn', () => { child.unref(); resolve(); });
-      });
-    } else {
-      return { ok: false, error: `Unknown Windows settings page: ${page}` };
-    }
+    await shell.openExternal('ms-settings:privacy-microphone');
     return { ok: true };
   } catch (error) {
     console.error('[Sokuji] [Main] Failed to open Windows settings:', error);

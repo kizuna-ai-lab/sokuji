@@ -47,13 +47,14 @@ The status line already draws a start failure's code through `noticeText` and of
 
 | Code | English | Action |
 |---|---|---|
-| `mic_in_use` | `The microphone “{{device}}” is in use by {{apps}}. Close {{apps}} and start again, or turn off exclusive mode in Sound settings.` | **Open Sound Settings**: the classic Sound control panel on its Recording tab (`control mmsys.cpl,,1`), where "Allow applications to take exclusive control of this device" is |
+| `mic_in_use` | `The microphone “{{device}}” is in use by {{apps}}. Close {{apps}} and start again, or choose another microphone.` | **Settings**: Sokuji's microphone section, to choose another microphone |
 | `mic_unreadable` | `Windows could not open the microphone “{{device}}”. Another app may be holding it, or its driver stopped responding. Close apps that use it or reconnect it, then start again.` | **Settings**: Sokuji's microphone section, to choose another microphone |
 | `mic_blocked` | `Windows is not letting Sokuji use the microphone. Turn on microphone access for desktop apps in Settings › Privacy & security › Microphone, then start again.` | **Open System Settings**: `ms-settings:privacy-microphone` |
 
-- New action kind `{ kind: 'windows-settings'; page: 'microphone-privacy' | 'sound-recording' }`, dispatched by MainPanel to a new IPC `open-windows-settings`. Labels: the existing `audioPanel.openSystemSettings`, and a new `audioPanel.openSoundSettings` ("Open Sound Settings").
+- New action kind `{ kind: 'windows-settings'; page: 'microphone-privacy' }`, dispatched by MainPanel to a new IPC `open-windows-settings`, labelled with the existing `audioPanel.openSystemSettings`.
+- No button for exclusive mode (R3): the classic Sound panel opens on a list of devices, two dialogs short of the "Allow applications to take exclusive control" box, and unticking it does not make the application holding the microphone let go; only closing that application does. Exclusive mode is advice for the help pages, not the status line.
 - No Retry button: Start sits directly under the status line.
-- The subtitle takeover keeps its rule (only Sokuji's own settings get a button there), so only `mic_unreadable` shows one.
+- The subtitle takeover keeps its rule (only Sokuji's own settings get a button there), so `mic_in_use` and `mic_unreadable` show one there and `mic_blocked` does not.
 
 ### 4. Telemetry
 
@@ -68,9 +69,9 @@ The status line already draws a start failure's code through `noticeText` and of
 |---|---|---|
 | R1 | Scope of the improvement | All four: name the holder, separate wording when none is found (privacy is `NotAllowedError`), one action per case, telemetry. |
 | R2 | New `error_type: 'device'` | Yes; dashboards counting `'server'` lose these failures, which is the correction. |
-| R3 | `mic_in_use`'s button | Open Sound Settings, not Retry. |
+| R3 | `mic_in_use`'s button | First Open Sound Settings, not Retry; after trying it on the test machine, Settings › microphone (option A): the Sound panel cannot fix a microphone another application already holds. |
 
 ## Verification
 
 - Unit tests for the lookup's parsing and label match (Node), the classification, the notice words in all catalogs, the action, the dispatch and the runner's `error_type`.
-- On the Windows test machine: the lookup run by Node against a microphone held exclusively, then the dev build for all three cases (the privacy switch turned off for the `mic_blocked` case and restored afterwards).
+- On the Windows test machine (2026-10-13): the lookup run by Node against a microphone held exclusively (`["Python"]`, about 350 ms; `[]` when free; `null` for no such device); the dev build with the fake provider: `mic_in_use` naming Python about 1.3 s after Start, a normal start and stop once the microphone was free, and `mic_blocked` with the privacy switch turned off in Settings (the owner; writing the registry value directly does not take effect). `mic_unreadable` is covered by unit tests only: no way was found to make a device fail without a holder.

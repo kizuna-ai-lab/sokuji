@@ -24,7 +24,8 @@ describe('actionForCode', () => {
     expect(actionForCode('loopback_denied')).toEqual({ kind: 'system-settings', pane: 'screen-recording' });
   });
   it('sends a Windows microphone that would not open to where it is fixed (spec 2026-10-13 §3)', () => {
-    expect(actionForCode('mic_in_use')).toEqual({ kind: 'windows-settings', page: 'sound-recording' });
+    // Held by another application: close it, or choose another microphone right away.
+    expect(actionForCode('mic_in_use')).toEqual({ kind: 'settings', target: 'microphone' });
     expect(actionForCode('mic_blocked')).toEqual({ kind: 'windows-settings', page: 'microphone-privacy' });
     expect(actionForCode('mic_unreadable')).toEqual({ kind: 'settings', target: 'microphone' });
   });
@@ -50,6 +51,5 @@ describe('actionLabel', () => {
     expect(actionLabel({ kind: 'show-in-folder', dir: '/tmp' })).toEqual({ key: 'mainPanel.export.autoSave.showInFolder', fallback: 'Show in folder' });
     expect(actionLabel({ kind: 'engine-slot', leg: 'participant', stage: 'tts' })).toEqual({ key: 'settings.title', fallback: 'Settings' });
     expect(actionLabel({ kind: 'windows-settings', page: 'microphone-privacy' })).toEqual({ key: 'audioPanel.openSystemSettings', fallback: 'Open System Settings' });
-    expect(actionLabel({ kind: 'windows-settings', page: 'sound-recording' })).toEqual({ key: 'audioPanel.openSoundSettings', fallback: 'Open Sound Settings' });
   });
 });

@@ -58,7 +58,7 @@ describe('noticeText', () => {
 
   it('names the microphone that would not open on Windows, and who is using it (spec 2026-10-13 §3)', () => {
     expect(noticeText(plainT, { code: MIC_IN_USE, message: 'x', params: { device: 'Microphone (AU05)', apps: 'Zoom Meetings' } }))
-      .toBe('The microphone “Microphone (AU05)” is in use by Zoom Meetings. Close Zoom Meetings and start again, or turn off exclusive mode in Sound settings.');
+      .toBe('The microphone “Microphone (AU05)” is in use by Zoom Meetings. Close Zoom Meetings and start again, or choose another microphone.');
     expect(noticeText(plainT, { code: MIC_UNREADABLE, message: 'x', params: { device: 'Microphone (AU05)' } }))
       .toMatch(/^Windows could not open the microphone “Microphone \(AU05\)”\./);
     expect(noticeText(plainT, { code: MIC_BLOCKED, message: 'x' })).toMatch(/^Windows is not letting Sokuji use the microphone\./);
