@@ -376,6 +376,7 @@
     "participantSourceDesc": "Chọn ứng dụng cần dịch. \"Âm thanh hệ thống\" thu mọi thứ bạn nghe thấy, bao gồm cả trò chơi và nhạc.",
     "turnOffParticipant": "Tắt âm thanh đối phương",
     "openSystemSettings": "Mở Cài đặt Hệ thống",
+    "openSoundSettings": "Mở cài đặt Âm thanh",
     "screenRecordingDeniedText2Named": "Vui lòng vào System Settings > Privacy & Security > Screen Recording và bật \"{{app}}\".",
     "audioCaptureDeniedText2Named": "Mở System Settings > Privacy & Security > System Audio Recording Only và bật \"{{app}}\".",
     "screenRecordingHasAlternative": "Bạn có thể tránh hoàn toàn quyền này: hãy chọn một ứng dụng cụ thể làm nguồn âm thanh đối phương. Ứng dụng chỉ xuất hiện trong danh sách đó khi đang phát âm thanh.",
@@ -1360,6 +1361,9 @@
     "mic_lost_using_other": "Micrô “{{lost}}” đã bị ngắt kết nối, nên “{{device}}” đang được dùng thay thế.",
     "mic_lost_waiting": "Micrô đã bị ngắt kết nối. Việc dịch giọng nói của bạn sẽ tiếp tục khi có micrô được kết nối.",
     "mic_now_using": "Đang dùng micrô “{{device}}”.",
+    "mic_in_use": "Micrô “{{device}}” đang được {{apps}} sử dụng. Hãy đóng {{apps}} rồi bắt đầu lại, hoặc tắt chế độ độc quyền trong cài đặt Âm thanh.",
+    "mic_unreadable": "Windows không mở được micrô “{{device}}”. Có thể một ứng dụng khác đang dùng nó, hoặc trình điều khiển của nó không phản hồi. Hãy đóng các ứng dụng đang dùng nó hoặc kết nối lại, rồi bắt đầu lại.",
+    "mic_blocked": "Windows không cho phép Sokuji dùng micrô. Hãy bật quyền truy cập micrô cho ứng dụng máy tính trong Cài đặt › Quyền riêng tư & bảo mật › Micrô, rồi bắt đầu lại.",
     "speaker_tts_missing": "Bản dịch bên kia nghe chỉ hiển thị chữ: không có mô hình giọng nói nào nói được {{target}}.",
     "participant_tts_missing": "Bản dịch tôi nghe chỉ hiển thị chữ: không có mô hình giọng nói nào nói được {{target}}.",
     "participant_tts_over_budget": "Bản dịch tôi nghe chỉ hiển thị chữ: không đủ bộ nhớ để tải thêm mô hình giọng nói của bên kia."

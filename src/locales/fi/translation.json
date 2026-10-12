@@ -376,6 +376,7 @@
     "participantSourceDesc": "Valitse, mikä sovellus käännetään. \"Järjestelmän ääni\" kaappaa kaiken kuulemasi, myös pelit ja musiikin.",
     "turnOffParticipant": "Sammuta toisen ääni",
     "openSystemSettings": "Avaa Järjestelmäasetukset",
+    "openSoundSettings": "Avaa ääniasetukset",
     "screenRecordingDeniedText2Named": "Siirry kohtaan Järjestelmäasetukset > Tietosuoja ja turvallisuus > Näytön tallennus ja ota \"{{app}}\" käyttöön.",
     "audioCaptureDeniedText2Named": "Avaa Järjestelmäasetukset > Tietosuoja ja turvallisuus > Vain järjestelmän äänen tallennus ja ota \"{{app}}\" käyttöön.",
     "screenRecordingHasAlternative": "Voit välttää tämän käyttöoikeuden kokonaan: valitse sen sijaan tietty sovellus toisen äänilähteeksi. Sovellukset näkyvät luettelossa vain, kun ne toistavat ääntä.",
@@ -1360,6 +1361,9 @@
     "mic_lost_using_other": "Mikrofoni ”{{lost}}” irrotettiin, joten sen sijaan käytetään mikrofonia ”{{device}}”.",
     "mic_lost_waiting": "Mikrofoni irrotettiin. Puheesi kääntäminen jatkuu, kun mikrofoni yhdistetään.",
     "mic_now_using": "Nyt käytetään mikrofonia ”{{device}}”.",
+    "mic_in_use": "Mikrofoni ”{{device}}” on sovelluksen {{apps}} käytössä. Sulje {{apps}} ja aloita uudelleen, tai poista yksinoikeustila käytöstä ääniasetuksista.",
+    "mic_unreadable": "Windows ei voinut avata mikrofonia ”{{device}}”. Toinen sovellus saattaa käyttää sitä, tai sen ohjain on lakannut vastaamasta. Sulje sitä käyttävät sovellukset tai liitä se uudelleen ja aloita sitten uudelleen.",
+    "mic_blocked": "Windows ei anna Sokujin käyttää mikrofonia. Salli työpöytäsovellusten mikrofonin käyttö kohdassa Asetukset › Tietosuoja ja suojaus › Mikrofoni ja aloita sitten uudelleen.",
     "speaker_tts_missing": "Käännös, jonka toinen osapuoli kuulee, näkyy vain tekstinä: mikään puhemalli ei puhu kieltä {{target}}.",
     "participant_tts_missing": "Käännös, jonka kuulen, näkyy vain tekstinä: mikään puhemalli ei puhu kieltä {{target}}.",
     "participant_tts_over_budget": "Käännös, jonka kuulen, näkyy vain tekstinä: muisti ei riitä lataamaan myös toisen osapuolen puhemallia."

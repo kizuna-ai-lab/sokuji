@@ -376,6 +376,7 @@
     "participantSourceDesc": "Kies welke applicatie vertaald moet worden. 'Systeemaudio' legt alles vast wat je hoort, inclusief games en muziek.",
     "turnOffParticipant": "Audio van de ander uitschakelen",
     "openSystemSettings": "Systeeminstellingen openen",
+    "openSoundSettings": "Geluidsinstellingen openen",
     "screenRecordingDeniedText2Named": "Ga naar Systeeminstellingen > Privacy en beveiliging > Schermopname en schakel '{{app}}' in.",
     "audioCaptureDeniedText2Named": "Open Systeeminstellingen > Privacy en beveiliging > Alleen systeemaudio-opname en schakel '{{app}}' in.",
     "screenRecordingHasAlternative": "U kunt deze toestemming volledig vermijden: kies in plaats daarvan een specifieke applicatie als audiobron van de ander. Applicaties verschijnen alleen in die lijst zolang ze audio afspelen.",
@@ -1360,6 +1361,9 @@
     "mic_lost_using_other": "De microfoon “{{lost}}” is losgekoppeld, dus wordt nu “{{device}}” gebruikt.",
     "mic_lost_waiting": "De microfoon is losgekoppeld. De vertaling van je spraak gaat verder zodra er een microfoon is aangesloten.",
     "mic_now_using": "Nu wordt de microfoon “{{device}}” gebruikt.",
+    "mic_in_use": "De microfoon “{{device}}” wordt gebruikt door {{apps}}. Sluit {{apps}} en start opnieuw, of zet de exclusieve modus uit in de geluidsinstellingen.",
+    "mic_unreadable": "Windows kon de microfoon “{{device}}” niet openen. Mogelijk gebruikt een andere app hem, of reageert het stuurprogramma niet meer. Sluit apps die hem gebruiken of sluit hem opnieuw aan, en start dan opnieuw.",
+    "mic_blocked": "Windows staat niet toe dat Sokuji de microfoon gebruikt. Zet microfoontoegang voor bureaublad-apps aan via Instellingen › Privacy en beveiliging › Microfoon, en start dan opnieuw.",
     "speaker_tts_missing": "De vertaling die de ander hoort, is alleen tekst: geen spraakmodel spreekt {{target}}.",
     "participant_tts_missing": "De vertaling die ik hoor, is alleen tekst: geen spraakmodel spreekt {{target}}.",
     "participant_tts_over_budget": "De vertaling die ik hoor, is alleen tekst: niet genoeg geheugen om ook het spraakmodel van de ander te laden."

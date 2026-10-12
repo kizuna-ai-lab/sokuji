@@ -47,8 +47,8 @@ The status line already draws a start failure's code through `noticeText` and of
 
 | Code | English | Action |
 |---|---|---|
-| `mic_in_use` | `{{device}} is being used by {{apps}}. Close it and start again, or turn off exclusive mode in Sound settings.` | **Open Sound Settings**: the classic Sound control panel on its Recording tab (`control mmsys.cpl,,1`), where "Allow applications to take exclusive control of this device" is |
-| `mic_unreadable` | `Windows could not open {{device}}. Another app may be holding it, or its driver stopped responding. Close apps that use it or reconnect it, then start again.` | **Settings**: Sokuji's microphone section, to choose another microphone |
+| `mic_in_use` | `The microphone “{{device}}” is in use by {{apps}}. Close {{apps}} and start again, or turn off exclusive mode in Sound settings.` | **Open Sound Settings**: the classic Sound control panel on its Recording tab (`control mmsys.cpl,,1`), where "Allow applications to take exclusive control of this device" is |
+| `mic_unreadable` | `Windows could not open the microphone “{{device}}”. Another app may be holding it, or its driver stopped responding. Close apps that use it or reconnect it, then start again.` | **Settings**: Sokuji's microphone section, to choose another microphone |
 | `mic_blocked` | `Windows is not letting Sokuji use the microphone. Turn on microphone access for desktop apps in Settings › Privacy & security › Microphone, then start again.` | **Open System Settings**: `ms-settings:privacy-microphone` |
 
 - New action kind `{ kind: 'windows-settings'; page: 'microphone-privacy' | 'sound-recording' }`, dispatched by MainPanel to a new IPC `open-windows-settings`. Labels: the existing `audioPanel.openSystemSettings`, and a new `audioPanel.openSoundSettings` ("Open Sound Settings").

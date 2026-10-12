@@ -376,6 +376,7 @@
     "participantSourceDesc": "Elige qué aplicación traducir. «Audio del sistema» captura todo lo que oyes, incluidos juegos y música.",
     "turnOffParticipant": "Desactivar el audio del otro",
     "openSystemSettings": "Abrir Ajustes del Sistema",
+    "openSoundSettings": "Abrir Configuración de sonido",
     "screenRecordingDeniedText2Named": "Por favor, ve a Ajustes del Sistema > Privacidad y seguridad > Grabación de pantalla y habilita «{{app}}».",
     "audioCaptureDeniedText2Named": "Abre Ajustes del Sistema > Privacidad y seguridad > Solo grabación de audio del sistema y habilita «{{app}}».",
     "screenRecordingHasAlternative": "Puedes evitar este permiso por completo: elige en su lugar una aplicación concreta como fuente de audio del otro. Las aplicaciones solo aparecen en esa lista mientras reproducen audio.",
@@ -1360,6 +1361,9 @@
     "mic_lost_using_other": "El micrófono «{{lost}}» se desconectó, así que ahora se usa «{{device}}».",
     "mic_lost_waiting": "El micrófono se desconectó. La traducción de tu voz se reanudará cuando se conecte un micrófono.",
     "mic_now_using": "Ahora se usa el micrófono «{{device}}».",
+    "mic_in_use": "{{apps}} está usando el micrófono «{{device}}». Cierra {{apps}} y vuelve a empezar, o desactiva el modo exclusivo en la configuración de sonido.",
+    "mic_unreadable": "Windows no pudo abrir el micrófono «{{device}}». Puede que otra aplicación lo esté usando o que su controlador haya dejado de responder. Cierra las aplicaciones que lo usan o vuelve a conectarlo y vuelve a empezar.",
+    "mic_blocked": "Windows no permite que Sokuji use el micrófono. Activa el acceso al micrófono para las aplicaciones de escritorio en Configuración › Privacidad y seguridad › Micrófono y vuelve a empezar.",
     "speaker_tts_missing": "La traducción que oye la otra parte se muestra solo como texto: ningún modelo de voz habla {{target}}.",
     "participant_tts_missing": "La traducción que yo oigo se muestra solo como texto: ningún modelo de voz habla {{target}}.",
     "participant_tts_over_budget": "La traducción que yo oigo se muestra solo como texto: no hay memoria suficiente para cargar también el modelo de voz de la otra parte."

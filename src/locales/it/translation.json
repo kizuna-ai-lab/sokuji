@@ -376,6 +376,7 @@
     "participantSourceDesc": "Scegli quale applicazione tradurre. «Audio di sistema» cattura tutto ciò che senti, inclusi giochi e musica.",
     "turnOffParticipant": "Disattiva l'audio dell'altro",
     "openSystemSettings": "Apri Impostazioni di Sistema",
+    "openSoundSettings": "Apri impostazioni Audio",
     "screenRecordingDeniedText2Named": "Vai su Impostazioni di Sistema > Privacy e sicurezza > Registrazione Schermo e abilita \"{{app}}\".",
     "audioCaptureDeniedText2Named": "Apri Impostazioni di Sistema > Privacy e sicurezza > Solo registrazione audio di sistema e abilita \"{{app}}\".",
     "screenRecordingHasAlternative": "Puoi evitare del tutto questa autorizzazione: scegli invece un'applicazione specifica come sorgente audio dell'altro. Le applicazioni compaiono in quell'elenco solo mentre riproducono audio.",
@@ -1360,6 +1361,9 @@
     "mic_lost_using_other": "Il microfono «{{lost}}» è stato scollegato, quindi ora viene usato «{{device}}».",
     "mic_lost_waiting": "Il microfono è stato scollegato. La traduzione della tua voce riprenderà quando verrà collegato un microfono.",
     "mic_now_using": "Ora viene usato il microfono «{{device}}».",
+    "mic_in_use": "Il microfono «{{device}}» è in uso da parte di {{apps}}. Chiudi {{apps}} e avvia di nuovo, oppure disattiva la modalità esclusiva nelle impostazioni Audio.",
+    "mic_unreadable": "Windows non è riuscito ad aprire il microfono «{{device}}». Potrebbe usarlo un’altra app, oppure il suo driver ha smesso di rispondere. Chiudi le app che lo usano o ricollegalo, poi avvia di nuovo.",
+    "mic_blocked": "Windows non consente a Sokuji di usare il microfono. Attiva l’accesso al microfono per le app desktop in Impostazioni › Privacy e sicurezza › Microfono, poi avvia di nuovo.",
     "speaker_tts_missing": "La traduzione che sente l'altra parte è solo testo: nessun modello vocale parla {{target}}.",
     "participant_tts_missing": "La traduzione che sento io è solo testo: nessun modello vocale parla {{target}}.",
     "participant_tts_over_budget": "La traduzione che sento io è solo testo: memoria insufficiente per caricare anche il modello vocale dell'altra parte."

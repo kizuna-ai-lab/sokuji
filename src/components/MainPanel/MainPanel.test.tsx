@@ -457,6 +457,29 @@ describe('MainPanel', () => {
     expect(lastModal()).toMatchObject({ isOpen: true, type: 'screen-recording-denied' });
   });
 
+  it('opens the Sound panel from the status line when another application holds the microphone (spec 2026-10-13 §3)', async () => {
+    const { container } = await renderPanel();
+    // After the render: the listeners the panel mounts need the whole bridge, the click only `invoke`.
+    const invoke = vi.fn();
+    env.electron = true;
+    (window as unknown as { electron: { invoke: typeof invoke } }).electron = { invoke };
+    try {
+      act(() => {
+        runner().state.setState({ phase: 'idle', lastEnd: { reason: 'start-failed', notice: { code: 'mic_in_use', message: 'm', params: { device: 'Mic', apps: 'Zoom' }, leg: 'speaker' } } }, true);
+      });
+      expect(container.querySelector('.status-line')?.getAttribute('data-status')).toBe('last-end:mic_in_use');
+      const actions = container.querySelectorAll<HTMLButtonElement>('.status-line__action');
+      expect(actions.length).toBe(1);
+      expect(actions[0].textContent).toBe('audioPanel.openSoundSettings');
+      fireEvent.click(actions[0]);
+      expect(invoke).toHaveBeenCalledWith('open-windows-settings', 'sound-recording');
+      expect(lastModal()).toMatchObject({ isOpen: false });
+    } finally {
+      env.electron = false;
+      delete (window as unknown as { electron?: unknown }).electron;
+    }
+  });
+
   it('leaves the note out when no application is on offer', async () => {
     await renderPanel();
     act(() => {

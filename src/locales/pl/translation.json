@@ -376,6 +376,7 @@
     "participantSourceDesc": "Wybierz aplikację do tłumaczenia. „Dźwięk systemowy” przechwytuje wszystko, co słyszysz, w tym gry i muzykę.",
     "turnOffParticipant": "Wyłącz dźwięk rozmówcy",
     "openSystemSettings": "Otwórz Ustawienia systemowe",
+    "openSoundSettings": "Otwórz ustawienia dźwięku",
     "screenRecordingDeniedText2Named": "Przejdź do Ustawienia systemowe > Prywatność i ochrona > Nagrywanie ekranu i włącz „{{app}}”.",
     "audioCaptureDeniedText2Named": "Otwórz Ustawienia systemowe > Prywatność i ochrona > Tylko nagrywanie dźwięku systemowego i włącz „{{app}}”.",
     "screenRecordingHasAlternative": "Możesz całkowicie uniknąć tego uprawnienia: wybierz zamiast tego konkretną aplikację jako źródło dźwięku rozmówcy. Aplikacje pojawiają się na tej liście tylko wtedy, gdy odtwarzają dźwięk.",
@@ -1360,6 +1361,9 @@
     "mic_lost_using_other": "Mikrofon „{{lost}}” został odłączony, więc zamiast niego używany jest „{{device}}”.",
     "mic_lost_waiting": "Mikrofon został odłączony. Tłumaczenie Twojej mowy zostanie wznowione po podłączeniu mikrofonu.",
     "mic_now_using": "Teraz używany jest mikrofon „{{device}}”.",
+    "mic_in_use": "Mikrofon „{{device}}” jest używany przez {{apps}}. Zamknij {{apps}} i rozpocznij ponownie albo wyłącz tryb wyłączności w ustawieniach dźwięku.",
+    "mic_unreadable": "System Windows nie mógł otworzyć mikrofonu „{{device}}”. Może go używać inna aplikacja albo jego sterownik przestał odpowiadać. Zamknij aplikacje, które go używają, lub podłącz go ponownie, a następnie rozpocznij ponownie.",
+    "mic_blocked": "System Windows nie pozwala aplikacji Sokuji używać mikrofonu. Włącz dostęp do mikrofonu dla aplikacji klasycznych w obszarze Ustawienia › Prywatność i zabezpieczenia › Mikrofon, a następnie rozpocznij ponownie.",
     "speaker_tts_missing": "Tłumaczenie, które słyszy druga strona, jest tylko tekstem: brak modelu mowy (język: {{target}}).",
     "participant_tts_missing": "Tłumaczenie, które słyszę, jest tylko tekstem: brak modelu mowy (język: {{target}}).",
     "participant_tts_over_budget": "Tłumaczenie, które słyszę, jest tylko tekstem: za mało pamięci, by wczytać także model mowy drugiej strony."
