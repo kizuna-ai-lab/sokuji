@@ -19,7 +19,7 @@ import type { TurnConnection } from '../../lib/turn/TurnRuntime';
 import { defaultEngines, type AsrInit, type AsrLike, type LocalEngines, type TranslationLike, type TtsLike, type TtsReady } from './engines';
 import { SentenceCut, runtimeOver } from './sentenceCut';
 import { speakTranslation } from './speech';
-import type { LocalInferenceConfig } from './config';
+import type { LocalInferenceConfig, TtsUnavailableCode } from './config';
 import type { SegmentEnd } from '../../lib/local-inference/types';
 
 /**
@@ -120,7 +120,7 @@ class LocalSession implements AdapterSession {
   /** While opening: rejects the start (a worker dying before every engine loaded). */
   private failOpening: ((error: unknown) => void) | null = null;
   /** Notices found while opening, said once the start resolves. */
-  private notices: Array<{ code: ClientDiagnosticCode; message: string; cause?: unknown }> = [];
+  private notices: Array<{ code: ClientDiagnosticCode; message: string; cause?: unknown; params?: Record<string, string | number> }> = [];
   /** `translation_unavailable` at most once per session (ruling 5): the start's
    *  own notice for a transcription-only session, or the first `appendText` in
    *  an AST or transcription-only session — never both. */
@@ -302,11 +302,22 @@ class LocalSession implements AdapterSession {
     });
   }
 
-  /** The notices the start found, and transcription-only's own, once the start has resolved. */
+  /** The notices the start found, transcription-only's own and a missing voice's, once the start has resolved. */
   announce(): void {
     for (const notice of this.notices) this.emit('degraded', notice);
     this.notices = [];
     if (this.config.translation.kind === 'none') this.announceTranslationUnavailable();
+    if (this.config.ttsUnavailable && this.request.context.speech) this.announceTtsUnavailable(this.config.ttsUnavailable);
+  }
+
+  /** A leg that should speak but cannot says so once, at the start (#619), naming the language no model speaks. */
+  private announceTtsUnavailable(code: TtsUnavailableCode): void {
+    const { target } = this.request.context.direction;
+    const row = code === 'speaker_tts_missing' ? 'Translation the other side hears' : 'Translation I hear';
+    const message = code === 'participant_tts_over_budget'
+      ? "Translation I hear is text only: not enough memory to load the other side's speech model too."
+      : `${row} is text only: no speech model speaks ${target}.`;
+    this.emit('degraded', { code, message, params: { target } });
   }
 
   /**

@@ -912,6 +912,44 @@ describe('the LocalInference adapter — loading', () => {
   });
 });
 
+describe('the LocalInference adapter — a leg that should speak but cannot (#619)', () => {
+  const speaking: SessionContext = { ...auto, speech: true };
+
+  it('says so once, after the start, naming the target language', async () => {
+    const t = await open(makeConfig({ ttsUnavailable: 'participant_tts_missing' }), speaking);
+    expect(ofKind(t.log, 'degraded')).toEqual([expect.objectContaining({ code: 'participant_tts_missing', params: { target: 'en' } })]);
+    await t.session.stop();
+    expectConformant(t.log, t.context);
+  });
+
+  it('says the over-budget reason the same way', async () => {
+    const t = await open(makeConfig({ ttsUnavailable: 'participant_tts_over_budget' }), speaking);
+    expect(ofKind(t.log, 'degraded').map((d) => d.code)).toEqual(['participant_tts_over_budget']);
+    await t.session.stop();
+  });
+
+  it('says nothing for a leg that does not speak', async () => {
+    const t = await open(makeConfig({ ttsUnavailable: 'speaker_tts_missing' }), auto);
+    expect(ofKind(t.log, 'degraded')).toEqual([]);
+    await t.session.stop();
+  });
+
+  it('reaches the conversation as a warning carrying its target', async () => {
+    const clock = createVirtualClock();
+    const conversation = new Conversation({ leg: 'speaker', session: 's', languages: speaking.direction, clock });
+    const fakes = createFakeEngines();
+    const starting = createLocalInferenceAdapter(fakes.engines).start(
+      { context: speaking, config: makeConfig({ ttsUnavailable: 'speaker_tts_missing' }), credentials: {}, clock, signal: new AbortController().signal },
+      eventsFrom((e) => conversation.apply(e)),
+    );
+    fakes.asr.ready();
+    fakes.translation.ready();
+    const session = await starting;
+    expect(conversation.snapshot().notices).toEqual([expect.objectContaining({ severity: 'warning', code: 'speaker_tts_missing', params: { target: 'en' } })]);
+    await session.stop();
+  });
+});
+
 describe('the LocalInference adapter — Smart Turn', () => {
   const smart = () => makeConfig({ vad: { ...makeConfig().vad, smartTurn: { checkAfter: 0.3, threshold: 0.5 } } });
   const turnFrames = (log: ConformanceLog) => ofKind(log, 'frame').filter((f) => f.type === 'local.turn').map((f) => f.payload);

@@ -39,7 +39,7 @@ vi.mock('../../stores/modelStore', () => ({
 
 /** Per-model manifest stub: only the fields `build`/`admit` read. Absent id: a
  *  plain offline ASR entry, no AST capability. */
-let mockManifest: Record<string, { type?: string; asrEngine?: string; astLanguages?: unknown; asrWorkerType?: string }> = {};
+let mockManifest: Record<string, { type?: string; asrEngine?: string; astLanguages?: unknown; asrWorkerType?: string; ttsConfig?: { defaultSid?: number } }> = {};
 /** Per-model memory size in MB, summed by the mocked `estimateModelMemoryByDevice`. */
 let mockSizes: Record<string, number> = {};
 
@@ -223,6 +223,29 @@ describe('buildLocalInference', () => {
     expect((c as LocalInferenceConfig).translation).toMatchObject({ instructions: 'MINE' });
   });
 
+  it("speaks each leg in its own direction's voice", () => {
+    resolved({ 'ja>en': { asr: 'a', translation: 't', tts: 'piper-en' }, 'en>ja': { asr: 'a', translation: 't', tts: 'piper-ja' } });
+    const s = settings({ voices: { 'ja→en': { edge: 'en-US-AvaNeural', speaker: 3 }, 'en→ja': { speaker: 5 } } });
+    const mine = buildLocalInference(ctx({ source: 'ja', target: 'en' }, { speech: true }), s, shared()) as LocalInferenceConfig;
+    const theirs = buildLocalInference(ctx({ source: 'en', target: 'ja' }, { speech: true }), s, shared({ reversed: true })) as LocalInferenceConfig;
+    expect(mine.tts).toEqual({ modelId: 'piper-en', speakerId: 3, speed: 1, edgeVoice: 'en-US-AvaNeural' });
+    expect(theirs.tts).toEqual({ modelId: 'piper-ja', speakerId: 5, speed: 1, edgeVoice: undefined });
+  });
+
+  it("speaks in the model's default speaker when the direction has none", () => {
+    mockManifest = { 'supertonic-3': { type: 'tts', ttsConfig: { defaultSid: 7 } } };
+    resolved({ 'ja>en': { asr: 'a', translation: 't', tts: 'supertonic-3' }, 'en>ja': { asr: 'a', translation: 't', tts: 'piper-ja' } });
+    expect((buildLocalInference(ctx({ source: 'ja', target: 'en' }, { speech: true }), settings(), shared()) as LocalInferenceConfig).tts?.speakerId).toBe(7);
+    expect((buildLocalInference(ctx({ source: 'en', target: 'ja' }, { speech: true }), settings(), shared({ reversed: true })) as LocalInferenceConfig).tts?.speakerId).toBe(0);
+  });
+
+  it('records which leg cannot speak when no TTS model resolves, and nothing for a leg that does not speak', () => {
+    resolved({ 'ja>en': { asr: 'a', translation: 't', tts: null }, 'en>ja': { asr: 'a', translation: 't', tts: null } });
+    expect(buildLocalInference(ctx({ source: 'ja', target: 'en' }, { speech: true }), settings(), shared())).toMatchObject({ ttsUnavailable: 'speaker_tts_missing' });
+    expect(buildLocalInference(ctx({ source: 'en', target: 'ja' }, { speech: true }), settings(), shared({ reversed: true }))).toMatchObject({ ttsUnavailable: 'participant_tts_missing' });
+    expect(buildLocalInference(ctx({ source: 'ja', target: 'en' }, { speech: false }), settings(), shared())).not.toHaveProperty('ttsUnavailable');
+  });
+
   describe('Smart Turn', () => {
     beforeEach(() => {
       mockManifest = { a: { type: 'asr', asrWorkerType: 'whisper-webgpu' } };
@@ -265,5 +288,37 @@ describe('describeLocalInference / admitLocalInference', () => {
     sizes({ a: 400, t: 300, x: 200 });
     expect(admitLocalInference({ speaker: c })).toBe(true);
     expect(admitLocalInference({ speaker: c, participant: c })).toMatchObject({ code: 'memory_exceeded' });
+  });
+
+  it("runs the other side's leg text only when its speech model alone tips the budget, saying why", () => {
+    budget(1_000);
+    sizes({ a: 200, t: 150, x: 200 });
+    const speaker = cfg({ asr: 'a', translation: 't', tts: 'x' });
+    const participant = cfg({ asr: 'a', translation: 't', tts: 'x' });
+    const answer = admitLocalInference({ speaker, participant });
+    expect(answer).toEqual({ configs: { participant: expect.objectContaining({ ttsUnavailable: 'participant_tts_over_budget' }) } });
+    const adjusted = (answer as { configs: { participant: LocalInferenceConfig } }).configs.participant;
+    expect(adjusted).not.toHaveProperty('tts');
+    expect(adjusted.asr).toEqual(participant.asr);
+    // The config built is left as built.
+    expect(participant.tts).toBeDefined();
+  });
+
+  it("refuses when dropping the other side's speech model is not enough", () => {
+    budget(1_000);
+    sizes({ a: 400, t: 300, x: 200 });
+    expect(admitLocalInference({ speaker: cfg({ asr: 'a', translation: 't', tts: 'x' }), participant: cfg({ asr: 'a', translation: 't', tts: 'x' }) })).toMatchObject({ code: 'memory_exceeded' });
+  });
+
+  it("refuses when the other side's speech model takes no memory: a cloud voice frees nothing", () => {
+    budget(1_000);
+    sizes({ a: 400, t: 300 });
+    expect(admitLocalInference({ speaker: cfg({ asr: 'a', translation: 't' }), participant: cfg({ asr: 'a', translation: 't', tts: 'edge-tts' }) })).toMatchObject({ code: 'memory_exceeded' });
+  });
+
+  it('never drops my own speech model: a speaker-only run over budget refuses', () => {
+    budget(1_000);
+    sizes({ a: 500, t: 300, x: 300 });
+    expect(admitLocalInference({ speaker: cfg({ asr: 'a', translation: 't', tts: 'x' }) })).toMatchObject({ code: 'memory_exceeded' });
   });
 });
