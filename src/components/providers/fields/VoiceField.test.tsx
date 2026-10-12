@@ -35,6 +35,23 @@ describe('VoiceField', () => {
     expect(tooltips).toContain('settings.voiceTooltip');
   });
 
+  it("with the other party spoken, two labelled selects named by who hears them, and a note when a run swaps the other's", () => {
+    const onChange = vi.fn();
+    const theirs = vi.fn();
+    const { rerender } = render(<VoiceField value="Aoede" options={options} onChange={onChange} participant={{ value: 'Puck', effective: 'Puck', onChange: theirs }} />);
+    expect(screen.queryByLabelText('settings.voice')).toBeNull();
+    expect((screen.getByLabelText('Voice the other side hears') as HTMLSelectElement).value).toBe('Aoede');
+    const theirSelect = screen.getByLabelText('Voice I hear') as HTMLSelectElement;
+    expect(theirSelect.value).toBe('Puck');
+    expect(theirSelect.className).toContain('select-dropdown');
+    fireEvent.change(theirSelect, { target: { value: 'Aoede' } });
+    expect(theirs).toHaveBeenCalledWith('Aoede');
+    expect(screen.queryByText(/Same as the voice the other side hears/)).toBeNull();
+
+    rerender(<VoiceField value="Aoede" options={options} onChange={onChange} participant={{ value: 'Aoede', effective: 'Puck', onChange: theirs }} />);
+    expect(screen.getByText('Same as the voice the other side hears, so Puck reads instead.')).toBeInTheDocument();
+  });
+
   it('disabled disables it', () => {
     render(<VoiceField value="Aoede" options={options} onChange={vi.fn()} disabled />);
     expect(screen.getByLabelText('settings.voice')).toBeDisabled();

@@ -159,8 +159,30 @@ describe('GeminiVoiceSummary', () => {
     const text = (settings: Partial<GeminiSettings>, leg: 'speaker' | 'participant') =>
       render(<GeminiVoiceSummary {...props({ settings: { ...GEMINI_DEFAULTS, ...settings } })} leg={leg} />).container.textContent;
     expect(text({ model: DIALOGUE, voice: 'Puck' }, 'speaker')).toBe('Puck');
-    expect(text({ model: DIALOGUE, voice: 'Puck' }, 'participant')).toBe('Puck');
+    expect(text({ model: DIALOGUE, voice: 'Aoede', participantVoice: 'Kore' }, 'participant')).toBe('Kore');
+    // My own voice chosen for them: a run swaps it, and the line names what it speaks.
+    expect(text({ model: DIALOGUE, voice: 'Puck', participantVoice: 'Puck' }, 'participant')).toBe('Aoede');
     expect(text({ model: DIALOGUE, voice: '' }, 'speaker')).toBe('Aoede');
     expect(text({ model: TRANSLATE }, 'speaker')).toBe('');
+  });
+});
+
+describe('GeminiSettingsView, the participant spoken', () => {
+  it("adds the other party's row on a dialogue model, previewing in my language and writing its own field", async () => {
+    const update = vi.fn();
+    render(<GeminiSettingsView {...props({ update, participantSpeaks: true, account: { credentials: { apiKey: 'k' }, auth: signedOut } })} />);
+    const [mine, theirs] = library.slice(-2);
+    expect(mine.label).toBe('Voice the other side hears');
+    expect(theirs.label).toBe('Voice I hear');
+    expect(theirs.selectedId).toBe('Puck');
+    theirs.onSelect('Kore');
+    expect(update).toHaveBeenCalledWith({ participantVoice: 'Kore' });
+    await theirs.onPreview!('Kore');
+    expect(previewGeminiVoice).toHaveBeenCalledWith({ voice: 'Kore', target: 'en', apiKey: 'k' }, undefined);
+  });
+
+  it('shows no voice row on Live Translate, the participant spoken or not', () => {
+    render(<GeminiSettingsView {...props({ participantSpeaks: true, settings: { ...GEMINI_DEFAULTS, model: TRANSLATE } })} />);
+    expect(library).toHaveLength(0);
   });
 });

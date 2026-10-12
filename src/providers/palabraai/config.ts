@@ -7,7 +7,7 @@
 import type { SessionContext } from '../../lib/contract/adapter';
 import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
 import { palabraLanguages, palabraOffers } from './languages';
-import { effectiveQueue, effectiveThreshold, type PalabraSettings, type PalabraVoice } from './settings';
+import { effectiveQueue, effectiveThreshold, palabraParticipantVoice, type PalabraSettings, type PalabraVoice } from './settings';
 
 export interface PalabraConfig {
   source: string;
@@ -23,7 +23,7 @@ export interface PalabraConfig {
   queue: { desiredMs: number; maxMs: number; autoTempo: boolean };
 }
 
-export function buildPalabra(context: SessionContext, s: PalabraSettings, _shared: SharedSettings): PalabraConfig | ProviderRefusal {
+export function buildPalabra(context: SessionContext, s: PalabraSettings, shared: SharedSettings): PalabraConfig | ProviderRefusal {
   const { source, target } = context.direction;
   // A guard: the provider store keeps the pair within the offer, and the gate refused a participant whose reverse is not offered (D20).
   if (!palabraOffers(context.direction)) return { refused: `Palabra AI does not translate ${source} → ${target}.` };
@@ -31,7 +31,8 @@ export function buildPalabra(context: SessionContext, s: PalabraSettings, _share
     source: palabraLanguages.wire.toWire(source),
     target: palabraLanguages.wire.toWire(target),
     speech: context.speech,
-    voiceId: s.voiceId,
+    // Each leg its own voice: the participant's never mine.
+    voiceId: shared.reversed(context.direction) ? palabraParticipantVoice(s) : s.voiceId,
     silenceThreshold: effectiveThreshold(s),
     sentenceSplitter: s.sentenceSplitterEnabled,
     translatePartials: s.translatePartialTranscriptions,

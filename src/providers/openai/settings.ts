@@ -15,6 +15,7 @@ import { identityWire } from '../../lib/language/wire';
 import { englishLanguageName } from '../../lib/language/label';
 import { INSTRUCTION_LEGACY_KEYS, INSTRUCTIONS_DEFAULTS, migrateInstructions, type InstructionsSettings } from '../../lib/provider/instructions';
 import type { CredentialsMissing, LanguageOption, MigrationInputs, ModelOption, Provider } from '../../lib/provider/types';
+import { distinctVoice } from '../../lib/provider/voices';
 
 /** The transcription models for the source text, current generation first (`OpenAIProviderConfig.ts:292-298`); only the first two take `languages` / `keywords` (`transcription.ts`). */
 export const TRANSCRIPT_MODELS = ['gpt-live-transcribe', 'gpt-transcribe', 'gpt-4o-mini-transcribe', 'gpt-4o-transcribe', 'whisper-1'] as const;
@@ -46,6 +47,8 @@ export interface RealtimeSettings extends InstructionsSettings {
   /** The saved model; `effectiveRealtimeModel` decides at use, and nothing writes it back. */
   model: string;
   voice: string;
+  /** The voice that reads the other person's words to me: one of `REALTIME_VOICES`. */
+  participantVoice: string;
   turnDetectionMode: TurnDetectionMode;
   /** Server VAD, 0..1. */
   threshold: number;
@@ -66,12 +69,15 @@ export interface RealtimeSettings extends InstructionsSettings {
 
 export const REALTIME_DEFAULT_MODEL = 'gpt-realtime-2.1-mini';
 export const REALTIME_DEFAULT_VOICE = 'alloy';
+/** The list's second voice, unlike the first, so the two people never sound alike by default. */
+export const REALTIME_PARTICIPANT_DEFAULT_VOICE = 'ash';
 
 /** The old defaults (`OpenAIProviderConfig.ts:52-75`), less the temperature (ruling 6). */
 export const REALTIME_DEFAULTS: RealtimeSettings = {
   ...INSTRUCTIONS_DEFAULTS,
   model: REALTIME_DEFAULT_MODEL,
   voice: REALTIME_DEFAULT_VOICE,
+  participantVoice: REALTIME_PARTICIPANT_DEFAULT_VOICE,
   turnDetectionMode: 'Normal',
   threshold: 0.49,
   prefixPadding: 0.5,
@@ -124,6 +130,8 @@ export function migrateRealtimeSettings(stored: Readonly<Record<string, unknown>
     ...migrateInstructions(stored, inputs.legacy),
     model: text('model'),
     voice: text('voice'),
+    // One the list no longer has falls to the default.
+    participantVoice: REALTIME_VOICES.some((v) => v.value === stored.participantVoice) ? (stored.participantVoice as string) : REALTIME_DEFAULTS.participantVoice,
     turnDetectionMode: oneOf(TURN_DETECTION_MODES, stored.turnDetectionMode, REALTIME_DEFAULTS.turnDetectionMode),
     threshold: numberOf(stored.threshold, REALTIME_DEFAULTS.threshold),
     prefixPadding: numberOf(stored.prefixPadding, REALTIME_DEFAULTS.prefixPadding),
@@ -153,6 +161,16 @@ const VOICE_PREVIEWS = 'https://cdn.openai.com/API/voice-previews/';
 export const REALTIME_VOICES: readonly { value: string; name: string; clip: string }[] = [
   'alloy', 'ash', 'ballad', 'cedar', 'coral', 'echo', 'marin', 'sage', 'shimmer', 'verse',
 ].map((value) => ({ name: value[0].toUpperCase() + value.slice(1), value, clip: `${VOICE_PREVIEWS}${value}.flac` }));
+
+/** My voice for a run: the choice, or the default when none is stored. */
+export function realtimeSpeakerVoice(s: Pick<RealtimeSettings, 'voice'>): string {
+  return s.voice || REALTIME_DEFAULT_VOICE;
+}
+
+/** The other party's voice for a run: never mine (`distinctVoice`). */
+export function realtimeParticipantVoice(s: Pick<RealtimeSettings, 'voice' | 'participantVoice'>): string {
+  return distinctVoice(s.participantVoice || REALTIME_PARTICIPANT_DEFAULT_VOICE, realtimeSpeakerVoice(s), { participant: REALTIME_PARTICIPANT_DEFAULT_VOICE, speaker: REALTIME_DEFAULT_VOICE });
+}
 
 /** The 55 languages the old provider offered (`OpenAIProviderConfig.ts:191-247`): every one a source and a target. */
 export const REALTIME_LANGUAGES: readonly LanguageOption[] = [

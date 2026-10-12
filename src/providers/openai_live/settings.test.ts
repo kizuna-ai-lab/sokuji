@@ -5,7 +5,7 @@ import type { AuthContext } from '../../lib/provider/types';
 import { parseCode } from '../../lib/language/code';
 import { englishLanguageName } from '../../lib/language/label';
 import {
-  isLiveModelId, LIVE_DEFAULTS, LIVE_LANGUAGES, LIVE_LEGACY_KEYS, LIVE_VOICES, liveCredentials, liveLanguageName, liveLanguages, migrateLiveSettings,
+  isLiveModelId, LIVE_DEFAULTS, LIVE_LANGUAGES, LIVE_LEGACY_KEYS, LIVE_VOICES, liveCredentials, liveLanguageName, liveLanguages, liveParticipantVoice, migrateLiveSettings,
 } from './settings';
 
 const signedOut: AuthContext = { signedIn: false, getToken: async () => null };
@@ -13,13 +13,13 @@ const migrate = (stored: Record<string, unknown>, legacy: Record<string, unknown
 
 describe("OpenAI Live's settings", () => {
   it("starts from the old voice, marin, and the instructions it now owns; reads the instructions' legacy keys and nothing else", () => {
-    expect(LIVE_DEFAULTS).toEqual({ ...INSTRUCTIONS_DEFAULTS, voice: 'marin' });
+    expect(LIVE_DEFAULTS).toEqual({ ...INSTRUCTIONS_DEFAULTS, voice: 'marin', participantVoice: 'cedar' });
     expect(LIVE_LEGACY_KEYS).toEqual(INSTRUCTION_LEGACY_KEYS);
   });
 
   it("loads an old profile field by field, converting nothing: a voice outside the 22 falls to marin, and the old slice's key, pair and pauses are not read into S", () => {
     const s = migrate({ apiKey: 'sk-x', sourceLanguage: 'ja', targetLanguage: 'en', voice: 'cedar', userSilenceDuration: 800, assistantSilenceDuration: 1200 });
-    expect(s).toEqual({ ...INSTRUCTIONS_DEFAULTS, voice: 'cedar' });
+    expect(s).toEqual({ ...INSTRUCTIONS_DEFAULTS, voice: 'cedar', participantVoice: 'cedar' });
     expect(migrate({ voice: 'nova' }).voice).toBe('marin');
     expect(migrate({ voice: 7 }).voice).toBe('marin');
   });
@@ -107,5 +107,20 @@ describe('unified language codes', () => {
   it("names a code in English for the instructions, auto as 'the spoken language'", () => {
     expect(liveLanguageName('zh-TW')).toBe(englishLanguageName('zh-TW'));
     expect(liveLanguageName(AUTO)).toBe('the spoken language');
+  });
+});
+
+describe("OpenAI Live's participant voice", () => {
+  it('defaults to cedar, keeps a listed choice, and drops anything else', () => {
+    expect(migrate({ participantVoice: 'quartz' }).participantVoice).toBe('quartz');
+    expect(migrate({ participantVoice: 'nova' }).participantVoice).toBe('cedar');
+  });
+
+  it('is never mine: my own voice chosen for them reads in the other default; mine as a run speaks it', () => {
+    expect(liveParticipantVoice({ voice: 'marin', participantVoice: 'quartz' })).toBe('quartz');
+    expect(liveParticipantVoice({ voice: 'quartz', participantVoice: 'quartz' })).toBe('cedar');
+    expect(liveParticipantVoice({ voice: 'cedar', participantVoice: 'cedar' })).toBe('marin');
+    // A voice of mine the list no longer has is marin, as a run speaks it.
+    expect(liveParticipantVoice({ voice: 'nova', participantVoice: 'marin' })).toBe('cedar');
   });
 });

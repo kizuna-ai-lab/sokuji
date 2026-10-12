@@ -104,11 +104,26 @@ describe('LiveSettingsView (choice 17)', () => {
 });
 
 describe('LiveVoiceSummary', () => {
-  it('names the one voice under both legs; one the list no longer has reads as the default, as a run speaks it', () => {
-    const text = (voice: string, leg: 'speaker' | 'participant') =>
-      render(<LiveVoiceSummary settings={{ ...LIVE_DEFAULTS, voice }} update={() => {}} leg={leg} />).container.textContent;
-    const quartz = LIVE_VOICES.find((v) => v.value === 'quartz')!.name;
-    expect(text('quartz', 'participant')).toBe(quartz);
-    expect(text('retired', 'speaker')).toBe(LIVE_VOICES.find((v) => v.value === 'marin')!.name);
+  it("names each leg's voice as a run speaks it; one the list no longer has reads as the default", () => {
+    const text = (settings: Partial<LiveSettings>, leg: 'speaker' | 'participant') =>
+      render(<LiveVoiceSummary settings={{ ...LIVE_DEFAULTS, ...settings }} update={() => {}} leg={leg} />).container.textContent;
+    const name = (value: string) => LIVE_VOICES.find((v) => v.value === value)!.name;
+    expect(text({ voice: 'quartz' }, 'speaker')).toBe(name('quartz'));
+    expect(text({ voice: 'marin', participantVoice: 'quartz' }, 'participant')).toBe(name('quartz'));
+    expect(text({ voice: 'retired' }, 'speaker')).toBe(name('marin'));
+  });
+});
+
+describe('LiveSettingsView, the participant spoken', () => {
+  it("adds the other party's row, auditioning the same published samples, writing its own field", () => {
+    const update = vi.fn();
+    render(<LiveSettingsView {...props({ update, participantSpeaks: true })} />);
+    const [mine, theirs] = library.slice(-2);
+    expect(mine.label).toBe('Voice the other side hears');
+    expect(theirs.label).toBe('Voice I hear');
+    expect(theirs.selectedId).toBe('cedar');
+    expect(theirs.onPreview).toBe(mine.onPreview);
+    theirs.onSelect('quartz');
+    expect(update).toHaveBeenCalledWith({ participantVoice: 'quartz' });
   });
 });

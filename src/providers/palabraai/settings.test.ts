@@ -43,7 +43,7 @@ const API_TARGET_LANGUAGES = new Set([
 describe("Palabra AI's settings", () => {
   it('defaults to the platform key, the low voice, a 0.7 s threshold, the splitter on, no partial translations, and our buffer: 8 s, 24 s, no adaptive speed (ruling 10)', () => {
     expect(PALABRA_DEFAULTS).toEqual({
-      authMode: 'platform', voiceId: 'default_low', segmentConfirmationSilenceThreshold: 0.7, sentenceSplitterEnabled: true, translatePartialTranscriptions: false,
+      authMode: 'platform', voiceId: 'default_low', participantVoiceId: 'default_high', segmentConfirmationSilenceThreshold: 0.7, sentenceSplitterEnabled: true, translatePartialTranscriptions: false,
       desiredQueueLevelMs: 8_000, maxQueueLevelMs: 24_000, autoTempo: false,
     });
     expect(PALABRA_VOICES).toEqual([{ value: 'default_low', name: 'Default Low' }, { value: 'default_high', name: 'Default High' }]);
@@ -51,15 +51,15 @@ describe("Palabra AI's settings", () => {
 
   it('keeps what was stored field by field, a value of the wrong kind falling to its default, and converts nothing (ruling 2)', () => {
     expect(migratePalabraSettings({
-      authMode: 'app', voiceId: 'default_high', segmentConfirmationSilenceThreshold: 0.1, sentenceSplitterEnabled: false, translatePartialTranscriptions: true,
+      authMode: 'app', voiceId: 'default_high', participantVoiceId: 'default_low', segmentConfirmationSilenceThreshold: 0.1, sentenceSplitterEnabled: false, translatePartialTranscriptions: true,
       desiredQueueLevelMs: 15_000, maxQueueLevelMs: 12_000, autoTempo: true,
     })).toEqual({
       // Out-of-range numbers are kept as stored: `build` clamps them where they are used.
-      authMode: 'app', voiceId: 'default_high', segmentConfirmationSilenceThreshold: 0.1, sentenceSplitterEnabled: false, translatePartialTranscriptions: true,
+      authMode: 'app', voiceId: 'default_high', participantVoiceId: 'default_low', segmentConfirmationSilenceThreshold: 0.1, sentenceSplitterEnabled: false, translatePartialTranscriptions: true,
       desiredQueueLevelMs: 15_000, maxQueueLevelMs: 12_000, autoTempo: true,
     });
     expect(migratePalabraSettings({
-      authMode: 'clientCredentials', voiceId: 'Default Low', segmentConfirmationSilenceThreshold: 'x', sentenceSplitterEnabled: 'yes',
+      authMode: 'clientCredentials', voiceId: 'Default Low', participantVoiceId: 'Default High', segmentConfirmationSilenceThreshold: 'x', sentenceSplitterEnabled: 'yes',
       translatePartialTranscriptions: 1, desiredQueueLevelMs: Number.NaN, maxQueueLevelMs: null, autoTempo: undefined,
     })).toEqual(PALABRA_DEFAULTS);
   });

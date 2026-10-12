@@ -139,7 +139,22 @@ describe('RealtimeVoiceSummary', () => {
     const text = (voice: string, leg: 'speaker' | 'participant') =>
       render(<RealtimeVoiceSummary settings={{ ...REALTIME_DEFAULTS, voice }} update={() => {}} leg={leg} />).container.textContent;
     expect(text('ash', 'speaker')).toBe('Ash');
-    expect(text('ash', 'participant')).toBe('Ash');
+    // The participant's default is ash: my own voice, so a run swaps it.
+    expect(text('ash', 'participant')).toBe('Alloy');
     expect(text('', 'speaker')).toBe('Alloy');
+  });
+});
+
+describe('RealtimeSettingsView, the participant spoken', () => {
+  it("adds the other party's row, auditioning the same published samples, writing its own field", () => {
+    const update = vi.fn();
+    render(<RealtimeSettingsView {...props({ update, participantSpeaks: true })} />);
+    const [mine, theirs] = library.slice(-2);
+    expect(mine.label).toBe('Voice the other side hears');
+    expect(theirs.label).toBe('Voice I hear');
+    expect(theirs.selectedId).toBe('ash');
+    expect(theirs.onPreview).toBe(mine.onPreview);
+    theirs.onSelect('coral');
+    expect(update).toHaveBeenCalledWith({ participantVoice: 'coral' });
   });
 });

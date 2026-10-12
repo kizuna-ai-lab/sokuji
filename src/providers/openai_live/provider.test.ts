@@ -117,7 +117,7 @@ describe('the OpenAI Live definition', () => {
     stored.set('settings.common.systemInstructions', 'Interpret faithfully.');
     await useProviderStore.getState().load(openaiLiveProvider);
     const entry = useProviderStore.getState().entries.openai_live;
-    expect(entry.settings as LiveSettings).toEqual({ useTemplateMode: false, systemInstructions: 'Interpret faithfully.', participantSystemInstructions: '', voice: 'cedar' });
+    expect(entry.settings as LiveSettings).toEqual({ useTemplateMode: false, systemInstructions: 'Interpret faithfully.', participantSystemInstructions: '', voice: 'cedar', participantVoice: 'cedar' });
     expect(readCredentials(openaiLiveProvider, entry.settings, entry.credentials, noAuth)).toEqual({ apiKey: 'sk-proj-oldLiveKey0123' });
     expect(entry.pair).toEqual({ source: 'ja', target: 'en' });
     const config = openaiLiveProvider.build({ direction: entry.pair, speech: true, turns: 'auto' }, entry.settings as LiveSettings, SHARED) as LiveConfig;

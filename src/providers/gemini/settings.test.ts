@@ -6,7 +6,7 @@ import type { AuthContext } from '../../lib/provider/types';
 import {
   compareGeminiModels, defaultGeminiModel, effectiveGeminiModel, geminiActivityHandling, GEMINI_DEFAULTS, GEMINI_DIALOGUE_LANGUAGES, GEMINI_LEGACY_KEYS,
   GEMINI_TRANSLATE_SOURCES, GEMINI_TRANSLATE_TARGETS, GEMINI_VOICES, geminiCredentials, geminiLanguageName, geminiLanguages, isGeminiLiveModel,
-  isGeminiTranslateModel, migrateGeminiSettings, sortGeminiModels,
+  geminiParticipantVoice, isGeminiTranslateModel, migrateGeminiSettings, sortGeminiModels,
 } from './settings';
 
 const signedOut: AuthContext = { signedIn: false, getToken: async () => null };
@@ -70,7 +70,7 @@ describe("Gemini's settings", () => {
   it("default to the old slice's values and the old app's instructions", () => {
     expect(GEMINI_DEFAULTS).toEqual({
       ...INSTRUCTIONS_DEFAULTS,
-      model: '', voice: 'Aoede', temperature: 0.8, maxTokens: 'inf',
+      model: '', voice: 'Aoede', participantVoice: 'Puck', temperature: 0.8, maxTokens: 'inf',
       vadStartSensitivity: 'low', vadEndSensitivity: 'high', vadSilenceDurationMs: 500, vadPrefixPaddingMs: 300,
     });
   });
@@ -233,5 +233,20 @@ describe("Gemini's models", () => {
     expect(effectiveGeminiModel({ model: 'gemini-2.5-flash-native-audio-preview-12-2025' }, live)).toBe('gemini-2.5-flash-native-audio-preview-12-2025');
     expect(effectiveGeminiModel({ model: 'gemini-1.0-retired' }, live)).toBe('gemini-3.5-live-translate-preview');
     expect(effectiveGeminiModel({ model: 'gemini-3.1-flash-live-preview' }, [])).toBe('gemini-3.1-flash-live-preview');
+  });
+});
+
+describe("Gemini's participant voice", () => {
+  it('defaults to Puck, keeps a listed choice, and drops anything else', () => {
+    expect(GEMINI_DEFAULTS.participantVoice).toBe('Puck');
+    expect(migrate({ participantVoice: 'Kore' }).participantVoice).toBe('Kore');
+    expect(migrate({ participantVoice: 'Nobody' }).participantVoice).toBe('Puck');
+    expect(migrate({}).participantVoice).toBe('Puck');
+  });
+
+  it("is never mine: my own voice chosen for them reads in the other default", () => {
+    expect(geminiParticipantVoice({ voice: 'Aoede', participantVoice: 'Kore' })).toBe('Kore');
+    expect(geminiParticipantVoice({ voice: 'Kore', participantVoice: 'Kore' })).toBe('Puck');
+    expect(geminiParticipantVoice({ voice: 'Puck', participantVoice: 'Puck' })).toBe('Aoede');
   });
 });

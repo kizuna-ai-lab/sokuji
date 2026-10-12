@@ -75,14 +75,14 @@ describe('the Gemini definition', () => {
     expect(PROVIDERS.slice(0, 3).map((p) => p.id)).toEqual(['kizunaai_soniox', 'local_inference', 'gemini']);
   });
 
-  it("lets the participant speak when its switch is on, voiced with Gemini's own voice (ruling 5)", () => {
+  it("lets the participant speak when its switch is on, voiced in its own voice (ruling 5; the participant voice, 2026-10-12)", () => {
     expect(geminiProvider.participantSpeech).toBeUndefined();
     const shape = { provider: geminiProvider, pair: { source: 'en', target: 'ja' }, legs: ['speaker', 'participant'], textOnly: false, participantSpeech: true, turnMode: 'auto' } as unknown as RunShape;
     const participant = contextsFor(shape).participant!;
     expect(participant).toEqual({ direction: { source: 'ja', target: 'en' }, speech: true, turns: 'auto' });
     expect(contextsFor({ ...shape, participantSpeech: false }).participant!.speech).toBe(false);
-    // A dialogue model's voice: Live Translate, the default when listed, speaks in the speaker's own (Gemini/AST2 follow-up, ruling 3).
-    expect((geminiProvider.build(participant, { ...GEMINI_DEFAULTS, model: DIALOGUE }, SHARED) as GeminiConfig).voice).toBe('Aoede');
+    // A dialogue model's voice, the participant's default: Live Translate, the default when listed, speaks in the speaker's own (Gemini/AST2 follow-up, ruling 3).
+    expect((geminiProvider.build(participant, { ...GEMINI_DEFAULTS, model: DIALOGUE }, SHARED) as GeminiConfig).voice).toBe('Puck');
   });
 
   it('a start whose signal already aborted opens no socket', async () => {

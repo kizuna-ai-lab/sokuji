@@ -11,7 +11,7 @@ import { resolveInstructions } from '../../lib/provider/instructions';
 import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
 import { clampSegmentPauseMs, segmentPauseMs } from '../../lib/segmentation/segmentationMode';
 import {
-  effectiveGeminiModel, geminiActivityHandling, geminiLanguageName, geminiLanguages, geminiTextInMarks, GEMINI_DEFAULTS, GEMINI_DEFAULT_VOICE,
+  effectiveGeminiModel, geminiActivityHandling, geminiLanguageName, geminiLanguages, geminiParticipantVoice, geminiSpeakerVoice, geminiTextInMarks, GEMINI_DEFAULTS,
   GEMINI_MAX_TOKENS_RANGE, GEMINI_TEMPERATURE_RANGE, GEMINI_TRANSLATE_TARGETS, GEMINI_VAD_PREFIX_RANGE, GEMINI_VAD_SILENCE_RANGE,
   isGeminiTranslateModel, type GeminiActivityHandling, type GeminiSettings,
 } from './settings';
@@ -73,7 +73,8 @@ export function buildGemini(context: SessionContext, s: GeminiSettings, shared: 
     kind,
     ...(instructions.trim() ? { instructions } : {}),
     // Live Translate reproduces the speaker's own voice and ignores a voice (`geminiTranslateModel.ts:25-27`); neither kind is voiced for a leg that does not speak.
-    ...(dialogue && context.speech ? { voice: s.voice || GEMINI_DEFAULT_VOICE } : {}),
+    // Each leg its own voice: the participant's never mine.
+    ...(dialogue && context.speech ? { voice: shared.reversed(context.direction) ? geminiParticipantVoice(s) : geminiSpeakerVoice(s) } : {}),
     ...(dialogue ? { temperature: clamp(s.temperature, GEMINI_TEMPERATURE_RANGE.min, GEMINI_TEMPERATURE_RANGE.max, GEMINI_DEFAULTS.temperature) } : {}),
     // Every knob falls back to its default on a non-finite value; the
     // default here is 'inf' (unlimited), so a non-finite maxTokens omits

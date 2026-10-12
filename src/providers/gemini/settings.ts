@@ -11,12 +11,15 @@
 import { INSTRUCTION_LEGACY_KEYS, INSTRUCTIONS_DEFAULTS, migrateInstructions, type InstructionsSettings } from '../../lib/provider/instructions';
 import { englishLanguageName, wireTable } from '../../lib/language';
 import type { CredentialsMissing, LanguageOption, MigrationInputs, ModelOption, Provider } from '../../lib/provider/types';
+import { distinctVoice } from '../../lib/provider/voices';
 
 export interface GeminiSettings extends InstructionsSettings {
   /** The Live model; '' until one is chosen — `effectiveGeminiModel` decides at use, and nothing writes it back. */
   model: string;
   /** A prebuilt voice (`GEMINI_VOICES`); Live Translate speaks in the speaker's own. */
   voice: string;
+  /** The voice that reads the other person's words to me, on a dialogue model: one of `GEMINI_VOICES`. */
+  participantVoice: string;
   /** Dialogue models: 0..2. */
   temperature: number;
   /** Dialogue models: 1..8192, or unlimited. */
@@ -30,11 +33,14 @@ export interface GeminiSettings extends InstructionsSettings {
 }
 
 export const GEMINI_DEFAULT_VOICE = 'Aoede';
+/** The list's second voice, unlike the first, so the two people never sound alike by default. */
+export const GEMINI_PARTICIPANT_DEFAULT_VOICE = 'Puck';
 
 export const GEMINI_DEFAULTS: GeminiSettings = {
   ...INSTRUCTIONS_DEFAULTS,
   model: '',
   voice: GEMINI_DEFAULT_VOICE,
+  participantVoice: GEMINI_PARTICIPANT_DEFAULT_VOICE,
   temperature: 0.8,
   maxTokens: 'inf',
   vadStartSensitivity: 'low',
@@ -80,6 +86,8 @@ export function migrateGeminiSettings(stored: Readonly<Record<string, unknown>>,
     ...migrateInstructions(stored, inputs.legacy),
     model: str('model'),
     voice: str('voice'),
+    // One the list no longer has falls to the default.
+    participantVoice: GEMINI_VOICES.some((v) => v.value === stored.participantVoice) ? (stored.participantVoice as string) : GEMINI_DEFAULTS.participantVoice,
     temperature: num('temperature'),
     maxTokens: maxTokensOf(stored.maxTokens),
     vadStartSensitivity: sensitivity('vadStartSensitivity'),
@@ -87,6 +95,16 @@ export function migrateGeminiSettings(stored: Readonly<Record<string, unknown>>,
     vadSilenceDurationMs: num('vadSilenceDurationMs'),
     vadPrefixPaddingMs: num('vadPrefixPaddingMs'),
   };
+}
+
+/** My voice for a run: the choice, or the default when none is stored. */
+export function geminiSpeakerVoice(s: Pick<GeminiSettings, 'voice'>): string {
+  return s.voice || GEMINI_DEFAULT_VOICE;
+}
+
+/** The other party's voice for a run: never mine (`distinctVoice`). */
+export function geminiParticipantVoice(s: Pick<GeminiSettings, 'voice' | 'participantVoice'>): string {
+  return distinctVoice(s.participantVoice || GEMINI_PARTICIPANT_DEFAULT_VOICE, geminiSpeakerVoice(s), { participant: GEMINI_PARTICIPANT_DEFAULT_VOICE, speaker: GEMINI_DEFAULT_VOICE });
 }
 
 export interface GeminiVoice {

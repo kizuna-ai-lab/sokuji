@@ -10,7 +10,7 @@ import type { SessionContext } from '../../lib/contract/adapter';
 import { resolveInstructions } from '../../lib/provider/instructions';
 import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
 import { clampSegmentPauseMs, segmentPauseMs } from '../../lib/segmentation/segmentationMode';
-import { LIVE_DEFAULT_VOICE, LIVE_LANGUAGES, LIVE_MODEL, LIVE_VOICES, liveLanguageName, type LiveSettings } from './settings';
+import { LIVE_LANGUAGES, LIVE_MODEL, liveLanguageName, liveParticipantVoice, liveSpeakerVoice, type LiveSettings } from './settings';
 
 export interface LiveConfig {
   model: typeof LIVE_MODEL;
@@ -39,7 +39,8 @@ export function buildLive(context: SessionContext, s: LiveSettings, shared: Shar
     model: LIVE_MODEL,
     // The participant's direction reads Other's prompt, as the other builders do.
     instructions: resolveInstructions(s, { participant: shared.reversed(context.direction), source: liveLanguageName(source), target: liveLanguageName(target) }),
-    voice: LIVE_VOICES.some((v) => v.value === s.voice) ? s.voice : LIVE_DEFAULT_VOICE,
+    // Each leg its own voice: the participant's never mine.
+    voice: shared.reversed(context.direction) ? liveParticipantVoice(s) : liveSpeakerVoice(s),
     silence: {
       sourceMs: clampSegmentPauseMs(segmentPauseMs(shared.pauses.sourceSeconds)),
       translationMs: clampSegmentPauseMs(segmentPauseMs(shared.pauses.translationSeconds)),

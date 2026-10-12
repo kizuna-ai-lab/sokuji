@@ -7,6 +7,7 @@
  * way in (ruling 2). Nothing here imports `src/services`.
  */
 import type { CredentialField, CredentialsMissing, Provider } from '../../lib/provider/types';
+import { distinctVoice } from '../../lib/provider/voices';
 
 export { palabraLanguages, palabraOffers } from './languages';
 
@@ -19,6 +20,8 @@ export interface PalabraSettings {
   /** Picked in the credential form (F4). A profile that stored none opens in the platform mode (ruling 2). */
   authMode: PalabraAuthMode;
   voiceId: PalabraVoice;
+  /** The voice that reads the other person's words to me. */
+  participantVoiceId: PalabraVoice;
   /** Seconds of silence that confirm a sentence (`segment_confirmation_silence_threshold`); `build` clamps it to `SILENCE_THRESHOLD_RANGE`. */
   segmentConfirmationSilenceThreshold: number;
   sentenceSplitterEnabled: boolean;
@@ -34,6 +37,8 @@ export interface PalabraSettings {
 export const PALABRA_DEFAULTS: PalabraSettings = {
   authMode: 'platform',
   voiceId: 'default_low',
+  // The other of the two, so the two people never sound alike by default.
+  participantVoiceId: 'default_high',
   segmentConfirmationSilenceThreshold: 0.7,
   sentenceSplitterEnabled: true,
   translatePartialTranscriptions: false,
@@ -83,6 +88,7 @@ export function migratePalabraSettings(stored: Readonly<Record<string, unknown>>
   return {
     authMode: AUTH_MODES.includes(stored.authMode) ? (stored.authMode as PalabraAuthMode) : d.authMode,
     voiceId: VOICES.includes(stored.voiceId) ? (stored.voiceId as PalabraVoice) : d.voiceId,
+    participantVoiceId: VOICES.includes(stored.participantVoiceId) ? (stored.participantVoiceId as PalabraVoice) : d.participantVoiceId,
     segmentConfirmationSilenceThreshold: finite(stored.segmentConfirmationSilenceThreshold, d.segmentConfirmationSilenceThreshold),
     sentenceSplitterEnabled: flag(stored.sentenceSplitterEnabled, d.sentenceSplitterEnabled),
     translatePartialTranscriptions: flag(stored.translatePartialTranscriptions, d.translatePartialTranscriptions),
@@ -90,6 +96,11 @@ export function migratePalabraSettings(stored: Readonly<Record<string, unknown>>
     maxQueueLevelMs: finite(stored.maxQueueLevelMs, d.maxQueueLevelMs),
     autoTempo: flag(stored.autoTempo, d.autoTempo),
   };
+}
+
+/** The other party's voice for a run: never mine (`distinctVoice`). */
+export function palabraParticipantVoice(s: Pick<PalabraSettings, 'voiceId' | 'participantVoiceId'>): PalabraVoice {
+  return distinctVoice(s.participantVoiceId, s.voiceId, { participant: PALABRA_DEFAULTS.participantVoiceId, speaker: PALABRA_DEFAULTS.voiceId }) as PalabraVoice;
 }
 
 /** Palabra's two voices, named in English as the old list named them. */

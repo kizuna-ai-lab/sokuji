@@ -47,3 +47,13 @@ describe("Palabra AI's wire codes", () => {
     expect(c).toMatchObject({ source: 'en', target: 'es-ch' });
   });
 });
+
+describe("Palabra AI's builder, the participant's voice", () => {
+  it('speaks the participant leg in its own voice, and never in mine', () => {
+    const participantShared: SharedSettings = { ...SHARED, reversed: (d) => d.source === 'en' && d.target === 'ja' };
+    expect(buildPalabra(ctx('en', 'ja'), PALABRA_DEFAULTS, participantShared)).toMatchObject({ voiceId: 'default_high' });
+    expect(buildPalabra(ctx('ja', 'en'), PALABRA_DEFAULTS, participantShared)).toMatchObject({ voiceId: 'default_low' });
+    const same = { ...PALABRA_DEFAULTS, voiceId: 'default_high' as const, participantVoiceId: 'default_high' as const };
+    expect(buildPalabra(ctx('en', 'ja'), same, participantShared)).toMatchObject({ voiceId: 'default_low' });
+  });
+});

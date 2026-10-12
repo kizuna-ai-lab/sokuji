@@ -54,7 +54,7 @@ describe("Gemini's builder", () => {
   });
 
   it("voices a leg that speaks — the participant too, when its switch is on (ruling 5) — and no leg that does not", () => {
-    expect(build({ voice: 'Puck' }, PARTICIPANT).voice).toBe('Puck');
+    expect(build({ voice: 'Kore' }, PARTICIPANT).voice).toBe('Puck');
     expect(build({}, { ...PARTICIPANT, speech: false })).not.toHaveProperty('voice');
     expect(build({ voice: '' }).voice).toBe('Aoede');
   });
@@ -113,5 +113,13 @@ describe("Gemini's builder", () => {
 
   it('describes its one model as the translation model (choice 6)', () => {
     expect(describeGemini(build())).toEqual({ translationModel: DIALOGUE });
+  });
+});
+
+describe("Gemini's builder, the participant's voice", () => {
+  it("speaks the participant leg in its own voice, and never in mine", () => {
+    expect(build({ voice: 'Aoede', participantVoice: 'Kore' }).voice).toBe('Aoede');
+    expect(build({ voice: 'Aoede', participantVoice: 'Kore' }, PARTICIPANT).voice).toBe('Kore');
+    expect(build({ voice: 'Kore', participantVoice: 'Kore' }, PARTICIPANT).voice).toBe('Puck');
   });
 });

@@ -5,7 +5,7 @@ import type { AuthContext } from '../../lib/provider/types';
 import { parseCode } from '../../lib/language/code';
 import { englishLanguageName } from '../../lib/language/label';
 import {
-  effectiveRealtimeModel, isRealtimeModelId, migrateRealtimeSettings, realtimeCredentials, realtimeLanguageName, realtimeLanguages,
+  effectiveRealtimeModel, isRealtimeModelId, migrateRealtimeSettings, realtimeCredentials, realtimeLanguageName, realtimeLanguages, realtimeParticipantVoice,
   REALTIME_DEFAULTS, REALTIME_LANGUAGES, REALTIME_LEGACY_KEYS, REALTIME_VOICES, takesReasoning,
 } from './settings';
 
@@ -19,6 +19,7 @@ describe("OpenAI Realtime's settings", () => {
       ...INSTRUCTIONS_DEFAULTS,
       model: 'gpt-realtime-2.1-mini',
       voice: 'alloy',
+      participantVoice: 'ash',
       turnDetectionMode: 'Normal',
       threshold: 0.49,
       prefixPadding: 0.5,
@@ -151,5 +152,19 @@ describe('unified language codes', () => {
   it("names a code in English for the instructions, auto as 'the spoken language'", () => {
     expect(realtimeLanguageName('zh-TW')).toBe(englishLanguageName('zh-TW'));
     expect(realtimeLanguageName(AUTO)).toBe('the spoken language');
+  });
+});
+
+describe("OpenAI Realtime's participant voice", () => {
+  it('defaults to ash, keeps a listed choice, and drops anything else', () => {
+    expect(migrate({ participantVoice: 'coral' }).participantVoice).toBe('coral');
+    expect(migrate({ participantVoice: 'nobody' }).participantVoice).toBe('ash');
+    expect(migrate({}).participantVoice).toBe('ash');
+  });
+
+  it('is never mine: my own voice chosen for them reads in the other default', () => {
+    expect(realtimeParticipantVoice({ voice: 'alloy', participantVoice: 'coral' })).toBe('coral');
+    expect(realtimeParticipantVoice({ voice: 'coral', participantVoice: 'coral' })).toBe('ash');
+    expect(realtimeParticipantVoice({ voice: 'ash', participantVoice: 'ash' })).toBe('alloy');
   });
 });

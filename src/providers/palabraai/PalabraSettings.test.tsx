@@ -72,10 +72,22 @@ describe("Palabra AI's settings view (D18)", () => {
 });
 
 describe('PalabraVoiceSummary', () => {
-  it('names the one voice under both legs', () => {
-    const text = (leg: 'speaker' | 'participant') =>
-      render(<PalabraVoiceSummary settings={{ ...PALABRA_DEFAULTS, voiceId: 'default_high' }} update={() => {}} leg={leg} />).container.textContent;
-    expect(text('speaker')).toBe('Default High');
-    expect(text('participant')).toBe('Default High');
+  it("names each leg's voice as a run speaks it: the other party's never mine", () => {
+    const text = (settings: Partial<typeof PALABRA_DEFAULTS>, leg: 'speaker' | 'participant') =>
+      render(<PalabraVoiceSummary settings={{ ...PALABRA_DEFAULTS, ...settings }} update={() => {}} leg={leg} />).container.textContent;
+    expect(text({}, 'speaker')).toBe('Default Low');
+    expect(text({}, 'participant')).toBe('Default High');
+    expect(text({ voiceId: 'default_high' }, 'participant')).toBe('Default Low');
+  });
+});
+
+describe('PalabraSettingsView, the participant spoken', () => {
+  it("shows two labelled selects, writing each its own field", () => {
+    const update = vi.fn();
+    render(<PalabraSettingsView settings={PALABRA_DEFAULTS} update={update} participantSpeaks />);
+    expect(screen.queryByLabelText('settings.voice')).toBeNull();
+    fireEvent.change(screen.getByLabelText('settings.voiceTheyHear'), { target: { value: 'default_high' } });
+    fireEvent.change(screen.getByLabelText('settings.voiceIHear'), { target: { value: 'default_low' } });
+    expect(update.mock.calls).toEqual([[{ voiceId: 'default_high' }], [{ participantVoiceId: 'default_low' }]]);
   });
 });

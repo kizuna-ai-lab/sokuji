@@ -2,10 +2,11 @@ import { useTranslation } from 'react-i18next';
 import { presetVoiceSummary } from '../../components/providers/fields/PresetVoiceField';
 import { VoiceField } from '../../components/providers/fields/VoiceField';
 import type { SettingsProps } from '../../lib/provider/types';
-import { DESIRED_QUEUE_RANGE, effectiveQueue, MAX_QUEUE_RANGE, maxQueueFloor, PALABRA_VOICES, type PalabraSettings as S, type PalabraVoice } from './settings';
+import { DESIRED_QUEUE_RANGE, effectiveQueue, MAX_QUEUE_RANGE, maxQueueFloor, PALABRA_VOICES, palabraParticipantVoice, type PalabraSettings as S, type PalabraVoice } from './settings';
 
-/** Both legs speak the one voice (`config.ts`). */
-export const PalabraVoiceSummary = presetVoiceSummary<S>(PALABRA_VOICES, ({ settings }) => settings.voiceId);
+/** Each leg's voice as its run speaks it (`config.ts`). */
+export const PalabraVoiceSummary = presetVoiceSummary<S>(PALABRA_VOICES, ({ settings, leg }) =>
+  leg === 'participant' ? palabraParticipantVoice(settings) : settings.voiceId);
 
 /** An Enabled / Disabled pair, as the old block drew each of its three switches (`ProviderSpecificSettings.tsx:1341-1382, 1446-1461`). */
 function OnOff({ label, value, onChange, disabled }: { label: string; value: boolean; onChange(value: boolean): void; disabled: boolean }) {
@@ -32,7 +33,7 @@ function OnOff({ label, value, onChange, disabled }: { label: string; value: boo
  * target, and a stored max not above it shows raised (ruling 10). The three
  * English-only tooltips are gone (ruling 10); no new locale key.
  */
-export function PalabraSettingsView({ settings, update, disabled = false }: SettingsProps<S>) {
+export function PalabraSettingsView({ settings, update, disabled = false, participantSpeaks = false }: SettingsProps<S>) {
   const { t } = useTranslation();
   const queue = effectiveQueue(settings);
   const splitter = t('settings.sentenceSplitter', 'Sentence Splitter');
@@ -42,7 +43,10 @@ export function PalabraSettingsView({ settings, update, disabled = false }: Sett
   const tempo = t('settings.autoTempo', 'Adaptive Speech Speed');
   return (
     <>
-      <VoiceField value={settings.voiceId} options={PALABRA_VOICES} onChange={(voiceId) => update({ voiceId: voiceId as PalabraVoice })} disabled={disabled} />
+      <VoiceField
+        value={settings.voiceId} options={PALABRA_VOICES} onChange={(voiceId) => update({ voiceId: voiceId as PalabraVoice })} disabled={disabled}
+        participant={participantSpeaks ? { value: settings.participantVoiceId, effective: palabraParticipantVoice(settings), onChange: (participantVoiceId) => update({ participantVoiceId: participantVoiceId as PalabraVoice }) } : undefined}
+      />
       <div className="settings-section">
         <h2>{t('settings.speechProcessing', 'Speech Processing')}</h2>
         <div className="setting-item">

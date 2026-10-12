@@ -8,15 +8,16 @@ import type { SettingsProps } from '../../lib/provider/types';
 import { previewRealtimeVoice } from './preview';
 import { ReasoningEffortField } from './ReasoningEffortField';
 import {
-  effectiveRealtimeModel, NOISE_REDUCTIONS, realtimeLanguageName, realtimeLanguages, REALTIME_DEFAULT_VOICE, REALTIME_MAX_TOKENS_RANGE, REALTIME_VOICES, takesReasoning,
+  effectiveRealtimeModel, NOISE_REDUCTIONS, realtimeLanguageName, realtimeLanguages, realtimeParticipantVoice, realtimeSpeakerVoice, REALTIME_MAX_TOKENS_RANGE, REALTIME_VOICES, takesReasoning,
   type RealtimeSettings as S,
 } from './settings';
 import { TranscriptionField } from './TranscriptionField';
 
 const VOICES = REALTIME_VOICES.map(presetVoice);
 
-/** Both legs speak the one voice (`config.ts`). */
-export const RealtimeVoiceSummary = presetVoiceSummary<S>(REALTIME_VOICES, ({ settings }) => settings.voice || REALTIME_DEFAULT_VOICE);
+/** Each leg's voice as its run speaks it (`config.ts`). */
+export const RealtimeVoiceSummary = presetVoiceSummary<S>(REALTIME_VOICES, ({ settings, leg }) =>
+  leg === 'participant' ? realtimeParticipantVoice(settings) : realtimeSpeakerVoice(settings));
 
 /**
  * OpenAI Realtime's own settings (D18), the old UI's OpenAI sections
@@ -29,7 +30,7 @@ export const RealtimeVoiceSummary = presetVoiceSummary<S>(REALTIME_VOICES, ({ se
  * automatic-detection knobs are its `TurnDetection`; there is no transport
  * to show (WebSocket only, 2026-09-29).
  */
-export function RealtimeSettingsView({ settings, update, disabled = false, pair, models = [], preview: port }: SettingsProps<S>) {
+export function RealtimeSettingsView({ settings, update, disabled = false, pair, models = [], participantSpeaks = false, preview: port }: SettingsProps<S>) {
   const model = effectiveRealtimeModel(settings, models);
   const initial = realtimeLanguages.initial?.(settings);
   const source = pair?.source ?? initial?.source ?? '';
@@ -38,7 +39,11 @@ export function RealtimeSettingsView({ settings, update, disabled = false, pair,
   return (
     <>
       <InstructionsField value={settings} onChange={update} preview={preview} disabled={disabled} />
-      <PresetVoiceField voices={VOICES} value={settings.voice} onChange={(voice) => update({ voice })} onPreview={previewRealtimeVoice} preview={port} disabled={disabled} />
+      <PresetVoiceField
+        voices={VOICES} value={settings.voice} onChange={(voice) => update({ voice })} onPreview={previewRealtimeVoice} preview={port} disabled={disabled}
+        // The published samples are one clip per voice: the second row auditions the same way.
+        participant={participantSpeaks ? { value: settings.participantVoice, effective: realtimeParticipantVoice(settings), onChange: (participantVoice) => update({ participantVoice }) } : undefined}
+      />
       <ModelField value={model} models={models} onChange={(m) => update({ model: m })} disabled={disabled} />
       <TranscriptionField model={settings.transcriptModel} keywords={settings.transcriptKeywords} onChange={update} disabled={disabled} />
       <NoiseReductionField value={settings.noiseReduction} options={NOISE_REDUCTIONS} onChange={(noiseReduction) => update({ noiseReduction })} disabled={disabled} />
