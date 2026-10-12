@@ -1360,7 +1360,7 @@
     "mic_lost_using_other": "Mikrofoni ”{{lost}}” irrotettiin, joten sen sijaan käytetään mikrofonia ”{{device}}”.",
     "mic_lost_waiting": "Mikrofoni irrotettiin. Puheesi kääntäminen jatkuu, kun mikrofoni yhdistetään.",
     "mic_now_using": "Nyt käytetään mikrofonia ”{{device}}”.",
-    "mic_in_use": "Mikrofoni ”{{device}}” on sovelluksen {{apps}} käytössä. Sulje {{apps}} ja aloita uudelleen, tai valitse toinen mikrofoni.",
+    "mic_in_use": "Mikrofoni ”{{device}}” on käytössä ({{apps}}). Sulje {{apps}} ja aloita uudelleen, tai valitse toinen mikrofoni.",
     "mic_unreadable": "Windows ei voinut avata mikrofonia ”{{device}}”. Toinen sovellus saattaa käyttää sitä, tai sen ohjain on lakannut vastaamasta. Sulje sitä käyttävät sovellukset tai liitä se uudelleen ja aloita sitten uudelleen.",
     "mic_blocked": "Windows ei anna Sokujin käyttää mikrofonia. Salli työpöytäsovellusten mikrofonin käyttö kohdassa Asetukset › Tietosuoja ja suojaus › Mikrofoni ja aloita sitten uudelleen.",
     "speaker_tts_missing": "Käännös, jonka toinen osapuoli kuulee, näkyy vain tekstinä: mikään puhemalli ei puhu kieltä {{target}}.",
