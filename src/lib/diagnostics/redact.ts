@@ -62,6 +62,13 @@ const PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
   // OpenAI key anyway; this keeps the carrier's name and masks a key of any
   // shape — a browser that refuses the socket quotes the subprotocol.
   [/(\bopenai-insecure-api-key\.)[A-Za-z0-9._~+/=-]+/g, `$1${REDACTED}`],
+  // A Qwen key (QwenCloud's and 千问云's): `sk-ws-` then dot-separated
+  // parts with underscores and hyphens, which the bare `sk-` rule below
+  // stops reading at the first dot. It rides only in the upgrade header
+  // (`qwen_livetranslate/wire.ts` `qwenHeaders`) and the key check's
+  // Authorization; this is the net, and what lets the kit's `frame-secret`
+  // rule catch one that is framed.
+  [/\bsk-ws-[A-Za-z0-9._-]{10,}/g, REDACTED],
   // Bare provider key shapes. `sk-`/`AIza`/`key-` were already redacted by
   // errorTracking.ts:57; `ek_` is the OpenAI ephemeral client secret
   // (EphemeralTokenService.ts:190), which :200 could otherwise dump wholesale.

@@ -13,6 +13,15 @@ describe('redact', () => {
     expect(redact('Error with sk-abc123def456')).toBe('Error with [REDACTED]');
   });
 
+  // QwenCloud's and 千问云's keys: `sk-ws-` and dot-separated parts with
+  // underscores and hyphens, which the bare `sk-` rule stops reading at the
+  // first dot (Qwen LiveTranslate, spec 2026-10-13).
+  it('redacts a Qwen key whole, dots and underscores included', () => {
+    expect(redact('key sk-ws-H.ABCDEFGHIJ.klmno_pQ-rs.TUVWXyz0123456789 refused')).toBe('key [REDACTED] refused');
+    expect(redact('{"apiKey":"sk-ws-T.ABCDEFGH.ijklmnop.QRSTUVWX0123456789"}')).toBe('{"apiKey":"[REDACTED]"}');
+    expect(redact('sk-ws-short')).toBe('sk-ws-short');
+  });
+
   it('redacts Google AIza keys', () => {
     expect(redact('Key: AIzaSyB-example123')).toBe('Key: [REDACTED]');
   });
