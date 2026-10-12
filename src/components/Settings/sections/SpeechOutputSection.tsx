@@ -6,6 +6,7 @@ import Tooltip from '../../Tooltip/Tooltip';
 import SettingRow from '../shared/SettingRow';
 import { useFilteredDevices } from '../shared/hooks';
 import { ownProps, useSelectedProvider } from '../../providers/useSelectedProvider';
+import { openTtsSlot } from '../../providers/openTtsSlot';
 import { useRunParticipantSpeech } from '../../../app/useRun';
 import { getAppAudio } from '../../../lib/audio/appAudio';
 import { entryValue, outletEntries, outletSelectValue, parseEntryValue } from '../../../lib/audio/outletOptions';
@@ -36,7 +37,9 @@ export interface SpeechOutputSectionProps {
  * summary's pattern (`SpeechSection.tsx`), its `settings_mode_switched`
  * event included when it leaves Simple. Nothing for a provider without one;
  * a summary that renders nothing leaves the link empty, and Settings.scss
- * hides the line. Usable during a run: it only navigates.
+ * hides the line. A provider whose voices sit in its engine (`voicesInEngine`)
+ * opens that leg's TTS slot instead, in either layout. Usable during a run:
+ * it only navigates.
  */
 function VoiceLine({ leg, locked }: { leg: LegName; locked: boolean }) {
   const { t } = useTranslation();
@@ -50,6 +53,10 @@ function VoiceLine({ leg, locked }: { leg: LegName; locked: boolean }) {
   if (!selection?.entry || !Summary) return null;
 
   const openVoices = () => {
+    if (selection.provider.voicesInEngine) {
+      openTtsSlot(leg);
+      return;
+    }
     if (uiMode === 'basic') {
       // The Settings panel's own mode toggle, analytics event included.
       setUIMode('advanced');

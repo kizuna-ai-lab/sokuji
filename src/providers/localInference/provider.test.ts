@@ -25,6 +25,7 @@ import { localInferenceProvider } from './provider';
 import { LOCAL_INFERENCE_DEFAULTS } from './settings';
 import { PROVIDERS } from '../registry';
 import { LocalInferenceEngineSummary } from './LocalInferenceEngineSummary';
+import { LocalInferenceVoiceSummary } from './LocalInferenceVoiceSummary';
 import { LocalInferenceTurnDetectionControls, LocalInferenceTurnDetectionHelp, LocalInferenceTurnDetectionSummary } from './LocalInferenceTurnDetection';
 
 const noAuth = { signedIn: false, getToken: async () => null };
@@ -115,5 +116,10 @@ describe('localInferenceProvider', () => {
     const result = localInferenceProvider.watchReadiness?.(onChange);
     expect(mockWatchReadiness).toHaveBeenCalledWith(onChange);
     expect(result).toBe(off);
+  });
+
+  it('names its voices in the Speech block, and picks them in its engine (#619)', () => {
+    expect(localInferenceProvider.VoiceSummary).toBe(LocalInferenceVoiceSummary);
+    expect(localInferenceProvider.voicesInEngine).toBe(true);
   });
 });

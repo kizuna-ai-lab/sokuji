@@ -4,7 +4,7 @@
  * hears what, each with its own device and channel, greyed / blocked /
  * hidden per mode as the table says.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, within, act } from '@testing-library/react';
 
 vi.mock('react-i18next', async (importOriginal) => ({
@@ -65,6 +65,8 @@ import { useRoutingStore } from '../../../stores/routingStore';
 import { useSettingsStore } from '../../../stores/settingsStore';
 import { useTurnModeStore } from '../../../stores/turnModeStore';
 import { SONIOX_DEFAULTS } from '../../../providers/soniox/settings';
+import { LOCAL_INFERENCE_DEFAULTS } from '../../../providers/localInference/settings';
+import { useModelStore } from '../../../stores/modelStore';
 import { outletSelectValue } from '../../../lib/audio/outletOptions';
 import SpeechOutputSection from './SpeechOutputSection';
 
@@ -393,6 +395,8 @@ describe('SpeechOutputSection — per mode (spec §1.2)', () => {
 });
 
 describe('SpeechOutputSection — the voice each spoken row reads in', () => {
+  const initialModelState = useModelStore.getState();
+  afterEach(() => useModelStore.setState(initialModelState, true));
   const voiceLine = (label: string) => row(label).querySelector('.setting-row__voice');
 
   it("names the voice under each spoken row: mine, and the other party's", () => {
@@ -427,5 +431,19 @@ describe('SpeechOutputSection — the voice each spoken row reads in', () => {
     pick('openai_translate');
     mount();
     expect(document.querySelector('.setting-row__voice')).toBeNull();
+  });
+
+  it("for a provider whose voices sit in its engine, the name opens that leg's TTS slot, without leaving Quick (#619)", () => {
+    useProviderStore.setState({
+      selected: 'local_inference',
+      entries: { local_inference: { settings: { ...LOCAL_INFERENCE_DEFAULTS, voices: { 'ja→en': { edge: 'en-US-AvaNeural' } } }, credentials: {}, pair: { source: 'ja', target: 'en' } } },
+    } as never);
+    useModelStore.setState({ resolve: () => ({ asr: null, translation: null, tts: { modelId: 'edge-tts', source: 'auto' }, notes: [], prunes: [] }) } as never);
+    useSettingsStore.setState({ uiMode: 'basic', settingsNavigationTarget: null, engineSlotTarget: null });
+    mount();
+    fireEvent.click(within(voiceLine('Translation the other side hears') as HTMLElement).getByRole('button', { name: 'Ava' }));
+    expect(useSettingsStore.getState().uiMode).toBe('basic');
+    expect(useSettingsStore.getState().engineSlotTarget).toEqual({ dir: 'ja→en', stage: 'tts' });
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider');
   });
 });
