@@ -11,7 +11,7 @@ import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import { DEGRADED_DEDUPE_MS } from '../conversation/Conversation';
 import type { FramePort } from './ports';
 import { createRunner } from './runner';
-import type { Source } from './source';
+import { SourceOpenError, type Source } from './source';
 import type { RunNotice, RunShape, SessionHooks } from './types';
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -381,7 +381,26 @@ describe('runner — a lease after the sources (Stage 2 Kizuna Soniox, rulings 7
     expect(order).toEqual(['source speaker', 'source participant', 'acquire', 'start', 'start']);
   });
 
-  it('a source that fails mints no lease: the start fails naming its leg, and reaches api_error on that leg with no code', async () => {
+  it("a source that fails one leg at a time is a device error, with the source's code (spec 2026-10-13 §4)", async () => {
+    const track = vi.fn();
+    const { runner } = setup(fakeProvider, ['speaker'], () => {
+      throw new SourceOpenError('The microphone is in use by 1 other application (NotReadableError).', 'mic_in_use', { device: 'Mic', apps: 'Zoom' });
+    }, track);
+    await runner.start();
+    const apiErrors = track.mock.calls.filter(([event]) => event === 'api_error').map(([, props]) => props);
+    expect(apiErrors).toEqual([{ provider: 'fake', error_message: 'The microphone is in use by 1 other application (NotReadableError).', error_code: 'mic_in_use', error_type: 'device', channel: 'speaker' }]);
+  });
+
+  it('an adapter that fails to start is not a device error', async () => {
+    const track = vi.fn();
+    const provider = { ...fakeProvider, start: async () => { throw new AdapterStartError('HTTP 500', 'server'); } } as AnyProvider;
+    const { runner } = setup(provider, ['speaker'], undefined, track);
+    await runner.start();
+    const apiErrors = track.mock.calls.filter(([event]) => event === 'api_error').map(([, props]) => props);
+    expect(apiErrors).toEqual([expect.objectContaining({ error_code: 'server', error_type: 'server' })]);
+  });
+
+  it('a source that fails mints no lease: the start fails naming its leg, and reaches api_error on that leg as a device error with no code', async () => {
     const acquire = vi.fn(async () => lease());
     const track = vi.fn();
     const { runner } = setup(withHooks({ acquire }), ['speaker', 'participant'], (leg) => {
@@ -392,7 +411,7 @@ describe('runner — a lease after the sources (Stage 2 Kizuna Soniox, rulings 7
     expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'start-failed', notice: { code: 'start_failed', leg: 'participant' } } });
     expect(acquire).not.toHaveBeenCalled();
     const apiErrors = track.mock.calls.filter(([event]) => event === 'api_error').map(([, props]) => props);
-    expect(apiErrors).toEqual([expect.objectContaining({ provider: 'fake', error_type: 'server', channel: 'participant' })]);
+    expect(apiErrors).toEqual([expect.objectContaining({ provider: 'fake', error_type: 'device', channel: 'participant' })]);
     expect(apiErrors[0]).not.toHaveProperty('error_code');
   });
 
