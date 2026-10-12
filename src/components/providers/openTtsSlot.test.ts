@@ -41,4 +41,11 @@ describe('openTtsSlot', () => {
     expect(useSettingsStore.getState().engineSlotTarget).toBeNull();
     expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider');
   });
+
+  it('under a provider with no engine, clears a slot target still pending from before, so it cannot open later under another provider', () => {
+    useSettingsStore.setState({ engineSlotTarget: { dir: 'ja→en', stage: 'asr' } });
+    select('soniox', SONIOX_DEFAULTS);
+    openTtsSlot('speaker');
+    expect(useSettingsStore.getState().engineSlotTarget).toBeNull();
+  });
 });

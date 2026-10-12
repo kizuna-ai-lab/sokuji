@@ -663,14 +663,19 @@ export function ModelManagementSection({
     await voiceStorage.deleteVoice(dbKey);
     const defaultSid = supertonicTtsEntry?.ttsConfig?.defaultSid ?? 0;
     // Every direction that spoke in the deleted voice, not only this one (#619): the other direction may have picked it too.
+    // Only where that direction's TTS is this Supertonic model: on another model the same number is one of its own speakers.
     const stored: LocalInferenceSettings['voices'] = settings.voices && typeof settings.voices === 'object' && !Array.isArray(settings.voices) ? settings.voices : {};
-    const users = Object.keys(stored).filter((dir) => directionVoice(stored, dir).speaker === sid);
+    const users = Object.keys(stored).filter((dir) => {
+      if (directionVoice(stored, dir).speaker !== sid) return false;
+      const [src, tgt] = splitDirection(dir);
+      return useModelStore.getState().resolve(src, tgt, settings.selections).tts?.modelId === supertonicTtsEntry?.id;
+    });
     if (users.length > 0) {
       updateLocalInference({ voices: Object.fromEntries(Object.entries(stored).map(([dir, v]) => [dir, users.includes(dir) ? { ...v, speaker: defaultSid } : v])) });
     }
     await refreshImportedVoices();
     setHasPendingChanges(true);
-  }, [supertonicTtsEntry, settings.voices, updateLocalInference, refreshImportedVoices]);
+  }, [supertonicTtsEntry, settings.voices, settings.selections, updateLocalInference, refreshImportedVoices]);
 
   // An Edge voice belongs to a language: keep this direction's valid for its
   // own target. SettingsInitializer keeps every speaking direction valid the

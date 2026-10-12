@@ -195,16 +195,19 @@ describe('ModelManagementSection — embedded voice', () => {
     expect(screen.getAllByText('Voice')).toHaveLength(1);
   });
 
-  it("deleting an imported Supertonic voice resets every direction that spoke in it, not only this one (Review Focus 4)", async () => {
+  it("deleting an imported Supertonic voice resets every direction that spoke in it, not only this one, and leaves the same speaker id on another model alone (Review Focus 4)", async () => {
     const storage = await import('../../../lib/local-inference/voiceStorage');
     vi.mocked(storage.listVoices).mockResolvedValueOnce([{ id: 2, name: 'Mine' } as never]);
     mockSettings.sourceLanguage = 'en';
     mockSettings.targetLanguage = 'ja';
     mockSettings.selections = {
       [directionKey('en', 'ja')]: { asr: { modelId: '' }, translation: { modelId: '' }, tts: { modelId: 'supertonic-3' } },
+      [directionKey('ja', 'en')]: { asr: { modelId: '' }, translation: { modelId: '' }, tts: { modelId: 'supertonic-3' } },
+      [directionKey('ko', 'ja')]: { asr: { modelId: '' }, translation: { modelId: '' }, tts: { modelId: 'edge-tts' } },
     };
     // Sid 12 is imported voice #2 (`importedSidFromDbKey`); the reverse direction speaks in it too.
-    mockSettings.voices = { 'en→ja': { speaker: 12 }, 'ja→en': { speaker: 12, edge: 'en-US-AriaNeural' }, 'zh→ja': { speaker: 3 } };
+    // ko→ja's 12 is a speaker of another model (Edge here), not the deleted voice.
+    mockSettings.voices = { 'en→ja': { speaker: 12 }, 'ja→en': { speaker: 12, edge: 'en-US-AriaNeural' }, 'zh→ja': { speaker: 3 }, 'ko→ja': { speaker: 12 } };
     mockStatuses['supertonic-3'] = 'downloaded';
 
     render(<ModelManagementSection isSessionActive={false} {...slice()} stageFilter="tts" direction="en→ja" />);
@@ -216,7 +219,7 @@ describe('ModelManagementSection — embedded voice', () => {
     fireEvent.click(within(await screen.findByRole('dialog', { name: /delete voice/i })).getByRole('button', { name: /^delete$/i }));
 
     await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith({
-      voices: { 'en→ja': { speaker: 7 }, 'ja→en': { speaker: 7, edge: 'en-US-AriaNeural' }, 'zh→ja': { speaker: 3 } },
+      voices: { 'en→ja': { speaker: 7 }, 'ja→en': { speaker: 7, edge: 'en-US-AriaNeural' }, 'zh→ja': { speaker: 3 }, 'ko→ja': { speaker: 12 } },
     }));
   });
 

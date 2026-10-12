@@ -419,6 +419,16 @@ describe('SpeechOutputSection — the voice each spoken row reads in', () => {
     expect(voiceLine('Translation the other side hears')).toBeNull();
   });
 
+  it("draws no line under a row whose leg does not run in this mode, whatever its switch says (#621 review)", () => {
+    useAudioStore.setState({ mode: 'participant' });
+    mount();
+    // Other only: my leg does not run, though Translation the other side hears is on.
+    expect(voiceLine('Translation the other side hears')).toBeNull();
+    act(() => { useAudioStore.setState({ mode: 'speaker' }); useRoutingStore.setState({ participantSpeech: true }); });
+    // Me only: the other side's leg does not run, though Translation I hear was left on.
+    expect(voiceLine('Translation I hear')).toBeNull();
+  });
+
   it('the name opens the voice settings, switching Quick to Advanced first; a run leaves it usable', () => {
     useSettingsStore.setState({ uiMode: 'basic', settingsNavigationTarget: null });
     mount(true);
