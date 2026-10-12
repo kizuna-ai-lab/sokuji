@@ -365,7 +365,7 @@ describe('ModelManagementSection — Library surface keeps the original group li
 
     // ModelCard's own isCompatible guard blocks selection on click. Assert
     // on selection writes specifically: an unrelated async settings write
-    // (the Edge-TTS default-voice effect posts {edgeTtsVoice} for a 'ja'
+    // (the Edge-TTS default-voice effect posts the direction's voice for a 'ja'
     // target) can land between the awaits above, so "zero calls at all"
     // is a race, not the invariant.
     fireEvent.click(card);

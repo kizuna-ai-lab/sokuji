@@ -50,7 +50,7 @@ describe('LocalInferenceVoiceSection', () => {
     expect(lastVLS.selectedId).toBe('preset:0');
   });
 
-  it('supertonic select writes ttsSpeakerId via sidFromVoiceId', () => {
+  it('supertonic select writes the speaker via sidFromVoiceId', () => {
     const onUpdate = vi.fn();
     render(<LocalInferenceVoiceSection {...base} ttsModel="super-model" onUpdate={onUpdate}
       supertonicVoices={[{ id: 'imported:7', label: 'Mine', group: 'custom', removable: true }]} />);
@@ -58,7 +58,7 @@ describe('LocalInferenceVoiceSection', () => {
     expect(onUpdate).toHaveBeenCalledWith({ speaker: 7 });
   });
 
-  it('other engine → speaker slider writes ttsSpeakerId', () => {
+  it('other engine → speaker slider writes the speaker', () => {
     const onUpdate = vi.fn();
     render(<LocalInferenceVoiceSection {...base} ttsModel="matcha-model" onUpdate={onUpdate} />);
     const slider = screen.getByRole('slider');

@@ -25,13 +25,12 @@ export interface LocalInferenceSettings {
   /**
    * Each direction's voice, keyed `src→tgt` like `selections` (#619). Stored
    * values pass through unvalidated (no `migrate`): read it through
-   * `directionVoice`, never directly.
+   * `directionVoice`, never directly. Retires `ttsSpeakerId`/`edgeTtsVoice`, one
+   * pair both directions shared: each user's voice resets once to the default
+   * (no one-time migration code).
    */
   voices: Record<string, DirectionVoice>;
-  ttsSpeakerId: number;
   ttsSpeed: number;
-  /** Edge TTS voice ShortName (e.g. 'en-US-AvaMultilingualNeural'), '' for auto-select. */
-  edgeTtsVoice: string;
   vadThreshold: number;
   vadNegativeThreshold: number;
   vadMinSilenceDuration: number;
@@ -53,9 +52,7 @@ export interface LocalInferenceSettings {
 export const LOCAL_INFERENCE_DEFAULTS: LocalInferenceSettings = {
   selections: {},
   voices: {},
-  ttsSpeakerId: 0,
   ttsSpeed: 1.0,
-  edgeTtsVoice: '',
   vadThreshold: 0.3,
   vadNegativeThreshold: 0,
   vadMinSilenceDuration: 1.4,
