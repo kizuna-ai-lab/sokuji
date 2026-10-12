@@ -5,6 +5,7 @@ import { createVirtualClock } from '../contract/clock';
 import type { LegName } from '../conversation/types';
 import type { AnyProvider } from '../provider/types';
 import { fakeProvider } from '../../providers/fake/provider';
+import { fakeScript } from '../../providers/fake/scripts';
 import { createFakeSource, type FakeSource } from '../../providers/fake/source';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import { DEGRADED_DEDUPE_MS } from '../conversation/Conversation';
@@ -107,6 +108,20 @@ describe('runner — admit', () => {
     await runner.start();
     expect(runner.state.getState()).toMatchObject({ lastEnd: { reason: 'refused', notice: { code: 'admit_refused', message: 'one leg only' } } });
     expect(sources).toHaveLength(0);
+  });
+
+  it('starts each leg admit answers for with its config in place of the one built, the other leg as built', async () => {
+    const started: Array<{ source: string; script: unknown }> = [];
+    const start: AnyProvider['start'] = (request, events) => {
+      started.push({ source: request.context.direction.source, script: (request.config as { script: unknown }).script });
+      return fakeProvider.start(request as never, events);
+    };
+    const admit = (configs: Partial<Record<LegName, unknown>>) => ({ configs: { participant: { ...(configs.participant as object), script: fakeScript('cjk') } } });
+    const { runner } = setup(withHooks({ admit }, { start }), ['speaker', 'participant']);
+    await runner.start();
+    // The pair is en → ja: the speaker leg's source is en, the participant's ja.
+    expect(started).toEqual(expect.arrayContaining([{ source: 'en', script: fakeScript('exchange') }, { source: 'ja', script: fakeScript('cjk') }]));
+    expect(started).toHaveLength(2);
   });
 });
 
