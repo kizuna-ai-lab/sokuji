@@ -325,6 +325,24 @@ describe('the Qwen LiveTranslate adapter: the session (spec §6)', () => {
     expect(types(auto.socket())).toEqual(['session.update']);
   });
 
+  it('push-to-talk: a heard item its content does not mark is told by what it follows — nothing, or the last translation — so its words still show', async () => {
+    const h = await qwenSession({ context: MANUAL_CTX });
+    // No speech start under push-to-talk, and no recording confirms the heard item's content entry: here it has none.
+    const item = (id: string, previous?: string) => JSON.stringify({ type: 'conversation.item.created', ...(previous ? { previous_item_id: previous } : {}), item: { id, type: 'message', role: 'assistant', content: [] } });
+    h.socket().receive(item('item_h1'));
+    h.socket().receive(SERVER.sourceDelta('item_h1', 'first'));
+    h.socket().receive(SERVER.answerItem('item_t1', 'item_h1'));
+    h.socket().receive(SERVER.transcriptDelta('item_t1', 'First.'));
+    h.socket().receive(item('item_h2', 'item_t1'));
+    h.socket().receive(SERVER.sourceDelta('item_h2', 'second'));
+    h.socket().receive(SERVER.answerItem('item_t2', 'item_h2'));
+    h.socket().receive(SERVER.transcriptDelta('item_t2', 'Second.'));
+    expect(h.of('segmentOpened').map((e) => [e.payload.side, e.payload.origin])).toEqual([
+      ['source', 'item_h1'], ['translation', 'item_h1'], ['source', 'item_h2'], ['translation', 'item_h2'],
+    ]);
+    expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['first', 'First.', 'second', 'Second.']);
+  });
+
   it("a mid-session error words the close that follows it, once; the leg fails and says nothing after", async () => {
     const h = await qwenSession();
     h.socket().receive(SERVER.error('COMMON_ERROR', "<400> InternalError.Algo.InvalidParameter: Voice 'X' is not supported."));

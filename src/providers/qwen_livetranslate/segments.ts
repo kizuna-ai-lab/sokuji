@@ -50,6 +50,19 @@ export class QwenSegments {
     this.item(itemId, 'source');
   }
 
+  /**
+   * A `conversation.item.created`: heard when its content is input audio. When
+   * the content does not say — push-to-talk names no speech start, and no
+   * recording shows its heard item — by what it follows: a translation always
+   * follows its heard item, and a heard item follows nothing or the last
+   * translation.
+   */
+  created(itemId: string, o: { inputAudio: boolean; previous: string | null }): void {
+    const before = o.previous === null ? undefined : this.items.get(o.previous);
+    if (o.inputAudio || o.previous === null || before?.side === 'translation') this.heard(itemId);
+    else this.answer(itemId, o.previous);
+  }
+
   /** A translation item, with the heard item it follows when told. The answer to a cancelled turn is cancelled with it. */
   answer(itemId: string, previous: string | null = null): void {
     const it = this.item(itemId, 'translation');

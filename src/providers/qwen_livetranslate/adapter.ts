@@ -307,12 +307,10 @@ class QwenLeg implements AdapterSession {
         const item = (typeof e.item === 'object' && e.item !== null ? e.item : {}) as { id?: unknown; content?: unknown };
         const id = str(item.id);
         // The heard item carries input audio; the translation's content is empty, and names the heard item before it.
-        const heard = Array.isArray(item.content) && item.content.some((c) => (c as { type?: unknown } | null)?.type === 'input_audio');
+        const inputAudio = Array.isArray(item.content) && item.content.some((c) => (c as { type?: unknown } | null)?.type === 'input_audio');
         const previous = str(e.previous_item_id);
-        this.frame('in', e.type, { itemId: id, previous, heard });
-        if (!id) return;
-        if (heard) this.segments.heard(id);
-        else this.segments.answer(id, previous);
+        this.frame('in', e.type, { itemId: id, previous, inputAudio });
+        if (id) this.segments.created(id, { inputAudio, previous });
         return;
       }
       case 'response.output_item.added': {
