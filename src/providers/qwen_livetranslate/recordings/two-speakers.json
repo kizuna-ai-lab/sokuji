@@ -1,0 +1,1344 @@
+[
+ {
+  "type": "input_audio_buffer.speech_started",
+  "audio_start_ms": 360,
+  "item_id": "item_NqSvGyKioXLYkZy8za7Gx",
+  "speaker_id": 1
+ },
+ {
+  "type": "conversation.item.created",
+  "item": {
+   "id": "item_NqSvGyKioXLYkZy8za7Gx",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": [
+    {
+     "type": "input_audio"
+    }
+   ]
+  }
+ },
+ {
+  "type": "response.created",
+  "response": {
+   "id": "resp_YHqIw98dK867lAteOxg94",
+   "object": "realtime.response",
+   "conversation_id": "",
+   "status": "in_progress",
+   "modalities": [
+    "text",
+    "audio"
+   ],
+   "output_audio_format": "pcm",
+   "output": []
+  }
+ },
+ {
+  "type": "response.output_item.added",
+  "response_id": "resp_YHqIw98dK867lAteOxg94",
+  "output_index": 0,
+  "item": {
+   "id": "item_U8c9rusZbkIW7nGPHsdJu",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": []
+  }
+ },
+ {
+  "type": "conversation.item.created",
+  "previous_item_id": "item_NqSvGyKioXLYkZy8za7Gx",
+  "item": {
+   "id": "item_U8c9rusZbkIW7nGPHsdJu",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": []
+  }
+ },
+ {
+  "type": "response.content_part.added",
+  "response_id": "resp_YHqIw98dK867lAteOxg94",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "text": ""
+  }
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_NqSvGyKioXLYkZy8za7Gx",
+  "content_index": 0,
+  "delta": "欢迎使用实时翻译 "
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_YHqIw98dK867lAteOxg94",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "Welcome"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_YHqIw98dK867lAteOxg94",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " to real"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_YHqIw98dK867lAteOxg94",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "-time translation"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_YHqIw98dK867lAteOxg94",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": ". "
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "samples": 1920
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_NqSvGyKioXLYkZy8za7Gx",
+  "content_index": 0,
+  "delta": "希望这个声音能让交流"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_NqSvGyKioXLYkZy8za7Gx",
+  "content_index": 0,
+  "delta": "变得轻松自然 "
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_YHqIw98dK867lAteOxg94",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "We"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_YHqIw98dK867lAteOxg94",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " hope this"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_YHqIw98dK867lAteOxg94",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " voice will make communication"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_YHqIw98dK867lAteOxg94",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " easier and more"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_YHqIw98dK867lAteOxg94",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " natural. "
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "samples": 3840
+ },
+ {
+  "type": "input_audio_buffer.speech_stopped",
+  "audio_end_ms": 6640,
+  "item_id": "item_NqSvGyKioXLYkZy8za7Gx"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.completed",
+  "item_id": "item_NqSvGyKioXLYkZy8za7Gx",
+  "content_index": 0,
+  "transcript": "欢迎使用实时翻译 希望这个声音能让交流变得轻松自然 "
+ },
+ {
+  "type": "response.audio_transcript.done",
+  "response_id": "resp_YHqIw98dK867lAteOxg94",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "output_index": 0,
+  "content_index": 0,
+  "transcript": "Welcome to real-time translation. We hope this voice will make communication easier and more natural. "
+ },
+ {
+  "type": "response.audio.done",
+  "response_id": "resp_YHqIw98dK867lAteOxg94",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "output_index": 0,
+  "content_index": 0
+ },
+ {
+  "type": "response.content_part.done",
+  "response_id": "resp_YHqIw98dK867lAteOxg94",
+  "item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "text": "Welcome to real-time translation. We hope this voice will make communication easier and more natural. "
+  }
+ },
+ {
+  "type": "response.output_item.done",
+  "response_id": "resp_YHqIw98dK867lAteOxg94",
+  "output_index": 0,
+  "item": {
+   "id": "item_U8c9rusZbkIW7nGPHsdJu",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "completed",
+   "role": "assistant",
+   "content": [
+    {
+     "type": "audio",
+     "text": "Welcome to real-time translation. We hope this voice will make communication easier and more natural. "
+    }
+   ]
+  }
+ },
+ {
+  "type": "response.done",
+  "response": {
+   "id": "resp_YHqIw98dK867lAteOxg94",
+   "object": "realtime.response",
+   "conversation_id": "conv_PIgvdAX9ehzZB4TVJAaP1",
+   "status": "completed",
+   "modalities": [
+    "text",
+    "audio"
+   ],
+   "output": [
+    {
+     "id": "item_U8c9rusZbkIW7nGPHsdJu",
+     "object": "realtime.item",
+     "type": "message",
+     "status": "completed",
+     "role": "assistant",
+     "content": [
+      {
+       "type": "audio",
+       "transcript": "Welcome to real-time translation. We hope this voice will make communication easier and more natural. "
+      }
+     ]
+    }
+   ],
+   "usage": {
+    "total_tokens": 197,
+    "input_tokens": 96,
+    "output_tokens": 101,
+    "input_tokens_details": {
+     "text_tokens": 47,
+     "audio_tokens": 49
+    },
+    "output_tokens_details": {
+     "text_tokens": 26,
+     "audio_tokens": 75
+    }
+   }
+  }
+ },
+ {
+  "type": "input_audio_buffer.speech_started",
+  "audio_start_ms": 6640,
+  "item_id": "item_GE3vQiBraDZHcajTeGW2F",
+  "speaker_id": 2
+ },
+ {
+  "type": "conversation.item.created",
+  "previous_item_id": "item_U8c9rusZbkIW7nGPHsdJu",
+  "item": {
+   "id": "item_GE3vQiBraDZHcajTeGW2F",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": [
+    {
+     "type": "input_audio"
+    }
+   ]
+  }
+ },
+ {
+  "type": "response.created",
+  "response": {
+   "id": "resp_LxXvl8O3FvylEfCDLAKyD",
+   "object": "realtime.response",
+   "conversation_id": "",
+   "status": "in_progress",
+   "modalities": [
+    "text",
+    "audio"
+   ],
+   "output_audio_format": "pcm",
+   "output": []
+  }
+ },
+ {
+  "type": "response.output_item.added",
+  "response_id": "resp_LxXvl8O3FvylEfCDLAKyD",
+  "output_index": 0,
+  "item": {
+   "id": "item_Lt961vIg2VX6R2VnurSNg",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": []
+  }
+ },
+ {
+  "type": "conversation.item.created",
+  "previous_item_id": "item_GE3vQiBraDZHcajTeGW2F",
+  "item": {
+   "id": "item_Lt961vIg2VX6R2VnurSNg",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": []
+  }
+ },
+ {
+  "type": "response.content_part.added",
+  "response_id": "resp_LxXvl8O3FvylEfCDLAKyD",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "text": ""
+  }
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_GE3vQiBraDZHcajTeGW2F",
+  "content_index": 0,
+  "delta": "明日"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_GE3vQiBraDZHcajTeGW2F",
+  "content_index": 0,
+  "delta": "の会議は午後"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_GE3vQiBraDZHcajTeGW2F",
+  "content_index": 0,
+  "delta": "三時に"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_GE3vQiBraDZHcajTeGW2F",
+  "content_index": 0,
+  "delta": "始まります"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_GE3vQiBraDZHcajTeGW2F",
+  "content_index": 0,
+  "delta": " "
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_LxXvl8O3FvylEfCDLAKyD",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "Tomorrow"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_LxXvl8O3FvylEfCDLAKyD",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "'s meeting will"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_LxXvl8O3FvylEfCDLAKyD",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " start at 3"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_LxXvl8O3FvylEfCDLAKyD",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": ":0"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_LxXvl8O3FvylEfCDLAKyD",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "0 p"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_LxXvl8O3FvylEfCDLAKyD",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": ".m."
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_LxXvl8O3FvylEfCDLAKyD",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " "
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "samples": 1920
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_GE3vQiBraDZHcajTeGW2F",
+  "content_index": 0,
+  "delta": "電"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_GE3vQiBraDZHcajTeGW2F",
+  "content_index": 0,
+  "delta": "車が十分遅れています"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_GE3vQiBraDZHcajTeGW2F",
+  "content_index": 0,
+  "delta": " "
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_LxXvl8O3FvylEfCDLAKyD",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "The train is very"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_LxXvl8O3FvylEfCDLAKyD",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " late"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_LxXvl8O3FvylEfCDLAKyD",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": ". "
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "samples": 7680
+ },
+ {
+  "type": "input_audio_buffer.speech_stopped",
+  "audio_end_ms": 16080,
+  "item_id": "item_GE3vQiBraDZHcajTeGW2F"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.completed",
+  "item_id": "item_GE3vQiBraDZHcajTeGW2F",
+  "content_index": 0,
+  "transcript": "明日の会議は午後三時に始まります 電車が十分遅れています "
+ },
+ {
+  "type": "response.audio_transcript.done",
+  "response_id": "resp_LxXvl8O3FvylEfCDLAKyD",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "output_index": 0,
+  "content_index": 0,
+  "transcript": "Tomorrow's meeting will start at 3:00 p.m. The train is very late. "
+ },
+ {
+  "type": "response.audio.done",
+  "response_id": "resp_LxXvl8O3FvylEfCDLAKyD",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "output_index": 0,
+  "content_index": 0
+ },
+ {
+  "type": "response.content_part.done",
+  "response_id": "resp_LxXvl8O3FvylEfCDLAKyD",
+  "item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "text": "Tomorrow's meeting will start at 3:00 p.m. The train is very late. "
+  }
+ },
+ {
+  "type": "response.output_item.done",
+  "response_id": "resp_LxXvl8O3FvylEfCDLAKyD",
+  "output_index": 0,
+  "item": {
+   "id": "item_Lt961vIg2VX6R2VnurSNg",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "completed",
+   "role": "assistant",
+   "content": [
+    {
+     "type": "audio",
+     "text": "Tomorrow's meeting will start at 3:00 p.m. The train is very late. "
+    }
+   ]
+  }
+ },
+ {
+  "type": "response.done",
+  "response": {
+   "id": "resp_LxXvl8O3FvylEfCDLAKyD",
+   "object": "realtime.response",
+   "conversation_id": "conv_PIgvdAX9ehzZB4TVJAaP1",
+   "status": "completed",
+   "modalities": [
+    "text",
+    "audio"
+   ],
+   "output": [
+    {
+     "id": "item_Lt961vIg2VX6R2VnurSNg",
+     "object": "realtime.item",
+     "type": "message",
+     "status": "completed",
+     "role": "assistant",
+     "content": [
+      {
+       "type": "audio",
+       "transcript": "Tomorrow's meeting will start at 3:00 p.m. The train is very late. "
+      }
+     ]
+    }
+   ],
+   "usage": {
+    "total_tokens": 351,
+    "input_tokens": 173,
+    "output_tokens": 178,
+    "input_tokens_details": {
+     "text_tokens": 47,
+     "audio_tokens": 126
+    },
+    "output_tokens_details": {
+     "text_tokens": 54,
+     "audio_tokens": 124
+    }
+   }
+  }
+ },
+ {
+  "type": "input_audio_buffer.speech_started",
+  "audio_start_ms": 16080,
+  "item_id": "item_GOtmOWy34xJ3Mguy8ns7X",
+  "speaker_id": 3
+ },
+ {
+  "type": "conversation.item.created",
+  "previous_item_id": "item_Lt961vIg2VX6R2VnurSNg",
+  "item": {
+   "id": "item_GOtmOWy34xJ3Mguy8ns7X",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": [
+    {
+     "type": "input_audio"
+    }
+   ]
+  }
+ },
+ {
+  "type": "response.created",
+  "response": {
+   "id": "resp_TRDUb6bSciTutTEbqnAkS",
+   "object": "realtime.response",
+   "conversation_id": "",
+   "status": "in_progress",
+   "modalities": [
+    "text",
+    "audio"
+   ],
+   "output_audio_format": "pcm",
+   "output": []
+  }
+ },
+ {
+  "type": "response.output_item.added",
+  "response_id": "resp_TRDUb6bSciTutTEbqnAkS",
+  "output_index": 0,
+  "item": {
+   "id": "item_NRXTB52FAqG6wQSXgM2LO",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": []
+  }
+ },
+ {
+  "type": "conversation.item.created",
+  "previous_item_id": "item_GOtmOWy34xJ3Mguy8ns7X",
+  "item": {
+   "id": "item_NRXTB52FAqG6wQSXgM2LO",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": []
+  }
+ },
+ {
+  "type": "response.content_part.added",
+  "response_id": "resp_TRDUb6bSciTutTEbqnAkS",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "text": ""
+  }
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_GOtmOWy34xJ3Mguy8ns7X",
+  "content_index": 0,
+  "delta": "リアル"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_GOtmOWy34xJ3Mguy8ns7X",
+  "content_index": 0,
+  "delta": "タイム翻訳"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_GOtmOWy34xJ3Mguy8ns7X",
+  "content_index": 0,
+  "delta": "へようこそ"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_GOtmOWy34xJ3Mguy8ns7X",
+  "content_index": 0,
+  "delta": "自然な会話をお"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_GOtmOWy34xJ3Mguy8ns7X",
+  "content_index": 0,
+  "delta": "手伝い"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_GOtmOWy34xJ3Mguy8ns7X",
+  "content_index": 0,
+  "delta": "します "
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_TRDUb6bSciTutTEbqnAkS",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "Welcome"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_TRDUb6bSciTutTEbqnAkS",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " to real"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_TRDUb6bSciTutTEbqnAkS",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "-time translation"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_TRDUb6bSciTutTEbqnAkS",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "."
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_TRDUb6bSciTutTEbqnAkS",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " We are"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_TRDUb6bSciTutTEbqnAkS",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " here to help you have"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_TRDUb6bSciTutTEbqnAkS",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " natural conversations. "
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "samples": 1920
+ },
+ {
+  "type": "input_audio_buffer.speech_stopped",
+  "audio_end_ms": 23040,
+  "item_id": "item_GOtmOWy34xJ3Mguy8ns7X"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.completed",
+  "item_id": "item_GOtmOWy34xJ3Mguy8ns7X",
+  "content_index": 0,
+  "transcript": "リアルタイム翻訳へようこそ自然な会話をお手伝いします "
+ },
+ {
+  "type": "response.audio_transcript.done",
+  "response_id": "resp_TRDUb6bSciTutTEbqnAkS",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "output_index": 0,
+  "content_index": 0,
+  "transcript": "Welcome to real-time translation. We are here to help you have natural conversations. "
+ },
+ {
+  "type": "response.audio.done",
+  "response_id": "resp_TRDUb6bSciTutTEbqnAkS",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "output_index": 0,
+  "content_index": 0
+ },
+ {
+  "type": "response.content_part.done",
+  "response_id": "resp_TRDUb6bSciTutTEbqnAkS",
+  "item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "text": "Welcome to real-time translation. We are here to help you have natural conversations. "
+  }
+ },
+ {
+  "type": "response.output_item.done",
+  "response_id": "resp_TRDUb6bSciTutTEbqnAkS",
+  "output_index": 0,
+  "item": {
+   "id": "item_NRXTB52FAqG6wQSXgM2LO",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "completed",
+   "role": "assistant",
+   "content": [
+    {
+     "type": "audio",
+     "text": "Welcome to real-time translation. We are here to help you have natural conversations. "
+    }
+   ]
+  }
+ },
+ {
+  "type": "response.done",
+  "response": {
+   "id": "resp_TRDUb6bSciTutTEbqnAkS",
+   "object": "realtime.response",
+   "conversation_id": "conv_PIgvdAX9ehzZB4TVJAaP1",
+   "status": "completed",
+   "modalities": [
+    "text",
+    "audio"
+   ],
+   "output": [
+    {
+     "id": "item_NRXTB52FAqG6wQSXgM2LO",
+     "object": "realtime.item",
+     "type": "message",
+     "status": "completed",
+     "role": "assistant",
+     "content": [
+      {
+       "type": "audio",
+       "transcript": "Welcome to real-time translation. We are here to help you have natural conversations. "
+      }
+     ]
+    }
+   ],
+   "usage": {
+    "total_tokens": 500,
+    "input_tokens": 236,
+    "output_tokens": 264,
+    "input_tokens_details": {
+     "text_tokens": 47,
+     "audio_tokens": 189
+    },
+    "output_tokens_details": {
+     "text_tokens": 75,
+     "audio_tokens": 189
+    }
+   }
+  }
+ },
+ {
+  "type": "input_audio_buffer.speech_started",
+  "audio_start_ms": 23040,
+  "item_id": "item_AYiCMkfXsync7EhiMngmt",
+  "speaker_id": 4
+ },
+ {
+  "type": "conversation.item.created",
+  "previous_item_id": "item_NRXTB52FAqG6wQSXgM2LO",
+  "item": {
+   "id": "item_AYiCMkfXsync7EhiMngmt",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": [
+    {
+     "type": "input_audio"
+    }
+   ]
+  }
+ },
+ {
+  "type": "response.created",
+  "response": {
+   "id": "resp_AG6JMvPjwUvPKnfjCqpTy",
+   "object": "realtime.response",
+   "conversation_id": "",
+   "status": "in_progress",
+   "modalities": [
+    "text",
+    "audio"
+   ],
+   "output_audio_format": "pcm",
+   "output": []
+  }
+ },
+ {
+  "type": "response.output_item.added",
+  "response_id": "resp_AG6JMvPjwUvPKnfjCqpTy",
+  "output_index": 0,
+  "item": {
+   "id": "item_KjOGGUSyQB9f7wZVzDSZz",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": []
+  }
+ },
+ {
+  "type": "conversation.item.created",
+  "previous_item_id": "item_AYiCMkfXsync7EhiMngmt",
+  "item": {
+   "id": "item_KjOGGUSyQB9f7wZVzDSZz",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": []
+  }
+ },
+ {
+  "type": "response.content_part.added",
+  "response_id": "resp_AG6JMvPjwUvPKnfjCqpTy",
+  "item_id": "item_KjOGGUSyQB9f7wZVzDSZz",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "text": ""
+  }
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_AYiCMkfXsync7EhiMngmt",
+  "content_index": 0,
+  "delta": "駅の"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_AYiCMkfXsync7EhiMngmt",
+  "content_index": 0,
+  "delta": "近くに新しいカフェ"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_AYiCMkfXsync7EhiMngmt",
+  "content_index": 0,
+  "delta": "ができました"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_AYiCMkfXsync7EhiMngmt",
+  "content_index": 0,
+  "delta": " "
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_AG6JMvPjwUvPKnfjCqpTy",
+  "item_id": "item_KjOGGUSyQB9f7wZVzDSZz",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "A"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_AG6JMvPjwUvPKnfjCqpTy",
+  "item_id": "item_KjOGGUSyQB9f7wZVzDSZz",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " new cafe"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_AG6JMvPjwUvPKnfjCqpTy",
+  "item_id": "item_KjOGGUSyQB9f7wZVzDSZz",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " has opened"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_AG6JMvPjwUvPKnfjCqpTy",
+  "item_id": "item_KjOGGUSyQB9f7wZVzDSZz",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " near the"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_AG6JMvPjwUvPKnfjCqpTy",
+  "item_id": "item_KjOGGUSyQB9f7wZVzDSZz",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " station. "
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_KjOGGUSyQB9f7wZVzDSZz",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_KjOGGUSyQB9f7wZVzDSZz",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_KjOGGUSyQB9f7wZVzDSZz",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_KjOGGUSyQB9f7wZVzDSZz",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_KjOGGUSyQB9f7wZVzDSZz",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_KjOGGUSyQB9f7wZVzDSZz",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_KjOGGUSyQB9f7wZVzDSZz",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_KjOGGUSyQB9f7wZVzDSZz",
+  "samples": 5760
+ },
+ {
+  "type": "input_audio_buffer.speech_stopped",
+  "audio_end_ms": 28960,
+  "item_id": "item_AYiCMkfXsync7EhiMngmt"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.completed",
+  "item_id": "item_AYiCMkfXsync7EhiMngmt",
+  "content_index": 0,
+  "transcript": "駅の近くに新しいカフェができました "
+ },
+ {
+  "type": "response.audio_transcript.done",
+  "response_id": "resp_AG6JMvPjwUvPKnfjCqpTy",
+  "item_id": "item_KjOGGUSyQB9f7wZVzDSZz",
+  "output_index": 0,
+  "content_index": 0,
+  "transcript": "A new cafe has opened near the station. "
+ },
+ {
+  "type": "response.audio.done",
+  "response_id": "resp_AG6JMvPjwUvPKnfjCqpTy",
+  "item_id": "item_KjOGGUSyQB9f7wZVzDSZz",
+  "output_index": 0,
+  "content_index": 0
+ },
+ {
+  "type": "response.content_part.done",
+  "response_id": "resp_AG6JMvPjwUvPKnfjCqpTy",
+  "item_id": "item_KjOGGUSyQB9f7wZVzDSZz",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "text": "A new cafe has opened near the station. "
+  }
+ },
+ {
+  "type": "response.output_item.done",
+  "response_id": "resp_AG6JMvPjwUvPKnfjCqpTy",
+  "output_index": 0,
+  "item": {
+   "id": "item_KjOGGUSyQB9f7wZVzDSZz",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "completed",
+   "role": "assistant",
+   "content": [
+    {
+     "type": "audio",
+     "text": "A new cafe has opened near the station. "
+    }
+   ]
+  }
+ },
+ {
+  "type": "response.done",
+  "response": {
+   "id": "resp_AG6JMvPjwUvPKnfjCqpTy",
+   "object": "realtime.response",
+   "conversation_id": "conv_PIgvdAX9ehzZB4TVJAaP1",
+   "status": "completed",
+   "modalities": [
+    "text",
+    "audio"
+   ],
+   "output": [
+    {
+     "id": "item_KjOGGUSyQB9f7wZVzDSZz",
+     "object": "realtime.item",
+     "type": "message",
+     "status": "completed",
+     "role": "assistant",
+     "content": [
+      {
+       "type": "audio",
+       "transcript": "A new cafe has opened near the station. "
+      }
+     ]
+    }
+   ],
+   "usage": {
+    "total_tokens": 600,
+    "input_tokens": 292,
+    "output_tokens": 308,
+    "input_tokens_details": {
+     "text_tokens": 47,
+     "audio_tokens": 245
+    },
+    "output_tokens_details": {
+     "text_tokens": 88,
+     "audio_tokens": 220
+    }
+   }
+  }
+ },
+ {
+  "type": "session.finished"
+ }
+]
