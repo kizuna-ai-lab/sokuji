@@ -95,9 +95,10 @@ function offenders(root: string): string[] {
 }
 
 describe('the old provider path', () => {
+  // It reads every source file under src: about 1 s alone, past the 5 s default on a loaded CI runner.
   it('is imported by value only by its own files', () => {
     expect(offenders(REPO_ROOT)).toEqual([]);
-  });
+  }, 30_000);
 
   it('the scan sees every kind of value import, and no type-only one', () => {
     const source = [
