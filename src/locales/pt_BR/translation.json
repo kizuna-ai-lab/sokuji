@@ -1359,7 +1359,10 @@
     "loopback_denied": "O Áudio do outro requer permissão de Gravação de Tela para capturar o áudio do sistema.",
     "mic_lost_using_other": "O microfone “{{lost}}” foi desconectado, então “{{device}}” está sendo usado no lugar.",
     "mic_lost_waiting": "O microfone foi desconectado. A tradução da sua fala será retomada quando um microfone for conectado.",
-    "mic_now_using": "Agora usando o microfone “{{device}}”."
+    "mic_now_using": "Agora usando o microfone “{{device}}”.",
+    "speaker_tts_missing": "A tradução que o outro lado ouve aparece só como texto: nenhum modelo de voz fala {{target}}.",
+    "participant_tts_missing": "A tradução que eu ouço aparece só como texto: nenhum modelo de voz fala {{target}}.",
+    "participant_tts_over_budget": "A tradução que eu ouço aparece só como texto: não há memória suficiente para carregar também o modelo de voz do outro lado."
   },
   "viewer": {
     "title": "Legendas do Sokuji",

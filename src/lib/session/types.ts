@@ -95,11 +95,16 @@ export interface LeaseContext {
   frame(frame: AdapterFrame): void;
 }
 
+/** `admit`'s third answer (#619): start, running these legs' configs in place of the ones built. The legs stay as built. */
+export interface AdmittedConfigs<C> {
+  configs: Partial<Record<LegName, C>>;
+}
+
 /** What a provider may add across legs and time (spec: "Session hooks on the provider definition"). */
 export interface SessionHooks<S, K, C> {
   prepare?(shape: RunShape, s: S, signal: AbortSignal): Promise<Prepared<S>>;
-  /** Cross-leg checks over the configs actually built. */
-  admit?(configs: Partial<Record<LegName, C>>): true | ProviderRefusal;
+  /** Cross-leg checks over the configs actually built: run them, refuse, or run some legs on adjusted configs. */
+  admit?(configs: Partial<Record<LegName, C>>): true | ProviderRefusal | AdmittedConfigs<C>;
   /** `end` stops the run with a notice: budget exhausted, duration cutoff — the code says which. */
   acquire?(shape: RunShape, s: S, ctx: LeaseContext): Promise<Resources<K>>;
   /** Both legs at once (D23): the provider decides between one mixed socket and two. */

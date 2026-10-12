@@ -188,6 +188,15 @@ describe('Conversation — notices and closing', () => {
     expect(conv.snapshot().notices[0].id).toBe('s1:speaker:n1');
   });
 
+  it("carries a degraded event's params into its notice, and records none without them", () => {
+    const { conv, apply } = make();
+    apply({ kind: 'degraded', payload: { code: 'tts_degraded', message: 'no voice', params: { target: 'ja' } } });
+    apply({ kind: 'degraded', payload: { code: 'parse_error', message: 'bad frame' } });
+    const [withParams, without] = conv.snapshot().notices;
+    expect(withParams).toMatchObject({ code: 'tts_degraded', params: { target: 'ja' } });
+    expect(without).not.toHaveProperty('params');
+  });
+
   it('finalizes every open segment on failed, since nothing follows it', () => {
     const { conv, apply } = make();
     apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source' } });

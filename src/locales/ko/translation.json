@@ -1359,7 +1359,10 @@
     "loopback_denied": "상대방 오디오는 시스템 오디오를 캡처하기 위해 화면 기록 권한이 필요합니다.",
     "mic_lost_using_other": "마이크 ‘{{lost}}’의 연결이 끊어져 대신 ‘{{device}}’을(를) 사용합니다.",
     "mic_lost_waiting": "마이크 연결이 끊어졌습니다. 마이크가 연결되면 내 음성의 번역이 자동으로 다시 시작됩니다.",
-    "mic_now_using": "이제 마이크 ‘{{device}}’을(를) 사용합니다."
+    "mic_now_using": "이제 마이크 ‘{{device}}’을(를) 사용합니다.",
+    "speaker_tts_missing": "상대방에게 들리는 번역은 텍스트로만 표시됩니다: {{target}}용 음성 모델이 없습니다.",
+    "participant_tts_missing": "내가 듣는 번역은 텍스트로만 표시됩니다: {{target}}용 음성 모델이 없습니다.",
+    "participant_tts_over_budget": "내가 듣는 번역은 텍스트로만 표시됩니다: 상대방 쪽 음성 모델까지 불러올 메모리가 부족합니다."
   },
   "viewer": {
     "title": "Sokuji 자막",

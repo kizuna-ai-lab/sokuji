@@ -220,6 +220,19 @@ describe('ProviderEngine', () => {
     expect(seen[0].onInitialSlotConsumed).toBe(onInitialSlotConsumed);
   });
 
+  it('hands the Engine participantSpeaks: the store\'s switch, unless the provider never speaks the participant', () => {
+    useProviderStore.setState({
+      entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'auto', target: 'en' } } },
+      speech: { textOnly: false, participantSpeech: true },
+    });
+    const seen: EngineProps<FakeSettings>[] = [];
+    const Engine = (props: EngineProps<FakeSettings>) => { seen.push(props); return null; };
+    const { rerender } = render(<ProviderEngine providers={[{ ...fakeProvider, Engine }]} />);
+    expect(seen[seen.length - 1].participantSpeaks).toBe(true);
+    rerender(<ProviderEngine providers={[{ ...fakeProvider, participantSpeech: false, Engine }]} />);
+    expect(seen[seen.length - 1].participantSpeaks).toBe(false);
+  });
+
   it('renders nothing when the provider has no Engine', () => {
     useProviderStore.setState({ entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'auto', target: 'en' } } } });
     const { container } = render(<ProviderEngine providers={[fakeProvider]} />);

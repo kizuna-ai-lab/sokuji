@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { TFunction } from 'i18next';
+import i18next from 'i18next';
 import en from '../../locales/en/translation.json';
 import { APP_CAPTURE_LOST, APP_MONITOR_MISSING, LOOPBACK_DENIED, SILENT_NO_PERMISSION } from '../audio/capture/systemAudio';
 import { MIC_LOST_USING_OTHER, MIC_LOST_WAITING, MIC_NOW_USING } from '../audio/capture/mic';
@@ -129,6 +130,15 @@ describe('noticeText', () => {
     for (const code of ['no_asr', 'memory_exceeded', 'gpu_out_of_memory', 'transcription_failed', 'translation_failed', 'translation_unavailable']) {
       expect(NOTICE_WORDS[code]).toBeDefined();
     }
+  });
+
+  it("words local inference's text-only warnings, naming the target language as every language menu does (#619)", () => {
+    expect(noticeText(t, { code: 'speaker_tts_missing', params: { target: 'ja' }, message: 'x' }))
+      .toBe(`notices.speaker_tts_missing|Translation the other side hears is text only: no speech model speaks ${languageLabel('ja', i18next.language)}.`);
+    expect(noticeText(t, { code: 'participant_tts_missing', params: { target: 'en' }, message: 'x' }))
+      .toBe(`notices.participant_tts_missing|Translation I hear is text only: no speech model speaks ${languageLabel('en', i18next.language)}.`);
+    expect(noticeText(t, { code: 'participant_tts_over_budget', message: 'x' }))
+      .toBe("notices.participant_tts_over_budget|Translation I hear is text only: not enough memory to load the other side's speech model too.");
   });
 
   it('matches the English locale word for word', () => {

@@ -24,23 +24,23 @@ const base = {
   isSessionActive: false,
   edgeVoices: [{ ShortName: 'en-US-A', label: 'A' }, { ShortName: 'en-US-B', label: 'B' }],
   edgeVoiceStatus: 'loaded' as const,
-  edgeTtsVoice: 'en-US-A',
+  edgeVoice: 'en-US-A',
   supertonicVoices: [{ id: 'preset:0', label: 'Sarah', group: 'builtin' as const, removable: false }],
   supertonicSelectedId: 'preset:0',
   onImportVoice: vi.fn(), onRenameVoice: vi.fn(), onDeleteVoice: vi.fn(),
-  ttsSpeakerId: 0, numSpeakers: 8,
+  speakerId: 0, numSpeakers: 8,
   onUpdate: vi.fn(),
 };
 
 beforeEach(() => { lastVLS = null; vi.clearAllMocks(); });
 
 describe('LocalInferenceVoiceSection', () => {
-  it('edge engine → <select> writes edgeTtsVoice', () => {
+  it('edge engine → <select> writes the edge voice', () => {
     const onUpdate = vi.fn();
     render(<LocalInferenceVoiceSection {...base} ttsModel="edge-model" onUpdate={onUpdate} />);
     const select = screen.getByRole('combobox');
     fireEvent.change(select, { target: { value: 'en-US-B' } });
-    expect(onUpdate).toHaveBeenCalledWith({ edgeTtsVoice: 'en-US-B' });
+    expect(onUpdate).toHaveBeenCalledWith({ edge: 'en-US-B' });
   });
 
   it('supertonic engine → renders VoiceLibrarySection with dropdown/upload capability', () => {
@@ -50,20 +50,20 @@ describe('LocalInferenceVoiceSection', () => {
     expect(lastVLS.selectedId).toBe('preset:0');
   });
 
-  it('supertonic select writes ttsSpeakerId via sidFromVoiceId', () => {
+  it('supertonic select writes the speaker via sidFromVoiceId', () => {
     const onUpdate = vi.fn();
     render(<LocalInferenceVoiceSection {...base} ttsModel="super-model" onUpdate={onUpdate}
       supertonicVoices={[{ id: 'imported:7', label: 'Mine', group: 'custom', removable: true }]} />);
     lastVLS.onSelect('imported:7');
-    expect(onUpdate).toHaveBeenCalledWith({ ttsSpeakerId: 7 });
+    expect(onUpdate).toHaveBeenCalledWith({ speaker: 7 });
   });
 
-  it('other engine → speaker slider writes ttsSpeakerId', () => {
+  it('other engine → speaker slider writes the speaker', () => {
     const onUpdate = vi.fn();
     render(<LocalInferenceVoiceSection {...base} ttsModel="matcha-model" onUpdate={onUpdate} />);
     const slider = screen.getByRole('slider');
     fireEvent.change(slider, { target: { value: '3' } });
-    expect(onUpdate).toHaveBeenCalledWith({ ttsSpeakerId: 3 });
+    expect(onUpdate).toHaveBeenCalledWith({ speaker: 3 });
   });
 
   // THIS IS A GUARD, not a failing test — do not wait for it to go red.

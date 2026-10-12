@@ -4,6 +4,12 @@ import type { Selections } from '../../lib/local-inference/selection/types';
 import { getLocalInferenceLanguages, getLocalInferenceTargetLanguages } from '../../lib/local-inference/modelManifest';
 import type { VadEndOfTurn } from '../../lib/turn/smartTurn';
 
+/** One direction's voice (#619): an Edge TTS voice ShortName, and a speaker id for Supertonic and the multi-speaker local models. */
+export interface DirectionVoice {
+  edge?: string;
+  speaker?: number;
+}
+
 /**
  * LocalInference's `S` (spec: "Settings — never secrets"). Today's
  * `LocalInferenceSettings` (`src/services/providers/LocalInferenceProviderConfig.ts`)
@@ -16,10 +22,15 @@ import type { VadEndOfTurn } from '../../lib/turn/smartTurn';
 export interface LocalInferenceSettings {
   /** Per-direction model choices, keyed `src→tgt`. '' in any stage means auto. */
   selections: Selections;
-  ttsSpeakerId: number;
+  /**
+   * Each direction's voice, keyed `src→tgt` like `selections` (#619). Stored
+   * values pass through unvalidated (no `migrate`): read it through
+   * `directionVoice`, never directly. Retires `ttsSpeakerId`/`edgeTtsVoice`, one
+   * pair both directions shared: each user's voice resets once to the default
+   * (no one-time migration code).
+   */
+  voices: Record<string, DirectionVoice>;
   ttsSpeed: number;
-  /** Edge TTS voice ShortName (e.g. 'en-US-AvaMultilingualNeural'), '' for auto-select. */
-  edgeTtsVoice: string;
   vadThreshold: number;
   vadNegativeThreshold: number;
   vadMinSilenceDuration: number;
@@ -40,9 +51,8 @@ export interface LocalInferenceSettings {
 
 export const LOCAL_INFERENCE_DEFAULTS: LocalInferenceSettings = {
   selections: {},
-  ttsSpeakerId: 0,
+  voices: {},
   ttsSpeed: 1.0,
-  edgeTtsVoice: '',
   vadThreshold: 0.3,
   vadNegativeThreshold: 0,
   vadMinSilenceDuration: 1.4,

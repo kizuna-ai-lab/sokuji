@@ -85,16 +85,21 @@ export function filterVoicesByLanguage(voices: Voice[], lang: string): Voice[] {
 }
 
 /**
+ * A voice's own name from its ShortName: "zh-CN-XiaoxiaoNeural" → "Xiaoxiao",
+ * "en-US-AvaMultilingualNeural" → "Ava Multilingual". Needs no voice list.
+ */
+export function voiceNameFromShortName(shortName: string): string {
+  return shortName.split('-').slice(2).join('-').replace(/Neural$/, '').replace(/([a-z])([A-Z])/g, '$1 $2');
+}
+
+/**
  * Get a display-friendly name for a voice.
  * E.g. "zh-HK-HiuGaaiNeural" → "Hiu Gaai (Female, zh-HK)"
  * The locale suffix is included so users can distinguish regional variants
  * (e.g. Mandarin `zh-CN` vs Cantonese `zh-HK` vs Taiwanese `zh-TW`).
  */
 export function getVoiceDisplayName(voice: Voice): string {
-  // ShortName is like "en-US-AvaMultilingualNeural"
-  const parts = voice.ShortName.split('-');
-  const rawName = parts.slice(2).join('-').replace(/Neural$/, '').replace(/([a-z])([A-Z])/g, '$1 $2');
-  return `${rawName} (${voice.Gender}, ${voice.Locale})`;
+  return `${voiceNameFromShortName(voice.ShortName)} (${voice.Gender}, ${voice.Locale})`;
 }
 
 /**

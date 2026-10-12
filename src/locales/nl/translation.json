@@ -1359,7 +1359,10 @@
     "loopback_denied": "Audio van de ander vereist toestemming voor schermopname om systeemaudio vast te leggen.",
     "mic_lost_using_other": "De microfoon “{{lost}}” is losgekoppeld, dus wordt nu “{{device}}” gebruikt.",
     "mic_lost_waiting": "De microfoon is losgekoppeld. De vertaling van je spraak gaat verder zodra er een microfoon is aangesloten.",
-    "mic_now_using": "Nu wordt de microfoon “{{device}}” gebruikt."
+    "mic_now_using": "Nu wordt de microfoon “{{device}}” gebruikt.",
+    "speaker_tts_missing": "De vertaling die de ander hoort, is alleen tekst: geen spraakmodel spreekt {{target}}.",
+    "participant_tts_missing": "De vertaling die ik hoor, is alleen tekst: geen spraakmodel spreekt {{target}}.",
+    "participant_tts_over_budget": "De vertaling die ik hoor, is alleen tekst: niet genoeg geheugen om ook het spraakmodel van de ander te laden."
   },
   "viewer": {
     "title": "Sokuji-ondertiteling",

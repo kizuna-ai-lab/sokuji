@@ -1359,7 +1359,10 @@
     "loopback_denied": "Audio lawan bicara memerlukan izin Perekaman Layar untuk menangkap audio sistem.",
     "mic_lost_using_other": "Mikrofon “{{lost}}” terputus, jadi “{{device}}” digunakan sebagai gantinya.",
     "mic_lost_waiting": "Mikrofon terputus. Terjemahan ucapan Anda akan dilanjutkan saat mikrofon tersambung.",
-    "mic_now_using": "Sekarang menggunakan mikrofon “{{device}}”."
+    "mic_now_using": "Sekarang menggunakan mikrofon “{{device}}”.",
+    "speaker_tts_missing": "Terjemahan yang didengar pihak lain hanya berupa teks: tidak ada model suara yang berbicara {{target}}.",
+    "participant_tts_missing": "Terjemahan yang saya dengar hanya berupa teks: tidak ada model suara yang berbicara {{target}}.",
+    "participant_tts_over_budget": "Terjemahan yang saya dengar hanya berupa teks: memori tidak cukup untuk memuat model suara pihak lain juga."
   },
   "viewer": {
     "title": "Subtitle Sokuji",

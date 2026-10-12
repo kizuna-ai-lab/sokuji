@@ -93,9 +93,9 @@ export class Conversation {
         return;
       }
       case 'degraded': {
-        const { code, message } = event.payload;
+        const { code, message, params } = event.payload;
         if (!this.admitDegraded(code)) return;
-        return this.addNotice({ severity: CLIENT_DIAGNOSTICS[code]?.severity ?? 'warning', message, code });
+        return this.addNotice({ severity: CLIENT_DIAGNOSTICS[code]?.severity ?? 'warning', message, code, ...(params ? { params } : {}) });
       }
       case 'closed': return this.finalizeAll();
       default: return;

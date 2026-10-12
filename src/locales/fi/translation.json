@@ -1359,7 +1359,10 @@
     "loopback_denied": "Toisen ääni vaatii näytön tallennuksen käyttöoikeuden järjestelmän äänen kaappaamiseen.",
     "mic_lost_using_other": "Mikrofoni ”{{lost}}” irrotettiin, joten sen sijaan käytetään mikrofonia ”{{device}}”.",
     "mic_lost_waiting": "Mikrofoni irrotettiin. Puheesi kääntäminen jatkuu, kun mikrofoni yhdistetään.",
-    "mic_now_using": "Nyt käytetään mikrofonia ”{{device}}”."
+    "mic_now_using": "Nyt käytetään mikrofonia ”{{device}}”.",
+    "speaker_tts_missing": "Käännös, jonka toinen osapuoli kuulee, näkyy vain tekstinä: mikään puhemalli ei puhu kieltä {{target}}.",
+    "participant_tts_missing": "Käännös, jonka kuulen, näkyy vain tekstinä: mikään puhemalli ei puhu kieltä {{target}}.",
+    "participant_tts_over_budget": "Käännös, jonka kuulen, näkyy vain tekstinä: muisti ei riitä lataamaan myös toisen osapuolen puhemallia."
   },
   "viewer": {
     "title": "Sokuji-tekstitys",

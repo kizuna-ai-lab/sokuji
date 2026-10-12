@@ -1359,7 +1359,10 @@
     "loopback_denied": "L'Audio de l'autre nécessite l'autorisation d'enregistrement de l'écran pour capturer l'audio du système.",
     "mic_lost_using_other": "Le microphone « {{lost}} » a été déconnecté ; « {{device}} » est utilisé à la place.",
     "mic_lost_waiting": "Le microphone a été déconnecté. La traduction de votre voix reprendra dès qu’un microphone sera connecté.",
-    "mic_now_using": "Le microphone « {{device}} » est maintenant utilisé."
+    "mic_now_using": "Le microphone « {{device}} » est maintenant utilisé.",
+    "speaker_tts_missing": "La traduction entendue par l'autre s'affiche en texte seul : aucun modèle vocal ne parle {{target}}.",
+    "participant_tts_missing": "La traduction que j'entends s'affiche en texte seul : aucun modèle vocal ne parle {{target}}.",
+    "participant_tts_over_budget": "La traduction que j'entends s'affiche en texte seul : pas assez de mémoire pour charger aussi le modèle vocal de l'autre."
   },
   "viewer": {
     "title": "Sous-titres Sokuji",

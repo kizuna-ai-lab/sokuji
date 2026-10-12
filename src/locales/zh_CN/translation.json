@@ -1359,7 +1359,10 @@
     "loopback_denied": "对方音频需要屏幕录制权限才能捕获系统音频。",
     "mic_lost_using_other": "麦克风「{{lost}}」已断开，现在改用「{{device}}」。",
     "mic_lost_waiting": "麦克风已断开。接上麦克风后会自动继续翻译你说的话。",
-    "mic_now_using": "现在使用麦克风「{{device}}」。"
+    "mic_now_using": "现在使用麦克风「{{device}}」。",
+    "speaker_tts_missing": "对方听到的翻译只显示文字：没有能说{{target}}的语音模型。",
+    "participant_tts_missing": "我听到的翻译只显示文字：没有能说{{target}}的语音模型。",
+    "participant_tts_over_budget": "我听到的翻译只显示文字：内存不够同时加载对方的语音模型。"
   },
   "viewer": {
     "title": "Sokuji 字幕",

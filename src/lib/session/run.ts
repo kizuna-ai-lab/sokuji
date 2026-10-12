@@ -180,12 +180,19 @@ export class Run {
     }
     if (p.session?.admit) {
       const admitted = p.session.admit(configs);
-      if (admitted !== true) {
+      if (admitted !== true && 'refused' in admitted) {
         throw new RefusedError({
           code: admitted.code ?? ('admit_refused' satisfies RunNoticeCode),
           message: admitted.refused,
           ...(admitted.params ? { params: admitted.params } : {}),
         });
+      }
+      // The third answer (#619): a leg it names runs that config instead; the legs stay as built.
+      if (admitted !== true && 'configs' in admitted) {
+        for (const leg of shape.legs) {
+          const adjusted = admitted.configs[leg];
+          if (adjusted) configs[leg] = adjusted;
+        }
       }
     }
     this.models = p.describe(configs.speaker ?? configs.participant);
