@@ -8,7 +8,8 @@ const LIVE = { host: 'api.openai.com', path: '/v1/live/', set: { Authorization: 
 /** Dynamic rules as `getDynamicRules()` returns them: the old providers' among them. */
 const OLD = [
   { id: 2000, condition: { urlFilter: '||openspeech.bytedance.com' } },
-  { id: 3000, condition: { urlFilter: '||speech.platform.bing.com' } },
+  { id: 3000, condition: { urlFilter: '||api.msedgeservices.com' } },
+  { id: 3001, condition: { urlFilter: '||speech.platform.bing.com' } },
   { id: 4000, condition: { urlFilter: '||api.openai.com/v1/live/' } },
   { id: 9301, condition: { urlFilter: '||api-edge.cognitive.microsofttranslator.com' } },
 ];

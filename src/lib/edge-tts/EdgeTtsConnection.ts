@@ -7,6 +7,10 @@
  *
  * Streams parsed MP3 audio chunks back to the caller via callbacks.
  *
+ * Hosts: each generate() tries SYNTHESIS_ENDPOINTS in order, moving to the next
+ * only when a host refuses the handshake (the socket errors or closes before it
+ * opens). A host that accepted the connection is never retried elsewhere.
+ *
  * Correlating events across overlapping requests: each generate() call gets
  * a monotonically increasing requestId. Late events from a prior request
  * (id !== currentRequestId) are ignored.
@@ -23,6 +27,8 @@ import {
   makeConnectionId,
   DEFAULT_VOICE,
   EDGE_TTS_CHROMIUM_MAJOR,
+  SYNTHESIS_ENDPOINTS,
+  type SynthesisEndpoint,
 } from './edgeTts';
 
 export interface EdgeTtsGenerateOptions {
@@ -34,8 +40,6 @@ export interface EdgeTtsGenerateOptions {
 type Mp3ChunkCallback = (mp3Data: Uint8Array) => void;
 type DoneCallback = () => void;
 type ErrorCallback = (error: string) => void;
-
-const EDGE_TTS_WS_HOST = 'speech.platform.bing.com';
 
 export class EdgeTtsConnection {
   private onMp3Chunk: Mp3ChunkCallback | null = null;
@@ -99,35 +103,57 @@ export class EdgeTtsConnection {
     // Bump request id so late events from a prior call are ignored
     const myRequestId = ++this.currentRequestId;
 
-    // Set up header injection before connecting
     const shouldManageDnr = isExtension();
     const shouldManageElectronHeaders = isElectron() && !!window.electron?.invoke;
 
-    if (shouldManageDnr) {
-      await this.setExtensionDNR();
-    }
-    if (shouldManageElectronHeaders) {
-      await this.setElectronHeaders();
-    }
-
-    let wsUrl: string;
-    let requestIdHex: string;
     try {
-      const secMsGec = await makeSecMsGec();
-      const connectionId = makeConnectionId();
-      requestIdHex = makeConnectionId();
-      wsUrl = buildSynthesisUrl(secMsGec, connectionId);
-    } catch (err) {
+      // Set up header injection for every host before the first connection
+      if (shouldManageDnr) {
+        await this.setExtensionDNR();
+      }
+      if (shouldManageElectronHeaders) {
+        await this.setElectronHeaders();
+      }
+
+      for (const endpoint of SYNTHESIS_ENDPOINTS) {
+        if (myRequestId !== this.currentRequestId) return;
+        const outcome = await this.synthesizeOn(endpoint, myRequestId, voiceName, text, speedPercent);
+        if (outcome === 'finished') return;
+      }
+
+      // Every host refused the handshake
+      if (myRequestId !== this.currentRequestId) return;
+      const err = 'WebSocket connection to Edge TTS failed';
+      this.onError?.(err);
+      throw new Error(err);
+    } finally {
       if (shouldManageDnr && this.dnrSet) {
         this.clearExtensionDNR();
       }
       if (shouldManageElectronHeaders && this.electronHeadersSet) {
         this.clearElectronHeaders();
       }
-      throw err;
     }
+  }
 
-    return new Promise<void>((resolve, reject) => {
+  /**
+   * One connection to one host. Resolves 'refused' when the handshake fails
+   * (the socket errors or closes before it opens), for the caller to try the
+   * next host; 'finished' when the turn ended or this request was superseded;
+   * rejects, after onError, when an accepted connection fails.
+   */
+  private async synthesizeOn(
+    endpoint: SynthesisEndpoint,
+    myRequestId: number,
+    voiceName: string,
+    text: string,
+    speedPercent: number,
+  ): Promise<'refused' | 'finished'> {
+    const secMsGec = await makeSecMsGec();
+    const wsUrl = buildSynthesisUrl(endpoint, secMsGec, makeConnectionId());
+    const requestIdHex = makeConnectionId();
+
+    return new Promise<'refused' | 'finished'>((resolve, reject) => {
       let settled = false;
       const settle = (fn: () => void) => {
         if (settled) return;
@@ -139,20 +165,16 @@ export class EdgeTtsConnection {
       try {
         ws = new WebSocket(wsUrl);
       } catch (err) {
-        if (shouldManageDnr && this.dnrSet) {
-          this.clearExtensionDNR();
-        }
-        if (shouldManageElectronHeaders && this.electronHeadersSet) {
-          this.clearElectronHeaders();
-        }
         reject(err instanceof Error ? err : new Error(String(err)));
         return;
       }
       this.ws = ws;
       ws.binaryType = 'arraybuffer';
+      let opened = false;
       let audioReceived = false;
 
       ws.onopen = () => {
+        opened = true;
         ws.send(buildSpeechConfigMessage());
         ws.send(buildSsmlMessage(requestIdHex, voiceName, text, speedPercent));
       };
@@ -183,17 +205,15 @@ export class EdgeTtsConnection {
       };
 
       ws.onclose = () => {
-        this.ws = null;
-        if (shouldManageDnr && this.dnrSet) {
-          this.clearExtensionDNR();
-        }
-        if (shouldManageElectronHeaders && this.electronHeadersSet) {
-          this.clearElectronHeaders();
-        }
+        if (this.ws === ws) this.ws = null;
         settle(() => {
           if (myRequestId !== this.currentRequestId) {
             // A newer request superseded us — stay silent.
-            resolve();
+            resolve('finished');
+            return;
+          }
+          if (!opened) {
+            resolve('refused');
             return;
           }
           if (!audioReceived) {
@@ -203,21 +223,19 @@ export class EdgeTtsConnection {
             return;
           }
           this.onDone?.();
-          resolve();
+          resolve('finished');
         });
       };
 
       ws.onerror = () => {
-        this.ws = null;
-        if (shouldManageDnr && this.dnrSet) {
-          this.clearExtensionDNR();
-        }
-        if (shouldManageElectronHeaders && this.electronHeadersSet) {
-          this.clearElectronHeaders();
-        }
+        if (this.ws === ws) this.ws = null;
         settle(() => {
           if (myRequestId !== this.currentRequestId) {
-            resolve();
+            resolve('finished');
+            return;
+          }
+          if (!opened) {
+            resolve('refused');
             return;
           }
           const err = 'WebSocket connection to Edge TTS failed';
@@ -230,22 +248,28 @@ export class EdgeTtsConnection {
 
   // ── Electron header injection ───────────────────────────────────────
 
+  // One rule per host a run may try: each is one-shot, consumed by its upgrade,
+  // and the rest are cleared when the run ends.
   private async setElectronHeaders(): Promise<void> {
-    const result = await window.electron.invoke('ws-headers-set', {
-      host: EDGE_TTS_WS_HOST,
-      headers: {
-        'User-Agent': `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${EDGE_TTS_CHROMIUM_MAJOR}.0.0.0 Safari/537.36 Edg/${EDGE_TTS_CHROMIUM_MAJOR}.0.0.0`,
-      },
-    });
-    if (!result?.success) {
-      throw new Error(`Failed to set WS headers: ${result?.error}`);
-    }
     this.electronHeadersSet = true;
+    for (const { host } of SYNTHESIS_ENDPOINTS) {
+      const result = await window.electron.invoke('ws-headers-set', {
+        host,
+        headers: {
+          'User-Agent': `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${EDGE_TTS_CHROMIUM_MAJOR}.0.0.0 Safari/537.36 Edg/${EDGE_TTS_CHROMIUM_MAJOR}.0.0.0`,
+        },
+      });
+      if (!result?.success) {
+        throw new Error(`Failed to set WS headers: ${result?.error}`);
+      }
+    }
   }
 
   private clearElectronHeaders(): void {
     this.electronHeadersSet = false;
-    window.electron.invoke('ws-headers-clear', { host: EDGE_TTS_WS_HOST }).catch(() => {});
+    for (const { host } of SYNTHESIS_ENDPOINTS) {
+      window.electron.invoke('ws-headers-clear', { host }).catch(() => {});
+    }
   }
 
   // ── Extension DNR ───────────────────────────────────────────────────
