@@ -123,7 +123,9 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
     const profileName = this.performanceMode.toUpperCase().replace(' ', '_') as keyof typeof AUDIO_CONSTRAINT_PROFILES;
     const profile = AUDIO_CONSTRAINT_PROFILES[profileName] || AUDIO_CONSTRAINT_PROFILES.HIGH_QUALITY;
 
-    return { ...baseConstraints, ...profile };
+    // lib.dom (TS 5.9) still types echoCancellation as a boolean constraint;
+    // the profiles use the 'all' mode of Media Capture and Streams (Chrome 141).
+    return { ...baseConstraints, ...profile } as unknown as MediaTrackConstraints;
   }
 
   /**
