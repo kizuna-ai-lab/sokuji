@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import VoiceLibrarySection, { type VoiceEntry } from './VoiceLibrarySection';
 import { getManifestEntry } from '../../../lib/local-inference/modelManifest';
+import type { DirectionVoice } from '../../../providers/localInference/settings';
 
 export type EdgeVoiceStatus = 'idle' | 'loading' | 'loaded' | 'error';
 
@@ -11,7 +12,8 @@ export interface LocalInferenceVoiceSectionProps {
   // edge-tts
   edgeVoices: { ShortName: string; label: string }[];
   edgeVoiceStatus: EdgeVoiceStatus;
-  edgeTtsVoice: string;
+  /** This direction's Edge voice ShortName, '' while none is set. */
+  edgeVoice: string;
   // supertonic
   supertonicVoices: VoiceEntry[];
   supertonicSelectedId: string;
@@ -19,10 +21,11 @@ export interface LocalInferenceVoiceSectionProps {
   onRenameVoice: (sid: number, name: string) => Promise<void>;
   onDeleteVoice: (sid: number) => Promise<void>;
   // other engines
-  ttsSpeakerId: number;
+  /** This direction's speaker id, the model default when none is set. */
+  speakerId: number;
   numSpeakers: number;
-  // settings writes
-  onUpdate: (patch: { edgeTtsVoice?: string; ttsSpeakerId?: number }) => void;
+  /** Writes this direction's voice (#619). */
+  onUpdate: (patch: DirectionVoice) => void;
 }
 
 /** sid is encoded as the suffix after the ':' in a VoiceEntry id ('preset:7' → 7). */
@@ -35,15 +38,15 @@ const sidFromVoiceId = (id: string): number => Number(id.slice(id.indexOf(':') +
  */
 const LocalInferenceVoiceSection: React.FC<LocalInferenceVoiceSectionProps> = ({
   ttsModel, isSessionActive = false,
-  edgeVoices, edgeVoiceStatus, edgeTtsVoice,
+  edgeVoices, edgeVoiceStatus, edgeVoice,
   supertonicVoices, supertonicSelectedId, onImportVoice, onRenameVoice, onDeleteVoice,
-  ttsSpeakerId, numSpeakers, onUpdate,
+  speakerId, numSpeakers, onUpdate,
 }) => {
   const { t } = useTranslation();
   const engine = getManifestEntry(ttsModel)?.engine;
 
   const onSupertonicSelect = useCallback(
-    (id: string) => onUpdate({ ttsSpeakerId: sidFromVoiceId(id) }),
+    (id: string) => onUpdate({ speaker: sidFromVoiceId(id) }),
     [onUpdate],
   );
 
@@ -63,8 +66,8 @@ const LocalInferenceVoiceSection: React.FC<LocalInferenceVoiceSectionProps> = ({
         </div>
         <select
           className="select-dropdown"
-          value={edgeTtsVoice}
-          onChange={(e) => onUpdate({ edgeTtsVoice: e.target.value })}
+          value={edgeVoice}
+          onChange={(e) => onUpdate({ edge: e.target.value })}
           disabled={isSessionActive || edgeVoices.length === 0}
         >
           {placeholder && <option value="">{placeholder}</option>}
@@ -98,15 +101,15 @@ const LocalInferenceVoiceSection: React.FC<LocalInferenceVoiceSectionProps> = ({
     <div className="setting-item">
       <div className="setting-label">
         <span>{t('settings.ttsSpeakerId', 'Speaker ID')}</span>
-        <span className="setting-value">{ttsSpeakerId}</span>
+        <span className="setting-value">{speakerId}</span>
       </div>
       <input
         type="range"
         min="0"
         max={numSpeakers - 1}
         step="1"
-        value={Math.min(ttsSpeakerId, numSpeakers - 1)}
-        onChange={(e) => onUpdate({ ttsSpeakerId: parseInt(e.target.value) })}
+        value={Math.min(speakerId, numSpeakers - 1)}
+        onChange={(e) => onUpdate({ speaker: parseInt(e.target.value) })}
         className="slider"
         disabled={isSessionActive}
       />

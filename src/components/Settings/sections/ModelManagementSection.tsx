@@ -26,7 +26,8 @@ import {
   type ModelType,
 } from '../../../lib/local-inference/modelManifest';
 import { directionKey, emptyDirection, splitDirection, type Stage } from '../../../lib/local-inference/selection/types';
-import type { LocalInferenceSettings } from '../../../providers/localInference/settings';
+import type { LocalInferenceSettings, DirectionVoice } from '../../../providers/localInference/settings';
+import { directionVoice, speakerIdFor, withDirectionVoice } from '../../../providers/localInference/voices';
 import type { LanguagePair } from '../../../lib/provider/types';
 import { languageNameFor } from '../engine/languageName';
 import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManagementControls';
@@ -424,6 +425,17 @@ export function ModelManagementSection({
   const selectedTranslation = resolved.translation?.modelId ?? '';
   const selectedTts = resolved.tts?.modelId ?? '';
 
+  // The voice this Library edits is its own direction's (#619): the opening
+  // slot's when pushed, the forward pair's otherwise — the pair everything
+  // above already reads.
+  const voiceDir = directionKey(sourceLanguage, targetLanguage);
+  const voice = directionVoice(settings.voices, voiceDir);
+  const speakerId = speakerIdFor(voice, selectedTts);
+  const writeVoice = useCallback(
+    (patch: DirectionVoice) => updateLocalInference(withDirectionVoice(settings.voices, voiceDir, patch)),
+    [settings.voices, voiceDir, updateLocalInference],
+  );
+
   /**
    * Writes one explicit pick into `selections`; resolve() picks it up on the
    * next render (see `resolved` above). Only the id is persisted — never a
@@ -604,10 +616,10 @@ export function ModelManagementSection({
   );
 
   const supertonicSelectedId = useMemo(() => {
-    const match = supertonicVoices.find((v) => v.sid === settings.ttsSpeakerId);
+    const match = supertonicVoices.find((v) => v.sid === speakerId);
     const source = match?.source === 'imported' ? 'custom' : 'preset';
-    return `${source}:${settings.ttsSpeakerId}`;
-  }, [supertonicVoices, settings.ttsSpeakerId]);
+    return `${source}:${speakerId}`;
+  }, [supertonicVoices, speakerId]);
 
   const handleImportVoice = useCallback(async (file: File) => {
     try {
@@ -650,30 +662,26 @@ export function ModelManagementSection({
     if (dbKey === null) return;
     await voiceStorage.deleteVoice(dbKey);
     const defaultSid = supertonicTtsEntry?.ttsConfig?.defaultSid ?? 0;
-    if (settings.ttsSpeakerId === sid) {
-      updateLocalInference({ ttsSpeakerId: defaultSid });
+    // Every direction that spoke in the deleted voice, not only this one (#619): the other direction may have picked it too.
+    const stored: LocalInferenceSettings['voices'] = settings.voices && typeof settings.voices === 'object' && !Array.isArray(settings.voices) ? settings.voices : {};
+    const users = Object.keys(stored).filter((dir) => directionVoice(stored, dir).speaker === sid);
+    if (users.length > 0) {
+      updateLocalInference({ voices: Object.fromEntries(Object.entries(stored).map(([dir, v]) => [dir, users.includes(dir) ? { ...v, speaker: defaultSid } : v])) });
     }
     await refreshImportedVoices();
     setHasPendingChanges(true);
-  }, [supertonicTtsEntry, settings.ttsSpeakerId, updateLocalInference, refreshImportedVoices]);
+  }, [supertonicTtsEntry, settings.voices, updateLocalInference, refreshImportedVoices]);
 
-  // Auto-select first voice when target language changes or no voice selected.
-  // The stored edgeTtsVoice belongs to the FORWARD pair — SettingsInitializer
-  // (always mounted) keeps it valid for the forward target. A Library pushed
-  // for any other direction must never write it: its filteredVoices are for
-  // the reversed target, so the two writers would ping-pong the field forever,
-  // sync-re-rendering the whole app each round (the 2026-08-23 freeze).
-  const ownsVoiceSettings = !direction
-    || direction === directionKey(forwardSource, forwardTarget);
+  // An Edge voice belongs to a language: keep this direction's valid for its
+  // own target. SettingsInitializer keeps every speaking direction valid the
+  // same way, with the same first voice, so the two writers of one entry
+  // always agree (the 2026-08-23 freeze needed two targets for ONE field).
+  const edgeVoice = voice.edge;
   useEffect(() => {
-    if (!ownsVoiceSettings) return;
     if (!isEdgeTtsSelected || filteredVoices.length === 0) return;
-    const currentVoice = settings.edgeTtsVoice;
-    const isCurrentValid = filteredVoices.some(v => v.ShortName === currentVoice);
-    if (!isCurrentValid) {
-      updateLocalInference({ edgeTtsVoice: filteredVoices[0].ShortName });
-    }
-  }, [ownsVoiceSettings, isEdgeTtsSelected, filteredVoices, settings.edgeTtsVoice, updateLocalInference]);
+    if (filteredVoices.some((v) => v.ShortName === edgeVoice)) return;
+    writeVoice({ edge: filteredVoices[0].ShortName });
+  }, [isEdgeTtsSelected, filteredVoices, edgeVoice, writeVoice]);
 
   // A failed initialize() (e.g. IndexedDB VersionError when another build
   // upgraded the shared DB in this profile) must surface an actionable error
@@ -898,27 +906,24 @@ export function ModelManagementSection({
 
   // Voice control embedded in the selected TTS card only. The card's
   // `isSelected && children` gate is the real guard; the id check just
-  // avoids building the body for non-selected cards. The section edits
-  // forward-shared fields (edgeTtsVoice, ttsSpeakerId), so a non-forward
-  // Library render offers no voice editing at all — today's engine page
-  // exposes no reverse TTS slot, but that must stay structural, not
-  // incidental (CodeRabbit R3, follows the 2026-08-23 freeze fix).
-  const renderTtsCardBody = (entry: ModelManifestEntry) => entry.id === selectedTts && ownsVoiceSettings ? (
+  // avoids building the body for non-selected cards. It edits this
+  // Library's own direction's voice (#619).
+  const renderTtsCardBody = (entry: ModelManifestEntry) => entry.id === selectedTts ? (
     <>
       <LocalInferenceVoiceSection
         ttsModel={entry.id}
         isSessionActive={isSessionActive}
         edgeVoices={edgeVoices}
         edgeVoiceStatus={edgeTtsVoiceStatus}
-        edgeTtsVoice={settings.edgeTtsVoice}
+        edgeVoice={voice.edge ?? ''}
         supertonicVoices={supertonicVoiceEntries}
         supertonicSelectedId={supertonicSelectedId}
         onImportVoice={handleImportVoice}
         onRenameVoice={handleRenameVoice}
         onDeleteVoice={handleDeleteVoice}
-        ttsSpeakerId={settings.ttsSpeakerId}
+        speakerId={speakerId}
         numSpeakers={supertonicTtsEntry?.numSpeakers ?? getManifestEntry(entry.id)?.numSpeakers ?? 1}
-        onUpdate={(patch) => updateLocalInference(patch)}
+        onUpdate={writeVoice}
       />
       {isSupertonicTts && (
         <>

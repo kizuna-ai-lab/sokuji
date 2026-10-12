@@ -10,7 +10,7 @@ import { LOCAL_INFERENCE_DEFAULTS, type LocalInferenceSettings } from '../../../
 
 const defaultSettings = {
   sourceLanguage: 'en', targetLanguage: 'en',
-  ttsSpeakerId: 0, ttsSpeed: 1, edgeTtsVoice: '',
+  ttsSpeed: 1, voices: {} as LocalInferenceSettings['voices'],
   selections: {} as Selections,
 };
 const mockSettings = { ...defaultSettings };
@@ -104,7 +104,7 @@ vi.mock('../../../stores/modelStore', () => ({
 beforeEach(() => {
   mockUpdate.mockReset();
   mockWebgpuAvailable = true;
-  Object.assign(mockSettings, defaultSettings, { selections: {} });
+  Object.assign(mockSettings, defaultSettings, { selections: {}, voices: {} });
   for (const k of Object.keys(mockStatuses)) delete mockStatuses[k];
   for (const k of Object.keys(mockDownloads)) delete mockDownloads[k];
 });
@@ -193,6 +193,31 @@ describe('ModelManagementSection — embedded voice', () => {
     expect(within(card).queryByText('Voice')).toBeTruthy();
     // The voice control renders only in the selected TTS card, nowhere else.
     expect(screen.getAllByText('Voice')).toHaveLength(1);
+  });
+
+  it("deleting an imported Supertonic voice resets every direction that spoke in it, not only this one (Review Focus 4)", async () => {
+    const storage = await import('../../../lib/local-inference/voiceStorage');
+    vi.mocked(storage.listVoices).mockResolvedValueOnce([{ id: 2, name: 'Mine' } as never]);
+    mockSettings.sourceLanguage = 'en';
+    mockSettings.targetLanguage = 'ja';
+    mockSettings.selections = {
+      [directionKey('en', 'ja')]: { asr: { modelId: '' }, translation: { modelId: '' }, tts: { modelId: 'supertonic-3' } },
+    };
+    // Sid 12 is imported voice #2 (`importedSidFromDbKey`); the reverse direction speaks in it too.
+    mockSettings.voices = { 'en→ja': { speaker: 12 }, 'ja→en': { speaker: 12, edge: 'en-US-AriaNeural' }, 'zh→ja': { speaker: 3 } };
+    mockStatuses['supertonic-3'] = 'downloaded';
+
+    render(<ModelManagementSection isSessionActive={false} {...slice()} stageFilter="tts" direction="en→ja" />);
+    const card = await screen.findByTestId('model-card-supertonic-3');
+    await within(card).findByText('Mine');
+    // VoiceLibrarySection's delete for a custom row: open the picker, press the row's Delete, then confirm in the modal (VoiceLibrarySection.test.tsx).
+    fireEvent.click(within(card).getByRole('button', { expanded: false }));
+    fireEvent.click(within(screen.getByRole('grid')).getByRole('button', { name: /^delete$/i }));
+    fireEvent.click(within(await screen.findByRole('dialog', { name: /delete voice/i })).getByRole('button', { name: /^delete$/i }));
+
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith({
+      voices: { 'en→ja': { speaker: 7 }, 'ja→en': { speaker: 7, edge: 'en-US-AriaNeural' }, 'zh→ja': { speaker: 3 } },
+    }));
   });
 
   it('tells Supertonic users Voice Builder is gone instead of linking to it', async () => {
@@ -382,91 +407,57 @@ describe('ModelManagementSection — ModelStorageFooter only on the standalone r
   });
 });
 
-// Freeze bug (2026-08-23): the Library pushed for a REVERSED direction used
-// to run the Edge-TTS default-voice effect against the slot's (reversed)
-// target while the always-mounted SettingsInitializer ran the same check
-// against the FORWARD target. With disjoint voice lists the two writers
-// ping-pong `edgeTtsVoice` forever — a sync re-render loop that froze the
-// whole app. The voice field belongs to the forward pair only, so a
-// non-forward Library render must never write it.
-describe('ModelManagementSection — edgeTtsVoice ownership (freeze bug)', () => {
-  it('a reversed-direction Library render never writes edgeTtsVoice', async () => {
+// Freeze bug (2026-08-23): two writers of ONE shared voice field — the Library
+// against its slot's target, SettingsInitializer against the forward target —
+// ping-ponged it forever. Since #619 each direction owns its entry, and both
+// writers compute the same first voice for the same target, so they agree.
+describe('ModelManagementSection — voices per direction (#619)', () => {
+  const voiceWrites = () => mockUpdate.mock.calls.filter(([p]) => p && 'voices' in p).map(([p]) => p.voices);
+
+  it("a reversed-direction Library fixes that direction's Edge voice only, against its own target", async () => {
     mockSettings.sourceLanguage = 'en';
     mockSettings.targetLanguage = 'ja';
-    // Valid for the FORWARD target (ja) — invalid for the reversed leg's (en).
-    mockSettings.edgeTtsVoice = 'ja-JP-NanamiNeural';
-
-    render(<ModelManagementSection isSessionActive={false} {...slice()} stageFilter="translation" direction="ja→en" />);
-
-    await waitFor(() => expect(mockGetEdgeTtsVoices).toHaveBeenCalled());
-    // One extra macrotask so the auto-select effect (if it ran) has flushed.
-    await new Promise((r) => setTimeout(r, 0));
-
-    const voiceWrites = mockUpdate.mock.calls.filter(([p]) => p && 'edgeTtsVoice' in p);
-    expect(voiceWrites).toHaveLength(0);
-  });
-
-  it('a reversed-direction TTS Library hides voice editing entirely (CodeRabbit R3)', async () => {
-    // Unreachable via today's engine page (reverse legs expose no TTS slot),
-    // but nothing structural prevented it: the voice section edits
-    // forward-shared fields (edgeTtsVoice, ttsSpeakerId), so a non-forward
-    // render must not offer it at all.
-    mockSettings.sourceLanguage = 'en';
-    mockSettings.targetLanguage = 'ja';
+    mockSettings.voices = { 'en→ja': { edge: 'ja-JP-NanamiNeural' } };
 
     render(<ModelManagementSection isSessionActive={false} {...slice()} stageFilter="tts" direction="ja→en" />);
-    await screen.findByTestId('model-card-edge-tts');
-    expect(screen.queryByText('Voice')).not.toBeInTheDocument();
+
+    await waitFor(() => expect(voiceWrites()).toHaveLength(1));
+    expect(voiceWrites()[0]).toEqual({ 'en→ja': { edge: 'ja-JP-NanamiNeural' }, 'ja→en': { edge: 'en-US-AriaNeural' } });
   });
 
-  it('the forward-direction TTS Library keeps voice editing', async () => {
+  it("a reversed-direction TTS Library edits that direction's voice", async () => {
     mockSettings.sourceLanguage = 'en';
     mockSettings.targetLanguage = 'ja';
+    mockSettings.voices = { 'en→ja': { edge: 'ja-JP-NanamiNeural' }, 'ja→en': { edge: 'en-US-AriaNeural' } };
 
-    render(<ModelManagementSection isSessionActive={false} {...slice()} stageFilter="tts" direction="en→ja" />);
-    await screen.findByTestId('model-card-edge-tts');
-    expect(await screen.findByText('Voice')).toBeInTheDocument();
+    render(<ModelManagementSection isSessionActive={false} {...slice()} stageFilter="tts" direction="ja→en" />);
+    const select = await screen.findByDisplayValue(/Aria/);
+    expect(select).toBeInTheDocument();
+    expect(within(select).queryByText(/Nanami/)).toBeNull();
   });
 
-  it('the forward render still auto-fixes an invalid voice', async () => {
+  it('the forward render fixes an invalid voice once, and not again on a re-render with unchanged inputs', async () => {
     mockSettings.sourceLanguage = 'en';
     mockSettings.targetLanguage = 'ja';
-    mockSettings.edgeTtsVoice = 'en-US-AriaNeural'; // wrong language for target ja
-
-    render(<ModelManagementSection isSessionActive={false} {...slice()} />);
-
-    await waitFor(() => {
-      const voiceWrites = mockUpdate.mock.calls.filter(([p]) => p && 'edgeTtsVoice' in p);
-      expect(voiceWrites.length).toBeGreaterThan(0);
-      expect(voiceWrites[0][0].edgeTtsVoice).toBe('ja-JP-NanamiNeural');
-    });
-  });
-
-  // `updateLocalInference` (a `useCallback` over the `update` prop) must keep
-  // one identity across renders while `update` does
-  // — an inline arrow literal would be a fresh function every render, which
-  // this effect's own dependency array would see as "a dep changed", re-
-  // running (and re-writing) on every unrelated re-render. `mockSettings`
-  // never actually gets mutated by the mocked `mockUpdate`, so the voice
-  // stays "invalid" across a re-render — the write must not repeat anyway.
-  it('does not write the auto-selected voice again on a re-render with unchanged inputs', async () => {
-    mockSettings.sourceLanguage = 'en';
-    mockSettings.targetLanguage = 'ja';
-    mockSettings.edgeTtsVoice = 'en-US-AriaNeural'; // wrong language for target ja
+    mockSettings.voices = { 'en→ja': { edge: 'en-US-AriaNeural' } }; // wrong language for target ja
 
     const { rerender } = render(<ModelManagementSection isSessionActive={false} {...slice()} />);
+    await waitFor(() => expect(voiceWrites()).toHaveLength(1));
+    expect(voiceWrites()[0]).toEqual({ 'en→ja': { edge: 'ja-JP-NanamiNeural' } });
 
-    await waitFor(() => {
-      const voiceWrites = mockUpdate.mock.calls.filter(([p]) => p && 'edgeTtsVoice' in p);
-      expect(voiceWrites).toHaveLength(1);
-    });
-
-    // A re-render with unchanged props/inputs (e.g. a parent re-rendering
-    // for an unrelated reason) must not re-trigger the effect.
     rerender(<ModelManagementSection isSessionActive={false} {...slice()} />);
     await new Promise((r) => setTimeout(r, 0));
+    expect(voiceWrites()).toHaveLength(1);
+  });
 
-    const voiceWrites = mockUpdate.mock.calls.filter(([p]) => p && 'edgeTtsVoice' in p);
-    expect(voiceWrites).toHaveLength(1); // still just the one write, not two
+  it('writes nothing when the direction already has a voice of its target', async () => {
+    mockSettings.sourceLanguage = 'en';
+    mockSettings.targetLanguage = 'ja';
+    mockSettings.voices = { 'en→ja': { edge: 'ja-JP-NanamiNeural' } };
+
+    render(<ModelManagementSection isSessionActive={false} {...slice()} />);
+    await waitFor(() => expect(mockGetEdgeTtsVoices).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 0));
+    expect(voiceWrites()).toEqual([]);
   });
 });
