@@ -45,7 +45,7 @@ describe("Qwen LiveTranslate's segments (spec §6)", () => {
     mine.s.answer('t1', 'h1');
     mine.s.text('h1', 'source', 'a');
     mine.s.text('t1', 'translation', 'b');
-    expect(mine.log.some((e) => 'person' in e.payload)).toBe(false);
+    expect(JSON.stringify(mine.log)).not.toContain('person');
 
     const theirs = segments(true);
     theirs.s.heard('h1', 2);
