@@ -1360,6 +1360,9 @@
     "mic_lost_using_other": "Mikrofon “{{lost}}” terputus, jadi “{{device}}” digunakan sebagai ganti.",
     "mic_lost_waiting": "Mikrofon terputus. Terjemahan pertuturan anda akan bersambung apabila mikrofon disambungkan.",
     "mic_now_using": "Kini menggunakan mikrofon “{{device}}”.",
+    "mic_in_use": "Mikrofon “{{device}}” sedang digunakan oleh {{apps}}. Tutup {{apps}} dan mula semula, atau pilih mikrofon lain.",
+    "mic_unreadable": "Windows tidak dapat membuka mikrofon “{{device}}”. Mungkin apl lain sedang menggunakannya, atau pemacunya berhenti bertindak balas. Tutup apl yang menggunakannya atau sambungkan semula, kemudian mula semula.",
+    "mic_blocked": "Windows tidak membenarkan Sokuji menggunakan mikrofon. Hidupkan akses mikrofon untuk apl desktop dalam Tetapan › Privasi & keselamatan › Mikrofon, kemudian mula semula.",
     "speaker_tts_missing": "Terjemahan yang didengar pihak lain hanya dalam bentuk teks: tiada model suara yang bertutur dalam {{target}}.",
     "participant_tts_missing": "Terjemahan yang saya dengar hanya dalam bentuk teks: tiada model suara yang bertutur dalam {{target}}.",
     "participant_tts_over_budget": "Terjemahan yang saya dengar hanya dalam bentuk teks: memori tidak mencukupi untuk memuatkan model suara pihak lain juga."

@@ -49,6 +49,10 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   mic_lost_using_other: 'The microphone “{{lost}}” went away, so “{{device}}” is being used instead.',
   mic_lost_waiting: 'The microphone went away. Translation of your speech resumes when a microphone is connected.',
   mic_now_using: 'Now using the microphone “{{device}}”.',
+  // A Windows microphone that would not open at Start (spec 2026-10-13 §3).
+  mic_in_use: 'The microphone “{{device}}” is in use by {{apps}}. Close {{apps}} and start again, or choose another microphone.',
+  mic_unreadable: 'Windows could not open the microphone “{{device}}”. Another app may be holding it, or its driver stopped responding. Close apps that use it or reconnect it, then start again.',
+  mic_blocked: 'Windows is not letting Sokuji use the microphone. Turn on microphone access for desktop apps in Settings › Privacy & security › Microphone, then start again.',
   no_microphone: 'Configure devices for this mode to start.',
   // Readiness (a provider's check).
   local_models_missing: 'Please download the required models in Settings to start.',

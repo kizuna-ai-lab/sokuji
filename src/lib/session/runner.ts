@@ -229,13 +229,15 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
       // `main`, through `buildApiErrorProps`): its words, redacted, the leg that
       // failed (the first when none is named), and its code when it has one —
       // the lease's 401/402/403/409/502/503/timeout codes among them. A refusal
-      // before anything opened (`RefusedError`) is not a failure: nothing.
+      // before anything opened (`RefusedError`) is not a failure: nothing. A
+      // source that would not open is the device's failure, not the server's
+      // (spec 2026-10-13 §4).
       const code = adapterError?.code;
       deps.analytics.track('api_error', {
         provider: shape.provider.id,
         error_message: redact(message),
         ...(code ? { error_code: code } : {}),
-        error_type: apiErrorType(code),
+        error_type: error instanceof LegOpenError && error.stage === 'source' ? 'device' : apiErrorType(code),
         channel: leg ?? shape.legs[0],
       });
       await end(run, {

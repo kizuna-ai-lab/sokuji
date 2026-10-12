@@ -44,9 +44,9 @@ export class RefusedError extends Error {
   }
 }
 
-/** Opening one leg threw: its source, or its adapter. */
+/** Opening one leg threw: its source, or its adapter (`stage`: a source's failure is the device's, spec 2026-10-13 §4). */
 export class LegOpenError extends Error {
-  constructor(readonly leg: LegName, readonly failure: unknown) {
+  constructor(readonly leg: LegName, readonly failure: unknown, readonly stage: 'source' | 'adapter') {
     super(describeCause(failure));
   }
 }
@@ -293,8 +293,8 @@ export class Run {
         sessions = await p.session!.startBoth!(requests, events);
       } catch (error) {
         // A provider that knows which leg failed says so; otherwise the start is the first leg's.
-        if (error instanceof LegStartError) throw new LegOpenError(error.leg, error.cause);
-        throw new LegOpenError(shape.legs[0], error);
+        if (error instanceof LegStartError) throw new LegOpenError(error.leg, error.cause, 'adapter');
+        throw new LegOpenError(shape.legs[0], error, 'adapter');
       }
       for (const leg of shape.legs) this.stack.defer(`${leg} session`, () => sessions[leg].stop());
       this.throwIfAborted();
@@ -439,14 +439,16 @@ export class Run {
         return await this.openSource(leg);
       } catch (error) {
         if (this.signal.aborted) throw error;
-        throw new LegOpenError(leg, error);
+        throw new LegOpenError(leg, error, 'source');
       }
     })())));
   }
 
   private async openLeg(leg: LegName, request: StartRequest<unknown, unknown>, opened?: Source): Promise<void> {
+    let stage: LegOpenError['stage'] = 'source';
     try {
       const source = opened ?? await this.openSource(leg);
+      stage = 'adapter';
       this.setLegState(leg, 'opening');
       const session = await this.shape.provider.start(request, this.eventsFor(leg));
       this.stack.defer(`${leg} session`, () => session.stop());
@@ -454,7 +456,7 @@ export class Run {
       this.connect(leg, source, session);
     } catch (error) {
       if (this.signal.aborted) throw error;
-      throw new LegOpenError(leg, error);
+      throw new LegOpenError(leg, error, stage);
     }
   }
 

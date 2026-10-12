@@ -4,6 +4,7 @@ import i18next from 'i18next';
 import en from '../../locales/en/translation.json';
 import { APP_CAPTURE_LOST, APP_MONITOR_MISSING, LOOPBACK_DENIED, SILENT_NO_PERMISSION } from '../audio/capture/systemAudio';
 import { MIC_LOST_USING_OTHER, MIC_LOST_WAITING, MIC_NOW_USING } from '../audio/capture/mic';
+import { MIC_BLOCKED, MIC_IN_USE, MIC_UNREADABLE } from '../audio/capture/micFailure';
 import { CLIENT_DIAGNOSTICS } from '../diagnostics/clientDiagnostics';
 import { RUN_NOTICE_CODES } from '../session/codes';
 import { NO_MICROPHONE } from '../session/shape';
@@ -55,6 +56,14 @@ describe('noticeText', () => {
     expect(noticeText(plainT, { code: 'mic_now_using', message: 'x', params: { device: 'AirPods' } })).toBe('Now using the microphone “AirPods”.');
   });
 
+  it('names the microphone that would not open on Windows, and who is using it (spec 2026-10-13 §3)', () => {
+    expect(noticeText(plainT, { code: MIC_IN_USE, message: 'x', params: { device: 'Microphone (AU05)', apps: 'Zoom Meetings' } }))
+      .toBe('The microphone “Microphone (AU05)” is in use by Zoom Meetings. Close Zoom Meetings and start again, or choose another microphone.');
+    expect(noticeText(plainT, { code: MIC_UNREADABLE, message: 'x', params: { device: 'Microphone (AU05)' } }))
+      .toMatch(/^Windows could not open the microphone “Microphone \(AU05\)”\./);
+    expect(noticeText(plainT, { code: MIC_BLOCKED, message: 'x' })).toMatch(/^Windows is not letting Sokuji use the microphone\./);
+  });
+
   it('puts the five API error types into words', () => {
     for (const code of ['auth', 'rate_limit', 'network', 'server', 'client']) {
       expect(NOTICE_WORDS[code]).toBeDefined();
@@ -63,7 +72,7 @@ describe('noticeText', () => {
   });
 
   it('has words for every code the runner, the capture and the adapters record', () => {
-    for (const code of [...RUN_NOTICE_CODES, ...Object.keys(CLIENT_DIAGNOSTICS), APP_CAPTURE_LOST, APP_MONITOR_MISSING, SILENT_NO_PERMISSION, LOOPBACK_DENIED, MIC_LOST_USING_OTHER, MIC_LOST_WAITING, MIC_NOW_USING, NO_MICROPHONE]) {
+    for (const code of [...RUN_NOTICE_CODES, ...Object.keys(CLIENT_DIAGNOSTICS), APP_CAPTURE_LOST, APP_MONITOR_MISSING, SILENT_NO_PERMISSION, LOOPBACK_DENIED, MIC_LOST_USING_OTHER, MIC_LOST_WAITING, MIC_NOW_USING, MIC_IN_USE, MIC_UNREADABLE, MIC_BLOCKED, NO_MICROPHONE]) {
       // An adapter's code may be worded by an alias instead (never both: see below).
       expect(NOTICE_WORDS[code] ?? NOTICE_ALIASES[code], code).toBeDefined();
     }

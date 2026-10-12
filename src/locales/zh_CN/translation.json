@@ -1360,6 +1360,9 @@
     "mic_lost_using_other": "麦克风「{{lost}}」已断开，现在改用「{{device}}」。",
     "mic_lost_waiting": "麦克风已断开。接上麦克风后会自动继续翻译你说的话。",
     "mic_now_using": "现在使用麦克风「{{device}}」。",
+    "mic_in_use": "麦克风「{{device}}」正被 {{apps}} 占用。请关闭 {{apps}} 后重新开始，或选择其他麦克风。",
+    "mic_unreadable": "Windows 无法打开麦克风「{{device}}」。可能有其他应用占用了它，或者它的驱动没有响应。请关闭正在使用它的应用或重新连接麦克风，然后重新开始。",
+    "mic_blocked": "Windows 不允许 Sokuji 使用麦克风。请在 设置 › 隐私和安全性 › 麦克风 中打开桌面应用的麦克风访问权限，然后重新开始。",
     "speaker_tts_missing": "对方听到的翻译只显示文字：没有能说{{target}}的语音模型。",
     "participant_tts_missing": "我听到的翻译只显示文字：没有能说{{target}}的语音模型。",
     "participant_tts_over_budget": "我听到的翻译只显示文字：内存不够同时加载对方的语音模型。"

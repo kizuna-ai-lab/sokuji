@@ -1360,6 +1360,9 @@
     "mic_lost_using_other": "Nadiskonekta ang mikroponong “{{lost}}”, kaya “{{device}}” na ang ginagamit.",
     "mic_lost_waiting": "Nadiskonekta ang mikropono. Magpapatuloy ang pagsasalin ng iyong pananalita kapag may nakakonektang mikropono.",
     "mic_now_using": "Ginagamit na ngayon ang mikroponong “{{device}}”.",
+    "mic_in_use": "Ginagamit ng {{apps}} ang mikroponong “{{device}}”. Isara ang {{apps}} at magsimula ulit, o pumili ng ibang mikropono.",
+    "mic_unreadable": "Hindi mabuksan ng Windows ang mikroponong “{{device}}”. Maaaring ginagamit ito ng ibang app, o hindi na tumutugon ang driver nito. Isara ang mga app na gumagamit nito o ikonekta itong muli, pagkatapos ay magsimula ulit.",
+    "mic_blocked": "Hindi pinapayagan ng Windows ang Sokuji na gamitin ang mikropono. I-on ang access sa mikropono para sa mga desktop app sa Settings › Privacy & security › Microphone, pagkatapos ay magsimula ulit.",
     "speaker_tts_missing": "Teksto lang ang salin na naririnig ng kabilang panig: walang modelo ng pananalita na nagsasalita ng {{target}}.",
     "participant_tts_missing": "Teksto lang ang salin na naririnig ko: walang modelo ng pananalita na nagsasalita ng {{target}}.",
     "participant_tts_over_budget": "Teksto lang ang salin na naririnig ko: kulang ang memory para i-load din ang modelo ng pananalita ng kabilang panig."

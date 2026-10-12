@@ -1360,6 +1360,9 @@
     "mic_lost_using_other": "Das Mikrofon „{{lost}}“ wurde getrennt, daher wird stattdessen „{{device}}“ verwendet.",
     "mic_lost_waiting": "Das Mikrofon wurde getrennt. Die Übersetzung Ihrer Sprache wird fortgesetzt, sobald ein Mikrofon verbunden ist.",
     "mic_now_using": "Jetzt wird das Mikrofon „{{device}}“ verwendet.",
+    "mic_in_use": "Das Mikrofon „{{device}}“ wird von {{apps}} verwendet. Schließen Sie {{apps}} und starten Sie erneut, oder wählen Sie ein anderes Mikrofon.",
+    "mic_unreadable": "Windows konnte das Mikrofon „{{device}}“ nicht öffnen. Möglicherweise belegt es eine andere App, oder sein Treiber reagiert nicht mehr. Schließen Sie Apps, die es verwenden, oder schließen Sie es neu an, und starten Sie dann erneut.",
+    "mic_blocked": "Windows erlaubt Sokuji nicht, das Mikrofon zu verwenden. Aktivieren Sie den Mikrofonzugriff für Desktop-Apps unter Einstellungen › Datenschutz und Sicherheit › Mikrofon, und starten Sie dann erneut.",
     "speaker_tts_missing": "Übersetzung, die das Gegenüber hört, erscheint nur als Text: Kein Sprachausgabemodell spricht {{target}}.",
     "participant_tts_missing": "Übersetzung, die ich höre, erscheint nur als Text: Kein Sprachausgabemodell spricht {{target}}.",
     "participant_tts_over_budget": "Übersetzung, die ich höre, erscheint nur als Text: Nicht genug Speicher, um auch das Sprachausgabemodell der Gegenseite zu laden."

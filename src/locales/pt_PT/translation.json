@@ -1360,6 +1360,9 @@
     "mic_lost_using_other": "O microfone “{{lost}}” foi desligado, pelo que está agora a ser utilizado “{{device}}”.",
     "mic_lost_waiting": "O microfone foi desligado. A tradução da sua fala será retomada quando for ligado um microfone.",
     "mic_now_using": "A utilizar agora o microfone “{{device}}”.",
+    "mic_in_use": "O microfone “{{device}}” está a ser utilizado por {{apps}}. Feche {{apps}} e inicie novamente, ou escolha outro microfone.",
+    "mic_unreadable": "O Windows não conseguiu abrir o microfone “{{device}}”. Outra aplicação pode estar a utilizá-lo, ou o respetivo controlador deixou de responder. Feche as aplicações que o utilizam ou volte a ligá-lo e inicie novamente.",
+    "mic_blocked": "O Windows não está a permitir que o Sokuji utilize o microfone. Ative o acesso ao microfone para aplicações de ambiente de trabalho em Definições › Privacidade e segurança › Microfone e inicie novamente.",
     "speaker_tts_missing": "A tradução que o outro lado ouve é apresentada apenas como texto: nenhum modelo de voz fala {{target}}.",
     "participant_tts_missing": "A tradução que eu ouço é apresentada apenas como texto: nenhum modelo de voz fala {{target}}.",
     "participant_tts_over_budget": "A tradução que eu ouço é apresentada apenas como texto: não há memória suficiente para carregar também o modelo de voz do outro lado."

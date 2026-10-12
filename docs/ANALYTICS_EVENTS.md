@@ -240,7 +240,7 @@ This document provides a comprehensive overview of all analytics events tracked 
 - `status_code` (number, optional): HTTP status code
 - `error_code` (string, optional): Provider or transport error code as sent — `'503'`, `'408'`, `'socket_error'`. A string because the codes that matter are not all numeric
 - `error_message` (string): Error message. Clients that localize their user-facing text send the untranslated original separately, so this field stays comparable across UI languages. Not a guarantee for every event — a client that neither localizes nor supplies an original falls through to whatever it put in the error, so treat cross-language comparability as true for the paths that opt in, not as a property of the event
-- `error_type` ('auth' | 'rate_limit' | 'network' | 'server' | 'client'): Error category
+- `error_type` ('auth' | 'rate_limit' | 'network' | 'server' | 'client' | 'device'): Error category. `'device'` is a session start that failed because a capture source would not open (a microphone, system audio, a tab), not the provider; its `error_code` is the source's notice code when it has one (`mic_in_use`, `mic_unreadable`, `mic_blocked`, `loopback_denied`), and its `error_message` keeps the browser's words (e.g. `NotReadableError: Audio capture device already in use`). Before 2026-10-13 these were sent as `'server'`
 
 ### `audio_error`
 **Description**: Audio-related errors  

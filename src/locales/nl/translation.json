@@ -1360,6 +1360,9 @@
     "mic_lost_using_other": "De microfoon “{{lost}}” is losgekoppeld, dus wordt nu “{{device}}” gebruikt.",
     "mic_lost_waiting": "De microfoon is losgekoppeld. De vertaling van je spraak gaat verder zodra er een microfoon is aangesloten.",
     "mic_now_using": "Nu wordt de microfoon “{{device}}” gebruikt.",
+    "mic_in_use": "De microfoon “{{device}}” wordt gebruikt door {{apps}}. Sluit {{apps}} en start opnieuw, of kies een andere microfoon.",
+    "mic_unreadable": "Windows kon de microfoon “{{device}}” niet openen. Mogelijk gebruikt een andere app hem, of reageert het stuurprogramma niet meer. Sluit apps die hem gebruiken of sluit hem opnieuw aan, en start dan opnieuw.",
+    "mic_blocked": "Windows staat niet toe dat Sokuji de microfoon gebruikt. Zet microfoontoegang voor bureaublad-apps aan via Instellingen › Privacy en beveiliging › Microfoon, en start dan opnieuw.",
     "speaker_tts_missing": "De vertaling die de ander hoort, is alleen tekst: geen spraakmodel spreekt {{target}}.",
     "participant_tts_missing": "De vertaling die ik hoor, is alleen tekst: geen spraakmodel spreekt {{target}}.",
     "participant_tts_over_budget": "De vertaling die ik hoor, is alleen tekst: niet genoeg geheugen om ook het spraakmodel van de ander te laden."

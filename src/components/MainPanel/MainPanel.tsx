@@ -224,6 +224,7 @@ export default function MainPanel() {
       case 'system-settings': openWarning(spec.pane === 'screen-recording' ? 'screen-recording-denied' : 'audio-capture-denied'); return;
       case 'show-in-folder': if (isElectron()) void window.electron.invoke('open-directory', spec.dir); return;
       case 'engine-slot': openTtsSlot(spec.leg); return;
+      case 'windows-settings': if (isElectron()) void window.electron.invoke('open-windows-settings', spec.page); return;
       default: { const _exhaustive: never = spec; return _exhaustive; }
     }
   }, [navigateToSettings, setAccountPopoverRequested, setAuthOverlay, openWarning]);
