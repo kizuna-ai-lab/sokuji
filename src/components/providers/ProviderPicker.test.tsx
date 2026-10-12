@@ -137,12 +137,13 @@ describe('ProviderPicker', () => {
     const seen: EngineSummaryProps<FakeSettings>[] = [];
     const EngineSummary = (props: EngineSummaryProps<FakeSettings>) => { seen.push(props); return <div data-testid="engine-summary" />; };
     const openSlot = vi.fn();
-    useProviderStore.setState({ legs: ['speaker', 'participant'] });
+    useProviderStore.setState({ legs: ['speaker', 'participant'], speech: { textOnly: false, participantSpeech: true } });
     render(<ProviderPicker providers={[{ ...fakeProvider, EngineSummary }]} auth={noAuth} openSlot={openSlot} />);
     await screen.findByTestId('engine-summary');
     const props = seen[seen.length - 1];
     expect(props?.legs).toEqual(['speaker', 'participant']);
     expect(props?.openSlot).toBe(openSlot);
+    expect(props?.participantSpeaks).toBe(true);
     expect(seen[0].models).toEqual([]);
   });
 

@@ -77,14 +77,18 @@ interface ProviderEngineProps {
  */
 export function ProviderEngine({ providers, disabled, initialSlot, onInitialSlotConsumed }: ProviderEngineProps) {
   const legs = useProviderStore((s) => s.legs);
+  const speechParticipant = useProviderStore((s) => s.speech.participantSpeech);
   const selection = useSelectedProvider(providers);
   if (!selection?.entry) return null;
   const Engine = selection.provider.Engine;
   if (!Engine) return null;
+  // As for Settings above: the switch, unless the provider never speaks the participant.
+  const participantSpeaks = selection.provider.participantSpeech !== false && speechParticipant;
   return (
     <Engine
       {...ownProps(selection, selection.entry, disabled)}
       legs={legs}
+      participantSpeaks={participantSpeaks}
       initialSlot={initialSlot}
       onInitialSlotConsumed={onInitialSlotConsumed}
     />

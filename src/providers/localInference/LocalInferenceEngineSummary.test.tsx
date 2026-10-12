@@ -22,6 +22,7 @@ vi.mock('../../stores/modelStore', () => ({
 
 const mockEstimate = vi.fn((_ids: (string | undefined | null)[], _deviceFeatures: string[]) => ({ vramMb: 0, ramMb: 0 }));
 const MANIFEST: Record<string, { name: string; shortName?: string; isCloudModel?: boolean }> = {
+  'local-tts': { name: 'Local Voice' },
   'asr-model': { name: 'Asr Model' },
   'old-asr': { name: 'Old Asr' },
   'cloud-tts': { name: 'Cloud Voice', isCloudModel: true },
@@ -228,5 +229,52 @@ describe('LocalInferenceEngineSummary', () => {
     fireEvent.click(chips[0]);
     expect(openSlot).toHaveBeenCalledWith({ dir: 'ja→en', stage: 'asr' });
     expect(screen.getByTestId('resolution-notes-use-auto')).toBeDisabled();
+  });
+
+  it("adds the other side's TTS chip while that leg speaks, and counts its model unless it is a cloud voice (#619)", () => {
+    mockResolve.mockImplementation((src: string) =>
+      src === 'ja'
+        ? { asr: { modelId: 'asr-model' }, translation: { modelId: 'asr-model' }, tts: { modelId: 'cloud-tts' }, ...noNotes }
+        : { asr: { modelId: 'asr-model' }, translation: { modelId: 'asr-model' }, tts: { modelId: 'local-tts' }, ...noNotes },
+    );
+    const openSlot = vi.fn();
+    const { container, rerender } = render(
+      <LocalInferenceEngineSummary settings={LOCAL_INFERENCE_DEFAULTS} update={vi.fn()} legs={['speaker', 'participant']} openSlot={openSlot} />,
+    );
+    expect(container.querySelectorAll('.model-chip')).toHaveLength(5);
+    expect(mockEstimate).toHaveBeenLastCalledWith(['asr-model', 'asr-model', undefined, 'asr-model', 'asr-model'], []);
+
+    rerender(
+      <LocalInferenceEngineSummary settings={LOCAL_INFERENCE_DEFAULTS} update={vi.fn()} legs={['speaker', 'participant']} openSlot={openSlot} participantSpeaks />,
+    );
+    expect(container.querySelectorAll('.model-chip')).toHaveLength(6);
+    expect(screen.getByText('Local Voice')).toBeInTheDocument();
+    expect(mockEstimate).toHaveBeenLastCalledWith(['asr-model', 'asr-model', undefined, 'asr-model', 'asr-model', 'local-tts'], []);
+    fireEvent.click(screen.getByText('Local Voice'));
+    expect(openSlot).toHaveBeenCalledWith({ dir: 'en→ja', stage: 'tts' });
+  });
+
+  it("shows the other side's TTS as None in the warning colour when nothing speaks my language", () => {
+    mockResolve.mockImplementation((src: string) =>
+      src === 'ja'
+        ? { asr: { modelId: 'asr-model' }, translation: null, tts: null, ...noNotes }
+        : { asr: { modelId: 'asr-model' }, translation: null, tts: null, ...noNotes },
+    );
+    const { container } = render(<LocalInferenceEngineSummary settings={LOCAL_INFERENCE_DEFAULTS} update={vi.fn()} legs={['participant']} openSlot={vi.fn()} participantSpeaks />);
+    const chips = container.querySelectorAll('.model-chip');
+    expect(chips).toHaveLength(3);
+    expect(chips[2].querySelector('.model-chip-value')).toHaveClass('model-warn');
+  });
+
+  it("leaves a note about the other side's TTS out while that leg does not speak", () => {
+    mockResolve.mockImplementation((src: string) =>
+      src === 'ja'
+        ? { asr: { modelId: 'asr-model' }, translation: null, tts: null, ...noNotes }
+        : { asr: null, translation: null, tts: null, notes: [{ direction: 'en→ja', stage: 'tts', from: 'old-asr', to: 'asr-model', reason: 'not-downloaded' }], prunes: [] },
+    );
+    const { rerender } = render(<LocalInferenceEngineSummary settings={LOCAL_INFERENCE_DEFAULTS} update={vi.fn()} legs={['speaker', 'participant']} openSlot={vi.fn()} />);
+    expect(screen.queryByTestId('language-resolution-notes')).not.toBeInTheDocument();
+    rerender(<LocalInferenceEngineSummary settings={LOCAL_INFERENCE_DEFAULTS} update={vi.fn()} legs={['speaker', 'participant']} openSlot={vi.fn()} participantSpeaks />);
+    expect(screen.getByTestId('language-resolution-notes')).toBeInTheDocument();
   });
 });

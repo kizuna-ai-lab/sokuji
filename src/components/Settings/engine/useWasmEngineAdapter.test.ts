@@ -16,10 +16,10 @@ const ZH_KO: LanguagePair = { source: 'zh', target: 'ko' };
 /** The adapter over LocalInference's own settings, held in React state as
  *  `LocalInferenceEngine` holds them: the override every mount passes
  *  (Stage 2 deletion, ruling 3). */
-function useHeldAdapter(pair: LanguagePair = JA_EN) {
+function useHeldAdapter(pair: LanguagePair = JA_EN, participantSpeaks = false) {
   const [settings, setSettings] = useState<LocalInferenceSettings>({ ...LOCAL_INFERENCE_DEFAULTS, selections: {} });
   const update = useCallback((patch: Partial<LocalInferenceSettings>) => setSettings((s) => ({ ...s, ...patch })), []);
-  const override = useMemo(() => ({ settings, update, pair }), [settings, update, pair]);
+  const override = useMemo(() => ({ settings, update, pair, participantSpeaks }), [settings, update, pair, participantSpeaks]);
   return { adapter: useWasmEngineAdapter(false, override), settings };
 }
 
@@ -79,6 +79,12 @@ describe('useWasmEngineAdapter', () => {
     expect(sel.asr.modelId).toBe('');
     await act(() => result.current.adapter.select({ dir: 'en→ja', stage: 'translation' }, ''));
     expect(result.current.settings.selections['en→ja']).toBeUndefined();
+  });
+
+  it("gives the participant direction a TTS slot while that leg speaks (#619)", () => {
+    const { result } = renderHook(() => useHeldAdapter(JA_EN, true));
+    expect(result.current.adapter.stagesFor('en→ja', false)).toEqual(['asr', 'translation', 'tts']);
+    expect(result.current.adapter.stagesFor('ja→en', true)).toEqual(['asr', 'translation', 'tts']);
   });
 
   it('participant direction renders asr+translation only', () => {
