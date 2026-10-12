@@ -29,7 +29,20 @@ export interface AppCapture {
 const audio = () => useAudioStore.getState();
 const onAudioChange = (listener: () => void) => useAudioStore.subscribe(() => listener());
 
+/** Asks the main process which applications are using a microphone (spec 2026-10-13 §1); null when it cannot tell. */
+async function appsUsing(label: string): Promise<string[] | null> {
+  try {
+    const answer = (await window.electron.invoke('list-microphone-users', label)) as { ok?: unknown; users?: unknown } | undefined;
+    if (answer?.ok !== true || !Array.isArray(answer.users)) return null;
+    return answer.users.filter((user): user is string => typeof user === 'string');
+  } catch {
+    return null;
+  }
+}
+
 export function micSettings(): MicSettings {
+  // Windows desktop: the preload's `osInfo` says so (it is absent in the extension and on the web).
+  const windowsDesktop = (window as { electron?: { osInfo?: { platform?: unknown } } }).electron?.osInfo?.platform === 'win32';
   return {
     deviceId: () => audio().selectedInputDevice?.deviceId,
     deviceLabel: () => audio().selectedInputDevice?.label,
@@ -39,6 +52,7 @@ export function micSettings(): MicSettings {
     noiseSuppression: () => audio().noiseSuppressionMode,
     muted: () => audio().isMicMuted,
     subscribe: onAudioChange,
+    ...(windowsDesktop ? { appsUsing } : {}),
   };
 }
 

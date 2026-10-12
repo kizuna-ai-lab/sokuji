@@ -1,6 +1,8 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { MIC_LOST_USING_OTHER, MIC_LOST_WAITING, MIC_NOW_USING, openMic, type MicRecorder, type MicSettings, type NoiseSuppression } from './mic';
 import { MicrophoneCaptureError } from '../../modern-audio/microphoneCaptureError';
+import { SourceOpenError } from '../../session/source';
+import { MIC_IN_USE } from './micFailure';
 
 /** A begin past this many is a runaway reopen loop: it throws, so a broken source cannot spin a test forever. */
 const RUNAWAY_BEGINS = 50;
@@ -535,5 +537,46 @@ describe('openMic — its device going away (#593)', () => {
     const { settings } = settingsFixture({ deviceId: undefined });
     await expect(openMic(settings, live(), () => fake.recorder)).rejects.toThrow(/no microphone/i);
     expect(fake.calls.filter((c) => c.startsWith('begin'))).toEqual([]);
+  });
+});
+
+describe('openMic: a microphone that will not open at Start, on Windows (spec 2026-10-13 §2)', () => {
+  const inUse = () => new MicrophoneCaptureError(Object.assign(new Error('Audio capture device already in use'), { name: 'NotReadableError' }));
+
+  it('names the applications using it, asking only after it has let go of the device', async () => {
+    const fake = fakeRecorder({ throwOn: { 1: inUse() } });
+    const { settings } = settingsFixture();
+    const appsUsing = vi.fn(async (_label: string) => {
+      fake.calls.push('appsUsing');
+      return ['Zoom Meetings'];
+    });
+
+    const opening = openMic({ ...settings, appsUsing }, live(), () => fake.recorder);
+
+    await expect(opening).rejects.toBeInstanceOf(SourceOpenError);
+    await expect(opening).rejects.toMatchObject({ code: MIC_IN_USE, params: { device: 'Built-in Mic', apps: 'Zoom Meetings' } });
+    expect(appsUsing).toHaveBeenCalledWith('Built-in Mic');
+    expect(fake.calls.indexOf('quit')).toBeLessThan(fake.calls.indexOf('appsUsing'));
+  });
+
+  it('fails as before where Windows cannot be asked', async () => {
+    const failure = inUse();
+    const fake = fakeRecorder({ throwOn: { 1: failure } });
+    const { settings } = settingsFixture();
+
+    await expect(openMic(settings, live(), () => fake.recorder)).rejects.toBe(failure);
+  });
+
+  it('does not ask when a later switch fails: that device is marked unusable and the next one opens', async () => {
+    const fake = fakeRecorder({ throwOn: { 2: inUse() } });
+    const fixture = settingsFixture({}, { onUnusable: () => fixture.set({ deviceId: 'mic-3' }) });
+    const appsUsing = vi.fn(async () => ['Zoom Meetings']);
+    await openMic({ ...fixture.settings, appsUsing }, live(), () => fake.recorder);
+
+    fixture.set({ deviceId: 'mic-2' });
+    await settle();
+
+    expect(fixture.unusable).toEqual(['mic-2']);
+    expect(appsUsing).not.toHaveBeenCalled();
   });
 });
