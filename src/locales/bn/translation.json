@@ -298,10 +298,12 @@
     "langSentence": {
       "iSpeak": "আমি বলি",
       "iRead": "আমি পড়ি",
+      "iHear": "আমি শুনি",
       "theyHear": "তারা শোনে",
       "theyRead": "তারা পড়ে",
       "theySpeak": "তারা বলে",
-      "mirror": "তারা {{their}} বলে → আমি {{mine}} পড়ি"
+      "mirror": "তারা {{their}} বলে → আমি {{mine}} পড়ি",
+      "mirrorHear": "তারা {{their}} বলে → আমি {{mine}} শুনি"
     },
     "sonioxSharedSessionFaceToFace": "মুখোমুখিতে সবসময় একটি ভাগ করা সেশন ব্যবহার হয়: দুজনেই একই মাইক্রোফোনে কথা বলেন।",
     "voiceTheyHear": "অপর পক্ষ যে কণ্ঠ শোনে",

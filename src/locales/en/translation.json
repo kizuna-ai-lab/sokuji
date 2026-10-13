@@ -303,10 +303,12 @@
     "langSentence": {
       "iSpeak": "I speak",
       "iRead": "I read",
+      "iHear": "I hear",
       "theyHear": "they hear",
       "theyRead": "they read",
       "theySpeak": "they speak",
-      "mirror": "They speak {{their}} → I read {{mine}}"
+      "mirror": "They speak {{their}} → I read {{mine}}",
+      "mirrorHear": "They speak {{their}} → I hear {{mine}}"
     }
   },
   "simpleSettings": {

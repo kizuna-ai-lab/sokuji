@@ -298,10 +298,12 @@
     "langSentence": {
       "iSpeak": "Puhun",
       "iRead": "Luen",
+      "iHear": "Kuulen",
       "theyHear": "he kuulevat",
       "theyRead": "he lukevat",
       "theySpeak": "he puhuvat",
-      "mirror": "He puhuvat {{their}} → luen {{mine}}"
+      "mirror": "He puhuvat {{their}} → luen {{mine}}",
+      "mirrorHear": "He puhuvat {{their}} → kuulen {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Kasvokkain-tila käyttää aina yhtä jaettua istuntoa: molemmat puhuvat samaan mikrofoniin.",
     "voiceTheyHear": "Ääni, jonka toinen osapuoli kuulee",

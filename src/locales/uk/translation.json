@@ -298,10 +298,12 @@
     "langSentence": {
       "iSpeak": "Я говорю",
       "iRead": "Я читаю",
+      "iHear": "Я чую",
       "theyHear": "вони чують",
       "theyRead": "вони читають",
       "theySpeak": "вони говорять",
-      "mirror": "Вони говорять {{their}} → я читаю {{mine}}"
+      "mirror": "Вони говорять {{their}} → я читаю {{mine}}",
+      "mirrorHear": "Вони говорять {{their}} → я чую {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "У режимі «віч-на-віч» завжди використовується один спільний сеанс: обоє говорять в один мікрофон.",
     "voiceTheyHear": "Голос, який чує співрозмовник",

@@ -298,10 +298,12 @@
     "langSentence": {
       "iSpeak": "Saya bertutur",
       "iRead": "Saya baca",
+      "iHear": "Saya dengar",
       "theyHear": "mereka dengar",
       "theyRead": "mereka baca",
       "theySpeak": "mereka bertutur",
-      "mirror": "Mereka bertutur {{their}} → Saya baca {{mine}}"
+      "mirror": "Mereka bertutur {{their}} → Saya baca {{mine}}",
+      "mirrorHear": "Mereka bertutur {{their}} → Saya dengar {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Bersemuka sentiasa menggunakan satu sesi dikongsi: kedua-dua orang bercakap ke dalam mikrofon yang sama.",
     "voiceTheyHear": "Suara yang didengar pihak lain",

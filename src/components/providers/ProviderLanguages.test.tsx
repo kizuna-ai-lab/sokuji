@@ -5,6 +5,9 @@ import type { LanguageContext } from '../../lib/provider/types';
 
 const { trackEvent } = vi.hoisted(() => ({ trackEvent: vi.fn() }));
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent }) }));
+// What a run froze at Start: null while idle.
+const run = vi.hoisted(() => ({ participantSpeech: null as boolean | null }));
+vi.mock('../../app/useRun', () => ({ useRunParticipantSpeech: () => run.participantSpeech }));
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
   return { ...actual, useTranslation: () => ({ t: (key: string) => key }) };
@@ -13,10 +16,13 @@ vi.mock('react-i18next', async (importOriginal) => {
 import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import { useProviderStore } from '../../stores/providerStore';
+import useAudioStore from '../../stores/audioStore';
+import { useRoutingStore } from '../../stores/routingStore';
 import { ProviderLanguages } from './ProviderLanguages';
 
 beforeEach(() => {
   trackEvent.mockClear();
+  run.participantSpeech = null;
   useProviderStore.setState({
     entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'auto', target: 'en' } } },
     readiness: {},
@@ -87,5 +93,26 @@ describe('ProviderLanguages — the language context (Stage 2 Volcengine AST2, c
     expect(sources()).toEqual(['en', 'ja', 'ko']);
     act(() => { useProviderStore.setState({ legs: ['speaker', 'participant'], speech: { textOnly: true, participantSpeech: true } }); });
     expect(sources()).toEqual(['en', 'ja']);
+  });
+
+  describe('with a sentence', () => {
+    beforeEach(() => {
+      useAudioStore.setState({ mode: 'participant' });
+    });
+
+    it("says I hear while the other side's translation is read to me, and I read when it is not", () => {
+      useRoutingStore.setState({ participantSpeech: true });
+      render(<ProviderLanguages providers={[fakeProvider]} sentence={{ mode: 'participant', textOnly: false }} />);
+      expect(screen.getByText('settings.langSentence.iHear')).toBeTruthy();
+      act(() => useRoutingStore.setState({ participantSpeech: false }));
+      expect(screen.getByText('settings.langSentence.iRead')).toBeTruthy();
+    });
+
+    it('follows what a running session froze at Start over the stores', () => {
+      useRoutingStore.setState({ participantSpeech: true });
+      run.participantSpeech = false;
+      render(<ProviderLanguages providers={[fakeProvider]} sentence={{ mode: 'participant', textOnly: false }} />);
+      expect(screen.getByText('settings.langSentence.iRead')).toBeTruthy();
+    });
   });
 });

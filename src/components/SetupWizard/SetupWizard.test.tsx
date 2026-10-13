@@ -212,14 +212,30 @@ describe('SetupWizard', () => {
     const sourceName = languageLabel(source, 'en');
     const targetName = languageLabel(target, 'en');
     // The reverse leg reads the pair the other way round: they speak what the
-    // forward leg targets, I read what it sources. Asserting the names is what
-    // catches the two being swapped.
-    expect(screen.getByText(`They speak ${targetName} → I read ${sourceName}`)).toBeInTheDocument();
+    // forward leg targets, I hear what it sources (the scenario reads it to me,
+    // and nothing here recaptures it). Asserting the names is what catches the
+    // two being swapped.
+    expect(screen.getByText(`They speak ${targetName} → I hear ${sourceName}`)).toBeInTheDocument();
     next();                                           // finish
-    expect(screen.getByText(`They speak ${targetName} → I read ${sourceName}`)).toBeInTheDocument();
+    expect(screen.getByText(`They speak ${targetName} → I hear ${sourceName}`)).toBeInTheDocument();
     // ...and the summary states the forward leg as a sentence of the same
     // shape, rather than as a label/value row.
     expect(screen.getByText(`I speak ${sourceName} → they hear ${targetName}`)).toBeInTheDocument();
+  });
+
+  it('states the mirrored leg as read when the scenario keeps the other side silent', () => {
+    render(<SetupWizard variant="first-run" />);
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /both sides as text/ }));   // two-way text: Translation I hear off
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
+    next();
+    next();                                           // language pair
+    const sourceName = languageLabel((screen.getByRole('combobox', { name: 'I speak' }) as HTMLSelectElement).value, 'en');
+    const targetName = languageLabel((screen.getByRole('combobox', { name: 'they read' }) as HTMLSelectElement).value, 'en');
+    expect(screen.getByText(`They speak ${targetName} → I read ${sourceName}`)).toBeInTheDocument();
+    next();                                           // finish
+    expect(screen.getByText(`They speak ${targetName} → I read ${sourceName}`)).toBeInTheDocument();
   });
 
   it('leaves the mirrored leg out of a one-way scenario', () => {

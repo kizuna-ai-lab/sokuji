@@ -21,10 +21,8 @@ const moody = {
 };
 vi.mock('../providerPaths', () => ({ wizardProvider: () => moody, textOnlyCapabilityOf: () => 'optional' }));
 // The registry's import graph stays out: the step reads only these two from the app shape.
-const participant = vi.hoisted(() => ({ speech: false }));
 vi.mock('../../../lib/session/appShape', () => ({
   legsFor: (mode: string) => (mode === 'both' ? ['speaker', 'participant'] : [mode]),
-  speechInputsFromStores: () => ({ textOnly: false, participantSpeech: participant.speech }),
   heardFromStores: () => true,
 }));
 
@@ -33,6 +31,7 @@ import StepLanguagePair from './StepLanguagePair';
 import { initialDraft, type SetupDraft } from '../setupDraft';
 import type { ScenarioId } from '../../../lib/setup/types';
 import { Provider } from '../../../types/Provider';
+import { useRoutingStore } from '../../../stores/routingStore';
 
 const draw = (scenario: ScenarioId, pair = { source: 'en', target: 'ja' }, dispatch = vi.fn()) => {
   // Any stored spelling: `wizardProvider` is the stub above.
@@ -43,7 +42,10 @@ const draw = (scenario: ScenarioId, pair = { source: 'en', target: 'ja' }, dispa
   return [...new Set(codes)].sort();
 };
 
-beforeEach(() => { participant.speech = false; });
+// Translation I hear as stored: null is auto.
+const storedSwitch = (participantSpeech: boolean | null) => useRoutingStore.setState({ participantSpeech });
+
+beforeEach(() => { storedSwitch(null); });
 
 describe('StepLanguagePair — the scenario decides whether the run speaks (Stage 2 Volcengine AST2, choice 1)', () => {
   it("offers a speaking scenario the languages it speaks", () => {
@@ -55,28 +57,28 @@ describe('StepLanguagePair — the scenario decides whether the run speaks (Stag
   });
 
   it("voices face-to-face's participant leg whenever the preset speaks, not by the stores' switch", () => {
-    participant.speech = true;
+    storedSwitch(true);
     expect(draw('face-to-face-text')).toEqual(['en', 'ja', 'ko']);
     cleanup();
-    participant.speech = false;
+    storedSwitch(false);
     expect(draw('face-to-face-voice')).toEqual(['en', 'ja']);
   });
 
   it("reads the participant's own speech switch for a scenario that listens to others", () => {
     expect(draw('understand-others')).toEqual(['en', 'ja', 'ko']);
-    participant.speech = true;
+    storedSwitch(true);
     cleanup();
     expect(draw('understand-others')).toEqual(['en', 'ja']);
   });
 
   it("takes the participant's speech from the preset, not the stores' switch: two-way-text offers as silent with the switch on, two-way-voice as speaking with it off; understand-others follows the stores", () => {
-    participant.speech = true;
+    storedSwitch(true);
     expect(draw('two-way-text')).toEqual(['en', 'ja', 'ko']);
     cleanup();
-    participant.speech = false;
+    storedSwitch(false);
     expect(draw('two-way-voice')).toEqual(['en', 'ja']);
     cleanup();
-    participant.speech = true;
+    storedSwitch(true);
     expect(draw('understand-others')).toEqual(['en', 'ja']);
   });
 

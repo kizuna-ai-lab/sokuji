@@ -298,10 +298,12 @@
     "langSentence": {
       "iSpeak": "我說",
       "iRead": "我閱讀",
+      "iHear": "我聽到",
       "theyHear": "對方聽到",
       "theyRead": "對方讀到",
       "theySpeak": "對方說",
-      "mirror": "對方說 {{their}} → 我閱讀 {{mine}}"
+      "mirror": "對方說 {{their}} → 我閱讀 {{mine}}",
+      "mirrorHear": "對方說 {{their}} → 我聽到 {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "面對面對話一律使用同一個共用工作階段：兩個人對著同一支麥克風說話。",
     "voiceTheyHear": "對方聽到的聲音",
