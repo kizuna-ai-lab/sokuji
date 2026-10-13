@@ -144,10 +144,10 @@ const FULL_DUMP = [
   port(142, 300, 'input', 'playback_FR'),
 ];
 
-function fakeExec(calls, { dump = FULL_DUMP, moduleId = '536870913' } = {}) {
+function fakeExec(calls, { dump = FULL_DUMP, moduleId = '536870913', stdout } = {}) {
   return async (cmd) => {
     calls.push(cmd);
-    if (cmd.startsWith('pw-dump')) return { stdout: JSON.stringify(dump) };
+    if (cmd.startsWith('pw-dump')) return { stdout: stdout ?? JSON.stringify(dump) };
     if (cmd.includes('load-module')) return { stdout: `${moduleId}\n` };
     return { stdout: '' };
   };
@@ -588,6 +588,67 @@ describe('listAppSources', () => {
   it('returns an empty array when pw-dump is unavailable', async () => {
     const exec = async () => { throw new Error('ENOENT'); };
     expect(await listAppSources({ exec, windowTitles: noTitles })).toEqual([]);
+  });
+});
+
+// pw-dump prints the graph as one array, and every object it knew of that goes
+// away while it runs as an array of its own, before the graph or after it.
+// Each `pactl` call is a client coming and going, so on a live desktop most runs
+// carry one, and a bare JSON.parse rejected the whole output: "Unexpected
+// non-whitespace character after JSON".
+describe('pw-dump output that also reports removals', () => {
+  const noTitles = async () => new Map();
+  const pwDumpOutput = (...arrays) => arrays.map((a) => `${JSON.stringify(a, null, 2)}\n`).join('');
+  const removedClient = [{ id: 47, info: null }];
+
+  it('lists the sources when a removal follows the graph', async () => {
+    const exec = fakeExec([], { stdout: pwDumpOutput(FULL_DUMP, removedClient) });
+    expect(await listAppSources({ exec, windowTitles: noTitles }))
+      .toEqual([{ deviceId: 'app:pid:4242', label: 'Chromium', appKey: 'chromium' }]);
+  });
+
+  it('lists the sources when a removal precedes the graph', async () => {
+    const exec = fakeExec([], { stdout: pwDumpOutput(removedClient, FULL_DUMP) });
+    expect(await listAppSources({ exec, windowTitles: noTitles }))
+      .toEqual([{ deviceId: 'app:pid:4242', label: 'Chromium', appKey: 'chromium' }]);
+  });
+
+  it('drops a stream removed after the graph was printed', async () => {
+    const exec = fakeExec([], { stdout: pwDumpOutput(FULL_DUMP, [{ id: 205, info: null }]) });
+    expect(await listAppSources({ exec, windowTitles: noTitles })).toEqual([]);
+  });
+
+  it('keeps the object that reuses an id removed before the graph', async () => {
+    // PipeWire hands a freed id to the next object, so the removal printed
+    // first is of an earlier object, not of the stream the graph shows.
+    const exec = fakeExec([], { stdout: pwDumpOutput([{ id: 205, info: null }], FULL_DUMP) });
+    expect((await listAppSources({ exec, windowTitles: noTitles })).map((s) => s.label)).toEqual(['Chromium']);
+  });
+
+  it('reads a removal of an object that has props but no info', async () => {
+    const exec = fakeExec([], { stdout: pwDumpOutput(FULL_DUMP, [{ id: 205, props: null }]) });
+    expect(await listAppSources({ exec, windowTitles: noTitles })).toEqual([]);
+  });
+
+  it('still fails on output that is not pw-dump JSON', async () => {
+    const exec = fakeExec([], { stdout: `${pwDumpOutput(FULL_DUMP)}pw-dump: connection lost\n` });
+    expect(await listAppSources({ exec, windowTitles: noTitles })).toEqual([]);
+  });
+
+  it('reports empty output as a graph it could not read', async () => {
+    const r = await connectAppSource('app:pid:4242', { exec: fakeExec([], { stdout: '' }), delay: noWait });
+    expect(r.success).toBe(false);
+    expect(r.error).toMatch(/failed to read the pipewire graph/i);
+  });
+
+  it('connects an application while the graph reports removals', async () => {
+    const calls = [];
+    const exec = fakeExec(calls, { stdout: pwDumpOutput(removedClient, FULL_DUMP, removedClient) });
+    const r = await connectAppSource('app:pid:4242', { exec, delay: noWait });
+
+    expect(r.success).toBe(true);
+    expect(calls).toContain('pw-link 91 153');
+    expect(calls).toContain('pw-link 55 142');
   });
 });
 
