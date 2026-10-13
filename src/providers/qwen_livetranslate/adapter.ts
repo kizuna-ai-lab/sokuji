@@ -339,6 +339,11 @@ class QwenLeg implements AdapterSession {
       case 'response.audio.delta':
         this.audio(itemId, e.delta);
         return;
+      // The translation's speech is all here: its last phrase takes its karaoke ranges (`QwenSegments.audioDone`).
+      case 'response.audio.done':
+        this.frame('in', e.type, { itemId });
+        if (itemId) this.segments.audioDone(itemId);
+        return;
       case 'response.done': {
         const r = (typeof e.response === 'object' && e.response !== null ? e.response : {}) as { status?: unknown; usage?: unknown };
         // The session's running totals: what the live test reads the bill from.
@@ -361,7 +366,6 @@ class QwenLeg implements AdapterSession {
       case 'response.created':
       case 'response.content_part.added':
       case 'response.content_part.done':
-      case 'response.audio.done':
       case 'response.output_item.done':
       case 'session.finished':
         this.frame('in', e.type);

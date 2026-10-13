@@ -10,6 +10,8 @@ function segments(person = false) {
   return { s, log, seen };
 }
 const pcm = (n = 240) => new Int16Array(n).fill(900);
+/** Every `speechRanges` the segments sent, in order. */
+const ranges = (log: ReturnType<typeof recordEvents>['log']) => log.flatMap((e) => (e.kind === 'speechRanges' ? [e.payload] : []));
 
 describe("Qwen LiveTranslate's segments (spec §6)", () => {
   it('opens each side with its first words, sends the whole text on every delta, and closes on the final text', () => {
@@ -194,6 +196,88 @@ describe("Qwen LiveTranslate's segments (spec §6)", () => {
       ['segmentOpened', { ref: 1, side: 'source', origin: 'h3' }],
       ['segmentText', { ref: 1, text: 'heard' }],
     ]);
+  });
+
+  describe('karaoke: a phrase is the words before its audio (the recorded runs, 2026-10-14)', () => {
+    it("fills a phrase once the next phrase's words come: its text tiled over the audio that followed it, by samples", () => {
+      const { s, log } = segments();
+      s.answer('t1');
+      s.text('t1', 'translation', 'Welcome to ');
+      s.text('t1', 'translation', 'it. ');
+      s.audio('t1', pcm(300));
+      s.audio('t1', pcm(100));
+      expect(ranges(log)).toEqual([]);
+      s.text('t1', 'translation', 'We hope ');
+      expect(ranges(log)).toEqual([{ ref: 1, ranges: [{ index: 0, range: [0, 11] }, { index: 1, range: [11, 14] }] }]);
+    });
+
+    it('fills the last phrase once both its final text and the end of its audio have come, in either order; audio after that plays unranged', () => {
+      const textFirst = segments();
+      textFirst.s.text('t1', 'translation', 'Welcome to it. ');
+      textFirst.s.audio('t1', pcm(300));
+      textFirst.s.text('t1', 'translation', 'We hope ');
+      textFirst.s.audio('t1', pcm(200));
+      textFirst.s.done('t1', 'translation', 'Welcome to it. We hope so.');
+      textFirst.s.audio('t1', pcm(200));
+      expect(ranges(textFirst.log)).toHaveLength(1);
+      textFirst.s.audioDone('t1');
+      expect(ranges(textFirst.log)).toEqual([
+        { ref: 1, ranges: [{ index: 0, range: [0, 14] }] },
+        { ref: 1, ranges: [{ index: 1, range: [14, 20] }, { index: 2, range: [20, 26] }] },
+      ]);
+      textFirst.s.audio('t1', pcm(100));
+      const last = textFirst.log[textFirst.log.length - 1];
+      expect(last.kind === 'audio' && last.payload.range).toBeUndefined();
+      expect(ranges(textFirst.log)).toHaveLength(2);
+
+      const audioFirst = segments();
+      audioFirst.s.text('t1', 'translation', 'Hi there.');
+      audioFirst.s.audio('t1', pcm(100));
+      audioFirst.s.audioDone('t1');
+      expect(ranges(audioFirst.log)).toEqual([]);
+      audioFirst.s.done('t1', 'translation', 'Hi there.');
+      expect(ranges(audioFirst.log)).toEqual([{ ref: 1, ranges: [{ index: 0, range: [0, 9] }] }]);
+    });
+
+    it('audio before any words joins the first phrase', () => {
+      const { s, log } = segments();
+      s.audio('t1', pcm(100));
+      s.text('t1', 'translation', 'Hi.');
+      s.audio('t1', pcm(100));
+      s.done('t1', 'translation', 'Hi.');
+      s.audioDone('t1');
+      expect(ranges(log)).toEqual([{ ref: 1, ranges: [{ index: 0, range: [0, 2] }, { index: 1, range: [2, 3] }] }]);
+    });
+
+    it('a final text shorter than its deltas restates the ranges past its end within it, and leaves the phrase it no longer reaches unranged', () => {
+      const { s, log } = segments();
+      s.text('t1', 'translation', 'Welcome to it. ');
+      s.audio('t1', pcm(300));
+      s.audio('t1', pcm(100));
+      s.text('t1', 'translation', 'We hope ');
+      s.audio('t1', pcm(100));
+      s.done('t1', 'translation', 'Welcome.');
+      s.audioDone('t1');
+      expect(ranges(log)).toEqual([
+        { ref: 1, ranges: [{ index: 0, range: [0, 11] }, { index: 1, range: [11, 14] }] },
+        { ref: 1, ranges: [{ index: 0, range: [0, 8] }, { index: 1, range: [8, 8] }] },
+      ]);
+    });
+
+    it('states no ranges for a translation with no audio, nor for a cancelled one', () => {
+      const textOnly = segments();
+      textOnly.s.text('t1', 'translation', 'Hi.');
+      textOnly.s.done('t1', 'translation', 'Hi.');
+      textOnly.s.audioDone('t1');
+      expect(ranges(textOnly.log)).toEqual([]);
+
+      const cancelled = segments();
+      cancelled.s.text('t1', 'translation', 'Half');
+      cancelled.s.audio('t1', pcm(100));
+      cancelled.s.cancel();
+      cancelled.s.audioDone('t1');
+      expect(ranges(cancelled.log)).toEqual([]);
+    });
   });
 
   it('ignores an id named for the other side, and anything after stop', () => {

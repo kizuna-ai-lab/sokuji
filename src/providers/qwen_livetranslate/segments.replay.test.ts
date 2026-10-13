@@ -6,6 +6,8 @@
  * on the translation.
  */
 import { describe, it, expect } from 'vitest';
+import type { TextRange } from '../../lib/contract/adapter';
+import { checkConformance } from '../../lib/contract/conformance';
 import type { AdapterEvent } from '../../lib/contract/events';
 import abab from './recordings/abab.json';
 import twoSpeakers from './recordings/two-speakers.json';
@@ -46,10 +48,34 @@ function pairs(log: readonly AdapterEvent[]) {
   });
 }
 
+/** Each translation's karaoke, in order: its text, how many audio entries it has, their ranges by entry, and how many fills stated them. */
+function karaoke(log: readonly AdapterEvent[]) {
+  const out = new Map<number, { text: string; entries: number; ranges: Map<number, TextRange>; fills: number }>();
+  for (const e of log) {
+    if (e.kind === 'segmentOpened' && e.payload.side === 'translation') out.set(e.payload.ref, { text: '', entries: 0, ranges: new Map(), fills: 0 });
+    else if (e.kind === 'segmentText') {
+      const t = out.get(e.payload.ref);
+      if (t) t.text = e.payload.text;
+    } else if (e.kind === 'audio') {
+      const t = e.payload.ref === undefined ? undefined : out.get(e.payload.ref);
+      if (t) t.entries += 1;
+    } else if (e.kind === 'speechRanges') {
+      const t = out.get(e.payload.ref);
+      if (!t) continue;
+      t.fills += 1;
+      for (const { index, range } of e.payload.ranges) t.ranges.set(index, range);
+    }
+  }
+  return [...out.values()];
+}
+
 async function replay(recording: readonly Recorded[]) {
   const h = await qwenSession({ context: PARTICIPANT_CTX });
   for (const frame of frames(recording)) h.socket().receive(frame);
-  return { result: pairs(h.log), audio: h.of('audio').length, failed: h.of('failed'), degraded: h.of('degraded') };
+  return {
+    result: pairs(h.log), audio: h.of('audio').length, failed: h.of('failed'), degraded: h.of('degraded'),
+    karaoke: karaoke(h.log), violations: checkConformance(h.log, PARTICIPANT_CTX),
+  };
 }
 
 describe("Qwen LiveTranslate's recorded timelines (spec §12)", () => {
@@ -80,5 +106,21 @@ describe("Qwen LiveTranslate's recorded timelines (spec §12)", () => {
       ['2', '明日の会議は午後三時に始まります', "Tomorrow's meeting will start at 3:00 p.m."],
     ]);
     expect(result.every((pair) => pair.closed && pair.translationPerson === pair.person)).toBe(true);
+  });
+
+  it.each([
+    ['four speakers in a row', TWO_SPEAKERS, [2, 2, 1, 1]],
+    ['two speakers in turn', ABAB, [2, 1, 1, 1]],
+  ] as const)("karaoke, %s: one fill per phrase, every entry ranged, the ranges tiling the whole translation", async (_name, recording, phrases) => {
+    const { karaoke: all, violations } = await replay(recording);
+    expect(all.map((t) => t.fills)).toEqual(phrases);
+    for (const t of all) {
+      const ranges = Array.from({ length: t.entries }, (_, index) => t.ranges.get(index));
+      expect(ranges.every((r) => r !== undefined)).toBe(true);
+      expect(ranges[0]![0]).toBe(0);
+      for (let k = 1; k < ranges.length; k++) expect(ranges[k]![0]).toBe(ranges[k - 1]![1]);
+      expect(ranges[ranges.length - 1]![1]).toBe(t.text.length);
+    }
+    expect(violations).toEqual([]);
   });
 });

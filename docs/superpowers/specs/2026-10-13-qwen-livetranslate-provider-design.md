@@ -30,7 +30,6 @@ passes.
 - pre-created cloned voices (the Voice Cloning API);
 - the web build;
 - reconnecting after a drop;
-- karaoke ranges on translated audio;
 - detecting uplink backlog (see Known limitations).
 
 ## Evidence (probes, 2026-10-13)
@@ -257,7 +256,7 @@ export interface QwenConfig {
 
 **Audio out.** `response.audio.delta` → `audio({ pcm: base64ToPcm(delta), ref: <translation ref> })` at 24 kHz.
 - Nothing is emitted when `!context.speech`; the update asked for none anyway.
-- No ranges are given.
+- **Karaoke, by phrase (owner's choice A, 2026-10-14).** A translation arrives as phrases: its words, then their speech. In 12 recorded turns, each phrase's share of the text matched its share of the audio within 5%. So a translation delta arriving after audio begins the next phrase. The phrase before is whole: its text (as last sent) is tiled over the audio that followed it, by sample count (`tileSpan`), and stated with `speechRanges`, as Palabra's fill-in. The last phrase is filled once both the final text and `response.audio.done` have come, in either order. Audio after that plays unranged. A final text shorter than its deltas restates the ranges past its end within it. Nothing is lit before its phrase is whole, so in a long turn whose speech streams in real time the first phrase may play unlit. The attribution is by order, measured and not stated by the server.
 
 **Turns.**
 - `beginTurn()` does nothing.
@@ -390,4 +389,4 @@ export interface QwenConfig {
 
 - **Uplink backlog.** On a network whose IPv6 route to the mainland is slow, a mainland key's stream falls behind. A follow-up can watch `WebSocket.bufferedAmount` and raise a degraded notice, or send a lower rate.
 - **Managed Qwen.** It needs Alibaba to provide per-session usage attribution (a ticket is open with QwenCloud support). It is not designed here.
-- **Later, and small:** pre-created cloned voices, face-to-face (Qwen's diarization would serve it), karaoke ranges, and reconnect.
+- **Later, and small:** pre-created cloned voices, face-to-face (Qwen's diarization would serve it), and reconnect.

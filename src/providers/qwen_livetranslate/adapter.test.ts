@@ -268,7 +268,7 @@ describe('the Qwen LiveTranslate adapter: the session (spec §6)', () => {
     expect(h.of('frame').length).toBe(before);
   });
 
-  it('turns one recorded turn into a source and its translation, stating their origin, the speech on the translation; no person on my leg', async () => {
+  it("turns one recorded turn into a source and its translation, stating their origin, the speech on the translation, its range once the speech is done; no person on my leg", async () => {
     const h = await qwenSession();
     for (const frame of turn(1, { source: '你好 ', translation: 'Hello. ' })) h.socket().receive(frame);
     expect(content(h.log)).toEqual([
@@ -279,6 +279,7 @@ describe('the Qwen LiveTranslate adapter: the session (spec §6)', () => {
       ['audio', { ref: 2, samples: 2_400 }],
       ['segmentClosed', { ref: 1 }],
       ['segmentClosed', { ref: 2 }],
+      ['speechRanges', { ref: 2, ranges: [{ index: 0, range: [0, 6] }] }],
     ]);
     expect(h.frames('response.done')).toEqual([{ status: 'completed', usage: { total_tokens: 197, input_tokens: 96, output_tokens: 101 } }]);
   });

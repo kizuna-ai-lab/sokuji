@@ -67,6 +67,8 @@ export const SERVER = {
   textDone: (itemId: string, text: string) => event({ type: 'response.text.done', response_id: 'resp_1', item_id: itemId, text }),
   /** 100 ms of translated speech. */
   audio: (itemId: string, samples = 2_400) => event({ type: 'response.audio.delta', response_id: 'resp_1', item_id: itemId, delta: b64(samples) }),
+  /** The end of a translation's speech. */
+  audioDone: (itemId: string) => event({ type: 'response.audio.done', response_id: 'resp_1', item_id: itemId, output_index: 0, content_index: 0 }),
   responseDone: () => event({ type: 'response.done', response: { status: 'completed', usage: { total_tokens: 197, input_tokens: 96, output_tokens: 101 } } }),
   error: (code = 'invalid_value', message = 'Invalid translation parameter.') => event({ type: 'error', error: { code, message } }),
   /** An event by its type alone. */
@@ -89,7 +91,7 @@ export function turn(n: number, o: { source: string; translation: string; speake
     SERVER.bare('input_audio_buffer.speech_stopped'),
     SERVER.sourceDone(heard, o.source),
     o.text ? SERVER.textDone(answer, o.translation) : SERVER.transcriptDone(answer, o.translation),
-    ...(o.text ? [] : [SERVER.bare('response.audio.done')]),
+    ...(o.text ? [] : [SERVER.audioDone(answer)]),
     SERVER.responseDone(),
   ];
 }
