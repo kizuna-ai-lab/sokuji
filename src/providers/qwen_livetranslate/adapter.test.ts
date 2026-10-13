@@ -16,7 +16,7 @@ import { runLifecycles, type LifecycleHarness } from '../../lib/contract/testing
 import { runScenario, scenarioNames, type AdapterHarness } from '../../lib/contract/testing/scenarios';
 import { recordEvents } from '../../lib/contract/events';
 import { trackedClock } from '../../lib/contract/testing/trackedClock';
-import { CONNECTION_LOST, createQwenAdapter, ERROR_WORDS_MS, NEVER_OPENED, START_TIMEOUT_MS } from './adapter';
+import { CONNECTION_LOST, createQwenAdapter, ERROR_WORDS_MS, NEVER_OPENED, START_TIMEOUT_MS, TURN_DONE_MS } from './adapter';
 import type { DetectEndpoint } from './check';
 import type { QwenConfig } from './config';
 import type { QwenCredentials } from './settings';
@@ -299,26 +299,33 @@ describe('the Qwen LiveTranslate adapter: the session (spec §6)', () => {
     expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['你好', 'Hello.']);
   });
 
-  it('push-to-talk: a release commits, a cancel clears and closes what is open, later frames of that turn are dropped; automatic turns send neither', async () => {
+  it('push-to-talk: a release commits; a cancel whose audio went up commits too, never clears, and drops its turn until the response is done; automatic turns send neither', async () => {
     const h = await qwenSession({ context: MANUAL_CTX });
     h.session.beginTurn();
+    h.session.appendAudio(chunk());
     h.session.endTurn();
     expect(types(h.socket()).slice(-1)).toEqual(['input_audio_buffer.commit']);
-    h.socket().receive(SERVER.heardItem('item_h1'));
-    h.socket().receive(SERVER.sourceDelta('item_h1', 'half'));
+    h.socket().receive(SERVER.responseDone());
+    // A press so short its turn's items come only after the cancel (probe 2026-10-14).
+    h.session.beginTurn();
+    h.session.appendAudio(chunk());
     h.session.cancelTurn();
-    expect(types(h.socket()).slice(-1)).toEqual(['input_audio_buffer.clear']);
-    h.socket().receive(SERVER.sourceDelta('item_h1', ' more'));
-    h.socket().receive(SERVER.answerItem('item_t1', 'item_h1'));
-    h.socket().receive(SERVER.transcriptDelta('item_t1', 'Half'));
-    h.socket().receive(SERVER.audio('item_t1'));
-    expect(content(h.log)).toEqual([
-      ['segmentOpened', { ref: 1, side: 'source', origin: 'item_h1' }],
-      ['segmentText', { ref: 1, text: 'half' }],
-      ['segmentClosed', { ref: 1 }],
-    ]);
-    expect(h.frames('input_audio_buffer.commit')).toHaveLength(1);
-    expect(h.frames('input_audio_buffer.clear')).toHaveLength(1);
+    expect(types(h.socket()).slice(-1)).toEqual(['input_audio_buffer.commit']);
+    h.socket().receive(SERVER.bare('input_audio_buffer.committed'));
+    h.socket().receive(SERVER.heardItem('item_h2'));
+    h.socket().receive(SERVER.sourceDone('item_h2', 'oops'));
+    h.socket().receive(SERVER.answerItem('item_t2', 'item_h2'));
+    h.socket().receive(SERVER.transcriptDone('item_t2', 'Oops.'));
+    h.socket().receive(SERVER.audio('item_t2'));
+    h.socket().receive(SERVER.audioDone('item_t2'));
+    h.socket().receive(SERVER.responseDone());
+    h.session.beginTurn();
+    h.session.appendAudio(chunk());
+    h.socket().receive(SERVER.heardItem('item_h3', 'item_t2'));
+    h.socket().receive(SERVER.sourceDelta('item_h3', 'third'));
+    expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['third']);
+    expect(h.of('audio')).toEqual([]);
+    expect(types(h.socket())).not.toContain('input_audio_buffer.clear');
 
     const auto = await qwenSession();
     auto.session.endTurn();
@@ -326,28 +333,74 @@ describe('the Qwen LiveTranslate adapter: the session (spec §6)', () => {
     expect(types(auto.socket())).toEqual(['session.update']);
   });
 
-  it("push-to-talk: a cancel before the turn's first event drops what the server still sends for it until `cleared`; the committed turn's translation still lands", async () => {
+  it('push-to-talk: a press while the turn before is still being finished is held, and goes up once its response is done, its release after it', async () => {
     const h = await qwenSession({ context: MANUAL_CTX });
-    // A released turn, its translation still streaming.
+    h.session.beginTurn();
+    h.session.appendAudio(chunk(1));
+    h.session.endTurn();
+    // Pressed again at once: the server would refuse this audio (probe 2026-10-14).
+    h.session.beginTurn();
+    h.session.appendAudio(chunk(2));
+    h.session.appendAudio(chunk(3));
+    h.session.endTurn();
+    expect(types(h.socket()).slice(1)).toEqual(['input_audio_buffer.append', 'input_audio_buffer.commit']);
+    h.socket().receive(SERVER.responseDone());
+    expect(types(h.socket()).slice(1)).toEqual([
+      'input_audio_buffer.append', 'input_audio_buffer.commit',
+      'input_audio_buffer.append', 'input_audio_buffer.append', 'input_audio_buffer.commit',
+    ]);
+    expect(h.appended().map((pcm) => pcm[0])).toEqual([1, 2, 3]);
+    // A press during the held one's own turn waits again; once that is done, audio goes up as it comes.
+    h.session.beginTurn();
+    h.session.appendAudio(chunk(4));
+    expect(h.appended()).toHaveLength(3);
+    h.socket().receive(SERVER.responseDone());
+    h.session.appendAudio(chunk(5));
+    expect(h.appended().map((pcm) => pcm[0])).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("push-to-talk: cancelling a press that never went up sends nothing, and the turn before it still lands whole", async () => {
+    const h = await qwenSession({ context: MANUAL_CTX });
     h.socket().receive(SERVER.heardItem('item_h1'));
     h.socket().receive(SERVER.sourceDelta('item_h1', 'first'));
-    h.socket().receive(SERVER.answerItem('item_t1', 'item_h1'));
-    h.socket().receive(SERVER.transcriptDelta('item_t1', 'Fir'));
+    h.session.beginTurn();
+    h.session.appendAudio(chunk());
     h.session.endTurn();
-    h.socket().receive(SERVER.bare('input_audio_buffer.committed'));
-    // A press so short its turn's first event comes after the cancel.
+    h.session.beginTurn();
+    h.session.appendAudio(chunk());
     h.session.cancelTurn();
-    h.socket().receive(SERVER.heardItem('item_h2', 'item_t1'));
-    h.socket().receive(SERVER.sourceDelta('item_h2', 'oops'));
-    h.socket().receive(SERVER.answerItem('item_t2', 'item_h2'));
-    h.socket().receive(SERVER.transcriptDelta('item_t2', 'Oops'));
-    h.socket().receive(SERVER.audio('item_t2'));
-    h.socket().receive(SERVER.transcriptDelta('item_t1', 'st.'));
-    h.socket().receive(SERVER.bare('input_audio_buffer.cleared'));
-    h.socket().receive(SERVER.heardItem('item_h3', 'item_t1'));
-    h.socket().receive(SERVER.sourceDelta('item_h3', 'third'));
-    expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['first', 'Fir', 'First.', 'third']);
-    expect(h.of('audio')).toEqual([]);
+    // The turn before, still being finished: its translation's item and words come now.
+    h.socket().receive(SERVER.answerItem('item_t1', 'item_h1'));
+    h.socket().receive(SERVER.transcriptDone('item_t1', 'First.'));
+    h.socket().receive(SERVER.responseDone());
+    expect(types(h.socket()).slice(1)).toEqual(['input_audio_buffer.append', 'input_audio_buffer.commit']);
+    expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['first', 'First.']);
+  });
+
+  it('push-to-talk: no commit for a release or a cancel with nothing appended since the last commit — the server would refuse every later append', async () => {
+    const h = await qwenSession({ context: MANUAL_CTX });
+    h.session.beginTurn();
+    h.session.endTurn();
+    h.session.beginTurn();
+    h.session.cancelTurn();
+    expect(types(h.socket())).toEqual(['session.update']);
+  });
+
+  it(`push-to-talk: a turn whose response never ends is let go after ${TURN_DONE_MS / 1000} s, and the held press goes up; stop leaves no timer`, async () => {
+    const h = await qwenSession({ context: MANUAL_CTX });
+    h.session.beginTurn();
+    h.session.appendAudio(chunk(1));
+    h.session.endTurn();
+    h.session.beginTurn();
+    h.session.appendAudio(chunk(2));
+    h.clock.advance(TURN_DONE_MS - 1);
+    expect(h.appended()).toHaveLength(1);
+    h.clock.advance(1);
+    expect(h.appended().map((pcm) => pcm[0])).toEqual([1, 2]);
+    expect(h.frames('session.turn_timeout')).toHaveLength(1);
+    h.session.endTurn();
+    await h.session.stop();
+    expect(h.timers()).toBe(0);
   });
 
   it('push-to-talk: a heard item its content does not mark is told by what it follows — nothing, or the last translation — so its words still show', async () => {

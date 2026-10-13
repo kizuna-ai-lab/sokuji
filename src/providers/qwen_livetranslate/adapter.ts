@@ -4,10 +4,11 @@
  * one `detect` finds before the socket opens (§2). The socket opens through
  * the header seam with a Bearer header (D3); the start resolves on
  * `session.updated`, the one `session.update` confirmed, within a bound.
- * Events become segments (`segments.ts`); a push-to-talk release commits
- * the turn and a cancel clears it (D6). An error words the close that
- * follows it, and any end the leg did not ask for fails it: there is no
- * reconnect (D8). Stop sends `session.finish` and closes at once. Every
+ * Events become segments (`segments.ts`); under push-to-talk a release
+ * commits the turn, a cancel commits it too and drops it, and a press made
+ * before the turn ahead is done waits for that turn's `response.done` (D6).
+ * An error words the close that follows it, and any end the leg did not ask
+ * for fails it: there is no reconnect (D8). Stop sends `session.finish` and closes at once. Every
  * timer reads the request's clock, and nothing is said but through events
  * (CLAUDE.md, "Inside an adapter session").
  */
@@ -30,7 +31,6 @@ import type { QwenCredentials } from './settings';
 import {
   appendFrame,
   base64ToPcm,
-  CLEAR,
   COMMIT,
   decodeServerEvent,
   errorCode,
@@ -48,6 +48,8 @@ import {
 export const START_TIMEOUT_MS = 15_000;
 /** How long a mid-session `error` words the close that follows it (OpenAI Translate's rule). */
 export const ERROR_WORDS_MS = 10_000;
+/** How long a released turn may take to end (`response.done`) before a press held behind it goes up anyway: the probes saw 0.07–0.52 s. */
+export const TURN_DONE_MS = 10_000;
 /** A socket that failed before it opened: a browser cannot read why. */
 export const NEVER_OPENED = "Qwen's socket did not open (check the network, and that the API key is still valid).";
 /** Why the leg fails when the connection closed with no words (D8): worded by the `connection_lost` alias. */
@@ -102,6 +104,18 @@ class QwenLeg implements AdapterSession {
   /** `session.unreadable` on the ok → failing transition only, a frame's and an audio delta's each. */
   private readable = true;
   private audioReadable = true;
+  /**
+   * Push-to-talk (D6, probe 2026-10-14): a commit is out and its turn's
+   * `response.done` has not come. The server refuses audio until it does, so
+   * a press meanwhile is held here and goes up then, its release after it.
+   */
+  private busy = false;
+  private held: Int16Array[] = [];
+  private releaseHeld = false;
+  /** Audio went up since the last commit: a commit with none leaves the server refusing every later append. */
+  private appended = false;
+  /** The `TURN_DONE_MS` fallback's cancel, while busy. */
+  private cancelTurnWait: (() => void) | null = null;
 
   constructor(
     private readonly request: StartRequest<QwenConfig, QwenCredentials>,
@@ -122,9 +136,17 @@ class QwenLeg implements AdapterSession {
     }
   }
 
-  /** One chunk as it came, while live — no frame per chunk (the hot-path rule). */
+  /** One chunk as it came, while live — no frame per chunk (the hot-path rule); held while the turn before is still being finished. */
   appendAudio(pcm: Int16Array): void {
-    this.live()?.send(appendFrame(pcm));
+    const ws = this.live();
+    if (!ws) return;
+    if (this.busy) {
+      if (this.held.length === 0) this.frame('out', 'session.audio_held');
+      this.held.push(pcm);
+      return;
+    }
+    ws.send(appendFrame(pcm));
+    this.appended = true;
   }
 
   /** Qwen LiveTranslate takes no typed text (`textInput: () => false`). */
@@ -133,21 +155,27 @@ class QwenLeg implements AdapterSession {
   /** Nothing to send: audio appended under push-to-talk is the turn already. */
   beginTurn(): void {}
 
-  /** A release: the turn closes, its translation finishing (D6). */
+  /** A release: the turn closes, its translation finishing (D6) — once the turn before is done, when the press is held behind it. */
   endTurn(): void {
-    const ws = this.manual();
-    if (!ws) return;
-    ws.send(JSON.stringify(COMMIT));
-    this.frame('out', COMMIT.type);
+    if (!this.manual()) return;
+    if (this.busy) this.releaseHeld = this.held.length > 0;
+    else this.commit();
   }
 
-  /** A cancel: the buffer empties; the server never finishes that response, so the segments close here (D6). */
+  /**
+   * A cancel (D6). A press still held never reached the server: it is let go,
+   * nothing sent. One that did is committed, never cleared — a clear with
+   * speech in the buffer breaks the next turn, and one during a response
+   * cuts it off (probe 2026-10-14) — and the segments drop its turn.
+   */
   cancelTurn(): void {
-    const ws = this.manual();
-    if (!ws) return;
-    ws.send(JSON.stringify(CLEAR));
-    this.frame('out', CLEAR.type);
-    this.segments.cancel();
+    if (!this.manual()) return;
+    if (this.busy) {
+      this.held = [];
+      this.releaseHeld = false;
+      return;
+    }
+    if (this.commit()) this.segments.cancel();
   }
 
   /** `session.finish`, framed, then the close before its first `await`: nothing waits for `session.finished`. */
@@ -164,6 +192,42 @@ class QwenLeg implements AdapterSession {
   /** The connection, while live under push-to-talk. */
   private manual(): WebSocket | null {
     return this.request.config.manual ? this.live() : null;
+  }
+
+  /** Ends the press on the wire, unless nothing went up since the last commit; the turn is busy until its `response.done`. */
+  private commit(): boolean {
+    const ws = this.manual();
+    if (!ws || !this.appended) return false;
+    ws.send(JSON.stringify(COMMIT));
+    this.frame('out', COMMIT.type);
+    this.appended = false;
+    this.busy = true;
+    this.cancelTurnWait = this.request.clock.setTimeout(() => {
+      this.cancelTurnWait = null;
+      this.frame('out', 'session.turn_timeout', { afterMs: TURN_DONE_MS });
+      this.turnDone();
+    }, TURN_DONE_MS);
+    return true;
+  }
+
+  /** The committed turn is done (`response.done`, or `TURN_DONE_MS` without it): the segments move on, and a held press goes up, its release after it. */
+  private turnDone(): void {
+    if (!this.busy) return;
+    this.busy = false;
+    this.cancelTurnWait?.();
+    this.cancelTurnWait = null;
+    this.segments.turnDone();
+    const ws = this.live();
+    const held = this.held;
+    this.held = [];
+    if (!ws || held.length === 0) return;
+    for (const pcm of held) ws.send(appendFrame(pcm));
+    this.appended = true;
+    this.frame('out', 'session.audio_released', { chunks: held.length });
+    if (this.releaseHeld) {
+      this.releaseHeld = false;
+      this.commit();
+    }
   }
 
   private live(): WebSocket | null {
@@ -348,20 +412,18 @@ class QwenLeg implements AdapterSession {
         const r = (typeof e.response === 'object' && e.response !== null ? e.response : {}) as { status?: unknown; usage?: unknown };
         // The session's running totals: what the live test reads the bill from.
         this.frame('in', e.type, { status: str(r.status), usage: r.usage ?? null });
+        // Under push-to-talk, the end of the committed turn: the server takes audio again.
+        this.turnDone();
         return;
       }
       case 'error':
         this.serverError(e);
         return;
-      // A release's and a cancel's acknowledgements: each closes a push-to-talk turn for the segments (`QwenSegments.cancel`).
+      // A commit's acknowledgement names its heard item when it already exists; the turn ends at `response.done`, not here.
       case 'input_audio_buffer.committed':
-        this.frame('in', e.type);
-        this.segments.committed();
+        this.frame('in', e.type, { itemId });
         return;
       case 'input_audio_buffer.cleared':
-        this.frame('in', e.type);
-        this.segments.cleared();
-        return;
       case 'input_audio_buffer.speech_stopped':
       case 'response.created':
       case 'response.content_part.added':
@@ -436,6 +498,9 @@ class QwenLeg implements AdapterSession {
   /** Every way a leg ends: the segments silent, the socket closed and no longer heard. */
   private shutDown(): void {
     this.phase = 'ended';
+    this.cancelTurnWait?.();
+    this.cancelTurnWait = null;
+    this.held = [];
     this.segments.stop();
     const ws = this.socket;
     this.socket = null;

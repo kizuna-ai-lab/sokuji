@@ -48,7 +48,12 @@ passes.
 | Input audio | `audio.input.format: {type: "pcm", sample_rate: 24000}` works (server timings identical to 16 kHz). The contract's 24 kHz goes straight through |
 | Output audio | PCM16 at 24 kHz in `response.audio.delta` |
 | Turns, auto | Default `audio.input.turn_detection.type = speaker_detection` with `silence_duration_ms` 2500. A turn closes on a speaker change or 2.5 s of silence. `speaker_id` on `input_audio_buffer.speech_started` is real diarization: A B A B gave 1 2 1 2. Translation streams while the person still speaks |
-| Turns, manual | `turn_detection: null`: translation still streams during speech, but the turn never closes on silence. `input_audio_buffer.commit` → `committed`, then the source `completed` and the translation `done` within about 90 ms. `input_audio_buffer.clear` → `cleared`; the in-flight response gets no `done`. No `speech_started` and no `speaker_id` in manual mode |
+| Turns, manual | `turn_detection: null`: translation still streams during speech, but the turn never closes on silence. `input_audio_buffer.commit` → `committed`, then the source `completed` and the translation `done` within about 90 ms. `input_audio_buffer.clear` → `cleared`; the in-flight response gets no `done`. No `speech_started` and no `speaker_id` in manual mode. **2026-10-14, seven sessions:**
+<br>• A press's items appear about 0.5–0.7 s into its audio, or after `committed` for a very short press. `committed` names the heard item (`item_id`) when it exists, which the docs do not list.
+<br>• Until the committed turn's `response.done`, every append is refused with "Previous turn is still processing, please wait for completion before sending new audio." A 9.2 s press had its `response.done` 0.52 s after release; a press started at that release lost its first 0.5 s.
+<br>• `clear` with speech in the buffer makes the next turn fail ("previous segment has not received SegmentEnd"). `clear` while a response is still being produced cuts that response off, with no `done`.
+<br>• A commit with nothing appended, or right after a `clear`, fails with "no active inference", and every later append is refused.
+<br>• A commit on a 0.3 s tap or on 0.4 s of silence ends cleanly, with empty texts and `response.done`. |
 | Events | Each turn creates two items (both role `assistant`): the heard one (id from `speech_started`, or the first `conversation.item.created`) and the translation, whose `previous_item_id` is the heard item. Source text arrives as `conversation.item.input_audio_transcription.delta` then `.completed` (`transcript`; no language or emotion field; punctuation inconsistent). Translation as `response.audio_transcript.delta` then `.done` with audio on, or `response.text.delta` then `response.text.done` without. Deltas append; nothing is revised |
 | Ending | The server never closes a socket, not 30 s after `session.finished` and not after 90 s idle. `session.finish` → `session.finished` in 0.1–0.7 s |
 | Billing | 7 tokens per whole second of each turn's audio window (idle silence is free); 12.5 tokens per second of output audio; a fixed 47 input text tokens per session. `response.done.usage` is the session's running total. Console `status_code` is 400 for every session that reached the model; it does not mean failure |
@@ -66,7 +71,7 @@ passes.
 - **D4 Legs.** One independent session per leg (approach A). No `session.startBoth`.
 - **D5 Voices.** One list per leg: 47 presets plus "the speaker's own voice" (real-time clone),
   like Doubao AST 2.0's picker.
-- **D6 Turns.** `['auto', 'manual']`. Manual uses `commit` and `clear`.
+- **D6 Turns.** `['auto', 'manual']`. Manual uses `commit` only, for a release and for a cancel alike, and serialises turns on `response.done` (§6, "Turns").
 - **D7 Person labels.** Only the participant leg carries `person` (Soniox's rule).
 - **D8 No reconnect.** A drop fails the leg with `connection_lost`, as OpenAI Translate and AST2 do.
 - **D9 Flagged.** `flagged: true` with `testerSwitch: 'debug:qwen-livetranslate'`. Release builds
@@ -256,12 +261,14 @@ export interface QwenConfig {
 
 **Audio out.** `response.audio.delta` → `audio({ pcm: base64ToPcm(delta), ref: <translation ref> })` at 24 kHz.
 - Nothing is emitted when `!context.speech`; the update asked for none anyway.
-- **Karaoke, by phrase (owner's choice A, 2026-10-14).** A translation arrives as phrases: its words, then their speech. In 12 recorded turns, each phrase's share of the text matched its share of the audio within 5%. So a translation delta arriving after audio begins the next phrase. The phrase before is whole: its text (as last sent) is tiled over the audio that followed it, by sample count (`tileSpan`), and stated with `speechRanges`, as Palabra's fill-in. The last phrase is filled once both the final text and `response.audio.done` have come, in either order. Audio after that plays unranged. A final text shorter than its deltas restates the ranges past its end within it. Nothing is lit before its phrase is whole, so in a long turn whose speech streams in real time the first phrase may play unlit. The attribution is by order, measured and not stated by the server.
+- **Karaoke, by phrase (owner's choice A, 2026-10-14).** A translation arrives as phrases: its words, then their speech. In 12 recorded turns, each phrase's share of the text matched its share of the audio within 5%. So a translation delta arriving after audio begins the next phrase, unless it adds no visible character (a recorded turn had `" "` between two words). The phrase before is whole: its text (as last sent) is tiled over the audio that followed it, by sample count (`tileSpan`), and stated with `speechRanges`, as Palabra's fill-in. The last phrase is filled once both the final text and `response.audio.done` have come, in either order. Audio after that plays unranged. A final text shorter than its deltas restates the ranges past its end within it. Nothing is lit before its phrase is whole, so in a long turn whose speech streams in real time the first phrase may play unlit. The attribution is by order, measured and not stated by the server.
 
-**Turns.**
+**Turns.** Manual mode on 3.8 is undocumented: the docs scope `turn_detection: null` to qwen3.5. The rules below come from the probes of 2026-10-14 (evidence table, "Turns, manual").
 - `beginTurn()` does nothing.
-- `endTurn()` sends `input_audio_buffer.commit` in manual mode and does nothing in auto.
-- `cancelTurn()` sends `input_audio_buffer.clear`. It closes the open source and translation refs itself with what they hold, because the server never finishes that response. Then it ignores further deltas for those item ids.
+- `endTurn()` sends `input_audio_buffer.commit` in manual mode and does nothing in auto. A commit is never sent when nothing was appended since the last one: the server answers "no active inference" and then refuses every later append.
+- A committed turn is busy until its `response.done`; the server refuses audio meanwhile. Audio appended while busy is held and sent when the turn is done, followed by its release's commit if the press has already ended. If `response.done` does not come within `TURN_DONE_MS` (10 s), the held audio goes up anyway.
+- `cancelTurn()` never sends `input_audio_buffer.clear`. A press still held never reached the server, so it is discarded and nothing is sent. A press whose audio went up is committed, so the server ends its response normally, and the segments close what that turn holds and drop everything else it sends until its `response.done`.
+- The segments' turn ends at `response.done`, not at `committed`. Turns are serialised, so a turn's late items can never be taken for the next one.
 
 **Stop.** Send `session.finish`, close the socket at once (the contract requires the close before the first await), and resolve. Anything still in flight is dropped, as `stop-silence` requires.
 
@@ -342,7 +349,7 @@ export interface QwenConfig {
   - Empty turns.
 - **`segments.replay.test.ts`**: the probe's two-speaker timeline (`recordings/two-speakers.json`) gives the four source/translation pairs with persons 1, 2, 3, 4. The A–B–A–B recording gives 1, 2, 1, 2.
 - **`adapter.test.ts`**:
-  - `FakeSocket` + `fakeHeaderSockets()` and `runScenario` over `open-stop`, `speech-off`, `abort-while-opening`, `refused-while-opening`, `manual-end` (sends `commit`), `manual-cancel` (sends `clear`), and `server-close`. There is no `text` and no `reconnect`.
+  - `FakeSocket` + `fakeHeaderSockets()` and `runScenario` over `open-stop`, `speech-off`, `abort-while-opening`, `refused-while-opening`, `manual-end` (sends `commit`), `manual-cancel` (sends `commit`), and `server-close`. There is no `text` and no `reconnect`.
   - `checkConformance` on every log.
   - Endpoint fallback: `endpoint: null` calls `detect` first.
   - The handshake bound, and an `error` before `session.updated`.

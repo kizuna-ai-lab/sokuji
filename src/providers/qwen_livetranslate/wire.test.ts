@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  appendFrame, base64ToPcm, CLEAR, COMMIT, decodeServerEvent, errorCode, errorOf, errorWords, FINISH, qwenHeaders, sessionUpdate, socketUrl,
+  appendFrame, base64ToPcm, COMMIT, decodeServerEvent, errorCode, errorOf, errorWords, FINISH, qwenHeaders, sessionUpdate, socketUrl,
 } from './wire';
 
 const MODEL = 'qwen3.8-livetranslate-flash-realtime';
@@ -71,7 +71,7 @@ describe("Qwen LiveTranslate's wire (spec §6)", () => {
     const frame = JSON.parse(appendFrame(pcm)) as { type: string; audio: string };
     expect(frame.type).toBe('input_audio_buffer.append');
     expect(Array.from(base64ToPcm(frame.audio))).toEqual(Array.from(pcm));
-    expect([COMMIT, CLEAR, FINISH]).toEqual([{ type: 'input_audio_buffer.commit' }, { type: 'input_audio_buffer.clear' }, { type: 'session.finish' }]);
+    expect([COMMIT, FINISH]).toEqual([{ type: 'input_audio_buffer.commit' }, { type: 'session.finish' }]);
   });
 
   it('reads a text frame with a type, and refuses anything else', () => {
