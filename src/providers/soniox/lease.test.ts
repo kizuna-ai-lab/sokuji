@@ -724,7 +724,8 @@ describe("the lease's port (SonioxLeasePort)", () => {
     expect(lease.to('/soniox/session-started')).toHaveLength(1);
     expect(startedBody(lease.to('/soniox/session-started')[0])).toEqual({ leaseId: 'lease-1', role: 'spk_stt' });
     // The socket carries the minted key and its reference; the sign-in token never reaches Soniox.
-    expect(stt.sentJson<Record<string, unknown>>()[0]).toMatchObject({ api_key: 'k-spk_stt', client_reference_id: 'ref-spk_stt' });
-    expect(JSON.stringify(sockets.all.map((s) => s.sentJson()))).not.toContain('"tok"');
+    expect(stt.protocols).toEqual(['soniox-api-key', 'k-spk_stt']);
+    expect(stt.sentJson<Record<string, unknown>>()[0]).toMatchObject({ client_reference_id: 'ref-spk_stt' });
+    expect(JSON.stringify(sockets.all.map((s) => [s.protocols, s.sentJson()]))).not.toContain('"tok"');
   });
 });

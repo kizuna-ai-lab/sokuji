@@ -61,7 +61,7 @@ describe('LegSpeech', () => {
     const { speech, tts, kinds, frames } = await setup();
     speech.speak(2, 'Hello. ', [0, 7], 'en');
     const sent = tts().sentJson<Json>();
-    expect(sent[0]).toMatchObject({ stream_id: 'utt-1-1', api_key: 'k', language: 'en' });
+    expect(sent[0]).toMatchObject({ stream_id: 'utt-1-1', language: 'en' });
     expect(sent).toContainEqual({ stream_id: 'utt-1-1', text: 'Hello. ', text_end: false });
     tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
     expect(kinds('audio')).toHaveLength(1);
@@ -225,7 +225,7 @@ describe('LegSpeech', () => {
     await flush();
     const sent = sockets.last().sentJson<Json>();
     expect(sent).toHaveLength(3);
-    expect(sent[0]).toMatchObject({ stream_id: 'utt-1-1', api_key: 'k', language: 'en' });
+    expect(sent[0]).toMatchObject({ stream_id: 'utt-1-1', language: 'en' });
     expect(sent[1]).toEqual({ stream_id: 'utt-1-1', text: 'Again.', text_end: false });
     expect(sent[2]).toEqual({ stream_id: 'utt-1-1', text: '', text_end: true });
     expect(kinds('degraded')).toEqual([]);
@@ -259,6 +259,31 @@ describe('LegSpeech', () => {
     expect(frames('tts.degraded').map(payloadOf)).toEqual([expect.objectContaining({ code: 'connect_failed', scope: 'all' })]);
   });
 
+  it("a key Soniox refuses at the handshake: the idle socket's 401 and close are silent, and the first translation says tts_stopped with Soniox's reason", async () => {
+    // Measured 2026-10-14 against tts-rt, a bad key in the subprotocol: an idle
+    // socket gets a connection-level 401 (stream_id "") ~1.5 s after open, then
+    // a clean close; a socket that sends a stream config first gets the 401 on
+    // that stream, then its terminated, and stays open.
+    const { speech, sockets, degraded, log } = await setup();
+    const idle = sockets.last();
+    idle.receive(JSON.stringify({ stream_id: '', error_code: 401, error_type: 'unauthenticated', error_message: 'Invalid or expired temporary API key.' }));
+    idle.serverClose(1000);
+    await flush();
+    expect(degraded()).toEqual([]);
+
+    speech.speak(2, 'Hi.', [0, 3], 'en');
+    expect(sockets.all).toHaveLength(2);
+    const retry = sockets.last();
+    expect(retry.protocols).toEqual(['soniox-api-key', 'k']);
+    retry.open();
+    await flush();
+    expect(retry.sentJson<Json>()[0]).toMatchObject({ stream_id: 'utt-1-1' });
+    retry.receive(JSON.stringify({ stream_id: 'utt-1-1', error_code: 401, error_type: 'unauthenticated', error_message: 'Invalid or expired temporary API key.' }));
+    retry.receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));
+    expect(degraded()).toEqual(['tts_stopped']);
+    expect(log.flatMap((e) => (e.kind === 'degraded' ? [e.payload.message] : []))).toEqual(['Soniox TTS 401: Invalid or expired temporary API key.']);
+  });
+
   it('a TTS connect that fails at start is silent until the first translation, which retries it; a failed retry says tts_stopped once (choice 6)', async () => {
     const { speech, sockets, opening, log, degraded } = create();
     sockets.last().drop();
@@ -284,7 +309,7 @@ describe('LegSpeech', () => {
     sockets.last().open();
     await flush();
     const sent = sockets.last().sentJson<Json>();
-    expect(sent[0]).toMatchObject({ stream_id: 'utt-1-1', api_key: 'k', language: 'en' });
+    expect(sent[0]).toMatchObject({ stream_id: 'utt-1-1', language: 'en' });
     // Only what waited on THIS retry: the failed retries' text is not spoken late.
     expect(sent.filter((m) => typeof m.text === 'string' && m.text !== '')).toEqual([{ stream_id: 'utt-1-1', text: 'Ok.', text_end: false }]);
 
@@ -312,7 +337,7 @@ describe('LegSpeech', () => {
     expect(sockets.all).toHaveLength(1);
     const sent = sockets.last().sentJson<Json>();
     expect(sent).toHaveLength(3);
-    expect(sent[0]).toMatchObject({ stream_id: 'utt-1-1', api_key: 'k', language: 'en' });
+    expect(sent[0]).toMatchObject({ stream_id: 'utt-1-1', language: 'en' });
     expect(sent.slice(1)).toEqual([
       { stream_id: 'utt-1-1', text: 'Hi', text_end: false },
       { stream_id: 'utt-1-1', text: '', text_end: true },
@@ -438,14 +463,18 @@ describe('LegSpeech', () => {
   it('sends the leg\'s voice, speed and key, and a client reference only when there is one', async () => {
     const leased = await setup({ region: 'eu', voice: 'Maya', speed: 1.2, clientReferenceId: 'ref-1' });
     expect(leased.tts().url).toBe('wss://tts-rt.eu.soniox.com/tts-websocket');
+    // The key rides in the handshake, never in a stream's config.
+    expect(leased.tts().protocols).toEqual(['soniox-api-key', 'k']);
     leased.speech.speak(2, 'Hi.', [0, 3], 'en');
     expect(leased.tts().sentJson<Json>()[0]).toMatchObject({
-      api_key: 'k', voice: 'Maya', speed: 1.2, model: 'tts-rt-v2', client_reference_id: 'ref-1', sample_rate: 24000,
+      voice: 'Maya', speed: 1.2, model: 'tts-rt-v2', client_reference_id: 'ref-1', sample_rate: 24000,
     });
+    expect(leased.tts().sentJson<Json>()[0]).not.toHaveProperty('api_key');
     const own = await setup();
     own.speech.speak(2, 'Hi.', [0, 3], 'en');
     const config = own.tts().sentJson<Json>()[0];
-    expect(config).toMatchObject({ api_key: 'k', voice: 'Adrian', model: 'tts-rt-v2' });
+    expect(own.tts().protocols).toEqual(['soniox-api-key', 'k']);
+    expect(config).toMatchObject({ voice: 'Adrian', model: 'tts-rt-v2' });
     expect(config).not.toHaveProperty('client_reference_id');
     // Speed 1 is the server's default: not sent.
     expect(config).not.toHaveProperty('speed');

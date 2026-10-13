@@ -9,13 +9,14 @@ class MockWebSocket {
   static OPEN = 1;
   static CLOSED = 3;
   url: string;
+  protocols: string[] | undefined;
   readyState = 0;
   sent: string[] = [];
   onopen: (() => void) | null = null;
   onmessage: ((ev: { data: string }) => void) | null = null;
   onerror: ((ev: unknown) => void) | null = null;
   onclose: ((ev: unknown) => void) | null = null;
-  constructor(url: string) { this.url = url; MockWebSocket.instances.push(this); }
+  constructor(url: string, protocols?: string[]) { this.url = url; this.protocols = protocols; MockWebSocket.instances.push(this); }
   send(data: string) { this.sent.push(data); }
   close() { this.readyState = MockWebSocket.CLOSED; this.onclose?.({}); }
   open() { this.readyState = MockWebSocket.OPEN; this.onopen?.(); }
@@ -70,13 +71,39 @@ describe('SonioxTtsStream', () => {
     t.sendText('world', 'en');
     const msgs = ws.jsonSent();
     expect(msgs[0]).toMatchObject({
-      api_key: 'k', stream_id: 'utt-1-1', model: 'tts-rt-v2', voice: 'Adrian',
+      stream_id: 'utt-1-1', model: 'tts-rt-v2', voice: 'Adrian',
       language: 'en', audio_format: 'pcm_s16le', sample_rate: 24000,
       // Only tts-rt-v2 accepts this; a model without silence reduction 400s.
       reduce_silence: true,
     });
     expect(msgs[1]).toEqual({ stream_id: 'utt-1-1', text: 'Hello ', text_end: false });
     expect(msgs[2]).toEqual({ stream_id: 'utt-1-1', text: 'world', text_end: false });
+  });
+
+  it('carries the key in the handshake, as the soniox-api-key subprotocol, and never in a stream config', async () => {
+    // Soniox refuses a key sent only in a stream's config from 2027-01-15
+    // (soniox.com/docs/guides/websocket-authentication); the connection's key
+    // serves every stream on it.
+    const { t, ws } = await openTts();
+    t.sendText('Hello.', 'en');
+    ws.message({ stream_id: 'utt-1-1', terminated: true });
+    t.sendText(' Again.', 'en');
+    expect(ws.protocols).toEqual(['soniox-api-key', 'k']);
+    expect(opened(ws)).toEqual(['utt-1-1', 'utt-1-2']);
+    for (const m of ws.jsonSent()) expect(m).not.toHaveProperty('api_key');
+  });
+
+  it('rejects connect() in fixed words when the browser will not open the socket, never quoting the key', async () => {
+    // Chromium refuses an invalid subprotocol with a SyntaxError that quotes the subprotocols, the key among them.
+    vi.stubGlobal('WebSocket', class {
+      constructor(_url: string, protocols?: string[]) {
+        throw new DOMException(`Failed to construct 'WebSocket': The subprotocol '${(protocols ?? []).join(', ')}' is invalid.`, 'SyntaxError');
+      }
+    });
+    const error = await new SonioxTtsStream({ ...OPTS, apiKey: 'snx_temp_secret' }).connect().catch((e: Error) => e);
+    expect(error).toBeInstanceOf(Error);
+    expect(String((error as Error).message)).not.toContain('snx_temp_secret');
+    expect((error as Error).name).toBe('SyntaxError');
   });
 
   it('endUtterance closes the active stream with text_end:true', async () => {
@@ -385,8 +412,7 @@ describe('SonioxTtsStream segmenting', () => {
   it('only a 408 on a live stream loses one segment; any other error means speech is down', async () => {
     // The 408s are Soniox killing a stream for living too long — the next
     // segment speaks. Any other error on a stream (a rejected voice, key or
-    // quota; the api_key rides in every stream's config) fails every segment
-    // the same way.
+    // quota) fails every segment the same way.
     const { t, ws } = await openTts();
     const scopes: string[] = [];
     t.setHandlers({ onError: (_c, _m, _h, scope) => scopes.push(scope) });
@@ -398,6 +424,20 @@ describe('SonioxTtsStream segmenting', () => {
     ws.message({ stream_id: 'utt-1-3', error_code: 401, error_message: 'Invalid API key' });
     ws.message({ error_code: 500, error_message: 'Internal error' });
     expect(scopes).toEqual(['segment', 'all', 'all', 'all']);
+  });
+
+  it("an error with an empty stream_id is the connection's: it fails the live stream with its own code", async () => {
+    // Measured 2026-10-14: Soniox sends a connection-level error, such as a key
+    // refused at the handshake, with stream_id "" rather than none at all.
+    const { t, ws } = await openTts();
+    const errors: Array<[string, boolean, string]> = [];
+    t.setHandlers({ onError: (code, _m, hadActiveStream, scope) => errors.push([code, hadActiveStream, scope]) });
+    t.sendText('Hi', 'en');
+    ws.message({ stream_id: '', error_code: 401, error_type: 'unauthenticated', error_message: 'Invalid or expired temporary API key.' });
+    expect(errors).toEqual([['401', true, 'all']]);
+    // The stream is gone: the next text opens a new one.
+    t.sendText(' again', 'en');
+    expect(opened(ws)).toEqual(['utt-1-1', 'utt-1-2']);
   });
 
   it('sends nothing to a stream after it failed: its timers are cleared', async () => {

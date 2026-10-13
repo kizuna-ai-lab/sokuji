@@ -21,7 +21,7 @@
 
 import { sonioxHosts, type SonioxRegion } from '../../lib/soniox/regions';
 import { every, realClock, pinnedRealClock, type Clock } from '../../lib/contract/clock';
-import { nativeSocket, WS_OPEN, type OpenSocket, type SonioxWireDeps } from './socket';
+import { nativeSocket, sonioxProtocols, WS_OPEN, type OpenSocket, type SonioxWireDeps } from './socket';
 
 export interface SonioxToken {
   text: string;
@@ -114,7 +114,7 @@ export class SonioxSttStream {
 
   connect(config: SonioxSttConfig): Promise<void> {
     return new Promise((resolve, reject) => {
-      const ws = this.openSocket(`wss://${sonioxHosts(config.region).sttRt}/transcribe-websocket`);
+      const ws = this.openSocket(`wss://${sonioxHosts(config.region).sttRt}/transcribe-websocket`, sonioxProtocols(config.apiKey));
       this.ws = ws;
       let opened = false;
       const cancelTimeout = this.clock.setTimeout(() => {
@@ -131,7 +131,6 @@ export class SonioxSttStream {
         opened = true;
         cancelTimeout();
         ws.send(JSON.stringify({
-          api_key: config.apiKey,
           model: config.model,
           audio_format: 'pcm_s16le',
           sample_rate: config.sampleRate,

@@ -87,9 +87,10 @@ describe('Soniox startBoth: split', () => {
   it("split: two sessions on two STT sockets, each on its own direction and key; the participant's labels its people", async () => {
     const h = await live({ sharedBoth: false });
     expect(h.sttSockets()).toHaveLength(2);
+    expect(h.sttSockets().map((x) => x.protocols)).toEqual([['soniox-api-key', 'k-spk'], ['soniox-api-key', 'k-par']]);
     const [spk, par] = h.sttSockets().map((x) => x.sentJson<Json>()[0]);
-    expect(spk).toMatchObject({ api_key: 'k-spk', translation: { type: 'one_way', target_language: 'ja' }, language_hints: ['en', 'ja'] });
-    expect(par).toMatchObject({ api_key: 'k-par', translation: { type: 'one_way', target_language: 'en' }, language_hints: ['ja', 'en'] });
+    expect(spk).toMatchObject({ translation: { type: 'one_way', target_language: 'ja' }, language_hints: ['en', 'ja'] });
+    expect(par).toMatchObject({ translation: { type: 'one_way', target_language: 'en' }, language_hints: ['ja', 'en'] });
     expect(spk).not.toHaveProperty('enable_speaker_diarization');
     expect(par).toMatchObject({ enable_speaker_diarization: true });
   });
@@ -115,8 +116,9 @@ describe('Soniox startBoth: split', () => {
     const [, participantStt] = h.sttSockets();
     participantStt.receive(msg({ ...orig('Ohayō.'), language: 'ja' }, tr('Good morning.', 'en', 'ja'), END));
     const [speakerTts, participantTts] = h.ttsSockets();
+    expect([speakerTts.protocols, participantTts.protocols]).toEqual([['soniox-api-key', 'k-spk'], ['soniox-api-key', 'k-par-tts']]);
     const sent = participantTts.sentJson<Json>();
-    expect(sent).toContainEqual(expect.objectContaining({ api_key: 'k-par-tts', language: 'en', model: expect.any(String) }));
+    expect(sent).toContainEqual(expect.objectContaining({ language: 'en', model: expect.any(String) }));
     expect(sent).toContainEqual(expect.objectContaining({ text: 'Good morning.', text_end: false }));
     expect(speakerTts.sentJson()).toEqual([]);
     const id = sent.find((m) => m.model !== undefined)!.stream_id as string;
@@ -156,8 +158,8 @@ describe('Soniox startBoth: shared', () => {
   it("shared: one STT socket, two_way on the speaker's pair, both hints, diarization, the speaker's key", async () => {
     const h = await live();
     expect(h.sttSockets()).toHaveLength(1);
+    expect(h.sttSockets()[0].protocols).toEqual(['soniox-api-key', 'k-spk']);
     expect(h.sttSockets()[0].sentJson<Json>()[0]).toMatchObject({
-      api_key: 'k-spk',
       translation: { type: 'two_way', language_a: 'en', language_b: 'ja' },
       language_hints: ['en', 'ja'],
       enable_speaker_diarization: true,
@@ -241,8 +243,9 @@ describe('Soniox startBoth: shared', () => {
     h.sttSockets()[0].receive(msg({ ...orig('Ohayō.'), language: 'ja' }, tr('Good morning.', 'en', 'ja'), END));
     expect(opened(h, 'participant')).toEqual([1, 2]);
     const [speakerTts, participantTts] = h.ttsSockets();
+    expect([speakerTts.protocols, participantTts.protocols]).toEqual([['soniox-api-key', 'k-spk'], ['soniox-api-key', 'k-par-tts']]);
     const sent = participantTts.sentJson<Json>();
-    expect(sent).toContainEqual(expect.objectContaining({ api_key: 'k-par-tts', language: 'en', model: expect.any(String) }));
+    expect(sent).toContainEqual(expect.objectContaining({ language: 'en', model: expect.any(String) }));
     expect(sent).toContainEqual(expect.objectContaining({ text: 'Good morning.', text_end: false }));
     expect(speakerTts.sentJson()).toEqual([]);
     // Its audio is the participant's.
