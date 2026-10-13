@@ -8,8 +8,9 @@
  * Deltas append and each sends the whole text, trimmed; a `.completed` /
  * `.done` replaces it and closes. A segment opens with its first words or
  * audio, so an empty turn shows nothing. On the participant leg (D7) the
- * heard item's `speaker_id` labels both sides. A cancelled turn closes what
- * it holds and hears nothing more. Pure: no socket, no timer.
+ * heard item's `speaker_id` labels both sides. A push-to-talk cancel is a
+ * release (the adapter commits it), so nothing here drops a turn. Pure: no
+ * socket, no timer.
  *
  * Karaoke (owner's choice A, 2026-10-14): a translation arrives as phrases,
  * each its words and then their speech, and in every recorded turn a
@@ -40,10 +41,6 @@ interface Item {
   /** The translation opened stating its origin. */
   stated: boolean;
   closed: boolean;
-  /** Cancelled: nothing more of it is heard, its audio included. */
-  dropped: boolean;
-  /** The push-to-talk turn it was first seen in: a cancel drops the current turn's items, never a committed turn's. */
-  turn: number;
   /** A translation's speech: each `audio` entry's sample count, in order, the index `speechRanges` names. */
   samples: number[];
   /** Where the current phrase begins: in the snapshot, and among the entries. */
@@ -61,10 +58,6 @@ export class QwenSegments {
   /** `speaker_id` by heard item, from `speech_started` (automatic turns only). */
   private readonly speakers = new Map<string, string>();
   private stopped = false;
-  /** The current turn: its response's `response.done` starts the next (the adapter sends no press's audio before it). */
-  private turn = 0;
-  /** The current turn was cancelled: whatever the server still sends for it is dropped as it comes. */
-  private dropping = false;
 
   constructor(private readonly o: QwenSegmentsOptions) {}
 
@@ -87,14 +80,13 @@ export class QwenSegments {
     else this.answer(itemId, o.previous);
   }
 
-  /** A translation item, with the heard item it follows when told. The answer to a cancelled turn is cancelled with it. */
+  /** A translation item, with the heard item it follows when told. */
   answer(itemId: string, previous: string | null = null): void {
     const it = this.item(itemId, 'translation');
     if (!it || previous === null || it.source !== undefined) return;
     const heard = this.items.get(previous);
     if (heard?.side !== 'source') return;
     it.source = previous;
-    if (heard.dropped && !it.closed) this.drop(it);
   }
 
   text(itemId: string, side: Side, delta: string): void {
@@ -120,7 +112,7 @@ export class QwenSegments {
   /** Translated speech, in its translation's segment — after that segment's text closed too. */
   audio(itemId: string, pcm: Int16Array): void {
     const it = this.item(itemId, 'translation');
-    if (!it || it.dropped) return;
+    if (!it) return;
     if (it.ref === undefined) {
       // A translation that closed empty has no segment to hold it.
       if (it.closed) return;
@@ -138,23 +130,6 @@ export class QwenSegments {
     this.finish(it);
   }
 
-  /**
-   * A push-to-talk cancel: what the turn has open closes here with what it
-   * holds, and what the server still sends for it — items not even seen yet
-   * when a press is that short — is dropped until the turn's response is
-   * done. The turn before it is done already, so nothing of it is touched.
-   */
-  cancel(): void {
-    for (const it of this.items.values()) if (!it.closed && it.turn === this.turn) this.drop(it);
-    this.dropping = true;
-  }
-
-  /** `response.done`: the server has finished the turn; the next begins, and a cancelled turn's dropping ends. */
-  turnDone(): void {
-    this.turn += 1;
-    this.dropping = false;
-  }
-
   stop(): void {
     this.stopped = true;
   }
@@ -164,9 +139,7 @@ export class QwenSegments {
     if (this.stopped) return null;
     let it = this.items.get(itemId);
     if (!it) {
-      // First seen after a cancel and before that turn's response is done: the cancelled turn's, dropped as it comes.
-      const dropped = this.dropping;
-      it = { side, text: '', shown: '', stated: false, closed: dropped, dropped, turn: this.turn, samples: [], phraseText: 0, phraseAudio: 0, ranges: new Map(), spoken: false };
+      it = { side, text: '', shown: '', stated: false, closed: false, samples: [], phraseText: 0, phraseAudio: 0, ranges: new Map(), spoken: false };
       this.items.set(itemId, it);
     }
     return it.side === side ? it : null;
@@ -215,7 +188,7 @@ export class QwenSegments {
 
   /** The last phrase, once the text is final and the speech all here. */
   private finish(it: Item): void {
-    if (it.side === 'translation' && it.closed && it.spoken && !it.dropped) this.fill(it);
+    if (it.side === 'translation' && it.closed && it.spoken) this.fill(it);
   }
 
   /** A final text shorter than its deltas: the ranges past its end, stated again within it. */
@@ -225,11 +198,6 @@ export class QwenSegments {
     if (it.ref === undefined || past.length === 0) return;
     for (const { index, range } of past) it.ranges.set(index, range);
     this.o.sink.speechRanges({ ref: it.ref, ranges: past });
-  }
-
-  private drop(it: Item): void {
-    it.dropped = true;
-    this.close(it);
   }
 
   private person(itemId: string, it: Item): string | undefined {

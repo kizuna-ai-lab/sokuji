@@ -5,8 +5,8 @@
  * the header seam with a Bearer header (D3); the start resolves on
  * `session.updated`, the one `session.update` confirmed, within a bound.
  * Events become segments (`segments.ts`); under push-to-talk a release
- * commits the turn, a cancel commits it too and drops it, and a press made
- * before the turn ahead is done waits for that turn's `response.done` (D6).
+ * commits the turn, and so does a cancel, and a press made before the turn
+ * ahead is done waits for that turn's `response.done` (D6).
  * An error words the close that follows it, and any end the leg did not ask
  * for fails it: there is no reconnect (D8). Stop sends `session.finish` and closes at once. Every
  * timer reads the request's clock, and nothing is said but through events
@@ -163,19 +163,14 @@ class QwenLeg implements AdapterSession {
   }
 
   /**
-   * A cancel (D6). A press still held never reached the server: it is let go,
-   * nothing sent. One that did is committed, never cleared — a clear with
-   * speech in the buffer breaks the next turn, and one during a response
-   * cuts it off (probe 2026-10-14) — and the segments drop its turn.
+   * A cancel is a release (D6, owner 2026-10-14). The voice gate calls a press
+   * with under 500 ms of voice a cancel, which took short words like 对不对; an
+   * empty press comes back with empty texts and shows nothing (probe). Never a
+   * clear: with speech in the buffer it breaks the next turn, and during a
+   * response it cuts that response off.
    */
   cancelTurn(): void {
-    if (!this.manual()) return;
-    if (this.busy) {
-      this.held = [];
-      this.releaseHeld = false;
-      return;
-    }
-    if (this.commit()) this.segments.cancel();
+    this.endTurn();
   }
 
   /** `session.finish`, framed, then the close before its first `await`: nothing waits for `session.finished`. */
@@ -195,9 +190,9 @@ class QwenLeg implements AdapterSession {
   }
 
   /** Ends the press on the wire, unless nothing went up since the last commit; the turn is busy until its `response.done`. */
-  private commit(): boolean {
+  private commit(): void {
     const ws = this.manual();
-    if (!ws || !this.appended) return false;
+    if (!ws || !this.appended) return;
     ws.send(JSON.stringify(COMMIT));
     this.frame('out', COMMIT.type);
     this.appended = false;
@@ -207,16 +202,14 @@ class QwenLeg implements AdapterSession {
       this.frame('out', 'session.turn_timeout', { afterMs: TURN_DONE_MS });
       this.turnDone();
     }, TURN_DONE_MS);
-    return true;
   }
 
-  /** The committed turn is done (`response.done`, or `TURN_DONE_MS` without it): the segments move on, and a held press goes up, its release after it. */
+  /** The committed turn is done (`response.done`, or `TURN_DONE_MS` without it): a held press goes up, its release after it. */
   private turnDone(): void {
     if (!this.busy) return;
     this.busy = false;
     this.cancelTurnWait?.();
     this.cancelTurnWait = null;
-    this.segments.turnDone();
     const ws = this.live();
     const held = this.held;
     this.held = [];

@@ -74,8 +74,8 @@ export function appendFrame(pcm: Int16Array): string {
 }
 
 /**
- * A push-to-talk release, and a cancel whose audio went up: the turn closes and
- * its response ends with `response.done`. Never `input_audio_buffer.clear`: with
+ * A push-to-talk release, and a cancel, which is one: the turn closes and its
+ * response ends with `response.done`. Never `input_audio_buffer.clear`: with
  * speech in the buffer it breaks the next turn, and during a response it cuts
  * that response off (probe 2026-10-14).
  */

@@ -71,7 +71,7 @@ passes.
 - **D4 Legs.** One independent session per leg (approach A). No `session.startBoth`.
 - **D5 Voices.** One list per leg: 47 presets plus "the speaker's own voice" (real-time clone),
   like Doubao AST 2.0's picker.
-- **D6 Turns.** `['auto', 'manual']`. Manual uses `commit` only, for a release and for a cancel alike, and serialises turns on `response.done` (§6, "Turns").
+- **D6 Turns.** `['auto', 'manual']`. Manual uses `commit` only: a cancel is a release, and turns are serialised on `response.done` (§6, "Turns").
 - **D7 Person labels.** Only the participant leg carries `person` (Soniox's rule).
 - **D8 No reconnect.** A drop fails the leg with `connection_lost`, as OpenAI Translate and AST2 do.
 - **D9 Flagged.** `flagged: true` with `testerSwitch: 'debug:qwen-livetranslate'`. Release builds
@@ -267,8 +267,8 @@ export interface QwenConfig {
 - `beginTurn()` does nothing.
 - `endTurn()` sends `input_audio_buffer.commit` in manual mode and does nothing in auto. A commit is never sent when nothing was appended since the last one: the server answers "no active inference" and then refuses every later append.
 - A committed turn is busy until its `response.done`; the server refuses audio meanwhile. Audio appended while busy is held and sent when the turn is done, followed by its release's commit if the press has already ended. If `response.done` does not come within `TURN_DONE_MS` (10 s), the held audio goes up anyway.
-- `cancelTurn()` never sends `input_audio_buffer.clear`. A press still held never reached the server, so it is discarded and nothing is sent. A press whose audio went up is committed, so the server ends its response normally, and the segments close what that turn holds and drop everything else it sends until its `response.done`.
-- The segments' turn ends at `response.done`, not at `committed`. Turns are serialised, so a turn's late items can never be taken for the next one.
+- `cancelTurn()` is a release (owner, 2026-10-14). The runner's voice gate calls a press with under 500 ms of voice a cancel, and in the live test that dropped short words such as 对不对. An empty press comes back with empty texts and shows nothing (probed: a 0.3 s tap, 0.4 s of silence). It never sends `input_audio_buffer.clear`.
+- Turns are serialised on `response.done`, so a turn's late items can never be taken for the next one's.
 
 **Stop.** Send `session.finish`, close the socket at once (the contract requires the close before the first await), and resolve. Anything still in flight is dropped, as `stop-silence` requires.
 

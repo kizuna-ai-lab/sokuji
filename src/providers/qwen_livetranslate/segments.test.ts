@@ -116,74 +116,6 @@ describe("Qwen LiveTranslate's segments (spec §6)", () => {
     expect(all[all.length - 1]).toEqual(['audio', { ref: 1, samples: 100 }]);
   });
 
-  it("a cancel closes what is open with what it holds, and nothing more of its turn is heard until the turn's response is done — a translation created after it included", () => {
-    const { s, seen } = segments();
-    s.heard('h1');
-    s.text('h1', 'source', 'half a');
-    s.answer('t0');
-    s.cancel();
-    s.text('h1', 'source', ' sentence');
-    s.done('h1', 'source', 'half a sentence');
-    s.text('t0', 'translation', 'late');
-    s.audio('t0', pcm());
-    s.answer('t1', 'h1');
-    s.text('t1', 'translation', 'Half a');
-    s.audio('t1', pcm());
-    s.done('t1', 'translation', 'Half a sentence.');
-    expect(seen()).toEqual([
-      ['segmentOpened', { ref: 1, side: 'source', origin: 'h1' }],
-      ['segmentText', { ref: 1, text: 'half a' }],
-      ['segmentClosed', { ref: 1 }],
-    ]);
-    // The cancelled turn's response is done: the next turn is heard as usual.
-    s.turnDone();
-    s.text('h2', 'source', 'next');
-    const all = seen();
-    expect(all[all.length - 1]).toEqual(['segmentText', { ref: 2, text: 'next' }]);
-  });
-
-  it("a cancel before the turn's first event arrives drops whatever the server sends for it until its response is done", () => {
-    const { s, log, seen } = segments();
-    s.cancel();
-    s.created('h1', { inputAudio: true, previous: null });
-    s.text('h1', 'source', 'too short');
-    s.answer('t1');
-    s.answer('t1', 'h1');
-    s.text('t1', 'translation', 'Too short');
-    s.audio('t1', pcm());
-    s.done('t1', 'translation', 'Too short.');
-    expect(log).toEqual([]);
-    s.turnDone();
-    s.text('h2', 'source', 'next turn');
-    expect(seen()).toEqual([
-      ['segmentOpened', { ref: 1, side: 'source', origin: 'h2' }],
-      ['segmentText', { ref: 1, text: 'next turn' }],
-    ]);
-  });
-
-  it('a turn lasts until its response is done: what it showed by then is its own, and a cancel of the next turn leaves it alone', () => {
-    const { s, seen } = segments();
-    s.heard('h1');
-    s.text('h1', 'source', 'first');
-    s.answer('t1', 'h1');
-    s.text('t1', 'translation', 'First.');
-    s.turnDone();
-    s.heard('h2');
-    s.text('h2', 'source', 'half');
-    s.cancel();
-    s.done('t1', 'translation', 'First.');
-    expect(seen()).toEqual([
-      ['segmentOpened', { ref: 1, side: 'source', origin: 'h1' }],
-      ['segmentText', { ref: 1, text: 'first' }],
-      ['segmentOpened', { ref: 2, side: 'translation', origin: 'h1' }],
-      ['segmentText', { ref: 2, text: 'First.' }],
-      ['segmentOpened', { ref: 3, side: 'source', origin: 'h2' }],
-      ['segmentText', { ref: 3, text: 'half' }],
-      ['segmentClosed', { ref: 3 }],
-      ['segmentClosed', { ref: 2 }],
-    ]);
-  });
-
   describe('karaoke: a phrase is the words before its audio (the recorded runs, 2026-10-14)', () => {
     it("fills a phrase once the next phrase's words come: its text tiled over the audio that followed it, by samples", () => {
       const { s, log } = segments();
@@ -267,19 +199,12 @@ describe("Qwen LiveTranslate's segments (spec §6)", () => {
       ]);
     });
 
-    it('states no ranges for a translation with no audio, nor for a cancelled one', () => {
-      const textOnly = segments();
-      textOnly.s.text('t1', 'translation', 'Hi.');
-      textOnly.s.done('t1', 'translation', 'Hi.');
-      textOnly.s.audioDone('t1');
-      expect(ranges(textOnly.log)).toEqual([]);
-
-      const cancelled = segments();
-      cancelled.s.text('t1', 'translation', 'Half');
-      cancelled.s.audio('t1', pcm(100));
-      cancelled.s.cancel();
-      cancelled.s.audioDone('t1');
-      expect(ranges(cancelled.log)).toEqual([]);
+    it('states no ranges for a translation with no audio', () => {
+      const { s, log } = segments();
+      s.text('t1', 'translation', 'Hi.');
+      s.done('t1', 'translation', 'Hi.');
+      s.audioDone('t1');
+      expect(ranges(log)).toEqual([]);
     });
   });
 
