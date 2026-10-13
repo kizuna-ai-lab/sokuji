@@ -298,10 +298,12 @@
     "langSentence": {
       "iSpeak": "أتحدث",
       "iRead": "أقرأ",
+      "iHear": "أسمع",
       "theyHear": "يسمعون",
       "theyRead": "يقرأون",
       "theySpeak": "يتحدثون",
-      "mirror": "يتحدثون {{their}} ← أقرأ {{mine}}"
+      "mirror": "يتحدثون {{their}} ← أقرأ {{mine}}",
+      "mirrorHear": "يتحدثون {{their}} ← أسمع {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "وضع وجهًا لوجه يستخدم دائمًا جلسة مشتركة واحدة: يتحدث الشخصان في الميكروفون نفسه.",
     "voiceTheyHear": "الصوت الذي يسمعه الطرف الآخر",

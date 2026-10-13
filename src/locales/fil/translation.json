@@ -298,10 +298,12 @@
     "langSentence": {
       "iSpeak": "Nagsasalita ako ng",
       "iRead": "Binabasa ko",
+      "iHear": "Naririnig ko",
       "theyHear": "naririnig nila sa",
       "theyRead": "binabasa nila sa",
       "theySpeak": "nagsasalita sila ng",
-      "mirror": "Nagsasalita sila ng {{their}} → binabasa ko sa {{mine}}"
+      "mirror": "Nagsasalita sila ng {{their}} → binabasa ko sa {{mine}}",
+      "mirrorHear": "Nagsasalita sila ng {{their}} → naririnig ko sa {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Laging iisang nakabahaging session ang gamit ng magkaharap na usapan: pareho silang nagsasalita sa iisang mikropono.",
     "voiceTheyHear": "Boses na naririnig ng kabilang panig",

@@ -298,10 +298,12 @@
     "langSentence": {
       "iSpeak": "Ik spreek",
       "iRead": "Ik lees",
+      "iHear": "Ik hoor",
       "theyHear": "horen zij",
       "theyRead": "lezen zij",
       "theySpeak": "spreken zij",
-      "mirror": "Zij spreken {{their}} → ik lees {{mine}}"
+      "mirror": "Zij spreken {{their}} → ik lees {{mine}}",
+      "mirrorHear": "Zij spreken {{their}} → ik hoor {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Face-to-face gebruikt altijd één gedeelde sessie: beide personen spreken in dezelfde microfoon.",
     "voiceTheyHear": "Stem die de ander hoort",

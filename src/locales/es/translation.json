@@ -298,10 +298,12 @@
     "langSentence": {
       "iSpeak": "Yo hablo",
       "iRead": "Yo leo",
+      "iHear": "Yo escucho",
       "theyHear": "ellos escuchan",
       "theyRead": "ellos leen",
       "theySpeak": "ellos hablan",
-      "mirror": "Ellos hablan {{their}} → yo leo {{mine}}"
+      "mirror": "Ellos hablan {{their}} → yo leo {{mine}}",
+      "mirrorHear": "Ellos hablan {{their}} → yo escucho {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "El modo cara a cara siempre usa una sesión compartida: las dos personas hablan al mismo micrófono.",
     "voiceTheyHear": "Voz que oye la otra parte",

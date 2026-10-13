@@ -22,8 +22,9 @@ interface LanguagePairSectionProps {
    * Today's sentence (ruling 4): "I speak / they hear", or the mode-aware
    * labels `pairSentence` returns, plus the "both" mirror line. Absent: the
    * plain `settings.sourceLanguage` / `settings.targetLanguage` labels.
+   * `participantSpeaks`: the other side's translation is read aloud to me ("I hear"); absent, it is not.
    */
-  sentence?: { mode: AudioMode; textOnly: boolean };
+  sentence?: { mode: AudioMode; textOnly: boolean; participantSpeaks?: boolean };
   /** Whether a run would speak (Stage 2 Volcengine AST2, choice 1): the lists are the offer for it. Absent: the provider's widest offer. */
   context?: LanguageContext;
 }
@@ -70,6 +71,7 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
     mode: sentence.mode,
     textOnly: effectiveTextOnly({ speakerLegRuns: sentence.mode !== 'participant', textOnly: sentence.textOnly }),
     capability: provider.speech === 'always' ? 'never' : provider.speech === 'never' ? 'always' : 'optional',
+    participantSpeaks: sentence.participantSpeaks ?? false,
     source: pair.source,
     target: pair.target,
   });
@@ -128,7 +130,7 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
       </div>
       {resolved?.showMirror && (
         <div className="language-mirror-line" data-testid="language-mirror-line">
-          {t('settings.langSentence.mirror', 'They speak {{their}} → I read {{mine}}', {
+          {t(resolved.mirror.key, resolved.mirror.fallback, {
             their: targetLanguageName,
             mine: sourceLanguageName,
           })}

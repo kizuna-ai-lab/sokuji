@@ -16,7 +16,7 @@ vi.mock('react-i18next', async (importOriginal) => {
 const draw = (
   pair: { source: string; target: string },
   onChange = vi.fn(),
-  extra: { sentence?: { mode: 'speaker' | 'participant' | 'both'; textOnly: boolean }; provider?: typeof fakeProvider } = {},
+  extra: { sentence?: { mode: 'speaker' | 'participant' | 'both'; textOnly: boolean; participantSpeaks?: boolean }; provider?: typeof fakeProvider } = {},
 ) => {
   render(
     <LanguagePairSection
@@ -119,6 +119,20 @@ describe('LanguagePairSection', () => {
       expect(screen.getByText('settings.langSentence.iRead')).toBeTruthy();
       expect(screen.getByText('settings.langSentence.theySpeak')).toBeTruthy();
       expect(screen.queryByTestId('language-mirror-line')).toBeNull();
+    });
+
+    it("'participant' with the other side's translation read to me: I hear / they speak", () => {
+      draw({ source: 'ja', target: 'en' }, undefined, { sentence: { mode: 'participant', textOnly: false, participantSpeaks: true } });
+      expect(screen.getByText('settings.langSentence.iHear')).toBeTruthy();
+      expect(screen.getByText('settings.langSentence.theySpeak')).toBeTruthy();
+    });
+
+    it("'both': the mirror line reads I hear while the other side's translation is read to me, else I read", () => {
+      draw({ source: 'ja', target: 'en' }, undefined, { sentence: { mode: 'both', textOnly: false, participantSpeaks: true } });
+      expect(screen.getByTestId('language-mirror-line').textContent).toBe('settings.langSentence.mirrorHear');
+      cleanup();
+      draw({ source: 'ja', target: 'en' }, undefined, { sentence: { mode: 'both', textOnly: false, participantSpeaks: false } });
+      expect(screen.getByTestId('language-mirror-line').textContent).toBe('settings.langSentence.mirror');
     });
 
     it("textOnly on an 'optional' provider: they read", () => {

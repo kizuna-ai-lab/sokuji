@@ -298,10 +298,12 @@
     "langSentence": {
       "iSpeak": "Jag talar",
       "iRead": "Jag läser",
+      "iHear": "Jag hör",
       "theyHear": "de hör",
       "theyRead": "de läser",
       "theySpeak": "de talar",
-      "mirror": "De talar {{their}} → jag läser {{mine}}"
+      "mirror": "De talar {{their}} → jag läser {{mine}}",
+      "mirrorHear": "De talar {{their}} → jag hör {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Ansikte mot ansikte använder alltid en delad session: båda talar i samma mikrofon.",
     "voiceTheyHear": "Röst som motparten hör",

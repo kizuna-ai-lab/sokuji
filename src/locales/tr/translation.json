@@ -298,10 +298,12 @@
     "langSentence": {
       "iSpeak": "Ben konuşuyorum",
       "iRead": "Ben okuyorum",
+      "iHear": "Ben duyuyorum",
       "theyHear": "onlar duyuyor",
       "theyRead": "onlar okuyor",
       "theySpeak": "onlar konuşuyor",
-      "mirror": "Onlar {{their}} konuşuyor → ben {{mine}} okuyorum"
+      "mirror": "Onlar {{their}} konuşuyor → ben {{mine}} okuyorum",
+      "mirrorHear": "Onlar {{their}} konuşuyor → ben {{mine}} duyuyorum"
     },
     "sonioxSharedSessionFaceToFace": "Yüz yüze modu her zaman tek bir paylaşılan oturum kullanır: iki kişi de aynı mikrofona konuşur.",
     "voiceTheyHear": "Karşı tarafın duyduğu ses",

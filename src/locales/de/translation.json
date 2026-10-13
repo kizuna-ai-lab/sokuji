@@ -298,10 +298,12 @@
     "langSentence": {
       "iSpeak": "Ich spreche",
       "iRead": "Ich lese",
+      "iHear": "Ich höre",
       "theyHear": "sie hören",
       "theyRead": "sie lesen",
       "theySpeak": "sie sprechen",
-      "mirror": "Sie sprechen {{their}} → ich lese {{mine}}"
+      "mirror": "Sie sprechen {{their}} → ich lese {{mine}}",
+      "mirrorHear": "Sie sprechen {{their}} → ich höre {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Bei Gesprächen von Angesicht zu Angesicht wird immer eine gemeinsame Sitzung verwendet: Beide sprechen in dasselbe Mikrofon.",
     "voiceTheyHear": "Stimme, die das Gegenüber hört",
