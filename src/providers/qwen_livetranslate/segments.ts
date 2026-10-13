@@ -100,8 +100,8 @@ export class QwenSegments {
   text(itemId: string, side: Side, delta: string): void {
     const it = this.item(itemId, side);
     if (!it || it.closed) return;
-    // Words after the phrase's audio begin the next phrase: the one before is whole.
-    if (side === 'translation' && it.samples.length > it.phraseAudio && it.shown.length > it.phraseText) this.fill(it);
+    // Words after the phrase's audio begin the next phrase: the one before is whole. A blank delta adds no word.
+    if (side === 'translation' && delta.trim() !== '' && it.samples.length > it.phraseAudio && it.shown.length > it.phraseText) this.fill(it);
     it.text += delta;
     this.show(itemId, it);
   }

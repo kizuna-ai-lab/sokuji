@@ -239,6 +239,23 @@ describe("Qwen LiveTranslate's segments (spec §6)", () => {
       expect(ranges(audioFirst.log)).toEqual([{ ref: 1, ranges: [{ index: 0, range: [0, 9] }] }]);
     });
 
+    it('a whitespace-only delta does not end a phrase: the audio after it still speaks the words before it (seen: `" voice can"` `" "` `"make"`)', () => {
+      const { s, log } = segments();
+      s.text('t1', 'translation', 'Hello');
+      s.audio('t1', pcm(300));
+      s.text('t1', 'translation', ' ');
+      s.audio('t1', pcm(100));
+      expect(ranges(log)).toEqual([]);
+      s.text('t1', 'translation', 'world');
+      s.audio('t1', pcm(100));
+      s.done('t1', 'translation', 'Hello world');
+      s.audioDone('t1');
+      expect(ranges(log)).toEqual([
+        { ref: 1, ranges: [{ index: 0, range: [0, 4] }, { index: 1, range: [4, 5] }] },
+        { ref: 1, ranges: [{ index: 2, range: [5, 11] }] },
+      ]);
+    });
+
     it('audio before any words joins the first phrase', () => {
       const { s, log } = segments();
       s.audio('t1', pcm(100));
