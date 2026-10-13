@@ -111,9 +111,57 @@ function resolvePortIds(dump, nodeId, direction) {
     .map((o) => o.id);
 }
 
+/**
+ * The top-level JSON values in `text`, in order. Like JSON.parse, it throws on
+ * anything but whitespace between them, and on text with no value at all.
+ */
+function parseJsonValues(text) {
+  const values = [];
+  let depth = 0;
+  let start = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (c === '\\') escaped = true;
+      else if (c === '"') inString = false;
+    } else if (depth === 0 && c !== '[' && c !== '{') {
+      if (!/\s/.test(c)) throw new SyntaxError(`Unexpected "${c}" between JSON values at position ${i}`);
+    } else if (c === '"') {
+      inString = true;
+    } else if (c === '[' || c === '{') {
+      if (depth++ === 0) start = i;
+    } else if (c === ']' || c === '}') {
+      if (--depth === 0) values.push(JSON.parse(text.slice(start, i + 1)));
+    }
+  }
+  if (depth !== 0 || inString || values.length === 0) throw new SyntaxError('Unexpected end of JSON input');
+  return values;
+}
+
+/**
+ * The graph, as one array of objects.
+ *
+ * pw-dump prints the graph once, but every object it knew of that goes away
+ * while it runs gets an array of its own - `[{ "id": 47, "info": null }]` -
+ * printed before the graph or after it. Each `pactl` call is a client coming
+ * and going, so on a live desktop most runs carry one. Read the arrays in
+ * order: an entry with a type is an object, one without is the removal of
+ * that id. Order matters because PipeWire hands a freed id to the next object.
+ */
 async function dumpGraph(exec) {
   const { stdout } = await exec('pw-dump');
-  return JSON.parse(stdout);
+  const values = parseJsonValues(stdout);
+  if (values.length === 1) return values[0];
+
+  const byId = new Map();
+  for (const entry of values.flat()) {
+    if (entry?.type) byId.set(entry.id, entry);
+    else byId.delete(entry?.id);
+  }
+  return [...byId.values()];
 }
 
 function findNodeByName(dump, name) {
