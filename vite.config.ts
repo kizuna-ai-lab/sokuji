@@ -163,6 +163,7 @@ export default defineConfig(({ command, mode }) => {
             'popover-windows': 'electron/popover-windows.js',
             'transcript-save': 'electron/transcript-save.js',
             'close-handshake': 'electron/close-handshake.js',
+            'exit-handler': 'electron/exit-handler.js',
             'update-manager': 'electron/update-manager.js',
             'update-payload': 'electron/update-payload.js',
             'window-caption-dblclick': 'electron/window-caption-dblclick.js',

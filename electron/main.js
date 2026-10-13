@@ -11,6 +11,10 @@ const { createCloseHandshake } = require('./close-handshake.js');
 const { createWsHeaderRules } = require('./ws-header-rules.js');
 const { applyLinuxGpuFlags } = require('./linux-gpu-flags');
 const { acquireSingleInstanceLock, createFocusRelay } = require('./single-instance');
+const { ignoreStdioErrors, createExitHandler } = require('./exit-handler');
+
+// Before anything logs: a stdout nobody reads any more must not crash the app.
+ignoreStdioErrors();
 
 // Let the Windows sandbox read our own install folder before Electron checks it
 // and aborts (issue #352; electron/electron#54382). Runs ahead of the Squirrel
@@ -626,17 +630,8 @@ const cleanupAndExit = () => {
   console.log('[Sokuji] [Main] Virtual audio devices cleaned up successfully');
 };
 
-// Create a more robust exit handler that ensures cleanup happens
-const handleExit = (signal) => {
-  console.log(`[Sokuji] [Main] Received ${signal} signal. Ensuring cleanup before exit...`);
-  
-  // Perform cleanup synchronously
-  cleanupAndExit();
-  
-  // Exit with appropriate code
-  const exitCode = signal === 'SIGINT' || signal === 'SIGTERM' ? 0 : 1;
-  process.exit(exitCode);
-};
+// Cleans up synchronously, then exits; once, however many times it is called.
+const handleExit = createExitHandler({ cleanup: cleanupAndExit });
 
 // Register cleanup with before-quit — but not while the close handshake holds
 // the quit for the renderer to end its session: cleanup stops the native host
