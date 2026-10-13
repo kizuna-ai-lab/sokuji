@@ -1171,7 +1171,7 @@
       },
       "two-way-voice": {
         "title": "Conversa on-line em dois sentidos",
-        "desc": "Eles ouvem sua voz traduzida; você lê as legendas geradas a partir do que eles dizem."
+        "desc": "Eles ouvem sua voz traduzida; você lê a deles nas legendas e também pode ouvi-la."
       },
       "two-way-text": {
         "title": "Conversa on-line em dois sentidos, somente legendas",

@@ -1171,7 +1171,7 @@
       },
       "two-way-voice": {
         "title": "Kaksisuuntainen verkkokeskustelu",
-        "desc": "He kuulevat käännetyn äänesi; luet tekstityksiä siitä, mitä he sanovat."
+        "desc": "He kuulevat käännetyn äänesi; sinä luet heidän käännöksensä tekstityksenä ja voit myös kuulla sen."
       },
       "two-way-text": {
         "title": "Kaksisuuntainen verkkokeskustelu, vain tekstitys",

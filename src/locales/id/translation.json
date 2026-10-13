@@ -1171,7 +1171,7 @@
       },
       "two-way-voice": {
         "title": "Percakapan online dua arah",
-        "desc": "Mereka mendengar suara terjemahan Anda; Anda membaca subtitle yang dihasilkan dari apa yang mereka katakan."
+        "desc": "Mereka mendengar suara terjemahan Anda; Anda membaca terjemahan mereka sebagai subtitle dan juga bisa mendengarnya."
       },
       "two-way-text": {
         "title": "Percakapan online dua arah, hanya subtitle",

@@ -1171,7 +1171,7 @@
       },
       "two-way-voice": {
         "title": "Online gesprek in twee richtingen",
-        "desc": "Zij horen uw vertaalde stem; u leest ondertiteling die wordt gegenereerd van wat zij zeggen."
+        "desc": "Zij horen uw vertaalde stem; u leest de hunne als ondertiteling en kunt die ook horen."
       },
       "two-way-text": {
         "title": "Online gesprek in twee richtingen, alleen ondertiteling",
