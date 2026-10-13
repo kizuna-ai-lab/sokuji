@@ -37,4 +37,11 @@ describe('StepScenario', () => {
     expect(faceToFaceText().textContent).toContain('Both read the same screen.');
     expect(faceToFaceText().textContent).not.toContain('LAN');
   });
+
+  it("says the two-way voice card reads the other side to me, as its preset turns Translation I hear on", () => {
+    render(<StepScenario draft={initialDraft()} dispatch={vi.fn()} />);
+    const card = screen.getByText('Two-way online conversation').closest('label') as HTMLElement;
+    expect(card.textContent).toContain('you hear theirs');
+    expect(card.textContent).not.toContain('you read subtitles generated');
+  });
 });

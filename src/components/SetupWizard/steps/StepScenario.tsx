@@ -22,7 +22,7 @@ const DESCS: Record<string, string> = {
   'understand-others': 'Online meetings, classes, talks, videos, streams — read a live translation of what you hear.',
   'be-heard': 'They hear your translated voice through a virtual microphone.',
   'subtitle-myself': 'Talks, streams, presentations — your audience reads translated subtitles; no audio is generated.',
-  'two-way-voice': 'They hear your translated voice; you read subtitles generated from what they say.',
+  'two-way-voice': 'They hear your translated voice; you hear theirs and read it as subtitles.',
   'two-way-text': 'Bilingual captions, meeting minutes — both sides as text, no synthetic voice.',
   'face-to-face-voice': 'Two people at one computer, each speaking their own language; each wears one earbud and hears only the translation into their language.',
   'face-to-face-text': 'Both read the same screen, or the other person opens the LAN caption page on their phone.',

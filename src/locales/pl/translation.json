@@ -1171,7 +1171,7 @@
       },
       "two-way-voice": {
         "title": "Dwukierunkowa rozmowa online",
-        "desc": "Rozmówca słyszy Twój przetłumaczony głos; Ty czytasz napisy wygenerowane z tego, co mówi rozmówca."
+        "desc": "Rozmówca słyszy Twój przetłumaczony głos; Ty słyszysz jego przetłumaczony głos i czytasz go w napisach."
       },
       "two-way-text": {
         "title": "Dwukierunkowa rozmowa online, tylko napisy",

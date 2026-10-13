@@ -1171,7 +1171,7 @@
       },
       "two-way-voice": {
         "title": "Conversa online bidirecional",
-        "desc": "Ouvem a sua voz traduzida; lê legendas geradas a partir do que dizem."
+        "desc": "Ouvem a sua voz traduzida; ouve a deles e lê-a nas legendas."
       },
       "two-way-text": {
         "title": "Conversa online bidirecional, apenas legendas",

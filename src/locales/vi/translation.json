@@ -1171,7 +1171,7 @@
       },
       "two-way-voice": {
         "title": "Trò chuyện trực tuyến hai chiều",
-        "desc": "Họ nghe giọng nói đã dịch của bạn; bạn đọc phụ đề được tạo từ những gì họ nói."
+        "desc": "Họ nghe giọng nói đã dịch của bạn; bạn nghe giọng nói đã dịch của họ và đọc phụ đề."
       },
       "two-way-text": {
         "title": "Trò chuyện trực tuyến hai chiều, chỉ phụ đề",

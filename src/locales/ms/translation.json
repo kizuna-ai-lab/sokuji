@@ -1171,7 +1171,7 @@
       },
       "two-way-voice": {
         "title": "Perbualan dalam talian dua hala",
-        "desc": "Mereka mendengar suara terjemahan anda; anda membaca sari kata yang dijana daripada apa yang mereka katakan."
+        "desc": "Mereka mendengar suara terjemahan anda; anda mendengar suara terjemahan mereka dan membacanya sebagai sari kata."
       },
       "two-way-text": {
         "title": "Perbualan dalam talian dua hala, sari kata sahaja",

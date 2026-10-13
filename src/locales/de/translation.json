@@ -1171,7 +1171,7 @@
       },
       "two-way-voice": {
         "title": "Zweiseitiges Online-Gespräch",
-        "desc": "Ihr Gegenüber hört Ihre übersetzte Stimme; Sie lesen Untertitel aus dem, was Ihr Gegenüber sagt."
+        "desc": "Ihr Gegenüber hört Ihre übersetzte Stimme; Sie hören die übersetzte Stimme Ihres Gegenübers und lesen sie als Untertitel."
       },
       "two-way-text": {
         "title": "Zweiseitiges Online-Gespräch, nur Untertitel",

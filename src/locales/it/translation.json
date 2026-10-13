@@ -1171,7 +1171,7 @@
       },
       "two-way-voice": {
         "title": "Conversazione online bidirezionale",
-        "desc": "Loro sentono la tua voce tradotta; tu leggi i sottotitoli generati da quello che dicono."
+        "desc": "Loro sentono la tua voce tradotta; tu senti la loro e la leggi nei sottotitoli."
       },
       "two-way-text": {
         "title": "Conversazione online bidirezionale, solo sottotitoli",

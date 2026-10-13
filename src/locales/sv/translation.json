@@ -1171,7 +1171,7 @@
       },
       "two-way-voice": {
         "title": "Tvåvägs onlinesamtal",
-        "desc": "De hör din översatta röst; du läser undertexter som genereras utifrån det de säger."
+        "desc": "De hör din översatta röst; du hör deras och läser den som undertexter."
       },
       "two-way-text": {
         "title": "Tvåvägs onlinesamtal, endast undertexter",
