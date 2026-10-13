@@ -1182,7 +1182,8 @@
       },
       "face-to-face-text": {
         "title": "Face-to-facegesprek, alleen ondertiteling",
-        "desc": "Beiden lezen hetzelfde scherm, of de ander opent de LAN-ondertitelpagina op de eigen telefoon."
+        "desc": "Beiden lezen hetzelfde scherm, of de ander opent de LAN-ondertitelpagina op de eigen telefoon.",
+        "descScreenOnly": "Beiden lezen hetzelfde scherm."
       }
     },
     "output": {

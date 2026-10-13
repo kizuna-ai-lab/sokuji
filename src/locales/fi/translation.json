@@ -1182,7 +1182,8 @@
       },
       "face-to-face-text": {
         "title": "Keskustelu kasvokkain, vain tekstitys",
-        "desc": "Molemmat lukevat samaa ruutua, tai toinen avaa LAN-tekstityssivun puhelimellaan."
+        "desc": "Molemmat lukevat samaa ruutua, tai toinen avaa LAN-tekstityssivun puhelimellaan.",
+        "descScreenOnly": "Molemmat lukevat samaa ruutua."
       }
     },
     "output": {

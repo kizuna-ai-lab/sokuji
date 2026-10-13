@@ -1182,7 +1182,8 @@
       },
       "face-to-face-text": {
         "title": "Conversazione faccia a faccia, solo sottotitoli",
-        "desc": "Entrambi leggono lo stesso schermo, oppure l'altro apre la pagina dei sottotitoli LAN sul telefono."
+        "desc": "Entrambi leggono lo stesso schermo, oppure l'altro apre la pagina dei sottotitoli LAN sul telefono.",
+        "descScreenOnly": "Entrambi leggono lo stesso schermo."
       }
     },
     "output": {

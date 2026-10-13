@@ -1182,7 +1182,8 @@
       },
       "face-to-face-text": {
         "title": "Percakapan tatap muka, hanya subtitle",
-        "desc": "Keduanya membaca layar yang sama, atau lawan bicara membuka halaman subtitle LAN di ponselnya."
+        "desc": "Keduanya membaca layar yang sama, atau lawan bicara membuka halaman subtitle LAN di ponselnya.",
+        "descScreenOnly": "Keduanya membaca layar yang sama."
       }
     },
     "output": {

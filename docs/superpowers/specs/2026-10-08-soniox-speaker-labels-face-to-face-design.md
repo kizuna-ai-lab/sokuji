@@ -117,6 +117,10 @@ participant leg) as well as on every shared socket. The speaker leg's config is 
   Soniox numbers from 1 again on a new socket and cannot say who is who across sockets.
 - Translation tokens carry `speaker` too (spike: every one); the translation segment takes the
   utterance's label.
+- Amended 2026-10-13, after the merge: shared Both's speaker leg carries no `person`. The socket
+  still diarizes for the side tracker, but that leg is me, so a second label there (a
+  misattribution, or a resume's new epoch) would number me as two people. Split Both's speaker
+  socket never diarizes, so the two modes now agree.
 
 ### L1 and L2
 
