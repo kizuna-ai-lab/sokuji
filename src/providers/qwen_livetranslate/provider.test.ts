@@ -14,13 +14,11 @@ const release = (platform: PresenceEnv['platform'], patch: Partial<PresenceEnv> 
 const offered = (env: PresenceEnv) => presentProviders(env).map((p) => p.id);
 
 describe('the Qwen LiveTranslate definition (spec §1)', () => {
-  it('is Qwen LiveTranslate with your own key, flagged behind its tester switch, on the desktop app and the extension only', () => {
+  it('is Qwen LiveTranslate with your own key, unflagged, on the desktop app and the extension only', () => {
     expect(qwenLiveTranslateProvider).toMatchObject({
       id: 'qwen_livetranslate',
       kind: 'own-key',
       platforms: ['electron', 'extension'],
-      flagged: true,
-      testerSwitch: 'debug:qwen-livetranslate',
       icon: QwenIcon,
       settings: { key: 'qwenLiveTranslate', defaults: QWEN_DEFAULTS },
       Settings: QwenSettingsView,
@@ -35,7 +33,7 @@ describe('the Qwen LiveTranslate definition (spec §1)', () => {
     });
     expect(qwenLiveTranslateProvider.settings).not.toHaveProperty('legacyKeys');
     expect(qwenLiveTranslateProvider.settings).not.toHaveProperty('migrate');
-    for (const absent of ['guideUrl', 'session', 'participantSpeech', 'faceToFace'] as const) {
+    for (const absent of ['flagged', 'testerSwitch', 'guideUrl', 'session', 'participantSpeech', 'faceToFace'] as const) {
       expect(qwenLiveTranslateProvider, absent).not.toHaveProperty(absent);
     }
   });
@@ -47,12 +45,10 @@ describe('the Qwen LiveTranslate definition (spec §1)', () => {
     expect(qwenLiveTranslateProvider.turns(QWEN_DEFAULTS)).toEqual(['auto', 'manual']);
   });
 
-  it("a release offers it only on its tester's switch or when the release lists it; development builds offer it; the web never does", () => {
+  it('a release offers it on the desktop app and the extension, with no switch and no listing; the web never does', () => {
     for (const platform of ['electron', 'extension'] as const) {
-      expect(offered(release(platform)), platform).not.toContain('qwen_livetranslate');
-      expect(offered(release(platform, { switchOn: (key) => key === 'debug:qwen-livetranslate' })), platform).toContain('qwen_livetranslate');
-      expect(offered(release(platform, { enabled: new Set(['qwen_livetranslate']) })), platform).toContain('qwen_livetranslate');
-      expect(offered(release(platform, { dev: true })), platform).toContain('qwen_livetranslate');
+      expect(offered(release(platform)), platform).toContain('qwen_livetranslate');
+      expect(offered(release(platform, { kizuna: false })), platform).toContain('qwen_livetranslate');
     }
     expect(offered(release('web', { dev: true, enabled: new Set(['qwen_livetranslate']), switchOn: () => true }))).not.toContain('qwen_livetranslate');
   });

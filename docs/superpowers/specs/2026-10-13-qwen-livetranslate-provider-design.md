@@ -3,7 +3,7 @@
 **Date**: 2026-10-13
 **Status**: Approved section by section in chat (owner, 2026-10-13); written spec pending review.
 **Scope**: a new own-key provider, `qwen_livetranslate`, for Alibaba's
-`qwen3.8-livetranslate-flash-realtime`, both legs (mine and the other party's), flagged.
+`qwen3.8-livetranslate-flash-realtime`, both legs (mine and the other party's). Flagged at first; unflagged by the owner on 2026-10-14 (D9).
 **Issue**: kizuna-ai-lab/sokuji#620.
 **Evidence**: live-API probes on 2026-10-13 against the owner's QwenCloud and 千问云 keys, about
 $0.1 in all. Scripts and full records are in `~/Desktop/kizunaai/qwen-livetranslate-probe-2026-10-13/`
@@ -19,9 +19,9 @@ A user with their own Qwen API key picks **Qwen LiveTranslate**. Each leg, mine 
 party's, opens its own Qwen realtime session and gets streamed source text, translated text and,
 when the leg speaks, the translated voice in a preset voice or in the speaker's own cloned voice.
 Push-to-talk works. The key may come from QwenCloud (international) or 千问云 (mainland China);
-the provider detects which. It runs on the desktop app and the browser extension. It ships
-**flagged**: present in development builds and behind a tester switch until the owner's live test
-passes.
+the provider detects which. It runs on the desktop app and the browser extension. It was built
+**flagged** (development builds and a tester switch only); the owner unflagged it after his live
+test on 2026-10-14 (D9).
 
 **Out of scope:**
 - managed (Kizuna-billed) Qwen;
@@ -74,8 +74,7 @@ passes.
 - **D6 Turns.** `['auto', 'manual']`. Manual uses `commit` only: a cancel is a release, and turns are serialised on `response.done` (§6, "Turns").
 - **D7 Person labels.** Only the participant leg carries `person` (Soniox's rule).
 - **D8 No reconnect.** A drop fails the leg with `connection_lost`, as OpenAI Translate and AST2 do.
-- **D9 Flagged.** `flagged: true` with `testerSwitch: 'debug:qwen-livetranslate'`. Release builds
-  hide it until the id joins `VITE_ENABLED_PROVIDERS` or the flag goes.
+- **D9 Flagged, then unflagged.** It shipped `flagged: true` with `testerSwitch: 'debug:qwen-livetranslate'`. The owner unflagged it after his live test (2026-10-14), so the flag and the switch are gone and release builds offer it on the desktop app and the extension. It still has no `guideUrl`: the site has no Qwen tutorial yet.
 
 ## 1. Definition — `src/providers/qwen_livetranslate/provider.ts`
 
@@ -84,8 +83,6 @@ passes.
   id: 'qwen_livetranslate',
   kind: 'own-key',
   platforms: ['electron', 'extension'],
-  flagged: true,
-  testerSwitch: 'debug:qwen-livetranslate',
   icon: QwenIcon,
   settings: { key: 'qwenLiveTranslate', defaults: QWEN_DEFAULTS },  // no legacyKeys, no migrate beyond defaults
   Settings: QwenSettingsView,
@@ -373,7 +370,7 @@ export interface QwenConfig {
   - Defaults are distinct presets.
 - **`provider.test.ts`**:
   - Present on electron and extension, absent on web.
-  - Hidden in a release build and present in dev and with the tester switch.
+  - Present in a release build with no switch and no listing, since it was unflagged (D9).
   - Its place in the order.
 - **`QwenSettings.test.tsx`**:
   - The clone row first.
@@ -382,7 +379,7 @@ export interface QwenConfig {
   - The storefront line.
 - **Registry, sessionSide, manifest and locales consistency tests** as in §8–§10.
 
-**Owner's live test.** Run it once on a dev build or with the tester switch:
+**Owner's live test.** Run it once (on a dev build while it was flagged):
 1. With the international key and then the mainland key, the check shows the right storefront.
 2. Each language direction works: mine to another, and the other party's back.
 3. Both legs speak, in distinct preset voices.

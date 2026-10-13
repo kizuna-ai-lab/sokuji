@@ -16,14 +16,12 @@ const adapter = createQwenAdapter({ openHeaderSocket: platformHeaderSocket, dete
  * storefront the key belongs to — QwenCloud or 千问云, which the check finds.
  * Its socket needs an `Authorization` header, which only the desktop app and
  * the extension can set (the header seam), so it has no web build (D3).
- * Flagged until the owner's live test passes (D9).
+ * Unflagged by the owner after his live test (2026-10-14; D9).
  */
 export const qwenLiveTranslateProvider: Provider<QwenSettings, QwenCredentials, QwenConfig> & { id: 'qwen_livetranslate' } = {
   id: 'qwen_livetranslate',
   kind: 'own-key',
   platforms: ['electron', 'extension'],
-  flagged: true,
-  testerSwitch: 'debug:qwen-livetranslate',
   icon: QwenIcon,
 
   settings: { key: 'qwenLiveTranslate', defaults: QWEN_DEFAULTS },
