@@ -1182,7 +1182,8 @@
       },
       "face-to-face-text": {
         "title": "Gespräch von Angesicht zu Angesicht, nur Untertitel",
-        "desc": "Beide lesen denselben Bildschirm, oder das Gegenüber öffnet die LAN-Untertitelseite auf dem Smartphone."
+        "desc": "Beide lesen denselben Bildschirm, oder das Gegenüber öffnet die LAN-Untertitelseite auf dem Smartphone.",
+        "descScreenOnly": "Beide lesen denselben Bildschirm."
       }
     },
     "output": {

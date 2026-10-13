@@ -1182,7 +1182,8 @@
       },
       "face-to-face-text": {
         "title": "Conversa cara a cara, somente legendas",
-        "desc": "Os dois leem a mesma tela, ou o outro abre a página de legendas LAN no celular."
+        "desc": "Os dois leem a mesma tela, ou o outro abre a página de legendas LAN no celular.",
+        "descScreenOnly": "Os dois leem a mesma tela."
       }
     },
     "output": {

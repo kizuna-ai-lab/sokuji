@@ -1182,7 +1182,8 @@
       },
       "face-to-face-text": {
         "title": "Samtal ansikte mot ansikte, endast undertexter",
-        "desc": "Båda läser samma skärm, eller så öppnar den andra LAN-undertextsidan på sin telefon."
+        "desc": "Båda läser samma skärm, eller så öppnar den andra LAN-undertextsidan på sin telefon.",
+        "descScreenOnly": "Båda läser samma skärm."
       }
     },
     "output": {

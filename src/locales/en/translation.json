@@ -787,7 +787,8 @@
       },
       "face-to-face-text": {
         "title": "Face-to-face conversation, subtitles only",
-        "desc": "Both read the same screen, or the other person opens the LAN caption page on their phone."
+        "desc": "Both read the same screen, or the other person opens the LAN caption page on their phone.",
+        "descScreenOnly": "Both read the same screen."
       }
     },
     "output": {

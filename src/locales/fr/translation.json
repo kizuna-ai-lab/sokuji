@@ -1182,7 +1182,8 @@
       },
       "face-to-face-text": {
         "title": "Conversation en face à face, sous-titres uniquement",
-        "desc": "Les deux lisent le même écran, ou l'autre ouvre la page de sous-titres LAN sur son téléphone."
+        "desc": "Les deux lisent le même écran, ou l'autre ouvre la page de sous-titres LAN sur son téléphone.",
+        "descScreenOnly": "Les deux lisent le même écran."
       }
     },
     "output": {
