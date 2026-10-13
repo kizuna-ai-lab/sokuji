@@ -49,6 +49,10 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   mic_lost_using_other: 'The microphone “{{lost}}” went away, so “{{device}}” is being used instead.',
   mic_lost_waiting: 'The microphone went away. Translation of your speech resumes when a microphone is connected.',
   mic_now_using: 'Now using the microphone “{{device}}”.',
+  // A Windows microphone that would not open at Start (spec 2026-10-13 §3).
+  mic_in_use: 'The microphone “{{device}}” is in use by {{apps}}. Close {{apps}} and start again, or choose another microphone.',
+  mic_unreadable: 'Windows could not open the microphone “{{device}}”. Another app may be holding it, or its driver stopped responding. Close apps that use it or reconnect it, then start again.',
+  mic_blocked: 'Windows is not letting Sokuji use the microphone. Turn on microphone access for desktop apps in Settings › Privacy & security › Microphone, then start again.',
   no_microphone: 'Configure devices for this mode to start.',
   // Readiness (a provider's check).
   local_models_missing: 'Please download the required models in Settings to start.',
@@ -70,6 +74,10 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   transcription_failed: 'Some speech could not be transcribed: {{detail}}',
   translation_failed: 'A translation failed: {{detail}}',
   translation_unavailable: 'No translation model for this direction: its speech is transcribed only.',
+  // A leg that should speak but cannot (#619).
+  speaker_tts_missing: 'Translation the other side hears is text only: no speech model speaks {{target}}.',
+  participant_tts_missing: 'Translation I hear is text only: no speech model speaks {{target}}.',
+  participant_tts_over_budget: "Translation I hear is text only: not enough memory to load the other side's speech model too.",
 };
 
 /**

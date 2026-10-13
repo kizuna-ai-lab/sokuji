@@ -58,6 +58,7 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
   const legs = useProviderStore((s) => s.legs);
+  const speechParticipant = useProviderStore((s) => s.speech.participantSpeech);
   const selection = useSelectedProvider(providers);
   const [dismissedTutorials, setDismissedTutorials] = useState<Set<string>>(readDismissedTutorials);
   // Whether this runtime renders customizable selects (appearance:
@@ -214,7 +215,13 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
         />
       ))}
       {openSlot && provider.EngineSummary && entry && (
-        <provider.EngineSummary {...ownProps(selection, entry, disabled)} legs={legs} openSlot={openSlot} />
+        <provider.EngineSummary
+          {...ownProps(selection, entry, disabled)}
+          legs={legs}
+          // As ProviderOwnSettings hands Settings: the switch, unless the provider never speaks the participant.
+          participantSpeaks={provider.participantSpeech !== false && speechParticipant}
+          openSlot={openSlot}
+        />
       )}
       {provider.guideUrl && !dismissedTutorials.has(provider.id) && (
         <div className="tutorial-link">

@@ -298,10 +298,12 @@
     "langSentence": {
       "iSpeak": "Jag talar",
       "iRead": "Jag läser",
+      "iHear": "Jag hör",
       "theyHear": "de hör",
       "theyRead": "de läser",
       "theySpeak": "de talar",
-      "mirror": "De talar {{their}} → jag läser {{mine}}"
+      "mirror": "De talar {{their}} → jag läser {{mine}}",
+      "mirrorHear": "De talar {{their}} → jag hör {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Ansikte mot ansikte använder alltid en delad session: båda talar i samma mikrofon.",
     "voiceTheyHear": "Röst som motparten hör",
@@ -1192,7 +1194,8 @@
       },
       "face-to-face-text": {
         "title": "Samtal ansikte mot ansikte, endast undertexter",
-        "desc": "Båda läser samma skärm, eller så öppnar den andra LAN-undertextsidan på sin telefon."
+        "desc": "Båda läser samma skärm, eller så öppnar den andra LAN-undertextsidan på sin telefon.",
+        "descScreenOnly": "Båda läser samma skärm."
       }
     },
     "output": {
@@ -1369,7 +1372,13 @@
     "loopback_denied": "Den andras ljud kräver behörighet för skärminspelning för att fånga systemljud.",
     "mic_lost_using_other": "Mikrofonen ”{{lost}}” kopplades från, så ”{{device}}” används i stället.",
     "mic_lost_waiting": "Mikrofonen kopplades från. Översättningen av ditt tal fortsätter när en mikrofon ansluts.",
-    "mic_now_using": "Nu används mikrofonen ”{{device}}”."
+    "mic_now_using": "Nu används mikrofonen ”{{device}}”.",
+    "mic_in_use": "Mikrofonen ”{{device}}” används av {{apps}}. Stäng {{apps}} och starta igen, eller välj en annan mikrofon.",
+    "mic_unreadable": "Windows kunde inte öppna mikrofonen ”{{device}}”. En annan app kanske använder den, eller så svarar inte dess drivrutin. Stäng appar som använder den eller anslut den igen och starta sedan igen.",
+    "mic_blocked": "Windows låter inte Sokuji använda mikrofonen. Aktivera mikrofonåtkomst för skrivbordsappar under Inställningar › Sekretess och säkerhet › Mikrofon och starta sedan igen.",
+    "speaker_tts_missing": "Översättning som motparten hör visas bara som text: ingen talmodell talar {{target}}.",
+    "participant_tts_missing": "Översättning som jag hör visas bara som text: ingen talmodell talar {{target}}.",
+    "participant_tts_over_budget": "Översättning som jag hör visas bara som text: inte tillräckligt med minne för att även läsa in motpartens talmodell."
   },
   "viewer": {
     "title": "Sokuji-undertexter",

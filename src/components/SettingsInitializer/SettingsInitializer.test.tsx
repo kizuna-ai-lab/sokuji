@@ -1,7 +1,7 @@
 /**
  * SettingsInitializer after the switch (plan 1e-3b-2 ruling 10): its two
  * remaining jobs — LocalInference's first model scan, and an Edge TTS voice
- * that matches the target language, written through the provider store. The
+ * that matches each speaking direction's target language, written through the provider store. The
  * old gate and slice it had to stay clear of (ruling 11) went with the old
  * descriptor (Stage 2 deletion, ruling 3).
  */
@@ -17,11 +17,12 @@ vi.mock('../../services/ServiceFactory', () => ({
   },
 }));
 
-// Two Japanese voices; the filter is the real one.
+// Japanese and English voices; the filter is the real one.
 const edge = vi.hoisted(() => ({
   voices: vi.fn(async () => [
     { ShortName: 'ja-JP-NanamiNeural', Locale: 'ja-JP' },
     { ShortName: 'ja-JP-KeitaNeural', Locale: 'ja-JP' },
+    { ShortName: 'en-US-AvaNeural', Locale: 'en-US' },
   ]),
 }));
 vi.mock('../../lib/edge-tts/voiceList', async (importOriginal) => ({
@@ -51,12 +52,14 @@ const direction = (tts: string | null): DirectionResult => ({
   asr: null, translation: null, tts: tts ? { modelId: tts, source: 'auto' } : null, notes: [], prunes: [],
 });
 
-/** LocalInference as the store holds it once loaded: `en → ja`, with this voice. */
-function selectLocal(edgeTtsVoice: string): void {
+/** LocalInference as the store holds it once loaded: `en → ja`, these voices, these legs, Translation I hear on or off. */
+function selectLocal(voices: Record<string, unknown> = {}, o: { legs?: Array<'speaker' | 'participant'>; participantSpeech?: boolean; pair?: { source: string; target: string } } = {}): void {
   useProviderStore.setState({
     selected: localInferenceProvider.id,
-    entries: { [localInferenceProvider.id]: { settings: { ...LOCAL_INFERENCE_DEFAULTS, edgeTtsVoice }, credentials: {}, pair: { source: 'en', target: 'ja' } } },
-  });
+    entries: { [localInferenceProvider.id]: { settings: { ...LOCAL_INFERENCE_DEFAULTS, voices }, credentials: {}, pair: o.pair ?? { source: 'en', target: 'ja' } } },
+    legs: o.legs ?? ['speaker'],
+    speech: { textOnly: false, participantSpeech: o.participantSpeech ?? false },
+  } as never);
 }
 
 /** Lets the voice list's promise and whatever follows it settle. */
@@ -76,7 +79,7 @@ describe('SettingsInitializer', () => {
   it('scans the downloaded models once while LocalInference is selected and the model store is not initialized', () => {
     const initialize = vi.fn(async () => {});
     useModelStore.setState({ initialized: false, initialize, resolve: () => direction(null) });
-    selectLocal('');
+    selectLocal();
 
     const { rerender } = render(<SettingsInitializer />);
     rerender(<SettingsInitializer />);
@@ -94,7 +97,7 @@ describe('SettingsInitializer', () => {
     expect(initialize).not.toHaveBeenCalled();
   });
 
-  describe('the Edge TTS voice', () => {
+  describe('the Edge TTS voice of each direction that will speak (#619)', () => {
     let updateSettings: Mock<ProviderStore['updateSettings']>;
     beforeEach(() => {
       updateSettings = vi.fn<ProviderStore['updateSettings']>();
@@ -102,35 +105,56 @@ describe('SettingsInitializer', () => {
       useModelStore.setState({ initialized: true });
     });
 
-    it("picks the target language's first voice when the stored one does not match it", async () => {
+    it("picks my direction's first voice of its target when it has none", async () => {
       useModelStore.setState({ resolve: () => direction('edge-tts') });
-      selectLocal('');
-
+      selectLocal();
       render(<SettingsInitializer />);
       await settle();
-
       expect(updateSettings).toHaveBeenCalledTimes(1);
-      expect(updateSettings).toHaveBeenCalledWith(localInferenceProvider, { edgeTtsVoice: 'ja-JP-NanamiNeural' });
+      expect(updateSettings).toHaveBeenCalledWith(localInferenceProvider, { voices: { 'en→ja': { edge: 'ja-JP-NanamiNeural' } } });
     });
 
-    it('writes nothing when the stored voice already matches the target language', async () => {
+    it("writes nothing when my direction's voice already matches its target", async () => {
       useModelStore.setState({ resolve: () => direction('edge-tts') });
-      selectLocal('ja-JP-KeitaNeural');
-
+      selectLocal({ 'en→ja': { edge: 'ja-JP-KeitaNeural' } });
       render(<SettingsInitializer />);
       await settle();
-
       expect(edge.voices).toHaveBeenCalled();
       expect(updateSettings).not.toHaveBeenCalled();
     });
 
-    it('writes nothing when the TTS is not Edge', async () => {
-      useModelStore.setState({ resolve: () => direction('piper-ja') });
-      selectLocal('');
-
+    it("leaves the other side's direction alone while Translation I hear is off, even when it resolves to Edge (Review Focus 2)", async () => {
+      useModelStore.setState({ resolve: () => direction('edge-tts') });
+      selectLocal({ 'en→ja': { edge: 'ja-JP-KeitaNeural' } }, { legs: ['speaker', 'participant'], participantSpeech: false });
       render(<SettingsInitializer />);
       await settle();
+      expect(updateSettings).not.toHaveBeenCalled();
+    });
 
+    it('keeps both speaking directions valid, each against its own target, in one write', async () => {
+      useModelStore.setState({ resolve: () => direction('edge-tts') });
+      selectLocal({}, { legs: ['speaker', 'participant'], participantSpeech: true });
+      render(<SettingsInitializer />);
+      await settle();
+      expect(updateSettings).toHaveBeenCalledTimes(1);
+      expect(updateSettings).toHaveBeenCalledWith(localInferenceProvider, {
+        voices: { 'en→ja': { edge: 'ja-JP-NanamiNeural' }, 'ja→en': { edge: 'en-US-AvaNeural' } },
+      });
+    });
+
+    it('a pair swap finds both voices where they were: nothing to write (Review Focus 1)', async () => {
+      useModelStore.setState({ resolve: () => direction('edge-tts') });
+      selectLocal({ 'en→ja': { edge: 'ja-JP-KeitaNeural' }, 'ja→en': { edge: 'en-US-AvaNeural' } }, { legs: ['speaker', 'participant'], participantSpeech: true, pair: { source: 'ja', target: 'en' } });
+      render(<SettingsInitializer />);
+      await settle();
+      expect(updateSettings).not.toHaveBeenCalled();
+    });
+
+    it('writes nothing when no speaking direction uses Edge', async () => {
+      useModelStore.setState({ resolve: () => direction('piper-ja') });
+      selectLocal({}, { legs: ['speaker', 'participant'], participantSpeech: true });
+      render(<SettingsInitializer />);
+      await settle();
       expect(edge.voices).not.toHaveBeenCalled();
       expect(updateSettings).not.toHaveBeenCalled();
     });

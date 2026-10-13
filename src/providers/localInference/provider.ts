@@ -5,6 +5,7 @@ import { checkLocalInference, watchLocalInferenceReadiness } from './check';
 import { admitLocalInference, buildLocalInference, describeLocalInference, type LocalInferenceConfig } from './config';
 import { LocalInferenceEngine } from './LocalInferenceEngine';
 import { LocalInferenceEngineSummary } from './LocalInferenceEngineSummary';
+import { LocalInferenceVoiceSummary } from './LocalInferenceVoiceSummary';
 import { LocalInferenceSettingsView } from './LocalInferenceSettings';
 import { LocalInferenceTurnDetectionControls, LocalInferenceTurnDetectionHelp, LocalInferenceTurnDetectionSummary } from './LocalInferenceTurnDetection';
 import { LOCAL_INFERENCE_DEFAULTS, localInferenceLanguages, type LocalInferenceSettings } from './settings';
@@ -36,6 +37,9 @@ export const localInferenceProvider: Provider<LocalInferenceSettings, LocalCrede
   Settings: LocalInferenceSettingsView,
   Engine: LocalInferenceEngine,
   EngineSummary: LocalInferenceEngineSummary,
+  // Its voices sit with its TTS models, per direction (#619): the Speech section names them and opens the slot.
+  VoiceSummary: LocalInferenceVoiceSummary,
+  voicesInEngine: true,
   // Its VAD knobs: summarized in the Speech section under Auto, drawn on Advanced's Provider tab.
   TurnDetection: { Summary: LocalInferenceTurnDetectionSummary, Controls: LocalInferenceTurnDetectionControls, Help: LocalInferenceTurnDetectionHelp },
 

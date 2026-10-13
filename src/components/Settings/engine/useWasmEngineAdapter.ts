@@ -21,6 +21,8 @@ export interface WasmEngineAdapterOverride {
   settings: LocalInferenceSettings;
   update: (patch: Partial<LocalInferenceSettings>) => void;
   pair: LanguagePair;
+  /** The participant leg would speak (#619): its direction shows a TTS slot too. */
+  participantSpeaks?: boolean;
 }
 
 /** LOCAL_INFERENCE's EngineAdapter — resolve() for display, selections for writes. */
@@ -100,7 +102,8 @@ export function useWasmEngineAdapter(isSessionActive: boolean, override: WasmEng
         await override.update({ selections: next });
       },
       storageSummary: `${storageUsedMb} MB`,
-      stagesFor: (_dir, isSpeaker): Stage[] => (isSpeaker ? ['asr', 'translation', 'tts'] : ['asr', 'translation']),
+      // The participant direction's TTS slot shows only while that leg speaks (#619).
+      stagesFor: (_dir, isSpeaker): Stage[] => (isSpeaker || override.participantSpeaks ? ['asr', 'translation', 'tts'] : ['asr', 'translation']),
       disabled: isSessionActive,
     };
   }, [sourceLanguage, targetLanguage, selections, modelStatuses, webgpuAvailable, deviceFeatures, storageUsedMb, override, isSessionActive]);

@@ -298,10 +298,12 @@
     "langSentence": {
       "iSpeak": "Ben konuşuyorum",
       "iRead": "Ben okuyorum",
+      "iHear": "Ben duyuyorum",
       "theyHear": "onlar duyuyor",
       "theyRead": "onlar okuyor",
       "theySpeak": "onlar konuşuyor",
-      "mirror": "Onlar {{their}} konuşuyor → ben {{mine}} okuyorum"
+      "mirror": "Onlar {{their}} konuşuyor → ben {{mine}} okuyorum",
+      "mirrorHear": "Onlar {{their}} konuşuyor → ben {{mine}} duyuyorum"
     },
     "sonioxSharedSessionFaceToFace": "Yüz yüze modu her zaman tek bir paylaşılan oturum kullanır: iki kişi de aynı mikrofona konuşur.",
     "voiceTheyHear": "Karşı tarafın duyduğu ses",
@@ -1192,7 +1194,8 @@
       },
       "face-to-face-text": {
         "title": "Yüz yüze konuşma, yalnızca altyazı",
-        "desc": "İkisi de aynı ekranı okur ya da karşı taraf LAN altyazı sayfasını telefonunda açar."
+        "desc": "İkisi de aynı ekranı okur ya da karşı taraf LAN altyazı sayfasını telefonunda açar.",
+        "descScreenOnly": "İkisi de aynı ekranı okur."
       }
     },
     "output": {
@@ -1369,7 +1372,13 @@
     "loopback_denied": "Karşı tarafın sesi, sistem sesini yakalamak için Ekran Kaydı izni gerektirir.",
     "mic_lost_using_other": "“{{lost}}” mikrofonunun bağlantısı kesildi, bu yüzden bunun yerine “{{device}}” kullanılıyor.",
     "mic_lost_waiting": "Mikrofonun bağlantısı kesildi. Bir mikrofon bağlandığında konuşmanızın çevirisi devam edecek.",
-    "mic_now_using": "Artık “{{device}}” mikrofonu kullanılıyor."
+    "mic_now_using": "Artık “{{device}}” mikrofonu kullanılıyor.",
+    "mic_in_use": "“{{device}}” mikrofonu şu anda kullanımda ({{apps}}). Yeniden başlatmadan önce kapatın: {{apps}}. Ya da başka bir mikrofon seçin.",
+    "mic_unreadable": "Windows “{{device}}” mikrofonunu açamadı. Başka bir uygulama kullanıyor olabilir veya sürücüsü yanıt vermiyor olabilir. Mikrofonu kullanan uygulamaları kapatın veya mikrofonu yeniden bağlayın, ardından yeniden başlatın.",
+    "mic_blocked": "Windows, Sokuji'nin mikrofonu kullanmasına izin vermiyor. Ayarlar › Gizlilik ve güvenlik › Mikrofon bölümünden masaüstü uygulamalarının mikrofon erişimini açın, ardından yeniden başlatın.",
+    "speaker_tts_missing": "Karşı tarafın duyduğu çeviri yalnızca metin: {{target}} konuşan bir ses modeli yok.",
+    "participant_tts_missing": "Duyduğum çeviri yalnızca metin: {{target}} konuşan bir ses modeli yok.",
+    "participant_tts_over_budget": "Duyduğum çeviri yalnızca metin: karşı tarafın ses modelini de yüklemeye yetecek bellek yok."
   },
   "viewer": {
     "title": "Sokuji altyazıları",

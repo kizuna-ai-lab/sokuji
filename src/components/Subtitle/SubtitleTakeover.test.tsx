@@ -87,6 +87,8 @@ const { exit, navigate, order } = vi.hoisted(() => {
   const navigate = vi.fn((target: string) => { order.push(`navigate:${target}`); });
   return { exit, navigate, order };
 });
+const openTts = vi.hoisted(() => vi.fn());
+vi.mock('../providers/openTtsSlot', () => ({ openTtsSlot: openTts }));
 vi.mock('../../stores/settingsStore', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../stores/settingsStore')>();
   return { ...actual, useExitSubtitleMode: () => exit, useNavigateToSettings: () => navigate };
@@ -123,6 +125,7 @@ beforeEach(() => {
   captured.length = 0;
   exit.mockClear();
   navigate.mockClear();
+  openTts.mockReset();
   order.length = 0;
 });
 
@@ -265,6 +268,14 @@ describe('SubtitleTakeover', () => {
       act(() => { voice!.run(); });
       expect(order).toEqual(['exit', 'navigate:provider']);
       expect(noticeAction(l1('insufficient_balance'))).toBeNull();
+      // The engine-slot kind (#619): subtitle mode is left first, then the TTS slot opens.
+      openTts.mockImplementation(() => { order.push('slot'); });
+      order.length = 0;
+      const slot = noticeAction({ ...l1('participant_tts_missing'), leg: 'participant' });
+      expect(slot?.label).toBe('settings.title');
+      act(() => { slot!.run(); });
+      expect(order).toEqual(['exit', 'slot']);
+      expect(openTts).toHaveBeenCalledWith('participant');
     } finally {
       delete electron.electron;
       delete electron.electronAPI;

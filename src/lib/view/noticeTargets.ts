@@ -6,6 +6,9 @@
  */
 export const NOTICE_TARGETS: Readonly<Record<string, string>> = {
   no_microphone: 'microphone',
+  // A Windows microphone that would not open: besides closing the application holding it, choose another (spec 2026-10-13 §3).
+  mic_in_use: 'microphone',
+  mic_unreadable: 'microphone',
   no_provider: 'provider',
   credentials_missing: 'provider',
   // A managed provider signed out: the provider section's account row carries the sign-in link (Stage 2 Kizuna Soniox).

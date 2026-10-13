@@ -298,10 +298,12 @@
     "langSentence": {
       "iSpeak": "我說",
       "iRead": "我閱讀",
+      "iHear": "我聽到",
       "theyHear": "對方聽到",
       "theyRead": "對方讀到",
       "theySpeak": "對方說",
-      "mirror": "對方說 {{their}} → 我閱讀 {{mine}}"
+      "mirror": "對方說 {{their}} → 我閱讀 {{mine}}",
+      "mirrorHear": "對方說 {{their}} → 我聽到 {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "面對面對話一律使用同一個共用工作階段：兩個人對著同一支麥克風說話。",
     "voiceTheyHear": "對方聽到的聲音",
@@ -1192,7 +1194,8 @@
       },
       "face-to-face-text": {
         "title": "面對面對話，只有字幕",
-        "desc": "兩人看同一個螢幕，或讓對方在手機上開啟 LAN 字幕頁面。"
+        "desc": "兩人看同一個螢幕，或讓對方在手機上開啟 LAN 字幕頁面。",
+        "descScreenOnly": "兩人看同一個螢幕。"
       }
     },
     "output": {
@@ -1369,7 +1372,13 @@
     "loopback_denied": "對方音訊需要螢幕錄製權限才能擷取系統音訊。",
     "mic_lost_using_other": "麥克風「{{lost}}」已中斷連線，現在改用「{{device}}」。",
     "mic_lost_waiting": "麥克風已中斷連線。接上麥克風後會自動繼續翻譯你說的話。",
-    "mic_now_using": "現在使用麥克風「{{device}}」。"
+    "mic_now_using": "現在使用麥克風「{{device}}」。",
+    "mic_in_use": "麥克風「{{device}}」正被 {{apps}} 佔用。請關閉 {{apps}} 後重新開始，或選擇其他麥克風。",
+    "mic_unreadable": "Windows 無法開啟麥克風「{{device}}」。可能有其他應用程式佔用了它，或者它的驅動程式沒有回應。請關閉正在使用它的應用程式或重新連接麥克風，然後重新開始。",
+    "mic_blocked": "Windows 不允許 Sokuji 使用麥克風。請在 設定 › 隱私權與安全性 › 麥克風 中開啟傳統型應用程式的麥克風存取權，然後重新開始。",
+    "speaker_tts_missing": "對方聽到的翻譯只顯示文字：沒有能說{{target}}的語音模型。",
+    "participant_tts_missing": "我聽到的翻譯只顯示文字：沒有能說{{target}}的語音模型。",
+    "participant_tts_over_budget": "我聽到的翻譯只顯示文字：記憶體不足，無法同時載入對方的語音模型。"
   },
   "viewer": {
     "title": "Sokuji 字幕",

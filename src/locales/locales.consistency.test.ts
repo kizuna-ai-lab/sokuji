@@ -130,6 +130,25 @@ describe('notices that name a button use that locale\'s own label', () => {
   });
 });
 
+describe('the text-only warnings name the row they are about, as that locale labels it (#619)', () => {
+  const ROWS: Record<string, string> = {
+    'notices.speaker_tts_missing': 'audioPanel.otherHears',
+    'notices.participant_tts_missing': 'audioPanel.iHear',
+    'notices.participant_tts_over_budget': 'audioPanel.iHear',
+  };
+
+  it.each(Object.entries(ROWS))('%s names %s in every locale', (key, rowKey) => {
+    const offenders: string[] = [];
+    for (const [lang, cat] of [['en', EN] as const, ...locales]) {
+      const row = cat[rowKey];
+      const notice = cat[key];
+      if (typeof row !== 'string' || typeof notice !== 'string') continue; // key-parity is another test's job
+      if (!notice.toLocaleLowerCase().includes(row.toLocaleLowerCase())) offenders.push(`${lang}: ${JSON.stringify(notice)} omits ${JSON.stringify(row)}`);
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe('the three translation modes are named with one word each', () => {
   // The app names the same two conversation sides in six places: the mode
   // picker, the display-mode toggle, the per-bubble badge (which reads through

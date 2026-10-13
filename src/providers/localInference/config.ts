@@ -6,7 +6,13 @@ import { guardAstCrossStage } from '../../services/providers/astGuard';
 import { getManifestEntry, estimateModelMemoryByDevice } from '../../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
 import { effectiveCheckAfter, supportsSmartTurn } from '../../lib/turn/smartTurn';
+import { directionKey } from '../../lib/local-inference/selection/types';
+import type { AdmittedConfigs } from '../../lib/session/types';
 import type { LocalInferenceSettings } from './settings';
+import { directionVoice, speakerIdFor } from './voices';
+
+/** Why a leg that should speak will not (#619): the notice code its adapter emits at the start. */
+export type TtsUnavailableCode = 'speaker_tts_missing' | 'participant_tts_missing' | 'participant_tts_over_budget';
 
 /**
  * LocalInference's `C` (spec: "`C`, the config `build` returns"). Ports
@@ -23,6 +29,12 @@ export interface LocalInferenceConfig {
     | { kind: 'ast' }
     | { kind: 'none' };
   tts?: { modelId: string; speakerId: number; speed: number; edgeVoice?: string };
+  /**
+   * Set when this leg should speak but will not (#619): no TTS model speaks
+   * its target, or the memory budget dropped the other side's speech model.
+   * The adapter says so once, at the start.
+   */
+  ttsUnavailable?: TtsUnavailableCode;
   /**
    * The translation-job cut, from the display's segmentation (today's three
    * shapes): absent — the display is not by sentences, one raw job per ASR
@@ -116,12 +128,17 @@ export function buildLocalInference(
   const config: LocalInferenceConfig = { asr, vad, translation };
   if (shared.segmentation.mode === 'sentences') config.jobSentences = shared.segmentation.sentencesPerRow;
   if (context.speech && resolved.tts) {
+    // Each direction speaks in its own voice (#619).
+    const voice = directionVoice(s.voices, directionKey(source, target));
     config.tts = {
       modelId: resolved.tts.modelId,
-      speakerId: s.ttsSpeakerId,
+      speakerId: speakerIdFor(voice, resolved.tts.modelId),
       speed: s.ttsSpeed,
-      edgeVoice: s.edgeTtsVoice || undefined,
+      edgeVoice: voice.edge,
     };
+  } else if (context.speech) {
+    // Which leg this is, the runner tells outright (`shared.reversed`).
+    config.ttsUnavailable = shared.reversed(context.direction) ? 'participant_tts_missing' : 'speaker_tts_missing';
   }
   return config;
 }
@@ -159,39 +176,43 @@ function readDebugNumber(key: string): number | null {
   return null;
 }
 
-/**
- * The memory budget (spec: "`admit`"; ports `createParticipantLocalInferenceConfig`'s
- * budget check, `localParticipantConfig.ts` ~96-124), summed over exactly the
- * configs given: every leg's ASR, its translation model when a real engine
- * loads (AST shares the ASR engine — no second model to count), and TTS
- * where a leg speaks. Unlike today this also applies to a speaker-only run,
- * since the same budget is exceeded either way.
- */
-export function admitLocalInference(configs: Partial<Record<LegName, LocalInferenceConfig>>): true | ProviderRefusal {
-  const allModelIds: Array<string | undefined> = [];
+/** The models these configs load: every leg's ASR, its translation model when a real engine loads (AST shares the ASR engine, so no second model to count), and TTS where a leg speaks. */
+function modelIdsOf(configs: Partial<Record<LegName, LocalInferenceConfig>>): string[] {
+  const ids: string[] = [];
   for (const config of Object.values(configs)) {
     if (!config) continue;
-    allModelIds.push(config.asr.modelId);
-    // AST: the ASR engine runs task:'translate' itself, one engine total — not counted again here.
-    if (config.translation.kind === 'engine') allModelIds.push(config.translation.modelId);
-    if (config.tts) allModelIds.push(config.tts.modelId);
+    ids.push(config.asr.modelId);
+    if (config.translation.kind === 'engine') ids.push(config.translation.modelId);
+    if (config.tts) ids.push(config.tts.modelId);
   }
+  return ids;
+}
 
-  const deviceFeatures = useModelStore.getState().deviceFeatures;
-  const { vramMb, ramMb } = estimateModelMemoryByDevice(allModelIds, deviceFeatures);
-
-  const refusal: ProviderRefusal = { refused: 'The models need more memory than this device has.', code: 'memory_exceeded' };
-
-  // VRAM budget — only enforced when explicitly set via localStorage, since
-  // there is no reliable API to detect GPU VRAM size.
+/** Whether these models fit: VRAM only when its budget is set via localStorage (no API reports GPU memory), RAM always. */
+function fitsBudget(modelIds: string[]): boolean {
+  const { vramMb, ramMb } = estimateModelMemoryByDevice(modelIds, useModelStore.getState().deviceFeatures);
   const vramBudgetMb = readDebugNumber('debug:vram-budget');
-  if (vramBudgetMb !== null && vramMb > vramBudgetMb) return refusal;
-
+  if (vramBudgetMb !== null && vramMb > vramBudgetMb) return false;
   const deviceMemoryGb = readDebugNumber('debug:device-memory')
     ?? (navigator as unknown as { deviceMemory?: number }).deviceMemory
     ?? DEFAULT_DEVICE_MEMORY_GB;
-  const ramBudgetMb = Math.round(deviceMemoryGb * RAM_BUDGET_RATIO * 1024);
-  if (ramMb > ramBudgetMb) return refusal;
+  return ramMb <= Math.round(deviceMemoryGb * RAM_BUDGET_RATIO * 1024);
+}
 
-  return true;
+/**
+ * The memory budget (spec: "`admit`"; ports `createParticipantLocalInferenceConfig`'s
+ * budget check, `localParticipantConfig.ts` ~96-124), summed over exactly the
+ * configs given. When only the other side's speech model tips it (#619), that
+ * leg runs text only and says why; a cloud speech model takes no memory, so
+ * dropping one never helps. My own leg's speech model is never dropped.
+ */
+export function admitLocalInference(configs: Partial<Record<LegName, LocalInferenceConfig>>): true | ProviderRefusal | AdmittedConfigs<LocalInferenceConfig> {
+  if (fitsBudget(modelIdsOf(configs))) return true;
+  const refusal: ProviderRefusal = { refused: 'The models need more memory than this device has.', code: 'memory_exceeded' };
+  const { participant } = configs;
+  if (!participant?.tts) return refusal;
+  const textOnly: LocalInferenceConfig = { ...participant, ttsUnavailable: 'participant_tts_over_budget' };
+  delete textOnly.tts;
+  if (!fitsBudget(modelIdsOf({ ...configs, participant: textOnly }))) return refusal;
+  return { configs: { participant: textOnly } };
 }

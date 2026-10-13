@@ -257,7 +257,9 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 // Edge TTS requires specific headers to connect to Bing's TTS WebSocket endpoint.
 // We use declarativeNetRequest to inject these headers for the extension context.
 const EDGE_TTS_DNR_RULE_ID_BASE = 3000;
-const EDGE_TTS_WS_HOST = 'speech.platform.bing.com';
+// Every host Edge TTS synthesizes on, in the order it tries them
+// (SYNTHESIS_ENDPOINTS in src/lib/edge-tts/edgeTts.ts): one rule each.
+const EDGE_TTS_WS_HOSTS = ['api.msedgeservices.com', 'speech.platform.bing.com'];
 const EDGE_TTS_CHROMIUM_VERSION = '143.0.3650.75';
 const EDGE_TTS_CHROMIUM_MAJOR = EDGE_TTS_CHROMIUM_VERSION.split('.')[0];
 
@@ -276,22 +278,20 @@ async function edgeTtsSetDNRHeaders() {
   // host_permissions must include `wss://` explicitly — `*://` covers
   // http/https but NOT ws/wss, and Chrome silently ignores DNR rules that
   // target hosts outside the permission scope.
-  const rules = [
-    {
-      id: EDGE_TTS_DNR_RULE_ID_BASE,
-      priority: 1,
-      action: {
-        type: 'modifyHeaders',
-        requestHeaders: [
-          { header: 'User-Agent', operation: 'set', value: `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${EDGE_TTS_CHROMIUM_MAJOR}.0.0.0 Safari/537.36 Edg/${EDGE_TTS_CHROMIUM_MAJOR}.0.0.0` },
-        ],
-      },
-      condition: {
-        urlFilter: `||${EDGE_TTS_WS_HOST}`,
-        resourceTypes: ['websocket'],
-      },
+  const rules = EDGE_TTS_WS_HOSTS.map((host, i) => ({
+    id: EDGE_TTS_DNR_RULE_ID_BASE + i,
+    priority: 1,
+    action: {
+      type: 'modifyHeaders',
+      requestHeaders: [
+        { header: 'User-Agent', operation: 'set', value: `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${EDGE_TTS_CHROMIUM_MAJOR}.0.0.0 Safari/537.36 Edg/${EDGE_TTS_CHROMIUM_MAJOR}.0.0.0` },
+      ],
     },
-  ];
+    condition: {
+      urlFilter: `||${host}`,
+      resourceTypes: ['websocket'],
+    },
+  }));
 
   // Remove any existing Edge TTS rules first
   const existingRuleIds = (await chrome.declarativeNetRequest.getDynamicRules())

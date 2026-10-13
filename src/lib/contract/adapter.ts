@@ -100,9 +100,10 @@ export interface AdapterEvents {
    * Running, degraded. `reason`: a short machine-readable token for
    * analytics only (`tts_408`, `tts_connect_failed`) — never user text,
    * never the cause; absent, the runner's `api_error` reads `code`
-   * (Stage 2 Kizuna Soniox, ruling 8).
+   * (Stage 2 Kizuna Soniox, ruling 8). `params`: the values the notice's
+   * words name (`{{target}}`), which L1 records on the notice.
    */
-  degraded(e: { code: ClientDiagnosticCode; message: string; cause?: unknown; reason?: string }): void;
+  degraded(e: { code: ClientDiagnosticCode; message: string; cause?: unknown; reason?: string; params?: Record<string, string | number> }): void;
   loading(e: { stage: string; done: number; total: number }): void;
   busy(e: boolean): void;
   /** Wire traffic for the Logs panel. Never audio, never a credential. */

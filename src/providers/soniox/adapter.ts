@@ -86,7 +86,7 @@ function emitSegment(events: AdapterEvents, event: SegmentEvent): void {
   }
 }
 
-/** Face-to-face's sides are its two people: a diarization label would only ever name a phantom (spec, slice 3). */
+/** Face-to-face's sides are its two people, and shared Both's speaker leg is me: a diarization label there would only ever name a phantom (spec, slice 3). */
 function withoutPerson(event: SegmentEvent): SegmentEvent {
   if (event.kind === 'segmentClosed' || !('person' in event.payload)) return event;
   const { person: _person, ...payload } = event.payload;
@@ -146,7 +146,9 @@ class SonioxCore {
     this.utterances = new Utterances({
       clock: o.primary.clock,
       sink: {
-        segment: (leg, event) => { if (!this.ended) emitSegment(this.leg(leg).events, this.o.faceToFace ? withoutPerson(event) : event); },
+        // Shared Both's speaker leg is me: a second label there (a misattribution, a resume's new epoch) would only number me twice.
+        // Only a shared core names its legs truly; a lone leg is always 'speaker' here, the other side's included.
+        segment: (leg, event) => { if (!this.ended) emitSegment(this.leg(leg).events, this.o.faceToFace || (this.o.shared && leg === 'speaker') ? withoutPerson(event) : event); },
         speak: (leg, ref, text, span, language) => {
           if (this.ended) return;
           const core = this.leg(leg);

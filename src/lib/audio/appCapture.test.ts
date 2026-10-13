@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createVirtualClock } from '../contract/clock';
 import { createFakeSource, type FakeSource } from '../../providers/fake/source';
 
@@ -165,6 +165,36 @@ describe('the settings the sources follow', () => {
     settings.markUnusable('mic-1');
     expect(markInputUnusable).toHaveBeenCalledWith('mic-1');
   });
+  describe('who is using the microphone (Windows desktop, spec 2026-10-13 §1)', () => {
+    const bridge = window as unknown as { electron?: unknown };
+    const onWindows = (invoke: (channel: string, data?: unknown) => Promise<unknown>) => {
+      bridge.electron = { invoke: vi.fn(invoke), osInfo: { platform: 'win32' } };
+      return bridge.electron as { invoke: ReturnType<typeof vi.fn> };
+    };
+    afterEach(() => { delete bridge.electron; });
+
+    it('is not asked off Windows, or outside the desktop app', () => {
+      expect(micSettings().appsUsing).toBeUndefined();
+      bridge.electron = { invoke: vi.fn(), osInfo: { platform: 'darwin' } };
+      expect(micSettings().appsUsing).toBeUndefined();
+    });
+
+    it('asks the main process about the device by its label', async () => {
+      const electron = onWindows(async () => ({ ok: true, users: ['Zoom Meetings', 42] }));
+      expect(await micSettings().appsUsing!('Microphone (AU05)')).toEqual(['Zoom Meetings']);
+      expect(electron.invoke).toHaveBeenCalledWith('list-microphone-users', 'Microphone (AU05)');
+    });
+
+    it.each([
+      ['the probe failed', async () => ({ ok: false, error: 'timeout' })],
+      ['no device by that name was found', async () => ({ ok: true, users: null })],
+      ['the call itself failed', async () => { throw new Error('no handler'); }],
+    ])('cannot tell when %s', async (_case, answer) => {
+      onWindows(answer);
+      expect(await micSettings().appsUsing!('Mic')).toBeNull();
+    });
+  });
+
   it("reads the microphone's device, noise suppression and mute from the audio store, live", () => {
     const settings = micSettings();
     useAudioStore.setState({ selectedInputDevice: { deviceId: 'mic-1', label: 'Mic' }, noiseSuppressionMode: 'standard', isMicMuted: false });

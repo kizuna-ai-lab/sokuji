@@ -1238,6 +1238,34 @@ ipcMain.handle('get-tcc-display-name', async () => {
   return { name: isDev ? 'Electron' : app.getName(), isDev };
 });
 
+/**
+ * The applications using a microphone that would not open (Windows): see
+ * mic-users-win.js. Sokuji's own processes are left out, so its own capture on
+ * the same device never reads as the culprit.
+ */
+ipcMain.handle('list-microphone-users', async (event, label) => {
+  if (process.platform !== 'win32') return { ok: false, error: 'Windows only' };
+  if (typeof label !== 'string' || label === '') return { ok: false, error: 'No device label' };
+  const { listMicrophoneUsers } = require('./mic-users-win');
+  return listMicrophoneUsers(label, { ownPids: app.getAppMetrics().map((m) => m.pid) });
+});
+
+/**
+ * The Windows settings a microphone notice points at: the privacy page that
+ * lets desktop apps use the microphone.
+ */
+ipcMain.handle('open-windows-settings', async (event, page) => {
+  if (process.platform !== 'win32') return { ok: false, error: 'Windows only' };
+  if (page !== 'microphone-privacy') return { ok: false, error: `Unknown Windows settings page: ${page}` };
+  try {
+    await shell.openExternal('ms-settings:privacy-microphone');
+    return { ok: true };
+  } catch (error) {
+    console.error('[Sokuji] [Main] Failed to open Windows settings:', error);
+    return { ok: false, error: error.message };
+  }
+});
+
 ipcMain.handle('open-privacy-settings', async (event, pane) => {
   if (process.platform !== 'darwin') {
     return { ok: false, error: 'Privacy panes are macOS-only' };

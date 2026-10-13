@@ -10,7 +10,6 @@ export const DEFAULT_VOICE = 'en-US-AvaMultilingualNeural';
 const READALOUD_BASE = 'speech.platform.bing.com/consumer/speech/synthesize/readaloud';
 const TRUSTED_CLIENT_TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4';
 const VOICE_LIST_URL = `https://${READALOUD_BASE}/voices/list?trustedclienttoken=${TRUSTED_CLIENT_TOKEN}`;
-const SYNTHESIS_URL = `wss://${READALOUD_BASE}/edge/v1`;
 const CHROMIUM_FULL_VERSION = '143.0.3650.75';
 const CHROMIUM_MAJOR_VERSION = CHROMIUM_FULL_VERSION.split('.')[0];
 export const EDGE_TTS_CHROMIUM_MAJOR = CHROMIUM_MAJOR_VERSION;
@@ -150,12 +149,40 @@ function normalizeVoiceName(voice: string): string {
 
 // ── WebSocket URL + message builders ─────────────────────────────────────
 
-export function buildSynthesisUrl(secMsGec: string, connectionId: string): string {
-  const url = new URL(SYNTHESIS_URL);
+export interface SynthesisEndpoint {
+  /** The host a platform's User-Agent rule is registered for. */
+  host: string;
+  url: string;
+  /** Whether the client token also goes in Ocp-Apim-Subscription-Key. */
+  subscriptionKey: boolean;
+}
+
+// Where synthesis is tried, in order. In October 2026 Microsoft moved Edge
+// Read Aloud's synthesis to api.msedgeservices.com and began refusing it on
+// speech.platform.bing.com region by region with a 403 (rany2/edge-tts#490).
+// The new host takes the same token and Sec-MS-GEC, the token given again as
+// Ocp-Apim-Subscription-Key; the old host stays second for wherever it still
+// answers. The voice list is still served by the old host.
+export const SYNTHESIS_ENDPOINTS: readonly SynthesisEndpoint[] = [
+  {
+    host: 'api.msedgeservices.com',
+    url: 'wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1',
+    subscriptionKey: true,
+  },
+  {
+    host: 'speech.platform.bing.com',
+    url: `wss://${READALOUD_BASE}/edge/v1`,
+    subscriptionKey: false,
+  },
+];
+
+export function buildSynthesisUrl(endpoint: SynthesisEndpoint, secMsGec: string, connectionId: string): string {
+  const url = new URL(endpoint.url);
   url.searchParams.set('TrustedClientToken', TRUSTED_CLIENT_TOKEN);
   url.searchParams.set('Sec-MS-GEC', secMsGec);
   url.searchParams.set('Sec-MS-GEC-Version', SEC_MS_GEC_VERSION);
   url.searchParams.set('ConnectionId', connectionId);
+  if (endpoint.subscriptionKey) url.searchParams.set('Ocp-Apim-Subscription-Key', TRUSTED_CLIENT_TOKEN);
   return url.toString();
 }
 

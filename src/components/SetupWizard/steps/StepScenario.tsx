@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { SCENARIOS } from '../../../lib/setup/scenarios';
 import { providerFits } from '../providerPaths';
+import { isElectron } from '../../../utils/environment';
 import type { SetupAction, SetupDraft } from '../setupDraft';
 
 interface Props { draft: SetupDraft; dispatch: React.Dispatch<SetupAction> }
@@ -54,7 +55,12 @@ const StepScenario: React.FC<Props> = ({ draft, dispatch }) => {
               })}
             />
             <span className="setup-card__title">{t(`setup.scenarios.${s.id}.title`, TITLES[s.id])}</span>
-            <span className="setup-card__desc">{t(`setup.scenarios.${s.id}.desc`, DESCS[s.id])}</span>
+            <span className="setup-card__desc">
+              {/* Caption sharing is desktop-only (PanelToolbar), so elsewhere this card offers the shared screen alone. */}
+              {s.id === 'face-to-face-text' && !isElectron()
+                ? t('setup.scenarios.face-to-face-text.descScreenOnly', 'Both read the same screen.')
+                : t(`setup.scenarios.${s.id}.desc`, DESCS[s.id])}
+            </span>
             <span className="setup-card__sets">
               {s.otherSide === 'beside'
                 ? t('setup.scenarios.setsBeside', 'Sets: {{mode}} mode, other side beside me · {{output}}', { mode: modeLabel(s.mode), output: outputLabel(s.textOnly) })

@@ -298,10 +298,12 @@
     "langSentence": {
       "iSpeak": "Tôi nói",
       "iRead": "Tôi đọc",
+      "iHear": "Tôi nghe",
       "theyHear": "họ nghe",
       "theyRead": "họ đọc",
       "theySpeak": "họ nói",
-      "mirror": "Họ nói {{their}} → tôi đọc {{mine}}"
+      "mirror": "Họ nói {{their}} → tôi đọc {{mine}}",
+      "mirrorHear": "Họ nói {{their}} → tôi nghe {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Chế độ mặt đối mặt luôn dùng một phiên dùng chung: cả hai người nói vào cùng một micro.",
     "voiceTheyHear": "Giọng bên kia nghe",
@@ -1192,7 +1194,8 @@
       },
       "face-to-face-text": {
         "title": "Trò chuyện mặt đối mặt, chỉ phụ đề",
-        "desc": "Cả hai cùng đọc một màn hình, hoặc đối phương mở trang phụ đề LAN trên điện thoại."
+        "desc": "Cả hai cùng đọc một màn hình, hoặc đối phương mở trang phụ đề LAN trên điện thoại.",
+        "descScreenOnly": "Cả hai cùng đọc một màn hình."
       }
     },
     "output": {
@@ -1369,7 +1372,13 @@
     "loopback_denied": "Âm thanh đối phương cần quyền Ghi Màn Hình để thu âm thanh hệ thống.",
     "mic_lost_using_other": "Micrô “{{lost}}” đã bị ngắt kết nối, nên “{{device}}” đang được dùng thay thế.",
     "mic_lost_waiting": "Micrô đã bị ngắt kết nối. Việc dịch giọng nói của bạn sẽ tiếp tục khi có micrô được kết nối.",
-    "mic_now_using": "Đang dùng micrô “{{device}}”."
+    "mic_now_using": "Đang dùng micrô “{{device}}”.",
+    "mic_in_use": "Micrô “{{device}}” đang được {{apps}} sử dụng. Hãy đóng {{apps}} rồi bắt đầu lại, hoặc chọn micrô khác.",
+    "mic_unreadable": "Windows không mở được micrô “{{device}}”. Có thể một ứng dụng khác đang dùng nó, hoặc trình điều khiển của nó không phản hồi. Hãy đóng các ứng dụng đang dùng nó hoặc kết nối lại, rồi bắt đầu lại.",
+    "mic_blocked": "Windows không cho phép Sokuji dùng micrô. Hãy bật quyền truy cập micrô cho ứng dụng máy tính trong Cài đặt › Quyền riêng tư & bảo mật › Micrô, rồi bắt đầu lại.",
+    "speaker_tts_missing": "Bản dịch bên kia nghe chỉ hiển thị chữ: không có mô hình giọng nói nào nói được {{target}}.",
+    "participant_tts_missing": "Bản dịch tôi nghe chỉ hiển thị chữ: không có mô hình giọng nói nào nói được {{target}}.",
+    "participant_tts_over_budget": "Bản dịch tôi nghe chỉ hiển thị chữ: không đủ bộ nhớ để tải thêm mô hình giọng nói của bên kia."
   },
   "viewer": {
     "title": "Phụ đề Sokuji",

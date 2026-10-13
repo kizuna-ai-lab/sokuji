@@ -20,6 +20,10 @@ export interface PairSentenceInput {
    *  when the provider leaves the choice open. */
   textOnly: boolean;
   capability: TextOnlyCapability;
+  /** Whether the other side's translation is read aloud to me: `speakFor`'s
+   *  `them` in Settings, the scenario's run in the wizard. Decides "I hear"
+   *  over "I read" on the reverse leg. */
+  participantSpeaks: boolean;
   /** The pair as it stands. 'auto' is a source the mirror cannot name, and a
    *  half-filled pair has nothing to mirror yet. */
   source: string | null;
@@ -34,21 +38,28 @@ export interface PairSentence {
   /** 'both' runs a mirrored second leg. No surface has controls for it, so
    *  they all state it — and all fall silent on a pair that cannot be named. */
   showMirror: boolean;
+  /** The mirror line, with `{{their}}` and `{{mine}}` to fill. */
+  mirror: SentenceLabel;
 }
 
-export function pairSentence({ mode, textOnly, capability, source, target }: PairSentenceInput): PairSentence {
+export function pairSentence({ mode, textOnly, capability, participantSpeaks, source, target }: PairSentenceInput): PairSentence {
   const speakerLegTextOnly = capability === 'always' ? true
     : capability === 'never' ? false
     : textOnly;
   return {
-    my: mode === 'participant'
-      ? { key: 'settings.langSentence.iRead', fallback: 'I read' }
-      : { key: 'settings.langSentence.iSpeak', fallback: 'I speak' },
+    my: mode !== 'participant'
+      ? { key: 'settings.langSentence.iSpeak', fallback: 'I speak' }
+      : participantSpeaks
+        ? { key: 'settings.langSentence.iHear', fallback: 'I hear' }
+        : { key: 'settings.langSentence.iRead', fallback: 'I read' },
     their: mode === 'participant'
       ? { key: 'settings.langSentence.theySpeak', fallback: 'they speak' }
       : speakerLegTextOnly
         ? { key: 'settings.langSentence.theyRead', fallback: 'they read' }
         : { key: 'settings.langSentence.theyHear', fallback: 'they hear' },
     showMirror: mode === 'both' && !!source && source !== 'auto' && !!target,
+    mirror: participantSpeaks
+      ? { key: 'settings.langSentence.mirrorHear', fallback: 'They speak {{their}} → I hear {{mine}}' }
+      : { key: 'settings.langSentence.mirror', fallback: 'They speak {{their}} → I read {{mine}}' },
   };
 }

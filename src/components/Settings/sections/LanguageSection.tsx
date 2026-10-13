@@ -206,6 +206,8 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
     mode: sentenceMode,
     textOnly: effectiveTextOnly({ speakerLegRuns: speakerChannelInScopeForUi, textOnly }),
     capability: textOnlyCapability,
+    // Nothing mounts this shell (Local Native's, until kizuna-ai-lab/sokuji#578): it keeps the "I read" wording.
+    participantSpeaks: false,
     source: currentProviderSettings.sourceLanguage ?? null,
     target: currentProviderSettings.targetLanguage ?? null,
   });

@@ -284,6 +284,12 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
    * line. Absent: no line, as for a provider whose voices sit with its models.
    */
   VoiceSummary?: ComponentType<VoiceSummaryProps<S>>;
+  /**
+   * Its voices are picked in its engine's TTS slot, per direction (local
+   * inference, #619): the Speech section's voice line then opens that leg's
+   * TTS slot instead of the voice settings.
+   */
+  voicesInEngine?: true;
 
   // credentials — stored apart from settings
   credentials: {

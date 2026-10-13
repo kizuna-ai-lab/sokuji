@@ -53,6 +53,7 @@ import { useReadable } from '../Conversation/useReadable';
 import { useVisibleEntries } from '../Conversation/useVisibleEntries';
 import { echoSource, useEchoNotice } from '../EchoNotice/useEchoNotice';
 import WarningModal from '../Settings/shared/WarningModal';
+import { openTtsSlot } from '../providers/openTtsSlot';
 import { Banners } from '../Banner/useBanners';
 import UpdateDialog from '../UpdateDialog/UpdateDialog';
 import ModeDevicePopover from './ModeDevicePopover';
@@ -222,6 +223,8 @@ export default function MainPanel() {
       case 'sign-in': setAuthOverlay('sign-in'); return;
       case 'system-settings': openWarning(spec.pane === 'screen-recording' ? 'screen-recording-denied' : 'audio-capture-denied'); return;
       case 'show-in-folder': if (isElectron()) void window.electron.invoke('open-directory', spec.dir); return;
+      case 'engine-slot': openTtsSlot(spec.leg); return;
+      case 'windows-settings': if (isElectron()) void window.electron.invoke('open-windows-settings', spec.page); return;
       default: { const _exhaustive: never = spec; return _exhaustive; }
     }
   }, [navigateToSettings, setAccountPopoverRequested, setAuthOverlay, openWarning]);

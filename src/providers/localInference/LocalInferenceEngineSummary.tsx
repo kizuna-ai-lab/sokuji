@@ -17,11 +17,13 @@ import type { LocalInferenceSettings } from './settings';
  * the old slice.
  */
 export function LocalInferenceEngineSummary({
-  settings, update, disabled = false, pair = FALLBACK_PAIR, legs, openSlot,
+  settings, update, disabled = false, pair = FALLBACK_PAIR, legs, openSlot, participantSpeaks = false,
 }: EngineSummaryProps<LocalInferenceSettings>) {
   const { t } = useTranslation();
   const mode = modeOfLegs(legs);
   const isParticipantChannelInScope = legs.includes('participant');
+  // The other side's TTS (#619): a chip and its memory only while that leg runs and speaks.
+  const participantTts = isParticipantChannelInScope && participantSpeaks;
 
   const deviceFeatures = useModelStore((s) => s.deviceFeatures);
   const modelStatuses = useModelStore((s) => s.modelStatuses);
@@ -41,21 +43,21 @@ export function LocalInferenceEngineSummary({
 
   const memoryEstimate = useMemo(() => {
     // Skip cloud TTS models (e.g. Edge TTS) — they don't consume local memory.
-    const ttsId = speakerResolved.tts?.modelId;
-    const ttsEntry = ttsId ? getManifestEntry(ttsId) : undefined;
-    const effectiveTtsId = ttsEntry?.isCloudModel ? undefined : ttsId;
-
-    const mainIds = [speakerResolved.asr?.modelId, speakerResolved.translation?.modelId, effectiveTtsId];
+    const localTts = (resolved: DirectionResult): string | undefined => {
+      const id = resolved.tts?.modelId;
+      return id && !getManifestEntry(id)?.isCloudModel ? id : undefined;
+    };
+    const mainIds = [speakerResolved.asr?.modelId, speakerResolved.translation?.modelId, localTts(speakerResolved)];
     const participantIds = isParticipantChannelInScope
-      ? [participantResolved.asr?.modelId, participantResolved.translation?.modelId]
+      ? [participantResolved.asr?.modelId, participantResolved.translation?.modelId, ...(participantTts ? [localTts(participantResolved)] : [])]
       : [];
     return estimateModelMemoryByDevice([...mainIds, ...participantIds], deviceFeatures);
-  }, [deviceFeatures, isParticipantChannelInScope, participantResolved, speakerResolved]);
+  }, [deviceFeatures, isParticipantChannelInScope, participantTts, participantResolved, speakerResolved]);
 
   // ── Chip groups: mode-aware ──────────────────────────────────────────
   //
   // - 'speaker'     → 3 chips (ASR/MT/TTS) for src→tgt.
-  // - 'participant' → 2 chips (ASR/MT — no TTS) for the REVERSE tgt→src.
+  // - 'participant' → 2 chips (ASR/MT) for the REVERSE tgt→src, 3 while that leg speaks (#619).
   // - 'both'        → both groups, each under a small-caps label so which
   //   group is whose is never ambiguous.
   const renderChipGroups = (
@@ -66,7 +68,7 @@ export function LocalInferenceEngineSummary({
     tgt: string,
   ): React.ReactNode => {
     if (mode === 'participant') {
-      return <div className="model-inline">{renderChips(participant, tgt, src, false)}</div>;
+      return <div className="model-inline">{renderChips(participant, tgt, src, participantTts)}</div>;
     }
     if (mode === 'both') {
       return (
@@ -77,7 +79,7 @@ export function LocalInferenceEngineSummary({
           </div>
           <div className="model-inline-group">
             <span className="model-inline-group__label">{t('modePicker.modeParticipants', 'Other')}</span>
-            <div className="model-inline">{renderChips(participant, tgt, src, false)}</div>
+            <div className="model-inline">{renderChips(participant, tgt, src, participantTts)}</div>
           </div>
         </>
       );
@@ -135,9 +137,9 @@ export function LocalInferenceEngineSummary({
   // BLOCKING condition and belong to readiness's own words (ruling 5), not
   // this summary.
   const fallbackNotes = useMemo(
-    () => [...speakerResolved.notes, ...(isParticipantChannelInScope ? participantResolved.notes : [])]
+    () => [...speakerResolved.notes, ...(isParticipantChannelInScope ? participantResolved.notes.filter((n) => n.stage !== 'tts' || participantTts) : [])]
       .filter((n: ResolutionNote) => n.reason !== 'no-candidate'),
-    [speakerResolved, participantResolved, isParticipantChannelInScope],
+    [speakerResolved, participantResolved, isParticipantChannelInScope, participantTts],
   );
 
   // Name the picks that failed (deduped: the same deleted model noted in two

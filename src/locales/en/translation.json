@@ -303,10 +303,12 @@
     "langSentence": {
       "iSpeak": "I speak",
       "iRead": "I read",
+      "iHear": "I hear",
       "theyHear": "they hear",
       "theyRead": "they read",
       "theySpeak": "they speak",
-      "mirror": "They speak {{their}} → I read {{mine}}"
+      "mirror": "They speak {{their}} → I read {{mine}}",
+      "mirrorHear": "They speak {{their}} → I hear {{mine}}"
     }
   },
   "simpleSettings": {
@@ -797,7 +799,8 @@
       },
       "face-to-face-text": {
         "title": "Face-to-face conversation, subtitles only",
-        "desc": "Both read the same screen, or the other person opens the LAN caption page on their phone."
+        "desc": "Both read the same screen, or the other person opens the LAN caption page on their phone.",
+        "descScreenOnly": "Both read the same screen."
       }
     },
     "output": {
@@ -1381,7 +1384,13 @@
     "loopback_denied": "Other's audio requires Screen Recording permission to capture system audio.",
     "mic_lost_using_other": "The microphone “{{lost}}” went away, so “{{device}}” is being used instead.",
     "mic_lost_waiting": "The microphone went away. Translation of your speech resumes when a microphone is connected.",
-    "mic_now_using": "Now using the microphone “{{device}}”."
+    "mic_now_using": "Now using the microphone “{{device}}”.",
+    "mic_in_use": "The microphone “{{device}}” is in use by {{apps}}. Close {{apps}} and start again, or choose another microphone.",
+    "mic_unreadable": "Windows could not open the microphone “{{device}}”. Another app may be holding it, or its driver stopped responding. Close apps that use it or reconnect it, then start again.",
+    "mic_blocked": "Windows is not letting Sokuji use the microphone. Turn on microphone access for desktop apps in Settings › Privacy & security › Microphone, then start again.",
+    "speaker_tts_missing": "Translation the other side hears is text only: no speech model speaks {{target}}.",
+    "participant_tts_missing": "Translation I hear is text only: no speech model speaks {{target}}.",
+    "participant_tts_over_budget": "Translation I hear is text only: not enough memory to load the other side's speech model too."
   },
   "captionShare": {
     "button": "Share captions",
