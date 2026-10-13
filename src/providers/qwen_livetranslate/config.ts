@@ -9,9 +9,12 @@
 import type { SessionContext } from '../../lib/contract/adapter';
 import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
 import { isEndpointId, type EndpointId } from './endpoints';
-import { QWEN_LANGUAGES, QWEN_MODEL, QWEN_SPOKEN, qwenParticipantVoice, qwenSpeakerVoice, SPEAKER_CLONE, type QwenSettings } from './settings';
+import {
+  QWEN_LANGUAGES, QWEN_MODEL, QWEN_PAUSE, QWEN_SPOKEN, qwenParticipantVoice, qwenSpeakerVoice, SPEAKER_CLONE, SPEAKER_CLONE_ONCE, type QwenSettings,
+} from './settings';
 
-export type QwenVoiceChoice = { kind: 'preset'; name: string } | { kind: 'clone' };
+/** A preset by name, or the speaker cloned on every turn (`always`) or once at the start (`once`). */
+export type QwenVoiceChoice = { kind: 'preset'; name: string } | { kind: 'clone'; frequency: 'always' | 'once' };
 
 export interface QwenConfig {
   model: typeof QWEN_MODEL;
@@ -26,8 +29,25 @@ export interface QwenConfig {
   manual: boolean;
   /** The participant leg: each turn carries its speaker as `person`. */
   person: boolean;
+  /** Preferred translations, source term → its translation (`translation.corpus.phrases`); empty sends none. */
+  phrases: Readonly<Record<string, string>>;
+  /** The pause that ends a turn, in ms; null leaves the server's own (2500), as push-to-talk always does. */
+  silenceMs: number | null;
   /** WebSocket only. It reaches `info.transport`, which analytics reports. */
   transport: 'websocket';
+}
+
+/** One `source=target` per line, split at the first `=`, both sides trimmed and required; a later line for the same source wins. */
+function phrasesOf(raw: unknown): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const line of (typeof raw === 'string' ? raw : '').split('\n')) {
+    const eq = line.indexOf('=');
+    if (eq < 0) continue;
+    const source = line.slice(0, eq).trim();
+    const target = line.slice(eq + 1).trim();
+    if (source && target) out[source] = target;
+  }
+  return out;
 }
 
 export function buildQwen(context: SessionContext, s: QwenSettings, shared: SharedSettings): QwenConfig | ProviderRefusal {
@@ -39,14 +59,21 @@ export function buildQwen(context: SessionContext, s: QwenSettings, shared: Shar
   const participant = shared.reversed(context.direction);
   const chosen = participant ? qwenParticipantVoice(s) : qwenSpeakerVoice(s);
   const storefront = shared.models[0]?.id;
+  const manual = context.turns === 'manual';
+  // The pause field is not in 3.8's documented update: it goes on the wire only when it changes something.
+  const pause = Number.isFinite(s.pauseMs) ? Math.min(QWEN_PAUSE.max, Math.max(QWEN_PAUSE.min, Math.round(s.pauseMs))) : QWEN_PAUSE.default;
   return {
     model: QWEN_MODEL,
     endpoint: isEndpointId(storefront) ? storefront : null,
     target,
     speech: context.speech,
-    voice: chosen === SPEAKER_CLONE ? { kind: 'clone' } : { kind: 'preset', name: chosen },
-    manual: context.turns === 'manual',
+    voice: chosen === SPEAKER_CLONE ? { kind: 'clone', frequency: 'always' }
+      : chosen === SPEAKER_CLONE_ONCE ? { kind: 'clone', frequency: 'once' }
+        : { kind: 'preset', name: chosen },
+    manual,
     person: participant,
+    phrases: phrasesOf(s.hotwords),
+    silenceMs: manual || pause === QWEN_PAUSE.default ? null : pause,
     transport: 'websocket',
   };
 }

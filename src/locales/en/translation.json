@@ -521,11 +521,16 @@
       "name": "Qwen LiveTranslate",
       "description": "Qwen3.8 simultaneous interpretation, 60 languages (29 spoken)",
       "voiceClone": "Clone the speaker's voice",
+      "voiceCloneOnce": "Clone the first speaker's voice",
       "voiceGroupClone": "Voice cloning",
       "voiceSummaryCloneMine": "Your own voice (cloned)",
       "voiceSummaryCloneTheirs": "Their own voice (cloned)",
       "storefrontIntl": "Key from QwenCloud (international)",
-      "storefrontCn": "Key from 千问云 (mainland China)"
+      "storefrontCn": "Key from 千问云 (mainland China)",
+      "vocabulary": "Custom Vocabulary",
+      "vocabularyTranslations": "Preferred Translations",
+      "vocabularyTranslationsTooltip": "Biases how specific terms are translated — a preference, not a guaranteed replacement: names with an established rendering work best, while common words may keep the model's own wording. Entries are directional; the reverse direction only exists in Both mode, where you can add a reverse line.",
+      "vocabularyTranslationsPlaceholder": "One source=target per line"
     },
     "local_inference": {
       "name": "Free",

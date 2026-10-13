@@ -4,7 +4,7 @@ import {
 } from './wire';
 
 const MODEL = 'qwen3.8-livetranslate-flash-realtime';
-const preset = { target: 'en', speech: true, voice: { kind: 'preset' as const, name: 'Tina' }, manual: false };
+const preset = { target: 'en', speech: true, voice: { kind: 'preset' as const, name: 'Tina' }, manual: false, phrases: {}, silenceMs: null };
 const INPUT = { format: { type: 'pcm', sample_rate: 24000 } };
 
 describe("Qwen LiveTranslate's wire (spec §6)", () => {
@@ -29,7 +29,7 @@ describe("Qwen LiveTranslate's wire (spec §6)", () => {
   });
 
   it('clones the speaker on every turn: the voice "default", cloning on, always', () => {
-    expect(sessionUpdate({ ...preset, voice: { kind: 'clone' } }).session).toEqual({
+    expect(sessionUpdate({ ...preset, voice: { kind: 'clone', frequency: 'always' } }).session).toEqual({
       output_modalities: ['text', 'audio'],
       translation: { language: 'en' },
       audio: { input: INPUT, output: { voice: 'default' } },
@@ -38,8 +38,24 @@ describe("Qwen LiveTranslate's wire (spec §6)", () => {
     });
   });
 
+  it('clones the first speaker once and keeps that voice: frequency once', () => {
+    expect(sessionUpdate({ ...preset, voice: { kind: 'clone', frequency: 'once' } }).session).toMatchObject({
+      audio: { output: { voice: 'default' } }, enable_voice_clone: true, voice_clone_options: { frequency: 'once' },
+    });
+  });
+
+  it('sends the hotwords as the corpus, and no corpus without them', () => {
+    expect(sessionUpdate({ ...preset, phrases: { '实时翻译': 'LiveTranslate' } }).session.translation).toEqual({ language: 'en', corpus: { phrases: { '实时翻译': 'LiveTranslate' } } });
+    expect(sessionUpdate(preset).session.translation).toEqual({ language: 'en' });
+  });
+
+  it('sends a pause as speaker detection with that silence; push-to-talk stays without server turns', () => {
+    expect(sessionUpdate({ ...preset, silenceMs: 1000 }).session.audio.input).toEqual({ ...INPUT, turn_detection: { type: 'speaker_detection', silence_duration_ms: 1000 } });
+    expect(sessionUpdate({ ...preset, manual: true, silenceMs: 1000 }).session.audio.input).toEqual({ ...INPUT, turn_detection: null });
+  });
+
   it('asks a leg that does not speak for text alone: no output, no cloning, whatever voice is chosen', () => {
-    for (const voice of [preset.voice, { kind: 'clone' as const }]) {
+    for (const voice of [preset.voice, { kind: 'clone' as const, frequency: 'always' as const }, { kind: 'clone' as const, frequency: 'once' as const }]) {
       expect(sessionUpdate({ ...preset, speech: false, voice }).session).toEqual({ output_modalities: ['text'], translation: { language: 'en' }, audio: { input: INPUT } });
     }
     expect(sessionUpdate({ ...preset, speech: false, manual: true }).session.audio).toEqual({ input: { ...INPUT, turn_detection: null } });

@@ -33,32 +33,37 @@ export interface SessionUpdate {
   type: 'session.update';
   session: {
     output_modalities: Array<'text' | 'audio'>;
-    translation: { language: string };
+    /** `corpus.phrases`: source term → its translation; a common word is replaced too (probe 2026-10-13). */
+    translation: { language: string; corpus?: { phrases: Record<string, string> } };
     audio: {
-      /** 24 kHz goes straight through; `turn_detection: null` is push-to-talk. */
-      input: { format: { type: 'pcm'; sample_rate: number }; turn_detection?: null };
+      /** 24 kHz goes straight through; `turn_detection: null` is push-to-talk; speaker detection with a silence is a chosen pause. */
+      input: { format: { type: 'pcm'; sample_rate: number }; turn_detection?: null | { type: 'speaker_detection'; silence_duration_ms: number } };
       /** Only on a leg that speaks; the clone speaks as `default`. */
       output?: { voice: string };
     };
     enable_voice_clone?: true;
-    voice_clone_options?: { frequency: 'always' };
+    voice_clone_options?: { frequency: 'always' | 'once' };
   };
 }
 
-export function sessionUpdate(c: Pick<QwenConfig, 'target' | 'speech' | 'voice' | 'manual'>): SessionUpdate {
+export function sessionUpdate(c: Pick<QwenConfig, 'target' | 'speech' | 'voice' | 'manual' | 'phrases' | 'silenceMs'>): SessionUpdate {
   const format = { type: 'pcm' as const, sample_rate: SAMPLE_RATE };
-  const clone = c.speech && c.voice.kind === 'clone';
+  const voice = c.voice;
+  const hasPhrases = Object.keys(c.phrases).length > 0;
   return {
     type: 'session.update',
     session: {
       output_modalities: c.speech ? ['text', 'audio'] : ['text'],
-      translation: { language: c.target },
+      translation: hasPhrases ? { language: c.target, corpus: { phrases: { ...c.phrases } } } : { language: c.target },
       audio: {
-        input: c.manual ? { format, turn_detection: null } : { format },
-        ...(c.speech ? { output: { voice: c.voice.kind === 'clone' ? 'default' : c.voice.name } } : {}),
+        // The pause is undocumented for 3.8 but honoured (probe 2026-10-13): it rides speaker detection, the default kind, so speakers stay labelled.
+        input: c.manual ? { format, turn_detection: null }
+          : c.silenceMs !== null ? { format, turn_detection: { type: 'speaker_detection', silence_duration_ms: c.silenceMs } }
+            : { format },
+        ...(c.speech ? { output: { voice: voice.kind === 'clone' ? 'default' : voice.name } } : {}),
       },
-      // Every turn re-clones its speaker, so each voice follows whoever is speaking (probe 2026-10-13); no extra tokens.
-      ...(clone ? { enable_voice_clone: true as const, voice_clone_options: { frequency: 'always' as const } } : {}),
+      // `always` re-clones each turn, so each voice follows whoever is speaking; `once` keeps the first speaker's (probe 2026-10-13). No extra tokens either way.
+      ...(c.speech && voice.kind === 'clone' ? { enable_voice_clone: true as const, voice_clone_options: { frequency: voice.frequency } } : {}),
     },
   };
 }

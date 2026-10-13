@@ -521,11 +521,16 @@
       "name": "Qwen LiveTranslate",
       "description": "Qwen3.8 동시 통역, 60개 언어(음성 29개)",
       "voiceClone": "화자 목소리 복제",
+      "voiceCloneOnce": "첫 번째 화자 목소리 복제",
       "voiceGroupClone": "목소리 복제",
       "voiceSummaryCloneMine": "내 목소리 (복제)",
       "voiceSummaryCloneTheirs": "상대방 본인의 목소리 (복제)",
       "storefrontIntl": "QwenCloud(국제) 키",
-      "storefrontCn": "千问云(중국 본토) 키"
+      "storefrontCn": "千问云(중국 본토) 키",
+      "vocabulary": "맞춤 어휘",
+      "vocabularyTranslations": "선호하는 번역",
+      "vocabularyTranslationsTooltip": "특정 용어의 번역 방식에 영향을 줍니다 — 이는 선호일 뿐 보장된 대체가 아닙니다: 정착된 번역이 있는 이름에 가장 효과적이며, 일반 단어는 모델 자체의 표현이 그대로 유지될 수 있습니다. 항목에는 방향이 있습니다. 역방향은 모두 모드에서만 존재하며, 이때 역방향 줄을 추가할 수 있습니다.",
+      "vocabularyTranslationsPlaceholder": "한 줄에 하나씩 원어=번역어 형식으로 입력"
     },
     "local_inference": {
       "name": "무료",

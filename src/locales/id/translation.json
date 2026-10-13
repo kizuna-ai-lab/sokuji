@@ -521,11 +521,16 @@
       "name": "Qwen LiveTranslate",
       "description": "Penerjemahan simultan Qwen3.8, 60 bahasa (29 dengan suara)",
       "voiceClone": "Kloning suara pembicara",
+      "voiceCloneOnce": "Kloning suara pembicara pertama",
       "voiceGroupClone": "Kloning suara",
       "voiceSummaryCloneMine": "Suara Anda sendiri (dikloning)",
       "voiceSummaryCloneTheirs": "Suara pihak lain sendiri (dikloning)",
       "storefrontIntl": "Kunci dari QwenCloud (internasional)",
-      "storefrontCn": "Kunci dari 千问云 (Tiongkok daratan)"
+      "storefrontCn": "Kunci dari 千问云 (Tiongkok daratan)",
+      "vocabulary": "Kosakata Kustom",
+      "vocabularyTranslations": "Terjemahan Pilihan",
+      "vocabularyTranslationsTooltip": "Memengaruhi cara penerjemahan istilah tertentu — ini preferensi, bukan penggantian yang dijamin: nama dengan terjemahan yang sudah baku bekerja paling baik, sedangkan kata umum mungkin tetap menggunakan bahasa model itu sendiri. Entri bersifat searah; arah sebaliknya hanya ada dalam mode Keduanya, tempat Anda dapat menambahkan baris terbalik.",
+      "vocabularyTranslationsPlaceholder": "Satu entri sumber=target per baris"
     },
     "local_inference": {
       "name": "Gratis",

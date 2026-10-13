@@ -12,8 +12,13 @@ import { distinctVoice } from '../../lib/provider/voices';
 /** The one model (D1): the check finds the storefront, nothing chooses a model. */
 export const QWEN_MODEL = 'qwen3.8-livetranslate-flash-realtime';
 
-/** The speaker's own voice, cloned in real time (D5): a choice beside the presets, sent as `enable_voice_clone`. */
+/** The speaker's own voice, cloned in real time on every turn (D5): a choice beside the presets, sent as `enable_voice_clone`, frequency `always`. */
 export const SPEAKER_CLONE = 'clone';
+/** The first speaker's voice, cloned once at the start and kept (frequency `once`): one presenter stays one voice. */
+export const SPEAKER_CLONE_ONCE = 'clone-once';
+
+/** The pause that ends a turn, in ms: the server's own default (2500), within a range the server does not enforce itself (it accepts 100 and 10 000 alike; probe 2026-10-13). */
+export const QWEN_PAUSE = { min: 500, max: 6000, step: 100, default: 2500 } as const;
 
 export interface QwenVoice {
   /** The vendor's name, sent verbatim: spaces and diacritics included. */
@@ -80,29 +85,36 @@ export const QWEN_VOICES: readonly QwenVoice[] = [
 ];
 
 export interface QwenSettings {
-  /** My leg's voice: one of `QWEN_VOICES`, or `SPEAKER_CLONE`. */
+  /** My leg's voice: one of `QWEN_VOICES`, `SPEAKER_CLONE` or `SPEAKER_CLONE_ONCE`. */
   voice: string;
   /** The voice that reads the other person's words to me: the same choices. */
   participantVoice: string;
+  /** Preferred translations, one `source=target` per line (→ `translation.corpus.phrases`), both legs. */
+  hotwords: string;
+  /** The pause that ends a turn under automatic turns, in ms (`QWEN_PAUSE`). */
+  pauseMs: number;
 }
 
 export const QWEN_DEFAULT_VOICE = 'Tina';
 /** A male preset beside Tina, so the two people never sound alike by default. */
 export const QWEN_PARTICIPANT_DEFAULT_VOICE = 'Ethan';
-export const QWEN_DEFAULTS: QwenSettings = { voice: QWEN_DEFAULT_VOICE, participantVoice: QWEN_PARTICIPANT_DEFAULT_VOICE };
+export const QWEN_DEFAULTS: QwenSettings = { voice: QWEN_DEFAULT_VOICE, participantVoice: QWEN_PARTICIPANT_DEFAULT_VOICE, hotwords: '', pauseMs: QWEN_PAUSE.default };
+
+/** Either clone: each leg clones its own speaker, so neither is ever "my" voice to keep off the other leg. */
+const cloned = (v: string) => v === SPEAKER_CLONE || v === SPEAKER_CLONE_ONCE;
 
 /** A choice the list offers: the list is the only check, since the server refuses an unknown voice only at the first speech (probe 2026-10-13). */
-const listed = (v: string) => v === SPEAKER_CLONE || QWEN_VOICES.some((o) => o.value === v);
+const listed = (v: string) => cloned(v) || QWEN_VOICES.some((o) => o.value === v);
 
 /** My voice for a run: the choice while the list has it, else Tina. */
 export function qwenSpeakerVoice(s: Pick<QwenSettings, 'voice'>): string {
   return listed(s.voice) ? s.voice : QWEN_DEFAULT_VOICE;
 }
 
-/** The other party's voice for a run: never my preset (`distinctVoice`). The clone is exempt: each leg clones its own speaker. */
+/** The other party's voice for a run: never my preset (`distinctVoice`). The clones are exempt: each leg clones its own speaker. */
 export function qwenParticipantVoice(s: Pick<QwenSettings, 'voice' | 'participantVoice'>): string {
   const chosen = listed(s.participantVoice) ? s.participantVoice : QWEN_PARTICIPANT_DEFAULT_VOICE;
-  if (chosen === SPEAKER_CLONE) return chosen;
+  if (cloned(chosen)) return chosen;
   return distinctVoice(chosen, qwenSpeakerVoice(s), { participant: QWEN_PARTICIPANT_DEFAULT_VOICE, speaker: QWEN_DEFAULT_VOICE });
 }
 

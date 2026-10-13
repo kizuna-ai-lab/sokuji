@@ -521,11 +521,16 @@
       "name": "Qwen LiveTranslate",
       "description": "Qwen3.8-simultaantolken, 60 talen (29 gesproken)",
       "voiceClone": "Stem van de spreker klonen",
+      "voiceCloneOnce": "Stem van de eerste spreker klonen",
       "voiceGroupClone": "Stem klonen",
       "voiceSummaryCloneMine": "Je eigen stem (gekloond)",
       "voiceSummaryCloneTheirs": "De eigen stem van de ander (gekloond)",
       "storefrontIntl": "Sleutel van QwenCloud (internationaal)",
-      "storefrontCn": "Sleutel van 千问云 (Chinees vasteland)"
+      "storefrontCn": "Sleutel van 千问云 (Chinees vasteland)",
+      "vocabulary": "Aangepast vocabulaire",
+      "vocabularyTranslations": "Voorkeursvertalingen",
+      "vocabularyTranslationsTooltip": "Beïnvloedt hoe specifieke termen worden vertaald — een voorkeur, geen gegarandeerde vervanging: namen met een gevestigde vertaling werken het best, terwijl gangbare woorden de eigen formulering van het model kunnen behouden. Items zijn eenrichtings; de omgekeerde richting bestaat alleen in de modus Beide, waar je een omgekeerde regel kunt toevoegen.",
+      "vocabularyTranslationsPlaceholder": "Eén item bron=doel per regel"
     },
     "local_inference": {
       "name": "Gratis",

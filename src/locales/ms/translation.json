@@ -521,11 +521,16 @@
       "name": "Qwen LiveTranslate",
       "description": "Tafsiran serentak Qwen3.8, 60 bahasa (29 dengan suara)",
       "voiceClone": "Klon suara penutur",
+      "voiceCloneOnce": "Klon suara penutur pertama",
       "voiceGroupClone": "Pengklonan suara",
       "voiceSummaryCloneMine": "Suara anda sendiri (diklon)",
       "voiceSummaryCloneTheirs": "Suara pihak lain sendiri (diklon)",
       "storefrontIntl": "Kunci daripada QwenCloud (antarabangsa)",
-      "storefrontCn": "Kunci daripada 千问云 (tanah besar China)"
+      "storefrontCn": "Kunci daripada 千问云 (tanah besar China)",
+      "vocabulary": "Perbendaharaan Kata Tersuai",
+      "vocabularyTranslations": "Terjemahan Pilihan",
+      "vocabularyTranslationsTooltip": "Mempengaruhi cara istilah tertentu diterjemahkan — ini keutamaan, bukan penggantian yang dijamin: nama dengan terjemahan yang sudah mantap berfungsi paling baik, manakala perkataan biasa mungkin mengekalkan bahasa model itu sendiri. Entri adalah berarah; arah songsang hanya wujud dalam mod Kedua-duanya, di mana anda boleh menambah baris songsang.",
+      "vocabularyTranslationsPlaceholder": "Satu entri sumber=sasaran setiap baris"
     },
     "local_inference": {
       "name": "Percuma",

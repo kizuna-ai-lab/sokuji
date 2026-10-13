@@ -6,6 +6,7 @@ import { checkQwen } from './check';
 import { buildQwen, describeQwen } from './config';
 import { qwenLiveTranslateProvider } from './provider';
 import { QwenSettingsView, QwenVoiceSummary } from './QwenSettings';
+import { QwenTurnDetectionControls, QwenTurnDetectionSummary } from './QwenTurnDetection';
 import { QWEN_DEFAULTS, qwenCredentials, qwenLanguages } from './settings';
 
 const release = (platform: PresenceEnv['platform'], patch: Partial<PresenceEnv> = {}): PresenceEnv =>
@@ -24,6 +25,7 @@ describe('the Qwen LiveTranslate definition (spec §1)', () => {
       settings: { key: 'qwenLiveTranslate', defaults: QWEN_DEFAULTS },
       Settings: QwenSettingsView,
       VoiceSummary: QwenVoiceSummary,
+      TurnDetection: { Summary: QwenTurnDetectionSummary, Controls: QwenTurnDetectionControls },
       credentials: qwenCredentials,
       check: checkQwen,
       checkReads: [],
@@ -33,7 +35,7 @@ describe('the Qwen LiveTranslate definition (spec §1)', () => {
     });
     expect(qwenLiveTranslateProvider.settings).not.toHaveProperty('legacyKeys');
     expect(qwenLiveTranslateProvider.settings).not.toHaveProperty('migrate');
-    for (const absent of ['guideUrl', 'TurnDetection', 'session', 'participantSpeech', 'faceToFace'] as const) {
+    for (const absent of ['guideUrl', 'session', 'participantSpeech', 'faceToFace'] as const) {
       expect(qwenLiveTranslateProvider, absent).not.toHaveProperty(absent);
     }
   });

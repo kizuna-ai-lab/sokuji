@@ -5,6 +5,7 @@ import { createQwenAdapter } from './adapter';
 import { checkQwen, detectEndpoint } from './check';
 import { buildQwen, describeQwen, type QwenConfig } from './config';
 import { QwenSettingsView, QwenVoiceSummary } from './QwenSettings';
+import { QwenTurnDetectionControls, QwenTurnDetectionSummary } from './QwenTurnDetection';
 import { QWEN_DEFAULTS, qwenCredentials, qwenLanguages, type QwenCredentials, type QwenSettings } from './settings';
 
 const adapter = createQwenAdapter({ openHeaderSocket: platformHeaderSocket, detect: detectEndpoint });
@@ -29,6 +30,8 @@ export const qwenLiveTranslateProvider: Provider<QwenSettings, QwenCredentials, 
   Settings: QwenSettingsView,
   // Each spoken leg's voice, or whose own voice is cloned, under its Speech row.
   VoiceSummary: QwenVoiceSummary,
+  // The pause that ends a turn under automatic turns: summed up under Speech, tuned on the Provider tab.
+  TurnDetection: { Summary: QwenTurnDetectionSummary, Controls: QwenTurnDetectionControls },
 
   credentials: qwenCredentials,
   check: checkQwen,

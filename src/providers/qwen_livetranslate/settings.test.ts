@@ -3,16 +3,22 @@ import { canonicalTag, parseCode } from '../../lib/language/code';
 import { AUTO } from '../../lib/provider/languages';
 import type { AuthContext } from '../../lib/provider/types';
 import {
-  QWEN_DEFAULTS, QWEN_LANGUAGES, QWEN_MODEL, QWEN_SPOKEN, QWEN_VOICES, qwenCredentials, qwenLanguages, qwenParticipantVoice, qwenSpeakerVoice, SPEAKER_CLONE,
+  QWEN_DEFAULTS, QWEN_LANGUAGES, QWEN_MODEL, QWEN_PAUSE, QWEN_SPOKEN, QWEN_VOICES, qwenCredentials, qwenLanguages, qwenParticipantVoice, qwenSpeakerVoice,
+  SPEAKER_CLONE, SPEAKER_CLONE_ONCE,
 } from './settings';
 
 const signedOut: AuthContext = { signedIn: false, getToken: async () => null };
 const codes = (list: readonly { value: string }[]) => list.map((o) => o.value);
 
 describe("Qwen LiveTranslate's settings", () => {
-  it('runs one model, and starts from two different presets', () => {
+  it('runs one model, and starts from two different presets, no hotwords and the server\'s own pause', () => {
     expect(QWEN_MODEL).toBe('qwen3.8-livetranslate-flash-realtime');
-    expect(QWEN_DEFAULTS).toEqual({ voice: 'Tina', participantVoice: 'Ethan' });
+    expect(QWEN_DEFAULTS).toEqual({ voice: 'Tina', participantVoice: 'Ethan', hotwords: '', pauseMs: 2500 });
+  });
+
+  it('offers a pause from half a second to six, in tenths, the server default in range', () => {
+    expect(QWEN_PAUSE).toEqual({ min: 500, max: 6000, step: 100, default: 2500 });
+    expect(QWEN_DEFAULTS.pauseMs).toBe(QWEN_PAUSE.default);
   });
 
   it('lists the 47 presets in the vendor order, names sent verbatim, none named like the clone choice', () => {
@@ -26,6 +32,8 @@ describe("Qwen LiveTranslate's settings", () => {
       expect(v.description, v.value).not.toBe('');
     }
     expect(QWEN_VOICES.map((v) => v.value)).not.toContain(SPEAKER_CLONE);
+    expect(QWEN_VOICES.map((v) => v.value)).not.toContain(SPEAKER_CLONE_ONCE);
+    expect(SPEAKER_CLONE_ONCE).not.toBe(SPEAKER_CLONE);
     expect(QWEN_VOICES.map((v) => v.value)).toContain(QWEN_DEFAULTS.voice);
     expect(QWEN_VOICES.map((v) => v.value)).toContain(QWEN_DEFAULTS.participantVoice);
   });
@@ -33,6 +41,7 @@ describe("Qwen LiveTranslate's settings", () => {
   it('runs my choice — a preset or the clone — and Tina for anything the list does not have', () => {
     expect(qwenSpeakerVoice({ voice: 'Serena' })).toBe('Serena');
     expect(qwenSpeakerVoice({ voice: SPEAKER_CLONE })).toBe(SPEAKER_CLONE);
+    expect(qwenSpeakerVoice({ voice: SPEAKER_CLONE_ONCE })).toBe(SPEAKER_CLONE_ONCE);
     expect(qwenSpeakerVoice({ voice: 'Cherry' })).toBe('Tina');
     expect(qwenSpeakerVoice({ voice: '' })).toBe('Tina');
   });
@@ -42,6 +51,8 @@ describe("Qwen LiveTranslate's settings", () => {
     expect(qwenParticipantVoice({ voice: 'Serena', participantVoice: 'Serena' })).toBe('Ethan');
     expect(qwenParticipantVoice({ voice: 'Ethan', participantVoice: 'Ethan' })).toBe('Tina');
     expect(qwenParticipantVoice({ voice: SPEAKER_CLONE, participantVoice: SPEAKER_CLONE })).toBe(SPEAKER_CLONE);
+    expect(qwenParticipantVoice({ voice: SPEAKER_CLONE_ONCE, participantVoice: SPEAKER_CLONE_ONCE })).toBe(SPEAKER_CLONE_ONCE);
+    expect(qwenParticipantVoice({ voice: 'Tina', participantVoice: SPEAKER_CLONE_ONCE })).toBe(SPEAKER_CLONE_ONCE);
     expect(qwenParticipantVoice({ voice: SPEAKER_CLONE, participantVoice: 'Tina' })).toBe('Tina');
     expect(qwenParticipantVoice({ voice: 'Tina', participantVoice: 'Cherry' })).toBe('Ethan');
     // A stale choice of mine falls to Tina first, so the other party still differs from what I run.

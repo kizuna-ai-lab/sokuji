@@ -521,11 +521,16 @@
       "name": "Qwen LiveTranslate",
       "description": "Qwen3.8 sabay-sabay na pagsasalin, 60 wika (29 may boses)",
       "voiceClone": "I-clone ang boses ng nagsasalita",
+      "voiceCloneOnce": "I-clone ang boses ng unang nagsasalita",
       "voiceGroupClone": "Pag-clone ng boses",
       "voiceSummaryCloneMine": "Sarili mong boses (na-clone)",
       "voiceSummaryCloneTheirs": "Sariling boses ng kausap (na-clone)",
       "storefrontIntl": "Key mula sa QwenCloud (internasyonal)",
-      "storefrontCn": "Key mula sa 千问云 (mainland China)"
+      "storefrontCn": "Key mula sa 千问云 (mainland China)",
+      "vocabulary": "Custom na Bokabularyo",
+      "vocabularyTranslations": "Gustong mga Pagsasalin",
+      "vocabularyTranslationsTooltip": "Umiimpluwensya kung paano isinasalin ang mga partikular na termino — isang kagustuhan, hindi garantisadong kapalit: pinakamainam ang mga pangalang may itinatag na salin, samantalang maaaring mapanatili ng mga karaniwang salita ang sarili nitong pananalita mula sa modelo. Ang mga entry ay may direksyon; ang kabaligtaran na direksyon ay umiiral lamang sa mode na Pareho, kung saan maaari kang magdagdag ng baliktad na linya.",
+      "vocabularyTranslationsPlaceholder": "Isang entry na source=target kada linya"
     },
     "local_inference": {
       "name": "Libre",

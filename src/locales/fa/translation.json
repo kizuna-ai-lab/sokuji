@@ -521,11 +521,16 @@
       "name": "Qwen LiveTranslate",
       "description": "ترجمه همزمان Qwen3.8، 60 زبان (29 با صدا)",
       "voiceClone": "شبیه‌سازی صدای گوینده",
+      "voiceCloneOnce": "شبیه‌سازی صدای نخستین گوینده",
       "voiceGroupClone": "شبیه‌سازی صدا",
       "voiceSummaryCloneMine": "صدای خودتان (شبیه‌سازی‌شده)",
       "voiceSummaryCloneTheirs": "صدای خود طرف مقابل (شبیه‌سازی‌شده)",
       "storefrontIntl": "کلید از QwenCloud (بین‌المللی)",
-      "storefrontCn": "کلید از 千问云 (سرزمین اصلی چین)"
+      "storefrontCn": "کلید از 千问云 (سرزمین اصلی چین)",
+      "vocabulary": "واژگان سفارشی",
+      "vocabularyTranslations": "ترجمه‌های ترجیحی",
+      "vocabularyTranslationsTooltip": "بر نحوه ترجمه اصطلاحات خاص تأثیر می‌گذارد — این یک ترجیح است، نه جایگزینی تضمین‌شده: نام‌هایی که ترجمهٔ جاافتاده دارند بهترین نتیجه را می‌دهند، در حالی که واژه‌های رایج ممکن است همان صورت‌بندی مدل را حفظ کنند. ورودی‌ها جهت‌دار هستند؛ جهت معکوس فقط در حالت هر دو وجود دارد، جایی که می‌توانید یک خط معکوس اضافه کنید.",
+      "vocabularyTranslationsPlaceholder": "یک ورودی به‌صورت مبدأ=مقصد در هر خط"
     },
     "local_inference": {
       "name": "رایگان",
