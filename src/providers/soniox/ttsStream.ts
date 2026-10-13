@@ -45,7 +45,7 @@
 import { SONIOX_REDUCE_SILENCE } from '../../lib/soniox/ttsCatalog';
 import { sonioxHosts, type SonioxRegion } from '../../lib/soniox/regions';
 import { every, realClock, pinnedRealClock, type Clock } from '../../lib/contract/clock';
-import { nativeSocket, WS_OPEN, type OpenSocket, type SonioxWireDeps } from './socket';
+import { nativeSocket, sonioxProtocols, WS_OPEN, type OpenSocket, type SonioxWireDeps } from './socket';
 import type { TextRange } from '../../lib/contract/adapter';
 
 export interface SonioxTtsOptions {
@@ -69,8 +69,8 @@ export interface SonioxTtsOptions {
  * 'segment': Soniox killed one segment for living too long (a 408) and the
  * socket is still up — the next segment will speak. 'all': spoken output is
  * down — the socket failed, or Soniox rejected a stream for a reason every
- * segment would repeat (a voice, key or quota: the api_key rides in every
- * stream's config).
+ * segment would repeat (a voice, key or quota: the connection's key serves
+ * every stream on it).
  */
 export type SonioxTtsErrorScope = 'segment' | 'all';
 
@@ -209,7 +209,7 @@ export class SonioxTtsStream {
 
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const ws = this.openSocket(`wss://${sonioxHosts(this.options.region).ttsRt}/tts-websocket`);
+      const ws = this.openSocket(`wss://${sonioxHosts(this.options.region).ttsRt}/tts-websocket`, sonioxProtocols(this.options.apiKey));
       this.ws = ws;
       this.intentionalClose = false;
       let opened = false;
@@ -404,7 +404,6 @@ export class SonioxTtsStream {
     this.segmentCounter += 1;
     const streamId = `utt-${this.utteranceCounter}-${this.segmentCounter}`;
     this.ws!.send(JSON.stringify({
-      api_key: this.options.apiKey,
       stream_id: streamId,
       model: this.options.model,
       voice: this.options.voice,

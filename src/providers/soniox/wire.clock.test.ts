@@ -46,7 +46,9 @@ describe('SonioxSttStream on the injected clock and socket', () => {
     expect(sockets.last().url).toBe('wss://stt-rt.eu.soniox.com/transcribe-websocket');
     sockets.last().open();
     await p;
-    expect(sockets.last().sentJson()[0]).toMatchObject({ api_key: 'k', model: 'stt-rt-v5' });
+    expect(sockets.last().protocols).toEqual(['soniox-api-key', 'k']);
+    expect(sockets.last().sentJson()[0]).toMatchObject({ model: 'stt-rt-v5' });
+    expect(sockets.last().sentJson()[0]).not.toHaveProperty('api_key');
   });
 
   it('times out an STT connect after 15 s on the clock', async () => {

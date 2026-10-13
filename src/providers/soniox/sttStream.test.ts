@@ -11,13 +11,14 @@ class MockWebSocket {
   static OPEN = 1;
   static CLOSED = 3;
   url: string;
+  protocols: string[] | undefined;
   readyState = 0;
   sent: Array<string | Int16Array> = [];
   onopen: (() => void) | null = null;
   onmessage: ((ev: { data: string }) => void) | null = null;
   onerror: ((ev: unknown) => void) | null = null;
   onclose: ((ev: { code?: number; reason?: string }) => void) | null = null;
-  constructor(url: string) { this.url = url; MockWebSocket.instances.push(this); }
+  constructor(url: string, protocols?: string[]) { this.url = url; this.protocols = protocols; MockWebSocket.instances.push(this); }
   send(data: string | Int16Array) { this.sent.push(data); }
   close() { this.readyState = MockWebSocket.CLOSED; this.onclose?.({ code: 1000 }); }
   // test helpers
@@ -60,7 +61,7 @@ describe('SonioxSttStream', () => {
     const { ws } = await openStream({ ...CONFIG, languageHints: ['zh'] });
     const first = JSON.parse(ws.sent[0] as string);
     expect(first).toMatchObject({
-      api_key: 'k', model: 'stt-rt-v5',
+      model: 'stt-rt-v5',
       audio_format: 'pcm_s16le', sample_rate: 24000, num_channels: 1,
       enable_endpoint_detection: true,
       enable_language_identification: true,
@@ -69,6 +70,30 @@ describe('SonioxSttStream', () => {
     });
     // Unset max delay defers to the Soniox server default (issue #464).
     expect('max_endpoint_delay_ms' in first).toBe(false);
+  });
+
+  it('carries the key in the handshake, as the soniox-api-key subprotocol, and never in a frame', async () => {
+    // Soniox refuses a key sent only in the start frame from 2027-01-15
+    // (soniox.com/docs/guides/websocket-authentication).
+    const { s, ws } = await openStream();
+    s.sendAudio(new Int16Array([1]));
+    s.end();
+    expect(ws.protocols).toEqual(['soniox-api-key', 'k']);
+    const texts = ws.sent.filter((d): d is string => typeof d === 'string' && d !== '');
+    expect(texts.map((d) => JSON.parse(d))).toEqual([expect.not.objectContaining({ api_key: expect.anything() })]);
+  });
+
+  it('rejects connect() in fixed words when the browser will not open the socket, never quoting the key', async () => {
+    // Chromium refuses an invalid subprotocol with a SyntaxError that quotes the subprotocols, the key among them.
+    vi.stubGlobal('WebSocket', class {
+      constructor(_url: string, protocols?: string[]) {
+        throw new DOMException(`Failed to construct 'WebSocket': The subprotocol '${(protocols ?? []).join(', ')}' is invalid.`, 'SyntaxError');
+      }
+    });
+    const error = await new SonioxSttStream().connect({ ...CONFIG, apiKey: 'snx_temp_secret' }).catch((e: Error) => e);
+    expect(error).toBeInstanceOf(Error);
+    expect(String((error as Error).message)).not.toContain('snx_temp_secret');
+    expect((error as Error).name).toBe('SyntaxError');
   });
 
   it('omits language_hints when not provided and supports two_way', async () => {

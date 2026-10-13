@@ -6,8 +6,8 @@
  * Translate's and OpenAI Realtime's `socket.ts` each held a copy; lifted
  * at its fifth user, Palabra (Stage 2 Palabra, choice 1), the four copies
  * re-export it, each keeping the `OpenSocket` its adapter calls (with
- * subprotocols or without). Soniox's own seam stays its own: it rethrows
- * nothing, and the old client's streams read it. F14, the header seam,
+ * subprotocols or without). Soniox's re-exports it too, since its key
+ * moved into a subprotocol (2027-01-15 deadline). F14, the header seam,
  * sits beside it in `headerSocket.ts`, built by OpenAI Live and opening
  * its sockets through this one (Stage 2 OpenAI Live, choice 1).
  */

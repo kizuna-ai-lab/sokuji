@@ -124,7 +124,8 @@ type Ran = Awaited<ReturnType<typeof run>>;
 function participantSays(r: Ran): void {
   r.stt[r.stt.length - 1].receive(msg({ ...orig('Ohayō.'), language: 'ja' }, tr('Good morning.', 'en', 'ja'), END));
 }
-const sentWithKey = (r: Ran, key: string) => r.tts.flatMap((x) => x.sentJson<Json>()).filter((m) => m.api_key === key);
+/** The stream configs sent on the TTS sockets that authenticated with `key` (its second subprotocol). */
+const configsOnKey = (r: Ran, key: string) => r.tts.filter((x) => x.protocols?.[1] === key).flatMap((x) => x.sentJson<Json>()).filter((m) => m.model !== undefined);
 const degraded = (r: Ran) => r.rec.participant.log.filter((e) => e.kind === 'degraded');
 
 describe('the switch', () => {
@@ -179,7 +180,8 @@ describe('the flag off (a test-only twin from the same factory)', () => {
     expect(r.lease.credentials('participant')).not.toHaveProperty('tts');
     expect(r.tts).toHaveLength(ttsSockets);
     participantSays(r);
-    expect(sentWithKey(r, 'k-par_tts')).toEqual([]);
+    // No socket opened on the stray key at all.
+    expect([...r.stt, ...r.tts].map((x) => x.protocols)).not.toContainEqual(['soniox-api-key', 'k-par_tts']);
     expect(degraded(r)).toEqual([]);
   });
 
@@ -208,7 +210,7 @@ describe('the flag on (as shipped)', () => {
     expect(r.lease.credentials('participant')).toMatchObject({ tts: 'k-par_tts' });
     expect(r.tts).toHaveLength(ttsSockets);
     participantSays(r);
-    expect(sentWithKey(r, 'k-par_tts')).toEqual([expect.objectContaining({ api_key: 'k-par_tts', language: 'en' })]);
+    expect(configsOnKey(r, 'k-par_tts')).toEqual([expect.objectContaining({ language: 'en' })]);
     expect(degraded(r)).toEqual([]);
   });
 
