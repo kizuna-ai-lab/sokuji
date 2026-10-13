@@ -325,6 +325,30 @@ describe('the Qwen LiveTranslate adapter: the session (spec §6)', () => {
     expect(types(auto.socket())).toEqual(['session.update']);
   });
 
+  it("push-to-talk: a cancel before the turn's first event drops what the server still sends for it until `cleared`; the committed turn's translation still lands", async () => {
+    const h = await qwenSession({ context: MANUAL_CTX });
+    // A released turn, its translation still streaming.
+    h.socket().receive(SERVER.heardItem('item_h1'));
+    h.socket().receive(SERVER.sourceDelta('item_h1', 'first'));
+    h.socket().receive(SERVER.answerItem('item_t1', 'item_h1'));
+    h.socket().receive(SERVER.transcriptDelta('item_t1', 'Fir'));
+    h.session.endTurn();
+    h.socket().receive(SERVER.bare('input_audio_buffer.committed'));
+    // A press so short its turn's first event comes after the cancel.
+    h.session.cancelTurn();
+    h.socket().receive(SERVER.heardItem('item_h2', 'item_t1'));
+    h.socket().receive(SERVER.sourceDelta('item_h2', 'oops'));
+    h.socket().receive(SERVER.answerItem('item_t2', 'item_h2'));
+    h.socket().receive(SERVER.transcriptDelta('item_t2', 'Oops'));
+    h.socket().receive(SERVER.audio('item_t2'));
+    h.socket().receive(SERVER.transcriptDelta('item_t1', 'st.'));
+    h.socket().receive(SERVER.bare('input_audio_buffer.cleared'));
+    h.socket().receive(SERVER.heardItem('item_h3', 'item_t1'));
+    h.socket().receive(SERVER.sourceDelta('item_h3', 'third'));
+    expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['first', 'Fir', 'First.', 'third']);
+    expect(h.of('audio')).toEqual([]);
+  });
+
   it('push-to-talk: a heard item its content does not mark is told by what it follows — nothing, or the last translation — so its words still show', async () => {
     const h = await qwenSession({ context: MANUAL_CTX });
     // No speech start under push-to-talk, and no recording confirms the heard item's content entry: here it has none.

@@ -348,9 +348,16 @@ class QwenLeg implements AdapterSession {
       case 'error':
         this.serverError(e);
         return;
-      case 'input_audio_buffer.speech_stopped':
+      // A release's and a cancel's acknowledgements: each closes a push-to-talk turn for the segments (`QwenSegments.cancel`).
       case 'input_audio_buffer.committed':
+        this.frame('in', e.type);
+        this.segments.committed();
+        return;
       case 'input_audio_buffer.cleared':
+        this.frame('in', e.type);
+        this.segments.cleared();
+        return;
+      case 'input_audio_buffer.speech_stopped':
       case 'response.created':
       case 'response.content_part.added':
       case 'response.content_part.done':

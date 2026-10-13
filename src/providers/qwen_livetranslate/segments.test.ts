@@ -133,10 +133,67 @@ describe("Qwen LiveTranslate's segments (spec §6)", () => {
       ['segmentText', { ref: 1, text: 'half a' }],
       ['segmentClosed', { ref: 1 }],
     ]);
-    // A new turn after the cancel is heard as usual.
+    // A new turn after the server confirmed the clear is heard as usual.
+    s.cleared();
     s.text('h2', 'source', 'next');
     const all = seen();
     expect(all[all.length - 1]).toEqual(['segmentText', { ref: 2, text: 'next' }]);
+  });
+
+  it("a cancel before the turn's first event arrives drops whatever the server sends for it until it confirms the clear", () => {
+    const { s, log, seen } = segments();
+    s.cancel();
+    s.created('h1', { inputAudio: true, previous: null });
+    s.text('h1', 'source', 'too short');
+    s.answer('t1');
+    s.answer('t1', 'h1');
+    s.text('t1', 'translation', 'Too short');
+    s.audio('t1', pcm());
+    s.done('t1', 'translation', 'Too short.');
+    expect(log).toEqual([]);
+    s.cleared();
+    s.text('h2', 'source', 'next turn');
+    expect(seen()).toEqual([
+      ['segmentOpened', { ref: 1, side: 'source', origin: 'h2' }],
+      ['segmentText', { ref: 1, text: 'next turn' }],
+    ]);
+  });
+
+  it('a cancel leaves the turn already committed alone: its translation still arriving is shown and closed', () => {
+    const { s, seen } = segments();
+    s.heard('h1');
+    s.text('h1', 'source', 'first');
+    s.answer('t1', 'h1');
+    s.text('t1', 'translation', 'Fir');
+    s.committed();
+    s.heard('h2');
+    s.text('h2', 'source', 'half');
+    s.cancel();
+    s.text('t1', 'translation', 'st.');
+    s.done('t1', 'translation', 'First.');
+    expect(seen()).toEqual([
+      ['segmentOpened', { ref: 1, side: 'source', origin: 'h1' }],
+      ['segmentText', { ref: 1, text: 'first' }],
+      ['segmentOpened', { ref: 2, side: 'translation', origin: 'h1' }],
+      ['segmentText', { ref: 2, text: 'Fir' }],
+      ['segmentOpened', { ref: 3, side: 'source', origin: 'h2' }],
+      ['segmentText', { ref: 3, text: 'half' }],
+      ['segmentClosed', { ref: 3 }],
+      ['segmentText', { ref: 2, text: 'First.' }],
+      ['segmentClosed', { ref: 2 }],
+    ]);
+  });
+
+  it('without a confirmed clear, the next commit ends the suppression', () => {
+    const { s, seen } = segments();
+    s.cancel();
+    s.text('hx', 'source', 'lost');
+    s.committed();
+    s.text('h3', 'source', 'heard');
+    expect(seen()).toEqual([
+      ['segmentOpened', { ref: 1, side: 'source', origin: 'h3' }],
+      ['segmentText', { ref: 1, text: 'heard' }],
+    ]);
   });
 
   it('ignores an id named for the other side, and anything after stop', () => {

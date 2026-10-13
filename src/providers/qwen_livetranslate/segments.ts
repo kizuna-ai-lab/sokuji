@@ -33,6 +33,8 @@ interface Item {
   closed: boolean;
   /** Cancelled: nothing more of it is heard, its audio included. */
   dropped: boolean;
+  /** The push-to-talk turn it was first seen in: a cancel drops the current turn's items, never a committed turn's. */
+  turn: number;
 }
 
 export class QwenSegments {
@@ -41,6 +43,10 @@ export class QwenSegments {
   /** `speaker_id` by heard item, from `speech_started` (automatic turns only). */
   private readonly speakers = new Map<string, string>();
   private stopped = false;
+  /** The current push-to-talk turn: a confirmed commit or clear starts the next. */
+  private turn = 0;
+  /** A cancel's clear is not confirmed yet: whatever the server still sends for that turn is dropped as it comes. */
+  private suppressing = false;
 
   constructor(private readonly o: QwenSegmentsOptions) {}
 
@@ -101,9 +107,28 @@ export class QwenSegments {
     this.o.sink.audio({ pcm, ref: it.ref });
   }
 
-  /** A push-to-talk cancel: the server never finishes that response, so what is open closes here. */
+  /**
+   * A push-to-talk cancel: the server never finishes that response, so what
+   * the turn has open closes here, and what it still sends for the turn —
+   * items not even seen yet when a press is that short — is dropped until
+   * the server confirms the clear. A committed turn's translation still
+   * arriving is left alone.
+   */
   cancel(): void {
-    for (const it of this.items.values()) if (!it.closed) this.drop(it);
+    for (const it of this.items.values()) if (!it.closed && it.turn === this.turn) this.drop(it);
+    this.suppressing = true;
+  }
+
+  /** `input_audio_buffer.committed`: the turn is the server's to finish; the next begins. Also ends a suppression whose clear was never confirmed. */
+  committed(): void {
+    this.turn += 1;
+    this.suppressing = false;
+  }
+
+  /** `input_audio_buffer.cleared`: everything the cancelled turn sent has arrived; the next turn begins. */
+  cleared(): void {
+    this.turn += 1;
+    this.suppressing = false;
   }
 
   stop(): void {
@@ -115,7 +140,9 @@ export class QwenSegments {
     if (this.stopped) return null;
     let it = this.items.get(itemId);
     if (!it) {
-      it = { side, text: '', shown: '', stated: false, closed: false, dropped: false };
+      // First seen after a cancel and before its clear is confirmed: the cancelled turn's, dropped as it comes.
+      const dropped = this.suppressing;
+      it = { side, text: '', shown: '', stated: false, closed: dropped, dropped, turn: this.turn };
       this.items.set(itemId, it);
     }
     return it.side === side ? it : null;

@@ -140,7 +140,7 @@ export type EndpointId = keyof typeof ENDPOINTS;
 **Detection** (`detectEndpoint(apiKey, {fetch, signal, clock})`):
 - POST each `tokens` URL in the order `intl`, `cn`, with `?expire_in_seconds=60` and the Bearer key, through `boundedFetch` (15 s).
 - **200** answers with that endpoint. The token is discarded: it expires on its own, creates no session and costs nothing.
-- **401** moves on to the next endpoint. A 401 from both is a refusal, code `auth`.
+- **401 or 403** moves on to the next endpoint: either means "not this key here". Refused by both is a refusal, code `auth`.
 - **429** is a refusal, code `rate_limit`.
 - Anything else, or a network failure or timeout, **throws**: unknown, by the check contract.
 - Browser WebSocket upgrades hide the HTTP status, which is why detection does not use the socket.
