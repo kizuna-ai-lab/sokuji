@@ -202,7 +202,7 @@ describe('SetupWizard', () => {
   it('states the mirrored leg on both the pair step and the summary in both mode', () => {
     render(<SetupWizard variant="first-run" />);
     next();
-    fireEvent.click(screen.getByRole('radio', { name: /you hear theirs/ }));   // two-way voice: both, spoken
+    fireEvent.click(screen.getByRole('radio', { name: /can hear it too/ }));   // two-way voice: both, spoken
     next();
     fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
     next();

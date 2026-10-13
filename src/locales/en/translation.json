@@ -777,7 +777,7 @@
       },
       "two-way-voice": {
         "title": "Two-way online conversation",
-        "desc": "They hear your translated voice; you hear theirs and read it as subtitles."
+        "desc": "They hear your translated voice; you read theirs as subtitles and can hear it too."
       },
       "two-way-text": {
         "title": "Two-way online conversation, subtitles only",

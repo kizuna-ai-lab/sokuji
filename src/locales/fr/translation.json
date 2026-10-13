@@ -1171,7 +1171,7 @@
       },
       "two-way-voice": {
         "title": "Conversation en ligne bidirectionnelle",
-        "desc": "Ils entendent votre voix traduite ; vous entendez la leur et la lisez en sous-titres."
+        "desc": "Ils entendent votre voix traduite ; vous lisez la leur en sous-titres et pouvez aussi l'entendre."
       },
       "two-way-text": {
         "title": "Conversation en ligne bidirectionnelle, sous-titres uniquement",

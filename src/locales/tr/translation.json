@@ -1171,7 +1171,7 @@
       },
       "two-way-voice": {
         "title": "Çevrimiçi karşılıklı konuşma",
-        "desc": "Onlar çevrilmiş sesinizi duyar; siz de onların çevrilmiş sesini duyar ve altyazı olarak okursunuz."
+        "desc": "Onlar çevrilmiş sesinizi duyar; siz de onların çevirisini altyazı olarak okur, ayrıca duyabilirsiniz."
       },
       "two-way-text": {
         "title": "Çevrimiçi karşılıklı konuşma, yalnızca altyazı",

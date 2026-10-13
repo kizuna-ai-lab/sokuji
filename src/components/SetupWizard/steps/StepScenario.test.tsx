@@ -38,10 +38,11 @@ describe('StepScenario', () => {
     expect(faceToFaceText().textContent).not.toContain('LAN');
   });
 
-  it("says the two-way voice card reads the other side to me, as its preset turns Translation I hear on", () => {
+  it("says the two-way voice card can read the other side to me, as its preset turns Translation I hear on", () => {
+    // "Can": the wizard has no source step, so whether it plays (one application, not all system sound) is the language step's to say.
     render(<StepScenario draft={initialDraft()} dispatch={vi.fn()} />);
     const card = screen.getByText('Two-way online conversation').closest('label') as HTMLElement;
-    expect(card.textContent).toContain('you hear theirs');
-    expect(card.textContent).not.toContain('you read subtitles generated');
+    expect(card.textContent).toContain('you read theirs as subtitles and can hear it too');
+    expect(card.textContent).not.toContain('you hear theirs');
   });
 });
