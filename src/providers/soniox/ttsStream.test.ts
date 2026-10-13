@@ -412,8 +412,7 @@ describe('SonioxTtsStream segmenting', () => {
   it('only a 408 on a live stream loses one segment; any other error means speech is down', async () => {
     // The 408s are Soniox killing a stream for living too long — the next
     // segment speaks. Any other error on a stream (a rejected voice, key or
-    // quota) fails every segment
-    // the same way.
+    // quota) fails every segment the same way.
     const { t, ws } = await openTts();
     const scopes: string[] = [];
     t.setHandlers({ onError: (_c, _m, _h, scope) => scopes.push(scope) });
@@ -425,6 +424,20 @@ describe('SonioxTtsStream segmenting', () => {
     ws.message({ stream_id: 'utt-1-3', error_code: 401, error_message: 'Invalid API key' });
     ws.message({ error_code: 500, error_message: 'Internal error' });
     expect(scopes).toEqual(['segment', 'all', 'all', 'all']);
+  });
+
+  it("an error with an empty stream_id is the connection's: it fails the live stream with its own code", async () => {
+    // Measured 2026-10-14: Soniox sends a connection-level error, such as a key
+    // refused at the handshake, with stream_id "" rather than none at all.
+    const { t, ws } = await openTts();
+    const errors: Array<[string, boolean, string]> = [];
+    t.setHandlers({ onError: (code, _m, hadActiveStream, scope) => errors.push([code, hadActiveStream, scope]) });
+    t.sendText('Hi', 'en');
+    ws.message({ stream_id: '', error_code: 401, error_type: 'unauthenticated', error_message: 'Invalid or expired temporary API key.' });
+    expect(errors).toEqual([['401', true, 'all']]);
+    // The stream is gone: the next text opens a new one.
+    t.sendText(' again', 'en');
+    expect(opened(ws)).toEqual(['utt-1-1', 'utt-1-2']);
   });
 
   it('sends nothing to a stream after it failed: its timers are cleared', async () => {

@@ -241,15 +241,18 @@ export class SonioxTtsStream {
         const id = data.stream_id;
         const isLive = id === this.activeStreamId || id === this.drainingStreamId;
         if (data.error_code != null) {
+          // A connection-level error names no stream: Soniox sends it with
+          // stream_id "" (a key refused at the handshake, measured 2026-10-14).
+          const connectionLevel = !id;
           // An error about a stream already dropped is a frame that was in
           // flight when it died — its failure was reported then.
-          if (id == null || isLive) {
+          if (connectionLevel || isLive) {
             // Snapshot BEFORE handleStreamFailure clears it.
             const hadActiveStream = this.hasLiveStream();
             const scope: SonioxTtsErrorScope =
-              id != null && String(data.error_code) === SEGMENT_KILL_CODE ? 'segment' : 'all';
+              !connectionLevel && String(data.error_code) === SEGMENT_KILL_CODE ? 'segment' : 'all';
             this.handlers.onError?.(String(data.error_code), data.error_message ?? '', hadActiveStream, scope);
-            this.handleStreamFailure(id);
+            this.handleStreamFailure(connectionLevel ? undefined : id);
           }
         } else if (data.audio && isLive) {
           if (id === this.activeStreamId) this.activeHasAudio = true;
