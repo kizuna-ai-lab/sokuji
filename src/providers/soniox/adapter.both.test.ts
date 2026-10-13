@@ -221,6 +221,20 @@ describe('Soniox startBoth: shared', () => {
     expect(opened(h, 'participant')).toEqual([2]);
   });
 
+  it("shared: the speaker's leg carries no person label, the participant's keeps its people", async () => {
+    const h = await live();
+    const stt = h.sttSockets()[0];
+    // Two labels on my leg (a misattribution, or a resume's new epoch) would number me as two people.
+    stt.receive(msg({ ...orig('Hello.'), language: 'en', speaker: '1' }, tr('こんにちは。'), END));
+    stt.receive(msg({ ...orig('Konnichiwa.'), language: 'ja', speaker: '2' }, tr('Hello.', 'en'), END));
+    stt.receive(msg({ ...orig('Again.'), language: 'en', speaker: '3' }, tr('また。'), END));
+    expect(opened(h, 'speaker').length).toBeGreaterThan(0);
+    for (const e of [...h.of('speaker', 'segmentOpened'), ...h.of('speaker', 'segmentText')]) {
+      expect(e.payload).not.toHaveProperty('person');
+    }
+    expect(h.of('participant', 'segmentOpened').map((e) => e.payload.person)).toEqual(['1.2', '1.2']);
+  });
+
   it('shared: each speaking leg has its own TTS socket and key; the participant speaks only when its switch is on (ruling 4)', async () => {
     const h = await live({ participantSpeaks: true });
     expect(h.ttsSockets()).toHaveLength(2);
