@@ -194,6 +194,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "check:no-lindera-wasm": "node scripts/check-no-lindera-wasm.mjs build extension/dist",
     "build:audio-host": "node scripts/build-audio-host.js",
     "preview": "vite preview",
     "test": "vitest",
