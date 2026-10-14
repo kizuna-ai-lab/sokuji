@@ -959,7 +959,16 @@
       "colorArea": "Saturation et luminosité",
       "colorHue": "Teinte",
       "colorHex": "Valeur hexadécimale de la couleur",
-      "newItemHighlight": "Surligner le texte nouvellement arrivé"
+      "newItemHighlight": "Surligner le texte nouvellement arrivé",
+      "readings": "Afficher les lectures en {{language}} ({{scheme}})",
+      "readingScheme": {
+        "kana": "kana",
+        "pinyin": "pinyin",
+        "rr": "romanisation",
+        "latin": "lettres latines"
+      },
+      "readingsDownloading": "Téléchargement du dictionnaire japonais {{done}} / {{total}}",
+      "readingsDownloadFailed": "Impossible de télécharger le dictionnaire japonais."
     },
     "pttHint": "Appuyez sur Espace pour parler"
   },

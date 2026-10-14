@@ -959,7 +959,16 @@
       "colorArea": "Độ bão hòa và độ sáng",
       "colorHue": "Sắc độ",
       "colorHex": "Giá trị màu hex",
-      "newItemHighlight": "Tô sáng văn bản vừa đến"
+      "newItemHighlight": "Tô sáng văn bản vừa đến",
+      "readings": "Hiện cách đọc tiếng {{language}} ({{scheme}})",
+      "readingScheme": {
+        "kana": "kana",
+        "pinyin": "pinyin",
+        "rr": "phiên âm La-tinh",
+        "latin": "chữ cái La-tinh"
+      },
+      "readingsDownloading": "Đang tải từ điển tiếng Nhật {{done}} / {{total}}",
+      "readingsDownloadFailed": "Không thể tải từ điển tiếng Nhật."
     },
     "pttHint": "Nhấn Phím cách để nói"
   },

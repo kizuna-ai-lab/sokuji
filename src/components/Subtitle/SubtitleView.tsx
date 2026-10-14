@@ -136,6 +136,7 @@ export function SubtitleView({ surface, model, controls, exporter, statusLine, n
         participantActive={participantActive}
         exportMenu={exporter ? { exporter, speakerMode: speaker, participantMode: participant } : undefined}
         surface={surface}
+        readingTargets={readingTargets}
         onExit={controls.exit}
         sessionControl={surface === 'electron' && start && stop ? {
           isSessionActive: running,

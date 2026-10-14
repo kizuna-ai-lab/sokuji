@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus } from 'lucide-react';
 import {
@@ -12,6 +12,8 @@ import {
   useSetSubtitleSourceTextColor,
   useSetSubtitleTranslationTextColor,
   useSetSubtitleNewItemHighlightEnabled,
+  useSubtitleShowReadings,
+  useSetSubtitleShowReadings,
   SUBTITLE_DEFAULT_BG_COLOR,
   SUBTITLE_DEFAULT_SOURCE_TEXT_COLOR,
   SUBTITLE_DEFAULT_TRANSLATION_TEXT_COLOR,
@@ -25,10 +27,18 @@ import {
   useSetConversationDisplayBgColor,
   useSetConversationDisplaySourceTextColor,
   useSetConversationDisplayTranslationTextColor,
+  useConversationDisplayShowReadings,
+  useSetConversationDisplayShowReadings,
   CONVERSATION_DISPLAY_DEFAULT_BG_COLOR,
   CONVERSATION_DISPLAY_DEFAULT_SOURCE_TEXT_COLOR,
   CONVERSATION_DISPLAY_DEFAULT_TRANSLATION_TEXT_COLOR,
 } from '../../stores/conversationDisplayStore';
+import Button from '../Settings/shared/Button';
+import { useAnalytics } from '../../lib/analytics';
+import { useLanguageLabel } from '../../lib/language/useLanguageLabel';
+import { formatBytes } from '../../lib/local-inference/formatBytes';
+import { getJapaneseState, retryJapanese, subscribeJapanese, type JapaneseState } from '../../lib/reading/ja/runtime';
+import { READING_SCHEME, type ReadingLanguage } from '../../lib/reading/types';
 import './DisplaySettingsPopover.scss';
 
 const BG_PRESETS = ['#000000', '#1a1a1a', '#0d2032', '#0f2419', '#FFFFFF', '#2a2a2a'];
@@ -47,6 +57,8 @@ type Source = 'subtitle' | 'conversation';
 
 export interface DisplaySettingsPopoverProps {
   source: Source;
+  /** The reading languages the switch names; absent or empty, no readings row (the subtitle passes them only in Electron while expanded; the overlay never). */
+  readingTargets?: ReadonlySet<ReadingLanguage>;
 }
 
 interface InnerBindings {
@@ -65,10 +77,15 @@ interface InnerBindings {
   defaultBgColor: string;
   defaultSourceTextColor: string;
   defaultTranslationTextColor: string;
+  showReadings: boolean;
+  setShowReadings: (b: boolean) => Promise<void>;
+  surface: 'conversation' | 'subtitle';
 }
 
-const DisplaySettingsPopover: React.FC<DisplaySettingsPopoverProps> = ({ source }) =>
-  source === 'subtitle' ? <SubtitleBoundPopover /> : <ConversationBoundPopover />;
+const DisplaySettingsPopover: React.FC<DisplaySettingsPopoverProps> = ({ source, readingTargets }) =>
+  source === 'subtitle'
+    ? <SubtitleBoundPopover readingTargets={readingTargets} />
+    : <ConversationBoundPopover readingTargets={readingTargets} />;
 
 export default DisplaySettingsPopover;
 
@@ -77,7 +94,7 @@ export default DisplaySettingsPopover;
 // of hooks satisfied: hooks are always called in the same order within
 // a given wrapper component.
 
-const SubtitleBoundPopover: React.FC = () => {
+const SubtitleBoundPopover: React.FC<{ readingTargets?: ReadonlySet<ReadingLanguage> }> = ({ readingTargets }) => {
   const bindings: InnerBindings = {
     bgOpacity: useSubtitleBgOpacity(),
     bgColor: useSubtitleBgColor(),
@@ -92,11 +109,14 @@ const SubtitleBoundPopover: React.FC = () => {
     defaultBgColor: SUBTITLE_DEFAULT_BG_COLOR,
     defaultSourceTextColor: SUBTITLE_DEFAULT_SOURCE_TEXT_COLOR,
     defaultTranslationTextColor: SUBTITLE_DEFAULT_TRANSLATION_TEXT_COLOR,
+    showReadings: useSubtitleShowReadings(),
+    setShowReadings: useSetSubtitleShowReadings(),
+    surface: 'subtitle',
   };
-  return <DisplaySettingsPopoverInner bindings={bindings} />;
+  return <DisplaySettingsPopoverInner bindings={bindings} readingTargets={readingTargets} />;
 };
 
-const ConversationBoundPopover: React.FC = () => {
+const ConversationBoundPopover: React.FC<{ readingTargets?: ReadonlySet<ReadingLanguage> }> = ({ readingTargets }) => {
   const bindings: InnerBindings = {
     bgOpacity: undefined,
     bgColor: useConversationDisplayBgColor(),
@@ -111,13 +131,16 @@ const ConversationBoundPopover: React.FC = () => {
     defaultBgColor: CONVERSATION_DISPLAY_DEFAULT_BG_COLOR,
     defaultSourceTextColor: CONVERSATION_DISPLAY_DEFAULT_SOURCE_TEXT_COLOR,
     defaultTranslationTextColor: CONVERSATION_DISPLAY_DEFAULT_TRANSLATION_TEXT_COLOR,
+    showReadings: useConversationDisplayShowReadings(),
+    setShowReadings: useSetConversationDisplayShowReadings(),
+    surface: 'conversation',
   };
-  return <DisplaySettingsPopoverInner bindings={bindings} />;
+  return <DisplaySettingsPopoverInner bindings={bindings} readingTargets={readingTargets} />;
 };
 
 // ──────────── Pure presentational inner ────────────
 
-const DisplaySettingsPopoverInner: React.FC<{ bindings: InnerBindings }> = ({ bindings }) => {
+const DisplaySettingsPopoverInner: React.FC<{ bindings: InnerBindings; readingTargets?: ReadonlySet<ReadingLanguage> }> = ({ bindings, readingTargets }) => {
   const { t } = useTranslation();
   const includeOpacity =
     bindings.bgOpacity !== undefined && bindings.setBgOpacity !== undefined;
@@ -175,6 +198,7 @@ const DisplaySettingsPopoverInner: React.FC<{ bindings: InnerBindings }> = ({ bi
         pickerOpen={openPicker === 'translation'}
         onTogglePicker={() => togglePicker('translation')}
       />
+      {readingTargets && readingTargets.size > 0 && <ReadingsRow bindings={bindings} targets={readingTargets} />}
       {includeHighlightToggle && (
         <div className="field">
           <ToggleSwitch
@@ -193,6 +217,62 @@ const DisplaySettingsPopoverInner: React.FC<{ bindings: InnerBindings }> = ({ bi
       )}
     </div>
   );
+};
+
+const SCHEME_FALLBACK = { kana: 'kana', pinyin: 'pinyin', rr: 'romanization', latin: 'Latin letters' } as const;
+
+/** The readings switch (spec 2026-10-15 §5): named by the target's reading language; absent when it has none. */
+const ReadingsRow: React.FC<{ bindings: InnerBindings; targets: ReadonlySet<ReadingLanguage> }> = ({ bindings, targets }) => {
+  const { t } = useTranslation();
+  const languageName = useLanguageLabel();
+  const { trackEvent } = useAnalytics();
+  const japanese = useSyncExternalStore(subscribeJapanese, getJapaneseState);
+  const lang = targets.values().next().value;
+  if (!lang) return null;
+  const scheme = READING_SCHEME[lang];
+  const label = t('subtitle.settings.readings', {
+    defaultValue: 'Show {{language}} readings ({{scheme}})',
+    language: languageName(lang),
+    scheme: t(`subtitle.settings.readingScheme.${scheme}`, SCHEME_FALLBACK[scheme]),
+  });
+  const toggle = () => {
+    const next = !bindings.showReadings;
+    void bindings.setShowReadings(next);
+    trackEvent('readings_changed', { surface: bindings.surface, language: lang, enabled: next });
+  };
+  return (
+    <div className="field readings-field">
+      <ToggleSwitch checked={bindings.showReadings} onChange={toggle} label={label} ariaLabel={label} />
+      {bindings.showReadings && lang === 'ja' && <JapaneseDictionaryStatus state={japanese} />}
+    </div>
+  );
+};
+
+const JapaneseDictionaryStatus: React.FC<{ state: JapaneseState }> = ({ state }) => {
+  const { t } = useTranslation();
+  if (state.phase === 'downloading') {
+    return (
+      <div className="readings-download" role="status">
+        <div className="readings-download__bar"><i style={{ width: `${Math.round((state.done / state.total) * 100)}%` }} /></div>
+        <div className="readings-download__text">
+          {t('subtitle.settings.readingsDownloading', {
+            defaultValue: 'Downloading the Japanese dictionary {{done}} / {{total}}',
+            done: formatBytes(state.done),
+            total: formatBytes(state.total),
+          })}
+        </div>
+      </div>
+    );
+  }
+  if (state.phase === 'failed') {
+    return (
+      <div className="readings-download readings-download--failed" role="alert">
+        <span className="readings-download__text">{t('subtitle.settings.readingsDownloadFailed', "Couldn't download the Japanese dictionary.")}</span>
+        <Button variant="secondary" size="sm" onClick={retryJapanese}>{t('common.retry', 'Retry')}</Button>
+      </div>
+    );
+  }
+  return null;
 };
 
 // ──────────── Opacity slider (subtitle-only) ────────────

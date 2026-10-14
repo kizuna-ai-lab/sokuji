@@ -959,7 +959,16 @@
       "colorArea": "Насыщенность и яркость",
       "colorHue": "Оттенок",
       "colorHex": "Шестнадцатеричный код цвета",
-      "newItemHighlight": "Подсвечивать только что поступивший текст"
+      "newItemHighlight": "Подсвечивать только что поступивший текст",
+      "readings": "Показывать чтения ({{language}}, {{scheme}})",
+      "readingScheme": {
+        "kana": "кана",
+        "pinyin": "пиньинь",
+        "rr": "романизация",
+        "latin": "латиница"
+      },
+      "readingsDownloading": "Загрузка японского словаря {{done}} / {{total}}",
+      "readingsDownloadFailed": "Не удалось загрузить японский словарь."
     },
     "pttHint": "Удерживайте пробел для речи"
   },

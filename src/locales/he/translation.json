@@ -959,7 +959,16 @@
       "colorArea": "רוויה ובהירות",
       "colorHue": "גוון",
       "colorHex": "ערך צבע הקסדצימלי",
-      "newItemHighlight": "הדגשת טקסט שהגיע זה עתה"
+      "newItemHighlight": "הדגשת טקסט שהגיע זה עתה",
+      "readings": "הצגת הגייה ב{{language}} ({{scheme}})",
+      "readingScheme": {
+        "kana": "קאנה",
+        "pinyin": "פיניין",
+        "rr": "תעתיק לטיני",
+        "latin": "אותיות לטיניות"
+      },
+      "readingsDownloading": "מוריד את המילון היפני {{done}} / {{total}}",
+      "readingsDownloadFailed": "לא ניתן היה להוריד את המילון היפני."
     },
     "pttHint": "לחץ על רווח כדי לדבר"
   },

@@ -959,7 +959,16 @@
       "colorArea": "飽和度與明度",
       "colorHue": "色相",
       "colorHex": "十六進位色彩值",
-      "newItemHighlight": "醒目顯示新到達的文字"
+      "newItemHighlight": "醒目顯示新到達的文字",
+      "readings": "顯示{{language}}讀音（{{scheme}}）",
+      "readingScheme": {
+        "kana": "假名",
+        "pinyin": "拼音",
+        "rr": "羅馬字",
+        "latin": "拉丁字母"
+      },
+      "readingsDownloading": "正在下載日語詞典 {{done}} / {{total}}",
+      "readingsDownloadFailed": "日語詞典下載失敗。"
     },
     "pttHint": "按住空白鍵說話"
   },

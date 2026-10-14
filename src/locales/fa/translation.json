@@ -959,7 +959,16 @@
       "colorArea": "اشباع و روشنایی",
       "colorHue": "فام رنگ",
       "colorHex": "مقدار رنگ هگز",
-      "newItemHighlight": "برجسته‌سازی متنِ تازه‌رسیده"
+      "newItemHighlight": "برجسته‌سازی متنِ تازه‌رسیده",
+      "readings": "نمایش خوانش {{language}} ({{scheme}})",
+      "readingScheme": {
+        "kana": "کانا",
+        "pinyin": "پینیین",
+        "rr": "رومی‌سازی",
+        "latin": "حروف لاتین"
+      },
+      "readingsDownloading": "در حال دانلود فرهنگ لغت ژاپنی {{done}} / {{total}}",
+      "readingsDownloadFailed": "دانلود فرهنگ لغت ژاپنی ناموفق بود."
     },
     "pttHint": "برای صحبت، Space را نگه دارید"
   },

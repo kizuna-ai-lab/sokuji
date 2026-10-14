@@ -959,7 +959,16 @@
       "colorArea": "సంతృప్తత మరియు ప్రకాశం",
       "colorHue": "వర్ణ ఛాయ",
       "colorHex": "హెక్స్ రంగు విలువ",
-      "newItemHighlight": "కొత్తగా వచ్చిన టెక్స్ట్‌ను హైలైట్ చేయండి"
+      "newItemHighlight": "కొత్తగా వచ్చిన టెక్స్ట్‌ను హైలైట్ చేయండి",
+      "readings": "{{language}} ఉచ్చారణలను చూపించు ({{scheme}})",
+      "readingScheme": {
+        "kana": "కానా",
+        "pinyin": "పిన్యిన్",
+        "rr": "రోమనీకరణ",
+        "latin": "లాటిన్ అక్షరాలు"
+      },
+      "readingsDownloading": "జపనీస్ నిఘంటువు డౌన్‌లోడ్ అవుతోంది {{done}} / {{total}}",
+      "readingsDownloadFailed": "జపనీస్ నిఘంటువును డౌన్‌లోడ్ చేయలేకపోయాం."
     },
     "pttHint": "మాట్లాడడానికి Space నొక్కండి"
   },

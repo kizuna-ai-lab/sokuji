@@ -959,7 +959,16 @@
       "colorArea": "ความอิ่มตัวและความสว่าง",
       "colorHue": "เฉดสี",
       "colorHex": "ค่าสีเลขฐานสิบหก",
-      "newItemHighlight": "เน้นข้อความที่เพิ่งมาถึง"
+      "newItemHighlight": "เน้นข้อความที่เพิ่งมาถึง",
+      "readings": "แสดงคำอ่าน{{language}} ({{scheme}})",
+      "readingScheme": {
+        "kana": "คานะ",
+        "pinyin": "พินอิน",
+        "rr": "อักษรโรมัน",
+        "latin": "อักษรละติน"
+      },
+      "readingsDownloading": "กำลังดาวน์โหลดพจนานุกรมภาษาญี่ปุ่น {{done}} / {{total}}",
+      "readingsDownloadFailed": "ดาวน์โหลดพจนานุกรมภาษาญี่ปุ่นไม่สำเร็จ"
     },
     "pttHint": "กด Space ค้างเพื่อพูด"
   },

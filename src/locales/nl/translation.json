@@ -959,7 +959,16 @@
       "colorArea": "Verzadiging en helderheid",
       "colorHue": "Tint",
       "colorHex": "Hexadecimale kleurwaarde",
-      "newItemHighlight": "Markeer nieuw binnengekomen tekst"
+      "newItemHighlight": "Markeer nieuw binnengekomen tekst",
+      "readings": "{{language}} leesvormen tonen ({{scheme}})",
+      "readingScheme": {
+        "kana": "kana",
+        "pinyin": "pinyin",
+        "rr": "romanisering",
+        "latin": "Latijnse letters"
+      },
+      "readingsDownloading": "Japans woordenboek downloaden {{done}} / {{total}}",
+      "readingsDownloadFailed": "Het Japanse woordenboek kon niet worden gedownload."
     },
     "pttHint": "Druk op Spatie om te spreken"
   },

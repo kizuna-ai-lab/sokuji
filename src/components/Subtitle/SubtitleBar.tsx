@@ -30,6 +30,7 @@ import {
   FONT_SIZE_MIN,
   FONT_SIZE_MAX,
 } from '../../stores/subtitleStore';
+import type { ReadingLanguage } from '../../lib/reading/types';
 import DisplaySettingsPopover from '../Display/DisplaySettingsPopover';
 import type { SubtitleSurfaceKind } from './useSubtitleChrome';
 import { useOverlayDragResize } from './useOverlayDragResize';
@@ -46,6 +47,8 @@ interface Props {
   /** The new subtitle view's export (plan 1d-3): the menu over its conversation's exporter. */
   exportMenu?: Omit<ExportMenuButtonProps, 'popoverHost'>;
   surface?: SubtitleSurfaceKind;
+  /** The reading languages of the current target, from the Electron host; the display popover names its readings switch by them. */
+  readingTargets?: ReadonlySet<ReadingLanguage>;
   /** Routes the exit button (Electron: "Return to main window"; overlay: ✕) through `SubtitleControls.exit`. */
   onExit: () => void;
   /**
@@ -89,6 +92,7 @@ const SubtitleBar: React.FC<Props> = ({
   participantActive,
   exportMenu,
   surface = 'electron',
+  readingTargets,
   sessionControl,
   holdToTalk,
   onExit,
@@ -357,7 +361,7 @@ const SubtitleBar: React.FC<Props> = ({
               the child-window host has to supply the same semantics itself,
               matching the trigger's aria-haspopup="dialog". */}
           <div role="dialog" aria-label={t('subtitle.bar.settings', 'Subtitle settings')}>
-            <DisplaySettingsPopover source="subtitle" />
+            <DisplaySettingsPopover source="subtitle" readingTargets={surface === 'electron' && !subtitle.compactMode ? readingTargets : undefined} />
           </div>
         </ChildWindowPopover>
       ) : (
@@ -370,6 +374,7 @@ const SubtitleBar: React.FC<Props> = ({
               aria-label={t('subtitle.bar.settings', 'Subtitle settings')}
               {...getFloatingProps()}
             >
+              {/* The overlay surface never draws readings, so it passes no targets. */}
               <DisplaySettingsPopover source="subtitle" />
             </div>
           </FloatingPortal>

@@ -959,7 +959,16 @@
       "colorArea": "স্যাচুরেশন ও উজ্জ্বলতা",
       "colorHue": "রঙের আভা",
       "colorHex": "হেক্স রঙের মান",
-      "newItemHighlight": "নতুন আসা পাঠ্য হাইলাইট করুন"
+      "newItemHighlight": "নতুন আসা পাঠ্য হাইলাইট করুন",
+      "readings": "{{language}} উচ্চারণ দেখান ({{scheme}})",
+      "readingScheme": {
+        "kana": "কানা",
+        "pinyin": "পিনইন",
+        "rr": "রোমানীকরণ",
+        "latin": "ল্যাটিন অক্ষর"
+      },
+      "readingsDownloading": "জাপানি অভিধান ডাউনলোড হচ্ছে {{done}} / {{total}}",
+      "readingsDownloadFailed": "জাপানি অভিধান ডাউনলোড করা যায়নি।"
     },
     "pttHint": "কথা বলতে Space চাপুন"
   },

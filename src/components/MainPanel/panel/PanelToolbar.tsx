@@ -18,6 +18,7 @@ import DisplayModeButton from '../DisplayModeButton';
 import { ExportMenuButton } from '../ExportButton';
 import DisplaySettingsPopover from '../../Display/DisplaySettingsPopover';
 import CaptionShareButton from '../../CaptionShare/CaptionShareButton';
+import { useReadingTargets } from '../../../lib/reading/useReadingTargets';
 import { isElectron } from '../../../utils/environment';
 import {
   useSpeakerDisplayMode,
@@ -53,6 +54,7 @@ export interface PanelToolbarProps {
  */
 const PanelToolbar: React.FC<PanelToolbarProps> = ({ legs, exporter, hasConversation, onClear }) => {
   const { t } = useTranslation();
+  const readingTargets = useReadingTargets();
 
   const speakerDisplayMode = useSpeakerDisplayMode();
   const participantDisplayMode = useParticipantDisplayMode();
@@ -207,7 +209,7 @@ const PanelToolbar: React.FC<PanelToolbarProps> = ({ legs, exporter, hasConversa
             aria-label={t('mainPanel.displaySettings', 'Display settings')}
             {...displayPopoverInteractions.getFloatingProps()}
           >
-            <DisplaySettingsPopover source="conversation" />
+            <DisplaySettingsPopover source="conversation" readingTargets={readingTargets} />
           </div>
         </FloatingPortal>
       )}

@@ -10,6 +10,8 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
+vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: () => {} }) }));
+
 vi.mock('../../services/ServiceFactory', () => ({
   ServiceFactory: {
     getSettingsService: () => ({

@@ -248,6 +248,9 @@ export interface AnalyticsEvents {
   'caption_share_started': { address_kind: 'wifi' | 'wired' | 'other' | 'virtual' };
   'caption_share_ended': { duration_ms: number; peak_viewers: number };
 
+  // Readings (#545, spec 2026-10-15 R16): the switch only.
+  'readings_changed': { surface: 'conversation' | 'subtitle'; language: string; enabled: boolean };
+
   // Extension specific events
   'extension_installed': { extension_version: string };
   'extension_uninstalled': { extension_version: string };

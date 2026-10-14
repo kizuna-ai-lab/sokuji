@@ -959,7 +959,16 @@
       "colorArea": "Nasycenie i jasność",
       "colorHue": "Odcień",
       "colorHex": "Szesnastkowa wartość koloru",
-      "newItemHighlight": "Wyróżnij nowo otrzymany tekst"
+      "newItemHighlight": "Wyróżnij nowo otrzymany tekst",
+      "readings": "Pokaż odczyty ({{language}}, {{scheme}})",
+      "readingScheme": {
+        "kana": "kana",
+        "pinyin": "pinyin",
+        "rr": "romanizacja",
+        "latin": "litery łacińskie"
+      },
+      "readingsDownloading": "Pobieranie słownika japońskiego {{done}} / {{total}}",
+      "readingsDownloadFailed": "Nie udało się pobrać słownika japońskiego."
     },
     "pttHint": "Naciśnij spację, aby mówić"
   },
