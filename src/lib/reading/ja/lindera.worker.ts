@@ -28,11 +28,16 @@ scope.onmessage = async (e: MessageEvent<ToLinderaWorker>) => {
     post({ type: 'tokens', id: msg.id, tokens: null });
     return;
   }
-  const tokens: JaToken[] = tokenizer.tokenize(msg.text).map((t) => {
-    const reading = t.details[7];
-    const token = { surface: t.surface, reading: reading && reading !== '*' ? reading : null, unknown: t.is_unknown };
-    t.free();
-    return token;
-  });
+  let tokens: JaToken[] | null;
+  try {
+    tokens = tokenizer.tokenize(msg.text).map((t) => {
+      const reading = t.details[7];
+      const token = { surface: t.surface, reading: reading && reading !== '*' ? reading : null, unknown: t.is_unknown };
+      t.free();
+      return token;
+    });
+  } catch {
+    tokens = null;
+  }
   post({ type: 'tokens', id: msg.id, tokens });
 };

@@ -13,17 +13,19 @@ export function startJaClient(wasm: ArrayBuffer): Promise<JaClient> {
   const worker = createLinderaWorker();
   const pending = new Map<number, (tokens: JaToken[] | null) => void>();
   let nextId = 1;
+  let gone = false;
   const settleAll = () => {
     for (const done of pending.values()) done(null);
     pending.clear();
   };
   const client: JaClient = {
-    tokenize: (text) => new Promise((done) => {
+    tokenize: (text) => gone ? Promise.resolve(null) : new Promise((done) => {
       const id = nextId++;
       pending.set(id, done);
       worker.postMessage({ type: 'tokenize', id, text } satisfies ToLinderaWorker);
     }),
     terminate: () => {
+      gone = true;
       worker.terminate();
       settleAll();
     },
@@ -41,6 +43,7 @@ export function startJaClient(wasm: ArrayBuffer): Promise<JaClient> {
       }
     };
     worker.onerror = (e: ErrorEvent) => {
+      gone = true;
       worker.terminate();
       settleAll();
       reject(new Error(e.message || 'The Lindera worker stopped'));

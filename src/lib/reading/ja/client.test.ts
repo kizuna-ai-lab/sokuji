@@ -55,4 +55,28 @@ describe('startJaClient', () => {
     expect(await pending).toBeNull();
     expect(FakeWorker.last.terminated).toBe(true);
   });
+
+  it('resolves tokenize with null after terminate', async () => {
+    const started = startJaClient(new ArrayBuffer(8));
+    const worker = FakeWorker.last;
+    worker.answer({ type: 'ready' });
+    const client = await started;
+    client.terminate();
+    const sentBefore = worker.sent.length;
+    expect(await client.tokenize('x')).toBeNull();
+    expect(worker.sent.length).toBe(sentBefore);
+  });
+
+  it('settles pending requests and later ones with null when the worker errors after ready', async () => {
+    const started = startJaClient(new ArrayBuffer(8));
+    const worker = FakeWorker.last;
+    worker.answer({ type: 'ready' });
+    const client = await started;
+    const pending = client.tokenize('y');
+    worker.onerror?.({ message: 'boom' } as ErrorEvent);
+    expect(await pending).toBeNull();
+    const sentBefore = worker.sent.length;
+    expect(await client.tokenize('z')).toBeNull();
+    expect(worker.sent.length).toBe(sentBefore);
+  });
 });
