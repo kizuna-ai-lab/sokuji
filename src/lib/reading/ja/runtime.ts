@@ -1,9 +1,14 @@
 import { describeCause, reportWarning } from '../../diagnostics/report';
+import { deleteModelFiles } from '../../local-inference/modelStorage';
 import { startJaClient, type JaClient } from './client';
-import { DICTIONARY_BYTES, downloadDictionary, storedDictionary } from './dictionary';
+import { DICTIONARY_BYTES, DICTIONARY_STORE_ID, downloadDictionary, storedDictionary } from './dictionary';
 import type { JaToken } from './furigana';
 
-/** Where Japanese readings are: off, loading the stored file or the worker, downloading, ready, or failed. */
+/**
+ * Where Japanese readings are: off, checking the stored file, downloading, ready,
+ * or failed. Ready means the dictionary is stored; the worker starts when a
+ * Japanese row first needs a reading (spec §3).
+ */
 export type JapaneseState =
   | { phase: 'off' }
   | { phase: 'loading' }
@@ -17,6 +22,8 @@ let wanted = false;
 let generation = 0;
 let controller: AbortController | null = null;
 let client: JaClient | null = null;
+/** The worker on its way up, shared by every tokenize that arrives meanwhile. */
+let starting: Promise<JaClient | null> | null = null;
 const listeners = new Set<() => void>();
 
 function publish(next: JapaneseState): void {
@@ -35,7 +42,7 @@ export function subscribeJapanese(listener: () => void): () => void {
   };
 }
 
-/** Starts Japanese readings (the dictionary, then the worker) or stops them, giving the worker's memory back. */
+/** Starts Japanese readings (the dictionary; the worker on first use) or stops them, giving the worker's memory back. */
 export function setJapaneseWanted(next: boolean): void {
   if (next === wanted) return;
   wanted = next;
@@ -47,9 +54,11 @@ export function retryJapanese(): void {
   if (wanted && state.phase === 'failed') void start();
 }
 
-/** The tokens of `text`, or null when the worker is not ready. */
+/** The tokens of `text` (null if the worker is gone or cannot start), or null when not ready. Starts the worker. */
 export function tokenizeJapanese(text: string): Promise<JaToken[] | null> | null {
-  return client ? client.tokenize(text) : null;
+  if (state.phase !== 'ready') return null;
+  if (client) return client.tokenize(text);
+  return startClient().then((started) => (started ? started.tokenize(text) : null));
 }
 
 function stop(): void {
@@ -58,7 +67,40 @@ function stop(): void {
   controller = null;
   client?.terminate();
   client = null;
+  starting = null;
   publish({ phase: 'off' });
+}
+
+function startClient(): Promise<JaClient | null> {
+  if (starting) return starting;
+  const gen = generation;
+  starting = (async (): Promise<JaClient | null> => {
+    try {
+      // Read again: start() only checked the file, and the worker takes the bytes it is given.
+      const bytes = await storedDictionary();
+      if (gen !== generation) return null;
+      if (!bytes) throw new Error('the stored dictionary is gone');
+      const started = await startJaClient(bytes);
+      if (gen !== generation) {
+        started.terminate();
+        return null;
+      }
+      client = started;
+      return started;
+    } catch (err) {
+      if (gen !== generation) return null;
+      // A file of the right size that will not start would fail every time: Retry downloads it again.
+      await deleteModelFiles(DICTIONARY_STORE_ID).catch(() => {});
+      if (gen !== generation) return null;
+      reportWarning('Readings', `Japanese readings could not start: ${describeCause(err)}`, { cause: err });
+      publish({ phase: 'failed' });
+      return null;
+    } finally {
+      // One attempt per generation: a stop has cleared it already, and a later start owns the next.
+      if (gen === generation) starting = null;
+    }
+  })();
+  return starting;
 }
 
 async function start(): Promise<void> {
@@ -69,11 +111,11 @@ async function start(): Promise<void> {
   publish({ phase: 'loading' });
   try {
     // Read storage on every start: clearing local models deletes the file.
-    let bytes = await storedDictionary();
+    const stored = await storedDictionary();
     if (gen !== generation) return;
-    if (!bytes) {
+    if (!stored) {
       publish({ phase: 'downloading', done: 0, total: DICTIONARY_BYTES });
-      bytes = await downloadDictionary({
+      await downloadDictionary({
         signal: own.signal,
         onProgress: (done, total) => {
           if (gen === generation) publish({ phase: 'downloading', done, total });
@@ -81,12 +123,6 @@ async function start(): Promise<void> {
       });
       if (gen !== generation) return;
     }
-    const started = await startJaClient(bytes);
-    if (gen !== generation) {
-      started.terminate();
-      return;
-    }
-    client = started;
     publish({ phase: 'ready' });
   } catch (err) {
     if (gen !== generation || (err as Error)?.name === 'AbortError') return;
