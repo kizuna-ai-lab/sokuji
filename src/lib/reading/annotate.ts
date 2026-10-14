@@ -35,10 +35,22 @@ const everyone = new Set<() => void>();
 
 const keyOf = (text: string, lang: ReadingLanguage) => `${lang}\u0000${text}`;
 
+/**
+ * Caches `pieces` as the newest, evicting the oldest key no mounted row is
+ * subscribed to. A subscribed key is never evicted: rows evicting one another
+ * during render would hand React a new snapshot on every read. Past the limit
+ * with every key subscribed, the cache holds what is mounted.
+ */
 function remember(key: string, pieces: RubyPiece[]): RubyPiece[] {
   cache.delete(key);
   cache.set(key, pieces);
-  if (cache.size > CACHE_LIMIT) cache.delete(cache.keys().next().value as string);
+  if (cache.size > CACHE_LIMIT) {
+    for (const old of cache.keys()) {
+      if (byKey.has(old)) continue;
+      cache.delete(old);
+      break;
+    }
+  }
   return pieces;
 }
 
