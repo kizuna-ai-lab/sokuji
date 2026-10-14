@@ -33,23 +33,38 @@ function tokenPieces(surface: string, reading: string): RubyPiece[] {
  * token the dictionary does not know gets no reading, and neither does any token
  * in the same unbroken run of Han-bearing tokens, which is usually one word the
  * dictionary lacks split into pieces it half-knows (蒼汰, 𠮷野家).
+ *
+ * The pieces concatenate to `text`: Lindera leaves ASCII whitespace out of its
+ * tokens, so each token is found in `text` and what lies before it is kept as
+ * plain text (and breaks a Han run). A token not found ends the walk, the rest
+ * of `text` plain.
  */
-export function furigana(tokens: readonly JaToken[]): RubyPiece[] {
+export function furigana(text: string, tokens: readonly JaToken[]): RubyPiece[] {
   const out: RubyPiece[] = [];
   const push = (piece: RubyPiece) => {
+    if (!piece.text) return;
     const last = out[out.length - 1];
     if (piece.reading === undefined && last && last.reading === undefined) last.text += piece.text;
     else out.push({ ...piece });
   };
-  for (let k = 0; k < tokens.length;) {
-    if (!HAN.test(tokens[k].surface)) {
-      push({ text: tokens[k].surface });
+  const placed: { gap: string; token: JaToken }[] = [];
+  let cursor = 0;
+  for (const token of tokens) {
+    const at = text.indexOf(token.surface, cursor);
+    if (at < 0) break;
+    placed.push({ gap: text.slice(cursor, at), token });
+    cursor = at + token.surface.length;
+  }
+  for (let k = 0; k < placed.length;) {
+    push({ text: placed[k].gap });
+    if (!HAN.test(placed[k].token.surface)) {
+      push({ text: placed[k].token.surface });
       k++;
       continue;
     }
-    let end = k;
-    while (end < tokens.length && HAN.test(tokens[end].surface)) end++;
-    const run = tokens.slice(k, end);
+    let end = k + 1;
+    while (end < placed.length && !placed[end].gap && HAN.test(placed[end].token.surface)) end++;
+    const run = placed.slice(k, end).map((p) => p.token);
     const bare = run.some((t) => t.unknown || !t.reading);
     for (const t of run) {
       if (bare) push({ text: t.surface });
@@ -57,5 +72,6 @@ export function furigana(tokens: readonly JaToken[]): RubyPiece[] {
     }
     k = end;
   }
+  push({ text: text.slice(cursor) });
   return out;
 }

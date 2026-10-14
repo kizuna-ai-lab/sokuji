@@ -110,6 +110,36 @@ describe('annotate', () => {
     expect(annotate.peekReading('雨', 'ja')).toEqual([{ text: '雨', reading: 'あめ' }]);
   });
 
+  it('keeps the whitespace the Japanese tokens leave out', async () => {
+    japanese.state = { phase: 'ready' };
+    japanese.tokenize.mockResolvedValue([
+      { surface: '今日', reading: 'キョウ', unknown: false },
+      { surface: 'は', reading: 'ハ', unknown: false },
+      { surface: '雨', reading: 'アメ', unknown: false },
+    ]);
+    annotate.requestReading('今日は\n雨', 'ja');
+    await flush();
+    expect(annotate.peekReading('今日は\n雨', 'ja')).toEqual([
+      { text: '今日', reading: 'きょう' }, { text: 'は\n' }, { text: '雨', reading: 'あめ' },
+    ]);
+  });
+
+  it('shows the text plain when the pieces of an annotator do not join back to it, warning once', async () => {
+    vi.doMock('./ko', () => ({ annotateKorean: (text: string) => [{ text: text.slice(1), reading: 'x' }] }));
+    try {
+      annotate.requestReading('같이', 'ko');
+      await vi.waitFor(() => expect(annotate.peekReading('같이', 'ko')).not.toBeNull());
+      expect(annotate.peekReading('같이', 'ko')).toEqual([{ text: '같이' }]);
+      expect(annotate.peekReading('같이', 'ko')).toBe(annotate.peekReading('같이', 'ko'));
+      expect(annotate.peekReading('같이가', 'ko')).toEqual([{ text: '같이가' }]);
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn.mock.calls[0][0]).toBe('Readings');
+      expect(warn.mock.calls[0][2]).toMatchObject({ dedupeKey: 'reading.concat.ko' });
+    } finally {
+      vi.doUnmock('./ko');
+    }
+  });
+
   it('does not reload a language whose import failed, and warns once', async () => {
     vi.doMock('./ko', () => { throw new Error('chunk'); });
     try {

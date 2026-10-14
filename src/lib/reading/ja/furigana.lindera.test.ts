@@ -33,10 +33,20 @@ describe('furigana over Lindera IPADIC', () => {
     ['今日は生憎の雨ですね', '今日(きょう)は生憎(あいにく)の雨(あめ)ですね'],
     ['蒼汰くんが𠮷野家に行った', '蒼汰くんが𠮷野家に行(い)った'],
   ])('reads %s', (text, expected) => {
-    expect(show(furigana(tokenize(text)))).toBe(expected);
+    expect(show(furigana(text, tokenize(text)))).toBe(expected);
+  });
+
+  it.each([
+    ['Hello world  これは テスト です。', 'Hello world  これは テスト です。'],
+    ['今日は\n雨です', '今日(きょう)は\n雨(あめ)です'],
+    ['AIが ２０２６年 に', 'AIが ２０２６年(ねん) に'],
+  ])('keeps the whitespace Lindera leaves out of %j', (text, expected) => {
+    const pieces = furigana(text, tokenize(text));
+    expect(pieces.map((p) => p.text).join('')).toBe(text);
+    expect(show(pieces)).toBe(expected);
   });
 
   it('reads 令和 wrongly, as the spec states (IPADIC predates it)', () => {
-    expect(show(furigana(tokenize('令和')))).toBe('令(りょう)和(わ)');
+    expect(show(furigana('令和', tokenize('令和')))).toBe('令(りょう)和(わ)');
   });
 });

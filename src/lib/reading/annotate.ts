@@ -22,6 +22,8 @@ const annotators = new Map<SyncLanguage, Annotator>();
 const loading = new Set<SyncLanguage>();
 /** Languages whose annotator failed to load; not retried this session. */
 const failed = new Set<SyncLanguage>();
+/** Languages already reported for pieces that did not join back to their text. */
+const misjoined = new Set<ReadingLanguage>();
 /** Pieces by language and text, least recently used first. Rows churn while streaming. */
 const cache = new Map<string, RubyPiece[]>();
 /** Japanese texts sent to the worker and not yet answered. */
@@ -40,6 +42,18 @@ function remember(key: string, pieces: RubyPiece[]): RubyPiece[] {
   return pieces;
 }
 
+/** The pieces, or the text as one plain piece when they do not concatenate to it (RubyText's karaoke relies on that). */
+function joined(text: string, lang: ReadingLanguage, pieces: RubyPiece[]): RubyPiece[] {
+  if (pieces.map((p) => p.text).join('') === text) return pieces;
+  if (!misjoined.has(lang)) {
+    misjoined.add(lang);
+    reportWarning('Readings', `The ${lang} readings did not match their text, which is shown without them`, {
+      dedupeKey: `reading.concat.${lang}`,
+    });
+  }
+  return [{ text }];
+}
+
 function tell(listeners: Iterable<() => void> | undefined): void {
   if (listeners) for (const listener of [...listeners]) listener();
 }
@@ -51,7 +65,7 @@ export function peekReading(text: string, lang: ReadingLanguage): RubyPiece[] | 
   if (hit) return remember(key, hit);
   if (lang === 'ja') return null;
   const annotator = annotators.get(lang);
-  return annotator ? remember(key, annotator(text)) : null;
+  return annotator ? remember(key, joined(text, lang, annotator(text))) : null;
 }
 
 /** Starts what `peekReading` is waiting on: loading an annotator, or tokenizing Japanese. */
@@ -96,7 +110,7 @@ export function requestReading(text: string, lang: ReadingLanguage): void {
         wait();
         return;
       }
-      remember(key, furigana(tokens));
+      remember(key, joined(text, 'ja', furigana(text, tokens)));
       tell(byKey.get(key));
     },
     () => {
