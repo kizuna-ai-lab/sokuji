@@ -105,7 +105,7 @@ export function ConversationList({
               const id = item.row.segmentId;
               const rowLanguage = item.row.language || (item.row.side === 'translation' ? item.languages.target : item.languages.source);
               const rowReading = readings && readings.size > 0 ? readingLanguage(rowLanguage) : null;
-              const readingLang = rowReading && readings!.has(rowReading) ? rowReading : null;
+              const readingLang = readings && readings.size > 0 && rowReading && readings.has(rowReading) ? rowReading : null;
               return (
                 <RowBubble
                   key={item.row.key}

@@ -11,6 +11,7 @@ import { openTtsSlot } from '../providers/openTtsSlot';
 import { useConversationExporter } from '../Conversation/useConversationExporter';
 import { useReadable } from '../Conversation/useReadable';
 import type { NoticeAction } from '../Conversation/SystemRow';
+import { useReadingTargets } from '../../lib/reading/useReadingTargets';
 import { SubtitleView, type SubtitleControls } from './SubtitleView';
 import { TakeoverStatusLine } from './TakeoverStatusLine';
 
@@ -64,11 +65,13 @@ export function SubtitleTakeover() {
         : () => { if (isElectron()) void window.electron.invoke('open-directory', spec.dir); };
     return { label: t(key, fallback), run };
   }, [t, notes, openSettings, exitSubtitleMode]);
+  const readingTargets = useReadingTargets();
   return (
     <SubtitleView
       surface="electron"
       model={{ entries: viewState.entries, lit, session: sessionState, notes: panelNoteEntries(notes) }}
       controls={controls} exporter={exporter} statusLine={<TakeoverStatusLine />} noticeAction={noticeAction}
+      readingTargets={readingTargets}
     />
   );
 }
