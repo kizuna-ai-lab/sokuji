@@ -221,6 +221,8 @@
     "sonioxSharedSessionTooltip": "Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic voice separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode.",
     "sonioxSharedSessionManagedCost": "Kizuna AI supports both. Disabled runs two sessions at once — about twice the cost per minute, so your session allowance runs out in about half the time and a higher balance is needed to start.",
     "sonioxSharedSessionFaceToFace": "Face-to-face always uses one shared session: both people speak into the same microphone.",
+    "sonioxSpeakerLabels": "Speaker labels",
+    "sonioxSpeakerLabelsTooltip": "Numbers the other side's people — Speaker 1, Speaker 2… — once more than one voice is heard.\n\nIt can mistake one person for several. Disabled: no numbers are shown.\n\nApplies from the next session.",
     "voiceTheyHear": "Voice the other side hears",
     "voiceIHear": "Voice I hear",
     "voiceIHearSame": "Same as the voice the other side hears, so {{voice}} reads instead.",

@@ -70,6 +70,8 @@ interface CoreLeg {
   speech: LegSpeech | null;
   /** Asked to speak but issued no TTS key (a managed text-only lease): said once the start resolves. */
   noTtsKey: boolean;
+  /** Its utterances carry their people (`config.diarize`). */
+  labels: boolean;
 }
 
 /** One segment event to its leg, called on its own events object with its payload's own type. */
@@ -86,7 +88,7 @@ function emitSegment(events: AdapterEvents, event: SegmentEvent): void {
   }
 }
 
-/** Face-to-face's sides are its two people, and shared Both's speaker leg is me: a diarization label there would only ever name a phantom (spec, slice 3). */
+/** Face-to-face's sides are its two people, and shared Both's speaker leg is me: a diarization label there would only ever name a phantom (spec, slice 3). A leg whose speaker labels are off carries none either. */
 function withoutPerson(event: SegmentEvent): SegmentEvent {
   if (event.kind === 'segmentClosed' || !('person' in event.payload)) return event;
   const { person: _person, ...payload } = event.payload;
@@ -99,7 +101,7 @@ function coreLeg(name: LegName, request: StartRequest<SonioxConfig, SonioxCreden
   const speech = tts && key
     ? new LegSpeech({ region: request.credentials.region, key, clientReferenceId: request.credentials.clientReferenceId, voice: name === 'participant' ? tts.participantVoice : tts.voice, speed: tts.speed, events, clock: request.clock, openSocket })
     : null;
-  return { name, events, context: request.context, speech, noTtsKey: tts !== undefined && !key };
+  return { name, events, context: request.context, speech, noTtsKey: tts !== undefined && !key, labels: request.config.diarize };
 }
 
 interface CoreOptions {
@@ -148,7 +150,11 @@ class SonioxCore {
       sink: {
         // Shared Both's speaker leg is me: a second label there (a misattribution, a resume's new epoch) would only number me twice.
         // Only a shared core names its legs truly; a lone leg is always 'speaker' here, the other side's included.
-        segment: (leg, event) => { if (!this.ended) emitSegment(this.leg(leg).events, this.o.faceToFace || (this.o.shared && leg === 'speaker') ? withoutPerson(event) : event); },
+        segment: (leg, event) => {
+          if (this.ended) return;
+          const core = this.leg(leg);
+          emitSegment(core.events, !core.labels || this.o.faceToFace || (this.o.shared && leg === 'speaker') ? withoutPerson(event) : event);
+        },
         speak: (leg, ref, text, span, language) => {
           if (this.ended) return;
           const core = this.leg(leg);
@@ -289,7 +295,7 @@ class SonioxCore {
       translation: this.o.shared ? { type: 'two_way', language_a: sonioxWire.toWire(source), language_b: sonioxWire.toWire(target) } : { type: 'one_way', target_language: sonioxWire.toWire(target) },
       // D20 keeps an auto source out of Both: the gate refuses the participant leg.
       ...(hints.length ? { languageHints: hints } : {}),
-      // The shared socket always labels its people; the participant's own one-way socket does too.
+      // The shared socket always labels its people, to tell the sides apart; the participant's own one-way socket does unless speaker labels are off.
       ...(this.o.shared || config.diarize ? { enableSpeakerDiarization: true } : {}),
       ...(config.stt.context ? { context: config.stt.context } : {}),
       endpointSensitivity: config.stt.endpointSensitivity,

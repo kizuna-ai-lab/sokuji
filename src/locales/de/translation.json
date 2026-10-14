@@ -306,6 +306,8 @@
       "mirrorHear": "Sie sprechen {{their}} → ich höre {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Bei Gesprächen von Angesicht zu Angesicht wird immer eine gemeinsame Sitzung verwendet: Beide sprechen in dasselbe Mikrofon.",
+    "sonioxSpeakerLabels": "Sprecherkennzeichnung",
+    "sonioxSpeakerLabelsTooltip": "Nummeriert die Personen auf der anderen Seite – Sprecher 1, Sprecher 2 … –, sobald mehr als eine Stimme zu hören ist.\n\nDabei kann eine Person für mehrere gehalten werden. Deaktiviert: Es werden keine Nummern angezeigt.\n\nWirkt sich erst ab der nächsten Sitzung aus.",
     "voiceTheyHear": "Stimme, die das Gegenüber hört",
     "voiceIHear": "Stimme, die ich höre",
     "voiceIHearSame": "Dieselbe Stimme, die das Gegenüber hört, daher liest stattdessen {{voice}}.",

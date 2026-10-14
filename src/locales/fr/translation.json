@@ -306,6 +306,8 @@
       "mirrorHear": "Ils parlent {{their}} → j'entends {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Le face à face utilise toujours une session partagée : les deux personnes parlent dans le même micro.",
+    "sonioxSpeakerLabels": "Étiquettes d'intervenant",
+    "sonioxSpeakerLabelsTooltip": "Numérote les personnes de l'autre côté — Intervenant 1, Intervenant 2… — dès que plus d'une voix est entendue.\n\nIl peut prendre une seule personne pour plusieurs. Désactivé : aucun numéro n'est affiché.\n\nS'applique à partir de la prochaine session.",
     "voiceTheyHear": "Voix entendue par l'autre",
     "voiceIHear": "Voix que j'entends",
     "voiceIHearSame": "C'est la voix entendue par l'autre, donc {{voice}} lit à sa place.",

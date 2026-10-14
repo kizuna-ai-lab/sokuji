@@ -306,6 +306,8 @@
       "mirrorHear": "He puhuvat {{their}} → kuulen {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Kasvokkain-tila käyttää aina yhtä jaettua istuntoa: molemmat puhuvat samaan mikrofoniin.",
+    "sonioxSpeakerLabels": "Puhujatunnisteet",
+    "sonioxSpeakerLabelsTooltip": "Numeroi toisen osapuolen ihmiset – Puhuja 1, Puhuja 2… – kun kuuluu useampi kuin yksi ääni.\n\nSe voi luulla yhtä ihmistä useaksi. Pois käytöstä: numeroita ei näytetä.\n\nOtetaan käyttöön vasta seuraavasta istunnosta alkaen.",
     "voiceTheyHear": "Ääni, jonka toinen osapuoli kuulee",
     "voiceIHear": "Ääni, jonka kuulen",
     "voiceIHearSame": "Sama kuin ääni, jonka toinen osapuoli kuulee, joten sen sijaan lukee {{voice}}.",

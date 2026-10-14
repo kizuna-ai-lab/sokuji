@@ -306,6 +306,8 @@
       "mirrorHear": "Onlar {{their}} konuşuyor → ben {{mine}} duyuyorum"
     },
     "sonioxSharedSessionFaceToFace": "Yüz yüze modu her zaman tek bir paylaşılan oturum kullanır: iki kişi de aynı mikrofona konuşur.",
+    "sonioxSpeakerLabels": "Konuşmacı etiketleri",
+    "sonioxSpeakerLabelsTooltip": "Birden fazla ses duyulduğunda karşı taraftaki kişileri numaralandırır — Konuşmacı 1, Konuşmacı 2…\n\nTek bir kişiyi birkaç kişi sanabilir. Devre dışı: numara gösterilmez.\n\nBir sonraki oturumdan itibaren geçerli olur.",
     "voiceTheyHear": "Karşı tarafın duyduğu ses",
     "voiceIHear": "Duyduğum ses",
     "voiceIHearSame": "Karşı tarafın duyduğu sesle aynı, bu yüzden onun yerine {{voice}} okur.",

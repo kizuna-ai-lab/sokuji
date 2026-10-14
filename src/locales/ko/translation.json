@@ -306,6 +306,8 @@
       "mirrorHear": "상대방은 {{their}}로 말함 → 나는 {{mine}}로 들음"
     },
     "sonioxSharedSessionFaceToFace": "마주 보고 대화할 때는 항상 하나의 공유 세션을 사용합니다. 두 사람이 같은 마이크에 대고 말하기 때문입니다.",
+    "sonioxSpeakerLabels": "화자 라벨",
+    "sonioxSpeakerLabelsTooltip": "상대방 쪽 사람들에게 번호를 붙입니다(화자 1, 화자 2…). 둘 이상의 목소리가 들리면 표시됩니다.\n\n한 사람을 여러 명으로 잘못 인식할 수 있습니다. 비활성화: 번호를 표시하지 않습니다.\n\n다음 세션부터 적용됩니다.",
     "voiceTheyHear": "상대방에게 들리는 음성",
     "voiceIHear": "내가 듣는 음성",
     "voiceIHearSame": "상대방에게 들리는 음성과 같아서 대신 {{voice}} 음성으로 읽습니다.",

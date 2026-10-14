@@ -32,6 +32,8 @@ export function createSonioxSettingsView({ managed, useVoiceSource }: SonioxSett
     const region = asSonioxRegion(settings.region);
     const inBoth = legs?.length === 2;
     const shared = faceToFace || settings.bothModeSharedSession;
+    // Only the other side's leg numbers its people, and face-to-face never shows them.
+    const labelsPeople = !faceToFace && legs?.includes('participant') === true;
     return (
       <VoicePreviewContext.Provider value={preview ?? null}>
         <div className="settings-section" id="soniox-region-section">
@@ -135,6 +137,25 @@ export function createSonioxSettingsView({ managed, useVoiceSource }: SonioxSett
             </div>
           )}
         </div>
+
+        {labelsPeople && (
+          <div className="settings-section" id="soniox-speaker-labels-section">
+            <h2>
+              {t('settings.sonioxSpeakerLabels', 'Speaker labels')}
+              <Tooltip content={t('settings.sonioxSpeakerLabelsTooltip', "Numbers the other side's people — Speaker 1, Speaker 2… — once more than one voice is heard.\n\nIt can mistake one person for several. Disabled: no numbers are shown.\n\nApplies from the next session.")} position="top">{helpIcon}</Tooltip>
+            </h2>
+            <div className="setting-item">
+              <div className="turn-detection-options">
+                <button type="button" className={`option-button ${settings.speakerLabels ? 'active' : ''}`} onClick={() => update({ speakerLabels: true })} disabled={disabled}>
+                  {t('settings.enabled', 'Enabled')}
+                </button>
+                <button type="button" className={`option-button ${!settings.speakerLabels ? 'active' : ''}`} onClick={() => update({ speakerLabels: false })} disabled={disabled}>
+                  {t('settings.disabled', 'Disabled')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </VoicePreviewContext.Provider>
     );
   };

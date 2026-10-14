@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { VoicePreviewContext } from '../../components/providers/VoicePreviewContext';
 import type { ProviderAccount, PreviewPort, SettingsProps } from '../../lib/provider/types';
 import type { SonioxVoiceSectionProps } from '../../components/Settings/sections/SonioxVoiceSection';
@@ -51,6 +51,11 @@ const props = (patch: Partial<SettingsProps<SonioxSettings>> = {}): SettingsProp
   legs: ['speaker', 'participant'] as const,
   ...patch,
 });
+
+/** A section's own controls: the shared-session and speaker-labels pills are both named Enabled / Disabled. */
+const section = (id: string) => within(document.getElementById(id)!);
+const sharedPills = () => section('soniox-settings-section');
+const labelsSection = () => document.getElementById('soniox-speaker-labels-section');
 
 beforeEach(() => {
   tooltipContents.length = 0;
@@ -111,19 +116,19 @@ describe('createSonioxSettingsView', () => {
   it('the shared-session pills write the choice, and are locked outside Both mode or while a run is on', () => {
     const update = vi.fn();
     const { rerender } = render(<BYOK {...props({ update })} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Enabled' }));
+    fireEvent.click(sharedPills().getByRole('button', { name: 'Enabled' }));
     expect(update).toHaveBeenCalledWith({ bothModeSharedSession: true });
-    fireEvent.click(screen.getByRole('button', { name: 'Disabled' }));
+    fireEvent.click(sharedPills().getByRole('button', { name: 'Disabled' }));
     expect(update).toHaveBeenCalledWith({ bothModeSharedSession: false });
-    expect(screen.getByRole('button', { name: 'Enabled' })).not.toBeDisabled();
+    expect(sharedPills().getByRole('button', { name: 'Enabled' })).not.toBeDisabled();
 
     rerender(<BYOK {...props({ update, legs: ['speaker'] })} />);
-    expect(screen.getByRole('button', { name: 'Enabled' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Disabled' })).toBeDisabled();
+    expect(sharedPills().getByRole('button', { name: 'Enabled' })).toBeDisabled();
+    expect(sharedPills().getByRole('button', { name: 'Disabled' })).toBeDisabled();
 
     rerender(<BYOK {...props({ update, disabled: true })} />);
-    expect(screen.getByRole('button', { name: 'Enabled' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Disabled' })).toBeDisabled();
+    expect(sharedPills().getByRole('button', { name: 'Enabled' })).toBeDisabled();
+    expect(sharedPills().getByRole('button', { name: 'Disabled' })).toBeDisabled();
   });
 
   it('an own key reads the own-key region tooltip and no managed cost note', () => {
@@ -167,14 +172,47 @@ describe('SonioxSettings, face-to-face', () => {
 
   it('locks the shared-session pills in face-to-face and says why', () => {
     render(<BYOK {...props({ faceToFace: true, legs: ['speaker', 'participant'] })} />);
-    expect(screen.getByRole('button', { name: 'Enabled' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Disabled' })).toBeDisabled();
+    expect(sharedPills().getByRole('button', { name: 'Enabled' })).toBeDisabled();
+    expect(sharedPills().getByRole('button', { name: 'Disabled' })).toBeDisabled();
     expect(screen.getByText(/Face-to-face always uses one shared session/)).toBeInTheDocument();
   });
 
   it('shows the forced value in face-to-face, not the stored one', () => {
     render(<BYOK {...props({ faceToFace: true, settings: { ...SONIOX_DEFAULTS, bothModeSharedSession: false } })} />);
-    expect(screen.getByRole('button', { name: 'Enabled' })).toHaveClass('active');
-    expect(screen.getByRole('button', { name: 'Disabled' })).not.toHaveClass('active');
+    expect(sharedPills().getByRole('button', { name: 'Enabled' })).toHaveClass('active');
+    expect(sharedPills().getByRole('button', { name: 'Disabled' })).not.toHaveClass('active');
+  });
+});
+
+describe('SonioxSettings, speaker labels', () => {
+  it('the speaker-labels pills show the stored choice, write it, and are locked while a run is on', () => {
+    const update = vi.fn();
+    const { rerender } = render(<BYOK {...props({ update })} />);
+    const pills = section('soniox-speaker-labels-section');
+    expect(pills.getByRole('button', { name: 'Enabled' })).toHaveClass('active');
+    expect(pills.getByRole('button', { name: 'Disabled' })).not.toHaveClass('active');
+    fireEvent.click(pills.getByRole('button', { name: 'Disabled' }));
+    expect(update).toHaveBeenCalledWith({ speakerLabels: false });
+    fireEvent.click(pills.getByRole('button', { name: 'Enabled' }));
+    expect(update).toHaveBeenCalledWith({ speakerLabels: true });
+
+    rerender(<BYOK {...props({ update, settings: { ...SONIOX_DEFAULTS, speakerLabels: false }, disabled: true })} />);
+    const locked = section('soniox-speaker-labels-section');
+    expect(locked.getByRole('button', { name: 'Disabled' })).toHaveClass('active');
+    expect(locked.getByRole('button', { name: 'Enabled' })).toBeDisabled();
+    expect(locked.getByRole('button', { name: 'Disabled' })).toBeDisabled();
+  });
+
+  it("is shown only where the other side's people are heard: Others and Both, never my leg alone or face-to-face", () => {
+    const { rerender } = render(<BYOK {...props({ legs: ['participant'] })} />);
+    expect(labelsSection()).not.toBeNull();
+    rerender(<BYOK {...props()} />);
+    expect(labelsSection()).not.toBeNull();
+    rerender(<BYOK {...props({ legs: ['speaker'] })} />);
+    expect(labelsSection()).toBeNull();
+    rerender(<BYOK {...props({ faceToFace: true })} />);
+    expect(labelsSection()).toBeNull();
+    rerender(<BYOK {...props({ legs: undefined })} />);
+    expect(labelsSection()).toBeNull();
   });
 });

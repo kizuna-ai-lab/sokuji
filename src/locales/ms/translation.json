@@ -306,6 +306,8 @@
       "mirrorHear": "Mereka bertutur {{their}} → Saya dengar {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Bersemuka sentiasa menggunakan satu sesi dikongsi: kedua-dua orang bercakap ke dalam mikrofon yang sama.",
+    "sonioxSpeakerLabels": "Label penutur",
+    "sonioxSpeakerLabelsTooltip": "Menomborkan orang di pihak sana — Penutur 1, Penutur 2… — sebaik sahaja lebih daripada satu suara kedengaran.\n\nIa mungkin menyangka seorang sebagai beberapa orang. Dilumpuhkan: tiada nombor dipaparkan.\n\nBerkuat kuasa mulai sesi seterusnya.",
     "voiceTheyHear": "Suara yang didengar pihak lain",
     "voiceIHear": "Suara yang saya dengar",
     "voiceIHearSame": "Sama dengan suara yang didengar pihak lain, jadi {{voice}} membaca sebagai gantinya.",
