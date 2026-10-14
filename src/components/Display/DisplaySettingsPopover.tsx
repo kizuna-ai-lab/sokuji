@@ -253,7 +253,7 @@ const JapaneseDictionaryStatus: React.FC<{ state: JapaneseState }> = ({ state })
   if (state.phase === 'downloading') {
     return (
       <div className="readings-download" role="status">
-        <div className="readings-download__bar"><i style={{ width: `${Math.round((state.done / state.total) * 100)}%` }} /></div>
+        <div className="readings-download__bar"><i style={{ width: `${state.total > 0 ? Math.round((state.done / state.total) * 100) : 0}%` }} /></div>
         <div className="readings-download__text">
           {t('subtitle.settings.readingsDownloading', {
             defaultValue: 'Downloading the Japanese dictionary {{done}} / {{total}}',

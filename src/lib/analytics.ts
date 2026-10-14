@@ -1,4 +1,4 @@
-import { usePostHog } from '../../shared/index';
+import { usePostHog } from '../contexts/PostHogContext';
 import { isDevelopment, getPlatform } from '../config/analytics';
 import type { DeviceProfile } from '../utils/deviceProfile';
 import { reportWarning } from './diagnostics/report';

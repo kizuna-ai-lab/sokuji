@@ -26,7 +26,7 @@ vi.mock('../../services/ServiceFactory', () => ({
 }));
 vi.mock('../../lib/language/useLanguageLabel', () => ({ useLanguageLabel: () => (code: string) => `L(${code})` }));
 const trackEvent = vi.fn();
-vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent }) }));
+vi.mock('../../lib/analytics', async (importOriginal) => ({ ...(await importOriginal<object>()), useAnalytics: () => ({ trackEvent }) }));
 let japanese: { phase: string; done?: number; total?: number } = { phase: 'off' };
 const retryJapanese = vi.fn();
 vi.mock('../../lib/reading/ja/runtime', () => ({
