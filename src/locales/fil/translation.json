@@ -306,6 +306,8 @@
       "mirrorHear": "Nagsasalita sila ng {{their}} → naririnig ko sa {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Laging iisang nakabahaging session ang gamit ng magkaharap na usapan: pareho silang nagsasalita sa iisang mikropono.",
+    "sonioxSpeakerLabels": "Mga label ng tagapagsalita",
+    "sonioxSpeakerLabelsTooltip": "Binibigyang-numero ang mga tao sa kabilang panig — Tagapagsalita 1, Tagapagsalita 2… — kapag higit sa isang boses ang narinig.\n\nMaaari nitong mapagkamalang marami ang iisang tao. Hindi pinagana: walang numerong ipinapakita.\n\nMag-aapply mula sa susunod na session.",
     "voiceTheyHear": "Boses na naririnig ng kabilang panig",
     "voiceIHear": "Boses na naririnig ko",
     "voiceIHearSame": "Kapareho ng boses na naririnig ng kabilang panig, kaya {{voice}} ang babasa sa halip.",

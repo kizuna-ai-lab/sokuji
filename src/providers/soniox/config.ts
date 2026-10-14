@@ -35,7 +35,7 @@ export interface SonioxConfig {
   sharedBoth: boolean;
   /** Face-to-face: two people at one microphone (slice 3). Absent: false. */
   faceToFace?: true;
-  /** The participant's leg: its own socket labels its people (the shared socket always does). */
+  /** The participant's leg, unless speaker labels are off: its utterances carry their people, and its own socket asks for them (the shared socket always does, to tell the sides apart). */
   diarize: boolean;
 }
 
@@ -162,7 +162,7 @@ export function buildSoniox(context: SessionContext, s: SonioxSettings, shared: 
     ...(shared.faceToFace ? { faceToFace: true as const } : {}),
     // The participant's leg (D4). The context names no leg, so a pair into its
     // own language labels both: a lone voice stays unlabelled anyway.
-    diarize: shared.reversed(context.direction),
+    diarize: s.speakerLabels && shared.reversed(context.direction),
   };
 }
 

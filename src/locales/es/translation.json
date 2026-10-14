@@ -306,6 +306,8 @@
       "mirrorHear": "Ellos hablan {{their}} → yo escucho {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "El modo cara a cara siempre usa una sesión compartida: las dos personas hablan al mismo micrófono.",
+    "sonioxSpeakerLabels": "Etiquetas de hablante",
+    "sonioxSpeakerLabelsTooltip": "Numera a las personas del otro lado —Hablante 1, Hablante 2…— en cuanto se oye más de una voz.\n\nPuede confundir a una persona con varias. Deshabilitado: no se muestra ningún número.\n\nSe aplica a partir de la próxima sesión.",
     "voiceTheyHear": "Voz que oye la otra parte",
     "voiceIHear": "Voz que yo oigo",
     "voiceIHearSame": "Es la misma voz que oye la otra parte, así que lee {{voice}} en su lugar.",

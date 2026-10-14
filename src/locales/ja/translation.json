@@ -306,6 +306,8 @@
       "mirrorHear": "相手は{{their}}を話す → 自分は{{mine}}で聞く"
     },
     "sonioxSharedSessionFaceToFace": "対面では常に 1 つの共有セッションを使います。2 人が同じマイクに向かって話すためです。",
+    "sonioxSpeakerLabels": "話者ラベル",
+    "sonioxSpeakerLabelsTooltip": "相手側の人に番号を付けます（話者 1、話者 2…）。2 人以上の声が聞こえたときに表示されます。\n\n1 人を複数人と誤認することがあります。無効：番号は表示されません。\n\n次回のセッションから適用されます。",
     "voiceTheyHear": "相手に聞こえる音声",
     "voiceIHear": "自分に聞こえる音声",
     "voiceIHearSame": "相手に聞こえる音声と同じため、代わりに {{voice}} が読み上げます。",

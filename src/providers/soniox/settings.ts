@@ -26,6 +26,8 @@ export interface SonioxSettings {
   participantVoice: string;
   /** Both mode on one shared two_way session (true) or two sessions (false). */
   bothModeSharedSession: boolean;
+  /** The other side's people numbered (Speaker 1, Speaker 2…); off, no utterance carries a person. */
+  speakerLabels: boolean;
   /** Custom vocabulary, one term per line (→ context.terms). */
   vocabularyTerms: string;
   /** Preferred translations, one "source=target" per line (→ context.translation_terms). */
@@ -49,6 +51,7 @@ export const SONIOX_DEFAULTS: SonioxSettings = {
   voiceJp: SONIOX_DEFAULT_VOICE,
   participantVoice: SONIOX_PARTICIPANT_DEFAULT_VOICE,
   bothModeSharedSession: false,
+  speakerLabels: true,
   vocabularyTerms: '',
   vocabularyTranslations: '',
   contextText: '',
@@ -78,6 +81,7 @@ export function migrateSonioxSettings(stored: Readonly<Record<string, unknown>>)
       ? stored.participantVoice
       : SONIOX_DEFAULTS.participantVoice,
     bothModeSharedSession: typeof stored.bothModeSharedSession === 'boolean' ? stored.bothModeSharedSession : SONIOX_DEFAULTS.bothModeSharedSession,
+    speakerLabels: typeof stored.speakerLabels === 'boolean' ? stored.speakerLabels : SONIOX_DEFAULTS.speakerLabels,
     vocabularyTerms: str('vocabularyTerms'),
     vocabularyTranslations: str('vocabularyTranslations'),
     contextText: str('contextText'),

@@ -112,6 +112,14 @@ describe('the Soniox adapter: one leg', () => {
     expect(speaker.stt().sentJson<Json>()[0]).not.toHaveProperty('enable_speaker_diarization');
   });
 
+  it("asks the participant's own socket for no diarization when speaker labels are off, and its segments carry no person", async () => {
+    const h = await live({ settings: { speakerLabels: false }, shared: { ...SHARED, reversed: () => true } });
+    expect(h.stt().sentJson<Json>()[0]).not.toHaveProperty('enable_speaker_diarization');
+    h.stt().receive(msg({ ...orig('Hello.'), speaker: '1' }, tr('こんにちは。'), END));
+    expect(h.of('segmentOpened').length).toBeGreaterThan(0);
+    for (const e of [...h.of('segmentOpened'), ...h.of('segmentText')]) expect(e.payload).not.toHaveProperty('person');
+  });
+
   it("sends the leg's direction: one_way to the target, both languages as hints (the source first), the context and the knobs; no diarization, no client reference", async () => {
     const { stt } = await live({ settings: { vocabularyTerms: 'Sokuji', endpointMaxDelayMs: 3000 } });
     const config = stt().sentJson<Json>()[0];

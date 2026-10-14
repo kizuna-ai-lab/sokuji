@@ -306,6 +306,8 @@
       "mirrorHear": "Oni mówią {{their}} → ja słyszę {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Rozmowa twarzą w twarz zawsze używa jednej współdzielonej sesji: obie osoby mówią do tego samego mikrofonu.",
+    "sonioxSpeakerLabels": "Etykiety mówców",
+    "sonioxSpeakerLabelsTooltip": "Numeruje osoby po drugiej stronie — Mówca 1, Mówca 2… — gdy słychać więcej niż jeden głos.\n\nMoże wziąć jedną osobę za kilka. Wyłączony: numery nie są wyświetlane.\n\nZaczyna obowiązywać od następnej sesji.",
     "voiceTheyHear": "Głos, który słyszy druga strona",
     "voiceIHear": "Głos, który słyszę",
     "voiceIHearSame": "To ten sam głos, który słyszy druga strona, więc zamiast niego czyta {{voice}}.",

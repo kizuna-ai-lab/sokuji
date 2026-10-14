@@ -306,6 +306,8 @@
       "mirrorHear": "Zij spreken {{their}} → ik hoor {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Face-to-face gebruikt altijd één gedeelde sessie: beide personen spreken in dezelfde microfoon.",
+    "sonioxSpeakerLabels": "Sprekerlabels",
+    "sonioxSpeakerLabelsTooltip": "Nummert de mensen aan de andere kant — Spreker 1, Spreker 2… — zodra er meer dan één stem te horen is.\n\nHet kan één persoon voor meerdere aanzien. Uitgeschakeld: er worden geen nummers getoond.\n\nWordt toegepast vanaf de volgende sessie.",
     "voiceTheyHear": "Stem die de ander hoort",
     "voiceIHear": "Stem die ik hoor",
     "voiceIHearSame": "Dezelfde stem als die de ander hoort, dus leest {{voice}} in plaats daarvan.",

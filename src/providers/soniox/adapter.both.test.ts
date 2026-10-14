@@ -24,12 +24,12 @@ const PAR: SonioxCredentials = { region: 'us', stt: 'k-par', tts: 'k-par-tts' };
 /** The app's rule (`shared.ts`): the participant's direction is the pair's reverse. */
 const BOTH_SHARED: SharedSettings = { ...SHARED, reversed: (direction) => direction.source === 'ja' };
 
-function both(o: { sharedBoth?: boolean; participantSpeaks?: boolean; abortFirst?: boolean; faceToFace?: boolean; speakerSource?: string } = {}) {
+function both(o: { sharedBoth?: boolean; participantSpeaks?: boolean; abortFirst?: boolean; faceToFace?: boolean; speakerSource?: string; settings?: Partial<SonioxSettings> } = {}) {
   const sockets = fakeSockets();
   const { clock, timers } = trackedClock();
   const controller = new AbortController();
   if (o.abortFirst) controller.abort(new Error('cancelled'));
-  const s: SonioxSettings = { ...SONIOX_DEFAULTS, bothModeSharedSession: o.sharedBoth ?? true };
+  const s: SonioxSettings = { ...SONIOX_DEFAULTS, bothModeSharedSession: o.sharedBoth ?? true, ...o.settings };
   const contexts: Record<LegName, SessionContext> = {
     speaker: { direction: { source: o.speakerSource ?? 'en', target: 'ja' }, speech: true, turns: 'auto' },
     participant: { direction: { source: 'ja', target: o.speakerSource ?? 'en' }, speech: o.participantSpeaks ?? false, turns: 'auto' },
@@ -93,6 +93,11 @@ describe('Soniox startBoth: split', () => {
     expect(par).toMatchObject({ translation: { type: 'one_way', target_language: 'en' }, language_hints: ['ja', 'en'] });
     expect(spk).not.toHaveProperty('enable_speaker_diarization');
     expect(par).toMatchObject({ enable_speaker_diarization: true });
+  });
+
+  it('split: with speaker labels off, neither socket asks for diarization', async () => {
+    const h = await live({ sharedBoth: false, settings: { speakerLabels: false } });
+    for (const x of h.sttSockets()) expect(x.sentJson<Json>()[0]).not.toHaveProperty('enable_speaker_diarization');
   });
 
   it('split: the legs stop apart', async () => {
@@ -235,6 +240,20 @@ describe('Soniox startBoth: shared', () => {
       expect(e.payload).not.toHaveProperty('person');
     }
     expect(h.of('participant', 'segmentOpened').map((e) => e.payload.person)).toEqual(['1.2', '1.2']);
+  });
+
+  it('shared: with speaker labels off, the socket still diarizes to tell the sides apart, and no leg carries a person label', async () => {
+    const h = await live({ settings: { speakerLabels: false } });
+    const stt = h.sttSockets()[0];
+    expect(stt.sentJson<Json>()[0]).toMatchObject({ enable_speaker_diarization: true });
+    establishTwoAsParticipant(h);
+    // The label still answers on its own: no frame at 60 s, and its language would say speaker.
+    stt.receive(msg({ ...orig('Trois.'), language: 'en', speaker: '2', start_ms: 60_000, end_ms: 60_500 }, END));
+    expect(opened(h, 'participant')).toEqual([1, 2, 3]);
+    stt.receive(msg({ ...orig('Hello.'), language: 'en', speaker: '1' }, tr('こんにちは。'), END));
+    for (const leg of ['speaker', 'participant'] as const) {
+      for (const e of [...h.of(leg, 'segmentOpened'), ...h.of(leg, 'segmentText')]) expect(e.payload).not.toHaveProperty('person');
+    }
   });
 
   it('shared: each speaking leg has its own TTS socket and key; the participant speaks only when its switch is on (ruling 4)', async () => {

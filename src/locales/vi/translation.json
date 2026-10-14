@@ -306,6 +306,8 @@
       "mirrorHear": "Họ nói {{their}} → tôi nghe {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Chế độ mặt đối mặt luôn dùng một phiên dùng chung: cả hai người nói vào cùng một micro.",
+    "sonioxSpeakerLabels": "Nhãn người nói",
+    "sonioxSpeakerLabelsTooltip": "Đánh số những người ở phía bên kia — Người nói 1, Người nói 2… — khi nghe thấy nhiều hơn một giọng.\n\nCó thể nhầm một người thành nhiều người. Đã tắt: không hiển thị số.\n\nÁp dụng từ phiên tiếp theo.",
     "voiceTheyHear": "Giọng bên kia nghe",
     "voiceIHear": "Giọng tôi nghe",
     "voiceIHearSame": "Trùng với giọng bên kia nghe, nên {{voice}} sẽ đọc thay.",

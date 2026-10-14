@@ -181,6 +181,10 @@ describe('buildSoniox — diarize', () => {
     expect(build().diarize).toBe(true);
     expect(build({}, { ...AUTO_CTX, direction: { source: 'en', target: 'ja' } }).diarize).toBe(false);
   });
+
+  it("labels nobody when speaker labels are off, the participant's leg included", () => {
+    expect(build({ speakerLabels: false }).diarize).toBe(false);
+  });
 });
 
 describe('describeSoniox', () => {

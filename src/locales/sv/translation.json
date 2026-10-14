@@ -306,6 +306,8 @@
       "mirrorHear": "De talar {{their}} → jag hör {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Ansikte mot ansikte använder alltid en delad session: båda talar i samma mikrofon.",
+    "sonioxSpeakerLabels": "Talaretiketter",
+    "sonioxSpeakerLabelsTooltip": "Numrerar personerna på andra sidan – Talare 1, Talare 2 … – så snart mer än en röst hörs.\n\nDen kan ta en person för flera. Inaktiverad: inga nummer visas.\n\nGäller från nästa session.",
     "voiceTheyHear": "Röst som motparten hör",
     "voiceIHear": "Röst som jag hör",
     "voiceIHearSame": "Samma röst som motparten hör, så {{voice}} läser i stället.",

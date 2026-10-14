@@ -306,6 +306,8 @@
       "mirrorHear": "對方說 {{their}} → 我聽到 {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "面對面對話一律使用同一個共用工作階段：兩個人對著同一支麥克風說話。",
+    "sonioxSpeakerLabels": "說話者標籤",
+    "sonioxSpeakerLabelsTooltip": "為對方的人編號（說話者 1、說話者 2…），聽到不只一個聲音時顯示。\n\n可能會把一個人誤認成好幾個人。停用：不顯示編號。\n\n將於下次工作階段生效。",
     "voiceTheyHear": "對方聽到的聲音",
     "voiceIHear": "我聽到的聲音",
     "voiceIHearSame": "與對方聽到的聲音相同，朗讀時改用 {{voice}}。",
