@@ -960,7 +960,7 @@
       "colorHue": "Sắc độ",
       "colorHex": "Giá trị màu hex",
       "newItemHighlight": "Tô sáng văn bản vừa đến",
-      "readings": "Hiện cách đọc tiếng {{language}} ({{scheme}})",
+      "readings": "Hiện cách đọc {{language}} ({{scheme}})",
       "readingScheme": {
         "kana": "kana",
         "pinyin": "pinyin",
