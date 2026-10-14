@@ -16,7 +16,6 @@ const LOADERS: Record<SyncLanguage, () => Promise<Annotator>> = {
 };
 
 export const CACHE_LIMIT = 2000;
-const WAITING_LIMIT = 500;
 
 const annotators = new Map<SyncLanguage, Annotator>();
 const loading = new Set<SyncLanguage>();
@@ -28,12 +27,12 @@ const misjoined = new Set<ReadingLanguage>();
 const cache = new Map<string, RubyPiece[]>();
 /** Japanese texts sent to the worker and not yet answered. */
 const asked = new Set<string>();
-/** Japanese texts asked for before the worker was ready. */
-const waiting = new Map<string, string>();
+/** The listeners of the rows mounted for each key: what is never evicted, and what is re-asked on ready. */
 const byKey = new Map<string, Set<() => void>>();
 const everyone = new Set<() => void>();
 
 const keyOf = (text: string, lang: ReadingLanguage) => `${lang}\u0000${text}`;
+const JA_PREFIX = keyOf('', 'ja');
 
 /**
  * Caches `pieces` as the newest, evicting the oldest key no mounted row is
@@ -104,30 +103,19 @@ export function requestReading(text: string, lang: ReadingLanguage): void {
   }
   const key = keyOf(text, 'ja');
   if (cache.has(key) || asked.has(key)) return;
+  // Not ready, no answer or a rejection: the row, while mounted, is asked again on the next ready.
   const pending = tokenizeJapanese(text);
-  const wait = () => {
-    waiting.delete(key);
-    waiting.set(key, text);
-    if (waiting.size > WAITING_LIMIT) waiting.delete(waiting.keys().next().value as string);
-  };
-  if (!pending) {
-    wait();
-    return;
-  }
+  if (!pending) return;
   asked.add(key);
   void pending.then(
     (tokens) => {
       asked.delete(key);
-      if (!tokens) {
-        wait();
-        return;
-      }
+      if (!tokens) return;
       remember(key, joined(text, 'ja', furigana(text, tokens)));
       tell(byKey.get(key));
     },
     () => {
       asked.delete(key);
-      wait();
     },
   );
 }
@@ -155,13 +143,8 @@ export function holdLastReading(pieces: RubyPiece[]): RubyPiece[] {
 }
 
 subscribeJapanese(() => {
-  const phase = getJapaneseState().phase;
-  if (phase === 'off') {
-    waiting.clear();
-    return;
+  if (getJapaneseState().phase !== 'ready') return;
+  for (const key of [...byKey.keys()]) {
+    if (key.startsWith(JA_PREFIX)) requestReading(key.slice(JA_PREFIX.length), 'ja');
   }
-  if (phase !== 'ready') return;
-  const texts = [...waiting.values()];
-  waiting.clear();
-  for (const text of texts) requestReading(text, 'ja');
 });

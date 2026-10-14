@@ -71,12 +71,49 @@ describe('annotate', () => {
 
   it('asks again for the Japanese rows that waited, once the worker is ready', async () => {
     japanese.tokenize.mockReturnValue(null);
+    annotate.subscribeReading('雨', 'ja', () => {});
     annotate.requestReading('雨', 'ja');
     japanese.state = { phase: 'ready' };
     japanese.tokenize.mockResolvedValue([{ surface: '雨', reading: 'アメ', unknown: false }]);
     japanese.listeners.forEach((l) => l());
     await flush();
     expect(annotate.peekReading('雨', 'ja')).toEqual([{ text: '雨', reading: 'あめ' }]);
+  });
+
+  it('asks, once the worker is ready, for every mounted Japanese row however many', async () => {
+    japanese.tokenize.mockReturnValue(null);
+    const n = 600;
+    for (let i = 0; i < n; i++) {
+      annotate.subscribeReading(`雨${i}`, 'ja', () => {});
+      annotate.requestReading(`雨${i}`, 'ja');
+    }
+    japanese.state = { phase: 'ready' };
+    japanese.tokenize.mockReset();
+    japanese.tokenize.mockImplementation(async (text: string) => [{ surface: text, reading: null, unknown: true }]);
+    japanese.listeners.forEach((l) => l());
+    await flush();
+    expect(japanese.tokenize).toHaveBeenCalledTimes(n);
+    expect(annotate.peekReading('雨0', 'ja')).toEqual([{ text: '雨0' }]);
+  });
+
+  it('does not ask, once the worker is ready, for a row that is gone', async () => {
+    japanese.tokenize.mockReturnValue(null);
+    const off = annotate.subscribeReading('雨', 'ja', () => {});
+    annotate.requestReading('雨', 'ja');
+    off();
+    japanese.state = { phase: 'ready' };
+    japanese.tokenize.mockReset();
+    japanese.listeners.forEach((l) => l());
+    await flush();
+    expect(japanese.tokenize).not.toHaveBeenCalled();
+  });
+
+  it('asks, once the worker is ready, for no row of another language', async () => {
+    annotate.subscribeReading('같이', 'ko', () => {});
+    japanese.state = { phase: 'ready' };
+    japanese.listeners.forEach((l) => l());
+    await flush();
+    expect(japanese.tokenize).not.toHaveBeenCalled();
   });
 
   it('keeps nothing from a worker that went away', async () => {
@@ -90,6 +127,7 @@ describe('annotate', () => {
   it('asks again, on the next ready, for a Japanese row whose answer came back empty', async () => {
     japanese.state = { phase: 'ready' };
     japanese.tokenize.mockResolvedValueOnce(null);
+    annotate.subscribeReading('雨', 'ja', () => {});
     annotate.requestReading('雨', 'ja');
     await flush();
     expect(annotate.peekReading('雨', 'ja')).toBeNull();
@@ -102,6 +140,7 @@ describe('annotate', () => {
   it('recovers a Japanese row whose tokenize rejected', async () => {
     japanese.state = { phase: 'ready' };
     japanese.tokenize.mockRejectedValueOnce(new Error('gone'));
+    annotate.subscribeReading('雨', 'ja', () => {});
     annotate.requestReading('雨', 'ja');
     await flush();
     japanese.tokenize.mockResolvedValue([{ surface: '雨', reading: 'アメ', unknown: false }]);
