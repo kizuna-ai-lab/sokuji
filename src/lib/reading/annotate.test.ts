@@ -112,14 +112,17 @@ describe('annotate', () => {
 
   it('does not reload a language whose import failed, and warns once', async () => {
     vi.doMock('./ko', () => { throw new Error('chunk'); });
-    annotate.requestReading('같이', 'ko');
-    await flush();
-    annotate.requestReading('같이가', 'ko');
-    await flush();
-    vi.doUnmock('./ko');
-    expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn.mock.calls[0][2]).toMatchObject({ dedupeKey: 'reading.load.ko' });
-    expect(annotate.peekReading('같이', 'ko')).toBeNull();
+    try {
+      annotate.requestReading('같이', 'ko');
+      await vi.waitFor(() => expect(warn).toHaveBeenCalledTimes(1));
+      annotate.requestReading('같이가', 'ko');
+      await flush();
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn.mock.calls[0][2]).toMatchObject({ dedupeKey: 'reading.load.ko' });
+      expect(annotate.peekReading('같이', 'ko')).toBeNull();
+    } finally {
+      vi.doUnmock('./ko');
+    }
   });
 });
 
