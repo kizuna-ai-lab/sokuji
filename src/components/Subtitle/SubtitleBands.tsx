@@ -6,6 +6,7 @@ import { buildBands, type BandPiece } from '../../lib/subtitle/bands';
 import { displayItems, type LegFilters } from '../../lib/view/filter';
 import { noticeText } from '../../lib/view/noticeText';
 import { personShade } from '../../lib/view/people';
+import type { ReadingLanguage } from '../../lib/reading/types';
 import { ConversationList, type ConversationListProps } from '../Conversation/ConversationList';
 import { useVisibleEntries } from '../Conversation/useVisibleEntries';
 import './SubtitleStream.scss';
@@ -26,6 +27,8 @@ export interface SubtitleBodyProps {
   notes?: readonly Entry[];
   /** The action a system row in the expanded list offers, if any. */
   noticeAction?: ConversationListProps['noticeAction'];
+  /** The reading languages to annotate in the expanded list; the bands never draw readings (spec R6). */
+  readings?: ReadonlySet<ReadingLanguage>;
 }
 
 const NO_REPLAY: ReadonlySet<LegName> = new Set();
@@ -39,7 +42,7 @@ const noReplay = () => {};
  * (`--subtitle-*` for the bands, `--conversation-*` for the list).
  */
 export function SubtitleBody(props: SubtitleBodyProps) {
-  const { lit, compact, fontSize, filters, sourceTextColor, translationTextColor, notes, noticeAction } = props;
+  const { lit, compact, fontSize, filters, sourceTextColor, translationTextColor, notes, noticeAction, readings } = props;
   // The panel notes join the expanded list only (the same merge MainPanel does).
   const listed = useMemo(
     () => (compact || !notes || notes.length === 0 ? props.entries : [...props.entries, ...notes]),
@@ -73,6 +76,7 @@ export function SubtitleBody(props: SubtitleBodyProps) {
           canReplay={cannotReplay}
           onReplay={noReplay}
           noticeAction={noticeAction}
+          readings={readings}
           compact={false}
           fontSize={fontSize}
           empty={null}

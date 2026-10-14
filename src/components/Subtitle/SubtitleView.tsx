@@ -12,8 +12,10 @@ import {
   useSubtitleNewItemHighlightEnabled,
   useSubtitleParticipantDisplayMode,
   useSubtitleSettings,
+  useSubtitleShowReadings,
   useSubtitleSpeakerDisplayMode,
 } from '../../stores/subtitleStore';
+import { useReadingTargets } from '../../lib/reading/useReadingTargets';
 import type { ConversationListProps } from '../Conversation/ConversationList';
 import SubtitleBar from './SubtitleBar';
 import { SubtitleBody } from './SubtitleBands';
@@ -91,6 +93,8 @@ export function SubtitleView({ surface, model, controls, exporter, statusLine, n
   const [holdHeld, setHoldHeld] = useState(false);
   const chrome = useSubtitleChrome({ surface, onExit: controls.exit, forceVisible: holdHeld });
   const subtitle = useSubtitleSettings();
+  const showReadings = useSubtitleShowReadings();
+  const readingTargets = useReadingTargets();
   const speaker = useSubtitleSpeakerDisplayMode();
   const participant = useSubtitleParticipantDisplayMode();
   const newItemHighlightEnabled = useSubtitleNewItemHighlightEnabled();
@@ -159,6 +163,7 @@ export function SubtitleView({ surface, model, controls, exporter, statusLine, n
             newItemHighlightEnabled={newItemHighlightEnabled}
             notes={notes}
             noticeAction={noticeAction}
+            readings={surface === 'electron' && showReadings ? readingTargets : undefined}
           />
         )
       ) : (

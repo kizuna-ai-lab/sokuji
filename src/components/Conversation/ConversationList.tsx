@@ -1,10 +1,13 @@
-import { memo, useCallback, useRef, type CSSProperties, type ReactNode } from 'react';
+import { Fragment, memo, useCallback, useRef, type CSSProperties, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowDown, Play, User, Users, VolumeX } from 'lucide-react';
 import type { Ear } from '../MainPanel/useFaceToFace';
 import type { LegName, SegmentId } from '../../lib/conversation/types';
 import type { DisplayItem, NoticeEntry } from '../../lib/view/filter';
 import { personShade } from '../../lib/view/people';
+import { readingLanguage } from '../../lib/reading/languages';
+import type { ReadingLanguage, RubyPiece } from '../../lib/reading/types';
+import { useReading } from '../../lib/reading/useReading';
 import { SystemRow, type NoticeAction } from './SystemRow';
 import { useFollowLatest } from './useFollowLatest';
 import '../MainPanel/MainPanel.scss';
@@ -30,6 +33,8 @@ export interface ConversationListProps {
   ears?: Readonly<Partial<Record<LegName, Ear | 'centre'>>> | null;
   /** The action a notice's bubble offers, if any (plan 1e-3b-1 ruling 13). */
   noticeAction?(notice: NoticeEntry): NoticeAction | null;
+  /** The reading languages to annotate (spec 2026-10-15 §1); absent or empty, none. */
+  readings?: ReadonlySet<ReadingLanguage>;
   compact: boolean;
   /** In px: the display's `--conversation-font-size`. */
   fontSize: number;
@@ -58,7 +63,7 @@ function formatTime(ts: number): string {
 }
 
 export function ConversationList({
-  items, lit, replaying, replayLegs, canReplay, onReplay, replayBlocked, noticeAction, ears, compact, fontSize, empty,
+  items, lit, replaying, replayLegs, canReplay, onReplay, replayBlocked, noticeAction, ears, readings, compact, fontSize, empty,
 }: ConversationListProps) {
   const display = useRef<HTMLDivElement>(null);
   // The newest line stays in view while the reader is at the bottom; reading back
@@ -98,6 +103,9 @@ export function ConversationList({
               // translation face-to-face does not play has no audio, so no slot either.
               const slot = !compact && item.row.side === 'translation' && item.endsSegment && replayLegs.has(item.leg) && ear !== 'muted';
               const id = item.row.segmentId;
+              const rowLanguage = item.row.language || (item.row.side === 'translation' ? item.languages.target : item.languages.source);
+              const rowReading = readings && readings.size > 0 ? readingLanguage(rowLanguage) : null;
+              const readingLang = rowReading && readings!.has(rowReading) ? rowReading : null;
               return (
                 <RowBubble
                   key={item.row.key}
@@ -111,6 +119,8 @@ export function ConversationList({
                   onReplay={replay}
                   ear={ear}
                   compact={compact}
+                  readingLang={readingLang}
+                  holdTail={!item.row.final && item.endsSegment}
                 />
               );
             })}
@@ -146,9 +156,13 @@ interface RowBubbleProps {
   onReplay(leg: LegName, segmentId: SegmentId): void;
   ear: Ear | 'centre' | 'muted' | null;
   compact: boolean;
+  /** The row's reading language when it gets readings, else null. */
+  readingLang: ReadingLanguage | null;
+  /** The row is still growing: the last reading may change (R11). */
+  holdTail: boolean;
 }
 
-const RowBubble = memo(function RowBubble({ item, upTo, replaySlot, canReplay, replayingThis, replayingOther, blocked, onReplay, ear, compact }: RowBubbleProps) {
+const RowBubble = memo(function RowBubble({ item, upTo, replaySlot, canReplay, replayingThis, replayingOther, blocked, onReplay, ear, compact, readingLang, holdTail }: RowBubbleProps) {
   const { t } = useTranslation();
   const { row, leg, languages } = item;
   const isTranslation = row.side === 'translation';
@@ -164,6 +178,7 @@ const RowBubble = memo(function RowBubble({ item, upTo, replaySlot, canReplay, r
   const text = row.text.trim();
   const lead = row.text.length - row.text.trimStart().length;
   const played = upTo === undefined ? 0 : Math.min(text.length, Math.max(0, upTo - row.start - lead));
+  const pieces = useReading(text, readingLang, holdTail);
   const segmentId = row.segmentId;
   // The tint marks only the row that holds the karaoke boundary — not every
   // row of a segment lit is on, or a row karaoke has already passed.
@@ -199,7 +214,9 @@ const RowBubble = memo(function RowBubble({ item, upTo, replaySlot, canReplay, r
           <span className={`lang-badge ${isTranslation ? 'tr' : 'src'} source-${leg}`}>{lang.toUpperCase()}</span>
         )}
         <span className={`row-text ${isTranslation ? 'tr' : 'src'}`}>
-          {played <= 0 ? (
+          {pieces ? (
+            <RubyText pieces={pieces} played={played} />
+          ) : played <= 0 ? (
             <span>{text}</span>
           ) : played >= text.length ? (
             <span className="karaoke-played">{text}</span>
@@ -248,3 +265,35 @@ const RowBubble = memo(function RowBubble({ item, upTo, replaySlot, canReplay, r
     </div>
   );
 });
+
+/**
+ * The row's text as ruby pieces (spec 2026-10-15 §4). Karaoke: plain text splits
+ * at the played offset; a piece with a reading counts as played once wholly
+ * spoken, so a reading is never cut. Offsets are UTF-16, as `played` is.
+ */
+function RubyText({ pieces, played }: { pieces: RubyPiece[]; played: number }) {
+  let offset = 0;
+  return (
+    <>
+      {pieces.map((piece, i) => {
+        const start = offset;
+        const end = (offset += piece.text.length);
+        if (piece.reading === undefined) {
+          if (played <= start) return <Fragment key={i}>{piece.text}</Fragment>;
+          if (played >= end) return <span key={i} className="karaoke-played">{piece.text}</span>;
+          let cut = played - start;
+          // Never between the halves of a surrogate pair.
+          if (cut > 0 && cut < piece.text.length && /[\udc00-\udfff]/.test(piece.text[cut])) cut -= 1;
+          return (
+            <Fragment key={i}>
+              {cut > 0 && <span className="karaoke-played">{piece.text.slice(0, cut)}</span>}
+              {piece.text.slice(cut)}
+            </Fragment>
+          );
+        }
+        const ruby = <ruby>{piece.text}<rt aria-hidden="true">{piece.reading}</rt></ruby>;
+        return played >= end ? <span key={i} className="karaoke-played">{ruby}</span> : <Fragment key={i}>{ruby}</Fragment>;
+      })}
+    </>
+  );
+}

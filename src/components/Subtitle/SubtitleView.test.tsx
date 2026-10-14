@@ -18,6 +18,7 @@ const useSubtitleChromeMock = vi.hoisted(() => vi.fn((_args: { surface: string; 
   rootProps: { className: 'subtitle-app', style: {}, onMouseEnter() {}, onMouseMove() {}, onMouseLeave() {} },
   resizeHandles: null,
 })));
+vi.mock('../../lib/reading/useReadingTargets', () => ({ useReadingTargets: () => new Set() }));
 vi.mock('./useSubtitleChrome', () => ({
   useSubtitleChrome: useSubtitleChromeMock,
 }));
@@ -52,6 +53,7 @@ vi.mock('../../stores/subtitleStore', () => ({
   useSubtitleSpeakerDisplayMode: () => 'both',
   useSubtitleParticipantDisplayMode: () => 'both',
   useSubtitleNewItemHighlightEnabled: () => false,
+  useSubtitleShowReadings: () => false,
 }));
 
 const { SubtitleView } = await import('./SubtitleView');

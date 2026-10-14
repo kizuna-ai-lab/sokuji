@@ -80,7 +80,7 @@ A switch in the display settings shows how the other side's language is pronounc
 
 ### 4. Drawing
 
-- `ConversationList` takes `readings: boolean`. MainPanel passes the conversation store's value; the Electron subtitle view passes the subtitle store's value in expanded mode; the extension overlay passes false.
+- `ConversationList` takes `readings`, the reading languages to annotate (absent or empty: none). MainPanel passes the conversation store's value; the Electron subtitle view passes the subtitle store's value in expanded mode; the extension overlay passes false.
 - `RowBubble` asks `useReading(text, lang, { holdTail })` for pieces and renders each piece with a reading as `<ruby>text<rt aria-hidden="true">reading</rt></ruby>`, so a screen reader reads the text once. Null pieces render the text as today.
 - **Streaming (R11)**: `holdTail` is true when the row is not final and ends its segment; the last piece with a reading then renders as plain text. Earlier rows of an unfinished segment end at a sentence or pause and keep their readings.
 - **Karaoke**: plain text splits at the played offset as today; a piece with a reading counts as played once the offset reaches its end. Offsets are measured on the row's text, which the readings never change.
