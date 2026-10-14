@@ -113,4 +113,19 @@ describe('conversationDisplayStore', () => {
     expect(typeof useConversationDisplayFontSize).toBe('function');
     expect(typeof useConversationDisplayBgColor).toBe('function');
   });
+
+  it('has readings off by default and persists the switch under the conversationDisplay namespace', async () => {
+    useConversationDisplayStore.setState({ showReadings: false } as never);
+    expect(useConversationDisplayStore.getState().showReadings).toBe(false);
+    await useConversationDisplayStore.getState().setShowReadings(true);
+    expect(useConversationDisplayStore.getState().showReadings).toBe(true);
+    expect(mockSetSetting).toHaveBeenCalledWith('settings.common.conversationDisplay.showReadings', true);
+  });
+
+  it('hydrates showReadings', async () => {
+    mockGetSetting.mockImplementation(async (key: string, def: unknown) => (key.endsWith('showReadings') ? true : def));
+    await useConversationDisplayStore.getState().hydrate();
+    expect(useConversationDisplayStore.getState().showReadings).toBe(true);
+    mockGetSetting.mockImplementation(async (_key: string, def: unknown) => def);
+  });
 });
