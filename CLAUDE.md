@@ -8,7 +8,7 @@ Worktree directory: `.claude/worktrees/` (gitignored)
 
 ## Project Overview
 
-Sokuji is a real-time AI-powered translation application available as both an Electron desktop app and a browser extension. It provides live speech translation through Kizuna AI (managed Soniox), free on-device inference, Google Gemini, Doubao AST 2.0, Qwen LiveTranslate, OpenAI Realtime, OpenAI Translate, OpenAI Live, Soniox and Palabra AI, with modern audio processing capabilities. Local Native, the Electron sidecar, still runs on the old provider path until kizuna-ai-lab/sokuji#578.
+Sokuji is a real-time AI-powered translation application available as both an Electron desktop app and a browser extension. It provides live speech translation through Kizuna AI (managed Soniox), free on-device inference, Google Gemini, Doubao AST 2.0, OpenAI Realtime, OpenAI Translate, OpenAI Live, Soniox, Qwen LiveTranslate and Palabra AI, with modern audio processing capabilities. Local Native, the Electron sidecar, still runs on the old provider path until kizuna-ai-lab/sokuji#578.
 
 ## Development Commands
 

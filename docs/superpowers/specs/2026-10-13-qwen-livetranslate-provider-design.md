@@ -102,7 +102,7 @@ test on 2026-10-14 (D9).
 }
 ```
 
-The provider sits in `src/providers/registry.ts` right after `volcengineAst2` and before `openai`.
+The provider sits in `src/providers/registry.ts` right after `soniox` and before `palabra`. It first sat after `volcengineAst2`; the owner moved it below Soniox on 2026-10-14.
 
 The folder follows OpenAI Live and OpenAI Translate:
 
@@ -300,10 +300,10 @@ export interface QwenConfig {
 
 ## 8. Registry and the tests that pin it
 
-- **Registry.** Add the line in `src/providers/registry.ts` after `volcengineAst2`.
+- **Registry.** Add the line in `src/providers/registry.ts` after `soniox` (first after `volcengineAst2`; moved below Soniox on 2026-10-14).
 - **Pins that change:**
   - `registry.test.ts`: the full order list.
-  - The neighbour pins in `volcengine_ast2/provider.test.ts` and `openai/provider.test.ts`.
+  - The neighbour pins in `palabraai/provider.test.ts` and its own `provider.test.ts`.
   - The `checkReads` map, which gets `qwen_livetranslate: []`.
 - **The legacy-slice test** (`registry.test.ts:154-160`) narrows to an explicit list of the nine ported ids. A new provider has no legacy slice, and no row is invented in `LEGACY_SLICE_KEYS`.
 - **`sessionSide.consistency.test.ts`.** Pin the new folder's session side (`adapter.ts`, `wire.ts`, `segments.ts`, `endpoints.ts`, `config.ts`).

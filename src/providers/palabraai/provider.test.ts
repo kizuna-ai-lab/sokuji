@@ -74,10 +74,10 @@ describe('the Palabra AI definition', () => {
     expect(palabraProvider.turns(PALABRA_DEFAULTS)).toEqual(['auto', 'manual']);
   });
 
-  it('sits last, after Soniox (ruling 14)', () => {
+  it('sits last, after Qwen LiveTranslate (ruling 14)', () => {
     const ids = PROVIDERS.filter((p) => !p.id.startsWith('fake')).map((p) => p.id);
     expect(ids[ids.length - 1]).toBe('palabraai');
-    expect(ids.indexOf('palabraai')).toBe(ids.indexOf('soniox') + 1);
+    expect(ids.indexOf('palabraai')).toBe(ids.indexOf('qwen_livetranslate') + 1);
   });
 
   it("runs the participant in Palabra's own reverse — a region target by its source code — and speaks it when its switch is on (rulings 7, 9)", () => {

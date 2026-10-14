@@ -53,9 +53,9 @@ describe('the Qwen LiveTranslate definition (spec §1)', () => {
     expect(offered(release('web', { dev: true, enabled: new Set(['qwen_livetranslate']), switchOn: () => true }))).not.toContain('qwen_livetranslate');
   });
 
-  it('sits right after Doubao AST 2.0 and right before OpenAI Realtime', () => {
+  it('sits right after Soniox and right before Palabra AI', () => {
     const ids = PROVIDERS.map((p) => p.id);
-    expect(ids.indexOf('qwen_livetranslate')).toBe(ids.indexOf('volcengine_ast2') + 1);
-    expect(ids.indexOf('openai')).toBe(ids.indexOf('qwen_livetranslate') + 1);
+    expect(ids.indexOf('qwen_livetranslate')).toBe(ids.indexOf('soniox') + 1);
+    expect(ids.indexOf('palabraai')).toBe(ids.indexOf('qwen_livetranslate') + 1);
   });
 });
