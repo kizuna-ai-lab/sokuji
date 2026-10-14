@@ -57,7 +57,7 @@ function join(a: Syllable, b: Syllable): void {
     b.initial = move;
     return;
   }
-  // ㅎ in the coda aspirates ㄱ ㄷ ㅈ, vanishes before ㅅ, and reads as ㄴ otherwise.
+  // ㅎ in the coda aspirates ㄱ ㄷ ㅈ, vanishes before ㅅ, reads as ㄴ before ㄴ and is silent before other consonants.
   if (coda === 'ㅎ' || coda === 'ㄶ' || coda === 'ㅀ') {
     const rest = coda === 'ㅎ' ? '' : coda === 'ㄶ' ? 'ㄴ' : 'ㄹ';
     if (b.initial === 'ㄱ' || b.initial === 'ㄷ' || b.initial === 'ㅈ') { a.coda = rest; b.initial = ASPIRATED[b.initial]; return; }

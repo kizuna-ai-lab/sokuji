@@ -38,9 +38,11 @@ export function Home() {
     // the session from the first Start.
     void loadSessionStores();
 
+    // Japanese readings are wanted while a readings switch is on and the target includes Japanese (spec 2026-10-15 §3).
+    const unbindReadings = bindReadings();
+
     // Follow the OS's devices from here on (spec 2026-10-04): plugging,
     // unplugging, a Bluetooth reconnect, a repaired virtual device.
-    const unbindReadings = bindReadings();
     const stopWatching = watchDevices({
       // A `devicechange` also tries the devices marked unusable again; the poll does not.
       sync: (reason) => useAudioStore.getState().syncDevices({ retryUnusable: reason === 'change' }),
