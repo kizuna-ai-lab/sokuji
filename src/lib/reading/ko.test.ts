@@ -13,6 +13,7 @@ const WRITES: [string, string][] = [
   ['있어요', 'isseoyo'], ['회의실은', 'hoeuisireun'], ['안녕하세요', 'annyeonghaseyo'], ['감사합니다', 'gamsahamnida'],
   ['좋아', 'joa'], ['많아', 'mana'], ['싫어', 'sireo'], ['놓는', 'nonneun'], ['읽고', 'ilgo'], ['읽는', 'ingneun'],
   ['닭', 'dak'], ['값', 'gap'], ['없어', 'eopseo'], ['깨끗하다', 'kkaekkeutada'], ['밝히다', 'balkida'], ['싫네', 'sille'],
+  ['놓치다', 'nochida'], ['놓쳐', 'nochyeo'], ['않네', 'anne'],
 ];
 
 // The spec's stated misses, pinned as they are: n-insertion, the noun aspiration exception, names.

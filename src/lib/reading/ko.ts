@@ -62,6 +62,8 @@ function join(a: Syllable, b: Syllable): void {
     const rest = coda === 'ㅎ' ? '' : coda === 'ㄶ' ? 'ㄴ' : 'ㄹ';
     if (b.initial === 'ㄱ' || b.initial === 'ㄷ' || b.initial === 'ㅈ') { a.coda = rest; b.initial = ASPIRATED[b.initial]; return; }
     if (b.initial === 'ㅅ') { a.coda = rest; return; }
+    // ㅎ reads as ㄴ before ㄴ and is silent before other consonants.
+    if (b.initial !== 'ㄴ') { a.coda = rest; return; }
     coda = rest || 'ㄴ';
     a.coda = coda;
   }
