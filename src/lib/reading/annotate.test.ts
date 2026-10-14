@@ -11,6 +11,12 @@ vi.mock('./ja/runtime', () => ({
   tokenizeJapanese: (text: string) => japanese.tokenize(text),
 }));
 
+const warn = vi.fn();
+vi.mock('../diagnostics/report', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../diagnostics/report')>()),
+  reportWarning: (...args: unknown[]) => warn(...args),
+}));
+
 const flush = () => new Promise((r) => setTimeout(r, 0));
 let annotate: typeof import('./annotate');
 
@@ -19,6 +25,7 @@ beforeEach(async () => {
   japanese.state = { phase: 'off' };
   japanese.listeners.clear();
   japanese.tokenize.mockReset();
+  warn.mockReset();
   annotate = await import('./annotate');
 });
 
@@ -78,6 +85,41 @@ describe('annotate', () => {
     annotate.requestReading('雨', 'ja');
     await flush();
     expect(annotate.peekReading('雨', 'ja')).toBeNull();
+  });
+
+  it('asks again, on the next ready, for a Japanese row whose answer came back empty', async () => {
+    japanese.state = { phase: 'ready' };
+    japanese.tokenize.mockResolvedValueOnce(null);
+    annotate.requestReading('雨', 'ja');
+    await flush();
+    expect(annotate.peekReading('雨', 'ja')).toBeNull();
+    japanese.tokenize.mockResolvedValue([{ surface: '雨', reading: 'アメ', unknown: false }]);
+    japanese.listeners.forEach((l) => l());
+    await flush();
+    expect(annotate.peekReading('雨', 'ja')).toEqual([{ text: '雨', reading: 'あめ' }]);
+  });
+
+  it('recovers a Japanese row whose tokenize rejected', async () => {
+    japanese.state = { phase: 'ready' };
+    japanese.tokenize.mockRejectedValueOnce(new Error('gone'));
+    annotate.requestReading('雨', 'ja');
+    await flush();
+    japanese.tokenize.mockResolvedValue([{ surface: '雨', reading: 'アメ', unknown: false }]);
+    japanese.listeners.forEach((l) => l());
+    await flush();
+    expect(annotate.peekReading('雨', 'ja')).toEqual([{ text: '雨', reading: 'あめ' }]);
+  });
+
+  it('does not reload a language whose import failed, and warns once', async () => {
+    vi.doMock('./ko', () => { throw new Error('chunk'); });
+    annotate.requestReading('같이', 'ko');
+    await flush();
+    annotate.requestReading('같이가', 'ko');
+    await flush();
+    vi.doUnmock('./ko');
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][2]).toMatchObject({ dedupeKey: 'reading.load.ko' });
+    expect(annotate.peekReading('같이', 'ko')).toBeNull();
   });
 });
 

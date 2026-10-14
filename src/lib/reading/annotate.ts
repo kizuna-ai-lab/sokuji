@@ -20,6 +20,8 @@ const WAITING_LIMIT = 500;
 
 const annotators = new Map<SyncLanguage, Annotator>();
 const loading = new Set<SyncLanguage>();
+/** Languages whose annotator failed to load; not retried this session. */
+const failed = new Set<SyncLanguage>();
 /** Pieces by language and text, least recently used first. Rows churn while streaming. */
 const cache = new Map<string, RubyPiece[]>();
 /** Japanese texts sent to the worker and not yet answered. */
@@ -55,7 +57,7 @@ export function peekReading(text: string, lang: ReadingLanguage): RubyPiece[] | 
 /** Starts what `peekReading` is waiting on: loading an annotator, or tokenizing Japanese. */
 export function requestReading(text: string, lang: ReadingLanguage): void {
   if (lang !== 'ja') {
-    if (annotators.has(lang) || loading.has(lang)) return;
+    if (annotators.has(lang) || loading.has(lang) || failed.has(lang)) return;
     loading.add(lang);
     LOADERS[lang]().then(
       (annotator) => {
@@ -65,7 +67,11 @@ export function requestReading(text: string, lang: ReadingLanguage): void {
       },
       (err) => {
         loading.delete(lang);
-        reportWarning('Readings', `The ${lang} readings could not load: ${describeCause(err)}`, { cause: err });
+        failed.add(lang);
+        reportWarning('Readings', `The ${lang} readings could not load: ${describeCause(err)}`, {
+          cause: err,
+          dedupeKey: `reading.load.${lang}`,
+        });
       },
     );
     return;
@@ -73,19 +79,31 @@ export function requestReading(text: string, lang: ReadingLanguage): void {
   const key = keyOf(text, 'ja');
   if (cache.has(key) || asked.has(key)) return;
   const pending = tokenizeJapanese(text);
-  if (!pending) {
+  const wait = () => {
     waiting.delete(key);
     waiting.set(key, text);
     if (waiting.size > WAITING_LIMIT) waiting.delete(waiting.keys().next().value as string);
+  };
+  if (!pending) {
+    wait();
     return;
   }
   asked.add(key);
-  void pending.then((tokens) => {
-    asked.delete(key);
-    if (!tokens) return;
-    remember(key, furigana(tokens));
-    tell(byKey.get(key));
-  });
+  void pending.then(
+    (tokens) => {
+      asked.delete(key);
+      if (!tokens) {
+        wait();
+        return;
+      }
+      remember(key, furigana(tokens));
+      tell(byKey.get(key));
+    },
+    () => {
+      asked.delete(key);
+      wait();
+    },
+  );
 }
 
 /** Tells `listener` when the pieces for `text` arrive or its annotator loads. */
