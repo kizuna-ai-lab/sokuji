@@ -65,4 +65,15 @@ describe('manifest stays consistent with the platform registry', () => {
       expect(csp).toContain(origin);
     }
   });
+
+  // Qwen LiveTranslate (spec 2026-10-13 §10): the socket on both storefronts, which
+  // the header rule only reaches on a declared host, and the key check's token
+  // endpoint over HTTPS — a wss:// entry does not cover https://.
+  it("lets Qwen LiveTranslate reach both storefronts: the socket, its header rule and the key check", () => {
+    const origins = manifest.content_security_policy.extension_pages.split(/[ ;]+/);
+    for (const origin of ['wss://maas.qwencloudapi.com', 'wss://maas.qianwenaiapi.com', 'https://maas.qwencloudapi.com', 'https://maas.qianwenaiapi.com']) {
+      expect(origins, origin).toContain(origin);
+    }
+    expect(manifest.host_permissions).toEqual(expect.arrayContaining(['wss://maas.qwencloudapi.com/*', 'wss://maas.qianwenaiapi.com/*']));
+  });
 });

@@ -517,6 +517,21 @@
       "voiceSummaryCloneMine": "صوتك أنت (مستنسخ)",
       "voiceSummaryCloneTheirs": "صوت الطرف الآخر نفسه (مستنسخ)"
     },
+    "qwen_livetranslate": {
+      "name": "Qwen LiveTranslate",
+      "description": "ترجمة فورية Qwen3.8، 60 لغة (29 منطوقة)",
+      "voiceClone": "استنساخ صوت المتحدث",
+      "voiceCloneOnce": "استنساخ صوت المتحدث الأول",
+      "voiceGroupClone": "استنساخ الصوت",
+      "voiceSummaryCloneMine": "صوتك أنت (مستنسخ)",
+      "voiceSummaryCloneTheirs": "صوت الطرف الآخر نفسه (مستنسخ)",
+      "storefrontIntl": "مفتاح من QwenCloud (دولي)",
+      "storefrontCn": "مفتاح من 千问云 (البر الرئيسي للصين)",
+      "vocabulary": "مفردات مخصصة",
+      "vocabularyTranslations": "الترجمات المفضّلة",
+      "vocabularyTranslationsTooltip": "يُرجّح طريقة ترجمة مصطلحات معيّنة — كتفضيل لا كاستبدال مضمون: الأسماء ذات الترجمة الراسخة تُعطي أفضل النتائج، بينما قد تحتفظ الكلمات الشائعة بصياغة النموذج الخاصة بها. الإدخالات ذات اتجاه؛ ولا يتوفّر الاتجاه المعاكس إلا في وضع الكل، حيث يمكنك إضافة سطر معكوس.",
+      "vocabularyTranslationsPlaceholder": "إدخال واحد بصيغة المصدر=الهدف في كل سطر"
+    },
     "local_inference": {
       "name": "مجاني",
       "description": "التعرف على الكلام المجاني (ASR) + ترجمة + تحويل النص إلى كلام (TTS)",

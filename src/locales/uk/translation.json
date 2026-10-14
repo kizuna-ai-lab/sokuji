@@ -517,6 +517,21 @@
       "voiceSummaryCloneMine": "Ваш власний голос (клон)",
       "voiceSummaryCloneTheirs": "Власний голос співрозмовника (клон)"
     },
+    "qwen_livetranslate": {
+      "name": "Qwen LiveTranslate",
+      "description": "Синхронний переклад Qwen3.8, 60 мов (29 з озвученням)",
+      "voiceClone": "Клонувати голос мовця",
+      "voiceCloneOnce": "Клонувати голос першого мовця",
+      "voiceGroupClone": "Клонування голосу",
+      "voiceSummaryCloneMine": "Ваш власний голос (клон)",
+      "voiceSummaryCloneTheirs": "Власний голос співрозмовника (клон)",
+      "storefrontIntl": "Ключ QwenCloud (міжнародний)",
+      "storefrontCn": "Ключ 千问云 (материковий Китай)",
+      "vocabulary": "Власний словник",
+      "vocabularyTranslations": "Бажані переклади",
+      "vocabularyTranslationsTooltip": "Впливає на те, як перекладаються конкретні терміни, — це перевага, а не гарантована заміна: імена зі усталеним перекладом працюють найкраще, тоді як поширені слова можуть зберігати власне формулювання моделі. Записи спрямовані; зворотний напрямок існує лише в режимі «Обидва», де можна додати зворотний рядок.",
+      "vocabularyTranslationsPlaceholder": "Один запис джерело=переклад на рядок"
+    },
     "local_inference": {
       "name": "Безкоштовний",
       "description": "Безкоштовне розпізнавання мовлення (ASR) + Переклад + синтез мовлення (TTS)",

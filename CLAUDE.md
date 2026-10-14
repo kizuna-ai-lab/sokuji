@@ -8,7 +8,7 @@ Worktree directory: `.claude/worktrees/` (gitignored)
 
 ## Project Overview
 
-Sokuji is a real-time AI-powered translation application available as both an Electron desktop app and a browser extension. It provides live speech translation through Kizuna AI (managed Soniox), free on-device inference, Google Gemini, Doubao AST 2.0, OpenAI Realtime, OpenAI Translate, OpenAI Live, Soniox and Palabra AI, with modern audio processing capabilities. Local Native, the Electron sidecar, still runs on the old provider path until kizuna-ai-lab/sokuji#578.
+Sokuji is a real-time AI-powered translation application available as both an Electron desktop app and a browser extension. It provides live speech translation through Kizuna AI (managed Soniox), free on-device inference, Google Gemini, Doubao AST 2.0, Qwen LiveTranslate, OpenAI Realtime, OpenAI Translate, OpenAI Live, Soniox and Palabra AI, with modern audio processing capabilities. Local Native, the Electron sidecar, still runs on the old provider path until kizuna-ai-lab/sokuji#578.
 
 ## Development Commands
 
@@ -726,7 +726,7 @@ are still manual.
 
 ### Security Policy
 - Strict CSP configuration for extension pages
-- Allowed connections to AI provider APIs (OpenAI, Google, Doubao, Soniox, Palabra, Kizuna AI)
+- Allowed connections to AI provider APIs (OpenAI, Google, Doubao, Qwen, Soniox, Palabra, Kizuna AI)
 - PostHog analytics integration for usage tracking
 
 ## Authentication and API Key Management
@@ -738,7 +738,7 @@ are still manual.
 - **Cross-Platform**: Authentication works across Electron and browser extension
 
 ### API Key Types
-1. **User-Managed Keys**: OpenAI (Realtime, Translate, Live), Gemini, Doubao AST 2.0, Soniox, Palabra AI - users input their own keys
+1. **User-Managed Keys**: OpenAI (Realtime, Translate, Live), Gemini, Doubao AST 2.0, Qwen LiveTranslate, Soniox, Palabra AI - users input their own keys
 2. **Backend-Managed Keys**: Kizuna AI - keys fetched from authenticated backend service
 
 ### Authentication Flow for Kizuna AI

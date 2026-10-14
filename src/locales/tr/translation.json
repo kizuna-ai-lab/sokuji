@@ -517,6 +517,21 @@
       "voiceSummaryCloneMine": "Kendi sesiniz (klonlanmış)",
       "voiceSummaryCloneTheirs": "Karşı tarafın kendi sesi (klonlanmış)"
     },
+    "qwen_livetranslate": {
+      "name": "Qwen LiveTranslate",
+      "description": "Qwen3.8 eşzamanlı çeviri, 60 dil (29'u sesli)",
+      "voiceClone": "Konuşanın sesini klonla",
+      "voiceCloneOnce": "İlk konuşanın sesini klonla",
+      "voiceGroupClone": "Ses klonlama",
+      "voiceSummaryCloneMine": "Kendi sesiniz (klonlanmış)",
+      "voiceSummaryCloneTheirs": "Karşı tarafın kendi sesi (klonlanmış)",
+      "storefrontIntl": "QwenCloud (uluslararası) anahtarı",
+      "storefrontCn": "千问云 (Çin anakarası) anahtarı",
+      "vocabulary": "Özel Kelime Dağarcığı",
+      "vocabularyTranslations": "Tercih Edilen Çeviriler",
+      "vocabularyTranslationsTooltip": "Belirli terimlerin nasıl çevrileceğini etkiler — bu bir tercihtir, garanti edilen bir değişim değildir: yerleşik bir çevirisi olan adlar en iyi sonucu verir, yaygın sözcükler ise modelin kendi ifadesini koruyabilir. Girişler yönlüdür; ters yön yalnızca Her ikisi modunda bulunur ve orada ters bir satır ekleyebilirsiniz.",
+      "vocabularyTranslationsPlaceholder": "Satır başına kaynak=hedef biçiminde bir giriş"
+    },
     "local_inference": {
       "name": "Ücretsiz",
       "description": "Ücretsiz konuşma tanıma (ASR) + Çeviri + konuşma sentezi (TTS)",

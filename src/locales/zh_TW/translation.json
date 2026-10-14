@@ -517,6 +517,21 @@
       "voiceSummaryCloneMine": "我自己的聲音（複製）",
       "voiceSummaryCloneTheirs": "對方自己的聲音（複製）"
     },
+    "qwen_livetranslate": {
+      "name": "Qwen LiveTranslate",
+      "description": "千問 Qwen3.8 同聲傳譯，60 種語言（29 種可配音）",
+      "voiceClone": "複製說話者的聲音",
+      "voiceCloneOnce": "複製第一位說話者的聲音",
+      "voiceGroupClone": "聲音複製",
+      "voiceSummaryCloneMine": "我自己的聲音（複製）",
+      "voiceSummaryCloneTheirs": "對方自己的聲音（複製）",
+      "storefrontIntl": "來自 QwenCloud（國際版）的金鑰",
+      "storefrontCn": "來自千問雲（中國內地）的金鑰",
+      "vocabulary": "自訂詞彙",
+      "vocabularyTranslations": "指定譯法",
+      "vocabularyTranslationsTooltip": "影響特定術語的譯法——這是一種偏好，而非保證的替換：已有既定譯名的名稱效果最好，常見詞彙則可能仍保留模型自身的用語。項目具有方向性；反向僅存在於「兩者」模式，此時可加入一行反向項目。",
+      "vocabularyTranslationsPlaceholder": "每行一項，格式為原文=譯文"
+    },
     "local_inference": {
       "name": "免費",
       "description": "免費語音辨識（ASR）+ 翻譯 + 語音合成（TTS）",

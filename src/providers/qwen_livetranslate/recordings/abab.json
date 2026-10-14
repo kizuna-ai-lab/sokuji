@@ -1,0 +1,1233 @@
+[
+ {
+  "type": "input_audio_buffer.speech_started",
+  "audio_start_ms": 360,
+  "item_id": "item_LjBa2Pn15ZZeCo8fuRLm4",
+  "speaker_id": 1
+ },
+ {
+  "type": "conversation.item.created",
+  "item": {
+   "id": "item_LjBa2Pn15ZZeCo8fuRLm4",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": [
+    {
+     "type": "input_audio"
+    }
+   ]
+  }
+ },
+ {
+  "type": "response.created",
+  "response": {
+   "id": "resp_ImU2vNiuVPwamFp1ygckY",
+   "object": "realtime.response",
+   "conversation_id": "",
+   "status": "in_progress",
+   "modalities": [
+    "text",
+    "audio"
+   ],
+   "output_audio_format": "pcm",
+   "output": []
+  }
+ },
+ {
+  "type": "response.output_item.added",
+  "response_id": "resp_ImU2vNiuVPwamFp1ygckY",
+  "output_index": 0,
+  "item": {
+   "id": "item_F77jYfVMOHFl27Qrsa87L",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": []
+  }
+ },
+ {
+  "type": "conversation.item.created",
+  "previous_item_id": "item_LjBa2Pn15ZZeCo8fuRLm4",
+  "item": {
+   "id": "item_F77jYfVMOHFl27Qrsa87L",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": []
+  }
+ },
+ {
+  "type": "response.content_part.added",
+  "response_id": "resp_ImU2vNiuVPwamFp1ygckY",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "text": ""
+  }
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_LjBa2Pn15ZZeCo8fuRLm4",
+  "content_index": 0,
+  "delta": "欢迎使用实时翻译 "
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_ImU2vNiuVPwamFp1ygckY",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "Welcome"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_ImU2vNiuVPwamFp1ygckY",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " to real"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_ImU2vNiuVPwamFp1ygckY",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "-time translation"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_ImU2vNiuVPwamFp1ygckY",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "."
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_ImU2vNiuVPwamFp1ygckY",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " "
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "samples": 1920
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_LjBa2Pn15ZZeCo8fuRLm4",
+  "content_index": 0,
+  "delta": "希望这个声音能让交流"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_LjBa2Pn15ZZeCo8fuRLm4",
+  "content_index": 0,
+  "delta": "变得轻松自然 "
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_ImU2vNiuVPwamFp1ygckY",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "We"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_ImU2vNiuVPwamFp1ygckY",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " hope this"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_ImU2vNiuVPwamFp1ygckY",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " voice will"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_ImU2vNiuVPwamFp1ygckY",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " make communication easier"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_ImU2vNiuVPwamFp1ygckY",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " and more"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_ImU2vNiuVPwamFp1ygckY",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " natural."
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_ImU2vNiuVPwamFp1ygckY",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " "
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "samples": 5760
+ },
+ {
+  "type": "input_audio_buffer.speech_stopped",
+  "audio_end_ms": 7600,
+  "item_id": "item_LjBa2Pn15ZZeCo8fuRLm4"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.completed",
+  "item_id": "item_LjBa2Pn15ZZeCo8fuRLm4",
+  "content_index": 0,
+  "transcript": "欢迎使用实时翻译 希望这个声音能让交流变得轻松自然 "
+ },
+ {
+  "type": "response.audio_transcript.done",
+  "response_id": "resp_ImU2vNiuVPwamFp1ygckY",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "output_index": 0,
+  "content_index": 0,
+  "transcript": "Welcome to real-time translation. We hope this voice will make communication easier and more natural. "
+ },
+ {
+  "type": "response.audio.done",
+  "response_id": "resp_ImU2vNiuVPwamFp1ygckY",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "output_index": 0,
+  "content_index": 0
+ },
+ {
+  "type": "response.content_part.done",
+  "response_id": "resp_ImU2vNiuVPwamFp1ygckY",
+  "item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "text": "Welcome to real-time translation. We hope this voice will make communication easier and more natural. "
+  }
+ },
+ {
+  "type": "response.output_item.done",
+  "response_id": "resp_ImU2vNiuVPwamFp1ygckY",
+  "output_index": 0,
+  "item": {
+   "id": "item_F77jYfVMOHFl27Qrsa87L",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "completed",
+   "role": "assistant",
+   "content": [
+    {
+     "type": "audio",
+     "text": "Welcome to real-time translation. We hope this voice will make communication easier and more natural. "
+    }
+   ]
+  }
+ },
+ {
+  "type": "response.done",
+  "response": {
+   "id": "resp_ImU2vNiuVPwamFp1ygckY",
+   "object": "realtime.response",
+   "conversation_id": "conv_UkSbWcYJes879IqOAKOCI",
+   "status": "completed",
+   "modalities": [
+    "text",
+    "audio"
+   ],
+   "output": [
+    {
+     "id": "item_F77jYfVMOHFl27Qrsa87L",
+     "object": "realtime.item",
+     "type": "message",
+     "status": "completed",
+     "role": "assistant",
+     "content": [
+      {
+       "type": "audio",
+       "transcript": "Welcome to real-time translation. We hope this voice will make communication easier and more natural. "
+      }
+     ]
+    }
+   ],
+   "usage": {
+    "total_tokens": 201,
+    "input_tokens": 103,
+    "output_tokens": 98,
+    "input_tokens_details": {
+     "text_tokens": 47,
+     "audio_tokens": 56
+    },
+    "output_tokens_details": {
+     "text_tokens": 26,
+     "audio_tokens": 72
+    }
+   }
+  }
+ },
+ {
+  "type": "input_audio_buffer.speech_started",
+  "audio_start_ms": 8160,
+  "item_id": "item_HwRuBOesIXJOTFxx5SFDk",
+  "speaker_id": 2
+ },
+ {
+  "type": "conversation.item.created",
+  "previous_item_id": "item_F77jYfVMOHFl27Qrsa87L",
+  "item": {
+   "id": "item_HwRuBOesIXJOTFxx5SFDk",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": [
+    {
+     "type": "input_audio"
+    }
+   ]
+  }
+ },
+ {
+  "type": "response.created",
+  "response": {
+   "id": "resp_JmxpqaBxbCwBv1TjoUrvi",
+   "object": "realtime.response",
+   "conversation_id": "",
+   "status": "in_progress",
+   "modalities": [
+    "text",
+    "audio"
+   ],
+   "output_audio_format": "pcm",
+   "output": []
+  }
+ },
+ {
+  "type": "response.output_item.added",
+  "response_id": "resp_JmxpqaBxbCwBv1TjoUrvi",
+  "output_index": 0,
+  "item": {
+   "id": "item_BE2IIwNYARH7i6ovQynPj",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": []
+  }
+ },
+ {
+  "type": "conversation.item.created",
+  "previous_item_id": "item_HwRuBOesIXJOTFxx5SFDk",
+  "item": {
+   "id": "item_BE2IIwNYARH7i6ovQynPj",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": []
+  }
+ },
+ {
+  "type": "response.content_part.added",
+  "response_id": "resp_JmxpqaBxbCwBv1TjoUrvi",
+  "item_id": "item_BE2IIwNYARH7i6ovQynPj",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "text": ""
+  }
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_HwRuBOesIXJOTFxx5SFDk",
+  "content_index": 0,
+  "delta": "明日"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_HwRuBOesIXJOTFxx5SFDk",
+  "content_index": 0,
+  "delta": "の会議は午後"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_HwRuBOesIXJOTFxx5SFDk",
+  "content_index": 0,
+  "delta": "三時に始まります "
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_JmxpqaBxbCwBv1TjoUrvi",
+  "item_id": "item_BE2IIwNYARH7i6ovQynPj",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "Tomorrow's meeting will"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_JmxpqaBxbCwBv1TjoUrvi",
+  "item_id": "item_BE2IIwNYARH7i6ovQynPj",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " start at 3"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_JmxpqaBxbCwBv1TjoUrvi",
+  "item_id": "item_BE2IIwNYARH7i6ovQynPj",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": ":0"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_JmxpqaBxbCwBv1TjoUrvi",
+  "item_id": "item_BE2IIwNYARH7i6ovQynPj",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "0 p.m."
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_JmxpqaBxbCwBv1TjoUrvi",
+  "item_id": "item_BE2IIwNYARH7i6ovQynPj",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " "
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_BE2IIwNYARH7i6ovQynPj",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_BE2IIwNYARH7i6ovQynPj",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_BE2IIwNYARH7i6ovQynPj",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_BE2IIwNYARH7i6ovQynPj",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_BE2IIwNYARH7i6ovQynPj",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_BE2IIwNYARH7i6ovQynPj",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_BE2IIwNYARH7i6ovQynPj",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_BE2IIwNYARH7i6ovQynPj",
+  "samples": 3840
+ },
+ {
+  "type": "input_audio_buffer.speech_stopped",
+  "audio_end_ms": 13760,
+  "item_id": "item_HwRuBOesIXJOTFxx5SFDk"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.completed",
+  "item_id": "item_HwRuBOesIXJOTFxx5SFDk",
+  "content_index": 0,
+  "transcript": "明日の会議は午後三時に始まります "
+ },
+ {
+  "type": "response.audio_transcript.done",
+  "response_id": "resp_JmxpqaBxbCwBv1TjoUrvi",
+  "item_id": "item_BE2IIwNYARH7i6ovQynPj",
+  "output_index": 0,
+  "content_index": 0,
+  "transcript": "Tomorrow's meeting will start at 3:00 p.m. "
+ },
+ {
+  "type": "response.audio.done",
+  "response_id": "resp_JmxpqaBxbCwBv1TjoUrvi",
+  "item_id": "item_BE2IIwNYARH7i6ovQynPj",
+  "output_index": 0,
+  "content_index": 0
+ },
+ {
+  "type": "response.content_part.done",
+  "response_id": "resp_JmxpqaBxbCwBv1TjoUrvi",
+  "item_id": "item_BE2IIwNYARH7i6ovQynPj",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "text": "Tomorrow's meeting will start at 3:00 p.m. "
+  }
+ },
+ {
+  "type": "response.output_item.done",
+  "response_id": "resp_JmxpqaBxbCwBv1TjoUrvi",
+  "output_index": 0,
+  "item": {
+   "id": "item_BE2IIwNYARH7i6ovQynPj",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "completed",
+   "role": "assistant",
+   "content": [
+    {
+     "type": "audio",
+     "text": "Tomorrow's meeting will start at 3:00 p.m. "
+    }
+   ]
+  }
+ },
+ {
+  "type": "response.done",
+  "response": {
+   "id": "resp_JmxpqaBxbCwBv1TjoUrvi",
+   "object": "realtime.response",
+   "conversation_id": "conv_UkSbWcYJes879IqOAKOCI",
+   "status": "completed",
+   "modalities": [
+    "text",
+    "audio"
+   ],
+   "output": [
+    {
+     "id": "item_BE2IIwNYARH7i6ovQynPj",
+     "object": "realtime.item",
+     "type": "message",
+     "status": "completed",
+     "role": "assistant",
+     "content": [
+      {
+       "type": "audio",
+       "transcript": "Tomorrow's meeting will start at 3:00 p.m. "
+      }
+     ]
+    }
+   ],
+   "usage": {
+    "total_tokens": 305,
+    "input_tokens": 159,
+    "output_tokens": 146,
+    "input_tokens_details": {
+     "text_tokens": 47,
+     "audio_tokens": 112
+    },
+    "output_tokens_details": {
+     "text_tokens": 44,
+     "audio_tokens": 102
+    }
+   }
+  }
+ },
+ {
+  "type": "input_audio_buffer.speech_started",
+  "audio_start_ms": 14320,
+  "item_id": "item_RW3bOH8mNFaVbqy3tPzIB",
+  "speaker_id": 1
+ },
+ {
+  "type": "conversation.item.created",
+  "previous_item_id": "item_BE2IIwNYARH7i6ovQynPj",
+  "item": {
+   "id": "item_RW3bOH8mNFaVbqy3tPzIB",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": [
+    {
+     "type": "input_audio"
+    }
+   ]
+  }
+ },
+ {
+  "type": "response.created",
+  "response": {
+   "id": "resp_W6kW5OQZKXdJpVROpNYyH",
+   "object": "realtime.response",
+   "conversation_id": "",
+   "status": "in_progress",
+   "modalities": [
+    "text",
+    "audio"
+   ],
+   "output_audio_format": "pcm",
+   "output": []
+  }
+ },
+ {
+  "type": "response.output_item.added",
+  "response_id": "resp_W6kW5OQZKXdJpVROpNYyH",
+  "output_index": 0,
+  "item": {
+   "id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": []
+  }
+ },
+ {
+  "type": "conversation.item.created",
+  "previous_item_id": "item_RW3bOH8mNFaVbqy3tPzIB",
+  "item": {
+   "id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": []
+  }
+ },
+ {
+  "type": "response.content_part.added",
+  "response_id": "resp_W6kW5OQZKXdJpVROpNYyH",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "text": ""
+  }
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_RW3bOH8mNFaVbqy3tPzIB",
+  "content_index": 0,
+  "delta": "欢迎使用"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_RW3bOH8mNFaVbqy3tPzIB",
+  "content_index": 0,
+  "delta": "实时翻译希望这个声音"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_RW3bOH8mNFaVbqy3tPzIB",
+  "content_index": 0,
+  "delta": "能让交流变得轻松自然"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_RW3bOH8mNFaVbqy3tPzIB",
+  "content_index": 0,
+  "delta": " "
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_W6kW5OQZKXdJpVROpNYyH",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "Welcome"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_W6kW5OQZKXdJpVROpNYyH",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " to real-time translation"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_W6kW5OQZKXdJpVROpNYyH",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": ". We hope this"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_W6kW5OQZKXdJpVROpNYyH",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " voice will make"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_W6kW5OQZKXdJpVROpNYyH",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " communication easier and"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_W6kW5OQZKXdJpVROpNYyH",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " more natural. "
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "samples": 3840
+ },
+ {
+  "type": "input_audio_buffer.speech_stopped",
+  "audio_end_ms": 21360,
+  "item_id": "item_RW3bOH8mNFaVbqy3tPzIB"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.completed",
+  "item_id": "item_RW3bOH8mNFaVbqy3tPzIB",
+  "content_index": 0,
+  "transcript": "欢迎使用实时翻译希望这个声音能让交流变得轻松自然 "
+ },
+ {
+  "type": "response.audio_transcript.done",
+  "response_id": "resp_W6kW5OQZKXdJpVROpNYyH",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "output_index": 0,
+  "content_index": 0,
+  "transcript": "Welcome to real-time translation. We hope this voice will make communication easier and more natural. "
+ },
+ {
+  "type": "response.audio.done",
+  "response_id": "resp_W6kW5OQZKXdJpVROpNYyH",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "output_index": 0,
+  "content_index": 0
+ },
+ {
+  "type": "response.content_part.done",
+  "response_id": "resp_W6kW5OQZKXdJpVROpNYyH",
+  "item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "text": "Welcome to real-time translation. We hope this voice will make communication easier and more natural. "
+  }
+ },
+ {
+  "type": "response.output_item.done",
+  "response_id": "resp_W6kW5OQZKXdJpVROpNYyH",
+  "output_index": 0,
+  "item": {
+   "id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "completed",
+   "role": "assistant",
+   "content": [
+    {
+     "type": "audio",
+     "text": "Welcome to real-time translation. We hope this voice will make communication easier and more natural. "
+    }
+   ]
+  }
+ },
+ {
+  "type": "response.done",
+  "response": {
+   "id": "resp_W6kW5OQZKXdJpVROpNYyH",
+   "object": "realtime.response",
+   "conversation_id": "conv_UkSbWcYJes879IqOAKOCI",
+   "status": "completed",
+   "modalities": [
+    "text",
+    "audio"
+   ],
+   "output": [
+    {
+     "id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+     "object": "realtime.item",
+     "type": "message",
+     "status": "completed",
+     "role": "assistant",
+     "content": [
+      {
+       "type": "audio",
+       "transcript": "Welcome to real-time translation. We hope this voice will make communication easier and more natural. "
+      }
+     ]
+    }
+   ],
+   "usage": {
+    "total_tokens": 472,
+    "input_tokens": 229,
+    "output_tokens": 243,
+    "input_tokens_details": {
+     "text_tokens": 47,
+     "audio_tokens": 182
+    },
+    "output_tokens_details": {
+     "text_tokens": 67,
+     "audio_tokens": 176
+    }
+   }
+  }
+ },
+ {
+  "type": "input_audio_buffer.speech_started",
+  "audio_start_ms": 21840,
+  "item_id": "item_MO2Q4rgLGKqE6H5fEICPk",
+  "speaker_id": 2
+ },
+ {
+  "type": "conversation.item.created",
+  "previous_item_id": "item_Q2YgZcfBUHG1vlXWUmw7e",
+  "item": {
+   "id": "item_MO2Q4rgLGKqE6H5fEICPk",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": [
+    {
+     "type": "input_audio"
+    }
+   ]
+  }
+ },
+ {
+  "type": "response.created",
+  "response": {
+   "id": "resp_Ky2gvk3Lqdj6XLFlSvAC3",
+   "object": "realtime.response",
+   "conversation_id": "",
+   "status": "in_progress",
+   "modalities": [
+    "text",
+    "audio"
+   ],
+   "output_audio_format": "pcm",
+   "output": []
+  }
+ },
+ {
+  "type": "response.output_item.added",
+  "response_id": "resp_Ky2gvk3Lqdj6XLFlSvAC3",
+  "output_index": 0,
+  "item": {
+   "id": "item_MGMIf8IWpDt1MmNcAJfN3",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": []
+  }
+ },
+ {
+  "type": "conversation.item.created",
+  "previous_item_id": "item_MO2Q4rgLGKqE6H5fEICPk",
+  "item": {
+   "id": "item_MGMIf8IWpDt1MmNcAJfN3",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": []
+  }
+ },
+ {
+  "type": "response.content_part.added",
+  "response_id": "resp_Ky2gvk3Lqdj6XLFlSvAC3",
+  "item_id": "item_MGMIf8IWpDt1MmNcAJfN3",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "text": ""
+  }
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_MO2Q4rgLGKqE6H5fEICPk",
+  "content_index": 0,
+  "delta": "明日の会議は午後"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_MO2Q4rgLGKqE6H5fEICPk",
+  "content_index": 0,
+  "delta": "三時に始まります "
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_Ky2gvk3Lqdj6XLFlSvAC3",
+  "item_id": "item_MGMIf8IWpDt1MmNcAJfN3",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "Tomorrow's meeting will"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_Ky2gvk3Lqdj6XLFlSvAC3",
+  "item_id": "item_MGMIf8IWpDt1MmNcAJfN3",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " start at 3:"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_Ky2gvk3Lqdj6XLFlSvAC3",
+  "item_id": "item_MGMIf8IWpDt1MmNcAJfN3",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "00 p"
+ },
+ {
+  "type": "response.audio_transcript.delta",
+  "response_id": "resp_Ky2gvk3Lqdj6XLFlSvAC3",
+  "item_id": "item_MGMIf8IWpDt1MmNcAJfN3",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": ".m. "
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_MGMIf8IWpDt1MmNcAJfN3",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_MGMIf8IWpDt1MmNcAJfN3",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_MGMIf8IWpDt1MmNcAJfN3",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_MGMIf8IWpDt1MmNcAJfN3",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_MGMIf8IWpDt1MmNcAJfN3",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_MGMIf8IWpDt1MmNcAJfN3",
+  "samples": 7680
+ },
+ {
+  "type": "response.audio.delta",
+  "item_id": "item_MGMIf8IWpDt1MmNcAJfN3",
+  "samples": 7680
+ },
+ {
+  "type": "input_audio_buffer.speech_stopped",
+  "audio_end_ms": 27520,
+  "item_id": "item_MO2Q4rgLGKqE6H5fEICPk"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.completed",
+  "item_id": "item_MO2Q4rgLGKqE6H5fEICPk",
+  "content_index": 0,
+  "transcript": "明日の会議は午後三時に始まります "
+ },
+ {
+  "type": "response.audio_transcript.done",
+  "response_id": "resp_Ky2gvk3Lqdj6XLFlSvAC3",
+  "item_id": "item_MGMIf8IWpDt1MmNcAJfN3",
+  "output_index": 0,
+  "content_index": 0,
+  "transcript": "Tomorrow's meeting will start at 3:00 p.m. "
+ },
+ {
+  "type": "response.audio.done",
+  "response_id": "resp_Ky2gvk3Lqdj6XLFlSvAC3",
+  "item_id": "item_MGMIf8IWpDt1MmNcAJfN3",
+  "output_index": 0,
+  "content_index": 0
+ },
+ {
+  "type": "response.content_part.done",
+  "response_id": "resp_Ky2gvk3Lqdj6XLFlSvAC3",
+  "item_id": "item_MGMIf8IWpDt1MmNcAJfN3",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "text": "Tomorrow's meeting will start at 3:00 p.m. "
+  }
+ },
+ {
+  "type": "response.output_item.done",
+  "response_id": "resp_Ky2gvk3Lqdj6XLFlSvAC3",
+  "output_index": 0,
+  "item": {
+   "id": "item_MGMIf8IWpDt1MmNcAJfN3",
+   "object": "realtime.item",
+   "type": "message",
+   "status": "completed",
+   "role": "assistant",
+   "content": [
+    {
+     "type": "audio",
+     "text": "Tomorrow's meeting will start at 3:00 p.m. "
+    }
+   ]
+  }
+ },
+ {
+  "type": "response.done",
+  "response": {
+   "id": "resp_Ky2gvk3Lqdj6XLFlSvAC3",
+   "object": "realtime.response",
+   "conversation_id": "conv_UkSbWcYJes879IqOAKOCI",
+   "status": "completed",
+   "modalities": [
+    "text",
+    "audio"
+   ],
+   "output": [
+    {
+     "id": "item_MGMIf8IWpDt1MmNcAJfN3",
+     "object": "realtime.item",
+     "type": "message",
+     "status": "completed",
+     "role": "assistant",
+     "content": [
+      {
+       "type": "audio",
+       "transcript": "Tomorrow's meeting will start at 3:00 p.m. "
+      }
+     ]
+    }
+   ],
+   "usage": {
+    "total_tokens": 581,
+    "input_tokens": 292,
+    "output_tokens": 289,
+    "input_tokens_details": {
+     "text_tokens": 47,
+     "audio_tokens": 245
+    },
+    "output_tokens_details": {
+     "text_tokens": 85,
+     "audio_tokens": 204
+    }
+   }
+  }
+ },
+ {
+  "type": "session.finished"
+ }
+]

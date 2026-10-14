@@ -517,6 +517,21 @@
       "voiceSummaryCloneMine": "自分の声（複製）",
       "voiceSummaryCloneTheirs": "相手自身の声（複製）"
     },
+    "qwen_livetranslate": {
+      "name": "Qwen LiveTranslate",
+      "description": "Qwen3.8 同時通訳、60 言語（音声は 29 言語）",
+      "voiceClone": "話者の声を複製",
+      "voiceCloneOnce": "最初の話者の声を複製",
+      "voiceGroupClone": "声の複製",
+      "voiceSummaryCloneMine": "自分の声（複製）",
+      "voiceSummaryCloneTheirs": "相手自身の声（複製）",
+      "storefrontIntl": "QwenCloud（国際版）のキー",
+      "storefrontCn": "千问云（中国本土版）のキー",
+      "vocabulary": "カスタム語彙",
+      "vocabularyTranslations": "優先する訳語",
+      "vocabularyTranslationsTooltip": "特定の用語の訳し方に影響を与えます——これは優先指定であり、置き換えを保証するものではありません。定着した訳語がある固有名詞には特に効果的ですが、一般的な単語ではモデル自身の訳し方がそのまま使われることもあります。エントリには方向があります。逆方向は「両方」モードにのみ存在し、そこで逆方向の行を追加できます。",
+      "vocabularyTranslationsPlaceholder": "1 行に 1 つ、「原語=訳語」の形式で入力"
+    },
     "local_inference": {
       "name": "無料",
       "description": "無料音声認識（ASR）+ 翻訳 + 音声合成（TTS）",

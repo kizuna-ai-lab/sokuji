@@ -1,0 +1,474 @@
+/**
+ * Qwen LiveTranslate's adapter: the conformance suite and the seeded
+ * lifecycles, the start over the header seam and its refusals in words, the
+ * storefront fallback, the audio going up, push-to-talk, the events to
+ * segments and frames, the ends, stop. On the header seam's fake,
+ * `FakeSocket`s and a virtual clock — no network, no fake timers.
+ */
+import { describe, it, expect } from 'vitest';
+import { AdapterStartError } from '../../lib/contract/adapter';
+import type { AdapterEvent } from '../../lib/contract/events';
+import { HeaderSocketError } from '../../lib/contract/headerSocket';
+import { flush, type ScenarioStep } from '../../lib/contract/testing/drive';
+import { FakeSocket } from '../../lib/contract/testing/fakeSocket';
+import { fakeHeaderSockets } from '../../lib/contract/testing/headerSocket';
+import { runLifecycles, type LifecycleHarness } from '../../lib/contract/testing/lifecycle';
+import { runScenario, scenarioNames, type AdapterHarness } from '../../lib/contract/testing/scenarios';
+import { recordEvents } from '../../lib/contract/events';
+import { trackedClock } from '../../lib/contract/testing/trackedClock';
+import { CONNECTION_LOST, createQwenAdapter, ERROR_WORDS_MS, NEVER_OPENED, START_TIMEOUT_MS, TURN_DONE_MS } from './adapter';
+import type { DetectEndpoint } from './check';
+import type { QwenConfig } from './config';
+import type { QwenCredentials } from './settings';
+import { AUTO_CTX, configFor, KEY, MANUAL_CTX, openQwen, PARTICIPANT_CTX, qwenSession, SERVER, SHARED, startQwen, TEXT_CTX, turn } from './testing';
+import { sessionUpdate } from './wire';
+
+/** What no event, failure or refusal may carry: the key, and the header it rides in. */
+const SECRETS = [KEY.apiKey, 'Bearer'];
+const noSecret = (value: unknown) => {
+  const text = JSON.stringify(value, (_k, v: unknown) => (v instanceof Int16Array ? `pcm(${v.length})` : v instanceof Error ? v.message : v));
+  for (const secret of SECRETS) expect(text).not.toContain(secret);
+};
+const chunk = (fill = 1_000) => new Int16Array(2_048).fill(fill);
+/** What a socket has sent so far, by type, in order. */
+const types = (s: FakeSocket) => s.sentJson<{ type: string }>().map((m) => m.type);
+/** Content events as `[kind, payload]`, audio by its ref. */
+const content = (log: readonly AdapterEvent[]) =>
+  log.filter((e) => e.kind !== 'frame').map((e) => (e.kind === 'audio' ? ['audio', { ref: e.payload.ref, samples: e.payload.pcm.length }] : [e.kind, e.payload]));
+const intl: DetectEndpoint = async () => ({ endpoint: 'intl' });
+
+function harness(): AdapterHarness<QwenConfig, QwenCredentials> {
+  let seam = fakeHeaderSockets();
+  const last = () => seam.sockets.last();
+  const reply = (frame: string): ScenarioStep => ({ run: () => last().receive(frame) });
+  return {
+    adapter: createQwenAdapter({ openHeaderSocket: (url, headers, o) => seam.open(url, headers, o), detect: intl }),
+    config: (context) => { seam = fakeHeaderSockets(); return configFor(context); },
+    credentials: KEY,
+    // The registration answers first; the socket exists only then.
+    opening: () => [{ flush: true }, { run: () => last().open() }, { flush: true }, reply(SERVER.created()), reply(SERVER.updated()), { flush: true }],
+    exchange: turn(1, { source: '你好', translation: 'Hello.' }).map(reply),
+    serverClose: [{ run: () => last().serverClose(1011, 'Internal error') }, { flush: true }],
+    refuse: [{ flush: true }, { run: () => last().drop() }, { flush: true }],
+  };
+}
+
+describe('the Qwen LiveTranslate adapter: conformance', () => {
+  const h = harness();
+
+  it('runs every scenario but typed text and reconnecting, which it has neither of (D8)', () => {
+    expect(scenarioNames(h)).toEqual(['open-stop', 'speech-off', 'abort-while-opening', 'refused-while-opening', 'manual-end', 'manual-cancel', 'server-close']);
+  });
+
+  it.each(scenarioNames(h))('%s', async (name) => {
+    const report = await runScenario(h, name);
+    expect(report.violations).toEqual([]);
+    expect(report.problems).toEqual([]);
+  });
+});
+
+describe('the Qwen LiveTranslate adapter: the seeded lifecycles', () => {
+  const lifecycles: LifecycleHarness<QwenConfig, QwenCredentials> = {
+    adapter: (run) => createQwenAdapter({ openHeaderSocket: fakeHeaderSockets(run.sockets).open, detect: intl }),
+    config: (context) => configFor(context),
+    credentials: KEY,
+    secrets: SECRETS,
+    textInput: false,
+    startBoundMs: START_TIMEOUT_MS,
+    opening: async (run) => {
+      // The registration answers first: the socket exists only after it.
+      await flush();
+      const socket = run.sockets.all[run.sockets.all.length - 1];
+      if (!socket) return;
+      const r = run.rand();
+      if (r < 0.04) { run.count('harness.drop'); return socket.drop(); }
+      if (r < 0.07) { run.count('harness.silent'); return; }
+      socket.open();
+      await flush();
+      if (r < 0.1) { run.count('harness.refused'); socket.receive(SERVER.created()); return socket.receive(SERVER.error()); }
+      if (r < 0.13) { run.count('harness.close_1007'); return socket.serverClose(1007, 'Invalid translation parameter.'); }
+      // Opened, and no answer yet: the kit may abort mid-handshake, else the start's bound runs out.
+      if (r < 0.28) { run.count('harness.unanswered'); return; }
+      socket.receive(SERVER.created());
+      if (r < 0.33) { run.count('harness.created_only'); return; }
+      socket.receive(SERVER.updated());
+    },
+    server: async (run) => {
+      const socket = run.sockets.all[run.sockets.all.length - 1];
+      if (!socket || socket.readyState !== FakeSocket.OPEN) return;
+      const r = run.rand();
+      const n = Math.floor(run.rand() * 4);
+      const heard = `item_h${n}`;
+      const answer = `item_t${n}`;
+      if (r < 0.1) socket.receive(SERVER.speechStarted(heard, 1 + (n % 2)));
+      else if (r < 0.18) socket.receive(SERVER.heardItem(heard));
+      else if (r < 0.26) socket.receive(SERVER.answerItem(answer, heard));
+      else if (r < 0.3) socket.receive(SERVER.outputItem(answer));
+      else if (r < 0.4) socket.receive(SERVER.sourceDelta(heard, run.pick(['你好', '，', '老板'])));
+      else if (r < 0.45) socket.receive(SERVER.sourceDone(heard, run.pick(['你好', ''])));
+      else if (r < 0.55) socket.receive(run.pick([SERVER.transcriptDelta(answer, 'Hello'), SERVER.textDelta(answer, ' there.')]));
+      else if (r < 0.6) socket.receive(run.pick([SERVER.transcriptDone(answer, 'Hello there.'), SERVER.textDone(answer, '')]));
+      else if (r < 0.68) socket.receive(SERVER.audio(answer));
+      else if (r < 0.71) socket.receive(SERVER.error(run.pick(['COMMON_ERROR', 'Throttling']), run.pick(["<400> InternalError.Algo.InvalidParameter: Voice 'X' is not supported.", 'Requests rate limit exceeded.'])));
+      else if (r < 0.73) socket.receive('not json');
+      else if (r < 0.75) socket.receive(JSON.stringify({ type: 'response.audio.delta', item_id: answer, delta: 7 }));
+      else if (r < 0.79) socket.receive(run.pick([SERVER.responseDone(), SERVER.bare('input_audio_buffer.committed'), SERVER.bare('input_audio_buffer.cleared'), SERVER.bare('session.finished'), SERVER.bare('something.new')]));
+      else if (r < 0.84) socket.serverClose(run.pick([1000, 1007, 1011]), run.pick(['', 'Internal error', "Voice 'X' is not supported."]));
+      else run.clock.advance(run.pick([200, 2_500, ERROR_WORDS_MS + 1_000]));
+    },
+  };
+
+  // 300 lives, about a second alone: the bound is for a loaded machine.
+  it('every life settles, ends clean, and leaves no timer, socket or send behind', async () => {
+    const report = await runLifecycles(lifecycles, { seed: 20261013, runs: 300 });
+    expect(report.failures).toEqual([]);
+    // If one key stays at 0 with this seed, raise its draw's share rather than dropping the key.
+    for (const key of [
+      'refused', 'live', 'stopped', 'end.failed.connection_lost', 'end.failed.client', 'end.failed.server', 'opening.bound', 'opening.abort',
+      'harness.drop', 'harness.silent', 'harness.refused', 'harness.close_1007', 'harness.unanswered', 'harness.created_only',
+    ]) expect(report.stats[key] ?? 0, key).toBeGreaterThan(0);
+  }, 20_000);
+});
+
+describe('the Qwen LiveTranslate adapter: the start (spec §6)', () => {
+  it('registers a Bearer rule on the storefront the check found, then dials the model URL, framing header names alone', async () => {
+    const h = startQwen();
+    expect(h.seam.sockets.all).toEqual([]);
+    await flush();
+    expect(h.seam.registrations).toEqual([{ host: 'maas.qwencloudapi.com', path: '/api-ws/v1/', set: { Authorization: `Bearer ${KEY.apiKey}` }, remove: [], cleared: false }]);
+    expect(h.socket().url).toBe('wss://maas.qwencloudapi.com/api-ws/v1/realtime?model=qwen3.8-livetranslate-flash-realtime');
+    expect(h.frames('session.headers')).toEqual([{ endpoint: 'intl', host: 'maas.qwencloudapi.com', path: '/api-ws/v1/', set: ['Authorization'] }]);
+    expect(h.detected).toEqual([]);
+    noSecret(h.log);
+  });
+
+  it('dials 千问云 for a mainland key', async () => {
+    const h = startQwen({ shared: { ...SHARED, models: [{ id: 'cn' }] } });
+    await flush();
+    expect(h.socket().url).toBe('wss://maas.qianwenaiapi.com/api-ws/v1/realtime?model=qwen3.8-livetranslate-flash-realtime');
+  });
+
+  it('sends nothing until session.created, then its one update; resolves on session.updated with nothing but frames and no timer', async () => {
+    const h = await openQwen();
+    expect(h.sent()).toEqual([]);
+    h.socket().receive(SERVER.created());
+    expect(h.sent()).toEqual([sessionUpdate(h.config)]);
+    let resolved = false;
+    void h.starting.then(() => { resolved = true; });
+    await flush();
+    expect(resolved).toBe(false);
+    h.socket().receive(SERVER.updated());
+    const session = await h.starting;
+    expect(session.info).toEqual({ transport: 'websocket' });
+    expect(h.frames('session.update')).toEqual([sessionUpdate(h.config).session]);
+    expect(h.content()).toEqual([]);
+    expect(h.timers()).toBe(0);
+  });
+
+  it("refuses in Qwen's words an error before the update is confirmed, closing the socket", async () => {
+    const h = await openQwen();
+    h.socket().receive(SERVER.created());
+    h.socket().receive(SERVER.error('invalid_value', 'Invalid translation parameter.'));
+    await expect(h.starting).rejects.toEqual(new AdapterStartError('[Qwen invalid_value] Invalid translation parameter.', 'client'));
+    expect(h.socket().closedByClient).toEqual({ code: 1000, reason: undefined });
+    expect(h.content()).toEqual([]);
+    expect(h.timers()).toBe(0);
+  });
+
+  it('a close before the update is confirmed refuses the start, in the words the close gave', async () => {
+    const h = await openQwen();
+    h.socket().receive(SERVER.created());
+    h.socket().serverClose(1007, 'Invalid translation parameter.');
+    await expect(h.starting).rejects.toEqual(new AdapterStartError('Qwen closed the connection before the session started (1007 Invalid translation parameter.).', 'client'));
+  });
+
+  it(`no answer within ${START_TIMEOUT_MS / 1000} s refuses — the server's fault once the socket opened — and closes the socket`, async () => {
+    const h = await openQwen();
+    h.clock.advance(START_TIMEOUT_MS);
+    await expect(h.starting).rejects.toEqual(new AdapterStartError(`Qwen did not start the session within ${START_TIMEOUT_MS / 1000} s.`, 'server'));
+    expect(h.socket().closedByClient).toEqual({ code: 1000, reason: undefined });
+    expect(h.timers()).toBe(0);
+  });
+
+  it('a socket that fails before it opens reads as the network, the rule cleared', async () => {
+    const h = startQwen();
+    await flush();
+    h.socket().drop();
+    await expect(h.starting).rejects.toMatchObject({ code: 'network', message: NEVER_OPENED });
+    expect(h.seam.registrations[0].cleared).toBe(true);
+    expect(h.content()).toEqual([]);
+    expect(h.timers()).toBe(0);
+  });
+
+  it('a build that cannot set headers — the web — refuses in fixed words', async () => {
+    const { clock } = trackedClock();
+    const { events } = recordEvents();
+    const unsupported = () => Promise.reject(new HeaderSocketError('unsupported', 'no platform'));
+    const starting = createQwenAdapter({ openHeaderSocket: unsupported, detect: intl }).start({ context: AUTO_CTX, config: configFor(), credentials: KEY, clock, signal: new AbortController().signal }, events);
+    await expect(starting).rejects.toEqual(new AdapterStartError('Qwen LiveTranslate needs the desktop app or the browser extension.', 'client'));
+  });
+
+  it('with no storefront from a check, finds it first — with the key, the clock and the signal — and dials it', async () => {
+    let seen: Parameters<DetectEndpoint> | null = null;
+    const h = startQwen({ shared: { ...SHARED, models: [] }, detect: async (...args) => { seen = args; return { endpoint: 'cn' }; } });
+    await flush();
+    expect(seen).not.toBeNull();
+    const [apiKey, o] = seen as unknown as Parameters<DetectEndpoint>;
+    expect(apiKey).toBe(KEY.apiKey);
+    expect(o.signal).toBe(h.controller.signal);
+    expect(o.clock).toBe(h.clock);
+    expect(h.frames('session.detected')).toEqual([{ endpoint: 'cn' }]);
+    expect(h.socket().url).toBe('wss://maas.qianwenaiapi.com/api-ws/v1/realtime?model=qwen3.8-livetranslate-flash-realtime');
+    noSecret(h.log);
+  });
+
+  it("a key neither storefront takes refuses the start in the check's words; a check that cannot tell refuses as the network", async () => {
+    const refused = startQwen({ shared: { ...SHARED, models: [] }, detect: async () => ({ refused: 'Neither QwenCloud nor 千问云 accepted this key (HTTP 401).', code: 'auth' }) });
+    await expect(refused.starting).rejects.toEqual(new AdapterStartError('Neither QwenCloud nor 千问云 accepted this key (HTTP 401).', 'auth'));
+    expect(refused.seam.registrations).toEqual([]);
+    const offline = startQwen({ shared: { ...SHARED, models: [] }, detect: async () => { throw new TypeError('Failed to fetch'); } });
+    await expect(offline.starting).rejects.toMatchObject({ code: 'network', message: 'Qwen did not answer the key check (check the network).' });
+    expect(offline.seam.registrations).toEqual([]);
+  });
+
+  it('a stop while the storefront is still being found rejects with its reason: no rule, no socket, no timer', async () => {
+    const h = startQwen({
+      shared: { ...SHARED, models: [] },
+      detect: (_apiKey, o) => new Promise((_resolve, reject) => { o.signal?.addEventListener('abort', () => reject(o.signal?.reason)); }),
+    });
+    await flush();
+    h.controller.abort(new Error('stopped'));
+    await expect(h.starting).rejects.toThrow('stopped');
+    await flush();
+    expect(h.seam.registrations).toEqual([]);
+    expect(h.seam.sockets.all).toEqual([]);
+    expect(h.timers()).toBe(0);
+  });
+
+  it('a found storefront that lands after a stop opens nothing', async () => {
+    let land!: () => void;
+    const h = startQwen({ shared: { ...SHARED, models: [] }, detect: () => new Promise((resolve) => { land = () => resolve({ endpoint: 'intl' }); }) });
+    await flush();
+    h.controller.abort(new Error('stopped'));
+    land();
+    await expect(h.starting).rejects.toThrow('stopped');
+    await flush();
+    expect(h.seam.registrations).toEqual([]);
+    expect(h.seam.sockets.all).toEqual([]);
+  });
+});
+
+describe('the Qwen LiveTranslate adapter: the session (spec §6)', () => {
+  it('sends audio up as it came, with no frame per chunk', async () => {
+    const h = await qwenSession();
+    const before = h.of('frame').length;
+    h.session.appendAudio(chunk(1_000));
+    h.session.appendAudio(chunk(-3));
+    expect(h.appended().map((p) => p[0])).toEqual([1_000, -3]);
+    expect(h.of('frame').length).toBe(before);
+  });
+
+  it("turns one recorded turn into a source and its translation, stating their origin, the speech on the translation, its range once the speech is done; no person on my leg", async () => {
+    const h = await qwenSession();
+    for (const frame of turn(1, { source: '你好 ', translation: 'Hello. ' })) h.socket().receive(frame);
+    expect(content(h.log)).toEqual([
+      ['segmentOpened', { ref: 1, side: 'source', origin: 'item_h1' }],
+      ['segmentText', { ref: 1, text: '你好' }],
+      ['segmentOpened', { ref: 2, side: 'translation', origin: 'item_h1' }],
+      ['segmentText', { ref: 2, text: 'Hello.' }],
+      ['audio', { ref: 2, samples: 2_400 }],
+      ['segmentClosed', { ref: 1 }],
+      ['segmentClosed', { ref: 2 }],
+      ['speechRanges', { ref: 2, ranges: [{ index: 0, range: [0, 6] }] }],
+    ]);
+    expect(h.frames('response.done')).toEqual([{ status: 'completed', usage: { total_tokens: 197, input_tokens: 96, output_tokens: 101 } }]);
+  });
+
+  it('labels both sides with the speaker on the participant leg (D7)', async () => {
+    const h = await qwenSession({ context: PARTICIPANT_CTX });
+    for (const frame of turn(1, { source: 'Hello', translation: '你好', speaker: 2 })) h.socket().receive(frame);
+    const persons = h.content().filter((e) => e.kind === 'segmentOpened').map((e) => (e.payload as { person?: string }).person);
+    expect(persons).toEqual(['2', '2']);
+  });
+
+  it('a leg that does not speak takes the text events and plays nothing', async () => {
+    const h = await qwenSession({ context: TEXT_CTX });
+    for (const frame of turn(1, { source: '你好', translation: 'Hello.', text: true })) h.socket().receive(frame);
+    h.socket().receive(SERVER.audio('item_t1'));
+    expect(h.of('audio')).toEqual([]);
+    expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['你好', 'Hello.']);
+  });
+
+  it('push-to-talk: a release commits, and so does a cancel, never a clear — a short word the voice gate calls a cancel still shows (live test 2026-10-14: 对不对); automatic turns send neither', async () => {
+    const h = await qwenSession({ context: MANUAL_CTX });
+    h.session.beginTurn();
+    h.session.appendAudio(chunk());
+    h.session.endTurn();
+    expect(types(h.socket()).slice(-1)).toEqual(['input_audio_buffer.commit']);
+    h.socket().receive(SERVER.responseDone());
+    h.session.beginTurn();
+    h.session.appendAudio(chunk());
+    h.session.cancelTurn();
+    expect(types(h.socket()).slice(-1)).toEqual(['input_audio_buffer.commit']);
+    h.socket().receive(SERVER.heardItem('item_h2'));
+    h.socket().receive(SERVER.answerItem('item_t2', 'item_h2'));
+    h.socket().receive(SERVER.bare('input_audio_buffer.committed'));
+    h.socket().receive(SERVER.sourceDone('item_h2', '对不对'));
+    h.socket().receive(SERVER.transcriptDone('item_t2', 'そうですよね？'));
+    h.socket().receive(SERVER.audio('item_t2'));
+    h.socket().receive(SERVER.audioDone('item_t2'));
+    h.socket().receive(SERVER.responseDone());
+    expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['对不对', 'そうですよね？']);
+    expect(h.of('audio')).toHaveLength(1);
+    expect(types(h.socket())).not.toContain('input_audio_buffer.clear');
+
+    const auto = await qwenSession();
+    auto.session.endTurn();
+    auto.session.cancelTurn();
+    expect(types(auto.socket())).toEqual(['session.update']);
+  });
+
+  it('push-to-talk: a press while the turn before is still being finished is held, and goes up once its response is done, its release after it', async () => {
+    const h = await qwenSession({ context: MANUAL_CTX });
+    h.session.beginTurn();
+    h.session.appendAudio(chunk(1));
+    h.session.endTurn();
+    // Pressed again at once: the server would refuse this audio (probe 2026-10-14).
+    h.session.beginTurn();
+    h.session.appendAudio(chunk(2));
+    h.session.appendAudio(chunk(3));
+    h.session.endTurn();
+    expect(types(h.socket()).slice(1)).toEqual(['input_audio_buffer.append', 'input_audio_buffer.commit']);
+    h.socket().receive(SERVER.responseDone());
+    expect(types(h.socket()).slice(1)).toEqual([
+      'input_audio_buffer.append', 'input_audio_buffer.commit',
+      'input_audio_buffer.append', 'input_audio_buffer.append', 'input_audio_buffer.commit',
+    ]);
+    expect(h.appended().map((pcm) => pcm[0])).toEqual([1, 2, 3]);
+    // A press during the held one's own turn waits again; once that is done, audio goes up as it comes.
+    h.session.beginTurn();
+    h.session.appendAudio(chunk(4));
+    expect(h.appended()).toHaveLength(3);
+    h.socket().receive(SERVER.responseDone());
+    h.session.appendAudio(chunk(5));
+    expect(h.appended().map((pcm) => pcm[0])).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it('push-to-talk: a cancel of a press held behind the turn ahead is a release too: the press goes up once that turn is done, its commit after it, and the turn ahead still lands whole', async () => {
+    const h = await qwenSession({ context: MANUAL_CTX });
+    h.socket().receive(SERVER.heardItem('item_h1'));
+    h.socket().receive(SERVER.sourceDelta('item_h1', 'first'));
+    h.session.beginTurn();
+    h.session.appendAudio(chunk(1));
+    h.session.endTurn();
+    h.session.beginTurn();
+    h.session.appendAudio(chunk(2));
+    h.session.cancelTurn();
+    h.socket().receive(SERVER.answerItem('item_t1', 'item_h1'));
+    h.socket().receive(SERVER.transcriptDone('item_t1', 'First.'));
+    expect(types(h.socket()).slice(1)).toEqual(['input_audio_buffer.append', 'input_audio_buffer.commit']);
+    h.socket().receive(SERVER.responseDone());
+    expect(types(h.socket()).slice(1)).toEqual([
+      'input_audio_buffer.append', 'input_audio_buffer.commit', 'input_audio_buffer.append', 'input_audio_buffer.commit',
+    ]);
+    expect(h.appended().map((pcm) => pcm[0])).toEqual([1, 2]);
+    expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['first', 'First.']);
+  });
+
+  it('push-to-talk: no commit for a release or a cancel with nothing appended since the last commit — the server would refuse every later append', async () => {
+    const h = await qwenSession({ context: MANUAL_CTX });
+    h.session.beginTurn();
+    h.session.endTurn();
+    h.session.beginTurn();
+    h.session.cancelTurn();
+    expect(types(h.socket())).toEqual(['session.update']);
+  });
+
+  it(`push-to-talk: a turn whose response never ends is let go after ${TURN_DONE_MS / 1000} s, and the held press goes up; stop leaves no timer`, async () => {
+    const h = await qwenSession({ context: MANUAL_CTX });
+    h.session.beginTurn();
+    h.session.appendAudio(chunk(1));
+    h.session.endTurn();
+    h.session.beginTurn();
+    h.session.appendAudio(chunk(2));
+    h.clock.advance(TURN_DONE_MS - 1);
+    expect(h.appended()).toHaveLength(1);
+    h.clock.advance(1);
+    expect(h.appended().map((pcm) => pcm[0])).toEqual([1, 2]);
+    expect(h.frames('session.turn_timeout')).toHaveLength(1);
+    h.session.endTurn();
+    await h.session.stop();
+    expect(h.timers()).toBe(0);
+  });
+
+  it('push-to-talk: a heard item its content does not mark is told by what it follows — nothing, or the last translation — so its words still show', async () => {
+    const h = await qwenSession({ context: MANUAL_CTX });
+    // No speech start under push-to-talk, and no recording confirms the heard item's content entry: here it has none.
+    const item = (id: string, previous?: string) => JSON.stringify({ type: 'conversation.item.created', ...(previous ? { previous_item_id: previous } : {}), item: { id, type: 'message', role: 'assistant', content: [] } });
+    h.socket().receive(item('item_h1'));
+    h.socket().receive(SERVER.sourceDelta('item_h1', 'first'));
+    h.socket().receive(SERVER.answerItem('item_t1', 'item_h1'));
+    h.socket().receive(SERVER.transcriptDelta('item_t1', 'First.'));
+    h.socket().receive(item('item_h2', 'item_t1'));
+    h.socket().receive(SERVER.sourceDelta('item_h2', 'second'));
+    h.socket().receive(SERVER.answerItem('item_t2', 'item_h2'));
+    h.socket().receive(SERVER.transcriptDelta('item_t2', 'Second.'));
+    expect(h.of('segmentOpened').map((e) => [e.payload.side, e.payload.origin])).toEqual([
+      ['source', 'item_h1'], ['translation', 'item_h1'], ['source', 'item_h2'], ['translation', 'item_h2'],
+    ]);
+    expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['first', 'First.', 'second', 'Second.']);
+  });
+
+  it("a mid-session error words the close that follows it, once; the leg fails and says nothing after", async () => {
+    const h = await qwenSession();
+    h.socket().receive(SERVER.error('COMMON_ERROR', "<400> InternalError.Algo.InvalidParameter: Voice 'X' is not supported."));
+    expect(h.of('failed')).toEqual([]);
+    h.socket().serverClose(1007, "<400> InternalError.Algo.InvalidParameter: Voice 'X' is not supported.");
+    await flush();
+    expect(h.of('failed').map((e) => e.payload)).toEqual([{ code: 'client', message: "[Qwen COMMON_ERROR] <400> InternalError.Algo.InvalidParameter: Voice 'X' is not supported." }]);
+    expect(h.timers()).toBe(0);
+    noSecret(h.log);
+  });
+
+  it('a close with words and no error fails in its words; a close with none is the lost connection (D8); an old error words neither', async () => {
+    const worded = await qwenSession();
+    worded.socket().serverClose(1011, 'Internal error');
+    await flush();
+    expect(worded.of('failed').map((e) => e.payload)).toEqual([{ code: 'server', message: '[Qwen] Internal error' }]);
+
+    const bare = await qwenSession();
+    bare.socket().serverClose(1000);
+    await flush();
+    expect(bare.of('failed').map((e) => e.payload)).toEqual([{ code: 'connection_lost', message: CONNECTION_LOST }]);
+
+    const stale = await qwenSession();
+    stale.socket().receive(SERVER.error('Throttling', 'Requests rate limit exceeded.'));
+    stale.clock.advance(ERROR_WORDS_MS + 1);
+    stale.socket().serverClose(1000);
+    await flush();
+    expect(stale.of('failed').map((e) => e.payload)).toEqual([{ code: 'connection_lost', message: CONNECTION_LOST }]);
+  });
+
+  it('a frame that will not read is degraded once until one reads again; an audio delta with no base64 is its own episode', async () => {
+    const h = await qwenSession();
+    h.socket().receive('not json');
+    h.socket().receive('still not json');
+    h.socket().receive(SERVER.bare('response.created'));
+    h.socket().receive('not json again');
+    h.socket().receive(JSON.stringify({ type: 'response.audio.delta', item_id: 'item_t1', delta: 7 }));
+    expect(h.of('degraded').map((e) => e.payload.code)).toEqual(['parse_error', 'parse_error', 'parse_error']);
+    expect(h.of('failed')).toEqual([]);
+  });
+
+  it('stop sends session.finish and closes before it awaits anything; nothing follows, and a second stop is harmless', async () => {
+    const h = await qwenSession();
+    const stopping = h.session.stop();
+    expect(types(h.socket())).toEqual(['session.update', 'session.finish']);
+    expect(h.socket().closedByClient).toEqual({ code: 1000, reason: undefined });
+    await stopping;
+    await h.session.stop();
+    expect(types(h.socket())).toEqual(['session.update', 'session.finish']);
+    expect(h.content()).toEqual([]);
+    expect(h.timers()).toBe(0);
+  });
+});

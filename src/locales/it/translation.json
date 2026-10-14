@@ -517,6 +517,21 @@
       "voiceSummaryCloneMine": "La tua voce (clonata)",
       "voiceSummaryCloneTheirs": "La voce dell'altro (clonata)"
     },
+    "qwen_livetranslate": {
+      "name": "Qwen LiveTranslate",
+      "description": "Interpretariato simultaneo Qwen3.8, 60 lingue (29 parlate)",
+      "voiceClone": "Clona la voce di chi parla",
+      "voiceCloneOnce": "Clona la voce di chi parla per primo",
+      "voiceGroupClone": "Clonazione della voce",
+      "voiceSummaryCloneMine": "La tua voce (clonata)",
+      "voiceSummaryCloneTheirs": "La voce dell'altro (clonata)",
+      "storefrontIntl": "Chiave di QwenCloud (internazionale)",
+      "storefrontCn": "Chiave di 千问云 (Cina continentale)",
+      "vocabulary": "Vocabolario personalizzato",
+      "vocabularyTranslations": "Traduzioni preferite",
+      "vocabularyTranslationsTooltip": "Influenza il modo in cui vengono tradotti termini specifici — è una preferenza, non una sostituzione garantita: i nomi con una traduzione consolidata funzionano meglio, mentre le parole comuni possono mantenere la formulazione del modello. Le voci sono direzionali; la direzione inversa esiste solo in modalità Entrambi, dove puoi aggiungere una riga inversa.",
+      "vocabularyTranslationsPlaceholder": "Una voce origine=destinazione per riga"
+    },
     "local_inference": {
       "name": "Gratuito",
       "description": "Riconoscimento vocale gratuito (ASR) + Traduzione + Sintesi vocale (TTS)",

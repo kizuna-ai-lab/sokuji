@@ -517,6 +517,21 @@
       "voiceSummaryCloneMine": "הקול שלך (משוכפל)",
       "voiceSummaryCloneTheirs": "הקול של הצד השני עצמו (משוכפל)"
     },
+    "qwen_livetranslate": {
+      "name": "Qwen LiveTranslate",
+      "description": "תרגום סימולטני Qwen3.8, 60 שפות (29 בקול)",
+      "voiceClone": "שכפול קול הדובר",
+      "voiceCloneOnce": "שכפול קול הדובר הראשון",
+      "voiceGroupClone": "שכפול קול",
+      "voiceSummaryCloneMine": "הקול שלך (משוכפל)",
+      "voiceSummaryCloneTheirs": "הקול של הצד השני עצמו (משוכפל)",
+      "storefrontIntl": "מפתח מ-QwenCloud (בינלאומי)",
+      "storefrontCn": "מפתח מ-千问云 (סין היבשתית)",
+      "vocabulary": "אוצר מילים מותאם אישית",
+      "vocabularyTranslations": "תרגומים מועדפים",
+      "vocabularyTranslationsTooltip": "משפיע על אופן תרגומם של מונחים מסוימים — זו העדפה, לא החלפה מובטחת: שמות בעלי תרגום מקובל עובדים הכי טוב, ואילו מילים נפוצות עשויות לשמור על הניסוח של המודל עצמו. הערכים הם כיווניים; הכיוון ההפוך קיים רק במצב שניהם, שבו ניתן להוסיף שורה הפוכה.",
+      "vocabularyTranslationsPlaceholder": "ערך אחד בכל שורה בפורמט מקור=יעד"
+    },
     "local_inference": {
       "name": "חינמי",
       "description": "זיהוי דיבור חינמי (ASR) + תרגום + סינתזת דיבור (TTS)",

@@ -7,8 +7,9 @@
  * `ms` pass on `clock` with no answer — then the request throws `late`,
  * the check's own words. An already aborted caller throws its reason
  * before `run` starts. Nothing is left behind: the timer is cancelled and
- * the caller's listener removed however `run` settles. The settings side
- * only; no session code runs it.
+ * the caller's listener removed however `run` settles. The settings side,
+ * and one session-side caller: Qwen LiveTranslate's adapter, finding its
+ * storefront when no check has, on the request's clock and signal.
  */
 import type { Clock } from '../contract/clock';
 

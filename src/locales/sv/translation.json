@@ -517,6 +517,21 @@
       "voiceSummaryCloneMine": "Din egen röst (klonad)",
       "voiceSummaryCloneTheirs": "Motpartens egen röst (klonad)"
     },
+    "qwen_livetranslate": {
+      "name": "Qwen LiveTranslate",
+      "description": "Qwen3.8 simultantolkning, 60 språk (29 med röst)",
+      "voiceClone": "Klona talarens röst",
+      "voiceCloneOnce": "Klona den första talarens röst",
+      "voiceGroupClone": "Röstkloning",
+      "voiceSummaryCloneMine": "Din egen röst (klonad)",
+      "voiceSummaryCloneTheirs": "Motpartens egen röst (klonad)",
+      "storefrontIntl": "Nyckel från QwenCloud (internationell)",
+      "storefrontCn": "Nyckel från 千问云 (Fastlandskina)",
+      "vocabulary": "Anpassat ordförråd",
+      "vocabularyTranslations": "Föredragna översättningar",
+      "vocabularyTranslationsTooltip": "Påverkar hur specifika termer översätts — en preferens, inte en garanterad ersättning: namn med en etablerad översättning fungerar bäst, medan vanliga ord kan behålla modellens egen formulering. Posterna är riktade; den omvända riktningen finns bara i läget Båda, där du kan lägga till en omvänd rad.",
+      "vocabularyTranslationsPlaceholder": "En post källa=mål per rad"
+    },
     "local_inference": {
       "name": "Gratis",
       "description": "Gratis taligenkänning (ASR) + Översättning + talsyntes (TTS)",

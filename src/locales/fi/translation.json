@@ -517,6 +517,21 @@
       "voiceSummaryCloneMine": "Oma äänesi (kloonattu)",
       "voiceSummaryCloneTheirs": "Toisen osapuolen oma ääni (kloonattu)"
     },
+    "qwen_livetranslate": {
+      "name": "Qwen LiveTranslate",
+      "description": "Qwen3.8-simultaanitulkkaus, 60 kieltä (29 puhuttuna)",
+      "voiceClone": "Kloonaa puhujan ääni",
+      "voiceCloneOnce": "Kloonaa ensimmäisen puhujan ääni",
+      "voiceGroupClone": "Äänen kloonaus",
+      "voiceSummaryCloneMine": "Oma äänesi (kloonattu)",
+      "voiceSummaryCloneTheirs": "Toisen osapuolen oma ääni (kloonattu)",
+      "storefrontIntl": "Avain palvelusta QwenCloud (kansainvälinen)",
+      "storefrontCn": "Avain palvelusta 千问云 (Manner-Kiina)",
+      "vocabulary": "Mukautettu sanasto",
+      "vocabularyTranslations": "Suositellut käännökset",
+      "vocabularyTranslationsTooltip": "Vaikuttaa siihen, miten tietyt termit käännetään — kyse on toiveesta, ei taatusta korvauksesta: nimet, joilla on vakiintunut käännös, toimivat parhaiten, kun taas yleiset sanat saattavat säilyä mallin omalla sanamuodolla. Merkinnät ovat suunnattuja; käänteinen suunta on käytössä vain Molemmat-tilassa, jossa voit lisätä käänteisen rivin.",
+      "vocabularyTranslationsPlaceholder": "Yksi lähde=kohde-merkintä per rivi"
+    },
     "local_inference": {
       "name": "Ilmainen",
       "description": "Ilmainen puheentunnistus (ASR) + Käännös + puhesynteesi (TTS)",
