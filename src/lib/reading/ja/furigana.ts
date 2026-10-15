@@ -1,4 +1,5 @@
 import type { RubyPiece } from '../types';
+import { applyReadingRules, type PlacedToken } from './readingRules';
 
 /** One Lindera token: its surface, IPADIC's reading (katakana) or null, and whether the dictionary knew it. */
 export interface JaToken {
@@ -37,7 +38,8 @@ function tokenPieces(surface: string, reading: string): RubyPiece[] {
  * The pieces concatenate to `text`: Lindera leaves ASCII whitespace out of its
  * tokens, so each token is found in `text` and what lies before it is kept as
  * plain text (and breaks a Han run). A token not found ends the walk, the rest
- * of `text` plain.
+ * of `text` plain. Counters and 空く are read by their neighbours first
+ * (readingRules.ts).
  */
 export function furigana(text: string, tokens: readonly JaToken[]): RubyPiece[] {
   const out: RubyPiece[] = [];
@@ -47,14 +49,15 @@ export function furigana(text: string, tokens: readonly JaToken[]): RubyPiece[] 
     if (piece.reading === undefined && last && last.reading === undefined) last.text += piece.text;
     else out.push({ ...piece });
   };
-  const placed: { gap: string; token: JaToken }[] = [];
+  const found: PlacedToken[] = [];
   let cursor = 0;
   for (const token of tokens) {
     const at = text.indexOf(token.surface, cursor);
     if (at < 0) break;
-    placed.push({ gap: text.slice(cursor, at), token });
+    found.push({ gap: text.slice(cursor, at), token });
     cursor = at + token.surface.length;
   }
+  const placed = applyReadingRules(found);
   for (let k = 0; k < placed.length;) {
     push({ text: placed[k].gap });
     if (!HAN.test(placed[k].token.surface)) {
