@@ -285,6 +285,10 @@ export interface QwenConfig {
 - There is no reconnect (D8).
 
 **Keepalive (probe 2026-10-16).** A leg sends nothing while its source is muted, or between push-to-talk presses, and Qwen closes a session idle for 300 s. The adapter looks every `KEEPALIVE_CHECK_MS` (30 s) on the request's clock; once nothing has gone up for `KEEPALIVE_IDLE_MS` (180 s, room for a hidden page's late timers) it sends 100 ms of silence, framed as `session.keepalive`. Under automatic turns that append is all, and free. Under push-to-talk it is committed at once as a turn of its own (about 7 audio tokens), only between turns, never into an open press; the turn comes back empty and shows nothing.
+
+**Server cuts (probe 2026-10-16).** Under push-to-talk the server cuts a press by itself every ~30 s of audio: `input_audio_buffer.committed`, then that turn's `response.done` about 0.13 s later, refusing any audio in between (`Previous turn is still processing`). A `committed` the leg did not send (it is not busy) is framed `session.server_cut` and makes the leg busy, as its own commit does: the press's audio is held and goes up after `response.done`, and a release meanwhile commits after it. At most a chunk already in flight at the cut is lost.
+
+**Quiet inside a press (probe 2026-10-16).** The server closes a session once about 30 s of audio since the last speech it recognised held none (`1007 no semantic result after merged audio exceeded 30s`), counting across turns; a commit does not reset it. So under push-to-talk each chunk is judged with the runner's `isVoiced`: a quiet stretch goes up for `QUIET_KEEP_MS` (2 s), then the turn is closed once (framed `session.quiet_held`) and the rest is not sent, the last `PRE_ROLL_MS` (300 ms) kept back to go up ahead of the voice that ends the stretch, as a new turn. A pause longer than 2 s inside a press therefore splits it into two turns. Loud noise that is not speech still counts as voice.
 - A frame that will not parse is `degraded('parse_error')` once per window, the existing rule.
 
 **Frames.**
@@ -393,7 +397,7 @@ export interface QwenConfig {
 
 ## Known limitations and follow-ups
 
-- **Long push-to-talk presses (probe 2026-10-16).** The server cuts a press every 30 s of audio by itself (`response.done`), refuses the audio sent while it finishes that cut (`Previous turn is still processing`), and closes the session (`1007 no semantic result after merged audio exceeded 30s`) once about 30 s of a press carried no speech, as when the key is held without talking. A follow-up can hold audio across a server cut and release a press that has gone silent.
+- **Long push-to-talk presses.** Handled in §6 (server cuts, quiet inside a press). What remains: a chunk in flight at a server cut can be lost, and about 30 s in total of loud non-speech audio between recognised utterances still closes the session.
 - **Uplink backlog.** On a network whose IPv6 route to the mainland is slow, a mainland key's stream falls behind. A follow-up can watch `WebSocket.bufferedAmount` and raise a degraded notice, or send a lower rate.
 - **Managed Qwen.** It needs Alibaba to provide per-session usage attribution (a ticket is open with QwenCloud support). It is not designed here.
 - **Later, and small:** pre-created cloned voices, face-to-face (Qwen's diarization would serve it), and reconnect.

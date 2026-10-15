@@ -70,6 +70,8 @@ export const SERVER = {
   /** The end of a translation's speech. */
   audioDone: (itemId: string) => event({ type: 'response.audio.done', response_id: 'resp_1', item_id: itemId, output_index: 0, content_index: 0 }),
   responseDone: () => event({ type: 'response.done', response: { status: 'completed', usage: { total_tokens: 197, input_tokens: 96, output_tokens: 101 } } }),
+  /** A commit's acknowledgement, or the server's own cut of a long push-to-talk press. */
+  committed: (itemId: string) => event({ type: 'input_audio_buffer.committed', item_id: itemId, previous_item_id: itemId }),
   error: (code = 'invalid_value', message = 'Invalid translation parameter.') => event({ type: 'error', error: { code, message } }),
   /** An event by its type alone. */
   bare: (type: string) => event({ type }),
