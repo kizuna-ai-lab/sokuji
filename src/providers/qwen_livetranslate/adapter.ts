@@ -8,17 +8,20 @@
  * commits the turn, and so does a cancel, and a press made before the turn
  * ahead is done waits for that turn's `response.done` (D6).
  * An error words the close that follows it, and any end the leg did not ask
- * for fails it: there is no reconnect (D8). Stop sends `session.finish` and closes at once. Every
+ * for fails it: there is no reconnect (D8). A leg with nothing to send keeps
+ * the session alive past Qwen's idle close. Stop sends `session.finish` and closes at once. Every
  * timer reads the request's clock, and nothing is said but through events
  * (CLAUDE.md, "Inside an adapter session").
  */
 import {
   AdapterStartError,
+  SAMPLE_RATE,
   type Adapter,
   type AdapterEvents,
   type AdapterSession,
   type StartRequest,
 } from '../../lib/contract/adapter';
+import { every } from '../../lib/contract/clock';
 import { framePayload } from '../../lib/contract/framePayload';
 import { HeaderSocketError, ruleFor, type OpenHeaderSocket } from '../../lib/contract/headerSocket';
 import { WS_OPEN } from '../../lib/contract/socket';
@@ -50,6 +53,17 @@ export const START_TIMEOUT_MS = 15_000;
 export const ERROR_WORDS_MS = 10_000;
 /** How long a released turn may take to end (`response.done`) before a press held behind it goes up anyway: the probes saw 0.07–0.52 s. */
 export const TURN_DONE_MS = 10_000;
+/**
+ * Qwen closes a session the client sent nothing to for 300 s (`1007 Idle
+ * timeout!`, probe 2026-10-16), and a leg sends nothing while its source is
+ * muted, or between push-to-talk presses: one quiet this long sends a
+ * keepalive. Well under 300, since a hidden page may run the look a minute late.
+ */
+export const KEEPALIVE_IDLE_MS = 180_000;
+/** How often the keepalive looks. */
+export const KEEPALIVE_CHECK_MS = 30_000;
+/** 100 ms of silence: free under automatic turns; a push-to-talk turn of it costs about 7 audio tokens. */
+const KEEPALIVE_SILENCE = new Int16Array(SAMPLE_RATE / 10);
 /** A socket that failed before it opened: a browser cannot read why. */
 export const NEVER_OPENED = "Qwen's socket did not open (check the network, and that the API key is still valid).";
 /** Why the leg fails when the connection closed with no words (D8): worded by the `connection_lost` alias. */
@@ -116,6 +130,9 @@ class QwenLeg implements AdapterSession {
   private appended = false;
   /** The `TURN_DONE_MS` fallback's cancel, while busy. */
   private cancelTurnWait: (() => void) | null = null;
+  /** When audio or a commit last went up: what the idle close counts from. */
+  private lastSentAt = 0;
+  private stopKeepalive: () => void = () => {};
 
   constructor(
     private readonly request: StartRequest<QwenConfig, QwenCredentials>,
@@ -147,6 +164,7 @@ class QwenLeg implements AdapterSession {
     }
     ws.send(appendFrame(pcm));
     this.appended = true;
+    this.lastSentAt = this.request.clock.now();
   }
 
   /** Qwen LiveTranslate takes no typed text (`textInput: () => false`). */
@@ -197,6 +215,7 @@ class QwenLeg implements AdapterSession {
     this.frame('out', COMMIT.type);
     this.appended = false;
     this.busy = true;
+    this.lastSentAt = this.request.clock.now();
     this.cancelTurnWait = this.request.clock.setTimeout(() => {
       this.cancelTurnWait = null;
       this.frame('out', 'session.turn_timeout', { afterMs: TURN_DONE_MS });
@@ -216,9 +235,36 @@ class QwenLeg implements AdapterSession {
     if (!ws || held.length === 0) return;
     for (const pcm of held) ws.send(appendFrame(pcm));
     this.appended = true;
+    this.lastSentAt = this.request.clock.now();
     this.frame('out', 'session.audio_released', { chunks: held.length });
     if (this.releaseHeld) {
       this.releaseHeld = false;
+      this.commit();
+    }
+  }
+
+  /**
+   * A look of the keepalive (probe 2026-10-16): after `KEEPALIVE_IDLE_MS`
+   * with nothing gone up, 100 ms of silence. Under push-to-talk it is a turn
+   * of its own, committed at once — an append alone is closed 60 s later —
+   * and only between turns: never into an open press, nor while one is still
+   * being finished. Its turn comes back empty and shows nothing.
+   */
+  private keepalive(): void {
+    const ws = this.live();
+    if (!ws) return;
+    const now = this.request.clock.now();
+    // A wall clock stepped back (`realClock.now()` is `Date.now()`): the wait carries on from now.
+    if (now < this.lastSentAt) this.lastSentAt = now;
+    const idleMs = now - this.lastSentAt;
+    if (idleMs < KEEPALIVE_IDLE_MS) return;
+    const manual = this.request.config.manual;
+    if (manual && (this.busy || this.appended)) return;
+    ws.send(appendFrame(KEEPALIVE_SILENCE));
+    this.frame('out', 'session.keepalive', { idleMs });
+    this.lastSentAt = now;
+    if (manual) {
+      this.appended = true;
       this.commit();
     }
   }
@@ -334,6 +380,8 @@ class QwenLeg implements AdapterSession {
       if (this.phase !== 'configuring') return;
       this.socket = ws;
       this.phase = 'live';
+      this.lastSentAt = this.request.clock.now();
+      this.stopKeepalive = every(this.request.clock, KEEPALIVE_CHECK_MS, () => this.keepalive());
       settle();
     } else if (e.type === 'error') {
       const error = errorOf(e);
@@ -491,6 +539,8 @@ class QwenLeg implements AdapterSession {
   /** Every way a leg ends: the segments silent, the socket closed and no longer heard. */
   private shutDown(): void {
     this.phase = 'ended';
+    this.stopKeepalive();
+    this.stopKeepalive = () => {};
     this.cancelTurnWait?.();
     this.cancelTurnWait = null;
     this.held = [];

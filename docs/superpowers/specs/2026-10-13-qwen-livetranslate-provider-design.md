@@ -55,7 +55,7 @@ test on 2026-10-14 (D9).
 <br>• A commit with nothing appended, or right after a `clear`, fails with "no active inference", and every later append is refused.
 <br>• A commit on a 0.3 s tap or on 0.4 s of silence ends cleanly, with empty texts and `response.done`. |
 | Events | Each turn creates two items (both role `assistant`): the heard one (id from `speech_started`, or the first `conversation.item.created`) and the translation, whose `previous_item_id` is the heard item. Source text arrives as `conversation.item.input_audio_transcription.delta` then `.completed` (`transcript`; no language or emotion field; punctuation inconsistent). Translation as `response.audio_transcript.delta` then `.done` with audio on, or `response.text.delta` then `response.text.done` without. Deltas append; nothing is revised |
-| Ending | The server never closes a socket, not 30 s after `session.finished` and not after 90 s idle. `session.finish` → `session.finished` in 0.1–0.7 s |
+| Ending | The server never closes a socket after `session.finished`, but it closes one the client sent nothing to for 300 s: `1007 Idle timeout!` (probe 2026-10-16; a session sending every 60 s lived 22 min on every host). Under manual turns an append left uncommitted is closed 60 s later (`Response stream timeout`). `session.finish` → `session.finished` in 0.1–0.7 s |
 | Billing | 7 tokens per whole second of each turn's audio window (idle silence is free); 12.5 tokens per second of output audio; a fixed 47 input text tokens per session. `response.done.usage` is the session's running total. Console `status_code` is 400 for every session that reached the model; it does not mean failure |
 | Errors | Bad key: upgrade 401 `InvalidApiKey`. Failures mid-session arrive as `error` then close 1007 or 1011 with the message as the reason |
 | Network | From the owner's machine both mainland hosts resolve to IPv6, and that route carried only about 20 KB/s against the ~43 KB/s a 16 kHz base64 stream needs; the server fell 34 s behind in 30 s. Over IPv4 the lag was 0.7–1.3 s, the same as international |
@@ -283,6 +283,8 @@ export interface QwenConfig {
 
 - An unexpected close with no reason fails with `connection_lost`.
 - There is no reconnect (D8).
+
+**Keepalive (probe 2026-10-16).** A leg sends nothing while its source is muted, or between push-to-talk presses, and Qwen closes a session idle for 300 s. The adapter looks every `KEEPALIVE_CHECK_MS` (30 s) on the request's clock; once nothing has gone up for `KEEPALIVE_IDLE_MS` (180 s, room for a hidden page's late timers) it sends 100 ms of silence, framed as `session.keepalive`. Under automatic turns that append is all, and free. Under push-to-talk it is committed at once as a turn of its own (about 7 audio tokens), only between turns, never into an open press; the turn comes back empty and shows nothing.
 - A frame that will not parse is `degraded('parse_error')` once per window, the existing rule.
 
 **Frames.**
@@ -391,6 +393,7 @@ export interface QwenConfig {
 
 ## Known limitations and follow-ups
 
+- **Long push-to-talk presses (probe 2026-10-16).** The server cuts a press every 30 s of audio by itself (`response.done`), refuses the audio sent while it finishes that cut (`Previous turn is still processing`), and closes the session (`1007 no semantic result after merged audio exceeded 30s`) once about 30 s of a press carried no speech, as when the key is held without talking. A follow-up can hold audio across a server cut and release a press that has gone silent.
 - **Uplink backlog.** On a network whose IPv6 route to the mainland is slow, a mainland key's stream falls behind. A follow-up can watch `WebSocket.bufferedAmount` and raise a degraded notice, or send a lower rate.
 - **Managed Qwen.** It needs Alibaba to provide per-session usage attribution (a ticket is open with QwenCloud support). It is not designed here.
 - **Later, and small:** pre-created cloned voices, face-to-face (Qwen's diarization would serve it), and reconnect.

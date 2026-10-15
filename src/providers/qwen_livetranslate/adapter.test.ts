@@ -6,7 +6,7 @@
  * `FakeSocket`s and a virtual clock — no network, no fake timers.
  */
 import { describe, it, expect } from 'vitest';
-import { AdapterStartError } from '../../lib/contract/adapter';
+import { AdapterStartError, SAMPLE_RATE } from '../../lib/contract/adapter';
 import type { AdapterEvent } from '../../lib/contract/events';
 import { HeaderSocketError } from '../../lib/contract/headerSocket';
 import { flush, type ScenarioStep } from '../../lib/contract/testing/drive';
@@ -16,7 +16,7 @@ import { runLifecycles, type LifecycleHarness } from '../../lib/contract/testing
 import { runScenario, scenarioNames, type AdapterHarness } from '../../lib/contract/testing/scenarios';
 import { recordEvents } from '../../lib/contract/events';
 import { trackedClock } from '../../lib/contract/testing/trackedClock';
-import { CONNECTION_LOST, createQwenAdapter, ERROR_WORDS_MS, NEVER_OPENED, START_TIMEOUT_MS, TURN_DONE_MS } from './adapter';
+import { CONNECTION_LOST, createQwenAdapter, ERROR_WORDS_MS, KEEPALIVE_CHECK_MS, KEEPALIVE_IDLE_MS, NEVER_OPENED, START_TIMEOUT_MS, TURN_DONE_MS } from './adapter';
 import type { DetectEndpoint } from './check';
 import type { QwenConfig } from './config';
 import type { QwenCredentials } from './settings';
@@ -148,7 +148,7 @@ describe('the Qwen LiveTranslate adapter: the start (spec §6)', () => {
     expect(h.socket().url).toBe('wss://maas.qianwenaiapi.com/api-ws/v1/realtime?model=qwen3.8-livetranslate-flash-realtime');
   });
 
-  it('sends nothing until session.created, then its one update; resolves on session.updated with nothing but frames and no timer', async () => {
+  it("sends nothing until session.created, then its one update; resolves on session.updated with nothing but frames and no timer but the keepalive's", async () => {
     const h = await openQwen();
     expect(h.sent()).toEqual([]);
     h.socket().receive(SERVER.created());
@@ -162,7 +162,7 @@ describe('the Qwen LiveTranslate adapter: the start (spec §6)', () => {
     expect(session.info).toEqual({ transport: 'websocket' });
     expect(h.frames('session.update')).toEqual([sessionUpdate(h.config).session]);
     expect(h.content()).toEqual([]);
-    expect(h.timers()).toBe(0);
+    expect(h.timers()).toBe(1);
   });
 
   it("refuses in Qwen's words an error before the update is confirmed, closing the socket", async () => {
@@ -399,6 +399,60 @@ describe('the Qwen LiveTranslate adapter: the session (spec §6)', () => {
     h.session.endTurn();
     await h.session.stop();
     expect(h.timers()).toBe(0);
+  });
+
+  it(`a quiet leg under automatic turns — a muted source sends nothing — appends 100 ms of silence once nothing has gone up for ${KEEPALIVE_IDLE_MS / 1000} s, framed; audio going up keeps it quiet, and stop leaves no timer`, async () => {
+    const h = await qwenSession();
+    for (let i = 0; i < 4; i++) {
+      h.clock.advance(60_000);
+      h.session.appendAudio(chunk(1));
+    }
+    expect(h.appended()).toHaveLength(4);
+    expect(h.frames('session.keepalive')).toEqual([]);
+    // Muted from here: the look after the threshold sends the keepalive, at most a look late.
+    h.clock.advance(KEEPALIVE_IDLE_MS - KEEPALIVE_CHECK_MS);
+    expect(h.appended()).toHaveLength(4);
+    h.clock.advance(KEEPALIVE_CHECK_MS);
+    expect(h.appended()).toHaveLength(5);
+    expect(h.appended()[4]).toEqual(new Int16Array(SAMPLE_RATE / 10));
+    expect(types(h.socket())).not.toContain('input_audio_buffer.commit');
+    expect(h.frames('session.keepalive')).toEqual([{ idleMs: KEEPALIVE_IDLE_MS }]);
+    // Still quiet: another one a threshold later, and nothing reaches the segments.
+    h.clock.advance(KEEPALIVE_IDLE_MS);
+    expect(h.appended()).toHaveLength(6);
+    expect(h.content()).toEqual([]);
+    await h.session.stop();
+    expect(h.timers()).toBe(0);
+  });
+
+  it(`push-to-talk: a quiet leg commits a turn of 100 ms of silence — an append alone is closed 60 s later (probe 2026-10-16) — and a press during it waits for its response`, async () => {
+    const h = await qwenSession({ context: MANUAL_CTX });
+    h.clock.advance(KEEPALIVE_IDLE_MS);
+    expect(types(h.socket()).slice(1)).toEqual(['input_audio_buffer.append', 'input_audio_buffer.commit']);
+    expect(h.appended()).toEqual([new Int16Array(SAMPLE_RATE / 10)]);
+    expect(h.frames('session.keepalive')).toEqual([{ idleMs: KEEPALIVE_IDLE_MS }]);
+    h.session.beginTurn();
+    h.session.appendAudio(chunk(7));
+    h.session.endTurn();
+    expect(h.appended()).toHaveLength(1);
+    h.socket().receive(SERVER.responseDone());
+    expect(types(h.socket()).slice(1)).toEqual(['input_audio_buffer.append', 'input_audio_buffer.commit', 'input_audio_buffer.append', 'input_audio_buffer.commit']);
+    expect(h.appended().map((pcm) => pcm[0])).toEqual([0, 7]);
+  });
+
+  it('push-to-talk: no keepalive cuts into a press that is open; its release restarts the wait', async () => {
+    const h = await qwenSession({ context: MANUAL_CTX });
+    h.session.beginTurn();
+    h.session.appendAudio(chunk(1));
+    h.clock.advance(KEEPALIVE_IDLE_MS);
+    expect(types(h.socket()).slice(1)).toEqual(['input_audio_buffer.append']);
+    h.session.endTurn();
+    h.socket().receive(SERVER.responseDone());
+    h.clock.advance(KEEPALIVE_IDLE_MS - KEEPALIVE_CHECK_MS);
+    expect(h.frames('session.keepalive')).toEqual([]);
+    h.clock.advance(KEEPALIVE_CHECK_MS);
+    expect(h.frames('session.keepalive')).toEqual([{ idleMs: KEEPALIVE_IDLE_MS }]);
+    expect(types(h.socket()).slice(1)).toEqual(['input_audio_buffer.append', 'input_audio_buffer.commit', 'input_audio_buffer.append', 'input_audio_buffer.commit']);
   });
 
   it('push-to-talk: a heard item its content does not mark is told by what it follows — nothing, or the last translation — so its words still show', async () => {
