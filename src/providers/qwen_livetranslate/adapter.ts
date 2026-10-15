@@ -68,11 +68,12 @@ export const KEEPALIVE_CHECK_MS = 30_000;
 /** 100 ms of silence: free under automatic turns; a push-to-talk turn of it costs about 7 audio tokens. */
 const KEEPALIVE_SILENCE = new Int16Array(SAMPLE_RATE / 10);
 /**
- * Under push-to-talk, how much of a quiet stretch inside a press still goes
- * up — a pause, the end of a sentence. Past it nothing more is sent: Qwen
- * closes a session once about 30 s of audio since the last speech it heard
- * held none (`1007 no semantic result after merged audio exceeded 30s`,
- * probe 2026-10-16), and no commit resets that count.
+ * Under push-to-talk, how much quiet still goes up between voiced chunks — a
+ * pause, the end of a sentence — counted across presses. Past it nothing
+ * more is sent: Qwen closes a session once about 30 s of audio since the
+ * last speech it heard held none (`1007 no semantic result after merged
+ * audio exceeded 30s`, probe 2026-10-16), across turns, and no commit resets
+ * that count.
  */
 export const QUIET_KEEP_MS = 2_000;
 /** The quiet kept back to go up ahead of the voice that ends it, so its first syllable is not clipped. */
@@ -148,7 +149,7 @@ class QwenLeg implements AdapterSession {
   /** When audio or a commit last went up: what the idle close counts from. */
   private lastSentAt = 0;
   private stopKeepalive: () => void = () => {};
-  /** Push-to-talk: the samples of the press's current quiet stretch. */
+  /** Push-to-talk: the samples of quiet since the last voiced chunk, across presses. */
   private quietSamples = 0;
   /** The last `PRE_ROLL_MS` of a quiet stretch kept back. */
   private preRoll: Int16Array[] = [];
@@ -174,9 +175,10 @@ class QwenLeg implements AdapterSession {
 
   /**
    * One chunk as it came, while live — no frame per chunk (the hot-path
-   * rule). Under push-to-talk a quiet stretch goes up for `QUIET_KEEP_MS`;
-   * past it the turn is closed once and the quiet kept back, its last
-   * `PRE_ROLL_MS` going up ahead of the voice that ends it.
+   * rule). Under push-to-talk quiet goes up for `QUIET_KEEP_MS` since the
+   * last voice, over any number of presses; past it the turn is closed once
+   * and the quiet kept back, its last `PRE_ROLL_MS` going up ahead of the
+   * voice that ends it.
    */
   appendAudio(pcm: Int16Array): void {
     if (!this.live()) return;
@@ -206,9 +208,8 @@ class QwenLeg implements AdapterSession {
   /** Qwen LiveTranslate takes no typed text (`textInput: () => false`). */
   appendText(): void {}
 
-  /** Nothing to send — audio appended under push-to-talk is the turn already — but the press's quiet is counted afresh. */
+  /** Nothing to send — audio appended under push-to-talk is the turn already. The quiet count runs on, as the server's does; only the last press's kept-back quiet goes. */
   beginTurn(): void {
-    this.quietSamples = 0;
     this.preRoll = [];
   }
 

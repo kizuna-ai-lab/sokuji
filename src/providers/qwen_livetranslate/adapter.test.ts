@@ -507,6 +507,31 @@ describe('the Qwen LiveTranslate adapter: the session (spec §6)', () => {
     expect(types(h.socket()).slice(1).filter((t) => t === 'input_audio_buffer.commit')).toHaveLength(1);
   });
 
+  it(`push-to-talk: the ${QUIET_KEEP_MS / 1000} s of quiet are counted across presses until voice — the server's count runs on across turns — so more silent presses send nothing, and voice starts the count afresh`, async () => {
+    const h = await qwenSession({ context: MANUAL_CTX });
+    const kept = Math.floor((SAMPLE_RATE * QUIET_KEEP_MS) / 1000 / 2_048);
+    const commits = () => types(h.socket()).filter((t) => t === 'input_audio_buffer.commit');
+    const press = (fills: number[]) => {
+      h.session.beginTurn();
+      for (const fill of fills) h.session.appendAudio(chunk(fill));
+      h.session.endTurn();
+      h.socket().receive(SERVER.responseDone());
+    };
+    press(Array.from({ length: kept + 5 }, (_, i) => i % 300));
+    expect(h.appended()).toHaveLength(kept);
+    expect(commits()).toHaveLength(1);
+    for (let n = 0; n < 15; n++) press([1, 2, 3, 4, 5]);
+    expect(h.appended()).toHaveLength(kept);
+    expect(commits()).toHaveLength(1);
+    // Voice: only this press's own quiet goes ahead of it.
+    press([11, 1_000]);
+    expect(h.appended().slice(kept).map((pcm) => pcm[0])).toEqual([11, 1_000]);
+    expect(commits()).toHaveLength(2);
+    press(Array.from({ length: kept + 5 }, (_, i) => i % 300));
+    expect(h.appended()).toHaveLength(kept + 2 + kept);
+    expect(commits()).toHaveLength(3);
+  });
+
   it('push-to-talk: a quiet stretch that runs past the threshold while the turn before is still finishing commits once what waits behind that turn has gone up', async () => {
     const h = await qwenSession({ context: MANUAL_CTX });
     const kept = Math.floor((SAMPLE_RATE * QUIET_KEEP_MS) / 1000 / 2_048);
