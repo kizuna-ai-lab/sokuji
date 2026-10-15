@@ -24,7 +24,7 @@ const signedIn: AuthContext = { signedIn: true, userId: 'u1', getToken };
 afterEach(() => vi.unstubAllGlobals());
 
 describe('kizunaSonioxProvider', () => {
-  it('is Kizuna AI\'s Soniox: managed, under the old enum\'s id and slice, with no guide', () => {
+  it('is Kizuna AI\'s Soniox: managed, under the old enum\'s id and slice, with the Kizuna AI quick start as its guide', () => {
     expect(kizunaSonioxProvider).toMatchObject({
       id: 'kizunaai_soniox',
       kind: 'managed',
@@ -33,7 +33,7 @@ describe('kizunaSonioxProvider', () => {
       participantSpeech: true,
       faceToFace: true,
     });
-    expect(kizunaSonioxProvider.guideUrl).toBeUndefined();
+    expect(kizunaSonioxProvider.guideUrl).toBe('https://sokuji.kizuna.ai/docs/kizuna-ai/quick-start');
     expect(kizunaSonioxProvider.flagged).toBeUndefined();
     expect(kizunaSonioxProvider.settings).toEqual({ key: 'kizunaSoniox', defaults: SONIOX_DEFAULTS, migrate: migrateSonioxSettings });
     expect(kizunaSonioxProvider.icon).toBeTypeOf('function');

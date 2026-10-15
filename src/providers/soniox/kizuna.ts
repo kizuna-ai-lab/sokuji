@@ -34,6 +34,7 @@ export function createKizunaSonioxProvider({ participantSpeech }: { participantS
     id: 'kizunaai_soniox',
     vendor: 'Soniox',
     icon: kizunaHostedIcon(SonioxIcon),
+    guideUrl: 'https://sokuji.kizuna.ai/docs/kizuna-ai/quick-start',
     settingsKey: 'kizunaSoniox',
     Settings: KizunaSonioxSettingsView,
     VoiceSummary: KizunaSonioxVoiceSummary,
