@@ -136,7 +136,10 @@ async function start(): Promise<void> {
     }
     publish({ phase: 'ready' });
   } catch (err) {
-    if (gen !== generation || (err as Error)?.name === 'AbortError') return;
+    // Our own aborts come from a stop or a newer start, both of which move the
+    // generation; any other AbortError (an IndexedDB transaction that aborted) is
+    // a failure, or the state would sit in loading with no Retry.
+    if (gen !== generation) return;
     reportWarning('Readings', `Japanese readings are unavailable: ${describeCause(err)}`, { cause: err });
     publish({ phase: 'failed', cause: downloading ? 'download' : 'engine' });
   }

@@ -235,11 +235,24 @@ describe('the Japanese runtime', () => {
     expect(runtime.getJapaneseState()).toEqual({ phase: 'ready' });
   });
 
-  it('says nothing when an abort ends the download', async () => {
+  it('says nothing when switching off aborts the download', async () => {
     isDictionaryStored.mockResolvedValue(false);
-    downloadDictionary.mockRejectedValue(new DOMException('Download cancelled', 'AbortError'));
+    downloadDictionary.mockImplementation(({ signal }: { signal: AbortSignal }) => new Promise((_resolve, reject) => {
+      signal.addEventListener('abort', () => reject(new DOMException('Download cancelled', 'AbortError')));
+    }));
     runtime.setJapaneseWanted(true);
     await flush();
+    runtime.setJapaneseWanted(false);
+    await flush();
     expect(reportWarning).not.toHaveBeenCalled();
+    expect(runtime.getJapaneseState()).toEqual({ phase: 'off' });
+  });
+
+  it('fails as the engine, not stuck loading, when storage aborts on its own', async () => {
+    isDictionaryStored.mockRejectedValueOnce(new DOMException('The transaction was aborted', 'AbortError'));
+    runtime.setJapaneseWanted(true);
+    await flush();
+    expect(runtime.getJapaneseState()).toEqual({ phase: 'failed', cause: 'engine' });
+    expect(reportWarning).toHaveBeenCalledTimes(1);
   });
 });
