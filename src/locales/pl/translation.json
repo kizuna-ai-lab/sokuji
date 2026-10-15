@@ -970,7 +970,8 @@
         "latin": "litery łacińskie"
       },
       "readingsDownloading": "Pobieranie słownika japońskiego {{done}} / {{total}}",
-      "readingsDownloadFailed": "Nie udało się pobrać słownika japońskiego."
+      "readingsDownloadFailed": "Nie udało się pobrać słownika japońskiego.",
+      "readingsFailed": "Japońskie odczyty nie działają."
     },
     "pttHint": "Naciśnij spację, aby mówić"
   },

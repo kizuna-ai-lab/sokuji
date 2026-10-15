@@ -970,7 +970,8 @@
         "latin": "letras latinas"
       },
       "readingsDownloading": "A transferir o dicionário de japonês {{done}} / {{total}}",
-      "readingsDownloadFailed": "Não foi possível transferir o dicionário de japonês."
+      "readingsDownloadFailed": "Não foi possível transferir o dicionário de japonês.",
+      "readingsFailed": "As leituras em japonês não estão a funcionar."
     },
     "pttHint": "Prima Espaço para falar"
   },

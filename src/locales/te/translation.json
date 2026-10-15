@@ -970,7 +970,8 @@
         "latin": "లాటిన్ అక్షరాలు"
       },
       "readingsDownloading": "జపనీస్ నిఘంటువు డౌన్‌లోడ్ అవుతోంది {{done}} / {{total}}",
-      "readingsDownloadFailed": "జపనీస్ నిఘంటువును డౌన్‌లోడ్ చేయలేకపోయాం."
+      "readingsDownloadFailed": "జపనీస్ నిఘంటువును డౌన్‌లోడ్ చేయలేకపోయాం.",
+      "readingsFailed": "జపనీస్ ఉచ్చారణలు పని చేయడం లేదు."
     },
     "pttHint": "మాట్లాడడానికి Space నొక్కండి"
   },

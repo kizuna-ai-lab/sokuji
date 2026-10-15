@@ -970,7 +970,8 @@
         "latin": "حروف لاتین"
       },
       "readingsDownloading": "در حال دانلود فرهنگ لغت ژاپنی {{done}} / {{total}}",
-      "readingsDownloadFailed": "دانلود فرهنگ لغت ژاپنی ناموفق بود."
+      "readingsDownloadFailed": "دانلود فرهنگ لغت ژاپنی ناموفق بود.",
+      "readingsFailed": "خوانش ژاپنی کار نمی‌کند."
     },
     "pttHint": "برای صحبت، Space را نگه دارید"
   },

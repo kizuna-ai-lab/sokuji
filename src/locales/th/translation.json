@@ -970,7 +970,8 @@
         "latin": "อักษรละติน"
       },
       "readingsDownloading": "กำลังดาวน์โหลดพจนานุกรมภาษาญี่ปุ่น {{done}} / {{total}}",
-      "readingsDownloadFailed": "ดาวน์โหลดพจนานุกรมภาษาญี่ปุ่นไม่สำเร็จ"
+      "readingsDownloadFailed": "ดาวน์โหลดพจนานุกรมภาษาญี่ปุ่นไม่สำเร็จ",
+      "readingsFailed": "คำอ่านภาษาญี่ปุ่นใช้งานไม่ได้"
     },
     "pttHint": "กด Space ค้างเพื่อพูด"
   },

@@ -970,7 +970,8 @@
         "latin": "latinska bokstäver"
       },
       "readingsDownloading": "Laddar ned den japanska ordboken {{done}} / {{total}}",
-      "readingsDownloadFailed": "Det gick inte att ladda ned den japanska ordboken."
+      "readingsDownloadFailed": "Det gick inte att ladda ned den japanska ordboken.",
+      "readingsFailed": "Det japanska uttalet fungerar inte."
     },
     "pttHint": "Tryck på mellanslag för att tala"
   },

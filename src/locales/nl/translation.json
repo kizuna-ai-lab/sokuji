@@ -970,7 +970,8 @@
         "latin": "Latijnse letters"
       },
       "readingsDownloading": "Japans woordenboek downloaden {{done}} / {{total}}",
-      "readingsDownloadFailed": "Het Japanse woordenboek kon niet worden gedownload."
+      "readingsDownloadFailed": "Het Japanse woordenboek kon niet worden gedownload.",
+      "readingsFailed": "De Japanse leesvormen werken niet."
     },
     "pttHint": "Druk op Spatie om te spreken"
   },

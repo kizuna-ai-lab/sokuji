@@ -970,7 +970,8 @@
         "latin": "라틴 문자"
       },
       "readingsDownloading": "일본어 사전 다운로드 중 {{done}} / {{total}}",
-      "readingsDownloadFailed": "일본어 사전을 다운로드하지 못했습니다."
+      "readingsDownloadFailed": "일본어 사전을 다운로드하지 못했습니다.",
+      "readingsFailed": "일본어 읽는 법을 표시할 수 없습니다."
     },
     "pttHint": "스페이스바를 눌러 말하세요"
   },

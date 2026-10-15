@@ -970,7 +970,8 @@
         "latin": "ল্যাটিন অক্ষর"
       },
       "readingsDownloading": "জাপানি অভিধান ডাউনলোড হচ্ছে {{done}} / {{total}}",
-      "readingsDownloadFailed": "জাপানি অভিধান ডাউনলোড করা যায়নি।"
+      "readingsDownloadFailed": "জাপানি অভিধান ডাউনলোড করা যায়নি।",
+      "readingsFailed": "জাপানি উচ্চারণ কাজ করছে না।"
     },
     "pttHint": "কথা বলতে Space চাপুন"
   },

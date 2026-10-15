@@ -970,7 +970,8 @@
         "latin": "lettere latine"
       },
       "readingsDownloading": "Download del dizionario giapponese {{done}} / {{total}}",
-      "readingsDownloadFailed": "Impossibile scaricare il dizionario giapponese."
+      "readingsDownloadFailed": "Impossibile scaricare il dizionario giapponese.",
+      "readingsFailed": "Le letture in giapponese non funzionano."
     },
     "pttHint": "Premi Spazio per parlare"
   },

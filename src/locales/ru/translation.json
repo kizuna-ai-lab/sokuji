@@ -970,7 +970,8 @@
         "latin": "латиница"
       },
       "readingsDownloading": "Загрузка японского словаря {{done}} / {{total}}",
-      "readingsDownloadFailed": "Не удалось загрузить японский словарь."
+      "readingsDownloadFailed": "Не удалось загрузить японский словарь.",
+      "readingsFailed": "Японские чтения не работают."
     },
     "pttHint": "Удерживайте пробел для речи"
   },

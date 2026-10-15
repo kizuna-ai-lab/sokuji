@@ -970,7 +970,8 @@
         "latin": "mga letrang Latin"
       },
       "readingsDownloading": "Dina-download ang diksyunaryong Hapones {{done}} / {{total}}",
-      "readingsDownloadFailed": "Hindi ma-download ang diksyunaryong Hapones."
+      "readingsDownloadFailed": "Hindi ma-download ang diksyunaryong Hapones.",
+      "readingsFailed": "Hindi gumagana ang pagbasa sa Hapones."
     },
     "pttHint": "Pindutin ang Space upang magsalita"
   },

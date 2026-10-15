@@ -970,7 +970,8 @@
         "latin": "latinalaiset kirjaimet"
       },
       "readingsDownloading": "Ladataan japanin sanakirjaa {{done}} / {{total}}",
-      "readingsDownloadFailed": "Japanin sanakirjan lataaminen epäonnistui."
+      "readingsDownloadFailed": "Japanin sanakirjan lataaminen epäonnistui.",
+      "readingsFailed": "Japanin lukutavat eivät toimi."
     },
     "pttHint": "Paina välilyöntiä puhuaksesi"
   },

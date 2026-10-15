@@ -970,7 +970,8 @@
         "latin": "huruf Latin"
       },
       "readingsDownloading": "Mengunduh kamus bahasa Jepang {{done}} / {{total}}",
-      "readingsDownloadFailed": "Kamus bahasa Jepang tidak dapat diunduh."
+      "readingsDownloadFailed": "Kamus bahasa Jepang tidak dapat diunduh.",
+      "readingsFailed": "Cara baca bahasa Jepang tidak berfungsi."
     },
     "pttHint": "Tekan Spasi untuk berbicara"
   },
