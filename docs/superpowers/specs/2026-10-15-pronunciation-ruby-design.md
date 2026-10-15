@@ -19,7 +19,7 @@ A switch in the display settings shows how the other side's language is pronounc
 | R6 | Phase 1 surfaces | The conversation panel and the Electron subtitle view while expanded. |
 | R7 | Phase 1 languages | Chinese pinyin, Japanese kana, Korean Revised Romanization, Russian and Ukrainian Latin transliteration. |
 | R8 | Architecture | A view-layer module, `src/lib/reading/` (approach 1): no field on `Row` or `Segment`. |
-| R9 | Ruby size | `max(50%, 10px)` of the row's font size, the text's own colour at 72% (candidate R2). |
+| R9 | Ruby size | `max(50%, 10px)` of the row's font size, the text's own colour at 72% (candidate R2); 0.2em of space on each side of a reading, and a word centred under a wider reading (candidate C, 2026-10-16). |
 | R10 | Chinese grouping | One pinyin syllable per character. |
 | R11 | Streaming text | Annotate as the text grows, but hold back the reading of the last annotated piece until the row is final (candidate C). |
 | R12 | Face-to-face | No special case: the same target-language rule, judged per row. |
@@ -87,7 +87,7 @@ A switch in the display settings shows how the other side's language is pronounc
 - `RowBubble` asks `useReading(text, lang, { holdTail })` for pieces and renders each piece with a reading as `<ruby>text<rt aria-hidden="true">reading</rt></ruby>`, so a screen reader reads the text once. Null pieces render the text as today.
 - **Streaming (R11)**: `holdTail` is true when the row is not final and ends its segment; the last piece with a reading then renders as plain text. Earlier rows of an unfinished segment end at a sentence or pause and keep their readings.
 - **Karaoke**: plain text splits at the played offset as today; a piece with a reading counts as played once the offset reaches its end. Offsets are measured on the row's text, which the readings never change.
-- **Style (R9)**, in `ConversationRow.scss`: `rt { font-size: max(50%, 10px); opacity: 0.72; font-style: normal; line-height: 1; user-select: none; }`, `ruby { ruby-position: over; }`. The colour is inherited, so source rows, translation rows and the karaoke colour all carry through.
+- **Style (R9)**, in `ConversationRow.scss`: `rt { font-size: max(50%, 10px); padding-inline: 0.2em; opacity: 0.72; font-style: normal; line-height: 1; user-select: none; }`, `ruby { ruby-position: over; ruby-align: center; }`. The colour is inherited, so source rows, translation rows and the karaoke colour all carry through. At the default 14px a reading is 10px and often wider than its word (pinyin over one character, a romanized Korean word); without the padding neighbouring readings ran together (`wǒmenháiyào`, `jeomsimmeogeulkkayo`), and without the centring a word was spread under a wider reading (4 月 1 日). Settled on rendered candidates A/B/C on 2026-10-16.
 
 ### 5. The switch
 

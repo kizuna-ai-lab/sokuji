@@ -230,13 +230,18 @@
 
 // Readings (#545, spec 2026-10-15 R9): ruby over the other side's language, never
 // below 10px, the text's own colour dimmed; never selected or copied with the text.
+// At 14px a 10px reading is often wider than its word (pinyin over one character,
+// a romanized Korean word): the padding keeps neighbouring readings apart, and
+// centring keeps a word whole under a wider reading (4月, not 4 月).
 .row-text {
   ruby {
     ruby-position: over;
+    ruby-align: center;
   }
 
   rt {
     font-size: max(50%, 10px);
+    padding-inline: 0.2em;
     opacity: 0.72;
     font-style: normal;
     line-height: 1;
