@@ -29,6 +29,8 @@ export interface ManagedOverrides<S, K, C, Id extends string> {
   settingsKey: string;
   /** The base's settings component in its managed flavour. */
   Settings: ComponentType<SettingsProps<S>>;
+  /** The twin's own setup guide; never the base's, which is about getting the vendor's key. */
+  guideUrl?: string;
   /** The base's voice summary in its managed flavour; absent, the base's own, if it has one. */
   VoiceSummary?: ComponentType<VoiceSummaryProps<S>>;
   /** Diagnostic English for a signed-out `read`; the user reads `sign_in_required`'s words. */
@@ -51,6 +53,7 @@ export function managed<S, K extends { missing?: never } & object, C extends { r
     platforms: base.platforms,
     icon: o.icon,
     vendor: o.vendor,
+    ...(o.guideUrl ? { guideUrl: o.guideUrl } : {}),
     // Member by member (choice 2): a settings member added to the base later (`legacyKeys`, say) is a decision here, not a leak.
     settings: { key: o.settingsKey, defaults: base.settings.defaults, ...(base.settings.migrate ? { migrate: base.settings.migrate } : {}) },
     Settings: o.Settings,
