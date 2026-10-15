@@ -961,7 +961,16 @@
       "colorArea": "Doygunluk ve parlaklık",
       "colorHue": "Renk tonu",
       "colorHex": "Onaltılık renk değeri",
-      "newItemHighlight": "Yeni gelen metni vurgula"
+      "newItemHighlight": "Yeni gelen metni vurgula",
+      "readings": "{{language}} okunuşlarını göster ({{scheme}})",
+      "readingScheme": {
+        "kana": "kana",
+        "pinyin": "pinyin",
+        "rr": "romanizasyon",
+        "latin": "Latin harfleri"
+      },
+      "readingsDownloading": "Japonca sözlük indiriliyor {{done}} / {{total}}",
+      "readingsDownloadFailed": "Japonca sözlük indirilemedi."
     },
     "pttHint": "Konuşmak için Boşluk tuşuna basın"
   },

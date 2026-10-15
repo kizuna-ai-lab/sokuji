@@ -961,7 +961,16 @@
       "colorArea": "彩度と明度",
       "colorHue": "色相",
       "colorHex": "16進数カラーコード",
-      "newItemHighlight": "新しく届いたテキストをハイライトする"
+      "newItemHighlight": "新しく届いたテキストをハイライトする",
+      "readings": "{{language}}の読みを表示（{{scheme}}）",
+      "readingScheme": {
+        "kana": "かな",
+        "pinyin": "ピンイン",
+        "rr": "ローマ字",
+        "latin": "ラテン文字"
+      },
+      "readingsDownloading": "日本語辞書をダウンロード中 {{done}} / {{total}}",
+      "readingsDownloadFailed": "日本語辞書をダウンロードできませんでした。"
     },
     "pttHint": "スペースキーを押して話す"
   },

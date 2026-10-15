@@ -27,6 +27,7 @@ interface SubtitleState {
   // Visual cue for newly-arrived items in the compact band (issue #236).
   // When false, the per-item fade-in + overlay animation is suppressed.
   newItemHighlightEnabled: boolean;
+  showReadings: boolean;
   // Window/positioning (Electron path; extension surface ignores them)
   alwaysOnTop: boolean;
   positionLocked: boolean;
@@ -45,6 +46,7 @@ interface SubtitleState {
   setSourceTextColor: (s: string) => Promise<void>;
   setTranslationTextColor: (s: string) => Promise<void>;
   setNewItemHighlightEnabled: (b: boolean) => Promise<void>;
+  setShowReadings: (b: boolean) => Promise<void>;
   toggleAlwaysOnTop: () => Promise<void>;
   togglePositionLocked: () => Promise<void>;
   saveWindowBounds: (b: SubtitleWindowBounds) => Promise<void>;
@@ -69,6 +71,7 @@ const DEFAULTS = {
   sourceTextColor: SUBTITLE_DEFAULT_SOURCE_TEXT_COLOR,
   translationTextColor: SUBTITLE_DEFAULT_TRANSLATION_TEXT_COLOR,
   newItemHighlightEnabled: true,
+  showReadings: false,
   alwaysOnTop: false,
   positionLocked: false,
   windowBounds: null as SubtitleWindowBounds | null,
@@ -143,6 +146,12 @@ export const useSubtitleStore = create<SubtitleState>()(
       const { ok } = await persist('newItemHighlightEnabled', b);
       if (!ok) set({ newItemHighlightEnabled: previous });
     },
+    setShowReadings: async (b) => {
+      const previous = get().showReadings;
+      set({ showReadings: b });
+      const { ok } = await persist('showReadings', b);
+      if (!ok) set({ showReadings: previous });
+    },
     toggleAlwaysOnTop: async () => {
       const previous = get().alwaysOnTop;
       const next = !previous;
@@ -193,7 +202,7 @@ export const useSubtitleStore = create<SubtitleState>()(
         fontSize, compactMode, bgOpacity, bgColor,
         sourceTextColor, translationTextColor, newItemHighlightEnabled,
         alwaysOnTop, positionLocked, windowBounds,
-        speakerDisplayMode, participantDisplayMode,
+        speakerDisplayMode, participantDisplayMode, showReadings,
       ] = await Promise.all([
         svc.getSetting(KEY('fontSize'), DEFAULTS.fontSize),
         svc.getSetting(KEY('compactMode'), DEFAULTS.compactMode),
@@ -207,6 +216,7 @@ export const useSubtitleStore = create<SubtitleState>()(
         svc.getSetting<SubtitleWindowBounds | null>(KEY('windowBounds'), DEFAULTS.windowBounds),
         svc.getSetting<DisplayMode>(KEY('speakerDisplayMode'), DEFAULTS.speakerDisplayMode),
         svc.getSetting<DisplayMode>(KEY('participantDisplayMode'), DEFAULTS.participantDisplayMode),
+        svc.getSetting(KEY('showReadings'), DEFAULTS.showReadings),
       ]);
       set({
         fontSize: clamp(Math.round(fontSize), FONT_SIZE_MIN, FONT_SIZE_MAX),
@@ -221,6 +231,7 @@ export const useSubtitleStore = create<SubtitleState>()(
         windowBounds,
         speakerDisplayMode,
         participantDisplayMode,
+        showReadings,
       });
     },
   })),
@@ -235,6 +246,7 @@ export const useSubtitleSourceTextColor = () => useSubtitleStore((s) => s.source
 export const useSubtitleTranslationTextColor = () => useSubtitleStore((s) => s.translationTextColor);
 export const useSubtitleNewItemHighlightEnabled = () =>
   useSubtitleStore((s) => s.newItemHighlightEnabled);
+export const useSubtitleShowReadings = () => useSubtitleStore((s) => s.showReadings);
 export const useSubtitleAlwaysOnTop = () => useSubtitleStore((s) => s.alwaysOnTop);
 export const useSubtitlePositionLocked = () => useSubtitleStore((s) => s.positionLocked);
 export const useSubtitleWindowBounds = () => useSubtitleStore((s) => s.windowBounds);
@@ -269,6 +281,7 @@ export const useSetSubtitleSourceTextColor = () => useSubtitleStore((s) => s.set
 export const useSetSubtitleTranslationTextColor = () => useSubtitleStore((s) => s.setTranslationTextColor);
 export const useSetSubtitleNewItemHighlightEnabled = () =>
   useSubtitleStore((s) => s.setNewItemHighlightEnabled);
+export const useSetSubtitleShowReadings = () => useSubtitleStore((s) => s.setShowReadings);
 export const useToggleSubtitleAlwaysOnTop = () => useSubtitleStore((s) => s.toggleAlwaysOnTop);
 export const useToggleSubtitlePositionLocked = () => useSubtitleStore((s) => s.togglePositionLocked);
 export const useSaveSubtitleWindowBounds = () => useSubtitleStore((s) => s.saveWindowBounds);

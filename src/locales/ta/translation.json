@@ -961,7 +961,16 @@
       "colorArea": "நிறச்செறிவு மற்றும் பிரகாசம்",
       "colorHue": "நிறச்சாயல்",
       "colorHex": "ஹெக்ஸ் நிற மதிப்பு",
-      "newItemHighlight": "புதிதாக வந்த உரையை முன்னிலைப்படுத்து"
+      "newItemHighlight": "புதிதாக வந்த உரையை முன்னிலைப்படுத்து",
+      "readings": "{{language}} வாசிப்புகளைக் காட்டு ({{scheme}})",
+      "readingScheme": {
+        "kana": "கானா",
+        "pinyin": "பின்யின்",
+        "rr": "ரோமானியாக்கம்",
+        "latin": "லத்தீன் எழுத்துகள்"
+      },
+      "readingsDownloading": "ஜப்பானிய அகராதி பதிவிறக்கப்படுகிறது {{done}} / {{total}}",
+      "readingsDownloadFailed": "ஜப்பானிய அகராதியைப் பதிவிறக்க முடியவில்லை."
     },
     "pttHint": "பேச Space அழுத்தவும்"
   },

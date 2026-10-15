@@ -1,4 +1,4 @@
-import { usePostHog } from '../../shared/index';
+import { usePostHog } from '../contexts/PostHogContext';
 import { isDevelopment, getPlatform } from '../config/analytics';
 import type { DeviceProfile } from '../utils/deviceProfile';
 import { reportWarning } from './diagnostics/report';
@@ -247,6 +247,9 @@ export interface AnalyticsEvents {
   // LAN caption sharing (spec 2026-10-04 §7.5): host side only, no content.
   'caption_share_started': { address_kind: 'wifi' | 'wired' | 'other' | 'virtual' };
   'caption_share_ended': { duration_ms: number; peak_viewers: number };
+
+  // Readings (#545, spec 2026-10-15 R16): the switch only.
+  'readings_changed': { surface: 'conversation' | 'subtitle'; language: string; enabled: boolean };
 
   // Extension specific events
   'extension_installed': { extension_version: string };

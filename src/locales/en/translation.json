@@ -1178,7 +1178,16 @@
       "colorArea": "Saturation and brightness",
       "colorHue": "Hue",
       "colorHex": "Hex color value",
-      "newItemHighlight": "Highlight newly-arrived text"
+      "newItemHighlight": "Highlight newly-arrived text",
+      "readings": "Show {{language}} readings ({{scheme}})",
+      "readingScheme": {
+        "kana": "kana",
+        "pinyin": "pinyin",
+        "rr": "romanization",
+        "latin": "Latin letters"
+      },
+      "readingsDownloading": "Downloading the Japanese dictionary {{done}} / {{total}}",
+      "readingsDownloadFailed": "Couldn't download the Japanese dictionary."
     },
     "pttHint": "Press Space to speak"
   },

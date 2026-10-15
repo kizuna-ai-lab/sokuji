@@ -30,7 +30,7 @@ import {
   type AudioMode,
 } from '../../stores/audioStore';
 import { useCleanupAudioSystemListeners, useInitAudioSystemListeners } from '../../stores/audioSystemStore';
-import { useConversationDisplayStore } from '../../stores/conversationDisplayStore';
+import { useConversationDisplayShowReadings, useConversationDisplayStore } from '../../stores/conversationDisplayStore';
 import { usePanelNotes, usePanelNotesStore } from '../../stores/panelNotesStore';
 import { useProviderStore } from '../../stores/providerStore';
 import {
@@ -46,6 +46,7 @@ import {
 import { useSetSubtitleEntryHint } from '../../stores/subtitleStore';
 import { useCleanupUpdateListeners, useInitUpdateListeners } from '../../stores/updateStore';
 import { getEnvironment, isElectron, isExtension } from '../../utils/environment';
+import { useReadingTargets } from '../../lib/reading/useReadingTargets';
 import { ConversationList, type NoticeAction } from '../Conversation/ConversationList';
 import { SystemRow } from '../Conversation/SystemRow';
 import { useConversationExporter } from '../Conversation/useConversationExporter';
@@ -177,6 +178,8 @@ export default function MainPanel() {
   const ears = earsLegend(f2f);
   const providerSettings = useProviderStore((s) => (s.selected ? s.entries[s.selected]?.settings : undefined));
   const display = useConversationDisplayStore();
+  const showReadings = useConversationDisplayShowReadings();
+  const readingTargets = useReadingTargets();
 
   // The conversation, then the panel notes after it (spec 2026-10-05 §5), through the display filter,
   // reusing unchanged lines (ruling 14).
@@ -338,6 +341,7 @@ export default function MainPanel() {
           </div>
         ) : (
           <ConversationList
+            readings={showReadings ? readingTargets : undefined}
             items={drawn} lit={lit} replaying={replaying} replayLegs={replayLegs}
             canReplay={(id) => { const s = segments.get(id); return !!s?.final && s.speech.some((e) => e.pcm.length > 0); }}
             onReplay={(leg, id) => {

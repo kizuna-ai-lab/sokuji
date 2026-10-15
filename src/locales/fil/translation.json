@@ -961,7 +961,16 @@
       "colorArea": "Saturation at liwanag",
       "colorHue": "Hue",
       "colorHex": "Hex na halaga ng kulay",
-      "newItemHighlight": "I-highlight ang bagong dating na teksto"
+      "newItemHighlight": "I-highlight ang bagong dating na teksto",
+      "readings": "Ipakita ang pagbasa sa {{language}} ({{scheme}})",
+      "readingScheme": {
+        "kana": "kana",
+        "pinyin": "pinyin",
+        "rr": "romanisasyon",
+        "latin": "mga letrang Latin"
+      },
+      "readingsDownloading": "Dina-download ang diksyunaryong Hapones {{done}} / {{total}}",
+      "readingsDownloadFailed": "Hindi ma-download ang diksyunaryong Hapones."
     },
     "pttHint": "Pindutin ang Space upang magsalita"
   },

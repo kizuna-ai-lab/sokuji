@@ -961,7 +961,16 @@
       "colorArea": "Mättnad och ljusstyrka",
       "colorHue": "Nyans",
       "colorHex": "Hexadecimalt färgvärde",
-      "newItemHighlight": "Markera nyligen ankommen text"
+      "newItemHighlight": "Markera nyligen ankommen text",
+      "readings": "Visa {{language}} uttal ({{scheme}})",
+      "readingScheme": {
+        "kana": "kana",
+        "pinyin": "pinyin",
+        "rr": "romanisering",
+        "latin": "latinska bokstäver"
+      },
+      "readingsDownloading": "Laddar ned den japanska ordboken {{done}} / {{total}}",
+      "readingsDownloadFailed": "Det gick inte att ladda ned den japanska ordboken."
     },
     "pttHint": "Tryck på mellanslag för att tala"
   },

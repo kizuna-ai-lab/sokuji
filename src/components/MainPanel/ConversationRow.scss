@@ -227,3 +227,20 @@
     padding-left: 16px;
   }
 }
+
+// Readings (#545, spec 2026-10-15 R9): ruby over the other side's language, never
+// below 10px, the text's own colour dimmed; never selected or copied with the text.
+.row-text {
+  ruby {
+    ruby-position: over;
+  }
+
+  rt {
+    font-size: max(50%, 10px);
+    opacity: 0.72;
+    font-style: normal;
+    line-height: 1;
+    letter-spacing: 0;
+    user-select: none;
+  }
+}

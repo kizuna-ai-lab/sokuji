@@ -961,7 +961,16 @@
       "colorArea": "Saturasi dan kecerahan",
       "colorHue": "Rona",
       "colorHex": "Nilai warna heksadesimal",
-      "newItemHighlight": "Sorot teks yang baru tiba"
+      "newItemHighlight": "Sorot teks yang baru tiba",
+      "readings": "Tampilkan cara baca {{language}} ({{scheme}})",
+      "readingScheme": {
+        "kana": "kana",
+        "pinyin": "pinyin",
+        "rr": "romanisasi",
+        "latin": "huruf Latin"
+      },
+      "readingsDownloading": "Mengunduh kamus bahasa Jepang {{done}} / {{total}}",
+      "readingsDownloadFailed": "Kamus bahasa Jepang tidak dapat diunduh."
     },
     "pttHint": "Tekan Spasi untuk berbicara"
   },

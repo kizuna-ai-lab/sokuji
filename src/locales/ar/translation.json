@@ -961,7 +961,16 @@
       "colorArea": "التشبع والسطوع",
       "colorHue": "درجة اللون",
       "colorHex": "قيمة اللون السداسية",
-      "newItemHighlight": "تمييز النص الذي وصل حديثًا"
+      "newItemHighlight": "تمييز النص الذي وصل حديثًا",
+      "readings": "إظهار قراءات {{language}} ({{scheme}})",
+      "readingScheme": {
+        "kana": "الكانا",
+        "pinyin": "البينيين",
+        "rr": "الكتابة اللاتينية",
+        "latin": "الأحرف اللاتينية"
+      },
+      "readingsDownloading": "جارٍ تنزيل القاموس الياباني {{done}} / {{total}}",
+      "readingsDownloadFailed": "تعذّر تنزيل القاموس الياباني."
     },
     "pttHint": "اضغط مفتاح المسافة للتحدث"
   },

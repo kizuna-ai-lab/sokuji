@@ -6,6 +6,7 @@ import fs from 'fs'
 import { fileURLToPath } from 'url'
 import pkg from './package.json' with { type: 'json' }
 import { dropDuplicateOrtWasm } from './vite.drop-duplicate-ort-wasm'
+import { linderaWasmUrl } from './vite.lindera-wasm-url'
 import { workerManualChunks } from './vite.worker-chunks'
 
 /**
@@ -131,6 +132,7 @@ export default defineConfig(({ command, mode }) => {
       isServe && serveOrtWasm(),
       react(),
       dropDuplicateOrtWasm(),
+      linderaWasmUrl(),
       electron({
         main: {
           // Entry points for the main process
@@ -293,6 +295,7 @@ export default defineConfig(({ command, mode }) => {
     },
     worker: {
       format: 'es',
+      plugins: () => [linderaWasmUrl()],
       rollupOptions: {
         output: { manualChunks: workerManualChunks },
       },

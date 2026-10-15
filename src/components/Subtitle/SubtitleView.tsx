@@ -12,8 +12,10 @@ import {
   useSubtitleNewItemHighlightEnabled,
   useSubtitleParticipantDisplayMode,
   useSubtitleSettings,
+  useSubtitleShowReadings,
   useSubtitleSpeakerDisplayMode,
 } from '../../stores/subtitleStore';
+import type { ReadingLanguage } from '../../lib/reading/types';
 import type { ConversationListProps } from '../Conversation/ConversationList';
 import SubtitleBar from './SubtitleBar';
 import { SubtitleBody } from './SubtitleBands';
@@ -73,7 +75,7 @@ const noop = () => {};
  * its own window, the extension overlay from its wire. The old subtitle
  * window's layout, class for class.
  */
-export function SubtitleView({ surface, model, controls, exporter, statusLine, noticeAction }: {
+export function SubtitleView({ surface, model, controls, exporter, statusLine, noticeAction, readingTargets }: {
   surface: SubtitleSurfaceKind;
   model: SubtitleModel;
   controls: SubtitleControls;
@@ -83,6 +85,8 @@ export function SubtitleView({ surface, model, controls, exporter, statusLine, n
   statusLine?: ReactNode;
   /** The action a system row in the expanded list offers, if any: the Electron takeover's. */
   noticeAction?: ConversationListProps['noticeAction'];
+  /** The reading languages, from the Electron host only; the overlay passes none (it must not import the provider store). */
+  readingTargets?: ReadonlySet<ReadingLanguage>;
 }) {
   const { t } = useTranslation();
   // The overlay's hold-to-talk control lives in the bar (follow-up D) and
@@ -91,6 +95,7 @@ export function SubtitleView({ surface, model, controls, exporter, statusLine, n
   const [holdHeld, setHoldHeld] = useState(false);
   const chrome = useSubtitleChrome({ surface, onExit: controls.exit, forceVisible: holdHeld });
   const subtitle = useSubtitleSettings();
+  const showReadings = useSubtitleShowReadings();
   const speaker = useSubtitleSpeakerDisplayMode();
   const participant = useSubtitleParticipantDisplayMode();
   const newItemHighlightEnabled = useSubtitleNewItemHighlightEnabled();
@@ -131,6 +136,7 @@ export function SubtitleView({ surface, model, controls, exporter, statusLine, n
         participantActive={participantActive}
         exportMenu={exporter ? { exporter, speakerMode: speaker, participantMode: participant } : undefined}
         surface={surface}
+        readingTargets={readingTargets}
         onExit={controls.exit}
         sessionControl={surface === 'electron' && start && stop ? {
           isSessionActive: running,
@@ -159,6 +165,7 @@ export function SubtitleView({ surface, model, controls, exporter, statusLine, n
             newItemHighlightEnabled={newItemHighlightEnabled}
             notes={notes}
             noticeAction={noticeAction}
+            readings={surface === 'electron' && showReadings ? readingTargets : undefined}
           />
         )
       ) : (

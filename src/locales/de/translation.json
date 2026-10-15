@@ -961,7 +961,16 @@
       "colorArea": "Sättigung und Helligkeit",
       "colorHue": "Farbton",
       "colorHex": "Hex-Farbwert",
-      "newItemHighlight": "Neu eingetroffenen Text hervorheben"
+      "newItemHighlight": "Neu eingetroffenen Text hervorheben",
+      "readings": "{{language}}-Lesungen anzeigen ({{scheme}})",
+      "readingScheme": {
+        "kana": "Kana",
+        "pinyin": "Pinyin",
+        "rr": "Romanisierung",
+        "latin": "lateinische Buchstaben"
+      },
+      "readingsDownloading": "Japanisches Wörterbuch wird heruntergeladen {{done}} / {{total}}",
+      "readingsDownloadFailed": "Das japanische Wörterbuch konnte nicht heruntergeladen werden."
     },
     "pttHint": "Leertaste zum Sprechen halten"
   },

@@ -961,7 +961,16 @@
       "colorArea": "채도 및 명도",
       "colorHue": "색상",
       "colorHex": "16진수 색상 값",
-      "newItemHighlight": "새로 도착한 텍스트 강조 표시"
+      "newItemHighlight": "새로 도착한 텍스트 강조 표시",
+      "readings": "{{language}} 읽는 법 표시({{scheme}})",
+      "readingScheme": {
+        "kana": "가나",
+        "pinyin": "병음",
+        "rr": "로마자",
+        "latin": "라틴 문자"
+      },
+      "readingsDownloading": "일본어 사전 다운로드 중 {{done}} / {{total}}",
+      "readingsDownloadFailed": "일본어 사전을 다운로드하지 못했습니다."
     },
     "pttHint": "스페이스바를 눌러 말하세요"
   },

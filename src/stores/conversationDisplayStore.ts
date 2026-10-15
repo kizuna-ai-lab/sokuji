@@ -7,6 +7,7 @@ interface ConversationDisplayState {
   // Typography
   fontSize: number;            // clamped [CONVERSATION_FONT_SIZE_MIN, CONVERSATION_FONT_SIZE_MAX]
   compactMode: boolean;
+  showReadings: boolean;
   // Colors (hex)
   bgColor: string;
   sourceTextColor: string;
@@ -15,6 +16,7 @@ interface ConversationDisplayState {
   // Actions (async because persistence is async — matches subtitleStore)
   setFontSize: (n: number) => Promise<void>;
   setCompactMode: (b: boolean) => Promise<void>;
+  setShowReadings: (b: boolean) => Promise<void>;
   setBgColor: (s: string) => Promise<void>;
   setSourceTextColor: (s: string) => Promise<void>;
   setTranslationTextColor: (s: string) => Promise<void>;
@@ -31,6 +33,7 @@ export const CONVERSATION_DISPLAY_DEFAULT_TRANSLATION_TEXT_COLOR = '#e8e8e8';
 const DEFAULTS = {
   fontSize: 14,
   compactMode: false,
+  showReadings: false,
   bgColor: CONVERSATION_DISPLAY_DEFAULT_BG_COLOR,
   sourceTextColor: CONVERSATION_DISPLAY_DEFAULT_SOURCE_TEXT_COLOR,
   translationTextColor: CONVERSATION_DISPLAY_DEFAULT_TRANSLATION_TEXT_COLOR,
@@ -70,6 +73,12 @@ export const useConversationDisplayStore = create<ConversationDisplayState>()(
       const { ok } = await persist('compactMode', b);
       if (!ok) set({ compactMode: previous });
     },
+    setShowReadings: async (b) => {
+      const previous = get().showReadings;
+      set({ showReadings: b });
+      const { ok } = await persist('showReadings', b);
+      if (!ok) set({ showReadings: previous });
+    },
     setBgColor: async (s) => {
       const previous = get().bgColor;
       set({ bgColor: s });
@@ -91,13 +100,14 @@ export const useConversationDisplayStore = create<ConversationDisplayState>()(
 
     hydrate: async () => {
       const svc = ServiceFactory.getSettingsService();
-      const [fontSize, compactMode, bgColor, sourceTextColor, translationTextColor] =
+      const [fontSize, compactMode, bgColor, sourceTextColor, translationTextColor, showReadings] =
         await Promise.all([
           svc.getSetting(KEY('fontSize'), DEFAULTS.fontSize),
           svc.getSetting(KEY('compactMode'), DEFAULTS.compactMode),
           svc.getSetting(KEY('bgColor'), DEFAULTS.bgColor),
           svc.getSetting(KEY('sourceTextColor'), DEFAULTS.sourceTextColor),
           svc.getSetting(KEY('translationTextColor'), DEFAULTS.translationTextColor),
+          svc.getSetting(KEY('showReadings'), DEFAULTS.showReadings),
         ]);
       set({
         fontSize: clamp(Math.round(fontSize), CONVERSATION_FONT_SIZE_MIN, CONVERSATION_FONT_SIZE_MAX),
@@ -105,6 +115,7 @@ export const useConversationDisplayStore = create<ConversationDisplayState>()(
         bgColor,
         sourceTextColor,
         translationTextColor,
+        showReadings,
       });
     },
   })),
@@ -123,3 +134,5 @@ export const useSetConversationDisplayCompactMode = () => useConversationDisplay
 export const useSetConversationDisplayBgColor = () => useConversationDisplayStore((s) => s.setBgColor);
 export const useSetConversationDisplaySourceTextColor = () => useConversationDisplayStore((s) => s.setSourceTextColor);
 export const useSetConversationDisplayTranslationTextColor = () => useConversationDisplayStore((s) => s.setTranslationTextColor);
+export const useConversationDisplayShowReadings = () => useConversationDisplayStore((s) => s.showReadings);
+export const useSetConversationDisplayShowReadings = () => useConversationDisplayStore((s) => s.setShowReadings);

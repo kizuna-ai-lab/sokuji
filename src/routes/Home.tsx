@@ -12,6 +12,7 @@ import AuthOverlay from '../components/Auth/AuthOverlay';
 import { AppSessionRoot } from '../app/AppSessionRoot';
 import { loadSessionStores } from '../app/loadStores';
 import { watchDevices } from '../lib/audio/deviceWatch';
+import { bindReadings } from '../app/readings';
 
 export function Home() {
   const loadSettings = useLoadSettings();
@@ -37,9 +38,12 @@ export function Home() {
     // the session from the first Start.
     void loadSessionStores();
 
+    // Japanese readings are wanted while a readings switch is on and the target includes Japanese (spec 2026-10-15 §3).
+    const unbindReadings = bindReadings();
+
     // Follow the OS's devices from here on (spec 2026-10-04): plugging,
     // unplugging, a Bluetooth reconnect, a repaired virtual device.
-    return watchDevices({
+    const stopWatching = watchDevices({
       // A `devicechange` also tries the devices marked unusable again; the poll does not.
       sync: (reason) => useAudioStore.getState().syncDevices({ retryUnusable: reason === 'change' }),
       // While waiting for any microphone or while off the user's own: keep
@@ -58,6 +62,10 @@ export function Home() {
           || audio.unusableInputIds.includes(selected.deviceId);
       },
     });
+    return () => {
+      stopWatching();
+      unbindReadings();
+    };
   }, []); // Empty dependency array - only run once on mount
 
   return (
