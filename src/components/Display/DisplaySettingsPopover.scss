@@ -38,6 +38,12 @@
   .field {
     margin-bottom: 12px;
 
+    // The padding alone spaces the last row from the edge, as it does the
+    // first; with its margin added the gap below was 28px against 16px above.
+    &:last-child {
+      margin-bottom: 0;
+    }
+
     label {
       display: block;
       font-size: 12px;
