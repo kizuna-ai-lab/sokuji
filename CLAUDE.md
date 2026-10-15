@@ -276,7 +276,9 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
    - The Lindera wasm (17 MB) is downloaded once from `sokuji.kizuna.ai/reading/` (served by
      sokuji-backend's `web/scripts/reading-assets.mjs`), checked by size and SHA-256 and kept in
      `sokuji-models`; `vite.lindera-wasm-url.ts` keeps it out of every build
-     (`npm run check:no-lindera-wasm`). A Lindera bump moves the version, size and hash in both repos.
+     (`npm run check:no-lindera-wasm`). A Lindera bump moves the version, size and hash in both repos,
+     and the backend keeps every older version beside the new one (its `PINNED_VERSIONS`, an npm
+     alias per old version): an older app release still fetches the file it pins.
 
 ## Important Patterns and Conventions
 
