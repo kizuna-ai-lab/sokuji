@@ -8,12 +8,17 @@ export interface JaClient {
   terminate(): void;
 }
 
-/** Starts the worker on the dictionary's bytes (transferred) and resolves once it can tokenize. */
-export function startJaClient(wasm: ArrayBuffer): Promise<JaClient> {
+/**
+ * Starts the worker on the dictionary's bytes (transferred) and resolves once it
+ * can tokenize. `onGone` hears of a worker that stops after that (the system can
+ * end its ~170 MB under memory pressure); its own terminate() is not reported.
+ */
+export function startJaClient(wasm: ArrayBuffer, onGone?: (err: Error) => void): Promise<JaClient> {
   const worker = createLinderaWorker();
   const pending = new Map<number, (tokens: JaToken[] | null) => void>();
   let nextId = 1;
   let gone = false;
+  let ready = false;
   const settleAll = () => {
     for (const done of pending.values()) done(null);
     pending.clear();
@@ -33,7 +38,10 @@ export function startJaClient(wasm: ArrayBuffer): Promise<JaClient> {
   return new Promise((resolve, reject) => {
     worker.onmessage = (e: MessageEvent<FromLinderaWorker>) => {
       const msg = e.data;
-      if (msg.type === 'ready') resolve(client);
+      if (msg.type === 'ready') {
+        ready = true;
+        resolve(client);
+      }
       else if (msg.type === 'failed') {
         worker.terminate();
         reject(new Error(msg.message));
@@ -46,7 +54,9 @@ export function startJaClient(wasm: ArrayBuffer): Promise<JaClient> {
       gone = true;
       worker.terminate();
       settleAll();
-      reject(new Error(e.message || 'The Lindera worker stopped'));
+      const err = new Error(e.message || 'The Lindera worker stopped');
+      if (ready) onGone?.(err);
+      else reject(err);
     };
     worker.postMessage({ type: 'init', wasm } satisfies ToLinderaWorker, [wasm]);
   });

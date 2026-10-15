@@ -143,6 +143,50 @@ describe('the Japanese runtime', () => {
     expect(runtime.getJapaneseState()).toEqual({ phase: 'ready' });
   });
 
+  it('fails visibly when the worker stops after starting, keeps the dictionary, and a retry starts a new worker', async () => {
+    isDictionaryStored.mockResolvedValue(true);
+    storedDictionary.mockImplementation(async () => new ArrayBuffer(100));
+    const [first, second] = [fakeClient(), fakeClient()];
+    let gone!: (err: Error) => void;
+    startJaClient
+      .mockImplementationOnce(async (_bytes: ArrayBuffer, onGone: (err: Error) => void) => { gone = onGone; return first; })
+      .mockResolvedValueOnce(second);
+    runtime.setJapaneseWanted(true);
+    await flush();
+    await runtime.tokenizeJapanese('雨');
+    gone(new Error('worker killed'));
+    expect(runtime.getJapaneseState()).toEqual({ phase: 'failed' });
+    expect(reportWarning).toHaveBeenCalledTimes(1);
+    expect(deleteModelFiles).not.toHaveBeenCalled();
+    expect(runtime.tokenizeJapanese('雨')).toBeNull();
+    runtime.retryJapanese();
+    await flush();
+    expect(runtime.getJapaneseState()).toEqual({ phase: 'ready' });
+    expect(downloadDictionary).not.toHaveBeenCalled();
+    expect(await runtime.tokenizeJapanese('雨')).toEqual([{ surface: '雨', reading: 'アメ', unknown: false }]);
+    expect(startJaClient).toHaveBeenCalledTimes(2);
+    expect(second.tokenize).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores a worker from an earlier start that stops later', async () => {
+    isDictionaryStored.mockResolvedValue(true);
+    storedDictionary.mockImplementation(async () => new ArrayBuffer(100));
+    let gone!: (err: Error) => void;
+    startJaClient
+      .mockImplementationOnce(async (_bytes: ArrayBuffer, onGone: (err: Error) => void) => { gone = onGone; return fakeClient(); })
+      .mockResolvedValueOnce(fakeClient());
+    runtime.setJapaneseWanted(true);
+    await flush();
+    await runtime.tokenizeJapanese('雨');
+    runtime.setJapaneseWanted(false);
+    runtime.setJapaneseWanted(true);
+    await flush();
+    await runtime.tokenizeJapanese('雨');
+    gone(new Error('worker killed'));
+    expect(runtime.getJapaneseState()).toEqual({ phase: 'ready' });
+    expect(reportWarning).not.toHaveBeenCalled();
+  });
+
   it('fails when the stored dictionary is gone by the time the worker starts', async () => {
     isDictionaryStored.mockResolvedValueOnce(true);
     storedDictionary.mockResolvedValueOnce(null);

@@ -79,6 +79,7 @@ A switch in the display settings shows how the other side's language is pronounc
 - A download starts when either surface's switch is on, the target includes Japanese and the file is not stored, whether that happens by a click or at launch. Both switches off, or a pair change that leaves no Japanese target, aborts it and discards what arrived. It goes through `downloadRetry.ts` (connect timeout, retries, streamed progress). Progress, failure and retry are state in one small holder with a hook; a failure is recorded once with `reportWarning('Readings', …)`.
 - The worker instantiates the wasm from the stored bytes, never the network, builds a tokenizer (`embedded://ipadic`, normal mode) and answers `tokenize` requests with each token's surface and reading. It starts when a Japanese row first needs a reading and the file is stored, and is terminated when both switches are off or Japanese leaves the target, giving back its ~170 MB. Its memory is not counted in local inference's budget.
 - Until the worker answers, Japanese rows draw plain text.
+- A worker that stops on its own after it started (the system can end it under memory pressure) puts Japanese readings in the failed state, with Retry, and the rows draw plain text; the stored file is kept, since nothing says it is bad, and Retry starts a new worker on it. A worker that cannot start at all deletes the file instead, so Retry downloads it again.
 
 ### 4. Drawing
 

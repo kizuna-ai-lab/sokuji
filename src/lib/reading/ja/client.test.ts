@@ -67,16 +67,35 @@ describe('startJaClient', () => {
     expect(worker.sent.length).toBe(sentBefore);
   });
 
-  it('settles pending requests and later ones with null when the worker errors after ready', async () => {
-    const started = startJaClient(new ArrayBuffer(8));
+  it('settles pending requests and later ones with null when the worker errors after ready, and says so', async () => {
+    const onGone = vi.fn();
+    const started = startJaClient(new ArrayBuffer(8), onGone);
     const worker = FakeWorker.last;
     worker.answer({ type: 'ready' });
     const client = await started;
     const pending = client.tokenize('y');
     worker.onerror?.({ message: 'boom' } as ErrorEvent);
     expect(await pending).toBeNull();
+    expect(onGone).toHaveBeenCalledTimes(1);
+    expect(onGone.mock.calls[0][0]).toMatchObject({ message: 'boom' });
     const sentBefore = worker.sent.length;
     expect(await client.tokenize('z')).toBeNull();
     expect(worker.sent.length).toBe(sentBefore);
+  });
+
+  it('rejects, without calling onGone, when the worker errors before ready', async () => {
+    const onGone = vi.fn();
+    const started = startJaClient(new ArrayBuffer(8), onGone);
+    FakeWorker.last.onerror?.({ message: 'out of memory' } as ErrorEvent);
+    await expect(started).rejects.toThrow('out of memory');
+    expect(onGone).not.toHaveBeenCalled();
+  });
+
+  it('does not call onGone for its own terminate', async () => {
+    const onGone = vi.fn();
+    const started = startJaClient(new ArrayBuffer(8), onGone);
+    FakeWorker.last.answer({ type: 'ready' });
+    (await started).terminate();
+    expect(onGone).not.toHaveBeenCalled();
   });
 });

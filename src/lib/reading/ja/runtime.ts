@@ -80,7 +80,14 @@ function startClient(): Promise<JaClient | null> {
       const bytes = await storedDictionary();
       if (gen !== generation) return null;
       if (!bytes) throw new Error('the stored dictionary is gone');
-      const started = await startJaClient(bytes);
+      // A worker that stops later fails like one that would not start, but keeps the
+      // file: nothing says it is bad, and Retry starts a new worker on it.
+      const started = await startJaClient(bytes, (err) => {
+        if (gen !== generation || client !== started) return;
+        client = null;
+        reportWarning('Readings', `Japanese readings stopped: ${describeCause(err)}`, { cause: err });
+        publish({ phase: 'failed' });
+      });
       if (gen !== generation) {
         started.terminate();
         return null;
