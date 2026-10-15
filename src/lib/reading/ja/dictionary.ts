@@ -32,11 +32,20 @@ async function sha256Hex(buf: ArrayBuffer): Promise<string> {
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+async function storedBlob(expectedBytes: number): Promise<Blob | null> {
+  const blob = await getFile(DICTIONARY_STORE_ID, DICTIONARY_FILE);
+  return blob && blob.size === expectedBytes ? blob : null;
+}
+
+/** Whether the dictionary is stored at the size this version pins; reads none of its bytes. */
+export async function isDictionaryStored(expectedBytes = DICTIONARY_BYTES): Promise<boolean> {
+  return (await storedBlob(expectedBytes)) !== null;
+}
+
 /** The stored dictionary's bytes, or null when it is not stored at the size this version pins. */
 export async function storedDictionary(expectedBytes = DICTIONARY_BYTES): Promise<ArrayBuffer | null> {
-  const blob = await getFile(DICTIONARY_STORE_ID, DICTIONARY_FILE);
-  if (!blob || blob.size !== expectedBytes) return null;
-  return blob.arrayBuffer();
+  const blob = await storedBlob(expectedBytes);
+  return blob ? blob.arrayBuffer() : null;
 }
 
 /** Downloads, checks and stores the dictionary, replacing any other version; resolves with its bytes. */

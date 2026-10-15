@@ -1,7 +1,7 @@
 import { describeCause, reportWarning } from '../../diagnostics/report';
 import { deleteModelFiles } from '../../local-inference/modelStorage';
 import { startJaClient, type JaClient } from './client';
-import { DICTIONARY_BYTES, DICTIONARY_STORE_ID, downloadDictionary, storedDictionary } from './dictionary';
+import { DICTIONARY_BYTES, DICTIONARY_STORE_ID, downloadDictionary, isDictionaryStored, storedDictionary } from './dictionary';
 import type { JaToken } from './furigana';
 
 /**
@@ -76,7 +76,7 @@ function startClient(): Promise<JaClient | null> {
   const gen = generation;
   starting = (async (): Promise<JaClient | null> => {
     try {
-      // Read again: start() only checked the file, and the worker takes the bytes it is given.
+      // The only read of the file's bytes: start() checked that it is there.
       const bytes = await storedDictionary();
       if (gen !== generation) return null;
       if (!bytes) throw new Error('the stored dictionary is gone');
@@ -110,8 +110,8 @@ async function start(): Promise<void> {
   controller = own;
   publish({ phase: 'loading' });
   try {
-    // Read storage on every start: clearing local models deletes the file.
-    const stored = await storedDictionary();
+    // Check storage on every start: clearing local models deletes the file.
+    const stored = await isDictionaryStored();
     if (gen !== generation) return;
     if (!stored) {
       publish({ phase: 'downloading', done: 0, total: DICTIONARY_BYTES });

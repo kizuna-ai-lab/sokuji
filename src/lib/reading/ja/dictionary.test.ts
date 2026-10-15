@@ -4,7 +4,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createHash } from 'node:crypto';
 import { getFile, storeFile, clearAll } from '../../local-inference/modelStorage';
 import {
-  DICTIONARY_FILE, DICTIONARY_STORE_ID, DICTIONARY_URL, DictionaryIntegrityError, downloadDictionary, storedDictionary,
+  DICTIONARY_FILE, DICTIONARY_STORE_ID, DICTIONARY_URL, DictionaryIntegrityError, downloadDictionary, isDictionaryStored,
+  storedDictionary,
 } from './dictionary';
 
 const BYTES = new TextEncoder().encode('fake lindera wasm');
@@ -66,5 +67,18 @@ describe('the Japanese dictionary', () => {
   it('treats a stored file of another size as not stored', async () => {
     await storeFile(DICTIONARY_STORE_ID, DICTIONARY_FILE, new Blob(['short']));
     expect(await storedDictionary(BYTES.length)).toBeNull();
+    expect(await isDictionaryStored(BYTES.length)).toBe(false);
+  });
+
+  it('says whether the dictionary is stored at the pinned size without reading its bytes', async () => {
+    expect(await isDictionaryStored(BYTES.length)).toBe(false);
+    await storeFile(DICTIONARY_STORE_ID, DICTIONARY_FILE, new Blob([BYTES]));
+    const read = vi.spyOn(Blob.prototype, 'arrayBuffer');
+    try {
+      expect(await isDictionaryStored(BYTES.length)).toBe(true);
+      expect(read).not.toHaveBeenCalled();
+    } finally {
+      read.mockRestore();
+    }
   });
 });
