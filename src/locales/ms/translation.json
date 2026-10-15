@@ -970,7 +970,8 @@
         "latin": "huruf Latin"
       },
       "readingsDownloading": "Memuat turun kamus bahasa Jepun {{done}} / {{total}}",
-      "readingsDownloadFailed": "Kamus bahasa Jepun tidak dapat dimuat turun."
+      "readingsDownloadFailed": "Kamus bahasa Jepun tidak dapat dimuat turun.",
+      "readingsFailed": "Bacaan bahasa Jepun tidak berfungsi."
     },
     "pttHint": "Tekan Bar Ruang untuk bercakap"
   },

@@ -267,7 +267,11 @@ const JapaneseDictionaryStatus: React.FC<{ state: JapaneseState }> = ({ state })
   if (state.phase === 'failed') {
     return (
       <div className="readings-download readings-download--failed" role="alert">
-        <span className="readings-download__text">{t('subtitle.settings.readingsDownloadFailed', "Couldn't download the Japanese dictionary.")}</span>
+        <span className="readings-download__text">
+          {state.cause === 'download'
+            ? t('subtitle.settings.readingsDownloadFailed', "Couldn't download the Japanese dictionary.")
+            : t('subtitle.settings.readingsFailed', "Japanese readings aren't working.")}
+        </span>
         <Button variant="secondary" size="sm" onClick={retryJapanese}>{t('common.retry', 'Retry')}</Button>
       </div>
     );

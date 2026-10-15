@@ -134,7 +134,7 @@ describe('the Japanese runtime', () => {
     expect(startJaClient).toHaveBeenCalledTimes(1);
     expect(deleteModelFiles).toHaveBeenCalledWith('reading-ja-lindera');
     expect(reportWarning).toHaveBeenCalledTimes(1);
-    expect(runtime.getJapaneseState()).toEqual({ phase: 'failed' });
+    expect(runtime.getJapaneseState()).toEqual({ phase: 'failed', cause: 'engine' });
     isDictionaryStored.mockResolvedValue(false);
     downloadDictionary.mockResolvedValueOnce(new ArrayBuffer(100));
     runtime.retryJapanese();
@@ -155,7 +155,7 @@ describe('the Japanese runtime', () => {
     await flush();
     await runtime.tokenizeJapanese('雨');
     gone(new Error('worker killed'));
-    expect(runtime.getJapaneseState()).toEqual({ phase: 'failed' });
+    expect(runtime.getJapaneseState()).toEqual({ phase: 'failed', cause: 'engine' });
     expect(reportWarning).toHaveBeenCalledTimes(1);
     expect(deleteModelFiles).not.toHaveBeenCalled();
     expect(runtime.tokenizeJapanese('雨')).toBeNull();
@@ -195,7 +195,7 @@ describe('the Japanese runtime', () => {
     expect(await runtime.tokenizeJapanese('雨')).toBeNull();
     expect(startJaClient).not.toHaveBeenCalled();
     expect(reportWarning).toHaveBeenCalledTimes(1);
-    expect(runtime.getJapaneseState()).toEqual({ phase: 'failed' });
+    expect(runtime.getJapaneseState()).toEqual({ phase: 'failed', cause: 'engine' });
   });
 
   it('fails visibly once, and a retry starts again', async () => {
@@ -203,13 +203,22 @@ describe('the Japanese runtime', () => {
     downloadDictionary.mockRejectedValueOnce(new Error('offline'));
     runtime.setJapaneseWanted(true);
     await flush();
-    expect(runtime.getJapaneseState()).toEqual({ phase: 'failed' });
+    expect(runtime.getJapaneseState()).toEqual({ phase: 'failed', cause: 'download' });
     expect(reportWarning).toHaveBeenCalledTimes(1);
     downloadDictionary.mockResolvedValueOnce(new ArrayBuffer(100));
     startJaClient.mockResolvedValue(fakeClient());
     runtime.retryJapanese();
     await flush();
     expect(runtime.getJapaneseState()).toEqual({ phase: 'ready' });
+  });
+
+  it('fails as not working, not as a download, when the stored file cannot be checked', async () => {
+    isDictionaryStored.mockRejectedValueOnce(new Error('IndexedDB is unavailable'));
+    runtime.setJapaneseWanted(true);
+    await flush();
+    expect(downloadDictionary).not.toHaveBeenCalled();
+    expect(runtime.getJapaneseState()).toEqual({ phase: 'failed', cause: 'engine' });
+    expect(reportWarning).toHaveBeenCalledTimes(1);
   });
 
   it('downloads again when the stored file is gone (local models cleared)', async () => {
@@ -226,11 +235,24 @@ describe('the Japanese runtime', () => {
     expect(runtime.getJapaneseState()).toEqual({ phase: 'ready' });
   });
 
-  it('says nothing when an abort ends the download', async () => {
+  it('says nothing when switching off aborts the download', async () => {
     isDictionaryStored.mockResolvedValue(false);
-    downloadDictionary.mockRejectedValue(new DOMException('Download cancelled', 'AbortError'));
+    downloadDictionary.mockImplementation(({ signal }: { signal: AbortSignal }) => new Promise((_resolve, reject) => {
+      signal.addEventListener('abort', () => reject(new DOMException('Download cancelled', 'AbortError')));
+    }));
     runtime.setJapaneseWanted(true);
     await flush();
+    runtime.setJapaneseWanted(false);
+    await flush();
     expect(reportWarning).not.toHaveBeenCalled();
+    expect(runtime.getJapaneseState()).toEqual({ phase: 'off' });
+  });
+
+  it('fails as the engine, not stuck loading, when storage aborts on its own', async () => {
+    isDictionaryStored.mockRejectedValueOnce(new DOMException('The transaction was aborted', 'AbortError'));
+    runtime.setJapaneseWanted(true);
+    await flush();
+    expect(runtime.getJapaneseState()).toEqual({ phase: 'failed', cause: 'engine' });
+    expect(reportWarning).toHaveBeenCalledTimes(1);
   });
 });

@@ -7,14 +7,16 @@ import type { JaToken } from './furigana';
 /**
  * Where Japanese readings are: off, checking the stored file, downloading, ready,
  * or failed. Ready means the dictionary is stored; the worker starts when a
- * Japanese row first needs a reading (spec §3).
+ * Japanese row first needs a reading (spec §3). A failure is the download's, or
+ * the engine's: the stored file could not be checked or read, or the worker
+ * could not start or stopped.
  */
 export type JapaneseState =
   | { phase: 'off' }
   | { phase: 'loading' }
   | { phase: 'downloading'; done: number; total: number }
   | { phase: 'ready' }
-  | { phase: 'failed' };
+  | { phase: 'failed'; cause: 'download' | 'engine' };
 
 let state: JapaneseState = { phase: 'off' };
 let wanted = false;
@@ -86,7 +88,7 @@ function startClient(): Promise<JaClient | null> {
         if (gen !== generation || client !== started) return;
         client = null;
         reportWarning('Readings', `Japanese readings stopped: ${describeCause(err)}`, { cause: err });
-        publish({ phase: 'failed' });
+        publish({ phase: 'failed', cause: 'engine' });
       });
       if (gen !== generation) {
         started.terminate();
@@ -100,7 +102,7 @@ function startClient(): Promise<JaClient | null> {
       await deleteModelFiles(DICTIONARY_STORE_ID).catch(() => {});
       if (gen !== generation) return null;
       reportWarning('Readings', `Japanese readings could not start: ${describeCause(err)}`, { cause: err });
-      publish({ phase: 'failed' });
+      publish({ phase: 'failed', cause: 'engine' });
       return null;
     } finally {
       // One attempt per generation: a stop has cleared it already, and a later start owns the next.
@@ -116,12 +118,14 @@ async function start(): Promise<void> {
   const own = new AbortController();
   controller = own;
   publish({ phase: 'loading' });
+  let downloading = false;
   try {
     // Check storage on every start: clearing local models deletes the file.
     const stored = await isDictionaryStored();
     if (gen !== generation) return;
     if (!stored) {
       publish({ phase: 'downloading', done: 0, total: DICTIONARY_BYTES });
+      downloading = true;
       await downloadDictionary({
         signal: own.signal,
         onProgress: (done, total) => {
@@ -132,8 +136,11 @@ async function start(): Promise<void> {
     }
     publish({ phase: 'ready' });
   } catch (err) {
-    if (gen !== generation || (err as Error)?.name === 'AbortError') return;
+    // Our own aborts come from a stop or a newer start, both of which move the
+    // generation; any other AbortError (an IndexedDB transaction that aborted) is
+    // a failure, or the state would sit in loading with no Retry.
+    if (gen !== generation) return;
     reportWarning('Readings', `Japanese readings are unavailable: ${describeCause(err)}`, { cause: err });
-    publish({ phase: 'failed' });
+    publish({ phase: 'failed', cause: downloading ? 'download' : 'engine' });
   }
 }

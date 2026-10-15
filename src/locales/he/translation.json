@@ -970,7 +970,8 @@
         "latin": "אותיות לטיניות"
       },
       "readingsDownloading": "מוריד את המילון היפני {{done}} / {{total}}",
-      "readingsDownloadFailed": "לא ניתן היה להוריד את המילון היפני."
+      "readingsDownloadFailed": "לא ניתן היה להוריד את המילון היפני.",
+      "readingsFailed": "ההגייה ביפנית לא עובדת."
     },
     "pttHint": "לחץ על רווח כדי לדבר"
   },

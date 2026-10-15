@@ -970,7 +970,8 @@
         "latin": "ラテン文字"
       },
       "readingsDownloading": "日本語辞書をダウンロード中 {{done}} / {{total}}",
-      "readingsDownloadFailed": "日本語辞書をダウンロードできませんでした。"
+      "readingsDownloadFailed": "日本語辞書をダウンロードできませんでした。",
+      "readingsFailed": "日本語の読みを表示できません。"
     },
     "pttHint": "スペースキーを押して話す"
   },

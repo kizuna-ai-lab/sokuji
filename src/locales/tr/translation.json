@@ -970,7 +970,8 @@
         "latin": "Latin harfleri"
       },
       "readingsDownloading": "Japonca sözlük indiriliyor {{done}} / {{total}}",
-      "readingsDownloadFailed": "Japonca sözlük indirilemedi."
+      "readingsDownloadFailed": "Japonca sözlük indirilemedi.",
+      "readingsFailed": "Japonca okunuşlar çalışmıyor."
     },
     "pttHint": "Konuşmak için Boşluk tuşuna basın"
   },

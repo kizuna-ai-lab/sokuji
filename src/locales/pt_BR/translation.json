@@ -970,7 +970,8 @@
         "latin": "letras latinas"
       },
       "readingsDownloading": "Baixando o dicionário de japonês {{done}} / {{total}}",
-      "readingsDownloadFailed": "Não foi possível baixar o dicionário de japonês."
+      "readingsDownloadFailed": "Não foi possível baixar o dicionário de japonês.",
+      "readingsFailed": "As leituras em japonês não estão funcionando."
     },
     "pttHint": "Pressione Espaço para falar"
   },

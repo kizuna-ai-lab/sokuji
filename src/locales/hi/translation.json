@@ -970,7 +970,8 @@
         "latin": "लैटिन अक्षर"
       },
       "readingsDownloading": "जापानी शब्दकोश डाउनलोड हो रहा है {{done}} / {{total}}",
-      "readingsDownloadFailed": "जापानी शब्दकोश डाउनलोड नहीं हो सका।"
+      "readingsDownloadFailed": "जापानी शब्दकोश डाउनलोड नहीं हो सका।",
+      "readingsFailed": "जापानी उच्चारण काम नहीं कर रहा है।"
     },
     "pttHint": "बोलने के लिए स्पेस दबाएँ"
   },

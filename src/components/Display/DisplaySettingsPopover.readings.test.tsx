@@ -9,6 +9,7 @@ const CATALOG: Record<string, string> = {
   'subtitle.settings.readingScheme.pinyin': 'PINYIN',
   'subtitle.settings.readingsDownloading': 'DL {{done}}/{{total}}',
   'subtitle.settings.readingsDownloadFailed': 'DL FAILED',
+  'subtitle.settings.readingsFailed': 'NOT WORKING',
   'common.retry': 'AGAIN',
 };
 vi.mock('react-i18next', () => ({
@@ -27,7 +28,7 @@ vi.mock('../../services/ServiceFactory', () => ({
 vi.mock('../../lib/language/useLanguageLabel', () => ({ useLanguageLabel: () => (code: string) => `L(${code})` }));
 const trackEvent = vi.fn();
 vi.mock('../../lib/analytics', async (importOriginal) => ({ ...(await importOriginal<object>()), useAnalytics: () => ({ trackEvent }) }));
-let japanese: { phase: string; done?: number; total?: number } = { phase: 'off' };
+let japanese: { phase: string; done?: number; total?: number; cause?: string } = { phase: 'off' };
 const retryJapanese = vi.fn();
 vi.mock('../../lib/reading/ja/runtime', () => ({
   getJapaneseState: () => japanese,
@@ -84,9 +85,19 @@ describe('the readings row', () => {
     japanese = { phase: 'downloading', done: 7_340_032, total: 17_750_350 };
     const { getByText, rerender, getByRole } = render(<DisplaySettingsPopover source="conversation" readingTargets={JA} />);
     expect(getByText('DL 7.0 MB/16.9 MB')).toBeTruthy();
-    japanese = { phase: 'failed' };
+    japanese = { phase: 'failed', cause: 'download' };
     rerender(<DisplaySettingsPopover source="conversation" readingTargets={JA} />);
     expect(getByText('DL FAILED')).toBeTruthy();
+    fireEvent.click(getByRole('button', { name: 'AGAIN' }));
+    expect(retryJapanese).toHaveBeenCalled();
+  });
+
+  it('says readings are not working, not that the download failed, when the worker fails; with a retry', () => {
+    useConversationDisplayStore.setState({ showReadings: true } as never);
+    japanese = { phase: 'failed', cause: 'engine' };
+    const { getByText, queryByText, getByRole } = render(<DisplaySettingsPopover source="conversation" readingTargets={JA} />);
+    expect(getByText('NOT WORKING')).toBeTruthy();
+    expect(queryByText('DL FAILED')).toBeNull();
     fireEvent.click(getByRole('button', { name: 'AGAIN' }));
     expect(retryJapanese).toHaveBeenCalled();
   });

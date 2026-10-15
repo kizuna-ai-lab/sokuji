@@ -970,7 +970,8 @@
         "latin": "lateinische Buchstaben"
       },
       "readingsDownloading": "Japanisches Wörterbuch wird heruntergeladen {{done}} / {{total}}",
-      "readingsDownloadFailed": "Das japanische Wörterbuch konnte nicht heruntergeladen werden."
+      "readingsDownloadFailed": "Das japanische Wörterbuch konnte nicht heruntergeladen werden.",
+      "readingsFailed": "Die japanischen Lesungen funktionieren nicht."
     },
     "pttHint": "Leertaste zum Sprechen halten"
   },

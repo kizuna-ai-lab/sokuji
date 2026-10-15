@@ -970,7 +970,8 @@
         "latin": "الأحرف اللاتينية"
       },
       "readingsDownloading": "جارٍ تنزيل القاموس الياباني {{done}} / {{total}}",
-      "readingsDownloadFailed": "تعذّر تنزيل القاموس الياباني."
+      "readingsDownloadFailed": "تعذّر تنزيل القاموس الياباني.",
+      "readingsFailed": "لا تعمل القراءات اليابانية."
     },
     "pttHint": "اضغط مفتاح المسافة للتحدث"
   },

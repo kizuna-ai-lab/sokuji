@@ -970,7 +970,8 @@
         "latin": "拉丁字母"
       },
       "readingsDownloading": "正在下载日语词典 {{done}} / {{total}}",
-      "readingsDownloadFailed": "日语词典下载失败。"
+      "readingsDownloadFailed": "日语词典下载失败。",
+      "readingsFailed": "日语读音无法显示。"
     },
     "pttHint": "按住空格说话"
   },

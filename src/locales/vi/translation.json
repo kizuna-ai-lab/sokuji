@@ -970,7 +970,8 @@
         "latin": "chữ cái La-tinh"
       },
       "readingsDownloading": "Đang tải từ điển tiếng Nhật {{done}} / {{total}}",
-      "readingsDownloadFailed": "Không thể tải từ điển tiếng Nhật."
+      "readingsDownloadFailed": "Không thể tải từ điển tiếng Nhật.",
+      "readingsFailed": "Cách đọc tiếng Nhật không hoạt động."
     },
     "pttHint": "Nhấn Phím cách để nói"
   },
