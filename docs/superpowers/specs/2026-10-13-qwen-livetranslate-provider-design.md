@@ -55,7 +55,7 @@ test on 2026-10-14 (D9).
 <br>• A commit with nothing appended, or right after a `clear`, fails with "no active inference", and every later append is refused.
 <br>• A commit on a 0.3 s tap or on 0.4 s of silence ends cleanly, with empty texts and `response.done`. |
 | Events | Each turn creates two items (both role `assistant`): the heard one (id from `speech_started`, or the first `conversation.item.created`) and the translation, whose `previous_item_id` is the heard item. Source text arrives as `conversation.item.input_audio_transcription.delta` then `.completed` (`transcript`; no language or emotion field; punctuation inconsistent). Translation as `response.audio_transcript.delta` then `.done` with audio on, or `response.text.delta` then `response.text.done` without. Deltas append; nothing is revised |
-| Ending | The server never closes a socket, not 30 s after `session.finished` and not after 90 s idle. `session.finish` → `session.finished` in 0.1–0.7 s |
+| Ending | The server never closes a socket after `session.finished`, but it closes one the client sent nothing to for 300 s: `1007 Idle timeout!` (probe 2026-10-16; a session sending every 60 s lived 22 min on every host). Under manual turns an append left uncommitted is closed 60 s later (`Response stream timeout`). `session.finish` → `session.finished` in 0.1–0.7 s |
 | Billing | 7 tokens per whole second of each turn's audio window (idle silence is free); 12.5 tokens per second of output audio; a fixed 47 input text tokens per session. `response.done.usage` is the session's running total. Console `status_code` is 400 for every session that reached the model; it does not mean failure |
 | Errors | Bad key: upgrade 401 `InvalidApiKey`. Failures mid-session arrive as `error` then close 1007 or 1011 with the message as the reason |
 | Network | From the owner's machine both mainland hosts resolve to IPv6, and that route carried only about 20 KB/s against the ~43 KB/s a 16 kHz base64 stream needs; the server fell 34 s behind in 30 s. Over IPv4 the lag was 0.7–1.3 s, the same as international |
@@ -261,7 +261,7 @@ export interface QwenConfig {
 - **Karaoke, by phrase (owner's choice A, 2026-10-14).** A translation arrives as phrases: its words, then their speech. In 12 recorded turns, each phrase's share of the text matched its share of the audio within 5%. So a translation delta arriving after audio begins the next phrase, unless it adds no visible character (a recorded turn had `" "` between two words). The phrase before is whole: its text (as last sent) is tiled over the audio that followed it, by sample count (`tileSpan`), and stated with `speechRanges`, as Palabra's fill-in. The last phrase is filled once both the final text and `response.audio.done` have come, in either order. Audio after that plays unranged. A final text shorter than its deltas restates the ranges past its end within it. Nothing is lit before its phrase is whole, so in a long turn whose speech streams in real time the first phrase may play unlit. The attribution is by order, measured and not stated by the server.
 
 **Turns.** Manual mode on 3.8 is undocumented: the docs scope `turn_detection: null` to qwen3.5. The rules below come from the probes of 2026-10-14 (evidence table, "Turns, manual").
-- `beginTurn()` does nothing.
+- `beginTurn()` sends nothing. It drops the quiet kept back from the last press; the quiet count runs on (see "Quiet inside a press").
 - `endTurn()` sends `input_audio_buffer.commit` in manual mode and does nothing in auto. A commit is never sent when nothing was appended since the last one: the server answers "no active inference" and then refuses every later append.
 - A committed turn is busy until its `response.done`; the server refuses audio meanwhile. Audio appended while busy is held and sent when the turn is done, followed by its release's commit if the press has already ended. If `response.done` does not come within `TURN_DONE_MS` (10 s), the held audio goes up anyway.
 - `cancelTurn()` is a release (owner, 2026-10-14). The runner's voice gate calls a press with under 500 ms of voice a cancel, and in the live test that dropped short words such as 对不对. An empty press comes back with empty texts and shows nothing (probed: a 0.3 s tap, 0.4 s of silence). It never sends `input_audio_buffer.clear`.
@@ -283,6 +283,12 @@ export interface QwenConfig {
 
 - An unexpected close with no reason fails with `connection_lost`.
 - There is no reconnect (D8).
+
+**Keepalive (probe 2026-10-16).** A leg sends nothing while its source is muted, or between push-to-talk presses, and Qwen closes a session idle for 300 s. The adapter looks every `KEEPALIVE_CHECK_MS` (30 s) on the request's clock; once nothing has gone up for `KEEPALIVE_IDLE_MS` (180 s, room for a hidden page's late timers) it sends 100 ms of silence, framed as `session.keepalive`. Under automatic turns that append is all, and free. Under push-to-talk it is committed at once as a turn of its own (about 7 audio tokens), never into a press with audio waiting to be committed nor while a turn is still being finished. A press held with nothing left to send (a muted source, or quiet past its allowance) still gets one, since the idle close would come all the same; voice after it waits for that turn. The turn comes back empty and shows nothing.
+
+**Server cuts (probe 2026-10-16).** Under push-to-talk the server cuts a press by itself every ~30 s of audio: `input_audio_buffer.committed`, then that turn's `response.done` about 0.13 s later, refusing any audio in between (`Previous turn is still processing`). A `committed` the leg did not send (it is not busy) is framed `session.server_cut` and makes the leg busy, as its own commit does: the press's audio is held and goes up after `response.done`, and a release meanwhile commits after it. At most a chunk already in flight at the cut is lost.
+
+**Quiet inside a press (probe 2026-10-16).** The server closes a session once about 30 s of audio since the last speech it recognised held none (`1007 no semantic result after merged audio exceeded 30s`), counting across turns; a commit does not reset it. So under push-to-talk each chunk is judged with the runner's `isVoiced`: quiet goes up for `QUIET_KEEP_MS` (2 s) since the last voiced chunk, counted across presses as the server counts across turns, then the turn is closed once (framed `session.quiet_held`) and the rest is not sent, the last `PRE_ROLL_MS` (300 ms) of the press's own quiet kept back to go up ahead of the voice that ends it, as a new turn. A pause longer than 2 s inside a press therefore splits it into two turns, and once the 2 s are spent a press without voice sends nothing at all. Loud noise that is not speech still counts as voice.
 - A frame that will not parse is `degraded('parse_error')` once per window, the existing rule.
 
 **Frames.**
@@ -391,6 +397,7 @@ export interface QwenConfig {
 
 ## Known limitations and follow-ups
 
+- **Long push-to-talk presses.** Handled in §6 (server cuts, quiet inside a press). What remains: a chunk in flight at a server cut can be lost, and about 30 s in total of loud non-speech audio between recognised utterances still closes the session.
 - **Uplink backlog.** On a network whose IPv6 route to the mainland is slow, a mainland key's stream falls behind. A follow-up can watch `WebSocket.bufferedAmount` and raise a degraded notice, or send a lower rate.
 - **Managed Qwen.** It needs Alibaba to provide per-session usage attribution (a ticket is open with QwenCloud support). It is not designed here.
 - **Later, and small:** pre-created cloned voices, face-to-face (Qwen's diarization would serve it), and reconnect.

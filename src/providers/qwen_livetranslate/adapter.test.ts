@@ -6,7 +6,7 @@
  * `FakeSocket`s and a virtual clock — no network, no fake timers.
  */
 import { describe, it, expect } from 'vitest';
-import { AdapterStartError } from '../../lib/contract/adapter';
+import { AdapterStartError, SAMPLE_RATE } from '../../lib/contract/adapter';
 import type { AdapterEvent } from '../../lib/contract/events';
 import { HeaderSocketError } from '../../lib/contract/headerSocket';
 import { flush, type ScenarioStep } from '../../lib/contract/testing/drive';
@@ -16,7 +16,7 @@ import { runLifecycles, type LifecycleHarness } from '../../lib/contract/testing
 import { runScenario, scenarioNames, type AdapterHarness } from '../../lib/contract/testing/scenarios';
 import { recordEvents } from '../../lib/contract/events';
 import { trackedClock } from '../../lib/contract/testing/trackedClock';
-import { CONNECTION_LOST, createQwenAdapter, ERROR_WORDS_MS, NEVER_OPENED, START_TIMEOUT_MS, TURN_DONE_MS } from './adapter';
+import { CONNECTION_LOST, createQwenAdapter, ERROR_WORDS_MS, KEEPALIVE_CHECK_MS, KEEPALIVE_IDLE_MS, NEVER_OPENED, PRE_ROLL_MS, QUIET_KEEP_MS, START_TIMEOUT_MS, TURN_DONE_MS } from './adapter';
 import type { DetectEndpoint } from './check';
 import type { QwenConfig } from './config';
 import type { QwenCredentials } from './settings';
@@ -148,7 +148,7 @@ describe('the Qwen LiveTranslate adapter: the start (spec §6)', () => {
     expect(h.socket().url).toBe('wss://maas.qianwenaiapi.com/api-ws/v1/realtime?model=qwen3.8-livetranslate-flash-realtime');
   });
 
-  it('sends nothing until session.created, then its one update; resolves on session.updated with nothing but frames and no timer', async () => {
+  it("sends nothing until session.created, then its one update; resolves on session.updated with nothing but frames and no timer but the keepalive's", async () => {
     const h = await openQwen();
     expect(h.sent()).toEqual([]);
     h.socket().receive(SERVER.created());
@@ -162,7 +162,7 @@ describe('the Qwen LiveTranslate adapter: the start (spec §6)', () => {
     expect(session.info).toEqual({ transport: 'websocket' });
     expect(h.frames('session.update')).toEqual([sessionUpdate(h.config).session]);
     expect(h.content()).toEqual([]);
-    expect(h.timers()).toBe(0);
+    expect(h.timers()).toBe(1);
   });
 
   it("refuses in Qwen's words an error before the update is confirmed, closing the socket", async () => {
@@ -399,6 +399,174 @@ describe('the Qwen LiveTranslate adapter: the session (spec §6)', () => {
     h.session.endTurn();
     await h.session.stop();
     expect(h.timers()).toBe(0);
+  });
+
+  it(`a quiet leg under automatic turns — a muted source sends nothing — appends 100 ms of silence once nothing has gone up for ${KEEPALIVE_IDLE_MS / 1000} s, framed; audio going up keeps it quiet, and stop leaves no timer`, async () => {
+    const h = await qwenSession();
+    for (let i = 0; i < 4; i++) {
+      h.clock.advance(60_000);
+      h.session.appendAudio(chunk(1));
+    }
+    expect(h.appended()).toHaveLength(4);
+    expect(h.frames('session.keepalive')).toEqual([]);
+    // Muted from here: the look after the threshold sends the keepalive, at most a look late.
+    h.clock.advance(KEEPALIVE_IDLE_MS - KEEPALIVE_CHECK_MS);
+    expect(h.appended()).toHaveLength(4);
+    h.clock.advance(KEEPALIVE_CHECK_MS);
+    expect(h.appended()).toHaveLength(5);
+    expect(h.appended()[4]).toEqual(new Int16Array(SAMPLE_RATE / 10));
+    expect(types(h.socket())).not.toContain('input_audio_buffer.commit');
+    expect(h.frames('session.keepalive')).toEqual([{ idleMs: KEEPALIVE_IDLE_MS }]);
+    // Still quiet: another one a threshold later, and nothing reaches the segments.
+    h.clock.advance(KEEPALIVE_IDLE_MS);
+    expect(h.appended()).toHaveLength(6);
+    expect(h.content()).toEqual([]);
+    await h.session.stop();
+    expect(h.timers()).toBe(0);
+  });
+
+  it(`push-to-talk: a quiet leg commits a turn of 100 ms of silence — an append alone is closed 60 s later (probe 2026-10-16) — and a press during it waits for its response`, async () => {
+    const h = await qwenSession({ context: MANUAL_CTX });
+    h.clock.advance(KEEPALIVE_IDLE_MS);
+    expect(types(h.socket()).slice(1)).toEqual(['input_audio_buffer.append', 'input_audio_buffer.commit']);
+    expect(h.appended()).toEqual([new Int16Array(SAMPLE_RATE / 10)]);
+    expect(h.frames('session.keepalive')).toEqual([{ idleMs: KEEPALIVE_IDLE_MS }]);
+    h.session.beginTurn();
+    h.session.appendAudio(chunk(7));
+    h.session.endTurn();
+    expect(h.appended()).toHaveLength(1);
+    h.socket().receive(SERVER.responseDone());
+    expect(types(h.socket()).slice(1)).toEqual(['input_audio_buffer.append', 'input_audio_buffer.commit', 'input_audio_buffer.append', 'input_audio_buffer.commit']);
+    expect(h.appended().map((pcm) => pcm[0])).toEqual([0, 7]);
+  });
+
+  it('push-to-talk: a press held with nothing left to send — its quiet allowance spent, or a muted source — still gets the keepalive, or Qwen would close the session; voice after it waits for that turn', async () => {
+    const h = await qwenSession({ context: MANUAL_CTX });
+    const kept = Math.floor((SAMPLE_RATE * QUIET_KEEP_MS) / 1000 / 2_048);
+    h.session.beginTurn();
+    for (let i = 1; i <= kept + 1; i++) h.session.appendAudio(chunk(i));
+    h.socket().receive(SERVER.responseDone());
+    // Still held, in silence: every chunk is kept back, so nothing goes up.
+    for (let s = 0; s < KEEPALIVE_IDLE_MS / 10_000; s++) {
+      h.clock.advance(10_000);
+      h.session.appendAudio(chunk(7));
+    }
+    expect(h.frames('session.keepalive')).toEqual([{ idleMs: KEEPALIVE_IDLE_MS }]);
+    expect(h.appended()[kept]).toEqual(new Int16Array(SAMPLE_RATE / 10));
+    h.session.appendAudio(chunk(1_000));
+    expect(h.appended()).toHaveLength(kept + 1);
+    h.socket().receive(SERVER.responseDone());
+    expect(h.appended().slice(kept).map((pcm) => pcm[0])).toEqual([0, 7, 7, 7, 7, 1_000]);
+    h.session.endTurn();
+    expect(types(h.socket()).filter((t) => t === 'input_audio_buffer.commit')).toHaveLength(3);
+  });
+
+  it('push-to-talk: no keepalive cuts into a press with audio waiting to be committed; its release restarts the wait', async () => {
+    const h = await qwenSession({ context: MANUAL_CTX });
+    h.session.beginTurn();
+    h.session.appendAudio(chunk(1));
+    h.clock.advance(KEEPALIVE_IDLE_MS);
+    expect(types(h.socket()).slice(1)).toEqual(['input_audio_buffer.append']);
+    h.session.endTurn();
+    h.socket().receive(SERVER.responseDone());
+    h.clock.advance(KEEPALIVE_IDLE_MS - KEEPALIVE_CHECK_MS);
+    expect(h.frames('session.keepalive')).toEqual([]);
+    h.clock.advance(KEEPALIVE_CHECK_MS);
+    expect(h.frames('session.keepalive')).toEqual([{ idleMs: KEEPALIVE_IDLE_MS }]);
+    expect(types(h.socket()).slice(1)).toEqual(['input_audio_buffer.append', 'input_audio_buffer.commit', 'input_audio_buffer.append', 'input_audio_buffer.commit']);
+  });
+
+  it("push-to-talk: a commit the leg did not send is the server cutting a long press (every ~30 s of audio, probe 2026-10-16): the press waits for that turn's response and goes on, and a release meanwhile commits after it", async () => {
+    const h = await qwenSession({ context: MANUAL_CTX });
+    h.session.beginTurn();
+    h.session.appendAudio(chunk(1_001));
+    h.socket().receive(SERVER.committed('item_h1'));
+    expect(h.frames('session.server_cut')).toHaveLength(1);
+    // The server refuses audio until the cut turn is done: it waits here instead.
+    h.session.appendAudio(chunk(1_002));
+    expect(h.appended().map((pcm) => pcm[0])).toEqual([1_001]);
+    h.socket().receive(SERVER.responseDone());
+    expect(h.appended().map((pcm) => pcm[0])).toEqual([1_001, 1_002]);
+    expect(types(h.socket())).not.toContain('input_audio_buffer.commit');
+    // A second cut, and the key let go while its turn is finishing: the release commits once what waited has gone up.
+    h.socket().receive(SERVER.committed('item_h2'));
+    h.session.appendAudio(chunk(1_003));
+    h.session.endTurn();
+    expect(types(h.socket())).not.toContain('input_audio_buffer.commit');
+    h.socket().receive(SERVER.responseDone());
+    expect(types(h.socket()).slice(1)).toEqual(['input_audio_buffer.append', 'input_audio_buffer.append', 'input_audio_buffer.append', 'input_audio_buffer.commit']);
+    // The acknowledgement of the leg's own commit is no cut.
+    h.socket().receive(SERVER.committed('item_h3'));
+    expect(h.frames('session.server_cut')).toHaveLength(2);
+  });
+
+  it(`push-to-talk: a quiet stretch inside a press goes up for ${QUIET_KEEP_MS / 1000} s, then its turn is committed and nothing more is sent — the server closes a session past ~30 s of audio with no speech (probe 2026-10-16) — until voice comes back, ${PRE_ROLL_MS} ms of the quiet ahead of it`, async () => {
+    const h = await qwenSession({ context: MANUAL_CTX });
+    const quiet = (n: number) => chunk(n);
+    const kept = Math.floor((SAMPLE_RATE * QUIET_KEEP_MS) / 1000 / 2_048);
+    h.session.beginTurn();
+    h.session.appendAudio(chunk(1_000));
+    for (let i = 1; i <= kept + 20; i++) h.session.appendAudio(quiet(i));
+    expect(h.appended().map((pcm) => pcm[0])).toEqual([1_000, ...Array.from({ length: kept }, (_, i) => i + 1)]);
+    expect(types(h.socket()).slice(1).filter((t) => t === 'input_audio_buffer.commit')).toHaveLength(1);
+    h.socket().receive(SERVER.responseDone());
+    h.session.appendAudio(chunk(1_500));
+    const preRoll = Math.ceil((SAMPLE_RATE * PRE_ROLL_MS) / 1000 / 2_048);
+    expect(h.appended().slice(kept + 1).map((pcm) => pcm[0])).toEqual([...Array.from({ length: preRoll }, (_, i) => kept + 20 - preRoll + 1 + i), 1_500]);
+    h.session.endTurn();
+    expect(types(h.socket()).slice(1).filter((t) => t === 'input_audio_buffer.commit')).toHaveLength(2);
+  });
+
+  it(`push-to-talk: a press held in silence sends ${QUIET_KEEP_MS / 1000} s of it and one commit, however long it is held; its release commits nothing more`, async () => {
+    const h = await qwenSession({ context: MANUAL_CTX });
+    const kept = Math.floor((SAMPLE_RATE * QUIET_KEEP_MS) / 1000 / 2_048);
+    h.session.beginTurn();
+    for (let i = 1; i <= kept * 10; i++) h.session.appendAudio(chunk(i % 300));
+    h.socket().receive(SERVER.responseDone());
+    h.session.endTurn();
+    expect(h.appended()).toHaveLength(kept);
+    expect(types(h.socket()).slice(1).filter((t) => t === 'input_audio_buffer.commit')).toHaveLength(1);
+  });
+
+  it(`push-to-talk: the ${QUIET_KEEP_MS / 1000} s of quiet are counted across presses until voice — the server's count runs on across turns — so more silent presses send nothing, and voice starts the count afresh`, async () => {
+    const h = await qwenSession({ context: MANUAL_CTX });
+    const kept = Math.floor((SAMPLE_RATE * QUIET_KEEP_MS) / 1000 / 2_048);
+    const commits = () => types(h.socket()).filter((t) => t === 'input_audio_buffer.commit');
+    const press = (fills: number[]) => {
+      h.session.beginTurn();
+      for (const fill of fills) h.session.appendAudio(chunk(fill));
+      h.session.endTurn();
+      h.socket().receive(SERVER.responseDone());
+    };
+    press(Array.from({ length: kept + 5 }, (_, i) => i % 300));
+    expect(h.appended()).toHaveLength(kept);
+    expect(commits()).toHaveLength(1);
+    for (let n = 0; n < 15; n++) press([1, 2, 3, 4, 5]);
+    expect(h.appended()).toHaveLength(kept);
+    expect(commits()).toHaveLength(1);
+    // Voice: only this press's own quiet goes ahead of it.
+    press([11, 1_000]);
+    expect(h.appended().slice(kept).map((pcm) => pcm[0])).toEqual([11, 1_000]);
+    expect(commits()).toHaveLength(2);
+    press(Array.from({ length: kept + 5 }, (_, i) => i % 300));
+    expect(h.appended()).toHaveLength(kept + 2 + kept);
+    expect(commits()).toHaveLength(3);
+  });
+
+  it('push-to-talk: a quiet stretch that runs past the threshold while the turn before is still finishing commits once what waits behind that turn has gone up', async () => {
+    const h = await qwenSession({ context: MANUAL_CTX });
+    const kept = Math.floor((SAMPLE_RATE * QUIET_KEEP_MS) / 1000 / 2_048);
+    h.session.beginTurn();
+    h.session.appendAudio(chunk(1_000));
+    h.session.endTurn();
+    h.session.beginTurn();
+    h.session.appendAudio(chunk(1_001));
+    for (let i = 1; i <= kept + 5; i++) h.session.appendAudio(chunk(i));
+    expect(types(h.socket()).slice(1)).toEqual(['input_audio_buffer.append', 'input_audio_buffer.commit']);
+    h.socket().receive(SERVER.responseDone());
+    expect(h.appended().map((pcm) => pcm[0])).toEqual([1_000, 1_001, ...Array.from({ length: kept }, (_, i) => i + 1)]);
+    expect(types(h.socket()).slice(-1)).toEqual(['input_audio_buffer.commit']);
+    expect(types(h.socket()).filter((t) => t === 'input_audio_buffer.commit')).toHaveLength(2);
   });
 
   it('push-to-talk: a heard item its content does not mark is told by what it follows — nothing, or the last translation — so its words still show', async () => {

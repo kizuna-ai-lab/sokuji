@@ -6,23 +6,29 @@
  * `session.updated`, the one `session.update` confirmed, within a bound.
  * Events become segments (`segments.ts`); under push-to-talk a release
  * commits the turn, and so does a cancel, and a press made before the turn
- * ahead is done waits for that turn's `response.done` (D6).
+ * ahead is done waits for that turn's `response.done` (D6) — as it does behind
+ * the server's own cut of a long press. A press gone quiet past
+ * `QUIET_KEEP_MS` closes its turn and sends nothing until voice comes back.
  * An error words the close that follows it, and any end the leg did not ask
- * for fails it: there is no reconnect (D8). Stop sends `session.finish` and closes at once. Every
+ * for fails it: there is no reconnect (D8). A leg with nothing to send keeps
+ * the session alive past Qwen's idle close. Stop sends `session.finish` and closes at once. Every
  * timer reads the request's clock, and nothing is said but through events
  * (CLAUDE.md, "Inside an adapter session").
  */
 import {
   AdapterStartError,
+  SAMPLE_RATE,
   type Adapter,
   type AdapterEvents,
   type AdapterSession,
   type StartRequest,
 } from '../../lib/contract/adapter';
+import { every } from '../../lib/contract/clock';
 import { framePayload } from '../../lib/contract/framePayload';
 import { HeaderSocketError, ruleFor, type OpenHeaderSocket } from '../../lib/contract/headerSocket';
 import { WS_OPEN } from '../../lib/contract/socket';
 import { describeCause } from '../../lib/diagnostics/describeCause';
+import { isVoiced } from '../../lib/session/turn';
 import type { DetectEndpoint, Detection } from './check';
 import type { QwenConfig } from './config';
 import type { EndpointId } from './endpoints';
@@ -50,6 +56,30 @@ export const START_TIMEOUT_MS = 15_000;
 export const ERROR_WORDS_MS = 10_000;
 /** How long a released turn may take to end (`response.done`) before a press held behind it goes up anyway: the probes saw 0.07–0.52 s. */
 export const TURN_DONE_MS = 10_000;
+/**
+ * Qwen closes a session the client sent nothing to for 300 s (`1007 Idle
+ * timeout!`, probe 2026-10-16), and a leg sends nothing while its source is
+ * muted, or between push-to-talk presses: one quiet this long sends a
+ * keepalive. Well under 300, since a hidden page may run the look a minute late.
+ */
+export const KEEPALIVE_IDLE_MS = 180_000;
+/** How often the keepalive looks. */
+export const KEEPALIVE_CHECK_MS = 30_000;
+/** 100 ms of silence: free under automatic turns; a push-to-talk turn of it costs about 7 audio tokens. */
+const KEEPALIVE_SILENCE = new Int16Array(SAMPLE_RATE / 10);
+/**
+ * Under push-to-talk, how much quiet still goes up between voiced chunks — a
+ * pause, the end of a sentence — counted across presses. Past it nothing
+ * more is sent: Qwen closes a session once about 30 s of audio since the
+ * last speech it heard held none (`1007 no semantic result after merged
+ * audio exceeded 30s`, probe 2026-10-16), across turns, and no commit resets
+ * that count.
+ */
+export const QUIET_KEEP_MS = 2_000;
+/** The quiet kept back to go up ahead of the voice that ends it, so its first syllable is not clipped. */
+export const PRE_ROLL_MS = 300;
+const QUIET_KEEP_SAMPLES = (SAMPLE_RATE * QUIET_KEEP_MS) / 1000;
+const PRE_ROLL_SAMPLES = (SAMPLE_RATE * PRE_ROLL_MS) / 1000;
 /** A socket that failed before it opened: a browser cannot read why. */
 export const NEVER_OPENED = "Qwen's socket did not open (check the network, and that the API key is still valid).";
 /** Why the leg fails when the connection closed with no words (D8): worded by the `connection_lost` alias. */
@@ -116,6 +146,13 @@ class QwenLeg implements AdapterSession {
   private appended = false;
   /** The `TURN_DONE_MS` fallback's cancel, while busy. */
   private cancelTurnWait: (() => void) | null = null;
+  /** When audio or a commit last went up: what the idle close counts from. */
+  private lastSentAt = 0;
+  private stopKeepalive: () => void = () => {};
+  /** Push-to-talk: the samples of quiet since the last voiced chunk, across presses. */
+  private quietSamples = 0;
+  /** The last `PRE_ROLL_MS` of a quiet stretch kept back. */
+  private preRoll: Int16Array[] = [];
 
   constructor(
     private readonly request: StartRequest<QwenConfig, QwenCredentials>,
@@ -136,30 +173,49 @@ class QwenLeg implements AdapterSession {
     }
   }
 
-  /** One chunk as it came, while live — no frame per chunk (the hot-path rule); held while the turn before is still being finished. */
+  /**
+   * One chunk as it came, while live — no frame per chunk (the hot-path
+   * rule). Under push-to-talk quiet goes up for `QUIET_KEEP_MS` since the
+   * last voice, over any number of presses; past it the turn is closed once
+   * and the quiet kept back, its last `PRE_ROLL_MS` going up ahead of the
+   * voice that ends it.
+   */
   appendAudio(pcm: Int16Array): void {
-    const ws = this.live();
-    if (!ws) return;
-    if (this.busy) {
-      if (this.held.length === 0) this.frame('out', 'session.audio_held');
-      this.held.push(pcm);
-      return;
+    if (!this.live()) return;
+    if (this.request.config.manual) {
+      if (isVoiced(pcm)) {
+        const kept = this.quietSamples > QUIET_KEEP_SAMPLES ? this.preRoll : [];
+        this.quietSamples = 0;
+        this.preRoll = [];
+        for (const quiet of kept) this.up(quiet);
+      } else {
+        const wasGoingUp = this.quietSamples <= QUIET_KEEP_SAMPLES;
+        this.quietSamples += pcm.length;
+        if (this.quietSamples > QUIET_KEEP_SAMPLES) {
+          this.keepBack(pcm);
+          // Once, as the stretch outgrows what goes up: an append left uncommitted is closed 60 s later.
+          if (wasGoingUp) {
+            this.frame('out', 'session.quiet_held', { afterMs: QUIET_KEEP_MS });
+            this.closeTurn();
+          }
+          return;
+        }
+      }
     }
-    ws.send(appendFrame(pcm));
-    this.appended = true;
+    this.up(pcm);
   }
 
   /** Qwen LiveTranslate takes no typed text (`textInput: () => false`). */
   appendText(): void {}
 
-  /** Nothing to send: audio appended under push-to-talk is the turn already. */
-  beginTurn(): void {}
+  /** Nothing to send — audio appended under push-to-talk is the turn already. The quiet count runs on, as the server's does; only the last press's kept-back quiet goes. */
+  beginTurn(): void {
+    this.preRoll = [];
+  }
 
   /** A release: the turn closes, its translation finishing (D6) — once the turn before is done, when the press is held behind it. */
   endTurn(): void {
-    if (!this.manual()) return;
-    if (this.busy) this.releaseHeld = this.held.length > 0;
-    else this.commit();
+    if (this.manual()) this.closeTurn();
   }
 
   /**
@@ -189,12 +245,48 @@ class QwenLeg implements AdapterSession {
     return this.request.config.manual ? this.live() : null;
   }
 
-  /** Ends the press on the wire, unless nothing went up since the last commit; the turn is busy until its `response.done`. */
+  /** A chunk goes up, or waits while the turn before is still being finished. */
+  private up(pcm: Int16Array): void {
+    const ws = this.live();
+    if (!ws) return;
+    if (this.busy) {
+      if (this.held.length === 0) this.frame('out', 'session.audio_held');
+      this.held.push(pcm);
+      return;
+    }
+    ws.send(appendFrame(pcm));
+    this.appended = true;
+    this.lastSentAt = this.request.clock.now();
+  }
+
+  /** A quiet chunk kept back: only the last `PRE_ROLL_MS` of them stay. */
+  private keepBack(pcm: Int16Array): void {
+    this.preRoll.push(pcm);
+    let samples = this.preRoll.reduce((n, c) => n + c.length, 0);
+    while (this.preRoll.length > 1 && samples - this.preRoll[0].length >= PRE_ROLL_SAMPLES) {
+      samples -= this.preRoll[0].length;
+      this.preRoll.shift();
+    }
+  }
+
+  /** Closes the turn on the wire: at once, or once the turn before is done when audio waits behind it. */
+  private closeTurn(): void {
+    if (this.busy) this.releaseHeld = this.held.length > 0;
+    else this.commit();
+  }
+
+  /** Ends the press on the wire, unless nothing went up since the last commit. */
   private commit(): void {
     const ws = this.manual();
     if (!ws || !this.appended) return;
     ws.send(JSON.stringify(COMMIT));
     this.frame('out', COMMIT.type);
+    this.lastSentAt = this.request.clock.now();
+    this.awaitTurn();
+  }
+
+  /** A turn closed on the wire, by the leg or by the server: busy until its `response.done`, or `TURN_DONE_MS` without it. */
+  private awaitTurn(): void {
     this.appended = false;
     this.busy = true;
     this.cancelTurnWait = this.request.clock.setTimeout(() => {
@@ -216,9 +308,38 @@ class QwenLeg implements AdapterSession {
     if (!ws || held.length === 0) return;
     for (const pcm of held) ws.send(appendFrame(pcm));
     this.appended = true;
+    this.lastSentAt = this.request.clock.now();
     this.frame('out', 'session.audio_released', { chunks: held.length });
     if (this.releaseHeld) {
       this.releaseHeld = false;
+      this.commit();
+    }
+  }
+
+  /**
+   * A look of the keepalive (probe 2026-10-16): after `KEEPALIVE_IDLE_MS`
+   * with nothing gone up, 100 ms of silence. Under push-to-talk it is a turn
+   * of its own, committed at once — an append alone is closed 60 s later —
+   * never into a press with audio waiting to be committed, nor while a turn
+   * is still being finished. A press held with nothing left to send (a muted
+   * source, or quiet past its allowance) still gets it: the idle close would
+   * come all the same. Its turn comes back empty and shows nothing.
+   */
+  private keepalive(): void {
+    const ws = this.live();
+    if (!ws) return;
+    const now = this.request.clock.now();
+    // A wall clock stepped back (`realClock.now()` is `Date.now()`): the wait carries on from now.
+    if (now < this.lastSentAt) this.lastSentAt = now;
+    const idleMs = now - this.lastSentAt;
+    if (idleMs < KEEPALIVE_IDLE_MS) return;
+    const manual = this.request.config.manual;
+    if (manual && (this.busy || this.appended)) return;
+    ws.send(appendFrame(KEEPALIVE_SILENCE));
+    this.frame('out', 'session.keepalive', { idleMs });
+    this.lastSentAt = now;
+    if (manual) {
+      this.appended = true;
       this.commit();
     }
   }
@@ -334,6 +455,8 @@ class QwenLeg implements AdapterSession {
       if (this.phase !== 'configuring') return;
       this.socket = ws;
       this.phase = 'live';
+      this.lastSentAt = this.request.clock.now();
+      this.stopKeepalive = every(this.request.clock, KEEPALIVE_CHECK_MS, () => this.keepalive());
       settle();
     } else if (e.type === 'error') {
       const error = errorOf(e);
@@ -413,8 +536,14 @@ class QwenLeg implements AdapterSession {
         this.serverError(e);
         return;
       // A commit's acknowledgement names its heard item when it already exists; the turn ends at `response.done`, not here.
+      // Under push-to-talk one the leg did not send is the server cutting a long press (every ~30 s of audio, probe
+      // 2026-10-16): it refuses audio until that turn is done, so the press waits, as it does behind a release.
       case 'input_audio_buffer.committed':
         this.frame('in', e.type, { itemId });
+        if (this.manual() && !this.busy) {
+          this.frame('in', 'session.server_cut');
+          this.awaitTurn();
+        }
         return;
       case 'input_audio_buffer.cleared':
       case 'input_audio_buffer.speech_stopped':
@@ -491,9 +620,12 @@ class QwenLeg implements AdapterSession {
   /** Every way a leg ends: the segments silent, the socket closed and no longer heard. */
   private shutDown(): void {
     this.phase = 'ended';
+    this.stopKeepalive();
+    this.stopKeepalive = () => {};
     this.cancelTurnWait?.();
     this.cancelTurnWait = null;
     this.held = [];
+    this.preRoll = [];
     this.segments.stop();
     const ws = this.socket;
     this.socket = null;
