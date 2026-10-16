@@ -260,6 +260,54 @@ jobs:
           test -f resources/bin/darwin-arm64/sokuji-audio-host
           test -f resources/bin/darwin-x64/sokuji-audio-host
 
+      # Sign the Windows helper before it is packaged. Unsigned and new with each
+      # release, it has no reputation, so Smart App Control blocks it and
+      # capturing a single application quietly stops working on those PCs; the
+      # Microsoft Store also wants every PE file in the package signed. It is
+      # built above from our own source (native/audio-host/win), which SignPath
+      # Foundation lets us sign, and Squirrel leaves a signed file as it is.
+      # The artifact configuration is .signpath/artifact-configurations/audio-host.xml;
+      # the variable names its slug in SignPath, and until it is set a release
+      # ships the helper unsigned, with a warning.
+      - name: Upload the helper for signing (Windows)
+        id: upload-audio-host
+        if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/v') && github.repository == 'kizuna-ai-lab/sokuji' && vars.SIGNPATH_AUDIO_HOST_CONFIGURATION_SLUG != ''
+        uses: actions/upload-artifact@v6
+        with:
+          name: windows-audio-host-unsigned
+          path: resources/bin/win32-x64/sokuji-audio-host.exe
+
+      - name: Sign the helper (Windows)
+        if: steps.upload-audio-host.outcome == 'success'
+        # Pinned: this step hands it the SignPath API token.
+        uses: signpath/github-action-submit-signing-request@c92b958760219087e01f8d67a1669ed57afe2627 # v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_AUDIO_HOST_CONFIGURATION_SLUG }}
+          github-artifact-id: ${{ steps.upload-audio-host.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: audio-host-signed/
+          wait-for-completion-timeout-in-seconds: 3600
+
+      - name: Put the signed helper in place (Windows)
+        if: steps.upload-audio-host.outcome == 'success'
+        shell: pwsh
+        run: |
+          $signed = 'audio-host-signed/sokuji-audio-host.exe'
+          $s = Get-AuthenticodeSignature $signed
+          if ($s.Status -ne 'Valid') { throw "SignPath returned an unsigned helper: $($s.Status)" }
+          if ($s.SignerCertificate.Subject -notmatch '(^|, )CN=SignPath Foundation(,|$)') { throw "Unexpected signer: $($s.SignerCertificate.Subject)" }
+          Copy-Item $signed resources/bin/win32-x64/sokuji-audio-host.exe -Force
+          "Helper signed by $($s.SignerCertificate.Subject)"
+
+      - name: Warn that the helper ships unsigned (Windows)
+        if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/v') && vars.SIGNPATH_AUDIO_HOST_CONFIGURATION_SLUG == ''
+        shell: bash
+        run: echo "::warning::SIGNPATH_AUDIO_HOST_CONFIGURATION_SLUG is not set, so sokuji-audio-host.exe ships unsigned and Smart App Control will block it."
+
       - name: Build Electron app with Forge
         if: runner.os == 'Windows'
         run: npx electron-forge make --arch=${{ matrix.arch || 'x64' }}
@@ -605,7 +653,8 @@ jobs:
 
       - name: Submit signing request
         id: sign
-        uses: signpath/github-action-submit-signing-request@v2
+        # Pinned: this step hands it the SignPath API token.
+        uses: signpath/github-action-submit-signing-request@c92b958760219087e01f8d67a1669ed57afe2627 # v2
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}

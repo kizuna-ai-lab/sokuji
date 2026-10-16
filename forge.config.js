@@ -102,7 +102,11 @@ module.exports = {
         description: 'AI-powered live speech translation application',
         setupIcon: 'assets/icon.ico',
         iconUrl: 'https://raw.githubusercontent.com/kizuna-ai-lab/sokuji/main/assets/icon.ico',
-        noMsi: true
+        noMsi: true,
+        // electron-winstaller's template minus its squirrel.exe: that unsigned
+        // copy is what Smart App Control blocks mid-install, before the
+        // shortcuts are made (electron/squirrel-nuspec.consistency.test.js).
+        nuspecTemplate: path.join(__dirname, 'electron', 'squirrel.nuspectemplate')
       }
     },
     {
