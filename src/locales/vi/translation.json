@@ -681,6 +681,7 @@
     "sonioxVoiceBuildFailed": "Không thể xây dựng giọng nói tùy chỉnh của bạn, vì vậy phiên này dùng một giọng có sẵn. Hãy thử ghi âm một đoạn rõ hơn trong Cài đặt.",
     "sonioxVoiceUnavailable": "Giọng nói tùy chỉnh của bạn hiện không khả dụng, vì vậy phiên này dùng một giọng có sẵn.",
     "preparingVoice": "Đang chuẩn bị giọng nói của bạn…",
+    "waitingForPreviousSession": "Đang chờ phiên trước kết thúc…",
     "clickToCancel": "Nhấp để hủy"
   },
   "modePicker": {
@@ -726,7 +727,8 @@
     "stop": "Dừng",
     "start": "Bắt đầu",
     "loadingModel": "Đang tải mô hình…",
-    "preparingVoice": "Đang chuẩn bị giọng nói của bạn…"
+    "preparingVoice": "Đang chuẩn bị giọng nói của bạn…",
+    "waitingForPreviousSession": "Đang chờ phiên trước kết thúc…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU hết bộ nhớ — mô hình đã chọn quá lớn so với GPU của bạn. Vui lòng chuyển sang mô hình nhỏ hơn."
@@ -1377,6 +1379,8 @@
     "leg_closed": "Nhà cung cấp đã kết thúc phiên.",
     "source_ended": "Nguồn âm thanh đã biến mất (bị ngắt kết nối, đóng hoặc dừng).",
     "still_stopping": "Phiên trước vẫn đang dừng; hãy thử lại sau giây lát.",
+    "session_in_use": "Một cửa sổ hoặc thiết bị khác đang dùng tài khoản này. Hãy dừng phiên ở đó, hoặc nếu Sokuji vừa đóng đột ngột, hãy thử lại sau một phút.",
+    "previous_session_ending": "Phiên trước của bạn vẫn đang kết thúc. Vui lòng thử lại sau một phút.",
     "app_capture_lost_using_system_audio": "Việc thu ứng dụng đã dừng, nên toàn bộ âm thanh hệ thống đang được dịch thay thế.",
     "app_capture_monitor_missing": "Việc thu ứng dụng chưa bắt đầu, nên toàn bộ âm thanh hệ thống đang được dịch thay thế.",
     "parse_error": "Không thể đọc một thông báo từ nhà cung cấp; phiên vẫn tiếp tục.",

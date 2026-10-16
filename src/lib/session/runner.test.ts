@@ -12,7 +12,7 @@ import { SourceOpenError, type OpenSource, type Source } from './source';
 import type { FramePort, PlaybackPort } from './ports';
 import { createRunner } from './runner';
 import { buildSharedSettings } from './shared';
-import type { RunEnd, RunNotice, RunShape } from './types';
+import type { LeaseContext, RunEnd, RunNotice, RunShape } from './types';
 
 // A bare spy: `describeCause`/`reportWarning` stay real (many assertions below
 // read a message `describeCause` built), only `reportError` is observable —
@@ -1469,6 +1469,32 @@ describe('runner — cancel at each starting step (F5)', () => {
     expect(sources[0].stopped).toBe(true);
     expect(events('translation_session_start')).toEqual([]);
     expect(released).toBe(true);
+  });
+
+  it('a lease waiting for the previous session shows the waiting step, and opening again once it stops waiting', async () => {
+    let land!: () => void;
+    const gate = new Promise<void>((resolve) => { land = resolve; });
+    let ctx!: LeaseContext;
+    const provider = {
+      ...fakeProvider,
+      session: {
+        acquire: (_shape: unknown, _settings: unknown, c: LeaseContext) => {
+          ctx = c;
+          return gate.then(() => ({ credentials: () => ({}), release: async () => {} }));
+        },
+      },
+    } as unknown as AnyProvider;
+    const { runner } = setup({ shape: { provider } });
+    const starting = runner.start();
+    await flush();
+    expect(runner.state.getState()).toMatchObject({ phase: 'starting', step: 'opening' });
+    ctx.waiting?.(true);
+    expect(runner.state.getState()).toMatchObject({ phase: 'starting', step: 'waiting' });
+    ctx.waiting?.(false);
+    expect(runner.state.getState()).toMatchObject({ phase: 'starting', step: 'opening' });
+    land();
+    await starting;
+    expect(runner.state.getState()).toMatchObject({ phase: 'running' });
   });
 
   it("a stop while a lease run's source is opening mints no lease, and stops the source once it opens", async () => {

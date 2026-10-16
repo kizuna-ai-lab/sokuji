@@ -29,6 +29,41 @@ import type { SonioxCredentials, SonioxLeasePort, SonioxSettings } from './setti
 export const SESSION_KEY_TIMEOUT_MS = 15_000;
 /** The wait before a 409's one retry when the body names none (the backend's own is 3 000 ms). */
 export const DEFAULT_CONFLICT_RETRY_MS = 3_000;
+/** How long a Start waits, in all, for a blocking session that is ending or never started to clear. */
+export const CONFLICT_WAIT_LIMIT_MS = 60_000;
+/** Between asks while the blocking session is ending: its usage is charged a few seconds after Soniox closes it. */
+export const ENDING_POLL_MS = 5_000;
+/** Before asking again after a lease freed as the backend read it. */
+export const RELEASED_RETRY_MS = 1_000;
+/** Past a never-started lease's expiry, so the next ask finds it gone. */
+const UNSTARTED_SLACK_MS = 1_000;
+
+/**
+ * What blocks the account, as a 409 names it (sokuji-backend `ConflictBlocker`):
+ * a lease whose stream never started (`clearsInMs` until its start window
+ * frees it), a session already ending, a session running elsewhere, or a lease
+ * freed as it was read. Null when the body names none (an older backend, a
+ * failed read): the one retry after `retryAfterMs` stands, as before.
+ */
+type Blocker =
+  | { state: 'unstarted'; clearsInMs: number }
+  | { state: 'ending' | 'active' | 'released' };
+
+function blockerOf(body: unknown): Blocker | null {
+  const raw = (body as { blocker?: unknown } | null)?.blocker as { state?: unknown; clearsInMs?: unknown } | undefined;
+  switch (raw?.state) {
+    case 'unstarted':
+      return typeof raw.clearsInMs === 'number' && Number.isFinite(raw.clearsInMs) && raw.clearsInMs >= 0
+        ? { state: 'unstarted', clearsInMs: raw.clearsInMs }
+        : null;
+    case 'ending':
+    case 'active':
+    case 'released':
+      return { state: raw.state };
+    default:
+      return null;
+  }
+}
 /** How close to the grant's end a bare 403 must come to be the grant ending, not a revoked key or a frozen wallet (the old `CUTOFF_MARGIN_MS`). The budget's own timer ends the run first unless timers were throttled. */
 export const GRANT_END_MARGIN_MS = 90_000;
 /** `session-end`'s attempts share this budget (ruling 10): none begins after it, and one in flight is aborted at it. */
@@ -89,7 +124,13 @@ function refusal(status: number, body: unknown): Error {
     case 401: return new AdapterStartError(`The session service did not accept the sign-in (HTTP 401${detail}).`, 'sign_in_required');
     case 402: return new AdapterStartError(`The session service refused the start: insufficient balance (HTTP 402${detail}).`, 'insufficient_balance');
     case 403: return new AdapterStartError(`The wallet is frozen (HTTP 403${detail}).`, 'wallet_frozen');
-    case 409: return new AdapterStartError(`Another session holds the account's lease (HTTP 409${detail}).`, 'session_conflict');
+    case 409:
+      switch (blockerOf(body)?.state) {
+        case 'active': return new AdapterStartError(`A session running elsewhere holds the account's lease (HTTP 409${detail}).`, 'session_in_use');
+        case 'ending':
+        case 'unstarted': return new AdapterStartError(`The account's previous session has not cleared (HTTP 409${detail}).`, 'previous_session_ending');
+        default: return new AdapterStartError(`Another session holds the account's lease (HTTP 409${detail}).`, 'session_conflict');
+      }
     case 502: return new AdapterStartError(`Soniox did not mint the session's keys (HTTP 502${detail}).`, 'soniox_service_unavailable');
     // All three of the backend's 503 bodies, as the old client worded them (survey §1.12.3).
     case 503: return new AdapterStartError(`The Soniox session service is unavailable (HTTP 503${detail}).`, 'soniox_service_busy');
@@ -252,13 +293,37 @@ export function createKizunaLease(deps: KizunaLeaseDeps = {}) {
     };
 
     let answer = await attempt();
-    if (answer.status === 409) {
-      // Once: the account's previous session is very often just finishing its teardown.
-      const hint = (answer.body as { retryAfterMs?: unknown } | null)?.retryAfterMs;
-      const retryAfterMs = typeof hint === 'number' && Number.isFinite(hint) && hint >= 0 ? hint : DEFAULT_CONFLICT_RETRY_MS;
-      ctx.frame({ direction: 'in', type: 'session.retry', payload: { status: 409, retryAfterMs } });
-      await wait(ctx.clock, retryAfterMs, ctx.signal);
-      answer = await attempt();
+    // A 409 that names what blocks the account is waited out while that is a
+    // session ending or one that never started, up to CONFLICT_WAIT_LIMIT_MS;
+    // a session running elsewhere, or a 409 that names nothing, gets the one
+    // retry after the backend's hint, as before.
+    const deadline = ctx.clock.now() + CONFLICT_WAIT_LIMIT_MS;
+    let retried = false;
+    let waitingShown = false;
+    try {
+      while (answer.status === 409) {
+        const blocker = blockerOf(answer.body);
+        let delay: number;
+        if (blocker?.state === 'ending') delay = ENDING_POLL_MS;
+        else if (blocker?.state === 'unstarted') delay = blocker.clearsInMs + UNSTARTED_SLACK_MS;
+        else if (blocker?.state === 'released') delay = RELEASED_RETRY_MS;
+        else {
+          if (retried) break;
+          retried = true;
+          const hint = (answer.body as { retryAfterMs?: unknown } | null)?.retryAfterMs;
+          delay = typeof hint === 'number' && Number.isFinite(hint) && hint >= 0 ? hint : DEFAULT_CONFLICT_RETRY_MS;
+        }
+        if (blocker && blocker.state !== 'active' && ctx.clock.now() + delay > deadline) break;
+        ctx.frame({ direction: 'in', type: 'session.retry', payload: { status: 409, retryAfterMs: delay, ...(blocker ? { blocker: blocker.state } : {}) } });
+        if (!waitingShown && (blocker?.state === 'ending' || blocker?.state === 'unstarted')) {
+          waitingShown = true;
+          ctx.waiting?.(true);
+        }
+        await wait(ctx.clock, delay, ctx.signal);
+        answer = await attempt();
+      }
+    } finally {
+      if (waitingShown) ctx.waiting?.(false);
     }
     if (answer.status < 200 || answer.status >= 300) {
       ctx.frame(refusalFrame(answer.status, answer.body));

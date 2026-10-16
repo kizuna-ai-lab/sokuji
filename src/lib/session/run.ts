@@ -53,7 +53,7 @@ export class LegOpenError extends Error {
 
 /** What a run tells the runner. */
 export interface RunHost {
-  step(step: 'checking' | 'preparing' | 'opening'): void;
+  step(step: 'checking' | 'preparing' | 'opening' | 'waiting'): void;
   legState(leg: LegName, state: LegState): void;
   /** A leg is loading its models while it opens: the starting state shows it. */
   loading(leg: LegName, progress: Omit<LoadingProgress, 'leg'>): void;
@@ -262,6 +262,8 @@ export class Run {
         // The lease's wire traffic (`session.*`), in the first leg's Logs — its
         // release's outcome too, while the run unwinds (choice 4).
         frame: (frame) => deps.frames?.frame(shape.legs[0], frame),
+        // The lease runs inside `opening`, so that is the step it returns to.
+        waiting: (on) => host.step(on ? 'waiting' : 'opening'),
       });
       lease = resources;
       // An `acquire` that outlived `close()`'s bounded wait finds its slot
