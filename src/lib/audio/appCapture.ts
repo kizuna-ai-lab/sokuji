@@ -50,6 +50,7 @@ export function micSettings(): MicSettings {
     isUnusable: (id) => audio().unusableInputIds.includes(id),
     markUnusable: (id) => audio().markInputUnusable(id),
     noiseSuppression: () => audio().noiseSuppressionMode,
+    echoCancellation: () => audio().echoCancellationMode,
     muted: () => audio().isMicMuted,
     subscribe: onAudioChange,
     ...(windowsDesktop ? { appsUsing } : {}),

@@ -5,8 +5,9 @@ import Tooltip from '../../Tooltip/Tooltip';
 import DeviceList from '../shared/DeviceList';
 import WarningModal from '../shared/WarningModal';
 import { useFilteredDevices, WarningType, AudioDevice, isVirtualMic } from '../shared/hooks';
-import { useAudioContext, useNoiseSuppressionMode, useSetNoiseSuppressionMode, NoiseSuppressionMode } from '../../../stores/audioStore';
+import { useAudioContext, useNoiseSuppressionMode, useSetNoiseSuppressionMode, NoiseSuppressionMode, useEchoCancellationMode, useSetEchoCancellationMode, EchoCancellationMode } from '../../../stores/audioStore';
 import { useAnalytics } from '../../../lib/analytics';
+import { isElectron, isLinux } from '../../../utils/environment';
 
 interface AudioDeviceSectionProps {
   /** Real session-active state — used for analytics (during_session) only. */
@@ -50,6 +51,11 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
   const { trackEvent } = useAnalytics();
   const noiseSuppressionMode = useNoiseSuppressionMode();
   const setNoiseSuppressionMode = useSetNoiseSuppressionMode();
+  const echoCancellationMode = useEchoCancellationMode();
+  const setEchoCancellationMode = useSetEchoCancellationMode();
+  // `true` cancels what the browser plays: the desktop app is the browser, the
+  // extension shares Chrome with every other tab.
+  const ownPlayout = isElectron() ? 'app' : 'browser';
 
   const {
     audioInputDevices,
@@ -164,6 +170,7 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
               <button
                 key={mode}
                 className={`segmented-option ${noiseSuppressionMode === mode ? 'active' : ''}`}
+                aria-pressed={noiseSuppressionMode === mode}
                 onClick={() => {
                   setNoiseSuppressionMode(mode);
                   trackEvent('noise_suppression_toggled', {
@@ -178,6 +185,42 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
             ))}
           </div>
         </div>
+
+        {/* Echo Cancellation: Chromium on Linux has no 'all', so nothing to choose there */}
+        {!isLinux() && (
+          <div className="noise-suppression-control">
+            <div className="noise-suppression-header">
+              <span className="noise-suppression-label">{t('settings.echoCancellation')}</span>
+              <Tooltip
+                content={
+                  `${t(`settings.echoCancellationTooltip.${ownPlayout}`)}\n\n` +
+                  `${t('settings.echoCancellationTooltip.all')}`
+                }
+                position="top"
+                icon="help"
+                maxWidth={350}
+              />
+            </div>
+            <div className="segmented-control noise-suppression-modes">
+              {(['app', 'all'] as EchoCancellationMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  className={`segmented-option ${echoCancellationMode === mode ? 'active' : ''}`}
+                  aria-pressed={echoCancellationMode === mode}
+                  onClick={() => {
+                    setEchoCancellationMode(mode);
+                    trackEvent('echo_cancellation_changed', {
+                      mode,
+                      during_session: isSessionActive
+                    });
+                  }}
+                >
+                  {t(`settings.echoCancellationMode.${mode === 'app' ? ownPlayout : 'all'}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

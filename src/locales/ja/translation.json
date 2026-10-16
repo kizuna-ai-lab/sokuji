@@ -57,6 +57,17 @@
       "standard": "スタンダード",
       "enhanced": "エンハンスド"
     },
+    "echoCancellation": "エコーキャンセル",
+    "echoCancellationTooltip": {
+      "app": "Sokuji のみ — マイクが拾った Sokuji の翻訳音声を除去します。マイクが BlackHole などの仮想オーディオデバイスの場合はこちらを選んでください。",
+      "browser": "ブラウザのみ — マイクが拾ったこのブラウザの音（会議のタブを含む）を除去します。マイクが他のアプリの音を運ぶ BlackHole などの仮想オーディオデバイスの場合はこちらを選んでください。",
+      "all": "すべての音 — 会議アプリなど、他のアプリがスピーカーから再生する音も除去します。マイクとして使う仮想オーディオデバイスはまさにその音を運ぶため、無音になります。"
+    },
+    "echoCancellationMode": {
+      "app": "Sokuji のみ",
+      "browser": "ブラウザのみ",
+      "all": "すべての音"
+    },
     "modelConfiguration": "モデル設定",
     "sourceLanguage": "自分の言語",
     "targetLanguage": "相手の言語",

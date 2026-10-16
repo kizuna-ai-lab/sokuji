@@ -13,6 +13,8 @@ import { DEFAULT_OUTLET_CHOICE, isChannelChoice, OUTLET_NAMES, type ChannelChoic
 export { pickDefaultInputDevice };
 
 export type NoiseSuppressionMode = 'off' | 'standard' | 'enhanced';
+/** What the microphone's echo cancellation removes: what this app plays, or every sound the system plays. */
+export type EchoCancellationMode = 'app' | 'all';
 export type AudioMode = 'speaker' | 'participant' | 'both';
 /** Where Both's other side is: on the far end of a meeting (system audio), or beside me on my microphone (face-to-face). */
 export type OtherSide = 'meeting' | 'beside';
@@ -28,6 +30,7 @@ const STORAGE_KEYS = {
   IS_MONITOR_DEVICE_ON: 'audio.isMonitorDeviceOn',
   IS_NOISE_SUPPRESS_ENABLED: 'audio.isNoiseSuppressEnabled',
   NOISE_SUPPRESSION_MODE: 'audio.noiseSuppressionMode',
+  ECHO_CANCELLATION_MODE: 'audio.echoCancellationMode',
   IS_REAL_VOICE_PASSTHROUGH_ENABLED: 'audio.isRealVoicePassthroughEnabled',
   REAL_VOICE_PASSTHROUGH_VOLUME: 'audio.realVoicePassthroughVolume',
   IS_SYSTEM_AUDIO_CAPTURE_ENABLED: 'audio.isSystemAudioCaptureEnabled',
@@ -100,6 +103,7 @@ interface AudioStore {
   isRealVoicePassthroughEnabled: boolean;
   realVoicePassthroughVolume: number;
   noiseSuppressionMode: NoiseSuppressionMode;
+  echoCancellationMode: EchoCancellationMode;
 
   // Symmetric mode + per-channel mute flags
   mode: AudioMode;
@@ -140,6 +144,7 @@ interface AudioStore {
   toggleRealVoicePassthrough: () => void;
   setRealVoicePassthroughVolume: (volume: number) => void;
   setNoiseSuppressionMode: (mode: NoiseSuppressionMode) => void;
+  setEchoCancellationMode: (mode: EchoCancellationMode) => void;
   setIsLoading: (loading: boolean) => void;
 
   // Mode + mute setters
@@ -191,6 +196,7 @@ const useAudioStore = create<AudioStore>()(
     isRealVoicePassthroughEnabled: false,
     realVoicePassthroughVolume: 0.2,
     noiseSuppressionMode: 'enhanced' as NoiseSuppressionMode,
+    echoCancellationMode: 'all' as EchoCancellationMode,
 
     // Mode + per-channel mute flags
     mode: 'speaker' as AudioMode,
@@ -298,6 +304,11 @@ const useAudioStore = create<AudioStore>()(
       console.info('[Sokuji] [AudioStore] Setting noise suppression mode:', mode);
       set({ noiseSuppressionMode: mode });
       void persistSetting(STORAGE_KEYS.NOISE_SUPPRESSION_MODE, mode);
+    },
+
+    setEchoCancellationMode: (mode) => {
+      set({ echoCancellationMode: mode });
+      void persistSetting(STORAGE_KEYS.ECHO_CANCELLATION_MODE, mode);
     },
 
     // Mode + per-channel mute setters
@@ -495,6 +506,8 @@ const useAudioStore = create<AudioStore>()(
 
         const savedOtherSide = await settingsService.getSetting<string | null>(STORAGE_KEYS.OTHER_SIDE, null);
         set({ otherSide: savedOtherSide === 'beside' ? 'beside' : 'meeting' });
+        const savedEchoCancellation = await settingsService.getSetting<string | null>(STORAGE_KEYS.ECHO_CANCELLATION_MODE, null);
+        set({ echoCancellationMode: savedEchoCancellation === 'app' ? 'app' : 'all' });
 
         const savedBothPopoverSeen = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.BOTH_POPOVER_SEEN, null);
         set({ bothPopoverSeen: savedBothPopoverSeen === true });
@@ -654,6 +667,8 @@ export const useIsRealVoicePassthroughEnabled = () => useAudioStore((state) => s
 export const useRealVoicePassthroughVolume = () => useAudioStore((state) => state.realVoicePassthroughVolume);
 export const useNoiseSuppressionMode = () => useAudioStore((state) => state.noiseSuppressionMode);
 export const useSetNoiseSuppressionMode = () => useAudioStore((state) => state.setNoiseSuppressionMode);
+export const useEchoCancellationMode = () => useAudioStore((state) => state.echoCancellationMode);
+export const useSetEchoCancellationMode = () => useAudioStore((state) => state.setEchoCancellationMode);
 
 // Backward-compatible wrappers
 export const useIsNoiseSuppressEnabled = () => useAudioStore((state) => state.noiseSuppressionMode !== 'off');

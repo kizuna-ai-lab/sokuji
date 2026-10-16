@@ -162,4 +162,29 @@ describe('ModernAudioRecorder.begin — asks to cancel all system playout', () =
   it('not with the minimal profile, which turns processing off', async () => {
     expect((await requestedAudio('minimal')).echoCancellation).toBe(false);
   });
+
+  // A loopback input such as BlackHole carries what the system plays, so "all"
+  // cancels the very signal it is there to capture: a meeting app speaking into
+  // BlackHole fell from -20 dBFS to -63 dBFS on macOS (Chromium 152), and back
+  // to -19 with `true`. The user picks `true` ('app') in the microphone settings.
+  const echoCancellationWith = async (mode: 'app' | 'all' | undefined, performanceMode?: 'minimal') => {
+    captureThenStop();
+    const rec = new ModernAudioRecorder({ performanceMode });
+    if (mode) rec.setEchoCancellation(mode);
+    await rec.begin('mic-1').catch(() => undefined);
+    return getUserMedia.mock.calls[0][0].audio.echoCancellation;
+  };
+
+  it('asks for `true` when the user chose to cancel only what this app plays', async () => {
+    expect(await echoCancellationWith('app')).toBe(true);
+  });
+
+  it('asks for "all" when the user chose all sounds, and by default', async () => {
+    expect(await echoCancellationWith('all')).toBe('all');
+    expect(await echoCancellationWith(undefined)).toBe('all');
+  });
+
+  it('leaves the minimal profile off whatever the choice', async () => {
+    expect(await echoCancellationWith('app', 'minimal')).toBe(false);
+  });
 });

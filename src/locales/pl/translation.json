@@ -57,6 +57,17 @@
       "standard": "Standardowe",
       "enhanced": "Ulepszone"
     },
+    "echoCancellation": "Usuwanie echa",
+    "echoCancellationTooltip": {
+      "app": "Tylko Sokuji — Usuwa przetłumaczoną mowę Sokuji, jeśli mikrofon ją wychwyci. Wybierz tę opcję, gdy mikrofonem jest wirtualny kabel, np. BlackHole.",
+      "browser": "Tylko przeglądarka — Usuwa to, co odtwarza ta przeglądarka, łącznie z kartami spotkań, jeśli mikrofon to wychwyci. Wybierz tę opcję, gdy mikrofonem jest wirtualny kabel, np. BlackHole, przenoszący dźwięk innej aplikacji.",
+      "all": "Wszystkie dźwięki — Usuwa też to, co inne aplikacje odtwarzają przez głośniki, np. aplikacja do spotkań. Wirtualny kabel używany jako mikrofon przenosi właśnie ten dźwięk, więc by ucichł."
+    },
+    "echoCancellationMode": {
+      "app": "Tylko Sokuji",
+      "browser": "Tylko przeglądarka",
+      "all": "Wszystkie dźwięki"
+    },
     "modelConfiguration": "Konfiguracja modelu",
     "sourceLanguage": "Mój język",
     "targetLanguage": "Język rozmówcy",

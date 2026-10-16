@@ -67,6 +67,8 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
 
   // Performance
   private performanceMode: PerformanceMode;
+  /** What echo cancellation removes: what this app plays (`true`) or every sound the system plays ('all'). */
+  private _echoCancellation: 'app' | 'all' = 'all';
 
   // Device management
   private _deviceChangeCallback: (() => void) | null = null;
@@ -123,9 +125,15 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
     const profileName = this.performanceMode.toUpperCase().replace(' ', '_') as keyof typeof AUDIO_CONSTRAINT_PROFILES;
     const profile = AUDIO_CONSTRAINT_PROFILES[profileName] || AUDIO_CONSTRAINT_PROFILES.HIGH_QUALITY;
 
+    // 'all' cancels every sound the system plays, which silences a loopback
+    // input such as BlackHole: its signal is that sound (-20 → -63 dBFS on macOS,
+    // Chromium 152). Choosing 'app' asks for `true`, which cancels only what this
+    // app plays.
+    const echoCancellation = profile.echoCancellation === 'all' && this._echoCancellation === 'app' ? true : profile.echoCancellation;
+
     // lib.dom (TS 5.9) still types echoCancellation as a boolean constraint;
     // the profiles use the 'all' mode of Media Capture and Streams (Chrome 141).
-    return { ...baseConstraints, ...profile } as unknown as MediaTrackConstraints;
+    return { ...baseConstraints, ...profile, echoCancellation } as unknown as MediaTrackConstraints;
   }
 
   /**
@@ -612,6 +620,13 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
       }
     }
     return result;
+  }
+
+  // ==================== Echo Cancellation ====================
+
+  /** Recorded now and applied at the next `begin()`: the browser fixes echo cancellation when it opens the device. */
+  setEchoCancellation(mode: 'app' | 'all'): void {
+    this._echoCancellation = mode;
   }
 
   // ==================== Noise Suppression ====================

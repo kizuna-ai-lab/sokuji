@@ -57,6 +57,17 @@
       "standard": "Standard",
       "enhanced": "Erweitert"
     },
+    "echoCancellation": "Echounterdrückung",
+    "echoCancellationTooltip": {
+      "app": "Nur Sokuji — Entfernt Sokujis übersetzte Sprache, wenn das Mikrofon sie aufnimmt. Wählen Sie dies, wenn das Mikrofon ein virtuelles Kabel wie BlackHole ist.",
+      "browser": "Nur Browser — Entfernt, was dieser Browser abspielt, Meeting-Tabs eingeschlossen, wenn das Mikrofon es aufnimmt. Wählen Sie dies, wenn das Mikrofon ein virtuelles Kabel wie BlackHole ist, das den Ton einer anderen App überträgt.",
+      "all": "Alle Töne — Entfernt auch, was andere Apps über die Lautsprecher abspielen, etwa eine Meeting-App. Ein virtuelles Kabel als Mikrofon überträgt genau diesen Ton und würde daher verstummen."
+    },
+    "echoCancellationMode": {
+      "app": "Nur Sokuji",
+      "browser": "Nur Browser",
+      "all": "Alle Töne"
+    },
     "modelConfiguration": "Modellkonfiguration",
     "sourceLanguage": "Meine Sprache",
     "targetLanguage": "Sprache des Gegenübers",

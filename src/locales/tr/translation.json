@@ -57,6 +57,17 @@
       "standard": "Standart",
       "enhanced": "Gelişmiş"
     },
+    "echoCancellation": "Yankı Giderme",
+    "echoCancellationTooltip": {
+      "app": "Yalnızca Sokuji — Mikrofon Sokuji'nin çevrilmiş konuşmasını alırsa onu kaldırır. Mikrofon BlackHole gibi sanal bir kablo ise bunu seçin.",
+      "browser": "Yalnızca tarayıcı — Mikrofon bu tarayıcının çaldığı sesleri (toplantı sekmeleri dahil) alırsa onları kaldırır. Mikrofon, başka bir uygulamanın sesini taşıyan BlackHole gibi sanal bir kablo ise bunu seçin.",
+      "all": "Tüm sesler — Toplantı uygulaması gibi diğer uygulamaların hoparlörden çaldığı sesleri de kaldırır. Mikrofon olarak kullanılan sanal kablo tam olarak bu sesi taşıdığından sessiz kalır."
+    },
+    "echoCancellationMode": {
+      "app": "Yalnızca Sokuji",
+      "browser": "Yalnızca tarayıcı",
+      "all": "Tüm sesler"
+    },
     "modelConfiguration": "Model yapılandırması",
     "sourceLanguage": "Benim dilim",
     "targetLanguage": "Karşı tarafın dili",

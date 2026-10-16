@@ -57,6 +57,17 @@
       "standard": "Standard",
       "enhanced": "Enhanced"
     },
+    "echoCancellation": "Echo Cancellation",
+    "echoCancellationTooltip": {
+      "app": "Sokuji only — Removes Sokuji's translated speech if the microphone picks it up. Choose this when the microphone is a virtual cable such as BlackHole.",
+      "browser": "Browser only — Removes what this browser plays, meeting tabs included, if the microphone picks it up. Choose this when the microphone is a virtual cable such as BlackHole carrying another app's sound.",
+      "all": "All sounds — Also removes what other apps play through the speakers, such as a meeting app. A virtual cable used as the microphone carries exactly that sound, so it would go silent."
+    },
+    "echoCancellationMode": {
+      "app": "Sokuji only",
+      "browser": "Browser only",
+      "all": "All sounds"
+    },
     "modelConfiguration": "Model configuration",
     "sourceLanguage": "My Language",
     "targetLanguage": "Other's Language",

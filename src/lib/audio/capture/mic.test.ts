@@ -1,5 +1,5 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
-import { MIC_LOST_USING_OTHER, MIC_LOST_WAITING, MIC_NOW_USING, openMic, type MicRecorder, type MicSettings, type NoiseSuppression } from './mic';
+import { MIC_LOST_USING_OTHER, MIC_LOST_WAITING, MIC_NOW_USING, openMic, type EchoCancellation, type MicRecorder, type MicSettings, type NoiseSuppression } from './mic';
 import { MicrophoneCaptureError } from '../../modern-audio/microphoneCaptureError';
 import { SourceOpenError } from '../../session/source';
 import { MIC_IN_USE } from './micFailure';
@@ -14,6 +14,9 @@ const RUNAWAY_BEGINS = 50;
  */
 function fakeRecorder(o: { failBegins?: number[]; falseBegins?: number[]; deadOnArrival?: (deviceId: string | undefined, n: number) => boolean; throwOn?: Record<number, unknown> } = {}) {
   const calls: string[] = [];
+  /** Each begin as `device:echo-cancellation`, kept apart from `calls` so the sequences above stay as they were. */
+  const opens: string[] = [];
+  let echo: EchoCancellation = 'all';
   const track = Object.assign(new EventTarget(), { readyState: 'live' as MediaStreamTrackState, stop: vi.fn(() => calls.push('track.stop')) }) as unknown as MediaStreamTrack;
   const stream = { getAudioTracks: () => [track], getTracks: () => [track] } as unknown as MediaStream;
   let begins = 0;
@@ -25,6 +28,7 @@ function fakeRecorder(o: { failBegins?: number[]; falseBegins?: number[]; deadOn
     async begin(deviceId) {
       begins += 1;
       calls.push(`begin:${deviceId ?? 'default'}`);
+      opens.push(`${deviceId ?? 'default'}:${echo}`);
       if (begins > RUNAWAY_BEGINS) throw new Error('runaway: the source kept reopening');
       (track as { readyState: MediaStreamTrackState }).readyState = o.deadOnArrival?.(deviceId, begins) ? 'ended' : 'live';
       // The stream is live as soon as the device is acquired, before the rest of
@@ -70,11 +74,15 @@ function fakeRecorder(o: { failBegins?: number[]; falseBegins?: number[]; deadOn
     async setNoiseSuppressionMode(mode) {
       calls.push(`ns:${mode}`);
     },
+    setEchoCancellation(mode) {
+      echo = mode;
+    },
     getStream: () => (open ? stream : null),
   };
   return {
     recorder,
     calls,
+    opens,
     track,
     push: (pcm = new Int16Array(4)) => chunk?.({ mono: pcm }),
     endTrack: () => track.dispatchEvent(new Event('ended')),
@@ -87,8 +95,8 @@ function fakeRecorder(o: { failBegins?: number[]; falseBegins?: number[]; deadOn
   };
 }
 
-function settingsFixture(initial: { deviceId?: string; noiseSuppression?: NoiseSuppression; muted?: boolean } = {}, options: { onUnusable?: (id: string) => void } = {}) {
-  let current = { deviceId: 'mic-1' as string | undefined, noiseSuppression: 'off' as NoiseSuppression, muted: false, ...initial };
+function settingsFixture(initial: { deviceId?: string; noiseSuppression?: NoiseSuppression; echoCancellation?: EchoCancellation; muted?: boolean } = {}, options: { onUnusable?: (id: string) => void } = {}) {
+  let current = { deviceId: 'mic-1' as string | undefined, noiseSuppression: 'off' as NoiseSuppression, echoCancellation: 'all' as EchoCancellation, muted: false, ...initial };
   const labels: Record<string, string> = { 'mic-1': 'Built-in Mic', 'mic-2': 'USB Mic', 'mic-3': 'Webcam Mic' };
   const listed = new Set(['mic-1', 'mic-2', 'mic-3']);
   const unusable: string[] = [];
@@ -103,6 +111,7 @@ function settingsFixture(initial: { deviceId?: string; noiseSuppression?: NoiseS
       options.onUnusable?.(id);
     },
     noiseSuppression: () => current.noiseSuppression,
+    echoCancellation: () => current.echoCancellation,
     muted: () => current.muted,
     subscribe: (listener) => {
       listeners.add(listener);
@@ -182,6 +191,55 @@ describe('openMic', () => {
     set({ noiseSuppression: 'enhanced' });
     await settle();
     expect(fake.calls).toEqual(['ns:off', 'begin:mic-1', 'record', 'ns:enhanced']);
+  });
+
+  it('opens the selected device with the chosen echo cancellation', async () => {
+    const fake = fakeRecorder();
+    const { settings } = settingsFixture({ echoCancellation: 'app' });
+    await openMic(settings, live(), () => fake.recorder);
+    expect(fake.opens).toEqual(['mic-1:app']);
+  });
+
+  // The browser fixes echo cancellation when it opens the device, so a change
+  // reopens it — the way a device switch does, keeping the listeners.
+  it('reopens the open device when echo cancellation changes, quietly and keeping its listeners', async () => {
+    const fake = fakeRecorder();
+    const { settings, set } = settingsFixture();
+    const source = await openMic(settings, live(), () => fake.recorder);
+    const heard = vi.fn();
+    source.onPcm(heard);
+    const degraded = vi.fn();
+    source.onDegraded(degraded);
+    set({ echoCancellation: 'app' });
+    await settle();
+    fake.push();
+    expect(fake.calls).toEqual(['ns:off', 'begin:mic-1', 'record', 'end', 'begin:mic-1', 'record']);
+    expect(fake.opens).toEqual(['mic-1:all', 'mic-1:app']);
+    expect(heard).toHaveBeenCalledTimes(1);
+    expect(degraded).not.toHaveBeenCalled();
+  });
+
+  it('opens once when echo cancellation and the device change together', async () => {
+    const fake = fakeRecorder();
+    const { settings, set } = settingsFixture();
+    await openMic(settings, live(), () => fake.recorder);
+    set({ echoCancellation: 'app', deviceId: 'mic-2' });
+    await settle();
+    expect(fake.opens).toEqual(['mic-1:all', 'mic-2:app']);
+  });
+
+  it('opens nothing for a change while it waits for a device, and opens the next one with it', async () => {
+    const fake = fakeRecorder();
+    const { settings, set } = settingsFixture();
+    await openMic(settings, live(), () => fake.recorder);
+    set({ deviceId: undefined });
+    await settle();
+    set({ echoCancellation: 'app' });
+    await settle();
+    expect(fake.opens).toEqual(['mic-1:all']);
+    set({ deviceId: 'mic-2' });
+    await settle();
+    expect(fake.opens).toEqual(['mic-1:all', 'mic-2:app']);
   });
 
   it('moves to a newly selected device in place, keeping its listeners, by ending it (not quitting) so the recorder is reused', async () => {

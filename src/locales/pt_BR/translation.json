@@ -57,6 +57,17 @@
       "standard": "Padrão",
       "enhanced": "Aprimorado"
     },
+    "echoCancellation": "Cancelamento de eco",
+    "echoCancellationTooltip": {
+      "app": "Apenas Sokuji — Remove a fala traduzida do Sokuji se o microfone a captar. Escolha esta opção se o microfone for um cabo virtual como o BlackHole.",
+      "browser": "Apenas navegador — Remove o que este navegador reproduz, incluindo abas de reunião, se o microfone captar. Escolha esta opção se o microfone for um cabo virtual como o BlackHole que transporta o som de outro aplicativo.",
+      "all": "Todos os sons — Remove também o que outros aplicativos reproduzem pelos alto-falantes, como um aplicativo de reunião. Um cabo virtual usado como microfone transporta exatamente esse som e ficaria em silêncio."
+    },
+    "echoCancellationMode": {
+      "app": "Apenas Sokuji",
+      "browser": "Apenas navegador",
+      "all": "Todos os sons"
+    },
     "modelConfiguration": "Configuração do modelo",
     "sourceLanguage": "Meu idioma",
     "targetLanguage": "Idioma do outro",
