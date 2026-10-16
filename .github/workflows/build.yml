@@ -12,6 +12,9 @@ permissions:
   contents: write
   packages: write
   issues: write
+  # The build job's SignPath step reads the helper artifact it uploads, as
+  # sign-windows does for the installer; unlisted permissions are `none`.
+  actions: read
 
 jobs:
   # No workflow ran vitest before this one, so `npm run build` (plain
@@ -72,6 +75,7 @@ jobs:
           src/components/providers
           src/components/dev
           src/utils/featureGateForwarding.consistency.test.ts
+          electron/squirrel-nuspec.consistency.test.js
 
   # The sidecar's pytest suite had no CI coverage anywhere (a ledgered slice-3
   # debt, closed here in slice 5) — grep -rl "pytest" .github/ used to return
