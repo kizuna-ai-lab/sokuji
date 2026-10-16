@@ -87,6 +87,14 @@ export interface SonioxSttStreamHandlers {
 }
 
 const CONNECTION_TIMEOUT_MS = 15000;
+
+/** A connect that did not open within CONNECTION_TIMEOUT_MS: no answer came, unlike a socket the server refused. */
+export class SonioxSttConnectTimeout extends Error {
+  constructor() {
+    super('Soniox STT connection timeout');
+  }
+}
+
 const KEEPALIVE_AFTER_IDLE_MS = 15000;
 const KEEPALIVE_CHECK_INTERVAL_MS = 5000;
 
@@ -122,7 +130,7 @@ export class SonioxSttStream {
           // Reject with the timeout reason BEFORE closing: ws.close() triggers
           // onclose, whose pre-open branch would otherwise settle the promise
           // first and mask the timeout reason.
-          reject(new Error('Soniox STT connection timeout'));
+          reject(new SonioxSttConnectTimeout());
           ws.close();
         }
       }, CONNECTION_TIMEOUT_MS);

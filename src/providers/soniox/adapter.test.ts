@@ -498,6 +498,54 @@ describe('the Soniox adapter: one leg', () => {
     expect(log).toEqual([]);
   });
 
+  it('a start whose STT connect times out tries once more with the same key, and starts when that one opens', async () => {
+    const h = started();
+    h.clock.advance(15_000);
+    await flush();
+    expect(h.sttSockets()).toHaveLength(2);
+    const [first, second] = h.sttSockets();
+    expect(first.closedByClient).not.toBeNull();
+    expect(second.protocols).toEqual(first.protocols);
+    expect(h.frames('session.stt_connect_retry')).toHaveLength(1);
+    second.open();
+    await expect(h.starting).resolves.toBeDefined();
+  });
+
+  it('a second timeout fails the start with network, and tries no third time', async () => {
+    const h = started();
+    h.clock.advance(15_000);
+    await flush();
+    h.clock.advance(15_000);
+    const error = await h.starting.then(() => null, (e: unknown) => e);
+    expect(error).toBeInstanceOf(AdapterStartError);
+    expect((error as AdapterStartError).code).toBe('network');
+    h.clock.advance(60_000);
+    await flush();
+    expect(h.sttSockets()).toHaveLength(2);
+    expect(h.tts().closedByClient).not.toBeNull();
+  });
+
+  it('a refused STT socket is not tried again: the server answered', async () => {
+    const h = started();
+    h.stt().drop();
+    await h.starting.then(() => null, () => null);
+    h.clock.advance(60_000);
+    await flush();
+    expect(h.sttSockets()).toHaveLength(1);
+  });
+
+  it('a cancel while the second try connects ends the start and closes it', async () => {
+    const h = started();
+    h.clock.advance(15_000);
+    await flush();
+    h.controller.abort(new Error('cancelled'));
+    await expect(h.starting).rejects.toThrow(/cancelled/);
+    expect(h.sttSockets()[1].closedByClient).not.toBeNull();
+    h.clock.advance(60_000);
+    await flush();
+    expect(h.sttSockets()).toHaveLength(2);
+  });
+
   describe('the start resolves on the STT socket alone: a failing start only ever rejects', () => {
     /** Opens the STT socket only; the TTS socket stays connecting. Resolves with where the log stood when the start resolved, or -1 when it still waits. */
     async function sttOpened(h: ReturnType<typeof started>): Promise<number> {
