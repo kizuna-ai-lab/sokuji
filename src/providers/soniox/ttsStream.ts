@@ -184,6 +184,8 @@ export class SonioxTtsStream {
   private activeHasAudio = false;       // has the server started speaking this segment?
   private activeRef: number | undefined; // the ref of the text the active segment speaks
   private drainingStreamId: string | null = null; // ended segment, terminated pending
+  /** Segments `drop()` let go: still draining on the server, heard from no more. */
+  private readonly dropped = new Set<string>();
   /** Per stream this component opened: the ref its text carries and the
    *  union of its chunks' spans. Deleted at the stream's end. */
   private readonly segments = new Map<string, { ref?: number; span?: TextRange }>();
@@ -240,13 +242,16 @@ export class SonioxTtsStream {
         }
         const id = data.stream_id;
         const isLive = id === this.activeStreamId || id === this.drainingStreamId;
+        const wasDropped = id !== undefined && this.dropped.has(id);
         if (data.error_code != null) {
           // A connection-level error names no stream: Soniox sends it with
           // stream_id "" (a key refused at the handshake, measured 2026-10-14).
           const connectionLevel = !id;
+          // A segment `drop()` let go cost the listener nothing: it only unwedges the queue.
+          if (isLive && wasDropped) this.handleStreamFailure(id);
           // An error about a stream already dropped is a frame that was in
           // flight when it died — its failure was reported then.
-          if (connectionLevel || isLive) {
+          else if (connectionLevel || isLive) {
             // Snapshot BEFORE handleStreamFailure clears it.
             const hadActiveStream = this.hasLiveStream();
             const scope: SonioxTtsErrorScope =
@@ -254,7 +259,7 @@ export class SonioxTtsStream {
             this.handlers.onError?.(String(data.error_code), data.error_message ?? '', hadActiveStream, scope);
             this.handleStreamFailure(connectionLevel ? undefined : id);
           }
-        } else if (data.audio && isLive) {
+        } else if (data.audio && isLive && !wasDropped) {
           if (id === this.activeStreamId) this.activeHasAudio = true;
           this.handlers.onAudio?.(this.base64ToInt16(data.audio), { streamId: id!, ref: this.segments.get(id!)?.ref });
         }
@@ -262,7 +267,7 @@ export class SonioxTtsStream {
         // carried an error — otherwise a combined error+terminated frame would
         // leave drainingStreamId set and wedge the queue forever.
         if (data.terminated && id === this.drainingStreamId) {
-          this.segmentEnded(id!, true);
+          this.segmentEnded(id!, !wasDropped);
           this.drainingStreamId = null;
           this.flushQueue();
         }
@@ -318,6 +323,18 @@ export class SonioxTtsStream {
     this.doEndUtterance();
   }
 
+  /**
+   * Speech switched off mid-session (#595): what waits behind a draining
+   * segment is forgotten and the live one ends with `text_end`. The server
+   * still finishes what that segment was sent, but its audio, its errors and
+   * its end are not passed on as speech. The socket stays open.
+   */
+  drop(): void {
+    this.queue = [];
+    this.endSegment();
+    if (this.drainingStreamId) this.dropped.add(this.drainingStreamId);
+  }
+
   /** Closes the socket. Returns the stream it ended first with `text_end`, so the server frees it, or null when none was active: the caller's Logs line (Stage 2 session end, ruling 2 (ii)). */
   close(): string | null {
     this.intentionalClose = true;
@@ -349,7 +366,7 @@ export class SonioxTtsStream {
   }
 
   private hasLiveStream(): boolean {
-    return this.activeStreamId !== null || this.drainingStreamId !== null;
+    return this.activeStreamId !== null || (this.drainingStreamId !== null && !this.dropped.has(this.drainingStreamId));
   }
 
   private doSendText(item: QueuedItem): void {
@@ -450,6 +467,7 @@ export class SonioxTtsStream {
   /** A stream this component opened has ended: report its ref and the union
    *  of its chunks' spans, then forget it — a stream reports at most once. */
   private segmentEnded(streamId: string, clean: boolean): void {
+    this.dropped.delete(streamId);
     const record = this.segments.get(streamId);
     if (!record) return;
     this.segments.delete(streamId);

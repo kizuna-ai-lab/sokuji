@@ -250,6 +250,21 @@ describe("SpeechOutputSection — the run's frozen Translation I hear", () => {
     expect(sw('Translation I hear')).toHaveAttribute('aria-checked', 'false');
     expect(sw('Translation I hear')).toHaveAttribute('aria-disabled', 'true');
   });
+
+  it("stays live in a run that speaks it: shows the switch as it stands and flips it (#595)", () => {
+    useAudioStore.setState({ mode: 'participant', selectedParticipantSource: ZOOM });
+    useRoutingStore.setState({ participantSpeech: true });
+    runSpeech.value = true;
+    mount(true);
+    expect(sw('Translation I hear')).toHaveAttribute('aria-checked', 'true');
+    expect(sw('Translation I hear')).not.toHaveAttribute('aria-disabled', 'true');
+    expect(sw('Translation I hear').closest('.toggle-switch-component')?.getAttribute('title')).not.toBe('Fixed for this session; stop it to change.');
+    fireEvent.click(sw('Translation I hear'));
+    expect(useRoutingStore.getState().participantSpeech).toBe(false);
+    expect(sw('Translation I hear')).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(sw('Translation I hear'));
+    expect(useRoutingStore.getState().participantSpeech).toBe(true);
+  });
 });
 
 describe('SpeechOutputSection — per mode (spec §1.2)', () => {

@@ -407,6 +407,12 @@ export class Run {
     return [...this.conversations.values()].map((conversation) => conversation.snapshot());
   }
 
+  /** Translation I hear switched (#595): only a run started speaking the other side's translation follows it — one started without has no speech to switch on. */
+  setParticipantSpeech(on: boolean): void {
+    if (this.ending || !this.shape.participantSpeech) return;
+    this.sessions.get('participant')?.setSpeech?.(on);
+  }
+
   /** Typed text for the speaker leg, when the provider takes text. Blank once trimmed: nothing to send, for any provider. */
   sendText(text: string): void {
     const session = this.sessions.get('speaker');
@@ -478,6 +484,8 @@ export class Run {
 
   private connect(leg: LegName, source: Source, session: AdapterSession): void {
     this.sessions.set(leg, session);
+    // Switched off while the run was starting.
+    if (leg === 'participant' && this.shape.participantSpeech && this.deps.participantSpeech?.get() === false) session.setSpeech?.(false);
     if (leg === 'speaker' || this.transport === undefined) this.transport = session.info.transport;
     this.stack.defer(`${leg} capture`, source.onPcm((pcm) => this.send(leg, session, pcm)));
     // A leg that said `reconnecting` before its start settled (split Both: its

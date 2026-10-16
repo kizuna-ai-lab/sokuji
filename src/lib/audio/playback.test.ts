@@ -79,7 +79,7 @@ function build(routingSettings: RoutingSettings = ROUTING) {
 const ROUTING: RoutingSettings = {
   meeting: true,
   faceToFace: false,
-  speak: { other: true, me: false, them: false },
+  speak: { other: true, me: false, them: true },
   passthrough: { on: true, ratio: 0.2 },
   sinks: { other: {}, me: { device: 'monitor-1' }, them: {} },
 };
@@ -171,6 +171,84 @@ describe('createPlayback — live audio', () => {
     playback.audio('speaker', 1, pcm(100));
     advance(LEAD_S);
     expect(parseClipKey(playback.queues.speaker.position()!.key).index).toBe(1);
+  });
+});
+
+describe('createPlayback — Translation I hear switched during a run (#595)', () => {
+  const OFF = { ...ROUTING, speak: { ...ROUTING.speak, them: false } };
+  const key = (playback: ReturnType<typeof createPlayback>) => playback.queues.participant.position()?.key;
+
+  it("off stops the other side's speech at once and drops what is queued; the speaker's plays on", () => {
+    const { graph, plays } = fakeGraph();
+    const r = routing();
+    const playback = createPlayback(graph, r.source);
+    playback.audio('participant', 5, pcm(100));
+    playback.audio('participant', 5, pcm(100));
+    playback.audio('speaker', 2, pcm(100));
+    r.set(OFF);
+    expect(plays.filter((p) => p.feed === 'participant').every((p) => p.done)).toBe(true);
+    expect(playback.queues.participant.pending).toBe(0);
+    expect(playback.queues.speaker.pending).toBe(1);
+  });
+
+  it("while off, the other side's audio is not played", () => {
+    const { graph, plays } = fakeGraph();
+    const r = routing();
+    const playback = createPlayback(graph, r.source);
+    r.set(OFF);
+    playback.audio('participant', 6, pcm(100));
+    expect(plays.filter((p) => p.feed === 'participant')).toEqual([]);
+  });
+
+  it('back on, a segment its audio reached while off stays unheard; the next one plays', () => {
+    const { graph, advance } = fakeGraph();
+    const r = routing();
+    const playback = createPlayback(graph, r.source);
+    r.set(OFF);
+    playback.audio('participant', 6, pcm(100));
+    r.set(ROUTING);
+    playback.audio('participant', 6, pcm(100));
+    expect(playback.queues.participant.pending).toBe(0);
+    playback.audio('participant', 7, pcm(100));
+    advance(LEAD_S + 0.01);
+    expect(key(playback)).toBe('participant:7:0');
+  });
+
+  it('a segment that sent nothing while off goes on, at its next speech entry', () => {
+    const { graph, advance } = fakeGraph();
+    const r = routing();
+    const playback = createPlayback(graph, r.source);
+    playback.audio('participant', 9, pcm(100));
+    r.set(OFF);
+    r.set(ROUTING);
+    playback.audio('participant', 9, pcm(100));
+    advance(LEAD_S + 0.01);
+    expect(key(playback)).toBe('participant:9:1');
+  });
+
+  it("a dropped clip keeps its place among its segment's speech entries", () => {
+    const { graph, advance } = fakeGraph();
+    const r = routing();
+    const playback = createPlayback(graph, r.source);
+    r.set(OFF);
+    playback.audio('participant', undefined, pcm(100));
+    r.set(ROUTING);
+    playback.audio('participant', undefined, pcm(100));
+    advance(LEAD_S + 0.01);
+    expect(key(playback)).toBe('participant:none:1');
+  });
+
+  it("a new run hears the other side's first segments again", () => {
+    const { graph, advance } = fakeGraph();
+    const r = routing();
+    const playback = createPlayback(graph, r.source);
+    r.set(OFF);
+    playback.audio('participant', 3, pcm(100));
+    playback.clear();
+    r.set(ROUTING);
+    playback.audio('participant', 3, pcm(100));
+    advance(LEAD_S + 0.01);
+    expect(key(playback)).toBe('participant:3:0');
   });
 });
 

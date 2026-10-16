@@ -511,3 +511,86 @@ describe('LegSpeech', () => {
     expect(sockets.last()).toBe(reconnecting);
   });
 });
+
+describe('LegSpeech switched off and on mid-run (Translation I hear, #595)', () => {
+  /** The text frames sent to synthesis, in order. */
+  const texts = (sent: Json[]) => sent.filter((m) => typeof m.text === 'string' && m.text !== '').map((m) => m.text);
+
+  it('off ends the live segment, and nothing it still says reaches the leg', async () => {
+    const { speech, tts, kinds } = await setup();
+    speech.speak(1, 'Hello', [0, 5], 'en');
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
+    speech.setOn(false);
+    expect(tts().sentJson<Json>()).toContainEqual({ stream_id: 'utt-1-1', text: '', text_end: true });
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));
+    expect(kinds('audio')).toHaveLength(1);
+    expect(kinds('speechRanges')).toEqual([]);
+  });
+
+  it('off sends no translation to synthesis, on the same socket', async () => {
+    const { speech, tts, sockets } = await setup();
+    speech.setOn(false);
+    speech.speak(1, 'Hello. ', [0, 7], 'en');
+    speech.endUtterance();
+    expect(tts().sentJson<Json>()).toEqual([]);
+    expect(sockets.all).toHaveLength(1);
+  });
+
+  it('off drops what waited on a reconnect: the new socket is sent nothing', async () => {
+    const { speech, tts, sockets } = await setup();
+    tts().drop();
+    await flush();
+    speech.speak(1, 'Again.', [0, 6], 'en');
+    speech.setOn(false);
+    sockets.last().open();
+    await flush();
+    expect(sockets.last().sentJson<Json>()).toEqual([]);
+  });
+
+  it('on resumes at the next sentence: the rest of the sentence being said is skipped', async () => {
+    const { speech, tts } = await setup();
+    speech.setOn(false);
+    speech.speak(1, 'I went ', [0, 7], 'en');
+    speech.setOn(true);
+    speech.speak(1, 'home. ', [7, 13], 'en');
+    speech.speak(1, 'Then ', [13, 18], 'en');
+    expect(texts(tts().sentJson<Json>())).toEqual(['Then ']);
+  });
+
+  it('on between two sentences speaks the next chunk', async () => {
+    const { speech, tts } = await setup();
+    speech.setOn(false);
+    speech.speak(1, 'Done. ', [0, 6], 'en');
+    speech.setOn(true);
+    speech.speak(1, 'Next ', [6, 11], 'en');
+    expect(texts(tts().sentJson<Json>())).toEqual(['Next ']);
+  });
+
+  it('on speaks a new translation at once, whatever the last one left open', async () => {
+    const { speech, tts } = await setup();
+    speech.setOn(false);
+    speech.speak(1, 'I went ', [0, 7], 'en');
+    speech.setOn(true);
+    speech.speak(2, 'Hello', [0, 5], 'en');
+    expect(texts(tts().sentJson<Json>())).toEqual(['Hello']);
+  });
+
+  it('on after an utterance ended speaks the next chunk', async () => {
+    const { speech, tts } = await setup();
+    speech.setOn(false);
+    speech.speak(1, 'I went ', [0, 7], 'en');
+    speech.endUtterance();
+    speech.setOn(true);
+    speech.speak(1, 'later', [7, 12], 'en');
+    expect(texts(tts().sentJson<Json>())).toEqual(['later']);
+  });
+
+  it('says each switch in the Logs', async () => {
+    const { speech, frames } = await setup();
+    speech.setOn(false);
+    speech.setOn(false);
+    speech.setOn(true);
+    expect(frames('tts.speech').map((f) => [f.direction, payloadOf(f)])).toEqual([['out', { on: false }], ['out', { on: true }]]);
+  });
+});

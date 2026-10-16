@@ -70,6 +70,14 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
    * entry index, since L1 appends one entry per `audio` event, in order.
    */
   const counts = new Map<string, number>();
+  /**
+   * Translation I hear (#595). Off: the other side's speech stops at once
+   * and its audio is dropped as it arrives. A segment that audio reached
+   * stays unheard once back on, so speech resumes with the next segment,
+   * never in the middle of one.
+   */
+  let themOn = routing.get().speak.them;
+  const unheard = new Set<number>();
   let held = false;
   /** Where the replay and preview feeds go: the outlet of the row the clip belongs to. */
   let replayOutlet: OutletName = 'me';
@@ -103,6 +111,8 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
 
   const apply = () => {
     const settings = routing.get();
+    if (themOn && !settings.speak.them) queues.participant.clear();
+    themOn = settings.speak.them;
     const edges: Edge[] = [
       ...routesFor(settings, held),
       { from: 'replay', to: replayOutlet, gain: 1 },
@@ -144,6 +154,10 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
       const id = `${leg}:${ref ?? 'none'}`;
       const index = counts.get(id) ?? 0;
       counts.set(id, index + 1);
+      if (leg === 'participant' && (!themOn || (ref !== undefined && unheard.has(ref)))) {
+        if (!themOn && ref !== undefined) unheard.add(ref);
+        return;
+      }
       void graph.resume();
       queues[leg].enqueue(clipKey(leg, ref, index), pcm);
     },
@@ -170,6 +184,8 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
       replayQueue.clear();
       // L1's `clear()` empties every segment's speech too: the indices restart together.
       counts.clear();
+      // Refs restart with the next run too.
+      unheard.clear();
     },
 
     replay(leg, segment) {

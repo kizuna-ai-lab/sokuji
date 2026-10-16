@@ -230,6 +230,7 @@ class SonioxCore {
       endTurn: () => this.endTurn(name),
       // A press with no voice sent nothing; what the server still decodes closes on its own endpoint.
       cancelTurn: () => {},
+      setSpeech: (on) => this.leg(name).speech?.setOn(on),
       stop: () => this.stop(),
     };
   }

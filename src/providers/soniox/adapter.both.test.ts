@@ -277,6 +277,16 @@ describe('Soniox startBoth: shared', () => {
     expect(quiet.ttsSockets()).toHaveLength(1);
   });
 
+  it("shared: the participant's setSpeech switches its own speech only, never the speaker's (#595)", async () => {
+    const h = await live({ participantSpeaks: true });
+    h.sessions.participant.setSpeech!(false);
+    h.sttSockets()[0].receive(msg({ ...orig('Ohayō.'), language: 'ja' }, tr('Good morning.', 'en', 'ja'), END));
+    h.sttSockets()[0].receive(msg(orig('Hello.'), tr('こんにちは。'), END));
+    const [speakerTts, participantTts] = h.ttsSockets();
+    expect(participantTts.sentJson<Json>().some((m) => m.text === 'Good morning.')).toBe(false);
+    expect(speakerTts.sentJson<Json>().some((m) => m.text === 'こんにちは。')).toBe(true);
+  });
+
   it('shared: a participant TTS socket that cannot open is no failed start', async () => {
     const h = both({ participantSpeaks: true });
     const [, participantTts] = h.ttsSockets();

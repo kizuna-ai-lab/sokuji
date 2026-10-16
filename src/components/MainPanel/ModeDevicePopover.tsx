@@ -266,9 +266,9 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
       // The twin of SpeechOutputSection's Translation I hear switch: keep the two in step.
       const speech = provider?.speech ?? 'optional';
       const offered = provider?.participantSpeech !== false;
-      const on = runSpeech ?? (offered && heard && speech !== 'never' && (speech === 'always' || (participantSpeech ?? false)));
+      const on = runSpeech !== false && offered && heard && speech !== 'never' && (speech === 'always' || (participantSpeech ?? false));
       const disabledReason = !heard ? blockedReason
-        : locked ? t('audioPanel.rowLockedByRun', 'Fixed for this session; stop it to change.')
+        : locked && runSpeech !== true ? t('audioPanel.rowLockedByRun', 'Fixed for this session; stop it to change.')
         : !offered ? t('audioPanel.iHearNotOffered', "This service does not speak the other side's translation.")
         : speech !== 'optional' ? (speech === 'always' ? t('audioPanel.otherHearsAlwaysSpeaks', 'This service always speaks.') : t('audioPanel.otherHearsNeverSpeaks', 'This service never speaks.'))
         : undefined;

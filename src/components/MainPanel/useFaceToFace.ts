@@ -63,7 +63,7 @@ export function useFaceToFace(): FaceToFaceView {
     const own = outlets[name].device ? devices.find((d) => d.deviceId === outlets[name].device) : undefined;
     return own?.label ?? defaultDevice?.label ?? null;
   };
-  // The run's frozen value wins while a run is not idle: the open participant leg does what it was told at Start.
+  // A run decided at Start whether the participant leg speaks; one that does follows the switch live (#595).
   const runSpeech = useRunParticipantSpeech();
   const speak = speechFromStores(provider);
   return {
@@ -71,7 +71,7 @@ export function useFaceToFace(): FaceToFaceView {
     active,
     me: pair?.source ?? null,
     other: pair?.target ?? null,
-    speaks: { speaker: speak.other, participant: runSpeech ?? speak.them },
+    speaks: { speaker: speak.other, participant: runSpeech !== false && speak.them },
     ears,
     outletDevices: { other: labelOf('other'), them: labelOf('them') },
   };

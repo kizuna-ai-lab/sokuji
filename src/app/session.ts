@@ -13,7 +13,7 @@ import { redact } from '../lib/diagnostics/redact';
 import { describeCause, reportWarning } from '../lib/diagnostics/report';
 import { autoSaveConversation } from '../lib/export/appAutoSave';
 import type { AuthContext } from '../lib/provider/types';
-import { appReplayAudio, ensureReadyFromStores, faceToFaceFromStores, persistIfUnchanged, readShapeFromStores, watchLegsFromStores, watchSpeechFromStores } from '../lib/session/appShape';
+import { appParticipantSpeech, appReplayAudio, ensureReadyFromStores, faceToFaceFromStores, persistIfUnchanged, readShapeFromStores, watchLegsFromStores, watchSpeechFromStores } from '../lib/session/appShape';
 import type { AnalyticsPort, ControlMethod, FramePort } from '../lib/session/ports';
 import { createRunner, type Runner } from '../lib/session/runner';
 import type { OpenSource } from '../lib/session/source';
@@ -126,6 +126,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
     ensureReady: ensureReadyFromStores,
     persistIfUnchanged,
     replayAudio: appReplayAudio,
+    participantSpeech: appParticipantSpeech,
     openSource: async (leg, signal) => {
       await audio();
       return openLeg!(leg, signal);

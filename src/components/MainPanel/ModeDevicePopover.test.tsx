@@ -376,6 +376,29 @@ describe('ModeDevicePopover — the speech rows in Me and Other', () => {
     expect(button).toHaveAttribute('aria-pressed', 'false');
   });
 
+  it("a run that speaks the other side's translation keeps the row live: it shows the switch as it stands and flips it (#595)", () => {
+    store.selected = CHROMIUM;
+    routing.participantSpeech = true;
+    runSpeech.value = true;
+    const anchor = document.createElement('div');
+    document.body.appendChild(anchor);
+    const { unmount } = render(<ModeDevicePopover mode="participant" open={true} anchorEl={anchor} onClose={vi.fn()} locked={true} />);
+    const on = screen.getByRole('button', { name: 'Turn off Translation I hear' });
+    expect(on).toBeEnabled();
+    expect(on).toHaveAttribute('aria-pressed', 'true');
+    expect(on.getAttribute('title')).not.toBe('Fixed for this session; stop it to change.');
+    fireEvent.click(on);
+    expect(routing.setParticipantSpeech).toHaveBeenCalledWith(false);
+    unmount();
+    routing.participantSpeech = false;
+    render(<ModeDevicePopover mode="participant" open={true} anchorEl={anchor} onClose={vi.fn()} locked={true} />);
+    const off = screen.getByRole('button', { name: 'Turn on Translation I hear' });
+    expect(off).toBeEnabled();
+    expect(off).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(off);
+    expect(routing.setParticipantSpeech).toHaveBeenLastCalledWith(true);
+  });
+
   it('a provider that does not speak the other side: disabled and not checked', () => {
     store.selected = CHROMIUM;
     providerState.participantSpeech = false;

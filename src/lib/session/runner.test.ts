@@ -64,6 +64,7 @@ interface Options {
   timeoutMs?: number;
   closeTimeoutMs?: number;
   replayAudio?: { get(): boolean; subscribe(listener: () => void): () => void };
+  participantSpeech?: { get(): boolean; subscribe(listener: () => void): () => void };
 }
 
 function setup(o: Options = {}) {
@@ -116,6 +117,7 @@ function setup(o: Options = {}) {
     timeoutMs: o.timeoutMs ?? 1000,
     closeTimeoutMs: o.closeTimeoutMs,
     replayAudio: o.replayAudio,
+    participantSpeech: o.participantSpeech,
   });
   const events = (name: string) => tracked.filter(([e]) => e === name).map(([, p]) => p);
   return { clock, runner, sources, playback, events, shape, persistIfUnchanged };
@@ -484,6 +486,74 @@ describe("runner — the run's frozen Translation I hear", () => {
     const stopping = runner.stop();
     expect(runner.state.getState()).toMatchObject({ phase: 'stopping', participantSpeech: true });
     await stopping;
+  });
+});
+
+/** The fake, its sessions recording each `setSpeech` by leg: the participant runs the reversed pair, so its source is 'ja'. */
+function speechSwitchRecorder() {
+  const calls: Array<[string, boolean]> = [];
+  const provider = {
+    ...fakeProvider,
+    start: async (request: StartRequest<unknown, unknown>, events: AdapterEvents) => {
+      const session = await fakeProvider.start(request as never, events);
+      const leg = request.context.direction.source === 'ja' ? 'participant' : 'speaker';
+      return {
+        info: session.info,
+        appendAudio: (pcm: Int16Array) => session.appendAudio(pcm),
+        appendText: (text: string) => session.appendText(text),
+        beginTurn: () => session.beginTurn(),
+        endTurn: () => session.endTurn(),
+        cancelTurn: () => session.cancelTurn(),
+        setSpeech: (on: boolean) => { calls.push([leg, on]); },
+        stop: () => session.stop(),
+      };
+    },
+  } as unknown as AnyProvider;
+  let on = true;
+  const listeners = new Set<() => void>();
+  const participantSpeech = { get: () => on, subscribe: (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; } };
+  const flip = (next: boolean) => { on = next; listeners.forEach((l) => l()); };
+  return { provider, calls, participantSpeech, flip };
+}
+
+describe('runner — Translation I hear switched during a run (#595)', () => {
+  it("a run that speaks the other side's translation passes the switch to the participant's session, never the speaker's", async () => {
+    const { provider, calls, participantSpeech, flip } = speechSwitchRecorder();
+    const { runner } = setup({ participantSpeech, shape: { provider, legs: ['speaker', 'participant'], participantSpeech: true } });
+    await runner.start();
+    flip(false);
+    flip(true);
+    expect(calls).toEqual([['participant', false], ['participant', true]]);
+  });
+
+  it("a run that started without speaking the other side's translation never switches it", async () => {
+    const { provider, calls, participantSpeech, flip } = speechSwitchRecorder();
+    const { runner } = setup({ participantSpeech, shape: { provider, legs: ['participant'], participantSpeech: false } });
+    await runner.start();
+    flip(false);
+    flip(true);
+    expect(calls).toEqual([]);
+  });
+
+  it('switched off while the run starts: the participant session is switched off as it connects', async () => {
+    const { provider, calls, participantSpeech, flip } = speechSwitchRecorder();
+    const { runner, clock } = setup({ participantSpeech, shape: { provider, legs: ['participant'], participantSpeech: true }, settings: { startDelayMs: 2000 } });
+    const starting = runner.start();
+    await flush();
+    flip(false);
+    clock.advance(2000);
+    await starting;
+    expect(runner.state.getState().phase).toBe('running');
+    expect(calls).toEqual([['participant', false]]);
+  });
+
+  it('a run that has ended is not switched', async () => {
+    const { provider, calls, participantSpeech, flip } = speechSwitchRecorder();
+    const { runner } = setup({ participantSpeech, shape: { provider, legs: ['participant'], participantSpeech: true } });
+    await runner.start();
+    await runner.stop();
+    flip(false);
+    expect(calls).toEqual([]);
   });
 });
 
