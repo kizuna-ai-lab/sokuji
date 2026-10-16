@@ -34,7 +34,7 @@ export function ProviderLanguages({ providers, disabled, sentence }: ProviderLan
   useAudioStore((st) => st.otherSide);
   useAudioStore((st) => st.selectedParticipantSource?.deviceId);
   useAudioStore((st) => st.participantCaptureWidened);
-  // A run's open participant leg froze its speech at Start, as the Speech block reads it.
+  // As the Speech block reads it: a run that speaks the other side follows the switch live (#595), one that does not stays off.
   const runSpeech = useRunParticipantSpeech();
   if (!selection?.entry) return null;
   const { provider, entry } = selection;
@@ -46,7 +46,7 @@ export function ProviderLanguages({ providers, disabled, sentence }: ProviderLan
       settings={entry.settings}
       pair={entry.pair}
       disabled={disabled}
-      sentence={sentence && { ...sentence, participantSpeaks: runSpeech ?? speechFromStores(provider).them }}
+      sentence={sentence && { ...sentence, participantSpeaks: runSpeech !== false && speechFromStores(provider).them }}
       context={languageContext(provider, legs, speech)}
       onChange={(pair) => {
         if (pair.source !== entry.pair.source) trackEvent('language_changed', { to_language: pair.source, language_type: 'source' });

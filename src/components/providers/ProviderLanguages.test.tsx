@@ -114,5 +114,14 @@ describe('ProviderLanguages — the language context (Stage 2 Volcengine AST2, c
       render(<ProviderLanguages providers={[fakeProvider]} sentence={{ mode: 'participant', textOnly: false }} />);
       expect(screen.getByText('settings.langSentence.iRead')).toBeTruthy();
     });
+
+    it('in a run that speaks the other side, follows Translation I hear live (#595)', () => {
+      useRoutingStore.setState({ participantSpeech: true });
+      run.participantSpeech = true;
+      render(<ProviderLanguages providers={[fakeProvider]} sentence={{ mode: 'participant', textOnly: false }} />);
+      expect(screen.getByText('settings.langSentence.iHear')).toBeTruthy();
+      act(() => useRoutingStore.setState({ participantSpeech: false }));
+      expect(screen.getByText('settings.langSentence.iRead')).toBeTruthy();
+    });
   });
 });
