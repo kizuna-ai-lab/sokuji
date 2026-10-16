@@ -195,12 +195,12 @@ describe('the settings the sources follow', () => {
     });
   });
 
-  it("reads the microphone's device, noise suppression and mute from the audio store, live", () => {
+  it("reads the microphone's device, noise suppression, echo cancellation and mute from the audio store, live", () => {
     const settings = micSettings();
-    useAudioStore.setState({ selectedInputDevice: { deviceId: 'mic-1', label: 'Mic' }, noiseSuppressionMode: 'standard', isMicMuted: false });
-    expect([settings.deviceId(), settings.noiseSuppression(), settings.muted()]).toEqual(['mic-1', 'standard', false]);
-    useAudioStore.setState({ isMicMuted: true });
-    expect(settings.muted()).toBe(true);
+    useAudioStore.setState({ selectedInputDevice: { deviceId: 'mic-1', label: 'Mic' }, noiseSuppressionMode: 'standard', echoCancellationMode: 'app', isMicMuted: false });
+    expect([settings.deviceId(), settings.noiseSuppression(), settings.echoCancellation(), settings.muted()]).toEqual(['mic-1', 'standard', 'app', false]);
+    useAudioStore.setState({ isMicMuted: true, echoCancellationMode: 'all' });
+    expect([settings.muted(), settings.echoCancellation()]).toEqual([true, 'all']);
   });
 
   it('reads the participant source, whole-system when none is chosen, and remembers audible audio', () => {

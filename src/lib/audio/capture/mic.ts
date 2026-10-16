@@ -41,6 +41,8 @@ function refused(error: unknown): boolean {
 }
 
 export type NoiseSuppression = 'off' | 'standard' | 'enhanced';
+/** What echo cancellation removes: what this app plays, or every sound the system plays. */
+export type EchoCancellation = 'app' | 'all';
 
 /** The settings a microphone follows, read live. */
 export interface MicSettings {
@@ -55,6 +57,7 @@ export interface MicSettings {
   /** The device would not open: the store leaves it out and chooses again (spec 2026-10-04 §2). */
   markUnusable(deviceId: string): void;
   noiseSuppression(): NoiseSuppression;
+  echoCancellation(): EchoCancellation;
   muted(): boolean;
   /** Called when any of them may have changed. */
   subscribe(listener: () => void): () => void;
@@ -76,6 +79,8 @@ export interface MicRecorder {
   /** Ends the recording if it is open, then disposes the recorder for good — the GTCRN worker included. */
   quit(): Promise<unknown>;
   setNoiseSuppressionMode(mode: NoiseSuppression): Promise<void>;
+  /** Applied at the next `begin()`. */
+  setEchoCancellation(mode: EchoCancellation): void;
   getStream(): MediaStream | null;
 }
 
@@ -89,6 +94,7 @@ export async function openMic(
   /** The open device's name, kept from when it opened: a device that went away can no longer be looked up. */
   let label = settings.deviceLabel() ?? deviceId ?? '';
   let mode = settings.noiseSuppression();
+  let echo = settings.echoCancellation();
   /** Whether the recorder has begun and not ended: only then is there anything to end. */
   let open = false;
   /** Which `begin` the watched track belongs to: a late `ended` from an earlier stream is ignored. */
@@ -134,7 +140,7 @@ export async function openMic(
     },
   });
 
-  /** Steps run one at a time, in order: a switch, a lost track, a noise-mode change. A failure not about a device ends the source. */
+  /** Steps run one at a time, in order: a switch, a lost track, a noise-mode or echo-cancellation change. A failure not about a device ends the source. */
   const queue = (step: () => Promise<void>) => {
     chain = chain
       .then(step)
@@ -194,7 +200,7 @@ export async function openMic(
     }
   };
 
-  /** The store's settings changed: follow the noise mode and the device. */
+  /** The store's settings changed: follow the noise mode, echo cancellation and the device. */
   const follow = async () => {
     if (core.stopped || core.ended) return;
     const nextMode = settings.noiseSuppression();
@@ -202,8 +208,19 @@ export async function openMic(
       mode = nextMode;
       await recorder.setNoiseSuppressionMode(mode);
     }
+    // The browser fixes echo cancellation when it opens the device: a change
+    // reopens the open one, unless a device switch below opens another anyway.
+    const nextEcho = settings.echoCancellation();
+    const reopen = open && nextEcho !== echo;
+    if (nextEcho !== echo) {
+      echo = nextEcho;
+      recorder.setEchoCancellation(echo);
+    }
     const next = settings.deviceId();
-    if (next === deviceId && (open || next === undefined)) return;
+    if (next === deviceId && (open || next === undefined)) {
+      if (reopen) await switchTo(next);
+      return;
+    }
     // The failed device is marked but the store has not moved off it yet: wait for it.
     if (!open && next !== undefined && next === deviceId && settings.isUnusable(next)) return;
     // A move off a device the OS no longer lists is a loss, whether the sync
@@ -253,6 +270,7 @@ export async function openMic(
   }
   // Recorded now and applied when `begin` builds the graph.
   await recorder.setNoiseSuppressionMode(mode);
+  recorder.setEchoCancellation(echo);
   try {
     await begin(label);
   } catch (error) {

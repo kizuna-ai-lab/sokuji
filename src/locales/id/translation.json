@@ -57,6 +57,17 @@
       "standard": "Standar",
       "enhanced": "Ditingkatkan"
     },
+    "echoCancellation": "Peredam Gema",
+    "echoCancellationTooltip": {
+      "app": "Hanya Sokuji — Menghapus ucapan terjemahan Sokuji jika tertangkap mikrofon. Pilih ini jika mikrofon adalah kabel virtual seperti BlackHole.",
+      "browser": "Hanya browser — Menghapus suara yang diputar browser ini, termasuk tab rapat, jika tertangkap mikrofon. Pilih ini jika mikrofon adalah kabel virtual seperti BlackHole.",
+      "all": "Semua suara — Juga menghapus suara yang diputar aplikasi lain melalui speaker, seperti aplikasi rapat. Kabel virtual yang dipakai sebagai mikrofon membawa suara itu, sehingga akan menjadi senyap."
+    },
+    "echoCancellationMode": {
+      "app": "Hanya Sokuji",
+      "browser": "Hanya browser",
+      "all": "Semua suara"
+    },
     "modelConfiguration": "Konfigurasi model",
     "sourceLanguage": "Bahasa saya",
     "targetLanguage": "Bahasa lawan bicara",

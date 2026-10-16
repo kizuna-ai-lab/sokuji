@@ -42,8 +42,9 @@ export const PERFORMANCE_CONFIG = {
 // and Chrome then cancels only what Chrome plays. Chromium 152 grants 'all' on
 // Windows and macOS and falls back to `true` on Linux; an older browser reads
 // the string as `true`. The value that took effect is what track.getSettings()
-// reports (logged at begin()). A loopback input keeps `true` instead
-// (ModernAudioRecorder.getAudioConstraints): its signal is system playout.
+// reports (logged at begin()). The microphone's Echo Cancellation setting can
+// ask for `true` instead (ModernAudioRecorder.setEchoCancellation): 'all'
+// silences a loopback input such as BlackHole, whose signal is system playout.
 export const AUDIO_CONSTRAINT_PROFILES = {
   // High quality mode (default)
   HIGH_QUALITY: {

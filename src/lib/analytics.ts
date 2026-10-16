@@ -99,6 +99,10 @@ export interface AnalyticsEvents {
     mode?: 'off' | 'standard' | 'enhanced';
     during_session: boolean;
   };
+  'echo_cancellation_changed': {
+    mode: 'app' | 'all';
+    during_session: boolean;
+  };
   'virtual_device_warning': {
     device_type: 'input' | 'output';
     action_taken: 'ignored' | 'changed_device';

@@ -57,6 +57,17 @@
       "standard": "Vakio",
       "enhanced": "Parannettu"
     },
+    "echoCancellation": "Kaiunpoisto",
+    "echoCancellationTooltip": {
+      "app": "Vain Sokuji — Poistaa Sokujin käännetyn puheen, jos mikrofoni poimii sen. Valitse tämä, kun mikrofoni on virtuaalinen kaapeli, kuten BlackHole.",
+      "browser": "Vain selain — Poistaa tämän selaimen toistaman äänen kokousvälilehdet mukaan lukien, jos mikrofoni poimii sen. Valitse tämä, kun mikrofoni on virtuaalinen kaapeli, kuten BlackHole.",
+      "all": "Kaikki äänet — Poistaa myös äänen, jonka muut sovellukset toistavat kaiuttimista, kuten kokoussovelluksen. Mikrofonina käytetty virtuaalinen kaapeli välittää juuri tätä ääntä, joten se hiljenisi."
+    },
+    "echoCancellationMode": {
+      "app": "Vain Sokuji",
+      "browser": "Vain selain",
+      "all": "Kaikki äänet"
+    },
     "modelConfiguration": "Malliasetukset",
     "sourceLanguage": "Minun kieleni",
     "targetLanguage": "Toisen kieli",

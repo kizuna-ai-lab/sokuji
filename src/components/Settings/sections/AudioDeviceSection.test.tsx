@@ -7,9 +7,17 @@
  * the device list via aria-describedby, so the `aria-disabled` options carry
  * their justification for screen readers rather than just going quiet.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import AudioDeviceSection from './AudioDeviceSection';
+
+const echo = vi.hoisted(() => ({ mode: 'all' as 'app' | 'all', set: vi.fn(), os: 'macos', electron: true }));
+
+vi.mock('../../../utils/environment', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../utils/environment')>()),
+  isLinux: () => echo.os === 'linux',
+  isElectron: () => echo.electron,
+}));
 
 // Resolve to the inline default when the call site has one, else echo the key —
 // these tests assert on `lockedReason`, which is passed in as a plain string.
@@ -29,6 +37,8 @@ const devices = [
 vi.mock('../../../stores/audioStore', () => ({
   useNoiseSuppressionMode: () => 'off',
   useSetNoiseSuppressionMode: () => vi.fn(),
+  useEchoCancellationMode: () => echo.mode,
+  useSetEchoCancellationMode: () => echo.set,
   useAudioContext: () => ({
     audioInputDevices: devices,
     selectedInputDevice: devices[0],
@@ -127,5 +137,50 @@ describe('AudioDeviceSection renders no participant UI', () => {
     expect(container.querySelector('#participant-section')).toBeNull();
     expect(container.querySelector('#participant-source-section')).toBeNull();
     expect(container.querySelector('.participant-source-picker')).toBeNull();
+  });
+});
+
+// 'all' cancels every sound the system plays, which silences a loopback
+// microphone such as BlackHole; the user can ask for what this app plays only.
+// Chromium on Linux has no 'all', so there is nothing to choose there.
+describe('AudioDeviceSection echo cancellation', () => {
+  beforeEach(() => {
+    echo.mode = 'all';
+    echo.set.mockReset();
+    echo.os = 'macos';
+    echo.electron = true;
+  });
+
+  const options = () => screen.getAllByRole('button').filter((b) => b.textContent?.startsWith('settings.echoCancellationMode.'));
+
+  it('offers this app or all sounds on the desktop, below noise suppression', () => {
+    const { container } = renderMic();
+    expect(screen.getByText('settings.echoCancellation')).toBeInTheDocument();
+    expect(options().map((b) => b.textContent)).toEqual(['settings.echoCancellationMode.app', 'settings.echoCancellationMode.all']);
+    const labels = [...container.querySelectorAll('.noise-suppression-label')].map((l) => l.textContent);
+    expect(labels).toEqual(['settings.noiseSuppression', 'settings.echoCancellation']);
+  });
+
+  it('names the browser instead of Sokuji outside the desktop app', () => {
+    echo.electron = false;
+    echo.os = 'windows';
+    renderMic();
+    expect(options().map((b) => b.textContent)).toEqual(['settings.echoCancellationMode.browser', 'settings.echoCancellationMode.all']);
+  });
+
+  it('is not shown on Linux', () => {
+    echo.os = 'linux';
+    renderMic();
+    expect(screen.queryByText('settings.echoCancellation')).not.toBeInTheDocument();
+  });
+
+  it('marks the chosen mode and stores a new choice', () => {
+    echo.mode = 'app';
+    renderMic();
+    const [app, all] = options();
+    expect(app).toHaveClass('active');
+    expect(all).not.toHaveClass('active');
+    fireEvent.click(all);
+    expect(echo.set).toHaveBeenCalledWith('all');
   });
 });

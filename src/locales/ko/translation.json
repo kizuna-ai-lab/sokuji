@@ -57,6 +57,17 @@
       "standard": "표준",
       "enhanced": "향상"
     },
+    "echoCancellation": "에코 제거",
+    "echoCancellationTooltip": {
+      "app": "Sokuji만 — 마이크에 들어온 Sokuji의 번역 음성을 제거합니다. 마이크가 BlackHole 같은 가상 오디오 장치라면 이 옵션을 선택하세요.",
+      "browser": "브라우저만 — 마이크에 들어온 이 브라우저의 소리(회의 탭 포함)를 제거합니다. 마이크가 BlackHole 같은 가상 오디오 장치라면 이 옵션을 선택하세요.",
+      "all": "모든 소리 — 회의 앱처럼 다른 앱이 스피커로 재생하는 소리도 제거합니다. 마이크로 쓰는 가상 오디오 장치는 바로 그 소리를 전달하므로 무음이 됩니다."
+    },
+    "echoCancellationMode": {
+      "app": "Sokuji만",
+      "browser": "브라우저만",
+      "all": "모든 소리"
+    },
     "modelConfiguration": "모델 구성",
     "sourceLanguage": "내 언어",
     "targetLanguage": "상대방 언어",

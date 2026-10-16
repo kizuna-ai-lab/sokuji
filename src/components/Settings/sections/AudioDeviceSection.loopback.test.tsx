@@ -34,6 +34,8 @@ const { inputDevices, selectInputDevice } = vi.hoisted(() => ({
 vi.mock('../../../stores/audioStore', () => ({
   useNoiseSuppressionMode: () => 'off',
   useSetNoiseSuppressionMode: () => vi.fn(),
+  useEchoCancellationMode: () => 'all',
+  useSetEchoCancellationMode: () => vi.fn(),
   useAudioContext: () => ({
     audioInputDevices: inputDevices,
     selectedInputDevice: null,
