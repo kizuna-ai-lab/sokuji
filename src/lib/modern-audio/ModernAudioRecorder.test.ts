@@ -162,4 +162,53 @@ describe('ModernAudioRecorder.begin — asks to cancel all system playout', () =
   it('not with the minimal profile, which turns processing off', async () => {
     expect((await requestedAudio('minimal')).echoCancellation).toBe(false);
   });
+
+  // A loopback input carries what the system plays, so "all" cancels the very
+  // signal it is there to capture: a meeting app speaking into BlackHole fell
+  // from -20 dBFS to -63 dBFS on macOS (Chromium 152), and back to -19 with
+  // `true`. Chromium on macOS ends a virtual device's label with "(Virtual)";
+  // Windows labels carry the cable's maker.
+  const listing = (devices: Array<{ deviceId: string; label: string }>) => {
+    const enumerateDevices = vi.fn().mockResolvedValue(
+      devices.map((d) => ({ ...d, kind: 'audioinput', groupId: d.deviceId })),
+    );
+    Object.defineProperty(globalThis.navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia, enumerateDevices },
+    });
+  };
+
+  const echoCancellationFor = async (deviceId: string | undefined) => {
+    captureThenStop();
+    await new ModernAudioRecorder().begin(deviceId).catch(() => undefined);
+    return getUserMedia.mock.calls[0][0].audio.echoCancellation;
+  };
+
+  it.each([
+    'BlackHole 2ch (Virtual)',
+    'SokujiVirtualAudio (Virtual)',
+    'CABLE Output (VB-Audio Virtual Cable)',
+    'Line 1 (Virtual Audio Cable)',
+  ])('falls back to `true` on the loopback input %s', async (label) => {
+    listing([{ deviceId: 'mic-1', label: 'MacBook Pro Microphone (Built-in)' }, { deviceId: 'loop', label }]);
+    expect(await echoCancellationFor('loop')).toBe(true);
+  });
+
+  it('keeps "all" on a real microphone listed beside a loopback one', async () => {
+    listing([{ deviceId: 'mic-1', label: 'MacBook Pro Microphone (Built-in)' }, { deviceId: 'loop', label: 'BlackHole 2ch (Virtual)' }]);
+    expect(await echoCancellationFor('mic-1')).toBe('all');
+  });
+
+  it('reads the default device when none is chosen', async () => {
+    listing([{ deviceId: 'default', label: 'Default - BlackHole 2ch (Virtual)' }, { deviceId: 'loop', label: 'BlackHole 2ch (Virtual)' }]);
+    expect(await echoCancellationFor(undefined)).toBe(true);
+  });
+
+  it('keeps "all" when the devices cannot be listed', async () => {
+    Object.defineProperty(globalThis.navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia, enumerateDevices: vi.fn().mockRejectedValue(new Error('no listing')) },
+    });
+    expect(await echoCancellationFor('mic-1')).toBe('all');
+  });
 });

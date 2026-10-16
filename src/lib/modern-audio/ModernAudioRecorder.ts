@@ -113,7 +113,7 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
   /**
    * Get audio constraints based on performance mode
    */
-  private getAudioConstraints(deviceId?: string): MediaTrackConstraints {
+  private async getAudioConstraints(deviceId?: string): Promise<MediaTrackConstraints> {
     const baseConstraints: MediaTrackConstraints = {
       deviceId: deviceId ? { exact: deviceId } : undefined,
       sampleRate: this.internalSampleRate,
@@ -123,9 +123,26 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
     const profileName = this.performanceMode.toUpperCase().replace(' ', '_') as keyof typeof AUDIO_CONSTRAINT_PROFILES;
     const profile = AUDIO_CONSTRAINT_PROFILES[profileName] || AUDIO_CONSTRAINT_PROFILES.HIGH_QUALITY;
 
+    // A loopback input (BlackHole, VB-CABLE, Sokuji's own virtual device) carries
+    // what the system plays, so 'all' cancels the very signal it is there to
+    // capture: a meeting app speaking into BlackHole fell from -20 to -63 dBFS on
+    // macOS (Chromium 152). Such an input keeps `true`, which cancels only what
+    // Chrome plays. Chromium on macOS ends a virtual device's label with
+    // "(Virtual)"; Windows labels carry the cable's maker. Without a listing the
+    // profile stands.
+    let label = '';
+    try {
+      const devices = (await navigator.mediaDevices.enumerateDevices?.()) ?? [];
+      label = devices.find((d) => d.kind === 'audioinput' && d.deviceId === (deviceId ?? 'default'))?.label ?? '';
+    } catch {
+      // keep the profile
+    }
+    const loopback = /\(Virtual\)$|VB-Audio|Virtual Audio Cable/i.test(label);
+    const echoCancellation = loopback && profile.echoCancellation === 'all' ? true : profile.echoCancellation;
+
     // lib.dom (TS 5.9) still types echoCancellation as a boolean constraint;
     // the profiles use the 'all' mode of Media Capture and Streams (Chrome 141).
-    return { ...baseConstraints, ...profile } as unknown as MediaTrackConstraints;
+    return { ...baseConstraints, ...profile, echoCancellation } as unknown as MediaTrackConstraints;
   }
 
   /**
@@ -233,7 +250,7 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
     try {
       // Acquire stream with echo cancellation
       this.stream = await navigator.mediaDevices.getUserMedia({
-        audio: this.getAudioConstraints(deviceId)
+        audio: await this.getAudioConstraints(deviceId)
       });
 
       const track = this.stream.getAudioTracks()[0];
