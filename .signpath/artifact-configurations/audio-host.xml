@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <!-- The Windows capture helper, built from native/audio-host/win, signed before packaging -->
+    <pe-file path="sokuji-audio-host.exe">
+      <authenticode-sign />
+    </pe-file>
+  </zip-file>
+</artifact-configuration>
