@@ -174,13 +174,21 @@ describe('AudioDeviceSection echo cancellation', () => {
     expect(screen.queryByText('settings.echoCancellation')).not.toBeInTheDocument();
   });
 
-  it('marks the chosen mode and stores a new choice', () => {
+  it('marks the chosen mode, to the eye and to assistive technology, and stores a new choice', () => {
     echo.mode = 'app';
     renderMic();
     const [app, all] = options();
     expect(app).toHaveClass('active');
     expect(all).not.toHaveClass('active');
+    expect(app).toHaveAttribute('aria-pressed', 'true');
+    expect(all).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(all);
     expect(echo.set).toHaveBeenCalledWith('all');
+  });
+
+  it('tells assistive technology which noise suppression mode is on, as it does for echo cancellation', () => {
+    renderMic();
+    const pressed = screen.getAllByRole('button', { pressed: true }).map((b) => b.textContent);
+    expect(pressed).toEqual(['settings.noiseSuppressionMode.off', 'settings.echoCancellationMode.all']);
   });
 });

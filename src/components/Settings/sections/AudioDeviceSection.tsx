@@ -170,6 +170,7 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
               <button
                 key={mode}
                 className={`segmented-option ${noiseSuppressionMode === mode ? 'active' : ''}`}
+                aria-pressed={noiseSuppressionMode === mode}
                 onClick={() => {
                   setNoiseSuppressionMode(mode);
                   trackEvent('noise_suppression_toggled', {
@@ -205,6 +206,7 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
                 <button
                   key={mode}
                   className={`segmented-option ${echoCancellationMode === mode ? 'active' : ''}`}
+                  aria-pressed={echoCancellationMode === mode}
                   onClick={() => {
                     setEchoCancellationMode(mode);
                     trackEvent('echo_cancellation_changed', {

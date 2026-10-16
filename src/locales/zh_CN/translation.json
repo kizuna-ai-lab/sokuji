@@ -60,7 +60,7 @@
     "echoCancellation": "回声消除",
     "echoCancellationTooltip": {
       "app": "仅 Sokuji — 麦克风收进 Sokuji 播放的翻译语音时将其消除。麦克风是 BlackHole 等虚拟声卡时请选择此项。",
-      "browser": "仅浏览器 — 麦克风收进本浏览器播放的声音（包括会议标签页）时将其消除。麦克风是 BlackHole 等虚拟声卡时请选择此项。",
+      "browser": "仅浏览器 — 麦克风收进本浏览器播放的声音（包括会议标签页）时将其消除。麦克风是传送其他应用声音的 BlackHole 等虚拟声卡时请选择此项。",
       "all": "全部声音 — 连其他应用从扬声器播放的声音（例如会议软件）也一并消除。用作麦克风的虚拟声卡传送的正是这些声音，因此会变成静音。"
     },
     "echoCancellationMode": {

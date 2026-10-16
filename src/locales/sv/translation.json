@@ -60,7 +60,7 @@
     "echoCancellation": "Ekoeliminering",
     "echoCancellationTooltip": {
       "app": "Bara Sokuji — Tar bort Sokujis översatta tal om mikrofonen fångar upp det. Välj detta när mikrofonen är en virtuell kabel som BlackHole.",
-      "browser": "Bara webbläsaren — Tar bort det som den här webbläsaren spelar upp, mötesflikar inräknade, om mikrofonen fångar upp det. Välj detta när mikrofonen är en virtuell kabel som BlackHole.",
+      "browser": "Bara webbläsaren — Tar bort det som den här webbläsaren spelar upp, mötesflikar inräknade, om mikrofonen fångar upp det. Välj detta när mikrofonen är en virtuell kabel som BlackHole som bär ljud från en annan app.",
       "all": "Alla ljud — Tar även bort det som andra appar spelar upp i högtalarna, till exempel en mötesapp. En virtuell kabel som används som mikrofon bär just det ljudet och skulle bli tyst."
     },
     "echoCancellationMode": {

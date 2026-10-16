@@ -60,7 +60,7 @@
     "echoCancellation": "Echo-onderdrukking",
     "echoCancellationTooltip": {
       "app": "Alleen Sokuji — Verwijdert de vertaalde spraak van Sokuji als de microfoon die opvangt. Kies dit als de microfoon een virtuele kabel zoals BlackHole is.",
-      "browser": "Alleen browser — Verwijdert wat deze browser afspeelt, vergadertabbladen inbegrepen, als de microfoon het opvangt. Kies dit als de microfoon een virtuele kabel zoals BlackHole is.",
+      "browser": "Alleen browser — Verwijdert wat deze browser afspeelt, vergadertabbladen inbegrepen, als de microfoon het opvangt. Kies dit als de microfoon een virtuele kabel zoals BlackHole is die het geluid van een andere app draagt.",
       "all": "Alle geluiden — Verwijdert ook wat andere apps via de luidsprekers afspelen, zoals een vergaderapp. Een virtuele kabel als microfoon draagt precies dat geluid en zou stil worden."
     },
     "echoCancellationMode": {

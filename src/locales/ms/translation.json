@@ -60,7 +60,7 @@
     "echoCancellation": "Pembatalan Gema",
     "echoCancellationTooltip": {
       "app": "Sokuji sahaja — Membuang pertuturan terjemahan Sokuji jika ditangkap mikrofon. Pilih ini apabila mikrofon ialah kabel maya seperti BlackHole.",
-      "browser": "Pelayar sahaja — Membuang bunyi yang dimainkan pelayar ini, termasuk tab mesyuarat, jika ditangkap mikrofon. Pilih ini apabila mikrofon ialah kabel maya seperti BlackHole.",
+      "browser": "Pelayar sahaja — Membuang bunyi yang dimainkan pelayar ini, termasuk tab mesyuarat, jika ditangkap mikrofon. Pilih ini apabila mikrofon ialah kabel maya seperti BlackHole yang membawa bunyi aplikasi lain.",
       "all": "Semua bunyi — Turut membuang bunyi yang dimainkan aplikasi lain melalui pembesar suara, seperti aplikasi mesyuarat. Kabel maya yang digunakan sebagai mikrofon membawa bunyi itu, jadi ia akan menjadi senyap."
     },
     "echoCancellationMode": {

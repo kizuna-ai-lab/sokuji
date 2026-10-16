@@ -60,7 +60,7 @@
     "echoCancellation": "Khử tiếng vọng",
     "echoCancellationTooltip": {
       "app": "Chỉ Sokuji — Loại bỏ giọng dịch của Sokuji nếu micro thu vào. Chọn mục này khi micro là một cáp ảo như BlackHole.",
-      "browser": "Chỉ trình duyệt — Loại bỏ âm thanh trình duyệt này phát, kể cả các thẻ cuộc họp, nếu micro thu vào. Chọn mục này khi micro là một cáp ảo như BlackHole.",
+      "browser": "Chỉ trình duyệt — Loại bỏ âm thanh trình duyệt này phát, kể cả các thẻ cuộc họp, nếu micro thu vào. Chọn mục này khi micro là một cáp ảo như BlackHole mang âm thanh của ứng dụng khác.",
       "all": "Mọi âm thanh — Loại bỏ cả âm thanh các ứng dụng khác phát qua loa, chẳng hạn ứng dụng họp. Cáp ảo dùng làm micro mang chính âm thanh đó nên sẽ bị im lặng."
     },
     "echoCancellationMode": {
