@@ -459,6 +459,79 @@ describe('SonioxTtsStream segmenting', () => {
   });
 });
 
+describe('SonioxTtsStream drop (Translation I hear switched off, #595)', () => {
+  it('ends the live segment with text_end and keeps the socket open', async () => {
+    const { t, ws } = await openTts();
+    t.sendText('Hello', 'en');
+    t.drop();
+    expect(ended(ws)).toEqual(['utt-1-1']);
+    expect(t.isOpen()).toBe(true);
+  });
+
+  it('forgets the text waiting behind a draining segment', async () => {
+    const { t, ws } = await openTts();
+    t.sendText('One.', 'en');
+    t.sendText('Two', 'en');
+    t.drop();
+    ws.message({ stream_id: 'utt-1-1', terminated: true });
+    expect(opened(ws)).toEqual(['utt-1-1']);
+    expect(ws.jsonSent().some((m) => m.text === 'Two')).toBe(false);
+  });
+
+  it('withholds the audio a dropped segment still sends, and reports its end unclean', async () => {
+    const { t, ws } = await openTts();
+    const chunks: Int16Array[] = [];
+    const ends: Array<{ streamId: string; clean: boolean }> = [];
+    t.setHandlers({ onAudio: (a) => chunks.push(a), onSegmentEnd: (e) => ends.push(e) });
+    t.sendText('Hello', 'en');
+    ws.message({ stream_id: 'utt-1-1', audio: pcmB64() });
+    t.drop();
+    ws.message({ stream_id: 'utt-1-1', audio: pcmB64() });
+    ws.message({ stream_id: 'utt-1-1', terminated: true });
+    expect(chunks).toHaveLength(1);
+    expect(ends.map((e) => [e.streamId, e.clean])).toEqual([['utt-1-1', false]]);
+  });
+
+  it('says nothing about an error on a segment it dropped, and the next text still opens', async () => {
+    const { t, ws } = await openTts();
+    const errors: string[] = [];
+    t.setHandlers({ onError: (code) => errors.push(code) });
+    t.sendText('Hello', 'en');
+    t.drop();
+    ws.message({ stream_id: 'utt-1-1', error_code: 408, error_message: 'Request timeout' });
+    t.sendText('Next', 'en');
+    expect(errors).toEqual([]);
+    expect(opened(ws)).toHaveLength(2);
+    expect(last(ws.jsonSent())).toEqual({ stream_id: last(opened(ws)), text: 'Next', text_end: false });
+  });
+
+  it('an unexpected close while only a dropped segment drains lost no speech', async () => {
+    const { t, ws } = await openTts();
+    const closes: boolean[] = [];
+    t.setHandlers({ onError: (_code, _message, hadActiveStream) => closes.push(hadActiveStream) });
+    t.sendText('Hello', 'en');
+    t.drop();
+    ws.close();
+    expect(closes).toEqual([false]);
+  });
+
+  it('speaks the next text in a fresh segment once the dropped one has terminated', async () => {
+    const { t, ws } = await openTts();
+    const chunks: Int16Array[] = [];
+    t.setHandlers({ onAudio: (a) => chunks.push(a) });
+    t.sendText('Hello', 'en');
+    t.drop();
+    t.sendText('Next', 'en');
+    expect(opened(ws)).toEqual(['utt-1-1']);
+    ws.message({ stream_id: 'utt-1-1', terminated: true });
+    expect(opened(ws)).toHaveLength(2);
+    const next = last(opened(ws));
+    expect(last(ws.jsonSent())).toEqual({ stream_id: next, text: 'Next', text_end: false });
+    ws.message({ stream_id: next, audio: pcmB64() });
+    expect(chunks).toHaveLength(1);
+  });
+});
+
 describe('classifyChunkEnd', () => {
   it.each([
     'Hello.', 'Really?', 'Wow!', 'Well…', 'Well...', 'What?!', 'Hello. ',

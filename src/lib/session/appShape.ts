@@ -191,6 +191,26 @@ export const appReplayAudio = {
   }),
 };
 
+/**
+ * Translation I hear as `speechFromStores` answers it, live: the runner's
+ * `participantSpeech` (#595). During a run the provider, the mode and the
+ * pair are locked, so only the switch and the capture can move it.
+ */
+export const appParticipantSpeech = {
+  get: () => speechFromStores().them,
+  subscribe: (listener: () => void) => {
+    let last = speechFromStores().them;
+    const check = () => {
+      const now = speechFromStores().them;
+      if (now === last) return;
+      last = now;
+      listener();
+    };
+    const offs = [useRoutingStore.subscribe(check), useAudioStore.subscribe(check)];
+    return () => { for (const off of offs) off(); };
+  },
+};
+
 export function persistIfUnchanged(p: AnyProvider, snapshot: unknown, patch: Readonly<Record<string, unknown>>): void {
   const entry = useProviderStore.getState().entries[p.id];
   if (!entry) return;

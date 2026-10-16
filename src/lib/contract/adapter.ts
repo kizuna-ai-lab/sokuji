@@ -57,6 +57,14 @@ export interface AdapterSession {
   endTurn(): void;
   cancelTurn(): void;
   /**
+   * Translated speech switched mid-session, for a session started with
+   * `context.speech` (#595). Off: nothing more is synthesized and what is in
+   * flight is dropped, unheard; on: speech resumes at the next sentence. An
+   * adapter whose model speaks as it translates leaves it out: the playback
+   * still falls silent.
+   */
+  setSpeech?(on: boolean): void;
+  /**
    * Closes its socket (or ends its pipeline) before its first `await`: on
    * `pagehide` the runner calls `stop()` without awaiting it, and only what
    * ran synchronously is sure to happen.

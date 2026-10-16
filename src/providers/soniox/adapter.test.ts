@@ -421,6 +421,16 @@ describe('the Soniox adapter: one leg', () => {
     expect(log.indexOf(of('speechRanges')[0])).toBeGreaterThan(log.indexOf(audio[1]));
   });
 
+  it('setSpeech(false) sends no more of the leg\'s translations to synthesis; setSpeech(true) speaks the next one (#595)', async () => {
+    const { session, stt, tts } = await live();
+    session.setSpeech!(false);
+    stt().receive(msg(orig('Hello.'), tr('こんにちは。'), END));
+    expect(tts().sentJson<Json>().some((m) => m.text === 'こんにちは。')).toBe(false);
+    session.setSpeech!(true);
+    stt().receive(msg(orig('Bye.'), tr('さようなら。'), END));
+    expect(tts().sentJson<Json>().some((m) => m.text === 'さようなら。')).toBe(true);
+  });
+
   it('stop ends the stream, framed, and closes both sockets before its first await, and nothing follows (Stage 2 session end, ruling 2 (ii))', async () => {
     const { session, stt, tts, log, clock, timers } = await live();
     const n = log.length;

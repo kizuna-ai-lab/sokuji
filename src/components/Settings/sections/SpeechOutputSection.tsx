@@ -123,9 +123,10 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
   // The recapture rule (D10): a whole-system capture would translate the playback again.
   const recaptured = theirLegRuns && !faceToFace && !heard;
   const otherOn = speech === 'always' ? true : speech === 'never' ? false : !textOnly;
-  // A run's open participant leg froze its speech at Start; the source picker stays live, so the stores can say otherwise.
+  // A run decided at Start whether the other side is spoken; one that is follows the switch live (#595), one that is not keeps it off.
   const runSpeech = useRunParticipantSpeech();
-  const themOn = runSpeech ?? (participantOffered && !recaptured && speech !== 'never' && (speech === 'always' || (participantSpeech ?? faceToFace)));
+  const themLocked = isSessionActive && runSpeech !== true;
+  const themOn = runSpeech !== false && participantOffered && !recaptured && speech !== 'never' && (speech === 'always' || (participantSpeech ?? faceToFace));
   const hasVirtualBus = platform !== 'web';
   const pushToTranslate = turnMode === 'push-to-translate';
 
@@ -285,8 +286,8 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
         switch={{
           checked: themOn,
           onChange: () => setParticipantSpeech(!(participantSpeech ?? faceToFace)),
-          disabled: isSessionActive || recaptured || !participantOffered || speech !== 'optional',
-          title: isSessionActive ? lockedByRun : undefined,
+          disabled: themLocked || recaptured || !participantOffered || speech !== 'optional',
+          title: themLocked ? lockedByRun : undefined,
           describedBy: recaptured ? reasonId : undefined,
         }}
         footer={themOn && <VoiceLine leg="participant" locked={isSessionActive} />}

@@ -64,6 +64,8 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
     for (const leg of ['speaker', 'participant'] as const) conversation.get(leg)?.setRetention(retention);
   });
   let current: Run | null = null;
+  // Translation I hear takes effect at once on a run that speaks it (#595); the runner lives as long as the page.
+  deps.participantSpeech?.subscribe(() => current?.setParticipantSpeech(deps.participantSpeech!.get()));
   let ending: Promise<void> | null = null;
   // A run `abandon()` has already forced idle: an `end()` for it already in
   // flight (a stop, a leg's end, a failed start) must not run its

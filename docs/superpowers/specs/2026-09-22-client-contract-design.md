@@ -2272,7 +2272,10 @@ The shape is frozen, but a run is not a freeze of the whole app. These change
 while running and take effect immediately: microphone and monitor device,
 participant source, the three mute switches, noise suppression, passthrough
 and its ratio, every display setting (modes, font size, compact, colours, the
-subtitle window's own), and `keepReplayAudio`. Everything else — provider,
+subtitle window's own), and `keepReplayAudio`. Translation I hear changes too
+in a run that started speaking the other side (#595): off stops that speech at
+once and an adapter with `setSpeech` synthesizes nothing more, on resumes at
+the next sentence; a run that started without it keeps it off. Everything else — provider,
 languages, mode, turn mode, text-only, transport, the provider's own settings
 and credentials — is locked while the phase is not `idle`; the settings
 sections read the phase for it, and so does `setProvider`, which the sign-in

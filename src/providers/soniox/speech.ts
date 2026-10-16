@@ -18,7 +18,7 @@ import { describeCause } from '../../lib/diagnostics/describeCause';
 import type { SonioxRegion } from '../../lib/soniox/regions';
 import { SONIOX_TTS_MODEL } from '../../lib/soniox/ttsCatalog';
 import type { OpenSocket } from './socket';
-import { SonioxTtsStream, type SonioxTtsErrorScope, type SonioxTtsSegmentEnd, type TextTag } from './ttsStream';
+import { classifyChunkEnd, SonioxTtsStream, type SonioxTtsErrorScope, type SonioxTtsSegmentEnd, type TextTag } from './ttsStream';
 
 export interface LegSpeechOptions {
   region: SonioxRegion;
@@ -57,6 +57,12 @@ export class LegSpeech {
   private texts = new Map<Ref, Array<{ span: TextRange; text: string }>>();
   /** What this utterance handed to speech, for the Logs' `tts.speak`. */
   private spoken = '';
+  /** Translation I hear, live (#595): while off, nothing is sent to synthesis. */
+  private on = true;
+  /** The ref whose last chunk left a sentence open; null after a sentence or an utterance ended. */
+  private openSentence: Ref | null = null;
+  /** Back on in the middle of this ref's sentence: the rest of it is not spoken. */
+  private skipping: Ref | null = null;
   /** The failure episode already reported: cleared when audio flows again or a reconnect succeeds. */
   private reported: SonioxTtsErrorScope | null = null;
   private readable = true;
@@ -70,6 +76,13 @@ export class LegSpeech {
 
   speak(ref: Ref, text: string, span: TextRange, language: string): void {
     if (this.closed) return;
+    const continues = this.openSentence === ref;
+    this.openSentence = classifyChunkEnd(text) === 'sentence' ? null : ref;
+    if (!this.on) return;
+    if (this.skipping !== null) {
+      if (continues && this.skipping === ref) return;
+      this.skipping = null;
+    }
     const tag: TextTag = { ref, span };
     this.hold(tag, text);
     this.spoken += text;
@@ -83,12 +96,33 @@ export class LegSpeech {
 
   endUtterance(): void {
     if (this.closed) return;
+    this.openSentence = null;
     if (this.spoken) {
       this.frame('out', 'tts.speak', { text: this.spoken });
       this.spoken = '';
     }
+    if (!this.on) return;
     if (this.connecting) this.pending.push({ kind: 'end' });
     else this.stream?.endUtterance();
+  }
+
+  /**
+   * Translation I hear switched mid-run (#595). Off: what waits is forgotten
+   * and the live segment is dropped, on the same socket, and nothing more is
+   * sent to synthesis. On: speech resumes at the next sentence.
+   */
+  setOn(on: boolean): void {
+    if (this.closed || on === this.on) return;
+    this.on = on;
+    this.frame('out', 'tts.speech', { on });
+    if (on) {
+      this.skipping = this.openSentence;
+      return;
+    }
+    this.pending = [];
+    // Every chunk held belongs to a dropped segment or to text that waited: none will be filled in.
+    this.texts = new Map();
+    this.stream?.drop();
   }
 
   /**

@@ -70,6 +70,16 @@ describe('useFaceToFace', () => {
     expect(result.current.speaks.participant).toBe(false);
   });
 
+  it("in a run that speaks the other side, speaks.participant follows Translation I hear live (#595)", () => {
+    pick('soniox');
+    useRoutingStore.setState({ participantSpeech: true });
+    runSpeech.value = true;
+    const { result } = renderHook(() => useFaceToFace());
+    expect(result.current.speaks.participant).toBe(true);
+    act(() => { useRoutingStore.setState({ participantSpeech: false }); });
+    expect(result.current.speaks.participant).toBe(false);
+  });
+
   it("tells an outlet's own device from the default fallback, and a stale id falls back to the default", () => {
     pick('soniox');
     useAudioStore.setState({ audioMonitorDevices: [{ deviceId: 'out-1', label: 'AirPods Pro' }, { deviceId: 'out-2', label: 'USB Speakers' }] as never });

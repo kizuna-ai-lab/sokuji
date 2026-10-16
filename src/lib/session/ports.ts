@@ -83,6 +83,8 @@ export interface RunnerDeps {
   closeTimeoutMs?: number;
   /** `keepReplayAudio`, live (spec: "What may change during a run"); absent, the shape's value holds for the run. */
   replayAudio?: { get(): boolean; subscribe(listener: () => void): () => void };
+  /** Translation I hear, live (#595): a run started speaking the other side's translation switches its participant session with it; absent, the shape's value holds. */
+  participantSpeech?: { get(): boolean; subscribe(listener: () => void): () => void };
 }
 
 /**

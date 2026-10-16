@@ -30,7 +30,7 @@ import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useRoutingStore } from '../../stores/routingStore';
-import { ensureReadyFromStores, faceToFaceFromStores, legsFor, liveGate, persistIfUnchanged, readShapeFromStores, speechFromStores, speechInputsFromStores, watchLegsFromStores, watchSpeechFromStores } from './appShape';
+import { appParticipantSpeech, ensureReadyFromStores, faceToFaceFromStores, legsFor, liveGate, persistIfUnchanged, readShapeFromStores, speechFromStores, speechInputsFromStores, watchLegsFromStores, watchSpeechFromStores } from './appShape';
 import type { RunShape } from './types';
 
 const auth = { signedIn: false, getToken: async () => null };
@@ -374,5 +374,40 @@ describe('face-to-face from the stores', () => {
     expect(speechFromStores().other).toBe(false);
     useSettingsStore.setState({ textOnly: false });
     expect(speechFromStores().other).toBe(true);
+  });
+});
+
+describe('appParticipantSpeech — Translation I hear, live for the runner (#595)', () => {
+  beforeEach(() => {
+    environment.value = 'web';
+    useProviderStore.setState({
+      selected: 'fake',
+      entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
+    });
+    useRoutingStore.setState({ participantSpeech: true });
+    useAudioStore.setState({ mode: 'participant' });
+  });
+
+  it('reads the switch as the shape does, and tells only of a change', () => {
+    const heard: boolean[] = [];
+    const off = appParticipantSpeech.subscribe(() => heard.push(appParticipantSpeech.get()));
+    expect(appParticipantSpeech.get()).toBe(true);
+    useRoutingStore.setState({ participantSpeech: false });
+    useRoutingStore.setState({ participantSpeech: false });
+    useAudioStore.setState({ isMonitorMuted: false });
+    useRoutingStore.setState({ participantSpeech: true });
+    off();
+    useRoutingStore.setState({ participantSpeech: false });
+    expect(heard).toEqual([false, true]);
+  });
+
+  it('turns off with a capture that widened to the whole system', () => {
+    environment.value = 'electron';
+    useAudioStore.setState({ selectedParticipantSource: { deviceId: 'app:42', label: 'App' } });
+    const heard: boolean[] = [];
+    const off = appParticipantSpeech.subscribe(() => heard.push(appParticipantSpeech.get()));
+    useAudioStore.setState({ participantCaptureWidened: true });
+    off();
+    expect(heard).toEqual([false]);
   });
 });
