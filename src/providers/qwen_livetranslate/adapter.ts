@@ -320,8 +320,10 @@ class QwenLeg implements AdapterSession {
    * A look of the keepalive (probe 2026-10-16): after `KEEPALIVE_IDLE_MS`
    * with nothing gone up, 100 ms of silence. Under push-to-talk it is a turn
    * of its own, committed at once — an append alone is closed 60 s later —
-   * and only between turns: never into an open press, nor while one is still
-   * being finished. Its turn comes back empty and shows nothing.
+   * never into a press with audio waiting to be committed, nor while a turn
+   * is still being finished. A press held with nothing left to send (a muted
+   * source, or quiet past its allowance) still gets it: the idle close would
+   * come all the same. Its turn comes back empty and shows nothing.
    */
   private keepalive(): void {
     const ws = this.live();
