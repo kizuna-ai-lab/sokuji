@@ -98,7 +98,7 @@ _STAGE_OF_BACKEND = {"native_asr": "asr", "native_asr_stream": "asr",
                      "native_translate": "translate", "native_tts": "tts"}
 
 
-# A hosted-macOS VM (GitHub Actions' macos-14 runner, and every other
+# A hosted-macOS VM (GitHub Actions' arm64 macOS runners, and every other
 # virtualized Mac) exposes its GPU as "Apple Paravirtual device" — a
 # virtualization shim, not a downlevel real GPU. It lacks
 # has_simdgroup_reduction (ggml-metal-device.m requires MTLGPUFamilyApple7 or
