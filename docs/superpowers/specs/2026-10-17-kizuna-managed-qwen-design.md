@@ -47,6 +47,7 @@ handshake's request id) to find the row and to check the answer; it charges the 
 | Attribution | Nothing the client or the token mint sends reaches the log: no pass-through field, no custom header or query. A token's sessions log the parent key's `apikey_id`. The one per-session id in the log is `task_uuid`, the client's `sess_…` from `session.created` (confirmed by Alibaba's product team, 2026-10-16). |
 | Usage source | `listModelLogs`, called as `bailian` 2023-06-01 `IntlBroadScopeAspnGateway` (RPC, V3-signed, `bailian.ap-southeast-1.aliyuncs.com`), undocumented. A row appears about 2–60 s after its session ends, with `request_id`, `task_uuid`, `apikey_id`, `start_unix_timestamp` (ms, session start), `duration`, `usage` (text and audio × input and output), `status_code` (400 is normal for realtime), `workspace_id`, `client_ip`. One workspace per call (`cornerstoneParam.switchAgent` = its tenant id); pages of ≤ 50; 14-day retention. `taskUuid` is a filter field but rejects `sess_…` ("taskUuid illegal"); `modelRequestId` filters. |
 | Its call rate | No throttling seen. Probed 2026-10-17 with the RAM AccessKey over the reconciler's own query ([now − 2 min, now], one page of 50): every 5 s for an hour, 720/720 OK; every 2 s for an hour, 1800/1800 OK (140 of those pages held rows). Latency p50 ≈ 450–500 ms, p95 ≈ 1 s, max 1.6 s, flat across both hours. The 5 s polling of section 5 is well inside it; faster was not tried (the owner: no use for it). |
+| Workspaces in the log | Each `listModelLogs` call reads one workspace: `cornerstoneParam.switchAgent` = the workspace's tenant id from ModelStudio `ListWorkspaces` (the default workspace answers without it too). A row carries `workspace_id` as the Alibaba id (`ws-ilmjk0mva2djka6n`, the default workspace, tenant 1683763) beside `apikey_id`; another workspace's rows (sokuji-test, tenant 1690620) appear only under its own `switchAgent` (probed 2026-10-16 and 10-17). New workspaces can call the 3.8 model at once. |
 | Access to it | A RAM user with `AliyunBailianReadOnlyAccess` that is a member of the workspace with the 模型日志 permission. No OAuth. |
 | Official cross-check | BSS `DescribeInstanceBill` (DAILY, `IsBillingItem=true`) and ModelStudio `GetBillingTrend` (`groupBy API_KEY_ID`) show a key's day about 7.5–8 min after a session ends; amounts are 0 while free quota covers usage. |
 | Rate limits | 10 RPM and 100K TPM per root account per model, shared by every workspace and key. A request is a session start (counted at `session.update`), in calendar minutes; turns do not count. Raised only through the account manager. |
@@ -123,8 +124,19 @@ handshake's request id) to find the row and to check the answer; it charges the 
 
 ## 2. Key slots
 
-**Pool.** 20 keys, one workspace's limit (ruling 5), in a dedicated workspace for managed Qwen.
-Each key is created with `auth.type = Custom` and `modelAccessScope.accessibleModels =
+**Workspaces.** The pool spans workspaces (the owner, 2026-10-17): it starts as one dedicated
+workspace of 20 keys (ruling 5), and when keys run short the owner opens another workspace and adds
+its keys. Alibaba allows 20 keys a workspace and 20 workspaces an account. A workspace is a row of
+`qwen_workspaces`: its Alibaba id (`ws-…`, what a log row carries as `workspace_id`), its tenant id
+(`ListWorkspaces`; what `listModelLogs` takes as `cornerstoneParam.switchAgent`), a name, and a
+status, active or paused. Every key belongs to one workspace, and a key is known by the pair
+(workspace, `apikey_id`) everywhere: in a slot, a window, a row, a charge. The dial host is
+`maas.qwencloudapi.com` whatever the workspace; the key carries its workspace. The RPM is per account
+and model, shared by every workspace, so a workspace adds slots, not throughput: a slot is busy about
+70 s per lease and a lease starts at least one session, so slots ≈ 1.2 × the RPM — 20 keys carry up
+to about 17 RPM, and a raise to 100 RPM wants about six workspaces.
+
+**Pool.** Each key is created with `auth.type = Custom` and `modelAccessScope.accessibleModels =
 ["qwen3.8-livetranslate-flash-realtime"]`, so a leaked slot key or token calls nothing else. The
 keys are entered on the admin page (section 7.1), so their secrets live in D1 encrypted (AES-GCM
 under a Worker secret, `QWEN_KEY_ENCRYPTION_KEY`) rather than as Worker secrets, which nothing can
@@ -157,8 +169,9 @@ start time removes that.)
 
 **Capacity.** A slot is busy about 70 s per lease. Sessions start at most 10 times a minute account-wide
 (the RPM), so about 12 slots carry the full rate; 20 leave room. With every slot held, `session-key`
-answers 503 `qwen_busy` with a retry hint. A raised RPM is met with more keys, or a second workspace
-(the reconciler then reads each workspace with its own `switchAgent`).
+answers 503 `qwen_busy` with a retry hint. A raised RPM is met with another workspace and its keys.
+The picker takes a free key of an active workspace, the least recently issued first, so the load
+spreads over keys and workspaces; a paused workspace's keys are skipped.
 
 **Keys over time.** The owner creates the keys by hand in the console (ruling 4) and adds each to the
 pool on the admin page; the RAM user gets no key management, so the backend never creates, resets or
@@ -167,9 +180,10 @@ secret entered on the page: its id, and so its slot and history, stays. A key th
 or deleted refuses the next mint (401): the picker pauses that slot, records why, alarms, and takes
 another. A deleted key's row stays, paused, since windows and charges point at it.
 
-**Every mint is kept.** `qwen_key_windows` holds one row per mint — the slot, its `apikey_id`, the
-lease and account, the window on Alibaba's clock (`opened_at` = `resp-start-time`, `expires_at`),
-`held_until`, our server's mint time — indexed on `(apikey_id, opened_at)`. Attribution looks windows
+**Every mint is kept.** `qwen_key_windows` holds one row per mint — the slot, its workspace and
+`apikey_id`, the lease and account, the window on Alibaba's clock (`opened_at` = `resp-start-time`,
+`expires_at`), `held_until`, our server's mint time — indexed on `(workspace_id, apikey_id,
+opened_at)`. Attribution looks windows
 up there (a row can land after its slot has moved on to the next lease), and the admin page reads it
 as each key's issue history.
 
@@ -237,11 +251,17 @@ reported session's row, for at most 90 s after the signal (a row lands 2–60 s 
 ends), after which the 30 s cadence resumes. Soniox backs off (3 / 6 / 12 s) because each of its
 sweeps spends a per-minute Soniox API budget; one `listModelLogs` call lists a whole workspace's
 window and so serves every waiting lease at once, so a flat interval costs the same however many
-users are waiting: at most 12 calls a minute per workspace. Each tick, for each workspace of the
-pool: `listModelLogs` over
+users are waiting: at most 12 calls a minute per workspace. **Per workspace:** every read is one
+workspace's (`switchAgent` = its tenant id), with its own watermark; the 30 s cadence reads every
+workspace with a window still inside the log's 14-day retention, paused ones included, and the 5 s
+polling reads only the workspaces of the leases that wait. Calls grow with workspaces (2 a minute
+each at rest, 12 while one waits), all under one per-minute budget the reconciler keeps, as Soniox's
+does; whether the gateway's own limit is per AccessKey or per workspace is unmeasured beyond one
+workspace at 30 a minute. Each tick, for each such workspace: `listModelLogs` over
 `[watermark − 2 min, now]`, paged by 50, model `qwen3.8-livetranslate-flash-realtime`. New rows,
-deduplicated by `request_id`, go to `qwen_usage_logs(request_id PK, task_uuid, apikey_id, start_ms,
-duration_ms, usage, lease_id, account_id, attributed_by, charged_at)`. A failing call is retried with
+deduplicated by `request_id`, go to `qwen_usage_logs(request_id PK, workspace_id, task_uuid,
+apikey_id, start_ms, duration_ms, usage, lease_id, account_id, attributed_by, charged_at)`; the
+window looked up for a row is the one on its own `(workspace_id, apikey_id)`. A failing call is retried with
 backoff; a gateway that keeps failing (it is undocumented) raises an alarm and stops new leases.
 
 **Attributing** each row (M4). Two answers are looked up: the **window** — the lease whose slot window
@@ -292,7 +312,8 @@ reconciler keeps looking for a reported session's row for 10 minutes past the le
 `UNRECONCILED_LEASE_MAX_AGE_MS`. A stop and restart inside the row's delay meets the 409 with its
 `retryAfterMs`, which the client waits out, as for Soniox.
 
-**Daily cross-check.** For each slot key and day, the charged provider cost against BSS
+**Daily cross-check.** For each slot key and day (BSS names a key's instance with its workspace,
+`ApiKeyID;WorkspaceID;…`), the charged provider cost against BSS
 `DescribeInstanceBill` (DAILY, `IsBillingItem=true`); a drift beyond rounding raises an alarm.
 
 ## 6. Budget, price and exposure
@@ -320,8 +341,9 @@ Nor call another model (the key's scope), or reach the slot key (it never leaves
   `releaseSatisfiedOrExpired`, so Soniox's reconciler and stream counters ignore Qwen leases. The
   Soniox masks and roles stay Soniox's.
 - New: `src/routes/qwen.ts`; `src/services/qwen-slots.ts`; `src/services/qwen-logs.ts` (the V3-signed
-  gateway client); `src/durable-objects/QwenReconcilerDO.ts`; D1 tables `qwen_key_slots`,
-  `qwen_key_windows`, `qwen_key_events`, `qwen_sessions`, `qwen_usage_logs`; Qwen rates in
+  gateway client); `src/durable-objects/QwenReconcilerDO.ts`; D1 tables `qwen_workspaces`,
+  `qwen_key_slots`, `qwen_key_windows`, `qwen_key_events`, `qwen_sessions`, `qwen_usage_logs`; Qwen
+  rates in
   `src/services/pricing.ts` and a `/api/pricing` entry; Worker secrets for the RAM AccessKey and
   `QWEN_KEY_ENCRYPTION_KEY`; the cron's poke.
 - Admin: the leases page already shows a provider; the ledger shows Qwen charges by their provider;
@@ -334,6 +356,17 @@ The owner's request: one admin page to see and manage the pool — whether each 
 whom, and to whom it has issued tokens. It follows the console's layout (`src/admin/api/handlers/`,
 `*-data.ts`, `requireAdmin`; `web/src/admin/pages/QwenKeysPage.tsx`, beside `SessionsPage`).
 
+**Workspaces** (`GET /admin/qwen/workspaces`), above the keys, one row each: the name, the Alibaba id,
+the tenant id, keys in it (with Alibaba's 20 shown, not enforced), held now and free now, its status,
+and its log reading — the watermark, the lag, the last error (`No Authority` means the RAM user is not
+a member with 模型日志). The keys below can be filtered to one workspace.
+- **Add a workspace** `POST /admin/qwen/workspaces` `{ alibabaWorkspaceId, note? }`: the backend looks
+  its name and tenant id up with `ListWorkspaces`, then reads its log once with that `switchAgent`, and
+  refuses it if the RAM user cannot (not a member, or no 模型日志).
+- **Pause / resume a workspace** `POST /admin/qwen/workspaces/:id/status` `{ status, note? }`: the
+  picker skips every key in a paused workspace; the reconciler keeps reading it while it has windows
+  inside the retention.
+
 **The pool** (`GET /admin/qwen/keys`), one row per key, most recently issued first:
 - the key: label, Alibaba's key id (`apikey_id`), the secret's last four characters (never more),
   the workspace;
@@ -344,8 +377,8 @@ whom, and to whom it has issued tokens. It follows the console's layout (`src/ad
 - the last issue: when, and to which account;
 - today: tokens issued, sessions attributed, provider cost and amount charged;
 - open alarms on it: unclaimed rows (a leak), held charges, mismatches.
-Above the table: keys active, held now and free now (of the workspace's 20), sessions started in the
-current minute against the RPM, open alarms.
+Above the table: workspaces, keys active, held now and free now, sessions started in the current
+minute against the account's RPM, open alarms.
 
 **A key's history** (`GET /admin/qwen/keys/:id/windows`, paged by cursor, newest first): every
 window it opened — when, until when, the lease and account, the legs — with the sessions attributed
@@ -354,7 +387,8 @@ and the rows the window caught that nobody reported. Below it, the key's admin a
 
 **Management.** Every write runs under `requireAdmin` and lands in `qwen_key_events` with the
 admin's user id, the action and an optional note, as the wallet freeze is audited:
-- **Add** `POST /admin/qwen/keys` `{ apikeyId, label, secret, note? }`: the backend mints a 1-second
+- **Add** `POST /admin/qwen/keys` `{ workspaceId, apikeyId, label, secret, note? }`, into a workspace
+  already added: the backend mints a 1-second
   token with the secret first (free, `POST /api/v1/tokens`) and refuses a secret Alibaba refuses. The
   page sets no cap of its own: the workspace already holds at most 20 keys, and a deleted key's row,
   kept paused for its history, must not block its replacement.
@@ -371,6 +405,10 @@ The page never shows a secret, and nothing it does reaches Alibaba other than th
   the admin page (7.1), each scoped
   to `qwen3.8-livetranslate-flash-realtime`; the RAM user (`AliyunBailianReadOnlyAccess`,
   `AliyunBSSReadOnlyAccess`) a member of it with 模型日志 only — the least access probed to work.
+- Adding a workspace when keys run short: create it in the console; create its keys, each scoped to
+  `qwen3.8-livetranslate-flash-realtime`; make the RAM user a member with 模型日志; add the workspace on
+  the admin page (which checks the membership), then its keys. More workspaces add slots only: the
+  RPM raise is a separate ask of the account manager.
 - The RPM increase applied for through the account manager, with the expected concurrent sessions
   and average length.
 - The root AccessKey that appeared in chat deleted; the RAM AccessKey rotated before production.
@@ -383,7 +421,10 @@ The page never shows a secret, and nothing it does reaches Alibaba other than th
 - Backend: slot hold and release under concurrency; the window from a mint response; each of the six
   attribution cases, the held charge and the reporter-pays case included, and a report whose
   `task_uuid` and `request_id` name different rows; the price (input text excluded); idempotent charges;
-  the reconciler's paging, watermark and per-workspace reads; the 5 s polling after a `session-end`,
+  the reconciler's paging, a watermark per workspace, reads per workspace with its own `switchAgent`,
+  a paused workspace still read while its windows are in retention, a row attributed only to a window
+  on its own `(workspace_id, apikey_id)`, the picker spreading over workspaces and skipping paused
+  ones, adding a workspace (the `ListWorkspaces` lookup, the membership check); the 5 s polling after a `session-end`,
   ended by the last row or by its 90 s cap; the lease released by its last row, by
   the token's expiry with nothing reported and by `expires_at`, and a row after the release still
   charged; Soniox's reconciler ignoring Qwen leases; the admin endpoints (`requireAdmin`, the
@@ -415,7 +456,7 @@ The page never shows a secret, and nothing it does reaches Alibaba other than th
 2. **Trial credit** — the trial credit may pay for managed Qwen.
 3. **Web build** — there is none; a web build made later would use the `?api_key=` query.
 4. **Keys** — the owner creates the pool by hand.
-5. **Pool size** — as many as one workspace allows: 20.
+5. **Pool size** — as many as one workspace allows: 20 for now; more workspaces later (ruling 14).
 6. **Unreported sessions** — recorded in the backend for a later audit, never shown to the user: a
    missing report may be the network or our own bug rather than the user. Whether to act on it is
    decided after an audit.
@@ -432,6 +473,9 @@ The page never shows a secret, and nothing it does reaches Alibaba other than th
 12. **Charge** — Alibaba's official formula over the row's `usage`, × K.
 13. **Admin page** — the key pool is seen and managed on an admin page: each key's state, who holds
     it, and to whom it has issued tokens (section 7.1).
+14. **Workspaces** — 20 keys are only today's plan; when keys run short the owner opens another
+    workspace with more keys, so key storage and use, attribution, reconciliation and the log reads
+    all reckon with workspaces (section 2).
 
 ## Known unknowns
 
