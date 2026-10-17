@@ -46,8 +46,8 @@ export interface UpgradeHeaders {
   remove?: readonly string[];
 }
 
-/** `onRequestId` is called once, before the socket resolves, with the 101's `x-request-id` when the platform read one; never on a failed attempt. */
-export type OpenHeaderSocket = (url: string, headers: UpgradeHeaders, o: { signal: AbortSignal; clock: Pick<Clock, 'setTimeout'>; onRequestId?: (id: string) => void }) => Promise<WebSocket>;
+/** `onRequestId` is called once, after the socket has resolved, with the 101's `x-request-id` when the platform read one and `undefined` when it did not (or its answer was late); never when the socket did not open. */
+export type OpenHeaderSocket = (url: string, headers: UpgradeHeaders, o: { signal: AbortSignal; clock: Pick<Clock, 'setTimeout'>; onRequestId?: (id: string | undefined) => void }) => Promise<WebSocket>;
 
 /** One rule as a platform installs it: the upgrade's host, the path it applies under, the headers set and the names removed. */
 export interface HeaderRule {
@@ -117,7 +117,7 @@ export function createHeaderSocket(registrar: () => HeaderRegistrar | null, open
     /** Wakes the attempt from its wait — on the registration, then on the socket: it opened or failed, an abort, the bound. */
     let wake: () => void = () => {};
     let socket: WebSocket | null = null;
-    /** The socket's first `open` won the attempt: the clear's answer is read, then the socket resolves. */
+    /** The socket's first `open` won the attempt: it has resolved, and the clear's answer is read next. */
     let opened = false;
     const listeners = {
       open: () => {
@@ -126,6 +126,7 @@ export function createHeaderSocket(registrar: () => HeaderRegistrar | null, open
         opened = true;
         detach();
         wake();
+        resolve(socket as WebSocket);
       },
       failed: () => fail(new HeaderSocketError('never_opened', 'The socket closed before it opened.')),
     };
@@ -186,15 +187,14 @@ export function createHeaderSocket(registrar: () => HeaderRegistrar | null, open
         socket.addEventListener('close', listeners.failed);
         await ended;
         if (opened) {
-          // The upgrade is done: the clear's answer carries its request id. A late or failed answer counts as none.
+          // The socket already resolved; the clear's answer carries the upgrade's request id, reported after, once. A late or failed answer counts as none.
           cleared = true;
           const answer = await Promise.race([
             Promise.resolve().then(() => platform.clear(rule)).then((a) => a, () => undefined),
             capped.then(() => undefined),
           ]);
           const requestId = (answer as { requestId?: unknown } | undefined)?.requestId;
-          if (typeof requestId === 'string' && requestId !== '') o.onRequestId?.(requestId);
-          resolve(socket as WebSocket);
+          o.onRequestId?.(typeof requestId === 'string' && requestId !== '' ? requestId : undefined);
         }
       } finally {
         cancelCap();

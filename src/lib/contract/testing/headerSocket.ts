@@ -23,6 +23,8 @@ export interface FakeHeaderSockets {
   refuseNext(reason?: string): void;
   /** The next registration waits until the returned function is called. */
   holdNext(): () => void;
+  /** The next clear's answer waits until the returned function is called (or never, if it is not). */
+  holdNextClear(): () => void;
 }
 
 /** `requestIds` are handed out, one per open, as the platform's answer to the clear; none when they run out. */
@@ -34,6 +36,7 @@ export function fakeHeaderSockets(sockets: FakeSockets = fakeSockets(), o: { req
   let answered = 0;
   let refusal: string | null = null;
   let held: Promise<void> | null = null;
+  let heldClear: Promise<void> | null = null;
   const open = createHeaderSocket(
     () => ({
       set(rule) {
@@ -47,6 +50,9 @@ export function fakeHeaderSockets(sockets: FakeSockets = fakeSockets(), o: { req
         return wait;
       },
       async clear(rule) {
+        const wait = heldClear;
+        heldClear = null;
+        await wait;
         for (let i = registrations.length - 1; i >= 0; i--) {
           const r = registrations[i];
           if (r.host === rule.host && r.path === rule.path && !r.cleared) {
@@ -68,6 +74,11 @@ export function fakeHeaderSockets(sockets: FakeSockets = fakeSockets(), o: { req
     sockets,
     registrations,
     refuseNext: (reason = 'the platform would not take the rule') => { refusal = reason; },
+    holdNextClear() {
+      let release!: () => void;
+      heldClear = new Promise<void>((resolve) => { release = resolve; });
+      return () => release();
+    },
     holdNext() {
       let release!: () => void;
       held = new Promise<void>((resolve) => { release = resolve; });
