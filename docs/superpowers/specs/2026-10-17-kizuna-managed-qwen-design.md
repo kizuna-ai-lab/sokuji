@@ -164,8 +164,8 @@ answers 503 `qwen_busy` with a retry hint. A raised RPM is met with more keys, o
 pool on the admin page; the RAM user gets no key management, so the backend never creates, resets or
 disables a key at Alibaba. A key suspected of leaking is reset by hand in the console and its new
 secret entered on the page: its id, and so its slot and history, stays. A key the console disabled
-refuses the next mint (401 "API-key is blocked."): the picker pauses that slot, records why, alarms,
-and takes another.
+or deleted refuses the next mint (401): the picker pauses that slot, records why, alarms, and takes
+another. A deleted key's row stays, paused, since windows and charges point at it.
 
 **Every mint is kept.** `qwen_key_windows` holds one row per mint — the slot, its `apikey_id`, the
 lease and account, the window on Alibaba's clock (`opened_at` = `resp-start-time`, `expires_at`),
@@ -337,8 +337,8 @@ whom, and to whom it has issued tokens. It follows the console's layout (`src/ad
 **The pool** (`GET /admin/qwen/keys`), one row per key, most recently issued first:
 - the key: label, Alibaba's key id (`apikey_id`), the secret's last four characters (never more),
   the workspace;
-- its state: free; held until a time, with a countdown; paused, with the reason (by hand, or a
-  refused mint); retired;
+- its state: free; held until a time, with a countdown; or paused, with the reason (by hand, or a
+  refused mint: disabled or deleted in the console);
 - who holds it now: the account (linked to the user page), the lease (linked to the sessions
   page), the window, the legs;
 - the last issue: when, and to which account;
@@ -355,15 +355,14 @@ and the rows the window caught that nobody reported. Below it, the key's admin a
 **Management.** Every write runs under `requireAdmin` and lands in `qwen_key_events` with the
 admin's user id, the action and an optional note, as the wallet freeze is audited:
 - **Add** `POST /admin/qwen/keys` `{ apikeyId, label, secret, note? }`: the backend mints a 1-second
-  token with the secret first (free, `POST /api/v1/tokens`) and refuses a secret Alibaba refuses; the
-  pool holds at most the workspace's 20.
+  token with the secret first (free, `POST /api/v1/tokens`) and refuses a secret Alibaba refuses. The
+  page sets no cap of its own: the workspace already holds at most 20 keys, and a deleted key's row,
+  kept paused for its history, must not block its replacement.
 - **Pause / resume** `POST /admin/qwen/keys/:id/status` `{ status: 'active' | 'paused', note? }`: a
   paused key is skipped by the picker; a window it already opened runs out, since a token cannot be
   revoked.
 - **Replace the secret** `POST /admin/qwen/keys/:id/secret` `{ secret, note? }`, after a reset in the
   console: checked by a mint the same way; the id, the slot and its history stay.
-- **Retire** `POST /admin/qwen/keys/:id/status` `{ status: 'retired', note? }`: only a paused key with
-  no open window; its row and history are kept, since windows and charges point at it.
 The page never shows a secret, and nothing it does reaches Alibaba other than the checking mint.
 
 ## 8. Operations
@@ -388,7 +387,7 @@ The page never shows a secret, and nothing it does reaches Alibaba other than th
   ended by the last row or by its 90 s cap; the lease released by its last row, by
   the token's expiry with nothing reported and by `expires_at`, and a row after the release still
   charged; Soniox's reconciler ignoring Qwen leases; the admin endpoints (`requireAdmin`, the
-  checking mint on add and replace, retire refused while a window is open, every write in
+  checking mint on add and replace, every write in
   `qwen_key_events`, no secret in any response) and a refused mint pausing its slot.
 - Client: the lease (grant end, refusals in words, `session-started` retries, release); the adapter
   reporting both ids through the port; the seam resolving `x-request-id` on each platform, first as
