@@ -164,7 +164,7 @@ class QwenLeg implements AdapterSession {
 
   async open(): Promise<AdapterSession> {
     try {
-      const endpoint = this.request.config.endpoint ?? await this.detect();
+      const endpoint = this.request.config.endpoint ?? this.request.credentials.endpoint ?? await this.detect();
       await this.connect(endpoint);
       return this;
     } catch (error) {
@@ -404,12 +404,28 @@ class QwenLeg implements AdapterSession {
         : new AdapterStartError(`Qwen did not open the connection within ${START_TIMEOUT_MS / 1000} s.`, 'network')), START_TIMEOUT_MS);
       signal.addEventListener('abort', onAbort, { once: true });
 
+      // The lease hears of this socket's session once it holds both the id and the handshake's request id, in whichever order they land.
+      const lease = credentials.lease;
+      let created: string | undefined;
+      let seamAnswered = false;
+      let seamRequestId: string | undefined;
+      let reported = false;
+      const report = () => {
+        if (!lease || reported || created === undefined || !seamAnswered || this.phase === 'ended' || seam.signal.aborted) return;
+        reported = true;
+        // The lease reports its own failures: a throw here must not end the leg.
+        try { lease.sessionCreated(created, seamRequestId); } catch { /* the lease's to say */ }
+      };
       const url = socketUrl(endpoint, config.model);
       const headers = qwenHeaders(credentials);
       const rule = ruleFor(url, { set: {} });
       // The storefront, the rule's place and the header's name, never a value.
       this.frame('out', 'session.headers', { endpoint, host: rule.host, path: rule.path, set: Object.keys(headers.set) });
-      this.deps.openHeaderSocket(url, headers, { signal: seam.signal, clock }).then((socket) => {
+      this.deps.openHeaderSocket(url, headers, {
+      signal: seam.signal,
+      clock,
+      onRequestId: (id) => { seamAnswered = true; seamRequestId = id; report(); },
+    }).then((socket) => {
         if (settled) {
           detach(socket);
           socket.close(1000);
@@ -418,7 +434,7 @@ class QwenLeg implements AdapterSession {
         ws = socket;
         socket.binaryType = 'arraybuffer';
         socket.onmessage = (e: MessageEvent) => {
-          if (!settled) this.handshake(socket, e.data, settle);
+          if (!settled) this.handshake(socket, e.data, settle, (id) => { created = id; report(); });
           else if (socket === this.socket) this.onMessage(e.data);
         };
         // A Logs line: the close that follows says what it did to the session.
@@ -434,7 +450,7 @@ class QwenLeg implements AdapterSession {
   }
 
   /** A frame before the leg is live: `session.created` sends the update, `session.updated` settles the start, an `error` refuses it. */
-  private handshake(ws: WebSocket, data: unknown, settle: (error?: unknown) => void): void {
+  private handshake(ws: WebSocket, data: unknown, settle: (error?: unknown) => void, created: (id: string) => void): void {
     let e: ServerEvent;
     try {
       e = decodeServerEvent(data);
@@ -450,6 +466,7 @@ class QwenLeg implements AdapterSession {
       ws.send(JSON.stringify(update));
       this.frame('out', 'session.update', update.session);
       this.phase = 'configuring';
+      if (typeof s.id === 'string' && s.id) created(s.id);
     } else if (e.type === 'session.updated') {
       this.frame('in', 'session.updated');
       if (this.phase !== 'configuring') return;

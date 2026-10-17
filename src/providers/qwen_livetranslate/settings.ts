@@ -7,6 +7,7 @@
 import { identityWire } from '../../lib/language/wire';
 import { AUTO } from '../../lib/provider/languages';
 import type { CredentialsMissing, LanguageContext, LanguageOption, Provider } from '../../lib/provider/types';
+import type { EndpointId } from './endpoints';
 import { distinctVoice } from '../../lib/provider/voices';
 
 /** The one model (D1): the check finds the storefront, nothing chooses a model. */
@@ -139,8 +140,16 @@ export const qwenLanguages: Provider<QwenSettings, never, never>['languages'] = 
   wire: identityWire(),
 };
 
+/** What the managed leg tells its lease: the session the storefront opened and the handshake's request id (absent when the platform gave none), for the backend to match against Alibaba's logs. */
+export interface QwenLeasePort {
+  sessionCreated(id: string, requestId?: string): void;
+}
+
 export interface QwenCredentials {
   apiKey: string;
+  /** The storefront a managed grant was bought on: dialled without detecting. An own key carries neither this nor `lease`. */
+  endpoint?: EndpointId;
+  lease?: QwenLeasePort;
 }
 
 export const qwenCredentials: Provider<QwenSettings, QwenCredentials, never>['credentials'] = {
