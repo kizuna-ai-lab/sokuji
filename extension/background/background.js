@@ -332,7 +332,7 @@ let dnrUpdatePromise = Promise.resolve();
 // once. Registered here, at the worker's top level, since a listener registered later does not wake a stopped worker
 // (MV3); the state is in memory, so a restart between set and clear only loses the id. The value never reaches a log.
 const wsRequestIds = createRequestIds(chrome.runtime.getURL('').replace(/\/$/, ''));
-chrome.webRequest.onHeadersReceived.addListener(
+chrome.webRequest?.onHeadersReceived.addListener(
   (details) => { wsRequestIds.note(details); },
   { urls: ['wss://maas.qwencloudapi.com/*'], types: ['websocket'] },
   ['responseHeaders'],

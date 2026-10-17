@@ -123,14 +123,20 @@ describe("the background worker: the handshake's request id", () => {
   });
 
   it('is wired at the top level with the ruled filter, fed to the store, and answered on clear', () => {
-    const listener = background.slice(at(background, 'chrome.webRequest.onHeadersReceived.addListener('));
+    // Guarded, at column 0 (synchronous at the top level), and before the message listener: a missing `webRequest` must not stop the worker.
+    const registration = /^chrome\.webRequest\?\.onHeadersReceived\.addListener\(/m.exec(background);
+    expect(registration, 'the guarded top-level registration').not.toBeNull();
+    expect(registration!.index).toBeLessThan(at(background, 'chrome.runtime.onMessage.addListener'));
+    const listener = background.slice(registration!.index);
     const call = listener.slice(0, at(listener, '\n);'));
     expect(call).toContain("{ urls: ['wss://maas.qwencloudapi.com/*'], types: ['websocket'] },\n  ['responseHeaders'],");
     expect(call).toContain('wsRequestIds.note(details)');
     expect(background).toContain("createRequestIds(chrome.runtime.getURL('').replace(/\\/$/, ''))");
     expect(fn('wsHeadersSet')).toContain('wsRequestIds.set(message.host, message.path)');
     expect(fn('wsHeadersClear')).toContain('return wsRequestIds.clear(message.host, message.path)');
-    expect(background).toContain('{ success: true, requestId }');
+    // The answer carries the id only when it is a string; an absent id is a bare success.
+    expect(background).toContain("typeof requestId === 'string' ? { success: true, requestId } : { success: true }");
+    expect(background).not.toMatch(/\{ success: true, requestId: undefined/);
   });
 
   it('declares the webRequest permission', () => {
