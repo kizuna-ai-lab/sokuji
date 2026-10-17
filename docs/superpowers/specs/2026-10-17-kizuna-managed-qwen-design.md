@@ -126,7 +126,9 @@ handshake's request id) to find the row and to check the answer; it charges the 
 **Pool.** 20 keys, one workspace's limit (ruling 5), in a dedicated workspace for managed Qwen.
 Each key is created with `auth.type = Custom` and `modelAccessScope.accessibleModels =
 ["qwen3.8-livetranslate-flash-realtime"]`, so a leaked slot key or token calls nothing else. The
-keys' secrets are backend secrets; D1 holds only their ids and holds.
+keys are entered on the admin page (section 7.1), so their secrets live in D1 encrypted (AES-GCM
+under a Worker secret, `QWEN_KEY_ENCRYPTION_KEY`) rather than as Worker secrets, which nothing can
+write at run time; a copy of the database alone yields no key.
 
 **Hold.** `session-key` takes a free slot atomically (`held_until <= now`) and holds it for the
 window: from the mint request's start to the token's `expires_at`, both on Alibaba's clock (the mint
@@ -158,9 +160,18 @@ start time removes that.)
 answers 503 `qwen_busy` with a retry hint. A raised RPM is met with more keys, or a second workspace
 (the reconciler then reads each workspace with its own `switchAgent`).
 
-**Keys over time.** The owner creates the keys by hand in the console (ruling 4); the RAM user gets no
-key management, so the backend never creates, resets or disables a key. A key suspected of leaking is
-reset by hand: its id, and so its slot, stays; a disabled key is skipped by the picker.
+**Keys over time.** The owner creates the keys by hand in the console (ruling 4) and adds each to the
+pool on the admin page; the RAM user gets no key management, so the backend never creates, resets or
+disables a key at Alibaba. A key suspected of leaking is reset by hand in the console and its new
+secret entered on the page: its id, and so its slot and history, stays. A key the console disabled
+refuses the next mint (401 "API-key is blocked."): the picker pauses that slot, records why, alarms,
+and takes another.
+
+**Every mint is kept.** `qwen_key_windows` holds one row per mint — the slot, its `apikey_id`, the
+lease and account, the window on Alibaba's clock (`opened_at` = `resp-start-time`, `expires_at`),
+`held_until`, our server's mint time — indexed on `(apikey_id, opened_at)`. Attribution looks windows
+up there (a row can land after its slot has moved on to the next lease), and the admin page reads it
+as each key's issue history.
 
 ## 3. Backend lease routes (`/api/qwen`)
 
@@ -310,14 +321,55 @@ Nor call another model (the key's scope), or reach the slot key (it never leaves
   Soniox masks and roles stay Soniox's.
 - New: `src/routes/qwen.ts`; `src/services/qwen-slots.ts`; `src/services/qwen-logs.ts` (the V3-signed
   gateway client); `src/durable-objects/QwenReconcilerDO.ts`; D1 tables `qwen_key_slots`,
-  `qwen_sessions`, `qwen_usage_logs`; Qwen rates in `src/services/pricing.ts` and a `/api/pricing`
-  entry; secrets for the RAM AccessKey and the slot keys; the cron's poke.
+  `qwen_key_windows`, `qwen_key_events`, `qwen_sessions`, `qwen_usage_logs`; Qwen rates in
+  `src/services/pricing.ts` and a `/api/pricing` entry; Worker secrets for the RAM AccessKey and
+  `QWEN_KEY_ENCRYPTION_KEY`; the cron's poke.
 - Admin: the leases page already shows a provider; the ledger shows Qwen charges by their provider;
-  a count of window-attributed (unreported) sessions per lease and account, for audit.
+  a count of window-attributed (unreported) sessions per lease and account, for audit; and the key
+  pool page (7.1).
+
+### 7.1 Admin: the Qwen key pool page
+
+The owner's request: one admin page to see and manage the pool — whether each key is in use, by
+whom, and to whom it has issued tokens. It follows the console's layout (`src/admin/api/handlers/`,
+`*-data.ts`, `requireAdmin`; `web/src/admin/pages/QwenKeysPage.tsx`, beside `SessionsPage`).
+
+**The pool** (`GET /admin/qwen/keys`), one row per key, most recently issued first:
+- the key: label, Alibaba's key id (`apikey_id`), the secret's last four characters (never more),
+  the workspace;
+- its state: free; held until a time, with a countdown; paused, with the reason (by hand, or a
+  refused mint); retired;
+- who holds it now: the account (linked to the user page), the lease (linked to the sessions
+  page), the window, the legs;
+- the last issue: when, and to which account;
+- today: tokens issued, sessions attributed, provider cost and amount charged;
+- open alarms on it: unclaimed rows (a leak), held charges, mismatches.
+Above the table: keys active, held now and free now (of the workspace's 20), sessions started in the
+current minute against the RPM, open alarms.
+
+**A key's history** (`GET /admin/qwen/keys/:id/windows`, paged by cursor, newest first): every
+window it opened — when, until when, the lease and account, the legs — with the sessions attributed
+to it underneath (`task_uuid`, `request_id`, start, duration, usage, cost, charge, how attributed),
+and the rows the window caught that nobody reported. Below it, the key's admin actions.
+
+**Management.** Every write runs under `requireAdmin` and lands in `qwen_key_events` with the
+admin's user id, the action and an optional note, as the wallet freeze is audited:
+- **Add** `POST /admin/qwen/keys` `{ apikeyId, label, secret, note? }`: the backend mints a 1-second
+  token with the secret first (free, `POST /api/v1/tokens`) and refuses a secret Alibaba refuses; the
+  pool holds at most the workspace's 20.
+- **Pause / resume** `POST /admin/qwen/keys/:id/status` `{ status: 'active' | 'paused', note? }`: a
+  paused key is skipped by the picker; a window it already opened runs out, since a token cannot be
+  revoked.
+- **Replace the secret** `POST /admin/qwen/keys/:id/secret` `{ secret, note? }`, after a reset in the
+  console: checked by a mint the same way; the id, the slot and its history stay.
+- **Retire** `POST /admin/qwen/keys/:id/status` `{ status: 'retired', note? }`: only a paused key with
+  no open window; its row and history are kept, since windows and charges point at it.
+The page never shows a secret, and nothing it does reaches Alibaba other than the checking mint.
 
 ## 8. Operations
 
-- A dedicated workspace for the pool, its 20 keys created by the owner in the console, each scoped
+- A dedicated workspace for the pool, its 20 keys created by the owner in the console and added on
+  the admin page (7.1), each scoped
   to `qwen3.8-livetranslate-flash-realtime`; the RAM user (`AliyunBailianReadOnlyAccess`,
   `AliyunBSSReadOnlyAccess`) a member of it with 模型日志 only — the least access probed to work.
 - The RPM increase applied for through the account manager, with the expected concurrent sessions
@@ -335,7 +387,9 @@ Nor call another model (the key's scope), or reach the slot key (it never leaves
   the reconciler's paging, watermark and per-workspace reads; the 5 s polling after a `session-end`,
   ended by the last row or by its 90 s cap; the lease released by its last row, by
   the token's expiry with nothing reported and by `expires_at`, and a row after the release still
-  charged; Soniox's reconciler ignoring Qwen leases.
+  charged; Soniox's reconciler ignoring Qwen leases; the admin endpoints (`requireAdmin`, the
+  checking mint on add and replace, retire refused while a window is open, every write in
+  `qwen_key_events`, no secret in any response) and a refused mint pausing its slot.
 - Client: the lease (grant end, refusals in words, `session-started` retries, release); the adapter
   reporting both ids through the port; the seam resolving `x-request-id` on each platform, first as
   a spike in a development build of the desktop app and of the extension; the twin's registry and conformance tests.
@@ -377,6 +431,8 @@ Nor call another model (the key's scope), or reach the slot key (it never leaves
     only when both match the same row: a client then has to name two ids it could only have seen on
     that connection, which makes its report more trustworthy and harder to fake.
 12. **Charge** — Alibaba's official formula over the row's `usage`, × K.
+13. **Admin page** — the key pool is seen and managed on an admin page: each key's state, who holds
+    it, and to whom it has issued tokens (section 7.1).
 
 ## Known unknowns
 
