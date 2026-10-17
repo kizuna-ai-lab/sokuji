@@ -27,7 +27,7 @@ import type { SonioxCredentials, SonioxLeasePort, SonioxSettings } from './setti
 
 /** One session-key attempt's bound, its body included (choice 5): a request that never answers must not hold Start. A 409's retry gets its own. */
 export const SESSION_KEY_TIMEOUT_MS = 15_000;
-/** The wait before a 409's one retry when the body names none (the backend's own is 3 000 ms). */
+/** The wait before a 409's one retry when the body names none (the backend always names one: 10 000 ms for this app, or until a short never-started lock clears). */
 export const DEFAULT_CONFLICT_RETRY_MS = 3_000;
 /** How long a Start waits, in all, for a blocking session that is ending or never started to clear. */
 export const CONFLICT_WAIT_LIMIT_MS = 60_000;
