@@ -21,7 +21,7 @@ import type { QwenCredentials, QwenLeasePort, QwenSettings } from './settings';
 
 /** One session-key attempt's bound, its body included: a request that never answers must not hold Start. A 409's retry gets its own. */
 export const SESSION_KEY_TIMEOUT_MS = 15_000;
-/** The wait before a 409's one retry when the body names none (the backend's own is 3 000 ms). */
+/** The wait before a 409's one retry when the body names none (the backend's own hint varies with the client's version). */
 export const DEFAULT_CONFLICT_RETRY_MS = 3_000;
 /** The longest segment a managed run lasts (the backend's cap): a grant held to it ends as a segment, a shorter one is the balance running out. */
 export const QWEN_SESSION_CAP_SECONDS = 3_600;
@@ -191,7 +191,7 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
     if (ctx.signal.aborted) throw ctx.signal.reason ?? new Error('aborted');
     if (!token) throw new AdapterStartError('Sign in is required to start a managed Qwen session.', 'sign_in_required');
     // What the start asks for: the legs, and which of them speak. The speaker speaks unless text-only; the participant only under Translation I hear.
-    const sent = { legs: [...shape.legs], speech: { speaker: !shape.textOnly, participant: shape.participantSpeech } };
+    const sent = { legs: [...shape.legs], speech: { speaker: shape.legs.includes('speaker') && !shape.textOnly, participant: shape.legs.includes('participant') && shape.participantSpeech } };
 
     const attempt = async (): Promise<{ status: number; body: unknown }> => {
       // An abort that landed after the 409 wait resolved, before this attempt: its listener below would never fire.
@@ -273,14 +273,19 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
     });
 
     const reported = new Set<string>();
+    /** Aborted by `release`: a report's retry wait leaves no timer behind. */
+    const stopReports = new AbortController();
     /** One session's report: a 4xx is the backend's refusal, final; only a transport failure or a 5xx is retried, and none once the run ended or the lease is released. Never ends the run: an unreported session is still charged by its window. */
     const report = async (leg: LegName, taskUuid: string, requestId: string | undefined): Promise<void> => {
       const body = JSON.stringify({ leaseId: grant.leaseId, leg, taskUuid, ...(requestId ? { requestId } : {}) });
+      // Dropped for good after a transport failure, as `signalEnd` does: a runtime may refuse a keepalive request as a transport error.
+      let keepalive = true;
+      let last = '';
       for (let i = 0; ; i += 1) {
         try {
           const res = await doFetch(`${apiUrl()}/qwen/session-started`, {
             method: 'POST',
-            keepalive: true,
+            ...(keepalive ? { keepalive: true } : {}),
             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
             body,
           });
@@ -296,16 +301,22 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
             ctx.frame({ direction: 'in', type: 'session.started_refused', payload: { status: res.status, error, leg } });
             return;
           }
-        } catch {
-          // Transport failure: retried below.
+          last = `HTTP ${res.status}`;
+        } catch (error) {
+          keepalive = false;
+          last = describeCause(error);
         }
         if (ended || released) return;
         const delay = SESSION_STARTED_RETRY_DELAYS_MS[i];
         if (delay === undefined) break;
-        await new Promise<void>((resolve) => { ctx.clock.setTimeout(resolve, delay); });
+        try {
+          await wait(ctx.clock, delay, stopReports.signal);
+        } catch {
+          return;
+        }
         if (ended || released) return;
       }
-      ctx.frame({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', leg, message: 'The backend did not acknowledge the session report.' } });
+      ctx.frame({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', leg, message: `The backend did not acknowledge the session report (${last}).` } });
     };
     const port = (leg: LegName): QwenLeasePort => ({
       sessionCreated: (id, requestId) => {
@@ -314,7 +325,7 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
         const key = `${leg}\u0000${id}`;
         if (ended || released || reported.has(key)) return;
         reported.add(key);
-        ctx.frame({ direction: 'out', type: 'session.started', payload: { leg, taskUuid: id, ...(requestId ? { requestId } : {}) } });
+        ctx.frame({ direction: 'out', type: 'session.started', payload: { leg, taskUuid: id, withRequestId: Boolean(requestId) } });
         // Not awaited, never failing the session.
         void report(leg, id, requestId);
       },
@@ -330,6 +341,7 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
         if (released) return;
         released = true;
         cancelBudget();
+        stopReports.abort();
         ctx.frame({ direction: 'out', type: 'session.end', payload: { leaseId: grant.leaseId } });
         const ending = signalEnd(doFetch, `${apiUrl()}/qwen/session-end`, token, grant.leaseId, ctx.clock, ctx.frame);
         previous = ending;

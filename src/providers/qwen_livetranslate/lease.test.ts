@@ -80,6 +80,14 @@ describe('Qwen lease: the session-key request', () => {
     expect(JSON.parse(a.last().init.body as string)).toEqual({ legs: ['speaker', 'participant'], speech: { speaker: true, participant: true } });
   });
 
+  it('asks for a participant-only run with the speaker not speaking, whatever textOnly says', async () => {
+    for (const participantSpeech of [true, false]) {
+      const a = acquiring(['participant'], { participantSpeech });
+      await flush();
+      expect(JSON.parse(a.last().init.body as string)).toEqual({ legs: ['participant'], speech: { speaker: false, participant: participantSpeech } });
+    }
+  });
+
   it('POSTs to qwen/session-key with the sign-in token in Authorization only, and frames the body, never the token', async () => {
     const a = acquiring(['speaker']);
     await flush();
@@ -184,7 +192,10 @@ describe('Qwen lease: a refused or conflicting key', () => {
   it('fails with qwen_service_unavailable when nothing answers within 15 s', async () => {
     const a = acquiring(['speaker']);
     await flush();
-    a.clock.advance(SESSION_KEY_TIMEOUT_MS);
+    a.clock.advance(SESSION_KEY_TIMEOUT_MS - 1);
+    const early = await Promise.race([a.pending.then(() => 'settled', () => 'settled'), flush().then(() => 'pending')]);
+    expect(early).toBe('pending');
+    a.clock.advance(1);
     expect(code(await rejection(a.pending))).toBe('qwen_service_unavailable');
   });
 });
@@ -213,6 +224,7 @@ describe('Qwen lease: the grant ends the run', () => {
     await flush();
     a.to('/qwen/session-end')[0].respond(200);
     await released;
+    expect(a.clock.pending()).toBe(0);
     a.clock.advance(600_000);
     expect(a.end).not.toHaveBeenCalled();
   });
@@ -348,7 +360,62 @@ describe('Qwen lease: session-end', () => {
   });
 });
 
+describe('Qwen lease: the report retries', () => {
+  it('drops keepalive for the retry after a transport failure', async () => {
+    const a = await granted(['speaker']);
+    a.resources.credentials('speaker').lease!.sessionCreated('sess_a', 'rid');
+    await flush();
+    a.to('/qwen/session-started')[0].fail();
+    await flush();
+    a.clock.advance(500);
+    await flush();
+    const posts = a.to('/qwen/session-started');
+    expect(posts[0].init.keepalive).toBe(true);
+    expect(posts[1].init).not.toHaveProperty('keepalive');
+  });
+
+  it('names the last cause in notify_failed', async () => {
+    const a = await granted(['speaker']);
+    a.resources.credentials('speaker').lease!.sessionCreated('sess_a', 'rid');
+    for (const step of [0, 500, 1_000, 2_000]) {
+      a.clock.advance(step);
+      await flush();
+      a.last().respond(503);
+      await flush();
+    }
+    const failed = a.frame.mock.calls.find(([f]) => f.type === 'session.notify_failed')![0];
+    expect(failed.payload.message).toContain('HTTP 503');
+  });
+
+  it('release leaves no report timer behind', async () => {
+    const a = await granted(['speaker']);
+    a.resources.credentials('speaker').lease!.sessionCreated('sess_a', 'rid');
+    await flush();
+    a.to('/qwen/session-started')[0].respond(503);
+    await flush();
+    const released = a.resources.release();
+    await flush();
+    a.to('/qwen/session-end')[0].respond(200);
+    await released;
+    expect(a.clock.pending()).toBe(0);
+  });
+});
+
 describe('Qwen lease: the grant stays out of the Logs', () => {
+  it('no frame carries the request id', async () => {
+    const a = await granted(['speaker']);
+    a.resources.credentials('speaker').lease!.sessionCreated('sess_a', 'rid-fixture-7f3a');
+    await flush();
+    a.to('/qwen/session-started')[0].respond(409, { error: 'lease_not_live' });
+    await flush();
+    a.resources.credentials('speaker').lease!.sessionCreated('sess_b', 'rid-fixture-7f3a');
+    await flush();
+    a.to('/qwen/session-started')[1].respond(503);
+    await flush();
+    expect(a.frame.mock.calls.some(([f]) => f.type === 'session.started')).toBe(true);
+    expect(JSON.stringify(a.frame.mock.calls)).not.toContain('rid-fixture-7f3a');
+  });
+
   it('no frame carries the apiKey, whatever the run did', async () => {
     const a = await granted(['speaker']);
     a.resources.credentials('speaker').lease!.sessionCreated('sess_a', 'rid');
@@ -361,6 +428,6 @@ describe('Qwen lease: the grant stays out of the Logs', () => {
     await released;
     expect(a.frame.mock.calls.length).toBeGreaterThan(4);
     expect(JSON.stringify(a.frame.mock.calls)).not.toContain(GRANT_KEY);
-    expect(JSON.stringify(a.frame.mock.calls)).not.toContain('st-');
+    expect(JSON.stringify(a.frame.mock.calls)).not.toContain(GRANT_KEY.slice(0, 8));
   });
 });
