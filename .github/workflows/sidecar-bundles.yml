@@ -150,7 +150,7 @@ jobs:
           path: out/bundles/sidecar-win-x64-v*
 
   build-mac-arm64:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v5
         with:
@@ -175,7 +175,7 @@ jobs:
           ls -la out/bundles/ | tee -a "$GITHUB_STEP_SUMMARY"
           cat out/bundles/sidecar-mac-arm64-v*.json | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Boot smoke the packed bundle
-        # macos-14 IS Apple Silicon hardware (CPU-only smoke: these runners
+        # macos-15 IS Apple Silicon hardware (CPU-only smoke: these runners
         # are paravirtual VMs with no real GPU, so no Metal-device claim here).
         run: python scripts/sidecar-bundle-smoke.py --sku mac-arm64 --bundles-dir out/bundles
       - uses: actions/upload-artifact@v6

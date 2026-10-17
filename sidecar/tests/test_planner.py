@@ -244,7 +244,7 @@ def test_tier_available_gpu_metal_via_tc_metal_kind():
 
 
 # ── gpu-metal on a paravirtual (virtualized-Mac) GPU ─────────────────────
-# Ruling R36: GitHub's macos-14 arm64 runner is a VM whose Metal device
+# Ruling R36: GitHub's arm64 macOS runners are VMs whose Metal device
 # reports as "Apple Paravirtual device" and lacks has_simdgroup_reduction, so
 # ggml refuses NORM/RMS_NORM/ARGMAX and every TTS family aborts the process
 # there. apple_silicon is still True on such a host (Darwin + arm64) and the

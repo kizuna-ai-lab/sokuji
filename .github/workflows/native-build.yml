@@ -46,7 +46,7 @@ jobs:
           - { sku: linux-x64,   runner: ubuntu-22.04,     lane: vulkan, plat: manylinux_2_35_x86_64 }
           - { sku: linux-arm64, runner: ubuntu-22.04-arm, lane: vulkan, plat: manylinux_2_35_aarch64 }
           - { sku: win-x64,     runner: windows-2022,     lane: vulkan, plat: win_amd64 }
-          - { sku: mac-arm64,   runner: macos-14,         lane: metal,  plat: macosx_11_0_arm64 }
+          - { sku: mac-arm64,   runner: macos-15,         lane: metal,  plat: macosx_11_0_arm64 }
           - { sku: mac-x64,     runner: macos-15-intel,   lane: none,   plat: macosx_11_0_x86_64 }
     runs-on: ${{ matrix.runner }}
     steps:

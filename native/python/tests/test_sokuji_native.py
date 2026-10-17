@@ -78,7 +78,7 @@ def test_init_and_devices():
     for d in devs:
         assert d.name and d.mem_total > 0
         assert sokuji_native.device_free_mem(d.index) > 0
-    # A Metal build always has a Metal device (every Apple-Silicon Mac, the macos-14 runner
+    # A Metal build always has a Metal device (every Apple-Silicon Mac, the hosted macOS runner
     # included) and it must be reported as such, not as "other". Vulkan cannot be asserted
     # the same way: the Linux/Windows CI runners have no Vulkan device at all.
     if sokuji_native.engine_versions()["lane"] == "metal":
@@ -636,7 +636,7 @@ def test_tts_index_tts2_without_a_voice_fails_cleanly():
 #   - devices() reporting a non-CPU device at all. The Linux/Windows CI runners are
 #     headless with no Vulkan device, so they skip;
 #   - the device not being a PARAVIRTUAL one. The mac-arm64 runner does report a Metal
-#     device, but GitHub's macos-14 arm64 host is a VM whose GPU is "Apple Paravirtual
+#     device, but GitHub's arm64 macOS host is a VM whose GPU is "Apple Paravirtual
 #     device" — it lacks has_simdgroup_reduction, so ggml refuses NORM/RMS_NORM/ARGMAX
 #     and every family aborts there regardless of the code under test (ruling R36;
 #     catalog.py's _TTS_TIER_OVERRIDES comment has the full reasoning). CI's Metal lane

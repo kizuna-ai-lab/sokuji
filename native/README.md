@@ -363,7 +363,7 @@ registered no log sink, which is the only reason an abort names its op in a CI l
 
 **Which Macs this is proved on.** All five families were proved on an Apple **M4**
 (`MTLGPUFamilyApple9`). That is the only real Apple-silicon data point, and **CI cannot add
-one**: GitHub's `macos-14` arm64 runners are VMs whose Metal device reports as *"Apple
+one**: GitHub's arm64 macOS runners are VMs whose Metal device reports as *"Apple
 Paravirtual device"* — a virtualization shim, not a downlevel real GPU. It lacks
 `has_simdgroup_reduction` (`ggml-metal-device.m` wants `MTLGPUFamilyApple7` or Metal3), and
 ggml gates `GGML_OP_NORM`/`RMS_NORM`/`ARGMAX` on that capability, so **every** family that
