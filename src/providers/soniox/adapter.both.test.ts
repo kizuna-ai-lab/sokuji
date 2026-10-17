@@ -20,6 +20,7 @@ import { b64, END, ERROR_503, isStt, msg, orig, SHARED, tr, trackedClock, type J
 
 const SPK: SonioxCredentials = { region: 'us', stt: 'k-spk', tts: 'k-spk' };
 const PAR: SonioxCredentials = { region: 'us', stt: 'k-par', tts: 'k-par-tts' };
+const CLONE = '7c1d2e3f-0000-4000-8000-00000000c10e';
 
 /** The app's rule (`shared.ts`): the participant's direction is the pair's reverse. */
 const BOTH_SHARED: SharedSettings = { ...SHARED, reversed: (direction) => direction.source === 'ja' };
@@ -135,6 +136,17 @@ describe('Soniox startBoth: split', () => {
     expect(quiet.ttsSockets()).toHaveLength(1);
   });
 
+  it('split: each leg speaks in its own voice', async () => {
+    const h = await live({ sharedBoth: false, participantSpeaks: true, settings: { voice: CLONE, participantVoice: 'Emma' } });
+    const [speakerStt, participantStt] = h.sttSockets();
+    speakerStt.receive(msg(orig('Hello.'), tr('こんにちは。'), END));
+    participantStt.receive(msg({ ...orig('Ohayō.'), language: 'ja' }, tr('Good morning.', 'en', 'ja'), END));
+    const [speakerTts, participantTts] = h.ttsSockets();
+    expect(speakerTts.sentJson<Json>()).toContainEqual(expect.objectContaining({ voice: CLONE, language: 'ja' }));
+    expect(participantTts.sentJson<Json>()).toContainEqual(expect.objectContaining({ voice: 'Emma', language: 'en' }));
+    expect(participantTts.sentJson<Json>()).not.toContainEqual(expect.objectContaining({ voice: CLONE }));
+  });
+
   it('split: a participant that cannot open stops the speaker and is named', async () => {
     const h = both({ sharedBoth: false });
     const participantStt = h.sttSockets()[1];
@@ -158,6 +170,19 @@ describe('Soniox startBoth: shared', () => {
     h.sttSockets()[0].receive(msg({ ...orig('Ohayō.'), language: 'ja' }, tr('Good morning.', 'en', 'ja'), END));
     const [, participantTts] = h.ttsSockets();
     expect(participantTts.sentJson<Json>()).toContainEqual(expect.objectContaining({ voice: 'Grace', language: 'en' }));
+  });
+
+  it('shared: each leg speaks in its own voice', async () => {
+    const h = await live({ participantSpeaks: true, settings: { voice: CLONE, participantVoice: 'Emma' } });
+    // The speaker's utterance, backed by the speaker's energy; then the participant's, by theirs.
+    speak(h, 'speaker', 10);
+    h.sttSockets()[0].receive(msg({ ...orig('Hello.'), start_ms: 0, end_ms: 900 }, tr('こんにちは。'), END));
+    speak(h, 'participant', 10);
+    h.sttSockets()[0].receive(msg({ ...orig('Ohayō.'), language: 'ja', start_ms: 1000, end_ms: 1900 }, tr('Good morning.', 'en', 'ja'), END));
+    const [speakerTts, participantTts] = h.ttsSockets();
+    expect(speakerTts.sentJson<Json>()).toContainEqual(expect.objectContaining({ voice: CLONE, language: 'ja' }));
+    expect(participantTts.sentJson<Json>()).toContainEqual(expect.objectContaining({ voice: 'Emma', language: 'en' }));
+    expect(participantTts.sentJson<Json>()).not.toContainEqual(expect.objectContaining({ voice: CLONE }));
   });
 
   it("shared: one STT socket, two_way on the speaker's pair, both hints, diarization, the speaker's key", async () => {
