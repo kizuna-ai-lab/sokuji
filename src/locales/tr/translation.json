@@ -486,6 +486,10 @@
       "name": "KizunaAI",
       "description": "60 dil, 3.600 dil çifti · kendi sesinizi klonlayın"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI Qwen",
+      "description": "Qwen3.8 eşzamanlı çeviri, 60 dil (29'u sesli)"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "Genel amaçlı GPT Realtime konuşma modeli, tamamen yapılandırılabilir"

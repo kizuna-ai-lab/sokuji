@@ -1,0 +1,50 @@
+/**
+ * Kizuna AI's managed Qwen LiveTranslate: the definition `managed(qwen)`
+ * composes — Qwen's languages, builder and adapter under its own id and
+ * slice, the sign-in for a key, the lease and the floor.
+ */
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { kizunaQwenProvider } from './kizuna';
+import { qwenLiveTranslateProvider } from './provider';
+import { QwenSettingsView, QwenVoiceSummary } from './QwenSettings';
+import { QWEN_DEFAULTS } from './settings';
+
+const getToken = async () => 'tok';
+
+afterEach(() => vi.unstubAllGlobals());
+
+describe('kizunaQwenProvider', () => {
+  it("is Kizuna AI's Qwen: managed, flagged, on the desktop and the extension, under its own slice", () => {
+    expect(kizunaQwenProvider).toMatchObject({ id: 'kizunaai_qwen', kind: 'managed', vendor: 'Qwen', flagged: true, platforms: ['electron', 'extension'] });
+    expect(kizunaQwenProvider.settings).toMatchObject({ key: 'kizunaQwen', defaults: QWEN_DEFAULTS });
+    expect(kizunaQwenProvider.testerSwitch).toBeUndefined();
+    expect(kizunaQwenProvider.icon).toBeTypeOf('function');
+    expect(kizunaQwenProvider.Settings).toBe(QwenSettingsView);
+    expect(kizunaQwenProvider.VoiceSummary).toBe(QwenVoiceSummary);
+  });
+
+  it('has no credential field, reads the sign-in and checks nothing', async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+    expect(kizunaQwenProvider.credentials.keys).toEqual([]);
+    expect(kizunaQwenProvider.credentials.fields(QWEN_DEFAULTS)).toEqual([]);
+    expect(kizunaQwenProvider.credentials.read({}, { signedIn: false, getToken })).toEqual({ missing: 'Sign in to use Kizuna AI Qwen.', code: 'sign_in_required' });
+    expect(kizunaQwenProvider.credentials.read({}, { signedIn: true, loaded: false, getToken })).toMatchObject({ code: 'sign_in_pending' });
+    expect(kizunaQwenProvider.credentials.read({}, { signedIn: true, userId: 'u1', getToken })).toEqual({ signedIn: true });
+    await expect(kizunaQwenProvider.check({ signedIn: true }, QWEN_DEFAULTS, { pair: { source: 'en', target: 'ja' }, legs: ['speaker'] })).resolves.toEqual({ ok: true });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("is Qwen's languages, capabilities, builder and adapter", () => {
+    for (const member of ['languages', 'speech', 'textInput', 'boundaries', 'turns', 'build', 'describe', 'start', 'TurnDetection'] as const) {
+      expect(kizunaQwenProvider[member], member).toBe(qwenLiveTranslateProvider[member]);
+    }
+  });
+
+  it('adds the lease and the floor', () => {
+    const session = kizunaQwenProvider.session!;
+    expect(session.acquire).toBeTypeOf('function');
+    expect(session.minimumBalance).toBeTypeOf('function');
+    expect(session.minimumBalance!({ legs: ['speaker'], textOnly: false, participantSpeech: false }, QWEN_DEFAULTS)).toBe(60_900);
+  });
+});

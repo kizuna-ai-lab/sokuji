@@ -486,6 +486,10 @@
       "name": "KizunaAI",
       "description": "60 na wika, 3,600 pares · i-clone ang sarili mong boses"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI Qwen",
+      "description": "Qwen3.8 sabay-sabay na pagsasalin, 60 wika (29 may boses)"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "Pangkalahatang GPT Realtime speech model, ganap na maisasaayos"

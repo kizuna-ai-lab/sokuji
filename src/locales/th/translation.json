@@ -486,6 +486,10 @@
       "name": "KizunaAI",
       "description": "60 ภาษา 3,600 คู่ภาษา · โคลนเสียงของคุณเอง"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI Qwen",
+      "description": "ล่ามแปลพร้อมกัน Qwen3.8 60 ภาษา (มีเสียง 29 ภาษา)"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "โมเดลเสียง GPT Realtime อเนกประสงค์ ปรับแต่งได้เต็มที่"

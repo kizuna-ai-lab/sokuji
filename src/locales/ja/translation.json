@@ -486,6 +486,10 @@
       "name": "KizunaAI",
       "description": "60言語、3,600の言語ペア · 自分の声をクローン"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI Qwen",
+      "description": "Qwen3.8 同時通訳、60 言語（音声は 29 言語）"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "汎用 GPT Realtime 音声モデル、自由に設定可能"

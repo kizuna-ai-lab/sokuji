@@ -486,6 +486,10 @@
       "name": "KizunaAI",
       "description": "60개 언어, 3,600개 언어 쌍 · 내 목소리 클론"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI Qwen",
+      "description": "Qwen3.8 동시 통역, 60개 언어(음성 29개)"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "범용 GPT Realtime 음성 모델, 자유롭게 설정 가능"

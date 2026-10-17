@@ -486,6 +486,10 @@
       "name": "KizunaAI",
       "description": "৬০টি ভাষা, ৩,৬০০ জোড়া · নিজের কণ্ঠ ক্লোন করুন"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI Qwen",
+      "description": "Qwen3.8 সিমালটেনিয়াস ইন্টারপ্রিটেশন, 60টি ভাষা (29টিতে কণ্ঠ)"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "সাধারণ-উদ্দেশ্য GPT Realtime বাক মডেল, সম্পূর্ণ কনফিগারযোগ্য"

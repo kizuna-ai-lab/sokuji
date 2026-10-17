@@ -486,6 +486,10 @@
       "name": "KizunaAI",
       "description": "60 bahasa, 3,600 pasangan · klon suara anda sendiri"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI Qwen",
+      "description": "Tafsiran serentak Qwen3.8, 60 bahasa (29 dengan suara)"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "Model suara GPT Realtime serba guna, boleh dikonfigurasi sepenuhnya"

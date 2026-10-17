@@ -486,6 +486,10 @@
       "name": "KizunaAI",
       "description": "60 种语言，3,600 个语言对 · 可克隆您自己的声音"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI Qwen",
+      "description": "千问 Qwen3.8 同声传译，60 种语言（29 种可配音）"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "通用 GPT Realtime 语音模型，可自由配置"

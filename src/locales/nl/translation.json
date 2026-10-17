@@ -486,6 +486,10 @@
       "name": "KizunaAI",
       "description": "60 talen, 3.600 taalparen · kloon je eigen stem"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI Qwen",
+      "description": "Qwen3.8-simultaantolken, 60 talen (29 gesproken)"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "Algemeen GPT Realtime-spraakmodel, volledig instelbaar"

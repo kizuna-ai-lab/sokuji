@@ -70,6 +70,11 @@ describe('managed', () => {
     for (const member of ['guideUrl', 'flagged', 'testerSwitch'] as const) expect(twin, member).not.toHaveProperty(member);
   });
 
+  it('a twin can be flagged on its own', () => {
+    expect(managed(fakeProvider, { ...OVERRIDES, flagged: true }).flagged).toBe(true);
+    expect(managed(fakeProvider, OVERRIDES)).not.toHaveProperty('flagged');
+  });
+
   it("carries its own guide when it gives one, never the base's", () => {
     const base = { ...fakeProvider, guideUrl: 'https://example.com/own-key' };
     expect(managed(base, { ...OVERRIDES, guideUrl: 'https://example.com/managed' }).guideUrl).toBe('https://example.com/managed');

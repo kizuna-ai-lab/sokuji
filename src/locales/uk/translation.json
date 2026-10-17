@@ -486,6 +486,10 @@
       "name": "KizunaAI",
       "description": "60 мов, 3600 мовних пар · клонування вашого голосу"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI Qwen",
+      "description": "Синхронний переклад Qwen3.8, 60 мов (29 з озвученням)"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "Універсальна мовленнєва модель GPT Realtime, повністю налаштовувана"

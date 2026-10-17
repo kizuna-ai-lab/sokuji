@@ -486,6 +486,10 @@
       "name": "KizunaAI",
       "description": "60 שפות, 3,600 צמדים · שכפול הקול שלך"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI Qwen",
+      "description": "תרגום סימולטני Qwen3.8, 60 שפות (29 בקול)"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "מודל דיבור GPT Realtime לשימוש כללי, ניתן להגדרה מלאה"

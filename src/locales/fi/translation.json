@@ -486,6 +486,10 @@
       "name": "KizunaAI",
       "description": "60 kieltä, 3600 kieliparia · kloonaa oma äänesi"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI Qwen",
+      "description": "Qwen3.8-simultaanitulkkaus, 60 kieltä (29 puhuttuna)"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "Yleiskäyttöinen GPT Realtime -puhemalli, täysin muokattavissa"

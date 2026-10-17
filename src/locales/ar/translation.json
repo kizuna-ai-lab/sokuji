@@ -486,6 +486,10 @@
       "name": "KizunaAI",
       "description": "60 لغة، 3,600 زوج لغوي · استنساخ صوتك"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI Qwen",
+      "description": "ترجمة فورية Qwen3.8، 60 لغة (29 منطوقة)"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "نموذج GPT Realtime الصوتي للأغراض العامة، قابل للتخصيص بالكامل"

@@ -486,6 +486,10 @@
       "name": "KizunaAI",
       "description": "60 மொழிகள், 3,600 இணைகள் · உங்கள் குரலை நகலெடுக்கவும்"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI Qwen",
+      "description": "Qwen3.8 ஒரே நேர மொழிபெயர்ப்பு, 60 மொழிகள் (29 குரலுடன்)"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "பொதுப் பயன்பாட்டு GPT Realtime பேச்சு மாதிரி, முழுமையாக அமைக்கக்கூடியது"

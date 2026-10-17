@@ -486,6 +486,10 @@
       "name": "KizunaAI",
       "description": "60 języków, 3600 par językowych · sklonuj własny głos"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI Qwen",
+      "description": "Tłumaczenie symultaniczne Qwen3.8, 60 języków (29 z głosem)"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "Uniwersalny model mowy GPT Realtime, w pełni konfigurowalny"

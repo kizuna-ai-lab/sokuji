@@ -486,6 +486,10 @@
       "name": "KizunaAI",
       "description": "60 idiomas, 3.600 pares · clone sua própria voz"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI Qwen",
+      "description": "Interpretação simultânea Qwen3.8, 60 idiomas (29 com voz)"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "Modelo de voz GPT Realtime de uso geral, totalmente configurável"

@@ -37,6 +37,8 @@ export interface ManagedOverrides<S, K, C, Id extends string> {
   signedOut: string;
   /** The participant-speech flag (ruling 2); absent, the twin carries the base's own flag, if it has one. */
   participantSpeech?: boolean;
+  /** The twin is flagged on its own; the base's flag never carries over. */
+  flagged?: true;
   /** Added to the base's hooks. `acquire` is required: a twin's `R` is not its `K`. */
   session: SessionHooks<S, K, C> & Required<Pick<SessionHooks<S, K, C>, 'acquire'>>;
 }
@@ -54,6 +56,7 @@ export function managed<S, K extends { missing?: never } & object, C extends { r
     icon: o.icon,
     vendor: o.vendor,
     ...(o.guideUrl ? { guideUrl: o.guideUrl } : {}),
+    ...(o.flagged ? { flagged: true as const } : {}),
     // Member by member (choice 2): a settings member added to the base later (`legacyKeys`, say) is a decision here, not a leak.
     settings: { key: o.settingsKey, defaults: base.settings.defaults, ...(base.settings.migrate ? { migrate: base.settings.migrate } : {}) },
     Settings: o.Settings,

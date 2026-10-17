@@ -486,6 +486,10 @@
       "name": "KizunaAI",
       "description": "60 भाषाएँ, 3,600 जोड़े · अपनी आवाज़ क्लोन करें"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI Qwen",
+      "description": "Qwen3.8 सिमल्टेनियस इंटरप्रिटेशन, 60 भाषाएँ (29 में आवाज़)"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "सामान्य-उद्देश्य GPT Realtime वाक् मॉडल, पूरी तरह विन्यास योग्य"

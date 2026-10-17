@@ -486,6 +486,10 @@
       "name": "KizunaAI",
       "description": "60 ngôn ngữ, 3.600 cặp · nhân bản giọng của bạn"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI Qwen",
+      "description": "Phiên dịch đồng thời Qwen3.8, 60 ngôn ngữ (29 có giọng nói)"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "Mô hình giọng nói GPT Realtime đa dụng, tùy chỉnh toàn diện"
