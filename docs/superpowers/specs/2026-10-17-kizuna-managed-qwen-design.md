@@ -26,9 +26,9 @@ account's one session lease, picks a free key from a small pool of Kizuna keys, 
 temporary token from it and hands the token to the client. Both legs dial QwenCloud with that token,
 exactly as the own-key provider dials with a user's key; no audio passes through Kizuna. Each leg
 reports the session id Alibaba gave it (`sess_…`) to the backend. A reconciler reads Alibaba's
-per-request log with a RAM AccessKey, finds every session's row — by the reported id, or, when a
-client reported nothing, by the key and the start time that only that lease's token could have
-produced — and charges the session's tokens at cost × K to the user's wallet.
+per-request log with a RAM AccessKey and attributes every row by the key and the start time, which
+only one lease's token could have produced, using the reported id to find the row and to check the
+answer; it charges the session's tokens at cost × K to the user's wallet.
 
 **Out of scope:**
 - relaying audio (it must not pass through Kizuna);
@@ -53,6 +53,7 @@ produced — and charges the session's tokens at cost × K to the user's wallet.
 | Region | LiveTranslate exists only in Singapore and Beijing; Beijing needs mainland identity verification. |
 | Price | Singapore, USD per 1M tokens: audio in 7.5, text out 20, audio out 30, image in 0.55. Input text is not billed (the fixed 47 text tokens per session never reach the bill). Audio in is 7 tokens per second of each turn's window, audio out 12.5 per second of speech. |
 | Keys | ModelStudio 2026-02-10 `CreateApiKey` can limit a key to listed models (`auth.modelAccessScope`): another model answers 403. "Each workspace supports up to 20 API keys", and an account has up to 20 workspaces (QwenCloud's workspace guide). |
+| Row start | `start_unix_timestamp` is the WebSocket handshake, when the token is checked, on Alibaba's clock — not `session.update`. Probed 2026-10-17 with a 60 s token and no audio: A updated 20 s after its handshake; B dialled 5 s before the token expired and updated 15 s after it. Both got `session.updated`; both rows start 40 ms before the local 101 (the local clock ran ~43 ms ahead), B's 4.8 s before the expiry; `request_id` = the 101's `x-request-id`; no usage. So no client can push a session's start out of its token's validity. |
 | Lease release, managed Soniox | Read on sokuji-backend `origin/main` (1253c2f): `/session-end` only sets `end_signalled_at` and nudges the reconciler, which then retries on a 3 / 6 / 12 s ladder. A started lease is released once every started stream's usage log has landed (`noteStreamEnded`); the clock frees the account at `expires_at` — 60 s + a 15 s margin for a lease that never started, the grant + 15 s otherwise. |
 
 ## Decisions
@@ -63,8 +64,10 @@ produced — and charges the session's tokens at cost × K to the user's wallet.
 - **M2 Storefront.** QwenCloud international only (`maas.qwencloudapi.com`, the Singapore account).
   The grant names the endpoint, so the adapter never detects one.
 - **M3 One token per lease.** Both legs dial with the same token while it is valid.
-- **M4 Attribution.** The reported `task_uuid` is the primary match. The slot window is the safety net
-  that still attributes a session nobody reported. The two must agree.
+- **M4 Attribution.** The slot window (the row's `apikey_id` and start) decides: it rests on our own
+  records alone, and a row's start is its handshake, inside its token's validity. The reported
+  `task_uuid` finds the row quickly and checks the answer; a row it does not match, or none, is
+  attributed by the window alone (the owner's ruling, 2026-10-17).
 - **M5 Key slots.** A pool of model-scoped keys in one dedicated workspace. A slot belongs to one
   lease from the mint until its token expires (plus a margin), then returns to the pool.
 - **M6 Usage truth.** `listModelLogs` through a RAM AccessKey; the official per-key bill once a day
@@ -194,16 +197,23 @@ deduplicated by `request_id`, go to `qwen_usage_logs(request_id PK, task_uuid, a
 duration_ms, usage, lease_id, account_id, attributed_by, charged_at)`. A failing call is retried with
 backoff; a gateway that keeps failing (it is undocumented) raises an alarm and stops new leases.
 
-**Attributing** each row, in order:
-1. **By `task_uuid`** — a reported session: its lease. The row's `apikey_id` and start must fit that
-   lease's slot window; when they do not, the row is still charged to that lease (the id is
-   unforgeable) and a tamper alarm is raised.
-2. **By slot window** — no report: the lease whose window on that `apikey_id` contains the row's start
-   (exactly one can). The row is marked `attributed_by = 'window'`, which is the audit record of an
+**Attributing** each row (M4). Two answers are looked up: the **window** — the lease whose slot window
+on the row's `apikey_id` contains its start (at most one can) — and the **report** — the lease that
+reported the row's `task_uuid`, if any. The window decides; the report checks it:
+1. **Both name the same lease** — charge it (`attributed_by = 'both'`).
+2. **Window only, no report** — charge the window's lease (`'window'`). This is the audit record of an
    unreported session: the admin pages count them per lease and account; the user sees nothing and
    nothing is done automatically (M12).
-3. **Neither** — a slot key used outside every window, i.e. leaked: alarm; the owner disables or
-   resets the key by hand.
+3. **They differ, same account** — a client reported its session under another of its own leases (a
+   stale lease id, say): charge the window's lease, and record the mismatch for audit.
+4. **They differ, different accounts** — a client cannot know another session's `sess_…`, so this
+   points at our own records rather than at a client: hold the charge, alarm, and settle it by hand.
+   It should never happen.
+5. **A report, no window** — the row lies outside every window: a leaked key, or our records are
+   wrong. Charge the reporter (a report binds only the reporting account, so it can bill no one
+   else) and alarm.
+6. **Neither** — a slot key used outside every window and nobody claims it, i.e. leaked: alarm; the
+   owner disables or resets the key by hand; nobody is charged.
 
 A row with no `usage` (a session that sent nothing) is kept and charges nothing.
 
@@ -220,7 +230,7 @@ negative or frozen wallet refuses the next `session-key`.
 - by the clock, as Soniox's: a lease with no reported session at its token's expiry + 15 s (no
   session can start after it), any lease at `expires_at` (the grant + 15 s).
 Billing does not wait on the lease. A row that lands after the release — a session run past its grant,
-a leg whose report never arrived — is still attributed by `task_uuid` or window and charged; the
+a leg whose report never arrived — is still attributed (section 5's cases) and charged; the
 reconciler keeps looking for a reported session's row for 10 minutes past the lease's expiry, Soniox's
 `UNRECONCILED_LEASE_MAX_AGE_MS`. A stop and restart inside the row's delay meets the 409 with its
 `retryAfterMs`, which the client waits out, as for Soniox.
@@ -238,14 +248,14 @@ minute of it.
 
 **What a client can do that it should not.** Run a session past the grant, or open more sessions
 while the token is valid (up to the account's RPM), or not report. None of it escapes the bill:
-every session lands in the log and is attributed by `task_uuid` or by window. The cost is that the
+every session lands in the log and is attributed by its window. The cost is that the
 charge comes after the session ends, so the wallet can go negative. Audio sent faster than real time
 is bounded only by the account's TPM, which one abuser could use up for everyone; the reconciler
 flags a lease whose tokens per second exceed real time.
 
-**What it cannot do.** Bill another user (`task_uuid` is unforgeable and the account is the
-authenticated one), call another model (the key's scope), or reach the slot key (it never leaves the
-backend).
+**What it cannot do.** Bill another user: the window is ours, a row's start is its handshake so no
+delay moves it out of the token's validity (probed), and a report binds only the reporting account.
+Nor call another model (the key's scope), or reach the slot key (it never leaves the backend).
 
 ## 7. Backend changes (`sokuji-backend`)
 
@@ -267,13 +277,14 @@ backend).
 - The RPM increase applied for through the account manager, with the expected concurrent sessions
   and average length.
 - The root AccessKey that appeared in chat deleted; the RAM AccessKey rotated before production.
-- Alarms: tamper, unattributed rows, reconciler lag, gateway errors, bill drift. Unreported sessions
-  raise no alarm; they are audited from the admin count.
+- Alarms: a report and a window naming different accounts (the held charge), a reported row outside
+  every window, an unclaimed row (a leak), reconciler lag, gateway errors, bill drift. Unreported
+  sessions and same-account mismatches raise no alarm; they are audited from the admin counts.
 
 ## 9. Testing
 
-- Backend: slot hold and release under concurrency; the window from a mint response; each
-  attribution path, tamper and leak included; the price (input text excluded); idempotent charges;
+- Backend: slot hold and release under concurrency; the window from a mint response; each of the six
+  attribution cases, the held charge and the reporter-pays case included; the price (input text excluded); idempotent charges;
   the reconciler's paging, watermark and per-workspace reads; the 5 s polling after a `session-end`,
   ended by the last row or by its 90 s cap; the lease released by its last row, by
   the token's expiry with nothing reported and by `expires_at`, and a row after the release still
@@ -310,6 +321,10 @@ backend).
 7. **Release** — `flagged`.
 8. **Lease release** — as Soniox's, which frees soon after a session ends: the row proves the end.
 9. **Grant cap** — 3600 s for now.
+10. **Attribution** — the key and the time decide, because they need nothing from the client; the
+    reported `task_uuid` finds the row and verifies it; no report, or one that does not verify, means
+    the client's data is wrong, and the window alone attributes the row (cases 3–6 of section 5 are
+    how that plays out).
 
 ## Known unknowns
 
