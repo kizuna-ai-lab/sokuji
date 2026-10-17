@@ -681,7 +681,8 @@
     "sonioxVoiceBuildFailed": "Din anpassade röst kunde inte byggas, så den här sessionen använder en förinställd röst. Försök spela in ett tydligare klipp i Inställningar.",
     "sonioxVoiceUnavailable": "Din anpassade röst är inte tillgänglig just nu, så den här sessionen använder en förinställd röst.",
     "preparingVoice": "Förbereder din röst…",
-    "waitingForPreviousSession": "Väntar på att den föregående sessionen ska avslutas…",
+    "waitingForPreviousSession": "Väntar…",
+    "waitingForPreviousSessionTitle": "Väntar på att den föregående sessionen ska avslutas. Klicka för att avbryta.",
     "clickToCancel": "Klicka för att avbryta"
   },
   "modePicker": {
@@ -728,7 +729,7 @@
     "start": "Starta",
     "loadingModel": "Laddar modell…",
     "preparingVoice": "Förbereder din röst…",
-    "waitingForPreviousSession": "Väntar på att den föregående sessionen ska avslutas…"
+    "waitingForPreviousSession": "Väntar…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU:n har slut på minne — den valda modellen är för stor för din GPU. Byt till en mindre modell."

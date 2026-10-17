@@ -681,7 +681,8 @@
     "sonioxVoiceBuildFailed": "Mukautettua ääntäsi ei voitu luoda, joten tämä istunto käyttää esiasetettua ääntä. Kokeile äänittää selkeämpi näyte asetuksista.",
     "sonioxVoiceUnavailable": "Mukautettu äänesi ei ole juuri nyt käytettävissä, joten tämä istunto käyttää esiasetettua ääntä.",
     "preparingVoice": "Valmistellaan ääntäsi…",
-    "waitingForPreviousSession": "Odotetaan edellisen istunnon päättymistä…",
+    "waitingForPreviousSession": "Odotetaan…",
+    "waitingForPreviousSessionTitle": "Odotetaan edellisen istunnon päättymistä. Napsauta peruuttaaksesi.",
     "clickToCancel": "Napsauta peruuttaaksesi"
   },
   "modePicker": {
@@ -728,7 +729,7 @@
     "start": "Aloita",
     "loadingModel": "Ladataan mallia…",
     "preparingVoice": "Valmistellaan ääntäsi…",
-    "waitingForPreviousSession": "Odotetaan edellisen istunnon päättymistä…"
+    "waitingForPreviousSession": "Odotetaan…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU-muisti loppui — valittu malli on liian suuri GPU:llesi. Vaihda pienempään malliin."

@@ -681,7 +681,8 @@
     "sonioxVoiceBuildFailed": "无法生成您的自定义声音，因此本次会话使用预设声音。请尝试在设置中录制更清晰的片段。",
     "sonioxVoiceUnavailable": "您的自定义声音目前不可用，因此本次会话使用预设声音。",
     "preparingVoice": "正在准备您的声音…",
-    "waitingForPreviousSession": "正在等待上一个会话结束…",
+    "waitingForPreviousSession": "正在等待…",
+    "waitingForPreviousSessionTitle": "正在等待上一个会话结束。点击取消",
     "clickToCancel": "点击取消"
   },
   "modePicker": {
@@ -728,7 +729,7 @@
     "start": "开始",
     "loadingModel": "正在加载模型…",
     "preparingVoice": "正在准备您的声音…",
-    "waitingForPreviousSession": "正在等待上一个会话结束…"
+    "waitingForPreviousSession": "正在等待…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU显存不足 — 所选模型对您的GPU来说太大了，请切换到更小的模型。"

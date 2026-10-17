@@ -681,7 +681,8 @@
     "sonioxVoiceBuildFailed": "Không thể xây dựng giọng nói tùy chỉnh của bạn, vì vậy phiên này dùng một giọng có sẵn. Hãy thử ghi âm một đoạn rõ hơn trong Cài đặt.",
     "sonioxVoiceUnavailable": "Giọng nói tùy chỉnh của bạn hiện không khả dụng, vì vậy phiên này dùng một giọng có sẵn.",
     "preparingVoice": "Đang chuẩn bị giọng nói của bạn…",
-    "waitingForPreviousSession": "Đang chờ phiên trước kết thúc…",
+    "waitingForPreviousSession": "Đang chờ…",
+    "waitingForPreviousSessionTitle": "Đang chờ phiên trước kết thúc. Nhấp để hủy.",
     "clickToCancel": "Nhấp để hủy"
   },
   "modePicker": {
@@ -728,7 +729,7 @@
     "start": "Bắt đầu",
     "loadingModel": "Đang tải mô hình…",
     "preparingVoice": "Đang chuẩn bị giọng nói của bạn…",
-    "waitingForPreviousSession": "Đang chờ phiên trước kết thúc…"
+    "waitingForPreviousSession": "Đang chờ…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU hết bộ nhớ — mô hình đã chọn quá lớn so với GPU của bạn. Vui lòng chuyển sang mô hình nhỏ hơn."

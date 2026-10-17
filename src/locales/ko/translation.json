@@ -681,7 +681,8 @@
     "sonioxVoiceBuildFailed": "맞춤 음성을 만들지 못해 이 세션은 프리셋 음성을 사용합니다. 설정에서 더 또렷한 클립을 녹음해 보세요.",
     "sonioxVoiceUnavailable": "맞춤 음성을 지금은 사용할 수 없어 이 세션은 프리셋 음성을 사용합니다.",
     "preparingVoice": "음성을 준비하는 중…",
-    "waitingForPreviousSession": "이전 세션이 끝나기를 기다리는 중…",
+    "waitingForPreviousSession": "대기 중…",
+    "waitingForPreviousSessionTitle": "이전 세션이 끝나기를 기다리는 중입니다. 취소하려면 클릭하세요.",
     "clickToCancel": "취소하려면 클릭"
   },
   "modePicker": {
@@ -728,7 +729,7 @@
     "start": "시작",
     "loadingModel": "모델 로딩 중…",
     "preparingVoice": "음성을 준비하는 중…",
-    "waitingForPreviousSession": "이전 세션이 끝나기를 기다리는 중…"
+    "waitingForPreviousSession": "대기 중…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU 메모리 부족 — 선택한 모델이 GPU에 비해 너무 큽니다. 더 작은 모델로 전환하세요."

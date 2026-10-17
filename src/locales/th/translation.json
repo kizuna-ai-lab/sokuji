@@ -681,7 +681,8 @@
     "sonioxVoiceBuildFailed": "ไม่สามารถสร้างเสียงที่กำหนดเองของคุณได้ เซสชันนี้จึงใช้เสียงพรีเซ็ต ลองบันทึกคลิปที่ชัดเจนกว่านี้ในการตั้งค่า",
     "sonioxVoiceUnavailable": "เสียงที่กำหนดเองของคุณไม่พร้อมใช้งานในขณะนี้ เซสชันนี้จึงใช้เสียงพรีเซ็ต",
     "preparingVoice": "กำลังเตรียมเสียงของคุณ…",
-    "waitingForPreviousSession": "กำลังรอให้เซสชันก่อนหน้าสิ้นสุด…",
+    "waitingForPreviousSession": "กำลังรอ…",
+    "waitingForPreviousSessionTitle": "กำลังรอให้เซสชันก่อนหน้าสิ้นสุด คลิกเพื่อยกเลิก",
     "clickToCancel": "คลิกเพื่อยกเลิก"
   },
   "modePicker": {
@@ -728,7 +729,7 @@
     "start": "เริ่ม",
     "loadingModel": "กำลังโหลดโมเดล…",
     "preparingVoice": "กำลังเตรียมเสียงของคุณ…",
-    "waitingForPreviousSession": "กำลังรอให้เซสชันก่อนหน้าสิ้นสุด…"
+    "waitingForPreviousSession": "กำลังรอ…"
   },
   "errors": {
     "gpuOutOfMemory": "หน่วยความจำ GPU ไม่พอ — โมเดลที่เลือกใหญ่เกินไปสำหรับ GPU ของคุณ กรุณาเปลี่ยนไปใช้โมเดลที่เล็กกว่า"

@@ -681,7 +681,8 @@
     "sonioxVoiceBuildFailed": "לא ניתן היה לבנות את הקול המותאם אישית שלכם, ולכן ההפעלה הזו משתמשת בקול מוגדר מראש. נסו להקליט קטע ברור יותר בהגדרות.",
     "sonioxVoiceUnavailable": "הקול המותאם אישית שלכם אינו זמין כרגע, ולכן ההפעלה הזו משתמשת בקול מוגדר מראש.",
     "preparingVoice": "מכינים את הקול שלך…",
-    "waitingForPreviousSession": "ממתינים לסיום ההפעלה הקודמת…",
+    "waitingForPreviousSession": "ממתינים…",
+    "waitingForPreviousSessionTitle": "ממתינים לסיום ההפעלה הקודמת. לחץ כדי לבטל.",
     "clickToCancel": "לחץ כדי לבטל"
   },
   "modePicker": {
@@ -728,7 +729,7 @@
     "start": "התחל",
     "loadingModel": "טוען מודל…",
     "preparingVoice": "מכינים את הקול שלך…",
-    "waitingForPreviousSession": "ממתינים לסיום ההפעלה הקודמת…"
+    "waitingForPreviousSession": "ממתינים…"
   },
   "errors": {
     "gpuOutOfMemory": "אזל זיכרון ה-GPU — המודל שנבחר גדול מדי עבור ה-GPU שלך. אנא עבור למודל קטן יותר."

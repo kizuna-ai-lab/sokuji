@@ -681,7 +681,8 @@
     "sonioxVoiceBuildFailed": "صدای سفارشی شما ساخته نشد، بنابراین این نشست از یک صدای پیش‌فرض استفاده می‌کند. یک کلیپ واضح‌تر در تنظیمات ضبط کنید.",
     "sonioxVoiceUnavailable": "صدای سفارشی شما در حال حاضر در دسترس نیست، بنابراین این نشست از یک صدای پیش‌فرض استفاده می‌کند.",
     "preparingVoice": "در حال آماده‌سازی صدای شما…",
-    "waitingForPreviousSession": "در انتظار پایان نشست قبلی…",
+    "waitingForPreviousSession": "در انتظار…",
+    "waitingForPreviousSessionTitle": "در انتظار پایان نشست قبلی. برای لغو کلیک کنید.",
     "clickToCancel": "برای لغو کلیک کنید"
   },
   "modePicker": {
@@ -728,7 +729,7 @@
     "start": "شروع",
     "loadingModel": "در حال بارگذاری مدل…",
     "preparingVoice": "در حال آماده‌سازی صدای شما…",
-    "waitingForPreviousSession": "در انتظار پایان نشست قبلی…"
+    "waitingForPreviousSession": "در انتظار…"
   },
   "errors": {
     "gpuOutOfMemory": "حافظه GPU پر شد — مدل انتخابی برای GPU شما بیش از حد بزرگ است. لطفاً به مدل کوچک‌تری تغییر دهید."

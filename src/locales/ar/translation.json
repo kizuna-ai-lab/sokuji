@@ -681,7 +681,8 @@
     "sonioxVoiceBuildFailed": "تعذّر إنشاء صوتك المخصص، لذا تستخدم هذه الجلسة صوتًا افتراضيًا. جرّب تسجيل مقطع أوضح في الإعدادات.",
     "sonioxVoiceUnavailable": "صوتك المخصص غير متاح حاليًا، لذا تستخدم هذه الجلسة صوتًا افتراضيًا.",
     "preparingVoice": "جارٍ تحضير صوتك…",
-    "waitingForPreviousSession": "في انتظار انتهاء الجلسة السابقة…",
+    "waitingForPreviousSession": "جارٍ الانتظار…",
+    "waitingForPreviousSessionTitle": "في انتظار انتهاء الجلسة السابقة. انقر للإلغاء.",
     "clickToCancel": "انقر للإلغاء"
   },
   "modePicker": {
@@ -728,7 +729,7 @@
     "start": "ابدأ",
     "loadingModel": "جاري تحميل النموذج…",
     "preparingVoice": "جارٍ تحضير صوتك…",
-    "waitingForPreviousSession": "في انتظار انتهاء الجلسة السابقة…"
+    "waitingForPreviousSession": "جارٍ الانتظار…"
   },
   "errors": {
     "gpuOutOfMemory": "نفدت ذاكرة GPU — النموذج المحدد كبير جدًا على GPU لديك. يرجى التبديل إلى نموذج أصغر."

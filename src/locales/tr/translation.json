@@ -681,7 +681,8 @@
     "sonioxVoiceBuildFailed": "Özel sesiniz oluşturulamadı, bu yüzden bu oturum hazır bir ses kullanıyor. Ayarlar'dan daha net bir kayıt yapmayı deneyin.",
     "sonioxVoiceUnavailable": "Özel sesiniz şu anda kullanılamıyor, bu yüzden bu oturum hazır bir ses kullanıyor.",
     "preparingVoice": "Sesiniz hazırlanıyor…",
-    "waitingForPreviousSession": "Önceki oturumun sona ermesi bekleniyor…",
+    "waitingForPreviousSession": "Bekleniyor…",
+    "waitingForPreviousSessionTitle": "Önceki oturumun sona ermesi bekleniyor. İptal etmek için tıklayın.",
     "clickToCancel": "İptal etmek için tıklayın"
   },
   "modePicker": {
@@ -728,7 +729,7 @@
     "start": "Başlat",
     "loadingModel": "Model yükleniyor…",
     "preparingVoice": "Sesiniz hazırlanıyor…",
-    "waitingForPreviousSession": "Önceki oturumun sona ermesi bekleniyor…"
+    "waitingForPreviousSession": "Bekleniyor…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU belleği yetersiz — seçilen model GPU'nuz için çok büyük. Lütfen daha küçük bir modele geçin."

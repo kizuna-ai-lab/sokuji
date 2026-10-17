@@ -681,7 +681,8 @@
     "sonioxVoiceBuildFailed": "Suara kustom Anda tidak dapat dibangun, sehingga sesi ini menggunakan suara preset. Coba rekam klip yang lebih jelas di Pengaturan.",
     "sonioxVoiceUnavailable": "Suara kustom Anda tidak tersedia saat ini, sehingga sesi ini menggunakan suara preset.",
     "preparingVoice": "Menyiapkan suara Anda…",
-    "waitingForPreviousSession": "Menunggu sesi sebelumnya berakhir…",
+    "waitingForPreviousSession": "Menunggu…",
+    "waitingForPreviousSessionTitle": "Menunggu sesi sebelumnya berakhir. Klik untuk membatalkan.",
     "clickToCancel": "Klik untuk membatalkan"
   },
   "modePicker": {
@@ -728,7 +729,7 @@
     "start": "Mulai",
     "loadingModel": "Memuat model…",
     "preparingVoice": "Menyiapkan suara Anda…",
-    "waitingForPreviousSession": "Menunggu sesi sebelumnya berakhir…"
+    "waitingForPreviousSession": "Menunggu…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU kehabisan memori — model yang dipilih terlalu besar untuk GPU Anda. Silakan beralih ke model yang lebih kecil."

@@ -681,7 +681,8 @@
     "sonioxVoiceBuildFailed": "Suara tersuai anda tidak dapat dibina, jadi sesi ini menggunakan suara pratetap. Cuba rakam klip yang lebih jelas dalam Tetapan.",
     "sonioxVoiceUnavailable": "Suara tersuai anda tidak tersedia sekarang, jadi sesi ini menggunakan suara pratetap.",
     "preparingVoice": "Menyediakan suara anda…",
-    "waitingForPreviousSession": "Menunggu sesi sebelumnya tamat…",
+    "waitingForPreviousSession": "Menunggu…",
+    "waitingForPreviousSessionTitle": "Menunggu sesi sebelumnya tamat. Klik untuk membatalkan.",
     "clickToCancel": "Klik untuk membatalkan"
   },
   "modePicker": {
@@ -728,7 +729,7 @@
     "start": "Mula",
     "loadingModel": "Memuatkan model…",
     "preparingVoice": "Menyediakan suara anda…",
-    "waitingForPreviousSession": "Menunggu sesi sebelumnya tamat…"
+    "waitingForPreviousSession": "Menunggu…"
   },
   "errors": {
     "gpuOutOfMemory": "Memori GPU tidak mencukupi — model yang dipilih terlalu besar untuk GPU anda. Sila tukar kepada model yang lebih kecil."

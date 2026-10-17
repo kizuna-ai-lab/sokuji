@@ -681,7 +681,8 @@
     "sonioxVoiceBuildFailed": "Your custom voice could not be built, so this session uses a built-in voice. Try recording a clearer clip in Settings.",
     "sonioxVoiceUnavailable": "Your custom voice is unavailable right now, so this session uses a built-in voice.",
     "preparingVoice": "Preparing your voice…",
-    "waitingForPreviousSession": "Waiting for the previous session to end…",
+    "waitingForPreviousSession": "Waiting…",
+    "waitingForPreviousSessionTitle": "Waiting for the previous session to end. Click to cancel.",
     "clickToCancel": "Click to cancel"
   },
   "modePicker": {
@@ -740,7 +741,7 @@
     "start": "Start",
     "loadingModel": "Loading model…",
     "preparingVoice": "Preparing your voice…",
-    "waitingForPreviousSession": "Waiting for the previous session to end…"
+    "waitingForPreviousSession": "Waiting…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU out of memory — the selected model is too large for your GPU. Please switch to a smaller model."

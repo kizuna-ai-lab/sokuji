@@ -681,7 +681,8 @@
     "sonioxVoiceBuildFailed": "カスタム音声を作成できなかったため、このセッションではプリセット音声を使用します。設定でより聞き取りやすいクリップを録音してみてください。",
     "sonioxVoiceUnavailable": "カスタム音声は現在利用できないため、このセッションではプリセット音声を使用します。",
     "preparingVoice": "音声を準備しています…",
-    "waitingForPreviousSession": "前回のセッションの終了を待っています…",
+    "waitingForPreviousSession": "待機中…",
+    "waitingForPreviousSessionTitle": "前回のセッションの終了を待っています。キャンセルするにはクリック",
     "clickToCancel": "キャンセルするにはクリック"
   },
   "modePicker": {
@@ -728,7 +729,7 @@
     "start": "開始",
     "loadingModel": "モデルを読み込み中…",
     "preparingVoice": "音声を準備しています…",
-    "waitingForPreviousSession": "前回のセッションの終了を待っています…"
+    "waitingForPreviousSession": "待機中…"
   },
   "errors": {
     "gpuOutOfMemory": "GPUメモリ不足 — 選択されたモデルがGPUには大きすぎます。より小さいモデルに切り替えてください。"

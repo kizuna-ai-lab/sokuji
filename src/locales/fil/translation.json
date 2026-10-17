@@ -681,7 +681,8 @@
     "sonioxVoiceBuildFailed": "Hindi mabuo ang custom mong boses, kaya gumagamit ang session na ito ng preset na boses. Subukang mag-record ng mas malinaw na clip sa Mga Setting.",
     "sonioxVoiceUnavailable": "Hindi available ngayon ang custom mong boses, kaya gumagamit ang session na ito ng preset na boses.",
     "preparingVoice": "Inihahanda ang iyong boses…",
-    "waitingForPreviousSession": "Hinihintay na matapos ang nakaraang session…",
+    "waitingForPreviousSession": "Naghihintay…",
+    "waitingForPreviousSessionTitle": "Hinihintay na matapos ang nakaraang session. I-click upang kanselahin.",
     "clickToCancel": "I-click upang kanselahin"
   },
   "modePicker": {
@@ -728,7 +729,7 @@
     "start": "Simulan",
     "loadingModel": "Naglo-load ng modelo…",
     "preparingVoice": "Inihahanda ang iyong boses…",
-    "waitingForPreviousSession": "Hinihintay na matapos ang nakaraang session…"
+    "waitingForPreviousSession": "Naghihintay…"
   },
   "errors": {
     "gpuOutOfMemory": "Naubos ang memory ng GPU — masyadong malaki ang piniling modelo para sa inyong GPU. Lumipat sa mas maliit na modelo."

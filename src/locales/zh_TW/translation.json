@@ -681,7 +681,8 @@
     "sonioxVoiceBuildFailed": "無法建立您的自訂語音，因此本次工作階段使用預設語音。請嘗試在設定中錄製更清晰的片段。",
     "sonioxVoiceUnavailable": "您的自訂語音目前無法使用，因此本次工作階段使用預設語音。",
     "preparingVoice": "正在準備您的語音…",
-    "waitingForPreviousSession": "正在等待上一個工作階段結束…",
+    "waitingForPreviousSession": "正在等待…",
+    "waitingForPreviousSessionTitle": "正在等待上一個工作階段結束。點擊取消",
     "clickToCancel": "點擊取消"
   },
   "modePicker": {
@@ -728,7 +729,7 @@
     "start": "開始",
     "loadingModel": "載入模型中…",
     "preparingVoice": "正在準備您的語音…",
-    "waitingForPreviousSession": "正在等待上一個工作階段結束…"
+    "waitingForPreviousSession": "正在等待…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU記憶體不足 — 所選模型對您的GPU來說太大了，請切換到更小的模型。"

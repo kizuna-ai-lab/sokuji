@@ -681,7 +681,8 @@
     "sonioxVoiceBuildFailed": "Non è stato possibile creare la tua voce personalizzata, quindi questa sessione usa una voce preimpostata. Prova a registrare una clip più chiara nelle Impostazioni.",
     "sonioxVoiceUnavailable": "La tua voce personalizzata non è disponibile al momento, quindi questa sessione usa una voce preimpostata.",
     "preparingVoice": "Preparazione della tua voce…",
-    "waitingForPreviousSession": "In attesa che la sessione precedente termini…",
+    "waitingForPreviousSession": "In attesa…",
+    "waitingForPreviousSessionTitle": "In attesa che la sessione precedente termini. Clicca per annullare.",
     "clickToCancel": "Clicca per annullare"
   },
   "modePicker": {
@@ -728,7 +729,7 @@
     "start": "Avvia",
     "loadingModel": "Caricamento modello…",
     "preparingVoice": "Preparazione della tua voce…",
-    "waitingForPreviousSession": "In attesa che la sessione precedente termini…"
+    "waitingForPreviousSession": "In attesa…"
   },
   "errors": {
     "gpuOutOfMemory": "Memoria GPU esaurita — il modello selezionato è troppo grande per la tua GPU. Passa a un modello più piccolo."

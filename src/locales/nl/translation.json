@@ -681,7 +681,8 @@
     "sonioxVoiceBuildFailed": "Uw aangepaste stem kon niet worden gebouwd, dus deze sessie gebruikt een preset-stem. Probeer een duidelijkere opname te maken in Instellingen.",
     "sonioxVoiceUnavailable": "Uw aangepaste stem is op dit moment niet beschikbaar, dus deze sessie gebruikt een preset-stem.",
     "preparingVoice": "Uw stem wordt voorbereid…",
-    "waitingForPreviousSession": "Wachten tot de vorige sessie is beëindigd…",
+    "waitingForPreviousSession": "Wachten…",
+    "waitingForPreviousSessionTitle": "Wachten tot de vorige sessie is beëindigd. Klik om te annuleren.",
     "clickToCancel": "Klik om te annuleren"
   },
   "modePicker": {
@@ -728,7 +729,7 @@
     "start": "Starten",
     "loadingModel": "Model laden…",
     "preparingVoice": "Uw stem wordt voorbereid…",
-    "waitingForPreviousSession": "Wachten tot de vorige sessie is beëindigd…"
+    "waitingForPreviousSession": "Wachten…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU-geheugen vol — het geselecteerde model is te groot voor uw GPU. Schakel over naar een kleiner model."

@@ -681,7 +681,8 @@
     "sonioxVoiceBuildFailed": "Nie udało się zbudować Twojego własnego głosu, więc ta sesja korzysta z głosu z presetu. Spróbuj nagrać wyraźniejszy klip w Ustawieniach.",
     "sonioxVoiceUnavailable": "Twój własny głos jest obecnie niedostępny, więc ta sesja korzysta z głosu z presetu.",
     "preparingVoice": "Przygotowywanie Twojego głosu…",
-    "waitingForPreviousSession": "Oczekiwanie na zakończenie poprzedniej sesji…",
+    "waitingForPreviousSession": "Oczekiwanie…",
+    "waitingForPreviousSessionTitle": "Oczekiwanie na zakończenie poprzedniej sesji. Kliknij, aby anulować.",
     "clickToCancel": "Kliknij, aby anulować"
   },
   "modePicker": {
@@ -728,7 +729,7 @@
     "start": "Uruchom",
     "loadingModel": "Ładowanie modelu…",
     "preparingVoice": "Przygotowywanie Twojego głosu…",
-    "waitingForPreviousSession": "Oczekiwanie na zakończenie poprzedniej sesji…"
+    "waitingForPreviousSession": "Oczekiwanie…"
   },
   "errors": {
     "gpuOutOfMemory": "Brak pamięci GPU — wybrany model jest zbyt duży dla Twojego GPU. Przełącz się na mniejszy model."
