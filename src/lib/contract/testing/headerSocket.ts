@@ -57,7 +57,10 @@ export function fakeHeaderSockets(sockets: FakeSockets = fakeSockets(), o: { req
           const r = registrations[i];
           if (r.host === rule.host && r.path === rule.path && !r.cleared) {
             r.cleared = true;
-            const requestId = opens > answered++ ? requestIds.shift() : undefined;
+            // Only a clear that follows an open consumes an id: a refused, dropped or aborted attempt leaves the next one's.
+            const afterOpen = opens > answered;
+            if (afterOpen) answered++;
+            const requestId = afterOpen ? requestIds.shift() : undefined;
             return requestId === undefined ? undefined : { requestId };
           }
         }

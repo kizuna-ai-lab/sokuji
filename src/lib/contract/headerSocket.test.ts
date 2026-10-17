@@ -319,6 +319,25 @@ describe("the header seam's request id", () => {
     expect(h.reg.calls.slice(-1)).toEqual(['clear api.openai.com/v1/live/']);
   });
 
+  it('the fake keeps its next id through attempts that never opened: refused, then dropped, then a good one', async () => {
+    const fake = fakeHeaderSockets(fakeSockets(), { requestIds: ['a'] });
+    const clock = createVirtualClock(0);
+    const ids: Array<string | undefined> = [];
+    const start = () => fake.open(URL_LIVE, HEADERS, { signal: new AbortController().signal, clock, onRequestId: (id) => ids.push(id) });
+    fake.refuseNext();
+    await expect(start()).rejects.toMatchObject({ reason: 'register' });
+    const dropped = start();
+    await flush();
+    fake.sockets.last().drop();
+    await expect(dropped).rejects.toMatchObject({ reason: 'never_opened' });
+    const good = start();
+    await flush();
+    fake.sockets.last().open();
+    await good;
+    await flush();
+    expect(ids).toEqual(['a']);
+  });
+
   it('the fake hands out its ids one per open, and holds a clear when told', async () => {
     const fake = fakeHeaderSockets(fakeSockets(), { requestIds: ['a', 'b'] });
     const clock = createVirtualClock(0);
