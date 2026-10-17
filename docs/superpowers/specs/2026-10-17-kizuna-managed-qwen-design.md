@@ -245,6 +245,14 @@ reconciler into fast polling; it releases nothing by itself.
     ['websocket'] }` saw it with `['responseHeaders']` alone, and with `'extraHeaders'` added. A socket
     opened from the service worker itself failed (1006) and raised no webRequest event — the seam never
     opens one there. The real side panel and the packaged app stay on the owner's live test.
+  - **The `webRequest` permission carries no install warning** (Chrome's permissions list,
+    https://developer.chrome.com/docs/extensions/reference/permissions-list, read 2026-10-18: the
+    `webRequest` row lists none, while `declarativeNetRequest`, already in the manifest, lists "Block
+    content on any page."). Chrome disables an updated extension pending approval only when the update
+    adds a warning (https://developer.chrome.com/docs/extensions/develop/concepts/permission-warnings,
+    read 2026-10-18), and the host patterns the listener filters on are already in `host_permissions`.
+    So adding `webRequest` should not ask installed users to approve again; that is the documentation's
+    word, not an observed update, which an unpacked reload cannot show.
 - **Adapter.** One addition: on `session.created` it calls
   `credentials.lease?.sessionCreated(id, requestId)`.
   The grant's `endpoint` reaches it in the credentials, since `build` runs before the lease is
@@ -506,8 +514,9 @@ The page never shows a secret, and nothing it does reaches Alibaba other than th
 
 - The gateway is undocumented and may change without notice.
 - Qwen's maximum session length.
-- Whether adding `webRequest` makes Chrome ask installed users to approve the extension again. (That
-  both platforms see the 101's headers was probed in harnesses on 2026-10-18, §4; the real side panel
-  and the packaged app are on the owner's live test.)
+- Whether an installed extension updated to a build with `webRequest` is enabled without a new
+  approval: Chrome's published warning list says `webRequest` carries none (§4, 2026-10-18), but no
+  real update has been observed. (That both platforms see the 101's headers was probed in harnesses on
+  2026-10-18, §4; the real side panel and the packaged app are on the owner's live test.)
 - Alibaba's own answer on what a request is and whether concurrency is capped (we measured: a request
   is a session start).

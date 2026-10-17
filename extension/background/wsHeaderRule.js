@@ -116,3 +116,50 @@ export function buildRule(existing, message, runtimeId) {
 export function isExtensionPage(sender, runtimeId, pageBase) {
   return !!sender && sender.id === runtimeId && typeof pageBase === 'string' && pageBase !== '' && typeof sender.url === 'string' && sender.url.startsWith(pageBase);
 }
+
+/**
+ * The `x-request-id` of the handshake responses to the sockets a set rule
+ * covers, for `clear` to answer (once). In memory: a worker restart between
+ * `set` and `clear` loses the id and the clear answers without one. As in
+ * Electron's `ws-header-rules.js`, a response is noted for the set rule its URL
+ * matches (the same host and longest-path choice), and only when the
+ * extension's own page opened that socket (`details.initiator`): the rule
+ * itself is scoped to it, and a web page's socket to the same host must not
+ * plant an id.
+ */
+export function createRequestIds(extensionOrigin) {
+  // key → { host, path, requestId? }
+  const entries = new Map();
+  const keyOf = (host, path) => `${host}\u0000${path}`;
+  return {
+    /** A rule for this host and path is set: an id noted for it before is stale. */
+    set(host, path) {
+      entries.set(keyOf(host, path), { host, path });
+    },
+    /** Forgets the rule; answers the id noted for it, if any. */
+    clear(host, path) {
+      const key = keyOf(host, path);
+      const { requestId } = entries.get(key) || {};
+      entries.delete(key);
+      return requestId;
+    },
+    /** Notes the `x-request-id` of a `webRequest.onHeadersReceived` response; any other response is ignored. */
+    note(details) {
+      if (!details || details.initiator !== extensionOrigin) return;
+      let target;
+      try {
+        target = new URL(details.url);
+      } catch {
+        return;
+      }
+      let best = null;
+      for (const entry of entries.values()) {
+        if (entry.host !== target.host || !target.pathname.startsWith(entry.path)) continue;
+        if (!best || entry.path.length > best.path.length) best = entry;
+      }
+      if (!best || !Array.isArray(details.responseHeaders)) return;
+      const header = details.responseHeaders.find((h) => typeof h?.name === 'string' && h.name.toLowerCase() === 'x-request-id');
+      if (typeof header?.value === 'string' && header.value !== '') best.requestId = header.value;
+    },
+  };
+}
