@@ -407,8 +407,9 @@ The page never shows a secret, and nothing it does reaches Alibaba other than th
   `AliyunBSSReadOnlyAccess`) a member of it with 模型日志 only — the least access probed to work.
 - Adding a workspace when keys run short: create it in the console; create its keys, each scoped to
   `qwen3.8-livetranslate-flash-realtime`; make the RAM user a member with 模型日志; add the workspace on
-  the admin page (which checks the membership), then its keys. More workspaces add slots only: the
-  RPM raise is a separate ask of the account manager.
+  the admin page (which checks the membership), then its keys. More workspaces add slots only, so the
+  owner gets the RPM raised through the account manager first, then adds the workspace and its keys
+  (the owner, 2026-10-17).
 - The RPM increase applied for through the account manager, with the expected concurrent sessions
   and average length.
 - The root AccessKey that appeared in chat deleted; the RAM AccessKey rotated before production.
