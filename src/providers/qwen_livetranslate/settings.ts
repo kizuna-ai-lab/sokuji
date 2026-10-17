@@ -7,8 +7,8 @@
 import { identityWire } from '../../lib/language/wire';
 import { AUTO } from '../../lib/provider/languages';
 import type { CredentialsMissing, LanguageContext, LanguageOption, Provider } from '../../lib/provider/types';
-import type { EndpointId } from './endpoints';
 import { distinctVoice } from '../../lib/provider/voices';
+import type { EndpointId } from './endpoints';
 
 /** The one model (D1): the check finds the storefront, nothing chooses a model. */
 export const QWEN_MODEL = 'qwen3.8-livetranslate-flash-realtime';

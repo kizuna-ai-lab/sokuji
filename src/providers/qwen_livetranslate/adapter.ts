@@ -82,6 +82,8 @@ const QUIET_KEEP_SAMPLES = (SAMPLE_RATE * QUIET_KEEP_MS) / 1000;
 const PRE_ROLL_SAMPLES = (SAMPLE_RATE * PRE_ROLL_MS) / 1000;
 /** A socket that failed before it opened: a browser cannot read why. */
 export const NEVER_OPENED = "Qwen's socket did not open (check the network, and that the API key is still valid).";
+/** The same for a managed leg, which has no key of its own: the grant's session token is what Qwen may have refused. */
+export const NEVER_OPENED_MANAGED = "Qwen's socket did not open (check the network; the session token may have been refused).";
 /** Why the leg fails when the connection closed with no words (D8): worded by the `connection_lost` alias. */
 export const CONNECTION_LOST = 'The connection to Qwen was lost.';
 
@@ -105,7 +107,7 @@ function detach(ws: WebSocket): void {
 const closeWords = (e: CloseEvent) => `${e.code}${e.reason ? ` ${e.reason}` : ''}`;
 
 /** The seam's refusal in the start's words: fixed, quoting nothing; an abort is passed on as it came. */
-function seamRefusal(error: unknown): unknown {
+function seamRefusal(error: unknown, managed: boolean): unknown {
   if (!(error instanceof HeaderSocketError)) {
     return error instanceof Error && error.message.startsWith('The browser would not open the socket')
       ? new AdapterStartError(error.message, 'network')
@@ -113,7 +115,7 @@ function seamRefusal(error: unknown): unknown {
   }
   switch (error.reason) {
     case 'never_opened':
-      return new AdapterStartError(NEVER_OPENED, 'network');
+      return new AdapterStartError(managed ? NEVER_OPENED_MANAGED : NEVER_OPENED, 'network');
     case 'timeout':
       return new AdapterStartError('Qwen did not open the connection in time (check the network).', 'network');
     case 'unsupported':
@@ -411,6 +413,7 @@ class QwenLeg implements AdapterSession {
       let seamRequestId: string | undefined;
       let reported = false;
       const report = () => {
+        // Deliberate: an unreported session is still charged by its window.
         if (!lease || reported || created === undefined || !seamAnswered || this.phase === 'ended' || seam.signal.aborted) return;
         reported = true;
         // The lease reports its own failures: a throw here must not end the leg.
@@ -422,10 +425,10 @@ class QwenLeg implements AdapterSession {
       // The storefront, the rule's place and the header's name, never a value.
       this.frame('out', 'session.headers', { endpoint, host: rule.host, path: rule.path, set: Object.keys(headers.set) });
       this.deps.openHeaderSocket(url, headers, {
-      signal: seam.signal,
-      clock,
-      onRequestId: (id) => { seamAnswered = true; seamRequestId = id; report(); },
-    }).then((socket) => {
+        signal: seam.signal,
+        clock,
+        onRequestId: (id) => { seamAnswered = true; seamRequestId = id; report(); },
+      }).then((socket) => {
         if (settled) {
           detach(socket);
           socket.close(1000);
@@ -445,7 +448,7 @@ class QwenLeg implements AdapterSession {
             settle(new AdapterStartError(`Qwen closed the connection before the session started (${closeWords(e)}).`, e.reason ? errorCode({ code: null, message: e.reason }) : 'server'));
           } else if (socket === this.socket) this.closed(e);
         };
-      }, (error: unknown) => settle(seamRefusal(error)));
+      }, (error: unknown) => settle(seamRefusal(error, lease !== undefined)));
     });
   }
 

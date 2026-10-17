@@ -705,6 +705,60 @@ describe('the Qwen LiveTranslate adapter: a managed leg (spec §4)', () => {
     expect(calls).toEqual([]);
   });
 
+  it('reports nothing when the leg stops after session.created and before the request id lands', async () => {
+    const { calls, credentials } = managed();
+    const h = startQwen({ credentials, shared: NO_STOREFRONT, requestIds: [REQUEST], holdClear: true });
+    await flush();
+    h.socket().open();
+    await flush();
+    h.socket().receive(SERVER.created(SESSION));
+    h.socket().receive(SERVER.updated());
+    const session = await h.starting;
+    await session.stop();
+    h.releaseClear();
+    await flush();
+    expect(calls).toEqual([]);
+  });
+
+  it("two legs through one seam each report their own session and request id, never the other's", async () => {
+    const A = '11111111-2222-3333-4444-555555555555';
+    const B = '66666666-7777-8888-9999-000000000000';
+    const seam = fakeHeaderSockets(undefined, { requestIds: [A, B] });
+    const calls: [string, string, string | undefined][] = [];
+    const leg = (name: string) => {
+      const credentials: QwenCredentials = { apiKey: 'st-token', endpoint: 'intl', lease: { sessionCreated: (id, requestId) => { calls.push([name, id, requestId]); } } };
+      const { clock } = trackedClock();
+      const { events } = recordEvents();
+      const config = configFor(AUTO_CTX, undefined, NO_STOREFRONT);
+      return createQwenAdapter({ openHeaderSocket: seam.open, detect: async () => ({ endpoint: 'intl' }) })
+        .start({ context: AUTO_CTX, config, credentials, clock, signal: new AbortController().signal }, events);
+    };
+    void leg('speaker');
+    await flush();
+    seam.sockets.last().open();
+    await flush();
+    void leg('participant');
+    await flush();
+    seam.sockets.last().open();
+    await flush();
+    const [first, second] = seam.sockets.all;
+    first.receive(SERVER.created('sess_AAAAAAAAAA'));
+    second.receive(SERVER.created('sess_BBBBBBBBBB'));
+    await flush();
+    expect(calls).toEqual([['speaker', 'sess_AAAAAAAAAA', A], ['participant', 'sess_BBBBBBBBBB', B]]);
+  });
+
+  it("words a managed leg's socket that never opened without an API key", async () => {
+    const { credentials } = managed();
+    const h = startQwen({ credentials, shared: NO_STOREFRONT });
+    await flush();
+    h.socket().drop();
+    const error = await h.starting.then(() => null, (e: unknown) => e as Error);
+    expect(error).toMatchObject({ code: 'network' });
+    expect(error!.message).not.toMatch(/API key/);
+    expect(error!.message).toMatch(/session token/);
+  });
+
   it('is not broken by a lease that throws', async () => {
     const credentials: QwenCredentials = { apiKey: 'st-token', endpoint: 'intl', lease: { sessionCreated: () => { throw new Error('lease down'); } } };
     const h = await openQwen({ credentials, shared: NO_STOREFRONT, requestIds: [REQUEST] });

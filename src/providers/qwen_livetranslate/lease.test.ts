@@ -230,20 +230,24 @@ describe('Qwen lease: the grant ends the run', () => {
   });
 });
 
+const UUID_1 = '6c862ba2-2beb-9263-b94a-e6789bdd25bf';
+const UUID_2 = 'a1b2c3d4-0000-4000-8000-0123456789ab';
+const UUID_FIXTURE = 'f00dfeed-7f3a-4c1d-9e2b-00aa11bb22cc';
+
 describe('Qwen lease: the session report', () => {
   it('posts session-started once per (leg, id) with keepalive and both ids', async () => {
     const a = await granted(['speaker', 'participant']);
     const port = a.resources.credentials('speaker').lease!;
-    port.sessionCreated('sess_a', 'rid-1');
-    port.sessionCreated('sess_a', 'rid-1');
+    port.sessionCreated('sess_a', UUID_1);
+    port.sessionCreated('sess_a', UUID_1);
     await flush();
     const posts = a.to('/qwen/session-started');
     expect(posts).toHaveLength(1);
     expect(posts[0].init.keepalive).toBe(true);
     expect(posts[0].init.headers).toEqual({ Authorization: 'Bearer tok', 'Content-Type': 'application/json' });
-    expect(JSON.parse(posts[0].init.body as string)).toEqual({ leaseId: 'lease-1', leg: 'speaker', taskUuid: 'sess_a', requestId: 'rid-1' });
+    expect(JSON.parse(posts[0].init.body as string)).toEqual({ leaseId: 'lease-1', leg: 'speaker', taskUuid: 'sess_a', requestId: UUID_1 });
     // The other leg's same id is its own report; a new id on the first leg too.
-    a.resources.credentials('participant').lease!.sessionCreated('sess_a', 'rid-2');
+    a.resources.credentials('participant').lease!.sessionCreated('sess_a', UUID_2);
     port.sessionCreated('sess_b', undefined);
     await flush();
     expect(a.to('/qwen/session-started')).toHaveLength(3);
@@ -256,6 +260,21 @@ describe('Qwen lease: the session report', () => {
     const body = JSON.parse(a.to('/qwen/session-started')[0].init.body as string);
     expect(body).toEqual({ leaseId: 'lease-1', leg: 'speaker', taskUuid: 'sess_a' });
     expect(body).not.toHaveProperty('requestId');
+  });
+
+  it('sends requestId only as a lowercase UUID, never rewritten: anything else is left out', async () => {
+    const a = await granted(['speaker']);
+    const port = a.resources.credentials('speaker').lease!;
+    port.sessionCreated('sess_a', UUID_1.toUpperCase());
+    port.sessionCreated('sess_b', 'not-a-uuid');
+    port.sessionCreated('sess_c', UUID_1);
+    await flush();
+    const bodies = a.to('/qwen/session-started').map((p) => JSON.parse(p.init.body as string));
+    expect(bodies[0]).toEqual({ leaseId: 'lease-1', leg: 'speaker', taskUuid: 'sess_a' });
+    expect(bodies[1]).toEqual({ leaseId: 'lease-1', leg: 'speaker', taskUuid: 'sess_b' });
+    expect(bodies[2]).toEqual({ leaseId: 'lease-1', leg: 'speaker', taskUuid: 'sess_c', requestId: UUID_1 });
+    const frames = a.frame.mock.calls.map((c) => c[0]).filter((f) => f.type === 'session.started');
+    expect(frames.map((f) => f.payload.withRequestId)).toEqual([false, false, true]);
   });
 
   it('retries a 503 at +500, +1 000 and +2 000 ms, then frames notify_failed and never ends the run', async () => {
@@ -404,16 +423,16 @@ describe('Qwen lease: the report retries', () => {
 describe('Qwen lease: the grant stays out of the Logs', () => {
   it('no frame carries the request id', async () => {
     const a = await granted(['speaker']);
-    a.resources.credentials('speaker').lease!.sessionCreated('sess_a', 'rid-fixture-7f3a');
+    a.resources.credentials('speaker').lease!.sessionCreated('sess_a', UUID_FIXTURE);
     await flush();
     a.to('/qwen/session-started')[0].respond(409, { error: 'lease_not_live' });
     await flush();
-    a.resources.credentials('speaker').lease!.sessionCreated('sess_b', 'rid-fixture-7f3a');
+    a.resources.credentials('speaker').lease!.sessionCreated('sess_b', UUID_FIXTURE);
     await flush();
     a.to('/qwen/session-started')[1].respond(503);
     await flush();
     expect(a.frame.mock.calls.some(([f]) => f.type === 'session.started')).toBe(true);
-    expect(JSON.stringify(a.frame.mock.calls)).not.toContain('rid-fixture-7f3a');
+    expect(JSON.stringify(a.frame.mock.calls)).not.toContain(UUID_FIXTURE);
   });
 
   it('no frame carries the apiKey, whatever the run did', async () => {

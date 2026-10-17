@@ -19,6 +19,9 @@ import { getApiUrl } from '../../utils/environment';
 import { isEndpointId, type EndpointId } from './endpoints';
 import type { QwenCredentials, QwenLeasePort, QwenSettings } from './settings';
 
+/** What the backend accepts as a handshake request id (sokuji-backend `routes/qwen.ts`). */
+const REQUEST_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
 /** One session-key attempt's bound, its body included: a request that never answers must not hold Start. A 409's retry gets its own. */
 export const SESSION_KEY_TIMEOUT_MS = 15_000;
 /** The wait before a 409's one retry when the body names none (the backend's own hint varies with the client's version). */
@@ -319,7 +322,9 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
       ctx.frame({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', leg, message: `The backend did not acknowledge the session report (${last}).` } });
     };
     const port = (leg: LegName): QwenLeasePort => ({
-      sessionCreated: (id, requestId) => {
+      sessionCreated: (id, rawRequestId) => {
+        // The backend answers 400 to anything but a lowercase UUID, a final refusal that would lose the session id too: send it as it came, or not at all.
+        const requestId = rawRequestId !== undefined && REQUEST_ID_RE.test(rawRequestId) ? rawRequestId : undefined;
         // Once per (leg, id), and never once the grant has ended the run or the lease is released: a late report from a
         // socket still closing must not start a lease the account already ended.
         const key = `${leg}\u0000${id}`;
