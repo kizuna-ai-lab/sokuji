@@ -25,8 +25,13 @@ export interface FakeHeaderSockets {
   holdNext(): () => void;
 }
 
-export function fakeHeaderSockets(sockets: FakeSockets = fakeSockets()): FakeHeaderSockets {
+/** `requestIds` are handed out, one per open, as the platform's answer to the clear; none when they run out. */
+export function fakeHeaderSockets(sockets: FakeSockets = fakeSockets(), o: { requestIds?: string[] } = {}): FakeHeaderSockets {
   const registrations: Registration[] = [];
+  const requestIds = [...(o.requestIds ?? [])];
+  /** Sockets that opened, and clears answered so far: a clear after an open is the one that answers. */
+  let opens = 0;
+  let answered = 0;
   let refusal: string | null = null;
   let held: Promise<void> | null = null;
   const open = createHeaderSocket(
@@ -41,17 +46,22 @@ export function fakeHeaderSockets(sockets: FakeSockets = fakeSockets()): FakeHea
         held = null;
         return wait;
       },
-      clear(rule) {
+      async clear(rule) {
         for (let i = registrations.length - 1; i >= 0; i--) {
           const r = registrations[i];
           if (r.host === rule.host && r.path === rule.path && !r.cleared) {
             r.cleared = true;
-            return;
+            const requestId = opens > answered++ ? requestIds.shift() : undefined;
+            return requestId === undefined ? undefined : { requestId };
           }
         }
       },
     }),
-    (url) => sockets.create(url),
+    (url) => {
+      const socket = sockets.create(url);
+      socket.addEventListener('open', () => { opens++; }, { once: true });
+      return socket;
+    },
   );
   return {
     open,
