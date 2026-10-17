@@ -7,7 +7,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
-import { kizunaHostedIcon, HOSTED_BADGE_RATIO, SonioxIcon, OpenAIIcon, VolcengineIcon } from './ProviderIcons';
+import { kizunaHostedIcon, HOSTED_BADGE_RATIO, SonioxIcon, OpenAIIcon, VolcengineIcon, QwenIcon, QwenMonoIcon, QWEN_PLATE } from './ProviderIcons';
 
 /** Kizuna Soniox's own mark: Soniox's favicon carries its white plate. */
 const SONIOX_HOSTED = kizunaHostedIcon(SonioxIcon);
@@ -15,6 +15,8 @@ const SONIOX_HOSTED = kizunaHostedIcon(SonioxIcon);
 const PLATED_GLYPH = kizunaHostedIcon(OpenAIIcon, { plate: true, color: '#000' });
 /** Transparent coloured paths, plated. */
 const PLATED_PATHS = kizunaHostedIcon(VolcengineIcon, { plate: true });
+/** Kizuna Qwen's mark: Qwen's glyph in white on Qwen's own purple. */
+const BRAND_PLATED = kizunaHostedIcon(QwenMonoIcon, { plate: QWEN_PLATE, inset: 0.82, color: '#fff' });
 
 const badgeOf = (container: HTMLElement) =>
   container.querySelector('.hosted-provider-icon__badge') as HTMLElement;
@@ -127,6 +129,39 @@ describe('Kizuna-hosted provider icons', () => {
 
     const mark = container.querySelector('svg') as SVGElement;
     expect(mark.style.color).toBe('rgb(0, 0, 0)');
+  });
+
+  it('plates a mark on a background of its own when one is given', () => {
+    // Qwen's colour mark is purple at 84% over a transparent ground; at the
+    // badge's corner the Kizuna mark's white motion strokes show through it.
+    // A white plate would make it a second white square beside Kizuna Soniox's,
+    // so Qwen sits on its own purple instead.
+    const { container } = render(<BRAND_PLATED size={24} />);
+
+    expect(badgeOf(container).getAttribute('style')).toContain('linear-gradient');
+    expect(container.querySelector('svg')!.style.color).toBe('rgb(255, 255, 255)');
+  });
+
+  it('insets a plated mark by the share it is given', () => {
+    const { container } = render(<BRAND_PLATED size={24} />);
+
+    const mark = container.querySelector('svg') as SVGElement;
+    expect(cssPx(mark.style.width)).toBeCloseTo(24 * HOSTED_BADGE_RATIO * 0.82, 5);
+  });
+
+  it('insets a plated mark to 70% by default', () => {
+    const { container } = render(<PLATED_PATHS size={24} />);
+
+    const mark = container.querySelector('svg') as SVGElement;
+    expect(cssPx(mark.style.width)).toBeCloseTo(24 * HOSTED_BADGE_RATIO * 0.7, 5);
+  });
+
+  it("draws Qwen's single-colour mark with the colour mark's shape", () => {
+    const mono = render(<QwenMonoIcon size={24} />).container.querySelector('path')!;
+    const colour = render(<QwenIcon size={24} />).container.querySelector('path')!;
+
+    expect(mono.getAttribute('d')).toBe(colour.getAttribute('d'));
+    expect(mono.getAttribute('fill')).toBe('currentColor');
   });
 
   it('leaves a vendor mark that carries its own plate unplated', () => {

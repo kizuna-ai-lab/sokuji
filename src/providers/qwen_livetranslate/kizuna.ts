@@ -1,4 +1,4 @@
-import { kizunaHostedIcon, QwenIcon } from '../../components/Icons/ProviderIcons';
+import { kizunaHostedIcon, QwenMonoIcon, QWEN_PLATE } from '../../components/Icons/ProviderIcons';
 import { managed } from '../../lib/provider/managed';
 import { kizunaQwenMinimumBalance } from './kizunaBudget';
 import { createQwenLease } from './lease';
@@ -15,7 +15,9 @@ import { QwenSettingsView, QwenVoiceSummary } from './QwenSettings';
 export const kizunaQwenProvider = managed(qwenLiveTranslateProvider, {
   id: 'kizunaai_qwen',
   vendor: 'Qwen',
-  icon: kizunaHostedIcon(QwenIcon),
+  // Qwen's colour mark is transparent, so the Kizuna mark's white strokes show
+  // through it; on a white plate it would twin Kizuna Soniox's badge.
+  icon: kizunaHostedIcon(QwenMonoIcon, { plate: QWEN_PLATE, inset: 0.82, color: '#fff' }),
   settingsKey: 'kizunaQwen',
   Settings: QwenSettingsView,
   VoiceSummary: QwenVoiceSummary,

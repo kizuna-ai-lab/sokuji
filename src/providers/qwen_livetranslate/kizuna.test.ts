@@ -4,6 +4,8 @@
  * slice, the sign-in for a key, the lease and the floor.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { createElement } from 'react';
+import { render } from '@testing-library/react';
 import { kizunaQwenProvider } from './kizuna';
 import { qwenLiveTranslateProvider } from './provider';
 import { QwenSettingsView, QwenVoiceSummary } from './QwenSettings';
@@ -21,6 +23,17 @@ describe('kizunaQwenProvider', () => {
     expect(kizunaQwenProvider.icon).toBeTypeOf('function');
     expect(kizunaQwenProvider.Settings).toBe(QwenSettingsView);
     expect(kizunaQwenProvider.VoiceSummary).toBe(QwenVoiceSummary);
+  });
+
+  it("badges the Kizuna mark with Qwen's glyph in white on Qwen's purple", () => {
+    // The colour mark's transparent ground let the Kizuna mark's white strokes
+    // through, and a white plate would twin Kizuna Soniox's badge.
+    const { container } = render(createElement(kizunaQwenProvider.icon, { size: 20 }));
+    const badge = container.querySelector('.hosted-provider-icon__badge') as HTMLElement;
+
+    expect(badge.getAttribute('style')).toContain('linear-gradient');
+    expect(container.querySelector('path')!.getAttribute('fill')).toBe('currentColor');
+    expect(container.querySelector('svg')!.style.color).toBe('rgb(255, 255, 255)');
   });
 
   it('has no credential field, reads the sign-in and checks nothing', async () => {
