@@ -111,8 +111,9 @@ handshake's request id) to find the row and to check the answer; it charges the 
    with the token.
 3. Each leg dials `wss://maas.qwencloudapi.com/api-ws/v1/realtime` with the token through the
    header seam. Everything after that is the own-key adapter.
-4. On `session.created` the adapter hands the session id to the lease port; the lease calls
-   `POST /api/qwen/session-started` with the leg and the id.
+4. Once the adapter holds both the `session.created` id and the header seam's request-id answer
+   (whichever comes second), it hands them to the lease port, once per socket; the lease calls
+   `POST /api/qwen/session-started` with the leg, the id and, when it is a lowercase UUID, the request id.
 5. The client ends the run at the granted duration, or when the user stops, and calls
    `POST /api/qwen/session-end`.
 6. The reconciler, running while any Qwen lease is open or still awaits a row, reads the log every
@@ -253,8 +254,10 @@ reconciler into fast polling; it releases nothing by itself.
     read 2026-10-18), and the host patterns the listener filters on are already in `host_permissions`.
     So adding `webRequest` should not ask installed users to approve again; that is the documentation's
     word, not an observed update, which an unpacked reload cannot show.
-- **Adapter.** One addition: on `session.created` it calls
-  `credentials.lease?.sessionCreated(id, requestId)`.
+- **Adapter.** One addition: once it holds both the `session.created` id and the seam's request-id
+  answer (whichever comes second), it calls `credentials.lease?.sessionCreated(id, requestId)`, once per
+  socket, and not at all after the leg has ended. The lease sends the request id only when it is a
+  lowercase UUID, as the backend demands, and otherwise leaves it out.
   The grant's `endpoint` reaches it in the credentials, since `build` runs before the lease is
   acquired: the adapter takes `config.endpoint ?? credentials.endpoint` and detects only when neither
   is set, so a managed leg never detects. Everything else — turns, keepalive,
@@ -520,3 +523,7 @@ The page never shows a secret, and nothing it does reaches Alibaba other than th
   2026-10-18, §4; the real side panel and the packaged app are on the owner's live test.)
 - Alibaba's own answer on what a request is and whether concurrency is capped (we measured: a request
   is a session start).
+- Before unflagging `kizunaai_qwen`: a quick Stop then Start meets the previous lease until its last log
+  row lands (2 to 60 s), and the lease retries a 409 once. Port Soniox's blocker-wait to Qwen first
+  (kizuna-ai-lab/sokuji#643 and kizuna-ai-lab/sokuji-backend#103: the 409 names the blocking lease's state,
+  and the client waits in a cancellable step within 60 s).
