@@ -100,8 +100,9 @@ produced — and charges the session's tokens at cost × K to the user's wallet.
    `POST /api/qwen/session-started` with the leg and the id.
 5. The client ends the run at the granted duration, or when the user stops, and calls
    `POST /api/qwen/session-end`.
-6. The reconciler, running while any Qwen lease is open or still awaits a row, reads the log every 30 s, and
-   on a fast ladder after a `session-end`; it attributes each new row to a lease and charges it.
+6. The reconciler, running while any Qwen lease is open or still awaits a row, reads the log every
+   30 s, and every 5 s while a `session-end` waits on its rows; it attributes each new row to a
+   lease and charges it.
 7. The lease is released once every reported session has its row, or by the clock (section 5). The
    slot returned to the pool already, at its window's end.
 8. Once a day the reconciler compares each slot key's charged provider cost with the official bill.
@@ -151,7 +152,7 @@ reset by hand: its id, and so its slot, stays; a disabled key is skipped by the 
   account is the authenticated one, never a field.
 
 **`POST /session-end`** `{ leaseId }` — a hint, as Soniox's: it sets `end_signalled_at` and pokes the
-reconciler onto its fast ladder; it releases nothing by itself.
+reconciler into fast polling; it releases nothing by itself.
 
 ## 4. Client (`sokuji`)
 
@@ -181,9 +182,13 @@ reconciler onto its fast ladder; it releases nothing by itself.
 **`QwenReconcilerDO`** (a singleton, alarm-driven, poked by the routes and the minute cron) runs while
 any Qwen lease is open or still awaits a row.
 
-**Reading.** Every 30 s, and after a `session-end` on a 3 / 6 / 12 / 24 / 48 s ladder (Soniox's
-ladder, stretched because a Qwen row can take up to a minute), for each workspace of the pool:
-`listModelLogs` over
+**Reading.** Every 30 s; and every 5 s while a lease that signalled `session-end` still lacks a
+reported session's row, for at most 90 s after the signal (a row lands 2–60 s after its session
+ends), after which the 30 s cadence resumes. Soniox backs off (3 / 6 / 12 s) because each of its
+sweeps spends a per-minute Soniox API budget; one `listModelLogs` call lists a whole workspace's
+window and so serves every waiting lease at once, so a flat interval costs the same however many
+users are waiting: at most 12 calls a minute per workspace. Each tick, for each workspace of the
+pool: `listModelLogs` over
 `[watermark − 2 min, now]`, paged by 50, model `qwen3.8-livetranslate-flash-realtime`. New rows,
 deduplicated by `request_id`, go to `qwen_usage_logs(request_id PK, task_uuid, apikey_id, start_ms,
 duration_ms, usage, lease_id, account_id, attributed_by, charged_at)`. A failing call is retried with
@@ -210,8 +215,8 @@ negative or frozen wallet refuses the next `session-key`.
 
 **Releasing the lease** (M13). The lease, and with it the account's one-lease lock, is released:
 - once every reported session has its row. A row is written only when its session has ended, so it
-  is the proof, as Soniox's usage log is; `session-end` gets the ladder looking at once, so a normal
-  stop frees the account seconds to about a minute later (the row's 2–60 s);
+  is the proof, as Soniox's usage log is; `session-end` starts the 5 s polling, so a normal stop
+  frees the account at most 5 s after the row lands, seconds to about a minute after the stop;
 - by the clock, as Soniox's: a lease with no reported session at its token's expiry + 15 s (no
   session can start after it), any lease at `expires_at` (the grant + 15 s).
 Billing does not wait on the lease. A row that lands after the release — a session run past its grant,
@@ -269,7 +274,8 @@ backend).
 
 - Backend: slot hold and release under concurrency; the window from a mint response; each
   attribution path, tamper and leak included; the price (input text excluded); idempotent charges;
-  the reconciler's paging, watermark and per-workspace reads; the lease released by its last row, by
+  the reconciler's paging, watermark and per-workspace reads; the 5 s polling after a `session-end`,
+  ended by the last row or by its 90 s cap; the lease released by its last row, by
   the token's expiry with nothing reported and by `expires_at`, and a row after the release still
   charged; Soniox's reconciler ignoring Qwen leases.
 - Client: the lease (grant end, refusals in words, `session-started` retries, release); the adapter
