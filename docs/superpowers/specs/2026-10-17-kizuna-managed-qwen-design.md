@@ -54,6 +54,7 @@ handshake's request id) to find the row and to check the answer; it charges the 
 | Price | Singapore, USD per 1M tokens: audio in 7.5, text out 20, audio out 30, image in 0.55. Input text is not billed (the fixed 47 text tokens per session never reach the bill). Audio in is 7 tokens per second of each turn's window, audio out 12.5 per second of speech. |
 | Keys | ModelStudio 2026-02-10 `CreateApiKey` can limit a key to listed models (`auth.modelAccessScope`): another model answers 403. "Each workspace supports up to 20 API keys", and an account has up to 20 workspaces (QwenCloud's workspace guide). |
 | Row start | `start_unix_timestamp` is the WebSocket handshake, when the token is checked, on Alibaba's clock — not `session.update`. Probed 2026-10-17 with a 60 s token and no audio: A updated 20 s after its handshake; B dialled 5 s before the token expired and updated 15 s after it. Both got `session.updated`; both rows start 40 ms before the local 101 (the local clock ran ~43 ms ahead), B's 4.8 s before the expiry; `request_id` = the 101's `x-request-id`; no usage. So no client can push a session's start out of its token's validity. |
+| One token, two sessions | Probed 2026-10-17 (no audio): two sessions dialled together with one 60 s token both reached `session.updated` within 10 ms of each other and stayed open together for 10 s; the log holds two rows, each with its own `task_uuid` and `request_id` (each = its own 101's `x-request-id`), both starting 39 ms before their local 101 and 58.8 s before the expiry. |
 | Request id | A row's `request_id` is the `x-request-id` header of its WebSocket's 101 response (probed 2026-10-15, and again on both sessions of the 2026-10-17 probe), and `listModelLogs` filters on it exactly (`modelRequestId`). It is a second random id of the same connection, beside `task_uuid`: `task_uuid` arrives in the `session.created` body, `request_id` only in the handshake's response headers, which a browser's `WebSocket` does not expose — the desktop app's main process (`webRequest.onHeadersReceived`, whose one listener per session Better Auth already holds, `electron/better-auth-adapter.js`) and the extension's background (`chrome.webRequest.onHeadersReceived`, which needs the `webRequest` permission the manifest lacks) are where the header seam could read it; neither is verified yet. |
 | Lease release, managed Soniox | Read on sokuji-backend `origin/main` (1253c2f): `/session-end` only sets `end_signalled_at` and nudges the reconciler, which then retries on a 3 / 6 / 12 s ladder. A started lease is released once every started stream's usage log has landed (`noteStreamEnded`); the clock frees the account at `expires_at` — 60 s + a 15 s margin for a lease that never started, the grant + 15 s otherwise. |
 
@@ -64,7 +65,14 @@ handshake's request id) to find the row and to check the answer; it charges the 
   of a key, and a lease (spec 2026-09-22, "Managed twins are composition").
 - **M2 Storefront.** QwenCloud international only (`maas.qwencloudapi.com`, the Singapore account).
   The grant names the endpoint, so the adapter never detects one.
-- **M3 One token per lease.** Both legs dial with the same token while it is valid.
+- **M3 One token per lease.** Both legs dial with the same token while it is valid. The runner opens
+  every leg's source — the microphone, and the system audio behind its permission dialog — before it
+  acquires a lease (`src/lib/session/run.ts`, Stage 2 Kizuna Soniox ruling 9), so both legs dial
+  within seconds of the mint, and one token carries two sessions at once (probed). Managed Soniox
+  mints one key per stream because its usage log names only the key's reference; every Qwen session
+  has its own row and its own ids, so one token suffices. Neither adapter redials a managed leg (the
+  own-key provider's D8), so no token is needed after the start; a redial added later would need a
+  fresh token for the same lease.
 - **M4 Attribution.** The slot window (the row's `apikey_id` and start) decides: it rests on our own
   records alone, and a row's start is its handshake, inside its token's validity. The report —
   the session's `task_uuid` and its handshake's `request_id`, both of which must match the same row —
@@ -249,8 +257,13 @@ A row with no `usage` (a session that sent nothing) is kept and charges nothing.
 `request_id` also lets the reconciler fetch that one row directly (`modelRequestId`) — for a held
 charge, or a row a page boundary hid — instead of listing a window.
 
-**Charging.** Provider cost = audio-in tokens × 7.5 + text-out tokens × 20 + audio-out tokens × 30
-(+ image-in × 0.55) per million; input text is not billed. `BillingService.charge` with provider
+**Charging.** Each row is priced by Alibaba's own formula — the owner's ruling: the row's `usage`
+already holds every quantity the bill uses — and the result × K is the charge. Provider cost = audio-in
+tokens × 7.5 + text-out tokens × 20 + audio-out tokens × 30 (+ image-in × 0.55) USD per million, the
+model's official Singapore price; input text is not billed. Each leg's session is its own row and is
+priced on its own: a speaking leg's row carries audio out, a text-only leg's does not; the lease's
+charge is their sum. Any rounding of Alibaba's own shows up in the daily cross-check, and the formula
+follows it. `BillingService.charge` with provider
 `qwen`, pricing `cost_times_k`, `providerCostMicroUsd`, `externalId = request_id` (idempotent),
 `sessionRef = account:lease`. The wallet is post-paid, as for Soniox: it can go negative, and a
 negative or frozen wallet refuses the next `session-key`.
@@ -362,6 +375,7 @@ Nor call another model (the key's scope), or reach the slot key (it never leaves
 11. **Request id** — the handshake's `request_id` is reported with `task_uuid`, and a report counts
     only when both match the same row: a client then has to name two ids it could only have seen on
     that connection, which makes its report more trustworthy and harder to fake.
+12. **Charge** — Alibaba's official formula over the row's `usage`, × K.
 
 ## Known unknowns
 
