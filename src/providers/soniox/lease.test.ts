@@ -498,6 +498,22 @@ describe('Kizuna Soniox lease: a 409 that names what blocks the account', () => 
     expect(a.waiting.mock.calls).toEqual([[true], [false]]);
   });
 
+  it('holds a running session found late in the wait to the same limit', async () => {
+    const a = acquiring(['speaker']);
+    await flush();
+    for (let elapsed = 0; elapsed + ENDING_POLL_MS < CONFLICT_WAIT_LIMIT_MS; elapsed += ENDING_POLL_MS) {
+      await refuse(a, { state: 'ending' });
+      await advance(a, ENDING_POLL_MS);
+    }
+    const asked = a.fetch.mock.calls.length;
+    // 55 s in: a retry 10 s out would end past the limit.
+    await refuse(a, { state: 'active' }, 10_000);
+    const error = await rejection(a.pending);
+    expect((error as AdapterStartError).code).toBe('session_in_use');
+    await advance(a, 60_000);
+    expect(a.fetch).toHaveBeenCalledTimes(asked);
+  });
+
   it('does not wait for a never-started lease that clears past the limit', async () => {
     const a = acquiring(['speaker']);
     await flush();

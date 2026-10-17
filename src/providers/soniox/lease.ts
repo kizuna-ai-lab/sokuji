@@ -313,7 +313,7 @@ export function createKizunaLease(deps: KizunaLeaseDeps = {}) {
           const hint = (answer.body as { retryAfterMs?: unknown } | null)?.retryAfterMs;
           delay = typeof hint === 'number' && Number.isFinite(hint) && hint >= 0 ? hint : DEFAULT_CONFLICT_RETRY_MS;
         }
-        if (blocker && blocker.state !== 'active' && ctx.clock.now() + delay > deadline) break;
+        if (blocker && ctx.clock.now() + delay > deadline) break;
         ctx.frame({ direction: 'in', type: 'session.retry', payload: { status: 409, retryAfterMs: delay, ...(blocker ? { blocker: blocker.state } : {}) } });
         if (!waitingShown && (blocker?.state === 'ending' || blocker?.state === 'unstarted')) {
           waitingShown = true;
