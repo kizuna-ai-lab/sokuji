@@ -1,8 +1,8 @@
 # Kizuna AI Managed Qwen LiveTranslate — Design
 
 **Date**: 2026-10-17
-**Status**: Draft for the owner's review. The approach was worked out in chat between 2026-10-14 and
-2026-10-17 and backed by live probes; the decisions listed under "Open decisions" are the owner's.
+**Status**: Approach agreed. Worked out in chat between 2026-10-14 and 2026-10-17 and backed by live
+probes; the owner answered the open decisions on 2026-10-17 ("Owner's rulings", folded in below).
 **Scope**: a managed (Kizuna-billed) twin of the own-key provider `qwen_livetranslate`. The backend
 lends Alibaba credentials for each session, the device still dials Alibaba directly, and the backend
 learns each session's usage from Alibaba's request log and charges the user's wallet.
@@ -52,7 +52,8 @@ produced — and charges the session's tokens at cost × K to the user's wallet.
 | Session lifetime | Closed after 300 s with nothing sent (`1007 Idle timeout!`); the adapter's keepalive (#637) prevents it. No 600 s cap in 22 minutes on any host; the true maximum is unknown (the docs say 3600 s for the workspace host). |
 | Region | LiveTranslate exists only in Singapore and Beijing; Beijing needs mainland identity verification. |
 | Price | Singapore, USD per 1M tokens: audio in 7.5, text out 20, audio out 30, image in 0.55. Input text is not billed (the fixed 47 text tokens per session never reach the bill). Audio in is 7 tokens per second of each turn's window, audio out 12.5 per second of speech. |
-| Keys | ModelStudio 2026-02-10 `CreateApiKey` can limit a key to listed models (`auth.modelAccessScope`): another model answers 403. 20 keys per workspace. |
+| Keys | ModelStudio 2026-02-10 `CreateApiKey` can limit a key to listed models (`auth.modelAccessScope`): another model answers 403. "Each workspace supports up to 20 API keys", and an account has up to 20 workspaces (QwenCloud's workspace guide). |
+| Lease release, managed Soniox | Read on sokuji-backend `origin/main` (1253c2f): `/session-end` only sets `end_signalled_at` and nudges the reconciler, which then retries on a 3 / 6 / 12 s ladder. A started lease is released once every started stream's usage log has landed (`noteStreamEnded`); the clock frees the account at `expires_at` — 60 s + a 15 s margin for a lease that never started, the grant + 15 s otherwise. |
 
 ## Decisions
 
@@ -68,14 +69,24 @@ produced — and charges the session's tokens at cost × K to the user's wallet.
   lease from the mint until its token expires (plus a margin), then returns to the pool.
 - **M6 Usage truth.** `listModelLogs` through a RAM AccessKey; the official per-key bill once a day
   as a cross-check.
-- **M7 Price.** Each row's billable tokens at Alibaba's price, × `REVENUE_COEFFICIENT_K` (2.0), the
-  managed Soniox pricing mode `cost_times_k`.
-- **M8 Budget.** Managed Soniox's pattern: a worst-case rate sets the granted duration and the start
-  floor; the client ends the run at the grant; the post-paid wallet takes any overrun, and an
-  overrun or an unreported session marks the account.
+- **M7 Price.** Each row's billable tokens at Alibaba's price, × `REVENUE_COEFFICIENT_K` = 2.0 (ruling
+  1), the managed Soniox pricing mode `cost_times_k`; the per-hour price is shown as Kizuna Soniox's,
+  from `/api/pricing`.
+- **M8 Budget.** Managed Soniox's pattern: a worst-case rate sets the granted duration (at most
+  3600 s, ruling 9) and the start floor; the client ends the run at the grant; the post-paid wallet
+  takes any overrun.
 - **M9 Platforms.** As the own-key provider: the desktop app and the extension (the header seam).
+  Neither provider has a web build; one made later would dial with the undocumented `?api_key=`
+  query (ruling 3).
 - **M10 Separation.** The Qwen lease shares `session_leases`' one-lease-per-account lock and nothing
   Soniox-specific; Soniox's reconciler and counters ignore Qwen leases.
+- **M11 Trial credit.** The trial credit may pay for managed Qwen (ruling 2).
+- **M12 Unreported sessions.** A session attributed by window is recorded against its lease and
+  account for audit. Nothing is shown to the user and nothing happens automatically: a missing report
+  may be the network or our own bug, not the user (ruling 6).
+- **M13 Lease release.** As managed Soniox: the log row that proves a session ended releases the
+  lease, so it frees seconds to about a minute after the session ends (ruling 8; section 5).
+- **M14 Release gate.** The twin is `flagged` (ruling 7).
 
 ## 1. Flow
 
@@ -89,15 +100,15 @@ produced — and charges the session's tokens at cost × K to the user's wallet.
    `POST /api/qwen/session-started` with the leg and the id.
 5. The client ends the run at the granted duration, or when the user stops, and calls
    `POST /api/qwen/session-end`.
-6. The reconciler, running while any Qwen lease is open or unsettled, reads the log every 30 s,
-   attributes each new row to a lease and charges it.
-7. The lease settles when every reported session has its row, or when it expires and its grace
-   passes. The slot returned to the pool long before, at its window's end.
+6. The reconciler, running while any Qwen lease is open or still awaits a row, reads the log every 30 s, and
+   on a fast ladder after a `session-end`; it attributes each new row to a lease and charges it.
+7. The lease is released once every reported session has its row, or by the clock (section 5). The
+   slot returned to the pool already, at its window's end.
 8. Once a day the reconciler compares each slot key's charged provider cost with the official bill.
 
 ## 2. Key slots
 
-**Pool.** N keys (20 at first, one workspace's limit) in a dedicated workspace for managed Qwen.
+**Pool.** 20 keys, one workspace's limit (ruling 5), in a dedicated workspace for managed Qwen.
 Each key is created with `auth.type = Custom` and `modelAccessScope.accessibleModels =
 ["qwen3.8-livetranslate-flash-realtime"]`, so a leaked slot key or token calls nothing else. The
 keys' secrets are backend secrets; D1 holds only their ids and holds.
@@ -119,9 +130,9 @@ start time removes that.)
 answers 503 `qwen_busy` with a retry hint. A raised RPM is met with more keys, or a second workspace
 (the reconciler then reads each workspace with its own `switchAgent`).
 
-**Keys over time.** Created by hand in the console at first (or with `CreateApiKey`, if the RAM user
-is given a key-management policy — open decision 4). A key suspected of leaking is reset: its id, and
-so its slot, stays; a disabled key is skipped by the picker.
+**Keys over time.** The owner creates the keys by hand in the console (ruling 4); the RAM user gets no
+key management, so the backend never creates, resets or disables a key. A key suspected of leaking is
+reset by hand: its id, and so its slot, stays; a disabled key is skipped by the picker.
 
 ## 3. Backend lease routes (`/api/qwen`)
 
@@ -140,7 +151,7 @@ so its slot, stays; a disabled key is skipped by the picker.
   account is the authenticated one, never a field.
 
 **`POST /session-end`** `{ leaseId }` — a hint, as Soniox's: it sets `end_signalled_at` and pokes the
-reconciler; it settles nothing by itself.
+reconciler onto its fast ladder; it releases nothing by itself.
 
 ## 4. Client (`sokuji`)
 
@@ -159,16 +170,20 @@ reconciler; it settles nothing by itself.
   and the endpoint, arms the grant's end on the run's clock (`budget_exhausted`), reports each
   leg's `sessionCreated` to `session-started` (retried a few times, `keepalive` fetch), and releases
   with `session-end`.
-- **Registry and copy.** One line in `src/providers/registry.ts` beside Kizuna Soniox, present where
-  `isKizunaAIEnabled()` holds (open decision 7 on flagging); `providers.kizunaai_qwen.name` and
-  `.description` in the 30 catalogs. The extension manifest already lists the QwenCloud hosts.
+- **Registry and copy.** One line in `src/providers/registry.ts` beside Kizuna Soniox, with
+  `flagged: true` (ruling 7): `isPresent` offers it only where `isKizunaAIEnabled()` holds, and then
+  in every development build, but in a release only once `VITE_ENABLED_PROVIDERS` lists
+  `kizunaai_qwen`. `providers.kizunaai_qwen.name` and `.description` in the 30 catalogs. The
+  extension manifest already lists the QwenCloud hosts.
 
 ## 5. Reconciliation (backend)
 
 **`QwenReconcilerDO`** (a singleton, alarm-driven, poked by the routes and the minute cron) runs while
-any Qwen lease is open or unsettled.
+any Qwen lease is open or still awaits a row.
 
-**Reading.** Every 30 s, for each workspace of the pool: `listModelLogs` over
+**Reading.** Every 30 s, and after a `session-end` on a 3 / 6 / 12 / 24 / 48 s ladder (Soniox's
+ladder, stretched because a Qwen row can take up to a minute), for each workspace of the pool:
+`listModelLogs` over
 `[watermark − 2 min, now]`, paged by 50, model `qwen3.8-livetranslate-flash-realtime`. New rows,
 deduplicated by `request_id`, go to `qwen_usage_logs(request_id PK, task_uuid, apikey_id, start_ms,
 duration_ms, usage, lease_id, account_id, attributed_by, charged_at)`. A failing call is retried with
@@ -179,9 +194,11 @@ backoff; a gateway that keeps failing (it is undocumented) raises an alarm and s
    lease's slot window; when they do not, the row is still charged to that lease (the id is
    unforgeable) and a tamper alarm is raised.
 2. **By slot window** — no report: the lease whose window on that `apikey_id` contains the row's start
-   (exactly one can). The account's unreported count goes up (open decision 6 says what that does).
-3. **Neither** — a slot key used outside every window, i.e. leaked: alarm, and the key is disabled —
-   by hand, or by the reconciler when the RAM user has key management (open decision 4).
+   (exactly one can). The row is marked `attributed_by = 'window'`, which is the audit record of an
+   unreported session: the admin pages count them per lease and account; the user sees nothing and
+   nothing is done automatically (M12).
+3. **Neither** — a slot key used outside every window, i.e. leaked: alarm; the owner disables or
+   resets the key by hand.
 
 A row with no `usage` (a session that sent nothing) is kept and charges nothing.
 
@@ -191,9 +208,17 @@ A row with no `usage` (a session that sent nothing) is kept and charges nothing.
 `sessionRef = account:lease`. The wallet is post-paid, as for Soniox: it can go negative, and a
 negative or frozen wallet refuses the next `session-key`.
 
-**Settling.** A lease settles once `session-end` was signalled and every reported session has its
-row, or once it expired and its grace passed (open decision 8). Rows can arrive later — a session run
-past its grant ends whenever it ends — and are still attributed and charged by `task_uuid` or window.
+**Releasing the lease** (M13). The lease, and with it the account's one-lease lock, is released:
+- once every reported session has its row. A row is written only when its session has ended, so it
+  is the proof, as Soniox's usage log is; `session-end` gets the ladder looking at once, so a normal
+  stop frees the account seconds to about a minute later (the row's 2–60 s);
+- by the clock, as Soniox's: a lease with no reported session at its token's expiry + 15 s (no
+  session can start after it), any lease at `expires_at` (the grant + 15 s).
+Billing does not wait on the lease. A row that lands after the release — a session run past its grant,
+a leg whose report never arrived — is still attributed by `task_uuid` or window and charged; the
+reconciler keeps looking for a reported session's row for 10 minutes past the lease's expiry, Soniox's
+`UNRECONCILED_LEASE_MAX_AGE_MS`. A stop and restart inside the row's delay meets the 409 with its
+`retryAfterMs`, which the client waits out, as for Soniox.
 
 **Daily cross-check.** For each slot key and day, the charged provider cost against BSS
 `DescribeInstanceBill` (DAILY, `IsBillingItem=true`); a drift beyond rounding raises an alarm.
@@ -202,8 +227,9 @@ past its grant ends whenever it ends — and are still attributed and charged by
 
 **Rate.** Raw worst case per leg and hour: audio in $0.19 (7 tokens/s), text out about $0.29 (taken
 as 4 tokens/s), audio out $1.35 (12.5 tokens/s). A speaking leg ≈ $1.83/h, a text-only leg ≈ $0.48/h,
-× K for the user. The granted duration is the balance over the summed rate, capped like Soniox's
-(3600 s with speech); the start floor is a minute of it.
+× K for the user. The granted duration is the balance over the summed rate, capped at 3600 s per
+grant (ruling 9; with or without speech, until Qwen's own maximum is known); the start floor is a
+minute of it.
 
 **What a client can do that it should not.** Run a session past the grant, or open more sessions
 while the token is valid (up to the account's RPM), or not report. None of it escapes the bill:
@@ -225,22 +251,27 @@ backend).
   gateway client); `src/durable-objects/QwenReconcilerDO.ts`; D1 tables `qwen_key_slots`,
   `qwen_sessions`, `qwen_usage_logs`; Qwen rates in `src/services/pricing.ts` and a `/api/pricing`
   entry; secrets for the RAM AccessKey and the slot keys; the cron's poke.
-- Admin: the leases page already shows a provider; the ledger shows Qwen charges by their provider.
+- Admin: the leases page already shows a provider; the ledger shows Qwen charges by their provider;
+  a count of window-attributed (unreported) sessions per lease and account, for audit.
 
 ## 8. Operations
 
-- A dedicated workspace for the pool; the RAM user (`AliyunBailianReadOnlyAccess`,
+- A dedicated workspace for the pool, its 20 keys created by the owner in the console, each scoped
+  to `qwen3.8-livetranslate-flash-realtime`; the RAM user (`AliyunBailianReadOnlyAccess`,
   `AliyunBSSReadOnlyAccess`) a member of it with 模型日志 only — the least access probed to work.
 - The RPM increase applied for through the account manager, with the expected concurrent sessions
   and average length.
 - The root AccessKey that appeared in chat deleted; the RAM AccessKey rotated before production.
-- Alarms: tamper, unattributed rows, unreported counts, reconciler lag, gateway errors, bill drift.
+- Alarms: tamper, unattributed rows, reconciler lag, gateway errors, bill drift. Unreported sessions
+  raise no alarm; they are audited from the admin count.
 
 ## 9. Testing
 
 - Backend: slot hold and release under concurrency; the window from a mint response; each
   attribution path, tamper and leak included; the price (input text excluded); idempotent charges;
-  the reconciler's paging, watermark and per-workspace reads; Soniox's reconciler ignoring Qwen leases.
+  the reconciler's paging, watermark and per-workspace reads; the lease released by its last row, by
+  the token's expiry with nothing reported and by `expires_at`, and a row after the release still
+  charged; Soniox's reconciler ignoring Qwen leases.
 - Client: the lease (grant end, refusals in words, `session-started` retries, release); the adapter
   reporting the id through the port; the twin's registry and conformance tests.
 - Live, in a development build: two accounts at once; a client patched to report nothing, attributed
@@ -260,20 +291,19 @@ backend).
 - **Matching by time alone** (the owner's ruling: 靠时间是不保险的). Time is used here only inside a
   slot window, where one lease alone could have started a session.
 
-## Open decisions
+## Owner's rulings (2026-10-17)
 
-1. **Price** — K = 2.0 as for Soniox, and how the per-hour price is shown.
-2. **Trial credit** — whether the $0.50 trial may use managed Qwen, given post-paid overruns.
-3. **Web build** — offer it through the undocumented `?api_key=` query, or keep to the desktop app
-   and the extension.
-4. **Keys** — create the pool by hand, or give the RAM user key management and use `CreateApiKey`.
-5. **Pool size** — 20 keys in one workspace, or more.
-6. **Unreported sessions** — what an account's unreported count does: nothing, a warning, or a freeze.
-7. **Release** — behind a tester switch first, or with the Kizuna umbrella directly.
-8. **Lease grace** — how long a lease stays held after its grant when its reported sessions have no
-   rows yet.
-9. **Grant cap** — 3600 s per grant with speech, as Soniox, or shorter while Qwen's own maximum is
-   unknown.
+1. **Price** — K = 2.0.
+2. **Trial credit** — the trial credit may pay for managed Qwen.
+3. **Web build** — there is none; a web build made later would use the `?api_key=` query.
+4. **Keys** — the owner creates the pool by hand.
+5. **Pool size** — as many as one workspace allows: 20.
+6. **Unreported sessions** — recorded in the backend for a later audit, never shown to the user: a
+   missing report may be the network or our own bug rather than the user. Whether to act on it is
+   decided after an audit.
+7. **Release** — `flagged`.
+8. **Lease release** — as Soniox's, which frees soon after a session ends: the row proves the end.
+9. **Grant cap** — 3600 s for now.
 
 ## Known unknowns
 
