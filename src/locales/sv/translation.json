@@ -681,6 +681,7 @@
     "sonioxVoiceBuildFailed": "Din anpassade röst kunde inte byggas, så den här sessionen använder en förinställd röst. Försök spela in ett tydligare klipp i Inställningar.",
     "sonioxVoiceUnavailable": "Din anpassade röst är inte tillgänglig just nu, så den här sessionen använder en förinställd röst.",
     "preparingVoice": "Förbereder din röst…",
+    "waitingForPreviousSession": "Väntar på att den föregående sessionen ska avslutas…",
     "clickToCancel": "Klicka för att avbryta"
   },
   "modePicker": {
@@ -726,7 +727,8 @@
     "stop": "Stoppa",
     "start": "Starta",
     "loadingModel": "Laddar modell…",
-    "preparingVoice": "Förbereder din röst…"
+    "preparingVoice": "Förbereder din röst…",
+    "waitingForPreviousSession": "Väntar på att den föregående sessionen ska avslutas…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU:n har slut på minne — den valda modellen är för stor för din GPU. Byt till en mindre modell."
@@ -1377,6 +1379,8 @@
     "leg_closed": "Leverantören avslutade sessionen.",
     "source_ended": "Ljudkällan försvann (bortkopplad, stängd eller stoppad).",
     "still_stopping": "Den senaste sessionen håller fortfarande på att stoppas; försök igen om en stund.",
+    "session_in_use": "Ett annat fönster eller en annan enhet använder det här kontot. Stoppa sessionen där, eller försök igen om en minut om Sokuji just stängdes oväntat.",
+    "previous_session_ending": "Din föregående session håller fortfarande på att avslutas. Försök igen om en minut.",
     "app_capture_lost_using_system_audio": "Appinsamlingen stoppades, så nu översätts allt systemljud i stället.",
     "app_capture_monitor_missing": "Appinsamlingen startade inte, så nu översätts allt systemljud i stället.",
     "parse_error": "Ett meddelande från leverantören kunde inte läsas; sessionen fortsätter.",
