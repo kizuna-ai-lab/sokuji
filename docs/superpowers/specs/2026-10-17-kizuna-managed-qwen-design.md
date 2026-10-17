@@ -45,7 +45,7 @@ handshake's request id) to find the row and to check the answer; it charges the 
 | Device credentials | `POST https://maas.qwencloudapi.com/api/v1/tokens?expire_in_seconds=60` with a key returns `{token: "st-…", expires_at}`. Asked for less, it grants about 60 s. The token inherits the key's model scope, can open several sessions while valid, and cannot be revoked. A session outlives its token. |
 | No server cutoff | Disabling, resetting or deleting the parent key never ends a live session (watched for 60 s after each). Disable and delete refuse new dials, outstanding tokens included; reset does not (old tokens still dial). A re-enabled key's old tokens work again. Reset keeps the key's id. |
 | Attribution | Nothing the client or the token mint sends reaches the log: no pass-through field, no custom header or query. A token's sessions log the parent key's `apikey_id`. The one per-session id in the log is `task_uuid`, the client's `sess_…` from `session.created` (confirmed by Alibaba's product team, 2026-10-16). |
-| Usage source | `listModelLogs`, called as `bailian` 2023-06-01 `IntlBroadScopeAspnGateway` (RPC, V3-signed, `bailian.ap-southeast-1.aliyuncs.com`), undocumented. A row appears about 2–60 s after its session ends, with `request_id`, `task_uuid`, `apikey_id`, `start_unix_timestamp` (ms, session start), `duration`, `usage` (text and audio × input and output), `status_code` (400 is normal for realtime), `workspace_id`, `client_ip`. One workspace per call (`cornerstoneParam.switchAgent` = its tenant id); pages of ≤ 50; 14-day retention. `taskUuid` is a filter field but rejects `sess_…` ("taskUuid illegal"); `modelRequestId` filters. |
+| Usage source | `listModelLogs`, called as `bailian` 2023-06-01 `IntlBroadScopeAspnGateway` (RPC, V3-signed, `bailian.ap-southeast-1.aliyuncs.com`), undocumented. A row appears about 2–60 s after its session ends, with `request_id`, `task_uuid`, `apikey_id`, `start_unix_timestamp` (ms, session start), `duration`, `usage` (text and audio × input and output), `status_code` (400 is normal for realtime), `workspace_id`, `client_ip`. One workspace per call (`cornerstoneParam.switchAgent` = its tenant id); pages of ≤ 50; 14-day retention. `taskUuid` is a filter field but rejects `sess_…` ("taskUuid illegal"); `modelRequestId` filters. The time range filters on when a row is written — its session's end — not on its start: three 10–11-minute sessions were each listed in a window around their end and in none around their start (probed 2026-10-17). So reading `[watermark − 2 min, now]` sees a long session when it ends, and attribution still uses the row's own start. |
 | Its call rate | No throttling seen. Probed 2026-10-17 with the RAM AccessKey over the reconciler's own query ([now − 2 min, now], one page of 50): every 5 s for an hour, 720/720 OK; every 2 s for an hour, 1800/1800 OK (140 of those pages held rows). Latency p50 ≈ 450–500 ms, p95 ≈ 1 s, max 1.6 s, flat across both hours. The 5 s polling of section 5 is well inside it; faster was not tried (the owner: no use for it). |
 | Workspaces in the log | Each `listModelLogs` call reads one workspace: `cornerstoneParam.switchAgent` = the workspace's tenant id from ModelStudio `ListWorkspaces` (the default workspace answers without it too). A row carries `workspace_id` as the Alibaba id (`ws-ilmjk0mva2djka6n`, the default workspace, tenant 1683763) beside `apikey_id`; another workspace's rows (sokuji-test, tenant 1690620) appear only under its own `switchAgent` (probed 2026-10-16 and 10-17). New workspaces can call the 3.8 model at once. |
 | Access to it | A RAM user with `AliyunBailianReadOnlyAccess` that is a member of the workspace with the 模型日志 permission. No OAuth. |
@@ -189,7 +189,7 @@ as each key's issue history.
 
 ## 3. Backend lease routes (`/api/qwen`)
 
-**`POST /session-key`** `{ legs: ['speaker'] | ['speaker', 'participant'], speech: { speaker, participant } }`
+**`POST /session-key`** `{ legs: ['speaker'] | ['participant'] | ['speaker', 'participant'], speech: { speaker, participant } }`
 - Order, as Soniox's: sign-in (401) → wallet (403 frozen) → budget from the balance and the rate
   (402 with `requiredMicroUsd`, `balanceMicroUsd`) → lease (409 `active_lease` with `retryAfterMs`)
   → slot (503 `qwen_busy`) → mint (502 on failure; the slot and the lease are released).
@@ -212,13 +212,17 @@ reconciler into fast polling; it releases nothing by itself.
 ## 4. Client (`sokuji`)
 
 - **`src/providers/qwen_livetranslate/kizuna.ts`** — the twin: `managed(qwenLiveTranslateProvider,
-  { id: 'kizunaai_qwen', vendor: 'Qwen', settingsKey: 'kizunaQwen', Settings: <managed flavour>,
-  signedOut, session: { acquire: createQwenLease(), minimumBalance } })`. The managed Settings view
-  drops the key field and the storefront line.
+  { id: 'kizunaai_qwen', vendor: 'Qwen', settingsKey: 'kizunaQwen', Settings: QwenSettingsView,
+  signedOut, flagged: true, session: { acquire: createQwenLease(), minimumBalance } })`. The own-key
+  Settings view already shows no key field (`managed()` empties the credential fields) and no
+  storefront line (it shows one only for a detected storefront). `managed()` does not inherit a base's
+  `flagged`, so it gains a `flagged?: true` override of its own.
 - **`QwenCredentials.lease?: QwenLeasePort`**, as `SonioxLeasePort`: `sessionCreated(id: string,
-  requestId?: string)`. An own key carries none.
+  requestId?: string)`; and **`QwenCredentials.endpoint?: EndpointId`**, the grant's storefront. An
+  own key carries neither.
 - **The header seam reads `x-request-id`.** Where it sets the upgrade's headers it also reads the
-  101's `x-request-id` and resolves it with the socket: Electron's main process in the
+  101's `x-request-id` and hands it to the caller through an optional `onRequestId` callback on the
+  seam's options; the platform answers it when the seam clears its rule: Electron's main process in the
   `onHeadersReceived` listener it shares with Better Auth, the extension's background through
   `chrome.webRequest.onHeadersReceived` (`websocket` type; adds the `webRequest` permission — whether
   Chrome asks installed users to approve it again is to be checked before release). The value leaves
@@ -227,7 +231,9 @@ reconciler into fast polling; it releases nothing by itself.
   it.
 - **Adapter.** One addition: on `session.created` it calls
   `credentials.lease?.sessionCreated(id, requestId)`.
-  The grant's `endpoint` is in the config, so no detection runs. Everything else — turns, keepalive,
+  The grant's `endpoint` reaches it in the credentials, since `build` runs before the lease is
+  acquired: the adapter takes `config.endpoint ?? credentials.endpoint` and detects only when neither
+  is set, so a managed leg never detects. Everything else — turns, keepalive,
   server cuts, quiet trimming — is the own-key adapter's. The session side still reaches no store and
   no reporter (`sessionSide.consistency.test.ts`).
 - **`src/providers/qwen_livetranslate/lease.ts`** — modelled on Soniox's: acquire calls
