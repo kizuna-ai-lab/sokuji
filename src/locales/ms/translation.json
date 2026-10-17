@@ -681,6 +681,8 @@
     "sonioxVoiceBuildFailed": "Suara tersuai anda tidak dapat dibina, jadi sesi ini menggunakan suara pratetap. Cuba rakam klip yang lebih jelas dalam Tetapan.",
     "sonioxVoiceUnavailable": "Suara tersuai anda tidak tersedia sekarang, jadi sesi ini menggunakan suara pratetap.",
     "preparingVoice": "Menyediakan suara anda…",
+    "waitingForPreviousSession": "Menunggu…",
+    "waitingForPreviousSessionTitle": "Menunggu sesi sebelumnya tamat. Klik untuk membatalkan.",
     "clickToCancel": "Klik untuk membatalkan"
   },
   "modePicker": {
@@ -726,7 +728,8 @@
     "stop": "Berhenti",
     "start": "Mula",
     "loadingModel": "Memuatkan model…",
-    "preparingVoice": "Menyediakan suara anda…"
+    "preparingVoice": "Menyediakan suara anda…",
+    "waitingForPreviousSession": "Menunggu…"
   },
   "errors": {
     "gpuOutOfMemory": "Memori GPU tidak mencukupi — model yang dipilih terlalu besar untuk GPU anda. Sila tukar kepada model yang lebih kecil."
@@ -1377,6 +1380,8 @@
     "leg_closed": "Penyedia menamatkan sesi.",
     "source_ended": "Sumber audio hilang (dicabut, ditutup atau dihentikan).",
     "still_stopping": "Sesi terakhir masih sedang dihentikan; cuba lagi sebentar lagi.",
+    "session_in_use": "Tetingkap atau peranti lain sedang menggunakan akaun ini. Hentikan sesi di sana, atau jika Sokuji baru sahaja tertutup tanpa dijangka, cuba lagi dalam seminit.",
+    "previous_session_ending": "Sesi anda sebelum ini masih sedang ditamatkan. Sila cuba lagi dalam seminit.",
     "app_capture_lost_using_system_audio": "Tangkapan aplikasi terhenti, jadi semua audio sistem kini diterjemahkan.",
     "app_capture_monitor_missing": "Tangkapan aplikasi tidak bermula, jadi semua audio sistem kini diterjemahkan.",
     "parse_error": "Mesej daripada penyedia tidak dapat dibaca; sesi diteruskan.",

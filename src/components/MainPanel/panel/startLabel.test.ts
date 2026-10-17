@@ -38,6 +38,15 @@ describe('startLabel', () => {
     expect(startLabel(t, run, 'advanced')).toBe('Loading (1/3)...');
   });
 
+  it('names the wait for the previous session, on both sites, by its own key', () => {
+    const run: RunState = { phase: 'starting', participantSpeech: false, step: 'waiting' };
+    expect(startLabel(t, run, 'basic')).toBe('Waiting…');
+    expect(startLabel(t, run, 'advanced')).toBe('Waiting…');
+    const keyOf = ((key: string) => key) as unknown as TFunction;
+    expect(startLabel(keyOf, run, 'basic')).toBe('simplePanel.waitingForPreviousSession');
+    expect(startLabel(keyOf, run, 'advanced')).toBe('mainPanel.waitingForPreviousSession');
+  });
+
   it('names the voice claim while preparing, on both sites', () => {
     const run: RunState = { phase: 'starting', participantSpeech: false, step: 'preparing' };
     expect(startLabel(t, run, 'basic')).toBe('Preparing your voice…');

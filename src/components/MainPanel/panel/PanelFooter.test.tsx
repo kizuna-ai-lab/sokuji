@@ -92,6 +92,15 @@ describe('PanelFooter — starting', () => {
     expect(onStop).toHaveBeenCalledTimes(1);
     expect(btn.getAttribute('title')).toBe('mainPanel.clickToCancel');
   });
+
+  it.each(SITES)('%s: waiting for the previous session keeps the label short and says why in the hover text', (site) => {
+    const run: RunState = { phase: 'starting', participantSpeech: false, step: 'waiting' };
+    const { container } = render(<PanelFooter {...baseProps(site, { run })} />);
+    const btn = actionButton(container);
+    const label = site === 'basic' ? 'simplePanel.waitingForPreviousSession' : 'mainPanel.waitingForPreviousSession';
+    expect(btn.textContent).toContain(label);
+    expect(btn.getAttribute('title')).toBe('mainPanel.waitingForPreviousSessionTitle');
+  });
 });
 
 describe('PanelFooter — running / stopping', () => {

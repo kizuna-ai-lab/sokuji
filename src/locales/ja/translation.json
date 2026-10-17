@@ -681,6 +681,8 @@
     "sonioxVoiceBuildFailed": "カスタム音声を作成できなかったため、このセッションではプリセット音声を使用します。設定でより聞き取りやすいクリップを録音してみてください。",
     "sonioxVoiceUnavailable": "カスタム音声は現在利用できないため、このセッションではプリセット音声を使用します。",
     "preparingVoice": "音声を準備しています…",
+    "waitingForPreviousSession": "待機中…",
+    "waitingForPreviousSessionTitle": "前回のセッションの終了を待っています。キャンセルするにはクリック",
     "clickToCancel": "キャンセルするにはクリック"
   },
   "modePicker": {
@@ -726,7 +728,8 @@
     "stop": "停止",
     "start": "開始",
     "loadingModel": "モデルを読み込み中…",
-    "preparingVoice": "音声を準備しています…"
+    "preparingVoice": "音声を準備しています…",
+    "waitingForPreviousSession": "待機中…"
   },
   "errors": {
     "gpuOutOfMemory": "GPUメモリ不足 — 選択されたモデルがGPUには大きすぎます。より小さいモデルに切り替えてください。"
@@ -1377,6 +1380,8 @@
     "leg_closed": "プロバイダーがセッションを終了しました。",
     "source_ended": "音声ソースがなくなりました（取り外し、終了、または停止）。",
     "still_stopping": "前回のセッションはまだ停止処理中です。しばらくしてから再試行してください。",
+    "session_in_use": "別のウィンドウまたはデバイスがこのアカウントを使用しています。そちらでセッションを停止するか、Sokuji が予期せず終了した直後の場合は、1 分ほどしてから再試行してください。",
+    "previous_session_ending": "前回のセッションはまだ終了処理中です。1 分ほどしてから再試行してください。",
     "app_capture_lost_using_system_audio": "アプリのキャプチャが停止したため、代わりにシステム音声全体が翻訳されています。",
     "app_capture_monitor_missing": "アプリのキャプチャが開始しなかったため、代わりにシステム音声全体が翻訳されています。",
     "parse_error": "プロバイダーからのメッセージを読み取れませんでした。セッションは継続します。",

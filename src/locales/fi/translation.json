@@ -681,6 +681,8 @@
     "sonioxVoiceBuildFailed": "Mukautettua ääntäsi ei voitu luoda, joten tämä istunto käyttää esiasetettua ääntä. Kokeile äänittää selkeämpi näyte asetuksista.",
     "sonioxVoiceUnavailable": "Mukautettu äänesi ei ole juuri nyt käytettävissä, joten tämä istunto käyttää esiasetettua ääntä.",
     "preparingVoice": "Valmistellaan ääntäsi…",
+    "waitingForPreviousSession": "Odotetaan…",
+    "waitingForPreviousSessionTitle": "Odotetaan edellisen istunnon päättymistä. Napsauta peruuttaaksesi.",
     "clickToCancel": "Napsauta peruuttaaksesi"
   },
   "modePicker": {
@@ -726,7 +728,8 @@
     "stop": "Lopeta",
     "start": "Aloita",
     "loadingModel": "Ladataan mallia…",
-    "preparingVoice": "Valmistellaan ääntäsi…"
+    "preparingVoice": "Valmistellaan ääntäsi…",
+    "waitingForPreviousSession": "Odotetaan…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU-muisti loppui — valittu malli on liian suuri GPU:llesi. Vaihda pienempään malliin."
@@ -1377,6 +1380,8 @@
     "leg_closed": "Tarjoaja lopetti istunnon.",
     "source_ended": "Äänilähde katosi (irrotettu, suljettu tai pysäytetty).",
     "still_stopping": "Edellistä istuntoa lopetetaan vielä; yritä hetken päästä uudelleen.",
+    "session_in_use": "Toinen ikkuna tai laite käyttää tätä tiliä. Lopeta istunto siellä, tai jos Sokuji sulkeutui juuri odottamatta, yritä uudelleen minuutin kuluttua.",
+    "previous_session_ending": "Edellinen istuntosi on vielä päättymässä. Yritä uudelleen minuutin kuluttua.",
     "app_capture_lost_using_system_audio": "Sovelluksen kaappaus pysähtyi, joten nyt käännetään kaikki järjestelmän ääni.",
     "app_capture_monitor_missing": "Sovelluksen kaappaus ei käynnistynyt, joten nyt käännetään kaikki järjestelmän ääni.",
     "parse_error": "Tarjoajan viestiä ei voitu lukea; istunto jatkuu.",

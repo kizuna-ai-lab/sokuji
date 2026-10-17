@@ -681,6 +681,8 @@
     "sonioxVoiceBuildFailed": "Non è stato possibile creare la tua voce personalizzata, quindi questa sessione usa una voce preimpostata. Prova a registrare una clip più chiara nelle Impostazioni.",
     "sonioxVoiceUnavailable": "La tua voce personalizzata non è disponibile al momento, quindi questa sessione usa una voce preimpostata.",
     "preparingVoice": "Preparazione della tua voce…",
+    "waitingForPreviousSession": "In attesa…",
+    "waitingForPreviousSessionTitle": "In attesa che la sessione precedente termini. Clicca per annullare.",
     "clickToCancel": "Clicca per annullare"
   },
   "modePicker": {
@@ -726,7 +728,8 @@
     "stop": "Ferma",
     "start": "Avvia",
     "loadingModel": "Caricamento modello…",
-    "preparingVoice": "Preparazione della tua voce…"
+    "preparingVoice": "Preparazione della tua voce…",
+    "waitingForPreviousSession": "In attesa…"
   },
   "errors": {
     "gpuOutOfMemory": "Memoria GPU esaurita — il modello selezionato è troppo grande per la tua GPU. Passa a un modello più piccolo."
@@ -1377,6 +1380,8 @@
     "leg_closed": "Il fornitore ha terminato la sessione.",
     "source_ended": "La sorgente audio è scomparsa (scollegata, chiusa o interrotta).",
     "still_stopping": "L'ultima sessione si sta ancora chiudendo; riprova tra un momento.",
+    "session_in_use": "Un'altra finestra o un altro dispositivo sta usando questo account. Interrompi lì la sessione oppure, se Sokuji si è appena chiuso in modo imprevisto, riprova tra un minuto.",
+    "previous_session_ending": "La tua sessione precedente si sta ancora chiudendo. Riprova tra un minuto.",
     "app_capture_lost_using_system_audio": "La cattura dell'app si è interrotta, quindi ora viene tradotto tutto l'audio di sistema.",
     "app_capture_monitor_missing": "La cattura dell'app non è partita, quindi ora viene tradotto tutto l'audio di sistema.",
     "parse_error": "Un messaggio del fornitore non è stato leggibile; la sessione continua.",

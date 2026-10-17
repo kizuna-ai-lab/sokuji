@@ -681,6 +681,8 @@
     "sonioxVoiceBuildFailed": "無法建立您的自訂語音，因此本次工作階段使用預設語音。請嘗試在設定中錄製更清晰的片段。",
     "sonioxVoiceUnavailable": "您的自訂語音目前無法使用，因此本次工作階段使用預設語音。",
     "preparingVoice": "正在準備您的語音…",
+    "waitingForPreviousSession": "正在等待…",
+    "waitingForPreviousSessionTitle": "正在等待上一個工作階段結束。點擊取消",
     "clickToCancel": "點擊取消"
   },
   "modePicker": {
@@ -726,7 +728,8 @@
     "stop": "停止",
     "start": "開始",
     "loadingModel": "載入模型中…",
-    "preparingVoice": "正在準備您的語音…"
+    "preparingVoice": "正在準備您的語音…",
+    "waitingForPreviousSession": "正在等待…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU記憶體不足 — 所選模型對您的GPU來說太大了，請切換到更小的模型。"
@@ -1377,6 +1380,8 @@
     "leg_closed": "提供商已結束工作階段。",
     "source_ended": "音訊來源已消失（已拔除、關閉或停止）。",
     "still_stopping": "上一個工作階段仍在停止中，請稍後再試。",
+    "session_in_use": "另一個視窗或裝置正在使用此帳戶。請在該處停止工作階段；如果 Sokuji 剛剛意外關閉，請 1 分鐘後再試一次。",
+    "previous_session_ending": "您的上一個工作階段仍在結束中。請 1 分鐘後再試一次。",
     "app_capture_lost_using_system_audio": "應用程式擷取已停止，現在改為翻譯整個系統的聲音。",
     "app_capture_monitor_missing": "應用程式擷取未能啟動，現在改為翻譯整個系統的聲音。",
     "parse_error": "無法讀取來自提供商的訊息；工作階段將繼續。",
