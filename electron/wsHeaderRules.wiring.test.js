@@ -42,6 +42,10 @@ describe('the upgrade header rules wiring', () => {
     expect(at(listener, 'callback({ requestHeaders });')).toBeGreaterThan(bing);
   });
 
+  it('hands the handshake response to the rules through Better Auth\'s one onHeadersReceived listener', () => {
+    expect(main).toContain('onWebSocketResponse: (details) => wsHeaderRules.noteResponse(details.url, details.responseHeaders),');
+  });
+
   it('registers and clears through the module, logging header names only', () => {
     const set = handler('ws-headers-set');
     expect(set).toContain('const result = wsHeaderRules.set(args);');
@@ -50,6 +54,7 @@ describe('the upgrade header rules wiring', () => {
     expect(set).toContain('return result;');
     const clear = handler('ws-headers-clear');
     expect(clear).toContain('const result = wsHeaderRules.clear(args);');
+    expect(clear).not.toMatch(/requestId/);
     expect(clear).toContain('return result;');
   });
 });

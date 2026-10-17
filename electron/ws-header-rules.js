@@ -12,7 +12,9 @@
 // on its host, as every rule did before — so Edge TTS keeps working
 // unchanged. A Live rule under /v1/live/ therefore never reaches
 // OpenAI Realtime's /v1/realtime or Translate's /v1/realtime/translations on
-// the same host. A rule is one-shot: the upgrade it applies to consumes it.
+// the same host. A rule is one-shot: the upgrade it applies to consumes it. The
+// taken rule then waits for that upgrade's response, whose `x-request-id` the
+// next clear of the same host and path answers (once).
 
 /** A rule's key in the map: its host and its path, '' for every path. */
 const keyOf = (host, path) => `${host}\u0000${path}`;
@@ -20,6 +22,8 @@ const keyOf = (host, path) => `${host}\u0000${path}`;
 function createWsHeaderRules() {
   // key → { host, path, set: Map<name, value>, remove: Set<lowercased name> }
   const rules = new Map();
+  // key → { host, path, requestId? }: a taken rule whose upgrade has not been cleared yet
+  const awaiting = new Map();
 
   /**
    * Registers a rule: `host` and a `headers` object are required; `path`, when
@@ -56,8 +60,37 @@ function createWsHeaderRules() {
   function clear(args) {
     const { host, path } = args || {};
     if (!host) return { success: false, error: 'Invalid arguments: host required' };
-    rules.delete(keyOf(host, path || ''));
-    return { success: true };
+    const key = keyOf(host, path || '');
+    rules.delete(key);
+    const { requestId } = awaiting.get(key) || {};
+    awaiting.delete(key);
+    return requestId === undefined ? { success: true } : { success: true, requestId };
+  }
+
+  /**
+   * Notes the `x-request-id` of the handshake response to `url` for the taken
+   * rule that upgrade matched (the same host and longest-path choice `take`
+   * makes), for `clear` to answer. The header name is case-insensitive and its
+   * value a string or a list; any other response is ignored.
+   */
+  function noteResponse(url, responseHeaders) {
+    let target;
+    try {
+      target = new URL(url);
+    } catch {
+      return;
+    }
+    let best = null;
+    for (const entry of awaiting.values()) {
+      if (entry.host !== target.host) continue;
+      if (entry.path && !target.pathname.startsWith(entry.path)) continue;
+      if (!best || entry.path.length > best.path.length) best = entry;
+    }
+    if (!best || !responseHeaders || typeof responseHeaders !== 'object') return;
+    const name = Object.keys(responseHeaders).find((n) => n.toLowerCase() === 'x-request-id');
+    if (!name) return;
+    const value = Array.isArray(responseHeaders[name]) ? responseHeaders[name][0] : responseHeaders[name];
+    if (typeof value === 'string' && value !== '') best.requestId = value;
   }
 
   /**
@@ -87,6 +120,7 @@ function createWsHeaderRules() {
     }
     for (const [name, value] of best.set.entries()) requestHeaders[name] = value;
     rules.delete(keyOf(best.host, best.path));
+    awaiting.set(keyOf(best.host, best.path), { host: best.host, path: best.path });
     return true;
   }
 
@@ -94,6 +128,7 @@ function createWsHeaderRules() {
     set,
     clear,
     take,
+    noteResponse,
     /** How many rules wait for their upgrade: for tests. */
     get size() {
       return rules.size;

@@ -526,7 +526,8 @@ app.whenReady().then(async () => {
 
     betterAuthAdapter({
       backendUrl,
-      origin
+      origin,
+      onWebSocketResponse: (details) => wsHeaderRules.noteResponse(details.url, details.responseHeaders),
     });
     console.log('[Sokuji] [Main] Better Auth adapter initialized');
   } catch (error) {

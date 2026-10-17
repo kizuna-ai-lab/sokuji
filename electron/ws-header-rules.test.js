@@ -92,4 +92,45 @@ describe('the WebSocket upgrade header rules (Stage 2 OpenAI Live, ruling 7; cho
     expect(h).toEqual(upgrade());
     expect(rules.size).toBe(1);
   });
+
+  describe("the handshake response's request id", () => {
+    const URL_ = 'wss://maas.qwencloudapi.com/api-ws/v1/realtime?model=m';
+    const QWEN = { host: 'maas.qwencloudapi.com', path: '/api-ws/', headers: { Authorization: 'Bearer k' } };
+
+    it('answers the id noted for a taken rule on clear, name case-insensitive, and only once', () => {
+      const rules = createWsHeaderRules();
+      rules.set(QWEN);
+      rules.take(URL_, upgrade());
+      rules.noteResponse(URL_, { 'X-Request-Id': ['abc'] });
+      expect(rules.clear({ host: QWEN.host, path: QWEN.path }).requestId).toBe('abc');
+      expect(rules.clear({ host: QWEN.host, path: QWEN.path }).requestId).toBeUndefined();
+    });
+
+    it('accepts a plain string value', () => {
+      const rules = createWsHeaderRules();
+      rules.set(QWEN);
+      rules.take(URL_, upgrade());
+      rules.noteResponse(URL_, { 'x-request-id': 'xyz' });
+      expect(rules.clear(QWEN).requestId).toBe('xyz');
+    });
+
+    it('ignores a response with no taken rule, or from another host', () => {
+      const rules = createWsHeaderRules();
+      rules.noteResponse(URL_, { 'x-request-id': ['abc'] });
+      rules.set(QWEN);
+      rules.noteResponse(URL_, { 'x-request-id': ['abc'] }); // set, not yet taken
+      rules.take(URL_, upgrade());
+      rules.noteResponse('wss://other.example/api-ws/x', { 'x-request-id': ['zzz'] });
+      expect(rules.clear(QWEN).requestId).toBeUndefined();
+    });
+
+    it('answers nothing when no id was noted, and forgets on clear', () => {
+      const rules = createWsHeaderRules();
+      rules.set(QWEN);
+      rules.take(URL_, upgrade());
+      expect(rules.clear(QWEN).requestId).toBeUndefined();
+      rules.noteResponse(URL_, { 'x-request-id': ['late'] });
+      expect(rules.clear(QWEN).requestId).toBeUndefined();
+    });
+  });
 });

@@ -15,7 +15,7 @@
 // injection then overwrote the browser's own Cookie header with the stale jar.
 // Net effect: sign-in succeeds, the server sets a valid session cookie, and the
 // app still renders the signed-out UI.
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createRequire } from 'node:module';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -55,7 +55,10 @@ function loadModule() {
       defaultSession: {
         webRequest: {
           onBeforeRequest: (_filter, cb) => webRequestHandlers.set('beforeRequest', cb),
-          onHeadersReceived: (_filter, cb) => webRequestHandlers.set('headersReceived', cb),
+          onHeadersReceived: (filter, cb) => {
+            webRequestHandlers.set('headersReceived', cb);
+            webRequestHandlers.set('headersReceivedFilter', filter);
+          },
         },
       },
     },
@@ -70,10 +73,10 @@ function loadModule() {
   return nodeRequire(modulePath);
 }
 
-function loadAdapter() {
+function loadAdapter(extra = {}) {
   const { betterAuthAdapter, PACKAGED_ORIGIN } = loadModule();
   // Same call main.js makes in a packaged build.
-  betterAuthAdapter({ backendUrl: BACKEND, origin: PACKAGED_ORIGIN });
+  betterAuthAdapter({ backendUrl: BACKEND, origin: PACKAGED_ORIGIN, ...extra });
   return betterAuthAdapter;
 }
 
@@ -84,9 +87,9 @@ function receiveSetCookie(...cookieStrings) {
 }
 
 /** Drive the real onHeadersReceived callback and return the headers it emits. */
-function receiveResponse(responseHeaders = {}) {
+function receiveResponse(responseHeaders = {}, extra = {}) {
   let emitted;
-  webRequestHandlers.get('headersReceived')({ responseHeaders }, (result) => {
+  webRequestHandlers.get('headersReceived')({ responseHeaders, ...extra }, (result) => {
     emitted = result.responseHeaders;
   });
   return emitted;
@@ -231,5 +234,40 @@ describe('cookie injection', () => {
     adapter._sendHeadersConfig.injectCookies(headers);
 
     expect(headers.Cookie).toBe('__Secure-better-auth.session_token=abc.def%3D%3D');
+  });
+});
+
+// Electron allows one onHeadersReceived listener per session, so the managed
+// Qwen socket's request id is read through this one.
+describe('WebSocket handshake responses', () => {
+  const QWEN_URL = 'wss://maas.qwencloudapi.com/api-ws/v1/realtime?model=m';
+
+  it('filters in the Qwen host and hands a webSocket response to the hook, headers untouched', () => {
+    const onWebSocketResponse = vi.fn();
+    loadAdapter({ onWebSocketResponse });
+    expect(webRequestHandlers.get('headersReceivedFilter').urls).toContain('wss://maas.qwencloudapi.com/*');
+
+    const responseHeaders = { 'x-request-id': ['abc'] };
+    const emitted = receiveResponse(responseHeaders, { url: QWEN_URL, resourceType: 'webSocket' });
+
+    expect(onWebSocketResponse).toHaveBeenCalledTimes(1);
+    expect(onWebSocketResponse.mock.calls[0][0]).toMatchObject({ url: QWEN_URL, responseHeaders });
+    expect(emitted).toBe(responseHeaders);
+  });
+
+  it('still rewrites CORS for a backend response and never calls the hook for it', () => {
+    const onWebSocketResponse = vi.fn();
+    loadAdapter({ onWebSocketResponse });
+
+    const headers = receiveResponse({}, { url: `${BACKEND}/auth/x`, resourceType: 'xhr' });
+
+    expect(onWebSocketResponse).not.toHaveBeenCalled();
+    expect(headers['access-control-allow-origin']).toEqual(['file://sokuji']);
+  });
+
+  it('passes a webSocket response through when no hook is given', () => {
+    loadAdapter();
+    const responseHeaders = { 'x-request-id': ['abc'] };
+    expect(receiveResponse(responseHeaders, { url: QWEN_URL, resourceType: 'webSocket' })).toBe(responseHeaders);
   });
 });
