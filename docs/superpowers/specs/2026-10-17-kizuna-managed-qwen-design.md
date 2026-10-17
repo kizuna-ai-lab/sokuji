@@ -200,7 +200,9 @@ as each key's issue history.
 **`POST /session-started`** `{ leaseId, leg, taskUuid, requestId? }`
 - Records `qwen_sessions(task_uuid PK, request_id UNIQUE NULL, lease_id, account_id, leg,
   reported_at)`. Idempotent for the same lease; a `task_uuid` or `request_id` already bound to another
-  lease is refused (409) and alarmed.
+  lease is refused (409) and alarmed. A report for a lease that is reconciled or expired is refused
+  (409 `lease_not_live`), and a lease takes at most 20 distinct sessions (409 `too_many_reports`), so
+  fake reports cannot multiply the reconciler's lookups.
 - Both are Alibaba's random ids of one connection: a client cannot report another user's session,
   and the account is the authenticated one, never a field. `requestId` is optional only for a
   platform whose seam cannot read the header (section 4); a report without it is checked on
@@ -296,9 +298,11 @@ is recorded for audit. The window decides; the report checks it:
    nothing is done automatically (M12).
 3. **They differ, same account** — a client reported its session under another of its own leases (a
    stale lease id, say): charge the window's lease, and record the mismatch for audit.
-4. **They differ, different accounts** — a client cannot know another session's `sess_…`, so this
-   points at our own records rather than at a client: hold the charge, alarm, and settle it by hand.
-   It should never happen.
+4. **They differ, different accounts** — charge the window's lease and account, record it as
+   `account_conflict`, and alarm (amended 2026-10-18 at implementation: the earlier "hold the
+   charge" rested on "a client cannot know another session's `sess_…`", but a client knows its own
+   and could report it under a second account's lease to avoid every charge; charging the window
+   follows the owner's ruling 10, "the key and the time decide"). It should never happen.
 5. **A report, no window** — the row lies outside every window: a leaked key, or our records are
    wrong. Charge the reporter (a report binds only the reporting account, so it can bill no one
    else) and alarm.
