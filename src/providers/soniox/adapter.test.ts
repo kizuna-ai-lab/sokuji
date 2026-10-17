@@ -598,6 +598,28 @@ describe('the Soniox adapter: one leg', () => {
   });
 });
 
+describe("the Soniox adapter: a lone leg's voice", () => {
+  const CLONE = '7c1d2e3f-0000-4000-8000-00000000c10e';
+  const VOICES: Partial<SonioxSettings> = { voice: CLONE, participantVoice: 'Emma' };
+  // The runner answers `reversed` by leg (`run.ts`): true on the participant's leg, whatever its direction.
+  const PARTICIPANT_LEG: SharedSettings = { ...SHARED, reversed: () => true };
+
+  it("speaks the speaker's leg in the speaker's voice", async () => {
+    const { stt, tts } = await live({ settings: VOICES });
+    stt().receive(msg(orig('Hello.'), tr('こんにちは。'), END));
+    expect(tts().sentJson<Json>()).toContainEqual(expect.objectContaining({ voice: CLONE, language: 'ja' }));
+  });
+
+  it("speaks the participant's leg, run alone, in the participant's voice, never the speaker's", async () => {
+    const context: SessionContext = { direction: { source: 'ja', target: 'en' }, speech: true, turns: 'auto' };
+    const { stt, tts } = await live({ context, settings: VOICES, shared: PARTICIPANT_LEG });
+    stt().receive(msg({ ...orig('Ohayō.'), language: 'ja' }, tr('Good morning.', 'en', 'ja'), END));
+    const sent = tts().sentJson<Json>();
+    expect(sent).toContainEqual(expect.objectContaining({ voice: 'Emma', language: 'en' }));
+    expect(sent).not.toContainEqual(expect.objectContaining({ voice: CLONE }));
+  });
+});
+
 describe("the Soniox adapter: Plan B's session seams", () => {
   it('tells a lease the first frame of each socket, and never resumes under one', async () => {
     const lease = { streamAccepted: vi.fn(), atGrantEnd: vi.fn(() => false), cutoff: vi.fn() };
