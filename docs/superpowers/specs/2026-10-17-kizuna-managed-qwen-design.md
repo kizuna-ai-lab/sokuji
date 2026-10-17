@@ -125,6 +125,19 @@ response's `resp-start-time` header and its body), widened by a 5 s margin, the 
 `start_unix_timestamp`. After the window the slot is free again, whatever the sessions it started are
 still doing.
 
+**Clocks.** Client clocks are never used: they can be off by any amount. The client sends no time at
+all, and its only timer, the grant's end, measures elapsed time on its own run clock. Attribution
+compares Alibaba's times only — both ends of a window come from the mint response our backend
+receives (`resp-start-time`, `expires_at`), and a row's start is stamped by Alibaba's gateway — so
+network delay cannot move a row across a window: the token is checked when the handshake reaches the
+gateway, the very moment the row records, and a handshake that arrives after the expiry is refused
+(401 "API Token is expired"), not logged late. Delay on the backend's mint only widens a window (it
+opens at Alibaba's receipt, before the token reaches us). Our server's clock decides one thing, when
+a slot is free again (`held_until <= now`); the 5 s margin absorbs its skew against Alibaba's and the
+whole-second `expires_at`. Two windows on one key are disjoint on Alibaba's clock when the new mint's
+`resp-start-time` lies past the old `expires_at`; the slot picker checks exactly that after each mint
+and alarms if it ever fails.
+
 **Why the window is enough.** A session can only start while its token is valid, and the log stamps
 each session with its start. So a row under a slot's key whose start falls inside one lease's window
 belongs to that lease and to no other, however long the session ran. (The earlier slot idea, built on
