@@ -57,7 +57,7 @@ handshake's request id) to find the row and to check the answer; it charges the 
 | Keys | ModelStudio 2026-02-10 `CreateApiKey` can limit a key to listed models (`auth.modelAccessScope`): another model answers 403. "Each workspace supports up to 20 API keys", and an account has up to 20 workspaces (QwenCloud's workspace guide). |
 | Row start | `start_unix_timestamp` is the WebSocket handshake, when the token is checked, on Alibaba's clock — not `session.update`. Probed 2026-10-17 with a 60 s token and no audio: A updated 20 s after its handshake; B dialled 5 s before the token expired and updated 15 s after it. Both got `session.updated`; both rows start 40 ms before the local 101 (the local clock ran ~43 ms ahead), B's 4.8 s before the expiry; `request_id` = the 101's `x-request-id`; no usage. So no client can push a session's start out of its token's validity. |
 | One token, two sessions | Probed 2026-10-17 (no audio): two sessions dialled together with one 60 s token both reached `session.updated` within 10 ms of each other and stayed open together for 10 s; the log holds two rows, each with its own `task_uuid` and `request_id` (each = its own 101's `x-request-id`), both starting 39 ms before their local 101 and 58.8 s before the expiry. |
-| Request id | A row's `request_id` is the `x-request-id` header of its WebSocket's 101 response (probed 2026-10-15, and again on both sessions of the 2026-10-17 probe), and `listModelLogs` filters on it exactly (`modelRequestId`). It is a second random id of the same connection, beside `task_uuid`: `task_uuid` arrives in the `session.created` body, `request_id` only in the handshake's response headers, which a browser's `WebSocket` does not expose — the desktop app's main process (`webRequest.onHeadersReceived`, whose one listener per session Better Auth already holds, `electron/better-auth-adapter.js`) and the extension's background (`chrome.webRequest.onHeadersReceived`, which needs the `webRequest` permission the manifest lacks) are where the header seam could read it; neither is verified yet. |
+| Request id | A row's `request_id` is the `x-request-id` header of its WebSocket's 101 response (probed 2026-10-15, and again on both sessions of the 2026-10-17 probe), and `listModelLogs` filters on it exactly (`modelRequestId`). It is a second random id of the same connection, beside `task_uuid`: `task_uuid` arrives in the `session.created` body, `request_id` only in the handshake's response headers, which a browser's `WebSocket` does not expose — the desktop app's main process (`webRequest.onHeadersReceived`, whose one listener per session Better Auth already holds, `electron/better-auth-adapter.js`) and the extension's background (`chrome.webRequest.onHeadersReceived`, which needs the `webRequest` permission the manifest lacks) are where the header seam could read it; both see it (probed 2026-10-18, §4). |
 | Lease release, managed Soniox | Read on sokuji-backend `origin/main` (1253c2f): `/session-end` only sets `end_signalled_at` and nudges the reconciler, which then retries on a 3 / 6 / 12 s ladder. A started lease is released once every started stream's usage log has landed (`noteStreamEnded`); the clock frees the account at `expires_at` — 60 s + a 15 s margin for a lease that never started, the grant + 15 s otherwise. |
 
 ## Decisions
@@ -229,6 +229,20 @@ reconciler into fast polling; it releases nothing by itself.
   the seam only to the adapter; it never reaches a log. Proving that each platform sees the header on
   the seam's socket is the implementation plan's first task; a platform that does not reports without
   it.
+  - **Probed 2026-10-18 with standalone harnesses** (a 60 s token, no audio, closed at
+    `session.created`). **Electron: yes.** Electron 44.5.1, a hidden `BrowserWindow` on a `file://`
+    page opening a plain `new WebSocket(url)`, Authorization added in the main process's
+    `onBeforeSendHeaders` for `resourceType === 'webSocket'` as `main.js` does: `onHeadersReceived`
+    saw the `webSocket` 101 carrying `x-request-id` (36 characters, UUID-shaped), with a filter of
+    `<all_urls>` and with `wss://maas.qwencloudapi.com/*` alone — so widening Better Auth's filter by
+    that one pattern suffices; `onResponseStarted` and `onCompleted` saw it too. **Extension: yes.**
+    Chromium 151 (`--headless=new`), a minimal MV3 extension (`webRequest`, `declarativeNetRequest`),
+    Authorization set by a dynamic DNR rule shaped as `wsHeaderRule.buildRule` builds it, the socket
+    opened from an extension page in a tab (the nearest a harness gets to the side panel):
+    `chrome.webRequest.onHeadersReceived` with `{ urls: ['wss://maas.qwencloudapi.com/*'], types:
+    ['websocket'] }` saw it with `['responseHeaders']` alone, and with `'extraHeaders'` added. A socket
+    opened from the service worker itself failed (1006) and raised no webRequest event — the seam never
+    opens one there. The real side panel and the packaged app stay on the owner's live test.
 - **Adapter.** One addition: on `session.created` it calls
   `credentials.lease?.sessionCreated(id, requestId)`.
   The grant's `endpoint` reaches it in the credentials, since `build` runs before the lease is
@@ -488,8 +502,8 @@ The page never shows a secret, and nothing it does reaches Alibaba other than th
 
 - The gateway is undocumented and may change without notice.
 - Qwen's maximum session length.
-- Whether Electron's `onHeadersReceived` and the extension's `chrome.webRequest` see the 101's
-  headers on the seam's socket, and whether adding `webRequest` makes Chrome ask installed users to
-  approve the extension again.
+- Whether adding `webRequest` makes Chrome ask installed users to approve the extension again. (That
+  both platforms see the 101's headers was probed in harnesses on 2026-10-18, §4; the real side panel
+  and the packaged app are on the owner's live test.)
 - Alibaba's own answer on what a request is and whether concurrency is capped (we measured: a request
   is a session start).
