@@ -191,7 +191,8 @@ The × uses the existing `common.dismiss`.
 1. Move `out/make` to `out/make-web`.
 2. Write the marker into the packaged app.
 3. Run `electron-forge make --from-package`.
-4. Rename the new Setup to `Sokuji-X.Y.Z-store-installer.exe`.
+4. Check that only the new package contains `resources/distribution.json`; the two installers are the same size, because Setup.exe is padded.
+5. Rename the new Setup to `Sokuji-X.Y.Z-store-installer.exe`.
 
 This runs on every Windows build, so a PR exercises it. Only a tag uploads.
 
