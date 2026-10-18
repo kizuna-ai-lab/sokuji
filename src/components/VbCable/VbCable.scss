@@ -1,0 +1,83 @@
+// src/components/VbCable/VbCable.scss
+// The VB-CABLE notice (spec 2026-10-17 §4), in the Settings info-banner's
+// colours (Settings.scss `.translate-info-banner .info-banner`).
+@use '../Settings/shared/variables' as vars;
+
+.vbcable-notice {
+  margin-top: 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(vars.$color-primary, 0.1);
+  border: 1px solid rgba(vars.$color-primary, 0.3);
+  border-radius: 6px;
+  font-size: vars.$font-body;
+  line-height: 1.45;
+  color: vars.$text-secondary;
+
+  &--ready { padding: 10px 12px; }
+
+  &__icon { flex-shrink: 0; margin-top: 2px; color: vars.$color-primary; }
+  &__content { flex: 1; min-width: 0; }
+  &__title { font-weight: 600; color: vars.$text-primary; margin-bottom: 2px; }
+  strong { color: vars.$text-primary; font-weight: 600; }
+  p { margin: 0; }
+  // Spelled out, not `&__foot`: nested it outranks `p` above (0,2,0 over 0,1,1).
+  .vbcable-notice__foot { margin-top: 8px; font-size: vars.$font-caption; color: vars.$text-muted; }
+
+  &__steps {
+    margin: 8px 0 0;
+    padding-left: 18px;
+    li { margin-top: 2px; }
+    code { font-family: Consolas, 'Cascadia Mono', monospace; font-size: vars.$font-caption; color: vars.$text-primary; }
+  }
+
+  &__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    font: inherit;
+    border-radius: vars.$radius-sm;
+    border: 1px solid vars.$border-default;
+    cursor: pointer;
+
+    &:focus-visible { @include vars.focus-ring; }
+    &:disabled { @include vars.disabled-state; }
+
+    &--primary {
+      background: vars.$color-primary-fill;
+      border-color: vars.$color-primary-fill;
+      color: vars.$color-on-primary;
+      font-weight: 500;
+      &:hover:not(:disabled) { background: vars.$color-primary-fill-hover; border-color: vars.$color-primary-fill-hover; }
+    }
+    &--secondary {
+      background: vars.$bg-control;
+      color: vars.$text-primary;
+      &:hover:not(:disabled) { background: vars.$bg-elevated; }
+    }
+  }
+
+  &__close {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    margin: -1px -4px 0 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: vars.$radius-sm;
+    color: vars.$text-muted;
+    cursor: pointer;
+
+    &:hover { color: vars.$text-primary; background: vars.$bg-control; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
+}

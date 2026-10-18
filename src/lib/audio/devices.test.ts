@@ -159,13 +159,22 @@ describe('listAudioDevices', () => {
     expect(devices.inputs.map((d) => d.deviceId)).toEqual(['mic-1']);
   });
 
+  it('says whether the outputs carry their own labels, though unlabelled ones get a placeholder name', async () => {
+    setMediaDevices(vi.fn(async () => makeStream()), vi.fn(async () => LABELED));
+    expect((await listAudioDevices()).outputLabelsKnown).toBe(true);
+    setMediaDevices(vi.fn(async () => makeStream()), vi.fn(async () => UNLABELED));
+    const unlabelled = await listAudioDevices({ warmUp: false });
+    expect(unlabelled.outputLabelsKnown).toBe(false);
+    expect(unlabelled.outputs[0].label).not.toBe('');
+  });
+
   it('records an error and returns empty lists when enumeration itself throws', async () => {
     const enumerateDevices = vi.fn(() => Promise.reject(new Error('enumerateDevices unavailable')));
     setMediaDevices(vi.fn(), enumerateDevices);
 
     const devices = await listAudioDevices();
 
-    expect(devices).toEqual({ inputs: [], outputs: [], complete: false });
+    expect(devices).toEqual({ inputs: [], outputs: [], complete: false, outputLabelsKnown: false });
     expect(reportErrorSpy).toHaveBeenCalledTimes(1);
     expect(reportErrorSpy.mock.calls[0][0]).toBe('AudioDevices');
     // The poll lists every 3 s: a listing that keeps failing is one burst, not a line per beat.
