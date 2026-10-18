@@ -158,6 +158,7 @@ app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
 // ready, and register the passive GPU-crash detector. Recovery mode itself runs
 // in whenReady (below), before the transparent main window is created.
 const sandboxRecovery = process.platform === 'win32' ? require('./sandbox-recovery') : null;
+const { resolveDistributionChannel } = require('./distribution-channel');
 
 // Closing the window or quitting mid-session ends the session first, so its
 // final lines are captured and auto-saved like any other Stop.
@@ -190,6 +191,19 @@ let mainWindow;
 // Most recently computed virtual-audio-device status, forwarded to the
 // renderer over the 'audio-status' channel once it's ready to receive it.
 let lastAudioStatus = null;
+
+// The website's build or the Microsoft Store's (spec 2026-10-17 §1). Read on
+// first use, after app.setName has fixed the userData path it records into.
+let distributionChannel = null;
+function getDistributionChannel() {
+  if (!distributionChannel) {
+    distributionChannel = resolveDistributionChannel({
+      resourcesPath: process.resourcesPath,
+      userDataPath: app.getPath('userData'),
+    });
+  }
+  return distributionChannel;
+}
 
 /**
  * Figure out *why* virtual audio device setup failed so the renderer can show
@@ -787,6 +801,7 @@ ipcMain.handle('sidecar-bundle:remove', () => {
 });
 
 ipcMain.handle('get-app-version', () => app.getVersion());
+ipcMain.handle('get-distribution-channel', () => getDistributionChannel());
 
 // IPC handler for the renderer to pull the current virtual-audio-device status.
 // The renderer's listener for the 'audio-status' push isn't guaranteed to be
@@ -875,31 +890,13 @@ ipcMain.handle('check-vbcable', async () => {
   }
 });
 
-// Handler for VB-CABLE installation (called from renderer process)
+// Install VB-CABLE behind the renderer's prompt. Store policy 10.2.3: the
+// Microsoft Store's build never installs other software (spec 2026-10-17 §2).
 ipcMain.handle('install-vbcable', async () => {
-  try {
-    if (process.platform === 'win32') {
-      console.log('[Sokuji] [Main] VB-CABLE installation requested from renderer');
-      const installer = require('./vb-cable-installer');
-      const result = await installer.ensureVBCableInstalled();
-      return {
-        success: result,
-        platform: 'windows'
-      };
-    } else {
-      return {
-        success: false,
-        platform: process.platform,
-        message: 'VB-CABLE is Windows-specific'
-      };
-    }
-  } catch (error) {
-    console.error('[Sokuji] [Main] Error installing VB-CABLE:', error);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
+  if (process.platform !== 'win32') return { ok: false, reason: 'unsupported' };
+  if (getDistributionChannel() !== 'website') return { ok: false, reason: 'not-offered' };
+  console.log('[Sokuji] [Main] VB-CABLE installation requested from renderer');
+  return require('./vb-cable-installer').installVBCable();
 });
 
 // Handler for Sokuji Virtual Audio detection (called from renderer process)

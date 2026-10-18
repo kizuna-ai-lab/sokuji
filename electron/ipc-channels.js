@@ -41,6 +41,7 @@ export const INVOKE_CHANNELS = [
   'set-cookie',
   'check-vbcable',
   'install-vbcable',
+  'get-distribution-channel',
   'check-sokuji-audio',
   // System audio capture
   'supports-system-audio-capture',
