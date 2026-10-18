@@ -183,7 +183,7 @@ function signalEnd(
 export function createQwenLease(deps: QwenLeaseDeps = {}) {
   const doFetch: NonNullable<QwenLeaseDeps['fetch']> = (url, init) => (deps.fetch ?? fetch)(url, init);
   const apiUrl = () => (deps.apiUrl ?? getApiUrl)();
-  /** The previous lease's `session-end` still retrying: the backend scopes it by account, so a late one would end the next lease. */
+  /** The previous lease's `session-end` still retrying: stopped at the next acquire. The backend marks only the lease it names, so a late one ends nothing new; retrying it past the next Start only spends requests. */
   let previous: Ending | null = null;
 
   return async function acquire(shape: RunShape, _s: QwenSettings, ctx: LeaseContext): Promise<Resources<QwenCredentials>> {
