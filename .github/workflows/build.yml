@@ -76,6 +76,13 @@ jobs:
           src/components/dev
           src/utils/featureGateForwarding.consistency.test.ts
           electron/squirrel-nuspec.consistency.test.js
+          electron/distribution-channel.test.js
+          electron/vb-cable-installer.test.js
+          electron/vbcable.wiring.test.js
+          electron/ipc-channels.test.js
+          src/stores/vbCableStore.test.ts
+          src/components/VbCable
+          src/locales/locales.consistency.test.ts
 
   # The sidecar's pytest suite had no CI coverage anywhere (a ledgered slice-3
   # debt, closed here in slice 5) — grep -rl "pytest" .github/ used to return
