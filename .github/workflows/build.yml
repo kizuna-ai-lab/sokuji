@@ -84,6 +84,7 @@ jobs:
           src/components/VbCable
           src/locales/locales.consistency.test.ts
           electron/store-installer.consistency.test.js
+          electron/entry-map.consistency.test.js
 
   # The sidecar's pytest suite had no CI coverage anywhere (a ledgered slice-3
   # debt, closed here in slice 5) — grep -rl "pytest" .github/ used to return
