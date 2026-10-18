@@ -14,9 +14,13 @@ const SETUP_EXE = 'VBCABLE_Setup_x64.exe';
 // because Start-Process words the message in the system's language.
 const UAC_CANCELLED_EXIT = 1223;
 
-/** A PowerShell single-quoted literal: only ' needs escaping, as ''. */
+/**
+ * A PowerShell single-quoted literal. PowerShell reads ' and the typographic
+ * single quotes U+2018-U+201B alike as its quote mark; each is escaped by
+ * doubling it (a profile folder such as D’Angelo would otherwise end the string).
+ */
 function psQuote(value) {
-  return `'${String(value).replace(/'/g, "''")}'`;
+  return `'${String(value).replace(/['‘’‚‛]/g, '$&$&')}'`;
 }
 
 /** Run one PowerShell command, arguments passed as an array so no shell parses them. */
@@ -65,8 +69,14 @@ async function installVBCable({
 
     const setup = path.join(dir, SETUP_EXE);
     try {
+      // Process.Start, not Start-Process: Start-Process rethrows a declined
+      // prompt as a bare InvalidOperationException, while a .NET call keeps the
+      // Win32Exception as the InnerException, where its 1223 can be read.
       await powershell(
-        `try { Start-Process -FilePath ${psQuote(setup)} -WorkingDirectory ${psQuote(dir)} -Verb RunAs -Wait -ErrorAction Stop } `
+        'try { $psi = New-Object System.Diagnostics.ProcessStartInfo; '
+        + `$psi.FileName = ${psQuote(setup)}; $psi.WorkingDirectory = ${psQuote(dir)}; `
+        + "$psi.Verb = 'runas'; $psi.UseShellExecute = $true; "
+        + '$p = [System.Diagnostics.Process]::Start($psi); if ($p) { $p.WaitForExit() } } '
         + `catch { $e = $_.Exception; while ($e) { if ($e.NativeErrorCode -eq ${UAC_CANCELLED_EXIT}) { exit ${UAC_CANCELLED_EXIT} }; $e = $e.InnerException }; throw }`,
       );
     } catch (error) {

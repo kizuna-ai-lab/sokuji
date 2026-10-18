@@ -24,6 +24,12 @@ describe('psQuote', () => {
   it('makes a single-quoted PowerShell literal, doubling quotes inside', () => {
     expect(psQuote("C:\\Users\\O'Brien\\x.zip")).toBe("'C:\\Users\\O''Brien\\x.zip'");
   });
+
+  it('doubles the typographic single quotes too, which PowerShell also reads as quote marks', () => {
+    for (const q of ['\u2018', '\u2019', '\u201A', '\u201B']) {
+      expect(psQuote(`C:\\Users\\D${q}Angelo`)).toBe(`'C:\\Users\\D${q}${q}Angelo'`);
+    }
+  });
 });
 
 describe('runPowerShell', () => {
@@ -48,8 +54,17 @@ describe('installVBCable', () => {
     expect(d.fetchImpl).toHaveBeenCalledWith(VB_CABLE_ZIP_URL, { redirect: 'follow' });
     const dir = `${TEMP}\\sokuji-vbcable`;
     expect(d.scripts[0]).toBe(`Expand-Archive -LiteralPath '${dir}\\vbcable.zip' -DestinationPath '${dir}' -Force`);
-    expect(d.scripts[1]).toContain(`Start-Process -FilePath '${dir}\\VBCABLE_Setup_x64.exe' -WorkingDirectory '${dir}' -Verb RunAs -Wait -ErrorAction Stop`);
-    expect(d.scripts[1]).toContain(`exit ${UAC_CANCELLED_EXIT}`);
+    const start = d.scripts[1];
+    expect(start).toContain(`$psi.FileName = '${dir}\\VBCABLE_Setup_x64.exe'`);
+    expect(start).toContain(`$psi.WorkingDirectory = '${dir}'`);
+    expect(start).toContain("$psi.Verb = 'runas'");
+    expect(start).toContain('$psi.UseShellExecute = $true');
+    expect(start).toContain('[System.Diagnostics.Process]::Start($psi)');
+    expect(start).toContain('WaitForExit()');
+    expect(start).toContain(`exit ${UAC_CANCELLED_EXIT}`);
+    // Start-Process rethrows a declined prompt as a bare InvalidOperationException,
+    // losing the Win32 code; Process.Start keeps it as the InnerException.
+    expect(start).not.toContain('Start-Process');
     expect(d.fs.rm).toHaveBeenCalledWith(dir, { recursive: true, force: true });
   });
 
@@ -59,9 +74,16 @@ describe('installVBCable', () => {
     expect(d.scripts[0]).toContain("-LiteralPath 'C:\\Users\\O''Brien\\AppData\\Local\\Temp\\sokuji-vbcable\\vbcable.zip'");
   });
 
+  it('quotes a temp path that holds a typographic apostrophe', async () => {
+    const d = deps({ tempRoot: 'C:\\Users\\D\u2019Angelo\\AppData\\Local\\Temp' });
+    await installVBCable(d);
+    expect(d.scripts[0]).toContain("-LiteralPath 'C:\\Users\\D\u2019\u2019Angelo\\AppData\\Local\\Temp\\sokuji-vbcable\\vbcable.zip'");
+    expect(d.scripts[1]).toContain("$psi.FileName = 'C:\\Users\\D\u2019\u2019Angelo\\AppData\\Local\\Temp\\sokuji-vbcable\\VBCABLE_Setup_x64.exe'");
+  });
+
   it('reads a declined administrator prompt as cancelled, by exit code, in any Windows language', async () => {
     const powershell = vi.fn(async (script) => {
-      if (script.startsWith('try { Start-Process')) throw Object.assign(new Error('Command failed'), { code: UAC_CANCELLED_EXIT, stderr: 'この操作はユーザーによって取り消されました。' });
+      if (script.includes('Process]::Start(')) throw Object.assign(new Error('Command failed'), { code: UAC_CANCELLED_EXIT, stderr: 'この操作はユーザーによって取り消されました。' });
       return '';
     });
     const d = deps({ powershell });
