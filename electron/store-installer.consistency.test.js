@@ -36,6 +36,13 @@ describe('the Microsoft Store installer pipeline', () => {
     expect(make).not.toMatch(/^\s+if: .*refs\/tags/m);
   });
 
+  it('proves only the Store package carries the marker before either installer ships', () => {
+    const check = make.indexOf('Only the Store package may carry resources/distribution.json');
+    expect(check).toBeGreaterThan(make.indexOf('--from-package'));
+    expect(check).toBeLessThan(make.indexOf('mkdir -p out/installers'));
+    expect(make).toContain('"out/make/squirrel.windows/x64" "out/make-web/squirrel.windows/x64"');
+  });
+
   it('puts both installers side by side under the names the rest of the pipeline expects', () => {
     expect(make).toContain('"out/make-web/squirrel.windows/x64/Sokuji-${VERSION} Setup.exe" out/installers/');
     expect(make).toContain('"out/installers/Sokuji-${VERSION}-store-installer.exe"');

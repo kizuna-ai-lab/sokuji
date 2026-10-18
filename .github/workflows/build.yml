@@ -358,6 +358,16 @@ jobs:
           fi
           printf '%s\n' '{"channel":"store"}' > "${APP_DIRS[0]}/resources/distribution.json"
           npx electron-forge make --arch="$ARCH" --from-package
+          # The two installers differ by the marker alone, and Setup.exe's size
+          # is padded, so their sizes cannot tell them apart: read the packages.
+          python - "out/make/squirrel.windows/x64" "out/make-web/squirrel.windows/x64" <<'EOF'
+          import glob, sys, zipfile
+          def has_marker(folder):
+              [nupkg] = glob.glob(folder + '/*-full.nupkg')
+              return any(name.endswith('resources/distribution.json') for name in zipfile.ZipFile(nupkg).namelist())
+          if not has_marker(sys.argv[1]) or has_marker(sys.argv[2]):
+              sys.exit('Only the Store package may carry resources/distribution.json')
+          EOF
           mkdir -p out/installers
           cp "out/make-web/squirrel.windows/x64/Sokuji-${VERSION} Setup.exe" out/installers/
           cp "out/make/squirrel.windows/x64/Sokuji-${VERSION} Setup.exe" "out/installers/Sokuji-${VERSION}-store-installer.exe"
