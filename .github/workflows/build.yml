@@ -83,6 +83,7 @@ jobs:
           src/stores/vbCableStore.test.ts
           src/components/VbCable
           src/locales/locales.consistency.test.ts
+          electron/store-installer.consistency.test.js
 
   # The sidecar's pytest suite had no CI coverage anywhere (a ledgered slice-3
   # debt, closed here in slice 5) — grep -rl "pytest" .github/ used to return
@@ -333,6 +334,33 @@ jobs:
           VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
           VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
           VITE_ENABLED_PROVIDERS: ${{ vars.VITE_ENABLED_PROVIDERS }}
+
+      # The Microsoft Store's installer (spec 2026-10-17 §6): the same packaged
+      # app plus resources/distribution.json, which turns the one-click VB-CABLE
+      # install into a link (Store policy 10.2.3). maker-squirrel always writes
+      # out/make/squirrel.windows/x64, so the website's installer moves aside
+      # first. Every Windows build runs it, so a PR proves it still works; only
+      # a tag uploads.
+      - name: Make the Microsoft Store installer (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./package.json').version")
+          ARCH='${{ matrix.arch || 'x64' }}'
+          mv out/make out/make-web
+          shopt -s nullglob
+          APP_DIRS=(out/*-win32-"$ARCH")
+          if [ "${#APP_DIRS[@]}" -ne 1 ] || [ ! -d "${APP_DIRS[0]}/resources" ]; then
+            echo "Expected one packaged app under out/*-win32-$ARCH, found: ${APP_DIRS[*]:-none}" >&2
+            exit 1
+          fi
+          printf '%s\n' '{"channel":"store"}' > "${APP_DIRS[0]}/resources/distribution.json"
+          npx electron-forge make --arch="$ARCH" --from-package
+          mkdir -p out/installers
+          cp "out/make-web/squirrel.windows/x64/Sokuji-${VERSION} Setup.exe" out/installers/
+          cp "out/make/squirrel.windows/x64/Sokuji-${VERSION} Setup.exe" "out/installers/Sokuji-${VERSION}-store-installer.exe"
+          ls -la out/installers
 
       # electron-builder bundles an x86_64-only `fpm` for building .deb packages.
       # On the arm64 runner, install `fpm` via Ruby gem and tell electron-builder
@@ -603,19 +631,20 @@ jobs:
             out/make-linux/*.deb
             out/make-linux/latest-linux-arm64.yml
 
-      - name: Upload unsigned Windows installer for signing
+      - name: Upload unsigned Windows installers for signing
         if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v6
         with:
           name: windows-unsigned
-          path: out/make/squirrel.windows/x64/*Setup*.exe
+          # Both at the zip's root, where SignPath's two patterns look.
+          path: out/installers/*.exe
 
       - name: Upload Windows nupkg for release
         if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v6
         with:
           name: windows-nupkg
-          path: out/make/squirrel.windows/x64/*.nupkg
+          path: out/make-web/squirrel.windows/x64/*.nupkg
 
       - name: Upload macOS artifacts
         if: startsWith(github.ref, 'refs/tags/v') && runner.os == 'macOS'
@@ -770,17 +799,45 @@ jobs:
             mv "$f" "${f// /.}"
           done
           cd ..
+          # The Microsoft Store's installer travels with the release: the Store
+          # downloads it through sokuji-backend's pinned route. Fail rather than
+          # publish a release the Store submission cannot point at, or one whose
+          # installers came back without a signature.
+          if [ -z "$(find release-assets -name '*-store-installer.exe')" ]; then
+            echo "The Store installer is missing from the signed artifacts" >&2
+            exit 1
+          fi
+          # An Authenticode signature sits in the PE certificate table (optional-
+          # header data directory 4). This job has no checkout and no
+          # osslsigncode, so a non-empty entry is the check: it tells a signed
+          # installer from one SignPath never touched.
+          python3 -I - release-assets/*.exe <<'EOF'
+          import struct, sys
+          unsigned = []
+          for path in sys.argv[1:]:
+              data = open(path, 'rb').read()
+              pe = struct.unpack_from('<I', data, 0x3C)[0]
+              optional = pe + 24
+              directories = optional + (96 if struct.unpack_from('<H', data, optional)[0] == 0x10B else 112)
+              _offset, size = struct.unpack_from('<II', data, directories + 4 * 8)
+              if data[pe:pe + 4] != b'PE\0\0' or size == 0:
+                  unsigned.append(path)
+          for path in unsigned:
+              print(f'Not signed: {path}', file=sys.stderr)
+          sys.exit(1 if unsigned else 0)
+          EOF
           echo "=== Release assets ==="
           ls -la release-assets/
 
       - name: Generate latest.yml for auto-updater
         run: |
-          # Find the signed Windows .exe
-          EXE_FILE=$(find release-assets -name "*.exe" | head -1)
-          if [ -z "$EXE_FILE" ]; then
-            echo "Warning: No .exe found, skipping latest.yml generation"
-            exit 0
+          # The website's installer only: the Store's must never reach the updater.
+          mapfile -t EXES < <(find release-assets -name "*.Setup.exe")
+          if [ "${#EXES[@]}" -ne 1 ]; then
+            echo "Expected one *.Setup.exe, found ${#EXES[@]}: ${EXES[*]:-none}" >&2
+            exit 1
           fi
+          EXE_FILE=${EXES[0]}
 
           EXE_NAME=$(basename "$EXE_FILE")
           VERSION=${GITHUB_REF_NAME#v}
