@@ -22,6 +22,8 @@ const VbCableIntro: React.FC = () => {
   const presence = useVbCablePresence();
   const channel = useVbCableStore((s) => s.channel);
   const introSeen = useVbCableStore((s) => s.introSeen);
+  const attempt = useVbCableStore((s) => s.attempt);
+  const readyDismissed = useVbCableStore((s) => s.readyDismissed);
   const load = useVbCableStore((s) => s.load);
   const markIntroSeen = useVbCableStore((s) => s.markIntroSeen);
   const dismissReady = useVbCableStore((s) => s.dismissReady);
@@ -43,6 +45,16 @@ const VbCableIntro: React.FC = () => {
   useEffect(() => {
     if (wanted) setOpen(true);
   }, [wanted]);
+
+  // VB-CABLE turned up with nothing left to say (installed by hand, then Check
+  // again): the notice draws nothing, so the dialog would stand empty.
+  const nothingToShow = presence === 'present' && (attempt === 'none' || readyDismissed);
+  useEffect(() => {
+    if (open && nothingToShow) {
+      setOpen(false);
+      markIntroSeen();
+    }
+  }, [open, nothingToShow, markIntroSeen]);
 
   if (!open) return null;
   const close = () => {

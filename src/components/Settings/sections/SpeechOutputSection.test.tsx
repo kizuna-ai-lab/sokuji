@@ -512,6 +512,13 @@ describe('SpeechOutputSection — VB-CABLE on Windows (spec 2026-10-17 §4)', ()
     expect(screen.getByText('Passthrough')).toBeInTheDocument();
   });
 
+  it('nothing in Other mode, where no translation goes into the virtual microphone and the row is greyed', () => {
+    useAudioStore.setState({ mode: 'participant', devicesLoaded: true, audioMonitorDevices: [SPEAKERS], selectedMonitorDevice: SPEAKERS });
+    mount();
+    expect(greyed('Translation the other side hears')).toBe(true);
+    expect(screen.queryByTestId('vbcable-row')).toBeNull();
+  });
+
   it('nothing while the translation is not spoken', () => {
     useAudioStore.setState({ devicesLoaded: true, audioMonitorDevices: [SPEAKERS], selectedMonitorDevice: SPEAKERS });
     useSettingsStore.setState({ textOnly: true });

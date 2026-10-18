@@ -92,6 +92,15 @@ describe('VbCableIntro', () => {
     expect(dialog()).toBeInTheDocument();
   });
 
+  it('closes and counts as seen when VB-CABLE turns up with nothing left to show (installed by hand, then Check again)', () => {
+    const r = render(<VbCableIntro />);
+    expect(dialog()).toBeInTheDocument();
+    presence.value = 'present';
+    r.rerender(<VbCableIntro />);
+    expect(dialog()).toBeNull();
+    expect(actions.markIntroSeen).toHaveBeenCalledTimes(1);
+  });
+
   it('stays open when the driver lands during the install', () => {
     const r = render(<VbCableIntro />);
     presence.value = 'present';
@@ -110,7 +119,6 @@ describe('VbCableIntro', () => {
     const again = render(<VbCableIntro />);
     presence.value = 'present';
     state({ attempt: 'succeeded' });
-    // VbCableIntro selects no `attempt`, so only a re-render reads the new presence.
     again.rerender(<VbCableIntro />);
     fireEvent.click(screen.getByText('not-now'));
     expect(actions.dismissReady).toHaveBeenCalledTimes(1);
