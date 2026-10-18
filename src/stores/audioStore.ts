@@ -99,6 +99,8 @@ interface AudioStore {
   unusableInputIds: readonly string[];
   /** Set once the first `refreshDevices` has loaded the saved devices; `syncDevices` waits for it. */
   devicesLoaded: boolean;
+  /** The last listing named every output by its own label, not a placeholder: until then no output can be told apart (VB-CABLE's presence reads it). */
+  outputLabelsKnown: boolean;
   isLoading: boolean;
   isRealVoicePassthroughEnabled: boolean;
   realVoicePassthroughVolume: number;
@@ -192,6 +194,7 @@ const useAudioStore = create<AudioStore>()(
     savedMonitorDeviceId: null,
     unusableInputIds: [],
     devicesLoaded: false,
+    outputLabelsKnown: false,
     isLoading: true,
     isRealVoicePassthroughEnabled: false,
     realVoicePassthroughVolume: 0.2,
@@ -415,7 +418,8 @@ const useAudioStore = create<AudioStore>()(
 
         set({
           audioInputDevices: devices.inputs,
-          audioMonitorDevices: devices.outputs
+          audioMonitorDevices: devices.outputs,
+          outputLabelsKnown: devices.outputLabelsKnown === true,
         });
 
         // Only Electron can enumerate per-application sources; the extension
@@ -616,12 +620,14 @@ const useAudioStore = create<AudioStore>()(
       const inputs = sameDevices(state.audioInputDevices, listing.inputs) ? state.audioInputDevices : listing.inputs;
       const outputs = sameDevices(state.audioMonitorDevices, listing.outputs) ? state.audioMonitorDevices : listing.outputs;
       const listsChanged = inputs !== state.audioInputDevices || outputs !== state.audioMonitorDevices;
+      const outputLabelsKnown = listing.outputLabelsKnown === true;
+      const labelsChanged = outputLabelsKnown !== state.outputLabelsKnown;
       if (!listing.complete) {
         // A failed listing, or one without labels (no microphone permission
         // yet): virtual and loopback inputs cannot be told from real ones, so
         // the lists may change but no choice does — and a failure that looks
         // like "every device is gone" changes nothing at all.
-        if ((inputs.length > 0 || outputs.length > 0) && listsChanged) set({ audioInputDevices: inputs, audioMonitorDevices: outputs });
+        if ((inputs.length > 0 || outputs.length > 0) && (listsChanged || labelsChanged)) set({ audioInputDevices: inputs, audioMonitorDevices: outputs, outputLabelsKnown });
         return;
       }
       // A mark lasts until its device leaves the list (replugged, it is tried
@@ -643,11 +649,12 @@ const useAudioStore = create<AudioStore>()(
       const selectedMonitorDevice = keep(state.selectedMonitorDevice, monitor);
       if (
         !listsChanged &&
+        !labelsChanged &&
         unusableInputIds === state.unusableInputIds &&
         selectedInputDevice === state.selectedInputDevice &&
         selectedMonitorDevice === state.selectedMonitorDevice
       ) return;
-      set({ audioInputDevices: inputs, audioMonitorDevices: outputs, unusableInputIds, selectedInputDevice, selectedMonitorDevice });
+      set({ audioInputDevices: inputs, audioMonitorDevices: outputs, outputLabelsKnown, unusableInputIds, selectedInputDevice, selectedMonitorDevice });
     },
 
     markInputUnusable: (deviceId) => {

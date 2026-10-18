@@ -479,8 +479,8 @@ describe('SpeechOutputSection — VB-CABLE on Windows (spec 2026-10-17 §4)', ()
   const CABLE = { deviceId: 'cable', label: 'CABLE Input (VB-Audio Virtual Cable)' };
   const field = () => row('Translation the other side hears').querySelector('.setting-row__field');
 
-  beforeEach(() => { env.os = 'win'; });
-  afterEach(() => { useAudioStore.setState({ devicesLoaded: false }); });
+  beforeEach(() => { env.os = 'win'; useAudioStore.setState({ outputLabelsKnown: true }); });
+  afterEach(() => { useAudioStore.setState({ devicesLoaded: false, outputLabelsKnown: false }); });
 
   it('missing: no virtual-microphone field, no Passthrough, the notice under the row', () => {
     useAudioStore.setState({ devicesLoaded: true, audioMonitorDevices: [SPEAKERS], selectedMonitorDevice: SPEAKERS });
@@ -502,6 +502,14 @@ describe('SpeechOutputSection — VB-CABLE on Windows (spec 2026-10-17 §4)', ()
     useAudioStore.setState({ devicesLoaded: false, audioMonitorDevices: [] });
     mount();
     expect(field()).not.toBeNull();
+  });
+
+  it('not while the outputs carry only placeholder names: the field and Passthrough stay', () => {
+    const placeholder = { deviceId: 'abcdef01', label: 'Speaker abcde...' };
+    useAudioStore.setState({ devicesLoaded: true, outputLabelsKnown: false, audioMonitorDevices: [placeholder], selectedMonitorDevice: placeholder });
+    mount();
+    expect(field()).not.toBeNull();
+    expect(screen.getByText('Passthrough')).toBeInTheDocument();
   });
 
   it('nothing while the translation is not spoken', () => {

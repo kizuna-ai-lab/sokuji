@@ -97,6 +97,7 @@ export const useVbCableStore = create<VbCableState>()((set, get) => ({
 /** VB-CABLE's presence, following the device list. */
 export function useVbCablePresence(): VbCablePresence {
   const devicesLoaded = useAudioStore((s) => s.devicesLoaded);
+  const labelsKnown = useAudioStore((s) => s.outputLabelsKnown);
   const outputs = useAudioStore((s) => s.audioMonitorDevices);
-  return vbCablePresence({ electron: isElectron(), windows: isWindows(), devicesLoaded, outputs });
+  return vbCablePresence({ electron: isElectron(), windows: isWindows(), devicesLoaded, labelsKnown, outputs });
 }

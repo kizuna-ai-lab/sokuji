@@ -6,7 +6,7 @@ import { ServiceFactory } from '../services/ServiceFactory';
 // Device enumeration moved to src/lib/audio/devices.ts (plan 1e-3c, controller
 // ruling 3); refreshDevices calls its plain functions instead of the old
 // audioService, so tests mock the module rather than an audioService object.
-const mockListAudioDevices = vi.hoisted(() => vi.fn(async (_options?: { warmUp?: boolean }): Promise<{ inputs: AudioDevice[]; outputs: AudioDevice[]; complete?: boolean }> => ({ inputs: [], outputs: [] })));
+const mockListAudioDevices = vi.hoisted(() => vi.fn(async (_options?: { warmUp?: boolean }): Promise<{ inputs: AudioDevice[]; outputs: AudioDevice[]; complete?: boolean; outputLabelsKnown?: boolean }> => ({ inputs: [], outputs: [] })));
 const mockListSystemAudioSources = vi.hoisted(() => vi.fn(async () => [] as AudioDevice[]));
 vi.mock('../lib/audio/devices', () => ({
   listAudioDevices: mockListAudioDevices,
@@ -608,6 +608,16 @@ describe('audioStore — following the OS (syncDevices)', () => {
     await useAudioStore.getState().syncDevices();
     expect(useAudioStore.getState().selectedInputDevice).toBe(before);
   });
+
+  it('keeps whether the outputs carry their own labels, as the listing reports it, complete or not', async () => {
+    useAudioStore.setState({ outputLabelsKnown: false });
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-a'), real('mic-b')], outputs: [real('spk-a')], complete: true, outputLabelsKnown: true });
+    await useAudioStore.getState().syncDevices();
+    expect(useAudioStore.getState().outputLabelsKnown).toBe(true);
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-a'), real('mic-b')], outputs: [real('spk-a', 'Speaker spk-a...')], complete: false, outputLabelsKnown: false });
+    await useAudioStore.getState().syncDevices();
+    expect(useAudioStore.getState().outputLabelsKnown).toBe(false);
+  });
 });
 
 describe('audioStore — refreshDevices and the saved device', () => {
@@ -628,6 +638,13 @@ describe('audioStore — refreshDevices and the saved device', () => {
     expect(s.selectedInputDevice?.deviceId).toBe('mic-a');
     expect(s.savedInputDeviceId).toBe('mic-a');
     expect(s.devicesLoaded).toBe(true);
+  });
+
+  it('keeps whether the outputs carry their own labels', async () => {
+    useAudioStore.setState({ outputLabelsKnown: false });
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [], outputs: [{ deviceId: 'spk', label: 'Speakers', isVirtual: false }], complete: true, outputLabelsKnown: true });
+    await useAudioStore.getState().refreshDevices();
+    expect(useAudioStore.getState().outputLabelsKnown).toBe(true);
   });
 });
 

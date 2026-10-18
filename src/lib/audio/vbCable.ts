@@ -12,13 +12,15 @@ export interface VbCablePresenceInput {
   electron: boolean;
   windows: boolean;
   devicesLoaded: boolean;
+  /** The listing named every output by its own label (`listAudioDevices`'s `outputLabelsKnown`). */
+  labelsKnown: boolean;
   outputs: readonly { deviceId: string; label: string }[];
 }
 
-export function vbCablePresence({ electron, windows, devicesLoaded, outputs }: VbCablePresenceInput): VbCablePresence {
+export function vbCablePresence({ electron, windows, devicesLoaded, labelsKnown, outputs }: VbCablePresenceInput): VbCablePresence {
   if (!electron || !windows) return 'not-applicable';
-  // Before media permission every label is empty and no device can be told apart.
-  if (!devicesLoaded || outputs.every((device) => !device.label)) return 'unknown';
+  // Before media permission an output carries only a placeholder name, and no device can be told apart.
+  if (!devicesLoaded || !labelsKnown) return 'unknown';
   return findVirtualSpeaker(outputs) ? 'present' : 'missing';
 }
 
