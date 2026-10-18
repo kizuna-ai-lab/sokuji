@@ -16,6 +16,7 @@ const CounterStub = ({ label }: { label: string }) => {
 
 vi.mock('../MainPanel/MainPanel', () => ({ default: () => null }));
 vi.mock('../Tour/TourOverlay', () => ({ default: () => null }));
+vi.mock('../VbCable/VbCableIntro', () => ({ default: () => <div data-testid="vbcable-intro" /> }));
 vi.mock('../Subtitle/SubtitleTakeover', () => ({ SubtitleTakeover: () => <div data-testid="subtitle-takeover" /> }));
 vi.mock('../SetupWizard/SetupWizard', () => ({ default: () => null }));
 vi.mock('./PanelResizer', () => ({ default: () => null }));

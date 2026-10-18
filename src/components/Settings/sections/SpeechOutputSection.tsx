@@ -24,6 +24,8 @@ import { useKeepReplayAudio, useNavigateToSettings, useSetKeepReplayAudio, useSe
 import { useTurnModeStore } from '../../../stores/turnModeStore';
 import { getEnvironment } from '../../../utils/environment';
 import { useFaceToFace } from '../../MainPanel/useFaceToFace';
+import VbCableNotice from '../../VbCable/VbCableNotice';
+import { useVbCablePresence } from '../../../stores/vbCableStore';
 
 export interface SpeechOutputSectionProps {
   /** A run is live: Translation the other side hears and Translation I hear froze into its shape. */
@@ -127,7 +129,10 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
   const runSpeech = useRunParticipantSpeech();
   const themLocked = isSessionActive && runSpeech !== true;
   const themOn = runSpeech !== false && participantOffered && !recaptured && speech !== 'never' && (speech === 'always' || (participantSpeech ?? faceToFace));
-  const hasVirtualBus = platform !== 'web';
+  const vbCable = useVbCablePresence();
+  // On Windows the virtual microphone is VB-CABLE, a driver the user installs: while it is
+  // missing there is no device to name and nothing for Passthrough to mix into (spec 2026-10-17 §4).
+  const hasVirtualBus = platform !== 'web' && vbCable !== 'missing';
   const pushToTranslate = turnMode === 'push-to-translate';
 
   const modeName = mode === 'speaker' ? t('modePicker.modeYou', 'Me') : mode === 'participant' ? t('modePicker.modeParticipants', 'Other') : t('modePicker.modeBoth', 'Both');
@@ -221,7 +226,12 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
         tooltip={speech === 'always' ? t('audioPanel.otherHearsAlwaysSpeaks', 'This service always speaks.') : speech === 'never' ? t('audioPanel.otherHearsNeverSpeaks', 'This service never speaks.') : t('audioPanel.otherHearsTip', 'What I say, translated and read aloud to the other side. Into the virtual microphone: the other side picks it as the microphone in their own app.')}
         greyed={myLegRuns ? undefined : notInMode}
         switch={{ checked: otherOn, onChange: () => setTextOnly(!textOnly), disabled: isSessionActive || speech !== 'optional', title: isSessionActive ? lockedByRun : undefined }}
-        footer={otherOn && <VoiceLine leg="speaker" locked={isSessionActive} />}
+        footer={otherOn && (
+          <>
+            {!faceToFace && vbCable !== 'not-applicable' && <VbCableNotice variant="row" />}
+            <VoiceLine leg="speaker" locked={isSessionActive} />
+          </>
+        )}
       >
         {faceToFace
           ? outletSelect('other', otherLabel, true)

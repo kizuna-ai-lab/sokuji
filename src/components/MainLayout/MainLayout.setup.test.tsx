@@ -4,6 +4,7 @@ import MainLayout from './MainLayout';
 
 vi.mock('../MainPanel/MainPanel', () => ({ default: () => <div data-testid="main-panel" /> }));
 vi.mock('../Tour/TourOverlay', () => ({ default: () => <div data-testid="tour-overlay" /> }));
+vi.mock('../VbCable/VbCableIntro', () => ({ default: () => <div data-testid="vbcable-intro" /> }));
 vi.mock('../Subtitle/SubtitleTakeover', () => ({ SubtitleTakeover: () => <div data-testid="subtitle-takeover" /> }));
 vi.mock('./PanelResizer', () => ({ default: () => null }));
 vi.mock('../LogsPanel/LogsPanel', () => ({ default: () => null }));
@@ -93,6 +94,21 @@ describe('MainLayout first-run gating (spec §1.1)', () => {
     expect(screen.queryByTestId('title-bar')).toBeNull();
     // The app session's takeover in the layout's place.
     expect(screen.getByTestId('subtitle-takeover')).toBeInTheDocument();
+  });
+
+  it('mounts the VB-CABLE introduction with the layout, never with the first-run wizard', () => {
+    render(<MainLayout />);
+    expect(screen.getByTestId('vbcable-intro')).toBeInTheDocument();
+    cleanup();
+    complete = false;
+    render(<MainLayout />);
+    expect(screen.queryByTestId('vbcable-intro')).toBeNull();
+  });
+
+  it('drops the VB-CABLE introduction during an Electron subtitle takeover', () => {
+    flags.electron = true; flags.subtitleActive = true;
+    render(<MainLayout />);
+    expect(screen.queryByTestId('vbcable-intro')).toBeNull();
   });
 });
 

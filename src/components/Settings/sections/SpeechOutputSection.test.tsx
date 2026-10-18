@@ -58,6 +58,7 @@ vi.mock('../../Tooltip/Tooltip', async (importOriginal) => {
 });
 const preview = vi.hoisted(() => vi.fn(async (_outlet: string) => {}));
 vi.mock('../../../lib/audio/appAudio', () => ({ getAppAudio: async () => ({ earPreview: preview }) }));
+vi.mock('../../VbCable/VbCableNotice', () => ({ default: ({ variant }: { variant: string }) => <div data-testid={`vbcable-${variant}`} /> }));
 
 import useAudioStore from '../../../stores/audioStore';
 import { useProviderStore } from '../../../stores/providerStore';
@@ -470,5 +471,50 @@ describe('SpeechOutputSection — the voice each spoken row reads in', () => {
     expect(useSettingsStore.getState().uiMode).toBe('basic');
     expect(useSettingsStore.getState().engineSlotTarget).toEqual({ dir: 'ja→en', stage: 'tts' });
     expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider');
+  });
+});
+
+describe('SpeechOutputSection — VB-CABLE on Windows (spec 2026-10-17 §4)', () => {
+  const SPEAKERS = { deviceId: 'spk', label: 'Speakers (Realtek(R) Audio)' };
+  const CABLE = { deviceId: 'cable', label: 'CABLE Input (VB-Audio Virtual Cable)' };
+  const field = () => row('Translation the other side hears').querySelector('.setting-row__field');
+
+  beforeEach(() => { env.os = 'win'; });
+  afterEach(() => { useAudioStore.setState({ devicesLoaded: false }); });
+
+  it('missing: no virtual-microphone field, no Passthrough, the notice under the row', () => {
+    useAudioStore.setState({ devicesLoaded: true, audioMonitorDevices: [SPEAKERS], selectedMonitorDevice: SPEAKERS });
+    mount();
+    expect(field()).toBeNull();
+    expect(screen.queryByText('Passthrough')).toBeNull();
+    expect(within(row('Translation the other side hears')).getByTestId('vbcable-row')).toBeInTheDocument();
+  });
+
+  it('present: the field and Passthrough are back, and the notice stays mounted for the ready line', () => {
+    useAudioStore.setState({ devicesLoaded: true, audioMonitorDevices: [SPEAKERS, CABLE], selectedMonitorDevice: SPEAKERS });
+    mount();
+    expect(field()?.textContent).toBe('Virtual microphone · CABLE Output (VB-Audio Virtual Cable)');
+    expect(screen.getByText('Passthrough')).toBeInTheDocument();
+    expect(screen.getByTestId('vbcable-row')).toBeInTheDocument();
+  });
+
+  it('not before the device list is known: the field as before, no notice content decided yet', () => {
+    useAudioStore.setState({ devicesLoaded: false, audioMonitorDevices: [] });
+    mount();
+    expect(field()).not.toBeNull();
+  });
+
+  it('nothing while the translation is not spoken', () => {
+    useAudioStore.setState({ devicesLoaded: true, audioMonitorDevices: [SPEAKERS], selectedMonitorDevice: SPEAKERS });
+    useSettingsStore.setState({ textOnly: true });
+    mount();
+    expect(screen.queryByTestId('vbcable-row')).toBeNull();
+  });
+
+  it('not on macOS, where the virtual microphone is Sokuji\'s own', () => {
+    env.os = 'mac';
+    useAudioStore.setState({ devicesLoaded: true, audioMonitorDevices: [SPEAKERS], selectedMonitorDevice: SPEAKERS });
+    mount();
+    expect(screen.queryByTestId('vbcable-row')).toBeNull();
   });
 });
