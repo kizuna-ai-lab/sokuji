@@ -170,7 +170,13 @@ start time removes that.)
 
 **Capacity.** A slot is busy about 70 s per lease. Sessions start at most 10 times a minute account-wide
 (the RPM), so about 12 slots carry the full rate; 20 leave room. With every slot held, `session-key`
-answers 503 `qwen_busy` with a retry hint. A raised RPM is met with another workspace and its keys.
+answers 503 `qwen_busy` with a retry hint. The pool alone does not hold the rate, since each leg is a
+session and a two-leg lease takes one slot: before claiming a key, `session-key` counts the legs of
+the windows opened in the last minute, and when this lease's legs would pass `QWEN_ACCOUNT_RPM` it
+answers the same 503, its hint the time until the oldest of those windows leaves the minute (amended
+2026-10-18, from review: a token minted past the limit fails at the handshake and leaves its lease
+to the clock). Two takes in the same instant may both pass, since a window is recorded after its
+mint. A raised RPM is met with another workspace and its keys, and with `QWEN_ACCOUNT_RPM` raised.
 The picker takes a free key of an active workspace, the least recently issued first, so the load
 spreads over keys and workspaces; a paused workspace's keys are skipped.
 
@@ -184,7 +190,7 @@ another. A deleted key's row stays, paused, since windows and charges point at i
 **Every mint is kept.** `qwen_key_windows` holds one row per mint — the slot, its workspace and
 `apikey_id`, the lease and account, the window on Alibaba's clock (`opened_at` = `resp-start-time`,
 `expires_at`), `held_until`, our server's mint time — indexed on `(workspace_id, apikey_id,
-opened_at)`. Attribution looks windows
+opened_at)`, and on `opened_at` alone for the account-wide count of the last minute. Attribution looks windows
 up there (a row can land after its slot has moved on to the next lease), and the admin page reads it
 as each key's issue history.
 
@@ -193,7 +199,8 @@ as each key's issue history.
 **`POST /session-key`** `{ legs: ['speaker'] | ['participant'] | ['speaker', 'participant'], speech: { speaker, participant } }`
 - Order, as Soniox's: sign-in (401) → wallet (403 frozen) → budget from the balance and the rate
   (402 with `requiredMicroUsd`, `balanceMicroUsd`) → lease (409 `active_lease` with `retryAfterMs`)
-  → slot (503 `qwen_busy`) → mint (502 on failure; the slot and the lease are released).
+  → the account's RPM, then a slot (503 `qwen_busy`, the lease released) → mint (502 on failure; the
+  slot and the lease are released).
 - Answer: `{ leaseId, endpoint: 'intl', apiKey: '<st- token>', expiresAt, maxSessionDurationSeconds,
   budgetMicroUsd, rateUsdPerHour }`. The token is the only secret in it; the slot's key never leaves
   the backend.
