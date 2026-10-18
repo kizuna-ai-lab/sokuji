@@ -49,6 +49,7 @@ async function installVBCable({
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   detectAttempts = 5,
   detectIntervalMs = 2000,
+  downloadTimeoutMs = 120000,
 } = {}) {
   if (await isInstalled()) return { ok: true };
 
@@ -56,13 +57,19 @@ async function installVBCable({
   try {
     await fs.mkdir(dir, { recursive: true });
     const zip = path.join(dir, 'vbcable.zip');
+    // One deadline for the request and its body: a stalled connection would
+    // otherwise leave the prompt on "Installing…" until the app restarts.
+    const download = new AbortController();
+    const deadline = setTimeout(() => download.abort(new Error(`no download within ${downloadTimeoutMs} ms`)), downloadTimeoutMs);
     try {
-      const response = await fetchImpl(VB_CABLE_ZIP_URL, { redirect: 'follow' });
+      const response = await fetchImpl(VB_CABLE_ZIP_URL, { redirect: 'follow', signal: download.signal });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       await fs.writeFile(zip, Buffer.from(await response.arrayBuffer()));
     } catch (error) {
       console.error('[Sokuji] [VB-CABLE Installer] Download failed:', error?.message);
       return { ok: false, reason: 'download-failed' };
+    } finally {
+      clearTimeout(deadline);
     }
 
     await powershell(`Expand-Archive -LiteralPath ${psQuote(zip)} -DestinationPath ${psQuote(dir)} -Force`);

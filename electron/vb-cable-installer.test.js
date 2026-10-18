@@ -51,7 +51,7 @@ describe('installVBCable', () => {
   it('downloads, extracts, runs the setup elevated and waits for the driver', async () => {
     const d = deps({ installed: [false, false, true] });
     await expect(installVBCable(d)).resolves.toEqual({ ok: true });
-    expect(d.fetchImpl).toHaveBeenCalledWith(VB_CABLE_ZIP_URL, { redirect: 'follow' });
+    expect(d.fetchImpl).toHaveBeenCalledWith(VB_CABLE_ZIP_URL, expect.objectContaining({ redirect: 'follow', signal: expect.anything() }));
     const dir = `${TEMP}\\sokuji-vbcable`;
     expect(d.scripts[0]).toBe(`Expand-Archive -LiteralPath '${dir}\\vbcable.zip' -DestinationPath '${dir}' -Force`);
     const start = d.scripts[1];
@@ -97,6 +97,28 @@ describe('installVBCable', () => {
     expect(d.powershell).not.toHaveBeenCalled();
     expect(d.fs.rm).toHaveBeenCalled();
   });
+
+  it('gives up a download that never answers, so the prompt can offer Try again', async () => {
+    // A stalled connection: nothing settles unless the request is aborted.
+    const fetchImpl = vi.fn((_url, { signal } = {}) => new Promise((_resolve, reject) => {
+      signal?.addEventListener('abort', () => reject(new Error('aborted')));
+    }));
+    const d = { ...deps(), fetchImpl, downloadTimeoutMs: 20 };
+    await expect(installVBCable(d)).resolves.toEqual({ ok: false, reason: 'download-failed' });
+    expect(d.powershell).not.toHaveBeenCalled();
+  }, 1000);
+
+  it('gives up a download whose body stalls after the headers', async () => {
+    const fetchImpl = vi.fn(async (_url, { signal } = {}) => ({
+      ok: true,
+      status: 200,
+      arrayBuffer: () => new Promise((_resolve, reject) => {
+        signal?.addEventListener('abort', () => reject(new Error('aborted')));
+      }),
+    }));
+    const d = { ...deps(), fetchImpl, downloadTimeoutMs: 20 };
+    await expect(installVBCable(d)).resolves.toEqual({ ok: false, reason: 'download-failed' });
+  }, 1000);
 
   it('reports not-detected when the setup closed but the driver never appeared', async () => {
     const d = deps({ installed: [false] });
