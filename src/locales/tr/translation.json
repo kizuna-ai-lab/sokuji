@@ -687,6 +687,8 @@
     "sonioxVoiceBuildFailed": "Özel sesiniz oluşturulamadı, bu yüzden bu oturum hazır bir ses kullanıyor. Ayarlar'dan daha net bir kayıt yapmayı deneyin.",
     "sonioxVoiceUnavailable": "Özel sesiniz şu anda kullanılamıyor, bu yüzden bu oturum hazır bir ses kullanıyor.",
     "preparingVoice": "Sesiniz hazırlanıyor…",
+    "waitingForPreviousSession": "Bekleniyor…",
+    "waitingForPreviousSessionTitle": "Önceki oturumun sona ermesi bekleniyor. İptal etmek için tıklayın.",
     "clickToCancel": "İptal etmek için tıklayın"
   },
   "modePicker": {
@@ -732,7 +734,8 @@
     "stop": "Durdur",
     "start": "Başlat",
     "loadingModel": "Model yükleniyor…",
-    "preparingVoice": "Sesiniz hazırlanıyor…"
+    "preparingVoice": "Sesiniz hazırlanıyor…",
+    "waitingForPreviousSession": "Bekleniyor…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU belleği yetersiz — seçilen model GPU'nuz için çok büyük. Lütfen daha küçük bir modele geçin."
@@ -931,6 +934,29 @@
     "repair": "Onar",
     "repairing": "Onarılıyor...",
     "macRepairPrompt": "Sokuji sanal mikrofonunu onarmak istiyor."
+  },
+  "vbCable": {
+    "title": "Karşı taraf çeviriyi duysun",
+    "body": "Toplantı uygulamaları sesli çeviriyi sanal bir mikrofon üzerinden alır. Windows'ta bu, VB-Audio'nun ücretsiz sürücüsü VB-CABLE'dır. Sokuji'deki diğer her şey onsuz da çalışır.",
+    "install": "VB-CABLE'ı yükle",
+    "about": "VB-CABLE hakkında",
+    "adminOnce": "Windows bir kez yönetici izni ister.",
+    "installingTitle": "VB-CABLE yükleniyor…",
+    "installingBody": "Windows isteğini onaylayın, ardından VB-CABLE penceresinde \"Install Driver\" düğmesine tıklayın. Sokuji, yüklenir yüklenmez onu tanır.",
+    "installingBusy": "Yükleniyor…",
+    "failedTitle": "VB-CABLE yüklenmedi",
+    "failedBody": "Yükleme iptal edildi veya tamamlanmadı. Yeniden deneyin ya da VB-Audio'nun web sitesinden kendiniz yükleyin.",
+    "retry": "Yeniden dene",
+    "installYourself": "Kendiniz yükleyin",
+    "readyTitle": "VB-CABLE hazır.",
+    "readyBody": "Toplantı uygulamanızda mikrofon olarak \"{{mic}}\" seçeneğini seçin.",
+    "storeStep1": "VB-CABLE paketini (zip) VB-Audio'nun web sitesinden indirin.",
+    "storeStep2": "Arşivi açın, <code>{{file}}</code> dosyasına sağ tıklayın ve \"Yönetici olarak çalıştır\"ı seçin.",
+    "storeStep3": "\"Install Driver\" düğmesine tıklayın, ardından bilgisayarınızı yeniden başlatın.",
+    "openWebsite": "VB-Audio web sitesini aç",
+    "checkAgain": "Yeniden denetle",
+    "picksUp": "Sokuji, yüklendikten sonra onu otomatik olarak tanır.",
+    "notNow": "Şimdi değil"
   },
   "subtitle": {
     "sessionEnded": "Oturum sona erdi",
@@ -1383,6 +1409,8 @@
     "leg_closed": "Sağlayıcı oturumu sonlandırdı.",
     "source_ended": "Ses kaynağı ortadan kayboldu (bağlantısı kesildi, kapatıldı veya durduruldu).",
     "still_stopping": "Son oturum hâlâ durduruluyor; birazdan tekrar deneyin.",
+    "session_in_use": "Bu hesabı başka bir pencere veya cihaz kullanıyor. Oturumu orada durdurun ya da Sokuji az önce beklenmedik şekilde kapandıysa bir dakika sonra tekrar deneyin.",
+    "previous_session_ending": "Önceki oturumunuz hâlâ sonlandırılıyor. Lütfen bir dakika sonra tekrar deneyin.",
     "app_capture_lost_using_system_audio": "Uygulama yakalaması durdu, bu yüzden artık tüm sistem sesi çevriliyor.",
     "app_capture_monitor_missing": "Uygulama yakalaması başlamadı, bu yüzden artık tüm sistem sesi çevriliyor.",
     "parse_error": "Sağlayıcıdan gelen bir mesaj okunamadı; oturum devam ediyor.",

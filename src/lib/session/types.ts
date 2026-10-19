@@ -93,6 +93,8 @@ export interface LeaseContext {
   end(notice: RunNotice, o?: { expected?: boolean }): void;
   /** The lease's wire traffic (`session.*`), for the Logs: the runner files it under the first leg. */
   frame(frame: AdapterFrame): void;
+  /** The start is waiting for the account's previous session to clear (on), or no longer is (off): the runner shows it as a step. */
+  waiting?(on: boolean): void;
 }
 
 /** `admit`'s third answer (#619): start, running these legs' configs in place of the ones built. The legs stay as built. */
@@ -139,6 +141,6 @@ export interface LoadingProgress {
 
 export type RunState =
   | { phase: 'idle'; lastEnd?: RunEnd }
-  | { phase: 'starting'; participantSpeech: boolean; step: 'checking' | 'preparing' | 'opening'; loading?: LoadingProgress }
+  | { phase: 'starting'; participantSpeech: boolean; step: 'checking' | 'preparing' | 'opening' | 'waiting'; loading?: LoadingProgress }
   | { phase: 'running'; participantSpeech: boolean; since: number; legs: Partial<Record<LegName, LegState>>; budget?: Budget }
   | { phase: 'stopping'; participantSpeech: boolean };

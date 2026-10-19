@@ -120,6 +120,10 @@ function ControlFooter(props: PanelFooterProps) {
   const isRunning = run.phase === 'running';
   const isRunningOrStopping = run.phase === 'running' || run.phase === 'stopping';
   const isReconnecting = run.phase === 'running' && Object.values(run.legs).includes('reconnecting');
+  // The waiting label is one word (`startLabel`), and below 768 px no label shows at all: the reason goes here.
+  const startingTitle = run.phase === 'starting' && run.step === 'waiting'
+    ? t('mainPanel.waitingForPreviousSessionTitle', 'Waiting for the previous session to end. Click to cancel.')
+    : t('mainPanel.clickToCancel', 'Click to cancel');
 
   const statusDotClass = `status-dot ${isReconnecting ? 'reconnecting' : isRunning ? 'active' : ''}`;
   // A bidirectional pair (`zh+en`) is both ends at once: name it once, not `X → X`.
@@ -160,7 +164,7 @@ function ControlFooter(props: PanelFooterProps) {
             className={`main-action-btn ${isRunningOrStopping ? 'stop' : 'start'}`}
             onClick={handleActionClick}
             disabled={actionDisabled}
-            title={isStarting ? t('mainPanel.clickToCancel', 'Click to cancel') : undefined}
+            title={isStarting ? startingTitle : undefined}
           >
             {isStarting ? (
               <>
@@ -237,7 +241,7 @@ function ControlFooter(props: PanelFooterProps) {
           className={`session-button ${isRunningOrStopping ? 'active' : ''}`}
           onClick={handleActionClick}
           disabled={actionDisabled}
-          title={isStarting ? t('mainPanel.clickToCancel', 'Click to cancel') : undefined}
+          title={isStarting ? startingTitle : undefined}
         >
           {isStarting ? (
             <>

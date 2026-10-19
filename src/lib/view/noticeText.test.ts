@@ -111,6 +111,13 @@ describe('noticeText', () => {
     expect(words).toContain('$0.01');
   });
 
+  it("words a managed lease's refusal by what blocked it: a session elsewhere, or the previous one still ending", () => {
+    expect(noticeText(t, { code: 'session_in_use', message: 'x' }))
+      .toBe('notices.session_in_use|Another window or device is using this account. Stop the session there, or if Sokuji just closed unexpectedly, try again in a minute.');
+    expect(noticeText(t, { code: 'previous_session_ending', message: 'x' }))
+      .toBe('notices.previous_session_ending|Your previous session is still ending. Please try again in a minute.');
+  });
+
   it("words Gemini's two model codes with the old client's sentences, which every locale already has", () => {
     const enCatalog = en as unknown as Record<string, unknown>;
     expect(noticeText(t, { code: 'no_realtime_model', message: 'x' })).toMatch(/^settings\.realtimeModelNotAvailable\|/);

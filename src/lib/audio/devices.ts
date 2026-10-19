@@ -23,6 +23,8 @@ export interface DeviceLists {
   outputs: AudioDevice[];
   /** Enumeration succeeded and every input carries its label: without labels, virtual and loopback inputs look like real ones. */
   complete: boolean;
+  /** Enumeration succeeded and every output carries its own label, not the placeholder this module names it by. */
+  outputLabelsKnown: boolean;
 }
 
 /**
@@ -94,11 +96,12 @@ export async function listAudioDevices({ warmUp = true }: { warmUp?: boolean } =
       }));
 
     const complete = !devices.some((d) => d.kind === 'audioinput' && d.label === '');
-    return { inputs, outputs, complete };
+    const outputLabelsKnown = !devices.some((d) => d.kind === 'audiooutput' && d.label === '');
+    return { inputs, outputs, complete, outputLabelsKnown };
   } catch (error) {
     // Deduped: while the device watch polls, a listing that keeps failing fails every 3 s.
     reportError('AudioDevices', `Failed to get audio devices: ${describeCause(error)}`, { cause: error, dedupeKey: 'devices:list' });
-    return { inputs: [], outputs: [], complete: false };
+    return { inputs: [], outputs: [], complete: false, outputLabelsKnown: false };
   }
 }
 

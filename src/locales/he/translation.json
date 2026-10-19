@@ -687,6 +687,8 @@
     "sonioxVoiceBuildFailed": "לא ניתן היה לבנות את הקול המותאם אישית שלכם, ולכן ההפעלה הזו משתמשת בקול מוגדר מראש. נסו להקליט קטע ברור יותר בהגדרות.",
     "sonioxVoiceUnavailable": "הקול המותאם אישית שלכם אינו זמין כרגע, ולכן ההפעלה הזו משתמשת בקול מוגדר מראש.",
     "preparingVoice": "מכינים את הקול שלך…",
+    "waitingForPreviousSession": "ממתינים…",
+    "waitingForPreviousSessionTitle": "ממתינים לסיום ההפעלה הקודמת. לחץ כדי לבטל.",
     "clickToCancel": "לחץ כדי לבטל"
   },
   "modePicker": {
@@ -732,7 +734,8 @@
     "stop": "עצור",
     "start": "התחל",
     "loadingModel": "טוען מודל…",
-    "preparingVoice": "מכינים את הקול שלך…"
+    "preparingVoice": "מכינים את הקול שלך…",
+    "waitingForPreviousSession": "ממתינים…"
   },
   "errors": {
     "gpuOutOfMemory": "אזל זיכרון ה-GPU — המודל שנבחר גדול מדי עבור ה-GPU שלך. אנא עבור למודל קטן יותר."
@@ -931,6 +934,29 @@
     "repair": "תיקון",
     "repairing": "מתקן...",
     "macRepairPrompt": "Sokuji רוצה לתקן את המיקרופון הווירטואלי שלו."
+  },
+  "vbCable": {
+    "title": "תן לצד השני לשמוע את התרגום",
+    "body": "אפליקציות פגישות מקבלות את התרגום המדובר דרך מיקרופון וירטואלי. ב-Windows זהו VB-CABLE, מנהל התקן חינמי של VB-Audio. כל השאר ב-Sokuji עובד גם בלעדיו.",
+    "install": "התקן את VB-CABLE",
+    "about": "אודות VB-CABLE",
+    "adminOnce": "Windows יבקש פעם אחת הרשאת מנהל.",
+    "installingTitle": "מתקין את VB-CABLE…",
+    "installingBody": "אשר את הבקשה של Windows, ואז לחץ על \"Install Driver\" בחלון של VB-CABLE. Sokuji יזהה אותו ברגע שיותקן.",
+    "installingBusy": "מתקין…",
+    "failedTitle": "VB-CABLE לא הותקן",
+    "failedBody": "ההתקנה בוטלה או לא הסתיימה. נסה שוב, או התקן אותו בעצמך מאתר VB-Audio.",
+    "retry": "נסה שוב",
+    "installYourself": "התקן בעצמך",
+    "readyTitle": "VB-CABLE מוכן.",
+    "readyBody": "באפליקציית הפגישות, בחר \"{{mic}}\" כמיקרופון.",
+    "storeStep1": "הורד את חבילת VB-CABLE (קובץ zip) מאתר VB-Audio.",
+    "storeStep2": "חלץ אותה, לחץ לחיצה ימנית על <code>{{file}}</code> ובחר \"הפעל כמנהל\".",
+    "storeStep3": "לחץ על \"Install Driver\", ואז הפעל מחדש את המחשב.",
+    "openWebsite": "פתח את אתר VB-Audio",
+    "checkAgain": "בדוק שוב",
+    "picksUp": "Sokuji יזהה אותו אוטומטית לאחר ההתקנה.",
+    "notNow": "לא עכשיו"
   },
   "subtitle": {
     "sessionEnded": "ההפעלה הסתיימה",
@@ -1383,6 +1409,8 @@
     "leg_closed": "הספק סיים את ההפעלה.",
     "source_ended": "מקור השמע נעלם (נותק, נסגר או הופסק).",
     "still_stopping": "ההפעלה הקודמת עדיין נעצרת; נסה שוב בעוד רגע.",
+    "session_in_use": "חלון או מכשיר אחר משתמשים בחשבון הזה. עצרו שם את ההפעלה, או אם Sokuji נסגר זה עתה באופן בלתי צפוי, נסו שוב בעוד דקה.",
+    "previous_session_ending": "ההפעלה הקודמת שלכם עדיין מסתיימת. אנא נסו שוב בעוד דקה.",
     "app_capture_lost_using_system_audio": "לכידת היישום הופסקה, ולכן כעת מתורגם כל שמע המערכת במקומו.",
     "app_capture_monitor_missing": "לכידת היישום לא התחילה, ולכן כעת מתורגם כל שמע המערכת במקומו.",
     "parse_error": "לא ניתן היה לקרוא הודעה מהספק; ההפעלה ממשיכה.",

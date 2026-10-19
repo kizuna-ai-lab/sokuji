@@ -4,6 +4,7 @@ import MainPanel from '../MainPanel/MainPanel';
 import LogsPanel from '../LogsPanel/LogsPanel';
 import { Settings as SettingsComponent } from '../Settings';
 import TourOverlay from '../Tour/TourOverlay';
+import VbCableIntro from '../VbCable/VbCableIntro';
 import SetupWizard from '../SetupWizard/SetupWizard';
 import TitleBar from '../TitleBar/TitleBar';
 import PanelResizer from './PanelResizer';
@@ -220,6 +221,7 @@ const MainLayout: React.FC = () => {
         takeover display:none) wherever it sat. During an Electron subtitle
         takeover the anchored UI is gone, so the tour does not render at all. */}
     {!electronSubtitleTakeover && <TourOverlay />}
+    {!electronSubtitleTakeover && <VbCableIntro />}
     {electronSubtitleTakeover && <SubtitleTakeover />}
     </>
   );

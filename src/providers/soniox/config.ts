@@ -29,8 +29,8 @@ export interface SonioxConfig {
     endpointLatencyAdjustmentLevel: number;
     endpointMaxDelayMs: number;
   };
-  /** Present when this leg speaks. The participant leg speaks in `participantVoice`. */
-  tts?: { voice: string; participantVoice: string; speed: number };
+  /** Present when this leg speaks, in this leg's own voice: the participant's leg in `participantVoice`. */
+  tts?: { voice: string; speed: number };
   /** Both mode on one mixed socket (D23); read by `startBoth`. */
   sharedBoth: boolean;
   /** Face-to-face: two people at one microphone (slice 3). Absent: false. */
@@ -145,7 +145,9 @@ export function buildSoniox(context: SessionContext, s: SonioxSettings, shared: 
     ...(translationTerms.length ? { translation_terms: translationTerms } : {}),
     ...(text ? { text } : {}),
   };
-  const voice = sonioxSpeakerVoice(s);
+  const speakerVoice = sonioxSpeakerVoice(s);
+  // Chosen here, by leg: a lone leg's adapter session cannot tell which leg it serves.
+  const voice = shared.reversed(context.direction) ? participantVoiceFor(s, speakerVoice) : speakerVoice;
   return {
     stt: {
       model: SONIOX_STT_MODEL,
@@ -155,7 +157,7 @@ export function buildSoniox(context: SessionContext, s: SonioxSettings, shared: 
       endpointMaxDelayMs: Math.round(clampNumber(s.endpointMaxDelayMs, 500, 3000, 2000)),
     },
     ...(context.speech
-      ? { tts: { voice, participantVoice: participantVoiceFor(s, voice), speed: clampNumber(s.ttsSpeed, 0.7, 1.3, 1.0) } }
+      ? { tts: { voice, speed: clampNumber(s.ttsSpeed, 0.7, 1.3, 1.0) } }
       : {}),
     // Face-to-face is one microphone: there is nothing to split.
     sharedBoth: shared.faceToFace === true || s.bothModeSharedSession,

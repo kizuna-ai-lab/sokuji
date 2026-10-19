@@ -687,6 +687,8 @@
     "sonioxVoiceBuildFailed": "无法生成您的自定义声音，因此本次会话使用预设声音。请尝试在设置中录制更清晰的片段。",
     "sonioxVoiceUnavailable": "您的自定义声音目前不可用，因此本次会话使用预设声音。",
     "preparingVoice": "正在准备您的声音…",
+    "waitingForPreviousSession": "正在等待…",
+    "waitingForPreviousSessionTitle": "正在等待上一个会话结束。点击取消",
     "clickToCancel": "点击取消"
   },
   "modePicker": {
@@ -732,7 +734,8 @@
     "stop": "停止",
     "start": "开始",
     "loadingModel": "正在加载模型…",
-    "preparingVoice": "正在准备您的声音…"
+    "preparingVoice": "正在准备您的声音…",
+    "waitingForPreviousSession": "正在等待…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU显存不足 — 所选模型对您的GPU来说太大了，请切换到更小的模型。"
@@ -931,6 +934,29 @@
     "repair": "修复",
     "repairing": "正在修复...",
     "macRepairPrompt": "Sokuji 需要修复它的虚拟麦克风。"
+  },
+  "vbCable": {
+    "title": "让对方听到翻译",
+    "body": "会议软件通过虚拟麦克风接收翻译语音。在 Windows 上，这需要 VB-CABLE——VB-Audio 提供的免费驱动。不装它，Sokuji 的其他功能照常可用。",
+    "install": "安装 VB-CABLE",
+    "about": "了解 VB-CABLE",
+    "adminOnce": "Windows 会请求一次管理员权限。",
+    "installingTitle": "正在安装 VB-CABLE…",
+    "installingBody": "请在 Windows 的提示中点“是”，然后在 VB-CABLE 的窗口里点 “Install Driver”。装好后 Sokuji 会立刻识别。",
+    "installingBusy": "正在安装…",
+    "failedTitle": "VB-CABLE 没有装上",
+    "failedBody": "安装被取消，或者没有完成。可以重试，也可以去 VB-Audio 官网自己安装。",
+    "retry": "重试",
+    "installYourself": "自己安装",
+    "readyTitle": "VB-CABLE 已就绪。",
+    "readyBody": "在会议软件里，把麦克风选为 “{{mic}}”。",
+    "storeStep1": "在 VB-Audio 官网下载 VB-CABLE 安装包（zip）。",
+    "storeStep2": "解压后，右键 <code>{{file}}</code>，选“以管理员身份运行”。",
+    "storeStep3": "点 “Install Driver”，然后重启电脑。",
+    "openWebsite": "打开 VB-Audio 官网",
+    "checkAgain": "重新检测",
+    "picksUp": "装好后 Sokuji 会自动识别。",
+    "notNow": "以后再说"
   },
   "subtitle": {
     "sessionEnded": "会话已结束",
@@ -1383,6 +1409,8 @@
     "leg_closed": "提供商已结束会话。",
     "source_ended": "音频来源已消失（已拔出、关闭或停止）。",
     "still_stopping": "上一个会话仍在停止中，请稍后再试。",
+    "session_in_use": "另一个窗口或设备正在使用此账户。请在那里停止会话；如果 Sokuji 刚刚意外关闭，请 1 分钟后重试。",
+    "previous_session_ending": "您的上一个会话仍在结束中。请 1 分钟后重试。",
     "app_capture_lost_using_system_audio": "应用采集已停止，现在改为翻译整个系统的声音。",
     "app_capture_monitor_missing": "应用采集未能启动，现在改为翻译整个系统的声音。",
     "parse_error": "无法读取来自提供商的消息；会话将继续。",

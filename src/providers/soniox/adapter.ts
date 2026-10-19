@@ -27,7 +27,7 @@ import { PcmMixer } from './pcmMixer';
 import { SonioxSideTracker } from './sideTracker';
 import { nativeSocket, type OpenSocket } from './socket';
 import { LegSpeech } from './speech';
-import { SonioxSttStream, type SonioxSttConfig, type SonioxSttMessage, type SonioxToken } from './sttStream';
+import { SonioxSttConnectTimeout, SonioxSttStream, type SonioxSttConfig, type SonioxSttMessage, type SonioxToken } from './sttStream';
 import { tokenFrames, Utterances, type SegmentEvent } from './utterances';
 import type { SonioxConfig } from './config';
 import { sonioxWire } from './languages';
@@ -99,7 +99,7 @@ function coreLeg(name: LegName, request: StartRequest<SonioxConfig, SonioxCreden
   const tts = request.config.tts;
   const key = request.credentials.tts;
   const speech = tts && key
-    ? new LegSpeech({ region: request.credentials.region, key, clientReferenceId: request.credentials.clientReferenceId, voice: name === 'participant' ? tts.participantVoice : tts.voice, speed: tts.speed, events, clock: request.clock, openSocket })
+    ? new LegSpeech({ region: request.credentials.region, key, clientReferenceId: request.credentials.clientReferenceId, voice: tts.voice, speed: tts.speed, events, clock: request.clock, openSocket })
     : null;
   return { name, events, context: request.context, speech, noTtsKey: tts !== undefined && !key, labels: request.config.diarize };
 }
@@ -195,27 +195,41 @@ class SonioxCore {
       };
       const onAbort = () => fail(signal.reason ?? new Error('aborted'));
       signal.addEventListener('abort', onAbort, { once: true });
-      const stt = this.newStt();
-      this.stt = stt;
-      const connecting = stt.connect(this.sttConfig());
+      const connect = (retried: boolean): void => {
+        const stt = this.newStt();
+        this.stt = stt;
+        stt.connect(this.sttConfig()).then(
+          () => {
+            if (settled) return;
+            settled = true;
+            signal.removeEventListener('abort', onAbort);
+            this.opened();
+            resolve();
+          },
+          (error: unknown) => {
+            if (settled) return;
+            // A connect with no answer most likely never reached Soniox, so its
+            // single-use key is still unspent: one more try, before the start
+            // fails and a new Start must buy keys again. If Soniox did take it,
+            // the second try is refused and the start fails as it would have.
+            if (!retried && error instanceof SonioxSttConnectTimeout) {
+              this.frame('in', 'session.stt_connect_retry', { message: describeCause(error) });
+              connect(true);
+              return;
+            }
+            fail(new AdapterStartError(
+              `Soniox did not open the connection: ${describeCause(error)}`, 'network', { detail: describeCause(error) }, { cause: error },
+            ));
+          },
+        );
+      };
+      connect(false);
       // Opened here, before the STT socket can deliver a word, so no `speak()`
       // comes first; never awaited. A speech's open never rejects (a TTS socket
       // that cannot open is retried on the first text: ruling 3), text that
       // arrives first waits for its socket, and `close()` reaches a socket
       // still opening.
       for (const leg of this.o.legs) void leg.speech?.open();
-      connecting.then(
-        () => {
-          if (settled) return;
-          settled = true;
-          signal.removeEventListener('abort', onAbort);
-          this.opened();
-          resolve();
-        },
-        (error: unknown) => fail(new AdapterStartError(
-          `Soniox did not open the connection: ${describeCause(error)}`, 'network', { detail: describeCause(error) }, { cause: error },
-        )),
-      );
     });
   }
 

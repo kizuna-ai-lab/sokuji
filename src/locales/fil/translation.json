@@ -687,6 +687,8 @@
     "sonioxVoiceBuildFailed": "Hindi mabuo ang custom mong boses, kaya gumagamit ang session na ito ng preset na boses. Subukang mag-record ng mas malinaw na clip sa Mga Setting.",
     "sonioxVoiceUnavailable": "Hindi available ngayon ang custom mong boses, kaya gumagamit ang session na ito ng preset na boses.",
     "preparingVoice": "Inihahanda ang iyong boses…",
+    "waitingForPreviousSession": "Naghihintay…",
+    "waitingForPreviousSessionTitle": "Hinihintay na matapos ang nakaraang session. I-click upang kanselahin.",
     "clickToCancel": "I-click upang kanselahin"
   },
   "modePicker": {
@@ -732,7 +734,8 @@
     "stop": "Itigil",
     "start": "Simulan",
     "loadingModel": "Naglo-load ng modelo…",
-    "preparingVoice": "Inihahanda ang iyong boses…"
+    "preparingVoice": "Inihahanda ang iyong boses…",
+    "waitingForPreviousSession": "Naghihintay…"
   },
   "errors": {
     "gpuOutOfMemory": "Naubos ang memory ng GPU — masyadong malaki ang piniling modelo para sa inyong GPU. Lumipat sa mas maliit na modelo."
@@ -931,6 +934,29 @@
     "repair": "Ayusin",
     "repairing": "Inaayos...",
     "macRepairPrompt": "Gustong ayusin ng Sokuji ang virtual na mikropono nito."
+  },
+  "vbCable": {
+    "title": "Ipadinig sa kabilang panig ang salin",
+    "body": "Tinatanggap ng mga meeting app ang binibigkas na salin sa pamamagitan ng virtual na mikropono. Sa Windows, iyon ay ang VB-CABLE, isang libreng driver mula sa VB-Audio. Gumagana ang lahat ng iba pa sa Sokuji kahit wala ito.",
+    "install": "I-install ang VB-CABLE",
+    "about": "Tungkol sa VB-CABLE",
+    "adminOnce": "Hihingi ang Windows ng pahintulot ng administrator nang isang beses.",
+    "installingTitle": "Ini-install ang VB-CABLE…",
+    "installingBody": "Aprubahan ang prompt ng Windows, pagkatapos ay i-click ang \"Install Driver\" sa window ng VB-CABLE. Makikilala ito ng Sokuji sa sandaling ma-install.",
+    "installingBusy": "Ini-install…",
+    "failedTitle": "Hindi na-install ang VB-CABLE",
+    "failedBody": "Kinansela o hindi natapos ang pag-install. Subukang muli, o i-install ito mismo mula sa website ng VB-Audio.",
+    "retry": "Subukang muli",
+    "installYourself": "I-install ito mismo",
+    "readyTitle": "Handa na ang VB-CABLE.",
+    "readyBody": "Sa iyong meeting app, piliin ang \"{{mic}}\" bilang mikropono.",
+    "storeStep1": "I-download ang VB-CABLE pack (zip) mula sa website ng VB-Audio.",
+    "storeStep2": "I-unzip ito, i-right-click ang <code>{{file}}</code> at piliin ang \"Patakbuhin bilang administrator\".",
+    "storeStep3": "I-click ang \"Install Driver\", pagkatapos ay i-restart ang iyong PC.",
+    "openWebsite": "Buksan ang website ng VB-Audio",
+    "checkAgain": "Suriin muli",
+    "picksUp": "Awtomatiko itong makikilala ng Sokuji kapag na-install na.",
+    "notNow": "Hindi ngayon"
   },
   "subtitle": {
     "sessionEnded": "Tapos na ang session",
@@ -1383,6 +1409,8 @@
     "leg_closed": "Tinapos ng provider ang session.",
     "source_ended": "Naglaho ang audio source (na-unplug, na-close, o huminto).",
     "still_stopping": "Hinihinto pa ang huling session; subukan ulit sa ilang sandali.",
+    "session_in_use": "May ibang window o device na gumagamit ng account na ito. Ihinto roon ang session, o kung biglang nagsara ang Sokuji, subukang muli pagkalipas ng isang minuto.",
+    "previous_session_ending": "Tinatapos pa ang iyong nakaraang session. Pakisubukang muli pagkalipas ng isang minuto.",
     "app_capture_lost_using_system_audio": "Huminto ang capture ng app, kaya isinasalin na ngayon ang buong system audio.",
     "app_capture_monitor_missing": "Hindi nagsimula ang capture ng app, kaya isinasalin na ngayon ang buong system audio.",
     "parse_error": "Hindi mabasa ang isang mensahe mula sa provider; magpapatuloy ang session.",

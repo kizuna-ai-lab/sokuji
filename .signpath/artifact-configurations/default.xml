@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
   <zip-file>
-    <!-- Sign the Squirrel installer exe (contains embedded nupkg) -->
+    <!-- The website's Squirrel installer (contains the embedded nupkg) -->
     <pe-file path="*Setup*.exe">
+      <authenticode-sign />
+    </pe-file>
+    <!-- The Microsoft Store's installer: the same app plus resources/distribution.json
+         (spec 2026-10-17 §6). Its name holds no "Setup", so each pattern matches one file. -->
+    <pe-file path="*-store-installer.exe">
       <authenticode-sign />
     </pe-file>
   </zip-file>

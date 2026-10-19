@@ -11,42 +11,13 @@ const path = require('path');
 const audioHost = require('./audio-host.js');
 
 /**
- * Create virtual audio devices on Windows using VB-CABLE
- * This function checks for VB-CABLE and offers installation if not present
- * @returns {Promise<boolean>} True if virtual devices can be used, false otherwise
+ * Windows has nothing to create: the virtual microphone is VB-CABLE, a driver
+ * the user installs. The renderer reads it from the device list and offers it
+ * where it is needed (spec 2026-10-17 §3), so startup never prompts or waits.
+ * @returns {Promise<boolean>} Always true
  */
 async function createVirtualAudioDevices() {
-  try {
-    console.log('[Sokuji] [Windows Audio] Checking for VB-CABLE virtual audio devices...');
-
-    // First, do a quick check if VB-CABLE is installed
-    const isInstalled = await isVBCableInstalled();
-
-    if (isInstalled) {
-      console.log('[Sokuji] [Windows Audio] VB-CABLE is already installed and ready');
-      return true;
-    }
-
-    console.log('[Sokuji] [Windows Audio] VB-CABLE not detected, initiating installation flow...');
-
-    // Import the installer module
-    const installer = require('./vb-cable-installer');
-
-    // Use the installer to check and potentially install VB-CABLE
-    const vbCableReady = await installer.ensureVBCableInstalled();
-
-    if (vbCableReady) {
-      console.log('[Sokuji] [Windows Audio] VB-CABLE installation/setup completed successfully');
-      return true;
-    } else {
-      console.log('[Sokuji] [Windows Audio] VB-CABLE not available (user declined or installation failed)');
-      console.log('[Sokuji] [Windows Audio] Application will continue without virtual microphone support');
-      return false;
-    }
-  } catch (error) {
-    console.error('[Sokuji] [Windows Audio] Error setting up virtual audio devices:', error);
-    return false;
-  }
+  return true;
 }
 
 /**

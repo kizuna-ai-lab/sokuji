@@ -687,6 +687,8 @@
     "sonioxVoiceBuildFailed": "Ihre eigene Stimme konnte nicht erstellt werden, daher verwendet diese Sitzung eine voreingestellte Stimme. Versuchen Sie, in den Einstellungen eine klarere Aufnahme zu machen.",
     "sonioxVoiceUnavailable": "Ihre eigene Stimme ist gerade nicht verfügbar, daher verwendet diese Sitzung eine voreingestellte Stimme.",
     "preparingVoice": "Ihre Stimme wird vorbereitet…",
+    "waitingForPreviousSession": "Warten…",
+    "waitingForPreviousSessionTitle": "Warten, bis die vorherige Sitzung beendet ist. Klicken Sie, um abzubrechen.",
     "clickToCancel": "Klicken Sie, um abzubrechen"
   },
   "modePicker": {
@@ -732,7 +734,8 @@
     "stop": "Stoppen",
     "start": "Starten",
     "loadingModel": "Modell wird geladen…",
-    "preparingVoice": "Ihre Stimme wird vorbereitet…"
+    "preparingVoice": "Ihre Stimme wird vorbereitet…",
+    "waitingForPreviousSession": "Warten…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU-Speicher voll — das gewählte Modell ist zu groß für Ihre GPU. Bitte wechseln Sie zu einem kleineren Modell."
@@ -931,6 +934,29 @@
     "repair": "Reparieren",
     "repairing": "Wird repariert...",
     "macRepairPrompt": "Sokuji möchte sein virtuelles Mikrofon reparieren."
+  },
+  "vbCable": {
+    "title": "Lass das Gegenüber die Übersetzung hören",
+    "body": "Meeting-Apps empfangen die gesprochene Übersetzung über ein virtuelles Mikrofon. Unter Windows ist das VB-CABLE, ein kostenloser Treiber von VB-Audio. Alles andere in Sokuji funktioniert auch ohne ihn.",
+    "install": "VB-CABLE installieren",
+    "about": "Über VB-CABLE",
+    "adminOnce": "Windows fragt einmal nach Administratorrechten.",
+    "installingTitle": "VB-CABLE wird installiert…",
+    "installingBody": "Bestätige die Windows-Abfrage und klicke dann im VB-CABLE-Fenster auf „Install Driver“. Sokuji erkennt den Treiber, sobald er installiert ist.",
+    "installingBusy": "Wird installiert…",
+    "failedTitle": "VB-CABLE wurde nicht installiert",
+    "failedBody": "Die Installation wurde abgebrochen oder nicht abgeschlossen. Versuche es erneut oder installiere VB-CABLE selbst von der Website von VB-Audio.",
+    "retry": "Erneut versuchen",
+    "installYourself": "Selbst installieren",
+    "readyTitle": "VB-CABLE ist bereit.",
+    "readyBody": "Wähle in deiner Meeting-App „{{mic}}“ als Mikrofon.",
+    "storeStep1": "Lade das VB-CABLE-Paket (ZIP) von der Website von VB-Audio herunter.",
+    "storeStep2": "Entpacke es, klicke mit der rechten Maustaste auf <code>{{file}}</code> und wähle „Als Administrator ausführen“.",
+    "storeStep3": "Klicke auf „Install Driver“ und starte dann deinen PC neu.",
+    "openWebsite": "Website von VB-Audio öffnen",
+    "checkAgain": "Erneut prüfen",
+    "picksUp": "Sokuji erkennt den Treiber automatisch, sobald er installiert ist.",
+    "notNow": "Nicht jetzt"
   },
   "subtitle": {
     "sessionEnded": "Sitzung beendet",
@@ -1383,6 +1409,8 @@
     "leg_closed": "Der Anbieter hat die Sitzung beendet.",
     "source_ended": "Die Audioquelle ist nicht mehr verfügbar (getrennt, geschlossen oder gestoppt).",
     "still_stopping": "Die letzte Sitzung wird noch beendet; versuchen Sie es gleich noch einmal.",
+    "session_in_use": "Ein anderes Fenster oder Gerät verwendet dieses Konto. Beenden Sie die Sitzung dort, oder versuchen Sie es in einer Minute erneut, falls Sokuji gerade unerwartet geschlossen wurde.",
+    "previous_session_ending": "Ihre vorherige Sitzung wird noch beendet. Bitte versuchen Sie es in einer Minute erneut.",
     "app_capture_lost_using_system_audio": "Die App-Erfassung wurde beendet, daher wird stattdessen das gesamte Systemaudio übersetzt.",
     "app_capture_monitor_missing": "Die App-Erfassung konnte nicht gestartet werden, daher wird stattdessen das gesamte Systemaudio übersetzt.",
     "parse_error": "Eine Nachricht des Anbieters konnte nicht gelesen werden; die Sitzung wird fortgesetzt.",

@@ -687,6 +687,8 @@
     "sonioxVoiceBuildFailed": "カスタム音声を作成できなかったため、このセッションではプリセット音声を使用します。設定でより聞き取りやすいクリップを録音してみてください。",
     "sonioxVoiceUnavailable": "カスタム音声は現在利用できないため、このセッションではプリセット音声を使用します。",
     "preparingVoice": "音声を準備しています…",
+    "waitingForPreviousSession": "待機中…",
+    "waitingForPreviousSessionTitle": "前回のセッションの終了を待っています。キャンセルするにはクリック",
     "clickToCancel": "キャンセルするにはクリック"
   },
   "modePicker": {
@@ -732,7 +734,8 @@
     "stop": "停止",
     "start": "開始",
     "loadingModel": "モデルを読み込み中…",
-    "preparingVoice": "音声を準備しています…"
+    "preparingVoice": "音声を準備しています…",
+    "waitingForPreviousSession": "待機中…"
   },
   "errors": {
     "gpuOutOfMemory": "GPUメモリ不足 — 選択されたモデルがGPUには大きすぎます。より小さいモデルに切り替えてください。"
@@ -931,6 +934,29 @@
     "repair": "修復",
     "repairing": "修復中...",
     "macRepairPrompt": "Sokuji が仮想マイクを修復しようとしています。"
+  },
+  "vbCable": {
+    "title": "相手に翻訳を聞かせる",
+    "body": "会議アプリは、音声の翻訳を仮想マイク経由で受け取ります。Windows では VB-Audio の無料ドライバー VB-CABLE がその役割を担います。これがなくても、Sokuji のほかの機能はそのまま使えます。",
+    "install": "VB-CABLE をインストール",
+    "about": "VB-CABLE について",
+    "adminOnce": "Windows が一度だけ管理者の許可を求めます。",
+    "installingTitle": "VB-CABLE をインストールしています…",
+    "installingBody": "Windows の確認画面で許可してから、VB-CABLE のウィンドウで「Install Driver」をクリックしてください。インストールが終わると Sokuji がすぐに認識します。",
+    "installingBusy": "インストール中…",
+    "failedTitle": "VB-CABLE はインストールされませんでした",
+    "failedBody": "インストールがキャンセルされたか、完了しませんでした。もう一度試すか、VB-Audio のウェブサイトからご自身でインストールしてください。",
+    "retry": "もう一度試す",
+    "installYourself": "自分でインストール",
+    "readyTitle": "VB-CABLE の準備ができました。",
+    "readyBody": "会議アプリで、マイクに「{{mic}}」を選んでください。",
+    "storeStep1": "VB-Audio のウェブサイトから VB-CABLE パック（zip）をダウンロードします。",
+    "storeStep2": "展開して <code>{{file}}</code> を右クリックし、「管理者として実行」を選びます。",
+    "storeStep3": "「Install Driver」をクリックしてから、PC を再起動します。",
+    "openWebsite": "VB-Audio のウェブサイトを開く",
+    "checkAgain": "もう一度確認",
+    "picksUp": "インストールされると Sokuji が自動で認識します。",
+    "notNow": "今はしない"
   },
   "subtitle": {
     "sessionEnded": "セッションが終了しました",
@@ -1383,6 +1409,8 @@
     "leg_closed": "プロバイダーがセッションを終了しました。",
     "source_ended": "音声ソースがなくなりました（取り外し、終了、または停止）。",
     "still_stopping": "前回のセッションはまだ停止処理中です。しばらくしてから再試行してください。",
+    "session_in_use": "別のウィンドウまたはデバイスがこのアカウントを使用しています。そちらでセッションを停止するか、Sokuji が予期せず終了した直後の場合は、1 分ほどしてから再試行してください。",
+    "previous_session_ending": "前回のセッションはまだ終了処理中です。1 分ほどしてから再試行してください。",
     "app_capture_lost_using_system_audio": "アプリのキャプチャが停止したため、代わりにシステム音声全体が翻訳されています。",
     "app_capture_monitor_missing": "アプリのキャプチャが開始しなかったため、代わりにシステム音声全体が翻訳されています。",
     "parse_error": "プロバイダーからのメッセージを読み取れませんでした。セッションは継続します。",
