@@ -3,7 +3,7 @@ import { AdapterStartError } from '../../lib/contract/adapter';
 import { createVirtualClock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import type { LeaseContext, RunShape } from '../../lib/session/types';
-import { createQwenLease, SESSION_KEY_TIMEOUT_MS } from './lease';
+import { CONFLICT_WAIT_LIMIT_MS, createQwenLease, ENDING_POLL_MS, RELEASED_RETRY_MS, SESSION_KEY_TIMEOUT_MS } from './lease';
 import { QWEN_DEFAULTS } from './settings';
 
 const API = 'https://api.test';
@@ -44,11 +44,12 @@ function acquiring(legs: LegName[], o: { textOnly?: boolean; participantSpeech?:
   const controller = new AbortController();
   const end = vi.fn();
   const frame = vi.fn();
-  const ctx: LeaseContext = { signal: controller.signal, clock, end, frame };
+  const waiting = vi.fn();
+  const ctx: LeaseContext = { signal: controller.signal, clock, end, frame, waiting };
   const lease = createQwenLease({ fetch: net.fetch as unknown as typeof fetch, apiUrl: () => API });
   const pending = lease(shapeFor(legs, o), QWEN_DEFAULTS, ctx);
   pending.catch(() => {});
-  return { ...net, clock, controller, end, frame, ctx, lease, pending };
+  return { ...net, clock, controller, end, frame, waiting, ctx, lease, pending };
 }
 
 type AcquireOptions = Parameters<typeof acquiring>[1];
@@ -164,6 +165,18 @@ describe('Qwen lease: a refused or conflicting key', () => {
     expect(a.fetch).toHaveBeenCalledTimes(2);
   });
 
+  it('a 409 without a blocker never shows the wait', async () => {
+    const a = acquiring(['speaker']);
+    await flush();
+    a.last().respond(409, { retryAfterMs: 100 });
+    await flush();
+    a.clock.advance(100);
+    await flush();
+    a.last().respond(409, { retryAfterMs: 100 });
+    expect(code(await rejection(a.pending))).toBe('session_conflict');
+    expect(a.waiting).not.toHaveBeenCalled();
+  });
+
   it.each([
     [401, 'sign_in_required'],
     [402, 'insufficient_balance'],
@@ -197,6 +210,112 @@ describe('Qwen lease: a refused or conflicting key', () => {
     expect(early).toBe('pending');
     a.clock.advance(1);
     expect(code(await rejection(a.pending))).toBe('qwen_service_unavailable');
+  });
+});
+
+describe('Qwen lease: a 409 that names what blocks the account', () => {
+  const CONFLICT = 'Another session is already active';
+  /** Answers the latest request 409 with `blocker`, then lets the lease act on it. */
+  async function refuse(a: ReturnType<typeof acquiring>, blocker: Record<string, unknown>, retryAfterMs = 10_000) {
+    a.last().respond(409, { error: CONFLICT, retryAfterMs, blocker });
+    await flush();
+  }
+  /** Moves the clock `ms` and lets what it fired run. */
+  async function advance(a: ReturnType<typeof acquiring>, ms: number) {
+    a.clock.advance(ms);
+    await flush();
+  }
+
+  it('waits out a session already ending, asking again every few seconds, and says so while it waits', async () => {
+    const a = acquiring(['speaker']);
+    await flush();
+    await refuse(a, { state: 'ending' });
+    expect(a.waiting).toHaveBeenCalledWith(true);
+    expect(a.frame).toHaveBeenCalledWith({ direction: 'in', type: 'session.retry', payload: { status: 409, retryAfterMs: ENDING_POLL_MS, blocker: 'ending' } });
+    await advance(a, ENDING_POLL_MS - 1);
+    expect(a.fetch).toHaveBeenCalledTimes(1);
+    await advance(a, 1);
+    expect(a.fetch).toHaveBeenCalledTimes(2);
+    await refuse(a, { state: 'ending' });
+    await advance(a, ENDING_POLL_MS);
+    expect(a.fetch).toHaveBeenCalledTimes(3);
+    a.last().respond(200, grant());
+    await expect(a.pending).resolves.toBeDefined();
+    expect(a.waiting.mock.calls).toEqual([[true], [false]]);
+  });
+
+  it("waits a never-started lease out to its expiry, even one holding a Qwen lease's whole 75 s start window", async () => {
+    const a = acquiring(['speaker']);
+    await flush();
+    await refuse(a, { state: 'unstarted', clearsInMs: 75_000 });
+    expect(a.waiting).toHaveBeenCalledWith(true);
+    await advance(a, 75_999);
+    expect(a.fetch).toHaveBeenCalledTimes(1);
+    await advance(a, 1);
+    expect(a.fetch).toHaveBeenCalledTimes(2);
+    a.last().respond(200, grant());
+    await expect(a.pending).resolves.toBeDefined();
+  });
+
+  it('asks again a moment after a lease freed as it was read', async () => {
+    const a = acquiring(['speaker']);
+    await flush();
+    await refuse(a, { state: 'released' });
+    await advance(a, RELEASED_RETRY_MS);
+    expect(a.fetch).toHaveBeenCalledTimes(2);
+    a.last().respond(200, grant());
+    await expect(a.pending).resolves.toBeDefined();
+  });
+
+  it('says another window or device is using the account when a running session still blocks after one retry', async () => {
+    const a = acquiring(['speaker']);
+    await flush();
+    await refuse(a, { state: 'active' });
+    // Not a wait for the previous session: nothing says this one is ending.
+    expect(a.waiting).not.toHaveBeenCalled();
+    await advance(a, 10_000);
+    expect(a.fetch).toHaveBeenCalledTimes(2);
+    await refuse(a, { state: 'active' });
+    const error = await rejection(a.pending);
+    expect(error).toBeInstanceOf(AdapterStartError);
+    expect(code(error)).toBe('session_in_use');
+    await advance(a, 120_000);
+    expect(a.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('gives up on a previous session that has not cleared within the limit, and asks no more', async () => {
+    const a = acquiring(['speaker']);
+    await flush();
+    for (let elapsed = 0; elapsed + ENDING_POLL_MS <= CONFLICT_WAIT_LIMIT_MS; elapsed += ENDING_POLL_MS) {
+      await refuse(a, { state: 'ending' });
+      await advance(a, ENDING_POLL_MS);
+    }
+    const asked = a.fetch.mock.calls.length;
+    await refuse(a, { state: 'ending' });
+    expect(code(await rejection(a.pending))).toBe('previous_session_ending');
+    await advance(a, 120_000);
+    expect(a.fetch).toHaveBeenCalledTimes(asked);
+    expect(a.waiting.mock.calls).toEqual([[true], [false]]);
+  });
+
+  it('does not wait for a never-started lease that clears past the limit', async () => {
+    const a = acquiring(['speaker']);
+    await flush();
+    await refuse(a, { state: 'unstarted', clearsInMs: 150_000 });
+    expect(code(await rejection(a.pending))).toBe('previous_session_ending');
+    expect(a.fetch).toHaveBeenCalledTimes(1);
+    expect(a.waiting).not.toHaveBeenCalled();
+  });
+
+  it('a cancel ends the wait at once', async () => {
+    const a = acquiring(['speaker']);
+    await flush();
+    await refuse(a, { state: 'ending' });
+    const stop = new Error('stop');
+    a.controller.abort(stop);
+    expect(await rejection(a.pending)).toBe(stop);
+    await advance(a, 120_000);
+    expect(a.fetch).toHaveBeenCalledTimes(1);
   });
 });
 

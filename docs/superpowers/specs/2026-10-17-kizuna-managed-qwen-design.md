@@ -284,7 +284,7 @@ reconciler into fast polling; it releases nothing by itself.
 ## 5. Reconciliation (backend)
 
 **`QwenReconcilerDO`** (a singleton, alarm-driven, poked by the routes and the minute cron) runs while
-any Qwen lease is open or still awaits a row.
+the pool has a workspace.
 
 **Reading.** Every 30 s; and every 5 s while a lease that signalled `session-end` still lacks a
 reported session's row, for at most 90 s after the signal (a row lands 2–60 s after its session
@@ -293,8 +293,10 @@ sweeps spends a per-minute Soniox API budget; one `listModelLogs` call lists a w
 window and so serves every waiting lease at once, so a flat interval costs the same however many
 users are waiting: at most 12 calls a minute per workspace. **Per workspace:** every read is one
 workspace's (`switchAgent` = its tenant id), with its own watermark; the 30 s cadence reads every
-workspace with a window still inside the log's 14-day retention, paused ones included, and the 5 s
-polling reads only the workspaces of the leases that wait. Calls grow with workspaces (2 a minute
+workspace, paused ones and ones no window ever opened in included, and the 5 s polling reads only the
+workspaces of the leases that wait. (Amended 2026-10-20: reading only workspaces with a window inside
+the 14-day retention left a new or idle workspace's watermark behind, and on 2026-10-19 the first lease
+after adding a 13 h old workspace held the account 127 s while the reads caught up 30 min a pass.) Calls grow with workspaces (2 a minute
 each at rest, 12 while one waits), all under one per-minute budget the reconciler keeps, as Soniox's
 does; whether the gateway's own limit is per AccessKey or per workspace is unmeasured beyond one
 workspace at 30 a minute. Each tick, for each such workspace: `listModelLogs` over
@@ -406,8 +408,7 @@ a member with 模型日志). The keys below can be filtered to one workspace.
   its name and tenant id up with `ListWorkspaces`, then reads its log once with that `switchAgent`, and
   refuses it if the RAM user cannot (not a member, or no 模型日志).
 - **Pause / resume a workspace** `POST /admin/qwen/workspaces/:id/status` `{ status, note? }`: the
-  picker skips every key in a paused workspace; the reconciler keeps reading it while it has windows
-  inside the retention.
+  picker skips every key in a paused workspace; the reconciler keeps reading it.
 
 **The pool** (`GET /admin/qwen/keys`), one row per key, most recently issued first:
 - the key: label, Alibaba's key id (`apikey_id`), the secret's last four characters (never more),
@@ -465,7 +466,7 @@ The page never shows a secret, and nothing it does reaches Alibaba other than th
   attribution cases, the held charge and the reporter-pays case included, and a report whose
   `task_uuid` and `request_id` name different rows; the price (input text excluded); idempotent charges;
   the reconciler's paging, a watermark per workspace, reads per workspace with its own `switchAgent`,
-  a paused workspace still read while its windows are in retention, a row attributed only to a window
+  a paused workspace and one no window ever opened in still read, a row attributed only to a window
   on its own `(workspace_id, apikey_id)`, the picker spreading over workspaces and skipping paused
   ones, adding a workspace (the `ListWorkspaces` lookup, the membership check); the 5 s polling after a `session-end`,
   ended by the last row or by its 90 s cap; the lease released by its last row, by
@@ -530,7 +531,14 @@ The page never shows a secret, and nothing it does reaches Alibaba other than th
   2026-10-18, §4; the real side panel and the packaged app are on the owner's live test.)
 - Alibaba's own answer on what a request is and whether concurrency is capped (we measured: a request
   is a session start).
-- Before unflagging `kizunaai_qwen`: a quick Stop then Start meets the previous lease until its last log
-  row lands (2 to 60 s), and the lease retries a 409 once. Port Soniox's blocker-wait to Qwen first
-  (kizuna-ai-lab/sokuji#643 and kizuna-ai-lab/sokuji-backend#103: the 409 names the blocking lease's state,
-  and the client waits in a cancellable step within 60 s).
+- ~~Before unflagging `kizunaai_qwen`: port Soniox's blocker-wait to Qwen.~~ Done 2026-10-20: Qwen's 409
+  names the blocking lease's state, either provider's (kizuna-ai-lab/sokuji-backend#108, as #103 did for
+  Soniox), and the Qwen lease waits in the same cancellable step (kizuna-ai-lab/sokuji#643), within 90 s,
+  since a never-started Qwen lease holds 75 s. A Qwen Start refused behind a Soniox lease also starts the
+  blocked Soniox sweep.
+- A Qwen session whose app quit without `session-end` (a hard kill, power, the network) holds the
+  account until its lease expires: the first start plus the granted duration, up to an hour. The owner
+  ruled on 2026-10-20 that no lease is released without `session-end`: a report proves only the sessions
+  it names, and the account's one-session lock is shared with Kizuna Soniox. The `session_in_use` notice
+  ("if Sokuji just closed unexpectedly, try again in a minute") reads true for Soniox, whose blocked
+  sweep frees such a lease from its usage logs, but not for this case.
