@@ -487,7 +487,7 @@
       "description": "60 языков, 3600 языковых пар · клонирование вашего голоса"
     },
     "kizunaai_qwen": {
-      "name": "KizunaAI Qwen",
+      "name": "KizunaAI",
       "description": "Синхронный перевод Qwen3.8, 60 языков (29 с озвучкой)"
     },
     "openai": {

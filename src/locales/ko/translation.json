@@ -487,7 +487,7 @@
       "description": "60개 언어, 3,600개 언어 쌍 · 내 목소리 클론"
     },
     "kizunaai_qwen": {
-      "name": "KizunaAI Qwen",
+      "name": "KizunaAI",
       "description": "Qwen3.8 동시 통역, 60개 언어(음성 29개)"
     },
     "openai": {

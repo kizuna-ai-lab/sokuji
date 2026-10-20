@@ -487,7 +487,7 @@
       "description": "60 भाषाएँ, 3,600 जोड़े · अपनी आवाज़ क्लोन करें"
     },
     "kizunaai_qwen": {
-      "name": "KizunaAI Qwen",
+      "name": "KizunaAI",
       "description": "Qwen3.8 सिमल्टेनियस इंटरप्रिटेशन, 60 भाषाएँ (29 में आवाज़)"
     },
     "openai": {

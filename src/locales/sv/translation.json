@@ -487,7 +487,7 @@
       "description": "60 språk, 3600 språkpar · klona din egen röst"
     },
     "kizunaai_qwen": {
-      "name": "KizunaAI Qwen",
+      "name": "KizunaAI",
       "description": "Qwen3.8 simultantolkning, 60 språk (29 med röst)"
     },
     "openai": {

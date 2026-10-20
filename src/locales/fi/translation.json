@@ -487,7 +487,7 @@
       "description": "60 kieltä, 3600 kieliparia · kloonaa oma äänesi"
     },
     "kizunaai_qwen": {
-      "name": "KizunaAI Qwen",
+      "name": "KizunaAI",
       "description": "Qwen3.8-simultaanitulkkaus, 60 kieltä (29 puhuttuna)"
     },
     "openai": {

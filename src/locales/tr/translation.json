@@ -487,7 +487,7 @@
       "description": "60 dil, 3.600 dil çifti · kendi sesinizi klonlayın"
     },
     "kizunaai_qwen": {
-      "name": "KizunaAI Qwen",
+      "name": "KizunaAI",
       "description": "Qwen3.8 eşzamanlı çeviri, 60 dil (29'u sesli)"
     },
     "openai": {

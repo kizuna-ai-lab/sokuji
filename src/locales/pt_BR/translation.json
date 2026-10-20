@@ -487,7 +487,7 @@
       "description": "60 idiomas, 3.600 pares · clone sua própria voz"
     },
     "kizunaai_qwen": {
-      "name": "KizunaAI Qwen",
+      "name": "KizunaAI",
       "description": "Interpretação simultânea Qwen3.8, 60 idiomas (29 com voz)"
     },
     "openai": {

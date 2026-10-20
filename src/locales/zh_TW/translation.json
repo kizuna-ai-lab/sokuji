@@ -487,7 +487,7 @@
       "description": "60 種語言，3,600 個語言對 · 可複製您自己的聲音"
     },
     "kizunaai_qwen": {
-      "name": "KizunaAI Qwen",
+      "name": "KizunaAI",
       "description": "千問 Qwen3.8 同聲傳譯，60 種語言（29 種可配音）"
     },
     "openai": {
