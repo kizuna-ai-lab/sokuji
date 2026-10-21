@@ -17,6 +17,7 @@ import { describeCause } from '../../lib/diagnostics/describeCause';
 import type { LeaseContext, Resources, RunNotice, RunShape } from '../../lib/session/types';
 import { getApiUrl } from '../../utils/environment';
 import { isEndpointId, type EndpointId } from './endpoints';
+import { asQwenRegion, QWEN_REGIONS, type QwenRegion } from './regions';
 import type { QwenCredentials, QwenLeasePort, QwenSettings } from './settings';
 
 /** What the backend accepts as a handshake request id (sokuji-backend `routes/qwen.ts`). */
@@ -82,6 +83,8 @@ export interface QwenLeaseDeps {
 interface Grant {
   leaseId: string;
   endpoint: EndpointId;
+  /** The region the keys were bought in; absent from a backend before the Beijing region. The endpoint, not this, is what the leg dials. */
+  region?: QwenRegion;
   apiKey: string;
   maxSessionDurationSeconds: number;
 }
@@ -94,7 +97,12 @@ function parseGrant(body: unknown): Grant {
   if (!isEndpointId(b.endpoint)) throw new Error(`The session-key response names no known endpoint (${String(b.endpoint)}).`);
   const seconds = b.maxSessionDurationSeconds;
   if (typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds <= 0) throw new Error('The session-key response names no granted duration.');
-  return { leaseId: b.leaseId, endpoint: b.endpoint, apiKey: b.apiKey, maxSessionDurationSeconds: seconds };
+  let region: QwenRegion | undefined;
+  if (b.region !== undefined) {
+    if (typeof b.region !== 'string' || !(QWEN_REGIONS as readonly string[]).includes(b.region)) throw new Error(`The session-key response names no known region (${String(b.region)}).`);
+    region = b.region as QwenRegion;
+  }
+  return { leaseId: b.leaseId, endpoint: b.endpoint, ...(region ? { region } : {}), apiKey: b.apiKey, maxSessionDurationSeconds: seconds };
 }
 
 /**
@@ -229,15 +237,20 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
   /** The previous lease's `session-end` still retrying: stopped at the next acquire. The backend marks only the lease it names, so a late one ends nothing new; retrying it past the next Start only spends requests. */
   let previous: Ending | null = null;
 
-  return async function acquire(shape: RunShape, _s: QwenSettings, ctx: LeaseContext): Promise<Resources<QwenCredentials>> {
+  return async function acquire(shape: RunShape, s: QwenSettings, ctx: LeaseContext): Promise<Resources<QwenCredentials>> {
     previous?.cancel();
     previous = null;
     if (ctx.signal.aborted) throw ctx.signal.reason ?? new Error('aborted');
     const token = await shape.auth.getToken();
     if (ctx.signal.aborted) throw ctx.signal.reason ?? new Error('aborted');
     if (!token) throw new AdapterStartError('Sign in is required to start a managed Qwen session.', 'sign_in_required');
-    // What the start asks for: the legs, and which of them speak. The speaker speaks unless text-only; the participant only under Translation I hear.
-    const sent = { legs: [...shape.legs], speech: { speaker: shape.legs.includes('speaker') && !shape.textOnly, participant: shape.legs.includes('participant') && shape.participantSpeech } };
+    // What the start asks for: the legs, which of them speak, and the region the keys are bought in. The speaker speaks unless
+    // text-only; the participant only under Translation I hear. The region is the setting's, narrowed: the backend answers with its own.
+    const sent = {
+      legs: [...shape.legs],
+      speech: { speaker: shape.legs.includes('speaker') && !shape.textOnly, participant: shape.legs.includes('participant') && shape.participantSpeech },
+      region: asQwenRegion(s.region),
+    };
 
     const attempt = async (): Promise<{ status: number; body: unknown }> => {
       // An abort that landed after the 409 wait resolved, before this attempt: its listener below would never fire.
@@ -339,7 +352,7 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
     ctx.frame({
       direction: 'in',
       type: 'session.lease_acquired',
-      payload: { leaseId: grant.leaseId, endpoint: grant.endpoint, maxSessionDurationSeconds: grant.maxSessionDurationSeconds },
+      payload: { leaseId: grant.leaseId, endpoint: grant.endpoint, ...(grant.region ? { region: grant.region } : {}), maxSessionDurationSeconds: grant.maxSessionDurationSeconds },
     });
 
     const reported = new Set<string>();

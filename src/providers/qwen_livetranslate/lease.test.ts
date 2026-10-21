@@ -4,7 +4,7 @@ import { createVirtualClock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import type { LeaseContext, RunShape } from '../../lib/session/types';
 import { CONFLICT_WAIT_LIMIT_MS, createQwenLease, ENDING_POLL_MS, RELEASED_RETRY_MS, SESSION_KEY_TIMEOUT_MS } from './lease';
-import { QWEN_DEFAULTS } from './settings';
+import { QWEN_DEFAULTS, type QwenSettings } from './settings';
 
 const API = 'https://api.test';
 const GRANT_KEY = 'st-test-grant-0001';
@@ -30,15 +30,17 @@ const grant = (over: Record<string, unknown> = {}) => ({
   maxSessionDurationSeconds: 600, budgetMicroUsd: 416_667, rateUsdPerHour: 2.5, ...over,
 });
 
-const shapeFor = (legs: LegName[], o: { textOnly?: boolean; participantSpeech?: boolean; token?: string | null } = {}): RunShape => ({
-  provider: {} as RunShape['provider'], settings: QWEN_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' }, legs,
+type Options = { textOnly?: boolean; participantSpeech?: boolean; token?: string | null; settings?: Partial<QwenSettings> };
+
+const shapeFor = (legs: LegName[], o: Options = {}): RunShape => ({
+  provider: {} as RunShape['provider'], settings: { ...QWEN_DEFAULTS, ...o.settings }, credentials: {}, pair: { source: 'ja', target: 'en' }, legs,
   turnMode: 'auto', textOnly: o.textOnly ?? false, participantSpeech: o.participantSpeech ?? false, keepReplayAudio: true,
   shared: { pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 } },
   auth: { signedIn: o.token !== null, userId: 'u1', getToken: vi.fn(async () => (o.token === undefined ? 'tok' : o.token)) },
 });
 
 /** `acquire` in flight over a stub `fetch`, on a virtual clock; the test answers it. */
-function acquiring(legs: LegName[], o: { textOnly?: boolean; participantSpeech?: boolean; token?: string | null } = {}) {
+function acquiring(legs: LegName[], o: Options = {}) {
   const net = stubFetch();
   const clock = createVirtualClock(0);
   const controller = new AbortController();
@@ -47,7 +49,7 @@ function acquiring(legs: LegName[], o: { textOnly?: boolean; participantSpeech?:
   const waiting = vi.fn();
   const ctx: LeaseContext = { signal: controller.signal, clock, end, frame, waiting };
   const lease = createQwenLease({ fetch: net.fetch as unknown as typeof fetch, apiUrl: () => API });
-  const pending = lease(shapeFor(legs, o), QWEN_DEFAULTS, ctx);
+  const pending = lease(shapeFor(legs, o), { ...QWEN_DEFAULTS, ...o.settings }, ctx);
   pending.catch(() => {});
   return { ...net, clock, controller, end, frame, waiting, ctx, lease, pending };
 }
@@ -72,20 +74,20 @@ describe('Qwen lease: the session-key request', () => {
   it('asks for a speaker-only text-only run with nobody speaking', async () => {
     const a = acquiring(['speaker'], { textOnly: true });
     await flush();
-    expect(JSON.parse(a.last().init.body as string)).toEqual({ legs: ['speaker'], speech: { speaker: false, participant: false } });
+    expect(JSON.parse(a.last().init.body as string)).toEqual({ legs: ['speaker'], speech: { speaker: false, participant: false }, region: 'sg' });
   });
 
   it('asks for Both with the participant spoken to me', async () => {
     const a = acquiring(['speaker', 'participant'], { participantSpeech: true });
     await flush();
-    expect(JSON.parse(a.last().init.body as string)).toEqual({ legs: ['speaker', 'participant'], speech: { speaker: true, participant: true } });
+    expect(JSON.parse(a.last().init.body as string)).toEqual({ legs: ['speaker', 'participant'], speech: { speaker: true, participant: true }, region: 'sg' });
   });
 
   it('asks for a participant-only run with the speaker not speaking, whatever textOnly says', async () => {
     for (const participantSpeech of [true, false]) {
       const a = acquiring(['participant'], { participantSpeech });
       await flush();
-      expect(JSON.parse(a.last().init.body as string)).toEqual({ legs: ['participant'], speech: { speaker: false, participant: participantSpeech } });
+      expect(JSON.parse(a.last().init.body as string)).toEqual({ legs: ['participant'], speech: { speaker: false, participant: participantSpeech }, region: 'sg' });
     }
   });
 
@@ -96,10 +98,17 @@ describe('Qwen lease: the session-key request', () => {
     expect(call.url).toBe(`${API}/qwen/session-key`);
     expect(call.init.method).toBe('POST');
     expect(call.init.headers).toEqual({ Authorization: 'Bearer tok', 'Content-Type': 'application/json' });
-    expect(a.frame).toHaveBeenCalledWith({ direction: 'out', type: 'session.key_requested', payload: { legs: ['speaker'], speech: { speaker: true, participant: false } } });
+    expect(a.frame).toHaveBeenCalledWith({ direction: 'out', type: 'session.key_requested', payload: { legs: ['speaker'], speech: { speaker: true, participant: false }, region: 'sg' } });
     expect(JSON.stringify(a.frame.mock.calls)).not.toContain('tok"');
     call.respond(200, grant());
     await a.pending;
+  });
+
+  it("sends the setting's region with the request, Beijing included", async () => {
+    const a = acquiring(['speaker'], { settings: { region: 'cn' } });
+    await flush();
+    expect(JSON.parse(a.last().init.body as string)).toMatchObject({ region: 'cn' });
+    expect(a.frame).toHaveBeenCalledWith(expect.objectContaining({ type: 'session.key_requested', payload: expect.objectContaining({ region: 'cn' }) }));
   });
 
   it('refuses to start without a sign-in', async () => {
@@ -117,6 +126,25 @@ describe('Qwen lease: the grant', () => {
     expect(credentials('speaker')).toEqual({ apiKey: GRANT_KEY, endpoint: 'intl', lease: { sessionCreated: expect.any(Function) } });
     expect(credentials('participant').apiKey).toBe(GRANT_KEY);
     expect(budget).toEqual({ totalMs: 600_000, endsAt: 600_000 });
+  });
+
+  it("dials the endpoint the grant names, whatever the setting asked, and frames the grant's region", async () => {
+    const a = await granted(['speaker'], { settings: { region: 'sg' } }, { endpoint: 'cn', region: 'cn' });
+    expect(a.resources.credentials('speaker').endpoint).toBe('cn');
+    expect(a.frame).toHaveBeenCalledWith(expect.objectContaining({ type: 'session.lease_acquired', payload: expect.objectContaining({ endpoint: 'cn', region: 'cn' }) }));
+  });
+
+  it("accepts a grant that names no region, as the backend before Beijing answered", async () => {
+    const a = await granted(['speaker']);
+    expect(a.resources.credentials('speaker').endpoint).toBe('intl');
+    expect(a.frame).toHaveBeenCalledWith(expect.objectContaining({ type: 'session.lease_acquired', payload: expect.not.objectContaining({ region: expect.anything() }) }));
+  });
+
+  it('fails the start on a grant whose region is not one it knows', async () => {
+    const a = acquiring(['speaker']);
+    await flush();
+    a.last().respond(200, grant({ region: 'us' }));
+    expect(String(await rejection(a.pending))).toContain('region');
   });
 
   it('refuses a leg that was not asked for', async () => {
@@ -200,6 +228,20 @@ describe('Qwen lease: a refused or conflicting key', () => {
       payload: { status: 402, error: 'insufficient_balance', requiredMicroUsd: 500_000, balanceMicroUsd: 120_000 },
     });
     expect((error as Error).message).not.toMatch(/500000|120000/);
+  });
+
+  it('a region the backend cannot serve is the service being unavailable (503), by code', async () => {
+    const a = acquiring(['speaker'], { settings: { region: 'cn' } });
+    await flush();
+    a.last().respond(503, { error: 'Qwen region not available' });
+    expect(code(await rejection(a.pending))).toBe('qwen_service_busy');
+  });
+
+  it("a 400 for a region the backend does not know fails with the server's words", async () => {
+    const a = acquiring(['speaker']);
+    await flush();
+    a.last().respond(400, { error: "Invalid region. Use 'sg' or 'cn'" });
+    expect(String(await rejection(a.pending))).toContain('Invalid region');
   });
 
   it('fails with qwen_service_unavailable when nothing answers within 15 s', async () => {
