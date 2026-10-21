@@ -128,8 +128,8 @@ describe('Qwen lease: the grant', () => {
     expect(budget).toEqual({ totalMs: 600_000, endsAt: 600_000 });
   });
 
-  it("dials the endpoint the grant names, whatever the setting asked, and frames the grant's region", async () => {
-    const a = await granted(['speaker'], { settings: { region: 'sg' } }, { endpoint: 'cn', region: 'cn' });
+  it("dials the endpoint the grant names and frames the grant's region", async () => {
+    const a = await granted(['speaker'], { settings: { region: 'cn' } }, { endpoint: 'cn', region: 'cn' });
     expect(a.resources.credentials('speaker').endpoint).toBe('cn');
     expect(a.frame).toHaveBeenCalledWith(expect.objectContaining({ type: 'session.lease_acquired', payload: expect.objectContaining({ endpoint: 'cn', region: 'cn' }) }));
   });
@@ -140,15 +140,21 @@ describe('Qwen lease: the grant', () => {
     expect(a.frame).toHaveBeenCalledWith(expect.objectContaining({ type: 'session.lease_acquired', payload: expect.not.objectContaining({ region: expect.anything() }) }));
   });
 
-  it('refuses a Beijing request the backend answered in no region, or another: a pick never runs in Singapore in silence', async () => {
-    for (const answered of [grant(), grant({ endpoint: 'intl', region: 'sg' })]) {
-      const a = acquiring(['speaker'], { settings: { region: 'cn' } });
+  it('refuses a grant for another region than the one picked: a pick never runs elsewhere in silence', async () => {
+    // A Beijing pick answered in no region (the backend before Beijing) or in Singapore; a Singapore pick answered in Beijing.
+    const cases: Array<[QwenSettings['region'], Record<string, unknown>, string | null]> = [
+      ['cn', grant(), null],
+      ['cn', grant({ endpoint: 'intl', region: 'sg' }), 'sg'],
+      ['sg', grant({ endpoint: 'cn', region: 'cn' }), 'cn'],
+    ];
+    for (const [region, answered, served] of cases) {
+      const a = acquiring(['speaker'], { settings: { region } });
       await flush();
       a.last().respond(200, answered);
       const error = await rejection(a.pending);
-      expect(code(error)).toBe('qwen_region_unavailable');
+      expect(code(error), region).toBe('qwen_region_unavailable');
       expect(String(error)).not.toContain(GRANT_KEY);
-      expect(a.frame).toHaveBeenCalledWith(expect.objectContaining({ type: 'session.refused', payload: expect.objectContaining({ region: 'cn' }) }));
+      expect(a.frame).toHaveBeenCalledWith(expect.objectContaining({ type: 'session.refused', payload: expect.objectContaining({ region, served }) }));
     }
   });
 
