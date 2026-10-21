@@ -104,6 +104,17 @@ describe('the registry', () => {
     }
   });
 
+  it('Kizuna Qwen is flagged: a release offers it second only when named and the umbrella is on, a development build always', () => {
+    for (const platform of ['electron', 'extension'] as const) {
+      const env = { platform, dev: false, enabled: new Set<string>(), kizuna: true, switchOn: () => false };
+      expect(presentProviders(env).map((p) => p.id), platform).not.toContain('kizunaai_qwen');
+      expect(presentProviders({ ...env, enabled: new Set(['kizunaai_qwen']) }).map((p) => p.id).slice(0, 2), platform).toEqual(['kizunaai_soniox', 'kizunaai_qwen']);
+      expect(presentProviders({ ...env, enabled: new Set(['kizunaai_qwen']), kizuna: false }).map((p) => p.id), platform).not.toContain('kizunaai_qwen');
+      expect(presentProviders({ ...env, dev: true }).map((p) => p.id), platform).toContain('kizunaai_qwen');
+    }
+    expect(presentProviders({ platform: 'web', dev: true, enabled: new Set(['kizunaai_qwen']), kizuna: true, switchOn: () => false }).map((p) => p.id)).not.toContain('kizunaai_qwen');
+  });
+
   it('a tester switch sits only on a flagged provider', () => {
     const switchOffenders = (ps: readonly Pick<AnyProvider, 'id' | 'flagged' | 'testerSwitch'>[]) =>
       ps.filter((p) => p.testerSwitch !== undefined && p.flagged !== true).map((p) => p.id);
@@ -348,7 +359,7 @@ describe('the invariants every provider meets (F17)', () => {
     // each provider plan adds its id where the owner orders it (spec: "one line in the order test").
     // Kizuna Soniox first, unflagged (Stage 2 Kizuna Soniox, ruling 6): the owner's 2026-09-12
     // product order put the managed provider first; then LocalInference, Gemini (Stage 2 Gemini, ruling 6), Doubao AST 2.0 (Stage 2 Volcengine AST2, ruling 5), Qwen LiveTranslate (spec 2026-10-13 §8, unflagged by the owner 2026-10-14), OpenAI Realtime (Stage 2 OpenAI Realtime, ruling 18), OpenAI Translate (Stage 2 OpenAI Translate, ruling 11), OpenAI Live (Stage 2 OpenAI Live, ruling 9), Soniox with your own key, and Palabra AI last (Stage 2 Palabra, ruling 14).
-    expect(releaseBuild.PROVIDERS.map((p) => p.id)).toEqual(['kizunaai_soniox', 'local_inference', 'gemini', 'volcengine_ast2', 'openai', 'openai_translate', 'openai_live', 'soniox', 'qwen_livetranslate', 'palabraai']);
+    expect(releaseBuild.PROVIDERS.map((p) => p.id)).toEqual(['kizunaai_soniox', 'kizunaai_qwen', 'local_inference', 'gemini', 'volcengine_ast2', 'openai', 'openai_translate', 'openai_live', 'soniox', 'qwen_livetranslate', 'palabraai']);
   });
 
   it('a development build adds exactly the two fakes', () => {

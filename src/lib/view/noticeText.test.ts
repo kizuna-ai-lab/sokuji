@@ -198,6 +198,19 @@ it('every alias names a sentence in all 30 locales', () => {
   }
 });
 
+it("a managed Qwen lease's refusal names Qwen, and a region the backend cannot serve says so, word for word in en", () => {
+  const enCatalog = en as unknown as Record<string, unknown>;
+  const sentences: Record<string, string> = {
+    qwen_service_unavailable: 'Qwen is temporarily unavailable. Please try again in a moment.',
+    qwen_service_busy: 'Qwen is at capacity right now. Please try again shortly.',
+    qwen_region_unavailable: 'Kizuna Qwen is not available in the region you picked right now. Choose another region, or try again later.',
+  };
+  for (const [code, sentence] of Object.entries(sentences)) {
+    expect(NOTICE_ALIASES[code], code).toBeDefined();
+    expect(at(enCatalog, NOTICE_ALIASES[code]), code).toBe(sentence);
+  }
+});
+
 it("a signed-out managed provider reads the sign-in sentence, word for word in en", () => {
   expect(at(en as unknown as Record<string, unknown>, NOTICE_ALIASES.sign_in_required)).toBe("Sign in to use Kizuna AI's built-in translation service.");
 });

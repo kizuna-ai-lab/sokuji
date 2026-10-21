@@ -282,6 +282,9 @@
     "sonioxRegion": "Rehiyon",
     "sonioxRegionTooltip": "Nagpapatakbo ang Soniox ng hiwalay na deployment kada rehiyon. Pinoproseso ang iyong audio sa rehiyong pipiliin mo. Iiral mula sa susunod na sesyon.",
     "sonioxRegionTooltipOwnKey": "Nagpapatakbo ang Soniox ng hiwalay na deployment kada rehiyon, at bawat rehiyon ay hiwalay na proyekto sa Soniox na may sariling API key. Pinoproseso ang iyong audio sa rehiyong pipiliin mo. Iiral mula sa susunod na sesyon.",
+    "qwenRegion": "Rehiyon",
+    "qwenRegionTooltip": "Nagpapatakbo ang Qwen ng hiwalay na deployment kada rehiyon. Pinoproseso ang iyong audio sa rehiyong pipiliin mo. Iiral mula sa susunod na sesyon. Mula sa mga network sa labas ng mainland China, maaaring sumagot ang Beijing nang may kapansin-pansing mas mataas na latency.",
+    "qwenRegionBeijingNote": "Mula sa mga network sa labas ng mainland China, maaaring kapansin-pansing mas mataas ang latency ng Beijing; kung gayon, subukan ang Singapore.",
     "sentenceSegmentationTitle": "Segmentasyon ng Pangungusap",
     "sentenceSegmentationTitleDesc": "Pinipili kung saan nagtatapos ang isang bubble: ipaubaya sa provider, putulin sa isang pause na iyong itinatakda, o kada ilang pangungusap na may idinagdag na bantas.",
     "sentenceSegmentation": "Segmentasyon ng Subtitle",
@@ -486,6 +489,10 @@
       "name": "KizunaAI",
       "description": "60 na wika, 3,600 pares · i-clone ang sarili mong boses"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI",
+      "description": "Qwen3.8 sabay-sabay na pagsasalin, 60 wika (29 may boses)"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "Pangkalahatang GPT Realtime speech model, ganap na maisasaayos"
@@ -670,7 +677,10 @@
     "sonioxInsufficientBalance": "Hindi sapat ang balanse para simulan ang session. Mangyaring mag-top up ng iyong balanse at subukang muli.",
     "sonioxSessionConflict": "May isa nang aktibong session sa iyong account. Pakisubukang muli sa ilang sandali.",
     "sonioxServiceUnavailable": "Pansamantalang hindi available ang Soniox. Pakisubukang muli sa ilang sandali.",
+    "qwenServiceUnavailable": "Pansamantalang hindi available ang Qwen. Pakisubukang muli sa ilang sandali.",
     "sonioxServiceBusy": "Ganap sa kapasidad ang Soniox sa ngayon. Pakisubukang muli sa madaling panahon.",
+    "qwenServiceBusy": "Ganap sa kapasidad ang Qwen sa ngayon. Pakisubukang muli sa madaling panahon.",
+    "qwenRegionUnavailable": "Hindi available ngayon ang Kizuna Qwen sa rehiyong pinili mo. Pumili ng ibang rehiyon, o subukang muli mamaya.",
     "sonioxBudgetExhausted": "Naubos na ang balanse ng iyong session. Mag-top up ng iyong balanse para magpatuloy sa pagsasalin.",
     "sonioxTtsFailed": "Huminto na ang binibigkas na pagsasalin. Patuloy pa ring gumagana ang transcription at pagsasalin ng teksto.",
     "sonioxTtsSegmentLost": "Hindi na-play ang bahagi ng binigkas na pagsasalin. Hindi apektado ang transcription at pagsasalin ng teksto.",

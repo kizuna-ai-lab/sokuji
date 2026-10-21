@@ -46,7 +46,8 @@ export interface UpgradeHeaders {
   remove?: readonly string[];
 }
 
-export type OpenHeaderSocket = (url: string, headers: UpgradeHeaders, o: { signal: AbortSignal; clock: Pick<Clock, 'setTimeout'> }) => Promise<WebSocket>;
+/** `onRequestId` is called once, after the socket has resolved, with the 101's `x-request-id` when the platform read one and `undefined` when it did not (or its answer was late); never when the socket did not open. */
+export type OpenHeaderSocket = (url: string, headers: UpgradeHeaders, o: { signal: AbortSignal; clock: Pick<Clock, 'setTimeout'>; onRequestId?: (id: string | undefined) => void }) => Promise<WebSocket>;
 
 /** One rule as a platform installs it: the upgrade's host, the path it applies under, the headers set and the names removed. */
 export interface HeaderRule {
@@ -60,8 +61,8 @@ export interface HeaderRule {
 export interface HeaderRegistrar {
   /** Resolves once the rule is installed; rejects when the platform would not. */
   set(rule: HeaderRule): Promise<void>;
-  /** Removes the rule if it is still installed; answers nothing. */
-  clear(rule: Pick<HeaderRule, 'host' | 'path'>): void;
+  /** Removes the rule if it is still installed; may answer the upgrade's `x-request-id`, which the seam reads only after the socket's first open. */
+  clear(rule: Pick<HeaderRule, 'host' | 'path'>): Promise<{ requestId?: string } | void>;
 }
 
 /** How long registration and upgrade may take once the gate is held: the old client's cap, now counting the registration too. */
@@ -116,10 +117,13 @@ export function createHeaderSocket(registrar: () => HeaderRegistrar | null, open
     /** Wakes the attempt from its wait — on the registration, then on the socket: it opened or failed, an abort, the bound. */
     let wake: () => void = () => {};
     let socket: WebSocket | null = null;
+    /** The socket's first `open` won the attempt: it has resolved, and the clear's answer is read next. */
+    let opened = false;
     const listeners = {
       open: () => {
         if (settled) return;
         settled = true;
+        opened = true;
         detach();
         wake();
         resolve(socket as WebSocket);
@@ -134,6 +138,9 @@ export function createHeaderSocket(registrar: () => HeaderRegistrar | null, open
     const onAbort = () => fail(o.signal.reason ?? new Error('aborted'));
     o.signal.addEventListener('abort', onAbort, { once: true });
     let cancelCap: () => void = () => {};
+    /** Resolves when the bound fires, so a wait after the open is cut at the same bound. */
+    let capFired: () => void = () => {};
+    const capped = new Promise<void>((resolve) => { capFired = resolve; });
     function fail(error: unknown): void {
       if (settled) return;
       settled = true;
@@ -147,11 +154,15 @@ export function createHeaderSocket(registrar: () => HeaderRegistrar | null, open
       const letGo = await acquire(`${rule.host}${rule.path}`);
       /** The rule went to the platform: however the attempt ends, it is cleared — a refused one too, since a refusal may follow a rule the platform installed. */
       let sent = false;
+      let cleared = false;
       try {
         if (settled) return;
         /** The attempt's end: the socket's first open, error or close, an abort, or the bound. */
         const ended = new Promise<void>((resolve) => { wake = resolve; });
-        cancelCap = o.clock.setTimeout(() => fail(new HeaderSocketError('timeout', `The socket did not open within ${HEADER_SOCKET_CAP_MS / 1000} s.`)), HEADER_SOCKET_CAP_MS);
+        cancelCap = o.clock.setTimeout(() => {
+          capFired();
+          fail(new HeaderSocketError('timeout', `The socket did not open within ${HEADER_SOCKET_CAP_MS / 1000} s.`));
+        }, HEADER_SOCKET_CAP_MS);
         sent = true;
         // The registration's answer or the attempt's end, whichever comes first: a registration that never answers holds the gate no longer than the bound.
         const refused = await Promise.race([
@@ -175,6 +186,16 @@ export function createHeaderSocket(registrar: () => HeaderRegistrar | null, open
         socket.addEventListener('error', listeners.failed);
         socket.addEventListener('close', listeners.failed);
         await ended;
+        if (opened) {
+          // The socket already resolved; the clear's answer carries the upgrade's request id, reported after, once. A late or failed answer counts as none.
+          cleared = true;
+          const answer = await Promise.race([
+            Promise.resolve().then(() => platform.clear(rule)).then((a) => a, () => undefined),
+            capped.then(() => undefined),
+          ]);
+          const requestId = (answer as { requestId?: unknown } | undefined)?.requestId;
+          o.onRequestId?.(typeof requestId === 'string' && requestId !== '' ? requestId : undefined);
+        }
       } finally {
         cancelCap();
         o.signal.removeEventListener('abort', onAbort);
@@ -182,7 +203,7 @@ export function createHeaderSocket(registrar: () => HeaderRegistrar | null, open
         // refused, is cleared too — a refusal may follow the platform installing the rule (the page closing mid-upgrade, or,
         // on the extension, its worker dying between install and answer): each platform's channel is ordered, so the clear
         // lands after it, and the next leg's registration after the clear.
-        if (sent) platform.clear(rule);
+        if (sent && !cleared) void Promise.resolve(platform.clear(rule)).catch(() => {});
         letGo();
       }
     })();
@@ -199,8 +220,8 @@ export function electronRegistrar(electron: ElectronInvoke): HeaderRegistrar {
       const answer = (await electron.invoke('ws-headers-set', { host: rule.host, path: rule.path, headers: rule.set, removeHeaders: rule.remove })) as { success?: boolean; error?: unknown } | undefined;
       if (!answer?.success) throw new Error(`ws-headers-set: ${typeof answer?.error === 'string' ? answer.error : 'no answer'}`);
     },
-    clear(rule) {
-      void electron.invoke('ws-headers-clear', { host: rule.host, path: rule.path }).catch(() => {});
+    async clear(rule) {
+      return (await electron.invoke('ws-headers-clear', { host: rule.host, path: rule.path })) as { requestId?: string } | void;
     },
   };
 }
@@ -216,16 +237,18 @@ export function extensionRegistrar(runtime: ChromeRuntime): HeaderRegistrar {
         else resolve();
       });
     }),
-    clear(rule) {
+    clear: (rule) => new Promise<{ requestId?: string } | void>((resolve) => {
       try {
-        runtime.sendMessage({ type: 'WS_HEADERS_CLEAR', host: rule.host, path: rule.path }, () => {
+        runtime.sendMessage({ type: 'WS_HEADERS_CLEAR', host: rule.host, path: rule.path }, (response) => {
           // Read, so Chrome does not warn of an unchecked error when nothing answers.
           void runtime.lastError;
+          resolve(response as { requestId?: string } | undefined);
         });
       } catch {
         // The background is gone: its rules are swept at its next start.
+        resolve();
       }
-    },
+    }),
   };
 }
 

@@ -282,6 +282,9 @@
     "sonioxRegion": "Bölge",
     "sonioxRegionTooltip": "Soniox her bölge için ayrı bir dağıtım çalıştırır. Sesiniz seçtiğiniz bölgede işlenir. Bir sonraki oturumdan itibaren geçerlidir.",
     "sonioxRegionTooltipOwnKey": "Soniox her bölge için ayrı bir dağıtım çalıştırır ve her biri kendi API anahtarına sahip ayrı bir Soniox projesidir. Sesiniz seçtiğiniz bölgede işlenir. Bir sonraki oturumdan itibaren geçerlidir.",
+    "qwenRegion": "Bölge",
+    "qwenRegionTooltip": "Qwen her bölge için ayrı bir dağıtım çalıştırır. Sesiniz seçtiğiniz bölgede işlenir. Bir sonraki oturumdan itibaren geçerlidir. Çin anakarası dışındaki ağlardan Pekin belirgin şekilde daha yüksek gecikmeyle yanıt verebilir.",
+    "qwenRegionBeijingNote": "Çin anakarası dışındaki ağlardan Pekin'in gecikmesi belirgin şekilde yüksek olabilir; öyleyse Singapur'u deneyin.",
     "sentenceSegmentationTitle": "Cümle segmentasyonu",
     "sentenceSegmentationTitleDesc": "Bir konuşma balonunun nerede biteceğini seçer: sağlayıcıya bırakın, ayarladığınız bir duraklamada kesin ya da eksik noktalamayı ekleyerek her birkaç cümlede bir.",
     "sentenceSegmentation": "Altyazı segmentasyonu",
@@ -486,6 +489,10 @@
       "name": "KizunaAI",
       "description": "60 dil, 3.600 dil çifti · kendi sesinizi klonlayın"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI",
+      "description": "Qwen3.8 eşzamanlı çeviri, 60 dil (29'u sesli)"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "Genel amaçlı GPT Realtime konuşma modeli, tamamen yapılandırılabilir"
@@ -670,7 +677,10 @@
     "sonioxInsufficientBalance": "Oturum başlatmak için bakiye yetersiz. Lütfen bakiyenizi yükleyip tekrar deneyin.",
     "sonioxSessionConflict": "Hesabınızda zaten başka bir oturum çalışıyor. Lütfen biraz sonra tekrar deneyin.",
     "sonioxServiceUnavailable": "Soniox geçici olarak kullanılamıyor. Lütfen biraz sonra tekrar deneyin.",
+    "qwenServiceUnavailable": "Qwen geçici olarak kullanılamıyor. Lütfen biraz sonra tekrar deneyin.",
     "sonioxServiceBusy": "Soniox şu anda tam kapasitede çalışıyor. Lütfen kısa süre sonra tekrar deneyin.",
+    "qwenServiceBusy": "Qwen şu anda tam kapasitede çalışıyor. Lütfen kısa süre sonra tekrar deneyin.",
+    "qwenRegionUnavailable": "Kizuna Qwen seçtiğiniz bölgede şu anda kullanılamıyor. Başka bir bölge seçin veya daha sonra tekrar deneyin.",
     "sonioxBudgetExhausted": "Oturum bakiyeniz tükendi. Çeviriye devam etmek için bakiyenizi yükleyin.",
     "sonioxTtsFailed": "Sesli çeviri durdu. Deşifre ve metin çevirisi çalışmaya devam ediyor.",
     "sonioxTtsSegmentLost": "Sesli çevirinin bir kısmı oynatılamadı. Deşifre ve metin çevirisi etkilenmedi.",

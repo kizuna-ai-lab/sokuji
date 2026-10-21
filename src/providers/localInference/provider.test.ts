@@ -93,8 +93,8 @@ describe('localInferenceProvider', () => {
     expect(result).toEqual({ ok: true });
   });
 
-  it('follows Kizuna Soniox in the registry (Stage 2 Kizuna Soniox, ruling 6)', () => {
-    expect(PROVIDERS.slice(0, 2).map((p) => p.id)).toEqual(['kizunaai_soniox', 'local_inference']);
+  it('follows the managed twins in the registry (Stage 2 Kizuna Soniox, ruling 6; Kizuna Qwen is flagged, so a release hides it)', () => {
+    expect(PROVIDERS.slice(0, 3).map((p) => p.id)).toEqual(['kizunaai_soniox', 'kizunaai_qwen', 'local_inference']);
   });
 
   it('shows its EngineSummary under the picker', () => {

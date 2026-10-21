@@ -13,6 +13,7 @@ import {
 } from './headerSocket';
 import { flush } from './testing/drive';
 import { FakeSocket, fakeSockets } from './testing/fakeSocket';
+import { fakeHeaderSockets } from './testing/headerSocket';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -22,7 +23,7 @@ const URL_LIVE = 'wss://api.openai.com/v1/live/sessions';
 const HEADERS = { set: { Authorization: 'Bearer sk-proj-seamKey0123456789' }, remove: ['Origin'] };
 
 /** A registrar that records what it was asked, answering each registration when the test says. */
-function registrar() {
+function registrar(clearAnswer?: () => Promise<{ requestId?: string } | void>) {
   const calls: string[] = [];
   const pending: Array<{ rule: HeaderRule; answer(error?: Error): void }> = [];
   const r: HeaderRegistrar = {
@@ -30,18 +31,18 @@ function registrar() {
       calls.push(`set ${rule.host}${rule.path}`);
       pending.push({ rule, answer: (error) => (error ? reject(error) : resolve()) });
     }),
-    clear: (rule) => { calls.push(`clear ${rule.host}${rule.path}`); },
+    clear: async (rule) => { calls.push(`clear ${rule.host}${rule.path}`); return clearAnswer?.(); },
   };
   return { r, calls, answer: (error?: Error) => pending.shift()?.answer(error) };
 }
 
-function seam() {
+function seam(clearAnswer?: () => Promise<{ requestId?: string } | void>) {
   const sockets = fakeSockets();
-  const reg = registrar();
+  const reg = registrar(clearAnswer);
   const clock = createVirtualClock(0);
   const open = createHeaderSocket(() => reg.r, (url) => sockets.create(url));
   const controller = new AbortController();
-  return { sockets, reg, clock, open, controller, start: (url = URL_LIVE, signal = controller.signal) => open(url, HEADERS, { signal, clock }) };
+  return { sockets, reg, clock, open, controller, start: (url = URL_LIVE, signal = controller.signal, onRequestId?: (id: string | undefined) => void) => open(url, HEADERS, { signal, clock, onRequestId }) };
 }
 
 describe('the header seam (F14)', () => {
@@ -239,23 +240,146 @@ describe('the header seam (F14)', () => {
   });
 });
 
+describe("the header seam's request id", () => {
+  const ID = '6c862ba2-2beb-9263-b94a-e6789bdd25bf';
+
+  it("resolves at the open as ever, then reports the clear's request id once, and lets the gate go after the clear", async () => {
+    const h = seam(async () => ({ requestId: ID }));
+    const order: string[] = [];
+    const ids: Array<string | undefined> = [];
+    const first = h.start(URL_LIVE, undefined, (id) => { ids.push(id); order.push('id'); }).then((s) => { order.push('socket'); return s; });
+    const second = h.start();
+    await flush();
+    h.reg.answer();
+    await flush();
+    h.sockets.all[0].open();
+    await expect(first).resolves.toBe(h.sockets.all[0]);
+    expect(order[0]).toBe('socket');
+    await flush();
+    expect(ids).toEqual([ID]);
+    expect(h.reg.calls).toEqual(['set api.openai.com/v1/live/', 'clear api.openai.com/v1/live/', 'set api.openai.com/v1/live/']);
+    h.reg.answer();
+    await flush();
+    h.sockets.all[1].open();
+    await expect(second).resolves.toBe(h.sockets.all[1]);
+    await flush();
+    expect(h.clock.pending()).toBe(0);
+  });
+
+  it('an answer of nothing, an empty one, or a rejection reports undefined, once; the socket resolved already', async () => {
+    const answers: Array<() => Promise<{ requestId?: string } | void>> = [async () => undefined, async () => ({}), async () => ({ requestId: '' }), () => Promise.reject(new Error('gone'))];
+    for (const answer of answers) {
+      const h = seam(answer);
+      const onRequestId = vi.fn();
+      const opening = h.start(URL_LIVE, undefined, onRequestId);
+      await flush();
+      h.reg.answer();
+      await flush();
+      h.sockets.last().open();
+      await expect(opening).resolves.toBe(h.sockets.last());
+      await flush();
+      expect(onRequestId.mock.calls).toEqual([[undefined]]);
+    }
+  });
+
+  it('a clear that never answers reports undefined at the bound, and the gate is let go then', async () => {
+    const h = seam(() => new Promise(() => {}));
+    const onRequestId = vi.fn();
+    const opening = h.start(URL_LIVE, undefined, onRequestId);
+    const second = h.start();
+    await flush();
+    h.reg.answer();
+    await flush();
+    h.clock.advance(HEADER_SOCKET_CAP_MS - 1);
+    h.sockets.last().open();
+    await expect(opening).resolves.toBe(h.sockets.last());
+    await flush();
+    expect(onRequestId).not.toHaveBeenCalled();
+    h.clock.advance(1);
+    await flush();
+    expect(onRequestId.mock.calls).toEqual([[undefined]]);
+    expect(h.reg.calls.slice(-1)).toEqual(['set api.openai.com/v1/live/']);
+    h.reg.answer();
+    await flush();
+    h.sockets.all[1].open();
+    await expect(second).resolves.toBe(h.sockets.all[1]);
+  });
+
+  it('a socket that errors or closes before it opens never calls onRequestId', async () => {
+    const h = seam(async () => ({ requestId: ID }));
+    const onRequestId = vi.fn();
+    const opening = h.start(URL_LIVE, undefined, onRequestId);
+    await flush();
+    h.reg.answer();
+    await flush();
+    h.sockets.last().drop();
+    await expect(opening).rejects.toMatchObject({ reason: 'never_opened' });
+    await flush();
+    expect(onRequestId).not.toHaveBeenCalled();
+    expect(h.reg.calls.slice(-1)).toEqual(['clear api.openai.com/v1/live/']);
+  });
+
+  it('the fake keeps its next id through attempts that never opened: refused, then dropped, then a good one', async () => {
+    const fake = fakeHeaderSockets(fakeSockets(), { requestIds: ['a'] });
+    const clock = createVirtualClock(0);
+    const ids: Array<string | undefined> = [];
+    const start = () => fake.open(URL_LIVE, HEADERS, { signal: new AbortController().signal, clock, onRequestId: (id) => ids.push(id) });
+    fake.refuseNext();
+    await expect(start()).rejects.toMatchObject({ reason: 'register' });
+    const dropped = start();
+    await flush();
+    fake.sockets.last().drop();
+    await expect(dropped).rejects.toMatchObject({ reason: 'never_opened' });
+    const good = start();
+    await flush();
+    fake.sockets.last().open();
+    await good;
+    await flush();
+    expect(ids).toEqual(['a']);
+  });
+
+  it('the fake hands out its ids one per open, and holds a clear when told', async () => {
+    const fake = fakeHeaderSockets(fakeSockets(), { requestIds: ['a', 'b'] });
+    const clock = createVirtualClock(0);
+    const ids: Array<string | undefined> = [];
+    const opening = fake.open(URL_LIVE, HEADERS, { signal: new AbortController().signal, clock, onRequestId: (id) => ids.push(id) });
+    const release = fake.holdNextClear();
+    await flush();
+    fake.sockets.last().open();
+    await opening;
+    await flush();
+    expect(ids).toEqual([]);
+    release();
+    await flush();
+    expect(ids).toEqual(['a']);
+    const again = fake.open(URL_LIVE, HEADERS, { signal: new AbortController().signal, clock, onRequestId: (id) => ids.push(id) });
+    await flush();
+    fake.sockets.last().open();
+    await again;
+    await flush();
+    expect(ids).toEqual(['a', 'b']);
+  });
+});
+
 describe("the header seam's registrars", () => {
   it("Electron's: ws-headers-set with the path, then ws-headers-clear; a refusal in the main process's words", async () => {
     const invoke = vi.fn().mockResolvedValue({ success: true });
     const r = electronRegistrar({ invoke });
     const rule = ruleFor(URL_LIVE, HEADERS);
     await r.set(rule);
-    r.clear(rule);
+    await r.clear(rule);
     expect(invoke.mock.calls).toEqual([
       ['ws-headers-set', { host: 'api.openai.com', path: '/v1/live/', headers: HEADERS.set, removeHeaders: ['Origin'] }],
       ['ws-headers-clear', { host: 'api.openai.com', path: '/v1/live/' }],
     ]);
     invoke.mockResolvedValueOnce({ success: false, error: 'Invalid arguments: host and headers required' });
     await expect(r.set(rule)).rejects.toThrow('ws-headers-set: Invalid arguments: host and headers required');
-    // A clear that fails is nobody's business: its rejection is swallowed.
+    // The clear answers what the main process answers: the upgrade's request id.
+    invoke.mockResolvedValueOnce({ requestId: 'abc' });
+    await expect(r.clear(rule)).resolves.toEqual({ requestId: 'abc' });
+    // A clear that fails rejects: the seam counts that as none.
     invoke.mockRejectedValueOnce(new Error('gone'));
-    r.clear(rule);
-    await flush();
+    await expect(r.clear(rule)).rejects.toThrow('gone');
   });
 
   it("the extension's: WS_HEADERS_SET and WS_HEADERS_CLEAR to the background; no answer, or a refusal, rejects", async () => {
@@ -267,13 +391,15 @@ describe("the header seam's registrars", () => {
     const r = extensionRegistrar(runtime);
     const rule = ruleFor(URL_LIVE, HEADERS);
     await r.set(rule);
-    r.clear(rule);
+    await r.clear(rule);
     expect(sent).toEqual([
       { type: 'WS_HEADERS_SET', host: 'api.openai.com', path: '/v1/live/', set: HEADERS.set, remove: ['Origin'] },
       { type: 'WS_HEADERS_CLEAR', host: 'api.openai.com', path: '/v1/live/' },
     ]);
     reply = { success: false, error: 'Sender is not an extension page' };
     await expect(r.set(rule)).rejects.toThrow('WS_HEADERS_SET: Sender is not an extension page');
+    reply = { requestId: 'abc' };
+    await expect(r.clear(rule)).resolves.toEqual({ requestId: 'abc' });
     runtime.lastError = { message: 'Could not establish connection. Receiving end does not exist.' };
     reply = undefined;
     await expect(r.set(rule)).rejects.toThrow('WS_HEADERS_SET: Could not establish connection. Receiving end does not exist.');

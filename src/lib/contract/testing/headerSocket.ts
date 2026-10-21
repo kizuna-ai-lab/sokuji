@@ -23,12 +23,20 @@ export interface FakeHeaderSockets {
   refuseNext(reason?: string): void;
   /** The next registration waits until the returned function is called. */
   holdNext(): () => void;
+  /** The next clear's answer waits until the returned function is called (or never, if it is not). */
+  holdNextClear(): () => void;
 }
 
-export function fakeHeaderSockets(sockets: FakeSockets = fakeSockets()): FakeHeaderSockets {
+/** `requestIds` are handed out, one per open, as the platform's answer to the clear; none when they run out. */
+export function fakeHeaderSockets(sockets: FakeSockets = fakeSockets(), o: { requestIds?: string[] } = {}): FakeHeaderSockets {
   const registrations: Registration[] = [];
+  const requestIds = [...(o.requestIds ?? [])];
+  /** Sockets that opened, and clears answered so far: a clear after an open is the one that answers. */
+  let opens = 0;
+  let answered = 0;
   let refusal: string | null = null;
   let held: Promise<void> | null = null;
+  let heldClear: Promise<void> | null = null;
   const open = createHeaderSocket(
     () => ({
       set(rule) {
@@ -41,23 +49,39 @@ export function fakeHeaderSockets(sockets: FakeSockets = fakeSockets()): FakeHea
         held = null;
         return wait;
       },
-      clear(rule) {
+      async clear(rule) {
+        const wait = heldClear;
+        heldClear = null;
+        await wait;
         for (let i = registrations.length - 1; i >= 0; i--) {
           const r = registrations[i];
           if (r.host === rule.host && r.path === rule.path && !r.cleared) {
             r.cleared = true;
-            return;
+            // Only a clear that follows an open consumes an id: a refused, dropped or aborted attempt leaves the next one's.
+            const afterOpen = opens > answered;
+            if (afterOpen) answered++;
+            const requestId = afterOpen ? requestIds.shift() : undefined;
+            return requestId === undefined ? undefined : { requestId };
           }
         }
       },
     }),
-    (url) => sockets.create(url),
+    (url) => {
+      const socket = sockets.create(url);
+      socket.addEventListener('open', () => { opens++; }, { once: true });
+      return socket;
+    },
   );
   return {
     open,
     sockets,
     registrations,
     refuseNext: (reason = 'the platform would not take the rule') => { refusal = reason; },
+    holdNextClear() {
+      let release!: () => void;
+      heldClear = new Promise<void>((resolve) => { release = resolve; });
+      return () => release();
+    },
     holdNext() {
       let release!: () => void;
       held = new Promise<void>((resolve) => { release = resolve; });

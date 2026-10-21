@@ -282,6 +282,9 @@
     "sonioxRegion": "אזור",
     "sonioxRegionTooltip": "‏Soniox מפעילה פריסה נפרדת לכל אזור. האודיו שלך מעובד באזור שבחרת. חל מהפעלה הבאה.",
     "sonioxRegionTooltipOwnKey": "‏Soniox מפעילה פריסה נפרדת לכל אזור, וכל אזור הוא פרויקט נפרד ב-Soniox עם מפתח API משלו. האודיו שלך מעובד באזור שבחרת. חל מהפעלה הבאה.",
+    "qwenRegion": "אזור",
+    "qwenRegionTooltip": "‏Qwen מפעילה פריסה נפרדת לכל אזור. האודיו שלך מעובד באזור שבחרת. חל מהפעלה הבאה. מרשתות מחוץ לסין היבשתית, בייג'ינג עשויה להגיב בהשהיה גבוהה במיוחד.",
+    "qwenRegionBeijingNote": "מרשתות מחוץ לסין היבשתית, ההשהיה לבייג'ינג עשויה להיות גבוהה במיוחד; במקרה כזה נסו את סינגפור.",
     "sentenceSegmentationTitle": "חלוקת משפטים",
     "sentenceSegmentationTitleDesc": "קובע היכן בועה מסתיימת: להשאיר לספק, לחתוך בהפסקה שאתם מכווננים, או כל כמה משפטים עם השלמת סימני הפיסוק החסרים.",
     "sentenceSegmentation": "חלוקת כתוביות",
@@ -486,6 +489,10 @@
       "name": "KizunaAI",
       "description": "60 שפות, 3,600 צמדים · שכפול הקול שלך"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI",
+      "description": "תרגום סימולטני Qwen3.8, 60 שפות (29 בקול)"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "מודל דיבור GPT Realtime לשימוש כללי, ניתן להגדרה מלאה"
@@ -670,7 +677,10 @@
     "sonioxInsufficientBalance": "אין מספיק יתרה כדי להתחיל הפעלה. אנא טענו את היתרה שלכם ונסו שוב.",
     "sonioxSessionConflict": "הפעלה אחרת כבר פועלת בחשבון שלכם. אנא נסו שוב בעוד רגע.",
     "sonioxServiceUnavailable": "Soniox אינו זמין באופן זמני. אנא נסו שוב בעוד רגע.",
+    "qwenServiceUnavailable": "Qwen אינו זמין באופן זמני. אנא נסו שוב בעוד רגע.",
     "sonioxServiceBusy": "Soniox פועל כרגע בקיבולת מלאה. אנא נסו שוב בקרוב.",
+    "qwenServiceBusy": "Qwen פועל כרגע בקיבולת מלאה. אנא נסו שוב בקרוב.",
+    "qwenRegionUnavailable": "Kizuna Qwen אינו זמין כרגע באזור שבחרתם. בחרו אזור אחר או נסו שוב מאוחר יותר.",
     "sonioxBudgetExhausted": "יתרת ההפעלה שלכם נוצלה במלואה. טענו את היתרה שלכם כדי להמשיך לתרגם.",
     "sonioxTtsFailed": "התרגום המדובר הופסק. התמלול ותרגום הטקסט ממשיכים לפעול.",
     "sonioxTtsSegmentLost": "לא ניתן היה להשמיע חלק מהתרגום הקולי. התמלול ותרגום הטקסט לא הושפעו.",

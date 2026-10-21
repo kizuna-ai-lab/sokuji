@@ -1,9 +1,12 @@
+import { CircleHelp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { LinesField } from '../../components/providers/fields/LinesField';
 import { PresetVoiceField, presetVoice } from '../../components/providers/fields/PresetVoiceField';
 import type { VoiceEntry } from '../../components/Settings/sections/VoiceLibrarySection';
+import Tooltip from '../../components/Tooltip/Tooltip';
 import type { SettingsProps, VoiceSummaryProps } from '../../lib/provider/types';
 import { isEndpointId } from './endpoints';
+import { asQwenRegion, QWEN_REGION_LABELS, QWEN_REGIONS } from './regions';
 import { QWEN_VOICES, qwenParticipantVoice, qwenSpeakerVoice, SPEAKER_CLONE, SPEAKER_CLONE_ONCE, type QwenSettings as S } from './settings';
 
 /** The voice a spoken leg reads in, for the Speech rows, as its run resolves it: a preset's name, or whose own voice is cloned. */
@@ -24,8 +27,9 @@ export function QwenVoiceSummary({ settings, leg }: VoiceSummaryProps<S>) {
  * own (each speaker on every turn, or the first speaker once), then the 47
  * presets, as Doubao AST 2.0 lists them; and the preferred translations
  * (`translation.corpus`), Soniox's field and words. No preview: the official
- * voice list publishes no samples. No model, region or instructions: the
- * endpoint has none.
+ * voice list publishes no samples. No model or instructions: the endpoint
+ * has none. No region either: an own key detects its storefront; the region
+ * is the managed twin's (`KizunaQwenSettingsView`).
  */
 export function QwenSettingsView({ settings, update, disabled = false, participantSpeaks = false, models = [], preview }: SettingsProps<S>) {
   const { t } = useTranslation();
@@ -64,6 +68,49 @@ export function QwenSettingsView({ settings, update, disabled = false, participa
           disabled={disabled}
         />
       </div>
+    </>
+  );
+}
+
+/**
+ * Kizuna AI's managed view: the region the session is bought in (spec
+ * 2026-10-21, Beijing region, §8), in Soniox's region markup, above the
+ * shared view. The user picks; the backend's grant names the endpoint.
+ */
+export function KizunaQwenSettingsView(props: SettingsProps<S>) {
+  const { t } = useTranslation();
+  const { settings, update, disabled = false } = props;
+  return (
+    <>
+      <div className="settings-section" id="qwen-region-section">
+        <h2>
+          {t('settings.qwenRegion', 'Region')}
+          <Tooltip
+            content={t('settings.qwenRegionTooltip', 'Qwen runs a separate deployment per region. Your audio is processed in the region you pick. Applies from the next session.')}
+            position="top"
+          >
+            <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+          </Tooltip>
+        </h2>
+        <div className="setting-item">
+          <select
+            id="qwen-region-select"
+            className="select-dropdown"
+            aria-label={t('settings.qwenRegion', 'Region')}
+            value={settings.region}
+            disabled={disabled}
+            onChange={(e) => update({ region: asQwenRegion(e.target.value) })}
+          >
+            {QWEN_REGIONS.map((r) => <option key={r} value={r}>{QWEN_REGION_LABELS[r]}</option>)}
+          </select>
+          {settings.region === 'cn' && (
+            <div className="setting-description" id="qwen-region-note">
+              {t('settings.qwenRegionBeijingNote', 'Beijing may have noticeably higher latency from networks outside mainland China; if it does, try Singapore.')}
+            </div>
+          )}
+        </div>
+      </div>
+      <QwenSettingsView {...props} />
     </>
   );
 }

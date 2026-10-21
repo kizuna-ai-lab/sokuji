@@ -282,6 +282,9 @@
     "sonioxRegion": "Regio",
     "sonioxRegionTooltip": "Soniox draait per regio een aparte omgeving. Je audio wordt verwerkt in de gekozen regio. Geldt vanaf de volgende sessie.",
     "sonioxRegionTooltipOwnKey": "Soniox draait per regio een aparte omgeving, en elke regio is een apart Soniox-project met een eigen API-sleutel. Je audio wordt verwerkt in de gekozen regio. Geldt vanaf de volgende sessie.",
+    "qwenRegion": "Regio",
+    "qwenRegionTooltip": "Qwen draait per regio een aparte omgeving. Je audio wordt verwerkt in de gekozen regio. Geldt vanaf de volgende sessie. Vanaf netwerken buiten het Chinese vasteland kan Peking met merkbaar hogere latentie antwoorden.",
+    "qwenRegionBeijingNote": "Vanaf netwerken buiten het Chinese vasteland kan Peking een merkbaar hogere latentie hebben; probeer in dat geval Singapore.",
     "sentenceSegmentationTitle": "Zinsegmentatie",
     "sentenceSegmentationTitleDesc": "Bepaalt waar een tekstballon eindigt: overlaten aan de aanbieder, knippen bij een pauze die je instelt, of elke paar zinnen met de ontbrekende interpunctie erbij.",
     "sentenceSegmentation": "Ondertitelsegmentatie",
@@ -486,6 +489,10 @@
       "name": "KizunaAI",
       "description": "60 talen, 3.600 taalparen · kloon je eigen stem"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI",
+      "description": "Qwen3.8-simultaantolken, 60 talen (29 gesproken)"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "Algemeen GPT Realtime-spraakmodel, volledig instelbaar"
@@ -670,7 +677,10 @@
     "sonioxInsufficientBalance": "Onvoldoende saldo om een sessie te starten. Laad uw saldo op en probeer het opnieuw.",
     "sonioxSessionConflict": "Er loopt al een andere sessie op uw account. Probeer het over een moment opnieuw.",
     "sonioxServiceUnavailable": "Soniox is tijdelijk niet beschikbaar. Probeer het over een moment opnieuw.",
+    "qwenServiceUnavailable": "Qwen is tijdelijk niet beschikbaar. Probeer het over een moment opnieuw.",
     "sonioxServiceBusy": "Soniox zit momenteel aan zijn volledige capaciteit. Probeer het binnenkort opnieuw.",
+    "qwenServiceBusy": "Qwen zit momenteel aan zijn volledige capaciteit. Probeer het binnenkort opnieuw.",
+    "qwenRegionUnavailable": "Kizuna Qwen is op dit moment niet beschikbaar in de gekozen regio. Kies een andere regio of probeer het later opnieuw.",
     "sonioxBudgetExhausted": "Het saldo van uw sessie is op. Laad uw saldo op om door te gaan met vertalen.",
     "sonioxTtsFailed": "De gesproken vertaling is gestopt. Transcriptie en tekstvertaling werken nog steeds.",
     "sonioxTtsSegmentLost": "Een deel van de gesproken vertaling kon niet worden afgespeeld. Transcriptie en tekstvertaling werken gewoon door.",

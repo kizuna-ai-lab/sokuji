@@ -1,13 +1,16 @@
 /**
  * Qwen LiveTranslate's `S`, voices, languages and credentials (spec
  * 2026-10-13, §3 and §4). New with this provider: no slice an older build
- * stored, so no `legacyKeys` and no `migrate`. A stored voice the list does
- * not have falls to the default where it is read, never rewritten.
+ * stored, so no `legacyKeys`; `migrate` only narrows `region`, which a build
+ * before the Beijing region never stored. A stored voice the list does not
+ * have falls to the default where it is read, never rewritten.
  */
 import { identityWire } from '../../lib/language/wire';
 import { AUTO } from '../../lib/provider/languages';
 import type { CredentialsMissing, LanguageContext, LanguageOption, Provider } from '../../lib/provider/types';
 import { distinctVoice } from '../../lib/provider/voices';
+import type { EndpointId } from './endpoints';
+import { asQwenRegion, DEFAULT_QWEN_REGION, type QwenRegion } from './regions';
 
 /** The one model (D1): the check finds the storefront, nothing chooses a model. */
 export const QWEN_MODEL = 'qwen3.8-livetranslate-flash-realtime';
@@ -93,12 +96,23 @@ export interface QwenSettings {
   hotwords: string;
   /** The pause that ends a turn under automatic turns, in ms (`QWEN_PAUSE`). */
   pauseMs: number;
+  /** The region a managed session is bought in (`regions.ts`); an own key detects its storefront and ignores this. */
+  region: QwenRegion;
 }
 
 export const QWEN_DEFAULT_VOICE = 'Tina';
 /** A male preset beside Tina, so the two people never sound alike by default. */
 export const QWEN_PARTICIPANT_DEFAULT_VOICE = 'Ethan';
-export const QWEN_DEFAULTS: QwenSettings = { voice: QWEN_DEFAULT_VOICE, participantVoice: QWEN_PARTICIPANT_DEFAULT_VOICE, hotwords: '', pauseMs: QWEN_PAUSE.default };
+export const QWEN_DEFAULTS: QwenSettings = {
+  voice: QWEN_DEFAULT_VOICE, participantVoice: QWEN_PARTICIPANT_DEFAULT_VOICE, hotwords: '', pauseMs: QWEN_PAUSE.default, region: DEFAULT_QWEN_REGION,
+};
+
+/** What was stored, made valid field by field: the region narrowed, the rest as typed or defaulted. Nothing is written back. */
+export function migrateQwenSettings(stored: Readonly<Record<string, unknown>>): QwenSettings {
+  const str = (k: 'voice' | 'participantVoice' | 'hotwords') => (typeof stored[k] === 'string' ? (stored[k] as string) : QWEN_DEFAULTS[k]);
+  const pauseMs = typeof stored.pauseMs === 'number' && Number.isFinite(stored.pauseMs) ? stored.pauseMs : QWEN_DEFAULTS.pauseMs;
+  return { voice: str('voice'), participantVoice: str('participantVoice'), hotwords: str('hotwords'), pauseMs, region: asQwenRegion(stored.region) };
+}
 
 /** Either clone: each leg clones its own speaker, so neither is ever "my" voice to keep off the other leg. */
 const cloned = (v: string) => v === SPEAKER_CLONE || v === SPEAKER_CLONE_ONCE;
@@ -139,8 +153,16 @@ export const qwenLanguages: Provider<QwenSettings, never, never>['languages'] = 
   wire: identityWire(),
 };
 
+/** What the managed leg tells its lease: the session the storefront opened and the handshake's request id (absent when the platform gave none), for the backend to match against Alibaba's logs. */
+export interface QwenLeasePort {
+  sessionCreated(id: string, requestId?: string): void;
+}
+
 export interface QwenCredentials {
   apiKey: string;
+  /** The storefront a managed grant was bought on: dialled without detecting. An own key carries neither this nor `lease`. */
+  endpoint?: EndpointId;
+  lease?: QwenLeasePort;
 }
 
 export const qwenCredentials: Provider<QwenSettings, QwenCredentials, never>['credentials'] = {

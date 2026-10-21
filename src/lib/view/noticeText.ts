@@ -104,6 +104,11 @@ export const NOTICE_ALIASES: Readonly<Record<string, string>> = {
   // Kizuna Soniox's lease refused a start (Stage 2 Kizuna Soniox, ruling 11): the sentences name Soniox, so the codes keep it.
   soniox_service_unavailable: 'mainPanel.sonioxServiceUnavailable',
   soniox_service_busy: 'mainPanel.sonioxServiceBusy',
+  // Kizuna Qwen's lease refused a start: the sentences name Qwen, so the codes keep it.
+  qwen_service_unavailable: 'mainPanel.qwenServiceUnavailable',
+  qwen_service_busy: 'mainPanel.qwenServiceBusy',
+  // The region picked has no backend behind it yet, or the backend answered another: the sentence says to pick again.
+  qwen_region_unavailable: 'mainPanel.qwenRegionUnavailable',
   // Its voice claim fell back to a built-in voice (choice 17): the sentences name no vendor.
   voice_clip_missing: 'mainPanel.sonioxVoiceClipMissing',
   voice_pool_busy: 'mainPanel.sonioxVoicePoolBusy',

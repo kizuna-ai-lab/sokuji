@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { createRequestIds } from './wsHeaderRule.js';
 
 const background = readFileSync(join(__dirname, 'background.js'), 'utf8');
 const viteConfig = readFileSync(join(__dirname, '..', 'vite.config.ts'), 'utf8');
@@ -24,7 +25,7 @@ function fn(name: string): string {
 
 describe('the background worker: the generic upgrade header rules', () => {
   it('imports the pure rules, which the build copies beside it', () => {
-    expect(background).toContain("import { buildRule, isExtensionPage, ruleIdsFor, ruleProblem, sweepIds } from './wsHeaderRule.js';");
+    expect(background).toContain("import { buildRule, createRequestIds, isExtensionPage, ruleIdsFor, ruleProblem, sweepIds } from './wsHeaderRule.js';");
     expect(viteConfig).toContain("{ src: 'background/wsHeaderRule.js', dest: '.' },");
   });
 
@@ -52,5 +53,95 @@ describe('the background worker: the generic upgrade header rules', () => {
   it('sweeps the generic rules and the old Live and AST2 rules when the browser or the extension starts, since dynamic rules outlive both (Stage 2 OpenAI Live, ruling 11; Stage 2 deletion, ruling C3)', () => {
     expect(background).toContain('chrome.runtime.onStartup.addListener(() => { void wsHeadersSweep(); });');
     expect(background).toContain('chrome.runtime.onInstalled.addListener(() => { void wsHeadersSweep(); });');
+  });
+});
+
+const ORIGIN = 'chrome-extension://abcdefghijklmnopabcdefghijklmnop';
+const HOST = 'maas.qwencloudapi.com';
+const PATH = '/api-ws/v1/realtime';
+const response = (over: Record<string, unknown> = {}) => ({
+  url: `wss://${HOST}${PATH}?model=m`,
+  initiator: ORIGIN,
+  type: 'websocket',
+  responseHeaders: [{ name: 'x-request-id', value: 'abc' }],
+  ...over,
+});
+
+describe("the background worker: the handshake's request id", () => {
+  it('answers the id of a websocket response from the extension for a set rule, once', () => {
+    const ids = createRequestIds(ORIGIN);
+    ids.set(HOST, PATH);
+    ids.note(response());
+    expect(ids.clear(HOST, PATH)).toBe('abc');
+    expect(ids.clear(HOST, PATH)).toBeUndefined();
+  });
+
+  it('matches the header name in any case', () => {
+    const ids = createRequestIds(ORIGIN);
+    ids.set(HOST, PATH);
+    ids.note(response({ responseHeaders: [{ name: 'X-Request-Id', value: 'abc' }] }));
+    expect(ids.clear(HOST, PATH)).toBe('abc');
+  });
+
+  it('ignores a response for another host, another path, another initiator, or with no usable id', () => {
+    const ids = createRequestIds(ORIGIN);
+    ids.set(HOST, PATH);
+    ids.note(response({ url: `wss://other.example.com${PATH}` }));
+    ids.note(response({ url: `wss://${HOST}/elsewhere` }));
+    ids.note(response({ initiator: 'https://meet.google.com' }));
+    ids.note(response({ initiator: undefined }));
+    ids.note(response({ responseHeaders: [{ name: 'x-request-id', value: '' }] }));
+    ids.note(response({ responseHeaders: [{ name: 'x-request-id' }] }));
+    ids.note(response({ responseHeaders: undefined }));
+    expect(ids.clear(HOST, PATH)).toBeUndefined();
+  });
+
+  it('notes nothing for a rule that is not set, or was cleared', () => {
+    const ids = createRequestIds(ORIGIN);
+    ids.note(response());
+    ids.set(HOST, PATH);
+    expect(ids.clear(HOST, PATH)).toBeUndefined();
+    ids.note(response());
+    expect(ids.clear(HOST, PATH)).toBeUndefined();
+  });
+
+  it('gives the id to the rule with the longest matching path', () => {
+    const ids = createRequestIds(ORIGIN);
+    ids.set(HOST, '/api-ws/');
+    ids.set(HOST, PATH);
+    ids.note(response());
+    expect(ids.clear(HOST, '/api-ws/')).toBeUndefined();
+    expect(ids.clear(HOST, PATH)).toBe('abc');
+  });
+
+  it('forgets a stale id when the rule is set again', () => {
+    const ids = createRequestIds(ORIGIN);
+    ids.set(HOST, PATH);
+    ids.note(response());
+    ids.set(HOST, PATH);
+    expect(ids.clear(HOST, PATH)).toBeUndefined();
+  });
+
+  it('is wired at the top level with the ruled filter, fed to the store, and answered on clear', () => {
+    // Guarded, at column 0 (synchronous at the top level), and before the message listener: a missing `webRequest` must not stop the worker.
+    const registration = /^chrome\.webRequest\?\.onHeadersReceived\.addListener\(/m.exec(background);
+    expect(registration, 'the guarded top-level registration').not.toBeNull();
+    expect(registration!.index).toBeLessThan(at(background, 'chrome.runtime.onMessage.addListener'));
+    const listener = background.slice(registration!.index);
+    const call = listener.slice(0, at(listener, '\n);'));
+    // Both storefronts: a Beijing grant dials the mainland host, and its request id matters as much.
+    expect(call).toContain("{ urls: ['wss://maas.qwencloudapi.com/*', 'wss://maas.qianwenaiapi.com/*'], types: ['websocket'] },\n  ['responseHeaders'],");
+    expect(call).toContain('wsRequestIds.note(details)');
+    expect(background).toContain("createRequestIds(chrome.runtime.getURL('').replace(/\\/$/, ''))");
+    expect(fn('wsHeadersSet')).toContain('wsRequestIds.set(message.host, message.path)');
+    expect(fn('wsHeadersClear')).toContain('return wsRequestIds.clear(message.host, message.path)');
+    // The answer carries the id only when it is a string; an absent id is a bare success.
+    expect(background).toContain("typeof requestId === 'string' ? { success: true, requestId } : { success: true }");
+    expect(background).not.toMatch(/\{ success: true, requestId: undefined/);
+  });
+
+  it('declares the webRequest permission', () => {
+    const manifest = JSON.parse(readFileSync(join(__dirname, '..', 'manifest.json'), 'utf8'));
+    expect(manifest.permissions).toContain('webRequest');
   });
 });

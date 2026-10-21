@@ -282,6 +282,9 @@
     "sonioxRegion": "Region",
     "sonioxRegionTooltip": "Soniox kör en separat driftsättning per region. Ditt ljud behandlas i den region du väljer. Gäller från nästa session.",
     "sonioxRegionTooltipOwnKey": "Soniox kör en separat driftsättning per region, och varje region är ett eget Soniox-projekt med en egen API-nyckel. Ditt ljud behandlas i den region du väljer. Gäller från nästa session.",
+    "qwenRegion": "Region",
+    "qwenRegionTooltip": "Qwen kör en separat driftsättning per region. Ditt ljud behandlas i den region du väljer. Gäller från nästa session. Från nätverk utanför Fastlandskina kan Peking svara med märkbart högre latens.",
+    "qwenRegionBeijingNote": "Från nätverk utanför Fastlandskina kan Peking ha märkbart högre latens; prova i så fall Singapore.",
     "sentenceSegmentationTitle": "Meningssegmentering",
     "sentenceSegmentationTitleDesc": "Väljer var en pratbubbla slutar: låta leverantören bestämma, klippa vid en paus du ställer in, eller var några meningar med skiljetecknen ifyllda.",
     "sentenceSegmentation": "Segmentering av undertexter",
@@ -486,6 +489,10 @@
       "name": "KizunaAI",
       "description": "60 språk, 3600 språkpar · klona din egen röst"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI",
+      "description": "Qwen3.8 simultantolkning, 60 språk (29 med röst)"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "Allmän GPT Realtime-talmodell, helt konfigurerbar"
@@ -670,7 +677,10 @@
     "sonioxInsufficientBalance": "Otillräckligt saldo för att starta en session. Fyll på ditt saldo och försök igen.",
     "sonioxSessionConflict": "En annan session pågår redan på ditt konto. Försök igen om en liten stund.",
     "sonioxServiceUnavailable": "Soniox är tillfälligt otillgängligt. Försök igen om en liten stund.",
+    "qwenServiceUnavailable": "Qwen är tillfälligt otillgängligt. Försök igen om en liten stund.",
     "sonioxServiceBusy": "Soniox är för närvarande fullbelastat. Försök igen snart.",
+    "qwenServiceBusy": "Qwen är för närvarande fullbelastat. Försök igen snart.",
+    "qwenRegionUnavailable": "Kizuna Qwen är inte tillgängligt i den valda regionen just nu. Välj en annan region eller försök igen senare.",
     "sonioxBudgetExhausted": "Ditt sessionssaldo är slut. Fyll på ditt saldo för att fortsätta översätta.",
     "sonioxTtsFailed": "Den talade översättningen har stoppats. Transkribering och textöversättning fungerar fortfarande.",
     "sonioxTtsSegmentLost": "En del av den talade översättningen kunde inte spelas upp. Transkribering och textöversättning påverkas inte.",

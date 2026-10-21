@@ -282,6 +282,9 @@
     "sonioxRegion": "リージョン",
     "sonioxRegionTooltip": "Soniox はリージョンごとに独立したデプロイです。音声は選択したリージョン内で処理されます。次のセッションから適用されます。",
     "sonioxRegionTooltipOwnKey": "Soniox はリージョンごとに独立したデプロイで、それぞれが別個の Soniox プロジェクトとして専用の API キーを持ちます。音声は選択したリージョン内で処理されます。次のセッションから適用されます。",
+    "qwenRegion": "リージョン",
+    "qwenRegionTooltip": "Qwen はリージョンごとに独立したデプロイです。音声は選択したリージョン内で処理されます。次のセッションから適用されます。中国本土以外のネットワークから北京に接続すると、遅延が大きくなることがあります。",
+    "qwenRegionBeijingNote": "中国本土以外のネットワークから北京に接続すると、遅延が大きくなることがあります。その場合はシンガポールをお試しください。",
     "sentenceSegmentationTitle": "文分割",
     "sentenceSegmentationTitleDesc": "吹き出しの区切り方を選びます。プロバイダーに任せる、調整できる休止で区切る、または不足している句読点を補って数文ごとに区切る。",
     "sentenceSegmentation": "字幕分割",
@@ -486,6 +489,10 @@
       "name": "KizunaAI",
       "description": "60言語、3,600の言語ペア · 自分の声をクローン"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI",
+      "description": "Qwen3.8 同時通訳、60 言語（音声は 29 言語）"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "汎用 GPT Realtime 音声モデル、自由に設定可能"
@@ -670,7 +677,10 @@
     "sonioxInsufficientBalance": "セッションを開始するには残高が不足しています。残高をチャージしてもう一度お試しください。",
     "sonioxSessionConflict": "このアカウントでは既に別のセッションが実行中です。しばらくしてからもう一度お試しください。",
     "sonioxServiceUnavailable": "Sonioxは一時的に利用できません。しばらくしてからもう一度お試しください。",
+    "qwenServiceUnavailable": "Qwenは一時的に利用できません。しばらくしてからもう一度お試しください。",
     "sonioxServiceBusy": "Sonioxは現在利用が集中しています。しばらくしてからもう一度お試しください。",
+    "qwenServiceBusy": "Qwenは現在利用が集中しています。しばらくしてからもう一度お試しください。",
+    "qwenRegionUnavailable": "選択したリージョンでは現在 Kizuna Qwen を利用できません。別のリージョンを選ぶか、しばらくしてからお試しください。",
     "sonioxBudgetExhausted": "セッションの残高がなくなりました。翻訳を続けるには残高をチャージしてください。",
     "sonioxTtsFailed": "音声翻訳が停止しました。文字起こしとテキスト翻訳は続いています。",
     "sonioxTtsSegmentLost": "音声翻訳の一部を再生できませんでした。文字起こしとテキスト翻訳には影響ありません。",

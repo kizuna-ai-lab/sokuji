@@ -282,6 +282,9 @@
     "sonioxRegion": "区域",
     "sonioxRegionTooltip": "Soniox 在每个区域都有独立部署。您的音频将在所选区域内处理。下次会话开始生效。",
     "sonioxRegionTooltipOwnKey": "Soniox 在每个区域都有独立部署，每个区域是一个独立的 Soniox 项目，有自己的 API 密钥。您的音频将在所选区域内处理。下次会话开始生效。",
+    "qwenRegion": "区域",
+    "qwenRegionTooltip": "Qwen 在每个区域都有独立部署。您的音频将在所选区域内处理。下次会话开始生效。从中国大陆以外的网络连接北京时，延迟可能明显偏高。",
+    "qwenRegionBeijingNote": "从中国大陆以外的网络连接北京时，延迟可能明显偏高；如遇到，可改用新加坡。",
     "sentenceSegmentationTitle": "句子分段",
     "sentenceSegmentationTitleDesc": "选择气泡在何处断开：交给服务商决定、按可调节的停顿断开，或补上缺失的标点并每隔几句断开。",
     "sentenceSegmentation": "字幕分段",
@@ -486,6 +489,10 @@
       "name": "KizunaAI",
       "description": "60 种语言，3,600 个语言对 · 可克隆您自己的声音"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI",
+      "description": "千问 Qwen3.8 同声传译，60 种语言（29 种可配音）"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "通用 GPT Realtime 语音模型，可自由配置"
@@ -670,7 +677,10 @@
     "sonioxInsufficientBalance": "余额不足,无法开始会话。请充值后重试。",
     "sonioxSessionConflict": "您的账户中已有另一个会话正在进行。请稍后重试。",
     "sonioxServiceUnavailable": "Soniox 暂时不可用。请稍后重试。",
+    "qwenServiceUnavailable": "Qwen 暂时不可用。请稍后重试。",
     "sonioxServiceBusy": "Soniox 当前容量已满。请稍后重试。",
+    "qwenServiceBusy": "Qwen 当前容量已满。请稍后重试。",
+    "qwenRegionUnavailable": "你选择的地区目前无法使用 Kizuna Qwen。请换一个地区，或稍后再试。",
     "sonioxBudgetExhausted": "您的会话余额已用完。请充值以继续翻译。",
     "sonioxTtsFailed": "语音翻译已停止。转录和文字翻译仍在继续。",
     "sonioxTtsSegmentLost": "有一段语音翻译未能播放。转录和文字翻译不受影响。",

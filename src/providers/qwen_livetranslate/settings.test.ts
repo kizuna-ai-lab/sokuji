@@ -3,6 +3,7 @@ import { canonicalTag, parseCode } from '../../lib/language/code';
 import { AUTO } from '../../lib/provider/languages';
 import type { AuthContext } from '../../lib/provider/types';
 import {
+  migrateQwenSettings,
   QWEN_DEFAULTS, QWEN_LANGUAGES, QWEN_MODEL, QWEN_PAUSE, QWEN_SPOKEN, QWEN_VOICES, qwenCredentials, qwenLanguages, qwenParticipantVoice, qwenSpeakerVoice,
   SPEAKER_CLONE, SPEAKER_CLONE_ONCE,
 } from './settings';
@@ -13,7 +14,17 @@ const codes = (list: readonly { value: string }[]) => list.map((o) => o.value);
 describe("Qwen LiveTranslate's settings", () => {
   it('runs one model, and starts from two different presets, no hotwords and the server\'s own pause', () => {
     expect(QWEN_MODEL).toBe('qwen3.8-livetranslate-flash-realtime');
-    expect(QWEN_DEFAULTS).toEqual({ voice: 'Tina', participantVoice: 'Ethan', hotwords: '', pauseMs: 2500 });
+    expect(QWEN_DEFAULTS).toEqual({ voice: 'Tina', participantVoice: 'Ethan', hotwords: '', pauseMs: 2500, region: 'sg' });
+  });
+
+  it('narrows an unknown region to sg on load, keeping every other field', () => {
+    expect(QWEN_DEFAULTS.region).toBe('sg');
+    const stored = migrateQwenSettings({ region: 'bj', voice: 'Tina', hotwords: 'a=b' });
+    expect(stored.region).toBe('sg');
+    expect(stored.voice).toBe('Tina');
+    expect(stored.hotwords).toBe('a=b');
+    expect(stored.pauseMs).toBe(QWEN_PAUSE.default);
+    expect(migrateQwenSettings({ region: 'cn' }).region).toBe('cn');
   });
 
   it('offers a pause from half a second to six, in tenths, the server default in range', () => {

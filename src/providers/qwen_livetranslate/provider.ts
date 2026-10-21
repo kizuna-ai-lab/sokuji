@@ -6,7 +6,7 @@ import { checkQwen, detectEndpoint } from './check';
 import { buildQwen, describeQwen, type QwenConfig } from './config';
 import { QwenSettingsView, QwenVoiceSummary } from './QwenSettings';
 import { QwenTurnDetectionControls, QwenTurnDetectionSummary } from './QwenTurnDetection';
-import { QWEN_DEFAULTS, qwenCredentials, qwenLanguages, type QwenCredentials, type QwenSettings } from './settings';
+import { migrateQwenSettings, QWEN_DEFAULTS, qwenCredentials, qwenLanguages, type QwenCredentials, type QwenSettings } from './settings';
 
 const adapter = createQwenAdapter({ openHeaderSocket: platformHeaderSocket, detect: detectEndpoint });
 
@@ -24,7 +24,7 @@ export const qwenLiveTranslateProvider: Provider<QwenSettings, QwenCredentials, 
   platforms: ['electron', 'extension'],
   icon: QwenIcon,
 
-  settings: { key: 'qwenLiveTranslate', defaults: QWEN_DEFAULTS },
+  settings: { key: 'qwenLiveTranslate', defaults: QWEN_DEFAULTS, migrate: migrateQwenSettings },
   Settings: QwenSettingsView,
   // Each spoken leg's voice, or whose own voice is cloned, under its Speech row.
   VoiceSummary: QwenVoiceSummary,

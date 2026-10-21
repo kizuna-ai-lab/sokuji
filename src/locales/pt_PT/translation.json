@@ -282,6 +282,9 @@
     "sonioxRegion": "Região",
     "sonioxRegionTooltip": "A Soniox mantém uma implementação separada por região. O seu áudio é processado na região escolhida. Aplica-se a partir da próxima sessão.",
     "sonioxRegionTooltipOwnKey": "A Soniox mantém uma implementação separada por região, e cada uma é um projeto Soniox distinto com a sua própria chave de API. O seu áudio é processado na região escolhida. Aplica-se a partir da próxima sessão.",
+    "qwenRegion": "Região",
+    "qwenRegionTooltip": "A Qwen mantém uma implementação separada por região. O seu áudio é processado na região escolhida. Aplica-se a partir da próxima sessão. A partir de redes fora da China continental, Pequim pode responder com uma latência bastante maior.",
+    "qwenRegionBeijingNote": "A partir de redes fora da China continental, Pequim pode ter uma latência bastante maior; se isso acontecer, experimente Singapura.",
     "sentenceSegmentationTitle": "Segmentação de frases",
     "sentenceSegmentationTitleDesc": "Escolhe onde um balão termina: deixar ao fornecedor, cortar numa pausa que ajusta, ou a cada poucas frases acrescentando a pontuação em falta.",
     "sentenceSegmentation": "Segmentação de legendas",
@@ -486,6 +489,10 @@
       "name": "KizunaAI",
       "description": "60 idiomas, 3.600 pares · clone a sua própria voz"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI",
+      "description": "Interpretação simultânea Qwen3.8, 60 línguas (29 com voz)"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "Modelo de voz GPT Realtime de uso geral, totalmente configurável"
@@ -670,7 +677,10 @@
     "sonioxInsufficientBalance": "Saldo insuficiente para iniciar uma sessão. Carregue o seu saldo e tente novamente.",
     "sonioxSessionConflict": "Já existe outra sessão em curso na sua conta. Tente novamente dentro de momentos.",
     "sonioxServiceUnavailable": "O Soniox está temporariamente indisponível. Tente novamente dentro de momentos.",
+    "qwenServiceUnavailable": "O Qwen está temporariamente indisponível. Tente novamente dentro de momentos.",
     "sonioxServiceBusy": "O Soniox está atualmente com capacidade esgotada. Tente novamente em breve.",
+    "qwenServiceBusy": "O Qwen está atualmente com capacidade esgotada. Tente novamente em breve.",
+    "qwenRegionUnavailable": "O Kizuna Qwen não está disponível neste momento na região escolhida. Escolha outra região ou tente novamente mais tarde.",
     "sonioxBudgetExhausted": "O saldo da sua sessão esgotou-se. Carregue o seu saldo para continuar a traduzir.",
     "sonioxTtsFailed": "A tradução falada parou. A transcrição e a tradução de texto continuam a funcionar.",
     "sonioxTtsSegmentLost": "Não foi possível reproduzir parte da tradução falada. A transcrição e a tradução de texto não foram afetadas.",

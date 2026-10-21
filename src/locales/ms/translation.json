@@ -282,6 +282,9 @@
     "sonioxRegion": "Wilayah",
     "sonioxRegionTooltip": "Soniox menjalankan penggunaan berasingan bagi setiap wilayah. Audio anda diproses di wilayah yang anda pilih. Berkuat kuasa mulai sesi seterusnya.",
     "sonioxRegionTooltipOwnKey": "Soniox menjalankan penggunaan berasingan bagi setiap wilayah, dan setiap wilayah ialah projek Soniox berasingan dengan kunci API sendiri. Audio anda diproses di wilayah yang anda pilih. Berkuat kuasa mulai sesi seterusnya.",
+    "qwenRegion": "Wilayah",
+    "qwenRegionTooltip": "Qwen menjalankan penggunaan berasingan bagi setiap wilayah. Audio anda diproses di wilayah yang anda pilih. Berkuat kuasa mulai sesi seterusnya. Dari rangkaian di luar tanah besar China, Beijing mungkin membalas dengan kependaman yang jauh lebih tinggi.",
+    "qwenRegionBeijingNote": "Dari rangkaian di luar tanah besar China, kependaman Beijing mungkin jauh lebih tinggi; jika berlaku, cuba Singapura.",
     "sentenceSegmentationTitle": "Segmentasi ayat",
     "sentenceSegmentationTitleDesc": "Menentukan di mana satu gelembung berakhir: serahkan kepada penyedia, potong pada jeda yang anda laraskan, atau setiap beberapa ayat dengan tanda baca yang hilang ditambah.",
     "sentenceSegmentation": "Segmentasi sari kata",
@@ -486,6 +489,10 @@
       "name": "KizunaAI",
       "description": "60 bahasa, 3,600 pasangan · klon suara anda sendiri"
     },
+    "kizunaai_qwen": {
+      "name": "KizunaAI",
+      "description": "Tafsiran serentak Qwen3.8, 60 bahasa (29 dengan suara)"
+    },
     "openai": {
       "name": "OpenAI Realtime",
       "description": "Model suara GPT Realtime serba guna, boleh dikonfigurasi sepenuhnya"
@@ -670,7 +677,10 @@
     "sonioxInsufficientBalance": "Baki tidak mencukupi untuk memulakan sesi. Sila tambah nilai baki anda dan cuba lagi.",
     "sonioxSessionConflict": "Satu lagi sesi sudah aktif dalam akaun anda. Sila cuba lagi sebentar lagi.",
     "sonioxServiceUnavailable": "Soniox tidak tersedia buat sementara waktu. Sila cuba lagi sebentar lagi.",
+    "qwenServiceUnavailable": "Qwen tidak tersedia buat sementara waktu. Sila cuba lagi sebentar lagi.",
     "sonioxServiceBusy": "Soniox kini pada kapasiti penuh. Sila cuba lagi tidak lama lagi.",
+    "qwenServiceBusy": "Qwen kini pada kapasiti penuh. Sila cuba lagi tidak lama lagi.",
+    "qwenRegionUnavailable": "Kizuna Qwen tidak tersedia buat masa ini di wilayah yang anda pilih. Pilih wilayah lain, atau cuba lagi kemudian.",
     "sonioxBudgetExhausted": "Baki sesi anda telah habis. Tambah nilai baki anda untuk terus menterjemah.",
     "sonioxTtsFailed": "Terjemahan suara telah berhenti. Transkripsi dan terjemahan teks masih berjalan.",
     "sonioxTtsSegmentLost": "Sebahagian terjemahan suara tidak dapat dimainkan. Transkripsi dan terjemahan teks tidak terjejas.",

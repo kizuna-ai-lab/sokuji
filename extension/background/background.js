@@ -9,7 +9,7 @@
 // file is emitted to the build root next to background.js (see vite.config.ts).
 import './platforms.generated.js';
 // The generic upgrade header rules, as pure functions: copied beside this file at build (vite.config.ts).
-import { buildRule, isExtensionPage, ruleIdsFor, ruleProblem, sweepIds } from './wsHeaderRule.js';
+import { buildRule, createRequestIds, isExtensionPage, ruleIdsFor, ruleProblem, sweepIds } from './wsHeaderRule.js';
 
 // Uninstall feedback URL - hosted on backend
 const UNINSTALL_FEEDBACK_BASE_URL = 'https://sokuji.kizuna.ai/uninstall-feedback';
@@ -328,6 +328,16 @@ async function edgeTtsClearDNRHeaders() {
 // (Stage 2 deletion, ruling 2).
 let dnrUpdatePromise = Promise.resolve();
 
+// The 101's `x-request-id` of the socket a set rule covers, which a page's WebSocket cannot read: `clear` answers it
+// once. Registered here, at the worker's top level, since a listener registered later does not wake a stopped worker
+// (MV3); the state is in memory, so a restart between set and clear only loses the id. The value never reaches a log.
+const wsRequestIds = createRequestIds(chrome.runtime.getURL('').replace(/\/$/, ''));
+chrome.webRequest?.onHeadersReceived.addListener(
+  (details) => { wsRequestIds.note(details); },
+  { urls: ['wss://maas.qwencloudapi.com/*', 'wss://maas.qianwenaiapi.com/*'], types: ['websocket'] },
+  ['responseHeaders'],
+);
+
 async function wsHeadersSet(message) {
   // Validate before touching the shared chain.
   const problem = ruleProblem(message);
@@ -336,6 +346,7 @@ async function wsHeadersSet(message) {
     const rule = buildRule(await chrome.declarativeNetRequest.getDynamicRules(), message, chrome.runtime.id);
     if (!rule) throw new Error('WS headers: no rule id is free');
     await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: [rule.id], addRules: [rule] });
+    wsRequestIds.set(message.host, message.path);
     // The filter, never a header value.
     console.debug('[Sokuji] [Background] WS header rule registered:', rule.condition.urlFilter);
   });
@@ -348,6 +359,7 @@ async function wsHeadersClear(message) {
   const run = dnrUpdatePromise.then(async () => {
     const ids = ruleIdsFor(await chrome.declarativeNetRequest.getDynamicRules(), message.host, message.path);
     if (ids.length > 0) await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: ids });
+    return wsRequestIds.clear(message.host, message.path);
   });
   dnrUpdatePromise = run.catch(() => {});
   return run;
@@ -491,7 +503,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return false;
     }
     (message.type === 'WS_HEADERS_SET' ? wsHeadersSet(message) : wsHeadersClear(message))
-      .then(() => sendResponse({ success: true }))
+      .then((requestId) => sendResponse(typeof requestId === 'string' ? { success: true, requestId } : { success: true }))
       .catch((error) => {
         console.error('[Sokuji] [Background] Failed to update WS header rules:', error);
         sendResponse({ success: false, error: error.message });

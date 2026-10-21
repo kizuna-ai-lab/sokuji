@@ -99,8 +99,10 @@ export function turn(n: number, o: { source: string; translation: string; speake
 }
 
 /** A leg started over the header seam's fake on a tracked virtual clock; its registration not yet answered, its socket not yet made. */
-export function startQwen(o: { context?: SessionContext; patch?: Partial<QwenSettings>; credentials?: QwenCredentials; shared?: SharedSettings; detect?: DetectEndpoint } = {}) {
-  const seam = fakeHeaderSockets();
+export function startQwen(o: { context?: SessionContext; patch?: Partial<QwenSettings>; credentials?: QwenCredentials; shared?: SharedSettings; detect?: DetectEndpoint; requestIds?: string[]; holdClear?: boolean } = {}) {
+  const seam = fakeHeaderSockets(undefined, { requestIds: o.requestIds });
+  /** Releases the first clear's answer, when the leg was started holding it. */
+  const releaseClear = o.holdClear ? seam.holdNextClear() : () => {};
   const { clock, timers } = trackedClock();
   const { events, log } = recordEvents();
   const controller = new AbortController();
@@ -119,7 +121,7 @@ export function startQwen(o: { context?: SessionContext; patch?: Partial<QwenSet
   const appended = () => sent().filter((m) => m.type === 'input_audio_buffer.append').map((m) => base64ToPcm(m.audio as string));
   /** The log without its frames: what L1 folds. */
   const content = () => log.filter((e) => e.kind !== 'frame');
-  return { seam, clock, timers, log, controller, config, detected, starting, socket, of, frames, sent, appended, content };
+  return { seam, releaseClear, clock, timers, log, controller, config, detected, starting, socket, of, frames, sent, appended, content };
 }
 
 /** The registration answered and the socket open: nothing sent yet, `session.created` awaited. */
