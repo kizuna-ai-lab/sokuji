@@ -680,6 +680,7 @@
     "qwenServiceUnavailable": "Qwen jest tymczasowo niedostępny. Spróbuj ponownie za chwilę.",
     "sonioxServiceBusy": "Soniox jest obecnie w pełni obciążony. Spróbuj ponownie wkrótce.",
     "qwenServiceBusy": "Qwen jest obecnie w pełni obciążony. Spróbuj ponownie wkrótce.",
+    "qwenRegionUnavailable": "Kizuna Qwen jest obecnie niedostępny w wybranym regionie. Wybierz inny region lub spróbuj ponownie później.",
     "sonioxBudgetExhausted": "Saldo Twojej sesji zostało wyczerpane. Doładuj saldo, aby kontynuować tłumaczenie.",
     "sonioxTtsFailed": "Tłumaczenie głosowe zostało zatrzymane. Transkrypcja i tłumaczenie tekstu nadal działają.",
     "sonioxTtsSegmentLost": "Nie udało się odtworzyć części tłumaczenia mówionego. Transkrypcja i tłumaczenie tekstu działają bez zmian.",

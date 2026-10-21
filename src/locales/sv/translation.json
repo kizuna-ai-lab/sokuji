@@ -680,6 +680,7 @@
     "qwenServiceUnavailable": "Qwen är tillfälligt otillgängligt. Försök igen om en liten stund.",
     "sonioxServiceBusy": "Soniox är för närvarande fullbelastat. Försök igen snart.",
     "qwenServiceBusy": "Qwen är för närvarande fullbelastat. Försök igen snart.",
+    "qwenRegionUnavailable": "Kizuna Qwen är inte tillgängligt i den valda regionen just nu. Välj en annan region eller försök igen senare.",
     "sonioxBudgetExhausted": "Ditt sessionssaldo är slut. Fyll på ditt saldo för att fortsätta översätta.",
     "sonioxTtsFailed": "Den talade översättningen har stoppats. Transkribering och textöversättning fungerar fortfarande.",
     "sonioxTtsSegmentLost": "En del av den talade översättningen kunde inte spelas upp. Transkribering och textöversättning påverkas inte.",

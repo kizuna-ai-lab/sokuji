@@ -680,6 +680,7 @@
     "qwenServiceUnavailable": "Pansamantalang hindi available ang Qwen. Pakisubukang muli sa ilang sandali.",
     "sonioxServiceBusy": "Ganap sa kapasidad ang Soniox sa ngayon. Pakisubukang muli sa madaling panahon.",
     "qwenServiceBusy": "Ganap sa kapasidad ang Qwen sa ngayon. Pakisubukang muli sa madaling panahon.",
+    "qwenRegionUnavailable": "Hindi available ngayon ang Kizuna Qwen sa rehiyong pinili mo. Pumili ng ibang rehiyon, o subukang muli mamaya.",
     "sonioxBudgetExhausted": "Naubos na ang balanse ng iyong session. Mag-top up ng iyong balanse para magpatuloy sa pagsasalin.",
     "sonioxTtsFailed": "Huminto na ang binibigkas na pagsasalin. Patuloy pa ring gumagana ang transcription at pagsasalin ng teksto.",
     "sonioxTtsSegmentLost": "Hindi na-play ang bahagi ng binigkas na pagsasalin. Hindi apektado ang transcription at pagsasalin ng teksto.",

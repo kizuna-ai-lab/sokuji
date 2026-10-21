@@ -127,7 +127,13 @@ function refusal(status: number, body: unknown): Error {
         default: return new AdapterStartError(`Another session holds the account's lease (HTTP 409${detail}).`, 'session_conflict');
       }
     case 502: return new AdapterStartError(`Qwen did not mint the session's token (HTTP 502${detail}).`, 'qwen_service_unavailable');
-    case 503: return new AdapterStartError(`The Qwen session service is unavailable (HTTP 503${detail}).`, 'qwen_service_busy');
+    case 503:
+      // The backend's three 503s, told apart by its `error`: its per-minute cap (`qwen_busy`, with a
+      // `retryAfterMs`) is "busy"; a region it has no pricing or workspace for yet is the region's;
+      // the rest (its wallet, say) is the service's.
+      if (server === 'qwen_busy') return new AdapterStartError(`The Qwen session service is at capacity (HTTP 503${detail}).`, 'qwen_service_busy');
+      if (server === 'Qwen region not available') return new AdapterStartError(`The session service does not serve the region picked right now (HTTP 503${detail}).`, 'qwen_region_unavailable');
+      return new AdapterStartError(`The Qwen session service is unavailable (HTTP 503${detail}).`, 'qwen_service_unavailable');
     default: return new Error(server || `Failed to start a managed Qwen session (HTTP ${status})`);
   }
 }
@@ -327,12 +333,13 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
     // A contract break past here leaves a never-reported lease, which the backend frees at its window's end; `session-end` cannot.
     const grant = parseGrant(answer.body);
     // A backend before the Beijing region ignores `region` and serves Singapore: a Beijing pick must not run there in
-    // silence, under a tooltip that says the audio stays in the region picked. Singapore itself is what any backend serves.
+    // silence, under a tooltip that says the audio stays in the region picked. Singapore itself is what any backend
+    // serves. The notice is the region's, as for a 503 naming it: the sentence says to pick another.
     if (sent.region !== 'sg' && grant.region !== sent.region) {
       ctx.frame({ direction: 'in', type: 'session.refused', payload: { status: answer.status, region: sent.region, served: grant.region ?? null } });
       throw new AdapterStartError(
         `The session service does not serve the ${sent.region} region yet (it answered ${grant.region ?? 'no region'}).`,
-        'qwen_service_unavailable',
+        'qwen_region_unavailable',
       );
     }
 

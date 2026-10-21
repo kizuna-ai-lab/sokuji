@@ -680,6 +680,7 @@
     "qwenServiceUnavailable": "Qwen geçici olarak kullanılamıyor. Lütfen biraz sonra tekrar deneyin.",
     "sonioxServiceBusy": "Soniox şu anda tam kapasitede çalışıyor. Lütfen kısa süre sonra tekrar deneyin.",
     "qwenServiceBusy": "Qwen şu anda tam kapasitede çalışıyor. Lütfen kısa süre sonra tekrar deneyin.",
+    "qwenRegionUnavailable": "Kizuna Qwen seçtiğiniz bölgede şu anda kullanılamıyor. Başka bir bölge seçin veya daha sonra tekrar deneyin.",
     "sonioxBudgetExhausted": "Oturum bakiyeniz tükendi. Çeviriye devam etmek için bakiyenizi yükleyin.",
     "sonioxTtsFailed": "Sesli çeviri durdu. Deşifre ve metin çevirisi çalışmaya devam ediyor.",
     "sonioxTtsSegmentLost": "Sesli çevirinin bir kısmı oynatılamadı. Deşifre ve metin çevirisi etkilenmedi.",

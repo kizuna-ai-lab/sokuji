@@ -680,6 +680,7 @@
     "qwenServiceUnavailable": "Qwen tạm thời không khả dụng. Vui lòng thử lại sau giây lát.",
     "sonioxServiceBusy": "Soniox hiện đang hoạt động hết công suất. Vui lòng thử lại sau.",
     "qwenServiceBusy": "Qwen hiện đang hoạt động hết công suất. Vui lòng thử lại sau.",
+    "qwenRegionUnavailable": "Kizuna Qwen hiện không khả dụng ở khu vực bạn đã chọn. Hãy chọn khu vực khác hoặc thử lại sau.",
     "sonioxBudgetExhausted": "Số dư phiên của bạn đã hết. Nạp thêm số dư để tiếp tục dịch.",
     "sonioxTtsFailed": "Bản dịch giọng nói đã dừng. Phiên âm và dịch văn bản vẫn đang hoạt động.",
     "sonioxTtsSegmentLost": "Không phát được một phần bản dịch giọng nói. Phiên âm và bản dịch văn bản không bị ảnh hưởng.",

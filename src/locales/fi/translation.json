@@ -680,6 +680,7 @@
     "qwenServiceUnavailable": "Qwen ei ole tilapäisesti käytettävissä. Yritä uudelleen hetken kuluttua.",
     "sonioxServiceBusy": "Soniox on juuri nyt täydessä kapasiteetissa. Yritä pian uudelleen.",
     "qwenServiceBusy": "Qwen on juuri nyt täydessä kapasiteetissa. Yritä pian uudelleen.",
+    "qwenRegionUnavailable": "Kizuna Qwen ei ole juuri nyt käytettävissä valitsemallasi alueella. Valitse toinen alue tai yritä myöhemmin uudelleen.",
     "sonioxBudgetExhausted": "Istuntosi saldo on käytetty loppuun. Lataa saldoasi jatkaaksesi kääntämistä.",
     "sonioxTtsFailed": "Puhuttu käännös on pysähtynyt. Litterointi ja tekstikäännös toimivat edelleen.",
     "sonioxTtsSegmentLost": "Osaa puhutusta käännöksestä ei voitu toistaa. Litterointi ja tekstikäännös toimivat edelleen.",

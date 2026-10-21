@@ -680,6 +680,7 @@
     "qwenServiceUnavailable": "Qwen untuk sementara tidak tersedia. Silakan coba lagi sebentar lagi.",
     "sonioxServiceBusy": "Soniox sedang berada pada kapasitas penuh. Silakan coba lagi sebentar lagi.",
     "qwenServiceBusy": "Qwen sedang berada pada kapasitas penuh. Silakan coba lagi sebentar lagi.",
+    "qwenRegionUnavailable": "Kizuna Qwen saat ini tidak tersedia di wilayah yang Anda pilih. Pilih wilayah lain, atau coba lagi nanti.",
     "sonioxBudgetExhausted": "Saldo sesi Anda telah habis. Isi ulang saldo Anda untuk terus menerjemahkan.",
     "sonioxTtsFailed": "Terjemahan suara telah berhenti. Transkripsi dan terjemahan teks masih berjalan.",
     "sonioxTtsSegmentLost": "Sebagian terjemahan suara tidak dapat diputar. Transkripsi dan terjemahan teks tidak terpengaruh.",

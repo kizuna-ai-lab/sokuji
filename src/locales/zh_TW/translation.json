@@ -680,6 +680,7 @@
     "qwenServiceUnavailable": "Qwen 暫時無法使用。請稍後再試一次。",
     "sonioxServiceBusy": "Soniox 目前容量已滿。請稍後再試一次。",
     "qwenServiceBusy": "Qwen 目前容量已滿。請稍後再試一次。",
+    "qwenRegionUnavailable": "你選擇的地區目前無法使用 Kizuna Qwen。請換一個地區，或稍後再試。",
     "sonioxBudgetExhausted": "您的工作階段餘額已用盡。請儲值以繼續翻譯。",
     "sonioxTtsFailed": "語音翻譯已停止。轉錄與文字翻譯仍在繼續。",
     "sonioxTtsSegmentLost": "有一段語音翻譯未能播放。轉錄和文字翻譯不受影響。",

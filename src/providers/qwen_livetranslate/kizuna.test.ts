@@ -58,6 +58,8 @@ describe('kizunaQwenProvider', () => {
     const session = kizunaQwenProvider.session!;
     expect(session.acquire).toBeTypeOf('function');
     expect(session.minimumBalance).toBeTypeOf('function');
-    expect(session.minimumBalance!({ legs: ['speaker'], textOnly: false, participantSpeech: false }, QWEN_DEFAULTS)).toBe(60_900);
+    // The floor follows the region picked: Singapore's 42 630 µUSD for a speaking leg, Beijing's 30 150.
+    expect(session.minimumBalance!({ legs: ['speaker'], textOnly: false, participantSpeech: false }, QWEN_DEFAULTS)).toBe(42_630);
+    expect(session.minimumBalance!({ legs: ['speaker'], textOnly: false, participantSpeech: false }, { ...QWEN_DEFAULTS, region: 'cn' })).toBe(30_150);
   });
 });

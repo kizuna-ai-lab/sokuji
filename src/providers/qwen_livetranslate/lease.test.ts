@@ -146,7 +146,7 @@ describe('Qwen lease: the grant', () => {
       await flush();
       a.last().respond(200, answered);
       const error = await rejection(a.pending);
-      expect(code(error)).toBe('qwen_service_unavailable');
+      expect(code(error)).toBe('qwen_region_unavailable');
       expect(String(error)).not.toContain(GRANT_KEY);
       expect(a.frame).toHaveBeenCalledWith(expect.objectContaining({ type: 'session.refused', payload: expect.objectContaining({ region: 'cn' }) }));
     }
@@ -222,7 +222,7 @@ describe('Qwen lease: a refused or conflicting key', () => {
     [402, 'insufficient_balance'],
     [403, 'wallet_frozen'],
     [502, 'qwen_service_unavailable'],
-    [503, 'qwen_service_busy'],
+    [503, 'qwen_service_unavailable'],
   ])('maps HTTP %i to %s', async (status, expected) => {
     const a = acquiring(['speaker']);
     await flush();
@@ -242,11 +242,16 @@ describe('Qwen lease: a refused or conflicting key', () => {
     expect((error as Error).message).not.toMatch(/500000|120000/);
   });
 
-  it('a region the backend cannot serve is the service being unavailable (503), by code', async () => {
+  // The backend's three 503s, told apart by its `error`: only its per-minute cap is "busy".
+  it.each([
+    [{ error: 'qwen_busy', retryAfterMs: 1200 }, 'qwen_service_busy'],
+    [{ error: 'Qwen region not available' }, 'qwen_region_unavailable'],
+    [{ error: 'Wallet unavailable' }, 'qwen_service_unavailable'],
+  ])('reads a 503 answering %j as %s', async (body, expected) => {
     const a = acquiring(['speaker'], { settings: { region: 'cn' } });
     await flush();
-    a.last().respond(503, { error: 'Qwen region not available' });
-    expect(code(await rejection(a.pending))).toBe('qwen_service_busy');
+    a.last().respond(503, body);
+    expect(code(await rejection(a.pending))).toBe(expected);
   });
 
   it("a 400 for a region the backend does not know fails with the server's words", async () => {

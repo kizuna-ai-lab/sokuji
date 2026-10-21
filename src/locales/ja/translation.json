@@ -680,6 +680,7 @@
     "qwenServiceUnavailable": "Qwenは一時的に利用できません。しばらくしてからもう一度お試しください。",
     "sonioxServiceBusy": "Sonioxは現在利用が集中しています。しばらくしてからもう一度お試しください。",
     "qwenServiceBusy": "Qwenは現在利用が集中しています。しばらくしてからもう一度お試しください。",
+    "qwenRegionUnavailable": "選択したリージョンでは現在 Kizuna Qwen を利用できません。別のリージョンを選ぶか、しばらくしてからお試しください。",
     "sonioxBudgetExhausted": "セッションの残高がなくなりました。翻訳を続けるには残高をチャージしてください。",
     "sonioxTtsFailed": "音声翻訳が停止しました。文字起こしとテキスト翻訳は続いています。",
     "sonioxTtsSegmentLost": "音声翻訳の一部を再生できませんでした。文字起こしとテキスト翻訳には影響ありません。",
