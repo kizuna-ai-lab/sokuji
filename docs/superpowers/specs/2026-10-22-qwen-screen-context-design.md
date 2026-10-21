@@ -48,15 +48,26 @@ face-to-face mode (not available with Qwen at all).
   undocumented; the server accepts `["audio"]` or `["audio","video"]`.
 - **Declaring video and then sending no frame kills the session**: the server answers
   `error COMMON_ERROR "Video does not allow empty VideoData or placeholder frames"` and produces no
-  transcript at all. After the first frame, a gap of at least 36 s is fine (2 frames in 58 s worked);
-  longer gaps, black frames and push-to-talk are unprobed (§5).
+  transcript at all. The kill is about a turn processed with no frame ever: 10 s of declared video with
+  no audio and no frame before the first press (push-to-talk) was harmless once the first frame followed the
+  first audio (probe P1, 10-22). After the first frame, long gaps are fine: a 7-minute session with a
+  5-minute silence after the clip, the last frame re-sent every 60 s, then the clip again, ran without an
+  error and kept the slide's renderings in both passes (probe P2).
+- **Black frames are accepted, not rejected as placeholders** — and they hurt like any irrelevant picture:
+  an all-black first frame followed by the slides scored 18/18, black frames only scored 11/18, below
+  audio-only's 15/18 (probes P3, P3b). Hence the blank-frame guard and the last-good-frame keep-alive in §3.
+- Orientation does not change the charge: 720×1280 portrait slides at 1 fps billed the same 11,210 tokens
+  (probe P4).
 - The first frame must follow audio (send it right after the first audio chunk), per the 10-13 probe.
-- Billing is **per second of a video-enabled session**, not per frame: 11,210 `video_tokens` for the 58 s
-  clip whether 1, 2, 15, 59 or 117 frames were sent, distinct or repeated (≈192 tokens/s for 1280×720
-  input; 142–192 tokens/s across the probes). At Singapore's image-input price ($0.55 per 1M) that is
-  ≈ $0.38 per hour of session before K; Beijing bills the same token count at ¥3.3 per 1M. The usage log
-  reports it as `input_tokens_details.video_tokens`, which the backend already prices as image input
-  (sokuji-backend#114). Whether the rate rises with frame area is unprobed; §3.2 bounds the area.
+- Billing is **per second of speech in a video-enabled session**, not per frame and not per second of
+  wall-clock: 11,210 `video_tokens` for the 58 s clip whether 1, 2, 15, 59 or 117 frames were sent,
+  distinct or repeated (≈192 tokens per second of turn audio for 1280×720 input; 142–192 across the
+  probes), and the 5-minute silence of probe P2 added none (two passes of the clip billed 23,370, the
+  silence between them nothing — silence is free for video as it is for audio). At Singapore's
+  image-input price ($0.55 per 1M) that is ≈ $0.38 per hour of speech before K; Beijing bills the same
+  token count at ¥3.3 per 1M. The usage log reports it as `input_tokens_details.video_tokens`, which the
+  backend already prices as image input (sokuji-backend#114). Portrait frames of the same pixel count
+  bill the same (P4); §3.2 bounds the area at 720p's.
 - A frame's effect persists: one frame at 0.5 s still steered names spoken 50 s later; a second slide did
   not evict the first.
 
@@ -78,9 +89,8 @@ face-to-face mode (not available with Qwen at all).
   Alibaba Cloud's Qwen service, in the region of this session, as pictures — nothing else on your screen.
   Kizuna AI does not receive them."*
 - The source is run-time state, never persisted: the user picks it when a run starts with the switch on
-  (the picker opens before the run starts; cancelling it starts the run without screen context). *My call:*
-  where Sokuji draws the list, the window picked last time is preselected if it still exists, never reused
-  silently; where the system picks, there is nothing to preselect.
+  (the picker opens before the run starts; cancelling it starts the run without screen context). Every run
+  picks from scratch: nothing about the last source is remembered or preselected (owner's ruling).
 - In **Both** mode both legs' sessions receive the frames (either side may refer to the screen).
 
 ### 3.2 Sending
@@ -132,8 +142,8 @@ face-to-face mode (not available with Qwen at all).
   as its own figure (e.g. `screenContextUsdPerHour`), and the dashboard's pricing card and calculator show
   it. The charge itself needs no change: `video_tokens` are already priced (#114).
 - **In the app, words only, no figures** (owner's ruling, §7; the app shows no prices anywhere today, the
-  website does): the switch's tooltip says it is billed for every second it is on, that in Both mode each
-  direction's session is billed, and that the rate is on the account's pricing page. The docs print no
+  website does): the switch's tooltip says it adds to the charge for every second of speech while it is on,
+  that in Both mode each direction's session is billed, and that the rate is on the account's pricing page. The docs print no
   price either, as before.
 
 ### 3.6 Copy, docs, privacy
@@ -181,10 +191,10 @@ face-to-face mode (not available with Qwen at all).
 
 ## 5. Before building, and before shipping
 
-- **Probe first** (four or five one-minute sessions on the owner's Singapore key, under $0.05; ask before
-  running): push-to-talk with video (video declared, first frame after the first press); a 5-minute gap with
-  the last frame re-sent every 60 s; an all-black frame; a portrait 720×1280 frame (does the token rate
-  change with area?). Each answer either confirms §3.2–§3.3 as written or changes one rule there.
+- **Probed 2026-10-22** (owner's go, five sessions on his Singapore key): push-to-talk with video — fine
+  (P1); an all-black first frame — fine, black-only frames degrade recognition (P3, P3b); a portrait frame
+  — same charge (P4); a 5-minute silent gap with the last frame re-sent every 60 s, then the clip again
+  — no error, names still right, the silence unbilled (P2). §3.2–§3.3 stand as written.
 - Measure first-word latency with and without video on the same clip (the A/B measured accuracy only). If
   video costs latency, the switch's tooltip and the docs say so.
 - Live tests: Windows (yellow border, VB-CABLE present), macOS 15 (system picker and the Screen Recording
@@ -201,8 +211,6 @@ face-to-face mode (not available with Qwen at all).
 - The exact chip and card styling within the settings-control dialect (28 px rows, `#ccc`).
 - How Sokuji's own picker lists sources (title + app icon + thumbnail; windows before screens; Sokuji's own
   windows filtered out).
-- Whether a run started with the switch on but no source should be remembered as "declined this time"
-  so the picker does not reopen on every Start of that run; one prompt per Start is the floor.
 - Test fixtures: a fake `FrameSource` for the adapter's conformance and session-side tests; a recorded
   probe usage row with `video_tokens` for the budget arithmetic.
 
@@ -219,7 +227,7 @@ face-to-face mode (not available with Qwen at all).
    shared-session tooltip's "about twice the cost per minute"); the website's pricing page and calculator
    carry the figures. The switch's tooltip uses words.
 
-Calls I made without asking, for review while reading: §3.1 preselect-last-window; §3.2 fit inside
+Calls I made without asking, for review while reading: §3.2 fit inside
 1280×720 and the blank-frame guard; §3.3 re-sending the last good frame while lost; §3.4 icon-only chip in
 the basic layout and the side panel, no border window; §3.5 the 240 tokens/s constant; §4 the extension
 crop to the largest video element and meeting-tab-only; §5 the pre-build probes.
