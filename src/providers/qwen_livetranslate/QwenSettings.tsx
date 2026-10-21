@@ -103,6 +103,11 @@ export function KizunaQwenSettingsView(props: SettingsProps<S>) {
           >
             {QWEN_REGIONS.map((r) => <option key={r} value={r}>{QWEN_REGION_LABELS[r]}</option>)}
           </select>
+          {settings.region === 'cn' && (
+            <div className="setting-description" id="qwen-region-note">
+              {t('settings.qwenRegionBeijingNote', 'Beijing may have noticeably higher latency from networks outside mainland China; if it does, try Singapore.')}
+            </div>
+          )}
         </div>
       </div>
       <QwenSettingsView {...props} />
