@@ -334,7 +334,7 @@ let dnrUpdatePromise = Promise.resolve();
 const wsRequestIds = createRequestIds(chrome.runtime.getURL('').replace(/\/$/, ''));
 chrome.webRequest?.onHeadersReceived.addListener(
   (details) => { wsRequestIds.note(details); },
-  { urls: ['wss://maas.qwencloudapi.com/*'], types: ['websocket'] },
+  { urls: ['wss://maas.qwencloudapi.com/*', 'wss://maas.qianwenaiapi.com/*'], types: ['websocket'] },
   ['responseHeaders'],
 );
 

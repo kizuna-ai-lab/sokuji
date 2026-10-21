@@ -156,9 +156,10 @@ function betterAuthAdapter(opts) {
   ];
 
   // The one onHeadersReceived listener also sees the managed Qwen socket's
-  // upgrade response, whose x-request-id main.js keeps for the renderer.
+  // upgrade response, whose x-request-id main.js keeps for the renderer:
+  // either storefront, since a Beijing grant dials the mainland host.
   const filter = {
-    urls: [...filterPatterns, 'wss://maas.qwencloudapi.com/*']
+    urls: [...filterPatterns, 'wss://maas.qwencloudapi.com/*', 'wss://maas.qianwenaiapi.com/*']
   };
 
   console.log('[BetterAuth Adapter] Initializing for backend:', opts.backendUrl);

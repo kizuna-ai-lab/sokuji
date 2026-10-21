@@ -246,6 +246,8 @@ describe('WebSocket handshake responses', () => {
     const onWebSocketResponse = vi.fn();
     loadAdapter({ onWebSocketResponse });
     expect(webRequestHandlers.get('headersReceivedFilter').urls).toContain('wss://maas.qwencloudapi.com/*');
+    // The mainland storefront too: a Beijing grant's socket is one of these.
+    expect(webRequestHandlers.get('headersReceivedFilter').urls).toContain('wss://maas.qianwenaiapi.com/*');
 
     const responseHeaders = { 'x-request-id': ['abc'] };
     const emitted = receiveResponse(responseHeaders, { url: QWEN_URL, resourceType: 'webSocket' });

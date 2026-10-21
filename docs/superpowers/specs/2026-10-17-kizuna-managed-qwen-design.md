@@ -32,7 +32,7 @@ handshake's request id) to find the row and to check the answer; it charges the 
 
 **Out of scope:**
 - relaying audio (it must not pass through Kizuna);
-- the Beijing region and mainland keys;
+- ~~the Beijing region and mainland keys~~ (added 2026-10-21; see the amendment at the end);
 - WebRTC or AOQ transports;
 - cutting a running session off from the server side (Alibaba offers no way; see Constraints);
 - face-to-face, image input, pre-created cloned voices (as for the own-key provider).
@@ -542,3 +542,17 @@ The page never shows a secret, and nothing it does reaches Alibaba other than th
   it names, and the account's one-session lock is shared with Kizuna Soniox. The `session_in_use` notice
   ("if Sokuji just closed unexpectedly, try again in a minute") reads true for Soniox, whose blocked
   sweep frees such a lease from its usage logs, but not for this case.
+
+## Amendment 2026-10-21: regions
+
+Managed Qwen runs in two Alibaba regions, Singapore (`sg`, the one above) and Beijing (`cn`, the
+China-site account and the 千问云 storefront). The design is kizuna-ai-lab/sokuji-backend
+`docs/superpowers/specs/2026-10-21-qwen-beijing-region-design.md`; its §8 is the client's part:
+
+- `QwenSettings.region` (`sg` by default, narrowed on load) and a Region dropdown on the managed
+  view only (`KizunaQwenSettingsView`), in Soniox's markup, places named in their own language.
+- The session-key request carries `region`; the grant's `endpoint` is what the leg dials, and the
+  grant may name its `region` (a backend before this amendment names none).
+- The request-id capture (`electron/better-auth-adapter.js`, `extension/background/background.js`)
+  covers the mainland socket `wss://maas.qianwenaiapi.com/*` as well.
+- The own-key provider is unchanged: it detects its storefront from the key and has no region.

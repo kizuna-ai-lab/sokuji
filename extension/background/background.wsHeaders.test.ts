@@ -129,7 +129,8 @@ describe("the background worker: the handshake's request id", () => {
     expect(registration!.index).toBeLessThan(at(background, 'chrome.runtime.onMessage.addListener'));
     const listener = background.slice(registration!.index);
     const call = listener.slice(0, at(listener, '\n);'));
-    expect(call).toContain("{ urls: ['wss://maas.qwencloudapi.com/*'], types: ['websocket'] },\n  ['responseHeaders'],");
+    // Both storefronts: a Beijing grant dials the mainland host, and its request id matters as much.
+    expect(call).toContain("{ urls: ['wss://maas.qwencloudapi.com/*', 'wss://maas.qianwenaiapi.com/*'], types: ['websocket'] },\n  ['responseHeaders'],");
     expect(call).toContain('wsRequestIds.note(details)');
     expect(background).toContain("createRequestIds(chrome.runtime.getURL('').replace(/\\/$/, ''))");
     expect(fn('wsHeadersSet')).toContain('wsRequestIds.set(message.host, message.path)');
