@@ -550,7 +550,10 @@
       "vocabulary": "Perbendaharaan Kata Tersuai",
       "vocabularyTranslations": "Terjemahan Pilihan",
       "vocabularyTranslationsTooltip": "Mempengaruhi cara istilah tertentu diterjemahkan — ini keutamaan, bukan penggantian yang dijamin: nama dengan terjemahan yang sudah mantap berfungsi paling baik, manakala perkataan biasa mungkin mengekalkan bahasa model itu sendiri. Entri adalah berarah; arah songsang hanya wujud dalam mod Kedua-duanya, di mana anda boleh menambah baris songsang.",
-      "vocabularyTranslationsPlaceholder": "Satu entri sumber=sasaran setiap baris"
+      "vocabularyTranslationsPlaceholder": "Satu entri sumber=sasaran setiap baris",
+      "screenContext": "Konteks skrin",
+      "screenContextTooltip": "Membolehkan enjin Qwen melihat satu tetingkap, tab atau skrin yang anda pilih semasa sesi bermula, supaya nama dan istilah padanya dikenali dan diterjemahkan seperti yang tertulis. Segala-galanya dalam kawasan itu dihantar sebagai gambar ke perkhidmatan Qwen Alibaba Cloud, di rantau sesi ini; Kizuna AI tidak pernah menerimanya. Dengan akaun Kizuna AI, ia menambah caj untuk setiap saat pertuturan selagi dihidupkan — dalam mod Kedua-duanya bagi setiap arah; kadarnya terdapat pada halaman harga akaun anda.",
+      "screenContextWhere": "Dalam aplikasi desktop, anda memilih tetingkap atau skrin semasa sesi bermula. Dalam sambungan pelayar, tab mesyuarat digunakan."
     },
     "local_inference": {
       "name": "Percuma",

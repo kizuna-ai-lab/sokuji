@@ -550,7 +550,10 @@
       "vocabulary": "Mukautettu sanasto",
       "vocabularyTranslations": "Suositellut käännökset",
       "vocabularyTranslationsTooltip": "Vaikuttaa siihen, miten tietyt termit käännetään — kyse on toiveesta, ei taatusta korvauksesta: nimet, joilla on vakiintunut käännös, toimivat parhaiten, kun taas yleiset sanat saattavat säilyä mallin omalla sanamuodolla. Merkinnät ovat suunnattuja; käänteinen suunta on käytössä vain Molemmat-tilassa, jossa voit lisätä käänteisen rivin.",
-      "vocabularyTranslationsPlaceholder": "Yksi lähde=kohde-merkintä per rivi"
+      "vocabularyTranslationsPlaceholder": "Yksi lähde=kohde-merkintä per rivi",
+      "screenContext": "Näytön konteksti",
+      "screenContextTooltip": "Antaa Qwen-moottorin nähdä yhden ikkunan, välilehden tai näytön, jonka valitset istunnon alkaessa, jotta siinä näkyvät nimet ja termit tunnistetaan ja käännetään sellaisina kuin ne on kirjoitettu. Kaikki tämän alueen sisällä oleva lähetetään kuvina Alibaba Cloudin Qwen-palveluun tämän istunnon alueella; Kizuna AI ei koskaan vastaanota niitä. Kizuna AI -tilillä se lisää veloitusta jokaiselta puhesekunnilta, kun se on päällä — Molemmat-tilassa kummaltakin suunnalta; hinta on tilisi hintasivulla.",
+      "screenContextWhere": "Työpöytäsovelluksessa valitset ikkunan tai näytön istunnon alkaessa. Selainlaajennuksessa käytetään kokouksen välilehteä."
     },
     "local_inference": {
       "name": "Ilmainen",

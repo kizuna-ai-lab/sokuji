@@ -550,7 +550,10 @@
       "vocabulary": "Từ vựng tùy chỉnh",
       "vocabularyTranslations": "Bản dịch ưu tiên",
       "vocabularyTranslationsTooltip": "Ảnh hưởng đến cách dịch các thuật ngữ cụ thể — đây là một sự ưu tiên, không phải một sự thay thế được đảm bảo: các tên đã có cách dịch phổ biến sẽ hiệu quả nhất, trong khi các từ thông dụng có thể vẫn giữ cách diễn đạt riêng của mô hình. Các mục có tính định hướng; chiều ngược lại chỉ tồn tại ở chế độ Cả hai, nơi bạn có thể thêm một dòng ngược.",
-      "vocabularyTranslationsPlaceholder": "Mỗi dòng một mục theo dạng nguồn=đích"
+      "vocabularyTranslationsPlaceholder": "Mỗi dòng một mục theo dạng nguồn=đích",
+      "screenContext": "Ngữ cảnh màn hình",
+      "screenContextTooltip": "Cho phép công cụ Qwen nhìn thấy một cửa sổ, tab hoặc màn hình mà bạn chọn khi bắt đầu phiên, để các tên và thuật ngữ trên đó được nhận dạng và dịch đúng như đã viết. Mọi thứ trong vùng đó được gửi dưới dạng hình ảnh tới dịch vụ Qwen của Alibaba Cloud, tại khu vực của phiên này; Kizuna AI không bao giờ nhận được chúng. Với tài khoản Kizuna AI, tính năng này làm tăng khoản phí cho mỗi giây lời nói trong lúc đang bật — ở chế độ Cả hai thì cho mỗi chiều; mức phí có trên trang giá của tài khoản bạn.",
+      "screenContextWhere": "Trong ứng dụng máy tính, bạn chọn cửa sổ hoặc màn hình khi phiên bắt đầu. Trong tiện ích mở rộng trình duyệt, tab cuộc họp được sử dụng."
     },
     "local_inference": {
       "name": "Miễn phí",

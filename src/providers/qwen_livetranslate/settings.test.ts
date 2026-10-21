@@ -14,7 +14,7 @@ const codes = (list: readonly { value: string }[]) => list.map((o) => o.value);
 describe("Qwen LiveTranslate's settings", () => {
   it('runs one model, and starts from two different presets, no hotwords and the server\'s own pause', () => {
     expect(QWEN_MODEL).toBe('qwen3.8-livetranslate-flash-realtime');
-    expect(QWEN_DEFAULTS).toEqual({ voice: 'Tina', participantVoice: 'Ethan', hotwords: '', pauseMs: 2500, region: 'sg' });
+    expect(QWEN_DEFAULTS).toEqual({ voice: 'Tina', participantVoice: 'Ethan', hotwords: '', pauseMs: 2500, region: 'sg', screenContext: false });
   });
 
   it('narrows an unknown region to sg on load, keeping every other field', () => {
@@ -25,6 +25,13 @@ describe("Qwen LiveTranslate's settings", () => {
     expect(stored.hotwords).toBe('a=b');
     expect(stored.pauseMs).toBe(QWEN_PAUSE.default);
     expect(migrateQwenSettings({ region: 'cn' }).region).toBe('cn');
+  });
+
+  it('starts with screen context off, keeps a stored boolean and defaults anything else', () => {
+    expect(QWEN_DEFAULTS.screenContext).toBe(false);
+    expect(migrateQwenSettings({ screenContext: true }).screenContext).toBe(true);
+    expect(migrateQwenSettings({ screenContext: 'yes' }).screenContext).toBe(false);
+    expect(migrateQwenSettings({}).screenContext).toBe(false);
   });
 
   it('offers a pause from half a second to six, in tenths, the server default in range', () => {

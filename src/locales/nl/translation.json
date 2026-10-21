@@ -550,7 +550,10 @@
       "vocabulary": "Aangepast vocabulaire",
       "vocabularyTranslations": "Voorkeursvertalingen",
       "vocabularyTranslationsTooltip": "Beïnvloedt hoe specifieke termen worden vertaald — een voorkeur, geen gegarandeerde vervanging: namen met een gevestigde vertaling werken het best, terwijl gangbare woorden de eigen formulering van het model kunnen behouden. Items zijn eenrichtings; de omgekeerde richting bestaat alleen in de modus Beide, waar je een omgekeerde regel kunt toevoegen.",
-      "vocabularyTranslationsPlaceholder": "Eén item bron=doel per regel"
+      "vocabularyTranslationsPlaceholder": "Eén item bron=doel per regel",
+      "screenContext": "Schermcontext",
+      "screenContextTooltip": "Laat de Qwen-engine één venster, tabblad of scherm zien dat je kiest wanneer een sessie begint, zodat de namen en termen erop worden herkend en vertaald zoals ze geschreven staan. Alles binnen dat gebied wordt als afbeeldingen verstuurd naar de Qwen-dienst van Alibaba Cloud, in de regio van deze sessie; Kizuna AI ontvangt ze nooit. Met een Kizuna AI-account komt er een bedrag bij op de kosten voor elke seconde spraak zolang het aan staat — in de modus Beide voor elke richting; het tarief staat op de prijspagina van je account.",
+      "screenContextWhere": "In de desktop-app kies je het venster of scherm wanneer de sessie begint. In de browserextensie wordt het vergadertabblad gebruikt."
     },
     "local_inference": {
       "name": "Gratis",

@@ -98,20 +98,23 @@ export interface QwenSettings {
   pauseMs: number;
   /** The region a managed session is bought in (`regions.ts`); an own key detects its storefront and ignores this. */
   region: QwenRegion;
+  /** Let the model see one chosen window, tab or screen (spec 2026-10-22); the source is picked at Start and never stored. */
+  screenContext: boolean;
 }
 
 export const QWEN_DEFAULT_VOICE = 'Tina';
 /** A male preset beside Tina, so the two people never sound alike by default. */
 export const QWEN_PARTICIPANT_DEFAULT_VOICE = 'Ethan';
 export const QWEN_DEFAULTS: QwenSettings = {
-  voice: QWEN_DEFAULT_VOICE, participantVoice: QWEN_PARTICIPANT_DEFAULT_VOICE, hotwords: '', pauseMs: QWEN_PAUSE.default, region: DEFAULT_QWEN_REGION,
+  voice: QWEN_DEFAULT_VOICE, participantVoice: QWEN_PARTICIPANT_DEFAULT_VOICE, hotwords: '', pauseMs: QWEN_PAUSE.default, region: DEFAULT_QWEN_REGION, screenContext: false,
 };
 
 /** What was stored, made valid field by field: the region narrowed, the rest as typed or defaulted. Nothing is written back. */
 export function migrateQwenSettings(stored: Readonly<Record<string, unknown>>): QwenSettings {
   const str = (k: 'voice' | 'participantVoice' | 'hotwords') => (typeof stored[k] === 'string' ? (stored[k] as string) : QWEN_DEFAULTS[k]);
   const pauseMs = typeof stored.pauseMs === 'number' && Number.isFinite(stored.pauseMs) ? stored.pauseMs : QWEN_DEFAULTS.pauseMs;
-  return { voice: str('voice'), participantVoice: str('participantVoice'), hotwords: str('hotwords'), pauseMs, region: asQwenRegion(stored.region) };
+  const screenContext = typeof stored.screenContext === 'boolean' ? stored.screenContext : false;
+  return { voice: str('voice'), participantVoice: str('participantVoice'), hotwords: str('hotwords'), pauseMs, region: asQwenRegion(stored.region), screenContext };
 }
 
 /** Either clone: each leg clones its own speaker, so neither is ever "my" voice to keep off the other leg. */

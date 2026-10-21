@@ -550,7 +550,10 @@
       "vocabulary": "Custom na Bokabularyo",
       "vocabularyTranslations": "Gustong mga Pagsasalin",
       "vocabularyTranslationsTooltip": "Umiimpluwensya kung paano isinasalin ang mga partikular na termino — isang kagustuhan, hindi garantisadong kapalit: pinakamainam ang mga pangalang may itinatag na salin, samantalang maaaring mapanatili ng mga karaniwang salita ang sarili nitong pananalita mula sa modelo. Ang mga entry ay may direksyon; ang kabaligtaran na direksyon ay umiiral lamang sa mode na Pareho, kung saan maaari kang magdagdag ng baliktad na linya.",
-      "vocabularyTranslationsPlaceholder": "Isang entry na source=target kada linya"
+      "vocabularyTranslationsPlaceholder": "Isang entry na source=target kada linya",
+      "screenContext": "Konteksto ng screen",
+      "screenContextTooltip": "Hinahayaan ang Qwen engine na makita ang isang window, tab o screen na pipiliin mo sa pagsisimula ng session, para makilala at maisalin ang mga pangalan at terminong nasa mga ito nang eksakto sa pagkakasulat. Lahat ng nasa loob ng lugar na iyon ay ipinapadala bilang mga larawan sa Qwen service ng Alibaba Cloud, sa rehiyon ng session na ito; hindi kailanman natatanggap ng Kizuna AI ang mga ito. Kung may Kizuna AI account, nadaragdagan nito ang singil sa bawat segundo ng pagsasalita habang naka-on ito — sa mode na Pareho, sa bawat direksyon; nasa pricing page ng iyong account ang presyo.",
+      "screenContextWhere": "Sa desktop app, pipiliin mo ang window o screen sa pagsisimula ng session. Sa browser extension, ginagamit ang meeting tab."
     },
     "local_inference": {
       "name": "Libre",

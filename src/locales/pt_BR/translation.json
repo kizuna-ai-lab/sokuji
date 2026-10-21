@@ -550,7 +550,10 @@
       "vocabulary": "Vocabulário personalizado",
       "vocabularyTranslations": "Traduções preferidas",
       "vocabularyTranslationsTooltip": "Influencia como termos específicos são traduzidos — é uma preferência, não uma substituição garantida: nomes com uma tradução já estabelecida funcionam melhor, enquanto palavras comuns podem manter a formulação própria do modelo. As entradas são direcionais; a direção inversa só existe no modo Ambos, onde você pode adicionar uma linha inversa.",
-      "vocabularyTranslationsPlaceholder": "Uma entrada origem=destino por linha"
+      "vocabularyTranslationsPlaceholder": "Uma entrada origem=destino por linha",
+      "screenContext": "Contexto da tela",
+      "screenContextTooltip": "Permite que o mecanismo Qwen veja uma janela, aba ou tela que você escolhe ao iniciar uma sessão, para que os nomes e termos nela sejam reconhecidos e traduzidos como estão escritos. Tudo o que está dentro dessa área é enviado como imagens ao serviço Qwen da Alibaba Cloud, na região desta sessão; a Kizuna AI nunca as recebe. Com uma conta Kizuna AI, isso aumenta a cobrança por cada segundo de fala enquanto estiver ativado — no modo Ambos, por cada direção; a tarifa está na página de preços da sua conta.",
+      "screenContextWhere": "No app para desktop, você escolhe a janela ou a tela ao iniciar a sessão. Na extensão do navegador, a aba da reunião é usada."
     },
     "local_inference": {
       "name": "Gratuito",

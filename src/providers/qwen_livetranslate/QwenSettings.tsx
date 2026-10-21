@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { LinesField } from '../../components/providers/fields/LinesField';
 import { PresetVoiceField, presetVoice } from '../../components/providers/fields/PresetVoiceField';
 import type { VoiceEntry } from '../../components/Settings/sections/VoiceLibrarySection';
+import SettingRow from '../../components/Settings/shared/SettingRow';
 import Tooltip from '../../components/Tooltip/Tooltip';
 import type { SettingsProps, VoiceSummaryProps } from '../../lib/provider/types';
 import { isEndpointId } from './endpoints';
@@ -55,6 +56,16 @@ export function QwenSettingsView({ settings, update, disabled = false, participa
         voices={voices} value={settings.voice} onChange={(voice) => update({ voice })} preview={preview} disabled={disabled}
         participant={participantSpeaks ? { value: settings.participantVoice, effective: qwenParticipantVoice(settings), onChange: (participantVoice) => update({ participantVoice }) } : undefined}
       />
+      <div className="settings-section" id="qwen-screen-context-section" data-testid="qwen-screen-context">
+        <SettingRow
+          label={t('providers.qwen_livetranslate.screenContext', 'Screen context')}
+          tooltip={t('providers.qwen_livetranslate.screenContextTooltip', "Lets the Qwen engine see one window, tab or screen you choose when a session starts, so the names and terms on it are recognized and translated as written. Everything inside that area is sent to Alibaba Cloud's Qwen service, in the region of this session, as pictures; Kizuna AI never receives them. With a Kizuna AI account it adds to the charge for every second of speech while it is on — in Both mode for each direction; the rate is on your account's pricing page.")}
+          switch={{ checked: settings.screenContext, onChange: () => update({ screenContext: !settings.screenContext }), disabled }}
+        />
+        <div className="setting-description">
+          {t('providers.qwen_livetranslate.screenContextWhere', 'In the desktop app you pick the window or screen when the session starts. In the browser extension the meeting tab is used.')}
+        </div>
+      </div>
       <div className="settings-section" id="qwen-vocabulary-section">
         {/* No heading tooltip: Soniox's speaks of recognition too, which Qwen's corpus does not touch; the field's own explains it. */}
         <h2>{t('providers.qwen_livetranslate.vocabulary', 'Custom Vocabulary')}</h2>

@@ -10,7 +10,8 @@ vi.mock('react-i18next', () => ({
     },
   }),
 }));
-vi.mock('../../components/Tooltip/Tooltip', () => ({ default: () => null }));
+// A tooltip draws nothing, but its words stay reachable for a test that reads what a row says: the `data-tooltip` attribute.
+vi.mock('../../components/Tooltip/Tooltip', () => ({ default: ({ content }: { content?: unknown }) => (typeof content === 'string' ? <i data-tooltip={content} /> : null) }));
 import type { VoiceLibrarySectionProps } from '../../components/Settings/sections/VoiceLibrarySection';
 const { library } = vi.hoisted(() => ({ library: [] as VoiceLibrarySectionProps[] }));
 vi.mock('../../components/Settings/sections/VoiceLibrarySection', () => ({
@@ -76,6 +77,30 @@ describe('QwenSettingsView (spec §4, §7)', () => {
     expect(update).toHaveBeenCalledWith({ participantVoice: 'Serena' });
   });
 
+  it('offers Screen context as a switch under the voice, off by default, writing only that field', () => {
+    const update = vi.fn();
+    render(<QwenSettingsView settings={QWEN_DEFAULTS} update={update} />);
+    const sw = screen.getByRole('switch', { name: 'Screen context' });
+    expect(sw).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(sw);
+    expect(update).toHaveBeenCalledWith({ screenContext: true });
+  });
+  it('locks the switch while a run is not idle, and says in words only where frames go and how they are billed', () => {
+    const update = vi.fn();
+    render(<QwenSettingsView settings={QWEN_DEFAULTS} update={update} disabled />);
+    const sw = screen.getByRole('switch', { name: 'Screen context' });
+    // The switch is a div with role="switch", so it is locked by aria-disabled, not by a disabled attribute.
+    expect(sw).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(sw);
+    expect(update).not.toHaveBeenCalled();
+    const row = screen.getByTestId('qwen-screen-context');
+    const tooltips = Array.from(row.querySelectorAll('[data-tooltip]'), (el) => el.getAttribute('data-tooltip')).join(' ');
+    const words = `${row.textContent} ${tooltips}`;
+    expect(words).toMatch(/Alibaba Cloud/);
+    expect(words).toMatch(/Kizuna AI never receives them/);
+    expect(words).not.toMatch(/[$¥%\d]/);
+  });
+
   it('names the storefront the check found under the key, and nothing before a check', () => {
     const { rerender } = render(<QwenSettingsView {...props({ models: [{ id: 'cn' }] })} />);
     expect(screen.getByText('Key from 千问云 (mainland China)')).toBeTruthy();
@@ -119,6 +144,11 @@ describe('KizunaQwenSettingsView (the managed view, Beijing region spec §8)', (
     beijing.unmount();
     const singapore = render(<KizunaQwenSettingsView {...props({ settings: { ...QWEN_DEFAULTS, region: 'sg' } })} />);
     expect(singapore.container.querySelector('#qwen-region-note')).toBeNull();
+  });
+
+  it('the managed view shows the same switch', () => {
+    render(<KizunaQwenSettingsView settings={QWEN_DEFAULTS} update={() => {}} />);
+    expect(screen.getByRole('switch', { name: 'Screen context' })).toBeInTheDocument();
   });
 
   it('the own-key view shows no region', () => {

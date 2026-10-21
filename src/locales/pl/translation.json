@@ -550,7 +550,10 @@
       "vocabulary": "Słownik niestandardowy",
       "vocabularyTranslations": "Preferowane tłumaczenia",
       "vocabularyTranslationsTooltip": "Wpływa na sposób tłumaczenia określonych terminów — to preferencja, a nie gwarantowane zastąpienie: nazwy z utrwalonym tłumaczeniem sprawdzają się najlepiej, natomiast popularne słowa mogą zachować własne sformułowanie modelu. Wpisy są kierunkowe; kierunek odwrotny istnieje tylko w trybie Oba, gdzie można dodać wiersz odwrotny.",
-      "vocabularyTranslationsPlaceholder": "Jeden wpis źródło=cel w wierszu"
+      "vocabularyTranslationsPlaceholder": "Jeden wpis źródło=cel w wierszu",
+      "screenContext": "Kontekst ekranu",
+      "screenContextTooltip": "Pozwala silnikowi Qwen zobaczyć jedno okno, kartę lub ekran wybrane przez Ciebie przy rozpoczęciu sesji, aby widoczne na nim nazwy i terminy były rozpoznawane i tłumaczone tak, jak są zapisane. Wszystko, co znajduje się w tym obszarze, jest wysyłane jako obrazy do usługi Qwen firmy Alibaba Cloud w regionie tej sesji; Kizuna AI nigdy ich nie otrzymuje. Przy koncie Kizuna AI zwiększa to opłatę za każdą sekundę mowy, gdy jest włączone — w trybie Oba za każdy kierunek; stawka jest na stronie cennika Twojego konta.",
+      "screenContextWhere": "W aplikacji desktopowej okno lub ekran wybiera się przy rozpoczęciu sesji. W rozszerzeniu przeglądarki używana jest karta spotkania."
     },
     "local_inference": {
       "name": "Darmowy",
