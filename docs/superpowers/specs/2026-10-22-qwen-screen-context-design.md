@@ -173,7 +173,9 @@ face-to-face mode (not available with Qwen at all).
   `desktopCapturer.getSources({ types: ['window', 'screen'], thumbnailSize })` in the main process; the
   renderer draws the picker from the list where there is one (Windows, macOS, X11) and skips straight to
   the single source the portal returns on Wayland; the chosen source id goes to `getUserMedia` with
-  `chromeMediaSourceId` (the same mechanism the Windows system-audio capture already uses). The `<video>`
+  `chromeMediaSource: 'desktop'` and `chromeMediaSourceId` (the extension's tab capture uses the same shape with
+  `'tab'`; the Windows system-audio capture does not — it goes through electron-audio-loopback's display-media
+  handler, which this path never touches). The `<video>`
   → canvas sampler at 1 Hz, the change detector, the blank-frame guard and the JPEG encode are one renderer
   module shared with the extension. macOS needs the Screen Recording permission (reuse the existing check
   and `open-privacy-settings`); on Wayland the `WebRTCPipeWireCapturer` feature must be on, as the docs note.
