@@ -8,7 +8,7 @@ import { createElement } from 'react';
 import { render } from '@testing-library/react';
 import { kizunaQwenProvider } from './kizuna';
 import { qwenLiveTranslateProvider } from './provider';
-import { QwenSettingsView, QwenVoiceSummary } from './QwenSettings';
+import { KizunaQwenSettingsView, QwenVoiceSummary } from './QwenSettings';
 import { QWEN_DEFAULTS } from './settings';
 
 const getToken = async () => 'tok';
@@ -21,7 +21,7 @@ describe('kizunaQwenProvider', () => {
     expect(kizunaQwenProvider.settings).toMatchObject({ key: 'kizunaQwen', defaults: QWEN_DEFAULTS });
     expect(kizunaQwenProvider.testerSwitch).toBeUndefined();
     expect(kizunaQwenProvider.icon).toBeTypeOf('function');
-    expect(kizunaQwenProvider.Settings).toBe(QwenSettingsView);
+    expect(kizunaQwenProvider.Settings).toBe(KizunaQwenSettingsView);
     expect(kizunaQwenProvider.VoiceSummary).toBe(QwenVoiceSummary);
   });
 

@@ -282,6 +282,8 @@
     "sonioxRegion": "Alue",
     "sonioxRegionTooltip": "Soniox ylläpitää erillistä ympäristöä kullekin alueelle. Äänesi käsitellään valitsemallasi alueella. Voimassa seuraavasta istunnosta alkaen.",
     "sonioxRegionTooltipOwnKey": "Soniox ylläpitää erillistä ympäristöä kullekin alueelle, ja jokainen alue on oma Soniox-projektinsa omalla API-avaimellaan. Äänesi käsitellään valitsemallasi alueella. Voimassa seuraavasta istunnosta alkaen.",
+    "qwenRegion": "Alue",
+    "qwenRegionTooltip": "Qwen ylläpitää erillistä ympäristöä kullekin alueelle. Äänesi käsitellään valitsemallasi alueella. Voimassa seuraavasta istunnosta alkaen.",
     "sentenceSegmentationTitle": "Lausesegmentointi",
     "sentenceSegmentationTitleDesc": "Valitsee, mihin puhekupla päättyy: jätetään palveluntarjoajalle, katkaistaan säädettävän tauon kohdalta tai muutaman lauseen välein puuttuvat välimerkit lisäten.",
     "sentenceSegmentation": "Tekstityksen segmentointi",

@@ -282,6 +282,8 @@
     "sonioxRegion": "Região",
     "sonioxRegionTooltip": "A Soniox mantém uma implementação separada por região. O seu áudio é processado na região escolhida. Aplica-se a partir da próxima sessão.",
     "sonioxRegionTooltipOwnKey": "A Soniox mantém uma implementação separada por região, e cada uma é um projeto Soniox distinto com a sua própria chave de API. O seu áudio é processado na região escolhida. Aplica-se a partir da próxima sessão.",
+    "qwenRegion": "Região",
+    "qwenRegionTooltip": "A Qwen mantém uma implementação separada por região. O seu áudio é processado na região escolhida. Aplica-se a partir da próxima sessão.",
     "sentenceSegmentationTitle": "Segmentação de frases",
     "sentenceSegmentationTitleDesc": "Escolhe onde um balão termina: deixar ao fornecedor, cortar numa pausa que ajusta, ou a cada poucas frases acrescentando a pontuação em falta.",
     "sentenceSegmentation": "Segmentação de legendas",

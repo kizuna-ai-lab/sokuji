@@ -289,6 +289,8 @@
     "sonioxRegion": "Region",
     "sonioxRegionTooltip": "Soniox runs a separate deployment per region. Your audio is processed in the region you pick. Applies from the next session.",
     "sonioxRegionTooltipOwnKey": "Soniox runs a separate deployment per region, and each one is a separate Soniox project with its own API key. Your audio is processed in the region you pick. Applies from the next session.",
+    "qwenRegion": "Region",
+    "qwenRegionTooltip": "Qwen runs a separate deployment per region. Your audio is processed in the region you pick. Applies from the next session.",
     "sentenceSegmentationTitle": "Sentence segmentation",
     "sentenceSegmentationTitleDesc": "Chooses where one bubble ends: leave it to the provider, cut on a pause you tune, or start a new one every few sentences with the missing punctuation added.",
     "sentenceSegmentation": "Subtitle segmentation",

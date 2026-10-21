@@ -3,7 +3,7 @@ import { managed } from '../../lib/provider/managed';
 import { kizunaQwenMinimumBalance } from './kizunaBudget';
 import { createQwenLease } from './lease';
 import { qwenLiveTranslateProvider } from './provider';
-import { QwenSettingsView, QwenVoiceSummary } from './QwenSettings';
+import { KizunaQwenSettingsView, QwenVoiceSummary } from './QwenSettings';
 
 /**
  * Kizuna AI's managed Qwen LiveTranslate (spec 2026-10-17-kizuna-managed-qwen):
@@ -19,7 +19,8 @@ export const kizunaQwenProvider = managed(qwenLiveTranslateProvider, {
   // through it; on a white plate it would twin Kizuna Soniox's badge.
   icon: kizunaHostedIcon(QwenMonoIcon, { plate: QWEN_PLATE, inset: 0.82, color: '#fff' }),
   settingsKey: 'kizunaQwen',
-  Settings: QwenSettingsView,
+  // The shared view under a Region dropdown: the region is the managed session's, an own key has none.
+  Settings: KizunaQwenSettingsView,
   VoiceSummary: QwenVoiceSummary,
   signedOut: 'Sign in to use Kizuna AI Qwen.',
   flagged: true,

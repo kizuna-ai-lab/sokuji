@@ -282,6 +282,8 @@
     "sonioxRegion": "リージョン",
     "sonioxRegionTooltip": "Soniox はリージョンごとに独立したデプロイです。音声は選択したリージョン内で処理されます。次のセッションから適用されます。",
     "sonioxRegionTooltipOwnKey": "Soniox はリージョンごとに独立したデプロイで、それぞれが別個の Soniox プロジェクトとして専用の API キーを持ちます。音声は選択したリージョン内で処理されます。次のセッションから適用されます。",
+    "qwenRegion": "リージョン",
+    "qwenRegionTooltip": "Qwen はリージョンごとに独立したデプロイです。音声は選択したリージョン内で処理されます。次のセッションから適用されます。",
     "sentenceSegmentationTitle": "文分割",
     "sentenceSegmentationTitleDesc": "吹き出しの区切り方を選びます。プロバイダーに任せる、調整できる休止で区切る、または不足している句読点を補って数文ごとに区切る。",
     "sentenceSegmentation": "字幕分割",

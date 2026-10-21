@@ -282,6 +282,8 @@
     "sonioxRegion": "Khu vực",
     "sonioxRegionTooltip": "Soniox vận hành triển khai riêng cho từng khu vực. Âm thanh của bạn được xử lý trong khu vực bạn chọn. Áp dụng từ phiên tiếp theo.",
     "sonioxRegionTooltipOwnKey": "Soniox vận hành triển khai riêng cho từng khu vực, và mỗi khu vực là một dự án Soniox riêng với khóa API riêng. Âm thanh của bạn được xử lý trong khu vực bạn chọn. Áp dụng từ phiên tiếp theo.",
+    "qwenRegion": "Khu vực",
+    "qwenRegionTooltip": "Qwen vận hành triển khai riêng cho từng khu vực. Âm thanh của bạn được xử lý trong khu vực bạn chọn. Áp dụng từ phiên tiếp theo.",
     "sentenceSegmentationTitle": "Phân đoạn câu",
     "sentenceSegmentationTitleDesc": "Chọn nơi một bong bóng kết thúc: để nhà cung cấp quyết định, cắt tại khoảng lặng bạn tự chỉnh, hoặc sau mỗi vài câu kèm dấu câu được bổ sung.",
     "sentenceSegmentation": "Phân đoạn phụ đề",

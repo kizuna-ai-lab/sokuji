@@ -282,6 +282,8 @@
     "sonioxRegion": "Regione",
     "sonioxRegionTooltip": "Soniox esegue un'implementazione separata per regione. Il tuo audio viene elaborato nella regione scelta. Si applica dalla prossima sessione.",
     "sonioxRegionTooltipOwnKey": "Soniox esegue un'implementazione separata per regione, e ciascuna è un progetto Soniox distinto con la propria chiave API. Il tuo audio viene elaborato nella regione scelta. Si applica dalla prossima sessione.",
+    "qwenRegion": "Regione",
+    "qwenRegionTooltip": "Qwen esegue un'implementazione separata per regione. Il tuo audio viene elaborato nella regione scelta. Si applica dalla prossima sessione.",
     "sentenceSegmentationTitle": "Segmentazione delle frasi",
     "sentenceSegmentationTitleDesc": "Sceglie dove finisce un fumetto: lasciarlo al provider, tagliare a una pausa regolabile, oppure ogni poche frasi aggiungendo la punteggiatura mancante.",
     "sentenceSegmentation": "Segmentazione dei sottotitoli",

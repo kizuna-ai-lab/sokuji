@@ -21,7 +21,7 @@ vi.mock('../../components/Settings/sections/VoiceLibrarySection', () => ({
 }));
 
 import type { SettingsProps } from '../../lib/provider/types';
-import { QwenSettingsView, QwenVoiceSummary } from './QwenSettings';
+import { KizunaQwenSettingsView, QwenSettingsView, QwenVoiceSummary } from './QwenSettings';
 import { QWEN_DEFAULTS, QWEN_VOICES, SPEAKER_CLONE, SPEAKER_CLONE_ONCE, type QwenSettings } from './settings';
 
 const props = (patch: Partial<SettingsProps<QwenSettings>> = {}): SettingsProps<QwenSettings> => ({ settings: QWEN_DEFAULTS, update: vi.fn(), ...patch });
@@ -83,6 +83,34 @@ describe('QwenSettingsView (spec §4, §7)', () => {
     expect(screen.getByText('Key from QwenCloud (international)')).toBeTruthy();
     rerender(<QwenSettingsView {...props({ models: [] })} />);
     expect(screen.queryByText(/^Key from/)).toBeNull();
+  });
+});
+
+describe('KizunaQwenSettingsView (the managed view, Beijing region spec §8)', () => {
+  it('renders a Region select with Singapore and 北京 (Beijing), selected from the settings, above the shared view', () => {
+    const { container } = render(<KizunaQwenSettingsView {...props({ settings: { ...QWEN_DEFAULTS, region: 'cn' } })} />);
+    const select = container.querySelector('#qwen-region-select') as HTMLSelectElement;
+    expect(select.value).toBe('cn');
+    expect(Array.from(select.options).map((o) => [o.value, o.textContent])).toEqual([['sg', 'Singapore'], ['cn', '北京 (Beijing)']]);
+    expect(select.closest('.settings-section')?.querySelector('h2')?.textContent).toContain('Region');
+    expect(library).toHaveLength(1);
+  });
+
+  it('picking Beijing writes the region and nothing else', () => {
+    const update = vi.fn();
+    const { container } = render(<KizunaQwenSettingsView {...props({ update })} />);
+    fireEvent.change(container.querySelector('#qwen-region-select') as HTMLSelectElement, { target: { value: 'cn' } });
+    expect(update).toHaveBeenCalledWith({ region: 'cn' });
+  });
+
+  it('locks the select while a run is not idle', () => {
+    const { container } = render(<KizunaQwenSettingsView {...props({ disabled: true })} />);
+    expect((container.querySelector('#qwen-region-select') as HTMLSelectElement).disabled).toBe(true);
+  });
+
+  it('the own-key view shows no region', () => {
+    const { container } = render(<QwenSettingsView {...props()} />);
+    expect(container.querySelector('#qwen-region-select')).toBeNull();
   });
 });
 

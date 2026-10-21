@@ -282,6 +282,8 @@
     "sonioxRegion": "Region",
     "sonioxRegionTooltip": "Soniox betreibt pro Region eine eigene Bereitstellung. Ihr Audio wird in der gewählten Region verarbeitet. Gilt ab der nächsten Sitzung.",
     "sonioxRegionTooltipOwnKey": "Soniox betreibt pro Region eine eigene Bereitstellung; jede ist ein eigenes Soniox-Projekt mit eigenem API-Schlüssel. Ihr Audio wird in der gewählten Region verarbeitet. Gilt ab der nächsten Sitzung.",
+    "qwenRegion": "Region",
+    "qwenRegionTooltip": "Qwen betreibt pro Region eine eigene Bereitstellung. Ihr Audio wird in der gewählten Region verarbeitet. Gilt ab der nächsten Sitzung.",
     "sentenceSegmentationTitle": "Satzsegmentierung",
     "sentenceSegmentationTitleDesc": "Legt fest, wo eine Sprechblase endet: dem Anbieter überlassen, bei einer einstellbaren Pause trennen oder alle paar Sätze mit ergänzter Zeichensetzung.",
     "sentenceSegmentation": "Untertitel-Segmentierung",

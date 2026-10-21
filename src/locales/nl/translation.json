@@ -282,6 +282,8 @@
     "sonioxRegion": "Regio",
     "sonioxRegionTooltip": "Soniox draait per regio een aparte omgeving. Je audio wordt verwerkt in de gekozen regio. Geldt vanaf de volgende sessie.",
     "sonioxRegionTooltipOwnKey": "Soniox draait per regio een aparte omgeving, en elke regio is een apart Soniox-project met een eigen API-sleutel. Je audio wordt verwerkt in de gekozen regio. Geldt vanaf de volgende sessie.",
+    "qwenRegion": "Regio",
+    "qwenRegionTooltip": "Qwen draait per regio een aparte omgeving. Je audio wordt verwerkt in de gekozen regio. Geldt vanaf de volgende sessie.",
     "sentenceSegmentationTitle": "Zinsegmentatie",
     "sentenceSegmentationTitleDesc": "Bepaalt waar een tekstballon eindigt: overlaten aan de aanbieder, knippen bij een pauze die je instelt, of elke paar zinnen met de ontbrekende interpunctie erbij.",
     "sentenceSegmentation": "Ondertitelsegmentatie",

@@ -282,6 +282,8 @@
     "sonioxRegion": "Bölge",
     "sonioxRegionTooltip": "Soniox her bölge için ayrı bir dağıtım çalıştırır. Sesiniz seçtiğiniz bölgede işlenir. Bir sonraki oturumdan itibaren geçerlidir.",
     "sonioxRegionTooltipOwnKey": "Soniox her bölge için ayrı bir dağıtım çalıştırır ve her biri kendi API anahtarına sahip ayrı bir Soniox projesidir. Sesiniz seçtiğiniz bölgede işlenir. Bir sonraki oturumdan itibaren geçerlidir.",
+    "qwenRegion": "Bölge",
+    "qwenRegionTooltip": "Qwen her bölge için ayrı bir dağıtım çalıştırır. Sesiniz seçtiğiniz bölgede işlenir. Bir sonraki oturumdan itibaren geçerlidir.",
     "sentenceSegmentationTitle": "Cümle segmentasyonu",
     "sentenceSegmentationTitleDesc": "Bir konuşma balonunun nerede biteceğini seçer: sağlayıcıya bırakın, ayarladığınız bir duraklamada kesin ya da eksik noktalamayı ekleyerek her birkaç cümlede bir.",
     "sentenceSegmentation": "Altyazı segmentasyonu",

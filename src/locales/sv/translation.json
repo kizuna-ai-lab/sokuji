@@ -282,6 +282,8 @@
     "sonioxRegion": "Region",
     "sonioxRegionTooltip": "Soniox kör en separat driftsättning per region. Ditt ljud behandlas i den region du väljer. Gäller från nästa session.",
     "sonioxRegionTooltipOwnKey": "Soniox kör en separat driftsättning per region, och varje region är ett eget Soniox-projekt med en egen API-nyckel. Ditt ljud behandlas i den region du väljer. Gäller från nästa session.",
+    "qwenRegion": "Region",
+    "qwenRegionTooltip": "Qwen kör en separat driftsättning per region. Ditt ljud behandlas i den region du väljer. Gäller från nästa session.",
     "sentenceSegmentationTitle": "Meningssegmentering",
     "sentenceSegmentationTitleDesc": "Väljer var en pratbubbla slutar: låta leverantören bestämma, klippa vid en paus du ställer in, eller var några meningar med skiljetecknen ifyllda.",
     "sentenceSegmentation": "Segmentering av undertexter",

@@ -282,6 +282,8 @@
     "sonioxRegion": "区域",
     "sonioxRegionTooltip": "Soniox 在每个区域都有独立部署。您的音频将在所选区域内处理。下次会话开始生效。",
     "sonioxRegionTooltipOwnKey": "Soniox 在每个区域都有独立部署，每个区域是一个独立的 Soniox 项目，有自己的 API 密钥。您的音频将在所选区域内处理。下次会话开始生效。",
+    "qwenRegion": "区域",
+    "qwenRegionTooltip": "Qwen 在每个区域都有独立部署。您的音频将在所选区域内处理。下次会话开始生效。",
     "sentenceSegmentationTitle": "句子分段",
     "sentenceSegmentationTitleDesc": "选择气泡在何处断开：交给服务商决定、按可调节的停顿断开，或补上缺失的标点并每隔几句断开。",
     "sentenceSegmentation": "字幕分段",

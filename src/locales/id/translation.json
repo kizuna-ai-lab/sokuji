@@ -282,6 +282,8 @@
     "sonioxRegion": "Wilayah",
     "sonioxRegionTooltip": "Soniox menjalankan penerapan terpisah per wilayah. Audio Anda diproses di wilayah yang Anda pilih. Berlaku mulai sesi berikutnya.",
     "sonioxRegionTooltipOwnKey": "Soniox menjalankan penerapan terpisah per wilayah, dan setiap wilayah adalah proyek Soniox tersendiri dengan kunci API sendiri. Audio Anda diproses di wilayah yang Anda pilih. Berlaku mulai sesi berikutnya.",
+    "qwenRegion": "Wilayah",
+    "qwenRegionTooltip": "Qwen menjalankan penerapan terpisah per wilayah. Audio Anda diproses di wilayah yang Anda pilih. Berlaku mulai sesi berikutnya.",
     "sentenceSegmentationTitle": "Segmentasi kalimat",
     "sentenceSegmentationTitleDesc": "Menentukan di mana satu gelembung berakhir: serahkan pada penyedia, potong pada jeda yang Anda atur, atau setiap beberapa kalimat dengan tanda baca yang hilang ditambahkan.",
     "sentenceSegmentation": "Segmentasi subtitle",

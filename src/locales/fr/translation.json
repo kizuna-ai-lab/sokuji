@@ -282,6 +282,8 @@
     "sonioxRegion": "Région",
     "sonioxRegionTooltip": "Soniox exploite un déploiement distinct par région. Votre audio est traité dans la région choisie. S'applique à partir de la prochaine session.",
     "sonioxRegionTooltipOwnKey": "Soniox exploite un déploiement distinct par région, chacun étant un projet Soniox distinct avec sa propre clé API. Votre audio est traité dans la région choisie. S'applique à partir de la prochaine session.",
+    "qwenRegion": "Région",
+    "qwenRegionTooltip": "Qwen exploite un déploiement distinct par région. Votre audio est traité dans la région choisie. S'applique à partir de la prochaine session.",
     "sentenceSegmentationTitle": "Segmentation des phrases",
     "sentenceSegmentationTitleDesc": "Choisit où se termine une bulle : laisser faire le fournisseur, couper sur une pause que vous réglez, ou toutes les quelques phrases en ajoutant la ponctuation manquante.",
     "sentenceSegmentation": "Segmentation des sous-titres",
