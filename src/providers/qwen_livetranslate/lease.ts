@@ -326,6 +326,15 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
     }
     // A contract break past here leaves a never-reported lease, which the backend frees at its window's end; `session-end` cannot.
     const grant = parseGrant(answer.body);
+    // A backend before the Beijing region ignores `region` and serves Singapore: a Beijing pick must not run there in
+    // silence, under a tooltip that says the audio stays in the region picked. Singapore itself is what any backend serves.
+    if (sent.region !== 'sg' && grant.region !== sent.region) {
+      ctx.frame({ direction: 'in', type: 'session.refused', payload: { status: answer.status, region: sent.region, served: grant.region ?? null } });
+      throw new AdapterStartError(
+        `The session service does not serve the ${sent.region} region yet (it answered ${grant.region ?? 'no region'}).`,
+        'qwen_service_unavailable',
+      );
+    }
 
     const startedAt = ctx.clock.now();
     const totalMs = grant.maxSessionDurationSeconds * 1000;

@@ -140,6 +140,18 @@ describe('Qwen lease: the grant', () => {
     expect(a.frame).toHaveBeenCalledWith(expect.objectContaining({ type: 'session.lease_acquired', payload: expect.not.objectContaining({ region: expect.anything() }) }));
   });
 
+  it('refuses a Beijing request the backend answered in no region, or another: a pick never runs in Singapore in silence', async () => {
+    for (const answered of [grant(), grant({ endpoint: 'intl', region: 'sg' })]) {
+      const a = acquiring(['speaker'], { settings: { region: 'cn' } });
+      await flush();
+      a.last().respond(200, answered);
+      const error = await rejection(a.pending);
+      expect(code(error)).toBe('qwen_service_unavailable');
+      expect(String(error)).not.toContain(GRANT_KEY);
+      expect(a.frame).toHaveBeenCalledWith(expect.objectContaining({ type: 'session.refused', payload: expect.objectContaining({ region: 'cn' }) }));
+    }
+  });
+
   it('fails the start on a grant whose region is not one it knows', async () => {
     const a = acquiring(['speaker']);
     await flush();
