@@ -22,7 +22,7 @@
  * to it). Here the clock is virtual, so a minute of keep-alive is one
  * `{ advance: 60_000 }`. Test-only.
  */
-import type { Adapter, AdapterSession, Punctuator, SessionContext } from '../adapter';
+import type { Adapter, AdapterSession, FrameSource, Punctuator, SessionContext } from '../adapter';
 import { SAMPLE_RATE } from '../adapter';
 import { createVirtualClock, type VirtualClock } from '../clock';
 import { checkConformance, recordConformance, type ConformanceLog, type Violation } from '../conformance';
@@ -61,6 +61,8 @@ export interface DriveOptions<C, K> {
   /** After the steps the session is stopped (unless a step did), then the clock runs this much further. Default 10 000 ms. */
   settleMs?: number;
   punctuate?: Punctuator;
+  /** Passed through to the request; absent: the request has no `frames` key. */
+  frames?: FrameSource;
 }
 
 export interface DriveResult {
@@ -124,7 +126,15 @@ export async function driveAdapter<C, K>(adapter: Pick<Adapter<C, K>, 'start'>, 
   let started: Promise<AdapterSession>;
   try {
     started = adapter.start(
-      { context: o.context, config: o.config, credentials: o.credentials, clock, signal: controller.signal, punctuate: o.punctuate },
+      {
+        context: o.context,
+        config: o.config,
+        credentials: o.credentials,
+        clock,
+        signal: controller.signal,
+        punctuate: o.punctuate,
+        ...(o.frames ? { frames: o.frames } : {}),
+      },
       recorder.events,
     );
   } catch (error) {
