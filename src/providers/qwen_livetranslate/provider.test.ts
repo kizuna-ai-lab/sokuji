@@ -7,7 +7,7 @@ import { buildQwen, describeQwen } from './config';
 import { qwenLiveTranslateProvider } from './provider';
 import { QwenSettingsView, QwenVoiceSummary } from './QwenSettings';
 import { QwenTurnDetectionControls, QwenTurnDetectionSummary } from './QwenTurnDetection';
-import { QWEN_DEFAULTS, qwenCredentials, qwenLanguages } from './settings';
+import { migrateQwenSettings, QWEN_DEFAULTS, qwenCredentials, qwenLanguages } from './settings';
 
 const release = (platform: PresenceEnv['platform'], patch: Partial<PresenceEnv> = {}): PresenceEnv =>
   ({ platform, dev: false, enabled: new Set<string>(), kizuna: true, switchOn: () => false, ...patch });
@@ -32,7 +32,8 @@ describe('the Qwen LiveTranslate definition (spec §1)', () => {
       describe: describeQwen,
     });
     expect(qwenLiveTranslateProvider.settings).not.toHaveProperty('legacyKeys');
-    expect(qwenLiveTranslateProvider.settings).not.toHaveProperty('migrate');
+    // Only the region is narrowed on load; the managed twin inherits the same migrate.
+    expect(qwenLiveTranslateProvider.settings.migrate).toBe(migrateQwenSettings);
     for (const absent of ['flagged', 'testerSwitch', 'guideUrl', 'session', 'participantSpeech', 'faceToFace'] as const) {
       expect(qwenLiveTranslateProvider, absent).not.toHaveProperty(absent);
     }
