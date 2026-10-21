@@ -196,12 +196,12 @@ as each key's issue history.
 
 ## 3. Backend lease routes (`/api/qwen`)
 
-**`POST /session-key`** `{ legs: ['speaker'] | ['participant'] | ['speaker', 'participant'], speech: { speaker, participant } }`
+**`POST /session-key`** `{ legs: ['speaker'] | ['participant'] | ['speaker', 'participant'], speech: { speaker, participant }, region?: 'sg' | 'cn' }` (`region` since the 2026-10-21 amendment; absent = `sg`)
 - Order, as Soniox's: sign-in (401) → wallet (403 frozen) → budget from the balance and the rate
   (402 with `requiredMicroUsd`, `balanceMicroUsd`) → lease (409 `active_lease` with `retryAfterMs`)
   → the account's RPM, then a slot (503 `qwen_busy`, the lease released) → mint (502 on failure; the
   slot and the lease are released).
-- Answer: `{ leaseId, endpoint: 'intl', apiKey: '<st- token>', expiresAt, maxSessionDurationSeconds,
+- Answer: `{ leaseId, region: 'sg' | 'cn', endpoint: 'intl' | 'cn', apiKey: '<st- token>', expiresAt, maxSessionDurationSeconds,
   budgetMicroUsd, rateUsdPerHour }`. The token is the only secret in it; the slot's key never leaves
   the backend.
 
