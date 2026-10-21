@@ -78,12 +78,15 @@ face-to-face mode (not available with Qwen at all).
 - A switch **Screen context** on both Qwen providers' settings (Provider tab, under the voice settings;
   the managed twin shares the view). Off by default. Persisted per provider slice
   (`settings.qwenLiveTranslate.screenContext`, `settings.kizunaQwen.screenContext`, boolean).
-- The **source** is one capture area chosen through the picker the platform provides (owner's ruling, §7):
-  - macOS 15+ and Linux on Wayland have a system picker (Electron's `useSystemPicker` on macOS, the
-    PipeWire portal dialog on Wayland); it offers what the OS offers, windows and whole screens alike.
-  - Windows, Linux on X11 and older macOS have none; Sokuji draws its own list from
-    `desktopCapturer.getSources` (window title, app icon, live thumbnail), windows first; a whole screen is
-    listed too, after the windows, since that is what the system pickers offer elsewhere.
+- The **source** is one capture area chosen through the picker the platform provides (owner's ruling, §7).
+  One API serves every desktop platform, `desktopCapturer.getSources`; what it does differs:
+  - On Windows, macOS and Linux on X11 it returns every window and screen with a live thumbnail, and
+    Sokuji draws the picker from that list (window title, app icon, thumbnail), windows first, whole
+    screens after them.
+  - On Linux on Wayland it goes through PipeWire and the desktop portal: the OS shows its own dialog, the
+    user picks there, and the call returns that single source (Electron documents this). Sokuji shows no
+    list on Wayland — only the privacy line and the button that opens the portal — and the portal decides
+    what is offered (windows, whole screens).
   - The extension captures the meeting tab (what `activeTab` grants), see §4.
   The privacy line sits above whichever picker appears: *"Everything inside the area you choose is sent to
   Alibaba Cloud's Qwen service, in the region of this session, as pictures — nothing else on your screen.
@@ -166,13 +169,14 @@ face-to-face mode (not available with Qwen at all).
   subscribe(onFrame: (jpeg: Uint8Array, reason) => void, onLost: () => void, onBack: () => void): () => void }`
   — a leaf the capture layer implements and the adapter consumes. Only the Qwen adapter reads it; every
   other adapter ignores it; the conformance suite pins that an adapter without a source never declares video.
-- **Capture, desktop:** `getDisplayMedia` from the renderer, answered in the main process by
-  `session.setDisplayMediaRequestHandler` — `useSystemPicker: true` where the OS has a picker (macOS 15+;
-  on Wayland the portal dialog appears on its own), else Sokuji's own list (a new IPC
-  `list-capture-sources` over `desktopCapturer.getSources`, thumbnails included) and the handler resolves the
-  chosen source. The `<video>` → canvas sampler at 1 Hz, the change detector, the blank-frame guard and the
-  JPEG encode are one renderer module shared with the extension. macOS needs the Screen Recording
-  permission (reuse the existing check and `open-privacy-settings`).
+- **Capture, desktop:** one path on every platform: a new IPC `list-capture-sources` calls
+  `desktopCapturer.getSources({ types: ['window', 'screen'], thumbnailSize })` in the main process; the
+  renderer draws the picker from the list where there is one (Windows, macOS, X11) and skips straight to
+  the single source the portal returns on Wayland; the chosen source id goes to `getUserMedia` with
+  `chromeMediaSourceId` (the same mechanism the Windows system-audio capture already uses). The `<video>`
+  → canvas sampler at 1 Hz, the change detector, the blank-frame guard and the JPEG encode are one renderer
+  module shared with the extension. macOS needs the Screen Recording permission (reuse the existing check
+  and `open-privacy-settings`); on Wayland the `WebRTCPipeWireCapturer` feature must be on, as the docs note.
 - **Capture, extension:** the meeting tab's existing `tabCapture` stream gains a video track (a speaker-only
   run, which captures no tab today, opens a video-only capture of the meeting tab when the switch is on);
   frames leave whenever the switch is on and a run is live (owner's ruling, §7). *My call:* the content
