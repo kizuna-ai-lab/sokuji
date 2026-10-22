@@ -562,6 +562,7 @@
       "screenContextTooltip": "Laat het model één venster, tabblad of scherm zien dat je kiest, zodat de namen en termen erop worden herkend en vertaald zoals ze geschreven staan. Alles binnen dat gebied wordt als afbeeldingen verstuurd naar de Qwen-dienst van Alibaba Cloud, in de regio van deze sessie; Kizuna AI ontvangt ze nooit. Zolang het aan staat, komt er een bedrag bij op de kosten voor elke seconde spraak — op je Alibaba Cloud-rekening met je eigen sleutel, of volgens de prijspagina van je account met een Kizuna AI-account; in de modus Beide wordt de sessie van elke richting in rekening gebracht.",
       "screenContextBeta": "Beta",
       "screenContextPicked": "Het model ziet: {{name}}",
+      "screenContextStill": "Beeld van het moment dat je het koos",
       "screenContextPortal": "Het systeem vraagt welk venster of scherm wanneer de sessie begint.",
       "screenContextAtStart": "Bij de start",
       "screenContextNone": "Nog geen venster gekozen: je krijgt de vraag wanneer de sessie begint.",

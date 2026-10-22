@@ -49,6 +49,24 @@ export interface ScreenContextChipProps {
 
 const KIND_ICON = { window: AppWindow, screen: Monitor, tab: PanelsTopLeft } as const;
 
+/**
+ * The top of the card: the picture, then the source's kind and name. The
+ * footer's card shows the last frame sent; the Screen context setting's card
+ * (the same card, cut for the settings) shows the picker's still of the window.
+ */
+export function ScreenContextPicture({ thumbnail, name, kind }: { thumbnail: string | null; name: string; kind: ScreenContextChipProps['kind'] }) {
+  const KindIcon = KIND_ICON[kind];
+  return (
+    <>
+      {thumbnail && <img className="screen-context-card__thumb" src={thumbnail} alt={name} />}
+      <div className="screen-context-card__name">
+        <KindIcon size={14} aria-hidden="true" />
+        <span>{name}</span>
+      </div>
+    </>
+  );
+}
+
 export function ScreenContextChip(p: ScreenContextChipProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -72,8 +90,7 @@ export function ScreenContextChip(p: ScreenContextChipProps) {
     : p.status === 'stale'
       ? t('screenContext.chip.stale', 'Unchanged')
       : t('screenContext.chip.lost', 'Not available');
-  const KindIcon = KIND_ICON[p.kind];
-  const ago = p.lastSentAt === null ? null : Math.max(0, Math.round((p.now - p.lastSentAt) / 1000));
+  const ago =p.lastSentAt === null ? null : Math.max(0, Math.round((p.now - p.lastSentAt) / 1000));
 
   return (
     <>
@@ -101,11 +118,7 @@ export function ScreenContextChip(p: ScreenContextChipProps) {
               aria-label={p.name}
               {...getFloatingProps()}
             >
-              {p.thumbnail && <img className="screen-context-card__thumb" src={p.thumbnail} alt={p.name} />}
-              <div className="screen-context-card__name">
-                <KindIcon size={14} aria-hidden="true" />
-                <span>{p.name}</span>
-              </div>
+              <ScreenContextPicture thumbnail={p.thumbnail} name={p.name} kind={p.kind} />
               {p.status === 'lost' && (
                 <p className="screen-context-card__hint">
                   {p.onChooseAgain

@@ -562,6 +562,7 @@
       "screenContextTooltip": "Pozwala modelowi zobaczyć jedno okno, kartę lub ekran wybrane przez Ciebie, aby widoczne na nim nazwy i terminy były rozpoznawane i tłumaczone tak, jak są zapisane. Wszystko, co znajduje się w tym obszarze, jest wysyłane jako obrazy do usługi Qwen firmy Alibaba Cloud w regionie tej sesji; Kizuna AI nigdy ich nie otrzymuje. Gdy jest włączone, zwiększa opłatę za każdą sekundę mowy — na rachunku Alibaba Cloud przy własnym kluczu albo według strony cennika Twojego konta przy koncie Kizuna AI; w trybie Oba naliczana jest sesja każdego kierunku.",
       "screenContextBeta": "Beta",
       "screenContextPicked": "Model zobaczy: {{name}}",
+      "screenContextStill": "Obraz z chwili wyboru",
       "screenContextPortal": "System zapyta o okno lub ekran przy rozpoczęciu sesji.",
       "screenContextAtStart": "Przy starcie",
       "screenContextNone": "Nie wybrano jeszcze okna: pytanie pojawi się przy rozpoczęciu sesji.",

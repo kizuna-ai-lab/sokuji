@@ -562,6 +562,7 @@
       "screenContextTooltip": "Lässt das Modell ein Fenster, einen Tab oder einen Bildschirm sehen, den Sie auswählen, damit die darauf stehenden Namen und Begriffe erkannt und so übersetzt werden, wie sie geschrieben sind. Alles innerhalb dieses Bereichs wird als Bilder an den Qwen-Dienst von Alibaba Cloud gesendet, und zwar in der Region dieser Sitzung; Kizuna AI erhält sie nie. Solange es eingeschaltet ist, erhöht es die Gebühr für jede Sekunde Sprache – mit eigenem Schlüssel auf Ihrer Alibaba-Cloud-Rechnung, mit einem Kizuna-AI-Konto laut der Preisseite Ihres Kontos; im Modus „Beides“ wird die Sitzung jeder Richtung berechnet.",
       "screenContextBeta": "Beta",
       "screenContextPicked": "Das Modell sieht: {{name}}",
+      "screenContextStill": "Bild vom Zeitpunkt Ihrer Auswahl",
       "screenContextPortal": "Das System fragt beim Start der Sitzung, welches Fenster oder welcher Bildschirm.",
       "screenContextAtStart": "Beim Start",
       "screenContextNone": "Noch kein Fenster gewählt: Sie werden beim Start der Sitzung gefragt.",

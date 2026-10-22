@@ -1,11 +1,27 @@
-import { CircleHelp, Plus, Timer } from 'lucide-react';
+import { useState } from 'react';
+import { CircleHelp, Eye, Timer } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import {
+  autoUpdate,
+  flip,
+  FloatingPortal,
+  offset,
+  shift,
+  useDismiss,
+  useFloating,
+  useFocus,
+  useHover,
+  useInteractions,
+  useRole,
+} from '@floating-ui/react';
+import { ScreenContextPicture } from '../../components/MainPanel/panel/ScreenContextChip';
 import { LinesField } from '../../components/providers/fields/LinesField';
 import { PresetVoiceField, presetVoice } from '../../components/providers/fields/PresetVoiceField';
 import type { VoiceEntry } from '../../components/Settings/sections/VoiceLibrarySection';
 import SettingRow from '../../components/Settings/shared/SettingRow';
 import Tooltip from '../../components/Tooltip/Tooltip';
 import type { SettingsProps, VoiceSummaryProps } from '../../lib/provider/types';
+import type { CaptureSourceInfo } from '../../lib/screen/desktopFrames';
 import { useScreenContextStore, type PickedSource } from '../../stores/screenContextStore';
 import { isElectron } from '../../utils/environment';
 import { isEndpointId } from './endpoints';
@@ -83,7 +99,7 @@ export function QwenSettingsView({ settings, update, disabled = false, participa
  * desktop turning it on opens the panel's picker (`pickSource`) at once: a pick
  * is held in memory (`picked`, never stored) and turns it on, a cancel leaves it
  * off; while on, the switch's own line shows, just before it, what the next
- * Start opens (option B, owner 2026-10-22) — the window held as its picture,
+ * Start opens (option B, owner 2026-10-22) — the window held as the footer's chip,
  * the system's own chooser (Wayland: nothing to choose here), or nothing yet,
  * asked at Start (Choose…). Turning it off lets the pick go, so there is no
  * Clear. The extension has no picker: the switch just flips, and the meeting
@@ -130,13 +146,13 @@ function ScreenContextRow({ on, update, disabled: runLocked }: { on: boolean; up
 }
 
 /**
- * What the next Start opens, beside the switch, each state a picture with its
- * words beside it — words the row drops when it is narrow, while the title and
- * the accessible name always say it in full. The window held: its picture (the
- * picker's listing thumbnail) and its name; a click asks the picker again.
- * Nothing held: an empty slot with a "+", and Choose…. Wayland: the system's
- * chooser decides at Start, so a timer and At start — not a button that would
- * choose nothing.
+ * What the next Start opens, beside the switch: the control footer's chip, cut
+ * for the settings (owner, 2026-10-22). The window held: the eye and its name,
+ * its card the picker's still (`PickedSourceChip`); a click asks the picker
+ * again. Nothing held: the same chip dashed, the eye and Choose…. Wayland: the
+ * system's chooser decides at Start, so a timer and At start — not a button
+ * that would choose nothing. A narrow row drops the words and keeps the icon,
+ * as the basic layout's footer does; the accessible name always says it in full.
  */
 function PickedSourceButton({ picked, disabled, onChoose }: { picked: PickedSource | null; disabled: boolean; onChoose(): void }) {
   const { t } = useTranslation();
@@ -155,23 +171,69 @@ function PickedSourceButton({ picked, disabled, onChoose }: { picked: PickedSour
     return (
       <button
         type="button"
-        className="qwen-screen-context__source qwen-screen-context__source--empty"
+        className="screen-context-chip qwen-screen-context__source qwen-screen-context__source--empty"
         title={t('providers.qwen_livetranslate.screenContextNone', "No window chosen yet: you'll be asked when the session starts.")}
         aria-label={choose}
         onClick={onChoose}
         disabled={disabled}
       >
-        <span className="qwen-screen-context__slot"><Plus size={12} aria-hidden /></span>
+        <Eye size={14} aria-hidden="true" />
         <span className="qwen-screen-context__caption">{choose}</span>
       </button>
     );
   }
-  const what = t('providers.qwen_livetranslate.screenContextPicked', 'The model will see: {{name}}', { name: picked.source.name });
+  return <PickedSourceChip source={picked.source} disabled={disabled} onChoose={onChoose} />;
+}
+
+/**
+ * The window held, as the footer's chip with its card. Hover or keyboard focus
+ * shows the card: the picker's still of the window, its kind and name, and a
+ * line saying the picture is from when it was chosen. None of the footer's
+ * session parts — no dot, no frame count or time, no Choose again in the card:
+ * nothing is sent before a session, and a click on the chip already chooses
+ * again. Nothing in the card takes input, so it is the chip's tooltip, not a
+ * dialog; a locked chip shows none.
+ */
+function PickedSourceChip({ source, disabled, onChoose }: { source: CaptureSourceInfo; disabled: boolean; onChoose(): void }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const shown = open && !disabled;
+  const { refs, floatingStyles, context } = useFloating({
+    open: shown,
+    onOpenChange: setOpen,
+    placement: 'top',
+    middleware: [offset(8), flip({ fallbackAxisSideDirection: 'start', crossAxis: false }), shift({ padding: 8 })],
+    whileElementsMounted: autoUpdate,
+    strategy: 'fixed',
+  });
+  const hover = useHover(context, { delay: { open: 100, close: 0 } });
+  const focus = useFocus(context);
+  const dismiss = useDismiss(context);
+  const role = useRole(context, { role: 'tooltip' });
+  const { getReferenceProps, getFloatingProps } = useInteractions([hover, focus, dismiss, role]);
+  const what = t('providers.qwen_livetranslate.screenContextPicked', 'The model will see: {{name}}', { name: source.name });
   return (
-    <button type="button" className="qwen-screen-context__source" title={what} aria-label={what} onClick={onChoose} disabled={disabled}>
-      <img className="qwen-screen-context__thumb" src={picked.source.thumbnail} alt="" />
-      <span className="qwen-screen-context__name">{picked.source.name}</span>
-    </button>
+    <>
+      <button
+        ref={refs.setReference}
+        type="button"
+        className="screen-context-chip qwen-screen-context__source"
+        aria-label={what}
+        disabled={disabled}
+        {...getReferenceProps({ onClick: () => { setOpen(false); onChoose(); } })}
+      >
+        <Eye size={14} aria-hidden="true" />
+        <span className="screen-context-chip__name">{source.name}</span>
+      </button>
+      {shown && (
+        <FloatingPortal>
+          <div ref={refs.setFloating} className="screen-context-card" style={{ ...floatingStyles, zIndex: 9999 }} {...getFloatingProps()}>
+            <ScreenContextPicture thumbnail={source.thumbnail} name={source.name} kind={source.kind} />
+            <div className="screen-context-card__meta">{t('providers.qwen_livetranslate.screenContextStill', 'Picture from when you chose it')}</div>
+          </div>
+        </FloatingPortal>
+      )}
+    </>
   );
 }
 

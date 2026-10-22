@@ -562,6 +562,7 @@
       "screenContextTooltip": "Permite que o modelo veja uma janela, aba ou tela que você escolhe, para que os nomes e termos nela sejam reconhecidos e traduzidos como estão escritos. Tudo o que está dentro dessa área é enviado como imagens ao serviço Qwen da Alibaba Cloud, na região desta sessão; a Kizuna AI nunca as recebe. Enquanto estiver ativado, isso aumenta a cobrança por cada segundo de fala — na sua fatura da Alibaba Cloud com a sua própria chave, ou conforme a página de preços da sua conta com uma conta Kizuna AI; no modo Ambos, a sessão de cada direção é cobrada.",
       "screenContextBeta": "Beta",
       "screenContextPicked": "O modelo verá: {{name}}",
+      "screenContextStill": "Imagem de quando você escolheu",
       "screenContextPortal": "O sistema pergunta qual janela ou tela ao iniciar a sessão.",
       "screenContextAtStart": "Ao iniciar",
       "screenContextNone": "Nenhuma janela escolhida ainda: a pergunta aparece ao iniciar a sessão.",

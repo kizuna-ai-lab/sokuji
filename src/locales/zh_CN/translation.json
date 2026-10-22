@@ -562,6 +562,7 @@
       "screenContextTooltip": "让模型看到你选择的一个窗口、标签页或屏幕，使其中的名称和术语按原文被识别和翻译。该区域内的所有内容都会以图片形式发送到 Alibaba Cloud 的 Qwen 服务（位于本次会话所在的区域）；Kizuna AI 永远不会收到这些图片。开启期间，每一秒语音的费用都会增加——使用自己的密钥时计入你的 Alibaba Cloud 账单，使用 Kizuna AI 账户时按你账户定价页面上的说明计费；在「两者」模式下，每个方向的会话分别计费。",
       "screenContextBeta": "测试版",
       "screenContextPicked": "模型将看到：{{name}}",
+      "screenContextStill": "选择时的画面",
       "screenContextPortal": "会话开始时，系统会询问使用哪个窗口或屏幕。",
       "screenContextAtStart": "开始时",
       "screenContextNone": "尚未选择窗口：会话开始时会询问你。",

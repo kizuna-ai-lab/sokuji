@@ -2447,87 +2447,42 @@
 }
 
 // What Qwen's Screen context opens at the next Start, in its switch's own line (the `SettingRow` accessory;
-// option B, owner 2026-10-22). The row is the container the window's name answers to.
+// option B, owner 2026-10-22): the control footer's chip (`.screen-context-chip`, ScreenContextChip.scss), cut for
+// the settings. The row is the container the chip's words answer to.
 .qwen-screen-context {
   container: qwen-screen-context / inline-size;
 
   // The toggle's own 8px top margin sat it 4px below the chip's centre; here label, chip and switch share one line.
   .setting-row__switch { margin-top: 0; }
-  // The chip's height with or without the chip, so flipping the switch moves nothing below it.
-  .setting-row__head { min-height: 26px; }
-}
-// The window held: its picture, its name, and a select's chevron, smaller — a 26px chip in the control colours.
-// A grid so the name counts for nothing in the chip's minimum: the chip gives way down to the picture alone.
-.qwen-screen-context__source {
-  position: relative;
-  flex: 0 1 auto;
-  min-width: 0;
-  height: 26px;
-  box-sizing: border-box;
-  display: grid;
-  grid-auto-flow: column;
-  grid-template-columns: 32px;
-  grid-auto-columns: minmax(0, max-content);
-  align-items: center;
-  column-gap: 6px;
-  padding: 0 22px 0 4px;
-  background: vars.$bg-control;
-  border: 1px solid vars.$border-default;
-  border-radius: vars.$radius-sm;
-  color: vars.$text-secondary;
-  font-size: vars.$font-caption;
-  cursor: pointer;
+  // The footer chip's 28px with or without the chip, so flipping the switch moves nothing below it.
+  .setting-row__head { min-height: 28px; }
 
-  &::after {
-    content: '';
-    position: absolute;
-    right: 7px;
-    top: 50%;
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-top: 5px solid currentColor;
-    transform: translateY(-50%);
+  // Two classes, so these outrank the footer chip's one whichever stylesheet loads last.
+  // The footer's chip never shrinks; here it gives way before the label wraps, down to the eye.
+  .qwen-screen-context__source {
+    flex-shrink: 1;
+    min-width: 0;
+
+    // A run locks the choice (the footer's chip is never disabled): dimmed, and its hover does nothing.
+    &:disabled {
+      @include vars.disabled-state;
+      background: vars.$bg-control;
+      border-color: vars.$border-default;
+    }
   }
-  &:hover:not(:disabled) { color: vars.$text-primary; border-color: vars.$border-strong; }
-  &:focus-visible { @include vars.focus-ring; }
-  &:disabled { @include vars.disabled-state; }
+  // Nothing held: the same chip, dashed, the eye and its words muted.
+  .qwen-screen-context__source--empty {
+    border-style: dashed;
+    color: vars.$text-muted;
+  }
 }
-// Nothing held: the same chip, an empty dashed slot with a "+" where the picture would be, Choose… beside it; no chevron.
-.qwen-screen-context__source--empty {
-  padding: 0 8px 0 4px;
-
-  &::after { content: none; }
-}
-.qwen-screen-context__slot {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  width: 32px;
-  height: 18px;
-  border: 1px dashed vars.$border-strong;
-  border-radius: 2px;
-}
-// The listing's thumbnail, cropped to the chip; a hairline inside its edge, the chip's own line colour, keeps a
-// window the chip's colour (a dark one in dark, a white one in light) from melting into it.
-.qwen-screen-context__thumb {
-  display: block;
-  width: 32px;
-  height: 18px;
-  object-fit: cover;
-  border-radius: 2px;
-  outline: 1px solid vars.$border-default;
-  outline-offset: -1px;
-}
-// The words beside the picture: the window's name, or Choose… / At start. One line, cut short when the chip is.
-@mixin qwen-screen-context-words {
+// Choose… or At start beside the icon: one line, cut short when the chip is.
+.qwen-screen-context__caption {
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.qwen-screen-context__name { @include qwen-screen-context-words; }
-.qwen-screen-context__caption { @include qwen-screen-context-words; }
 // Wayland: the system's chooser decides at Start — a timer and its words, not a button.
 .qwen-screen-context__at-start {
   display: inline-flex;
@@ -2538,16 +2493,12 @@
   color: vars.$text-muted;
 }
 .qwen-screen-context__timer { display: flex; }
-// Narrow (the 300px panel, a 262px row): every state is its picture alone — no words, no chevron — so the
-// chip is 42px (the timer 14px) and the label keeps one line; the title and accessible name still say it in full.
+// Narrow (the 300px panel, a 262px row): every state is its icon alone, as in the basic layout's footer, so the
+// label keeps one line; the accessible name still says it in full, and the card still shows the window.
 @container qwen-screen-context (width < 360px) {
-  .qwen-screen-context__name,
+  .screen-context-chip__name,
   .qwen-screen-context__caption { display: none; }
-  .qwen-screen-context__source {
-    padding: 0 4px;
-
-    &::after { content: none; }
-  }
+  .qwen-screen-context .qwen-screen-context__source { padding: 0 6px; }
 }
 
 // The face-to-face headphones hint under the two ear rows: a warning, as on the board.

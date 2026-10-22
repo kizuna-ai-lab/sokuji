@@ -95,10 +95,13 @@ face-to-face mode (not available with Qwen at all).
 - The source is chosen in the settings, before the session (owner's rulings, §8). On the desktop, turning
   the switch on (idle) opens the picker at once: a pick turns the switch on, and a cancel leaves it off. The
   choice is shown in the switch's own line, between the help and the switch (one line, option B, owner
-  2026-10-22): the chosen window's picture (the picker's listing thumbnail), its name beside it when the row
-  is wide, named and titled *"The model will see: {name}"*; a click opens the picker again (a pick replaces
-  it, a cancel keeps it). With nothing held (after an app restart) the picture's place is a dashed **+**
-  slot, named **Choose…**, asked at Start if left empty. On Wayland there is nothing to show before Start
+  2026-10-22) as the control footer's chip (§3.4) cut for the settings (owner, 2026-10-22): the eye and the
+  chosen window's name, the eye alone when the row is narrow, named *"The model will see: {name}"*. Hover or
+  keyboard focus shows the footer's card with the picker's listing thumbnail, the source's kind and name, and
+  *"Picture from when you chose it"*; none of the chip's session parts (no dot, no frame count or time, no
+  Choose again in the card), since nothing is sent before a session. A click opens the picker again (a pick
+  replaces it, a cancel keeps it). With nothing held (after an app restart) it is the same chip dashed, the
+  eye and **Choose…**, asked at Start if left empty. On Wayland there is nothing to show before Start
   (the system's own chooser is the picker, and its listing is what opens it): turning the switch on holds
   that chooser with no modal, and the line shows a timer icon (**At start**), titled with the fact that the
   system asks which window or screen when the session starts. Turning the switch off clears the choice, so

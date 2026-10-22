@@ -562,6 +562,7 @@
       "screenContextTooltip": "選んだウィンドウ・タブ・画面のどれか一つを、モデルが見られるようにします。そこに表示されている名前や用語を、表記どおりに認識して翻訳できます。その領域内のすべての内容は、画像としてこのセッションのリージョンにある Alibaba Cloud の Qwen サービスに送信されます。Kizuna AI がそれらを受け取ることはありません。オンの間、発話の毎秒ぶんの料金が加算されます。ご自身のキーでは Alibaba Cloud の請求に、Kizuna AI アカウントではアカウントの料金ページのとおりに加算されます。「両方」モードでは方向ごとのセッションに課金されます。",
       "screenContextBeta": "ベータ",
       "screenContextPicked": "モデルが見る範囲：{{name}}",
+      "screenContextStill": "選んだ時点の画像",
       "screenContextPortal": "セッション開始時に、ウィンドウまたは画面をシステムが尋ねます。",
       "screenContextAtStart": "開始時",
       "screenContextNone": "ウィンドウはまだ選ばれていません。セッション開始時に尋ねられます。",
