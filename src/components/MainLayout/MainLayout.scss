@@ -1,11 +1,12 @@
+@use '../Settings/shared/variables' as vars;
 .main-layout {
   display: flex;
   height: 100%;
   min-height: 0; /* Allow shrinking for nested scrolling */
   width: 100%;
   flex: 1; /* Take up available space from parent */
-  background-color: #1e1e1e; /* opaque background so window body looks normal */
-  color: white;
+  background-color: vars.$bg-page; /* opaque background so window body looks normal */
+  color: vars.$text-primary;
   overflow: hidden; /* Prevent overflow from causing scrollbars on the body */
   
   /* Narrow viewports: stack vertically. When a side panel (Settings/Logs) is
@@ -99,7 +100,7 @@
     min-width: 300px; /* width is state-driven via inline style (see MainLayout.tsx) */
     overflow-y: auto; /* Changed to allow vertical scrolling */
     padding: 0;
-    background-color: #252525;
+    background-color: vars.$bg-surface;
     /* Query container so PanelBar can collapse labels based on the panel's
        own width, not the viewport's (the side panel stays narrow even when
        the window is wide). */

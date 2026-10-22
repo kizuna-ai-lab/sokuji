@@ -6,18 +6,21 @@ import { resolve } from 'node:path';
 const css = compile(resolve(__dirname, 'index.scss')).css;
 const app = compile(resolve(__dirname, 'App.scss')).css;
 
-function rule(sheet: string, selector: string): string {
+// `marker`: the theme's token block is also a `:root` rule, emitted first
+// (src/styles/theme.scss), so the font rule is the `:root` whose body holds it.
+function rule(sheet: string, selector: string, marker = ''): string {
   const esc = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const m = sheet.match(new RegExp(String.raw`(?:^|\n)${esc}\s*\{([^}]*)\}`));
-  if (!m) throw new Error(`no rule for ${selector}`);
-  return m[1];
+  for (const m of sheet.matchAll(new RegExp(String.raw`(?:^|\n)${esc}\s*\{([^}]*)\}`, 'g'))) {
+    if (m[1].includes(marker)) return m[1];
+  }
+  throw new Error(`no rule for ${selector}`);
 }
 
 const firstCjk = (body: string) => body.match(/--font-cjk:\s*'([^']+)'/)?.[1];
 
 describe('UI font', () => {
   it('reaches a CJK sans font after sans-serif, before any system fallback', () => {
-    expect(rule(css, ':root')).toMatch(/--font-sans:[^;]*\bsans-serif,\s*var\(--font-cjk\)\s*;/);
+    expect(rule(css, ':root', '--font-sans')).toMatch(/--font-sans:[^;]*\bsans-serif,\s*var\(--font-cjk\)\s*;/);
   });
 
   it('the page, the app root and form controls all draw in it', () => {
@@ -33,7 +36,7 @@ describe('UI font', () => {
     [':root:lang(ja)', 'Yu Gothic UI'],
     [':root:lang(ko)', 'Malgun Gothic'],
   ])('%s puts %s first', (selector, font) => {
-    expect(firstCjk(rule(css, selector))).toBe(font);
+    expect(firstCjk(rule(css, selector, '--font-cjk'))).toBe(font);
   });
 
   it('no CJK list falls back to a serif', () => {

@@ -1,10 +1,11 @@
+@use '../Settings/shared/variables' as vars;
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: vars.$scrim;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -13,13 +14,13 @@
 }
 
 .modal-content {
-  background-color: #2a2a2a;
+  background-color: vars.$bg-popover;
   border-radius: 8px;
   width: 90%;
   max-width: 700px;
   max-height: 90vh;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  color: #fff;
+  box-shadow: 0 4px 20px vars.$shadow;
+  color: vars.$text-primary;
   overflow: hidden;
   animation: modal-appear 0.2s ease-out;
   display: flex;
@@ -42,7 +43,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #3a3a3a;
+  border-bottom: 1px solid vars.$border-subtle;
 
   h3 {
     margin: 0;
@@ -53,7 +54,7 @@
   .close-button {
     background: none;
     border: none;
-    color: #aaa;
+    color: vars.$text-tertiary;
     cursor: pointer;
     padding: 4px;
     display: flex;
@@ -63,8 +64,8 @@
     transition: all 0.2s;
 
     &:hover {
-      color: #fff;
-      background-color: rgba(255, 255, 255, 0.1);
+      color: vars.$text-primary;
+      background-color: color-mix(in srgb, vars.$overlay-fg 10%, transparent);
     }
   }
 }

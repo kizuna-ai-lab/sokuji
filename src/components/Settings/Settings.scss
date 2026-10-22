@@ -51,8 +51,8 @@
       align-items: flex-start;
       gap: 8px;
       padding: 12px;
-      background: rgba(tk.$color-primary, 0.1);
-      border: 1px solid rgba(tk.$color-primary, 0.3);
+      background: color-mix(in srgb, tk.$color-primary 10%, transparent);
+      border: 1px solid color-mix(in srgb, tk.$color-primary 30%, transparent);
       border-radius: 6px;
       font-size: 13px;
       line-height: 1.4;
@@ -204,7 +204,7 @@
 
       &:hover:not(:disabled) {
         color: vars.$text-muted;
-        background: rgba(255, 255, 255, 0.05);
+        background: color-mix(in srgb, vars.$overlay-fg 5%, transparent);
       }
 
       &:disabled {
@@ -228,7 +228,7 @@
 
   .sign-in-prompt {
     padding: 12px;
-    background: vars.$bg-page;
+    background: vars.$bg-base;
     border: 1px solid vars.$border-subtle;
     border-radius: vars.$radius-lg;
     text-align: center;
@@ -326,7 +326,7 @@
       font-size: vars.$font-caption;
       line-height: 1.5;
       color: vars.$text-secondary;
-      background-color: rgba(0, 0, 0, 0.2);
+      background-color: color-mix(in srgb, vars.$overlay-bg 20%, transparent);
       padding: 8px;
       border-radius: vars.$radius-sm;
       max-height: 200px;
@@ -427,7 +427,7 @@
           transition: opacity vars.$transition-normal;
           font-weight: normal;
           font-size: vars.$font-caption;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+          box-shadow: 0 2px 10px vars.$shadow;
           pointer-events: none;
           line-height: 1.4;
 
@@ -677,7 +677,7 @@
 
       &:hover {
         border-color: vars.$border-subtle;
-        background: rgba(255, 255, 255, 0.02);
+        background: color-mix(in srgb, vars.$overlay-fg 2%, transparent);
       }
     }
 
@@ -727,7 +727,7 @@
     margin-top: 10px;
     padding: 8px 10px;
     border-left: 2px solid vars.$color-primary;
-    background-color: rgba(255, 255, 255, 0.04);
+    background-color: color-mix(in srgb, vars.$overlay-fg 4%, transparent);
   }
 
   .open-settings-button {
@@ -750,11 +750,11 @@
     + .understand-button {
       margin-top: 8px;
       background-color: transparent;
-      border: 1px solid var(--border-color, #444);
-      color: var(--text-secondary, #aaa);
+      border: 1px solid var(--border-color, vars.$border-default);
+      color: var(--text-secondary, vars.$text-tertiary);
 
       &:hover {
-        background-color: rgba(255, 255, 255, 0.06);
+        background-color: color-mix(in srgb, vars.$overlay-fg 6%, transparent);
       }
     }
   }
@@ -821,7 +821,7 @@
     color: vars.$text-primary;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.1);
+      background-color: color-mix(in srgb, vars.$overlay-fg 10%, transparent);
     }
   }
 
@@ -1025,7 +1025,7 @@
       background-color: vars.$bg-control;
       border: 1px solid vars.$border-strong;
       border-radius: vars.$radius-sm;
-      color: white;
+      color: vars.$text-primary;
       transition: background-color vars.$transition-fast, border-color vars.$transition-fast;
     }
 
@@ -1195,7 +1195,7 @@
   margin-top: 8px;
   font-size: 12px;
   line-height: 1.4;
-  color: #d97706;
+  color: tk.$color-recommended;
 
   svg {
     flex-shrink: 0;
@@ -1320,7 +1320,7 @@
       background: vars.$bg-surface;
       border: 1px solid vars.$border-default;
       border-radius: vars.$radius-md;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 8px 24px vars.$shadow-strong;
       padding: 4px;
       margin-top: 4px;
       // Long lists (35+ languages) scroll inside the picker. The top layer
@@ -1495,8 +1495,8 @@
     // Hollow = "not actively wrong, just not there yet" (starting / not
     // installed) — an outline reads as pending, not filled colour states.
     &--hollow { background: transparent; border-color: vars.$text-muted; }
-    &--warn { background: #e6a23c; }
-    &--error { background: #e74c3c; }
+    &--warn { background: tk.$color-recommended; }
+    &--error { background: tk.$color-error; }
   }
 
   &__text {
@@ -1557,7 +1557,7 @@
   line-height: 1.5;
   padding: 1px 6px;
   border-radius: 10px;
-  background: rgba(vars.$color-primary, 0.15);
+  background: color-mix(in srgb, vars.$color-primary 15%, transparent);
   color: vars.$color-primary;
 }
 
@@ -1805,9 +1805,9 @@
   margin-bottom: 0;
 
   &.success {
-    background: rgba(68, 255, 68, 0.1);
-    border: 1px solid rgba(68, 255, 68, 0.3);
-    color: #44ff44;
+    background: color-mix(in srgb, tk.$color-success 10%, transparent);
+    border: 1px solid color-mix(in srgb, tk.$color-success 30%, transparent);
+    color: tk.$color-success;
   }
 
   &.error {
@@ -1840,23 +1840,23 @@
     outline: none;
   }
   20%, 40%, 60% {
-    background-color: rgba(59, 130, 246, 0.25);
-    box-shadow: 0 0 40px rgba(59, 130, 246, 0.8),
-                0 0 20px rgba(59, 130, 246, 0.6) inset;
-    outline: 3px solid rgba(59, 130, 246, 0.7);
+    background-color: color-mix(in srgb, tk.$color-info 25%, transparent);
+    box-shadow: 0 0 40px color-mix(in srgb, tk.$color-info 80%, transparent),
+                0 0 20px color-mix(in srgb, tk.$color-info 60%, transparent) inset;
+    outline: 3px solid color-mix(in srgb, tk.$color-info 70%, transparent);
     outline-offset: 8px;
   }
   30%, 50%, 70% {
-    background-color: rgba(59, 130, 246, 0.15);
-    box-shadow: 0 0 25px rgba(59, 130, 246, 0.6),
-                0 0 10px rgba(59, 130, 246, 0.3) inset;
-    outline: 2px solid rgba(59, 130, 246, 0.5);
+    background-color: color-mix(in srgb, tk.$color-info 15%, transparent);
+    box-shadow: 0 0 25px color-mix(in srgb, tk.$color-info 60%, transparent),
+                0 0 10px color-mix(in srgb, tk.$color-info 30%, transparent) inset;
+    outline: 2px solid color-mix(in srgb, tk.$color-info 50%, transparent);
     outline-offset: 6px;
   }
   90% {
-    background-color: rgba(59, 130, 246, 0.05);
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
-    outline: 1px solid rgba(59, 130, 246, 0.2);
+    background-color: color-mix(in srgb, tk.$color-info 5%, transparent);
+    box-shadow: 0 0 10px color-mix(in srgb, tk.$color-info 30%, transparent);
+    outline: 1px solid color-mix(in srgb, tk.$color-info 20%, transparent);
     outline-offset: 4px;
   }
 }
@@ -1905,7 +1905,7 @@
     align-items: center;
     gap: 4px;
     padding: 2px 8px;
-    background: rgba(255, 255, 255, 0.05);
+    background: color-mix(in srgb, vars.$overlay-fg 5%, transparent);
     border: 1px solid vars.$border-subtle;
     border-radius: vars.$radius-sm;
     cursor: pointer;
@@ -1914,7 +1914,7 @@
     color: inherit;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: color-mix(in srgb, vars.$overlay-fg 10%, transparent);
       border-color: vars.$color-primary;
     }
   }
@@ -1973,7 +1973,7 @@
   }
 
   .memory-estimate__label { opacity: 0.7; }
-  .memory-estimate__warn { color: #e74c3c; }
+  .memory-estimate__warn { color: tk.$color-error; }
 }
 
 // Help section buttons (shared between SimpleSettings and AdvancedSettings)
@@ -1991,7 +1991,7 @@
   transition: all vars.$transition-fast;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: color-mix(in srgb, vars.$overlay-fg 5%, transparent);
     border-color: vars.$border-strong;
     color: vars.$text-primary;
   }
@@ -2100,7 +2100,7 @@
 
   // The update check's result, for five seconds (spec 2026-10-05 §5).
   &--ok { color: vars.$color-primary; }
-  &--error { color: #ff6b6b; }
+  &--error { color: tk.$color-error; }
 }
 
 // Interface language: a picker that has to read as a link, because that is the
@@ -2168,7 +2168,7 @@
       background: vars.$bg-surface;
       border: 1px solid vars.$border-default;
       border-radius: vars.$radius-md;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 8px 24px vars.$shadow-strong;
       padding: 4px;
       margin-top: 4px;
       max-height: 320px;
@@ -2244,7 +2244,7 @@
     display: flex;
     border-radius: 6px;
     overflow: hidden;
-    border: 1px solid var(--border-color, #444);
+    border: 1px solid var(--border-color, vars.$border-default);
 
     .segmented-option {
       @include vars.segmented-option;

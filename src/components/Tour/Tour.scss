@@ -15,7 +15,7 @@
 .tour-spotlight {
   position: fixed;
   border-radius: 8px;
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 0 9999px vars.$scrim;
   pointer-events: none;
   z-index: 1801;
   transition: top 0.15s ease, left 0.15s ease, width 0.15s ease, height 0.15s ease;
@@ -24,7 +24,7 @@
 .tour-scrim {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: vars.$scrim;
   z-index: 1800;
 }
 
@@ -38,7 +38,7 @@
   background: vars.$bg-surface;
   border: 1px solid vars.$border-default;
   border-radius: vars.$radius-lg;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 8px 24px vars.$shadow-strong;
   padding: vars.$space-4;
   color: vars.$text-primary;
 

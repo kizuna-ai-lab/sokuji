@@ -176,8 +176,8 @@ const Tooltip: React.FC<TooltipProps> = ({
               width={10}
               height={5}
               tipRadius={2}
-              fill="#2a2a2a"
-              stroke="#444"
+              fill="var(--sk-bg-popover)"
+              stroke="var(--sk-line)"
               strokeWidth={1}
             />
             <div className="tooltip-body">{renderContent()}</div>

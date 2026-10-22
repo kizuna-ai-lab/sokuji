@@ -1,61 +1,69 @@
-// App-wide colour tokens.
+// App-wide colour tokens: the Sass spelling of the `--sk-*` custom properties.
 //
-// One hex (#10a37f) used to carry three unrelated meanings: the brand accent,
-// who is speaking, and "it worked". That made changing the accent impossible
-// to do safely with a find-and-replace — success states would have followed
-// the brand, and the speaker/participant pair would have collapsed into one
-// colour. The meanings are separated here so each can move on its own.
+// Every value here is an alias of a property `src/styles/theme.scss` defines
+// once per scheme (spec 2026-10-22 §2). Components keep writing `tk.$…` and
+// `vars.$…`; the custom property underneath is what switches between dark and
+// light, and what a user-coloured surface re-scopes under `[data-tone]`.
+//
+// Two things follow from a value being `var(...)` rather than a colour:
+// - Sass cannot compute on it. A tint is
+//   `color-mix(in srgb, $color-primary 10%, transparent)`, never Sass's own
+//   rgba() with an alpha; the theme test refuses the latter anywhere under src/.
+// - Changing a colour means changing theme.scss, in both maps. The meanings
+//   stay separated the way this file always promised: the brand accent, who
+//   is speaking, "it worked" and the amber family are distinct tokens, so each
+//   can move on its own. (`speaker` points at the brand in theme.scss: change
+//   that one entry to give the conversation its own colours.)
 
 // ── Brand and primary action ──
 // Buttons, focus rings, active segments, progress, links.
-$color-primary:       #0fbb8f;
-$color-primary-fill:  #008261;  // the accent when it sits behind a label
-// Hover deepens rather than brightens: it lifts the label from 4.8:1 to 6.3:1.
-// The rest state already carries the 3:1 the component needs to be identified,
-// and a hover is a transient state on something the pointer is already on.
-$color-primary-fill-hover: #006e52;
-$color-on-primary:    #fff;             // that label
-$color-primary-hover: #0da77f;
+$color-primary:            var(--sk-primary);
+$color-primary-fill:       var(--sk-primary-fill);        // the accent when it sits behind a label
+$color-primary-fill-hover: var(--sk-primary-fill-hover);
+$color-on-primary:         var(--sk-on-accent);           // that label
+$color-primary-hover:      var(--sk-primary-hover);
 
 // ── Who is speaking ──
 // A pair, and it only works as a pair: these two must stay clearly
-// distinguishable from each other. Speaker is pointed at the brand here as a
-// deliberate choice, not an inherited one — change this line alone to give the
-// conversation its own colours. Participant had to move regardless: the old
-// amber sat too close to the new accent to read as a different person.
-$color-speaker:      $color-primary;       // read: badges, translated text
-$color-speaker-fill: $color-primary-fill;  // filled: the avatar disc, which carries a glyph
-$color-participant: #f39c12;        // the other side
+// distinguishable from each other.
+$color-speaker:      var(--sk-speaker);       // read: badges, translated text
+$color-speaker-fill: var(--sk-speaker-fill);  // filled: the avatar disc, which carries a glyph
+$color-participant:  var(--sk-participant);   // the other side
 
 // A labelled leg's people: the leg's colour family, one shade per person in
 // turn (`personShade` in src/lib/view/people.ts picks the index, 0 → -1).
 $color-speaker-person-1: $color-speaker-fill;
 $color-speaker-person-2: $color-speaker;
-$color-speaker-person-3: #005c45;
+$color-speaker-person-3: var(--sk-speaker-person-3);
 $color-participant-person-1: $color-participant;
-$color-participant-person-2: #f8c471;
-$color-participant-person-3: #ca6f1e;
+$color-participant-person-2: var(--sk-participant-person-2);
+$color-participant-person-3: var(--sk-participant-person-3);
 
 // ── The amber region ──
-// Four hexes were sharing this space with no rule about which meant what, and
-// #f39c12 was doing two unrelated jobs at once — the person on the other end,
-// and a session in trouble. Same problem the accent had. Named apart here so
-// either can move without dragging the other; values are unchanged, so this
-// costs nothing to adopt.
-$color-degraded: #f39c12;  // reconnecting, split degraded — the session is unwell
-$color-usage:       #e67e22;  // spending, quota, an unverified account
-$color-usage-hover: #f39c12;  // the hover those controls already used
-$color-usage-deep:  #d35400;  // the far stop of the high-usage gradient
+// The person on the other end and a session in trouble share a hue today;
+// they are separate tokens so either can move without dragging the other.
+$color-degraded:    var(--sk-degraded);     // reconnecting, split degraded — the session is unwell
+$color-usage:       var(--sk-usage);        // spending, quota, an unverified account
+$color-usage-hover: var(--sk-usage-hover);  // the hover those controls already used
+$color-usage-deep:  var(--sk-usage-deep);   // the far stop of the high-usage gradient
 
-// ── "It worked" ──
-// A validated key, a connected session, a finished download, credit in.
-// Green is the right colour for this and is not the brand's to take.
-$color-success: #10a37f;
+// ── Status ──
+// "It worked": a validated key, a connected session, a finished download,
+// credit in. Green is the right colour for this and is not the brand's to take.
+$color-success:     var(--sk-success);
+$color-error:       var(--sk-error);
+$color-error-deep:  var(--sk-error-deep);   // the close button's and Stop's hover
+$color-warning:     var(--sk-warning);
+$color-recommended: var(--sk-recommended);  // the Recommended badge, an attention chip
+$color-info:        var(--sk-info);
 
 // ── Toolbar chrome ──
 // The conversation toolbar's icon buttons at rest — one value for the whole
-// row, so the two filter buttons never stand out from their neighbours. 4.83:1
-// on the #1e1e1e toolbar (#555 measured 2.24:1, under the 3:1 floor for UI),
-// below the conversation's source text (#9aa0a6) so chrome never outranks
-// content, and clearly under the #ccc hover / filtering state.
-$color-toolbar-icon: #8a8a8a;
+// row, so the two filter buttons never stand out from their neighbours.
+$color-toolbar-icon: var(--sk-toolbar-icon);
+
+// ── Waveforms ──
+// Drawn on canvas: WaveformStrip resolves these names itself (Task 16).
+$color-waveform-speaker:     var(--sk-waveform-speaker);
+$color-waveform-participant: var(--sk-waveform-participant);
+$color-waveform-output:      var(--sk-waveform-output);

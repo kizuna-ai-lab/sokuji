@@ -1,4 +1,5 @@
 @use '../../../styles/tokens' as tk;
+@use '../shared/variables' as vars;
 
 .voice-library-section {
   display: flex;
@@ -17,8 +18,8 @@
   // body; without this it hugs the manage details directly above it.
   margin-top: 12px;
   padding: 10px;
-  background: rgba(tk.$color-primary, 0.08);
-  border: 1px solid rgba(tk.$color-primary, 0.25);
+  background: color-mix(in srgb, tk.$color-primary 8%, transparent);
+  border: 1px solid color-mix(in srgb, tk.$color-primary 25%, transparent);
   border-radius: 4px;
   font-size: 13px;
   line-height: 1.4;
@@ -35,7 +36,7 @@
   margin-top: 8px;
   font-size: 12px;
   line-height: 1.4;
-  color: #e74c3c;
+  color: tk.$color-error;
 }
 
 .voice-selected-description {
@@ -46,5 +47,5 @@
   margin-top: 6px;
   font-size: 11px;
   line-height: 1.4;
-  color: #b0b0b0;
+  color: vars.$text-tertiary;
 }

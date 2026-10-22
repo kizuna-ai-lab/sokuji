@@ -111,6 +111,13 @@
     "helpEmailTooltip": "Comunicar erros ou obter ajuda",
     "diagnosticLogs": "Registos de diagnóstico",
     "diagnosticLogsTooltip": "Regista o que a aplicação faz, para que possa anexá-lo a um relatório de erro. Desativado por predefinição. Enquanto estiver ativado, aparece o botão «Registos» na barra de título, e a opção mantém-se ativa após reiniciar.",
+    "appearance": "Aparência",
+    "appearanceTooltip": "O aspeto da aplicação. “Sistema” usa a definição clara ou escura do sistema operativo.",
+    "appearanceMode": {
+      "system": "Sistema",
+      "light": "Claro",
+      "dark": "Escuro"
+    },
     "helpDiscussions": "Discussões",
     "helpDiscussionsTooltip": "Pedidos de funcionalidades, comentários e discussões da comunidade",
     "auto": "Auto",
@@ -1005,6 +1012,7 @@
       "sourceColor": "Cor do texto original",
       "translationColor": "Cor da tradução",
       "customColor": "Cor personalizada",
+      "followTheme": "Seguir o tema",
       "colorArea": "Saturação e brilho",
       "colorHue": "Matiz",
       "colorHex": "Valor hexadecimal da cor",

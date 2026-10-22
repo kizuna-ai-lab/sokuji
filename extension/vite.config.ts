@@ -89,6 +89,8 @@ export default defineConfig(({ mode }) => {
           { src: 'requestPermission.js', dest: '.' },
           // Popup styles
           { src: 'popup.css', dest: '.' },
+          // The first-paint scheme script fullpage.html loads before its stylesheets
+          { src: '../public/theme-boot.js', dest: '.' },
           // Bundled ONNX Runtime WASM (avoids cdn.jsdelivr.net CSP violation)
           { src: '../public/wasm/ort/*', dest: 'wasm/ort' },
           // Classic workers for ASR/TTS (sherpa-onnx uses importScripts, can't be ES modules)

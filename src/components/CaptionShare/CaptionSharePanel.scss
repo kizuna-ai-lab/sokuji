@@ -17,14 +17,14 @@
 // Chrome copied from .display-settings-popover (DisplaySettingsPopover.scss),
 // the toolbar's other popover, so the two read as one family.
 .caption-share-panel {
-  background: #1a1a1a;
-  color: #e8e8e8;
-  border: 1px solid #3a3a3a;
+  background: vars.$bg-base;
+  color: vars.$text-primary;
+  border: 1px solid vars.$border-subtle;
   border-radius: 8px;
   padding: 16px;
   width: 360px;
   box-sizing: border-box;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 24px vars.$shadow-strong;
   max-height: var(--popover-max-height, 100vh);
   overflow-y: auto;
   display: flex;

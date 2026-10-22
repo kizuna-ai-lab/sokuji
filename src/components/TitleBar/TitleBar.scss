@@ -1,12 +1,13 @@
 @use '../../styles/tokens' as tk;
+@use '../Settings/shared/variables' as vars;
 
 // src/components/TitleBar/TitleBar.scss
 .title-bar {
   height: 36px;
   display: flex;
   align-items: center;
-  background: #1a1a1a;
-  color: #e8e8e8;
+  background: vars.$bg-base;
+  color: vars.$text-primary;
   -webkit-app-region: drag;
   user-select: none;
   flex-shrink: 0;
@@ -58,7 +59,7 @@
   height: 26px;
   padding: 0 10px;
   background: transparent;
-  color: #c8c8c8;
+  color: vars.$text-tertiary;
   border: 1px solid transparent;
   border-radius: 4px;
   cursor: pointer;
@@ -66,12 +67,12 @@
   line-height: 1;
 
   &:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.08);
+    background: color-mix(in srgb, vars.$overlay-fg 8%, transparent);
   }
 
   &.is-active {
-    background: rgba(255, 255, 255, 0.16);
-    color: #fff;
+    background: color-mix(in srgb, vars.$overlay-fg 16%, transparent);
+    color: vars.$text-primary;
   }
 
   &:focus-visible {
@@ -111,7 +112,7 @@
   height: 36px;
   border: none;
   background: transparent;
-  color: #c8c8c8;
+  color: vars.$text-tertiary;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -119,11 +120,11 @@
   font-size: 14px;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: color-mix(in srgb, vars.$overlay-fg 8%, transparent);
   }
 
   &.title-bar__close:hover {
-    background: #c0392b;
-    color: #fff;
+    background: tk.$color-error-deep;
+    color: tk.$color-on-primary;
   }
 }

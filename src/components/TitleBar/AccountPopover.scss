@@ -1,16 +1,17 @@
 @use '../../styles/tokens' as tk;
+@use '../Settings/shared/variables' as vars;
 
 // src/components/TitleBar/AccountPopover.scss
 // Values copied from ModeDevicePopover.scss so the two popovers are one
 // control in two places rather than two lookalikes that drift.
 .account-popover {
-  background: #2a2a2a;
-  border: 1px solid #444;
+  background: vars.$bg-popover;
+  border: 1px solid vars.$border-default;
   border-radius: 8px;
   width: 320px;
   font-size: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-  color: #ccc;
+  box-shadow: 0 4px 16px vars.$shadow-strong;
+  color: vars.$text-secondary;
   z-index: 1000;
   overflow: hidden;
 
@@ -19,7 +20,7 @@
   // is right because its content is a list of device options. This is prose —
   // the only explanation in the popover, and the copy the whole sign-up entry
   // rests on — so it takes the body size the rest of the app gives prose.
-  &__msg { padding: 13px 14px 4px; font-size: 13px; line-height: 1.5; color: #bdbdbd; }
+  &__msg { padding: 13px 14px 4px; font-size: 13px; line-height: 1.5; color: vars.$text-tertiary; }
   &__btns { display: flex; gap: 8px; padding: 11px 14px 14px; }
   &__btn {
     flex: 1; height: 32px; border-radius: 5px; font-size: 13px; font-weight: 600;
@@ -27,8 +28,8 @@
 
     &--primary { background: tk.$color-primary-fill; color: tk.$color-on-primary; &:hover { background: tk.$color-primary-fill-hover; } }
     &--ghost {
-      background: transparent; color: #ccc; border-color: #555;
-      &:hover { background: rgba(255, 255, 255, 0.07); border-color: #6a6a6a; }
+      background: transparent; color: vars.$text-secondary; border-color: vars.$border-strong;
+      &:hover { background: color-mix(in srgb, vars.$overlay-fg 7%, transparent); border-color: vars.$border-strong; }
     }
   }
 }

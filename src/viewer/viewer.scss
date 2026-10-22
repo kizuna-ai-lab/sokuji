@@ -4,6 +4,12 @@
 // the ModePicker segmented archetype, option rows) in the app's shapes; their
 // colours, like the captions', follow the scheme the viewer picks (his ruling
 // 2026-10-04): every chrome colour is a token each scheme sets.
+//
+// The app's theme tokens come first (spec 2026-10-22 §5): `tk.$…` and
+// `vars.$…` are aliases of `--sk-*`, which only theme.scss defines, and this
+// page never loads index.scss. ViewerApp sets `data-theme` for its light
+// scheme; dark and contrast keep the dark values, contrast's `--v-*` on top.
+@use '../styles/theme';
 @use '../components/Settings/shared/variables' as vars;
 @use '../styles/tokens' as tk;
 

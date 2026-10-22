@@ -400,3 +400,18 @@ describe('ConversationList — face-to-face ears', () => {
     }
   });
 });
+
+// A user-coloured surface carries the tone of its own background (spec
+// 2026-10-22 §3): the attribute is the owner's to pass, never read from a store
+// here, because the subtitle view mounts this same list in its own colours.
+describe('ConversationList — tone', () => {
+  it('carries the tone it is given on .conversation-display', () => {
+    const { container } = render(<ConversationList {...props({ tone: 'light' })} />);
+    expect(container.querySelector('.conversation-display')?.getAttribute('data-tone')).toBe('light');
+  });
+
+  it('carries no tone when none is given, so an enclosing surface decides', () => {
+    const { container } = render(<ConversationList {...props()} />);
+    expect(container.querySelector('.conversation-display')?.hasAttribute('data-tone')).toBe(false);
+  });
+});

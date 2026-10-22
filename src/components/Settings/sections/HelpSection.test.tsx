@@ -15,10 +15,14 @@ vi.mock('../../../locales', () => ({ changeLanguageWithLoad }));
 const setUILanguage = vi.fn<(lang: string) => Promise<void>>();
 let diagnosticLogsOn = false;
 const setDiagnosticLogs = vi.fn<(on: boolean) => Promise<void>>();
+let themeSetting: 'system' | 'light' | 'dark' = 'dark';
+const setTheme = vi.fn<(theme: 'system' | 'light' | 'dark') => Promise<void>>();
 vi.mock('../../../stores/settingsStore', () => ({
   useSetUILanguage: () => setUILanguage,
   useDiagnosticLogs: () => diagnosticLogsOn,
   useSetDiagnosticLogs: () => setDiagnosticLogs,
+  useThemeSetting: () => themeSetting,
+  useSetThemeSetting: () => setTheme,
 }));
 
 const trackEvent = vi.fn();
@@ -47,17 +51,25 @@ vi.mock('../../../stores/updateStore', () => ({
 // Records suppression so the picker's interaction with it can be asserted;
 // renders children either way, as the real one does.
 //
-// Only the tooltips that are actually controlled are recorded. Help renders
-// four — the picker's, the diagnostic logs switch's, support's and
-// Discussions' — and the last three pass no `suppressed` at all, so recording
-// every render would leave the reader of this array looking at Discussions'
-// constant false.
-const tooltipSuppressed: boolean[] = [];
-// `.at(-1)` needs ES2022; this project targets ES2020.
-const lastSuppressed = () => tooltipSuppressed[tooltipSuppressed.length - 1];
+// Only the tooltips that are actually controlled are recorded, each under its
+// content so the two pickers' can be told apart. Help renders five — the two
+// pickers', the diagnostic logs switch's, support's and Discussions' — and the
+// last three pass no `suppressed` at all, so recording every render would
+// leave the reader of this array looking at Discussions' constant false.
+const tooltipSuppressed: { content: string; suppressed: boolean }[] = [];
+const lastSuppressed = (content: RegExp): boolean | undefined => {
+  for (let i = tooltipSuppressed.length - 1; i >= 0; i--) {
+    if (content.test(tooltipSuppressed[i].content)) return tooltipSuppressed[i].suppressed;
+  }
+  return undefined;
+};
+// The mocked `t` returns the key when no default is given, and the default
+// otherwise; these are what the two pickers' tooltips render as here.
+const LANGUAGE_TIP = /interfaceLanguageDesc/;
+const APPEARANCE_TIP = /how the app looks/i;
 vi.mock('../../Tooltip/Tooltip', () => ({
-  default: ({ children, suppressed }: { children: React.ReactNode; suppressed?: boolean }) => {
-    if (suppressed !== undefined) tooltipSuppressed.push(suppressed);
+  default: ({ children, content, suppressed }: { children: React.ReactNode; content: React.ReactNode; suppressed?: boolean }) => {
+    if (suppressed !== undefined) tooltipSuppressed.push({ content: String(content), suppressed });
     return <>{children}</>;
   },
 }));
@@ -80,6 +92,9 @@ beforeEach(() => {
   diagnosticLogsOn = false;
   setDiagnosticLogs.mockReset();
   setDiagnosticLogs.mockResolvedValue(undefined);
+  themeSetting = 'dark';
+  setTheme.mockReset();
+  setTheme.mockResolvedValue(undefined);
 });
 
 const picker = () => screen.getByLabelText(/interface language/i) as HTMLSelectElement;
@@ -177,15 +192,15 @@ describe('interface language in Help', () => {
     render(<HelpSection />);
     tooltipSuppressed.length = 0;
     fireEvent.focus(picker());
-    await vi.waitFor(() => expect(lastSuppressed()).toBe(true));
+    await vi.waitFor(() => expect(lastSuppressed(LANGUAGE_TIP)).toBe(true));
   });
 
   it('restores the tooltip when the picker is left', async () => {
     render(<HelpSection />);
     fireEvent.focus(picker());
-    await vi.waitFor(() => expect(lastSuppressed()).toBe(true));
+    await vi.waitFor(() => expect(lastSuppressed(LANGUAGE_TIP)).toBe(true));
     fireEvent.blur(picker());
-    await vi.waitFor(() => expect(lastSuppressed()).toBe(false));
+    await vi.waitFor(() => expect(lastSuppressed(LANGUAGE_TIP)).toBe(false));
   });
 
   // A <select> fires change on every arrow-key step, so holding a direction
@@ -382,5 +397,67 @@ describe('the update check’s result on its link (spec 2026-10-05 §5)', () => 
     render(<HelpSection />);
     expect(link().textContent).toBe('update.checkButton');
     expect(link().className).not.toContain('help-link--');
+  });
+});
+
+// Appearance (spec 2026-10-22 §4): a help link in the shape of the interface
+// language beside it — an icon, and a native <select> whose chosen option is
+// the whole label — rather than a block of its own. The class structure is
+// pinned because it is what the shared select styling keys on.
+describe('appearance in Help', () => {
+  const appearance = () => screen.getByLabelText(/^appearance$/i) as HTMLSelectElement;
+  const linkIndex = (el: Element) => Array.from(document.querySelectorAll('.help-links .help-link')).indexOf(el);
+
+  it('is a picker in the row of links, shaped like the interface language picker', () => {
+    render(<HelpSection />);
+    expect(appearance().classList.contains('help-link__select')).toBe(true);
+    const row = appearance().closest('.help-link--picker');
+    expect(row).not.toBeNull();
+    expect(row!.closest('.help-links')).not.toBeNull();
+    expect(row!.querySelector('svg')).not.toBeNull();
+    expect(document.querySelector('#help-section .noise-suppression-control')).toBeNull();
+    expect(document.querySelector('#help-section .segmented-control')).toBeNull();
+  });
+
+  it('offers System, Light and Dark in that order, with dark chosen', () => {
+    render(<HelpSection />);
+    expect(Array.from(appearance().options).map((o) => o.textContent)).toEqual(['System', 'Light', 'Dark']);
+    expect(Array.from(appearance().options).map((o) => o.value)).toEqual(['system', 'light', 'dark']);
+    expect(appearance().value).toBe('dark');
+  });
+
+  it('follows the interface language picker directly', () => {
+    render(<HelpSection />);
+    expect(linkIndex(appearance().closest('.help-link')!)).toBe(linkIndex(picker().closest('.help-link')!) + 1);
+  });
+
+  it('picking Light writes the setting and tracks theme_changed', () => {
+    render(<HelpSection />);
+    fireEvent.change(appearance(), { target: { value: 'light' } });
+    expect(setTheme).toHaveBeenCalledWith('light');
+    expect(trackEvent).toHaveBeenCalledWith('theme_changed', { from: 'dark', to: 'light' });
+  });
+
+  it('a change to the current value writes nothing', () => {
+    render(<HelpSection />);
+    fireEvent.change(appearance(), { target: { value: 'dark' } });
+    expect(setTheme).not.toHaveBeenCalled();
+    expect(trackEvent).not.toHaveBeenCalled();
+  });
+
+  // Unlike the language picker: it changes nothing a session depends on.
+  it('stays enabled while a session is running', () => {
+    render(<HelpSection isSessionActive />);
+    expect(appearance().disabled).toBe(false);
+    expect(appearance().closest('.help-link')!.classList.contains('disabled')).toBe(false);
+  });
+
+  it('drops its own tooltip while it has focus, and nobody else’s', async () => {
+    render(<HelpSection />);
+    fireEvent.focus(appearance());
+    await vi.waitFor(() => expect(lastSuppressed(APPEARANCE_TIP)).toBe(true));
+    expect(lastSuppressed(LANGUAGE_TIP)).toBe(false);
+    fireEvent.blur(appearance());
+    await vi.waitFor(() => expect(lastSuppressed(APPEARANCE_TIP)).toBe(false));
   });
 });

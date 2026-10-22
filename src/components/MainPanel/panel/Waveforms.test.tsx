@@ -204,3 +204,15 @@ describe('OutputWaveform', () => {
     expect(first.read).not.toHaveBeenCalled();
   });
 });
+
+// The strips' colours are theme tokens (spec 2026-10-22 §5): each strip names
+// its token, and WaveformStrip resolves it per frame.
+describe('waveform colours', () => {
+  it('the three strips name their tokens', () => {
+    const { container } = render(<InputWaveforms mode="both" levels={null} />);
+    expect(container.querySelector('.waveform-strip--mic')?.getAttribute('data-color-token')).toBe('--sk-waveform-speaker');
+    expect(container.querySelector('.waveform-strip--system')?.getAttribute('data-color-token')).toBe('--sk-waveform-participant');
+    const out = render(<OutputWaveform meter={null} />);
+    expect(out.container.querySelector('.waveform-strip--output')?.getAttribute('data-color-token')).toBe('--sk-waveform-output');
+  });
+});

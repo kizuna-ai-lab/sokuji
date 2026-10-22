@@ -50,7 +50,7 @@
     cursor: pointer;
 
     &:hover {
-      background: rgba(vars.$color-warning, 0.15);
+      background: color-mix(in srgb, vars.$color-warning 15%, transparent);
       color: vars.$color-warning;
     }
   }

@@ -111,6 +111,13 @@
     "helpEmailTooltip": "Report bugs or get help",
     "diagnosticLogs": "Diagnostic logs",
     "diagnosticLogsTooltip": "Record what the app does, so you can attach it to a bug report. Off by default. While on, a “Logs” button appears in the title bar, and the setting stays on after a restart.",
+    "appearance": "Appearance",
+    "appearanceTooltip": "How the app looks. System follows the operating system's light or dark setting.",
+    "appearanceMode": {
+      "system": "System",
+      "light": "Light",
+      "dark": "Dark"
+    },
     "helpDiscussions": "Discussions",
     "helpDiscussionsTooltip": "Feature requests, feedback, and community discussions",
     "auto": "Auto",
@@ -1222,6 +1229,7 @@
       "sourceColor": "Source text",
       "translationColor": "Translation text",
       "customColor": "Custom color",
+      "followTheme": "Follow theme",
       "colorArea": "Saturation and brightness",
       "colorHue": "Hue",
       "colorHex": "Hex color value",

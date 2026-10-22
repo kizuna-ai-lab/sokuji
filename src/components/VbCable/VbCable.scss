@@ -9,8 +9,8 @@
   align-items: flex-start;
   gap: 8px;
   padding: 12px;
-  background: rgba(vars.$color-primary, 0.1);
-  border: 1px solid rgba(vars.$color-primary, 0.3);
+  background: color-mix(in srgb, vars.$color-primary 10%, transparent);
+  border: 1px solid color-mix(in srgb, vars.$color-primary 30%, transparent);
   border-radius: 6px;
   font-size: vars.$font-body;
   line-height: 1.45;

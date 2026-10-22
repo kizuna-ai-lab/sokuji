@@ -68,6 +68,13 @@ const ViewerApp: React.FC = () => {
     document.title = `${status === 'live' ? '● ' : ''}${t(STATUS_KEYS[status])} · ${t('viewer.title')}`;
   }, [status, t]);
 
+  // The app's theme tokens are this page's too (spec 2026-10-22 §5): the light
+  // scheme takes their light values; dark and contrast keep the dark ones.
+  useEffect(() => {
+    if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    else document.documentElement.removeAttribute('data-theme');
+  }, [theme]);
+
   const toggleFullscreen = useCallback(async () => {
     try {
       if (document.fullscreenElement) await document.exitFullscreen();

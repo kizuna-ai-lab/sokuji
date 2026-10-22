@@ -138,7 +138,7 @@ export function Ast2SettingsView({ settings, update, disabled = false, pair, par
           onChange={(glossaryTableId) => update({ glossaryTableId })}
           disabled={disabled}
         />
-        <div className="setting-item" style={{ fontSize: '12px', color: '#888' }}>
+        <div className="setting-item" style={{ fontSize: '12px', color: 'var(--sk-text-muted)' }}>
           {t('settings.volcengineAST2CustomVocabularyFooter', "Invalid or empty library IDs are silently ignored — the session runs as if the field weren't set. Library changes made in the Volcengine console can take a few minutes to take effect.")}
         </div>
       </div>
@@ -147,9 +147,9 @@ export function Ast2SettingsView({ settings, update, disabled = false, pair, par
         <div className="setting-item">
           <div
             className="volcengine-info-notice"
-            style={{ padding: '12px', backgroundColor: 'rgba(16, 163, 127, 0.1)', border: '1px solid rgba(16, 163, 127, 0.3)', borderRadius: '8px', fontSize: '13px', color: '#aaa' }}
+            style={{ padding: '12px', backgroundColor: 'color-mix(in srgb, var(--sk-success) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--sk-success) 30%, transparent)', borderRadius: '8px', fontSize: '13px', color: 'var(--sk-text-tertiary)' }}
           >
-            <Info size={14} style={{ marginRight: '8px', verticalAlign: 'middle', color: '#10a37f' }} />
+            <Info size={14} style={{ marginRight: '8px', verticalAlign: 'middle', color: 'var(--sk-success)' }} />
             {t('settings.volcengineAST2InfoText', "Doubao AST 2.0 provides speech-to-speech simultaneous interpretation. The translation can be spoken in the speaker's own cloned voice, or in a voice picked from its voice library.")}
           </div>
         </div>

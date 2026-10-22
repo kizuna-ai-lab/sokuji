@@ -1,24 +1,25 @@
+@use '../Settings/shared/variables' as vars;
 .tooltip-trigger {
   cursor: help;
-  color: #888;
+  color: vars.$text-muted;
   transition: color 0.2s ease;
   display: inline-flex;
   align-items: center;
   
   &:hover {
-    color: #aaa;
+    color: vars.$text-tertiary;
   }
 }
 
 .tooltip-content {
-  background: #2a2a2a;
-  border: 1px solid #444;
+  background: vars.$bg-popover;
+  border: 1px solid vars.$border-default;
   border-radius: 6px;
   padding: 10px 12px;
   font-size: 13px;
   line-height: 1.5;
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  color: vars.$text-primary;
+  box-shadow: 0 4px 12px vars.$shadow;
   white-space: normal;
   min-width: 200px;
   opacity: 0;
@@ -37,7 +38,7 @@
     }
     
     code {
-      background: rgba(255, 255, 255, 0.1);
+      background: color-mix(in srgb, vars.$overlay-fg 10%, transparent);
       padding: 2px 4px;
       border-radius: 3px;
       font-size: 12px;

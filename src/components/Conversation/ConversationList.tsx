@@ -13,6 +13,7 @@ import { useFollowLatest } from './useFollowLatest';
 import '../MainPanel/MainPanel.scss';
 import '../MainPanel/ConversationRow.scss';
 import '../../styles/karaoke.scss';
+import type { Tone } from '../../lib/view/tone';
 
 export type { NoticeAction } from './SystemRow';
 
@@ -40,6 +41,13 @@ export interface ConversationListProps {
   fontSize: number;
   /** Shown when there is nothing to draw. */
   empty: ReactNode;
+  /**
+   * The tone of the surface's background, when this list IS the user-coloured
+   * surface (the conversation panel). Left unset by a list drawn inside a
+   * surface that already carries `data-tone` (the subtitle view). Never read
+   * from a store here: the owner knows which colours it is painted in.
+   */
+  tone?: Tone;
 }
 
 type RowItem = Extract<DisplayItem, { kind: 'row' }>;
@@ -63,7 +71,7 @@ function formatTime(ts: number): string {
 }
 
 export function ConversationList({
-  items, lit, replaying, replayLegs, canReplay, onReplay, replayBlocked, noticeAction, ears, readings, compact, fontSize, empty,
+  items, lit, replaying, replayLegs, canReplay, onReplay, replayBlocked, noticeAction, ears, readings, compact, fontSize, empty, tone,
 }: ConversationListProps) {
   const display = useRef<HTMLDivElement>(null);
   // The newest line stays in view while the reader is at the bottom; reading back
@@ -86,7 +94,7 @@ export function ConversationList({
 
   return (
     <>
-      <div className="conversation-display" ref={display} style={{ '--conversation-font-size': `${fontSize}px` } as CSSProperties}>
+      <div className="conversation-display" ref={display} data-tone={tone} style={{ '--conversation-font-size': `${fontSize}px` } as CSSProperties}>
         {items.length === 0 ? (
           <div className="empty-state">{empty}</div>
         ) : (

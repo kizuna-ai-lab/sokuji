@@ -1,4 +1,5 @@
 @use '../../styles/tokens' as tk;
+@use '../Settings/shared/variables' as vars;
 
 .subtitle-stream {
   flex: 1;
@@ -39,8 +40,8 @@
       // Fade the top of the band so any partially-clipped character row
       // melts into the background instead of getting cut in half. The
       // fade height matches one line of text (line-height: 1.4em).
-      mask-image: linear-gradient(to bottom, transparent 0, black 1.4em, black 100%);
-      -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 1.4em, black 100%);
+      mask-image: linear-gradient(to bottom, transparent 0, vars.$bg-base 1.4em, vars.$bg-base 100%);
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0, vars.$bg-base 1.4em, vars.$bg-base 100%);
 
       p {
         margin: 0;
@@ -62,11 +63,11 @@
     // apart when both are on screen.
     .subtitle-stream__line--participant {
       padding-left: 6px;
-      border-left: 2px solid rgba(tk.$color-participant, 0.6);
+      border-left: 2px solid color-mix(in srgb, tk.$color-participant 60%, transparent);
     }
     .subtitle-stream__line--speaker {
       padding-left: 6px;
-      border-left: 2px solid rgba(tk.$color-speaker, 0.6);
+      border-left: 2px solid color-mix(in srgb, tk.$color-speaker 60%, transparent);
     }
 
     // A labelled leg's person changes here: a numbered dot in the leg's shade
@@ -83,17 +84,17 @@
       font-style: normal;
       font-weight: 700;
       vertical-align: 0.15em;
-      color: #fff;
+      color: tk.$color-on-primary;
     }
     .subtitle-stream__line--speaker .subtitle-stream__person {
       &.person-shade-0 { background: tk.$color-speaker-person-1; }
-      &.person-shade-1 { background: tk.$color-speaker-person-2; color: #1a1a1a; }
+      &.person-shade-1 { background: tk.$color-speaker-person-2; color: vars.$bg-base; }
       &.person-shade-2 { background: tk.$color-speaker-person-3; }
     }
     .subtitle-stream__line--participant .subtitle-stream__person {
-      color: #1a1a1a;
+      color: vars.$bg-base;
       &.person-shade-0 { background: tk.$color-participant-person-1; }
-      &.person-shade-1 { background: tk.$color-participant-person-2; }
+      &.person-shade-1 { background: tk.$color-participant-person-2; color: vars.$overlay-bg; }
       &.person-shade-2 { background: tk.$color-participant-person-3; }
     }
   }
@@ -160,12 +161,12 @@
       margin: 8px -12px -10px;
       font-size: 13px;
       background: transparent;
-      border-top: 1px solid rgba(255, 255, 255, 0.14);
-      color: rgba(255, 255, 255, 0.62);
+      border-top: 1px solid color-mix(in srgb, vars.$overlay-fg 14%, transparent);
+      color: color-mix(in srgb, vars.$overlay-fg 62%, transparent);
 
       &:hover {
-        background: rgba(255, 255, 255, 0.08);
-        color: rgba(255, 255, 255, 0.9);
+        background: color-mix(in srgb, vars.$overlay-fg 8%, transparent);
+        color: color-mix(in srgb, vars.$overlay-fg 90%, transparent);
       }
     }
   }

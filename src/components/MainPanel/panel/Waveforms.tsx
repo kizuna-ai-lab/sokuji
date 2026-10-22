@@ -29,7 +29,7 @@ export function InputWaveforms({ mode, levels }: { mode: AudioMode; levels: Read
         <WaveformStrip
           kind="mic"
           read={() => levels?.speaker.read() ?? null}
-          color="#0099ff"
+          colorToken="--sk-waveform-speaker"
           width={mode === 'both' ? 'half' : 'full'}
           title={t('mainPanel.waveformMicTooltip', 'Your microphone — your voice being captured for translation')}
         />
@@ -38,7 +38,7 @@ export function InputWaveforms({ mode, levels }: { mode: AudioMode; levels: Read
         <WaveformStrip
           kind="system"
           read={() => levels?.participant.read() ?? null}
-          color="#f59e0b"
+          colorToken="--sk-waveform-participant"
           width={mode === 'both' ? 'half' : 'full'}
           title={t('mainPanel.waveformSystemTooltip', "Other's audio captured for translation (browser tab / system audio)")}
         />
@@ -55,7 +55,7 @@ export function OutputWaveform({ meter }: { meter: BusMeter | null }) {
     <WaveformStrip
       kind="output"
       read={() => meter?.read() ?? null}
-      color="#ff9900"
+      colorToken="--sk-waveform-output"
       width="full"
       title={t('mainPanel.waveformOutputTooltip', 'Audio sent to the virtual microphone (translation + passthrough)')}
     />

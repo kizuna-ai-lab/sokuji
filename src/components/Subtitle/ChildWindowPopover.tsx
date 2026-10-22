@@ -2,6 +2,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { reportError, describeCause } from '../../lib/diagnostics/report';
+import { registerThemeDocument } from '../../lib/theme/theme';
 
 /**
  * Hosts a popover in its own frameless, transparent OS window instead of
@@ -150,6 +151,9 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
 
     clonedStylesRef.current = new WeakSet();
     syncStyles(document, win.document, clonedStylesRef.current);
+    // The copied stylesheets read data-theme from THIS document's root, so the
+    // child takes the app's scheme now and on every change until torn down.
+    const unregisterTheme = registerThemeDocument(win.document);
     const body = win.document.body;
     body.style.margin = '0';
     body.style.background = 'transparent';
@@ -220,6 +224,7 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
       win.removeEventListener('focus', handleFocus);
       win.removeEventListener('blur', handleBlur);
       win.removeEventListener('keydown', handleKeydown as EventListener);
+      unregisterTheme();
       setContainer(null);
       winRef.current = null;
       if (!win.closed) win.close();

@@ -1,4 +1,5 @@
 @use '../../styles/tokens' as tk;
+@use '../Settings/shared/variables' as vars;
 
 // src/components/Subtitle/SubtitleApp.scss
 .subtitle-app {
@@ -64,7 +65,7 @@
 .subtitle-ptt-hint p,
 .subtitle-idle__message {
   font-size: 16px;
-  color: rgba(255, 255, 255, 0.7);
+  color: color-mix(in srgb, vars.$overlay-fg 70%, transparent);
   letter-spacing: 0.3px;
 }
 
@@ -103,11 +104,11 @@
       white-space: nowrap;
     }
 
-    &:hover:not(:disabled) { background: #0d8c6d; }
+    &:hover:not(:disabled) { background: tk.$color-primary-hover; }
 
     &:disabled {
-      background: rgba(255, 255, 255, 0.09);
-      color: rgba(255, 255, 255, 0.45);
+      background: color-mix(in srgb, vars.$overlay-fg 9%, transparent);
+      color: color-mix(in srgb, vars.$overlay-fg 45%, transparent);
       cursor: default;
     }
 
@@ -119,17 +120,18 @@
     // would say the same thing four times, and read as "danger" rather than
     // "click here to fix it".
     &--fix:not(:disabled) {
-      background: rgba(255, 255, 255, 0.10);
+      background: color-mix(in srgb, vars.$overlay-fg 10%, transparent);
+      color: vars.$text-primary;
 
-      &:hover { background: rgba(255, 255, 255, 0.16); }
+      &:hover { background: color-mix(in srgb, vars.$overlay-fg 16%, transparent); }
 
-      svg { color: #ff6b6b; }
+      svg { color: tk.$color-error; }
     }
   }
 
   &__hint {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.45);
+    color: color-mix(in srgb, vars.$overlay-fg 45%, transparent);
   }
 
   // One line, always. The window can be resized to any height, so the error
@@ -137,7 +139,7 @@
   &__error {
     font-size: 12.5px;
     // The app's error-text-on-dark colour (MainPanel.scss:150,156).
-    color: #ff6b6b;
+    color: tk.$color-error;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -151,21 +153,21 @@
     padding: 0;
     font: inherit;
     font-size: 11.5px;
-    color: rgba(255, 255, 255, 0.5);
+    color: color-mix(in srgb, vars.$overlay-fg 50%, transparent);
     text-decoration: underline;
     cursor: pointer;
     -webkit-app-region: no-drag;
 
-    &:hover { color: rgba(255, 255, 255, 0.75); }
+    &:hover { color: color-mix(in srgb, vars.$overlay-fg 75%, transparent); }
   }
 
   // Return button for the extension overlay surface (pre-#324 styling).
   // Preserves the solid bordered button appearance for the browser extension.
   &__return {
     appearance: none;
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.92);
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: color-mix(in srgb, vars.$overlay-fg 8%, transparent);
+    color: color-mix(in srgb, vars.$overlay-fg 92%, transparent);
+    border: 1px solid color-mix(in srgb, vars.$overlay-fg 18%, transparent);
     border-radius: 4px;
     padding: 6px 14px;
     font: inherit;
@@ -175,16 +177,16 @@
     -webkit-app-region: no-drag;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.14);
-      border-color: rgba(255, 255, 255, 0.28);
+      background: color-mix(in srgb, vars.$overlay-fg 14%, transparent);
+      border-color: color-mix(in srgb, vars.$overlay-fg 28%, transparent);
     }
 
     &:active {
-      background: rgba(255, 255, 255, 0.2);
+      background: color-mix(in srgb, vars.$overlay-fg 20%, transparent);
     }
 
     &:focus-visible {
-      outline: 2px solid rgba(108, 197, 255, 0.6);
+      outline: 2px solid color-mix(in srgb, tk.$color-info 60%, transparent);
       outline-offset: 1px;
     }
   }

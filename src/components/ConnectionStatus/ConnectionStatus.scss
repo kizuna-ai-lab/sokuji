@@ -1,11 +1,13 @@
+@use '../Settings/shared/variables' as vars;
+@use '../../styles/tokens' as tk;
 .connection-status {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, vars.$overlay-fg 5%, transparent);
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid color-mix(in srgb, vars.$overlay-fg 10%, transparent);
   transition: all 0.3s ease;
 
   &.compact {
@@ -27,7 +29,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.1);
+    background: color-mix(in srgb, vars.$overlay-fg 10%, transparent);
     border-radius: 50%;
     
     svg {
@@ -46,58 +48,58 @@
     
     .status-message {
       font-size: 13px;
-      color: rgba(255, 255, 255, 0.7);
+      color: color-mix(in srgb, vars.$overlay-fg 70%, transparent);
     }
   }
 
   // State colors
   &.disconnected {
-    background: rgba(136, 136, 136, 0.1);
-    border-color: rgba(136, 136, 136, 0.3);
+    background: color-mix(in srgb, vars.$text-muted 10%, transparent);
+    border-color: color-mix(in srgb, vars.$border-strong 30%, transparent);
     
     .status-icon {
-      background: rgba(136, 136, 136, 0.2);
-      color: #888;
+      background: color-mix(in srgb, vars.$text-muted 20%, transparent);
+      color: vars.$text-muted;
     }
   }
 
   &.connecting {
-    background: rgba(255, 170, 0, 0.1);
-    border-color: rgba(255, 170, 0, 0.3);
+    background: color-mix(in srgb, tk.$color-warning 10%, transparent);
+    border-color: color-mix(in srgb, tk.$color-warning 30%, transparent);
     
     .status-icon {
-      background: rgba(255, 170, 0, 0.2);
-      color: #ffaa00;
+      background: color-mix(in srgb, tk.$color-warning 20%, transparent);
+      color: tk.$color-warning;
     }
   }
 
   &.connected {
-    background: rgba(68, 255, 68, 0.1);
-    border-color: rgba(68, 255, 68, 0.3);
+    background: color-mix(in srgb, tk.$color-success 10%, transparent);
+    border-color: color-mix(in srgb, tk.$color-success 30%, transparent);
     
     .status-icon {
-      background: rgba(68, 255, 68, 0.2);
-      color: #44ff44;
+      background: color-mix(in srgb, tk.$color-success 20%, transparent);
+      color: tk.$color-success;
     }
   }
 
   &.error {
-    background: rgba(255, 68, 68, 0.1);
-    border-color: rgba(255, 68, 68, 0.3);
+    background: color-mix(in srgb, tk.$color-error 10%, transparent);
+    border-color: color-mix(in srgb, tk.$color-error 30%, transparent);
     
     .status-icon {
-      background: rgba(255, 68, 68, 0.2);
-      color: #ff4444;
+      background: color-mix(in srgb, tk.$color-error 20%, transparent);
+      color: tk.$color-error;
     }
   }
 
   &.warning {
-    background: rgba(255, 170, 0, 0.1);
-    border-color: rgba(255, 170, 0, 0.3);
+    background: color-mix(in srgb, tk.$color-warning 10%, transparent);
+    border-color: color-mix(in srgb, tk.$color-warning 30%, transparent);
     
     .status-icon {
-      background: rgba(255, 170, 0, 0.2);
-      color: #ffaa00;
+      background: color-mix(in srgb, tk.$color-warning 20%, transparent);
+      color: tk.$color-warning;
     }
   }
 

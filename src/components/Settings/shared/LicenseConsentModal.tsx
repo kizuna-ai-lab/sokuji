@@ -47,7 +47,7 @@ const LicenseConsentModal: React.FC<LicenseConsentModalProps> = ({ isOpen, licen
     >
       <div className="license-consent-modal">
         <div className="license-consent-modal__icon">
-          <AlertTriangle size={16} color="#f0ad4e" />
+          <AlertTriangle size={16} color="var(--sk-warning)" />
         </div>
         <p>
           <strong>

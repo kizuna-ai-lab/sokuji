@@ -1,9 +1,10 @@
 @use '../../styles/tokens' as tk;
+@use '../Settings/shared/variables' as vars;
 
 .display-settings-popover {
-  background: #1a1a1a;
-  color: #e8e8e8;
-  border: 1px solid #3a3a3a;
+  background: vars.$bg-base;
+  color: vars.$text-primary;
+  border: 1px solid vars.$border-subtle;
   border-radius: 8px;
   padding: 16px;
 
@@ -13,7 +14,7 @@
   // identical matters — at 280 total the swatch rows rewrap and strand a
   // single chip on a line of its own.
   width: 314px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 24px vars.$shadow-strong;
 
   // Expanding a color picker adds ~190px, which can outgrow the surface this
   // floats over. Scroll rather than let it clip the controls off the bottom
@@ -48,7 +49,7 @@
       display: block;
       font-size: 12px;
       margin-bottom: 6px;
-      color: #c8c8c8;
+      color: vars.$text-tertiary;
     }
 
     input[type="range"] {
@@ -68,6 +69,13 @@
         cursor: pointer;
         padding: 0;
         position: relative;
+        // A hairline in the overlay ink (white in dark, black in light), so a
+        // chip the colour of the popover behind it — black on the dark one,
+        // the cream and white presets on the light one — still has an edge.
+        // Drawn inside the chip's own edge: no change to the row's layout, and
+        // the 2px selected ring stays inside it.
+        outline: 1px solid color-mix(in srgb, vars.$overlay-fg 20%, transparent);
+        outline-offset: -1px;
 
         // Keyboard focus indicator. Reuses the green "selected" colour and
         // sits outside the chip so it doesn't compete with the selected
@@ -81,6 +89,14 @@
           border-color: tk.$color-primary;
         }
 
+        // The conversation's "Follow theme" chip: split between the two
+        // schemes' colours for its row (set inline as `--follow-dark` and
+        // `--follow-light`), so it reads as "follows the theme" and never as
+        // a twin of the preset beside it.
+        &.follow {
+          background: linear-gradient(135deg, var(--follow-dark) 0 50%, var(--follow-light) 50% 100%);
+        }
+
         // Custom-color chip: a disclosure button for the inline ColorPicker.
         // The chip's background reflects the current chosen color so it
         // doubles as a "current value" indicator. The Plus icon is rendered
@@ -90,8 +106,8 @@
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          color: #fff;
-          filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.9));
+          color: vars.$white;
+          filter: drop-shadow(0 0 1px color-mix(in srgb, vars.$overlay-bg 90%, transparent));
         }
       }
     }
@@ -104,7 +120,7 @@
 
     &__bar {
       height: 3px;
-      background: #333;
+      background: vars.$border-subtle;
       border-radius: 2px;
       overflow: hidden;
 
@@ -117,7 +133,7 @@
 
     &__text {
       font-size: 11px;
-      color: #9aa0a6;
+      color: vars.$text-source;
       font-variant-numeric: tabular-nums;
     }
 

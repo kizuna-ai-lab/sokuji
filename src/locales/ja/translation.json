@@ -111,6 +111,13 @@
     "helpEmailTooltip": "バグの報告やヘルプの取得",
     "diagnosticLogs": "診断ログ",
     "diagnosticLogsTooltip": "アプリの動作を記録し、不具合報告に添付できるようにします。既定ではオフです。オンにするとタイトルバーに「ログ」ボタンが表示され、再起動後もオンのままです。",
+    "appearance": "外観",
+    "appearanceTooltip": "アプリの配色。「システム」は OS のライト／ダーク設定に合わせます。",
+    "appearanceMode": {
+      "system": "システム",
+      "light": "ライト",
+      "dark": "ダーク"
+    },
     "helpDiscussions": "ディスカッション",
     "helpDiscussionsTooltip": "機能リクエスト、フィードバック、コミュニティでの議論",
     "auto": "自動",
@@ -1005,6 +1012,7 @@
       "sourceColor": "原文の色",
       "translationColor": "訳文の色",
       "customColor": "カスタム色",
+      "followTheme": "テーマに従う",
       "colorArea": "彩度と明度",
       "colorHue": "色相",
       "colorHex": "16進数カラーコード",

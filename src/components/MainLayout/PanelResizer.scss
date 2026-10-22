@@ -1,11 +1,12 @@
 @use '../../styles/tokens' as tk;
+@use '../Settings/shared/variables' as vars;
 
 .panel-resizer {
   position: relative;
   z-index: 2;
   flex: 0 0 1px;          // 1px visible seam (matches the old divider)
   align-self: stretch;
-  background: #333;
+  background: vars.$border-subtle;
   cursor: col-resize;
   transition: background 0.15s;
 
@@ -18,7 +19,7 @@
   }
 
   &:hover {
-    background: #555;       // subtle neutral lift; the col-resize cursor is the main affordance
+    background: vars.$border-strong;           // subtle neutral lift; the col-resize cursor is the main affordance
   }
   &:focus-visible {
     background: tk.$color-primary;

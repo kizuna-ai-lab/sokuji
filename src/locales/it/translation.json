@@ -111,6 +111,13 @@
     "helpEmailTooltip": "Segnala bug o ottieni assistenza",
     "diagnosticLogs": "Log di diagnostica",
     "diagnosticLogsTooltip": "Registra ciò che fa l’app, così puoi allegarlo a una segnalazione di bug. Disattivato per impostazione predefinita. Quando è attivo, nella barra del titolo compare il pulsante «Log», e l’impostazione resta attiva dopo il riavvio.",
+    "appearance": "Aspetto",
+    "appearanceTooltip": "L'aspetto dell'app. «Sistema» usa l'impostazione chiara o scura del sistema operativo.",
+    "appearanceMode": {
+      "system": "Sistema",
+      "light": "Chiaro",
+      "dark": "Scuro"
+    },
     "helpDiscussions": "Discussioni",
     "helpDiscussionsTooltip": "Richieste di funzionalità, feedback e discussioni della community",
     "auto": "Auto",
@@ -1005,6 +1012,7 @@
       "sourceColor": "Colore testo originale",
       "translationColor": "Colore traduzione",
       "customColor": "Colore personalizzato",
+      "followTheme": "Segui il tema",
       "colorArea": "Saturazione e luminosità",
       "colorHue": "Tonalità",
       "colorHex": "Valore colore esadecimale",

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, fireEvent, act } from '@testing-library/react';
+import { render, fireEvent, act, cleanup } from '@testing-library/react';
 import DisplaySettingsPopover from './DisplaySettingsPopover';
 import { useSubtitleStore } from '../../stores/subtitleStore';
 import { useConversationDisplayStore } from '../../stores/conversationDisplayStore';
@@ -18,6 +18,10 @@ vi.mock('../../services/ServiceFactory', () => ({
     }),
   },
 }));
+
+// The app's scheme as the conversation rows see it; a value to flip here.
+const scheme = vi.hoisted(() => ({ current: 'dark' as 'dark' | 'light' }));
+vi.mock('../../lib/theme/useScheme', () => ({ useScheme: () => scheme.current }));
 
 describe('DisplaySettingsPopover', () => {
   beforeEach(() => {
@@ -229,15 +233,116 @@ describe('DisplaySettingsPopover', () => {
     expect(translationFirstChip.getAttribute('aria-label')).toBe('#9ad0ff');
   });
 
-  it('first chip in each row reflects the source store default (conversation)', () => {
+  // The conversation's first chip is "Follow theme" (the describe below); it
+  // wears the scheme's colour, the dark set here.
+  it('first chip in each row is the follow-theme chip, in the scheme\'s colour (conversation)', () => {
     const { container } = render(<DisplaySettingsPopover source="conversation" />);
     const fields = container.querySelectorAll('.field');
     // No opacity slider in conversation source; fields 0-2 = bg/source/translation
     const bgFirstChip = fields[0].querySelector('button.swatch') as HTMLButtonElement;
     const sourceFirstChip = fields[1].querySelector('button.swatch') as HTMLButtonElement;
     const translationFirstChip = fields[2].querySelector('button.swatch') as HTMLButtonElement;
-    expect(bgFirstChip.getAttribute('aria-label')).toBe('#1f1f1f');
-    expect(sourceFirstChip.getAttribute('aria-label')).toBe('#9aa0a6');
-    expect(translationFirstChip.getAttribute('aria-label')).toBe('#e8e8e8');
+    expect(bgFirstChip.getAttribute('aria-label')).toBe('Follow theme');
+    expect(sourceFirstChip.getAttribute('aria-label')).toBe('Follow theme');
+    expect(translationFirstChip.getAttribute('aria-label')).toBe('Follow theme');
+    expect(bgFirstChip.style.getPropertyValue('--follow-dark')).toBe('#1f1f1f');
+    expect(sourceFirstChip.style.getPropertyValue('--follow-dark')).toBe('#9aa0a6');
+    expect(translationFirstChip.style.getPropertyValue('--follow-dark')).toBe('#e8e8e8');
+  });
+});
+
+// A conversation colour the user never set follows the app's scheme (spec
+// 2026-10-22 §3, R3 as amended). In the conversation rows the first chip is
+// that choice: it shows the scheme's colour and is selected while nothing is
+// stored; picking it again clears a stored colour. The subtitle rows keep
+// their fixed default chip.
+describe('conversation colours follow the theme until set', () => {
+  const firstChip = (container: HTMLElement, field: number) =>
+    container.querySelectorAll('.field')[field].querySelector('button.swatch') as HTMLButtonElement;
+  const customChip = (container: HTMLElement, field: number) =>
+    container.querySelectorAll('.field')[field].querySelector('button.swatch.custom') as HTMLButtonElement;
+  const bg = (el: HTMLElement) => el.style.background.replace(/\s/g, '');
+
+  afterEach(() => { scheme.current = 'dark'; });
+
+  // The chip is split between the two schemes' colours for that row, so it
+  // reads as "follows the theme" and never as a twin of a preset beside it
+  // (white next to white in the light scheme). The stylesheet draws the
+  // split from these two variables.
+  it('the first chip is "Follow theme", split between the dark and light colours, selected while nothing is stored', () => {
+    useConversationDisplayStore.setState({ bgColor: null, sourceTextColor: null, translationTextColor: null } as never);
+    const { container } = render(<DisplaySettingsPopover source="conversation" />);
+    const dark = ['#1f1f1f', '#9aa0a6', '#e8e8e8'];
+    const light = ['#ffffff', '#5f6368', '#1a1a1a'];
+    for (const field of [0, 1, 2]) {
+      const chip = firstChip(container, field);
+      expect(chip.getAttribute('aria-label')).toBe('Follow theme');
+      expect(chip.classList.contains('follow')).toBe(true);
+      expect(chip.classList.contains('selected')).toBe(true);
+      expect(chip.style.getPropertyValue('--follow-dark')).toBe(dark[field]);
+      expect(chip.style.getPropertyValue('--follow-light')).toBe(light[field]);
+      expect(customChip(container, field).classList.contains('selected')).toBe(false);
+    }
+  });
+
+  it('under the light scheme the follow chip is the same, and the custom chip shows the white set as drawn', () => {
+    scheme.current = 'light';
+    useConversationDisplayStore.setState({ bgColor: null, sourceTextColor: null, translationTextColor: null } as never);
+    const { container } = render(<DisplaySettingsPopover source="conversation" />);
+    expect(firstChip(container, 0).style.getPropertyValue('--follow-dark')).toBe('#1f1f1f');
+    expect(firstChip(container, 0).style.getPropertyValue('--follow-light')).toBe('#ffffff');
+    expect(firstChip(container, 0).classList.contains('selected')).toBe(true);
+    expect(bg(customChip(container, 0))).toMatch(/^(#ffffff|rgb\(255,255,255\))$/);
+    expect(bg(customChip(container, 1))).toMatch(/^(#5f6368|rgb\(95,99,104\))$/);
+    expect(customChip(container, 0).classList.contains('selected')).toBe(false);
+  });
+
+  // The owner's ask (2026-10-22): the three rows line up. Every row is one
+  // default-or-follow chip, eight presets and the custom chip, in both
+  // surfaces and both schemes; a surface's own fixed default is never also a
+  // preset, so nothing is folded away.
+  it('every row offers the same ten chips: default or follow, eight presets, custom', () => {
+    const chips = (container: HTMLElement, field: number) => container.querySelectorAll('.field')[field].querySelectorAll('.palette button.swatch').length;
+    useConversationDisplayStore.setState({ bgColor: null, sourceTextColor: null, translationTextColor: null } as never);
+    let { container } = render(<DisplaySettingsPopover source="conversation" />);
+    expect([chips(container, 0), chips(container, 1), chips(container, 2)]).toEqual([10, 10, 10]);
+    cleanup();
+    scheme.current = 'light';
+    ({ container } = render(<DisplaySettingsPopover source="conversation" />));
+    expect([chips(container, 0), chips(container, 1), chips(container, 2)]).toEqual([10, 10, 10]);
+    cleanup();
+    ({ container } = render(<DisplaySettingsPopover source="subtitle" />));
+    expect([chips(container, 1), chips(container, 2), chips(container, 3)]).toEqual([10, 10, 10]);
+  });
+
+  it('a stored colour that equals a scheme colour is a custom colour, not "follow"', () => {
+    useConversationDisplayStore.setState({ bgColor: '#1f1f1f', sourceTextColor: null, translationTextColor: null } as never);
+    const { container } = render(<DisplaySettingsPopover source="conversation" />);
+    expect(firstChip(container, 0).classList.contains('selected')).toBe(false);
+    expect(customChip(container, 0).classList.contains('selected')).toBe(true);
+  });
+
+  it('a stored colour is shown as such, and clicking "Follow theme" clears it', async () => {
+    useConversationDisplayStore.setState({ bgColor: '#123456', sourceTextColor: null, translationTextColor: null } as never);
+    const { container } = render(<DisplaySettingsPopover source="conversation" />);
+    expect(firstChip(container, 0).classList.contains('selected')).toBe(false);
+    expect(customChip(container, 0).classList.contains('selected')).toBe(true);
+    expect(bg(customChip(container, 0))).toMatch(/^(#123456|rgb\(18,52,86\))$/);
+    await act(async () => { fireEvent.click(firstChip(container, 0)); });
+    expect(useConversationDisplayStore.getState().bgColor).toBeNull();
+    expect(useConversationDisplayStore.getState().sourceTextColor).toBeNull();
+  });
+
+  it('a preset click still stores that colour', async () => {
+    useConversationDisplayStore.setState({ bgColor: null, sourceTextColor: null, translationTextColor: null } as never);
+    const { container } = render(<DisplaySettingsPopover source="conversation" />);
+    const white = container.querySelectorAll('.field')[0].querySelector('button.swatch[aria-label="#FFFFFF"]') as HTMLButtonElement;
+    await act(async () => { fireEvent.click(white); });
+    expect(useConversationDisplayStore.getState().bgColor).toBe('#FFFFFF');
+  });
+
+  it('the subtitle rows keep a fixed default chip, named by its colour', () => {
+    const { container } = render(<DisplaySettingsPopover source="subtitle" />);
+    expect(firstChip(container, 1).getAttribute('aria-label')).toBe('#000000');
   });
 });

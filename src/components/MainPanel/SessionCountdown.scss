@@ -1,14 +1,16 @@
+@use '../Settings/shared/variables' as vars;
+@use '../../styles/tokens' as tk;
 // Metered-session remaining-time countdown. Below 20% of the session's
 // granted budget it switches to the same warning red the footers use for
 // error states.
 .session-remaining-time {
-  color: #888;
+  color: vars.$text-muted;
   font-size: 11px;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 
   &.low {
-    color: #e74c3c;
+    color: tk.$color-error;
     font-weight: 600;
   }
 }

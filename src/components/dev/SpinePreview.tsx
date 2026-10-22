@@ -19,7 +19,8 @@ import { createFakeSource } from '../../providers/fake/source';
 import { presentProviders } from '../../providers/registry';
 import { setManagedVoiceStandIn } from '../../providers/soniox/managedVoiceSource';
 import useAudioStore from '../../stores/audioStore';
-import { useConversationDisplayStore } from '../../stores/conversationDisplayStore';
+import { useConversationDisplayStore, useConversationColours } from '../../stores/conversationDisplayStore';
+import { toneOf } from '../../lib/view/tone';
 import { useModelStore } from '../../stores/modelStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
@@ -159,6 +160,7 @@ function PreviewConversation({ view, karaoke, playback }: {
   const keepReplayAudio = useSettingsStore((s) => s.keepReplayAudio);
   const participantSpeech = useRoutingStore((s) => s.participantSpeech);
   const display = useConversationDisplayStore();
+  const colours = useConversationColours();
   const exporter = useConversationExporter(viewState);
   const items = useMemo(() => displayItems(entries, { speaker, participant }), [entries, speaker, participant]);
   const segments = useMemo(() => new Map(legs.flatMap((leg) => leg.segments.map((s) => [s.id, s] as const))), [legs]);
@@ -170,15 +172,16 @@ function PreviewConversation({ view, karaoke, playback }: {
     <div
       className="spine-conversation"
       style={{
-        '--conversation-bg-color': display.bgColor,
-        '--conversation-source-color': display.sourceTextColor,
-        '--conversation-translation-color': display.translationTextColor,
+        '--conversation-bg-color': colours.bgColor,
+        '--conversation-source-color': colours.sourceTextColor,
+        '--conversation-translation-color': colours.translationTextColor,
       } as CSSProperties}
     >
       <div className="conversation-toolbar">
         <ExportMenuButton exporter={exporter} speakerMode={speaker} participantMode={participant} />
       </div>
       <ConversationList
+        tone={toneOf(colours.bgColor)}
         items={items}
         lit={lit}
         replaying={replaying}

@@ -74,6 +74,13 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 
 describe('SpinePreview', () => {
+  // The preview's conversation draws the resolved colours, so it carries
+  // their tone as MainPanel's does (spec 2026-10-22 §3).
+  it('the conversation carries the tone of the background it draws', async () => {
+    const { container } = render(<SpinePreview />);
+    await waitFor(() => expect(container.querySelector('.conversation-display')?.getAttribute('data-tone')).toBe('dark'));
+  });
+
   it('shows the providers this build offers, starting with the fake', async () => {
     render(<SpinePreview />);
     expect(await screen.findByLabelText('Script')).toBeInTheDocument();

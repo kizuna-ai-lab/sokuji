@@ -111,6 +111,13 @@
     "helpEmailTooltip": "Signaler un bug ou obtenir de l'aide",
     "diagnosticLogs": "Journaux de diagnostic",
     "diagnosticLogsTooltip": "Enregistre l’activité de l’application pour que vous puissiez la joindre à un rapport de bug. Désactivé par défaut. Une fois activé, un bouton « Journaux » apparaît dans la barre de titre, et le réglage reste actif après un redémarrage.",
+    "appearance": "Apparence",
+    "appearanceTooltip": "L'aspect de l'application. « Système » reprend le réglage clair ou sombre du système d'exploitation.",
+    "appearanceMode": {
+      "system": "Système",
+      "light": "Clair",
+      "dark": "Sombre"
+    },
     "helpDiscussions": "Discussions",
     "helpDiscussionsTooltip": "Demandes de fonctionnalités, retours et discussions communautaires",
     "auto": "Auto",
@@ -1005,6 +1012,7 @@
       "sourceColor": "Couleur du texte source",
       "translationColor": "Couleur de la traduction",
       "customColor": "Couleur personnalisée",
+      "followTheme": "Suivre le thème",
       "colorArea": "Saturation et luminosité",
       "colorHue": "Teinte",
       "colorHex": "Valeur hexadécimale de la couleur",

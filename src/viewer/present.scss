@@ -1,4 +1,6 @@
 // src/viewer/present.scss
+// The app's theme tokens first: `tk.$…` aliases `--sk-*` (spec 2026-10-22 §5).
+@use '../styles/theme';
 @use '../styles/tokens' as tk;
 
 .present {

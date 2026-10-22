@@ -32,7 +32,7 @@
     display: block;
   }
 
-  &--mic    { background: rgba(0, 153, 255, 0.10); }
-  &--system { background: rgba(245, 158, 11, 0.10); }
-  &--output { background: rgba(tk.$color-primary, 0.10); }
+  &--mic    { background: color-mix(in srgb, tk.$color-waveform-speaker 10%, transparent); }
+  &--system { background: color-mix(in srgb, tk.$color-waveform-participant 10%, transparent); }
+  &--output { background: color-mix(in srgb, tk.$color-primary 10%, transparent); }
 }
