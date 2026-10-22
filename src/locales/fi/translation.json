@@ -1574,7 +1574,7 @@
   },
   "screenContext": {
     "picker": {
-      "title": "Valitse, mitä Qwen saa nähdä",
+      "title": "Valitse, mitä malli saa nähdä",
       "privacy": "Kaikki valitsemasi alueen sisällä oleva lähetetään kuvina Alibaba Cloudin Qwen-palveluun tämän istunnon alueella – ei mitään muuta näytöltäsi. Kizuna AI ei vastaanota niitä.",
       "windows": "Ikkunat",
       "screens": "Näytöt",
@@ -1584,6 +1584,7 @@
       "deniedTitle": "Näytön tallennuksen käyttöoikeus tarvitaan",
       "deniedText": "macOS antaa Sokujin nähdä näytön vain näytön tallennuksen käyttöoikeudella. Myönnä se Järjestelmäasetuksissa, käynnistä sitten Sokuji uudelleen ja aloita uudestaan.",
       "openSettings": "Avaa Järjestelmäasetukset",
+      "refresh": "Päivitä",
       "cancel": "Aloita ilman näytön kontekstia",
       "nothingVisible": "Valitsemasi alue ei näytä juuri nyt mitään. Valitse toinen tai aloita ilman näytön kontekstia.",
       "nothingVisibleRunning": "Valitsemasi alue ei näytä juuri nyt mitään. Valitse toinen tai jatka istuntoa sellaisenaan.",

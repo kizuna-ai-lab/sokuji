@@ -1574,7 +1574,7 @@
   },
   "screenContext": {
     "picker": {
-      "title": "Choose what Qwen may see",
+      "title": "Choose what the model can see",
       "privacy": "Everything inside the area you choose is sent to Alibaba Cloud's Qwen service, in the region of this session, as pictures — nothing else on your screen. Kizuna AI does not receive them.",
       "windows": "Windows",
       "screens": "Screens",
@@ -1584,6 +1584,7 @@
       "deniedTitle": "Screen Recording permission needed",
       "deniedText": "macOS lets Sokuji see the screen only with Screen Recording permission. Grant it in System Settings, then restart Sokuji and start again.",
       "openSettings": "Open System Settings",
+      "refresh": "Refresh",
       "cancel": "Start without screen context",
       "nothingVisible": "The area you chose shows nothing right now. Pick another, or start without screen context.",
       "nothingVisibleRunning": "The area you chose shows nothing right now. Pick another, or keep the session as it is.",

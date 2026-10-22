@@ -1574,7 +1574,7 @@
   },
   "screenContext": {
     "picker": {
-      "title": "Escolha o que o Qwen pode ver",
+      "title": "Escolha o que o modelo pode ver",
       "privacy": "Tudo o que está dentro da área que escolher é enviado como imagens para o serviço Qwen da Alibaba Cloud, na região desta sessão — nada mais do seu ecrã. A Kizuna AI não as recebe.",
       "windows": "Janelas",
       "screens": "Ecrãs",
@@ -1584,6 +1584,7 @@
       "deniedTitle": "É necessária a permissão de Gravação de Ecrã",
       "deniedText": "O macOS só permite que o Sokuji veja o ecrã com a permissão de Gravação de Ecrã. Conceda-a nas Definições do Sistema, depois reinicie o Sokuji e comece novamente.",
       "openSettings": "Abrir Definições do Sistema",
+      "refresh": "Atualizar",
       "cancel": "Iniciar sem contexto do ecrã",
       "nothingVisible": "A área que escolheu não mostra nada neste momento. Escolha outra ou inicie sem contexto do ecrã.",
       "nothingVisibleRunning": "A área que escolheu não mostra nada neste momento. Escolha outra ou deixe a sessão como está.",

@@ -1574,7 +1574,7 @@
   },
   "screenContext": {
     "picker": {
-      "title": "Choisissez ce que Qwen peut voir",
+      "title": "Choisissez ce que le modèle peut voir",
       "privacy": "Tout ce qui se trouve dans la zone que vous choisissez est envoyé sous forme d'images au service Qwen d'Alibaba Cloud, dans la région de cette session — rien d'autre de votre écran. Kizuna AI ne les reçoit pas.",
       "windows": "Fenêtres",
       "screens": "Écrans",
@@ -1584,6 +1584,7 @@
       "deniedTitle": "Autorisation d'enregistrement de l'écran requise",
       "deniedText": "macOS ne permet à Sokuji de voir l'écran qu'avec l'autorisation d'enregistrement de l'écran. Accordez-la dans Réglages Système, puis redémarrez Sokuji et recommencez.",
       "openSettings": "Ouvrir les Réglages Système",
+      "refresh": "Actualiser",
       "cancel": "Démarrer sans contexte d'écran",
       "nothingVisible": "La zone choisie n'affiche rien pour l'instant. Choisissez-en une autre ou démarrez sans contexte d'écran.",
       "nothingVisibleRunning": "La zone choisie n'affiche rien pour l'instant. Choisissez-en une autre ou laissez la session telle quelle.",

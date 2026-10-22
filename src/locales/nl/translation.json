@@ -1574,7 +1574,7 @@
   },
   "screenContext": {
     "picker": {
-      "title": "Kies wat Qwen mag zien",
+      "title": "Kies wat het model mag zien",
       "privacy": "Alles binnen het gebied dat je kiest, wordt als afbeeldingen verstuurd naar de Qwen-dienst van Alibaba Cloud, in de regio van deze sessie — verder niets van je scherm. Kizuna AI ontvangt ze niet.",
       "windows": "Vensters",
       "screens": "Schermen",
@@ -1584,6 +1584,7 @@
       "deniedTitle": "Toestemming voor schermopname nodig",
       "deniedText": "macOS laat Sokuji het scherm alleen zien met toestemming voor schermopname. Geef die in Systeeminstellingen, start Sokuji daarna opnieuw op en begin opnieuw.",
       "openSettings": "Systeeminstellingen openen",
+      "refresh": "Vernieuwen",
       "cancel": "Starten zonder schermcontext",
       "nothingVisible": "Het gekozen gebied laat op dit moment niets zien. Kies een ander gebied of start zonder schermcontext.",
       "nothingVisibleRunning": "Het gekozen gebied laat op dit moment niets zien. Kies een ander gebied of laat de sessie zoals hij is.",

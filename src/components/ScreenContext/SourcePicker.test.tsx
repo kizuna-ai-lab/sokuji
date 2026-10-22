@@ -34,10 +34,11 @@ const props = (over: Partial<SourcePickerProps> = {}): SourcePickerProps => ({
   onPortal: vi.fn(),
   onCancel: vi.fn(),
   onOpenPrivacy: vi.fn(),
+  onRefresh: vi.fn(),
   ...over,
 });
 
-const dialog = () => screen.getByRole('dialog', { name: 'Choose what Qwen may see' });
+const dialog = () => screen.getByRole('dialog', { name: 'Choose what the model can see' });
 const sourceButtons = () => within(dialog()).queryAllByRole('button', { name: /^(Slides|Notes|Entire screen)$/ });
 
 describe('SourcePicker', () => {
@@ -55,6 +56,23 @@ describe('SourcePicker', () => {
 
     fireEvent.click(sourceButtons()[0]);
     expect(p.onPick).toHaveBeenCalledWith(SLIDES);
+  });
+
+  it('offers Refresh under the list to look again, off while the list loads, and not where there is no list', () => {
+    const p = props();
+    const { rerender } = render(<SourcePicker {...p} />);
+    const refresh = () => within(dialog()).queryByRole('button', { name: 'Refresh' });
+    expect(refresh()).not.toBeNull();
+    fireEvent.click(refresh()!);
+    expect(p.onRefresh).toHaveBeenCalledTimes(1);
+    rerender(<SourcePicker {...props({ sources: null })} />);
+    expect(refresh()).toBeDisabled();
+    rerender(<SourcePicker {...props({ mode: 'portal', sources: [] })} />);
+    expect(refresh()).toBeNull();
+    rerender(<SourcePicker {...props({ checking: true })} />);
+    expect(refresh()).toBeNull();
+    rerender(<SourcePicker {...props({ screenRecording: 'denied', sources: [] })} />);
+    expect(refresh()).toBeNull();
   });
 
   it('on a denied macOS shows the settings button and no list', () => {

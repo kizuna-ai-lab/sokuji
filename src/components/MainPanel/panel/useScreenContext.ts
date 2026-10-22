@@ -70,6 +70,16 @@ export function useScreenContext(session: Pick<AppSession, 'setBridges'>): Scree
     });
   }), []);
 
+  /** The list again, for the picker still open: loading while the desktop answers, then what it lists now. A closed picker asks nothing. */
+  const refresh = useCallback(() => {
+    const settle = answer.current;
+    if (!settle) return;
+    setPicker((open) => (open ? { ...open, sources: null } : open));
+    void readChoices().then((choices) => {
+      if (answer.current === settle) setPicker((open) => (open ? { ...open, ...choices } : open));
+    });
+  }, []);
+
   useEffect(() => {
     if (!desktop) return;
     session.setBridges({ pickScreenSource: (reason?: PickReason) => ask(reason, false) });
@@ -114,6 +124,7 @@ export function useScreenContext(session: Pick<AppSession, 'setBridges'>): Scree
       onPortal: () => answer.current?.({ kind: 'portal' }),
       onCancel: () => answer.current?.(null),
       onOpenPrivacy: () => { void invoke('open-privacy-settings', 'screen-recording'); },
+      onRefresh: refresh,
     },
   };
 }

@@ -1574,7 +1574,7 @@
   },
   "screenContext": {
     "picker": {
-      "title": "选择 Qwen 可以看到的内容",
+      "title": "选择模型可以看到的内容",
       "privacy": "你所选区域内的一切都会以图片形式发送到 Alibaba Cloud 的 Qwen 服务（位于本次会话所在的区域）——屏幕上的其他内容都不会发送。Kizuna AI 不会收到这些图片。",
       "windows": "窗口",
       "screens": "屏幕",
@@ -1584,6 +1584,7 @@
       "deniedTitle": "需要屏幕录制权限",
       "deniedText": "macOS 只有在授予屏幕录制权限后才允许 Sokuji 查看屏幕。请在系统设置中授予该权限，然后重新启动 Sokuji 并重新开始。",
       "openSettings": "打开系统设置",
+      "refresh": "刷新",
       "cancel": "不使用屏幕上下文直接开始",
       "nothingVisible": "你选择的区域目前没有显示任何内容。请另选一个，或不使用屏幕上下文直接开始。",
       "nothingVisibleRunning": "你选择的区域目前没有显示任何内容。请另选一个，或让会话保持现状。",

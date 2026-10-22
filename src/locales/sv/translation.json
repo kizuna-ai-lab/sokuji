@@ -1574,7 +1574,7 @@
   },
   "screenContext": {
     "picker": {
-      "title": "Välj vad Qwen får se",
+      "title": "Välj vad modellen får se",
       "privacy": "Allt inom området du väljer skickas som bilder till Alibaba Clouds Qwen-tjänst, i den här sessionens region – inget annat från din skärm. Kizuna AI tar inte emot dem.",
       "windows": "Fönster",
       "screens": "Skärmar",
@@ -1584,6 +1584,7 @@
       "deniedTitle": "Behörighet för skärminspelning krävs",
       "deniedText": "macOS låter Sokuji se skärmen endast med behörighet för skärminspelning. Ge behörigheten i Systeminställningar, starta sedan om Sokuji och börja igen.",
       "openSettings": "Öppna Systeminställningar",
+      "refresh": "Uppdatera",
       "cancel": "Starta utan skärmkontext",
       "nothingVisible": "Området du valde visar ingenting just nu. Välj ett annat, eller starta utan skärmkontext.",
       "nothingVisibleRunning": "Området du valde visar ingenting just nu. Välj ett annat, eller låt sessionen vara som den är.",

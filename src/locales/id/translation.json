@@ -1574,7 +1574,7 @@
   },
   "screenContext": {
     "picker": {
-      "title": "Pilih apa yang boleh dilihat Qwen",
+      "title": "Pilih apa yang boleh dilihat model",
       "privacy": "Semua yang ada di dalam area yang Anda pilih dikirim sebagai gambar ke layanan Qwen milik Alibaba Cloud, di wilayah sesi ini — tidak ada hal lain dari layar Anda. Kizuna AI tidak menerimanya.",
       "windows": "Jendela",
       "screens": "Layar",
@@ -1584,6 +1584,7 @@
       "deniedTitle": "Izin Perekaman Layar diperlukan",
       "deniedText": "macOS hanya mengizinkan Sokuji melihat layar dengan izin Screen Recording. Berikan izin itu di System Settings, lalu buka ulang Sokuji dan mulai lagi.",
       "openSettings": "Buka Pengaturan Sistem",
+      "refresh": "Segarkan",
       "cancel": "Mulai tanpa konteks layar",
       "nothingVisible": "Area yang Anda pilih tidak menampilkan apa pun saat ini. Pilih yang lain, atau mulai tanpa konteks layar.",
       "nothingVisibleRunning": "Area yang Anda pilih tidak menampilkan apa pun saat ini. Pilih yang lain, atau biarkan sesi seperti apa adanya.",

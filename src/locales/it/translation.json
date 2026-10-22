@@ -1574,7 +1574,7 @@
   },
   "screenContext": {
     "picker": {
-      "title": "Scegli cosa può vedere Qwen",
+      "title": "Scegli cosa può vedere il modello",
       "privacy": "Tutto ciò che si trova nell'area che scegli viene inviato come immagini al servizio Qwen di Alibaba Cloud, nella regione di questa sessione — nient'altro del tuo schermo. Kizuna AI non le riceve.",
       "windows": "Finestre",
       "screens": "Schermi",
@@ -1584,6 +1584,7 @@
       "deniedTitle": "Serve l'autorizzazione Registrazione Schermo",
       "deniedText": "macOS consente a Sokuji di vedere lo schermo solo con l'autorizzazione Registrazione Schermo. Concedila in Impostazioni di Sistema, poi riavvia Sokuji e ricomincia.",
       "openSettings": "Apri Impostazioni di Sistema",
+      "refresh": "Aggiorna",
       "cancel": "Avvia senza contesto dello schermo",
       "nothingVisible": "L'area che hai scelto al momento non mostra nulla. Scegline un'altra o avvia senza contesto dello schermo.",
       "nothingVisibleRunning": "L'area che hai scelto al momento non mostra nulla. Scegline un'altra o lascia la sessione così com'è.",

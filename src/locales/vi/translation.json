@@ -1574,7 +1574,7 @@
   },
   "screenContext": {
     "picker": {
-      "title": "Chọn những gì Qwen được xem",
+      "title": "Chọn những gì mô hình được xem",
       "privacy": "Mọi thứ trong vùng bạn chọn được gửi dưới dạng hình ảnh tới dịch vụ Qwen của Alibaba Cloud, tại khu vực của phiên này — không có gì khác trên màn hình của bạn. Kizuna AI không nhận các hình ảnh này.",
       "windows": "Cửa sổ",
       "screens": "Màn hình",
@@ -1584,6 +1584,7 @@
       "deniedTitle": "Cần quyền Ghi màn hình",
       "deniedText": "macOS chỉ cho Sokuji xem màn hình khi có quyền Screen Recording. Hãy cấp quyền trong System Settings, sau đó khởi động lại Sokuji và bắt đầu lại.",
       "openSettings": "Mở Cài đặt Hệ thống",
+      "refresh": "Làm mới",
       "cancel": "Bắt đầu không có ngữ cảnh màn hình",
       "nothingVisible": "Vùng bạn chọn hiện không hiển thị gì. Hãy chọn vùng khác, hoặc bắt đầu không có ngữ cảnh màn hình.",
       "nothingVisibleRunning": "Vùng bạn chọn hiện không hiển thị gì. Hãy chọn vùng khác, hoặc giữ nguyên phiên như hiện tại.",

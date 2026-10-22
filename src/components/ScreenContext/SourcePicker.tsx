@@ -13,7 +13,7 @@
  */
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Loader, ShieldAlert } from 'lucide-react';
+import { Loader, RefreshCw, ShieldAlert } from 'lucide-react';
 import Modal from '../Modal/Modal';
 import type { PickReason } from '../../app/screenContext';
 import type { CaptureSourceInfo } from '../../lib/screen/desktopFrames';
@@ -35,6 +35,8 @@ export interface SourcePickerProps {
   onPortal(): void;                       // 'portal' mode's one button
   onCancel(): void;
   onOpenPrivacy(): void;
+  /** Asks the desktop for its windows and screens again: the list is a snapshot, a window opened since is not on it. */
+  onRefresh(): void;
 }
 
 export function SourcePicker(p: SourcePickerProps) {
@@ -45,7 +47,7 @@ export function SourcePicker(p: SourcePickerProps) {
   };
 
   return (
-    <Modal isOpen={p.open} onClose={cancel} title={t('screenContext.picker.title', 'Choose what Qwen may see')}>
+    <Modal isOpen={p.open} onClose={cancel} title={t('screenContext.picker.title', 'Choose what the model can see')}>
       <div className="source-picker">
         {denied ? (
           <div className="source-picker__denied">
@@ -92,6 +94,13 @@ export function SourcePicker(p: SourcePickerProps) {
           </>
         )}
         <div className="source-picker__footer">
+          {/* Only where Sokuji's own list shows: the portal and the denied state have no list to look at again. */}
+          {!denied && !p.checking && p.mode === 'list' && (
+            <button type="button" className="source-picker__refresh" onClick={p.onRefresh} disabled={p.sources === null}>
+              <RefreshCw size={14} aria-hidden="true" />
+              {t('screenContext.picker.refresh', 'Refresh')}
+            </button>
+          )}
           <button type="button" className="source-picker__cancel" onClick={cancel} disabled={p.checking}>
             {p.running ? t('common.cancel', 'Cancel') : t('screenContext.picker.cancel', 'Start without screen context')}
           </button>

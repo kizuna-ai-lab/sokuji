@@ -120,6 +120,37 @@ describe('useScreenContext — the picker bridge', () => {
     expect(result.current.picker.open).toBe(false);
   });
 
+  it('Refresh asks the desktop again while the picker is open — loading first — and the pick keeps waiting', async () => {
+    ipc();
+    const { result } = renderHook(() => useScreenContext(session));
+    const { answer } = await openPicker();
+    expect(result.current.picker.sources).toEqual([SLIDES, DESKTOP]);
+
+    // A window closed meanwhile: the desktop now lists the screen alone.
+    const { channels } = ipc({ listed: { ok: true, sources: [DESKTOP] } });
+    act(() => { result.current.picker.onRefresh(); });
+    expect(result.current.picker).toMatchObject({ open: true, sources: null });
+    await flush();
+    expect(result.current.picker).toMatchObject({ open: true, mode: 'list', sources: [DESKTOP] });
+    expect(channels).toEqual(['capture-source-mode', 'list-capture-sources', 'capture-source-mode']);
+
+    act(() => { result.current.picker.onPick(DESKTOP); });
+    await expect(answer).resolves.toEqual({ kind: 'desktop', source: DESKTOP });
+  });
+
+  it('a Refresh once the picker has closed asks nothing', async () => {
+    ipc();
+    const { result } = renderHook(() => useScreenContext(session));
+    const { answer } = await openPicker();
+    act(() => { result.current.picker.onCancel(); });
+    await expect(answer).resolves.toBeNull();
+    const { invoke } = ipc();
+    act(() => { result.current.picker.onRefresh(); });
+    await flush();
+    expect(invoke).not.toHaveBeenCalled();
+    expect(result.current.picker.open).toBe(false);
+  });
+
   it('on a portal desktop lists nothing, and its one button answers portal', async () => {
     const { channels } = ipc({ modes: [{ mode: 'portal', screenRecording: 'granted' }] });
     const { result } = renderHook(() => useScreenContext(session));

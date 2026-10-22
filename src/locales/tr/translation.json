@@ -1574,7 +1574,7 @@
   },
   "screenContext": {
     "picker": {
-      "title": "Qwen'in neyi görebileceğini seçin",
+      "title": "Modelin neyi görebileceğini seçin",
       "privacy": "Seçtiğiniz alanın içindeki her şey, bu oturumun bölgesindeki Alibaba Cloud'un Qwen hizmetine görüntü olarak gönderilir — ekranınızdaki başka hiçbir şey gönderilmez. Kizuna AI bunları almaz.",
       "windows": "Pencereler",
       "screens": "Ekranlar",
@@ -1584,6 +1584,7 @@
       "deniedTitle": "Ekran Kaydı izni gerekli",
       "deniedText": "macOS, Sokuji'nin ekranı yalnızca Ekran Kaydı izniyle görmesine olanak tanır. İzni Sistem Ayarları'nda verin, ardından Sokuji'yi yeniden başlatıp tekrar başlayın.",
       "openSettings": "Sistem Ayarları'nı Aç",
+      "refresh": "Yenile",
       "cancel": "Ekran bağlamı olmadan başlat",
       "nothingVisible": "Seçtiğiniz alan şu anda hiçbir şey göstermiyor. Başka bir alan seçin veya ekran bağlamı olmadan başlatın.",
       "nothingVisibleRunning": "Seçtiğiniz alan şu anda hiçbir şey göstermiyor. Başka bir alan seçin veya oturumu olduğu gibi bırakın.",

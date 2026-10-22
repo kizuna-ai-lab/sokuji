@@ -1574,7 +1574,7 @@
   },
   "screenContext": {
     "picker": {
-      "title": "Wählen Sie, was Qwen sehen darf",
+      "title": "Wählen Sie, was das Modell sehen darf",
       "privacy": "Alles innerhalb des gewählten Bereichs wird als Bilder an den Qwen-Dienst von Alibaba Cloud gesendet, in der Region dieser Sitzung – sonst nichts von Ihrem Bildschirm. Kizuna AI erhält sie nicht.",
       "windows": "Fenster",
       "screens": "Bildschirme",
@@ -1584,6 +1584,7 @@
       "deniedTitle": "Berechtigung zur Bildschirmaufnahme erforderlich",
       "deniedText": "macOS lässt Sokuji den Bildschirm nur mit der Berechtigung zur Bildschirmaufnahme sehen. Erteilen Sie sie in den Systemeinstellungen, starten Sie Sokuji anschließend neu und beginnen Sie erneut.",
       "openSettings": "Systemeinstellungen öffnen",
+      "refresh": "Aktualisieren",
       "cancel": "Ohne Bildschirmkontext starten",
       "nothingVisible": "Der gewählte Bereich zeigt gerade nichts an. Wählen Sie einen anderen oder starten Sie ohne Bildschirmkontext.",
       "nothingVisibleRunning": "Der gewählte Bereich zeigt gerade nichts an. Wählen Sie einen anderen oder lassen Sie die Sitzung, wie sie ist.",
