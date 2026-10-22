@@ -1581,6 +1581,7 @@
       "portal": "Elegir una ventana o pantalla…",
       "loading": "Buscando ventanas…",
       "none": "No se encontró ninguna ventana ni pantalla para compartir.",
+      "minimizedHint": "Las ventanas minimizadas no aparecen en la lista: restaura la ventana y pulsa Actualizar.",
       "deniedTitle": "Se necesita el permiso de Grabación de pantalla",
       "deniedText": "macOS solo permite que Sokuji vea la pantalla con el permiso de Grabación de pantalla. Concédelo en Ajustes del Sistema, luego reinicia Sokuji y vuelve a empezar.",
       "openSettings": "Abrir Ajustes del Sistema",

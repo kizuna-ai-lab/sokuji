@@ -120,18 +120,18 @@ describe('useScreenContext — the picker bridge', () => {
     expect(result.current.picker.open).toBe(false);
   });
 
-  it('Refresh asks the desktop again while the picker is open — loading first — and the pick keeps waiting', async () => {
+  it('Refresh asks the desktop again while the picker is open — the list stays up meanwhile — and the pick keeps waiting', async () => {
     ipc();
     const { result } = renderHook(() => useScreenContext(session));
     const { answer } = await openPicker();
-    expect(result.current.picker.sources).toEqual([SLIDES, DESKTOP]);
+    expect(result.current.picker).toMatchObject({ sources: [SLIDES, DESKTOP], refreshing: false });
 
-    // A window closed meanwhile: the desktop now lists the screen alone.
+    // A window closed meanwhile: the desktop now lists the screen alone. The old list is not torn down while it answers.
     const { channels } = ipc({ listed: { ok: true, sources: [DESKTOP] } });
     act(() => { result.current.picker.onRefresh(); });
-    expect(result.current.picker).toMatchObject({ open: true, sources: null });
+    expect(result.current.picker).toMatchObject({ open: true, sources: [SLIDES, DESKTOP], refreshing: true });
     await flush();
-    expect(result.current.picker).toMatchObject({ open: true, mode: 'list', sources: [DESKTOP] });
+    expect(result.current.picker).toMatchObject({ open: true, mode: 'list', sources: [DESKTOP], refreshing: false });
     expect(channels).toEqual(['capture-source-mode', 'list-capture-sources', 'capture-source-mode']);
 
     act(() => { result.current.picker.onPick(DESKTOP); });

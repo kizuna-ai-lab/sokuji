@@ -1581,6 +1581,7 @@
       "portal": "Escolher uma janela ou tela…",
       "loading": "Procurando janelas…",
       "none": "Nenhuma janela ou tela para compartilhar foi encontrada.",
+      "minimizedHint": "Janelas minimizadas não aparecem na lista: restaure a janela e clique em Atualizar.",
       "deniedTitle": "Permissão de Gravação de Tela necessária",
       "deniedText": "O macOS só deixa o Sokuji ver a tela com a permissão de Gravação de Tela. Conceda-a nos Ajustes do Sistema, depois reinicie o Sokuji e comece de novo.",
       "openSettings": "Abrir Ajustes do Sistema",

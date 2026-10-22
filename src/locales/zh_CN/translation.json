@@ -1581,6 +1581,7 @@
       "portal": "选择窗口或屏幕…",
       "loading": "正在查找窗口…",
       "none": "没有找到可共享的窗口或屏幕。",
+      "minimizedHint": "最小化的窗口不会列出：先还原窗口，再点击刷新。",
       "deniedTitle": "需要屏幕录制权限",
       "deniedText": "macOS 只有在授予屏幕录制权限后才允许 Sokuji 查看屏幕。请在系统设置中授予该权限，然后重新启动 Sokuji 并重新开始。",
       "openSettings": "打开系统设置",

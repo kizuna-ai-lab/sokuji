@@ -37,6 +37,8 @@ export interface SourcePickerProps {
   onOpenPrivacy(): void;
   /** Asks the desktop for its windows and screens again: the list is a snapshot, a window opened since is not on it. */
   onRefresh(): void;
+  /** A Refresh is out: the list stays, the button turns until the answer lands. */
+  refreshing?: boolean;
 }
 
 export function SourcePicker(p: SourcePickerProps) {
@@ -96,8 +98,8 @@ export function SourcePicker(p: SourcePickerProps) {
         <div className="source-picker__footer">
           {/* Only where Sokuji's own list shows: the portal and the denied state have no list to look at again. */}
           {!denied && !p.checking && p.mode === 'list' && (
-            <button type="button" className="source-picker__refresh" onClick={p.onRefresh} disabled={p.sources === null}>
-              <RefreshCw size={14} aria-hidden="true" />
+            <button type="button" className="source-picker__refresh" onClick={p.onRefresh} disabled={p.sources === null || p.refreshing}>
+              <RefreshCw size={14} className={p.refreshing ? 'source-picker__spinner' : undefined} aria-hidden="true" />
               {t('screenContext.picker.refresh', 'Refresh')}
             </button>
           )}
@@ -121,8 +123,15 @@ function SourceList({ sources, onPick }: { sources: CaptureSourceInfo[] | null; 
       </p>
     );
   }
+  // The desktop lists no minimized window (X11 and macOS leave them out; Windows lists them but captures them black): said under the list, where the Refresh is.
+  const hint = <p className="source-picker__hint">{t('screenContext.picker.minimizedHint', "Minimized windows aren't listed: restore the window, then Refresh.")}</p>;
   if (sources.length === 0) {
-    return <p className="source-picker__status">{t('screenContext.picker.none', 'No window or screen to share was found.')}</p>;
+    return (
+      <>
+        <p className="source-picker__status">{t('screenContext.picker.none', 'No window or screen to share was found.')}</p>
+        {hint}
+      </>
+    );
   }
   const windows = sources.filter((s) => s.kind === 'window');
   const screens = sources.filter((s) => s.kind === 'screen');
@@ -130,6 +139,7 @@ function SourceList({ sources, onPick }: { sources: CaptureSourceInfo[] | null; 
     <>
       {windows.length > 0 && <SourceGroup title={t('screenContext.picker.windows', 'Windows')} sources={windows} onPick={onPick} />}
       {screens.length > 0 && <SourceGroup title={t('screenContext.picker.screens', 'Screens')} sources={screens} onPick={onPick} />}
+      {hint}
     </>
   );
 }

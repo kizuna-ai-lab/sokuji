@@ -67,8 +67,16 @@ describe('SourcePicker', () => {
     expect(p.onRefresh).toHaveBeenCalledTimes(1);
     rerender(<SourcePicker {...props({ sources: null })} />);
     expect(refresh()).toBeDisabled();
+    // While the desktop answers a refresh the list stays as it was; the button is off and its icon turns.
+    rerender(<SourcePicker {...props({ refreshing: true })} />);
+    expect(refresh()).toBeDisabled();
+    expect(refresh()!.querySelector('.source-picker__spinner')).not.toBeNull();
+    expect(sourceButtons()).toHaveLength(3);
+    // The desktop lists no minimized window (X11 and macOS leave them out, Windows captures them black): the list says so.
+    expect(dialog().textContent).toContain("Minimized windows aren't listed: restore the window, then Refresh.");
     rerender(<SourcePicker {...props({ mode: 'portal', sources: [] })} />);
     expect(refresh()).toBeNull();
+    expect(dialog().textContent).not.toContain('Minimized windows');
     rerender(<SourcePicker {...props({ checking: true })} />);
     expect(refresh()).toBeNull();
     rerender(<SourcePicker {...props({ screenRecording: 'denied', sources: [] })} />);

@@ -1581,6 +1581,7 @@
       "portal": "Fenster oder Bildschirm auswählen…",
       "loading": "Fenster werden gesucht…",
       "none": "Es wurde kein Fenster und kein Bildschirm zum Teilen gefunden.",
+      "minimizedHint": "Minimierte Fenster werden nicht aufgeführt: Fenster wiederherstellen, dann Aktualisieren.",
       "deniedTitle": "Berechtigung zur Bildschirmaufnahme erforderlich",
       "deniedText": "macOS lässt Sokuji den Bildschirm nur mit der Berechtigung zur Bildschirmaufnahme sehen. Erteilen Sie sie in den Systemeinstellungen, starten Sie Sokuji anschließend neu und beginnen Sie erneut.",
       "openSettings": "Systemeinstellungen öffnen",

@@ -1581,6 +1581,7 @@
       "portal": "Valitse ikkuna tai näyttö…",
       "loading": "Etsitään ikkunoita…",
       "none": "Jaettavaa ikkunaa tai näyttöä ei löytynyt.",
+      "minimizedHint": "Pienennettyjä ikkunoita ei luetella: palauta ikkuna ja paina Päivitä.",
       "deniedTitle": "Näytön tallennuksen käyttöoikeus tarvitaan",
       "deniedText": "macOS antaa Sokujin nähdä näytön vain näytön tallennuksen käyttöoikeudella. Myönnä se Järjestelmäasetuksissa, käynnistä sitten Sokuji uudelleen ja aloita uudestaan.",
       "openSettings": "Avaa Järjestelmäasetukset",

@@ -1581,6 +1581,7 @@
       "portal": "Bir pencere veya ekran seçin…",
       "loading": "Pencereler aranıyor…",
       "none": "Paylaşılacak pencere veya ekran bulunamadı.",
+      "minimizedHint": "Simge durumuna küçültülmüş pencereler listelenmez: pencereyi geri yükleyin, sonra Yenile’ye basın.",
       "deniedTitle": "Ekran Kaydı izni gerekli",
       "deniedText": "macOS, Sokuji'nin ekranı yalnızca Ekran Kaydı izniyle görmesine olanak tanır. İzni Sistem Ayarları'nda verin, ardından Sokuji'yi yeniden başlatıp tekrar başlayın.",
       "openSettings": "Sistem Ayarları'nı Aç",

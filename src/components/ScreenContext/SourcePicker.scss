@@ -171,6 +171,13 @@
     }
   }
 
+  // Under the list: why a window may be missing, in the caption size and the muted colour.
+  &__hint {
+    margin: vars.$space-2 0 0;
+    font-size: vars.$font-caption;
+    color: vars.$text-muted;
+  }
+
   // Refresh at the left when the list shows, Cancel always at the right edge.
   &__footer {
     display: flex;

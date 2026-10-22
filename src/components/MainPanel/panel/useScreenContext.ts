@@ -38,6 +38,8 @@ type Choices = Pick<SourcePickerProps, 'mode' | 'screenRecording' | 'sources'>;
 interface OpenPicker extends Choices {
   reason?: PickReason;
   running: boolean;
+  /** A Refresh is out to the desktop: the list stays as it was until the answer lands. */
+  refreshing: boolean;
 }
 
 const invoke: Invoke = (channel, data) => window.electron.invoke(channel, data);
@@ -64,19 +66,19 @@ export function useScreenContext(session: Pick<AppSession, 'setBridges'>): Scree
       setPicker(null);
     };
     answer.current = settle;
-    setPicker({ reason, running, mode: 'list', screenRecording: 'granted', sources: null });
+    setPicker({ reason, running, refreshing: false, mode: 'list', screenRecording: 'granted', sources: null });
     void readChoices().then((choices) => {
-      if (answer.current === settle) setPicker({ reason, running, ...choices });
+      if (answer.current === settle) setPicker({ reason, running, refreshing: false, ...choices });
     });
   }), []);
 
-  /** The list again, for the picker still open: loading while the desktop answers, then what it lists now. A closed picker asks nothing. */
+  /** The list again, for the picker still open: what is listed stays up while the desktop answers, then what it lists now. A closed picker asks nothing. */
   const refresh = useCallback(() => {
     const settle = answer.current;
     if (!settle) return;
-    setPicker((open) => (open ? { ...open, sources: null } : open));
+    setPicker((open) => (open ? { ...open, refreshing: true } : open));
     void readChoices().then((choices) => {
-      if (answer.current === settle) setPicker((open) => (open ? { ...open, ...choices } : open));
+      if (answer.current === settle) setPicker((open) => (open ? { ...open, ...choices, refreshing: false } : open));
     });
   }, []);
 
@@ -120,6 +122,7 @@ export function useScreenContext(session: Pick<AppSession, 'setBridges'>): Scree
       reason: picker?.reason,
       checking,
       running: picker?.running ?? false,
+      refreshing: picker?.refreshing ?? false,
       onPick: (source) => answer.current?.({ kind: 'desktop', source }),
       onPortal: () => answer.current?.({ kind: 'portal' }),
       onCancel: () => answer.current?.(null),

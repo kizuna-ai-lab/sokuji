@@ -1581,6 +1581,7 @@
       "portal": "Kies een venster of scherm…",
       "loading": "Vensters zoeken…",
       "none": "Er is geen venster of scherm gevonden om te delen.",
+      "minimizedHint": "Geminimaliseerde vensters staan niet in de lijst: herstel het venster en klik op Vernieuwen.",
       "deniedTitle": "Toestemming voor schermopname nodig",
       "deniedText": "macOS laat Sokuji het scherm alleen zien met toestemming voor schermopname. Geef die in Systeeminstellingen, start Sokuji daarna opnieuw op en begin opnieuw.",
       "openSettings": "Systeeminstellingen openen",

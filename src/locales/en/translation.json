@@ -1581,6 +1581,7 @@
       "portal": "Choose a window or screen…",
       "loading": "Looking for windows…",
       "none": "No window or screen to share was found.",
+      "minimizedHint": "Minimized windows aren't listed: restore the window, then Refresh.",
       "deniedTitle": "Screen Recording permission needed",
       "deniedText": "macOS lets Sokuji see the screen only with Screen Recording permission. Grant it in System Settings, then restart Sokuji and start again.",
       "openSettings": "Open System Settings",

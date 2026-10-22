@@ -1581,6 +1581,7 @@
       "portal": "Wybierz okno lub ekran…",
       "loading": "Szukanie okien…",
       "none": "Nie znaleziono okna ani ekranu do udostępnienia.",
+      "minimizedHint": "Zminimalizowane okna nie pojawiają się na liście: przywróć okno, a potem Odśwież.",
       "deniedTitle": "Wymagane uprawnienie do nagrywania ekranu",
       "deniedText": "macOS pozwala Sokuji widzieć ekran tylko z uprawnieniem do nagrywania ekranu. Przyznaj je w Ustawieniach systemowych, a następnie uruchom ponownie Sokuji i zacznij od nowa.",
       "openSettings": "Otwórz Ustawienia systemowe",

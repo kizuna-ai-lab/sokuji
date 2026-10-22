@@ -1581,6 +1581,7 @@
       "portal": "Chọn một cửa sổ hoặc màn hình…",
       "loading": "Đang tìm cửa sổ…",
       "none": "Không tìm thấy cửa sổ hay màn hình nào để chia sẻ.",
+      "minimizedHint": "Cửa sổ đã thu nhỏ không có trong danh sách: khôi phục cửa sổ rồi bấm Làm mới.",
       "deniedTitle": "Cần quyền Ghi màn hình",
       "deniedText": "macOS chỉ cho Sokuji xem màn hình khi có quyền Screen Recording. Hãy cấp quyền trong System Settings, sau đó khởi động lại Sokuji và bắt đầu lại.",
       "openSettings": "Mở Cài đặt Hệ thống",
