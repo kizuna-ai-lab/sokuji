@@ -208,6 +208,14 @@ face-to-face mode (not available with Qwen at all).
   → canvas sampler at 1 Hz, the change detector, the blank-frame guard and the JPEG encode are one renderer
   module shared with the extension. macOS needs the Screen Recording permission (reuse the existing check
   and `open-privacy-settings`); on Wayland the `WebRTCPipeWireCapturer` feature must be on, as the docs note.
+  Electron's 'screen' status is `CGPreflightScreenCaptureAccess()`, so it reads 'granted' or 'denied', never
+  'not-determined': a Mac never asked reads 'denied', and so does one whose grant is pinned to an older build's
+  code hash (an ad-hoc or development build), which System Settings shows switched on while it never counts
+  (found on the test Mac after v0.46.0, 2026-10-23). The denied state therefore offers **Ask macOS again**:
+  `tccutil reset ScreenCapture ai.kizunaai.sokuji` (no admin rights needed), then one listing, which raises the
+  macOS prompt, then **Restart Sokuji**, since macOS applies a new grant only after a restart. The new grant is
+  recorded against the signing identity and survives updates. It runs only on the user's click: the reset also
+  clears a refusal they made on purpose.
 - **Capture, extension:** the meeting tab's existing `tabCapture` stream gains a video track (a speaker-only
   run, which captures no tab today, opens a video-only capture of the meeting tab when the switch is on);
   frames leave whenever the switch is on and a run is live (owner's ruling, §7). *My call:* the content

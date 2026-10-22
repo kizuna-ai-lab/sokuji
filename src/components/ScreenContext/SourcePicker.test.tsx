@@ -35,6 +35,8 @@ const props = (over: Partial<SourcePickerProps> = {}): SourcePickerProps => ({
   onPortal: vi.fn(),
   onCancel: vi.fn(),
   onOpenPrivacy: vi.fn(),
+  onReask: vi.fn(),
+  onRestart: vi.fn(),
   onRefresh: vi.fn(),
   ...over,
 });
@@ -86,15 +88,27 @@ describe('SourcePicker', () => {
     expect(refresh()).toBeNull();
   });
 
-  it('on a denied macOS shows the settings button and no list', () => {
+  it('on a denied macOS offers to ask macOS again and the settings, and no list; once asked, the restart a new grant needs', () => {
     const p = props({ screenRecording: 'denied' });
-    render(<SourcePicker {...p} />);
+    const { rerender } = render(<SourcePicker {...p} />);
     expect(dialog().textContent).toContain('Screen Recording permission needed');
-    expect(dialog().textContent).toContain('then restart Sokuji and start again');
+    // Switched on in System Settings for an older version reads denied too, and the words say so.
+    expect(dialog().textContent).toContain('given to an older version');
     expect(screen.queryAllByRole('img')).toEqual([]);
     expect(sourceButtons()).toEqual([]);
+    expect(screen.queryByRole('button', { name: 'Restart Sokuji' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Ask macOS again' }));
+    expect(p.onReask).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('button', { name: 'Open System Settings' }));
     expect(p.onOpenPrivacy).toHaveBeenCalledTimes(1);
+
+    // Asked: macOS applies a new grant only after a restart, so Restart Sokuji takes Ask macOS again's place.
+    rerender(<SourcePicker {...p} asked />);
+    expect(dialog().textContent).toContain('only after Sokuji restarts');
+    expect(screen.queryByRole('button', { name: 'Ask macOS again' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Restart Sokuji' }));
+    expect(p.onRestart).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Open System Settings' })).toBeTruthy();
   });
 
   it('in portal mode shows one button that asks the desktop to choose', () => {

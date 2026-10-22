@@ -10,7 +10,7 @@ const { setupCaptionShare } = require('./caption-share.js');
 const { createCloseHandshake } = require('./close-handshake.js');
 const { createWsHeaderRules } = require('./ws-header-rules.js');
 const { applyLinuxGpuFlags } = require('./linux-gpu-flags');
-const { captureSourceMode, listCaptureSources, screenRecordingState } = require('./capture-sources');
+const { captureSourceMode, listCaptureSources, screenRecordingState, reaskScreenRecording, MAC_BUNDLE_ID } = require('./capture-sources');
 const { acquireSingleInstanceLock, createFocusRelay } = require('./single-instance');
 const { ignoreStdioErrors, createExitHandler } = require('./exit-handler');
 
@@ -1348,5 +1348,30 @@ ipcMain.handle('list-capture-sources', async () => {
     },
     ownIds: () => BrowserWindow.getAllWindows().map((window) => window.getMediaSourceId()),
   });
+});
+
+/**
+ * The picker's "Ask macOS again" (reaskScreenRecording in capture-sources.js):
+ * Sokuji's own Screen Recording entry reset, then one listing, which raises the
+ * macOS prompt. Clears a grant pinned to an older build's code hash, which
+ * System Settings shows switched on while it never counts.
+ */
+ipcMain.handle('reask-screen-recording', async () => {
+  const { execFile } = require('child_process');
+  const { promisify } = require('util');
+  const execFileAsync = promisify(execFile);
+  return reaskScreenRecording({
+    platform: process.platform,
+    screenRecording: screenRecordingStatus,
+    reset: () => execFileAsync('/usr/bin/tccutil', ['reset', 'ScreenCapture', MAC_BUNDLE_ID]),
+    request: () => desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 0, height: 0 } }),
+    wait: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  });
+});
+
+/** macOS applies a new Screen Recording grant only after a restart: the picker's Restart Sokuji. */
+ipcMain.handle('relaunch-app', () => {
+  app.relaunch();
+  app.quit();
 });
 

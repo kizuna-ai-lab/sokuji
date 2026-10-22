@@ -145,7 +145,15 @@
     line-height: 1.5;
   }
 
+  // Ask macOS again (or Restart Sokuji once asked), then the settings: one row, wrapping in a narrow window.
+  &__denied-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: vars.$space-2;
+  }
+
   &__primary,
+  &__secondary,
   &__cancel,
   &__refresh {
     height: 28px;
@@ -191,6 +199,7 @@
     padding-top: vars.$space-1;
   }
 
+  &__secondary,
   &__cancel,
   &__refresh {
     background: vars.$bg-control;

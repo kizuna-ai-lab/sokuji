@@ -25,7 +25,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AppSession } from '../../../app/session';
 import { chooseAgain, type PickedSource, type PickReason } from '../../../app/screenContext';
 import { describeCause, reportWarning } from '../../../lib/diagnostics/report';
-import { captureSourceMode, listCaptureSources, openDesktopCapture, type Invoke } from '../../../lib/screen/desktopFrames';
+import { captureSourceMode, listCaptureSources, openDesktopCapture, reaskScreenRecording, type Invoke } from '../../../lib/screen/desktopFrames';
 import { useScreenContextStore } from '../../../stores/screenContextStore';
 import { isElectron } from '../../../utils/environment';
 import type { SourcePickerProps } from '../../ScreenContext/SourcePicker';
@@ -46,6 +46,8 @@ interface OpenPicker extends Choices {
   purpose: Purpose;
   /** A Refresh is out to the desktop: the list stays as it was until the answer lands. */
   refreshing: boolean;
+  /** macOS was asked again and still reads denied: what is left is the restart a new grant needs. */
+  asked: boolean;
 }
 
 const invoke: Invoke = (channel, data) => window.electron.invoke(channel, data);
@@ -85,9 +87,9 @@ export function useScreenContext(session: Pick<AppSession, 'setBridges'>): Scree
     answer.current = settle;
     openPurpose.current = purpose;
     const show = () => {
-      setPicker({ reason, purpose, refreshing: false, mode: 'list', screenRecording: 'granted', sources: null });
+      setPicker({ reason, purpose, refreshing: false, asked: false, mode: 'list', screenRecording: 'granted', sources: null });
       void readChoices().then((choices) => {
-        if (answer.current === settle) setPicker({ reason, purpose, refreshing: false, ...choices });
+        if (answer.current === settle) setPicker({ reason, purpose, refreshing: false, asked: false, ...choices });
       });
     };
     if (purpose !== 'settings') {
@@ -120,6 +122,44 @@ export function useScreenContext(session: Pick<AppSession, 'setBridges'>): Scree
     setPicker((open) => (open ? { ...open, refreshing: true } : open));
     void readChoices().then((choices) => {
       if (answer.current === settle) setPicker((open) => (open ? { ...open, ...choices, refreshing: false } : open));
+    });
+  }, []);
+
+  /**
+   * macOS refused: Sokuji's entry reset and the prompt raised (the main process's `reask-screen-recording`). A
+   * permission that then reads granted is listed at once; one that still reads denied, as a new grant does until
+   * Sokuji restarts, leaves the restart. The pick keeps waiting either way.
+   */
+  const reask = useCallback(() => {
+    const settle = answer.current;
+    if (!settle) return;
+    const leaveRestart = () => {
+      if (answer.current === settle) setPicker((open) => (open ? { ...open, asked: true } : open));
+    };
+    void reaskScreenRecording(invoke).then(
+      (answered) => {
+        if (answered.resetError) {
+          reportWarning('ScreenContext', `Sokuji's Screen Recording entry could not be reset; macOS was asked anyway: ${answered.resetError}`);
+        }
+        if (answered.status !== 'granted') {
+          leaveRestart();
+          return;
+        }
+        void readChoices().then((choices) => {
+          if (answer.current === settle) setPicker((open) => (open ? { ...open, ...choices, asked: false } : open));
+        });
+      },
+      (error: unknown) => {
+        reportWarning('ScreenContext', `Asking macOS for Screen Recording again failed: ${describeCause(error)}`, { cause: error });
+        leaveRestart();
+      },
+    );
+  }, []);
+
+  /** macOS applies a new Screen Recording grant only after a restart. */
+  const restart = useCallback(() => {
+    invoke('relaunch-app').catch((error: unknown) => {
+      reportWarning('ScreenContext', `Sokuji could not restart itself: ${describeCause(error)}`, { cause: error });
     });
   }, []);
 
@@ -166,6 +206,9 @@ export function useScreenContext(session: Pick<AppSession, 'setBridges'>): Scree
       checking,
       purpose: picker?.purpose ?? 'start',
       refreshing: picker?.refreshing ?? false,
+      asked: picker?.asked ?? false,
+      onReask: reask,
+      onRestart: restart,
       onPick: (source) => answer.current?.({ kind: 'desktop', source }),
       onPortal: () => answer.current?.({ kind: 'portal' }),
       onCancel: () => answer.current?.(null),

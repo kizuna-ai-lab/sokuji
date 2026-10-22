@@ -1,5 +1,15 @@
 import { describe, it, expect, vi } from 'vitest';
-import { pickableSources, captureSourceMode, listCaptureSources, screenRecordingState } from './capture-sources.js';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import {
+  pickableSources,
+  captureSourceMode,
+  listCaptureSources,
+  screenRecordingState,
+  reaskScreenRecording,
+  REASK_WAIT_MS,
+  MAC_BUNDLE_ID,
+} from './capture-sources.js';
 
 describe('pickableSources', () => {
   it('lists windows before screens, drops this app\'s own windows and nameless sources, and types by id prefix', () => {
@@ -133,5 +143,81 @@ describe('listCaptureSources', () => {
   it('turns a throw that is not an Error into its text', async () => {
     const out = await listCaptureSources({ screenRecording: () => 'granted', getSources: async () => { throw 'portal closed'; }, ownIds: () => [] });
     expect(out).toEqual({ ok: false, error: 'portal closed' });
+  });
+});
+
+describe('reaskScreenRecording', () => {
+  /** A Mac whose permission reads denied; the listing answers at once and the wait never ends. */
+  const mac = (over = {}) => {
+    const order = [];
+    const deps = {
+      platform: 'darwin',
+      screenRecording: vi.fn(() => 'denied'),
+      reset: vi.fn(async () => { order.push('reset'); }),
+      request: vi.fn(async () => { order.push('request'); return []; }),
+      wait: vi.fn(() => new Promise(() => {})),
+      ...over,
+    };
+    return { deps, order };
+  };
+
+  it("resets Sokuji's own entry first, then asks for the window list once, which raises macOS's prompt, and answers the status read after", async () => {
+    const { deps, order } = mac();
+    await expect(reaskScreenRecording(deps)).resolves.toEqual({ asked: true, status: 'denied' });
+    expect(order).toEqual(['reset', 'request']);
+    expect(deps.request).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves a permission that already works alone, and asks nothing off macOS', async () => {
+    const granted = mac({ screenRecording: vi.fn(() => 'granted') });
+    await expect(reaskScreenRecording(granted.deps)).resolves.toEqual({ asked: false, status: 'granted' });
+    expect(granted.deps.reset).not.toHaveBeenCalled();
+    expect(granted.deps.request).not.toHaveBeenCalled();
+
+    const linux = mac({ platform: 'linux', screenRecording: vi.fn(() => 'granted') });
+    await expect(reaskScreenRecording(linux.deps)).resolves.toEqual({ asked: false, status: 'granted' });
+    expect(linux.deps.reset).not.toHaveBeenCalled();
+  });
+
+  it('a reset that fails still asks (a Mac never asked needs no reset), and says why', async () => {
+    const { deps, order } = mac({ reset: vi.fn(async () => { throw new Error('tccutil exited with code 64'); }) });
+    await expect(reaskScreenRecording(deps)).resolves.toEqual({ asked: true, status: 'denied', resetError: 'tccutil exited with code 64' });
+    expect(deps.request).toHaveBeenCalledTimes(1);
+    expect(order).toEqual(['request']);
+  });
+
+  it(`a listing that never answers while the prompt is up is waited for ${REASK_WAIT_MS} ms at most, and one that fails still answers`, async () => {
+    const hung = mac({ request: vi.fn(() => new Promise(() => {})), wait: vi.fn(async () => {}) });
+    await expect(reaskScreenRecording(hung.deps)).resolves.toEqual({ asked: true, status: 'denied' });
+    expect(hung.deps.wait).toHaveBeenCalledWith(REASK_WAIT_MS);
+
+    const failed = mac({ request: vi.fn(async () => { throw new Error('no permission'); }) });
+    await expect(reaskScreenRecording(failed.deps)).resolves.toEqual({ asked: true, status: 'denied' });
+  });
+
+  it("names the bundle the release is built as: the signing identity's, so the reset clears Sokuji's entry and no other", () => {
+    const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8'));
+    expect(MAC_BUNDLE_ID).toBe(pkg.build.appId);
+  });
+});
+
+describe('main.js wiring for asking macOS again', () => {
+  const main = readFileSync(join(__dirname, 'main.js'), 'utf8');
+
+  it("resets with the system's tccutil, for Sokuji's bundle, and asks through desktopCapturer", () => {
+    const at = main.indexOf("ipcMain.handle('reask-screen-recording'");
+    expect(at).toBeGreaterThan(-1);
+    const handler = main.slice(at, main.indexOf('\n});', at));
+    expect(handler).toContain('reaskScreenRecording(');
+    expect(handler).toMatch(/execFileAsync\('\/usr\/bin\/tccutil', \['reset', 'ScreenCapture', MAC_BUNDLE_ID\]\)/);
+    expect(handler).toContain('desktopCapturer.getSources(');
+  });
+
+  it('restarts by relaunching and then quitting, so the close handshake still runs', () => {
+    const at = main.indexOf("ipcMain.handle('relaunch-app'");
+    expect(at).toBeGreaterThan(-1);
+    const handler = main.slice(at, main.indexOf('\n});', at));
+    expect(handler.indexOf('app.relaunch()')).toBeGreaterThan(-1);
+    expect(handler.indexOf('app.relaunch()')).toBeLessThan(handler.indexOf('app.quit()'));
   });
 });
