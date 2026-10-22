@@ -46,3 +46,14 @@ describe('viewer: the colour scheme reaches the chrome', () => {
     expect(fixed).toEqual([]);
   });
 });
+
+// Spec 2026-10-22 §5: the token files the viewer reads (`tk.$…`) are aliases
+// of the app's `--sk-*` custom properties, which only theme.scss defines, so
+// the viewer's stylesheet must emit that block before its own rules or the
+// accent is undefined on every phone.
+describe('viewer: the app theme tokens come first', () => {
+  it('defines the --sk- tokens before its own rules', () => {
+    expect(ruleBody(':root')).toMatch(/--sk-primary:/);
+    expect(css.indexOf('--sk-primary:')).toBeLessThan(css.indexOf('\n.viewer {'));
+  });
+});

@@ -181,3 +181,26 @@ describe('ViewerApp', () => {
     visibility.mockRestore();
   });
 });
+
+// The app's theme tokens are the viewer's too (spec 2026-10-22 §5): the light
+// scheme sets data-theme on the document, so every --sk- token the aliased
+// stylesheets reference takes its light value there; dark and contrast leave
+// the root bare (dark values, with contrast's own --v-* overrides on top).
+describe('ViewerApp — the document scheme', () => {
+  afterEach(() => { document.documentElement.removeAttribute('data-theme'); });
+
+  it('the light scheme sets data-theme on the document; dark and contrast remove it', () => {
+    const attr = () => document.documentElement.getAttribute('data-theme');
+    window.localStorage.setItem('sokuji.viewer.theme', JSON.stringify('light'));
+    render(<ViewerApp />);
+    expect(attr()).toBe('light');
+    cleanup();
+    window.localStorage.setItem('sokuji.viewer.theme', JSON.stringify('contrast'));
+    render(<ViewerApp />);
+    expect(attr()).toBeNull();
+    cleanup();
+    window.localStorage.setItem('sokuji.viewer.theme', JSON.stringify('dark'));
+    render(<ViewerApp />);
+    expect(attr()).toBeNull();
+  });
+});
