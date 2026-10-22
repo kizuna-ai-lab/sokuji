@@ -108,7 +108,6 @@ const LEDGER: Record<string, number> = {
   // stay literal, and these two rows stay.
   'src/components/MainPanel/MainPanel.scss': 1,
   'src/components/MainPanel/ConversationRow.scss': 2,
-  'src/components/MainPanel/panel/Waveforms.tsx': 3,
   // --- components/Subtitle ---
   // The same fallbacks for the subtitle's user colours (`--subtitle-source-color`,
   // `--subtitle-translation-color`, `--subtitle-highlight-overlay`).

@@ -9,7 +9,13 @@ interface WaveformStripProps {
   kind: 'mic' | 'system' | 'output';
   /** Read the current spectrum frame each animation frame; `null` draws flat. */
   read: () => Float32Array | null;
-  color: string;
+  /**
+   * The bars' colour, as the name of a theme token (`--sk-waveform-…`). A
+   * canvas cannot read a custom property, so the strip resolves it from the
+   * computed style every frame: a scheme change shows on the next one (spec
+   * 2026-10-22 §5).
+   */
+  colorToken: string;
   width?: 'full' | 'half';
   label?: string;
   /** Optional hover tooltip describing what this strip shows. */
@@ -35,7 +41,7 @@ const DEFAULT_LABELS: Record<WaveformStripProps['kind'], string> = {
  * again later gets a brand-new canvas and a brand-new loop rather than
  * inheriting a stale context from the one that was removed.
  */
-function useWaveform(read: () => Float32Array | null, color: string): React.RefObject<HTMLCanvasElement | null> {
+function useWaveform(read: () => Float32Array | null, colorToken: string): React.RefObject<HTMLCanvasElement | null> {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const readRef = useRef(read);
   useLayoutEffect(() => {
@@ -57,7 +63,8 @@ function useWaveform(read: () => Float32Array | null, color: string): React.RefO
         ctx = ctx || canvas.getContext('2d');
         if (ctx) {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
-          WavRenderer.drawBars(canvas, ctx, readRef.current() ?? FLAT, color, 10, 0, 8);
+          const colour = getComputedStyle(canvas).getPropertyValue(colorToken).trim();
+          WavRenderer.drawBars(canvas, ctx, readRef.current() ?? FLAT, colour, 10, 0, 8);
         }
       }
       frame = requestAnimationFrame(draw);
@@ -67,16 +74,16 @@ function useWaveform(read: () => Float32Array | null, color: string): React.RefO
       isLoaded = false;
       cancelAnimationFrame(frame);
     };
-  }, [color]);
+  }, [colorToken]);
 
   return canvasRef;
 }
 
-const WaveformStrip: React.FC<WaveformStripProps> = ({ kind, read, color, width = 'full', label, title }) => {
-  const canvasRef = useWaveform(read, color);
+const WaveformStrip: React.FC<WaveformStripProps> = ({ kind, read, colorToken, width = 'full', label, title }) => {
+  const canvasRef = useWaveform(read, colorToken);
   const cls = `waveform-strip waveform-strip--${kind} waveform-strip--${width}`;
   return (
-    <div className={cls} title={title}>
+    <div className={cls} title={title} data-color-token={colorToken}>
       <span className="waveform-strip__label">{label ?? DEFAULT_LABELS[kind]}</span>
       <canvas ref={canvasRef} className="waveform-strip__canvas" />
     </div>
