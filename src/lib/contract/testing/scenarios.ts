@@ -6,7 +6,7 @@
  * violations and the problems particular to it; an adapter's test asserts
  * both empty. Test-only.
  */
-import type { Adapter, SessionContext } from '../adapter';
+import type { Adapter, FrameSource, SessionContext } from '../adapter';
 import type { ConformanceLog, Violation } from '../conformance';
 import type { AdapterEvent } from '../events';
 import { describeCause } from '../../diagnostics/describeCause';
@@ -51,6 +51,8 @@ export interface AdapterHarness<C, K> {
   answerText?: readonly ScenarioStep[];
   /** Drops the transport and lets it come back; absent when the adapter does not reconnect. */
   reconnect?: readonly ScenarioStep[];
+  /** A chosen capture area, handed to every scenario's request; absent: the request has no `frames` key. */
+  frames?: FrameSource;
 }
 
 export interface ScenarioReport { name: ScenarioName; violations: Violation[]; problems: string[] }
@@ -94,7 +96,7 @@ export function scenarioNames(h: Partial<Pick<AdapterHarness<unknown, unknown>, 
 export async function runScenario<C, K>(h: AdapterHarness<C, K>, name: ScenarioName): Promise<ScenarioReport> {
   const problems: string[] = [];
   const drive = (context: SessionContext, opening: readonly ScenarioStep[], steps: readonly ScenarioStep[]) =>
-    driveAdapter(h.adapter, { context, config: h.config(context, name), credentials: h.credentials, opening, steps });
+    driveAdapter(h.adapter, { context, config: h.config(context, name), credentials: h.credentials, opening, steps, frames: h.frames });
   const manual: SessionContext = { ...AUTO, turns: 'manual' };
   // The exchange's answer lands before whatever the scenario does next: an adapter that answers after an `await` needs no flush of its harness's own (the kit's parked item; Stage 2 Palabra, ruling 15).
   const exchange: readonly ScenarioStep[] = [...h.exchange, { flush: true }];
