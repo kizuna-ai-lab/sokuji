@@ -20,6 +20,7 @@ import { presentProviders } from '../../providers/registry';
 import { setManagedVoiceStandIn } from '../../providers/soniox/managedVoiceSource';
 import useAudioStore from '../../stores/audioStore';
 import { useConversationDisplayStore, useConversationColours } from '../../stores/conversationDisplayStore';
+import { toneOf } from '../../lib/view/tone';
 import { useModelStore } from '../../stores/modelStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
@@ -180,6 +181,7 @@ function PreviewConversation({ view, karaoke, playback }: {
         <ExportMenuButton exporter={exporter} speakerMode={speaker} participantMode={participant} />
       </div>
       <ConversationList
+        tone={toneOf(colours.bgColor)}
         items={items}
         lit={lit}
         replaying={replaying}

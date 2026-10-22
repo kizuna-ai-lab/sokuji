@@ -60,4 +60,28 @@ describe('the appearance setting', () => {
     await useSettingsStore.getState().setTheme('light');
     expect(useSettingsStore.getState().theme).toBe('dark');
   });
+
+  // A <select> fires change on every arrow-key step, so writes overlap: a
+  // refused write must not roll back over a newer pick.
+  it('a refused write does not roll back over a newer pick', async () => {
+    useSettingsStore.setState({ theme: 'dark' });
+    let refuse!: () => void;
+    setSetting.mockImplementationOnce(() => new Promise((resolve) => { refuse = () => resolve({ success: false, error: 'disk full' }); }));
+    const first = useSettingsStore.getState().setTheme('light');
+    const second = useSettingsStore.getState().setTheme('system');
+    await second;
+    refuse();
+    await first;
+    expect(useSettingsStore.getState().theme).toBe('system');
+  });
+
+  // While the settings cannot be read, the app runs on defaults; the store
+  // says so, so the appearance applies those defaults (and a later pick)
+  // instead of waiting for a load that will never report.
+  it('a load that fails is marked as failed', async () => {
+    expect(useSettingsStore.getState().settingsLoadFailed).toBe(false);
+    stored = new Proxy({}, { has() { throw new Error('storage unavailable'); } });
+    await useSettingsStore.getState().loadSettings();
+    expect(useSettingsStore.getState().settingsLoadFailed).toBe(true);
+  });
 });

@@ -4,6 +4,7 @@ import { ServiceFactory } from '../services/ServiceFactory';
 import { persistSetting } from '../services/persistSetting';
 import type { Scheme } from '../lib/theme/theme';
 import { useScheme } from '../lib/theme/useScheme';
+import { toneOf } from '../lib/view/tone';
 
 interface ConversationDisplayState {
   // Typography
@@ -57,13 +58,19 @@ export const CONVERSATION_SCHEME_COLOURS: Readonly<Record<Scheme, Readonly<Conve
   light: { bgColor: '#ffffff', sourceTextColor: '#5f6368', translationTextColor: '#1a1a1a' },
 };
 
-/** The colours as drawn: the user's where set, the scheme's otherwise. */
+/**
+ * The colours as drawn: the user's where set. An unset background follows the
+ * scheme; an unset text colour follows the tone of the background drawn, so a
+ * stored dark background keeps light text in the light app (never dark on
+ * dark), and a stored white one gets dark text in the dark app.
+ */
 export function resolveConversationColours(stored: StoredConversationColours, scheme: Scheme): ConversationColours {
-  const follow = CONVERSATION_SCHEME_COLOURS[scheme];
+  const bgColor = stored.bgColor ?? CONVERSATION_SCHEME_COLOURS[scheme].bgColor;
+  const text = CONVERSATION_SCHEME_COLOURS[toneOf(bgColor)];
   return {
-    bgColor: stored.bgColor ?? follow.bgColor,
-    sourceTextColor: stored.sourceTextColor ?? follow.sourceTextColor,
-    translationTextColor: stored.translationTextColor ?? follow.translationTextColor,
+    bgColor,
+    sourceTextColor: stored.sourceTextColor ?? text.sourceTextColor,
+    translationTextColor: stored.translationTextColor ?? text.translationTextColor,
   };
 }
 

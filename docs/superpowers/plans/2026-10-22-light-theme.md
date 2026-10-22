@@ -17,7 +17,7 @@
 - Token names are `--sk-<role>`, defined only in `src/styles/theme.scss`; components spell colours through the Sass aliases `vars.$…` / `tk.$…`; `var(--sk-…)` is written directly only in `theme.scss`, `_tokens.scss`, `_variables.scss` and TypeScript (spec §2).
 - The setting is `settings.common.theme`, values `'system' | 'light' | 'dark'`, default `'dark'` (R1). A stored value outside the three loads as `'dark'`. No migration of anything stored.
 - Light accent `#007255`, hover `#005a43`; light participant `#b45309` (shades `#d97706`, `#92400e`); dark values are today's literals plus R7's collapses, pinned by test; the contrast floors bind the light block only (spec §2, §7).
-- The conversation view's user defaults (`#1f1f1f`, `#9aa0a6`, `#e8e8e8`) and the subtitle defaults do not change (R3). Their surfaces carry `data-tone` from their own background (spec §3).
+- The conversation view's user defaults (`#1f1f1f`, `#9aa0a6`, `#e8e8e8`) and the subtitle defaults do not change (R3). Their surfaces carry `data-tone` from their own background (spec §3). *Superseded after execution by R3 as amended (spec §R3): an unset conversation colour follows the scheme; only the subtitle's defaults stay fixed.*
 - `color-mix(in srgb, …)` is allowed (Chrome 116 floor); `light-dark()` is not.
 - The first-paint script is a file, never inline (the extension's `script-src 'self'`).
 - Strings: new keys in all 30 catalogs; `src/locales/locales.consistency.test.ts` fails on a missing key. UI labels in tests and commits use the `en` catalog's words ("Appearance", "Follow system").
@@ -335,7 +335,7 @@ it('the highlight overlay is white on a dark background and black on a light one
 - [ ] **Step 1: Write the failing test** (the `rgba($…)` grep case) → `npm run test -- src/styles/theme.consistency.test.ts` → FAIL (69 sites).
 - [ ] **Step 2: Re-point the two token files**, then convert the sites until `npx sass --no-source-map --quiet --load-path=src src/components/Settings/Settings.scss > /dev/null` and the rest compile (`npm run build` compiles every stylesheet).
 - [ ] **Step 3: Run** `npm run test -- src/styles src/components/Settings/shared src/uiFont.test.ts src/viewer` → PASS; `npm run build` → succeeds.
-- [ ] **Step 4: Render check, the first light one**: `npm run electron:dev`, Appearance → Light. The settings page, the control footer and everything that reaches its colour through an alias is light; the title bar, the main layout and every literal rule are still dark. Screenshot both schemes at 450px and 300px; confirm the conversation stays dark inside the light app (R3, the tone rule) and that a white conversation background (display popover) turns its badges amber `#b45309`.
+- [ ] **Step 4: Render check, the first light one**: `npm run electron:dev`, Appearance → Light. The settings page, the control footer and everything that reaches its colour through an alias is light; the title bar, the main layout and every literal rule are still dark. Screenshot both schemes at 450px and 300px; confirm the conversation stays dark inside the light app (R3 as first ruled; under the amended R3 an unset conversation turns white with the app, so check that instead) and that a white conversation background (display popover) turns its badges amber `#b45309`.
 - [ ] **Step 5: Commit** — `git commit -m "refactor(styles): the token files alias the --sk- custom properties"`.
 
 ### Task 11: the colour ledger

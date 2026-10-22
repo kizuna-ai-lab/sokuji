@@ -217,6 +217,8 @@ export interface SettingsStore {
 
   // Settings loading state
   settingsLoaded: boolean;
+  /** The load threw: the app runs on defaults, and a consumer waiting for the load (the appearance) applies them instead. */
+  settingsLoadFailed: boolean;
 
   // Text-only mode (no audio output)
   textOnly: boolean;
@@ -408,6 +410,7 @@ const useSettingsStore = create<SettingsStore>()(
     authOverlayReason: null,
 
     settingsLoaded: false,
+    settingsLoadFailed: false,
     subtitleModeActive: false,
     subtitleFullscreen: false,
 
@@ -479,7 +482,9 @@ const useSettingsStore = create<SettingsStore>()(
     setTheme: async (theme) => {
       const previous = get().theme;
       set({theme});
-      if (!await persistSetting('settings.common.theme', theme)) {
+      // A <select> fires change per arrow-key step, so writes overlap: roll
+      // back only while this pick is still the one shown.
+      if (!await persistSetting('settings.common.theme', theme) && get().theme === theme) {
         set({theme: previous});
       }
     },
@@ -750,6 +755,7 @@ const useSettingsStore = create<SettingsStore>()(
         // applied. The panel entry is the only record until the basic-mode
         // banner lands (see the design's user-facing tier).
         reportError('SettingsStore', `Failed to load settings: ${describeCause(error)}`, { cause: error });
+        set({ settingsLoadFailed: true });
       }
     },
 

@@ -61,8 +61,21 @@ describe('conversationDisplayStore', () => {
     const unset = { bgColor: null, sourceTextColor: null, translationTextColor: null };
     expect(resolveConversationColours(unset, 'light')).toEqual(CONVERSATION_SCHEME_COLOURS.light);
     expect(resolveConversationColours(unset, 'dark')).toEqual(CONVERSATION_SCHEME_COLOURS.dark);
+    expect(resolveConversationColours({ bgColor: '#ffffff', sourceTextColor: '#123456', translationTextColor: '#abcdef' }, 'dark'))
+      .toEqual({ bgColor: '#ffffff', sourceTextColor: '#123456', translationTextColor: '#abcdef' });
+  });
+
+  // An unset text colour follows the tone of the background it is drawn on,
+  // not the app's scheme: a user who only ever picked the black background
+  // keeps light text in the light app, and one who picked white gets dark
+  // text in the dark app (before this, light text on white).
+  it('an unset text colour follows the tone of the background drawn', () => {
+    expect(resolveConversationColours({ bgColor: '#000000', sourceTextColor: null, translationTextColor: null }, 'light'))
+      .toEqual({ bgColor: '#000000', sourceTextColor: '#9aa0a6', translationTextColor: '#e8e8e8' });
+    expect(resolveConversationColours({ bgColor: '#FFFFFF', sourceTextColor: null, translationTextColor: null }, 'dark'))
+      .toEqual({ bgColor: '#FFFFFF', sourceTextColor: '#5f6368', translationTextColor: '#1a1a1a' });
     expect(resolveConversationColours({ bgColor: '#123456', sourceTextColor: null, translationTextColor: '#abcdef' }, 'light'))
-      .toEqual({ bgColor: '#123456', sourceTextColor: '#5f6368', translationTextColor: '#abcdef' });
+      .toEqual({ bgColor: '#123456', sourceTextColor: '#9aa0a6', translationTextColor: '#abcdef' });
   });
 
   it('setBgColor(null) persists null: the colour follows the theme again', async () => {

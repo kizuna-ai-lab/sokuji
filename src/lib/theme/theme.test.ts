@@ -173,6 +173,16 @@ describe('installTheme', () => {
     expect(attr()).toBe('light');
   });
 
+  // A child window opened before the settings load (or after a load that
+  // failed) takes the scheme the main document wears, not none.
+  it('a document registered before any apply takes the scheme the boot script painted', () => {
+    document.documentElement.setAttribute('data-theme', 'light');
+    const child = document.implementation.createHTMLDocument('child');
+    const unregister = registerThemeDocument(child);
+    expect(attr(child)).toBe('light');
+    unregister();
+  });
+
   it('uninstall stops listening to the source and the media query', () => {
     const source = fakeSource('system');
     const media = fakeMedia(true);

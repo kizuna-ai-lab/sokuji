@@ -20,7 +20,8 @@ installCustomizableSelectWarningMuffler();
 installTheme({
   source: {
     getTheme: () => useSettingsStore.getState().theme,
-    isLoaded: () => useSettingsStore.getState().settingsLoaded,
+    // A load that failed leaves the app on defaults; the appearance applies them rather than wait forever.
+    isLoaded: () => { const s = useSettingsStore.getState(); return s.settingsLoaded || s.settingsLoadFailed; },
     subscribe: (listener) => useSettingsStore.subscribe(listener),
   },
   // Electron draws some chrome natively (menus, dialogs); keep it on the same scheme.

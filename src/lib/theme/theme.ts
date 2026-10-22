@@ -81,7 +81,8 @@ export function subscribeScheme(listener: () => void): () => void {
 /** A child document follows the scheme until the returned function is called. */
 export function registerThemeDocument(doc: Document): () => void {
   documents.add(doc);
-  if (current) applyScheme(doc, current);
+  // Before the first apply, the scheme the boot script painted on the main document.
+  applyScheme(doc, current ?? appliedScheme(document));
   return () => { documents.delete(doc); };
 }
 

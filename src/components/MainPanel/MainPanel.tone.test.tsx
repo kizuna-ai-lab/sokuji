@@ -143,7 +143,10 @@ describe('MainPanel resolves an unset conversation colour from the scheme', () =
     scheme.current = 'dark';
   });
 
-  it('a stored colour stays under either scheme', async () => {
+  // A stored background stays under either scheme, and the text the user
+  // never set follows that background's tone: light text on a stored dark
+  // background in the light app, never dark on dark.
+  it('a stored colour stays under either scheme, and unset text follows its tone', async () => {
     useAudioStore.setState({ mode: 'speaker', selectedInputDevice: { deviceId: 'mic-1', label: 'Mic' } });
     scheme.current = 'light';
     act(() => { useConversationDisplayStore.setState({ bgColor: '#1f1f1f', sourceTextColor: null, translationTextColor: null }); });
@@ -151,7 +154,8 @@ describe('MainPanel resolves an unset conversation colour from the scheme', () =
     await act(() => getAppSession().audio());
     const wrapper = container.querySelector('.main-panel-wrapper') as HTMLElement;
     expect(wrapper.style.getPropertyValue('--conversation-bg-color')).toBe('#1f1f1f');
-    expect(wrapper.style.getPropertyValue('--conversation-source-color')).toBe('#5f6368');
+    expect(wrapper.style.getPropertyValue('--conversation-source-color')).toBe('#9aa0a6');
+    expect(wrapper.style.getPropertyValue('--conversation-translation-color')).toBe('#e8e8e8');
     expect(container.querySelector('.conversation-display')?.getAttribute('data-tone')).toBe('dark');
     scheme.current = 'dark';
   });
