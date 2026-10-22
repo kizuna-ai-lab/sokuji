@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { FrameReason, FrameSource } from '../contract/adapter';
 import { createVirtualClock, type Clock, type VirtualClock } from '../contract/clock';
 import { FIRST_FRAME_MS, KEEPALIVE_MS, MAX_BYTES, QUALITIES, SAMPLE_MS, createSampler, type Capture, type Picture } from './sampler';
@@ -123,6 +123,16 @@ async function run(clock: VirtualClock, ms: number): Promise<void> {
   }
 }
 
+/** A promise with a flag: has it settled yet. */
+function track<T>(promise: Promise<T>): { promise: Promise<T>; settled: () => boolean } {
+  let done = false;
+  const wrapped = promise.then((value) => {
+    done = true;
+    return value;
+  });
+  return { promise: wrapped, settled: () => done };
+}
+
 function fresh() {
   const clock = createVirtualClock(0);
   const sampler = createSampler(clock);
@@ -140,9 +150,8 @@ describe('createSampler', () => {
   it('emits the first non-blank picture as first, to late subscribers too, and resolves first() with it', async () => {
     const { clock, sampler, rec } = fresh();
     sampler.attach(scripted([BLACK, FLAT, lit(1)]));
-    await run(clock, 1000);
-    const first = sampler.first(); // asked at 1 s, so its 3 s run to 4 s
-    await run(clock, 1000);
+    const first = sampler.first(); // asked at attach, as a run does: the frame comes from the beat due at 3 s
+    await run(clock, 2000);
     expect(rec.frames).toEqual([]);
     expect(sampler.state().status).toBe('idle');
     await run(clock, 1000);
@@ -168,6 +177,61 @@ describe('createSampler', () => {
     expect(rec.frames).toEqual([]);
     expect(sampler.state().status).toBe('idle');
     expect(sampler.state().sent).toBe(0);
+  });
+
+  it('first() waits out the beat due at 3 s: its frame counts, an empty one answers null at once, a grab that never settles answers null at 4 s', async () => {
+    // A frame from the third beat, which settles at 3.4 s, is the first frame.
+    const a = fresh();
+    const slowA = manual();
+    a.sampler.attach(slowA);
+    const firstA = track(a.sampler.first());
+    for (const i of [0, 1]) {
+      a.clock.advance(1000);
+      await flush();
+      slowA.pending[i](BLACK);
+      await flush();
+    }
+    a.clock.advance(1000); // 3 s: FIRST_FRAME_MS has passed and the third grab is out
+    await flush();
+    expect(slowA.pending).toHaveLength(3);
+    expect(firstA.settled()).toBe(false);
+    a.clock.advance(400);
+    slowA.pending[2](lit(1));
+    await flush();
+    expect(await firstA.promise).toHaveLength(425000);
+    expect(a.rec.times).toEqual([3400]);
+
+    // The same beat ending blank answers null as it ends, not at the backstop.
+    const b = fresh();
+    const slowB = manual();
+    b.sampler.attach(slowB);
+    const firstB = track(b.sampler.first());
+    for (const i of [0, 1]) {
+      b.clock.advance(1000);
+      await flush();
+      slowB.pending[i](BLACK);
+      await flush();
+    }
+    b.clock.advance(1400);
+    await flush();
+    expect(firstB.settled()).toBe(false);
+    slowB.pending[2](BLACK);
+    await flush();
+    expect(firstB.settled()).toBe(true);
+    expect(await firstB.promise).toBeNull();
+    expect(b.clock.now()).toBe(3400);
+
+    // A grab that never settles cannot hold a start past FIRST_FRAME_MS + SAMPLE_MS.
+    const c = fresh();
+    c.sampler.attach(manual());
+    const firstC = track(c.sampler.first());
+    c.clock.advance(3999);
+    await flush();
+    expect(firstC.settled()).toBe(false);
+    c.clock.advance(1);
+    await flush();
+    expect(firstC.settled()).toBe(true);
+    expect(await firstC.promise).toBeNull();
   });
 
   it('answers a first() asked after the frame went with that frame, and one asked twice with one promise', async () => {
@@ -506,6 +570,81 @@ describe('createSampler', () => {
     await run(clock, 2000);
     const late = record(clock, sampler.source);
     expect(late.events).toEqual(['frame:first', 'lost']);
+  });
+
+  it('a subscriber or listener that throws starves nobody: the others get the frame and the loss, and state() is as if nothing threw', async () => {
+    const rethrown: Array<() => void> = [];
+    vi.stubGlobal('queueMicrotask', (fn: () => void) => rethrown.push(fn));
+    try {
+      const boom = new Error('boom');
+      const throwing = () => {
+        throw boom;
+      };
+      const clock = createVirtualClock(0);
+      const sampler = createSampler(clock);
+      sampler.onState(throwing);
+      const heard: string[] = [];
+      sampler.onState((s) => heard.push(`${s.status}:${s.sent}`));
+      sampler.source.subscribe(throwing, throwing, throwing);
+      const rec = record(clock, sampler.source);
+      sampler.attach(scripted([lit(1), null]));
+      await run(clock, 2000);
+      expect(rec.events).toEqual(['frame:first', 'lost']);
+      expect(heard).toEqual(['idle:0', 'live:1', 'lost:1']);
+      expect(sampler.state()).toMatchObject({ status: 'lost', sent: 1, lastSentAt: 1000, lastReason: 'first' });
+      // Each error went to the microtask queue to be thrown there, none out of the sampler.
+      expect(rethrown).toHaveLength(3 + 2);
+      for (const fn of rethrown) expect(fn).toThrow(boom);
+      // A late subscriber that throws is still a subscriber: subscribe does not throw, and it hears what follows.
+      const lateEvents: string[] = [];
+      expect(() =>
+        sampler.source.subscribe(
+          () => {
+            lateEvents.push('frame');
+            throw boom;
+          },
+          () => lateEvents.push('lost'),
+          () => lateEvents.push('back'),
+        ),
+      ).not.toThrow();
+      expect(lateEvents).toEqual(['frame', 'lost']);
+      await run(clock, 59_000);
+      expect(lateEvents).toEqual(['frame', 'lost', 'frame']);
+      expect(rec.events).toEqual(['frame:first', 'lost', 'frame:keepalive']);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('never sends two frames less than a second apart, however slow the beat before: a change waits for the next beat', async () => {
+    const { clock, sampler, rec } = fresh();
+    const cap = manual();
+    sampler.attach(cap);
+    clock.advance(1000); // beat 1
+    await flush();
+    cap.pending[0](lit(1));
+    await flush();
+    expect(rec.times).toEqual([1000]);
+    clock.advance(1000); // beat 2 starts at 2 s; its grab settles at 3.5 s with a changed picture
+    await flush();
+    clock.advance(1500);
+    cap.pending[1](lit(2));
+    await flush();
+    expect(rec.times).toEqual([1000, 3500]);
+    // Beat 3 follows at once, since beat 2 took longer than a second, and sees another change: held back, not lost.
+    clock.advance(0);
+    await flush();
+    expect(cap.pending).toHaveLength(3);
+    cap.pending[2](lit(3));
+    await flush();
+    expect(rec.times).toEqual([1000, 3500]);
+    clock.advance(1000); // beat 4 at 4.5 s: the change is still a change
+    await flush();
+    cap.pending[3](lit(3));
+    await flush();
+    expect(rec.times).toEqual([1000, 3500, 4500]);
+    expect(rec.frames.map(([reason]) => reason)).toEqual(['first', 'changed', 'changed']);
+    for (let i = 1; i < rec.times.length; i++) expect(rec.times[i] - rec.times[i - 1]).toBeGreaterThanOrEqual(SAMPLE_MS);
   });
 
   it('is a FrameSource whose identity survives attach and detach', () => {

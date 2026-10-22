@@ -9,7 +9,9 @@
  * A subscriber that joins while a frame is in hand has it at once, reason
  * 'first', and is told of a loss that is still on, so a run that starts on a
  * lost source learns it. Callbacks run synchronously, and never reach a
- * subscriber that unsubscribed, even in the middle of a fan-out.
+ * subscriber that unsubscribed, even in the middle of a fan-out. A callback
+ * that throws is contained: the others are still called, and the error is
+ * re-thrown on a microtask so it reaches error tracking all the same.
  */
 import type { FrameReason, FrameSource } from '../contract/adapter';
 import type { Clock } from '../contract/clock';
@@ -49,7 +51,10 @@ export interface Sampler {
   attach(capture: Capture): void;
   /** The capture is gone by the owner's hand (Choose again in flight): status lost, the last good frame kept. */
   detach(): void;
-  /** The first non-blank frame, or null once `FIRST_FRAME_MS` has passed without one. */
+  /**
+   * The first non-blank frame, or null: once `FIRST_FRAME_MS` has passed and the beat due then has finished without one,
+   * and at the latest `FIRST_FRAME_MS + SAMPLE_MS` after the call, so a wedged grab cannot hold a start.
+   */
   first(): Promise<Uint8Array | null>;
   state(): SamplerState;
   onState(listener: (s: SamplerState) => void): () => void;
@@ -66,6 +71,8 @@ export const QUALITIES = [0.85, 0.7, 0.5] as const;
 
 interface FirstWait {
   promise: Promise<Uint8Array | null>;
+  /** `FIRST_FRAME_MS` have passed: the next beat to finish without a frame settles it with null. */
+  due: boolean;
   settle: (jpeg: Uint8Array | null) => void;
 }
 
@@ -112,25 +119,35 @@ export function createSampler(clock: Clock): Sampler {
       if (closed) return () => {};
       const subscriber: Subscriber = { onFrame, onLost, onBack };
       subscribers.add(subscriber);
-      if (lastJpeg) onFrame(lastJpeg, 'first');
-      if (lost && subscribers.has(subscriber)) onLost();
+      const inHand = lastJpeg;
+      if (inHand) contain(() => onFrame(inHand, 'first'));
+      if (lost && subscribers.has(subscriber)) contain(onLost);
       return () => {
         subscribers.delete(subscriber);
       };
     },
   };
 
-  /** A promise for the first frame, settled by it or, empty, by the `FIRST_FRAME_MS` timer. */
+  /**
+   * A promise for the first frame. The `FIRST_FRAME_MS` timer only marks it due: a beat that was in flight, or is due
+   * right then, still gets to be heard (`tick` settles it with null once that beat ends empty). The backstop settles it
+   * regardless, one beat later, so a grab that never settles cannot hang whoever waits.
+   */
   function startFirstWait(): FirstWait {
     let resolve: (jpeg: Uint8Array | null) => void = () => {};
     const promise = new Promise<Uint8Array | null>((r) => {
       resolve = r;
     });
-    const cancel = clock.setTimeout(() => wait.settle(null), FIRST_FRAME_MS);
+    const cancelDue = clock.setTimeout(() => {
+      wait.due = true;
+    }, FIRST_FRAME_MS);
+    const cancelBackstop = clock.setTimeout(() => wait.settle(null), FIRST_FRAME_MS + SAMPLE_MS);
     const wait: FirstWait = {
       promise,
+      due: false,
       settle(jpeg) {
-        cancel();
+        cancelDue();
+        cancelBackstop();
         if (firstWait === wait) firstWait = null;
         resolve(jpeg);
       },
@@ -148,14 +165,25 @@ export function createSampler(clock: Clock): Sampler {
     return { status: status(), name, kind, sent, lastSentAt, lastReason, lastJpeg };
   }
 
-  function publish(): void {
-    const snapshot = state();
-    for (const listener of [...listeners]) if (listeners.has(listener)) listener(snapshot);
+  /** Runs a callback of someone else's: its error is re-thrown on a microtask, so it is seen but breaks nothing here. */
+  function contain(call: () => void): void {
+    try {
+      call();
+    } catch (error) {
+      queueMicrotask(() => {
+        throw error;
+      });
+    }
   }
 
-  /** Calls each subscriber still attached when its turn comes. */
+  function publish(): void {
+    const snapshot = state();
+    for (const listener of [...listeners]) if (listeners.has(listener)) contain(() => listener(snapshot));
+  }
+
+  /** Calls each subscriber still attached when its turn comes; one that throws does not keep the rest from their call. */
   function fanOut(call: (s: Subscriber) => void): void {
-    for (const subscriber of [...subscribers]) if (subscribers.has(subscriber)) call(subscriber);
+    for (const subscriber of [...subscribers]) if (subscribers.has(subscriber)) contain(() => call(subscriber));
   }
 
   function record(jpeg: Uint8Array, reason: FrameReason): void {
@@ -229,6 +257,8 @@ export function createSampler(clock: Clock): Sampler {
     }
     const thumb = greyThumb(picture.rgba, picture.width, picture.height);
     if (isBlank(thumb)) return;
+    // At most a frame a second, however slow the beat before: a change waits for the next beat, and is still a change then.
+    if (lastSentAt !== null && clock.now() - lastSentAt < SAMPLE_MS) return;
     let reason: FrameReason;
     if (lastThumb === null) reason = 'first';
     else if (sendNext || meanAbsDiff(thumb, lastThumb) > CHANGE_THRESHOLD) reason = 'changed';
@@ -247,6 +277,8 @@ export function createSampler(clock: Clock): Sampler {
     try {
       await sample(gen, capture);
       if (gen === generation && lastJpeg && lastSentAt !== null && clock.now() - lastSentAt >= KEEPALIVE_MS) sendKeepalive(lastJpeg);
+      // The beat that ends empty once `first()` is due is the answer: no frame.
+      if (gen === generation && firstWait?.due) firstWait.settle(null);
     } finally {
       // Armed once the grab is done, so a slow one never overlaps the next; a thrown error still leaves the beat running.
       if (gen === generation) arm(gen, Math.max(0, SAMPLE_MS - (clock.now() - startedAt)));
