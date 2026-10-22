@@ -9,8 +9,8 @@ import { KizunaQwenSettingsView, QwenVoiceSummary } from './QwenSettings';
  * Kizuna AI's managed Qwen LiveTranslate (spec 2026-10-17-kizuna-managed-qwen):
  * Qwen's languages, builder and adapter under its own id and slice; the
  * sign-in in place of a key; the lease that buys the run's token and ends
- * the run with its grant; the balance floor. Flagged: a release offers it
- * only when `VITE_ENABLED_PROVIDERS` names it.
+ * the run with its grant; the balance floor. Unflagged by the owner on
+ * 2026-10-22: a release offers it wherever the Kizuna umbrella is on.
  */
 export const kizunaQwenProvider = managed(qwenLiveTranslateProvider, {
   id: 'kizunaai_qwen',
@@ -23,6 +23,5 @@ export const kizunaQwenProvider = managed(qwenLiveTranslateProvider, {
   Settings: KizunaQwenSettingsView,
   VoiceSummary: QwenVoiceSummary,
   signedOut: 'Sign in to use Kizuna AI Qwen.',
-  flagged: true,
   session: { acquire: createQwenLease(), minimumBalance: kizunaQwenMinimumBalance },
 });
