@@ -44,7 +44,7 @@
 - Test: `src/styles/theme.consistency.test.ts` (create)
 
 **Interfaces:**
-- Produces: the 51 tokens of spec §2, by these names (the Sass maps' keys, each emitted as `--sk-<key>`): surfaces `bg-base`, `bg-page`, `bg-surface`, `bg-bar`, `bg-popover`, `bg-control`, `bg-hover`, `bg-elevated`, `bg-elevated-hover`, `bg-dim`, `white`; text `text-primary`, `text-secondary`, `text-tertiary`, `text-muted`, `text-dim`, `text-disabled`, `text-source`, `on-accent`; lines `line`, `line-subtle`, `line-strong`; overlays `overlay-fg`, `scrim`, `shadow`, `shadow-strong`; accent, people and status `primary`, `primary-hover`, `primary-fill`, `primary-fill-hover`, `speaker`, `speaker-fill`, `speaker-person-3`, `participant`, `participant-person-2`, `participant-person-3`, `success`, `error`, `error-deep`, `warning`, `recommended`, `degraded`, `usage`, `usage-hover`, `usage-deep`, `info`, `toolbar-icon`, `waveform-speaker`, `waveform-participant`, `waveform-output`.
+- Produces: the 50 tokens of spec §2, by these names (the Sass maps' keys, each emitted as `--sk-<key>`): surfaces `bg-base`, `bg-page`, `bg-surface`, `bg-bar`, `bg-popover`, `bg-control`, `bg-hover`, `bg-elevated`, `bg-elevated-hover`, `bg-dim`, `white`; text `text-primary`, `text-secondary`, `text-tertiary`, `text-muted`, `text-dim`, `text-disabled`, `text-source`, `on-accent`; lines `line`, `line-subtle`, `line-strong`; overlays `overlay-fg`, `scrim`, `shadow`, `shadow-strong`; accent, people and status `primary`, `primary-hover`, `primary-fill`, `primary-fill-hover`, `speaker`, `speaker-fill`, `speaker-person-3`, `participant`, `participant-person-2`, `participant-person-3`, `success`, `error`, `error-deep`, `warning`, `recommended`, `degraded`, `usage`, `usage-hover`, `usage-deep`, `info`, `toolbar-icon`, `waveform-speaker`, `waveform-participant`, `waveform-output`.
 - Produces: four blocks in this order: `:root` (dark, `color-scheme: dark`), `:root[data-theme="light"]` (light, `color-scheme: light`), `[data-tone="dark"]` (dark values again, no `color-scheme`), `[data-tone="light"]` (light values again).
 - `speaker` is `var(--sk-primary)` and `speaker-fill` is `var(--sk-primary-fill)` in both maps (one line to give the conversation its own colour, as `_tokens.scss` promises today).
 
@@ -59,7 +59,7 @@ describe('theme.scss', () => {
     expect(names(':root[data-theme="light"]')).toEqual(names(':root'));
     expect(names('[data-tone="dark"]')).toEqual(names(':root'));
     expect(names('[data-tone="light"]')).toEqual(names(':root'));
-    expect(names(':root')).toHaveLength(51);
+    expect(names(':root')).toHaveLength(50);
   });
   it('sets color-scheme on the two root blocks only', () => { /* dark on :root, light on the light block, none under [data-tone] */ });
   it('pins the dark block to the owner\'s values', () => {
@@ -409,5 +409,5 @@ Each task below follows the same five steps; only the file list and the render s
 ## Self-review notes
 
 - Spec §1 → Tasks 2, 4, 5; §2 → Tasks 1, 10; §3 → Task 8 (and the `[data-tone]` blocks in Task 1); §4 → Tasks 3, 6; §5 → Tasks 7, 9, 16 (logos and presets untouched by the allow-list in Task 11); §6 → Tasks 10, 12–15; §7 → Tasks 1, 11 and each task's own tests; §8 non-goals: no task touches `extension/popup.*`, `subtitle-overlay.html` or the viewer's participant colour.
-- Names used across tasks: `ThemeSetting`, `Scheme`, `THEME_SETTINGS`, `THEME_CACHE_KEY`, `isThemeSetting`, `resolveScheme`, `applyScheme`, `registerThemeDocument`, `installTheme`, `ThemeSource` (Task 2) ← Tasks 3, 4, 5, 6, 7; `theme`, `setTheme`, `useThemeSetting`, `useSetThemeSetting` (Task 3) ← Tasks 4, 6; `Tone`, `toneOf`, `relativeLuminance` (Task 8) ← Tasks 8, 10's render; `colorToken` (Task 16); the 51 token names (Task 1) ← Tasks 10, 16.
+- Names used across tasks: `ThemeSetting`, `Scheme`, `THEME_SETTINGS`, `THEME_CACHE_KEY`, `isThemeSetting`, `resolveScheme`, `applyScheme`, `registerThemeDocument`, `installTheme`, `ThemeSource` (Task 2) ← Tasks 3, 4, 5, 6, 7; `theme`, `setTheme`, `useThemeSetting`, `useSetThemeSetting` (Task 3) ← Tasks 4, 6; `Tone`, `toneOf`, `relativeLuminance` (Task 8) ← Tasks 8, 10's render; `colorToken` (Task 16); the 50 token names (Task 1) ← Tasks 10, 16.
 - Task 10 is the one large task by design: Sass fails the build until every `rgba($alias, a)` is converted, so the conversion cannot be split without leaving the branch unbuildable between commits.
