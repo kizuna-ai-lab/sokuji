@@ -105,7 +105,6 @@ const LEDGER: Record<string, number> = {
   'src/components/Auth/AuthGuard.scss': 6,
   'src/components/Auth/AuthLayout.scss': 4,
   // --- components/Banner ---
-  'src/components/Banner/Banner.scss': 9,
   // --- components/CaptionShare ---
   'src/components/CaptionShare/CaptionSharePanel.scss': 4,
   'src/components/CaptionShare/QrCode.tsx': 2,
@@ -116,8 +115,6 @@ const LEDGER: Record<string, number> = {
   // --- components/LogsPanel ---
   'src/components/LogsPanel/LogsPanel.scss': 32,
   // --- components/MainLayout ---
-  'src/components/MainLayout/MainLayout.scss': 3,
-  'src/components/MainLayout/PanelResizer.scss': 2,
   // --- components/MainPanel ---
   // The fallbacks of the user-colour variables (`var(--conversation-bg-color,
   // #1f1f1f)` and the two text colours) are the stores' defaults (R3): they
@@ -126,7 +123,6 @@ const LEDGER: Record<string, number> = {
   'src/components/MainPanel/ConversationRow.scss': 2,
   'src/components/MainPanel/panel/Waveforms.tsx': 3,
   // --- components/Modal ---
-  'src/components/Modal/Modal.scss': 8,
   // --- components/SetupWizard ---
   'src/components/SetupWizard/SetupWizard.scss': 2,
   // --- components/Subtitle ---
@@ -135,14 +131,8 @@ const LEDGER: Record<string, number> = {
   'src/components/Subtitle/SubtitleStream.scss': 15,
   'src/components/Subtitle/useSubtitleChrome.tsx': 4,
   // --- components/TitleBar ---
-  'src/components/TitleBar/TitleBar.scss': 10,
-  'src/components/TitleBar/AccountPopover.scss': 9,
-  'src/components/TitleBar/AccountButton.scss': 3,
   // --- components/Tooltip ---
-  'src/components/Tooltip/Tooltip.scss': 7,
-  'src/components/Tooltip/Tooltip.tsx': 2,
   // --- components/Tour ---
-  'src/components/Tour/Tour.scss': 3,
   // --- components/UpdateDialog ---
   'src/components/UpdateDialog/UpdateDialog.scss': 25,
   // --- components/providers ---
@@ -151,9 +141,7 @@ const LEDGER: Record<string, number> = {
   'src/providers/volcengine_ast2/Ast2Settings.tsx': 4,
   'src/providers/qwen_livetranslate/kizuna.ts': 1,
   // --- root ---
-  'src/App.scss': 1,
   // --- styles ---
-  'src/styles/scrollbar.scss': 7,
 };
 
 describe('colour ledger', () => {
