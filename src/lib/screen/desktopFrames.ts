@@ -72,7 +72,8 @@ export async function openDesktopCapture(
   const track = stream.getVideoTracks()[0];
   if (!track) {
     for (const stray of stream.getTracks()) stray.stop();
-    throw new Error(`The capture of ${source.name} has no video track`);
+    // No title: the message reaches the Logs panel (`reportWarning`), and from there bug reports.
+    throw new Error('The picked capture has no video track');
   }
 
   let ended = false;

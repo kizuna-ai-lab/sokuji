@@ -126,10 +126,12 @@ describe('openDesktopCapture', () => {
     expect(capture).not.toHaveBeenCalled();
   });
 
-  it('rejects, naming the source, when the stream has no video track, and leaves nothing running', async () => {
+  it('rejects when the stream has no video track, never naming the window (the message reaches the Logs panel), and leaves nothing running', async () => {
     const stray = fakeTrack();
     const stream = { getVideoTracks: () => [], getTracks: () => [stray] } as unknown as MediaStream;
-    await expect(openDesktopCapture(slides, { getUserMedia: async () => stream, capture: fakeCapture })).rejects.toThrow(/Slides.*no video track/);
+    const opening = openDesktopCapture(slides, { getUserMedia: async () => stream, capture: fakeCapture });
+    await expect(opening).rejects.toThrow('The picked capture has no video track');
+    await expect(opening).rejects.not.toThrow(/Slides/);
     expect(stray.stop).toHaveBeenCalledOnce();
   });
 });
