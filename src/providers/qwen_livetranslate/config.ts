@@ -1,7 +1,7 @@
 /**
  * Qwen LiveTranslate's `C`, `build` and `describe` (spec 2026-10-13, §5).
  * One builder for both legs: the participant's is the reversed direction,
- * in its own voice and with person labels (D7). The storefront is the one
+ * in its own voice and with person labels (D7). The endpoint is the one
  * the check found, or null for the adapter to find (§2). A text-only target
  * on a leg that speaks is refused here, so the update the server would
  * refuse is never sent.
@@ -18,7 +18,7 @@ export type QwenVoiceChoice = { kind: 'preset'; name: string } | { kind: 'clone'
 
 export interface QwenConfig {
   model: typeof QWEN_MODEL;
-  /** The key's storefront as the check found it; null: the adapter finds it before it opens. */
+  /** The key's endpoint as the check found it; null: the adapter finds it before it opens. */
   endpoint: EndpointId | null;
   /** A Qwen code, which is the app code. */
   target: string;
@@ -58,13 +58,13 @@ export function buildQwen(context: SessionContext, s: QwenSettings, shared: Shar
   if (context.speech && !QWEN_SPOKEN.some((o) => o.value === target)) return { refused: `Qwen LiveTranslate writes ${target} but does not speak it: turn speech off for this leg.` };
   const participant = shared.reversed(context.direction);
   const chosen = participant ? qwenParticipantVoice(s) : qwenSpeakerVoice(s);
-  const storefront = shared.models[0]?.id;
+  const endpoint = shared.models[0]?.id;
   const manual = context.turns === 'manual';
   // The pause field is not in 3.8's documented update: it goes on the wire only when it changes something.
   const pause = Number.isFinite(s.pauseMs) ? Math.min(QWEN_PAUSE.max, Math.max(QWEN_PAUSE.min, Math.round(s.pauseMs))) : QWEN_PAUSE.default;
   return {
     model: QWEN_MODEL,
-    endpoint: isEndpointId(storefront) ? storefront : null,
+    endpoint: isEndpointId(endpoint) ? endpoint : null,
     target,
     speech: context.speech,
     voice: chosen === SPEAKER_CLONE ? { kind: 'clone', frequency: 'always' }

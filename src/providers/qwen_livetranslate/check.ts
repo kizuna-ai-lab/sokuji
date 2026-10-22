@@ -1,22 +1,23 @@
 /**
- * Qwen LiveTranslate's readiness and storefront (spec 2026-10-13, §2): the
- * key is asked for a one-minute token at each storefront in turn. A 200
- * names the storefront — the token is never read: it expires on its own,
+ * Qwen LiveTranslate's readiness and region (spec 2026-10-13, §2): the
+ * key is asked for a one-minute token at each region's endpoint in turn. A
+ * 200 names the endpoint — the token is never read: it expires on its own,
  * opens no session and costs nothing. A 401 or 403 moves on; refused by
  * both is `auth`, a 429 is `rate_limit`, and anything else throws: the check
  * could not tell. HTTPS, not the socket: a browser hides a refused upgrade's
  * status. CORS answers any origin, the extension's and `file://` included
  * (probe 2026-10-13). The settings side; the adapter runs `detectEndpoint`
- * only when its config names no storefront, handed in as a dependency, on
+ * only when its config names no endpoint, handed in as a dependency, on
  * the request's clock and signal.
  */
 import { realClock, type Clock } from '../../lib/contract/clock';
 import { boundedFetch } from '../../lib/provider/boundedFetch';
 import type { CheckContext, CheckResult } from '../../lib/provider/types';
 import { ENDPOINT_ORDER, ENDPOINTS, type EndpointId } from './endpoints';
+import { QWEN_REGION_LABELS } from './regions';
 import type { QwenCredentials, QwenSettings } from './settings';
 
-/** As long as the other checks wait, per storefront. */
+/** As long as the other checks wait, per endpoint. */
 export const DETECT_TIMEOUT_MS = 15_000;
 
 export interface DetectDeps {
@@ -40,16 +41,16 @@ export const detectEndpoint: DetectEndpoint = async (apiKey, o) => {
       return response.status;
     });
     if (status === 200) return { endpoint: id };
-    if (status === 429) return { refused: `${ENDPOINTS[id].name} is limiting requests (HTTP 429).`, code: 'rate_limit' };
+    if (status === 429) return { refused: `Qwen's ${QWEN_REGION_LABELS[ENDPOINTS[id].region]} region is limiting requests (HTTP 429).`, code: 'rate_limit' };
     if (status !== 401 && status !== 403) throw new Error(`Qwen answered the key check with HTTP ${status}.`);
   }
-  return { refused: `Neither QwenCloud nor 千问云 accepted this key (HTTP ${status}).`, code: 'auth' };
+  return { refused: `Neither Qwen's ${QWEN_REGION_LABELS.sg} nor its ${QWEN_REGION_LABELS.cn} region accepted this key (HTTP ${status}).`, code: 'auth' };
 };
 
 export function createQwenCheck(deps: Omit<DetectDeps, 'signal'> = {}) {
   return async (k: QwenCredentials, _s: QwenSettings, ctx: CheckContext): Promise<CheckResult> => {
     const found = await detectEndpoint(k.apiKey, { ...deps, signal: ctx.signal });
-    // The one model entry names the storefront: `build` reads it from `shared.models`, the settings view from `models`.
+    // The one model entry names the endpoint: `build` reads it from `shared.models`, the settings view from `models`.
     return 'endpoint' in found ? { ok: true, models: [{ id: found.endpoint }] } : { ok: false, reason: found.refused, code: found.code };
   };
 }

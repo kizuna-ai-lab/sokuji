@@ -18,6 +18,7 @@ export const kizunaQwenProvider = managed(qwenLiveTranslateProvider, {
   // Qwen's colour mark is transparent, so the Kizuna mark's white strokes show
   // through it; on a white plate it would twin Kizuna Soniox's badge.
   icon: kizunaHostedIcon(QwenMonoIcon, { plate: QWEN_PLATE, inset: 0.82, color: '#fff' }),
+  guideUrl: 'https://sokuji.kizuna.ai/docs/kizuna-ai/quick-start',
   settingsKey: 'kizunaQwen',
   // The shared view under a Region dropdown: the region is the managed session's, an own key has none.
   Settings: KizunaQwenSettingsView,

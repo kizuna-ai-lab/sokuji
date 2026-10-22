@@ -12,11 +12,11 @@ const refused = () => answer(401, { code: 'InvalidApiKey', message: 'Invalid API
 const check = (fetch: typeof globalThis.fetch, c: CheckContext = ctx) => createQwenCheck({ fetch, clock: createVirtualClock(0) })(K, QWEN_DEFAULTS, c);
 const urls = (fetch: ReturnType<typeof vi.fn>) => fetch.mock.calls.map((call) => (call as unknown as [string])[0]);
 
-describe("Qwen LiveTranslate's storefronts", () => {
-  it('are QwenCloud and 千问云, each a socket and a token endpoint on one host', () => {
+describe("Qwen LiveTranslate's endpoints", () => {
+  it('are a Singapore host and a Beijing host, each a socket and a token endpoint', () => {
     expect(ENDPOINTS).toEqual({
-      intl: { name: 'QwenCloud', socket: 'wss://maas.qwencloudapi.com/api-ws/v1/realtime', tokens: 'https://maas.qwencloudapi.com/api/v1/tokens' },
-      cn: { name: '千问云', socket: 'wss://maas.qianwenaiapi.com/api-ws/v1/realtime', tokens: 'https://maas.qianwenaiapi.com/api/v1/tokens' },
+      intl: { region: 'sg', socket: 'wss://maas.qwencloudapi.com/api-ws/v1/realtime', tokens: 'https://maas.qwencloudapi.com/api/v1/tokens' },
+      cn: { region: 'cn', socket: 'wss://maas.qianwenaiapi.com/api-ws/v1/realtime', tokens: 'https://maas.qianwenaiapi.com/api/v1/tokens' },
     });
     expect(isEndpointId('intl')).toBe(true);
     expect(isEndpointId('cn')).toBe(true);
@@ -25,7 +25,7 @@ describe("Qwen LiveTranslate's storefronts", () => {
 });
 
 describe("Qwen LiveTranslate's check (spec §2)", () => {
-  it('a key QwenCloud mints a token for is international: one POST, the key in the header alone, the token never read', async () => {
+  it("a key the Singapore host mints a token for is Singapore's: one POST, the key in the header alone, the token never read", async () => {
     const fetch = vi.fn(async () => answer(200, { token: 'st-unread', expires_at: 1 }));
     await expect(check(fetch)).resolves.toEqual({ ok: true, models: [{ id: 'intl' }] });
     expect(fetch).toHaveBeenCalledTimes(1);
@@ -34,20 +34,20 @@ describe("Qwen LiveTranslate's check (spec §2)", () => {
     expect(init).toMatchObject({ method: 'POST', headers: { Authorization: `Bearer ${K.apiKey}` } });
   });
 
-  it('a key QwenCloud refuses and 千问云 accepts is mainland', async () => {
+  it("a key Singapore refuses and Beijing accepts is Beijing's", async () => {
     const fetch = vi.fn().mockResolvedValueOnce(refused()).mockResolvedValueOnce(answer(200, { token: 'st-unread' }));
     await expect(check(fetch)).resolves.toEqual({ ok: true, models: [{ id: 'cn' }] });
     expect(urls(fetch)).toEqual(['https://maas.qwencloudapi.com/api/v1/tokens?expire_in_seconds=60', 'https://maas.qianwenaiapi.com/api/v1/tokens?expire_in_seconds=60']);
   });
 
   it('a key both refuse — 401 or 403 — is not ready, as auth', async () => {
-    await expect(check(vi.fn(async () => refused()))).resolves.toEqual({ ok: false, code: 'auth', reason: 'Neither QwenCloud nor 千问云 accepted this key (HTTP 401).' });
+    await expect(check(vi.fn(async () => refused()))).resolves.toEqual({ ok: false, code: 'auth', reason: "Neither Qwen's Singapore nor its 北京 (Beijing) region accepted this key (HTTP 401)." });
     await expect(check(vi.fn().mockResolvedValueOnce(answer(403)).mockResolvedValueOnce(refused()))).resolves.toMatchObject({ ok: false, code: 'auth' });
   });
 
-  it('a rate limit is not ready, as rate_limit, and the other storefront is not asked', async () => {
+  it('a rate limit is not ready, as rate_limit, and the other region is not asked', async () => {
     const fetch = vi.fn(async () => answer(429));
-    await expect(check(fetch)).resolves.toEqual({ ok: false, code: 'rate_limit', reason: 'QwenCloud is limiting requests (HTTP 429).' });
+    await expect(check(fetch)).resolves.toEqual({ ok: false, code: 'rate_limit', reason: "Qwen's Singapore region is limiting requests (HTTP 429)." });
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 
@@ -74,10 +74,10 @@ describe("Qwen LiveTranslate's check (spec §2)", () => {
     await expect(check(vi.fn(async () => answer(200)), { ...ctx, signal: controller.signal })).rejects.toThrow('stopped');
   });
 
-  it('detection alone answers the storefront or the refusal, for the adapter to use', async () => {
+  it('detection alone answers the endpoint or the refusal, for the adapter to use', async () => {
     const fetch = vi.fn().mockResolvedValueOnce(refused()).mockResolvedValueOnce(answer(200));
     await expect(detectEndpoint(K.apiKey, { fetch, clock: createVirtualClock(0) })).resolves.toEqual({ endpoint: 'cn' });
     await expect(detectEndpoint(K.apiKey, { fetch: vi.fn(async () => refused()), clock: createVirtualClock(0) }))
-      .resolves.toEqual({ refused: 'Neither QwenCloud nor 千问云 accepted this key (HTTP 401).', code: 'auth' });
+      .resolves.toEqual({ refused: "Neither Qwen's Singapore nor its 北京 (Beijing) region accepted this key (HTTP 401).", code: 'auth' });
   });
 });

@@ -65,6 +65,13 @@ test on 2026-10-14 (D9).
 - **D1 Model.** `qwen3.8-livetranslate-flash-realtime` only, named in one constant.
 - **D2 Storefronts.** International (`maas.qwencloudapi.com`) and mainland (`maas.qianwenaiapi.com`),
   detected per key (§2). No region setting.
+  *Amended 2026-10-23:* a key belongs to a region, not to a console. Keys made in QwenCloud and in
+  千问云, each in Singapore and in Beijing, were probed on both domains' regional hosts: every key
+  worked on its region's host of either domain and was refused (401) everywhere else.
+  `maas.qwencloudapi.com` is Singapore and `maas.qianwenaiapi.com` is Beijing, so the two
+  endpoints are the two regions; `ENDPOINTS` carries each one's `region`, and the line under the
+  key (§7) names it. A key whose account has not enabled the model in its region passes the check
+  and is refused after `session.update`, by a frame with no `type` (§6).
 - **D3 Auth.** The documented `Authorization: Bearer` header through the existing header seam
   (`src/lib/contract/headerSocket.ts`). Therefore `platforms: ['electron', 'extension']`; the web
   build does not offer the provider.
@@ -74,7 +81,7 @@ test on 2026-10-14 (D9).
 - **D6 Turns.** `['auto', 'manual']`. Manual uses `commit` only: a cancel is a release, and turns are serialised on `response.done` (§6, "Turns").
 - **D7 Person labels.** Only the participant leg carries `person` (Soniox's rule).
 - **D8 No reconnect.** A drop fails the leg with `connection_lost`, as OpenAI Translate and AST2 do.
-- **D9 Flagged, then unflagged.** It shipped `flagged: true` with `testerSwitch: 'debug:qwen-livetranslate'`. The owner unflagged it after his live test (2026-10-14), so the flag and the switch are gone and release builds offer it on the desktop app and the extension. It still has no `guideUrl`: the site has no Qwen tutorial yet.
+- **D9 Flagged, then unflagged.** It shipped `flagged: true` with `testerSwitch: 'debug:qwen-livetranslate'`. The owner unflagged it after his live test (2026-10-14), so the flag and the switch are gone and release builds offer it on the desktop app and the extension. It had no `guideUrl` while the site had no Qwen tutorial; *amended 2026-10-23:* it links `docs/tutorials/qwen-setup`, and Kizuna AI Qwen the Kizuna quick start, as Kizuna AI Soniox does.
 
 ## 1. Definition — `src/providers/qwen_livetranslate/provider.ts`
 
@@ -302,7 +309,7 @@ export interface QwenConfig {
 
 - The voice field described in §4 is the only control. It carries `#voice-settings-section`.
 - There is no instructions field, model picker or region picker.
-- When the provider's readiness is ready, the storefront the check found is shown as a muted line under the key: "QwenCloud (international)" or "千问云 (mainland China)". It reads from `models`.
+- When the provider's readiness is ready, the storefront the check found is shown as a muted line under the key: "QwenCloud (international)" or "千问云 (mainland China)". It reads from `models`. *Amended 2026-10-23 (D2):* the line names the key's region instead, "Key region: Singapore" or "Key region: 北京 (Beijing)", in the region picker's labels.
 
 ## 8. Registry and the tests that pin it
 

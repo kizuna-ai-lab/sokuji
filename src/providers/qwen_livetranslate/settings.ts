@@ -12,7 +12,7 @@ import { distinctVoice } from '../../lib/provider/voices';
 import type { EndpointId } from './endpoints';
 import { asQwenRegion, DEFAULT_QWEN_REGION, type QwenRegion } from './regions';
 
-/** The one model (D1): the check finds the storefront, nothing chooses a model. */
+/** The one model (D1): the check finds the endpoint, nothing chooses a model. */
 export const QWEN_MODEL = 'qwen3.8-livetranslate-flash-realtime';
 
 /** The speaker's own voice, cloned in real time on every turn (D5): a choice beside the presets, sent as `enable_voice_clone`, frequency `always`. */
@@ -96,7 +96,7 @@ export interface QwenSettings {
   hotwords: string;
   /** The pause that ends a turn under automatic turns, in ms (`QWEN_PAUSE`). */
   pauseMs: number;
-  /** The region a managed session is bought in (`regions.ts`); an own key detects its storefront and ignores this. */
+  /** The region a managed session is bought in (`regions.ts`); an own key detects its endpoint and ignores this. */
   region: QwenRegion;
   /** Let the model see one chosen window, tab or screen (spec 2026-10-22); the source is picked at Start and never stored. */
   screenContext: boolean;
@@ -156,14 +156,14 @@ export const qwenLanguages: Provider<QwenSettings, never, never>['languages'] = 
   wire: identityWire(),
 };
 
-/** What the managed leg tells its lease: the session the storefront opened and the handshake's request id (absent when the platform gave none), for the backend to match against Alibaba's logs. */
+/** What the managed leg tells its lease: the session the endpoint opened and the handshake's request id (absent when the platform gave none), for the backend to match against Alibaba's logs. */
 export interface QwenLeasePort {
   sessionCreated(id: string, requestId?: string): void;
 }
 
 export interface QwenCredentials {
   apiKey: string;
-  /** The storefront a managed grant was bought on: dialled without detecting. An own key carries neither this nor `lease`. */
+  /** The endpoint a managed grant was bought on: dialled without detecting. An own key carries neither this nor `lease`. */
   endpoint?: EndpointId;
   lease?: QwenLeasePort;
 }

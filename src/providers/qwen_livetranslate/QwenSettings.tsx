@@ -24,7 +24,7 @@ import type { SettingsProps, VoiceSummaryProps } from '../../lib/provider/types'
 import type { CaptureSourceInfo } from '../../lib/screen/desktopFrames';
 import { useScreenContextStore, type PickedSource } from '../../stores/screenContextStore';
 import { isElectron } from '../../utils/environment';
-import { isEndpointId } from './endpoints';
+import { ENDPOINTS, isEndpointId } from './endpoints';
 import { asQwenRegion, QWEN_REGION_LABELS, QWEN_REGIONS } from './regions';
 import { QWEN_VOICES, qwenParticipantVoice, qwenSpeakerVoice, SPEAKER_CLONE, SPEAKER_CLONE_ONCE, type QwenSettings as S } from './settings';
 
@@ -41,14 +41,14 @@ export function QwenVoiceSummary({ settings, leg }: VoiceSummaryProps<S>) {
 }
 
 /**
- * Qwen LiveTranslate's own settings (spec §7): the storefront the check
- * found, as a line under the key; the voice — cloning under a heading of its
+ * Qwen LiveTranslate's own settings (spec §7): the region the check found
+ * the key in, as a line under the key; the voice — cloning under a heading of its
  * own (each speaker on every turn, or the first speaker once), then the 47
  * presets, as Doubao AST 2.0 lists them; and the preferred translations
  * (`translation.corpus`), Soniox's field and words. No preview: the official
  * voice list publishes no samples. No model or instructions: the endpoint
- * has none. No region either: an own key detects its storefront; the region
- * is the managed twin's (`KizunaQwenSettingsView`).
+ * has none. No region picker either: an own key's region is the one it was
+ * made in; the picker is the managed twin's (`KizunaQwenSettingsView`).
  */
 export function QwenSettingsView({ settings, update, disabled = false, participantSpeaks = false, models = [], preview }: SettingsProps<S>) {
   const { t } = useTranslation();
@@ -58,15 +58,13 @@ export function QwenSettingsView({ settings, update, disabled = false, participa
     { id: SPEAKER_CLONE_ONCE, label: t('providers.qwen_livetranslate.voiceCloneOnce', "Clone the first speaker's voice"), group: 'builtin', removable: false, section: cloning },
     ...QWEN_VOICES.map((v) => presetVoice(v)),
   ];
-  const storefront = models[0]?.id;
+  const endpoint = models[0]?.id;
   return (
     <>
-      {isEndpointId(storefront) && (
+      {isEndpointId(endpoint) && (
         <div className="settings-section">
           <div className="models-info">
-            {storefront === 'intl'
-              ? t('providers.qwen_livetranslate.storefrontIntl', 'Key from QwenCloud (international)')
-              : t('providers.qwen_livetranslate.storefrontCn', 'Key from 千问云 (mainland China)')}
+            {t('providers.qwen_livetranslate.keyRegion', 'Key region: {{region}}', { region: QWEN_REGION_LABELS[ENDPOINTS[endpoint].region] })}
           </div>
         </div>
       )}

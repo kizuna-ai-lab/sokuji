@@ -135,13 +135,15 @@ describe('QwenSettingsView (spec §4, §7)', () => {
     expect(tooltips).not.toMatch(/when a session starts/);
   });
 
-  it('names the storefront the check found under the key, and nothing before a check', () => {
+  // A key belongs to a region, not to the console it was made in (probe 2026-10-23): either console's key works on its region's host.
+  it('names the region the check found the key in, as the region picker does, and nothing before a check', () => {
     const { rerender } = render(<QwenSettingsView {...props({ models: [{ id: 'cn' }] })} />);
-    expect(screen.getByText('Key from 千问云 (mainland China)')).toBeTruthy();
+    expect(screen.getByText('Key region: 北京 (Beijing)')).toBeTruthy();
     rerender(<QwenSettingsView {...props({ models: [{ id: 'intl' }] })} />);
-    expect(screen.getByText('Key from QwenCloud (international)')).toBeTruthy();
+    expect(screen.getByText('Key region: Singapore')).toBeTruthy();
+    expect(screen.queryByText(/QwenCloud|千问云/)).toBeNull();
     rerender(<QwenSettingsView {...props({ models: [] })} />);
-    expect(screen.queryByText(/^Key from/)).toBeNull();
+    expect(screen.queryByText(/^Key region/)).toBeNull();
   });
 });
 
