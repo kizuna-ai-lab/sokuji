@@ -552,8 +552,8 @@
       "vocabularyTranslationsTooltip": "Influencia a forma como termos específicos são traduzidos — é uma preferência, não uma substituição garantida: nomes com uma tradução já estabelecida funcionam melhor, enquanto palavras comuns podem manter a formulação do próprio modelo. As entradas são direcionais; a direção inversa só existe no modo Ambos, onde pode adicionar uma linha inversa.",
       "vocabularyTranslationsPlaceholder": "Uma entrada origem=destino por linha",
       "screenContext": "Contexto do ecrã",
-      "screenContextTooltip": "Permite que o motor Qwen veja uma janela, separador ou ecrã que escolhe ao iniciar uma sessão, para que os nomes e termos que nele aparecem sejam reconhecidos e traduzidos tal como estão escritos. Tudo o que está dentro dessa área é enviado como imagens para o serviço Qwen da Alibaba Cloud, na região desta sessão; a Kizuna AI nunca as recebe. Com uma conta Kizuna AI, acrescenta ao custo de cada segundo de fala enquanto estiver ativado — no modo Ambos, por cada direção; a tarifa consta da página de preços da sua conta.",
-      "screenContextWhere": "Na aplicação para computador, escolhe a janela ou o ecrã ao iniciar a sessão. Na extensão do navegador, é usado o separador da reunião."
+      "screenContextTooltip": "Permite que o motor Qwen veja uma janela, separador ou ecrã que escolhe ao iniciar uma sessão, para que os nomes e termos que nele aparecem sejam reconhecidos e traduzidos tal como estão escritos. Tudo o que está dentro dessa área é enviado como imagens para o serviço Qwen da Alibaba Cloud, na região desta sessão; a Kizuna AI nunca as recebe. Enquanto estiver ativado, acrescenta ao custo de cada segundo de fala — na sua fatura da Alibaba Cloud com a sua própria chave, ou conforme a página de preços da sua conta com uma conta Kizuna AI; no modo Ambos, é cobrada a sessão de cada direção.",
+      "screenContextWhere": "As imagens dessa área vão para o serviço Qwen da Alibaba Cloud na região desta sessão; a Kizuna AI nunca as recebe. Na aplicação para computador, escolhe a janela ou o ecrã ao iniciar a sessão; na extensão do navegador, é usado o separador da reunião."
     },
     "local_inference": {
       "name": "Gratuito",
@@ -1448,7 +1448,7 @@
     "speaker_tts_missing": "A tradução que o outro lado ouve é apresentada apenas como texto: nenhum modelo de voz fala {{target}}.",
     "participant_tts_missing": "A tradução que eu ouço é apresentada apenas como texto: nenhum modelo de voz fala {{target}}.",
     "participant_tts_over_budget": "A tradução que eu ouço é apresentada apenas como texto: não há memória suficiente para carregar também o modelo de voz do outro lado.",
-    "screen_context_lost": "O ecrã que escolheu já não está disponível; a tradução continua apenas com o áudio. Use «Escolher novamente» no chip do ecrã."
+    "screen_context_lost": "O ecrã que escolheu já não está disponível; a tradução continua apenas com o áudio."
   },
   "viewer": {
     "title": "Legendas do Sokuji",
@@ -1590,14 +1590,15 @@
     "chip": {
       "live": "Em direto",
       "stale": "Sem alterações",
-      "lost": "Escolher novamente",
+      "lost": "Indisponível",
       "label": "Contexto do ecrã: {{name}}, {{status}}"
     },
     "card": {
       "lastFrame": "Última imagem há {{ago}} s",
-      "frames": "{{count}} imagens enviadas",
+      "frames": "Imagens enviadas: {{count}}",
       "chooseAgain": "Escolher novamente",
-      "lostHint": "A origem já não está disponível; a última imagem é mantida até escolher novamente."
+      "lostHint": "A origem já não está disponível; a última imagem é mantida até escolher novamente.",
+      "lostExtension": "A imagem do separador da reunião já não está disponível; a tradução continua apenas com o áudio."
     }
   }
 }

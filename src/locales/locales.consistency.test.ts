@@ -130,19 +130,20 @@ describe('notices that name a button use that locale\'s own label', () => {
   });
 });
 
-describe('the lost screen notice names what the screen chip shows', () => {
-  // The notice sends the user to the chip, which reads "Choose again" when the
-  // source is lost (and its card's button says the same): the notice spells the
-  // label out, so pin it to the chip's own word in every locale.
-  it('notices.screen_context_lost names screenContext.chip.lost in every locale', () => {
+describe('the lost screen notice states the loss and sends nobody to a button', () => {
+  // The notice is the same in the desktop app and the extension, and only the
+  // desktop can choose again (its chip's card has the button; the extension
+  // captures the meeting tab and has none). So the notice states what happened
+  // and names no button, and the chip's lost word is a status, not the card's
+  // instruction.
+  it('notices.screen_context_lost never names screenContext.card.chooseAgain, and screenContext.chip.lost is not that button', () => {
     const offenders: string[] = [];
     for (const [lang, cat] of [['en', EN] as const, ...locales]) {
-      const label = cat['screenContext.chip.lost'];
+      const button = cat['screenContext.card.chooseAgain'];
       const notice = cat['notices.screen_context_lost'];
-      if (typeof label !== 'string' || typeof notice !== 'string' || !notice.toLocaleLowerCase().includes(label.toLocaleLowerCase())) {
-        offenders.push(`${lang}: ${JSON.stringify(notice)} omits ${JSON.stringify(label)}`);
-      }
-      if (cat['screenContext.card.chooseAgain'] !== label) offenders.push(`${lang}: the card's button and the chip's lost word differ`);
+      if (typeof button !== 'string' || typeof notice !== 'string') continue; // key-parity is another test's job
+      if (notice.toLocaleLowerCase().includes(button.toLocaleLowerCase())) offenders.push(`${lang}: ${JSON.stringify(notice)} names ${JSON.stringify(button)}`);
+      if (cat['screenContext.chip.lost'] === button) offenders.push(`${lang}: the chip's lost word is the card's button`);
     }
     expect(offenders).toEqual([]);
   });

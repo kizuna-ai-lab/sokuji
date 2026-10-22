@@ -552,8 +552,8 @@
       "vocabularyTranslationsTooltip": "Memengaruhi cara penerjemahan istilah tertentu — ini preferensi, bukan penggantian yang dijamin: nama dengan terjemahan yang sudah baku bekerja paling baik, sedangkan kata umum mungkin tetap menggunakan bahasa model itu sendiri. Entri bersifat searah; arah sebaliknya hanya ada dalam mode Keduanya, tempat Anda dapat menambahkan baris terbalik.",
       "vocabularyTranslationsPlaceholder": "Satu entri sumber=target per baris",
       "screenContext": "Konteks layar",
-      "screenContextTooltip": "Memungkinkan mesin Qwen melihat satu jendela, tab, atau layar yang Anda pilih saat sesi dimulai, sehingga nama dan istilah di dalamnya dikenali dan diterjemahkan persis seperti tertulis. Semua yang ada di dalam area itu dikirim sebagai gambar ke layanan Qwen milik Alibaba Cloud, di wilayah sesi ini; Kizuna AI tidak pernah menerimanya. Dengan akun Kizuna AI, fitur ini menambah biaya untuk setiap detik ucapan selama aktif — pada mode Keduanya untuk setiap arah; tarifnya ada di halaman harga akun Anda.",
-      "screenContextWhere": "Di aplikasi desktop, Anda memilih jendela atau layar saat sesi dimulai. Di ekstensi browser, tab rapat yang digunakan."
+      "screenContextTooltip": "Memungkinkan mesin Qwen melihat satu jendela, tab, atau layar yang Anda pilih saat sesi dimulai, sehingga nama dan istilah di dalamnya dikenali dan diterjemahkan persis seperti tertulis. Semua yang ada di dalam area itu dikirim sebagai gambar ke layanan Qwen milik Alibaba Cloud, di wilayah sesi ini; Kizuna AI tidak pernah menerimanya. Selama aktif, fitur ini menambah biaya untuk setiap detik ucapan — di tagihan Alibaba Cloud Anda bila memakai kunci sendiri, atau sesuai halaman harga akun Anda bila memakai akun Kizuna AI; pada mode Keduanya, sesi setiap arah ditagih.",
+      "screenContextWhere": "Gambar area itu dikirim ke layanan Qwen milik Alibaba Cloud di wilayah sesi ini; Kizuna AI tidak pernah menerimanya. Di aplikasi desktop, Anda memilih jendela atau layar saat sesi dimulai; di ekstensi browser, tab rapat yang digunakan."
     },
     "local_inference": {
       "name": "Gratis",
@@ -1448,7 +1448,7 @@
     "speaker_tts_missing": "Terjemahan yang didengar pihak lain hanya berupa teks: tidak ada model suara yang berbicara {{target}}.",
     "participant_tts_missing": "Terjemahan yang saya dengar hanya berupa teks: tidak ada model suara yang berbicara {{target}}.",
     "participant_tts_over_budget": "Terjemahan yang saya dengar hanya berupa teks: memori tidak cukup untuk memuat model suara pihak lain juga.",
-    "screen_context_lost": "Layar yang Anda pilih tidak lagi tersedia; terjemahan berlanjut hanya dengan audio. Pilih lagi dari chip layar."
+    "screen_context_lost": "Layar yang Anda pilih tidak lagi tersedia; terjemahan berlanjut hanya dengan audio."
   },
   "viewer": {
     "title": "Subtitle Sokuji",
@@ -1590,14 +1590,15 @@
     "chip": {
       "live": "Langsung",
       "stale": "Tidak berubah",
-      "lost": "Pilih lagi",
+      "lost": "Tidak tersedia",
       "label": "Konteks layar: {{name}}, {{status}}"
     },
     "card": {
       "lastFrame": "Bingkai terakhir {{ago}} dtk lalu",
-      "frames": "{{count}} bingkai terkirim",
+      "frames": "Bingkai terkirim: {{count}}",
       "chooseAgain": "Pilih lagi",
-      "lostHint": "Sumbernya sudah tidak ada; gambar terakhir disimpan sampai Anda memilih lagi."
+      "lostHint": "Sumbernya sudah tidak ada; gambar terakhir disimpan sampai Anda memilih lagi.",
+      "lostExtension": "Gambar tab rapat tidak lagi tersedia; terjemahan berlanjut hanya dengan audio."
     }
   }
 }

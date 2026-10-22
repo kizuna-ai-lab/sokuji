@@ -552,8 +552,8 @@
       "vocabularyTranslationsTooltip": "Vaikuttaa siihen, miten tietyt termit käännetään — kyse on toiveesta, ei taatusta korvauksesta: nimet, joilla on vakiintunut käännös, toimivat parhaiten, kun taas yleiset sanat saattavat säilyä mallin omalla sanamuodolla. Merkinnät ovat suunnattuja; käänteinen suunta on käytössä vain Molemmat-tilassa, jossa voit lisätä käänteisen rivin.",
       "vocabularyTranslationsPlaceholder": "Yksi lähde=kohde-merkintä per rivi",
       "screenContext": "Näytön konteksti",
-      "screenContextTooltip": "Antaa Qwen-moottorin nähdä yhden ikkunan, välilehden tai näytön, jonka valitset istunnon alkaessa, jotta siinä näkyvät nimet ja termit tunnistetaan ja käännetään sellaisina kuin ne on kirjoitettu. Kaikki tämän alueen sisällä oleva lähetetään kuvina Alibaba Cloudin Qwen-palveluun tämän istunnon alueella; Kizuna AI ei koskaan vastaanota niitä. Kizuna AI -tilillä se lisää veloitusta jokaiselta puhesekunnilta, kun se on päällä — Molemmat-tilassa kummaltakin suunnalta; hinta on tilisi hintasivulla.",
-      "screenContextWhere": "Työpöytäsovelluksessa valitset ikkunan tai näytön istunnon alkaessa. Selainlaajennuksessa käytetään kokouksen välilehteä."
+      "screenContextTooltip": "Antaa Qwen-moottorin nähdä yhden ikkunan, välilehden tai näytön, jonka valitset istunnon alkaessa, jotta siinä näkyvät nimet ja termit tunnistetaan ja käännetään sellaisina kuin ne on kirjoitettu. Kaikki tämän alueen sisällä oleva lähetetään kuvina Alibaba Cloudin Qwen-palveluun tämän istunnon alueella; Kizuna AI ei koskaan vastaanota niitä. Kun se on päällä, se lisää veloitusta jokaiselta puhesekunnilta — omalla avaimella Alibaba Cloud -laskullesi, Kizuna AI -tilillä tilisi hintasivun mukaan; Molemmat-tilassa kunkin suunnan istunto veloitetaan.",
+      "screenContextWhere": "Tämän alueen kuvat menevät Alibaba Cloudin Qwen-palveluun tämän istunnon alueella; Kizuna AI ei koskaan vastaanota niitä. Työpöytäsovelluksessa valitset ikkunan tai näytön istunnon alkaessa; selainlaajennuksessa käytetään kokouksen välilehteä."
     },
     "local_inference": {
       "name": "Ilmainen",
@@ -1448,7 +1448,7 @@
     "speaker_tts_missing": "Käännös, jonka toinen osapuoli kuulee, näkyy vain tekstinä: mikään puhemalli ei puhu kieltä {{target}}.",
     "participant_tts_missing": "Käännös, jonka kuulen, näkyy vain tekstinä: mikään puhemalli ei puhu kieltä {{target}}.",
     "participant_tts_over_budget": "Käännös, jonka kuulen, näkyy vain tekstinä: muisti ei riitä lataamaan myös toisen osapuolen puhemallia.",
-    "screen_context_lost": "Valitsemasi näyttö ei ole enää käytettävissä; käännös jatkuu pelkällä äänellä. Valitse uudelleen näyttöchipistä."
+    "screen_context_lost": "Valitsemasi näyttö ei ole enää käytettävissä; käännös jatkuu pelkällä äänellä."
   },
   "viewer": {
     "title": "Sokuji-tekstitys",
@@ -1590,14 +1590,15 @@
     "chip": {
       "live": "Live",
       "stale": "Ei muutoksia",
-      "lost": "Valitse uudelleen",
+      "lost": "Ei käytettävissä",
       "label": "Näytön konteksti: {{name}}, {{status}}"
     },
     "card": {
       "lastFrame": "Viimeisin kuva {{ago}} s sitten",
-      "frames": "{{count}} kuvaa lähetetty",
+      "frames": "Lähetetyt kuvat: {{count}}",
       "chooseAgain": "Valitse uudelleen",
-      "lostHint": "Lähde on poissa; viimeisin kuva säilytetään, kunnes valitset uudelleen."
+      "lostHint": "Lähde on poissa; viimeisin kuva säilytetään, kunnes valitset uudelleen.",
+      "lostExtension": "Kokouksen välilehden kuva ei ole enää käytettävissä; käännös jatkuu pelkällä äänellä."
     }
   }
 }

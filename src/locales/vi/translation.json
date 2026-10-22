@@ -552,8 +552,8 @@
       "vocabularyTranslationsTooltip": "Ảnh hưởng đến cách dịch các thuật ngữ cụ thể — đây là một sự ưu tiên, không phải một sự thay thế được đảm bảo: các tên đã có cách dịch phổ biến sẽ hiệu quả nhất, trong khi các từ thông dụng có thể vẫn giữ cách diễn đạt riêng của mô hình. Các mục có tính định hướng; chiều ngược lại chỉ tồn tại ở chế độ Cả hai, nơi bạn có thể thêm một dòng ngược.",
       "vocabularyTranslationsPlaceholder": "Mỗi dòng một mục theo dạng nguồn=đích",
       "screenContext": "Ngữ cảnh màn hình",
-      "screenContextTooltip": "Cho phép công cụ Qwen nhìn thấy một cửa sổ, tab hoặc màn hình mà bạn chọn khi bắt đầu phiên, để các tên và thuật ngữ trên đó được nhận dạng và dịch đúng như đã viết. Mọi thứ trong vùng đó được gửi dưới dạng hình ảnh tới dịch vụ Qwen của Alibaba Cloud, tại khu vực của phiên này; Kizuna AI không bao giờ nhận được chúng. Với tài khoản Kizuna AI, tính năng này làm tăng khoản phí cho mỗi giây lời nói trong lúc đang bật — ở chế độ Cả hai thì cho mỗi chiều; mức phí có trên trang giá của tài khoản bạn.",
-      "screenContextWhere": "Trong ứng dụng máy tính, bạn chọn cửa sổ hoặc màn hình khi phiên bắt đầu. Trong tiện ích mở rộng trình duyệt, tab cuộc họp được sử dụng."
+      "screenContextTooltip": "Cho phép công cụ Qwen nhìn thấy một cửa sổ, tab hoặc màn hình mà bạn chọn khi bắt đầu phiên, để các tên và thuật ngữ trên đó được nhận dạng và dịch đúng như đã viết. Mọi thứ trong vùng đó được gửi dưới dạng hình ảnh tới dịch vụ Qwen của Alibaba Cloud, tại khu vực của phiên này; Kizuna AI không bao giờ nhận được chúng. Trong lúc đang bật, tính năng này làm tăng khoản phí cho mỗi giây lời nói — trên hóa đơn Alibaba Cloud của bạn khi dùng khóa riêng, hoặc theo trang giá của tài khoản khi dùng tài khoản Kizuna AI; ở chế độ Cả hai, phiên của mỗi chiều đều bị tính phí.",
+      "screenContextWhere": "Hình ảnh của vùng đó được gửi tới dịch vụ Qwen của Alibaba Cloud tại khu vực của phiên này; Kizuna AI không bao giờ nhận được chúng. Trong ứng dụng máy tính, bạn chọn cửa sổ hoặc màn hình khi phiên bắt đầu; trong tiện ích mở rộng trình duyệt, tab cuộc họp được sử dụng."
     },
     "local_inference": {
       "name": "Miễn phí",
@@ -1448,7 +1448,7 @@
     "speaker_tts_missing": "Bản dịch bên kia nghe chỉ hiển thị chữ: không có mô hình giọng nói nào nói được {{target}}.",
     "participant_tts_missing": "Bản dịch tôi nghe chỉ hiển thị chữ: không có mô hình giọng nói nào nói được {{target}}.",
     "participant_tts_over_budget": "Bản dịch tôi nghe chỉ hiển thị chữ: không đủ bộ nhớ để tải thêm mô hình giọng nói của bên kia.",
-    "screen_context_lost": "Màn hình bạn đã chọn không còn khả dụng; bản dịch tiếp tục chỉ bằng âm thanh. Hãy chọn lại từ chip màn hình."
+    "screen_context_lost": "Màn hình bạn đã chọn không còn khả dụng; bản dịch tiếp tục chỉ bằng âm thanh."
   },
   "viewer": {
     "title": "Phụ đề Sokuji",
@@ -1590,14 +1590,15 @@
     "chip": {
       "live": "Trực tiếp",
       "stale": "Không đổi",
-      "lost": "Chọn lại",
+      "lost": "Không khả dụng",
       "label": "Ngữ cảnh màn hình: {{name}}, {{status}}"
     },
     "card": {
       "lastFrame": "Khung hình cuối {{ago}} giây trước",
-      "frames": "Đã gửi {{count}} khung hình",
+      "frames": "Khung hình đã gửi: {{count}}",
       "chooseAgain": "Chọn lại",
-      "lostHint": "Nguồn không còn nữa; hình ảnh cuối cùng được giữ cho đến khi bạn chọn lại."
+      "lostHint": "Nguồn không còn nữa; hình ảnh cuối cùng được giữ cho đến khi bạn chọn lại.",
+      "lostExtension": "Hình ảnh của tab cuộc họp không còn khả dụng; bản dịch tiếp tục chỉ bằng âm thanh."
     }
   }
 }

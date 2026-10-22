@@ -552,8 +552,8 @@
       "vocabularyTranslationsTooltip": "Umiimpluwensya kung paano isinasalin ang mga partikular na termino — isang kagustuhan, hindi garantisadong kapalit: pinakamainam ang mga pangalang may itinatag na salin, samantalang maaaring mapanatili ng mga karaniwang salita ang sarili nitong pananalita mula sa modelo. Ang mga entry ay may direksyon; ang kabaligtaran na direksyon ay umiiral lamang sa mode na Pareho, kung saan maaari kang magdagdag ng baliktad na linya.",
       "vocabularyTranslationsPlaceholder": "Isang entry na source=target kada linya",
       "screenContext": "Konteksto ng screen",
-      "screenContextTooltip": "Hinahayaan ang Qwen engine na makita ang isang window, tab o screen na pipiliin mo sa pagsisimula ng session, para makilala at maisalin ang mga pangalan at terminong nasa mga ito nang eksakto sa pagkakasulat. Lahat ng nasa loob ng lugar na iyon ay ipinapadala bilang mga larawan sa Qwen service ng Alibaba Cloud, sa rehiyon ng session na ito; hindi kailanman natatanggap ng Kizuna AI ang mga ito. Kung may Kizuna AI account, nadaragdagan nito ang singil sa bawat segundo ng pagsasalita habang naka-on ito — sa mode na Pareho, sa bawat direksyon; nasa pricing page ng iyong account ang presyo.",
-      "screenContextWhere": "Sa desktop app, pipiliin mo ang window o screen sa pagsisimula ng session. Sa browser extension, ginagamit ang meeting tab."
+      "screenContextTooltip": "Hinahayaan ang Qwen engine na makita ang isang window, tab o screen na pipiliin mo sa pagsisimula ng session, para makilala at maisalin ang mga pangalan at terminong nasa mga ito nang eksakto sa pagkakasulat. Lahat ng nasa loob ng lugar na iyon ay ipinapadala bilang mga larawan sa Qwen service ng Alibaba Cloud, sa rehiyon ng session na ito; hindi kailanman natatanggap ng Kizuna AI ang mga ito. Habang naka-on ito, nadaragdagan nito ang singil sa bawat segundo ng pagsasalita — sa iyong Alibaba Cloud bill kung sariling key ang gamit mo, o ayon sa pricing page ng iyong account kung Kizuna AI account; sa mode na Pareho, sinisingil ang session ng bawat direksyon.",
+      "screenContextWhere": "Ipinapadala ang mga larawan ng lugar na iyon sa Qwen service ng Alibaba Cloud sa rehiyon ng session na ito; hindi kailanman natatanggap ng Kizuna AI ang mga ito. Sa desktop app, pipiliin mo ang window o screen sa pagsisimula ng session; sa browser extension, ginagamit ang meeting tab."
     },
     "local_inference": {
       "name": "Libre",
@@ -1448,7 +1448,7 @@
     "speaker_tts_missing": "Teksto lang ang salin na naririnig ng kabilang panig: walang modelo ng pananalita na nagsasalita ng {{target}}.",
     "participant_tts_missing": "Teksto lang ang salin na naririnig ko: walang modelo ng pananalita na nagsasalita ng {{target}}.",
     "participant_tts_over_budget": "Teksto lang ang salin na naririnig ko: kulang ang memory para i-load din ang modelo ng pananalita ng kabilang panig.",
-    "screen_context_lost": "Hindi na available ang screen na pinili mo; magpapatuloy ang pagsasalin sa audio lang. Pumili ulit mula sa screen chip."
+    "screen_context_lost": "Hindi na available ang screen na pinili mo; magpapatuloy ang pagsasalin sa audio lang."
   },
   "viewer": {
     "title": "Mga subtitle ng Sokuji",
@@ -1590,14 +1590,15 @@
     "chip": {
       "live": "Live",
       "stale": "Walang pagbabago",
-      "lost": "Pumili ulit",
+      "lost": "Hindi available",
       "label": "Konteksto ng screen: {{name}}, {{status}}"
     },
     "card": {
       "lastFrame": "Huling frame {{ago}} s ang nakalipas",
-      "frames": "{{count}} frame ang naipadala",
+      "frames": "Mga frame na naipadala: {{count}}",
       "chooseAgain": "Pumili ulit",
-      "lostHint": "Wala na ang source; itatago ang huling larawan hanggang pumili ka ulit."
+      "lostHint": "Wala na ang source; itatago ang huling larawan hanggang pumili ka ulit.",
+      "lostExtension": "Hindi na available ang larawan ng meeting tab; magpapatuloy ang pagsasalin sa audio lang."
     }
   }
 }

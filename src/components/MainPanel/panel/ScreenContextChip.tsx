@@ -4,7 +4,9 @@
  * (hidden when icon-only: the basic layout and the extension's side panel), and
  * a dot — green that pulses once per frame sent, amber while the picture has
  * not changed, red when the source is lost. Hover or click opens a card with
- * the last frame sent, the time since, the frames sent and Choose again.
+ * the last frame sent, the time since, the frames sent and, on the desktop,
+ * Choose again; the extension, which captures the meeting tab, has nothing to
+ * choose again, so its card only says translation goes on on audio.
  *
  * The card is floating-ui's (the library `Tooltip` wraps) rather than
  * `Tooltip` itself: it opens on hover and on click at once — a click sticks it
@@ -69,7 +71,7 @@ export function ScreenContextChip(p: ScreenContextChipProps) {
     ? t('screenContext.chip.live', 'Live')
     : p.status === 'stale'
       ? t('screenContext.chip.stale', 'Unchanged')
-      : t('screenContext.chip.lost', 'Choose again');
+      : t('screenContext.chip.lost', 'Not available');
   const KindIcon = KIND_ICON[p.kind];
   const ago = p.lastSentAt === null ? null : Math.max(0, Math.round((p.now - p.lastSentAt) / 1000));
 
@@ -106,12 +108,14 @@ export function ScreenContextChip(p: ScreenContextChipProps) {
               </div>
               {p.status === 'lost' && (
                 <p className="screen-context-card__hint">
-                  {t('screenContext.card.lostHint', 'The source is gone; the last picture is kept until you choose again.')}
+                  {p.onChooseAgain
+                    ? t('screenContext.card.lostHint', 'The source is gone; the last picture is kept until you choose again.')
+                    : t('screenContext.card.lostExtension', "The meeting tab's picture is no longer available; translation continues on audio alone.")}
                 </p>
               )}
               <div className="screen-context-card__meta">
                 {ago !== null && <span>{t('screenContext.card.lastFrame', 'Last frame {{ago}} s ago', { ago })}</span>}
-                <span>{t('screenContext.card.frames', '{{count}} frames sent', { count: p.sentCount })}</span>
+                <span>{t('screenContext.card.frames', 'Frames sent: {{count}}', { count: p.sentCount })}</span>
               </div>
               {p.onChooseAgain && (
                 <button

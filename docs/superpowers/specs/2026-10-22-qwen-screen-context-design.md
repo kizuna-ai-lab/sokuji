@@ -116,7 +116,8 @@ face-to-face mode (not available with Qwen at all).
 ### 3.3 Losing the source
 
 - If the window closes, yields no pixels, or capture fails, the client stops sampling, the chip turns red
-  with **Choose again**, and the session continues on audio alone. While the source is lost the client keeps
+  (*Not available*; in the desktop app its card offers **Choose again**), and the session continues on audio
+  alone. While the source is lost the client keeps
   re-sending the **last good frame** every 60 s, so no new pixels leave the machine and the session never
   sits on a declared video modality with nothing behind it. If the same source comes back (same capture id,
   where the platform has stable ids), sampling resumes by itself; otherwise **Choose again** reopens the picker.
@@ -129,7 +130,8 @@ face-to-face mode (not available with Qwen at all).
   *My call:* in the basic layout and the extension's side panel the chip is icon-only (eye + dot) in the
   footer row, with the same card on hover or click.
 - Hover or click opens a small card: the last frame sent as a thumbnail, the source name, time since the
-  last frame, frames sent this session, and a **Choose again** button.
+  last frame, frames sent this session, and, in the desktop app, a **Choose again** button (the extension
+  captures the meeting tab and has nothing to choose again).
 - The chip is the required cue. The operating system's own cue — Windows' yellow capture border, Chrome's
   tab icon or sharing strip, macOS's menu-bar recording icon — appears where the platform draws it and is
   not redrawn by Sokuji; a border window that follows another app's window is out of this version.

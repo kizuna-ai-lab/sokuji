@@ -552,8 +552,8 @@
       "vocabularyTranslationsTooltip": "Belirli terimlerin nasıl çevrileceğini etkiler — bu bir tercihtir, garanti edilen bir değişim değildir: yerleşik bir çevirisi olan adlar en iyi sonucu verir, yaygın sözcükler ise modelin kendi ifadesini koruyabilir. Girişler yönlüdür; ters yön yalnızca Her ikisi modunda bulunur ve orada ters bir satır ekleyebilirsiniz.",
       "vocabularyTranslationsPlaceholder": "Satır başına kaynak=hedef biçiminde bir giriş",
       "screenContext": "Ekran bağlamı",
-      "screenContextTooltip": "Oturum başlarken seçtiğiniz bir pencereyi, sekmeyi veya ekranı Qwen motorunun görmesini sağlar; böylece üzerindeki adlar ve terimler yazıldığı gibi tanınır ve çevrilir. Bu alanın içindeki her şey, bu oturumun bölgesindeki Alibaba Cloud'un Qwen hizmetine görüntü olarak gönderilir; Kizuna AI bunları hiçbir zaman almaz. Bir Kizuna AI hesabıyla, açık olduğu sürece konuşmanın her saniyesi için ücrete ek getirir — Her ikisi modunda her yön için; ücret tarifesi hesabınızın fiyatlandırma sayfasındadır.",
-      "screenContextWhere": "Masaüstü uygulamasında pencereyi veya ekranı oturum başlarken seçersiniz. Tarayıcı uzantısında toplantı sekmesi kullanılır."
+      "screenContextTooltip": "Oturum başlarken seçtiğiniz bir pencereyi, sekmeyi veya ekranı Qwen motorunun görmesini sağlar; böylece üzerindeki adlar ve terimler yazıldığı gibi tanınır ve çevrilir. Bu alanın içindeki her şey, bu oturumun bölgesindeki Alibaba Cloud'un Qwen hizmetine görüntü olarak gönderilir; Kizuna AI bunları hiçbir zaman almaz. Açık olduğu sürece konuşmanın her saniyesi için ücrete ek getirir — kendi anahtarınızla Alibaba Cloud faturanıza, Kizuna AI hesabıyla hesabınızın fiyatlandırma sayfasında belirtildiği gibi; Her ikisi modunda her yönün oturumu ücretlendirilir.",
+      "screenContextWhere": "Bu alanın görüntüleri, bu oturumun bölgesindeki Alibaba Cloud'un Qwen hizmetine gider; Kizuna AI bunları hiçbir zaman almaz. Masaüstü uygulamasında pencereyi veya ekranı oturum başlarken seçersiniz; tarayıcı uzantısında toplantı sekmesi kullanılır."
     },
     "local_inference": {
       "name": "Ücretsiz",
@@ -1448,7 +1448,7 @@
     "speaker_tts_missing": "Karşı tarafın duyduğu çeviri yalnızca metin: {{target}} konuşan bir ses modeli yok.",
     "participant_tts_missing": "Duyduğum çeviri yalnızca metin: {{target}} konuşan bir ses modeli yok.",
     "participant_tts_over_budget": "Duyduğum çeviri yalnızca metin: karşı tarafın ses modelini de yüklemeye yetecek bellek yok.",
-    "screen_context_lost": "Seçtiğiniz ekran artık kullanılamıyor; çeviri yalnızca sesle devam ediyor. Ekran çipinden yeniden seçin."
+    "screen_context_lost": "Seçtiğiniz ekran artık kullanılamıyor; çeviri yalnızca sesle devam ediyor."
   },
   "viewer": {
     "title": "Sokuji altyazıları",
@@ -1590,14 +1590,15 @@
     "chip": {
       "live": "Canlı",
       "stale": "Değişmedi",
-      "lost": "Yeniden seç",
+      "lost": "Kullanılamıyor",
       "label": "Ekran bağlamı: {{name}}, {{status}}"
     },
     "card": {
       "lastFrame": "Son kare {{ago}} sn önce",
-      "frames": "{{count}} kare gönderildi",
+      "frames": "Gönderilen kareler: {{count}}",
       "chooseAgain": "Yeniden seç",
-      "lostHint": "Kaynak artık yok; siz yeniden seçene kadar son görüntü tutulur."
+      "lostHint": "Kaynak artık yok; siz yeniden seçene kadar son görüntü tutulur.",
+      "lostExtension": "Toplantı sekmesinin görüntüsü artık kullanılamıyor; çeviri yalnızca sesle devam ediyor."
     }
   }
 }

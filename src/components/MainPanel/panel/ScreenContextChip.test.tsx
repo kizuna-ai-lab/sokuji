@@ -36,7 +36,7 @@ const chip = (status = 'Live') => screen.getByRole('button', { name: `Screen con
 const dot = (el: HTMLElement) => el.querySelector('.screen-context-chip__dot') as HTMLElement;
 
 describe('ScreenContextChip', () => {
-  it('names the source with a green dot while live, amber when unchanged, red with Choose again when lost', () => {
+  it('names the source with a green dot while live, amber when unchanged, red and Not available when lost', () => {
     const { rerender } = render(<ScreenContextChip {...props()} />);
     expect(chip().textContent).toContain('Slides');
     expect(dot(chip()).classList.contains('live')).toBe(true);
@@ -46,8 +46,8 @@ describe('ScreenContextChip', () => {
     expect(chip('Unchanged').textContent).toContain('Unchanged');
 
     rerender(<ScreenContextChip {...props({ status: 'lost' })} />);
-    expect(dot(chip('Choose again')).classList.contains('lost')).toBe(true);
-    expect(chip('Choose again').textContent).toContain('Choose again');
+    expect(dot(chip('Not available')).classList.contains('lost')).toBe(true);
+    expect(chip('Not available').textContent).toContain('Not available');
   });
 
   it('icon-only hides the name but keeps the accessible label', () => {
@@ -65,7 +65,7 @@ describe('ScreenContextChip', () => {
     const card = screen.getByRole('dialog');
     expect(within(card).getByRole('img', { name: 'Slides' })).toHaveAttribute('src', 'blob:thumb-1');
     expect(card.textContent).toContain('Slides');
-    expect(card.textContent).toContain('12 frames sent');
+    expect(card.textContent).toContain('Frames sent: 12');
     expect(card.textContent).toContain('Last frame 3 s ago');
     fireEvent.click(within(card).getByRole('button', { name: 'Choose again' }));
     expect(p.onChooseAgain).toHaveBeenCalledTimes(1);
@@ -86,11 +86,13 @@ describe('ScreenContextChip', () => {
     expect(dot(chip())).not.toBe(before);
   });
 
-  it('when lost the card says the last picture is kept; without a frame or a sending time it shows neither', () => {
+  it('when lost the card says the last picture is kept until Choose again, which it offers; without a frame or a sending time it shows neither', () => {
     render(<ScreenContextChip {...props({ status: 'lost', thumbnail: null, lastSentAt: null })} />);
-    fireEvent.click(chip('Choose again'));
+    fireEvent.click(chip('Not available'));
     const card = screen.getByRole('dialog');
     expect(card.textContent).toContain('The source is gone; the last picture is kept until you choose again.');
+    expect(within(card).getByRole('button', { name: 'Choose again' })).toBeTruthy();
+    expect(card.textContent).not.toContain("The meeting tab's picture");
     expect(within(card).queryByRole('img')).toBeNull();
     expect(card.textContent).not.toContain('Last frame');
   });
@@ -99,5 +101,14 @@ describe('ScreenContextChip', () => {
     render(<ScreenContextChip {...props({ onChooseAgain: undefined })} />);
     fireEvent.click(chip());
     expect(within(screen.getByRole('dialog')).queryByRole('button', { name: 'Choose again' })).toBeNull();
+  });
+
+  it('lost where nothing can be chosen again (the extension), the card says translation goes on on audio, and never to choose again', () => {
+    render(<ScreenContextChip {...props({ status: 'lost', kind: 'tab', onChooseAgain: undefined })} />);
+    fireEvent.click(chip('Not available'));
+    const card = screen.getByRole('dialog');
+    expect(card.textContent).toContain("The meeting tab's picture is no longer available; translation continues on audio alone.");
+    expect(card.textContent).not.toContain('choose again');
+    expect(within(card).queryByRole('button')).toBeNull();
   });
 });

@@ -552,8 +552,8 @@
       "vocabularyTranslationsTooltip": "Mempengaruhi cara istilah tertentu diterjemahkan — ini keutamaan, bukan penggantian yang dijamin: nama dengan terjemahan yang sudah mantap berfungsi paling baik, manakala perkataan biasa mungkin mengekalkan bahasa model itu sendiri. Entri adalah berarah; arah songsang hanya wujud dalam mod Kedua-duanya, di mana anda boleh menambah baris songsang.",
       "vocabularyTranslationsPlaceholder": "Satu entri sumber=sasaran setiap baris",
       "screenContext": "Konteks skrin",
-      "screenContextTooltip": "Membolehkan enjin Qwen melihat satu tetingkap, tab atau skrin yang anda pilih semasa sesi bermula, supaya nama dan istilah padanya dikenali dan diterjemahkan seperti yang tertulis. Segala-galanya dalam kawasan itu dihantar sebagai gambar ke perkhidmatan Qwen Alibaba Cloud, di rantau sesi ini; Kizuna AI tidak pernah menerimanya. Dengan akaun Kizuna AI, ia menambah caj untuk setiap saat pertuturan selagi dihidupkan — dalam mod Kedua-duanya bagi setiap arah; kadarnya terdapat pada halaman harga akaun anda.",
-      "screenContextWhere": "Dalam aplikasi desktop, anda memilih tetingkap atau skrin semasa sesi bermula. Dalam sambungan pelayar, tab mesyuarat digunakan."
+      "screenContextTooltip": "Membolehkan enjin Qwen melihat satu tetingkap, tab atau skrin yang anda pilih semasa sesi bermula, supaya nama dan istilah padanya dikenali dan diterjemahkan seperti yang tertulis. Segala-galanya dalam kawasan itu dihantar sebagai gambar ke perkhidmatan Qwen Alibaba Cloud, di rantau sesi ini; Kizuna AI tidak pernah menerimanya. Selagi dihidupkan, ia menambah caj untuk setiap saat pertuturan — pada bil Alibaba Cloud anda jika menggunakan kunci sendiri, atau mengikut halaman harga akaun anda dengan akaun Kizuna AI; dalam mod Kedua-duanya, sesi setiap arah dicaj.",
+      "screenContextWhere": "Gambar kawasan itu dihantar ke perkhidmatan Qwen Alibaba Cloud di rantau sesi ini; Kizuna AI tidak pernah menerimanya. Dalam aplikasi desktop, anda memilih tetingkap atau skrin semasa sesi bermula; dalam sambungan pelayar, tab mesyuarat digunakan."
     },
     "local_inference": {
       "name": "Percuma",
@@ -1448,7 +1448,7 @@
     "speaker_tts_missing": "Terjemahan yang didengar pihak lain hanya dalam bentuk teks: tiada model suara yang bertutur dalam {{target}}.",
     "participant_tts_missing": "Terjemahan yang saya dengar hanya dalam bentuk teks: tiada model suara yang bertutur dalam {{target}}.",
     "participant_tts_over_budget": "Terjemahan yang saya dengar hanya dalam bentuk teks: memori tidak mencukupi untuk memuatkan model suara pihak lain juga.",
-    "screen_context_lost": "Skrin yang anda pilih tidak lagi tersedia; terjemahan diteruskan dengan audio sahaja. Pilih semula daripada cip skrin."
+    "screen_context_lost": "Skrin yang anda pilih tidak lagi tersedia; terjemahan diteruskan dengan audio sahaja."
   },
   "viewer": {
     "title": "Sari kata Sokuji",
@@ -1590,14 +1590,15 @@
     "chip": {
       "live": "Langsung",
       "stale": "Tidak berubah",
-      "lost": "Pilih semula",
+      "lost": "Tidak tersedia",
       "label": "Konteks skrin: {{name}}, {{status}}"
     },
     "card": {
       "lastFrame": "Bingkai terakhir {{ago}} saat lalu",
-      "frames": "{{count}} bingkai dihantar",
+      "frames": "Bingkai dihantar: {{count}}",
       "chooseAgain": "Pilih semula",
-      "lostHint": "Sumber sudah tiada; gambar terakhir disimpan sehingga anda memilih semula."
+      "lostHint": "Sumber sudah tiada; gambar terakhir disimpan sehingga anda memilih semula.",
+      "lostExtension": "Gambar tab mesyuarat tidak lagi tersedia; terjemahan diteruskan dengan audio sahaja."
     }
   }
 }

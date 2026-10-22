@@ -552,8 +552,8 @@
       "vocabularyTranslationsTooltip": "影响特定术语的译法——这是一种偏好，而非确定替换：已有固定译法的名称效果最好，常见词汇则可能仍保留模型自身的表达方式。条目具有方向性；反向仅存在于「两者」模式，此时可添加一行反向条目。",
       "vocabularyTranslationsPlaceholder": "每行一条，格式为原文=译文",
       "screenContext": "屏幕上下文",
-      "screenContextTooltip": "让 Qwen 引擎看到你在会话开始时选择的一个窗口、标签页或屏幕，使其中的名称和术语按原文被识别和翻译。该区域内的所有内容都会以图片形式发送到 Alibaba Cloud 的 Qwen 服务（位于本次会话所在的区域）；Kizuna AI 永远不会收到这些图片。使用 Kizuna AI 账户时，开启期间每一秒语音的计费都会增加——在「两者」模式下，每个方向各增加一次；费率见你账户的定价页面。",
-      "screenContextWhere": "在桌面应用中，会话开始时由你选择窗口或屏幕；在浏览器扩展中，使用会议标签页。"
+      "screenContextTooltip": "让 Qwen 引擎看到你在会话开始时选择的一个窗口、标签页或屏幕，使其中的名称和术语按原文被识别和翻译。该区域内的所有内容都会以图片形式发送到 Alibaba Cloud 的 Qwen 服务（位于本次会话所在的区域）；Kizuna AI 永远不会收到这些图片。开启期间，每一秒语音的费用都会增加——使用自己的密钥时计入你的 Alibaba Cloud 账单，使用 Kizuna AI 账户时按你账户定价页面上的说明计费；在「两者」模式下，每个方向的会话分别计费。",
+      "screenContextWhere": "该区域的图片会发送到本次会话所在区域的 Alibaba Cloud Qwen 服务；Kizuna AI 永远不会收到。在桌面应用中，会话开始时由你选择窗口或屏幕；在浏览器扩展中，使用会议标签页。"
     },
     "local_inference": {
       "name": "免费",
@@ -1448,7 +1448,7 @@
     "speaker_tts_missing": "对方听到的翻译只显示文字：没有能说{{target}}的语音模型。",
     "participant_tts_missing": "我听到的翻译只显示文字：没有能说{{target}}的语音模型。",
     "participant_tts_over_budget": "我听到的翻译只显示文字：内存不够同时加载对方的语音模型。",
-    "screen_context_lost": "你选择的屏幕已不可用，翻译将仅凭音频继续。请从屏幕标签重新选择。"
+    "screen_context_lost": "你选择的屏幕已不可用，翻译将仅凭音频继续。"
   },
   "viewer": {
     "title": "Sokuji 字幕",
@@ -1590,14 +1590,15 @@
     "chip": {
       "live": "实时",
       "stale": "无变化",
-      "lost": "重新选择",
+      "lost": "不可用",
       "label": "屏幕上下文：{{name}}，{{status}}"
     },
     "card": {
       "lastFrame": "最后一帧：{{ago}} 秒前",
-      "frames": "已发送 {{count}} 帧",
+      "frames": "已发送帧数：{{count}}",
       "chooseAgain": "重新选择",
-      "lostHint": "来源已不存在；在你重新选择之前，会保留最后一张画面。"
+      "lostHint": "来源已不存在；在你重新选择之前，会保留最后一张画面。",
+      "lostExtension": "会议标签页的画面已不可用，翻译将仅凭音频继续。"
     }
   }
 }

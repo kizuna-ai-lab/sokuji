@@ -552,8 +552,8 @@
       "vocabularyTranslationsTooltip": "Oriente la façon dont certains termes sont traduits — une préférence, pas un remplacement garanti : les noms ayant une traduction établie fonctionnent le mieux, tandis que les mots courants peuvent conserver la formulation propre du modèle. Les entrées sont directionnelles ; le sens inverse n'existe qu'en mode Les deux, où vous pouvez ajouter une ligne inverse.",
       "vocabularyTranslationsPlaceholder": "Une entrée source=cible par ligne",
       "screenContext": "Contexte d'écran",
-      "screenContextTooltip": "Permet au moteur Qwen de voir une fenêtre, un onglet ou un écran que vous choisissez au démarrage d'une session, afin que les noms et les termes qui s'y trouvent soient reconnus et traduits tels qu'ils sont écrits. Tout ce qui se trouve dans cette zone est envoyé sous forme d'images au service Qwen d'Alibaba Cloud, dans la région de cette session ; Kizuna AI ne les reçoit jamais. Avec un compte Kizuna AI, cela s'ajoute au coût de chaque seconde de parole tant que c'est activé — en mode Les deux, pour chaque sens ; le tarif figure sur la page des tarifs de votre compte.",
-      "screenContextWhere": "Dans l'application de bureau, vous choisissez la fenêtre ou l'écran au démarrage de la session. Dans l'extension de navigateur, l'onglet de la réunion est utilisé."
+      "screenContextTooltip": "Permet au moteur Qwen de voir une fenêtre, un onglet ou un écran que vous choisissez au démarrage d'une session, afin que les noms et les termes qui s'y trouvent soient reconnus et traduits tels qu'ils sont écrits. Tout ce qui se trouve dans cette zone est envoyé sous forme d'images au service Qwen d'Alibaba Cloud, dans la région de cette session ; Kizuna AI ne les reçoit jamais. Tant que c'est activé, cela s'ajoute au coût de chaque seconde de parole — sur votre facture Alibaba Cloud avec votre propre clé, ou selon la page des tarifs de votre compte avec un compte Kizuna AI ; en mode Les deux, la session de chaque sens est facturée.",
+      "screenContextWhere": "Les images de cette zone vont au service Qwen d'Alibaba Cloud, dans la région de cette session ; Kizuna AI ne les reçoit jamais. Dans l'application de bureau, vous choisissez la fenêtre ou l'écran au démarrage de la session ; dans l'extension de navigateur, l'onglet de la réunion est utilisé."
     },
     "local_inference": {
       "name": "Gratuit",
@@ -1448,7 +1448,7 @@
     "speaker_tts_missing": "La traduction entendue par l'autre s'affiche en texte seul : aucun modèle vocal ne parle {{target}}.",
     "participant_tts_missing": "La traduction que j'entends s'affiche en texte seul : aucun modèle vocal ne parle {{target}}.",
     "participant_tts_over_budget": "La traduction que j'entends s'affiche en texte seul : pas assez de mémoire pour charger aussi le modèle vocal de l'autre.",
-    "screen_context_lost": "L'écran que vous avez choisi n'est plus disponible ; la traduction continue avec l'audio seul. Utilisez « Choisir à nouveau » sur la pastille d'écran."
+    "screen_context_lost": "L'écran que vous avez choisi n'est plus disponible ; la traduction continue avec l'audio seul."
   },
   "viewer": {
     "title": "Sous-titres Sokuji",
@@ -1590,14 +1590,15 @@
     "chip": {
       "live": "En direct",
       "stale": "Inchangé",
-      "lost": "Choisir à nouveau",
+      "lost": "Indisponible",
       "label": "Contexte d'écran : {{name}}, {{status}}"
     },
     "card": {
       "lastFrame": "Dernière image il y a {{ago}} s",
-      "frames": "{{count}} images envoyées",
+      "frames": "Images envoyées : {{count}}",
       "chooseAgain": "Choisir à nouveau",
-      "lostHint": "La source a disparu ; la dernière image est conservée jusqu'à ce que vous choisissiez à nouveau."
+      "lostHint": "La source a disparu ; la dernière image est conservée jusqu'à ce que vous choisissiez à nouveau.",
+      "lostExtension": "L'image de l'onglet de la réunion n'est plus disponible ; la traduction continue avec l'audio seul."
     }
   }
 }
