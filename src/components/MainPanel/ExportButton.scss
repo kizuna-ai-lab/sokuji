@@ -144,7 +144,7 @@
     color: vars.$text-secondary;
   }
 
-  // Same reason as the menu items: the hover border is #666, 2.5:1 on the menu,
+  // Same reason as the menu items: the hover border is border-strong, a weak edge on the menu,
   // and a focused box may already be green-bordered because it is checked — so
   // the focus ring has to be a different colour, not a stronger border.
   &:focus-visible {
@@ -174,7 +174,7 @@
 .export-menu-divider {
   height: 1px;
   margin: 4px 0;
-  background: vars.$bg-elevated;
+  background: vars.$border-default;
 }
 
 // The auto-save row is a setting, not an action, so it carries a switch track:

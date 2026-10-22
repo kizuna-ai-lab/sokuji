@@ -56,7 +56,7 @@ export interface ThemeDeps {
   matchMedia?: (query: string) => MediaQueryList;
   /** Defaults to `localStorage`; `null` for none. Every write is guarded. */
   storage?: Pick<Storage, 'setItem'> | null;
-  /** Called after every apply: the entry forwards the setting to Electron. */
+  /** Called after every apply (a new setting or scheme): the entry forwards the setting to Electron. */
   onApply?: (setting: ThemeSetting, scheme: Scheme) => void;
 }
 
@@ -107,11 +107,18 @@ export function installTheme(deps: ThemeDeps): () => void {
     listening = on;
   };
 
+  // The source is the whole settings store, which changes for every setting;
+  // only a new setting or a new scheme is applied. The setting counts on its
+  // own: System and Dark may share a scheme, but nativeTheme must still move.
+  let applied: { setting: ThemeSetting; scheme: Scheme } | null = null;
+
   const apply = () => {
     if (!deps.source.isLoaded()) return;
     const setting = deps.source.getTheme();
     listen(setting === 'system');
     const scheme = resolveScheme(setting, media.matches);
+    if (applied?.setting === setting && applied.scheme === scheme) return;
+    applied = { setting, scheme };
     current = scheme;
     applyScheme(document, scheme);
     for (const doc of documents) applyScheme(doc, scheme);

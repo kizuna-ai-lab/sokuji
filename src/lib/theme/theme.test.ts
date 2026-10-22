@@ -118,6 +118,38 @@ describe('installTheme', () => {
     expect(attr()).toBe('light');
   });
 
+  // The source is the whole settings store, which changes for every setting:
+  // a change that moves neither the setting nor the scheme must not rewrite
+  // the documents, the cache, the listeners or Electron's nativeTheme.
+  it('a source change that moves neither the setting nor the scheme applies nothing again', () => {
+    const onApply = vi.fn();
+    const storage = { setItem: vi.fn() };
+    const heard = vi.fn();
+    const off = subscribeScheme(heard);
+    const source = fakeSource('light');
+    uninstall = installTheme({ source, matchMedia: fakeMedia(true).matchMedia, storage, onApply });
+    expect(onApply).toHaveBeenCalledTimes(1);
+    source.set('light');
+    source.set('light');
+    expect(onApply).toHaveBeenCalledTimes(1);
+    expect(storage.setItem).toHaveBeenCalledTimes(1);
+    expect(heard).toHaveBeenCalledTimes(1);
+    source.set('dark');
+    expect(onApply).toHaveBeenCalledTimes(2);
+    off();
+  });
+
+  // System resolving to the same scheme as the fixed setting is still a
+  // change Electron must hear: nativeTheme.themeSource moves to 'system'.
+  it('a new setting with the same scheme still reports through onApply', () => {
+    const onApply = vi.fn();
+    const source = fakeSource('dark');
+    uninstall = installTheme({ source, matchMedia: fakeMedia(true).matchMedia, storage: null, onApply });
+    source.set('system');
+    expect(onApply).toHaveBeenLastCalledWith('system', 'dark');
+    expect(onApply).toHaveBeenCalledTimes(2);
+  });
+
   it('reports every apply through onApply', () => {
     const onApply = vi.fn();
     const source = fakeSource('system');

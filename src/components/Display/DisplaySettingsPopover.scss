@@ -107,7 +107,7 @@
           align-items: center;
           justify-content: center;
           color: vars.$white;
-          filter: drop-shadow(0 0 1px vars.$scrim);
+          filter: drop-shadow(0 0 1px color-mix(in srgb, vars.$overlay-bg 90%, transparent));
         }
       }
     }

@@ -36,7 +36,7 @@
     padding: 6px 12px; font-size: 12px; cursor: pointer;
     &:hover { background: tk.$color-primary-hover; }
     &:disabled { opacity: 0.5; cursor: default; }
-    &--secondary { background: vars.$bg-elevated; &:hover { background: vars.$bg-elevated-hover; } }
+    &--secondary { background: vars.$bg-elevated; color: vars.$text-primary; &:hover { background: vars.$bg-elevated-hover; } }
   }
 
   &__link {

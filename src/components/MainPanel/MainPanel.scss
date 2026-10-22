@@ -586,6 +586,7 @@
     &:hover { background: vars.$bg-elevated-hover; }
     &.recording {
       background: tk.$color-error;
+      color: tk.$color-on-primary;
       &:hover { background: tk.$color-error-deep; }
     }
     &:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -639,11 +640,14 @@
     &:hover { background: tk.$color-primary-hover; }
     &.active {
       background: vars.$bg-elevated;
+      color: vars.$text-primary;
       &:hover { background: vars.$bg-elevated-hover; }
     }
 
     &:disabled {
       background: vars.$bg-dim;
+      // text-primary, not text-dim: text-dim is bg-dim's own #666 in dark.
+      color: vars.$text-primary;
       opacity: 0.6;
       cursor: not-allowed;
       box-shadow: none;

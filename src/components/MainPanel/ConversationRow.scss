@@ -48,7 +48,8 @@
   &.avatar-speaker.person-shade-1 { background: tk.$color-speaker-person-2; color: vars.$bg-base; }
   &.avatar-speaker.person-shade-2 { background: tk.$color-speaker-person-3; }
   &.avatar-participant.person-shade-0 { background: tk.$color-participant-person-1; }
-  &.avatar-participant.person-shade-1 { background: tk.$color-participant-person-2; }
+  // The second shade is bright in both schemes: dark ink, not bg-base (2.87:1 in light).
+  &.avatar-participant.person-shade-1 { background: tk.$color-participant-person-2; color: vars.$overlay-bg; }
   &.avatar-participant.person-shade-2 { background: tk.$color-participant-person-3; }
 }
 
@@ -196,7 +197,7 @@
 
   &.playing {
     background: color-mix(in srgb, tk.$color-speaker 45%, transparent);
-    color: tk.$color-on-primary;
+    color: vars.$text-primary;
   }
 
   &:disabled {

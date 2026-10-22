@@ -158,14 +158,15 @@
     color: vars.$text-muted;
     border: 1px solid transparent;
     border-bottom: 0;
-    &.is-active { background: vars.$bg-base; color: vars.$text-primary; border-color: vars.$border-subtle; }
+    &.is-active { background: vars.$bg-page; color: vars.$text-primary; border-color: vars.$border-default; }
     &:focus-visible { @include vars.focus-ring; }
   }
 
+  // A well set into the modal (bg-base): white with an edge in light, the way inputs are drawn.
   &__term {
     position: relative;
-    background: vars.$bg-base;
-    border: 1px solid vars.$border-subtle;
+    background: vars.$bg-page;
+    border: 1px solid vars.$border-default;
     border-radius: 0 vars.$radius-md vars.$radius-md vars.$radius-md;
     padding: 11px 12px;
     overflow-x: auto;

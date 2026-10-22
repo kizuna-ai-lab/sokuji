@@ -121,6 +121,7 @@
     // "click here to fix it".
     &--fix:not(:disabled) {
       background: color-mix(in srgb, vars.$overlay-fg 10%, transparent);
+      color: vars.$text-primary;
 
       &:hover { background: color-mix(in srgb, vars.$overlay-fg 16%, transparent); }
 

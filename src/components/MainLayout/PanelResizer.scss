@@ -19,7 +19,7 @@
   }
 
   &:hover {
-    background: vars.$bg-elevated-hover;       // subtle neutral lift; the col-resize cursor is the main affordance
+    background: vars.$border-strong;           // subtle neutral lift; the col-resize cursor is the main affordance
   }
   &:focus-visible {
     background: tk.$color-primary;

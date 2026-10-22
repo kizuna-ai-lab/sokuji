@@ -57,11 +57,12 @@
     display: flex;
     align-items: stretch;
 
+    // Recessed below the popover: bg-page would be the popover's own white in light.
     &--expanded {
-      background: vars.$bg-page;
+      background: vars.$bg-base;
 
       .mode-device-popover__row-main:hover {
-        background: vars.$bg-page;
+        background: vars.$bg-base;
       }
     }
   }
@@ -166,7 +167,7 @@
 
   // Expanded inline DeviceList — mirrors the settings .device-list pattern
   &__device-list {
-    background: vars.$bg-page;
+    background: vars.$bg-base;
     padding: 4px 0 6px;
     border-top: 1px solid vars.$border-subtle;
   }

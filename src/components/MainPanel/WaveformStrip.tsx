@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import './WaveformStrip.scss';
 import { WavRenderer } from '../../utils/wav_renderer';
+import { subscribeScheme } from '../../lib/theme/theme';
 
 /** Drawn when a strip has nothing to show: muted, ended, or no meter at all. */
 const FLAT = new Float32Array([0]);
@@ -12,8 +13,8 @@ interface WaveformStripProps {
   /**
    * The bars' colour, as the name of a theme token (`--sk-waveform-…`). A
    * canvas cannot read a custom property, so the strip resolves it from the
-   * computed style every frame: a scheme change shows on the next one (spec
-   * 2026-10-22 §5).
+   * computed style, once and again after every scheme apply: a scheme change
+   * shows on the next frame (spec 2026-10-22 §5).
    */
   colorToken: string;
   width?: 'full' | 'half';
@@ -52,6 +53,11 @@ function useWaveform(read: () => Float32Array | null, colorToken: string): React
     let isLoaded = true;
     let frame = 0;
     let ctx: CanvasRenderingContext2D | null = null;
+    // Resolved on the first frame and again after a scheme apply, not every
+    // frame: a style read per frame per strip is wasted work for a value that
+    // only a theme change moves.
+    let colour: string | null = null;
+    const unsubscribe = subscribeScheme(() => { colour = null; });
     const draw = () => {
       if (!isLoaded) return;
       const canvas = canvasRef.current;
@@ -63,7 +69,7 @@ function useWaveform(read: () => Float32Array | null, colorToken: string): React
         ctx = ctx || canvas.getContext('2d');
         if (ctx) {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
-          const colour = getComputedStyle(canvas).getPropertyValue(colorToken).trim();
+          if (colour === null) colour = getComputedStyle(canvas).getPropertyValue(colorToken).trim();
           WavRenderer.drawBars(canvas, ctx, readRef.current() ?? FLAT, colour, 10, 0, 8);
         }
       }
@@ -72,6 +78,7 @@ function useWaveform(read: () => Float32Array | null, colorToken: string): React
     draw();
     return () => {
       isLoaded = false;
+      unsubscribe();
       cancelAnimationFrame(frame);
     };
   }, [colorToken]);

@@ -82,6 +82,60 @@ describe('colour roles', () => {
     expect(rule(css('components/Tour/Tour.scss'), '.tour-spotlight')).toMatch(/box-shadow:\s*0 0 0 9999px var\(--sk-scrim\)/);
   });
 
+  // From the OpenCodeReview pass (2026-10-22). Each fix keeps dark as it
+  // was unless the comment says otherwise.
+  it('a label on a solid fill is on-accent; a label on a neutral or tinted surface is text-primary', () => {
+    const main = css('components/MainPanel/MainPanel.scss');
+    // the error fill while push-to-talk records (was text-primary: #1a1a1a on #c0392b in light)
+    expect(rule(main, '.push-to-talk-button.recording')).toMatch(/color:\s*var\(--sk-on-accent\)/);
+    // the running and disabled session button sit on neutral surfaces (was white on #e3e3e3 / #c4c4c4 in light)
+    expect(rule(main, '.session-button.active')).toMatch(/color:\s*var\(--sk-text-primary\)/);
+    expect(rule(main, '.session-button:disabled')).toMatch(/color:\s*var\(--sk-text-primary\)/);
+    // the engine's secondary action is a neutral button (was white on #e3e3e3 in light)
+    expect(rule(css('components/Settings/sections/EngineSection.scss'), '__action--secondary')).toMatch(/color:\s*var\(--sk-text-primary\)/);
+    // the replay button while playing is a 45% tint (was white on pale green in a light conversation)
+    expect(rule(css('components/MainPanel/ConversationRow.scss'), '.row-play-btn.playing')).toMatch(/color:\s*var\(--sk-text-primary\)/);
+    // the subtitle's "fix it" action is an overlay tint that follows the tone (was white on a light tint)
+    expect(rule(css('components/Subtitle/SubtitleApp.scss'), '__action--fix:not(:disabled)')).toMatch(/color:\s*var\(--sk-text-primary\)/);
+  });
+
+  // The participant's second shade is bright in both schemes (#f8c471 dark,
+  // #d97706 light), so its numeral is dark ink in both; the near-white
+  // bg-base read 2.87:1 on it in light. Dark moves #1a1a1a → #000.
+  it("the participant's second shade carries a dark numeral in both schemes", () => {
+    expect(rule(css('components/MainPanel/ConversationRow.scss'), '.row-avatar.avatar-participant.person-shade-1')).toMatch(/color:\s*var\(--sk-overlay-bg\)/);
+    expect(rule(css('components/Subtitle/SubtitleStream.scss'), '__line--participant .subtitle-stream__person.person-shade-1')).toMatch(/color:\s*var\(--sk-overlay-bg\)/);
+  });
+
+  it('dividers and seams are lines, not surfaces', () => {
+    // dark #444 either way
+    expect(rule(css('components/MainPanel/ExportButton.scss'), '.export-menu-divider')).toMatch(/background:\s*var\(--sk-line\)/);
+    // dark #555 either way
+    expect(rule(css('components/MainLayout/PanelResizer.scss'), '.panel-resizer:hover')).toMatch(/background:\s*var\(--sk-line-strong\)/);
+    // was bg-hover, 1.06:1 on the light bar; dark moves #3a3a3a → #444
+    expect(rule(css('components/Subtitle/SubtitleBar.scss'), '.subtitle-bar__divider')).toMatch(/background:\s*var\(--sk-line\)/);
+  });
+
+  // A recessed area inside a popover or modal has to differ from it: in
+  // light bg-page was the popover's own white, and bg-base the import modal's
+  // own grey.
+  it('recessed areas differ from the surface they sit in', () => {
+    expect(rule(css('components/MainPanel/ModeDevicePopover.scss'), '.mode-device-popover__row--expanded')).toMatch(/background:\s*var\(--sk-bg-base\)/);
+    expect(rule(css('components/MainPanel/ModeDevicePopover.scss'), '.mode-device-popover__device-list')).toMatch(/background:\s*var\(--sk-bg-base\)/);
+    const modal = css('components/Settings/sections/ModelImportModal.scss');
+    expect(rule(modal, '.import-cmd__term')).toMatch(/background:\s*var\(--sk-bg-page\)/);
+    expect(rule(modal, '.import-cmd__term')).toMatch(/border:\s*1px solid var\(--sk-line\)/);
+    expect(rule(modal, '.import-cmd__tab.is-active')).toMatch(/background:\s*var\(--sk-bg-page\)/);
+    expect(rule(modal, '.import-cmd__tab.is-active')).toMatch(/border-color:\s*var\(--sk-line\)/);
+  });
+
+  // The halo that keeps the custom chip's white plus legible on a pale chip
+  // was black at .9; the scrim token is .6 and a different role.
+  it("the custom chip's halo is the overlay ink at 90%", () => {
+    expect(rule(css('components/Display/DisplaySettingsPopover.scss'), '.custom'))
+      .toMatch(/filter:\s*drop-shadow\(0 0 1px color-mix\(in srgb, var\(--sk-overlay-bg\) 90%, transparent\)\)/);
+  });
+
   // A colour chip the same colour as the popover behind it (black on the
   // dark popover, the cream and white presets on the light one) still has
   // an edge: a hairline in the overlay ink, which is white in dark and black

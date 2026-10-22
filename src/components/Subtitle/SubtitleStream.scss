@@ -94,7 +94,7 @@
     .subtitle-stream__line--participant .subtitle-stream__person {
       color: vars.$bg-base;
       &.person-shade-0 { background: tk.$color-participant-person-1; }
-      &.person-shade-1 { background: tk.$color-participant-person-2; }
+      &.person-shade-1 { background: tk.$color-participant-person-2; color: vars.$overlay-bg; }
       &.person-shade-2 { background: tk.$color-participant-person-3; }
     }
   }
