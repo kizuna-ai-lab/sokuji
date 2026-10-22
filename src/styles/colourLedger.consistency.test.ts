@@ -1,0 +1,205 @@
+/**
+ * The colour ledger (spec 2026-10-22 §7).
+ *
+ * Every chrome colour is a `--sk-*` token that each scheme sets; a literal
+ * colour in a component's stylesheet or code reads in one scheme only. This
+ * is a LEDGER, not a ban, in the shape of consoleLedger.consistency.test.ts:
+ * an exact count of colour literals per file, lowered in the same diff that
+ * removes them, so a migration is reviewable row by row and nothing refills
+ * silently. Unlisted files must be 0, so new files start clean.
+ *
+ * Exempt: the theme and the two alias files (where the colours live), and the
+ * allow-list — brand marks, the user colour presets and defaults, the LAN
+ * viewer (its own `--v-*` schemes) and the dev previews.
+ *
+ * Counting. Stylesheets: hex, `rgb()`/`rgba()`/`hsl()`/`hsla()` and the words
+ * `white`/`black` as values, with comments stripped first. Code: through the
+ * compiler's parser, every string or template text that IS a hex colour or
+ * starts an `rgb(`/`hsl(` call — prose in comments never counts.
+ */
+import { describe, it, expect } from 'vitest';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import ts from 'typescript';
+
+const REPO_ROOT = resolve(__dirname, '../..');
+const ROOTS = ['src', 'shared'];
+const SKIP = [/\.test\.[jt]sx?$/, /\.d\.ts$/, /[\\/]node_modules[\\/]/];
+const EXEMPT = new Set([
+  'src/styles/theme.scss',
+  'src/styles/_tokens.scss',
+  'src/components/Settings/shared/_variables.scss',
+  // brand marks, drawn in their owners' colours
+  'src/components/Icons/ProviderIcons.tsx',
+  // the user's own colours: presets, pickers and defaults (R3)
+  'src/components/Display/DisplaySettingsPopover.tsx',
+  'src/components/Display/ColorPicker.tsx',
+  'src/components/Display/ColorPicker.scss',
+  'src/stores/subtitleStore.ts',
+  'src/stores/conversationDisplayStore.ts',
+]);
+const EXEMPT_DIRS = ['src/viewer/', 'src/components/dev/'];
+
+function walk(dir: string, out: string[] = []): string[] {
+  const abs = join(REPO_ROOT, dir);
+  for (const entry of readdirSync(abs)) {
+    const rel = join(dir, entry).split('\\').join('/');
+    if (statSync(join(REPO_ROOT, rel)).isDirectory()) {
+      if (entry !== 'node_modules') walk(rel, out);
+    } else if (/\.(scss|css|tsx?)$/.test(entry) && !SKIP.some((re) => re.test(rel))) {
+      out.push(rel);
+    }
+  }
+  return out;
+}
+
+const scannedFiles = (): string[] =>
+  ROOTS.flatMap((root) => walk(root))
+    .filter((f) => !EXEMPT.has(f) && !EXEMPT_DIRS.some((d) => f.startsWith(d)))
+    .sort();
+
+const read = (rel: string) => readFileSync(join(REPO_ROOT, rel), 'utf-8');
+
+/** Colour literals in a stylesheet, comments stripped: hex, colour functions, `white`/`black` values. */
+export function countStyleLiterals(source: string): number {
+  const text = source
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:\\])\/\/.*$/gm, '$1');
+  const hex = text.match(/#[0-9a-f]{3,8}\b/gi) ?? [];
+  const fn = text.match(/\b(?:rgba?|hsla?)\(/g) ?? [];
+  const words = text.match(/[\s:,(](?:white|black)(?=[\s;,)}!])/g) ?? [];
+  return hex.length + fn.length + words.length;
+}
+
+const isColourText = (text: string) => /^#[0-9a-f]{3,8}$/i.test(text.trim()) || /^\s*(?:rgba?|hsla?)\(/.test(text);
+
+/** Colour literals in code: string and template texts, via the compiler, so prose never counts. */
+export function countCodeLiterals(source: string, fileName = 'scan.tsx'): number {
+  const kind = fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  const sf = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, kind);
+  let count = 0;
+  const visit = (node: ts.Node): void => {
+    if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node) || ts.isTemplateHead(node)) {
+      if (isColourText(node.text)) count++;
+    }
+    ts.forEachChild(node, visit);
+  };
+  ts.forEachChild(sf, visit);
+  return count;
+}
+
+const countIn = (rel: string): number =>
+  /\.(scss|css)$/.test(rel) ? countStyleLiterals(read(rel)) : countCodeLiterals(read(rel), rel);
+
+/**
+ * Exact remaining colour literals per file. Lower a row in the same diff that
+ * migrates the file; delete the row when it reaches 0.
+ */
+const LEDGER: Record<string, number> = {
+  // --- components/Auth ---
+  'src/components/Auth/UserAccountInfo.scss': 38,
+  'src/components/Auth/ForgotPasswordForm.scss': 19,
+  'src/components/Auth/SignUpForm.scss': 14,
+  'src/components/Auth/SignInForm.scss': 13,
+  'src/components/Auth/SignInPage.scss': 8,
+  'src/components/Auth/AuthGuard.scss': 6,
+  'src/components/Auth/AuthLayout.scss': 4,
+  // --- components/Banner ---
+  'src/components/Banner/Banner.scss': 9,
+  // --- components/CaptionShare ---
+  'src/components/CaptionShare/CaptionSharePanel.scss': 4,
+  'src/components/CaptionShare/QrCode.tsx': 2,
+  // --- components/ConnectionStatus ---
+  'src/components/ConnectionStatus/ConnectionStatus.scss': 24,
+  // --- components/Display ---
+  'src/components/Display/DisplaySettingsPopover.scss': 9,
+  // --- components/FaceToFace ---
+  'src/components/FaceToFace/OtherSideChoice.scss': 6,
+  // --- components/LogsPanel ---
+  'src/components/LogsPanel/LogsPanel.scss': 32,
+  // --- components/MainLayout ---
+  'src/components/MainLayout/MainLayout.scss': 3,
+  'src/components/MainLayout/PanelResizer.scss': 2,
+  // --- components/MainPanel ---
+  'src/components/MainPanel/MainPanel.scss': 75,
+  'src/components/MainPanel/ModeDevicePopover.scss': 33,
+  'src/components/MainPanel/ExportButton.scss': 28,
+  'src/components/MainPanel/ConversationRow.scss': 17,
+  'src/components/MainPanel/ModePicker.scss': 9,
+  'src/components/MainPanel/panel/Waveforms.tsx': 3,
+  'src/components/MainPanel/DisplayModeButton.scss': 2,
+  'src/components/MainPanel/SessionCountdown.scss': 2,
+  'src/components/MainPanel/WaveformStrip.scss': 2,
+  // --- components/Modal ---
+  'src/components/Modal/Modal.scss': 8,
+  // --- components/Settings ---
+  'src/components/Settings/Settings.scss': 35,
+  'src/components/Settings/sections/ModelManagementSection.scss': 18,
+  'src/components/Settings/sections/EngineSection.scss': 14,
+  'src/components/Settings/engine/Engine.scss': 12,
+  'src/components/Settings/sections/ModelImportModal.scss': 11,
+  'src/components/Settings/sections/VoicePicker.scss': 10,
+  'src/components/Settings/sections/VoiceCreateModal.scss': 6,
+  'src/components/Settings/sections/UpdateSection.scss': 5,
+  'src/components/Settings/sections/VoiceLibrarySection.scss': 2,
+  'src/components/Settings/sections/NativeModelManagementSection.tsx': 1,
+  'src/components/Settings/sections/ProviderSection.tsx': 1,
+  'src/components/Settings/sections/SentenceSegmentationSection.scss': 1,
+  'src/components/Settings/shared/Button.scss': 1,
+  'src/components/Settings/shared/LicenseConsentModal.tsx': 1,
+  'src/components/Settings/shared/PanelBar.scss': 1,
+  'src/components/Settings/shared/ToggleSwitch.scss': 1,
+  'src/components/Settings/shared/WarningModal.tsx': 1,
+  'src/components/Settings/shared/_download-status.scss': 1,
+  // --- components/SetupWizard ---
+  'src/components/SetupWizard/SetupWizard.scss': 2,
+  // --- components/Subtitle ---
+  'src/components/Subtitle/SubtitleBar.scss': 26,
+  'src/components/Subtitle/SubtitleApp.scss': 19,
+  'src/components/Subtitle/SubtitleStream.scss': 15,
+  'src/components/Subtitle/useSubtitleChrome.tsx': 4,
+  // --- components/TitleBar ---
+  'src/components/TitleBar/TitleBar.scss': 10,
+  'src/components/TitleBar/AccountPopover.scss': 9,
+  'src/components/TitleBar/AccountButton.scss': 3,
+  // --- components/Tooltip ---
+  'src/components/Tooltip/Tooltip.scss': 7,
+  'src/components/Tooltip/Tooltip.tsx': 2,
+  // --- components/Tour ---
+  'src/components/Tour/Tour.scss': 3,
+  // --- components/UpdateDialog ---
+  'src/components/UpdateDialog/UpdateDialog.scss': 25,
+  // --- components/providers ---
+  'src/components/providers/ProviderPicker.tsx': 1,
+  // --- providers ---
+  'src/providers/volcengine_ast2/Ast2Settings.tsx': 4,
+  'src/providers/qwen_livetranslate/kizuna.ts': 1,
+  // --- root ---
+  'src/App.scss': 1,
+  // --- styles ---
+  'src/styles/scrollbar.scss': 7,
+};
+
+describe('colour ledger', () => {
+  it('finds the tree and matches the patterns', () => {
+    const files = scannedFiles();
+    expect(files.length).toBeGreaterThan(200);
+    expect(files).toContain('src/components/MainPanel/MainPanel.scss');
+    expect(files).toContain('src/components/MainPanel/panel/Waveforms.tsx');
+    expect(files).not.toContain('src/styles/theme.scss');
+    expect(countStyleLiterals('a { color: #fff; background: rgba(0, 0, 0, .5); border-color: white; }')).toBe(3);
+    expect(countStyleLiterals('// #fff\n/* rgba( */\na { color: #1a1a1a; }')).toBe(1);
+    expect(countStyleLiterals('a { background: url(https://x/y.png); --v-x: #{tk.$c}; }')).toBe(0);
+    expect(countCodeLiterals("const c = '#0099ff'; const d = `rgba(0,0,0,${a})`; // '#fff'\n/* rgb( */")).toBe(2);
+    expect(countCodeLiterals('const issue = "#246 fixed"; const key = "settings.common.theme";')).toBe(0);
+  });
+
+  it('matches the ledger exactly', () => {
+    const counts: Record<string, number> = {};
+    for (const file of scannedFiles()) {
+      const n = countIn(file);
+      if (n > 0) counts[file] = n;
+    }
+    expect(counts).toEqual(LEDGER);
+  });
+});
