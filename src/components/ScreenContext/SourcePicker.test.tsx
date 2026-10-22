@@ -111,6 +111,15 @@ describe('SourcePicker', () => {
     expect(screen.getByRole('button', { name: 'Open System Settings' })).toBeTruthy();
   });
 
+  it('Ask macOS again is off while an ask is out, and Restart Sokuji once the restart is asked for', () => {
+    const { rerender } = render(<SourcePicker {...props({ screenRecording: 'denied', reasking: true })} />);
+    expect(screen.getByRole('button', { name: 'Ask macOS again' })).toBeDisabled();
+    rerender(<SourcePicker {...props({ screenRecording: 'denied', asked: true, restarting: true })} />);
+    expect(screen.getByRole('button', { name: 'Restart Sokuji' })).toBeDisabled();
+    rerender(<SourcePicker {...props({ screenRecording: 'denied', asked: true })} />);
+    expect(screen.getByRole('button', { name: 'Restart Sokuji' })).not.toBeDisabled();
+  });
+
   it('in portal mode shows one button that asks the desktop to choose', () => {
     const p = props({ mode: 'portal', sources: [] });
     render(<SourcePicker {...p} />);

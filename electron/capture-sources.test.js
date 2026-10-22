@@ -191,8 +191,9 @@ describe('reaskScreenRecording', () => {
     await expect(reaskScreenRecording(hung.deps)).resolves.toEqual({ asked: true, status: 'denied' });
     expect(hung.deps.wait).toHaveBeenCalledWith(REASK_WAIT_MS);
 
-    const failed = mac({ request: vi.fn(async () => { throw new Error('no permission'); }) });
-    await expect(reaskScreenRecording(failed.deps)).resolves.toEqual({ asked: true, status: 'denied' });
+    // A listing that fails is said, not swallowed; the answer still counts as asked, since the reset ran and the prompt may be up.
+    const failed = mac({ request: vi.fn(async () => { throw new Error('Failed to get sources.'); }) });
+    await expect(reaskScreenRecording(failed.deps)).resolves.toEqual({ asked: true, status: 'denied', requestError: 'Failed to get sources.' });
   });
 
   it("names the bundle the release is built as: the signing identity's, so the reset clears Sokuji's entry and no other", () => {
@@ -213,11 +214,16 @@ describe('main.js wiring for asking macOS again', () => {
     expect(handler).toContain('desktopCapturer.getSources(');
   });
 
-  it('restarts by relaunching and then quitting, so the close handshake still runs', () => {
+  it('restarts by relaunching and then quitting, so the close handshake still runs, and only once however often it is asked', () => {
     const at = main.indexOf("ipcMain.handle('relaunch-app'");
     expect(at).toBeGreaterThan(-1);
     const handler = main.slice(at, main.indexOf('\n});', at));
     expect(handler.indexOf('app.relaunch()')).toBeGreaterThan(-1);
     expect(handler.indexOf('app.relaunch()')).toBeLessThan(handler.indexOf('app.quit()'));
+    // Each app.relaunch() starts one more instance once this one exits: a second ask returns before it.
+    const guard = handler.indexOf('if (relaunching) return;');
+    expect(guard).toBeGreaterThan(-1);
+    expect(guard).toBeLessThan(handler.indexOf('app.relaunch()'));
+    expect(handler).toMatch(/relaunching = true;/);
   });
 });

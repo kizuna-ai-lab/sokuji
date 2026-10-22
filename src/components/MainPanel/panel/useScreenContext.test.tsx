@@ -35,7 +35,9 @@ type Mode = { mode: 'list' | 'portal'; screenRecording: string };
 type Listed = { ok: true; sources: CaptureSourceInfo[] } | { ok: false; error: string };
 
 /** The main process as the picker asks it: `modes` answers each capture-source-mode in turn (the last one repeats). */
-function ipc(o: { modes?: Mode[]; listed?: Listed | Error; reask?: { asked: boolean; status: string; resetError?: string } | Error } = {}) {
+type Reask = { asked: boolean; status: string; resetError?: string; requestError?: string };
+
+function ipc(o: { modes?: Mode[]; listed?: Listed | Error; reask?: Reask | Error | Promise<Reask> } = {}) {
   const modes = [...(o.modes ?? [{ mode: 'list', screenRecording: 'granted' }])];
   const channels: string[] = [];
   const invoke = vi.fn(async (channel: string, _data?: unknown) => {
@@ -47,7 +49,7 @@ function ipc(o: { modes?: Mode[]; listed?: Listed | Error; reask?: { asked: bool
     }
     if (channel === 'reask-screen-recording') {
       if (o.reask instanceof Error) throw o.reask;
-      return o.reask ?? { asked: true, status: 'denied' };
+      return await (o.reask ?? { asked: true, status: 'denied' });
     }
     return { ok: true };
   });
@@ -207,21 +209,57 @@ describe('useScreenContext — the picker bridge', () => {
     expect(result.current.picker).toMatchObject({ open: true, screenRecording: 'granted', sources: [SLIDES, DESKTOP], asked: false });
   });
 
-  it("a reset that failed, or an ask the main process refused, is said in the logs; the restart is still offered", async () => {
+  it('a reset or a listing that failed is said in the logs, and the restart is still offered: the ask ran, and the prompt may be up', async () => {
     ipc({ listed: { ok: false, error: 'screen-recording-denied' } });
     const { result } = renderHook(() => useScreenContext(session));
     await openPicker();
-    ipc({ reask: { asked: true, status: 'denied', resetError: 'tccutil exited with code 64' } });
+    ipc({ reask: { asked: true, status: 'denied', resetError: 'tccutil exited with code 64', requestError: 'Failed to get sources.' } });
     act(() => { result.current.picker.onReask(); });
     await flush();
-    expect(reportWarning).toHaveBeenLastCalledWith('ScreenContext', expect.stringContaining('tccutil exited with code 64'));
+    expect(reportWarning).toHaveBeenCalledWith('ScreenContext', expect.stringContaining('tccutil exited with code 64'));
+    expect(reportWarning).toHaveBeenCalledWith('ScreenContext', expect.stringContaining('Failed to get sources.'));
     expect(result.current.picker.asked).toBe(true);
+  });
 
+  it('an ask the main process never ran keeps Ask macOS again, and says why: a restart would change nothing', async () => {
+    ipc({ listed: { ok: false, error: 'screen-recording-denied' } });
+    const { result } = renderHook(() => useScreenContext(session));
+    await openPicker();
     ipc({ reask: new Error('IPC gone') });
     act(() => { result.current.picker.onReask(); });
     await flush();
     expect(reportWarning).toHaveBeenLastCalledWith('ScreenContext', expect.stringContaining('IPC gone'), expect.objectContaining({ cause: expect.any(Error) }));
-    expect(result.current.picker.asked).toBe(true);
+    expect(result.current.picker).toMatchObject({ asked: false, reasking: false });
+  });
+
+  it('one ask at a time: a second click while one is out asks nothing (it would reset again), and Ask is off meanwhile', async () => {
+    ipc({ listed: { ok: false, error: 'screen-recording-denied' } });
+    const { result } = renderHook(() => useScreenContext(session));
+    await openPicker();
+    let settle!: (answered: Reask) => void;
+    const { channels } = ipc({ reask: new Promise<Reask>((resolve) => { settle = resolve; }) });
+    act(() => { result.current.picker.onReask(); });
+    act(() => { result.current.picker.onReask(); });
+    await flush();
+    expect(channels).toEqual(['reask-screen-recording']);
+    expect(result.current.picker.reasking).toBe(true);
+    await act(async () => { settle({ asked: true, status: 'denied' }); });
+    await flush();
+    expect(result.current.picker).toMatchObject({ reasking: false, asked: true });
+  });
+
+  it('Restart asks the main process once, however often it is clicked, and is off after the first', async () => {
+    ipc({ listed: { ok: false, error: 'screen-recording-denied' } });
+    const { result } = renderHook(() => useScreenContext(session));
+    await openPicker();
+    act(() => { result.current.picker.onReask(); });
+    await flush();
+    const { channels } = ipc();
+    act(() => { result.current.picker.onRestart(); });
+    act(() => { result.current.picker.onRestart(); });
+    await flush();
+    expect(channels).toEqual(['relaunch-app']);
+    expect(result.current.picker.restarting).toBe(true);
   });
 
   it('shows the denied state when the status reads denied after a first listing on a Mac never asked', async () => {

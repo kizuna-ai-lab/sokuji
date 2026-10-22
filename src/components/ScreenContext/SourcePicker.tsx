@@ -47,9 +47,13 @@ export interface SourcePickerProps {
    * older build, which System Settings shows switched on while it never counts.
    */
   onReask(): void;
+  /** An ask is out: Ask macOS again is off, since a second one would reset again. */
+  reasking?: boolean;
   /** macOS was asked again: a new grant applies only after a restart, so the denied state offers it. */
   asked?: boolean;
   onRestart(): void;
+  /** The restart is asked for: Restart Sokuji is off, since each relaunch starts one more instance. */
+  restarting?: boolean;
   /** Asks the desktop for its windows and screens again: the list is a snapshot, a window opened since is not on it. */
   onRefresh(): void;
   /** A Refresh is out: the list stays, the button turns until the answer lands. */
@@ -79,11 +83,11 @@ export function SourcePicker(p: SourcePickerProps) {
               </p>
               <div className="source-picker__denied-actions">
                 {p.asked ? (
-                  <button type="button" className="source-picker__primary" onClick={p.onRestart}>
+                  <button type="button" className="source-picker__primary" onClick={p.onRestart} disabled={p.restarting}>
                     {t('screenContext.picker.restart', 'Restart Sokuji')}
                   </button>
                 ) : (
-                  <button type="button" className="source-picker__primary" onClick={p.onReask}>
+                  <button type="button" className="source-picker__primary" onClick={p.onReask} disabled={p.reasking}>
                     {t('screenContext.picker.reask', 'Ask macOS again')}
                   </button>
                 )}

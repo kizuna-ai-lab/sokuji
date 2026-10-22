@@ -121,23 +121,33 @@ const REASK_WAIT_MS = 10_000;
  * @param {() => Promise<unknown>} o.reset  tccutil reset ScreenCapture MAC_BUNDLE_ID
  * @param {() => Promise<unknown>} o.request  a desktopCapturer listing
  * @param {(ms: number) => Promise<void>} o.wait
- * @returns {Promise<{ asked: boolean, status: string, resetError?: string }>}
+ * A listing that fails is reported (`requestError`) and still counts as asked:
+ * the reset has run and the prompt may be up, so the picker offers the restart,
+ * never a second reset that could clear a grant just given.
+ *
+ * @returns {Promise<{ asked: boolean, status: string, resetError?: string, requestError?: string }>}
  */
 async function reaskScreenRecording(o) {
   if (o.platform !== 'darwin' || o.screenRecording() === 'granted') {
     return { asked: false, status: o.screenRecording() };
   }
+  const messageOf = (error) => (error instanceof Error ? error.message : String(error));
   let resetError;
   try {
     await o.reset();
   } catch (error) {
     // A Mac never asked has nothing to reset; the request below still raises the prompt.
-    resetError = error instanceof Error ? error.message : String(error);
+    resetError = messageOf(error);
   }
+  let requestError;
   // The listing is what raises the prompt; one that never answers while it is up must not hold the picker.
-  await Promise.race([o.request().catch(() => undefined), o.wait(REASK_WAIT_MS)]);
-  const status = o.screenRecording();
-  return resetError === undefined ? { asked: true, status } : { asked: true, status, resetError };
+  await Promise.race([o.request().catch((error) => { requestError = messageOf(error); }), o.wait(REASK_WAIT_MS)]);
+  return {
+    asked: true,
+    status: o.screenRecording(),
+    ...(resetError === undefined ? {} : { resetError }),
+    ...(requestError === undefined ? {} : { requestError }),
+  };
 }
 
 /**

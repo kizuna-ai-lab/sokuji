@@ -48,6 +48,8 @@ interface OpenPicker extends Choices {
   refreshing: boolean;
   /** macOS was asked again and still reads denied: what is left is the restart a new grant needs. */
   asked: boolean;
+  /** An ask is out to the main process: a second one would reset again, so Ask is off. */
+  reasking: boolean;
 }
 
 const invoke: Invoke = (channel, data) => window.electron.invoke(channel, data);
@@ -87,9 +89,9 @@ export function useScreenContext(session: Pick<AppSession, 'setBridges'>): Scree
     answer.current = settle;
     openPurpose.current = purpose;
     const show = () => {
-      setPicker({ reason, purpose, refreshing: false, asked: false, mode: 'list', screenRecording: 'granted', sources: null });
+      setPicker({ reason, purpose, refreshing: false, asked: false, reasking: false, mode: 'list', screenRecording: 'granted', sources: null });
       void readChoices().then((choices) => {
-        if (answer.current === settle) setPicker({ reason, purpose, refreshing: false, asked: false, ...choices });
+        if (answer.current === settle) setPicker({ reason, purpose, refreshing: false, asked: false, reasking: false, ...choices });
       });
     };
     if (purpose !== 'settings') {
@@ -125,41 +127,59 @@ export function useScreenContext(session: Pick<AppSession, 'setBridges'>): Scree
     });
   }, []);
 
+  /** An ask is out: a second click would reset again, and could clear a grant given a moment ago. */
+  const reasking = useRef(false);
   /**
-   * macOS refused: Sokuji's entry reset and the prompt raised (the main process's `reask-screen-recording`). A
-   * permission that then reads granted is listed at once; one that still reads denied, as a new grant does until
-   * Sokuji restarts, leaves the restart. The pick keeps waiting either way.
+   * macOS refused: Sokuji's entry reset and the prompt raised (the main process's `reask-screen-recording`), one at a
+   * time. A permission that then reads granted is listed at once; one that still reads denied, as a new grant does
+   * until Sokuji restarts, leaves the restart, even when the reset or the listing failed (both said in the logs), since
+   * the prompt may be up. An ask the main process never ran keeps Ask: a restart would change nothing. The pick keeps
+   * waiting throughout.
    */
   const reask = useCallback(() => {
     const settle = answer.current;
-    if (!settle) return;
-    const leaveRestart = () => {
-      if (answer.current === settle) setPicker((open) => (open ? { ...open, asked: true } : open));
+    if (!settle || reasking.current) return;
+    reasking.current = true;
+    const update = (patch: Partial<OpenPicker>) => {
+      if (answer.current === settle) setPicker((open) => (open ? { ...open, ...patch } : open));
     };
+    update({ reasking: true });
     void reaskScreenRecording(invoke).then(
       (answered) => {
         if (answered.resetError) {
           reportWarning('ScreenContext', `Sokuji's Screen Recording entry could not be reset; macOS was asked anyway: ${answered.resetError}`);
         }
+        if (answered.requestError) {
+          reportWarning('ScreenContext', `The listing that raises macOS's Screen Recording prompt failed: ${answered.requestError}`);
+        }
         if (answered.status !== 'granted') {
-          leaveRestart();
+          update({ reasking: false, asked: true });
           return;
         }
-        void readChoices().then((choices) => {
-          if (answer.current === settle) setPicker((open) => (open ? { ...open, ...choices, asked: false } : open));
-        });
+        void readChoices().then((choices) => update({ ...choices, reasking: false, asked: false }));
       },
       (error: unknown) => {
         reportWarning('ScreenContext', `Asking macOS for Screen Recording again failed: ${describeCause(error)}`, { cause: error });
-        leaveRestart();
+        update({ reasking: false });
       },
-    );
+    ).finally(() => {
+      reasking.current = false;
+    });
   }, []);
 
+  /** A restart is asked for: each relaunch starts one more instance, so once (the main process guards it too). */
+  const restarting = useRef(false);
+  const [restartAsked, setRestartAsked] = useState(false);
   /** macOS applies a new Screen Recording grant only after a restart. */
   const restart = useCallback(() => {
+    if (restarting.current) return;
+    restarting.current = true;
+    setRestartAsked(true);
     invoke('relaunch-app').catch((error: unknown) => {
       reportWarning('ScreenContext', `Sokuji could not restart itself: ${describeCause(error)}`, { cause: error });
+      // Nothing restarted: the button is the user's again.
+      restarting.current = false;
+      setRestartAsked(false);
     });
   }, []);
 
@@ -207,6 +227,8 @@ export function useScreenContext(session: Pick<AppSession, 'setBridges'>): Scree
       purpose: picker?.purpose ?? 'start',
       refreshing: picker?.refreshing ?? false,
       asked: picker?.asked ?? false,
+      reasking: picker?.reasking ?? false,
+      restarting: restartAsked,
       onReask: reask,
       onRestart: restart,
       onPick: (source) => answer.current?.({ kind: 'desktop', source }),

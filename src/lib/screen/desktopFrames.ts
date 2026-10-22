@@ -40,10 +40,11 @@ export function listCaptureSources(invoke: Invoke): Promise<{ ok: true; sources:
 
 /**
  * macOS: Sokuji's Screen Recording entry reset and the prompt raised (the picker's Ask macOS again); `status` is the
- * permission read afterwards, which a new grant changes only after a restart. `resetError` says why the reset failed.
+ * permission read afterwards, which a new grant changes only after a restart. `resetError` and `requestError` say why
+ * the reset or the listing failed.
  */
-export function reaskScreenRecording(invoke: Invoke): Promise<{ asked: boolean; status: string; resetError?: string }> {
-  return invoke('reask-screen-recording') as Promise<{ asked: boolean; status: string; resetError?: string }>;
+export function reaskScreenRecording(invoke: Invoke): Promise<{ asked: boolean; status: string; resetError?: string; requestError?: string }> {
+  return invoke('reask-screen-recording') as Promise<{ asked: boolean; status: string; resetError?: string; requestError?: string }>;
 }
 
 /** The pick as a stream, through the desktop source id — never the display-media handler, which electron-audio-loopback owns. */

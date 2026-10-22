@@ -1370,7 +1370,11 @@ ipcMain.handle('reask-screen-recording', async () => {
 });
 
 /** macOS applies a new Screen Recording grant only after a restart: the picker's Restart Sokuji. */
+let relaunching = false;
 ipcMain.handle('relaunch-app', () => {
+  // Each relaunch asked for starts one more instance once this one exits.
+  if (relaunching) return;
+  relaunching = true;
   app.relaunch();
   app.quit();
 });
