@@ -84,7 +84,7 @@
       font-style: normal;
       font-weight: 700;
       vertical-align: 0.15em;
-      color: vars.$text-primary;
+      color: tk.$color-on-primary;
     }
     .subtitle-stream__line--speaker .subtitle-stream__person {
       &.person-shade-0 { background: tk.$color-speaker-person-1; }

@@ -107,7 +107,7 @@
       .loading-spinner {
         width: 20px;
         height: 20px;
-        border: 2px solid vars.$text-primary;
+        border: 2px solid tk.$color-on-primary;
         border-top-color: transparent;
         border-radius: 50%;
         animation: spin 0.6s linear infinite;

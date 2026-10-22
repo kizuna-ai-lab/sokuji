@@ -189,7 +189,7 @@
 
     &--selected {
       background: color-mix(in srgb, tk.$color-primary 12%, transparent);
-      color: tk.$color-on-primary;
+      color: vars.$text-primary;
       &:hover { background: color-mix(in srgb, tk.$color-primary 18%, transparent); }
     }
   }

@@ -24,7 +24,7 @@
     &--error { color: tk.$color-error; }
   }
 
-  &__bar { height: 6px; border-radius: 3px; background: vars.$bg-control; overflow: hidden; }
+  &__bar { height: 6px; border-radius: 3px; background: vars.$border-subtle; overflow: hidden; }
   &__bar-fill {
     height: 100%; background: tk.$color-primary-fill; transition: width 0.2s ease;
     &--busy { width: 100%; animation: engine-busy 1.2s linear infinite; }

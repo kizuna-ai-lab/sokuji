@@ -1029,16 +1029,16 @@
       transition: background-color vars.$transition-fast, border-color vars.$transition-fast;
     }
 
-    input: checked + &-box {
+    input:checked + &-box {
       background-color: vars.$color-primary;
       border-color: vars.$color-primary;
     }
 
-    input: focus-visible + &-box {
+    input:focus-visible + &-box {
       @include vars.focus-ring;
     }
 
-    input: disabled + &-box {
+    input:disabled + &-box {
       @include vars.disabled-state;
     }
 

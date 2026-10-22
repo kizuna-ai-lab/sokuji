@@ -91,7 +91,7 @@
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          color: vars.$text-primary;
+          color: vars.$white;
           filter: drop-shadow(0 0 1px vars.$scrim);
         }
       }
@@ -105,7 +105,7 @@
 
     &__bar {
       height: 3px;
-      background: vars.$bg-popover;
+      background: vars.$border-subtle;
       border-radius: 2px;
       overflow: hidden;
 

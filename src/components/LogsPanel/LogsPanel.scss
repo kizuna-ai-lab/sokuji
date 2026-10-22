@@ -174,7 +174,7 @@
           align-items: center;
           width: 48px;
           height: 48px;
-          background-color: vars.$bg-control;
+          background-color: vars.$border-subtle;
           border-radius: 8px;
           margin-bottom: 16px;
           
@@ -305,7 +305,7 @@
       .separator-line {
         flex: 1;
         height: 1px;
-        background-color: vars.$bg-control;
+        background-color: vars.$border-subtle;
       }
       
       .separator-text {

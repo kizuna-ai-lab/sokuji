@@ -6,7 +6,7 @@
   z-index: 2;
   flex: 0 0 1px;          // 1px visible seam (matches the old divider)
   align-self: stretch;
-  background: vars.$bg-control;
+  background: vars.$border-subtle;
   cursor: col-resize;
   transition: background 0.15s;
 

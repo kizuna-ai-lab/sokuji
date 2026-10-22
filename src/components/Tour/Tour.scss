@@ -15,7 +15,7 @@
 .tour-spotlight {
   position: fixed;
   border-radius: 8px;
-  box-shadow: 0 0 0 9999px vars.$shadow-strong;
+  box-shadow: 0 0 0 9999px vars.$scrim;
   pointer-events: none;
   z-index: 1801;
   transition: top 0.15s ease, left 0.15s ease, width 0.15s ease, height 0.15s ease;

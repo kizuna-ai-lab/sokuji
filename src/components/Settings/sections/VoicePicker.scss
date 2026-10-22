@@ -345,7 +345,7 @@
   &:disabled:not(:has(.voice-row__spinner)) { opacity: 0.4; }
 
   &--danger:hover:not(:disabled) {
-    color: vars.$text-primary;
+    color: vars.$color-on-primary;
     background: vars.$color-error;
     border-color: vars.$color-error;
   }
