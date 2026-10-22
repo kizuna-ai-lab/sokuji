@@ -1570,5 +1570,34 @@
     "notPlayed": "Tidak diputar: terjemahan ini dalam bahasa {{language}}, bukan {{target}}, sehingga tidak dibacakan kepada siapa pun.",
     "legendMe": "{{language}} · saya",
     "legendOther": "{{language}} · lawan bicara"
+  },
+  "screenContext": {
+    "picker": {
+      "title": "Pilih apa yang boleh dilihat Qwen",
+      "privacy": "Semua yang ada di dalam area yang Anda pilih dikirim sebagai gambar ke layanan Qwen milik Alibaba Cloud, di wilayah sesi ini — tidak ada hal lain dari layar Anda. Kizuna AI tidak menerimanya.",
+      "windows": "Jendela",
+      "screens": "Layar",
+      "portal": "Pilih jendela atau layar…",
+      "loading": "Mencari jendela…",
+      "none": "Tidak ditemukan jendela atau layar untuk dibagikan.",
+      "deniedTitle": "Izin Perekaman Layar diperlukan",
+      "deniedText": "macOS hanya mengizinkan Sokuji melihat layar dengan izin Screen Recording. Berikan izin itu di System Settings, lalu buka ulang Sokuji dan mulai lagi.",
+      "openSettings": "Buka Pengaturan Sistem",
+      "cancel": "Mulai tanpa konteks layar",
+      "nothingVisible": "Area yang Anda pilih tidak menampilkan apa pun saat ini. Pilih yang lain, atau mulai tanpa konteks layar.",
+      "checking": "Memeriksa gambar…"
+    },
+    "chip": {
+      "live": "Langsung",
+      "stale": "Tidak berubah",
+      "lost": "Pilih lagi",
+      "label": "Konteks layar: {{name}}, {{status}}"
+    },
+    "card": {
+      "lastFrame": "Bingkai terakhir {{ago}} dtk lalu",
+      "frames": "{{count}} bingkai terkirim",
+      "chooseAgain": "Pilih lagi",
+      "lostHint": "Sumbernya sudah tidak ada; gambar terakhir disimpan sampai Anda memilih lagi."
+    }
   }
 }

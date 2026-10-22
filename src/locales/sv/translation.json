@@ -1570,5 +1570,34 @@
     "notPlayed": "Spelades inte upp: den här översättningen är på {{language}}, inte på {{target}}, så den läses inte upp för någon.",
     "legendMe": "{{language}} · jag",
     "legendOther": "{{language}} · den andra"
+  },
+  "screenContext": {
+    "picker": {
+      "title": "Välj vad Qwen får se",
+      "privacy": "Allt inom området du väljer skickas som bilder till Alibaba Clouds Qwen-tjänst, i den här sessionens region – inget annat från din skärm. Kizuna AI tar inte emot dem.",
+      "windows": "Fönster",
+      "screens": "Skärmar",
+      "portal": "Välj ett fönster eller en skärm…",
+      "loading": "Letar efter fönster…",
+      "none": "Inget fönster eller ingen skärm att dela hittades.",
+      "deniedTitle": "Behörighet för skärminspelning krävs",
+      "deniedText": "macOS låter Sokuji se skärmen endast med behörighet för skärminspelning. Ge behörigheten i Systeminställningar, starta sedan om Sokuji och börja igen.",
+      "openSettings": "Öppna Systeminställningar",
+      "cancel": "Starta utan skärmkontext",
+      "nothingVisible": "Området du valde visar ingenting just nu. Välj ett annat, eller starta utan skärmkontext.",
+      "checking": "Kontrollerar bilden…"
+    },
+    "chip": {
+      "live": "Live",
+      "stale": "Oförändrad",
+      "lost": "Välj igen",
+      "label": "Skärmkontext: {{name}}, {{status}}"
+    },
+    "card": {
+      "lastFrame": "Senaste bild för {{ago}} s sedan",
+      "frames": "{{count}} bilder skickade",
+      "chooseAgain": "Välj igen",
+      "lostHint": "Källan är borta; den senaste bilden behålls tills du väljer igen."
+    }
   }
 }

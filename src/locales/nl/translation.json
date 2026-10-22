@@ -1448,7 +1448,7 @@
     "speaker_tts_missing": "De vertaling die de ander hoort, is alleen tekst: geen spraakmodel spreekt {{target}}.",
     "participant_tts_missing": "De vertaling die ik hoor, is alleen tekst: geen spraakmodel spreekt {{target}}.",
     "participant_tts_over_budget": "De vertaling die ik hoor, is alleen tekst: niet genoeg geheugen om ook het spraakmodel van de ander te laden.",
-    "screen_context_lost": "Het scherm dat je hebt gekozen is niet meer beschikbaar; de vertaling gaat verder met alleen audio. Kies opnieuw via de schermchip."
+    "screen_context_lost": "Het scherm dat je hebt gekozen is niet meer beschikbaar; de vertaling gaat verder met alleen audio. Gebruik 'Opnieuw kiezen' op de schermchip."
   },
   "viewer": {
     "title": "Sokuji-ondertiteling",
@@ -1570,5 +1570,34 @@
     "notPlayed": "Niet afgespeeld: deze vertaling is in {{language}}, niet in {{target}}, dus wordt ze aan niemand voorgelezen.",
     "legendMe": "{{language}} · ik",
     "legendOther": "{{language}} · de ander"
+  },
+  "screenContext": {
+    "picker": {
+      "title": "Kies wat Qwen mag zien",
+      "privacy": "Alles binnen het gebied dat je kiest, wordt als afbeeldingen verstuurd naar de Qwen-dienst van Alibaba Cloud, in de regio van deze sessie — verder niets van je scherm. Kizuna AI ontvangt ze niet.",
+      "windows": "Vensters",
+      "screens": "Schermen",
+      "portal": "Kies een venster of scherm…",
+      "loading": "Vensters zoeken…",
+      "none": "Er is geen venster of scherm gevonden om te delen.",
+      "deniedTitle": "Toestemming voor schermopname nodig",
+      "deniedText": "macOS laat Sokuji het scherm alleen zien met toestemming voor schermopname. Geef die in Systeeminstellingen, start Sokuji daarna opnieuw op en begin opnieuw.",
+      "openSettings": "Systeeminstellingen openen",
+      "cancel": "Starten zonder schermcontext",
+      "nothingVisible": "Het gekozen gebied laat op dit moment niets zien. Kies een ander gebied of start zonder schermcontext.",
+      "checking": "Afbeelding controleren…"
+    },
+    "chip": {
+      "live": "Live",
+      "stale": "Ongewijzigd",
+      "lost": "Opnieuw kiezen",
+      "label": "Schermcontext: {{name}}, {{status}}"
+    },
+    "card": {
+      "lastFrame": "Laatste beeld {{ago}} s geleden",
+      "frames": "{{count}} beelden verstuurd",
+      "chooseAgain": "Opnieuw kiezen",
+      "lostHint": "De bron is weg; de laatste afbeelding blijft bewaard tot je opnieuw kiest."
+    }
   }
 }

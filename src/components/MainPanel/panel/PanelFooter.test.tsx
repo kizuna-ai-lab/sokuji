@@ -4,6 +4,7 @@ import { PanelFooter, type PanelFooterProps } from './PanelFooter';
 import { languageLabel } from '../../../lib/language/label';
 import type { EarsLegendEntry } from '../useFaceToFace';
 import type { RunState } from '../../../lib/session/types';
+import type { ScreenContextChipProps } from './ScreenContextChip';
 
 // react-i18next: return the key itself, so every assertion below is against
 // the real key the component asks for, whether or not the markup happens to
@@ -324,5 +325,41 @@ describe('PanelFooter — the ears legend', () => {
   it.each(SITES)('%s: the tag follows the legend', (site) => {
     const { container } = render(<PanelFooter {...baseProps(site, { mode: 'both', faceToFace: true, ears: null })} />);
     expect(container.querySelector('.mode-picker__tag')).not.toBeNull();
+  });
+});
+
+describe('PanelFooter — the screen context chip', () => {
+  const chip: ScreenContextChipProps = {
+    name: 'Slides', kind: 'window', status: 'live', sentCount: 1, lastSentAt: 0, now: 0, thumbnail: null, iconOnly: false, onChooseAgain: vi.fn(),
+  };
+  const waveforms = { input: <div data-testid="wf-input" />, output: <div data-testid="wf-output" /> };
+
+  it.each(SITES)('%s: renders the chip from screenContext, icon-only in basic, after the mode picker or the input strips', (site) => {
+    const { container } = render(<PanelFooter {...baseProps(site, { screenContext: chip, waveforms })} />);
+    const el = container.querySelector('.control-footer .screen-context-chip') as HTMLElement;
+    expect(el).not.toBeNull();
+    // The name only where there is room for it; the label names it everywhere.
+    expect(el.textContent?.includes('Slides')).toBe(site === 'advanced');
+    expect(el.classList.contains('screen-context-chip--icon-only')).toBe(site === 'basic');
+    const before = site === 'basic' ? container.querySelector('.mode-picker') : container.querySelector('[data-testid="wf-input"]');
+    expect(before?.nextElementSibling).toBe(el);
+  });
+
+  it.each(SITES)('%s: nothing without the prop, or with null', (site) => {
+    const { container, rerender } = render(<PanelFooter {...baseProps(site)} />);
+    expect(container.querySelector('.screen-context-chip')).toBeNull();
+    rerender(<PanelFooter {...baseProps(site, { screenContext: null })} />);
+    expect(container.querySelector('.screen-context-chip')).toBeNull();
+  });
+
+  it.each(SITES)('%s: while the chosen area is checked before the start, Start shows its spinner and is off', (site) => {
+    const onStart = vi.fn();
+    const { container } = render(<PanelFooter {...baseProps(site, { preparing: true, onStart })} />);
+    const btn = actionButton(container);
+    expect(btn.querySelector(site === 'basic' ? '.spinning' : '.spinner')).toBeTruthy();
+    expect(btn).toBeDisabled();
+    expect(btn.getAttribute('title')).toBeNull();
+    fireEvent.click(btn);
+    expect(onStart).not.toHaveBeenCalled();
   });
 });

@@ -1570,5 +1570,34 @@
     "notPlayed": "Hindi pinatugtog: ang salin na ito ay sa {{language}}, hindi sa {{target}}, kaya hindi ito binabasa sa kahit sino.",
     "legendMe": "{{language}} · ako",
     "legendOther": "{{language}} · kausap"
+  },
+  "screenContext": {
+    "picker": {
+      "title": "Piliin kung ano ang puwedeng makita ng Qwen",
+      "privacy": "Lahat ng nasa loob ng lugar na pipiliin mo ay ipinapadala bilang mga larawan sa Qwen service ng Alibaba Cloud, sa rehiyon ng session na ito — wala nang iba pa sa screen mo. Hindi natatanggap ng Kizuna AI ang mga ito.",
+      "windows": "Mga window",
+      "screens": "Mga screen",
+      "portal": "Pumili ng window o screen…",
+      "loading": "Naghahanap ng mga window…",
+      "none": "Walang nakitang window o screen na puwedeng i-share.",
+      "deniedTitle": "Kailangan ang pahintulot sa Screen Recording",
+      "deniedText": "Pinapayagan lang ng macOS na makita ng Sokuji ang screen kapag may pahintulot sa Screen Recording. Ibigay ito sa System Settings, pagkatapos ay i-restart ang Sokuji at magsimula ulit.",
+      "openSettings": "Buksan ang System Settings",
+      "cancel": "Magsimula nang walang konteksto ng screen",
+      "nothingVisible": "Walang ipinapakita ngayon ang lugar na pinili mo. Pumili ng iba, o magsimula nang walang konteksto ng screen.",
+      "checking": "Sinusuri ang larawan…"
+    },
+    "chip": {
+      "live": "Live",
+      "stale": "Walang pagbabago",
+      "lost": "Pumili ulit",
+      "label": "Konteksto ng screen: {{name}}, {{status}}"
+    },
+    "card": {
+      "lastFrame": "Huling frame {{ago}} s ang nakalipas",
+      "frames": "{{count}} frame ang naipadala",
+      "chooseAgain": "Pumili ulit",
+      "lostHint": "Wala na ang source; itatago ang huling larawan hanggang pumili ka ulit."
+    }
   }
 }

@@ -66,7 +66,9 @@ import { useSessionClock } from './panel/sessionClock';
 import TypedText from './panel/TypedText';
 import { usePermissionWarning } from './panel/usePermissionWarning';
 import { usePushToTalk } from './panel/usePushToTalk';
+import { useScreenContext } from './panel/useScreenContext';
 import { InputWaveforms, OutputWaveform } from './panel/Waveforms';
+import { SourcePicker } from '../ScreenContext/SourcePicker';
 import { StatusLine } from './StatusLine';
 import { useStatusLine } from './useStatusLine';
 import './MainPanel.scss';
@@ -288,6 +290,8 @@ export default function MainPanel() {
   }, [dismissEcho, setEntryHint]);
   const testTone = useTestTone(audio);   // dev only: { playing, toggle } | undefined
   useUpdateAndAudioSystemListeners();    // today's two listener inits, pre-switch MainPanel.tsx:1111-1125
+  // The source picker the session asks before a run, and the chip while one holds a source (spec 2026-10-22).
+  const screenContext = useScreenContext(session);
 
   // What the list draws counts (`shown`: the conversation and the notes after the transient rule, before a side filter, which can hide rows the user brings back), so an expired note never leaves Clear on over an empty list; a failed start's line counts too: after one it is all there is, and Clear takes it away.
   const hasConversation = shown.length > 0 || (status?.key.startsWith('last-end:') ?? false);
@@ -317,6 +321,9 @@ export default function MainPanel() {
       onModeSegment={onModeSegment} onLanguages={() => navigateToSettings('languages')}
       testTone={site === 'advanced' ? testTone : undefined}
       waveforms={site === 'advanced' ? { input: <InputWaveforms mode={mode} levels={audio?.capture.levels ?? null} />, output: <OutputWaveform meter={outputMeter} /> } : undefined}
+      // The name only in the advanced layout of the desktop app: the side panel is as narrow as the basic footer.
+      screenContext={screenContext.chip && { ...screenContext.chip, iconOnly: site === 'basic' || isExtension() }}
+      preparing={screenContext.preparing}
     />
   );
 
@@ -370,6 +377,7 @@ export default function MainPanel() {
           : null}
       />
       {popover && <ModeDevicePopover mode={mode} open anchorEl={popover} onClose={() => setPopover(null)} locked={run.phase !== 'idle'} />}
+      <SourcePicker {...screenContext.picker} />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { X, Zap, Mic, Loader, Wrench, Headphones } from 'lucide-react';
 import ModePicker from '../ModePicker';
 import SessionCountdown from '../SessionCountdown';
 import { useLanguageLabel } from '../../../lib/language/useLanguageLabel';
+import { ScreenContextChip, type ScreenContextChipProps } from './ScreenContextChip';
 import { startLabel } from './startLabel';
 import type { RunState } from '../../../lib/session/types';
 import type { AudioMode } from '../../../stores/audioStore';
@@ -39,6 +40,10 @@ export interface PanelFooterProps {
   ears?: EarsLegendEntry[] | null;
   /** The advanced footer's input strips and output strip. */
   waveforms?: { input: ReactNode; output: ReactNode };
+  /** The screen-context chip while a run holds a source (spec 2026-10-22 §3.4): after the input strips in advanced, after the mode picker in basic, always icon-only there. Absent or null: none. */
+  screenContext?: ScreenContextChipProps | null;
+  /** A chosen screen area is checked for its first frame before the run starts: Start shows its spinner, off (a click would only be the same start). */
+  preparing?: boolean;
 }
 
 /**
@@ -113,23 +118,30 @@ function ControlFooter(props: PanelFooterProps) {
     waveforms,
     faceToFace,
     faceToFaceOffered,
+    screenContext,
   } = props;
 
   const isIdle = run.phase === 'idle';
-  const isStarting = run.phase === 'starting';
+  // Checking a chosen screen area before the run starts reads as starting, with nothing to cancel yet.
+  const isChecking = isIdle && !!props.preparing;
+  const isStarting = run.phase === 'starting' || isChecking;
   const isRunning = run.phase === 'running';
   const isRunningOrStopping = run.phase === 'running' || run.phase === 'stopping';
   const isReconnecting = run.phase === 'running' && Object.values(run.legs).includes('reconnecting');
   // The waiting label is one word (`startLabel`), and below 768 px no label shows at all: the reason goes here.
-  const startingTitle = run.phase === 'starting' && run.step === 'waiting'
-    ? t('mainPanel.waitingForPreviousSessionTitle', 'Waiting for the previous session to end. Click to cancel.')
-    : t('mainPanel.clickToCancel', 'Click to cancel');
+  const startingTitle = isChecking
+    ? undefined
+    : run.phase === 'starting' && run.step === 'waiting'
+      ? t('mainPanel.waitingForPreviousSessionTitle', 'Waiting for the previous session to end. Click to cancel.')
+      : t('mainPanel.clickToCancel', 'Click to cancel');
+  // The generic starting word while the screen is checked: the runner has not begun.
+  const startingRun: RunState = isChecking ? { phase: 'starting', participantSpeech: false, step: 'checking' } : run;
 
   const statusDotClass = `status-dot ${isReconnecting ? 'reconnecting' : isRunning ? 'active' : ''}`;
   // A bidirectional pair (`zh+en`) is both ends at once: name it once, not `X → X`.
   const languagePairText = !pair ? '' : pair.source === pair.target ? label(pair.source) : `${label(pair.source)} → ${label(pair.target)}`;
   const handleActionClick = isIdle ? onStart : onStop;
-  const actionDisabled = (isIdle && !canStart) || run.phase === 'stopping';
+  const actionDisabled = (isIdle && !canStart) || run.phase === 'stopping' || isChecking;
 
   if (site === 'basic') {
     return (
@@ -143,6 +155,8 @@ function ControlFooter(props: PanelFooterProps) {
           faceToFace={faceToFace}
           faceToFaceOffered={faceToFaceOffered}
         />
+        {/* The basic footer has room for the eye and the dot only; the card names it. */}
+        {screenContext && <ScreenContextChip {...screenContext} iconOnly />}
 
         <span className="footer-spacer" />
 
@@ -169,7 +183,7 @@ function ControlFooter(props: PanelFooterProps) {
             {isStarting ? (
               <>
                 <Loader className="spinning" size={16} />
-                <span className="btn-text">{startLabel(t, run, 'basic')}</span>
+                <span className="btn-text">{startLabel(t, startingRun, 'basic')}</span>
               </>
             ) : isRunningOrStopping ? (
               <>
@@ -219,6 +233,7 @@ function ControlFooter(props: PanelFooterProps) {
 
       {/* Input waveforms (mic + system), when the caller has them (Task 12). */}
       {waveforms?.input}
+      {screenContext && <ScreenContextChip {...screenContext} />}
 
       <span className="footer-spacer" />
 
@@ -246,7 +261,7 @@ function ControlFooter(props: PanelFooterProps) {
           {isStarting ? (
             <>
               <Loader size={14} className="spinner" />
-              <span>{startLabel(t, run, 'advanced')}</span>
+              <span>{startLabel(t, startingRun, 'advanced')}</span>
             </>
           ) : isRunningOrStopping ? (
             <>

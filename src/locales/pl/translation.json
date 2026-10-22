@@ -1448,7 +1448,7 @@
     "speaker_tts_missing": "Tłumaczenie, które słyszy druga strona, jest tylko tekstem: brak modelu mowy (język: {{target}}).",
     "participant_tts_missing": "Tłumaczenie, które słyszę, jest tylko tekstem: brak modelu mowy (język: {{target}}).",
     "participant_tts_over_budget": "Tłumaczenie, które słyszę, jest tylko tekstem: za mało pamięci, by wczytać także model mowy drugiej strony.",
-    "screen_context_lost": "Wybrany ekran nie jest już dostępny; tłumaczenie trwa dalej tylko na podstawie dźwięku. Wybierz go ponownie z chipu ekranu."
+    "screen_context_lost": "Wybrany ekran nie jest już dostępny; tłumaczenie trwa dalej tylko na podstawie dźwięku. Użyj „Wybierz ponownie” na chipie ekranu."
   },
   "viewer": {
     "title": "Napisy Sokuji",
@@ -1570,5 +1570,34 @@
     "notPlayed": "Nie odtworzono: to tłumaczenie jest na {{language}}, a nie na {{target}}, więc nikt go nie usłyszy.",
     "legendMe": "{{language}} · ja",
     "legendOther": "{{language}} · rozmówca"
+  },
+  "screenContext": {
+    "picker": {
+      "title": "Wybierz, co może widzieć Qwen",
+      "privacy": "Wszystko w wybranym obszarze jest wysyłane jako obrazy do usługi Qwen firmy Alibaba Cloud w regionie tej sesji — nic innego z Twojego ekranu. Kizuna AI ich nie otrzymuje.",
+      "windows": "Okna",
+      "screens": "Ekrany",
+      "portal": "Wybierz okno lub ekran…",
+      "loading": "Szukanie okien…",
+      "none": "Nie znaleziono okna ani ekranu do udostępnienia.",
+      "deniedTitle": "Wymagane uprawnienie do nagrywania ekranu",
+      "deniedText": "macOS pozwala Sokuji widzieć ekran tylko z uprawnieniem do nagrywania ekranu. Przyznaj je w Ustawieniach systemowych, a następnie uruchom ponownie Sokuji i zacznij od nowa.",
+      "openSettings": "Otwórz Ustawienia systemowe",
+      "cancel": "Rozpocznij bez kontekstu ekranu",
+      "nothingVisible": "Wybrany obszar nie pokazuje teraz niczego. Wybierz inny albo rozpocznij bez kontekstu ekranu.",
+      "checking": "Sprawdzanie obrazu…"
+    },
+    "chip": {
+      "live": "Na żywo",
+      "stale": "Bez zmian",
+      "lost": "Wybierz ponownie",
+      "label": "Kontekst ekranu: {{name}}, {{status}}"
+    },
+    "card": {
+      "lastFrame": "Ostatnia klatka {{ago}} s temu",
+      "frames": "Wysłane klatki: {{count}}",
+      "chooseAgain": "Wybierz ponownie",
+      "lostHint": "Źródło zniknęło; ostatni obraz zostaje zachowany, dopóki nie wybierzesz ponownie."
+    }
   }
 }

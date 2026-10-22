@@ -1448,7 +1448,7 @@
     "speaker_tts_missing": "A tradução que o outro lado ouve aparece só como texto: nenhum modelo de voz fala {{target}}.",
     "participant_tts_missing": "A tradução que eu ouço aparece só como texto: nenhum modelo de voz fala {{target}}.",
     "participant_tts_over_budget": "A tradução que eu ouço aparece só como texto: não há memória suficiente para carregar também o modelo de voz do outro lado.",
-    "screen_context_lost": "A tela que você escolheu não está mais disponível; a tradução continua só com o áudio. Escolha de novo pelo chip da tela."
+    "screen_context_lost": "A tela que você escolheu não está mais disponível; a tradução continua só com o áudio. Use \"Escolher de novo\" no chip da tela."
   },
   "viewer": {
     "title": "Legendas do Sokuji",
@@ -1570,5 +1570,34 @@
     "notPlayed": "Não reproduzido: esta tradução está em {{language}}, não em {{target}}, então não é lida para ninguém.",
     "legendMe": "{{language}} · eu",
     "legendOther": "{{language}} · o outro"
+  },
+  "screenContext": {
+    "picker": {
+      "title": "Escolha o que o Qwen pode ver",
+      "privacy": "Tudo o que está dentro da área que você escolher é enviado como imagens ao serviço Qwen da Alibaba Cloud, na região desta sessão — nada mais da sua tela. A Kizuna AI não as recebe.",
+      "windows": "Janelas",
+      "screens": "Telas",
+      "portal": "Escolher uma janela ou tela…",
+      "loading": "Procurando janelas…",
+      "none": "Nenhuma janela ou tela para compartilhar foi encontrada.",
+      "deniedTitle": "Permissão de Gravação de Tela necessária",
+      "deniedText": "O macOS só deixa o Sokuji ver a tela com a permissão de Gravação de Tela. Conceda-a nos Ajustes do Sistema, depois reinicie o Sokuji e comece de novo.",
+      "openSettings": "Abrir Ajustes do Sistema",
+      "cancel": "Iniciar sem contexto da tela",
+      "nothingVisible": "A área que você escolheu não mostra nada agora. Escolha outra ou inicie sem contexto da tela.",
+      "checking": "Verificando a imagem…"
+    },
+    "chip": {
+      "live": "Ao vivo",
+      "stale": "Sem mudanças",
+      "lost": "Escolher de novo",
+      "label": "Contexto da tela: {{name}}, {{status}}"
+    },
+    "card": {
+      "lastFrame": "Último quadro há {{ago}} s",
+      "frames": "{{count}} quadros enviados",
+      "chooseAgain": "Escolher de novo",
+      "lostHint": "A fonte não está mais disponível; a última imagem fica guardada até você escolher de novo."
+    }
   }
 }

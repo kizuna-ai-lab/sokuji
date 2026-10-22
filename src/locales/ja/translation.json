@@ -1448,7 +1448,7 @@
     "speaker_tts_missing": "相手に聞こえる翻訳は文字のみです: {{target}}を話せる音声モデルがありません。",
     "participant_tts_missing": "自分に聞こえる翻訳は文字のみです: {{target}}を話せる音声モデルがありません。",
     "participant_tts_over_budget": "自分に聞こえる翻訳は文字のみです: 相手側の音声モデルも読み込むにはメモリが足りません。",
-    "screen_context_lost": "選択した画面は利用できなくなりました。翻訳は音声のみで続行します。画面チップからもう一度選んでください。"
+    "screen_context_lost": "選択した画面は利用できなくなりました。翻訳は音声のみで続行します。画面チップの「選び直す」から選んでください。"
   },
   "viewer": {
     "title": "Sokuji 字幕",
@@ -1570,5 +1570,34 @@
     "notPlayed": "再生されません：この翻訳は {{target}} ではなく {{language}} のため、誰にも読み上げられません。",
     "legendMe": "{{language}} · 自分",
     "legendOther": "{{language}} · 相手"
+  },
+  "screenContext": {
+    "picker": {
+      "title": "Qwen に見せる範囲を選択",
+      "privacy": "選んだ範囲の中にあるものはすべて、このセッションのリージョンにある Alibaba Cloud の Qwen サービスへ画像として送信されます。画面のそれ以外の部分は送信されません。Kizuna AI はこの画像を受け取りません。",
+      "windows": "ウィンドウ",
+      "screens": "画面",
+      "portal": "ウィンドウまたは画面を選択…",
+      "loading": "ウィンドウを探しています…",
+      "none": "共有できるウィンドウや画面が見つかりませんでした。",
+      "deniedTitle": "画面録画の権限が必要です",
+      "deniedText": "macOS では、画面録画の権限がないと Sokuji は画面を見ることができません。システム設定で権限を許可してから、Sokuji を再起動してもう一度開始してください。",
+      "openSettings": "システム設定を開く",
+      "cancel": "画面コンテキストなしで開始",
+      "nothingVisible": "選んだ範囲には今何も表示されていません。別の範囲を選ぶか、画面コンテキストなしで開始してください。",
+      "checking": "画像を確認しています…"
+    },
+    "chip": {
+      "live": "ライブ",
+      "stale": "変化なし",
+      "lost": "選び直す",
+      "label": "画面コンテキスト：{{name}}、{{status}}"
+    },
+    "card": {
+      "lastFrame": "最後のフレーム：{{ago}} 秒前",
+      "frames": "送信済みフレーム：{{count}}",
+      "chooseAgain": "選び直す",
+      "lostHint": "ソースがなくなりました。選び直すまで最後の画像が保持されます。"
+    }
   }
 }

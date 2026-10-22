@@ -1448,7 +1448,7 @@
     "speaker_tts_missing": "La traducción que oye la otra parte se muestra solo como texto: ningún modelo de voz habla {{target}}.",
     "participant_tts_missing": "La traducción que yo oigo se muestra solo como texto: ningún modelo de voz habla {{target}}.",
     "participant_tts_over_budget": "La traducción que yo oigo se muestra solo como texto: no hay memoria suficiente para cargar también el modelo de voz de la otra parte.",
-    "screen_context_lost": "La pantalla que elegiste ya no está disponible; la traducción continúa solo con el audio. Elige de nuevo desde el chip de pantalla."
+    "screen_context_lost": "La pantalla que elegiste ya no está disponible; la traducción continúa solo con el audio. Usa «Elegir de nuevo» en el chip de pantalla."
   },
   "viewer": {
     "title": "Subtítulos de Sokuji",
@@ -1570,5 +1570,34 @@
     "notPlayed": "No reproducido: esta traducción está en {{language}}, no en {{target}}, así que no se lee a nadie.",
     "legendMe": "{{language}} · yo",
     "legendOther": "{{language}} · el otro"
+  },
+  "screenContext": {
+    "picker": {
+      "title": "Elige lo que Qwen puede ver",
+      "privacy": "Todo lo que hay dentro del área que elijas se envía como imágenes al servicio Qwen de Alibaba Cloud, en la región de esta sesión — nada más de tu pantalla. Kizuna AI no las recibe.",
+      "windows": "Ventanas",
+      "screens": "Pantallas",
+      "portal": "Elegir una ventana o pantalla…",
+      "loading": "Buscando ventanas…",
+      "none": "No se encontró ninguna ventana ni pantalla para compartir.",
+      "deniedTitle": "Se necesita el permiso de Grabación de pantalla",
+      "deniedText": "macOS solo permite que Sokuji vea la pantalla con el permiso de Grabación de pantalla. Concédelo en Ajustes del Sistema, luego reinicia Sokuji y vuelve a empezar.",
+      "openSettings": "Abrir Ajustes del Sistema",
+      "cancel": "Empezar sin contexto de pantalla",
+      "nothingVisible": "El área que elegiste no muestra nada ahora mismo. Elige otra o empieza sin contexto de pantalla.",
+      "checking": "Comprobando la imagen…"
+    },
+    "chip": {
+      "live": "En directo",
+      "stale": "Sin cambios",
+      "lost": "Elegir de nuevo",
+      "label": "Contexto de pantalla: {{name}}, {{status}}"
+    },
+    "card": {
+      "lastFrame": "Último fotograma hace {{ago}} s",
+      "frames": "{{count}} fotogramas enviados",
+      "chooseAgain": "Elegir de nuevo",
+      "lostHint": "La fuente ya no está; se conserva la última imagen hasta que elijas de nuevo."
+    }
   }
 }

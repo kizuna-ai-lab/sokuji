@@ -1570,5 +1570,34 @@
     "notPlayed": "Tidak dimainkan: terjemahan ini dalam bahasa {{language}}, bukan {{target}}, jadi tidak dibacakan kepada sesiapa.",
     "legendMe": "{{language}} · saya",
     "legendOther": "{{language}} · pihak lain"
+  },
+  "screenContext": {
+    "picker": {
+      "title": "Pilih perkara yang boleh dilihat oleh Qwen",
+      "privacy": "Segala-galanya dalam kawasan yang anda pilih dihantar sebagai gambar ke perkhidmatan Qwen Alibaba Cloud, di rantau sesi ini — tiada apa-apa lagi daripada skrin anda. Kizuna AI tidak menerimanya.",
+      "windows": "Tetingkap",
+      "screens": "Skrin",
+      "portal": "Pilih tetingkap atau skrin…",
+      "loading": "Mencari tetingkap…",
+      "none": "Tiada tetingkap atau skrin untuk dikongsi ditemui.",
+      "deniedTitle": "Kebenaran Rakaman Skrin diperlukan",
+      "deniedText": "macOS hanya membenarkan Sokuji melihat skrin dengan kebenaran Screen Recording. Berikan kebenaran itu dalam System Settings, kemudian mulakan semula Sokuji dan mula sekali lagi.",
+      "openSettings": "Buka Tetapan Sistem",
+      "cancel": "Mula tanpa konteks skrin",
+      "nothingVisible": "Kawasan yang anda pilih tidak menunjukkan apa-apa sekarang. Pilih yang lain, atau mula tanpa konteks skrin.",
+      "checking": "Menyemak gambar…"
+    },
+    "chip": {
+      "live": "Langsung",
+      "stale": "Tidak berubah",
+      "lost": "Pilih semula",
+      "label": "Konteks skrin: {{name}}, {{status}}"
+    },
+    "card": {
+      "lastFrame": "Bingkai terakhir {{ago}} saat lalu",
+      "frames": "{{count}} bingkai dihantar",
+      "chooseAgain": "Pilih semula",
+      "lostHint": "Sumber sudah tiada; gambar terakhir disimpan sehingga anda memilih semula."
+    }
   }
 }

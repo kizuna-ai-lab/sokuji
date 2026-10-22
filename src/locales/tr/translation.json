@@ -1570,5 +1570,34 @@
     "notPlayed": "Oynatılmadı: bu çeviri {{target}} dilinde değil, {{language}} dilinde; bu yüzden kimseye okunmaz.",
     "legendMe": "{{language}} · ben",
     "legendOther": "{{language}} · karşı taraf"
+  },
+  "screenContext": {
+    "picker": {
+      "title": "Qwen'in neyi görebileceğini seçin",
+      "privacy": "Seçtiğiniz alanın içindeki her şey, bu oturumun bölgesindeki Alibaba Cloud'un Qwen hizmetine görüntü olarak gönderilir — ekranınızdaki başka hiçbir şey gönderilmez. Kizuna AI bunları almaz.",
+      "windows": "Pencereler",
+      "screens": "Ekranlar",
+      "portal": "Bir pencere veya ekran seçin…",
+      "loading": "Pencereler aranıyor…",
+      "none": "Paylaşılacak pencere veya ekran bulunamadı.",
+      "deniedTitle": "Ekran Kaydı izni gerekli",
+      "deniedText": "macOS, Sokuji'nin ekranı yalnızca Ekran Kaydı izniyle görmesine olanak tanır. İzni Sistem Ayarları'nda verin, ardından Sokuji'yi yeniden başlatıp tekrar başlayın.",
+      "openSettings": "Sistem Ayarları'nı Aç",
+      "cancel": "Ekran bağlamı olmadan başlat",
+      "nothingVisible": "Seçtiğiniz alan şu anda hiçbir şey göstermiyor. Başka bir alan seçin veya ekran bağlamı olmadan başlatın.",
+      "checking": "Görüntü kontrol ediliyor…"
+    },
+    "chip": {
+      "live": "Canlı",
+      "stale": "Değişmedi",
+      "lost": "Yeniden seç",
+      "label": "Ekran bağlamı: {{name}}, {{status}}"
+    },
+    "card": {
+      "lastFrame": "Son kare {{ago}} sn önce",
+      "frames": "{{count}} kare gönderildi",
+      "chooseAgain": "Yeniden seç",
+      "lostHint": "Kaynak artık yok; siz yeniden seçene kadar son görüntü tutulur."
+    }
   }
 }

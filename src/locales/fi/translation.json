@@ -1448,7 +1448,7 @@
     "speaker_tts_missing": "Käännös, jonka toinen osapuoli kuulee, näkyy vain tekstinä: mikään puhemalli ei puhu kieltä {{target}}.",
     "participant_tts_missing": "Käännös, jonka kuulen, näkyy vain tekstinä: mikään puhemalli ei puhu kieltä {{target}}.",
     "participant_tts_over_budget": "Käännös, jonka kuulen, näkyy vain tekstinä: muisti ei riitä lataamaan myös toisen osapuolen puhemallia.",
-    "screen_context_lost": "Valitsemasi näyttö ei ole enää käytettävissä; käännös jatkuu pelkällä äänellä. Valitse näyttö uudelleen näyttöchipistä."
+    "screen_context_lost": "Valitsemasi näyttö ei ole enää käytettävissä; käännös jatkuu pelkällä äänellä. Valitse uudelleen näyttöchipistä."
   },
   "viewer": {
     "title": "Sokuji-tekstitys",
@@ -1570,5 +1570,34 @@
     "notPlayed": "Ei toistettu: tämä käännös on kielellä {{language}}, ei kielellä {{target}}, joten sitä ei lueta kenellekään.",
     "legendMe": "{{language}} · minä",
     "legendOther": "{{language}} · toinen"
+  },
+  "screenContext": {
+    "picker": {
+      "title": "Valitse, mitä Qwen saa nähdä",
+      "privacy": "Kaikki valitsemasi alueen sisällä oleva lähetetään kuvina Alibaba Cloudin Qwen-palveluun tämän istunnon alueella – ei mitään muuta näytöltäsi. Kizuna AI ei vastaanota niitä.",
+      "windows": "Ikkunat",
+      "screens": "Näytöt",
+      "portal": "Valitse ikkuna tai näyttö…",
+      "loading": "Etsitään ikkunoita…",
+      "none": "Jaettavaa ikkunaa tai näyttöä ei löytynyt.",
+      "deniedTitle": "Näytön tallennuksen käyttöoikeus tarvitaan",
+      "deniedText": "macOS antaa Sokujin nähdä näytön vain näytön tallennuksen käyttöoikeudella. Myönnä se Järjestelmäasetuksissa, käynnistä sitten Sokuji uudelleen ja aloita uudestaan.",
+      "openSettings": "Avaa Järjestelmäasetukset",
+      "cancel": "Aloita ilman näytön kontekstia",
+      "nothingVisible": "Valitsemasi alue ei näytä juuri nyt mitään. Valitse toinen tai aloita ilman näytön kontekstia.",
+      "checking": "Tarkistetaan kuvaa…"
+    },
+    "chip": {
+      "live": "Live",
+      "stale": "Ei muutoksia",
+      "lost": "Valitse uudelleen",
+      "label": "Näytön konteksti: {{name}}, {{status}}"
+    },
+    "card": {
+      "lastFrame": "Viimeisin kuva {{ago}} s sitten",
+      "frames": "{{count}} kuvaa lähetetty",
+      "chooseAgain": "Valitse uudelleen",
+      "lostHint": "Lähde on poissa; viimeisin kuva säilytetään, kunnes valitset uudelleen."
+    }
   }
 }

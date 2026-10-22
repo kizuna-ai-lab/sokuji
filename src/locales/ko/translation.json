@@ -1570,5 +1570,34 @@
     "notPlayed": "재생되지 않음: 이 번역은 {{target}}이(가) 아니라 {{language}}이므로 아무에게도 읽어 주지 않습니다.",
     "legendMe": "{{language}} · 나",
     "legendOther": "{{language}} · 상대방"
+  },
+  "screenContext": {
+    "picker": {
+      "title": "Qwen이 볼 수 있는 범위 선택",
+      "privacy": "선택한 영역 안의 모든 내용은 이미지로 이 세션의 리전에 있는 Alibaba Cloud의 Qwen 서비스로 전송됩니다. 화면의 다른 부분은 전송되지 않습니다. Kizuna AI는 이 이미지를 받지 않습니다.",
+      "windows": "창",
+      "screens": "화면",
+      "portal": "창 또는 화면 선택…",
+      "loading": "창을 찾는 중…",
+      "none": "공유할 창이나 화면을 찾지 못했습니다.",
+      "deniedTitle": "화면 기록 권한이 필요합니다",
+      "deniedText": "macOS에서는 화면 기록 권한이 있어야 Sokuji가 화면을 볼 수 있습니다. 시스템 설정에서 권한을 허용한 다음 Sokuji를 다시 실행하고 다시 시작하세요.",
+      "openSettings": "시스템 설정 열기",
+      "cancel": "화면 컨텍스트 없이 시작",
+      "nothingVisible": "선택한 영역에 지금 아무것도 표시되지 않습니다. 다른 영역을 선택하거나 화면 컨텍스트 없이 시작하세요.",
+      "checking": "이미지를 확인하는 중…"
+    },
+    "chip": {
+      "live": "실시간",
+      "stale": "변경 없음",
+      "lost": "다시 선택",
+      "label": "화면 컨텍스트: {{name}}, {{status}}"
+    },
+    "card": {
+      "lastFrame": "마지막 프레임 {{ago}}초 전",
+      "frames": "프레임 {{count}}개 전송됨",
+      "chooseAgain": "다시 선택",
+      "lostHint": "소스가 사라졌습니다. 다시 선택할 때까지 마지막 이미지가 유지됩니다."
+    }
   }
 }

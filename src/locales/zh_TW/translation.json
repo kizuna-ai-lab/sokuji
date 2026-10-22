@@ -1570,5 +1570,34 @@
     "notPlayed": "未播放：這則譯文是 {{language}}，不是 {{target}}，因此不會唸給任何人聽。",
     "legendMe": "{{language}} · 我",
     "legendOther": "{{language}} · 對方"
+  },
+  "screenContext": {
+    "picker": {
+      "title": "選擇 Qwen 可以看到的內容",
+      "privacy": "你所選區域內的一切都會以圖片形式傳送到 Alibaba Cloud 的 Qwen 服務（位於本次工作階段所在的區域）——螢幕上的其他內容都不會傳送。Kizuna AI 不會收到這些圖片。",
+      "windows": "視窗",
+      "screens": "螢幕",
+      "portal": "選擇視窗或螢幕…",
+      "loading": "正在尋找視窗…",
+      "none": "找不到可分享的視窗或螢幕。",
+      "deniedTitle": "需要螢幕錄製權限",
+      "deniedText": "macOS 只有在授予螢幕錄製權限後才允許 Sokuji 檢視螢幕。請在「系統設定」中授予該權限，然後重新啟動 Sokuji 並重新開始。",
+      "openSettings": "打開系統設定",
+      "cancel": "不使用螢幕上下文直接開始",
+      "nothingVisible": "你選擇的區域目前沒有顯示任何內容。請另選一個，或不使用螢幕上下文直接開始。",
+      "checking": "正在檢查畫面…"
+    },
+    "chip": {
+      "live": "即時",
+      "stale": "無變化",
+      "lost": "重新選擇",
+      "label": "螢幕上下文：{{name}}，{{status}}"
+    },
+    "card": {
+      "lastFrame": "最後一幀：{{ago}} 秒前",
+      "frames": "已傳送 {{count}} 幀",
+      "chooseAgain": "重新選擇",
+      "lostHint": "來源已不存在；在你重新選擇之前，會保留最後一張畫面。"
+    }
   }
 }

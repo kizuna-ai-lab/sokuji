@@ -1,0 +1,200 @@
+@use '../Settings/shared/variables' as vars;
+
+// The screen-context picker, inside the shared Modal: the settings-control
+// dialect (28px single-line controls, 13px #ccc text, 12px #888 notes).
+.source-picker {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$space-3;
+  font-size: vars.$font-body;
+  color: vars.$text-secondary;
+
+  p {
+    margin: 0;
+  }
+
+  &__privacy {
+    font-size: vars.$font-caption;
+    line-height: 1.5;
+    color: vars.$text-secondary;
+  }
+
+  &__reason {
+    font-size: vars.$font-caption;
+    line-height: 1.5;
+    color: vars.$color-warning;
+  }
+
+  &__status {
+    display: flex;
+    align-items: center;
+    gap: vars.$space-2;
+    min-height: 28px;
+    color: vars.$text-muted;
+  }
+
+  &__spinner {
+    flex-shrink: 0;
+    animation: source-picker-spin 1s linear infinite;
+  }
+
+  &__group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__group-title {
+    margin: 0;
+    font-size: vars.$font-caption;
+    font-weight: vars.$weight-medium;
+    color: vars.$text-muted;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: vars.$space-2;
+  }
+
+  &__source {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    padding: 6px;
+    background: vars.$bg-surface;
+    border: 1px solid vars.$border-subtle;
+    border-radius: vars.$radius-md;
+    color: vars.$text-secondary;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color vars.$transition-fast, background vars.$transition-fast;
+
+    &:hover {
+      background: vars.$bg-hover;
+      border-color: vars.$border-strong;
+    }
+
+    &:focus-visible {
+      @include vars.focus-ring;
+    }
+  }
+
+  &__thumb {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: contain;
+    background: vars.$bg-page;
+    border-radius: vars.$radius-sm;
+  }
+
+  &__name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    height: 16px;
+  }
+
+  &__icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  &__title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: vars.$font-caption;
+  }
+
+  &__denied {
+    display: flex;
+    gap: vars.$space-3;
+    align-items: flex-start;
+
+    > svg {
+      flex-shrink: 0;
+      color: vars.$color-warning;
+    }
+
+    > div {
+      display: flex;
+      flex-direction: column;
+      gap: vars.$space-2;
+      align-items: flex-start;
+    }
+  }
+
+  &__denied-title {
+    font-size: vars.$font-title;
+    font-weight: vars.$weight-semibold;
+    color: vars.$text-primary;
+  }
+
+  &__text {
+    line-height: 1.5;
+  }
+
+  &__primary,
+  &__cancel {
+    height: 28px;
+    padding: 0 vars.$space-3;
+    border-radius: vars.$radius-sm;
+    font-size: vars.$font-body;
+    font-weight: vars.$weight-medium;
+    cursor: pointer;
+    transition: background vars.$transition-fast, border-color vars.$transition-fast;
+
+    &:focus-visible {
+      @include vars.focus-ring;
+    }
+
+    &:disabled {
+      @include vars.disabled-state;
+    }
+  }
+
+  &__primary {
+    align-self: flex-start;
+    background: vars.$color-primary-fill;
+    border: none;
+    color: vars.$color-on-primary;
+
+    &:hover:not(:disabled) {
+      background: vars.$color-primary-fill-hover;
+    }
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: vars.$space-1;
+  }
+
+  &__cancel {
+    background: vars.$bg-control;
+    border: 1px solid vars.$border-default;
+    color: vars.$text-secondary;
+
+    &:hover:not(:disabled) {
+      background: vars.$bg-hover;
+      border-color: vars.$border-strong;
+    }
+  }
+}
+
+@keyframes source-picker-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .source-picker__spinner {
+    animation: none;
+  }
+}

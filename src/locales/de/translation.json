@@ -1448,7 +1448,7 @@
     "speaker_tts_missing": "Übersetzung, die das Gegenüber hört, erscheint nur als Text: Kein Sprachausgabemodell spricht {{target}}.",
     "participant_tts_missing": "Übersetzung, die ich höre, erscheint nur als Text: Kein Sprachausgabemodell spricht {{target}}.",
     "participant_tts_over_budget": "Übersetzung, die ich höre, erscheint nur als Text: Nicht genug Speicher, um auch das Sprachausgabemodell der Gegenseite zu laden.",
-    "screen_context_lost": "Der gewählte Bildschirm ist nicht mehr verfügbar; die Übersetzung läuft nur mit Audio weiter. Wählen Sie ihn erneut über den Bildschirm-Chip aus."
+    "screen_context_lost": "Der gewählte Bildschirm ist nicht mehr verfügbar; die Übersetzung läuft nur mit Audio weiter. Nutzen Sie „Erneut wählen“ am Bildschirm-Chip."
   },
   "viewer": {
     "title": "Sokuji-Untertitel",
@@ -1570,5 +1570,34 @@
     "notPlayed": "Nicht abgespielt: Diese Übersetzung ist auf {{language}}, nicht auf {{target}}, und wird daher niemandem vorgelesen.",
     "legendMe": "{{language}} · ich",
     "legendOther": "{{language}} · Gegenüber"
+  },
+  "screenContext": {
+    "picker": {
+      "title": "Wählen Sie, was Qwen sehen darf",
+      "privacy": "Alles innerhalb des gewählten Bereichs wird als Bilder an den Qwen-Dienst von Alibaba Cloud gesendet, in der Region dieser Sitzung – sonst nichts von Ihrem Bildschirm. Kizuna AI erhält sie nicht.",
+      "windows": "Fenster",
+      "screens": "Bildschirme",
+      "portal": "Fenster oder Bildschirm auswählen…",
+      "loading": "Fenster werden gesucht…",
+      "none": "Es wurde kein Fenster und kein Bildschirm zum Teilen gefunden.",
+      "deniedTitle": "Berechtigung zur Bildschirmaufnahme erforderlich",
+      "deniedText": "macOS lässt Sokuji den Bildschirm nur mit der Berechtigung zur Bildschirmaufnahme sehen. Erteilen Sie sie in den Systemeinstellungen, starten Sie Sokuji anschließend neu und beginnen Sie erneut.",
+      "openSettings": "Systemeinstellungen öffnen",
+      "cancel": "Ohne Bildschirmkontext starten",
+      "nothingVisible": "Der gewählte Bereich zeigt gerade nichts an. Wählen Sie einen anderen oder starten Sie ohne Bildschirmkontext.",
+      "checking": "Bild wird geprüft…"
+    },
+    "chip": {
+      "live": "Live",
+      "stale": "Unverändert",
+      "lost": "Erneut wählen",
+      "label": "Bildschirmkontext: {{name}}, {{status}}"
+    },
+    "card": {
+      "lastFrame": "Letztes Bild vor {{ago}} s",
+      "frames": "{{count}} Bilder gesendet",
+      "chooseAgain": "Erneut wählen",
+      "lostHint": "Die Quelle ist weg; das letzte Bild bleibt erhalten, bis Sie erneut wählen."
+    }
   }
 }

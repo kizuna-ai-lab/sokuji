@@ -1448,7 +1448,7 @@
     "speaker_tts_missing": "La traduction entendue par l'autre s'affiche en texte seul : aucun modèle vocal ne parle {{target}}.",
     "participant_tts_missing": "La traduction que j'entends s'affiche en texte seul : aucun modèle vocal ne parle {{target}}.",
     "participant_tts_over_budget": "La traduction que j'entends s'affiche en texte seul : pas assez de mémoire pour charger aussi le modèle vocal de l'autre.",
-    "screen_context_lost": "L'écran que vous avez choisi n'est plus disponible ; la traduction continue avec l'audio seul. Choisissez-le à nouveau depuis la pastille d'écran."
+    "screen_context_lost": "L'écran que vous avez choisi n'est plus disponible ; la traduction continue avec l'audio seul. Utilisez « Choisir à nouveau » sur la pastille d'écran."
   },
   "viewer": {
     "title": "Sous-titres Sokuji",
@@ -1570,5 +1570,34 @@
     "notPlayed": "Non lu : cette traduction est en {{language}} et non en {{target}}, elle n'est donc lue à personne.",
     "legendMe": "{{language}} · moi",
     "legendOther": "{{language}} · l'autre"
+  },
+  "screenContext": {
+    "picker": {
+      "title": "Choisissez ce que Qwen peut voir",
+      "privacy": "Tout ce qui se trouve dans la zone que vous choisissez est envoyé sous forme d'images au service Qwen d'Alibaba Cloud, dans la région de cette session — rien d'autre de votre écran. Kizuna AI ne les reçoit pas.",
+      "windows": "Fenêtres",
+      "screens": "Écrans",
+      "portal": "Choisir une fenêtre ou un écran…",
+      "loading": "Recherche des fenêtres…",
+      "none": "Aucune fenêtre ni aucun écran à partager n'a été trouvé.",
+      "deniedTitle": "Autorisation d'enregistrement de l'écran requise",
+      "deniedText": "macOS ne permet à Sokuji de voir l'écran qu'avec l'autorisation d'enregistrement de l'écran. Accordez-la dans Réglages Système, puis redémarrez Sokuji et recommencez.",
+      "openSettings": "Ouvrir les Réglages Système",
+      "cancel": "Démarrer sans contexte d'écran",
+      "nothingVisible": "La zone choisie n'affiche rien pour l'instant. Choisissez-en une autre ou démarrez sans contexte d'écran.",
+      "checking": "Vérification de l'image…"
+    },
+    "chip": {
+      "live": "En direct",
+      "stale": "Inchangé",
+      "lost": "Choisir à nouveau",
+      "label": "Contexte d'écran : {{name}}, {{status}}"
+    },
+    "card": {
+      "lastFrame": "Dernière image il y a {{ago}} s",
+      "frames": "{{count}} images envoyées",
+      "chooseAgain": "Choisir à nouveau",
+      "lostHint": "La source a disparu ; la dernière image est conservée jusqu'à ce que vous choisissiez à nouveau."
+    }
   }
 }

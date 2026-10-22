@@ -130,6 +130,24 @@ describe('notices that name a button use that locale\'s own label', () => {
   });
 });
 
+describe('the lost screen notice names what the screen chip shows', () => {
+  // The notice sends the user to the chip, which reads "Choose again" when the
+  // source is lost (and its card's button says the same): the notice spells the
+  // label out, so pin it to the chip's own word in every locale.
+  it('notices.screen_context_lost names screenContext.chip.lost in every locale', () => {
+    const offenders: string[] = [];
+    for (const [lang, cat] of [['en', EN] as const, ...locales]) {
+      const label = cat['screenContext.chip.lost'];
+      const notice = cat['notices.screen_context_lost'];
+      if (typeof label !== 'string' || typeof notice !== 'string' || !notice.toLocaleLowerCase().includes(label.toLocaleLowerCase())) {
+        offenders.push(`${lang}: ${JSON.stringify(notice)} omits ${JSON.stringify(label)}`);
+      }
+      if (cat['screenContext.card.chooseAgain'] !== label) offenders.push(`${lang}: the card's button and the chip's lost word differ`);
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe('the text-only warnings name the row they are about, as that locale labels it (#619)', () => {
   const ROWS: Record<string, string> = {
     'notices.speaker_tts_missing': 'audioPanel.otherHears',

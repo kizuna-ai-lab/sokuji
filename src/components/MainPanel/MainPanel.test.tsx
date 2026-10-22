@@ -149,7 +149,9 @@ import { useRoutingStore } from '../../stores/routingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useSubtitleStore } from '../../stores/subtitleStore';
 import { usePanelNotesStore } from '../../stores/panelNotesStore';
+import { useScreenContextStore } from '../../stores/screenContextStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
+import type { Sampler, SamplerState } from '../../lib/screen/sampler';
 import MainPanel from './MainPanel';
 
 const clock = createVirtualClock(0);
@@ -975,5 +977,73 @@ describe('the ears strip (face-to-face)', () => {
       expect(row.querySelector('.ear-tag--left')).not.toBeNull();
     }
     await stop();
+  });
+});
+
+describe('MainPanel — screen context', () => {
+  const live: SamplerState = { status: 'live', name: 'Slides', kind: 'window', sent: 2, lastSentAt: 0, lastReason: 'changed', lastJpeg: null };
+
+  beforeEach(() => {
+    useScreenContextStore.setState({ sampler: null, state: null, preparing: false });
+  });
+
+  it('draws the chip from the store, icon-only in the basic layout and named in the advanced one, and none while idle', async () => {
+    const restoreCanvas = stubCanvas();
+    try {
+      const { container, unmount } = await renderPanel();
+      expect(container.querySelector('.screen-context-chip')).toBeNull();
+      act(() => { useScreenContextStore.setState({ sampler: {} as Sampler, state: live }); });
+      const basic = container.querySelector('.control-footer.basic .screen-context-chip');
+      expect(basic?.classList.contains('screen-context-chip--icon-only')).toBe(true);
+      expect(basic?.textContent).not.toContain('Slides');
+      unmount();
+
+      useSettingsStore.setState({ uiMode: 'advanced' });
+      const advanced = await renderPanel();
+      const chip = advanced.container.querySelector('.control-footer.advanced .screen-context-chip');
+      expect(chip?.classList.contains('screen-context-chip--icon-only')).toBe(false);
+      expect(chip?.textContent).toContain('Slides');
+      act(() => { useScreenContextStore.setState({ state: { ...live, status: 'idle' } }); });
+      expect(advanced.container.querySelector('.screen-context-chip')).toBeNull();
+    } finally {
+      restoreCanvas();
+    }
+  });
+
+  it('is icon-only in the extension side panel, whatever the layout', async () => {
+    const restoreCanvas = stubCanvas();
+    try {
+      env.extension = true;
+      useSettingsStore.setState({ uiMode: 'advanced' });
+      const { container } = await renderPanel();
+      act(() => { useScreenContextStore.setState({ sampler: {} as Sampler, state: live }); });
+      expect(container.querySelector('.screen-context-chip')?.classList.contains('screen-context-chip--icon-only')).toBe(true);
+    } finally {
+      restoreCanvas();
+    }
+  });
+
+  it('on the desktop registers the picker, keeps it up checking while the pick is checked with Start off, and takes it away on unmount', async () => {
+    env.electron = true;
+    const setBridges = vi.spyOn(getAppSession(), 'setBridges');
+    try {
+      const { container, unmount } = await renderPanel();
+      expect(setBridges).toHaveBeenCalledWith({ pickScreenSource: expect.any(Function) });
+      expect(document.querySelector('.source-picker')).toBeNull();
+
+      act(() => { useScreenContextStore.setState({ preparing: true }); });
+      expect(document.querySelector('.source-picker')?.textContent).toContain('screenContext.picker.checking');
+      expect(mainAction(container).disabled).toBe(true);
+      expect(mainAction(container).querySelector('.spinning')).not.toBeNull();
+
+      act(() => { useScreenContextStore.setState({ preparing: false }); });
+      expect(document.querySelector('.source-picker')).toBeNull();
+      expect(mainAction(container).disabled).toBe(false);
+
+      unmount();
+      expect(setBridges).toHaveBeenLastCalledWith({ pickScreenSource: null });
+    } finally {
+      setBridges.mockRestore();
+    }
   });
 });

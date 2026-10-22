@@ -1,0 +1,174 @@
+@use '../../../styles/tokens' as tk;
+@use '../../Settings/shared/variables' as vars;
+
+// The app's error red, as the footer's Stop button draws it.
+$lost: #e74c3c;
+
+// The screen-context chip in the control footer, beside the mode picker
+// (basic) or the input strips (advanced): one 28px row like the footer's
+// buttons, #ccc text; the dot carries the state.
+.screen-context-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  max-width: 200px;
+  height: 28px;
+  padding: 0 vars.$space-2;
+  background: vars.$bg-control;
+  border: 1px solid vars.$border-default;
+  border-radius: vars.$radius-md;
+  color: vars.$text-secondary;
+  font-size: vars.$font-caption;
+  cursor: pointer;
+  transition: background vars.$transition-fast, border-color vars.$transition-fast;
+
+  &:hover {
+    background: vars.$bg-hover;
+    border-color: vars.$border-strong;
+  }
+
+  &:focus-visible {
+    @include vars.focus-ring;
+  }
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  &--icon-only {
+    padding: 0 6px;
+  }
+
+  &__name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__status {
+    flex-shrink: 0;
+    white-space: nowrap;
+    color: vars.$text-muted;
+  }
+
+  &--lost &__status {
+    color: $lost;
+  }
+
+  &__dot {
+    width: 8px;
+    height: 8px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: #666;
+
+    &.live {
+      background: tk.$color-primary;
+      // Once per frame sent: the element is remounted with each one.
+      animation: screen-context-pulse 0.8s ease-out 1;
+    }
+
+    &.stale {
+      background: tk.$color-degraded;
+    }
+
+    &.lost {
+      background: $lost;
+    }
+  }
+}
+
+@keyframes screen-context-pulse {
+  from { box-shadow: 0 0 0 0 rgba(tk.$color-primary, 0.6); }
+  to { box-shadow: 0 0 0 5px rgba(tk.$color-primary, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen-context-chip__dot.live {
+    animation: none;
+  }
+}
+
+// The card: the tooltip's surface (#2a2a2a, #444 border), with a button in it.
+.screen-context-card {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$space-2;
+  width: 240px;
+  padding: 10px 12px;
+  background: #2a2a2a;
+  border: 1px solid vars.$border-default;
+  border-radius: vars.$radius-md;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  color: vars.$text-secondary;
+  font-size: vars.$font-caption;
+
+  p {
+    margin: 0;
+  }
+
+  &__thumb {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: contain;
+    background: vars.$bg-page;
+    border-radius: vars.$radius-sm;
+  }
+
+  &__name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    font-size: vars.$font-body;
+    color: vars.$text-primary;
+
+    svg {
+      flex-shrink: 0;
+      color: vars.$text-muted;
+    }
+
+    span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  &__hint {
+    line-height: 1.5;
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px vars.$space-3;
+    color: vars.$text-muted;
+  }
+
+  &__choose {
+    align-self: flex-start;
+    height: 28px;
+    padding: 0 vars.$space-3;
+    background: vars.$bg-control;
+    border: 1px solid vars.$border-default;
+    border-radius: vars.$radius-sm;
+    color: vars.$text-secondary;
+    font-size: vars.$font-body;
+    cursor: pointer;
+    transition: background vars.$transition-fast, border-color vars.$transition-fast;
+
+    &:hover {
+      background: vars.$bg-hover;
+      border-color: vars.$border-strong;
+    }
+
+    &:focus-visible {
+      @include vars.focus-ring;
+    }
+  }
+}

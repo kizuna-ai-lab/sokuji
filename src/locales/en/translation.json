@@ -1570,5 +1570,34 @@
       "windowTitle": "Sokuji projector page",
       "ended": "Sharing has ended"
     }
+  },
+  "screenContext": {
+    "picker": {
+      "title": "Choose what Qwen may see",
+      "privacy": "Everything inside the area you choose is sent to Alibaba Cloud's Qwen service, in the region of this session, as pictures — nothing else on your screen. Kizuna AI does not receive them.",
+      "windows": "Windows",
+      "screens": "Screens",
+      "portal": "Choose a window or screen…",
+      "loading": "Looking for windows…",
+      "none": "No window or screen to share was found.",
+      "deniedTitle": "Screen Recording permission needed",
+      "deniedText": "macOS lets Sokuji see the screen only with Screen Recording permission. Grant it in System Settings, then restart Sokuji and start again.",
+      "openSettings": "Open System Settings",
+      "cancel": "Start without screen context",
+      "nothingVisible": "The area you chose shows nothing right now. Pick another, or start without screen context.",
+      "checking": "Checking the picture…"
+    },
+    "chip": {
+      "live": "Live",
+      "stale": "Unchanged",
+      "lost": "Choose again",
+      "label": "Screen context: {{name}}, {{status}}"
+    },
+    "card": {
+      "lastFrame": "Last frame {{ago}} s ago",
+      "frames": "{{count}} frames sent",
+      "chooseAgain": "Choose again",
+      "lostHint": "The source is gone; the last picture is kept until you choose again."
+    }
   }
 }

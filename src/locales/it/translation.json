@@ -1570,5 +1570,34 @@
     "notPlayed": "Non riprodotto: questa traduzione è in {{language}}, non in {{target}}, quindi non viene letta a nessuno.",
     "legendMe": "{{language}} · io",
     "legendOther": "{{language}} · l'altro"
+  },
+  "screenContext": {
+    "picker": {
+      "title": "Scegli cosa può vedere Qwen",
+      "privacy": "Tutto ciò che si trova nell'area che scegli viene inviato come immagini al servizio Qwen di Alibaba Cloud, nella regione di questa sessione — nient'altro del tuo schermo. Kizuna AI non le riceve.",
+      "windows": "Finestre",
+      "screens": "Schermi",
+      "portal": "Scegli una finestra o uno schermo…",
+      "loading": "Ricerca delle finestre…",
+      "none": "Non è stata trovata nessuna finestra né schermo da condividere.",
+      "deniedTitle": "Serve l'autorizzazione Registrazione Schermo",
+      "deniedText": "macOS consente a Sokuji di vedere lo schermo solo con l'autorizzazione Registrazione Schermo. Concedila in Impostazioni di Sistema, poi riavvia Sokuji e ricomincia.",
+      "openSettings": "Apri Impostazioni di Sistema",
+      "cancel": "Avvia senza contesto dello schermo",
+      "nothingVisible": "L'area che hai scelto al momento non mostra nulla. Scegline un'altra o avvia senza contesto dello schermo.",
+      "checking": "Controllo dell'immagine…"
+    },
+    "chip": {
+      "live": "In diretta",
+      "stale": "Invariato",
+      "lost": "Scegli di nuovo",
+      "label": "Contesto dello schermo: {{name}}, {{status}}"
+    },
+    "card": {
+      "lastFrame": "Ultimo fotogramma {{ago}} s fa",
+      "frames": "{{count}} fotogrammi inviati",
+      "chooseAgain": "Scegli di nuovo",
+      "lostHint": "La sorgente non c'è più; l'ultima immagine resta finché non scegli di nuovo."
+    }
   }
 }
