@@ -180,12 +180,13 @@ describe('getHighlightOverlayForBg', () => {
     expect(getHighlightOverlayForBg('#aaaaaa')).toBe('rgba(0,0,0,0.3)');
   });
 
-  it('weights green most heavily (YIQ luminance)', () => {
-    // Pure red (#ff0000): YIQ = 0.299*255 ≈ 76 → dark → white
-    expect(getHighlightOverlayForBg('#ff0000')).toBe('rgba(255,255,255,0.3)');
-    // Pure green (#00ff00): YIQ = 0.587*255 ≈ 150 → light → black
+  it('weights the channels as relative luminance does', () => {
+    // Pure red (#ff0000): luminance 0.21 → light → black (black text reads 5.25:1 on it, white 4.0:1;
+    // the YIQ rule this replaced called it dark).
+    expect(getHighlightOverlayForBg('#ff0000')).toBe('rgba(0,0,0,0.3)');
+    // Pure green (#00ff00): luminance 0.72 → light → black
     expect(getHighlightOverlayForBg('#00ff00')).toBe('rgba(0,0,0,0.3)');
-    // Pure blue (#0000ff): YIQ = 0.114*255 ≈ 29 → dark → white
+    // Pure blue (#0000ff): luminance 0.07 → dark → white
     expect(getHighlightOverlayForBg('#0000ff')).toBe('rgba(255,255,255,0.3)');
   });
 
@@ -193,5 +194,19 @@ describe('getHighlightOverlayForBg', () => {
     expect(getHighlightOverlayForBg('#fff')).toBe('rgba(255,255,255,0.3)');
     expect(getHighlightOverlayForBg('not-a-hex')).toBe('rgba(255,255,255,0.3)');
     expect(getHighlightOverlayForBg('')).toBe('rgba(255,255,255,0.3)');
+  });
+});
+
+// A user-coloured surface carries the tone of its own background (spec
+// 2026-10-22 §3); the highlight overlay decides light-or-dark by the same rule.
+describe('tone', () => {
+  it('the subtitle root carries the tone of the subtitle background', () => {
+    const { container } = render(<Probe surface="electron" onExit={() => {}} />);
+    expect((container.firstElementChild as HTMLElement).getAttribute('data-tone')).toBe('dark'); // bgColor #000000
+  });
+
+  it('the highlight overlay is white on a dark background and black on a light one, by the same rule as the tone', () => {
+    // YIQ (76) called pure red dark; by contrast, black text reads better on it (5.25:1 vs 4.0:1).
+    expect(getHighlightOverlayForBg('#ff0000')).toBe('rgba(0,0,0,0.3)');
   });
 });

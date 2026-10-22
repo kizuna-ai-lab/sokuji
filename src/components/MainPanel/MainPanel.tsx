@@ -69,6 +69,7 @@ import { usePushToTalk } from './panel/usePushToTalk';
 import { InputWaveforms, OutputWaveform } from './panel/Waveforms';
 import { StatusLine } from './StatusLine';
 import { useStatusLine } from './useStatusLine';
+import { toneOf } from '../../lib/view/tone';
 import './MainPanel.scss';
 
 /**
@@ -329,7 +330,7 @@ export default function MainPanel() {
           <PanelToolbar legs={subtitle.legs} exporter={exporter} hasConversation={hasConversation} onClear={onClear} />
         )}
         {takeover ? (
-          <div className="conversation-display">
+          <div className="conversation-display" data-tone={toneOf(display.bgColor)}>
             <div className="empty-state">
               <Captions size={32} /><p>{t('mainPanel.subtitleTakeover', 'Translations are showing in the subtitle overlay')}</p>
               {overlayNotes.length > 0 && (
@@ -341,6 +342,8 @@ export default function MainPanel() {
           </div>
         ) : (
           <ConversationList
+            // The conversation keeps the user's colours in both app themes (R3); its palette follows them (spec §3).
+            tone={toneOf(display.bgColor)}
             readings={showReadings ? readingTargets : undefined}
             items={drawn} lit={lit} replaying={replaying} replayLegs={replayLegs}
             canReplay={(id) => { const s = segments.get(id); return !!s?.final && s.speech.some((e) => e.pcm.length > 0); }}
