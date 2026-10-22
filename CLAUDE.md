@@ -708,7 +708,7 @@ corrected on 2026-09-05.
   the light block clears the contrast floors, every `--sk-` a stylesheet references is defined) and
   `src/styles/colourLedger.consistency.test.ts` (an exact count of colour literals per file; the
   allow-list is brand marks, the user colour presets and defaults, the viewer and the dev
-  previews). Light accent `#007255`; dark accent `#0fbb8f`; error `#e74c3c` / `#c0392b`.
+  previews). Light accent `#007255` as a fill and `#006d51` as text; dark accent `#0fbb8f`; error `#e74c3c` / `#ad3327`. Light status text also clears 4.5:1 on its own 10–15% tint.
 - Component styles defined in colocated SCSS files (e.g., `SimpleSettings.scss`)
 - Lucide React icons with consistent sizing (14-16px)
 
