@@ -6,6 +6,7 @@
  */
 import type { LegName } from '../conversation/types';
 import type { Platform } from '../provider/types';
+import { screenContextWanted } from '../session/appShape';
 import type { OpenSource, Source } from '../session/source';
 import useAudioStore from '../../stores/audioStore';
 import { getEnvironment } from '../../utils/environment';
@@ -72,8 +73,8 @@ export function tabSettings(): TabSettings {
     tabId: () => targetTabIdFromSearch(window.location.search),
     outputDeviceId: () => audio().selectedMonitorDevice?.deviceId,
     muted: () => audio().isParticipantMuted,
-    // Bound to the screen-context switch by the wiring task (Task 7); until then the tab is captured for its audio alone.
-    video: () => false,
+    // With the switch on the tab's audio and video are one capture (Chrome allows one per tab): whichever opens first, the other joins it.
+    video: () => screenContextWanted(),
   };
 }
 

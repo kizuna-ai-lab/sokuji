@@ -20,6 +20,10 @@ vi.mock('../../utils/environment', async (importOriginal) => {
 });
 
 import type { AnyProvider, CheckContext } from '../provider/types';
+import { createVirtualClock } from '../contract/clock';
+import { createSampler } from '../screen/sampler';
+import { QWEN_DEFAULTS } from '../../providers/qwen_livetranslate/settings';
+import { useScreenContextStore } from '../../stores/screenContextStore';
 import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS, FAKE_LEASED_DEFAULTS } from '../../providers/fake/settings';
 import { PALABRA_DEFAULTS } from '../../providers/palabraai/settings';
@@ -30,7 +34,7 @@ import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useRoutingStore } from '../../stores/routingStore';
-import { appParticipantSpeech, ensureReadyFromStores, faceToFaceFromStores, legsFor, liveGate, persistIfUnchanged, readShapeFromStores, speechFromStores, speechInputsFromStores, watchLegsFromStores, watchSpeechFromStores } from './appShape';
+import { appParticipantSpeech, ensureReadyFromStores, faceToFaceFromStores, legsFor, liveGate, persistIfUnchanged, readShapeFromStores, screenContextWanted, speechFromStores, speechInputsFromStores, watchLegsFromStores, watchSpeechFromStores } from './appShape';
 import type { RunShape } from './types';
 
 const auth = { signedIn: false, getToken: async () => null };
@@ -43,6 +47,7 @@ beforeEach(() => {
   useAudioStore.setState({ isMonitorMuted: true, mode: 'speaker', otherSide: 'meeting', participantCaptureWidened: false });
   useAccountStore.setState({ account: null });
   useSettingsStore.setState({ textOnly: false });
+  useScreenContextStore.setState({ sampler: null, state: null });
   environment.value = 'web';
 });
 
@@ -99,6 +104,48 @@ describe('readShapeFromStores', () => {
     const shape = readShapeFromStores(auth)!;
     expect(shape.shared.reversed({ source: 'en', target: 'ja' })).toBe(true);
     expect(shape.shared.reversed({ source: 'en-US', target: 'ja' })).toBe(false);
+  });
+});
+
+describe('readShapeFromStores — the screen context source (spec 2026-10-22 §4)', () => {
+  it("carries the store's sampler source as frames, and no key without one", () => {
+    useProviderStore.setState({
+      selected: 'fake',
+      entries: { fake: { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' }, pair: { source: 'en', target: 'ja' } } },
+    });
+    expect('frames' in readShapeFromStores(auth)!).toBe(false);
+    const sampler = createSampler(createVirtualClock(0));
+    useScreenContextStore.getState().set(sampler);
+    expect(readShapeFromStores(auth)!.frames).toBe(sampler.source);
+    sampler.close();
+  });
+});
+
+describe('screenContextWanted', () => {
+  const qwen = (screenContext: boolean) => ({
+    settings: { ...QWEN_DEFAULTS, screenContext }, credentials: { apiKey: 'k' }, pair: { source: 'en', target: 'ja' },
+  });
+
+  it('is on only while a Qwen provider is the one a start would run, with its switch on', () => {
+    environment.value = 'electron';
+    useProviderStore.setState({ selected: 'qwen_livetranslate', entries: { qwen_livetranslate: qwen(false) } });
+    expect(screenContextWanted()).toBe(false);
+    useProviderStore.setState({ entries: { qwen_livetranslate: qwen(true) } });
+    expect(screenContextWanted()).toBe(true);
+    useProviderStore.setState({ selected: 'kizunaai_qwen', entries: { kizunaai_qwen: qwen(true) } });
+    expect(screenContextWanted()).toBe(true);
+    // Another provider, whatever a Qwen slice says.
+    useProviderStore.setState({
+      selected: 'fake',
+      entries: { qwen_livetranslate: qwen(true), fake: { settings: { ...FAKE_DEFAULTS, screenContext: true } as never, credentials: { apiKey: 'k' }, pair: { source: 'en', target: 'ja' } } },
+    });
+    expect(screenContextWanted()).toBe(false);
+  });
+
+  it('is off where Qwen is not offered: a start there runs another provider', () => {
+    environment.value = 'web';
+    useProviderStore.setState({ selected: 'qwen_livetranslate', entries: { qwen_livetranslate: qwen(true) } });
+    expect(screenContextWanted()).toBe(false);
   });
 });
 

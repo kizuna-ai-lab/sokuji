@@ -286,6 +286,8 @@ export class Run {
       clock: deps.clock,
       signal: this.signal,
       punctuate,
+      // One source for both legs: in Both either side may refer to the screen (spec 2026-10-22 §3.1).
+      ...(shape.frames ? { frames: shape.frames } : {}),
     }])) as Record<LegName, StartRequest<unknown, unknown>>;
 
     if (together) {
@@ -568,6 +570,8 @@ export class Run {
         if (last !== undefined && now - last < DEGRADED_DEDUPE_MS) return;
         this.degradedTrackedAt.set(key, now);
         analytics.track('api_error', { provider, error_message: redact(message), error_code: reason ?? code, error_type: 'server', channel: leg });
+        // Its own event too (spec 2026-10-22 §3.6): no title, no pixels.
+        if (code === 'screen_context_lost') analytics.track('screen_context_lost', { session_id: this.id, provider, channel: leg });
         return;
       }
       case 'closed':

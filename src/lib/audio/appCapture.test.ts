@@ -25,8 +25,12 @@ vi.mock('./capture/echoWatch', () => ({
   }),
 }));
 
+// The screen-context switch as the stores answer it: a stand-in the test flips.
+const screenContext = vi.hoisted(() => ({ wanted: false }));
+vi.mock('../session/appShape', () => ({ screenContextWanted: () => screenContext.wanted }));
+
 import useAudioStore from '../../stores/audioStore';
-import { createAppCapture, micSettings, systemAudioSettings } from './appCapture';
+import { createAppCapture, micSettings, systemAudioSettings, tabSettings } from './appCapture';
 import { LEVEL_BARS } from './levelMeter';
 import type { Playback } from './playback';
 
@@ -220,6 +224,14 @@ describe('the settings the sources follow', () => {
     expect(useAudioStore.getState().participantCaptureWidened).toBe(true);
     settings.widened(false);
     expect(useAudioStore.getState().participantCaptureWidened).toBe(false);
+  });
+
+  it("takes the tab's video with its audio exactly while the screen-context switch is on, live", () => {
+    const settings = tabSettings();
+    screenContext.wanted = false;
+    expect(settings.video()).toBe(false);
+    screenContext.wanted = true;
+    expect(settings.video()).toBe(true);
   });
 
   it('tells the sources when the audio store changes', () => {

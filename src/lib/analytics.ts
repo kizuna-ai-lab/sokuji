@@ -1,6 +1,7 @@
 import { usePostHog } from '../contexts/PostHogContext';
 import { isDevelopment, getPlatform } from '../config/analytics';
 import type { DeviceProfile } from '../utils/deviceProfile';
+import type { LegName } from './conversation/types';
 import { reportWarning } from './diagnostics/report';
 import { describeCause } from './diagnostics/describeCause';
 
@@ -254,6 +255,12 @@ export interface AnalyticsEvents {
 
   // Readings (#545, spec 2026-10-15 R16): the switch only.
   'readings_changed': { surface: 'conversation' | 'subtitle'; language: string; enabled: boolean };
+
+  // Screen context (spec 2026-10-22 §3.6): the kind of area and where, never a title or a pixel.
+  /** A run went running with a capture area: once per run. */
+  'screen_context_on': { session_id: string; provider: string; source_kind: 'window' | 'screen' | 'tab'; platform: string };
+  /** A leg was told its capture area is gone (the adapter's `screen_context_lost` degradation), beside its `api_error`. */
+  'screen_context_lost': { session_id: string; provider: string; channel: LegName };
 
   // Extension specific events
   'extension_installed': { extension_version: string };

@@ -13,6 +13,7 @@ import { presentProviders } from '../../providers/registry';
 import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore, { type AudioMode } from '../../stores/audioStore';
 import { useProviderStore, type ProviderEntry } from '../../stores/providerStore';
+import { useScreenContextStore } from '../../stores/screenContextStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useRoutingStore } from '../../stores/routingStore';
@@ -32,6 +33,21 @@ export function selectedFromStores(): { provider: AnyProvider; entry: ProviderEn
   const provider = providers.find((p) => p.id === selected) ?? providers[0];
   const entry = provider ? entries[provider.id] : undefined;
   return provider && entry ? { provider, entry } : null;
+}
+
+/** The providers that take a capture area: Qwen, with your own key and managed; they share one settings shape. */
+const SCREEN_CONTEXT_PROVIDERS: ReadonlySet<string> = new Set(['qwen_livetranslate', 'kizunaai_qwen']);
+
+/**
+ * The selected provider is a Qwen provider with its Screen context switch on
+ * (spec 2026-10-22 §3.1): the provider a start would run, as
+ * `selectedFromStores` finds it, so a Qwen slice under another provider, or
+ * where Qwen is not offered, wants nothing.
+ */
+export function screenContextWanted(): boolean {
+  const selected = selectedFromStores();
+  if (!selected || !SCREEN_CONTEXT_PROVIDERS.has(selected.provider.id)) return false;
+  return (selected.entry.settings as { screenContext?: unknown }).screenContext === true;
 }
 
 /**
@@ -119,6 +135,8 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
   const { provider, entry } = selected;
   const st = useSettingsStore.getState();
   const faceToFace = faceToFaceFromStores();
+  // Put there before Start, and only once its first frame was in hand (`prepareScreenContext`).
+  const frames = useScreenContextStore.getState().sampler?.source;
   return {
     provider,
     settings: entry.settings,
@@ -138,6 +156,7 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
     ),
     auth,
     account: useAccountStore.getState().account,
+    ...(frames ? { frames } : {}),
   };
 }
 

@@ -4,6 +4,7 @@ import type { Leg } from '../conversation/types';
 import type { Punctuator } from '../conversation/fillIn';
 import type { AnyProvider, Readiness } from '../provider/types';
 import { createVirtualClock } from '../contract/clock';
+import { fakeFrameSource } from '../contract/testing/fakeFrames';
 import { fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource, type FakeSource } from '../../providers/fake/source';
 import { FAKE_DEFAULTS, type FakeSettings } from '../../providers/fake/settings';
@@ -76,8 +77,10 @@ function setup(o: Options = {}) {
   const playback = { audio: vi.fn(), held: vi.fn(), clear: vi.fn(), live: vi.fn() };
   Object.assign(playback, o.playback);
   const tracked: Array<[string, unknown]> = [];
+  // Every request the provider's `start` receives, in order: what each leg was handed.
+  const startRequests: StartRequest<unknown, unknown>[] = [];
+  const provider = (o.shape?.provider ?? fakeProvider) as AnyProvider;
   const shape: RunShape = {
-    provider: fakeProvider as AnyProvider,
     settings: { ...FAKE_DEFAULTS, ...o.settings },
     credentials: { apiKey: '' },
     pair: { source: 'en', target: 'ja' },
@@ -93,6 +96,13 @@ function setup(o: Options = {}) {
     },
     auth: { signedIn: false, getToken: async () => null },
     ...o.shape,
+    provider: {
+      ...provider,
+      start: (request: StartRequest<unknown, unknown>, events: AdapterEvents) => {
+        startRequests.push(request);
+        return provider.start(request as never, events);
+      },
+    } as AnyProvider,
   };
   let runs = 0;
   const persistIfUnchanged = vi.fn();
@@ -120,7 +130,7 @@ function setup(o: Options = {}) {
     participantSpeech: o.participantSpeech,
   });
   const events = (name: string) => tracked.filter(([e]) => e === name).map(([, p]) => p);
-  return { clock, runner, sources, playback, events, shape, persistIfUnchanged };
+  return { clock, runner, sources, playback, events, shape, persistIfUnchanged, startRequests };
 }
 
 describe('runner — starting', () => {
@@ -381,6 +391,61 @@ describe('runner — starting', () => {
     open();
     await started;
     expect(runner.state.getState().phase).toBe('running');
+  });
+});
+
+describe('runner — screen context (spec 2026-10-22 §3.2, §3.6)', () => {
+  it("hands the shape's frames to every leg's start request, the same source, and tracks screen_context_on with its kind", async () => {
+    const frames = fakeFrameSource({ kind: 'window' });
+    const { runner, events, startRequests } = setup({ shape: { legs: ['speaker', 'participant'], frames } });
+    await runner.start();
+    expect(startRequests.map((r) => r.frames)).toEqual([frames, frames]);
+    expect(startRequests[0].frames).toBe(frames);
+    expect(startRequests[1].frames).toBe(frames);
+    expect(events('screen_context_on')).toEqual([{ session_id: 'run1', provider: 'fake', source_kind: 'window', platform: 'electron' }]);
+  });
+
+  it('a shape without frames starts requests with no frames key and tracks nothing', async () => {
+    const { runner, events, startRequests } = setup({ shape: { legs: ['speaker', 'participant'] } });
+    await runner.start();
+    expect(startRequests).toHaveLength(2);
+    expect('frames' in startRequests[0]).toBe(false);
+    expect('frames' in startRequests[1]).toBe(false);
+    expect(events('screen_context_on')).toEqual([]);
+  });
+
+  it('tracks screen_context_on only once the run is running: a refused start tracks nothing', async () => {
+    const { runner, events } = setup({ shape: { frames: fakeFrameSource({ kind: 'tab' }) }, settings: { buildRefused: true } });
+    await runner.start();
+    expect(runner.state.getState().phase).toBe('idle');
+    expect(events('screen_context_on')).toEqual([]);
+  });
+
+  it('a leg degraded with screen_context_lost tracks screen_context_lost beside api_error', async () => {
+    let ev!: AdapterEvents;
+    const provider = {
+      ...fakeProvider,
+      async start(request: StartRequest<never, never>, events: AdapterEvents) { ev = events; return fakeProvider.start(request, events); },
+    } as unknown as AnyProvider;
+    const { runner, events } = setup({ shape: { provider, frames: fakeFrameSource() } });
+    await runner.start();
+    ev.degraded({ code: 'screen_context_lost', message: 'gone' });
+    expect(events('screen_context_lost')).toEqual([{ session_id: 'run1', provider: 'fake', channel: 'speaker' }]);
+    expect(events('api_error')).toHaveLength(1);
+    expect(events('api_error')[0]).toMatchObject({ error_code: 'screen_context_lost', channel: 'speaker' });
+  });
+
+  it('another degradation tracks no screen_context_lost', async () => {
+    let ev!: AdapterEvents;
+    const provider = {
+      ...fakeProvider,
+      async start(request: StartRequest<never, never>, events: AdapterEvents) { ev = events; return fakeProvider.start(request, events); },
+    } as unknown as AnyProvider;
+    const { runner, events } = setup({ shape: { provider, frames: fakeFrameSource() } });
+    await runner.start();
+    ev.degraded({ code: 'tts_degraded', message: 'No TTS key was issued for this leg: it runs text-only.' });
+    expect(events('api_error')).toHaveLength(1);
+    expect(events('screen_context_lost')).toEqual([]);
   });
 });
 
