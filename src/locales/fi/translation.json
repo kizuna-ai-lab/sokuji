@@ -557,7 +557,16 @@
       "vocabulary": "Mukautettu sanasto",
       "vocabularyTranslations": "Suositellut käännökset",
       "vocabularyTranslationsTooltip": "Vaikuttaa siihen, miten tietyt termit käännetään — kyse on toiveesta, ei taatusta korvauksesta: nimet, joilla on vakiintunut käännös, toimivat parhaiten, kun taas yleiset sanat saattavat säilyä mallin omalla sanamuodolla. Merkinnät ovat suunnattuja; käänteinen suunta on käytössä vain Molemmat-tilassa, jossa voit lisätä käänteisen rivin.",
-      "vocabularyTranslationsPlaceholder": "Yksi lähde=kohde-merkintä per rivi"
+      "vocabularyTranslationsPlaceholder": "Yksi lähde=kohde-merkintä per rivi",
+      "screenContext": "Näytön konteksti",
+      "screenContextTooltip": "Antaa mallin nähdä yhden valitsemasi ikkunan, välilehden tai näytön, jotta siinä näkyvät nimet ja termit tunnistetaan ja käännetään sellaisina kuin ne on kirjoitettu. Kaikki tämän alueen sisällä oleva lähetetään kuvina Alibaba Cloudin Qwen-palveluun tämän istunnon alueella; Kizuna AI ei koskaan vastaanota niitä. Kun se on päällä, se lisää veloitusta jokaiselta puhesekunnilta — omalla avaimella Alibaba Cloud -laskullesi, Kizuna AI -tilillä tilisi hintasivun mukaan; Molemmat-tilassa kunkin suunnan istunto veloitetaan.",
+      "screenContextBeta": "Beta",
+      "screenContextPicked": "Malli näkee: {{name}}",
+      "screenContextStill": "Kuva valintahetkeltä",
+      "screenContextPortal": "Järjestelmä kysyy ikkunan tai näytön istunnon alkaessa.",
+      "screenContextAtStart": "Aloitettaessa",
+      "screenContextNone": "Ikkunaa ei ole vielä valittu: sinulta kysytään istunnon alkaessa.",
+      "screenContextChoose": "Valitse…"
     },
     "local_inference": {
       "name": "Ilmainen",
@@ -1452,7 +1461,8 @@
     "mic_blocked": "Windows ei anna Sokujin käyttää mikrofonia. Salli työpöytäsovellusten mikrofonin käyttö kohdassa Asetukset › Tietosuoja ja suojaus › Mikrofoni ja aloita sitten uudelleen.",
     "speaker_tts_missing": "Käännös, jonka toinen osapuoli kuulee, näkyy vain tekstinä: mikään puhemalli ei puhu kieltä {{target}}.",
     "participant_tts_missing": "Käännös, jonka kuulen, näkyy vain tekstinä: mikään puhemalli ei puhu kieltä {{target}}.",
-    "participant_tts_over_budget": "Käännös, jonka kuulen, näkyy vain tekstinä: muisti ei riitä lataamaan myös toisen osapuolen puhemallia."
+    "participant_tts_over_budget": "Käännös, jonka kuulen, näkyy vain tekstinä: muisti ei riitä lataamaan myös toisen osapuolen puhemallia.",
+    "screen_context_lost": "Valitsemasi näyttö ei ole enää käytettävissä; käännös jatkuu pelkällä äänellä."
   },
   "viewer": {
     "title": "Sokuji-tekstitys",
@@ -1574,5 +1584,39 @@
     "notPlayed": "Ei toistettu: tämä käännös on kielellä {{language}}, ei kielellä {{target}}, joten sitä ei lueta kenellekään.",
     "legendMe": "{{language}} · minä",
     "legendOther": "{{language}} · toinen"
+  },
+  "screenContext": {
+    "picker": {
+      "title": "Valitse, mitä malli saa nähdä",
+      "privacy": "Kaikki valitsemasi alueen sisällä oleva lähetetään kuvina Alibaba Cloudin Qwen-palveluun tämän istunnon alueella – ei mitään muuta näytöltäsi. Kizuna AI ei vastaanota niitä.",
+      "windows": "Ikkunat",
+      "screens": "Näytöt",
+      "portal": "Valitse ikkuna tai näyttö…",
+      "loading": "Etsitään ikkunoita…",
+      "none": "Jaettavaa ikkunaa tai näyttöä ei löytynyt.",
+      "minimizedHint": "Pienennettyä ikkunaa ei voi jakaa: palauta ikkuna ja paina Päivitä.",
+      "deniedTitle": "Näytön tallennuksen käyttöoikeus tarvitaan",
+      "deniedText": "macOS antaa Sokujin nähdä näytön vain näytön tallennuksen käyttöoikeudella. Myönnä se Järjestelmäasetuksissa, käynnistä sitten Sokuji uudelleen ja aloita uudestaan.",
+      "openSettings": "Avaa Järjestelmäasetukset",
+      "refresh": "Päivitä",
+      "cancel": "Aloita ilman näytön kontekstia",
+      "nothingVisible": "Valitsemasi alue ei näytä juuri nyt mitään. Valitse toinen tai aloita ilman näytön kontekstia.",
+      "nothingVisibleRunning": "Valitsemasi alue ei näytä juuri nyt mitään. Valitse toinen tai jatka istuntoa sellaisenaan.",
+      "gone": "Valitsemaasi ikkunaa tai näyttöä ei voi kaapata juuri nyt. Valitse toinen tai aloita ilman näytön kontekstia.",
+      "checking": "Tarkistetaan kuvaa…"
+    },
+    "chip": {
+      "live": "Live",
+      "stale": "Ei muutoksia",
+      "lost": "Ei käytettävissä",
+      "label": "Näytön konteksti: {{name}}, {{status}}"
+    },
+    "card": {
+      "lastFrame": "Viimeisin kuva {{ago}} s sitten",
+      "frames": "Lähetetyt kuvat: {{count}}",
+      "chooseAgain": "Valitse uudelleen",
+      "lostHint": "Lähde on poissa; viimeisin kuva säilytetään, kunnes valitset uudelleen.",
+      "lostExtension": "Kokouksen välilehden kuva ei ole enää käytettävissä; käännös jatkuu pelkällä äänellä."
+    }
   }
 }

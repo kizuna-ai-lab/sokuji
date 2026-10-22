@@ -557,7 +557,16 @@
       "vocabulary": "Kosakata Kustom",
       "vocabularyTranslations": "Terjemahan Pilihan",
       "vocabularyTranslationsTooltip": "Memengaruhi cara penerjemahan istilah tertentu — ini preferensi, bukan penggantian yang dijamin: nama dengan terjemahan yang sudah baku bekerja paling baik, sedangkan kata umum mungkin tetap menggunakan bahasa model itu sendiri. Entri bersifat searah; arah sebaliknya hanya ada dalam mode Keduanya, tempat Anda dapat menambahkan baris terbalik.",
-      "vocabularyTranslationsPlaceholder": "Satu entri sumber=target per baris"
+      "vocabularyTranslationsPlaceholder": "Satu entri sumber=target per baris",
+      "screenContext": "Konteks layar",
+      "screenContextTooltip": "Memungkinkan model melihat satu jendela, tab, atau layar yang Anda pilih, sehingga nama dan istilah di dalamnya dikenali dan diterjemahkan persis seperti tertulis. Semua yang ada di dalam area itu dikirim sebagai gambar ke layanan Qwen milik Alibaba Cloud, di wilayah sesi ini; Kizuna AI tidak pernah menerimanya. Selama aktif, fitur ini menambah biaya untuk setiap detik ucapan — di tagihan Alibaba Cloud Anda bila memakai kunci sendiri, atau sesuai halaman harga akun Anda bila memakai akun Kizuna AI; pada mode Keduanya, sesi setiap arah ditagih.",
+      "screenContextBeta": "Beta",
+      "screenContextPicked": "Model akan melihat: {{name}}",
+      "screenContextStill": "Gambar saat Anda memilihnya",
+      "screenContextPortal": "Sistem akan menanyakan jendela atau layar mana saat sesi dimulai.",
+      "screenContextAtStart": "Saat mulai",
+      "screenContextNone": "Belum ada jendela yang dipilih: Anda akan ditanya saat sesi dimulai.",
+      "screenContextChoose": "Pilih…"
     },
     "local_inference": {
       "name": "Gratis",
@@ -1452,7 +1461,8 @@
     "mic_blocked": "Windows tidak mengizinkan Sokuji menggunakan mikrofon. Aktifkan akses mikrofon untuk aplikasi desktop di Pengaturan › Privasi & keamanan › Mikrofon, lalu mulai lagi.",
     "speaker_tts_missing": "Terjemahan yang didengar pihak lain hanya berupa teks: tidak ada model suara yang berbicara {{target}}.",
     "participant_tts_missing": "Terjemahan yang saya dengar hanya berupa teks: tidak ada model suara yang berbicara {{target}}.",
-    "participant_tts_over_budget": "Terjemahan yang saya dengar hanya berupa teks: memori tidak cukup untuk memuat model suara pihak lain juga."
+    "participant_tts_over_budget": "Terjemahan yang saya dengar hanya berupa teks: memori tidak cukup untuk memuat model suara pihak lain juga.",
+    "screen_context_lost": "Layar yang Anda pilih tidak lagi tersedia; terjemahan berlanjut hanya dengan audio."
   },
   "viewer": {
     "title": "Subtitle Sokuji",
@@ -1574,5 +1584,39 @@
     "notPlayed": "Tidak diputar: terjemahan ini dalam bahasa {{language}}, bukan {{target}}, sehingga tidak dibacakan kepada siapa pun.",
     "legendMe": "{{language}} · saya",
     "legendOther": "{{language}} · lawan bicara"
+  },
+  "screenContext": {
+    "picker": {
+      "title": "Pilih apa yang boleh dilihat model",
+      "privacy": "Semua yang ada di dalam area yang Anda pilih dikirim sebagai gambar ke layanan Qwen milik Alibaba Cloud, di wilayah sesi ini — tidak ada hal lain dari layar Anda. Kizuna AI tidak menerimanya.",
+      "windows": "Jendela",
+      "screens": "Layar",
+      "portal": "Pilih jendela atau layar…",
+      "loading": "Mencari jendela…",
+      "none": "Tidak ditemukan jendela atau layar untuk dibagikan.",
+      "minimizedHint": "Jendela yang diminimalkan tidak dapat dibagikan: pulihkan jendela, lalu Segarkan.",
+      "deniedTitle": "Izin Perekaman Layar diperlukan",
+      "deniedText": "macOS hanya mengizinkan Sokuji melihat layar dengan izin Screen Recording. Berikan izin itu di System Settings, lalu buka ulang Sokuji dan mulai lagi.",
+      "openSettings": "Buka Pengaturan Sistem",
+      "refresh": "Segarkan",
+      "cancel": "Mulai tanpa konteks layar",
+      "nothingVisible": "Area yang Anda pilih tidak menampilkan apa pun saat ini. Pilih yang lain, atau mulai tanpa konteks layar.",
+      "nothingVisibleRunning": "Area yang Anda pilih tidak menampilkan apa pun saat ini. Pilih yang lain, atau biarkan sesi seperti apa adanya.",
+      "gone": "Jendela atau layar yang Anda pilih tidak dapat ditangkap saat ini. Pilih yang lain, atau mulai tanpa konteks layar.",
+      "checking": "Memeriksa gambar…"
+    },
+    "chip": {
+      "live": "Langsung",
+      "stale": "Tidak berubah",
+      "lost": "Tidak tersedia",
+      "label": "Konteks layar: {{name}}, {{status}}"
+    },
+    "card": {
+      "lastFrame": "Bingkai terakhir {{ago}} dtk lalu",
+      "frames": "Bingkai terkirim: {{count}}",
+      "chooseAgain": "Pilih lagi",
+      "lostHint": "Sumbernya sudah tidak ada; gambar terakhir disimpan sampai Anda memilih lagi.",
+      "lostExtension": "Gambar tab rapat tidak lagi tersedia; terjemahan berlanjut hanya dengan audio."
+    }
   }
 }

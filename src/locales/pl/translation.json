@@ -557,7 +557,16 @@
       "vocabulary": "Słownik niestandardowy",
       "vocabularyTranslations": "Preferowane tłumaczenia",
       "vocabularyTranslationsTooltip": "Wpływa na sposób tłumaczenia określonych terminów — to preferencja, a nie gwarantowane zastąpienie: nazwy z utrwalonym tłumaczeniem sprawdzają się najlepiej, natomiast popularne słowa mogą zachować własne sformułowanie modelu. Wpisy są kierunkowe; kierunek odwrotny istnieje tylko w trybie Oba, gdzie można dodać wiersz odwrotny.",
-      "vocabularyTranslationsPlaceholder": "Jeden wpis źródło=cel w wierszu"
+      "vocabularyTranslationsPlaceholder": "Jeden wpis źródło=cel w wierszu",
+      "screenContext": "Kontekst ekranu",
+      "screenContextTooltip": "Pozwala modelowi zobaczyć jedno okno, kartę lub ekran wybrane przez Ciebie, aby widoczne na nim nazwy i terminy były rozpoznawane i tłumaczone tak, jak są zapisane. Wszystko, co znajduje się w tym obszarze, jest wysyłane jako obrazy do usługi Qwen firmy Alibaba Cloud w regionie tej sesji; Kizuna AI nigdy ich nie otrzymuje. Gdy jest włączone, zwiększa opłatę za każdą sekundę mowy — na rachunku Alibaba Cloud przy własnym kluczu albo według strony cennika Twojego konta przy koncie Kizuna AI; w trybie Oba naliczana jest sesja każdego kierunku.",
+      "screenContextBeta": "Beta",
+      "screenContextPicked": "Model zobaczy: {{name}}",
+      "screenContextStill": "Obraz z chwili wyboru",
+      "screenContextPortal": "System zapyta o okno lub ekran przy rozpoczęciu sesji.",
+      "screenContextAtStart": "Przy starcie",
+      "screenContextNone": "Nie wybrano jeszcze okna: pytanie pojawi się przy rozpoczęciu sesji.",
+      "screenContextChoose": "Wybierz…"
     },
     "local_inference": {
       "name": "Darmowy",
@@ -1452,7 +1461,8 @@
     "mic_blocked": "System Windows nie pozwala aplikacji Sokuji używać mikrofonu. Włącz dostęp do mikrofonu dla aplikacji klasycznych w obszarze Ustawienia › Prywatność i zabezpieczenia › Mikrofon, a następnie rozpocznij ponownie.",
     "speaker_tts_missing": "Tłumaczenie, które słyszy druga strona, jest tylko tekstem: brak modelu mowy (język: {{target}}).",
     "participant_tts_missing": "Tłumaczenie, które słyszę, jest tylko tekstem: brak modelu mowy (język: {{target}}).",
-    "participant_tts_over_budget": "Tłumaczenie, które słyszę, jest tylko tekstem: za mało pamięci, by wczytać także model mowy drugiej strony."
+    "participant_tts_over_budget": "Tłumaczenie, które słyszę, jest tylko tekstem: za mało pamięci, by wczytać także model mowy drugiej strony.",
+    "screen_context_lost": "Wybrany ekran nie jest już dostępny; tłumaczenie trwa dalej tylko na podstawie dźwięku."
   },
   "viewer": {
     "title": "Napisy Sokuji",
@@ -1574,5 +1584,39 @@
     "notPlayed": "Nie odtworzono: to tłumaczenie jest na {{language}}, a nie na {{target}}, więc nikt go nie usłyszy.",
     "legendMe": "{{language}} · ja",
     "legendOther": "{{language}} · rozmówca"
+  },
+  "screenContext": {
+    "picker": {
+      "title": "Wybierz, co może widzieć model",
+      "privacy": "Wszystko w wybranym obszarze jest wysyłane jako obrazy do usługi Qwen firmy Alibaba Cloud w regionie tej sesji — nic innego z Twojego ekranu. Kizuna AI ich nie otrzymuje.",
+      "windows": "Okna",
+      "screens": "Ekrany",
+      "portal": "Wybierz okno lub ekran…",
+      "loading": "Szukanie okien…",
+      "none": "Nie znaleziono okna ani ekranu do udostępnienia.",
+      "minimizedHint": "Zminimalizowanego okna nie można udostępnić: przywróć okno, a potem Odśwież.",
+      "deniedTitle": "Wymagane uprawnienie do nagrywania ekranu",
+      "deniedText": "macOS pozwala Sokuji widzieć ekran tylko z uprawnieniem do nagrywania ekranu. Przyznaj je w Ustawieniach systemowych, a następnie uruchom ponownie Sokuji i zacznij od nowa.",
+      "openSettings": "Otwórz Ustawienia systemowe",
+      "refresh": "Odśwież",
+      "cancel": "Rozpocznij bez kontekstu ekranu",
+      "nothingVisible": "Wybrany obszar nie pokazuje teraz niczego. Wybierz inny albo rozpocznij bez kontekstu ekranu.",
+      "nothingVisibleRunning": "Wybrany obszar nie pokazuje teraz niczego. Wybierz inny albo zostaw sesję bez zmian.",
+      "gone": "Wybranego okna lub ekranu nie można teraz przechwycić. Wybierz coś innego albo rozpocznij bez kontekstu ekranu.",
+      "checking": "Sprawdzanie obrazu…"
+    },
+    "chip": {
+      "live": "Na żywo",
+      "stale": "Bez zmian",
+      "lost": "Niedostępne",
+      "label": "Kontekst ekranu: {{name}}, {{status}}"
+    },
+    "card": {
+      "lastFrame": "Ostatnia klatka {{ago}} s temu",
+      "frames": "Wysłane klatki: {{count}}",
+      "chooseAgain": "Wybierz ponownie",
+      "lostHint": "Źródło zniknęło; ostatni obraz zostaje zachowany, dopóki nie wybierzesz ponownie.",
+      "lostExtension": "Obraz karty spotkania nie jest już dostępny; tłumaczenie trwa dalej tylko na podstawie dźwięku."
+    }
   }
 }

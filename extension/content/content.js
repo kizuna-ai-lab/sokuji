@@ -190,6 +190,29 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
   document.addEventListener('DOMContentLoaded', injectPermissionIframe);
 }
 
+// The largest visible <video> on the page, as its bounding rect in CSS pixels, or null: the meeting's
+// shared screen is the biggest video there is, and the screen context crops the tab's frame to it.
+// Small videos (participant tiles) and Sokuji's own elements are never it.
+function findLargestVideoBox() {
+  let best = null;
+  let bestArea = 0;
+  for (const video of document.querySelectorAll('video')) {
+    if (video.closest('[id^="sokuji"]')) continue;
+    const rect = video.getBoundingClientRect();
+    if (rect.width < 320 || rect.height < 180) continue;
+    // Wholly outside the viewport, so not in the tab's frame at all
+    if (rect.right <= 0 || rect.bottom <= 0 || rect.left >= window.innerWidth || rect.top >= window.innerHeight) continue;
+    const style = window.getComputedStyle(video);
+    if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') continue;
+    const area = rect.width * rect.height;
+    if (area > bestArea) {
+      best = rect;
+      bestArea = area;
+    }
+  }
+  return best ? { x: best.left, y: best.top, width: best.width, height: best.height } : null;
+}
+
 // Listen for messages from the extension side panel script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Handle new PCM_DATA message
@@ -205,7 +228,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     return true; // Keep message channel open for async response
   }
-  
+
+  // Screen context: where the shared screen is on this page, asked every few seconds
+  if (message.type === 'SCREEN_CONTEXT_BBOX') {
+    // Only the top frame answers: the capture is the tab's viewport, and the first reply wins
+    if (window !== window.top) return false;
+    sendResponse({
+      box: findLargestVideoBox(),
+      viewport: { width: window.innerWidth, height: window.innerHeight }
+    });
+    return false; // Answered synchronously
+  }
+
   return false;
 });
 

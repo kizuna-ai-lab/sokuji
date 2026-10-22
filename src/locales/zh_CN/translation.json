@@ -557,7 +557,16 @@
       "vocabulary": "自定义词表",
       "vocabularyTranslations": "指定译法",
       "vocabularyTranslationsTooltip": "影响特定术语的译法——这是一种偏好，而非确定替换：已有固定译法的名称效果最好，常见词汇则可能仍保留模型自身的表达方式。条目具有方向性；反向仅存在于「两者」模式，此时可添加一行反向条目。",
-      "vocabularyTranslationsPlaceholder": "每行一条，格式为原文=译文"
+      "vocabularyTranslationsPlaceholder": "每行一条，格式为原文=译文",
+      "screenContext": "屏幕上下文",
+      "screenContextTooltip": "让模型看到你选择的一个窗口、标签页或屏幕，使其中的名称和术语按原文被识别和翻译。该区域内的所有内容都会以图片形式发送到 Alibaba Cloud 的 Qwen 服务（位于本次会话所在的区域）；Kizuna AI 永远不会收到这些图片。开启期间，每一秒语音的费用都会增加——使用自己的密钥时计入你的 Alibaba Cloud 账单，使用 Kizuna AI 账户时按你账户定价页面上的说明计费；在「两者」模式下，每个方向的会话分别计费。",
+      "screenContextBeta": "测试版",
+      "screenContextPicked": "模型将看到：{{name}}",
+      "screenContextStill": "选择时的画面",
+      "screenContextPortal": "会话开始时，系统会询问使用哪个窗口或屏幕。",
+      "screenContextAtStart": "开始时",
+      "screenContextNone": "尚未选择窗口：会话开始时会询问你。",
+      "screenContextChoose": "选择…"
     },
     "local_inference": {
       "name": "免费",
@@ -1452,7 +1461,8 @@
     "mic_blocked": "Windows 不允许 Sokuji 使用麦克风。请在 设置 › 隐私和安全性 › 麦克风 中打开桌面应用的麦克风访问权限，然后重新开始。",
     "speaker_tts_missing": "对方听到的翻译只显示文字：没有能说{{target}}的语音模型。",
     "participant_tts_missing": "我听到的翻译只显示文字：没有能说{{target}}的语音模型。",
-    "participant_tts_over_budget": "我听到的翻译只显示文字：内存不够同时加载对方的语音模型。"
+    "participant_tts_over_budget": "我听到的翻译只显示文字：内存不够同时加载对方的语音模型。",
+    "screen_context_lost": "你选择的屏幕已不可用，翻译将仅凭音频继续。"
   },
   "viewer": {
     "title": "Sokuji 字幕",
@@ -1574,5 +1584,39 @@
     "notPlayed": "未播放：这条译文是 {{language}}，不是 {{target}}，因此不会读给任何人听。",
     "legendMe": "{{language}} · 我",
     "legendOther": "{{language}} · 对方"
+  },
+  "screenContext": {
+    "picker": {
+      "title": "选择模型可以看到的内容",
+      "privacy": "你所选区域内的一切都会以图片形式发送到 Alibaba Cloud 的 Qwen 服务（位于本次会话所在的区域）——屏幕上的其他内容都不会发送。Kizuna AI 不会收到这些图片。",
+      "windows": "窗口",
+      "screens": "屏幕",
+      "portal": "选择窗口或屏幕…",
+      "loading": "正在查找窗口…",
+      "none": "没有找到可共享的窗口或屏幕。",
+      "minimizedHint": "最小化的窗口无法共享：先还原窗口，再点击刷新。",
+      "deniedTitle": "需要屏幕录制权限",
+      "deniedText": "macOS 只有在授予屏幕录制权限后才允许 Sokuji 查看屏幕。请在系统设置中授予该权限，然后重新启动 Sokuji 并重新开始。",
+      "openSettings": "打开系统设置",
+      "refresh": "刷新",
+      "cancel": "不使用屏幕上下文直接开始",
+      "nothingVisible": "你选择的区域目前没有显示任何内容。请另选一个，或不使用屏幕上下文直接开始。",
+      "nothingVisibleRunning": "你选择的区域目前没有显示任何内容。请另选一个，或让会话保持现状。",
+      "gone": "你选择的窗口或屏幕目前无法捕获。请另选一个，或不使用屏幕上下文直接开始。",
+      "checking": "正在检查画面…"
+    },
+    "chip": {
+      "live": "实时",
+      "stale": "无变化",
+      "lost": "不可用",
+      "label": "屏幕上下文：{{name}}，{{status}}"
+    },
+    "card": {
+      "lastFrame": "最后一帧：{{ago}} 秒前",
+      "frames": "已发送帧数：{{count}}",
+      "chooseAgain": "重新选择",
+      "lostHint": "来源已不存在；在你重新选择之前，会保留最后一张画面。",
+      "lostExtension": "会议标签页的画面已不可用，翻译将仅凭音频继续。"
+    }
   }
 }

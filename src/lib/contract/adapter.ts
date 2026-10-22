@@ -32,6 +32,20 @@ export interface SessionContext {
 /** Asks a punctuation model for `text` with marks. Null: no answer. */
 export type Punctuator = (lang: string, text: string) => Promise<string | null>;
 
+export type FrameReason = 'first' | 'changed' | 'keepalive';
+/** One chosen capture area, as the Qwen adapter consumes it (spec 2026-10-22 §4): a leaf the capture layer implements. */
+export interface FrameSource {
+  /** For the chip and the Logs; never a frame. */
+  name: string;
+  kind: 'window' | 'screen' | 'tab';
+  /**
+   * Frames as they come, at most one a second; the loss of the source; its return.
+   * A subscriber that joins while a frame is in hand gets it at once, reason 'first'.
+   * Returns the unsubscribe.
+   */
+  subscribe(onFrame: (jpeg: Uint8Array, reason: FrameReason) => void, onLost: () => void, onBack: () => void): () => void;
+}
+
 /**
  * Every adapter takes the runner's pcm through `appendAudio`: none sends a
  * native track since Palabra's port over WebSocket, so the request carries
@@ -47,6 +61,8 @@ export interface StartRequest<C, K> {
   signal: AbortSignal;
   /** The runner's punctuation model, for an adapter that cuts its own translation jobs (LocalInference). Absent: none is installed. */
   punctuate?: Punctuator;
+  /** The chosen capture area, for the Qwen adapter; absent: no screen context, and no adapter declares video. */
+  frames?: FrameSource;
 }
 
 export interface AdapterSession {

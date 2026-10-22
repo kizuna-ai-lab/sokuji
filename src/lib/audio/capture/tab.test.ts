@@ -7,9 +7,9 @@ function fakeTab(o: { begins?: boolean } = {}) {
   const stream = { getAudioTracks: () => [track] } as unknown as MediaStream;
   let callback: ((data: { mono: Int16Array }) => void) | null = null;
   const tab = {
-    begun: [] as Array<{ tabId?: number; outputDeviceId?: string } | undefined>,
+    begun: [] as Array<{ tabId?: number; outputDeviceId?: string; video?: boolean } | undefined>,
     ended: 0,
-    async begin(options?: { tabId?: number; outputDeviceId?: string }) {
+    async begin(options?: { tabId?: number; outputDeviceId?: string; video?: boolean }) {
       tab.begun.push(options);
       return o.begins ?? true;
     },
@@ -28,12 +28,13 @@ function fakeTab(o: { begins?: boolean } = {}) {
   return tab satisfies TabCapture;
 }
 
-function settingsFixture(o: { tabId?: number | null; outputDeviceId?: string; muted?: boolean } = {}) {
+function settingsFixture(o: { tabId?: number | null; outputDeviceId?: string; muted?: boolean; video?: boolean } = {}) {
   let muted = o.muted ?? false;
   const settings: TabSettings = {
     tabId: () => (o.tabId === undefined ? 17 : o.tabId),
     outputDeviceId: () => o.outputDeviceId ?? 'speakers-1',
     muted: () => muted,
+    video: () => o.video ?? false,
   };
   return { settings, mute: (next: boolean) => { muted = next; } };
 }
@@ -47,8 +48,18 @@ describe('openTab', () => {
     const heard = vi.fn();
     source.onPcm(heard);
     tab.push();
-    expect(tab.begun).toEqual([{ tabId: 17, outputDeviceId: 'speakers-1' }]);
+    expect(tab.begun).toEqual([{ tabId: 17, outputDeviceId: 'speakers-1', video: false }]);
     expect(heard).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks for the tab\'s video too when the screen context is on, and for audio alone otherwise', async () => {
+    const withVideo = fakeTab();
+    await openTab(settingsFixture({ video: true }).settings, live(), () => withVideo);
+    expect(withVideo.begun).toEqual([{ tabId: 17, outputDeviceId: 'speakers-1', video: true }]);
+
+    const audioOnly = fakeTab();
+    await openTab(settingsFixture({ video: false }).settings, live(), () => audioOnly);
+    expect(audioOnly.begun[0]?.video).toBe(false);
   });
 
   it('refuses to open when the side panel names no tab, rather than falling back to whichever tab is active', async () => {

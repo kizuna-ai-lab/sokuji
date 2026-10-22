@@ -1,5 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { resolve } from 'node:path';
+import { compile } from 'sass';
+
+// The desktop draws the area beside the switch and asks the picker; the extension flips it.
+const env = vi.hoisted(() => ({ electron: false }));
+vi.mock('../../utils/environment', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../utils/environment')>()),
+  isElectron: () => env.electron,
+}));
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -10,7 +19,8 @@ vi.mock('react-i18next', () => ({
     },
   }),
 }));
-vi.mock('../../components/Tooltip/Tooltip', () => ({ default: () => null }));
+// A tooltip draws nothing, but its words stay reachable for a test that reads what a row says: the `data-tooltip` attribute.
+vi.mock('../../components/Tooltip/Tooltip', () => ({ default: ({ content }: { content?: unknown }) => (typeof content === 'string' ? <i data-tooltip={content} /> : null) }));
 import type { VoiceLibrarySectionProps } from '../../components/Settings/sections/VoiceLibrarySection';
 const { library } = vi.hoisted(() => ({ library: [] as VoiceLibrarySectionProps[] }));
 vi.mock('../../components/Settings/sections/VoiceLibrarySection', () => ({
@@ -20,13 +30,21 @@ vi.mock('../../components/Settings/sections/VoiceLibrarySection', () => ({
   },
 }));
 
+import de from '../../locales/de/translation.json';
+import en from '../../locales/en/translation.json';
+import ja from '../../locales/ja/translation.json';
+import nl from '../../locales/nl/translation.json';
 import type { SettingsProps } from '../../lib/provider/types';
+import type { CaptureSourceInfo } from '../../lib/screen/desktopFrames';
+import { useScreenContextStore, type PickedSource, type PickReason } from '../../stores/screenContextStore';
 import { KizunaQwenSettingsView, QwenSettingsView, QwenVoiceSummary } from './QwenSettings';
 import { QWEN_DEFAULTS, QWEN_VOICES, SPEAKER_CLONE, SPEAKER_CLONE_ONCE, type QwenSettings } from './settings';
 
 const props = (patch: Partial<SettingsProps<QwenSettings>> = {}): SettingsProps<QwenSettings> => ({ settings: QWEN_DEFAULTS, update: vi.fn(), ...patch });
 beforeEach(() => {
   library.length = 0;
+  env.electron = false;
+  useScreenContextStore.setState({ picked: null, pickSource: null, preparing: false });
 });
 
 describe('QwenSettingsView (spec §4, §7)', () => {
@@ -76,6 +94,47 @@ describe('QwenSettingsView (spec §4, §7)', () => {
     expect(update).toHaveBeenCalledWith({ participantVoice: 'Serena' });
   });
 
+  it('offers Screen context as a switch under the voice, off by default, writing only that field', () => {
+    const update = vi.fn();
+    render(<QwenSettingsView settings={QWEN_DEFAULTS} update={update} />);
+    const sw = screen.getByRole('switch', { name: 'Screen context' });
+    expect(sw).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(sw);
+    expect(update).toHaveBeenCalledWith({ screenContext: true });
+  });
+  it('marks the switch Beta, as a badge right after its label (owner, 2026-10-22)', () => {
+    render(<QwenSettingsView settings={QWEN_DEFAULTS} update={() => {}} />);
+    const row = screen.getByTestId('qwen-screen-context');
+    const badge = row.querySelector('.setting-row__badge');
+    expect(badge).not.toBeNull();
+    expect(badge!.textContent).toBe('Beta');
+    expect(badge!.previousElementSibling!.textContent).toBe('Screen context');
+  });
+  it('locks the switch while a run is not idle, and says in words only where frames go and how they are billed', () => {
+    const update = vi.fn();
+    render(<QwenSettingsView settings={QWEN_DEFAULTS} update={update} disabled />);
+    const sw = screen.getByRole('switch', { name: 'Screen context' });
+    // The switch is a div with role="switch", so it is locked by aria-disabled, not by a disabled attribute.
+    expect(sw).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(sw);
+    expect(update).not.toHaveBeenCalled();
+    const row = screen.getByTestId('qwen-screen-context');
+    const tooltips = Array.from(row.querySelectorAll('[data-tooltip]'), (el) => el.getAttribute('data-tooltip')).join(' ');
+    const words = `${row.textContent} ${tooltips}`;
+    expect(words).toMatch(/Alibaba Cloud/);
+    expect(words).toMatch(/Kizuna AI never receives them/);
+    expect(words).not.toMatch(/[$¥%\d]/);
+    // No line under the switch (owner, 2026-10-22): where the pictures go is the tooltip's, and the picker's privacy line.
+    expect(row.querySelector('.setting-description')).toBeNull();
+    expect(tooltips).toMatch(/Alibaba Cloud's Qwen service/);
+    // The charge is per second of speech, whichever account pays it.
+    expect(tooltips).toMatch(/for every second of speech/);
+    expect(tooltips).toMatch(/Alibaba Cloud bill with your own key/);
+    // The area is chosen in the settings as the switch goes on, not at a session's start (owner, 2026-10-22).
+    expect(tooltips).toMatch(/^Lets the model see one window, tab or screen you choose, so /);
+    expect(tooltips).not.toMatch(/when a session starts/);
+  });
+
   it('names the storefront the check found under the key, and nothing before a check', () => {
     const { rerender } = render(<QwenSettingsView {...props({ models: [{ id: 'cn' }] })} />);
     expect(screen.getByText('Key from 千问云 (mainland China)')).toBeTruthy();
@@ -83,6 +142,334 @@ describe('QwenSettingsView (spec §4, §7)', () => {
     expect(screen.getByText('Key from QwenCloud (international)')).toBeTruthy();
     rerender(<QwenSettingsView {...props({ models: [] })} />);
     expect(screen.queryByText(/^Key from/)).toBeNull();
+  });
+});
+
+describe('Screen context — the area chosen in the settings (owner, 2026-10-22, rulings 1, 4, 5)', () => {
+  const SLIDES: CaptureSourceInfo = { id: 'window:1', name: 'Slides', kind: 'window', thumbnail: 'data:image/png;base64,U0xJREVT', appIcon: null };
+  const NOTES: CaptureSourceInfo = { id: 'window:2', name: 'Notes', kind: 'window', thumbnail: 'data:image/png;base64,Tk9URVM=', appIcon: null };
+  const ON = { ...QWEN_DEFAULTS, screenContext: true };
+  const sc = () => useScreenContextStore.getState();
+  /** The panel's picker, answered by the test: `answer(pick)` settles the call it last took. */
+  function picker() {
+    let answer: (picked: PickedSource | null) => void = () => {};
+    const pickSource = vi.fn((_reason?: PickReason) => new Promise<PickedSource | null>((resolve) => { answer = resolve; }));
+    sc().setPickSource(pickSource);
+    return { pickSource, answer: async (picked: PickedSource | null) => { await act(async () => { answer(picked); }); } };
+  }
+  /** The choice in the switch's line (option B, owner 2026-10-22): between the help and the switch. */
+  const accessory = () => screen.getByTestId('qwen-screen-context').querySelector<HTMLElement>('.setting-row__accessory');
+  const button = (name: string | RegExp) => within(screen.getByTestId('qwen-screen-context')).queryByRole('button', { name });
+  const source = () => button(/^The model will see: /);
+
+  beforeEach(() => {
+    env.electron = true;
+  });
+
+  it('turning the switch on asks the picker at once; a pick is held and turns it on', async () => {
+    const update = vi.fn();
+    const { pickSource, answer } = picker();
+    render(<QwenSettingsView settings={QWEN_DEFAULTS} update={update} />);
+    fireEvent.click(screen.getByRole('switch', { name: 'Screen context' }));
+    expect(pickSource).toHaveBeenCalledTimes(1);
+    expect(pickSource).toHaveBeenCalledWith();
+    // Not on before the answer: a cancel leaves it off.
+    expect(update).not.toHaveBeenCalled();
+    await answer({ kind: 'desktop', source: SLIDES });
+    expect(sc().picked).toEqual({ kind: 'desktop', source: SLIDES });
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenCalledWith({ screenContext: true });
+  });
+
+  it('a cancel leaves the switch off and holds nothing', async () => {
+    const update = vi.fn();
+    const { answer } = picker();
+    render(<QwenSettingsView settings={QWEN_DEFAULTS} update={update} />);
+    fireEvent.click(screen.getByRole('switch', { name: 'Screen context' }));
+    await answer(null);
+    expect(update).not.toHaveBeenCalled();
+    expect(sc().picked).toBeNull();
+  });
+
+  it('with no panel to ask (none mounted), the switch turns on alone: the picker opens at Start', () => {
+    const update = vi.fn();
+    render(<QwenSettingsView settings={QWEN_DEFAULTS} update={update} />);
+    fireEvent.click(screen.getByRole('switch', { name: 'Screen context' }));
+    expect(update).toHaveBeenCalledWith({ screenContext: true });
+  });
+
+  it('turning it off writes it off and lets the pick go', () => {
+    const update = vi.fn();
+    const { pickSource } = picker();
+    sc().setPicked({ kind: 'desktop', source: SLIDES });
+    render(<QwenSettingsView settings={ON} update={update} />);
+    fireEvent.click(screen.getByRole('switch', { name: 'Screen context' }));
+    expect(update).toHaveBeenCalledWith({ screenContext: false });
+    expect(sc().picked).toBeNull();
+    expect(pickSource).not.toHaveBeenCalled();
+  });
+
+  it("while on with a window held, shows the footer chip's eye and the window's name in a button just before the switch, named for what the model will see; a click asks the picker again", async () => {
+    const update = vi.fn();
+    const { pickSource, answer } = picker();
+    sc().setPicked({ kind: 'desktop', source: SLIDES });
+    render(<QwenSettingsView settings={ON} update={update} />);
+    const held = source()!;
+    expect(held).not.toBeNull();
+    expect(held.closest('.setting-row__accessory')).toBe(accessory());
+    expect(accessory()!.nextElementSibling!.querySelector('[role="switch"]')).not.toBeNull();
+    // The control footer's chip, cut for the settings (owner, 2026-10-22): its class, the eye, the name; the picture waits in its card.
+    expect(held).toHaveClass('screen-context-chip', 'qwen-screen-context__source');
+    expect(held.firstElementChild?.tagName.toLowerCase()).toBe('svg');
+    expect(held.querySelector('.screen-context-chip__name')?.textContent).toBe('Slides');
+    expect(held.querySelector('img')).toBeNull();
+    expect(held).toHaveAttribute('aria-label', 'The model will see: Slides');
+    // The card is its tooltip, so no native one beside it.
+    expect(held).not.toHaveAttribute('title');
+    // Nothing of a session: no dot, no status word.
+    expect(held.querySelector('.screen-context-chip__dot, .screen-context-chip__status')).toBeNull();
+    // One line: no caption under the switch, and no Change or Clear (turning the switch off lets the pick go).
+    expect(screen.getByTestId('qwen-screen-context').querySelector('.qwen-screen-context__picked')).toBeNull();
+    expect(button('Change')).toBeNull();
+    expect(button('Clear')).toBeNull();
+    expect(button('Choose…')).toBeNull();
+
+    // A pick replaces the held one, a cancel keeps it.
+    fireEvent.click(held);
+    expect(pickSource).toHaveBeenCalledTimes(1);
+    expect(pickSource).toHaveBeenCalledWith();
+    await answer({ kind: 'desktop', source: NOTES });
+    expect(sc().picked).toEqual({ kind: 'desktop', source: NOTES });
+    expect(source()).toHaveAttribute('aria-label', 'The model will see: Notes');
+    expect(source()!.querySelector('.screen-context-chip__name')?.textContent).toBe('Notes');
+    fireEvent.click(source()!);
+    await answer(null);
+    expect(sc().picked).toEqual({ kind: 'desktop', source: NOTES });
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("hovering the held window's chip shows the footer's card: the picture from when it was chosen, its kind and name, and a line saying so; nothing of a session", async () => {
+    picker();
+    sc().setPicked({ kind: 'desktop', source: SLIDES });
+    render(<QwenSettingsView settings={ON} update={vi.fn()} />);
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    fireEvent.mouseEnter(source()!);
+    const card = await screen.findByRole('tooltip');
+    expect(card).toHaveClass('screen-context-card');
+    expect(within(card).getByRole('img', { name: 'Slides' })).toHaveAttribute('src', SLIDES.thumbnail);
+    expect(card.querySelector('.screen-context-card__name')?.textContent).toBe('Slides');
+    expect(card.querySelector('.screen-context-card__name svg')).not.toBeNull();
+    expect(card.textContent).toContain('Picture from when you chose it');
+    expect(card.textContent).not.toMatch(/Frames sent|Last frame/);
+    expect(within(card).queryByRole('button')).toBeNull();
+    // It describes the chip it hangs from.
+    expect(source()).toHaveAccessibleDescription(/Picture from when you chose it/);
+    // A click asks the picker and lets the card go.
+    fireEvent.click(source()!);
+    expect(screen.queryByRole('tooltip')).toBeNull();
+  });
+
+  it('keyboard focus on the chip shows the card too', async () => {
+    picker();
+    sc().setPicked({ kind: 'desktop', source: SLIDES });
+    render(<QwenSettingsView settings={ON} update={vi.fn()} />);
+    act(() => { source()!.focus(); });
+    expect(await screen.findByRole('tooltip')).toHaveClass('screen-context-card');
+  });
+
+  it('shows no card while the chip is locked', async () => {
+    picker();
+    sc().setPicked({ kind: 'desktop', source: SLIDES });
+    render(<QwenSettingsView settings={ON} update={vi.fn()} disabled />);
+    fireEvent.mouseEnter(source()!);
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 150)); });
+    expect(screen.queryByRole('tooltip')).toBeNull();
+  });
+
+  it('while on with nothing held (an app restart keeps the switch, never the window), offers the same chip dashed — the eye, Choose… beside it — named Choose…, its title saying when you will be asked', async () => {
+    const update = vi.fn();
+    const { pickSource, answer } = picker();
+    render(<QwenSettingsView settings={ON} update={update} />);
+    const choose = button('Choose…')!;
+    expect(choose.closest('.setting-row__accessory')).toBe(accessory());
+    expect(choose).toHaveAttribute('aria-label', 'Choose…');
+    expect(choose).toHaveAttribute('title', "No window chosen yet: you'll be asked when the session starts.");
+    expect(choose).toHaveClass('screen-context-chip', 'qwen-screen-context__source', 'qwen-screen-context__source--empty');
+    // The eye stands where it does in a chosen chip; the word rides beside it as the window's name does.
+    expect(choose.firstElementChild?.tagName.toLowerCase()).toBe('svg');
+    expect(choose.querySelector('.qwen-screen-context__caption')?.textContent).toBe('Choose…');
+    expect(choose.querySelector('.qwen-screen-context__slot')).toBeNull();
+    expect(choose.querySelector('img')).toBeNull();
+    expect(source()).toBeNull();
+    fireEvent.click(choose);
+    expect(pickSource).toHaveBeenCalledTimes(1);
+    await answer({ kind: 'desktop', source: SLIDES });
+    expect(sc().picked).toEqual({ kind: 'desktop', source: SLIDES });
+    expect(source()).toHaveAttribute('aria-label', 'The model will see: Slides');
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("while on with the portal's button held (Wayland), shows a timer named At start, the words beside it, the system's chooser in its title: no button chooses anything here", () => {
+    picker();
+    sc().setPicked({ kind: 'portal' });
+    render(<QwenSettingsView settings={ON} update={vi.fn()} />);
+    // One element carries both: named At start, the system's chooser its title (a description, read without a mouse).
+    const atStart = within(accessory()!).getByRole('img', { name: 'At start' });
+    expect(atStart).toHaveClass('qwen-screen-context__at-start');
+    expect(atStart).toHaveAttribute('title', 'The system asks which window or screen when the session starts.');
+    expect(atStart).toHaveAccessibleDescription('The system asks which window or screen when the session starts.');
+    // Inside it, the timer and the words are presentational: not read on their own.
+    const timer = atStart.querySelector('.qwen-screen-context__timer')!;
+    expect(timer.querySelector('svg')).not.toBeNull();
+    expect(timer).toHaveAttribute('aria-hidden', 'true');
+    const words = atStart.querySelector('.qwen-screen-context__caption')!;
+    expect(words.textContent).toBe('At start');
+    expect(words).toHaveAttribute('aria-hidden', 'true');
+    expect(accessory()!.querySelectorAll('button')).toHaveLength(0);
+  });
+
+  it('draws nothing beside the switch while it is off', () => {
+    picker();
+    sc().setPicked({ kind: 'desktop', source: SLIDES });
+    render(<QwenSettingsView settings={QWEN_DEFAULTS} update={vi.fn()} />);
+    expect(accessory()).toBeNull();
+    expect(screen.getByTestId('qwen-screen-context').querySelectorAll('button')).toHaveLength(0);
+  });
+
+  it('locks the choice while a run is not idle, and while no picker is mounted', () => {
+    picker();
+    sc().setPicked({ kind: 'desktop', source: SLIDES });
+    const { unmount } = render(<QwenSettingsView settings={ON} update={vi.fn()} disabled />);
+    expect(source()).toBeDisabled();
+    unmount();
+
+    sc().setPickSource(null);
+    const held = render(<QwenSettingsView settings={ON} update={vi.fn()} />);
+    expect(source()).toBeDisabled();
+    held.unmount();
+
+    sc().setPicked(null);
+    render(<QwenSettingsView settings={ON} update={vi.fn()} />);
+    expect(button('Choose…')).toBeDisabled();
+  });
+
+  it('locks the switch and the choice while Start checks the area (the runner is still idle then)', () => {
+    const update = vi.fn();
+    const { pickSource } = picker();
+    sc().setPicked({ kind: 'desktop', source: SLIDES });
+    useScreenContextStore.setState({ preparing: true });
+    const { unmount } = render(<QwenSettingsView settings={ON} update={update} />);
+    const sw = screen.getByRole('switch', { name: 'Screen context' });
+    expect(sw).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(sw);
+    expect(update).not.toHaveBeenCalled();
+    expect(source()).toBeDisabled();
+    unmount();
+
+    sc().setPicked(null);
+    render(<QwenSettingsView settings={ON} update={update} />);
+    expect(button('Choose…')).toBeDisabled();
+    expect(pickSource).not.toHaveBeenCalled();
+
+    // Settled: unlocked again.
+    act(() => { useScreenContextStore.setState({ preparing: false }); });
+    expect(button('Choose…')).not.toBeDisabled();
+  });
+
+  it('the extension has no picker: the switch just flips, and nothing is drawn beside it (the meeting tab is used)', () => {
+    env.electron = false;
+    const update = vi.fn();
+    const { pickSource } = picker();
+    const { unmount } = render(<QwenSettingsView settings={QWEN_DEFAULTS} update={update} />);
+    fireEvent.click(screen.getByRole('switch', { name: 'Screen context' }));
+    expect(pickSource).not.toHaveBeenCalled();
+    expect(update).toHaveBeenCalledWith({ screenContext: true });
+    unmount();
+    sc().setPicked({ kind: 'desktop', source: SLIDES });
+    render(<QwenSettingsView settings={ON} update={update} />);
+    expect(accessory()).toBeNull();
+  });
+
+  it("the row's words are in the catalog: At start and the card's line added, Change and Clear retired with the caption line", () => {
+    const words = en.providers.qwen_livetranslate as Record<string, string>;
+    expect(words.screenContextAtStart).toBe('At start');
+    expect(words.screenContextStill).toBe('Picture from when you chose it');
+    expect(words).not.toHaveProperty('screenContextChange');
+    expect(words).not.toHaveProperty('screenContextClear');
+    for (const key of ['screenContextPicked', 'screenContextPortal', 'screenContextNone', 'screenContextChoose']) expect(words).toHaveProperty(key);
+  });
+
+  it('a one-word label may break at its seam when the chip leaves it no room (the 300px panel): a soft hyphen in German and Dutch, a zero-width space in Japanese', () => {
+    const label = (catalog: typeof en) => (catalog.providers.qwen_livetranslate as Record<string, string>).screenContext;
+    expect(label(de)).toBe('Bildschirm\u00ADkontext');
+    expect(label(nl)).toBe('Scherm\u00ADcontext');
+    expect(label(ja)).toBe('画面\u200Bコンテキスト');
+  });
+
+  it('the managed view shows the same choice', () => {
+    picker();
+    sc().setPicked({ kind: 'desktop', source: SLIDES });
+    render(<KizunaQwenSettingsView settings={ON} update={vi.fn()} />);
+    expect(source()).toHaveAttribute('aria-label', 'The model will see: Slides');
+  });
+
+  describe("styled as the control footer's chip, cut for the settings (compiled Settings.scss over ScreenContextChip.scss)", () => {
+    const { css } = compile(resolve(__dirname, '../../components/Settings/Settings.scss'));
+    const chipCss = compile(resolve(__dirname, '../../components/MainPanel/panel/ScreenContextChip.scss')).css;
+    const rule = (selector: string, within = css) => new RegExp(String.raw`(^|\n)\s*${selector.replace(/[.()]/g, '\\$&')}\s*\{([^}]*)\}`).exec(within)?.[2] ?? '';
+
+    it("the chip is the footer's (28px, the control background and border, the secondary text at 12px), here allowed to shrink, outranking the footer's no-shrink whatever order the sheets load in", () => {
+      expect(rule('.screen-context-chip', chipCss)).toMatch(/height:\s*28px/);
+      // Two classes against the footer's one.
+      const here = rule('.qwen-screen-context .qwen-screen-context__source');
+      expect(here).toMatch(/flex-shrink:\s*1/);
+      expect(here).toMatch(/min-width:\s*0/);
+      // A run locks the choice; the footer's chip is never disabled, so the look is the settings' own.
+      expect(rule('.qwen-screen-context .qwen-screen-context__source:disabled')).toMatch(/cursor:\s*not-allowed/);
+    });
+
+    it('nothing held: the same chip, its border dashed and its words muted, one ellipsized line', () => {
+      const empty = rule('.qwen-screen-context .qwen-screen-context__source--empty');
+      expect(empty).toMatch(/border-style:\s*dashed/);
+      expect(empty).toMatch(/color:\s*var\(--sk-text-muted\)/);
+      expect(rule('.qwen-screen-context__caption')).toMatch(/text-overflow:\s*ellipsis/);
+    });
+
+    it("the row's own picture, slot and chevron are gone: the picture lives in the card", () => {
+      expect(css).not.toMatch(/\.qwen-screen-context__(thumb|slot|name)\b/);
+      expect(css).not.toMatch(/\.qwen-screen-context__source[^{]*::after/);
+    });
+
+    it('Wayland: a muted icon with 12px words, not a button', () => {
+      expect(rule('.qwen-screen-context__at-start')).toMatch(/color:\s*var\(--sk-text-muted\)/);
+      expect(rule('.qwen-screen-context__at-start')).toMatch(/font-size:\s*12px/);
+    });
+
+    it('the row is an inline-size container; below 360px of its width every state is its icon alone, as in the basic footer (the 300px panel)', () => {
+      expect(rule('.qwen-screen-context')).toMatch(/container:\s*qwen-screen-context\s*\/\s*inline-size/);
+      const at = css.indexOf('@container qwen-screen-context (width < 360px)');
+      expect(at).toBeGreaterThan(-1);
+      const query = css.slice(at, css.indexOf('\n}', at) + 2);
+      // A selector's rule inside the query, whether it stands alone or in a group.
+      const hidden = (selector: string) => new RegExp(String.raw`${selector.replace(/[.()]/g, '\\$&')}(,[^{]*)?\s*\{[^}]*display:\s*none`).test(query);
+      expect(hidden('.screen-context-chip__name')).toBe(true);
+      expect(hidden('.qwen-screen-context__caption')).toBe(true);
+      // Both chips close up round the eye, at the footer's icon-only padding.
+      expect(rule('.screen-context-chip--icon-only', chipCss)).toMatch(/padding:\s*0 6px/);
+      expect(rule('.qwen-screen-context .qwen-screen-context__source', query)).toMatch(/padding:\s*0 6px/);
+    });
+
+    it("the switch shares the chip's centre line: this row drops the toggle's stray top margin", () => {
+      expect(rule('.qwen-screen-context .setting-row__switch')).toMatch(/margin-top:\s*0/);
+    });
+
+    it("the head is the chip's height whether or not the chip shows, so flipping the switch moves nothing", () => {
+      expect(rule('.qwen-screen-context .setting-row__head')).toMatch(/min-height:\s*28px/);
+    });
+
+    it('the caption line and its keys are gone', () => {
+      expect(css).not.toMatch(/\.qwen-screen-context__(picked|text|button)\b/);
+    });
   });
 });
 
@@ -119,6 +506,11 @@ describe('KizunaQwenSettingsView (the managed view, Beijing region spec §8)', (
     beijing.unmount();
     const singapore = render(<KizunaQwenSettingsView {...props({ settings: { ...QWEN_DEFAULTS, region: 'sg' } })} />);
     expect(singapore.container.querySelector('#qwen-region-note')).toBeNull();
+  });
+
+  it('the managed view shows the same switch', () => {
+    render(<KizunaQwenSettingsView settings={QWEN_DEFAULTS} update={() => {}} />);
+    expect(screen.getByRole('switch', { name: 'Screen context' })).toBeInTheDocument();
   });
 
   it('the own-key view shows no region', () => {

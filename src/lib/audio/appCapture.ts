@@ -8,6 +8,7 @@ import type { LegName } from '../conversation/types';
 import type { Platform } from '../provider/types';
 import type { OpenSource, Source } from '../session/source';
 import useAudioStore from '../../stores/audioStore';
+import { useScreenContextStore } from '../../stores/screenContextStore';
 import { getEnvironment } from '../../utils/environment';
 import { createEchoWatch, type EchoWatch } from './capture/echoWatch';
 import { openMic, type MicSettings } from './capture/mic';
@@ -72,6 +73,10 @@ export function tabSettings(): TabSettings {
     tabId: () => targetTabIdFromSearch(window.location.search),
     outputDeviceId: () => audio().selectedMonitorDevice?.deviceId,
     muted: () => audio().isParticipantMuted,
+    // While screen context holds the tab's picture its audio and video are one capture (Chrome allows one per tab): the
+    // participant leg joins it. Without a held sampler (switched off, or the screen path failed or showed nothing) the
+    // audio asks for no video, so the screen path can never take the participant leg down.
+    video: () => useScreenContextStore.getState().sampler !== null,
   };
 }
 

@@ -44,8 +44,16 @@
 
 // SharedArrayBuffer backs the audio ring buffer (#174) and must survive in
 // every branch below.
-const VULKAN_FEATURES = 'Vulkan,SharedArrayBuffer';
-const NO_VULKAN_FEATURES = 'SharedArrayBuffer';
+//
+// WebRTCPipeWireCapturer is on in every branch too: on a Wayland session a
+// window or screen can only be captured through the desktop portal and
+// PipeWire, and this is the capturer Chromium reaches them with (screen
+// context, the picker's "portal" mode in capture-sources.js). It is named here
+// rather than left to Chromium's default, so no build that ships it off loses
+// the capture. It goes into the same comma-separated value, as
+// applyLinuxGpuFlags() explains.
+const VULKAN_FEATURES = 'Vulkan,SharedArrayBuffer,WebRTCPipeWireCapturer';
+const NO_VULKAN_FEATURES = 'SharedArrayBuffer,WebRTCPipeWireCapturer';
 
 /**
  * Is this run going to render through Ozone/Wayland?

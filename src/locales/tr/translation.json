@@ -557,7 +557,16 @@
       "vocabulary": "Özel Kelime Dağarcığı",
       "vocabularyTranslations": "Tercih Edilen Çeviriler",
       "vocabularyTranslationsTooltip": "Belirli terimlerin nasıl çevrileceğini etkiler — bu bir tercihtir, garanti edilen bir değişim değildir: yerleşik bir çevirisi olan adlar en iyi sonucu verir, yaygın sözcükler ise modelin kendi ifadesini koruyabilir. Girişler yönlüdür; ters yön yalnızca Her ikisi modunda bulunur ve orada ters bir satır ekleyebilirsiniz.",
-      "vocabularyTranslationsPlaceholder": "Satır başına kaynak=hedef biçiminde bir giriş"
+      "vocabularyTranslationsPlaceholder": "Satır başına kaynak=hedef biçiminde bir giriş",
+      "screenContext": "Ekran bağlamı",
+      "screenContextTooltip": "Seçtiğiniz bir pencereyi, sekmeyi veya ekranı modelin görmesini sağlar; böylece üzerindeki adlar ve terimler yazıldığı gibi tanınır ve çevrilir. Bu alanın içindeki her şey, bu oturumun bölgesindeki Alibaba Cloud'un Qwen hizmetine görüntü olarak gönderilir; Kizuna AI bunları hiçbir zaman almaz. Açık olduğu sürece konuşmanın her saniyesi için ücrete ek getirir — kendi anahtarınızla Alibaba Cloud faturanıza, Kizuna AI hesabıyla hesabınızın fiyatlandırma sayfasında belirtildiği gibi; Her ikisi modunda her yönün oturumu ücretlendirilir.",
+      "screenContextBeta": "Beta",
+      "screenContextPicked": "Modelin göreceği: {{name}}",
+      "screenContextStill": "Seçtiğiniz andaki görüntü",
+      "screenContextPortal": "Oturum başlarken sistem hangi pencere veya ekran olduğunu sorar.",
+      "screenContextAtStart": "Başlarken",
+      "screenContextNone": "Henüz pencere seçilmedi: oturum başlarken size sorulacak.",
+      "screenContextChoose": "Seç…"
     },
     "local_inference": {
       "name": "Ücretsiz",
@@ -1452,7 +1461,8 @@
     "mic_blocked": "Windows, Sokuji'nin mikrofonu kullanmasına izin vermiyor. Ayarlar › Gizlilik ve güvenlik › Mikrofon bölümünden masaüstü uygulamalarının mikrofon erişimini açın, ardından yeniden başlatın.",
     "speaker_tts_missing": "Karşı tarafın duyduğu çeviri yalnızca metin: {{target}} konuşan bir ses modeli yok.",
     "participant_tts_missing": "Duyduğum çeviri yalnızca metin: {{target}} konuşan bir ses modeli yok.",
-    "participant_tts_over_budget": "Duyduğum çeviri yalnızca metin: karşı tarafın ses modelini de yüklemeye yetecek bellek yok."
+    "participant_tts_over_budget": "Duyduğum çeviri yalnızca metin: karşı tarafın ses modelini de yüklemeye yetecek bellek yok.",
+    "screen_context_lost": "Seçtiğiniz ekran artık kullanılamıyor; çeviri yalnızca sesle devam ediyor."
   },
   "viewer": {
     "title": "Sokuji altyazıları",
@@ -1574,5 +1584,39 @@
     "notPlayed": "Oynatılmadı: bu çeviri {{target}} dilinde değil, {{language}} dilinde; bu yüzden kimseye okunmaz.",
     "legendMe": "{{language}} · ben",
     "legendOther": "{{language}} · karşı taraf"
+  },
+  "screenContext": {
+    "picker": {
+      "title": "Modelin neyi görebileceğini seçin",
+      "privacy": "Seçtiğiniz alanın içindeki her şey, bu oturumun bölgesindeki Alibaba Cloud'un Qwen hizmetine görüntü olarak gönderilir — ekranınızdaki başka hiçbir şey gönderilmez. Kizuna AI bunları almaz.",
+      "windows": "Pencereler",
+      "screens": "Ekranlar",
+      "portal": "Bir pencere veya ekran seçin…",
+      "loading": "Pencereler aranıyor…",
+      "none": "Paylaşılacak pencere veya ekran bulunamadı.",
+      "minimizedHint": "Simge durumuna küçültülmüş bir pencere paylaşılamaz: pencereyi geri yükleyin, sonra Yenile’ye basın.",
+      "deniedTitle": "Ekran Kaydı izni gerekli",
+      "deniedText": "macOS, Sokuji'nin ekranı yalnızca Ekran Kaydı izniyle görmesine olanak tanır. İzni Sistem Ayarları'nda verin, ardından Sokuji'yi yeniden başlatıp tekrar başlayın.",
+      "openSettings": "Sistem Ayarları'nı Aç",
+      "refresh": "Yenile",
+      "cancel": "Ekran bağlamı olmadan başlat",
+      "nothingVisible": "Seçtiğiniz alan şu anda hiçbir şey göstermiyor. Başka bir alan seçin veya ekran bağlamı olmadan başlatın.",
+      "nothingVisibleRunning": "Seçtiğiniz alan şu anda hiçbir şey göstermiyor. Başka bir alan seçin veya oturumu olduğu gibi bırakın.",
+      "gone": "Seçtiğiniz pencere veya ekran şu anda yakalanamıyor. Başka bir şey seçin veya ekran bağlamı olmadan başlatın.",
+      "checking": "Görüntü kontrol ediliyor…"
+    },
+    "chip": {
+      "live": "Canlı",
+      "stale": "Değişmedi",
+      "lost": "Kullanılamıyor",
+      "label": "Ekran bağlamı: {{name}}, {{status}}"
+    },
+    "card": {
+      "lastFrame": "Son kare {{ago}} sn önce",
+      "frames": "Gönderilen kareler: {{count}}",
+      "chooseAgain": "Yeniden seç",
+      "lostHint": "Kaynak artık yok; siz yeniden seçene kadar son görüntü tutulur.",
+      "lostExtension": "Toplantı sekmesinin görüntüsü artık kullanılamıyor; çeviri yalnızca sesle devam ediyor."
+    }
   }
 }

@@ -59,6 +59,9 @@ export const INVOKE_CHANNELS = [
   'open-windows-settings',
   // Screen recording permission (macOS)
   'check-screen-recording-permission',
+  // Screen context: how the picker gets its choices, and the windows and screens it offers
+  'capture-source-mode',
+  'list-capture-sources',
   // Linux: fix PipeWire monitor source volume after loopback capture starts
   'fix-monitor-volume',
   // WebSocket header injection (renderer → main)

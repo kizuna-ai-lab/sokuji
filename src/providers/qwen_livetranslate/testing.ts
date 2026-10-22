@@ -6,7 +6,7 @@
  * starts a leg over the header seam's fake on a tracked virtual clock.
  * Test-only: nothing but a test imports it.
  */
-import type { SessionContext } from '../../lib/contract/adapter';
+import type { FrameSource, SessionContext } from '../../lib/contract/adapter';
 import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
 import { flush } from '../../lib/contract/testing/drive';
 import { fakeHeaderSockets } from '../../lib/contract/testing/headerSocket';
@@ -99,7 +99,7 @@ export function turn(n: number, o: { source: string; translation: string; speake
 }
 
 /** A leg started over the header seam's fake on a tracked virtual clock; its registration not yet answered, its socket not yet made. */
-export function startQwen(o: { context?: SessionContext; patch?: Partial<QwenSettings>; credentials?: QwenCredentials; shared?: SharedSettings; detect?: DetectEndpoint; requestIds?: string[]; holdClear?: boolean } = {}) {
+export function startQwen(o: { context?: SessionContext; patch?: Partial<QwenSettings>; credentials?: QwenCredentials; shared?: SharedSettings; detect?: DetectEndpoint; requestIds?: string[]; holdClear?: boolean; frames?: FrameSource } = {}) {
   const seam = fakeHeaderSockets(undefined, { requestIds: o.requestIds });
   /** Releases the first clear's answer, when the leg was started holding it. */
   const releaseClear = o.holdClear ? seam.holdNextClear() : () => {};
@@ -110,7 +110,7 @@ export function startQwen(o: { context?: SessionContext; patch?: Partial<QwenSet
   const config = configFor(context, o.patch, o.shared);
   const detected: string[] = [];
   const detect: DetectEndpoint = o.detect ?? (async (apiKey) => { detected.push(apiKey); return { endpoint: 'intl' }; });
-  const starting = createQwenAdapter({ openHeaderSocket: seam.open, detect }).start({ context, config, credentials: o.credentials ?? KEY, clock, signal: controller.signal }, events);
+  const starting = createQwenAdapter({ openHeaderSocket: seam.open, detect }).start({ context, config, credentials: o.credentials ?? KEY, clock, signal: controller.signal, ...(o.frames ? { frames: o.frames } : {}) }, events);
   const socket = () => seam.sockets.last();
   const of = <K extends AdapterEvent['kind']>(kind: K) => log.filter((e): e is Extract<AdapterEvent, { kind: K }> => e.kind === kind);
   /** The payloads of the frames of one type, in order. */

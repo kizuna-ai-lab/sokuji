@@ -11,7 +11,11 @@
  * `QUIET_KEEP_MS` closes its turn and sends nothing until voice comes back.
  * An error words the close that follows it, and any end the leg did not ask
  * for fails it: there is no reconnect (D8). A leg with nothing to send keeps
- * the session alive past Qwen's idle close. Stop sends `session.finish` and closes at once. Every
+ * the session alive past Qwen's idle close. With a screen source (spec
+ * 2026-10-22) the update declares video, the frame in hand goes up right after
+ * the first audio — never before it — and later frames as they come, the
+ * capture layer owning their pace; a lost source is a degradation, the
+ * session going on with audio. Stop sends `session.finish` and closes at once. Every
  * timer reads the request's clock, and nothing is said but through events
  * (CLAUDE.md, "Inside an adapter session").
  */
@@ -21,6 +25,7 @@ import {
   type Adapter,
   type AdapterEvents,
   type AdapterSession,
+  type FrameReason,
   type StartRequest,
 } from '../../lib/contract/adapter';
 import { every } from '../../lib/contract/clock';
@@ -43,6 +48,7 @@ import {
   errorOf,
   errorWords,
   FINISH,
+  imageFrame,
   qwenHeaders,
   sessionUpdate,
   socketUrl,
@@ -155,6 +161,14 @@ class QwenLeg implements AdapterSession {
   private quietSamples = 0;
   /** The last `PRE_ROLL_MS` of a quiet stretch kept back. */
   private preRoll: Int16Array[] = [];
+  /** Ends the screen source's subscription; a no-op without a source. */
+  private stopFrames: () => void = () => {};
+  /** The newest frame that came before any audio went up: it goes right after the first audio. */
+  private latest: { jpeg: Uint8Array; reason: FrameReason } | null = null;
+  /** Audio has reached the socket: a frame may follow it, and every later one goes at once. */
+  private audioWent = false;
+  /** The source is lost and has not come back: a second loss is not said again. */
+  private sourceLost = false;
 
   constructor(
     private readonly request: StartRequest<QwenConfig, QwenCredentials>,
@@ -166,6 +180,7 @@ class QwenLeg implements AdapterSession {
 
   async open(): Promise<AdapterSession> {
     try {
+      this.watchFrames();
       const endpoint = this.request.config.endpoint ?? this.request.credentials.endpoint ?? await this.detect();
       await this.connect(endpoint);
       return this;
@@ -259,6 +274,55 @@ class QwenLeg implements AdapterSession {
     ws.send(appendFrame(pcm));
     this.appended = true;
     this.lastSentAt = this.request.clock.now();
+    this.audioSent();
+  }
+
+  /** The screen source's subscription, when the request has one: frames are kept or sent by `onFrame`, a loss and a return are said. */
+  private watchFrames(): void {
+    const frames = this.request.frames;
+    if (!frames) return;
+    this.stopFrames = frames.subscribe(
+      (jpeg, reason) => this.onFrame(jpeg, reason),
+      () => this.onSourceLost(),
+      () => this.onSourceBack(),
+    );
+  }
+
+  /** A frame: sent at once once audio has gone up, else the newest waits for it. Never timed here: the capture layer owns the pace. */
+  private onFrame(jpeg: Uint8Array, reason: FrameReason): void {
+    if (this.phase === 'ended') return;
+    if (this.audioWent) this.sendImage(jpeg, reason);
+    else this.latest = { jpeg, reason };
+  }
+
+  /** Audio has reached the socket (`up()`, a held press's release, a keepalive): the first time, the frame in hand goes right after it. */
+  private audioSent(): void {
+    if (this.audioWent) return;
+    this.audioWent = true;
+    const waiting = this.latest;
+    this.latest = null;
+    if (waiting) this.sendImage(waiting.jpeg, waiting.reason);
+  }
+
+  /** One frame up, framed by its size and reason alone: the image is never in a Logs line. */
+  private sendImage(jpeg: Uint8Array, reason: FrameReason): void {
+    const ws = this.live();
+    if (!ws) return;
+    ws.send(imageFrame(jpeg));
+    this.frame('out', 'input_image_buffer.append', { bytes: jpeg.byteLength, reason });
+  }
+
+  /** The chosen area is gone: said once per loss, the session going on with audio. The source's name is never in the words. */
+  private onSourceLost(): void {
+    if (this.phase === 'ended' || this.sourceLost) return;
+    this.sourceLost = true;
+    this.events.degraded({ code: 'screen_context_lost', message: 'The chosen screen is no longer available; translation continues on audio alone.' });
+  }
+
+  private onSourceBack(): void {
+    if (this.phase === 'ended') return;
+    this.sourceLost = false;
+    this.frame('out', 'session.screen_context_back');
   }
 
   /** A quiet chunk kept back: only the last `PRE_ROLL_MS` of them stay. */
@@ -312,6 +376,7 @@ class QwenLeg implements AdapterSession {
     this.appended = true;
     this.lastSentAt = this.request.clock.now();
     this.frame('out', 'session.audio_released', { chunks: held.length });
+    this.audioSent();
     if (this.releaseHeld) {
       this.releaseHeld = false;
       this.commit();
@@ -339,6 +404,7 @@ class QwenLeg implements AdapterSession {
     if (manual && (this.busy || this.appended)) return;
     ws.send(appendFrame(KEEPALIVE_SILENCE));
     this.frame('out', 'session.keepalive', { idleMs });
+    this.audioSent();
     this.lastSentAt = now;
     if (manual) {
       this.appended = true;
@@ -465,7 +531,7 @@ class QwenLeg implements AdapterSession {
       const s = (typeof e.session === 'object' && e.session !== null ? e.session : {}) as { id?: unknown; model?: unknown };
       this.frame('in', 'session.created', { id: str(s.id), model: str(s.model) });
       if (this.phase !== 'opening') return;
-      const update = sessionUpdate(this.request.config);
+      const update = sessionUpdate(this.request.config, { video: this.request.frames !== undefined });
       ws.send(JSON.stringify(update));
       this.frame('out', 'session.update', update.session);
       this.phase = 'configuring';
@@ -646,6 +712,9 @@ class QwenLeg implements AdapterSession {
     this.cancelTurnWait = null;
     this.held = [];
     this.preRoll = [];
+    this.stopFrames();
+    this.stopFrames = () => {};
+    this.latest = null;
     this.segments.stop();
     const ws = this.socket;
     this.socket = null;

@@ -2286,8 +2286,46 @@
     font-size: vars.$font-body;
     color: vars.$text-secondary;
   }
+  // A mark after the label ("Beta"): the model cards' chip line box, outlined
+  // in the primary colour so it reads as a state of the feature, not a value.
+  &__badge {
+    font-size: vars.$chip-font-size;
+    line-height: vars.$chip-line-height;
+    padding: vars.$chip-padding-y 6px;
+    border: 1px solid vars.$color-primary;
+    border-radius: vars.$radius-sm;
+    color: vars.$color-primary;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
   &__switch {
     margin-left: auto;
+
+    .setting-row__accessory + & { margin-left: 0; }
+  }
+  // A small control just before the switch (`accessory`), at the right. Its
+  // basis is zero and it grows into the room the head has left, so it is what
+  // gives way when the head is full: the label wraps only once the accessory
+  // is down to its content's own minimum. (A plain `margin-left: auto` item
+  // shrinks in proportion with the label, which wrapped while a long window
+  // name still had room to give.)
+  &__accessory {
+    flex: 1 1 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+  // Beside an accessory the label wraps only where its words allow — CJK too,
+  // at a space or a zero-width space a catalog puts in — and, the last resort
+  // so the head never overflows, inside its longest word. The help icon keeps
+  // its size rather than being squeezed.
+  &__head:has(> .setting-row__accessory) {
+    .setting-row__label {
+      overflow-wrap: anywhere;
+      word-break: keep-all;
+    }
+    > .tooltip-trigger { flex: none; }
   }
   &__control {
     margin-top: 6px;
@@ -2406,6 +2444,61 @@
       opacity: 0.5;
     }
   }
+}
+
+// What Qwen's Screen context opens at the next Start, in its switch's own line (the `SettingRow` accessory;
+// option B, owner 2026-10-22): the control footer's chip (`.screen-context-chip`, ScreenContextChip.scss), cut for
+// the settings. The row is the container the chip's words answer to.
+.qwen-screen-context {
+  container: qwen-screen-context / inline-size;
+
+  // The toggle's own 8px top margin sat it 4px below the chip's centre; here label, chip and switch share one line.
+  .setting-row__switch { margin-top: 0; }
+  // The footer chip's 28px with or without the chip, so flipping the switch moves nothing below it.
+  .setting-row__head { min-height: 28px; }
+
+  // Two classes, so these outrank the footer chip's one whichever stylesheet loads last.
+  // The footer's chip never shrinks; here it gives way before the label wraps, down to the eye.
+  .qwen-screen-context__source {
+    flex-shrink: 1;
+    min-width: 0;
+
+    // A run locks the choice (the footer's chip is never disabled): dimmed, and its hover does nothing.
+    &:disabled {
+      @include vars.disabled-state;
+      background: vars.$bg-control;
+      border-color: vars.$border-default;
+    }
+  }
+  // Nothing held: the same chip, dashed, the eye and its words muted.
+  .qwen-screen-context__source--empty {
+    border-style: dashed;
+    color: vars.$text-muted;
+  }
+}
+// Choose… or At start beside the icon: one line, cut short when the chip is.
+.qwen-screen-context__caption {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+// Wayland: the system's chooser decides at Start — a timer and its words, not a button.
+.qwen-screen-context__at-start {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: vars.$font-caption;
+  color: vars.$text-muted;
+}
+.qwen-screen-context__timer { display: flex; }
+// Narrow (the 300px panel, a 262px row): every state is its icon alone, as in the basic layout's footer, so the
+// label keeps one line; the accessible name still says it in full, and the card still shows the window.
+@container qwen-screen-context (width < 360px) {
+  .screen-context-chip__name,
+  .qwen-screen-context__caption { display: none; }
+  .qwen-screen-context .qwen-screen-context__source { padding: 0 6px; }
 }
 
 // The face-to-face headphones hint under the two ear rows: a warning, as on the board.

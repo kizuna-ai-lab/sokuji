@@ -557,7 +557,16 @@
       "vocabulary": "Perbendaharaan Kata Tersuai",
       "vocabularyTranslations": "Terjemahan Pilihan",
       "vocabularyTranslationsTooltip": "Mempengaruhi cara istilah tertentu diterjemahkan — ini keutamaan, bukan penggantian yang dijamin: nama dengan terjemahan yang sudah mantap berfungsi paling baik, manakala perkataan biasa mungkin mengekalkan bahasa model itu sendiri. Entri adalah berarah; arah songsang hanya wujud dalam mod Kedua-duanya, di mana anda boleh menambah baris songsang.",
-      "vocabularyTranslationsPlaceholder": "Satu entri sumber=sasaran setiap baris"
+      "vocabularyTranslationsPlaceholder": "Satu entri sumber=sasaran setiap baris",
+      "screenContext": "Konteks skrin",
+      "screenContextTooltip": "Membolehkan model melihat satu tetingkap, tab atau skrin yang anda pilih, supaya nama dan istilah padanya dikenali dan diterjemahkan seperti yang tertulis. Segala-galanya dalam kawasan itu dihantar sebagai gambar ke perkhidmatan Qwen Alibaba Cloud, di rantau sesi ini; Kizuna AI tidak pernah menerimanya. Selagi dihidupkan, ia menambah caj untuk setiap saat pertuturan — pada bil Alibaba Cloud anda jika menggunakan kunci sendiri, atau mengikut halaman harga akaun anda dengan akaun Kizuna AI; dalam mod Kedua-duanya, sesi setiap arah dicaj.",
+      "screenContextBeta": "Beta",
+      "screenContextPicked": "Model akan melihat: {{name}}",
+      "screenContextStill": "Gambar semasa anda memilihnya",
+      "screenContextPortal": "Sistem akan bertanya tetingkap atau skrin yang mana semasa sesi bermula.",
+      "screenContextAtStart": "Semasa bermula",
+      "screenContextNone": "Belum ada tetingkap dipilih: anda akan ditanya semasa sesi bermula.",
+      "screenContextChoose": "Pilih…"
     },
     "local_inference": {
       "name": "Percuma",
@@ -1452,7 +1461,8 @@
     "mic_blocked": "Windows tidak membenarkan Sokuji menggunakan mikrofon. Hidupkan akses mikrofon untuk apl desktop dalam Tetapan › Privasi & keselamatan › Mikrofon, kemudian mula semula.",
     "speaker_tts_missing": "Terjemahan yang didengar pihak lain hanya dalam bentuk teks: tiada model suara yang bertutur dalam {{target}}.",
     "participant_tts_missing": "Terjemahan yang saya dengar hanya dalam bentuk teks: tiada model suara yang bertutur dalam {{target}}.",
-    "participant_tts_over_budget": "Terjemahan yang saya dengar hanya dalam bentuk teks: memori tidak mencukupi untuk memuatkan model suara pihak lain juga."
+    "participant_tts_over_budget": "Terjemahan yang saya dengar hanya dalam bentuk teks: memori tidak mencukupi untuk memuatkan model suara pihak lain juga.",
+    "screen_context_lost": "Skrin yang anda pilih tidak lagi tersedia; terjemahan diteruskan dengan audio sahaja."
   },
   "viewer": {
     "title": "Sari kata Sokuji",
@@ -1574,5 +1584,39 @@
     "notPlayed": "Tidak dimainkan: terjemahan ini dalam bahasa {{language}}, bukan {{target}}, jadi tidak dibacakan kepada sesiapa.",
     "legendMe": "{{language}} · saya",
     "legendOther": "{{language}} · pihak lain"
+  },
+  "screenContext": {
+    "picker": {
+      "title": "Pilih perkara yang boleh dilihat oleh model",
+      "privacy": "Segala-galanya dalam kawasan yang anda pilih dihantar sebagai gambar ke perkhidmatan Qwen Alibaba Cloud, di rantau sesi ini — tiada apa-apa lagi daripada skrin anda. Kizuna AI tidak menerimanya.",
+      "windows": "Tetingkap",
+      "screens": "Skrin",
+      "portal": "Pilih tetingkap atau skrin…",
+      "loading": "Mencari tetingkap…",
+      "none": "Tiada tetingkap atau skrin untuk dikongsi ditemui.",
+      "minimizedHint": "Tetingkap yang diminimumkan tidak boleh dikongsi: pulihkan tetingkap, kemudian Segarkan.",
+      "deniedTitle": "Kebenaran Rakaman Skrin diperlukan",
+      "deniedText": "macOS hanya membenarkan Sokuji melihat skrin dengan kebenaran Screen Recording. Berikan kebenaran itu dalam System Settings, kemudian mulakan semula Sokuji dan mula sekali lagi.",
+      "openSettings": "Buka Tetapan Sistem",
+      "refresh": "Segarkan",
+      "cancel": "Mula tanpa konteks skrin",
+      "nothingVisible": "Kawasan yang anda pilih tidak menunjukkan apa-apa sekarang. Pilih yang lain, atau mula tanpa konteks skrin.",
+      "nothingVisibleRunning": "Kawasan yang anda pilih tidak menunjukkan apa-apa sekarang. Pilih yang lain, atau biarkan sesi seperti sedia ada.",
+      "gone": "Tetingkap atau skrin yang anda pilih tidak dapat dirakam sekarang. Pilih yang lain, atau mula tanpa konteks skrin.",
+      "checking": "Menyemak gambar…"
+    },
+    "chip": {
+      "live": "Langsung",
+      "stale": "Tidak berubah",
+      "lost": "Tidak tersedia",
+      "label": "Konteks skrin: {{name}}, {{status}}"
+    },
+    "card": {
+      "lastFrame": "Bingkai terakhir {{ago}} saat lalu",
+      "frames": "Bingkai dihantar: {{count}}",
+      "chooseAgain": "Pilih semula",
+      "lostHint": "Sumber sudah tiada; gambar terakhir disimpan sehingga anda memilih semula.",
+      "lostExtension": "Gambar tab mesyuarat tidak lagi tersedia; terjemahan diteruskan dengan audio sahaja."
+    }
   }
 }

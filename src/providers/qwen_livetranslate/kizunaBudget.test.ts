@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { LegName } from '../../lib/conversation/types';
-import { kizunaQwenMinimumBalance } from './kizunaBudget';
+import { kizunaQwenMinimumBalance, QWEN_SCREEN_MICRO_USD_PER_HOUR } from './kizunaBudget';
 import type { QwenRegion } from './regions';
 import { QWEN_DEFAULTS } from './settings';
 
@@ -17,8 +17,8 @@ import { QWEN_DEFAULTS } from './settings';
  * fails here rather than as a Start button that lies.
  */
 describe('Kizuna Qwen start floor mirrors the backend', () => {
-  const at = (region: QwenRegion, legs: LegName[], textOnly: boolean, participantSpeech: boolean) =>
-    kizunaQwenMinimumBalance({ legs, textOnly, participantSpeech }, { ...QWEN_DEFAULTS, region });
+  const at = (region: QwenRegion, legs: LegName[], textOnly: boolean, participantSpeech: boolean, screenContext = false) =>
+    kizunaQwenMinimumBalance({ legs, textOnly, participantSpeech }, { ...QWEN_DEFAULTS, region, screenContext });
   // Integer µUSD per hour, so the ceil is exact.
   const floor = (speaking: number, text: number, rate: { speaking: number; text: number }) => Math.ceil(((speaking * rate.speaking + text * rate.text) * 60) / 3600);
   const SG = { speaking: 2_557_800, text: 667_800 };
@@ -58,6 +58,16 @@ describe('Kizuna Qwen start floor mirrors the backend', () => {
     expect(at('cn', ['participant'], false, true)).toBe(30_150);
     // At 6.678 CNY per USD (2026-10-21) the backend floors a speaking leg at 36 119 µUSD: this stays under it.
     expect(at('cn', ['speaker'], false, false)).toBeLessThan(36_119);
+  });
+
+  it('adds the screen-context add-on to every leg while the switch is on', () => {
+    expect(QWEN_SCREEN_MICRO_USD_PER_HOUR).toEqual({ sg: 665_280, cn: 534_600 });
+    expect(at('sg', ['speaker'], false, false, true)).toBe(53_718);
+    expect(at('sg', ['speaker'], true, false, true)).toBe(22_218);
+    expect(at('sg', ['speaker', 'participant'], false, false, true)).toBe(75_936);
+    expect(at('cn', ['speaker'], false, false, true)).toBe(39_060);
+    expect(at('cn', ['speaker'], true, false, true)).toBe(16_560);
+    expect(at('sg', ['speaker'], false, false, false)).toBe(42_630);
   });
 
   it('floors a region it does not know as Singapore, the region every backend serves', () => {

@@ -4,6 +4,7 @@ import { createVirtualClock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import type { LeaseContext, RunShape } from '../../lib/session/types';
 import { CONFLICT_WAIT_LIMIT_MS, createQwenLease, ENDING_POLL_MS, RELEASED_RETRY_MS, SESSION_KEY_TIMEOUT_MS } from './lease';
+import { fakeFrameSource } from '../../lib/contract/testing/fakeFrames';
 import { QWEN_DEFAULTS, type QwenSettings } from './settings';
 
 const API = 'https://api.test';
@@ -30,11 +31,11 @@ const grant = (over: Record<string, unknown> = {}) => ({
   maxSessionDurationSeconds: 600, budgetMicroUsd: 416_667, rateUsdPerHour: 2.5, ...over,
 });
 
-type Options = { textOnly?: boolean; participantSpeech?: boolean; token?: string | null; settings?: Partial<QwenSettings> };
+type Options = { textOnly?: boolean; participantSpeech?: boolean; token?: string | null; settings?: Partial<QwenSettings>; frames?: RunShape['frames'] };
 
 const shapeFor = (legs: LegName[], o: Options = {}): RunShape => ({
   provider: {} as RunShape['provider'], settings: { ...QWEN_DEFAULTS, ...o.settings }, credentials: {}, pair: { source: 'ja', target: 'en' }, legs,
-  turnMode: 'auto', textOnly: o.textOnly ?? false, participantSpeech: o.participantSpeech ?? false, keepReplayAudio: true,
+  turnMode: 'auto', textOnly: o.textOnly ?? false, participantSpeech: o.participantSpeech ?? false, keepReplayAudio: true, frames: o.frames,
   shared: { pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 } },
   auth: { signedIn: o.token !== null, userId: 'u1', getToken: vi.fn(async () => (o.token === undefined ? 'tok' : o.token)) },
 });
@@ -74,20 +75,28 @@ describe('Qwen lease: the session-key request', () => {
   it('asks for a speaker-only text-only run with nobody speaking', async () => {
     const a = acquiring(['speaker'], { textOnly: true });
     await flush();
-    expect(JSON.parse(a.last().init.body as string)).toEqual({ legs: ['speaker'], speech: { speaker: false, participant: false }, region: 'sg' });
+    expect(JSON.parse(a.last().init.body as string)).toEqual({ legs: ['speaker'], speech: { speaker: false, participant: false }, region: 'sg', screenContext: false });
   });
 
   it('asks for Both with the participant spoken to me', async () => {
     const a = acquiring(['speaker', 'participant'], { participantSpeech: true });
     await flush();
-    expect(JSON.parse(a.last().init.body as string)).toEqual({ legs: ['speaker', 'participant'], speech: { speaker: true, participant: true }, region: 'sg' });
+    expect(JSON.parse(a.last().init.body as string)).toEqual({ legs: ['speaker', 'participant'], speech: { speaker: true, participant: true }, region: 'sg', screenContext: false });
   });
 
   it('asks for a participant-only run with the speaker not speaking, whatever textOnly says', async () => {
     for (const participantSpeech of [true, false]) {
       const a = acquiring(['participant'], { participantSpeech });
       await flush();
-      expect(JSON.parse(a.last().init.body as string)).toEqual({ legs: ['participant'], speech: { speaker: false, participant: participantSpeech }, region: 'sg' });
+      expect(JSON.parse(a.last().init.body as string)).toEqual({ legs: ['participant'], speech: { speaker: false, participant: participantSpeech }, region: 'sg', screenContext: false });
+    }
+  });
+
+  it('tells the backend whether this run has a screen: true with a source on the shape, false without', async () => {
+    for (const [frames, expected] of [[fakeFrameSource(), true], [undefined, false]] as const) {
+      const a = acquiring(['speaker'], { frames });
+      await flush();
+      expect(JSON.parse(a.last().init.body as string).screenContext).toBe(expected);
     }
   });
 
@@ -98,7 +107,7 @@ describe('Qwen lease: the session-key request', () => {
     expect(call.url).toBe(`${API}/qwen/session-key`);
     expect(call.init.method).toBe('POST');
     expect(call.init.headers).toEqual({ Authorization: 'Bearer tok', 'Content-Type': 'application/json' });
-    expect(a.frame).toHaveBeenCalledWith({ direction: 'out', type: 'session.key_requested', payload: { legs: ['speaker'], speech: { speaker: true, participant: false }, region: 'sg' } });
+    expect(a.frame).toHaveBeenCalledWith({ direction: 'out', type: 'session.key_requested', payload: { legs: ['speaker'], speech: { speaker: true, participant: false }, region: 'sg', screenContext: false } });
     expect(JSON.stringify(a.frame.mock.calls)).not.toContain('tok"');
     call.respond(200, grant());
     await a.pending;

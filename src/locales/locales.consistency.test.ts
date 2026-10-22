@@ -130,6 +130,25 @@ describe('notices that name a button use that locale\'s own label', () => {
   });
 });
 
+describe('the lost screen notice states the loss and sends nobody to a button', () => {
+  // The notice is the same in the desktop app and the extension, and only the
+  // desktop can choose again (its chip's card has the button; the extension
+  // captures the meeting tab and has none). So the notice states what happened
+  // and names no button, and the chip's lost word is a status, not the card's
+  // instruction.
+  it('notices.screen_context_lost never names screenContext.card.chooseAgain, and screenContext.chip.lost is not that button', () => {
+    const offenders: string[] = [];
+    for (const [lang, cat] of [['en', EN] as const, ...locales]) {
+      const button = cat['screenContext.card.chooseAgain'];
+      const notice = cat['notices.screen_context_lost'];
+      if (typeof button !== 'string' || typeof notice !== 'string') continue; // key-parity is another test's job
+      if (notice.toLocaleLowerCase().includes(button.toLocaleLowerCase())) offenders.push(`${lang}: ${JSON.stringify(notice)} names ${JSON.stringify(button)}`);
+      if (cat['screenContext.chip.lost'] === button) offenders.push(`${lang}: the chip's lost word is the card's button`);
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe('the text-only warnings name the row they are about, as that locale labels it (#619)', () => {
   const ROWS: Record<string, string> = {
     'notices.speaker_tts_missing': 'audioPanel.otherHears',

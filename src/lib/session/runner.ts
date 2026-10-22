@@ -270,6 +270,10 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
       platform: deps.platform,
       channels: [...shape.legs],
     });
+    // Once per run, at the step to running, as the session's own start (spec 2026-10-22 §3.6): the kind, never the title.
+    if (shape.frames) {
+      deps.analytics.track('screen_context_on', { session_id: run.id, provider: shape.provider.id, source_kind: shape.frames.kind, platform: deps.platform });
+    }
   };
 
   const stop = (method: ControlMethod = 'button'): Promise<void> => {

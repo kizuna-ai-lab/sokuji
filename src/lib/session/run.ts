@@ -286,6 +286,8 @@ export class Run {
       clock: deps.clock,
       signal: this.signal,
       punctuate,
+      // One source for both legs: in Both either side may refer to the screen (spec 2026-10-22 §3.1).
+      ...(shape.frames ? { frames: shape.frames } : {}),
     }])) as Record<LegName, StartRequest<unknown, unknown>>;
 
     if (together) {
@@ -553,7 +555,7 @@ export class Run {
         return;
       }
       case 'degraded': {
-        // Ruling 8: every adapter degradation reaches `api_error`, as the old
+        // Ruling 8: every adapter degradation but a lost screen reaches `api_error`, as the old
         // Soniox client's TTS failures did (`error_code: tts_<cause>`), counted
         // as the user is told: L1's window per leg and code
         // (`DEGRADED_DEDUPE_MS`). Soniox reports once per failure episode
@@ -567,6 +569,12 @@ export class Run {
         const last = this.degradedTrackedAt.get(key);
         if (last !== undefined && now - last < DEGRADED_DEDUPE_MS) return;
         this.degradedTrackedAt.set(key, now);
+        // A closed or hidden window is not the provider's error: its own
+        // event only (spec 2026-10-22 §3.6), no title, no pixels.
+        if (code === 'screen_context_lost') {
+          analytics.track('screen_context_lost', { session_id: this.id, provider, channel: leg });
+          return;
+        }
         analytics.track('api_error', { provider, error_message: redact(message), error_code: reason ?? code, error_type: 'server', channel: leg });
         return;
       }

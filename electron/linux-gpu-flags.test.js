@@ -5,6 +5,11 @@ const waylandEnv = { XDG_SESSION_TYPE: 'wayland', WAYLAND_DISPLAY: 'wayland-0' }
 const x11Env = { XDG_SESSION_TYPE: 'x11', DISPLAY: ':0' };
 
 describe('resolveLinuxGpuFeatures (issue #389)', () => {
+  it('lists the PipeWire capturer on both branches — Wayland screen capture goes through it', () => {
+    expect(VULKAN_FEATURES).toBe('Vulkan,SharedArrayBuffer,WebRTCPipeWireCapturer');
+    expect(NO_VULKAN_FEATURES).toBe('SharedArrayBuffer,WebRTCPipeWireCapturer');
+  });
+
   it('keeps Vulkan off Linux — Wayland is not involved on win32/darwin', () => {
     for (const platform of ['win32', 'darwin']) {
       expect(resolveLinuxGpuFeatures({ platform, effectivePlatform: '', env: {} })).toBe(VULKAN_FEATURES);
@@ -87,6 +92,18 @@ describe('resolveLinuxGpuFeatures (issue #389)', () => {
     for (const c of cases) {
       expect(resolveLinuxGpuFeatures({ platform: 'linux', ...c }).split(','))
         .toContain('SharedArrayBuffer');
+    }
+  });
+
+  it('always keeps the PipeWire capturer — the screen-context picker needs it on a Wayland session', () => {
+    const cases = [
+      { effectivePlatform: 'x11', env: x11Env },
+      { effectivePlatform: 'wayland', env: waylandEnv },
+      { effectivePlatform: '', env: {} },
+    ];
+    for (const c of cases) {
+      expect(resolveLinuxGpuFeatures({ platform: 'linux', ...c }).split(','))
+        .toContain('WebRTCPipeWireCapturer');
     }
   });
 });

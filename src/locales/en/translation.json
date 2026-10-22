@@ -557,7 +557,16 @@
       "vocabulary": "Custom Vocabulary",
       "vocabularyTranslations": "Preferred Translations",
       "vocabularyTranslationsTooltip": "Biases how specific terms are translated — a preference, not a guaranteed replacement: names with an established rendering work best, while common words may keep the model's own wording. Entries are directional; the reverse direction only exists in Both mode, where you can add a reverse line.",
-      "vocabularyTranslationsPlaceholder": "One source=target per line"
+      "vocabularyTranslationsPlaceholder": "One source=target per line",
+      "screenContext": "Screen context",
+      "screenContextTooltip": "Lets the model see one window, tab or screen you choose, so the names and terms on it are recognized and translated as written. Everything inside that area is sent to Alibaba Cloud's Qwen service, in the region of this session, as pictures; Kizuna AI never receives them. It adds to the charge for every second of speech while it is on — on your Alibaba Cloud bill with your own key, or on your account's pricing page with a Kizuna AI account; in Both mode each direction's session is billed.",
+      "screenContextBeta": "Beta",
+      "screenContextPicked": "The model will see: {{name}}",
+      "screenContextStill": "Picture from when you chose it",
+      "screenContextPortal": "The system asks which window or screen when the session starts.",
+      "screenContextAtStart": "At start",
+      "screenContextNone": "No window chosen yet: you'll be asked when the session starts.",
+      "screenContextChoose": "Choose…"
     },
     "local_inference": {
       "name": "Free",
@@ -1464,7 +1473,8 @@
     "mic_blocked": "Windows is not letting Sokuji use the microphone. Turn on microphone access for desktop apps in Settings › Privacy & security › Microphone, then start again.",
     "speaker_tts_missing": "Translation the other side hears is text only: no speech model speaks {{target}}.",
     "participant_tts_missing": "Translation I hear is text only: no speech model speaks {{target}}.",
-    "participant_tts_over_budget": "Translation I hear is text only: not enough memory to load the other side's speech model too."
+    "participant_tts_over_budget": "Translation I hear is text only: not enough memory to load the other side's speech model too.",
+    "screen_context_lost": "The screen you chose is no longer available; translation continues on audio alone."
   },
   "captionShare": {
     "button": "Share captions",
@@ -1573,6 +1583,40 @@
       "fullscreen": "Full screen",
       "windowTitle": "Sokuji projector page",
       "ended": "Sharing has ended"
+    }
+  },
+  "screenContext": {
+    "picker": {
+      "title": "Choose what the model can see",
+      "privacy": "Everything inside the area you choose is sent to Alibaba Cloud's Qwen service, in the region of this session, as pictures — nothing else on your screen. Kizuna AI does not receive them.",
+      "windows": "Windows",
+      "screens": "Screens",
+      "portal": "Choose a window or screen…",
+      "loading": "Looking for windows…",
+      "none": "No window or screen to share was found.",
+      "minimizedHint": "A minimized window can't be shared: restore it, then Refresh.",
+      "deniedTitle": "Screen Recording permission needed",
+      "deniedText": "macOS lets Sokuji see the screen only with Screen Recording permission. Grant it in System Settings, then restart Sokuji and start again.",
+      "openSettings": "Open System Settings",
+      "refresh": "Refresh",
+      "cancel": "Start without screen context",
+      "nothingVisible": "The area you chose shows nothing right now. Pick another, or start without screen context.",
+      "nothingVisibleRunning": "The area you chose shows nothing right now. Pick another, or keep the session as it is.",
+      "gone": "The window or screen you chose can't be captured right now. Pick another, or start without screen context.",
+      "checking": "Checking the picture…"
+    },
+    "chip": {
+      "live": "Live",
+      "stale": "Unchanged",
+      "lost": "Not available",
+      "label": "Screen context: {{name}}, {{status}}"
+    },
+    "card": {
+      "lastFrame": "Last frame {{ago}} s ago",
+      "frames": "Frames sent: {{count}}",
+      "chooseAgain": "Choose again",
+      "lostHint": "The source is gone; the last picture is kept until you choose again.",
+      "lostExtension": "The meeting tab's picture is no longer available; translation continues on audio alone."
     }
   }
 }

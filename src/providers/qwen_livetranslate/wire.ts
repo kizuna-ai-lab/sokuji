@@ -32,6 +32,8 @@ export function qwenHeaders(k: QwenCredentials): UpgradeHeaders {
 export interface SessionUpdate {
   type: 'session.update';
   session: {
+    /** Declared only with a screen source: frames are ignored without it, and a declaration with no frame ends the session at its first turn (spec 2026-10-22). */
+    input_modalities?: Array<'audio' | 'video'>;
     output_modalities: Array<'text' | 'audio'>;
     /** `corpus.phrases`: source term → its translation; a common word is replaced too (probe 2026-10-13). */
     translation: { language: string; corpus?: { phrases: Record<string, string> } };
@@ -46,13 +48,15 @@ export interface SessionUpdate {
   };
 }
 
-export function sessionUpdate(c: Pick<QwenConfig, 'target' | 'speech' | 'voice' | 'manual' | 'phrases' | 'silenceMs'>): SessionUpdate {
+/** `video`: the leg has a screen source, so the session declares video beside audio. */
+export function sessionUpdate(c: Pick<QwenConfig, 'target' | 'speech' | 'voice' | 'manual' | 'phrases' | 'silenceMs'>, o: { video: boolean }): SessionUpdate {
   const format = { type: 'pcm' as const, sample_rate: SAMPLE_RATE };
   const voice = c.voice;
   const hasPhrases = Object.keys(c.phrases).length > 0;
   return {
     type: 'session.update',
     session: {
+      ...(o.video ? { input_modalities: ['audio', 'video'] as Array<'audio' | 'video'> } : {}),
       output_modalities: c.speech ? ['text', 'audio'] : ['text'],
       translation: hasPhrases ? { language: c.target, corpus: { phrases: { ...c.phrases } } } : { language: c.target },
       audio: {
@@ -71,6 +75,17 @@ export function sessionUpdate(c: Pick<QwenConfig, 'target' | 'speech' | 'voice' 
 /** One chunk as it goes up: base64 of little-endian Int16, as it came. */
 export function appendFrame(pcm: Int16Array): string {
   return JSON.stringify({ type: 'input_audio_buffer.append', audio: pcmToBase64(pcm) });
+}
+
+/**
+ * One screen frame as it goes up: base64 of the JPEG's bytes. It follows the
+ * first audio on the wire, and later frames are sent as they come (spec
+ * 2026-10-22). In 32 KiB steps, which `String.fromCharCode` spreads safely.
+ */
+export function imageFrame(jpeg: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < jpeg.length; i += 0x8000) binary += String.fromCharCode(...jpeg.subarray(i, i + 0x8000));
+  return JSON.stringify({ type: 'input_image_buffer.append', image: btoa(binary) });
 }
 
 /**

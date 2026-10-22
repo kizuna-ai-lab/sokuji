@@ -22,12 +22,14 @@ export interface TabSettings {
   /** Where the captured tab is played back, since Chrome mutes it. */
   outputDeviceId(): string | undefined;
   muted(): boolean;
+  /** Whether the screen context shares this capture: the tab's video is taken from the same stream as its audio. */
+  video(): boolean;
 }
 
 /** The part of `TabAudioRecorder` this source drives. */
 export interface TabCapture {
   /** False when the tab cannot be captured (it logs why and cleans up after itself). */
-  begin(options?: { tabId?: number; outputDeviceId?: string }): Promise<boolean>;
+  begin(options?: { tabId?: number; outputDeviceId?: string; video?: boolean }): Promise<boolean>;
   record(callback: (data: { mono: Int16Array }) => void): Promise<boolean>;
   end(): Promise<void>;
   getStream(): MediaStream | null;
@@ -60,7 +62,7 @@ export async function openTab(
     },
   });
 
-  const begun = await recorder.begin({ tabId, outputDeviceId: settings.outputDeviceId() });
+  const begun = await recorder.begin({ tabId, outputDeviceId: settings.outputDeviceId(), video: settings.video() });
   if (!begun) throw new Error('The meeting tab could not be captured. Reload the tab and try again.');
   open = true;
   unwatch = core.watch(recorder.getStream());

@@ -104,12 +104,11 @@ describe('the registry', () => {
     }
   });
 
-  it('Kizuna Qwen is flagged: a release offers it second only when named and the umbrella is on, a development build always', () => {
+  it('Kizuna Qwen is unflagged (owner, 2026-10-22): a release offers it second under the umbrella alone, never without it, never on the web', () => {
     for (const platform of ['electron', 'extension'] as const) {
       const env = { platform, dev: false, enabled: new Set<string>(), kizuna: true, switchOn: () => false };
-      expect(presentProviders(env).map((p) => p.id), platform).not.toContain('kizunaai_qwen');
-      expect(presentProviders({ ...env, enabled: new Set(['kizunaai_qwen']) }).map((p) => p.id).slice(0, 2), platform).toEqual(['kizunaai_soniox', 'kizunaai_qwen']);
-      expect(presentProviders({ ...env, enabled: new Set(['kizunaai_qwen']), kizuna: false }).map((p) => p.id), platform).not.toContain('kizunaai_qwen');
+      expect(presentProviders(env).map((p) => p.id).slice(0, 2), platform).toEqual(['kizunaai_soniox', 'kizunaai_qwen']);
+      expect(presentProviders({ ...env, kizuna: false }).map((p) => p.id), platform).not.toContain('kizunaai_qwen');
       expect(presentProviders({ ...env, dev: true }).map((p) => p.id), platform).toContain('kizunaai_qwen');
     }
     expect(presentProviders({ platform: 'web', dev: true, enabled: new Set(['kizunaai_qwen']), kizuna: true, switchOn: () => false }).map((p) => p.id)).not.toContain('kizunaai_qwen');

@@ -48,6 +48,8 @@ export const CLIENT_DIAGNOSTICS = {
   participant_tts_missing: { severity: 'warning' },
   /** Local inference: Translation I hear is text only, its speech model dropped to fit the memory budget (#619). */
   participant_tts_over_budget: { severity: 'warning' },
+  /** The chosen capture area is gone (window closed, tab gone, capture failed); the session continues on audio. Frames resume if it comes back. */
+  screen_context_lost: { severity: 'warning' },
 } satisfies Record<string, { severity: 'error' | 'warning' }>;
 
 export type ClientDiagnosticCode = keyof typeof CLIENT_DIAGNOSTICS;

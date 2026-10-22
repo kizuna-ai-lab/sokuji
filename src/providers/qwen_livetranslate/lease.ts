@@ -250,12 +250,15 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
     const token = await shape.auth.getToken();
     if (ctx.signal.aborted) throw ctx.signal.reason ?? new Error('aborted');
     if (!token) throw new AdapterStartError('Sign in is required to start a managed Qwen session.', 'sign_in_required');
-    // What the start asks for: the legs, which of them speak, and the region the keys are bought in. The speaker speaks unless
-    // text-only; the participant only under Translation I hear. The region is the setting's, narrowed: the backend answers with its own.
+    // What the start asks for: the legs, which of them speak, the region the keys are bought in, and whether this run has a screen.
+    // The speaker speaks unless text-only; the participant only under Translation I hear. The region is the setting's, narrowed:
+    // the backend answers with its own.
     const sent = {
       legs: [...shape.legs],
       speech: { speaker: shape.legs.includes('speaker') && !shape.textOnly, participant: shape.legs.includes('participant') && shape.participantSpeech },
       region: asQwenRegion(s.region),
+      // The truth of this run, not the switch: a cancelled pick sent no source, so it is not billed the add-on.
+      screenContext: shape.frames !== undefined,
     };
 
     const attempt = async (): Promise<{ status: number; body: unknown }> => {

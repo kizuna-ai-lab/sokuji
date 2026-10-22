@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  appendFrame, base64ToPcm, COMMIT, decodeServerEvent, errorCode, errorOf, errorWords, FINISH, qwenHeaders, sessionUpdate, socketUrl,
+  appendFrame, base64ToPcm, COMMIT, decodeServerEvent, errorCode, errorOf, errorWords, FINISH, imageFrame, qwenHeaders, sessionUpdate, socketUrl,
 } from './wire';
 
 const MODEL = 'qwen3.8-livetranslate-flash-realtime';
@@ -18,18 +18,35 @@ describe("Qwen LiveTranslate's wire (spec §6)", () => {
   });
 
   it('asks a speaking leg for text and audio in its preset, at 24 kHz in, with server turns', () => {
-    expect(sessionUpdate(preset)).toEqual({
+    expect(sessionUpdate(preset, { video: false })).toEqual({
       type: 'session.update',
       session: { output_modalities: ['text', 'audio'], translation: { language: 'en' }, audio: { input: INPUT, output: { voice: 'Tina' } } },
     });
   });
 
+  it('declares video beside audio only when asked, as the first key of the session', () => {
+    expect(sessionUpdate(preset, { video: true }).session.input_modalities).toEqual(['audio', 'video']);
+    expect('input_modalities' in sessionUpdate(preset, { video: false }).session).toBe(false);
+    expect(Object.keys(sessionUpdate(preset, { video: true }).session)[0]).toBe('input_modalities');
+  });
+
+  it('frames an image as base64 under input_image_buffer.append', () => {
+    expect(JSON.parse(imageFrame(new Uint8Array([255, 216, 255])))).toEqual({ type: 'input_image_buffer.append', image: '/9j/' });
+  });
+
+  it('frames a frame the size of a screenshot without overflowing the stack, byte for byte', () => {
+    const jpeg = Uint8Array.from({ length: 300_000 }, (_, i) => (i * 7) % 256);
+    const image = (JSON.parse(imageFrame(jpeg)) as { image: string }).image;
+    const back = Uint8Array.from(atob(image), (c) => c.charCodeAt(0));
+    expect(back).toEqual(jpeg);
+  });
+
   it('turns server turn detection off under push-to-talk', () => {
-    expect(sessionUpdate({ ...preset, manual: true }).session.audio.input).toEqual({ ...INPUT, turn_detection: null });
+    expect(sessionUpdate({ ...preset, manual: true }, { video: false }).session.audio.input).toEqual({ ...INPUT, turn_detection: null });
   });
 
   it('clones the speaker on every turn: the voice "default", cloning on, always', () => {
-    expect(sessionUpdate({ ...preset, voice: { kind: 'clone', frequency: 'always' } }).session).toEqual({
+    expect(sessionUpdate({ ...preset, voice: { kind: 'clone', frequency: 'always' } }, { video: false }).session).toEqual({
       output_modalities: ['text', 'audio'],
       translation: { language: 'en' },
       audio: { input: INPUT, output: { voice: 'default' } },
@@ -39,31 +56,31 @@ describe("Qwen LiveTranslate's wire (spec §6)", () => {
   });
 
   it('clones the first speaker once and keeps that voice: frequency once', () => {
-    expect(sessionUpdate({ ...preset, voice: { kind: 'clone', frequency: 'once' } }).session).toMatchObject({
+    expect(sessionUpdate({ ...preset, voice: { kind: 'clone', frequency: 'once' } }, { video: false }).session).toMatchObject({
       audio: { output: { voice: 'default' } }, enable_voice_clone: true, voice_clone_options: { frequency: 'once' },
     });
   });
 
   it('sends the hotwords as the corpus, and no corpus without them', () => {
-    expect(sessionUpdate({ ...preset, phrases: { '实时翻译': 'LiveTranslate' } }).session.translation).toEqual({ language: 'en', corpus: { phrases: { '实时翻译': 'LiveTranslate' } } });
-    expect(sessionUpdate(preset).session.translation).toEqual({ language: 'en' });
+    expect(sessionUpdate({ ...preset, phrases: { '实时翻译': 'LiveTranslate' } }, { video: false }).session.translation).toEqual({ language: 'en', corpus: { phrases: { '实时翻译': 'LiveTranslate' } } });
+    expect(sessionUpdate(preset, { video: false }).session.translation).toEqual({ language: 'en' });
   });
 
   it('sends a pause as speaker detection with that silence; push-to-talk stays without server turns', () => {
-    expect(sessionUpdate({ ...preset, silenceMs: 1000 }).session.audio.input).toEqual({ ...INPUT, turn_detection: { type: 'speaker_detection', silence_duration_ms: 1000 } });
-    expect(sessionUpdate({ ...preset, manual: true, silenceMs: 1000 }).session.audio.input).toEqual({ ...INPUT, turn_detection: null });
+    expect(sessionUpdate({ ...preset, silenceMs: 1000 }, { video: false }).session.audio.input).toEqual({ ...INPUT, turn_detection: { type: 'speaker_detection', silence_duration_ms: 1000 } });
+    expect(sessionUpdate({ ...preset, manual: true, silenceMs: 1000 }, { video: false }).session.audio.input).toEqual({ ...INPUT, turn_detection: null });
   });
 
   it('asks a leg that does not speak for text alone: no output, no cloning, whatever voice is chosen', () => {
     for (const voice of [preset.voice, { kind: 'clone' as const, frequency: 'always' as const }, { kind: 'clone' as const, frequency: 'once' as const }]) {
-      expect(sessionUpdate({ ...preset, speech: false, voice }).session).toEqual({ output_modalities: ['text'], translation: { language: 'en' }, audio: { input: INPUT } });
+      expect(sessionUpdate({ ...preset, speech: false, voice }, { video: false }).session).toEqual({ output_modalities: ['text'], translation: { language: 'en' }, audio: { input: INPUT } });
     }
-    expect(sessionUpdate({ ...preset, speech: false, manual: true }).session.audio).toEqual({ input: { ...INPUT, turn_detection: null } });
+    expect(sessionUpdate({ ...preset, speech: false, manual: true }, { video: false }).session.audio).toEqual({ input: { ...INPUT, turn_detection: null } });
   });
 
   it('sends preset names verbatim, spaces and diacritics included', () => {
-    expect(sessionUpdate({ ...preset, voice: { kind: 'preset', name: 'Liora Mira' } }).session.audio.output).toEqual({ voice: 'Liora Mira' });
-    expect(sessionUpdate({ ...preset, voice: { kind: 'preset', name: 'Eliška' } }).session.audio.output).toEqual({ voice: 'Eliška' });
+    expect(sessionUpdate({ ...preset, voice: { kind: 'preset', name: 'Liora Mira' } }, { video: false }).session.audio.output).toEqual({ voice: 'Liora Mira' });
+    expect(sessionUpdate({ ...preset, voice: { kind: 'preset', name: 'Eliška' } }, { video: false }).session.audio.output).toEqual({ voice: 'Eliška' });
   });
 
   it('appends pcm as base64, as it came', () => {

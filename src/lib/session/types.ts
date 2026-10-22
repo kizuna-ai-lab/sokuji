@@ -1,7 +1,7 @@
 /**
  * The runner's vocabulary (spec: "Session lifecycle"). Types only.
  */
-import type { AdapterEvents, AdapterFrame, AdapterSession, StartRequest } from '../contract/adapter';
+import type { AdapterEvents, AdapterFrame, AdapterSession, FrameSource, StartRequest } from '../contract/adapter';
 import type { Clock } from '../contract/clock';
 import type { LegName } from '../conversation/types';
 import type { AnyProvider, AuthContext, LanguagePair, ProviderRefusal, SharedSettings } from '../provider/types';
@@ -44,6 +44,8 @@ export interface RunShape {
   auth: AuthContext;
   /** The account's wallet at start, for a managed provider's floor (ruling 5). Null or absent when signed out, or where no account is wired (tests, the preview): then the sign-in check speaks, not the gate. */
   account?: AccountState | null;
+  /** The chosen capture area for a provider that takes one (Qwen); run-time state, never persisted. */
+  frames?: FrameSource;
 }
 
 /** A notice a run records; surfaces localize it by `code`. */

@@ -280,6 +280,13 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      and the backend keeps every older version beside the new one (its `PINNED_VERSIONS`, an npm
      alias per old version): an older app release still fetches the file it pins.
 
+9. **Screen context** (`src/lib/screen/`, spec
+   `docs/superpowers/specs/2026-10-22-qwen-screen-context-design.md`): a chosen window, tab or
+   screen sampled at 1 fps into JPEG frames for the Qwen adapter (`StartRequest.frames`); the
+   sampler owns change detection, keep-alives and the lost state; `electron/capture-sources.js`
+   lists desktop sources, `src/lib/screen/tabStream.ts` shares one tab capture between audio and
+   video; the chip in `PanelFooter` is the cue.
+
 ## Important Patterns and Conventions
 
 ### Code Organization

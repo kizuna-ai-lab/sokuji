@@ -557,7 +557,16 @@
       "vocabulary": "맞춤 어휘",
       "vocabularyTranslations": "선호하는 번역",
       "vocabularyTranslationsTooltip": "특정 용어의 번역 방식에 영향을 줍니다 — 이는 선호일 뿐 보장된 대체가 아닙니다: 정착된 번역이 있는 이름에 가장 효과적이며, 일반 단어는 모델 자체의 표현이 그대로 유지될 수 있습니다. 항목에는 방향이 있습니다. 역방향은 모두 모드에서만 존재하며, 이때 역방향 줄을 추가할 수 있습니다.",
-      "vocabularyTranslationsPlaceholder": "한 줄에 하나씩 원어=번역어 형식으로 입력"
+      "vocabularyTranslationsPlaceholder": "한 줄에 하나씩 원어=번역어 형식으로 입력",
+      "screenContext": "화면 컨텍스트",
+      "screenContextTooltip": "선택한 창, 탭 또는 화면 하나를 모델이 볼 수 있게 하여, 그 안에 있는 이름과 용어를 표기된 그대로 인식하고 번역합니다. 해당 영역 안의 모든 내용은 이미지로 이 세션의 리전에 있는 Alibaba Cloud의 Qwen 서비스로 전송되며, Kizuna AI는 이를 절대 받지 않습니다. 켜져 있는 동안 음성 한 초마다 요금이 추가됩니다. 자신의 키를 사용하면 Alibaba Cloud 청구서에, Kizuna AI 계정을 사용하면 계정의 요금 페이지에 안내된 대로 추가되며, 모두 모드에서는 방향마다 세션 요금이 부과됩니다.",
+      "screenContextBeta": "베타",
+      "screenContextPicked": "모델이 볼 화면: {{name}}",
+      "screenContextStill": "선택했을 때의 화면",
+      "screenContextPortal": "세션을 시작할 때 시스템이 어떤 창이나 화면인지 묻습니다.",
+      "screenContextAtStart": "시작할 때",
+      "screenContextNone": "아직 선택한 창이 없습니다. 세션을 시작할 때 묻습니다.",
+      "screenContextChoose": "선택…"
     },
     "local_inference": {
       "name": "무료",
@@ -1452,7 +1461,8 @@
     "mic_blocked": "Windows에서 Sokuji의 마이크 사용을 허용하지 않습니다. 설정 › 개인 정보 및 보안 › 마이크에서 데스크톱 앱의 마이크 액세스를 켠 뒤 다시 시작하세요.",
     "speaker_tts_missing": "상대방에게 들리는 번역은 텍스트로만 표시됩니다: {{target}}용 음성 모델이 없습니다.",
     "participant_tts_missing": "내가 듣는 번역은 텍스트로만 표시됩니다: {{target}}용 음성 모델이 없습니다.",
-    "participant_tts_over_budget": "내가 듣는 번역은 텍스트로만 표시됩니다: 상대방 쪽 음성 모델까지 불러올 메모리가 부족합니다."
+    "participant_tts_over_budget": "내가 듣는 번역은 텍스트로만 표시됩니다: 상대방 쪽 음성 모델까지 불러올 메모리가 부족합니다.",
+    "screen_context_lost": "선택한 화면을 더 이상 사용할 수 없습니다. 번역은 오디오만으로 계속됩니다."
   },
   "viewer": {
     "title": "Sokuji 자막",
@@ -1574,5 +1584,39 @@
     "notPlayed": "재생되지 않음: 이 번역은 {{target}}이(가) 아니라 {{language}}이므로 아무에게도 읽어 주지 않습니다.",
     "legendMe": "{{language}} · 나",
     "legendOther": "{{language}} · 상대방"
+  },
+  "screenContext": {
+    "picker": {
+      "title": "모델이 볼 수 있는 범위 선택",
+      "privacy": "선택한 영역 안의 모든 내용은 이미지로 이 세션의 리전에 있는 Alibaba Cloud의 Qwen 서비스로 전송됩니다. 화면의 다른 부분은 전송되지 않습니다. Kizuna AI는 이 이미지를 받지 않습니다.",
+      "windows": "창",
+      "screens": "화면",
+      "portal": "창 또는 화면 선택…",
+      "loading": "창을 찾는 중…",
+      "none": "공유할 창이나 화면을 찾지 못했습니다.",
+      "minimizedHint": "최소화된 창은 공유할 수 없습니다. 창을 복원한 뒤 새로 고침하세요.",
+      "deniedTitle": "화면 기록 권한이 필요합니다",
+      "deniedText": "macOS에서는 화면 기록 권한이 있어야 Sokuji가 화면을 볼 수 있습니다. 시스템 설정에서 권한을 허용한 다음 Sokuji를 다시 실행하고 다시 시작하세요.",
+      "openSettings": "시스템 설정 열기",
+      "refresh": "새로 고침",
+      "cancel": "화면 컨텍스트 없이 시작",
+      "nothingVisible": "선택한 영역에 지금 아무것도 표시되지 않습니다. 다른 영역을 선택하거나 화면 컨텍스트 없이 시작하세요.",
+      "nothingVisibleRunning": "선택한 영역에 지금 아무것도 표시되지 않습니다. 다른 영역을 선택하거나 세션을 지금 그대로 두세요.",
+      "gone": "선택한 창 또는 화면을 지금 캡처할 수 없습니다. 다른 항목을 선택하거나 화면 컨텍스트 없이 시작하세요.",
+      "checking": "이미지를 확인하는 중…"
+    },
+    "chip": {
+      "live": "실시간",
+      "stale": "변경 없음",
+      "lost": "사용할 수 없음",
+      "label": "화면 컨텍스트: {{name}}, {{status}}"
+    },
+    "card": {
+      "lastFrame": "마지막 프레임 {{ago}}초 전",
+      "frames": "전송된 프레임: {{count}}",
+      "chooseAgain": "다시 선택",
+      "lostHint": "소스가 사라졌습니다. 다시 선택할 때까지 마지막 이미지가 유지됩니다.",
+      "lostExtension": "회의 탭의 이미지를 더 이상 사용할 수 없습니다. 번역은 오디오만으로 계속됩니다."
+    }
   }
 }

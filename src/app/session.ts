@@ -13,7 +13,9 @@ import { redact } from '../lib/diagnostics/redact';
 import { describeCause, reportWarning } from '../lib/diagnostics/report';
 import { autoSaveConversation } from '../lib/export/appAutoSave';
 import type { AuthContext } from '../lib/provider/types';
-import { appParticipantSpeech, appReplayAudio, ensureReadyFromStores, faceToFaceFromStores, persistIfUnchanged, readShapeFromStores, watchLegsFromStores, watchSpeechFromStores } from '../lib/session/appShape';
+import { openDesktopCapture } from '../lib/screen/desktopFrames';
+import { openTabCapture } from '../lib/screen/tabFrames';
+import { appParticipantSpeech, appReplayAudio, ensureReadyFromStores, faceToFaceFromStores, persistIfUnchanged, readShapeFromStores, turnScreenContextOff, watchLegsFromStores, watchSpeechFromStores } from '../lib/session/appShape';
 import type { AnalyticsPort, ControlMethod, FramePort } from '../lib/session/ports';
 import { createRunner, type Runner } from '../lib/session/runner';
 import type { OpenSource } from '../lib/session/source';
@@ -31,6 +33,7 @@ import { trackBusy } from './busy';
 import { createAppPunctuation, type AppPunctuation } from './punctuation';
 import { driveReadiness } from './readiness';
 import { registerRunPhase } from './runPhase';
+import { prepareScreenContext, releaseScreenContext, screenContextWanted, type PickedSource, type PickReason } from './screenContext';
 import { registerSubtitleFeed } from './subtitleFeed';
 import { appStartInputs, createFrameLog, decorateSessionAnalytics, teeFrames, type FrameLog } from './telemetry';
 
@@ -40,6 +43,12 @@ export interface AppBridges {
   track: AnalyticsPort['track'];
   /** The account's balance, refetched after a run and after a start the service refused on the wallet; absent where there is none (the preview). */
   refetchQuota?(): Promise<void>;
+  /**
+   * The screen-context picker (MainPanel's modal): a source, the portal's button, or null for Start without. Absent — the
+   * extension, tests — no modal, which only the desktop asks for. `null` takes it away (the panel unmounting): `setBridges`
+   * never erases with `undefined`.
+   */
+  pickScreenSource?: ((reason?: PickReason) => Promise<PickedSource | null>) | null;
 }
 
 export interface AppSessionOptions {
@@ -157,6 +166,21 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
     },
   });
 
+  // The screen context lives as long as its run (spec 2026-10-22 §3.1): every way back to idle lets it go — a stop, a
+  // leg's end, a start refused or failed, `abandon()` — not only the runs that went live, which alone reach `onRunEnded`.
+  runner.state.subscribe((now, before) => {
+    if (now.phase === 'idle' && before.phase !== 'idle') releaseScreenContext();
+  });
+
+  /** The picker, through the bridge MainPanel sets; without one there is no modal, and the run starts without. */
+  const pickScreenSource = (reason?: PickReason): Promise<PickedSource | null> => {
+    if (bridges.pickScreenSource) return bridges.pickScreenSource(reason);
+    reportWarning('ScreenContext', 'No screen picker is mounted; the session starts without screen context.', { dedupeKey: 'screen-context:no-picker' });
+    return Promise.resolve(null);
+  };
+  /** A start choosing its screen, until its run has started: a second Start meanwhile is the same start, not a second picker. */
+  let choosing: Promise<void> | null = null;
+
   const view = createConversationView(runner.conversation, appProjectionSettings(), clock);
   const subtitle = appSubtitleSession(runner, view, { microphoneRequired: options.microphoneRequired ?? (() => true) });
 
@@ -221,8 +245,32 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
     runner, view, karaoke, subtitle, punctuation, frames,
     audio,
     start(method) {
+      if (choosing) return choosing;
       if (!subtitle.get().canStart) return Promise.resolve();
-      return runner.start(method);
+      if (!screenContextWanted()) return runner.start(method);
+      // The screen before the runner (spec 2026-10-22 §3.1): the area held, or the picker's; the run's shape reads the source it leaves in the store.
+      const starting = (async () => {
+        try {
+          await prepareScreenContext(getEnvironment(), { legs: readShapeFromStores(bridges.auth)?.legs ?? ['speaker'] }, {
+            pick: pickScreenSource,
+            // The user's Start without, in the picker: the switch goes off. A null from no picker (none mounted, or one
+            // taken away by an unmount, which answers the open pick first) is nobody's choice, and leaves it on.
+            turnOff: () => { if (bridges.pickScreenSource) turnScreenContextOff(); },
+            clock,
+            invoke: (channel, data) => window.electron.invoke(channel, data),
+            openDesktop: openDesktopCapture,
+            openTab: openTabCapture,
+          });
+          await runner.start(method);
+        } finally {
+          choosing = null;
+          // A start the runner refused without leaving idle (no provider, the last run still stopping) has no end to
+          // release on; one that went anywhere is released by its own way back to idle.
+          if (runner.state.getState().phase === 'idle') releaseScreenContext();
+        }
+      })();
+      choosing = starting;
+      return starting;
     },
     setBridges(next) {
       // Never `Object.assign`: a caller that omits a key (rather than naming

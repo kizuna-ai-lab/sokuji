@@ -69,6 +69,42 @@ vi.mock('../lib/segmentation/PunctuationRuntime', () => {
   return { PunctuationRuntime, MODEL_IDS };
 });
 
+// The desktop capture a pick opens, as screenContext.test.ts scripts it: a
+// picture that is never blank, so the sampler's first frame comes on its first
+// beat. Each capture opened is kept, to see that the run's end closes it.
+const desktop = vi.hoisted(() => {
+  const W = 64;
+  const H = 36;
+  const rgba = new Uint8ClampedArray(W * H * 4);
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const v = Math.round(30 + (x / W) * 100);
+      rgba.set([v, v, v, 255], (y * W + x) * 4);
+    }
+  }
+  const opened: Array<{ name: string; closed: boolean }> = [];
+  return {
+    opened,
+    async open(source: { name: string; kind: 'window' | 'screen' }) {
+      const capture = {
+        name: source.name,
+        kind: source.kind,
+        closed: false,
+        grab: async () => (capture.closed ? null : { rgba, width: W, height: H }),
+        encode: async () => new Uint8Array([0xff, 0xd8, 0x01]),
+        close: () => { capture.closed = true; },
+      };
+      opened.push(capture);
+      return capture;
+    },
+  };
+});
+vi.mock('../lib/screen/desktopFrames', () => ({
+  captureSourceMode: async () => ({ mode: 'list', screenRecording: 'granted' }),
+  listCaptureSources: async () => ({ ok: true, sources: [] }),
+  openDesktopCapture: (source: { name: string; kind: 'window' | 'screen' }) => desktop.open(source),
+}));
+
 vi.mock('../lib/export/appAutoSave', () => ({
   autoSaveConversation: vi.fn(async () => 'saved'),
 }));
@@ -101,6 +137,10 @@ import { fakeProvider } from '../providers/fake/provider';
 import { FAKE_LEASED_DEFAULTS } from '../providers/fake/settings';
 import { createFakeSource, type FakeSource } from '../providers/fake/source';
 import { localInferenceProvider } from '../providers/localInference/provider';
+import { qwenLiveTranslateProvider } from '../providers/qwen_livetranslate/provider';
+import { readShapeFromStores } from '../lib/session/appShape';
+import { createSampler } from '../lib/screen/sampler';
+import { useScreenContextStore, type PickedSource } from '../stores/screenContextStore';
 import useAudioStore from '../stores/audioStore';
 import useLogStore from '../stores/logStore';
 import { useProviderStore } from '../stores/providerStore';
@@ -408,6 +448,186 @@ describe('start', () => {
     expect(track).toHaveBeenCalledWith('session_control_clicked', { action: 'start', method: 'button' });
 
     await session.runner.stop();
+  });
+});
+
+describe('start — screen context (spec 2026-10-22 §3.1)', () => {
+  const SLIDES = { id: 'window:1', name: 'Slides', kind: 'window' as const, thumbnail: 'data:,', appIcon: null };
+  const auth = { signedIn: false, getToken: async () => null };
+
+  beforeEach(() => {
+    // The desktop app: where Qwen is offered and the picker is a modal.
+    window.electronAPI = {};
+    desktop.opened.length = 0;
+    useScreenContextStore.setState({ sampler: null, state: null, picked: null });
+  });
+
+  afterEach(() => {
+    delete window.electronAPI;
+    useScreenContextStore.getState().sampler?.close();
+    useScreenContextStore.setState({ sampler: null, state: null, picked: null });
+  });
+
+  /** Qwen with its own key unset (the run is refused once it checks), the switch as given. */
+  async function qwen(screenContext: boolean, withPicker = true) {
+    const clock = createVirtualClock(0);
+    await useProviderStore.getState().load(qwenLiveTranslateProvider);
+    useProviderStore.getState().select('qwen_livetranslate');
+    useProviderStore.getState().updateSettings(qwenLiveTranslateProvider, { screenContext });
+    const session = createAppSession({
+      clock,
+      newSessionId: () => 'run1',
+      capture: () => async () => createFakeSource(clock),
+      microphoneRequired: () => false,
+    });
+    const order: string[] = [];
+    const pickScreenSource = vi.fn(async (): Promise<PickedSource | null> => {
+      order.push('pick');
+      return { kind: 'desktop' as const, source: SLIDES };
+    });
+    session.setBridges({ track: vi.fn(), ...(withPicker ? { pickScreenSource } : {}) });
+    // What the runner read at its start: the stores do not move between its read and the step it sets.
+    const carried: Array<{ frames?: unknown } | null> = [];
+    session.runner.state.subscribe((now, before) => {
+      if (now.phase !== 'starting' || before.phase !== 'idle') return;
+      order.push('starting');
+      carried.push(readShapeFromStores(auth));
+    });
+    return { clock, session, order, carried, pickScreenSource };
+  }
+
+  /** The sampler's beats, a second at a time; the pick and its capture land before the first. */
+  async function beats(clock: ReturnType<typeof createVirtualClock>, seconds: number) {
+    const settle = async () => { for (let j = 0; j < 50; j++) await Promise.resolve(); };
+    for (let i = 0; i < seconds; i++) {
+      await settle();
+      clock.advance(1000);
+      await settle();
+    }
+  }
+
+  it("with the switch on and nothing held, start asks the picker before the runner and the run carries the source; the run's end releases it", async () => {
+    const { clock, session, order, carried, pickScreenSource } = await qwen(true);
+    expect(session.subtitle.get().canStart).toBe(true);
+    const started = session.start('button');
+    await beats(clock, 1);
+    await started;
+    expect(pickScreenSource).toHaveBeenCalledTimes(1);
+    expect(order).toEqual(['pick', 'starting']);
+    expect(carried[0]?.frames).toMatchObject({ name: 'Slides', kind: 'window' });
+    // No key: the run was refused once it checked, and that end released the source.
+    expect(session.runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'refused' } });
+    expect(useScreenContextStore.getState()).toMatchObject({ sampler: null, state: null });
+    expect(desktop.opened).toHaveLength(1);
+    expect(desktop.opened[0].closed).toBe(true);
+  });
+
+  it('with the switch off, the picker is never asked and the shape has no frames', async () => {
+    const { session, order, carried, pickScreenSource } = await qwen(false);
+    await session.start('button');
+    expect(pickScreenSource).not.toHaveBeenCalled();
+    expect(order).toEqual(['starting']);
+    expect(carried[0]).not.toBeNull();
+    expect('frames' in carried[0]!).toBe(false);
+    expect(desktop.opened).toHaveLength(0);
+  });
+
+  it('a second Start while the picker is open is the same start', async () => {
+    const { clock, session, pickScreenSource } = await qwen(true);
+    const first = session.start('button');
+    const second = session.start('button');
+    expect(second).toBe(first);
+    await beats(clock, 1);
+    await first;
+    expect(pickScreenSource).toHaveBeenCalledTimes(1);
+    expect(desktop.opened).toHaveLength(1);
+  });
+
+  it('without a picker mounted, starts without frames and says so', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const { session, order, carried } = await qwen(true, false);
+      await session.start('button');
+      expect(order).toEqual(['starting']);
+      expect('frames' in carried[0]!).toBe(false);
+      expect(desktop.opened).toHaveLength(0);
+      expect(session.runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'refused' } });
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('[ScreenContext]'));
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('a picker taken away with null (the panel unmounting) is not asked any more, and the start says so', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const { session, order, pickScreenSource } = await qwen(true);
+      session.setBridges({ pickScreenSource: null });
+      await session.start('button');
+      expect(pickScreenSource).not.toHaveBeenCalled();
+      expect(order).toEqual(['starting']);
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('[ScreenContext]'));
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('a pick held from the settings opens at Start without asking, and stays held after the run', async () => {
+    const { clock, session, order, carried, pickScreenSource } = await qwen(true);
+    useScreenContextStore.getState().setPicked({ kind: 'desktop', source: SLIDES });
+    const started = session.start('button');
+    await beats(clock, 1);
+    await started;
+    expect(pickScreenSource).not.toHaveBeenCalled();
+    expect(order).toEqual(['starting']);
+    expect(carried[0]?.frames).toMatchObject({ name: 'Slides', kind: 'window' });
+    expect(useScreenContextStore.getState().picked).toEqual({ kind: 'desktop', source: SLIDES });
+  });
+
+  it('Start without screen context in the picker turns the switch off, so the run and the setting agree (owner, 2026-10-22, ruling 3)', async () => {
+    const { session, carried, pickScreenSource } = await qwen(true);
+    pickScreenSource.mockImplementationOnce(async () => null);
+    await session.start('button');
+    expect(pickScreenSource).toHaveBeenCalledTimes(1);
+    expect(useProviderStore.getState().entries.qwen_livetranslate.settings).toMatchObject({ screenContext: false });
+    expect(useScreenContextStore.getState().picked).toBeNull();
+    expect('frames' in carried[0]!).toBe(false);
+    expect(desktop.opened).toHaveLength(0);
+  });
+
+  it('a start with no picker to ask leaves the switch as it is: nobody chose to start without', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const { session } = await qwen(true, false);
+      await session.start('button');
+      expect(useProviderStore.getState().entries.qwen_livetranslate.settings).toMatchObject({ screenContext: true });
+
+      // The panel unmounting mid-pick: its open pick answered null, its picker taken away in the same step.
+      const unmounting = await qwen(true);
+      unmounting.pickScreenSource.mockImplementationOnce(async () => {
+        unmounting.session.setBridges({ pickScreenSource: null });
+        return null;
+      });
+      await unmounting.session.start('button');
+      expect(unmounting.pickScreenSource).toHaveBeenCalledTimes(1);
+      expect(useProviderStore.getState().entries.qwen_livetranslate.settings).toMatchObject({ screenContext: true });
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("a live run's stop releases the source it carried", async () => {
+    const { session, clock } = await setup();
+    const sampler = createSampler(clock);
+    useScreenContextStore.getState().set(sampler);
+    await session.start('button');
+    expect(session.runner.state.getState().phase).toBe('running');
+    expect(useScreenContextStore.getState().sampler).toBe(sampler);
+    await session.runner.stop();
+    expect(useScreenContextStore.getState()).toMatchObject({ sampler: null, state: null });
+    // Closed: a capture attached now is ignored.
+    sampler.attach({ name: 'Late', kind: 'window', grab: async () => null, encode: async () => new Uint8Array() });
+    expect(sampler.state().name).not.toBe('Late');
   });
 });
 

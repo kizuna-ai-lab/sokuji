@@ -557,7 +557,16 @@
       "vocabulary": "Vocabulário personalizado",
       "vocabularyTranslations": "Traduções preferidas",
       "vocabularyTranslationsTooltip": "Influencia como termos específicos são traduzidos — é uma preferência, não uma substituição garantida: nomes com uma tradução já estabelecida funcionam melhor, enquanto palavras comuns podem manter a formulação própria do modelo. As entradas são direcionais; a direção inversa só existe no modo Ambos, onde você pode adicionar uma linha inversa.",
-      "vocabularyTranslationsPlaceholder": "Uma entrada origem=destino por linha"
+      "vocabularyTranslationsPlaceholder": "Uma entrada origem=destino por linha",
+      "screenContext": "Contexto da tela",
+      "screenContextTooltip": "Permite que o modelo veja uma janela, aba ou tela que você escolhe, para que os nomes e termos nela sejam reconhecidos e traduzidos como estão escritos. Tudo o que está dentro dessa área é enviado como imagens ao serviço Qwen da Alibaba Cloud, na região desta sessão; a Kizuna AI nunca as recebe. Enquanto estiver ativado, isso aumenta a cobrança por cada segundo de fala — na sua fatura da Alibaba Cloud com a sua própria chave, ou conforme a página de preços da sua conta com uma conta Kizuna AI; no modo Ambos, a sessão de cada direção é cobrada.",
+      "screenContextBeta": "Beta",
+      "screenContextPicked": "O modelo verá: {{name}}",
+      "screenContextStill": "Imagem de quando você escolheu",
+      "screenContextPortal": "O sistema pergunta qual janela ou tela ao iniciar a sessão.",
+      "screenContextAtStart": "Ao iniciar",
+      "screenContextNone": "Nenhuma janela escolhida ainda: a pergunta aparece ao iniciar a sessão.",
+      "screenContextChoose": "Escolher…"
     },
     "local_inference": {
       "name": "Gratuito",
@@ -1452,7 +1461,8 @@
     "mic_blocked": "O Windows não está permitindo que o Sokuji use o microfone. Ative o acesso ao microfone para aplicativos da área de trabalho em Configurações › Privacidade e segurança › Microfone e inicie novamente.",
     "speaker_tts_missing": "A tradução que o outro lado ouve aparece só como texto: nenhum modelo de voz fala {{target}}.",
     "participant_tts_missing": "A tradução que eu ouço aparece só como texto: nenhum modelo de voz fala {{target}}.",
-    "participant_tts_over_budget": "A tradução que eu ouço aparece só como texto: não há memória suficiente para carregar também o modelo de voz do outro lado."
+    "participant_tts_over_budget": "A tradução que eu ouço aparece só como texto: não há memória suficiente para carregar também o modelo de voz do outro lado.",
+    "screen_context_lost": "A tela que você escolheu não está mais disponível; a tradução continua só com o áudio."
   },
   "viewer": {
     "title": "Legendas do Sokuji",
@@ -1574,5 +1584,39 @@
     "notPlayed": "Não reproduzido: esta tradução está em {{language}}, não em {{target}}, então não é lida para ninguém.",
     "legendMe": "{{language}} · eu",
     "legendOther": "{{language}} · o outro"
+  },
+  "screenContext": {
+    "picker": {
+      "title": "Escolha o que o modelo pode ver",
+      "privacy": "Tudo o que está dentro da área que você escolher é enviado como imagens ao serviço Qwen da Alibaba Cloud, na região desta sessão — nada mais da sua tela. A Kizuna AI não as recebe.",
+      "windows": "Janelas",
+      "screens": "Telas",
+      "portal": "Escolher uma janela ou tela…",
+      "loading": "Procurando janelas…",
+      "none": "Nenhuma janela ou tela para compartilhar foi encontrada.",
+      "minimizedHint": "Não é possível compartilhar uma janela minimizada: restaure a janela e clique em Atualizar.",
+      "deniedTitle": "Permissão de Gravação de Tela necessária",
+      "deniedText": "O macOS só deixa o Sokuji ver a tela com a permissão de Gravação de Tela. Conceda-a nos Ajustes do Sistema, depois reinicie o Sokuji e comece de novo.",
+      "openSettings": "Abrir Ajustes do Sistema",
+      "refresh": "Atualizar",
+      "cancel": "Iniciar sem contexto da tela",
+      "nothingVisible": "A área que você escolheu não mostra nada agora. Escolha outra ou inicie sem contexto da tela.",
+      "nothingVisibleRunning": "A área que você escolheu não mostra nada agora. Escolha outra ou deixe a sessão como está.",
+      "gone": "Não é possível capturar agora a janela ou tela que você escolheu. Escolha outra ou inicie sem contexto da tela.",
+      "checking": "Verificando a imagem…"
+    },
+    "chip": {
+      "live": "Ao vivo",
+      "stale": "Sem mudanças",
+      "lost": "Indisponível",
+      "label": "Contexto da tela: {{name}}, {{status}}"
+    },
+    "card": {
+      "lastFrame": "Último quadro há {{ago}} s",
+      "frames": "Quadros enviados: {{count}}",
+      "chooseAgain": "Escolher de novo",
+      "lostHint": "A fonte não está mais disponível; a última imagem fica guardada até você escolher de novo.",
+      "lostExtension": "A imagem da aba da reunião não está mais disponível; a tradução continua só com o áudio."
+    }
   }
 }
