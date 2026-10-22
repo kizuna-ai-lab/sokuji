@@ -9,7 +9,7 @@
  * before `run` starts. Nothing is left behind: the timer is cancelled and
  * the caller's listener removed however `run` settles. The settings side,
  * and one session-side caller: Qwen LiveTranslate's adapter, finding its
- * storefront when no check has, on the request's clock and signal.
+ * endpoint when no check has, on the request's clock and signal.
  */
 import type { Clock } from '../contract/clock';
 

@@ -34,7 +34,8 @@ describe('the Qwen LiveTranslate definition (spec §1)', () => {
     expect(qwenLiveTranslateProvider.settings).not.toHaveProperty('legacyKeys');
     // Only the region is narrowed on load; the managed twin inherits the same migrate.
     expect(qwenLiveTranslateProvider.settings.migrate).toBe(migrateQwenSettings);
-    for (const absent of ['flagged', 'testerSwitch', 'guideUrl', 'session', 'participantSpeech', 'faceToFace'] as const) {
+    expect(qwenLiveTranslateProvider.guideUrl).toBe('https://sokuji.kizuna.ai/docs/tutorials/qwen-setup');
+    for (const absent of ['flagged', 'testerSwitch', 'session', 'participantSpeech', 'faceToFace'] as const) {
       expect(qwenLiveTranslateProvider, absent).not.toHaveProperty(absent);
     }
   });

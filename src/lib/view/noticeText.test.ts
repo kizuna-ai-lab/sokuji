@@ -78,6 +78,13 @@ describe('noticeText', () => {
     }
   });
 
+  it("words a key whose account may not use the model in the key's region, Qwen's own words as the detail (probe 2026-10-23)", () => {
+    const qwen = '[Qwen AccessDenied.Unpurchased] Access to model denied. Please make sure you are eligible for using the model.';
+    expect(noticeText(plainT, { code: 'model_access_denied', message: qwen })).toBe(
+      "The key works, but its account can't use this model in the key's region. Enable the model for that region in the provider's console, or use a key from a region where it is enabled: " + qwen,
+    );
+  });
+
   it("words speech's two failures with the sentences every locale already has", () => {
     expect(noticeText(t, { code: 'tts_segment_lost', message: 'x' })).toMatch(/^mainPanel\.sonioxTtsSegmentLost\|/);
     expect(noticeText(t, { code: 'tts_stopped', message: 'x' })).toMatch(/^mainPanel\.sonioxTtsFailed\|/);

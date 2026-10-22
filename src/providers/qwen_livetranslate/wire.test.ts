@@ -2,13 +2,14 @@ import { describe, it, expect } from 'vitest';
 import {
   appendFrame, base64ToPcm, COMMIT, decodeServerEvent, errorCode, errorOf, errorWords, FINISH, imageFrame, qwenHeaders, sessionUpdate, socketUrl,
 } from './wire';
+import { SERVER } from './testing';
 
 const MODEL = 'qwen3.8-livetranslate-flash-realtime';
 const preset = { target: 'en', speech: true, voice: { kind: 'preset' as const, name: 'Tina' }, manual: false, phrases: {}, silenceMs: null };
 const INPUT = { format: { type: 'pcm', sample_rate: 24000 } };
 
 describe("Qwen LiveTranslate's wire (spec §6)", () => {
-  it('dials each storefront with the model in the query and nothing else', () => {
+  it('dials each endpoint with the model in the query and nothing else', () => {
     expect(socketUrl('intl', MODEL)).toBe('wss://maas.qwencloudapi.com/api-ws/v1/realtime?model=qwen3.8-livetranslate-flash-realtime');
     expect(socketUrl('cn', MODEL)).toBe('wss://maas.qianwenaiapi.com/api-ws/v1/realtime?model=qwen3.8-livetranslate-flash-realtime');
   });
@@ -99,6 +100,13 @@ describe("Qwen LiveTranslate's wire (spec §6)", () => {
     expect(() => decodeServerEvent('null')).toThrow('Qwen sent a frame with no type.');
   });
 
+  it('reads the refusal Qwen sends with no type, a code and words, as an error', () => {
+    expect(decodeServerEvent(SERVER.denied())).toEqual({
+      type: 'error', error: { code: 'AccessDenied.Unpurchased', message: 'Access to model denied. Please make sure you are eligible for using the model.' },
+    });
+    expect(() => decodeServerEvent('{"code":"AccessDenied.Unpurchased"}')).toThrow('Qwen sent a frame with no type.');
+  });
+
   it("words an error in Qwen's own words with its code, clipped", () => {
     const voice = errorOf(decodeServerEvent(JSON.stringify({ type: 'error', error: { code: 'COMMON_ERROR', message: "<400> InternalError.Algo.InvalidParameter: Voice 'X' is not supported." } })));
     expect(voice).toEqual({ code: 'COMMON_ERROR', message: "<400> InternalError.Algo.InvalidParameter: Voice 'X' is not supported." });
@@ -119,5 +127,7 @@ describe("Qwen LiveTranslate's wire (spec §6)", () => {
     // A close's reason carries the message without its code.
     expect(code(null, 'Invalid translation parameter.')).toBe('client');
     expect(code(null, 'Internal error')).toBe('server');
+    // The key is good; its account has not enabled the model in the key's region.
+    expect(code('AccessDenied.Unpurchased', 'Access to model denied. Please make sure you are eligible for using the model.')).toBe('model_access_denied');
   });
 });

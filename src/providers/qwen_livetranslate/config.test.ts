@@ -14,7 +14,7 @@ const SHARED: SharedSettings = {
 const ctx = (source: string, target: string, patch: Partial<SessionContext> = {}): SessionContext => ({ direction: { source, target }, speech: true, turns: 'auto', ...patch });
 
 describe("Qwen LiveTranslate's builder (spec §5)", () => {
-  it('builds my leg: the storefront the check found, the target, my preset, automatic turns, no person labels', () => {
+  it('builds my leg: the endpoint the check found, the target, my preset, automatic turns, no person labels', () => {
     expect(buildQwen(ctx('zh', 'en'), QWEN_DEFAULTS, SHARED)).toEqual({
       model: QWEN_MODEL, endpoint: 'intl', target: 'en', speech: true, voice: { kind: 'preset', name: 'Tina' }, manual: false, person: false,
       phrases: {}, silenceMs: null, transport: 'websocket',
@@ -42,7 +42,7 @@ describe("Qwen LiveTranslate's builder (spec §5)", () => {
     expect(buildQwen(ctx('en', 'zh'), QWEN_DEFAULTS, SHARED)).toMatchObject({ target: 'zh', voice: { kind: 'preset', name: 'Ethan' }, person: true });
   });
 
-  it('reads the storefront from the models the check found, and none from anything else', () => {
+  it('reads the endpoint from the models the check found, and none from anything else', () => {
     expect(buildQwen(ctx('zh', 'en'), QWEN_DEFAULTS, { ...SHARED, models: [{ id: 'cn' }] })).toMatchObject({ endpoint: 'cn' });
     expect(buildQwen(ctx('zh', 'en'), QWEN_DEFAULTS, { ...SHARED, models: [] })).toMatchObject({ endpoint: null });
     expect(buildQwen(ctx('zh', 'en'), QWEN_DEFAULTS, { ...SHARED, models: [{ id: 'gpt-live-1' }] })).toMatchObject({ endpoint: null });

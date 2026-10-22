@@ -18,6 +18,8 @@ afterEach(() => vi.unstubAllGlobals());
 describe('kizunaQwenProvider', () => {
   it("is Kizuna AI's Qwen: managed, unflagged (the owner's 2026-10-22 call), on the desktop and the extension, under its own slice", () => {
     expect(kizunaQwenProvider).toMatchObject({ id: 'kizunaai_qwen', kind: 'managed', vendor: 'Qwen', platforms: ['electron', 'extension'] });
+    // Kizuna AI's own guide, as Kizuna Soniox's: the own-key guide is not inherited.
+    expect(kizunaQwenProvider.guideUrl).toBe('https://sokuji.kizuna.ai/docs/kizuna-ai/quick-start');
     expect(kizunaQwenProvider.flagged).not.toBe(true);
     expect(kizunaQwenProvider.settings).toMatchObject({ key: 'kizunaQwen', defaults: QWEN_DEFAULTS });
     expect(kizunaQwenProvider.testerSwitch).toBeUndefined();

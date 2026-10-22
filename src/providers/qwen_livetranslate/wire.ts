@@ -14,7 +14,7 @@ import type { QwenCredentials } from './settings';
 
 export { base64ToPcm } from '../../lib/contract/pcm64';
 
-/** The storefront's socket with the model in its query; the key is never there (D3). */
+/** The endpoint's socket with the model in its query; the key is never there (D3). */
 export function socketUrl(endpoint: EndpointId, model: string): string {
   return `${ENDPOINTS[endpoint].socket}?model=${encodeURIComponent(model)}`;
 }
@@ -104,11 +104,19 @@ export interface ServerEvent {
   [field: string]: unknown;
 }
 
+/**
+ * A text frame as an event. A refusal can come with no `type`, only a code and
+ * words — a key whose account has not enabled the model in its region, after
+ * `session.update` (probe 2026-10-23) — and is read as the `error` it is.
+ */
 export function decodeServerEvent(data: unknown): ServerEvent {
   if (typeof data !== 'string') throw new Error('Qwen sent a binary frame where JSON text was expected.');
   const parsed: unknown = JSON.parse(data);
-  if (typeof parsed !== 'object' || parsed === null || typeof (parsed as { type?: unknown }).type !== 'string') throw new Error('Qwen sent a frame with no type.');
-  return parsed as ServerEvent;
+  if (typeof parsed !== 'object' || parsed === null) throw new Error('Qwen sent a frame with no type.');
+  const { type, code, message } = parsed as { type?: unknown; code?: unknown; message?: unknown };
+  if (typeof type === 'string') return parsed as ServerEvent;
+  if (typeof code === 'string' && typeof message === 'string') return { type: 'error', error: { code, message } };
+  throw new Error('Qwen sent a frame with no type.');
 }
 
 /** A field as a string, else null. */
@@ -134,11 +142,12 @@ export function errorWords(e: QwenError): string {
   return `[Qwen${e.code ? ` ${e.code}` : ''}] ${clipped}`;
 }
 
-/** The notice code its words fall under (spec §6): the key, a limit, a request the model refuses, else the server's. */
+/** The notice code its words fall under (spec §6): the key, a limit, a request the model refuses, a model the key's region has not enabled, else the server's. */
 export function errorCode(e: QwenError): string {
   const said = `${e.code ?? ''} ${e.message ?? ''}`;
   if (/InvalidApiKey|InvalidApiToken|API Token is expired/i.test(said)) return 'auth';
   if (/rate limit|throttl|quota exceeded|Allocated quota/i.test(said)) return 'rate_limit';
   if (/not supported|invalid_value|InvalidParameter|invalid .*parameter/i.test(said)) return 'client';
+  if (/AccessDenied/.test(said)) return 'model_access_denied';
   return 'server';
 }

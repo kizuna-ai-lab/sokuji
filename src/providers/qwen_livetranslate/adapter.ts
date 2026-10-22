@@ -1,6 +1,6 @@
 /**
  * Qwen LiveTranslate on the client contract (spec 2026-10-13, §6): one leg,
- * one session at the storefront the check found — or, when none did, the
+ * one session at the endpoint the check found — or, when none did, the
  * one `detect` finds before the socket opens (§2). The socket opens through
  * the header seam with a Bearer header (D3); the start resolves on
  * `session.updated`, the one `session.update` confirmed, within a bound.
@@ -96,7 +96,7 @@ export const CONNECTION_LOST = 'The connection to Qwen was lost.';
 export interface QwenAdapterDeps {
   /** The header seam (D3): the platform's in the app, `fakeHeaderSockets().open` in tests. */
   openHeaderSocket: OpenHeaderSocket;
-  /** Finds the key's storefront when no check has (`check.ts`): a stub in tests. */
+  /** Finds the key's endpoint when no check has (`check.ts`): a stub in tests. */
   detect: DetectEndpoint;
 }
 
@@ -417,7 +417,7 @@ class QwenLeg implements AdapterSession {
     return this.phase === 'live' && ws !== null && ws.readyState === WS_OPEN ? ws : null;
   }
 
-  /** The key's storefront, when no check has found it (§2): a refusal in the check's words, anything else the network's. */
+  /** The key's endpoint, when no check has found it (§2): a refusal in the check's words, anything else the network's. */
   private async detect(): Promise<EndpointId> {
     const { credentials, clock, signal } = this.request;
     this.frame('out', 'session.detect');
@@ -442,7 +442,7 @@ class QwenLeg implements AdapterSession {
   private connect(endpoint: EndpointId): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       const { clock, config, credentials, signal } = this.request;
-      // A stop while the storefront was being found: nothing opens.
+      // A stop while the endpoint was being found: nothing opens.
       if (signal.aborted) {
         reject(signal.reason ?? new Error('aborted'));
         return;
@@ -488,7 +488,7 @@ class QwenLeg implements AdapterSession {
       const url = socketUrl(endpoint, config.model);
       const headers = qwenHeaders(credentials);
       const rule = ruleFor(url, { set: {} });
-      // The storefront, the rule's place and the header's name, never a value.
+      // The endpoint, the rule's place and the header's name, never a value.
       this.frame('out', 'session.headers', { endpoint, host: rule.host, path: rule.path, set: Object.keys(headers.set) });
       this.deps.openHeaderSocket(url, headers, {
         signal: seam.signal,

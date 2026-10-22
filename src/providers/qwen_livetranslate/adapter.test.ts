@@ -1,7 +1,7 @@
 /**
  * Qwen LiveTranslate's adapter: the conformance suite and the seeded
  * lifecycles, the start over the header seam and its refusals in words, the
- * storefront fallback, the audio going up, push-to-talk, the events to
+ * endpoint fallback, the audio going up, push-to-talk, the events to
  * segments and frames, the ends, stop. On the header seam's fake,
  * `FakeSocket`s and a virtual clock — no network, no fake timers.
  */
@@ -132,7 +132,7 @@ describe('the Qwen LiveTranslate adapter: the seeded lifecycles', () => {
 });
 
 describe('the Qwen LiveTranslate adapter: the start (spec §6)', () => {
-  it('registers a Bearer rule on the storefront the check found, then dials the model URL, framing header names alone', async () => {
+  it('registers a Bearer rule on the endpoint the check found, then dials the model URL, framing header names alone', async () => {
     const h = startQwen();
     expect(h.seam.sockets.all).toEqual([]);
     await flush();
@@ -143,7 +143,7 @@ describe('the Qwen LiveTranslate adapter: the start (spec §6)', () => {
     noSecret(h.log);
   });
 
-  it('dials 千问云 for a mainland key', async () => {
+  it('dials Beijing for a Beijing key', async () => {
     const h = startQwen({ shared: { ...SHARED, models: [{ id: 'cn' }] } });
     await flush();
     expect(h.socket().url).toBe('wss://maas.qianwenaiapi.com/api-ws/v1/realtime?model=qwen3.8-livetranslate-flash-realtime');
@@ -173,6 +173,17 @@ describe('the Qwen LiveTranslate adapter: the start (spec §6)', () => {
     await expect(h.starting).rejects.toEqual(new AdapterStartError('[Qwen invalid_value] Invalid translation parameter.', 'client'));
     expect(h.socket().closedByClient).toEqual({ code: 1000, reason: undefined });
     expect(h.content()).toEqual([]);
+    expect(h.timers()).toBe(0);
+  });
+
+  it("refuses in Qwen's words a key whose account may not use the model in its region, before the socket drops", async () => {
+    const h = await openQwen();
+    h.socket().receive(SERVER.created());
+    h.socket().receive(SERVER.denied());
+    await expect(h.starting).rejects.toEqual(new AdapterStartError(
+      '[Qwen AccessDenied.Unpurchased] Access to model denied. Please make sure you are eligible for using the model.', 'model_access_denied',
+    ));
+    expect(h.socket().closedByClient).toEqual({ code: 1000, reason: undefined });
     expect(h.timers()).toBe(0);
   });
 
@@ -209,7 +220,7 @@ describe('the Qwen LiveTranslate adapter: the start (spec §6)', () => {
     await expect(starting).rejects.toEqual(new AdapterStartError('Qwen LiveTranslate needs the desktop app or the browser extension.', 'client'));
   });
 
-  it('with no storefront from a check, finds it first — with the key, the clock and the signal — and dials it', async () => {
+  it('with no endpoint from a check, finds it first — with the key, the clock and the signal — and dials it', async () => {
     let seen: Parameters<DetectEndpoint> | null = null;
     const h = startQwen({ shared: { ...SHARED, models: [] }, detect: async (...args) => { seen = args; return { endpoint: 'cn' }; } });
     await flush();
@@ -223,16 +234,16 @@ describe('the Qwen LiveTranslate adapter: the start (spec §6)', () => {
     noSecret(h.log);
   });
 
-  it("a key neither storefront takes refuses the start in the check's words; a check that cannot tell refuses as the network", async () => {
-    const refused = startQwen({ shared: { ...SHARED, models: [] }, detect: async () => ({ refused: 'Neither QwenCloud nor 千问云 accepted this key (HTTP 401).', code: 'auth' }) });
-    await expect(refused.starting).rejects.toEqual(new AdapterStartError('Neither QwenCloud nor 千问云 accepted this key (HTTP 401).', 'auth'));
+  it("a key neither endpoint takes refuses the start in the check's words; a check that cannot tell refuses as the network", async () => {
+    const refused = startQwen({ shared: { ...SHARED, models: [] }, detect: async () => ({ refused: "Neither Qwen's Singapore nor its 北京 (Beijing) region accepted this key (HTTP 401).", code: 'auth' }) });
+    await expect(refused.starting).rejects.toEqual(new AdapterStartError("Neither Qwen's Singapore nor its 北京 (Beijing) region accepted this key (HTTP 401).", 'auth'));
     expect(refused.seam.registrations).toEqual([]);
     const offline = startQwen({ shared: { ...SHARED, models: [] }, detect: async () => { throw new TypeError('Failed to fetch'); } });
     await expect(offline.starting).rejects.toMatchObject({ code: 'network', message: 'Qwen did not answer the key check (check the network).' });
     expect(offline.seam.registrations).toEqual([]);
   });
 
-  it('a stop while the storefront is still being found rejects with its reason: no rule, no socket, no timer', async () => {
+  it('a stop while the endpoint is still being found rejects with its reason: no rule, no socket, no timer', async () => {
     const h = startQwen({
       shared: { ...SHARED, models: [] },
       detect: (_apiKey, o) => new Promise((_resolve, reject) => { o.signal?.addEventListener('abort', () => reject(o.signal?.reason)); }),
@@ -246,7 +257,7 @@ describe('the Qwen LiveTranslate adapter: the start (spec §6)', () => {
     expect(h.timers()).toBe(0);
   });
 
-  it('a found storefront that lands after a stop opens nothing', async () => {
+  it('a found endpoint that lands after a stop opens nothing', async () => {
     let land!: () => void;
     const h = startQwen({ shared: { ...SHARED, models: [] }, detect: () => new Promise((resolve) => { land = () => resolve({ endpoint: 'intl' }); }) });
     await flush();
@@ -645,7 +656,7 @@ describe('the Qwen LiveTranslate adapter: the session (spec §6)', () => {
 describe('the Qwen LiveTranslate adapter: a managed leg (spec §4)', () => {
   const SESSION = 'sess_DQE8tkefuVBLmm4BCkinn';
   const REQUEST = '6c862ba2-2beb-9263-b94a-e6789bdd25bf';
-  // No storefront from a check: the grant's is the only one to dial.
+  // No endpoint from a check: the grant's is the only one to dial.
   const NO_STOREFRONT = { ...SHARED, models: [] };
   const managed = () => {
     const calls: [string, string | undefined][] = [];
@@ -653,7 +664,7 @@ describe('the Qwen LiveTranslate adapter: a managed leg (spec §4)', () => {
     return { calls, credentials };
   };
 
-  it("a managed leg dials the grant's storefront without detecting", async () => {
+  it("a managed leg dials the grant's endpoint without detecting", async () => {
     const { credentials } = managed();
     const h = startQwen({ credentials, shared: NO_STOREFRONT });
     await flush();

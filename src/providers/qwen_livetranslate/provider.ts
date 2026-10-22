@@ -13,7 +13,8 @@ const adapter = createQwenAdapter({ openHeaderSocket: platformHeaderSocket, dete
 /**
  * Qwen LiveTranslate with the user's own key (spec 2026-10-13; issue
  * #620): `qwen3.8-livetranslate-flash-realtime`, one session per leg, at the
- * storefront the key belongs to — QwenCloud or 千问云, which the check finds.
+ * endpoint of the region the key was made in — Singapore or Beijing, from
+ * either console (QwenCloud or 千问云), which the check finds.
  * Its socket needs an `Authorization` header, which only the desktop app and
  * the extension can set (the header seam), so it has no web build (D3).
  * Unflagged by the owner after his live test (2026-10-14; D9).
@@ -23,6 +24,7 @@ export const qwenLiveTranslateProvider: Provider<QwenSettings, QwenCredentials, 
   kind: 'own-key',
   platforms: ['electron', 'extension'],
   icon: QwenIcon,
+  guideUrl: 'https://sokuji.kizuna.ai/docs/tutorials/qwen-setup',
 
   settings: { key: 'qwenLiveTranslate', defaults: QWEN_DEFAULTS, migrate: migrateQwenSettings },
   Settings: QwenSettingsView,
@@ -33,7 +35,7 @@ export const qwenLiveTranslateProvider: Provider<QwenSettings, QwenCredentials, 
 
   credentials: qwenCredentials,
   check: checkQwen,
-  // The storefront depends on the key alone: a voice edit keeps Start on.
+  // The endpoint depends on the key alone: a voice edit keeps Start on.
   checkReads: [],
 
   languages: qwenLanguages,

@@ -1,7 +1,7 @@
 /**
  * The Qwen LiveTranslate suites' fixtures: a key in the real shape, the
  * settings the suites build from, the server's events as the JSON text
- * frames the storefronts send (the shapes the owner's probe recorded,
+ * frames the endpoints send (the shapes the owner's probe recorded,
  * 2026-10-13), one whole turn in the recorded order, and the harness that
  * starts a leg over the header seam's fake on a tracked virtual clock.
  * Test-only: nothing but a test imports it.
@@ -49,7 +49,7 @@ export function b64(samples: number, fill = 900): string {
 
 const event = (e: Record<string, unknown>) => JSON.stringify({ event_id: 'event_1', ...e });
 
-/** The server's events, by name, as the storefronts send them. */
+/** The server's events, by name, as the endpoints send them. */
 export const SERVER = {
   created: (id = 'sess_1') => event({ type: 'session.created', session: { id, model: QWEN_MODEL, object: 'realtime.session' } }),
   updated: () => event({ type: 'session.updated', session: { id: 'sess_1', model: QWEN_MODEL } }),
@@ -73,6 +73,8 @@ export const SERVER = {
   /** A commit's acknowledgement, or the server's own cut of a long push-to-talk press. */
   committed: (itemId: string) => event({ type: 'input_audio_buffer.committed', item_id: itemId, previous_item_id: itemId }),
   error: (code = 'invalid_value', message = 'Invalid translation parameter.') => event({ type: 'error', error: { code, message } }),
+  /** The refusal of a key whose account may not use the model in its region, after `session.update`: no `type`, no `event_id` (probe 2026-10-23). */
+  denied: () => JSON.stringify({ code: 'AccessDenied.Unpurchased', message: 'Access to model denied. Please make sure you are eligible for using the model.', request_id: 'req_1' }),
   /** An event by its type alone. */
   bare: (type: string) => event({ type }),
 };
