@@ -1447,7 +1447,8 @@
     "mic_blocked": "Windows không cho phép Sokuji dùng micrô. Hãy bật quyền truy cập micrô cho ứng dụng máy tính trong Cài đặt › Quyền riêng tư & bảo mật › Micrô, rồi bắt đầu lại.",
     "speaker_tts_missing": "Bản dịch bên kia nghe chỉ hiển thị chữ: không có mô hình giọng nói nào nói được {{target}}.",
     "participant_tts_missing": "Bản dịch tôi nghe chỉ hiển thị chữ: không có mô hình giọng nói nào nói được {{target}}.",
-    "participant_tts_over_budget": "Bản dịch tôi nghe chỉ hiển thị chữ: không đủ bộ nhớ để tải thêm mô hình giọng nói của bên kia."
+    "participant_tts_over_budget": "Bản dịch tôi nghe chỉ hiển thị chữ: không đủ bộ nhớ để tải thêm mô hình giọng nói của bên kia.",
+    "screen_context_lost": "Màn hình bạn đã chọn không còn khả dụng; bản dịch tiếp tục chỉ bằng âm thanh. Hãy chọn lại từ chip màn hình."
   },
   "viewer": {
     "title": "Phụ đề Sokuji",

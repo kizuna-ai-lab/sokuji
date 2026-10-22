@@ -1447,7 +1447,8 @@
     "mic_blocked": "Windows non consente a Sokuji di usare il microfono. Attiva l’accesso al microfono per le app desktop in Impostazioni › Privacy e sicurezza › Microfono, poi avvia di nuovo.",
     "speaker_tts_missing": "La traduzione che sente l'altra parte è solo testo: nessun modello vocale parla {{target}}.",
     "participant_tts_missing": "La traduzione che sento io è solo testo: nessun modello vocale parla {{target}}.",
-    "participant_tts_over_budget": "La traduzione che sento io è solo testo: memoria insufficiente per caricare anche il modello vocale dell'altra parte."
+    "participant_tts_over_budget": "La traduzione che sento io è solo testo: memoria insufficiente per caricare anche il modello vocale dell'altra parte.",
+    "screen_context_lost": "Lo schermo che hai scelto non è più disponibile; la traduzione continua solo con l'audio. Scegli di nuovo dal chip dello schermo."
   },
   "viewer": {
     "title": "Sottotitoli Sokuji",

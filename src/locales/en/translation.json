@@ -1459,7 +1459,8 @@
     "mic_blocked": "Windows is not letting Sokuji use the microphone. Turn on microphone access for desktop apps in Settings › Privacy & security › Microphone, then start again.",
     "speaker_tts_missing": "Translation the other side hears is text only: no speech model speaks {{target}}.",
     "participant_tts_missing": "Translation I hear is text only: no speech model speaks {{target}}.",
-    "participant_tts_over_budget": "Translation I hear is text only: not enough memory to load the other side's speech model too."
+    "participant_tts_over_budget": "Translation I hear is text only: not enough memory to load the other side's speech model too.",
+    "screen_context_lost": "The screen you chose is no longer available; translation continues on audio alone. Choose again from the screen chip."
   },
   "captionShare": {
     "button": "Share captions",

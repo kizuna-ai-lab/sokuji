@@ -1447,7 +1447,8 @@
     "mic_blocked": "Windows låter inte Sokuji använda mikrofonen. Aktivera mikrofonåtkomst för skrivbordsappar under Inställningar › Sekretess och säkerhet › Mikrofon och starta sedan igen.",
     "speaker_tts_missing": "Översättning som motparten hör visas bara som text: ingen talmodell talar {{target}}.",
     "participant_tts_missing": "Översättning som jag hör visas bara som text: ingen talmodell talar {{target}}.",
-    "participant_tts_over_budget": "Översättning som jag hör visas bara som text: inte tillräckligt med minne för att även läsa in motpartens talmodell."
+    "participant_tts_over_budget": "Översättning som jag hör visas bara som text: inte tillräckligt med minne för att även läsa in motpartens talmodell.",
+    "screen_context_lost": "Skärmen du valde är inte längre tillgänglig; översättningen fortsätter med enbart ljud. Välj igen via skärmchippet."
   },
   "viewer": {
     "title": "Sokuji-undertexter",

@@ -1447,7 +1447,8 @@
     "mic_blocked": "Hindi pinapayagan ng Windows ang Sokuji na gamitin ang mikropono. I-on ang access sa mikropono para sa mga desktop app sa Settings › Privacy & security › Microphone, pagkatapos ay magsimula ulit.",
     "speaker_tts_missing": "Teksto lang ang salin na naririnig ng kabilang panig: walang modelo ng pananalita na nagsasalita ng {{target}}.",
     "participant_tts_missing": "Teksto lang ang salin na naririnig ko: walang modelo ng pananalita na nagsasalita ng {{target}}.",
-    "participant_tts_over_budget": "Teksto lang ang salin na naririnig ko: kulang ang memory para i-load din ang modelo ng pananalita ng kabilang panig."
+    "participant_tts_over_budget": "Teksto lang ang salin na naririnig ko: kulang ang memory para i-load din ang modelo ng pananalita ng kabilang panig.",
+    "screen_context_lost": "Hindi na available ang screen na pinili mo; magpapatuloy ang pagsasalin sa audio lang. Pumili ulit mula sa screen chip."
   },
   "viewer": {
     "title": "Mga subtitle ng Sokuji",

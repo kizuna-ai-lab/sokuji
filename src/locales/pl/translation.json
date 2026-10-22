@@ -1447,7 +1447,8 @@
     "mic_blocked": "System Windows nie pozwala aplikacji Sokuji używać mikrofonu. Włącz dostęp do mikrofonu dla aplikacji klasycznych w obszarze Ustawienia › Prywatność i zabezpieczenia › Mikrofon, a następnie rozpocznij ponownie.",
     "speaker_tts_missing": "Tłumaczenie, które słyszy druga strona, jest tylko tekstem: brak modelu mowy (język: {{target}}).",
     "participant_tts_missing": "Tłumaczenie, które słyszę, jest tylko tekstem: brak modelu mowy (język: {{target}}).",
-    "participant_tts_over_budget": "Tłumaczenie, które słyszę, jest tylko tekstem: za mało pamięci, by wczytać także model mowy drugiej strony."
+    "participant_tts_over_budget": "Tłumaczenie, które słyszę, jest tylko tekstem: za mało pamięci, by wczytać także model mowy drugiej strony.",
+    "screen_context_lost": "Wybrany ekran nie jest już dostępny; tłumaczenie trwa dalej tylko na podstawie dźwięku. Wybierz go ponownie z chipu ekranu."
   },
   "viewer": {
     "title": "Napisy Sokuji",

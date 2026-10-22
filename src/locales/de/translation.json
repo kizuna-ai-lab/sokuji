@@ -1447,7 +1447,8 @@
     "mic_blocked": "Windows erlaubt Sokuji nicht, das Mikrofon zu verwenden. Aktivieren Sie den Mikrofonzugriff für Desktop-Apps unter Einstellungen › Datenschutz und Sicherheit › Mikrofon, und starten Sie dann erneut.",
     "speaker_tts_missing": "Übersetzung, die das Gegenüber hört, erscheint nur als Text: Kein Sprachausgabemodell spricht {{target}}.",
     "participant_tts_missing": "Übersetzung, die ich höre, erscheint nur als Text: Kein Sprachausgabemodell spricht {{target}}.",
-    "participant_tts_over_budget": "Übersetzung, die ich höre, erscheint nur als Text: Nicht genug Speicher, um auch das Sprachausgabemodell der Gegenseite zu laden."
+    "participant_tts_over_budget": "Übersetzung, die ich höre, erscheint nur als Text: Nicht genug Speicher, um auch das Sprachausgabemodell der Gegenseite zu laden.",
+    "screen_context_lost": "Der gewählte Bildschirm ist nicht mehr verfügbar; die Übersetzung läuft nur mit Audio weiter. Wählen Sie ihn erneut über den Bildschirm-Chip aus."
   },
   "viewer": {
     "title": "Sokuji-Untertitel",

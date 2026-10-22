@@ -1447,7 +1447,8 @@
     "mic_blocked": "Windows n’autorise pas Sokuji à utiliser le microphone. Activez l’accès au microphone pour les applications de bureau dans Paramètres › Confidentialité et sécurité › Microphone, puis relancez.",
     "speaker_tts_missing": "La traduction entendue par l'autre s'affiche en texte seul : aucun modèle vocal ne parle {{target}}.",
     "participant_tts_missing": "La traduction que j'entends s'affiche en texte seul : aucun modèle vocal ne parle {{target}}.",
-    "participant_tts_over_budget": "La traduction que j'entends s'affiche en texte seul : pas assez de mémoire pour charger aussi le modèle vocal de l'autre."
+    "participant_tts_over_budget": "La traduction que j'entends s'affiche en texte seul : pas assez de mémoire pour charger aussi le modèle vocal de l'autre.",
+    "screen_context_lost": "L'écran que vous avez choisi n'est plus disponible ; la traduction continue avec l'audio seul. Choisissez-le à nouveau depuis la pastille d'écran."
   },
   "viewer": {
     "title": "Sous-titres Sokuji",

@@ -64,6 +64,8 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   tts_degraded: 'Speech playback is degraded; the translated text still arrives.',
   resume_attempt_failed: 'Reconnecting failed; trying again.',
   voice_fallback: 'The chosen voice was unavailable, so another voice is used.',
+  // The screen the Qwen engine was reading is gone (spec 2026-10-22): the sentence names no window, and the chip is where to choose again.
+  screen_context_lost: 'The screen you chose is no longer available; translation continues on audio alone. Choose again from the screen chip.',
   // A failed leg's API error type (the adapter's code).
   auth: 'The provider did not accept the credentials: {{detail}}',
   rate_limit: 'The provider is limiting requests; try again shortly: {{detail}}',

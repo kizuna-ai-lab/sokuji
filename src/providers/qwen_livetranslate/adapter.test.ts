@@ -6,10 +6,11 @@
  * `FakeSocket`s and a virtual clock — no network, no fake timers.
  */
 import { describe, it, expect } from 'vitest';
-import { AdapterStartError, SAMPLE_RATE } from '../../lib/contract/adapter';
+import { AdapterStartError, SAMPLE_RATE, type FrameReason, type FrameSource } from '../../lib/contract/adapter';
 import type { AdapterEvent } from '../../lib/contract/events';
 import { HeaderSocketError } from '../../lib/contract/headerSocket';
-import { flush, type ScenarioStep } from '../../lib/contract/testing/drive';
+import { driveAdapter, flush, type ScenarioStep } from '../../lib/contract/testing/drive';
+import { fakeFrameSource, JPEG_A, JPEG_B } from '../../lib/contract/testing/fakeFrames';
 import { FakeSocket } from '../../lib/contract/testing/fakeSocket';
 import { fakeHeaderSockets } from '../../lib/contract/testing/headerSocket';
 import { runLifecycles, type LifecycleHarness } from '../../lib/contract/testing/lifecycle';
@@ -152,7 +153,7 @@ describe('the Qwen LiveTranslate adapter: the start (spec §6)', () => {
     const h = await openQwen();
     expect(h.sent()).toEqual([]);
     h.socket().receive(SERVER.created());
-    expect(h.sent()).toEqual([sessionUpdate(h.config)]);
+    expect(h.sent()).toEqual([sessionUpdate(h.config, { video: false })]);
     let resolved = false;
     void h.starting.then(() => { resolved = true; });
     await flush();
@@ -160,7 +161,7 @@ describe('the Qwen LiveTranslate adapter: the start (spec §6)', () => {
     h.socket().receive(SERVER.updated());
     const session = await h.starting;
     expect(session.info).toEqual({ transport: 'websocket' });
-    expect(h.frames('session.update')).toEqual([sessionUpdate(h.config).session]);
+    expect(h.frames('session.update')).toEqual([sessionUpdate(h.config, { video: false }).session]);
     expect(h.content()).toEqual([]);
     expect(h.timers()).toBe(1);
   });
@@ -771,5 +772,199 @@ describe('the Qwen LiveTranslate adapter: a managed leg (spec §4)', () => {
   it('an own key runs as today: detection, and no lease to tell', async () => {
     const h = await qwenSession({ shared: NO_STOREFRONT, requestIds: [REQUEST] });
     expect(h.detected).toEqual([KEY.apiKey]);
+  });
+});
+
+
+describe('the Qwen LiveTranslate adapter: screen context (spec 2026-10-22)', () => {
+  it('without a source never declares video and never sends an image, however much audio goes up', async () => {
+    const h = await qwenSession();
+    expect(h.sent().find((m) => m.type === 'session.update')!.session).not.toHaveProperty('input_modalities');
+    h.session.appendAudio(chunk()); h.session.appendAudio(chunk());
+    expect(types(h.socket())).not.toContain('input_image_buffer.append');
+  });
+
+  it('with a source declares video, and sends the frame in hand right after the first audio chunk, once, framed with its size and reason', async () => {
+    const src = fakeFrameSource({ inHand: JPEG_A });
+    const h = await qwenSession({ frames: src });
+    expect(h.sent().find((m) => m.type === 'session.update')!.session).toHaveProperty('input_modalities', ['audio', 'video']);
+    expect(types(h.socket())).not.toContain('input_image_buffer.append'); // nothing before audio
+    h.session.appendAudio(chunk());
+    expect(types(h.socket()).slice(-2)).toEqual(['input_audio_buffer.append', 'input_image_buffer.append']);
+    h.session.appendAudio(chunk());
+    expect(types(h.socket()).filter((t) => t === 'input_image_buffer.append')).toHaveLength(1);
+    expect(h.frames('input_image_buffer.append')).toEqual([{ bytes: 3, reason: 'first' }]);
+    noSecret(h.log);
+  });
+
+  it('puts the frame on the wire as base64 of its bytes, and the image itself in no frame of the log', async () => {
+    const h = await qwenSession({ frames: fakeFrameSource({ inHand: JPEG_A }) });
+    h.session.appendAudio(chunk());
+    const image = h.sent().find((m) => m.type === 'input_image_buffer.append')!;
+    expect(Array.from(Uint8Array.from(atob(image.image as string), (c) => c.charCodeAt(0)))).toEqual(Array.from(JPEG_A));
+    expect(JSON.stringify(h.of('frame').map((e) => e.payload))).not.toContain(image.image as string);
+  });
+
+  it('a frame that arrives after the first audio went is sent at once; one that arrives before it waits for that audio', async () => {
+    const src = fakeFrameSource({ inHand: null });
+    const h = await qwenSession({ frames: src });
+    src.emit(JPEG_A, 'first');
+    expect(types(h.socket())).not.toContain('input_image_buffer.append');
+    h.session.appendAudio(chunk());
+    expect(types(h.socket()).slice(-1)).toEqual(['input_image_buffer.append']);
+    src.emit(JPEG_B);
+    expect(h.frames('input_image_buffer.append')).toEqual([{ bytes: 3, reason: 'first' }, { bytes: 3, reason: 'changed' }]);
+  });
+
+  it('of several frames that arrive before the audio, only the newest goes, after it', async () => {
+    const src = fakeFrameSource({ inHand: JPEG_A });
+    const h = await qwenSession({ frames: src });
+    src.emit(JPEG_B, 'changed');
+    h.session.appendAudio(chunk());
+    expect(h.frames('input_image_buffer.append')).toEqual([{ bytes: 3, reason: 'changed' }]);
+    const image = h.sent().find((m) => m.type === 'input_image_buffer.append')!;
+    expect(atob(image.image as string).charCodeAt(2)).toBe(JPEG_B[2]);
+  });
+
+  it('a frame that arrives while the leg is still opening waits for the audio too', async () => {
+    const src = fakeFrameSource({ inHand: null });
+    const h = await openQwen({ frames: src });
+    src.emit(JPEG_A, 'first');
+    h.socket().receive(SERVER.created());
+    src.emit(JPEG_B);
+    h.socket().receive(SERVER.updated());
+    const session = await h.starting;
+    expect(types(h.socket())).toEqual(['session.update']);
+    session.appendAudio(chunk());
+    expect(types(h.socket())).toEqual(['session.update', 'input_audio_buffer.append', 'input_image_buffer.append']);
+    expect(h.frames('input_image_buffer.append')).toEqual([{ bytes: 3, reason: 'changed' }]);
+  });
+
+  it("push-to-talk: the first press's first chunk is the audio the first frame follows", async () => {
+    const src = fakeFrameSource({ inHand: JPEG_A });
+    const h = await qwenSession({ context: MANUAL_CTX, frames: src });
+    h.session.beginTurn(); h.session.appendAudio(chunk());
+    expect(types(h.socket()).slice(-2)).toEqual(['input_audio_buffer.append', 'input_image_buffer.append']);
+  });
+
+  it('push-to-talk: a press held behind a turn the server cut goes up with the frame after it, ahead of its release', async () => {
+    const src = fakeFrameSource({ inHand: JPEG_A });
+    const h = await qwenSession({ context: MANUAL_CTX, frames: src });
+    // The server closes a turn the leg sent no audio to: the press waits for its `response.done`, and its audio is the first to go.
+    h.socket().receive(SERVER.committed('item_h0'));
+    h.session.beginTurn(); h.session.appendAudio(chunk(7)); h.session.endTurn();
+    expect(types(h.socket())).toEqual(['session.update']);
+    h.socket().receive(SERVER.responseDone());
+    expect(types(h.socket())).toEqual(['session.update', 'input_audio_buffer.append', 'input_image_buffer.append', 'input_audio_buffer.commit']);
+    expect(h.frames('input_image_buffer.append')).toEqual([{ bytes: 3, reason: 'first' }]);
+  });
+
+  it("a leg whose first audio is the keepalive's sends the frame in hand after it, once — ahead of the keepalive turn's commit under push-to-talk", async () => {
+    const auto = await qwenSession({ frames: fakeFrameSource({ inHand: JPEG_A }) });
+    auto.clock.advance(KEEPALIVE_IDLE_MS);
+    expect(types(auto.socket()).slice(1)).toEqual(['input_audio_buffer.append', 'input_image_buffer.append']);
+    auto.session.appendAudio(chunk());
+    expect(auto.frames('input_image_buffer.append')).toHaveLength(1);
+    const manual = await qwenSession({ context: MANUAL_CTX, frames: fakeFrameSource({ inHand: JPEG_A }) });
+    manual.clock.advance(KEEPALIVE_IDLE_MS);
+    expect(types(manual.socket()).slice(1)).toEqual(['input_audio_buffer.append', 'input_image_buffer.append', 'input_audio_buffer.commit']);
+  });
+
+  it('a lost source degrades the leg once with screen_context_lost, its return is framed, and a second loss degrades again', async () => {
+    const src = fakeFrameSource({ inHand: JPEG_A });
+    const h = await qwenSession({ frames: src });
+    src.lose(); src.lose();
+    expect(h.of('degraded').map((e) => e.payload.code)).toEqual(['screen_context_lost']);
+    expect(h.of('degraded')[0].payload.message).toBe('The chosen screen is no longer available; translation continues on audio alone.');
+    src.back();
+    expect(h.of('frame').map((e) => e.payload.type)).toContain('session.screen_context_back');
+    src.lose();
+    expect(h.of('degraded')).toHaveLength(2);
+  });
+
+  it("never puts the source's name into an event of the log", async () => {
+    const src = fakeFrameSource({ name: 'Quarterly results — Confidential.xlsx', inHand: JPEG_A });
+    const h = await qwenSession({ frames: src });
+    h.session.appendAudio(chunk());
+    src.lose(); src.back();
+    expect(JSON.stringify(h.log, (_k, v: unknown) => (v instanceof Int16Array ? 'pcm' : v))).not.toContain('Confidential');
+  });
+
+  it('stop unsubscribes: a frame after stop sends nothing and says nothing; a start that fails unsubscribes too', async () => {
+    const src = fakeFrameSource({ inHand: JPEG_A });
+    const h = await qwenSession({ frames: src });
+    await h.session.stop();
+    expect(src.subscribers).toBe(0);
+    const before = h.log.length; src.emit(JPEG_B);
+    expect(h.log).toHaveLength(before);
+    const failing = fakeFrameSource();
+    const f = await openQwen({ frames: failing });
+    expect(failing.subscribers).toBe(1);
+    f.socket().receive(SERVER.created());
+    f.socket().receive(SERVER.error('invalid_value', 'Invalid translation parameter.'));
+    await expect(f.starting).rejects.toBeInstanceOf(AdapterStartError);
+    expect(failing.subscribers).toBe(0);
+  });
+
+  it('an aborted start unsubscribes', async () => {
+    const src = fakeFrameSource({ inHand: JPEG_A });
+    const h = await openQwen({ frames: src });
+    expect(src.subscribers).toBe(1);
+    h.controller.abort(new Error('stopped'));
+    await expect(h.starting).rejects.toThrow('stopped');
+    expect(src.subscribers).toBe(0);
+  });
+
+  it('a source that ignores its unsubscribe is still heard by nobody once the leg has ended', async () => {
+    type OnFrame = (jpeg: Uint8Array, reason: FrameReason) => void;
+    let handlers: { onFrame: OnFrame; onLost: () => void; onBack: () => void } | null = null;
+    const stubborn: FrameSource = {
+      name: 'Stubborn',
+      kind: 'window',
+      subscribe: (onFrame, onLost, onBack) => { handlers = { onFrame, onLost, onBack }; return () => {}; },
+    };
+    const h = await qwenSession({ frames: stubborn });
+    h.session.appendAudio(chunk());
+    await h.session.stop();
+    const before = { log: h.log.length, sent: h.sent().length };
+    handlers!.onFrame(JPEG_B, 'changed'); handlers!.onLost(); handlers!.onBack();
+    expect(h.log).toHaveLength(before.log);
+    expect(h.sent()).toHaveLength(before.sent);
+  });
+
+  it('runs every conformance scenario with a source that keeps emitting, and leaves no subscriber behind', async () => {
+    const src = fakeFrameSource({ inHand: JPEG_A });
+    const base = harness();
+    const emit: ScenarioStep = { run: () => src.emit(JPEG_B) };
+    const withFrames: AdapterHarness<QwenConfig, QwenCredentials> = {
+      ...base,
+      frames: src,
+      // A frame while the session is still opening, then audio around the exchange with a frame before and after it.
+      opening: (name) => [...base.opening(name).slice(0, 2), emit, ...base.opening(name).slice(2)],
+      exchange: [{ audio: 100 }, emit, ...base.exchange, emit],
+    };
+    for (const name of scenarioNames(withFrames)) {
+      const report = await runScenario(withFrames, name);
+      expect(report.violations, name).toEqual([]);
+      expect(report.problems, name).toEqual([]);
+    }
+    expect(src.subscribers).toBe(0);
+  });
+
+  it('a frame, a loss and a return after the driver has stopped the session add nothing to its log', async () => {
+    const src = fakeFrameSource({ inHand: JPEG_A });
+    const base = harness();
+    const r = await driveAdapter(base.adapter, {
+      context: AUTO_CTX, config: base.config(AUTO_CTX, 'open-stop'), credentials: KEY, frames: src,
+      opening: base.opening('open-stop'),
+      steps: [{ audio: 100 }, { stop: true }, { run: () => { src.emit(JPEG_B); src.lose(); src.back(); } }, { flush: true }],
+    });
+    expect(r.violations).toEqual([]);
+    expect(src.subscribers).toBe(0);
+    const images = r.log.filter((e) => e.kind === 'frame' && e.payload.type === 'input_image_buffer.append');
+    expect(images.map((e) => e.kind === 'frame' && e.payload.payload)).toEqual([{ bytes: 3, reason: 'first' }]);
+    const stopped = r.log.findIndex((e) => e.kind === 'marker' && e.payload === 'stopped');
+    expect(stopped).toBeGreaterThan(-1);
+    expect(r.log.slice(stopped + 1)).toEqual([]);
   });
 });

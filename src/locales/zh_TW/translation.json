@@ -1447,7 +1447,8 @@
     "mic_blocked": "Windows 不允許 Sokuji 使用麥克風。請在 設定 › 隱私權與安全性 › 麥克風 中開啟傳統型應用程式的麥克風存取權，然後重新開始。",
     "speaker_tts_missing": "對方聽到的翻譯只顯示文字：沒有能說{{target}}的語音模型。",
     "participant_tts_missing": "我聽到的翻譯只顯示文字：沒有能說{{target}}的語音模型。",
-    "participant_tts_over_budget": "我聽到的翻譯只顯示文字：記憶體不足，無法同時載入對方的語音模型。"
+    "participant_tts_over_budget": "我聽到的翻譯只顯示文字：記憶體不足，無法同時載入對方的語音模型。",
+    "screen_context_lost": "你選擇的螢幕已無法使用，翻譯將僅憑音訊繼續。請從螢幕標籤重新選擇。"
   },
   "viewer": {
     "title": "Sokuji 字幕",
