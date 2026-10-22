@@ -7,7 +7,9 @@
  * What the sampler may rely on:
  *  - `grab()` returns the picture already fitted inside 1280×720 (`fitInside`,
  *    never upscaled), so the sampler's thumb and the JPEG come from the pixels
- *    that are sent.
+ *    that are sent. With a `region`, the picture is that part of the video,
+ *    drawn straight from the video's own pixels and fitted by its own size:
+ *    cropping after the fit would throw away resolution a small region needs.
  *  - `grab()` always settles. It resolves null when the track has ended, the
  *    video has no frame or no size yet, or drawing fails: all of them are a
  *    source that yields nothing, which the sampler turns into a loss it tells.
@@ -16,13 +18,18 @@
  *    skips a frame whose encode rejects.
  */
 import { describeCause } from '../diagnostics/describeCause';
-import { fitInside } from './pixels';
+import { fitInside, type Box, type Size } from './pixels';
 import type { Capture, Picture } from './sampler';
 
 /** `HTMLMediaElement.HAVE_CURRENT_DATA`: a frame is there to draw. */
 const HAVE_CURRENT_DATA = 2;
 
-export function canvasCapture(track: MediaStreamTrack): Omit<Capture, 'name' | 'kind'> & { close(): void } {
+export interface CanvasCaptureOptions {
+  /** The part of the video to draw, given the video's size, asked on every grab: a region that follows what is on screen. */
+  region?(frame: Size): Box;
+}
+
+export function canvasCapture(track: MediaStreamTrack, options?: CanvasCaptureOptions): Omit<Capture, 'name' | 'kind'> & { close(): void } {
   const video = document.createElement('video');
   video.muted = true;
   video.playsInline = true;
@@ -39,12 +46,14 @@ export function canvasCapture(track: MediaStreamTrack): Omit<Capture, 'name' | '
       try {
         if (track.readyState === 'ended') return null;
         if (video.readyState < HAVE_CURRENT_DATA || !(video.videoWidth > 0) || !(video.videoHeight > 0)) return null;
-        const { width, height } = fitInside(video.videoWidth, video.videoHeight);
+        const region = options?.region?.({ width: video.videoWidth, height: video.videoHeight })
+          ?? { x: 0, y: 0, width: video.videoWidth, height: video.videoHeight };
+        const { width, height } = fitInside(region.width, region.height);
         grabCanvas.width = width;
         grabCanvas.height = height;
         const context = grabCanvas.getContext('2d', { willReadFrequently: true });
         if (!context) return null;
-        context.drawImage(video, 0, 0, width, height);
+        context.drawImage(video, region.x, region.y, region.width, region.height, 0, 0, width, height);
         const image = context.getImageData(0, 0, width, height);
         return { rgba: image.data, width: image.width, height: image.height };
       } catch {

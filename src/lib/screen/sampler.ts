@@ -26,9 +26,9 @@ export interface Picture {
 export interface Capture {
   name: string;
   kind: FrameSource['kind'];
-  /** The current picture at its own size, or null when the source yields nothing (closed, minimized, ended). */
+  /** The current picture already fitted inside 1280×720 (never upscaled), or null when the source yields nothing (closed, minimized, ended). Always settles. */
   grab(): Promise<Picture | null>;
-  /** The picture fitted inside 1280×720 as a JPEG at `quality` (0..1). */
+  /** The picture as a JPEG at `quality` (0..1). Rejects when it cannot be encoded. */
   encode(picture: Picture, quality: number): Promise<Uint8Array>;
 }
 

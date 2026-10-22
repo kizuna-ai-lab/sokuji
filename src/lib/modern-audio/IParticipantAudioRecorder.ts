@@ -11,6 +11,8 @@ export interface ParticipantAudioOptions {
   tabId?: number;
   /** Output device ID for audio passthrough (mainly for tab capture) */
   outputDeviceId?: string;
+  /** Capture the tab's video in the same stream as its audio (Chrome allows one capture per tab); the recorder uses the audio only */
+  video?: boolean;
 }
 
 export interface AudioDataCallback {

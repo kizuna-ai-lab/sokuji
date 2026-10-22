@@ -1,5 +1,6 @@
 import { ParticipantRecorder } from './ParticipantRecorder';
 import { ParticipantAudioOptions } from './IParticipantAudioRecorder';
+import { chromeTabStreamDeps, openTabStream } from '../screen/tabStream';
 
 /* global chrome */
 
@@ -10,7 +11,8 @@ import { ParticipantAudioOptions } from './IParticipantAudioRecorder';
  */
 export class TabAudioRecorder extends ParticipantRecorder {
   private tabId: number | null = null;
-  private streamId: string | null = null;
+  /** This recorder's share of the tab's capture (`openTabStream`); null when it holds none. */
+  private releaseTab: (() => Promise<void>) | null = null;
   private outputDeviceId: string | null = null;
 
   protected getLogPrefix(): string {
@@ -50,39 +52,36 @@ export class TabAudioRecorder extends ParticipantRecorder {
 
     console.info(`${this.getLogPrefix()} Starting capture for tab:`, this.tabId);
 
-    // Request stream ID from background script
-    const response = await this.sendMessageToBackground({
-      type: 'START_TAB_CAPTURE',
-      tabId: this.tabId
-    });
+    // The tab's one capture, shared with the screen context when it asks for the video too.
+    const tab = await openTabStream(this.tabId, { audio: true, video: options?.video === true }, chromeTabStreamDeps());
+    this.releaseTab = tab.release;
 
-    if (!response.success) {
-      throw new Error(response.error || 'Failed to start tab capture');
-    }
-
-    this.streamId = response.streamId || null;
-    console.info(`${this.getLogPrefix()} Received streamId:`, this.streamId);
-
-    // Get media stream using Chrome tab capture
-    return navigator.mediaDevices.getUserMedia({
-      audio: {
-        // @ts-expect-error Chrome-specific constraints
-        mandatory: {
-          chromeMediaSource: 'tab',
-          chromeMediaSourceId: this.streamId
-        }
-      },
-      video: false
-    });
+    // The recorder's cleanup stops every track of the stream it holds: it gets the audio only, so the video
+    // another opener shares stays live until the last release.
+    return new MediaStream(tab.stream.getAudioTracks());
   }
 
   protected async onCleanup(): Promise<void> {
-    // Notify background script to stop capture
-    if (this.tabId) {
-      await this.sendMessageToBackground({ type: 'STOP_TAB_CAPTURE', tabId: this.tabId });
-    }
     this.tabId = null;
-    this.streamId = null;
+    await this.releaseTabCapture();
+  }
+
+  /**
+   * A begin() that fails after the capture opened ends in cleanup() alone, never onCleanup():
+   * the share is let go here too, or the capture would stay open for the tab's next opener.
+   */
+  protected async cleanup(): Promise<void> {
+    try {
+      await this.releaseTabCapture();
+    } finally {
+      await super.cleanup();
+    }
+  }
+
+  private async releaseTabCapture(): Promise<void> {
+    const release = this.releaseTab;
+    this.releaseTab = null;
+    await release?.();
   }
 
   private async getTabIdFromContext(): Promise<number | null> {
@@ -99,21 +98,5 @@ export class TabAudioRecorder extends ParticipantRecorder {
       }
     }
     return null;
-  }
-
-  private sendMessageToBackground(message: object): Promise<{ success: boolean; streamId?: string; error?: string }> {
-    return new Promise((resolve) => {
-      if (typeof chrome !== 'undefined' && chrome.runtime) {
-        chrome.runtime.sendMessage(message, (response) => {
-          if (chrome.runtime.lastError) {
-            resolve({ success: false, error: chrome.runtime.lastError.message });
-          } else {
-            resolve(response || { success: false, error: 'No response' });
-          }
-        });
-      } else {
-        resolve({ success: false, error: 'Chrome runtime not available' });
-      }
-    });
   }
 }

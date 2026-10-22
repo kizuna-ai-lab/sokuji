@@ -72,6 +72,8 @@ export function tabSettings(): TabSettings {
     tabId: () => targetTabIdFromSearch(window.location.search),
     outputDeviceId: () => audio().selectedMonitorDevice?.deviceId,
     muted: () => audio().isParticipantMuted,
+    // Bound to the screen-context switch by the wiring task (Task 7); until then the tab is captured for its audio alone.
+    video: () => false,
   };
 }
 

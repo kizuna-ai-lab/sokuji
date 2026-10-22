@@ -13,6 +13,14 @@ export interface Size {
   height: number;
 }
 
+/** A rectangle: the top-left corner and the size, in whatever pixels the caller counts. */
+export interface Box {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 const SEND_BOUND: Size = { width: 1280, height: 720 };
 const THUMB: Size = { width: 64, height: 36 };
 
