@@ -421,7 +421,7 @@ describe('runner — screen context (spec 2026-10-22 §3.2, §3.6)', () => {
     expect(events('screen_context_on')).toEqual([]);
   });
 
-  it('a leg degraded with screen_context_lost tracks screen_context_lost beside api_error', async () => {
+  it('a leg degraded with screen_context_lost tracks screen_context_lost instead of api_error: a closed window is no server error', async () => {
     let ev!: AdapterEvents;
     const provider = {
       ...fakeProvider,
@@ -431,8 +431,7 @@ describe('runner — screen context (spec 2026-10-22 §3.2, §3.6)', () => {
     await runner.start();
     ev.degraded({ code: 'screen_context_lost', message: 'gone' });
     expect(events('screen_context_lost')).toEqual([{ session_id: 'run1', provider: 'fake', channel: 'speaker' }]);
-    expect(events('api_error')).toHaveLength(1);
-    expect(events('api_error')[0]).toMatchObject({ error_code: 'screen_context_lost', channel: 'speaker' });
+    expect(events('api_error')).toEqual([]);
   });
 
   it('another degradation tracks no screen_context_lost', async () => {
