@@ -553,6 +553,7 @@
       "vocabularyTranslationsPlaceholder": "Satır başına kaynak=hedef biçiminde bir giriş",
       "screenContext": "Ekran bağlamı",
       "screenContextTooltip": "Oturum başlarken seçtiğiniz bir pencereyi, sekmeyi veya ekranı Qwen motorunun görmesini sağlar; böylece üzerindeki adlar ve terimler yazıldığı gibi tanınır ve çevrilir. Bu alanın içindeki her şey, bu oturumun bölgesindeki Alibaba Cloud'un Qwen hizmetine görüntü olarak gönderilir; Kizuna AI bunları hiçbir zaman almaz. Açık olduğu sürece konuşmanın her saniyesi için ücrete ek getirir — kendi anahtarınızla Alibaba Cloud faturanıza, Kizuna AI hesabıyla hesabınızın fiyatlandırma sayfasında belirtildiği gibi; Her ikisi modunda her yönün oturumu ücretlendirilir.",
+      "screenContextBeta": "Beta",
       "screenContextWhere": "Bu alanın görüntüleri, bu oturumun bölgesindeki Alibaba Cloud'un Qwen hizmetine gider; Kizuna AI bunları hiçbir zaman almaz. Masaüstü uygulamasında pencereyi veya ekranı oturum başlarken seçersiniz; tarayıcı uzantısında toplantı sekmesi kullanılır."
     },
     "local_inference": {

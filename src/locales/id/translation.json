@@ -553,6 +553,7 @@
       "vocabularyTranslationsPlaceholder": "Satu entri sumber=target per baris",
       "screenContext": "Konteks layar",
       "screenContextTooltip": "Memungkinkan mesin Qwen melihat satu jendela, tab, atau layar yang Anda pilih saat sesi dimulai, sehingga nama dan istilah di dalamnya dikenali dan diterjemahkan persis seperti tertulis. Semua yang ada di dalam area itu dikirim sebagai gambar ke layanan Qwen milik Alibaba Cloud, di wilayah sesi ini; Kizuna AI tidak pernah menerimanya. Selama aktif, fitur ini menambah biaya untuk setiap detik ucapan — di tagihan Alibaba Cloud Anda bila memakai kunci sendiri, atau sesuai halaman harga akun Anda bila memakai akun Kizuna AI; pada mode Keduanya, sesi setiap arah ditagih.",
+      "screenContextBeta": "Beta",
       "screenContextWhere": "Gambar area itu dikirim ke layanan Qwen milik Alibaba Cloud di wilayah sesi ini; Kizuna AI tidak pernah menerimanya. Di aplikasi desktop, Anda memilih jendela atau layar saat sesi dimulai; di ekstensi browser, tab rapat yang digunakan."
     },
     "local_inference": {

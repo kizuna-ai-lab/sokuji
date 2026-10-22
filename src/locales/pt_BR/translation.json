@@ -553,6 +553,7 @@
       "vocabularyTranslationsPlaceholder": "Uma entrada origem=destino por linha",
       "screenContext": "Contexto da tela",
       "screenContextTooltip": "Permite que o mecanismo Qwen veja uma janela, aba ou tela que você escolhe ao iniciar uma sessão, para que os nomes e termos nela sejam reconhecidos e traduzidos como estão escritos. Tudo o que está dentro dessa área é enviado como imagens ao serviço Qwen da Alibaba Cloud, na região desta sessão; a Kizuna AI nunca as recebe. Enquanto estiver ativado, isso aumenta a cobrança por cada segundo de fala — na sua fatura da Alibaba Cloud com a sua própria chave, ou conforme a página de preços da sua conta com uma conta Kizuna AI; no modo Ambos, a sessão de cada direção é cobrada.",
+      "screenContextBeta": "Beta",
       "screenContextWhere": "As imagens dessa área vão para o serviço Qwen da Alibaba Cloud na região desta sessão; a Kizuna AI nunca as recebe. No app para desktop, você escolhe a janela ou a tela ao iniciar a sessão; na extensão do navegador, a aba da reunião é usada."
     },
     "local_inference": {

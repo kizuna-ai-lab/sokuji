@@ -59,6 +59,7 @@ export function QwenSettingsView({ settings, update, disabled = false, participa
       <div className="settings-section" id="qwen-screen-context-section" data-testid="qwen-screen-context">
         <SettingRow
           label={t('providers.qwen_livetranslate.screenContext', 'Screen context')}
+          badge={t('providers.qwen_livetranslate.screenContextBeta', 'Beta')}
           tooltip={t('providers.qwen_livetranslate.screenContextTooltip', "Lets the Qwen engine see one window, tab or screen you choose when a session starts, so the names and terms on it are recognized and translated as written. Everything inside that area is sent to Alibaba Cloud's Qwen service, in the region of this session, as pictures; Kizuna AI never receives them. It adds to the charge for every second of speech while it is on — on your Alibaba Cloud bill with your own key, or on your account's pricing page with a Kizuna AI account; in Both mode each direction's session is billed.")}
           switch={{ checked: settings.screenContext, onChange: () => update({ screenContext: !settings.screenContext }), disabled }}
         />

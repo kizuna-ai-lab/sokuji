@@ -553,6 +553,7 @@
       "vocabularyTranslationsPlaceholder": "Yksi lähde=kohde-merkintä per rivi",
       "screenContext": "Näytön konteksti",
       "screenContextTooltip": "Antaa Qwen-moottorin nähdä yhden ikkunan, välilehden tai näytön, jonka valitset istunnon alkaessa, jotta siinä näkyvät nimet ja termit tunnistetaan ja käännetään sellaisina kuin ne on kirjoitettu. Kaikki tämän alueen sisällä oleva lähetetään kuvina Alibaba Cloudin Qwen-palveluun tämän istunnon alueella; Kizuna AI ei koskaan vastaanota niitä. Kun se on päällä, se lisää veloitusta jokaiselta puhesekunnilta — omalla avaimella Alibaba Cloud -laskullesi, Kizuna AI -tilillä tilisi hintasivun mukaan; Molemmat-tilassa kunkin suunnan istunto veloitetaan.",
+      "screenContextBeta": "Beta",
       "screenContextWhere": "Tämän alueen kuvat menevät Alibaba Cloudin Qwen-palveluun tämän istunnon alueella; Kizuna AI ei koskaan vastaanota niitä. Työpöytäsovelluksessa valitset ikkunan tai näytön istunnon alkaessa; selainlaajennuksessa käytetään kokouksen välilehteä."
     },
     "local_inference": {

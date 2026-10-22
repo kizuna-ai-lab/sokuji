@@ -553,6 +553,7 @@
       "vocabularyTranslationsPlaceholder": "En post källa=mål per rad",
       "screenContext": "Skärmkontext",
       "screenContextTooltip": "Låter Qwen-motorn se ett fönster, en flik eller en skärm som du väljer när en session startar, så att namn och termer på den känns igen och översätts som de är skrivna. Allt inom det området skickas som bilder till Alibaba Clouds Qwen-tjänst, i den här sessionens region; Kizuna AI tar aldrig emot dem. Så länge det är på ökar det avgiften för varje sekund tal — på din Alibaba Cloud-faktura med egen nyckel, eller enligt kontots prissida med ett Kizuna AI-konto; i läget Båda debiteras varje riktnings session.",
+      "screenContextBeta": "Beta",
       "screenContextWhere": "Bilder av det området går till Alibaba Clouds Qwen-tjänst i den här sessionens region; Kizuna AI tar aldrig emot dem. I skrivbordsappen väljer du fönstret eller skärmen när sessionen startar; i webbläsartillägget används mötesfliken."
     },
     "local_inference": {

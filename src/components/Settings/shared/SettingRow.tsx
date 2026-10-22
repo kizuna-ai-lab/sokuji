@@ -15,6 +15,8 @@ export interface SettingRowSwitch {
 
 export interface SettingRowProps {
   label: string;
+  /** A short mark drawn right after the label — "Beta" on a feature still settling. */
+  badge?: string;
   tooltip: string;
   /** A sub-row: indented, with the └ connector. */
   sub?: boolean;
@@ -34,12 +36,13 @@ export interface SettingRowProps {
  * and, at the right edge, the switch; under them the control. A greyed row
  * says why in its title and takes no input.
  */
-const SettingRow: React.FC<SettingRowProps> = ({ label, tooltip, sub, greyed, switch: sw, children, footer, className = '', id }) => {
+const SettingRow: React.FC<SettingRowProps> = ({ label, badge, tooltip, sub, greyed, switch: sw, children, footer, className = '', id }) => {
   const classes = ['setting-row', sub ? 'setting-row--sub' : '', greyed ? 'setting-row--greyed' : '', className].filter(Boolean).join(' ');
   return (
     <div className={classes} id={id} title={greyed} aria-disabled={greyed ? true : undefined}>
       <div className="setting-row__head">
         <span className="setting-row__label">{label}</span>
+        {badge && <span className="setting-row__badge">{badge}</span>}
         <Tooltip content={tooltip} position="top" icon="help" maxWidth={300} />
         {sw && (
           <ToggleSwitch

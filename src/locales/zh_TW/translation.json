@@ -553,6 +553,7 @@
       "vocabularyTranslationsPlaceholder": "每行一項，格式為原文=譯文",
       "screenContext": "螢幕上下文",
       "screenContextTooltip": "讓 Qwen 引擎看到你在工作階段開始時選擇的一個視窗、分頁或螢幕，使其中的名稱和術語依原文被辨識與翻譯。該區域內的所有內容都會以圖片形式傳送到 Alibaba Cloud 的 Qwen 服務（位於本次工作階段所在的區域）；Kizuna AI 絕不會收到這些圖片。開啟期間，每一秒語音的費用都會增加——使用自己的金鑰時計入你的 Alibaba Cloud 帳單，使用 Kizuna AI 帳戶時依你帳戶定價頁面上的說明計費；在「兩者」模式下，每個方向的工作階段分別計費。",
+      "screenContextBeta": "測試版",
       "screenContextWhere": "該區域的圖片會傳送到本次工作階段所在區域的 Alibaba Cloud Qwen 服務；Kizuna AI 絕不會收到。在桌面應用程式中，工作階段開始時由你選擇視窗或螢幕；在瀏覽器擴充功能中，則使用會議分頁。"
     },
     "local_inference": {

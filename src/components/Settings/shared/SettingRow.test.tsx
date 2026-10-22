@@ -17,6 +17,16 @@ describe('SettingRow', () => {
     expect(document.querySelector('.setting-row__control select')).not.toBeNull();
   });
 
+  it('draws a badge right after the label when given one, and none otherwise', () => {
+    const { rerender } = render(<SettingRow label="Screen context" tooltip="t" badge="Beta" />);
+    const badge = document.querySelector('.setting-row__head .setting-row__badge');
+    expect(badge).not.toBeNull();
+    expect(badge!.textContent).toBe('Beta');
+    expect(badge!.previousElementSibling).toHaveClass('setting-row__label');
+    rerender(<SettingRow label="Screen context" tooltip="t" />);
+    expect(document.querySelector('.setting-row__badge')).toBeNull();
+  });
+
   it('a row without a switch or a control is one line', () => {
     render(<SettingRow label="Default playback device" tooltip="…" />);
     expect(screen.queryByRole('switch')).toBeNull();

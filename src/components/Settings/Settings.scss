@@ -2286,6 +2286,19 @@
     font-size: vars.$font-body;
     color: vars.$text-secondary;
   }
+  // A mark after the label ("Beta"): the model cards' chip line box, outlined
+  // in the primary colour so it reads as a state of the feature, not a value.
+  &__badge {
+    font-size: vars.$chip-font-size;
+    line-height: vars.$chip-line-height;
+    padding: vars.$chip-padding-y 6px;
+    border: 1px solid vars.$color-primary;
+    border-radius: vars.$radius-sm;
+    color: vars.$color-primary;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
   &__switch {
     margin-left: auto;
   }

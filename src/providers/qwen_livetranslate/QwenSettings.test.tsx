@@ -85,6 +85,14 @@ describe('QwenSettingsView (spec §4, §7)', () => {
     fireEvent.click(sw);
     expect(update).toHaveBeenCalledWith({ screenContext: true });
   });
+  it('marks the switch Beta, as a badge right after its label (owner, 2026-10-22)', () => {
+    render(<QwenSettingsView settings={QWEN_DEFAULTS} update={() => {}} />);
+    const row = screen.getByTestId('qwen-screen-context');
+    const badge = row.querySelector('.setting-row__badge');
+    expect(badge).not.toBeNull();
+    expect(badge!.textContent).toBe('Beta');
+    expect(badge!.previousElementSibling!.textContent).toBe('Screen context');
+  });
   it('locks the switch while a run is not idle, and says in words only where frames go and how they are billed', () => {
     const update = vi.fn();
     render(<QwenSettingsView settings={QWEN_DEFAULTS} update={update} disabled />);
