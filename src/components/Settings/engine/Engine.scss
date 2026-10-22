@@ -148,7 +148,7 @@
       min-height: 0;
     }
 
-    option:checked {
+    option: checked {
       color: vars.$color-primary;
     }
 
@@ -462,7 +462,7 @@
   // beside its siblings at whatever width was left over.
   flex-basis: 100%;
   box-sizing: border-box;
-  padding: 8px; margin: 4px 0; background: rgba(255, 255, 255, 0.04); border-radius: 6px;
+  padding: 8px; margin: 4px 0; background: color-mix(in srgb, vars.$overlay-fg 4%, transparent); border-radius: 6px;
   font-size: 12px;
   p { margin: 0 0 6px; }
   button { margin-right: 8px; }
@@ -475,23 +475,23 @@
     outline: none;
   }
   20%, 40%, 60% {
-    background-color: rgba(59, 130, 246, 0.25);
-    box-shadow: 0 0 40px rgba(59, 130, 246, 0.8),
-                0 0 20px rgba(59, 130, 246, 0.6) inset;
-    outline: 3px solid rgba(59, 130, 246, 0.7);
+    background-color: color-mix(in srgb, tk.$color-info 25%, transparent);
+    box-shadow: 0 0 40px color-mix(in srgb, tk.$color-info 80%, transparent),
+                0 0 20px color-mix(in srgb, tk.$color-info 60%, transparent) inset;
+    outline: 3px solid color-mix(in srgb, tk.$color-info 70%, transparent);
     outline-offset: 4px;
   }
   30%, 50%, 70% {
-    background-color: rgba(59, 130, 246, 0.15);
-    box-shadow: 0 0 25px rgba(59, 130, 246, 0.6),
-                0 0 10px rgba(59, 130, 246, 0.3) inset;
-    outline: 2px solid rgba(59, 130, 246, 0.5);
+    background-color: color-mix(in srgb, tk.$color-info 15%, transparent);
+    box-shadow: 0 0 25px color-mix(in srgb, tk.$color-info 60%, transparent),
+                0 0 10px color-mix(in srgb, tk.$color-info 30%, transparent) inset;
+    outline: 2px solid color-mix(in srgb, tk.$color-info 50%, transparent);
     outline-offset: 3px;
   }
   90% {
-    background-color: rgba(59, 130, 246, 0.05);
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
-    outline: 1px solid rgba(59, 130, 246, 0.2);
+    background-color: color-mix(in srgb, tk.$color-info 5%, transparent);
+    box-shadow: 0 0 10px color-mix(in srgb, tk.$color-info 30%, transparent);
+    outline: 1px solid color-mix(in srgb, tk.$color-info 20%, transparent);
     outline-offset: 2px;
   }
 }

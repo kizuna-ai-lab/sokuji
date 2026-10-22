@@ -7,7 +7,7 @@
 
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.62);
+  background: vars.$scrim;
   backdrop-filter: blur(2px);
   z-index: 1000;
   display: flex;
@@ -23,7 +23,7 @@
   background: vars.$bg-base;
   border: 1px solid vars.$border-strong;
   border-radius: vars.$radius-lg;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 24px 60px vars.$shadow-strong;
   color: vars.$text-primary;
   overflow: hidden;
   animation: import-modal-in 0.16s ease-out;
@@ -158,14 +158,14 @@
     color: vars.$text-muted;
     border: 1px solid transparent;
     border-bottom: 0;
-    &.is-active { background: #0f1113; color: vars.$text-primary; border-color: #2a2e34; }
+    &.is-active { background: vars.$bg-base; color: vars.$text-primary; border-color: vars.$border-subtle; }
     &:focus-visible { @include vars.focus-ring; }
   }
 
   &__term {
     position: relative;
-    background: #0f1113;
-    border: 1px solid #2a2e34;
+    background: vars.$bg-base;
+    border: 1px solid vars.$border-subtle;
     border-radius: 0 vars.$radius-md vars.$radius-md vars.$radius-md;
     padding: 11px 12px;
     overflow-x: auto;
@@ -175,7 +175,7 @@
       font-family: ui-monospace, Menlo, Consolas, monospace;
       font-size: 11.5px;
       line-height: 1.6;
-      color: #cdd3da;
+      color: vars.$text-secondary;
       white-space: pre;
     }
   }
@@ -187,15 +187,15 @@
     font: inherit;
     font-size: 11px;
     cursor: pointer;
-    background: #1a1f26;
-    color: #aeb6c0;
-    border: 1px solid #2f353d;
+    background: vars.$bg-base;
+    color: vars.$text-tertiary;
+    border: 1px solid vars.$border-default;
     border-radius: vars.$radius-sm;
     padding: 4px 8px;
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    &:hover { color: #fff; border-color: var(--import-accent); }
+    &:hover { color: vars.$text-primary; border-color: var(--import-accent); }
   }
 }
 

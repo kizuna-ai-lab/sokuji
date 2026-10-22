@@ -1,9 +1,10 @@
 @use '../../styles/tokens' as tk;
+@use '../Settings/shared/variables' as vars;
 
 .display-settings-popover {
-  background: #1a1a1a;
-  color: #e8e8e8;
-  border: 1px solid #3a3a3a;
+  background: vars.$bg-base;
+  color: vars.$text-primary;
+  border: 1px solid vars.$border-subtle;
   border-radius: 8px;
   padding: 16px;
 
@@ -13,7 +14,7 @@
   // identical matters — at 280 total the swatch rows rewrap and strand a
   // single chip on a line of its own.
   width: 314px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 24px vars.$shadow-strong;
 
   // Expanding a color picker adds ~190px, which can outgrow the surface this
   // floats over. Scroll rather than let it clip the controls off the bottom
@@ -48,7 +49,7 @@
       display: block;
       font-size: 12px;
       margin-bottom: 6px;
-      color: #c8c8c8;
+      color: vars.$text-tertiary;
     }
 
     input[type="range"] {
@@ -90,8 +91,8 @@
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          color: #fff;
-          filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.9));
+          color: vars.$text-primary;
+          filter: drop-shadow(0 0 1px vars.$scrim);
         }
       }
     }
@@ -104,7 +105,7 @@
 
     &__bar {
       height: 3px;
-      background: #333;
+      background: vars.$bg-popover;
       border-radius: 2px;
       overflow: hidden;
 
@@ -117,7 +118,7 @@
 
     &__text {
       font-size: 11px;
-      color: #9aa0a6;
+      color: vars.$text-source;
       font-variant-numeric: tabular-nums;
     }
 

@@ -15,7 +15,7 @@
 
 @mixin download-bar {
   height: 4px;
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, vars.$overlay-fg 10%, transparent);
   border-radius: 2px;
   overflow: hidden;
 }

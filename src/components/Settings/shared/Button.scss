@@ -45,7 +45,7 @@
 
     &:hover:not(:disabled) {
       color: vars.$text-secondary;
-      background: rgba(255, 255, 255, 0.05);
+      background: color-mix(in srgb, vars.$overlay-fg 5%, transparent);
     }
   }
 

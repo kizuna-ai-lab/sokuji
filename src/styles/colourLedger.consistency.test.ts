@@ -111,8 +111,6 @@ const LEDGER: Record<string, number> = {
   'src/components/CaptionShare/QrCode.tsx': 2,
   // --- components/ConnectionStatus ---
   'src/components/ConnectionStatus/ConnectionStatus.scss': 24,
-  // --- components/Display ---
-  'src/components/Display/DisplaySettingsPopover.scss': 9,
   // --- components/FaceToFace ---
   'src/components/FaceToFace/OtherSideChoice.scss': 6,
   // --- components/LogsPanel ---
@@ -129,25 +127,6 @@ const LEDGER: Record<string, number> = {
   'src/components/MainPanel/panel/Waveforms.tsx': 3,
   // --- components/Modal ---
   'src/components/Modal/Modal.scss': 8,
-  // --- components/Settings ---
-  'src/components/Settings/Settings.scss': 35,
-  'src/components/Settings/sections/ModelManagementSection.scss': 18,
-  'src/components/Settings/sections/EngineSection.scss': 14,
-  'src/components/Settings/engine/Engine.scss': 12,
-  'src/components/Settings/sections/ModelImportModal.scss': 11,
-  'src/components/Settings/sections/VoicePicker.scss': 10,
-  'src/components/Settings/sections/VoiceCreateModal.scss': 6,
-  'src/components/Settings/sections/UpdateSection.scss': 5,
-  'src/components/Settings/sections/VoiceLibrarySection.scss': 2,
-  'src/components/Settings/sections/NativeModelManagementSection.tsx': 1,
-  'src/components/Settings/sections/ProviderSection.tsx': 1,
-  'src/components/Settings/sections/SentenceSegmentationSection.scss': 1,
-  'src/components/Settings/shared/Button.scss': 1,
-  'src/components/Settings/shared/LicenseConsentModal.tsx': 1,
-  'src/components/Settings/shared/PanelBar.scss': 1,
-  'src/components/Settings/shared/ToggleSwitch.scss': 1,
-  'src/components/Settings/shared/WarningModal.tsx': 1,
-  'src/components/Settings/shared/_download-status.scss': 1,
   // --- components/SetupWizard ---
   'src/components/SetupWizard/SetupWizard.scss': 2,
   // --- components/Subtitle ---
