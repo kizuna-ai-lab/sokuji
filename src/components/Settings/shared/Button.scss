@@ -35,7 +35,7 @@
     color: vars.$color-primary;
 
     &:hover:not(:disabled) {
-      background: rgba(vars.$color-primary, 0.1);
+      background: color-mix(in srgb, vars.$color-primary 10%, transparent);
     }
   }
 

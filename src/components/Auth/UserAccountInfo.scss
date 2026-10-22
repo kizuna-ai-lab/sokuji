@@ -204,7 +204,7 @@
     border: 1px solid tk.$color-primary;
 
     &:hover {
-      background: rgba(tk.$color-primary, 0.1);
+      background: color-mix(in srgb, tk.$color-primary 10%, transparent);
       color: tk.$color-primary-hover;
       border-color: tk.$color-primary-hover;
     }
@@ -278,16 +278,16 @@
         padding: 2px 6px;
         font-size: 10px;
         color: tk.$color-usage;
-        background: rgba(tk.$color-usage, 0.1);
-        border: 1px solid rgba(tk.$color-usage, 0.3);
+        background: color-mix(in srgb, tk.$color-usage 10%, transparent);
+        border: 1px solid color-mix(in srgb, tk.$color-usage 30%, transparent);
         border-radius: 3px;
         cursor: pointer;
         transition: all 0.2s;
         flex-shrink: 0;
 
         &:hover:not(:disabled) {
-          background: rgba(tk.$color-usage, 0.2);
-          border-color: rgba(tk.$color-usage, 0.5);
+          background: color-mix(in srgb, tk.$color-usage 20%, transparent);
+          border-color: color-mix(in srgb, tk.$color-usage 50%, transparent);
         }
 
         &:disabled,
@@ -382,9 +382,9 @@
   animation: fadeIn 0.3s ease;
 
   &.success {
-    background: rgba(tk.$color-success, 0.1);
+    background: color-mix(in srgb, tk.$color-success 10%, transparent);
     color: tk.$color-success;
-    border: 1px solid rgba(tk.$color-success, 0.3);
+    border: 1px solid color-mix(in srgb, tk.$color-success 30%, transparent);
   }
 
   &.error {
@@ -467,9 +467,9 @@
   }
   
   &.warning-critical {
-    background: rgba(tk.$color-usage, 0.1);
+    background: color-mix(in srgb, tk.$color-usage 10%, transparent);
     color: tk.$color-usage;
-    border: 1px solid rgba(tk.$color-usage, 0.2);
+    border: 1px solid color-mix(in srgb, tk.$color-usage 20%, transparent);
   }
   
   &.warning-exceeded {

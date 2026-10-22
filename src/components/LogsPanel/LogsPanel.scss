@@ -36,11 +36,11 @@
       }
 
       &.active {
-        background-color: rgba(tk.$color-primary, 0.1);
+        background-color: color-mix(in srgb, tk.$color-primary 10%, transparent);
         color: tk.$color-primary;
 
         &:hover {
-          background-color: rgba(tk.$color-primary, 0.2);
+          background-color: color-mix(in srgb, tk.$color-primary 20%, transparent);
         }
       }
     }

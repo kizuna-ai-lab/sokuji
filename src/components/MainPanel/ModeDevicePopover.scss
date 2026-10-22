@@ -187,9 +187,9 @@
     &:hover { background: #2a2a2a; }
 
     &--selected {
-      background: rgba(tk.$color-primary, 0.12);
+      background: color-mix(in srgb, tk.$color-primary 12%, transparent);
       color: #fff;
-      &:hover { background: rgba(tk.$color-primary, 0.18); }
+      &:hover { background: color-mix(in srgb, tk.$color-primary 18%, transparent); }
     }
   }
 

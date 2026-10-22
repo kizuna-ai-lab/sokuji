@@ -118,7 +118,7 @@
 
     &.active {
       color: tk.$color-primary;
-      background: rgba(tk.$color-primary, 0.15);
+      background: color-mix(in srgb, tk.$color-primary 15%, transparent);
     }
 
     &:disabled {

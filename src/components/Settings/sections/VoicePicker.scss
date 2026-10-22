@@ -222,7 +222,7 @@
 
 .voice-row.is-selected {
   box-shadow: inset 2px 0 0 vars.$color-primary;
-  background: rgba(vars.$color-primary, 0.12);
+  background: color-mix(in srgb, vars.$color-primary 12%, transparent);
 }
 
 // The "＋ Add a voice…" row: set apart from the clones above it with a

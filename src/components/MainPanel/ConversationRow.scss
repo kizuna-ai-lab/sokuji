@@ -110,15 +110,15 @@
 
   &.tr {
     &.source-speaker {
-      background: rgba(tk.$color-speaker, 0.2);
+      background: color-mix(in srgb, tk.$color-speaker 20%, transparent);
       color: tk.$color-speaker;
-      border: 1px solid rgba(tk.$color-speaker, 0.4);
+      border: 1px solid color-mix(in srgb, tk.$color-speaker 40%, transparent);
     }
 
     &.source-participant {
-      background: rgba(tk.$color-participant, 0.2);
+      background: color-mix(in srgb, tk.$color-participant 20%, transparent);
       color: tk.$color-participant;
-      border: 1px solid rgba(tk.$color-participant, 0.4);
+      border: 1px solid color-mix(in srgb, tk.$color-participant 40%, transparent);
     }
   }
 }
@@ -194,7 +194,7 @@
   }
 
   &.playing {
-    background: rgba(tk.$color-speaker, 0.45);
+    background: color-mix(in srgb, tk.$color-speaker 45%, transparent);
     color: #fff;
   }
 

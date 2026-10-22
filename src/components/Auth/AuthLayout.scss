@@ -68,7 +68,7 @@
         color: tk.$color-on-primary;
 
         // Shadow effect
-        box-shadow: 0 2px 8px rgba(tk.$color-primary, 0.3);
+        box-shadow: 0 2px 8px color-mix(in srgb, tk.$color-primary 30%, transparent);
       }
 
       &:active {

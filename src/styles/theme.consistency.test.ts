@@ -11,7 +11,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { compile } from 'sass';
-import { readdirSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 const SRC = resolve(__dirname, '..');
@@ -92,13 +92,13 @@ const LIGHT_FLOORS: [string, string, number][] = [
   ...['primary', 'participant', 'success', 'error', 'warning', 'degraded', 'info'].flatMap((fg) => ['bg-page', 'bg-surface'].map((bg): [string, string, number] => [fg, bg, 4.5])),
 ];
 
-/** Every non-partial stylesheet under src/, the viewer included. */
-function stylesheets(dir: string, out: string[] = []): string[] {
+/** Every stylesheet under src/, the viewer included; partials only when asked. */
+function stylesheets(dir: string, partials = false, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
     const path = join(dir, entry);
     if (statSync(path).isDirectory()) {
-      if (entry !== 'node_modules') stylesheets(path, out);
-    } else if (entry.endsWith('.scss') && !entry.startsWith('_')) {
+      if (entry !== 'node_modules') stylesheets(path, partials, out);
+    } else if (entry.endsWith('.scss') && (partials || !entry.startsWith('_'))) {
       out.push(path);
     }
   }
@@ -147,5 +147,15 @@ describe('theme.scss', () => {
     }
     const missing = [...referenced].filter(([name]) => !defined.has(name)).map(([name, file]) => `${name} (${file})`);
     expect(missing).toEqual([]);
+  });
+
+  // The token files are aliases of custom properties (spec §2), and Sass cannot
+  // compute `rgba($alias, a)` on a `var()`: such a site is `color-mix(in srgb,
+  // $alias N%, transparent)`. Read off the source, since the compile would fail.
+  it('no stylesheet still computes alpha on a token', () => {
+    const sites = stylesheets(SRC, true).flatMap((file) =>
+      [...readFileSync(file, 'utf8').matchAll(/rgba\(\s*(?:tk\.|vars\.)?\$[a-z-]+\s*,/g)].map(() => file.slice(SRC.length + 1)),
+    );
+    expect(sites).toEqual([]);
   });
 });

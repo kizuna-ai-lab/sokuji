@@ -170,7 +170,7 @@
       margin: 12px 0;
       padding: 12px;
       border-radius: 6px;
-      background: rgba(tk.$color-primary, 0.08);
+      background: color-mix(in srgb, tk.$color-primary 8%, transparent);
       color: #b8d4c9;
       font-size: 0.9em;
       line-height: 1.5;

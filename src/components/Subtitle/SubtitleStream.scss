@@ -62,11 +62,11 @@
     // apart when both are on screen.
     .subtitle-stream__line--participant {
       padding-left: 6px;
-      border-left: 2px solid rgba(tk.$color-participant, 0.6);
+      border-left: 2px solid color-mix(in srgb, tk.$color-participant 60%, transparent);
     }
     .subtitle-stream__line--speaker {
       padding-left: 6px;
-      border-left: 2px solid rgba(tk.$color-speaker, 0.6);
+      border-left: 2px solid color-mix(in srgb, tk.$color-speaker 60%, transparent);
     }
 
     // A labelled leg's person changes here: a numbered dot in the leg's shade

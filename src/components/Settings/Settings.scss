@@ -51,8 +51,8 @@
       align-items: flex-start;
       gap: 8px;
       padding: 12px;
-      background: rgba(tk.$color-primary, 0.1);
-      border: 1px solid rgba(tk.$color-primary, 0.3);
+      background: color-mix(in srgb, tk.$color-primary 10%, transparent);
+      border: 1px solid color-mix(in srgb, tk.$color-primary 30%, transparent);
       border-radius: 6px;
       font-size: 13px;
       line-height: 1.4;
@@ -228,7 +228,7 @@
 
   .sign-in-prompt {
     padding: 12px;
-    background: vars.$bg-page;
+    background: vars.$bg-base;
     border: 1px solid vars.$border-subtle;
     border-radius: vars.$radius-lg;
     text-align: center;
@@ -1557,7 +1557,7 @@
   line-height: 1.5;
   padding: 1px 6px;
   border-radius: 10px;
-  background: rgba(vars.$color-primary, 0.15);
+  background: color-mix(in srgb, vars.$color-primary 15%, transparent);
   color: vars.$color-primary;
 }
 

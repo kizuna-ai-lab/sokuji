@@ -82,7 +82,7 @@
     min-width: 0;
     &.engine-slot__select--missing {
       color: vars.$color-error;
-      border-color: rgba(vars.$color-error, 0.45);
+      border-color: color-mix(in srgb, vars.$color-error 45%, transparent);
     }
 
     // Room for the badge SlotDeviceBadge draws over the right end: its own
@@ -360,7 +360,7 @@
   &__meta { font-size: vars.$font-caption; color: vars.$text-muted; flex-shrink: 0; }
   &__badge {
     font-size: 10px; padding: 1px 6px; border-radius: 10px;
-    background: rgba(tk.$color-primary, 0.15); color: vars.$color-primary;
+    background: color-mix(in srgb, tk.$color-primary 15%, transparent); color: vars.$color-primary;
   }
 
   // Finding 5: matches .model-card__btn--delete's look (ModelManagementSection.scss).

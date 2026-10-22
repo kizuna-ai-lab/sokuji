@@ -20,7 +20,7 @@
 .import-modal {
   width: 100%;
   max-width: 580px;
-  background: vars.$bg-page;
+  background: vars.$bg-base;
   border: 1px solid vars.$border-strong;
   border-radius: vars.$radius-lg;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
@@ -209,7 +209,7 @@
   background: vars.$bg-surface;
   transition: border-color vars.$transition-fast, background vars.$transition-fast;
 
-  &.is-over { border-color: var(--import-accent); background: rgba(vars.$color-primary, 0.1); }
+  &.is-over { border-color: var(--import-accent); background: color-mix(in srgb, vars.$color-primary 10%, transparent); }
 
   &__icon { color: vars.$text-disabled; margin-bottom: 4px; }
   &__lead { font-size: vars.$font-body; margin-bottom: 3px; font-weight: vars.$weight-medium; }
@@ -315,10 +315,10 @@
   }
 
   &--ok, &--stored { .import-file__st { color: var(--import-accent); } }
-  &--ok { background: rgba(vars.$color-primary, 0.12); }
+  &--ok { background: color-mix(in srgb, vars.$color-primary 12%, transparent); }
   &--missing .import-file__st { color: vars.$color-warning; }
   &--invalid {
-    background: rgba(vars.$color-error, 0.12);
+    background: color-mix(in srgb, vars.$color-error 12%, transparent);
     .import-file__st { color: vars.$color-error; }
   }
 }

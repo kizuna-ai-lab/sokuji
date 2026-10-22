@@ -34,5 +34,5 @@
 
   &--mic    { background: rgba(0, 153, 255, 0.10); }
   &--system { background: rgba(245, 158, 11, 0.10); }
-  &--output { background: rgba(tk.$color-primary, 0.10); }
+  &--output { background: color-mix(in srgb, tk.$color-primary 10%, transparent); }
 }

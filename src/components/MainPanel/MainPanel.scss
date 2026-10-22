@@ -170,7 +170,7 @@
 .karaoke-played {
   color: tk.$color-speaker;
   font-weight: bold;
-  text-shadow: 0 0 8px rgba(tk.$color-speaker, 0.6);
+  text-shadow: 0 0 8px color-mix(in srgb, tk.$color-speaker 60%, transparent);
   transition: all 0.2s ease;
 }
 

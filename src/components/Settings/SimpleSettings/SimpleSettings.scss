@@ -20,8 +20,8 @@
       align-items: center;
       gap: 10px;
       padding: 6px 10px;
-      background: rgba(vars.$color-warning, 0.1);
-      border: 1px solid rgba(vars.$color-warning, 0.3);
+      background: color-mix(in srgb, vars.$color-warning 10%, transparent);
+      border: 1px solid color-mix(in srgb, vars.$color-warning 30%, transparent);
       border-radius: vars.$radius-sm;
       margin-bottom: 20px;
       font-size: vars.$font-caption;

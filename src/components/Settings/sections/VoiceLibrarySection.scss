@@ -17,8 +17,8 @@
   // body; without this it hugs the manage details directly above it.
   margin-top: 12px;
   padding: 10px;
-  background: rgba(tk.$color-primary, 0.08);
-  border: 1px solid rgba(tk.$color-primary, 0.25);
+  background: color-mix(in srgb, tk.$color-primary 8%, transparent);
+  border: 1px solid color-mix(in srgb, tk.$color-primary 25%, transparent);
   border-radius: 4px;
   font-size: 13px;
   line-height: 1.4;
