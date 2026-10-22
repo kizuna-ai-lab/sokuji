@@ -1,6 +1,6 @@
 # Light theme and the Appearance setting
 
-Status: approved by the owner, 2026-10-22 (rulings R1 to R7 below); the implementation plan follows.
+Status: implemented on branch `worktree-light-theme-design` (2026-10-22; plan `docs/superpowers/plans/2026-10-22-light-theme.md`), awaiting the owner's live test. Rulings R1 to R7 below.
 Rendered candidates: https://claude.ai/artifact/KBcQpzX5Xy9teefPcwCNDH (real compiled stylesheets on the components' real DOM; the harness that built it is described in §10 and was not kept).
 
 ## Goal
