@@ -1594,7 +1594,7 @@
       "portal": "Välj ett fönster eller en skärm…",
       "loading": "Letar efter fönster…",
       "none": "Inget fönster eller ingen skärm att dela hittades.",
-      "minimizedHint": "Minimerade fönster visas inte i listan: återställ fönstret och tryck på Uppdatera.",
+      "minimizedHint": "Ett minimerat fönster kan inte delas: återställ fönstret och tryck på Uppdatera.",
       "deniedTitle": "Behörighet för skärminspelning krävs",
       "deniedText": "macOS låter Sokuji se skärmen endast med behörighet för skärminspelning. Ge behörigheten i Systeminställningar, starta sedan om Sokuji och börja igen.",
       "openSettings": "Öppna Systeminställningar",

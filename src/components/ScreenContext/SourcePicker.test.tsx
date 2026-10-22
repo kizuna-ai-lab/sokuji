@@ -73,11 +73,13 @@ describe('SourcePicker', () => {
     expect(refresh()).toBeDisabled();
     expect(refresh()!.querySelector('.source-picker__spinner')).not.toBeNull();
     expect(sourceButtons()).toHaveLength(3);
-    // The desktop lists no minimized window (X11 and macOS leave them out, Windows captures them black): the list says so.
-    expect(dialog().textContent).toContain("Minimized windows aren't listed: restore the window, then Refresh.");
+    // No desktop shares a minimized window (X11 and macOS leave it out, Windows lists it but captures it black): the
+    // list says so in words true on all three, not "aren't listed", which Windows contradicts.
+    expect(dialog().textContent).toContain("A minimized window can't be shared: restore it, then Refresh.");
+    expect(dialog().textContent).not.toContain("aren't listed");
     rerender(<SourcePicker {...props({ mode: 'portal', sources: [] })} />);
     expect(refresh()).toBeNull();
-    expect(dialog().textContent).not.toContain('Minimized windows');
+    expect(dialog().textContent).not.toContain('minimized window');
     rerender(<SourcePicker {...props({ checking: true })} />);
     expect(refresh()).toBeNull();
     rerender(<SourcePicker {...props({ screenRecording: 'denied', sources: [] })} />);

@@ -136,8 +136,9 @@ function SourceList({ sources, onPick }: { sources: CaptureSourceInfo[] | null; 
       </p>
     );
   }
-  // The desktop lists no minimized window (X11 and macOS leave them out; Windows lists them but captures them black): said under the list, where the Refresh is.
-  const hint = <p className="source-picker__hint">{t('screenContext.picker.minimizedHint', "Minimized windows aren't listed: restore the window, then Refresh.")}</p>;
+  // No desktop shares a minimized window (X11 and macOS leave it out; Windows lists it but captures it black), so the words
+  // hold on all three: said under the list, where the Refresh is.
+  const hint = <p className="source-picker__hint">{t('screenContext.picker.minimizedHint', "A minimized window can't be shared: restore it, then Refresh.")}</p>;
   if (sources.length === 0) {
     return (
       <>

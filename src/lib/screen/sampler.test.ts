@@ -3,6 +3,12 @@ import type { FrameReason, FrameSource } from '../contract/adapter';
 import { createVirtualClock, type Clock, type VirtualClock } from '../contract/clock';
 import { FIRST_FRAME_MS, KEEPALIVE_MS, MAX_BYTES, QUALITIES, SAMPLE_MS, createSampler, type Capture, type Picture } from './sampler';
 
+const report = vi.hoisted(() => ({ reportWarning: vi.fn() }));
+vi.mock('../diagnostics/report', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../diagnostics/report')>()),
+  reportWarning: report.reportWarning,
+}));
+
 // ---- fixtures ---------------------------------------------------------------------------------
 
 function solid(value: number, width = 640): Picture {
@@ -434,6 +440,37 @@ describe('createSampler', () => {
     expect(rec.frames).toEqual([]);
     expect(sampler.state().sent).toBe(0);
     expect(cap.grabs).toBe(3);
+  });
+
+  it('an encoder that fails is reported when it starts failing, not on every frame it drops, and again only after it worked in between', async () => {
+    report.reportWarning.mockClear();
+    const { clock, sampler } = fresh();
+    const cap = scripted([lit(1), lit(2), lit(3), lit(4), lit(5), lit(6)]);
+    let failing = true;
+    sampler.attach({ ...cap, grab: () => cap.grab(), encode: (picture, quality) => (failing ? Promise.reject(new Error('canvas lost')) : cap.encode(picture, quality)) });
+    await run(clock, 3000);
+    expect(report.reportWarning).toHaveBeenCalledTimes(1);
+    const [source, message, options] = report.reportWarning.mock.calls[0];
+    expect(source).toBe('ScreenContext');
+    expect(message).toMatch(/could not be encoded.*canvas lost/);
+    expect(options).toMatchObject({ dedupeKey: 'screen-context.encode' });
+    expect(options.cause).toBeInstanceOf(Error);
+
+    failing = false;
+    await run(clock, 1000);
+    expect(sampler.state().sent).toBe(1);
+    failing = true;
+    await run(clock, 1000);
+    expect(report.reportWarning).toHaveBeenCalledTimes(2);
+  });
+
+  it('a frame still over the cap at the last quality is skipped without a report: the encoder works', async () => {
+    report.reportWarning.mockClear();
+    const { clock, sampler } = fresh();
+    sampler.attach(scripted([lit(1, 1280), lit(2, 1280)], { oversize: 2 }));
+    await run(clock, 2000);
+    expect(sampler.state().sent).toBe(0);
+    expect(report.reportWarning).not.toHaveBeenCalled();
   });
 
   it('status is live after a change, stale after a keepalive, lost after a loss; sent counts emits and lastReason names the last', async () => {

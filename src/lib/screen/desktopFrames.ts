@@ -81,7 +81,15 @@ export async function openDesktopCapture(
   const onEnded = () => { ended = true; };
   track.addEventListener('ended', onEnded);
 
-  const inner = deps.capture(track);
+  let inner: ReturnType<DesktopCaptureDeps['capture']>;
+  try {
+    inner = deps.capture(track);
+  } catch (error) {
+    // Nothing would ever close a stream that never became a capture: the system's screen-share indicator would stay on.
+    track.removeEventListener('ended', onEnded);
+    for (const opened of stream.getTracks()) opened.stop();
+    throw error;
+  }
 
   return {
     name: source.name,

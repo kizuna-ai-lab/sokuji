@@ -15,6 +15,8 @@
  */
 import type { FrameReason, FrameSource } from '../contract/adapter';
 import type { Clock } from '../contract/clock';
+import { describeCause } from '../diagnostics/describeCause';
+import { reportWarning } from '../diagnostics/report';
 import { CHANGE_THRESHOLD, greyThumb, isBlank, meanAbsDiff } from './pixels';
 
 export interface Picture {
@@ -109,6 +111,8 @@ export function createSampler(clock: Clock): Sampler {
   let lost = false;
   /** The next usable picture goes out whatever it looks like: a loss came before it, or a new capture was attached. */
   let sendNext = false;
+  /** The last encode failed: the next failure is the same one, already reported. */
+  let encodeFailing = false;
 
   let firstJpeg: Uint8Array | null = null;
   let firstWait: FirstWait | null = null;
@@ -234,10 +238,15 @@ export function createSampler(clock: Clock): Sampler {
       let jpeg: Uint8Array;
       try {
         jpeg = await cap.encode(picture, quality);
-      } catch {
-        // The capture knows why its canvas failed and is where that is reported; here the frame is skipped.
+      } catch (error) {
+        // The frame is skipped. Once a second at most, so only the turn from working to failing is reported.
+        if (!encodeFailing) {
+          encodeFailing = true;
+          reportWarning('ScreenContext', `A screen-context frame could not be encoded; frames are skipped until one can be: ${describeCause(error)}`, { cause: error, dedupeKey: 'screen-context.encode' });
+        }
         return null;
       }
+      encodeFailing = false;
       if (jpeg.byteLength <= MAX_BYTES) return jpeg;
     }
     return null;

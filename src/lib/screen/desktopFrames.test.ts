@@ -134,6 +134,17 @@ describe('openDesktopCapture', () => {
     await expect(opening).rejects.not.toThrow(/Slides/);
     expect(stray.stop).toHaveBeenCalledOnce();
   });
+
+  it('rejects with the failure when the capture over the track cannot be built, and stops the stream: no screen share left running', async () => {
+    const track = fakeTrack();
+    const opening = openDesktopCapture(slides, {
+      getUserMedia: async () => streamWith(track),
+      capture: () => { throw new Error('no 2D canvas context'); },
+    });
+    await expect(opening).rejects.toThrow('no 2D canvas context');
+    expect(track.stop).toHaveBeenCalledOnce();
+    expect(track.removeEventListener).toHaveBeenCalledWith('ended', expect.any(Function));
+  });
 });
 
 // ---- the two channels --------------------------------------------------------------------------

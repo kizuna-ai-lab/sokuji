@@ -1594,7 +1594,7 @@
       "portal": "Choisir une fenêtre ou un écran…",
       "loading": "Recherche des fenêtres…",
       "none": "Aucune fenêtre ni aucun écran à partager n'a été trouvé.",
-      "minimizedHint": "Les fenêtres réduites ne sont pas listées : restaurez la fenêtre, puis Actualiser.",
+      "minimizedHint": "Une fenêtre réduite ne peut pas être partagée : restaurez la fenêtre, puis Actualiser.",
       "deniedTitle": "Autorisation d'enregistrement de l'écran requise",
       "deniedText": "macOS ne permet à Sokuji de voir l'écran qu'avec l'autorisation d'enregistrement de l'écran. Accordez-la dans Réglages Système, puis redémarrez Sokuji et recommencez.",
       "openSettings": "Ouvrir les Réglages Système",

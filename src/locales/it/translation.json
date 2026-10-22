@@ -1594,7 +1594,7 @@
       "portal": "Scegli una finestra o uno schermo…",
       "loading": "Ricerca delle finestre…",
       "none": "Non è stata trovata nessuna finestra né schermo da condividere.",
-      "minimizedHint": "Le finestre ridotte a icona non compaiono nell’elenco: ripristina la finestra, poi Aggiorna.",
+      "minimizedHint": "Una finestra ridotta a icona non si può condividere: ripristina la finestra, poi Aggiorna.",
       "deniedTitle": "Serve l'autorizzazione Registrazione Schermo",
       "deniedText": "macOS consente a Sokuji di vedere lo schermo solo con l'autorizzazione Registrazione Schermo. Concedila in Impostazioni di Sistema, poi riavvia Sokuji e ricomincia.",
       "openSettings": "Apri Impostazioni di Sistema",

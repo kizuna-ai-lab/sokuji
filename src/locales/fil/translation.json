@@ -1594,7 +1594,7 @@
       "portal": "Pumili ng window o screen…",
       "loading": "Naghahanap ng mga window…",
       "none": "Walang nakitang window o screen na puwedeng i-share.",
-      "minimizedHint": "Hindi nakalista ang mga naka-minimize na window: ibalik ang window, saka i-refresh.",
+      "minimizedHint": "Hindi maibabahagi ang naka-minimize na window: ibalik ang window, saka i-refresh.",
       "deniedTitle": "Kailangan ang pahintulot sa Screen Recording",
       "deniedText": "Pinapayagan lang ng macOS na makita ng Sokuji ang screen kapag may pahintulot sa Screen Recording. Ibigay ito sa System Settings, pagkatapos ay i-restart ang Sokuji at magsimula ulit.",
       "openSettings": "Buksan ang System Settings",

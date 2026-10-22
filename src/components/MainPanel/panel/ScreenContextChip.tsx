@@ -90,7 +90,7 @@ export function ScreenContextChip(p: ScreenContextChipProps) {
     : p.status === 'stale'
       ? t('screenContext.chip.stale', 'Unchanged')
       : t('screenContext.chip.lost', 'Not available');
-  const ago =p.lastSentAt === null ? null : Math.max(0, Math.round((p.now - p.lastSentAt) / 1000));
+  const ago = p.lastSentAt === null ? null : Math.max(0, Math.round((p.now - p.lastSentAt) / 1000));
 
   return (
     <>

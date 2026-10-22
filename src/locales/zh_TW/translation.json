@@ -1594,7 +1594,7 @@
       "portal": "選擇視窗或螢幕…",
       "loading": "正在尋找視窗…",
       "none": "找不到可分享的視窗或螢幕。",
-      "minimizedHint": "最小化的視窗不會列出：先還原視窗，再按重新整理。",
+      "minimizedHint": "最小化的視窗無法分享：先還原視窗，再按重新整理。",
       "deniedTitle": "需要螢幕錄製權限",
       "deniedText": "macOS 只有在授予螢幕錄製權限後才允許 Sokuji 檢視螢幕。請在「系統設定」中授予該權限，然後重新啟動 Sokuji 並重新開始。",
       "openSettings": "打開系統設定",

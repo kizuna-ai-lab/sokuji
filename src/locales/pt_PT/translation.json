@@ -1594,7 +1594,7 @@
       "portal": "Escolher uma janela ou ecrã…",
       "loading": "A procurar janelas…",
       "none": "Não foi encontrada nenhuma janela ou ecrã para partilhar.",
-      "minimizedHint": "As janelas minimizadas não aparecem na lista: restaure a janela e clique em Atualizar.",
+      "minimizedHint": "Não é possível partilhar uma janela minimizada: restaure a janela e clique em Atualizar.",
       "deniedTitle": "É necessária a permissão de Gravação de Ecrã",
       "deniedText": "O macOS só permite que o Sokuji veja o ecrã com a permissão de Gravação de Ecrã. Conceda-a nas Definições do Sistema, depois reinicie o Sokuji e comece novamente.",
       "openSettings": "Abrir Definições do Sistema",

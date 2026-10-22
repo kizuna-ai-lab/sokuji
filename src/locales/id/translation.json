@@ -1594,7 +1594,7 @@
       "portal": "Pilih jendela atau layar…",
       "loading": "Mencari jendela…",
       "none": "Tidak ditemukan jendela atau layar untuk dibagikan.",
-      "minimizedHint": "Jendela yang diminimalkan tidak muncul di daftar: pulihkan jendela, lalu Segarkan.",
+      "minimizedHint": "Jendela yang diminimalkan tidak dapat dibagikan: pulihkan jendela, lalu Segarkan.",
       "deniedTitle": "Izin Perekaman Layar diperlukan",
       "deniedText": "macOS hanya mengizinkan Sokuji melihat layar dengan izin Screen Recording. Berikan izin itu di System Settings, lalu buka ulang Sokuji dan mulai lagi.",
       "openSettings": "Buka Pengaturan Sistem",
