@@ -258,7 +258,7 @@ describe('createSampler', () => {
     sampler.attach(scripted([BLACK]));
     const blank = track(sampler.first());
     await run(clock, 2000);
-    expect(rec.frames.at(-1)).toEqual(['keepalive', 318750]);
+    expect(rec.frames[rec.frames.length - 1]).toEqual(['keepalive', 318750]);
     expect(blank.settled()).toBe(false);
     await run(clock, 1000);
     expect(await blank.promise).toBeNull();
@@ -267,8 +267,8 @@ describe('createSampler', () => {
     sampler.attach(scripted([lit(3)]));
     const next = sampler.first();
     await run(clock, 1000);
-    expect(rec.frames.at(-1)).toEqual(['changed', 318750]);
-    expect(await next).toBe(rec.jpegs.at(-1));
+    expect(rec.frames[rec.frames.length - 1]).toEqual(['changed', 318750]);
+    expect(await next).toBe(rec.jpegs[rec.jpegs.length - 1]);
   });
 
   it('emits changed only past the threshold, never more than once a second, and a keepalive after 60 s unchanged', async () => {
