@@ -32,6 +32,7 @@ import {
 } from '../services/providers/LocalNativeProviderConfig';
 import { reportError, reportWarning, describeCause } from '../lib/diagnostics/report';
 import { persistSetting } from '../services/persistSetting';
+import { isThemeSetting, type ThemeSetting } from '../lib/theme/theme';
 
 /** Map a native readiness reason to its user-facing message. Verbatim port of
  * the messages the inline LOCAL_NATIVE gate produced. */
@@ -64,6 +65,8 @@ export interface CommonSettings {
   provider: ProviderType;
   uiLanguage: string;
   uiMode: 'basic' | 'advanced';
+  /** Appearance: follow the OS, or light or dark (spec 2026-10-22 §4). */
+  theme: ThemeSetting;
   textOnly: boolean;
   keepReplayAudio: boolean;
   autoSaveOnStop: boolean;
@@ -159,6 +162,8 @@ const defaultCommonSettings: CommonSettings = {
   provider: Provider.OPENAI,
   uiLanguage: 'en',
   uiMode: 'basic',
+  // Dark is a default, not a migration: a user who never picks keeps today's look (R1).
+  theme: 'dark',
   textOnly: false,
   keepReplayAudio: false,
   autoSaveOnStop: false,
@@ -230,6 +235,8 @@ export interface SettingsStore {
   // Diagnostic logs (Help). Opt-in: while off, logStore records nothing and
   // the title bar offers no logs button.
   diagnosticLogs: boolean;
+  /** Appearance: follow the OS, or light or dark (spec 2026-10-22 §4). */
+  theme: ThemeSetting;
 
   /**
    * How bubbles are cut: Off, By pause, or By sentences (Amendment A2).
@@ -266,6 +273,7 @@ export interface SettingsStore {
   setKeepReplayAudio: (keepReplayAudio: boolean) => Promise<void>;
   setAutoSaveOnStop: (autoSaveOnStop: boolean) => Promise<void>;
   setDiagnosticLogs: (diagnosticLogs: boolean) => Promise<void>;
+  setTheme: (theme: ThemeSetting) => Promise<void>;
   setSegmentationMode: (mode: SegmentationMode) => Promise<void>;
   setSentenceSegmentationChunkSentences: (n: number) => Promise<void>;
   setSegmentationSourcePause: (seconds: number) => Promise<void>;
@@ -468,6 +476,14 @@ const useSettingsStore = create<SettingsStore>()(
       }
     },
 
+    setTheme: async (theme) => {
+      const previous = get().theme;
+      set({theme});
+      if (!await persistSetting('settings.common.theme', theme)) {
+        set({theme: previous});
+      }
+    },
+
     setSegmentationMode: async (mode) => {
       const previous = get().segmentationMode;
       const clamped = clampSegmentationMode(mode);
@@ -665,6 +681,9 @@ const useSettingsStore = create<SettingsStore>()(
         const provider = await service.getSetting('settings.common.provider', defaultCommonSettings.provider);
         const uiLanguage = await service.getSetting('settings.common.uiLanguage', defaultCommonSettings.uiLanguage);
         const uiMode = await service.getSetting('settings.common.uiMode', defaultCommonSettings.uiMode);
+        // A value outside the three (a hand edit, a downgrade) falls to the default.
+        const storedTheme = await service.getSetting<unknown>('settings.common.theme', defaultCommonSettings.theme);
+        const theme = isThemeSetting(storedTheme) ? storedTheme : defaultCommonSettings.theme;
         const textOnly = await service.getSetting('settings.common.textOnly', defaultCommonSettings.textOnly);
         const keepReplayAudio = await service.getSetting('settings.common.keepReplayAudio', defaultCommonSettings.keepReplayAudio);
         const autoSaveOnStop = await service.getSetting('settings.common.autoSaveOnStop', defaultCommonSettings.autoSaveOnStop);
@@ -709,6 +728,7 @@ const useSettingsStore = create<SettingsStore>()(
           provider: validProvider,
           uiLanguage,
           uiMode,
+          theme,
           textOnly,
           keepReplayAudio,
           autoSaveOnStop,
@@ -842,6 +862,8 @@ export const useKeepReplayAudio = () => useSettingsStore((state) => state.keepRe
 export const useAutoSaveOnStop = () => useSettingsStore((state) => state.autoSaveOnStop);
 export const useDiagnosticLogs = () => useSettingsStore((state) => state.diagnosticLogs);
 export const useSetDiagnosticLogs = () => useSettingsStore((state) => state.setDiagnosticLogs);
+export const useThemeSetting = () => useSettingsStore((state) => state.theme);
+export const useSetThemeSetting = () => useSettingsStore((state) => state.setTheme);
 export const useSegmentationMode = () => useSettingsStore((state) => state.segmentationMode);
 export const useSetSegmentationMode = () => useSettingsStore((state) => state.setSegmentationMode);
 export const useSentenceSegmentationChunkSentences = () => useSettingsStore((state) => state.sentenceSegmentationChunkSentences);
