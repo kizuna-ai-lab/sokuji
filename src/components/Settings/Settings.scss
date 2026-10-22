@@ -2508,14 +2508,15 @@
   border: 1px dashed vars.$border-strong;
   border-radius: 2px;
 }
-// The listing's thumbnail, cropped to the chip; a faint ring inside its edge keeps a dark window off the dark chip.
+// The listing's thumbnail, cropped to the chip; a hairline inside its edge, the chip's own line colour, keeps a
+// window the chip's colour (a dark one in dark, a white one in light) from melting into it.
 .qwen-screen-context__thumb {
   display: block;
   width: 32px;
   height: 18px;
   object-fit: cover;
   border-radius: 2px;
-  outline: 1px solid rgba(vars.$text-primary, 0.12);
+  outline: 1px solid vars.$border-default;
   outline-offset: -1px;
 }
 // The words beside the picture: the window's name, or Choose… / At start. One line, cut short when the chip is.

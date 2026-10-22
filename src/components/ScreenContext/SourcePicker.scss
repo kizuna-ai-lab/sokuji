@@ -1,7 +1,7 @@
 @use '../Settings/shared/variables' as vars;
 
 // The screen-context picker, inside the shared Modal: the settings-control
-// dialect (28px single-line controls, 13px #ccc text, 12px #888 notes).
+// dialect (28px single-line controls, 13px secondary text, 12px muted notes).
 .source-picker {
   display: flex;
   flex-direction: column;
@@ -86,8 +86,13 @@
     width: 100%;
     aspect-ratio: 16 / 9;
     object-fit: contain;
-    background: vars.$bg-page;
+    // Recessed below the tile, the deepest layer (dark as before): bg-page would be white on a near-white tile in light.
+    background: vars.$bg-base;
     border-radius: vars.$radius-sm;
+    // A hairline inside its edge, the line colour: a white window on the near-white tile in light, or a dark one on the
+    // dark tile, still has an edge.
+    outline: 1px solid vars.$border-default;
+    outline-offset: -1px;
   }
 
   &__name {

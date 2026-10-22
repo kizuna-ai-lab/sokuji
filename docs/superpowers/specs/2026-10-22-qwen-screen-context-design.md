@@ -241,7 +241,7 @@ face-to-face mode (not available with Qwen at all).
 - The change-detection threshold and thumbnail size (start at mean absolute difference > 6/255 on 64×36)
   and the blank-frame test (flat: variance ≈ 0 on the 64×36 grey thumb (black is flat); a dark slide with a
   bright title is not blank).
-- The exact chip and card styling within the settings-control dialect (28 px rows, `#ccc`).
+- The exact chip and card styling within the settings-control dialect (28 px rows, the secondary text), in the theme's tokens in both schemes.
 - How Sokuji's own picker lists sources (title + app icon + thumbnail; windows before screens; Sokuji's own
   windows filtered out).
 - Test fixtures: a fake `FrameSource` for the adapter's conformance and session-side tests; a recorded

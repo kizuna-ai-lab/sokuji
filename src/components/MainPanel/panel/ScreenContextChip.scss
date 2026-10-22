@@ -1,12 +1,11 @@
 @use '../../../styles/tokens' as tk;
 @use '../../Settings/shared/variables' as vars;
 
-// The app's error red, as the footer's Stop button draws it.
-$lost: #e74c3c;
-
 // The screen-context chip in the control footer, beside the mode picker
 // (basic) or the input strips (advanced): one 28px row like the footer's
-// buttons, #ccc text; the dot carries the state.
+// buttons, the secondary text; the dot carries the state, in the footer's own
+// status-dot colours (idle grey, the accent, the degraded amber) and the error
+// red the Stop button draws.
 .screen-context-chip {
   display: inline-flex;
   align-items: center;
@@ -54,7 +53,7 @@ $lost: #e74c3c;
   }
 
   &--lost &__status {
-    color: $lost;
+    color: tk.$color-error;
   }
 
   &__dot {
@@ -62,7 +61,7 @@ $lost: #e74c3c;
     height: 8px;
     flex-shrink: 0;
     border-radius: 50%;
-    background: #666;
+    background: vars.$bg-dim;
 
     &.live {
       background: tk.$color-primary;
@@ -75,14 +74,14 @@ $lost: #e74c3c;
     }
 
     &.lost {
-      background: $lost;
+      background: tk.$color-error;
     }
   }
 }
 
 @keyframes screen-context-pulse {
-  from { box-shadow: 0 0 0 0 rgba(tk.$color-primary, 0.6); }
-  to { box-shadow: 0 0 0 5px rgba(tk.$color-primary, 0); }
+  from { box-shadow: 0 0 0 0 color-mix(in srgb, tk.$color-primary 60%, transparent); }
+  to { box-shadow: 0 0 0 5px color-mix(in srgb, tk.$color-primary 0%, transparent); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -91,17 +90,17 @@ $lost: #e74c3c;
   }
 }
 
-// The card: the tooltip's surface (#2a2a2a, #444 border), with a button in it.
+// The card: the tooltip's surface (the popover background, the default line, its shadow), with a button in it.
 .screen-context-card {
   display: flex;
   flex-direction: column;
   gap: vars.$space-2;
   width: 240px;
   padding: 10px 12px;
-  background: #2a2a2a;
+  background: vars.$bg-popover;
   border: 1px solid vars.$border-default;
   border-radius: vars.$radius-md;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px vars.$shadow;
   color: vars.$text-secondary;
   font-size: vars.$font-caption;
 
@@ -114,8 +113,13 @@ $lost: #e74c3c;
     width: 100%;
     aspect-ratio: 16 / 9;
     object-fit: contain;
-    background: vars.$bg-page;
+    // Recessed below the card, the deepest layer (dark as before): bg-page would be the card's own white in light.
+    background: vars.$bg-base;
     border-radius: vars.$radius-sm;
+    // A hairline inside its edge, the line colour: a white slide on the white card in light, or a dark window on the
+    // dark card, still has an edge.
+    outline: 1px solid vars.$border-default;
+    outline-offset: -1px;
   }
 
   &__name {

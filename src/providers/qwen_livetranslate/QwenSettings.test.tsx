@@ -376,20 +376,23 @@ describe('Screen context — the area chosen in the settings (owner, 2026-10-22,
     it('the source button: 26px tall, the control background and border, 4px radius, the secondary text at 12px, allowed to shrink', () => {
       const button = rule('.qwen-screen-context__source');
       expect(button).toMatch(/height:\s*26px/);
-      expect(button).toMatch(/background:\s*#333/);
-      expect(button).toMatch(/border:\s*1px solid #444/);
+      // The colours are the theme's tokens (spec 2026-10-22 light theme §2): the aliases compile to their custom properties.
+      expect(button).toMatch(/background:\s*var\(--sk-bg-control\)/);
+      expect(button).toMatch(/border:\s*1px solid var\(--sk-line\)/);
       expect(button).toMatch(/border-radius:\s*4px/);
-      expect(button).toMatch(/color:\s*#ccc/);
+      expect(button).toMatch(/color:\s*var\(--sk-text-secondary\)/);
       expect(button).toMatch(/font-size:\s*12px/);
       expect(button).toMatch(/min-width:\s*0/);
     });
 
-    it('the picture: 32 × 18, cropped to fill, 2px radius', () => {
+    it('the picture: 32 × 18, cropped to fill, 2px radius, a hairline in the line colour inside its edge (seen on a dark and a light chip alike)', () => {
       const thumb = rule('.qwen-screen-context__thumb');
       expect(thumb).toMatch(/width:\s*32px/);
       expect(thumb).toMatch(/height:\s*18px/);
       expect(thumb).toMatch(/object-fit:\s*cover/);
       expect(thumb).toMatch(/border-radius:\s*2px/);
+      expect(thumb).toMatch(/outline:\s*1px solid var\(--sk-line\)/);
+      expect(thumb).toMatch(/outline-offset:\s*-1px/);
     });
 
     it('the name is one ellipsized line', () => {
@@ -413,7 +416,7 @@ describe('Screen context — the area chosen in the settings (owner, 2026-10-22,
     });
 
     it('Wayland: a muted icon with 12px words, not a button', () => {
-      expect(rule('.qwen-screen-context__at-start')).toMatch(/color:\s*#888/);
+      expect(rule('.qwen-screen-context__at-start')).toMatch(/color:\s*var\(--sk-text-muted\)/);
       expect(rule('.qwen-screen-context__at-start')).toMatch(/font-size:\s*12px/);
     });
 
