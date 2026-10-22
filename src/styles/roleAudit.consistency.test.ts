@@ -81,4 +81,13 @@ describe('colour roles', () => {
     expect(rule(css('components/Display/DisplaySettingsPopover.scss'), '.custom')).toMatch(/color:\s*var\(--sk-white\)/);
     expect(rule(css('components/Tour/Tour.scss'), '.tour-spotlight')).toMatch(/box-shadow:\s*0 0 0 9999px var\(--sk-scrim\)/);
   });
+
+  // A colour chip the same colour as the popover behind it (black on the
+  // dark popover, the cream and white presets on the light one) still has
+  // an edge: a hairline in the overlay ink, which is white in dark and black
+  // in light, so it reads on either popover whatever the chip's colour.
+  it('every colour chip carries a hairline in the overlay ink', () => {
+    expect(rule(css('components/Display/DisplaySettingsPopover.scss'), '.swatch'))
+      .toMatch(/outline:\s*1px solid color-mix\(in srgb, var\(--sk-overlay-fg\) 20%, transparent\)/);
+  });
 });

@@ -69,6 +69,13 @@
         cursor: pointer;
         padding: 0;
         position: relative;
+        // A hairline in the overlay ink (white in dark, black in light), so a
+        // chip the colour of the popover behind it — black on the dark one,
+        // the cream and white presets on the light one — still has an edge.
+        // Drawn inside the chip's own edge: no change to the row's layout, and
+        // the 2px selected ring stays inside it.
+        outline: 1px solid color-mix(in srgb, vars.$overlay-fg 20%, transparent);
+        outline-offset: -1px;
 
         // Keyboard focus indicator. Reuses the green "selected" colour and
         // sits outside the chip so it doesn't compete with the selected
