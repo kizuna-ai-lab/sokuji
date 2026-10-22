@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, fireEvent, act } from '@testing-library/react';
+import { render, fireEvent, act, cleanup } from '@testing-library/react';
 import DisplaySettingsPopover from './DisplaySettingsPopover';
 import { useSubtitleStore } from '../../stores/subtitleStore';
 import { useConversationDisplayStore } from '../../stores/conversationDisplayStore';
@@ -245,9 +245,9 @@ describe('DisplaySettingsPopover', () => {
     expect(bgFirstChip.getAttribute('aria-label')).toBe('Follow theme');
     expect(sourceFirstChip.getAttribute('aria-label')).toBe('Follow theme');
     expect(translationFirstChip.getAttribute('aria-label')).toBe('Follow theme');
-    expect(bgFirstChip.style.background.replace(/\s/g, '')).toMatch(/^(#1f1f1f|rgb\(31,31,31\))$/);
-    expect(sourceFirstChip.style.background.replace(/\s/g, '')).toMatch(/^(#9aa0a6|rgb\(154,160,166\))$/);
-    expect(translationFirstChip.style.background.replace(/\s/g, '')).toMatch(/^(#e8e8e8|rgb\(232,232,232\))$/);
+    expect(bgFirstChip.style.getPropertyValue('--follow-dark')).toBe('#1f1f1f');
+    expect(sourceFirstChip.style.getPropertyValue('--follow-dark')).toBe('#9aa0a6');
+    expect(translationFirstChip.style.getPropertyValue('--follow-dark')).toBe('#e8e8e8');
   });
 });
 
@@ -265,27 +265,61 @@ describe('conversation colours follow the theme until set', () => {
 
   afterEach(() => { scheme.current = 'dark'; });
 
-  it('the first chip is "Follow theme", selected while nothing is stored, in the dark scheme\'s colours', () => {
+  // The chip is split between the two schemes' colours for that row, so it
+  // reads as "follows the theme" and never as a twin of a preset beside it
+  // (white next to white in the light scheme). The stylesheet draws the
+  // split from these two variables.
+  it('the first chip is "Follow theme", split between the dark and light colours, selected while nothing is stored', () => {
     useConversationDisplayStore.setState({ bgColor: null, sourceTextColor: null, translationTextColor: null } as never);
     const { container } = render(<DisplaySettingsPopover source="conversation" />);
+    const dark = ['#1f1f1f', '#9aa0a6', '#e8e8e8'];
+    const light = ['#ffffff', '#5f6368', '#1a1a1a'];
     for (const field of [0, 1, 2]) {
-      expect(firstChip(container, field).getAttribute('aria-label')).toBe('Follow theme');
-      expect(firstChip(container, field).classList.contains('selected')).toBe(true);
+      const chip = firstChip(container, field);
+      expect(chip.getAttribute('aria-label')).toBe('Follow theme');
+      expect(chip.classList.contains('follow')).toBe(true);
+      expect(chip.classList.contains('selected')).toBe(true);
+      expect(chip.style.getPropertyValue('--follow-dark')).toBe(dark[field]);
+      expect(chip.style.getPropertyValue('--follow-light')).toBe(light[field]);
       expect(customChip(container, field).classList.contains('selected')).toBe(false);
     }
-    expect(bg(firstChip(container, 0))).toMatch(/^(#1f1f1f|rgb\(31,31,31\))$/);
-    expect(bg(firstChip(container, 1))).toMatch(/^(#9aa0a6|rgb\(154,160,166\))$/);
-    expect(bg(firstChip(container, 2))).toMatch(/^(#e8e8e8|rgb\(232,232,232\))$/);
   });
 
-  it('under the light scheme the chip shows the white set', () => {
+  it('under the light scheme the follow chip is the same, and the custom chip shows the white set as drawn', () => {
     scheme.current = 'light';
     useConversationDisplayStore.setState({ bgColor: null, sourceTextColor: null, translationTextColor: null } as never);
     const { container } = render(<DisplaySettingsPopover source="conversation" />);
-    expect(bg(firstChip(container, 0))).toMatch(/^(#ffffff|rgb\(255,255,255\))$/);
-    expect(bg(firstChip(container, 1))).toMatch(/^(#5f6368|rgb\(95,99,104\))$/);
-    expect(bg(firstChip(container, 2))).toMatch(/^(#1a1a1a|rgb\(26,26,26\))$/);
+    expect(firstChip(container, 0).style.getPropertyValue('--follow-dark')).toBe('#1f1f1f');
+    expect(firstChip(container, 0).style.getPropertyValue('--follow-light')).toBe('#ffffff');
     expect(firstChip(container, 0).classList.contains('selected')).toBe(true);
+    expect(bg(customChip(container, 0))).toMatch(/^(#ffffff|rgb\(255,255,255\))$/);
+    expect(bg(customChip(container, 1))).toMatch(/^(#5f6368|rgb\(95,99,104\))$/);
+    expect(customChip(container, 0).classList.contains('selected')).toBe(false);
+  });
+
+  // The owner's ask (2026-10-22): the three rows line up. Every row is one
+  // default-or-follow chip, eight presets and the custom chip, in both
+  // surfaces and both schemes; a surface's own fixed default is never also a
+  // preset, so nothing is folded away.
+  it('every row offers the same ten chips: default or follow, eight presets, custom', () => {
+    const chips = (container: HTMLElement, field: number) => container.querySelectorAll('.field')[field].querySelectorAll('.palette button.swatch').length;
+    useConversationDisplayStore.setState({ bgColor: null, sourceTextColor: null, translationTextColor: null } as never);
+    let { container } = render(<DisplaySettingsPopover source="conversation" />);
+    expect([chips(container, 0), chips(container, 1), chips(container, 2)]).toEqual([10, 10, 10]);
+    cleanup();
+    scheme.current = 'light';
+    ({ container } = render(<DisplaySettingsPopover source="conversation" />));
+    expect([chips(container, 0), chips(container, 1), chips(container, 2)]).toEqual([10, 10, 10]);
+    cleanup();
+    ({ container } = render(<DisplaySettingsPopover source="subtitle" />));
+    expect([chips(container, 1), chips(container, 2), chips(container, 3)]).toEqual([10, 10, 10]);
+  });
+
+  it('a stored colour that equals a scheme colour is a custom colour, not "follow"', () => {
+    useConversationDisplayStore.setState({ bgColor: '#1f1f1f', sourceTextColor: null, translationTextColor: null } as never);
+    const { container } = render(<DisplaySettingsPopover source="conversation" />);
+    expect(firstChip(container, 0).classList.contains('selected')).toBe(false);
+    expect(customChip(container, 0).classList.contains('selected')).toBe(true);
   });
 
   it('a stored colour is shown as such, and clicking "Follow theme" clears it', async () => {

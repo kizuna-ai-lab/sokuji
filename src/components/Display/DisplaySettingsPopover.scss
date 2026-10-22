@@ -82,6 +82,14 @@
           border-color: tk.$color-primary;
         }
 
+        // The conversation's "Follow theme" chip: split between the two
+        // schemes' colours for its row (set inline as `--follow-dark` and
+        // `--follow-light`), so it reads as "follows the theme" and never as
+        // a twin of the preset beside it.
+        &.follow {
+          background: linear-gradient(135deg, var(--follow-dark) 0 50%, var(--follow-light) 50% 100%);
+        }
+
         // Custom-color chip: a disclosure button for the inline ColorPicker.
         // The chip's background reflects the current chosen color so it
         // doubles as a "current value" indicator. The Plus icon is rendered

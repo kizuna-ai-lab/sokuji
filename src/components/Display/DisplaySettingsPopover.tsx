@@ -41,15 +41,26 @@ import { getJapaneseState, retryJapanese, subscribeJapanese, type JapaneseState 
 import { READING_SCHEME, type ReadingLanguage } from '../../lib/reading/types';
 import './DisplaySettingsPopover.scss';
 
-const BG_PRESETS = ['#000000', '#1a1a1a', '#0d2032', '#0f2419', '#FFFFFF', '#2a2a2a'];
-const SOURCE_PRESETS = [
-  '#FFFFFF', '#E8E8E8', '#FFD27D', '#FFAA66', '#9aa0a6', '#FF6B6B',
-  '#000000', '#003B6F', '#1B5E20',
-];
-const TRANSLATION_PRESETS = [
-  '#6CC5FF', '#10a37f', '#FFFFFF', '#A8E6CF', '#FFB86C', '#BD93F9',
-  '#000000', '#003B6F', '#7B1FA2',
-];
+// Eight presets per row, in every row of both surfaces, so the three rows
+// line up (the owner's ask, 2026-10-22): with the first chip (the surface's
+// fixed default, or the conversation's follow-theme chip) and the custom chip,
+// every row is ten. A surface's own fixed default is never also a preset
+// here, so the row never folds one away — the subtitle's lists leave out its
+// black background and white source text. The count is pinned by the test
+// that renders every row.
+type SurfacePresets = Readonly<Record<ColourRowKey, readonly string[]>>;
+const PRESETS: Readonly<Record<Source, SurfacePresets>> = {
+  conversation: {
+    bg: ['#000000', '#1a1a1a', '#2a2a2a', '#0d2032', '#0f2419', '#fdf6e3', '#e8f0fe', '#FFFFFF'],
+    source: ['#FFFFFF', '#E8E8E8', '#FFD27D', '#FFAA66', '#FF6B6B', '#000000', '#003B6F', '#1B5E20'],
+    translation: ['#6CC5FF', '#10a37f', '#FFFFFF', '#A8E6CF', '#FFB86C', '#BD93F9', '#000000', '#7B1FA2'],
+  },
+  subtitle: {
+    bg: ['#1a1a1a', '#2a2a2a', '#0d2032', '#0f2419', '#2b1d0e', '#fdf6e3', '#e8f0fe', '#FFFFFF'],
+    source: ['#E8E8E8', '#9aa0a6', '#FFD27D', '#FFAA66', '#FF6B6B', '#000000', '#003B6F', '#1B5E20'],
+    translation: ['#6CC5FF', '#10a37f', '#FFFFFF', '#A8E6CF', '#FFB86C', '#BD93F9', '#000000', '#7B1FA2'],
+  },
+};
 
 const PICKER_DEBOUNCE_MS = 150;
 
@@ -78,16 +89,23 @@ interface InnerBindings {
   defaultSourceTextColor: string;
   defaultTranslationTextColor: string;
   // The conversation's colours follow the app's scheme until set (spec
-  // 2026-10-22 §3): per row, whether nothing is stored, and the way back to
-  // that. The subtitle, whose defaults are fixed, leaves both undefined.
-  following?: Record<ColourRowKey, boolean>;
-  followRow?: (row: ColourRowKey) => Promise<void>;
+  // 2026-10-22 §3): per row, the follow chip. The subtitle, whose defaults
+  // are fixed, leaves it undefined and its rows start with `default*Color`.
+  follow?: Record<ColourRowKey, FollowChip>;
   showReadings: boolean;
   setShowReadings: (b: boolean) => Promise<void>;
   surface: 'conversation' | 'subtitle';
 }
 
 type ColourRowKey = 'bg' | 'source' | 'translation';
+
+/** A row's "Follow theme" chip: the two schemes' colours it is split between, whether it is the choice in force, and the way back to it. */
+interface FollowChip {
+  dark: string;
+  light: string;
+  following: boolean;
+  follow: () => Promise<void>;
+}
 
 const DisplaySettingsPopover: React.FC<DisplaySettingsPopoverProps> = ({ source, readingTargets }) =>
   source === 'subtitle'
@@ -152,15 +170,11 @@ const ConversationBoundPopover: React.FC<{ readingTargets?: ReadonlySet<ReadingL
     defaultBgColor: follow.bgColor,
     defaultSourceTextColor: follow.sourceTextColor,
     defaultTranslationTextColor: follow.translationTextColor,
-    following: {
-      bg: stored.bgColor === null,
-      source: stored.sourceTextColor === null,
-      translation: stored.translationTextColor === null,
+    follow: {
+      bg: { dark: CONVERSATION_SCHEME_COLOURS.dark.bgColor, light: CONVERSATION_SCHEME_COLOURS.light.bgColor, following: stored.bgColor === null, follow: () => setBgColor(null) },
+      source: { dark: CONVERSATION_SCHEME_COLOURS.dark.sourceTextColor, light: CONVERSATION_SCHEME_COLOURS.light.sourceTextColor, following: stored.sourceTextColor === null, follow: () => setSourceTextColor(null) },
+      translation: { dark: CONVERSATION_SCHEME_COLOURS.dark.translationTextColor, light: CONVERSATION_SCHEME_COLOURS.light.translationTextColor, following: stored.translationTextColor === null, follow: () => setTranslationTextColor(null) },
     },
-    followRow: (row) =>
-      row === 'bg' ? setBgColor(null)
-        : row === 'source' ? setSourceTextColor(null)
-          : setTranslationTextColor(null),
     showReadings: useConversationDisplayShowReadings(),
     setShowReadings: useSetConversationDisplayShowReadings(),
     surface: 'conversation',
@@ -202,37 +216,34 @@ const DisplaySettingsPopoverInner: React.FC<{ bindings: InnerBindings; readingTa
         labelKey="subtitle.settings.bgColor"
         labelDefault="Display background"
         defaultColor={bindings.defaultBgColor}
-        presets={BG_PRESETS}
+        presets={PRESETS[bindings.surface].bg}
         value={bindings.bgColor}
         onChange={bindings.setBgColor}
         pickerOpen={openPicker === 'bg'}
         onTogglePicker={() => togglePicker('bg')}
-        following={bindings.following?.bg}
-        onFollow={bindings.followRow && (() => bindings.followRow!('bg'))}
+        follow={bindings.follow?.bg}
       />
       <ColorRow
         labelKey="subtitle.settings.sourceColor"
         labelDefault="Source text"
         defaultColor={bindings.defaultSourceTextColor}
-        presets={SOURCE_PRESETS}
+        presets={PRESETS[bindings.surface].source}
         value={bindings.sourceTextColor}
         onChange={bindings.setSourceTextColor}
         pickerOpen={openPicker === 'source'}
         onTogglePicker={() => togglePicker('source')}
-        following={bindings.following?.source}
-        onFollow={bindings.followRow && (() => bindings.followRow!('source'))}
+        follow={bindings.follow?.source}
       />
       <ColorRow
         labelKey="subtitle.settings.translationColor"
         labelDefault="Translation text"
         defaultColor={bindings.defaultTranslationTextColor}
-        presets={TRANSLATION_PRESETS}
+        presets={PRESETS[bindings.surface].translation}
         value={bindings.translationTextColor}
         onChange={bindings.setTranslationTextColor}
         pickerOpen={openPicker === 'translation'}
         onTogglePicker={() => togglePicker('translation')}
-        following={bindings.following?.translation}
-        onFollow={bindings.followRow && (() => bindings.followRow!('translation'))}
+        follow={bindings.follow?.translation}
       />
       {readingTargets && readingTargets.size > 0 && <ReadingsRow bindings={bindings} targets={readingTargets} />}
       {includeHighlightToggle && (
@@ -374,12 +385,12 @@ interface ColorRowProps {
   pickerOpen: boolean;
   onTogglePicker: () => void;
   /**
-   * Given, the first chip is "Follow theme": `defaultColor` is the scheme's
-   * colour, `following` says nothing is stored, and clicking the chip clears
-   * the stored colour. Absent, the first chip is a fixed default.
+   * Given, the first chip is "Follow theme", split between the two schemes'
+   * colours, selected while nothing is stored; clicking it clears the stored
+   * colour, and `defaultColor` is not drawn. Absent, the first chip is the
+   * fixed default.
    */
-  following?: boolean;
-  onFollow?: () => Promise<void>;
+  follow?: FollowChip;
 }
 
 const ColorRow: React.FC<ColorRowProps> = ({
@@ -391,21 +402,25 @@ const ColorRow: React.FC<ColorRowProps> = ({
   onChange,
   pickerOpen,
   onTogglePicker,
-  following = false,
-  onFollow,
+  follow,
 }) => {
   const { t } = useTranslation();
   const valueLower = value.toLowerCase();
+  const following = follow?.following ?? false;
 
-  // First chip is always this surface's default. Drop any duplicate of the
-  // default that appears later in the shared preset list.
+  // Without a follow chip, the first chip is this surface's fixed default,
+  // and a duplicate of it later in the list is dropped (the lists leave the
+  // defaults out, so this never fires; it is the safety net).
   const orderedPresets = useMemo(() => {
+    if (follow) return presets;
     const defaultLower = defaultColor.toLowerCase();
     const rest = presets.filter((p) => p.toLowerCase() !== defaultLower);
     return [defaultColor, ...rest] as const;
-  }, [defaultColor, presets]);
+  }, [defaultColor, presets, follow]);
 
-  const isCustom = !orderedPresets.some((p) => p.toLowerCase() === valueLower);
+  // A stored colour that happens to equal a scheme's is a custom colour, not
+  // "follow": only the stored value's absence is that.
+  const isCustom = !following && !orderedPresets.some((p) => p.toLowerCase() === valueLower);
 
   // Debounce the high-frequency change events emitted while the user
   // drags inside the picker.
@@ -439,8 +454,8 @@ const ColorRow: React.FC<ColorRowProps> = ({
   );
   const onFollowClick = useCallback(() => {
     cancelPendingPickerWrite();
-    void onFollow?.();
-  }, [onFollow, cancelPendingPickerWrite]);
+    void follow?.follow();
+  }, [follow, cancelPendingPickerWrite]);
 
   const followLabel = t('subtitle.settings.followTheme', 'Follow theme');
 
@@ -448,27 +463,25 @@ const ColorRow: React.FC<ColorRowProps> = ({
     <div className="field">
       <label>{t(labelKey, labelDefault)}</label>
       <div className="palette">
-        {orderedPresets.map((c, i) => (
-          i === 0 && onFollow ? (
-            <button
-              key="follow"
-              type="button"
-              aria-label={followLabel}
-              title={followLabel}
-              className={`swatch ${following || valueLower === c.toLowerCase() ? 'selected' : ''}`}
-              style={{ background: c }}
-              onClick={onFollowClick}
-            />
-          ) : (
-            <button
-              key={c}
-              type="button"
-              aria-label={c}
-              className={`swatch ${valueLower === c.toLowerCase() ? 'selected' : ''}`}
-              style={{ background: c }}
-              onClick={() => onPresetClick(c)}
-            />
-          )
+        {follow && (
+          <button
+            type="button"
+            aria-label={followLabel}
+            title={followLabel}
+            className={`swatch follow ${following ? 'selected' : ''}`}
+            style={{ '--follow-dark': follow.dark, '--follow-light': follow.light } as React.CSSProperties}
+            onClick={onFollowClick}
+          />
+        )}
+        {orderedPresets.map((c) => (
+          <button
+            key={c}
+            type="button"
+            aria-label={c}
+            className={`swatch ${!following && valueLower === c.toLowerCase() ? 'selected' : ''}`}
+            style={{ background: c }}
+            onClick={() => onPresetClick(c)}
+          />
         ))}
         <button
           type="button"
