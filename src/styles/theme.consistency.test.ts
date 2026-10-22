@@ -92,6 +92,18 @@ const LIGHT_FLOORS: [string, string, number][] = [
   ...['primary', 'participant', 'success', 'error', 'warning', 'degraded', 'info'].flatMap((fg) => ['bg-page', 'bg-surface'].map((bg): [string, string, number] => [fg, bg, 4.5])),
 ];
 
+/** `color-mix(in srgb, fg p, bg)`: a component-wise blend of the two sRGB colours, as a hex. */
+const tint = (fg: string, bg: string, p: number): string => {
+  const ch = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const [f, b] = [ch(fg), ch(bg)];
+  return '#' + f.map((c, i) => Math.round(c * p + b[i] * (1 - p)).toString(16).padStart(2, '0')).join('');
+};
+
+// The two status roles whose text sits on its own tint, at the tints the
+// stylesheets use, over the three light surfaces those tints are drawn on.
+const TINTED_FLOORS: [string, number, string][] = ['warning', 'recommended'].flatMap((fg) =>
+  [10, 15].flatMap((percent) => ['bg-page', 'bg-surface', 'bg-base'].map((bg): [string, number, string] => [fg, percent, bg])));
+
 /** Every stylesheet under src/, the viewer included; partials only when asked. */
 function stylesheets(dir: string, partials = false, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -133,6 +145,16 @@ describe('theme.scss', () => {
   it.each(LIGHT_FLOORS)('light: %s on %s reaches %s:1', (fg, bg, floor) => {
     const light = resolved(tokens(block(css, LIGHT)));
     expect(contrast(light.get(fg)!, light.get(bg)!)).toBeGreaterThanOrEqual(floor);
+  });
+
+  // Status text drawn on its own pale tint — the warning banner, the GPU
+  // notice, the Recommended badge — sits on the tint, not the bare surface.
+  // The owner's call (2026-10-22, after the OpenCodeReview pass): light
+  // `warning` and `recommended` darken until the floor holds there too.
+  it.each(TINTED_FLOORS)('light: %s on its own %i-percent tint over %s reaches 4.5:1', (fg, percent, bg) => {
+    const light = resolved(tokens(block(css, LIGHT)));
+    const text = light.get(fg)!;
+    expect(contrast(text, tint(text, light.get(bg)!, percent / 100))).toBeGreaterThanOrEqual(4.5);
   });
 
   it('every --sk- name a stylesheet references is defined', () => {
