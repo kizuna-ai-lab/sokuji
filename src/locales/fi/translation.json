@@ -555,9 +555,8 @@
       "screenContextTooltip": "Antaa mallin nähdä yhden valitsemasi ikkunan, välilehden tai näytön, jotta siinä näkyvät nimet ja termit tunnistetaan ja käännetään sellaisina kuin ne on kirjoitettu. Kaikki tämän alueen sisällä oleva lähetetään kuvina Alibaba Cloudin Qwen-palveluun tämän istunnon alueella; Kizuna AI ei koskaan vastaanota niitä. Kun se on päällä, se lisää veloitusta jokaiselta puhesekunnilta — omalla avaimella Alibaba Cloud -laskullesi, Kizuna AI -tilillä tilisi hintasivun mukaan; Molemmat-tilassa kunkin suunnan istunto veloitetaan.",
       "screenContextBeta": "Beta",
       "screenContextPicked": "Malli näkee: {{name}}",
-      "screenContextChange": "Vaihda",
-      "screenContextClear": "Tyhjennä",
       "screenContextPortal": "Järjestelmä kysyy ikkunan tai näytön istunnon alkaessa.",
+      "screenContextAtStart": "Aloitettaessa",
       "screenContextNone": "Ikkunaa ei ole vielä valittu: sinulta kysytään istunnon alkaessa.",
       "screenContextChoose": "Valitse…"
     },

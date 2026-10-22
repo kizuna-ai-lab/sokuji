@@ -555,9 +555,8 @@
       "screenContextTooltip": "Seçtiğiniz bir pencereyi, sekmeyi veya ekranı modelin görmesini sağlar; böylece üzerindeki adlar ve terimler yazıldığı gibi tanınır ve çevrilir. Bu alanın içindeki her şey, bu oturumun bölgesindeki Alibaba Cloud'un Qwen hizmetine görüntü olarak gönderilir; Kizuna AI bunları hiçbir zaman almaz. Açık olduğu sürece konuşmanın her saniyesi için ücrete ek getirir — kendi anahtarınızla Alibaba Cloud faturanıza, Kizuna AI hesabıyla hesabınızın fiyatlandırma sayfasında belirtildiği gibi; Her ikisi modunda her yönün oturumu ücretlendirilir.",
       "screenContextBeta": "Beta",
       "screenContextPicked": "Modelin göreceği: {{name}}",
-      "screenContextChange": "Değiştir",
-      "screenContextClear": "Temizle",
       "screenContextPortal": "Oturum başlarken sistem hangi pencere veya ekran olduğunu sorar.",
+      "screenContextAtStart": "Başlarken",
       "screenContextNone": "Henüz pencere seçilmedi: oturum başlarken size sorulacak.",
       "screenContextChoose": "Seç…"
     },

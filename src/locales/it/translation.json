@@ -555,9 +555,8 @@
       "screenContextTooltip": "Permette al modello di vedere una finestra, una scheda o uno schermo che scegli, così i nomi e i termini che vi compaiono vengono riconosciuti e tradotti come sono scritti. Tutto ciò che si trova in quell'area viene inviato come immagini al servizio Qwen di Alibaba Cloud, nella regione di questa sessione; Kizuna AI non le riceve mai. Finché è attivo aumenta l'addebito per ogni secondo di parlato — sulla tua fattura Alibaba Cloud con la tua chiave, oppure secondo la pagina dei prezzi del tuo account con un account Kizuna AI; in modalità Entrambi viene addebitata la sessione di ogni direzione.",
       "screenContextBeta": "Beta",
       "screenContextPicked": "Il modello vedrà: {{name}}",
-      "screenContextChange": "Cambia",
-      "screenContextClear": "Rimuovi",
       "screenContextPortal": "Il sistema chiede quale finestra o schermo all'avvio della sessione.",
+      "screenContextAtStart": "All'avvio",
       "screenContextNone": "Nessuna finestra scelta: ti verrà chiesto all'avvio della sessione.",
       "screenContextChoose": "Scegli…"
     },

@@ -555,9 +555,8 @@
       "screenContextTooltip": "מאפשר למודל לראות חלון, לשונית או מסך אחד לפי בחירתך, כך ששמות ומונחים שמופיעים בהם יזוהו ויתורגמו כפי שהם כתובים. כל מה שנמצא בתוך האזור הזה נשלח כתמונות לשירות Qwen של Alibaba Cloud, באזור של ההפעלה הזו; Kizuna AI לעולם אינה מקבלת אותן. כל עוד זה פועל, זה מוסיף לחיוב על כל שנייה של דיבור — בחשבונית של Alibaba Cloud עם מפתח משלך, או לפי דף התמחור של החשבון שלך עם חשבון Kizuna AI; במצב שניהם מחויבת ההפעלה של כל כיוון.",
       "screenContextBeta": "בטא",
       "screenContextPicked": "המודל יראה: {{name}}",
-      "screenContextChange": "שינוי",
-      "screenContextClear": "ניקוי",
       "screenContextPortal": "המערכת תשאל איזה חלון או מסך בעת תחילת ההפעלה.",
+      "screenContextAtStart": "בהתחלה",
       "screenContextNone": "עדיין לא נבחר חלון: השאלה תופיע בעת תחילת ההפעלה.",
       "screenContextChoose": "בחירה…"
     },

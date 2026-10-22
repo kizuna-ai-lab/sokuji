@@ -555,9 +555,8 @@
       "screenContextTooltip": "Lets the model see one window, tab or screen you choose, so the names and terms on it are recognized and translated as written. Everything inside that area is sent to Alibaba Cloud's Qwen service, in the region of this session, as pictures; Kizuna AI never receives them. It adds to the charge for every second of speech while it is on — on your Alibaba Cloud bill with your own key, or on your account's pricing page with a Kizuna AI account; in Both mode each direction's session is billed.",
       "screenContextBeta": "Beta",
       "screenContextPicked": "The model will see: {{name}}",
-      "screenContextChange": "Change",
-      "screenContextClear": "Clear",
       "screenContextPortal": "The system asks which window or screen when the session starts.",
+      "screenContextAtStart": "At start",
       "screenContextNone": "No window chosen yet: you'll be asked when the session starts.",
       "screenContextChoose": "Choose…"
     },

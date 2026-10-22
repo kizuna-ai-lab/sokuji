@@ -555,9 +555,8 @@
       "screenContextTooltip": "선택한 창, 탭 또는 화면 하나를 모델이 볼 수 있게 하여, 그 안에 있는 이름과 용어를 표기된 그대로 인식하고 번역합니다. 해당 영역 안의 모든 내용은 이미지로 이 세션의 리전에 있는 Alibaba Cloud의 Qwen 서비스로 전송되며, Kizuna AI는 이를 절대 받지 않습니다. 켜져 있는 동안 음성 한 초마다 요금이 추가됩니다. 자신의 키를 사용하면 Alibaba Cloud 청구서에, Kizuna AI 계정을 사용하면 계정의 요금 페이지에 안내된 대로 추가되며, 모두 모드에서는 방향마다 세션 요금이 부과됩니다.",
       "screenContextBeta": "베타",
       "screenContextPicked": "모델이 볼 화면: {{name}}",
-      "screenContextChange": "변경",
-      "screenContextClear": "지우기",
       "screenContextPortal": "세션을 시작할 때 시스템이 어떤 창이나 화면인지 묻습니다.",
+      "screenContextAtStart": "시작할 때",
       "screenContextNone": "아직 선택한 창이 없습니다. 세션을 시작할 때 묻습니다.",
       "screenContextChoose": "선택…"
     },

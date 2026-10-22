@@ -555,9 +555,8 @@
       "screenContextTooltip": "讓模型看到你選擇的一個視窗、分頁或螢幕，使其中的名稱和術語依原文被辨識與翻譯。該區域內的所有內容都會以圖片形式傳送到 Alibaba Cloud 的 Qwen 服務（位於本次工作階段所在的區域）；Kizuna AI 絕不會收到這些圖片。開啟期間，每一秒語音的費用都會增加——使用自己的金鑰時計入你的 Alibaba Cloud 帳單，使用 Kizuna AI 帳戶時依你帳戶定價頁面上的說明計費；在「兩者」模式下，每個方向的工作階段分別計費。",
       "screenContextBeta": "測試版",
       "screenContextPicked": "模型將看到：{{name}}",
-      "screenContextChange": "變更",
-      "screenContextClear": "清除",
       "screenContextPortal": "工作階段開始時，系統會詢問要使用哪個視窗或螢幕。",
+      "screenContextAtStart": "開始時",
       "screenContextNone": "尚未選擇視窗：工作階段開始時會詢問你。",
       "screenContextChoose": "選擇…"
     },

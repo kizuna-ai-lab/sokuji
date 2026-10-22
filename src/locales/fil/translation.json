@@ -555,9 +555,8 @@
       "screenContextTooltip": "Hinahayaan ang modelo na makita ang isang window, tab o screen na pipiliin mo, para makilala at maisalin ang mga pangalan at terminong nasa mga ito nang eksakto sa pagkakasulat. Lahat ng nasa loob ng lugar na iyon ay ipinapadala bilang mga larawan sa Qwen service ng Alibaba Cloud, sa rehiyon ng session na ito; hindi kailanman natatanggap ng Kizuna AI ang mga ito. Habang naka-on ito, nadaragdagan nito ang singil sa bawat segundo ng pagsasalita — sa iyong Alibaba Cloud bill kung sariling key ang gamit mo, o ayon sa pricing page ng iyong account kung Kizuna AI account; sa mode na Pareho, sinisingil ang session ng bawat direksyon.",
       "screenContextBeta": "Beta",
       "screenContextPicked": "Makikita ng modelo: {{name}}",
-      "screenContextChange": "Palitan",
-      "screenContextClear": "I-clear",
       "screenContextPortal": "Itatanong ng system kung aling window o screen sa pagsisimula ng session.",
+      "screenContextAtStart": "Sa pagsisimula",
       "screenContextNone": "Wala pang napiling window: tatanungin ka sa pagsisimula ng session.",
       "screenContextChoose": "Pumili…"
     },

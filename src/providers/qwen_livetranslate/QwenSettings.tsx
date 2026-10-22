@@ -82,11 +82,12 @@ export function QwenSettingsView({ settings, update, disabled = false, participa
  * The Screen context switch (spec 2026-10-22 §3.1; owner, 2026-10-22). On the
  * desktop turning it on opens the panel's picker (`pickSource`) at once: a pick
  * is held in memory (`picked`, never stored) and turns it on, a cancel leaves it
- * off; while on, a line under it says what the next Start opens — the window
- * held (Change, Clear), the system's own chooser (Wayland: nothing to choose
- * here), or nothing yet, asked at Start (Choose). Turning it off lets the pick
- * go. The extension has no picker: the switch just flips, and the meeting tab
- * is used. Locked while a run is not idle, and while Start checks an area —
+ * off; while on, the switch's own line shows, just before it, what the next
+ * Start opens (option B, owner 2026-10-22) — the window held as its picture,
+ * the system's own chooser (Wayland: nothing to choose here), or nothing yet,
+ * asked at Start (Choose…). Turning it off lets the pick go, so there is no
+ * Clear. The extension has no picker: the switch just flips, and the meeting
+ * tab is used. Locked while a run is not idle, and while Start checks an area —
  * the runner is still idle then.
  */
 function ScreenContextRow({ on, update, disabled: runLocked }: { on: boolean; update: SettingsProps<S>['update']; disabled: boolean }) {
@@ -118,40 +119,51 @@ function ScreenContextRow({ on, update, disabled: runLocked }: { on: boolean; up
 
   return (
     <SettingRow
+      className="qwen-screen-context"
       label={t('providers.qwen_livetranslate.screenContext', 'Screen context')}
       badge={t('providers.qwen_livetranslate.screenContextBeta', 'Beta')}
       tooltip={t('providers.qwen_livetranslate.screenContextTooltip', "Lets the model see one window, tab or screen you choose, so the names and terms on it are recognized and translated as written. Everything inside that area is sent to Alibaba Cloud's Qwen service, in the region of this session, as pictures; Kizuna AI never receives them. It adds to the charge for every second of speech while it is on — on your Alibaba Cloud bill with your own key, or on your account's pricing page with a Kizuna AI account; in Both mode each direction's session is billed.")}
+      accessory={desktop && on && <PickedSourceButton picked={picked} disabled={pickSource === null || disabled} onChoose={() => { void choose(); }} />}
       switch={{ checked: on, onChange: toggle, disabled }}
-      footer={desktop && on && <PickedLine picked={picked} canChoose={pickSource !== null && !disabled} disabled={disabled} onChoose={() => { void choose(); }} />}
     />
   );
 }
 
-/** What the next Start opens, under the switch: its words, and the buttons that change it. */
-function PickedLine({ picked, canChoose, disabled, onChoose }: { picked: PickedSource | null; canChoose: boolean; disabled: boolean; onChoose(): void }) {
+/**
+ * What the next Start opens, beside the switch: the window held as its picture
+ * (the picker's listing thumbnail) and its name, which the row drops when it is
+ * narrow — the button's title and name always say it in full; a click asks the
+ * picker again. Nothing held: Choose…. Wayland: the system's chooser decides at
+ * Start, so it is plain words, not a button that would choose nothing.
+ */
+function PickedSourceButton({ picked, disabled, onChoose }: { picked: PickedSource | null; disabled: boolean; onChoose(): void }) {
   const { t } = useTranslation();
-  const text = picked === null
-    ? t('providers.qwen_livetranslate.screenContextNone', "No window chosen yet: you'll be asked when the session starts.")
-    : picked.kind === 'portal'
-      ? t('providers.qwen_livetranslate.screenContextPortal', 'The system asks which window or screen when the session starts.')
-      : t('providers.qwen_livetranslate.screenContextPicked', 'The model will see: {{name}}', { name: picked.source.name });
+  if (picked?.kind === 'portal') {
+    return (
+      <span className="qwen-screen-context__at-start" title={t('providers.qwen_livetranslate.screenContextPortal', 'The system asks which window or screen when the session starts.')}>
+        {t('providers.qwen_livetranslate.screenContextAtStart', 'At start')}
+      </span>
+    );
+  }
+  if (picked === null) {
+    return (
+      <button
+        type="button"
+        className="qwen-screen-context__source qwen-screen-context__source--empty"
+        title={t('providers.qwen_livetranslate.screenContextNone', "No window chosen yet: you'll be asked when the session starts.")}
+        onClick={onChoose}
+        disabled={disabled}
+      >
+        {t('providers.qwen_livetranslate.screenContextChoose', 'Choose…')}
+      </button>
+    );
+  }
+  const what = t('providers.qwen_livetranslate.screenContextPicked', 'The model will see: {{name}}', { name: picked.source.name });
   return (
-    <div className="qwen-screen-context__picked">
-      <span className="qwen-screen-context__text" title={text}>{text}</span>
-      {/* Wayland's chooser is the system's, at Start: a button here would choose nothing. */}
-      {picked?.kind !== 'portal' && (
-        <button type="button" className="qwen-screen-context__button" onClick={onChoose} disabled={!canChoose}>
-          {picked === null
-            ? t('providers.qwen_livetranslate.screenContextChoose', 'Choose…')
-            : t('providers.qwen_livetranslate.screenContextChange', 'Change')}
-        </button>
-      )}
-      {picked?.kind === 'desktop' && (
-        <button type="button" className="qwen-screen-context__button" onClick={() => useScreenContextStore.getState().setPicked(null)} disabled={disabled}>
-          {t('providers.qwen_livetranslate.screenContextClear', 'Clear')}
-        </button>
-      )}
-    </div>
+    <button type="button" className="qwen-screen-context__source" title={what} aria-label={what} onClick={onChoose} disabled={disabled}>
+      <img className="qwen-screen-context__thumb" src={picked.source.thumbnail} alt="" />
+      <span className="qwen-screen-context__name">{picked.source.name}</span>
+    </button>
   );
 }
 

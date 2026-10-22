@@ -18,6 +18,13 @@ export interface SettingRowProps {
   /** A short mark drawn right after the label — "Beta" on a feature still settling. */
   badge?: string;
   tooltip: string;
+  /**
+   * A small control in the head, between the help and the switch, at the right:
+   * a choice that belongs to the switch, such as the window it shows. It gives
+   * way before the label wraps; what it may shrink to is its own content's say.
+   * Not drawn while greyed.
+   */
+  accessory?: React.ReactNode;
   /** A sub-row: indented, with the └ connector. */
   sub?: boolean;
   /** The row is greyed for this reason (its title); every control in it is disabled. */
@@ -33,10 +40,10 @@ export interface SettingRowProps {
 
 /**
  * A two-line setting row (spec 2026-10-10 D4): the label, its help tooltip
- * and, at the right edge, the switch; under them the control. A greyed row
- * says why in its title and takes no input.
+ * and, at the right edge, the switch (an accessory just before it); under
+ * them the control. A greyed row says why in its title and takes no input.
  */
-const SettingRow: React.FC<SettingRowProps> = ({ label, badge, tooltip, sub, greyed, switch: sw, children, footer, className = '', id }) => {
+const SettingRow: React.FC<SettingRowProps> = ({ label, badge, tooltip, accessory, sub, greyed, switch: sw, children, footer, className = '', id }) => {
   const classes = ['setting-row', sub ? 'setting-row--sub' : '', greyed ? 'setting-row--greyed' : '', className].filter(Boolean).join(' ');
   return (
     <div className={classes} id={id} title={greyed} aria-disabled={greyed ? true : undefined}>
@@ -44,6 +51,7 @@ const SettingRow: React.FC<SettingRowProps> = ({ label, badge, tooltip, sub, gre
         <span className="setting-row__label">{label}</span>
         {badge && <span className="setting-row__badge">{badge}</span>}
         <Tooltip content={tooltip} position="top" icon="help" maxWidth={300} />
+        {accessory && !greyed && <span className="setting-row__accessory">{accessory}</span>}
         {sw && (
           <ToggleSwitch
             className="setting-row__switch"

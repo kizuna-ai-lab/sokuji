@@ -2301,6 +2301,31 @@
   }
   &__switch {
     margin-left: auto;
+
+    .setting-row__accessory + & { margin-left: 0; }
+  }
+  // A small control just before the switch (`accessory`), at the right. Its
+  // basis is zero and it grows into the room the head has left, so it is what
+  // gives way when the head is full: the label wraps only once the accessory
+  // is down to its content's own minimum. (A plain `margin-left: auto` item
+  // shrinks in proportion with the label, which wrapped while a long window
+  // name still had room to give.)
+  &__accessory {
+    flex: 1 1 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+  // Beside an accessory the label wraps only where its words allow — CJK too,
+  // at a space or a zero-width space a catalog puts in — and, the last resort
+  // so the head never overflows, inside its longest word. The help icon keeps
+  // its size rather than being squeezed.
+  &__head:has(> .setting-row__accessory) {
+    .setting-row__label {
+      overflow-wrap: anywhere;
+      word-break: keep-all;
+    }
+    > .tooltip-trigger { flex: none; }
   }
   &__control {
     margin-top: 6px;
@@ -2421,37 +2446,91 @@
   }
 }
 
-// What Qwen's Screen context opens at the next Start, under its switch (a `SettingRow` footer): the row's caption
-// line, its buttons the row's 28px keys (`.setting-row__preview`), sized to their words.
-.qwen-screen-context__picked {
-  margin-top: 6px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: vars.$font-caption;
-  color: vars.$text-secondary;
+// What Qwen's Screen context opens at the next Start, in its switch's own line (the `SettingRow` accessory;
+// option B, owner 2026-10-22). The row is the container the window's name answers to.
+.qwen-screen-context {
+  container: qwen-screen-context / inline-size;
+
+  // The toggle's own 8px top margin sat it 4px below the chip's centre; here label, chip and switch share one line.
+  .setting-row__switch { margin-top: 0; }
 }
-.qwen-screen-context__text {
-  flex: 1;
+// The window held: its picture, its name, and a select's chevron, smaller — a 26px chip in the control colours.
+// A grid so the name counts for nothing in the chip's minimum: the chip gives way down to the picture alone.
+.qwen-screen-context__source {
+  position: relative;
+  flex: 0 1 auto;
+  min-width: 0;
+  height: 26px;
+  box-sizing: border-box;
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: 32px;
+  grid-auto-columns: minmax(0, max-content);
+  align-items: center;
+  column-gap: 6px;
+  padding: 0 22px 0 4px;
+  background: vars.$bg-control;
+  border: 1px solid vars.$border-default;
+  border-radius: vars.$radius-sm;
+  color: vars.$text-secondary;
+  font-size: vars.$font-caption;
+  cursor: pointer;
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: 7px;
+    top: 50%;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid currentColor;
+    transform: translateY(-50%);
+  }
+  &:hover:not(:disabled) { color: vars.$text-primary; border-color: vars.$border-strong; }
+  &:focus-visible { @include vars.focus-ring; }
+  &:disabled { @include vars.disabled-state; }
+}
+// Nothing held: Choose…, sized to its word, dashed for the empty slot, no chevron.
+.qwen-screen-context__source--empty {
+  flex: none;
+  display: block;
+  padding: 0 8px;
+  border-style: dashed;
+  white-space: nowrap;
+
+  &::after { content: none; }
+}
+// The listing's thumbnail, cropped to the chip; a faint ring inside its edge keeps a dark window off the dark chip.
+.qwen-screen-context__thumb {
+  display: block;
+  width: 32px;
+  height: 18px;
+  object-fit: cover;
+  border-radius: 2px;
+  outline: 1px solid rgba(vars.$text-primary, 0.12);
+  outline-offset: -1px;
+}
+.qwen-screen-context__name {
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.qwen-screen-context__button {
-  flex: none;
-  height: 28px;
-  padding: 0 10px;
-  background: transparent;
-  color: vars.$text-secondary;
-  border: 1px solid vars.$border-strong;
-  border-radius: vars.$radius-sm;
-  font-size: vars.$font-body;
-  cursor: pointer;
+// Narrow (the 300px panel, a 262px row): the picture alone, without the name or the chevron, so the chip
+// is 42px and the label keeps one line; the chip's title and name still say the window in full.
+@container qwen-screen-context (width < 360px) {
+  .qwen-screen-context__name { display: none; }
+  .qwen-screen-context__source:not(.qwen-screen-context__source--empty) {
+    padding: 0 4px;
 
-  &:hover:not(:disabled) { color: vars.$text-primary; border-color: vars.$text-secondary; }
-  &:focus-visible { @include vars.focus-ring; }
-  &:disabled { @include vars.disabled-state; }
+    &::after { content: none; }
+  }
+}
+// Wayland: the system's chooser decides at Start — words, not a button.
+.qwen-screen-context__at-start {
+  font-size: vars.$font-caption;
+  color: vars.$text-muted;
+  white-space: nowrap;
 }
 
 // The face-to-face headphones hint under the two ear rows: a warning, as on the board.
