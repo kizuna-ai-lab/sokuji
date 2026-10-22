@@ -84,7 +84,7 @@ beforeEach(() => {
   session.setBridges.mockClear();
   chooseAgain.mockClear();
   reportWarning.mockClear();
-  useScreenContextStore.setState({ sampler: null, state: null, preparing: false });
+  useScreenContextStore.setState({ sampler: null, state: null, preparing: false, picked: null, pickSource: null });
 });
 
 afterEach(() => {
@@ -100,7 +100,7 @@ describe('useScreenContext — the picker bridge', () => {
     let answer!: Promise<PickedSource | null>;
     act(() => { answer = bridge()(); });
     // Loading until the desktop answers.
-    expect(result.current.picker).toMatchObject({ open: true, sources: null, running: false });
+    expect(result.current.picker).toMatchObject({ open: true, sources: null, purpose: 'start' });
     await flush();
     expect(result.current.picker).toMatchObject({ open: true, mode: 'list', screenRecording: 'granted', sources: [SLIDES, DESKTOP] });
     expect(channels).toEqual(['capture-source-mode', 'list-capture-sources', 'capture-source-mode']);
@@ -217,11 +217,35 @@ describe('useScreenContext — the picker bridge', () => {
     env.electron = false;
     const { result } = renderHook(() => useScreenContext(session));
     expect(session.setBridges).not.toHaveBeenCalled();
+    expect(useScreenContextStore.getState().pickSource).toBeNull();
     act(() => { useScreenContextStore.setState({ sampler: SAMPLER, state: state(), preparing: true }); });
     // The tab's first frame is awaited: Start shows it, no modal does.
     expect(result.current.preparing).toBe(true);
     expect(result.current.picker.open).toBe(false);
     expect(result.current.chip?.onChooseAgain).toBeUndefined();
+  });
+});
+
+describe('useScreenContext — the picker for the settings (owner, 2026-10-22, ruling 1)', () => {
+  it('registers the picker in the store, asking for the settings, whose Cancel says Cancel; an unmount answers null and takes it away', async () => {
+    ipc();
+    const { result, unmount } = renderHook(() => useScreenContext(session));
+    const pickSource = useScreenContextStore.getState().pickSource;
+    expect(pickSource).toBeTypeOf('function');
+
+    let answer!: Promise<PickedSource | null>;
+    act(() => { answer = pickSource!(); });
+    await flush();
+    expect(result.current.picker).toMatchObject({ open: true, purpose: 'settings', sources: [SLIDES, DESKTOP] });
+    act(() => { result.current.picker.onPick(SLIDES); });
+    await expect(answer).resolves.toEqual({ kind: 'desktop', source: SLIDES });
+    expect(result.current.picker.open).toBe(false);
+
+    act(() => { answer = pickSource!(); });
+    await flush();
+    unmount();
+    await expect(answer).resolves.toBeNull();
+    expect(useScreenContextStore.getState().pickSource).toBeNull();
   });
 });
 
@@ -239,6 +263,40 @@ describe('useScreenContext — checking the pick', () => {
     act(() => { result.current.picker.onCancel(); });
     expect(result.current.picker.open).toBe(true);
     act(() => { useScreenContextStore.setState({ preparing: false }); });
+    expect(result.current.picker.open).toBe(false);
+  });
+
+  it('shows no picker while Start checks the area held from before: nothing was asked (owner, 2026-10-22, ruling 2)', async () => {
+    ipc();
+    const { result } = renderHook(() => useScreenContext(session));
+    act(() => { useScreenContextStore.setState({ preparing: true }); });
+    // Start shows the check; the modal stays shut.
+    expect(result.current.preparing).toBe(true);
+    expect(result.current.picker.open).toBe(false);
+    act(() => { useScreenContextStore.setState({ preparing: false }); });
+
+    // A pick made in the settings is not checked there: a later Start's check of it shows no picker either.
+    const { answer } = await (async () => {
+      let pending!: Promise<PickedSource | null>;
+      act(() => { pending = useScreenContextStore.getState().pickSource!(); });
+      await flush();
+      return { answer: pending };
+    })();
+    act(() => { result.current.picker.onPick(SLIDES); });
+    await expect(answer).resolves.toEqual({ kind: 'desktop', source: SLIDES });
+    act(() => { useScreenContextStore.setState({ preparing: true }); });
+    expect(result.current.picker.open).toBe(false);
+    act(() => { useScreenContextStore.setState({ preparing: false }); });
+
+    // A Start-time pick is checked in the picker, once: the next Start's check of the held pick shows none.
+    const start = await openPicker('gone');
+    act(() => { result.current.picker.onPick(DESKTOP); });
+    await expect(start.answer).resolves.toEqual({ kind: 'desktop', source: DESKTOP });
+    act(() => { useScreenContextStore.setState({ preparing: true }); });
+    expect(result.current.picker).toMatchObject({ open: true, checking: true });
+    act(() => { useScreenContextStore.setState({ preparing: false }); });
+    expect(result.current.picker.open).toBe(false);
+    act(() => { useScreenContextStore.setState({ preparing: true }); });
     expect(result.current.picker.open).toBe(false);
   });
 });
@@ -304,7 +362,7 @@ describe('useScreenContext — the chip', () => {
     let answer!: Promise<PickedSource | null>;
     act(() => { answer = deps.pick(); });
     await flush();
-    expect(result.current.picker).toMatchObject({ open: true, running: true });
+    expect(result.current.picker).toMatchObject({ open: true, purpose: 'choose-again' });
     act(() => { result.current.picker.onCancel(); });
     await expect(answer).resolves.toBeNull();
   });

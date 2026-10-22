@@ -108,13 +108,14 @@ function deps(o: { picks?: Array<PickedSource | null>; opens?: Record<string, Sc
   });
   const openTab = vi.fn(async (_tabId: number, _deps: TabCaptureDeps): Promise<Scripted> => { throw new Error('no tab in this test'); });
   const invoke = o.invoke ?? (vi.fn(async () => { throw new Error('no IPC in this test'); }) as Invoke);
-  return { clock, pick, openDesktop, openTab, invoke };
+  const turnOff = vi.fn();
+  return { clock, pick, openDesktop, openTab, invoke, turnOff };
 }
 
 const store = () => useScreenContextStore.getState();
 
 beforeEach(() => {
-  useScreenContextStore.setState({ sampler: null, state: null, preparing: false });
+  useScreenContextStore.setState({ sampler: null, state: null, preparing: false, picked: null, pickSource: null });
   vi.clearAllMocks();
 });
 
@@ -211,12 +212,15 @@ describe('prepareScreenContext — the desktop', () => {
     expect(store().sampler).toBeNull();
     expect(reportWarning).not.toHaveBeenCalled();
 
+    // Each part a first Start: nothing held from the one before.
+    store().setPicked(null);
     const refused = deps({ picks: [{ kind: 'portal' }], invoke: vi.fn(async () => ({ ok: false, error: 'screen-recording-denied' })) });
     await prepareScreenContext('electron', { legs: ['speaker'] }, refused);
     expect(refused.openDesktop).not.toHaveBeenCalled();
     expect(store().sampler).toBeNull();
     expect(reportWarning).toHaveBeenLastCalledWith('ScreenContext', expect.stringContaining('screen-recording-denied'));
 
+    store().setPicked(null);
     const failing = deps({ picks: [{ kind: 'desktop', source: SLIDES }] });
     await expect(prepareScreenContext('electron', { legs: ['speaker'] }, failing)).resolves.toBeUndefined();
     expect(failing.openDesktop).toHaveBeenCalledTimes(1);
@@ -266,6 +270,122 @@ describe('prepareScreenContext — the desktop', () => {
     await prepared;
     expect(failing.openDesktop).toHaveBeenCalledTimes(1);
     expect(store().preparing).toBe(false);
+  });
+});
+
+// ---- the pick held from the settings or an earlier Start (owner, 2026-10-22, rulings 2–4) -------
+
+describe('prepareScreenContext — the held pick', () => {
+  const GONE = source('window:9', 'Closed window');
+
+  it('every pick made at Start becomes the held pick, the last one after a blank one', async () => {
+    const dark = scripted(BLACK, 'Dark window');
+    const slides = scripted(lit(), 'Slides');
+    const d = deps({ picks: [{ kind: 'desktop', source: DARK }, { kind: 'desktop', source: SLIDES }], opens: { [DARK.id]: dark, [SLIDES.id]: slides } });
+    const prepared = prepareScreenContext('electron', { legs: ['speaker'] }, d);
+    await run(d.clock, 5000);
+    await prepared;
+    expect(store().picked).toEqual({ kind: 'desktop', source: SLIDES });
+    expect(d.turnOff).not.toHaveBeenCalled();
+  });
+
+  it('a held pick that opens with a frame starts with it, asking nothing, preparing while it is checked', async () => {
+    const slides = scripted(lit(), 'Slides');
+    const d = deps({ opens: { [SLIDES.id]: slides } });
+    store().setPicked({ kind: 'desktop', source: SLIDES });
+    const prepared = prepareScreenContext('electron', { legs: ['speaker'] }, d);
+    await flush();
+    expect(store().preparing).toBe(true);
+    await run(d.clock, 1000);
+    await prepared;
+    expect(d.pick).not.toHaveBeenCalled();
+    expect(d.openDesktop).toHaveBeenCalledWith(SLIDES);
+    expect(store().preparing).toBe(false);
+    expect(store().state).toMatchObject({ status: 'live', name: 'Slides', sent: 1 });
+    expect(store().picked).toEqual({ kind: 'desktop', source: SLIDES });
+  });
+
+  it("a held window whose capture will not open asks the picker with 'gone', and holds the new pick", async () => {
+    const notes = scripted(lit(4), 'Notes');
+    const d = deps({ opens: { [NOTES.id]: notes } });
+    store().setPicked({ kind: 'desktop', source: GONE });
+    const atPick: boolean[] = [];
+    d.pick.mockImplementation(async () => {
+      atPick.push(store().preparing);
+      return { kind: 'desktop', source: NOTES };
+    });
+    const prepared = prepareScreenContext('electron', { legs: ['speaker'] }, d);
+    await run(d.clock, 1000);
+    await prepared;
+    expect(d.openDesktop.mock.calls).toEqual([[GONE], [NOTES]]);
+    expect(d.pick.mock.calls).toEqual([['gone']]);
+    // The picker shows its list, not the check.
+    expect(atPick).toEqual([false]);
+    expect(store().state).toMatchObject({ status: 'live', name: 'Notes' });
+    expect(store().picked).toEqual({ kind: 'desktop', source: NOTES });
+    // Why, for the Logs panel; the picker's line is what the user reads.
+    expect(reportWarning).toHaveBeenCalledWith('ScreenContext', expect.stringContaining('no capture for window:9'), expect.objectContaining({ cause: expect.any(Error) }));
+    expect(d.turnOff).not.toHaveBeenCalled();
+  });
+
+  it("a held area that shows nothing is closed and the picker asked with 'nothingVisible'", async () => {
+    const dark = scripted(BLACK, 'Dark window');
+    const slides = scripted(lit(), 'Slides');
+    const d = deps({ picks: [{ kind: 'desktop', source: SLIDES }], opens: { [DARK.id]: dark, [SLIDES.id]: slides } });
+    store().setPicked({ kind: 'desktop', source: DARK });
+    const prepared = prepareScreenContext('electron', { legs: ['speaker'] }, d);
+    await run(d.clock, 5000);
+    await prepared;
+    expect(d.pick.mock.calls).toEqual([['nothingVisible']]);
+    expect(dark.close).toHaveBeenCalledTimes(1);
+    expect(store().state).toMatchObject({ status: 'live', name: 'Slides' });
+    expect(store().picked).toEqual({ kind: 'desktop', source: SLIDES });
+  });
+
+  it('a cancel at Start turns the switch off and lets the pick go: after a gone window, or with nothing held', async () => {
+    const d = deps({ picks: [null] });
+    store().setPicked({ kind: 'desktop', source: GONE });
+    await prepareScreenContext('electron', { legs: ['speaker'] }, d);
+    expect(d.pick.mock.calls).toEqual([['gone']]);
+    expect(d.turnOff).toHaveBeenCalledTimes(1);
+    expect(store().picked).toBeNull();
+    expect(store().sampler).toBeNull();
+    expect(store().preparing).toBe(false);
+
+    const first = deps({ picks: [null] });
+    await prepareScreenContext('electron', { legs: ['speaker'] }, first);
+    expect(first.pick.mock.calls).toEqual([[undefined]]);
+    expect(first.turnOff).toHaveBeenCalledTimes(1);
+    expect(store().picked).toBeNull();
+  });
+
+  it("a held portal pick opens the portal at Start, asking Sokuji's picker nothing", async () => {
+    const slides = scripted(lit(), 'Slides');
+    const invoke = vi.fn(async (channel: string) => (channel === 'list-capture-sources' ? { ok: true, sources: [SLIDES] } : undefined));
+    const d = deps({ opens: { [SLIDES.id]: slides }, invoke });
+    store().setPicked({ kind: 'portal' });
+    const prepared = prepareScreenContext('electron', { legs: ['speaker'] }, d);
+    await run(d.clock, 1000);
+    await prepared;
+    expect(d.pick).not.toHaveBeenCalled();
+    expect(invoke).toHaveBeenCalledWith('list-capture-sources');
+    expect(d.openDesktop).toHaveBeenCalledWith(SLIDES);
+    expect(store().state).toMatchObject({ status: 'live', name: 'Slides' });
+    expect(store().picked).toEqual({ kind: 'portal' });
+  });
+
+  it('the extension never asks, opens no held window and never turns the switch off', async () => {
+    window.history.replaceState(null, '', '/?tabId=42');
+    const tab = scripted(BLACK, 'Weekly sync', 'tab');
+    const d = deps();
+    d.openTab.mockImplementation(async () => tab);
+    store().setPicked({ kind: 'desktop', source: SLIDES });
+    const prepared = prepareScreenContext('extension', { legs: ['speaker'] }, d);
+    await run(d.clock, 4000);
+    await prepared;
+    expect(d.pick).not.toHaveBeenCalled();
+    expect(d.openDesktop).not.toHaveBeenCalled();
+    expect(d.turnOff).not.toHaveBeenCalled();
   });
 });
 
@@ -419,6 +539,8 @@ describe('releaseScreenContext and chooseAgain', () => {
     expect(store().state).toMatchObject({ status: 'live', name: 'Notes', sent: 2, lastReason: 'changed' });
     // The same subscriptions hear the new area; no loss is told for a swap.
     expect(heard).toEqual(['speaker:changed', 'participant:changed']);
+    // The new area is the one the settings show and the next Start opens (owner, 2026-10-22, ruling 5).
+    expect(store().picked).toEqual({ kind: 'desktop', source: NOTES });
 
     releaseScreenContext();
     expect(notes.close).toHaveBeenCalledTimes(1);
@@ -461,11 +583,12 @@ describe('releaseScreenContext and chooseAgain', () => {
     expect(d.openDesktop).toHaveBeenCalledTimes(1);
     expect(store().sampler).toBeNull();
 
-    // A second run, and a Choose again whose capture opens after that run has ended.
-    const again = deps({ picks: [{ kind: 'desktop', source: SLIDES }, { kind: 'desktop', source: NOTES }], opens: { [SLIDES.id]: scripted(lit(), 'Slides') } });
+    // A second run, which opens the Slides held from the first without asking, and a Choose again whose capture opens after that run has ended.
+    const again = deps({ picks: [{ kind: 'desktop', source: NOTES }], opens: { [SLIDES.id]: scripted(lit(), 'Slides') } });
     const preparedAgain = prepareScreenContext('electron', { legs: ['speaker'] }, again);
     await run(again.clock, 1000);
     await preparedAgain;
+    expect(again.pick).not.toHaveBeenCalled();
     let opened: (capture: Scripted) => void = () => {};
     again.openDesktop.mockImplementationOnce(() => new Promise((resolve) => { opened = resolve; }));
     const late = chooseAgain(again);
@@ -519,6 +642,8 @@ describe('releaseScreenContext and chooseAgain', () => {
     expect(slides.close).toHaveBeenCalledTimes(1);
     expect(dark.close).toHaveBeenCalledTimes(1);
     expect(store().state?.status).toBe('lost');
+    // Only an area that showed a frame is held: the one Start picked stays.
+    expect(store().picked).toEqual({ kind: 'desktop', source: SLIDES });
     const grabs = dark.grabs;
     await run(d.clock, 3000);
     expect(dark.grabs).toBe(grabs);

@@ -15,7 +15,7 @@ import { autoSaveConversation } from '../lib/export/appAutoSave';
 import type { AuthContext } from '../lib/provider/types';
 import { openDesktopCapture } from '../lib/screen/desktopFrames';
 import { openTabCapture } from '../lib/screen/tabFrames';
-import { appParticipantSpeech, appReplayAudio, ensureReadyFromStores, faceToFaceFromStores, persistIfUnchanged, readShapeFromStores, watchLegsFromStores, watchSpeechFromStores } from '../lib/session/appShape';
+import { appParticipantSpeech, appReplayAudio, ensureReadyFromStores, faceToFaceFromStores, persistIfUnchanged, readShapeFromStores, turnScreenContextOff, watchLegsFromStores, watchSpeechFromStores } from '../lib/session/appShape';
 import type { AnalyticsPort, ControlMethod, FramePort } from '../lib/session/ports';
 import { createRunner, type Runner } from '../lib/session/runner';
 import type { OpenSource } from '../lib/session/source';
@@ -248,11 +248,14 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       if (choosing) return choosing;
       if (!subtitle.get().canStart) return Promise.resolve();
       if (!screenContextWanted()) return runner.start(method);
-      // The picker before the runner (spec 2026-10-22 §3.1): the run's shape reads the source it leaves in the store.
+      // The screen before the runner (spec 2026-10-22 §3.1): the area held, or the picker's; the run's shape reads the source it leaves in the store.
       const starting = (async () => {
         try {
           await prepareScreenContext(getEnvironment(), { legs: readShapeFromStores(bridges.auth)?.legs ?? ['speaker'] }, {
             pick: pickScreenSource,
+            // The user's Start without, in the picker: the switch goes off. A null from no picker (none mounted, or one
+            // taken away by an unmount, which answers the open pick first) is nobody's choice, and leaves it on.
+            turnOff: () => { if (bridges.pickScreenSource) turnScreenContextOff(); },
             clock,
             invoke: (channel, data) => window.electron.invoke(channel, data),
             openDesktop: openDesktopCapture,

@@ -4,8 +4,9 @@
  * legs, and let go when the run is over.
  *
  * Before a run `prepareScreenContext` opens the capture — on the desktop the
- * one the picker (the modal Task 8 mounts) hands back, in the extension the
- * meeting tab — attaches it to a fresh sampler and waits for its first good
+ * area the store holds (picked in the settings, or at an earlier Start), or
+ * the one the picker hands back when nothing usable is held; in the extension
+ * the meeting tab — attaches it to a fresh sampler and waits for its first good
  * frame. Only then does the sampler go into `useScreenContextStore`, where
  * `readShapeFromStores` hands its `source` to the run: a source with no frame
  * behind it would let a Qwen session declare video and be cut off at its first
@@ -20,23 +21,23 @@ import { targetTabIdFromSearch } from '../lib/audio/tabMicrophone';
 import { describeCause, reportWarning } from '../lib/diagnostics/report';
 import type { Platform } from '../lib/provider/types';
 import { canvasCapture } from '../lib/screen/canvasCapture';
-import { listCaptureSources, type CaptureSourceInfo, type Invoke, type openDesktopCapture } from '../lib/screen/desktopFrames';
+import { listCaptureSources, type Invoke, type openDesktopCapture } from '../lib/screen/desktopFrames';
 import { createSampler, type Capture, type Sampler } from '../lib/screen/sampler';
 import type { BoxAnswer, openTabCapture, TabCaptureDeps } from '../lib/screen/tabFrames';
 import { chromeTabStreamDeps, openTabStream } from '../lib/screen/tabStream';
 import type { RunShape } from '../lib/session/types';
-import { useScreenContextStore } from '../stores/screenContextStore';
+import { useScreenContextStore, type PickedSource, type PickReason } from '../stores/screenContextStore';
 
 // The one place that reads the switch, beside the provider selection it depends on.
 export { screenContextWanted } from '../lib/session/appShape';
-
-export type PickedSource = { kind: 'desktop'; source: CaptureSourceInfo } | { kind: 'portal' };
-/** Why the picker is shown again: the area just picked yielded no frame. */
-export type PickReason = 'nothingVisible';
+// Where they were first declared: the store holds the pick now, and every existing import stands.
+export type { PickedSource, PickReason };
 
 export interface ScreenContextDeps {
   /** The picker: a source, the portal's button, or null for Start without screen context. */
   pick(reason?: PickReason): Promise<PickedSource | null>;
+  /** Start without screen context, chosen in the Start-time picker: the switch goes off, so the setting and the run agree. */
+  turnOff(): void;
   clock: Clock;
   invoke: Invoke;
   openDesktop: typeof openDesktopCapture;
@@ -57,9 +58,12 @@ const TAB_NAME_FALLBACK = 'Meeting tab';
 let held: { sampler: Sampler; capture: OpenCapture | null } | null = null;
 
 /**
- * Before a run. On Electron: asks `pick` (the modal) for a source — null is a cancel, the run starts without — opens the
- * capture, attaches it to a fresh sampler and waits for the first good frame (`first()`); a null first frame closes that
- * capture and asks `pick('nothingVisible')` again, until a frame comes or the user cancels. On the extension: opens the
+ * Before a run. On Electron: opens the area the store holds (`picked`) without asking; when there is none, or its capture
+ * will not open (`'gone'`), or it shows nothing (`'nothingVisible'`), asks `pick` (the modal) for a source, saying why —
+ * null is a cancel: the switch goes off (`turnOff`), the held pick goes, and the run starts without. Every pick made here
+ * becomes the held pick. Each area opened is attached to a fresh sampler and checked for its first good frame
+ * (`first()`); a null first frame closes that capture and asks `pick('nothingVisible')` again, until a frame comes or the
+ * user cancels. On the extension: opens the
  * meeting tab's capture (`targetTabIdFromSearch`) with `audio: shape.legs.includes('participant')` (the extension's
  * participant source is always that tab), `video: true`; a null first frame there starts the run without.
  * Puts the sampler in the store and mirrors its state there; while a capture is opened and its first frame awaited the
@@ -114,8 +118,13 @@ export async function chooseAgain(deps: Pick<ScreenContextDeps, 'pick' | 'invoke
       current.capture = capture;
       current.sampler.attach(capture);
       const frame = await current.sampler.first();
+      // An area that showed a frame is the one the settings show and the next Start opens.
+      if (frame) {
+        useScreenContextStore.getState().setPicked(picked);
+        return;
+      }
       // A run that ended during the check closed this capture with its sampler.
-      if (frame || held !== current) return;
+      if (held !== current) return;
       current.sampler.detach();
       current.capture = null;
       closeQuietly(capture);
@@ -128,14 +137,26 @@ export async function chooseAgain(deps: Pick<ScreenContextDeps, 'pick' | 'invoke
 }
 
 /**
- * The modal's loop: a pick, its capture, its first frame — or the picker again, told why. Preparing from the pick's answer
- * until its first frame settles, so the modal shows the check (and never while the picker is asked).
+ * The held pick first, then the modal's loop: a pick, its capture, its first frame — or the picker again, told why.
+ * Preparing from the pick's answer until its first frame settles, so the modal shows the check (and never while the
+ * picker is asked).
  */
 async function prepareDesktop(deps: ScreenContextDeps): Promise<void> {
+  const store = useScreenContextStore.getState();
   let reason: PickReason | undefined;
+  if (store.picked) {
+    reason = await openHeld(store.picked, deps);
+    if (!reason) return;
+  }
   for (;;) {
     const picked = await deps.pick(reason);
-    if (!picked) return;
+    if (!picked) {
+      // Start without screen context: the switch goes off with the pick (owner, 2026-10-22, ruling 3), so asked again when turned on.
+      useScreenContextStore.getState().setPicked(null);
+      deps.turnOff();
+      return;
+    }
+    useScreenContextStore.getState().setPicked(picked);
     const kept = await preparing(async () => {
       const capture = await openPicked(picked, deps);
       return capture ? hold(capture, deps.clock) : null;
@@ -144,6 +165,30 @@ async function prepareDesktop(deps: ScreenContextDeps): Promise<void> {
     if (kept !== false) return;
     reason = 'nothingVisible';
   }
+}
+
+/**
+ * The pick held from the settings or an earlier start, opened without asking: undefined once it is kept (or there is
+ * nothing to keep — the portal's own Cancel, a listing that failed); otherwise why the picker is asked. A window that
+ * will not open is gone (a window id dies with its window); a portal pick opens the portal as a fresh one does.
+ */
+async function openHeld(picked: PickedSource, deps: ScreenContextDeps): Promise<PickReason | undefined> {
+  const kept = await preparing(async (): Promise<boolean | 'gone' | null> => {
+    if (picked.kind === 'portal') {
+      const capture = await openPicked(picked, deps);
+      return capture ? hold(capture, deps.clock) : null;
+    }
+    let capture: OpenCapture;
+    try {
+      capture = await deps.openDesktop(picked.source);
+    } catch (error) {
+      reportWarning('ScreenContext', `The window chosen before could not be captured; the picker asks for another: ${describeCause(error)}`, { cause: error });
+      return 'gone';
+    }
+    return hold(capture, deps.clock);
+  });
+  if (kept === 'gone') return 'gone';
+  return kept === false ? 'nothingVisible' : undefined;
 }
 
 /** The meeting tab, its stream opened for this run alone: a stream kept from an earlier run carries an audio track its recorder stopped. */

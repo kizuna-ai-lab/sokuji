@@ -553,7 +553,13 @@
       "vocabularyTranslationsPlaceholder": "Satır başına kaynak=hedef biçiminde bir giriş",
       "screenContext": "Ekran bağlamı",
       "screenContextTooltip": "Oturum başlarken seçtiğiniz bir pencereyi, sekmeyi veya ekranı Qwen motorunun görmesini sağlar; böylece üzerindeki adlar ve terimler yazıldığı gibi tanınır ve çevrilir. Bu alanın içindeki her şey, bu oturumun bölgesindeki Alibaba Cloud'un Qwen hizmetine görüntü olarak gönderilir; Kizuna AI bunları hiçbir zaman almaz. Açık olduğu sürece konuşmanın her saniyesi için ücrete ek getirir — kendi anahtarınızla Alibaba Cloud faturanıza, Kizuna AI hesabıyla hesabınızın fiyatlandırma sayfasında belirtildiği gibi; Her ikisi modunda her yönün oturumu ücretlendirilir.",
-      "screenContextBeta": "Beta"
+      "screenContextBeta": "Beta",
+      "screenContextPicked": "Modelin göreceği: {{name}}",
+      "screenContextChange": "Değiştir",
+      "screenContextClear": "Temizle",
+      "screenContextPortal": "Oturum başlarken sistem hangi pencere veya ekran olduğunu sorar.",
+      "screenContextNone": "Henüz pencere seçilmedi: oturum başlarken size sorulacak.",
+      "screenContextChoose": "Seç…"
     },
     "local_inference": {
       "name": "Ücretsiz",
@@ -1588,6 +1594,7 @@
       "cancel": "Ekran bağlamı olmadan başlat",
       "nothingVisible": "Seçtiğiniz alan şu anda hiçbir şey göstermiyor. Başka bir alan seçin veya ekran bağlamı olmadan başlatın.",
       "nothingVisibleRunning": "Seçtiğiniz alan şu anda hiçbir şey göstermiyor. Başka bir alan seçin veya oturumu olduğu gibi bırakın.",
+      "gone": "Seçtiğiniz pencere artık kullanılamıyor. Başka bir pencere seçin veya ekran bağlamı olmadan başlatın.",
       "checking": "Görüntü kontrol ediliyor…"
     },
     "chip": {

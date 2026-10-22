@@ -553,7 +553,13 @@
       "vocabularyTranslationsPlaceholder": "Jeden wpis źródło=cel w wierszu",
       "screenContext": "Kontekst ekranu",
       "screenContextTooltip": "Pozwala silnikowi Qwen zobaczyć jedno okno, kartę lub ekran wybrane przez Ciebie przy rozpoczęciu sesji, aby widoczne na nim nazwy i terminy były rozpoznawane i tłumaczone tak, jak są zapisane. Wszystko, co znajduje się w tym obszarze, jest wysyłane jako obrazy do usługi Qwen firmy Alibaba Cloud w regionie tej sesji; Kizuna AI nigdy ich nie otrzymuje. Gdy jest włączone, zwiększa opłatę za każdą sekundę mowy — na rachunku Alibaba Cloud przy własnym kluczu albo według strony cennika Twojego konta przy koncie Kizuna AI; w trybie Oba naliczana jest sesja każdego kierunku.",
-      "screenContextBeta": "Beta"
+      "screenContextBeta": "Beta",
+      "screenContextPicked": "Model zobaczy: {{name}}",
+      "screenContextChange": "Zmień",
+      "screenContextClear": "Wyczyść",
+      "screenContextPortal": "System zapyta o okno lub ekran przy rozpoczęciu sesji.",
+      "screenContextNone": "Nie wybrano jeszcze okna: pytanie pojawi się przy rozpoczęciu sesji.",
+      "screenContextChoose": "Wybierz…"
     },
     "local_inference": {
       "name": "Darmowy",
@@ -1588,6 +1594,7 @@
       "cancel": "Rozpocznij bez kontekstu ekranu",
       "nothingVisible": "Wybrany obszar nie pokazuje teraz niczego. Wybierz inny albo rozpocznij bez kontekstu ekranu.",
       "nothingVisibleRunning": "Wybrany obszar nie pokazuje teraz niczego. Wybierz inny albo zostaw sesję bez zmian.",
+      "gone": "Wybrane okno nie jest już dostępne. Wybierz inne albo rozpocznij bez kontekstu ekranu.",
       "checking": "Sprawdzanie obrazu…"
     },
     "chip": {

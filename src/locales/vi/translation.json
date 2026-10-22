@@ -553,7 +553,13 @@
       "vocabularyTranslationsPlaceholder": "Mỗi dòng một mục theo dạng nguồn=đích",
       "screenContext": "Ngữ cảnh màn hình",
       "screenContextTooltip": "Cho phép công cụ Qwen nhìn thấy một cửa sổ, tab hoặc màn hình mà bạn chọn khi bắt đầu phiên, để các tên và thuật ngữ trên đó được nhận dạng và dịch đúng như đã viết. Mọi thứ trong vùng đó được gửi dưới dạng hình ảnh tới dịch vụ Qwen của Alibaba Cloud, tại khu vực của phiên này; Kizuna AI không bao giờ nhận được chúng. Trong lúc đang bật, tính năng này làm tăng khoản phí cho mỗi giây lời nói — trên hóa đơn Alibaba Cloud của bạn khi dùng khóa riêng, hoặc theo trang giá của tài khoản khi dùng tài khoản Kizuna AI; ở chế độ Cả hai, phiên của mỗi chiều đều bị tính phí.",
-      "screenContextBeta": "Beta"
+      "screenContextBeta": "Beta",
+      "screenContextPicked": "Mô hình sẽ xem: {{name}}",
+      "screenContextChange": "Thay đổi",
+      "screenContextClear": "Xóa",
+      "screenContextPortal": "Hệ thống sẽ hỏi cửa sổ hoặc màn hình nào khi bắt đầu phiên.",
+      "screenContextNone": "Chưa chọn cửa sổ nào: bạn sẽ được hỏi khi bắt đầu phiên.",
+      "screenContextChoose": "Chọn…"
     },
     "local_inference": {
       "name": "Miễn phí",
@@ -1588,6 +1594,7 @@
       "cancel": "Bắt đầu không có ngữ cảnh màn hình",
       "nothingVisible": "Vùng bạn chọn hiện không hiển thị gì. Hãy chọn vùng khác, hoặc bắt đầu không có ngữ cảnh màn hình.",
       "nothingVisibleRunning": "Vùng bạn chọn hiện không hiển thị gì. Hãy chọn vùng khác, hoặc giữ nguyên phiên như hiện tại.",
+      "gone": "Cửa sổ bạn chọn không còn khả dụng. Hãy chọn cửa sổ khác, hoặc bắt đầu không có ngữ cảnh màn hình.",
       "checking": "Đang kiểm tra hình ảnh…"
     },
     "chip": {

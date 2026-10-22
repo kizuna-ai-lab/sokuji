@@ -2421,6 +2421,39 @@
   }
 }
 
+// What Qwen's Screen context opens at the next Start, under its switch (a `SettingRow` footer): the row's caption
+// line, its buttons the row's 28px keys (`.setting-row__preview`), sized to their words.
+.qwen-screen-context__picked {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: vars.$font-caption;
+  color: vars.$text-secondary;
+}
+.qwen-screen-context__text {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qwen-screen-context__button {
+  flex: none;
+  height: 28px;
+  padding: 0 10px;
+  background: transparent;
+  color: vars.$text-secondary;
+  border: 1px solid vars.$border-strong;
+  border-radius: vars.$radius-sm;
+  font-size: vars.$font-body;
+  cursor: pointer;
+
+  &:hover:not(:disabled) { color: vars.$text-primary; border-color: vars.$text-secondary; }
+  &:focus-visible { @include vars.focus-ring; }
+  &:disabled { @include vars.disabled-state; }
+}
+
 // The face-to-face headphones hint under the two ear rows: a warning, as on the board.
 .speech-section .setting-description.ears-hint {
   color: vars.$color-warning;

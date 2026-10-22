@@ -984,7 +984,7 @@ describe('MainPanel — screen context', () => {
   const live: SamplerState = { status: 'live', name: 'Slides', kind: 'window', sent: 2, lastSentAt: 0, lastReason: 'changed', lastJpeg: null };
 
   beforeEach(() => {
-    useScreenContextStore.setState({ sampler: null, state: null, preparing: false });
+    useScreenContextStore.setState({ sampler: null, state: null, preparing: false, picked: null, pickSource: null });
   });
 
   it('draws the chip from the store, icon-only in the basic layout and named in the advanced one, and none while idle', async () => {
@@ -1025,12 +1025,24 @@ describe('MainPanel — screen context', () => {
 
   it('on the desktop registers the picker, keeps it up checking while the pick is checked with Start off, and takes it away on unmount', async () => {
     env.electron = true;
+    const invoke = vi.fn(async (channel: string) => (channel === 'list-capture-sources'
+      ? { ok: true, sources: [{ id: 'window:1', name: 'Slides', kind: 'window', thumbnail: 'data:,', appIcon: null }] }
+      : { mode: 'list', screenRecording: 'granted' }));
     const setBridges = vi.spyOn(getAppSession(), 'setBridges');
     try {
       const { container, unmount } = await renderPanel();
+      // The picker's IPC only: set after the render, which reaches for the rest of `window.electron` when it is there.
+      (window as unknown as { electron: { invoke: typeof invoke } }).electron = { invoke };
       expect(setBridges).toHaveBeenCalledWith({ pickScreenSource: expect.any(Function) });
       expect(document.querySelector('.source-picker')).toBeNull();
 
+      // A Start's pick: the picker answers, and stays up checking the area it chose.
+      const bridge = setBridges.mock.calls.map(([next]) => next.pickScreenSource).filter((pick) => typeof pick === 'function').pop()!;
+      let answered!: Promise<unknown>;
+      act(() => { answered = bridge(); });
+      await act(async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); });
+      act(() => { (document.querySelector('.source-picker__source') as HTMLButtonElement).click(); });
+      await expect(answered).resolves.toMatchObject({ kind: 'desktop' });
       act(() => { useScreenContextStore.setState({ preparing: true }); });
       expect(document.querySelector('.source-picker')?.textContent).toContain('screenContext.picker.checking');
       expect(mainAction(container).disabled).toBe(true);
@@ -1040,10 +1052,18 @@ describe('MainPanel — screen context', () => {
       expect(document.querySelector('.source-picker')).toBeNull();
       expect(mainAction(container).disabled).toBe(false);
 
+      // A Start opening the area held from before asks nothing: Start shows the check, no picker does.
+      act(() => { useScreenContextStore.setState({ preparing: true }); });
+      expect(document.querySelector('.source-picker')).toBeNull();
+      expect(mainAction(container).disabled).toBe(true);
+      act(() => { useScreenContextStore.setState({ preparing: false }); });
+
       unmount();
       expect(setBridges).toHaveBeenLastCalledWith({ pickScreenSource: null });
+      expect(useScreenContextStore.getState().pickSource).toBeNull();
     } finally {
       setBridges.mockRestore();
+      delete (window as unknown as { electron?: unknown }).electron;
     }
   });
 });

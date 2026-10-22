@@ -51,6 +51,17 @@ export function screenContextWanted(): boolean {
 }
 
 /**
+ * Start without screen context, chosen in the Start-time picker (owner, 2026-10-22, ruling 3): the selected Qwen
+ * provider's switch written off, so the setting and the run agree; turning it on again asks again. Nothing under
+ * another provider.
+ */
+export function turnScreenContextOff(): void {
+  const selected = selectedFromStores();
+  if (!selected || !SCREEN_CONTEXT_PROVIDERS.has(selected.provider.id)) return;
+  useProviderStore.getState().updateSettings(selected.provider, { screenContext: false });
+}
+
+/**
  * Face-to-face (spec 2026-10-08, slice 3): Both, the other side beside me,
  * under a provider that offers it. The one predicate the run's shape, the
  * capture, the routing and every surface read, so they never disagree; a

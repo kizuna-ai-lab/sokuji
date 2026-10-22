@@ -1,5 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { resolve } from 'node:path';
+import { compile } from 'sass';
+
+// The desktop draws the area under the switch and asks the picker; the extension flips it.
+const env = vi.hoisted(() => ({ electron: false }));
+vi.mock('../../utils/environment', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../utils/environment')>()),
+  isElectron: () => env.electron,
+}));
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -22,12 +31,16 @@ vi.mock('../../components/Settings/sections/VoiceLibrarySection', () => ({
 }));
 
 import type { SettingsProps } from '../../lib/provider/types';
+import type { CaptureSourceInfo } from '../../lib/screen/desktopFrames';
+import { useScreenContextStore, type PickedSource, type PickReason } from '../../stores/screenContextStore';
 import { KizunaQwenSettingsView, QwenSettingsView, QwenVoiceSummary } from './QwenSettings';
 import { QWEN_DEFAULTS, QWEN_VOICES, SPEAKER_CLONE, SPEAKER_CLONE_ONCE, type QwenSettings } from './settings';
 
 const props = (patch: Partial<SettingsProps<QwenSettings>> = {}): SettingsProps<QwenSettings> => ({ settings: QWEN_DEFAULTS, update: vi.fn(), ...patch });
 beforeEach(() => {
   library.length = 0;
+  env.electron = false;
+  useScreenContextStore.setState({ picked: null, pickSource: null });
 });
 
 describe('QwenSettingsView (spec §4, §7)', () => {
@@ -122,6 +135,170 @@ describe('QwenSettingsView (spec §4, §7)', () => {
     expect(screen.getByText('Key from QwenCloud (international)')).toBeTruthy();
     rerender(<QwenSettingsView {...props({ models: [] })} />);
     expect(screen.queryByText(/^Key from/)).toBeNull();
+  });
+});
+
+describe('Screen context — the area chosen in the settings (owner, 2026-10-22, rulings 1, 4, 5)', () => {
+  const SLIDES: CaptureSourceInfo = { id: 'window:1', name: 'Slides', kind: 'window', thumbnail: 'data:,', appIcon: null };
+  const NOTES: CaptureSourceInfo = { id: 'window:2', name: 'Notes', kind: 'window', thumbnail: 'data:,', appIcon: null };
+  const ON = { ...QWEN_DEFAULTS, screenContext: true };
+  const sc = () => useScreenContextStore.getState();
+  /** The panel's picker, answered by the test: `answer(pick)` settles the call it last took. */
+  function picker() {
+    let answer: (picked: PickedSource | null) => void = () => {};
+    const pickSource = vi.fn((_reason?: PickReason) => new Promise<PickedSource | null>((resolve) => { answer = resolve; }));
+    sc().setPickSource(pickSource);
+    return { pickSource, answer: async (picked: PickedSource | null) => { await act(async () => { answer(picked); }); } };
+  }
+  const line = () => screen.getByTestId('qwen-screen-context').querySelector('.qwen-screen-context__picked');
+  const button = (name: string) => within(screen.getByTestId('qwen-screen-context')).queryByRole('button', { name });
+
+  beforeEach(() => {
+    env.electron = true;
+  });
+
+  it('turning the switch on asks the picker at once; a pick is held and turns it on', async () => {
+    const update = vi.fn();
+    const { pickSource, answer } = picker();
+    render(<QwenSettingsView settings={QWEN_DEFAULTS} update={update} />);
+    fireEvent.click(screen.getByRole('switch', { name: 'Screen context' }));
+    expect(pickSource).toHaveBeenCalledTimes(1);
+    expect(pickSource).toHaveBeenCalledWith();
+    // Not on before the answer: a cancel leaves it off.
+    expect(update).not.toHaveBeenCalled();
+    await answer({ kind: 'desktop', source: SLIDES });
+    expect(sc().picked).toEqual({ kind: 'desktop', source: SLIDES });
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenCalledWith({ screenContext: true });
+  });
+
+  it('a cancel leaves the switch off and holds nothing', async () => {
+    const update = vi.fn();
+    const { answer } = picker();
+    render(<QwenSettingsView settings={QWEN_DEFAULTS} update={update} />);
+    fireEvent.click(screen.getByRole('switch', { name: 'Screen context' }));
+    await answer(null);
+    expect(update).not.toHaveBeenCalled();
+    expect(sc().picked).toBeNull();
+  });
+
+  it('with no panel to ask (none mounted), the switch turns on alone: the picker opens at Start', () => {
+    const update = vi.fn();
+    render(<QwenSettingsView settings={QWEN_DEFAULTS} update={update} />);
+    fireEvent.click(screen.getByRole('switch', { name: 'Screen context' }));
+    expect(update).toHaveBeenCalledWith({ screenContext: true });
+  });
+
+  it('turning it off writes it off and lets the pick go', () => {
+    const update = vi.fn();
+    const { pickSource } = picker();
+    sc().setPicked({ kind: 'desktop', source: SLIDES });
+    render(<QwenSettingsView settings={ON} update={update} />);
+    fireEvent.click(screen.getByRole('switch', { name: 'Screen context' }));
+    expect(update).toHaveBeenCalledWith({ screenContext: false });
+    expect(sc().picked).toBeNull();
+    expect(pickSource).not.toHaveBeenCalled();
+  });
+
+  it('while on with a window held, names it under the switch, with Change and Clear', async () => {
+    const update = vi.fn();
+    const { pickSource, answer } = picker();
+    sc().setPicked({ kind: 'desktop', source: SLIDES });
+    render(<QwenSettingsView settings={ON} update={update} />);
+    expect(line()?.textContent).toContain('The model will see: Slides');
+    expect(button('Choose…')).toBeNull();
+
+    // Change: a pick replaces the held one, a cancel keeps it.
+    fireEvent.click(button('Change')!);
+    expect(pickSource).toHaveBeenCalledTimes(1);
+    await answer({ kind: 'desktop', source: NOTES });
+    expect(sc().picked).toEqual({ kind: 'desktop', source: NOTES });
+    expect(line()?.textContent).toContain('The model will see: Notes');
+    fireEvent.click(button('Change')!);
+    await answer(null);
+    expect(sc().picked).toEqual({ kind: 'desktop', source: NOTES });
+
+    // Clear: nothing held, the switch stays on — asked at Start.
+    fireEvent.click(button('Clear')!);
+    expect(sc().picked).toBeNull();
+    expect(line()?.textContent).toContain("No window chosen yet: you'll be asked when the session starts.");
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("while on with the portal's button held, says the system asks at Start, with Change and no Clear", () => {
+    picker();
+    sc().setPicked({ kind: 'portal' });
+    render(<QwenSettingsView settings={ON} update={vi.fn()} />);
+    expect(line()?.textContent).toContain('The system asks which window or screen when the session starts.');
+    expect(button('Change')).not.toBeNull();
+    expect(button('Clear')).toBeNull();
+  });
+
+  it('while on with nothing held (an app restart keeps the switch, never the window), says so, with Choose…', async () => {
+    const update = vi.fn();
+    const { pickSource, answer } = picker();
+    render(<QwenSettingsView settings={ON} update={update} />);
+    expect(line()?.textContent).toContain("No window chosen yet: you'll be asked when the session starts.");
+    expect(button('Change')).toBeNull();
+    expect(button('Clear')).toBeNull();
+    fireEvent.click(button('Choose…')!);
+    expect(pickSource).toHaveBeenCalledTimes(1);
+    await answer({ kind: 'desktop', source: SLIDES });
+    expect(sc().picked).toEqual({ kind: 'desktop', source: SLIDES });
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('draws no line while the switch is off', () => {
+    picker();
+    sc().setPicked({ kind: 'desktop', source: SLIDES });
+    render(<QwenSettingsView settings={QWEN_DEFAULTS} update={vi.fn()} />);
+    expect(line()).toBeNull();
+  });
+
+  it('locks every button while a run is not idle, and Choose and Change while no picker is mounted', () => {
+    picker();
+    sc().setPicked({ kind: 'desktop', source: SLIDES });
+    const { unmount } = render(<QwenSettingsView settings={ON} update={vi.fn()} disabled />);
+    expect(button('Change')).toBeDisabled();
+    expect(button('Clear')).toBeDisabled();
+    unmount();
+
+    sc().setPickSource(null);
+    const held = render(<QwenSettingsView settings={ON} update={vi.fn()} />);
+    expect(button('Change')).toBeDisabled();
+    expect(button('Clear')).not.toBeDisabled();
+    held.unmount();
+
+    sc().setPicked(null);
+    render(<QwenSettingsView settings={ON} update={vi.fn()} />);
+    expect(button('Choose…')).toBeDisabled();
+  });
+
+  it('the extension has no picker: the switch just flips, and no line is drawn (the meeting tab is used)', () => {
+    env.electron = false;
+    const update = vi.fn();
+    const { pickSource } = picker();
+    const { unmount } = render(<QwenSettingsView settings={QWEN_DEFAULTS} update={update} />);
+    fireEvent.click(screen.getByRole('switch', { name: 'Screen context' }));
+    expect(pickSource).not.toHaveBeenCalled();
+    expect(update).toHaveBeenCalledWith({ screenContext: true });
+    unmount();
+    render(<QwenSettingsView settings={ON} update={update} />);
+    expect(line()).toBeNull();
+  });
+
+  it('the managed view shows the same line', () => {
+    picker();
+    sc().setPicked({ kind: 'desktop', source: SLIDES });
+    render(<KizunaQwenSettingsView settings={ON} update={vi.fn()} />);
+    expect(line()?.textContent).toContain('The model will see: Slides');
+  });
+
+  it('is styled in the settings-control dialect: 28 px keys, the secondary text colour (compiled Settings.scss)', () => {
+    const { css } = compile(resolve(__dirname, '../../components/Settings/Settings.scss'));
+    const rule = (selector: string) => new RegExp(String.raw`(^|\n)${selector.replace(/\./g, '\\.')}\s*\{([^}]*)\}`).exec(css)?.[2] ?? '';
+    expect(rule('.qwen-screen-context__picked')).toMatch(/color:\s*#ccc/);
+    expect(rule('.qwen-screen-context__button')).toMatch(/height:\s*28px/);
   });
 });
 

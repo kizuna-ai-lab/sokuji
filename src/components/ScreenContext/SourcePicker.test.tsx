@@ -30,6 +30,7 @@ const props = (over: Partial<SourcePickerProps> = {}): SourcePickerProps => ({
   screenRecording: 'granted',
   // Listed out of order: the picker groups them itself.
   sources: [SLIDES, DESKTOP, NOTES],
+  purpose: 'start',
   onPick: vi.fn(),
   onPortal: vi.fn(),
   onCancel: vi.fn(),
@@ -114,9 +115,19 @@ describe('SourcePicker', () => {
   });
 
   it('back during a run (Choose again) says the session stays as it is, never to start without', () => {
-    render(<SourcePicker {...props({ reason: 'nothingVisible', running: true })} />);
+    render(<SourcePicker {...props({ reason: 'nothingVisible', purpose: 'choose-again' })} />);
     expect(dialog().textContent).toContain('The area you chose shows nothing right now. Pick another, or keep the session as it is.');
     expect(dialog().textContent).not.toContain('start without screen context');
+  });
+
+  it('says the window chosen before is gone when Start could not open it', () => {
+    const line = 'The window you chose is no longer available. Pick another, or start without screen context.';
+    const { rerender } = render(<SourcePicker {...props()} />);
+    expect(dialog().textContent).not.toContain(line);
+    rerender(<SourcePicker {...props({ reason: 'gone' })} />);
+    expect(dialog().textContent).toContain(line);
+    expect(dialog().textContent).not.toContain('shows nothing right now');
+    expect(screen.getByRole('button', { name: 'Start without screen context' })).toBeInTheDocument();
   });
 
   it('cancel starts without screen context', () => {
@@ -146,9 +157,18 @@ describe('SourcePicker', () => {
   });
 
   it('opened during a run, Cancel keeps what is shared', () => {
-    const p = props({ running: true });
+    const p = props({ purpose: 'choose-again' });
     render(<SourcePicker {...p} />);
     expect(screen.queryByRole('button', { name: 'Start without screen context' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(p.onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('opened from the settings, Cancel says Cancel: there is no start to go without', () => {
+    const p = props({ purpose: 'settings' });
+    render(<SourcePicker {...p} />);
+    expect(screen.queryByRole('button', { name: 'Start without screen context' })).toBeNull();
+    expect(dialog().textContent).not.toContain('start without screen context');
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(p.onCancel).toHaveBeenCalledTimes(1);
   });

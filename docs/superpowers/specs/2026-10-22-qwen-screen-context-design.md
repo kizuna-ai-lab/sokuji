@@ -1,6 +1,6 @@
 # Screen context for the Qwen engine — design
 
-**Status:** approved in conversation by the owner, 2026-10-22, including his rulings after the builder check (§7).
+**Status:** approved in conversation by the owner, 2026-10-22, including his rulings after the builder check (§7) and on choosing the source in the settings (§8).
 **Scope:** kizuna-ai-lab/sokuji (desktop app and browser extension), with a small part in kizuna-ai-lab/sokuji-backend (budgeting and pricing).
 
 ## 1. Intent
@@ -92,9 +92,21 @@ face-to-face mode (not available with Qwen at all).
   The privacy line sits above whichever picker appears: *"Everything inside the area you choose is sent to
   Alibaba Cloud's Qwen service, in the region of this session, as pictures — nothing else on your screen.
   Kizuna AI does not receive them."*
-- The source is run-time state, never persisted: the user picks it when a run starts with the switch on
-  (the picker opens before the run starts; cancelling it starts the run without screen context). Every run
-  picks from scratch: nothing about the last source is remembered or preselected (owner's ruling).
+- The source is chosen in the settings, before the session (owner's rulings, §8). On the desktop, turning
+  the switch on (idle) opens the picker at once: a pick turns the switch on and is shown under it — *"The
+  model will see: {name}"* with **Change** and **Clear**; a portal pick says the system asks which window or
+  screen when the session starts, with **Change** — and a cancel leaves the switch off. Turning the switch
+  off lets the pick go. The extension has no picker: its switch just flips, and the meeting tab is used.
+- The pick is kept in memory only, never written to settings (a window id dies with the window; a title
+  match is unreliable): it survives from session to session within one app run, and an app restart clears
+  it — the switch, which is persisted, then reads *"No window chosen yet: you'll be asked when the session
+  starts"* with **Choose…**. This is a choice the user made and sees in the settings; the picker itself
+  still never pre-ticks a past choice.
+- Start opens the held source without asking. The picker opens at Start only when nothing usable is held:
+  nothing was chosen, the picked window is gone (its capture fails to open) or it shows nothing (no first
+  frame) — the last two saying why above the list. Its **Start without screen context** turns the switch
+  off, so the setting and the run agree, and turning it on again asks again. Every pick made at Start, and
+  a Choose again pick that shows a frame, becomes the held pick the settings show.
 - In **Both** mode both legs' sessions receive the frames (either side may refer to the screen).
 
 ### 3.2 Sending
@@ -242,3 +254,17 @@ Calls I made without asking, for review while reading: §3.2 fit inside
 1280×720 and the blank-frame guard; §3.3 re-sending the last good frame while lost; §3.4 icon-only chip in
 the basic layout and the side panel, no border window; §3.5 the 240 tokens/s constant; §4 the extension
 crop to the largest video element and meeting-tab-only; §5 the pre-build probes.
+
+## 8. Owner's rulings on choosing the source in the settings (2026-10-22)
+
+1. Turning the **Screen context** switch on (desktop, idle) opens the picker at once. A pick turns the switch
+   on and is shown under it with **Change** and **Clear**; a cancel leaves the switch off. The extension has
+   no picker: its switch just flips (the meeting tab is used).
+2. Start no longer asks when a usable pick is held: it opens that source. Only when the picked window is gone
+   (its capture fails to open) or shows nothing (no first frame) does the picker open at Start, saying why.
+3. **Start without screen context** in the Start-time picker turns the switch off (the setting and the run
+   agree); turning it on again asks again.
+4. The pick is kept in memory only — never written to settings — and survives across sessions within one app
+   run; an app restart clears it. This does not contradict "never preselect": that was about the picker
+   pre-ticking a past choice; this is a choice the user made and sees in the settings.
+5. The chip and Choose again stay; a Choose-again pick also becomes the held pick shown in the settings.

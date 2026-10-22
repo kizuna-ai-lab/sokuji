@@ -553,7 +553,13 @@
       "vocabularyTranslationsPlaceholder": "Yksi lähde=kohde-merkintä per rivi",
       "screenContext": "Näytön konteksti",
       "screenContextTooltip": "Antaa Qwen-moottorin nähdä yhden ikkunan, välilehden tai näytön, jonka valitset istunnon alkaessa, jotta siinä näkyvät nimet ja termit tunnistetaan ja käännetään sellaisina kuin ne on kirjoitettu. Kaikki tämän alueen sisällä oleva lähetetään kuvina Alibaba Cloudin Qwen-palveluun tämän istunnon alueella; Kizuna AI ei koskaan vastaanota niitä. Kun se on päällä, se lisää veloitusta jokaiselta puhesekunnilta — omalla avaimella Alibaba Cloud -laskullesi, Kizuna AI -tilillä tilisi hintasivun mukaan; Molemmat-tilassa kunkin suunnan istunto veloitetaan.",
-      "screenContextBeta": "Beta"
+      "screenContextBeta": "Beta",
+      "screenContextPicked": "Malli näkee: {{name}}",
+      "screenContextChange": "Vaihda",
+      "screenContextClear": "Tyhjennä",
+      "screenContextPortal": "Järjestelmä kysyy ikkunan tai näytön istunnon alkaessa.",
+      "screenContextNone": "Ikkunaa ei ole vielä valittu: sinulta kysytään istunnon alkaessa.",
+      "screenContextChoose": "Valitse…"
     },
     "local_inference": {
       "name": "Ilmainen",
@@ -1588,6 +1594,7 @@
       "cancel": "Aloita ilman näytön kontekstia",
       "nothingVisible": "Valitsemasi alue ei näytä juuri nyt mitään. Valitse toinen tai aloita ilman näytön kontekstia.",
       "nothingVisibleRunning": "Valitsemasi alue ei näytä juuri nyt mitään. Valitse toinen tai jatka istuntoa sellaisenaan.",
+      "gone": "Valitsemasi ikkuna ei ole enää käytettävissä. Valitse toinen tai aloita ilman näytön kontekstia.",
       "checking": "Tarkistetaan kuvaa…"
     },
     "chip": {

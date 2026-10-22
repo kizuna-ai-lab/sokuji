@@ -553,7 +553,13 @@
       "vocabularyTranslationsPlaceholder": "Une entrée source=cible par ligne",
       "screenContext": "Contexte d'écran",
       "screenContextTooltip": "Permet au moteur Qwen de voir une fenêtre, un onglet ou un écran que vous choisissez au démarrage d'une session, afin que les noms et les termes qui s'y trouvent soient reconnus et traduits tels qu'ils sont écrits. Tout ce qui se trouve dans cette zone est envoyé sous forme d'images au service Qwen d'Alibaba Cloud, dans la région de cette session ; Kizuna AI ne les reçoit jamais. Tant que c'est activé, cela s'ajoute au coût de chaque seconde de parole — sur votre facture Alibaba Cloud avec votre propre clé, ou selon la page des tarifs de votre compte avec un compte Kizuna AI ; en mode Les deux, la session de chaque sens est facturée.",
-      "screenContextBeta": "Beta"
+      "screenContextBeta": "Beta",
+      "screenContextPicked": "Le modèle verra : {{name}}",
+      "screenContextChange": "Modifier",
+      "screenContextClear": "Effacer",
+      "screenContextPortal": "Le système demande quelle fenêtre ou quel écran au démarrage de la session.",
+      "screenContextNone": "Aucune fenêtre choisie pour l'instant : la question vous sera posée au démarrage de la session.",
+      "screenContextChoose": "Choisir…"
     },
     "local_inference": {
       "name": "Gratuit",
@@ -1588,6 +1594,7 @@
       "cancel": "Démarrer sans contexte d'écran",
       "nothingVisible": "La zone choisie n'affiche rien pour l'instant. Choisissez-en une autre ou démarrez sans contexte d'écran.",
       "nothingVisibleRunning": "La zone choisie n'affiche rien pour l'instant. Choisissez-en une autre ou laissez la session telle quelle.",
+      "gone": "La fenêtre choisie n'est plus disponible. Choisissez-en une autre ou démarrez sans contexte d'écran.",
       "checking": "Vérification de l'image…"
     },
     "chip": {

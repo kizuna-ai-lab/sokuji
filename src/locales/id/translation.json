@@ -553,7 +553,13 @@
       "vocabularyTranslationsPlaceholder": "Satu entri sumber=target per baris",
       "screenContext": "Konteks layar",
       "screenContextTooltip": "Memungkinkan mesin Qwen melihat satu jendela, tab, atau layar yang Anda pilih saat sesi dimulai, sehingga nama dan istilah di dalamnya dikenali dan diterjemahkan persis seperti tertulis. Semua yang ada di dalam area itu dikirim sebagai gambar ke layanan Qwen milik Alibaba Cloud, di wilayah sesi ini; Kizuna AI tidak pernah menerimanya. Selama aktif, fitur ini menambah biaya untuk setiap detik ucapan — di tagihan Alibaba Cloud Anda bila memakai kunci sendiri, atau sesuai halaman harga akun Anda bila memakai akun Kizuna AI; pada mode Keduanya, sesi setiap arah ditagih.",
-      "screenContextBeta": "Beta"
+      "screenContextBeta": "Beta",
+      "screenContextPicked": "Model akan melihat: {{name}}",
+      "screenContextChange": "Ubah",
+      "screenContextClear": "Hapus",
+      "screenContextPortal": "Sistem akan menanyakan jendela atau layar mana saat sesi dimulai.",
+      "screenContextNone": "Belum ada jendela yang dipilih: Anda akan ditanya saat sesi dimulai.",
+      "screenContextChoose": "Pilih…"
     },
     "local_inference": {
       "name": "Gratis",
@@ -1588,6 +1594,7 @@
       "cancel": "Mulai tanpa konteks layar",
       "nothingVisible": "Area yang Anda pilih tidak menampilkan apa pun saat ini. Pilih yang lain, atau mulai tanpa konteks layar.",
       "nothingVisibleRunning": "Area yang Anda pilih tidak menampilkan apa pun saat ini. Pilih yang lain, atau biarkan sesi seperti apa adanya.",
+      "gone": "Jendela yang Anda pilih sudah tidak tersedia. Pilih yang lain, atau mulai tanpa konteks layar.",
       "checking": "Memeriksa gambar…"
     },
     "chip": {

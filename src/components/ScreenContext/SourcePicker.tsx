@@ -1,8 +1,9 @@
 /**
  * The screen-context source picker (spec 2026-10-22 §3.1): the modal that
- * opens before a run starts with Screen context on, and again from the chip's
- * Choose again. Presentational: `MainPanel` fetches the choices and answers the
- * session's pick with what is chosen here.
+ * opens from the settings when the Screen context switch goes on (or Change),
+ * at Start when nothing usable is held, and from the chip's Choose again.
+ * Presentational: `MainPanel` fetches the choices and answers the asker with
+ * what is chosen here.
  *
  * Its states, one at a time: macOS refused Screen Recording (the setting that
  * fixes it, no list); the chosen area being checked for its first frame
@@ -25,12 +26,18 @@ export interface SourcePickerProps {
   /** macOS: 'granted' | 'denied' | 'not-determined' | 'restricted' | 'unknown'; elsewhere 'granted'. */
   screenRecording: string;
   sources: CaptureSourceInfo[] | null;   // null while loading
-  /** Shown again because the last pick yielded no frame: the `picker.nothingVisible` line above the list (`nothingVisibleRunning` while `running`). */
+  /**
+   * Why it is shown at Start, as a line above the list: the last pick yielded no frame (`picker.nothingVisible`;
+   * `nothingVisibleRunning` for Choose again), or the window held from before is gone (`picker.gone`).
+   */
   reason?: PickReason;
   /** The pick is answered and its area is checked for a first frame: nothing to choose, and Cancel is off. */
   checking?: boolean;
-  /** Opened by Choose again during a run: Cancel keeps the area already shared, so it says Cancel. */
-  running?: boolean;
+  /**
+   * Who asks: a Start (Cancel starts without screen context, so it says so), Choose again during a run (Cancel keeps
+   * the area already shared) or the settings (Cancel leaves them as they were) — the last two say Cancel.
+   */
+  purpose: 'start' | 'choose-again' | 'settings';
   onPick(source: CaptureSourceInfo): void;
   onPortal(): void;                       // 'portal' mode's one button
   onCancel(): void;
@@ -79,9 +86,14 @@ export function SourcePicker(p: SourcePickerProps) {
                 {p.reason === 'nothingVisible' && (
                   <p className="source-picker__reason" role="status">
                     {/* During a run (Choose again) there is no start to go without: Cancel keeps the session as it is. */}
-                    {p.running
+                    {p.purpose === 'choose-again'
                       ? t('screenContext.picker.nothingVisibleRunning', 'The area you chose shows nothing right now. Pick another, or keep the session as it is.')
                       : t('screenContext.picker.nothingVisible', 'The area you chose shows nothing right now. Pick another, or start without screen context.')}
+                  </p>
+                )}
+                {p.reason === 'gone' && (
+                  <p className="source-picker__reason" role="status">
+                    {t('screenContext.picker.gone', 'The window you chose is no longer available. Pick another, or start without screen context.')}
                   </p>
                 )}
                 {p.mode === 'portal' ? (
@@ -104,7 +116,7 @@ export function SourcePicker(p: SourcePickerProps) {
             </button>
           )}
           <button type="button" className="source-picker__cancel" onClick={cancel} disabled={p.checking}>
-            {p.running ? t('common.cancel', 'Cancel') : t('screenContext.picker.cancel', 'Start without screen context')}
+            {p.purpose === 'start' ? t('screenContext.picker.cancel', 'Start without screen context') : t('common.cancel', 'Cancel')}
           </button>
         </div>
       </div>

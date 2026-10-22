@@ -553,7 +553,13 @@
       "vocabularyTranslationsPlaceholder": "Satu entri sumber=sasaran setiap baris",
       "screenContext": "Konteks skrin",
       "screenContextTooltip": "Membolehkan enjin Qwen melihat satu tetingkap, tab atau skrin yang anda pilih semasa sesi bermula, supaya nama dan istilah padanya dikenali dan diterjemahkan seperti yang tertulis. Segala-galanya dalam kawasan itu dihantar sebagai gambar ke perkhidmatan Qwen Alibaba Cloud, di rantau sesi ini; Kizuna AI tidak pernah menerimanya. Selagi dihidupkan, ia menambah caj untuk setiap saat pertuturan — pada bil Alibaba Cloud anda jika menggunakan kunci sendiri, atau mengikut halaman harga akaun anda dengan akaun Kizuna AI; dalam mod Kedua-duanya, sesi setiap arah dicaj.",
-      "screenContextBeta": "Beta"
+      "screenContextBeta": "Beta",
+      "screenContextPicked": "Model akan melihat: {{name}}",
+      "screenContextChange": "Tukar",
+      "screenContextClear": "Kosongkan",
+      "screenContextPortal": "Sistem akan bertanya tetingkap atau skrin yang mana semasa sesi bermula.",
+      "screenContextNone": "Belum ada tetingkap dipilih: anda akan ditanya semasa sesi bermula.",
+      "screenContextChoose": "Pilih…"
     },
     "local_inference": {
       "name": "Percuma",
@@ -1588,6 +1594,7 @@
       "cancel": "Mula tanpa konteks skrin",
       "nothingVisible": "Kawasan yang anda pilih tidak menunjukkan apa-apa sekarang. Pilih yang lain, atau mula tanpa konteks skrin.",
       "nothingVisibleRunning": "Kawasan yang anda pilih tidak menunjukkan apa-apa sekarang. Pilih yang lain, atau biarkan sesi seperti sedia ada.",
+      "gone": "Tetingkap yang anda pilih tidak lagi tersedia. Pilih yang lain, atau mula tanpa konteks skrin.",
       "checking": "Menyemak gambar…"
     },
     "chip": {

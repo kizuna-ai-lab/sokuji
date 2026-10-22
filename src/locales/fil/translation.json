@@ -553,7 +553,13 @@
       "vocabularyTranslationsPlaceholder": "Isang entry na source=target kada linya",
       "screenContext": "Konteksto ng screen",
       "screenContextTooltip": "Hinahayaan ang Qwen engine na makita ang isang window, tab o screen na pipiliin mo sa pagsisimula ng session, para makilala at maisalin ang mga pangalan at terminong nasa mga ito nang eksakto sa pagkakasulat. Lahat ng nasa loob ng lugar na iyon ay ipinapadala bilang mga larawan sa Qwen service ng Alibaba Cloud, sa rehiyon ng session na ito; hindi kailanman natatanggap ng Kizuna AI ang mga ito. Habang naka-on ito, nadaragdagan nito ang singil sa bawat segundo ng pagsasalita — sa iyong Alibaba Cloud bill kung sariling key ang gamit mo, o ayon sa pricing page ng iyong account kung Kizuna AI account; sa mode na Pareho, sinisingil ang session ng bawat direksyon.",
-      "screenContextBeta": "Beta"
+      "screenContextBeta": "Beta",
+      "screenContextPicked": "Makikita ng modelo: {{name}}",
+      "screenContextChange": "Palitan",
+      "screenContextClear": "I-clear",
+      "screenContextPortal": "Itatanong ng system kung aling window o screen sa pagsisimula ng session.",
+      "screenContextNone": "Wala pang napiling window: tatanungin ka sa pagsisimula ng session.",
+      "screenContextChoose": "Pumili…"
     },
     "local_inference": {
       "name": "Libre",
@@ -1588,6 +1594,7 @@
       "cancel": "Magsimula nang walang konteksto ng screen",
       "nothingVisible": "Walang ipinapakita ngayon ang lugar na pinili mo. Pumili ng iba, o magsimula nang walang konteksto ng screen.",
       "nothingVisibleRunning": "Walang ipinapakita ngayon ang lugar na pinili mo. Pumili ng iba, o hayaan ang session gaya ng dati.",
+      "gone": "Hindi na available ang window na pinili mo. Pumili ng iba, o magsimula nang walang konteksto ng screen.",
       "checking": "Sinusuri ang larawan…"
     },
     "chip": {
