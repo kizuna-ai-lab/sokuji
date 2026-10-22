@@ -114,7 +114,7 @@ function deps(o: { picks?: Array<PickedSource | null>; opens?: Record<string, Sc
 const store = () => useScreenContextStore.getState();
 
 beforeEach(() => {
-  useScreenContextStore.setState({ sampler: null, state: null });
+  useScreenContextStore.setState({ sampler: null, state: null, preparing: false });
   vi.clearAllMocks();
 });
 
@@ -231,6 +231,42 @@ describe('prepareScreenContext — the desktop', () => {
     expect(d.openTab).not.toHaveBeenCalled();
     expect(store().sampler).toBeNull();
   });
+
+  it('is preparing from a pick until its first frame settles: not while the picker is asked, again or at all, and not once done', async () => {
+    const dark = scripted(BLACK, 'Dark window');
+    const slides = scripted(lit(), 'Slides');
+    const d = deps({ opens: { [DARK.id]: dark, [SLIDES.id]: slides } });
+    const picks: PickedSource[] = [{ kind: 'desktop', source: DARK }, { kind: 'desktop', source: SLIDES }];
+    // What the picker would see when it is asked: the modal shows the list, not the check.
+    const atPick: boolean[] = [];
+    d.pick.mockImplementation(async () => {
+      atPick.push(store().preparing);
+      return picks.shift() ?? null;
+    });
+    expect(store().preparing).toBe(false);
+    const prepared = prepareScreenContext('electron', { legs: ['speaker'] }, d);
+    await flush();
+    // The dark window's first frame is awaited.
+    expect(store().preparing).toBe(true);
+    await run(d.clock, 5000);
+    await prepared;
+    expect(atPick).toEqual([false, false]);
+    expect(store().preparing).toBe(false);
+    expect(store().sampler!.source.name).toBe('Slides');
+  });
+
+  it('is never left preparing by a cancel or a capture that will not open', async () => {
+    const cancelled = deps({ picks: [null] });
+    await prepareScreenContext('electron', { legs: ['speaker'] }, cancelled);
+    expect(store().preparing).toBe(false);
+
+    const failing = deps({ picks: [{ kind: 'desktop', source: SLIDES }] });
+    const prepared = prepareScreenContext('electron', { legs: ['speaker'] }, failing);
+    await flush();
+    await prepared;
+    expect(failing.openDesktop).toHaveBeenCalledTimes(1);
+    expect(store().preparing).toBe(false);
+  });
 });
 
 // ---- the extension ----------------------------------------------------------------------------
@@ -278,6 +314,18 @@ describe('prepareScreenContext — the extension', () => {
     expect(store().sampler).toBeNull();
     expect(d.clock.pending()).toBe(0);
     expect(reportWarning).toHaveBeenCalledWith('ScreenContext', expect.stringContaining('showed nothing'));
+  });
+
+  it("is preparing while the tab's first frame is awaited, and not after", async () => {
+    const tab = scripted(lit(), 'Weekly sync', 'tab');
+    const { d } = extension(tab);
+    const prepared = prepareScreenContext('extension', { legs: ['speaker'] }, d);
+    await flush();
+    expect(store().preparing).toBe(true);
+    await run(d.clock, 1000);
+    await prepared;
+    expect(store().preparing).toBe(false);
+    expect(store().state).toMatchObject({ status: 'live', name: 'Weekly sync' });
   });
 
   it('without a targeted tab opens nothing', async () => {

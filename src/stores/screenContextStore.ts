@@ -12,17 +12,24 @@ export interface ScreenContextStore {
   /** The sampler whose `source` the run gets; null between runs. */
   sampler: Sampler | null;
   state: SamplerState | null;
+  /** A chosen area is being checked for its first frame before the run starts (about a second, up to four on a blank one): Start shows it, and the picker stays up. */
+  preparing: boolean;
   set(sampler: Sampler | null): void;
   setState(state: SamplerState | null): void;
+  setPreparing(preparing: boolean): void;
 }
 
 export const useScreenContextStore: UseBoundStore<StoreApi<ScreenContextStore>> = create<ScreenContextStore>()((set) => ({
   sampler: null,
   state: null,
+  preparing: false,
   set(sampler) {
     set({ sampler });
   },
   setState(state) {
     set({ state });
+  },
+  setPreparing(preparing) {
+    set({ preparing });
   },
 }));

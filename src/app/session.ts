@@ -43,8 +43,12 @@ export interface AppBridges {
   track: AnalyticsPort['track'];
   /** The account's balance, refetched after a run and after a start the service refused on the wallet; absent where there is none (the preview). */
   refetchQuota?(): Promise<void>;
-  /** The screen-context picker (MainPanel's modal): a source, the portal's button, or null for Start without. Absent — the extension, tests — no modal, which only the desktop asks for. */
-  pickScreenSource?: (reason?: PickReason) => Promise<PickedSource | null>;
+  /**
+   * The screen-context picker (MainPanel's modal): a source, the portal's button, or null for Start without. Absent — the
+   * extension, tests — no modal, which only the desktop asks for. `null` takes it away (the panel unmounting): `setBridges`
+   * never erases with `undefined`.
+   */
+  pickScreenSource?: ((reason?: PickReason) => Promise<PickedSource | null>) | null;
 }
 
 export interface AppSessionOptions {

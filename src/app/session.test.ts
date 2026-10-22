@@ -558,6 +558,20 @@ describe('start — screen context (spec 2026-10-22 §3.1)', () => {
     }
   });
 
+  it('a picker taken away with null (the panel unmounting) is not asked any more, and the start says so', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const { session, order, pickScreenSource } = await qwen(true);
+      session.setBridges({ pickScreenSource: null });
+      await session.start('button');
+      expect(pickScreenSource).not.toHaveBeenCalled();
+      expect(order).toEqual(['starting']);
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('[ScreenContext]'));
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   it("a live run's stop releases the source it carried", async () => {
     const { session, clock } = await setup();
     const sampler = createSampler(clock);

@@ -59,8 +59,9 @@ let held: { sampler: Sampler; capture: OpenCapture } | null = null;
  * capture and asks `pick('nothingVisible')` again, until a frame comes or the user cancels. On the extension: opens the
  * meeting tab's capture (`targetTabIdFromSearch`) with `audio: shape.legs.includes('participant')` (the extension's
  * participant source is always that tab), `video: true`; a null first frame there starts the run without.
- * Puts the sampler in the store and mirrors its state there. Never throws into Start: a failed capture is a
- * `reportWarning('ScreenContext', …)` and a run without frames.
+ * Puts the sampler in the store and mirrors its state there; while a capture is opened and its first frame awaited the
+ * store is `preparing`. Never throws into Start: a failed capture is a `reportWarning('ScreenContext', …)` and a run
+ * without frames.
  */
 export async function prepareScreenContext(platform: Platform, shape: Pick<RunShape, 'legs'>, deps: ScreenContextDeps): Promise<void> {
   try {
@@ -107,15 +108,21 @@ export async function chooseAgain(deps: Pick<ScreenContextDeps, 'pick' | 'invoke
   }
 }
 
-/** The modal's loop: a pick, its capture, its first frame — or the picker again, told why. */
+/**
+ * The modal's loop: a pick, its capture, its first frame — or the picker again, told why. Preparing from the pick's answer
+ * until its first frame settles, so the modal shows the check (and never while the picker is asked).
+ */
 async function prepareDesktop(deps: ScreenContextDeps): Promise<void> {
   let reason: PickReason | undefined;
   for (;;) {
     const picked = await deps.pick(reason);
     if (!picked) return;
-    const capture = await openPicked(picked, deps);
-    if (!capture) return;
-    if (await hold(capture, deps.clock)) return;
+    const kept = await preparing(async () => {
+      const capture = await openPicked(picked, deps);
+      return capture ? hold(capture, deps.clock) : null;
+    });
+    // Kept, or nothing to keep (the portal's own Cancel, a listing that failed).
+    if (kept !== false) return;
     reason = 'nothingVisible';
   }
 }
@@ -127,9 +134,22 @@ async function prepareTab(shape: Pick<RunShape, 'legs'>, deps: ScreenContextDeps
     reportWarning('ScreenContext', 'No meeting tab is targeted; the session starts without screen context.');
     return;
   }
-  const capture = await deps.openTab(tabId, chromeTabCaptureDeps(tabId, shape.legs.includes('participant'), deps.clock));
-  if (!(await hold(capture, deps.clock))) {
+  const kept = await preparing(async () => {
+    const capture = await deps.openTab(tabId, chromeTabCaptureDeps(tabId, shape.legs.includes('participant'), deps.clock));
+    return hold(capture, deps.clock);
+  });
+  if (!kept) {
     reportWarning('ScreenContext', 'The meeting tab showed nothing to send; the session starts without screen context.');
+  }
+}
+
+/** `useScreenContextStore`'s `preparing` for as long as `work` runs, a throw included. */
+async function preparing<T>(work: () => Promise<T>): Promise<T> {
+  useScreenContextStore.getState().setPreparing(true);
+  try {
+    return await work();
+  } finally {
+    useScreenContextStore.getState().setPreparing(false);
   }
 }
 
