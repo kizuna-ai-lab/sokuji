@@ -52,8 +52,9 @@ export interface Sampler {
   /** The capture is gone by the owner's hand (Choose again in flight): status lost, the last good frame kept. */
   detach(): void;
   /**
-   * The first non-blank frame, or null: once `FIRST_FRAME_MS` has passed and the beat due then has finished without one,
-   * and at the latest `FIRST_FRAME_MS + SAMPLE_MS` after the call, so a wedged grab cannot hold a start.
+   * The first non-blank frame of the capture attached last (a keep-alive of an earlier one never counts), or null: once
+   * `FIRST_FRAME_MS` has passed and the beat due then has finished without one, and at the latest
+   * `FIRST_FRAME_MS + SAMPLE_MS` after the call, so a wedged grab cannot hold a start or a Choose again.
    */
   first(): Promise<Uint8Array | null>;
   state(): SamplerState;
@@ -195,8 +196,6 @@ export function createSampler(clock: Clock): Sampler {
     sent += 1;
     lastSentAt = clock.now();
     lastReason = reason;
-    firstJpeg ??= jpeg;
-    firstWait?.settle(firstJpeg);
   }
 
   /** New pixels. The first one after a loss is a return, told before the frame. */
@@ -206,6 +205,8 @@ export function createSampler(clock: Clock): Sampler {
     sendNext = false;
     lastThumb = thumb;
     record(jpeg, reason);
+    firstJpeg ??= jpeg;
+    firstWait?.settle(firstJpeg);
     publish();
     if (back) fanOut((s) => s.onBack());
     fanOut((s) => s.onFrame(jpeg, reason));
@@ -312,6 +313,8 @@ export function createSampler(clock: Clock): Sampler {
       name = next.name;
       kind = next.kind;
       sendNext = true;
+      // `first()` answers for this capture from now on.
+      firstJpeg = null;
       restart();
       publish();
     },

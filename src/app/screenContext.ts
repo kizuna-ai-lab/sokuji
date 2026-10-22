@@ -9,7 +9,7 @@
  * frame. Only then does the sampler go into `useScreenContextStore`, where
  * `readShapeFromStores` hands its `source` to the run: a source with no frame
  * behind it would let a Qwen session declare video and be cut off at its first
- * turn. `chooseAgain` swaps the capture under the same sampler mid-run, and
+ * turn. `chooseAgain` swaps the capture under the same sampler mid-run, checked the same way, and
  * `releaseScreenContext` closes both once the run is back to idle.
  *
  * A failure never reaches Start: it is a `reportWarning` and a run without
@@ -50,8 +50,11 @@ const BOX_TIMEOUT_MS = 2000;
 /** The capture's name when the tab's title cannot be read. */
 const TAB_NAME_FALLBACK = 'Meeting tab';
 
-/** The capture under the store's sampler: the store holds the sampler and its state, this the capture closed with it. */
-let held: { sampler: Sampler; capture: OpenCapture } | null = null;
+/**
+ * The capture under the store's sampler: the store holds the sampler and its state, this the capture closed with it;
+ * null after a Choose again whose area showed nothing was cancelled.
+ */
+let held: { sampler: Sampler; capture: OpenCapture | null } | null = null;
 
 /**
  * Before a run. On Electron: asks `pick` (the modal) for a source — null is a cancel, the run starts without — opens the
@@ -79,32 +82,48 @@ export function releaseScreenContext(): void {
   useScreenContextStore.getState().sampler?.close();
   if (current) {
     current.sampler.close();
-    closeQuietly(current.capture);
+    if (current.capture) closeQuietly(current.capture);
   }
   useScreenContextStore.getState().set(null);
   useScreenContextStore.getState().setState(null);
 }
 
-/** Choose again, mid-run: a new pick replaces the capture on the same sampler (`attach`), so the legs' subscriptions stand. */
+/**
+ * Choose again, mid-run: a new pick replaces the capture on the same sampler (`attach`), so the legs' subscriptions
+ * stand, and is checked as a start's is: until its first good frame (`first()`). One that shows nothing is closed, the
+ * sampler left without a capture (lost), and the picker asked again with the reason; a cancel then leaves it lost.
+ */
 export async function chooseAgain(deps: Pick<ScreenContextDeps, 'pick' | 'invoke' | 'openDesktop'>): Promise<void> {
   const current = held;
   if (!current) return;
   try {
-    const picked = await deps.pick();
-    // A cancel keeps what is shared; a run that ended while the picker was open has nothing to replace.
-    if (!picked || held !== current) return;
-    const capture = await openPicked(picked, deps);
-    if (!capture) return;
-    if (held !== current) {
+    let reason: PickReason | undefined;
+    for (;;) {
+      const picked = await deps.pick(reason);
+      // A cancel keeps what is shared (nothing, after an area that showed nothing); a run that ended while the picker
+      // was open has nothing to replace.
+      if (!picked || held !== current) return;
+      const capture = await openPicked(picked, deps);
+      if (!capture) return;
+      if (held !== current) {
+        closeQuietly(capture);
+        return;
+      }
+      // Closed and replaced in one step, so no beat ever grabs the closed one and tells a loss.
+      if (current.capture) closeQuietly(current.capture);
+      current.capture = capture;
+      current.sampler.attach(capture);
+      const frame = await current.sampler.first();
+      // A run that ended during the check closed this capture with its sampler.
+      if (frame || held !== current) return;
+      current.sampler.detach();
+      current.capture = null;
       closeQuietly(capture);
-      return;
+      reason = 'nothingVisible';
     }
-    // Closed and replaced in one step, so no beat ever grabs the closed one and tells a loss.
-    closeQuietly(current.capture);
-    current.capture = capture;
-    current.sampler.attach(capture);
   } catch (error) {
-    reportWarning('ScreenContext', `The new area could not be captured; the one chosen before stays: ${describeCause(error)}`, { cause: error });
+    const after = current.capture ? 'the one chosen before stays' : 'translation continues on audio alone';
+    reportWarning('ScreenContext', `The new area could not be captured; ${after}: ${describeCause(error)}`, { cause: error });
   }
 }
 

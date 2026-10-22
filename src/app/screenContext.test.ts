@@ -409,11 +409,12 @@ describe('releaseScreenContext and chooseAgain', () => {
     sampler.source.subscribe((_jpeg, reason) => heard.push(`participant:${reason}`), () => heard.push('participant:lost'), () => heard.push('participant:back'));
     heard.length = 0;
 
-    await chooseAgain(d);
-    expect(d.pick.mock.calls).toEqual([[undefined], []]);
+    const choosing = chooseAgain(d);
+    await run(d.clock, 1000);
+    await choosing;
+    expect(d.pick.mock.calls).toEqual([[undefined], [undefined]]);
     expect(slides.close).toHaveBeenCalledTimes(1);
     expect(store().sampler).toBe(sampler);
-    await run(d.clock, 1000);
     expect(sampler.source.name).toBe('Notes');
     expect(store().state).toMatchObject({ status: 'live', name: 'Notes', sent: 2, lastReason: 'changed' });
     // The same subscriptions hear the new area; no loss is told for a swap.
@@ -473,6 +474,78 @@ describe('releaseScreenContext and chooseAgain', () => {
     opened(notes);
     await late;
     expect(notes.close).toHaveBeenCalledTimes(1);
+    expect(store().sampler).toBeNull();
+  });
+
+  it('a Choose again whose area shows nothing closes it and asks again with the reason; the next pick with a frame is kept', async () => {
+    const slides = scripted(lit(1), 'Slides');
+    const dark = scripted(BLACK, 'Dark window');
+    const notes = scripted(lit(4), 'Notes');
+    const d = deps({
+      picks: [{ kind: 'desktop', source: SLIDES }, { kind: 'desktop', source: DARK }, { kind: 'desktop', source: NOTES }],
+      opens: { [SLIDES.id]: slides, [DARK.id]: dark, [NOTES.id]: notes },
+    });
+    const prepared = prepareScreenContext('electron', { legs: ['speaker'] }, d);
+    await run(d.clock, 1000);
+    await prepared;
+    const sampler = store().sampler!;
+
+    const choosing = chooseAgain(d);
+    await run(d.clock, 6000);
+    await choosing;
+    expect(d.pick.mock.calls).toEqual([[undefined], [undefined], ['nothingVisible']]);
+    expect(slides.close).toHaveBeenCalledTimes(1);
+    expect(dark.close).toHaveBeenCalledTimes(1);
+    expect(notes.close).not.toHaveBeenCalled();
+    expect(store().sampler).toBe(sampler);
+    expect(store().state).toMatchObject({ status: 'live', name: 'Notes', lastReason: 'changed' });
+  });
+
+  it('a cancel after a Choose again whose area showed nothing leaves the sampler without a capture: lost', async () => {
+    const slides = scripted(lit(1), 'Slides');
+    const dark = scripted(BLACK, 'Dark window');
+    const d = deps({
+      picks: [{ kind: 'desktop', source: SLIDES }, { kind: 'desktop', source: DARK }, null],
+      opens: { [SLIDES.id]: slides, [DARK.id]: dark },
+    });
+    const prepared = prepareScreenContext('electron', { legs: ['speaker'] }, d);
+    await run(d.clock, 1000);
+    await prepared;
+
+    const choosing = chooseAgain(d);
+    await run(d.clock, 5000);
+    await choosing;
+    expect(d.pick.mock.calls).toEqual([[undefined], [undefined], ['nothingVisible']]);
+    expect(slides.close).toHaveBeenCalledTimes(1);
+    expect(dark.close).toHaveBeenCalledTimes(1);
+    expect(store().state?.status).toBe('lost');
+    const grabs = dark.grabs;
+    await run(d.clock, 3000);
+    expect(dark.grabs).toBe(grabs);
+    expect(store().state?.status).toBe('lost');
+
+    // The run's end closes nothing twice.
+    releaseScreenContext();
+    expect(dark.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('a run that ends while Choose again checks the new area asks nothing more', async () => {
+    const slides = scripted(lit(1), 'Slides');
+    const dark = scripted(BLACK, 'Dark window');
+    const d = deps({
+      picks: [{ kind: 'desktop', source: SLIDES }, { kind: 'desktop', source: DARK }, { kind: 'desktop', source: SLIDES }],
+      opens: { [SLIDES.id]: slides, [DARK.id]: dark },
+    });
+    const prepared = prepareScreenContext('electron', { legs: ['speaker'] }, d);
+    await run(d.clock, 1000);
+    await prepared;
+
+    const choosing = chooseAgain(d);
+    await run(d.clock, 1000);
+    releaseScreenContext();
+    await choosing;
+    expect(d.pick).toHaveBeenCalledTimes(2);
+    expect(dark.close).toHaveBeenCalledTimes(1);
     expect(store().sampler).toBeNull();
   });
 

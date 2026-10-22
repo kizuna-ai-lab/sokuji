@@ -247,6 +247,30 @@ describe('createSampler', () => {
     expect(other.sampler.first()).toBe(other.sampler.first());
   });
 
+  it('first() answers for the capture attached last: a new attach waits for its own frame, and a keep-alive of the old one does not count', async () => {
+    const { clock, sampler, rec } = fresh();
+    sampler.attach(scripted([lit(1)]));
+    await run(clock, 1000);
+    expect(await sampler.first()).toBe(rec.jpegs[0]);
+
+    // At 59 s a capture that shows nothing: the keep-alive at 61 s re-sends the old frame, and first() still answers null.
+    await run(clock, 58_000);
+    sampler.attach(scripted([BLACK]));
+    const blank = track(sampler.first());
+    await run(clock, 2000);
+    expect(rec.frames.at(-1)).toEqual(['keepalive', 318750]);
+    expect(blank.settled()).toBe(false);
+    await run(clock, 1000);
+    expect(await blank.promise).toBeNull();
+
+    // A capture with a picture: first() is its frame, sent as a change.
+    sampler.attach(scripted([lit(3)]));
+    const next = sampler.first();
+    await run(clock, 1000);
+    expect(rec.frames.at(-1)).toEqual(['changed', 318750]);
+    expect(await next).toBe(rec.jpegs.at(-1));
+  });
+
   it('emits changed only past the threshold, never more than once a second, and a keepalive after 60 s unchanged', async () => {
     const { clock, sampler, rec } = fresh();
     sampler.attach(scripted([lit(1), lit(1.1), lit(2), lit(2)]));
