@@ -6,11 +6,27 @@ import { ANALYTICS_CONFIG, isDevelopment, getPlatform, getEnvironment, isAnalyti
 import { setupErrorTracking } from '../src/lib/errorTracking';
 import { AppProviders } from '../src/components/AppProviders';
 import { installCustomizableSelectWarningMuffler } from '../src/utils/muffleCustomizableSelectWarnings';
+import { installTheme } from '../src/lib/theme/theme';
+import useSettingsStore from '../src/stores/settingsStore';
 
 // Before anything renders: drop React's two dev-only false positives about
 // customizable-select markup (valid in Chromium 135+, still flagged by
 // validateDOMNesting as of react-dom 19.2.8 — see the muffler's doc comment).
 installCustomizableSelectWarningMuffler();
+
+// The appearance setting, applied to the document once the settings store has
+// loaded and on every change after; until then the page wears the scheme
+// public/theme-boot.js painted from the cache (spec 2026-10-22 §1).
+installTheme({
+  source: {
+    getTheme: () => useSettingsStore.getState().theme,
+    // A load that failed leaves the app on defaults; the appearance applies them rather than wait forever.
+    isLoaded: () => { const s = useSettingsStore.getState(); return s.settingsLoaded || s.settingsLoadFailed; },
+    subscribe: (listener) => useSettingsStore.subscribe(listener),
+  },
+  // Electron draws some chrome natively (menus, dialogs); keep it on the same scheme.
+  onApply: (setting) => { (window as any).electron?.invoke?.('theme:set', setting); },
+});
 
 // Re-export PostHog context from its dedicated side-effect-free module.
 // Keeping the named exports here preserves backward compatibility with

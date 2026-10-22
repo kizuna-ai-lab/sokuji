@@ -1,4 +1,5 @@
 @use '../../styles/tokens' as tk;
+@use '../Settings/shared/variables' as vars;
 
 // The overlay itself: fixed over the app, never in place of it. The scrim is
 // translucent on purpose — seeing the provider you were configuring behind the
@@ -12,7 +13,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.66);
+  background: vars.$scrim;
   overflow-y: auto;
 }
 
@@ -52,11 +53,11 @@
       border-radius: 6px;
 
       // Border styling
-      border: 1.5px solid #444;
-      background: #1a1a1a;
+      border: 1.5px solid vars.$border-default;
+      background: vars.$bg-base;
 
       // Icon color
-      color: #aaa;
+      color: vars.$text-tertiary;
 
       // Smooth transition
       transition: all 0.2s ease;
@@ -68,7 +69,7 @@
         color: tk.$color-on-primary;
 
         // Shadow effect
-        box-shadow: 0 2px 8px rgba(tk.$color-primary, 0.3);
+        box-shadow: 0 2px 8px color-mix(in srgb, tk.$color-primary 30%, transparent);
       }
 
       &:active {

@@ -13,9 +13,10 @@ const TOOLBAR_RULES = ['.display-mode-btn', '.export-btn', '.font-size-btn', '.c
 
 describe('conversation toolbar rest colour', () => {
   for (const sel of TOOLBAR_RULES) {
-    it(`${sel} rests at #8a8a8a`, () => {
+    // The one value is the toolbar-icon token (#8a8a8a in dark, spec 2026-10-22 §2).
+    it(`${sel} rests at the toolbar-icon token`, () => {
       const esc = sel.replace(/\./g, '\\.');
-      expect(css).toMatch(new RegExp(String.raw`(?:^|\n)${esc}\s*\{[^}]*\bcolor:\s*#8a8a8a\b`));
+      expect(css).toMatch(new RegExp(String.raw`(?:^|\n)${esc}\s*\{[^}]*\bcolor:\s*var\(--sk-toolbar-icon\)`));
     });
   }
 

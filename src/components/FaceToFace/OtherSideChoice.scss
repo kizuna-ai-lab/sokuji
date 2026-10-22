@@ -1,4 +1,5 @@
 @use '../../styles/tokens' as tk;
+@use '../Settings/shared/variables' as vars;
 
 // Two radio tiles under a heading. The real input is visually hidden but stays
 // focusable, and the tile shows its focus ring. The caller sets the spacing around it.
@@ -15,17 +16,17 @@
     gap: 8px;
   }
 
-  &__icon { color: #aaa; flex-shrink: 0; }
+  &__icon { color: vars.$text-tertiary; flex-shrink: 0; }
 
   &__label {
-    color: #aaa;
+    color: vars.$text-tertiary;
     flex-shrink: 0;
   }
 
   &__sides {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    border: 1px solid #444;
+    border: 1px solid vars.$border-default;
     border-radius: 7px;
     overflow: hidden;
   }
@@ -37,9 +38,9 @@
     gap: 2px;
     padding: 7px 10px;
     cursor: pointer;
-    color: #ccc;
+    color: vars.$text-secondary;
 
-    & + & { border-left: 1px solid #444; }
+    & + & { border-left: 1px solid vars.$border-default; }
 
     input {
       position: absolute;
@@ -71,7 +72,7 @@
 
   &__side-hint {
     font-size: 10px;
-    color: #aaa;
+    color: vars.$text-tertiary;
 
     .other-side-choice__side--active & { color: tk.$color-on-primary; }
   }

@@ -111,6 +111,13 @@
     "helpEmailTooltip": "Fehler melden oder Hilfe erhalten",
     "diagnosticLogs": "Diagnoseprotokolle",
     "diagnosticLogsTooltip": "Zeichnet auf, was die App tut, damit Sie es einem Fehlerbericht beifügen können. Standardmäßig aus. Solange es aktiv ist, erscheint in der Titelleiste die Schaltfläche „Protokolle“, und die Einstellung bleibt auch nach einem Neustart aktiv.",
+    "appearance": "Erscheinungsbild",
+    "appearanceTooltip": "Wie die App aussieht. „System“ übernimmt die Hell-/Dunkel-Einstellung des Betriebssystems.",
+    "appearanceMode": {
+      "system": "System",
+      "light": "Hell",
+      "dark": "Dunkel"
+    },
     "helpDiscussions": "Diskussionen",
     "helpDiscussionsTooltip": "Funktionswünsche, Feedback und Community-Diskussionen",
     "auto": "Auto",
@@ -1013,6 +1020,7 @@
       "sourceColor": "Quelltextfarbe",
       "translationColor": "Übersetzungsfarbe",
       "customColor": "Benutzerdefinierte Farbe",
+      "followTheme": "Design folgen",
       "colorArea": "Sättigung und Helligkeit",
       "colorHue": "Farbton",
       "colorHex": "Hex-Farbwert",

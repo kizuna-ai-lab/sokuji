@@ -111,6 +111,13 @@
     "helpEmailTooltip": "Mag-report ng bug o humingi ng tulong",
     "diagnosticLogs": "Mga diagnostic log",
     "diagnosticLogsTooltip": "Itinatala ang ginagawa ng app para mailakip mo ito sa isang ulat ng bug. Naka-off bilang default. Habang naka-on, may lalabas na button na “Mga Log” sa title bar, at mananatili itong naka-on pagkatapos mag-restart.",
+    "appearance": "Itsura",
+    "appearanceTooltip": "Kung paano mukhang ang app. Ang “System” ay gumagamit ng light o dark na setting ng operating system.",
+    "appearanceMode": {
+      "system": "System",
+      "light": "Light",
+      "dark": "Dark"
+    },
     "helpDiscussions": "Mga Talakayan",
     "helpDiscussionsTooltip": "Mga feature request, feedback, at talakayan ng komunidad",
     "auto": "Awtomatiko",
@@ -1013,6 +1020,7 @@
       "sourceColor": "Kulay ng orihinal na teksto",
       "translationColor": "Kulay ng salin",
       "customColor": "Custom na kulay",
+      "followTheme": "Sundin ang tema",
       "colorArea": "Saturation at liwanag",
       "colorHue": "Hue",
       "colorHex": "Hex na halaga ng kulay",

@@ -692,8 +692,30 @@ corrected on 2026-09-05.
 - **ConnectionStatus**: Real-time connection state indicator
 
 ### UI Design System
-- Dark theme with consistent styling across components
-- Primary action color: `#10a37f` (green), Error state: `#e74c3c` (red)
+- Two schemes, dark (the default, R1) and light, and an Appearance setting in Help
+  (`settings.common.theme`: `system` | `light` | `dark`). Spec:
+  `docs/superpowers/specs/2026-10-22-light-theme-design.md`.
+- Every chrome colour is a `--sk-*` custom property that `src/styles/theme.scss` defines once
+  per scheme (dark on `:root`, light on `:root[data-theme="light"]`); `src/lib/theme/theme.ts`
+  resolves the setting (and the OS preference while it is `system`) and writes `data-theme` on
+  every document the app owns, child-window popovers included; `public/theme-boot.js` paints the
+  cached scheme before the first stylesheet. Components never write `var(--sk-…)`: they use the
+  Sass aliases in `src/styles/_tokens.scss` (brand, people, status) and
+  `src/components/Settings/shared/_variables.scss` (surfaces, text, lines, overlays), and a tint
+  is `color-mix(in srgb, $token N%, transparent)`, never Sass's `rgba($token, a)` (a `var()` is not
+  a colour). TypeScript that must name a colour (an icon prop, a canvas) uses `var(--sk-…)`.
+- A user-coloured surface (the conversation, the subtitle view) keeps the user's colours in both
+  schemes and carries `data-tone` from its own background (`toneOf` in `src/lib/view/tone.ts`);
+  `theme.scss` repeats the token set under `[data-tone]`, so the palette inside follows the
+  surface, not the app. A conversation colour the user never set is `null` in
+  `conversationDisplayStore` and follows the scheme (`CONVERSATION_SCHEME_COLOURS`,
+  `useConversationColours`, over `useScheme` in `src/lib/theme/`); the display popover's first
+  chip in each conversation row is "Follow theme". The subtitle's defaults are fixed.
+- Guards: `src/styles/theme.consistency.test.ts` (the four blocks agree, the dark block is pinned,
+  the light block clears the contrast floors, every `--sk-` a stylesheet references is defined) and
+  `src/styles/colourLedger.consistency.test.ts` (an exact count of colour literals per file; the
+  allow-list is brand marks, the user colour presets and defaults, the viewer and the dev
+  previews). Light accent `#007255` as a fill and `#006d51` as text; dark accent `#0fbb8f`; error `#e74c3c` / `#ad3327`. Light status text also clears 4.5:1 on its own 10–15% tint.
 - Component styles defined in colocated SCSS files (e.g., `SimpleSettings.scss`)
 - Lucide React icons with consistent sizing (14-16px)
 

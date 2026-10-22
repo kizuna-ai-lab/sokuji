@@ -1,20 +1,21 @@
 @use '../../../styles/tokens' as tk;
+@use '../shared/variables' as vars;
 
 .check-update-button {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  background-color: #2a2a2a;
-  color: #e0e0e0;
-  border: 1px solid #444;
+  background-color: vars.$bg-bar;
+  color: vars.$text-primary;
+  border: 1px solid vars.$border-default;
   border-radius: 4px;
   font-size: 13px;
   cursor: pointer;
 
   &:hover:not(:disabled) {
-    background-color: #333;
-    border-color: #555;
+    background-color: vars.$bg-control;
+    border-color: vars.$border-strong;
   }
 
   &:disabled {

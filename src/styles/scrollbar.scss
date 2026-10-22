@@ -1,3 +1,4 @@
+@use '../components/Settings/shared/variables' as vars;
 /* Custom scrollbar styles */
 
 /* For Webkit browsers (Chrome, Safari, newer versions of Opera) */
@@ -7,18 +8,18 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
+  background: color-mix(in srgb, vars.$overlay-bg 20%, transparent);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: color-mix(in srgb, vars.$overlay-fg 20%, transparent);
   border-radius: 4px;
   transition: background 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: color-mix(in srgb, vars.$overlay-fg 30%, transparent);
 }
 
 ::-webkit-scrollbar-corner {
@@ -28,7 +29,7 @@
 /* For Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(0, 0, 0, 0.2);
+  scrollbar-color: color-mix(in srgb, vars.$overlay-fg 20%, transparent) color-mix(in srgb, vars.$overlay-bg 20%, transparent);
 }
 
 /* Ensure only one scrollbar appears in nested scrollable elements */
@@ -47,12 +48,12 @@
 .logs-content,
 .conversation-container {
   &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: color-mix(in srgb, vars.$overlay-fg 10%, transparent);
   }
   
   &:hover {
     &::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.2);
+      background: color-mix(in srgb, vars.$overlay-fg 20%, transparent);
     }
   }
 }

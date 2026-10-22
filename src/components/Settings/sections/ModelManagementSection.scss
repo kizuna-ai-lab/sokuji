@@ -112,18 +112,18 @@
   // (all four corners live) — the app's "segmented → fill" selection form. No
   // left accent bar, no radio: state is carried by the fill and the Active pill.
   &--selected {
-    background: rgba(vars.$color-primary, 0.08);
-    border-color: rgba(vars.$color-primary, 0.45);
+    background: color-mix(in srgb, vars.$color-primary 8%, transparent);
+    border-color: color-mix(in srgb, vars.$color-primary 45%, transparent);
 
     &:hover:not(&--disabled) {
-      border-color: rgba(vars.$color-primary, 0.6);
+      border-color: color-mix(in srgb, vars.$color-primary 60%, transparent);
     }
   }
 
   // Downloaded-but-idle cards stay neutral — green is reserved for the active one.
 
   &--error {
-    border-color: rgba(vars.$color-error, 0.3);
+    border-color: color-mix(in srgb, vars.$color-error 30%, transparent);
   }
 
   &--incompatible {
@@ -236,7 +236,7 @@
     align-items: center;
     gap: 3px;
     padding: vars.$chip-padding-y 6px;
-    background: rgba(255, 255, 255, 0.08);
+    background: color-mix(in srgb, vars.$overlay-fg 8%, transparent);
     border-radius: 3px;
     font-size: vars.$chip-font-size;
     line-height: vars.$chip-line-height;
@@ -267,14 +267,14 @@
 
   &__lang-tag--live { border: 1px solid currentColor; font-weight: 600; }  // highlighted (neutral): chosen-CPU
   &__lang-tag--accel { border-color: tk.$color-success; color: tk.$color-success; }  // GPU live
-  &__lang-tag--warn  { border-color: #e74c3c; color: #e74c3c; }  // degraded CPU
+  &__lang-tag--warn  { border-color: tk.$color-error; color: tk.$color-error; }  // degraded CPU
 
   &__recommended-badge {
     display: inline-flex;
     align-items: center;
     gap: 3px;
     padding: vars.$chip-padding-y 6px;
-    background: rgba(vars.$color-recommended, 0.15);
+    background: color-mix(in srgb, vars.$color-recommended 15%, transparent);
     border-radius: 3px;
     font-size: vars.$chip-font-size;
     line-height: vars.$chip-line-height;
@@ -287,7 +287,7 @@
     align-items: center;
     gap: 3px;
     padding: vars.$chip-padding-y 6px;
-    background: rgba(vars.$color-primary, 0.15);
+    background: color-mix(in srgb, vars.$color-primary 15%, transparent);
     border-radius: 3px;
     font-size: vars.$chip-font-size;
     line-height: vars.$chip-line-height;
@@ -309,7 +309,7 @@
     gap: 4px;
     padding: 6px 10px;
     background: vars.$color-warning-bg;
-    border: 1px solid rgba(vars.$color-warning, 0.2);
+    border: 1px solid color-mix(in srgb, vars.$color-warning 20%, transparent);
     border-radius: vars.$radius-sm;
     font-size: vars.$font-caption;
     color: vars.$color-warning;
@@ -318,7 +318,7 @@
   &__available-when-lang {
     padding: 2px 10px 8px;
     font-size: vars.$font-caption;
-    color: #9aa0a6;
+    color: vars.$text-source;
   }
 
   &__actions {
@@ -365,12 +365,12 @@
     }
 
     &--cancel {
-      background: rgba(255, 255, 255, 0.1);
+      background: color-mix(in srgb, vars.$overlay-fg 10%, transparent);
       color: vars.$text-muted;
       padding: 3px 6px;
 
       &:hover {
-        background: rgba(255, 255, 255, 0.15);
+        background: color-mix(in srgb, vars.$overlay-fg 15%, transparent);
         color: vars.$text-primary;
       }
     }
@@ -396,7 +396,7 @@
 
   &__progress-bar {
     height: 4px;
-    background: rgba(255, 255, 255, 0.1);
+    background: color-mix(in srgb, vars.$overlay-fg 10%, transparent);
     border-radius: 2px;
     overflow: hidden;
   }
@@ -436,8 +436,8 @@
 
     &--active {
       color: vars.$color-primary;
-      background: rgba(vars.$color-primary, 0.15);
-      border: 1px solid rgba(vars.$color-primary, 0.32);
+      background: color-mix(in srgb, vars.$color-primary 15%, transparent);
+      border: 1px solid color-mix(in srgb, vars.$color-primary 32%, transparent);
       border-radius: vars.$radius-sm;
       padding: 3px 8px;
       font-weight: vars.$weight-semibold;
@@ -492,7 +492,7 @@
     font: inherit;
     font-size: vars.$font-caption;
     color: vars.$text-secondary;
-    background: rgba(255, 255, 255, 0.05);
+    background: color-mix(in srgb, vars.$overlay-fg 5%, transparent);
     border: 1px solid vars.$border-subtle;
     border-radius: vars.$radius-sm;
 
@@ -508,7 +508,7 @@
 
     &:hover:not(:disabled) {
       border-color: vars.$border-default;
-      background: rgba(255, 255, 255, 0.08);
+      background: color-mix(in srgb, vars.$overlay-fg 8%, transparent);
     }
 
     &:disabled { cursor: not-allowed; opacity: 0.6; }
@@ -527,10 +527,10 @@
     &::picker(select) {
       min-width: 230px;
       padding: 4px;
-      background: #1f2225;
+      background: vars.$bg-page;
       border: 1px solid vars.$border-default;
       border-radius: vars.$radius-sm;
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 6px 16px vars.$shadow;
       margin-top: 4px;
       // The selectable .model-card sets cursor:pointer, which `cursor`
       // inheritance leaks onto the picker's plain text (the CPU note).
@@ -549,12 +549,12 @@
       transition: background vars.$transition-fast;
 
       &:hover:not(:disabled),
-      &:focus:not(:disabled) { background: rgba(255, 255, 255, 0.06); }
+      &:focus:not(:disabled) { background: color-mix(in srgb, vars.$overlay-fg 6%, transparent); }
 
       // Selected variant: filled tint only (no accent-bar shadow, by
       // preference) — still unmistakable via the green name + checkmark.
       &:checked {
-        background: rgba(vars.$color-primary, 0.12);
+        background: color-mix(in srgb, vars.$color-primary 12%, transparent);
 
         .model-card__variant-name { color: vars.$color-primary; }
       }
@@ -651,8 +651,8 @@
   transition: color 0.15s, border-color 0.15s;
 
   &:hover:not(:disabled) {
-    color: #e74c3c;
-    border-color: #e74c3c;
+    color: tk.$color-error;
+    border-color: tk.$color-error;
   }
 
   &:disabled {
@@ -669,7 +669,7 @@
 }
 
 .model-management__clear-confirm-text {
-  color: #e74c3c;
+  color: tk.$color-error;
   font-weight: 500;
 }
 
@@ -682,11 +682,11 @@
   background: none;
 
   &--yes {
-    color: #e74c3c;
-    border-color: #e74c3c;
+    color: tk.$color-error;
+    border-color: tk.$color-error;
 
     &:hover:not(:disabled) {
-      background: rgba(231, 76, 60, 0.15);
+      background: color-mix(in srgb, tk.$color-error 15%, transparent);
     }
 
     &:disabled {
@@ -772,7 +772,7 @@
   flex-direction: column;
   gap: 8px;
   padding: 12px;
-  border: 1px solid rgba(vars.$color-error, 0.3);
+  border: 1px solid color-mix(in srgb, vars.$color-error 30%, transparent);
   border-radius: 6px;
 
   p {
@@ -786,14 +786,14 @@
   button {
     align-self: flex-start;
     padding: 4px 14px;
-    border: 1px solid rgba(vars.$color-error, 0.5);
+    border: 1px solid color-mix(in srgb, vars.$color-error 50%, transparent);
     border-radius: 4px;
     background: none;
     color: vars.$color-error;
     font-size: vars.$font-caption;
     cursor: pointer;
 
-    &:hover { background: rgba(vars.$color-error, 0.1); }
+    &:hover { background: color-mix(in srgb, vars.$color-error 10%, transparent); }
   }
 }
 

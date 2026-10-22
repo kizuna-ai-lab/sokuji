@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, act, renderHook } from '@testing-library/react';
 import { ChildWindowPopover, useChildPopoverToggle } from './ChildWindowPopover';
+import { installTheme, type ThemeSetting } from '../../lib/theme/theme';
 
 // A stand-in for the frameless child window window.open() returns in Electron.
 // jsdom's own window.open returns null, so the component under test gets this
@@ -565,5 +566,53 @@ describe('useChildPopoverToggle', () => {
     act(() => result.current.onClose('escape'));
     act(() => result.current.toggle());
     expect(result.current.open).toBe(true);
+  });
+});
+
+// Appearance (spec 2026-10-22 §5): the child window is its own document with
+// the stylesheets copied in, so it must carry data-theme itself: the current
+// scheme at creation, every change while it lives, nothing once torn down.
+describe('appearance in the child window', () => {
+  it('a scheme change reaches a registered child document', () => {
+    (globalThis as { ResizeObserver?: unknown }).ResizeObserver = class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+    const child = makeFakeChild();
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(child as unknown as Window);
+    (window as { electron?: unknown }).electron = { invoke: vi.fn(async () => ({ ok: true })) };
+    const anchor = document.createElement('button');
+    document.body.appendChild(anchor);
+
+    let theme: ThemeSetting = 'light';
+    const listeners = new Set<() => void>();
+    const set = (next: ThemeSetting) => { theme = next; for (const l of [...listeners]) l(); };
+    const uninstall = installTheme({
+      source: { getTheme: () => theme, isLoaded: () => true, subscribe: (l) => { listeners.add(l); return () => listeners.delete(l); } },
+      matchMedia: () => ({ matches: true, addEventListener() {}, removeEventListener() {} } as unknown as MediaQueryList),
+      storage: null,
+    });
+    const childAttr = () => child.document.documentElement.getAttribute('data-theme');
+    try {
+      const utils = render(
+        <ChildWindowPopover open={false} onClose={vi.fn()} anchorEl={anchor} width={320} height={400}>
+          <div>hello</div>
+        </ChildWindowPopover>,
+      );
+      expect(childAttr()).toBe('light');
+      act(() => set('dark'));
+      expect(childAttr()).toBeNull();
+      utils.unmount();
+      act(() => set('light'));
+      expect(childAttr()).toBeNull();                                        // torn down: untouched
+      expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+    } finally {
+      uninstall();
+      document.documentElement.removeAttribute('data-theme');
+      openSpy.mockRestore();
+      anchor.remove();
+      delete (window as { electron?: unknown }).electron;
+    }
   });
 });

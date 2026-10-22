@@ -13,7 +13,7 @@
     display: flex;
     align-items: center;
     gap: vars.$space-2;
-    background-color: rgba(vars.$color-warning, 0.15);
+    background-color: color-mix(in srgb, vars.$color-warning 15%, transparent);
     border: 1px solid vars.$color-warning-border;
     border-radius: vars.$radius-md;
     padding: vars.$space-3;

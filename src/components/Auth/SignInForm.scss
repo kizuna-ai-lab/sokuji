@@ -1,27 +1,28 @@
 @use '../../styles/tokens' as tk;
+@use '../Settings/shared/variables' as vars;
 
 .sign-in-form {
   width: 100%;
   max-width: 400px;
   padding: 2rem;
-  background: #1a1a1a;
+  background: vars.$bg-base;
   border-radius: 8px;
-  border: 1px solid #333;
+  border: 1px solid vars.$border-subtle;
 
   h2 {
     margin: 0 0 1.5rem 0;
     font-size: 1.5rem;
     text-align: center;
-    color: #fff;
+    color: vars.$text-primary;
   }
 
   .error-message {
     padding: 0.75rem;
     margin-bottom: 1rem;
-    background: rgba(231, 76, 60, 0.1);
-    border: 1px solid rgba(231, 76, 60, 0.3);
+    background: color-mix(in srgb, tk.$color-error 10%, transparent);
+    border: 1px solid color-mix(in srgb, tk.$color-error 30%, transparent);
     border-radius: 4px;
-    color: #e74c3c;
+    color: tk.$color-error;
     font-size: 0.875rem;
   }
 
@@ -38,15 +39,15 @@
       label {
         font-size: 0.875rem;
         font-weight: 500;
-        color: #ccc;
+        color: vars.$text-secondary;
       }
 
       input {
         padding: 0.75rem;
-        background: #333;
-        border: 1px solid #444;
+        background: vars.$bg-control;
+        border: 1px solid vars.$border-default;
         border-radius: 4px;
-        color: #fff;
+        color: vars.$text-primary;
         font-size: 14px;
         transition: border-color 0.2s;
 
@@ -61,7 +62,7 @@
         }
 
         &::placeholder {
-          color: #666;
+          color: vars.$text-dim;
         }
       }
 
@@ -106,7 +107,7 @@
       .loading-spinner {
         width: 20px;
         height: 20px;
-        border: 2px solid #ffffff;
+        border: 2px solid tk.$color-on-primary;
         border-top-color: transparent;
         border-radius: 50%;
         animation: spin 0.6s linear infinite;
@@ -121,7 +122,7 @@
     p {
       margin: 0;
       font-size: 0.875rem;
-      color: #ccc;
+      color: vars.$text-secondary;
 
       a {
         color: tk.$color-primary;

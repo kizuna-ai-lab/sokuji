@@ -374,7 +374,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                 href="https://sokuji.kizuna.ai/docs/ai-providers"
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ color: '#10a37f', textDecoration: 'underline' }}
+                style={{ color: 'var(--sk-primary)', textDecoration: 'underline' }}
               >
                 https://sokuji.kizuna.ai/docs/ai-providers
               </a>

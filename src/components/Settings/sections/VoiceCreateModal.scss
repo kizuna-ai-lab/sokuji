@@ -1,4 +1,5 @@
 @use '../shared/variables' as vars;
+@use '../../../styles/tokens' as tk;
 
 // Shared frame for BOTH voice modals (this create modal and
 // VoiceDeleteModal, which imports this stylesheet rather than owning its
@@ -8,7 +9,7 @@
 .voice-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.62);
+  background: vars.$scrim;
   backdrop-filter: blur(2px);
   z-index: 1000;
   display: flex;
@@ -21,10 +22,10 @@
 .voice-modal {
   width: 100%;
   max-width: 420px;
-  background: vars.$bg-page;
+  background: vars.$bg-base;
   border: 1px solid vars.$border-strong;
   border-radius: vars.$radius-lg;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 24px 60px vars.$shadow-strong;
   color: vars.$text-primary;
   overflow: hidden;
   animation: voice-modal-in 0.16s ease-out;
@@ -100,7 +101,7 @@
     &--danger {
       border-color: vars.$color-error;
       color: vars.$color-error;
-      &:hover:not(:disabled) { background: vars.$color-error; color: #fff; }
+      &:hover:not(:disabled) { background: vars.$color-error; color: tk.$color-on-primary; }
     }
   }
 }
@@ -129,7 +130,7 @@
   padding: 4px 8px;
   font-size: vars.$font-body;
   color: vars.$text-primary;
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, vars.$overlay-fg 8%, transparent);
   border: 1px solid vars.$border-strong;
   border-radius: vars.$radius-sm;
 
@@ -160,7 +161,7 @@
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  &:hover:not(:disabled) { background: #0d8c6c; }
+  &:hover:not(:disabled) { background: vars.$color-primary-hover; }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
@@ -175,7 +176,7 @@
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  color: #808080;
+  color: vars.$text-muted;
 
   &.is-dragging { color: vars.$color-primary; }
 }

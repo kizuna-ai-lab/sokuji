@@ -1,4 +1,5 @@
 @use '../../styles/tokens' as tk;
+@use '../Settings/shared/variables' as vars;
 
 .update-dialog-overlay {
   position: fixed;
@@ -6,7 +7,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: color-mix(in srgb, vars.$overlay-bg 50%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -14,22 +15,22 @@
 }
 
 .update-dialog {
-  background-color: #1e1e1e;
-  border: 1px solid #333;
+  background-color: vars.$bg-page;
+  border: 1px solid vars.$border-subtle;
   border-radius: 8px;
   width: 480px;
   max-width: 90vw;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  color: #e0e0e0;
+  color: vars.$text-primary;
 
   .update-dialog-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 16px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid vars.$border-subtle;
 
     h3 {
       margin: 0;
@@ -40,14 +41,14 @@
     .close-button {
       background: none;
       border: none;
-      color: #999;
+      color: vars.$text-muted;
       cursor: pointer;
       padding: 4px;
       display: flex;
       align-items: center;
 
       &:hover {
-        color: #fff;
+        color: vars.$text-primary;
       }
     }
   }
@@ -63,7 +64,7 @@
       gap: 8px;
       margin-bottom: 12px;
       font-size: 13px;
-      color: #999;
+      color: vars.$text-muted;
 
       .arrow {
         color: tk.$color-primary;
@@ -76,15 +77,15 @@
     }
 
     .changelog {
-      background-color: #161616;
-      border: 1px solid #2a2a2a;
+      background-color: vars.$bg-base;
+      border: 1px solid vars.$border-subtle;
       border-radius: 4px;
       padding: 12px;
       max-height: 300px;
       overflow-y: auto;
       font-size: 12px;
       line-height: 1.6;
-      color: #ccc;
+      color: vars.$text-secondary;
 
       pre {
         margin: 0;
@@ -106,7 +107,7 @@
 
       hr {
         border: none;
-        border-top: 1px solid #2a2a2a;
+        border-top: 1px solid vars.$border-subtle;
         margin: 12px 0;
       }
 
@@ -138,7 +139,7 @@
 
       .progress-bar {
         height: 6px;
-        background-color: #333;
+        background-color: vars.$border-subtle;
         border-radius: 3px;
         overflow: hidden;
 
@@ -155,14 +156,14 @@
         justify-content: space-between;
         margin-top: 8px;
         font-size: 11px;
-        color: #999;
+        color: vars.$text-muted;
       }
     }
 
     .up-to-date {
       text-align: center;
       padding: 20px 0;
-      color: #999;
+      color: vars.$text-muted;
       font-size: 13px;
     }
 
@@ -170,8 +171,8 @@
       margin: 12px 0;
       padding: 12px;
       border-radius: 6px;
-      background: rgba(tk.$color-primary, 0.08);
-      color: #b8d4c9;
+      background: color-mix(in srgb, tk.$color-primary 8%, transparent);
+      color: vars.$text-secondary;
       font-size: 0.9em;
       line-height: 1.5;
     }
@@ -182,7 +183,7 @@
     justify-content: flex-end;
     gap: 8px;
     padding: 12px 16px;
-    border-top: 1px solid #333;
+    border-top: 1px solid vars.$border-subtle;
 
     .primary-button {
       background-color: tk.$color-primary-fill;
@@ -194,36 +195,36 @@
       cursor: pointer;
 
       &:hover {
-        background-color: #0d8a6a;
+        background-color: tk.$color-primary-hover;
       }
     }
 
     .secondary-button {
       background-color: transparent;
-      color: #999;
-      border: 1px solid #444;
+      color: vars.$text-muted;
+      border: 1px solid vars.$border-default;
       border-radius: 4px;
       padding: 8px 16px;
       font-size: 13px;
       cursor: pointer;
 
       &:hover {
-        color: #fff;
-        border-color: #666;
+        color: vars.$text-primary;
+        border-color: vars.$border-strong;
       }
     }
 
     .tertiary-button {
       background: transparent;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      color: #ccc;
+      border: 1px solid color-mix(in srgb, vars.$overlay-fg 15%, transparent);
+      color: vars.$text-secondary;
       border-radius: 4px;
       padding: 8px 16px;
       font-size: 13px;
       cursor: pointer;
 
       &:hover {
-        background: rgba(255, 255, 255, 0.05);
+        background: color-mix(in srgb, vars.$overlay-fg 5%, transparent);
       }
     }
   }

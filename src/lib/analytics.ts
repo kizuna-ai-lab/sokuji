@@ -121,10 +121,15 @@ export interface AnalyticsEvents {
     provider?: string;
     category: 'api' | 'audio' | 'language' | 'advanced';
   };
-  'language_changed': { 
+  'language_changed': {
     from_language?: string;
     to_language: string;
     language_type: 'source' | 'target' | 'ui';
+  };
+  // Appearance (spec 2026-10-22 §4): the setting, not the resolved scheme.
+  'theme_changed': {
+    from: 'system' | 'light' | 'dark';
+    to: 'system' | 'light' | 'dark';
   };
   'provider_switched': {
     from_provider: string;

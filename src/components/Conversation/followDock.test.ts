@@ -15,7 +15,7 @@ describe('the Back to live row', () => {
   it('is a row of its own, not a floating layer', () => {
     const dock = rule(panel, '\\.follow-dock');
     expect(dock).toMatch(/flex-shrink:\s*0/);
-    expect(dock).toMatch(/border-top:\s*1px solid #333/);
+    expect(dock).toMatch(/border-top:\s*1px solid var\(--sk-line-subtle\)/);
     expect(dock).not.toMatch(/position:\s*(absolute|fixed|sticky)/);
   });
 
@@ -29,9 +29,10 @@ describe('the Back to live row', () => {
   it('lets the subtitle window’s own background through, with a hairline and translucent words', () => {
     const dock = rule(stream, '\\.subtitle-stream\\.expanded \\.follow-dock');
     expect(dock).toMatch(/background:\s*transparent/);
-    expect(dock).toMatch(/border-top:\s*1px solid rgba\(255, 255, 255, 0\.14\)/);
-    expect(dock).toMatch(/color:\s*rgba\(255, 255, 255, 0\.62\)/);
-    expect(rule(stream, '\\.subtitle-stream\\.expanded \\.follow-dock:hover')).toMatch(/background:\s*rgba\(255, 255, 255, 0\.08\)/);
+    // The white tints are the overlay token, white on a dark subtitle background and black on a light one (spec 2026-10-22 §3).
+    expect(dock).toMatch(/border-top:\s*1px solid color-mix\(in srgb, var\(--sk-overlay-fg\) 14%, transparent\)/);
+    expect(dock).toMatch(/color:\s*color-mix\(in srgb, var\(--sk-overlay-fg\) 62%, transparent\)/);
+    expect(rule(stream, '\\.subtitle-stream\\.expanded \\.follow-dock:hover')).toMatch(/background:\s*color-mix\(in srgb, var\(--sk-overlay-fg\) 8%, transparent\)/);
   });
 
   it('bleeds through exactly the subtitle stream’s padding to its edges and bottom', () => {

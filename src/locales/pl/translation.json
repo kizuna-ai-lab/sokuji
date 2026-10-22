@@ -111,6 +111,13 @@
     "helpEmailTooltip": "Zgłoś błędy lub uzyskaj pomoc",
     "diagnosticLogs": "Dzienniki diagnostyczne",
     "diagnosticLogsTooltip": "Rejestruje działanie aplikacji, aby można było dołączyć dziennik do zgłoszenia błędu. Domyślnie wyłączone. Po włączeniu na pasku tytułu pojawia się przycisk „Logi”, a ustawienie pozostaje włączone po ponownym uruchomieniu.",
+    "appearance": "Wygląd",
+    "appearanceTooltip": "Wygląd aplikacji. „System” przejmuje jasne lub ciemne ustawienie systemu operacyjnego.",
+    "appearanceMode": {
+      "system": "System",
+      "light": "Jasny",
+      "dark": "Ciemny"
+    },
     "helpDiscussions": "Dyskusje",
     "helpDiscussionsTooltip": "Propozycje funkcji, opinie i dyskusje społeczności",
     "auto": "Auto",
@@ -1013,6 +1020,7 @@
       "sourceColor": "Kolor tekstu źródłowego",
       "translationColor": "Kolor tłumaczenia",
       "customColor": "Kolor niestandardowy",
+      "followTheme": "Jak w motywie",
       "colorArea": "Nasycenie i jasność",
       "colorHue": "Odcień",
       "colorHex": "Szesnastkowa wartość koloru",

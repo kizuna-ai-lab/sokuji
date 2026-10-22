@@ -111,6 +111,13 @@
     "helpEmailTooltip": "Relatar erros ou obter ajuda",
     "diagnosticLogs": "Logs de diagnóstico",
     "diagnosticLogsTooltip": "Registra o que o aplicativo faz, para você anexar a um relatório de bug. Desativado por padrão. Enquanto estiver ativado, o botão “Logs” aparece na barra de título, e a opção continua ativada após reiniciar.",
+    "appearance": "Aparência",
+    "appearanceTooltip": "A aparência do aplicativo. “Sistema” usa a configuração clara ou escura do sistema operacional.",
+    "appearanceMode": {
+      "system": "Sistema",
+      "light": "Claro",
+      "dark": "Escuro"
+    },
     "helpDiscussions": "Discussões",
     "helpDiscussionsTooltip": "Solicitações de recursos, feedback e discussões da comunidade",
     "auto": "Auto",
@@ -1013,6 +1020,7 @@
       "sourceColor": "Cor do texto original",
       "translationColor": "Cor da tradução",
       "customColor": "Cor personalizada",
+      "followTheme": "Seguir o tema",
       "colorArea": "Saturação e brilho",
       "colorHue": "Matiz",
       "colorHex": "Valor hexadecimal da cor",

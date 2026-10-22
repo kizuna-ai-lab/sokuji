@@ -6,7 +6,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: vars.$bg-page;
+  background: vars.$bg-base;
   z-index: 1500; // above panels, below .auth-overlay-scrim (2000) so sign-in paints over it
   // A window narrower than the card used to press it against all four edges,
   // which reads as a broken layout rather than a dialog. The padding is the
@@ -15,7 +15,7 @@
   padding: vars.$space-4;
   box-sizing: border-box;
 
-  &--rerun { background: rgba(0, 0, 0, 0.66); }
+  &--rerun { background: vars.$scrim; }
 
   &__card {
     width: min(720px, 100%);
@@ -58,7 +58,7 @@
   &__footer {
     display: flex; align-items: center; gap: vars.$space-2;
     padding: vars.$space-3 vars.$space-5; border-top: 1px solid vars.$border-subtle;
-    box-shadow: 0 -8px 12px -8px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 -8px 12px -8px vars.$shadow-strong;
   }
   &__spacer { flex: 1; }
 }
@@ -89,7 +89,7 @@
   &.is-disabled { @include vars.disabled-state; }
   &:has(input:focus-visible) { @include vars.focus-ring; }
   &__title { font-weight: vars.$weight-medium; color: vars.$text-primary; display: flex; align-items: center; gap: vars.$space-2; }
-  &__badge { font-style: normal; font-size: 10px; padding: 1px 6px; border-radius: 10px; background: rgba(vars.$color-primary, 0.15); color: vars.$color-primary; }
+  &__badge { font-style: normal; font-size: 10px; padding: 1px 6px; border-radius: 10px; background: color-mix(in srgb, vars.$color-primary 15%, transparent); color: vars.$color-primary; }
   &__desc { font-size: vars.$font-caption; color: vars.$text-secondary; }
   &__sets, &__cost, &__reason { font-size: vars.$font-caption; color: vars.$text-muted; }
   &__reason { color: vars.$color-warning; }

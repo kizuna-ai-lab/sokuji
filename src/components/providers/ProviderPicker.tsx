@@ -151,7 +151,7 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
                 href={AI_PROVIDERS_DOCS_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ color: '#10a37f', textDecoration: 'underline' }}
+                style={{ color: 'var(--sk-primary)', textDecoration: 'underline' }}
               >
                 {AI_PROVIDERS_DOCS_URL}
               </a>

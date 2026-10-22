@@ -1,3 +1,5 @@
+@use './styles/theme';
+
 // The UI font. The Latin stack ends at `sans-serif`; the CJK fonts after it
 // are reached only for glyphs nothing before them has. Without them a glyph
 // the locale's CJK font lacks went to the system's own fallback, which on a

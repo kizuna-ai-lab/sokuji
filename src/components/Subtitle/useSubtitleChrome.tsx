@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties, type Mous
 import useSettingsStore, { useSetSubtitleFullscreen, useSubtitleFullscreen } from '../../stores/settingsStore';
 import { useSaveSubtitleWindowBounds, useSubtitlePositionLocked, useSubtitleSettings } from '../../stores/subtitleStore';
 import { useOverlayDragResize } from './useOverlayDragResize';
+import { toneOf, type Tone } from '../../lib/view/tone';
 
 export type SubtitleSurfaceKind = 'electron' | 'extension-overlay';
 
@@ -28,8 +29,8 @@ const HIGHLIGHT_ALPHA = 0.3;
 
 /**
  * Returns a CSS color for the "newly-arrived item" overlay, chosen so it
- * contrasts with the user-selected background. YIQ luminance < 128 means
- * the background is dark → use a light overlay; otherwise use dark.
+ * contrasts with the user-selected background: light on a dark one, dark on
+ * a light one, by the one rule every user colour is read with (`toneOf`).
  *
  * The user-set bgOpacity is intentionally not factored in. When opacity is
  * very low and the actual visible background is whatever sits behind the
@@ -37,14 +38,7 @@ const HIGHLIGHT_ALPHA = 0.3;
  * a known limitation accepted in the design spec.
  */
 export function getHighlightOverlayForBg(hex: string): string {
-  const m = /^#?([a-fA-F0-9]{6})$/.exec(hex);
-  if (!m) return `rgba(255,255,255,${HIGHLIGHT_ALPHA})`;
-  const v = parseInt(m[1], 16);
-  const r = (v >> 16) & 0xff;
-  const g = (v >> 8) & 0xff;
-  const b = v & 0xff;
-  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
-  return yiq < 128
+  return toneOf(hex) === 'dark'
     ? `rgba(255,255,255,${HIGHLIGHT_ALPHA})`
     : `rgba(0,0,0,${HIGHLIGHT_ALPHA})`;
 }
@@ -53,6 +47,8 @@ export interface SubtitleChrome {
   rootRef: MutableRefObject<HTMLDivElement | null>;
   rootProps: {
     className: string;
+    /** The tone of the subtitle background: the view's palette follows it (spec 2026-10-22 §3). */
+    'data-tone': Tone;
     style: CSSProperties;
     onMouseEnter: (e: ReactMouseEvent) => void;
     onMouseMove: (e: ReactMouseEvent) => void;
@@ -248,6 +244,8 @@ export function useSubtitleChrome({ surface, onExit, forceVisible = false }: {
     rootRef,
     rootProps: {
       className: `subtitle-app${fullscreen ? ' fullscreen' : ''}`,
+      // The view keeps the user's subtitle colours in both app themes; its palette follows them (spec 2026-10-22 §3).
+      'data-tone': toneOf(subtitle.bgColor),
       style: rootStyle,
       onMouseEnter: onPointerActivity,
       onMouseMove: onPointerActivity,

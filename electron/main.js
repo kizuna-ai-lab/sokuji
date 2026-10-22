@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, dialog, shell, session, systemPreferences, desktopCapturer } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, dialog, shell, session, systemPreferences, nativeTheme } = require('electron');
 const path = require('path');
 const { betterAuthAdapter, PACKAGED_ORIGIN } = require('./better-auth-adapter');
 const { setupSubtitleHandlers } = require('./subtitle-window.js');
@@ -175,6 +175,17 @@ ipcMain.handle('app:close-ready', (event) => {
 ipcMain.handle('app:session-busy', (event, busy) => {
   if (event.sender !== mainWindow?.webContents) return;
   closeHandshake.setSessionBusy(busy === true);
+});
+
+// Appearance (spec 2026-10-22 §1): the renderer resolves the setting and
+// paints the window itself; this keeps what Electron draws natively — the
+// Linux caption context menu, file dialogs — on the same scheme. 'system'
+// hands the choice back to the OS.
+ipcMain.handle('theme:set', (event, setting) => {
+  if (event.sender !== mainWindow?.webContents) return;
+  if (setting === 'light' || setting === 'dark' || setting === 'system') {
+    nativeTheme.themeSource = setting;
+  }
 });
 
 // sandbox-recovery relaunches via app.exit(), which skips before-quit/will-quit,

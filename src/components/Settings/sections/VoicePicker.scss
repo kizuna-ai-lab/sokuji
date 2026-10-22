@@ -71,7 +71,7 @@
   background: vars.$bg-surface;
   border: 1px solid vars.$border-default;
   border-radius: vars.$radius-md;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 24px vars.$shadow;
 }
 
 // ---- facet filter bar -------------------------------------------------------
@@ -96,7 +96,7 @@
   grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 5px;
   padding: 7px;
-  background: rgba(255, 255, 255, 0.03);
+  background: color-mix(in srgb, vars.$overlay-fg 3%, transparent);
   border-bottom: 1px solid vars.$border-subtle;
 }
 
@@ -157,7 +157,7 @@
   // because both are no-ops on CJK text: following it made the header SMALLER
   // and DIMMER than the content it introduces, reading as a footnote. Weight,
   // contrast and a band are the three signals that survive translation.
-  background: linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)),
+  background: linear-gradient(color-mix(in srgb, vars.$overlay-fg 5%, transparent), color-mix(in srgb, vars.$overlay-fg 5%, transparent)),
     vars.$bg-surface;
   border-bottom: 1px solid vars.$border-subtle;
 
@@ -217,12 +217,12 @@
   gap: 6px;
   padding: 2px 9px;
 
-  &:hover { background: rgba(255, 255, 255, 0.04); }
+  &:hover { background: color-mix(in srgb, vars.$overlay-fg 4%, transparent); }
 }
 
 .voice-row.is-selected {
   box-shadow: inset 2px 0 0 vars.$color-primary;
-  background: rgba(vars.$color-primary, 0.12);
+  background: color-mix(in srgb, vars.$color-primary 12%, transparent);
 }
 
 // The "＋ Add a voice…" row: set apart from the clones above it with a
@@ -316,8 +316,8 @@
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #e0a106;
-  border: 1px solid rgba(224, 161, 6, 0.5);
+  color: vars.$color-warning;
+  border: 1px solid color-mix(in srgb, vars.$color-warning 50%, transparent);
   border-radius: 3px;
   padding: 0 4px;
 }
@@ -345,7 +345,7 @@
   &:disabled:not(:has(.voice-row__spinner)) { opacity: 0.4; }
 
   &--danger:hover:not(:disabled) {
-    color: #fff;
+    color: vars.$color-on-primary;
     background: vars.$color-error;
     border-color: vars.$color-error;
   }
@@ -386,7 +386,7 @@
   padding: 2px 6px;
   font-size: 13px;
   color: vars.$text-primary;
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, vars.$overlay-fg 8%, transparent);
   border: 1px solid vars.$color-primary;
   border-radius: vars.$radius-sm;
 }
@@ -411,7 +411,7 @@
   width: 13px;
   height: 13px;
   border: 2px solid transparent;
-  border-top-color: #fff;
+  border-top-color: vars.$text-primary;
   border-radius: 50%;
   animation: voice-preview-spin 0.8s linear infinite;
 }

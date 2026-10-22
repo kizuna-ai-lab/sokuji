@@ -8,6 +8,9 @@
 // ============================================================
 
 // --- Color Palette -------------------------------------------
+// Every colour here is an alias of a `--sk-*` custom property that
+// src/styles/theme.scss defines once per scheme (spec 2026-10-22 §2). Sass
+// cannot compute on a `var()`: a tint is `color-mix(in srgb, $x N%, transparent)`.
 
 // Brand
 $color-primary:       tk.$color-primary;
@@ -18,41 +21,61 @@ $color-on-primary:    tk.$color-on-primary;
 
 // Status
 $color-success: tk.$color-success;
-$color-warning: #ffc107;
-$color-error:   #ff4444;
-$color-info:    #4285f4;
-$color-recommended: #f59e0b;
+$color-warning: tk.$color-warning;
+$color-error:   tk.$color-error;
+$color-info:    tk.$color-info;
+$color-recommended: tk.$color-recommended;
 
 // Status backgrounds (for StatusMessage-style containers)
-$color-success-bg:     rgba($color-success, 0.1);
-$color-success-border: rgba($color-success, 0.3);
-$color-warning-bg:     rgba($color-warning, 0.1);
-$color-warning-border: rgba($color-warning, 0.3);
-$color-error-bg:       rgba($color-error, 0.1);
-$color-error-border:   rgba($color-error, 0.3);
-$color-info-bg:        rgba($color-info, 0.1);
-$color-info-border:    rgba($color-info, 0.3);
+$color-success-bg:     color-mix(in srgb, $color-success 10%, transparent);
+$color-success-border: color-mix(in srgb, $color-success 30%, transparent);
+$color-warning-bg:     color-mix(in srgb, $color-warning 10%, transparent);
+$color-warning-border: color-mix(in srgb, $color-warning 30%, transparent);
+$color-error-bg:       color-mix(in srgb, $color-error 10%, transparent);
+$color-error-border:   color-mix(in srgb, $color-error 30%, transparent);
+$color-info-bg:        color-mix(in srgb, $color-info 10%, transparent);
+$color-info-border:    color-mix(in srgb, $color-info 30%, transparent);
 
 // --- Text ----------------------------------------------------
 
-$text-primary:   #fff;
-$text-secondary: #ccc;
-$text-muted:     #888;
-$text-disabled:  #555;
+$text-primary:   var(--sk-text-primary);
+$text-secondary: var(--sk-text-secondary);   // row labels
+$text-tertiary:  var(--sk-text-tertiary);
+$text-muted:     var(--sk-text-muted);       // values beside a control, captions
+$text-dim:       var(--sk-text-dim);         // placeholders, separators
+$text-disabled:  var(--sk-text-disabled);
+$text-source:    var(--sk-text-source);      // the conversation's source text
 
 // --- Backgrounds ---------------------------------------------
 
-$bg-page:    #1a1a1a;   // deepest layer (page / panel bg)
-$bg-surface: #252525;   // cards, sections, nested panels
-$bg-control: #333;      // inputs, buttons, device options
-$bg-hover:   #3a3a3a;   // hover & expanded states
-$bg-elevated:#444;      // raised elements, disabled btn bg
+$bg-base:     var(--sk-bg-base);       // deepest layer: the title bar, the settings page
+$bg-page:     var(--sk-bg-page);       // the main layout, the conversation toolbar
+$bg-surface:  var(--sk-bg-surface);    // cards, sections, nested panels, footer bars
+$bg-bar:      var(--sk-bg-bar);        // the control footer
+$bg-popover:  var(--sk-bg-popover);    // tooltips, modals, floating popovers
+$bg-control:  var(--sk-bg-control);    // inputs, buttons, device options
+$bg-hover:    var(--sk-bg-hover);      // hover & expanded states
+$bg-elevated: var(--sk-bg-elevated);   // raised elements, disabled btn bg
+$bg-elevated-hover: var(--sk-bg-elevated-hover);
+$bg-dim:      var(--sk-bg-dim);        // the idle status dot
+$white:       var(--sk-white);         // fixed in both schemes: the switch thumb, a logo plate
 
 // --- Borders -------------------------------------------------
 
-$border-default: #444;   // input borders, dividers
-$border-subtle:  #333;   // section separators, soft dividers
-$border-strong:  #555;   // hover-emphasized borders
+$border-default: var(--sk-line);          // input borders, dividers
+$border-subtle:  var(--sk-line-subtle);   // section separators, soft dividers
+$border-strong:  var(--sk-line-strong);   // hover-emphasized borders
+
+// --- Overlays ------------------------------------------------
+// A tint over a surface. White lightens a dark surface and must darken a
+// light one, so a hover or pressed tint is `color-mix(in srgb, $overlay-fg N%,
+// transparent)`, never `rgba(255, 255, 255, a)`.
+
+$overlay-fg:    var(--sk-overlay-fg);
+$overlay-bg:    var(--sk-overlay-bg);      // a darkening tint, black in both schemes
+$scrim:         var(--sk-scrim);           // modal and tour backdrops
+$shadow:        var(--sk-shadow);          // tooltip, modal, popover shadows
+$shadow-strong: var(--sk-shadow-strong);
 
 // --- Typography ----------------------------------------------
 
@@ -121,7 +144,7 @@ $slider-thumb-bg:     $color-primary;
 $toggle-width:    40px;
 $toggle-height:   20px;
 $toggle-thumb:    16px;
-$toggle-bg-off:   $text-disabled;
+$toggle-bg-off:   $bg-elevated-hover;
 $toggle-bg-on:    $color-primary;
 
 // --- Convenience Mixins --------------------------------------
@@ -215,7 +238,7 @@ $toggle-bg-on:    $color-primary;
 // selected = primary-green text/border/tint. No dot — the green text
 // carries the state.
 @mixin option-row {
-  background: rgba(255, 255, 255, 0.02);
+  background: color-mix(in srgb, $overlay-fg 2%, transparent);
   border: 1px solid $border-subtle;
   border-radius: $radius-sm;
   padding: 6px 8px;
@@ -225,13 +248,13 @@ $toggle-bg-on:    $color-primary;
 
 @mixin option-row-hover {
   border-color: $border-strong;
-  background: rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, $overlay-fg 5%, transparent);
 }
 
 @mixin option-row-selected {
   color: $color-primary;
-  background: rgba($color-primary, 0.08);
-  border-color: rgba($color-primary, 0.45);
+  background: color-mix(in srgb, $color-primary 8%, transparent);
+  border-color: color-mix(in srgb, $color-primary 45%, transparent);
 }
 
 @mixin control-base {

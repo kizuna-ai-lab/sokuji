@@ -111,6 +111,13 @@
     "helpEmailTooltip": "버그 신고 또는 도움 받기",
     "diagnosticLogs": "진단 로그",
     "diagnosticLogsTooltip": "앱의 동작을 기록하여 버그 신고에 첨부할 수 있게 합니다. 기본값은 꺼짐입니다. 켜면 제목 표시줄에 ‘로그’ 버튼이 나타나며, 다시 시작한 후에도 켜진 상태로 유지됩니다.",
+    "appearance": "모양",
+    "appearanceTooltip": "앱의 색상 테마입니다. '시스템'은 운영 체제의 라이트/다크 설정을 따릅니다.",
+    "appearanceMode": {
+      "system": "시스템",
+      "light": "라이트",
+      "dark": "다크"
+    },
     "helpDiscussions": "토론",
     "helpDiscussionsTooltip": "기능 요청, 피드백 및 커뮤니티 토론",
     "auto": "자동",
@@ -1013,6 +1020,7 @@
       "sourceColor": "원문 색상",
       "translationColor": "번역 색상",
       "customColor": "사용자 지정 색상",
+      "followTheme": "테마 따르기",
       "colorArea": "채도 및 명도",
       "colorHue": "색상",
       "colorHex": "16진수 색상 값",

@@ -1,0 +1,155 @@
+// The app's colour tokens, one value per scheme (spec 2026-10-22 §2).
+//
+// Every chrome colour is a `--sk-*` custom property defined here and nowhere
+// else. The dark values are today's literals (R1, R7: pinned by
+// theme.consistency.test.ts); the light values are the website's light greys,
+// the accent and participant the owner picked, and status hues darkened to
+// clear the floors the same test checks. Components never read these names:
+// they use the Sass aliases in `_tokens.scss` and
+// `components/Settings/shared/_variables.scss`.
+//
+// The two `[data-tone]` blocks repeat the same maps for a user-coloured
+// surface (the conversation, the subtitle view), whose palette follows its own
+// background's tone rather than the app's scheme (spec §3).
+
+$dark: (
+  // surfaces
+  'bg-base': #1a1a1a,
+  'bg-page': #1e1e1e,
+  'bg-surface': #252525,
+  'bg-bar': #2a2a2a,
+  'bg-popover': #2a2a2a,
+  'bg-control': #333333,
+  'bg-hover': #3a3a3a,
+  'bg-elevated': #444444,
+  'bg-elevated-hover': #555555,
+  'bg-dim': #666666,
+  'white': #ffffff,
+  // text
+  'text-primary': #ffffff,
+  'text-secondary': #cccccc,
+  'text-tertiary': #aaaaaa,
+  'text-muted': #888888,
+  'text-dim': #666666,
+  'text-disabled': #555555,
+  'text-source': #9aa0a6,
+  'on-accent': #ffffff,
+  // lines
+  'line': #444444,
+  'line-subtle': #333333,
+  'line-strong': #555555,
+  // overlays
+  'overlay-fg': #ffffff,
+  'overlay-bg': #000000,
+  'scrim': rgba(0, 0, 0, 0.6),
+  'shadow': rgba(0, 0, 0, 0.3),
+  'shadow-strong': rgba(0, 0, 0, 0.5),
+  // accent, people, status
+  'primary': #0fbb8f,
+  'primary-hover': #0da77f,
+  'primary-fill': #008261,
+  'primary-fill-hover': #006e52,
+  'speaker': var(--sk-primary),
+  'speaker-fill': var(--sk-primary-fill),
+  'speaker-person-3': #005c45,
+  'participant': #f39c12,
+  'participant-person-2': #f8c471,
+  'participant-person-3': #ca6f1e,
+  'success': #10a37f,
+  'error': #e74c3c,
+  'error-deep': #c0392b,
+  'warning': #ffc107,
+  'recommended': #f59e0b,
+  'degraded': #f39c12,
+  'usage': #e67e22,
+  'usage-hover': #f39c12,
+  'usage-deep': #d35400,
+  'info': #4285f4,
+  'toolbar-icon': #8a8a8a,
+  'waveform-speaker': #0099ff,
+  'waveform-participant': #f59e0b,
+  'waveform-output': #ff9900,
+);
+
+$light: (
+  // surfaces
+  'bg-base': #f3f3f3,
+  'bg-page': #ffffff,
+  'bg-surface': #f7f7f8,
+  'bg-bar': #f3f3f3,
+  'bg-popover': #ffffff,
+  'bg-control': #ffffff,
+  'bg-hover': #ececec,
+  'bg-elevated': #e3e3e3,
+  'bg-elevated-hover': #d4d4d4,
+  'bg-dim': #c4c4c4,
+  'white': #ffffff,
+  // text
+  'text-primary': #1a1a1a,
+  'text-secondary': #555555,
+  'text-tertiary': #666666,
+  'text-muted': #6b6b6b,
+  'text-dim': #8c8c8c,
+  'text-disabled': #a8a8a8,
+  'text-source': #5f6368,
+  'on-accent': #ffffff,
+  // lines
+  'line': #d9d9d9,
+  'line-subtle': #e5e5e5,
+  'line-strong': #c8c8c8,
+  // overlays
+  'overlay-fg': #000000,
+  'overlay-bg': #000000,
+  'scrim': rgba(0, 0, 0, 0.6),
+  'shadow': rgba(0, 0, 0, 0.15),
+  'shadow-strong': rgba(0, 0, 0, 0.2),
+  // accent, people, status
+  'primary': #006d51,
+  'primary-hover': #005a43,
+  'primary-fill': #007255,
+  'primary-fill-hover': #005a43,
+  'speaker': var(--sk-primary),
+  'speaker-fill': var(--sk-primary-fill),
+  'speaker-person-3': #004d38,
+  'participant': #b45309,
+  'participant-person-2': #d97706,
+  'participant-person-3': #92400e,
+  'success': #0d6d52,
+  'error': #ad3327,
+  'error-deep': #8e2a20,
+  'warning': #845600,
+  'recommended': #9a4508,
+  'degraded': #b45309,
+  'usage': #aa390b,
+  'usage-hover': #93330a,
+  'usage-deep': #7a2a0b,
+  'info': #175dbe,
+  'toolbar-icon': #6e6e6e,
+  'waveform-speaker': #1a73e8,
+  'waveform-participant': #b45309,
+  'waveform-output': #b45309,
+);
+
+@mixin emit($map) {
+  @each $name, $value in $map {
+    --sk-#{$name}: #{$value};
+  }
+}
+
+:root {
+  color-scheme: dark;
+  @include emit($dark);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  @include emit($light);
+}
+
+[data-tone="dark"] {
+  @include emit($dark);
+}
+
+[data-tone="light"] {
+  @include emit($light);
+}

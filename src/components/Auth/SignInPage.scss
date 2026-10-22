@@ -1,3 +1,4 @@
+@use '../Settings/shared/variables' as vars;
 /**
  * Styles for the SignIn page component
  */
@@ -8,7 +9,7 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: #0d0d0d;
+  background: vars.$bg-base;
   padding: 20px;
   position: relative;
   
@@ -20,17 +21,17 @@
     align-items: center;
     gap: 8px;
     padding: 8px 16px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: color-mix(in srgb, vars.$overlay-fg 10%, transparent);
+    border: 1px solid color-mix(in srgb, vars.$overlay-fg 20%, transparent);
     border-radius: 6px;
-    color: #fff;
+    color: vars.$text-primary;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
     
     &:hover {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: rgba(255, 255, 255, 0.3);
+      background: color-mix(in srgb, vars.$overlay-fg 15%, transparent);
+      border-color: color-mix(in srgb, vars.$overlay-fg 30%, transparent);
     }
     
     svg {
@@ -48,12 +49,12 @@
 .sign-in-title {
   font-size: 28px;
   font-weight: 600;
-  color: #fff;
+  color: vars.$text-primary;
   margin-bottom: 8px;
 }
 
 .sign-in-subtitle {
   font-size: 14px;
-  color: #999;
+  color: vars.$text-muted;
   margin-bottom: 32px;
 }

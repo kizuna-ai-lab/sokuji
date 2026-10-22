@@ -30,7 +30,7 @@ import {
   type AudioMode,
 } from '../../stores/audioStore';
 import { useCleanupAudioSystemListeners, useInitAudioSystemListeners } from '../../stores/audioSystemStore';
-import { useConversationDisplayShowReadings, useConversationDisplayStore } from '../../stores/conversationDisplayStore';
+import { useConversationDisplayShowReadings, useConversationDisplayStore, useConversationColours } from '../../stores/conversationDisplayStore';
 import { usePanelNotes, usePanelNotesStore } from '../../stores/panelNotesStore';
 import { useProviderStore } from '../../stores/providerStore';
 import {
@@ -71,6 +71,7 @@ import { InputWaveforms, OutputWaveform } from './panel/Waveforms';
 import { SourcePicker } from '../ScreenContext/SourcePicker';
 import { StatusLine } from './StatusLine';
 import { useStatusLine } from './useStatusLine';
+import { toneOf } from '../../lib/view/tone';
 import './MainPanel.scss';
 
 /**
@@ -180,6 +181,8 @@ export default function MainPanel() {
   const ears = earsLegend(f2f);
   const providerSettings = useProviderStore((s) => (s.selected ? s.entries[s.selected]?.settings : undefined));
   const display = useConversationDisplayStore();
+  // The user's colours where set, the scheme's otherwise (spec 2026-10-22 §3).
+  const colours = useConversationColours();
   const showReadings = useConversationDisplayShowReadings();
   const readingTargets = useReadingTargets();
 
@@ -328,7 +331,7 @@ export default function MainPanel() {
   );
 
   return (
-    <div className="main-panel-wrapper" style={{ '--conversation-bg-color': display.bgColor, '--conversation-source-color': display.sourceTextColor, '--conversation-translation-color': display.translationTextColor } as CSSProperties}>
+    <div className="main-panel-wrapper" style={{ '--conversation-bg-color': colours.bgColor, '--conversation-source-color': colours.sourceTextColor, '--conversation-translation-color': colours.translationTextColor } as CSSProperties}>
       <Banners />
       <UpdateDialog />
       <div className="main-panel">
@@ -336,7 +339,7 @@ export default function MainPanel() {
           <PanelToolbar legs={subtitle.legs} exporter={exporter} hasConversation={hasConversation} onClear={onClear} />
         )}
         {takeover ? (
-          <div className="conversation-display">
+          <div className="conversation-display" data-tone={toneOf(colours.bgColor)}>
             <div className="empty-state">
               <Captions size={32} /><p>{t('mainPanel.subtitleTakeover', 'Translations are showing in the subtitle overlay')}</p>
               {overlayNotes.length > 0 && (
@@ -348,6 +351,8 @@ export default function MainPanel() {
           </div>
         ) : (
           <ConversationList
+            // The conversation keeps the user's colours in both app themes, and a colour never set follows the scheme; its palette follows them (spec §3).
+            tone={toneOf(colours.bgColor)}
             readings={showReadings ? readingTargets : undefined}
             items={drawn} lit={lit} replaying={replaying} replayLegs={replayLegs}
             canReplay={(id) => { const s = segments.get(id); return !!s?.final && s.speech.some((e) => e.pcm.length > 0); }}

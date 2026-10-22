@@ -344,7 +344,7 @@ const NativeModelCard: React.FC<{
                       content={
                         <div style={{ display: 'grid', gap: 2, textAlign: 'left', fontSize: 12, lineHeight: 1.35 }}>
                           {ttRows.map((r) => r.key === 'fallback' ? (
-                            <div key={r.key} style={{ color: '#e74c3c' }}>⚠ {r.value}</div>
+                            <div key={r.key} style={{ color: 'var(--sk-error)' }}>⚠ {r.value}</div>
                           ) : (
                             <div key={r.key}>
                               <span style={{ opacity: 0.6 }}>{t(TT_LABEL[r.key]?.[0] ?? r.key, TT_LABEL[r.key]?.[1] ?? r.key)}</span>{`: ${r.value}`}

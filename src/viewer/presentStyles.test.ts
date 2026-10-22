@@ -21,3 +21,12 @@ describe('projector page footer', () => {
     expect(count).toMatch(/flex-shrink:\s*0/);
   });
 });
+
+// Spec 2026-10-22 §5: `tk.$color-primary` is an alias of `--sk-primary`, which
+// only theme.scss defines; the projector page's stylesheet emits it first.
+describe('present: the app theme tokens come first', () => {
+  it('defines the --sk- tokens before its own rules', () => {
+    expect(css).toMatch(/\n:root \{[^}]*--sk-primary:/);
+    expect(css.indexOf('--sk-primary:')).toBeLessThan(css.indexOf('\n.present {'));
+  });
+});

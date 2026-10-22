@@ -7,7 +7,7 @@
 
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.62);
+  background: vars.$scrim;
   backdrop-filter: blur(2px);
   z-index: 1000;
   display: flex;
@@ -20,10 +20,10 @@
 .import-modal {
   width: 100%;
   max-width: 580px;
-  background: vars.$bg-page;
+  background: vars.$bg-base;
   border: 1px solid vars.$border-strong;
   border-radius: vars.$radius-lg;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 24px 60px vars.$shadow-strong;
   color: vars.$text-primary;
   overflow: hidden;
   animation: import-modal-in 0.16s ease-out;
@@ -158,14 +158,15 @@
     color: vars.$text-muted;
     border: 1px solid transparent;
     border-bottom: 0;
-    &.is-active { background: #0f1113; color: vars.$text-primary; border-color: #2a2e34; }
+    &.is-active { background: vars.$bg-page; color: vars.$text-primary; border-color: vars.$border-default; }
     &:focus-visible { @include vars.focus-ring; }
   }
 
+  // A well set into the modal (bg-base): white with an edge in light, the way inputs are drawn.
   &__term {
     position: relative;
-    background: #0f1113;
-    border: 1px solid #2a2e34;
+    background: vars.$bg-page;
+    border: 1px solid vars.$border-default;
     border-radius: 0 vars.$radius-md vars.$radius-md vars.$radius-md;
     padding: 11px 12px;
     overflow-x: auto;
@@ -175,7 +176,7 @@
       font-family: ui-monospace, Menlo, Consolas, monospace;
       font-size: 11.5px;
       line-height: 1.6;
-      color: #cdd3da;
+      color: vars.$text-secondary;
       white-space: pre;
     }
   }
@@ -187,15 +188,15 @@
     font: inherit;
     font-size: 11px;
     cursor: pointer;
-    background: #1a1f26;
-    color: #aeb6c0;
-    border: 1px solid #2f353d;
+    background: vars.$bg-base;
+    color: vars.$text-tertiary;
+    border: 1px solid vars.$border-default;
     border-radius: vars.$radius-sm;
     padding: 4px 8px;
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    &:hover { color: #fff; border-color: var(--import-accent); }
+    &:hover { color: vars.$text-primary; border-color: var(--import-accent); }
   }
 }
 
@@ -209,7 +210,7 @@
   background: vars.$bg-surface;
   transition: border-color vars.$transition-fast, background vars.$transition-fast;
 
-  &.is-over { border-color: var(--import-accent); background: rgba(vars.$color-primary, 0.1); }
+  &.is-over { border-color: var(--import-accent); background: color-mix(in srgb, vars.$color-primary 10%, transparent); }
 
   &__icon { color: vars.$text-disabled; margin-bottom: 4px; }
   &__lead { font-size: vars.$font-body; margin-bottom: 3px; font-weight: vars.$weight-medium; }
@@ -315,10 +316,10 @@
   }
 
   &--ok, &--stored { .import-file__st { color: var(--import-accent); } }
-  &--ok { background: rgba(vars.$color-primary, 0.12); }
+  &--ok { background: color-mix(in srgb, vars.$color-primary 12%, transparent); }
   &--missing .import-file__st { color: vars.$color-warning; }
   &--invalid {
-    background: rgba(vars.$color-error, 0.12);
+    background: color-mix(in srgb, vars.$color-error 12%, transparent);
     .import-file__st { color: vars.$color-error; }
   }
 }

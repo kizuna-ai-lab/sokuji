@@ -109,7 +109,7 @@ const WarningModal: React.FC<WarningModalProps> = ({ isOpen, onClose, type, note
     >
       <div className="warning-modal-content">
         <div className="warning-icon">
-          <AlertTriangle size={24} color="#f0ad4e" />
+          <AlertTriangle size={24} color="var(--sk-warning)" />
         </div>
         <p>
           <strong>{content.titleText}</strong>
