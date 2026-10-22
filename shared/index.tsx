@@ -23,6 +23,8 @@ installTheme({
     isLoaded: () => useSettingsStore.getState().settingsLoaded,
     subscribe: (listener) => useSettingsStore.subscribe(listener),
   },
+  // Electron draws some chrome natively (menus, dialogs); keep it on the same scheme.
+  onApply: (setting) => { (window as any).electron?.invoke?.('theme:set', setting); },
 });
 
 // Re-export PostHog context from its dedicated side-effect-free module.

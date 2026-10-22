@@ -84,6 +84,8 @@ export const INVOKE_CHANNELS = [
   'window:minimize',
   'window:maximize-toggle',
   'window:close',
+  // Appearance: the renderer's setting, so nativeTheme (menus, dialogs) agrees with the window
+  'theme:set',
   // Subtitle mode
   'subtitle:enter',
   'subtitle:exit',
