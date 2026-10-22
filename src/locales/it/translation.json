@@ -112,7 +112,7 @@
     "diagnosticLogs": "Log di diagnostica",
     "diagnosticLogsTooltip": "Registra ciò che fa l’app, così puoi allegarlo a una segnalazione di bug. Disattivato per impostazione predefinita. Quando è attivo, nella barra del titolo compare il pulsante «Log», e l’impostazione resta attiva dopo il riavvio.",
     "appearance": "Aspetto",
-    "appearanceTooltip": "L'aspetto dell'app. «Segui il sistema» usa l'impostazione chiara o scura del sistema operativo.",
+    "appearanceTooltip": "L'aspetto dell'app. «Sistema» usa l'impostazione chiara o scura del sistema operativo.",
     "appearanceMode": {
       "system": "Sistema",
       "light": "Chiaro",

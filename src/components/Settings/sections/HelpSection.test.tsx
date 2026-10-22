@@ -51,17 +51,25 @@ vi.mock('../../../stores/updateStore', () => ({
 // Records suppression so the picker's interaction with it can be asserted;
 // renders children either way, as the real one does.
 //
-// Only the tooltips that are actually controlled are recorded. Help renders
-// four — the picker's, the diagnostic logs switch's, support's and
-// Discussions' — and the last three pass no `suppressed` at all, so recording
-// every render would leave the reader of this array looking at Discussions'
-// constant false.
-const tooltipSuppressed: boolean[] = [];
-// `.at(-1)` needs ES2022; this project targets ES2020.
-const lastSuppressed = () => tooltipSuppressed[tooltipSuppressed.length - 1];
+// Only the tooltips that are actually controlled are recorded, each under its
+// content so the two pickers' can be told apart. Help renders five — the two
+// pickers', the diagnostic logs switch's, support's and Discussions' — and the
+// last three pass no `suppressed` at all, so recording every render would
+// leave the reader of this array looking at Discussions' constant false.
+const tooltipSuppressed: { content: string; suppressed: boolean }[] = [];
+const lastSuppressed = (content: RegExp): boolean | undefined => {
+  for (let i = tooltipSuppressed.length - 1; i >= 0; i--) {
+    if (content.test(tooltipSuppressed[i].content)) return tooltipSuppressed[i].suppressed;
+  }
+  return undefined;
+};
+// The mocked `t` returns the key when no default is given, and the default
+// otherwise; these are what the two pickers' tooltips render as here.
+const LANGUAGE_TIP = /interfaceLanguageDesc/;
+const APPEARANCE_TIP = /how the app looks/i;
 vi.mock('../../Tooltip/Tooltip', () => ({
-  default: ({ children, suppressed }: { children: React.ReactNode; suppressed?: boolean }) => {
-    if (suppressed !== undefined) tooltipSuppressed.push(suppressed);
+  default: ({ children, content, suppressed }: { children: React.ReactNode; content: React.ReactNode; suppressed?: boolean }) => {
+    if (suppressed !== undefined) tooltipSuppressed.push({ content: String(content), suppressed });
     return <>{children}</>;
   },
 }));
@@ -184,15 +192,15 @@ describe('interface language in Help', () => {
     render(<HelpSection />);
     tooltipSuppressed.length = 0;
     fireEvent.focus(picker());
-    await vi.waitFor(() => expect(lastSuppressed()).toBe(true));
+    await vi.waitFor(() => expect(lastSuppressed(LANGUAGE_TIP)).toBe(true));
   });
 
   it('restores the tooltip when the picker is left', async () => {
     render(<HelpSection />);
     fireEvent.focus(picker());
-    await vi.waitFor(() => expect(lastSuppressed()).toBe(true));
+    await vi.waitFor(() => expect(lastSuppressed(LANGUAGE_TIP)).toBe(true));
     fireEvent.blur(picker());
-    await vi.waitFor(() => expect(lastSuppressed()).toBe(false));
+    await vi.waitFor(() => expect(lastSuppressed(LANGUAGE_TIP)).toBe(false));
   });
 
   // A <select> fires change on every arrow-key step, so holding a direction
@@ -392,44 +400,64 @@ describe('the update check’s result on its link (spec 2026-10-05 §5)', () => 
   });
 });
 
-// Appearance (spec 2026-10-22 §4): the labelled segmented control the
-// microphone block uses for noise suppression, copied class for class, under
-// the Help heading. The class structure is pinned because nothing else in the
-// toolchain checks it: a bare .segmented-control outside that wrapper is
-// unstyled.
+// Appearance (spec 2026-10-22 §4): a help link in the shape of the interface
+// language beside it — an icon, and a native <select> whose chosen option is
+// the whole label — rather than a block of its own. The class structure is
+// pinned because it is what the shared select styling keys on.
 describe('appearance in Help', () => {
-  const control = () => document.querySelector('#help-section .noise-suppression-control');
+  const appearance = () => screen.getByLabelText(/^appearance$/i) as HTMLSelectElement;
+  const linkIndex = (el: Element) => Array.from(document.querySelectorAll('.help-links .help-link')).indexOf(el);
 
-  it('renders the Appearance control as the labelled segmented control, dark active', () => {
+  it('is a picker in the row of links, shaped like the interface language picker', () => {
     render(<HelpSection />);
-    const root = control();
-    expect(root).not.toBeNull();
-    expect(root!.querySelector('.noise-suppression-header > .noise-suppression-label')!.textContent).toBe('Appearance');
-    const options = Array.from(root!.querySelectorAll('.segmented-control.noise-suppression-modes > button.segmented-option'));
-    expect(options.map((b) => b.textContent)).toEqual(['System', 'Light', 'Dark']);
-    expect(options.map((b) => b.getAttribute('aria-pressed'))).toEqual(['false', 'false', 'true']);
-    expect(options.map((b) => b.classList.contains('active'))).toEqual([false, false, true]);
+    expect(appearance().classList.contains('help-link__select')).toBe(true);
+    const row = appearance().closest('.help-link--picker');
+    expect(row).not.toBeNull();
+    expect(row!.closest('.help-links')).not.toBeNull();
+    expect(row!.querySelector('svg')).not.toBeNull();
+    expect(document.querySelector('#help-section .noise-suppression-control')).toBeNull();
+    expect(document.querySelector('#help-section .segmented-control')).toBeNull();
   });
 
-  it('sits under the heading, before the links', () => {
+  it('offers System, Light and Dark in that order, with dark chosen', () => {
     render(<HelpSection />);
-    const help = document.querySelector('#help-section')!;
-    const order = Array.from(help.children).map((el) => el.tagName.toLowerCase() + (el.className ? '.' + el.className.split(' ')[0] : ''));
-    expect(order.indexOf('div.noise-suppression-control')).toBe(order.indexOf('h3') + 1);
-    expect(order.indexOf('div.noise-suppression-control')).toBeLessThan(order.indexOf('div.help-links'));
+    expect(Array.from(appearance().options).map((o) => o.textContent)).toEqual(['System', 'Light', 'Dark']);
+    expect(Array.from(appearance().options).map((o) => o.value)).toEqual(['system', 'light', 'dark']);
+    expect(appearance().value).toBe('dark');
+  });
+
+  it('follows the interface language picker directly', () => {
+    render(<HelpSection />);
+    expect(linkIndex(appearance().closest('.help-link')!)).toBe(linkIndex(picker().closest('.help-link')!) + 1);
   });
 
   it('picking Light writes the setting and tracks theme_changed', () => {
     render(<HelpSection />);
-    fireEvent.click(screen.getByRole('button', { name: 'Light' }));
+    fireEvent.change(appearance(), { target: { value: 'light' } });
     expect(setTheme).toHaveBeenCalledWith('light');
     expect(trackEvent).toHaveBeenCalledWith('theme_changed', { from: 'dark', to: 'light' });
   });
 
-  it('picking the current value writes nothing', () => {
+  it('a change to the current value writes nothing', () => {
     render(<HelpSection />);
-    fireEvent.click(screen.getByRole('button', { name: 'Dark' }));
+    fireEvent.change(appearance(), { target: { value: 'dark' } });
     expect(setTheme).not.toHaveBeenCalled();
     expect(trackEvent).not.toHaveBeenCalled();
+  });
+
+  // Unlike the language picker: it changes nothing a session depends on.
+  it('stays enabled while a session is running', () => {
+    render(<HelpSection isSessionActive />);
+    expect(appearance().disabled).toBe(false);
+    expect(appearance().closest('.help-link')!.classList.contains('disabled')).toBe(false);
+  });
+
+  it('drops its own tooltip while it has focus, and nobody else’s', async () => {
+    render(<HelpSection />);
+    fireEvent.focus(appearance());
+    await vi.waitFor(() => expect(lastSuppressed(APPEARANCE_TIP)).toBe(true));
+    expect(lastSuppressed(LANGUAGE_TIP)).toBe(false);
+    fireEvent.blur(appearance());
+    await vi.waitFor(() => expect(lastSuppressed(APPEARANCE_TIP)).toBe(false));
   });
 });

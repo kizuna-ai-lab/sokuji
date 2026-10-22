@@ -112,7 +112,7 @@
     "diagnosticLogs": "Nhật ký chẩn đoán",
     "diagnosticLogsTooltip": "Ghi lại hoạt động của ứng dụng để bạn đính kèm vào báo cáo lỗi. Tắt theo mặc định. Khi bật, nút “Nhật ký” xuất hiện trên thanh tiêu đề và cài đặt vẫn bật sau khi khởi động lại.",
     "appearance": "Giao diện",
-    "appearanceTooltip": "Giao diện của ứng dụng. “Theo hệ thống” dùng thiết lập sáng hoặc tối của hệ điều hành.",
+    "appearanceTooltip": "Giao diện của ứng dụng. “Hệ thống” dùng thiết lập sáng hoặc tối của hệ điều hành.",
     "appearanceMode": {
       "system": "Hệ thống",
       "light": "Sáng",

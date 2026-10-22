@@ -112,7 +112,7 @@
     "diagnosticLogs": "Diagnostic logs",
     "diagnosticLogsTooltip": "Record what the app does, so you can attach it to a bug report. Off by default. While on, a “Logs” button appears in the title bar, and the setting stays on after a restart.",
     "appearance": "Appearance",
-    "appearanceTooltip": "How the app looks. Follow system takes the operating system's light or dark setting.",
+    "appearanceTooltip": "How the app looks. System follows the operating system's light or dark setting.",
     "appearanceMode": {
       "system": "System",
       "light": "Light",

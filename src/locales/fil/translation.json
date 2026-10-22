@@ -112,7 +112,7 @@
     "diagnosticLogs": "Mga diagnostic log",
     "diagnosticLogsTooltip": "Itinatala ang ginagawa ng app para mailakip mo ito sa isang ulat ng bug. Naka-off bilang default. Habang naka-on, may lalabas na button na “Mga Log” sa title bar, at mananatili itong naka-on pagkatapos mag-restart.",
     "appearance": "Itsura",
-    "appearanceTooltip": "Kung paano mukhang ang app. Ang “Sundin ang system” ay gumagamit ng light o dark na setting ng operating system.",
+    "appearanceTooltip": "Kung paano mukhang ang app. Ang “System” ay gumagamit ng light o dark na setting ng operating system.",
     "appearanceMode": {
       "system": "System",
       "light": "Light",

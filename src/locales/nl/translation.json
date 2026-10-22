@@ -112,7 +112,7 @@
     "diagnosticLogs": "Diagnostische logboeken",
     "diagnosticLogsTooltip": "Legt vast wat de app doet, zodat je het bij een bugmelding kunt voegen. Standaard uit. Zolang dit aan staat, verschijnt er een knop ‘Logs’ in de titelbalk, en de instelling blijft aan na een herstart.",
     "appearance": "Weergave",
-    "appearanceTooltip": "Hoe de app eruitziet. “Systeem volgen” neemt de lichte of donkere instelling van het besturingssysteem over.",
+    "appearanceTooltip": "Hoe de app eruitziet. “Systeem” neemt de lichte of donkere instelling van het besturingssysteem over.",
     "appearanceMode": {
       "system": "Systeem",
       "light": "Licht",

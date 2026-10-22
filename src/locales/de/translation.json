@@ -112,7 +112,7 @@
     "diagnosticLogs": "Diagnoseprotokolle",
     "diagnosticLogsTooltip": "Zeichnet auf, was die App tut, damit Sie es einem Fehlerbericht beifügen können. Standardmäßig aus. Solange es aktiv ist, erscheint in der Titelleiste die Schaltfläche „Protokolle“, und die Einstellung bleibt auch nach einem Neustart aktiv.",
     "appearance": "Erscheinungsbild",
-    "appearanceTooltip": "Wie die App aussieht. „System folgen“ übernimmt die Hell-/Dunkel-Einstellung des Betriebssystems.",
+    "appearanceTooltip": "Wie die App aussieht. „System“ übernimmt die Hell-/Dunkel-Einstellung des Betriebssystems.",
     "appearanceMode": {
       "system": "System",
       "light": "Hell",

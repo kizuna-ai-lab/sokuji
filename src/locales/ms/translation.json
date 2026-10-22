@@ -112,7 +112,7 @@
     "diagnosticLogs": "Log diagnostik",
     "diagnosticLogsTooltip": "Merekod perkara yang dilakukan oleh aplikasi supaya anda boleh melampirkannya pada laporan pepijat. Dimatikan secara lalai. Apabila dihidupkan, butang “Log” muncul di bar tajuk, dan tetapan kekal hidup selepas dimulakan semula.",
     "appearance": "Penampilan",
-    "appearanceTooltip": "Rupa aplikasi. “Ikut sistem” menggunakan tetapan cerah atau gelap sistem pengendalian.",
+    "appearanceTooltip": "Rupa aplikasi. “Sistem” menggunakan tetapan cerah atau gelap sistem pengendalian.",
     "appearanceMode": {
       "system": "Sistem",
       "light": "Cerah",

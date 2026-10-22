@@ -112,7 +112,7 @@
     "diagnosticLogs": "Registos de diagnóstico",
     "diagnosticLogsTooltip": "Regista o que a aplicação faz, para que possa anexá-lo a um relatório de erro. Desativado por predefinição. Enquanto estiver ativado, aparece o botão «Registos» na barra de título, e a opção mantém-se ativa após reiniciar.",
     "appearance": "Aparência",
-    "appearanceTooltip": "O aspeto da aplicação. “Seguir o sistema” usa a definição clara ou escura do sistema operativo.",
+    "appearanceTooltip": "O aspeto da aplicação. “Sistema” usa a definição clara ou escura do sistema operativo.",
     "appearanceMode": {
       "system": "Sistema",
       "light": "Claro",

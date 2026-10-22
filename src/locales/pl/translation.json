@@ -112,7 +112,7 @@
     "diagnosticLogs": "Dzienniki diagnostyczne",
     "diagnosticLogsTooltip": "Rejestruje działanie aplikacji, aby można było dołączyć dziennik do zgłoszenia błędu. Domyślnie wyłączone. Po włączeniu na pasku tytułu pojawia się przycisk „Logi”, a ustawienie pozostaje włączone po ponownym uruchomieniu.",
     "appearance": "Wygląd",
-    "appearanceTooltip": "Wygląd aplikacji. „Jak w systemie” przejmuje jasne lub ciemne ustawienie systemu operacyjnego.",
+    "appearanceTooltip": "Wygląd aplikacji. „System” przejmuje jasne lub ciemne ustawienie systemu operacyjnego.",
     "appearanceMode": {
       "system": "System",
       "light": "Jasny",
