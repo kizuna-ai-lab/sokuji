@@ -10,6 +10,7 @@ const { setupCaptionShare } = require('./caption-share.js');
 const { createCloseHandshake } = require('./close-handshake.js');
 const { createWsHeaderRules } = require('./ws-header-rules.js');
 const { applyLinuxGpuFlags } = require('./linux-gpu-flags');
+const { captureSourceMode, listCaptureSources } = require('./capture-sources');
 const { acquireSingleInstanceLock, createFocusRelay } = require('./single-instance');
 const { ignoreStdioErrors, createExitHandler } = require('./exit-handler');
 
@@ -1292,5 +1293,48 @@ ipcMain.handle('check-screen-recording-permission', async () => {
     console.error('[Sokuji] [Main] Error checking screen recording permission:', error);
     return { status: 'unknown', platform: 'darwin', error: error.message };
   }
+});
+
+// Screen context: the picker's two questions
+// (docs/superpowers/specs/2026-10-22-qwen-screen-context-design.md). The logic is
+// in capture-sources.js, which takes every Electron object from here.
+
+/** The Screen Recording status; macOS is the only platform that has one. */
+const screenRecordingStatus = () =>
+  (process.platform === 'darwin' ? systemPreferences.getMediaAccessStatus('screen') : 'granted');
+
+/** How the picker gets its choices ('list', or 'portal' on Wayland), and the status that gates the list. */
+ipcMain.handle('capture-source-mode', async () => ({
+  mode: captureSourceMode(process.platform, process.env),
+  screenRecording: screenRecordingStatus(),
+}));
+
+/**
+ * The windows and screens to pick from. The status is read first because a
+ * getSources() call while it is 'not-determined' is what raises the macOS
+ * prompt, which the picker wants (check-screen-recording-permission above never
+ * asks, it only reports); once it is 'denied' getSources() must not be asked at
+ * all, and listCaptureSources answers the refusal instead. On a 'portal'
+ * desktop (Wayland) the same call opens the portal's own chooser and answers
+ * the single source the user picked there.
+ */
+ipcMain.handle('list-capture-sources', async () => {
+  return listCaptureSources({
+    screenRecording: screenRecordingStatus,
+    getSources: async () => {
+      const sources = await desktopCapturer.getSources({
+        types: ['window', 'screen'],
+        thumbnailSize: { width: 320, height: 180 },
+        fetchWindowIcons: true,
+      });
+      return sources.map((source) => ({
+        id: source.id,
+        name: source.name,
+        thumbnail: source.thumbnail.toDataURL(),
+        appIcon: source.appIcon ? source.appIcon.toDataURL() : null,
+      }));
+    },
+    ownIds: () => BrowserWindow.getAllWindows().map((window) => window.getMediaSourceId()),
+  });
 });
 
