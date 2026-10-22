@@ -553,8 +553,7 @@
       "vocabularyTranslationsPlaceholder": "Une entrée source=cible par ligne",
       "screenContext": "Contexte d'écran",
       "screenContextTooltip": "Permet au moteur Qwen de voir une fenêtre, un onglet ou un écran que vous choisissez au démarrage d'une session, afin que les noms et les termes qui s'y trouvent soient reconnus et traduits tels qu'ils sont écrits. Tout ce qui se trouve dans cette zone est envoyé sous forme d'images au service Qwen d'Alibaba Cloud, dans la région de cette session ; Kizuna AI ne les reçoit jamais. Tant que c'est activé, cela s'ajoute au coût de chaque seconde de parole — sur votre facture Alibaba Cloud avec votre propre clé, ou selon la page des tarifs de votre compte avec un compte Kizuna AI ; en mode Les deux, la session de chaque sens est facturée.",
-      "screenContextBeta": "Beta",
-      "screenContextWhere": "Les images de cette zone vont au service Qwen d'Alibaba Cloud, dans la région de cette session ; Kizuna AI ne les reçoit jamais. Dans l'application de bureau, vous choisissez la fenêtre ou l'écran au démarrage de la session ; dans l'extension de navigateur, l'onglet de la réunion est utilisé."
+      "screenContextBeta": "Beta"
     },
     "local_inference": {
       "name": "Gratuit",

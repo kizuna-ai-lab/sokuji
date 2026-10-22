@@ -107,9 +107,9 @@ describe('QwenSettingsView (spec §4, §7)', () => {
     expect(words).toMatch(/Alibaba Cloud/);
     expect(words).toMatch(/Kizuna AI never receives them/);
     expect(words).not.toMatch(/[$¥%\d]/);
-    // Where the pictures go is on the line always shown, not only in the tooltip.
-    expect(row.textContent).toMatch(/Alibaba Cloud's Qwen service/);
-    expect(row.textContent).toMatch(/Kizuna AI never receives them/);
+    // No line under the switch (owner, 2026-10-22): where the pictures go is the tooltip's, and the picker's privacy line.
+    expect(row.querySelector('.setting-description')).toBeNull();
+    expect(tooltips).toMatch(/Alibaba Cloud's Qwen service/);
     // The charge is per second of speech, whichever account pays it.
     expect(tooltips).toMatch(/for every second of speech/);
     expect(tooltips).toMatch(/Alibaba Cloud bill with your own key/);
