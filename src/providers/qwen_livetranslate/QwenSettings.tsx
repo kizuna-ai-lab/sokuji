@@ -142,9 +142,10 @@ function PickedSourceButton({ picked, disabled, onChoose }: { picked: PickedSour
   const { t } = useTranslation();
   if (picked?.kind === 'portal') {
     const atStart = t('providers.qwen_livetranslate.screenContextAtStart', 'At start');
+    // One image, named At start, its title the full sentence (the description a screen reader reads); what is inside is drawing.
     return (
-      <span className="qwen-screen-context__at-start" title={t('providers.qwen_livetranslate.screenContextPortal', 'The system asks which window or screen when the session starts.')}>
-        <span className="qwen-screen-context__timer" role="img" aria-label={atStart}><Timer size={14} aria-hidden /></span>
+      <span className="qwen-screen-context__at-start" role="img" aria-label={atStart} title={t('providers.qwen_livetranslate.screenContextPortal', 'The system asks which window or screen when the session starts.')}>
+        <span className="qwen-screen-context__timer" aria-hidden="true"><Timer size={14} /></span>
         <span className="qwen-screen-context__caption" aria-hidden="true">{atStart}</span>
       </span>
     );

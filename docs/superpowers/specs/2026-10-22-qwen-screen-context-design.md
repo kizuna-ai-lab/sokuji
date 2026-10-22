@@ -93,13 +93,17 @@ face-to-face mode (not available with Qwen at all).
   Alibaba Cloud's Qwen service, in the region of this session, as pictures — nothing else on your screen.
   Kizuna AI does not receive them."*
 - The source is chosen in the settings, before the session (owner's rulings, §8). On the desktop, turning
-  the switch on (idle) opens the picker at once: a pick turns the switch on and is shown under it — *"The
-  model will see: {name}"* with **Change** and **Clear** — and a cancel leaves the switch off. On Wayland
-  there is nothing to show before Start (the system's own chooser is the picker, and its listing is what
-  opens it): turning the switch on holds that chooser with no modal, and the line says only that the system
-  asks which window or screen when the session starts. Turning the switch off lets the pick go. While a run
-  is not idle, and while Start checks an area, the switch and its buttons are locked. The extension has no
-  picker: its switch just flips, and the meeting tab is used.
+  the switch on (idle) opens the picker at once: a pick turns the switch on, and a cancel leaves it off. The
+  choice is shown in the switch's own line, between the help and the switch (one line, option B, owner
+  2026-10-22): the chosen window's picture (the picker's listing thumbnail), its name beside it when the row
+  is wide, named and titled *"The model will see: {name}"*; a click opens the picker again (a pick replaces
+  it, a cancel keeps it). With nothing held (after an app restart) the picture's place is a dashed **+**
+  slot, named **Choose…**, asked at Start if left empty. On Wayland there is nothing to show before Start
+  (the system's own chooser is the picker, and its listing is what opens it): turning the switch on holds
+  that chooser with no modal, and the line shows a timer icon (**At start**), titled with the fact that the
+  system asks which window or screen when the session starts. Turning the switch off clears the choice, so
+  there is no Clear. While a run is not idle, and while Start checks an area, the switch and the chip are
+  locked. The extension has no picker: its switch just flips, and the meeting tab is used.
 - The pick is kept in memory only, never written to settings (a window id dies with the window; a title
   match is unreliable): it survives from session to session within one app run, and an app restart clears
   it — the switch, which is persisted, then reads *"No window chosen yet: you'll be asked when the session
@@ -264,8 +268,10 @@ crop to the largest video element and meeting-tab-only; §5 the pre-build probes
 ## 8. Owner's rulings on choosing the source in the settings (2026-10-22)
 
 1. Turning the **Screen context** switch on (desktop, idle) opens the picker at once. A pick turns the switch
-   on and is shown under it with **Change** and **Clear**; a cancel leaves the switch off. The extension has
-   no picker: its switch just flips (the meeting tab is used).
+   on; a cancel leaves it off. The choice is a chip in the switch's own line, between the help and the switch:
+   the chosen window's picture, its name beside it when the row is wide, a click to change it; a dashed **+**
+   slot when nothing is held; a timer icon on Wayland, where the system asks at Start. Turning the switch off
+   clears the choice. The extension has no picker: its switch just flips (the meeting tab is used).
 2. Start no longer asks when a usable pick is held: it opens that source. Only when the picked window is gone
    (its capture fails to open) or shows nothing (no first frame) does the picker open at Start, saying why.
 3. **Start without screen context** in the Start-time picker turns the switch off (the setting and the run

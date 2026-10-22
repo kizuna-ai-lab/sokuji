@@ -2453,6 +2453,8 @@
 
   // The toggle's own 8px top margin sat it 4px below the chip's centre; here label, chip and switch share one line.
   .setting-row__switch { margin-top: 0; }
+  // The chip's height with or without the chip, so flipping the switch moves nothing below it.
+  .setting-row__head { min-height: 26px; }
 }
 // The window held: its picture, its name, and a select's chevron, smaller — a 26px chip in the control colours.
 // A grid so the name counts for nothing in the chip's minimum: the chip gives way down to the picture alone.

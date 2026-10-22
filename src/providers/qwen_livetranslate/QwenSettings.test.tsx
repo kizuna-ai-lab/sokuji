@@ -270,11 +270,15 @@ describe('Screen context — the area chosen in the settings (owner, 2026-10-22,
     picker();
     sc().setPicked({ kind: 'portal' });
     render(<QwenSettingsView settings={ON} update={vi.fn()} />);
-    const atStart = accessory()!.querySelector('.qwen-screen-context__at-start')!;
+    // One element carries both: named At start, the system's chooser its title (a description, read without a mouse).
+    const atStart = within(accessory()!).getByRole('img', { name: 'At start' });
+    expect(atStart).toHaveClass('qwen-screen-context__at-start');
     expect(atStart).toHaveAttribute('title', 'The system asks which window or screen when the session starts.');
-    const icon = within(atStart as HTMLElement).getByRole('img', { name: 'At start' });
-    expect(icon.querySelector('svg')).not.toBeNull();
-    // The words are what the icon is named, so they are hidden from the accessibility tree (not read twice).
+    expect(atStart).toHaveAccessibleDescription('The system asks which window or screen when the session starts.');
+    // Inside it, the timer and the words are presentational: not read on their own.
+    const timer = atStart.querySelector('.qwen-screen-context__timer')!;
+    expect(timer.querySelector('svg')).not.toBeNull();
+    expect(timer).toHaveAttribute('aria-hidden', 'true');
     const words = atStart.querySelector('.qwen-screen-context__caption')!;
     expect(words.textContent).toBe('At start');
     expect(words).toHaveAttribute('aria-hidden', 'true');
@@ -353,9 +357,9 @@ describe('Screen context — the area chosen in the settings (owner, 2026-10-22,
 
   it('a one-word label may break at its seam when the chip leaves it no room (the 300px panel): a soft hyphen in German and Dutch, a zero-width space in Japanese', () => {
     const label = (catalog: typeof en) => (catalog.providers.qwen_livetranslate as Record<string, string>).screenContext;
-    expect(label(de)).toBe('Bildschirm­kontext');
-    expect(label(nl)).toBe('Scherm­context');
-    expect(label(ja)).toBe('画面​コンテキスト');
+    expect(label(de)).toBe('Bildschirm\u00ADkontext');
+    expect(label(nl)).toBe('Scherm\u00ADcontext');
+    expect(label(ja)).toBe('画面\u200Bコンテキスト');
   });
 
   it('the managed view shows the same choice', () => {
@@ -429,6 +433,10 @@ describe('Screen context — the area chosen in the settings (owner, 2026-10-22,
 
     it("the switch shares the chip's centre line: this row drops the toggle's stray top margin", () => {
       expect(rule('.qwen-screen-context .setting-row__switch')).toMatch(/margin-top:\s*0/);
+    });
+
+    it("the head is the chip's height whether or not the chip shows, so flipping the switch moves nothing", () => {
+      expect(rule('.qwen-screen-context .setting-row__head')).toMatch(/min-height:\s*26px/);
     });
 
     it('the caption line and its keys are gone', () => {
