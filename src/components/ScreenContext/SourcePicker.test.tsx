@@ -121,7 +121,7 @@ describe('SourcePicker', () => {
   });
 
   it('says the window chosen before is gone when Start could not open it', () => {
-    const line = 'The window you chose is no longer available. Pick another, or start without screen context.';
+    const line = "The window or screen you chose can't be captured right now. Pick another, or start without screen context.";
     const { rerender } = render(<SourcePicker {...props()} />);
     expect(dialog().textContent).not.toContain(line);
     rerender(<SourcePicker {...props({ reason: 'gone' })} />);
@@ -171,6 +171,26 @@ describe('SourcePicker', () => {
     expect(dialog().textContent).not.toContain('start without screen context');
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(p.onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("at Start a click beside the modal does not dismiss it: only its X and Start without do (both turn the switch off)", () => {
+    const p = props();
+    render(<SourcePicker {...p} />);
+    fireEvent.click(document.querySelector('.modal-overlay')!);
+    expect(p.onCancel).not.toHaveBeenCalled();
+    expect(dialog()).toBeInTheDocument();
+    fireEvent.click(document.querySelector('.modal-header .close-button')!);
+    expect(p.onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('from the settings or Choose again, a click beside the modal is a Cancel', () => {
+    for (const purpose of ['settings', 'choose-again'] as const) {
+      const p = props({ purpose });
+      const { unmount } = render(<SourcePicker {...p} />);
+      fireEvent.click(document.querySelector('.modal-overlay')!);
+      expect(p.onCancel).toHaveBeenCalledTimes(1);
+      unmount();
+    }
   });
 
   it('draws nothing while closed', () => {

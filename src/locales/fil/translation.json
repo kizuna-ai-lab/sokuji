@@ -1594,7 +1594,7 @@
       "cancel": "Magsimula nang walang konteksto ng screen",
       "nothingVisible": "Walang ipinapakita ngayon ang lugar na pinili mo. Pumili ng iba, o magsimula nang walang konteksto ng screen.",
       "nothingVisibleRunning": "Walang ipinapakita ngayon ang lugar na pinili mo. Pumili ng iba, o hayaan ang session gaya ng dati.",
-      "gone": "Hindi na available ang window na pinili mo. Pumili ng iba, o magsimula nang walang konteksto ng screen.",
+      "gone": "Hindi makuha ngayon ang window o screen na pinili mo. Pumili ng iba, o magsimula nang walang konteksto ng screen.",
       "checking": "Sinusuri ang larawan…"
     },
     "chip": {

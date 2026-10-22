@@ -249,6 +249,67 @@ describe('useScreenContext — the picker for the settings (owner, 2026-10-22, r
   });
 });
 
+describe('useScreenContext — the settings and a Start asking at once', () => {
+  /** The settings' ask, through the store. */
+  async function askSettings(): Promise<{ answer: Promise<PickedSource | null> }> {
+    let answer!: Promise<PickedSource | null>;
+    act(() => { answer = useScreenContextStore.getState().pickSource!(); });
+    await flush();
+    return { answer };
+  }
+
+  it("a settings ask never cancels an open Start ask: it answers null at once, and the Start's picker stays", async () => {
+    ipc();
+    const { result } = renderHook(() => useScreenContext(session));
+    const start = await openPicker('gone');
+    const settings = await askSettings();
+    await expect(settings.answer).resolves.toBeNull();
+    expect(result.current.picker).toMatchObject({ open: true, purpose: 'start', reason: 'gone' });
+    act(() => { result.current.picker.onPick(SLIDES); });
+    await expect(start.answer).resolves.toEqual({ kind: 'desktop', source: SLIDES });
+  });
+
+  it('nor an open Choose again', async () => {
+    ipc();
+    const { result } = renderHook(() => useScreenContext(session));
+    act(() => { useScreenContextStore.setState({ sampler: SAMPLER, state: state() }); });
+    act(() => { result.current.chip!.onChooseAgain!(); });
+    const deps = chooseAgain.mock.calls[0][0] as { pick(reason?: PickReason): Promise<PickedSource | null> };
+    let again!: Promise<PickedSource | null>;
+    act(() => { again = deps.pick(); });
+    await flush();
+    const settings = await askSettings();
+    await expect(settings.answer).resolves.toBeNull();
+    expect(result.current.picker).toMatchObject({ open: true, purpose: 'choose-again' });
+    act(() => { result.current.picker.onPick(DESKTOP); });
+    await expect(again).resolves.toEqual({ kind: 'desktop', source: DESKTOP });
+  });
+
+  it("a Start ask while the settings' picker is open answers the settings with null, a Cancel there, and opens for the Start", async () => {
+    ipc();
+    const { result } = renderHook(() => useScreenContext(session));
+    const settings = await askSettings();
+    expect(result.current.picker).toMatchObject({ open: true, purpose: 'settings' });
+    const start = await openPicker();
+    await expect(settings.answer).resolves.toBeNull();
+    expect(result.current.picker).toMatchObject({ open: true, purpose: 'start' });
+    act(() => { result.current.picker.onPick(SLIDES); });
+    await expect(start.answer).resolves.toEqual({ kind: 'desktop', source: SLIDES });
+  });
+
+  it("Wayland: the settings' ask answers the portal at once, with no modal and no listing (the listing is what opens the system's chooser)", async () => {
+    const { channels } = ipc({ modes: [{ mode: 'portal', screenRecording: 'granted' }] });
+    const { result } = renderHook(() => useScreenContext(session));
+    let answer!: Promise<PickedSource | null>;
+    act(() => { answer = useScreenContextStore.getState().pickSource!(); });
+    expect(result.current.picker.open).toBe(false);
+    await flush();
+    await expect(answer).resolves.toEqual({ kind: 'portal' });
+    expect(result.current.picker.open).toBe(false);
+    expect(channels).toEqual(['capture-source-mode']);
+  });
+});
+
 describe('useScreenContext — checking the pick', () => {
   it('keeps the picker up, checking, from the pick until the first frame settles, with nothing to cancel', async () => {
     ipc();
@@ -263,6 +324,21 @@ describe('useScreenContext — checking the pick', () => {
     act(() => { result.current.picker.onCancel(); });
     expect(result.current.picker.open).toBe(true);
     act(() => { useScreenContextStore.setState({ preparing: false }); });
+    expect(result.current.picker.open).toBe(false);
+  });
+
+  it("a check that settles before any render (true then false at once) still ends the Start pick's: the next held check shows no picker", async () => {
+    ipc();
+    const { result } = renderHook(() => useScreenContext(session));
+    const start = await openPicker();
+    act(() => { result.current.picker.onPick(SLIDES); });
+    await expect(start.answer).resolves.toEqual({ kind: 'desktop', source: SLIDES });
+    act(() => {
+      useScreenContextStore.setState({ preparing: true });
+      useScreenContextStore.setState({ preparing: false });
+    });
+    expect(result.current.picker.open).toBe(false);
+    act(() => { useScreenContextStore.setState({ preparing: true }); });
     expect(result.current.picker.open).toBe(false);
   });
 

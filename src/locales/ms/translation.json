@@ -1594,7 +1594,7 @@
       "cancel": "Mula tanpa konteks skrin",
       "nothingVisible": "Kawasan yang anda pilih tidak menunjukkan apa-apa sekarang. Pilih yang lain, atau mula tanpa konteks skrin.",
       "nothingVisibleRunning": "Kawasan yang anda pilih tidak menunjukkan apa-apa sekarang. Pilih yang lain, atau biarkan sesi seperti sedia ada.",
-      "gone": "Tetingkap yang anda pilih tidak lagi tersedia. Pilih yang lain, atau mula tanpa konteks skrin.",
+      "gone": "Tetingkap atau skrin yang anda pilih tidak dapat dirakam sekarang. Pilih yang lain, atau mula tanpa konteks skrin.",
       "checking": "Menyemak gambar…"
     },
     "chip": {

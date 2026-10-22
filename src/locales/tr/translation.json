@@ -1594,7 +1594,7 @@
       "cancel": "Ekran bağlamı olmadan başlat",
       "nothingVisible": "Seçtiğiniz alan şu anda hiçbir şey göstermiyor. Başka bir alan seçin veya ekran bağlamı olmadan başlatın.",
       "nothingVisibleRunning": "Seçtiğiniz alan şu anda hiçbir şey göstermiyor. Başka bir alan seçin veya oturumu olduğu gibi bırakın.",
-      "gone": "Seçtiğiniz pencere artık kullanılamıyor. Başka bir pencere seçin veya ekran bağlamı olmadan başlatın.",
+      "gone": "Seçtiğiniz pencere veya ekran şu anda yakalanamıyor. Başka bir şey seçin veya ekran bağlamı olmadan başlatın.",
       "checking": "Görüntü kontrol ediliyor…"
     },
     "chip": {

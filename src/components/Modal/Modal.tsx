@@ -7,13 +7,15 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  /** A click on the backdrop closes it (default); false where closing is a choice that must be made on purpose — the X still closes. */
+  dismissOnBackdrop?: boolean;
 }
 
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
+const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, dismissOnBackdrop = true }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={dismissOnBackdrop ? onClose : undefined}>
       <div className="modal-content" role="dialog" aria-modal="true" aria-label={title} onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h3>{title}</h3>

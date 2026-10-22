@@ -1594,7 +1594,7 @@
       "cancel": "Iniciar sem contexto do ecrã",
       "nothingVisible": "A área que escolheu não mostra nada neste momento. Escolha outra ou inicie sem contexto do ecrã.",
       "nothingVisibleRunning": "A área que escolheu não mostra nada neste momento. Escolha outra ou deixe a sessão como está.",
-      "gone": "A janela que escolheu já não está disponível. Escolha outra ou inicie sem contexto do ecrã.",
+      "gone": "Não é possível capturar neste momento a janela ou ecrã que escolheu. Escolha outra opção ou inicie sem contexto do ecrã.",
       "checking": "A verificar a imagem…"
     },
     "chip": {

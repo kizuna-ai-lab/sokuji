@@ -7,8 +7,11 @@
  * settings `pickSource` (the screen-context store): each call opens the picker
  * with what the main process offers — the mode, the windows and screens, or
  * macOS's refusal — and answers with the pick, the portal's button, or null on
- * Cancel. Every call settles: a second pick answers the first with null, and an
- * unmount answers the open one with null and takes both away. While the session
+ * Cancel. Every call settles: a second pick answers the first with null — but a
+ * settings ask never takes the picker from a Start or Choose again, and is the
+ * one answered null — and an unmount answers the open one with null and takes
+ * both away. On Wayland the settings' ask answers the portal's button with no
+ * modal: the system's chooser opens at Start. While the session
  * checks the area a Start-time pick chose for a first frame (the store's
  * `preparing`) the picker stays up, checking; the check of an area held from
  * before shows on Start alone, since nothing was asked. The extension has no
@@ -57,33 +60,58 @@ export function useScreenContext(session: Pick<AppSession, 'setBridges'>): Scree
   const [picker, setPicker] = useState<OpenPicker | null>(null);
   /** Answers the open pick; null when none is open. */
   const answer = useRef<((picked: PickedSource | null) => void) | null>(null);
+  /** Who the open pick answers; null when none is open. */
+  const openPurpose = useRef<Purpose | null>(null);
   /** A Start-time pick was answered, so its check shows in the picker; until that check settles. */
   const [startPicked, setStartPicked] = useState(false);
 
   const ask = useCallback((reason: PickReason | undefined, purpose: Purpose) => new Promise<PickedSource | null>((resolve) => {
+    // The settings never take the picker from a Start or a Choose again: their ask is answered as a Cancel at once.
+    if (purpose === 'settings' && answer.current && openPurpose.current !== 'settings') {
+      resolve(null);
+      return;
+    }
     // One picker at a time: an open one is answered as a Cancel.
     answer.current?.(null);
     const settle = (picked: PickedSource | null) => {
       if (answer.current !== settle) return;
       answer.current = null;
+      openPurpose.current = null;
       // The answer first: a pick's check (`preparing`) lands in the same render as the list closing, so the modal never blinks.
       resolve(picked);
       setStartPicked(picked !== null && purpose === 'start');
       setPicker(null);
     };
     answer.current = settle;
-    setPicker({ reason, purpose, refreshing: false, mode: 'list', screenRecording: 'granted', sources: null });
-    void readChoices().then((choices) => {
-      if (answer.current === settle) setPicker({ reason, purpose, refreshing: false, ...choices });
-    });
+    openPurpose.current = purpose;
+    const show = () => {
+      setPicker({ reason, purpose, refreshing: false, mode: 'list', screenRecording: 'granted', sources: null });
+      void readChoices().then((choices) => {
+        if (answer.current === settle) setPicker({ reason, purpose, refreshing: false, ...choices });
+      });
+    };
+    if (purpose !== 'settings') {
+      show();
+      return;
+    }
+    // Wayland: the system's chooser is the picker, and it opens at Start; the settings hold the portal's button without
+    // a modal whose one button would choose nothing (and with no listing, which is what opens that chooser).
+    void captureSourceMode(invoke).then(
+      ({ mode }) => {
+        if (answer.current !== settle) return;
+        if (mode === 'portal') settle({ kind: 'portal' });
+        else show();
+      },
+      // The list's own read asks again, and says why it failed.
+      () => { if (answer.current === settle) show(); },
+    );
   }), []);
 
-  // A check that settles ends the Start-time pick's: a later Start opening the held area asks nothing, so shows no picker.
-  const wasPreparing = useRef(preparing);
-  useEffect(() => {
-    if (wasPreparing.current && !preparing) setStartPicked(false);
-    wasPreparing.current = preparing;
-  }, [preparing]);
+  // A check that settles ends the Start-time pick's, so a later Start opening the held area (asking nothing) shows no
+  // picker. Read off the store as it changes: a check that flips true then false before any render leaves no render to see.
+  useEffect(() => useScreenContextStore.subscribe((now, before) => {
+    if (before.preparing && !now.preparing) setStartPicked(false);
+  }), []);
 
   /** The list again, for the picker still open: what is listed stays up while the desktop answers, then what it lists now. A closed picker asks nothing. */
   const refresh = useCallback(() => {

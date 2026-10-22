@@ -1594,7 +1594,7 @@
       "cancel": "Avvia senza contesto dello schermo",
       "nothingVisible": "L'area che hai scelto al momento non mostra nulla. Scegline un'altra o avvia senza contesto dello schermo.",
       "nothingVisibleRunning": "L'area che hai scelto al momento non mostra nulla. Scegline un'altra o lascia la sessione così com'è.",
-      "gone": "La finestra che hai scelto non è più disponibile. Scegline un'altra o avvia senza contesto dello schermo.",
+      "gone": "Al momento non è possibile catturare la finestra o lo schermo che hai scelto. Fai un'altra scelta o avvia senza contesto dello schermo.",
       "checking": "Controllo dell'immagine…"
     },
     "chip": {

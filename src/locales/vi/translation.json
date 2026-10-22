@@ -1594,7 +1594,7 @@
       "cancel": "Bắt đầu không có ngữ cảnh màn hình",
       "nothingVisible": "Vùng bạn chọn hiện không hiển thị gì. Hãy chọn vùng khác, hoặc bắt đầu không có ngữ cảnh màn hình.",
       "nothingVisibleRunning": "Vùng bạn chọn hiện không hiển thị gì. Hãy chọn vùng khác, hoặc giữ nguyên phiên như hiện tại.",
-      "gone": "Cửa sổ bạn chọn không còn khả dụng. Hãy chọn cửa sổ khác, hoặc bắt đầu không có ngữ cảnh màn hình.",
+      "gone": "Hiện không thể ghi lại cửa sổ hoặc màn hình bạn đã chọn. Hãy chọn mục khác, hoặc bắt đầu không có ngữ cảnh màn hình.",
       "checking": "Đang kiểm tra hình ảnh…"
     },
     "chip": {

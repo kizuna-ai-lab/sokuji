@@ -40,7 +40,7 @@ const props = (patch: Partial<SettingsProps<QwenSettings>> = {}): SettingsProps<
 beforeEach(() => {
   library.length = 0;
   env.electron = false;
-  useScreenContextStore.setState({ picked: null, pickSource: null });
+  useScreenContextStore.setState({ picked: null, pickSource: null, preparing: false });
 });
 
 describe('QwenSettingsView (spec §4, §7)', () => {
@@ -228,13 +228,12 @@ describe('Screen context — the area chosen in the settings (owner, 2026-10-22,
     expect(update).not.toHaveBeenCalled();
   });
 
-  it("while on with the portal's button held, says the system asks at Start, with Change and no Clear", () => {
+  it("while on with the portal's button held (Wayland), says only that the system asks at Start: no button chooses anything here", () => {
     picker();
     sc().setPicked({ kind: 'portal' });
     render(<QwenSettingsView settings={ON} update={vi.fn()} />);
     expect(line()?.textContent).toContain('The system asks which window or screen when the session starts.');
-    expect(button('Change')).not.toBeNull();
-    expect(button('Clear')).toBeNull();
+    expect(line()?.querySelectorAll('button')).toHaveLength(0);
   });
 
   it('while on with nothing held (an app restart keeps the switch, never the window), says so, with Choose…', async () => {
@@ -275,6 +274,30 @@ describe('Screen context — the area chosen in the settings (owner, 2026-10-22,
     sc().setPicked(null);
     render(<QwenSettingsView settings={ON} update={vi.fn()} />);
     expect(button('Choose…')).toBeDisabled();
+  });
+
+  it("locks the switch and every button while Start checks the area (the runner is still idle then)", () => {
+    const update = vi.fn();
+    const { pickSource } = picker();
+    sc().setPicked({ kind: 'desktop', source: SLIDES });
+    useScreenContextStore.setState({ preparing: true });
+    const { unmount } = render(<QwenSettingsView settings={ON} update={update} />);
+    const sw = screen.getByRole('switch', { name: 'Screen context' });
+    expect(sw).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(sw);
+    expect(update).not.toHaveBeenCalled();
+    expect(button('Change')).toBeDisabled();
+    expect(button('Clear')).toBeDisabled();
+    unmount();
+
+    sc().setPicked(null);
+    render(<QwenSettingsView settings={ON} update={update} />);
+    expect(button('Choose…')).toBeDisabled();
+    expect(pickSource).not.toHaveBeenCalled();
+
+    // Settled: unlocked again.
+    act(() => { useScreenContextStore.setState({ preparing: false }); });
+    expect(button('Choose…')).not.toBeDisabled();
   });
 
   it('the extension has no picker: the switch just flips, and no line is drawn (the meeting tab is used)', () => {

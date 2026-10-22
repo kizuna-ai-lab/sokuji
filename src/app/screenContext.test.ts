@@ -204,21 +204,33 @@ describe('prepareScreenContext — the desktop', () => {
     expect(store().sampler!.source.name).toBe('Slides');
   });
 
-  it('a portal that returns nothing, or a listing the desktop refuses, starts without frames and never throws', async () => {
-    // The portal's own Cancel: the user's answer, nothing to warn about.
+  it("Wayland: the system chooser's own Cancel at Start is Start without screen context — the switch goes off, the pick goes", async () => {
+    // The user's answer, nothing to warn about.
     const cancelled = deps({ picks: [{ kind: 'portal' }], invoke: vi.fn(async () => ({ ok: true, sources: [] })) });
     await prepareScreenContext('electron', { legs: ['speaker'] }, cancelled);
     expect(cancelled.openDesktop).not.toHaveBeenCalled();
     expect(store().sampler).toBeNull();
     expect(reportWarning).not.toHaveBeenCalled();
+    expect(cancelled.turnOff).toHaveBeenCalledTimes(1);
+    expect(store().picked).toBeNull();
 
-    // Each part a first Start: nothing held from the one before.
-    store().setPicked(null);
+    // The same for a portal pick held from the settings: Sokuji's picker is never asked.
+    const held = deps({ invoke: vi.fn(async () => ({ ok: true, sources: [] })) });
+    store().setPicked({ kind: 'portal' });
+    await prepareScreenContext('electron', { legs: ['speaker'] }, held);
+    expect(held.pick).not.toHaveBeenCalled();
+    expect(held.turnOff).toHaveBeenCalledTimes(1);
+    expect(store().picked).toBeNull();
+  });
+
+  it('a listing the desktop refuses starts without frames, says why, and leaves the switch and the pick as they were', async () => {
     const refused = deps({ picks: [{ kind: 'portal' }], invoke: vi.fn(async () => ({ ok: false, error: 'screen-recording-denied' })) });
-    await prepareScreenContext('electron', { legs: ['speaker'] }, refused);
+    await expect(prepareScreenContext('electron', { legs: ['speaker'] }, refused)).resolves.toBeUndefined();
     expect(refused.openDesktop).not.toHaveBeenCalled();
     expect(store().sampler).toBeNull();
     expect(reportWarning).toHaveBeenLastCalledWith('ScreenContext', expect.stringContaining('screen-recording-denied'));
+    expect(refused.turnOff).not.toHaveBeenCalled();
+    expect(store().picked).toEqual({ kind: 'portal' });
   });
 
   it("a window picked at Start whose capture will not open asks the picker again with 'gone', as a held one does", async () => {

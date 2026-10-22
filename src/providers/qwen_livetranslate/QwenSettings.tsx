@@ -83,15 +83,19 @@ export function QwenSettingsView({ settings, update, disabled = false, participa
  * desktop turning it on opens the panel's picker (`pickSource`) at once: a pick
  * is held in memory (`picked`, never stored) and turns it on, a cancel leaves it
  * off; while on, a line under it says what the next Start opens — the window
- * held, the portal's own chooser, or nothing yet (asked at Start) — with
- * Change, Clear or Choose. Turning it off lets the pick go. The extension has
- * no picker: the switch just flips, and the meeting tab is used.
+ * held (Change, Clear), the system's own chooser (Wayland: nothing to choose
+ * here), or nothing yet, asked at Start (Choose). Turning it off lets the pick
+ * go. The extension has no picker: the switch just flips, and the meeting tab
+ * is used. Locked while a run is not idle, and while Start checks an area —
+ * the runner is still idle then.
  */
-function ScreenContextRow({ on, update, disabled }: { on: boolean; update: SettingsProps<S>['update']; disabled: boolean }) {
+function ScreenContextRow({ on, update, disabled: runLocked }: { on: boolean; update: SettingsProps<S>['update']; disabled: boolean }) {
   const { t } = useTranslation();
   const desktop = isElectron();
   const picked = useScreenContextStore((s) => s.picked);
   const pickSource = useScreenContextStore((s) => s.pickSource);
+  const preparing = useScreenContextStore((s) => s.preparing);
+  const disabled = runLocked || preparing;
 
   /** The panel's picker asked: a pick replaces the one held, a cancel keeps it. True on a pick. */
   const choose = async (): Promise<boolean> => {
@@ -134,11 +138,14 @@ function PickedLine({ picked, canChoose, disabled, onChoose }: { picked: PickedS
   return (
     <div className="qwen-screen-context__picked">
       <span className="qwen-screen-context__text" title={text}>{text}</span>
-      <button type="button" className="qwen-screen-context__button" onClick={onChoose} disabled={!canChoose}>
-        {picked === null
-          ? t('providers.qwen_livetranslate.screenContextChoose', 'Choose…')
-          : t('providers.qwen_livetranslate.screenContextChange', 'Change')}
-      </button>
+      {/* Wayland's chooser is the system's, at Start: a button here would choose nothing. */}
+      {picked?.kind !== 'portal' && (
+        <button type="button" className="qwen-screen-context__button" onClick={onChoose} disabled={!canChoose}>
+          {picked === null
+            ? t('providers.qwen_livetranslate.screenContextChoose', 'Choose…')
+            : t('providers.qwen_livetranslate.screenContextChange', 'Change')}
+        </button>
+      )}
       {picked?.kind === 'desktop' && (
         <button type="button" className="qwen-screen-context__button" onClick={() => useScreenContextStore.getState().setPicked(null)} disabled={disabled}>
           {t('providers.qwen_livetranslate.screenContextClear', 'Clear')}

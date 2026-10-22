@@ -1594,7 +1594,7 @@
       "cancel": "Mulai tanpa konteks layar",
       "nothingVisible": "Area yang Anda pilih tidak menampilkan apa pun saat ini. Pilih yang lain, atau mulai tanpa konteks layar.",
       "nothingVisibleRunning": "Area yang Anda pilih tidak menampilkan apa pun saat ini. Pilih yang lain, atau biarkan sesi seperti apa adanya.",
-      "gone": "Jendela yang Anda pilih sudah tidak tersedia. Pilih yang lain, atau mulai tanpa konteks layar.",
+      "gone": "Jendela atau layar yang Anda pilih tidak dapat ditangkap saat ini. Pilih yang lain, atau mulai tanpa konteks layar.",
       "checking": "Memeriksa gambar…"
     },
     "chip": {

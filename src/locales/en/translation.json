@@ -1594,7 +1594,7 @@
       "cancel": "Start without screen context",
       "nothingVisible": "The area you chose shows nothing right now. Pick another, or start without screen context.",
       "nothingVisibleRunning": "The area you chose shows nothing right now. Pick another, or keep the session as it is.",
-      "gone": "The window you chose is no longer available. Pick another, or start without screen context.",
+      "gone": "The window or screen you chose can't be captured right now. Pick another, or start without screen context.",
       "checking": "Checking the picture…"
     },
     "chip": {

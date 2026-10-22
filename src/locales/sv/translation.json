@@ -1594,7 +1594,7 @@
       "cancel": "Starta utan skärmkontext",
       "nothingVisible": "Området du valde visar ingenting just nu. Välj ett annat, eller starta utan skärmkontext.",
       "nothingVisibleRunning": "Området du valde visar ingenting just nu. Välj ett annat, eller låt sessionen vara som den är.",
-      "gone": "Fönstret du valde är inte längre tillgängligt. Välj ett annat, eller starta utan skärmkontext.",
+      "gone": "Fönstret eller skärmen du valde kan inte fångas just nu. Välj något annat, eller starta utan skärmkontext.",
       "checking": "Kontrollerar bilden…"
     },
     "chip": {

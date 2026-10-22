@@ -1594,7 +1594,7 @@
       "cancel": "Rozpocznij bez kontekstu ekranu",
       "nothingVisible": "Wybrany obszar nie pokazuje teraz niczego. Wybierz inny albo rozpocznij bez kontekstu ekranu.",
       "nothingVisibleRunning": "Wybrany obszar nie pokazuje teraz niczego. Wybierz inny albo zostaw sesję bez zmian.",
-      "gone": "Wybrane okno nie jest już dostępne. Wybierz inne albo rozpocznij bez kontekstu ekranu.",
+      "gone": "Wybranego okna lub ekranu nie można teraz przechwycić. Wybierz coś innego albo rozpocznij bez kontekstu ekranu.",
       "checking": "Sprawdzanie obrazu…"
     },
     "chip": {

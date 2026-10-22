@@ -1594,7 +1594,7 @@
       "cancel": "Ohne Bildschirmkontext starten",
       "nothingVisible": "Der gewählte Bereich zeigt gerade nichts an. Wählen Sie einen anderen oder starten Sie ohne Bildschirmkontext.",
       "nothingVisibleRunning": "Der gewählte Bereich zeigt gerade nichts an. Wählen Sie einen anderen oder lassen Sie die Sitzung, wie sie ist.",
-      "gone": "Das gewählte Fenster ist nicht mehr verfügbar. Wählen Sie ein anderes oder starten Sie ohne Bildschirmkontext.",
+      "gone": "Das gewählte Fenster oder der gewählte Bildschirm kann gerade nicht aufgenommen werden. Wählen Sie etwas anderes oder starten Sie ohne Bildschirmkontext.",
       "checking": "Bild wird geprüft…"
     },
     "chip": {

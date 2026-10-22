@@ -59,8 +59,8 @@ let held: { sampler: Sampler; capture: OpenCapture | null } | null = null;
 
 /**
  * Before a run. On Electron: opens the area the store holds (`picked`) without asking, or, when there is none, asks
- * `pick` (the modal) for a source — null is a cancel: the switch goes off (`turnOff`), the held pick goes, and the run
- * starts without. Every pick made here becomes the held pick. Each area opened is attached to a fresh sampler and
+ * `pick` (the modal) for a source — null is a cancel, and so is the system chooser's own Cancel (Wayland): the switch
+ * goes off (`turnOff`), the held pick goes, and the run starts without. Every pick made here becomes the held pick. Each area opened is attached to a fresh sampler and
  * checked for its first good frame (`first()`); a window whose capture will not open asks `pick('gone')`, and a null
  * first frame closes that capture and asks `pick('nothingVisible')` — held or just picked alike — until a frame comes
  * or the user cancels. On the extension: opens the
@@ -144,36 +144,41 @@ export async function chooseAgain(deps: Pick<ScreenContextDeps, 'pick' | 'invoke
 async function prepareDesktop(deps: ScreenContextDeps): Promise<void> {
   let next = useScreenContextStore.getState().picked;
   let reason: PickReason | undefined;
+  /** Start without screen context: the switch goes off with the pick (owner, 2026-10-22, ruling 3), so asked again when turned on. */
+  const startWithout = () => {
+    useScreenContextStore.getState().setPicked(null);
+    deps.turnOff();
+  };
   for (;;) {
     if (!next) {
       next = await deps.pick(reason);
       if (!next) {
-        // Start without screen context: the switch goes off with the pick (owner, 2026-10-22, ruling 3), so asked again when turned on.
-        useScreenContextStore.getState().setPicked(null);
-        deps.turnOff();
+        startWithout();
         return;
       }
       useScreenContextStore.getState().setPicked(next);
     }
     const picked = next;
     const kept = await preparing(() => openChecked(picked, deps));
-    // Kept, or nothing to keep (the portal's own Cancel, a listing that failed).
-    if (kept === true || kept === null) return;
+    // The system chooser's own Cancel (Wayland) is the same answer as the picker's Start without.
+    if (kept === 'cancelled') startWithout();
+    // Kept, cancelled, or nothing to keep (a listing that failed).
+    if (kept === true || kept === 'cancelled' || kept === null) return;
     reason = kept === 'gone' ? 'gone' : 'nothingVisible';
     next = null;
   }
 }
 
 /**
- * The picked area opened and checked (`hold`): true once kept, false when it showed nothing, null when there was
- * nothing to open (the portal's own Cancel, a listing that failed), `'gone'` when a window will not open — a window
- * id dies with its window, whether it was held from before or picked a moment ago. A portal pick's failures throw, as
+ * The picked area opened and checked (`hold`): true once kept, false when it showed nothing, `'cancelled'` when the
+ * system's chooser was cancelled, null when its listing failed, `'gone'` when a window will not open — a window id dies
+ * with its window, whether it was held from before or picked a moment ago. A portal pick's other failures throw, as
  * they always did.
  */
-async function openChecked(picked: PickedSource, deps: ScreenContextDeps): Promise<boolean | 'gone' | null> {
+async function openChecked(picked: PickedSource, deps: ScreenContextDeps): Promise<boolean | 'gone' | 'cancelled' | null> {
   if (picked.kind === 'portal') {
-    const capture = await openPicked(picked, deps);
-    return capture ? hold(capture, deps.clock) : null;
+    const opened = await openPortal(deps);
+    return opened === 'cancelled' || opened === null ? opened : hold(opened, deps.clock);
   }
   let capture: OpenCapture;
   try {
@@ -214,14 +219,19 @@ async function preparing<T>(work: () => Promise<T>): Promise<T> {
 /** The picked source opened; null when there is nothing to open (the portal's own Cancel, or a listing that failed). */
 async function openPicked(picked: PickedSource, deps: Pick<ScreenContextDeps, 'invoke' | 'openDesktop'>): Promise<OpenCapture | null> {
   if (picked.kind === 'desktop') return deps.openDesktop(picked.source);
-  // The portal's dialog opens with the listing, and returns the one source the user chose there.
+  const opened = await openPortal(deps);
+  return opened === 'cancelled' ? null : opened;
+}
+
+/** The portal's dialog opens with the listing, and returns the one source the user chose there: `'cancelled'` when they chose none, null when the listing failed. */
+async function openPortal(deps: Pick<ScreenContextDeps, 'invoke' | 'openDesktop'>): Promise<OpenCapture | 'cancelled' | null> {
   const listed = await listCaptureSources(deps.invoke);
   if (!listed.ok) {
     reportWarning('ScreenContext', `The desktop offered no source (${listed.error}); the session starts without screen context.`);
     return null;
   }
   const [chosen] = listed.sources;
-  return chosen ? deps.openDesktop(chosen) : null;
+  return chosen ? deps.openDesktop(chosen) : 'cancelled';
 }
 
 /**

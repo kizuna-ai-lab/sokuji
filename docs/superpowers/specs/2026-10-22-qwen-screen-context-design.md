@@ -94,19 +94,25 @@ face-to-face mode (not available with Qwen at all).
   Kizuna AI does not receive them."*
 - The source is chosen in the settings, before the session (owner's rulings, §8). On the desktop, turning
   the switch on (idle) opens the picker at once: a pick turns the switch on and is shown under it — *"The
-  model will see: {name}"* with **Change** and **Clear**; a portal pick says the system asks which window or
-  screen when the session starts, with **Change** — and a cancel leaves the switch off. Turning the switch
-  off lets the pick go. The extension has no picker: its switch just flips, and the meeting tab is used.
+  model will see: {name}"* with **Change** and **Clear** — and a cancel leaves the switch off. On Wayland
+  there is nothing to show before Start (the system's own chooser is the picker, and its listing is what
+  opens it): turning the switch on holds that chooser with no modal, and the line says only that the system
+  asks which window or screen when the session starts. Turning the switch off lets the pick go. While a run
+  is not idle, and while Start checks an area, the switch and its buttons are locked. The extension has no
+  picker: its switch just flips, and the meeting tab is used.
 - The pick is kept in memory only, never written to settings (a window id dies with the window; a title
   match is unreliable): it survives from session to session within one app run, and an app restart clears
   it — the switch, which is persisted, then reads *"No window chosen yet: you'll be asked when the session
   starts"* with **Choose…**. This is a choice the user made and sees in the settings; the picker itself
   still never pre-ticks a past choice.
 - Start opens the held source without asking. The picker opens at Start only when nothing usable is held:
-  nothing was chosen, the picked window is gone (its capture fails to open) or it shows nothing (no first
-  frame) — the last two saying why above the list. Its **Start without screen context** turns the switch
-  off, so the setting and the run agree, and turning it on again asks again. Every pick made at Start, and
-  a Choose again pick that shows a frame, becomes the held pick the settings show.
+  nothing was chosen, the picked window or screen cannot be captured (its capture fails to open — held or
+  picked a moment ago) or it shows nothing (no first frame) — the last two saying why above the list. Its
+  **Start without screen context** (or its X; a click beside it does nothing at Start) turns the switch off,
+  so the setting and the run agree, and turning it on again asks again; on Wayland, cancelling the system's
+  chooser at Start does the same, while a listing the desktop refuses starts without and leaves the switch
+  on. Every pick made at Start, and a Choose again pick that shows a frame, becomes the held pick the
+  settings show. A settings ask never takes the picker from a Start or a Choose again.
 - In **Both** mode both legs' sessions receive the frames (either side may refer to the screen).
 
 ### 3.2 Sending

@@ -28,7 +28,7 @@ export interface SourcePickerProps {
   sources: CaptureSourceInfo[] | null;   // null while loading
   /**
    * Why it is shown at Start, as a line above the list: the last pick yielded no frame (`picker.nothingVisible`;
-   * `nothingVisibleRunning` for Choose again), or the window held from before is gone (`picker.gone`).
+   * `nothingVisibleRunning` for Choose again), or the window or screen picked cannot be captured (`picker.gone`).
    */
   reason?: PickReason;
   /** The pick is answered and its area is checked for a first frame: nothing to choose, and Cancel is off. */
@@ -56,7 +56,8 @@ export function SourcePicker(p: SourcePickerProps) {
   };
 
   return (
-    <Modal isOpen={p.open} onClose={cancel} title={t('screenContext.picker.title', 'Choose what the model can see')}>
+    // At Start, closing is Start without screen context, which turns the switch off: the X and that button do it, a stray click beside the modal does not.
+    <Modal isOpen={p.open} onClose={cancel} dismissOnBackdrop={p.purpose !== 'start'} title={t('screenContext.picker.title', 'Choose what the model can see')}>
       <div className="source-picker">
         {denied ? (
           <div className="source-picker__denied">
@@ -93,7 +94,7 @@ export function SourcePicker(p: SourcePickerProps) {
                 )}
                 {p.reason === 'gone' && (
                   <p className="source-picker__reason" role="status">
-                    {t('screenContext.picker.gone', 'The window you chose is no longer available. Pick another, or start without screen context.')}
+                    {t('screenContext.picker.gone', "The window or screen you chose can't be captured right now. Pick another, or start without screen context.")}
                   </p>
                 )}
                 {p.mode === 'portal' ? (

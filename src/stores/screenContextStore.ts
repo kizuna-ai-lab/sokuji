@@ -27,7 +27,7 @@ export interface ScreenContextStore {
   preparing: boolean;
   /** The area the next Start opens without asking; null when nothing is chosen. Memory only: a run's end keeps it, an app restart clears it. */
   picked: PickedSource | null;
-  /** The panel's picker, for the settings to ask (desktop only); null while no panel is mounted. Null on Cancel. */
+  /** The panel's picker, for the settings to ask (desktop only); null while no panel is mounted. Answers null on Cancel, and at once while a Start's or Choose again's picker is open. */
   pickSource: ((reason?: PickReason) => Promise<PickedSource | null>) | null;
   set(sampler: Sampler | null): void;
   setState(state: SamplerState | null): void;

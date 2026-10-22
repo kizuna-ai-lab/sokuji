@@ -1594,7 +1594,7 @@
       "cancel": "Starten zonder schermcontext",
       "nothingVisible": "Het gekozen gebied laat op dit moment niets zien. Kies een ander gebied of start zonder schermcontext.",
       "nothingVisibleRunning": "Het gekozen gebied laat op dit moment niets zien. Kies een ander gebied of laat de sessie zoals hij is.",
-      "gone": "Het gekozen venster is niet meer beschikbaar. Kies een ander venster of start zonder schermcontext.",
+      "gone": "Het gekozen venster of scherm kan nu niet worden vastgelegd. Kies iets anders of start zonder schermcontext.",
       "checking": "Afbeelding controleren…"
     },
     "chip": {

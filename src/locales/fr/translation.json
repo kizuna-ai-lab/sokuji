@@ -1594,7 +1594,7 @@
       "cancel": "Démarrer sans contexte d'écran",
       "nothingVisible": "La zone choisie n'affiche rien pour l'instant. Choisissez-en une autre ou démarrez sans contexte d'écran.",
       "nothingVisibleRunning": "La zone choisie n'affiche rien pour l'instant. Choisissez-en une autre ou laissez la session telle quelle.",
-      "gone": "La fenêtre choisie n'est plus disponible. Choisissez-en une autre ou démarrez sans contexte d'écran.",
+      "gone": "La fenêtre ou l'écran choisi ne peut pas être capturé pour l'instant. Choisissez-en un autre ou démarrez sans contexte d'écran.",
       "checking": "Vérification de l'image…"
     },
     "chip": {

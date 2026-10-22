@@ -1594,7 +1594,7 @@
       "cancel": "Aloita ilman näytön kontekstia",
       "nothingVisible": "Valitsemasi alue ei näytä juuri nyt mitään. Valitse toinen tai aloita ilman näytön kontekstia.",
       "nothingVisibleRunning": "Valitsemasi alue ei näytä juuri nyt mitään. Valitse toinen tai jatka istuntoa sellaisenaan.",
-      "gone": "Valitsemasi ikkuna ei ole enää käytettävissä. Valitse toinen tai aloita ilman näytön kontekstia.",
+      "gone": "Valitsemaasi ikkunaa tai näyttöä ei voi kaapata juuri nyt. Valitse toinen tai aloita ilman näytön kontekstia.",
       "checking": "Tarkistetaan kuvaa…"
     },
     "chip": {
