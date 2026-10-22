@@ -42,6 +42,18 @@ export interface SourcePickerProps {
   onPortal(): void;                       // 'portal' mode's one button
   onCancel(): void;
   onOpenPrivacy(): void;
+  /**
+   * macOS refused: Sokuji's Screen Recording entry reset and its prompt raised. It also clears a grant pinned to an
+   * older build, which System Settings shows switched on while it never counts.
+   */
+  onReask(): void;
+  /** An ask is out: Ask macOS again is off, since a second one would reset again. */
+  reasking?: boolean;
+  /** macOS was asked again: a new grant applies only after a restart, so the denied state offers it. */
+  asked?: boolean;
+  onRestart(): void;
+  /** The restart is asked for: Restart Sokuji is off, since each relaunch starts one more instance. */
+  restarting?: boolean;
   /** Asks the desktop for its windows and screens again: the list is a snapshot, a window opened since is not on it. */
   onRefresh(): void;
   /** A Refresh is out: the list stays, the button turns until the answer lands. */
@@ -65,11 +77,24 @@ export function SourcePicker(p: SourcePickerProps) {
             <div>
               <p className="source-picker__denied-title">{t('screenContext.picker.deniedTitle', 'Screen Recording permission needed')}</p>
               <p className="source-picker__text">
-                {t('screenContext.picker.deniedText', 'macOS lets Sokuji see the screen only with Screen Recording permission. Grant it in System Settings, then restart Sokuji and start again.')}
+                {p.asked
+                  ? t('screenContext.picker.askedText', 'Allow Sokuji when macOS asks, or switch it on in System Settings. macOS applies the permission only after Sokuji restarts.')
+                  : t('screenContext.picker.deniedText', 'macOS is not letting Sokuji see the screen. This also happens when Sokuji is switched on in System Settings, if that permission was given to an older version.')}
               </p>
-              <button type="button" className="source-picker__primary" onClick={p.onOpenPrivacy}>
-                {t('screenContext.picker.openSettings', 'Open System Settings')}
-              </button>
+              <div className="source-picker__denied-actions">
+                {p.asked ? (
+                  <button type="button" className="source-picker__primary" onClick={p.onRestart} disabled={p.restarting}>
+                    {t('screenContext.picker.restart', 'Restart Sokuji')}
+                  </button>
+                ) : (
+                  <button type="button" className="source-picker__primary" onClick={p.onReask} disabled={p.reasking}>
+                    {t('screenContext.picker.reask', 'Ask macOS again')}
+                  </button>
+                )}
+                <button type="button" className="source-picker__secondary" onClick={p.onOpenPrivacy}>
+                  {t('screenContext.picker.openSettings', 'Open System Settings')}
+                </button>
+              </div>
             </div>
           </div>
         ) : (

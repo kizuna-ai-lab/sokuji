@@ -89,6 +89,68 @@ function screenRecordingState(platform, read) {
 }
 
 /**
+ * The bundle a release is built as (package.json `build.appId`), the identifier
+ * in its designated requirement. `tccutil reset` takes it to clear Sokuji's
+ * Screen Recording entry and no other app's.
+ */
+const MAC_BUNDLE_ID = 'ai.kizunaai.sokuji';
+
+/** How long asking macOS again waits for the listing that raises its prompt. */
+const REASK_WAIT_MS = 10_000;
+
+/**
+ * Asks macOS for Screen Recording again: the picker's "Ask macOS again".
+ *
+ * Electron's 'screen' status is CGPreflightScreenCaptureAccess(): 'granted' or
+ * 'denied', never 'not-determined'. So a Mac that was never asked reads
+ * 'denied', and so does one whose grant is pinned to an older build's code
+ * hash (a grant given to an ad-hoc or development build): System Settings shows
+ * Sokuji switched on, and it never counts again. Both are fixed the same way:
+ * Sokuji's own entry is reset (tccutil needs no admin rights for that), then
+ * the window list is asked for once, which is what raises macOS's prompt. The
+ * new grant is recorded against the signing identity, so it survives updates.
+ *
+ * A permission that already works is left alone. The reset also clears a
+ * refusal the user made on purpose, so this runs only when they ask. macOS
+ * applies a new grant only after a restart, so the status read afterwards
+ * usually still says 'denied'.
+ *
+ * @param {object} o
+ * @param {string} o.platform  process.platform
+ * @param {() => string} o.screenRecording  screenRecordingState()
+ * @param {() => Promise<unknown>} o.reset  tccutil reset ScreenCapture MAC_BUNDLE_ID
+ * @param {() => Promise<unknown>} o.request  a desktopCapturer listing
+ * @param {(ms: number) => Promise<void>} o.wait
+ * A listing that fails is reported (`requestError`) and still counts as asked:
+ * the reset has run and the prompt may be up, so the picker offers the restart,
+ * never a second reset that could clear a grant just given.
+ *
+ * @returns {Promise<{ asked: boolean, status: string, resetError?: string, requestError?: string }>}
+ */
+async function reaskScreenRecording(o) {
+  if (o.platform !== 'darwin' || o.screenRecording() === 'granted') {
+    return { asked: false, status: o.screenRecording() };
+  }
+  const messageOf = (error) => (error instanceof Error ? error.message : String(error));
+  let resetError;
+  try {
+    await o.reset();
+  } catch (error) {
+    // A Mac never asked has nothing to reset; the request below still raises the prompt.
+    resetError = messageOf(error);
+  }
+  let requestError;
+  // The listing is what raises the prompt; one that never answers while it is up must not hold the picker.
+  await Promise.race([o.request().catch((error) => { requestError = messageOf(error); }), o.wait(REASK_WAIT_MS)]);
+  return {
+    asked: true,
+    status: o.screenRecording(),
+    ...(resetError === undefined ? {} : { resetError }),
+    ...(requestError === undefined ? {} : { requestError }),
+  };
+}
+
+/**
  * The picker's list, or the reason there is none.
  *
  * The Screen Recording status is read before the list is asked for, and
@@ -119,5 +181,8 @@ module.exports = {
   pickableSources,
   captureSourceMode,
   screenRecordingState,
+  reaskScreenRecording,
+  REASK_WAIT_MS,
+  MAC_BUNDLE_ID,
   listCaptureSources,
 };

@@ -38,6 +38,15 @@ export function listCaptureSources(invoke: Invoke): Promise<{ ok: true; sources:
   return invoke('list-capture-sources') as Promise<{ ok: true; sources: CaptureSourceInfo[] } | { ok: false; error: string }>;
 }
 
+/**
+ * macOS: Sokuji's Screen Recording entry reset and the prompt raised (the picker's Ask macOS again); `status` is the
+ * permission read afterwards, which a new grant changes only after a restart. `resetError` and `requestError` say why
+ * the reset or the listing failed.
+ */
+export function reaskScreenRecording(invoke: Invoke): Promise<{ asked: boolean; status: string; resetError?: string; requestError?: string }> {
+  return invoke('reask-screen-recording') as Promise<{ asked: boolean; status: string; resetError?: string; requestError?: string }>;
+}
+
 /** The pick as a stream, through the desktop source id — never the display-media handler, which electron-audio-loopback owns. */
 export function desktopConstraints(sourceId: string): MediaStreamConstraints {
   // `mandatory` is Chromium's legacy constraint form, the one desktop capture takes; lib.dom does not type it.
