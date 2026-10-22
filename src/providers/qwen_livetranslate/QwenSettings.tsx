@@ -1,4 +1,4 @@
-import { CircleHelp } from 'lucide-react';
+import { CircleHelp, Plus, Timer } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { LinesField } from '../../components/providers/fields/LinesField';
 import { PresetVoiceField, presetVoice } from '../../components/providers/fields/PresetVoiceField';
@@ -130,31 +130,38 @@ function ScreenContextRow({ on, update, disabled: runLocked }: { on: boolean; up
 }
 
 /**
- * What the next Start opens, beside the switch: the window held as its picture
- * (the picker's listing thumbnail) and its name, which the row drops when it is
- * narrow — the button's title and name always say it in full; a click asks the
- * picker again. Nothing held: Choose…. Wayland: the system's chooser decides at
- * Start, so it is plain words, not a button that would choose nothing.
+ * What the next Start opens, beside the switch, each state a picture with its
+ * words beside it — words the row drops when it is narrow, while the title and
+ * the accessible name always say it in full. The window held: its picture (the
+ * picker's listing thumbnail) and its name; a click asks the picker again.
+ * Nothing held: an empty slot with a "+", and Choose…. Wayland: the system's
+ * chooser decides at Start, so a timer and At start — not a button that would
+ * choose nothing.
  */
 function PickedSourceButton({ picked, disabled, onChoose }: { picked: PickedSource | null; disabled: boolean; onChoose(): void }) {
   const { t } = useTranslation();
   if (picked?.kind === 'portal') {
+    const atStart = t('providers.qwen_livetranslate.screenContextAtStart', 'At start');
     return (
       <span className="qwen-screen-context__at-start" title={t('providers.qwen_livetranslate.screenContextPortal', 'The system asks which window or screen when the session starts.')}>
-        {t('providers.qwen_livetranslate.screenContextAtStart', 'At start')}
+        <span className="qwen-screen-context__timer" role="img" aria-label={atStart}><Timer size={14} aria-hidden /></span>
+        <span className="qwen-screen-context__caption" aria-hidden="true">{atStart}</span>
       </span>
     );
   }
   if (picked === null) {
+    const choose = t('providers.qwen_livetranslate.screenContextChoose', 'Choose…');
     return (
       <button
         type="button"
         className="qwen-screen-context__source qwen-screen-context__source--empty"
         title={t('providers.qwen_livetranslate.screenContextNone', "No window chosen yet: you'll be asked when the session starts.")}
+        aria-label={choose}
         onClick={onChoose}
         disabled={disabled}
       >
-        {t('providers.qwen_livetranslate.screenContextChoose', 'Choose…')}
+        <span className="qwen-screen-context__slot"><Plus size={12} aria-hidden /></span>
+        <span className="qwen-screen-context__caption">{choose}</span>
       </button>
     );
   }

@@ -2490,15 +2490,21 @@
   &:focus-visible { @include vars.focus-ring; }
   &:disabled { @include vars.disabled-state; }
 }
-// Nothing held: Choose…, sized to its word, dashed for the empty slot, no chevron.
+// Nothing held: the same chip, an empty dashed slot with a "+" where the picture would be, Choose… beside it; no chevron.
 .qwen-screen-context__source--empty {
-  flex: none;
-  display: block;
-  padding: 0 8px;
-  border-style: dashed;
-  white-space: nowrap;
+  padding: 0 8px 0 4px;
 
   &::after { content: none; }
+}
+.qwen-screen-context__slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 32px;
+  height: 18px;
+  border: 1px dashed vars.$border-strong;
+  border-radius: 2px;
 }
 // The listing's thumbnail, cropped to the chip; a faint ring inside its edge keeps a dark window off the dark chip.
 .qwen-screen-context__thumb {
@@ -2510,27 +2516,35 @@
   outline: 1px solid rgba(vars.$text-primary, 0.12);
   outline-offset: -1px;
 }
-.qwen-screen-context__name {
+// The words beside the picture: the window's name, or Choose… / At start. One line, cut short when the chip is.
+@mixin qwen-screen-context-words {
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-// Narrow (the 300px panel, a 262px row): the picture alone, without the name or the chevron, so the chip
-// is 42px and the label keeps one line; the chip's title and name still say the window in full.
+.qwen-screen-context__name { @include qwen-screen-context-words; }
+.qwen-screen-context__caption { @include qwen-screen-context-words; }
+// Wayland: the system's chooser decides at Start — a timer and its words, not a button.
+.qwen-screen-context__at-start {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: vars.$font-caption;
+  color: vars.$text-muted;
+}
+.qwen-screen-context__timer { display: flex; }
+// Narrow (the 300px panel, a 262px row): every state is its picture alone — no words, no chevron — so the
+// chip is 42px (the timer 14px) and the label keeps one line; the title and accessible name still say it in full.
 @container qwen-screen-context (width < 360px) {
-  .qwen-screen-context__name { display: none; }
-  .qwen-screen-context__source:not(.qwen-screen-context__source--empty) {
+  .qwen-screen-context__name,
+  .qwen-screen-context__caption { display: none; }
+  .qwen-screen-context__source {
     padding: 0 4px;
 
     &::after { content: none; }
   }
-}
-// Wayland: the system's chooser decides at Start — words, not a button.
-.qwen-screen-context__at-start {
-  font-size: vars.$font-caption;
-  color: vars.$text-muted;
-  white-space: nowrap;
 }
 
 // The face-to-face headphones hint under the two ear rows: a warning, as on the board.
