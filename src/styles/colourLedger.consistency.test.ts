@@ -31,12 +31,18 @@ const EXEMPT = new Set([
   'src/components/Settings/shared/_variables.scss',
   // brand marks, drawn in their owners' colours
   'src/components/Icons/ProviderIcons.tsx',
+  'src/providers/qwen_livetranslate/kizuna.ts',
   // the user's own colours: presets, pickers and defaults (R3)
   'src/components/Display/DisplaySettingsPopover.tsx',
   'src/components/Display/ColorPicker.tsx',
   'src/components/Display/ColorPicker.scss',
   'src/stores/subtitleStore.ts',
   'src/stores/conversationDisplayStore.ts',
+  // arithmetic on the user's own subtitle colour: its alpha form, and the
+  // highlight overlay drawn on it by tone (white or black by design)
+  'src/components/Subtitle/useSubtitleChrome.tsx',
+  // a QR code is black on white for the camera, in every scheme
+  'src/components/CaptionShare/QrCode.tsx',
 ]);
 const EXEMPT_DIRS = ['src/viewer/', 'src/components/dev/'];
 
@@ -96,25 +102,6 @@ const countIn = (rel: string): number =>
  * migrates the file; delete the row when it reaches 0.
  */
 const LEDGER: Record<string, number> = {
-  // --- components/Auth ---
-  'src/components/Auth/UserAccountInfo.scss': 38,
-  'src/components/Auth/ForgotPasswordForm.scss': 19,
-  'src/components/Auth/SignUpForm.scss': 14,
-  'src/components/Auth/SignInForm.scss': 13,
-  'src/components/Auth/SignInPage.scss': 8,
-  'src/components/Auth/AuthGuard.scss': 6,
-  'src/components/Auth/AuthLayout.scss': 4,
-  // --- components/Banner ---
-  // --- components/CaptionShare ---
-  'src/components/CaptionShare/CaptionSharePanel.scss': 4,
-  'src/components/CaptionShare/QrCode.tsx': 2,
-  // --- components/ConnectionStatus ---
-  'src/components/ConnectionStatus/ConnectionStatus.scss': 24,
-  // --- components/FaceToFace ---
-  'src/components/FaceToFace/OtherSideChoice.scss': 6,
-  // --- components/LogsPanel ---
-  'src/components/LogsPanel/LogsPanel.scss': 32,
-  // --- components/MainLayout ---
   // --- components/MainPanel ---
   // The fallbacks of the user-colour variables (`var(--conversation-bg-color,
   // #1f1f1f)` and the two text colours) are the stores' defaults (R3): they
@@ -122,26 +109,11 @@ const LEDGER: Record<string, number> = {
   'src/components/MainPanel/MainPanel.scss': 1,
   'src/components/MainPanel/ConversationRow.scss': 2,
   'src/components/MainPanel/panel/Waveforms.tsx': 3,
-  // --- components/Modal ---
-  // --- components/SetupWizard ---
-  'src/components/SetupWizard/SetupWizard.scss': 2,
   // --- components/Subtitle ---
-  'src/components/Subtitle/SubtitleBar.scss': 26,
-  'src/components/Subtitle/SubtitleApp.scss': 19,
-  'src/components/Subtitle/SubtitleStream.scss': 15,
-  'src/components/Subtitle/useSubtitleChrome.tsx': 4,
-  // --- components/TitleBar ---
-  // --- components/Tooltip ---
-  // --- components/Tour ---
-  // --- components/UpdateDialog ---
-  'src/components/UpdateDialog/UpdateDialog.scss': 25,
-  // --- components/providers ---
-  'src/components/providers/ProviderPicker.tsx': 1,
-  // --- providers ---
-  'src/providers/volcengine_ast2/Ast2Settings.tsx': 4,
-  'src/providers/qwen_livetranslate/kizuna.ts': 1,
-  // --- root ---
-  // --- styles ---
+  // The same fallbacks for the subtitle's user colours (`--subtitle-source-color`,
+  // `--subtitle-translation-color`, `--subtitle-highlight-overlay`).
+  'src/components/Subtitle/SubtitleStream.scss': 4,
+  'src/components/Subtitle/SubtitleApp.scss': 1,
 };
 
 describe('colour ledger', () => {

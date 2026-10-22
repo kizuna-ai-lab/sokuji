@@ -15,7 +15,7 @@
   padding: vars.$space-4;
   box-sizing: border-box;
 
-  &--rerun { background: rgba(0, 0, 0, 0.66); }
+  &--rerun { background: vars.$scrim; }
 
   &__card {
     width: min(720px, 100%);
@@ -58,7 +58,7 @@
   &__footer {
     display: flex; align-items: center; gap: vars.$space-2;
     padding: vars.$space-3 vars.$space-5; border-top: 1px solid vars.$border-subtle;
-    box-shadow: 0 -8px 12px -8px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 -8px 12px -8px vars.$shadow-strong;
   }
   &__spacer { flex: 1; }
 }
