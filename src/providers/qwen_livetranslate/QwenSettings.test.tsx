@@ -126,6 +126,9 @@ describe('QwenSettingsView (spec §4, §7)', () => {
     // The charge is per second of speech, whichever account pays it.
     expect(tooltips).toMatch(/for every second of speech/);
     expect(tooltips).toMatch(/Alibaba Cloud bill with your own key/);
+    // The area is chosen in the settings as the switch goes on, not at a session's start (owner, 2026-10-22).
+    expect(tooltips).toMatch(/^Lets the model see one window, tab or screen you choose, so /);
+    expect(tooltips).not.toMatch(/when a session starts/);
   });
 
   it('names the storefront the check found under the key, and nothing before a check', () => {

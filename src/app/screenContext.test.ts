@@ -204,7 +204,7 @@ describe('prepareScreenContext — the desktop', () => {
     expect(store().sampler!.source.name).toBe('Slides');
   });
 
-  it('a portal that returns nothing, or a capture that will not open, starts without frames and never throws', async () => {
+  it('a portal that returns nothing, or a listing the desktop refuses, starts without frames and never throws', async () => {
     // The portal's own Cancel: the user's answer, nothing to warn about.
     const cancelled = deps({ picks: [{ kind: 'portal' }], invoke: vi.fn(async () => ({ ok: true, sources: [] })) });
     await prepareScreenContext('electron', { legs: ['speaker'] }, cancelled);
@@ -219,13 +219,31 @@ describe('prepareScreenContext — the desktop', () => {
     expect(refused.openDesktop).not.toHaveBeenCalled();
     expect(store().sampler).toBeNull();
     expect(reportWarning).toHaveBeenLastCalledWith('ScreenContext', expect.stringContaining('screen-recording-denied'));
+  });
 
+  it("a window picked at Start whose capture will not open asks the picker again with 'gone', as a held one does", async () => {
+    const notes = scripted(lit(4), 'Notes');
+    const d = deps({ picks: [{ kind: 'desktop', source: SLIDES }, { kind: 'desktop', source: NOTES }], opens: { [NOTES.id]: notes } });
+    const prepared = prepareScreenContext('electron', { legs: ['speaker'] }, d);
+    await run(d.clock, 1000);
+    await prepared;
+    expect(d.openDesktop.mock.calls).toEqual([[SLIDES], [NOTES]]);
+    expect(d.pick.mock.calls).toEqual([[undefined], ['gone']]);
+    expect(store().state).toMatchObject({ status: 'live', name: 'Notes' });
+    expect(store().picked).toEqual({ kind: 'desktop', source: NOTES });
+    expect(d.turnOff).not.toHaveBeenCalled();
+    // Why, for the Logs panel; the picker's line is what the user reads.
+    expect(reportWarning).toHaveBeenCalledWith('ScreenContext', expect.stringContaining('no capture for window:1'), expect.objectContaining({ cause: expect.any(Error) }));
+
+    // Its Start without, then: the switch goes off and nothing is held.
+    const failing = deps({ picks: [{ kind: 'desktop', source: SLIDES }, null] });
     store().setPicked(null);
-    const failing = deps({ picks: [{ kind: 'desktop', source: SLIDES }] });
+    releaseScreenContext();
     await expect(prepareScreenContext('electron', { legs: ['speaker'] }, failing)).resolves.toBeUndefined();
-    expect(failing.openDesktop).toHaveBeenCalledTimes(1);
+    expect(failing.pick.mock.calls).toEqual([[undefined], ['gone']]);
+    expect(failing.turnOff).toHaveBeenCalledTimes(1);
+    expect(store().picked).toBeNull();
     expect(store().sampler).toBeNull();
-    expect(reportWarning).toHaveBeenLastCalledWith('ScreenContext', expect.stringContaining('no capture for window:1'), expect.objectContaining({ cause: expect.any(Error) }));
   });
 
   it('asks nothing on the web', async () => {

@@ -116,7 +116,7 @@ function ScreenContextRow({ on, update, disabled }: { on: boolean; update: Setti
     <SettingRow
       label={t('providers.qwen_livetranslate.screenContext', 'Screen context')}
       badge={t('providers.qwen_livetranslate.screenContextBeta', 'Beta')}
-      tooltip={t('providers.qwen_livetranslate.screenContextTooltip', "Lets the Qwen engine see one window, tab or screen you choose when a session starts, so the names and terms on it are recognized and translated as written. Everything inside that area is sent to Alibaba Cloud's Qwen service, in the region of this session, as pictures; Kizuna AI never receives them. It adds to the charge for every second of speech while it is on — on your Alibaba Cloud bill with your own key, or on your account's pricing page with a Kizuna AI account; in Both mode each direction's session is billed.")}
+      tooltip={t('providers.qwen_livetranslate.screenContextTooltip', "Lets the model see one window, tab or screen you choose, so the names and terms on it are recognized and translated as written. Everything inside that area is sent to Alibaba Cloud's Qwen service, in the region of this session, as pictures; Kizuna AI never receives them. It adds to the charge for every second of speech while it is on — on your Alibaba Cloud bill with your own key, or on your account's pricing page with a Kizuna AI account; in Both mode each direction's session is billed.")}
       switch={{ checked: on, onChange: toggle, disabled }}
       footer={desktop && on && <PickedLine picked={picked} canChoose={pickSource !== null && !disabled} disabled={disabled} onChoose={() => { void choose(); }} />}
     />

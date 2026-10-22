@@ -58,12 +58,12 @@ const TAB_NAME_FALLBACK = 'Meeting tab';
 let held: { sampler: Sampler; capture: OpenCapture | null } | null = null;
 
 /**
- * Before a run. On Electron: opens the area the store holds (`picked`) without asking; when there is none, or its capture
- * will not open (`'gone'`), or it shows nothing (`'nothingVisible'`), asks `pick` (the modal) for a source, saying why —
- * null is a cancel: the switch goes off (`turnOff`), the held pick goes, and the run starts without. Every pick made here
- * becomes the held pick. Each area opened is attached to a fresh sampler and checked for its first good frame
- * (`first()`); a null first frame closes that capture and asks `pick('nothingVisible')` again, until a frame comes or the
- * user cancels. On the extension: opens the
+ * Before a run. On Electron: opens the area the store holds (`picked`) without asking, or, when there is none, asks
+ * `pick` (the modal) for a source — null is a cancel: the switch goes off (`turnOff`), the held pick goes, and the run
+ * starts without. Every pick made here becomes the held pick. Each area opened is attached to a fresh sampler and
+ * checked for its first good frame (`first()`); a window whose capture will not open asks `pick('gone')`, and a null
+ * first frame closes that capture and asks `pick('nothingVisible')` — held or just picked alike — until a frame comes
+ * or the user cancels. On the extension: opens the
  * meeting tab's capture (`targetTabIdFromSearch`) with `audio: shape.legs.includes('participant')` (the extension's
  * participant source is always that tab), `video: true`; a null first frame there starts the run without.
  * Puts the sampler in the store and mirrors its state there; while a capture is opened and its first frame awaited the
@@ -137,58 +137,52 @@ export async function chooseAgain(deps: Pick<ScreenContextDeps, 'pick' | 'invoke
 }
 
 /**
- * The held pick first, then the modal's loop: a pick, its capture, its first frame — or the picker again, told why.
- * Preparing from the pick's answer until its first frame settles, so the modal shows the check (and never while the
- * picker is asked).
+ * The held pick first, opened without asking, then the modal's loop: a pick, its capture, its first frame — or the
+ * picker again, told why. Preparing from the pick's answer until its first frame settles, so the modal shows the check
+ * (and never while the picker is asked).
  */
 async function prepareDesktop(deps: ScreenContextDeps): Promise<void> {
-  const store = useScreenContextStore.getState();
+  let next = useScreenContextStore.getState().picked;
   let reason: PickReason | undefined;
-  if (store.picked) {
-    reason = await openHeld(store.picked, deps);
-    if (!reason) return;
-  }
   for (;;) {
-    const picked = await deps.pick(reason);
-    if (!picked) {
-      // Start without screen context: the switch goes off with the pick (owner, 2026-10-22, ruling 3), so asked again when turned on.
-      useScreenContextStore.getState().setPicked(null);
-      deps.turnOff();
-      return;
+    if (!next) {
+      next = await deps.pick(reason);
+      if (!next) {
+        // Start without screen context: the switch goes off with the pick (owner, 2026-10-22, ruling 3), so asked again when turned on.
+        useScreenContextStore.getState().setPicked(null);
+        deps.turnOff();
+        return;
+      }
+      useScreenContextStore.getState().setPicked(next);
     }
-    useScreenContextStore.getState().setPicked(picked);
-    const kept = await preparing(async () => {
-      const capture = await openPicked(picked, deps);
-      return capture ? hold(capture, deps.clock) : null;
-    });
+    const picked = next;
+    const kept = await preparing(() => openChecked(picked, deps));
     // Kept, or nothing to keep (the portal's own Cancel, a listing that failed).
-    if (kept !== false) return;
-    reason = 'nothingVisible';
+    if (kept === true || kept === null) return;
+    reason = kept === 'gone' ? 'gone' : 'nothingVisible';
+    next = null;
   }
 }
 
 /**
- * The pick held from the settings or an earlier start, opened without asking: undefined once it is kept (or there is
- * nothing to keep — the portal's own Cancel, a listing that failed); otherwise why the picker is asked. A window that
- * will not open is gone (a window id dies with its window); a portal pick opens the portal as a fresh one does.
+ * The picked area opened and checked (`hold`): true once kept, false when it showed nothing, null when there was
+ * nothing to open (the portal's own Cancel, a listing that failed), `'gone'` when a window will not open — a window
+ * id dies with its window, whether it was held from before or picked a moment ago. A portal pick's failures throw, as
+ * they always did.
  */
-async function openHeld(picked: PickedSource, deps: ScreenContextDeps): Promise<PickReason | undefined> {
-  const kept = await preparing(async (): Promise<boolean | 'gone' | null> => {
-    if (picked.kind === 'portal') {
-      const capture = await openPicked(picked, deps);
-      return capture ? hold(capture, deps.clock) : null;
-    }
-    let capture: OpenCapture;
-    try {
-      capture = await deps.openDesktop(picked.source);
-    } catch (error) {
-      reportWarning('ScreenContext', `The window chosen before could not be captured; the picker asks for another: ${describeCause(error)}`, { cause: error });
-      return 'gone';
-    }
-    return hold(capture, deps.clock);
-  });
-  if (kept === 'gone') return 'gone';
-  return kept === false ? 'nothingVisible' : undefined;
+async function openChecked(picked: PickedSource, deps: ScreenContextDeps): Promise<boolean | 'gone' | null> {
+  if (picked.kind === 'portal') {
+    const capture = await openPicked(picked, deps);
+    return capture ? hold(capture, deps.clock) : null;
+  }
+  let capture: OpenCapture;
+  try {
+    capture = await deps.openDesktop(picked.source);
+  } catch (error) {
+    reportWarning('ScreenContext', `The chosen window could not be captured; the picker asks for another: ${describeCause(error)}`, { cause: error });
+    return 'gone';
+  }
+  return hold(capture, deps.clock);
 }
 
 /** The meeting tab, its stream opened for this run alone: a stream kept from an earlier run carries an audio track its recorder stopped. */
