@@ -135,8 +135,9 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
   const { provider, entry } = selected;
   const st = useSettingsStore.getState();
   const faceToFace = faceToFaceFromStores();
-  // Put there before Start, and only once its first frame was in hand (`prepareScreenContext`).
-  const frames = useScreenContextStore.getState().sampler?.source;
+  // Put there before Start, and only once its first frame was in hand (`prepareScreenContext`); a sampler left there
+  // after the switch went off or another provider was picked is not this run's.
+  const frames = screenContextWanted() ? useScreenContextStore.getState().sampler?.source : undefined;
   return {
     provider,
     settings: entry.settings,

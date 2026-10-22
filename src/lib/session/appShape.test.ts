@@ -108,15 +108,31 @@ describe('readShapeFromStores', () => {
 });
 
 describe('readShapeFromStores — the screen context source (spec 2026-10-22 §4)', () => {
-  it("carries the store's sampler source as frames, and no key without one", () => {
-    useProviderStore.setState({
-      selected: 'fake',
-      entries: { fake: { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' }, pair: { source: 'en', target: 'ja' } } },
-    });
+  const qwen = (screenContext: boolean) => ({
+    settings: { ...QWEN_DEFAULTS, screenContext }, credentials: { apiKey: 'k' }, pair: { source: 'en', target: 'ja' },
+  });
+
+  it("carries the store's sampler source as frames while screen context is wanted, and no key without a sampler", () => {
+    environment.value = 'electron';
+    useProviderStore.setState({ selected: 'qwen_livetranslate', entries: { qwen_livetranslate: qwen(true) } });
     expect('frames' in readShapeFromStores(auth)!).toBe(false);
     const sampler = createSampler(createVirtualClock(0));
     useScreenContextStore.getState().set(sampler);
     expect(readShapeFromStores(auth)!.frames).toBe(sampler.source);
+    sampler.close();
+  });
+
+  it('gives no frames from a sampler still in the store once the switch is off or another provider is selected', () => {
+    environment.value = 'electron';
+    const sampler = createSampler(createVirtualClock(0));
+    useScreenContextStore.getState().set(sampler);
+    useProviderStore.setState({ selected: 'qwen_livetranslate', entries: { qwen_livetranslate: qwen(false) } });
+    expect('frames' in readShapeFromStores(auth)!).toBe(false);
+    useProviderStore.setState({
+      selected: 'fake',
+      entries: { qwen_livetranslate: qwen(true), fake: { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' }, pair: { source: 'en', target: 'ja' } } },
+    });
+    expect('frames' in readShapeFromStores(auth)!).toBe(false);
     sampler.close();
   });
 });
