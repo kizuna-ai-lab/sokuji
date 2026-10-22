@@ -217,25 +217,39 @@ describe('createSampler', () => {
     await run(clock, 1000);
     expect(rec.losts).toEqual([2000]);
     expect(sampler.state().status).toBe('lost');
-    await run(clock, 59_000); // 61 s: the old deadline has gone by, the loss's has not
+    await run(clock, 58_000); // 60 s: a loss does not restart the 60 s since the last send
     expect(rec.frames).toHaveLength(1);
-    await run(clock, 1000); // 62 s
+    await run(clock, 1000); // 61 s
     expect(rec.frames).toEqual([['first', 425000], ['keepalive', 425000]]);
     expect(rec.jpegs[1]).toBe(rec.jpegs[0]);
     expect(sampler.state().status).toBe('lost');
     expect(sampler.state().lastReason).toBe('keepalive');
-    await run(clock, 60_000); // 122 s
-    expect(rec.times).toEqual([1000, 62000, 122000]);
+    await run(clock, 60_000); // 121 s
+    expect(rec.times).toEqual([1000, 61000, 121000]);
     expect(rec.jpegs[2]).toBe(rec.jpegs[0]);
     expect(rec.losts).toEqual([2000]);
     expect(rec.backs).toEqual([]);
-    await run(clock, 8000); // 130 s: the picture is back
+    await run(clock, 9000); // 130 s: the picture is back
     expect(rec.backs).toEqual([130000]);
     expect(rec.events.slice(-2)).toEqual(['back', 'frame:changed']);
     expect(rec.frames[3]).toEqual(['changed', 425000]);
     expect(rec.times[3]).toBe(130000);
     expect(sampler.state().status).toBe('live');
     expect(rec.losts).toEqual([2000]);
+  });
+
+  it('the gap since the last send never passes 60 s: a loss late in that minute does not push the keepalive out', async () => {
+    const { clock, sampler, rec } = fresh();
+    // lit(1) from 1 s to 50 s, then nothing: lost at 51 s, 50 s after the last send.
+    sampler.attach(scripted([...Array<Picture>(50).fill(lit(1)), null]));
+    await run(clock, 51_000);
+    expect(rec.losts).toEqual([51000]);
+    expect(rec.times).toEqual([1000]);
+    await run(clock, 10_000); // 61 s
+    expect(rec.times).toEqual([1000, 61000]);
+    await run(clock, 60_000); // 121 s
+    expect(rec.times).toEqual([1000, 61000, 121000]);
+    expect(rec.frames.map(([reason]) => reason)).toEqual(['first', 'keepalive', 'keepalive']);
   });
 
   it('a loss before any frame is told, and the picture then is back then first', async () => {
@@ -350,8 +364,8 @@ describe('createSampler', () => {
     lost.sampler.attach(scripted([lit(1), null]));
     await run(lost.clock, 2000);
     expect(lost.sampler.state()).toMatchObject({ status: 'lost', sent: 1, lastReason: 'first' });
-    await run(lost.clock, 60_000);
-    expect(lost.sampler.state()).toMatchObject({ status: 'lost', sent: 2, lastSentAt: 62000, lastReason: 'keepalive' });
+    await run(lost.clock, 59_000);
+    expect(lost.sampler.state()).toMatchObject({ status: 'lost', sent: 2, lastSentAt: 61000, lastReason: 'keepalive' });
   });
 
   it('state() is a snapshot, and onState hears every change until it is unsubscribed', async () => {

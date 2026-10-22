@@ -97,8 +97,6 @@ export function createSampler(clock: Clock): Sampler {
   let lost = false;
   /** The next usable picture goes out whatever it looks like: a loss came before it, or a new capture was attached. */
   let sendNext = false;
-  /** When the last good frame goes again: a minute after each send and after each loss. */
-  let keepaliveAt = Infinity;
 
   let firstJpeg: Uint8Array | null = null;
   let firstWait: FirstWait | null = null;
@@ -165,7 +163,6 @@ export function createSampler(clock: Clock): Sampler {
     sent += 1;
     lastSentAt = clock.now();
     lastReason = reason;
-    keepaliveAt = lastSentAt + KEEPALIVE_MS;
     firstJpeg ??= jpeg;
     firstWait?.settle(firstJpeg);
   }
@@ -189,12 +186,11 @@ export function createSampler(clock: Clock): Sampler {
     fanOut((s) => s.onFrame(jpeg, 'keepalive'));
   }
 
-  /** The source yields nothing: told once per loss, the last good frame due again a minute from now. */
+  /** The source yields nothing: told once per loss. Only fresh frames stop; the keep-alive deadline is untouched. */
   function markLost(): void {
     if (lost) return;
     lost = true;
     sendNext = true;
-    keepaliveAt = clock.now() + KEEPALIVE_MS;
     publish();
     fanOut((s) => s.onLost());
   }
@@ -242,12 +238,15 @@ export function createSampler(clock: Clock): Sampler {
     sendFresh(jpeg, thumb, reason);
   }
 
-  /** One beat: a grab, then the keep-alive when it is due and the grab sent nothing. */
+  /**
+   * One beat: a grab, then the keep-alive when `KEEPALIVE_MS` have passed since the last send, whatever the state
+   * (unchanged, blank, lost, detached): the gap between two frames never exceeds it, and a loss does not restart it.
+   */
   async function tick(gen: number): Promise<void> {
     const startedAt = clock.now();
     try {
       await sample(gen, capture);
-      if (gen === generation && lastJpeg && clock.now() >= keepaliveAt) sendKeepalive(lastJpeg);
+      if (gen === generation && lastJpeg && lastSentAt !== null && clock.now() - lastSentAt >= KEEPALIVE_MS) sendKeepalive(lastJpeg);
     } finally {
       // Armed once the grab is done, so a slow one never overlaps the next; a thrown error still leaves the beat running.
       if (gen === generation) arm(gen, Math.max(0, SAMPLE_MS - (clock.now() - startedAt)));
