@@ -11,26 +11,34 @@
  * @typedef {ListedSource & { kind: 'window' | 'screen' }} PickableSource
  */
 
+/** The name a portal pick is given when the portal answers it without one. */
+const PORTAL_NAME_FALLBACK = 'Shared screen';
+
 /**
  * The rows worth offering: windows first, then screens, each kind in the order
  * it was listed. A window of this app is left out (a picture of Sokuji sent to
  * the engine is never what a user means, and the picker itself would be in it),
- * and so is a source with no name (nothing to show for it in the list) or one
- * that is neither a window nor a screen.
+ * and so is one that is neither a window nor a screen. A source with no name is
+ * left out of a list (nothing to show for it there); in 'portal' mode it is the
+ * one source the user already picked in the portal's dialog, so it is kept and
+ * named 'Shared screen'.
  *
  * @param {ListedSource[]} sources
  * @param {string[]} ownIds  getMediaSourceId() of each of this app's windows
+ * @param {'list' | 'portal'} [mode]
  * @returns {PickableSource[]}
  */
-function pickableSources(sources, ownIds) {
+function pickableSources(sources, ownIds, mode = 'list') {
   const own = new Set(ownIds);
   const windows = [];
   const screens = [];
   for (const source of sources) {
     if (own.has(source.id)) continue;
-    if (typeof source.name !== 'string' || source.name.trim() === '') continue;
-    if (source.id.startsWith('window:')) windows.push({ ...source, kind: 'window' });
-    else if (source.id.startsWith('screen:')) screens.push({ ...source, kind: 'screen' });
+    const named = typeof source.name === 'string' && source.name.trim() !== '';
+    if (!named && mode !== 'portal') continue;
+    const row = named ? source : { ...source, name: PORTAL_NAME_FALLBACK };
+    if (source.id.startsWith('window:')) windows.push({ ...row, kind: 'window' });
+    else if (source.id.startsWith('screen:')) screens.push({ ...row, kind: 'screen' });
   }
   return [...windows, ...screens];
 }
@@ -66,16 +74,17 @@ function captureSourceMode(platform, env) {
  * fixes it.
  *
  * @param {object} o
+ * @param {'list' | 'portal'} [o.mode]  captureSourceMode(): in 'portal' mode the listing is the portal's one pick
  * @param {() => string} o.screenRecording  'granted' off macOS
  * @param {() => Promise<ListedSource[]>} o.getSources
  * @param {() => string[]} o.ownIds  read after the listing, so a window opened meanwhile is still left out
  * @returns {Promise<{ ok: true, sources: PickableSource[] } | { ok: false, error: string }>}
  */
-async function listCaptureSources({ screenRecording, getSources, ownIds }) {
+async function listCaptureSources({ mode = 'list', screenRecording, getSources, ownIds }) {
   try {
     if (screenRecording() === 'denied') return { ok: false, error: 'screen-recording-denied' };
     const listed = await getSources();
-    return { ok: true, sources: pickableSources(listed, ownIds()) };
+    return { ok: true, sources: pickableSources(listed, ownIds(), mode) };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : String(error) };
   }

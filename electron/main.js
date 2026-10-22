@@ -1320,6 +1320,7 @@ ipcMain.handle('capture-source-mode', async () => ({
  */
 ipcMain.handle('list-capture-sources', async () => {
   return listCaptureSources({
+    mode: captureSourceMode(process.platform, process.env),
     screenRecording: screenRecordingStatus,
     getSources: async () => {
       const sources = await desktopCapturer.getSources({

@@ -94,6 +94,20 @@ describe('listCaptureSources', () => {
     expect(getSources).not.toHaveBeenCalled();
   });
 
+  it("in portal mode keeps the one pick the portal returned though it has no name, named 'Shared screen'; the list mode drops it", async () => {
+    const nameless = async () => [{ id: 'window:7:0', name: '', thumbnail: 'data:7', appIcon: null }];
+    expect(await listCaptureSources({ mode: 'portal', screenRecording: () => 'granted', getSources: nameless, ownIds: () => [] }))
+      .toEqual({ ok: true, sources: [{ id: 'window:7:0', name: 'Shared screen', kind: 'window', thumbnail: 'data:7', appIcon: null }] });
+    const blank = async () => [{ id: 'screen:1:0', name: '  ', thumbnail: 'data:1', appIcon: null }];
+    expect(await listCaptureSources({ mode: 'portal', screenRecording: () => 'granted', getSources: blank, ownIds: () => [] }))
+      .toEqual({ ok: true, sources: [{ id: 'screen:1:0', name: 'Shared screen', kind: 'screen', thumbnail: 'data:1', appIcon: null }] });
+    const named = async () => [{ id: 'window:8:0', name: 'Slides', thumbnail: 'data:8', appIcon: null }];
+    expect(await listCaptureSources({ mode: 'portal', screenRecording: () => 'granted', getSources: named, ownIds: () => [] }))
+      .toEqual({ ok: true, sources: [{ id: 'window:8:0', name: 'Slides', kind: 'window', thumbnail: 'data:8', appIcon: null }] });
+    expect(await listCaptureSources({ mode: 'list', screenRecording: () => 'granted', getSources: nameless, ownIds: () => [] }))
+      .toEqual({ ok: true, sources: [] });
+  });
+
   it('turns a throw that is not an Error into its text', async () => {
     const out = await listCaptureSources({ screenRecording: () => 'granted', getSources: async () => { throw 'portal closed'; }, ownIds: () => [] });
     expect(out).toEqual({ ok: false, error: 'portal closed' });
