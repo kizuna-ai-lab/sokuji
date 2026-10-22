@@ -43,10 +43,11 @@ describe('captureSourceMode', () => {
     // WebRTCPipeWireCapturer is on in every branch (linux-gpu-flags.js), and the Ozone platform plays no part, so the
     // .deb's --ozone-platform=x11 on a Wayland session still lists through the portal.
     expect(captureSourceMode('linux', { XDG_SESSION_TYPE: 'wayland', WAYLAND_DISPLAY: 'wayland-0' })).toBe('portal');
+    // WebRTC asks only whether WAYLAND_DISPLAY exists (getenv() is non-null for an empty value): set but empty is Wayland too.
+    expect(captureSourceMode('linux', { XDG_SESSION_TYPE: 'wayland', WAYLAND_DISPLAY: '' })).toBe('portal');
     // Either variable alone is what WebRTC calls X11: its listing is every window, never the portal's one pick.
     expect(captureSourceMode('linux', { XDG_SESSION_TYPE: 'wayland' })).toBe('list');
     expect(captureSourceMode('linux', { WAYLAND_DISPLAY: 'wayland-0' })).toBe('list');
-    expect(captureSourceMode('linux', { XDG_SESSION_TYPE: 'wayland', WAYLAND_DISPLAY: '' })).toBe('list');
     expect(captureSourceMode('linux', { XDG_SESSION_TYPE: 'x11', WAYLAND_DISPLAY: 'wayland-0' })).toBe('list');
     expect(captureSourceMode('darwin', {})).toBe('list');
     expect(captureSourceMode('win32', {})).toBe('list');

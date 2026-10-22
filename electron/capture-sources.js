@@ -52,7 +52,8 @@ function pickableSources(sources, ownIds, mode = 'list') {
  * The test is WebRTC's own (DesktopCapturer::IsRunningUnderWayland(), which
  * picks the PipeWire capturer while WebRTCPipeWireCapturer is on, as it is in
  * every branch of linux-gpu-flags.js): XDG_SESSION_TYPE starting with
- * "wayland" and WAYLAND_DISPLAY set. Anything looser answers 'portal' where
+ * "wayland" and WAYLAND_DISPLAY present, empty or not (WebRTC asks getenv()
+ * for a non-null pointer). Anything looser answers 'portal' where
  * Chromium lists every window itself. The ozone platform plays no part, so
  * the .deb's --ozone-platform=x11 on a Wayland session is still the portal;
  * linux-gpu-flags.js answers that different question (which platform Chromium
@@ -64,7 +65,7 @@ function pickableSources(sources, ownIds, mode = 'list') {
  */
 function captureSourceMode(platform, env) {
   if (platform !== 'linux') return 'list';
-  const wayland = (env.XDG_SESSION_TYPE ?? '').startsWith('wayland') && Boolean(env.WAYLAND_DISPLAY);
+  const wayland = (env.XDG_SESSION_TYPE ?? '').startsWith('wayland') && env.WAYLAND_DISPLAY !== undefined;
   return wayland ? 'portal' : 'list';
 }
 
