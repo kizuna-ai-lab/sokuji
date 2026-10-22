@@ -73,7 +73,7 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   network: 'The connection to the provider failed: {{detail}}',
   server: 'The provider had a problem: {{detail}}',
   client: 'The provider rejected the request: {{detail}}',
-  // The key is good, its account has not enabled the model in the key's region (Qwen's AccessDenied, probe 2026-10-23).
+  // The key is good, its account has not enabled the model in the key's region (Qwen's AccessDenied.Unpurchased, probe 2026-10-23).
   model_access_denied: "The key works, but its account can't use this model in the key's region. Enable the model for that region in the provider's console, or use a key from a region where it is enabled: {{detail}}",
   // Local engines (LocalInference).
   no_asr: 'No speech recognition model is installed for {{source}}.',

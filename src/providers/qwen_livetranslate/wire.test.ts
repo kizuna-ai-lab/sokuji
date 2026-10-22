@@ -129,5 +129,10 @@ describe("Qwen LiveTranslate's wire (spec §6)", () => {
     expect(code(null, 'Internal error')).toBe('server');
     // The key is good; its account has not enabled the model in the key's region.
     expect(code('AccessDenied.Unpurchased', 'Access to model denied. Please make sure you are eligible for using the model.')).toBe('model_access_denied');
+    // Alibaba's other AccessDenied codes have other remedies (a sub-workspace's permission, a retired endpoint, an app): not this notice.
+    expect(code('Model.AccessDenied', 'Model access denied.')).toBe('server');
+    expect(code('Workspace.AccessDenied', 'Workspace access denied.')).toBe('server');
+    expect(code('Endpoint.AccessDenied', 'Workspace endpoint access denied.')).toBe('server');
+    expect(code('AccessDenied', 'Access denied.')).toBe('server');
   });
 });

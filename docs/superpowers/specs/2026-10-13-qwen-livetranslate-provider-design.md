@@ -81,7 +81,7 @@ test on 2026-10-14 (D9).
 - **D6 Turns.** `['auto', 'manual']`. Manual uses `commit` only: a cancel is a release, and turns are serialised on `response.done` (§6, "Turns").
 - **D7 Person labels.** Only the participant leg carries `person` (Soniox's rule).
 - **D8 No reconnect.** A drop fails the leg with `connection_lost`, as OpenAI Translate and AST2 do.
-- **D9 Flagged, then unflagged.** It shipped `flagged: true` with `testerSwitch: 'debug:qwen-livetranslate'`. The owner unflagged it after his live test (2026-10-14), so the flag and the switch are gone and release builds offer it on the desktop app and the extension. It still has no `guideUrl`: the site has no Qwen tutorial yet.
+- **D9 Flagged, then unflagged.** It shipped `flagged: true` with `testerSwitch: 'debug:qwen-livetranslate'`. The owner unflagged it after his live test (2026-10-14), so the flag and the switch are gone and release builds offer it on the desktop app and the extension. It had no `guideUrl` while the site had no Qwen tutorial; *amended 2026-10-23:* it links `docs/tutorials/qwen-setup`, and Kizuna AI Qwen the Kizuna quick start, as Kizuna AI Soniox does.
 
 ## 1. Definition — `src/providers/qwen_livetranslate/provider.ts`
 

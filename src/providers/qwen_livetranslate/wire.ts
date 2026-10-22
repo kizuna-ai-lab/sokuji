@@ -148,6 +148,7 @@ export function errorCode(e: QwenError): string {
   if (/InvalidApiKey|InvalidApiToken|API Token is expired/i.test(said)) return 'auth';
   if (/rate limit|throttl|quota exceeded|Allocated quota/i.test(said)) return 'rate_limit';
   if (/not supported|invalid_value|InvalidParameter|invalid .*parameter/i.test(said)) return 'client';
-  if (/AccessDenied/.test(said)) return 'model_access_denied';
+  // Only the unpurchased model: Alibaba's other AccessDenied codes have other remedies.
+  if (/AccessDenied\.Unpurchased/.test(said)) return 'model_access_denied';
   return 'server';
 }
