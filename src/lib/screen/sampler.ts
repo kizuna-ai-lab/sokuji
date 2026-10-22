@@ -65,7 +65,11 @@ export interface Sampler {
 export const SAMPLE_MS = 1000;
 export const KEEPALIVE_MS = 60_000;
 export const FIRST_FRAME_MS = 3000;
-export const MAX_BYTES = 500_000;
+/**
+ * The JPEG's byte cap. The server refuses a frame over 500 KB, and whether it measures the JPEG or the base64 it rides
+ * in is not documented; base64 is 4/3 of the bytes, so 375 000 bytes keeps the frame under 500 KB either way.
+ */
+export const MAX_BYTES = 375_000;
 /** Tried in order until the JPEG fits `MAX_BYTES`. */
 export const QUALITIES = [0.85, 0.7, 0.5] as const;
 

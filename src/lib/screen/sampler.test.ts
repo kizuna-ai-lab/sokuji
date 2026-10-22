@@ -32,9 +32,12 @@ function lit(seed: number, width = 640): Picture {
 const BLACK = solid(0);
 const FLAT = solid(40);
 
-/** What the fake encoder returns: a 1280-wide picture is 850 000 bytes at 0.85, 700 000 at 0.7, 500 000 at 0.5. */
+/**
+ * What the fake encoder returns: a 1280-wide picture is 637 500 bytes at 0.85, 525 000 at 0.7, 375 000 at 0.5, so
+ * only the last quality fits the 375 000-byte cap; a 640-wide one is 318 750 at 0.85, under it at once.
+ */
 function sizedBytes(picture: Picture, quality: number, oversize = 1): Uint8Array {
-  return new Uint8Array(Math.round((quality * 1_000_000 * picture.width * oversize) / 1280));
+  return new Uint8Array(Math.round((quality * 750_000 * picture.width * oversize) / 1280));
 }
 
 interface Scripted extends Capture {
@@ -143,7 +146,7 @@ function fresh() {
 
 describe('createSampler', () => {
   it('keeps the brief constants', () => {
-    expect([SAMPLE_MS, KEEPALIVE_MS, FIRST_FRAME_MS, MAX_BYTES]).toEqual([1000, 60_000, 3000, 500_000]);
+    expect([SAMPLE_MS, KEEPALIVE_MS, FIRST_FRAME_MS, MAX_BYTES]).toEqual([1000, 60_000, 3000, 375_000]);
     expect([...QUALITIES]).toEqual([0.85, 0.7, 0.5]);
   });
 
@@ -155,12 +158,12 @@ describe('createSampler', () => {
     expect(rec.frames).toEqual([]);
     expect(sampler.state().status).toBe('idle');
     await run(clock, 1000);
-    expect(rec.frames).toEqual([['first', 425000]]);
+    expect(rec.frames).toEqual([['first', 318750]]);
     expect(rec.times).toEqual([3000]);
     await run(clock, 1000);
     // A subscriber joining at 4 s has the frame at once, inside subscribe.
     const late = record(clock, sampler.source);
-    expect(late.frames).toEqual([['first', 425000]]);
+    expect(late.frames).toEqual([['first', 318750]]);
     expect(late.times).toEqual([4000]);
     expect(late.jpegs[0]).toBe(rec.jpegs[0]);
     expect(rec.frames).toHaveLength(1);
@@ -198,7 +201,7 @@ describe('createSampler', () => {
     a.clock.advance(400);
     slowA.pending[2](lit(1));
     await flush();
-    expect(await firstA.promise).toHaveLength(425000);
+    expect(await firstA.promise).toHaveLength(318750);
     expect(a.rec.times).toEqual([3400]);
 
     // The same beat ending blank answers null as it ends, not at the backstop.
@@ -248,7 +251,7 @@ describe('createSampler', () => {
     const { clock, sampler, rec } = fresh();
     sampler.attach(scripted([lit(1), lit(1.1), lit(2), lit(2)]));
     await run(clock, 1000);
-    expect(rec.frames).toEqual([['first', 425000]]);
+    expect(rec.frames).toEqual([['first', 318750]]);
     await run(clock, 1000); // lit(1.1): under the threshold of the last frame sent
     expect(rec.frames).toHaveLength(1);
     await run(clock, 1000); // lit(2)
@@ -277,14 +280,14 @@ describe('createSampler', () => {
     const { clock, sampler, rec } = fresh();
     sampler.attach(scripted([lit(1), ...Array<null>(128).fill(null), lit(2)]));
     await run(clock, 1000);
-    expect(rec.frames).toEqual([['first', 425000]]);
+    expect(rec.frames).toEqual([['first', 318750]]);
     await run(clock, 1000);
     expect(rec.losts).toEqual([2000]);
     expect(sampler.state().status).toBe('lost');
     await run(clock, 58_000); // 60 s: a loss does not restart the 60 s since the last send
     expect(rec.frames).toHaveLength(1);
     await run(clock, 1000); // 61 s
-    expect(rec.frames).toEqual([['first', 425000], ['keepalive', 425000]]);
+    expect(rec.frames).toEqual([['first', 318750], ['keepalive', 318750]]);
     expect(rec.jpegs[1]).toBe(rec.jpegs[0]);
     expect(sampler.state().status).toBe('lost');
     expect(sampler.state().lastReason).toBe('keepalive');
@@ -296,7 +299,7 @@ describe('createSampler', () => {
     await run(clock, 9000); // 130 s: the picture is back
     expect(rec.backs).toEqual([130000]);
     expect(rec.events.slice(-2)).toEqual(['back', 'frame:changed']);
-    expect(rec.frames[3]).toEqual(['changed', 425000]);
+    expect(rec.frames[3]).toEqual(['changed', 318750]);
     expect(rec.times[3]).toBe(130000);
     expect(sampler.state().status).toBe('live');
     expect(rec.losts).toEqual([2000]);
@@ -359,29 +362,29 @@ describe('createSampler', () => {
     blank.sampler.attach(scripted([lit(1), BLACK]));
     await run(blank.clock, 61_000);
     expect(blank.rec.times).toEqual([1000, 61000]);
-    expect(blank.rec.frames[1]).toEqual(['keepalive', 425000]);
+    expect(blank.rec.frames[1]).toEqual(['keepalive', 318750]);
     expect(blank.sampler.state().status).toBe('stale');
     expect(blank.rec.losts).toEqual([]);
   });
 
-  it('re-encodes a frame over 500 KB at 0.7 then 0.5, and skips it when still over', async () => {
-    // 1280 wide: 850 000 at 0.85, 700 000 at 0.7, 500 000 at 0.5, which fits.
+  it('re-encodes a frame over 375 000 bytes at 0.7 then 0.5, and skips it when still over', async () => {
+    // 1280 wide: 637 500 at 0.85, 525 000 at 0.7, 375 000 at 0.5, which fits.
     const wide = fresh();
     const wideCapture = scripted([lit(1, 1280)]);
     wide.sampler.attach(wideCapture);
     await run(wide.clock, 1000);
     expect(wideCapture.asked).toEqual([0.85, 0.7, 0.5]);
-    expect(wide.rec.frames).toEqual([['first', 500000]]);
+    expect(wide.rec.frames).toEqual([['first', 375000]]);
 
-    // 800 wide: 531 250 at 0.85, 437 500 at 0.7, which fits: 0.5 is never asked.
+    // 800 wide: 398 438 at 0.85, 328 125 at 0.7, which fits: 0.5 is never asked.
     const mid = fresh();
     const midCapture = scripted([lit(1, 800)]);
     mid.sampler.attach(midCapture);
     await run(mid.clock, 1000);
     expect(midCapture.asked).toEqual([0.85, 0.7]);
-    expect(mid.rec.frames).toEqual([['first', 437500]]);
+    expect(mid.rec.frames).toEqual([['first', 328125]]);
 
-    // 1.2× the sizes: still 600 000 at 0.5. Three tries, nothing emitted, nothing changed, first() waiting.
+    // 1.2× the sizes: still 450 000 at 0.5. Three tries, nothing emitted, nothing changed, first() waiting.
     const over = fresh();
     const overCapture = scripted([lit(1, 1280)], { oversize: 1.2 });
     let settled = false;
@@ -416,7 +419,7 @@ describe('createSampler', () => {
     expect(sampler.state()).toMatchObject({ status: 'idle', name: 'Keynote', kind: 'screen', sent: 0 });
     await run(clock, 1000);
     expect(sampler.state()).toMatchObject({ status: 'live', sent: 1, lastSentAt: 1000, lastReason: 'first' });
-    expect(sampler.state().lastJpeg).toHaveLength(425000);
+    expect(sampler.state().lastJpeg).toHaveLength(318750);
     await run(clock, 1000);
     expect(sampler.state()).toMatchObject({ status: 'live', sent: 1, lastSentAt: 1000, lastReason: 'first' });
     await run(clock, 1000);
@@ -460,7 +463,7 @@ describe('createSampler', () => {
     // The last good frame still goes every 60 s while nothing is attached.
     await run(clock, 60_000);
     expect(rec.times).toEqual([1000, 61000]);
-    expect(rec.frames[1]).toEqual(['keepalive', 425000]);
+    expect(rec.frames[1]).toEqual(['keepalive', 318750]);
 
     sampler.attach(scripted([lit(5)], { name: 'Other' }));
     expect(sampler.state().name).toBe('Other');
@@ -514,12 +517,12 @@ describe('createSampler', () => {
     sampler.attach(slow);
     clock.advance(1000);
     expect(slow.pending).toHaveLength(1);
-    sampler.attach(scripted([lit(7, 320)])); // 212 500 bytes at 0.85
-    slow.pending[0](lit(1)); // 425 000 bytes: must never be sent
+    sampler.attach(scripted([lit(7, 320)])); // 159 375 bytes at 0.85
+    slow.pending[0](lit(1)); // 318 750 bytes: must never be sent
     await flush();
     expect(rec.frames).toEqual([]);
     await run(clock, 1000);
-    expect(rec.frames).toEqual([['first', 212500]]);
+    expect(rec.frames).toEqual([['first', 159375]]);
   });
 
   it('never has two grabs in flight: a slow grab holds the next until it resolves', async () => {
@@ -545,7 +548,7 @@ describe('createSampler', () => {
     const second = record(clock, sampler.source);
     sampler.attach(scripted([lit(1), lit(1), lit(2)]));
     await run(clock, 3000);
-    expect(first.frames).toEqual([['first', 425000], ['changed', 425000]]);
+    expect(first.frames).toEqual([['first', 318750], ['changed', 318750]]);
     expect(second.frames).toEqual(first.frames);
     first.off();
     await run(clock, 60_000);

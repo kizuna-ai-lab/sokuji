@@ -1,7 +1,7 @@
 /**
  * The arithmetic the frame sampler does on a picture, kept pure so it needs no
  * canvas: the size a picture is sent at, its 64×36 grey thumb, how far two
- * thumbs are apart, and whether one is black or flat. Every function takes and
+ * thumbs are apart, and whether one is flat (black is flat). Every function takes and
  * returns plain arrays and numbers.
  */
 
@@ -24,10 +24,12 @@ export interface Box {
 const SEND_BOUND: Size = { width: 1280, height: 720 };
 const THUMB: Size = { width: 64, height: 36 };
 
-/** A thumb whose mean grey is under this reads as black. */
-const BLANK_MEAN = 8;
-/** A thumb whose grey variance is under this reads as flat. */
-const BLANK_VARIANCE = 1;
+/**
+ * A thumb whose grey variance (0..255 levels, squared) is under this reads as flat. Black is flat; a dark slide with
+ * one bright title line is not (mean about 3, variance in the hundreds), and sensor or compression noise on an empty
+ * picture averages out well under it on the 64×36 thumb.
+ */
+const BLANK_VARIANCE = 16;
 
 /** The largest size with the picture's aspect that fits inside `max`; never larger than the picture. */
 export function fitInside(width: number, height: number, max: Size = SEND_BOUND): Size {
@@ -76,13 +78,15 @@ export function meanAbsDiff(a: Uint8Array, b: Uint8Array): number {
   return sum / a.length;
 }
 
-/** A thumb that is too dark to read (mean under 8) or flat (variance under 1): a minimized or covered window. Nothing at all is blank. */
+/**
+ * A thumb that is flat (grey variance under 16), however bright or dark: a minimized, covered or black window. How
+ * dark it is does not count, so a black slide with a white title is sent. Nothing at all is blank.
+ */
 export function isBlank(grey: Uint8Array): boolean {
   if (grey.length === 0) return true;
   let sum = 0;
   for (let i = 0; i < grey.length; i++) sum += grey[i];
   const mean = sum / grey.length;
-  if (mean < BLANK_MEAN) return true;
   let squares = 0;
   for (let i = 0; i < grey.length; i++) squares += (grey[i] - mean) ** 2;
   return squares / grey.length < BLANK_VARIANCE;

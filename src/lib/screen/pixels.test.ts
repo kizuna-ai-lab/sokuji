@@ -89,16 +89,67 @@ describe('meanAbsDiff', () => {
   });
 });
 
+/** A line of text-like white strokes, 4 px on and 4 px off, across `x0..x1` and down `y0..y1`. */
+function strokes(rgba: Uint8ClampedArray, width: number, x0: number, x1: number, y0: number, y1: number): void {
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) if (Math.floor(x / 4) % 2 === 0) rgba.set([255, 255, 255, 255], (y * width + x) * 4);
+  }
+}
+
+function meanOf(grey: Uint8Array): number {
+  let sum = 0;
+  for (const v of grey) sum += v;
+  return sum / grey.length;
+}
+
+/** Grey 100 with every pixel moved by up to ±`amplitude`, from a fixed seed: noise, nothing to read. */
+function noise(amplitude: number, width: number, height: number): Uint8ClampedArray {
+  let seed = 1;
+  const next = () => {
+    seed = (seed * 1103515245 + 12345) % 2147483648;
+    return seed / 2147483648;
+  };
+  const rgba = new Uint8ClampedArray(width * height * 4);
+  for (let i = 0; i < width * height; i++) {
+    const v = Math.round(100 + (next() * 2 - 1) * amplitude);
+    rgba.set([v, v, v, 255], i * 4);
+  }
+  return rgba;
+}
+
 describe('isBlank', () => {
-  it('is blank under a mean of 8, or with a variance under 1', () => {
+  it('is blank only when flat: a grey variance under 16, however bright or dark', () => {
+    expect(isBlank(new Uint8Array(100).fill(0))).toBe(true); // black is flat
     expect(isBlank(new Uint8Array(100).fill(7))).toBe(true);
     expect(isBlank(new Uint8Array(100).fill(200))).toBe(true); // bright but flat
+    const near = new Uint8Array(100);
+    for (let i = 0; i < 100; i++) near[i] = i % 2 === 0 ? 100 : 107; // variance 12.25
+    expect(isBlank(near)).toBe(true);
     const dim = new Uint8Array(100);
-    for (let i = 0; i < 100; i++) dim[i] = i % 2 === 0 ? 0 : 14; // mean 7, varied: still too dark
-    expect(isBlank(dim)).toBe(true);
+    for (let i = 0; i < 100; i++) dim[i] = i % 2 === 0 ? 0 : 14; // mean 7, variance 49: dark, but something is drawn
+    expect(isBlank(dim)).toBe(false);
     const lit = new Uint8Array(100);
     for (let i = 0; i < 100; i++) lit[i] = i % 2 === 0 ? 30 : 60;
     expect(isBlank(lit)).toBe(false);
+  });
+
+  it('a black slide with a white title is not blank, nor one with a title and a subtitle', () => {
+    const title = solid(0, 0, 0, 1280, 720);
+    strokes(title, 1280, 320, 960, 96, 132);
+    const titleThumb = greyThumb(title, 1280, 720);
+    expect(meanOf(titleThumb)).toBeLessThan(8); // as dark as the old mean rule refused
+    expect(isBlank(titleThumb)).toBe(false);
+
+    const both = solid(0, 0, 0, 1280, 720);
+    strokes(both, 1280, 320, 960, 96, 132);
+    strokes(both, 1280, 400, 880, 170, 190);
+    expect(isBlank(greyThumb(both, 1280, 720))).toBe(false);
+  });
+
+  it('pure black, a flat grey and a near-flat noise picture are blank', () => {
+    expect(isBlank(greyThumb(solid(0, 0, 0, 1280, 720), 1280, 720))).toBe(true);
+    expect(isBlank(greyThumb(solid(128, 128, 128, 1280, 720), 1280, 720))).toBe(true);
+    expect(isBlank(greyThumb(noise(60, 1280, 720), 1280, 720))).toBe(true);
   });
 
   it('counts nothing as blank', () => {

@@ -42,8 +42,9 @@ face-to-face mode (not available with Qwen at all).
 ## 2. What is known about the wire (verified by probes, 2026-10-13 and 2026-10-22)
 
 - A frame is `{"type":"input_image_buffer.append","image":"<base64 JPEG>"}` on the same realtime socket, at
-  most 2 per second, at most 500 KB each. The server downsamples internally (a 1280×720 slide bills as if
-  ~480p).
+  most 2 per second, at most 500 KB each (the client caps the JPEG at 375 KB, so its base64 stays under the
+  server's 500 KB whichever of the two it measures). The server downsamples internally (a 1280×720 slide
+  bills as if ~480p).
 - Frames are **ignored unless** `session.update` carries `input_modalities: ["audio","video"]`. This field is
   undocumented; the server accepts `["audio"]` or `["audio","video"]`.
 - **Declaring video and then sending no frame kills the session**: the server answers
@@ -106,7 +107,8 @@ face-to-face mode (not available with Qwen at all).
   it with the last frame sent; a change above a small threshold sends a new frame. Unchanged screens still
   get a keep-alive frame every 60 s (free: billing is per second). Hard caps: ≤ 1 frame/s; the frame is
   scaled to **fit inside 1280×720** (so a portrait or square window never exceeds 720p's area, which is what
-  the billing rate was measured on); JPEG quality ~85 (a 720p slide is ~65 KB).
+  the billing rate was measured on); JPEG quality ~85 (a 720p slide is ~65 KB), re-encoded at 0.7 then 0.5
+  and skipped when still over 375 KB.
 - Blank frames — all black, or no variance (a minimized or fully covered window) — are never sent.
 - Frames are never logged. The Logs panel gets one `frame` event per sent image with its size and the
   reason (`first`, `changed`, `keepalive`) — never pixels.
@@ -213,7 +215,8 @@ face-to-face mode (not available with Qwen at all).
 ## 6. Left to the builder
 
 - The change-detection threshold and thumbnail size (start at mean absolute difference > 6/255 on 64×36)
-  and the blank-frame test (start at mean luminance < 8/255 or variance ≈ 0).
+  and the blank-frame test (flat: variance ≈ 0 on the 64×36 grey thumb (black is flat); a dark slide with a
+  bright title is not blank).
 - The exact chip and card styling within the settings-control dialect (28 px rows, `#ccc`).
 - How Sokuji's own picker lists sources (title + app icon + thumbnail; windows before screens; Sokuji's own
   windows filtered out).
