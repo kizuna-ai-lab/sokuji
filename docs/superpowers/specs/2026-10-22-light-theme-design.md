@@ -101,6 +101,7 @@ Overlays, the trap the render was built to catch: a white tint lightens a dark s
 | Token | Dark | Light | Use |
 |---|---|---|---|
 | `overlay-fg` | `#ffffff` | `#000000` | every `rgba(255,255,255,a)` hover, pressed and tint becomes `color-mix(in srgb, var(--sk-overlay-fg) a%, transparent)` |
+| `overlay-bg` | `#000000` | `#000000` | a darkening tint (`rgba(0,0,0,a)` as a background, a tool-call block): black in both schemes, through the same `color-mix` |
 | `scrim` | `rgba(0,0,0,.6)` | `rgba(0,0,0,.6)` | modal and tour backdrops |
 | `shadow` | `rgba(0,0,0,.3)` | `rgba(0,0,0,.15)` | tooltip, modal, popover shadows |
 | `shadow-strong` | `rgba(0,0,0,.5)` | `rgba(0,0,0,.2)` | the tour card |

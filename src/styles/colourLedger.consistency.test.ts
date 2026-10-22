@@ -121,15 +121,12 @@ const LEDGER: Record<string, number> = {
   'src/components/MainLayout/MainLayout.scss': 3,
   'src/components/MainLayout/PanelResizer.scss': 2,
   // --- components/MainPanel ---
-  'src/components/MainPanel/MainPanel.scss': 75,
-  'src/components/MainPanel/ModeDevicePopover.scss': 33,
-  'src/components/MainPanel/ExportButton.scss': 28,
-  'src/components/MainPanel/ConversationRow.scss': 17,
-  'src/components/MainPanel/ModePicker.scss': 9,
+  // The fallbacks of the user-colour variables (`var(--conversation-bg-color,
+  // #1f1f1f)` and the two text colours) are the stores' defaults (R3): they
+  // stay literal, and these two rows stay.
+  'src/components/MainPanel/MainPanel.scss': 1,
+  'src/components/MainPanel/ConversationRow.scss': 2,
   'src/components/MainPanel/panel/Waveforms.tsx': 3,
-  'src/components/MainPanel/DisplayModeButton.scss': 2,
-  'src/components/MainPanel/SessionCountdown.scss': 2,
-  'src/components/MainPanel/WaveformStrip.scss': 2,
   // --- components/Modal ---
   'src/components/Modal/Modal.scss': 8,
   // --- components/Settings ---

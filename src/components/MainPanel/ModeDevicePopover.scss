@@ -1,19 +1,20 @@
 @use '../../styles/tokens' as tk;
+@use '../Settings/shared/variables' as vars;
 
 // Mode device popover — collapsible summary rows that expand to inline
 // DeviceList-style options, matching the settings panel's existing DeviceList
 // pattern. Each row has a dedicated mute toggle button.
 .mode-device-popover {
-  background: #2a2a2a;
-  border: 1px solid #444;
+  background: vars.$bg-popover;
+  border: 1px solid vars.$border-default;
   border-radius: 8px;
   // 320px inside its 1px border. Border-box, so the max-width floating-ui's
   // size() sets on a narrow panel bounds the whole popover.
   box-sizing: border-box;
   width: 322px;
   font-size: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-  color: #ccc;
+  box-shadow: 0 4px 16px vars.$shadow-strong;
+  color: vars.$text-secondary;
   z-index: 1000;
   overflow: hidden;
   // max-height is set inline by floating-ui's size() middleware.
@@ -24,7 +25,7 @@
 
   &__header {
     padding: 8px 14px 6px;
-    color: #888;
+    color: vars.$text-muted;
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.6px;
@@ -42,9 +43,9 @@
     &::-webkit-scrollbar { width: 6px; }
     &::-webkit-scrollbar-track { background: transparent; }
     &::-webkit-scrollbar-thumb {
-      background: #444;
+      background: vars.$bg-elevated;
       border-radius: 3px;
-      &:hover { background: #555; }
+      &:hover { background: vars.$bg-elevated-hover; }
     }
   }
 
@@ -52,15 +53,15 @@
   // (HTML spec forbids button-in-button).
   &__row {
     width: 100%;
-    border-top: 1px solid #3a3a3a;
+    border-top: 1px solid vars.$border-subtle;
     display: flex;
     align-items: stretch;
 
     &--expanded {
-      background: #1f1f1f;
+      background: vars.$bg-page;
 
       .mode-device-popover__row-main:hover {
-        background: #1f1f1f;
+        background: vars.$bg-page;
       }
     }
   }
@@ -81,13 +82,13 @@
     font-size: 12px;
     transition: background 0.15s ease;
 
-    &:hover { background: #333; }
+    &:hover { background: vars.$bg-hover; }
   }
 
-  &__row-icon { color: #aaa; flex-shrink: 0; }
+  &__row-icon { color: vars.$text-tertiary; flex-shrink: 0; }
 
   &__row-label {
-    color: #aaa;
+    color: vars.$text-tertiary;
     flex-shrink: 0;
   }
 
@@ -96,14 +97,14 @@
   &__summary {
     flex: 1;
     text-align: right;
-    color: #ddd;
+    color: vars.$text-secondary;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     min-width: 0;
 
-    &--off { color: #888; font-style: italic; }
-    &--missing { color: #f59e0b; font-style: italic; }
+    &--off { color: vars.$text-muted; font-style: italic; }
+    &--missing { color: tk.$color-recommended; font-style: italic; }
   }
 
   // Per-row mute toggle button — sits to the right of the expand region.
@@ -113,8 +114,8 @@
     padding: 0;
     background: transparent;
     border: 0;
-    border-left: 1px solid #3a3a3a;
-    color: #aaa;
+    border-left: 1px solid vars.$border-subtle;
+    color: vars.$text-tertiary;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -122,8 +123,8 @@
     transition: background 0.15s ease, color 0.15s ease;
 
     &:hover:not(:disabled) {
-      background: #333;
-      color: #ddd;
+      background: vars.$bg-hover;
+      color: vars.$text-secondary;
     }
 
     // Blocked or locked: it reads as off and does not invite a click.
@@ -133,12 +134,12 @@
 
     // Off state: icon is dimmed to signal the channel is silent.
     &--off {
-      color: #666;
+      color: vars.$text-dim;
       opacity: 0.6;
 
       &:hover:not(:disabled) {
-        background: #333;
-        color: #999;
+        background: vars.$bg-hover;
+        color: vars.$text-muted;
         opacity: 1;
       }
     }
@@ -165,9 +166,9 @@
 
   // Expanded inline DeviceList — mirrors the settings .device-list pattern
   &__device-list {
-    background: #1f1f1f;
+    background: vars.$bg-page;
     padding: 4px 0 6px;
-    border-top: 1px solid #2f2f2f;
+    border-top: 1px solid vars.$border-subtle;
   }
 
   &__device-row {
@@ -175,7 +176,7 @@
     padding: 6px 14px 6px 36px;
     background: transparent;
     border: 0;
-    color: #ccc;
+    color: vars.$text-secondary;
     text-align: left;
     cursor: pointer;
     display: flex;
@@ -184,11 +185,11 @@
     font-size: 12px;
     transition: background 0.15s ease;
 
-    &:hover { background: #2a2a2a; }
+    &:hover { background: color-mix(in srgb, vars.$overlay-fg 5%, transparent); }
 
     &--selected {
       background: color-mix(in srgb, tk.$color-primary 12%, transparent);
-      color: #fff;
+      color: tk.$color-on-primary;
       &:hover { background: color-mix(in srgb, tk.$color-primary 18%, transparent); }
     }
   }
@@ -204,21 +205,21 @@
   // Both: who the other person is, a section between the device rows with
   // their divider and their left edge.
   &__other-side {
-    border-top: 1px solid #3a3a3a;
+    border-top: 1px solid vars.$border-subtle;
     padding: 8px 14px 10px;
   }
 
-  &__preview-btn { color: #ddd; }
+  &__preview-btn { color: vars.$text-secondary; }
 
   &__divider {
-    border-top: 1px solid #3a3a3a;
+    border-top: 1px solid vars.$border-subtle;
     flex-shrink: 0;
   }
 
   &__footer {
     padding: 8px 14px;
-    background: #252525;
-    color: #888;
+    background: vars.$bg-surface;
+    color: vars.$text-muted;
     font-size: 11px;
     flex-shrink: 0;
 

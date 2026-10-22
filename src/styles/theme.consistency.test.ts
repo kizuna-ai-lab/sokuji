@@ -73,7 +73,7 @@ const DARK_PINNED: Record<string, string> = {
   'text-primary': '#ffffff', 'text-secondary': '#cccccc', 'text-tertiary': '#aaaaaa', 'text-muted': '#888888',
   'text-dim': '#666666', 'text-disabled': '#555555', 'text-source': '#9aa0a6', 'on-accent': '#ffffff',
   'line': '#444444', 'line-subtle': '#333333', 'line-strong': '#555555',
-  'overlay-fg': '#ffffff', 'scrim': 'rgba(0,0,0,0.6)', 'shadow': 'rgba(0,0,0,0.3)', 'shadow-strong': 'rgba(0,0,0,0.5)',
+  'overlay-fg': '#ffffff', 'overlay-bg': '#000000', 'scrim': 'rgba(0,0,0,0.6)', 'shadow': 'rgba(0,0,0,0.3)', 'shadow-strong': 'rgba(0,0,0,0.5)',
   'primary': '#0fbb8f', 'primary-hover': '#0da77f', 'primary-fill': '#008261', 'primary-fill-hover': '#006e52',
   'speaker': 'var(--sk-primary)', 'speaker-fill': 'var(--sk-primary-fill)', 'speaker-person-3': '#005c45',
   'participant': '#f39c12', 'participant-person-2': '#f8c471', 'participant-person-3': '#ca6f1e',
@@ -111,7 +111,7 @@ describe('theme.scss', () => {
     expect(names(LIGHT)).toEqual(names(DARK));
     expect(names(TONE_DARK)).toEqual(names(DARK));
     expect(names(TONE_LIGHT)).toEqual(names(DARK));
-    expect(names(DARK)).toHaveLength(50);
+    expect(names(DARK)).toHaveLength(51);
   });
 
   it('sets color-scheme on the two root blocks only', () => {

@@ -15,7 +15,7 @@ describe('the Back to live row', () => {
   it('is a row of its own, not a floating layer', () => {
     const dock = rule(panel, '\\.follow-dock');
     expect(dock).toMatch(/flex-shrink:\s*0/);
-    expect(dock).toMatch(/border-top:\s*1px solid #333/);
+    expect(dock).toMatch(/border-top:\s*1px solid var\(--sk-line-subtle\)/);
     expect(dock).not.toMatch(/position:\s*(absolute|fixed|sticky)/);
   });
 

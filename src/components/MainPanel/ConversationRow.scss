@@ -1,4 +1,5 @@
 @use '../../styles/tokens' as tk;
+@use '../Settings/shared/variables' as vars;
 
 .conversation-row {
   display: flex;
@@ -34,17 +35,17 @@
 
   &.avatar-speaker {
     background: tk.$color-speaker-fill;
-    color: #fff;
+    color: tk.$color-on-primary;
   }
 
   &.avatar-participant {
     background: tk.$color-participant;
-    color: #1a1a1a;
+    color: vars.$bg-base;
   }
 
   // A labelled leg's people: the leg's colour, a shade per person in turn.
   &.avatar-speaker.person-shade-0 { background: tk.$color-speaker-person-1; }
-  &.avatar-speaker.person-shade-1 { background: tk.$color-speaker-person-2; color: #1a1a1a; }
+  &.avatar-speaker.person-shade-1 { background: tk.$color-speaker-person-2; color: vars.$bg-base; }
   &.avatar-speaker.person-shade-2 { background: tk.$color-speaker-person-3; }
   &.avatar-participant.person-shade-0 { background: tk.$color-participant-person-1; }
   &.avatar-participant.person-shade-1 { background: tk.$color-participant-person-2; }
@@ -62,7 +63,7 @@
   align-items: baseline;
   gap: 8px;
   font-size: 0.7rem;
-  color: #9aa0a6;
+  color: vars.$text-source;
 }
 
 .row-name-text {
@@ -103,9 +104,9 @@
   text-transform: uppercase;
 
   &.src {
-    background: #2a2a2a;
-    color: #9aa0a6;
-    border: 1px solid #3a3a3a;
+    background: vars.$bg-bar;
+    color: vars.$text-source;
+    border: 1px solid vars.$border-subtle;
   }
 
   &.tr {
@@ -166,9 +167,9 @@
     color: tk.$color-participant;
   }
   &--muted {
-    border: 1px dashed #777;
-    color: #b0b5ba;
-    background: #262626;
+    border: 1px dashed vars.$border-strong;
+    color: vars.$text-source;
+    background: vars.$bg-surface;
   }
 }
 
@@ -181,21 +182,21 @@
   height: 18px;
   padding: 0;
   margin-left: 4px;
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, vars.$overlay-fg 8%, transparent);
   border: none;
   border-radius: 3px;
-  color: #c8c8c8;
+  color: vars.$text-tertiary;
   cursor: pointer;
   transition: background-color 0.15s, color 0.15s;
 
   &:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.18);
-    color: #fff;
+    background: color-mix(in srgb, vars.$overlay-fg 18%, transparent);
+    color: vars.$text-primary;
   }
 
   &.playing {
     background: color-mix(in srgb, tk.$color-speaker 45%, transparent);
-    color: #fff;
+    color: tk.$color-on-primary;
   }
 
   &:disabled {

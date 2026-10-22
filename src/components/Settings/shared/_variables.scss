@@ -72,6 +72,7 @@ $border-strong:  var(--sk-line-strong);   // hover-emphasized borders
 // transparent)`, never `rgba(255, 255, 255, a)`.
 
 $overlay-fg:    var(--sk-overlay-fg);
+$overlay-bg:    var(--sk-overlay-bg);      // a darkening tint, black in both schemes
 $scrim:         var(--sk-scrim);           // modal and tour backdrops
 $shadow:        var(--sk-shadow);          // tooltip, modal, popover shadows
 $shadow-strong: var(--sk-shadow-strong);

@@ -39,9 +39,9 @@
   &::-webkit-scrollbar { width: 6px; }
   &::-webkit-scrollbar-track { background: transparent; }
   &::-webkit-scrollbar-thumb {
-    background: #444;
+    background: vars.$bg-elevated;
     border-radius: 3px;
-    &:hover { background: #555; }
+    &:hover { background: vars.$bg-elevated-hover; }
   }
 }
 
@@ -67,8 +67,8 @@
   transition: color 0.15s, background-color 0.15s;
 
   &:hover:not(:disabled) {
-    color: #e74c3c;
-    background: rgba(231, 76, 60, 0.1);
+    color: tk.$color-error;
+    background: color-mix(in srgb, tk.$color-error 10%, transparent);
   }
 
   &:disabled {
@@ -90,8 +90,8 @@
   transition: color 0.15s, background-color 0.15s;
 
   &:hover:not(:disabled) {
-    color: #ccc;
-    background: rgba(255, 255, 255, 0.1);
+    color: vars.$text-secondary;
+    background: color-mix(in srgb, vars.$overlay-fg 10%, transparent);
   }
 
   &:disabled {
@@ -109,7 +109,7 @@
   justify-content: center;
   height: 100%;
   text-align: center;
-  color: #666;
+  color: vars.$text-dim;
   gap: 16px;
 
   // Its own icon only: the extension overlay's placeholder draws the panel notes under it, whose icons carry their severity.
@@ -134,7 +134,7 @@
   padding: 3px 8px;
   font-size: 12px;
   line-height: 1.4;
-  color: #9aa0a6;
+  color: vars.$text-source;
   text-align: center;
 
   > svg {
@@ -143,9 +143,9 @@
     margin-right: 5px;
   }
 
-  &--error { color: #d8d8d8; > svg { color: #ff6b6b; } }
-  &--warning { color: #bdbdbd; > svg { color: tk.$color-degraded; } }
-  &--info { color: #8a8a8a; > svg { color: tk.$color-toolbar-icon; } }
+  &--error { color: vars.$text-secondary; > svg { color: tk.$color-error; } }
+  &--warning { color: vars.$text-tertiary; > svg { color: tk.$color-degraded; } }
+  &--info { color: tk.$color-toolbar-icon; > svg { color: tk.$color-toolbar-icon; } }
 
   &__text { display: inline; }
 
@@ -159,7 +159,7 @@
     text-decoration: underline;
     cursor: pointer;
     // `pre` keeps the spaces around the dot: an inline-block drops the leading and trailing space of its own line.
-    &::before { content: ' · '; color: #666; text-decoration: none; display: inline-block; white-space: pre; }
+    &::before { content: ' · '; color: vars.$text-dim; text-decoration: none; display: inline-block; white-space: pre; }
     &:hover { opacity: 0.8; }
     &:focus-visible { @include vars.focus-ring; }
   }
@@ -187,7 +187,7 @@
 
   &.tool-call,
   &.tool-output {
-    background: rgba(0, 0, 0, 0.2);
+    background: color-mix(in srgb, vars.$overlay-bg 20%, transparent);
     border-radius: 6px;
     padding: 10px;
 
@@ -204,7 +204,7 @@
         white-space: pre-wrap;
         font-family: monospace;
         font-size: 13px;
-        background: rgba(0, 0, 0, 0.2);
+        background: color-mix(in srgb, vars.$overlay-bg 20%, transparent);
         padding: 8px;
         border-radius: 4px;
         overflow-x: auto;
@@ -217,8 +217,8 @@
 
 .text-input-section {
   flex-shrink: 0;
-  background: #252525;
-  border-top: 1px solid #333;
+  background: vars.$bg-surface;
+  border-top: 1px solid vars.$border-subtle;
   padding: 8px 12px;
 
   .text-input-container {
@@ -228,16 +228,16 @@
 
     .text-input {
       flex: 1;
-      background: #1e1e1e;
-      border: 1px solid #444;
+      background: vars.$bg-page;
+      border: 1px solid vars.$border-default;
       border-radius: 20px;
       padding: 8px 16px;
-      color: #fff;
+      color: vars.$text-primary;
       font-size: 14px;
       outline: none;
       transition: border-color 0.2s ease;
 
-      &::placeholder { color: #666; }
+      &::placeholder { color: vars.$text-dim; }
       &:focus { border-color: tk.$color-primary; }
       &:disabled { opacity: 0.5; cursor: not-allowed; }
     }
@@ -257,14 +257,14 @@
       flex-shrink: 0;
 
       &:hover:not(:disabled) {
-        background: #0d8c6d;
+        background: tk.$color-primary-hover;
         transform: scale(1.05);
       }
 
       &:disabled,
       &.disabled {
-        background: #444;
-        color: #666;
+        background: vars.$bg-elevated;
+        color: vars.$text-dim;
         cursor: not-allowed;
         transform: none;
       }
@@ -283,11 +283,11 @@
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
-  background: #252525;
-  border-top: 1px solid #333;
+  background: vars.$bg-surface;
+  border-top: 1px solid vars.$border-subtle;
   font-size: 12px;
   line-height: 1.4;
-  color: #e8e8e8;
+  color: vars.$text-primary;
   flex-shrink: 0;
 
   > svg { flex-shrink: 0; color: tk.$color-degraded; }
@@ -299,14 +299,14 @@
   &__action {
     flex-shrink: 0;
     font: inherit;
-    background: rgba(255, 255, 255, 0.1);
+    background: color-mix(in srgb, vars.$overlay-fg 10%, transparent);
     border: none;
-    color: #fff;
+    color: vars.$text-primary;
     padding: 3px 8px;
     border-radius: 3px;
     cursor: pointer;
     @include vars.cap-centred(3px);
-    &:hover { background: rgba(255, 255, 255, 0.18); }
+    &:hover { background: color-mix(in srgb, vars.$overlay-fg 18%, transparent); }
     &:focus-visible { @include vars.focus-ring; }
   }
 
@@ -314,12 +314,12 @@
     flex-shrink: 0;
     background: none;
     border: none;
-    color: #aaa;
+    color: vars.$text-tertiary;
     padding: 1px;
     margin: 0 -2px 0 0;
     display: inline-flex;
     cursor: pointer;
-    &:hover { color: #fff; }
+    &:hover { color: vars.$text-primary; }
     &:focus-visible { @include vars.focus-ring; }
   }
 }
@@ -339,18 +339,18 @@
   gap: 6px;
   width: 100%;
   padding: 6px 12px;
-  background: #252525;
+  background: vars.$bg-surface;
   border: none;
-  border-top: 1px solid #333;
+  border-top: 1px solid vars.$border-subtle;
   font: inherit;
   font-size: 12px;
   line-height: 1.4;
-  color: #cfcfcf;
+  color: vars.$text-secondary;
   cursor: pointer;
 
   > svg { flex-shrink: 0; }
   &__label { @include vars.cap-centred; }
-  &:hover { background: #2d2d2d; color: #fff; }
+  &:hover { background: vars.$bg-bar; color: vars.$text-primary; }
   // Inset: the row spans the panel, so an outset ring would be clipped at its edges.
   &:focus-visible { @include vars.focus-ring; outline-offset: -2px; }
 }
@@ -368,11 +368,11 @@
   column-gap: 10px;
   row-gap: 4px;
   padding: 6px 12px;
-  background: #252525;
-  border-top: 1px solid #333;
+  background: vars.$bg-surface;
+  border-top: 1px solid vars.$border-subtle;
   font-size: 12px;
   line-height: 1.4;
-  color: #b8bcc2;
+  color: vars.$text-source;
 
   > svg { flex-shrink: 0; }
 
@@ -410,7 +410,7 @@
 
   &__device {
     margin-left: 4px;
-    color: #9aa0a6;
+    color: vars.$text-source;
   }
 
   // Read by screen readers in place of the ring letter.
@@ -434,8 +434,8 @@
 
 .control-footer {
   flex-shrink: 0;
-  background: #2a2a2a;
-  border-top: 1px solid #333;
+  background: vars.$bg-bar;
+  border-top: 1px solid vars.$border-subtle;
   padding: 6px 10px;
   display: flex;
   align-items: center;
@@ -453,7 +453,7 @@
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: #666;
+      background: vars.$bg-dim;
       transition: background 0.3s ease;
       flex-shrink: 0;
       &.active { background: tk.$color-primary; }
@@ -480,18 +480,18 @@
       flex-shrink: 0;
 
       .language-pair {
-        color: #ccc;
+        color: vars.$text-secondary;
         font-size: 12px;
         cursor: pointer;
         padding: 2px 6px;
         border-radius: 3px;
         white-space: nowrap;
 
-        &:hover { color: #fff; background: rgba(255,255,255,0.05); }
+        &:hover { color: vars.$text-primary; background: color-mix(in srgb, vars.$overlay-fg 5%, transparent); }
       }
 
       .session-duration {
-        color: #888;
+        color: vars.$text-muted;
         font-size: 11px;
         white-space: nowrap;
       }
@@ -507,7 +507,7 @@
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: #666;
+      background: vars.$bg-dim;
       transition: background 0.3s ease;
       flex-shrink: 0;
       &.active { background: tk.$color-primary; }
@@ -547,18 +547,18 @@
       flex-shrink: 0;
 
       .language-pair {
-        color: #ccc;
+        color: vars.$text-secondary;
         font-size: 12px;
         cursor: pointer;
         padding: 2px 6px;
         border-radius: 3px;
         white-space: nowrap;
 
-        &:hover { color: #fff; background: rgba(255,255,255,0.05); }
+        &:hover { color: vars.$text-primary; background: color-mix(in srgb, vars.$overlay-fg 5%, transparent); }
       }
 
       .session-duration {
-        color: #888;
+        color: vars.$text-muted;
         font-size: 11px;
         white-space: nowrap;
       }
@@ -569,9 +569,9 @@
 
   .push-to-talk-btn,
   .push-to-talk-button {
-    background: #444;
+    background: vars.$bg-elevated;
     border: none;
-    color: #fff;
+    color: vars.$text-primary;
     padding: 6px 12px;
     border-radius: 6px;
     font-size: 12px;
@@ -583,10 +583,10 @@
     gap: 6px;
     height: 28px;
 
-    &:hover { background: #555; }
+    &:hover { background: vars.$bg-elevated-hover; }
     &.recording {
-      background: #e74c3c;
-      &:hover { background: #c0392b; }
+      background: tk.$color-error;
+      &:hover { background: tk.$color-error-deep; }
     }
     &:disabled { opacity: 0.5; cursor: not-allowed; }
   }
@@ -608,11 +608,11 @@
     justify-content: center;
     height: 28px;
 
-    &:hover:not(:disabled) { background: #0d8c6d; }
-    &:disabled { background: #444; color: #666; cursor: not-allowed; }
+    &:hover:not(:disabled) { background: tk.$color-primary-hover; }
+    &:disabled { background: vars.$bg-elevated; color: vars.$text-dim; cursor: not-allowed; }
     &.stop {
-      background: #e74c3c;
-      &:hover { background: #c0392b; }
+      background: tk.$color-error;
+      &:hover { background: tk.$color-error-deep; }
     }
 
     .spinning { animation: spin 1s linear infinite; }
@@ -634,21 +634,21 @@
     gap: 8px;
     height: 28px;
     position: relative;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 6px vars.$shadow;
 
-    &:hover { background: #0c8c6a; }
+    &:hover { background: tk.$color-primary-hover; }
     &.active {
-      background: #444;
-      &:hover { background: #555; }
+      background: vars.$bg-elevated;
+      &:hover { background: vars.$bg-elevated-hover; }
     }
 
     &:disabled {
-      background: #666;
+      background: vars.$bg-dim;
       opacity: 0.6;
       cursor: not-allowed;
       box-shadow: none;
 
-      &:hover { background: #666; }
+      &:hover { background: vars.$bg-dim; }
     }
 
     .spinner { animation: spin 1s linear infinite; }
@@ -656,9 +656,9 @@
 
   .debug-button {
     background: transparent;
-    border: 1px solid #555;
+    border: 1px solid vars.$border-strong;
     border-radius: 6px;
-    color: white;
+    color: vars.$text-primary;
     padding: 6px 12px;
     font-size: 13px;
     cursor: pointer;
@@ -668,10 +668,10 @@
     gap: 8px;
     transition: background-color 0.2s;
 
-    &:hover { background: rgba(255, 255, 255, 0.1); }
+    &:hover { background: color-mix(in srgb, vars.$overlay-fg 10%, transparent); }
     &.active {
-      background: #444;
-      &:hover { background: #555; }
+      background: vars.$bg-elevated;
+      &:hover { background: vars.$bg-elevated-hover; }
     }
   }
 
