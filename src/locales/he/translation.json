@@ -1012,6 +1012,7 @@
       "sourceColor": "צבע טקסט מקור",
       "translationColor": "צבע תרגום",
       "customColor": "צבע מותאם אישית",
+      "followTheme": "לפי ערכת הנושא",
       "colorArea": "רוויה ובהירות",
       "colorHue": "גוון",
       "colorHex": "ערך צבע הקסדצימלי",

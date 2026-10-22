@@ -1012,6 +1012,7 @@
       "sourceColor": "สีข้อความต้นฉบับ",
       "translationColor": "สีคำแปล",
       "customColor": "สีที่กำหนดเอง",
+      "followTheme": "ตามธีม",
       "colorArea": "ความอิ่มตัวและความสว่าง",
       "colorHue": "เฉดสี",
       "colorHex": "ค่าสีเลขฐานสิบหก",

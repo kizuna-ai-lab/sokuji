@@ -1012,6 +1012,7 @@
       "sourceColor": "Lähdetekstin väri",
       "translationColor": "Käännöksen väri",
       "customColor": "Mukautettu väri",
+      "followTheme": "Seuraa teemaa",
       "colorArea": "Kylläisyys ja kirkkaus",
       "colorHue": "Sävy",
       "colorHex": "Heksadesimaalinen värikoodi",

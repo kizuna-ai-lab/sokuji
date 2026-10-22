@@ -1012,6 +1012,7 @@
       "sourceColor": "원문 색상",
       "translationColor": "번역 색상",
       "customColor": "사용자 지정 색상",
+      "followTheme": "테마 따르기",
       "colorArea": "채도 및 명도",
       "colorHue": "색상",
       "colorHex": "16진수 색상 값",

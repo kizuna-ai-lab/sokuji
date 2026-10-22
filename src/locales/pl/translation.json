@@ -1012,6 +1012,7 @@
       "sourceColor": "Kolor tekstu źródłowego",
       "translationColor": "Kolor tłumaczenia",
       "customColor": "Kolor niestandardowy",
+      "followTheme": "Jak w motywie",
       "colorArea": "Nasycenie i jasność",
       "colorHue": "Odcień",
       "colorHex": "Szesnastkowa wartość koloru",

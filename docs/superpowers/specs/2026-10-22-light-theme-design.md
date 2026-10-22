@@ -13,7 +13,7 @@ A light theme beside today's dark one, and an Appearance setting with three choi
 |---|---|---|
 | R1 | Default | `dark`. A default, not a migration: a user who never picks keeps today's look. No branch on install state, no one-time conversion of anything stored. |
 | R2 | Light accent | `#007255` (the website's light accent; 5.94:1 on white), hover `#005a43`. The bright `#0fbb8f` stays the dark accent. `#008261` (the viewer's) was rejected on the render. |
-| R3 | The conversation view's colours | Today's dark defaults stay in both themes (`#1f1f1f` background, `#9aa0a6` source, `#e8e8e8` translation). A user who wants a light conversation picks one in the display popover, where the `#FFFFFF` preset already is. "No stored value means follow the theme" was rejected. |
+| R3 | The conversation view's colours | Amended 2026-10-22 after the owner saw the light app with a dark conversation in it: a colour the user never set follows the scheme (`null` in `conversationDisplayStore`, resolved by `resolveConversationColours`): under dark, today's set (`#1f1f1f` background, `#9aa0a6` source, `#e8e8e8` translation), so dark users see no change; under light, `#ffffff`, `#5f6368`, `#1a1a1a`. A colour the user set stays in both schemes. The display popover's first chip in each conversation row is "Follow theme", in the scheme's colour, selected while nothing is stored, and picking it clears a stored colour. No migration: a stored colour is kept, an absent one follows. The first ruling, "today's dark defaults stay in both themes", stands only for the subtitle view, whose defaults are fixed (an overlay on other windows, not the app's surface). |
 | R4 | The other side's colour in light | Amber, darkened: `#b45309` (person shades `#d97706`, `#92400e`). The dark value `#f39c12` is unchanged. Orange `#c2410c` and the viewer's blue-violet `#5a55d6` were rejected on the render. |
 | R5 | Extension popup | Out of scope this round. Its own light stylesheet (slate greys, indigo buttons) stays as it is. |
 | R6 | How the colour questions were settled | By rendering, not by argument: three boards of real components, dark beside two light candidates, with the contrast ratios beside them. |
@@ -134,7 +134,7 @@ The old `#0d8c6d`, `#0c8c6a`, `#0d8a6a` hover greens are `primary-hover`. Three 
 
 ### 3. User-coloured surfaces follow their own background
 
-The conversation display and the Electron subtitle view are painted in colours the user chose (`conversationDisplayStore`, `subtitleStore`). By R3 the conversation keeps its dark defaults inside a light app. If its tokens followed the app theme, the light accent (`#007255`) would land on `#1f1f1f`, which the render showed unreadable; and today a white conversation background in the dark app shows `#f39c12` on white at 2.19:1.
+The conversation display and the Electron subtitle view are painted in colours the user chose (`conversationDisplayStore`, `subtitleStore`). By R3 as amended, a conversation colour the user never set follows the scheme (today's dark set under dark, a white set under light), and one the user set stays in both schemes; the subtitle's defaults are fixed. Either way the surface can be the opposite of the app: if its tokens followed the app theme, the light accent (`#007255`) would land on a user's `#1f1f1f`, which the render showed unreadable; and today a white conversation background in the dark app shows `#f39c12` on white at 2.19:1.
 
 So a user-coloured surface carries `data-tone="dark" | "light"`, computed from its own background colour, and `theme.scss` re-declares the full token set under `[data-tone="dark"]` and `[data-tone="light"]` (the same two Sass maps the root blocks are generated from, emitted a second time; custom properties set on the surface element win for everything inside it, whatever the root says). Inside a dark conversation in a light app, the speaker is `#0fbb8f` and the other side `#f39c12` again; inside a white conversation in the dark app, the light palette applies and the other side is `#b45309`.
 
@@ -158,7 +158,7 @@ So a user-coloured surface carries `data-tone="dark" | "light"`, computed from i
 - **Website.** Already `#007255`; nothing to do.
 - **Waveforms.** `Waveforms.tsx` stops carrying hex: `WaveformStrip` takes a token name, and `WaveformStrip` (or the renderer) reads `getComputedStyle(document.documentElement).getPropertyValue('--sk-waveform-…')` when it starts drawing and again on a theme change (the theme module exposes a subscribe, or the strip re-reads on each frame; the builder's call, the frame rate is low).
 - **Logos.** `ProviderIcons` is untouched; its plate uses `white`, fixed in both themes.
-- **User colour presets.** `DisplaySettingsPopover`, `ColorPicker`, the two stores' defaults: untouched (R3).
+- **User colour presets.** `DisplaySettingsPopover`'s presets, `ColorPicker` and the subtitle store's defaults: untouched. The conversation store's three colours become nullable, null meaning "follow the scheme" (R3 as amended), with the scheme's colours in `CONVERSATION_SCHEME_COLOURS` and the popover's follow chip; a stored colour reads back as it was.
 - `index.html`'s `theme-color` meta stays; it is not what paints the window.
 
 ### 6. Migration
@@ -197,7 +197,7 @@ Rules for the literal passes:
 
 ### 8. Non-goals
 
-The extension popup (R5) and its overlay; the viewer beyond one accent value; a high-contrast app theme; a custom accent; a theme per surface; animated theme transitions; `light-dark()`; any change to the user colour presets or defaults (R3).
+The extension popup (R5) and its overlay; the viewer beyond one accent value; a high-contrast app theme; a custom accent; a theme per surface; animated theme transitions; `light-dark()`; any change to the user colour presets or to the subtitle's defaults (the conversation's follow the scheme, R3 as amended).
 
 ### 9. What the builder decides
 

@@ -1012,6 +1012,7 @@
       "sourceColor": "Källtextfärg",
       "translationColor": "Översättningsfärg",
       "customColor": "Anpassad färg",
+      "followTheme": "Följ temat",
       "colorArea": "Mättnad och ljusstyrka",
       "colorHue": "Nyans",
       "colorHex": "Hexadecimalt färgvärde",

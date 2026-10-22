@@ -19,6 +19,10 @@ vi.mock('../../services/ServiceFactory', () => ({
   },
 }));
 
+// The app's scheme as the conversation rows see it; a value to flip here.
+const scheme = vi.hoisted(() => ({ current: 'dark' as 'dark' | 'light' }));
+vi.mock('../../lib/theme/useScheme', () => ({ useScheme: () => scheme.current }));
+
 describe('DisplaySettingsPopover', () => {
   beforeEach(() => {
     // Reset both stores to known starting state
@@ -229,15 +233,82 @@ describe('DisplaySettingsPopover', () => {
     expect(translationFirstChip.getAttribute('aria-label')).toBe('#9ad0ff');
   });
 
-  it('first chip in each row reflects the source store default (conversation)', () => {
+  // The conversation's first chip is "Follow theme" (the describe below); it
+  // wears the scheme's colour, the dark set here.
+  it('first chip in each row is the follow-theme chip, in the scheme\'s colour (conversation)', () => {
     const { container } = render(<DisplaySettingsPopover source="conversation" />);
     const fields = container.querySelectorAll('.field');
     // No opacity slider in conversation source; fields 0-2 = bg/source/translation
     const bgFirstChip = fields[0].querySelector('button.swatch') as HTMLButtonElement;
     const sourceFirstChip = fields[1].querySelector('button.swatch') as HTMLButtonElement;
     const translationFirstChip = fields[2].querySelector('button.swatch') as HTMLButtonElement;
-    expect(bgFirstChip.getAttribute('aria-label')).toBe('#1f1f1f');
-    expect(sourceFirstChip.getAttribute('aria-label')).toBe('#9aa0a6');
-    expect(translationFirstChip.getAttribute('aria-label')).toBe('#e8e8e8');
+    expect(bgFirstChip.getAttribute('aria-label')).toBe('Follow theme');
+    expect(sourceFirstChip.getAttribute('aria-label')).toBe('Follow theme');
+    expect(translationFirstChip.getAttribute('aria-label')).toBe('Follow theme');
+    expect(bgFirstChip.style.background.replace(/\s/g, '')).toMatch(/^(#1f1f1f|rgb\(31,31,31\))$/);
+    expect(sourceFirstChip.style.background.replace(/\s/g, '')).toMatch(/^(#9aa0a6|rgb\(154,160,166\))$/);
+    expect(translationFirstChip.style.background.replace(/\s/g, '')).toMatch(/^(#e8e8e8|rgb\(232,232,232\))$/);
+  });
+});
+
+// A conversation colour the user never set follows the app's scheme (spec
+// 2026-10-22 §3, R3 as amended). In the conversation rows the first chip is
+// that choice: it shows the scheme's colour and is selected while nothing is
+// stored; picking it again clears a stored colour. The subtitle rows keep
+// their fixed default chip.
+describe('conversation colours follow the theme until set', () => {
+  const firstChip = (container: HTMLElement, field: number) =>
+    container.querySelectorAll('.field')[field].querySelector('button.swatch') as HTMLButtonElement;
+  const customChip = (container: HTMLElement, field: number) =>
+    container.querySelectorAll('.field')[field].querySelector('button.swatch.custom') as HTMLButtonElement;
+  const bg = (el: HTMLElement) => el.style.background.replace(/\s/g, '');
+
+  afterEach(() => { scheme.current = 'dark'; });
+
+  it('the first chip is "Follow theme", selected while nothing is stored, in the dark scheme\'s colours', () => {
+    useConversationDisplayStore.setState({ bgColor: null, sourceTextColor: null, translationTextColor: null } as never);
+    const { container } = render(<DisplaySettingsPopover source="conversation" />);
+    for (const field of [0, 1, 2]) {
+      expect(firstChip(container, field).getAttribute('aria-label')).toBe('Follow theme');
+      expect(firstChip(container, field).classList.contains('selected')).toBe(true);
+      expect(customChip(container, field).classList.contains('selected')).toBe(false);
+    }
+    expect(bg(firstChip(container, 0))).toMatch(/^(#1f1f1f|rgb\(31,31,31\))$/);
+    expect(bg(firstChip(container, 1))).toMatch(/^(#9aa0a6|rgb\(154,160,166\))$/);
+    expect(bg(firstChip(container, 2))).toMatch(/^(#e8e8e8|rgb\(232,232,232\))$/);
+  });
+
+  it('under the light scheme the chip shows the white set', () => {
+    scheme.current = 'light';
+    useConversationDisplayStore.setState({ bgColor: null, sourceTextColor: null, translationTextColor: null } as never);
+    const { container } = render(<DisplaySettingsPopover source="conversation" />);
+    expect(bg(firstChip(container, 0))).toMatch(/^(#ffffff|rgb\(255,255,255\))$/);
+    expect(bg(firstChip(container, 1))).toMatch(/^(#5f6368|rgb\(95,99,104\))$/);
+    expect(bg(firstChip(container, 2))).toMatch(/^(#1a1a1a|rgb\(26,26,26\))$/);
+    expect(firstChip(container, 0).classList.contains('selected')).toBe(true);
+  });
+
+  it('a stored colour is shown as such, and clicking "Follow theme" clears it', async () => {
+    useConversationDisplayStore.setState({ bgColor: '#123456', sourceTextColor: null, translationTextColor: null } as never);
+    const { container } = render(<DisplaySettingsPopover source="conversation" />);
+    expect(firstChip(container, 0).classList.contains('selected')).toBe(false);
+    expect(customChip(container, 0).classList.contains('selected')).toBe(true);
+    expect(bg(customChip(container, 0))).toMatch(/^(#123456|rgb\(18,52,86\))$/);
+    await act(async () => { fireEvent.click(firstChip(container, 0)); });
+    expect(useConversationDisplayStore.getState().bgColor).toBeNull();
+    expect(useConversationDisplayStore.getState().sourceTextColor).toBeNull();
+  });
+
+  it('a preset click still stores that colour', async () => {
+    useConversationDisplayStore.setState({ bgColor: null, sourceTextColor: null, translationTextColor: null } as never);
+    const { container } = render(<DisplaySettingsPopover source="conversation" />);
+    const white = container.querySelectorAll('.field')[0].querySelector('button.swatch[aria-label="#FFFFFF"]') as HTMLButtonElement;
+    await act(async () => { fireEvent.click(white); });
+    expect(useConversationDisplayStore.getState().bgColor).toBe('#FFFFFF');
+  });
+
+  it('the subtitle rows keep a fixed default chip, named by its colour', () => {
+    const { container } = render(<DisplaySettingsPopover source="subtitle" />);
+    expect(firstChip(container, 1).getAttribute('aria-label')).toBe('#000000');
   });
 });

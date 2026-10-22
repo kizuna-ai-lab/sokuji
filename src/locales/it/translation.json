@@ -1012,6 +1012,7 @@
       "sourceColor": "Colore testo originale",
       "translationColor": "Colore traduzione",
       "customColor": "Colore personalizzato",
+      "followTheme": "Segui il tema",
       "colorArea": "Saturazione e luminosità",
       "colorHue": "Tonalità",
       "colorHex": "Valore colore esadecimale",

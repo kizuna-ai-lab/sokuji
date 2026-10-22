@@ -1012,6 +1012,7 @@
       "sourceColor": "原文顏色",
       "translationColor": "譯文顏色",
       "customColor": "自訂顏色",
+      "followTheme": "跟隨主題",
       "colorArea": "飽和度與明度",
       "colorHue": "色相",
       "colorHex": "十六進位色彩值",

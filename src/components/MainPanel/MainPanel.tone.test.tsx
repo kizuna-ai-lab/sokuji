@@ -96,6 +96,11 @@ beforeAll(async () => {
 });
 import { useConversationDisplayStore } from '../../stores/conversationDisplayStore';
 
+// The app's scheme, as the conversation sees it. The hook's own wiring to
+// installTheme is useScheme.test.tsx's; here it is a value to flip.
+const scheme = vi.hoisted(() => ({ current: 'dark' as 'dark' | 'light' }));
+vi.mock('../../lib/theme/useScheme', () => ({ useScheme: () => scheme.current }));
+
 // A user-coloured surface carries the tone of its own background (spec
 // 2026-10-22 §3): the conversation keeps the user's colours in both app
 // themes, so its palette follows them, not the theme.
@@ -109,5 +114,45 @@ describe('MainPanel passes the tone of the conversation background', () => {
     expect(tone()).toBe('light');
     act(() => { useConversationDisplayStore.setState({ bgColor: '#1f1f1f' }); });
     expect(tone()).toBe('dark');
+  });
+});
+
+// A colour the user never set follows the scheme (spec §3, R3 as amended
+// 2026-10-22): white in the light app, today's dark in the dark one. A colour
+// the user did set stays, whichever the scheme.
+describe('MainPanel resolves an unset conversation colour from the scheme', () => {
+  it('nothing stored: dark colours under the dark scheme, the white set under the light one', async () => {
+    useAudioStore.setState({ mode: 'speaker', selectedInputDevice: { deviceId: 'mic-1', label: 'Mic' } });
+    scheme.current = 'dark';
+    act(() => { useConversationDisplayStore.setState({ bgColor: null, sourceTextColor: null, translationTextColor: null }); });
+    const { container, rerender } = render(<MainPanel />);
+    await act(() => getAppSession().audio());
+    const wrapper = () => container.querySelector('.main-panel-wrapper') as HTMLElement;
+    const tone = () => container.querySelector('.conversation-display')?.getAttribute('data-tone');
+    expect(wrapper().style.getPropertyValue('--conversation-bg-color')).toBe('#1f1f1f');
+    expect(wrapper().style.getPropertyValue('--conversation-source-color')).toBe('#9aa0a6');
+    expect(wrapper().style.getPropertyValue('--conversation-translation-color')).toBe('#e8e8e8');
+    expect(tone()).toBe('dark');
+
+    scheme.current = 'light';
+    rerender(<MainPanel />);
+    expect(wrapper().style.getPropertyValue('--conversation-bg-color')).toBe('#ffffff');
+    expect(wrapper().style.getPropertyValue('--conversation-source-color')).toBe('#5f6368');
+    expect(wrapper().style.getPropertyValue('--conversation-translation-color')).toBe('#1a1a1a');
+    expect(tone()).toBe('light');
+    scheme.current = 'dark';
+  });
+
+  it('a stored colour stays under either scheme', async () => {
+    useAudioStore.setState({ mode: 'speaker', selectedInputDevice: { deviceId: 'mic-1', label: 'Mic' } });
+    scheme.current = 'light';
+    act(() => { useConversationDisplayStore.setState({ bgColor: '#1f1f1f', sourceTextColor: null, translationTextColor: null }); });
+    const { container } = render(<MainPanel />);
+    await act(() => getAppSession().audio());
+    const wrapper = container.querySelector('.main-panel-wrapper') as HTMLElement;
+    expect(wrapper.style.getPropertyValue('--conversation-bg-color')).toBe('#1f1f1f');
+    expect(wrapper.style.getPropertyValue('--conversation-source-color')).toBe('#5f6368');
+    expect(container.querySelector('.conversation-display')?.getAttribute('data-tone')).toBe('dark');
+    scheme.current = 'dark';
   });
 });

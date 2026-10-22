@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   THEME_SETTINGS, THEME_CACHE_KEY, isThemeSetting, resolveScheme, applyScheme,
-  registerThemeDocument, installTheme,
-  type ThemeSetting, type ThemeSource,
+  registerThemeDocument, installTheme, appliedScheme, subscribeScheme,
+  type ThemeSetting, type ThemeSource, type Scheme,
 } from './theme';
 
 /** A settings store stand-in: a value, a loaded flag, and listeners. */
@@ -150,5 +150,28 @@ describe('installTheme', () => {
     stop();
     expect(source.listeners.size).toBe(0);
     expect(media.handlers.size).toBe(0);
+  });
+});
+
+// The applied scheme as a value React can subscribe to: a user-coloured
+// surface that has no colour stored follows it (conversationDisplayStore).
+describe('appliedScheme and subscribeScheme', () => {
+  it('reads the document before install, and reports every apply after', () => {
+    expect(appliedScheme()).toBe('dark');
+    document.documentElement.setAttribute('data-theme', 'light');
+    expect(appliedScheme()).toBe('light');
+    document.documentElement.removeAttribute('data-theme');
+
+    const source = fakeSource('light');
+    const heard: Scheme[] = [];
+    const off = subscribeScheme(() => heard.push(appliedScheme()));
+    uninstall = installTheme({ source, matchMedia: fakeMedia(false).matchMedia, storage: null });
+    expect(heard).toEqual(['light']);
+    source.set('dark');
+    expect(heard).toEqual(['light', 'dark']);
+    off();
+    source.set('light');
+    expect(heard).toEqual(['light', 'dark']);
+    expect(appliedScheme()).toBe('light');
   });
 });

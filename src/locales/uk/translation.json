@@ -1012,6 +1012,7 @@
       "sourceColor": "Колір вихідного тексту",
       "translationColor": "Колір перекладу",
       "customColor": "Власний колір",
+      "followTheme": "Як у темі",
       "colorArea": "Насиченість і яскравість",
       "colorHue": "Відтінок",
       "colorHex": "Шістнадцятковий код кольору",

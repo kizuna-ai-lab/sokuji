@@ -1012,6 +1012,7 @@
       "sourceColor": "Quelltextfarbe",
       "translationColor": "Übersetzungsfarbe",
       "customColor": "Benutzerdefinierte Farbe",
+      "followTheme": "Design folgen",
       "colorArea": "Sättigung und Helligkeit",
       "colorHue": "Farbton",
       "colorHex": "Hex-Farbwert",

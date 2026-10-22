@@ -1012,6 +1012,7 @@
       "sourceColor": "Kaynak metin rengi",
       "translationColor": "Çeviri rengi",
       "customColor": "Özel renk",
+      "followTheme": "Temayı izle",
       "colorArea": "Doygunluk ve parlaklık",
       "colorHue": "Renk tonu",
       "colorHex": "Onaltılık renk değeri",

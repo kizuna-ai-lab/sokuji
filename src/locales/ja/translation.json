@@ -1012,6 +1012,7 @@
       "sourceColor": "原文の色",
       "translationColor": "訳文の色",
       "customColor": "カスタム色",
+      "followTheme": "テーマに従う",
       "colorArea": "彩度と明度",
       "colorHue": "色相",
       "colorHex": "16進数カラーコード",

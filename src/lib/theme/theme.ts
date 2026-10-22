@@ -62,6 +62,21 @@ export interface ThemeDeps {
 
 const documents = new Set<Document>();
 let current: Scheme | null = null;
+const schemeListeners = new Set<() => void>();
+
+/**
+ * The scheme the document wears now: what `installTheme` last applied, or,
+ * before it ran, what the boot script painted.
+ */
+export function appliedScheme(doc: Document = document): Scheme {
+  return current ?? (doc.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark');
+}
+
+/** Hears every apply. A surface whose colour follows the scheme subscribes here (`useScheme`). */
+export function subscribeScheme(listener: () => void): () => void {
+  schemeListeners.add(listener);
+  return () => { schemeListeners.delete(listener); };
+}
 
 /** A child document follows the scheme until the returned function is called. */
 export function registerThemeDocument(doc: Document): () => void {
@@ -100,6 +115,7 @@ export function installTheme(deps: ThemeDeps): () => void {
     current = scheme;
     applyScheme(document, scheme);
     for (const doc of documents) applyScheme(doc, scheme);
+    for (const listener of [...schemeListeners]) listener();
     try {
       storage?.setItem(THEME_CACHE_KEY, scheme);
     } catch {

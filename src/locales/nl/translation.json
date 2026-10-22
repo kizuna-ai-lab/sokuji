@@ -1012,6 +1012,7 @@
       "sourceColor": "Kleur brontekst",
       "translationColor": "Vertaalkleur",
       "customColor": "Aangepaste kleur",
+      "followTheme": "Thema volgen",
       "colorArea": "Verzadiging en helderheid",
       "colorHue": "Tint",
       "colorHex": "Hexadecimale kleurwaarde",

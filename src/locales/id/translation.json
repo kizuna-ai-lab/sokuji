@@ -1012,6 +1012,7 @@
       "sourceColor": "Warna teks asli",
       "translationColor": "Warna terjemahan",
       "customColor": "Warna kustom",
+      "followTheme": "Ikuti tema",
       "colorArea": "Saturasi dan kecerahan",
       "colorHue": "Rona",
       "colorHex": "Nilai warna heksadesimal",

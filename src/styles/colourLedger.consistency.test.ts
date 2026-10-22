@@ -104,8 +104,9 @@ const countIn = (rel: string): number =>
 const LEDGER: Record<string, number> = {
   // --- components/MainPanel ---
   // The fallbacks of the user-colour variables (`var(--conversation-bg-color,
-  // #1f1f1f)` and the two text colours) are the stores' defaults (R3): they
-  // stay literal, and these two rows stay.
+  // #1f1f1f)` and the two text colours) are the dark scheme's conversation
+  // colours (R3 as amended; MainPanel always sets the variables, so the
+  // fallbacks never paint): they stay literal, and these two rows stay.
   'src/components/MainPanel/MainPanel.scss': 1,
   'src/components/MainPanel/ConversationRow.scss': 2,
   // --- components/Subtitle ---

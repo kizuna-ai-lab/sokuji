@@ -1012,6 +1012,7 @@
       "sourceColor": "Màu văn bản gốc",
       "translationColor": "Màu bản dịch",
       "customColor": "Màu tùy chỉnh",
+      "followTheme": "Theo chủ đề",
       "colorArea": "Độ bão hòa và độ sáng",
       "colorHue": "Sắc độ",
       "colorHex": "Giá trị màu hex",
