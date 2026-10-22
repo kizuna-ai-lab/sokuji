@@ -6,10 +6,16 @@ import { isElectron } from '../../../utils/environment';
 import { useStartBasicsTour } from '../../Tour/useStartBasicsTour';
 import { useSetSetupWizardOpen } from '../../../stores/layoutStore';
 import { useUpdateStatus, useCheckForUpdates, useOpenUpdateDialog } from '../../../stores/updateStore';
-import { useSetUILanguage, useDiagnosticLogs, useSetDiagnosticLogs } from '../../../stores/settingsStore';
+import { useSetUILanguage, useDiagnosticLogs, useSetDiagnosticLogs, useThemeSetting, useSetThemeSetting } from '../../../stores/settingsStore';
 import { useAnalytics } from '../../../lib/analytics';
 import { changeLanguageWithLoad } from '../../../locales';
 import { INTERFACE_LANGUAGES } from './interfaceLanguages';
+import { THEME_SETTINGS, type ThemeSetting } from '../../../lib/theme/theme';
+
+// "System", not "Follow system": at the panel's 300px minimum the longer label
+// wrapped the option onto two lines (and its translations are longer still).
+// The tooltip carries the meaning.
+const APPEARANCE_FALLBACKS: Record<ThemeSetting, string> = { system: 'System', light: 'Light', dark: 'Dark' };
 
 interface HelpSectionProps {
   toggleSettings?: () => void;
@@ -26,6 +32,8 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActi
   const setUILanguage = useSetUILanguage();
   const diagnosticLogs = useDiagnosticLogs();
   const setDiagnosticLogs = useSetDiagnosticLogs();
+  const themeSetting = useThemeSetting();
+  const setThemeSetting = useSetThemeSetting();
   const { trackEvent } = useAnalytics();
 
   // Opening the picker puts its list exactly where the tooltip sits, so the
@@ -77,6 +85,42 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActi
         <span>{t('settings.help', 'Help')}</span>
         <span className="version-label">v{__APP_VERSION__}</span>
       </h3>
+      {/*
+        Appearance (spec 2026-10-22 §4). Help is where the facts about the
+        application itself live (the version, the interface language), and how
+        it looks is one. The control is the labelled segmented control the
+        microphone block uses for noise suppression, copied class for class: a
+        bare .segmented-control outside that wrapper is unstyled. Not locked
+        during a session: it changes nothing the session depends on.
+      */}
+      <div className="noise-suppression-control">
+        <div className="noise-suppression-header">
+          <span className="noise-suppression-label">{t('settings.appearance', 'Appearance')}</span>
+          <Tooltip
+            content={t('settings.appearanceTooltip', "How the app looks. Follow system takes the operating system's light or dark setting.")}
+            position="top"
+            icon="help"
+            maxWidth={300}
+          />
+        </div>
+        <div className="segmented-control noise-suppression-modes">
+          {THEME_SETTINGS.map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              className={`segmented-option ${themeSetting === mode ? 'active' : ''}`}
+              aria-pressed={themeSetting === mode}
+              onClick={() => {
+                if (mode === themeSetting) return;
+                void setThemeSetting(mode);
+                trackEvent('theme_changed', { from: themeSetting, to: mode });
+              }}
+            >
+              {t(`settings.appearanceMode.${mode}`, APPEARANCE_FALLBACKS[mode])}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="help-links">
         <button
           type="button"

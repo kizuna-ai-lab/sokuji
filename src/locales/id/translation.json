@@ -111,6 +111,13 @@
     "helpEmailTooltip": "Laporkan bug atau dapatkan bantuan",
     "diagnosticLogs": "Log diagnostik",
     "diagnosticLogsTooltip": "Mencatat apa yang dilakukan aplikasi agar Anda dapat melampirkannya ke laporan bug. Nonaktif secara default. Saat aktif, tombol “Log” muncul di bilah judul, dan pengaturan tetap aktif setelah dimulai ulang.",
+    "appearance": "Tampilan",
+    "appearanceTooltip": "Tampilan aplikasi. “Ikuti sistem” memakai pengaturan terang atau gelap dari sistem operasi.",
+    "appearanceMode": {
+      "system": "Sistem",
+      "light": "Terang",
+      "dark": "Gelap"
+    },
     "helpDiscussions": "Diskusi",
     "helpDiscussionsTooltip": "Permintaan fitur, masukan, dan diskusi komunitas",
     "auto": "Otomatis",

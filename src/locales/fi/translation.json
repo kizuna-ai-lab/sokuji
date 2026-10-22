@@ -111,6 +111,13 @@
     "helpEmailTooltip": "Ilmoita virheistä tai pyydä apua",
     "diagnosticLogs": "Diagnostiikkalokit",
     "diagnosticLogsTooltip": "Tallentaa sovelluksen toiminnan, jotta voit liittää sen virheraporttiin. Oletuksena pois päältä. Kun asetus on päällä, otsikkorivillä näkyy ”Lokit”-painike, ja asetus pysyy päällä uudelleenkäynnistyksen jälkeen.",
+    "appearance": "Ulkoasu",
+    "appearanceTooltip": "Sovelluksen ulkoasu. ”Seuraa järjestelmää” käyttää käyttöjärjestelmän vaaleaa tai tummaa asetusta.",
+    "appearanceMode": {
+      "system": "Järjestelmä",
+      "light": "Vaalea",
+      "dark": "Tumma"
+    },
     "helpDiscussions": "Keskustelut",
     "helpDiscussionsTooltip": "Ominaisuuspyynnöt, palaute ja yhteisökeskustelut",
     "auto": "Auto",

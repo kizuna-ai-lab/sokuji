@@ -15,10 +15,14 @@ vi.mock('../../../locales', () => ({ changeLanguageWithLoad }));
 const setUILanguage = vi.fn<(lang: string) => Promise<void>>();
 let diagnosticLogsOn = false;
 const setDiagnosticLogs = vi.fn<(on: boolean) => Promise<void>>();
+let themeSetting: 'system' | 'light' | 'dark' = 'dark';
+const setTheme = vi.fn<(theme: 'system' | 'light' | 'dark') => Promise<void>>();
 vi.mock('../../../stores/settingsStore', () => ({
   useSetUILanguage: () => setUILanguage,
   useDiagnosticLogs: () => diagnosticLogsOn,
   useSetDiagnosticLogs: () => setDiagnosticLogs,
+  useThemeSetting: () => themeSetting,
+  useSetThemeSetting: () => setTheme,
 }));
 
 const trackEvent = vi.fn();
@@ -80,6 +84,9 @@ beforeEach(() => {
   diagnosticLogsOn = false;
   setDiagnosticLogs.mockReset();
   setDiagnosticLogs.mockResolvedValue(undefined);
+  themeSetting = 'dark';
+  setTheme.mockReset();
+  setTheme.mockResolvedValue(undefined);
 });
 
 const picker = () => screen.getByLabelText(/interface language/i) as HTMLSelectElement;
@@ -382,5 +389,47 @@ describe('the update check’s result on its link (spec 2026-10-05 §5)', () => 
     render(<HelpSection />);
     expect(link().textContent).toBe('update.checkButton');
     expect(link().className).not.toContain('help-link--');
+  });
+});
+
+// Appearance (spec 2026-10-22 §4): the labelled segmented control the
+// microphone block uses for noise suppression, copied class for class, under
+// the Help heading. The class structure is pinned because nothing else in the
+// toolchain checks it: a bare .segmented-control outside that wrapper is
+// unstyled.
+describe('appearance in Help', () => {
+  const control = () => document.querySelector('#help-section .noise-suppression-control');
+
+  it('renders the Appearance control as the labelled segmented control, dark active', () => {
+    render(<HelpSection />);
+    const root = control();
+    expect(root).not.toBeNull();
+    expect(root!.querySelector('.noise-suppression-header > .noise-suppression-label')!.textContent).toBe('Appearance');
+    const options = Array.from(root!.querySelectorAll('.segmented-control.noise-suppression-modes > button.segmented-option'));
+    expect(options.map((b) => b.textContent)).toEqual(['System', 'Light', 'Dark']);
+    expect(options.map((b) => b.getAttribute('aria-pressed'))).toEqual(['false', 'false', 'true']);
+    expect(options.map((b) => b.classList.contains('active'))).toEqual([false, false, true]);
+  });
+
+  it('sits under the heading, before the links', () => {
+    render(<HelpSection />);
+    const help = document.querySelector('#help-section')!;
+    const order = Array.from(help.children).map((el) => el.tagName.toLowerCase() + (el.className ? '.' + el.className.split(' ')[0] : ''));
+    expect(order.indexOf('div.noise-suppression-control')).toBe(order.indexOf('h3') + 1);
+    expect(order.indexOf('div.noise-suppression-control')).toBeLessThan(order.indexOf('div.help-links'));
+  });
+
+  it('picking Light writes the setting and tracks theme_changed', () => {
+    render(<HelpSection />);
+    fireEvent.click(screen.getByRole('button', { name: 'Light' }));
+    expect(setTheme).toHaveBeenCalledWith('light');
+    expect(trackEvent).toHaveBeenCalledWith('theme_changed', { from: 'dark', to: 'light' });
+  });
+
+  it('picking the current value writes nothing', () => {
+    render(<HelpSection />);
+    fireEvent.click(screen.getByRole('button', { name: 'Dark' }));
+    expect(setTheme).not.toHaveBeenCalled();
+    expect(trackEvent).not.toHaveBeenCalled();
   });
 });

@@ -111,6 +111,13 @@
     "helpEmailTooltip": "Hataları bildirin veya yardım alın",
     "diagnosticLogs": "Tanılama günlükleri",
     "diagnosticLogsTooltip": "Uygulamanın ne yaptığını kaydeder, böylece bir hata raporuna ekleyebilirsiniz. Varsayılan olarak kapalıdır. Açıkken başlık çubuğunda “Günlükler” düğmesi görünür ve ayar yeniden başlatmadan sonra da açık kalır.",
+    "appearance": "Görünüm",
+    "appearanceTooltip": "Uygulamanın görünümü. “Sistemi izle” işletim sisteminin açık veya koyu ayarını kullanır.",
+    "appearanceMode": {
+      "system": "Sistem",
+      "light": "Açık",
+      "dark": "Koyu"
+    },
     "helpDiscussions": "Tartışmalar",
     "helpDiscussionsTooltip": "Özellik istekleri, geri bildirim ve topluluk tartışmaları",
     "auto": "Otomatik",
