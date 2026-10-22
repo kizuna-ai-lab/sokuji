@@ -25,7 +25,7 @@ export interface SourcePickerProps {
   /** macOS: 'granted' | 'denied' | 'not-determined' | 'restricted' | 'unknown'; elsewhere 'granted'. */
   screenRecording: string;
   sources: CaptureSourceInfo[] | null;   // null while loading
-  /** Shown again because the last pick yielded no frame: the `picker.nothingVisible` line above the list. */
+  /** Shown again because the last pick yielded no frame: the `picker.nothingVisible` line above the list (`nothingVisibleRunning` while `running`). */
   reason?: PickReason;
   /** The pick is answered and its area is checked for a first frame: nothing to choose, and Cancel is off. */
   checking?: boolean;
@@ -74,7 +74,10 @@ export function SourcePicker(p: SourcePickerProps) {
               <>
                 {p.reason === 'nothingVisible' && (
                   <p className="source-picker__reason" role="status">
-                    {t('screenContext.picker.nothingVisible', 'The area you chose shows nothing right now. Pick another, or start without screen context.')}
+                    {/* During a run (Choose again) there is no start to go without: Cancel keeps the session as it is. */}
+                    {p.running
+                      ? t('screenContext.picker.nothingVisibleRunning', 'The area you chose shows nothing right now. Pick another, or keep the session as it is.')
+                      : t('screenContext.picker.nothingVisible', 'The area you chose shows nothing right now. Pick another, or start without screen context.')}
                   </p>
                 )}
                 {p.mode === 'portal' ? (

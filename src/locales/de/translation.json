@@ -1585,6 +1585,7 @@
       "openSettings": "Systemeinstellungen öffnen",
       "cancel": "Ohne Bildschirmkontext starten",
       "nothingVisible": "Der gewählte Bereich zeigt gerade nichts an. Wählen Sie einen anderen oder starten Sie ohne Bildschirmkontext.",
+      "nothingVisibleRunning": "Der gewählte Bereich zeigt gerade nichts an. Wählen Sie einen anderen oder lassen Sie die Sitzung, wie sie ist.",
       "checking": "Bild wird geprüft…"
     },
     "chip": {

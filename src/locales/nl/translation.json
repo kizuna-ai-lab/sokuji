@@ -1585,6 +1585,7 @@
       "openSettings": "Systeeminstellingen openen",
       "cancel": "Starten zonder schermcontext",
       "nothingVisible": "Het gekozen gebied laat op dit moment niets zien. Kies een ander gebied of start zonder schermcontext.",
+      "nothingVisibleRunning": "Het gekozen gebied laat op dit moment niets zien. Kies een ander gebied of laat de sessie zoals hij is.",
       "checking": "Afbeelding controleren…"
     },
     "chip": {

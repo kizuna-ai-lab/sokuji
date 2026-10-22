@@ -1585,6 +1585,7 @@
       "openSettings": "Sistem Ayarları'nı Aç",
       "cancel": "Ekran bağlamı olmadan başlat",
       "nothingVisible": "Seçtiğiniz alan şu anda hiçbir şey göstermiyor. Başka bir alan seçin veya ekran bağlamı olmadan başlatın.",
+      "nothingVisibleRunning": "Seçtiğiniz alan şu anda hiçbir şey göstermiyor. Başka bir alan seçin veya oturumu olduğu gibi bırakın.",
       "checking": "Görüntü kontrol ediliyor…"
     },
     "chip": {

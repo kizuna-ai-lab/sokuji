@@ -1585,6 +1585,7 @@
       "openSettings": "Otwórz Ustawienia systemowe",
       "cancel": "Rozpocznij bez kontekstu ekranu",
       "nothingVisible": "Wybrany obszar nie pokazuje teraz niczego. Wybierz inny albo rozpocznij bez kontekstu ekranu.",
+      "nothingVisibleRunning": "Wybrany obszar nie pokazuje teraz niczego. Wybierz inny albo zostaw sesję bez zmian.",
       "checking": "Sprawdzanie obrazu…"
     },
     "chip": {

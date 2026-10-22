@@ -87,6 +87,12 @@ describe('SourcePicker', () => {
     expect(dialog().textContent).toContain(line);
   });
 
+  it('back during a run (Choose again) says the session stays as it is, never to start without', () => {
+    render(<SourcePicker {...props({ reason: 'nothingVisible', running: true })} />);
+    expect(dialog().textContent).toContain('The area you chose shows nothing right now. Pick another, or keep the session as it is.');
+    expect(dialog().textContent).not.toContain('start without screen context');
+  });
+
   it('cancel starts without screen context', () => {
     const p = props();
     render(<SourcePicker {...p} />);

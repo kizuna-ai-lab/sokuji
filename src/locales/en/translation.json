@@ -1585,6 +1585,7 @@
       "openSettings": "Open System Settings",
       "cancel": "Start without screen context",
       "nothingVisible": "The area you chose shows nothing right now. Pick another, or start without screen context.",
+      "nothingVisibleRunning": "The area you chose shows nothing right now. Pick another, or keep the session as it is.",
       "checking": "Checking the picture…"
     },
     "chip": {

@@ -1585,6 +1585,7 @@
       "openSettings": "Abrir Definições do Sistema",
       "cancel": "Iniciar sem contexto do ecrã",
       "nothingVisible": "A área que escolheu não mostra nada neste momento. Escolha outra ou inicie sem contexto do ecrã.",
+      "nothingVisibleRunning": "A área que escolheu não mostra nada neste momento. Escolha outra ou deixe a sessão como está.",
       "checking": "A verificar a imagem…"
     },
     "chip": {

@@ -1585,6 +1585,7 @@
       "openSettings": "Buka Tetapan Sistem",
       "cancel": "Mula tanpa konteks skrin",
       "nothingVisible": "Kawasan yang anda pilih tidak menunjukkan apa-apa sekarang. Pilih yang lain, atau mula tanpa konteks skrin.",
+      "nothingVisibleRunning": "Kawasan yang anda pilih tidak menunjukkan apa-apa sekarang. Pilih yang lain, atau biarkan sesi seperti sedia ada.",
       "checking": "Menyemak gambar…"
     },
     "chip": {

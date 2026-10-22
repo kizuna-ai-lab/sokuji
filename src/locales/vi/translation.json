@@ -1585,6 +1585,7 @@
       "openSettings": "Mở Cài đặt Hệ thống",
       "cancel": "Bắt đầu không có ngữ cảnh màn hình",
       "nothingVisible": "Vùng bạn chọn hiện không hiển thị gì. Hãy chọn vùng khác, hoặc bắt đầu không có ngữ cảnh màn hình.",
+      "nothingVisibleRunning": "Vùng bạn chọn hiện không hiển thị gì. Hãy chọn vùng khác, hoặc giữ nguyên phiên như hiện tại.",
       "checking": "Đang kiểm tra hình ảnh…"
     },
     "chip": {

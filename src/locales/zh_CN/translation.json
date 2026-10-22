@@ -1585,6 +1585,7 @@
       "openSettings": "打开系统设置",
       "cancel": "不使用屏幕上下文直接开始",
       "nothingVisible": "你选择的区域目前没有显示任何内容。请另选一个，或不使用屏幕上下文直接开始。",
+      "nothingVisibleRunning": "你选择的区域目前没有显示任何内容。请另选一个，或让会话保持现状。",
       "checking": "正在检查画面…"
     },
     "chip": {

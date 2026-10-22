@@ -1585,6 +1585,7 @@
       "openSettings": "Avaa Järjestelmäasetukset",
       "cancel": "Aloita ilman näytön kontekstia",
       "nothingVisible": "Valitsemasi alue ei näytä juuri nyt mitään. Valitse toinen tai aloita ilman näytön kontekstia.",
+      "nothingVisibleRunning": "Valitsemasi alue ei näytä juuri nyt mitään. Valitse toinen tai jatka istuntoa sellaisenaan.",
       "checking": "Tarkistetaan kuvaa…"
     },
     "chip": {

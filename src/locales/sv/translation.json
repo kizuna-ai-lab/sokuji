@@ -1585,6 +1585,7 @@
       "openSettings": "Öppna Systeminställningar",
       "cancel": "Starta utan skärmkontext",
       "nothingVisible": "Området du valde visar ingenting just nu. Välj ett annat, eller starta utan skärmkontext.",
+      "nothingVisibleRunning": "Området du valde visar ingenting just nu. Välj ett annat, eller låt sessionen vara som den är.",
       "checking": "Kontrollerar bilden…"
     },
     "chip": {

@@ -1585,6 +1585,7 @@
       "openSettings": "Buka Pengaturan Sistem",
       "cancel": "Mulai tanpa konteks layar",
       "nothingVisible": "Area yang Anda pilih tidak menampilkan apa pun saat ini. Pilih yang lain, atau mulai tanpa konteks layar.",
+      "nothingVisibleRunning": "Area yang Anda pilih tidak menampilkan apa pun saat ini. Pilih yang lain, atau biarkan sesi seperti apa adanya.",
       "checking": "Memeriksa gambar…"
     },
     "chip": {

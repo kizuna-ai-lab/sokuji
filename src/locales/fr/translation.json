@@ -1585,6 +1585,7 @@
       "openSettings": "Ouvrir les Réglages Système",
       "cancel": "Démarrer sans contexte d'écran",
       "nothingVisible": "La zone choisie n'affiche rien pour l'instant. Choisissez-en une autre ou démarrez sans contexte d'écran.",
+      "nothingVisibleRunning": "La zone choisie n'affiche rien pour l'instant. Choisissez-en une autre ou laissez la session telle quelle.",
       "checking": "Vérification de l'image…"
     },
     "chip": {

@@ -1585,6 +1585,7 @@
       "openSettings": "打開系統設定",
       "cancel": "不使用螢幕上下文直接開始",
       "nothingVisible": "你選擇的區域目前沒有顯示任何內容。請另選一個，或不使用螢幕上下文直接開始。",
+      "nothingVisibleRunning": "你選擇的區域目前沒有顯示任何內容。請另選一個，或讓工作階段維持現狀。",
       "checking": "正在檢查畫面…"
     },
     "chip": {

@@ -1585,6 +1585,7 @@
       "openSettings": "Buksan ang System Settings",
       "cancel": "Magsimula nang walang konteksto ng screen",
       "nothingVisible": "Walang ipinapakita ngayon ang lugar na pinili mo. Pumili ng iba, o magsimula nang walang konteksto ng screen.",
+      "nothingVisibleRunning": "Walang ipinapakita ngayon ang lugar na pinili mo. Pumili ng iba, o hayaan ang session gaya ng dati.",
       "checking": "Sinusuri ang larawan…"
     },
     "chip": {
