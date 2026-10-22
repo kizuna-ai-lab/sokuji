@@ -204,6 +204,17 @@ describe('prepareScreenContext — the desktop', () => {
     expect(store().sampler!.source.name).toBe('Slides');
   });
 
+  it("a portal pick whose listing answers more than one source was no portal's pick: nothing is captured, no window is chosen for the user, and why is said", async () => {
+    // Chromium listed windows itself (its own Wayland test disagreed with the picker's): the first of them is nobody's choice.
+    const invoke = vi.fn(async (channel: string) => (channel === 'list-capture-sources' ? { ok: true, sources: [SLIDES, NOTES] } : undefined));
+    const d = deps({ picks: [{ kind: 'portal' }], invoke });
+    await expect(prepareScreenContext('electron', { legs: ['speaker'] }, d)).resolves.toBeUndefined();
+    expect(d.openDesktop).not.toHaveBeenCalled();
+    expect(store().sampler).toBeNull();
+    expect(reportWarning).toHaveBeenLastCalledWith('ScreenContext', expect.stringContaining('2 sources'));
+    expect(d.turnOff).not.toHaveBeenCalled();
+  });
+
   it("Wayland: the system chooser's own Cancel at Start is Start without screen context — the switch goes off, the pick goes", async () => {
     // The user's answer, nothing to warn about.
     const cancelled = deps({ picks: [{ kind: 'portal' }], invoke: vi.fn(async () => ({ ok: true, sources: [] })) });

@@ -18,10 +18,35 @@ import ts from 'typescript';
 /** "Cannot find name 'x'", and the same with "Did you mean 'y'?". */
 const UNDECLARED = new Set([2304, 2552]);
 
-/** Inside a block comment: a JSDoc type naming nothing never runs. */
-function inBlockComment(text, at) {
-  return text.lastIndexOf('/*', at) > text.lastIndexOf('*/', at);
+/**
+ * Every comment's span, read from the parsed source: the trivia before and after each node. A string such as '/*'
+ * is a node's text, never trivia, so it hides nothing.
+ */
+function commentSpans(source) {
+  const spans = [];
+  const add = (ranges) => { for (const range of ranges ?? []) spans.push([range.pos, range.end]); };
+  const visit = (node) => {
+    add(ts.getLeadingCommentRanges(source.text, node.pos));
+    add(ts.getTrailingCommentRanges(source.text, node.end));
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return spans;
 }
+
+/** Inside a comment: a JSDoc type naming nothing never runs. */
+function inComment(spans, at) {
+  return spans.some(([start, end]) => at >= start && at < end);
+}
+
+describe('commentSpans', () => {
+  it("finds a JSDoc comment, and is not fooled by '/*' inside a string", () => {
+    const text = "const glob = '/*';\nmissing();\n/** @type {Nope} */\nconst x = 1;\n";
+    const spans = commentSpans(ts.createSourceFile('sample.js', text, ts.ScriptTarget.ES2022, true));
+    expect(inComment(spans, text.indexOf('missing'))).toBe(false);
+    expect(inComment(spans, text.indexOf('Nope'))).toBe(true);
+  });
+});
 
 describe('electron main-process sources', () => {
   it('refer to no name they never declare', { timeout: 30_000 }, () => {
@@ -45,8 +70,9 @@ describe('electron main-process sources', () => {
     const undeclared = [];
     for (const file of files) {
       const source = program.getSourceFile(file);
+      const spans = commentSpans(source);
       for (const diagnostic of program.getSemanticDiagnostics(source)) {
-        if (!UNDECLARED.has(diagnostic.code) || inBlockComment(source.text, diagnostic.start)) continue;
+        if (!UNDECLARED.has(diagnostic.code) || inComment(spans, diagnostic.start)) continue;
         const { line } = source.getLineAndCharacterOfPosition(diagnostic.start);
         const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, ' ');
         undeclared.push(`electron/${file.slice(__dirname.length + 1)}:${line + 1} ${message}`);

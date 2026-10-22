@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { pickableSources, captureSourceMode, listCaptureSources } from './capture-sources.js';
+import { pickableSources, captureSourceMode, listCaptureSources, screenRecordingState } from './capture-sources.js';
 
 describe('pickableSources', () => {
   it('lists windows before screens, drops this app\'s own windows and nameless sources, and types by id prefix', () => {
@@ -38,9 +38,15 @@ describe('pickableSources', () => {
 });
 
 describe('captureSourceMode', () => {
-  it('is the portal on a Wayland session and the list everywhere else', () => {
-    expect(captureSourceMode('linux', { XDG_SESSION_TYPE: 'wayland' })).toBe('portal');
-    expect(captureSourceMode('linux', { WAYLAND_DISPLAY: 'wayland-0' })).toBe('portal');
+  it("is the portal exactly when Chromium's capturer goes through it, and the list everywhere else", () => {
+    // WebRTC's DesktopCapturer::IsRunningUnderWayland(): XDG_SESSION_TYPE starting "wayland" AND WAYLAND_DISPLAY set.
+    // WebRTCPipeWireCapturer is on in every branch (linux-gpu-flags.js), and the Ozone platform plays no part, so the
+    // .deb's --ozone-platform=x11 on a Wayland session still lists through the portal.
+    expect(captureSourceMode('linux', { XDG_SESSION_TYPE: 'wayland', WAYLAND_DISPLAY: 'wayland-0' })).toBe('portal');
+    // Either variable alone is what WebRTC calls X11: its listing is every window, never the portal's one pick.
+    expect(captureSourceMode('linux', { XDG_SESSION_TYPE: 'wayland' })).toBe('list');
+    expect(captureSourceMode('linux', { WAYLAND_DISPLAY: 'wayland-0' })).toBe('list');
+    expect(captureSourceMode('linux', { XDG_SESSION_TYPE: 'wayland', WAYLAND_DISPLAY: '' })).toBe('list');
     expect(captureSourceMode('linux', { XDG_SESSION_TYPE: 'x11', WAYLAND_DISPLAY: 'wayland-0' })).toBe('list');
     expect(captureSourceMode('darwin', {})).toBe('list');
     expect(captureSourceMode('win32', {})).toBe('list');
@@ -48,6 +54,21 @@ describe('captureSourceMode', () => {
 
   it('is the list off Linux even when the session variables say Wayland', () => {
     expect(captureSourceMode('darwin', { XDG_SESSION_TYPE: 'wayland', WAYLAND_DISPLAY: 'wayland-0' })).toBe('list');
+  });
+});
+
+describe('screenRecordingState', () => {
+  it("is granted off macOS without reading anything, macOS's own status otherwise, and restricted reads as denied", () => {
+    const never = vi.fn(() => 'denied');
+    expect(screenRecordingState('linux', never)).toBe('granted');
+    expect(screenRecordingState('win32', never)).toBe('granted');
+    expect(never).not.toHaveBeenCalled();
+    // A profile or parental control forbids it: a refusal like denied, never a listing of blank windows.
+    expect(screenRecordingState('darwin', () => 'restricted')).toBe('denied');
+    expect(screenRecordingState('darwin', () => 'denied')).toBe('denied');
+    expect(screenRecordingState('darwin', () => 'granted')).toBe('granted');
+    // Not asked yet: the listing is what raises the system prompt, so it is let through.
+    expect(screenRecordingState('darwin', () => 'not-determined')).toBe('not-determined');
   });
 });
 

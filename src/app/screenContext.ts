@@ -230,6 +230,12 @@ async function openPortal(deps: Pick<ScreenContextDeps, 'invoke' | 'openDesktop'
     reportWarning('ScreenContext', `The desktop offered no source (${listed.error}); the session starts without screen context.`);
     return null;
   }
+  // The portal answers the one source the user picked there. More than one is a listing Chromium made itself, and
+  // taking its first would send a window nobody chose.
+  if (listed.sources.length > 1) {
+    reportWarning('ScreenContext', `The system's chooser was expected, but the desktop listed ${listed.sources.length} sources; the session starts without screen context.`);
+    return null;
+  }
   const [chosen] = listed.sources;
   return chosen ? deps.openDesktop(chosen) : 'cancelled';
 }

@@ -10,7 +10,7 @@ const { setupCaptionShare } = require('./caption-share.js');
 const { createCloseHandshake } = require('./close-handshake.js');
 const { createWsHeaderRules } = require('./ws-header-rules.js');
 const { applyLinuxGpuFlags } = require('./linux-gpu-flags');
-const { captureSourceMode, listCaptureSources } = require('./capture-sources');
+const { captureSourceMode, listCaptureSources, screenRecordingState } = require('./capture-sources');
 const { acquireSingleInstanceLock, createFocusRelay } = require('./single-instance');
 const { ignoreStdioErrors, createExitHandler } = require('./exit-handler');
 
@@ -1312,7 +1312,7 @@ ipcMain.handle('check-screen-recording-permission', async () => {
 
 /** The Screen Recording status; macOS is the only platform that has one. */
 const screenRecordingStatus = () =>
-  (process.platform === 'darwin' ? systemPreferences.getMediaAccessStatus('screen') : 'granted');
+  screenRecordingState(process.platform, () => systemPreferences.getMediaAccessStatus('screen'));
 
 /** How the picker gets its choices ('list', or 'portal' on Wayland), and the status that gates the list. */
 ipcMain.handle('capture-source-mode', async () => ({
