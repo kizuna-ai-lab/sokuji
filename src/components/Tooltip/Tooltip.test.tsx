@@ -105,6 +105,30 @@ describe('Tooltip trigger reaches the keyboard', () => {
     expect(label).not.toHaveAttribute('tabindex');
   });
 
+  it('an anchor is reached only with an href: without one it gets a tab stop', () => {
+    render(
+      <>
+        <Tooltip content="link-tip"><a href="#docs">docs</a></Tooltip>
+        <Tooltip content="bare-tip"><a>bare</a></Tooltip>
+      </>
+    );
+    expect(screen.getByText('docs')).not.toHaveAttribute('tabindex');
+    expect(screen.getByText('bare')).toHaveAttribute('tabindex', '0');
+  });
+
+  it('an icon with a tab stop of its own still gets a name, and a control never gets one', () => {
+    render(
+      <>
+        <Tooltip content="stop-tip"><CircleHelp tabIndex={0} /></Tooltip>
+        <Tooltip content="select-tip"><select aria-labelledby="none"><option>en</option></select></Tooltip>
+        <Tooltip content="input-tip"><input /></Tooltip>
+      </>
+    );
+    expect(screen.getByRole('img', { name: 'Help' })).toHaveAttribute('tabindex', '0');
+    expect(screen.getByRole('combobox')).not.toHaveAttribute('aria-label');
+    expect(screen.getByRole('textbox')).not.toHaveAttribute('aria-label');
+  });
+
   it("the caller's own tab stop and name win", () => {
     render(<Tooltip content="own-tip"><CircleHelp tabIndex={-1} aria-label="About the pause" /></Tooltip>);
     const icon = screen.getByLabelText('About the pause');

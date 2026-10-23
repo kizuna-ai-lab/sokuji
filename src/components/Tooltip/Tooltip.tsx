@@ -123,12 +123,17 @@ const Tooltip: React.FC<TooltipProps> = ({
 
   // A trigger the keyboard cannot reach gets a tab stop, so focus opens the
   // tooltip; one with no words of its own (an icon, which lucide would hide
-  // from screen readers) also gets a name. The caller's own props win.
+  // from screen readers) gets a name, tab stop or not. A control is named by
+  // its own label and is left alone. The caller's own props win.
   const triggerProps = isValidElement(triggerElement) ? (triggerElement.props as Record<string, unknown>) : {};
-  const reachable = (isValidElement(triggerElement) && typeof triggerElement.type === 'string' && REACHABLE.has(triggerElement.type))
-    || triggerProps.tabIndex !== undefined;
-  const named = triggerProps.children !== undefined || triggerProps['aria-label'] !== undefined || triggerProps['aria-labelledby'] !== undefined;
-  const keyboard = reachable ? {} : { tabIndex: 0, ...(named ? {} : { role: 'img', 'aria-label': t('settings.help', 'Help') }) };
+  const tag = isValidElement(triggerElement) && typeof triggerElement.type === 'string' ? triggerElement.type : null;
+  // An anchor without an href takes no focus.
+  const control = tag !== null && REACHABLE.has(tag) && (tag !== 'a' || triggerProps.href !== undefined);
+  const named = control || triggerProps.children !== undefined || triggerProps['aria-label'] !== undefined || triggerProps['aria-labelledby'] !== undefined;
+  const keyboard = {
+    ...(control || triggerProps.tabIndex !== undefined ? {} : { tabIndex: 0 }),
+    ...(named ? {} : { role: 'img', 'aria-label': t('settings.help', 'Help') }),
+  };
 
   // Function to render content with line break support
   const renderContent = () => {
