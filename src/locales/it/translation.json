@@ -565,7 +565,9 @@
       "screenContextPortal": "Il sistema chiede quale finestra o schermo all'avvio della sessione.",
       "screenContextAtStart": "All'avvio",
       "screenContextNone": "Nessuna finestra scelta: ti verrà chiesto all'avvio della sessione.",
-      "screenContextChoose": "Scegli…"
+      "screenContextChoose": "Scegli…",
+      "speakerLabels": "Etichette interlocutore",
+      "speakerLabelsTooltip": "Numera le persone dall'altra parte — Interlocutore 1, Interlocutore 2… — non appena si sente più di una voce.\n\nPuò scambiare una persona per più persone. Disabilitato: nessun numero viene mostrato.\n\nSi applica dalla prossima sessione."
     },
     "local_inference": {
       "name": "Gratuito",

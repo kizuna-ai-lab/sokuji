@@ -1,10 +1,10 @@
 /**
  * Qwen LiveTranslate's `C`, `build` and `describe` (spec 2026-10-13, §5).
  * One builder for both legs: the participant's is the reversed direction,
- * in its own voice and with person labels (D7). The endpoint is the one
- * the check found, or null for the adapter to find (§2). A text-only target
- * on a leg that speaks is refused here, so the update the server would
- * refuse is never sent.
+ * in its own voice and with person labels unless they are off (D7). The
+ * endpoint is the one the check found, or null for the adapter to find (§2).
+ * A text-only target on a leg that speaks is refused here, so the update the
+ * server would refuse is never sent.
  */
 import type { SessionContext } from '../../lib/contract/adapter';
 import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
@@ -27,7 +27,7 @@ export interface QwenConfig {
   voice: QwenVoiceChoice;
   /** Push-to-talk: no server turn detection; a release commits. */
   manual: boolean;
-  /** The participant leg: each turn carries its speaker as `person`. */
+  /** The participant leg, speaker labels on: each turn carries its speaker as `person`. */
   person: boolean;
   /** Preferred translations, source term → its translation (`translation.corpus.phrases`); empty sends none. */
   phrases: Readonly<Record<string, string>>;
@@ -71,7 +71,7 @@ export function buildQwen(context: SessionContext, s: QwenSettings, shared: Shar
       : chosen === SPEAKER_CLONE_ONCE ? { kind: 'clone', frequency: 'once' }
         : { kind: 'preset', name: chosen },
     manual,
-    person: participant,
+    person: participant && s.speakerLabels,
     phrases: phrasesOf(s.hotwords),
     silenceMs: manual || pause === QWEN_PAUSE.default ? null : pause,
     transport: 'websocket',

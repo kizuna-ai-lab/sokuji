@@ -565,7 +565,9 @@
       "screenContextPortal": "セッション開始時に、ウィンドウまたは画面をシステムが尋ねます。",
       "screenContextAtStart": "開始時",
       "screenContextNone": "ウィンドウはまだ選ばれていません。セッション開始時に尋ねられます。",
-      "screenContextChoose": "選択…"
+      "screenContextChoose": "選択…",
+      "speakerLabels": "話者ラベル",
+      "speakerLabelsTooltip": "相手側の人に番号を付けます（話者 1、話者 2…）。2 人以上の声が聞こえたときに表示されます。\n\n1 人を複数人と誤認することがあります。無効：番号は表示されません。\n\n次回のセッションから適用されます。"
     },
     "local_inference": {
       "name": "無料",

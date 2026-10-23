@@ -565,7 +565,9 @@
       "screenContextPortal": "O sistema pergunta qual janela ou tela ao iniciar a sessão.",
       "screenContextAtStart": "Ao iniciar",
       "screenContextNone": "Nenhuma janela escolhida ainda: a pergunta aparece ao iniciar a sessão.",
-      "screenContextChoose": "Escolher…"
+      "screenContextChoose": "Escolher…",
+      "speakerLabels": "Rótulos de falante",
+      "speakerLabelsTooltip": "Numera as pessoas do outro lado — Falante 1, Falante 2… — assim que mais de uma voz é ouvida.\n\nPode confundir uma pessoa com várias. Desabilitado: nenhum número é exibido.\n\nAplica-se a partir da próxima sessão."
     },
     "local_inference": {
       "name": "Gratuito",

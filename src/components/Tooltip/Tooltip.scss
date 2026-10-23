@@ -9,6 +9,11 @@
   &:hover {
     color: vars.$text-tertiary;
   }
+
+  // The triggers Tooltip gives a tab stop (an icon, a chip); a control keeps its own ring.
+  &:not(a, button, input, select, textarea, label):focus-visible {
+    @include vars.focus-ring;
+  }
 }
 
 .tooltip-content {

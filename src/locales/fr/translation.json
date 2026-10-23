@@ -565,7 +565,9 @@
       "screenContextPortal": "Le système demande quelle fenêtre ou quel écran au démarrage de la session.",
       "screenContextAtStart": "Au démarrage",
       "screenContextNone": "Aucune fenêtre choisie pour l'instant : la question vous sera posée au démarrage de la session.",
-      "screenContextChoose": "Choisir…"
+      "screenContextChoose": "Choisir…",
+      "speakerLabels": "Étiquettes d'intervenant",
+      "speakerLabelsTooltip": "Numérote les personnes de l'autre côté — Intervenant 1, Intervenant 2… — dès que plus d'une voix est entendue.\n\nIl peut prendre une seule personne pour plusieurs. Désactivé : aucun numéro n'est affiché.\n\nS'applique à partir de la prochaine session."
     },
     "local_inference": {
       "name": "Gratuit",

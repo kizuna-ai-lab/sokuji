@@ -34,6 +34,7 @@ export function GeminiTurnDetectionControls({ settings, update, disabled = false
           key={level}
           type="button"
           className={`option-button ${settings[field] === level ? 'active' : ''}`}
+          aria-pressed={settings[field] === level}
           onClick={() => update(field === 'vadStartSensitivity' ? { vadStartSensitivity: level } : { vadEndSensitivity: level })}
           disabled={disabled}
         >

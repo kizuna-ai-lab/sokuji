@@ -565,7 +565,9 @@
       "screenContextPortal": "The system asks which window or screen when the session starts.",
       "screenContextAtStart": "At start",
       "screenContextNone": "No window chosen yet: you'll be asked when the session starts.",
-      "screenContextChoose": "Choose…"
+      "screenContextChoose": "Choose…",
+      "speakerLabels": "Speaker labels",
+      "speakerLabelsTooltip": "Numbers the other side's people — Speaker 1, Speaker 2… — once more than one voice is heard.\n\nIt can mistake one person for several. Disabled: no numbers are shown.\n\nApplies from the next session."
     },
     "local_inference": {
       "name": "Free",

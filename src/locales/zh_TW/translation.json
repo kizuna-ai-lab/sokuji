@@ -565,7 +565,9 @@
       "screenContextPortal": "工作階段開始時，系統會詢問要使用哪個視窗或螢幕。",
       "screenContextAtStart": "開始時",
       "screenContextNone": "尚未選擇視窗：工作階段開始時會詢問你。",
-      "screenContextChoose": "選擇…"
+      "screenContextChoose": "選擇…",
+      "speakerLabels": "說話者標籤",
+      "speakerLabelsTooltip": "為對方的人編號（說話者 1、說話者 2…），聽到不只一個聲音時顯示。\n\n可能會把一個人誤認成好幾個人。停用：不顯示編號。\n\n將於下次工作階段生效。"
     },
     "local_inference": {
       "name": "免費",

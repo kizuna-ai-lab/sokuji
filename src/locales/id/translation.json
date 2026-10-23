@@ -565,7 +565,9 @@
       "screenContextPortal": "Sistem akan menanyakan jendela atau layar mana saat sesi dimulai.",
       "screenContextAtStart": "Saat mulai",
       "screenContextNone": "Belum ada jendela yang dipilih: Anda akan ditanya saat sesi dimulai.",
-      "screenContextChoose": "Pilih…"
+      "screenContextChoose": "Pilih…",
+      "speakerLabels": "Label pembicara",
+      "speakerLabelsTooltip": "Memberi nomor orang-orang di pihak lain — Pembicara 1, Pembicara 2… — begitu terdengar lebih dari satu suara.\n\nFitur ini bisa mengira satu orang sebagai beberapa orang. Dinonaktifkan: tidak ada nomor yang ditampilkan.\n\nBerlaku mulai sesi berikutnya."
     },
     "local_inference": {
       "name": "Gratis",

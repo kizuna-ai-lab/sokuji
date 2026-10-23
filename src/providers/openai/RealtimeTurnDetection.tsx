@@ -65,6 +65,7 @@ export function RealtimeTurnDetectionControls({ settings, update, disabled = fal
               key={mode}
               type="button"
               className={`option-button ${settings.turnDetectionMode === mode ? 'active' : ''}`}
+              aria-pressed={settings.turnDetectionMode === mode}
               onClick={() => update({ turnDetectionMode: mode })}
               disabled={disabled}
             >

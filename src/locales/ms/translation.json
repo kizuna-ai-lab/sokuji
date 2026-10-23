@@ -565,7 +565,9 @@
       "screenContextPortal": "Sistem akan bertanya tetingkap atau skrin yang mana semasa sesi bermula.",
       "screenContextAtStart": "Semasa bermula",
       "screenContextNone": "Belum ada tetingkap dipilih: anda akan ditanya semasa sesi bermula.",
-      "screenContextChoose": "Pilih…"
+      "screenContextChoose": "Pilih…",
+      "speakerLabels": "Label penutur",
+      "speakerLabelsTooltip": "Menomborkan orang di pihak sana — Penutur 1, Penutur 2… — sebaik sahaja lebih daripada satu suara kedengaran.\n\nIa mungkin menyangka seorang sebagai beberapa orang. Dilumpuhkan: tiada nombor dipaparkan.\n\nBerkuat kuasa mulai sesi seterusnya."
     },
     "local_inference": {
       "name": "Percuma",

@@ -565,7 +565,9 @@
       "screenContextPortal": "Das System fragt beim Start der Sitzung, welches Fenster oder welcher Bildschirm.",
       "screenContextAtStart": "Beim Start",
       "screenContextNone": "Noch kein Fenster gewählt: Sie werden beim Start der Sitzung gefragt.",
-      "screenContextChoose": "Auswählen…"
+      "screenContextChoose": "Auswählen…",
+      "speakerLabels": "Sprecherkennzeichnung",
+      "speakerLabelsTooltip": "Nummeriert die Personen auf der anderen Seite – Sprecher 1, Sprecher 2 … –, sobald mehr als eine Stimme zu hören ist.\n\nDabei kann eine Person für mehrere gehalten werden. Deaktiviert: Es werden keine Nummern angezeigt.\n\nWirkt sich erst ab der nächsten Sitzung aus."
     },
     "local_inference": {
       "name": "Kostenlos",

@@ -565,7 +565,9 @@
       "screenContextPortal": "Hệ thống sẽ hỏi cửa sổ hoặc màn hình nào khi bắt đầu phiên.",
       "screenContextAtStart": "Khi bắt đầu",
       "screenContextNone": "Chưa chọn cửa sổ nào: bạn sẽ được hỏi khi bắt đầu phiên.",
-      "screenContextChoose": "Chọn…"
+      "screenContextChoose": "Chọn…",
+      "speakerLabels": "Nhãn người nói",
+      "speakerLabelsTooltip": "Đánh số những người ở phía bên kia — Người nói 1, Người nói 2… — khi nghe thấy nhiều hơn một giọng.\n\nCó thể nhầm một người thành nhiều người. Đã tắt: không hiển thị số.\n\nÁp dụng từ phiên tiếp theo."
     },
     "local_inference": {
       "name": "Miễn phí",

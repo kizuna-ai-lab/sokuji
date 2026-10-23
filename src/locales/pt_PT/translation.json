@@ -565,7 +565,9 @@
       "screenContextPortal": "O sistema pergunta qual janela ou ecrã ao iniciar a sessão.",
       "screenContextAtStart": "Ao iniciar",
       "screenContextNone": "Ainda não escolheu nenhuma janela: a pergunta aparece ao iniciar a sessão.",
-      "screenContextChoose": "Escolher…"
+      "screenContextChoose": "Escolher…",
+      "speakerLabels": "Etiquetas de orador",
+      "speakerLabelsTooltip": "Numera as pessoas do outro lado — Orador 1, Orador 2… — assim que se ouve mais de uma voz.\n\nPode confundir uma pessoa com várias. Desactivado: não é mostrado nenhum número.\n\nAplica-se a partir da próxima sessão."
     },
     "local_inference": {
       "name": "Gratuito",
