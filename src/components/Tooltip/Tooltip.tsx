@@ -1,4 +1,5 @@
 import React, { useState, useEffect, cloneElement, isValidElement } from 'react';
+import { useTranslation } from 'react-i18next';
 import { HelpCircle, Info } from 'lucide-react';
 import {
   useFloating,
@@ -37,6 +38,9 @@ interface TooltipProps {
   suppressed?: boolean;
 }
 
+/** Triggers the keyboard already reaches: a control, or a label around one (the select it holds takes the focus). */
+const REACHABLE = new Set(['a', 'button', 'input', 'select', 'textarea', 'label']);
+
 const Tooltip: React.FC<TooltipProps> = ({
   content,
   children,
@@ -47,6 +51,7 @@ const Tooltip: React.FC<TooltipProps> = ({
   openDelay = 100,
   suppressed = false
 }) => {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
 
   // Effects unmount when an ancestor <Activity> hides (panel switch) as well
@@ -116,6 +121,15 @@ const Tooltip: React.FC<TooltipProps> = ({
     : undefined;
   const triggerRef = useMergeRefs([refs.setReference, childRef]);
 
+  // A trigger the keyboard cannot reach gets a tab stop, so focus opens the
+  // tooltip; one with no words of its own (an icon, which lucide would hide
+  // from screen readers) also gets a name. The caller's own props win.
+  const triggerProps = isValidElement(triggerElement) ? (triggerElement.props as Record<string, unknown>) : {};
+  const reachable = (isValidElement(triggerElement) && typeof triggerElement.type === 'string' && REACHABLE.has(triggerElement.type))
+    || triggerProps.tabIndex !== undefined;
+  const named = triggerProps.children !== undefined || triggerProps['aria-label'] !== undefined || triggerProps['aria-labelledby'] !== undefined;
+  const keyboard = reachable ? {} : { tabIndex: 0, ...(named ? {} : { role: 'img', 'aria-label': t('settings.help', 'Help') }) };
+
   // Function to render content with line break support
   const renderContent = () => {
     if (typeof content === 'string' && content.includes('\n')) {
@@ -143,6 +157,7 @@ const Tooltip: React.FC<TooltipProps> = ({
         cloneElement(
           triggerElement,
           getReferenceProps({
+            ...keyboard,
             ...(triggerElement.props as any),
             ref: triggerRef,
             className: `${(triggerElement.props as any)?.className || ''} tooltip-trigger`.trim(),
@@ -151,7 +166,7 @@ const Tooltip: React.FC<TooltipProps> = ({
       ) : (
         <span
           ref={refs.setReference}
-          {...getReferenceProps()}
+          {...getReferenceProps({ tabIndex: 0 })}
           className="tooltip-trigger"
         >
           {triggerElement}

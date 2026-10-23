@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { createRef } from 'react';
+import { CircleHelp } from 'lucide-react';
 import Tooltip from './Tooltip';
 
 vi.mock('react-i18next', () => ({
@@ -57,5 +58,56 @@ describe('Tooltip trigger ref handling (React 19 ref-as-prop)', () => {
     await waitFor(() => {
       expect(screen.getByText('plain-tip')).toBeInTheDocument();
     });
+  });
+});
+
+describe('Tooltip trigger reaches the keyboard', () => {
+  it('a help icon gets a tab stop and a name, and its tooltip opens on focus', async () => {
+    render(
+      <Tooltip content="Applies from the next session.">
+        <CircleHelp className="tooltip-trigger" size={14} />
+      </Tooltip>
+    );
+    const icon = screen.getByRole('img', { name: 'Help' });
+    expect(icon).toHaveAttribute('tabindex', '0');
+    expect(icon).not.toHaveAttribute('aria-hidden');
+    fireEvent.focus(icon);
+    await waitFor(() => expect(screen.getByText('Applies from the next session.')).toBeInTheDocument());
+  });
+
+  it("the tooltip's own icon does too", () => {
+    render(<Tooltip content="own-icon-tip" />);
+    const icon = screen.getByRole('img', { name: 'Help' });
+    expect(icon).toHaveAttribute('tabindex', '0');
+    expect(icon).not.toHaveAttribute('aria-hidden');
+  });
+
+  it('a trigger with text of its own gets a tab stop and keeps its text as its name', () => {
+    render(<Tooltip content="chip-tip"><span className="chip">Multi</span></Tooltip>);
+    const chip = screen.getByText('Multi');
+    expect(chip).toHaveAttribute('tabindex', '0');
+    expect(chip).not.toHaveAttribute('aria-label');
+    expect(chip).not.toHaveAttribute('role');
+  });
+
+  it('a control, or a label around one, is left as it is: no second tab stop', () => {
+    render(
+      <>
+        <Tooltip content="button-tip"><button>go</button></Tooltip>
+        <Tooltip content="label-tip"><label>Language <select aria-label="Language"><option>en</option></select></label></Tooltip>
+      </>
+    );
+    const button = screen.getByRole('button', { name: 'go' });
+    expect(button).not.toHaveAttribute('tabindex');
+    expect(button).not.toHaveAttribute('aria-label');
+    const label = screen.getByText(/^Language/);
+    expect(label.tagName).toBe('LABEL');
+    expect(label).not.toHaveAttribute('tabindex');
+  });
+
+  it("the caller's own tab stop and name win", () => {
+    render(<Tooltip content="own-tip"><CircleHelp tabIndex={-1} aria-label="About the pause" /></Tooltip>);
+    const icon = screen.getByLabelText('About the pause');
+    expect(icon).toHaveAttribute('tabindex', '-1');
   });
 });
