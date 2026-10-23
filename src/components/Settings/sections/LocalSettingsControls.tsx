@@ -94,6 +94,7 @@ export const SpeechModeControl: React.FC<{
             <button
               key={mode}
               className={`option-button ${value === mode ? 'active' : ''}`}
+              aria-pressed={value === mode}
               onClick={() => { if (value !== mode) onChange(mode); }}
               disabled={disabled}
             >
@@ -134,6 +135,7 @@ export const EndOfTurnControl: React.FC<{
               key={mode}
               type="button"
               className={`option-button ${value === mode ? 'active' : ''}`}
+              aria-pressed={value === mode}
               onClick={() => onChange(mode)}
               disabled={disabled || download !== undefined}
             >
@@ -433,6 +435,7 @@ export const TranslationPromptControl: React.FC<{
         <div className="turn-detection-options">
           <button
             className={`option-button ${useTemplateMode ? 'active' : ''}`}
+            aria-pressed={useTemplateMode}
             onClick={() => onChange({ useTemplateMode: true })}
             disabled={disabled || !supported}
           >
@@ -440,6 +443,7 @@ export const TranslationPromptControl: React.FC<{
           </button>
           <button
             className={`option-button ${!useTemplateMode ? 'active' : ''}`}
+            aria-pressed={!useTemplateMode}
             onClick={() => onChange({ useTemplateMode: false })}
             disabled={disabled || !supported}
           >

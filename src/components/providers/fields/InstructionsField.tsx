@@ -33,10 +33,10 @@ export function InstructionsField({ value, onChange, preview, disabled = false }
       </h2>
       <div className="setting-item">
         <div className="turn-detection-options">
-          <button type="button" className={`option-button ${value.useTemplateMode ? 'active' : ''}`} onClick={() => onChange({ useTemplateMode: true })} disabled={disabled}>
+          <button type="button" className={`option-button ${value.useTemplateMode ? 'active' : ''}`} aria-pressed={value.useTemplateMode} onClick={() => onChange({ useTemplateMode: true })} disabled={disabled}>
             {t('settings.simple')}
           </button>
-          <button type="button" className={`option-button ${!value.useTemplateMode ? 'active' : ''}`} onClick={() => onChange({ useTemplateMode: false })} disabled={disabled}>
+          <button type="button" className={`option-button ${!value.useTemplateMode ? 'active' : ''}`} aria-pressed={!value.useTemplateMode} onClick={() => onChange({ useTemplateMode: false })} disabled={disabled}>
             {t('settings.advanced')}
           </button>
         </div>

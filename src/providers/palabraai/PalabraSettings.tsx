@@ -13,10 +13,10 @@ function OnOff({ label, value, onChange, disabled }: { label: string; value: boo
   const { t } = useTranslation();
   return (
     <div className="turn-detection-options" role="group" aria-label={label}>
-      <button type="button" className={`option-button ${value ? 'active' : ''}`} onClick={() => onChange(true)} disabled={disabled}>
+      <button type="button" className={`option-button ${value ? 'active' : ''}`} aria-pressed={value} onClick={() => onChange(true)} disabled={disabled}>
         {t('settings.enabled', 'Enabled')}
       </button>
-      <button type="button" className={`option-button ${!value ? 'active' : ''}`} onClick={() => onChange(false)} disabled={disabled}>
+      <button type="button" className={`option-button ${!value ? 'active' : ''}`} aria-pressed={!value} onClick={() => onChange(false)} disabled={disabled}>
         {t('settings.disabled', 'Disabled')}
       </button>
     </div>

@@ -156,7 +156,9 @@ describe('QwenSettingsView, speaker labels', () => {
     const update = vi.fn();
     const { rerender } = render(<QwenSettingsView {...props({ update, legs: BOTH })} />);
     expect(pills().getByRole('button', { name: 'Enabled' })).toHaveClass('option-button', 'active');
+    expect(pills().getByRole('button', { name: 'Enabled' })).toHaveAttribute('aria-pressed', 'true');
     expect(pills().getByRole('button', { name: 'Disabled' })).not.toHaveClass('active');
+    expect(pills().getByRole('button', { name: 'Disabled' })).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(pills().getByRole('button', { name: 'Disabled' }));
     expect(update).toHaveBeenCalledWith({ speakerLabels: false });
     fireEvent.click(pills().getByRole('button', { name: 'Enabled' }));

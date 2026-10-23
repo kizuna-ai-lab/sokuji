@@ -32,6 +32,7 @@ export function TurnModeControl({ locked }: { locked: boolean }) {
             key={mode}
             type="button"
             className={`option-button ${turnMode === mode ? 'active' : ''}`}
+            aria-pressed={turnMode === mode}
             disabled={locked}
             onClick={() => {
               if (mode === turnMode) return;

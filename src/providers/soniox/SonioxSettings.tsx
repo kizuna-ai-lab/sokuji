@@ -114,10 +114,10 @@ export function createSonioxSettingsView({ managed, useVoiceSource }: SonioxSett
           <div className="setting-item">
             <div className="turn-detection-options">
               {/* Only Both mode shares a session: outside it the choice is shown, inert (the old lock, `ProviderSpecificSettings.tsx:1741`). */}
-              <button type="button" className={`option-button ${shared ? 'active' : ''}`} onClick={() => update({ bothModeSharedSession: true })} disabled={disabled || !inBoth || faceToFace}>
+              <button type="button" className={`option-button ${shared ? 'active' : ''}`} aria-pressed={shared} onClick={() => update({ bothModeSharedSession: true })} disabled={disabled || !inBoth || faceToFace}>
                 {t('settings.enabled', 'Enabled')}
               </button>
-              <button type="button" className={`option-button ${!shared ? 'active' : ''}`} onClick={() => update({ bothModeSharedSession: false })} disabled={disabled || !inBoth || faceToFace}>
+              <button type="button" className={`option-button ${!shared ? 'active' : ''}`} aria-pressed={!shared} onClick={() => update({ bothModeSharedSession: false })} disabled={disabled || !inBoth || faceToFace}>
                 {t('settings.disabled', 'Disabled')}
               </button>
             </div>
@@ -146,10 +146,10 @@ export function createSonioxSettingsView({ managed, useVoiceSource }: SonioxSett
             </h2>
             <div className="setting-item">
               <div className="turn-detection-options">
-                <button type="button" className={`option-button ${settings.speakerLabels ? 'active' : ''}`} onClick={() => update({ speakerLabels: true })} disabled={disabled}>
+                <button type="button" className={`option-button ${settings.speakerLabels ? 'active' : ''}`} aria-pressed={settings.speakerLabels} onClick={() => update({ speakerLabels: true })} disabled={disabled}>
                   {t('settings.enabled', 'Enabled')}
                 </button>
-                <button type="button" className={`option-button ${!settings.speakerLabels ? 'active' : ''}`} onClick={() => update({ speakerLabels: false })} disabled={disabled}>
+                <button type="button" className={`option-button ${!settings.speakerLabels ? 'active' : ''}`} aria-pressed={!settings.speakerLabels} onClick={() => update({ speakerLabels: false })} disabled={disabled}>
                   {t('settings.disabled', 'Disabled')}
                 </button>
               </div>

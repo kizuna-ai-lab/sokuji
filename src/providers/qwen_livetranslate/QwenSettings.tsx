@@ -102,10 +102,10 @@ export function QwenSettingsView({ settings, update, disabled = false, participa
           </h2>
           <div className="setting-item">
             <div className="turn-detection-options">
-              <button type="button" className={`option-button ${settings.speakerLabels ? 'active' : ''}`} onClick={() => update({ speakerLabels: true })} disabled={disabled}>
+              <button type="button" className={`option-button ${settings.speakerLabels ? 'active' : ''}`} aria-pressed={settings.speakerLabels} onClick={() => update({ speakerLabels: true })} disabled={disabled}>
                 {t('settings.enabled', 'Enabled')}
               </button>
-              <button type="button" className={`option-button ${!settings.speakerLabels ? 'active' : ''}`} onClick={() => update({ speakerLabels: false })} disabled={disabled}>
+              <button type="button" className={`option-button ${!settings.speakerLabels ? 'active' : ''}`} aria-pressed={!settings.speakerLabels} onClick={() => update({ speakerLabels: false })} disabled={disabled}>
                 {t('settings.disabled', 'Disabled')}
               </button>
             </div>
