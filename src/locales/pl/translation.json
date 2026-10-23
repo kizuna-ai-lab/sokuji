@@ -565,7 +565,9 @@
       "screenContextPortal": "System zapyta o okno lub ekran przy rozpoczęciu sesji.",
       "screenContextAtStart": "Przy starcie",
       "screenContextNone": "Nie wybrano jeszcze okna: pytanie pojawi się przy rozpoczęciu sesji.",
-      "screenContextChoose": "Wybierz…"
+      "screenContextChoose": "Wybierz…",
+      "speakerLabels": "Etykiety mówców",
+      "speakerLabelsTooltip": "Numeruje osoby po drugiej stronie — Mówca 1, Mówca 2… — gdy słychać więcej niż jeden głos.\n\nMoże wziąć jedną osobę za kilka. Wyłączony: numery nie są wyświetlane.\n\nZaczyna obowiązywać od następnej sesji."
     },
     "local_inference": {
       "name": "Darmowy",

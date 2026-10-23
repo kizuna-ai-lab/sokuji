@@ -565,7 +565,9 @@
       "screenContextPortal": "Systemet frågar vilket fönster eller vilken skärm när sessionen startar.",
       "screenContextAtStart": "Vid start",
       "screenContextNone": "Inget fönster valt ännu: du får frågan när sessionen startar.",
-      "screenContextChoose": "Välj…"
+      "screenContextChoose": "Välj…",
+      "speakerLabels": "Talaretiketter",
+      "speakerLabelsTooltip": "Numrerar personerna på andra sidan – Talare 1, Talare 2 … – så snart mer än en röst hörs.\n\nDen kan ta en person för flera. Inaktiverad: inga nummer visas.\n\nGäller från nästa session."
     },
     "local_inference": {
       "name": "Gratis",

@@ -565,7 +565,9 @@
       "screenContextPortal": "Oturum başlarken sistem hangi pencere veya ekran olduğunu sorar.",
       "screenContextAtStart": "Başlarken",
       "screenContextNone": "Henüz pencere seçilmedi: oturum başlarken size sorulacak.",
-      "screenContextChoose": "Seç…"
+      "screenContextChoose": "Seç…",
+      "speakerLabels": "Konuşmacı etiketleri",
+      "speakerLabelsTooltip": "Birden fazla ses duyulduğunda karşı taraftaki kişileri numaralandırır — Konuşmacı 1, Konuşmacı 2…\n\nTek bir kişiyi birkaç kişi sanabilir. Devre dışı: numara gösterilmez.\n\nBir sonraki oturumdan itibaren geçerli olur."
     },
     "local_inference": {
       "name": "Ücretsiz",

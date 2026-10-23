@@ -565,7 +565,9 @@
       "screenContextPortal": "המערכת תשאל איזה חלון או מסך בעת תחילת ההפעלה.",
       "screenContextAtStart": "בהתחלה",
       "screenContextNone": "עדיין לא נבחר חלון: השאלה תופיע בעת תחילת ההפעלה.",
-      "screenContextChoose": "בחירה…"
+      "screenContextChoose": "בחירה…",
+      "speakerLabels": "תוויות דוברים",
+      "speakerLabelsTooltip": "ממספר את האנשים בצד השני — דובר 1, דובר 2… — כשנשמע יותר מקול אחד.\n\nייתכן שיזהה אדם אחד ככמה אנשים. מבוטל: לא מוצגים מספרים.\n\nחל החל מההפעלה הבאה."
     },
     "local_inference": {
       "name": "חינמי",

@@ -565,7 +565,9 @@
       "screenContextPortal": "يسألك النظام عن النافذة أو الشاشة عند بدء الجلسة.",
       "screenContextAtStart": "عند البدء",
       "screenContextNone": "لم تُختر نافذة بعد: سيُطلب منك ذلك عند بدء الجلسة.",
-      "screenContextChoose": "اختيار…"
+      "screenContextChoose": "اختيار…",
+      "speakerLabels": "تسميات المتحدثين",
+      "speakerLabelsTooltip": "يرقّم أشخاص الطرف الآخر — المتحدث 1، المتحدث 2… — عند سماع أكثر من صوت واحد.\n\nقد يظن شخصًا واحدًا عدة أشخاص. معطل: لا تظهر أي أرقام.\n\nيُطبَّق بدءًا من الجلسة التالية."
     },
     "local_inference": {
       "name": "مجاني",

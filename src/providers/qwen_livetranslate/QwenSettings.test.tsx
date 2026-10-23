@@ -147,6 +147,53 @@ describe('QwenSettingsView (spec §4, §7)', () => {
   });
 });
 
+describe('QwenSettingsView, speaker labels', () => {
+  const labelsSection = () => document.getElementById('qwen-speaker-labels-section');
+  const pills = () => within(labelsSection() as HTMLElement);
+  const BOTH = ['speaker', 'participant'] as const;
+
+  it('the pills show the stored choice, write it, and are locked while a run is on', () => {
+    const update = vi.fn();
+    const { rerender } = render(<QwenSettingsView {...props({ update, legs: BOTH })} />);
+    expect(pills().getByRole('button', { name: 'Enabled' })).toHaveClass('option-button', 'active');
+    expect(pills().getByRole('button', { name: 'Disabled' })).not.toHaveClass('active');
+    fireEvent.click(pills().getByRole('button', { name: 'Disabled' }));
+    expect(update).toHaveBeenCalledWith({ speakerLabels: false });
+    fireEvent.click(pills().getByRole('button', { name: 'Enabled' }));
+    expect(update).toHaveBeenCalledWith({ speakerLabels: true });
+
+    rerender(<QwenSettingsView {...props({ update, legs: BOTH, settings: { ...QWEN_DEFAULTS, speakerLabels: false }, disabled: true })} />);
+    expect(pills().getByRole('button', { name: 'Disabled' })).toHaveClass('active');
+    expect(pills().getByRole('button', { name: 'Enabled' })).toBeDisabled();
+    expect(pills().getByRole('button', { name: 'Disabled' })).toBeDisabled();
+  });
+
+  it("is Soniox's section: a heading with its tooltip over the pill pair", () => {
+    render(<QwenSettingsView {...props({ legs: BOTH })} />);
+    const section = labelsSection() as HTMLElement;
+    expect(section).toHaveClass('settings-section');
+    expect(section.querySelector('h2')?.textContent).toBe('Speaker labels');
+    expect(section.querySelector('h2 [data-tooltip]')?.getAttribute('data-tooltip')).toMatch(/^Numbers the other side's people .*It can mistake one person for several\. Disabled: no numbers are shown\.\n\nApplies from the next session\.$/s);
+    expect(section.querySelectorAll('.setting-item > .turn-detection-options > button.option-button')).toHaveLength(2);
+  });
+
+  it("is shown only where the other side's people are heard: Others and Both, never my leg alone", () => {
+    const { rerender } = render(<QwenSettingsView {...props({ legs: ['participant'] })} />);
+    expect(labelsSection()).not.toBeNull();
+    rerender(<QwenSettingsView {...props({ legs: BOTH })} />);
+    expect(labelsSection()).not.toBeNull();
+    rerender(<QwenSettingsView {...props({ legs: ['speaker'] })} />);
+    expect(labelsSection()).toBeNull();
+    rerender(<QwenSettingsView {...props()} />);
+    expect(labelsSection()).toBeNull();
+  });
+
+  it('the managed view shows it too', () => {
+    render(<KizunaQwenSettingsView {...props({ legs: BOTH })} />);
+    expect(labelsSection()).not.toBeNull();
+  });
+});
+
 describe('Screen context — the area chosen in the settings (owner, 2026-10-22, rulings 1, 4, 5)', () => {
   const SLIDES: CaptureSourceInfo = { id: 'window:1', name: 'Slides', kind: 'window', thumbnail: 'data:image/png;base64,U0xJREVT', appIcon: null };
   const NOTES: CaptureSourceInfo = { id: 'window:2', name: 'Notes', kind: 'window', thumbnail: 'data:image/png;base64,Tk9URVM=', appIcon: null };

@@ -42,6 +42,12 @@ describe("Qwen LiveTranslate's builder (spec §5)", () => {
     expect(buildQwen(ctx('en', 'zh'), QWEN_DEFAULTS, SHARED)).toMatchObject({ target: 'zh', voice: { kind: 'preset', name: 'Ethan' }, person: true });
   });
 
+  it('labels no one with speaker labels off: the wire is the same, only the person goes', () => {
+    const off = { ...QWEN_DEFAULTS, speakerLabels: false };
+    expect(buildQwen(ctx('en', 'zh'), off, SHARED)).toEqual({ ...(buildQwen(ctx('en', 'zh'), QWEN_DEFAULTS, SHARED) as object), person: false });
+    expect(buildQwen(ctx('zh', 'en'), off, SHARED)).toMatchObject({ person: false });
+  });
+
   it('reads the endpoint from the models the check found, and none from anything else', () => {
     expect(buildQwen(ctx('zh', 'en'), QWEN_DEFAULTS, { ...SHARED, models: [{ id: 'cn' }] })).toMatchObject({ endpoint: 'cn' });
     expect(buildQwen(ctx('zh', 'en'), QWEN_DEFAULTS, { ...SHARED, models: [] })).toMatchObject({ endpoint: null });

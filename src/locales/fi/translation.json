@@ -565,7 +565,9 @@
       "screenContextPortal": "Järjestelmä kysyy ikkunan tai näytön istunnon alkaessa.",
       "screenContextAtStart": "Aloitettaessa",
       "screenContextNone": "Ikkunaa ei ole vielä valittu: sinulta kysytään istunnon alkaessa.",
-      "screenContextChoose": "Valitse…"
+      "screenContextChoose": "Valitse…",
+      "speakerLabels": "Puhujatunnisteet",
+      "speakerLabelsTooltip": "Numeroi toisen osapuolen ihmiset – Puhuja 1, Puhuja 2… – kun kuuluu useampi kuin yksi ääni.\n\nSe voi luulla yhtä ihmistä useaksi. Pois käytöstä: numeroita ei näytetä.\n\nOtetaan käyttöön vasta seuraavasta istunnosta alkaen."
     },
     "local_inference": {
       "name": "Ilmainen",

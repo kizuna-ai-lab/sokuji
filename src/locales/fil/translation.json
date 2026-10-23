@@ -565,7 +565,9 @@
       "screenContextPortal": "Itatanong ng system kung aling window o screen sa pagsisimula ng session.",
       "screenContextAtStart": "Sa pagsisimula",
       "screenContextNone": "Wala pang napiling window: tatanungin ka sa pagsisimula ng session.",
-      "screenContextChoose": "Pumili…"
+      "screenContextChoose": "Pumili…",
+      "speakerLabels": "Mga label ng tagapagsalita",
+      "speakerLabelsTooltip": "Binibigyang-numero ang mga tao sa kabilang panig — Tagapagsalita 1, Tagapagsalita 2… — kapag higit sa isang boses ang narinig.\n\nMaaari nitong mapagkamalang marami ang iisang tao. Hindi pinagana: walang numerong ipinapakita.\n\nMag-aapply mula sa susunod na session."
     },
     "local_inference": {
       "name": "Libre",

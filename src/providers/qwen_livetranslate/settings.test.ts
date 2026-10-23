@@ -14,7 +14,13 @@ const codes = (list: readonly { value: string }[]) => list.map((o) => o.value);
 describe("Qwen LiveTranslate's settings", () => {
   it('runs one model, and starts from two different presets, no hotwords and the server\'s own pause', () => {
     expect(QWEN_MODEL).toBe('qwen3.8-livetranslate-flash-realtime');
-    expect(QWEN_DEFAULTS).toEqual({ voice: 'Tina', participantVoice: 'Ethan', hotwords: '', pauseMs: 2500, region: 'sg', screenContext: false });
+    expect(QWEN_DEFAULTS).toEqual({ voice: 'Tina', participantVoice: 'Ethan', hotwords: '', pauseMs: 2500, region: 'sg', screenContext: false, speakerLabels: true });
+  });
+
+  it('starts with speaker labels on, keeps a stored boolean and defaults anything else', () => {
+    expect(migrateQwenSettings({ speakerLabels: false }).speakerLabels).toBe(false);
+    expect(migrateQwenSettings({ speakerLabels: 'no' }).speakerLabels).toBe(true);
+    expect(migrateQwenSettings({}).speakerLabels).toBe(true);
   });
 
   it('narrows an unknown region to sg on load, keeping every other field', () => {

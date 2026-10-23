@@ -45,12 +45,13 @@ export function QwenVoiceSummary({ settings, leg }: VoiceSummaryProps<S>) {
  * the key in, as a line under the key; the voice — cloning under a heading of its
  * own (each speaker on every turn, or the first speaker once), then the 47
  * presets, as Doubao AST 2.0 lists them; and the preferred translations
- * (`translation.corpus`), Soniox's field and words. No preview: the official
+ * (`translation.corpus`), Soniox's field and words; and, where the other
+ * side is heard, Soniox's speaker-labels pills. No preview: the official
  * voice list publishes no samples. No model or instructions: the endpoint
  * has none. No region picker either: an own key's region is the one it was
  * made in; the picker is the managed twin's (`KizunaQwenSettingsView`).
  */
-export function QwenSettingsView({ settings, update, disabled = false, participantSpeaks = false, models = [], preview }: SettingsProps<S>) {
+export function QwenSettingsView({ settings, update, disabled = false, participantSpeaks = false, models = [], preview, legs }: SettingsProps<S>) {
   const { t } = useTranslation();
   const cloning = t('providers.qwen_livetranslate.voiceGroupClone', 'Voice cloning');
   const voices: VoiceEntry[] = [
@@ -88,6 +89,29 @@ export function QwenSettingsView({ settings, update, disabled = false, participa
           disabled={disabled}
         />
       </div>
+      {legs?.includes('participant') === true && (
+        <div className="settings-section" id="qwen-speaker-labels-section">
+          <h2>
+            {t('providers.qwen_livetranslate.speakerLabels', 'Speaker labels')}
+            <Tooltip
+              content={t('providers.qwen_livetranslate.speakerLabelsTooltip', "Numbers the other side's people — Speaker 1, Speaker 2… — once more than one voice is heard.\n\nIt can mistake one person for several. Disabled: no numbers are shown.\n\nApplies from the next session.")}
+              position="top"
+            >
+              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+            </Tooltip>
+          </h2>
+          <div className="setting-item">
+            <div className="turn-detection-options">
+              <button type="button" className={`option-button ${settings.speakerLabels ? 'active' : ''}`} onClick={() => update({ speakerLabels: true })} disabled={disabled}>
+                {t('settings.enabled', 'Enabled')}
+              </button>
+              <button type="button" className={`option-button ${!settings.speakerLabels ? 'active' : ''}`} onClick={() => update({ speakerLabels: false })} disabled={disabled}>
+                {t('settings.disabled', 'Disabled')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

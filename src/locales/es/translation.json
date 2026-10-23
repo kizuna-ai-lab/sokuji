@@ -565,7 +565,9 @@
       "screenContextPortal": "El sistema preguntará qué ventana o pantalla al iniciar la sesión.",
       "screenContextAtStart": "Al iniciar",
       "screenContextNone": "Aún no has elegido ninguna ventana: se te preguntará al iniciar la sesión.",
-      "screenContextChoose": "Elegir…"
+      "screenContextChoose": "Elegir…",
+      "speakerLabels": "Etiquetas de hablante",
+      "speakerLabelsTooltip": "Numera a las personas del otro lado —Hablante 1, Hablante 2…— en cuanto se oye más de una voz.\n\nPuede confundir a una persona con varias. Deshabilitado: no se muestra ningún número.\n\nSe aplica a partir de la próxima sesión."
     },
     "local_inference": {
       "name": "Gratis",

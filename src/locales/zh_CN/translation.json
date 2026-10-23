@@ -565,7 +565,9 @@
       "screenContextPortal": "会话开始时，系统会询问使用哪个窗口或屏幕。",
       "screenContextAtStart": "开始时",
       "screenContextNone": "尚未选择窗口：会话开始时会询问你。",
-      "screenContextChoose": "选择…"
+      "screenContextChoose": "选择…",
+      "speakerLabels": "说话人标签",
+      "speakerLabelsTooltip": "为对方的人编号（说话人 1、说话人 2…），听到不止一个声音时显示。\n\n可能会把一个人误认成几个人。禁用：不显示编号。\n\n将在下次会话生效。"
     },
     "local_inference": {
       "name": "免费",

@@ -565,7 +565,9 @@
       "screenContextPortal": "Het systeem vraagt welk venster of scherm wanneer de sessie begint.",
       "screenContextAtStart": "Bij de start",
       "screenContextNone": "Nog geen venster gekozen: je krijgt de vraag wanneer de sessie begint.",
-      "screenContextChoose": "Kiezen…"
+      "screenContextChoose": "Kiezen…",
+      "speakerLabels": "Sprekerlabels",
+      "speakerLabelsTooltip": "Nummert de mensen aan de andere kant — Spreker 1, Spreker 2… — zodra er meer dan één stem te horen is.\n\nHet kan één persoon voor meerdere aanzien. Uitgeschakeld: er worden geen nummers getoond.\n\nWordt toegepast vanaf de volgende sessie."
     },
     "local_inference": {
       "name": "Gratis",

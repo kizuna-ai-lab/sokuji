@@ -100,13 +100,15 @@ export interface QwenSettings {
   region: QwenRegion;
   /** Let the model see one chosen window, tab or screen (spec 2026-10-22); the source is picked at Start and never stored. */
   screenContext: boolean;
+  /** Number the other side's people (D7). Off: their turns carry no person; the server still detects speakers, which also cuts its turns. */
+  speakerLabels: boolean;
 }
 
 export const QWEN_DEFAULT_VOICE = 'Tina';
 /** A male preset beside Tina, so the two people never sound alike by default. */
 export const QWEN_PARTICIPANT_DEFAULT_VOICE = 'Ethan';
 export const QWEN_DEFAULTS: QwenSettings = {
-  voice: QWEN_DEFAULT_VOICE, participantVoice: QWEN_PARTICIPANT_DEFAULT_VOICE, hotwords: '', pauseMs: QWEN_PAUSE.default, region: DEFAULT_QWEN_REGION, screenContext: false,
+  voice: QWEN_DEFAULT_VOICE, participantVoice: QWEN_PARTICIPANT_DEFAULT_VOICE, hotwords: '', pauseMs: QWEN_PAUSE.default, region: DEFAULT_QWEN_REGION, screenContext: false, speakerLabels: true,
 };
 
 /** What was stored, made valid field by field: the region narrowed, the rest as typed or defaulted. Nothing is written back. */
@@ -114,7 +116,8 @@ export function migrateQwenSettings(stored: Readonly<Record<string, unknown>>): 
   const str = (k: 'voice' | 'participantVoice' | 'hotwords') => (typeof stored[k] === 'string' ? (stored[k] as string) : QWEN_DEFAULTS[k]);
   const pauseMs = typeof stored.pauseMs === 'number' && Number.isFinite(stored.pauseMs) ? stored.pauseMs : QWEN_DEFAULTS.pauseMs;
   const screenContext = typeof stored.screenContext === 'boolean' ? stored.screenContext : false;
-  return { voice: str('voice'), participantVoice: str('participantVoice'), hotwords: str('hotwords'), pauseMs, region: asQwenRegion(stored.region), screenContext };
+  const speakerLabels = typeof stored.speakerLabels === 'boolean' ? stored.speakerLabels : QWEN_DEFAULTS.speakerLabels;
+  return { voice: str('voice'), participantVoice: str('participantVoice'), hotwords: str('hotwords'), pauseMs, region: asQwenRegion(stored.region), screenContext, speakerLabels };
 }
 
 /** Either clone: each leg clones its own speaker, so neither is ever "my" voice to keep off the other leg. */
