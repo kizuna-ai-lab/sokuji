@@ -8,7 +8,7 @@ const files = () => Object.fromEntries(DICTIONARY_FILE_NAMES.map((n, i) => [n, e
 const nested = (f: Record<string, Uint8Array>) => Object.fromEntries(Object.entries(f).map(([n, d]) => [`lindera-ipadic/${n}`, d]));
 
 /** A zip the way Lindera's release archives are laid out: local headers, central directory, end record. */
-function makeZip(entries: Record<string, Uint8Array>, opts: { stored?: boolean; declaredSize?: Record<string, number> } = {}): ArrayBuffer {
+function makeZip(entries: Record<string, Uint8Array>, opts: { stored?: boolean; declaredSize?: Record<string, number>; declaredCompressedSize?: Record<string, number> } = {}): ArrayBuffer {
   const parts: Uint8Array[] = [];
   const central: Uint8Array[] = [];
   let offset = 0;
@@ -17,6 +17,7 @@ function makeZip(entries: Record<string, Uint8Array>, opts: { stored?: boolean; 
     const method = opts.stored || data.length === 0 ? 0 : 8;
     const comp = method === 0 ? data : new Uint8Array(deflateRawSync(data));
     const declared = opts.declaredSize?.[name] ?? data.length;
+    const declaredCompressed = opts.declaredCompressedSize?.[name] ?? comp.length;
     const local = new Uint8Array(30 + nameBytes.length);
     const lv = new DataView(local.buffer);
     lv.setUint32(0, 0x04034b50, true);
@@ -32,7 +33,7 @@ function makeZip(entries: Record<string, Uint8Array>, opts: { stored?: boolean; 
     cv.setUint16(4, 20, true);
     cv.setUint16(6, 20, true);
     cv.setUint16(10, method, true);
-    cv.setUint32(20, comp.length, true);
+    cv.setUint32(20, declaredCompressed, true);
     cv.setUint32(24, declared, true);
     cv.setUint16(28, nameBytes.length, true);
     cv.setUint32(42, offset, true);
@@ -92,6 +93,32 @@ describe('extractDictionary', () => {
   it('rejects an entry that inflates to another size than the archive declares', async () => {
     const zip = makeZip(nested(files()), { declaredSize: { 'lindera-ipadic/dict.vals': 999 } });
     await expect(extractDictionary(zip)).rejects.toThrow(/dict\.vals/);
+  });
+
+  it('ignores an entry named like a property every object has', async () => {
+    const f = files();
+    const zip = makeZip({ ...nested(f), 'lindera-ipadic/constructor': enc.encode('x'), 'lindera-ipadic/toString': enc.encode('y') });
+    expect(await extractDictionary(zip)).toEqual({
+      metadata: f['metadata.json'],
+      dictTrie: f['dict.trie'],
+      dictValsIdx: f['dict.valsidx'],
+      dictVals: f['dict.vals'],
+      dictWordsIdx: f['dict.wordsidx'],
+      dictWords: f['dict.words'],
+      matrixMtx: f['matrix.mtx'],
+      charDef: f['char_def.bin'],
+      unk: f['unk.bin'],
+    });
+  });
+
+  it('rejects an entry whose data runs past the end of the archive', async () => {
+    const zip = makeZip(nested(files()), { declaredCompressedSize: { 'lindera-ipadic/dict.words': 999_999 } });
+    await expect(extractDictionary(zip)).rejects.toThrow(/dict\.words.*past the end/);
+  });
+
+  it('rejects a ZIP64 entry, which the archives Lindera releases never need', async () => {
+    const zip = makeZip(nested(files()), { declaredSize: { 'lindera-ipadic/dict.trie': 0xffffffff } });
+    await expect(extractDictionary(zip)).rejects.toThrow(/dict\.trie.*ZIP64/);
   });
 
   it('rejects bytes that are not a zip', async () => {

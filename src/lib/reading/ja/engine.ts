@@ -17,6 +17,7 @@ export interface JaEngine {
 /** IPADIC's details: part of speech ×4, conjugation ×2, base form, reading, pronunciation. Only the reading is used. */
 const READING = 7;
 
+/** Lindera's tokens as the app's: surface, IPADIC reading (`*` and a missing one are none), unknown flag. */
 export function toJaTokens(tokens: LinderaToken[]): JaToken[] {
   return tokens.map((t) => {
     const reading = t.details[READING];

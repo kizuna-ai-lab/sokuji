@@ -6,7 +6,7 @@
 // script chunk large enough to carry it inlined. A wasm fetched at run time is
 // what the stores call remotely hosted code, so the wasm has to be here.
 // Usage: node scripts/check-lindera-assets.mjs build extension/dist
-import { readdirSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, statSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -14,9 +14,13 @@ import { pathToFileURL } from 'node:url';
 export const LINDERA_WASM_BYTES = 1_784_285;
 /** lindera-ipadic-6.2.0.zip. dictionary.test.ts checks it against src/lib/reading/ja/dictionary.ts. */
 export const DICTIONARY_BYTES = 10_519_550;
-/** The dictionary as base64 in a chunk would be about 14 MB. */
-const INLINED_JS_BYTES = 15_000_000;
+/**
+ * The dictionary as base64 in a chunk would be 14.0 MB; the largest chunk the
+ * builds have today (the Electron main chunk) is 1.6 MB.
+ */
+const INLINED_JS_BYTES = 8_000_000;
 
+/** Calls `visit(path, size)` for every file under `dir`. */
 function walk(dir, visit) {
   for (const name of readdirSync(dir)) {
     const path = join(dir, name);
@@ -30,6 +34,10 @@ function walk(dir, visit) {
 export function checkLinderaAssets(dirs) {
   const problems = [];
   for (const dir of dirs) {
+    if (!existsSync(dir)) {
+      problems.push(`${dir} does not exist`);
+      continue;
+    }
     const wasms = [];
     walk(dir, (path, size) => {
       const name = basename(path);

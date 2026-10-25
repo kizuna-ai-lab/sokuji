@@ -42,11 +42,17 @@ export function dictionaryBytesInOrder(files: DictionaryFiles): DictionaryBytes 
   return [files.metadata, files.dictTrie, files.dictValsIdx, files.dictVals, files.dictWordsIdx, files.dictWords, files.matrixMtx, files.charDef, files.unk];
 }
 
+type DictionaryFileName = (typeof DICTIONARY_FILE_NAMES)[number];
+
 const EOCD_SIGNATURE = 0x06054b50;
 const CENTRAL_SIGNATURE = 0x02014b50;
 const STORED = 0;
 const DEFLATED = 8;
+/** A size or offset of this value means the real one is in a ZIP64 extra field; the archives Lindera releases never need one. */
+const ZIP64 = 0xffffffff;
+const isDictionaryFileName = (name: string): name is DictionaryFileName => Object.prototype.hasOwnProperty.call(KEY_OF, name);
 
+/** A deflated zip entry's bytes, inflated by the platform (raw deflate: zip entries carry no zlib header). */
 async function inflate(compressed: Uint8Array): Promise<Uint8Array> {
   const stream = new Blob([compressed as BlobPart]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
   return new Uint8Array(await new Response(stream).arrayBuffer());
@@ -78,9 +84,12 @@ export async function extractDictionary(zip: ArrayBuffer): Promise<DictionaryFil
     const local = view.getUint32(offset + 42, true);
     const name = new TextDecoder().decode(bytes.subarray(offset + 46, offset + 46 + nameLength));
     offset += 46 + nameLength + extraLength + commentLength;
-    const base = name.split('/').pop() as (typeof DICTIONARY_FILE_NAMES)[number];
-    if (name.endsWith('/') || !(base in KEY_OF)) continue;
+    const base = name.split('/').pop() ?? '';
+    if (name.endsWith('/') || !isDictionaryFileName(base)) continue;
+    if (size === ZIP64 || compressedSize === ZIP64 || local === ZIP64) throw new Error(`${name} in the dictionary archive is a ZIP64 entry, which is not supported`);
+    if (local + 30 > bytes.length) throw new Error(`${name} in the dictionary archive runs past the end of the archive`);
     const data = local + 30 + view.getUint16(local + 26, true) + view.getUint16(local + 28, true);
+    if (data + compressedSize > bytes.length) throw new Error(`${name} in the dictionary archive runs past the end of the archive`);
     const compressed = bytes.subarray(data, data + compressedSize);
     let file: Uint8Array;
     if (method === STORED) file = compressed;
