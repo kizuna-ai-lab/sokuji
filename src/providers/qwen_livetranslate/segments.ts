@@ -18,10 +18,12 @@
  * words after audio begin the next phrase, and the phrase before is tiled
  * over the audio that followed it, by samples (`speechRanges`, Palabra's
  * fill-in); the last phrase once both its final text and `response.audio.done`
- * have come. Nothing is lit before its phrase is whole.
+ * have come. Until then each chunk carries a provisional range, the phrase's
+ * words reached at the speech rate the fill-ins measured (karaoke
+ * provisional ranges design), which the fill-in replaces.
  */
 import type { AdapterEvents, Ref, Side, TextRange } from '../../lib/contract/adapter';
-import { tileSpan } from '../../lib/contract/ranges';
+import { SpeechPace, tileSpan } from '../../lib/contract/ranges';
 
 export interface QwenSegmentsOptions {
   sink: Pick<AdapterEvents, 'segmentOpened' | 'segmentText' | 'segmentClosed' | 'audio' | 'speechRanges'>;
@@ -50,6 +52,9 @@ interface Item {
   ranges: Map<number, TextRange>;
   /** `response.audio.done` came: no more speech is expected. */
   spoken: boolean;
+  /** The current phrase's samples so far, and where its provisional ranges reached, from the phrase's start. */
+  cum: number;
+  reached: number;
 }
 
 export class QwenSegments {
@@ -58,6 +63,8 @@ export class QwenSegments {
   /** `speaker_id` by heard item, from `speech_started` (automatic turns only). */
   private readonly speakers = new Map<string, string>();
   private stopped = false;
+  /** The leg's speech rate, learned from its fill-ins. */
+  private readonly pace = new SpeechPace();
 
   constructor(private readonly o: QwenSegmentsOptions) {}
 
@@ -118,7 +125,9 @@ export class QwenSegments {
       if (it.closed) return;
       this.open(itemId, it);
     }
-    this.o.sink.audio({ pcm, ref: it.ref });
+    // Once the last phrase is filled (text final, speech all here), a stray chunk plays unranged, as before.
+    const range = it.closed && it.spoken ? undefined : this.provisional(it, pcm.length);
+    this.o.sink.audio(range ? { pcm, ref: it.ref, range } : { pcm, ref: it.ref });
     it.samples.push(pcm.length);
   }
 
@@ -139,7 +148,7 @@ export class QwenSegments {
     if (this.stopped) return null;
     let it = this.items.get(itemId);
     if (!it) {
-      it = { side, text: '', shown: '', stated: false, closed: false, samples: [], phraseText: 0, phraseAudio: 0, ranges: new Map(), spoken: false };
+      it = { side, text: '', shown: '', stated: false, closed: false, samples: [], phraseText: 0, phraseAudio: 0, ranges: new Map(), spoken: false, cum: 0, reached: 0 };
       this.items.set(itemId, it);
     }
     return it.side === side ? it : null;
@@ -181,9 +190,33 @@ export class QwenSegments {
       const ranges = tileSpan(span, samples, it.shown).map((range, k) => ({ index: it.phraseAudio + k, range }));
       for (const { index, range } of ranges) it.ranges.set(index, range);
       this.o.sink.speechRanges({ ref: it.ref, ranges });
+      this.pace.learn(it.shown.slice(span[0], span[1]), samples.reduce((n, s) => n + s, 0));
     }
     it.phraseText = end;
     it.phraseAudio = it.samples.length;
+    it.cum = 0;
+    it.reached = 0;
+  }
+
+  /**
+   * Where this chunk reaches in the current phrase's words, at the leg's rate,
+   * recorded so a shorter final text restates it too; none while the phrase
+   * has no letters. A phrase is the shown words since the last fill, as the
+   * chunk arrives: audio before any words joins the first phrase, whose words
+   * then grow it.
+   */
+  private provisional(it: Item, samples: number): TextRange | undefined {
+    const start = Math.min(it.phraseText, it.shown.length);
+    const phrase = it.shown.slice(start);
+    it.cum += samples;
+    // A shorter final text can leave the phrase shorter than what was reached; restate already pulled those ranges inside it.
+    const from = Math.min(it.reached, phrase.length);
+    const end = this.pace.reach(phrase, it.cum, from);
+    if (end === null) return undefined;
+    const range: TextRange = [start + from, start + end];
+    it.ranges.set(it.samples.length, range);
+    it.reached = end;
+    return range;
   }
 
   /** The last phrase, once the text is final and the speech all here. */
