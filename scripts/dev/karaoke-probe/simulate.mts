@@ -69,7 +69,7 @@ function loadQwen(file: string): Ev[] {
       audio: (e) => {
         const index = e.ref === undefined ? 0 : counts.get(e.ref) ?? 0;
         if (e.ref !== undefined) counts.set(e.ref, index + 1);
-        out.push({ t, kind: 'audio', ref: e.ref, samples: e.pcm.length, offset, index });
+        out.push({ t, kind: 'audio', ref: e.ref, samples: e.pcm.length, offset, index, ...(e.range ? { range: [e.range[0], e.range[1]] as TextRange } : {}) });
       },
       speechRanges: (e) => out.push({ t, kind: 'speechRanges', ref: e.ref, ranges: e.ranges.map((r) => ({ index: r.index, range: [...r.range] as TextRange })) }),
     },
@@ -214,7 +214,8 @@ function estimateSoniox(events: Ev[], target: string, o: EstimateOptions): Ev[] 
 function hindsight(events: Ev[]): Ev[] {
   const final = new Map<string, TextRange>();
   for (const e of events) if (e.kind === 'speechRanges') for (const r of e.ranges) final.set(`${e.ref}:${r.index}`, r.range);
-  return events.map((e) => (e.kind === 'audio' && e.ref !== undefined && !e.range && final.has(`${e.ref}:${e.index}`) ? { ...e, range: final.get(`${e.ref}:${e.index}`) } : e));
+  // Every chunk the fill-in names, provisional range or not: the ceiling is the final range from the first sample.
+  return events.map((e) => (e.kind === 'audio' && e.ref !== undefined && final.has(`${e.ref}:${e.index}`) ? { ...e, range: final.get(`${e.ref}:${e.index}`) } : e));
 }
 
 // ---------- playback ----------
