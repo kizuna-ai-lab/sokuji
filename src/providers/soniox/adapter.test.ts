@@ -412,7 +412,8 @@ describe('the Soniox adapter: one leg', () => {
     tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
     tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(1200) }));
     const audio = of('audio');
-    expect(audio.map((e) => [e.payload.ref, e.payload.pcm.length, 'range' in e.payload])).toEqual([[2, 2400, false], [2, 1200, false]]);
+    // Provisional, before the fill-in: five kana at the prior's 0.16 s (3 840 samples) each.
+    expect(audio.map((e) => [e.payload.ref, e.payload.pcm.length, e.payload.range])).toEqual([[2, 2400, [0, 1]], [2, 1200, [1, 1]]]);
     expect(of('speechRanges')).toEqual([]);
 
     tts().receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));

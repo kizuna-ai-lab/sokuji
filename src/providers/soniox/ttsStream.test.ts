@@ -140,6 +140,27 @@ describe('SonioxTtsStream', () => {
     expect(Array.from(chunks[0])).toEqual([100, -100]);
   });
 
+  it('tells each chunk of audio the span of text sent to its stream so far', async () => {
+    const { t, ws } = await openTts();
+    const infos: Array<{ streamId: string; ref?: number; span?: [number, number] }> = [];
+    t.setHandlers({ onAudio: (_audio, info) => infos.push(info) });
+    t.sendText('Hello, ', 'en', { ref: 2, span: [0, 7] });
+    ws.message({ stream_id: 'utt-1-1', audio: pcmB64() });
+    t.sendText('world.', 'en', { ref: 2, span: [7, 13] });
+    ws.message({ stream_id: 'utt-1-1', audio: pcmB64() });
+    expect(infos.map((i) => i.span)).toEqual([[0, 7], [0, 13]]);
+  });
+
+  it('gives no span with the audio of text sent untagged', async () => {
+    const { t, ws } = await openTts();
+    const infos: object[] = [];
+    t.setHandlers({ onAudio: (_audio, info) => infos.push(info) });
+    t.sendText('Hi', 'en');
+    ws.message({ stream_id: 'utt-1-1', audio: pcmB64() });
+    expect(infos).toHaveLength(1);
+    expect('span' in infos[0]).toBe(false);
+  });
+
   it('reports wire errors via onError without throwing', async () => {
     const { t, ws } = await openTts();
     const errors: string[] = [];

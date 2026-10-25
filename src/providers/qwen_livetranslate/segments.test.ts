@@ -184,7 +184,7 @@ describe("Qwen LiveTranslate's segments (spec §6)", () => {
       expect(ranges(log)).toEqual([{ ref: 1, ranges: [{ index: 0, range: [0, 2] }, { index: 1, range: [2, 3] }] }]);
     });
 
-    it('a final text shorter than its deltas restates the ranges past its end within it, and leaves the phrase it no longer reaches unranged', () => {
+    it('a final text shorter than its deltas restates the ranges past its end within it', () => {
       const { s, log } = segments();
       s.text('t1', 'translation', 'Welcome to it. ');
       s.audio('t1', pcm(300));
@@ -195,7 +195,44 @@ describe("Qwen LiveTranslate's segments (spec §6)", () => {
       s.audioDone('t1');
       expect(ranges(log)).toEqual([
         { ref: 1, ranges: [{ index: 0, range: [0, 11] }, { index: 1, range: [11, 14] }] },
-        { ref: 1, ranges: [{ index: 0, range: [0, 8] }, { index: 1, range: [8, 8] }] },
+        // Index 2's provisional [14, 14] is pulled inside 'Welcome.' with the rest.
+        { ref: 1, ranges: [{ index: 0, range: [0, 8] }, { index: 1, range: [8, 8] }, { index: 2, range: [8, 8] }] },
+      ]);
+    });
+
+    it('places each chunk of a phrase as it arrives, the fill-in replacing it, the next phrase at the learned rate', () => {
+      const { s, log } = segments();
+      s.text('t1', 'translation', 'Welcome to it. ');
+      s.audio('t1', pcm(4_800));
+      s.audio('t1', pcm(4_800));
+      s.text('t1', 'translation', 'We hope ');
+      s.audio('t1', pcm(4_800));
+      const audio = log.flatMap((e) => (e.kind === 'audio' ? [e.payload.range] : []));
+      expect(audio).toEqual([[0, 3], [3, 7], [14, 19]]);
+      expect(ranges(log)).toEqual([{ ref: 1, ranges: [{ index: 0, range: [0, 7] }, { index: 1, range: [7, 14] }] }]);
+    });
+
+    it('places a chunk that comes after a shorter final text inside that text', () => {
+      const { s, log } = segments();
+      s.text('t1', 'translation', 'Welcome to it. ');
+      s.audio('t1', pcm(4_800));
+      s.audio('t1', pcm(4_800));
+      s.done('t1', 'translation', 'Wel');
+      s.audio('t1', pcm(4_800));
+      const audio = log.flatMap((e) => (e.kind === 'audio' ? [e.payload.range] : []));
+      expect(audio).toEqual([[0, 3], [3, 7], [3, 3]]);
+    });
+
+    it('restates provisional ranges a shorter final text no longer holds', () => {
+      const { s, log } = segments();
+      s.text('t1', 'translation', 'Welcome to it. ');
+      s.audio('t1', pcm(4_800));
+      s.audio('t1', pcm(4_800));
+      s.done('t1', 'translation', 'Wel');
+      s.audioDone('t1');
+      expect(ranges(log)).toEqual([
+        { ref: 1, ranges: [{ index: 1, range: [3, 3] }] },
+        { ref: 1, ranges: [{ index: 0, range: [0, 2] }, { index: 1, range: [2, 3] }] },
       ]);
     });
 

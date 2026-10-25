@@ -81,10 +81,12 @@ export interface TextTag {
   span: TextRange;
 }
 
-/** Which stream — and, if the caller tagged its text, which ref — a chunk of audio belongs to. */
+/** Which stream — and, if the caller tagged its text, which ref and which span of it so far — a chunk of audio belongs to. */
 export interface SonioxTtsAudioInfo {
   streamId: string;
   ref?: number;
+  /** The union of the spans of the tagged text sent to this stream so far; absent when its text was never tagged. */
+  span?: TextRange;
 }
 
 /** How a TTS segment ended: its ref and the union of its chunks' spans
@@ -261,7 +263,8 @@ export class SonioxTtsStream {
           }
         } else if (data.audio && isLive && !wasDropped) {
           if (id === this.activeStreamId) this.activeHasAudio = true;
-          this.handlers.onAudio?.(this.base64ToInt16(data.audio), { streamId: id!, ref: this.segments.get(id!)?.ref });
+          const record = this.segments.get(id!);
+          this.handlers.onAudio?.(this.base64ToInt16(data.audio), { streamId: id!, ref: record?.ref, ...(record?.span ? { span: [record.span[0], record.span[1]] as TextRange } : {}) });
         }
         // terminated must always be processed, even when the same message also
         // carried an error — otherwise a combined error+terminated frame would

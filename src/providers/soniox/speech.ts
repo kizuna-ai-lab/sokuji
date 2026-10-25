@@ -1,11 +1,15 @@
 /**
  * One leg's spoken translation over Soniox's TTS socket (survey §1.7–1.8,
  * §2.9; rulings 2 and 3). Final translation chunks arrive tagged with
- * their ref and span; audio streams back as it arrives, one rangeless
- * `audio` per chunk, so the first audio comes as early as the old
- * client's. When a TTS segment ends cleanly the chunks' ranges are filled
- * in (`speechRanges`): the segment's span divided by their sample counts.
- * A killed segment gets none: replay only. Failures are the old client's
+ * their ref and span; audio streams back as it arrives, one `audio` per
+ * chunk, so the first audio comes as early as the old client's. Each chunk
+ * carries a provisional range: the span sent to its segment so far,
+ * reached at the leg's learned speech rate (karaoke provisional ranges
+ * design). When a TTS segment ends the chunks' ranges are filled in
+ * (`speechRanges`): the segment's span divided by their sample counts. A
+ * clean end also teaches the rate; one that ended uncleanly (a kill, a lost
+ * socket, speech switched off) is filled in over the chunks that did
+ * arrive, so its row stops being lit, and teaches nothing. Failures are the old client's
  * episodes (`SonioxClient.ts:1436-1492`): a lost segment once per episode,
  * "speech stopped" even after one; an idle drop is silent, and the next
  * text reconnects, flushing what waited in order (`ensureTts`, `:1059-1094`).
@@ -13,7 +17,7 @@
 import { SAMPLE_RATE, type AdapterEvents, type Ref, type TextRange } from '../../lib/contract/adapter';
 import type { Clock } from '../../lib/contract/clock';
 import { framePayload } from '../../lib/contract/framePayload';
-import { tileSpan } from '../../lib/contract/ranges';
+import { SpeechPace, tileSpan } from '../../lib/contract/ranges';
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import type { SonioxRegion } from '../../lib/soniox/regions';
 import { SONIOX_TTS_MODEL } from '../../lib/soniox/ttsCatalog';
@@ -49,6 +53,13 @@ export class LegSpeech {
   /** Per live stream of the current socket: its chunks' entry indices and sample counts. A new socket restarts the ids. */
   private segments = new Map<string, Array<{ index: number; samples: number }>>();
   /**
+   * Per live stream of the current socket: its samples so far, where its
+   * provisional ranges reached in its span, and the text they were placed
+   * in — what an unclean close-out tiles over once speech switched off has
+   * let the held chunks go.
+   */
+  private sweeps = new Map<string, { cum: number; reached: number; text: string }>();
+  /**
    * Per ref, the chunks fed whose TTS segment has not ended yet: what a
    * segment's span indexes when its ranges are filled in (`tileSpan`'s
    * surrogate snap). A chunk is let go once its segment's ranges are filled
@@ -67,7 +78,12 @@ export class LegSpeech {
   private reported: SonioxTtsErrorScope | null = null;
   private readable = true;
 
-  constructor(private readonly o: LegSpeechOptions) {}
+  /** The leg's speech rate, learned from its clean fill-ins. */
+  private readonly pace: SpeechPace;
+
+  constructor(private readonly o: LegSpeechOptions) {
+    this.pace = new SpeechPace(o.speed);
+  }
 
   /** Opens the socket at start; never rejects: a failure is said only in the Logs, and the first text reconnects (ruling 3, choice 6). */
   open(): Promise<void> {
@@ -120,7 +136,8 @@ export class LegSpeech {
       return;
     }
     this.pending = [];
-    // Every chunk held belongs to a dropped segment or to text that waited: none will be filled in.
+    // Every chunk held belongs to the live segment, dropped now, or to text that waited and never will be
+    // spoken. The dropped segment is still closed out, over the text its chunks were placed in (its sweep).
     this.texts = new Map();
     this.stream?.drop();
   }
@@ -139,6 +156,7 @@ export class LegSpeech {
     this.closed = true;
     this.pending = [];
     this.segments.clear();
+    this.sweeps.clear();
     this.texts.clear();
     // A close while CONNECTING rejects its connect(); ensure()'s catch sees `closed` and says nothing.
     this.opening?.close();
@@ -151,7 +169,7 @@ export class LegSpeech {
       { clock: this.o.clock, openSocket: this.o.openSocket },
     );
     stream.setHandlers({
-      onAudio: (pcm, info) => { if (stream === this.stream) this.onAudio(pcm, info.streamId, info.ref); },
+      onAudio: (pcm, info) => { if (stream === this.stream) this.onAudio(pcm, info.streamId, info.ref, info.span); },
       onSegmentEnd: (end) => { if (stream === this.stream) this.onSegmentEnd(end); },
       onError: (code, message, hadActiveStream, scope) => { if (stream === this.stream) this.failure(code, message, hadActiveStream, scope); },
       onUnreadable: (error) => { if (stream === this.stream) this.unreadable(error); },
@@ -170,6 +188,7 @@ export class LegSpeech {
     this.stream?.close();
     this.stream = null;
     this.segments = new Map();
+    this.sweeps = new Map();
     this.holdOnlyPending();
     const stream = this.newStream();
     this.opening = stream;
@@ -214,7 +233,7 @@ export class LegSpeech {
     if (retry) void this.ensure();
   }
 
-  private onAudio(pcm: Int16Array, streamId: string, ref: Ref | undefined): void {
+  private onAudio(pcm: Int16Array, streamId: string, ref: Ref | undefined, span: TextRange | undefined): void {
     if (this.closed || ref === undefined || pcm.length === 0) return;
     const index = this.counts.get(ref) ?? 0;
     this.counts.set(ref, index + 1);
@@ -225,18 +244,40 @@ export class LegSpeech {
     this.reported = null;
     this.readable = true;
     this.frame('in', 'tts.audio', { bytes: pcm.byteLength });
-    this.o.events.audio({ ref, pcm });
+    const range = span ? this.provisional(streamId, ref, span, pcm.length) : undefined;
+    this.o.events.audio(range ? { ref, pcm, range } : { ref, pcm });
+  }
+
+  /** Where this chunk reaches in the span sent to its segment so far, at the leg's rate; none while the span has no letters. */
+  private provisional(streamId: string, ref: Ref, span: TextRange, samples: number): TextRange | undefined {
+    const sweep = this.sweeps.get(streamId) ?? { cum: 0, reached: 0, text: '' };
+    this.sweeps.set(streamId, sweep);
+    sweep.cum += samples;
+    sweep.text = this.textOf(ref, span);
+    const end = this.pace.reach(sweep.text, sweep.cum, sweep.reached);
+    if (end === null) return undefined;
+    const range: TextRange = [span[0] + sweep.reached, span[0] + end];
+    sweep.reached = end;
+    return range;
   }
 
   private onSegmentEnd(end: SonioxTtsSegmentEnd): void {
     const entries = this.segments.get(end.streamId);
+    const sweep = this.sweeps.get(end.streamId);
     this.segments.delete(end.streamId);
-    // Filled in or lost, the segment's text is done with either way.
-    const text = end.ref !== undefined && end.span ? this.release(end.ref, end.span) : '';
-    if (this.closed || !end.clean || !end.span || end.ref === undefined || !entries || entries.length === 0) return;
+    this.sweeps.delete(end.streamId);
+    // Filled in or lost, the segment's text is done with either way. Speech switched off let it go
+    // already: the text its chunks were placed in stands in, so a boundary still snaps past a surrogate pair.
+    const held = end.ref !== undefined && end.span ? this.release(end.ref, end.span) : '';
+    const text = held.length > 0 ? held : sweep?.text ?? '';
+    if (this.closed || !end.span || end.ref === undefined || !entries || entries.length === 0) return;
+    // Clean or not, the chunks that arrived take the span: an unclean end (a kill, a lost socket,
+    // speech switched off) would otherwise leave its row lit part way after the voice stopped.
     const [a, b] = end.span;
     const ranges = tileSpan([0, b - a], entries.map((e) => e.samples), text).map(([s, e]): TextRange => [a + s, a + e]);
     this.o.events.speechRanges({ ref: end.ref, ranges: entries.map((e, k) => ({ index: e.index, range: ranges[k] })) });
+    // Only a whole segment says how long its text takes to speak.
+    if (end.clean) this.pace.learn(text, entries.reduce((n, e) => n + e.samples, 0));
   }
 
   private hold({ ref, span }: TextTag, text: string): void {
@@ -245,11 +286,16 @@ export class LegSpeech {
     this.texts.set(ref, chunks);
   }
 
+  /** The text of `ref`'s held chunks inside `span`, in order. */
+  private textOf(ref: Ref, [a, b]: TextRange): string {
+    return (this.texts.get(ref) ?? []).filter((c) => c.span[0] >= a && c.span[1] <= b).map((c) => c.text).join('');
+  }
+
   /** The text of `ref`'s segment spanning `span`, and every chunk of `ref` up to its end let go: those segments are over. */
-  private release(ref: Ref, [a, b]: TextRange): string {
+  private release(ref: Ref, span: TextRange): string {
     const chunks = this.texts.get(ref) ?? [];
-    const text = chunks.filter((c) => c.span[0] >= a && c.span[1] <= b).map((c) => c.text).join('');
-    const left = chunks.filter((c) => c.span[1] > b);
+    const text = this.textOf(ref, span);
+    const left = chunks.filter((c) => c.span[1] > span[1]);
     if (left.length > 0) this.texts.set(ref, left);
     else this.texts.delete(ref);
     return text;

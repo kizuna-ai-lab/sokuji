@@ -34,11 +34,11 @@ async function openTts() {
 const receive = (sockets: FakeSockets, obj: unknown) => sockets.last().receive(JSON.stringify(obj));
 
 describe('SonioxTtsStream — span tags and segment ends', () => {
-  it("hands each chunk's stream and ref to onAudio", async () => {
+  it("hands each chunk's stream, ref and span so far to onAudio", async () => {
     const { t, sockets, audio } = await openTts();
     t.sendText('Hello. ', 'en', { ref: 2, span: [0, 7] });
     receive(sockets, { stream_id: 'utt-1-1', audio: pcm(4) });
-    expect(audio).toEqual([[4, { streamId: 'utt-1-1', ref: 2 }]]);
+    expect(audio).toEqual([[4, { streamId: 'utt-1-1', ref: 2, span: [0, 7] }]]);
   });
 
   it("ends a segment cleanly at its terminated, with the union of its chunks' spans", async () => {

@@ -1,0 +1,180 @@
+{"t":0,"kind":"run","d":{"name":"zhja-en","region":"jp","context":{"direction":{"source":"zh","target":"en"},"speech":true,"turns":"auto"},"config":{"stt":{"model":"stt-rt-v5","endpointSensitivity":0,"endpointLatencyAdjustmentLevel":0,"endpointMaxDelayMs":2000},"tts":{"voice":"Adrian","speed":1},"sharedBoth":false,"diarize":false}}}
+{"t":14.8,"kind":"socket","d":{"host":"stt-rt.jp.soniox.com","tts":false}}
+{"t":15.7,"kind":"socket","d":{"host":"tts-rt.jp.soniox.com","tts":true}}
+{"t":66.9,"kind":"frame","d":{"dir":"out","type":"session.opened","payload":{"region":"jp","translation":{"type":"one_way","target_language":"en"},"speaking":["speaker"]}}}
+{"t":67,"kind":"started","d":{"transport":"websocket"}}
+{"t":1393.6,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"欢","translation":""}}}
+{"t":1393.9,"kind":"segmentOpened","d":{"ref":1,"side":"source","origin":"u1"}}
+{"t":1393.9,"kind":"segmentText","d":{"ref":1,"text":"欢","timing":{"startMs":780,"endMs":840},"language":"zh"}}
+{"t":1698.4,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"欢迎","translation":""}}}
+{"t":1698.4,"kind":"segmentText","d":{"ref":1,"text":"欢迎","timing":{"startMs":780,"endMs":1020},"language":"zh"}}
+{"t":1793.7,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"欢迎使用","translation":""}}}
+{"t":1793.9,"kind":"segmentText","d":{"ref":1,"text":"欢迎使用","timing":{"startMs":780,"endMs":1140},"language":"zh"}}
+{"t":1995.3,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"欢迎使用实","translation":""}}}
+{"t":1995.4,"kind":"segmentText","d":{"ref":1,"text":"欢迎使用实","timing":{"startMs":780,"endMs":1440},"language":"zh"}}
+{"t":2297.1,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"欢迎使用实时","translation":""}}}
+{"t":2297.1,"kind":"segmentText","d":{"ref":1,"text":"欢迎使用实时","timing":{"startMs":780,"endMs":1620},"language":"zh"}}
+{"t":2397.6,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"欢迎使用实时翻","translation":""}}}
+{"t":2397.6,"kind":"segmentText","d":{"ref":1,"text":"欢迎使用实时翻","timing":{"startMs":780,"endMs":1740},"language":"zh"}}
+{"t":2598.9,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"欢迎使用实时翻译","translation":""}}}
+{"t":2599,"kind":"segmentText","d":{"ref":1,"text":"欢迎使用实时翻译","timing":{"startMs":780,"endMs":1980},"language":"zh"}}
+{"t":2898,"kind":"frame","d":{"dir":"in","type":"stt.transcript","payload":{"text":"欢迎使用实时翻译。","endMs":2280}}}
+{"t":2898.1,"kind":"segmentText","d":{"ref":1,"text":"欢迎使用实时翻译。","timing":{"startMs":780,"endMs":2280},"language":"zh"}}
+{"t":2935.7,"kind":"frame","d":{"dir":"in","type":"stt.translation","payload":{"text":"Welcome to real-time translation."}}}
+{"t":2935.8,"kind":"segmentOpened","d":{"ref":2,"side":"translation","origin":"u1"}}
+{"t":2936.5,"kind":"tts.out","d":{"stream":"utt-1-1","config":{"voice":"Adrian","language":"en"}}}
+{"t":2936.7,"kind":"tts.out","d":{"stream":"utt-1-1","text":"Welcome to real-time translation.","end":false}}
+{"t":2937,"kind":"tts.out","d":{"stream":"utt-1-1","text":"","end":true}}
+{"t":2937,"kind":"segmentText","d":{"ref":2,"text":"Welcome to real-time translation.","language":"en"}}
+{"t":3089.4,"kind":"tts.in","d":{"stream":"utt-1-1","samples":8192}}
+{"t":3090.4,"kind":"audio","d":{"ref":2,"samples":8192}}
+{"t":3099.4,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"希","translation":""}}}
+{"t":3099.4,"kind":"segmentText","d":{"ref":1,"text":"欢迎使用实时翻译。希","timing":{"startMs":780,"endMs":2460},"language":"zh"}}
+{"t":3143.8,"kind":"tts.in","d":{"stream":"utt-1-1","samples":6144}}
+{"t":3143.9,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":3202.9,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"希望","translation":""}}}
+{"t":3203,"kind":"segmentText","d":{"ref":1,"text":"欢迎使用实时翻译。希望","timing":{"startMs":780,"endMs":2580},"language":"zh"}}
+{"t":3290.9,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"希望这","translation":""}}}
+{"t":3291,"kind":"segmentText","d":{"ref":1,"text":"欢迎使用实时翻译。希望这","timing":{"startMs":780,"endMs":2760},"language":"zh"}}
+{"t":3328.8,"kind":"tts.in","d":{"stream":"utt-1-1","samples":6144}}
+{"t":3328.9,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":3497.2,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"希望这个","translation":""}}}
+{"t":3497.2,"kind":"segmentText","d":{"ref":1,"text":"欢迎使用实时翻译。希望这个","timing":{"startMs":780,"endMs":2880},"language":"zh"}}
+{"t":3614.3,"kind":"tts.in","d":{"stream":"utt-1-1","samples":8192}}
+{"t":3614.4,"kind":"audio","d":{"ref":2,"samples":8192}}
+{"t":3695.8,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"希望这个声","translation":""}}}
+{"t":3695.8,"kind":"segmentText","d":{"ref":1,"text":"欢迎使用实时翻译。希望这个声","timing":{"startMs":780,"endMs":3060},"language":"zh"}}
+{"t":3790.5,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"希望这个声音","translation":""}}}
+{"t":3790.5,"kind":"segmentText","d":{"ref":1,"text":"欢迎使用实时翻译。希望这个声音","timing":{"startMs":780,"endMs":3180},"language":"zh"}}
+{"t":3899.2,"kind":"tts.in","d":{"stream":"utt-1-1","samples":8192}}
+{"t":3899.3,"kind":"audio","d":{"ref":2,"samples":8192}}
+{"t":3988.6,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"希望这个声音能","translation":""}}}
+{"t":3988.6,"kind":"segmentText","d":{"ref":1,"text":"欢迎使用实时翻译。希望这个声音能","timing":{"startMs":780,"endMs":3300},"language":"zh"}}
+{"t":4089.3,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"希望这个声音能让","translation":""}}}
+{"t":4089.3,"kind":"segmentText","d":{"ref":1,"text":"欢迎使用实时翻译。希望这个声音能让","timing":{"startMs":780,"endMs":3480},"language":"zh"}}
+{"t":4111.1,"kind":"tts.in","d":{"stream":"utt-1-1","samples":6144}}
+{"t":4111.1,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":4138.4,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"希望这个声音能让交","translation":""}}}
+{"t":4138.5,"kind":"segmentText","d":{"ref":1,"text":"欢迎使用实时翻译。希望这个声音能让交","timing":{"startMs":780,"endMs":3600},"language":"zh"}}
+{"t":4353.8,"kind":"tts.in","d":{"stream":"utt-1-1","samples":6144}}
+{"t":4353.9,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":4386.4,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"希望这个声音能让交流","translation":""}}}
+{"t":4386.4,"kind":"segmentText","d":{"ref":1,"text":"欢迎使用实时翻译。希望这个声音能让交流","timing":{"startMs":780,"endMs":3840},"language":"zh"}}
+{"t":4537.8,"kind":"tts.in","d":{"stream":"utt-1-1","samples":6144}}
+{"t":4537.9,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":4593.8,"kind":"tts.in","d":{"stream":"utt-1-1","samples":6144,"audioEnd":true}}
+{"t":4593.9,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":4607.1,"kind":"tts.in","d":{"stream":"utt-1-1","samples":0,"terminated":true}}
+{"t":4607.7,"kind":"speechRanges","d":{"ref":2,"ranges":[{"index":0,"range":[0,4]},{"index":1,"range":[4,8]},{"index":2,"range":[8,11]},{"index":3,"range":[11,15]},{"index":4,"range":[15,20]},{"index":5,"range":[20,23]},{"index":6,"range":[23,26]},{"index":7,"range":[26,30]},{"index":8,"range":[30,33]}]}}
+{"t":4694,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"希望这个声音能让交流变","translation":""}}}
+{"t":4694.1,"kind":"segmentText","d":{"ref":1,"text":"欢迎使用实时翻译。希望这个声音能让交流变","timing":{"startMs":780,"endMs":4020},"language":"zh"}}
+{"t":4746.9,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"希望这个声音能让交流变得","translation":""}}}
+{"t":4746.9,"kind":"segmentText","d":{"ref":1,"text":"欢迎使用实时翻译。希望这个声音能让交流变得","timing":{"startMs":780,"endMs":4140},"language":"zh"}}
+{"t":4899.7,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"希望这个声音能让交流变得轻","translation":""}}}
+{"t":4899.7,"kind":"segmentText","d":{"ref":1,"text":"欢迎使用实时翻译。希望这个声音能让交流变得轻","timing":{"startMs":780,"endMs":4260},"language":"zh"}}
+{"t":4985.9,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"希望这个声音能让交流变得轻松","translation":""}}}
+{"t":4985.9,"kind":"segmentText","d":{"ref":1,"text":"欢迎使用实时翻译。希望这个声音能让交流变得轻松","timing":{"startMs":780,"endMs":4380},"language":"zh"}}
+{"t":5303.9,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"希望这个声音能让交流变得轻松自然","translation":""}}}
+{"t":5303.9,"kind":"segmentText","d":{"ref":1,"text":"欢迎使用实时翻译。希望这个声音能让交流变得轻松自然","timing":{"startMs":780,"endMs":4680},"language":"zh"}}
+{"t":5489.9,"kind":"frame","d":{"dir":"in","type":"stt.transcript","payload":{"text":"希望这个声音能让交流变得轻松自然。","endMs":4920}}}
+{"t":5489.9,"kind":"segmentText","d":{"ref":1,"text":"欢迎使用实时翻译。希望这个声音能让交流变得轻松自然。","timing":{"startMs":780,"endMs":4920},"language":"zh"}}
+{"t":5562.8,"kind":"frame","d":{"dir":"in","type":"stt.translation","payload":{"text":" I hope this audio makes the conversation easy and natural."}}}
+{"t":5562.9,"kind":"tts.out","d":{"stream":"utt-1-2","config":{"voice":"Adrian","language":"en"}}}
+{"t":5563,"kind":"tts.out","d":{"stream":"utt-1-2","text":" I hope this audio makes the conversation easy and natural.","end":false}}
+{"t":5563.1,"kind":"tts.out","d":{"stream":"utt-1-2","text":"","end":true}}
+{"t":5563.1,"kind":"segmentText","d":{"ref":2,"text":"Welcome to real-time translation. I hope this audio makes the conversation easy and natural.","language":"en"}}
+{"t":5569.6,"kind":"frame","d":{"dir":"in","type":"stt.endpoint"}}
+{"t":5569.7,"kind":"segmentClosed","d":{"ref":1,"origin":"u1"}}
+{"t":5569.7,"kind":"segmentClosed","d":{"ref":2,"origin":"u1"}}
+{"t":5569.8,"kind":"frame","d":{"dir":"out","type":"tts.speak","payload":{"text":"Welcome to real-time translation. I hope this audio makes the conversation easy and natural."}}}
+{"t":5799,"kind":"tts.in","d":{"stream":"utt-1-2","samples":8192}}
+{"t":5799.1,"kind":"audio","d":{"ref":2,"samples":8192}}
+{"t":5859,"kind":"tts.in","d":{"stream":"utt-1-2","samples":6144}}
+{"t":5859.1,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":6025.3,"kind":"tts.in","d":{"stream":"utt-1-2","samples":6144}}
+{"t":6025.4,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":6235.9,"kind":"tts.in","d":{"stream":"utt-1-2","samples":6144}}
+{"t":6236,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":6497.7,"kind":"tts.in","d":{"stream":"utt-1-2","samples":6144}}
+{"t":6497.8,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":6711.1,"kind":"tts.in","d":{"stream":"utt-1-2","samples":6144}}
+{"t":6711.2,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":6924.3,"kind":"tts.in","d":{"stream":"utt-1-2","samples":6144}}
+{"t":6924.4,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":7100.5,"kind":"tts.in","d":{"stream":"utt-1-2","samples":6144}}
+{"t":7100.6,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":7342.7,"kind":"tts.in","d":{"stream":"utt-1-2","samples":6144}}
+{"t":7342.7,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":7556.1,"kind":"tts.in","d":{"stream":"utt-1-2","samples":6144}}
+{"t":7556.2,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":7769.4,"kind":"tts.in","d":{"stream":"utt-1-2","samples":6144}}
+{"t":7769.6,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":7982.5,"kind":"tts.in","d":{"stream":"utt-1-2","samples":6144}}
+{"t":7982.6,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":7994.8,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" Li","translation":""}}}
+{"t":7994.8,"kind":"segmentOpened","d":{"ref":3,"side":"source","origin":"u2"}}
+{"t":7994.9,"kind":"segmentText","d":{"ref":3,"text":" Li","timing":{"startMs":7320,"endMs":7380},"language":"en"}}
+{"t":8196.1,"kind":"tts.in","d":{"stream":"utt-1-2","samples":6144}}
+{"t":8196.7,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":8205.6,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" Lior","translation":""}}}
+{"t":8205.7,"kind":"segmentText","d":{"ref":3,"text":" Lior","timing":{"startMs":7320,"endMs":7560},"language":"en"}}
+{"t":8248.8,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" Lior L.","translation":""}}}
+{"t":8248.9,"kind":"segmentText","d":{"ref":3,"text":" Lior L.","timing":{"startMs":7320,"endMs":7680},"language":"en"}}
+{"t":8409.8,"kind":"tts.in","d":{"stream":"utt-1-2","samples":6144}}
+{"t":8409.9,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":8501.8,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" Lior El-T","translation":""}}}
+{"t":8501.8,"kind":"segmentText","d":{"ref":3,"text":" Lior El-T","timing":{"startMs":7320,"endMs":7920},"language":"en"}}
+{"t":8597.3,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" Lior L. Tim","translation":""}}}
+{"t":8597.3,"kind":"segmentText","d":{"ref":3,"text":" Lior L. Tim","timing":{"startMs":7320,"endMs":7920},"language":"en"}}
+{"t":8622.7,"kind":"tts.in","d":{"stream":"utt-1-2","samples":6144}}
+{"t":8622.8,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":8693.8,"kind":"tts.in","d":{"stream":"utt-1-2","samples":6144,"audioEnd":true}}
+{"t":8693.9,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":8704.9,"kind":"tts.in","d":{"stream":"utt-1-2","samples":0,"terminated":true}}
+{"t":8705.1,"kind":"speechRanges","d":{"ref":2,"ranges":[{"index":9,"range":[33,38]},{"index":10,"range":[38,41]},{"index":11,"range":[41,45]},{"index":12,"range":[45,49]},{"index":13,"range":[49,52]},{"index":14,"range":[52,56]},{"index":15,"range":[56,59]},{"index":16,"range":[59,63]},{"index":17,"range":[63,67]},{"index":18,"range":[67,70]},{"index":19,"range":[70,74]},{"index":20,"range":[74,78]},{"index":21,"range":[78,81]},{"index":22,"range":[81,85]},{"index":23,"range":[85,88]},{"index":24,"range":[88,92]}]}}
+{"t":8798,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" Lior El-Timum","translation":""}}}
+{"t":8798.1,"kind":"segmentText","d":{"ref":3,"text":" Lior El-Timum","timing":{"startMs":7320,"endMs":8160},"language":"en"}}
+{"t":9002.3,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" Lior El-Timum V","translation":""}}}
+{"t":9002.4,"kind":"segmentText","d":{"ref":3,"text":" Lior El-Timum V","timing":{"startMs":7320,"endMs":8340},"language":"en"}}
+{"t":9087.9,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" Lior El-Timum Vany","translation":""}}}
+{"t":9087.9,"kind":"segmentText","d":{"ref":3,"text":" Lior El-Timum Vany","timing":{"startMs":7320,"endMs":8520},"language":"en"}}
+{"t":9395.2,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" Lior El-Timum Vanyak","translation":""}}}
+{"t":9395.3,"kind":"segmentText","d":{"ref":3,"text":" Lior El-Timum Vanyak","timing":{"startMs":7320,"endMs":8700},"language":"en"}}
+{"t":9449.4,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" Lior El-Timum Vanyakiya","translation":""}}}
+{"t":9449.5,"kind":"segmentText","d":{"ref":3,"text":" Lior El-Timum Vanyakiya","timing":{"startMs":7320,"endMs":8880},"language":"en"}}
+{"t":9689.4,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" Lior El-Timum Vanyakiya Y","translation":""}}}
+{"t":9689.4,"kind":"segmentText","d":{"ref":3,"text":" Lior El-Timum Vanyakiya Y","timing":{"startMs":7320,"endMs":9060},"language":"en"}}
+{"t":9886.9,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" Lior El-Timum Vanyakiya Yok","translation":""}}}
+{"t":9886.9,"kind":"segmentText","d":{"ref":3,"text":" Lior El-Timum Vanyakiya Yok","timing":{"startMs":7320,"endMs":9360},"language":"en"}}
+{"t":10208.4,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" Lior El-Timum Vanyakiya Yokos","translation":""}}}
+{"t":10208.5,"kind":"segmentText","d":{"ref":3,"text":" Lior El-Timum Vanyakiya Yokos","timing":{"startMs":7320,"endMs":9540},"language":"en"}}
+{"t":10289.6,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" Lior El-Timum Vanyakiya Yokoso,","translation":""}}}
+{"t":10289.6,"kind":"segmentText","d":{"ref":3,"text":" Lior El-Timum Vanyakiya Yokoso,","timing":{"startMs":7320,"endMs":9660},"language":"en"}}
+{"t":10886.3,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" Lior El-Timum Vanyakiya Yokoso, season","translation":""}}}
+{"t":10886.4,"kind":"segmentText","d":{"ref":3,"text":" Lior El-Timum Vanyakiya Yokoso, season","timing":{"startMs":7320,"endMs":10260},"language":"en"}}
+{"t":11394.1,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" Lior El-Timum Vanyakiya Yokoso, seasoned","translation":""}}}
+{"t":11394.2,"kind":"segmentText","d":{"ref":3,"text":" Lior El-Timum Vanyakiya Yokoso, seasoned","timing":{"startMs":7320,"endMs":10680},"language":"en"}}
+{"t":11497.9,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" Lior El-Timum Vanyakiya Yokoso, season na ka","translation":""}}}
+{"t":11498,"kind":"segmentText","d":{"ref":3,"text":" Lior El-Timum Vanyakiya Yokoso, season na ka","timing":{"startMs":7320,"endMs":10860},"language":"en"}}
+{"t":11744.2,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" Lior El-Timum Vanyakiya Yokoso, seasoned Kaiwa","translation":""}}}
+{"t":11744.2,"kind":"segmentText","d":{"ref":3,"text":" Lior El-Timum Vanyakiya Yokoso, seasoned Kaiwa","timing":{"startMs":7320,"endMs":11100},"language":"en"}}
+{"t":11990.9,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" Lior El-Timum Vanyakiya Yokoso, season na ka wa o","translation":""}}}
+{"t":11990.9,"kind":"segmentText","d":{"ref":3,"text":" Lior El-Timum Vanyakiya Yokoso, season na ka wa o","timing":{"startMs":7320,"endMs":11340},"language":"en"}}
+{"t":12290.8,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" Lior El-Timum Vanyakiya Yokoso, season na kay wa o o","translation":""}}}
+{"t":12290.8,"kind":"segmentText","d":{"ref":3,"text":" Lior El-Timum Vanyakiya Yokoso, season na kay wa o o","timing":{"startMs":7320,"endMs":11580},"language":"en"}}
+{"t":12335.7,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" Lior El-Timum Vanyakiya Yokoso, season na kay wa o o t","translation":""}}}
+{"t":12335.7,"kind":"segmentText","d":{"ref":3,"text":" Lior El-Timum Vanyakiya Yokoso, season na kay wa o o t","timing":{"startMs":7320,"endMs":11760},"language":"en"}}
+{"t":12388.7,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" Lior El-Timum Vanyakiya Yokoso, season na kay wa o o tets","translation":""}}}
+{"t":12388.7,"kind":"segmentText","d":{"ref":3,"text":" Lior El-Timum Vanyakiya Yokoso, season na kay wa o o tets","timing":{"startMs":7320,"endMs":11880},"language":"en"}}
+{"t":12688.6,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" Lior El-Timum Vanyakiya Yokoso, season na kay wa o o tetsudai","translation":""}}}
+{"t":12688.7,"kind":"segmentText","d":{"ref":3,"text":" Lior El-Timum Vanyakiya Yokoso, season na kay wa o o tetsudai","timing":{"startMs":7320,"endMs":12120},"language":"en"}}
+{"t":12899,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" Lior El-Timum Vanyakiya Yokoso, season na kay wa o o tetsudai sh","translation":""}}}
+{"t":12899.1,"kind":"segmentText","d":{"ref":3,"text":" Lior El-Timum Vanyakiya Yokoso, season na kay wa o o tetsudai sh","timing":{"startMs":7320,"endMs":12300},"language":"en"}}
+{"t":13012.3,"kind":"frame","d":{"dir":"in","type":"stt.transcript","payload":{"text":" Lior El-Timum Vanyakiya Yokoso, season na kay wa o o tetsudai shimasu.","endMs":12480}}}
+{"t":13012.3,"kind":"frame","d":{"dir":"in","type":"stt.endpoint"}}
+{"t":13012.4,"kind":"segmentText","d":{"ref":3,"text":" Lior El-Timum Vanyakiya Yokoso, season na kay wa o o tetsudai shimasu.","timing":{"startMs":7320,"endMs":12480},"language":"en"}}
+{"t":13012.4,"kind":"segmentClosed","d":{"ref":3,"origin":"u2"}}
+{"t":14370.5,"kind":"input.end","d":{"seconds":14.3}}
+{"t":20071.4,"kind":"tts.out","d":{"keepalive":true}}
+{"t":22440.7,"kind":"frame","d":{"dir":"out","type":"stt.end"}}
+{"t":22441.1,"kind":"stopped","d":{}}

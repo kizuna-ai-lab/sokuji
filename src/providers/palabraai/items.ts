@@ -11,12 +11,14 @@
  * closes at its final text. A sentence's speech arrives as a burst after
  * its text, ending at `last_chunk`: once both are in, the text is tiled
  * over the chunks by their sample counts (`speechRanges`, Soniox's fill-in),
- * so karaoke lights a sentence once its burst is whole. Pure and
+ * Before that each chunk carries a provisional range, the part's text so far
+ * reached at the speech rate the fill-ins measured (karaoke provisional
+ * ranges design), so karaoke lights from the first chunk. Pure and
  * timer-free: the adapter hands it what the server said, in order, and
  * frames it itself.
  */
-import type { AdapterEvents, Ref } from '../../lib/contract/adapter';
-import { tileSpan } from '../../lib/contract/ranges';
+import type { AdapterEvents, Ref, TextRange } from '../../lib/contract/adapter';
+import { SpeechPace, tileSpan } from '../../lib/contract/ranges';
 import type { OutputAudio, Transcription } from './wire';
 
 interface Source { ref: Ref; text: string; closed: boolean }
@@ -32,6 +34,10 @@ interface Translation {
   spoken: boolean;
   /** Its ranges are filled in: a chunk after that plays with none. */
   ranged: boolean;
+  /** Its samples so far, where its provisional ranges reached in its text, and those ranges by entry: restated when its text shrinks. */
+  cum: number;
+  reached: number;
+  provisional: Map<number, TextRange>;
 }
 
 /** The first part when a message names none: the probe's every sentence was part 0. */
@@ -75,6 +81,8 @@ export class PalabraItems {
   private readonly said = new Map<string, string>();
   private readonly translations = new Map<string, Translation>();
   private stopped = false;
+  /** The leg's speech rate, learned from its fill-ins. */
+  private readonly pace = new SpeechPace();
 
   constructor(private readonly events: AdapterEvents) {}
 
@@ -155,6 +163,7 @@ export class PalabraItems {
     // text still reaches the row rather than staying blank.
     translation.text = t.text;
     this.events.segmentText({ ref: translation.ref, text: t.text });
+    this.restate(translation);
     translation.closed = true;
     this.events.segmentClosed({ ref: translation.ref, origin: t.id });
     this.fill(translation);
@@ -175,7 +184,8 @@ export class PalabraItems {
     }
     const translation = this.translation(a.id, a.part ?? FIRST_PART);
     if (pcm.length > 0) {
-      this.events.audio({ pcm, ref: translation.ref });
+      const range = translation.ranged ? undefined : this.provisional(translation, pcm.length);
+      this.events.audio(range ? { pcm, ref: translation.ref, range } : { pcm, ref: translation.ref });
       if (!translation.ranged) translation.samples.push(pcm.length);
     }
     if (!a.last) return;
@@ -209,7 +219,7 @@ export class PalabraItems {
     const key = `${id}\u0000${part}`;
     let translation = this.translations.get(key);
     if (!translation) {
-      translation = { ref: this.nextRef++, sentence: id, text: '', closed: false, samples: [], spoken: false, ranged: false };
+      translation = { ref: this.nextRef++, sentence: id, text: '', closed: false, samples: [], spoken: false, ranged: false, cum: 0, reached: 0, provisional: new Map() };
       this.translations.set(key, translation);
       this.events.segmentOpened({ ref: translation.ref, side: 'translation', origin: id });
     }
@@ -220,6 +230,7 @@ export class PalabraItems {
     if (text === translation.text) return;
     translation.text = text;
     this.events.segmentText({ ref: translation.ref, text });
+    this.restate(translation);
   }
 
   /** The part's text tiled over its chunks by sample count, once its burst is whole and its text final (ruling 6): the entries in order, 0 first. */
@@ -228,5 +239,31 @@ export class PalabraItems {
     t.ranged = true;
     const ranges = tileSpan([0, t.text.length], t.samples, t.text);
     this.events.speechRanges({ ref: t.ref, ranges: ranges.map((range, index) => ({ index, range })) });
+    this.pace.learn(t.text, t.samples.reduce((n, s) => n + s, 0));
+  }
+
+  /** Where this chunk reaches in the part's text so far, at the leg's rate; none while the text has no letters. */
+  private provisional(t: Translation, samples: number): TextRange | undefined {
+    t.cum += samples;
+    const end = this.pace.reach(t.text, t.cum, t.reached);
+    if (end === null) return undefined;
+    const range: TextRange = [t.reached, end];
+    t.provisional.set(t.samples.length, range);
+    t.reached = end;
+    return range;
+  }
+
+  /**
+   * A text now shorter than the provisional ranges already stated (a final
+   * shorter than its last partial): those past its end are stated again
+   * within it, and the next chunk starts no further than its end.
+   */
+  private restate(t: Translation): void {
+    const end = t.text.length;
+    if (t.ranged || t.reached <= end) return;
+    t.reached = end;
+    const past = [...t.provisional].filter(([, range]) => range[1] > end).map(([index, range]) => ({ index, range: [Math.min(range[0], end), end] as TextRange }));
+    for (const { index, range } of past) t.provisional.set(index, range);
+    if (past.length > 0) this.events.speechRanges({ ref: t.ref, ranges: past });
   }
 }
