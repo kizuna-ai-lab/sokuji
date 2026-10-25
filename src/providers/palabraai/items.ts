@@ -34,9 +34,10 @@ interface Translation {
   spoken: boolean;
   /** Its ranges are filled in: a chunk after that plays with none. */
   ranged: boolean;
-  /** Its samples so far, and where its provisional ranges reached in its text. */
+  /** Its samples so far, where its provisional ranges reached in its text, and those ranges by entry: restated when its text shrinks. */
   cum: number;
   reached: number;
+  provisional: Map<number, TextRange>;
 }
 
 /** The first part when a message names none: the probe's every sentence was part 0. */
@@ -162,6 +163,7 @@ export class PalabraItems {
     // text still reaches the row rather than staying blank.
     translation.text = t.text;
     this.events.segmentText({ ref: translation.ref, text: t.text });
+    this.restate(translation);
     translation.closed = true;
     this.events.segmentClosed({ ref: translation.ref, origin: t.id });
     this.fill(translation);
@@ -217,7 +219,7 @@ export class PalabraItems {
     const key = `${id}\u0000${part}`;
     let translation = this.translations.get(key);
     if (!translation) {
-      translation = { ref: this.nextRef++, sentence: id, text: '', closed: false, samples: [], spoken: false, ranged: false, cum: 0, reached: 0 };
+      translation = { ref: this.nextRef++, sentence: id, text: '', closed: false, samples: [], spoken: false, ranged: false, cum: 0, reached: 0, provisional: new Map() };
       this.translations.set(key, translation);
       this.events.segmentOpened({ ref: translation.ref, side: 'translation', origin: id });
     }
@@ -228,6 +230,7 @@ export class PalabraItems {
     if (text === translation.text) return;
     translation.text = text;
     this.events.segmentText({ ref: translation.ref, text });
+    this.restate(translation);
   }
 
   /** The part's text tiled over its chunks by sample count, once its burst is whole and its text final (ruling 6): the entries in order, 0 first. */
@@ -245,7 +248,22 @@ export class PalabraItems {
     const end = this.pace.reach(t.text, t.cum, t.reached);
     if (end === null) return undefined;
     const range: TextRange = [t.reached, end];
+    t.provisional.set(t.samples.length, range);
     t.reached = end;
     return range;
+  }
+
+  /**
+   * A text now shorter than the provisional ranges already stated (a final
+   * shorter than its last partial): those past its end are stated again
+   * within it, and the next chunk starts no further than its end.
+   */
+  private restate(t: Translation): void {
+    const end = t.text.length;
+    if (t.ranged || t.reached <= end) return;
+    t.reached = end;
+    const past = [...t.provisional].filter(([, range]) => range[1] > end).map(([index, range]) => ({ index, range: [Math.min(range[0], end), end] as TextRange }));
+    for (const { index, range } of past) t.provisional.set(index, range);
+    if (past.length > 0) this.events.speechRanges({ ref: t.ref, ranges: past });
   }
 }

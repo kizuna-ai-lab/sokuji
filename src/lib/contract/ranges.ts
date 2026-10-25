@@ -86,6 +86,8 @@ export class SpeechPace {
   /**
    * The provisional end in `phrase` once `cum` of its samples are heard,
    * never before `from`; null when the phrase has no letters to place.
+   * `from` must not exceed `phrase.length`: a caller whose text can shrink
+   * restates what it reached first (Qwen's and Palabra's `restate`).
    */
   reach(phrase: string, cum: number, from: number): number | null {
     const letters = countSkeleton(phrase);

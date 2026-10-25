@@ -67,6 +67,18 @@ describe("Palabra AI's segments: one sentence, one id (survey §2.8)", () => {
     expect(checkConformance(h.log, AUTO)).toEqual([]);
   });
 
+  it('pulls provisional ranges inside a final text shorter than the partial they were placed in, and places the next chunk there', () => {
+    const h = items();
+    h.feed(SERVER.validated());
+    h.feed(SERVER.translationPartial('Hello wonderful world, how are you doing today my friend'));
+    h.feed(SERVER.audio(), new Int16Array(48_000));
+    h.feed(SERVER.translated('Hello world'));
+    h.feed(SERVER.audio(), new Int16Array(48_000));
+    expect(h.of('audio').map((a) => a.range)).toEqual([[0, 32], [11, 11]]);
+    expect(h.of('speechRanges')).toEqual([{ ref: 2, ranges: [{ index: 0, range: [0, 11] }] }]);
+    expect(checkConformance(h.log, AUTO)).toEqual([]);
+  });
+
   it("places the next sentence's chunks with the rate the last fill-in measured", () => {
     const h = items();
     h.feed(SERVER.validated());
