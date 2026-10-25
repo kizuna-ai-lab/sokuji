@@ -129,7 +129,8 @@ lives). One instance per spoken leg per session.
   `prevEnd` the previous provisional end (a for the first chunk):
   `[prevEnd, min(b, max(prevEnd, a + round((b − a) × cum / (skeleton(text[a, b)) × rate))))]`,
   with the end moved past a surrogate pair as `tileSpan` does. An empty phrase,
-  or one with no letters, gives `[prevEnd, prevEnd]`. No cap.
+  or one with no letters, places nothing: the chunk stays rangeless, as today.
+  No cap.
 
 ### 2. Each adapter
 
@@ -156,14 +157,17 @@ fill-in, which now also feeds the estimate's learning.
   states nothing: Stop clears the queue anyway.
 - **Palabra (`src/providers/palabraai/items.ts`).** The phrase is a
   translation part: span [0, the part's text length when the chunk arrives].
-  A chunk that arrives before any text gets `[0, 0]`. `fill` keeps its tiling
+  A chunk that arrives before any text stays rangeless. `fill` keeps its tiling
   and calls the learning. Chunks after `ranged` play with no range, as today.
 - **Qwen LiveTranslate (`src/providers/qwen_livetranslate/segments.ts`).** The
-  phrase is the current one: span [`phraseText`, the shown text's length when
-  the phrase's first chunk arrived]. Words after audio still begin the next
-  phrase. Provisional ranges go into `it.ranges`, so `restate` (a final text
-  shorter than the deltas) also covers them. `fill` keeps its tiling and calls
-  the learning.
+  phrase is the current one: span [`phraseText`, the shown text's length as
+  each chunk arrives]. Words after audio still begin the next phrase, so the
+  span normally stays put once audio starts; audio before any words joins the
+  first phrase, whose words then grow it and light it. Provisional ranges go
+  into `it.ranges`, so `restate` (a final text shorter than the deltas) also
+  covers them; a chunk after such a text starts no further than its end.
+  Once the last phrase is filled, a stray chunk plays rangeless, as today.
+  `fill` keeps its tiling and calls the learning.
 
 ### 3. Karaoke never steps back (`src/lib/view/karaoke.ts`)
 
