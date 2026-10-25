@@ -55,7 +55,8 @@ describe("Palabra AI's segments: one sentence, one id (survey §2.8)", () => {
     h.feed(SERVER.audio(), new Int16Array(4_800));
     expect(h.of('speechRanges')).toEqual([]);
     h.feed(SERVER.audio({ last: true }), new Int16Array(2_400));
-    expect(h.of('audio').map((a) => [a.ref, a.pcm.length, a.range])).toEqual([[2, 4_800, undefined], [2, 4_800, undefined], [2, 2_400, undefined]]);
+    // Provisional, before the fill-in: EN's 67 letters at the prior's 1 800 samples each, over its 82 code units.
+    expect(h.of('audio').map((a) => [a.ref, a.pcm.length, a.range])).toEqual([[2, 4_800, [0, 3]], [2, 4_800, [3, 7]], [2, 2_400, [7, 8]]]);
     const [filled] = h.of('speechRanges');
     expect(filled.ref).toBe(2);
     expect(filled.ranges.map((r) => r.index)).toEqual([0, 1, 2]);
@@ -63,6 +64,21 @@ describe("Palabra AI's segments: one sentence, one id (survey §2.8)", () => {
     expect(filled.ranges[2].range[1]).toBe(EN.length);
     // 4 800 : 4 800 : 2 400 of the text.
     expect(filled.ranges.map((r) => r.range)).toEqual([[0, 33], [33, 66], [66, EN.length]]);
+    expect(checkConformance(h.log, AUTO)).toEqual([]);
+  });
+
+  it("places the next sentence's chunks with the rate the last fill-in measured", () => {
+    const h = items();
+    h.feed(SERVER.validated());
+    h.feed(SERVER.translated());
+    h.feed(SERVER.audio(), new Int16Array(4_800));
+    h.feed(SERVER.audio(), new Int16Array(4_800));
+    h.feed(SERVER.audio({ last: true }), new Int16Array(2_400));
+    h.feed(SERVER.validated('こんにちは。', 'second'));
+    h.feed(SERVER.translated('Hello there.', 'second'));
+    h.feed(SERVER.audio({ id: 'second' }), new Int16Array(4_800));
+    const audio = h.of('audio');
+    expect(audio[audio.length - 1].range).toEqual([0, 12]);
     expect(checkConformance(h.log, AUTO)).toEqual([]);
   });
 

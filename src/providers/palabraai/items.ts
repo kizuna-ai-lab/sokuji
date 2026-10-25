@@ -11,12 +11,14 @@
  * closes at its final text. A sentence's speech arrives as a burst after
  * its text, ending at `last_chunk`: once both are in, the text is tiled
  * over the chunks by their sample counts (`speechRanges`, Soniox's fill-in),
- * so karaoke lights a sentence once its burst is whole. Pure and
+ * Before that each chunk carries a provisional range, the part's text so far
+ * reached at the speech rate the fill-ins measured (karaoke provisional
+ * ranges design), so karaoke lights from the first chunk. Pure and
  * timer-free: the adapter hands it what the server said, in order, and
  * frames it itself.
  */
-import type { AdapterEvents, Ref } from '../../lib/contract/adapter';
-import { tileSpan } from '../../lib/contract/ranges';
+import type { AdapterEvents, Ref, TextRange } from '../../lib/contract/adapter';
+import { SpeechPace, tileSpan } from '../../lib/contract/ranges';
 import type { OutputAudio, Transcription } from './wire';
 
 interface Source { ref: Ref; text: string; closed: boolean }
@@ -32,6 +34,9 @@ interface Translation {
   spoken: boolean;
   /** Its ranges are filled in: a chunk after that plays with none. */
   ranged: boolean;
+  /** Its samples so far, and where its provisional ranges reached in its text. */
+  cum: number;
+  reached: number;
 }
 
 /** The first part when a message names none: the probe's every sentence was part 0. */
@@ -75,6 +80,8 @@ export class PalabraItems {
   private readonly said = new Map<string, string>();
   private readonly translations = new Map<string, Translation>();
   private stopped = false;
+  /** The leg's speech rate, learned from its fill-ins. */
+  private readonly pace = new SpeechPace();
 
   constructor(private readonly events: AdapterEvents) {}
 
@@ -175,7 +182,8 @@ export class PalabraItems {
     }
     const translation = this.translation(a.id, a.part ?? FIRST_PART);
     if (pcm.length > 0) {
-      this.events.audio({ pcm, ref: translation.ref });
+      const range = translation.ranged ? undefined : this.provisional(translation, pcm.length);
+      this.events.audio(range ? { pcm, ref: translation.ref, range } : { pcm, ref: translation.ref });
       if (!translation.ranged) translation.samples.push(pcm.length);
     }
     if (!a.last) return;
@@ -209,7 +217,7 @@ export class PalabraItems {
     const key = `${id}\u0000${part}`;
     let translation = this.translations.get(key);
     if (!translation) {
-      translation = { ref: this.nextRef++, sentence: id, text: '', closed: false, samples: [], spoken: false, ranged: false };
+      translation = { ref: this.nextRef++, sentence: id, text: '', closed: false, samples: [], spoken: false, ranged: false, cum: 0, reached: 0 };
       this.translations.set(key, translation);
       this.events.segmentOpened({ ref: translation.ref, side: 'translation', origin: id });
     }
@@ -228,5 +236,16 @@ export class PalabraItems {
     t.ranged = true;
     const ranges = tileSpan([0, t.text.length], t.samples, t.text);
     this.events.speechRanges({ ref: t.ref, ranges: ranges.map((range, index) => ({ index, range })) });
+    this.pace.learn(t.text, t.samples.reduce((n, s) => n + s, 0));
+  }
+
+  /** Where this chunk reaches in the part's text so far, at the leg's rate; none while the text has no letters. */
+  private provisional(t: Translation, samples: number): TextRange | undefined {
+    t.cum += samples;
+    const end = this.pace.reach(t.text, t.cum, t.reached);
+    if (end === null) return undefined;
+    const range: TextRange = [t.reached, end];
+    t.reached = end;
+    return range;
   }
 }
