@@ -113,10 +113,10 @@ Used via [@ricky0123/vad-web](https://github.com/ricky0123/vad-web).
 | Library or data | Used for | License | Source |
 |-----------------|----------|---------|--------|
 | pinyin-pro | Chinese pinyin | MIT | [zh-lx/pinyin-pro](https://github.com/zh-lx/pinyin-pro) |
-| Lindera WASM (`lindera-wasm-ipadic-web`) | Japanese tokenizer | MIT | [lindera/lindera](https://github.com/lindera/lindera) |
-| IPADIC (inside Lindera's wasm) | Japanese readings | IPADIC license (NAIST, ICOT) | [taku910/mecab](https://github.com/taku910/mecab) |
+| Lindera WASM (`lindera-wasm`) | Japanese tokenizer | MIT | [lindera/lindera](https://github.com/lindera/lindera) |
+| IPADIC (Lindera's dictionary archive) | Japanese readings | IPADIC license (NAIST, ICOT) | [taku910/mecab](https://github.com/taku910/mecab) |
 
-The wasm that carries IPADIC is downloaded from sokuji.kizuna.ai on first use, not bundled. The three license texts follow.
+Lindera's wasm is bundled; IPADIC, its dictionary, is downloaded from sokuji.kizuna.ai on first use. The three license texts follow.
 
 ### pinyin-pro
 

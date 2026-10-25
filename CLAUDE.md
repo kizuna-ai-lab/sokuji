@@ -273,12 +273,15 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
    - A switch per surface in the display popover shows the pair target's language as ruby:
      pinyin (`pinyin-pro`), kana (Lindera WASM + IPADIC in a worker), Korean RR and
      Russian/Ukrainian Latin (`src/lib/reading/`). View-only: never on `Row`, TTS or exports.
-   - The Lindera wasm (17 MB) is downloaded once from `sokuji.kizuna.ai/reading/` (served by
-     sokuji-backend's `web/scripts/reading-assets.mjs`), checked by size and SHA-256 and kept in
-     `sokuji-models`; `vite.lindera-wasm-url.ts` keeps it out of every build
-     (`npm run check:no-lindera-wasm`). A Lindera bump moves the version, size and hash in both repos,
-     and the backend keeps every older version beside the new one (its `PINNED_VERSIONS`, an npm
-     alias per old version): an older app release still fetches the file it pins.
+   - Lindera's wasm (`lindera-wasm`, 1.8 MB) ships in every build: browser stores take a wasm
+     fetched at run time for remotely hosted code (`npm run check:lindera-wasm` fails a build without
+     it). Its IPADIC dictionary is data: the zip Lindera releases (10.5 MB), downloaded once from
+     `sokuji.kizuna.ai/reading/` (served by sokuji-backend's `web/scripts/reading-assets.mjs`),
+     checked by size and SHA-256, kept in `sokuji-models` and inflated in the worker
+     (`src/lib/reading/ja/dictionaryZip.ts`, `engine.ts`). The wasm and the dictionary must be the
+     same Lindera version, so a bump moves the package version and the dictionary's version, size and
+     hash together, in both repos; the backend keeps every older asset beside the new one (its
+     `PINNED_VERSIONS`): an older app release still fetches the file it pins.
 
 9. **Screen context** (`src/lib/screen/`, spec
    `docs/superpowers/specs/2026-10-22-qwen-screen-context-design.md`): a chosen window, tab or

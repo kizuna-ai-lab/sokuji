@@ -20,12 +20,12 @@ const { startJaClient } = await import('./client');
 describe('startJaClient', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('transfers the wasm, resolves on ready, and answers tokenize by id', async () => {
-    const wasm = new ArrayBuffer(8);
-    const started = startJaClient(wasm);
+  it('transfers the dictionary, resolves on ready, and answers tokenize by id', async () => {
+    const dictionary = new ArrayBuffer(8);
+    const started = startJaClient(dictionary);
     const worker = FakeWorker.last;
-    expect(worker.sent[0].msg).toEqual({ type: 'init', wasm });
-    expect(worker.sent[0].transfer).toEqual([wasm]);
+    expect(worker.sent[0].msg).toEqual({ type: 'init', dictionary });
+    expect(worker.sent[0].transfer).toEqual([dictionary]);
     worker.answer({ type: 'ready' });
     const client = await started;
 

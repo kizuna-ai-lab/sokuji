@@ -1,29 +1,47 @@
 // @vitest-environment node
 import { describe, it, expect, beforeAll } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { initSync, TokenizerBuilder, type Tokenizer } from 'lindera-wasm-ipadic-web';
+import { dirname, join, resolve } from 'node:path';
+import { initSync } from 'lindera-wasm';
+import { DICTIONARY_BYTES, DICTIONARY_FILE, DICTIONARY_SHA256, DICTIONARY_SOURCE_URL } from './dictionary';
+import { startEngine, type JaEngine } from './engine';
 import { furigana, type JaToken } from './furigana';
 import type { RubyPiece } from '../types';
 
 const require = createRequire(import.meta.url);
-let tokenizer: Tokenizer;
+const linderaDir = dirname(require.resolve('lindera-wasm'));
+// The dictionary archive is data, not a dependency: fetched once from Lindera's
+// release into node_modules/.cache and checked the way the app checks it.
+const CACHE = resolve(linderaDir, '..', '.cache', 'sokuji-reading', DICTIONARY_FILE);
+const sha256 = (b: Buffer) => createHash('sha256').update(b).digest('hex');
+const pinned = (b: Buffer) => b.length === DICTIONARY_BYTES && sha256(b) === DICTIONARY_SHA256;
+const toArrayBuffer = (b: Buffer) => b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer;
 
-beforeAll(() => {
-  initSync({ module: readFileSync(require.resolve('lindera-wasm-ipadic-web/lindera_wasm_bg.wasm')) });
-  const builder = new TokenizerBuilder();
-  builder.setDictionary('embedded://ipadic');
-  builder.setMode('normal');
-  tokenizer = builder.build();
-});
+async function dictionaryZip(): Promise<ArrayBuffer> {
+  if (existsSync(CACHE)) {
+    const cached = readFileSync(CACHE);
+    if (pinned(cached)) return toArrayBuffer(cached);
+  }
+  const res = await fetch(DICTIONARY_SOURCE_URL);
+  if (!res.ok) throw new Error(`HTTP ${res.status} for ${DICTIONARY_SOURCE_URL}`);
+  const bytes = Buffer.from(await res.arrayBuffer());
+  if (!pinned(bytes)) throw new Error(`${DICTIONARY_SOURCE_URL} is not the pinned dictionary (${bytes.length} bytes, ${sha256(bytes)})`);
+  mkdirSync(dirname(CACHE), { recursive: true });
+  writeFileSync(CACHE, bytes);
+  return toArrayBuffer(bytes);
+}
 
-// The worker's own mapping (lindera.worker.ts) in miniature.
-const tokenize = (text: string): JaToken[] => tokenizer.tokenize(text).map((t) => {
-  const reading = t.details[7];
-  const token = { surface: t.surface, reading: reading && reading !== '*' ? reading : null, unknown: t.is_unknown };
-  t.free();
-  return token;
-});
+let engine: JaEngine;
+
+beforeAll(async () => {
+  initSync({ module: readFileSync(join(linderaDir, 'lindera_wasm_bg.wasm')) });
+  engine = await startEngine(await dictionaryZip());
+}, 120_000);
+
+// The worker's own engine (engine.ts), as lindera.worker.ts runs it.
+const tokenize = (text: string): JaToken[] => engine.tokenize(text);
 const show = (ps: RubyPiece[]) => ps.map((p) => (p.reading ? `${p.text}(${p.reading})` : p.text)).join('');
 
 describe('furigana over Lindera IPADIC', () => {

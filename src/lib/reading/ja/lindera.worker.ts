@@ -1,11 +1,15 @@
 /// <reference lib="webworker" />
-import init, { TokenizerBuilder, type Tokenizer } from 'lindera-wasm-ipadic-web';
+import init from 'lindera-wasm';
+import { startEngine, type JaEngine } from './engine';
 import type { JaToken } from './furigana';
 import type { FromLinderaWorker, ToLinderaWorker } from './protocol';
 
-// Instantiated from the bytes the app stored, never fetched: the build strips the
-// glue's own wasm URL (vite.lindera-wasm-url.ts).
-let tokenizer: Tokenizer | null = null;
+// Lindera's wasm ships in the build: the glue names it `new URL('lindera_wasm_bg.wasm',
+// import.meta.url)`, which Vite emits as an asset beside this worker
+// (scripts/check-lindera-assets.mjs checks every build has it). Browser stores take a
+// wasm fetched from elsewhere for remotely hosted code. The dictionary is data: the
+// app downloads it (dictionary.ts) and hands its archive here.
+let engine: JaEngine | null = null;
 const scope = self as unknown as DedicatedWorkerGlobalScope;
 const post = (msg: FromLinderaWorker) => scope.postMessage(msg);
 
@@ -13,29 +17,21 @@ scope.onmessage = async (e: MessageEvent<ToLinderaWorker>) => {
   const msg = e.data;
   if (msg.type === 'init') {
     try {
-      await init({ module_or_path: msg.wasm });
-      const builder = new TokenizerBuilder();
-      builder.setDictionary('embedded://ipadic');
-      builder.setMode('normal');
-      tokenizer = builder.build();
+      await init();
+      engine = await startEngine(msg.dictionary);
       post({ type: 'ready' });
     } catch (err) {
       post({ type: 'failed', message: err instanceof Error ? err.message : String(err) });
     }
     return;
   }
-  if (!tokenizer) {
+  if (!engine) {
     post({ type: 'tokens', id: msg.id, tokens: null });
     return;
   }
   let tokens: JaToken[] | null;
   try {
-    tokens = tokenizer.tokenize(msg.text).map((t) => {
-      const reading = t.details[7];
-      const token = { surface: t.surface, reading: reading && reading !== '*' ? reading : null, unknown: t.is_unknown };
-      t.free();
-      return token;
-    });
+    tokens = engine.tokenize(msg.text);
   } catch {
     tokens = null;
   }
