@@ -1,6 +1,7 @@
 /**
- * One leg's speech (`LegSpeech`): chunks stream as rangeless `audio`, a
- * clean segment end fills in their ranges (`speechRanges`, ruling 2), and
+ * One leg's speech (`LegSpeech`): chunks stream as `audio` with provisional
+ * ranges at the leg's learned rate, a segment's end fills in their ranges
+ * (`speechRanges`, ruling 2; an unclean end over the chunks that arrived), and
  * the old client's TTS failure episodes (ruling 3, choices 6 and 7). Driven
  * on `FakeSocket` and a virtual clock from the first run — no network, no
  * fake timers, no stubbed global.
@@ -57,7 +58,7 @@ describe('tileSpan', () => {
 });
 
 describe('LegSpeech', () => {
-  it('streams each chunk as audio on its ref as it arrives, with no range', async () => {
+  it('streams each chunk as audio on its ref as it arrives, with a provisional range from the prior', async () => {
     const { speech, tts, kinds, frames } = await setup();
     speech.speak(2, 'Hello. ', [0, 7], 'en');
     const sent = tts().sentJson<Json>();
@@ -72,8 +73,9 @@ describe('LegSpeech', () => {
       expect(a.ref).toBe(2);
       expect(a.pcm).toBeInstanceOf(Int16Array);
       expect(a.pcm.length).toBe(2400);
-      expect('range' in a).toBe(false);
     }
+    // 'Hello. ': 5 letters at the prior's 1 800 samples each, so each 2 400-sample chunk reaches 7 × 2 400 / 9 000 further.
+    expect(audio.map((a) => a.range)).toEqual([[0, 2], [2, 4]]);
     expect(frames('tts.audio')).toHaveLength(2);
     expect(kinds('speechRanges')).toEqual([]);
   });
@@ -84,10 +86,40 @@ describe('LegSpeech', () => {
     tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
     tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(7200) }));
     expect(kinds('speechRanges')).toEqual([]);
+    expect(kinds('audio').map((e) => (e.payload as { range?: unknown }).range)).toEqual([[0, 2], [2, 7]]);
     tts().receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));
     expect(kinds('speechRanges').map((e) => e.payload)).toEqual([
       { ref: 2, ranges: [{ index: 0, range: [0, 3] }, { index: 1, range: [3, 13] }] },
     ]);
+  });
+
+  it("places the next segment's chunks with the rate its fill-ins measured", async () => {
+    const { speech, tts, kinds } = await setup();
+    speech.speak(2, 'Hello, world.', [0, 13], 'en');
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(7200) }));
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));
+    speech.speak(2, ' Next one.', [13, 23], 'en');
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-2', audio: b64(4830) }));
+    expect((kinds('audio')[2].payload as { range?: unknown }).range).toEqual([13, 18]);
+  });
+
+  it('places a chunk in the span sent so far when the segment is fed more text after its audio began', async () => {
+    const { speech, tts, kinds } = await setup();
+    speech.speak(2, 'Hello, ', [0, 7], 'en');
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
+    speech.speak(2, 'world.', [7, 13], 'en');
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
+    expect(kinds('audio').map((e) => (e.payload as { range?: unknown }).range)).toEqual([[0, 2], [2, 3]]);
+  });
+
+  it("scales the prior by the leg's speaking speed", async () => {
+    const { speech, tts, kinds } = await setup({ speed: 1.25 });
+    speech.speak(2, 'Hello. ', [0, 7], 'en');
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
+    expect((kinds('audio')[0].payload as { range?: unknown }).range).toEqual([0, 2]);
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
+    expect((kinds('audio')[1].payload as { range?: unknown }).range).toEqual([2, 5]);
   });
 
   it("snaps a filled-in boundary past a surrogate pair in the text it was fed", async () => {
@@ -165,29 +197,38 @@ describe('LegSpeech', () => {
     sockets.last().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
     sockets.last().receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));
     expect(kinds('audio')).toHaveLength(2);
+    // The new socket's utt-1-1 starts its own provisional sweep at its own span.
+    expect(kinds('audio').map((e) => (e.payload as { range?: unknown }).range)).toEqual([[0, 1], [3, 5]]);
     expect(kinds('speechRanges').map((e) => e.payload)).toEqual([
       { ref: 2, ranges: [{ index: 1, range: [3, 7] }] },
     ]);
   });
 
-  it('a 408-killed segment gets no ranges and says tts_segment_lost, once per episode', async () => {
+  it('a 408-killed segment is tiled over the chunks that arrived, says tts_segment_lost once per episode, and teaches the rate nothing', async () => {
     const { speech, tts, kinds, degraded } = await setup();
+    const ranges = () => kinds('speechRanges').map((e) => e.payload);
     speech.speak(2, 'Hi.', [0, 3], 'en');
     tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
+    expect((kinds('audio')[0].payload as { range?: unknown }).range).toEqual([0, 2]);
     tts().receive(JSON.stringify({ stream_id: 'utt-1-1', error_code: 408, error_message: 'Request timeout' }));
     expect(degraded()).toEqual(['tts_segment_lost']);
     tts().receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));
-    expect(kinds('speechRanges')).toEqual([]);
-    // The next segment dies before any audio: the same episode.
+    expect(ranges()).toEqual([{ ref: 2, ranges: [{ index: 0, range: [0, 3] }] }]);
+    // The next segment dies before any audio: the same episode, and nothing to tile.
     speech.speak(2, ' Yo.', [3, 7], 'en');
     tts().receive(JSON.stringify({ stream_id: 'utt-1-2', error_code: 408, error_message: 'Request timeout' }));
     expect(degraded()).toEqual(['tts_segment_lost']);
-    // Audio flowed again, so the next kill is a new episode.
+    expect(ranges()).toHaveLength(1);
+    // Audio flowed again, so the next kill is a new episode. Its chunk is placed by the prior: the kill taught nothing.
     speech.speak(2, ' Ok.', [7, 11], 'en');
     tts().receive(JSON.stringify({ stream_id: 'utt-1-3', audio: b64(2400) }));
+    expect((kinds('audio')[1].payload as { range?: unknown }).range).toEqual([7, 10]);
     tts().receive(JSON.stringify({ stream_id: 'utt-1-3', error_code: 408, error_message: 'Request timeout' }));
     expect(degraded()).toEqual(['tts_segment_lost', 'tts_segment_lost']);
-    expect(kinds('speechRanges')).toEqual([]);
+    expect(ranges()).toEqual([
+      { ref: 2, ranges: [{ index: 0, range: [0, 3] }] },
+      { ref: 2, ranges: [{ index: 1, range: [7, 11] }] },
+    ]);
   });
 
   it('a failure of all speech says tts_stopped, even after a lost segment', async () => {
@@ -525,7 +566,9 @@ describe('LegSpeech switched off and on mid-run (Translation I hear, #595)', () 
     tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
     tts().receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));
     expect(kinds('audio')).toHaveLength(1);
-    expect(kinds('speechRanges')).toEqual([]);
+    expect((kinds('audio')[0].payload as { range?: unknown }).range).toEqual([0, 1]);
+    // The dropped segment is closed out over the chunk that did play, so its row stops being lit.
+    expect(kinds('speechRanges').map((e) => e.payload)).toEqual([{ ref: 1, ranges: [{ index: 0, range: [0, 5] }] }]);
   });
 
   it('off sends no translation to synthesis, on the same socket', async () => {
