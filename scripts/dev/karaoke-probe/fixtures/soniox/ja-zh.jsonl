@@ -1,0 +1,472 @@
+{"t":0,"kind":"run","d":{"name":"ja-zh","region":"jp","context":{"direction":{"source":"ja","target":"zh"},"speech":true,"turns":"auto"},"config":{"stt":{"model":"stt-rt-v5","endpointSensitivity":0,"endpointLatencyAdjustmentLevel":0,"endpointMaxDelayMs":2000},"tts":{"voice":"Adrian","speed":1},"sharedBoth":false,"diarize":false}}}
+{"t":15.3,"kind":"socket","d":{"host":"stt-rt.jp.soniox.com","tts":false}}
+{"t":16.1,"kind":"socket","d":{"host":"tts-rt.jp.soniox.com","tts":true}}
+{"t":54.6,"kind":"frame","d":{"dir":"out","type":"session.opened","payload":{"region":"jp","translation":{"type":"one_way","target_language":"zh"},"speaking":["speaker"]}}}
+{"t":54.6,"kind":"started","d":{"transport":"websocket"}}
+{"t":1384.8,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"明","translation":""}}}
+{"t":1385.3,"kind":"segmentOpened","d":{"ref":1,"side":"source","origin":"u1"}}
+{"t":1385.4,"kind":"segmentText","d":{"ref":1,"text":"明","timing":{"startMs":720,"endMs":780},"language":"ja"}}
+{"t":1484.6,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"明日","translation":""}}}
+{"t":1484.7,"kind":"segmentText","d":{"ref":1,"text":"明日","timing":{"startMs":720,"endMs":900},"language":"ja"}}
+{"t":1683.9,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"明日の","translation":""}}}
+{"t":1684.1,"kind":"segmentText","d":{"ref":1,"text":"明日の","timing":{"startMs":720,"endMs":1020},"language":"ja"}}
+{"t":1886.8,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"明日の会","translation":""}}}
+{"t":1887.1,"kind":"segmentText","d":{"ref":1,"text":"明日の会","timing":{"startMs":720,"endMs":1260},"language":"ja"}}
+{"t":1984.2,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"明日の会議","translation":""}}}
+{"t":1984.3,"kind":"segmentText","d":{"ref":1,"text":"明日の会議","timing":{"startMs":720,"endMs":1380},"language":"ja"}}
+{"t":2086.6,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"明日の会議は","translation":""}}}
+{"t":2086.6,"kind":"segmentText","d":{"ref":1,"text":"明日の会議は","timing":{"startMs":720,"endMs":1560},"language":"ja"}}
+{"t":2584.8,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"明日の会議は午","translation":""}}}
+{"t":2584.9,"kind":"segmentText","d":{"ref":1,"text":"明日の会議は午","timing":{"startMs":720,"endMs":1980},"language":"ja"}}
+{"t":2685.5,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"明日の会議は午後","translation":""}}}
+{"t":2685.5,"kind":"segmentText","d":{"ref":1,"text":"明日の会議は午後","timing":{"startMs":720,"endMs":2160},"language":"ja"}}
+{"t":2987.7,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"明日の会議は午後3","translation":""}}}
+{"t":2987.8,"kind":"segmentText","d":{"ref":1,"text":"明日の会議は午後3","timing":{"startMs":720,"endMs":2400},"language":"ja"}}
+{"t":3180.5,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"明日の会議は午後3時","translation":""}}}
+{"t":3180.6,"kind":"segmentText","d":{"ref":1,"text":"明日の会議は午後3時","timing":{"startMs":720,"endMs":2640},"language":"ja"}}
+{"t":3286.9,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"明日の会議は午後3時に","translation":""}}}
+{"t":3286.9,"kind":"segmentText","d":{"ref":1,"text":"明日の会議は午後3時に","timing":{"startMs":720,"endMs":2760},"language":"ja"}}
+{"t":3531.1,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"明日の会議は午後3時に始","translation":""}}}
+{"t":3531.2,"kind":"segmentText","d":{"ref":1,"text":"明日の会議は午後3時に始","timing":{"startMs":720,"endMs":2940},"language":"ja"}}
+{"t":3684,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"明日の会議は午後3時に始まり","translation":""}}}
+{"t":3684,"kind":"segmentText","d":{"ref":1,"text":"明日の会議は午後3時に始まり","timing":{"startMs":720,"endMs":3120},"language":"ja"}}
+{"t":3793.2,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"明日の会議は午後3時に始まりま","translation":""}}}
+{"t":3793.3,"kind":"segmentText","d":{"ref":1,"text":"明日の会議は午後3時に始まりま","timing":{"startMs":720,"endMs":3240},"language":"ja"}}
+{"t":3987.4,"kind":"frame","d":{"dir":"in","type":"stt.transcript","payload":{"text":"明日の会議は午後3時に始まります。","endMs":3360}}}
+{"t":3987.5,"kind":"segmentText","d":{"ref":1,"text":"明日の会議は午後3時に始まります。","timing":{"startMs":720,"endMs":3360},"language":"ja"}}
+{"t":4038.9,"kind":"frame","d":{"dir":"in","type":"stt.translation","payload":{"text":"明天的会议将于下午3点开始。"}}}
+{"t":4039,"kind":"segmentOpened","d":{"ref":2,"side":"translation","origin":"u1"}}
+{"t":4039.3,"kind":"tts.out","d":{"stream":"utt-1-1","config":{"voice":"Adrian","language":"zh"}}}
+{"t":4039.4,"kind":"tts.out","d":{"stream":"utt-1-1","text":"明天的会议将于下午3点开始。","end":false}}
+{"t":4039.5,"kind":"tts.out","d":{"stream":"utt-1-1","text":"","end":true}}
+{"t":4039.5,"kind":"segmentText","d":{"ref":2,"text":"明天的会议将于下午3点开始。","language":"zh"}}
+{"t":4047.7,"kind":"frame","d":{"dir":"in","type":"stt.endpoint"}}
+{"t":4047.8,"kind":"segmentClosed","d":{"ref":1,"origin":"u1"}}
+{"t":4047.8,"kind":"segmentClosed","d":{"ref":2,"origin":"u1"}}
+{"t":4047.9,"kind":"frame","d":{"dir":"out","type":"tts.speak","payload":{"text":"明天的会议将于下午3点开始。"}}}
+{"t":4223,"kind":"tts.in","d":{"stream":"utt-1-1","samples":8192}}
+{"t":4223.6,"kind":"audio","d":{"ref":2,"samples":8192}}
+{"t":4315.1,"kind":"tts.in","d":{"stream":"utt-1-1","samples":8192}}
+{"t":4315.2,"kind":"audio","d":{"ref":2,"samples":8192}}
+{"t":4527.1,"kind":"tts.in","d":{"stream":"utt-1-1","samples":6144}}
+{"t":4527.3,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":4759.3,"kind":"tts.in","d":{"stream":"utt-1-1","samples":6144}}
+{"t":4759.6,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":4971.5,"kind":"tts.in","d":{"stream":"utt-1-1","samples":6144}}
+{"t":4971.7,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":5186.7,"kind":"tts.in","d":{"stream":"utt-1-1","samples":6144}}
+{"t":5186.8,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":5398.5,"kind":"tts.in","d":{"stream":"utt-1-1","samples":6144}}
+{"t":5398.7,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":5587.7,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" ","translation":""}}}
+{"t":5587.8,"kind":"segmentOpened","d":{"ref":3,"side":"source","origin":"u2"}}
+{"t":5587.8,"kind":"segmentText","d":{"ref":3,"text":" ","timing":{"startMs":4980,"endMs":5040},"language":"ja"}}
+{"t":5593.5,"kind":"tts.in","d":{"stream":"utt-1-1","samples":6144}}
+{"t":5593.5,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":5825.7,"kind":"tts.in","d":{"stream":"utt-1-1","samples":6144}}
+{"t":5825.8,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":5895.6,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 電","translation":""}}}
+{"t":5895.6,"kind":"segmentText","d":{"ref":3,"text":" 電","timing":{"startMs":4980,"endMs":5220},"language":"ja"}}
+{"t":5928.4,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 電車","translation":""}}}
+{"t":5928.4,"kind":"segmentText","d":{"ref":3,"text":" 電車","timing":{"startMs":4980,"endMs":5400},"language":"ja"}}
+{"t":6038.3,"kind":"tts.in","d":{"stream":"utt-1-1","samples":6144}}
+{"t":6038.4,"kind":"audio","d":{"ref":2,"samples":6144}}
+{"t":6192.3,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 電車が","translation":""}}}
+{"t":6192.4,"kind":"segmentText","d":{"ref":3,"text":" 電車が","timing":{"startMs":4980,"endMs":5580},"language":"ja"}}
+{"t":6236.6,"kind":"tts.in","d":{"stream":"utt-1-1","samples":10240,"audioEnd":true}}
+{"t":6236.7,"kind":"audio","d":{"ref":2,"samples":10240}}
+{"t":6247.8,"kind":"tts.in","d":{"stream":"utt-1-1","samples":0,"terminated":true}}
+{"t":6248.2,"kind":"speechRanges","d":{"ref":2,"ranges":[{"index":0,"range":[0,2]},{"index":1,"range":[2,3]},{"index":2,"range":[3,4]},{"index":3,"range":[4,5]},{"index":4,"range":[5,6]},{"index":5,"range":[6,8]},{"index":6,"range":[8,9]},{"index":7,"range":[9,10]},{"index":8,"range":[10,11]},{"index":9,"range":[11,12]},{"index":10,"range":[12,14]}]}}
+{"t":6985.5,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 電車が1","translation":""}}}
+{"t":6985.5,"kind":"segmentText","d":{"ref":3,"text":" 電車が1","timing":{"startMs":4980,"endMs":6360},"language":"ja"}}
+{"t":7039.8,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 電車が10分","translation":""}}}
+{"t":7039.9,"kind":"segmentText","d":{"ref":3,"text":" 電車が10分","timing":{"startMs":4980,"endMs":6480},"language":"ja"}}
+{"t":7631.2,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 電車が10分遅","translation":""}}}
+{"t":7631.3,"kind":"segmentText","d":{"ref":3,"text":" 電車が10分遅","timing":{"startMs":4980,"endMs":7020},"language":"ja"}}
+{"t":7790.2,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 電車が10分遅れ","translation":""}}}
+{"t":7790.2,"kind":"segmentText","d":{"ref":3,"text":" 電車が10分遅れ","timing":{"startMs":4980,"endMs":7140},"language":"ja"}}
+{"t":7889.3,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 電車が10分遅れてい","translation":""}}}
+{"t":7889.3,"kind":"segmentText","d":{"ref":3,"text":" 電車が10分遅れてい","timing":{"startMs":4980,"endMs":7320},"language":"ja"}}
+{"t":8193.7,"kind":"frame","d":{"dir":"in","type":"stt.transcript","payload":{"text":" 電車が10分遅れています。","endMs":7560}}}
+{"t":8193.7,"kind":"segmentText","d":{"ref":3,"text":" 電車が10分遅れています。","timing":{"startMs":4980,"endMs":7560},"language":"ja"}}
+{"t":8239.4,"kind":"frame","d":{"dir":"in","type":"stt.translation","payload":{"text":" 电车晚点了10分钟。"}}}
+{"t":8239.5,"kind":"segmentOpened","d":{"ref":4,"side":"translation","origin":"u2"}}
+{"t":8239.6,"kind":"tts.out","d":{"stream":"utt-2-1","config":{"voice":"Adrian","language":"zh"}}}
+{"t":8239.6,"kind":"tts.out","d":{"stream":"utt-2-1","text":" 电车晚点了10分钟。","end":false}}
+{"t":8239.7,"kind":"tts.out","d":{"stream":"utt-2-1","text":"","end":true}}
+{"t":8239.7,"kind":"segmentText","d":{"ref":4,"text":" 电车晚点了10分钟。","language":"zh"}}
+{"t":8245,"kind":"frame","d":{"dir":"in","type":"stt.endpoint"}}
+{"t":8245,"kind":"segmentClosed","d":{"ref":3,"origin":"u2"}}
+{"t":8245.1,"kind":"segmentClosed","d":{"ref":4,"origin":"u2"}}
+{"t":8245.1,"kind":"frame","d":{"dir":"out","type":"tts.speak","payload":{"text":" 电车晚点了10分钟。"}}}
+{"t":8422.4,"kind":"tts.in","d":{"stream":"utt-2-1","samples":8192}}
+{"t":8423.2,"kind":"audio","d":{"ref":4,"samples":8192}}
+{"t":8510.4,"kind":"tts.in","d":{"stream":"utt-2-1","samples":6144}}
+{"t":8510.5,"kind":"audio","d":{"ref":4,"samples":6144}}
+{"t":8670.8,"kind":"tts.in","d":{"stream":"utt-2-1","samples":6144}}
+{"t":8670.9,"kind":"audio","d":{"ref":4,"samples":6144}}
+{"t":8884.3,"kind":"tts.in","d":{"stream":"utt-2-1","samples":6144}}
+{"t":8884.4,"kind":"audio","d":{"ref":4,"samples":6144}}
+{"t":9097.7,"kind":"tts.in","d":{"stream":"utt-2-1","samples":6144}}
+{"t":9097.8,"kind":"audio","d":{"ref":4,"samples":6144}}
+{"t":9311.1,"kind":"tts.in","d":{"stream":"utt-2-1","samples":6144}}
+{"t":9311.1,"kind":"audio","d":{"ref":4,"samples":6144}}
+{"t":9366.9,"kind":"tts.in","d":{"stream":"utt-2-1","samples":6144,"audioEnd":true}}
+{"t":9367,"kind":"audio","d":{"ref":4,"samples":6144}}
+{"t":9387.4,"kind":"tts.in","d":{"stream":"utt-2-1","samples":0,"terminated":true}}
+{"t":9387.4,"kind":"speechRanges","d":{"ref":4,"ranges":[{"index":0,"range":[0,2]},{"index":1,"range":[2,4]},{"index":2,"range":[4,5]},{"index":3,"range":[5,7]},{"index":4,"range":[7,8]},{"index":5,"range":[8,10]},{"index":6,"range":[10,11]}]}}
+{"t":9891.3,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" ","translation":""}}}
+{"t":9891.4,"kind":"segmentOpened","d":{"ref":5,"side":"source","origin":"u3"}}
+{"t":9891.4,"kind":"segmentText","d":{"ref":5,"text":" ","timing":{"startMs":9240,"endMs":9300},"language":"ja"}}
+{"t":9984.1,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 駅","translation":""}}}
+{"t":9984.2,"kind":"segmentText","d":{"ref":5,"text":" 駅","timing":{"startMs":9240,"endMs":9480},"language":"ja"}}
+{"t":10291.4,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 駅の","translation":""}}}
+{"t":10291.4,"kind":"segmentText","d":{"ref":5,"text":" 駅の","timing":{"startMs":9240,"endMs":9720},"language":"ja"}}
+{"t":10487.4,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 駅の近","translation":""}}}
+{"t":10487.4,"kind":"segmentText","d":{"ref":5,"text":" 駅の近","timing":{"startMs":9240,"endMs":9960},"language":"ja"}}
+{"t":10592.2,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 駅の近く","translation":""}}}
+{"t":10592.2,"kind":"segmentText","d":{"ref":5,"text":" 駅の近く","timing":{"startMs":9240,"endMs":10020},"language":"ja"}}
+{"t":10986.3,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 駅の近くに","translation":""}}}
+{"t":10986.3,"kind":"segmentText","d":{"ref":5,"text":" 駅の近くに","timing":{"startMs":9240,"endMs":10380},"language":"ja"}}
+{"t":11381.1,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 駅の近くに新","translation":""}}}
+{"t":11381.1,"kind":"segmentText","d":{"ref":5,"text":" 駅の近くに新","timing":{"startMs":9240,"endMs":10800},"language":"ja"}}
+{"t":11740.4,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 駅の近くに新しい","translation":""}}}
+{"t":11740.4,"kind":"segmentText","d":{"ref":5,"text":" 駅の近くに新しい","timing":{"startMs":9240,"endMs":11100},"language":"ja"}}
+{"t":12081.4,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 駅の近くに新しいカ","translation":""}}}
+{"t":12081.4,"kind":"segmentText","d":{"ref":5,"text":" 駅の近くに新しいカ","timing":{"startMs":9240,"endMs":11460},"language":"ja"}}
+{"t":12295.5,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 駅の近くに新しいカフェ","translation":""}}}
+{"t":12295.5,"kind":"segmentText","d":{"ref":5,"text":" 駅の近くに新しいカフェ","timing":{"startMs":9240,"endMs":11580},"language":"ja"}}
+{"t":12344.9,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 駅の近くに新しいカフェが","translation":""}}}
+{"t":12345,"kind":"segmentText","d":{"ref":5,"text":" 駅の近くに新しいカフェが","timing":{"startMs":9240,"endMs":11760},"language":"ja"}}
+{"t":12593,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 駅の近くに新しいカフェができ","translation":""}}}
+{"t":12593.1,"kind":"segmentText","d":{"ref":5,"text":" 駅の近くに新しいカフェができ","timing":{"startMs":9240,"endMs":11940},"language":"ja"}}
+{"t":12692.8,"kind":"frame","d":{"dir":"in","type":"stt.transcript","payload":{"text":" 駅の近くに新しいカフェができました。","endMs":12120}}}
+{"t":12692.9,"kind":"segmentText","d":{"ref":5,"text":" 駅の近くに新しいカフェができました。","timing":{"startMs":9240,"endMs":12120},"language":"ja"}}
+{"t":12740.8,"kind":"frame","d":{"dir":"in","type":"stt.translation","payload":{"text":" 车站附近新开了一家咖啡馆。"}}}
+{"t":12740.8,"kind":"segmentOpened","d":{"ref":6,"side":"translation","origin":"u3"}}
+{"t":12740.9,"kind":"tts.out","d":{"stream":"utt-3-1","config":{"voice":"Adrian","language":"zh"}}}
+{"t":12741.1,"kind":"tts.out","d":{"stream":"utt-3-1","text":" 车站附近新开了一家咖啡馆。","end":false}}
+{"t":12741.1,"kind":"tts.out","d":{"stream":"utt-3-1","text":"","end":true}}
+{"t":12741.2,"kind":"segmentText","d":{"ref":6,"text":" 车站附近新开了一家咖啡馆。","language":"zh"}}
+{"t":12744.4,"kind":"frame","d":{"dir":"in","type":"stt.endpoint"}}
+{"t":12744.4,"kind":"segmentClosed","d":{"ref":5,"origin":"u3"}}
+{"t":12744.4,"kind":"segmentClosed","d":{"ref":6,"origin":"u3"}}
+{"t":12744.5,"kind":"frame","d":{"dir":"out","type":"tts.speak","payload":{"text":" 车站附近新开了一家咖啡馆。"}}}
+{"t":12941.8,"kind":"tts.in","d":{"stream":"utt-3-1","samples":8192}}
+{"t":12941.9,"kind":"audio","d":{"ref":6,"samples":8192}}
+{"t":13014.5,"kind":"tts.in","d":{"stream":"utt-3-1","samples":8192}}
+{"t":13014.6,"kind":"audio","d":{"ref":6,"samples":8192}}
+{"t":13243.4,"kind":"tts.in","d":{"stream":"utt-3-1","samples":6144}}
+{"t":13243.4,"kind":"audio","d":{"ref":6,"samples":6144}}
+{"t":13481.4,"kind":"tts.in","d":{"stream":"utt-3-1","samples":6144}}
+{"t":13481.5,"kind":"audio","d":{"ref":6,"samples":6144}}
+{"t":13662.3,"kind":"tts.in","d":{"stream":"utt-3-1","samples":6144}}
+{"t":13662.4,"kind":"audio","d":{"ref":6,"samples":6144}}
+{"t":13910.2,"kind":"tts.in","d":{"stream":"utt-3-1","samples":6144}}
+{"t":13910.2,"kind":"audio","d":{"ref":6,"samples":6144}}
+{"t":14089.6,"kind":"tts.in","d":{"stream":"utt-3-1","samples":6144}}
+{"t":14089.6,"kind":"audio","d":{"ref":6,"samples":6144}}
+{"t":14335.3,"kind":"tts.in","d":{"stream":"utt-3-1","samples":6144}}
+{"t":14335.4,"kind":"audio","d":{"ref":6,"samples":6144}}
+{"t":14546.9,"kind":"tts.in","d":{"stream":"utt-3-1","samples":6144}}
+{"t":14547,"kind":"audio","d":{"ref":6,"samples":6144}}
+{"t":14593.4,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" ","translation":""}}}
+{"t":14593.4,"kind":"segmentOpened","d":{"ref":7,"side":"source","origin":"u4"}}
+{"t":14593.4,"kind":"segmentText","d":{"ref":7,"text":" ","timing":{"startMs":13980,"endMs":14040},"language":"ja"}}
+{"t":14732.6,"kind":"tts.in","d":{"stream":"utt-3-1","samples":6144}}
+{"t":14732.7,"kind":"audio","d":{"ref":6,"samples":6144}}
+{"t":14797.3,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 今","translation":""}}}
+{"t":14797.4,"kind":"segmentText","d":{"ref":7,"text":" 今","timing":{"startMs":13980,"endMs":14220},"language":"ja"}}
+{"t":14841.9,"kind":"tts.in","d":{"stream":"utt-3-1","samples":8192,"audioEnd":true}}
+{"t":14842,"kind":"audio","d":{"ref":6,"samples":8192}}
+{"t":14853.8,"kind":"tts.in","d":{"stream":"utt-3-1","samples":0,"terminated":true}}
+{"t":14853.9,"kind":"speechRanges","d":{"ref":6,"ranges":[{"index":0,"range":[0,2]},{"index":1,"range":[2,3]},{"index":2,"range":[3,4]},{"index":3,"range":[4,5]},{"index":4,"range":[5,7]},{"index":5,"range":[7,8]},{"index":6,"range":[8,9]},{"index":7,"range":[9,10]},{"index":8,"range":[10,11]},{"index":9,"range":[11,12]},{"index":10,"range":[12,14]}]}}
+{"t":14984.1,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 今日","translation":""}}}
+{"t":14984.1,"kind":"segmentText","d":{"ref":7,"text":" 今日","timing":{"startMs":13980,"endMs":14340},"language":"ja"}}
+{"t":15083.6,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 今日は","translation":""}}}
+{"t":15083.6,"kind":"segmentText","d":{"ref":7,"text":" 今日は","timing":{"startMs":13980,"endMs":14520},"language":"ja"}}
+{"t":15598.4,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 今日は雨","translation":""}}}
+{"t":15598.4,"kind":"segmentText","d":{"ref":7,"text":" 今日は雨","timing":{"startMs":13980,"endMs":15000},"language":"ja"}}
+{"t":15783.7,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 今日は雨が","translation":""}}}
+{"t":15783.7,"kind":"segmentText","d":{"ref":7,"text":" 今日は雨が","timing":{"startMs":13980,"endMs":15240},"language":"ja"}}
+{"t":16088.6,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 今日は雨が降","translation":""}}}
+{"t":16088.7,"kind":"segmentText","d":{"ref":7,"text":" 今日は雨が降","timing":{"startMs":13980,"endMs":15480},"language":"ja"}}
+{"t":16191.5,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 今日は雨が降り","translation":""}}}
+{"t":16191.5,"kind":"segmentText","d":{"ref":7,"text":" 今日は雨が降り","timing":{"startMs":13980,"endMs":15600},"language":"ja"}}
+{"t":16296.3,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 今日は雨が降りそ","translation":""}}}
+{"t":16296.4,"kind":"segmentText","d":{"ref":7,"text":" 今日は雨が降りそ","timing":{"startMs":13980,"endMs":15720},"language":"ja"}}
+{"t":16383.7,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 今日は雨が降りそう","translation":""}}}
+{"t":16383.7,"kind":"segmentText","d":{"ref":7,"text":" 今日は雨が降りそう","timing":{"startMs":13980,"endMs":15780},"language":"ja"}}
+{"t":16492.7,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 今日は雨が降りそうな","translation":""}}}
+{"t":16492.8,"kind":"segmentText","d":{"ref":7,"text":" 今日は雨が降りそうな","timing":{"startMs":13980,"endMs":15900},"language":"ja"}}
+{"t":16686,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 今日は雨が降りそうなの","translation":""}}}
+{"t":16686.1,"kind":"segmentText","d":{"ref":7,"text":" 今日は雨が降りそうなの","timing":{"startMs":13980,"endMs":16020},"language":"ja"}}
+{"t":16791.5,"kind":"frame","d":{"dir":"in","type":"stt.transcript","payload":{"text":" 今日は雨が降りそうなので、","endMs":16200}}}
+{"t":16791.5,"kind":"segmentText","d":{"ref":7,"text":" 今日は雨が降りそうなので、","timing":{"startMs":13980,"endMs":16200},"language":"ja"}}
+{"t":16848.9,"kind":"frame","d":{"dir":"in","type":"stt.translation","payload":{"text":" 今天看起来可能会下雨，"}}}
+{"t":16849,"kind":"segmentOpened","d":{"ref":8,"side":"translation","origin":"u4"}}
+{"t":16849.2,"kind":"tts.out","d":{"stream":"utt-4-1","config":{"voice":"Adrian","language":"zh"}}}
+{"t":16849.3,"kind":"tts.out","d":{"stream":"utt-4-1","text":" 今天看起来可能会下雨，","end":false}}
+{"t":16849.3,"kind":"segmentText","d":{"ref":8,"text":" 今天看起来可能会下雨，","language":"zh"}}
+{"t":17282.7,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"傘","translation":""}}}
+{"t":17282.8,"kind":"segmentText","d":{"ref":7,"text":" 今日は雨が降りそうなので、傘","timing":{"startMs":13980,"endMs":16680},"language":"ja"}}
+{"t":17596.8,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"傘を持","translation":""}}}
+{"t":17596.9,"kind":"segmentText","d":{"ref":7,"text":" 今日は雨が降りそうなので、傘を持","timing":{"startMs":13980,"endMs":17040},"language":"ja"}}
+{"t":17699.5,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"傘を持っ","translation":""}}}
+{"t":17699.5,"kind":"segmentText","d":{"ref":7,"text":" 今日は雨が降りそうなので、傘を持っ","timing":{"startMs":13980,"endMs":17160},"language":"ja"}}
+{"t":17991,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"傘を持っていき","translation":""}}}
+{"t":17991,"kind":"segmentText","d":{"ref":7,"text":" 今日は雨が降りそうなので、傘を持っていき","timing":{"startMs":13980,"endMs":17400},"language":"ja"}}
+{"t":18091.1,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":"傘を持っていきま","translation":""}}}
+{"t":18091.2,"kind":"segmentText","d":{"ref":7,"text":" 今日は雨が降りそうなので、傘を持っていきま","timing":{"startMs":13980,"endMs":17520},"language":"ja"}}
+{"t":18194.5,"kind":"frame","d":{"dir":"in","type":"stt.transcript","payload":{"text":"傘を持っていきます。","endMs":17640}}}
+{"t":18194.6,"kind":"segmentText","d":{"ref":7,"text":" 今日は雨が降りそうなので、傘を持っていきます。","timing":{"startMs":13980,"endMs":17640},"language":"ja"}}
+{"t":18235.9,"kind":"frame","d":{"dir":"in","type":"stt.translation","payload":{"text":" 所以我会带上伞。"}}}
+{"t":18236,"kind":"tts.out","d":{"stream":"utt-4-1","text":" 所以我会带上伞。","end":false}}
+{"t":18236.3,"kind":"tts.out","d":{"stream":"utt-4-1","text":"","end":true}}
+{"t":18236.4,"kind":"segmentText","d":{"ref":8,"text":" 今天看起来可能会下雨， 所以我会带上伞。","language":"zh"}}
+{"t":18245.3,"kind":"frame","d":{"dir":"in","type":"stt.endpoint"}}
+{"t":18245.4,"kind":"segmentClosed","d":{"ref":7,"origin":"u4"}}
+{"t":18245.4,"kind":"segmentClosed","d":{"ref":8,"origin":"u4"}}
+{"t":18245.4,"kind":"frame","d":{"dir":"out","type":"tts.speak","payload":{"text":" 今天看起来可能会下雨， 所以我会带上伞。"}}}
+{"t":18415.5,"kind":"tts.in","d":{"stream":"utt-4-1","samples":8192}}
+{"t":18415.6,"kind":"audio","d":{"ref":8,"samples":8192}}
+{"t":18506.8,"kind":"tts.in","d":{"stream":"utt-4-1","samples":8192}}
+{"t":18506.9,"kind":"audio","d":{"ref":8,"samples":8192}}
+{"t":18750.4,"kind":"tts.in","d":{"stream":"utt-4-1","samples":6144}}
+{"t":18750.4,"kind":"audio","d":{"ref":8,"samples":6144}}
+{"t":18934.2,"kind":"tts.in","d":{"stream":"utt-4-1","samples":6144}}
+{"t":18934.3,"kind":"audio","d":{"ref":8,"samples":6144}}
+{"t":19147.2,"kind":"tts.in","d":{"stream":"utt-4-1","samples":6144}}
+{"t":19147.3,"kind":"audio","d":{"ref":8,"samples":6144}}
+{"t":19391,"kind":"tts.in","d":{"stream":"utt-4-1","samples":6144}}
+{"t":19391.1,"kind":"audio","d":{"ref":8,"samples":6144}}
+{"t":19573.4,"kind":"tts.in","d":{"stream":"utt-4-1","samples":6144}}
+{"t":19573.5,"kind":"audio","d":{"ref":8,"samples":6144}}
+{"t":19786,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" ","translation":""}}}
+{"t":19786,"kind":"segmentOpened","d":{"ref":9,"side":"source","origin":"u5"}}
+{"t":19786.1,"kind":"segmentText","d":{"ref":9,"text":" ","timing":{"startMs":19140,"endMs":19200},"language":"ja"}}
+{"t":19787.2,"kind":"tts.in","d":{"stream":"utt-4-1","samples":6144}}
+{"t":19787.3,"kind":"audio","d":{"ref":8,"samples":6144}}
+{"t":19982,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" この","translation":""}}}
+{"t":19982,"kind":"segmentText","d":{"ref":9,"text":" この","timing":{"startMs":19140,"endMs":19380},"language":"ja"}}
+{"t":20001.3,"kind":"tts.in","d":{"stream":"utt-4-1","samples":6144}}
+{"t":20001.4,"kind":"audio","d":{"ref":8,"samples":6144}}
+{"t":20068.1,"kind":"tts.out","d":{"keepalive":true}}
+{"t":20214.1,"kind":"tts.in","d":{"stream":"utt-4-1","samples":6144}}
+{"t":20214.1,"kind":"audio","d":{"ref":8,"samples":6144}}
+{"t":20387.2,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" この本","translation":""}}}
+{"t":20387.3,"kind":"segmentText","d":{"ref":9,"text":" この本","timing":{"startMs":19140,"endMs":19800},"language":"ja"}}
+{"t":20427.6,"kind":"tts.in","d":{"stream":"utt-4-1","samples":6144}}
+{"t":20427.7,"kind":"audio","d":{"ref":8,"samples":6144}}
+{"t":20587.3,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" この本は","translation":""}}}
+{"t":20587.4,"kind":"segmentText","d":{"ref":9,"text":" この本は","timing":{"startMs":19140,"endMs":19980},"language":"ja"}}
+{"t":20670,"kind":"tts.in","d":{"stream":"utt-4-1","samples":6144}}
+{"t":20670.1,"kind":"audio","d":{"ref":8,"samples":6144}}
+{"t":20883.4,"kind":"tts.in","d":{"stream":"utt-4-1","samples":6144}}
+{"t":20883.4,"kind":"audio","d":{"ref":8,"samples":6144}}
+{"t":20988.9,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" この本はと","translation":""}}}
+{"t":20989,"kind":"segmentText","d":{"ref":9,"text":" この本はと","timing":{"startMs":19140,"endMs":20400},"language":"ja"}}
+{"t":21088.1,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" この本はとて","translation":""}}}
+{"t":21088.1,"kind":"segmentText","d":{"ref":9,"text":" この本はとて","timing":{"startMs":19140,"endMs":20520},"language":"ja"}}
+{"t":21096.7,"kind":"tts.in","d":{"stream":"utt-4-1","samples":6144}}
+{"t":21096.8,"kind":"audio","d":{"ref":8,"samples":6144}}
+{"t":21186.2,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" この本はとても","translation":""}}}
+{"t":21186.3,"kind":"segmentText","d":{"ref":9,"text":" この本はとても","timing":{"startMs":19140,"endMs":20640},"language":"ja"}}
+{"t":21239.6,"kind":"tts.in","d":{"stream":"utt-4-1","samples":8192,"audioEnd":true}}
+{"t":21239.7,"kind":"audio","d":{"ref":8,"samples":8192}}
+{"t":21252.3,"kind":"tts.in","d":{"stream":"utt-4-1","samples":0,"terminated":true}}
+{"t":21252.3,"kind":"speechRanges","d":{"ref":8,"ranges":[{"index":0,"range":[0,2]},{"index":1,"range":[2,4]},{"index":2,"range":[4,5]},{"index":3,"range":[5,6]},{"index":4,"range":[6,7]},{"index":5,"range":[7,9]},{"index":6,"range":[9,10]},{"index":7,"range":[10,11]},{"index":8,"range":[11,13]},{"index":9,"range":[13,14]},{"index":10,"range":[14,15]},{"index":11,"range":[15,17]},{"index":12,"range":[17,18]},{"index":13,"range":[18,19]},{"index":14,"range":[19,21]}]}}
+{"t":21583.3,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" この本はとても面","translation":""}}}
+{"t":21583.4,"kind":"segmentText","d":{"ref":9,"text":" この本はとても面","timing":{"startMs":19140,"endMs":21000},"language":"ja"}}
+{"t":21784.4,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" この本はとても面白","translation":""}}}
+{"t":21784.4,"kind":"segmentText","d":{"ref":9,"text":" この本はとても面白","timing":{"startMs":19140,"endMs":21180},"language":"ja"}}
+{"t":22093.6,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" この本はとても面白か","translation":""}}}
+{"t":22093.7,"kind":"segmentText","d":{"ref":9,"text":" この本はとても面白か","timing":{"startMs":19140,"endMs":21420},"language":"ja"}}
+{"t":22184.6,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" この本はとても面白かった","translation":""}}}
+{"t":22184.6,"kind":"segmentText","d":{"ref":9,"text":" この本はとても面白かった","timing":{"startMs":19140,"endMs":21540},"language":"ja"}}
+{"t":22295.4,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" この本はとても面白かったで","translation":""}}}
+{"t":22295.5,"kind":"segmentText","d":{"ref":9,"text":" この本はとても面白かったで","timing":{"startMs":19140,"endMs":21660},"language":"ja"}}
+{"t":22389.1,"kind":"frame","d":{"dir":"in","type":"stt.transcript","payload":{"text":" この本はとても面白かったです。","endMs":21720}}}
+{"t":22389.2,"kind":"segmentText","d":{"ref":9,"text":" この本はとても面白かったです。","timing":{"startMs":19140,"endMs":21720},"language":"ja"}}
+{"t":22430.5,"kind":"frame","d":{"dir":"in","type":"stt.translation","payload":{"text":" 这本书非常有趣。"}}}
+{"t":22430.6,"kind":"segmentOpened","d":{"ref":10,"side":"translation","origin":"u5"}}
+{"t":22430.6,"kind":"tts.out","d":{"stream":"utt-5-1","config":{"voice":"Adrian","language":"zh"}}}
+{"t":22430.7,"kind":"tts.out","d":{"stream":"utt-5-1","text":" 这本书非常有趣。","end":false}}
+{"t":22430.8,"kind":"tts.out","d":{"stream":"utt-5-1","text":"","end":true}}
+{"t":22430.8,"kind":"segmentText","d":{"ref":10,"text":" 这本书非常有趣。","language":"zh"}}
+{"t":22439.5,"kind":"frame","d":{"dir":"in","type":"stt.endpoint"}}
+{"t":22439.6,"kind":"segmentClosed","d":{"ref":9,"origin":"u5"}}
+{"t":22439.6,"kind":"segmentClosed","d":{"ref":10,"origin":"u5"}}
+{"t":22439.6,"kind":"frame","d":{"dir":"out","type":"tts.speak","payload":{"text":" 这本书非常有趣。"}}}
+{"t":22567.2,"kind":"tts.in","d":{"stream":"utt-5-1","samples":6144}}
+{"t":22567.2,"kind":"audio","d":{"ref":10,"samples":6144}}
+{"t":22638.8,"kind":"tts.in","d":{"stream":"utt-5-1","samples":8192}}
+{"t":22638.9,"kind":"audio","d":{"ref":10,"samples":8192}}
+{"t":22895.4,"kind":"tts.in","d":{"stream":"utt-5-1","samples":8192}}
+{"t":22895.5,"kind":"audio","d":{"ref":10,"samples":8192}}
+{"t":23180.9,"kind":"tts.in","d":{"stream":"utt-5-1","samples":8192}}
+{"t":23180.9,"kind":"audio","d":{"ref":10,"samples":8192}}
+{"t":23377.9,"kind":"tts.in","d":{"stream":"utt-5-1","samples":10240,"audioEnd":true}}
+{"t":23378,"kind":"audio","d":{"ref":10,"samples":10240}}
+{"t":23389.6,"kind":"tts.in","d":{"stream":"utt-5-1","samples":0,"terminated":true}}
+{"t":23389.7,"kind":"speechRanges","d":{"ref":10,"ranges":[{"index":0,"range":[0,1]},{"index":1,"range":[1,3]},{"index":2,"range":[3,5]},{"index":3,"range":[5,7]},{"index":4,"range":[7,9]}]}}
+{"t":24189.9,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" ","translation":""}}}
+{"t":24190,"kind":"segmentOpened","d":{"ref":11,"side":"source","origin":"u6"}}
+{"t":24190,"kind":"segmentText","d":{"ref":11,"text":" ","timing":{"startMs":23520,"endMs":23580},"language":"ja"}}
+{"t":24487.7,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 週","translation":""}}}
+{"t":24487.7,"kind":"segmentText","d":{"ref":11,"text":" 週","timing":{"startMs":23520,"endMs":23820},"language":"ja"}}
+{"t":24536.6,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 週末","translation":""}}}
+{"t":24536.7,"kind":"segmentText","d":{"ref":11,"text":" 週末","timing":{"startMs":23520,"endMs":23940},"language":"ja"}}
+{"t":24786.4,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 週末に","translation":""}}}
+{"t":24786.5,"kind":"segmentText","d":{"ref":11,"text":" 週末に","timing":{"startMs":23520,"endMs":24240},"language":"ja"}}
+{"t":25137.9,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 週末に家族","translation":""}}}
+{"t":25137.9,"kind":"segmentText","d":{"ref":11,"text":" 週末に家族","timing":{"startMs":23520,"endMs":24600},"language":"ja"}}
+{"t":25593.4,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 週末に家族と","translation":""}}}
+{"t":25593.4,"kind":"segmentText","d":{"ref":11,"text":" 週末に家族と","timing":{"startMs":23520,"endMs":24960},"language":"ja"}}
+{"t":25632.9,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 週末に家族と一","translation":""}}}
+{"t":25632.9,"kind":"segmentText","d":{"ref":11,"text":" 週末に家族と一","timing":{"startMs":23520,"endMs":25080},"language":"ja"}}
+{"t":25687.8,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 週末に家族と一緒","translation":""}}}
+{"t":25687.8,"kind":"segmentText","d":{"ref":11,"text":" 週末に家族と一緒","timing":{"startMs":23520,"endMs":25200},"language":"ja"}}
+{"t":25979.1,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 週末に家族と一緒に","translation":""}}}
+{"t":25979.1,"kind":"segmentText","d":{"ref":11,"text":" 週末に家族と一緒に","timing":{"startMs":23520,"endMs":25380},"language":"ja"}}
+{"t":26187.1,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 週末に家族と一緒に夕","translation":""}}}
+{"t":26187.1,"kind":"segmentText","d":{"ref":11,"text":" 週末に家族と一緒に夕","timing":{"startMs":23520,"endMs":25560},"language":"ja"}}
+{"t":26280.1,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 週末に家族と一緒に夕食","translation":""}}}
+{"t":26280.1,"kind":"segmentText","d":{"ref":11,"text":" 週末に家族と一緒に夕食","timing":{"startMs":23520,"endMs":25740},"language":"ja"}}
+{"t":26485.3,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 週末に家族と一緒に夕食を","translation":""}}}
+{"t":26485.4,"kind":"segmentText","d":{"ref":11,"text":" 週末に家族と一緒に夕食を","timing":{"startMs":23520,"endMs":25920},"language":"ja"}}
+{"t":26789.4,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 週末に家族と一緒に夕食を食べ","translation":""}}}
+{"t":26789.4,"kind":"segmentText","d":{"ref":11,"text":" 週末に家族と一緒に夕食を食べ","timing":{"startMs":23520,"endMs":26160},"language":"ja"}}
+{"t":26848.7,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 週末に家族と一緒に夕食を食べま","translation":""}}}
+{"t":26848.7,"kind":"segmentText","d":{"ref":11,"text":" 週末に家族と一緒に夕食を食べま","timing":{"startMs":23520,"endMs":26280},"language":"ja"}}
+{"t":26981.6,"kind":"frame","d":{"dir":"in","type":"stt.transcript","payload":{"text":" 週末に家族と一緒に夕食を食べました。","endMs":26400}}}
+{"t":26981.6,"kind":"segmentText","d":{"ref":11,"text":" 週末に家族と一緒に夕食を食べました。","timing":{"startMs":23520,"endMs":26400},"language":"ja"}}
+{"t":27031.5,"kind":"frame","d":{"dir":"in","type":"stt.translation","payload":{"text":" 周末我和家人一起吃了晚饭。"}}}
+{"t":27031.5,"kind":"segmentOpened","d":{"ref":12,"side":"translation","origin":"u6"}}
+{"t":27031.6,"kind":"tts.out","d":{"stream":"utt-6-1","config":{"voice":"Adrian","language":"zh"}}}
+{"t":27031.7,"kind":"tts.out","d":{"stream":"utt-6-1","text":" 周末我和家人一起吃了晚饭。","end":false}}
+{"t":27031.7,"kind":"tts.out","d":{"stream":"utt-6-1","text":"","end":true}}
+{"t":27031.8,"kind":"segmentText","d":{"ref":12,"text":" 周末我和家人一起吃了晚饭。","language":"zh"}}
+{"t":27270.3,"kind":"tts.in","d":{"stream":"utt-6-1","samples":8192}}
+{"t":27270.4,"kind":"audio","d":{"ref":12,"samples":8192}}
+{"t":27347.5,"kind":"tts.in","d":{"stream":"utt-6-1","samples":8192}}
+{"t":27347.6,"kind":"audio","d":{"ref":12,"samples":8192}}
+{"t":27380.9,"kind":"frame","d":{"dir":"in","type":"stt.endpoint"}}
+{"t":27381,"kind":"segmentClosed","d":{"ref":11,"origin":"u6"}}
+{"t":27381,"kind":"segmentClosed","d":{"ref":12,"origin":"u6"}}
+{"t":27381,"kind":"frame","d":{"dir":"out","type":"tts.speak","payload":{"text":" 周末我和家人一起吃了晚饭。"}}}
+{"t":27561.4,"kind":"tts.in","d":{"stream":"utt-6-1","samples":6144}}
+{"t":27561.5,"kind":"audio","d":{"ref":12,"samples":6144}}
+{"t":27813.7,"kind":"tts.in","d":{"stream":"utt-6-1","samples":6144}}
+{"t":27813.8,"kind":"audio","d":{"ref":12,"samples":6144}}
+{"t":27988,"kind":"tts.in","d":{"stream":"utt-6-1","samples":6144}}
+{"t":27988.1,"kind":"audio","d":{"ref":12,"samples":6144}}
+{"t":28202,"kind":"tts.in","d":{"stream":"utt-6-1","samples":6144}}
+{"t":28202.1,"kind":"audio","d":{"ref":12,"samples":6144}}
+{"t":28414.8,"kind":"tts.in","d":{"stream":"utt-6-1","samples":6144}}
+{"t":28414.9,"kind":"audio","d":{"ref":12,"samples":6144}}
+{"t":28646.7,"kind":"tts.in","d":{"stream":"utt-6-1","samples":6144}}
+{"t":28646.8,"kind":"audio","d":{"ref":12,"samples":6144}}
+{"t":28783.8,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" ","translation":""}}}
+{"t":28783.9,"kind":"segmentOpened","d":{"ref":13,"side":"source","origin":"u7"}}
+{"t":28783.9,"kind":"segmentText","d":{"ref":13,"text":" ","timing":{"startMs":28080,"endMs":28140},"language":"ja"}}
+{"t":28844,"kind":"tts.in","d":{"stream":"utt-6-1","samples":6144}}
+{"t":28844.1,"kind":"audio","d":{"ref":12,"samples":6144}}
+{"t":28986.6,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" ド","translation":""}}}
+{"t":28986.6,"kind":"segmentText","d":{"ref":13,"text":" ド","timing":{"startMs":28080,"endMs":28380},"language":"ja"}}
+{"t":29055.3,"kind":"tts.in","d":{"stream":"utt-6-1","samples":6144}}
+{"t":29055.4,"kind":"audio","d":{"ref":12,"samples":6144}}
+{"t":29084.2,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" ドア","translation":""}}}
+{"t":29084.3,"kind":"segmentText","d":{"ref":13,"text":" ドア","timing":{"startMs":28080,"endMs":28500},"language":"ja"}}
+{"t":29192.5,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" ドアを","translation":""}}}
+{"t":29192.6,"kind":"segmentText","d":{"ref":13,"text":" ドアを","timing":{"startMs":28080,"endMs":28620},"language":"ja"}}
+{"t":29301.5,"kind":"tts.in","d":{"stream":"utt-6-1","samples":10240,"audioEnd":true}}
+{"t":29301.6,"kind":"audio","d":{"ref":12,"samples":10240}}
+{"t":29306.5,"kind":"tts.in","d":{"stream":"utt-6-1","samples":0,"terminated":true}}
+{"t":29306.6,"kind":"speechRanges","d":{"ref":12,"ranges":[{"index":0,"range":[0,2]},{"index":1,"range":[2,3]},{"index":2,"range":[3,4]},{"index":3,"range":[4,5]},{"index":4,"range":[5,6]},{"index":5,"range":[6,8]},{"index":6,"range":[8,9]},{"index":7,"range":[9,10]},{"index":8,"range":[10,11]},{"index":9,"range":[11,12]},{"index":10,"range":[12,14]}]}}
+{"t":29496.4,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" ドアを閉め","translation":""}}}
+{"t":29496.5,"kind":"segmentText","d":{"ref":13,"text":" ドアを閉め","timing":{"startMs":28080,"endMs":28920},"language":"ja"}}
+{"t":29593.7,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" ドアを閉めて","translation":""}}}
+{"t":29593.8,"kind":"segmentText","d":{"ref":13,"text":" ドアを閉めて","timing":{"startMs":28080,"endMs":29040},"language":"ja"}}
+{"t":29684.5,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" ドアを閉めてく","translation":""}}}
+{"t":29684.5,"kind":"segmentText","d":{"ref":13,"text":" ドアを閉めてく","timing":{"startMs":28080,"endMs":29160},"language":"ja"}}
+{"t":29795.7,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" ドアを閉めてくださ","translation":""}}}
+{"t":29795.7,"kind":"segmentText","d":{"ref":13,"text":" ドアを閉めてくださ","timing":{"startMs":28080,"endMs":29280},"language":"ja"}}
+{"t":29990,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" ドアを閉めてください","translation":""}}}
+{"t":29990.1,"kind":"segmentText","d":{"ref":13,"text":" ドアを閉めてください","timing":{"startMs":28080,"endMs":29400},"language":"ja"}}
+{"t":30088.6,"kind":"frame","d":{"dir":"in","type":"stt.transcript","payload":{"text":" ドアを閉めてください。","endMs":29520}}}
+{"t":30088.7,"kind":"segmentText","d":{"ref":13,"text":" ドアを閉めてください。","timing":{"startMs":28080,"endMs":29520},"language":"ja"}}
+{"t":30128.3,"kind":"frame","d":{"dir":"in","type":"stt.translation","payload":{"text":" 请把门关上。"}}}
+{"t":30128.4,"kind":"segmentOpened","d":{"ref":14,"side":"translation","origin":"u7"}}
+{"t":30128.5,"kind":"tts.out","d":{"stream":"utt-7-1","config":{"voice":"Adrian","language":"zh"}}}
+{"t":30128.6,"kind":"tts.out","d":{"stream":"utt-7-1","text":" 请把门关上。","end":false}}
+{"t":30128.6,"kind":"tts.out","d":{"stream":"utt-7-1","text":"","end":true}}
+{"t":30128.6,"kind":"segmentText","d":{"ref":14,"text":" 请把门关上。","language":"zh"}}
+{"t":30132.4,"kind":"frame","d":{"dir":"in","type":"stt.endpoint"}}
+{"t":30132.5,"kind":"segmentClosed","d":{"ref":13,"origin":"u7"}}
+{"t":30132.5,"kind":"segmentClosed","d":{"ref":14,"origin":"u7"}}
+{"t":30132.5,"kind":"frame","d":{"dir":"out","type":"tts.speak","payload":{"text":" 请把门关上。"}}}
+{"t":30282.4,"kind":"tts.in","d":{"stream":"utt-7-1","samples":6144}}
+{"t":30282.5,"kind":"audio","d":{"ref":14,"samples":6144}}
+{"t":30362.9,"kind":"tts.in","d":{"stream":"utt-7-1","samples":8192}}
+{"t":30362.9,"kind":"audio","d":{"ref":14,"samples":8192}}
+{"t":30527.1,"kind":"tts.in","d":{"stream":"utt-7-1","samples":6144}}
+{"t":30527.1,"kind":"audio","d":{"ref":14,"samples":6144}}
+{"t":30603.1,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" ","translation":""}}}
+{"t":30603.2,"kind":"segmentOpened","d":{"ref":15,"side":"source","origin":"u8"}}
+{"t":30603.2,"kind":"segmentText","d":{"ref":15,"text":" ","timing":{"startMs":29820,"endMs":29880},"language":"zh"}}
+{"t":30687.4,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 大","translation":""}}}
+{"t":30687.4,"kind":"segmentText","d":{"ref":15,"text":" 大","timing":{"startMs":29820,"endMs":30120},"language":"zh"}}
+{"t":30740.6,"kind":"tts.in","d":{"stream":"utt-7-1","samples":6144}}
+{"t":30740.7,"kind":"audio","d":{"ref":14,"samples":6144}}
+{"t":30979.5,"kind":"tts.in","d":{"stream":"utt-7-1","samples":10240,"audioEnd":true}}
+{"t":30979.6,"kind":"audio","d":{"ref":14,"samples":10240}}
+{"t":30985.5,"kind":"tts.in","d":{"stream":"utt-7-1","samples":0,"terminated":true}}
+{"t":30985.6,"kind":"speechRanges","d":{"ref":14,"ranges":[{"index":0,"range":[0,1]},{"index":1,"range":[1,3]},{"index":2,"range":[3,4]},{"index":3,"range":[4,5]},{"index":4,"range":[5,7]}]}}
+{"t":31191.2,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 导","translation":""}}}
+{"t":31191.2,"kind":"segmentText","d":{"ref":15,"text":" 导","timing":{"startMs":29820,"endMs":30120},"language":"zh"}}
+{"t":31289.6,"kind":"frame","d":{"dir":"in","type":"stt.transcript","payload":{"text":" 到了。","endMs":30600}}}
+{"t":31289.6,"kind":"frame","d":{"dir":"in","type":"stt.endpoint"}}
+{"t":31289.6,"kind":"segmentText","d":{"ref":15,"text":" 到了。","timing":{"startMs":29820,"endMs":30600},"language":"zh"}}
+{"t":31289.6,"kind":"segmentClosed","d":{"ref":15,"origin":"u8"}}
+{"t":32690.7,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" ","translation":""}}}
+{"t":32690.8,"kind":"segmentOpened","d":{"ref":16,"side":"source","origin":"u9"}}
+{"t":32690.8,"kind":"segmentText","d":{"ref":16,"text":" ","timing":{"startMs":32100,"endMs":32160},"language":"ja"}}
+{"t":33085.8,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 少","translation":""}}}
+{"t":33085.9,"kind":"segmentText","d":{"ref":16,"text":" 少","timing":{"startMs":32100,"endMs":32460},"language":"ja"}}
+{"t":33285.8,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 少々","translation":""}}}
+{"t":33285.9,"kind":"segmentText","d":{"ref":16,"text":" 少々","timing":{"startMs":32100,"endMs":32700},"language":"ja"}}
+{"t":33595.6,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 少々お","translation":""}}}
+{"t":33595.6,"kind":"segmentText","d":{"ref":16,"text":" 少々お","timing":{"startMs":32100,"endMs":32940},"language":"ja"}}
+{"t":33685.4,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 少々お待","translation":""}}}
+{"t":33685.4,"kind":"segmentText","d":{"ref":16,"text":" 少々お待","timing":{"startMs":32100,"endMs":33060},"language":"ja"}}
+{"t":33787.6,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 少々お待ち","translation":""}}}
+{"t":33787.6,"kind":"segmentText","d":{"ref":16,"text":" 少々お待ち","timing":{"startMs":32100,"endMs":33180},"language":"ja"}}
+{"t":33886.9,"kind":"frame","d":{"dir":"in","type":"stt.delta","payload":{"transcript":" 少々お待ちくだ","translation":""}}}
+{"t":33887,"kind":"segmentText","d":{"ref":16,"text":" 少々お待ちくだ","timing":{"startMs":32100,"endMs":33360},"language":"ja"}}
+{"t":33987,"kind":"frame","d":{"dir":"in","type":"stt.transcript","payload":{"text":" 少々お待ちください。","endMs":33480}}}
+{"t":33987,"kind":"segmentText","d":{"ref":16,"text":" 少々お待ちください。","timing":{"startMs":32100,"endMs":33480},"language":"ja"}}
+{"t":34019.8,"kind":"frame","d":{"dir":"in","type":"stt.translation","payload":{"text":" 请稍等一下。"}}}
+{"t":34019.8,"kind":"segmentOpened","d":{"ref":17,"side":"translation","origin":"u9"}}
+{"t":34019.9,"kind":"tts.out","d":{"stream":"utt-8-1","config":{"voice":"Adrian","language":"zh"}}}
+{"t":34020,"kind":"tts.out","d":{"stream":"utt-8-1","text":" 请稍等一下。","end":false}}
+{"t":34020,"kind":"tts.out","d":{"stream":"utt-8-1","text":"","end":true}}
+{"t":34020.1,"kind":"segmentText","d":{"ref":17,"text":" 请稍等一下。","language":"zh"}}
+{"t":34027,"kind":"frame","d":{"dir":"in","type":"stt.endpoint"}}
+{"t":34027.1,"kind":"segmentClosed","d":{"ref":16,"origin":"u9"}}
+{"t":34027.1,"kind":"segmentClosed","d":{"ref":17,"origin":"u9"}}
+{"t":34027.1,"kind":"frame","d":{"dir":"out","type":"tts.speak","payload":{"text":" 请稍等一下。"}}}
+{"t":34179.3,"kind":"tts.in","d":{"stream":"utt-8-1","samples":8192}}
+{"t":34179.4,"kind":"audio","d":{"ref":17,"samples":8192}}
+{"t":34268,"kind":"tts.in","d":{"stream":"utt-8-1","samples":8192}}
+{"t":34268.1,"kind":"audio","d":{"ref":17,"samples":8192}}
+{"t":34481.2,"kind":"tts.in","d":{"stream":"utt-8-1","samples":6144}}
+{"t":34481.3,"kind":"audio","d":{"ref":17,"samples":6144}}
+{"t":34537.3,"kind":"tts.in","d":{"stream":"utt-8-1","samples":6144,"audioEnd":true}}
+{"t":34537.4,"kind":"audio","d":{"ref":17,"samples":6144}}
+{"t":34544.8,"kind":"tts.in","d":{"stream":"utt-8-1","samples":0,"terminated":true}}
+{"t":34544.9,"kind":"speechRanges","d":{"ref":17,"ranges":[{"index":0,"range":[0,2]},{"index":1,"range":[2,4]},{"index":2,"range":[4,6]},{"index":3,"range":[6,7]}]}}
+{"t":35364.8,"kind":"input.end","d":{"seconds":35.29}}
+{"t":40066.7,"kind":"tts.out","d":{"keepalive":true}}
+{"t":43421.2,"kind":"frame","d":{"dir":"out","type":"stt.end"}}
+{"t":43421.4,"kind":"stopped","d":{}}

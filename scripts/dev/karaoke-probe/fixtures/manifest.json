@@ -1,0 +1,106 @@
+[
+ {
+  "name": "qwen-timeline",
+  "kind": "qwen",
+  "log": "scripts/dev/karaoke-probe/fixtures/qwen/timeline.jsonl",
+  "words": "scripts/dev/karaoke-probe/fixtures/words/qwen-timeline.json",
+  "target": "en",
+  "recorded": "2026-10-12T17-00-28"
+ },
+ {
+  "name": "qwen-speakers",
+  "kind": "qwen",
+  "log": "scripts/dev/karaoke-probe/fixtures/qwen/speakers.jsonl",
+  "words": "scripts/dev/karaoke-probe/fixtures/words/qwen-speakers.json",
+  "target": "en",
+  "recorded": "2026-10-12T16-20-24"
+ },
+ {
+  "name": "qwen-voice-Ethan",
+  "kind": "qwen",
+  "log": "scripts/dev/karaoke-probe/fixtures/qwen/voice-Ethan.jsonl",
+  "words": "scripts/dev/karaoke-probe/fixtures/words/qwen-voice-Ethan.json",
+  "target": "en",
+  "recorded": "2026-10-12T16-21-23"
+ },
+ {
+  "name": "qwen-rate-24000",
+  "kind": "qwen",
+  "log": "scripts/dev/karaoke-probe/fixtures/qwen/rate-24000.jsonl",
+  "words": "scripts/dev/karaoke-probe/fixtures/words/qwen-rate-24000.json",
+  "target": "en",
+  "recorded": "2026-10-12T16-21-48"
+ },
+ {
+  "name": "qwen-burst",
+  "kind": "qwen",
+  "log": "scripts/dev/karaoke-probe/fixtures/qwen/burst.jsonl",
+  "words": "scripts/dev/karaoke-probe/fixtures/words/qwen-burst.json",
+  "target": "en",
+  "recorded": "2026-10-12T16-23-15"
+ },
+ {
+  "name": "qwen-clone",
+  "kind": "qwen",
+  "log": "scripts/dev/karaoke-probe/fixtures/qwen/clone.jsonl",
+  "words": "scripts/dev/karaoke-probe/fixtures/words/qwen-clone.json",
+  "target": "en",
+  "recorded": "2026-10-13T18-01-40"
+ },
+ {
+  "name": "qwen-image-train-board-10",
+  "kind": "qwen",
+  "log": "scripts/dev/karaoke-probe/fixtures/qwen/image-train-board-10.jsonl",
+  "words": "scripts/dev/karaoke-probe/fixtures/words/qwen-image-train-board-10.json",
+  "target": "en",
+  "recorded": "2026-10-12T17-07-13"
+ },
+ {
+  "name": "qwen-image-train-board-30",
+  "kind": "qwen",
+  "log": "scripts/dev/karaoke-probe/fixtures/qwen/image-train-board-30.jsonl",
+  "words": "scripts/dev/karaoke-probe/fixtures/words/qwen-image-train-board-30.json",
+  "target": "en",
+  "recorded": "2026-10-12T17-07-31"
+ },
+ {
+  "name": "qwen-image-train-none",
+  "kind": "qwen",
+  "log": "scripts/dev/karaoke-probe/fixtures/qwen/image-train-none.jsonl",
+  "words": "scripts/dev/karaoke-probe/fixtures/words/qwen-image-train-none.json",
+  "target": "en",
+  "recorded": "2026-10-12T17-05-41"
+ },
+ {
+  "name": "soniox-zh-ja",
+  "kind": "soniox",
+  "log": "scripts/dev/karaoke-probe/fixtures/soniox/zh-ja.jsonl",
+  "words": "scripts/dev/karaoke-probe/fixtures/words/soniox-zh-ja.json",
+  "target": "ja",
+  "recorded": "2026-10-25T02-18-14"
+ },
+ {
+  "name": "soniox-ja-en",
+  "kind": "soniox",
+  "log": "scripts/dev/karaoke-probe/fixtures/soniox/ja-en.jsonl",
+  "words": "scripts/dev/karaoke-probe/fixtures/words/soniox-ja-en.json",
+  "target": "en",
+  "recorded": "2026-10-25T02-19-09"
+ },
+ {
+  "name": "soniox-ja-zh",
+  "kind": "soniox",
+  "log": "scripts/dev/karaoke-probe/fixtures/soniox/ja-zh.jsonl",
+  "words": "scripts/dev/karaoke-probe/fixtures/words/soniox-ja-zh.json",
+  "target": "zh",
+  "recorded": "2026-10-25T02-19-52"
+ },
+ {
+  "name": "soniox-zhja-en",
+  "kind": "soniox",
+  "log": "scripts/dev/karaoke-probe/fixtures/soniox/zhja-en.jsonl",
+  "words": "scripts/dev/karaoke-probe/fixtures/words/soniox-zhja-en.json",
+  "target": "en",
+  "recorded": "2026-10-25T02-20-15"
+ }
+]
