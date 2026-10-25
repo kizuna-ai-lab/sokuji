@@ -571,6 +571,18 @@ describe('LegSpeech switched off and on mid-run (Translation I hear, #595)', () 
     expect(kinds('speechRanges').map((e) => e.payload)).toEqual([{ ref: 1, ranges: [{ index: 0, range: [0, 5] }] }]);
   });
 
+  it('off closes the dropped segment out over the text its chunks were placed in, past a surrogate pair', async () => {
+    const { speech, tts, kinds } = await setup();
+    speech.speak(1, 'a😀', [0, 3], 'en');
+    speech.speak(1, 'b', [3, 4], 'en');
+    // Equal chunks put the proportional boundary at 2, between the emoji's two halves.
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(1) }));
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(1) }));
+    speech.setOn(false);
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));
+    expect(kinds('speechRanges').map((e) => e.payload)).toEqual([{ ref: 1, ranges: [{ index: 0, range: [0, 3] }, { index: 1, range: [3, 4] }] }]);
+  });
+
   it('off sends no translation to synthesis, on the same socket', async () => {
     const { speech, tts, sockets } = await setup();
     speech.setOn(false);

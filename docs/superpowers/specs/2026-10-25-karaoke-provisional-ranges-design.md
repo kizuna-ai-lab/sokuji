@@ -27,7 +27,7 @@ Measured on real recordings (see "Evidence"):
 - Palabra has the same shape (tiled at `last_chunk`); it was not measured.
 
 **Owner's ruling (2026-10-25):** progress from the first sound matters more than
-exact progress ("一开口就有进度更重要"). After seeing the test below, the owner
+exact progress. After seeing the test below, the owner
 approved this direction.
 
 ## The idea

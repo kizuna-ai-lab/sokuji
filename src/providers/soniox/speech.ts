@@ -52,8 +52,13 @@ export class LegSpeech {
   private readonly counts = new Map<Ref, number>();
   /** Per live stream of the current socket: its chunks' entry indices and sample counts. A new socket restarts the ids. */
   private segments = new Map<string, Array<{ index: number; samples: number }>>();
-  /** Per live stream of the current socket: its samples so far and where its provisional ranges reached, in its span. */
-  private sweeps = new Map<string, { cum: number; reached: number }>();
+  /**
+   * Per live stream of the current socket: its samples so far, where its
+   * provisional ranges reached in its span, and the text they were placed
+   * in — what an unclean close-out tiles over once speech switched off has
+   * let the held chunks go.
+   */
+  private sweeps = new Map<string, { cum: number; reached: number; text: string }>();
   /**
    * Per ref, the chunks fed whose TTS segment has not ended yet: what a
    * segment's span indexes when its ranges are filled in (`tileSpan`'s
@@ -131,7 +136,8 @@ export class LegSpeech {
       return;
     }
     this.pending = [];
-    // Every chunk held belongs to a dropped segment or to text that waited: none will be filled in.
+    // Every chunk held belongs to the live segment, dropped now, or to text that waited and never will be
+    // spoken. The dropped segment is still closed out, over the text its chunks were placed in (its sweep).
     this.texts = new Map();
     this.stream?.drop();
   }
@@ -244,10 +250,11 @@ export class LegSpeech {
 
   /** Where this chunk reaches in the span sent to its segment so far, at the leg's rate; none while the span has no letters. */
   private provisional(streamId: string, ref: Ref, span: TextRange, samples: number): TextRange | undefined {
-    const sweep = this.sweeps.get(streamId) ?? { cum: 0, reached: 0 };
+    const sweep = this.sweeps.get(streamId) ?? { cum: 0, reached: 0, text: '' };
     this.sweeps.set(streamId, sweep);
     sweep.cum += samples;
-    const end = this.pace.reach(this.textOf(ref, span), sweep.cum, sweep.reached);
+    sweep.text = this.textOf(ref, span);
+    const end = this.pace.reach(sweep.text, sweep.cum, sweep.reached);
     if (end === null) return undefined;
     const range: TextRange = [span[0] + sweep.reached, span[0] + end];
     sweep.reached = end;
@@ -256,10 +263,13 @@ export class LegSpeech {
 
   private onSegmentEnd(end: SonioxTtsSegmentEnd): void {
     const entries = this.segments.get(end.streamId);
+    const sweep = this.sweeps.get(end.streamId);
     this.segments.delete(end.streamId);
     this.sweeps.delete(end.streamId);
-    // Filled in or lost, the segment's text is done with either way.
-    const text = end.ref !== undefined && end.span ? this.release(end.ref, end.span) : '';
+    // Filled in or lost, the segment's text is done with either way. Speech switched off let it go
+    // already: the text its chunks were placed in stands in, so a boundary still snaps past a surrogate pair.
+    const held = end.ref !== undefined && end.span ? this.release(end.ref, end.span) : '';
+    const text = held.length > 0 ? held : sweep?.text ?? '';
     if (this.closed || !end.span || end.ref === undefined || !entries || entries.length === 0) return;
     // Clean or not, the chunks that arrived take the span: an unclean end (a kill, a lost socket,
     // speech switched off) would otherwise leave its row lit part way after the voice stopped.
