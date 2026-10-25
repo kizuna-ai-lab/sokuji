@@ -195,6 +195,25 @@ describe('createKaraoke', () => {
     queues.replay.set({ key: 'speaker:2:0', t: 500, ms: 1000 }, 1);
     expect(karaoke.get().lit.get('s:speaker:2')).toBe(7);      // replay reads the filled range: round(13 × 0.5)
   });
+
+  it('a replay is not held: it lights what its clip says', () => {
+    const { queues, karaoke } = setup(segment());
+    karaoke.subscribe(() => {});
+    queues.replay.set({ key: 'speaker:2:1', t: 1000, ms: 1000 }, 2);
+    expect(karaoke.get().lit.get('s:speaker:2')).toBe(13);
+    queues.replay.set({ key: 'speaker:2:0', t: 0, ms: 1000 }, 2);
+    expect(karaoke.get().lit.get('s:speaker:2')).toBe(0);
+  });
+
+  it('a sentence whose speech ended uncleanly un-highlights once its fill-in tiles it to the end', () => {
+    const { queues, karaoke, setSegment } = setup(segment({ speech: [{ range: [0, 4], pcm: SECOND }] }));
+    karaoke.subscribe(() => {});
+    queues.speaker.set({ key: 'speaker:2:0', t: 1000, ms: 1000 }, 1);
+    queues.speaker.set(null, 0);
+    expect(karaoke.get().lit.get('s:speaker:2')).toBe(4);      // held: its ranges stop short of its last letter
+    setSegment(segment({ speech: [{ range: [0, 13], pcm: SECOND }] }));
+    expect(karaoke.get().lit.size).toBe(0);
+  });
 });
 
 describe('nextLit while a rangeless clip plays', () => {
@@ -216,5 +235,28 @@ describe('nextLit while a rangeless clip plays', () => {
   it('the hold keeps the gap rules: it ends when every range was dropped, and clamps to a shorter text', () => {
     expect(nextLit(prev, B, legs(segment({ speech: [{ pcm: SECOND }, { pcm: SECOND }] })))).toBeNull();
     expect(nextLit(prev, B, legs(segment({ text: 'あいう', final: false, speech: [{ range: [0, 1], pcm: SECOND }, { pcm: SECOND }] })))).toEqual({ ...prev, upTo: 3 });
+  });
+});
+
+describe('nextLit never steps back within a segment (provisional ranges)', () => {
+  const prev = { segmentId: 's:speaker:2', leg: 'speaker' as const, upTo: 9 };
+
+  it('keeps what is lit when a corrected range would light less of the same segment', () => {
+    expect(nextLit(prev, { key: 'speaker:2:1', t: 0, ms: 1000 }, legs(segment()))).toEqual(prev);
+  });
+
+  it('moves on once playback passes what is lit', () => {
+    expect(nextLit(prev, { key: 'speaker:2:1', t: 600, ms: 1000 }, legs(segment()))).toEqual({ ...prev, upTo: 10 });
+  });
+
+  it("clamps what it keeps to the segment's current, shorter text", () => {
+    const shorter = segment({ text: 'こんにちは、お元', speech: [{ range: [0, 6], pcm: SECOND }, { range: [6, 8], pcm: SECOND }] });
+    expect(nextLit(prev, { key: 'speaker:2:1', t: 0, ms: 1000 }, legs(shorter))).toEqual({ ...prev, upTo: 8 });
+  });
+
+  it('lets another segment start from its own position', () => {
+    const next = segment({ id: 's:speaker:3', ref: 3, speech: [{ range: [0, 4], pcm: SECOND }] });
+    const both: readonly Leg[] = [{ ...legs(segment())[0], segments: [segment(), next] }];
+    expect(nextLit(prev, { key: 'speaker:3:0', t: 0, ms: 1000 }, both)).toEqual({ segmentId: 's:speaker:3', leg: 'speaker', upTo: 0 });
   });
 });

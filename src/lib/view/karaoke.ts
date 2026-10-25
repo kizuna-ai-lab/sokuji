@@ -90,11 +90,20 @@ function hold(prev: Lit, legs: readonly Leg[]): Lit | null {
  * the gap ends it. Playing a clip with no range — its range is filled in
  * later — of the segment already lit holds by the same rules: a row spoken
  * as several TTS segments never un-highlights between them. Decided from
- * L1's data, never a timer.
+ * L1's data, never a timer. Nor does a playing clip step back within the
+ * segment already lit: a provisional range the fill-in later corrects
+ * (karaoke provisional ranges design, 2026-10-25) can land behind what is
+ * lit, and the highlight then waits there, clamped to the segment's text,
+ * until playback catches up.
  */
 export function nextLit(prev: Lit | null, playing: Playing<ClipKey> | null, legs: readonly Leg[]): Lit | null {
   if (playing) {
     const lit = litFor(playing, legs);
+    if (lit && prev && lit.segmentId === prev.segmentId && lit.leg === prev.leg && lit.upTo < prev.upTo) {
+      const text = legs.find((l) => l.leg === prev.leg)?.segments.find((s) => s.id === prev.segmentId)?.text ?? '';
+      const upTo = Math.min(prev.upTo, text.length);
+      return upTo === prev.upTo ? prev : { ...prev, upTo };
+    }
     if (lit || !prev) return lit;
     // A clip whose range is not filled in yet (a streaming TTS, Stage 2 Soniox) of the segment already lit:
     // what is lit stays lit, and only this clip's own words wait for their range (option (a); choice 18).
