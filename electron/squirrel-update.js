@@ -66,10 +66,16 @@ function createSquirrelDownload({
 }) {
   let inFlight = null;
   let applied = null;
+  let lastWanted;
   // A late error (after quitAndInstall, or with no download running) has no
   // other listener; one a download is handling is not reported twice.
   autoUpdater.on('error', (err) => {
     if (!inFlight) onError(err instanceof Error ? err : new Error(String(err)));
+  });
+  // Squirrel finishing after a download gave up (slow, not dead): the package
+  // is staged, and the next download must know rather than ask again.
+  autoUpdater.on('update-downloaded', (_event, _notes, releaseName) => {
+    if (!inFlight) applied = { releaseName, version: lastWanted };
   });
   const normalize = (v) => (typeof v === 'string' ? v.replace(/^v/i, '') : v);
   return {
@@ -79,6 +85,7 @@ function createSquirrelDownload({
     },
     download({ version } = {}) {
       const wanted = normalize(version);
+      lastWanted = wanted;
       // The check now names a different version than the one applied: ask again.
       if (applied && wanted && applied.version && applied.version !== wanted) applied = null;
       if (applied) {

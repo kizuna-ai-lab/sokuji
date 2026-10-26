@@ -209,7 +209,11 @@ class UpdateManager {
         return { success: false, error: 'No downloaded update' };
       }
 
+      // What was checked above is what gets installed below: a check landing
+      // while the session ends would clear this.downloadPath in between.
+      const downloadPath = this.downloadPath;
       await new Promise((resolve) => this.beforeInstall(resolve));
+      this.downloadPath = downloadPath;
 
       // Native flow: quitAndInstall replaces the AppImage / .app bundle in place.
       // On macOS electron-updater hands the downloaded zip to Squirrel.Mac,
@@ -246,11 +250,14 @@ class UpdateManager {
   _resolveDownloadUrl() {
     const info = this._updateInfo;
     if (!info) return null;
-    const exeFile = (info.files || []).find((f) => f.url && f.url.endsWith('.exe'));
+    // The manifest is fetched over https from our release, but its file
+    // name still only ever becomes a bare name of ours: nothing with a
+    // path in it reaches the temp directory or the unlink on failure.
+    const exeFile = (info.files || []).find((f) => typeof f.url === 'string' && isInstallerName(f.url) && path.basename(f.url) === f.url);
     if (!exeFile) return null;
     return {
       fileName: exeFile.url,
-      url: `https://github.com/${GITHUB_REPO.owner}/${GITHUB_REPO.repo}/releases/download/v${info.version}/${exeFile.url}`,
+      url: `https://github.com/${GITHUB_REPO.owner}/${GITHUB_REPO.repo}/releases/download/v${encodeURIComponent(info.version)}/${encodeURIComponent(exeFile.url)}`,
       expected: { size: exeFile.size, sha512: exeFile.sha512 },
     };
   }
@@ -398,7 +405,7 @@ class UpdateManager {
         // If it has not — a vetoed quit — the helper gives up after 120 s,
         // and the flag follows so the update can be retried.
         child.unref();
-        setTimeout(() => { this._installing = false; }, 125_000).unref();
+        setTimeout(() => { this._installing = false; }, 160_000).unref(); // past the helper's 120 s + 30 s
         app.quit();
         resolve();
       });

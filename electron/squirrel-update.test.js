@@ -107,7 +107,8 @@ describe('createSquirrelDownload', () => {
     au.checkForUpdates = () => { au.checks += 1; if (fail) throw new Error('Can not find Squirrel'); };
     const d = createSquirrelDownload({ autoUpdater: au, feedUrl, onStatus: () => {} });
     await expect(d.download()).rejects.toThrow('Can not find Squirrel');
-    for (const ev of ['update-downloaded', 'update-not-available']) expect(au.listenerCount(ev)).toBe(0);
+    expect(au.listenerCount('update-not-available')).toBe(0);
+    expect(au.listenerCount('update-downloaded')).toBe(1); // the permanent one, for a late completion
     expect(au.listenerCount('error')).toBe(1);
     fail = false;
     const p = d.download();
@@ -154,12 +155,27 @@ describe('createSquirrelDownload', () => {
     expect(timers[0].ms).toBe(60 * 60 * 1000);
     timers[0].fn();
     await expect(p).rejects.toThrow('Squirrel reported nothing for 60 minutes');
-    for (const ev of ['update-downloaded', 'update-not-available']) expect(au.listenerCount(ev)).toBe(0);
+    expect(au.listenerCount('update-not-available')).toBe(0);
+    expect(au.listenerCount('update-downloaded')).toBe(1); // the permanent one, for a late completion
     const p2 = d.download({ version: '0.46.5' });
     expect(au.checks).toBe(2);
     au.emit('update-downloaded', {}, '', '0.46.5', new Date(), feedUrl);
     await expect(p2).resolves.toEqual({ releaseName: '0.46.5', version: '0.46.5' });
     expect(timers.filter(Boolean)).toHaveLength(0); // the second download's timer was cleared on success
+  });
+
+  it('records a package Squirrel finishes after the download gave up, so the next download does not ask again', async () => {
+    const au = fakeAutoUpdater();
+    const timers = [];
+    const fakeTimers = { setTimeout: (fn, ms) => { timers.push({ fn, ms }); return timers.length; }, clearTimeout: () => {} };
+    const d = createSquirrelDownload({ autoUpdater: au, feedUrl, onStatus: () => {}, timers: fakeTimers });
+    const p = d.download({ version: '0.46.5' });
+    timers[0].fn();
+    await expect(p).rejects.toThrow('giving up');
+    au.emit('update-downloaded', {}, '', '0.46.5', new Date(), feedUrl); // Squirrel was slow, not dead
+    expect(d.applied()).toEqual({ releaseName: '0.46.5', version: '0.46.5' });
+    await expect(d.download({ version: '0.46.5' })).resolves.toEqual({ releaseName: '0.46.5', version: '0.46.5' });
+    expect(au.checks).toBe(1);
   });
 
   it('compares the version the check requested, not Squirrel\'s release name (which may carry a v)', async () => {
@@ -190,7 +206,8 @@ describe('createSquirrelDownload', () => {
     const p = d.download();
     au.emit('error', new Error('Update.exe exited with 1'));
     await expect(p).rejects.toThrow('Update.exe exited with 1');
-    for (const ev of ['update-downloaded', 'update-not-available']) expect(au.listenerCount(ev)).toBe(0);
+    expect(au.listenerCount('update-not-available')).toBe(0);
+    expect(au.listenerCount('update-downloaded')).toBe(1); // the permanent one, for a late completion
     expect(au.listenerCount('error')).toBe(1); // the permanent one
   });
 
