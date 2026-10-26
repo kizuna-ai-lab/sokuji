@@ -531,6 +531,16 @@ jobs:
               echo "FAIL: unrecognised designated requirement." >&2
               exit 1 ;;
           esac
+          # Bridge to Developer ID (scripts/macos-transitional-requirement.js):
+          # the bundle must also admit Developer ID builds of our team, or the
+          # first Developer ID release could never replace this one.
+          if ! grep -Fq 'anchor apple generic' <<<"$DR" || \
+             ! grep -Eq 'certificate leaf\[subject\.OU\] = "?48ST7Q3ACJ"?([^A-Z0-9]|$)' <<<"$DR"; then
+            echo "FAIL: the designated requirement does not admit Developer ID team 48ST7Q3ACJ;" >&2
+            echo "the afterSign hook did not run or did not take." >&2
+            exit 1
+          fi
+          echo "OK: designated requirement also admits Developer ID team 48ST7Q3ACJ."
           codesign --verify --deep --strict "$APP"
           echo "OK: bundle passes strict nested validation."
 

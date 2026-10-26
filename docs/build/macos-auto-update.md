@@ -1059,6 +1059,42 @@ not ship together.
 - **Gatekeeper is unchanged.** The PKG is still not notarized, so the
   `xattr` step stays exactly as it is today.
 
+### 7.1b Moving to Developer ID: self-signed → Developer ID — one bridge release
+
+Since 2026-10 the project has a paid Apple Developer membership (individual,
+team `48ST7Q3ACJ`), which makes notarization possible, and with it a first open
+without the `xattr` step. Switching the signature straight to Developer ID would
+break every in-app update, for the same reason as 7.1: Squirrel.Mac only
+installs an update that satisfies the *running* app's designated requirement,
+and every self-signed release pins the self-signed root:
+
+    identifier "ai.kizunaai.sokuji" and certificate root = H"92e86a47…"
+
+The bridge is **v0.46.4**, a signing-only patch:
+
+- **Still signed with the self-signed certificate**, so installed copies accept it.
+- **Its designated requirement also admits Developer ID**:
+  `scripts/macos-transitional-requirement.js` (an `afterSign` hook) re-signs the
+  main bundle with
+
+      identifier "ai.kizunaai.sokuji" and (certificate root = H"<self-signed root>"
+        or anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] exists
+        and certificate leaf[field.1.2.840.113635.100.6.1.13] exists
+        and certificate leaf[subject.OU] = "48ST7Q3ACJ")
+
+  It re-signs only the top-level `.app`. electron-builder's `mac.requirements`
+  would apply the requirement to every nested helper too, and each one would
+  then fail its own designated requirement. The `Verify the macOS update
+  artifacts` step in CI fails any signed build whose requirement lacks the
+  Developer ID clause.
+- **The release after it is signed with Developer ID and notarized.** Anyone
+  still on a release older than v0.46.4 at that point is offered the new version
+  but cannot install it; the update fails the signature check. They install the
+  new pkg by hand once, and that pkg opens without `xattr`.
+- **Microphone permission** may be asked for once more after the Developer ID
+  release, because TCC stored the self-signed requirement when it was granted.
+  This is to be verified on hardware.
+
 ### 7.2 Signing the driver — safe, and not actually required
 
 The device UID is a compile-time macro. Upstream `BlackHole.c` defines:
