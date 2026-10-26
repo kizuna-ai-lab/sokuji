@@ -67,3 +67,49 @@ Checked before the runs:
 2026-10-26T16:17:02.931Z first tokens 118943 ms after the drop
 ```
 (Lines #4 and #5 were above the visible area of the screenshots. Then listening through 5 min with Notes in front.)
+
+## Memory and CPU over 60 minutes (iOS Simulator, iPhone 17 Pro, iOS 26.3.1)
+
+A real managed Soniox session. An English lecture is looped with `say` into the
+SokujiVirtualAudio device, which loops its output back as the Mac's default
+input, so the simulator's microphone hears it and nothing plays in the room.
+RSS every 30 s; `footprint` categories every 5 min.
+
+### r4: last 50 lines, redrawn every 250 ms, always (2026-10-26 17:30–18:33 UTC)
+
+| minutes | RSS low–high |
+|---|---|
+| 22–27 | 118–362 MB |
+| 27–32 | 337–492 MB |
+| 32–37 | 479–586 MB |
+| 37–42 | 583–648 MB |
+| 42–47 | 627–705 MB |
+| 52–57 | 642–696 MB |
+| 57–62 | 694–707 MB (726 MB at 62) |
+
+The floor rises: growth sits in CoreAnimation (125 → 135 MB in two minutes at
+minute 26) while malloc and the Hermes heap (VM_ALLOCATE, 15 MB) stay flat.
+Matches the Pixel's 775 MB after 66 min.
+
+### r5: last 20 lines, once a second, nothing drawn in the background (18:33–19:34 UTC)
+
+| phase | RSS low–high | CPU avg | CoreAnimation | MALLOC_SMALL |
+|---|---|---|---|---|
+| front 0–5 min | 239–309 MB | 4.6% | 0.8 → 10 MB | 4 → 16 MB |
+| front 15–20 min | 397–439 MB | 8.0% | 73 MB | 53 MB |
+| front 25–30 min | 439–477 MB | 9.1% | 58 MB | 86 MB |
+| background 5–30 min | 233–238 MB, flat | 2.7% | 16 KB | 89 MB, flat |
+
+In the background (Settings in front) memory falls back and stays flat: the
+locked/pocket case is clear. In front it still grows with the transcript view;
+the MVP replaces the two large Text views with a fixed-height virtual list.
+
+### Reconnects seen during these runs
+
+| UTC | cause | session-end | new lease | first tokens after drop |
+|---|---|---|---|---|
+| 18:00:19 | `close 1006` (network) | 0.4 s | 7.5 s | 9.0 s |
+| 18:00:33 | `close 1006` (network) | 0.3 s | 7.3 s | 8.5 s |
+| 18:51:01 | `close 1001 Stream end encountered` (server) | 0.6 s | 7.5 s | 8.8 s |
+
+Gate A.2 reconnect gap: about 9 s from the drop when the network is up.
