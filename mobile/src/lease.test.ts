@@ -44,3 +44,20 @@ describe('leaseKey', () => {
     await expect(leaseKey({ token: 'tok', region: 'us', fetch, ...clock() })).rejects.toThrow('sign_in_required');
   });
 });
+
+describe('sessionEnd', () => {
+  it('posts the lease id and reports success', async () => {
+    const { sessionEnd } = await import('./lease');
+    const { fetch, calls } = respond([200]);
+    expect(await sessionEnd({ token: 'tok', leaseId: 'lease-1', fetch, ...clock() })).toBe(true);
+    expect(calls[0].url).toBe('https://sokuji.kizuna.ai/api/soniox/session-end');
+    expect(JSON.parse(calls[0].init.body as string)).toEqual({ leaseId: 'lease-1' });
+  });
+
+  it('retries a server error at most twice, then gives up without throwing', async () => {
+    const { sessionEnd } = await import('./lease');
+    const { fetch, calls } = respond([500, 500, 500, 500]);
+    expect(await sessionEnd({ token: 'tok', leaseId: 'lease-1', fetch, ...clock() })).toBe(false);
+    expect(calls.length).toBe(3);
+  });
+});

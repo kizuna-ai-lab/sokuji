@@ -76,15 +76,46 @@ export async function sessionStarted(o: {
   if (!res.ok) throw new Error(`session-started ${res.status}`);
 }
 
-export async function sessionEnd(o: { token: string; leaseId: string; fetch?: typeof fetch }): Promise<void> {
-  try {
-    const res = await (o.fetch ?? fetch)(`${BACKEND_URL}/api/soniox/session-end`, {
-      method: 'POST',
-      headers: headers(o.token),
-      body: JSON.stringify({ leaseId: o.leaseId }),
-    });
-    if (!res.ok) console.log(`session-end ${res.status}`);
-  } catch (err) {
-    console.log(`session-end failed: ${err instanceof Error ? err.message : String(err)}`);
+// The backend ends the account's session, not the lease: a late session-end for an
+// old lease would end the new one. Callers send it before leasing again, never after.
+// Budget and attempts follow the desktop (4 s, three attempts at most).
+const END_BUDGET_MS = 4000;
+const END_RETRY_WAITS_MS = [500, 1000];
+
+export async function sessionEnd(o: {
+  token: string;
+  leaseId: string;
+  fetch?: typeof fetch;
+  sleep?: (ms: number) => Promise<void>;
+  now?: () => number;
+}): Promise<boolean> {
+  const doFetch = o.fetch ?? fetch;
+  const sleep = o.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+  const now = o.now ?? Date.now;
+  const deadline = now() + END_BUDGET_MS;
+  for (let attempt = 0; attempt <= END_RETRY_WAITS_MS.length; attempt++) {
+    const left = deadline - now();
+    if (left <= 0) break;
+    const abort = new AbortController();
+    const timer = setTimeout(() => abort.abort(), left);
+    try {
+      const res = await doFetch(`${BACKEND_URL}/api/soniox/session-end`, {
+        method: 'POST',
+        headers: headers(o.token),
+        body: JSON.stringify({ leaseId: o.leaseId }),
+        signal: abort.signal,
+      });
+      if (res.ok) return true;
+      console.log(`session-end ${res.status}`);
+      if (res.status < 500) return false;
+    } catch (err) {
+      console.log(`session-end failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      clearTimeout(timer);
+    }
+    const wait = END_RETRY_WAITS_MS[attempt];
+    if (wait === undefined || now() + wait >= deadline) break;
+    await sleep(wait);
   }
+  return false;
 }

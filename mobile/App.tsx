@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Button, SafeAreaView, ScrollView, StyleSheet, Text } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, Text } from 'react-native';
 import { sessionToken, signOut } from './src/auth';
 import SignIn from './src/SignIn';
-import MicProbe from './src/MicProbe';
+import Main from './src/Main';
 
 export default function App() {
   const [token, setToken] = useState<string | null | undefined>(undefined);
@@ -25,13 +25,7 @@ export default function App() {
       <ScrollView contentContainerStyle={styles.content}>
         {token === undefined && <Text>Loading…</Text>}
         {token === null && <SignIn onSignedIn={refresh} />}
-        {!!token && (
-          <>
-            <Text>signed in</Text>
-            <Button title="Sign out" onPress={async () => { await signOut(); await refresh(); }} />
-          </>
-        )}
-        <MicProbe />
+        {!!token && <Main token={token} onSignOut={async () => { await signOut(); await refresh(); }} />}
       </ScrollView>
       <StatusBar style="auto" />
     </SafeAreaView>
