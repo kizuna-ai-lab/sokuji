@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import * as Clipboard from 'expo-clipboard';
@@ -9,25 +9,46 @@ import { startSession, type Status } from './session';
 const REGIONS: SonioxRegion[] = ['us', 'eu', 'jp'];
 const KEEP_AWAKE_TAG = 'sokuji-session';
 // Shown on screen so a tester can tell which code the phone is running.
-const BUILD_LABEL = 'proto r3: retry + grant rotation';
+const BUILD_LABEL = 'proto r4: bounded UI + file log';
+// Only the tail is rendered: re-rendering an hour of text on every token starved the JS thread.
+const SHOWN_LINES = 50;
+const SHOWN_LOG_LINES = 200;
+const FLUSH_MS = 250;
 
-interface Lane {
-  final: string;
+// The whole transcript, kept outside React state: lines closed by <end>/<fin>, the open
+// line's final text, and the non-final tail that the next message replaces.
+interface Transcript {
+  lines: string[];
+  open: string;
   pending: string;
 }
 
-const emptyLane = (): Lane => ({ final: '', pending: '' });
+interface Lane {
+  text: string;
+  pending: string;
+}
 
-// Final tokens are appended; non-final ones replace the grey tail on every message.
-function fold(lane: Lane, tokens: SonioxToken[]): Lane {
-  let final = lane.final;
+const emptyTranscript = (): Transcript => ({ lines: [], open: '', pending: '' });
+const emptyLane = (): Lane => ({ text: '', pending: '' });
+
+function fold(t: Transcript, tokens: SonioxToken[]): void {
   let pending = '';
-  for (const t of tokens) {
-    const text = t.text === '<end>' || t.text === '<fin>' ? '\n' : t.text;
-    if (t.is_final) final += text;
-    else pending += text;
+  for (const tok of tokens) {
+    if (!tok.is_final) {
+      pending += tok.text;
+    } else if (tok.text === '<end>' || tok.text === '<fin>') {
+      t.lines.push(t.open);
+      t.open = '';
+    } else {
+      t.open += tok.text;
+    }
   }
-  return { final, pending };
+  t.pending = pending;
+}
+
+function tail(t: Transcript): Lane {
+  const lines = t.lines.slice(-(SHOWN_LINES - 1));
+  return { text: [...lines, t.open].join('\n'), pending: t.pending };
 }
 
 export default function Main({ token, onSignOut }: { token: string; onSignOut: () => void }) {
@@ -40,10 +61,26 @@ export default function Main({ token, onSignOut }: { token: string; onSignOut: (
   const [translation, setTranslation] = useState<Lane>(emptyLane);
   const [log, setLog] = useState<string[]>([]);
   const session = useRef<{ stop(): Promise<void> } | null>(null);
+  const heardAll = useRef(emptyTranscript());
+  const translationAll = useRef(emptyTranscript());
+  const dirty = useRef(false);
+
+  // Token updates are merged and drawn at most every 250 ms.
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (!dirty.current) return;
+      dirty.current = false;
+      setHeard(tail(heardAll.current));
+      setTranslation(tail(translationAll.current));
+    }, FLUSH_MS);
+    return () => clearInterval(timer);
+  }, []);
 
   const active = status !== 'idle' && status !== 'stopped' && status !== 'error';
 
   async function start() {
+    heardAll.current = emptyTranscript();
+    translationAll.current = emptyTranscript();
     setHeard(emptyLane());
     setTranslation(emptyLane());
     setDetail('');
@@ -58,12 +95,13 @@ export default function Main({ token, onSignOut }: { token: string; onSignOut: (
           setStatus(e.status);
           setDetail(e.detail ?? '');
         } else if (e.type === 'log') {
-          setLog((l) => [...l, e.line]);
+          setLog((l) => [...l.slice(-(SHOWN_LOG_LINES - 1)), e.line]);
         } else {
           const original = e.tokens.filter((t) => t.translation_status !== 'translation');
           const translated = e.tokens.filter((t) => t.translation_status === 'translation');
-          if (original.length) setHeard((l) => fold(l, original));
-          if (translated.length) setTranslation((l) => fold(l, translated));
+          if (original.length) fold(heardAll.current, original);
+          if (translated.length) fold(translationAll.current, translated);
+          dirty.current = true;
         }
       },
     });
@@ -97,14 +135,14 @@ export default function Main({ token, onSignOut }: { token: string; onSignOut: (
       <Text style={styles.heading}>Heard</Text>
       <ScrollView style={styles.lane}>
         <Text>
-          {heard.final}
+          {heard.text}
           <Text style={styles.pending}>{heard.pending}</Text>
         </Text>
       </ScrollView>
       <Text style={styles.heading}>Translation</Text>
       <ScrollView style={styles.lane}>
         <Text>
-          {translation.final}
+          {translation.text}
           <Text style={styles.pending}>{translation.pending}</Text>
         </Text>
       </ScrollView>

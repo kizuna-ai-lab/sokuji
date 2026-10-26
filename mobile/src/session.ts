@@ -4,6 +4,7 @@ import { SonioxSttStream, type SonioxToken } from '@shared/providers/soniox/sttS
 import type { SonioxRegion } from '@shared/lib/soniox/regions';
 import { floatToInt16 } from './pcm';
 import { leaseKey, sessionEnd, sessionStarted, type Grant } from './lease';
+import { appendLog, openLogFile } from './logFile';
 
 export type Status = 'leasing' | 'connecting' | 'listening' | 'reconnecting' | 'stopped' | 'error';
 
@@ -53,6 +54,7 @@ export function startSession(o: {
   const log = (line: string) => {
     const stamped = `${new Date().toISOString()} ${line}`;
     console.log(stamped);
+    appendLog(stamped);
     o.onEvent({ type: 'log', line: stamped });
   };
 
@@ -155,6 +157,8 @@ export function startSession(o: {
   }
 
   async function begin(): Promise<void> {
+    const where = openLogFile();
+    log(`log file ${where}`);
     // Phone microphone only, even with a headset connected (ruling for the first
     // version): a headset mic is far from the speaker in a lecture hall.
     AudioManager.setAudioSessionOptions({ iosCategory: 'record', iosMode: 'default', iosOptions: [] });
