@@ -8,6 +8,8 @@ import { startSession, type Status } from './session';
 
 const REGIONS: SonioxRegion[] = ['us', 'eu', 'jp'];
 const KEEP_AWAKE_TAG = 'sokuji-session';
+// Shown on screen so a tester can tell which code the phone is running.
+const BUILD_LABEL = 'proto r3: retry + grant rotation';
 
 interface Lane {
   final: string;
@@ -85,6 +87,7 @@ export default function Main({ token, onSignOut }: { token: string; onSignOut: (
           </Text>
         ))}
       </View>
+      <Text style={styles.build}>{BUILD_LABEL}</Text>
       <Button title={active ? 'Stop' : 'Start'} onPress={active ? stop : start} />
       <Text style={styles.status}>
         {status}
@@ -132,4 +135,5 @@ const styles = StyleSheet.create({
   pending: { color: '#999' },
   log: { maxHeight: 160 },
   logLine: { fontSize: 11, color: '#555' },
+  build: { fontSize: 11, color: '#999' },
 });
