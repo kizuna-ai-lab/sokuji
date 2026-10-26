@@ -117,7 +117,8 @@
       "owner": "kizuna-ai-lab",
       "repo": "sokuji"
     },
-    "afterPack": "./scripts/electron-builder-fuses.js"
+    "afterPack": "./scripts/electron-builder-fuses.js",
+    "afterSign": "./scripts/macos-transitional-requirement.js"
   },
   "dependencies": {
     "electron-audio-loopback": "^1.0.6",

@@ -531,6 +531,22 @@ jobs:
               echo "FAIL: unrecognised designated requirement." >&2
               exit 1 ;;
           esac
+          # Bridge to Developer ID (scripts/macos-transitional-requirement.js):
+          # the bundle must be pinned to the self-signed root every installed
+          # release trusts, AND admit Developer ID builds of our team -- or the
+          # first Developer ID release could never replace this one.
+          if ! grep -Fq 'certificate root = H"92e86a47b9d0179e060c7e7cea61b8f9d4f3c350"' <<<"$DR"; then
+            echo "FAIL: not signed with the self-signed root installed releases trust (92e86a47...);" >&2
+            echo "they would refuse this build as an update." >&2
+            exit 1
+          fi
+          if ! grep -Fq 'anchor apple generic' <<<"$DR" || \
+             ! grep -Eq 'certificate leaf\[subject\.OU\] = ("48ST7Q3ACJ"|48ST7Q3ACJ([) ]|$))' <<<"$DR"; then
+            echo "FAIL: the designated requirement does not admit Developer ID team 48ST7Q3ACJ;" >&2
+            echo "the afterSign hook did not run or did not take." >&2
+            exit 1
+          fi
+          echo "OK: pinned to the installed releases' root, and also admits Developer ID team 48ST7Q3ACJ."
           codesign --verify --deep --strict "$APP"
           echo "OK: bundle passes strict nested validation."
 
@@ -573,6 +589,19 @@ jobs:
           grep -q "$(basename "$ZIP")" "$YML" || {
             echo "FAIL: latest-mac.yml does not reference $(basename "$ZIP")." >&2; exit 1; }
           echo "OK: manifest references the zip."
+
+      # A signing change can only be judged on a real Mac (Gatekeeper, TCC,
+      # the keychain, Squirrel's requirement check), so keep the signed app of
+      # a pull request around long enough to try it. Same-repo PRs only: fork
+      # PRs get no certificate and would upload an ad-hoc build.
+      - name: Upload the signed macOS app for review (pull requests)
+        if: runner.os == 'macOS' && github.event_name == 'pull_request' && env.HAS_MAC_CERT == 'true'
+        uses: actions/upload-artifact@v6
+        with:
+          name: macos-${{ matrix.arch }}-pr-build
+          path: out/make-mac/*.zip
+          retention-days: 3
+          if-no-files-found: error
 
       - name: Build Chrome Extension
         if: matrix.os == 'ubuntu-latest' && matrix.arch != 'arm64'
