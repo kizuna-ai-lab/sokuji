@@ -498,7 +498,7 @@
     },
     "kizunaai_qwen": {
       "name": "KizunaAI",
-      "description": "ترجمة فورية Qwen3.8، 60 لغة (29 منطوقة)"
+      "description": "60 لغة (29 منطوقة) · شارك شاشتك لتكون الأسماء والمصطلحات دقيقة"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -546,7 +546,7 @@
     },
     "qwen_livetranslate": {
       "name": "Qwen LiveTranslate",
-      "description": "ترجمة فورية Qwen3.8، 60 لغة (29 منطوقة)",
+      "description": "60 لغة (29 منطوقة) · شارك شاشتك لتكون الأسماء والمصطلحات دقيقة",
       "voiceClone": "استنساخ صوت المتحدث",
       "voiceCloneOnce": "استنساخ صوت المتحدث الأول",
       "voiceGroupClone": "استنساخ الصوت",
@@ -559,7 +559,6 @@
       "vocabularyTranslationsPlaceholder": "إدخال واحد بصيغة المصدر=الهدف في كل سطر",
       "screenContext": "سياق الشاشة",
       "screenContextTooltip": "يتيح للنموذج رؤية نافذة أو علامة تبويب أو شاشة واحدة تختارها، فيتعرّف على الأسماء والمصطلحات الظاهرة فيها ويترجمها كما هي مكتوبة. كل ما يقع داخل تلك المنطقة يُرسَل كصور إلى خدمة Qwen التابعة لـ Alibaba Cloud، في منطقة هذه الجلسة؛ ولا تستلم Kizuna AI هذه الصور أبدًا. ويضيف ذلك إلى الرسوم عن كل ثانية كلام ما دام مفعّلًا — في فاتورة Alibaba Cloud إذا استخدمت مفتاحك الخاص، أو وفق صفحة الأسعار الخاصة بحسابك مع حساب Kizuna AI؛ وفي وضع الكل تُحتسب جلسة كل اتجاه.",
-      "screenContextBeta": "تجريبي",
       "screenContextPicked": "سيرى النموذج: {{name}}",
       "screenContextStill": "صورة من وقت اختيارك لها",
       "screenContextPortal": "يسألك النظام عن النافذة أو الشاشة عند بدء الجلسة.",

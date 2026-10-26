@@ -498,7 +498,7 @@
     },
     "kizunaai_qwen": {
       "name": "KizunaAI",
-      "description": "Qwen3.8 sabay-sabay na pagsasalin, 60 wika (29 may boses)"
+      "description": "60 wika (29 may boses) · i-share ang screen mo para tumpak ang mga pangalan at termino"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -546,7 +546,7 @@
     },
     "qwen_livetranslate": {
       "name": "Qwen LiveTranslate",
-      "description": "Qwen3.8 sabay-sabay na pagsasalin, 60 wika (29 may boses)",
+      "description": "60 wika (29 may boses) · i-share ang screen mo para tumpak ang mga pangalan at termino",
       "voiceClone": "I-clone ang boses ng nagsasalita",
       "voiceCloneOnce": "I-clone ang boses ng unang nagsasalita",
       "voiceGroupClone": "Pag-clone ng boses",
@@ -559,7 +559,6 @@
       "vocabularyTranslationsPlaceholder": "Isang entry na source=target kada linya",
       "screenContext": "Konteksto ng screen",
       "screenContextTooltip": "Hinahayaan ang modelo na makita ang isang window, tab o screen na pipiliin mo, para makilala at maisalin ang mga pangalan at terminong nasa mga ito nang eksakto sa pagkakasulat. Lahat ng nasa loob ng lugar na iyon ay ipinapadala bilang mga larawan sa Qwen service ng Alibaba Cloud, sa rehiyon ng session na ito; hindi kailanman natatanggap ng Kizuna AI ang mga ito. Habang naka-on ito, nadaragdagan nito ang singil sa bawat segundo ng pagsasalita — sa iyong Alibaba Cloud bill kung sariling key ang gamit mo, o ayon sa pricing page ng iyong account kung Kizuna AI account; sa mode na Pareho, sinisingil ang session ng bawat direksyon.",
-      "screenContextBeta": "Beta",
       "screenContextPicked": "Makikita ng modelo: {{name}}",
       "screenContextStill": "Larawan noong pinili mo ito",
       "screenContextPortal": "Itatanong ng system kung aling window o screen sa pagsisimula ng session.",

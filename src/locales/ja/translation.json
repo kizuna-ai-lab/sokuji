@@ -498,7 +498,7 @@
     },
     "kizunaai_qwen": {
       "name": "KizunaAI",
-      "description": "Qwen3.8 同時通訳、60 言語（音声は 29 言語）"
+      "description": "60 言語（音声は 29 言語）· 画面を共有すると名前や用語がより正確に"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -546,7 +546,7 @@
     },
     "qwen_livetranslate": {
       "name": "Qwen LiveTranslate",
-      "description": "Qwen3.8 同時通訳、60 言語（音声は 29 言語）",
+      "description": "60 言語（音声は 29 言語）· 画面を共有すると名前や用語がより正確に",
       "voiceClone": "話者の声を複製",
       "voiceCloneOnce": "最初の話者の声を複製",
       "voiceGroupClone": "声の複製",
@@ -559,7 +559,6 @@
       "vocabularyTranslationsPlaceholder": "1 行に 1 つ、「原語=訳語」の形式で入力",
       "screenContext": "画面\u200bコンテキスト",
       "screenContextTooltip": "選んだウィンドウ・タブ・画面のどれか一つを、モデルが見られるようにします。そこに表示されている名前や用語を、表記どおりに認識して翻訳できます。その領域内のすべての内容は、画像としてこのセッションのリージョンにある Alibaba Cloud の Qwen サービスに送信されます。Kizuna AI がそれらを受け取ることはありません。オンの間、発話の毎秒ぶんの料金が加算されます。ご自身のキーでは Alibaba Cloud の請求に、Kizuna AI アカウントではアカウントの料金ページのとおりに加算されます。「両方」モードでは方向ごとのセッションに課金されます。",
-      "screenContextBeta": "ベータ",
       "screenContextPicked": "モデルが見る範囲：{{name}}",
       "screenContextStill": "選んだ時点の画像",
       "screenContextPortal": "セッション開始時に、ウィンドウまたは画面をシステムが尋ねます。",

@@ -498,7 +498,7 @@
     },
     "kizunaai_qwen": {
       "name": "KizunaAI",
-      "description": "千问 Qwen3.8 同声传译，60 种语言（29 种可配音）"
+      "description": "60 种语言（29 种可配音）· 共享画面，人名和术语更准"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -546,7 +546,7 @@
     },
     "qwen_livetranslate": {
       "name": "Qwen LiveTranslate",
-      "description": "千问 Qwen3.8 同声传译，60 种语言（29 种可配音）",
+      "description": "60 种语言（29 种可配音）· 共享画面，人名和术语更准",
       "voiceClone": "复刻说话人的声音",
       "voiceCloneOnce": "复刻第一位说话人的声音",
       "voiceGroupClone": "声音复刻",
@@ -559,7 +559,6 @@
       "vocabularyTranslationsPlaceholder": "每行一条，格式为原文=译文",
       "screenContext": "屏幕上下文",
       "screenContextTooltip": "让模型看到你选择的一个窗口、标签页或屏幕，使其中的名称和术语按原文被识别和翻译。该区域内的所有内容都会以图片形式发送到 Alibaba Cloud 的 Qwen 服务（位于本次会话所在的区域）；Kizuna AI 永远不会收到这些图片。开启期间，每一秒语音的费用都会增加——使用自己的密钥时计入你的 Alibaba Cloud 账单，使用 Kizuna AI 账户时按你账户定价页面上的说明计费；在「两者」模式下，每个方向的会话分别计费。",
-      "screenContextBeta": "测试版",
       "screenContextPicked": "模型将看到：{{name}}",
       "screenContextStill": "选择时的画面",
       "screenContextPortal": "会话开始时，系统会询问使用哪个窗口或屏幕。",

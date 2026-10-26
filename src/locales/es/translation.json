@@ -498,7 +498,7 @@
     },
     "kizunaai_qwen": {
       "name": "KizunaAI",
-      "description": "Interpretación simultánea Qwen3.8, 60 idiomas (29 con voz)"
+      "description": "60 idiomas (29 con voz) · comparte tu pantalla para nombres y términos exactos"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -546,7 +546,7 @@
     },
     "qwen_livetranslate": {
       "name": "Qwen LiveTranslate",
-      "description": "Interpretación simultánea Qwen3.8, 60 idiomas (29 con voz)",
+      "description": "60 idiomas (29 con voz) · comparte tu pantalla para nombres y términos exactos",
       "voiceClone": "Clonar la voz del hablante",
       "voiceCloneOnce": "Clonar la voz del primer hablante",
       "voiceGroupClone": "Clonación de voz",
@@ -559,7 +559,6 @@
       "vocabularyTranslationsPlaceholder": "Una entrada origen=destino por línea",
       "screenContext": "Contexto de pantalla",
       "screenContextTooltip": "Permite que el modelo vea una ventana, pestaña o pantalla que elijas, para que los nombres y términos que aparecen en ella se reconozcan y se traduzcan tal como están escritos. Todo lo que hay dentro de esa área se envía como imágenes al servicio Qwen de Alibaba Cloud, en la región de esta sesión; Kizuna AI nunca las recibe. Mientras está activado, aumenta el cargo por cada segundo de voz — en tu factura de Alibaba Cloud con tu propia clave, o según la página de precios de tu cuenta con una cuenta de Kizuna AI; en el modo Ambos se cobra la sesión de cada dirección.",
-      "screenContextBeta": "Beta",
       "screenContextPicked": "El modelo verá: {{name}}",
       "screenContextStill": "Imagen del momento en que la elegiste",
       "screenContextPortal": "El sistema preguntará qué ventana o pantalla al iniciar la sesión.",

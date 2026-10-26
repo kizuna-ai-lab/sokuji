@@ -498,7 +498,7 @@
     },
     "kizunaai_qwen": {
       "name": "KizunaAI",
-      "description": "Phiên dịch đồng thời Qwen3.8, 60 ngôn ngữ (29 có giọng nói)"
+      "description": "60 ngôn ngữ (29 có giọng nói) · chia sẻ màn hình để tên và thuật ngữ chính xác"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -546,7 +546,7 @@
     },
     "qwen_livetranslate": {
       "name": "Qwen LiveTranslate",
-      "description": "Phiên dịch đồng thời Qwen3.8, 60 ngôn ngữ (29 có giọng nói)",
+      "description": "60 ngôn ngữ (29 có giọng nói) · chia sẻ màn hình để tên và thuật ngữ chính xác",
       "voiceClone": "Sao chép giọng người nói",
       "voiceCloneOnce": "Sao chép giọng người nói đầu tiên",
       "voiceGroupClone": "Sao chép giọng",
@@ -559,7 +559,6 @@
       "vocabularyTranslationsPlaceholder": "Mỗi dòng một mục theo dạng nguồn=đích",
       "screenContext": "Ngữ cảnh màn hình",
       "screenContextTooltip": "Cho phép mô hình nhìn thấy một cửa sổ, tab hoặc màn hình mà bạn chọn, để các tên và thuật ngữ trên đó được nhận dạng và dịch đúng như đã viết. Mọi thứ trong vùng đó được gửi dưới dạng hình ảnh tới dịch vụ Qwen của Alibaba Cloud, tại khu vực của phiên này; Kizuna AI không bao giờ nhận được chúng. Trong lúc đang bật, tính năng này làm tăng khoản phí cho mỗi giây lời nói — trên hóa đơn Alibaba Cloud của bạn khi dùng khóa riêng, hoặc theo trang giá của tài khoản khi dùng tài khoản Kizuna AI; ở chế độ Cả hai, phiên của mỗi chiều đều bị tính phí.",
-      "screenContextBeta": "Beta",
       "screenContextPicked": "Mô hình sẽ xem: {{name}}",
       "screenContextStill": "Hình ảnh lúc bạn chọn",
       "screenContextPortal": "Hệ thống sẽ hỏi cửa sổ hoặc màn hình nào khi bắt đầu phiên.",
