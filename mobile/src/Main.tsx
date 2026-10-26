@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { AppState, Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import * as Clipboard from 'expo-clipboard';
 import type { SonioxToken } from '@shared/providers/soniox/sttStream';
@@ -9,11 +9,11 @@ import { startSession, type Status } from './session';
 const REGIONS: SonioxRegion[] = ['us', 'eu', 'jp'];
 const KEEP_AWAKE_TAG = 'sokuji-session';
 // Shown on screen so a tester can tell which code the phone is running.
-const BUILD_LABEL = 'proto r4: bounded UI + file log';
+const BUILD_LABEL = 'proto r5: no UI updates in background';
 // Only the tail is rendered: re-rendering an hour of text on every token starved the JS thread.
-const SHOWN_LINES = 50;
+const SHOWN_LINES = 20;
 const SHOWN_LOG_LINES = 200;
-const FLUSH_MS = 250;
+const FLUSH_MS = 1000;
 
 // The whole transcript, kept outside React state: lines closed by <end>/<fin>, the open
 // line's final text, and the non-final tail that the next message replaces.
@@ -65,15 +65,22 @@ export default function Main({ token, onSignOut }: { token: string; onSignOut: (
   const translationAll = useRef(emptyTranscript());
   const dirty = useRef(false);
 
-  // Token updates are merged and drawn at most every 250 ms.
+  // Token updates are merged and drawn at most once a second, and never while the app
+  // is in the background: rendering layers piled up while the phone was locked.
   useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') dirty.current = true;
+    });
     const timer = setInterval(() => {
-      if (!dirty.current) return;
+      if (!dirty.current || AppState.currentState !== 'active') return;
       dirty.current = false;
       setHeard(tail(heardAll.current));
       setTranslation(tail(translationAll.current));
     }, FLUSH_MS);
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      sub.remove();
+    };
   }, []);
 
   // Unattended test builds only: start a session as soon as the screen opens.
