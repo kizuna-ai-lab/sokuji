@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button, StyleSheet, Text, TextInput, View } from 'react-native';
 import { sendCode, signInWithCode, signInWithPassword } from './auth';
 
@@ -10,6 +10,13 @@ export default function SignIn({ onSignedIn }: { onSignedIn: (email: string) => 
   const [codeSent, setCodeSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+
+  // Unattended test builds only: both values come from the local build environment.
+  useEffect(() => {
+    const pw = process.env.EXPO_PUBLIC_TEST_PASSWORD;
+    if (pw && email) void run(() => signInWithPassword(email.trim(), pw), () => onSignedIn(email.trim()));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function run(action: () => Promise<void>, after?: () => void) {
     setBusy(true);

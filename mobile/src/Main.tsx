@@ -76,6 +76,12 @@ export default function Main({ token, onSignOut }: { token: string; onSignOut: (
     return () => clearInterval(timer);
   }, []);
 
+  // Unattended test builds only: start a session as soon as the screen opens.
+  useEffect(() => {
+    if (process.env.EXPO_PUBLIC_AUTOSTART === '1') void start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const active = status !== 'idle' && status !== 'stopped' && status !== 'error';
 
   async function start() {
