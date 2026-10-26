@@ -17,6 +17,8 @@ import {
   installerLaunchCommand,
   staleInstallers,
   isInstallerName,
+  describesInstaller,
+  HELPER_MAX_WAIT_MS,
 } from './update-install-windows.js';
 
 let dir;
@@ -50,6 +52,15 @@ describe('verifyDownloadedInstaller', () => {
   });
 });
 
+describe('describesInstaller', () => {
+  it('is the one rule for "latest.yml says enough to verify this file"', () => {
+    expect(describesInstaller({ size: 1 })).toBe(true);
+    expect(describesInstaller({ sha512: 'AAAA' })).toBe(true);
+    expect(describesInstaller({})).toBe(false);
+    expect(describesInstaller({ size: '1', sha512: '' })).toBe(false);
+  });
+});
+
 describe('installerLaunchCommand', () => {
   const cmd = installerLaunchCommand({
     installerPath: "C:\\Users\\jiang\\AppData\\Local\\Temp\\Sokuji-0.46.4.Setup.exe",
@@ -78,10 +89,19 @@ describe('installerLaunchCommand', () => {
   });
 
   it('then waits until nothing under the install root runs — the audio helper included', () => {
-    expect(script).toContain("$root = 'C:\\Users\\jiang\\AppData\\Local\\Sokuji\\'");
+    expect(script).not.toContain('$root');
     expect(script).toContain("$pattern = 'C:\\Users\\jiang\\AppData\\Local\\Sokuji\\*'");
     expect(script).toContain('Get-Process | Where-Object { $_.Path -and ($_.Path -like $pattern) }');
     expect(script).toMatch(/-lt 60/);
+    // The flag that stops a second helper must outlive the longest wait this script can do.
+    expect(HELPER_MAX_WAIT_MS).toBe((120 + 60 * 0.5) * 1000);
+  });
+
+  it('refuses to run an installer that is no longer there', () => {
+    const check = script.indexOf("if (-not (Test-Path -LiteralPath 'C:\\Users\\jiang\\AppData\\Local\\Temp\\Sokuji-0.46.4.Setup.exe')) {");
+    expect(check).toBeGreaterThan(-1);
+    expect(check).toBeLessThan(script.indexOf('Start-Process'));
+    expect(script.slice(check, script.indexOf('Start-Process'))).toContain('exit 1');
   });
 
   it('never starts the installer while something is still running: it logs and exits', () => {
@@ -101,7 +121,7 @@ describe('installerLaunchCommand', () => {
     const c = installerLaunchCommand({ installerPath: "C:\\it's\\Setup.exe", pid: 1, installRoot: "C:\\o'k\\", systemRoot: 'C:\\WINDOWS' });
     const s = c.args[c.args.length - 1];
     expect(s).toContain("'C:\\it''s\\Setup.exe'");
-    expect(s).toContain("$root = 'C:\\o''k\\'");
+    expect(s).toContain("$pattern = 'C:\\o''k\\*'");
   });
 
   it('escapes wildcard characters in the install root, so a bracketed user name still matches its own processes', () => {

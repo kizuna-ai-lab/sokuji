@@ -690,6 +690,9 @@ jobs:
           path: |
             out/make-web/squirrel.windows/x64/*.nupkg
             out/make-web/squirrel.windows/x64/RELEASES
+          # Without RELEASES no installed app can update: a tag build that
+          # lost it must fail here, not ship.
+          if-no-files-found: error
 
       - name: Upload macOS artifacts
         if: startsWith(github.ref, 'refs/tags/v') && runner.os == 'macOS'

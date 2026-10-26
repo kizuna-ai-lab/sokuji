@@ -15,6 +15,19 @@
 const { createHash } = require('crypto');
 const { createReadStream, statSync } = require('fs');
 
+/** How long the launcher waits for this process to exit before giving up. */
+const PID_WAIT_S = 120;
+/** How many half-second ticks it then waits for the rest of the install root to be gone. */
+const ROOT_WAIT_TICKS = 60;
+const ROOT_WAIT_TICK_MS = 500;
+/** The longest the launcher can be alive and still start the installer; anything that guards against a second launcher must outlive this. */
+const HELPER_MAX_WAIT_MS = PID_WAIT_S * 1000 + ROOT_WAIT_TICKS * ROOT_WAIT_TICK_MS;
+
+/** Whether a latest.yml entry says enough to verify the file: a size or a sha512. The one place this rule lives. */
+function describesInstaller(expected) {
+  return !!expected && (typeof expected.size === 'number' || (typeof expected.sha512 === 'string' && expected.sha512.length > 0));
+}
+
 /**
  * Check a downloaded installer against what latest.yml announced. Size first
  * (cheap, and the usual failure: a truncated download), then the base64
@@ -24,9 +37,9 @@ const { createReadStream, statSync } = require('fs');
  * @returns {Promise<{ ok: true } | { ok: false, reason: string }>}
  */
 async function verifyDownloadedInstaller(filePath, expected = {}) {
+  if (!describesInstaller(expected)) return { ok: false, reason: 'latest.yml names no size or sha512 for this file' };
   const hasSize = typeof expected.size === 'number';
   const hasHash = typeof expected.sha512 === 'string' && expected.sha512.length > 0;
-  if (!hasSize && !hasHash) return { ok: false, reason: 'latest.yml names no size or sha512 for this file' };
   if (hasSize) {
     const actual = statSync(filePath).size;
     if (actual !== expected.size) return { ok: false, reason: `size ${actual} != expected ${expected.size}` };
@@ -72,22 +85,25 @@ function installerLaunchCommand({ installerPath, pid, installRoot, systemRoot = 
     '  exit 1',
   ];
   const script = [
-    `Wait-Process -Id ${id} -Timeout 120 -ErrorAction SilentlyContinue`,
+    `Wait-Process -Id ${id} -Timeout ${PID_WAIT_S} -ErrorAction SilentlyContinue`,
     `if (Get-Process -Id ${id} -ErrorAction SilentlyContinue) {`,
-    ...giveUp(`process ${id} still running after 120 s`),
+    ...giveUp(`process ${id} still running after ${PID_WAIT_S} s`),
     '}',
-    `$root = ${psQuote(root)}`,
     `$pattern = ${psQuote(pattern)}`,
     '$i = 0',
     '$left = $null',
-    'while ($i -lt 60) {',
+    `while ($i -lt ${ROOT_WAIT_TICKS}) {`,
     '  $left = Get-Process | Where-Object { $_.Path -and ($_.Path -like $pattern) }',
     '  if (-not $left) { break }',
-    '  Start-Sleep -Milliseconds 500',
+    `  Start-Sleep -Milliseconds ${ROOT_WAIT_TICK_MS}`,
     '  $i++',
     '}',
     'if ($left) {',
     ...giveUp("processes still running under the install root: ' + (($left | ForEach-Object { $_.ProcessName }) -join ', ') + '"),
+    '}',
+    // The temp directory is shared: the file must still be the one we checked.
+    `if (-not (Test-Path -LiteralPath ${psQuote(installerPath)})) {`,
+    ...giveUp('installer no longer present'),
     '}',
     `Start-Process -FilePath ${psQuote(installerPath)}`,
   ].join('\n');
@@ -116,4 +132,4 @@ function isInstallerName(name) {
   return /^Sokuji-.*\.Setup\.exe$/i.test(name);
 }
 
-module.exports = { verifyDownloadedInstaller, installerLaunchCommand, staleInstallers, isInstallerName };
+module.exports = { verifyDownloadedInstaller, installerLaunchCommand, staleInstallers, isInstallerName, describesInstaller, HELPER_MAX_WAIT_MS };

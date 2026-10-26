@@ -71,8 +71,9 @@ Precondition: the override redirects only the Squirrel **download**. The **check
 than the installed one, so the installed build must be older than GitHub's latest (install an
 older release first), and the test feed's `RELEASES` must name a version newer than it.
 
-Do not check for updates on the `--squirrel-firstrun` launch: `Update.exe` still holds its lock
-and the request fails (Electron docs); `UpdateManager.checkAfterDelay` skips it.
+On the `--squirrel-firstrun` launch `Update.exe` still holds its lock (Electron docs):
+`UpdateManager.checkAfterDelay` skips the startup check, and a download requested during that
+launch is refused with "restart it before updating again"; the next launch behaves as usual.
 
 ## Later: delta packages
 

@@ -5,7 +5,7 @@ const { spawn } = require('child_process');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
-const { verifyDownloadedInstaller, installerLaunchCommand, staleInstallers, isInstallerName } = require('./update-install-windows');
+const { verifyDownloadedInstaller, installerLaunchCommand, staleInstallers, isInstallerName, describesInstaller, HELPER_MAX_WAIT_MS } = require('./update-install-windows');
 const { squirrelFeedUrl, isSquirrelInstall, isSquirrelFirstRun, createSquirrelDownload } = require('./squirrel-update');
 
 /** `downloadPath` once Squirrel has applied a package itself: there is no file of ours to run. */
@@ -186,6 +186,14 @@ class UpdateManager {
       this._downloadPromise = (async () => {
         try {
           if (this._squirrel) {
+            if (isSquirrelFirstRun(process.argv)) {
+              // Update.exe still holds its lock on this launch (Electron docs).
+              throw new Error('Sokuji was just installed; restart it before updating again.');
+            }
+            // Nothing is installable until THIS download has applied: a staged
+            // older package must not be restarted into while a newer one is
+            // downloading or has failed.
+            this.downloadPath = null;
             await this._squirrel.download({ version: this._updateInfo && this._updateInfo.version });
             this.downloadPath = SQUIRREL_APPLIED;
           } else {
@@ -277,7 +285,7 @@ class UpdateManager {
         return;
       }
       const { fileName, url: downloadUrl, expected } = resolved;
-      if (typeof expected.size !== 'number' && !expected.sha512) {
+      if (!describesInstaller(expected)) {
         reject(new Error(`latest.yml does not describe ${fileName}; not downloading it`));
         return;
       }
@@ -285,6 +293,13 @@ class UpdateManager {
       const tempDir = app.getPath('temp');
       const downloadPath = path.join(tempDir, fileName);
       this.downloadPath = downloadPath;
+      // Every way this download can fail ends here: the file goes, and so
+      // does the path — Install must not find a failed download installable.
+      const fail = (err) => {
+        fs.unlink(downloadPath, () => {});
+        if (this.downloadPath === downloadPath) this.downloadPath = null;
+        reject(err);
+      };
 
       this._sendStatus({ status: 'downloading' });
 
@@ -293,8 +308,7 @@ class UpdateManager {
       // #5: Handle file stream errors
       file.on('error', (err) => {
         console.error('File write error:', err);
-        fs.unlink(downloadPath, () => {});
-        reject(err);
+        fail(err);
       });
 
       // #3: Wait for file stream to fully flush, then check the file against
@@ -303,11 +317,7 @@ class UpdateManager {
       file.on('finish', () => {
         // `downloadPath` is this download's: a check that lands during the
         // hash clears this.downloadPath, and must not be read here.
-        const discard = (reason) => {
-          fs.unlink(downloadPath, () => {});
-          if (this.downloadPath === downloadPath) this.downloadPath = null;
-          reject(new Error(`Downloaded installer rejected: ${reason}`));
-        };
+        const discard = (reason) => fail(new Error(`Downloaded installer rejected: ${reason}`));
         verifyDownloadedInstaller(downloadPath, { size: expected.size, sha512: expected.sha512 }).then((check) => {
           if (!check.ok) return discard(check.reason);
           this._sendStatus({ status: 'downloaded' });
@@ -328,8 +338,7 @@ class UpdateManager {
 
           if (response.statusCode !== 200) {
             file.destroy();
-            fs.unlink(downloadPath, () => {});
-            reject(new Error(`Download failed with status ${response.statusCode}`));
+            fail(new Error(`Download failed with status ${response.statusCode}`));
             return;
           }
 
@@ -352,13 +361,11 @@ class UpdateManager {
 
           response.on('error', (err) => {
             file.destroy();
-            fs.unlink(downloadPath, () => {});
-            reject(err);
+            fail(err);
           });
         }).on('error', (err) => {
           file.destroy();
-          fs.unlink(downloadPath, () => {});
-          reject(err);
+          fail(err);
         });
       };
 
@@ -385,7 +392,8 @@ class UpdateManager {
       return Promise.reject(new Error('The installer is already waiting for Sokuji to quit; close the app to continue.'));
     }
     this._installing = true;
-    return new Promise((resolve, reject) => {
+    let child;
+    try {
       const { file, args } = installerLaunchCommand({
         installerPath: this.downloadPath,
         pid: process.pid,
@@ -394,7 +402,12 @@ class UpdateManager {
         installRoot: process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, 'Sokuji') : path.resolve(path.dirname(process.execPath), '..'),
         systemRoot: process.env.SystemRoot || 'C:\\Windows',
       });
-      const child = spawn(file, args, { detached: true, stdio: 'ignore', windowsHide: true });
+      child = spawn(file, args, { detached: true, stdio: 'ignore', windowsHide: true });
+    } catch (err) {
+      this._installing = false;
+      return Promise.reject(err);
+    }
+    return new Promise((resolve, reject) => {
       child.once('error', (err) => {
         this._installing = false;
         reject(new Error(`Failed to launch installer: ${err.message}`));
@@ -402,10 +415,10 @@ class UpdateManager {
       child.once('spawn', () => {
         // From here the helper is on its own: a failure inside its script is
         // written to <installer>.launch.log, and the app has already left.
-        // If it has not — a vetoed quit — the helper gives up after 120 s,
-        // and the flag follows so the update can be retried.
+        // If it has not — a vetoed quit — the helper gives up after its
+        // longest wait, and the flag follows so the update can be retried.
         child.unref();
-        setTimeout(() => { this._installing = false; }, 160_000).unref(); // past the helper's 120 s + 30 s
+        setTimeout(() => { this._installing = false; }, HELPER_MAX_WAIT_MS + 10_000).unref();
         app.quit();
         resolve();
       });
