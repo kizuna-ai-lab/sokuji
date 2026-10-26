@@ -19,7 +19,7 @@ Checked before the runs:
 | run | date | drops (count) | longest gap (s) | battery start→end (%) | heat (cool / warm / hot) | pass? | log pasted below |
 |---|---|---|---|---|---|---|---|
 | 60 min locked (Wi-Fi) | 2026-10-26 | 0 | 0 | not measured (plugged in) | not noted | pass (dev build; Release rerun pending) | yes |
-| airplane 30 s (locked) | 2026-10-26 | 1 | 118.9 (phone offline at least 93 s; retry cadence 15 s) | not measured | not noted | pass (Release) | yes |
+| airplane 30 s (locked) | 2026-10-26 | 1 | ≤ 18 after the network returned (118.9 from the drop; phone offline at least 93 s) | not measured | not noted | pass (Release) | yes |
 | other app in front 5 min | 2026-10-26 | 0 | 0 | not measured | not noted | pass (Release) | yes |
 | BT headset in/out (optional) |  |  |  |  |  |  |  |
 | incoming call (optional) |  |  |  |  |  |  |  |
