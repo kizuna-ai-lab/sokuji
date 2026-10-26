@@ -12,6 +12,8 @@ interface UpdateState {
   newVersion: string | null;
   changelog: string | null;
   downloadProgress: number;
+  /** The updater reports no byte counts (Squirrel on Windows applies the package itself): draw an indeterminate bar. */
+  downloadIndeterminate: boolean;
   downloadSpeed: number;
   downloadTransferred: number;
   downloadTotal: number;
@@ -57,6 +59,7 @@ const useUpdateStore = create<UpdateStore>()(
     newVersion: null,
     changelog: null,
     downloadProgress: 0,
+    downloadIndeterminate: false,
     downloadSpeed: 0,
     downloadTransferred: 0,
     downloadTotal: 0,
@@ -114,6 +117,7 @@ const useUpdateStore = create<UpdateStore>()(
 
       statusHandler = (data: any) => {
         const update: Partial<UpdateState> = { status: data.status };
+        update.downloadIndeterminate = data.status === 'downloading' && data.indeterminate === true;
         if (data.version) update.newVersion = data.version;
         if (data.releaseNotes !== undefined) {
           // fullChangelog=true returns [{version, note}] where note is HTML from GitHub
@@ -193,6 +197,7 @@ export const useUpdateStatus = () => useUpdateStore(state => state.status);
 export const useUpdateNewVersion = () => useUpdateStore(state => state.newVersion);
 export const useUpdateChangelog = () => useUpdateStore(state => state.changelog);
 export const useUpdateProgressPercent = () => useUpdateStore(state => state.downloadProgress);
+export const useUpdateProgressIndeterminate = () => useUpdateStore(state => state.downloadIndeterminate);
 export const useUpdateProgressSpeed = () => useUpdateStore(state => state.downloadSpeed);
 export const useUpdateProgressTransferred = () => useUpdateStore(state => state.downloadTransferred);
 export const useUpdateProgressTotal = () => useUpdateStore(state => state.downloadTotal);

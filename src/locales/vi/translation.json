@@ -926,6 +926,7 @@
   "update": {
     "available": "Phiên bản mới v{{version}} khả dụng",
     "downloading": "Đang tải bản cập nhật... {{percent}}%",
+    "downloadingIndeterminate": "Đang tải bản cập nhật...",
     "downloaded": "Bản cập nhật đã sẵn sàng, khởi động lại để hoàn tất",
     "checkButton": "Kiểm tra cập nhật",
     "checking": "Đang kiểm tra...",

@@ -926,6 +926,7 @@
   "update": {
     "available": "新版本 v{{version}} 可用",
     "downloading": "正在下載更新... {{percent}}%",
+    "downloadingIndeterminate": "正在下載更新...",
     "downloaded": "更新已就緒，重新啟動以完成",
     "checkButton": "檢查更新",
     "checking": "檢查中...",

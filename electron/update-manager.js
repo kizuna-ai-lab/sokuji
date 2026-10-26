@@ -10,6 +10,10 @@ const { squirrelFeedUrl, isSquirrelInstall, isSquirrelFirstRun, createSquirrelDo
 
 /** `downloadPath` once Squirrel has applied a package itself: there is no file of ours to run. */
 const SQUIRREL_APPLIED = '__squirrel__';
+/** Where releases live: the check (electron-updater) and the Windows feed (Squirrel) read the same repository. */
+const GITHUB_REPO = { owner: 'kizuna-ai-lab', repo: 'sokuji' };
+/** A Setup.exe in the temp directory older than this is a leftover, never a download in progress. */
+const STALE_INSTALLER_AGE_MS = 24 * 60 * 60 * 1000;
 
 class UpdateManager {
   /**
@@ -28,10 +32,11 @@ class UpdateManager {
     // Windows: Squirrel's own updater when this is a Squirrel install (new
     // version unpacked beside the running one, old one kept — see
     // electron/squirrel-update.js); the full Setup.exe stays as the fallback.
+    this._installing = false;
     this._squirrel = process.platform === 'win32' && isSquirrelInstall({ execPath: process.execPath, existsSync: fs.existsSync })
       ? createSquirrelDownload({
           autoUpdater: squirrelAutoUpdater,
-          feedUrl: squirrelFeedUrl({ owner: 'kizuna-ai-lab', repo: 'sokuji', env: process.env }),
+          feedUrl: squirrelFeedUrl({ ...GITHUB_REPO, env: process.env }),
           onStatus: (s) => this._sendStatus(s),
         })
       : null;
@@ -53,8 +58,7 @@ class UpdateManager {
     // Configure GitHub provider
     autoUpdater.setFeedURL({
       provider: 'github',
-      owner: 'kizuna-ai-lab',
-      repo: 'sokuji',
+      ...GITHUB_REPO,
     });
 
     this._setupAutoUpdaterEvents();
@@ -82,9 +86,11 @@ class UpdateManager {
 
   _setupAutoUpdaterEvents() {
     autoUpdater.on('checking-for-update', () => {
-      // Clear stale state before each new check
+      // Clear stale state before each new check — except a package Squirrel
+      // has already applied: it will run on the next launch whatever the
+      // check says, and Install must stay reachable.
       this._updateInfo = null;
-      this.downloadPath = null;
+      if (this.downloadPath !== SQUIRREL_APPLIED) this.downloadPath = null;
       this._sendStatus({ status: 'checking' });
     });
 
@@ -102,7 +108,7 @@ class UpdateManager {
     autoUpdater.on('update-not-available', () => {
       // Clear stale update info so a previous check's data can't trigger a download
       this._updateInfo = null;
-      this.downloadPath = null;
+      if (this.downloadPath !== SQUIRREL_APPLIED) this.downloadPath = null;
       this._sendStatus({ status: 'not-available' });
     });
 
@@ -217,7 +223,8 @@ class UpdateManager {
         }
       }
 
-      // Windows (existing Squirrel launch path) — unchanged
+      // Windows: Squirrel restarts into the applied package, or the fallback
+      // runs Setup.exe once every Sokuji process has exited.
       try {
         await this._installUpdate();
         return { success: true };
@@ -278,21 +285,21 @@ class UpdateManager {
         reject(err);
       });
 
-      // #3: Wait for file stream to fully flush before resolving
       // #3: Wait for file stream to fully flush, then check the file against
-      // what latest.yml announced: a truncated or altered installer is never run.
+      // what latest.yml announced: a truncated, altered or unannounced
+      // installer is never run.
       file.on('finish', () => {
         const expected = ((this._updateInfo && this._updateInfo.files) || []).find((f) => f.url === fileName) || {};
+        const discard = (reason) => {
+          fs.unlink(this.downloadPath, () => {});
+          this.downloadPath = null;
+          reject(new Error(`Downloaded installer rejected: ${reason}`));
+        };
         verifyDownloadedInstaller(this.downloadPath, { size: expected.size, sha512: expected.sha512 }).then((check) => {
-          if (!check.ok) {
-            fs.unlink(this.downloadPath, () => {});
-            this.downloadPath = null;
-            reject(new Error(`Downloaded installer rejected: ${check.reason}`));
-            return;
-          }
+          if (!check.ok) return discard(check.reason);
           this._sendStatus({ status: 'downloaded' });
           resolve();
-        }, reject);
+        }, (err) => discard(err.message || String(err)));
       });
 
       let receivedBytes = 0;
@@ -359,15 +366,20 @@ class UpdateManager {
       this._squirrel.quitAndInstall();
       return Promise.resolve();
     }
+    if (this._installing) return Promise.resolve(); // a second click must not spawn a second installer
+    this._installing = true;
     return new Promise((resolve, reject) => {
       const { file, args } = installerLaunchCommand({
         installerPath: this.downloadPath,
         pid: process.pid,
         installRoot: path.resolve(path.dirname(process.execPath), '..'),
-        exeName: path.basename(process.execPath),
+        systemRoot: process.env.SystemRoot || 'C:\\Windows',
       });
       const child = spawn(file, args, { detached: true, stdio: 'ignore', windowsHide: true });
-      child.once('error', (err) => reject(new Error(`Failed to launch installer: ${err.message}`)));
+      child.once('error', (err) => {
+        this._installing = false;
+        reject(new Error(`Failed to launch installer: ${err.message}`));
+      });
       child.once('spawn', () => {
         child.unref();
         app.quit();
@@ -384,7 +396,14 @@ class UpdateManager {
     const tempDir = app.getPath('temp');
     fs.readdir(tempDir, (err, names) => {
       if (err) return;
-      for (const name of staleInstallers(names, '')) fs.unlink(path.join(tempDir, name), () => {});
+      const entries = [];
+      for (const name of names) {
+        if (!/^Sokuji-.*\.Setup\.exe$/i.test(name)) continue;
+        try { entries.push({ name, mtimeMs: fs.statSync(path.join(tempDir, name)).mtimeMs }); } catch { /* gone already */ }
+      }
+      for (const name of staleInstallers(entries, { now: Date.now(), maxAgeMs: STALE_INSTALLER_AGE_MS })) {
+        fs.unlink(path.join(tempDir, name), () => {});
+      }
     });
   }
 
@@ -404,7 +423,9 @@ class UpdateManager {
    */
   checkAfterDelay(delayMs = 5000) {
     if (isSquirrelFirstRun(process.argv)) {
-      // Update.exe still holds its lock on this launch; a check now fails (Electron docs).
+      // The launch right after an install. The check itself is an HTTPS read,
+      // but a download it led to would run Update.exe while the install still
+      // holds its lock (Electron docs); the next launch checks as usual.
       console.log('[Sokuji] [UpdateManager] first run after install: skipping the startup update check');
       return;
     }

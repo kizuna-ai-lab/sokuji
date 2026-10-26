@@ -926,6 +926,7 @@
   "update": {
     "available": "नया संस्करण v{{version}} उपलब्ध है",
     "downloading": "अपडेट डाउनलोड हो रहा है... {{percent}}%",
+    "downloadingIndeterminate": "अपडेट डाउनलोड हो रहा है...",
     "downloaded": "अपडेट तैयार है, पूरा करने के लिए पुनः आरंभ करें",
     "checkButton": "अपडेट की जाँच करें",
     "checking": "जाँच हो रही है...",

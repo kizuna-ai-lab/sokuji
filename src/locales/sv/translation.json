@@ -926,6 +926,7 @@
   "update": {
     "available": "Ny version v{{version}} tillgänglig",
     "downloading": "Laddar ner uppdatering... {{percent}}%",
+    "downloadingIndeterminate": "Laddar ner uppdatering...",
     "downloaded": "Uppdatering klar, starta om för att slutföra",
     "checkButton": "Sök efter uppdateringar",
     "checking": "Söker...",

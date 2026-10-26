@@ -112,3 +112,36 @@ describe('updateStore', () => {
     });
   });
 });
+
+// Squirrel on Windows applies the package itself and reports no byte counts:
+// the main process sends `{ status: 'downloading', indeterminate: true }`.
+describe('indeterminate download', () => {
+  const listen = () => {
+    const handlers: Record<string, (d: any) => void> = {};
+    (window as any).electron = {
+      receive: (ch: string, h: (d: any) => void) => { handlers[ch] = h; },
+      removeListener: () => {},
+      invoke: async () => {},
+    };
+    useUpdateStore.getState().initListeners();
+    return handlers;
+  };
+  afterEach(() => {
+    useUpdateStore.getState().cleanupListeners();
+    delete (window as any).electron;
+  });
+
+  it('records an indeterminate downloading status and clears it with the next status', () => {
+    const handlers = listen();
+    handlers['update-status']({ status: 'downloading', indeterminate: true });
+    expect(useUpdateStore.getState()).toMatchObject({ status: 'downloading', downloadIndeterminate: true });
+    handlers['update-status']({ status: 'downloaded' });
+    expect(useUpdateStore.getState()).toMatchObject({ status: 'downloaded', downloadIndeterminate: false });
+  });
+
+  it('treats a byte-counted download as determinate', () => {
+    const handlers = listen();
+    handlers['update-status']({ status: 'downloading' });
+    expect(useUpdateStore.getState().downloadIndeterminate).toBe(false);
+  });
+});

@@ -4,9 +4,9 @@
 // Squirrel's --install deletes the whole install directory before it writes
 // the new version ("burning it to the ground"); with the old app still
 // exiting it hit a locked sokuji.exe, crashed, and left the app uninstalled
-// (Squirrel-Install.log, 2026-10-27 02:34 JST). These pin the replacement:
-// verify the download, wait for every Sokuji process to be gone, only then
-// run the installer.
+// (Squirrel-Install.log, 2026-10-27 02:34 JST). These pin the fallback that
+// replaces it: verify the download; wait, bounded, for every process under
+// the install root to be gone; run the installer only then, never on a timeout.
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -43,9 +43,9 @@ describe('verifyDownloadedInstaller', () => {
     expect(r).toEqual({ ok: false, reason: 'sha512 mismatch' });
   });
 
-  it('passes when latest.yml carried no size or hash (older releases)', async () => {
+  it('fails closed when latest.yml carried neither a size nor a hash', async () => {
     const r = await verifyDownloadedInstaller(join(dir, 'Sokuji-0.46.4.Setup.exe'), {});
-    expect(r).toEqual({ ok: true });
+    expect(r).toEqual({ ok: false, reason: 'latest.yml names no size or sha512 for this file' });
   });
 });
 
@@ -54,39 +54,57 @@ describe('installerLaunchCommand', () => {
     installerPath: "C:\\Users\\jiang\\AppData\\Local\\Temp\\Sokuji-0.46.4.Setup.exe",
     pid: 4242,
     installRoot: "C:\\Users\\jiang\\AppData\\Local\\Sokuji",
-    exeName: 'sokuji.exe',
+    systemRoot: 'C:\\WINDOWS',
+  });
+  const script = cmd.args[cmd.args.length - 1];
+
+  it('runs the system PowerShell, hidden, with a -Command script', () => {
+    expect(cmd.file).toBe('C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe');
+    expect(cmd.args.slice(0, -1)).toEqual(['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command']);
   });
 
-  it('runs a detached PowerShell that waits for this process first', () => {
-    expect(cmd.file).toBe('powershell.exe');
-    expect(cmd.args.slice(0, 4)).toEqual(['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden']);
-    const script = cmd.args[cmd.args.length - 1];
-    expect(script).toContain('Wait-Process -Id 4242');
+  it('waits for this process with a bound, and gives up if it is still there', () => {
+    expect(script).toContain('Wait-Process -Id 4242 -Timeout 120 -ErrorAction SilentlyContinue');
+    expect(script).toMatch(/if \(Get-Process -Id 4242 -ErrorAction SilentlyContinue\) \{[^}]*exit 1/);
   });
 
-  it('then waits until no sokuji.exe from the install root is left, with a bound', () => {
-    const script = cmd.args[cmd.args.length - 1];
-    expect(script).toContain("'sokuji'");
-    expect(script).toContain("C:\\Users\\jiang\\AppData\\Local\\Sokuji");
+  it('then waits until nothing under the install root runs — the audio helper included', () => {
+    expect(script).toContain("$root = 'C:\\Users\\jiang\\AppData\\Local\\Sokuji\\'");
+    expect(script).toContain("Get-Process | Where-Object { $_.Path -and ($_.Path -like ($root + '*')) }");
     expect(script).toMatch(/-lt 60/);
   });
 
+  it('never starts the installer while something is still running: it logs and exits', () => {
+    const giveUp = script.indexOf('if ($left) {');
+    const start = script.indexOf('Start-Process');
+    expect(giveUp).toBeGreaterThan(-1);
+    expect(giveUp).toBeLessThan(start);
+    expect(script.slice(giveUp, start)).toContain('exit 1');
+    expect(script).toContain("Add-Content -Path 'C:\\Users\\jiang\\AppData\\Local\\Temp\\Sokuji-0.46.4.Setup.exe.launch.log'");
+  });
+
   it('starts the installer last, quoted for PowerShell', () => {
-    const script = cmd.args[cmd.args.length - 1];
     expect(script.trimEnd().endsWith("Start-Process -FilePath 'C:\\Users\\jiang\\AppData\\Local\\Temp\\Sokuji-0.46.4.Setup.exe'")).toBe(true);
   });
 
-  it('escapes a single quote in a path', () => {
-    const c = installerLaunchCommand({ installerPath: "C:\\it's\\Setup.exe", pid: 1, installRoot: "C:\\o'k", exeName: 'sokuji.exe' });
-    const script = c.args[c.args.length - 1];
-    expect(script).toContain("'C:\\it''s\\Setup.exe'");
-    expect(script).toContain("'C:\\o''k");
+  it('escapes a single quote in a path and does not double a trailing separator', () => {
+    const c = installerLaunchCommand({ installerPath: "C:\\it's\\Setup.exe", pid: 1, installRoot: "C:\\o'k\\", systemRoot: 'C:\\WINDOWS' });
+    const s = c.args[c.args.length - 1];
+    expect(s).toContain("'C:\\it''s\\Setup.exe'");
+    expect(s).toContain("$root = 'C:\\o''k\\'");
   });
 });
 
 describe('staleInstallers', () => {
-  it('names every earlier Sokuji Setup.exe in the temp directory but the one just downloaded', () => {
-    const names = ['Sokuji-0.46.1.Setup.exe', 'Sokuji-0.46.4.Setup.exe', 'other.txt', 'Sokuji-0.32.1.Setup.exe'];
-    expect(staleInstallers(names, 'Sokuji-0.46.4.Setup.exe')).toEqual(['Sokuji-0.46.1.Setup.exe', 'Sokuji-0.32.1.Setup.exe']);
+  const day = 24 * 60 * 60 * 1000;
+  const now = 1_800_000_000_000;
+  it('names Sokuji installers in the temp directory older than a day, and nothing else', () => {
+    const entries = [
+      { name: 'Sokuji-0.46.1.Setup.exe', mtimeMs: now - 3 * day },
+      { name: 'Sokuji-0.46.4.Setup.exe', mtimeMs: now - 60_000 },
+      { name: 'other.txt', mtimeMs: now - 9 * day },
+      { name: 'Sokuji-0.32.1.Setup.exe', mtimeMs: now - 100 * day },
+    ];
+    expect(staleInstallers(entries, { now, maxAgeMs: day })).toEqual(['Sokuji-0.46.1.Setup.exe', 'Sokuji-0.32.1.Setup.exe']);
   });
 });

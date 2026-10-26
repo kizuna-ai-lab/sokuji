@@ -7,7 +7,8 @@ import {
 } from '../../stores/audioSystemStore';
 import {
   useDismissBanner, useDownloadUpdate, useInstallUpdate, useOpenUpdateDialog, useUpdateBannerDismissed, useUpdateErrorFrom,
-  useUpdateNewVersion, useUpdateProgressPercent, useUpdateStatus, useUpdateSupportsAutoUpdate,
+  useUpdateNewVersion, useUpdateProgressPercent,
+  useUpdateProgressIndeterminate, useUpdateStatus, useUpdateSupportsAutoUpdate,
 } from '../../stores/updateStore';
 import { Banner, type BannerProps } from './Banner';
 
@@ -61,6 +62,7 @@ export function useBanners(): BannerProps[] {
     : storeStatus;
   const newVersion = useUpdateNewVersion();
   const percent = useUpdateProgressPercent();
+  const indeterminate = useUpdateProgressIndeterminate();
   const bannerDismissed = useUpdateBannerDismissed();
   const supportsAutoUpdate = useUpdateSupportsAutoUpdate();
   const dismissBanner = useDismissBanner();
@@ -80,7 +82,11 @@ export function useBanners(): BannerProps[] {
   } else if (shown && status === 'downloading') {
     banners.push({
       id: 'update', tone: 'brand', icon: <RefreshCw size={14} aria-hidden="true" className="spinning" />,
-      text: t('update.downloading', { percent: Math.round(percent) }), progress: Math.min(100, Math.max(0, percent)), dismissLabel,
+      // Squirrel on Windows reports no byte counts: say so without a percentage and draw no bar.
+      ...(indeterminate
+        ? { text: t('update.downloadingIndeterminate') }
+        : { text: t('update.downloading', { percent: Math.round(percent) }), progress: Math.min(100, Math.max(0, percent)) }),
+      dismissLabel,
     });
   } else if (shown && status === 'downloaded') {
     banners.push({

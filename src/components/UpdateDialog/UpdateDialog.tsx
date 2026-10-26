@@ -7,6 +7,7 @@ import {
   useUpdateNewVersion,
   useUpdateChangelog,
   useUpdateProgressPercent,
+  useUpdateProgressIndeterminate,
   useUpdateProgressTransferred,
   useUpdateProgressTotal,
   useUpdateDownloadUrl,
@@ -26,6 +27,7 @@ const UpdateDialog: React.FC = () => {
   const newVersion = useUpdateNewVersion();
   const changelog = useUpdateChangelog();
   const percent = useUpdateProgressPercent();
+  const indeterminate = useUpdateProgressIndeterminate();
   const transferred = useUpdateProgressTransferred();
   const total = useUpdateProgressTotal();
   const downloadUrl = useUpdateDownloadUrl();
@@ -60,7 +62,7 @@ const UpdateDialog: React.FC = () => {
   const getTitle = (): string => {
     switch (status) {
       case 'available': return t('update.available', { version: newVersion });
-      case 'downloading': return t('update.downloading', { percent: Math.round(percent) });
+      case 'downloading': return indeterminate ? t('update.downloadingIndeterminate') : t('update.downloading', { percent: Math.round(percent) });
       case 'downloaded': return t('update.downloaded');
       case 'not-available': return t('update.notAvailable');
       default: return t('update.checkButton');
@@ -117,7 +119,17 @@ const UpdateDialog: React.FC = () => {
             />
           )}
 
-          {status === 'downloading' && (
+          {status === 'downloading' && indeterminate && (
+            // Squirrel on Windows downloads and unpacks the package itself and
+            // reports no byte counts: a moving bar, no numbers.
+            <div className="download-progress">
+              <div className="progress-bar">
+                <div className="progress-fill progress-fill--indeterminate" />
+              </div>
+            </div>
+          )}
+
+          {status === 'downloading' && !indeterminate && (
             <div className="download-progress">
               <div className="progress-bar">
                 <div className="progress-fill" style={{ width: `${percent}%` }} />
