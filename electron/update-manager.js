@@ -1,9 +1,15 @@
 const { autoUpdater } = require('electron-updater');
 const { buildUpdatePayload, usesNativeUpdaterFlow } = require('./update-payload');
-const { app, ipcMain, shell } = require('electron');
+const { app, ipcMain, autoUpdater: squirrelAutoUpdater } = require('electron');
+const { spawn } = require('child_process');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
+const { verifyDownloadedInstaller, installerLaunchCommand, staleInstallers } = require('./update-install-windows');
+const { squirrelFeedUrl, isSquirrelInstall, isSquirrelFirstRun, createSquirrelDownload } = require('./squirrel-update');
+
+/** `downloadPath` once Squirrel has applied a package itself: there is no file of ours to run. */
+const SQUIRREL_APPLIED = '__squirrel__';
 
 class UpdateManager {
   /**
@@ -19,6 +25,17 @@ class UpdateManager {
     this.downloadPath = null;
     this._updateInfo = null;
     this._downloadPromise = null;
+    // Windows: Squirrel's own updater when this is a Squirrel install (new
+    // version unpacked beside the running one, old one kept — see
+    // electron/squirrel-update.js); the full Setup.exe stays as the fallback.
+    this._squirrel = process.platform === 'win32' && isSquirrelInstall({ execPath: process.execPath, existsSync: fs.existsSync })
+      ? createSquirrelDownload({
+          autoUpdater: squirrelAutoUpdater,
+          feedUrl: squirrelFeedUrl({ owner: 'kizuna-ai-lab', repo: 'sokuji', env: process.env }),
+          onStatus: (s) => this._sendStatus(s),
+        })
+      : null;
+    if (process.platform === 'win32') this._removeStaleInstallers();
 
     // Disable auto-download — user must confirm
     autoUpdater.autoDownload = false;
@@ -156,11 +173,17 @@ class UpdateManager {
         return { success: false, error: 'auto-update-not-supported' };
       }
 
-      // Windows (existing Squirrel-compatible manual download) — unchanged
+      // Windows: Squirrel downloads, verifies and unpacks the package itself;
+      // without Update.exe, the Setup.exe fallback.
       if (this._downloadPromise) return this._downloadPromise;
       this._downloadPromise = (async () => {
         try {
-          await this._downloadUpdate();
+          if (this._squirrel) {
+            await this._squirrel.download();
+            this.downloadPath = SQUIRREL_APPLIED;
+          } else {
+            await this._downloadUpdate();
+          }
           return { success: true };
         } catch (err) {
           console.error('Update download failed:', err);
@@ -256,9 +279,20 @@ class UpdateManager {
       });
 
       // #3: Wait for file stream to fully flush before resolving
+      // #3: Wait for file stream to fully flush, then check the file against
+      // what latest.yml announced: a truncated or altered installer is never run.
       file.on('finish', () => {
-        this._sendStatus({ status: 'downloaded' });
-        resolve();
+        const expected = ((this._updateInfo && this._updateInfo.files) || []).find((f) => f.url === fileName) || {};
+        verifyDownloadedInstaller(this.downloadPath, { size: expected.size, sha512: expected.sha512 }).then((check) => {
+          if (!check.ok) {
+            fs.unlink(this.downloadPath, () => {});
+            this.downloadPath = null;
+            reject(new Error(`Downloaded installer rejected: ${check.reason}`));
+            return;
+          }
+          this._sendStatus({ status: 'downloaded' });
+          resolve();
+        }, reject);
       });
 
       let receivedBytes = 0;
@@ -313,16 +347,44 @@ class UpdateManager {
   }
 
   /**
-   * Launch the downloaded installer and quit the app.
-   * #7: Use shell.openPath for reliable launch, then quit.
+   * Install what was downloaded. Squirrel: hand over, it restarts the app
+   * from app-<new version>. Setup.exe fallback: its --install deletes the
+   * install directory before writing the new version, so it must not start
+   * until every Sokuji process is gone — a detached PowerShell waits for that,
+   * then runs it (electron/update-install-windows.js). Opening the installer
+   * and quitting 500 ms later is what left a machine with no app (2026-10-27).
    */
   _installUpdate() {
-    return shell.openPath(this.downloadPath).then((errorMessage) => {
-      if (errorMessage) {
-        throw new Error(`Failed to launch installer: ${errorMessage}`);
-      }
-      // Give the installer a moment to initialize, then quit
-      setTimeout(() => app.quit(), 500);
+    if (this.downloadPath === SQUIRREL_APPLIED) {
+      this._squirrel.quitAndInstall();
+      return Promise.resolve();
+    }
+    return new Promise((resolve, reject) => {
+      const { file, args } = installerLaunchCommand({
+        installerPath: this.downloadPath,
+        pid: process.pid,
+        installRoot: path.resolve(path.dirname(process.execPath), '..'),
+        exeName: path.basename(process.execPath),
+      });
+      const child = spawn(file, args, { detached: true, stdio: 'ignore', windowsHide: true });
+      child.once('error', (err) => reject(new Error(`Failed to launch installer: ${err.message}`)));
+      child.once('spawn', () => {
+        child.unref();
+        app.quit();
+        resolve();
+      });
+    });
+  }
+
+  /**
+   * Every update left its Setup.exe in the temp directory (a dozen of
+   * 150–280 MB each on one machine). Best effort, at startup.
+   */
+  _removeStaleInstallers() {
+    const tempDir = app.getPath('temp');
+    fs.readdir(tempDir, (err, names) => {
+      if (err) return;
+      for (const name of staleInstallers(names, '')) fs.unlink(path.join(tempDir, name), () => {});
     });
   }
 
@@ -341,6 +403,11 @@ class UpdateManager {
    * #10: Send error status to renderer on failure (consistent with manual check).
    */
   checkAfterDelay(delayMs = 5000) {
+    if (isSquirrelFirstRun(process.argv)) {
+      // Update.exe still holds its lock on this launch; a check now fails (Electron docs).
+      console.log('[Sokuji] [UpdateManager] first run after install: skipping the startup update check');
+      return;
+    }
     setTimeout(() => {
       autoUpdater.checkForUpdates().catch((err) => {
         console.error('Startup update check failed:', err);

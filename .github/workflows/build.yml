@@ -679,12 +679,17 @@ jobs:
           # Both at the zip's root, where SignPath's two patterns look.
           path: out/installers/*.exe
 
-      - name: Upload Windows nupkg for release
+      - name: Upload Windows nupkg and RELEASES for release
         if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v6
         with:
           name: windows-nupkg
-          path: out/make-web/squirrel.windows/x64/*.nupkg
+          # RELEASES names the nupkg with its SHA1 and size. The installed
+          # app's Update.exe reads it from the release's download URL and
+          # verifies the package against it (electron/squirrel-update.js).
+          path: |
+            out/make-web/squirrel.windows/x64/*.nupkg
+            out/make-web/squirrel.windows/x64/RELEASES
 
       - name: Upload macOS artifacts
         if: startsWith(github.ref, 'refs/tags/v') && runner.os == 'macOS'
@@ -822,6 +827,7 @@ jobs:
           find linux-arm64-artifacts -name "latest-linux-arm64.yml" -exec cp {} release-assets/ \;
           find windows-signed -name "*.exe" -exec cp {} release-assets/ \;
           find windows-nupkg -name "*.nupkg" -exec cp {} release-assets/ \;
+          find windows-nupkg -name "RELEASES" -exec cp {} release-assets/ \;
           find macos-arm64-artifacts -name "*.pkg" -exec cp {} release-assets/ \;
           find macos-x64-artifacts -name "*.pkg" -exec cp {} release-assets/ \;
           # The zip is what electron-updater installs on macOS: MacUpdater accepts
