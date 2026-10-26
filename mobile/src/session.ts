@@ -119,7 +119,9 @@ export function startSession(o: {
   }
 
   async function begin(): Promise<void> {
-    AudioManager.setAudioSessionOptions({ iosCategory: 'record', iosMode: 'default', iosOptions: ['allowBluetoothHFP'] });
+    // Phone microphone only, even with a headset connected (ruling for the first
+    // version): a headset mic is far from the speaker in a lecture hall.
+    AudioManager.setAudioSessionOptions({ iosCategory: 'record', iosMode: 'default', iosOptions: [] });
     AudioManager.observeAudioInterruptions(true);
     const permission = await AudioManager.requestRecordingPermissions();
     if (permission !== 'Granted') {
