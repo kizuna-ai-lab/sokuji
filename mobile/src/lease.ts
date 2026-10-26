@@ -53,6 +53,7 @@ export async function leaseKey(o: {
     });
     if (res.status === 200) return parseGrant(await res.json());
     if (res.status === 401) throw new Error('sign_in_required');
+    if (res.status === 402) throw new Error('balance_exhausted');
     if (res.status === 409) {
       await sleep(CONFLICT_RETRY_MS);
       if (now() - start < CONFLICT_WAIT_LIMIT_MS) continue;

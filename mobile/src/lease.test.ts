@@ -39,6 +39,11 @@ describe('leaseKey', () => {
     await expect(leaseKey({ token: 'tok', region: 'us', fetch, ...clock() })).rejects.toThrow('lease_conflict');
   });
 
+  it('reports an empty balance as balance_exhausted', async () => {
+    const { fetch } = respond([402]);
+    await expect(leaseKey({ token: 'tok', region: 'us', fetch, ...clock() })).rejects.toThrow('balance_exhausted');
+  });
+
   it('reports a lost session as sign_in_required', async () => {
     const { fetch } = respond([401]);
     await expect(leaseKey({ token: 'tok', region: 'us', fetch, ...clock() })).rejects.toThrow('sign_in_required');
