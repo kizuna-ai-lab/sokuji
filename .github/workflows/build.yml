@@ -584,6 +584,19 @@ jobs:
             echo "FAIL: latest-mac.yml does not reference $(basename "$ZIP")." >&2; exit 1; }
           echo "OK: manifest references the zip."
 
+      # A signing change can only be judged on a real Mac (Gatekeeper, TCC,
+      # the keychain, Squirrel's requirement check), so keep the signed app of
+      # a pull request around long enough to try it. Same-repo PRs only: fork
+      # PRs get no certificate and would upload an ad-hoc build.
+      - name: Upload the signed macOS app for review (pull requests)
+        if: runner.os == 'macOS' && github.event_name == 'pull_request' && env.HAS_MAC_CERT == 'true'
+        uses: actions/upload-artifact@v6
+        with:
+          name: macos-${{ matrix.arch }}-pr-build
+          path: out/make-mac/*.zip
+          retention-days: 3
+          if-no-files-found: error
+
       - name: Build Chrome Extension
         if: matrix.os == 'ubuntu-latest' && matrix.arch != 'arm64'
         run: |
