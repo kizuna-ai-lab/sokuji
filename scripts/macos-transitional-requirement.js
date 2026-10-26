@@ -130,6 +130,9 @@ function createAfterSign({ run = runCommand, log = console.log } = {}) {
       '--sign', identity,
       // Keep everything electron-builder put on the main bundle except the DR.
       '--preserve-metadata=identifier,entitlements,flags,runtime',
+      // Secure timestamp, as electron-builder gives every other file it signs
+      // (and as the main bundle of v0.46.1 carries).
+      '--timestamp',
       `-r=designated => ${requirement}`,
     ];
     if (keychainFile) args.push('--keychain', keychainFile);

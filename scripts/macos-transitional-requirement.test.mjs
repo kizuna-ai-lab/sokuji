@@ -115,6 +115,7 @@ describe('afterSign', () => {
     expect(resign).toEqual([
       'codesign', '--force', '--sign', 'Sokuji Code Signing',
       '--preserve-metadata=identifier,entitlements,flags,runtime',
+      '--timestamp',
       `-r=designated => ${EXPECTED}`,
       '--keychain', '/tmp/csc/build.keychain',
       '/out/mac-arm64/Sokuji.app',
