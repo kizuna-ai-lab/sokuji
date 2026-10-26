@@ -62,16 +62,20 @@ function psQuote(s) {
 function installerLaunchCommand({ installerPath, pid, installRoot, systemRoot = 'C:\\Windows' }) {
   const id = Number(pid);
   const root = installRoot.endsWith('\\') ? installRoot : `${installRoot}\\`;
+  // `-like` reads [ ] * ? as wildcards; a user name like "jiang[1]" would match
+  // nothing and let the installer run over a live app. Backtick-escaped literal.
+  const pattern = `${root.replace(/[[\]*?`]/g, (ch) => '`' + ch)}*`;
   const log = psQuote(`${installerPath}.launch.log`);
   const giveUp = (why) => `Add-Content -Path ${log} -Value ((Get-Date -Format o) + ' install skipped: ${why}'); exit 1`;
   const script = [
     `Wait-Process -Id ${id} -Timeout 120 -ErrorAction SilentlyContinue`,
     `if (Get-Process -Id ${id} -ErrorAction SilentlyContinue) { ${giveUp(`process ${id} still running after 120 s`)} }`,
     `$root = ${psQuote(root)}`,
+    `$pattern = ${psQuote(pattern)}`,
     '$i = 0',
     '$left = $null',
     'while ($i -lt 60) {',
-    "  $left = Get-Process | Where-Object { $_.Path -and ($_.Path -like ($root + '*')) }",
+    '  $left = Get-Process | Where-Object { $_.Path -and ($_.Path -like $pattern) }',
     '  if (-not $left) { break }',
     '  Start-Sleep -Milliseconds 500',
     '  $i++',
@@ -95,8 +99,13 @@ function installerLaunchCommand({ installerPath, pid, installRoot, systemRoot = 
  */
 function staleInstallers(entries, { now, maxAgeMs }) {
   return entries
-    .filter((e) => /^Sokuji-.*\.Setup\.exe$/i.test(e.name) && now - e.mtimeMs > maxAgeMs)
+    .filter((e) => isInstallerName(e.name) && now - e.mtimeMs > maxAgeMs)
     .map((e) => e.name);
 }
 
-module.exports = { verifyDownloadedInstaller, installerLaunchCommand, staleInstallers };
+/** Whether a file name is one of our Setup executables (CI names them `Sokuji-<version>.Setup.exe`). */
+function isInstallerName(name) {
+  return /^Sokuji-.*\.Setup\.exe$/i.test(name);
+}
+
+module.exports = { verifyDownloadedInstaller, installerLaunchCommand, staleInstallers, isInstallerName };

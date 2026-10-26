@@ -16,6 +16,7 @@ import {
   verifyDownloadedInstaller,
   installerLaunchCommand,
   staleInstallers,
+  isInstallerName,
 } from './update-install-windows.js';
 
 let dir;
@@ -70,7 +71,8 @@ describe('installerLaunchCommand', () => {
 
   it('then waits until nothing under the install root runs — the audio helper included', () => {
     expect(script).toContain("$root = 'C:\\Users\\jiang\\AppData\\Local\\Sokuji\\'");
-    expect(script).toContain("Get-Process | Where-Object { $_.Path -and ($_.Path -like ($root + '*')) }");
+    expect(script).toContain("$pattern = 'C:\\Users\\jiang\\AppData\\Local\\Sokuji\\*'");
+    expect(script).toContain('Get-Process | Where-Object { $_.Path -and ($_.Path -like $pattern) }');
     expect(script).toMatch(/-lt 60/);
   });
 
@@ -92,6 +94,24 @@ describe('installerLaunchCommand', () => {
     const s = c.args[c.args.length - 1];
     expect(s).toContain("'C:\\it''s\\Setup.exe'");
     expect(s).toContain("$root = 'C:\\o''k\\'");
+  });
+
+  it('escapes wildcard characters in the install root, so a bracketed user name still matches its own processes', () => {
+    // `-like` reads [ ] * ? as wildcards: unescaped, 'C:\Users\jiang[1]\…' matches nothing,
+    // $left stays empty, and the installer would run over a live app.
+    const c = installerLaunchCommand({ installerPath: 'C:\\t\\Setup.exe', pid: 1, installRoot: 'C:\\Users\\jiang[1]\\AppData\\Local\\Sokuji', systemRoot: 'C:\\WINDOWS' });
+    const s = c.args[c.args.length - 1];
+    expect(s).toContain("$pattern = 'C:\\Users\\jiang`[1`]\\AppData\\Local\\Sokuji\\*'");
+    expect(s).toContain('$_.Path -like $pattern');
+  });
+});
+
+describe('isInstallerName', () => {
+  it('matches only Sokuji Setup executables', () => {
+    expect(isInstallerName('Sokuji-0.46.4.Setup.exe')).toBe(true);
+    expect(isInstallerName('sokuji-0.46.4.setup.EXE')).toBe(true);
+    expect(isInstallerName('Sokuji-0.46.4-full.nupkg')).toBe(false);
+    expect(isInstallerName('Other-1.0.Setup.exe')).toBe(false);
   });
 });
 

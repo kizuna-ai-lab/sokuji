@@ -5,7 +5,7 @@ const { spawn } = require('child_process');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
-const { verifyDownloadedInstaller, installerLaunchCommand, staleInstallers } = require('./update-install-windows');
+const { verifyDownloadedInstaller, installerLaunchCommand, staleInstallers, isInstallerName } = require('./update-install-windows');
 const { squirrelFeedUrl, isSquirrelInstall, isSquirrelFirstRun, createSquirrelDownload } = require('./squirrel-update');
 
 /** `downloadPath` once Squirrel has applied a package itself: there is no file of ours to run. */
@@ -270,6 +270,9 @@ class UpdateManager {
   _downloadUpdate() {
     return new Promise((resolve, reject) => {
       const { fileName, url: downloadUrl } = this._resolveDownloadUrl();
+      // What latest.yml announced for this file, read now: a check that lands
+      // while the stream runs replaces _updateInfo with another version's.
+      const expected = ((this._updateInfo && this._updateInfo.files) || []).find((f) => f.url === fileName) || {};
 
       const tempDir = app.getPath('temp');
       this.downloadPath = path.join(tempDir, fileName);
@@ -289,7 +292,6 @@ class UpdateManager {
       // what latest.yml announced: a truncated, altered or unannounced
       // installer is never run.
       file.on('finish', () => {
-        const expected = ((this._updateInfo && this._updateInfo.files) || []).find((f) => f.url === fileName) || {};
         const discard = (reason) => {
           fs.unlink(this.downloadPath, () => {});
           this.downloadPath = null;
@@ -381,6 +383,8 @@ class UpdateManager {
         reject(new Error(`Failed to launch installer: ${err.message}`));
       });
       child.once('spawn', () => {
+        // From here the helper is on its own: a failure inside its script is
+        // written to <installer>.launch.log, and the app has already left.
         child.unref();
         app.quit();
         resolve();
@@ -398,7 +402,7 @@ class UpdateManager {
       if (err) return;
       const entries = [];
       for (const name of names) {
-        if (!/^Sokuji-.*\.Setup\.exe$/i.test(name)) continue;
+        if (!isInstallerName(name)) continue;
         try { entries.push({ name, mtimeMs: fs.statSync(path.join(tempDir, name)).mtimeMs }); } catch { /* gone already */ }
       }
       for (const name of staleInstallers(entries, { now: Date.now(), maxAgeMs: STALE_INSTALLER_AGE_MS })) {
