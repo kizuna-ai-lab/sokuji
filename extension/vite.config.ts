@@ -5,7 +5,6 @@ import path from 'path'
 import fs from 'fs'
 import pkg from '../package.json' with { type: 'json' }
 import { dropDuplicateOrtWasm } from '../vite.drop-duplicate-ort-wasm'
-import { linderaWasmUrl } from '../vite.lindera-wasm-url'
 import { workerManualChunks } from '../vite.worker-chunks'
 import { serializePlatformsForVanilla } from './platforms'
 
@@ -57,7 +56,6 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       dropDuplicateOrtWasm(),
-      linderaWasmUrl(),
       emitGeneratedPlatforms(),
       viteStaticCopy({
         targets: [
@@ -135,7 +133,6 @@ export default defineConfig(({ mode }) => {
     },
     worker: {
       format: 'es',
-      plugins: () => [linderaWasmUrl()],
       rollupOptions: {
         output: { manualChunks: workerManualChunks },
       },

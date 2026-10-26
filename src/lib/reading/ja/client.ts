@@ -9,11 +9,12 @@ export interface JaClient {
 }
 
 /**
- * Starts the worker on the dictionary's bytes (transferred) and resolves once it
- * can tokenize. `onGone` hears of a worker that stops after that (the system can
- * end its ~170 MB under memory pressure); its own terminate() is not reported.
+ * Starts the worker on the dictionary archive's bytes (transferred) and resolves
+ * once it can tokenize. `onGone` hears of a worker that stops after that (the
+ * system can end its ~200 MB under memory pressure); its own terminate() is not
+ * reported.
  */
-export function startJaClient(wasm: ArrayBuffer, onGone?: (err: Error) => void): Promise<JaClient> {
+export function startJaClient(dictionary: ArrayBuffer, onGone?: (err: Error) => void): Promise<JaClient> {
   const worker = createLinderaWorker();
   const pending = new Map<number, (tokens: JaToken[] | null) => void>();
   let nextId = 1;
@@ -58,6 +59,6 @@ export function startJaClient(wasm: ArrayBuffer, onGone?: (err: Error) => void):
       if (ready) onGone?.(err);
       else reject(err);
     };
-    worker.postMessage({ type: 'init', wasm } satisfies ToLinderaWorker, [wasm]);
+    worker.postMessage({ type: 'init', dictionary } satisfies ToLinderaWorker, [dictionary]);
   });
 }

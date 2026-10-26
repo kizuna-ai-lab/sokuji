@@ -1,7 +1,7 @@
 import type { JaToken } from './furigana';
 
 export type ToLinderaWorker =
-  | { type: 'init'; wasm: ArrayBuffer }
+  | { type: 'init'; dictionary: ArrayBuffer }
   | { type: 'tokenize'; id: number; text: string };
 
 export type FromLinderaWorker =

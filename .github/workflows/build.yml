@@ -237,11 +237,11 @@ jobs:
           VITE_ENABLE_ANALYTICS: ${{ startsWith(github.ref, 'refs/tags/v') && 'true' || '' }}
           VITE_EXTENSION_ID: ${{ startsWith(github.ref, 'refs/tags/v') && secrets.VITE_EXTENSION_ID_PROD || '' }}
 
-      # The Lindera wasm (17 MB, IPADIC inside) is downloaded on first use of
-      # Japanese readings, never shipped; Vite copies or inlines it unless
-      # vite.lindera-wasm-url.ts strips the glue's URL, so check the output.
-      - name: Check the Lindera wasm is not in the app build
-        run: node scripts/check-no-lindera-wasm.mjs build
+      # Lindera's wasm (1.8 MB) ships in the build, as browser stores require of
+      # code; its IPADIC dictionary (10.5 MB, data) is downloaded on first use of
+      # Japanese readings. Check the build has the one and not the other.
+      - name: Check the Lindera wasm is in, and its dictionary out of, the app build
+        run: node scripts/check-lindera-assets.mjs build
 
       # The capture helper is a build artifact, not a committed binary. It has
       # to exist before packaging: both packagers copy `resources/` wholesale,
@@ -602,9 +602,9 @@ jobs:
           VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
           VITE_ENABLED_PROVIDERS: ${{ vars.VITE_ENABLED_PROVIDERS }}
 
-      - name: Check the Lindera wasm is not in the extension build
+      - name: Check the Lindera wasm is in, and its dictionary out of, the extension build
         if: matrix.os == 'ubuntu-latest' && matrix.arch != 'arm64'
-        run: node scripts/check-no-lindera-wasm.mjs extension/dist
+        run: node scripts/check-lindera-assets.mjs extension/dist
 
       # Release-specific steps
       - name: Generate changelog

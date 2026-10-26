@@ -7,10 +7,10 @@ const REPO_ROOT = resolve(__dirname, '../../..');
 const squash = (s: string) => s.replace(/\s+/g, ' ').trim();
 const notices = squash(readFileSync(resolve(REPO_ROOT, 'THIRD_PARTY_NOTICES.md'), 'utf8'));
 
-// Readings ship pinyin-pro and Lindera in the app, and IPADIC inside the wasm the
-// app downloads: each licence asks for its notice to go with every copy.
+// Readings ship pinyin-pro and Lindera in the app, and download IPADIC, Lindera's
+// dictionary: each licence asks for its notice to go with every copy.
 describe('THIRD_PARTY_NOTICES.md for readings', () => {
-  it.each(['lindera-wasm-ipadic-web', 'pinyin-pro'])('carries the licence of %s', (pkg) => {
+  it.each(['lindera-wasm', 'pinyin-pro'])('carries the licence of %s', (pkg) => {
     const licence = squash(readFileSync(resolve(REPO_ROOT, 'node_modules', pkg, 'LICENSE'), 'utf8'));
     expect(notices).toContain(licence);
   });

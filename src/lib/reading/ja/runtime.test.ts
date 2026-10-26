@@ -30,7 +30,7 @@ describe('the Japanese runtime', () => {
     await flush();
     expect(downloadDictionary).not.toHaveBeenCalled();
     expect(runtime.getJapaneseState()).toEqual({ phase: 'ready' });
-    // Ready means only that the file is there: its 17 MB is read once, for the worker.
+    // Ready means only that the file is there: its 10 MB is read once, for the worker.
     expect(storedDictionary).not.toHaveBeenCalled();
     expect(startJaClient).not.toHaveBeenCalled();
     const [a, b] = [runtime.tokenizeJapanese('雨'), runtime.tokenizeJapanese('雨')];
