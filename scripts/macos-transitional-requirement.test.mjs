@@ -9,6 +9,7 @@ const {
   buildTransitionalRequirement,
   acceptsDeveloperId,
   DEVELOPER_ID_TEAM,
+  INSTALLED_SELF_SIGNED_ROOT,
 } = require('./macos-transitional-requirement.js');
 
 // What `codesign -d -r-` reports for the installed v0.46.1 (LittleSilver, 2026-10-26).
@@ -71,6 +72,14 @@ describe('acceptsDeveloperId', () => {
     expect(acceptsDeveloperId(displayed)).toBe(true);
     expect(acceptsDeveloperId(displayed.replace('"48ST7Q3ACJ"', '48ST7Q3ACJ'))).toBe(true);
     expect(acceptsDeveloperId(displayed.replace('48ST7Q3ACJ', '48ST7Q3ACJX'))).toBe(false);
+  });
+
+  it('needs the team exactly, not as a prefix', () => {
+    const shown = 'anchor apple generic and certificate leaf[subject.OU] = ';
+    expect(acceptsDeveloperId(`${shown}48ST7Q3ACJ-OTHER`)).toBe(false);
+    expect(acceptsDeveloperId(`${shown}"48ST7Q3ACJ-OTHER"`)).toBe(false);
+    expect(acceptsDeveloperId(`${shown}48ST7Q3ACJ)`)).toBe(true);
+    expect(acceptsDeveloperId(`${shown}48ST7Q3ACJ`)).toBe(true);
   });
 
   it('does not accept a different team', () => {
@@ -144,6 +153,25 @@ describe('afterSign', () => {
   it('fails the build when the re-signed requirement does not admit Developer ID', async () => {
     const { run } = fakeCodesign({ before: SELF_SIGNED_REPORT, after: SELF_SIGNED_REPORT });
     await expect(createAfterSign({ run, log: () => {} })(context())).rejects.toThrow(/unexpected requirement/);
+  });
+
+  it('pins the root that installed releases trust', () => {
+    expect(INSTALLED_SELF_SIGNED_ROOT).toBe(ROOT);
+  });
+
+  const OTHER_ROOT_REPORT = SELF_SIGNED_REPORT.replace(ROOT, 'ffffffffffffffffffffffffffffffffffffffff');
+
+  it('fails a CI build signed with a self-signed root that installed releases do not trust', async () => {
+    const { run, calls } = fakeCodesign({ before: OTHER_ROOT_REPORT });
+    const hook = createAfterSign({ run, log: () => {}, env: { GITHUB_ACTIONS: 'true' } });
+    await expect(hook(context())).rejects.toThrow(/installed releases do not trust/);
+    expect(calls.some((c) => c[1] === '--force')).toBe(false);
+  });
+
+  it('leaves a local build signed with another self-signed root alone', async () => {
+    const { run, calls } = fakeCodesign({ before: OTHER_ROOT_REPORT });
+    await createAfterSign({ run, log: () => {}, env: {} })(context());
+    expect(calls.some((c) => c[1] === '--force')).toBe(false);
   });
 
   it('fails when no signing identity is configured', async () => {

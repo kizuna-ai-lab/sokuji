@@ -32,6 +32,11 @@ const { spawnSync } = require('child_process');
 // Membership details). Also the OU of that certificate's subject.
 const DEVELOPER_ID_TEAM = '48ST7Q3ACJ';
 
+// SHA-1 of the self-signed "Sokuji Code Signing" root that every installed
+// release pins (`codesign -d -r-` on v0.46.1). A bridge built on any other root
+// would be as unreachable for them as a Developer ID build, so it must not ship.
+const INSTALLED_SELF_SIGNED_ROOT = '92e86a47b9d0179e060c7e7cea61b8f9d4f3c350';
+
 // Apple's documented requirement for "signed with a Developer ID Application
 // certificate": anchored at Apple, issued by the Developer ID intermediate
 // (1.2.840.113635.100.6.2.6), leaf marked as Developer ID Application
@@ -79,7 +84,8 @@ function buildTransitionalRequirement({ identifier, rootHash, teamId = DEVELOPER
  */
 function acceptsDeveloperId(requirement, teamId = DEVELOPER_ID_TEAM) {
   const text = String(requirement);
-  const team = new RegExp(`certificate leaf\\[subject\\.OU\\] = "?${teamId}"?(?![A-Z0-9])`);
+  // The team exactly: quoted, or bare and followed by the end of the clause.
+  const team = new RegExp(`certificate leaf\\[subject\\.OU\\] = (?:"${teamId}"|${teamId}(?=[)\\s]|$))`);
   return text.includes('anchor apple generic') && team.test(text);
 }
 
@@ -95,7 +101,7 @@ function runCommand(command, args) {
   return output;
 }
 
-function createAfterSign({ run = runCommand, log = console.log } = {}) {
+function createAfterSign({ run = runCommand, log = console.log, env = process.env } = {}) {
   const readRequirement = (appPath) => run('codesign', ['-d', '-r-', appPath]);
 
   return async function afterSign(context) {
@@ -108,6 +114,14 @@ function createAfterSign({ run = runCommand, log = console.log } = {}) {
     // to a self-signed root have nothing to bridge.
     if (!current || !current.identifier || !current.rootHash) {
       log(`[macos-transitional-requirement] Not signed with a self-signed certificate; leaving ${appPath} as is`);
+      return;
+    }
+    if (current.rootHash !== INSTALLED_SELF_SIGNED_ROOT) {
+      const message = `[macos-transitional-requirement] Signed with self-signed root ${current.rootHash}, which installed releases do not trust (they pin ${INSTALLED_SELF_SIGNED_ROOT})`;
+      // A release build must not ship it; a local build signed with a developer
+      // certificate is never distributed, so it only gets the warning.
+      if (env.GITHUB_ACTIONS === 'true') throw new Error(message);
+      log(`${message}; leaving ${appPath} as is`);
       return;
     }
     if (acceptsDeveloperId(current.requirement)) {
@@ -158,3 +172,4 @@ module.exports.parseDesignatedRequirement = parseDesignatedRequirement;
 module.exports.buildTransitionalRequirement = buildTransitionalRequirement;
 module.exports.acceptsDeveloperId = acceptsDeveloperId;
 module.exports.DEVELOPER_ID_TEAM = DEVELOPER_ID_TEAM;
+module.exports.INSTALLED_SELF_SIGNED_ROOT = INSTALLED_SELF_SIGNED_ROOT;
