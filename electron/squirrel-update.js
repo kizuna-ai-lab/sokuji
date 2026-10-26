@@ -56,17 +56,31 @@ function isSquirrelFirstRun(argv) {
  * download has settled (quitAndInstall, a late failure).
  * @param {{ autoUpdater: import('events').EventEmitter & { setFeedURL(o: { url: string }): void, checkForUpdates(): void, quitAndInstall(): void }, feedUrl: string, onStatus: (s: object) => void, onError?: (e: Error) => void }} deps
  */
-function createSquirrelDownload({ autoUpdater, feedUrl, onStatus, onError = (e) => console.error('[Sokuji] Squirrel updater error:', e) }) {
+function createSquirrelDownload({
+  autoUpdater,
+  feedUrl,
+  onStatus,
+  onError = (e) => console.error('[Sokuji] Squirrel updater error:', e),
+  timers = { setTimeout, clearTimeout },
+  downloadTimeoutMs = 60 * 60 * 1000,
+}) {
   let inFlight = null;
   let applied = null;
-  autoUpdater.on('error', (err) => onError(err instanceof Error ? err : new Error(String(err))));
+  // A late error (after quitAndInstall, or with no download running) has no
+  // other listener; one a download is handling is not reported twice.
+  autoUpdater.on('error', (err) => {
+    if (!inFlight) onError(err instanceof Error ? err : new Error(String(err)));
+  });
+  const normalize = (v) => (typeof v === 'string' ? v.replace(/^v/i, '') : v);
   return {
-    /** The package Squirrel has applied in this process, if any. */
+    /** The package Squirrel has applied in this process, if any: Squirrel's release name and the version the check asked for. */
     applied() {
       return applied;
     },
     download({ version } = {}) {
-      if (applied && version && applied.releaseName !== version) applied = null; // the check now names a newer one
+      const wanted = normalize(version);
+      // The check now names a different version than the one applied: ask again.
+      if (applied && wanted && applied.version && applied.version !== wanted) applied = null;
       if (applied) {
         onStatus({ status: 'downloaded' });
         return Promise.resolve(applied);
@@ -78,15 +92,17 @@ function createSquirrelDownload({ autoUpdater, feedUrl, onStatus, onError = (e) 
       // Assigned before anything can settle it: a synchronous throw below
       // must clear it, not be overwritten by a later assignment.
       inFlight = promise;
+      let timer = null;
       const done = (fn) => (...args) => {
         autoUpdater.removeListener('update-downloaded', onDownloaded);
         autoUpdater.removeListener('update-not-available', onNone);
         autoUpdater.removeListener('error', onFail);
+        if (timer !== null) timers.clearTimeout(timer);
         inFlight = null;
         fn(...args);
       };
       const onDownloaded = done((_event, _notes, releaseName) => {
-        applied = { releaseName };
+        applied = { releaseName, version: wanted };
         onStatus({ status: 'downloaded' });
         resolve(applied);
       });
@@ -95,6 +111,9 @@ function createSquirrelDownload({ autoUpdater, feedUrl, onStatus, onError = (e) 
       autoUpdater.on('update-downloaded', onDownloaded);
       autoUpdater.on('update-not-available', onNone);
       autoUpdater.on('error', onFail);
+      // Squirrel reports no progress; a download it never reports on would
+      // otherwise hold the renderer's bar and this promise forever.
+      timer = timers.setTimeout(() => onFail(new Error(`Squirrel reported nothing for ${Math.round(downloadTimeoutMs / 60000)} minutes; giving up on this download`)), downloadTimeoutMs);
       try {
         autoUpdater.setFeedURL({ url: feedUrl });
         // Squirrel reports no byte counts: the renderer shows an indeterminate bar.

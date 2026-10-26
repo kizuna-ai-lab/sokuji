@@ -89,7 +89,7 @@ describe('createSquirrelDownload', () => {
     expect(statuses).toEqual([{ status: 'downloading', indeterminate: true }]);
     au.emit('update-available');
     au.emit('update-downloaded', {}, '', '0.46.5', new Date(), feedUrl);
-    await expect(p).resolves.toEqual({ releaseName: '0.46.5' });
+    await expect(p).resolves.toEqual({ releaseName: '0.46.5', version: undefined });
     expect(statuses.at(-1)).toEqual({ status: 'downloaded' });
   });
 
@@ -113,7 +113,7 @@ describe('createSquirrelDownload', () => {
     const p = d.download();
     expect(au.checks).toBe(2);
     au.emit('update-downloaded', {}, '', '0.46.5', new Date(), feedUrl);
-    await expect(p).resolves.toEqual({ releaseName: '0.46.5' });
+    await expect(p).resolves.toEqual({ releaseName: '0.46.5', version: undefined });
   });
 
   it('remembers an applied package: a later download of the same version resolves at once instead of asking Squirrel again', async () => {
@@ -123,10 +123,10 @@ describe('createSquirrelDownload', () => {
     const p = d.download({ version: '0.46.5' });
     au.emit('update-downloaded', {}, '', '0.46.5', new Date(), feedUrl);
     await p;
-    await expect(d.download({ version: '0.46.5' })).resolves.toEqual({ releaseName: '0.46.5' });
+    await expect(d.download({ version: '0.46.5' })).resolves.toEqual({ releaseName: '0.46.5', version: '0.46.5' });
     expect(au.checks).toBe(1);
     expect(statuses.at(-1)).toEqual({ status: 'downloaded' });
-    expect(d.applied()).toEqual({ releaseName: '0.46.5' });
+    expect(d.applied()).toEqual({ releaseName: '0.46.5', version: '0.46.5' });
   });
 
   it('asks Squirrel again when the check now reports a newer version than the one applied', async () => {
@@ -138,8 +138,38 @@ describe('createSquirrelDownload', () => {
     const p2 = d.download({ version: '0.46.6' });
     expect(au.checks).toBe(2);
     au.emit('update-downloaded', {}, '', '0.46.6', new Date(), feedUrl);
-    await expect(p2).resolves.toEqual({ releaseName: '0.46.6' });
-    expect(d.applied()).toEqual({ releaseName: '0.46.6' });
+    await expect(p2).resolves.toEqual({ releaseName: '0.46.6', version: '0.46.6' });
+    expect(d.applied()).toEqual({ releaseName: '0.46.6', version: '0.46.6' });
+  });
+
+  it('gives up on a download that Squirrel never reports on, and can be retried', async () => {
+    const au = fakeAutoUpdater();
+    const timers = [];
+    const fakeTimers = {
+      setTimeout: (fn, ms) => { timers.push({ fn, ms }); return timers.length; },
+      clearTimeout: (id) => { timers[id - 1] = null; },
+    };
+    const d = createSquirrelDownload({ autoUpdater: au, feedUrl, onStatus: () => {}, timers: fakeTimers, downloadTimeoutMs: 60 * 60 * 1000 });
+    const p = d.download({ version: '0.46.5' });
+    expect(timers[0].ms).toBe(60 * 60 * 1000);
+    timers[0].fn();
+    await expect(p).rejects.toThrow('Squirrel reported nothing for 60 minutes');
+    for (const ev of ['update-downloaded', 'update-not-available']) expect(au.listenerCount(ev)).toBe(0);
+    const p2 = d.download({ version: '0.46.5' });
+    expect(au.checks).toBe(2);
+    au.emit('update-downloaded', {}, '', '0.46.5', new Date(), feedUrl);
+    await expect(p2).resolves.toEqual({ releaseName: '0.46.5', version: '0.46.5' });
+    expect(timers.filter(Boolean)).toHaveLength(0); // the second download's timer was cleared on success
+  });
+
+  it('compares the version the check requested, not Squirrel\'s release name (which may carry a v)', async () => {
+    const au = fakeAutoUpdater();
+    const d = createSquirrelDownload({ autoUpdater: au, feedUrl, onStatus: () => {} });
+    const p = d.download({ version: '0.46.5' });
+    au.emit('update-downloaded', {}, '', 'v0.46.5', new Date(), feedUrl);
+    await expect(p).resolves.toEqual({ releaseName: 'v0.46.5', version: '0.46.5' });
+    await expect(d.download({ version: 'v0.46.5' })).resolves.toEqual({ releaseName: 'v0.46.5', version: '0.46.5' });
+    expect(au.checks).toBe(1);
   });
 
   it("keeps a permanent error listener, so a Squirrel error after a download settles cannot crash the process", async () => {
@@ -147,8 +177,9 @@ describe('createSquirrelDownload', () => {
     const errors = [];
     const d = createSquirrelDownload({ autoUpdater: au, feedUrl, onStatus: () => {}, onError: (e) => errors.push(e.message) });
     const p = d.download({ version: '0.46.5' });
-    au.emit('update-downloaded', {}, '', '0.46.5', new Date(), feedUrl);
-    await p;
+    au.emit('error', new Error('during download')); // the download handles this one; it is not logged twice
+    await expect(p).rejects.toThrow('during download');
+    expect(errors).toEqual([]);
     expect(() => au.emit('error', new Error('late failure'))).not.toThrow();
     expect(errors).toEqual(['late failure']);
   });

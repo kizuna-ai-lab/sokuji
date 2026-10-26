@@ -238,28 +238,20 @@ class UpdateManager {
   }
 
   /**
-   * Resolve the .exe download URL from update info.
-   * #8: Dynamically resolve filename from info.files if available,
-   * falling back to constructed name.
+   * The installer latest.yml names for this release, with its size and
+   * sha512, or null when it names none (or a check cleared the update info
+   * meanwhile). There is no guessed file name: a file the manifest does not
+   * describe could not be verified, so it must not be downloaded.
    */
   _resolveDownloadUrl() {
-    const version = this._updateInfo.version;
-    const files = this._updateInfo.files || [];
-
-    // Try to find .exe from the update info files array
-    const exeFile = files.find(f => f.url && f.url.endsWith('.exe'));
-    if (exeFile) {
-      return {
-        fileName: exeFile.url,
-        url: `https://github.com/kizuna-ai-lab/sokuji/releases/download/v${version}/${exeFile.url}`,
-      };
-    }
-
-    // Fallback: matches Squirrel's naming with dots (spaces are replaced in CI)
-    const exeFileName = `Sokuji-${version}.Setup.exe`;
+    const info = this._updateInfo;
+    if (!info) return null;
+    const exeFile = (info.files || []).find((f) => f.url && f.url.endsWith('.exe'));
+    if (!exeFile) return null;
     return {
-      fileName: exeFileName,
-      url: `https://github.com/kizuna-ai-lab/sokuji/releases/download/v${version}/${exeFileName}`,
+      fileName: exeFile.url,
+      url: `https://github.com/${GITHUB_REPO.owner}/${GITHUB_REPO.repo}/releases/download/v${info.version}/${exeFile.url}`,
+      expected: { size: exeFile.size, sha512: exeFile.sha512 },
     };
   }
 
@@ -270,11 +262,14 @@ class UpdateManager {
    */
   _downloadUpdate() {
     return new Promise((resolve, reject) => {
-      const { fileName, url: downloadUrl } = this._resolveDownloadUrl();
-      // What latest.yml announced for this file, read now: a check that lands
-      // while the stream runs replaces _updateInfo with another version's. A
-      // file the manifest does not describe is refused before 175 MB are spent.
-      const expected = ((this._updateInfo && this._updateInfo.files) || []).find((f) => f.url === fileName) || {};
+      // Read now, as one unit: a check that lands while the stream runs
+      // replaces _updateInfo with another version's (or clears it).
+      const resolved = this._resolveDownloadUrl();
+      if (!resolved) {
+        reject(new Error('latest.yml names no installer for this release, or a newer check cleared the update; check again'));
+        return;
+      }
+      const { fileName, url: downloadUrl, expected } = resolved;
       if (typeof expected.size !== 'number' && !expected.sha512) {
         reject(new Error(`latest.yml does not describe ${fileName}; not downloading it`));
         return;
@@ -400,7 +395,10 @@ class UpdateManager {
       child.once('spawn', () => {
         // From here the helper is on its own: a failure inside its script is
         // written to <installer>.launch.log, and the app has already left.
+        // If it has not — a vetoed quit — the helper gives up after 120 s,
+        // and the flag follows so the update can be retried.
         child.unref();
+        setTimeout(() => { this._installing = false; }, 125_000).unref();
         app.quit();
         resolve();
       });
