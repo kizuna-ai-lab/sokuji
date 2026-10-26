@@ -86,8 +86,9 @@ function createSquirrelDownload({
     download({ version } = {}) {
       const wanted = normalize(version);
       lastWanted = wanted;
-      // The check now names a different version than the one applied: ask again.
-      if (applied && wanted && applied.version && applied.version !== wanted) applied = null;
+      // An applied package is reused only for the very version the check now
+      // names; a different or unknown version asks Squirrel again.
+      if (applied && (!wanted || !applied.version || applied.version !== wanted)) applied = null;
       if (applied) {
         onStatus({ status: 'downloaded' });
         return Promise.resolve(applied);

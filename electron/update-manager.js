@@ -218,10 +218,16 @@ class UpdateManager {
       }
 
       // What was checked above is what gets installed below: a check landing
-      // while the session ends would clear this.downloadPath in between.
+      // while the session ends would clear this.downloadPath in between. A
+      // download that FAILED meanwhile (its file unlinked) is not brought back.
       const downloadPath = this.downloadPath;
       await new Promise((resolve) => this.beforeInstall(resolve));
-      this.downloadPath = downloadPath;
+      if (downloadPath === SQUIRREL_APPLIED || downloadPath === '__native__' || fs.existsSync(downloadPath)) {
+        this.downloadPath = downloadPath;
+      } else {
+        this._sendStatus({ status: 'error', message: 'The downloaded update is no longer available; download it again' });
+        return { success: false, error: 'No downloaded update' };
+      }
 
       // Native flow: quitAndInstall replaces the AppImage / .app bundle in place.
       // On macOS electron-updater hands the downloaded zip to Squirrel.Mac,
@@ -419,6 +425,11 @@ class UpdateManager {
         // longest wait, and the flag follows so the update can be retried.
         child.unref();
         setTimeout(() => { this._installing = false; }, HELPER_MAX_WAIT_MS + 10_000).unref();
+        // A vetoed or held quit leaves the app running and the helper
+        // waiting; the renderer hears about it instead of a silent success.
+        setTimeout(() => {
+          this._sendStatus({ status: 'error', message: 'Sokuji is still running; the installer starts once it has quit, or gives up after a few minutes.' });
+        }, 10_000).unref();
         app.quit();
         resolve();
       });

@@ -178,6 +178,18 @@ describe('createSquirrelDownload', () => {
     expect(au.checks).toBe(1);
   });
 
+  it('does not reuse an applied package whose version is unknown, nor for a request without one', async () => {
+    const au = fakeAutoUpdater();
+    const d = createSquirrelDownload({ autoUpdater: au, feedUrl, onStatus: () => {} });
+    const p = d.download({ version: '0.46.5' });
+    au.emit('update-downloaded', {}, '', '0.46.5', new Date(), feedUrl);
+    await p;
+    const p2 = d.download(); // no version from the check: ask Squirrel, do not guess
+    expect(au.checks).toBe(2);
+    au.emit('update-not-available');
+    await expect(p2).rejects.toThrow('no version newer');
+  });
+
   it('compares the version the check requested, not Squirrel\'s release name (which may carry a v)', async () => {
     const au = fakeAutoUpdater();
     const d = createSquirrelDownload({ autoUpdater: au, feedUrl, onStatus: () => {} });
