@@ -66,10 +66,16 @@ function installerLaunchCommand({ installerPath, pid, installRoot, systemRoot = 
   // nothing and let the installer run over a live app. Backtick-escaped literal.
   const pattern = `${root.replace(/[[\]*?`]/g, (ch) => '`' + ch)}*`;
   const log = psQuote(`${installerPath}.launch.log`);
-  const giveUp = (why) => `Add-Content -Path ${log} -Value ((Get-Date -Format o) + ' install skipped: ${why}'); exit 1`;
+  // One statement per line: PowerShell reads -Command text with newlines, and so can a reviewer.
+  const giveUp = (why) => [
+    `  Add-Content -Path ${log} -Value ((Get-Date -Format o) + ' install skipped: ${why}')`,
+    '  exit 1',
+  ];
   const script = [
     `Wait-Process -Id ${id} -Timeout 120 -ErrorAction SilentlyContinue`,
-    `if (Get-Process -Id ${id} -ErrorAction SilentlyContinue) { ${giveUp(`process ${id} still running after 120 s`)} }`,
+    `if (Get-Process -Id ${id} -ErrorAction SilentlyContinue) {`,
+    ...giveUp(`process ${id} still running after 120 s`),
+    '}',
     `$root = ${psQuote(root)}`,
     `$pattern = ${psQuote(pattern)}`,
     '$i = 0',
@@ -80,9 +86,11 @@ function installerLaunchCommand({ installerPath, pid, installRoot, systemRoot = 
     '  Start-Sleep -Milliseconds 500',
     '  $i++',
     '}',
-    `if ($left) { ${giveUp("processes still running under the install root: ' + (($left | ForEach-Object { $_.ProcessName }) -join ', ') + '")} }`,
+    'if ($left) {',
+    ...giveUp("processes still running under the install root: ' + (($left | ForEach-Object { $_.ProcessName }) -join ', ') + '"),
+    '}',
     `Start-Process -FilePath ${psQuote(installerPath)}`,
-  ].join('; ');
+  ].join('\n');
   return {
     file: `${systemRoot}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe`,
     args: ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', script],

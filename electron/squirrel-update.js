@@ -13,15 +13,18 @@
 // objects.
 const path = require('path');
 
+const LOOPBACK_RE = /^http:\/\/(?:127\.0\.0\.1|localhost)(?::\d+)?(?:\/|$)/i;
+
 /**
  * The feed: GitHub's "latest release" download URL, where RELEASES and the
- * nupkg live. `SOKUJI_UPDATE_FEED` overrides it for a test machine, but only
- * to https or a loopback host: a packaged app inherits the environment, and
- * a plain-http remote feed would hand package selection to the network.
+ * nupkg live. `SOKUJI_UPDATE_FEED` overrides it for a test machine. A
+ * packaged app inherits its environment, and Squirrel trusts whatever the
+ * feed's RELEASES names, so a packaged build accepts only a loopback feed
+ * (a server on the same machine); a development run also accepts https.
  */
-function squirrelFeedUrl({ owner, repo, env }) {
+function squirrelFeedUrl({ owner, repo, env, isPackaged = true }) {
   const override = env.SOKUJI_UPDATE_FEED;
-  if (override && /^(?:https:\/\/|http:\/\/(?:127\.0\.0\.1|localhost)(?::\d+)?(?:\/|$))/i.test(override)) return override;
+  if (override && (LOOPBACK_RE.test(override) || (!isPackaged && /^https:\/\//i.test(override)))) return override;
   return `https://github.com/${owner}/${repo}/releases/latest/download`;
 }
 
@@ -39,24 +42,31 @@ function isSquirrelFirstRun(argv) {
 }
 
 /**
- * One downloader over Electron's autoUpdater. `download()` resolves once
- * Squirrel has applied the package (`update-downloaded`), rejects on its
- * error or when the feed lists nothing newer; a package already applied in
- * this process is remembered, so a later download (after a re-check cleared
- * the renderer's state) resolves at once instead of asking Squirrel, which
- * would now answer "nothing newer". `quitAndInstall()` hands over to
+ * One downloader over Electron's autoUpdater. `download({ version })`
+ * resolves once Squirrel has applied the package (`update-downloaded`),
+ * rejects on its error or when the feed lists nothing newer. A package
+ * already applied in this process is remembered: a later download of the
+ * same version (after a re-check cleared the renderer's state) resolves at
+ * once instead of asking Squirrel, which would now answer "nothing newer";
+ * a different version asks again. `quitAndInstall()` hands over to
  * Squirrel, which restarts into the new version.
- * @param {{ autoUpdater: import('events').EventEmitter & { setFeedURL(o: { url: string }): void, checkForUpdates(): void, quitAndInstall(): void }, feedUrl: string, onStatus: (s: object) => void }} deps
+ *
+ * A permanent `error` listener is installed at creation: Node throws on an
+ * `error` event with no listener, and Squirrel can still emit one after a
+ * download has settled (quitAndInstall, a late failure).
+ * @param {{ autoUpdater: import('events').EventEmitter & { setFeedURL(o: { url: string }): void, checkForUpdates(): void, quitAndInstall(): void }, feedUrl: string, onStatus: (s: object) => void, onError?: (e: Error) => void }} deps
  */
-function createSquirrelDownload({ autoUpdater, feedUrl, onStatus }) {
+function createSquirrelDownload({ autoUpdater, feedUrl, onStatus, onError = (e) => console.error('[Sokuji] Squirrel updater error:', e) }) {
   let inFlight = null;
   let applied = null;
+  autoUpdater.on('error', (err) => onError(err instanceof Error ? err : new Error(String(err))));
   return {
     /** The package Squirrel has applied in this process, if any. */
     applied() {
       return applied;
     },
-    download() {
+    download({ version } = {}) {
+      if (applied && version && applied.releaseName !== version) applied = null; // the check now names a newer one
       if (applied) {
         onStatus({ status: 'downloaded' });
         return Promise.resolve(applied);
@@ -71,7 +81,7 @@ function createSquirrelDownload({ autoUpdater, feedUrl, onStatus }) {
       const done = (fn) => (...args) => {
         autoUpdater.removeListener('update-downloaded', onDownloaded);
         autoUpdater.removeListener('update-not-available', onNone);
-        autoUpdater.removeListener('error', onError);
+        autoUpdater.removeListener('error', onFail);
         inFlight = null;
         fn(...args);
       };
@@ -81,17 +91,17 @@ function createSquirrelDownload({ autoUpdater, feedUrl, onStatus }) {
         resolve(applied);
       });
       const onNone = done(() => reject(new Error('The update feed lists no version newer than the installed one')));
-      const onError = done((err) => reject(err instanceof Error ? err : new Error(String(err))));
+      const onFail = done((err) => reject(err instanceof Error ? err : new Error(String(err))));
       autoUpdater.on('update-downloaded', onDownloaded);
       autoUpdater.on('update-not-available', onNone);
-      autoUpdater.on('error', onError);
+      autoUpdater.on('error', onFail);
       try {
         autoUpdater.setFeedURL({ url: feedUrl });
         // Squirrel reports no byte counts: the renderer shows an indeterminate bar.
         onStatus({ status: 'downloading', indeterminate: true });
         autoUpdater.checkForUpdates();
       } catch (err) {
-        onError(err);
+        onFail(err);
       }
       return promise;
     },

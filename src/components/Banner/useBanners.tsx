@@ -80,13 +80,12 @@ export function useBanners(): BannerProps[] {
       onDismiss: dismissBanner, dismissLabel,
     });
   } else if (shown && status === 'downloading') {
+    // Squirrel on Windows reports no byte counts: say so without a percentage and draw no bar.
+    const text = indeterminate ? t('update.downloadingIndeterminate') : t('update.downloading', { percent: Math.round(percent) });
+    const progress = indeterminate ? undefined : Math.min(100, Math.max(0, percent));
     banners.push({
       id: 'update', tone: 'brand', icon: <RefreshCw size={14} aria-hidden="true" className="spinning" />,
-      // Squirrel on Windows reports no byte counts: say so without a percentage and draw no bar.
-      ...(indeterminate
-        ? { text: t('update.downloadingIndeterminate') }
-        : { text: t('update.downloading', { percent: Math.round(percent) }), progress: Math.min(100, Math.max(0, percent)) }),
-      dismissLabel,
+      text, progress, dismissLabel,
     });
   } else if (shown && status === 'downloaded') {
     banners.push({

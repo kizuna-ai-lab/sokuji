@@ -42,7 +42,10 @@ damaged install), now with the download checked against `latest.yml` (size, sha5
 manifest does not describe is not run) and the installer started by a detached PowerShell only
 after every process under the install root — `sokuji.exe` and the audio helper — has exited. If
 they have not within the bound, it writes `<installer>.launch.log` and exits without installing: a
-blocked update leaves a working app (`electron/update-install-windows.js`).
+blocked update leaves a working app (`electron/update-install-windows.js`). The root it watches is
+`%LocalAppData%\Sokuji`, which is where Setup.exe installs — and first deletes — whatever directory
+the running copy came from. A second Install click while the helper waits is refused with a
+message, not silently accepted.
 
 ## The one-time transition from 0.46.x
 
@@ -55,10 +58,13 @@ app is gone afterwards, reinstall it from the website; settings and sign-in surv
 
 ## Testing an unreleased build
 
-The feed URL can be overridden for one machine: set `SOKUJI_UPDATE_FEED` (https, or http on
-127.0.0.1/localhost only) to a URL that serves `RELEASES` and the nupkg (any static HTTP server
-over `out/make-web/squirrel.windows/x64/`), start the installed app from a shell with that
-variable, and run Download → Install. Squirrel writes `%LocalAppData%\Sokuji\SquirrelSetup.log`.
+The feed URL can be overridden for one machine: set `SOKUJI_UPDATE_FEED` to a URL that serves
+`RELEASES` and the nupkg (any static HTTP server over `out/make-web/squirrel.windows/x64/`), start
+the installed app from a shell with that variable, and run Download → Install. A packaged build
+accepts only a loopback address (`http://127.0.0.1:…` or `http://localhost:…`): Squirrel installs
+whatever the feed's `RELEASES` names, so a packaged app must not take a remote feed from its
+environment; a development run also accepts https. Squirrel writes
+`%LocalAppData%\Sokuji\SquirrelSetup.log`.
 
 Precondition: the override redirects only the Squirrel **download**. The **check** still reads
 `latest.yml` from the latest GitHub release and offers Download only when that version is newer

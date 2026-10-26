@@ -36,8 +36,9 @@ class UpdateManager {
     this._squirrel = process.platform === 'win32' && isSquirrelInstall({ execPath: process.execPath, existsSync: fs.existsSync })
       ? createSquirrelDownload({
           autoUpdater: squirrelAutoUpdater,
-          feedUrl: squirrelFeedUrl({ ...GITHUB_REPO, env: process.env }),
+          feedUrl: squirrelFeedUrl({ ...GITHUB_REPO, env: process.env, isPackaged: app.isPackaged }),
           onStatus: (s) => this._sendStatus(s),
+          onError: (err) => console.error('[Sokuji] [UpdateManager] Squirrel error:', err),
         })
       : null;
     if (process.platform === 'win32') this._removeStaleInstallers();
@@ -90,7 +91,7 @@ class UpdateManager {
       // has already applied: it will run on the next launch whatever the
       // check says, and Install must stay reachable.
       this._updateInfo = null;
-      if (this.downloadPath !== SQUIRREL_APPLIED) this.downloadPath = null;
+      if (!this._squirrelApplied()) this.downloadPath = null;
       this._sendStatus({ status: 'checking' });
     });
 
@@ -108,7 +109,7 @@ class UpdateManager {
     autoUpdater.on('update-not-available', () => {
       // Clear stale update info so a previous check's data can't trigger a download
       this._updateInfo = null;
-      if (this.downloadPath !== SQUIRREL_APPLIED) this.downloadPath = null;
+      if (!this._squirrelApplied()) this.downloadPath = null;
       this._sendStatus({ status: 'not-available' });
     });
 
@@ -185,7 +186,7 @@ class UpdateManager {
       this._downloadPromise = (async () => {
         try {
           if (this._squirrel) {
-            await this._squirrel.download();
+            await this._squirrel.download({ version: this._updateInfo && this._updateInfo.version });
             this.downloadPath = SQUIRREL_APPLIED;
           } else {
             await this._downloadUpdate();
@@ -271,20 +272,26 @@ class UpdateManager {
     return new Promise((resolve, reject) => {
       const { fileName, url: downloadUrl } = this._resolveDownloadUrl();
       // What latest.yml announced for this file, read now: a check that lands
-      // while the stream runs replaces _updateInfo with another version's.
+      // while the stream runs replaces _updateInfo with another version's. A
+      // file the manifest does not describe is refused before 175 MB are spent.
       const expected = ((this._updateInfo && this._updateInfo.files) || []).find((f) => f.url === fileName) || {};
+      if (typeof expected.size !== 'number' && !expected.sha512) {
+        reject(new Error(`latest.yml does not describe ${fileName}; not downloading it`));
+        return;
+      }
 
       const tempDir = app.getPath('temp');
-      this.downloadPath = path.join(tempDir, fileName);
+      const downloadPath = path.join(tempDir, fileName);
+      this.downloadPath = downloadPath;
 
       this._sendStatus({ status: 'downloading' });
 
-      const file = fs.createWriteStream(this.downloadPath);
+      const file = fs.createWriteStream(downloadPath);
 
       // #5: Handle file stream errors
       file.on('error', (err) => {
         console.error('File write error:', err);
-        fs.unlink(this.downloadPath, () => {});
+        fs.unlink(downloadPath, () => {});
         reject(err);
       });
 
@@ -292,12 +299,14 @@ class UpdateManager {
       // what latest.yml announced: a truncated, altered or unannounced
       // installer is never run.
       file.on('finish', () => {
+        // `downloadPath` is this download's: a check that lands during the
+        // hash clears this.downloadPath, and must not be read here.
         const discard = (reason) => {
-          fs.unlink(this.downloadPath, () => {});
-          this.downloadPath = null;
+          fs.unlink(downloadPath, () => {});
+          if (this.downloadPath === downloadPath) this.downloadPath = null;
           reject(new Error(`Downloaded installer rejected: ${reason}`));
         };
-        verifyDownloadedInstaller(this.downloadPath, { size: expected.size, sha512: expected.sha512 }).then((check) => {
+        verifyDownloadedInstaller(downloadPath, { size: expected.size, sha512: expected.sha512 }).then((check) => {
           if (!check.ok) return discard(check.reason);
           this._sendStatus({ status: 'downloaded' });
           resolve();
@@ -317,7 +326,7 @@ class UpdateManager {
 
           if (response.statusCode !== 200) {
             file.destroy();
-            fs.unlink(this.downloadPath, () => {});
+            fs.unlink(downloadPath, () => {});
             reject(new Error(`Download failed with status ${response.statusCode}`));
             return;
           }
@@ -341,12 +350,12 @@ class UpdateManager {
 
           response.on('error', (err) => {
             file.destroy();
-            fs.unlink(this.downloadPath, () => {});
+            fs.unlink(downloadPath, () => {});
             reject(err);
           });
         }).on('error', (err) => {
           file.destroy();
-          fs.unlink(this.downloadPath, () => {});
+          fs.unlink(downloadPath, () => {});
           reject(err);
         });
       };
@@ -368,13 +377,19 @@ class UpdateManager {
       this._squirrel.quitAndInstall();
       return Promise.resolve();
     }
-    if (this._installing) return Promise.resolve(); // a second click must not spawn a second installer
+    if (this._installing) {
+      // A second click must not spawn a second installer; the first is
+      // waiting for this app to exit, which is the one thing left to do.
+      return Promise.reject(new Error('The installer is already waiting for Sokuji to quit; close the app to continue.'));
+    }
     this._installing = true;
     return new Promise((resolve, reject) => {
       const { file, args } = installerLaunchCommand({
         installerPath: this.downloadPath,
         pid: process.pid,
-        installRoot: path.resolve(path.dirname(process.execPath), '..'),
+        // Where Setup.exe will install — and first delete: Squirrel's root is
+        // %LocalAppData%\Sokuji whatever directory this run came from.
+        installRoot: process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, 'Sokuji') : path.resolve(path.dirname(process.execPath), '..'),
         systemRoot: process.env.SystemRoot || 'C:\\Windows',
       });
       const child = spawn(file, args, { detached: true, stdio: 'ignore', windowsHide: true });
@@ -390,6 +405,11 @@ class UpdateManager {
         resolve();
       });
     });
+  }
+
+  /** Whether Squirrel has applied a package in this process (it runs on the next launch regardless). */
+  _squirrelApplied() {
+    return !!(this._squirrel && this._squirrel.applied());
   }
 
   /**

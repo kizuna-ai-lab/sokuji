@@ -64,6 +64,14 @@ describe('installerLaunchCommand', () => {
     expect(cmd.args.slice(0, -1)).toEqual(['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command']);
   });
 
+  it('is one statement per line, so a reader (and PowerShell) can follow it', () => {
+    const lines = script.split('\n');
+    expect(lines.length).toBeGreaterThan(8);
+    expect(lines.some((l) => l.includes('; '))).toBe(false);
+    expect(lines[0]).toBe('Wait-Process -Id 4242 -Timeout 120 -ErrorAction SilentlyContinue');
+    expect(lines[lines.length - 1]).toBe("Start-Process -FilePath 'C:\\Users\\jiang\\AppData\\Local\\Temp\\Sokuji-0.46.4.Setup.exe'");
+  });
+
   it('waits for this process with a bound, and gives up if it is still there', () => {
     expect(script).toContain('Wait-Process -Id 4242 -Timeout 120 -ErrorAction SilentlyContinue');
     expect(script).toMatch(/if \(Get-Process -Id 4242 -ErrorAction SilentlyContinue\) \{[^}]*exit 1/);

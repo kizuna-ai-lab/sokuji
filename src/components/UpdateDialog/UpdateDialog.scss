@@ -153,6 +153,12 @@
           &--indeterminate {
             width: 40%;
             animation: update-progress-indeterminate 1.4s ease-in-out infinite;
+
+            @media (prefers-reduced-motion: reduce) {
+              animation: none;
+              width: 100%;
+              opacity: 0.5;
+            }
           }
         }
       }

@@ -19,15 +19,24 @@ describe('squirrelFeedUrl', () => {
       .toBe('https://github.com/kizuna-ai-lab/sokuji/releases/latest/download');
   });
 
-  it('can be pointed at a loopback or https address for a test machine', () => {
-    for (const url of ['http://127.0.0.1:8765/feed', 'http://localhost:8765/feed', 'https://staging.example/feed']) {
+  it('can be pointed at a loopback address on any build, and at https from a development run', () => {
+    for (const url of ['http://127.0.0.1:8765/feed', 'http://localhost:8765/feed']) {
       expect(squirrelFeedUrl({ owner: 'kizuna-ai-lab', repo: 'sokuji', env: { SOKUJI_UPDATE_FEED: url } })).toBe(url);
     }
+    expect(squirrelFeedUrl({ owner: 'kizuna-ai-lab', repo: 'sokuji', env: { SOKUJI_UPDATE_FEED: 'https://staging.example/feed' }, isPackaged: false }))
+      .toBe('https://staging.example/feed');
   });
 
   it('ignores a plain-http override to a remote host', () => {
     expect(squirrelFeedUrl({ owner: 'kizuna-ai-lab', repo: 'sokuji', env: { SOKUJI_UPDATE_FEED: 'http://evil.example/feed' } }))
       .toBe('https://github.com/kizuna-ai-lab/sokuji/releases/latest/download');
+  });
+
+  it('in a packaged build accepts only a loopback override: a hostile https feed would install any package', () => {
+    const base = { owner: 'kizuna-ai-lab', repo: 'sokuji', isPackaged: true };
+    expect(squirrelFeedUrl({ ...base, env: { SOKUJI_UPDATE_FEED: 'https://staging.example/feed' } }))
+      .toBe('https://github.com/kizuna-ai-lab/sokuji/releases/latest/download');
+    expect(squirrelFeedUrl({ ...base, env: { SOKUJI_UPDATE_FEED: 'http://127.0.0.1:8765/feed' } })).toBe('http://127.0.0.1:8765/feed');
   });
 });
 
@@ -98,7 +107,8 @@ describe('createSquirrelDownload', () => {
     au.checkForUpdates = () => { au.checks += 1; if (fail) throw new Error('Can not find Squirrel'); };
     const d = createSquirrelDownload({ autoUpdater: au, feedUrl, onStatus: () => {} });
     await expect(d.download()).rejects.toThrow('Can not find Squirrel');
-    for (const ev of ['update-downloaded', 'update-not-available', 'error']) expect(au.listenerCount(ev)).toBe(0);
+    for (const ev of ['update-downloaded', 'update-not-available']) expect(au.listenerCount(ev)).toBe(0);
+    expect(au.listenerCount('error')).toBe(1);
     fail = false;
     const p = d.download();
     expect(au.checks).toBe(2);
@@ -106,17 +116,41 @@ describe('createSquirrelDownload', () => {
     await expect(p).resolves.toEqual({ releaseName: '0.46.5' });
   });
 
-  it('remembers an applied package: a later download resolves at once instead of asking Squirrel again', async () => {
+  it('remembers an applied package: a later download of the same version resolves at once instead of asking Squirrel again', async () => {
     const au = fakeAutoUpdater();
     const statuses = [];
     const d = createSquirrelDownload({ autoUpdater: au, feedUrl, onStatus: (s) => statuses.push(s) });
-    const p = d.download();
+    const p = d.download({ version: '0.46.5' });
     au.emit('update-downloaded', {}, '', '0.46.5', new Date(), feedUrl);
     await p;
-    await expect(d.download()).resolves.toEqual({ releaseName: '0.46.5' });
+    await expect(d.download({ version: '0.46.5' })).resolves.toEqual({ releaseName: '0.46.5' });
     expect(au.checks).toBe(1);
     expect(statuses.at(-1)).toEqual({ status: 'downloaded' });
     expect(d.applied()).toEqual({ releaseName: '0.46.5' });
+  });
+
+  it('asks Squirrel again when the check now reports a newer version than the one applied', async () => {
+    const au = fakeAutoUpdater();
+    const d = createSquirrelDownload({ autoUpdater: au, feedUrl, onStatus: () => {} });
+    const p = d.download({ version: '0.46.5' });
+    au.emit('update-downloaded', {}, '', '0.46.5', new Date(), feedUrl);
+    await p;
+    const p2 = d.download({ version: '0.46.6' });
+    expect(au.checks).toBe(2);
+    au.emit('update-downloaded', {}, '', '0.46.6', new Date(), feedUrl);
+    await expect(p2).resolves.toEqual({ releaseName: '0.46.6' });
+    expect(d.applied()).toEqual({ releaseName: '0.46.6' });
+  });
+
+  it("keeps a permanent error listener, so a Squirrel error after a download settles cannot crash the process", async () => {
+    const au = fakeAutoUpdater();
+    const errors = [];
+    const d = createSquirrelDownload({ autoUpdater: au, feedUrl, onStatus: () => {}, onError: (e) => errors.push(e.message) });
+    const p = d.download({ version: '0.46.5' });
+    au.emit('update-downloaded', {}, '', '0.46.5', new Date(), feedUrl);
+    await p;
+    expect(() => au.emit('error', new Error('late failure'))).not.toThrow();
+    expect(errors).toEqual(['late failure']);
   });
 
   it("rejects with Squirrel's error and leaves no listener behind", async () => {
@@ -125,7 +159,8 @@ describe('createSquirrelDownload', () => {
     const p = d.download();
     au.emit('error', new Error('Update.exe exited with 1'));
     await expect(p).rejects.toThrow('Update.exe exited with 1');
-    for (const ev of ['update-downloaded', 'update-not-available', 'error']) expect(au.listenerCount(ev)).toBe(0);
+    for (const ev of ['update-downloaded', 'update-not-available']) expect(au.listenerCount(ev)).toBe(0);
+    expect(au.listenerCount('error')).toBe(1); // the permanent one
   });
 
   it('shares one download between two requests', async () => {

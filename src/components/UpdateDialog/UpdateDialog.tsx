@@ -119,25 +119,22 @@ const UpdateDialog: React.FC = () => {
             />
           )}
 
-          {status === 'downloading' && indeterminate && (
+          {status === 'downloading' && (
             // Squirrel on Windows downloads and unpacks the package itself and
-            // reports no byte counts: a moving bar, no numbers.
+            // reports no byte counts: then a moving bar and no numbers.
             <div className="download-progress">
               <div className="progress-bar">
-                <div className="progress-fill progress-fill--indeterminate" />
+                <div
+                  className={indeterminate ? 'progress-fill progress-fill--indeterminate' : 'progress-fill'}
+                  style={indeterminate ? undefined : { width: `${percent}%` }}
+                />
               </div>
-            </div>
-          )}
-
-          {status === 'downloading' && !indeterminate && (
-            <div className="download-progress">
-              <div className="progress-bar">
-                <div className="progress-fill" style={{ width: `${percent}%` }} />
-              </div>
-              <div className="progress-details">
-                <span>{formatBytes(transferred)} / {formatBytes(total)}</span>
-                <span>{Math.round(percent)}%</span>
-              </div>
+              {!indeterminate && (
+                <div className="progress-details">
+                  <span>{formatBytes(transferred)} / {formatBytes(total)}</span>
+                  <span>{Math.round(percent)}%</span>
+                </div>
+              )}
             </div>
           )}
 
