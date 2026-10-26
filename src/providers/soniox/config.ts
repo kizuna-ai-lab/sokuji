@@ -11,7 +11,8 @@ import type { SharedSettings } from '../../lib/provider/types';
 import { SONIOX_TTS_MODEL } from '../../lib/soniox/ttsCatalog';
 import { participantVoiceFor, sonioxSpeakerVoice, type SonioxSettings } from './settings';
 
-export const SONIOX_STT_MODEL = 'stt-rt-v5';
+export { SONIOX_STT_MODEL } from './model';
+import { SONIOX_STT_MODEL } from './model';
 
 /** The STT config frame's `context`, wire-shaped. */
 export interface SonioxWireContext {
