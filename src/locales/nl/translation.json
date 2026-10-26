@@ -498,7 +498,7 @@
     },
     "kizunaai_qwen": {
       "name": "KizunaAI",
-      "description": "Qwen3.8-simultaantolken, 60 talen (29 gesproken)"
+      "description": "60 talen (29 gesproken) · deel je scherm voor correcte namen en termen"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -546,7 +546,7 @@
     },
     "qwen_livetranslate": {
       "name": "Qwen LiveTranslate",
-      "description": "Qwen3.8-simultaantolken, 60 talen (29 gesproken)",
+      "description": "60 talen (29 gesproken) · deel je scherm voor correcte namen en termen",
       "voiceClone": "Stem van de spreker klonen",
       "voiceCloneOnce": "Stem van de eerste spreker klonen",
       "voiceGroupClone": "Stem klonen",
@@ -559,7 +559,6 @@
       "vocabularyTranslationsPlaceholder": "Eén item bron=doel per regel",
       "screenContext": "Scherm\u00adcontext",
       "screenContextTooltip": "Laat het model één venster, tabblad of scherm zien dat je kiest, zodat de namen en termen erop worden herkend en vertaald zoals ze geschreven staan. Alles binnen dat gebied wordt als afbeeldingen verstuurd naar de Qwen-dienst van Alibaba Cloud, in de regio van deze sessie; Kizuna AI ontvangt ze nooit. Zolang het aan staat, komt er een bedrag bij op de kosten voor elke seconde spraak — op je Alibaba Cloud-rekening met je eigen sleutel, of volgens de prijspagina van je account met een Kizuna AI-account; in de modus Beide wordt de sessie van elke richting in rekening gebracht.",
-      "screenContextBeta": "Beta",
       "screenContextPicked": "Het model ziet: {{name}}",
       "screenContextStill": "Beeld van het moment dat je het koos",
       "screenContextPortal": "Het systeem vraagt welk venster of scherm wanneer de sessie begint.",

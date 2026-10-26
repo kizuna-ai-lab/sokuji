@@ -498,7 +498,7 @@
     },
     "kizunaai_qwen": {
       "name": "KizunaAI",
-      "description": "Tafsiran serentak Qwen3.8, 60 bahasa (29 dengan suara)"
+      "description": "60 bahasa (29 dengan suara) · kongsi skrin anda supaya nama dan istilah tepat"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -546,7 +546,7 @@
     },
     "qwen_livetranslate": {
       "name": "Qwen LiveTranslate",
-      "description": "Tafsiran serentak Qwen3.8, 60 bahasa (29 dengan suara)",
+      "description": "60 bahasa (29 dengan suara) · kongsi skrin anda supaya nama dan istilah tepat",
       "voiceClone": "Klon suara penutur",
       "voiceCloneOnce": "Klon suara penutur pertama",
       "voiceGroupClone": "Pengklonan suara",
@@ -559,7 +559,6 @@
       "vocabularyTranslationsPlaceholder": "Satu entri sumber=sasaran setiap baris",
       "screenContext": "Konteks skrin",
       "screenContextTooltip": "Membolehkan model melihat satu tetingkap, tab atau skrin yang anda pilih, supaya nama dan istilah padanya dikenali dan diterjemahkan seperti yang tertulis. Segala-galanya dalam kawasan itu dihantar sebagai gambar ke perkhidmatan Qwen Alibaba Cloud, di rantau sesi ini; Kizuna AI tidak pernah menerimanya. Selagi dihidupkan, ia menambah caj untuk setiap saat pertuturan — pada bil Alibaba Cloud anda jika menggunakan kunci sendiri, atau mengikut halaman harga akaun anda dengan akaun Kizuna AI; dalam mod Kedua-duanya, sesi setiap arah dicaj.",
-      "screenContextBeta": "Beta",
       "screenContextPicked": "Model akan melihat: {{name}}",
       "screenContextStill": "Gambar semasa anda memilihnya",
       "screenContextPortal": "Sistem akan bertanya tetingkap atau skrin yang mana semasa sesi bermula.",
