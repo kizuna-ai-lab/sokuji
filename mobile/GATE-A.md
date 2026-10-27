@@ -28,9 +28,10 @@ Checked before the runs:
 
 | run | date | drops (count) | longest gap (s) | battery start→end (%) | heat (cool / warm / hot) | pass? | log pasted below |
 |---|---|---|---|---|---|---|---|
-| 60 min locked (Wi-Fi) |  |  |  |  |  |  |  |
-| airplane 30 s (locked) |  |  |  |  |  |  |  |
-| other app in front 5 min |  |  |  |  |  |  |  |
+| 60 min locked (Wi-Fi) | 2026-10-27 | 0 | 0 | 98→98 (`dumpsys battery unplug`, see below) | not noted | pass (Release `proto r6`) | yes |
+| airplane 30 s (locked) | 2026-10-27 | 1 | ≤ 17 after the network returned (44.9 from the drop) | not measured | not noted | pass (Release, ticker fix `cb6ab593a`); failed on `proto r6`, see below | yes |
+| other app in front 5 min | 2026-10-27 | 0 | 0 | not measured | not noted | pass (Release `proto r6`; Settings in front for the whole locked hour, screen on 1.5 min of it) | yes |
+| 120 min locked | — | | | | | not run (moved to Gate B) | |
 | BT headset in/out (optional) |  |  |  |  |  |  |  |
 | incoming call (optional) |  |  |  |  |  |  |  |
 
@@ -67,6 +68,40 @@ Checked before the runs:
 2026-10-26T16:17:02.931Z first tokens 118943 ms after the drop
 ```
 (Lines #4 and #5 were above the visible area of the screenshots. Then listening through 5 min with Notes in front.)
+
+### Pixel — locked hour, other app in front, airplane mode (Release, 2026-10-27)
+
+Driven over adb with nobody touching the phone and no sound played (the room's own
+noise produced the odd token). `dumpsys battery unplug` made the phone act as on
+battery while still on USB, so Doze applied as it would in a pocket. Sampled every
+60 s: keyguard, `dumpsys deviceidle get deep`, the app's record client in
+`dumpsys audio` (active, `silenced:false`), the microphone foreground service and the pid.
+
+- `proto r6` (`34ce10f2d`): started 07:27:24Z, Settings in front, screen locked by
+  timeout 07:28:45Z, deep Doze (`IDLE`) from 07:32Z. Recording, foreground service and
+  pid 14290 unchanged in every sample to 08:29Z, no close in the log. Pass.
+- Airplane 30 s on `proto r6` (08:29:11–08:29:44Z): `close 1006` at 08:29:16, the
+  first `session-end` failed (no DNS), then nothing for four minutes. Turning Doze off
+  (08:31:37) and waking the screen without unlocking (08:32:22) changed nothing; the
+  unlock at 08:33:21 brought the app forward and it recovered at once (session-end
+  gave up 08:33:25, new lease 08:33:28, first tokens 08:33:30, 254 s after the drop).
+  React Native's Android timers stop while the activity is paused, so every
+  `setTimeout` wait (session-end retries, retry back-off, request time-outs) froze.
+  Fixed in `cb6ab593a`: those waits hang off a ticker the audio callback drives.
+- Airplane 30 s on `cb6ab593a`, screen off and locked (08:43:14–08:43:44Z):
+
+```
+08:43:19.288Z close 1006 Software caused connection abort
+08:43:21.029Z session-end gave up after 1740 ms
+08:43:21.064Z connect failed (#1) … retrying in 2 s   (#2 08:43:23, #3 08:43:28, #4 08:43:38)
+08:44:01.443Z new lease 42154 ms after the drop
+08:44:03.197Z reconnected after 43908 ms
+08:44:04.233Z first tokens 44944 ms after the drop
+```
+
+- The same with the screen on but locked (08:45:10–08:45:40Z): new lease 08:45:55,
+  first tokens 42.96 s after the drop. Both recover within one 15 s back-off step of
+  the network returning.
 
 ## Memory and CPU over 60 minutes (iOS Simulator, iPhone 17 Pro, iOS 26.3.1)
 
