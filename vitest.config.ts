@@ -32,7 +32,10 @@ export default defineConfig({
     // tests at native/build/<lane>/_deps/transcribe-src/bindings/typescript/,
     // and vitest collected all 78 of them and failed every one (they need a
     // node runtime and a built .node addon, not jsdom). A real file-level
-    // failure had 78 fake ones to hide among.
-    exclude: [...configDefaults.exclude, '**/.claude/**', '**/native/build/**'],
+    // failure had 78 fake ones to hide among. The top-level mobile/ is the
+    // Expo app: it runs its own vitest (node environment, its own deps), and
+    // its files must not be collected under jsdom with this suite's setup.
+    // Anchored to the root on purpose: a src/**/mobile/ directory stays in.
+    exclude: [...configDefaults.exclude, '**/.claude/**', '**/native/build/**', 'mobile/**'],
   },
 })

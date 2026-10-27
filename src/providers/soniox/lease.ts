@@ -20,7 +20,6 @@ import type { LegName } from '../../lib/conversation/types';
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import type { LeaseContext, Resources, RunNotice, RunShape } from '../../lib/session/types';
 import { SONIOX_REGIONS, type SonioxRegion } from '../../lib/soniox/regions';
-import { getApiUrl } from '../../utils/environment';
 import { sonioxSessionCapSeconds } from './kizunaBudget';
 import { isSttRole, leaseRequest, requestBody, roleFor, sideOf, STREAM_ROLES, type SttRole, type StreamRole } from './leaseRequest';
 import type { SonioxCredentials, SonioxLeasePort, SonioxSettings } from './settings';
@@ -76,8 +75,10 @@ export interface KizunaLeaseDeps {
   participantSpeech?: boolean;
   /** `fetch` in the app, read at call time; a stub in tests (ruling 12). */
   fetch?: (url: string, init: RequestInit) => Promise<Response>;
-  /** The backend's API root; `getApiUrl()` by default. */
-  apiUrl?: () => string;
+  /** The backend's API root, read at call time (the desktop passes `getApiUrl`; the mobile app its own).
+   *  Required, not defaulted: a default would import `utils/environment`, whose Vite-only
+   *  environment syntax the phone's bundler cannot parse (see `src/lib/mobileShared.test.ts`). */
+  apiUrl: () => string;
 }
 
 interface Grant {
@@ -238,9 +239,9 @@ function signalEnd(
 }
 
 /** Kizuna Soniox's `acquire`. One instance per provider: it remembers the last release still retrying, which the next acquire cancels. */
-export function createKizunaLease(deps: KizunaLeaseDeps = {}) {
+export function createKizunaLease(deps: KizunaLeaseDeps) {
   const doFetch: NonNullable<KizunaLeaseDeps['fetch']> = (url, init) => (deps.fetch ?? fetch)(url, init);
-  const apiUrl = () => (deps.apiUrl ?? getApiUrl)();
+  const apiUrl = () => deps.apiUrl();
   const participantSpeech = deps.participantSpeech ?? false;
   /** The previous lease's `session-end` still retrying: the backend scopes it by account, so a late one would end the next lease (survey §1.2). */
   let previous: Ending | null = null;

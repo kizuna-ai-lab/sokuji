@@ -2,6 +2,7 @@ import { kizunaHostedIcon, SonioxIcon } from '../../components/Icons/ProviderIco
 import { managed } from '../../lib/provider/managed';
 import { kizunaSonioxMinimumBalance } from './kizunaBudget';
 import { createKizunaLease } from './lease';
+import { getApiUrl } from '../../utils/environment';
 import { useManagedVoiceSource } from './managedVoiceSource';
 import { sonioxProvider } from './provider';
 import { createSonioxSettingsView } from './SonioxSettings';
@@ -42,7 +43,7 @@ export function createKizunaSonioxProvider({ participantSpeech }: { participantS
     participantSpeech,
     session: {
       prepare: createKizunaVoiceClaim(),
-      acquire: createKizunaLease({ participantSpeech }),
+      acquire: createKizunaLease({ participantSpeech, apiUrl: getApiUrl }),
       minimumBalance: (shape, s) => kizunaSonioxMinimumBalance(shape, s, participantSpeech),
     },
   });

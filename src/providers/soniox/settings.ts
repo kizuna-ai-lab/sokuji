@@ -3,7 +3,7 @@
  * slice (`SonioxProviderConfig.ts:13-71`) without what leaves it: the pair
  * (the one global pair `providerStore` keeps under
  * `settings.common.sourceLanguage` / `targetLanguage`), the three region keys (credentials now, same keys), and
- * `model` (only ever `stt-rt-v5`: a constant in `config.ts`; its stored value
+ * `model` (only ever `stt-rt-v5`: a constant in `sttStream.ts`; its stored value
  * stays in storage, unread). Stored under `settings.soniox.*` as before.
  */
 import { AUTO } from '../../lib/provider/languages';
