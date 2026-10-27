@@ -1,3 +1,5 @@
 {
-  "NSMicrophoneUsageDescription": "Sokuji mendengar bilik untuk memaparkan sari kata."
+  "ios": {
+    "NSMicrophoneUsageDescription": "Sokuji mendengar bilik untuk memaparkan sari kata."
+  }
 }

@@ -1,3 +1,5 @@
 {
-  "NSMicrophoneUsageDescription": "Sokuji słucha otoczenia, aby pokazywać napisy."
+  "ios": {
+    "NSMicrophoneUsageDescription": "Sokuji słucha otoczenia, aby pokazywać napisy."
+  }
 }

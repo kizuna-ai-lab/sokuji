@@ -1,3 +1,5 @@
 {
-  "NSMicrophoneUsageDescription": "సబ్‌టైటిల్స్ చూపించడానికి Sokuji గదిలోని ధ్వనిని వింటుంది."
+  "ios": {
+    "NSMicrophoneUsageDescription": "సబ్‌టైటిల్స్ చూపించడానికి Sokuji గదిలోని ధ్వనిని వింటుంది."
+  }
 }

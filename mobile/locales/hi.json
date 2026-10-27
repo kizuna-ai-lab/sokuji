@@ -1,3 +1,5 @@
 {
-  "NSMicrophoneUsageDescription": "Sokuji सबटाइटल दिखाने के लिए कमरे की आवाज़ सुनता है।"
+  "ios": {
+    "NSMicrophoneUsageDescription": "Sokuji सबटाइटल दिखाने के लिए कमरे की आवाज़ सुनता है।"
+  }
 }

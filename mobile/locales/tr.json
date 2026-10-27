@@ -1,3 +1,5 @@
 {
-  "NSMicrophoneUsageDescription": "Sokuji altyazı gösterebilmek için ortamı dinler."
+  "ios": {
+    "NSMicrophoneUsageDescription": "Sokuji altyazı gösterebilmek için ortamı dinler."
+  }
 }

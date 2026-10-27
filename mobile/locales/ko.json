@@ -1,3 +1,5 @@
 {
-  "NSMicrophoneUsageDescription": "Sokuji는 주변 소리를 듣고 자막을 보여 줍니다."
+  "ios": {
+    "NSMicrophoneUsageDescription": "Sokuji는 주변 소리를 듣고 자막을 보여 줍니다."
+  }
 }

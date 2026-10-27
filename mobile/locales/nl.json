@@ -1,3 +1,5 @@
 {
-  "NSMicrophoneUsageDescription": "Sokuji luistert naar de ruimte om je ondertitels te tonen."
+  "ios": {
+    "NSMicrophoneUsageDescription": "Sokuji luistert naar de ruimte om je ondertitels te tonen."
+  }
 }

@@ -1,3 +1,5 @@
 {
-  "NSMicrophoneUsageDescription": "সাবটাইটেল দেখাতে Sokuji ঘরের শব্দ শোনে।"
+  "ios": {
+    "NSMicrophoneUsageDescription": "সাবটাইটেল দেখাতে Sokuji ঘরের শব্দ শোনে।"
+  }
 }

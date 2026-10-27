@@ -1,3 +1,5 @@
 {
-  "NSMicrophoneUsageDescription": "Sokuji hört den Raum ab, um dir Untertitel zu zeigen."
+  "ios": {
+    "NSMicrophoneUsageDescription": "Sokuji hört den Raum ab, um dir Untertitel zu zeigen."
+  }
 }
