@@ -59,12 +59,18 @@ describe('macOS Developer ID signing (package.json)', () => {
     // @electron/notarize 2.5.0, which every app-builder-lib 26 pins, hands
     // promise-retry a function that never calls `retry`, so its `retries: 3`
     // never retries: one dropped request to Apple's ticket service failed the
-    // whole macOS build (2026-10-27, x64 runner). 3.x passes the retry on.
-    expect(pkg.overrides?.['app-builder-lib']?.['@electron/notarize']).toMatch(/^\^?3\./);
-    const resolved = ['node_modules/app-builder-lib/node_modules/@electron/notarize', 'node_modules/@electron/notarize']
-      .map((key) => lock.packages[key])
-      .find((entry) => entry && lock.packages['node_modules/app-builder-lib']);
-    expect(resolved?.version).toMatch(/^3\./);
+    // whole macOS build (2026-10-27, x64 runner). 3.1.1 has the same bug;
+    // 3.1.2 is the first release that passes the retry on.
+    const atLeast312 = (version) => {
+      const [major, minor, patch] = String(version).replace(/^\^/, '').split('.').map(Number);
+      return major === 3 && (minor > 1 || (minor === 1 && patch >= 2));
+    };
+    const spec = pkg.overrides?.['app-builder-lib']?.['@electron/notarize'];
+    expect(atLeast312(spec), `override ${spec}`).toBe(true);
+    const resolved =
+      lock.packages['node_modules/app-builder-lib/node_modules/@electron/notarize'] ??
+      lock.packages['node_modules/@electron/notarize'];
+    expect(atLeast312(resolved?.version), `lockfile ${resolved?.version}`).toBe(true);
   });
 });
 
