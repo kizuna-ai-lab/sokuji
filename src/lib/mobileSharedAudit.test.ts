@@ -42,6 +42,12 @@ beforeAll(() => {
   write('src/window-element.ts', "export const l = window['location'];\n");
   write('src/window-optional.ts', 'export const l = window?.location;\n');
   write('src/document-optional.ts', 'export const b = document?.body;\n');
+  // Destructuring and imports bind a name just as a plain declaration does.
+  write('src/globals-destructured.ts', 'export const f = ({ window }: { window: { x: number } }) => window.x;\nexport function g(ctx: { document: { title: string } }) {\n  const { document } = ctx;\n  return document.title;\n}\n');
+  write('src/globals-imported.ts', "import { navigator } from './fake-navigator';\nexport const n = navigator.id;\n");
+  write('src/fake-navigator.ts', 'export const navigator = { id: 1 };\n');
+  // A syntax error leaves a partial tree; checking that would be a silent pass.
+  write('src/broken.ts', 'export const a = {\n  b: window.alert(\n');
   write('src/node-builtin.ts', "import { readFileSync } from 'node:fs';\nimport path from 'path';\nexport const n = [readFileSync, path];\n");
 });
 afterAll(() => rmSync(repo, { recursive: true, force: true }));
@@ -111,6 +117,15 @@ describe('mobile-shared-audit', () => {
   it('does not take a method named window for a local binding, but does a parameter', () => {
     expect(auditRoot(repo, 'src/window-method.ts').findings).toEqual([{ file: 'src/window-method.ts', flag: 'window' }]);
     expect(auditRoot(repo, 'src/window-param.ts').findings).toEqual([]);
+  });
+
+  it('treats destructured and imported names as local bindings', () => {
+    expect(auditRoot(repo, 'src/globals-destructured.ts').findings).toEqual([]);
+    expect(auditRoot(repo, 'src/globals-imported.ts').findings).toEqual([]);
+  });
+
+  it('reports a file it cannot parse instead of checking what parsed', () => {
+    expect(auditRoot(repo, 'src/broken.ts').findings).toContainEqual({ file: 'src/broken.ts', flag: 'unparseable file' });
   });
 
   it('flags element access and optional chaining on browser globals', () => {

@@ -7,8 +7,9 @@
 // Scope and limits: each file is parsed by TypeScript. The browser globals
 // (`window`, `document`, `navigator`, `chrome`) are checked on the syntax tree:
 // any member read, including `x['y']` and `x?.y`, is flagged unless a local
-// declaration of that name (a variable, parameter, named function, class or
-// catch binding) shadows it in an enclosing scope. Everything else is matched
+// binding of that name (a variable or parameter, destructured or not, a named
+// function, class, catch binding or import) shadows it in an enclosing scope.
+// A file TypeScript cannot parse is a finding of its own. Everything else is matched
 // by regex on the source reprinted without comments, string contents kept, so
 // e.g. `import.meta` inside a string literal is still a finding. Type-only
 // statements (`import type`, `export type … from`) are skipped; a value import
@@ -63,21 +64,41 @@ export function stripComments(src, fileName = 'module.ts') {
 
 const named = (id, name) => id !== undefined && ts.isIdentifier(id) && id.text === name;
 
+/** Whether a binding name, or any name destructured out of it, is `name`. */
+const binds = (binding, name) =>
+  binding !== undefined &&
+  (ts.isIdentifier(binding)
+    ? binding.text === name
+    : (ts.isObjectBindingPattern(binding) || ts.isArrayBindingPattern(binding)) &&
+      binding.elements.some((e) => !ts.isOmittedExpression(e) && binds(e.name, name)));
+
+/** Whether an import declaration binds `name`. */
+function imports(statement, name) {
+  const clause = statement.importClause;
+  if (!clause || clause.isTypeOnly) return false;
+  if (named(clause.name, name)) return true;
+  const bindings = clause.namedBindings;
+  if (!bindings) return false;
+  if (ts.isNamespaceImport(bindings)) return named(bindings.name, name);
+  return bindings.elements.some((e) => !e.isTypeOnly && named(e.name, name));
+}
+
 /** Whether this scope node itself declares a binding called `name`. */
 function declares(node, name) {
   if (ts.isFunctionLike(node)) {
     // A named function's own name binds inside it; a method's name is a property.
     if ((ts.isFunctionExpression(node) || ts.isFunctionDeclaration(node)) && named(node.name, name)) return true;
-    if (node.parameters.some((p) => named(p.name, name))) return true;
+    if (node.parameters.some((p) => binds(p.name, name))) return true;
   }
-  if (ts.isCatchClause(node)) return named(node.variableDeclaration?.name, name);
+  if (ts.isCatchClause(node)) return binds(node.variableDeclaration?.name, name);
   const lists = [];
   if (ts.isForStatement(node) || ts.isForInStatement(node) || ts.isForOfStatement(node)) lists.push(node.initializer);
   for (const statement of node.statements ?? []) {
     if (ts.isVariableStatement(statement)) lists.push(statement.declarationList);
     if ((ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement)) && named(statement.name, name)) return true;
+    if (ts.isImportDeclaration(statement) && imports(statement, name)) return true;
   }
-  return lists.some((list) => list && ts.isVariableDeclarationList(list) && list.declarations.some((d) => named(d.name, name)));
+  return lists.some((list) => list && ts.isVariableDeclarationList(list) && list.declarations.some((d) => binds(d.name, name)));
 }
 
 /** Whether `tree` reads a member of the global `name` anywhere no local of that name shadows it. */
@@ -138,6 +159,12 @@ export function auditRoot(repoRoot, root) {
     if (file.endsWith('.json')) continue;
     const rel = relative(repoRoot, file);
     const tree = parse(readFileSync(file, 'utf8'), file);
+    // The parser recovers from syntax errors instead of throwing; the partial
+    // tree it leaves would be checked as if it were the whole file.
+    if (tree.parseDiagnostics?.length) {
+      findings.push({ file: rel, flag: 'unparseable file' });
+      continue;
+    }
     const src = printWithoutComments(tree);
     for (const [name, re] of Object.entries(FLAGS)) {
       if (re.test(src)) findings.push({ file: rel, flag: name });
