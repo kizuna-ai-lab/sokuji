@@ -10,8 +10,9 @@
 // a finding. Type-only statements (`import type`, `export type … from`) are
 // skipped; a value import that happens to carry only `type` specifiers is
 // treated as a value import. Path aliases (`@/…`) are not resolved and show up
-// as packages. A file that declares its own variable named `window`
-// (`const`/`let`/`var window`) is exempt from the `window` flag as a whole.
+// as packages. `window` is checked on the syntax tree: a read is flagged
+// unless a local declaration of that name (a variable, parameter, function or
+// catch binding) shadows it in an enclosing scope.
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { isBuiltin } from 'node:module';
 import { dirname, join, normalize, relative } from 'node:path';
@@ -34,7 +35,6 @@ export const FORBIDDEN_PACKAGES = new Set([
   'react', 'react-dom', 'posthog-js', 'electron', 'i18next-browser-languagedetector', 'vite',
 ]);
 
-const LOCAL_WINDOW_RE = /\b(?:const|let|var)\s+window\b/;
 // A static import/export-from clause: names, braces, commas, `* as`, newlines; never `=`, `(`, `;` or quotes,
 // so an `export const` statement cannot be swallowed up to a later `from`.
 const STATIC_RE = /(?:^|[;\n])\s*(import|export)\s+(type\s+)?([\w*{}\s,$]*?)\s*from\s*['"]([^'"]+)['"]/g;
@@ -51,6 +51,37 @@ export function stripComments(src, fileName = 'module.ts') {
   const kind = /\.[jt]sx$/.test(fileName) ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
   const file = ts.createSourceFile(fileName, src, ts.ScriptTarget.Latest, false, kind);
   return ts.createPrinter({ removeComments: true }).printFile(file);
+}
+
+const isWindow = (name) => name !== undefined && ts.isIdentifier(name) && name.text === 'window';
+
+/** Whether this scope node itself declares a binding named `window`. */
+function declaresWindow(node) {
+  if (ts.isFunctionLike(node) && (isWindow(node.name) || node.parameters.some((p) => isWindow(p.name)))) return true;
+  if (ts.isCatchClause(node)) return isWindow(node.variableDeclaration?.name);
+  const lists = [];
+  if (ts.isForStatement(node) || ts.isForInStatement(node) || ts.isForOfStatement(node)) lists.push(node.initializer);
+  for (const statement of node.statements ?? []) {
+    if (ts.isVariableStatement(statement)) lists.push(statement.declarationList);
+    if ((ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement)) && isWindow(statement.name)) return true;
+  }
+  return lists.some((list) => list && ts.isVariableDeclarationList(list) && list.declarations.some((d) => isWindow(d.name)));
+}
+
+/** Whether `src` reads the browser's `window` anywhere no local `window` shadows it. */
+function readsGlobalWindow(src, fileName) {
+  const kind = /\.[jt]sx$/.test(fileName) ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  const file = ts.createSourceFile(fileName, src, ts.ScriptTarget.Latest, true, kind);
+  const shadowed = (node) => {
+    for (let scope = node.parent; scope; scope = scope.parent) if (declaresWindow(scope)) return true;
+    return false;
+  };
+  const visit = (node) => {
+    const access = ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node);
+    if (access && ts.isIdentifier(node.expression) && node.expression.text === 'window' && !shadowed(node)) return true;
+    return ts.forEachChild(node, visit) ?? false;
+  };
+  return visit(file);
 }
 
 /** The value-import specifiers of a (comment-stripped) module source. */
@@ -96,11 +127,12 @@ export function auditRoot(repoRoot, root) {
     seen.add(file);
     if (file.endsWith('.json')) continue;
     const rel = relative(repoRoot, file);
-    const src = stripComments(readFileSync(file, 'utf8'), file);
-    const localWindow = LOCAL_WINDOW_RE.test(src);
+    const raw = readFileSync(file, 'utf8');
+    const src = stripComments(raw, file);
     for (const [name, re] of Object.entries(FLAGS)) {
-      if (name === 'window' && localWindow) continue;
-      if (re.test(src)) findings.push({ file: rel, flag: name });
+      if (!re.test(src)) continue;
+      if (name === 'window' && !readsGlobalWindow(raw, file)) continue;
+      findings.push({ file: rel, flag: name });
     }
     for (const spec of importSpecifiers(src)) {
       if (spec.startsWith('.')) {

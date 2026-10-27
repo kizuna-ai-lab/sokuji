@@ -32,6 +32,9 @@ beforeAll(() => {
   write('src/regex-star.ts', "const re = /a\\/*b/;\nwindow.alert(1);\nexport const s = re; /* end */\n");
   write('src/window-key.ts', "const o = { window: 1 };\nwindow.addEventListener('x', () => o);\nexport const w = o;\n");
   write('src/window-local.ts', 'export function f(tail: string) {\n  const window = tail.slice(1);\n  return window.length;\n}\n');
+  // A local `window` shadows the global only in its own scope, and a string is not a declaration.
+  write('src/window-shadow-elsewhere.ts', "function f() { const window = { open() {} }; return window.open(); }\nexport function g() { f(); return window.open('x'); }\n");
+  write('src/window-in-string.ts', "export const s = 'const window = 1';\nexport function g() { return window.open('x'); }\n");
   write('src/node-builtin.ts', "import { readFileSync } from 'node:fs';\nimport path from 'path';\nexport const n = [readFileSync, path];\n");
 });
 afterAll(() => rmSync(repo, { recursive: true, force: true }));
@@ -88,9 +91,14 @@ describe('mobile-shared-audit', () => {
     expect(auditRoot(repo, 'src/regex-star.ts').findings).toEqual([{ file: 'src/regex-star.ts', flag: 'window' }]);
   });
 
-  it('exempts a file from the window flag only when it declares a variable named window', () => {
+  it('lets only a declaration named window shadow the global, not an object key', () => {
     expect(auditRoot(repo, 'src/window-key.ts').findings).toEqual([{ file: 'src/window-key.ts', flag: 'window' }]);
     expect(auditRoot(repo, 'src/window-local.ts').findings).toEqual([]);
+  });
+
+  it('still flags the global window outside the scope of a local one', () => {
+    expect(auditRoot(repo, 'src/window-shadow-elsewhere.ts').findings).toEqual([{ file: 'src/window-shadow-elsewhere.ts', flag: 'window' }]);
+    expect(auditRoot(repo, 'src/window-in-string.ts').findings).toEqual([{ file: 'src/window-in-string.ts', flag: 'window' }]);
   });
 
   it('flags Node built-in modules, with or without the node: prefix', () => {
