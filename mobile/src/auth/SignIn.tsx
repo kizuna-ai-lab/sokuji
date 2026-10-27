@@ -9,10 +9,21 @@ type Mode = 'signin' | 'register' | 'verify' | 'forgot' | 'reset';
 // between sends and says so.
 const RESEND_WAIT_S = 60;
 
-export default function SignIn({ onSignedIn }: { onSignedIn: (email: string) => void }) {
+export default function SignIn({
+  onSignedIn,
+  initialMode = 'signin',
+  initialEmail = '',
+  onBack,
+}: {
+  onSignedIn: (email: string) => void;
+  /** The account screen opens the code screen for an address whose code was just sent. */
+  initialMode?: Mode;
+  initialEmail?: string;
+  onBack?: () => void;
+}) {
   const { t } = useTranslation();
-  const [mode, setMode] = useState<Mode>('signin');
-  const [email, setEmail] = useState('');
+  const [mode, setMode] = useState<Mode>(initialMode);
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -139,7 +150,7 @@ export default function SignIn({ onSignedIn }: { onSignedIn: (email: string) => 
             onPress={() => run(() => verifyEmail(address, otp), () => onSignedIn(address))}
           />
           {resend}
-          <Text style={styles.link} onPress={() => onSignedIn(address)}>{t('mobile.signIn.later')}</Text>
+          <Text style={styles.link} onPress={() => (onBack ? onBack() : onSignedIn(address))}>{onBack ? t('mobile.common.back') : t('mobile.signIn.later')}</Text>
         </>
       )}
 

@@ -1665,7 +1665,15 @@
     "usage": {
       "session": "அமர்வு",
       "textOnly": "உரை மட்டும்",
-      "loadMore": "மேலும் காட்டு"
+      "loadMore": "மேலும் காட்டு",
+      "kind": {
+        "topup": "ரீசார்ஜ்",
+        "grant": "கடன் தொகை",
+        "adjustment": "சரிசெய்தல்",
+        "refund": "பணத்திருப்பம்",
+        "expired": "காலாவதி",
+        "voicePreview": "குரல் முன்னோட்டம்"
+      }
     },
     "menu": {
       "history": "வரலாறு",
@@ -1679,7 +1687,10 @@
       "appearanceDark": "இருள்",
       "region": "Soniox பகுதி",
       "textSize": "வசன எழுத்து அளவு",
-      "keepAwake": "திரையை இயக்கத்தில் வை"
+      "keepAwake": "திரையை இயக்கத்தில் வை",
+      "textSizeSmall": "சிறிய",
+      "textSizeMedium": "நடுத்தர",
+      "textSizeLarge": "பெரிய"
     },
     "history": {
       "rename": "பெயர் மாற்று",
@@ -1703,6 +1714,9 @@
         "starting": "தொடங்குகிறது…",
         "stopped": "நிறுத்தப்பட்டது"
       }
+    },
+    "common": {
+      "back": "பின்"
     }
   }
 }

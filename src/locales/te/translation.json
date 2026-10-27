@@ -1665,7 +1665,15 @@
     "usage": {
       "session": "సెషన్",
       "textOnly": "టెక్స్ట్ మాత్రమే",
-      "loadMore": "మరిన్ని చూపించు"
+      "loadMore": "మరిన్ని చూపించు",
+      "kind": {
+        "topup": "టాప్-అప్",
+        "grant": "క్రెడిట్",
+        "adjustment": "సర్దుబాటు",
+        "refund": "రీఫండ్",
+        "expired": "గడువు ముగిసింది",
+        "voicePreview": "వాయిస్ ప్రివ్యూ"
+      }
     },
     "menu": {
       "history": "చరిత్ర",
@@ -1679,7 +1687,10 @@
       "appearanceDark": "ముదురు",
       "region": "Soniox ప్రాంతం",
       "textSize": "సబ్‌టైటిల్ పరిమాణం",
-      "keepAwake": "స్క్రీన్‌ను ఆన్‌లో ఉంచండి"
+      "keepAwake": "స్క్రీన్‌ను ఆన్‌లో ఉంచండి",
+      "textSizeSmall": "చిన్నది",
+      "textSizeMedium": "మధ్యస్థం",
+      "textSizeLarge": "పెద్దది"
     },
     "history": {
       "rename": "పేరు మార్చండి",
@@ -1703,6 +1714,9 @@
         "starting": "ప్రారంభమవుతోంది…",
         "stopped": "ఆగిపోయింది"
       }
+    },
+    "common": {
+      "back": "వెనుకకు"
     }
   }
 }

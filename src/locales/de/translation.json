@@ -1665,7 +1665,15 @@
     "usage": {
       "session": "Sitzung",
       "textOnly": "Nur Text",
-      "loadMore": "Mehr anzeigen"
+      "loadMore": "Mehr anzeigen",
+      "kind": {
+        "topup": "Aufladung",
+        "grant": "Guthaben",
+        "adjustment": "Korrektur",
+        "refund": "Erstattung",
+        "expired": "Verfallen",
+        "voicePreview": "Stimmvorschau"
+      }
     },
     "menu": {
       "history": "Verlauf",
@@ -1679,7 +1687,10 @@
       "appearanceDark": "Dunkel",
       "region": "Soniox-Region",
       "textSize": "Untertitelgröße",
-      "keepAwake": "Bildschirm anlassen"
+      "keepAwake": "Bildschirm anlassen",
+      "textSizeSmall": "Klein",
+      "textSizeMedium": "Mittel",
+      "textSizeLarge": "Groß"
     },
     "history": {
       "rename": "Umbenennen",
@@ -1703,6 +1714,9 @@
         "starting": "Startet…",
         "stopped": "Gestoppt"
       }
+    },
+    "common": {
+      "back": "Zurück"
     }
   }
 }

@@ -1665,7 +1665,15 @@
     "usage": {
       "session": "Istunto",
       "textOnly": "Vain teksti",
-      "loadMore": "Näytä lisää"
+      "loadMore": "Näytä lisää",
+      "kind": {
+        "topup": "Lataus",
+        "grant": "Hyvitys",
+        "adjustment": "Oikaisu",
+        "refund": "Palautus",
+        "expired": "Vanhentunut",
+        "voicePreview": "Ääninäyte"
+      }
     },
     "menu": {
       "history": "Historia",
@@ -1679,7 +1687,10 @@
       "appearanceDark": "Tumma",
       "region": "Soniox-alue",
       "textSize": "Tekstityksen koko",
-      "keepAwake": "Pidä näyttö päällä"
+      "keepAwake": "Pidä näyttö päällä",
+      "textSizeSmall": "Pieni",
+      "textSizeMedium": "Keskikoko",
+      "textSizeLarge": "Suuri"
     },
     "history": {
       "rename": "Nimeä uudelleen",
@@ -1703,6 +1714,9 @@
         "starting": "Aloitetaan…",
         "stopped": "Pysäytetty"
       }
+    },
+    "common": {
+      "back": "Takaisin"
     }
   }
 }

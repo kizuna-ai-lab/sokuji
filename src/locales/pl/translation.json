@@ -1665,7 +1665,15 @@
     "usage": {
       "session": "Sesja",
       "textOnly": "Tylko tekst",
-      "loadMore": "Pokaż więcej"
+      "loadMore": "Pokaż więcej",
+      "kind": {
+        "topup": "Doładowanie",
+        "grant": "Środki",
+        "adjustment": "Korekta",
+        "refund": "Zwrot",
+        "expired": "Wygasło",
+        "voicePreview": "Podgląd głosu"
+      }
     },
     "menu": {
       "history": "Historia",
@@ -1679,7 +1687,10 @@
       "appearanceDark": "Ciemny",
       "region": "Region Soniox",
       "textSize": "Rozmiar napisów",
-      "keepAwake": "Nie wygaszaj ekranu"
+      "keepAwake": "Nie wygaszaj ekranu",
+      "textSizeSmall": "Mały",
+      "textSizeMedium": "Średni",
+      "textSizeLarge": "Duży"
     },
     "history": {
       "rename": "Zmień nazwę",
@@ -1703,6 +1714,9 @@
         "starting": "Uruchamianie…",
         "stopped": "Zatrzymano"
       }
+    },
+    "common": {
+      "back": "Wstecz"
     }
   }
 }

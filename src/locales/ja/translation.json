@@ -1665,7 +1665,15 @@
     "usage": {
       "session": "セッション",
       "textOnly": "テキストのみ",
-      "loadMore": "さらに表示"
+      "loadMore": "さらに表示",
+      "kind": {
+        "topup": "チャージ",
+        "grant": "付与クレジット",
+        "adjustment": "調整",
+        "refund": "返金",
+        "expired": "失効",
+        "voicePreview": "声の試聴"
+      }
     },
     "menu": {
       "history": "履歴",
@@ -1679,7 +1687,10 @@
       "appearanceDark": "ダーク",
       "region": "Soniox のリージョン",
       "textSize": "字幕の文字サイズ",
-      "keepAwake": "画面をオンのままにする"
+      "keepAwake": "画面をオンのままにする",
+      "textSizeSmall": "小",
+      "textSizeMedium": "中",
+      "textSizeLarge": "大"
     },
     "history": {
       "rename": "名前を変更",
@@ -1703,6 +1714,9 @@
         "starting": "開始しています…",
         "stopped": "停止しました"
       }
+    },
+    "common": {
+      "back": "戻る"
     }
   }
 }

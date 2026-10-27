@@ -1665,7 +1665,15 @@
     "usage": {
       "session": "세션",
       "textOnly": "텍스트만",
-      "loadMore": "더 보기"
+      "loadMore": "더 보기",
+      "kind": {
+        "topup": "충전",
+        "grant": "지급 크레딧",
+        "adjustment": "조정",
+        "refund": "환불",
+        "expired": "만료",
+        "voicePreview": "음성 미리 듣기"
+      }
     },
     "menu": {
       "history": "기록",
@@ -1679,7 +1687,10 @@
       "appearanceDark": "다크",
       "region": "Soniox 리전",
       "textSize": "자막 크기",
-      "keepAwake": "화면 켜 두기"
+      "keepAwake": "화면 켜 두기",
+      "textSizeSmall": "작게",
+      "textSizeMedium": "보통",
+      "textSizeLarge": "크게"
     },
     "history": {
       "rename": "이름 바꾸기",
@@ -1703,6 +1714,9 @@
         "starting": "시작하는 중…",
         "stopped": "중지됨"
       }
+    },
+    "common": {
+      "back": "뒤로"
     }
   }
 }

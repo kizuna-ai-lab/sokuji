@@ -1665,7 +1665,15 @@
     "usage": {
       "session": "Sessão",
       "textOnly": "Apenas texto",
-      "loadMore": "Mostrar mais"
+      "loadMore": "Mostrar mais",
+      "kind": {
+        "topup": "Carregamento",
+        "grant": "Crédito",
+        "adjustment": "Ajuste",
+        "refund": "Reembolso",
+        "expired": "Expirado",
+        "voicePreview": "Pré-visualização de voz"
+      }
     },
     "menu": {
       "history": "Histórico",
@@ -1679,7 +1687,10 @@
       "appearanceDark": "Escuro",
       "region": "Região Soniox",
       "textSize": "Tamanho das legendas",
-      "keepAwake": "Manter o ecrã ligado"
+      "keepAwake": "Manter o ecrã ligado",
+      "textSizeSmall": "Pequeno",
+      "textSizeMedium": "Médio",
+      "textSizeLarge": "Grande"
     },
     "history": {
       "rename": "Mudar o nome",
@@ -1703,6 +1714,9 @@
         "starting": "A iniciar…",
         "stopped": "Parado"
       }
+    },
+    "common": {
+      "back": "Voltar"
     }
   }
 }

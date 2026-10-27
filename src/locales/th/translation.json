@@ -1665,7 +1665,15 @@
     "usage": {
       "session": "เซสชัน",
       "textOnly": "ข้อความเท่านั้น",
-      "loadMore": "แสดงเพิ่มเติม"
+      "loadMore": "แสดงเพิ่มเติม",
+      "kind": {
+        "topup": "เติมเงิน",
+        "grant": "เครดิต",
+        "adjustment": "ปรับปรุง",
+        "refund": "คืนเงิน",
+        "expired": "หมดอายุ",
+        "voicePreview": "ทดลองฟังเสียง"
+      }
     },
     "menu": {
       "history": "ประวัติ",
@@ -1679,7 +1687,10 @@
       "appearanceDark": "มืด",
       "region": "ภูมิภาค Soniox",
       "textSize": "ขนาดคำบรรยาย",
-      "keepAwake": "เปิดหน้าจอค้างไว้"
+      "keepAwake": "เปิดหน้าจอค้างไว้",
+      "textSizeSmall": "เล็ก",
+      "textSizeMedium": "กลาง",
+      "textSizeLarge": "ใหญ่"
     },
     "history": {
       "rename": "เปลี่ยนชื่อ",
@@ -1703,6 +1714,9 @@
         "starting": "กำลังเริ่ม…",
         "stopped": "หยุดแล้ว"
       }
+    },
+    "common": {
+      "back": "กลับ"
     }
   }
 }

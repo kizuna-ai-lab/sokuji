@@ -1665,7 +1665,15 @@
     "usage": {
       "session": "Session",
       "textOnly": "Text only",
-      "loadMore": "Show more"
+      "loadMore": "Show more",
+      "kind": {
+        "topup": "Top-up",
+        "grant": "Credit",
+        "adjustment": "Adjustment",
+        "refund": "Refund",
+        "expired": "Expired",
+        "voicePreview": "Voice preview"
+      }
     },
     "menu": {
       "history": "History",
@@ -1679,7 +1687,10 @@
       "appearanceDark": "Dark",
       "region": "Soniox region",
       "textSize": "Subtitle size",
-      "keepAwake": "Keep the screen on"
+      "keepAwake": "Keep the screen on",
+      "textSizeSmall": "Small",
+      "textSizeMedium": "Medium",
+      "textSizeLarge": "Large"
     },
     "history": {
       "rename": "Rename",
@@ -1703,6 +1714,9 @@
         "starting": "Starting…",
         "stopped": "Stopped"
       }
+    },
+    "common": {
+      "back": "Back"
     }
   }
 }

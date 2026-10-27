@@ -52,6 +52,11 @@ export async function emailVerified(): Promise<boolean> {
   return data?.user.emailVerified ?? false;
 }
 
+export async function accountEmail(): Promise<string | null> {
+  const data = unwrap(await authClient.getSession());
+  return data?.user.email ?? null;
+}
+
 export async function sessionToken(): Promise<string | null> {
   const data = unwrap(await authClient.getSession());
   return data?.session.token ?? null;

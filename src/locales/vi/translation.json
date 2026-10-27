@@ -1665,7 +1665,15 @@
     "usage": {
       "session": "Phiên",
       "textOnly": "Chỉ văn bản",
-      "loadMore": "Hiện thêm"
+      "loadMore": "Hiện thêm",
+      "kind": {
+        "topup": "Nạp tiền",
+        "grant": "Tín dụng",
+        "adjustment": "Điều chỉnh",
+        "refund": "Hoàn tiền",
+        "expired": "Đã hết hạn",
+        "voicePreview": "Nghe thử giọng"
+      }
     },
     "menu": {
       "history": "Lịch sử",
@@ -1679,7 +1687,10 @@
       "appearanceDark": "Tối",
       "region": "Khu vực Soniox",
       "textSize": "Cỡ chữ phụ đề",
-      "keepAwake": "Giữ màn hình luôn bật"
+      "keepAwake": "Giữ màn hình luôn bật",
+      "textSizeSmall": "Nhỏ",
+      "textSizeMedium": "Vừa",
+      "textSizeLarge": "Lớn"
     },
     "history": {
       "rename": "Đổi tên",
@@ -1703,6 +1714,9 @@
         "starting": "Đang bắt đầu…",
         "stopped": "Đã dừng"
       }
+    },
+    "common": {
+      "back": "Quay lại"
     }
   }
 }

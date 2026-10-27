@@ -1665,7 +1665,15 @@
     "usage": {
       "session": "Сеанс",
       "textOnly": "Лише текст",
-      "loadMore": "Показати більше"
+      "loadMore": "Показати більше",
+      "kind": {
+        "topup": "Поповнення",
+        "grant": "Нарахування",
+        "adjustment": "Коригування",
+        "refund": "Повернення",
+        "expired": "Спливло",
+        "voicePreview": "Прослуховування голосу"
+      }
     },
     "menu": {
       "history": "Історія",
@@ -1679,7 +1687,10 @@
       "appearanceDark": "Темне",
       "region": "Регіон Soniox",
       "textSize": "Розмір субтитрів",
-      "keepAwake": "Не вимикати екран"
+      "keepAwake": "Не вимикати екран",
+      "textSizeSmall": "Малий",
+      "textSizeMedium": "Середній",
+      "textSizeLarge": "Великий"
     },
     "history": {
       "rename": "Перейменувати",
@@ -1703,6 +1714,9 @@
         "starting": "Запуск…",
         "stopped": "Зупинено"
       }
+    },
+    "common": {
+      "back": "Назад"
     }
   }
 }

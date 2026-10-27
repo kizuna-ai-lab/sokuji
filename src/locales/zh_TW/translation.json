@@ -1665,7 +1665,15 @@
     "usage": {
       "session": "對話",
       "textOnly": "僅文字",
-      "loadMore": "顯示更多"
+      "loadMore": "顯示更多",
+      "kind": {
+        "topup": "儲值",
+        "grant": "贈送額度",
+        "adjustment": "調整",
+        "refund": "退款",
+        "expired": "已到期",
+        "voicePreview": "試聽聲音"
+      }
     },
     "menu": {
       "history": "歷史",
@@ -1679,7 +1687,10 @@
       "appearanceDark": "深色",
       "region": "Soniox 區域",
       "textSize": "字幕字級",
-      "keepAwake": "保持螢幕常亮"
+      "keepAwake": "保持螢幕常亮",
+      "textSizeSmall": "小",
+      "textSizeMedium": "中",
+      "textSizeLarge": "大"
     },
     "history": {
       "rename": "重新命名",
@@ -1703,6 +1714,9 @@
         "starting": "正在開始…",
         "stopped": "已停止"
       }
+    },
+    "common": {
+      "back": "返回"
     }
   }
 }

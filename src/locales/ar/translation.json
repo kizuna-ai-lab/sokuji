@@ -1665,7 +1665,15 @@
     "usage": {
       "session": "جلسة",
       "textOnly": "نص فقط",
-      "loadMore": "عرض المزيد"
+      "loadMore": "عرض المزيد",
+      "kind": {
+        "topup": "شحن",
+        "grant": "رصيد ممنوح",
+        "adjustment": "تسوية",
+        "refund": "استرداد",
+        "expired": "منتهي",
+        "voicePreview": "معاينة الصوت"
+      }
     },
     "menu": {
       "history": "السجل",
@@ -1679,7 +1687,10 @@
       "appearanceDark": "داكن",
       "region": "منطقة Soniox",
       "textSize": "حجم الترجمة",
-      "keepAwake": "إبقاء الشاشة مضاءة"
+      "keepAwake": "إبقاء الشاشة مضاءة",
+      "textSizeSmall": "صغير",
+      "textSizeMedium": "متوسط",
+      "textSizeLarge": "كبير"
     },
     "history": {
       "rename": "إعادة التسمية",
@@ -1703,6 +1714,9 @@
         "starting": "جارٍ البدء…",
         "stopped": "متوقف"
       }
+    },
+    "common": {
+      "back": "رجوع"
     }
   }
 }

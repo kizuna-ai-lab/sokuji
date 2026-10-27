@@ -1665,7 +1665,15 @@
     "usage": {
       "session": "Sessione",
       "textOnly": "Solo testo",
-      "loadMore": "Mostra altro"
+      "loadMore": "Mostra altro",
+      "kind": {
+        "topup": "Ricarica",
+        "grant": "Credito",
+        "adjustment": "Rettifica",
+        "refund": "Rimborso",
+        "expired": "Scaduto",
+        "voicePreview": "Anteprima voce"
+      }
     },
     "menu": {
       "history": "Cronologia",
@@ -1679,7 +1687,10 @@
       "appearanceDark": "Scuro",
       "region": "Regione Soniox",
       "textSize": "Dimensione dei sottotitoli",
-      "keepAwake": "Mantieni lo schermo acceso"
+      "keepAwake": "Mantieni lo schermo acceso",
+      "textSizeSmall": "Piccolo",
+      "textSizeMedium": "Medio",
+      "textSizeLarge": "Grande"
     },
     "history": {
       "rename": "Rinomina",
@@ -1703,6 +1714,9 @@
         "starting": "Avvio…",
         "stopped": "Fermato"
       }
+    },
+    "common": {
+      "back": "Indietro"
     }
   }
 }

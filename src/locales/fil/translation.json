@@ -1665,7 +1665,15 @@
     "usage": {
       "session": "Session",
       "textOnly": "Teksto lang",
-      "loadMore": "Magpakita pa"
+      "loadMore": "Magpakita pa",
+      "kind": {
+        "topup": "Top-up",
+        "grant": "Credit",
+        "adjustment": "Pagsasaayos",
+        "refund": "Refund",
+        "expired": "Expired",
+        "voicePreview": "Preview ng boses"
+      }
     },
     "menu": {
       "history": "History",
@@ -1679,7 +1687,10 @@
       "appearanceDark": "Madilim",
       "region": "Rehiyon ng Soniox",
       "textSize": "Laki ng subtitle",
-      "keepAwake": "Panatilihing nakabukas ang screen"
+      "keepAwake": "Panatilihing nakabukas ang screen",
+      "textSizeSmall": "Maliit",
+      "textSizeMedium": "Katamtaman",
+      "textSizeLarge": "Malaki"
     },
     "history": {
       "rename": "Palitan ang pangalan",
@@ -1703,6 +1714,9 @@
         "starting": "Nagsisimula…",
         "stopped": "Huminto"
       }
+    },
+    "common": {
+      "back": "Bumalik"
     }
   }
 }

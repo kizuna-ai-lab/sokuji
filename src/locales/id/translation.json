@@ -1665,7 +1665,15 @@
     "usage": {
       "session": "Sesi",
       "textOnly": "Hanya teks",
-      "loadMore": "Tampilkan lebih banyak"
+      "loadMore": "Tampilkan lebih banyak",
+      "kind": {
+        "topup": "Isi ulang",
+        "grant": "Kredit",
+        "adjustment": "Penyesuaian",
+        "refund": "Pengembalian dana",
+        "expired": "Kedaluwarsa",
+        "voicePreview": "Pratinjau suara"
+      }
     },
     "menu": {
       "history": "Riwayat",
@@ -1679,7 +1687,10 @@
       "appearanceDark": "Gelap",
       "region": "Wilayah Soniox",
       "textSize": "Ukuran subtitel",
-      "keepAwake": "Biarkan layar menyala"
+      "keepAwake": "Biarkan layar menyala",
+      "textSizeSmall": "Kecil",
+      "textSizeMedium": "Sedang",
+      "textSizeLarge": "Besar"
     },
     "history": {
       "rename": "Ganti nama",
@@ -1703,6 +1714,9 @@
         "starting": "Memulai…",
         "stopped": "Berhenti"
       }
+    },
+    "common": {
+      "back": "Kembali"
     }
   }
 }

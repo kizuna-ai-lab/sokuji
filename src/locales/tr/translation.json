@@ -1665,7 +1665,15 @@
     "usage": {
       "session": "Oturum",
       "textOnly": "Yalnızca metin",
-      "loadMore": "Daha fazla göster"
+      "loadMore": "Daha fazla göster",
+      "kind": {
+        "topup": "Yükleme",
+        "grant": "Kredi",
+        "adjustment": "Düzeltme",
+        "refund": "İade",
+        "expired": "Süresi doldu",
+        "voicePreview": "Ses önizleme"
+      }
     },
     "menu": {
       "history": "Geçmiş",
@@ -1679,7 +1687,10 @@
       "appearanceDark": "Koyu",
       "region": "Soniox bölgesi",
       "textSize": "Altyazı boyutu",
-      "keepAwake": "Ekranı açık tut"
+      "keepAwake": "Ekranı açık tut",
+      "textSizeSmall": "Küçük",
+      "textSizeMedium": "Orta",
+      "textSizeLarge": "Büyük"
     },
     "history": {
       "rename": "Yeniden adlandır",
@@ -1703,6 +1714,9 @@
         "starting": "Başlatılıyor…",
         "stopped": "Durduruldu"
       }
+    },
+    "common": {
+      "back": "Geri"
     }
   }
 }

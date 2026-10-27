@@ -1665,7 +1665,15 @@
     "usage": {
       "session": "সেশন",
       "textOnly": "শুধু টেক্সট",
-      "loadMore": "আরও দেখান"
+      "loadMore": "আরও দেখান",
+      "kind": {
+        "topup": "টপ-আপ",
+        "grant": "ক্রেডিট",
+        "adjustment": "সমন্বয়",
+        "refund": "ফেরত",
+        "expired": "মেয়াদোত্তীর্ণ",
+        "voicePreview": "কণ্ঠের প্রিভিউ"
+      }
     },
     "menu": {
       "history": "ইতিহাস",
@@ -1679,7 +1687,10 @@
       "appearanceDark": "গাঢ়",
       "region": "Soniox অঞ্চল",
       "textSize": "সাবটাইটেলের আকার",
-      "keepAwake": "স্ক্রিন চালু রাখুন"
+      "keepAwake": "স্ক্রিন চালু রাখুন",
+      "textSizeSmall": "ছোট",
+      "textSizeMedium": "মাঝারি",
+      "textSizeLarge": "বড়"
     },
     "history": {
       "rename": "নাম বদলান",
@@ -1703,6 +1714,9 @@
         "starting": "শুরু হচ্ছে…",
         "stopped": "থেমে গেছে"
       }
+    },
+    "common": {
+      "back": "পিছনে"
     }
   }
 }

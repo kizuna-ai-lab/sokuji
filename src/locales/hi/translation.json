@@ -1665,7 +1665,15 @@
     "usage": {
       "session": "सत्र",
       "textOnly": "केवल टेक्स्ट",
-      "loadMore": "और दिखाएँ"
+      "loadMore": "और दिखाएँ",
+      "kind": {
+        "topup": "टॉप-अप",
+        "grant": "क्रेडिट",
+        "adjustment": "समायोजन",
+        "refund": "रिफ़ंड",
+        "expired": "समाप्त",
+        "voicePreview": "आवाज़ का पूर्वावलोकन"
+      }
     },
     "menu": {
       "history": "इतिहास",
@@ -1679,7 +1687,10 @@
       "appearanceDark": "गहरा",
       "region": "Soniox क्षेत्र",
       "textSize": "सबटाइटल का आकार",
-      "keepAwake": "स्क्रीन चालू रखें"
+      "keepAwake": "स्क्रीन चालू रखें",
+      "textSizeSmall": "छोटा",
+      "textSizeMedium": "मध्यम",
+      "textSizeLarge": "बड़ा"
     },
     "history": {
       "rename": "नाम बदलें",
@@ -1703,6 +1714,9 @@
         "starting": "शुरू हो रहा है…",
         "stopped": "रुक गया"
       }
+    },
+    "common": {
+      "back": "वापस"
     }
   }
 }

@@ -1665,7 +1665,15 @@
     "usage": {
       "session": "Сессия",
       "textOnly": "Только текст",
-      "loadMore": "Показать ещё"
+      "loadMore": "Показать ещё",
+      "kind": {
+        "topup": "Пополнение",
+        "grant": "Начисление",
+        "adjustment": "Корректировка",
+        "refund": "Возврат",
+        "expired": "Истекло",
+        "voicePreview": "Прослушивание голоса"
+      }
     },
     "menu": {
       "history": "История",
@@ -1679,7 +1687,10 @@
       "appearanceDark": "Тёмное",
       "region": "Регион Soniox",
       "textSize": "Размер субтитров",
-      "keepAwake": "Не гасить экран"
+      "keepAwake": "Не гасить экран",
+      "textSizeSmall": "Мелкий",
+      "textSizeMedium": "Средний",
+      "textSizeLarge": "Крупный"
     },
     "history": {
       "rename": "Переименовать",
@@ -1703,6 +1714,9 @@
         "starting": "Запуск…",
         "stopped": "Остановлено"
       }
+    },
+    "common": {
+      "back": "Назад"
     }
   }
 }

@@ -1665,7 +1665,15 @@
     "usage": {
       "session": "جلسه",
       "textOnly": "فقط متن",
-      "loadMore": "نمایش بیشتر"
+      "loadMore": "نمایش بیشتر",
+      "kind": {
+        "topup": "شارژ",
+        "grant": "اعتبار",
+        "adjustment": "اصلاح",
+        "refund": "بازپرداخت",
+        "expired": "منقضی",
+        "voicePreview": "پیش‌نمایش صدا"
+      }
     },
     "menu": {
       "history": "تاریخچه",
@@ -1679,7 +1687,10 @@
       "appearanceDark": "تیره",
       "region": "منطقهٔ Soniox",
       "textSize": "اندازهٔ زیرنویس",
-      "keepAwake": "صفحه روشن بماند"
+      "keepAwake": "صفحه روشن بماند",
+      "textSizeSmall": "کوچک",
+      "textSizeMedium": "متوسط",
+      "textSizeLarge": "بزرگ"
     },
     "history": {
       "rename": "تغییر نام",
@@ -1703,6 +1714,9 @@
         "starting": "در حال شروع…",
         "stopped": "متوقف شد"
       }
+    },
+    "common": {
+      "back": "بازگشت"
     }
   }
 }

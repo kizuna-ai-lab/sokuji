@@ -1665,7 +1665,15 @@
     "usage": {
       "session": "Session",
       "textOnly": "Endast text",
-      "loadMore": "Visa fler"
+      "loadMore": "Visa fler",
+      "kind": {
+        "topup": "Påfyllning",
+        "grant": "Kredit",
+        "adjustment": "Justering",
+        "refund": "Återbetalning",
+        "expired": "Utgånget",
+        "voicePreview": "Röstprov"
+      }
     },
     "menu": {
       "history": "Historik",
@@ -1679,7 +1687,10 @@
       "appearanceDark": "Mörkt",
       "region": "Soniox-region",
       "textSize": "Textstorlek för undertexter",
-      "keepAwake": "Håll skärmen tänd"
+      "keepAwake": "Håll skärmen tänd",
+      "textSizeSmall": "Liten",
+      "textSizeMedium": "Mellan",
+      "textSizeLarge": "Stor"
     },
     "history": {
       "rename": "Byt namn",
@@ -1703,6 +1714,9 @@
         "starting": "Startar…",
         "stopped": "Stoppad"
       }
+    },
+    "common": {
+      "back": "Tillbaka"
     }
   }
 }

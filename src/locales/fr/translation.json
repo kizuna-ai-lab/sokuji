@@ -1665,7 +1665,15 @@
     "usage": {
       "session": "Session",
       "textOnly": "Texte seul",
-      "loadMore": "Afficher plus"
+      "loadMore": "Afficher plus",
+      "kind": {
+        "topup": "Recharge",
+        "grant": "Crédit",
+        "adjustment": "Ajustement",
+        "refund": "Remboursement",
+        "expired": "Expiré",
+        "voicePreview": "Aperçu de voix"
+      }
     },
     "menu": {
       "history": "Historique",
@@ -1679,7 +1687,10 @@
       "appearanceDark": "Sombre",
       "region": "Région Soniox",
       "textSize": "Taille des sous-titres",
-      "keepAwake": "Garder l'écran allumé"
+      "keepAwake": "Garder l'écran allumé",
+      "textSizeSmall": "Petite",
+      "textSizeMedium": "Moyenne",
+      "textSizeLarge": "Grande"
     },
     "history": {
       "rename": "Renommer",
@@ -1703,6 +1714,9 @@
         "starting": "Démarrage…",
         "stopped": "Arrêté"
       }
+    },
+    "common": {
+      "back": "Retour"
     }
   }
 }

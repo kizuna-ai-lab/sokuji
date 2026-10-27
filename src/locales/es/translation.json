@@ -1665,7 +1665,15 @@
     "usage": {
       "session": "Sesión",
       "textOnly": "Solo texto",
-      "loadMore": "Mostrar más"
+      "loadMore": "Mostrar más",
+      "kind": {
+        "topup": "Recarga",
+        "grant": "Crédito",
+        "adjustment": "Ajuste",
+        "refund": "Reembolso",
+        "expired": "Caducado",
+        "voicePreview": "Vista previa de voz"
+      }
     },
     "menu": {
       "history": "Historial",
@@ -1679,7 +1687,10 @@
       "appearanceDark": "Oscuro",
       "region": "Región de Soniox",
       "textSize": "Tamaño de los subtítulos",
-      "keepAwake": "Mantener la pantalla encendida"
+      "keepAwake": "Mantener la pantalla encendida",
+      "textSizeSmall": "Pequeño",
+      "textSizeMedium": "Mediano",
+      "textSizeLarge": "Grande"
     },
     "history": {
       "rename": "Renombrar",
@@ -1703,6 +1714,9 @@
         "starting": "Iniciando…",
         "stopped": "Detenido"
       }
+    },
+    "common": {
+      "back": "Atrás"
     }
   }
 }
