@@ -13,6 +13,7 @@ import Settings from './Settings';
 import History from './History';
 import { createHistoryStore, type StoredSession } from '../history/store';
 import { documentFs } from '../history/fs';
+import { capture, platform, sessionEndProperties, sessionStartProperties } from '../analytics';
 
 const KEEP_AWAKE_TAG = 'sokuji-session';
 
@@ -35,6 +36,8 @@ export default function Main({ token, email, onSignOut, onAccountDeleted }: { to
   const feed = useRef<{ stop(): void } | null>(null);
   const transcript = useRef<Transcript | null>(null);
   const stored = useRef<StoredSession | null>(null);
+  const errors = useRef(0);
+  const started = useRef(false);
 
   const active = status !== 'idle' && status !== 'stopped' && status !== 'error';
 
@@ -50,6 +53,10 @@ export default function Main({ token, email, onSignOut, onAccountDeleted }: { to
   function ended() {
     const last = snapshot(status === 'error' ? detail || 'error' : 'stopped', Date.now());
     if (last && last.leg.segments.length > 0) void history.save(last);
+    if (started.current && stored.current) {
+      capture('translation_session_end', sessionEndProperties({ sessionId: stored.current.id, durationMs: Date.now() - stored.current.startedAt, errorCount: errors.current }));
+    }
+    started.current = false;
     session.current = null;
     feed.current?.stop();
     feed.current = null;
@@ -83,6 +90,8 @@ export default function Main({ token, email, onSignOut, onAccountDeleted }: { to
     feed.current = f;
     const startedAt = Date.now();
     stored.current = { id: `s-${startedAt}`, startedAt, endedAt: null, source, target, leg: tr.leg(), lastStatus: 'leasing' };
+    errors.current = 0;
+    started.current = false;
     setEntries([]);
     setStatus('leasing');
     setDetail('');
@@ -101,6 +110,12 @@ export default function Main({ token, email, onSignOut, onAccountDeleted }: { to
         if (e.type !== 'status') return;
         setStatus(e.status);
         setDetail(e.detail ?? '');
+        // The desktop's two session events: at the first listening, and at the end.
+        if (e.status === 'listening' && !started.current && stored.current) {
+          started.current = true;
+          capture('translation_session_start', sessionStartProperties({ sessionId: stored.current.id, source, target, platform }));
+        }
+        if (e.status === 'reconnecting' && e.detail) errors.current += 1;
         if (e.status === 'error' || e.status === 'stopped') ended();
         // The balance ran out: the account screen says so and how to top up.
         if (e.status === 'error' && e.detail === 'balance_exhausted') setScreen('account');
