@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-26-sokuji-mobile-design.md` — §3.1 (what is in), §5 (design), §6 Gate B, rulings R8, R10, R11, R12. Phase 1 plan and its outcome: `docs/superpowers/plans/2026-10-26-sokuji-mobile-phase1-prototype.md`.
 
-**Prerequisites:** Gate A passed on iOS (62 min locked on a development build, airplane-mode recovery, another app in front; reconnect ≈ 9 s after a drop). The Android 66-minute run is the one whose screen froze, so its rows are rerun on a release build and recorded in `mobile/GATE-A.md` before Task 4's device step. The prototype branch `spike/mobile-prototype` is the base of this work. The backend accepts the app's origin (`sokuji://`, shipped).
+**Prerequisites:** Gate A passed on both phones (iOS: 62 min locked on a development build, airplane-mode recovery, another app in front; Android: 60 min locked in deep Doze on a release build, airplane-mode recovery with the screen off after the ticker fix, another app in front; reconnect ≈ 9 s after an ordinary drop, ≈ 45 s after a 30-second outage). The record is `mobile/GATE-A.md`. The iPhone release-build run is repeated with Task 12's audio mode. The prototype branch `spike/mobile-prototype` is the base of this work. The backend accepts the app's origin (`sokuji://`, shipped).
 
 **Where it runs:** pure-logic tasks (1, 2, 3, 5, 8) on any host with `npm test` inside `mobile/`; device verification and store tasks (4, 6, 7, 9, 10, 11) on the macOS machine with both phones.
 

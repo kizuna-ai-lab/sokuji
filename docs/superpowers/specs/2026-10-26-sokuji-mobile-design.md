@@ -1,6 +1,6 @@
 # Sokuji mobile, first version — design
 
-**Status:** approved by the owner, 2026-10-26, through rulings R1–R12 (§2) after the builder check (§8). Gate A (§6) passed on the iPhone on 2026-10-27, with the Android rerun on a release build pending (§6); the first version's plan is `docs/superpowers/plans/2026-10-27-sokuji-mobile-phase2-mvp.md`.
+**Status:** approved by the owner, 2026-10-26, through rulings R1–R12 (§2) after the builder check (§8). Gate A (§6) passed on both phones on 2026-10-27 (§6); the first version's plan is `docs/superpowers/plans/2026-10-27-sokuji-mobile-phase2-mvp.md`.
 **Scope:** a new app under `mobile/` in this repository (iOS and Android from one codebase), with a small additive change in the backend (auth for the app). Product data, account details and the test-device inventory that informed the decisions are kept in the team's internal notes, not here.
 
 ## 1. Intent
@@ -259,14 +259,17 @@ own long session measures them on the near-final build.
 If 1 fails on iOS with React Native after the known settings are applied, the iOS core is built in
 Swift (§4, row 2) and the plan is rewritten; the prototype's findings go into this document.
 
-**Outcome (2026-10-27): Gate A passed on the iPhone, on a development build; the React Native
-route stands.** On the iPhone: 62 minutes locked without a drop, recovery after a 30-second
-airplane-mode drop, and 5 minutes behind another app. On the Android phone the 66-minute locked run
-kept capture, foreground service and socket uninterrupted, but it is the run whose screen froze (the
-rendering finding below), so the Android rows are rerun on a release build with the bounded
-rendering and recorded in the prototype's Gate A record before the plan's device tasks. Real
-drops (a network blip, a server-side close) recovered in about 9 seconds with the earlier
-subtitles kept. Two findings shaped the first version: a grant ends when the balance it
+**Outcome (2026-10-27): Gate A passed on both phones; the React Native route stands.** On the
+iPhone (a development build): 62 minutes locked without a drop, recovery after a 30-second
+airplane-mode drop, and 5 minutes behind another app. On the Android phone (a release build with
+the bounded rendering): 60 minutes locked with the screen off and another app in front, in deep
+Doze, with capture, foreground service and socket uninterrupted; and recovery after a 30-second
+airplane-mode drop, with the screen off and again with the screen lit but locked, new subtitles
+about 45 seconds after the drop. That recovery first failed and exposed a third finding: React
+Native pauses the JS timers while the app is in the background on Android, so no retry ever ran;
+every wait now hangs off a ticker the audio callback drives. Real drops (a network blip, a
+server-side close) recovered in about 9 seconds with the earlier subtitles kept. The iPhone run
+on a release build is repeated together with the audio-mode change of R13 (the Gate A addendum). Two findings shaped the first version: a grant ends when the balance it
 was sized for runs out, so a long session is a chain of leases (§5.3); and drawing a growing
 transcript into text blocks is what froze the Android phone and grew memory on iOS — with nothing
 drawn while the app is not in the foreground, memory stayed flat for 30 minutes, so the first
