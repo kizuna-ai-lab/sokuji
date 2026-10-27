@@ -4,15 +4,16 @@
 // workers, stylesheet imports, DOM/Electron/extension globals, Web Audio, and
 // packages that must not be duplicated or do not exist on a phone.
 //
-// Scope and limits: comments are stripped before anything is matched, by
-// TypeScript's own parser, so regex literals and templates are read as such;
-// string contents are kept, so a global named inside a string literal is still
-// a finding. Type-only statements (`import type`, `export type … from`) are
-// skipped; a value import that happens to carry only `type` specifiers is
-// treated as a value import. Path aliases (`@/…`) are not resolved and show up
-// as packages. `window` is checked on the syntax tree: a read is flagged
-// unless a local declaration of that name (a variable, parameter, function or
-// catch binding) shadows it in an enclosing scope.
+// Scope and limits: each file is parsed by TypeScript. The browser globals
+// (`window`, `document`, `navigator`, `chrome`) are checked on the syntax tree:
+// any member read, including `x['y']` and `x?.y`, is flagged unless a local
+// declaration of that name (a variable, parameter, named function, class or
+// catch binding) shadows it in an enclosing scope. Everything else is matched
+// by regex on the source reprinted without comments, string contents kept, so
+// e.g. `import.meta` inside a string literal is still a finding. Type-only
+// statements (`import type`, `export type … from`) are skipped; a value import
+// that happens to carry only `type` specifiers is treated as a value import.
+// Path aliases (`@/…`) are not resolved and show up as packages.
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { isBuiltin } from 'node:module';
 import { dirname, join, normalize, relative } from 'node:path';
@@ -23,13 +24,15 @@ export const FLAGS = {
   'import.meta': /import\.meta\b/,
   'worker': /new\s+Worker\s*\(|\?worker\b/,
   'stylesheet import': /(?:^|[;\n])\s*import\s*['"][^'"]+\.s?css['"]|from\s*['"][^'"]+\.s?css['"]/,
-  // A member access, not the word in prose: an identifier must follow the dot.
-  'window': /(?<![\w.$])window\.[A-Za-z_$]/,
-  'document': /(?<![\w.$])document\.[A-Za-z_$]/,
-  'navigator': /(?<![\w.$])navigator\.[A-Za-z_$]/,
-  'chrome extension API': /(?<![\w.$])chrome\.[A-Za-z_$]/,
   'web storage': /(?<![\w.$])(?:localStorage|sessionStorage|indexedDB)\b/,
   'Web Audio': /\b(?:AudioContext|AudioWorkletNode|MediaStream|getUserMedia)\b/,
+};
+/** Browser globals, checked on the syntax tree, and the flag each one raises. */
+export const BROWSER_GLOBALS = {
+  window: 'window',
+  document: 'document',
+  navigator: 'navigator',
+  chrome: 'chrome extension API',
 };
 export const FORBIDDEN_PACKAGES = new Set([
   'react', 'react-dom', 'posthog-js', 'electron', 'i18next-browser-languagedetector', 'vite',
@@ -41,6 +44,13 @@ const STATIC_RE = /(?:^|[;\n])\s*(import|export)\s+(type\s+)?([\w*{}\s,$]*?)\s*f
 const BARE_RE = /(?:^|[;\n])\s*import\s*['"]([^'"]+)['"]/g;
 const DYNAMIC_RE = /\b(?:import|require)\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
 
+function parse(src, fileName) {
+  const kind = /\.[jt]sx$/.test(fileName) ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  return ts.createSourceFile(fileName, src, ts.ScriptTarget.Latest, true, kind);
+}
+
+const printWithoutComments = (tree) => ts.createPrinter({ removeComments: true }).printFile(tree);
+
 /**
  * Source without `//` and `/* *\/` comments; strings, templates and regex
  * literals are left intact. Parsed and reprinted by TypeScript: telling a
@@ -48,40 +58,40 @@ const DYNAMIC_RE = /\b(?:import|require)\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
  * string, takes a parser.
  */
 export function stripComments(src, fileName = 'module.ts') {
-  const kind = /\.[jt]sx$/.test(fileName) ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
-  const file = ts.createSourceFile(fileName, src, ts.ScriptTarget.Latest, false, kind);
-  return ts.createPrinter({ removeComments: true }).printFile(file);
+  return printWithoutComments(parse(src, fileName));
 }
 
-const isWindow = (name) => name !== undefined && ts.isIdentifier(name) && name.text === 'window';
+const named = (id, name) => id !== undefined && ts.isIdentifier(id) && id.text === name;
 
-/** Whether this scope node itself declares a binding named `window`. */
-function declaresWindow(node) {
-  if (ts.isFunctionLike(node) && (isWindow(node.name) || node.parameters.some((p) => isWindow(p.name)))) return true;
-  if (ts.isCatchClause(node)) return isWindow(node.variableDeclaration?.name);
+/** Whether this scope node itself declares a binding called `name`. */
+function declares(node, name) {
+  if (ts.isFunctionLike(node)) {
+    // A named function's own name binds inside it; a method's name is a property.
+    if ((ts.isFunctionExpression(node) || ts.isFunctionDeclaration(node)) && named(node.name, name)) return true;
+    if (node.parameters.some((p) => named(p.name, name))) return true;
+  }
+  if (ts.isCatchClause(node)) return named(node.variableDeclaration?.name, name);
   const lists = [];
   if (ts.isForStatement(node) || ts.isForInStatement(node) || ts.isForOfStatement(node)) lists.push(node.initializer);
   for (const statement of node.statements ?? []) {
     if (ts.isVariableStatement(statement)) lists.push(statement.declarationList);
-    if ((ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement)) && isWindow(statement.name)) return true;
+    if ((ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement)) && named(statement.name, name)) return true;
   }
-  return lists.some((list) => list && ts.isVariableDeclarationList(list) && list.declarations.some((d) => isWindow(d.name)));
+  return lists.some((list) => list && ts.isVariableDeclarationList(list) && list.declarations.some((d) => named(d.name, name)));
 }
 
-/** Whether `src` reads the browser's `window` anywhere no local `window` shadows it. */
-function readsGlobalWindow(src, fileName) {
-  const kind = /\.[jt]sx$/.test(fileName) ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
-  const file = ts.createSourceFile(fileName, src, ts.ScriptTarget.Latest, true, kind);
+/** Whether `tree` reads a member of the global `name` anywhere no local of that name shadows it. */
+function readsGlobal(tree, name) {
   const shadowed = (node) => {
-    for (let scope = node.parent; scope; scope = scope.parent) if (declaresWindow(scope)) return true;
+    for (let scope = node.parent; scope; scope = scope.parent) if (declares(scope, name)) return true;
     return false;
   };
   const visit = (node) => {
     const access = ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node);
-    if (access && ts.isIdentifier(node.expression) && node.expression.text === 'window' && !shadowed(node)) return true;
+    if (access && named(node.expression, name) && !shadowed(node)) return true;
     return ts.forEachChild(node, visit) ?? false;
   };
-  return visit(file);
+  return visit(tree);
 }
 
 /** The value-import specifiers of a (comment-stripped) module source. */
@@ -127,12 +137,13 @@ export function auditRoot(repoRoot, root) {
     seen.add(file);
     if (file.endsWith('.json')) continue;
     const rel = relative(repoRoot, file);
-    const raw = readFileSync(file, 'utf8');
-    const src = stripComments(raw, file);
+    const tree = parse(readFileSync(file, 'utf8'), file);
+    const src = printWithoutComments(tree);
     for (const [name, re] of Object.entries(FLAGS)) {
-      if (!re.test(src)) continue;
-      if (name === 'window' && !readsGlobalWindow(raw, file)) continue;
-      findings.push({ file: rel, flag: name });
+      if (re.test(src)) findings.push({ file: rel, flag: name });
+    }
+    for (const [global, flag] of Object.entries(BROWSER_GLOBALS)) {
+      if (readsGlobal(tree, global)) findings.push({ file: rel, flag });
     }
     for (const spec of importSpecifiers(src)) {
       if (spec.startsWith('.')) {

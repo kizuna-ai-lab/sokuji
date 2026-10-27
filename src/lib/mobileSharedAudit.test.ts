@@ -35,6 +35,13 @@ beforeAll(() => {
   // A local `window` shadows the global only in its own scope, and a string is not a declaration.
   write('src/window-shadow-elsewhere.ts', "function f() { const window = { open() {} }; return window.open(); }\nexport function g() { f(); return window.open('x'); }\n");
   write('src/window-in-string.ts', "export const s = 'const window = 1';\nexport function g() { return window.open('x'); }\n");
+  // A method's name is a property, not a binding; its parameters are bindings.
+  write('src/window-method.ts', "export const api = { window() { return window.open('x'); } };\n");
+  write('src/window-param.ts', 'export const api = { f(window: { open(): void }) { return window.open(); } };\n');
+  // Element access and optional chaining read the global just the same.
+  write('src/window-element.ts', "export const l = window['location'];\n");
+  write('src/window-optional.ts', 'export const l = window?.location;\n');
+  write('src/document-optional.ts', 'export const b = document?.body;\n');
   write('src/node-builtin.ts', "import { readFileSync } from 'node:fs';\nimport path from 'path';\nexport const n = [readFileSync, path];\n");
 });
 afterAll(() => rmSync(repo, { recursive: true, force: true }));
@@ -99,6 +106,17 @@ describe('mobile-shared-audit', () => {
   it('still flags the global window outside the scope of a local one', () => {
     expect(auditRoot(repo, 'src/window-shadow-elsewhere.ts').findings).toEqual([{ file: 'src/window-shadow-elsewhere.ts', flag: 'window' }]);
     expect(auditRoot(repo, 'src/window-in-string.ts').findings).toEqual([{ file: 'src/window-in-string.ts', flag: 'window' }]);
+  });
+
+  it('does not take a method named window for a local binding, but does a parameter', () => {
+    expect(auditRoot(repo, 'src/window-method.ts').findings).toEqual([{ file: 'src/window-method.ts', flag: 'window' }]);
+    expect(auditRoot(repo, 'src/window-param.ts').findings).toEqual([]);
+  });
+
+  it('flags element access and optional chaining on browser globals', () => {
+    expect(auditRoot(repo, 'src/window-element.ts').findings).toEqual([{ file: 'src/window-element.ts', flag: 'window' }]);
+    expect(auditRoot(repo, 'src/window-optional.ts').findings).toEqual([{ file: 'src/window-optional.ts', flag: 'window' }]);
+    expect(auditRoot(repo, 'src/document-optional.ts').findings).toEqual([{ file: 'src/document-optional.ts', flag: 'document' }]);
   });
 
   it('flags Node built-in modules, with or without the node: prefix', () => {
