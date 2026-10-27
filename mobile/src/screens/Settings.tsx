@@ -17,7 +17,7 @@ export function applyAppearance(appearance: SettingsValues['appearance']): void 
 
 // Its own screen (owner, 2026-10-27: the settings will grow). Each takes
 // effect at once, except the region and the pair, which the next Start reads.
-export default function Settings({ onBack, locked }: { onBack: () => void; locked: boolean }) {
+export default function Settings({ onBack, locked, onOpen }: { onBack: () => void; locked: boolean; onOpen: (screen: 'listen' | 'devices') => void }) {
   const { t } = useTranslation();
   const settings = useSettings((s) => s.settings);
   const set = useSettings((s) => s.set);
@@ -53,6 +53,9 @@ export default function Settings({ onBack, locked }: { onBack: () => void; locke
         <Text style={styles.label}>{t('mobile.main.bilingual')}</Text>
         <Switch value={settings.bilingual} onValueChange={(v) => set({ bilingual: v })} />
       </View>
+      <Text style={[styles.row, styles.rowLink]} onPress={() => onOpen('listen')}>
+        {t('mobile.settings.listen')}  ›  {settings.listen ? t('common.on') : t('common.off')}
+      </Text>
       <View style={styles.row}>
         <Text style={styles.label}>{t('mobile.settings.textSize')}</Text>
         {choices(SIZES, settings.textSize, (v) => sizeLabel[v], (v) => set({ textSize: v }))}
@@ -69,6 +72,7 @@ export default function Settings({ onBack, locked }: { onBack: () => void; locke
         <Text style={styles.label}>{t('mobile.settings.region')}</Text>
         {choices(REGIONS, settings.region, (v) => v.toUpperCase(), (v) => set({ region: v }), locked)}
       </View>
+      <Text style={[styles.row, styles.rowLink]} onPress={() => onOpen('devices')}>{t('mobile.settings.devices')}  ›</Text>
     </View>
   );
 }
@@ -80,6 +84,7 @@ const styles = StyleSheet.create({
   link: { color: '#1e63c4', minWidth: 60 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#ddd', gap: 8 },
   label: { fontSize: 16, flexShrink: 1 },
+  rowLink: { fontSize: 16 },
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, minWidth: 72, textAlign: 'right' },
   choices: { flexDirection: 'row', gap: 4 },
   choice: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, color: '#555' },

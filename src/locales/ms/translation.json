@@ -1690,7 +1690,9 @@
       "keepAwake": "Biarkan skrin hidup",
       "textSizeSmall": "Kecil",
       "textSizeMedium": "Sederhana",
-      "textSizeLarge": "Besar"
+      "textSizeLarge": "Besar",
+      "listen": "Dengar terjemahan",
+      "devices": "Peranti audio"
     },
     "history": {
       "rename": "Namakan semula",
@@ -1712,11 +1714,27 @@
         "micDenied": "Sokuji memerlukan mikrofon",
         "otherSession": "Sesi lain sedang berjalan pada akaun ini",
         "starting": "Memulakan…",
-        "stopped": "Dihentikan"
+        "stopped": "Dihentikan",
+        "spoken": "Mendengar · dibacakan",
+        "subtitlesOnly": "Mendengar · sari kata sahaja (tiada fon kepala)"
       }
     },
     "common": {
       "back": "Kembali"
+    },
+    "listen": {
+      "toggle": "Bacakan kata-kata pihak lain kepada saya",
+      "voice": "Suara yang saya dengar",
+      "speed": "Kelajuan pertuturan",
+      "headphones": "Hanya dibacakan melalui fon kepala. Melalui pembesar suara anda dapat sari kata."
+    },
+    "devices": {
+      "microphone": "Mikrofon",
+      "builtIn": "Mikrofon telefon",
+      "wired": "Mikrofon set kepala berwayar",
+      "usb": "Mikrofon USB",
+      "noBluetoothMic": "Set kepala Bluetooth memainkan terjemahan tetapi tidak digunakan sebagai mikrofon.",
+      "output": "Peranti main balik"
     }
   }
 }

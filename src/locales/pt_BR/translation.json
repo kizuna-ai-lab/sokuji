@@ -1690,7 +1690,9 @@
       "keepAwake": "Manter a tela ligada",
       "textSizeSmall": "Pequeno",
       "textSizeMedium": "Médio",
-      "textSizeLarge": "Grande"
+      "textSizeLarge": "Grande",
+      "listen": "Ouvir a tradução",
+      "devices": "Dispositivos de áudio"
     },
     "history": {
       "rename": "Renomear",
@@ -1712,11 +1714,27 @@
         "micDenied": "O Sokuji precisa do microfone",
         "otherSession": "Outra sessão está em andamento nesta conta",
         "starting": "Iniciando…",
-        "stopped": "Parado"
+        "stopped": "Parado",
+        "spoken": "Ouvindo · em voz alta",
+        "subtitlesOnly": "Ouvindo · só legendas (sem fones)"
       }
     },
     "common": {
       "back": "Voltar"
+    },
+    "listen": {
+      "toggle": "Ler em voz alta o que a outra pessoa diz",
+      "voice": "Voz que eu ouço",
+      "speed": "Velocidade da fala",
+      "headphones": "Lida apenas com fones. No alto-falante você tem legendas."
+    },
+    "devices": {
+      "microphone": "Microfone",
+      "builtIn": "Microfone do telefone",
+      "wired": "Microfone do fone com fio",
+      "usb": "Microfone USB",
+      "noBluetoothMic": "Fones Bluetooth tocam a tradução, mas não são usados como microfone.",
+      "output": "Dispositivo de reprodução"
     }
   }
 }

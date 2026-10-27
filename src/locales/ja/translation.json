@@ -1690,7 +1690,9 @@
       "keepAwake": "画面をオンのままにする",
       "textSizeSmall": "小",
       "textSizeMedium": "中",
-      "textSizeLarge": "大"
+      "textSizeLarge": "大",
+      "listen": "翻訳を読み上げる",
+      "devices": "オーディオ機器"
     },
     "history": {
       "rename": "名前を変更",
@@ -1712,11 +1714,27 @@
         "micDenied": "Sokuji にはマイクが必要です",
         "otherSession": "このアカウントで別のセッションが実行中です",
         "starting": "開始しています…",
-        "stopped": "停止しました"
+        "stopped": "停止しました",
+        "spoken": "聞き取り中 · 読み上げ",
+        "subtitlesOnly": "聞き取り中 · 字幕のみ（ヘッドホンなし）"
       }
     },
     "common": {
       "back": "戻る"
+    },
+    "listen": {
+      "toggle": "相手の言葉を翻訳して読み上げる",
+      "voice": "聞く声",
+      "speed": "読み上げ速度",
+      "headphones": "読み上げはヘッドホン使用時のみ。スピーカーでは字幕だけになります。"
+    },
+    "devices": {
+      "microphone": "マイク",
+      "builtIn": "本体のマイク",
+      "wired": "有線ヘッドセットのマイク",
+      "usb": "USB マイク",
+      "noBluetoothMic": "Bluetooth ヘッドホンは翻訳の再生に使い、マイクとしては使いません。",
+      "output": "再生先"
     }
   }
 }

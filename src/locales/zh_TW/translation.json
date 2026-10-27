@@ -1690,7 +1690,9 @@
       "keepAwake": "保持螢幕常亮",
       "textSizeSmall": "小",
       "textSizeMedium": "中",
-      "textSizeLarge": "大"
+      "textSizeLarge": "大",
+      "listen": "聆聽翻譯朗讀",
+      "devices": "聲音裝置"
     },
     "history": {
       "rename": "重新命名",
@@ -1712,11 +1714,27 @@
         "micDenied": "Sokuji 需要使用麥克風",
         "otherSession": "此帳戶有另一個對話正在進行",
         "starting": "正在開始…",
-        "stopped": "已停止"
+        "stopped": "已停止",
+        "spoken": "聆聽中 · 朗讀",
+        "subtitlesOnly": "聆聽中 · 只顯示字幕（未戴耳機）"
       }
     },
     "common": {
       "back": "返回"
+    },
+    "listen": {
+      "toggle": "對方說的話翻譯後朗讀給我",
+      "voice": "我聽到的聲音",
+      "speed": "語速",
+      "headphones": "只在戴耳機時朗讀；外放時只顯示字幕。"
+    },
+    "devices": {
+      "microphone": "麥克風",
+      "builtIn": "手機內建麥克風",
+      "wired": "有線耳機麥克風",
+      "usb": "USB 麥克風",
+      "noBluetoothMic": "藍牙耳機只用來播放譯文，不作為麥克風。",
+      "output": "播放裝置"
     }
   }
 }

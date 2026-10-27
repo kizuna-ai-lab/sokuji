@@ -1690,7 +1690,9 @@
       "keepAwake": "Nie wygaszaj ekranu",
       "textSizeSmall": "Mały",
       "textSizeMedium": "Średni",
-      "textSizeLarge": "Duży"
+      "textSizeLarge": "Duży",
+      "listen": "Słuchaj tłumaczenia",
+      "devices": "Urządzenia audio"
     },
     "history": {
       "rename": "Zmień nazwę",
@@ -1712,11 +1714,27 @@
         "micDenied": "Sokuji potrzebuje mikrofonu",
         "otherSession": "Na tym koncie trwa inna sesja",
         "starting": "Uruchamianie…",
-        "stopped": "Zatrzymano"
+        "stopped": "Zatrzymano",
+        "spoken": "Słucham · na głos",
+        "subtitlesOnly": "Słucham · tylko napisy (bez słuchawek)"
       }
     },
     "common": {
       "back": "Wstecz"
+    },
+    "listen": {
+      "toggle": "Czytaj mi na głos słowa drugiej strony",
+      "voice": "Głos, który słyszę",
+      "speed": "Tempo mowy",
+      "headphones": "Czytane tylko w słuchawkach. Na głośniku dostajesz napisy."
+    },
+    "devices": {
+      "microphone": "Mikrofon",
+      "builtIn": "Mikrofon telefonu",
+      "wired": "Mikrofon zestawu przewodowego",
+      "usb": "Mikrofon USB",
+      "noBluetoothMic": "Słuchawki Bluetooth odtwarzają tłumaczenie, ale nie służą jako mikrofon.",
+      "output": "Urządzenie odtwarzające"
     }
   }
 }

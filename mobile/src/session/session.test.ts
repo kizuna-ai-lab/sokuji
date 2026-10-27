@@ -291,3 +291,62 @@ describe('the checkpoint', () => {
   });
 });
 
+describe('hearing the translation', () => {
+  // The grant for a spoken session carries a par_tts stream beside par_stt.
+  const spokenGrant = { ...grant, streams: [...grant.streams, { role: 'par_tts', apiKey: 'tts-key', clientReferenceId: 'r1' }] };
+  const player = () => ({ played: 0, stopped: 0, play() { this.played += 1; }, stop() { this.stopped += 1; }, queuedSeconds: () => 0 });
+  const listen = { voice: null, speed: 1 };
+
+  it('asks for the spoken shape and says so when headphones are in', async () => {
+    lease.leaseKey.mockResolvedValueOnce(spokenGrant);
+    const events: SessionEvent[] = [];
+    const p = player();
+    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, listen, getRoute: async () => 'bluetooth', onRouteChange: () => () => {}, createPlayer: () => p, onEvent: (e) => events.push(e) });
+    await flush();
+    audio.recorders.at(-1)!.cb!({ buffer });
+    await flush();
+    expect(lease.leaseKey.mock.calls[0][0]).toMatchObject({ participantSpeech: true });
+    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'spoken' });
+    await s.stop();
+  });
+
+  it('asks for subtitles only, and says so, on the loudspeaker', async () => {
+    const events: SessionEvent[] = [];
+    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, listen, getRoute: async () => 'speaker', onRouteChange: () => () => {}, createPlayer: player, onEvent: (e) => events.push(e) });
+    await flush();
+    audio.recorders.at(-1)!.cb!({ buffer });
+    await flush();
+    expect(lease.leaseKey.mock.calls[0][0].participantSpeech).toBeUndefined();
+    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'subtitles_only' });
+    await s.stop();
+  });
+
+  it('falls back to subtitles when the headphones come out mid-session, and speaks again when they return', async () => {
+    lease.leaseKey.mockResolvedValueOnce(spokenGrant);
+    let route = 'bluetooth';
+    const routeCb: { fn: ((r: 'headphones' | 'bluetooth' | 'speaker' | 'other') => void) | null } = { fn: null };
+    const events: SessionEvent[] = [];
+    const p = player();
+    const s = startSession({
+      token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, listen,
+      getRoute: async () => route as never,
+      onRouteChange: (cb) => { routeCb.fn = cb; return () => { routeCb.fn = null; }; },
+      createPlayer: () => p,
+      onEvent: (e) => events.push(e),
+    });
+    await flush();
+    audio.recorders.at(-1)!.cb!({ buffer });
+    await flush();
+    route = 'speaker';
+    routeCb.fn?.('speaker');
+    await flush();
+    expect(p.stopped).toBe(1);
+    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'subtitles_only' });
+    route = 'bluetooth';
+    routeCb.fn?.('bluetooth');
+    await flush();
+    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'spoken' });
+    await s.stop();
+  });
+});
+

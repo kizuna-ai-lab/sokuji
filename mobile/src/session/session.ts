@@ -3,6 +3,11 @@ import { AudioManager, AudioRecorder, RecordingNotificationManager } from 'react
 import { addNetworkStateListener } from 'expo-network';
 import i18next from 'i18next';
 import { SonioxSttStream } from '@shared/providers/soniox/sttStream';
+import { LegSpeech } from '@shared/providers/soniox/speech';
+import { nativeSocket } from '@shared/providers/soniox/socket';
+import { eventsFrom } from '@shared/lib/contract/events';
+import { SAMPLE_RATE as TTS_SAMPLE_RATE } from '@shared/lib/contract/adapter';
+import { SONIOX_PARTICIPANT_DEFAULT_VOICE } from '@shared/lib/soniox/ttsCatalog';
 import type { SonioxRegion } from '@shared/lib/soniox/regions';
 import { floatToInt16 } from './pcm';
 import { leaseKey, sessionEnd, sessionStarted, type Grant } from './lease';
@@ -10,6 +15,9 @@ import { appendLog, openLogFile } from './logFile';
 import { createTicker } from './ticker';
 import type { Transcript } from './transcript';
 import { createInterruptionHandler } from './interruptions';
+import { createSpeechPlayer, type SpeechPlayer } from './speech';
+import { currentRoute as nativeRoute, onRouteChange as nativeRouteChange } from './routeNative';
+import type { Route } from './route';
 
 export type Status = 'leasing' | 'connecting' | 'listening' | 'reconnecting' | 'stopped' | 'error';
 
@@ -27,14 +35,31 @@ const ROTATE_BEFORE_MS = 15000;
 const RETRY_DELAYS_MS = [2000, 5000, 10000];
 const RETRY_EVERY_MS = 15000;
 
+function defaultPlayer(): SpeechPlayer & { close(): Promise<void> } {
+  // Loaded here, not at the top: the node tests never construct a context.
+  const { AudioContext } = require('react-native-audio-api') as { AudioContext: new (o: { sampleRate: number }) => { close(): Promise<void> } & Parameters<typeof createSpeechPlayer>[0]['context'] };
+  const context = new AudioContext({ sampleRate: TTS_SAMPLE_RATE });
+  const player = createSpeechPlayer({ context, sampleRate: TTS_SAMPLE_RATE });
+  return { ...player, close: () => context.close() };
+}
+
 export function startSession(o: {
   token: string;
   region: SonioxRegion;
   source: string;
   target: string;
   /** Where every Soniox message goes (Task 4): the desktop's transcript model. */
-  transcript: Pick<Transcript, 'message' | 'reconnected'>;
+  transcript: Pick<Transcript, 'message' | 'reconnected'> & Partial<Pick<Transcript, 'setSpeech'>>;
   onEvent: (e: SessionEvent) => void;
+  /** R13: the other side's translation read aloud to me; null for subtitles only. */
+  listen?: { voice: string | null; speed: number } | null;
+  /** R14: the microphone to record with; null for the phone's own. */
+  inputDeviceId?: string | null;
+  /** The output route now, and its changes — the native lookups unless a test supplies them. */
+  getRoute?: () => Promise<Route>;
+  onRouteChange?: (cb: (route: Route) => void) => () => void;
+  /** The speech player — the real AudioContext unless a test supplies one. */
+  createPlayer?: () => SpeechPlayer & { close?(): Promise<void> | void };
   /** Every `checkpointMs` of ticker time while running (the history store's save), never on a JS timer. */
   checkpointMs?: number;
   onCheckpoint?: () => void;
@@ -68,6 +93,14 @@ export function startSession(o: {
   // stop() aborts the lease request in flight: a stopped session never waits
   // out a 409 and never wins a lease it will not use.
   const abort = new AbortController();
+  // R13: speech goes through headphones only. Whether the lease asks for the
+  // spoken shape is decided at Start; a route change later only mutes or
+  // unmutes what the grant carries.
+  const headphones = (r: Route) => r === 'headphones' || r === 'bluetooth';
+  let spokenWanted = false;
+  let route: Route = 'speaker';
+  let speech: LegSpeech | null = null;
+  let player: (SpeechPlayer & { close?(): Promise<void> | void }) | null = null;
   // Every wait hangs off this, never off setTimeout: on Android the JS timers stop
   // with the activity in the background, while the audio callback keeps coming
   // (it ticks below). A foreground interval ticks as well; whichever comes first.
@@ -80,6 +113,9 @@ export function startSession(o: {
     if (!closed) o.onEvent(e);
   };
   const status = (s: Status, detail?: string) => emit({ type: 'status', status: s, detail });
+  const spokenDetail = () => (o.listen ? (speech && headphones(route) ? 'spoken' : 'subtitles_only') : undefined);
+  // The ticker as the shared modules' clock: their timers must not be JS timers either.
+  const tickerClock = { now: () => Date.now(), setTimeout: (fn: () => void, ms: number) => ticker.after(ms, fn) };
   const log = (line: string) => {
     const stamped = `${new Date().toISOString()} ${line}`;
     console.log(stamped);
@@ -124,10 +160,34 @@ export function startSession(o: {
     }
     stream?.close();
     stream = null;
+    o.transcript.setSpeech?.(null);
+    speech?.close();
+    speech = null;
+    player?.stop();
+    try {
+      await player?.close?.();
+    } catch (err) {
+      log(`player close failed: ${reason(err)}`);
+    }
+    player = null;
     const g = grant;
     grant = null;
     if (g) await sessionEnd({ token: o.token, leaseId: g.leaseId, ...waits });
     clearInterval(driver);
+  }
+
+  // R13: the headphones came out → the voice stops and the subtitles stay;
+  // back in → the voice resumes at the next sentence. The lease is not touched.
+  function applyRoute(next: Route): void {
+    route = next;
+    if (!o.listen || !running) return;
+    if (!headphones(next)) {
+      player?.stop();
+      speech?.setOn(false);
+    } else {
+      speech?.setOn(true);
+    }
+    if (stream?.isOpen()) status('listening', spokenDetail());
   }
 
   async function fail(detail: string): Promise<void> {
@@ -152,7 +212,7 @@ export function startSession(o: {
         log(`session-end ${ended ? 'ok' : 'gave up'} after ${Date.now() - t0} ms (${Date.now() - droppedAt} ms since drop)`);
         if (!running) return;
       }
-      grant = await leaseKey({ token: o.token, region: o.region, signal: abort.signal, sleep: (ms) => ticker.sleep(ms, abort.signal), timer: ticker });
+      grant = await leaseKey({ token: o.token, region: o.region, signal: abort.signal, sleep: (ms) => ticker.sleep(ms, abort.signal), timer: ticker, ...(spokenWanted ? { participantSpeech: true } : {}) });
       expiresAt = Date.now() + grant.maxSessionDurationSeconds * 1000;
       log(`lease granted: ${(grant.maxSessionDurationSeconds / 60).toFixed(1)} min`);
       if (droppedAt) log(`new lease ${Date.now() - droppedAt} ms after the drop`);
@@ -214,9 +274,33 @@ export function startSession(o: {
         log(`reconnected after ${Date.now() - droppedAt} ms`);
         droppedAt = null;
       }
+      // The grant's par_tts stream, when the spoken shape was asked for: the
+      // desktop's LegSpeech feeds the Soniox TTS stream, whose audio the player plays.
+      const tts = grant.streams.find((x) => x.role === 'par_tts');
+      if (o.listen && tts) {
+        speech?.close();
+        speech = new LegSpeech({
+          region: grant.region,
+          key: tts.apiKey,
+          clientReferenceId: tts.clientReferenceId,
+          voice: o.listen.voice ?? SONIOX_PARTICIPANT_DEFAULT_VOICE,
+          speed: o.listen.speed,
+          events: eventsFrom((e) => {
+            if (e.kind === 'audio' && headphones(route)) player?.play(e.payload.pcm);
+          }),
+          clock: tickerClock,
+          openSocket: nativeSocket,
+        });
+        speech.setOn(headphones(route));
+        o.transcript.setSpeech?.(speech);
+        void sessionStarted({ token: o.token, leaseId: grant.leaseId, role: tts.role, signal: abort.signal, timer: ticker }).catch((err) =>
+          log(`session-started (${tts.role}) failed: ${reason(err)}`),
+        );
+      }
       failures = 0;
       rotating = false;
-      status('listening', `${Math.max(0, Math.round((expiresAt - Date.now()) / 60000))} min left in this grant`);
+      log(`${Math.max(0, Math.round((expiresAt - Date.now()) / 60000))} min left in this grant`);
+      status('listening', spokenDetail());
     } catch (err) {
       const message = reason(err);
       // A socket that opened before the failure (session-started refused, say)
@@ -262,13 +346,34 @@ export function startSession(o: {
     log(`log file ${where}`);
     // Phone microphone only, even with a headset connected (ruling for the first
     // version): a headset mic is far from the speaker in a lecture hall.
-    AudioManager.setAudioSessionOptions({ iosCategory: 'record', iosMode: 'default', iosOptions: [] });
+    // Record only, unless the translation is to be heard: then play and record,
+    // with Bluetooth output over A2DP (never HFP: that would make playback mono
+    // and take the microphone, R14) and no loudspeaker by default.
+    AudioManager.setAudioSessionOptions(
+      o.listen
+        ? { iosCategory: 'playAndRecord', iosMode: 'default', iosOptions: ['allowBluetoothA2DP'] }
+        : { iosCategory: 'record', iosMode: 'default', iosOptions: [] },
+    );
     AudioManager.observeAudioInterruptions(true);
     const permission = await AudioManager.requestRecordingPermissions();
     if (!running) return;
     if (permission !== 'Granted') {
       await fail('microphone_denied');
       return;
+    }
+    if (o.inputDeviceId) {
+      try {
+        await AudioManager.setInputDevice(o.inputDeviceId);
+      } catch (err) {
+        log(`input device ${o.inputDeviceId} not set: ${reason(err)}`);
+      }
+    }
+    if (o.listen) {
+      route = await (o.getRoute ?? nativeRoute)();
+      spokenWanted = headphones(route);
+      player = (o.createPlayer ?? defaultPlayer)();
+      subscriptions.push({ remove: (o.onRouteChange ?? nativeRouteChange)(applyRoute) });
+      if (!running) return;
     }
     const r = new AudioRecorder();
     const ready = r.onAudioReady({ sampleRate: 16000, bufferLength: 1600, channelCount: 1 }, ({ buffer }) => {
@@ -344,7 +449,7 @@ export function startSession(o: {
       log('network back: retrying now');
       void connect();
     });
-    subscriptions = [onInterruption, onRoute, onNetwork].filter((x): x is { remove(): void } => !!x);
+    subscriptions.push(...[onInterruption, onRoute, onNetwork].filter((x): x is { remove(): void } => !!x));
     if (o.onCheckpoint && o.checkpointMs) {
       const every = o.checkpointMs;
       const checkpoint = () => {

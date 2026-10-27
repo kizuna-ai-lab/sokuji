@@ -1690,7 +1690,9 @@
       "keepAwake": "Garder l'écran allumé",
       "textSizeSmall": "Petite",
       "textSizeMedium": "Moyenne",
-      "textSizeLarge": "Grande"
+      "textSizeLarge": "Grande",
+      "listen": "Entendre la traduction",
+      "devices": "Appareils audio"
     },
     "history": {
       "rename": "Renommer",
@@ -1712,11 +1714,27 @@
         "micDenied": "Sokuji a besoin du micro",
         "otherSession": "Une autre session est en cours sur ce compte",
         "starting": "Démarrage…",
-        "stopped": "Arrêté"
+        "stopped": "Arrêté",
+        "spoken": "À l'écoute · lue à voix haute",
+        "subtitlesOnly": "À l'écoute · sous-titres seulement (pas de casque)"
       }
     },
     "common": {
       "back": "Retour"
+    },
+    "listen": {
+      "toggle": "Lire à voix haute ce que dit l'autre personne",
+      "voice": "Voix que j'entends",
+      "speed": "Vitesse de parole",
+      "headphones": "Lue seulement au casque. Sur le haut-parleur, vous avez les sous-titres."
+    },
+    "devices": {
+      "microphone": "Micro",
+      "builtIn": "Micro du téléphone",
+      "wired": "Micro du casque filaire",
+      "usb": "Micro USB",
+      "noBluetoothMic": "Les casques Bluetooth diffusent la traduction mais ne servent pas de micro.",
+      "output": "Appareil de lecture"
     }
   }
 }

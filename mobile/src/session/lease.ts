@@ -93,6 +93,8 @@ export async function leaseKey(o: {
   timeoutMs?: number;
   signal?: AbortSignal;
   timer?: WaitTimer;
+  /** The participant-spoken shape (R13): the grant then carries a par_tts stream beside par_stt. */
+  participantSpeech?: boolean;
 }): Promise<Grant> {
   const doFetch = o.fetch ?? fetch;
   const sleep = o.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
@@ -102,7 +104,7 @@ export async function leaseKey(o: {
     const res = await post(
       doFetch,
       `${BACKEND_URL}/api/soniox/session-key`,
-      { mode: 'participant', textOnly: true, bothSplit: false, region: o.region },
+      { mode: 'participant', textOnly: true, bothSplit: false, region: o.region, ...(o.participantSpeech ? { participantSpeech: true } : {}) },
       o,
       'session-key',
     );

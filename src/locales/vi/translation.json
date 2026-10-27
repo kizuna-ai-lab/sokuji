@@ -1690,7 +1690,9 @@
       "keepAwake": "Giữ màn hình luôn bật",
       "textSizeSmall": "Nhỏ",
       "textSizeMedium": "Vừa",
-      "textSizeLarge": "Lớn"
+      "textSizeLarge": "Lớn",
+      "listen": "Nghe bản dịch",
+      "devices": "Thiết bị âm thanh"
     },
     "history": {
       "rename": "Đổi tên",
@@ -1712,11 +1714,27 @@
         "micDenied": "Sokuji cần micrô",
         "otherSession": "Có một phiên khác đang chạy trên tài khoản này",
         "starting": "Đang bắt đầu…",
-        "stopped": "Đã dừng"
+        "stopped": "Đã dừng",
+        "spoken": "Đang nghe · đọc to",
+        "subtitlesOnly": "Đang nghe · chỉ phụ đề (không có tai nghe)"
       }
     },
     "common": {
       "back": "Quay lại"
+    },
+    "listen": {
+      "toggle": "Đọc to cho tôi lời của người kia",
+      "voice": "Giọng tôi nghe",
+      "speed": "Tốc độ nói",
+      "headphones": "Chỉ đọc qua tai nghe. Qua loa ngoài bạn chỉ có phụ đề."
+    },
+    "devices": {
+      "microphone": "Micrô",
+      "builtIn": "Micrô điện thoại",
+      "wired": "Micrô tai nghe có dây",
+      "usb": "Micrô USB",
+      "noBluetoothMic": "Tai nghe Bluetooth phát bản dịch nhưng không dùng làm micrô.",
+      "output": "Thiết bị phát"
     }
   }
 }

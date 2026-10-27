@@ -1690,7 +1690,9 @@
       "keepAwake": "Pidä näyttö päällä",
       "textSizeSmall": "Pieni",
       "textSizeMedium": "Keskikoko",
-      "textSizeLarge": "Suuri"
+      "textSizeLarge": "Suuri",
+      "listen": "Kuule käännös",
+      "devices": "Äänilaitteet"
     },
     "history": {
       "rename": "Nimeä uudelleen",
@@ -1712,11 +1714,27 @@
         "micDenied": "Sokuji tarvitsee mikrofonin",
         "otherSession": "Tällä tilillä on toinen istunto käynnissä",
         "starting": "Aloitetaan…",
-        "stopped": "Pysäytetty"
+        "stopped": "Pysäytetty",
+        "spoken": "Kuuntelee · ääneen",
+        "subtitlesOnly": "Kuuntelee · vain tekstitys (ei kuulokkeita)"
       }
     },
     "common": {
       "back": "Takaisin"
+    },
+    "listen": {
+      "toggle": "Lue toisen osapuolen sanat minulle ääneen",
+      "voice": "Ääni, jonka kuulen",
+      "speed": "Puhenopeus",
+      "headphones": "Luetaan vain kuulokkeisiin. Kaiuttimesta saat tekstityksen."
+    },
+    "devices": {
+      "microphone": "Mikrofoni",
+      "builtIn": "Puhelimen mikrofoni",
+      "wired": "Langallisen kuulokemikrofonin mikrofoni",
+      "usb": "USB-mikrofoni",
+      "noBluetoothMic": "Bluetooth-kuulokkeet toistavat käännöksen, mutta niitä ei käytetä mikrofonina.",
+      "output": "Toistolaite"
     }
   }
 }

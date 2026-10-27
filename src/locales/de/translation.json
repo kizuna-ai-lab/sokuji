@@ -1690,7 +1690,9 @@
       "keepAwake": "Bildschirm anlassen",
       "textSizeSmall": "Klein",
       "textSizeMedium": "Mittel",
-      "textSizeLarge": "Groß"
+      "textSizeLarge": "Groß",
+      "listen": "Übersetzung hören",
+      "devices": "Audiogeräte"
     },
     "history": {
       "rename": "Umbenennen",
@@ -1712,11 +1714,27 @@
         "micDenied": "Sokuji braucht das Mikrofon",
         "otherSession": "Auf diesem Konto läuft eine andere Sitzung",
         "starting": "Startet…",
-        "stopped": "Gestoppt"
+        "stopped": "Gestoppt",
+        "spoken": "Hört zu · gesprochen",
+        "subtitlesOnly": "Hört zu · nur Untertitel (keine Kopfhörer)"
       }
     },
     "common": {
       "back": "Zurück"
+    },
+    "listen": {
+      "toggle": "Die Worte der anderen Seite mir vorlesen",
+      "voice": "Stimme, die ich höre",
+      "speed": "Sprechtempo",
+      "headphones": "Nur über Kopfhörer gesprochen. Über den Lautsprecher gibt es Untertitel."
+    },
+    "devices": {
+      "microphone": "Mikrofon",
+      "builtIn": "Telefonmikrofon",
+      "wired": "Mikrofon des Kabel-Headsets",
+      "usb": "USB-Mikrofon",
+      "noBluetoothMic": "Bluetooth-Kopfhörer spielen die Übersetzung ab, dienen aber nicht als Mikrofon.",
+      "output": "Wiedergabegerät"
     }
   }
 }

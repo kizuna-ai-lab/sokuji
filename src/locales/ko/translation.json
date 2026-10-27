@@ -1690,7 +1690,9 @@
       "keepAwake": "화면 켜 두기",
       "textSizeSmall": "작게",
       "textSizeMedium": "보통",
-      "textSizeLarge": "크게"
+      "textSizeLarge": "크게",
+      "listen": "번역 읽어 주기",
+      "devices": "오디오 기기"
     },
     "history": {
       "rename": "이름 바꾸기",
@@ -1712,11 +1714,27 @@
         "micDenied": "Sokuji에 마이크가 필요합니다",
         "otherSession": "이 계정에서 다른 세션이 진행 중입니다",
         "starting": "시작하는 중…",
-        "stopped": "중지됨"
+        "stopped": "중지됨",
+        "spoken": "듣는 중 · 읽어 주기",
+        "subtitlesOnly": "듣는 중 · 자막만 (헤드폰 없음)"
       }
     },
     "common": {
       "back": "뒤로"
+    },
+    "listen": {
+      "toggle": "상대방의 말을 번역해서 읽어 줍니다",
+      "voice": "내가 듣는 목소리",
+      "speed": "말하기 속도",
+      "headphones": "헤드폰을 꼈을 때만 읽어 줍니다. 스피커에서는 자막만 표시됩니다."
+    },
+    "devices": {
+      "microphone": "마이크",
+      "builtIn": "휴대전화 마이크",
+      "wired": "유선 헤드셋 마이크",
+      "usb": "USB 마이크",
+      "noBluetoothMic": "블루투스 헤드셋은 번역 재생에만 쓰고 마이크로는 쓰지 않습니다.",
+      "output": "재생 기기"
     }
   }
 }

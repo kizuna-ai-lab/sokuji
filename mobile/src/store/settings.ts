@@ -12,6 +12,13 @@ export interface Settings {
   textSize: 'small' | 'medium' | 'large';
   appearance: 'system' | 'light' | 'dark';
   keepAwake: boolean;
+  /** R13: the other side's translation read aloud to me, through headphones. */
+  listen: boolean;
+  /** A Soniox voice id, or null for the participant default. */
+  voice: string | null;
+  speed: number;
+  /** R14: the microphone's device id, or null for the phone's own. */
+  inputDeviceId: string | null;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -22,6 +29,10 @@ export const DEFAULT_SETTINGS: Settings = {
   textSize: 'medium',
   appearance: 'system',
   keepAwake: true,
+  listen: false,
+  voice: null,
+  speed: 1,
+  inputDeviceId: null,
 };
 
 export interface SettingsState {
@@ -36,7 +47,11 @@ function known(stored: unknown): Partial<Settings> {
   if (!stored || typeof stored !== 'object') return out;
   const s = stored as Record<string, unknown>;
   for (const key of Object.keys(DEFAULT_SETTINGS) as Array<keyof Settings>) {
-    if (key in s && typeof s[key] === typeof DEFAULT_SETTINGS[key]) (out as Record<string, unknown>)[key] = s[key];
+    if (!(key in s)) continue;
+    const value = s[key];
+    const fallback = DEFAULT_SETTINGS[key];
+    const fits = fallback === null ? value === null || typeof value === 'string' : typeof value === typeof fallback;
+    if (fits) (out as Record<string, unknown>)[key] = value;
   }
   return out;
 }

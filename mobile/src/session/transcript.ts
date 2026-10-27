@@ -11,8 +11,16 @@ import type { AdapterEvent } from '@shared/lib/contract/events';
 // Soniox tokens → Utterances (the <end>/<fin> handling, speaker labels and the
 // fin-grace timer are its own) → Conversation (the leg's segments) →
 // the projector's entries, which the subtitle list and the exporters render.
+/** Where the translation's final text goes to be spoken (the desktop's LegSpeech); none while nothing speaks. */
+export interface SpeechSink {
+  speak(ref: number, text: string, span: [number, number], language: string): void;
+  endUtterance(): void;
+}
+
 export interface Transcript {
   message(tokens: readonly SonioxToken[]): void;
+  /** Attach (or detach, with null) what speaks the translation. */
+  setSpeech(sink: SpeechSink | null): void;
   /** A new socket numbers speakers from 1 again: open utterances are abandoned. */
   reconnected(): void;
   entries(): readonly Entry[];
@@ -32,11 +40,12 @@ export function createTranscript(o: { source: string; target: string; sessionId:
     clock,
     retention: { keepPcm: false, maxPcmBytes: 0 },
   });
+  let speech: SpeechSink | null = null;
   const utterances = new Utterances({
     sink: {
       segment: (_leg, event: SegmentEvent) => conversation.apply(event as AdapterEvent),
-      speak: () => {},
-      endSpeech: () => {},
+      speak: (_leg, ref, text, span, language) => speech?.speak(ref, text, [span[0], span[1]], language),
+      endSpeech: () => speech?.endUtterance(),
     },
     clock,
     legFor: () => 'participant',
@@ -72,6 +81,7 @@ export function createTranscript(o: { source: string; target: string; sessionId:
 
   return {
     message: (tokens) => settle(() => utterances.message(tokens)),
+    setSpeech: (sink) => { speech = sink; },
     reconnected: () => settle(() => utterances.abandon()),
     entries: () => {
       const leg = conversation.snapshot();

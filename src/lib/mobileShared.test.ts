@@ -29,6 +29,8 @@ export const MOBILE_SHARED_ROOTS = [
   'src/lib/projection/project.ts',
   'src/lib/projection/types.ts',
   'src/lib/contract/events.ts',
+  'src/providers/soniox/ttsStream.ts',
+  'src/providers/soniox/speech.ts',
 ];
 
 describe('mobile shared code', () => {

@@ -1690,7 +1690,9 @@
       "keepAwake": "Scherm aan houden",
       "textSizeSmall": "Klein",
       "textSizeMedium": "Normaal",
-      "textSizeLarge": "Groot"
+      "textSizeLarge": "Groot",
+      "listen": "Vertaling horen",
+      "devices": "Audioapparaten"
     },
     "history": {
       "rename": "Naam wijzigen",
@@ -1712,11 +1714,27 @@
         "micDenied": "Sokuji heeft de microfoon nodig",
         "otherSession": "Er loopt een andere sessie op dit account",
         "starting": "Starten…",
-        "stopped": "Gestopt"
+        "stopped": "Gestopt",
+        "spoken": "Luistert · voorgelezen",
+        "subtitlesOnly": "Luistert · alleen ondertitels (geen koptelefoon)"
       }
     },
     "common": {
       "back": "Terug"
+    },
+    "listen": {
+      "toggle": "Lees me voor wat de ander zegt",
+      "voice": "Stem die ik hoor",
+      "speed": "Spreeksnelheid",
+      "headphones": "Alleen via een koptelefoon. Via de luidspreker krijg je ondertitels."
+    },
+    "devices": {
+      "microphone": "Microfoon",
+      "builtIn": "Telefoonmicrofoon",
+      "wired": "Microfoon van bedrade headset",
+      "usb": "USB-microfoon",
+      "noBluetoothMic": "Bluetooth-koptelefoons spelen de vertaling af maar dienen niet als microfoon.",
+      "output": "Afspeelapparaat"
     }
   }
 }

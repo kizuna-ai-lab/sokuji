@@ -11,13 +11,15 @@ import Subtitles from './Subtitles';
 import Account from './Account';
 import Settings from './Settings';
 import History from './History';
+import Listen from './Listen';
+import Devices from './Devices';
 import { createHistoryStore, type StoredSession } from '../history/store';
 import { documentFs } from '../history/fs';
 import { capture, platform, sessionEndProperties, sessionStartProperties } from '../analytics';
 
 const KEEP_AWAKE_TAG = 'sokuji-session';
 
-type Screen = 'main' | 'account' | 'settings' | 'history';
+type Screen = 'main' | 'account' | 'settings' | 'history' | 'listen' | 'devices';
 
 // The history store writes the running session every minute (ticker time) and at its end.
 const CHECKPOINT_MS = 60000;
@@ -101,6 +103,8 @@ export default function Main({ token, email, onSignOut, onAccountDeleted }: { to
       source,
       target,
       transcript: tr,
+      listen: settings.listen ? { voice: settings.voice, speed: settings.speed } : null,
+      inputDeviceId: settings.inputDeviceId,
       checkpointMs: CHECKPOINT_MS,
       onCheckpoint: () => {
         const snap = snapshot('listening', null);
@@ -135,7 +139,9 @@ export default function Main({ token, email, onSignOut, onAccountDeleted }: { to
   if (screen === 'account') {
     return <Account token={token} email={email} onBack={() => setScreen('main')} onSignOut={onSignOut} onDeleted={onAccountDeleted} />;
   }
-  if (screen === 'settings') return <Settings onBack={() => setScreen('main')} locked={active} />;
+  if (screen === 'settings') return <Settings onBack={() => setScreen('main')} locked={active} onOpen={setScreen} />;
+  if (screen === 'listen') return <Listen onBack={() => setScreen('settings')} />;
+  if (screen === 'devices') return <Devices onBack={() => setScreen('settings')} />;
   if (screen === 'history') return <History store={history} onBack={() => setScreen('main')} />;
 
   const open = (next: Screen) => {
@@ -180,7 +186,11 @@ function statusLine(t: (key: string) => string, status: Status | 'idle', detail:
     if (detail === 'microphone_denied') return t('mobile.main.status.micDenied');
     return detail;
   }
-  if (status === 'listening') return t('mobile.main.status.listening');
+  if (status === 'listening') {
+    if (detail === 'spoken') return t('mobile.main.status.spoken');
+    if (detail === 'subtitles_only') return t('mobile.main.status.subtitlesOnly');
+    return t('mobile.main.status.listening');
+  }
   if (status === 'reconnecting') return detail === 'other_session' ? t('mobile.main.status.otherSession') : t('mobile.main.status.reconnecting');
   if (status === 'stopped') return t('mobile.main.status.stopped');
   return t('mobile.main.status.starting');

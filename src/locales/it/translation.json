@@ -1690,7 +1690,9 @@
       "keepAwake": "Mantieni lo schermo acceso",
       "textSizeSmall": "Piccolo",
       "textSizeMedium": "Medio",
-      "textSizeLarge": "Grande"
+      "textSizeLarge": "Grande",
+      "listen": "Ascolta la traduzione",
+      "devices": "Dispositivi audio"
     },
     "history": {
       "rename": "Rinomina",
@@ -1712,11 +1714,27 @@
         "micDenied": "Sokuji ha bisogno del microfono",
         "otherSession": "Un'altra sessione è in corso su questo account",
         "starting": "Avvio…",
-        "stopped": "Fermato"
+        "stopped": "Fermato",
+        "spoken": "In ascolto · ad alta voce",
+        "subtitlesOnly": "In ascolto · solo sottotitoli (senza cuffie)"
       }
     },
     "common": {
       "back": "Indietro"
+    },
+    "listen": {
+      "toggle": "Leggimi ad alta voce ciò che dice l'altra persona",
+      "voice": "Voce che sento",
+      "speed": "Velocità del parlato",
+      "headphones": "Letta solo con le cuffie. Con l'altoparlante hai i sottotitoli."
+    },
+    "devices": {
+      "microphone": "Microfono",
+      "builtIn": "Microfono del telefono",
+      "wired": "Microfono delle cuffie con filo",
+      "usb": "Microfono USB",
+      "noBluetoothMic": "Le cuffie Bluetooth riproducono la traduzione ma non fanno da microfono.",
+      "output": "Dispositivo di riproduzione"
     }
   }
 }
