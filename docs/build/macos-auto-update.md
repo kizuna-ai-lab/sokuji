@@ -1124,8 +1124,9 @@ zhuo (48ST7Q3ACJ)**, its pkg with **Developer ID Installer: jiang zhuo
 - **Secrets** in `kizuna-ai-lab/sokuji`, as secrets of the `macos-signing`
   environment. Its deployment policy admits only `main` and `v*` tags, and the
   build job uses it only for macOS builds of a push to one of those. A pull
-  request's build runs the branch's own code, so it gets no certificate and
-  builds the Mac app unsigned:
+  request's build runs the branch's own code, so it gets no certificate: its
+  Mac app is only ad-hoc signed (by `scripts/electron-builder-fuses.js`), which
+  leaves auto-update off:
 
   | Secret | Contents |
   |---|---|

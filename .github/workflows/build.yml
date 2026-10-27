@@ -184,8 +184,9 @@ jobs:
     # `macos-signing` environment, whose deployment policy admits only `main`
     # and `v*` tags. A pull request's build runs the branch's own code, so it
     # must not hold them: pull requests, other branches and forks build the Mac
-    # app unsigned, and signing is first checked on the push to `main`, before
-    # any tag (docs/build/macos-auto-update.md §7.1c).
+    # app with only an ad-hoc signature (scripts/electron-builder-fuses.js), and
+    # Developer ID signing is first checked on the push to `main`, before any
+    # tag (docs/build/macos-auto-update.md §7.1c).
     environment: ${{ startsWith(matrix.os, 'macos') && github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && 'macos-signing' || '' }}
 
     # `secrets` cannot be referenced from a step-level `if`; hoisting it here
@@ -688,7 +689,7 @@ jobs:
           echo "OK: the pkg is signed with Developer ID Installer, notarized and stapled."
 
       # A signing change can only be judged on a real Mac (Gatekeeper, TCC,
-      # the keychain, Squirrel's requirement check). Pull requests build unsigned,
+      # the keychain, Squirrel's requirement check). Pull requests build ad-hoc,
       # so keep the signed app and installer of each push to `main` around long
       # enough to try them before a tag is cut.
       - name: Upload the signed macOS app for review (main)
