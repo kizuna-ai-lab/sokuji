@@ -1,5 +1,5 @@
 import type { SonioxRegion } from '@shared/lib/soniox/regions';
-import { BACKEND_URL } from './backend';
+import { BACKEND_URL } from '../backend';
 
 export interface Grant {
   leaseId: string;

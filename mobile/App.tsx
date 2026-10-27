@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, ScrollView, StyleSheet, Text } from 'react-native';
-import { sessionToken, signOut } from './src/auth';
-import SignIn from './src/SignIn';
-import Main from './src/Main';
+import { sessionToken, signOut } from './src/auth/client';
+import SignIn from './src/auth/SignIn';
+import Main from './src/screens/Main';
 
 export default function App() {
   const [token, setToken] = useState<string | null | undefined>(undefined);
