@@ -34,6 +34,9 @@ export function startSession(o: {
   /** Where every Soniox message goes (Task 4): the desktop's transcript model. */
   transcript: Pick<Transcript, 'message' | 'reconnected'>;
   onEvent: (e: SessionEvent) => void;
+  /** Every `checkpointMs` of ticker time while running (the history store's save), never on a JS timer. */
+  checkpointMs?: number;
+  onCheckpoint?: () => void;
 }): { stop(): Promise<void> } {
   let running = true;
   // Set once the session has said its last word ('stopped' or 'error'):
@@ -56,6 +59,7 @@ export function startSession(o: {
   let expiresAt = Infinity;
   let rotating = false;
   let cancelRetry: (() => void) | null = null;
+  let cancelCheckpoint: (() => void) | null = null;
   // A close that lands while connect() is still running reconnects once it returns.
   let reconnectAfter = false;
   // The OS subscriptions a running session holds; released in teardown.
@@ -94,6 +98,8 @@ export function startSession(o: {
     reconnectAfter = false;
     cancelRetry?.();
     cancelRetry = null;
+    cancelCheckpoint?.();
+    cancelCheckpoint = null;
     for (const sub of subscriptions) sub.remove();
     subscriptions = [];
     abort.abort();
@@ -338,6 +344,16 @@ export function startSession(o: {
       void connect();
     });
     subscriptions = [onInterruption, onRoute, onNetwork].filter((x): x is { remove(): void } => !!x);
+    if (o.onCheckpoint && o.checkpointMs) {
+      const every = o.checkpointMs;
+      const checkpoint = () => {
+        cancelCheckpoint = null;
+        if (!running) return;
+        o.onCheckpoint?.();
+        cancelCheckpoint = ticker.after(every, checkpoint);
+      };
+      cancelCheckpoint = ticker.after(every, checkpoint);
+    }
     status('leasing');
   }
 

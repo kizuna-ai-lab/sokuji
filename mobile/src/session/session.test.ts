@@ -270,3 +270,24 @@ describe('another device holds the account', () => {
   });
 });
 
+describe('the checkpoint', () => {
+  // The history store writes the session every 60 s, measured by the session's
+  // ticker: with the screen off on Android only the audio callback moves time.
+  it('fires every 60 s of audio-callback time, with no JS timer', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(4_000_000);
+    const checkpoints: number[] = [];
+    const events: SessionEvent[] = [];
+    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, checkpointMs: 60000, onCheckpoint: () => checkpoints.push(Date.now()), onEvent: (e) => events.push(e) });
+    await flush();
+    const rec = audio.recorders.at(-1)!;
+    for (let i = 0; i <= 1300; i++) {
+      vi.setSystemTime(4_000_000 + i * 100);
+      rec.cb!({ buffer });
+      if (i % 50 === 0) await flush();
+    }
+    expect(checkpoints.map((t) => t - 4_000_000)).toEqual([60000, 120000]);
+    await s.stop();
+  });
+});
+

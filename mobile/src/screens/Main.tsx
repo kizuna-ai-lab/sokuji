@@ -10,10 +10,17 @@ import { useSettings } from '../store/useSettings';
 import Subtitles from './Subtitles';
 import Account from './Account';
 import Settings from './Settings';
+import History from './History';
+import { createHistoryStore, type StoredSession } from '../history/store';
+import { documentFs } from '../history/fs';
 
 const KEEP_AWAKE_TAG = 'sokuji-session';
 
-type Screen = 'main' | 'account' | 'settings';
+type Screen = 'main' | 'account' | 'settings' | 'history';
+
+// The history store writes the running session every minute (ticker time) and at its end.
+const CHECKPOINT_MS = 60000;
+const history = createHistoryStore(documentFs);
 
 export default function Main({ token, email, onSignOut, onAccountDeleted }: { token: string; email: string; onSignOut: () => void; onAccountDeleted: () => void }) {
   const { t } = useTranslation();
@@ -27,12 +34,22 @@ export default function Main({ token, email, onSignOut, onAccountDeleted }: { to
   const session = useRef<{ stop(): Promise<void> } | null>(null);
   const feed = useRef<{ stop(): void } | null>(null);
   const transcript = useRef<Transcript | null>(null);
+  const stored = useRef<StoredSession | null>(null);
 
   const active = status !== 'idle' && status !== 'stopped' && status !== 'error';
 
   // The session has released everything it held (microphone, notification,
   // lease); the screen releases its part and draws the transcript's last state.
+  function snapshot(lastStatus: string, endedAt: number | null): StoredSession | null {
+    const base = stored.current;
+    const tr = transcript.current;
+    if (!base || !tr) return null;
+    return { ...base, leg: tr.leg(), lastStatus, endedAt };
+  }
+
   function ended() {
+    const last = snapshot(status === 'error' ? detail || 'error' : 'stopped', Date.now());
+    if (last && last.leg.segments.length > 0) void history.save(last);
     session.current = null;
     feed.current?.stop();
     feed.current = null;
@@ -64,6 +81,8 @@ export default function Main({ token, email, onSignOut, onAccountDeleted }: { to
     });
     f.subscribe(setEntries);
     feed.current = f;
+    const startedAt = Date.now();
+    stored.current = { id: `s-${startedAt}`, startedAt, endedAt: null, source, target, leg: tr.leg(), lastStatus: 'leasing' };
     setEntries([]);
     setStatus('leasing');
     setDetail('');
@@ -73,6 +92,11 @@ export default function Main({ token, email, onSignOut, onAccountDeleted }: { to
       source,
       target,
       transcript: tr,
+      checkpointMs: CHECKPOINT_MS,
+      onCheckpoint: () => {
+        const snap = snapshot('listening', null);
+        if (snap && snap.leg.segments.length > 0) void history.save(snap);
+      },
       onEvent: (e) => {
         if (e.type !== 'status') return;
         setStatus(e.status);
@@ -97,6 +121,7 @@ export default function Main({ token, email, onSignOut, onAccountDeleted }: { to
     return <Account token={token} email={email} onBack={() => setScreen('main')} onSignOut={onSignOut} onDeleted={onAccountDeleted} />;
   }
   if (screen === 'settings') return <Settings onBack={() => setScreen('main')} locked={active} />;
+  if (screen === 'history') return <History store={history} onBack={() => setScreen('main')} />;
 
   const open = (next: Screen) => {
     setMenu(false);
@@ -120,6 +145,7 @@ export default function Main({ token, email, onSignOut, onAccountDeleted }: { to
         <Pressable style={styles.backdrop} onPress={() => setMenu(false)}>
           <View style={styles.sheet}>
             <Text style={styles.sheetAccount}>{email}</Text>
+            <Text style={styles.sheetRow} onPress={() => open('history')}>{t('mobile.menu.history')}  ›</Text>
             <Text style={styles.sheetRow} onPress={() => open('account')}>{t('mobile.menu.account')}  ›</Text>
             <Text style={styles.sheetRow} onPress={() => open('settings')}>{t('mobile.menu.settings')}  ›</Text>
           </View>
