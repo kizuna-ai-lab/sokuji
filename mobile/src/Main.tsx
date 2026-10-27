@@ -9,7 +9,7 @@ import { startSession, type Status } from './session';
 const REGIONS: SonioxRegion[] = ['us', 'eu', 'jp'];
 const KEEP_AWAKE_TAG = 'sokuji-session';
 // Shown on screen so a tester can tell which code the phone is running.
-const BUILD_LABEL = 'proto r5: no UI updates in background';
+const BUILD_LABEL = 'proto r6: teardown on error, nothing after stop';
 // Only the tail is rendered: re-rendering an hour of text on every token starved the JS thread.
 const SHOWN_LINES = 20;
 const SHOWN_LOG_LINES = 200;
@@ -92,12 +92,16 @@ export default function Main({ token, onSignOut }: { token: string; onSignOut: (
   const active = status !== 'idle' && status !== 'stopped' && status !== 'error';
 
   async function start() {
+    // A second tap while the first is still starting would open a second
+    // recorder and lease loop that nothing could stop: the handle is set
+    // before the first await, and Start is Stop from the same render on.
+    if (session.current) return;
     heardAll.current = emptyTranscript();
     translationAll.current = emptyTranscript();
     setHeard(emptyLane());
     setTranslation(emptyLane());
+    setStatus('leasing');
     setDetail('');
-    await activateKeepAwakeAsync(KEEP_AWAKE_TAG);
     session.current = startSession({
       token,
       region,
@@ -107,6 +111,12 @@ export default function Main({ token, onSignOut }: { token: string; onSignOut: (
         if (e.type === 'status') {
           setStatus(e.status);
           setDetail(e.detail ?? '');
+          // The session has released everything it held (microphone, notification,
+          // lease); the screen releases its part. 'error' is final: Start is offered again.
+          if (e.status === 'error' || e.status === 'stopped') {
+            session.current = null;
+            deactivateKeepAwake(KEEP_AWAKE_TAG);
+          }
         } else if (e.type === 'log') {
           setLog((l) => [...l.slice(-(SHOWN_LOG_LINES - 1)), e.line]);
         } else {
@@ -118,12 +128,13 @@ export default function Main({ token, onSignOut }: { token: string; onSignOut: (
         }
       },
     });
+    await activateKeepAwakeAsync(KEEP_AWAKE_TAG);
+    // Ended before the keep-awake was granted: give it back.
+    if (!session.current) deactivateKeepAwake(KEEP_AWAKE_TAG);
   }
 
   async function stop() {
     await session.current?.stop();
-    session.current = null;
-    deactivateKeepAwake(KEEP_AWAKE_TAG);
   }
 
   return (

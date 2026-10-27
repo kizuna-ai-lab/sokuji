@@ -31,6 +31,10 @@ export function startSession(o: {
   onEvent: (e: SessionEvent) => void;
 }): { stop(): Promise<void> } {
   let running = true;
+  // Set once the session has said its last word ('stopped' or 'error'):
+  // nothing that settles later reaches the screen.
+  let closed = false;
+  let tearingDown = false;
   let connecting = false;
   let stream: SonioxSttStream | null = null;
   let grant: Grant | null = null;
@@ -49,18 +53,71 @@ export function startSession(o: {
   let retryTimer: ReturnType<typeof setTimeout> | null = null;
   // A close that lands while connect() is still running reconnects once it returns.
   let reconnectAfter = false;
+  // stop() aborts the lease request in flight: a stopped session never waits
+  // out a 409 and never wins a lease it will not use.
+  const abort = new AbortController();
 
-  const status = (s: Status, detail?: string) => o.onEvent({ type: 'status', status: s, detail });
+  const emit = (e: SessionEvent) => {
+    if (!closed) o.onEvent(e);
+  };
+  const status = (s: Status, detail?: string) => emit({ type: 'status', status: s, detail });
   const log = (line: string) => {
     const stamped = `${new Date().toISOString()} ${line}`;
     console.log(stamped);
     appendLog(stamped);
-    o.onEvent({ type: 'log', line: stamped });
+    emit({ type: 'log', line: stamped });
   };
+  const reason = (err: unknown) => (err instanceof Error ? err.message : String(err));
+
+  // Everything the session holds, released in one place: the retry, the lease
+  // request, the socket, the microphone, the Android notification, the lease.
+  // It runs before 'stopped' and before a terminal 'error' alike, so an error
+  // never leaves the microphone on behind a screen with no Stop button.
+  async function teardown(): Promise<void> {
+    if (tearingDown) return;
+    tearingDown = true;
+    running = false;
+    reconnectAfter = false;
+    if (retryTimer) {
+      clearTimeout(retryTimer);
+      retryTimer = null;
+    }
+    abort.abort();
+    stream?.end();
+    const r = recorder;
+    recorder = null;
+    if (r) {
+      r.clearOnAudioReady();
+      try {
+        await r.stop();
+      } catch (err) {
+        log(`recorder stop failed: ${reason(err)}`);
+      }
+    }
+    if (Platform.OS === 'android') {
+      try {
+        await RecordingNotificationManager.hide();
+      } catch (err) {
+        log(`notification hide failed: ${reason(err)}`);
+      }
+    }
+    stream?.close();
+    stream = null;
+    const g = grant;
+    grant = null;
+    if (g) await sessionEnd({ token: o.token, leaseId: g.leaseId });
+  }
+
+  async function fail(detail: string): Promise<void> {
+    await teardown();
+    status('error', detail);
+    closed = true;
+  }
 
   async function connect(): Promise<void> {
     if (!running || connecting) return;
     connecting = true;
+    let s: SonioxSttStream | null = null;
     try {
       status(droppedAt ? 'reconnecting' : 'leasing');
       if (droppedAt && grant) {
@@ -73,18 +130,21 @@ export function startSession(o: {
         log(`session-end ${ended ? 'ok' : 'gave up'} after ${Date.now() - t0} ms (${Date.now() - droppedAt} ms since drop)`);
         if (!running) return;
       }
-      grant = await leaseKey({ token: o.token, region: o.region });
+      grant = await leaseKey({ token: o.token, region: o.region, signal: abort.signal });
       expiresAt = Date.now() + grant.maxSessionDurationSeconds * 1000;
       log(`lease granted: ${(grant.maxSessionDurationSeconds / 60).toFixed(1)} min`);
       if (droppedAt) log(`new lease ${Date.now() - droppedAt} ms after the drop`);
       if (!running) {
-        // Stopped while this lease was being granted: stop() saw no lease to end.
-        await sessionEnd({ token: o.token, leaseId: grant.leaseId });
+        // Stopped while this lease was being granted: teardown saw no lease to end.
+        const g = grant;
+        grant = null;
+        await sessionEnd({ token: o.token, leaseId: g.leaseId });
         return;
       }
       status('connecting');
-      const s = new SonioxSttStream();
+      s = new SonioxSttStream();
       stream = s;
+      const me = s;
       s.setHandlers({
         onMessage: (m) => {
           if (m.tokens?.length) {
@@ -94,14 +154,14 @@ export function startSession(o: {
               awaitingFirstTokens = false;
               gapFrom = null;
             }
-            o.onEvent({ type: 'tokens', tokens: m.tokens });
+            emit({ type: 'tokens', tokens: m.tokens });
           }
         },
         onError: (code, message) => log(`error ${code} ${message}`),
-        onClose: ({ code, reason }) => {
+        onClose: ({ code, reason: why }) => {
           const since = ((Date.now() - lastTokenAt) / 1000).toFixed(1);
-          log(`close ${code ?? '-'} ${reason ?? ''} — ${since}s since last token`);
-          if (stream !== s || !running) return;
+          log(`close ${code ?? '-'} ${why ?? ''} — ${since}s since last token`);
+          if (stream !== me || !running) return;
           stream = null;
           droppedAt = Date.now();
           gapFrom = droppedAt;
@@ -123,7 +183,8 @@ export function startSession(o: {
       });
       // stop() may have ended this lease while the socket was opening.
       if (!running) return;
-      await sessionStarted({ token: o.token, leaseId: grant.leaseId, role: st.role });
+      await sessionStarted({ token: o.token, leaseId: grant.leaseId, role: st.role, signal: abort.signal });
+      if (!running) return;
       if (droppedAt) {
         log(`reconnected after ${Date.now() - droppedAt} ms`);
         droppedAt = null;
@@ -132,10 +193,20 @@ export function startSession(o: {
       rotating = false;
       status('listening', `${Math.max(0, Math.round((expiresAt - Date.now()) / 60000))} min left in this grant`);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      if (TERMINAL.has(message) || !running) {
+      const message = reason(err);
+      // A socket that opened before the failure (session-started refused, say)
+      // would keep taking audio and outlive its replacement: it goes with the attempt.
+      if (s && stream === s) {
+        stream = null;
+        s.close();
+      }
+      if (!running) {
+        log(`connect ended after stop: ${message}`);
+        return;
+      }
+      if (TERMINAL.has(message)) {
         log(`connect failed: ${message}`);
-        status('error', message);
+        await fail(message);
         return;
       }
       const delay = RETRY_DELAYS_MS[failures] ?? RETRY_EVERY_MS;
@@ -143,6 +214,9 @@ export function startSession(o: {
       log(`connect failed (#${failures}): ${message} — retrying in ${delay / 1000} s`);
       status('reconnecting', message);
       if (droppedAt === null) droppedAt = Date.now();
+      // A close that landed during this attempt is answered by this retry, not
+      // by a second connect() after it.
+      reconnectAfter = false;
       retryTimer = setTimeout(() => {
         retryTimer = null;
         void connect();
@@ -164,13 +238,14 @@ export function startSession(o: {
     AudioManager.setAudioSessionOptions({ iosCategory: 'record', iosMode: 'default', iosOptions: [] });
     AudioManager.observeAudioInterruptions(true);
     const permission = await AudioManager.requestRecordingPermissions();
+    if (!running) return;
     if (permission !== 'Granted') {
-      running = false;
-      status('error', 'microphone_denied');
+      await fail('microphone_denied');
       return;
     }
     const r = new AudioRecorder();
     const ready = r.onAudioReady({ sampleRate: 16000, bufferLength: 1600, channelCount: 1 }, ({ buffer }) => {
+      if (!running) return;
       if (!sampleRate) {
         // The config's sampleRate is what the recorder actually delivers, never assumed.
         sampleRate = buffer.sampleRate;
@@ -179,7 +254,7 @@ export function startSession(o: {
         return;
       }
       // Checked here, not on a timer: iOS slows timers in the background, audio keeps coming.
-      if (running && !rotating && stream?.isOpen() && Date.now() >= expiresAt - ROTATE_BEFORE_MS) {
+      if (!rotating && stream?.isOpen() && Date.now() >= expiresAt - ROTATE_BEFORE_MS) {
         rotating = true;
         log('rotation: grant ends in 15 s');
         const s = stream;
@@ -193,8 +268,7 @@ export function startSession(o: {
       if (stream?.isOpen()) stream.sendAudio(floatToInt16(buffer.getChannelData(0)));
     });
     if (ready.status === 'error') {
-      running = false;
-      status('error', ready.message);
+      await fail(ready.message);
       return;
     }
     if (Platform.OS === 'android') {
@@ -202,34 +276,38 @@ export function startSession(o: {
       // The foreground service carries the microphone type only while this is up;
       // Android 14 stops background capture without it.
       await RecordingNotificationManager.show({ title: 'Sokuji', contentText: 'Listening', showStopAction: true });
+      if (!running) {
+        // Stopped while the notification was going up: teardown hid nothing.
+        await RecordingNotificationManager.hide();
+        return;
+      }
     }
     const started = await r.start();
     if (started.status === 'error') {
-      running = false;
-      status('error', started.message);
+      await fail(started.message);
+      return;
+    }
+    if (!running) {
+      // Stopped while the recorder was starting: teardown saw no recorder.
+      r.clearOnAudioReady();
+      await r.stop();
       return;
     }
     recorder = r;
     status('leasing');
   }
 
-  void begin();
+  begin().catch((err) => {
+    log(`start failed: ${reason(err)}`);
+    void fail(reason(err));
+  });
 
   return {
     async stop() {
-      running = false;
-      if (retryTimer) clearTimeout(retryTimer);
-      stream?.end();
-      if (recorder) {
-        recorder.clearOnAudioReady();
-        await recorder.stop();
-        recorder = null;
-      }
-      if (Platform.OS === 'android') await RecordingNotificationManager.hide();
-      stream?.close();
-      stream = null;
-      if (grant) await sessionEnd({ token: o.token, leaseId: grant.leaseId });
+      if (closed) return;
+      await teardown();
       status('stopped');
+      closed = true;
     },
   };
 }
