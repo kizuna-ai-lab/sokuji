@@ -589,7 +589,22 @@ jobs:
           # open needs no network and no xattr. spctl reports "security disabled"
           # rather than a source when assessments are off on the runner; the
           # stapled ticket is then the proof.
-          xcrun stapler validate "$APP"
+          # `stapler validate` also looks the ticket up with Apple's CloudKit
+          # service, and that lookup can drop on a runner ("The network
+          # connection was lost", exit 68) for a correctly stapled file, so it
+          # is retried before the build fails.
+          stapled() {
+            local ATTEMPT
+            for ATTEMPT in 1 2 3; do
+              xcrun stapler validate "$1" && return 0
+              [ "$ATTEMPT" -lt 3 ] || break
+              echo "::warning::stapler validate $(basename "$1") failed (attempt $ATTEMPT); retrying in 15 s."
+              sleep 15
+            done
+            echo "FAIL: $(basename "$1") has no valid stapled notarization ticket." >&2
+            return 1
+          }
+          stapled "$APP"
           assess() {
             local OUT
             OUT=$(spctl --assess --type "$1" -vv "$2" 2>&1) || { echo "FAIL: Gatekeeper rejects $2:" >&2; echo "$OUT" >&2; return 1; }
@@ -654,7 +669,7 @@ jobs:
             echo "FAIL: an installed v0.46.4 would refuse this update." >&2
             exit 1
           fi
-          xcrun stapler validate "$UNZIPPED/Sokuji.app"
+          stapled "$UNZIPPED/Sokuji.app"
           echo "OK: the zip's app is stapled, and installed v0.46.4 accepts it as an update."
 
           # The pkg is what a new user downloads and opens.
@@ -667,7 +682,7 @@ jobs:
             echo "FAIL: the pkg is not signed with Developer ID Installer: jiang zhuo (48ST7Q3ACJ)." >&2
             exit 1
           fi
-          xcrun stapler validate "$PKG"
+          stapled "$PKG"
           assess install "$PKG"
           echo "OK: the pkg is signed with Developer ID Installer, notarized and stapled."
 

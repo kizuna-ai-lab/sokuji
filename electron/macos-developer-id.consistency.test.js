@@ -101,8 +101,20 @@ describe('the macOS signing pipeline (build.yml)', () => {
 
   it('fails a build whose app or pkg is not notarized and stapled', () => {
     const verify = step('Verify the macOS update artifacts (signature + notarization + zip + manifest)');
-    expect(verify).toContain('xcrun stapler validate "$APP"');
-    expect(verify).toContain('xcrun stapler validate "$PKG"');
+    for (const target of ['"$APP"', '"$UNZIPPED/Sokuji.app"', '"$PKG"']) {
+      expect(verify, target).toContain(`stapled ${target}`);
+    }
     expect(verify).toContain(`Developer ID Installer: jiang zhuo (${TEAM_ID})`);
+  });
+
+  it('retries stapler validate, whose online ticket lookup can drop on a runner', () => {
+    // `stapler validate` also asks Apple's CloudKit service for the ticket; on
+    // 2026-10-27 that lookup lost its connection on one runner (exit 68) for an
+    // app that was notarized and stapled.
+    const verify = step('Verify the macOS update artifacts (signature + notarization + zip + manifest)');
+    const helper = verify.slice(verify.indexOf('stapled() {'), verify.indexOf('\n          }\n', verify.indexOf('stapled() {')));
+    expect(helper).toContain('xcrun stapler validate "$1"');
+    expect(helper).toMatch(/for ATTEMPT in 1 2 3; do/);
+    expect(verify).not.toMatch(/^\s+xcrun stapler validate "\$(APP|PKG|UNZIPPED)/m);
   });
 });
