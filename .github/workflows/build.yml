@@ -2,11 +2,14 @@ name: Build and Release
 
 on:
   push:
-    branches: [main, master]
+    # `mobile` is the long-lived integration branch of the mobile app: it is
+    # built and tested like main so it never drifts unverified. Releases are
+    # tag-gated below, so a push to it never publishes anything.
+    branches: [main, master, mobile]
     tags:
       - 'v*'
   pull_request:
-    branches: [main, master]
+    branches: [main, master, mobile]
 
 permissions:
   contents: write
