@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { requestPasswordReset, resetPassword, sendVerificationCode, signIn, signUp, verifyEmail } from './client';
 
 type Mode = 'signin' | 'register' | 'verify' | 'forgot' | 'reset';
@@ -9,6 +10,7 @@ type Mode = 'signin' | 'register' | 'verify' | 'forgot' | 'reset';
 const RESEND_WAIT_S = 60;
 
 export default function SignIn({ onSignedIn }: { onSignedIn: (email: string) => void }) {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -53,7 +55,7 @@ export default function SignIn({ onSignedIn }: { onSignedIn: (email: string) => 
   const emailField = (
     <TextInput
       style={styles.input}
-      placeholder="Email"
+      placeholder={t('mobile.signIn.email')}
       autoCapitalize="none"
       autoComplete="email"
       keyboardType="email-address"
@@ -64,7 +66,7 @@ export default function SignIn({ onSignedIn }: { onSignedIn: (email: string) => 
   const passwordField = (newPassword = false) => (
     <TextInput
       style={styles.input}
-      placeholder={newPassword ? 'New password (at least 8 characters)' : 'Password'}
+      placeholder={newPassword ? `${t('mobile.signIn.newPassword')} (${t('mobile.signIn.passwordHint')})` : t('mobile.signIn.password')}
       secureTextEntry
       autoComplete={newPassword ? 'new-password' : 'password'}
       value={password}
@@ -74,7 +76,7 @@ export default function SignIn({ onSignedIn }: { onSignedIn: (email: string) => 
   const codeField = (
     <TextInput
       style={styles.input}
-      placeholder="Code from the email"
+      placeholder={t('mobile.signIn.code')}
       keyboardType="number-pad"
       textContentType="oneTimeCode"
       autoComplete="one-time-code"
@@ -85,7 +87,7 @@ export default function SignIn({ onSignedIn }: { onSignedIn: (email: string) => 
   );
   const resend = (
     <Button
-      title={resendIn > 0 ? `Send again (${resendIn} s)` : 'Send again'}
+      title={resendIn > 0 ? t('mobile.signIn.sendAgainIn', { seconds: resendIn }) : t('mobile.signIn.sendAgain')}
       disabled={busy || resendIn > 0}
       onPress={() => run(sendCode)}
     />
@@ -95,8 +97,8 @@ export default function SignIn({ onSignedIn }: { onSignedIn: (email: string) => 
     <View style={styles.box}>
       {(mode === 'signin' || mode === 'register') && (
         <View style={styles.tabs}>
-          <Text style={[styles.tab, mode === 'signin' && styles.tabOn]} onPress={() => go('signin')}>Sign in</Text>
-          <Text style={[styles.tab, mode === 'register' && styles.tabOn]} onPress={() => go('register')}>Create account</Text>
+          <Text style={[styles.tab, mode === 'signin' && styles.tabOn]} onPress={() => go('signin')}>{t('mobile.signIn.title')}</Text>
+          <Text style={[styles.tab, mode === 'register' && styles.tabOn]} onPress={() => go('register')}>{t('mobile.signIn.register')}</Text>
         </View>
       )}
 
@@ -105,11 +107,11 @@ export default function SignIn({ onSignedIn }: { onSignedIn: (email: string) => 
           {emailField}
           {passwordField()}
           <Button
-            title="Sign in"
+            title={t('mobile.signIn.submit')}
             disabled={busy || !address || !password}
             onPress={() => run(() => signIn(address, password), () => onSignedIn(address))}
           />
-          <Text style={styles.link} onPress={() => go('forgot')}>Forgot your password?</Text>
+          <Text style={styles.link} onPress={() => go('forgot')}>{t('mobile.signIn.forgot')}</Text>
         </>
       )}
 
@@ -118,59 +120,59 @@ export default function SignIn({ onSignedIn }: { onSignedIn: (email: string) => 
           {emailField}
           {passwordField(true)}
           <Button
-            title="Create account"
+            title={t('mobile.signIn.register')}
             disabled={busy || !address || password.length < 8}
             onPress={() => run(async () => { await signUp(address, password); await sendCode(); }, () => go('verify'))}
           />
-          <Text style={styles.note}>You will get a 6-digit code by email; entering it verifies the account, and the trial credit follows.</Text>
+          <Text style={styles.note}>{t('mobile.signIn.registerNote')}</Text>
         </>
       )}
 
       {mode === 'verify' && (
         <>
-          <Text style={styles.title}>Verify your email</Text>
-          <Text style={styles.note}>We sent a 6-digit code to {address}</Text>
+          <Text style={styles.title}>{t('mobile.signIn.verifyTitle')}</Text>
+          <Text style={styles.note}>{t('mobile.signIn.codeSent', { email: address })}</Text>
           {codeField}
           <Button
-            title="Verify"
+            title={t('mobile.signIn.verify')}
             disabled={busy || otp.length !== 6}
             onPress={() => run(() => verifyEmail(address, otp), () => onSignedIn(address))}
           />
           {resend}
-          <Text style={styles.link} onPress={() => onSignedIn(address)}>Later — I am signed in, verify from the account screen</Text>
+          <Text style={styles.link} onPress={() => onSignedIn(address)}>{t('mobile.signIn.later')}</Text>
         </>
       )}
 
       {mode === 'forgot' && (
         <>
-          <Text style={styles.title}>Reset your password</Text>
+          <Text style={styles.title}>{t('mobile.signIn.resetTitle')}</Text>
           {emailField}
           <Button
-            title="Send code"
+            title={t('mobile.signIn.sendCode')}
             disabled={busy || !address}
             onPress={() => run(async () => { await requestPasswordReset(address); setResendIn(RESEND_WAIT_S); }, () => go('reset'))}
           />
-          <Text style={styles.link} onPress={() => go('signin')}>Back to sign in</Text>
+          <Text style={styles.link} onPress={() => go('signin')}>{t('mobile.signIn.back')}</Text>
         </>
       )}
 
       {mode === 'reset' && (
         <>
-          <Text style={styles.title}>Reset your password</Text>
-          <Text style={styles.note}>We sent a 6-digit code to {address}</Text>
+          <Text style={styles.title}>{t('mobile.signIn.resetTitle')}</Text>
+          <Text style={styles.note}>{t('mobile.signIn.codeSent', { email: address })}</Text>
           {codeField}
           {passwordField(true)}
           <Button
-            title="Set new password"
+            title={t('mobile.signIn.setNewPassword')}
             disabled={busy || otp.length !== 6 || password.length < 8}
             onPress={() => run(async () => { await resetPassword(address, otp, password); await signIn(address, password); }, () => onSignedIn(address))}
           />
           <Button
-            title={resendIn > 0 ? `Send again (${resendIn} s)` : 'Send again'}
+            title={resendIn > 0 ? t('mobile.signIn.sendAgainIn', { seconds: resendIn }) : t('mobile.signIn.sendAgain')}
             disabled={busy || resendIn > 0}
             onPress={() => run(async () => { await requestPasswordReset(address); setResendIn(RESEND_WAIT_S); })}
           />
-          <Text style={styles.link} onPress={() => go('signin')}>Back to sign in</Text>
+          <Text style={styles.link} onPress={() => go('signin')}>{t('mobile.signIn.back')}</Text>
         </>
       )}
 

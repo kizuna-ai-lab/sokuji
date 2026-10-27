@@ -1623,5 +1623,86 @@
       "lostHint": "来源已不存在；在你重新选择之前，会保留最后一张画面。",
       "lostExtension": "会议标签页的画面已不可用，翻译将仅凭音频继续。"
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "登录",
+      "register": "创建账号",
+      "email": "邮箱",
+      "password": "密码",
+      "submit": "登录",
+      "forgot": "忘记密码？",
+      "codeSent": "验证码已发到 {{email}}",
+      "code": "邮件里的验证码",
+      "verify": "验证",
+      "sendAgain": "重新发送",
+      "sendAgainIn": "重新发送（{{seconds}} 秒）",
+      "newPassword": "新密码",
+      "passwordHint": "至少 8 位",
+      "wrongPassword": "邮箱或密码不对",
+      "wrongCode": "验证码不对或已过期",
+      "verifyTitle": "验证邮箱",
+      "resetTitle": "重设密码",
+      "sendCode": "发送验证码",
+      "setNewPassword": "设置新密码",
+      "back": "返回登录",
+      "later": "稍后再说：可在账户页验证",
+      "registerNote": "你会收到一封 6 位验证码邮件；输入后账号即验证完成，试用额度随即到账。"
+    },
+    "account": {
+      "verify": "验证邮箱即可领取试用额度",
+      "usage30d": "最近 30 天用量",
+      "hoursLeft": "约可用 {{hours}} 小时",
+      "frozen": "此账户已冻结",
+      "expiring": "余额中的 {{amount}} 将于 {{date}} 过期",
+      "usage": "用量明细",
+      "deleteAccount": "删除账户",
+      "deleteConfirm": "删除这个账户和它的余额？此操作无法撤销。",
+      "balance": "余额",
+      "topUp": "充值请在 Sokuji 网站完成。",
+      "signOut": "退出登录"
+    },
+    "usage": {
+      "session": "会话",
+      "textOnly": "仅文字",
+      "loadMore": "显示更多"
+    },
+    "menu": {
+      "history": "历史",
+      "account": "账户",
+      "settings": "设置"
+    },
+    "settings": {
+      "appearance": "外观",
+      "appearanceSystem": "跟随系统",
+      "appearanceLight": "浅色",
+      "appearanceDark": "深色",
+      "region": "Soniox 区域",
+      "textSize": "字幕字号",
+      "keepAwake": "保持屏幕常亮"
+    },
+    "history": {
+      "rename": "改名",
+      "title": "会话",
+      "export": "导出",
+      "delete": "删除"
+    },
+    "main": {
+      "hear": "我听的语言",
+      "read": "我读的语言",
+      "start": "开始",
+      "stop": "停止",
+      "bilingual": "同时显示两种语言",
+      "status": {
+        "listening": "收听中",
+        "reconnecting": "正在重连…",
+        "signInRequired": "请重新登录",
+        "balanceExhausted": "余额已用完",
+        "micDenied": "Sokuji 需要使用麦克风",
+        "otherSession": "此账户有另一个会话正在进行",
+        "starting": "正在开始…",
+        "stopped": "已停止"
+      }
+    }
   }
 }

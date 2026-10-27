@@ -1623,5 +1623,86 @@
       "lostHint": "Kaynak artık yok; siz yeniden seçene kadar son görüntü tutulur.",
       "lostExtension": "Toplantı sekmesinin görüntüsü artık kullanılamıyor; çeviri yalnızca sesle devam ediyor."
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "Giriş yap",
+      "register": "Hesap oluştur",
+      "email": "E-posta",
+      "password": "Parola",
+      "submit": "Giriş yap",
+      "forgot": "Parolanızı mı unuttunuz?",
+      "codeSent": "{{email}} adresine 6 haneli bir kod gönderdik",
+      "code": "E-postadaki kod",
+      "verify": "Doğrula",
+      "sendAgain": "Yeniden gönder",
+      "sendAgainIn": "Yeniden gönder ({{seconds}} sn)",
+      "newPassword": "Yeni parola",
+      "passwordHint": "en az 8 karakter",
+      "wrongPassword": "E-posta veya parola yanlış",
+      "wrongCode": "Bu kod yanlış veya süresi dolmuş",
+      "verifyTitle": "E-postanızı doğrulayın",
+      "resetTitle": "Parolayı sıfırla",
+      "sendCode": "Kod gönder",
+      "setNewPassword": "Yeni parolayı ayarla",
+      "back": "Girişe dön",
+      "later": "Sonra: hesap ekranından doğrulayın",
+      "registerNote": "E-postayla 6 haneli bir kod alacaksınız; girince hesap doğrulanır ve deneme kredisi eklenir."
+    },
+    "account": {
+      "verify": "Deneme kredisini almak için e-postanızı doğrulayın",
+      "usage30d": "Son 30 günde harcanan",
+      "hoursLeft": "Yaklaşık {{hours}} sa kaldı",
+      "frozen": "Bu hesap donduruldu",
+      "expiring": "Bakiyenizin {{amount}} kadarı {{date}} tarihinde sona eriyor",
+      "usage": "Kullanım",
+      "deleteAccount": "Hesabı sil",
+      "deleteConfirm": "Bu hesap ve bakiyesi silinsin mi? Bu geri alınamaz.",
+      "balance": "Bakiye",
+      "topUp": "Yükleme Sokuji web sitesinden yapılır.",
+      "signOut": "Çıkış yap"
+    },
+    "usage": {
+      "session": "Oturum",
+      "textOnly": "Yalnızca metin",
+      "loadMore": "Daha fazla göster"
+    },
+    "menu": {
+      "history": "Geçmiş",
+      "account": "Hesap",
+      "settings": "Ayarlar"
+    },
+    "settings": {
+      "appearance": "Görünüm",
+      "appearanceSystem": "Sistem",
+      "appearanceLight": "Açık",
+      "appearanceDark": "Koyu",
+      "region": "Soniox bölgesi",
+      "textSize": "Altyazı boyutu",
+      "keepAwake": "Ekranı açık tut"
+    },
+    "history": {
+      "rename": "Yeniden adlandır",
+      "title": "Oturumlar",
+      "export": "Dışa aktar",
+      "delete": "Sil"
+    },
+    "main": {
+      "hear": "Duyduğum dil",
+      "read": "Okuduğum dil",
+      "start": "Başlat",
+      "stop": "Durdur",
+      "bilingual": "İki dili de göster",
+      "status": {
+        "listening": "Dinliyor",
+        "reconnecting": "Yeniden bağlanıyor…",
+        "signInRequired": "Lütfen yeniden giriş yapın",
+        "balanceExhausted": "Bakiyeniz tükendi",
+        "micDenied": "Sokuji'nin mikrofona ihtiyacı var",
+        "otherSession": "Bu hesapta başka bir oturum sürüyor",
+        "starting": "Başlatılıyor…",
+        "stopped": "Durduruldu"
+      }
+    }
   }
 }

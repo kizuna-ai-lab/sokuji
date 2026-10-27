@@ -1623,5 +1623,86 @@
       "lostHint": "De bron is weg; de laatste afbeelding blijft bewaard tot je opnieuw kiest.",
       "lostExtension": "Het beeld van het vergadertabblad is niet meer beschikbaar; de vertaling gaat verder met alleen audio."
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "Inloggen",
+      "register": "Account maken",
+      "email": "E-mail",
+      "password": "Wachtwoord",
+      "submit": "Inloggen",
+      "forgot": "Wachtwoord vergeten?",
+      "codeSent": "We hebben een 6-cijferige code naar {{email}} gestuurd",
+      "code": "Code uit de e-mail",
+      "verify": "Verifiëren",
+      "sendAgain": "Opnieuw sturen",
+      "sendAgainIn": "Opnieuw sturen ({{seconds}} s)",
+      "newPassword": "Nieuw wachtwoord",
+      "passwordHint": "minstens 8 tekens",
+      "wrongPassword": "E-mail of wachtwoord onjuist",
+      "wrongCode": "Die code is onjuist of verlopen",
+      "verifyTitle": "Verifieer je e-mail",
+      "resetTitle": "Wachtwoord opnieuw instellen",
+      "sendCode": "Code sturen",
+      "setNewPassword": "Nieuw wachtwoord instellen",
+      "back": "Terug naar inloggen",
+      "later": "Later: verifieer vanuit het accountscherm",
+      "registerNote": "Je krijgt een 6-cijferige code per e-mail; na invoer is het account geverifieerd en volgt het proeftegoed."
+    },
+    "account": {
+      "verify": "Verifieer je e-mail om het proeftegoed te ontvangen",
+      "usage30d": "Uitgegeven in de laatste 30 dagen",
+      "hoursLeft": "Nog ongeveer {{hours}} u",
+      "frozen": "Dit account is bevroren",
+      "expiring": "{{amount}} van je saldo verloopt op {{date}}",
+      "usage": "Verbruik",
+      "deleteAccount": "Account verwijderen",
+      "deleteConfirm": "Dit account en het saldo verwijderen? Dit kan niet ongedaan worden gemaakt.",
+      "balance": "Saldo",
+      "topUp": "Opwaarderen doe je op de website van Sokuji.",
+      "signOut": "Uitloggen"
+    },
+    "usage": {
+      "session": "Sessie",
+      "textOnly": "Alleen tekst",
+      "loadMore": "Meer tonen"
+    },
+    "menu": {
+      "history": "Geschiedenis",
+      "account": "Account",
+      "settings": "Instellingen"
+    },
+    "settings": {
+      "appearance": "Weergave",
+      "appearanceSystem": "Systeem",
+      "appearanceLight": "Licht",
+      "appearanceDark": "Donker",
+      "region": "Soniox-regio",
+      "textSize": "Grootte van ondertitels",
+      "keepAwake": "Scherm aan houden"
+    },
+    "history": {
+      "rename": "Naam wijzigen",
+      "title": "Sessies",
+      "export": "Exporteren",
+      "delete": "Verwijderen"
+    },
+    "main": {
+      "hear": "Ik hoor",
+      "read": "Ik lees",
+      "start": "Start",
+      "stop": "Stop",
+      "bilingual": "Beide talen tonen",
+      "status": {
+        "listening": "Luistert",
+        "reconnecting": "Opnieuw verbinden…",
+        "signInRequired": "Log opnieuw in",
+        "balanceExhausted": "Je saldo is op",
+        "micDenied": "Sokuji heeft de microfoon nodig",
+        "otherSession": "Er loopt een andere sessie op dit account",
+        "starting": "Starten…",
+        "stopped": "Gestopt"
+      }
+    }
   }
 }

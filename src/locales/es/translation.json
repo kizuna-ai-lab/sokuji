@@ -1623,5 +1623,86 @@
       "lostHint": "La fuente ya no está; se conserva la última imagen hasta que elijas de nuevo.",
       "lostExtension": "La imagen de la pestaña de la reunión ya no está disponible; la traducción continúa solo con el audio."
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "Iniciar sesión",
+      "register": "Crear cuenta",
+      "email": "Correo",
+      "password": "Contraseña",
+      "submit": "Iniciar sesión",
+      "forgot": "¿Olvidaste la contraseña?",
+      "codeSent": "Enviamos un código de 6 dígitos a {{email}}",
+      "code": "Código del correo",
+      "verify": "Verificar",
+      "sendAgain": "Enviar de nuevo",
+      "sendAgainIn": "Enviar de nuevo ({{seconds}} s)",
+      "newPassword": "Nueva contraseña",
+      "passwordHint": "al menos 8 caracteres",
+      "wrongPassword": "Correo o contraseña incorrectos",
+      "wrongCode": "Ese código es incorrecto o ha caducado",
+      "verifyTitle": "Verifica tu correo",
+      "resetTitle": "Restablecer la contraseña",
+      "sendCode": "Enviar código",
+      "setNewPassword": "Establecer nueva contraseña",
+      "back": "Volver al inicio de sesión",
+      "later": "Más tarde: verifica desde la pantalla de cuenta",
+      "registerNote": "Recibirás un código de 6 dígitos por correo; al introducirlo la cuenta queda verificada y se añade el crédito de prueba."
+    },
+    "account": {
+      "verify": "Verifica tu correo para recibir el crédito de prueba",
+      "usage30d": "Gastado en los últimos 30 días",
+      "hoursLeft": "Quedan unas {{hours}} h",
+      "frozen": "Esta cuenta está congelada",
+      "expiring": "{{amount}} de tu saldo caduca el {{date}}",
+      "usage": "Consumo",
+      "deleteAccount": "Eliminar cuenta",
+      "deleteConfirm": "¿Eliminar esta cuenta y su saldo? No se puede deshacer.",
+      "balance": "Saldo",
+      "topUp": "Las recargas se hacen en el sitio web de Sokuji.",
+      "signOut": "Cerrar sesión"
+    },
+    "usage": {
+      "session": "Sesión",
+      "textOnly": "Solo texto",
+      "loadMore": "Mostrar más"
+    },
+    "menu": {
+      "history": "Historial",
+      "account": "Cuenta",
+      "settings": "Ajustes"
+    },
+    "settings": {
+      "appearance": "Apariencia",
+      "appearanceSystem": "Sistema",
+      "appearanceLight": "Claro",
+      "appearanceDark": "Oscuro",
+      "region": "Región de Soniox",
+      "textSize": "Tamaño de los subtítulos",
+      "keepAwake": "Mantener la pantalla encendida"
+    },
+    "history": {
+      "rename": "Renombrar",
+      "title": "Sesiones",
+      "export": "Exportar",
+      "delete": "Eliminar"
+    },
+    "main": {
+      "hear": "Escucho",
+      "read": "Leo",
+      "start": "Iniciar",
+      "stop": "Detener",
+      "bilingual": "Mostrar ambos idiomas",
+      "status": {
+        "listening": "Escuchando",
+        "reconnecting": "Reconectando…",
+        "signInRequired": "Vuelve a iniciar sesión",
+        "balanceExhausted": "Se ha agotado tu saldo",
+        "micDenied": "Sokuji necesita el micrófono",
+        "otherSession": "Hay otra sesión en curso en esta cuenta",
+        "starting": "Iniciando…",
+        "stopped": "Detenido"
+      }
+    }
   }
 }

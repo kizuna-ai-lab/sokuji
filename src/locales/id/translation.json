@@ -1623,5 +1623,86 @@
       "lostHint": "Sumbernya sudah tidak ada; gambar terakhir disimpan sampai Anda memilih lagi.",
       "lostExtension": "Gambar tab rapat tidak lagi tersedia; terjemahan berlanjut hanya dengan audio."
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "Masuk",
+      "register": "Buat akun",
+      "email": "Email",
+      "password": "Kata sandi",
+      "submit": "Masuk",
+      "forgot": "Lupa kata sandi?",
+      "codeSent": "Kami mengirim kode 6 digit ke {{email}}",
+      "code": "Kode dari email",
+      "verify": "Verifikasi",
+      "sendAgain": "Kirim lagi",
+      "sendAgainIn": "Kirim lagi ({{seconds}} dtk)",
+      "newPassword": "Kata sandi baru",
+      "passwordHint": "minimal 8 karakter",
+      "wrongPassword": "Email atau kata sandi salah",
+      "wrongCode": "Kode salah atau sudah kedaluwarsa",
+      "verifyTitle": "Verifikasi email Anda",
+      "resetTitle": "Atur ulang kata sandi",
+      "sendCode": "Kirim kode",
+      "setNewPassword": "Atur kata sandi baru",
+      "back": "Kembali ke halaman masuk",
+      "later": "Nanti: verifikasi dari layar akun",
+      "registerNote": "Anda akan menerima kode 6 digit lewat email; setelah dimasukkan, akun terverifikasi dan kredit percobaan ditambahkan."
+    },
+    "account": {
+      "verify": "Verifikasi email Anda untuk menerima kredit percobaan",
+      "usage30d": "Terpakai dalam 30 hari terakhir",
+      "hoursLeft": "Sekitar {{hours}} jam tersisa",
+      "frozen": "Akun ini dibekukan",
+      "expiring": "{{amount}} dari saldo Anda kedaluwarsa pada {{date}}",
+      "usage": "Pemakaian",
+      "deleteAccount": "Hapus akun",
+      "deleteConfirm": "Hapus akun ini beserta saldonya? Tindakan ini tidak bisa dibatalkan.",
+      "balance": "Saldo",
+      "topUp": "Isi ulang dilakukan di situs web Sokuji.",
+      "signOut": "Keluar"
+    },
+    "usage": {
+      "session": "Sesi",
+      "textOnly": "Hanya teks",
+      "loadMore": "Tampilkan lebih banyak"
+    },
+    "menu": {
+      "history": "Riwayat",
+      "account": "Akun",
+      "settings": "Pengaturan"
+    },
+    "settings": {
+      "appearance": "Tampilan",
+      "appearanceSystem": "Ikuti sistem",
+      "appearanceLight": "Terang",
+      "appearanceDark": "Gelap",
+      "region": "Wilayah Soniox",
+      "textSize": "Ukuran subtitel",
+      "keepAwake": "Biarkan layar menyala"
+    },
+    "history": {
+      "rename": "Ganti nama",
+      "title": "Sesi",
+      "export": "Ekspor",
+      "delete": "Hapus"
+    },
+    "main": {
+      "hear": "Saya mendengar",
+      "read": "Saya membaca",
+      "start": "Mulai",
+      "stop": "Berhenti",
+      "bilingual": "Tampilkan kedua bahasa",
+      "status": {
+        "listening": "Mendengarkan",
+        "reconnecting": "Menyambung ulang…",
+        "signInRequired": "Silakan masuk lagi",
+        "balanceExhausted": "Saldo Anda habis",
+        "micDenied": "Sokuji memerlukan mikrofon",
+        "otherSession": "Ada sesi lain yang berjalan di akun ini",
+        "starting": "Memulai…",
+        "stopped": "Berhenti"
+      }
+    }
   }
 }

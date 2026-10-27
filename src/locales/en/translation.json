@@ -1623,5 +1623,86 @@
       "lostHint": "The source is gone; the last picture is kept until you choose again.",
       "lostExtension": "The meeting tab's picture is no longer available; translation continues on audio alone."
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "Sign in",
+      "register": "Create account",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Sign in",
+      "forgot": "Forgot your password?",
+      "codeSent": "We sent a 6-digit code to {{email}}",
+      "code": "Code from the email",
+      "verify": "Verify",
+      "sendAgain": "Send again",
+      "sendAgainIn": "Send again ({{seconds}} s)",
+      "newPassword": "New password",
+      "passwordHint": "at least 8 characters",
+      "wrongPassword": "Wrong email or password",
+      "wrongCode": "That code is wrong or has expired",
+      "verifyTitle": "Verify your email",
+      "resetTitle": "Reset your password",
+      "sendCode": "Send code",
+      "setNewPassword": "Set new password",
+      "back": "Back to sign in",
+      "later": "Later: verify from the account screen",
+      "registerNote": "You will get a 6-digit code by email; entering it verifies the account, and the trial credit follows."
+    },
+    "account": {
+      "verify": "Verify your email to receive the trial credit",
+      "usage30d": "Spent in the last 30 days",
+      "hoursLeft": "About {{hours}} h left",
+      "frozen": "This account is frozen",
+      "expiring": "{{amount}} of your balance expires on {{date}}",
+      "usage": "Usage",
+      "deleteAccount": "Delete account",
+      "deleteConfirm": "Delete this account and its balance? This cannot be undone.",
+      "balance": "Balance",
+      "topUp": "Top-ups are made on the Sokuji website.",
+      "signOut": "Sign out"
+    },
+    "usage": {
+      "session": "Session",
+      "textOnly": "Text only",
+      "loadMore": "Show more"
+    },
+    "menu": {
+      "history": "History",
+      "account": "Account",
+      "settings": "Settings"
+    },
+    "settings": {
+      "appearance": "Appearance",
+      "appearanceSystem": "System",
+      "appearanceLight": "Light",
+      "appearanceDark": "Dark",
+      "region": "Soniox region",
+      "textSize": "Subtitle size",
+      "keepAwake": "Keep the screen on"
+    },
+    "history": {
+      "rename": "Rename",
+      "title": "Sessions",
+      "export": "Export",
+      "delete": "Delete"
+    },
+    "main": {
+      "hear": "I hear",
+      "read": "I read",
+      "start": "Start",
+      "stop": "Stop",
+      "bilingual": "Show both languages",
+      "status": {
+        "listening": "Listening",
+        "reconnecting": "Reconnecting…",
+        "signInRequired": "Please sign in again",
+        "balanceExhausted": "Your balance is used up",
+        "micDenied": "Sokuji needs the microphone",
+        "otherSession": "Another session is running on this account",
+        "starting": "Starting…",
+        "stopped": "Stopped"
+      }
+    }
   }
 }

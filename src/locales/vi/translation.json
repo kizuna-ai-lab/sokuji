@@ -1623,5 +1623,86 @@
       "lostHint": "Nguồn không còn nữa; hình ảnh cuối cùng được giữ cho đến khi bạn chọn lại.",
       "lostExtension": "Hình ảnh của tab cuộc họp không còn khả dụng; bản dịch tiếp tục chỉ bằng âm thanh."
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "Đăng nhập",
+      "register": "Tạo tài khoản",
+      "email": "Email",
+      "password": "Mật khẩu",
+      "submit": "Đăng nhập",
+      "forgot": "Quên mật khẩu?",
+      "codeSent": "Chúng tôi đã gửi mã 6 chữ số tới {{email}}",
+      "code": "Mã trong email",
+      "verify": "Xác minh",
+      "sendAgain": "Gửi lại",
+      "sendAgainIn": "Gửi lại ({{seconds}} giây)",
+      "newPassword": "Mật khẩu mới",
+      "passwordHint": "ít nhất 8 ký tự",
+      "wrongPassword": "Email hoặc mật khẩu không đúng",
+      "wrongCode": "Mã không đúng hoặc đã hết hạn",
+      "verifyTitle": "Xác minh email của bạn",
+      "resetTitle": "Đặt lại mật khẩu",
+      "sendCode": "Gửi mã",
+      "setNewPassword": "Đặt mật khẩu mới",
+      "back": "Quay lại đăng nhập",
+      "later": "Để sau: xác minh từ màn hình tài khoản",
+      "registerNote": "Bạn sẽ nhận được mã 6 chữ số qua email; nhập mã là tài khoản được xác minh và tín dụng dùng thử được cộng vào."
+    },
+    "account": {
+      "verify": "Xác minh email để nhận tín dụng dùng thử",
+      "usage30d": "Đã dùng trong 30 ngày qua",
+      "hoursLeft": "Còn khoảng {{hours}} giờ",
+      "frozen": "Tài khoản này đã bị đóng băng",
+      "expiring": "{{amount}} trong số dư của bạn hết hạn vào {{date}}",
+      "usage": "Mức dùng",
+      "deleteAccount": "Xóa tài khoản",
+      "deleteConfirm": "Xóa tài khoản này và số dư của nó? Không thể hoàn tác.",
+      "balance": "Số dư",
+      "topUp": "Nạp tiền được thực hiện trên trang web Sokuji.",
+      "signOut": "Đăng xuất"
+    },
+    "usage": {
+      "session": "Phiên",
+      "textOnly": "Chỉ văn bản",
+      "loadMore": "Hiện thêm"
+    },
+    "menu": {
+      "history": "Lịch sử",
+      "account": "Tài khoản",
+      "settings": "Cài đặt"
+    },
+    "settings": {
+      "appearance": "Giao diện",
+      "appearanceSystem": "Theo hệ thống",
+      "appearanceLight": "Sáng",
+      "appearanceDark": "Tối",
+      "region": "Khu vực Soniox",
+      "textSize": "Cỡ chữ phụ đề",
+      "keepAwake": "Giữ màn hình luôn bật"
+    },
+    "history": {
+      "rename": "Đổi tên",
+      "title": "Các phiên",
+      "export": "Xuất",
+      "delete": "Xóa"
+    },
+    "main": {
+      "hear": "Tôi nghe",
+      "read": "Tôi đọc",
+      "start": "Bắt đầu",
+      "stop": "Dừng",
+      "bilingual": "Hiện cả hai ngôn ngữ",
+      "status": {
+        "listening": "Đang nghe",
+        "reconnecting": "Đang kết nối lại…",
+        "signInRequired": "Vui lòng đăng nhập lại",
+        "balanceExhausted": "Số dư của bạn đã hết",
+        "micDenied": "Sokuji cần micrô",
+        "otherSession": "Có một phiên khác đang chạy trên tài khoản này",
+        "starting": "Đang bắt đầu…",
+        "stopped": "Đã dừng"
+      }
+    }
   }
 }

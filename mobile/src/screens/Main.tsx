@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppState, Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
+import { useTranslation } from 'react-i18next';
 import type { SonioxToken } from '@shared/providers/soniox/sttStream';
 import type { SonioxRegion } from '@shared/lib/soniox/regions';
 import { startSession, type Status } from '../session/session';
@@ -48,6 +49,7 @@ function tail(t: Transcript): Lane {
 }
 
 export default function Main({ token, onSignOut }: { token: string; onSignOut: () => void }) {
+  const { t } = useTranslation();
   const [source, setSource] = useState('en');
   const [target, setTarget] = useState('zh');
   const [region, setRegion] = useState<SonioxRegion>('us');
@@ -138,20 +140,17 @@ export default function Main({ token, onSignOut }: { token: string; onSignOut: (
           </Text>
         ))}
       </View>
-      <Button title={active ? 'Stop' : 'Start'} onPress={active ? stop : start} />
-      <Text style={styles.status}>
-        {status}
-        {detail === 'sign_in_required' ? ' — Sign in again' : detail ? ` — ${detail}` : ''}
-      </Text>
+      <Button title={active ? t('mobile.main.stop') : t('mobile.main.start')} onPress={active ? stop : start} />
+      <Text style={styles.status}>{statusLine(t, status, detail)}</Text>
 
-      <Text style={styles.heading}>Heard</Text>
+      <Text style={styles.heading}>{t('mobile.main.hear')}</Text>
       <ScrollView style={styles.lane}>
         <Text>
           {heard.text}
           <Text style={styles.pending}>{heard.pending}</Text>
         </Text>
       </ScrollView>
-      <Text style={styles.heading}>Translation</Text>
+      <Text style={styles.heading}>{t('mobile.main.read')}</Text>
       <ScrollView style={styles.lane}>
         <Text>
           {translation.text}
@@ -160,10 +159,26 @@ export default function Main({ token, onSignOut }: { token: string; onSignOut: (
       </ScrollView>
 
       <View style={styles.row}>
-        <Button title="Sign out" disabled={active} onPress={onSignOut} />
+        <Button title={t('mobile.account.signOut')} disabled={active} onPress={onSignOut} />
       </View>
     </View>
   );
+}
+
+// What the status line says: a key per state, the terminal details by name,
+// any other detail (a developer message) as it is.
+function statusLine(t: (key: string) => string, status: Status | 'idle', detail: string): string {
+  if (status === 'idle') return '';
+  if (status === 'error') {
+    if (detail === 'sign_in_required') return t('mobile.main.status.signInRequired');
+    if (detail === 'balance_exhausted') return t('mobile.main.status.balanceExhausted');
+    if (detail === 'microphone_denied') return t('mobile.main.status.micDenied');
+    return detail;
+  }
+  if (status === 'listening') return t('mobile.main.status.listening');
+  if (status === 'reconnecting') return t('mobile.main.status.reconnecting');
+  if (status === 'stopped') return t('mobile.main.status.stopped');
+  return t('mobile.main.status.starting');
 }
 
 const styles = StyleSheet.create({

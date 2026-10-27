@@ -1623,5 +1623,86 @@
       "lostHint": "Lähde on poissa; viimeisin kuva säilytetään, kunnes valitset uudelleen.",
       "lostExtension": "Kokouksen välilehden kuva ei ole enää käytettävissä; käännös jatkuu pelkällä äänellä."
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "Kirjaudu",
+      "register": "Luo tili",
+      "email": "Sähköposti",
+      "password": "Salasana",
+      "submit": "Kirjaudu",
+      "forgot": "Unohditko salasanan?",
+      "codeSent": "Lähetimme 6-numeroisen koodin osoitteeseen {{email}}",
+      "code": "Sähköpostin koodi",
+      "verify": "Vahvista",
+      "sendAgain": "Lähetä uudelleen",
+      "sendAgainIn": "Lähetä uudelleen ({{seconds}} s)",
+      "newPassword": "Uusi salasana",
+      "passwordHint": "vähintään 8 merkkiä",
+      "wrongPassword": "Väärä sähköposti tai salasana",
+      "wrongCode": "Koodi on väärä tai vanhentunut",
+      "verifyTitle": "Vahvista sähköpostisi",
+      "resetTitle": "Nollaa salasana",
+      "sendCode": "Lähetä koodi",
+      "setNewPassword": "Aseta uusi salasana",
+      "back": "Takaisin kirjautumiseen",
+      "later": "Myöhemmin: vahvista tilinäkymästä",
+      "registerNote": "Saat 6-numeroisen koodin sähköpostitse; sen syöttäminen vahvistaa tilin, ja kokeilusaldo lisätään."
+    },
+    "account": {
+      "verify": "Vahvista sähköpostisi saadaksesi kokeilusaldon",
+      "usage30d": "Käytetty viimeisen 30 päivän aikana",
+      "hoursLeft": "Noin {{hours}} h jäljellä",
+      "frozen": "Tämä tili on jäädytetty",
+      "expiring": "{{amount}} saldostasi vanhenee {{date}}",
+      "usage": "Käyttö",
+      "deleteAccount": "Poista tili",
+      "deleteConfirm": "Poistetaanko tämä tili ja sen saldo? Tätä ei voi perua.",
+      "balance": "Saldo",
+      "topUp": "Saldoa lisätään Sokujin verkkosivustolla.",
+      "signOut": "Kirjaudu ulos"
+    },
+    "usage": {
+      "session": "Istunto",
+      "textOnly": "Vain teksti",
+      "loadMore": "Näytä lisää"
+    },
+    "menu": {
+      "history": "Historia",
+      "account": "Tili",
+      "settings": "Asetukset"
+    },
+    "settings": {
+      "appearance": "Ulkoasu",
+      "appearanceSystem": "Järjestelmä",
+      "appearanceLight": "Vaalea",
+      "appearanceDark": "Tumma",
+      "region": "Soniox-alue",
+      "textSize": "Tekstityksen koko",
+      "keepAwake": "Pidä näyttö päällä"
+    },
+    "history": {
+      "rename": "Nimeä uudelleen",
+      "title": "Istunnot",
+      "export": "Vie",
+      "delete": "Poista"
+    },
+    "main": {
+      "hear": "Kuulen",
+      "read": "Luen",
+      "start": "Aloita",
+      "stop": "Lopeta",
+      "bilingual": "Näytä molemmat kielet",
+      "status": {
+        "listening": "Kuuntelee",
+        "reconnecting": "Yhdistetään uudelleen…",
+        "signInRequired": "Kirjaudu uudelleen",
+        "balanceExhausted": "Saldosi on käytetty",
+        "micDenied": "Sokuji tarvitsee mikrofonin",
+        "otherSession": "Tällä tilillä on toinen istunto käynnissä",
+        "starting": "Aloitetaan…",
+        "stopped": "Pysäytetty"
+      }
+    }
   }
 }

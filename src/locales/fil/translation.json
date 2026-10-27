@@ -1623,5 +1623,86 @@
       "lostHint": "Wala na ang source; itatago ang huling larawan hanggang pumili ka ulit.",
       "lostExtension": "Hindi na available ang larawan ng meeting tab; magpapatuloy ang pagsasalin sa audio lang."
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "Mag-sign in",
+      "register": "Gumawa ng account",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Mag-sign in",
+      "forgot": "Nakalimutan ang password?",
+      "codeSent": "Nagpadala kami ng 6-digit na code sa {{email}}",
+      "code": "Code mula sa email",
+      "verify": "I-verify",
+      "sendAgain": "Ipadala muli",
+      "sendAgainIn": "Ipadala muli ({{seconds}} s)",
+      "newPassword": "Bagong password",
+      "passwordHint": "hindi bababa sa 8 character",
+      "wrongPassword": "Mali ang email o password",
+      "wrongCode": "Mali ang code o expired na",
+      "verifyTitle": "I-verify ang iyong email",
+      "resetTitle": "I-reset ang password",
+      "sendCode": "Ipadala ang code",
+      "setNewPassword": "Itakda ang bagong password",
+      "back": "Bumalik sa pag-sign in",
+      "later": "Mamaya: i-verify mula sa screen ng account",
+      "registerNote": "Makakatanggap ka ng 6-digit na code sa email; kapag inilagay ito, na-verify na ang account at susunod ang trial credit."
+    },
+    "account": {
+      "verify": "I-verify ang iyong email para matanggap ang trial credit",
+      "usage30d": "Nagastos sa nakalipas na 30 araw",
+      "hoursLeft": "Humigit-kumulang {{hours}} oras na lang",
+      "frozen": "Naka-freeze ang account na ito",
+      "expiring": "Mag-e-expire ang {{amount}} ng iyong balanse sa {{date}}",
+      "usage": "Paggamit",
+      "deleteAccount": "Tanggalin ang account",
+      "deleteConfirm": "Tanggalin ang account na ito at ang balanse nito? Hindi na ito maibabalik.",
+      "balance": "Balanse",
+      "topUp": "Ang pag-top up ay ginagawa sa website ng Sokuji.",
+      "signOut": "Mag-sign out"
+    },
+    "usage": {
+      "session": "Session",
+      "textOnly": "Teksto lang",
+      "loadMore": "Magpakita pa"
+    },
+    "menu": {
+      "history": "History",
+      "account": "Account",
+      "settings": "Mga setting"
+    },
+    "settings": {
+      "appearance": "Hitsura",
+      "appearanceSystem": "Sistema",
+      "appearanceLight": "Maliwanag",
+      "appearanceDark": "Madilim",
+      "region": "Rehiyon ng Soniox",
+      "textSize": "Laki ng subtitle",
+      "keepAwake": "Panatilihing nakabukas ang screen"
+    },
+    "history": {
+      "rename": "Palitan ang pangalan",
+      "title": "Mga session",
+      "export": "I-export",
+      "delete": "Tanggalin"
+    },
+    "main": {
+      "hear": "Naririnig ko",
+      "read": "Binabasa ko",
+      "start": "Simulan",
+      "stop": "Ihinto",
+      "bilingual": "Ipakita ang dalawang wika",
+      "status": {
+        "listening": "Nakikinig",
+        "reconnecting": "Kumokonekta muli…",
+        "signInRequired": "Mag-sign in muli",
+        "balanceExhausted": "Naubos na ang iyong balanse",
+        "micDenied": "Kailangan ng Sokuji ang mikropono",
+        "otherSession": "May ibang session na tumatakbo sa account na ito",
+        "starting": "Nagsisimula…",
+        "stopped": "Huminto"
+      }
+    }
   }
 }

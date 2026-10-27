@@ -1623,5 +1623,86 @@
       "lostHint": "Die Quelle ist weg; das letzte Bild bleibt erhalten, bis Sie erneut wählen.",
       "lostExtension": "Das Bild des Meeting-Tabs ist nicht mehr verfügbar; die Übersetzung läuft nur mit Audio weiter."
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "Anmelden",
+      "register": "Konto erstellen",
+      "email": "E-Mail",
+      "password": "Passwort",
+      "submit": "Anmelden",
+      "forgot": "Passwort vergessen?",
+      "codeSent": "Wir haben einen 6-stelligen Code an {{email}} gesendet",
+      "code": "Code aus der E-Mail",
+      "verify": "Bestätigen",
+      "sendAgain": "Erneut senden",
+      "sendAgainIn": "Erneut senden ({{seconds}} s)",
+      "newPassword": "Neues Passwort",
+      "passwordHint": "mindestens 8 Zeichen",
+      "wrongPassword": "E-Mail oder Passwort falsch",
+      "wrongCode": "Dieser Code ist falsch oder abgelaufen",
+      "verifyTitle": "E-Mail bestätigen",
+      "resetTitle": "Passwort zurücksetzen",
+      "sendCode": "Code senden",
+      "setNewPassword": "Neues Passwort festlegen",
+      "back": "Zurück zur Anmeldung",
+      "later": "Später: im Kontobildschirm bestätigen",
+      "registerNote": "Du erhältst einen 6-stelligen Code per E-Mail; mit der Eingabe ist das Konto bestätigt und das Testguthaben folgt."
+    },
+    "account": {
+      "verify": "Bestätige deine E-Mail, um das Testguthaben zu erhalten",
+      "usage30d": "Ausgegeben in den letzten 30 Tagen",
+      "hoursLeft": "Noch etwa {{hours}} h",
+      "frozen": "Dieses Konto ist eingefroren",
+      "expiring": "{{amount}} deines Guthabens verfällt am {{date}}",
+      "usage": "Verbrauch",
+      "deleteAccount": "Konto löschen",
+      "deleteConfirm": "Dieses Konto und sein Guthaben löschen? Das lässt sich nicht rückgängig machen.",
+      "balance": "Guthaben",
+      "topUp": "Aufladen geht auf der Sokuji-Website.",
+      "signOut": "Abmelden"
+    },
+    "usage": {
+      "session": "Sitzung",
+      "textOnly": "Nur Text",
+      "loadMore": "Mehr anzeigen"
+    },
+    "menu": {
+      "history": "Verlauf",
+      "account": "Konto",
+      "settings": "Einstellungen"
+    },
+    "settings": {
+      "appearance": "Erscheinungsbild",
+      "appearanceSystem": "System",
+      "appearanceLight": "Hell",
+      "appearanceDark": "Dunkel",
+      "region": "Soniox-Region",
+      "textSize": "Untertitelgröße",
+      "keepAwake": "Bildschirm anlassen"
+    },
+    "history": {
+      "rename": "Umbenennen",
+      "title": "Sitzungen",
+      "export": "Exportieren",
+      "delete": "Löschen"
+    },
+    "main": {
+      "hear": "Ich höre",
+      "read": "Ich lese",
+      "start": "Start",
+      "stop": "Stopp",
+      "bilingual": "Beide Sprachen anzeigen",
+      "status": {
+        "listening": "Hört zu",
+        "reconnecting": "Verbindet neu…",
+        "signInRequired": "Bitte erneut anmelden",
+        "balanceExhausted": "Dein Guthaben ist aufgebraucht",
+        "micDenied": "Sokuji braucht das Mikrofon",
+        "otherSession": "Auf diesem Konto läuft eine andere Sitzung",
+        "starting": "Startet…",
+        "stopped": "Gestoppt"
+      }
+    }
   }
 }

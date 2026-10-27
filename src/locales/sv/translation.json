@@ -1623,5 +1623,86 @@
       "lostHint": "Källan är borta; den senaste bilden behålls tills du väljer igen.",
       "lostExtension": "Mötesflikens bild är inte längre tillgänglig; översättningen fortsätter med enbart ljud."
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "Logga in",
+      "register": "Skapa konto",
+      "email": "E-post",
+      "password": "Lösenord",
+      "submit": "Logga in",
+      "forgot": "Glömt lösenordet?",
+      "codeSent": "Vi skickade en 6-siffrig kod till {{email}}",
+      "code": "Koden från e-posten",
+      "verify": "Verifiera",
+      "sendAgain": "Skicka igen",
+      "sendAgainIn": "Skicka igen ({{seconds}} s)",
+      "newPassword": "Nytt lösenord",
+      "passwordHint": "minst 8 tecken",
+      "wrongPassword": "Fel e-post eller lösenord",
+      "wrongCode": "Koden är fel eller har gått ut",
+      "verifyTitle": "Verifiera din e-post",
+      "resetTitle": "Återställ lösenordet",
+      "sendCode": "Skicka kod",
+      "setNewPassword": "Ange nytt lösenord",
+      "back": "Tillbaka till inloggning",
+      "later": "Senare: verifiera från kontoskärmen",
+      "registerNote": "Du får en 6-siffrig kod via e-post; när du anger den verifieras kontot och provkrediten läggs till."
+    },
+    "account": {
+      "verify": "Verifiera din e-post för att få provkrediten",
+      "usage30d": "Förbrukat de senaste 30 dagarna",
+      "hoursLeft": "Ungefär {{hours}} h kvar",
+      "frozen": "Det här kontot är fryst",
+      "expiring": "{{amount}} av ditt saldo går ut {{date}}",
+      "usage": "Förbrukning",
+      "deleteAccount": "Radera konto",
+      "deleteConfirm": "Radera det här kontot och dess saldo? Det går inte att ångra.",
+      "balance": "Saldo",
+      "topUp": "Påfyllning görs på Sokujis webbplats.",
+      "signOut": "Logga ut"
+    },
+    "usage": {
+      "session": "Session",
+      "textOnly": "Endast text",
+      "loadMore": "Visa fler"
+    },
+    "menu": {
+      "history": "Historik",
+      "account": "Konto",
+      "settings": "Inställningar"
+    },
+    "settings": {
+      "appearance": "Utseende",
+      "appearanceSystem": "System",
+      "appearanceLight": "Ljust",
+      "appearanceDark": "Mörkt",
+      "region": "Soniox-region",
+      "textSize": "Textstorlek för undertexter",
+      "keepAwake": "Håll skärmen tänd"
+    },
+    "history": {
+      "rename": "Byt namn",
+      "title": "Sessioner",
+      "export": "Exportera",
+      "delete": "Radera"
+    },
+    "main": {
+      "hear": "Jag hör",
+      "read": "Jag läser",
+      "start": "Starta",
+      "stop": "Stoppa",
+      "bilingual": "Visa båda språken",
+      "status": {
+        "listening": "Lyssnar",
+        "reconnecting": "Återansluter…",
+        "signInRequired": "Logga in igen",
+        "balanceExhausted": "Ditt saldo är slut",
+        "micDenied": "Sokuji behöver mikrofonen",
+        "otherSession": "En annan session pågår på det här kontot",
+        "starting": "Startar…",
+        "stopped": "Stoppad"
+      }
+    }
   }
 }

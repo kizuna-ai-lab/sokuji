@@ -1623,5 +1623,86 @@
       "lostHint": "Źródło zniknęło; ostatni obraz zostaje zachowany, dopóki nie wybierzesz ponownie.",
       "lostExtension": "Obraz karty spotkania nie jest już dostępny; tłumaczenie trwa dalej tylko na podstawie dźwięku."
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "Zaloguj się",
+      "register": "Utwórz konto",
+      "email": "E-mail",
+      "password": "Hasło",
+      "submit": "Zaloguj się",
+      "forgot": "Nie pamiętasz hasła?",
+      "codeSent": "Wysłaliśmy 6-cyfrowy kod na {{email}}",
+      "code": "Kod z wiadomości",
+      "verify": "Zweryfikuj",
+      "sendAgain": "Wyślij ponownie",
+      "sendAgainIn": "Wyślij ponownie ({{seconds}} s)",
+      "newPassword": "Nowe hasło",
+      "passwordHint": "co najmniej 8 znaków",
+      "wrongPassword": "Błędny e-mail lub hasło",
+      "wrongCode": "Ten kod jest błędny lub wygasł",
+      "verifyTitle": "Zweryfikuj e-mail",
+      "resetTitle": "Zresetuj hasło",
+      "sendCode": "Wyślij kod",
+      "setNewPassword": "Ustaw nowe hasło",
+      "back": "Wróć do logowania",
+      "later": "Później: zweryfikuj z ekranu konta",
+      "registerNote": "Otrzymasz 6-cyfrowy kod e-mailem; po jego wpisaniu konto zostanie zweryfikowane, a środki próbne dodane."
+    },
+    "account": {
+      "verify": "Zweryfikuj e-mail, aby otrzymać środki próbne",
+      "usage30d": "Wydano w ostatnich 30 dniach",
+      "hoursLeft": "Pozostało około {{hours}} h",
+      "frozen": "To konto jest zablokowane",
+      "expiring": "{{amount}} z Twojego salda wygasa {{date}}",
+      "usage": "Zużycie",
+      "deleteAccount": "Usuń konto",
+      "deleteConfirm": "Usunąć to konto i jego saldo? Tego nie można cofnąć.",
+      "balance": "Saldo",
+      "topUp": "Doładowania robi się na stronie Sokuji.",
+      "signOut": "Wyloguj się"
+    },
+    "usage": {
+      "session": "Sesja",
+      "textOnly": "Tylko tekst",
+      "loadMore": "Pokaż więcej"
+    },
+    "menu": {
+      "history": "Historia",
+      "account": "Konto",
+      "settings": "Ustawienia"
+    },
+    "settings": {
+      "appearance": "Wygląd",
+      "appearanceSystem": "Systemowy",
+      "appearanceLight": "Jasny",
+      "appearanceDark": "Ciemny",
+      "region": "Region Soniox",
+      "textSize": "Rozmiar napisów",
+      "keepAwake": "Nie wygaszaj ekranu"
+    },
+    "history": {
+      "rename": "Zmień nazwę",
+      "title": "Sesje",
+      "export": "Eksportuj",
+      "delete": "Usuń"
+    },
+    "main": {
+      "hear": "Słyszę",
+      "read": "Czytam",
+      "start": "Start",
+      "stop": "Stop",
+      "bilingual": "Pokaż oba języki",
+      "status": {
+        "listening": "Słucham",
+        "reconnecting": "Ponowne łączenie…",
+        "signInRequired": "Zaloguj się ponownie",
+        "balanceExhausted": "Saldo zostało wyczerpane",
+        "micDenied": "Sokuji potrzebuje mikrofonu",
+        "otherSession": "Na tym koncie trwa inna sesja",
+        "starting": "Uruchamianie…",
+        "stopped": "Zatrzymano"
+      }
+    }
   }
 }

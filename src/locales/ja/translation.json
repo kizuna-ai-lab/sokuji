@@ -1623,5 +1623,86 @@
       "lostHint": "ソースがなくなりました。選び直すまで最後の画像が保持されます。",
       "lostExtension": "会議タブの画像は利用できなくなりました。翻訳は音声のみで続行します。"
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "サインイン",
+      "register": "アカウントを作成",
+      "email": "メールアドレス",
+      "password": "パスワード",
+      "submit": "サインイン",
+      "forgot": "パスワードをお忘れですか？",
+      "codeSent": "{{email}} に 6 桁のコードを送りました",
+      "code": "メールのコード",
+      "verify": "確認",
+      "sendAgain": "再送信",
+      "sendAgainIn": "再送信（{{seconds}} 秒）",
+      "newPassword": "新しいパスワード",
+      "passwordHint": "8 文字以上",
+      "wrongPassword": "メールアドレスまたはパスワードが違います",
+      "wrongCode": "コードが違うか、期限切れです",
+      "verifyTitle": "メールアドレスの確認",
+      "resetTitle": "パスワードの再設定",
+      "sendCode": "コードを送信",
+      "setNewPassword": "新しいパスワードを設定",
+      "back": "サインインに戻る",
+      "later": "あとで：アカウント画面から確認できます",
+      "registerNote": "6 桁のコードがメールで届きます。入力するとアカウントが確認され、お試しクレジットが付与されます。"
+    },
+    "account": {
+      "verify": "メールアドレスを確認するとお試しクレジットが付与されます",
+      "usage30d": "過去 30 日間の利用額",
+      "hoursLeft": "残り約 {{hours}} 時間",
+      "frozen": "このアカウントは凍結されています",
+      "expiring": "残高のうち {{amount}} は {{date}} に失効します",
+      "usage": "利用明細",
+      "deleteAccount": "アカウントを削除",
+      "deleteConfirm": "このアカウントと残高を削除しますか？元に戻せません。",
+      "balance": "残高",
+      "topUp": "チャージは Sokuji のウェブサイトで行えます。",
+      "signOut": "サインアウト"
+    },
+    "usage": {
+      "session": "セッション",
+      "textOnly": "テキストのみ",
+      "loadMore": "さらに表示"
+    },
+    "menu": {
+      "history": "履歴",
+      "account": "アカウント",
+      "settings": "設定"
+    },
+    "settings": {
+      "appearance": "外観",
+      "appearanceSystem": "システムに合わせる",
+      "appearanceLight": "ライト",
+      "appearanceDark": "ダーク",
+      "region": "Soniox のリージョン",
+      "textSize": "字幕の文字サイズ",
+      "keepAwake": "画面をオンのままにする"
+    },
+    "history": {
+      "rename": "名前を変更",
+      "title": "セッション",
+      "export": "書き出し",
+      "delete": "削除"
+    },
+    "main": {
+      "hear": "聞く言語",
+      "read": "読む言語",
+      "start": "開始",
+      "stop": "停止",
+      "bilingual": "両方の言語を表示",
+      "status": {
+        "listening": "聞き取り中",
+        "reconnecting": "再接続中…",
+        "signInRequired": "もう一度サインインしてください",
+        "balanceExhausted": "残高がなくなりました",
+        "micDenied": "Sokuji にはマイクが必要です",
+        "otherSession": "このアカウントで別のセッションが実行中です",
+        "starting": "開始しています…",
+        "stopped": "停止しました"
+      }
+    }
   }
 }

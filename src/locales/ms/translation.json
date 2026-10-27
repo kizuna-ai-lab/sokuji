@@ -1623,5 +1623,86 @@
       "lostHint": "Sumber sudah tiada; gambar terakhir disimpan sehingga anda memilih semula.",
       "lostExtension": "Gambar tab mesyuarat tidak lagi tersedia; terjemahan diteruskan dengan audio sahaja."
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "Log masuk",
+      "register": "Cipta akaun",
+      "email": "E-mel",
+      "password": "Kata laluan",
+      "submit": "Log masuk",
+      "forgot": "Lupa kata laluan?",
+      "codeSent": "Kami menghantar kod 6 digit ke {{email}}",
+      "code": "Kod daripada e-mel",
+      "verify": "Sahkan",
+      "sendAgain": "Hantar semula",
+      "sendAgainIn": "Hantar semula ({{seconds}} s)",
+      "newPassword": "Kata laluan baharu",
+      "passwordHint": "sekurang-kurangnya 8 aksara",
+      "wrongPassword": "E-mel atau kata laluan salah",
+      "wrongCode": "Kod itu salah atau telah tamat tempoh",
+      "verifyTitle": "Sahkan e-mel anda",
+      "resetTitle": "Tetapkan semula kata laluan",
+      "sendCode": "Hantar kod",
+      "setNewPassword": "Tetapkan kata laluan baharu",
+      "back": "Kembali ke log masuk",
+      "later": "Kemudian: sahkan dari skrin akaun",
+      "registerNote": "Anda akan menerima kod 6 digit melalui e-mel; setelah dimasukkan, akaun disahkan dan kredit percubaan ditambah."
+    },
+    "account": {
+      "verify": "Sahkan e-mel anda untuk menerima kredit percubaan",
+      "usage30d": "Dibelanjakan dalam 30 hari lepas",
+      "hoursLeft": "Kira-kira {{hours}} jam lagi",
+      "frozen": "Akaun ini dibekukan",
+      "expiring": "{{amount}} daripada baki anda tamat tempoh pada {{date}}",
+      "usage": "Penggunaan",
+      "deleteAccount": "Padam akaun",
+      "deleteConfirm": "Padam akaun ini dan bakinya? Ini tidak boleh dibuat asal.",
+      "balance": "Baki",
+      "topUp": "Tambah nilai dibuat di laman web Sokuji.",
+      "signOut": "Log keluar"
+    },
+    "usage": {
+      "session": "Sesi",
+      "textOnly": "Teks sahaja",
+      "loadMore": "Tunjukkan lagi"
+    },
+    "menu": {
+      "history": "Sejarah",
+      "account": "Akaun",
+      "settings": "Tetapan"
+    },
+    "settings": {
+      "appearance": "Penampilan",
+      "appearanceSystem": "Ikut sistem",
+      "appearanceLight": "Cerah",
+      "appearanceDark": "Gelap",
+      "region": "Wilayah Soniox",
+      "textSize": "Saiz sari kata",
+      "keepAwake": "Biarkan skrin hidup"
+    },
+    "history": {
+      "rename": "Namakan semula",
+      "title": "Sesi",
+      "export": "Eksport",
+      "delete": "Padam"
+    },
+    "main": {
+      "hear": "Saya dengar",
+      "read": "Saya baca",
+      "start": "Mula",
+      "stop": "Berhenti",
+      "bilingual": "Tunjukkan kedua-dua bahasa",
+      "status": {
+        "listening": "Mendengar",
+        "reconnecting": "Menyambung semula…",
+        "signInRequired": "Sila log masuk semula",
+        "balanceExhausted": "Baki anda telah habis",
+        "micDenied": "Sokuji memerlukan mikrofon",
+        "otherSession": "Sesi lain sedang berjalan pada akaun ini",
+        "starting": "Memulakan…",
+        "stopped": "Dihentikan"
+      }
+    }
   }
 }
