@@ -2,28 +2,28 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Turn the Gate A prototype under `mobile/` into the first shippable version of spec §3.1: sign in by email code, pick two languages, press Start, read bilingual subtitles for an hour or two with the phone locked, export the transcript, see the balance — on iOS and Android, ready for TestFlight and a Play closed test.
+**Goal:** Turn the Gate A prototype under `mobile/` into the first shippable version of spec §3.1: sign in with email and password (sign-up verified by a code), pick two languages, press Start, read bilingual subtitles for an hour or two with the phone locked, export the transcript, see the balance — on iOS and Android, ready for TestFlight and a Play closed test.
 
 **Architecture:** The prototype's chain stays (sign-in → lease → 16 kHz microphone → Soniox socket → tokens, with lease rotation and retries); around it the app adopts the desktop's own transcript pipeline, all of it Metro-clean: `Utterances` turns tokens into segment events, `Conversation` keeps the leg, `createProjector()` makes the `Entry[]` the subtitle list and the exporters render, `renderTranscriptTxt/Json` write the files. Screens are React Native over one Zustand store persisted with AsyncStorage; strings come from the desktop's 30 catalogs through i18next with `expo-localization`.
 
-**Tech Stack:** Expo SDK 58 (dev client; `expo-secure-store`, `expo-localization`, `expo-file-system`, `expo-sharing`, `expo-keep-awake`, `expo-network`, `expo-build-properties`), `better-auth` 1.6.33 + `@better-auth/expo`, `react-native-audio-api` 0.13.x, `zustand` + `@react-native-async-storage/async-storage`, `i18next` + `react-i18next`, `posthog-react-native`; shared from `src/`: `providers/soniox/{sttStream,socket,utterances,leaseRequest,lease,model}`, `lib/soniox/regions`, `lib/contract/{clock,events}`, `lib/conversation/Conversation`, `lib/projection/project`, `lib/export/transcript`, `locales/*/translation.json`.
+**Tech Stack:** Expo SDK 58 (dev client; `expo-secure-store`, `expo-localization`, `expo-file-system`, `expo-sharing`, `expo-keep-awake`, `expo-network`, `expo-build-properties`), `better-auth` 1.6.33 + `@better-auth/expo`, `react-native-audio-api` 0.13.x, `zustand` + `@react-native-async-storage/async-storage`, `i18next` + `react-i18next`, `posthog-react-native`; shared from `src/`: `providers/soniox/{sttStream,socket,utterances}` (the lease calls stay the prototype's own `leaseKey`/`sessionStarted`/`sessionEnd`), `lib/soniox/regions`, `lib/contract/{clock,events}`, `lib/conversation/Conversation`, `lib/projection/project`, `lib/export/transcript`, `locales/*/translation.json`.
 
 **Spec:** `docs/superpowers/specs/2026-10-26-sokuji-mobile-design.md` — §3.1 (what is in), §5 (design), §6 Gate B, rulings R8, R10, R11, R12. Phase 1 plan and its outcome: `docs/superpowers/plans/2026-10-26-sokuji-mobile-phase1-prototype.md`.
 
-**Prerequisites:** Gate A passed (iOS: 60 min locked, airplane-mode recovery, another app in front; Android: 66 min locked without a drop; reconnect ≈ 9 s after a drop). The prototype branch `spike/mobile-prototype` is the base of this work. The backend accepts the app's origin (`sokuji://`, shipped).
+**Prerequisites:** Gate A passed on iOS (62 min locked on a development build, airplane-mode recovery, another app in front; reconnect ≈ 9 s after a drop). The Android 66-minute run is the one whose screen froze, so its rows are rerun on a release build and recorded in `mobile/GATE-A.md` before Task 4's device step. The prototype branch `spike/mobile-prototype` is the base of this work. The backend accepts the app's origin (`sokuji://`, shipped).
 
 **Where it runs:** pure-logic tasks (1, 2, 3, 5, 8) on any host with `npm test` inside `mobile/`; device verification and store tasks (4, 6, 7, 9, 10, 11) on the macOS machine with both phones.
 
 ## Global Constraints
 
 - Scheme `sokuji`; app name "Sokuji" (R10). Production identifier `ai.kizunaai.sokuji` on both platforms (owner, 2026-10-27: no such App ID existed yet). Development builds sign with the team's wildcard profile and register nothing; the explicit App ID is created in Task 10. The prototype's `ai.kizunaai.sokuji.prototype` is dropped there.
-- Sign-in and sign-up by email one-time code only (R11): `emailOtp.sendVerificationOtp({ email, type: 'sign-in' })`, `signIn.emailOtp({ email, otp })`. The prototype's password path is removed. No third-party sign-in.
+- Accounts are email + password, as the desktop (R11, revised 2026-10-27). Sign-up: `signUp.email({ email, password, name })` (`name` = the address's local part; the backend requires one), then `emailOtp.sendVerificationOtp({ email, type: 'email-verification' })` and `emailOtp.verifyEmail({ email, otp })`; the backend sends the app no link mail on sign-up, so a registration costs one code email, and the trial credit is granted when the code is verified. Sign-in: `signIn.email({ email, password })`, no mail. Forgotten password: `emailOtp.sendVerificationOtp({ email, type: 'forget-password' })`, then `emailOtp.resetPassword({ email, otp, password })`. An unverified account signs in and sees a verify line until it enters a code. Account deletion in the app: `deleteUser()` (Apple 5.1.1(v), Google Play's account-deletion policy). "Send again" waits 60 s between sends. No code-only sign-in, no third-party sign-in.
 - Managed Soniox only: `POST /api/soniox/session-key` `{ mode: 'participant', textOnly: true, bothSplit: false, region }` with `Authorization: Bearer <session token>`; `session-started { leaseId, role }`; `session-end { leaseId }`. Model `'stt-rt-v5'` as `SONIOX_STT_MODEL` from `src/providers/soniox/sttStream.ts`.
 - Audio: the phone's own microphone always (no Bluetooth voice input); 16 kHz mono, 100 ms buffers (`bufferLength: 1600`); the Soniox config's `sampleRate` is the delivered `buffer.sampleRate`.
 - Language pair, as the desktop (owner, 2026-10-27): default source `auto` (Soniox language identification is always on; `languageHints: [source]` only when the user chose a specific language) and default target `en`; the user's choice persists as one pair and overrides the default from then on.
-- Reconnect: fresh lease (R8): old lease `session-end` (4 s budget) → `session-key` (409 every 3 s) → connect → `session-started`; network errors retried at 2 s, 5 s, 10 s then 15 s, and at once on the OS "network restored" event; grant rotation 15 s before `maxSessionDurationSeconds` checked in the audio callback; terminal only for `sign_in_required`, `microphone_denied`, `balance_exhausted` (402).
-- Rendering is bounded: the subtitle list is a virtualized list of fixed-height rows; state updates are batched (250 ms) and suspended while the app is not active (`AppState !== 'active'`), where only the model updates. A 60-minute session must hold memory flat within ±50 MB after the first 5 minutes.
-- Balance only (R12): the account screen shows the balance from `GET /api/wallet/status` (`balanceUsd`) and says, in words, that top-ups are made on the website. No purchase, no link.
+- Reconnect: fresh lease (R8): old lease `session-end` (4 s budget) → `session-key` (409 every 3 s; every `session-key` and `session-started` request is aborted after 15 s and retried as a network error) → connect → `session-started`, sent on the first Soniox message and not awaited (a failure is logged, and a socket is never left open on it); network errors retried at 2 s, 5 s, 10 s then 15 s, and at once on the OS "network restored" event; grant rotation 15 s before `maxSessionDurationSeconds` checked in the audio callback; terminal only for `sign_in_required`, `microphone_denied`, `balance_exhausted` (402).
+- Rendering is bounded: the subtitle list is a virtualized list (rows wrap; no fixed height); state updates are batched (250 ms) and suspended while the app is not active (`AppState !== 'active'`), where only the model updates. A 60-minute session must hold memory flat within ±50 MB after the first 5 minutes.
+- Balance only (R12): the account screen shows the balance and the last 30 days' spend from `GET /api/wallet/status`, and the hours the balance buys as the website's billing page computes them: balance ÷ the account's own spend per session hour over the last 30 days (`GET /api/wallet/usage-summary`), or, without enough history, ÷ the cost calculator's "understand others" rate from `GET /api/pricing`; shown as `< 1`, one decimal under 10, else whole hours. It says, in words, that top-ups are made on the website. No purchase, no link.
 - Every user-visible string is an i18next key present in all 30 catalogs under `src/locales/*/translation.json` (the desktop's consistency test enforces it); new keys live under the `mobile` namespace.
 - Sessions are kept on the device until the user deletes them; export is text and the desktop's JSON through the system share sheet.
 - Analytics: PostHog with the desktop's event names `translation_session_start` / `translation_session_end` and a `platform` super property of `ios` or `android`.
@@ -39,33 +39,33 @@
 
 ---
 
-### Task 1: From prototype to app: layout, no password path, no probe UI
+### Task 1: From prototype to app: layout, password accounts, no probe UI
 
 **Files:**
 - Modify: `mobile/src/*` (move into folders: `mobile/src/backend.ts`, `mobile/src/auth/{client,SignIn}.ts(x)`, `mobile/src/session/{lease,pcm,session}.ts`, `mobile/src/screens/{Main,Account,History}.tsx` (Main from the prototype; the other two are created in Tasks 7–8), `mobile/src/store/settings.ts` (Task 3), `mobile/src/i18n/index.ts` (Task 2)
-- Delete: the password sign-in in `mobile/src/auth/client.ts` and `SignIn.tsx`; the on-screen Gate A log and version marker in `Main.tsx` (the file logger stays behind `__DEV__`)
+- Delete: the one-time-code sign-in (`sendCode`, `signInWithCode`) in `mobile/src/auth/client.ts` and `SignIn.tsx`; the on-screen Gate A log and version marker in `Main.tsx` (the file logger stays behind `__DEV__`); the `EXPO_PUBLIC_TEST_*` hooks
 - Test: the prototype's tests move with their modules (`lease.test.ts`, `pcm.test.ts`, `session`'s rotation/retry tests)
 
 **Interfaces:**
-- Consumes: the prototype's exported functions unchanged: `sendCode(email)`, `signInWithCode(email, otp)`, `sessionToken()`, `signOut()`, `leaseKey(o)`, `sessionStarted(o)`, `sessionEnd(o)`, `floatToInt16(samples)`, `startSession(o)`.
-- Produces: the same names at their new paths; `startSession` additionally emits `{ type: 'tokens', tokens }` as before (Task 4 consumes it).
+- Consumes: the prototype's exported functions unchanged: `signInWithPassword(email, password)`, `sessionToken()`, `signOut()`, `leaseKey(o)`, `sessionStarted(o)`, `sessionEnd(o)`, `floatToInt16(samples)`, `startSession(o)`.
+- Produces: the lease, pcm and session names at their new paths; `startSession` additionally emits `{ type: 'tokens', tokens }` as before (Task 4 consumes it). `mobile/src/auth/client.ts`: `signUp(email, password)`, `sendVerificationCode(email)`, `verifyEmail(email, otp)`, `signIn(email, password)` (the prototype's `signInWithPassword`), `requestPasswordReset(email)`, `resetPassword(email, otp, password)`, `deleteAccount()`, `emailVerified(): Promise<boolean>` (from `getSession().data.user.emailVerified`), `sessionToken()`, `signOut()` — each one call on `authClient` per Global Constraints, throwing `Error(result.error.message)` when `result.error` is set (the prototype ignored it). `SignIn.tsx`: two tabs (sign in / create account); after sign-up the code screen (the address, a 6-digit field, "send again" after 60 s); "forgot your password?" → the address → a code and a new password.
 
-- [ ] **Step 1: Move the files and update imports; delete the password path and the probe UI**
+- [ ] **Step 1: Move the files and update imports; replace the code sign-in with the sign-up, verification and reset screens; delete the probe UI**
 - [ ] **Step 2: Run the mobile tests**
 
 Run: `cd mobile && npm test`
 Expected: the prototype's tests pass at their new paths (no behaviour change).
 
-- [ ] **Step 3: Build the dev client on both phones and sign in by code**
+- [ ] **Step 3: Build the dev client on both phones and exercise the accounts**
 
 Run: `cd mobile && npx expo run:ios --device && npx expo run:android --device`
-Expected: sign-in by email code works; no password field exists.
+Expected: a new address: create account → one code email → entering the code signs the account in with the trial credit; an existing account signs in with its password; a wrong password is told so; a forgotten password is reset with a code; no code-only sign-in exists.
 
 - [ ] **Step 4: Commit**
 
 ```bash
 git add mobile
-git commit -m "refactor(mobile): app layout from the prototype; one-time code sign-in only"
+git commit -m "refactor(mobile): app layout from the prototype; email and password accounts"
 ```
 
 ---
@@ -116,7 +116,7 @@ Expected: FAIL — modules not found.
 
 - [ ] **Step 3: Implement `pickLanguage.ts` and `index.ts` to the interface; add the `mobile` keys to the 30 catalogs**
 
-The keys (English): `mobile.signIn.title` "Sign in", `mobile.signIn.email` "Email", `mobile.signIn.sendCode` "Send code", `mobile.signIn.code` "Code from the email", `mobile.signIn.submit` "Sign in", `mobile.main.hear` "I hear", `mobile.main.read` "I read", `mobile.main.start` "Start", `mobile.main.stop` "Stop", `mobile.main.bilingual` "Show both languages", `mobile.main.status.listening` "Listening", `mobile.main.status.reconnecting` "Reconnecting…", `mobile.main.status.signInRequired` "Please sign in again", `mobile.main.status.balanceExhausted` "Your balance is used up", `mobile.main.status.micDenied` "Sokuji needs the microphone", `mobile.main.status.otherSession` "Another session is running on this account", `mobile.account.balance` "Balance", `mobile.account.topUp` "Top-ups are made on the Sokuji website.", `mobile.account.signOut` "Sign out", `mobile.history.title` "Sessions", `mobile.history.export` "Export", `mobile.history.delete` "Delete", `mobile.settings.region` "Soniox region", `mobile.settings.textSize` "Subtitle size", `mobile.settings.keepAwake` "Keep the screen on". Each other catalog gets the same keys in its language (translate; the desktop's existing wording for the same ideas — `update.*`, `settings.*` — is the reference for tone).
+The keys (English): `mobile.signIn.title` "Sign in", `mobile.signIn.register` "Create account", `mobile.signIn.email` "Email", `mobile.signIn.password` "Password", `mobile.signIn.submit` "Sign in", `mobile.signIn.forgot` "Forgot your password?", `mobile.signIn.codeSent` "We sent a 6-digit code to {{email}}", `mobile.signIn.code` "Code from the email", `mobile.signIn.verify` "Verify", `mobile.signIn.sendAgain` "Send again", `mobile.signIn.newPassword` "New password", `mobile.signIn.wrongPassword` "Wrong email or password", `mobile.signIn.wrongCode` "That code is wrong or has expired", `mobile.account.verify` "Verify your email to receive the trial credit", `mobile.account.usage30d` "Spent in the last 30 days", `mobile.account.hoursLeft` "About {{hours}} h left", `mobile.account.deleteAccount` "Delete account", `mobile.account.deleteConfirm` "Delete this account and its balance? This cannot be undone.", `mobile.settings.appearance` "Appearance", `mobile.settings.appearanceSystem` "System", `mobile.settings.appearanceLight` "Light", `mobile.settings.appearanceDark` "Dark", `mobile.history.rename` "Rename", `mobile.main.hear` "I hear", `mobile.main.read` "I read", `mobile.main.start` "Start", `mobile.main.stop` "Stop", `mobile.main.bilingual` "Show both languages", `mobile.main.status.listening` "Listening", `mobile.main.status.reconnecting` "Reconnecting…", `mobile.main.status.signInRequired` "Please sign in again", `mobile.main.status.balanceExhausted` "Your balance is used up", `mobile.main.status.micDenied` "Sokuji needs the microphone", `mobile.main.status.otherSession` "Another session is running on this account", `mobile.account.balance` "Balance", `mobile.account.topUp` "Top-ups are made on the Sokuji website.", `mobile.account.signOut` "Sign out", `mobile.history.title` "Sessions", `mobile.history.export` "Export", `mobile.history.delete` "Delete", `mobile.settings.region` "Soniox region", `mobile.settings.textSize` "Subtitle size", `mobile.settings.keepAwake` "Keep the screen on". Each other catalog gets the same keys in its language (translate; the desktop's existing wording for the same ideas — `update.*`, `settings.*` — is the reference for tone).
 
 - [ ] **Step 4: Run the mobile tests and the desktop's locale consistency test**
 
@@ -138,7 +138,7 @@ git commit -m "feat(mobile): i18n from the desktop's catalogs, language from the
 - Create: `mobile/src/store/settings.ts`, `mobile/src/store/settings.test.ts`
 
 **Interfaces:**
-- Produces: `export interface Settings { source: string; target: string; region: SonioxRegion; bilingual: boolean; textSize: 'small' | 'medium' | 'large'; keepAwake: boolean }` — `source` is a Soniox language code or `'auto'`; `export const DEFAULT_SETTINGS: Settings = { source: 'auto', target: 'en', region: 'us', bilingual: true, textSize: 'medium', keepAwake: true }` (the desktop's initial pair for Soniox); `export function createSettingsStore(storage: StateStorage)` returning a Zustand store with `persist` (`name: 'sokuji.settings'`) and `set(partial)`; `export const useSettings = createSettingsStore(AsyncStorage)`.
+- Produces: `export interface Settings { source: string; target: string; region: SonioxRegion; bilingual: boolean; textSize: 'small' | 'medium' | 'large'; appearance: 'system' | 'light' | 'dark'; keepAwake: boolean }` — `source` is a Soniox language code or `'auto'`; `export const DEFAULT_SETTINGS: Settings = { source: 'auto', target: 'en', region: 'us', bilingual: true, textSize: 'medium', appearance: 'system', keepAwake: true }` (the desktop's initial pair for Soniox); `export function createSettingsStore(storage: StateStorage)` returning a Zustand store with `persist` (`name: 'sokuji.settings'`) and `set(partial)`; `export const useSettings = createSettingsStore(AsyncStorage)`.
 - Consumes: `zustand`, `zustand/middleware` (`persist`, `createJSONStorage`), `@react-native-async-storage/async-storage`.
 
 - [ ] **Step 1: Write the failing test** — a fake in-memory `StateStorage`; `set({ target: 'ja' })` then a second store on the same storage reads `target: 'ja'`; unknown keys in stored JSON are ignored; a missing store gives `DEFAULT_SETTINGS`.
@@ -214,9 +214,9 @@ describe('createTranscript', () => {
 **Interfaces:**
 - Consumes: `Transcript.entries()/subscribe()` (Task 4); React Native `FlatList`, `AppState`.
 - Produces (`entriesFeed.ts`, pure): `export function createEntriesFeed(o: { transcript: Pick<Transcript, 'entries' | 'subscribe'>; isActive: () => boolean; onActiveChange(cb: (active: boolean) => void): () => void; now: () => number; schedule: (fn: () => void, ms: number) => () => void; batchMs?: number }): { subscribe(listener: (entries: readonly Entry[]) => void): () => void; stop(): void }` — forwards the transcript's entries to UI listeners at most once per `batchMs` (250) while active; while inactive forwards nothing; on becoming active forwards once immediately (the catch-up).
-- `Subtitles.tsx`: `FlatList` with `getItemLayout` (fixed row height per `textSize`), `inverted` with the newest at the bottom, `maxToRenderPerBatch` 10, `windowSize` 5, `removeClippedSubviews`; each exchange renders a source row and, when `bilingual`, a translation row; non-final text in a muted colour; `keyExtractor` = entry id.
+- `Subtitles.tsx`: `FlatList`, `inverted` with the newest at the bottom (so its data is the entries newest first; rows wrap and have no fixed height, so no `getItemLayout`), `maxToRenderPerBatch` 10, `windowSize` 5, `removeClippedSubviews`; each exchange renders a source row and, when `bilingual`, a translation row; non-final text in a muted colour; `keyExtractor` = entry id.
 
-- [ ] **Step 1: Write the failing tests** — (a) 10 transcript notifications within 250 ms → 1 UI update; (b) inactive → 0 updates even for 3,000 entries; becoming active → exactly 1 update carrying all entries; (c) `stop()` → no further updates.
+- [ ] **Step 1: Write the failing tests** — (a) 10 transcript notifications within 250 ms → 1 UI update; (b) inactive → 0 updates even for 3,000 entries; becoming active → exactly 1 update carrying all entries; (c) `stop()` → no further updates; (d) two entries → the listener receives them newest first (the later entry at index 0).
 - [ ] **Step 2: Run them to verify they fail**
 - [ ] **Step 3: Implement `entriesFeed.ts`, `Subtitles.tsx`; wire `Main.tsx`** — Main keeps the screen awake while listening when the setting is on (`expo-keep-awake`).
 - [ ] **Step 4: Run the mobile tests; on both phones a 20-minute session with the screen on and a 20-minute one locked** — memory (Android `dumpsys meminfo`, iOS Xcode gauge) flat within ±50 MB after minute 5; unlock shows the latest rows at once.
@@ -243,21 +243,21 @@ describe('createTranscript', () => {
 
 ---
 
-### Task 7: Account and settings screen: balance, the website sentence, settings, sign out
+### Task 7: Account and settings screen: balance and hours, the website sentence, settings, verify, delete, sign out
 
 **Files:**
-- Create: `mobile/src/account/wallet.ts`, `mobile/src/account/wallet.test.ts`, `mobile/src/screens/Account.tsx`
+- Create: `mobile/src/account/wallet.ts`, `mobile/src/account/wallet.test.ts`, `mobile/src/account/hours.ts`, `mobile/src/account/hours.test.ts`, `mobile/src/screens/Account.tsx`
 - Modify: `mobile/src/screens/Main.tsx` (an account button), `mobile/src/session/session.ts` (402 → `balance_exhausted`, already from the prototype; the screen reacts)
 
 **Interfaces:**
-- Produces: `export async function fetchWallet(o: { token: string; fetch?: typeof fetch }): Promise<{ balanceUsd: number; frozen: boolean }>` — `GET ${BACKEND_URL}/api/wallet/status` with the bearer token; `balanceUsd` from the response (`balanceMicroUsd / 1e6` when `balanceUsd` is absent); 401 → throws `sign_in_required`.
-- `Account.tsx`: the balance formatted in the device locale (`Intl.NumberFormat`), the sentence `mobile.account.topUp`, the sign-out button (`signOut()` then the sign-in screen); opened automatically on `balance_exhausted`. Below it the settings (Task 3's store): Soniox region (`us`/`eu`/`jp`), subtitle size, keep the screen on, show both languages — the language pair itself stays on the main screen.
+- Produces: `export async function fetchWallet(o: { token: string; fetch?: typeof fetch }): Promise<{ balanceUsd: number; frozen: boolean; last30DaysUsd: number }>` — `GET ${BACKEND_URL}/api/wallet/status` with the bearer token; `balanceUsd` from the response (`balanceMicroUsd / 1e6` when `balanceUsd` is absent), `last30DaysUsd` = `last30DaysUsageMicroUsd / 1e6`; 401 → throws `sign_in_required`. `export async function fetchUsagePerHour(o): Promise<number | null>` — `GET /api/wallet/usage-summary`: `spendMicroUsd / 1e6 ÷ (sessionSeconds / 3600)`, `null` when `sessionSeconds` is 0. `export async function fetchFallbackUsdPerHour(o): Promise<number>` — the cost calculator's "understand others" preset priced from `GET /api/pricing`, the website's own fallback. `hours.ts` (pure): `export function hoursLeft(balanceUsd: number, usdPerHour: number | null, fallbackUsdPerHour: number): number` and `export function formatHours(h: number): string` (`< 1` under 1, one decimal under 10, else the whole number) — the website's billing page, mirrored.
+- `Account.tsx`: the balance and the 30-day spend formatted in the device locale (`Intl.NumberFormat`), the hours line (`mobile.account.hoursLeft`), the sentence `mobile.account.topUp`, the address; a `mobile.account.verify` line with a Verify button while `emailVerified()` is false (→ Task 1's code screen); the sign-out button (`signOut()` then the sign-in screen); a Delete account row (confirm with `mobile.account.deleteConfirm` → `deleteAccount()` → the sign-in screen); opened automatically on `balance_exhausted`. Below it the settings (Task 3's store): Soniox region (`us`/`eu`/`jp`), subtitle size, appearance, keep the screen on, show both languages — the language pair itself stays on the main screen.
 
-- [ ] **Step 1: Write the failing test** — response `{ balanceMicroUsd: 2500000, frozen: false }` → `{ balanceUsd: 2.5, frozen: false }`; `{ balanceUsd: 1.25 }` → 1.25; 401 → `sign_in_required`.
+- [ ] **Step 1: Write the failing tests** — `fetchWallet`: response `{ balanceMicroUsd: 2500000, frozen: false, last30DaysUsageMicroUsd: 1200000 }` → `{ balanceUsd: 2.5, frozen: false, last30DaysUsd: 1.2 }`; `{ balanceUsd: 1.25 }` → 1.25; 401 → `sign_in_required`. `fetchUsagePerHour`: `{ spendMicroUsd: 3000000, sessionSeconds: 7200 }` → 1.5; `sessionSeconds: 0` → `null`. `hoursLeft(12, 1.5, 4)` → 8; `hoursLeft(12, null, 4)` → 3. `formatHours`: 0.4 → `< 1`, 2.53 → `2.5`, 12.4 → `12`.
 - [ ] **Step 2: Run it to verify it fails**
-- [ ] **Step 3: Implement `wallet.ts` and `Account.tsx`**
-- [ ] **Step 4: Run the mobile tests; on a phone: the balance matches the website; wording reviewed against spec §5.4 (no purchase, no link); each setting takes effect on the next Start (region) or at once (size, keep awake, bilingual)**
-- [ ] **Step 5: Commit** — `feat(mobile): account screen with the balance (R12)`
+- [ ] **Step 3: Implement `wallet.ts`, `hours.ts` and `Account.tsx`**
+- [ ] **Step 4: Run the mobile tests; on a phone: the balance, the 30-day spend and the hours match the website's billing page; wording reviewed against spec §5.4 (no purchase, no link); an unverified test account sees the verify line and loses it after the code; deleting a throwaway account returns to sign-in and its password no longer works; each setting takes effect on the next Start (region) or at once (size, appearance, keep awake, bilingual)**
+- [ ] **Step 5: Commit** — `feat(mobile): account screen with the balance and hours (R12), verify, delete`
 
 ---
 
@@ -268,13 +268,13 @@ describe('createTranscript', () => {
 
 **Interfaces:**
 - Produces:
-  - `export interface StoredSession { id: string; startedAt: number; endedAt: number | null; source: string; target: string; leg: Leg; lastStatus: string }`
-  - `export function createHistoryStore(fs: { read(path: string): Promise<string | null>; write(path: string, body: string): Promise<void>; removeDir(path: string): Promise<void>; listDirs(path: string): Promise<string[]> })` with `save(session: StoredSession)`, `list(): Promise<Array<Pick<StoredSession, 'id' | 'startedAt' | 'endedAt' | 'source' | 'target'>>>`, `load(id)`, `delete(id)` — one directory per session under the document directory (`sessions/<id>/session.json`, `expo-file-system`), written at session end and every 60 s during a session (so a killed app loses at most a minute). The directory, not a bare file, because a later version adds the recording beside the JSON (owner, 2026-10-27); the first version stores no audio and keeps every session until the user deletes it (no cap: text only, tens of KB an hour).
-  - `export function exportText(s: StoredSession, labels: TranscriptLabels, header: TranscriptHeaderLabels, meta: TranscriptMeta): string` and `exportJson(...)`: `renderTranscriptTxt(createProjector().project([s.leg], DEFAULT_PROJECTION), [s.leg], { labels, formatTime, header: { labels: header, meta, formatDateTime } })` and `renderTranscriptJson(...)` likewise.
+  - `export interface StoredSession { id: string; title?: string; startedAt: number; endedAt: number | null; source: string; target: string; leg: Leg; lastStatus: string }`
+  - `export function createHistoryStore(fs: { read(path: string): Promise<string | null>; write(path: string, body: string): Promise<void>; removeDir(path: string): Promise<void>; listDirs(path: string): Promise<string[]> })` with `save(session: StoredSession)`, `list(): Promise<Array<Pick<StoredSession, 'id' | 'title' | 'startedAt' | 'endedAt' | 'source' | 'target'>>>`, `load(id)`, `rename(id, title)`, `delete(id)` — one directory per session under expo-file-system's `Paths.document` (`sessions/<id>/session.json`), written at session end and every 60 s during a session (so a killed app loses at most a minute). The directory, not a bare file, because a later version adds the recording beside the JSON (owner, 2026-10-27); the first version stores no audio and keeps every session until the user deletes it (no cap: text only, tens of KB an hour).
+  - `export function exportText(s: StoredSession, labels: TranscriptLabels, header: TranscriptHeaderLabels, meta: TranscriptMeta): string` and `exportJson(...)`: `renderTranscriptTxt(createProjector().project([s.leg], DEFAULT_PROJECTION), [s.leg], { labels, formatTime, header: { labels: header, meta, formatDateTime } })` and `JSON.stringify(renderTranscriptJson(entries, [s.leg], { meta }), null, 2)` for JSON (it returns an object and takes no labels; `entries` = the same projection).
   - `export async function shareExport(s: StoredSession, kind: 'txt' | 'json'): Promise<void>` — writes `Sokuji-<startedAt as yyyyMMdd-HHmm>.<txt|json>` to the cache directory and calls `Sharing.shareAsync(uri)`.
-- `History.tsx`: the list with date, languages, duration; per session Export (txt/json) and Delete.
+- `History.tsx`: the list, newest first, each row its title or, untitled, its date, plus languages and duration; per session Rename, Export (txt/json) and Delete.
 
-- [ ] **Step 1: Write the failing tests** — the store round-trips a session through a fake fs and lists newest first; `exportText` of a one-exchange session contains the source and translation lines and the header title; a session whose `lastStatus` is `sign_in_required` still exports.
+- [ ] **Step 1: Write the failing tests** — the store round-trips a session through a fake fs and lists newest first; `rename` changes the title that `list` and `load` return; `exportText` of a one-exchange session contains the source and translation lines and the header title; a session whose `lastStatus` is `sign_in_required` still exports.
 - [ ] **Step 2: Run them to verify they fail**
 - [ ] **Step 3: Implement**
 - [ ] **Step 4: Run the mobile tests; on a phone, export a session to Files and open it on a computer**
@@ -310,7 +310,7 @@ describe('createTranscript', () => {
 - [ ] **Step 3: Permission strings** — `NSMicrophoneUsageDescription` localized (`app.json` `locales`), the Android foreground-service notification title from `mobile.main.status.listening`
 - [ ] **Step 4: Build release candidates for both platforms (iOS archive for TestFlight; Android `.aab`)**
 
-Run: on the macOS machine, `eas build --profile preview` for both platforms (or the local equivalents: `xcodebuild -exportArchive`, `./gradlew bundleRelease`).
+Run: on the macOS machine, `eas build --profile production` for both platforms (or the local equivalents: `xcodebuild -exportArchive`, `./gradlew bundleRelease`).
 Expected: an installable TestFlight build and a Play internal-testing bundle.
 
 - [ ] **Step 5: Commit** — `chore(mobile): store identifiers, artwork, permission strings, build profiles`

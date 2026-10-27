@@ -1,6 +1,6 @@
 # Sokuji mobile, first version — design
 
-**Status:** approved by the owner, 2026-10-26, through rulings R1–R12 (§2) after the builder check (§8). Gate A (§6) passed on 2026-10-27; the first version's plan is `docs/superpowers/plans/2026-10-27-sokuji-mobile-phase2-mvp.md`.
+**Status:** approved by the owner, 2026-10-26, through rulings R1–R12 (§2) after the builder check (§8). Gate A (§6) passed on the iPhone on 2026-10-27, with the Android rerun on a release build pending (§6); the first version's plan is `docs/superpowers/plans/2026-10-27-sokuji-mobile-phase2-mvp.md`.
 **Scope:** a new app under `mobile/` in this repository (iOS and Android from one codebase), with a small additive change in the backend (auth for the app). Product data, account details and the test-device inventory that informed the decisions are kept in the team's internal notes, not here.
 
 ## 1. Intent
@@ -34,19 +34,22 @@ phone locked or in their pocket for most of it, and a document to keep at the en
 | R8 | Reconnect | As the desktop: a dropped socket is followed by a fresh lease, with the gap that implies; the desktop has no seamless resume either, and the first mobile version does not add one. The resume of §5.3 is a later improvement for both clients. |
 | R9 | Google Play | A Play Console account exists; Google's closed-test requirement for new accounts (§5.4) is planned for, starting with the first Android build. |
 | R10 | Name and scheme | "Sokuji", URL scheme `sokuji`. |
-| R11 | Sign-in | Email one-time code only, for sign-in and sign-up: the code both creates the account and verifies the address in one step, so the trial credit follows. No third-party sign-in in the first version (§8.7). |
+| R11 | Sign-in | Email and password accounts, as the desktop (revised by the owner on 2026-10-27; the 2026-10-26 ruling was one-time code only): sign-up with email and password, then a 6-digit code sent to the address verifies it inside the app, which is what grants the trial credit; sign-in with the password, which sends no mail, so the mail quota is spent on registrations and password resets only; a forgotten password is reset with a code. No code-only sign-in. No third-party sign-in in the first version (§8.7). |
 | R12 | Purchases | The first version shows the balance only: sells nothing, links nowhere (§5.4). |
 
 ## 3. The product, as decided
 
 ### 3.1 In the first version
 
-- **Account**: the existing Kizuna AI account and balance. **Sign-in and sign-up are by email
-  one-time code only** (R11): enter the address, receive the code, enter it; for a new address that
-  one step creates the account with the address verified, which is what grants the trial credit. A
-  password sign-up is verified by a link that opens the website and would leave a phone-only account
-  with an empty wallet, so the app does not offer it; existing password accounts sign in by code
-  too. The balance is shown.
+- **Account**: the existing Kizuna AI account and balance. **Sign-up with email and password,
+  verified by a code; sign-in with the password** (R11). The sign-in screen has two tabs, as the
+  desktop. Sign-up asks for the address and a password, then for the 6-digit code the backend mails;
+  the app asks for a code rather than the website's link, so a new account is verified without
+  leaving the phone, and the trial credit is granted on that verification. An account that skipped
+  the code can still sign in; it sees a "verify your email" line until it enters one. A forgotten
+  password is reset with a code. The account screen shows the balance, the last 30 days' spend and
+  the hours the balance buys, computed as the website's billing page computes them, and offers
+  in-app account deletion, which both stores require of an app that offers sign-up.
 - **One job**: pick the language you will hear and the language you read (the desktop's
   "participant" leg, through the microphone), press Start, and read. Subtitles are bilingual by
   default (what was said, then the translation), with a translation-only toggle.
@@ -62,8 +65,9 @@ phone locked or in their pocket for most of it, and a document to keep at the en
   top-up button and no store purchase (§5.4 says why). The balance screen says, in words, that
   top-ups are made on the website.
 - **Languages and copy**: the 30 catalogs the desktop ships, through the same i18next setup.
-- **Settings**: source and target language, bilingual or translation-only, subtitle text size, keep
-  the screen awake while the app is in front, Soniox region (the desktop's setting), sign out.
+- **Settings**: source and target language, bilingual or translation-only, subtitle text size,
+  appearance (light, dark or the system's), keep the screen awake while the app is in front, Soniox
+  region (the desktop's setting), sign out.
 - **Analytics**: PostHog through its React Native SDK, the same event names as the desktop, with
   `platform` = `ios` or `android`.
 
@@ -246,11 +250,14 @@ own long session measures them on the near-final build.
 If 1 fails on iOS with React Native after the known settings are applied, the iOS core is built in
 Swift (§4, row 2) and the plan is rewritten; the prototype's findings go into this document.
 
-**Outcome (2026-10-27): Gate A passed; the React Native route stands.** On the iPhone: 62 minutes
-locked without a drop, recovery after a 30-second airplane-mode drop, and 5 minutes behind another
-app. On the Android phone: 66 minutes locked with capture, foreground service and socket
-uninterrupted. Real drops (a network blip, a server-side close) recovered in about 9 seconds with
-the earlier subtitles kept. Two findings shaped the first version: a grant ends when the balance it
+**Outcome (2026-10-27): Gate A passed on the iPhone, on a development build; the React Native
+route stands.** On the iPhone: 62 minutes locked without a drop, recovery after a 30-second
+airplane-mode drop, and 5 minutes behind another app. On the Android phone the 66-minute locked run
+kept capture, foreground service and socket uninterrupted, but it is the run whose screen froze (the
+rendering finding below), so the Android rows are rerun on a release build with the bounded
+rendering and recorded in the prototype's Gate A record before the plan's device tasks. Real
+drops (a network blip, a server-side close) recovered in about 9 seconds with the earlier
+subtitles kept. Two findings shaped the first version: a grant ends when the balance it
 was sized for runs out, so a long session is a chain of leases (§5.3); and drawing a growing
 transcript into text blocks is what froze the Android phone and grew memory on iOS — with nothing
 drawn while the app is not in the foreground, memory stayed flat for 30 minutes, so the first
@@ -281,8 +288,8 @@ test split between vitest (shared code) and the Expo app's own tests; the releas
    third-party sign-in is offered; Sign in with Apple cannot demand a real address (Hide My Email
    gives a relay address, `privaterelay.appleid.com`, moving to `private.icloud.com` in 2026, which
    must be accepted and can be written to once the sender domain is registered). Settled by R11:
-   one-time-code email only in the first version; Apple and Google together are a second-version
-   item.
+   email and password with code verification in the first version; Apple and Google together are
+   a second-version item.
 
 Checked by the builder and not open: the Soniox protocol and lease modules are DOM-free apart from
 two injectable spots (the API URL and the locale detector); the segmentation runtime is not on the
