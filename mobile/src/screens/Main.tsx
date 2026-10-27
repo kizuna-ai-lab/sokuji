@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { AppState, Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useTranslation } from 'react-i18next';
-import type { SonioxToken } from '@shared/providers/soniox/sttStream';
+import type { Entry } from '@shared/lib/projection/types';
 import type { SonioxRegion } from '@shared/lib/soniox/regions';
 import { startSession, type Status } from '../session/session';
+import { createTranscript, type Transcript } from '../session/transcript';
 
 const REGIONS: SonioxRegion[] = ['us', 'eu', 'jp'];
 const KEEP_AWAKE_TAG = 'sokuji-session';
@@ -12,40 +13,27 @@ const KEEP_AWAKE_TAG = 'sokuji-session';
 const SHOWN_LINES = 20;
 const FLUSH_MS = 1000;
 
-// The whole transcript, kept outside React state: lines closed by <end>/<fin>, the open
-// line's final text, and the non-final tail that the next message replaces.
-interface Transcript {
-  lines: string[];
-  open: string;
-  pending: string;
-}
-
 interface Lane {
   text: string;
   pending: string;
 }
 
-const emptyTranscript = (): Transcript => ({ lines: [], open: '', pending: '' });
 const emptyLane = (): Lane => ({ text: '', pending: '' });
 
-function fold(t: Transcript, tokens: SonioxToken[]): void {
+// The last entries of one side as two runs of text: the final rows, then the
+// rows still being spoken (drawn muted). Task 5 replaces this with the list.
+function tail(entries: readonly Entry[], side: 'source' | 'translation'): Lane {
+  const lines: string[] = [];
   let pending = '';
-  for (const tok of tokens) {
-    if (!tok.is_final) {
-      pending += tok.text;
-    } else if (tok.text === '<end>' || tok.text === '<fin>') {
-      t.lines.push(t.open);
-      t.open = '';
-    } else {
-      t.open += tok.text;
-    }
+  for (const e of entries.slice(-SHOWN_LINES)) {
+    if (e.kind !== 'exchange') continue;
+    const rows = e[side];
+    const final = rows.filter((r) => r.final).map((r) => r.text).join('');
+    const open = rows.filter((r) => !r.final).map((r) => r.text).join('');
+    if (final) lines.push(final);
+    if (open) pending = open;
   }
-  t.pending = pending;
-}
-
-function tail(t: Transcript): Lane {
-  const lines = t.lines.slice(-(SHOWN_LINES - 1));
-  return { text: [...lines, t.open].join('\n'), pending: t.pending };
+  return { text: lines.join('\n'), pending };
 }
 
 export default function Main({ token, onSignOut }: { token: string; onSignOut: () => void }) {
@@ -58,8 +46,7 @@ export default function Main({ token, onSignOut }: { token: string; onSignOut: (
   const [heard, setHeard] = useState<Lane>(emptyLane);
   const [translation, setTranslation] = useState<Lane>(emptyLane);
   const session = useRef<{ stop(): Promise<void> } | null>(null);
-  const heardAll = useRef(emptyTranscript());
-  const translationAll = useRef(emptyTranscript());
+  const transcript = useRef<Transcript | null>(null);
   const dirty = useRef(false);
 
   // Token updates are merged and drawn at most once a second, and never while the app
@@ -71,8 +58,9 @@ export default function Main({ token, onSignOut }: { token: string; onSignOut: (
     const timer = setInterval(() => {
       if (!dirty.current || AppState.currentState !== 'active') return;
       dirty.current = false;
-      setHeard(tail(heardAll.current));
-      setTranslation(tail(translationAll.current));
+      const entries = transcript.current?.entries() ?? [];
+      setHeard(tail(entries, 'source'));
+      setTranslation(tail(entries, 'translation'));
     }, FLUSH_MS);
     return () => {
       clearInterval(timer);
@@ -87,8 +75,9 @@ export default function Main({ token, onSignOut }: { token: string; onSignOut: (
     // recorder and lease loop that nothing could stop: the handle is set
     // before the first await, and Start is Stop from the same render on.
     if (session.current) return;
-    heardAll.current = emptyTranscript();
-    translationAll.current = emptyTranscript();
+    const t = createTranscript({ source: source.trim(), target: target.trim(), sessionId: `s-${Date.now()}` });
+    t.subscribe(() => { dirty.current = true; });
+    transcript.current = t;
     setHeard(emptyLane());
     setTranslation(emptyLane());
     setStatus('leasing');
@@ -98,6 +87,7 @@ export default function Main({ token, onSignOut }: { token: string; onSignOut: (
       region,
       source: source.trim(),
       target: target.trim(),
+      transcript: t,
       onEvent: (e) => {
         if (e.type === 'status') {
           setStatus(e.status);
@@ -106,16 +96,10 @@ export default function Main({ token, onSignOut }: { token: string; onSignOut: (
           // lease); the screen releases its part. 'error' is final: Start is offered again.
           if (e.status === 'error' || e.status === 'stopped') {
             session.current = null;
+            transcript.current?.end();
+            dirty.current = true;
             deactivateKeepAwake(KEEP_AWAKE_TAG);
           }
-        } else if (e.type === 'log') {
-          // Written to the development log file by the session itself.
-        } else {
-          const original = e.tokens.filter((t) => t.translation_status !== 'translation');
-          const translated = e.tokens.filter((t) => t.translation_status === 'translation');
-          if (original.length) fold(heardAll.current, original);
-          if (translated.length) fold(translationAll.current, translated);
-          dirty.current = true;
         }
       },
     });

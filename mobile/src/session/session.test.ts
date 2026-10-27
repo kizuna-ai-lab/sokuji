@@ -63,9 +63,10 @@ const grant = {
 const buffer = { sampleRate: 16000, length: 1600, getChannelData: () => new Float32Array(1600) };
 const flush = async () => { for (let i = 0; i < 100; i++) await Promise.resolve(); };
 const statuses = (events: SessionEvent[]) => events.filter((e) => e.type === 'status');
+const transcript = { message: vi.fn(), reconnected: vi.fn() };
 
 async function boot(events: SessionEvent[]) {
-  const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', onEvent: (e) => events.push(e) });
+  const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, onEvent: (e) => events.push(e) });
   await flush();
   const rec = audio.recorders.at(-1)!;
   rec.cb!({ buffer });
@@ -189,7 +190,7 @@ describe('a throw while starting', () => {
   it('ends the session with an error instead of an unhandled rejection', async () => {
     audio.manager.requestNotificationPermissions.mockRejectedValueOnce(new Error('boom'));
     const events: SessionEvent[] = [];
-    startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', onEvent: (e) => events.push(e) });
+    startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, onEvent: (e) => events.push(e) });
     await flush();
     expect(statuses(events).at(-1)).toEqual({ type: 'status', status: 'error', detail: 'boom' });
   });

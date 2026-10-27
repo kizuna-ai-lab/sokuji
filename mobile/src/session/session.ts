@@ -1,17 +1,17 @@
 import { Platform } from 'react-native';
 import { AudioManager, AudioRecorder, RecordingNotificationManager } from 'react-native-audio-api';
-import { SonioxSttStream, type SonioxToken } from '@shared/providers/soniox/sttStream';
+import { SonioxSttStream } from '@shared/providers/soniox/sttStream';
 import type { SonioxRegion } from '@shared/lib/soniox/regions';
 import { floatToInt16 } from './pcm';
 import { leaseKey, sessionEnd, sessionStarted, type Grant } from './lease';
 import { appendLog, openLogFile } from './logFile';
 import { createTicker } from './ticker';
+import type { Transcript } from './transcript';
 
 export type Status = 'leasing' | 'connecting' | 'listening' | 'reconnecting' | 'stopped' | 'error';
 
 export type SessionEvent =
   | { type: 'status'; status: Status; detail?: string }
-  | { type: 'tokens'; tokens: SonioxToken[] }
   | { type: 'log'; line: string };
 
 // The model name is a literal here: src/providers/soniox/config.ts is not DOM-free.
@@ -29,6 +29,8 @@ export function startSession(o: {
   region: SonioxRegion;
   source: string;
   target: string;
+  /** Where every Soniox message goes (Task 4): the desktop's transcript model. */
+  transcript: Pick<Transcript, 'message' | 'reconnected'>;
   onEvent: (e: SessionEvent) => void;
 }): { stop(): Promise<void> } {
   let running = true;
@@ -161,7 +163,7 @@ export function startSession(o: {
               awaitingFirstTokens = false;
               gapFrom = null;
             }
-            emit({ type: 'tokens', tokens: m.tokens });
+            o.transcript.message(m.tokens);
           }
         },
         onError: (code, message) => log(`error ${code} ${message}`),
@@ -184,12 +186,15 @@ export function startSession(o: {
         region: grant.region,
         model: MODEL,
         sampleRate,
-        languageHints: [o.source],
+        // Language identification is always on; a hint only when the user chose a language.
+        ...(o.source === 'auto' ? {} : { languageHints: [o.source] }),
         translation: { type: 'one_way', target_language: o.target },
         clientReferenceId: st.clientReferenceId,
       });
       // stop() may have ended this lease while the socket was opening.
       if (!running) return;
+      // A new socket after a drop numbers speakers from 1 again.
+      if (droppedAt) o.transcript.reconnected();
       await sessionStarted({ token: o.token, leaseId: grant.leaseId, role: st.role, signal: abort.signal, timer: ticker });
       if (!running) return;
       if (droppedAt) {
