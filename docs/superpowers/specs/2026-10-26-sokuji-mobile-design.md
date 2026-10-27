@@ -126,7 +126,7 @@ tokens back), which is what the desktop's `sttStream.ts` already speaks over a s
   `../src/locales/...` directly; extracting a workspace package is a later refactor, once the second
   consumer shows where the seam is (planner's call; the builder may start with the package if
   Metro's resolution fights back).
-- Both platforms build on a macOS machine (R5). EAS Build is optional, not required.
+- Both platforms build on a macOS machine (R5) or on GitHub's macOS runner. EAS is not used.
 - **Which backend the app talks to**: the app cannot sign in until the backend carries the Expo
   plugin and the `sokuji://` trusted origin (§5.3). That small, additive auth change ships to
   production in its own PR before the prototype, and the prototype runs against production (R7).
