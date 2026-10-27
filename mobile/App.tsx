@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView, ScrollView, StyleSheet, Text } from 'react-native';
+import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { sessionToken, signOut } from './src/auth/client';
 import SignIn from './src/auth/SignIn';
 import Main from './src/screens/Main';
@@ -25,11 +25,11 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <View style={styles.content}>
         {(!ready || token === undefined) && <Text>…</Text>}
         {ready && token === null && <SignIn onSignedIn={refresh} />}
         {ready && !!token && <Main token={token} onSignOut={async () => { await signOut(); await refresh(); }} />}
-      </ScrollView>
+      </View>
       <StatusBar style="auto" />
     </SafeAreaView>
   );
@@ -37,5 +37,5 @@ export default function App() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  content: { alignItems: 'center', paddingVertical: 24 },
+  content: { flex: 1, alignItems: 'center', paddingVertical: 12 },
 });
