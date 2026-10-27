@@ -88,6 +88,30 @@ describe('sessionStarted', () => {
 });
 
 describe('request timeouts', () => {
+  // On Android the JS timers stop in the background, so the cut-off must be able
+  // to come from the session's ticker instead of setTimeout.
+  it('cuts a session-key request off from the ticker when setTimeout never fires', async () => {
+    const { createTicker } = await import('./ticker');
+    vi.useFakeTimers();
+    try {
+      let t = 0;
+      const ticker = createTicker(() => t);
+      const fetch = ((_url: string, init: RequestInit) =>
+        new Promise<Response>((_, reject) => {
+          init.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+        })) as unknown as typeof globalThis.fetch;
+      const settled = leaseKey({ token: 'tok', region: 'us', fetch, timer: ticker, sleep: (ms) => ticker.sleep(ms), now: () => t }).then(
+        () => 'resolved',
+        (e: Error) => e.message,
+      );
+      t = 15000;
+      ticker.tick();
+      expect(await settled).toBe('session-key timeout');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   // A fetch that never answers unless it is aborted: React Native's fetch has no
   // timeout of its own, so a hung session-key left the session in `connecting`
   // for good (and `reconnecting` on screen) during Gate A.

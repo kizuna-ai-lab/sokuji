@@ -5,6 +5,7 @@ import type { SonioxRegion } from '@shared/lib/soniox/regions';
 import { floatToInt16 } from './pcm';
 import { leaseKey, sessionEnd, sessionStarted, type Grant } from './lease';
 import { appendLog, openLogFile } from './logFile';
+import { createTicker } from './ticker';
 
 export type Status = 'leasing' | 'connecting' | 'listening' | 'reconnecting' | 'stopped' | 'error';
 
@@ -50,12 +51,19 @@ export function startSession(o: {
   // stream with a 403 when it runs out, so the session rotates to a new grant first.
   let expiresAt = Infinity;
   let rotating = false;
-  let retryTimer: ReturnType<typeof setTimeout> | null = null;
+  let cancelRetry: (() => void) | null = null;
   // A close that lands while connect() is still running reconnects once it returns.
   let reconnectAfter = false;
   // stop() aborts the lease request in flight: a stopped session never waits
   // out a 409 and never wins a lease it will not use.
   const abort = new AbortController();
+  // Every wait hangs off this, never off setTimeout: on Android the JS timers stop
+  // with the activity in the background, while the audio callback keeps coming
+  // (it ticks below). A foreground interval ticks as well; whichever comes first.
+  const ticker = createTicker();
+  const driver = setInterval(() => ticker.tick(), 250);
+  const sleep = (ms: number) => ticker.sleep(ms);
+  const waits = { sleep, timer: ticker };
 
   const emit = (e: SessionEvent) => {
     if (!closed) o.onEvent(e);
@@ -78,10 +86,8 @@ export function startSession(o: {
     tearingDown = true;
     running = false;
     reconnectAfter = false;
-    if (retryTimer) {
-      clearTimeout(retryTimer);
-      retryTimer = null;
-    }
+    cancelRetry?.();
+    cancelRetry = null;
     abort.abort();
     stream?.end();
     const r = recorder;
@@ -105,7 +111,8 @@ export function startSession(o: {
     stream = null;
     const g = grant;
     grant = null;
-    if (g) await sessionEnd({ token: o.token, leaseId: g.leaseId });
+    if (g) await sessionEnd({ token: o.token, leaseId: g.leaseId, ...waits });
+    clearInterval(driver);
   }
 
   async function fail(detail: string): Promise<void> {
@@ -126,11 +133,11 @@ export function startSession(o: {
         const old = grant;
         grant = null;
         const t0 = Date.now();
-        const ended = await sessionEnd({ token: o.token, leaseId: old.leaseId });
+        const ended = await sessionEnd({ token: o.token, leaseId: old.leaseId, ...waits });
         log(`session-end ${ended ? 'ok' : 'gave up'} after ${Date.now() - t0} ms (${Date.now() - droppedAt} ms since drop)`);
         if (!running) return;
       }
-      grant = await leaseKey({ token: o.token, region: o.region, signal: abort.signal });
+      grant = await leaseKey({ token: o.token, region: o.region, signal: abort.signal, sleep: (ms) => ticker.sleep(ms, abort.signal), timer: ticker });
       expiresAt = Date.now() + grant.maxSessionDurationSeconds * 1000;
       log(`lease granted: ${(grant.maxSessionDurationSeconds / 60).toFixed(1)} min`);
       if (droppedAt) log(`new lease ${Date.now() - droppedAt} ms after the drop`);
@@ -138,7 +145,7 @@ export function startSession(o: {
         // Stopped while this lease was being granted: teardown saw no lease to end.
         const g = grant;
         grant = null;
-        await sessionEnd({ token: o.token, leaseId: g.leaseId });
+        await sessionEnd({ token: o.token, leaseId: g.leaseId, ...waits });
         return;
       }
       status('connecting');
@@ -183,7 +190,7 @@ export function startSession(o: {
       });
       // stop() may have ended this lease while the socket was opening.
       if (!running) return;
-      await sessionStarted({ token: o.token, leaseId: grant.leaseId, role: st.role, signal: abort.signal });
+      await sessionStarted({ token: o.token, leaseId: grant.leaseId, role: st.role, signal: abort.signal, timer: ticker });
       if (!running) return;
       if (droppedAt) {
         log(`reconnected after ${Date.now() - droppedAt} ms`);
@@ -217,13 +224,13 @@ export function startSession(o: {
       // A close that landed during this attempt is answered by this retry, not
       // by a second connect() after it.
       reconnectAfter = false;
-      retryTimer = setTimeout(() => {
-        retryTimer = null;
+      cancelRetry = ticker.after(delay, () => {
+        cancelRetry = null;
         void connect();
-      }, delay);
+      });
     } finally {
       connecting = false;
-      if (reconnectAfter && running && !retryTimer) {
+      if (reconnectAfter && running && !cancelRetry) {
         reconnectAfter = false;
         void connect();
       }
@@ -245,6 +252,9 @@ export function startSession(o: {
     }
     const r = new AudioRecorder();
     const ready = r.onAudioReady({ sampleRate: 16000, bufferLength: 1600, channelCount: 1 }, ({ buffer }) => {
+      // The one thing that keeps running with the screen off on Android: it
+      // advances every wait the session has pending.
+      ticker.tick();
       if (!running) return;
       if (!sampleRate) {
         // The config's sampleRate is what the recorder actually delivers, never assumed.
@@ -260,9 +270,9 @@ export function startSession(o: {
         const s = stream;
         s.end();
         // end() lets Soniox flush the last words and close; force it if that never comes.
-        setTimeout(() => {
+        ticker.after(5000, () => {
           if (stream === s && rotating) s.close();
-        }, 5000);
+        });
         return;
       }
       if (stream?.isOpen()) stream.sendAudio(floatToInt16(buffer.getChannelData(0)));

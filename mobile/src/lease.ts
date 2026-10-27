@@ -24,20 +24,34 @@ const headers = (token: string) => ({
 // `connecting` for good. Each attempt is cut off here, as the desktop does.
 const REQUEST_TIMEOUT_MS = 15000;
 
+// Where a wait is counted. The session passes its ticker (see ticker.ts): on
+// Android, setTimeout stops firing while the app is in the background, and a
+// cut-off that never comes is the hang it was meant to end.
+export interface WaitTimer {
+  after(ms: number, fn: () => void): () => void;
+}
+
+const nativeTimer: WaitTimer = {
+  after: (ms, fn) => {
+    const handle = setTimeout(fn, ms);
+    return () => clearTimeout(handle);
+  },
+};
+
 // `signal` is the session's: stop() aborts whatever request is in flight, and
 // the caller sees 'aborted' rather than a result it would have to throw away.
 async function post(
   doFetch: typeof fetch,
   url: string,
   body: unknown,
-  o: { token: string; timeoutMs?: number; signal?: AbortSignal },
+  o: { token: string; timeoutMs?: number; signal?: AbortSignal; timer?: WaitTimer },
   label: string,
 ): Promise<Response> {
   const abort = new AbortController();
   const onOuter = () => abort.abort();
   o.signal?.addEventListener('abort', onOuter, { once: true });
   if (o.signal?.aborted) abort.abort();
-  const timer = setTimeout(() => abort.abort(), o.timeoutMs ?? REQUEST_TIMEOUT_MS);
+  const cancel = (o.timer ?? nativeTimer).after(o.timeoutMs ?? REQUEST_TIMEOUT_MS, () => abort.abort());
   try {
     return await doFetch(url, {
       method: 'POST',
@@ -50,7 +64,7 @@ async function post(
     if (abort.signal.aborted) throw new Error(`${label} timeout`);
     throw err;
   } finally {
-    clearTimeout(timer);
+    cancel();
     o.signal?.removeEventListener('abort', onOuter);
   }
 }
@@ -78,6 +92,7 @@ export async function leaseKey(o: {
   now?: () => number;
   timeoutMs?: number;
   signal?: AbortSignal;
+  timer?: WaitTimer;
 }): Promise<Grant> {
   const doFetch = o.fetch ?? fetch;
   const sleep = o.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
@@ -111,6 +126,7 @@ export async function sessionStarted(o: {
   fetch?: typeof fetch;
   timeoutMs?: number;
   signal?: AbortSignal;
+  timer?: WaitTimer;
 }): Promise<void> {
   const res = await post(
     o.fetch ?? fetch,
@@ -135,6 +151,7 @@ export async function sessionEnd(o: {
   fetch?: typeof fetch;
   sleep?: (ms: number) => Promise<void>;
   now?: () => number;
+  timer?: WaitTimer;
 }): Promise<boolean> {
   const doFetch = o.fetch ?? fetch;
   const sleep = o.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
@@ -144,7 +161,7 @@ export async function sessionEnd(o: {
     const left = deadline - now();
     if (left <= 0) break;
     const abort = new AbortController();
-    const timer = setTimeout(() => abort.abort(), left);
+    const cancel = (o.timer ?? nativeTimer).after(left, () => abort.abort());
     try {
       const res = await doFetch(`${BACKEND_URL}/api/soniox/session-end`, {
         method: 'POST',
@@ -158,7 +175,7 @@ export async function sessionEnd(o: {
     } catch (err) {
       console.log(`session-end failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
-      clearTimeout(timer);
+      cancel();
     }
     const wait = END_RETRY_WAITS_MS[attempt];
     if (wait === undefined || now() + wait >= deadline) break;

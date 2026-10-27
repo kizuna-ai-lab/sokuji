@@ -194,3 +194,32 @@ describe('a throw while starting', () => {
     expect(statuses(events).at(-1)).toEqual({ type: 'status', status: 'error', detail: 'boom' });
   });
 });
+
+describe('Android background: setTimeout never fires', () => {
+  // React Native pauses JS timers with the activity on Android, while the audio
+  // callback keeps coming. Every wait must be driven by the audio callback (the
+  // ticker): here the fake timers are never advanced, time moves only through
+  // Date.now(), and the recorder's callback is the only thing that ticks.
+  it('still reconnects after a drop when only the audio callback runs', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000_000);
+    const events: SessionEvent[] = [];
+    const { s, rec } = await boot(events);
+    expect(statuses(events).at(-1)?.status).toBe('listening');
+    // the network drops: session-end fails, the next lease fails once
+    lease.sessionEnd.mockRejectedValueOnce(new Error('dns'));
+    lease.leaseKey.mockRejectedValueOnce(new Error('session-key timeout'));
+    streams.at(-1)!.handlers.onClose({ code: 1006, reason: '' } as never);
+    await flush();
+    // audio keeps coming for 20 s of wall-clock time; no timer is ever fired
+    for (let i = 0; i < 200; i++) {
+      vi.setSystemTime(1_000_000 + (i + 1) * 100);
+      rec.cb!({ buffer });
+      await flush();
+    }
+    expect(lease.leaseKey).toHaveBeenCalledTimes(3);
+    expect(statuses(events).at(-1)?.status).toBe('listening');
+    await s.stop();
+  });
+});
+
