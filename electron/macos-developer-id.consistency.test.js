@@ -15,7 +15,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const build = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf8')).build;
+const pkg = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
+const build = pkg.build;
+const lock = JSON.parse(readFileSync(path.join(repoRoot, 'package-lock.json'), 'utf8'));
 const workflow = readFileSync(path.join(repoRoot, '.github/workflows/build.yml'), 'utf8');
 
 const TEAM_ID = '48ST7Q3ACJ';
@@ -51,6 +53,18 @@ describe('macOS Developer ID signing (package.json)', () => {
 
   it('runs no afterSign hook, which would re-sign the app after notarization', () => {
     expect(build.afterSign).toBeUndefined();
+  });
+
+  it('gives electron-builder a notarize that actually retries stapling', () => {
+    // @electron/notarize 2.5.0, which every app-builder-lib 26 pins, hands
+    // promise-retry a function that never calls `retry`, so its `retries: 3`
+    // never retries: one dropped request to Apple's ticket service failed the
+    // whole macOS build (2026-10-27, x64 runner). 3.x passes the retry on.
+    expect(pkg.overrides?.['app-builder-lib']?.['@electron/notarize']).toMatch(/^\^?3\./);
+    const resolved = ['node_modules/app-builder-lib/node_modules/@electron/notarize', 'node_modules/@electron/notarize']
+      .map((key) => lock.packages[key])
+      .find((entry) => entry && lock.packages['node_modules/app-builder-lib']);
+    expect(resolved?.version).toMatch(/^3\./);
   });
 });
 

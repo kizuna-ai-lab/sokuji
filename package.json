@@ -128,7 +128,10 @@
     "tar-stream": "^3.2.0"
   },
   "overrides": {
-    "onnxruntime-node": "npm:empty-npm-package@1.0.0"
+    "onnxruntime-node": "npm:empty-npm-package@1.0.0",
+    "app-builder-lib": {
+      "@electron/notarize": "^3.1.2"
+    }
   },
   "devDependencies": {
     "@electron-forge/cli": "^8.0.1",
