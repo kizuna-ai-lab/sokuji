@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { AudioManager, AudioRecorder, RecordingNotificationManager } from 'react-native-audio-api';
+import { addNetworkStateListener } from 'expo-network';
 import { SonioxSttStream } from '@shared/providers/soniox/sttStream';
 import type { SonioxRegion } from '@shared/lib/soniox/regions';
 import { floatToInt16 } from './pcm';
@@ -7,6 +8,7 @@ import { leaseKey, sessionEnd, sessionStarted, type Grant } from './lease';
 import { appendLog, openLogFile } from './logFile';
 import { createTicker } from './ticker';
 import type { Transcript } from './transcript';
+import { createInterruptionHandler } from './interruptions';
 
 export type Status = 'leasing' | 'connecting' | 'listening' | 'reconnecting' | 'stopped' | 'error';
 
@@ -56,6 +58,8 @@ export function startSession(o: {
   let cancelRetry: (() => void) | null = null;
   // A close that lands while connect() is still running reconnects once it returns.
   let reconnectAfter = false;
+  // The OS subscriptions a running session holds; released in teardown.
+  let subscriptions: Array<{ remove(): void }> = [];
   // stop() aborts the lease request in flight: a stopped session never waits
   // out a 409 and never wins a lease it will not use.
   const abort = new AbortController();
@@ -90,6 +94,8 @@ export function startSession(o: {
     reconnectAfter = false;
     cancelRetry?.();
     cancelRetry = null;
+    for (const sub of subscriptions) sub.remove();
+    subscriptions = [];
     abort.abort();
     stream?.end();
     const r = recorder;
@@ -224,7 +230,9 @@ export function startSession(o: {
       const delay = RETRY_DELAYS_MS[failures] ?? RETRY_EVERY_MS;
       failures += 1;
       log(`connect failed (#${failures}): ${message} — retrying in ${delay / 1000} s`);
-      status('reconnecting', message);
+      // A minute of 409s: another device holds the account's one lease. Said on
+      // screen, and the retries go on, since that session may end any moment.
+      status('reconnecting', message === 'lease_conflict' ? 'other_session' : message);
       if (droppedAt === null) droppedAt = Date.now();
       // A close that landed during this attempt is answered by this retry, not
       // by a second connect() after it.
@@ -309,6 +317,27 @@ export function startSession(o: {
       return;
     }
     recorder = r;
+    // A phone call or Siri: capture pauses and, when the OS allows, resumes;
+    // the socket and the lease are kept.
+    const interruptions = createInterruptionHandler({
+      pauseCapture: () => recorder?.pause(),
+      resumeCapture: () => recorder?.resume(),
+      log,
+    });
+    const onInterruption = AudioManager.addSystemEventListener('interruption', (e) => {
+      log(`interruption ${e.type}${e.type === 'ended' ? ` (resume: ${e.shouldResume})` : ''}`);
+      interruptions.onInterruption({ type: e.type, shouldResume: !!e.shouldResume });
+    });
+    const onRoute = AudioManager.addSystemEventListener('routeChange', (e) => interruptions.onRouteChange({ reason: String(e.reason) }));
+    // The network is back: retry now rather than wait out the backoff.
+    const onNetwork = addNetworkStateListener(({ isConnected }) => {
+      if (!isConnected || !running || !cancelRetry) return;
+      cancelRetry();
+      cancelRetry = null;
+      log('network back: retrying now');
+      void connect();
+    });
+    subscriptions = [onInterruption, onRoute, onNetwork].filter((x): x is { remove(): void } => !!x);
     status('leasing');
   }
 

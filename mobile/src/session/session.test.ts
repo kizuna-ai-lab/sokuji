@@ -13,6 +13,7 @@ const audio = vi.hoisted(() => ({
     observeAudioInterruptions: vi.fn(),
     requestRecordingPermissions: vi.fn(async () => 'Granted'),
     requestNotificationPermissions: vi.fn(async () => 'Granted'),
+    addSystemEventListener: vi.fn(() => ({ remove: () => {} })),
   },
 }));
 vi.mock('react-native', () => ({ Platform: { OS: 'android' } }));
@@ -27,10 +28,19 @@ vi.mock('react-native-audio-api', () => ({
     onAudioReady(_cfg: unknown, cb: (e: { buffer: unknown }) => void) { this.cb = cb; return { status: 'ok' }; }
     async start() { return { status: 'ok' }; }
     async stop() { this.stopped = true; }
+    pause() {}
+    resume() {}
     clearOnAudioReady() { this.cleared = true; }
   },
 }));
 vi.mock('./logFile', () => ({ openLogFile: () => 'memory', appendLog: () => {} }));
+const network = vi.hoisted(() => ({ listeners: [] as Array<(state: { isConnected: boolean | null }) => void> }));
+vi.mock('expo-network', () => ({
+  addNetworkStateListener: (cb: (state: { isConnected: boolean | null }) => void) => {
+    network.listeners.push(cb);
+    return { remove: () => { network.listeners.splice(network.listeners.indexOf(cb), 1); } };
+  },
+}));
 const lease = vi.hoisted(() => ({
   leaseKey: vi.fn(),
   sessionStarted: vi.fn(),
@@ -78,6 +88,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   audio.recorders.length = 0;
   streams.length = 0;
+  network.listeners.length = 0;
   lease.leaseKey.mockResolvedValue(grant);
   lease.sessionStarted.mockResolvedValue(undefined);
   lease.sessionEnd.mockResolvedValue(true);
@@ -219,6 +230,41 @@ describe('Android background: setTimeout never fires', () => {
       await flush();
     }
     expect(lease.leaseKey).toHaveBeenCalledTimes(3);
+    expect(statuses(events).at(-1)?.status).toBe('listening');
+    await s.stop();
+  });
+});
+
+describe('the network comes back', () => {
+  it('retries at once instead of waiting out the backoff', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(2_000_000);
+    lease.leaseKey.mockRejectedValueOnce(new Error('session-key timeout'));
+    const events: SessionEvent[] = [];
+    const { s } = await boot(events);
+    expect(statuses(events).at(-1)?.status).toBe('reconnecting');
+    expect(lease.leaseKey).toHaveBeenCalledTimes(1);
+    network.listeners.forEach((cb) => cb({ isConnected: true }));
+    await flush();
+    expect(lease.leaseKey).toHaveBeenCalledTimes(2);
+    expect(statuses(events).at(-1)?.status).toBe('listening');
+    await s.stop();
+  });
+});
+
+describe('another device holds the account', () => {
+  it('says so after a minute of 409s and keeps trying', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(3_000_000);
+    // leaseKey's own 409 loop gives up with lease_conflict after 60 s; the
+    // session keeps retrying and names the cause on screen.
+    lease.leaseKey.mockRejectedValueOnce(new Error('lease_conflict'));
+    const events: SessionEvent[] = [];
+    const { s } = await boot(events);
+    expect(statuses(events).at(-1)).toEqual({ type: 'status', status: 'reconnecting', detail: 'other_session' });
+    await vi.advanceTimersByTimeAsync(2500);
+    await flush();
+    expect(lease.leaseKey).toHaveBeenCalledTimes(2);
     expect(statuses(events).at(-1)?.status).toBe('listening');
     await s.stop();
   });

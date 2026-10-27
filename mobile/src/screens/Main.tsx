@@ -125,7 +125,7 @@ function statusLine(t: (key: string) => string, status: Status | 'idle', detail:
     return detail;
   }
   if (status === 'listening') return t('mobile.main.status.listening');
-  if (status === 'reconnecting') return t('mobile.main.status.reconnecting');
+  if (status === 'reconnecting') return detail === 'other_session' ? t('mobile.main.status.otherSession') : t('mobile.main.status.reconnecting');
   if (status === 'stopped') return t('mobile.main.status.stopped');
   return t('mobile.main.status.starting');
 }
