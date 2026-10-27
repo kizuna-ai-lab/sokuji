@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { leaseKey } from './lease';
 
 const grant = {
@@ -48,6 +48,16 @@ describe('leaseKey', () => {
     const { fetch } = respond([401]);
     await expect(leaseKey({ token: 'tok', region: 'us', fetch, ...clock() })).rejects.toThrow('sign_in_required');
   });
+
+  // stop() aborts a lease in flight: the 409 wait ends at the next tick and
+  // no request follows, so a stopped session cannot win a lease it will never use.
+  it('stops the 409 wait when the signal aborts', async () => {
+    const { fetch, calls } = respond([409, 409, 409]);
+    const ctl = new AbortController();
+    const sleep = async () => { ctl.abort(); };
+    await expect(leaseKey({ token: 'tok', region: 'us', fetch, sleep, now: () => 0, signal: ctl.signal })).rejects.toThrow('aborted');
+    expect(calls.length).toBe(1);
+  });
 });
 
 describe('sessionEnd', () => {
@@ -64,5 +74,57 @@ describe('sessionEnd', () => {
     const { fetch, calls } = respond([500, 500, 500, 500]);
     expect(await sessionEnd({ token: 'tok', leaseId: 'lease-1', fetch, ...clock() })).toBe(false);
     expect(calls.length).toBe(3);
+  });
+});
+
+describe('sessionStarted', () => {
+  // A lost session answers 401 here as well as on session-key; the session
+  // must stop with "sign in again", not retry a request that cannot succeed.
+  it('reports a 401 as sign_in_required', async () => {
+    const { sessionStarted } = await import('./lease');
+    const { fetch } = respond([401]);
+    await expect(sessionStarted({ token: 'tok', leaseId: 'lease-1', role: 'par_stt', fetch })).rejects.toThrow('sign_in_required');
+  });
+});
+
+describe('request timeouts', () => {
+  // A fetch that never answers unless it is aborted: React Native's fetch has no
+  // timeout of its own, so a hung session-key left the session in `connecting`
+  // for good (and `reconnecting` on screen) during Gate A.
+  const hang = () => {
+    const fetch = ((_url: string, init: RequestInit) =>
+      new Promise<Response>((_, reject) => {
+        init.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+      })) as unknown as typeof globalThis.fetch;
+    return fetch;
+  };
+
+  it('aborts a session-key request after 15 s and reports it as a network error', async () => {
+    vi.useFakeTimers();
+    try {
+      const settled = leaseKey({ token: 'tok', region: 'us', fetch: hang(), ...clock() }).then(
+        () => 'resolved',
+        (e: Error) => e.message,
+      );
+      await vi.advanceTimersByTimeAsync(15000);
+      expect(await settled).toBe('session-key timeout');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('aborts a session-started request after 15 s', async () => {
+    vi.useFakeTimers();
+    try {
+      const { sessionStarted } = await import('./lease');
+      const settled = sessionStarted({ token: 'tok', leaseId: 'lease-1', role: 'par_stt', fetch: hang() }).then(
+        () => 'resolved',
+        (e: Error) => e.message,
+      );
+      await vi.advanceTimersByTimeAsync(15000);
+      expect(await settled).toBe('session-started timeout');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

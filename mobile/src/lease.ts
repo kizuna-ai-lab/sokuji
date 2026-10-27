@@ -19,6 +19,42 @@ const headers = (token: string) => ({
   Authorization: `Bearer ${token}`,
 });
 
+// React Native's fetch has no timeout of its own: a request that never answers
+// (a dead cellular link after a drop) would have left the session in
+// `connecting` for good. Each attempt is cut off here, as the desktop does.
+const REQUEST_TIMEOUT_MS = 15000;
+
+// `signal` is the session's: stop() aborts whatever request is in flight, and
+// the caller sees 'aborted' rather than a result it would have to throw away.
+async function post(
+  doFetch: typeof fetch,
+  url: string,
+  body: unknown,
+  o: { token: string; timeoutMs?: number; signal?: AbortSignal },
+  label: string,
+): Promise<Response> {
+  const abort = new AbortController();
+  const onOuter = () => abort.abort();
+  o.signal?.addEventListener('abort', onOuter, { once: true });
+  if (o.signal?.aborted) abort.abort();
+  const timer = setTimeout(() => abort.abort(), o.timeoutMs ?? REQUEST_TIMEOUT_MS);
+  try {
+    return await doFetch(url, {
+      method: 'POST',
+      headers: headers(o.token),
+      body: JSON.stringify(body),
+      signal: abort.signal,
+    });
+  } catch (err) {
+    if (o.signal?.aborted) throw new Error('aborted');
+    if (abort.signal.aborted) throw new Error(`${label} timeout`);
+    throw err;
+  } finally {
+    clearTimeout(timer);
+    o.signal?.removeEventListener('abort', onOuter);
+  }
+}
+
 function parseGrant(body: unknown): Grant {
   const g = body as Partial<Grant> | null;
   if (
@@ -40,22 +76,27 @@ export async function leaseKey(o: {
   fetch?: typeof fetch;
   sleep?: (ms: number) => Promise<void>;
   now?: () => number;
+  timeoutMs?: number;
+  signal?: AbortSignal;
 }): Promise<Grant> {
   const doFetch = o.fetch ?? fetch;
   const sleep = o.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   const now = o.now ?? Date.now;
   const start = now();
   for (;;) {
-    const res = await doFetch(`${BACKEND_URL}/api/soniox/session-key`, {
-      method: 'POST',
-      headers: headers(o.token),
-      body: JSON.stringify({ mode: 'participant', textOnly: true, bothSplit: false, region: o.region }),
-    });
+    const res = await post(
+      doFetch,
+      `${BACKEND_URL}/api/soniox/session-key`,
+      { mode: 'participant', textOnly: true, bothSplit: false, region: o.region },
+      o,
+      'session-key',
+    );
     if (res.status === 200) return parseGrant(await res.json());
     if (res.status === 401) throw new Error('sign_in_required');
     if (res.status === 402) throw new Error('balance_exhausted');
     if (res.status === 409) {
       await sleep(CONFLICT_RETRY_MS);
+      if (o.signal?.aborted) throw new Error('aborted');
       if (now() - start < CONFLICT_WAIT_LIMIT_MS) continue;
       throw new Error('lease_conflict');
     }
@@ -68,12 +109,17 @@ export async function sessionStarted(o: {
   leaseId: string;
   role: string;
   fetch?: typeof fetch;
+  timeoutMs?: number;
+  signal?: AbortSignal;
 }): Promise<void> {
-  const res = await (o.fetch ?? fetch)(`${BACKEND_URL}/api/soniox/session-started`, {
-    method: 'POST',
-    headers: headers(o.token),
-    body: JSON.stringify({ leaseId: o.leaseId, role: o.role }),
-  });
+  const res = await post(
+    o.fetch ?? fetch,
+    `${BACKEND_URL}/api/soniox/session-started`,
+    { leaseId: o.leaseId, role: o.role },
+    o,
+    'session-started',
+  );
+  if (res.status === 401) throw new Error('sign_in_required');
   if (!res.ok) throw new Error(`session-started ${res.status}`);
 }
 
