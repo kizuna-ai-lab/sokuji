@@ -427,6 +427,8 @@ jobs:
       # See docs/build/macos-auto-update.md §7.1c.
       - name: Check the Developer ID signing identities (macOS)
         if: runner.os == 'macOS' && env.HAS_MAC_CERT == 'true'
+        # curl and notarytool talk to Apple with no timeout of their own.
+        timeout-minutes: 10
         env:
           MACOS_DEVID_APP_P12: ${{ secrets.MACOS_DEVID_APP_P12 }}
           MACOS_DEVID_INSTALLER_P12: ${{ secrets.MACOS_DEVID_INSTALLER_P12 }}
@@ -442,7 +444,7 @@ jobs:
           if grep -Fq "SHA-256 hash: $G2_SHA256" <<<"$INTERMEDIATES"; then
             echo "OK: the Developer ID G2 intermediate is already installed."
           else
-            curl -fsSL https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer -o "$RUNNER_TEMP/DeveloperIDG2CA.cer"
+            curl -fsSL --max-time 60 --retry 3 https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer -o "$RUNNER_TEMP/DeveloperIDG2CA.cer"
             GOT=$(shasum -a 256 "$RUNNER_TEMP/DeveloperIDG2CA.cer" | awk '{ print toupper($1) }')
             if [ "$GOT" != "$G2_SHA256" ]; then
               echo "FAIL: the downloaded Developer ID G2 intermediate has SHA-256 $GOT, expected $G2_SHA256." >&2
@@ -552,6 +554,8 @@ jobs:
       # missing ticket brings back the Gatekeeper refusal -- fail loudly instead.
       - name: Verify the macOS update artifacts (signature + notarization + zip + manifest)
         if: runner.os == 'macOS' && env.HAS_MAC_CERT == 'true'
+        # stapler and spctl may look tickets up online; each stapler retry loop adds at most 30 s.
+        timeout-minutes: 15
         run: |
           set -euo pipefail
           APP=$(find out/make-mac -name 'Sokuji.app' -maxdepth 3 | head -1)

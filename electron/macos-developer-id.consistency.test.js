@@ -125,9 +125,18 @@ describe('the macOS signing pipeline (build.yml)', () => {
     expect(env).not.toMatch(/^\s+(CSC_LINK|CSC_INSTALLER_LINK|APPLE_API_KEY|APPLE_API_KEY_ID|APPLE_API_ISSUER):/m);
   });
 
-  it('bounds the build, since notarytool waits on Apple with no timeout of its own', () => {
-    // Without it a stalled notary queue holds the runner for the job default, six hours.
-    expect(step('Build macOS artifacts (electron-builder)')).toMatch(/^\s+timeout-minutes: \d+$/m);
+  it('bounds every step that waits on Apple, since none of those tools has a timeout of its own', () => {
+    // Without a bound, a stalled request holds the runner for the job default,
+    // six hours: notarytool's queue in the build, the certificate download and
+    // `notarytool history` in the check, and stapler/spctl in the verify step.
+    for (const name of [
+      'Check the Developer ID signing identities (macOS)',
+      'Build macOS artifacts (electron-builder)',
+      'Verify the macOS update artifacts (signature + notarization + zip + manifest)',
+    ]) {
+      expect(step(name), name).toMatch(/^\s+timeout-minutes: \d+$/m);
+    }
+    expect(step('Check the Developer ID signing identities (macOS)')).toMatch(/curl -fsSL --max-time \d+ --retry \d+ /);
   });
 
   it('fails a build that installed v0.46.4 would refuse as an update', () => {
