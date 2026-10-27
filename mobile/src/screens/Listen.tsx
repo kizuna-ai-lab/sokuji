@@ -21,7 +21,7 @@ export default function Listen({ onBack }: { onBack: () => void }) {
   return (
     <View style={styles.box}>
       <View style={styles.header}>
-        <Text style={styles.link} onPress={onBack}>‹ {t('mobile.menu.settings')}</Text>
+        <Text accessibilityRole="button" style={styles.link} onPress={onBack}>‹ {t('mobile.menu.settings')}</Text>
         <Text style={styles.title}>{t('mobile.settings.listen')}</Text>
         <Text style={styles.link}> </Text>
       </View>
@@ -33,7 +33,7 @@ export default function Listen({ onBack }: { onBack: () => void }) {
       <Text style={styles.section}>{t('mobile.listen.speed')}</Text>
       <View style={styles.choices}>
         {SPEEDS.map((v) => (
-          <Text key={v} style={[styles.choice, v === settings.speed && styles.choiceOn]} onPress={() => set({ speed: v })}>
+          <Text accessibilityRole="button" key={v} style={[styles.choice, v === settings.speed && styles.choiceOn]} onPress={() => set({ speed: v })}>
             {v.toFixed(1)}×
           </Text>
         ))}
@@ -41,7 +41,7 @@ export default function Listen({ onBack }: { onBack: () => void }) {
       <Text style={styles.section}>{t('mobile.listen.voice')}</Text>
       <ScrollView style={styles.voices}>
         {voices.map((v) => (
-          <Text key={v.value} style={[styles.voice, v.value === current && styles.voiceOn]} onPress={() => set({ voice: v.value })}>
+          <Text accessibilityRole="button" key={v.value} style={[styles.voice, v.value === current && styles.voiceOn]} onPress={() => set({ voice: v.value })}>
             {v.name}
           </Text>
         ))}

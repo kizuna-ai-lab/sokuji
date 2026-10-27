@@ -44,7 +44,7 @@ export default function Devices({ onBack }: { onBack: () => void }) {
   return (
     <View style={styles.box}>
       <View style={styles.header}>
-        <Text style={styles.link} onPress={onBack}>‹ {t('mobile.menu.settings')}</Text>
+        <Text accessibilityRole="button" style={styles.link} onPress={onBack}>‹ {t('mobile.menu.settings')}</Text>
         <Text style={styles.title}>{t('mobile.settings.devices')}</Text>
         <Text style={styles.link}> </Text>
       </View>
@@ -52,7 +52,7 @@ export default function Devices({ onBack }: { onBack: () => void }) {
       {mics.map((m, i) => {
         const selected = chosen === null ? m.kind === 'builtin' && i === mics.findIndex((x) => x.kind === 'builtin') : chosen === m.id;
         return (
-          <Text key={m.id} style={styles.row} onPress={() => set({ inputDeviceId: m.kind === 'builtin' ? null : m.id })}>
+          <Text accessibilityRole="button" key={m.id} style={styles.row} onPress={() => set({ inputDeviceId: m.kind === 'builtin' ? null : m.id })}>
             {kindLabel[m.kind]}{m.kind !== 'builtin' ? ` · ${m.name}` : ''}{selected ? '  ✓' : ''}
           </Text>
         );

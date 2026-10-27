@@ -50,7 +50,7 @@ export default function Usage({ token, onBack }: { token: string; onBack: () => 
   return (
     <View style={styles.box}>
       <View style={styles.header}>
-        <Text style={styles.link} onPress={onBack}>‹ {t('mobile.common.back')}</Text>
+        <Text accessibilityRole="button" style={styles.link} onPress={onBack}>‹ {t('mobile.common.back')}</Text>
         <Text style={styles.title}>{t('mobile.account.usage')}</Text>
         <Text style={styles.link}> </Text>
       </View>

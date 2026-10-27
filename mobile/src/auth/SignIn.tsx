@@ -110,8 +110,8 @@ export default function SignIn({
     <View style={styles.box}>
       {(mode === 'signin' || mode === 'register') && (
         <View style={styles.tabs}>
-          <Text style={[styles.tab, mode === 'signin' && styles.tabOn]} onPress={() => go('signin')}>{t('mobile.signIn.title')}</Text>
-          <Text style={[styles.tab, mode === 'register' && styles.tabOn]} onPress={() => go('register')}>{t('mobile.signIn.register')}</Text>
+          <Text accessibilityRole="button" style={[styles.tab, mode === 'signin' && styles.tabOn]} onPress={() => go('signin')}>{t('mobile.signIn.title')}</Text>
+          <Text accessibilityRole="button" style={[styles.tab, mode === 'register' && styles.tabOn]} onPress={() => go('register')}>{t('mobile.signIn.register')}</Text>
         </View>
       )}
 
@@ -124,7 +124,7 @@ export default function SignIn({
             disabled={busy || !address || !password}
             onPress={() => run(() => signIn(address, password), () => onSignedIn(address))}
           />
-          <Text style={styles.link} onPress={() => go('forgot')}>{t('mobile.signIn.forgot')}</Text>
+          <Text accessibilityRole="button" style={styles.link} onPress={() => go('forgot')}>{t('mobile.signIn.forgot')}</Text>
         </>
       )}
 
@@ -152,7 +152,7 @@ export default function SignIn({
             onPress={() => run(() => verifyEmail(address, otp), () => onSignedIn(address))}
           />
           {resend}
-          <Text style={styles.link} onPress={() => (onBack ? onBack() : onSignedIn(address))}>{onBack ? t('mobile.common.back') : t('mobile.signIn.later')}</Text>
+          <Text accessibilityRole="button" style={styles.link} onPress={() => (onBack ? onBack() : onSignedIn(address))}>{onBack ? t('mobile.common.back') : t('mobile.signIn.later')}</Text>
         </>
       )}
 
@@ -165,7 +165,7 @@ export default function SignIn({
             disabled={busy || !address}
             onPress={() => run(async () => { await requestPasswordReset(address); setResendIn(RESEND_WAIT_S); }, () => go('reset'))}
           />
-          <Text style={styles.link} onPress={() => go('signin')}>{t('mobile.signIn.back')}</Text>
+          <Text accessibilityRole="button" style={styles.link} onPress={() => go('signin')}>{t('mobile.signIn.back')}</Text>
         </>
       )}
 
@@ -185,7 +185,7 @@ export default function SignIn({
             disabled={busy || resendIn > 0}
             onPress={() => run(async () => { await requestPasswordReset(address); setResendIn(RESEND_WAIT_S); })}
           />
-          <Text style={styles.link} onPress={() => go('signin')}>{t('mobile.signIn.back')}</Text>
+          <Text accessibilityRole="button" style={styles.link} onPress={() => (onBack ? onBack() : go('signin'))}>{onBack ? t('mobile.common.back') : t('mobile.signIn.back')}</Text>
         </>
       )}
 

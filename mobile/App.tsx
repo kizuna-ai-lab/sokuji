@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, SafeAreaView, StyleSheet, View } from 'react-native';
 import { accountEmail, sessionToken, signOut } from './src/auth/client';
 import { signOutAndForget } from './src/auth/signOutFlow';
 import { settingsStore } from './src/store/useSettings';
@@ -37,7 +37,7 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        {(!ready || token === undefined) && <Text>…</Text>}
+        {(!ready || token === undefined) && <ActivityIndicator style={styles.loading} />}
         {ready && token === null && <SignIn onSignedIn={refresh} />}
         {ready && !!token && (
           <Main
@@ -57,4 +57,5 @@ export default function App() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   content: { flex: 1, alignItems: 'center', paddingVertical: 12 },
+  loading: { marginTop: 120 },
 });

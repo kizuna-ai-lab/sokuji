@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Button, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Button, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { deleteAccount, emailVerified, sendVerificationCode } from '../auth/client';
+import { deleteAccount, emailVerified, requestPasswordReset, sendVerificationCode } from '../auth/client';
 import SignIn from '../auth/SignIn';
 import { fetchFallbackUsdPerHour, fetchUsagePerHour, fetchWallet, type Wallet } from '../account/wallet';
 import { formatHours, hoursLeft } from '../account/hours';
@@ -29,7 +29,7 @@ export default function Account({
   const [hours, setHours] = useState<string | null>(null);
   const [verified, setVerified] = useState<boolean | null>(null);
   const [error, setError] = useState('');
-  const [view, setView] = useState<'account' | 'usage' | 'verify'>('account');
+  const [view, setView] = useState<'account' | 'usage' | 'verify' | 'password'>('account');
   const money = new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD' });
   const day = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' });
 
@@ -65,6 +65,19 @@ export default function Account({
     }
   }
 
+  // Set or change the password: a code to the address, then the new password —
+  // the same reset flow as "forgot", so an account that only ever signed in
+  // with a code gets a password here too.
+  async function startPasswordChange() {
+    setError('');
+    try {
+      await requestPasswordReset(email);
+      setView('password');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
   function confirmDelete() {
     Alert.alert(t('mobile.account.deleteAccount'), t('mobile.account.deleteConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
@@ -84,10 +97,10 @@ export default function Account({
   }
 
   if (view === 'usage') return <Usage token={token} onBack={() => setView('account')} />;
-  if (view === 'verify') {
+  if (view === 'verify' || view === 'password') {
     return (
       <SignIn
-        initialMode="verify"
+        initialMode={view === 'verify' ? 'verify' : 'reset'}
         initialEmail={email}
         onSignedIn={() => { setView('account'); void load(); }}
         onBack={() => setView('account')}
@@ -98,11 +111,12 @@ export default function Account({
   return (
     <View style={styles.box}>
       <View style={styles.header}>
-        <Text style={styles.link} onPress={onBack}>‹ {t('mobile.common.back')}</Text>
+        <Text accessibilityRole="button" style={styles.link} onPress={onBack}>‹ {t('mobile.common.back')}</Text>
         <Text style={styles.title}>{t('mobile.menu.account')}</Text>
         <Text style={styles.link}> </Text>
       </View>
       <Text style={styles.quiet}>{email}</Text>
+      {!wallet && !error && <ActivityIndicator style={styles.loading} />}
       {wallet && (
         <View style={styles.balance}>
           <View style={styles.stats}>
@@ -131,9 +145,10 @@ export default function Account({
           <Button title={t('mobile.signIn.verify')} onPress={startVerify} />
         </View>
       )}
-      <Text style={styles.row} onPress={() => setView('usage')}>{t('mobile.account.usage')}  ›</Text>
-      <Text style={[styles.row, styles.danger]} onPress={onSignOut}>{t('mobile.account.signOut')}</Text>
-      <Text style={styles.row} onPress={confirmDelete}>{t('mobile.account.deleteAccount')}  ›</Text>
+      <Text accessibilityRole="button" style={styles.row} onPress={() => setView('usage')}>{t('mobile.account.usage')}  ›</Text>
+      <Text accessibilityRole="button" style={styles.row} onPress={startPasswordChange}>{t('mobile.signIn.password')}  ›</Text>
+      <Text accessibilityRole="button" style={[styles.row, styles.danger]} onPress={onSignOut}>{t('mobile.account.signOut')}</Text>
+      <Text accessibilityRole="button" style={styles.row} onPress={confirmDelete}>{t('mobile.account.deleteAccount')}  ›</Text>
       {!!error && <Text style={styles.error}>{error}</Text>}
     </View>
   );
@@ -145,6 +160,7 @@ const styles = StyleSheet.create({
   title: { fontWeight: '600', fontSize: 17 },
   link: { color: '#1e63c4', minWidth: 60 },
   quiet: { color: '#666', fontSize: 13 },
+  loading: { paddingVertical: 24 },
   balance: { gap: 6, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#ddd' },
   stats: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   right: { alignItems: 'flex-end' },

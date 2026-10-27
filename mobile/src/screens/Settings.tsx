@@ -27,7 +27,7 @@ export default function Settings({ onBack, locked, onOpen }: { onBack: () => voi
   const choices = <T extends string>(values: readonly T[], current: T, label: (v: T) => string, onPick: (v: T) => void, disabled = false) => (
     <View style={styles.choices}>
       {values.map((v) => (
-        <Text key={v} style={[styles.choice, v === current && styles.choiceOn, disabled && styles.disabled]} onPress={() => !disabled && onPick(v)}>
+        <Text accessibilityRole="button" key={v} style={[styles.choice, v === current && styles.choiceOn, disabled && styles.disabled]} onPress={() => !disabled && onPick(v)}>
           {label(v)}
         </Text>
       ))}
@@ -37,7 +37,7 @@ export default function Settings({ onBack, locked, onOpen }: { onBack: () => voi
   return (
     <View style={styles.box}>
       <View style={styles.header}>
-        <Text style={styles.link} onPress={onBack}>‹ {t('mobile.common.back')}</Text>
+        <Text accessibilityRole="button" style={styles.link} onPress={onBack}>‹ {t('mobile.common.back')}</Text>
         <Text style={styles.title}>{t('mobile.menu.settings')}</Text>
         <Text style={styles.link}> </Text>
       </View>
@@ -53,7 +53,7 @@ export default function Settings({ onBack, locked, onOpen }: { onBack: () => voi
         <Text style={styles.label}>{t('mobile.main.bilingual')}</Text>
         <Switch value={settings.bilingual} onValueChange={(v) => set({ bilingual: v })} />
       </View>
-      <Text style={[styles.row, styles.rowLink]} onPress={() => onOpen('listen')}>
+      <Text accessibilityRole="button" style={[styles.row, styles.rowLink]} onPress={() => onOpen('listen')}>
         {t('mobile.settings.listen')}  ›  {settings.listen ? t('common.on') : t('common.off')}
       </Text>
       <View style={styles.row}>
@@ -72,7 +72,7 @@ export default function Settings({ onBack, locked, onOpen }: { onBack: () => voi
         <Text style={styles.label}>{t('mobile.settings.region')}</Text>
         {choices(REGIONS, settings.region, (v) => v.toUpperCase(), (v) => set({ region: v }), locked)}
       </View>
-      <Text style={[styles.row, styles.rowLink]} onPress={() => onOpen('devices')}>{t('mobile.settings.devices')}  ›</Text>
+      <Text accessibilityRole="button" style={[styles.row, styles.rowLink]} onPress={() => onOpen('devices')}>{t('mobile.settings.devices')}  ›</Text>
     </View>
   );
 }

@@ -166,19 +166,19 @@ export default function Main({ token, email, onSignOut, onAccountDeleted, onSign
       </View>
       <Subtitles entries={entries} bilingual={settings.bilingual} textSize={settings.textSize} />
       <View style={styles.toolbar}>
-        <Text style={styles.menuButton} onPress={() => setMenu(true)}>≡</Text>
-        <Text style={styles.pair} onPress={() => !active && setScreen('settings')}>
+        <Text accessibilityRole="button" style={styles.menuButton} onPress={() => setMenu(true)}>≡</Text>
+        <Text accessibilityRole="button" style={styles.pair} onPress={() => !active && setScreen('settings')}>
           {settings.source} → {settings.target}
         </Text>
         <Button title={active ? t('mobile.main.stop') : t('mobile.main.start')} onPress={active ? stop : start} />
       </View>
       <Modal visible={menu} transparent animationType="fade" onRequestClose={() => setMenu(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setMenu(false)}>
-          <View style={styles.sheet}>
+        <Pressable style={styles.backdrop} onPress={() => setMenu(false)} accessible={false}>
+          <View style={styles.sheet} accessibilityViewIsModal>
             <Text style={styles.sheetAccount}>{email}</Text>
-            <Text style={styles.sheetRow} onPress={() => open('history')}>{t('mobile.menu.history')}  ›</Text>
-            <Text style={styles.sheetRow} onPress={() => open('account')}>{t('mobile.menu.account')}  ›</Text>
-            <Text style={styles.sheetRow} onPress={() => open('settings')}>{t('mobile.menu.settings')}  ›</Text>
+            <Text accessibilityRole="button" style={styles.sheetRow} onPress={() => open('history')}>{t('mobile.menu.history')}  ›</Text>
+            <Text accessibilityRole="button" style={styles.sheetRow} onPress={() => open('account')}>{t('mobile.menu.account')}  ›</Text>
+            <Text accessibilityRole="button" style={styles.sheetRow} onPress={() => open('settings')}>{t('mobile.menu.settings')}  ›</Text>
           </View>
         </Pressable>
       </Modal>

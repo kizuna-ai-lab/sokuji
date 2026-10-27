@@ -82,7 +82,7 @@ export default function History({ store, onBack }: { store: HistoryStore; onBack
   return (
     <View style={styles.box}>
       <View style={styles.header}>
-        <Text style={styles.link} onPress={onBack}>‹ {t('mobile.common.back')}</Text>
+        <Text accessibilityRole="button" style={styles.link} onPress={onBack}>‹ {t('mobile.common.back')}</Text>
         <Text style={styles.title}>{t('mobile.history.title')}</Text>
         <Text style={styles.link}> </Text>
       </View>
@@ -101,10 +101,10 @@ export default function History({ store, onBack }: { store: HistoryStore; onBack
         <Pressable style={styles.backdrop} onPress={() => setSelected(null)}>
           <View style={styles.sheet}>
             <Text style={styles.sheetTitle}>{selected ? name(selected) : ''}</Text>
-            <Text style={styles.sheetRow} onPress={() => { if (selected) { setTitle(selected.title ?? ''); setRenaming(selected); setSelected(null); } }}>{t('mobile.history.rename')}</Text>
-            <Text style={styles.sheetRow} onPress={() => selected && share(selected, 'txt')}>{t('mobile.history.export')} (.txt)</Text>
-            <Text style={styles.sheetRow} onPress={() => selected && share(selected, 'json')}>{t('mobile.history.export')} (.json)</Text>
-            <Text style={[styles.sheetRow, styles.danger]} onPress={() => selected && confirmDelete(selected)}>{t('mobile.history.delete')}</Text>
+            <Text accessibilityRole="button" style={styles.sheetRow} onPress={() => { if (selected) { setTitle(selected.title ?? ''); setRenaming(selected); setSelected(null); } }}>{t('mobile.history.rename')}</Text>
+            <Text accessibilityRole="button" style={styles.sheetRow} onPress={() => selected && share(selected, 'txt')}>{t('mobile.history.export')} (.txt)</Text>
+            <Text accessibilityRole="button" style={styles.sheetRow} onPress={() => selected && share(selected, 'json')}>{t('mobile.history.export')} (.json)</Text>
+            <Text accessibilityRole="button" style={[styles.sheetRow, styles.danger]} onPress={() => selected && confirmDelete(selected)}>{t('mobile.history.delete')}</Text>
           </View>
         </Pressable>
       </Modal>
