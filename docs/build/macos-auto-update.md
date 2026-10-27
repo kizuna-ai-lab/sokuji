@@ -11,6 +11,11 @@ CI secrets — and is still open. This document is about the *update* half, whic
 #106 does not address: what it takes to go from "we show a notification" to "the
 app updates itself". Signing is a prerequisite for that, not the whole of it.
 
+> **Status, 2026-10:** the project now has a paid Apple Developer membership.
+> v0.46.4 was the bridge release (§7.1b), and every release after it is signed
+> with Developer ID and notarized (§7.1c), so the `xattr` step described below
+> is gone for new installs. The research that follows is kept as written.
+
 ## TL;DR verdict
 
 **Yes — and it does not require paying Apple.** True in-app auto-update
@@ -1094,6 +1099,68 @@ The bridge is **v0.46.4**, a signing-only patch:
 - **Microphone permission** may be asked for once more after the Developer ID
   release, because TCC stored the self-signed requirement when it was granted.
   This is to be verified on hardware.
+
+Verified on LittleSilver on 2026-10-26: a v0.46.1 install updated itself to
+v0.46.4 in the app, asked once for the keychain ("Always Allow"), and kept
+working. The hook was removed with the Developer ID release (§7.1c); it is
+still in the `v0.46.4` tag.
+
+### 7.1c The Developer ID release
+
+Every release after v0.46.4 is signed with **Developer ID Application: jiang
+zhuo (48ST7Q3ACJ)**, its pkg with **Developer ID Installer: jiang zhuo
+(48ST7Q3ACJ)**, and both are notarized by Apple with the ticket stapled.
+
+- **Configuration.**
+  - `build.mac.identity` is `jiang zhuo (48ST7Q3ACJ)`. electron-builder adds the
+    certificate type itself and rejects a name that already carries it. The pkg
+    target looks up "Developer ID Installer: <that name>".
+  - `build.mac.notarize` is `true`. electron-builder 26 notarizes and staples the
+    app inside its signing step, before the zip and the pkg are made from it, and
+    then notarizes and staples the pkg. Both use `notarytool` with an App Store
+    Connect API key (`APPLE_API_KEY`, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`).
+  - There is no `afterSign` hook any more. `afterSign` runs after notarization,
+    so anything that re-signs there voids the ticket.
+- **Secrets** in `kizuna-ai-lab/sokuji`:
+
+  | Secret | Contents |
+  |---|---|
+  | `MACOS_DEVID_APP_P12` | Developer ID Application certificate and key (.p12, base64) |
+  | `MACOS_DEVID_INSTALLER_P12` | Developer ID Installer certificate and key (.p12, base64) |
+  | `MACOS_DEVID_P12_PASSWORD` | the password of both .p12 files |
+  | `APPLE_API_KEY_P8` | the App Store Connect API key (.p8, base64) |
+  | `APPLE_API_KEY_ID`, `APPLE_API_ISSUER` | that key's ID and issuer ID |
+
+  The certificates are G2 and expire on 2027-11-25. The self-signed
+  `MACOS_CSC_LINK` and `MACOS_CSC_KEY_PASSWORD` are no longer read; they were
+  kept only as a way back and can be deleted once a Developer ID release is out.
+- **CI** (`.github/workflows/build.yml`):
+  - *Check the Developer ID signing identities* runs before the build. The .p12
+    files hold only the leaf certificates, so it installs Apple's Developer ID G2
+    intermediate if the runner lacks it (pinned by SHA-256). It then proves both
+    identities are valid in a scratch keychain, and that the notary service
+    accepts the API key.
+  - *Verify the macOS update artifacts* fails the build unless:
+    - the app carries the Developer ID requirement of team 48ST7Q3ACJ and is
+      signed by Developer ID;
+    - the app is stapled, and Gatekeeper (`spctl`) sees it as notarized;
+    - the app inside the zip satisfies v0.46.4's designated requirement, copied
+      verbatim from an installed copy. This is the check that installed v0.46.4
+      copies will accept the update;
+    - the pkg is signed with Developer ID Installer, stapled and accepted by
+      Gatekeeper.
+  - Notarization runs on every signed build (same-repo pull requests, `main` and
+    tags). It adds a few minutes to each macOS job, and a pull request's
+    artifact is then exactly what users get.
+- **What users see.**
+  - *New install:* the downloaded pkg opens in Installer; no `xattr` step.
+  - *Updating from v0.46.4:* the usual in-app update.
+  - *Updating from a release older than v0.46.4:* the update downloads but fails
+    the signature check. Installing the new pkg by hand once fixes it.
+  - *After the switch:* macOS may ask once more for the microphone (TCC stored
+    the self-signed requirement) and once for the "Sokuji Safe Storage" keychain
+    item, whose access list names the old requirement. Answer "Always Allow".
+    This is to be confirmed on hardware with the first Developer ID build.
 
 ### 7.2 Signing the driver — safe, and not actually required
 

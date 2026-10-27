@@ -184,7 +184,7 @@ jobs:
     # makes the macOS signing steps conditional without tripping the workflow
     # validator (an invalid file fails the whole run before anything executes).
     env:
-      HAS_MAC_CERT: ${{ secrets.MACOS_CSC_LINK != '' }}
+      HAS_MAC_CERT: ${{ secrets.MACOS_DEVID_APP_P12 != '' }}
 
     steps:
       - name: Checkout code
@@ -408,56 +408,81 @@ jobs:
           VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
           VITE_ENABLED_PROVIDERS: ${{ vars.VITE_ENABLED_PROVIDERS }}
 
-      # electron-builder discovers signing identities with `security find-identity -v`,
-      # and a self-signed certificate is reported CSSMERR_TP_NOT_TRUSTED, so it would
-      # be invisible and signing would be silently skipped. Trusting it makes it
-      # discoverable. Verified on macOS 26.6.1; see docs/build/macos-auto-update.md.
-      #
-      # This is NOT notarization and buys nothing with Gatekeeper. Its only job is
-      # to give the app a signing identity that stays the same between builds, which
-      # is what Squirrel.Mac and TCC key on.
-      - name: Trust the self-signed signing certificate (macOS)
+      # electron-builder discovers signing identities with `security find-identity -v`
+      # and carries on unsigned when it finds none, so check here, before the build,
+      # that both Developer ID identities are valid in the shape it will see them.
+      # The .p12 files hold only the leaf certificates. Both are issued by Apple's
+      # "Developer ID Certification Authority" G2 intermediate, and without it in a
+      # keychain neither identity is valid. Runner images normally ship it; if one
+      # does not, it is installed from apple.com and pinned by SHA-256.
+      # See docs/build/macos-auto-update.md §7.1c.
+      - name: Check the Developer ID signing identities (macOS)
         if: runner.os == 'macOS' && env.HAS_MAC_CERT == 'true'
         env:
-          MACOS_CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
-          MACOS_CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
+          MACOS_DEVID_APP_P12: ${{ secrets.MACOS_DEVID_APP_P12 }}
+          MACOS_DEVID_INSTALLER_P12: ${{ secrets.MACOS_DEVID_INSTALLER_P12 }}
+          MACOS_DEVID_P12_PASSWORD: ${{ secrets.MACOS_DEVID_P12_PASSWORD }}
+          NOTARY_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          NOTARY_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          NOTARY_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
         run: |
           set -euo pipefail
-          echo "$MACOS_CSC_LINK" | base64 --decode > "$RUNNER_TEMP/signing.p12"
-          # Extract the certificate alone (no private key) for the trust store.
-          # OpenSSL 3 needs -legacy to read a p12 exported with legacy algorithms;
-          # LibreSSL does not have the flag, so try plain first.
-          openssl pkcs12 -in "$RUNNER_TEMP/signing.p12" -clcerts -nokeys \
-            -passin "pass:$MACOS_CSC_KEY_PASSWORD" -out "$RUNNER_TEMP/signing.pem" 2>/dev/null || \
-          openssl pkcs12 -legacy -in "$RUNNER_TEMP/signing.p12" -clcerts -nokeys \
-            -passin "pass:$MACOS_CSC_KEY_PASSWORD" -out "$RUNNER_TEMP/signing.pem"
-          sudo security add-trusted-cert -d -r trustRoot -p codeSign \
-            -k /Library/Keychains/System.keychain "$RUNNER_TEMP/signing.pem"
-          # Prove the trust actually took, in the same shape electron-builder
-          # will see it: import into a scratch keychain and ask for VALID
-          # identities. Checking the default search list here would always say
-          # "0 valid identities found" -- nothing is imported into it, since
-          # electron-builder makes its own keychain from CSC_LINK at build time.
-          SCRATCH="$RUNNER_TEMP/trust-check.keychain"
+          G2_SHA256=F16CD3C54C7F83CEA4BF1A3E6A0819C8AAA8E4A1528FD144715F350643D2DF3A
+          INTERMEDIATES=$( { security find-certificate -a -Z -c "Developer ID Certification Authority" || true
+            security find-certificate -a -Z -c "Developer ID Certification Authority" /Library/Keychains/System.keychain || true; } 2>/dev/null)
+          if grep -Fq "SHA-256 hash: $G2_SHA256" <<<"$INTERMEDIATES"; then
+            echo "OK: the Developer ID G2 intermediate is already installed."
+          else
+            curl -fsSL https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer -o "$RUNNER_TEMP/DeveloperIDG2CA.cer"
+            GOT=$(shasum -a 256 "$RUNNER_TEMP/DeveloperIDG2CA.cer" | awk '{ print toupper($1) }')
+            if [ "$GOT" != "$G2_SHA256" ]; then
+              echo "FAIL: the downloaded Developer ID G2 intermediate has SHA-256 $GOT, expected $G2_SHA256." >&2
+              exit 1
+            fi
+            sudo security add-certificates -k /Library/Keychains/System.keychain "$RUNNER_TEMP/DeveloperIDG2CA.cer"
+            echo "OK: installed the Developer ID G2 intermediate."
+          fi
+
+          # A scratch keychain, as electron-builder makes its own from CSC_LINK and
+          # CSC_INSTALLER_LINK at build time: the default search list holds neither.
+          SCRATCH="$RUNNER_TEMP/devid-check.keychain"
+          trap 'security delete-keychain "$SCRATCH" 2>/dev/null || true; rm -f "$RUNNER_TEMP"/devid-check-*' EXIT
           security create-keychain -p check "$SCRATCH"
           security unlock-keychain -p check "$SCRATCH"
           security set-keychain-settings "$SCRATCH"
-          security import "$RUNNER_TEMP/signing.p12" -k "$SCRATCH" \
-            -P "$MACOS_CSC_KEY_PASSWORD" -T /usr/bin/codesign >/dev/null
-          security set-key-partition-list -S apple-tool:,apple:,codesign: \
-            -s -k check "$SCRATCH" >/dev/null 2>&1
+          (umask 077 && printf '%s' "$MACOS_DEVID_APP_P12" | base64 --decode > "$RUNNER_TEMP/devid-check-app.p12")
+          (umask 077 && printf '%s' "$MACOS_DEVID_INSTALLER_P12" | base64 --decode > "$RUNNER_TEMP/devid-check-installer.p12")
+          for P12 in "$RUNNER_TEMP/devid-check-app.p12" "$RUNNER_TEMP/devid-check-installer.p12"; do
+            security import "$P12" -k "$SCRATCH" -P "$MACOS_DEVID_P12_PASSWORD" \
+              -T /usr/bin/codesign -T /usr/bin/productbuild >/dev/null
+          done
+          IDENTITIES=$(security find-identity -v "$SCRATCH")
           echo "valid identities visible to electron-builder:"
-          security find-identity -v -p codesigning "$SCRATCH" | sed 's/^/  /'
-          if ! security find-identity -v -p codesigning "$SCRATCH" | grep -q "Sokuji Code Signing"; then
-            echo "FAIL: the certificate is still not a valid identity after trusting it." >&2
-            security delete-keychain "$SCRATCH" || true
+          echo "$IDENTITIES"
+          for NAME in "Developer ID Application: jiang zhuo (48ST7Q3ACJ)" "Developer ID Installer: jiang zhuo (48ST7Q3ACJ)"; do
+            if ! grep -Fq "\"$NAME\"" <<<"$IDENTITIES"; then
+              echo "FAIL: \"$NAME\" is not a valid identity; electron-builder would skip signing." >&2
+              exit 1
+            fi
+          done
+
+          # Notarization: the key must decode to a .p8 and Apple must accept it,
+          # or electron-builder fails only after the whole app has been built.
+          KEY="$RUNNER_TEMP/devid-check-notary.p8"
+          (umask 077 && printf '%s' "$NOTARY_API_KEY_P8" | base64 --decode > "$KEY")
+          if [ "$(head -n 1 "$KEY" | tr -d '\r')" != '-----BEGIN PRIVATE KEY-----' ]; then
+            echo "FAIL: APPLE_API_KEY_P8 does not decode to an App Store Connect API key (.p8)." >&2
             exit 1
           fi
-          security delete-keychain "$SCRATCH"
-          rm -f "$RUNNER_TEMP/signing.p12" "$RUNNER_TEMP/signing.pem"
+          xcrun notarytool history --key "$KEY" --key-id "$NOTARY_API_KEY_ID" \
+            --issuer "$NOTARY_API_ISSUER" --output-format json >/dev/null
+          echo "OK: the notary service accepts the App Store Connect API key."
 
       - name: Build macOS artifacts (electron-builder)
         if: runner.os == 'macOS'
+        # notarytool waits on Apple's queue with no timeout of its own, twice per
+        # build (app, then pkg). A normal build takes well under this.
+        timeout-minutes: 60
         # --publish never: release job uploads artifacts via softprops/action-gh-release
         # to avoid duplicate releases.
         # -c.directories.output: per-platform output dir (build.directories.output is
@@ -478,8 +503,17 @@ jobs:
           # signing. loadCscLink("") then resolves the empty path against the
           # project dir and the build dies with "<projectDir> not a file" -- which
           # is every fork PR, since GitHub passes it no secrets at all (#453).
+          # The notary key goes the same way, for its own reason: electron-builder
+          # refuses a partial APPLE_API_* set, and the pkg target asks for
+          # notarization even when it is unsigned.
           if [ "$HAS_MAC_CERT" = 'true' ]; then
-            export CSC_LINK="$MACOS_CSC_LINK" CSC_KEY_PASSWORD="$MACOS_CSC_KEY_PASSWORD"
+            export CSC_LINK="$MACOS_DEVID_APP_P12" CSC_KEY_PASSWORD="$MACOS_DEVID_P12_PASSWORD"
+            export CSC_INSTALLER_LINK="$MACOS_DEVID_INSTALLER_P12" CSC_INSTALLER_KEY_PASSWORD="$MACOS_DEVID_P12_PASSWORD"
+            # notarytool reads the App Store Connect API key from a file.
+            export APPLE_API_KEY="$RUNNER_TEMP/notary-api-key.p8"
+            trap 'rm -f "$APPLE_API_KEY"' EXIT
+            (umask 077 && printf '%s' "$NOTARY_API_KEY_P8" | base64 --decode > "$APPLE_API_KEY")
+            export APPLE_API_KEY_ID="$NOTARY_API_KEY_ID" APPLE_API_ISSUER="$NOTARY_API_ISSUER"
           fi
           npx electron-builder --mac pkg zip --${{ matrix.arch }} --publish never -c.directories.output=out/make-mac
         env:
@@ -488,9 +522,13 @@ jobs:
           # With no certificate configured the build stays ad-hoc signed and
           # macOS auto-update stays off; scripts/electron-builder-fuses.js
           # ad-hoc signs in that case.
-          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.MACOS_CSC_LINK != '' && 'true' || 'false' }}
-          MACOS_CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
-          MACOS_CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.MACOS_DEVID_APP_P12 != '' && 'true' || 'false' }}
+          MACOS_DEVID_APP_P12: ${{ secrets.MACOS_DEVID_APP_P12 }}
+          MACOS_DEVID_INSTALLER_P12: ${{ secrets.MACOS_DEVID_INSTALLER_P12 }}
+          MACOS_DEVID_P12_PASSWORD: ${{ secrets.MACOS_DEVID_P12_PASSWORD }}
+          NOTARY_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          NOTARY_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          NOTARY_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           # electron-builder refuses to sign pull-request builds unless this is
           # set, so that untrusted forks cannot get at signing credentials. That
           # protection is redundant here -- GitHub does not pass secrets to fork
@@ -505,11 +543,12 @@ jobs:
           VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
           VITE_ENABLED_PROVIDERS: ${{ vars.VITE_ENABLED_PROVIDERS }}
 
-      # electron-builder logs "skipped macOS code signing" and carries on when it
-      # cannot find an identity, so an unsigned release would look like a success.
-      # An ad-hoc signature yields a cdhash DR, which is exactly what stops
-      # Squirrel.Mac from ever accepting an update -- fail loudly instead.
-      - name: Verify the macOS update artifacts (signature + zip + manifest)
+      # electron-builder logs "skipped macOS code signing" or "skipped macOS
+      # notarization" and carries on, so an unsigned or unnotarized release would
+      # look like a success. An ad-hoc signature yields a cdhash DR, which is
+      # exactly what stops Squirrel.Mac from ever accepting an update, and a
+      # missing ticket brings back the Gatekeeper refusal -- fail loudly instead.
+      - name: Verify the macOS update artifacts (signature + notarization + zip + manifest)
         if: runner.os == 'macOS' && env.HAS_MAC_CERT == 'true'
         run: |
           set -euo pipefail
@@ -521,34 +560,49 @@ jobs:
           DR=$(codesign -d -r- "$APP" 2>&1 | grep 'designated =>' | sed 's/^#* *designated => //')
           echo "designated requirement: $DR"
           case "$DR" in
-            *"certificate root = H"*|*"certificate leaf = H"*)
-              echo "OK: stable, certificate-pinned designated requirement." ;;
             *cdhash*)
               echo "FAIL: ad-hoc signature (cdhash DR). Signing was skipped --" >&2
-              echo "the certificate was probably not discoverable via find-identity -v." >&2
-              exit 1 ;;
-            *)
-              echo "FAIL: unrecognised designated requirement." >&2
+              echo "the Developer ID identity was probably not discoverable via find-identity -v." >&2
               exit 1 ;;
           esac
-          # Bridge to Developer ID (scripts/macos-transitional-requirement.js):
-          # the bundle must be pinned to the self-signed root every installed
-          # release trusts, AND admit Developer ID builds of our team -- or the
-          # first Developer ID release could never replace this one.
-          if ! grep -Fq 'certificate root = H"92e86a47b9d0179e060c7e7cea61b8f9d4f3c350"' <<<"$DR"; then
-            echo "FAIL: not signed with the self-signed root installed releases trust (92e86a47...);" >&2
-            echo "they would refuse this build as an update." >&2
-            exit 1
-          fi
-          if ! grep -Fq 'anchor apple generic' <<<"$DR" || \
+          if ! grep -Fq 'identifier "ai.kizunaai.sokuji"' <<<"$DR" || \
+             ! grep -Fq 'anchor apple generic' <<<"$DR" || \
              ! grep -Eq 'certificate leaf\[subject\.OU\] = ("48ST7Q3ACJ"|48ST7Q3ACJ([) ]|$))' <<<"$DR"; then
-            echo "FAIL: the designated requirement does not admit Developer ID team 48ST7Q3ACJ;" >&2
-            echo "the afterSign hook did not run or did not take." >&2
+            echo "FAIL: not the Developer ID designated requirement for team 48ST7Q3ACJ." >&2
             exit 1
           fi
-          echo "OK: pinned to the installed releases' root, and also admits Developer ID team 48ST7Q3ACJ."
+          # Captured first, then grepped: under `pipefail` a `codesign | grep -q`
+          # pipeline fails whenever grep matches early and codesign takes the
+          # SIGPIPE, so a passing bundle would be reported as FAIL at random.
+          SIGNATURE=$(codesign -dvv "$APP" 2>&1)
+          if ! grep -Fxq 'Authority=Developer ID Application: jiang zhuo (48ST7Q3ACJ)' <<<"$SIGNATURE" || \
+             ! grep -Fxq 'TeamIdentifier=48ST7Q3ACJ' <<<"$SIGNATURE"; then
+            echo "FAIL: not signed with Developer ID Application: jiang zhuo (48ST7Q3ACJ)." >&2
+            echo "$SIGNATURE" >&2
+            exit 1
+          fi
+          echo "OK: signed with Developer ID, team 48ST7Q3ACJ."
           codesign --verify --deep --strict "$APP"
           echo "OK: bundle passes strict nested validation."
+
+          # Gatekeeper's verdict, from the ticket stapled to the app, so the first
+          # open needs no network and no xattr. spctl reports "security disabled"
+          # rather than a source when assessments are off on the runner; the
+          # stapled ticket is then the proof.
+          xcrun stapler validate "$APP"
+          assess() {
+            local OUT
+            OUT=$(spctl --assess --type "$1" -vv "$2" 2>&1) || { echo "FAIL: Gatekeeper rejects $2:" >&2; echo "$OUT" >&2; return 1; }
+            echo "$OUT"
+            if grep -Fq 'override=security disabled' <<<"$OUT"; then
+              echo "::warning::Gatekeeper assessments are disabled on this runner; relying on the stapled ticket for $(basename "$2")."
+            elif ! grep -Fxq 'source=Notarized Developer ID' <<<"$OUT"; then
+              echo "FAIL: Gatekeeper does not see $2 as notarized." >&2
+              return 1
+            fi
+          }
+          assess execute "$APP"
+          echo "OK: the app is notarized and stapled."
 
           # The Hardened Runtime (electron-builder's default, so every
           # certificate-signed build has it) denies the microphone outright --
@@ -558,10 +612,6 @@ jobs:
           # a microphone that could not be turned on from Finder (#458). Check
           # every nested bundle: the renderer helper is the process that actually
           # opens the device.
-          # Captured first, then grepped: under `pipefail` a `codesign | grep -q`
-          # pipeline fails whenever grep matches early and codesign takes the
-          # SIGPIPE, so a passing bundle would be reported as FAIL at random.
-          SIGNATURE=$(codesign -dv "$APP" 2>&1)
           grep -Eq 'flags=0x[0-9a-f]+\([^)]*runtime' <<<"$SIGNATURE" || {
             echo "FAIL: the app is not signed with the Hardened Runtime; build.mac.hardenedRuntime drifted." >&2
             echo "$SIGNATURE" >&2
@@ -590,16 +640,49 @@ jobs:
             echo "FAIL: latest-mac.yml does not reference $(basename "$ZIP")." >&2; exit 1; }
           echo "OK: manifest references the zip."
 
+          # The zip is what Squirrel.Mac installs, so check the app inside it. An
+          # installed v0.46.4 -- the bridge release, docs/build/macos-auto-update.md
+          # §7.1b -- installs it only if it satisfies 0.46.4's own designated
+          # requirement, copied verbatim from `codesign -d -r-` on an installed copy.
+          BRIDGE_REQUIREMENT='identifier "ai.kizunaai.sokuji" and (certificate root = H"92e86a47b9d0179e060c7e7cea61b8f9d4f3c350" or anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = "48ST7Q3ACJ")'
+          UNZIPPED="$RUNNER_TEMP/zip-check"
+          rm -rf "$UNZIPPED"
+          mkdir -p "$UNZIPPED"
+          ditto -x -k "$ZIP" "$UNZIPPED"
+          [ -d "$UNZIPPED/Sokuji.app" ] || { echo "FAIL: no Sokuji.app at the top of $(basename "$ZIP")." >&2; exit 1; }
+          if ! codesign --verify --deep --strict --test-requirement="=$BRIDGE_REQUIREMENT" "$UNZIPPED/Sokuji.app"; then
+            echo "FAIL: an installed v0.46.4 would refuse this update." >&2
+            exit 1
+          fi
+          xcrun stapler validate "$UNZIPPED/Sokuji.app"
+          echo "OK: the zip's app is stapled, and installed v0.46.4 accepts it as an update."
+
+          # The pkg is what a new user downloads and opens.
+          PKG=$(find out/make-mac -maxdepth 1 -name '*.pkg' | head -1)
+          [ -n "$PKG" ] || { echo "FAIL: no macOS .pkg produced." >&2; exit 1; }
+          PKG_SIGNATURE=$(pkgutil --check-signature "$PKG" 2>&1) || {
+            echo "FAIL: the pkg is not signed." >&2; echo "$PKG_SIGNATURE" >&2; exit 1; }
+          echo "$PKG_SIGNATURE"
+          if ! grep -Fq 'Developer ID Installer: jiang zhuo (48ST7Q3ACJ)' <<<"$PKG_SIGNATURE"; then
+            echo "FAIL: the pkg is not signed with Developer ID Installer: jiang zhuo (48ST7Q3ACJ)." >&2
+            exit 1
+          fi
+          xcrun stapler validate "$PKG"
+          assess install "$PKG"
+          echo "OK: the pkg is signed with Developer ID Installer, notarized and stapled."
+
       # A signing change can only be judged on a real Mac (Gatekeeper, TCC,
-      # the keychain, Squirrel's requirement check), so keep the signed app of
-      # a pull request around long enough to try it. Same-repo PRs only: fork
-      # PRs get no certificate and would upload an ad-hoc build.
+      # the keychain, Squirrel's requirement check), so keep the signed app and
+      # installer of a pull request around long enough to try them. Same-repo PRs
+      # only: fork PRs get no certificate and would upload an ad-hoc build.
       - name: Upload the signed macOS app for review (pull requests)
         if: runner.os == 'macOS' && github.event_name == 'pull_request' && env.HAS_MAC_CERT == 'true'
         uses: actions/upload-artifact@v6
         with:
           name: macos-${{ matrix.arch }}-pr-build
-          path: out/make-mac/*.zip
+          path: |
+            out/make-mac/*.zip
+            out/make-mac/*.pkg
           retention-days: 3
           if-no-files-found: error
 
@@ -920,7 +1003,7 @@ jobs:
           X64=$(find macos-x64-artifacts -name latest-mac.yml | head -1)
           if [ -z "$ARM" ] && [ -z "$X64" ]; then
             echo "No latest-mac.yml produced -- macOS auto-update will not work."
-            echo "That is expected when MACOS_CSC_LINK is unset (unsigned build)."
+            echo "That is expected when MACOS_DEVID_APP_P12 is unset (unsigned build)."
             exit 0
           fi
           python3 -c "import yaml" 2>/dev/null || pip3 install --quiet pyyaml
