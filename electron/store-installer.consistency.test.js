@@ -56,9 +56,14 @@ describe('the Microsoft Store installer pipeline', () => {
     }
   });
 
-  it('uploads both installers for signing, and the website make\'s nupkg for the release', () => {
+  it('uploads both installers for signing, and the website make\'s nupkg and RELEASES for the release', () => {
     expect(step('Upload unsigned Windows installers for signing')).toContain('path: out/installers/*.exe');
-    expect(step('Upload Windows nupkg for release')).toContain('path: out/make-web/squirrel.windows/x64/*.nupkg');
+    // Update.exe reads RELEASES from the release and verifies the nupkg against
+    // it (electron/squirrel-update.js); both must come from the website make.
+    const nupkg = step('Upload Windows nupkg and RELEASES for release');
+    expect(nupkg).toContain('out/make-web/squirrel.windows/x64/*.nupkg');
+    expect(nupkg).toContain('out/make-web/squirrel.windows/x64/RELEASES');
+    expect(step('Collect release assets')).toContain('find windows-nupkg -name "RELEASES"');
   });
 
   it('releases the Store installer and feeds the updater the website installer only', () => {

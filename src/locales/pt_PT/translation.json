@@ -926,6 +926,7 @@
   "update": {
     "available": "Nova versão v{{version}} disponível",
     "downloading": "A transferir atualização... {{percent}}%",
+    "downloadingIndeterminate": "A transferir atualização...",
     "downloaded": "Atualização pronta, reinicie para concluir",
     "checkButton": "Verificar atualizações",
     "checking": "A verificar...",

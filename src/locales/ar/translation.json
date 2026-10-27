@@ -926,6 +926,7 @@
   "update": {
     "available": "إصدار جديد v{{version}} متاح",
     "downloading": "جارٍ تنزيل التحديث... {{percent}}%",
+    "downloadingIndeterminate": "جارٍ تنزيل التحديث...",
     "downloaded": "التحديث جاهز، أعد التشغيل للإكمال",
     "checkButton": "التحقق من التحديثات",
     "checking": "جارٍ التحقق...",

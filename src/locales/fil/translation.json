@@ -926,6 +926,7 @@
   "update": {
     "available": "Bagong bersyon v{{version}} ay magagamit na",
     "downloading": "Dina-download ang update... {{percent}}%",
+    "downloadingIndeterminate": "Dina-download ang update...",
     "downloaded": "Handa na ang update, i-restart para makumpleto",
     "checkButton": "Suriin ang mga Update",
     "checking": "Sinusuri...",

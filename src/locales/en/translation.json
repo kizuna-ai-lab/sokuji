@@ -1143,6 +1143,7 @@
   "update": {
     "available": "New version v{{version}} available",
     "downloading": "Downloading update... {{percent}}%",
+    "downloadingIndeterminate": "Downloading update...",
     "downloaded": "Update ready, restart to complete",
     "checkButton": "Check for Updates",
     "checking": "Checking...",

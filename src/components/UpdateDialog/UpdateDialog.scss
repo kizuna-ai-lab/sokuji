@@ -148,6 +148,18 @@
           background-color: tk.$color-primary;
           border-radius: 3px;
           transition: width 0.3s ease;
+
+          // No byte counts from the updater: a bar that moves, not one that fills.
+          &--indeterminate {
+            width: 40%;
+            animation: update-progress-indeterminate 1.4s ease-in-out infinite;
+
+            @media (prefers-reduced-motion: reduce) {
+              animation: none;
+              width: 100%;
+              opacity: 0.5;
+            }
+          }
         }
       }
 
@@ -228,4 +240,9 @@
       }
     }
   }
+}
+
+@keyframes update-progress-indeterminate {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
 }

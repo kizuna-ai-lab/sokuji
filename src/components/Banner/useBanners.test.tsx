@@ -150,3 +150,14 @@ describe('Banners — the update (spec 2026-10-05 §4)', () => {
     expect(tones).toEqual(['banner banner--attention', 'banner banner--brand']);
   });
 });
+
+describe('update banner, download without byte counts (Squirrel on Windows)', () => {
+  it('says it is downloading without a percentage and draws no bar', () => {
+    update({ status: 'downloading', downloadProgress: 0, downloadIndeterminate: true } as any);
+    const { container } = render(<Banners />);
+    expect(screen.getByText('update.downloadingIndeterminate')).toBeTruthy();
+    expect(screen.queryByText('update.downloading')).toBeNull();
+    expect(container.querySelector('.banner__progress')).toBeNull();
+    expect(container.querySelector('.banner__dismiss')).toBeNull();
+  });
+});

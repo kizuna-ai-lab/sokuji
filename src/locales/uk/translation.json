@@ -926,6 +926,7 @@
   "update": {
     "available": "Доступна нова версія v{{version}}",
     "downloading": "Завантаження оновлення... {{percent}}%",
+    "downloadingIndeterminate": "Завантаження оновлення...",
     "downloaded": "Оновлення готове, перезапустіть для завершення",
     "checkButton": "Перевірити оновлення",
     "checking": "Перевірка...",

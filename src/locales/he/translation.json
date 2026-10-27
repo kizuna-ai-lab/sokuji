@@ -926,6 +926,7 @@
   "update": {
     "available": "גרסה חדשה v{{version}} זמינה",
     "downloading": "מוריד עדכון... {{percent}}%",
+    "downloadingIndeterminate": "מוריד עדכון...",
     "downloaded": "העדכון מוכן, הפעל מחדש להשלמה",
     "checkButton": "בדוק עדכונים",
     "checking": "בודק...",
