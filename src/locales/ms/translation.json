@@ -926,6 +926,7 @@
   "update": {
     "available": "Versi baharu v{{version}} tersedia",
     "downloading": "Memuat turun kemas kini... {{percent}}%",
+    "downloadingIndeterminate": "Memuat turun kemas kini...",
     "downloaded": "Kemas kini sedia, mulakan semula untuk selesaikan",
     "checkButton": "Semak Kemas Kini",
     "checking": "Menyemak...",

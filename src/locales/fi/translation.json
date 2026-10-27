@@ -926,6 +926,7 @@
   "update": {
     "available": "Uusi versio v{{version}} saatavilla",
     "downloading": "Ladataan päivitystä... {{percent}}%",
+    "downloadingIndeterminate": "Ladataan päivitystä...",
     "downloaded": "Päivitys valmis, käynnistä uudelleen viimeistelläksesi",
     "checkButton": "Tarkista päivitykset",
     "checking": "Tarkistetaan...",

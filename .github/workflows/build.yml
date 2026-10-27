@@ -2,11 +2,14 @@ name: Build and Release
 
 on:
   push:
-    branches: [main, master]
+    # `mobile` is the long-lived integration branch of the mobile app: it is
+    # built and tested like main so it never drifts unverified. Releases are
+    # tag-gated below, so a push to it never publishes anything.
+    branches: [main, master, mobile]
     tags:
       - 'v*'
   pull_request:
-    branches: [main, master]
+    branches: [main, master, mobile]
 
 permissions:
   contents: write
@@ -226,7 +229,7 @@ jobs:
         env:
           CI: false
           # Use production environment variables for releases, simpler ones for CI
-          VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai' }}
+          VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
           VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
@@ -329,7 +332,7 @@ jobs:
           CI: false
           # Prevent actual publishing during CI builds
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ !startsWith(github.ref, 'refs/tags/v') && 'false' || '' }}
-          VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai' }}
+          VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
           VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
@@ -401,7 +404,7 @@ jobs:
           # empty string passes that check (truthy) which skips the bundled-fpm
           # download and then fails on missing system `fpm`.
           USE_SYSTEM_FPM: ${{ matrix.arch == 'arm64' && 'true' || 'false' }}
-          VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai' }}
+          VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
           VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
@@ -498,7 +501,7 @@ jobs:
           # while leaving it off means no PR can ever verify the signing chain,
           # which is the whole point of running this on a PR.
           CSC_FOR_PULL_REQUEST: ${{ env.HAS_MAC_CERT }}
-          VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai' }}
+          VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
           VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
@@ -625,7 +628,7 @@ jobs:
           fi
         env:
           # Production environment variables for extension
-          VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai' }}
+          VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji.kizuna.ai' }}
           POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
           VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
           VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
@@ -679,12 +682,20 @@ jobs:
           # Both at the zip's root, where SignPath's two patterns look.
           path: out/installers/*.exe
 
-      - name: Upload Windows nupkg for release
+      - name: Upload Windows nupkg and RELEASES for release
         if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v6
         with:
           name: windows-nupkg
-          path: out/make-web/squirrel.windows/x64/*.nupkg
+          # RELEASES names the nupkg with its SHA1 and size. The installed
+          # app's Update.exe reads it from the release's download URL and
+          # verifies the package against it (electron/squirrel-update.js).
+          path: |
+            out/make-web/squirrel.windows/x64/*.nupkg
+            out/make-web/squirrel.windows/x64/RELEASES
+          # Without RELEASES no installed app can update: a tag build that
+          # lost it must fail here, not ship.
+          if-no-files-found: error
 
       - name: Upload macOS artifacts
         if: startsWith(github.ref, 'refs/tags/v') && runner.os == 'macOS'
@@ -822,6 +833,7 @@ jobs:
           find linux-arm64-artifacts -name "latest-linux-arm64.yml" -exec cp {} release-assets/ \;
           find windows-signed -name "*.exe" -exec cp {} release-assets/ \;
           find windows-nupkg -name "*.nupkg" -exec cp {} release-assets/ \;
+          find windows-nupkg -name "RELEASES" -exec cp {} release-assets/ \;
           find macos-arm64-artifacts -name "*.pkg" -exec cp {} release-assets/ \;
           find macos-x64-artifacts -name "*.pkg" -exec cp {} release-assets/ \;
           # The zip is what electron-updater installs on macOS: MacUpdater accepts

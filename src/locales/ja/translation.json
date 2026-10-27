@@ -926,6 +926,7 @@
   "update": {
     "available": "新しいバージョン v{{version}} が利用可能です",
     "downloading": "アップデートをダウンロード中... {{percent}}%",
+    "downloadingIndeterminate": "アップデートをダウンロード中...",
     "downloaded": "アップデート準備完了、再起動して完了してください",
     "checkButton": "アップデートを確認",
     "checking": "確認中...",

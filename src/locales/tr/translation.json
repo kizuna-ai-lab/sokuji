@@ -926,6 +926,7 @@
   "update": {
     "available": "Yeni sürüm v{{version}} mevcut",
     "downloading": "Güncelleme indiriliyor... {{percent}}%",
+    "downloadingIndeterminate": "Güncelleme indiriliyor...",
     "downloaded": "Güncelleme hazır, tamamlamak için yeniden başlatın",
     "checkButton": "Güncellemeleri Kontrol Et",
     "checking": "Kontrol ediliyor...",

@@ -10,8 +10,7 @@ import { reportWarning } from '../../lib/diagnostics/report';
 import type { SharedSettings } from '../../lib/provider/types';
 import { SONIOX_TTS_MODEL } from '../../lib/soniox/ttsCatalog';
 import { participantVoiceFor, sonioxSpeakerVoice, type SonioxSettings } from './settings';
-
-export const SONIOX_STT_MODEL = 'stt-rt-v5';
+import { SONIOX_STT_MODEL } from './sttStream';
 
 /** The STT config frame's `context`, wire-shaped. */
 export interface SonioxWireContext {

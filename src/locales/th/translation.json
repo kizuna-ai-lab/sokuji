@@ -926,6 +926,7 @@
   "update": {
     "available": "เวอร์ชันใหม่ v{{version}} พร้อมใช้งาน",
     "downloading": "กำลังดาวน์โหลดอัปเดต... {{percent}}%",
+    "downloadingIndeterminate": "กำลังดาวน์โหลดอัปเดต...",
     "downloaded": "อัปเดตพร้อมแล้ว รีสตาร์ทเพื่อเสร็จสิ้น",
     "checkButton": "ตรวจสอบอัปเดต",
     "checking": "กำลังตรวจสอบ...",

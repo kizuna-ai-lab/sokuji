@@ -926,6 +926,7 @@
   "update": {
     "available": "새 버전 v{{version}} 사용 가능",
     "downloading": "업데이트 다운로드 중... {{percent}}%",
+    "downloadingIndeterminate": "업데이트 다운로드 중...",
     "downloaded": "업데이트 준비 완료, 다시 시작하여 완료하세요",
     "checkButton": "업데이트 확인",
     "checking": "확인 중...",
