@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import { AudioManager, AudioRecorder, RecordingNotificationManager } from 'react-native-audio-api';
 import { addNetworkStateListener } from 'expo-network';
+import i18next from 'i18next';
 import { SonioxSttStream } from '@shared/providers/soniox/sttStream';
 import type { SonioxRegion } from '@shared/lib/soniox/regions';
 import { floatToInt16 } from './pcm';
@@ -304,7 +305,7 @@ export function startSession(o: {
       await AudioManager.requestNotificationPermissions();
       // The foreground service carries the microphone type only while this is up;
       // Android 14 stops background capture without it.
-      await RecordingNotificationManager.show({ title: 'Sokuji', contentText: 'Listening', showStopAction: true });
+      await RecordingNotificationManager.show({ title: 'Sokuji', contentText: i18next.t('mobile.main.status.listening', { defaultValue: 'Listening' }), showStopAction: true });
       if (!running) {
         // Stopped while the notification was going up: teardown hid nothing.
         await RecordingNotificationManager.hide();
