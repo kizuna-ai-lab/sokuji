@@ -1,0 +1,68 @@
+{
+  "expo": {
+    "name": "Sokuji",
+    "slug": "sokuji",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ai.kizunaai.sokuji.prototype",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "audio"
+        ]
+      },
+      "appleTeamId": "48ST7Q3ACJ"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "ai.kizunaai.sokuji.prototype"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-web-browser",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 29
+          },
+          "ios": {
+            "deploymentTarget": "16.4"
+          }
+        }
+      ],
+      [
+        "react-native-audio-api",
+        {
+          "iosBackgroundMode": true,
+          "iosMicrophonePermission": "Sokuji listens to the room to show you subtitles.",
+          "androidForegroundService": true,
+          "androidFSTypes": [
+            "mediaPlayback",
+            "microphone"
+          ],
+          "androidPermissions": [
+            "android.permission.RECORD_AUDIO",
+            "android.permission.POST_NOTIFICATIONS",
+            "android.permission.FOREGROUND_SERVICE",
+            "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+            "android.permission.FOREGROUND_SERVICE_MICROPHONE"
+          ]
+        }
+      ]
+    ],
+    "scheme": "sokuji"
+  }
+}
