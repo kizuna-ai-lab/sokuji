@@ -19,7 +19,7 @@ function duration(seconds: number): string {
 }
 
 // The ledger as the website's records card shows it: newest first, a page at a time.
-export default function Usage({ token, onBack }: { token: string; onBack: () => void }) {
+export default function Usage({ token, onBack, onSignInRequired }: { token: string; onBack: () => void; onSignInRequired: () => void }) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language.replace('_', '-');
   const [groups, setGroups] = useState<LedgerGroup[]>([]);
@@ -37,7 +37,9 @@ export default function Usage({ token, onBack }: { token: string; onBack: () => 
       setGroups((g) => (before ? [...g, ...page.groups] : page.groups));
       setNext(page.next);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const message = err instanceof Error ? err.message : String(err);
+      if (message === 'sign_in_required') onSignInRequired();
+      else setError(message);
     } finally {
       setBusy(false);
     }

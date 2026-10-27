@@ -15,6 +15,10 @@ describe('sessionStartProperties', () => {
       participant_speech: false,
     });
   });
+
+  it('reports a spoken session (R13) as such', () => {
+    expect(sessionStartProperties({ sessionId: 's-1', source: 'en', target: 'zh', platform: 'android', participantSpeech: true }).participant_speech).toBe(true);
+  });
 });
 
 describe('sessionEndProperties', () => {

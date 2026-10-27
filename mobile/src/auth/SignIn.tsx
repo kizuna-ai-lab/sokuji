@@ -135,7 +135,12 @@ export default function SignIn({
           <Button
             title={t('mobile.signIn.register')}
             disabled={busy || !address || password.length < 8}
-            onPress={() => run(async () => { await signUp(address, password); await sendCode(); }, () => go('verify'))}
+            onPress={() => run(async () => {
+              // The account exists once sign-up returns: the code screen from here on, even if this send fails (it has Send again).
+              await signUp(address, password);
+              go('verify');
+              await sendCode();
+            })}
           />
           <Text style={styles.note}>{t('mobile.signIn.registerNote')}</Text>
         </>

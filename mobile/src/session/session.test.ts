@@ -326,7 +326,7 @@ describe('the checkpoint', () => {
 describe('hearing the translation', () => {
   // The grant for a spoken session carries a par_tts stream beside par_stt.
   const spokenGrant = { ...grant, streams: [...grant.streams, { role: 'par_tts', apiKey: 'tts-key', clientReferenceId: 'r1' }] };
-  const player = () => ({ played: 0, stopped: 0, play() { this.played += 1; }, stop() { this.stopped += 1; }, queuedSeconds: () => 0 });
+  const player = () => ({ played: 0, stopped: 0, play() { this.played += 1; }, stop() { this.stopped += 1; }, queuedSeconds: () => 0, held: () => 0 });
   const listen = { voice: null, speed: 1 };
 
   it('asks for the spoken shape and says so when headphones are in', async () => {
@@ -458,7 +458,7 @@ describe('a refused configuration', () => {
 
 describe('headphones plugged in mid-session', () => {
   const spokenGrant = { ...grant, leaseId: 'L2', streams: [...grant.streams, { role: 'par_tts', apiKey: 'tts-key', clientReferenceId: 'r1' }] };
-  const player = () => ({ played: 0, stopped: 0, play() { this.played += 1; }, stop() { this.stopped += 1; }, queuedSeconds: () => 0 });
+  const player = () => ({ played: 0, stopped: 0, play() { this.played += 1; }, stop() { this.stopped += 1; }, queuedSeconds: () => 0, held: () => 0 });
 
   it('takes a new grant with the spoken shape and then speaks', async () => {
     lease.leaseKey.mockResolvedValueOnce(grant).mockResolvedValueOnce(spokenGrant);

@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { AppState, Button, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { AppState, BackHandler, Button, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useTranslation } from 'react-i18next';
 import type { Entry } from '@shared/lib/projection/types';
@@ -47,6 +47,29 @@ export default function Main({ token, email, onSignOut, onAccountDeleted, onSign
 
   const active = status !== 'idle' && status !== 'stopped' && status !== 'error';
 
+  // Android's Back: close the sheet, leave a sub-screen; on the main screen the system has it.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (menu) {
+        setMenu(false);
+        return true;
+      }
+      if (screen === 'listen' || screen === 'devices') {
+        setScreen('settings');
+        return true;
+      }
+      if (screen !== 'main') {
+        setScreen('main');
+        return true;
+      }
+      return false;
+    });
+    return () => sub.remove();
+  }, [menu, screen]);
+
+  // Unmounted with a session running (the app dropped the token): nothing outlives the screen.
+  useEffect(() => () => { void session.current?.stop(); }, []);
+
   // The session has released everything it held (microphone, notification,
   // lease); the screen releases its part and draws the transcript's last state.
   function snapshot(lastStatus: string, endedAt: number | null): StoredSession | null {
@@ -57,6 +80,8 @@ export default function Main({ token, email, onSignOut, onAccountDeleted, onSign
   }
 
   function ended(reason: string) {
+    // Every open segment becomes final before the snapshot is saved.
+    transcript.current?.end();
     const last = snapshot(reason, Date.now());
     if (last && last.leg.segments.length > 0) void history.save(last);
     if (started.current && stored.current) {
@@ -66,7 +91,6 @@ export default function Main({ token, email, onSignOut, onAccountDeleted, onSign
     session.current = null;
     feed.current?.stop();
     feed.current = null;
-    transcript.current?.end();
     setEntries([...(transcript.current?.entries() ?? [])].reverse());
     deactivateKeepAwake(KEEP_AWAKE_TAG);
   }
@@ -122,7 +146,7 @@ export default function Main({ token, email, onSignOut, onAccountDeleted, onSign
         // The desktop's two session events: at the first listening, and at the end.
         if (e.status === 'listening' && !started.current && stored.current) {
           started.current = true;
-          capture('translation_session_start', sessionStartProperties({ sessionId: stored.current.id, source, target, platform }));
+          capture('translation_session_start', sessionStartProperties({ sessionId: stored.current.id, source, target, platform, participantSpeech: settings.listen }));
         }
         // A failure counts once: the retry that follows repeats its detail on the status line.
         const prev = lastEvent.current;
@@ -147,7 +171,7 @@ export default function Main({ token, email, onSignOut, onAccountDeleted, onSign
   }
 
   if (screen === 'account') {
-    return <Account token={token} email={email} onBack={() => setScreen('main')} onSignOut={onSignOut} onDeleted={onAccountDeleted} />;
+    return <Account token={token} email={email} locked={active} onBack={() => setScreen('main')} onSignOut={onSignOut} onDeleted={onAccountDeleted} onSignInRequired={onSignInRequired} />;
   }
   if (screen === 'settings') return <Settings onBack={() => setScreen('main')} locked={active} onOpen={setScreen} />;
   if (screen === 'listen') return <Listen onBack={() => setScreen('settings')} />;

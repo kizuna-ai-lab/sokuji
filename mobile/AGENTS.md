@@ -25,8 +25,7 @@ Run lint and typecheck before declaring any task done.
 
 ## Navigation & Routing
 
-- Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.
-- Import `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
+- This app has **no Expo Router** and no `src/app/`: `App.tsx` shows the sign-in screen or `Main`, and `Main` switches its sub-screens (settings, account, history, …) with local state; Android's Back is handled there. Keep it that way unless the screen count outgrows it.
 - Docs: https://docs.expo.dev/router/introduction.md
 
 ## Building

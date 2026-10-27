@@ -10,6 +10,8 @@ export interface SpeechPlayer {
   play(pcm: Int16Array, pan?: Pan): void;
   stop(): void;
   queuedSeconds(): number;
+  /** Sources still held (queued or playing); finished ones are dropped on the next play(). */
+  held(): number;
 }
 
 // The slice of react-native-audio-api's AudioContext the player uses (also what the tests fake).
@@ -30,10 +32,14 @@ export interface PlayerContext {
 export function createSpeechPlayer(o: { context: PlayerContext; sampleRate: number }): SpeechPlayer {
   const { context, sampleRate } = o;
   let nextAt = 0;
-  const live = new Set<{ stop(): void }>();
+  // Each live source with the time it ends: a spoken session lasts hours, and
+  // a finished chunk's buffer must not be kept until stop().
+  const live = new Map<{ stop(): void }, number>();
 
   return {
     play(pcm, pan = 'both') {
+      const now = context.currentTime;
+      for (const [source, endsAt] of live) if (endsAt <= now) live.delete(source);
       const samples = new Float32Array(pcm.length);
       for (let i = 0; i < pcm.length; i++) samples[i] = pcm[i] / 32768;
       const silence = new Float32Array(pcm.length);
@@ -46,10 +52,10 @@ export function createSpeechPlayer(o: { context: PlayerContext; sampleRate: numb
       const at = Math.max(context.currentTime, nextAt);
       source.start(at);
       nextAt = at + pcm.length / sampleRate;
-      live.add(source);
+      live.set(source, nextAt);
     },
     stop() {
-      for (const source of live) {
+      for (const source of live.keys()) {
         try {
           source.stop();
         } catch {
@@ -61,6 +67,9 @@ export function createSpeechPlayer(o: { context: PlayerContext; sampleRate: numb
     },
     queuedSeconds() {
       return Math.max(0, nextAt - context.currentTime);
+    },
+    held() {
+      return live.size;
     },
   };
 }

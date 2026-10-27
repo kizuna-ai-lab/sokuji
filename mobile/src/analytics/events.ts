@@ -32,6 +32,8 @@ export function sessionStartProperties(o: {
   source: string;
   target: string;
   platform: 'ios' | 'android';
+  /** R13: the translation is read aloud (the listen setting). */
+  participantSpeech?: boolean;
 }): SessionStartProperties {
   return {
     session_id: o.sessionId,
@@ -40,7 +42,7 @@ export function sessionStartProperties(o: {
     provider: PROVIDER,
     transport: 'websocket',
     platform: o.platform,
-    participant_speech: false,
+    participant_speech: o.participantSpeech ?? false,
   };
 }
 

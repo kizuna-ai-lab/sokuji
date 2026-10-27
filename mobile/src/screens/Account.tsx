@@ -16,12 +16,17 @@ export default function Account({
   onBack,
   onSignOut,
   onDeleted,
+  locked,
+  onSignInRequired,
 }: {
   token: string;
   email: string;
   onBack: () => void;
   onSignOut: () => void;
   onDeleted: () => void;
+  /** A session is running: signing out or deleting would leave it recording behind the sign-in screen. */
+  locked: boolean;
+  onSignInRequired: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language.replace('_', '-');
@@ -31,6 +36,12 @@ export default function Account({
   const [error, setError] = useState('');
   const [view, setView] = useState<'account' | 'usage' | 'verify' | 'password'>('account');
   const money = new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD' });
+  // A lost session goes to the sign-in screen; anything else is shown.
+  const show = (err: unknown) => {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message === 'sign_in_required') onSignInRequired();
+    else setError(message);
+  };
   const day = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' });
 
   const load = useCallback(async () => {
@@ -47,7 +58,7 @@ export default function Account({
       setHours(rate !== null || fallback > 0 ? formatHours(h) : null);
       setVerified(v);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      show(err);
     }
   }, [token]);
 
@@ -61,7 +72,7 @@ export default function Account({
       await sendVerificationCode(email);
       setView('verify');
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      show(err);
     }
   }
 
@@ -74,7 +85,7 @@ export default function Account({
       await requestPasswordReset(email);
       setView('password');
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      show(err);
     }
   }
 
@@ -89,14 +100,14 @@ export default function Account({
             await deleteAccount();
             onDeleted();
           } catch (err) {
-            setError(err instanceof Error ? err.message : String(err));
+            show(err);
           }
         },
       },
     ]);
   }
 
-  if (view === 'usage') return <Usage token={token} onBack={() => setView('account')} />;
+  if (view === 'usage') return <Usage token={token} onBack={() => setView('account')} onSignInRequired={onSignInRequired} />;
   if (view === 'verify' || view === 'password') {
     return (
       <SignIn
@@ -147,8 +158,8 @@ export default function Account({
       )}
       <Text accessibilityRole="button" style={styles.row} onPress={() => setView('usage')}>{t('mobile.account.usage')}  ›</Text>
       <Text accessibilityRole="button" style={styles.row} onPress={startPasswordChange}>{t('mobile.signIn.password')}  ›</Text>
-      <Text accessibilityRole="button" style={[styles.row, styles.danger]} onPress={onSignOut}>{t('mobile.account.signOut')}</Text>
-      <Text accessibilityRole="button" style={styles.row} onPress={confirmDelete}>{t('mobile.account.deleteAccount')}  ›</Text>
+      <Text accessibilityRole="button" accessibilityState={{ disabled: locked }} style={[styles.row, locked ? styles.disabled : styles.danger]} onPress={locked ? undefined : onSignOut}>{t('mobile.account.signOut')}</Text>
+      <Text accessibilityRole="button" accessibilityState={{ disabled: locked }} style={[styles.row, locked && styles.disabled]} onPress={locked ? undefined : confirmDelete}>{t('mobile.account.deleteAccount')}  ›</Text>
       {!!error && <Text style={styles.error}>{error}</Text>}
     </View>
   );
@@ -171,5 +182,6 @@ const styles = StyleSheet.create({
   verifyText: { color: '#8a5a00' },
   row: { fontSize: 17, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#ddd' },
   danger: { color: '#c0392b' },
+  disabled: { color: '#aaa' },
   error: { color: '#c0392b' },
 });

@@ -12,7 +12,8 @@
       "infoPlist": {
         "UIBackgroundModes": [
           "audio"
-        ]
+        ],
+        "CFBundleAllowMixedLocalizations": true
       },
       "appleTeamId": "48ST7Q3ACJ",
       "buildNumber": "1",
@@ -92,7 +93,77 @@
           ]
         }
       ],
-      "expo-localization",
+      [
+        "expo-localization",
+        {
+          "supportedLocales": {
+            "ios": [
+              "ar",
+              "bn",
+              "de",
+              "en",
+              "es",
+              "fa",
+              "fi",
+              "fil",
+              "fr",
+              "he",
+              "hi",
+              "id",
+              "it",
+              "ja",
+              "ko",
+              "ms",
+              "nl",
+              "pl",
+              "pt-BR",
+              "pt-PT",
+              "ru",
+              "sv",
+              "ta",
+              "te",
+              "th",
+              "tr",
+              "uk",
+              "vi",
+              "zh-Hans",
+              "zh-Hant"
+            ],
+            "android": [
+              "ar",
+              "bn",
+              "de",
+              "en",
+              "es",
+              "fa",
+              "fi",
+              "fil",
+              "fr",
+              "he",
+              "hi",
+              "id",
+              "it",
+              "ja",
+              "ko",
+              "ms",
+              "nl",
+              "pl",
+              "pt-BR",
+              "pt-PT",
+              "ru",
+              "sv",
+              "ta",
+              "te",
+              "th",
+              "tr",
+              "uk",
+              "vi",
+              "zh-Hans",
+              "zh-Hant"
+            ]
+          }
+        }
+      ],
       "expo-sharing"
     ],
     "scheme": "sokuji",

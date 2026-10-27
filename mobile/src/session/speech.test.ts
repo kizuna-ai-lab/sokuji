@@ -51,6 +51,19 @@ describe('createSpeechPlayer', () => {
     expect(player.queuedSeconds()).toBe(0);
   });
 
+  // A spoken session lasts hours: a finished chunk's buffer must not be kept.
+  it('forgets sources that have finished playing', () => {
+    const { context } = fakeContext();
+    const player = createSpeechPlayer({ context: context as never, sampleRate: 16000 });
+    player.play(new Int16Array(1600));
+    player.play(new Int16Array(1600));
+    player.play(new Int16Array(1600));
+    expect(player.held()).toBe(3);
+    context.currentTime = 1;
+    player.play(new Int16Array(1600));
+    expect(player.held()).toBe(1);
+  });
+
   it('pans a voice to one ear and plays both channels by default', () => {
     const { context, sources } = fakeContext();
     const player = createSpeechPlayer({ context: context as never, sampleRate: 16000 });

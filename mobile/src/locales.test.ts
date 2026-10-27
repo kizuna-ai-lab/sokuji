@@ -25,6 +25,19 @@ describe('mobile/locales', () => {
     }
   });
 
+  // iOS lays the app out right-to-left for Arabic, Hebrew and Persian only when
+  // the device language is a declared supported locale; the same list gives
+  // both platforms the per-app language setting.
+  it('declares every locale as supported on both platforms', () => {
+    const tags = Object.keys(app.locales).sort();
+    const plugins = (JSON.parse(readFileSync(join(root, 'app.json'), 'utf8')).expo as { plugins: unknown[]; ios: { infoPlist: Record<string, unknown> } });
+    const entry = plugins.plugins.find((p) => Array.isArray(p) && p[0] === 'expo-localization') as [string, { supportedLocales: { ios: string[]; android: string[] } }] | undefined;
+    expect(entry, 'expo-localization plugin options').toBeDefined();
+    expect([...entry![1].supportedLocales.ios].sort()).toEqual(tags);
+    expect([...entry![1].supportedLocales.android].sort()).toEqual(tags);
+    expect(plugins.ios.infoPlist.CFBundleAllowMixedLocalizations).toBe(true);
+  });
+
   it('lists every file in app.json and nothing else', () => {
     expect(Object.values(app.locales).map((p) => p.replace('./locales/', '')).sort()).toEqual(files);
   });
