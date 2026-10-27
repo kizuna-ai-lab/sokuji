@@ -151,7 +151,7 @@ The list of what the app may import is pinned by `src/lib/mobileShared.test.ts`:
 root's import graph with `scripts/mobile-shared-audit.mjs` and fails on anything a phone bundle
 cannot carry (Vite-only environment syntax, workers, stylesheets, DOM, Electron or extension
 globals, Web Audio, React through a desktop store). Two seams were cut for it: the lease client
-takes its API root as a dependency, and the Soniox model name lives in `src/providers/soniox/model.ts`.
+takes its API root as a dependency, and the Soniox model name lives in `src/providers/soniox/sttStream.ts` (`SONIOX_STT_MODEL`).
 
 ### 5.3 Auth and the backend
 
