@@ -180,6 +180,14 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    # The Developer ID certificates and the notary key are secrets of the
+    # `macos-signing` environment, whose deployment policy admits only `main`
+    # and `v*` tags. A pull request's build runs the branch's own code, so it
+    # must not hold them: pull requests, other branches and forks build the Mac
+    # app unsigned, and signing is first checked on the push to `main`, before
+    # any tag (docs/build/macos-auto-update.md §7.1c).
+    environment: ${{ startsWith(matrix.os, 'macos') && github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && 'macos-signing' || '' }}
+
     # `secrets` cannot be referenced from a step-level `if`; hoisting it here
     # makes the macOS signing steps conditional without tripping the workflow
     # validator (an invalid file fails the whole run before anything executes).
@@ -529,13 +537,6 @@ jobs:
           NOTARY_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
           NOTARY_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           NOTARY_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-          # electron-builder refuses to sign pull-request builds unless this is
-          # set, so that untrusted forks cannot get at signing credentials. That
-          # protection is redundant here -- GitHub does not pass secrets to fork
-          # PRs at all, so HAS_MAC_CERT is false and CSC_LINK stays unset there --
-          # while leaving it off means no PR can ever verify the signing chain,
-          # which is the whole point of running this on a PR.
-          CSC_FOR_PULL_REQUEST: ${{ env.HAS_MAC_CERT }}
           VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
@@ -687,14 +688,14 @@ jobs:
           echo "OK: the pkg is signed with Developer ID Installer, notarized and stapled."
 
       # A signing change can only be judged on a real Mac (Gatekeeper, TCC,
-      # the keychain, Squirrel's requirement check), so keep the signed app and
-      # installer of a pull request around long enough to try them. Same-repo PRs
-      # only: fork PRs get no certificate and would upload an ad-hoc build.
-      - name: Upload the signed macOS app for review (pull requests)
-        if: runner.os == 'macOS' && github.event_name == 'pull_request' && env.HAS_MAC_CERT == 'true'
+      # the keychain, Squirrel's requirement check). Pull requests build unsigned,
+      # so keep the signed app and installer of each push to `main` around long
+      # enough to try them before a tag is cut.
+      - name: Upload the signed macOS app for review (main)
+        if: runner.os == 'macOS' && github.event_name == 'push' && github.ref == 'refs/heads/main' && env.HAS_MAC_CERT == 'true'
         uses: actions/upload-artifact@v6
         with:
-          name: macos-${{ matrix.arch }}-pr-build
+          name: macos-${{ matrix.arch }}-main-build
           path: |
             out/make-mac/*.zip
             out/make-mac/*.pkg

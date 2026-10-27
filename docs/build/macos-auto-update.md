@@ -1121,7 +1121,11 @@ zhuo (48ST7Q3ACJ)**, its pkg with **Developer ID Installer: jiang zhuo
     Connect API key (`APPLE_API_KEY`, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`).
   - There is no `afterSign` hook any more. `afterSign` runs after notarization,
     so anything that re-signs there voids the ticket.
-- **Secrets** in `kizuna-ai-lab/sokuji`:
+- **Secrets** in `kizuna-ai-lab/sokuji`, as secrets of the `macos-signing`
+  environment. Its deployment policy admits only `main` and `v*` tags, and the
+  build job uses it only for macOS builds of a push to one of those. A pull
+  request's build runs the branch's own code, so it gets no certificate and
+  builds the Mac app unsigned:
 
   | Secret | Contents |
   |---|---|
@@ -1149,9 +1153,17 @@ zhuo (48ST7Q3ACJ)**, its pkg with **Developer ID Installer: jiang zhuo
       copies will accept the update;
     - the pkg is signed with Developer ID Installer, stapled and accepted by
       Gatekeeper.
-  - Notarization runs on every signed build (same-repo pull requests, `main` and
-    tags). It adds a few minutes to each macOS job, and a pull request's
-    artifact is then exactly what users get.
+  - Notarization runs on every signed build, which means pushes to `main` and
+    `v*` tags. It adds a few minutes to each macOS job. A push to `main` keeps its
+    signed zip and pkg as `macos-<arch>-main-build` artifacts for three days. A
+    signing change is therefore checked on a Mac after the merge and before a
+    tag is cut.
+  - `stapler validate` and electron-builder's stapling also look the ticket up
+    with Apple's CloudKit service, and that request drops now and then on the
+    Intel runner (exit 68). Both are retried: the verify step's `stapled` helper
+    does it itself, and electron-builder's copy of `@electron/notarize` is
+    overridden to 3.1.2. 2.5.0, which app-builder-lib pins, never actually
+    retries.
 - **What users see.**
   - *New install:* the downloaded pkg opens in Installer; no `xattr` step.
   - *Updating from v0.46.4:* the usual in-app update.

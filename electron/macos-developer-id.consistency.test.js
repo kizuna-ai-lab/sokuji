@@ -81,6 +81,24 @@ describe('the macOS signing pipeline (build.yml)', () => {
     expect(workflow).not.toContain('- name: Trust the self-signed signing certificate (macOS)');
   });
 
+  it('hands the signing secrets only to Mac builds of main and release tags', () => {
+    // A pull request's build runs the branch's own code, so it must not hold the
+    // Developer ID certificates or the notary key (#662 review). They are
+    // secrets of the `macos-signing` environment, whose deployment policy admits
+    // only `main` and `v*` tags; every other build of the Mac app is unsigned.
+    expect(workflow).toContain(
+      "environment: ${{ startsWith(matrix.os, 'macos') && github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && 'macos-signing' || '' }}"
+    );
+  });
+
+  it('keeps the signed Mac build of main for checking on a Mac before a tag', () => {
+    const upload = step('Upload the signed macOS app for review (main)');
+    expect(upload).toMatch(/if: runner\.os == 'macOS' && github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && env\.HAS_MAC_CERT == 'true'/);
+    expect(upload).toContain('out/make-mac/*.zip');
+    expect(upload).toContain('out/make-mac/*.pkg');
+    expect(workflow).not.toContain('- name: Upload the signed macOS app for review (pull requests)');
+  });
+
   it('proves both Developer ID identities are valid before building', () => {
     const check = step('Check the Developer ID signing identities (macOS)');
     expect(check).toContain(`Developer ID Application: jiang zhuo (${TEAM_ID})`);
